@@ -113,9 +113,6 @@ static void ForEachNetDriver(UEngine* Engine, UWorld* const World, const Functio
 	}
 }
 
-// Deprecation warnings disabled to initialize bNoCollisionFail
-PRAGMA_DISABLE_DEPRECATION_WARNINGS
-
 FActorSpawnParameters::FActorSpawnParameters()
 : Name(NAME_None)
 , Template(NULL)
@@ -123,7 +120,6 @@ FActorSpawnParameters::FActorSpawnParameters()
 , Instigator(NULL)
 , OverrideLevel(NULL)
 , SpawnCollisionHandlingOverride(ESpawnActorCollisionHandlingMethod::Undefined)
-, bNoCollisionFail(false)
 , bRemoteOwned(false)
 , bNoFail(false)
 , bDeferConstruction(false)
@@ -131,10 +127,6 @@ FActorSpawnParameters::FActorSpawnParameters()
 , ObjectFlags(RF_Transactional)
 {
 }
-
-PRAGMA_ENABLE_DEPRECATION_WARNINGS
-
-
 
 FLevelCollection::FLevelCollection()
 	: CollectionType(ELevelCollectionType::DynamicSourceLevels)
@@ -1552,7 +1544,7 @@ void UWorld::UpdateCullDistanceVolumes(AActor* ActorToUpdate, UPrimitiveComponen
 	TMap<UPrimitiveComponent*,float> CompToNewMaxDrawMap;
 
 	// Keep track of time spent.
-	double Duration = 0;
+	double Duration = 0.0;
 	{
 		SCOPE_SECONDS_COUNTER(Duration);
 
@@ -1564,7 +1556,10 @@ void UWorld::UpdateCullDistanceVolumes(AActor* ActorToUpdate, UPrimitiveComponen
 			if (ComponentToUpdate)
 			{
 				check((ActorToUpdate == nullptr) || (ActorToUpdate == ComponentToUpdate->GetOwner()));
-				CompToNewMaxDrawMap.Add(ComponentToUpdate, ComponentToUpdate->LDMaxDrawDistance);
+				if (ACullDistanceVolume::CanBeAffectedByVolumes(ComponentToUpdate))
+				{
+					CompToNewMaxDrawMap.Add(ComponentToUpdate, ComponentToUpdate->LDMaxDrawDistance);
+				}
 			}
 			else
 			{
@@ -3184,7 +3179,7 @@ void UWorld::InitializeActorsForPlay(const FURL& InURL, bool bResetTime)
 		}
 
 		// Lock the level.
-		if(WorldType == EWorldType::Preview)
+		if(IsPreviewWorld())
 		{
 			UE_LOG(LogWorld, Verbose,  TEXT("Bringing preview %s up for play (max tick rate %i) at %s"), *GetFullName(), FMath::RoundToInt(GEngine->GetMaxTickRate(0,false)), *FDateTime::Now().ToString() );
 		}
@@ -3287,7 +3282,7 @@ void UWorld::InitializeActorsForPlay(const FURL& InURL, bool bResetTime)
 
 	CheckTextureStreamingBuild(this);
 
-	if(WorldType == EWorldType::Preview)
+	if(IsPreviewWorld())
 	{
 		UE_LOG(LogWorld, Verbose, TEXT("Bringing up preview level for play took: %f"), FPlatformTime::Seconds() - StartTime );
 	}
@@ -5481,17 +5476,17 @@ bool UWorld::IsPlayInVulkanPreview() const
 
 bool UWorld::IsGameWorld() const
 {
-	return WorldType == EWorldType::Game || WorldType == EWorldType::PIE;
+	return WorldType == EWorldType::Game || WorldType == EWorldType::PIE || WorldType == EWorldType::GamePreview;
 }
 
 bool UWorld::IsPreviewWorld() const
 {
-	return WorldType == EWorldType::Preview;
+	return WorldType == EWorldType::EditorPreview || WorldType == EWorldType::GamePreview;
 }
 
 bool UWorld::UsesGameHiddenFlags() const
 {
-	return IsGameWorld() || bHack_Force_UsesGameHiddenFlags_True;
+	return IsGameWorld();
 }
 
 FString UWorld::GetAddressURL() const
@@ -6233,13 +6228,13 @@ void UWorld::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 /**
 * Dump visible actors in current world.
 */
-static void DumpVisibleActors()
+static void DumpVisibleActors(UWorld* InWorld)
 {
 	UE_LOG(LogWorld, Log, TEXT("------ START DUMP VISIBLE ACTORS ------"));
-	for (FActorIterator ActorIterator(GWorld); ActorIterator; ++ActorIterator)
+	for (FActorIterator ActorIterator(InWorld); ActorIterator; ++ActorIterator)
 	{
 		AActor* Actor = *ActorIterator;
-		if (Actor && Actor->GetLastRenderTime() > (GWorld->GetTimeSeconds() - 0.05f))
+		if (Actor && Actor->GetLastRenderTime() > (InWorld->GetTimeSeconds() - 0.05f))
 		{
 			UE_LOG(LogWorld, Log, TEXT("Visible Actor : %s"), *Actor->GetFullName());
 		}
@@ -6247,10 +6242,10 @@ static void DumpVisibleActors()
 	UE_LOG(LogWorld, Log, TEXT("------ END DUMP VISIBLE ACTORS ------"));
 }
 
-static FAutoConsoleCommand DumpVisibleActorsCmd(
+static FAutoConsoleCommandWithWorld DumpVisibleActorsCmd(
 	TEXT("DumpVisibleActors"),
 	TEXT("Dump visible actors in current world."),
-	FConsoleCommandDelegate::CreateStatic(DumpVisibleActors)
+	FConsoleCommandWithWorldDelegate::CreateStatic(DumpVisibleActors)
 	);
 
 static void DumpLevelCollections(UWorld* InWorld)

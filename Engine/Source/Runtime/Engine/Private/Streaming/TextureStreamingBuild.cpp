@@ -286,10 +286,10 @@ ENGINE_API bool BuildTextureStreamingData(UWorld* InWorld, const FTexCoordScaleM
 					return false;
 
 				UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(Primitive);
-				if (StaticMeshComponent && StaticMeshComponent->StaticMesh && StaticMeshComponent->StaticMesh->GetLightingGuid().IsValid())
+				if (StaticMeshComponent && StaticMeshComponent->GetStaticMesh() && StaticMeshComponent->GetStaticMesh()->GetLightingGuid().IsValid())
 				{
 					// Add to the build Guids all used static meshes.
-					Level->TextureStreamingBuildGuids.Add(StaticMeshComponent->StaticMesh->GetLightingGuid());
+					Level->TextureStreamingBuildGuids.Add(StaticMeshComponent->GetStaticMesh()->GetLightingGuid());
 				}
 			}
 		}
@@ -575,9 +575,9 @@ void CheckTextureStreamingBuild(ULevel* InLevel)
 		}
 
 		const UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(Primitive);
-		if (StaticMeshComponent && StaticMeshComponent->StaticMesh)
+		if (StaticMeshComponent && StaticMeshComponent->GetStaticMesh())
 		{
-			BuildGuilds.Remove(StaticMeshComponent->StaticMesh->GetLightingGuid());
+			BuildGuilds.Remove(StaticMeshComponent->GetStaticMesh()->GetLightingGuid());
 		}
 	}
 

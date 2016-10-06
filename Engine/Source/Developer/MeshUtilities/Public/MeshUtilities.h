@@ -138,6 +138,7 @@ public:
 		TArray<int32>& OutWedgeMap,
 		const FRawMesh& RawMesh,
 		const TMultiMap<int32, int32>& OverlappingCorners,
+		const TMap<uint32, uint32>& MaterialToSectionMapping,
 		float ComparisonThreshold,
 		FVector BuildScale
 		) = 0;
@@ -232,7 +233,7 @@ public:
 	 */
 	virtual void CalcBoneVertInfos( USkeletalMesh* SkeletalMesh, TArray<FBoneVertInfo>& Infos, bool bOnlyDominant) = 0;
 
-	/** 
+	/**
 	 * Convert a set of mesh components in their current pose to a static mesh. 
 	 * @param	InMeshComponents		The mesh components we want to convert
 	 * @param	InRootTransform			The transform of the root of the mesh we want to output

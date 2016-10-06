@@ -17,7 +17,8 @@ enum class ESkeletonTreeRowType : int32
 {
 	Bone = 1,
 	Socket = 2,
-	AttachedAsset = 4
+	AttachedAsset = 4,
+	VirtualBone  =8
 };
 
 ENUM_CLASS_FLAGS(ESkeletonTreeRowType);
@@ -365,6 +366,66 @@ protected:
 	/** The component of the attached asset */
 	TWeakObjectPtr<USceneComponent> AssetComponent;
 };
+
+struct FDisplayedVirtualBoneInfo : public FDisplayedTreeRowInfo
+{
+public:
+	/** Static function for creating a new item, but ensures that you can only have a TSharedRef to one */
+	static TSharedRef<FDisplayedVirtualBoneInfo> Make(
+		const FName& BoneName,
+		TWeakPtr<SSkeletonTree> InSkeletonTree)
+	{
+		FDisplayedVirtualBoneInfo* DisplayedVirtualBoneInfo = new FDisplayedVirtualBoneInfo(BoneName);
+		DisplayedVirtualBoneInfo->SkeletonTree = InSkeletonTree;
+
+		return MakeShareable(DisplayedVirtualBoneInfo);
+	}
+
+	// Manual RTTI - not particularly elegant! :-(
+	virtual void* GetData() override { return &BoneName; }
+	virtual ESkeletonTreeRowType GetType() const override { return ESkeletonTreeRowType::VirtualBone; }
+
+	/** Builds the table row widget to display this info */
+	virtual TSharedRef<ITableRow> MakeTreeRowWidget(
+		const TSharedRef<STableViewBase>& InOwnerTable,
+		FText InFilterText) override;
+
+	/** Builds the slate widget for the name column */
+	virtual void GenerateWidgetForNameColumn(TSharedPtr< SHorizontalBox > Box, FText& FilterText, FIsSelected InIsSelected) override;
+
+	/** Builds the slate widget for the data column */
+	virtual TSharedRef< SWidget > GenerateWidgetForDataColumn(const FName& DataColumnName) override;
+
+	/** Return the name of the bone */
+	virtual FName GetRowItemName() const override { return BoneName; }
+
+	virtual ~FDisplayedVirtualBoneInfo() {}
+
+protected:
+	/** Hidden constructor, always use Make above */
+	FDisplayedVirtualBoneInfo(const FName& InSource)
+		: BoneName(InSource)
+	{}
+
+	/** Hidden constructor, always use Make above */
+	FDisplayedVirtualBoneInfo() {}
+
+private:
+	/** Gets the font for displaying bone text in the skeletal tree */
+	FSlateFontInfo GetBoneTextFont() const;
+
+	/** Get the text color based on bone part of skeleton or part of mesh */
+	FSlateColor GetBoneTextColor() const;
+
+	/** visibility of the icon */
+	EVisibility GetLODIconVisibility() const;
+
+	/** Function that returns the current tooltip for this bone, depending on how it's used by the mesh */
+	FText GetBoneToolTip();
+
+	/** The actual bone data that we create Slate widgets to display */
+	FName BoneName;
+};
 //////////////////////////////////////////////////////////////////////////
 // SSkeletonTree
 
@@ -511,6 +572,12 @@ private:
 	/** Function to promote a socket - this essentially copies a socket from the mesh to the skeleton */
 	void OnPromoteSocket();
 
+	/** Create sub menu to allow users to pick a target bone for the new space switching bone(s) */
+	void FillVirtualBoneSubmenu(FMenuBuilder& MenuBuilder, TArray<TSharedPtr<FDisplayedMeshBoneInfo>> SourceBones);
+
+	/** Handler for user picking a target bone */
+	void OnVirtualTargetBonePicked(FName TargetBoneName, TArray<TSharedPtr<FDisplayedMeshBoneInfo>> SourceBones);
+
 	/** Create content picker sub menu to allow users to pick an asset to attach */
 	void FillAttachAssetSubmenu(FMenuBuilder& MenuBuilder, const FDisplayedTreeRowInfoPtr TargetItem);
 
@@ -579,6 +646,9 @@ private:
 
 	/** Function to remove sockets from the skeleton/mesh */
 	void DeleteSockets(const TArray<TSharedPtr<FDisplayedSocketInfo>>& InDisplayedSocketInfos );
+
+	/** Function to remove virtual bones from the skeleton/mesh */
+	void DeleteVirtualBones(const TArray<TSharedPtr<FDisplayedVirtualBoneInfo>>& InDisplayedVirtualBonestInfos);
 
 	/** Add attached assets from a given TArray of them */
 	void AddAttachedAssets( const FPreviewAssetAttachContainer& AttachedObjects );
@@ -653,4 +723,7 @@ private:
 
 	/** Hold onto the filter combo button to set its foreground color */
 	TSharedPtr<SComboButton> FilterComboButton;
+
+	/** Add virtual bones to the skeleton tree */
+	void AddVirtualBones(const TArray<FVirtualBone>& VirtualBones);
 }; 

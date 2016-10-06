@@ -227,9 +227,9 @@ void SMeshMergingDialog::UpdateSelectedStaticMeshComponents()
 		{
 			SelectedMeshComponents.Add(TSharedPtr<FMeshComponentData>(new FMeshComponentData(MeshComponent)));
 			TSharedPtr<FMeshComponentData>& MeshComponentData = SelectedMeshComponents.Last();
-			MeshComponentData->bShouldIncorporate = (MeshComponentData->MeshComponent->StaticMesh != nullptr);			
+			MeshComponentData->bShouldIncorporate = (MeshComponentData->MeshComponent->GetStaticMesh() != nullptr);
 			// See if we stored a checkbox state for this mesh component, and set accordingly
-			ECheckBoxState State = (MeshComponentData->MeshComponent->StaticMesh != nullptr) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			ECheckBoxState State = (MeshComponentData->MeshComponent->GetStaticMesh() != nullptr) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 			auto StoredState = StoredCheckBoxStates.Find(MeshComponentData->MeshComponent.Get());
 			if (StoredState)
 			{
@@ -250,11 +250,11 @@ TSharedRef<ITableRow> SMeshMergingDialog::MakeComponentListItemWidget(TSharedPtr
 
 	// Retrieve information about the mesh component
 	const FString OwningActorName = MeshComponentData->MeshComponent->GetOwner()->GetName();
-	const FString StaticMeshName = (MeshComponentData->MeshComponent->StaticMesh != nullptr) ? MeshComponentData->MeshComponent->StaticMesh->GetName() : TEXT("No Static Mesh Available");
+	const FString StaticMeshName = (MeshComponentData->MeshComponent->GetStaticMesh() != nullptr) ? MeshComponentData->MeshComponent->GetStaticMesh()->GetName() : TEXT("No Static Mesh Available");
 	const FString ComponentName = MeshComponentData->MeshComponent->GetName();
 
 	// See if we stored a checkbox state for this mesh component, and set accordingly
-	ECheckBoxState State = (MeshComponentData->MeshComponent->StaticMesh != nullptr) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	ECheckBoxState State = (MeshComponentData->MeshComponent->GetStaticMesh() != nullptr) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	auto StoredState = StoredCheckBoxStates.Find(MeshComponentData->MeshComponent.Get());
 	if (StoredState)
 	{
@@ -267,7 +267,7 @@ TSharedRef<ITableRow> SMeshMergingDialog::MakeComponentListItemWidget(TSharedPtr
 			[
 				// Disable UI element if this static mesh component has invalid static mesh data
 				SNew(SHorizontalBox)				
-				.IsEnabled((MeshComponentData->MeshComponent->StaticMesh != nullptr))
+				.IsEnabled((MeshComponentData->MeshComponent->GetStaticMesh() != nullptr))
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[

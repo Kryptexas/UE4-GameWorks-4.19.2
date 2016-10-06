@@ -604,10 +604,6 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	SetCurrentMode(InitialMode);
 	check(CurrentAppModePtr.IsValid());
 
-	// set up our editor mode
-	check(AssetEditorModeManager);
-	AssetEditorModeManager->SetDefaultMode(FPersonaEditModes::SkeletonSelection);
-
 	// Post-layout initialization
 	PostLayoutBlueprintEditorInitialization();
 
@@ -2620,36 +2616,36 @@ void FPersona::ShowReferencePose(bool bReferencePose)
 }
 
 void FPersona::TestSkeletonCurveNamesForUse() const
-	{
+{
 	FPersonaModule& PersonaModule = FModuleManager::GetModuleChecked<FPersonaModule>("Persona");
 	PersonaModule.TestSkeletonCurveNamesForUse(GetSkeletonTree()->GetEditableSkeleton());
 }
 
 bool FPersona::IsShowReferencePoseEnabled() const
-				{
+{
 	return GetPreviewScene()->IsShowReferencePoseEnabled() == true;
-				}
+}
 
 bool FPersona::IsPreviewAssetEnabled() const
-			{
+{
 	return GetPreviewScene()->IsShowReferencePoseEnabled() == false;
-			}
+}
 
 FText FPersona::GetPreviewAssetTooltip() const
-			{
+{
 	return GetPreviewScene()->GetPreviewAssetTooltip(IsInPersonaMode(FPersonaModes::AnimBlueprintEditMode));
-			}
-			
+}
+
 void FPersona::SetSelectedBlendProfile(UBlendProfile* InBlendProfile)
 {
 	OnBlendProfileSelected.Broadcast(InBlendProfile);
 }
 
 TSharedRef<FAnimationEditorPreviewScene> FPersona::GetPreviewScene() const
-	{
-	check(PersonaToolkit.IsValid()); 
-	return StaticCastSharedRef<FAnimationEditorPreviewScene>(PersonaToolkit->GetPreviewScene()); 
-	}
+{
+	check(PersonaToolkit.IsValid());
+	return StaticCastSharedRef<FAnimationEditorPreviewScene>(PersonaToolkit->GetPreviewScene());
+}
 
 void FPersona::HandleCurvesChanged()
 {
@@ -2665,63 +2661,63 @@ void FPersona::HandleObjectsSelected(const TArray<UObject*>& InObjects)
 {
 	SetDetailObjects(InObjects);
 }
-			
+
 void FPersona::HandleObjectSelected(UObject* InObject)
-			{
+{
 	SetDetailObject(InObject);
 }
 
 void FPersona::HandleAnimNotifiesChanged()
-					{
+{
 	OnAnimNotifiesChanged.Broadcast();
-				}
+}
 
 void FPersona::HandleViewportCreated(const TSharedRef<IPersonaViewport>& InViewport)
-				{
+{
 	// mode switch data sharing: We save data from previous viewports and restore after they are switched
 	bool bRestoreData = Viewport.IsValid();
 	if (bRestoreData)
-					{
+	{
 		ViewportState = InViewport->SaveState();
 	}
 
 	SetViewport(StaticCastSharedRef<SAnimationEditorViewportTabBody>(InViewport));
 
 	if (bRestoreData)
-						{
+	{
 		InViewport->RestoreState(ViewportState.ToSharedRef());
-						}
-							}
+	}
+}
 
 void FPersona::HandleOpenNewAsset(UObject* InNewAsset)
-							{
+{
 	if (UAnimationAsset* NewAnimationAsset = Cast<UAnimationAsset>(InNewAsset))
-								{
+	{
 		OpenNewDocumentTab(NewAnimationAsset);
 		SetPreviewAnimationAsset(NewAnimationAsset);
-							}
-						}
+	}
+}
 
 UObject* FPersona::HandleGetObject()
-				{
+{
 	return GetEditingObject();
 }
 
 void FPersona::OnPostCompile()
-					{
+{
 	// act as if we have re-selected, so internal pointers are updated
 	OnSelectedNodesChangedImpl(GetSelectedNodes());
 
 	// if the user manipulated Pin values directly from the node, then should copy updated values to the internal node to retain data consistency
 	UEdGraph* FocusedGraph = GetFocusedGraph();
 	if (FocusedGraph)
-						{
+	{
 		// find UAnimGraphNode_Base
 		for (UEdGraphNode* Node : FocusedGraph->Nodes)
-							{
+		{
 			UAnimGraphNode_Base* AnimGraphNode = Cast<UAnimGraphNode_Base>(Node);
 			if (AnimGraphNode)
-								{
+			{
 				FAnimNode_Base* AnimNode = FindAnimNode(AnimGraphNode);
 				if (AnimNode)
 				{
@@ -2736,13 +2732,13 @@ FAnimNode_Base* FPersona::FindAnimNode(UAnimGraphNode_Base* AnimGraphNode) const
 {
 	FAnimNode_Base* AnimNode = nullptr;
 	if (AnimGraphNode)
-{
+	{
 		UDebugSkelMeshComponent* PreviewMeshComponent = GetPreviewScene()->GetPreviewMeshComponent();
 		if (PreviewMeshComponent != nullptr && PreviewMeshComponent->GetAnimInstance() != nullptr)
-	{
+		{
 			AnimNode = AnimGraphNode->FindDebugAnimNode(PreviewMeshComponent);
+		}
 	}
-}
 
 	return AnimNode;
 }
@@ -2751,43 +2747,50 @@ void FPersona::OnSelectedNodesChangedImpl(const TSet<class UObject*>& NewSelecti
 {
 	FBlueprintEditor::OnSelectedNodesChangedImpl(NewSelection);
 
+	IPersonaEditorModeManager* PersonaEditorModeManager = static_cast<IPersonaEditorModeManager*>(GetAssetEditorModeManager());
+
 	if (SelectedAnimGraphNode.IsValid())
-{
+	{
 		// copy values from the preview node to ensure data consistency
 		FAnimNode_Base* PreviewNode = FindAnimNode(SelectedAnimGraphNode.Get());
 
-		SelectedAnimGraphNode->OnNodeSelected(false, *GetAssetEditorModeManager(), PreviewNode);
+		if (PersonaEditorModeManager)
+		{
+			SelectedAnimGraphNode->OnNodeSelected(false, *PersonaEditorModeManager, PreviewNode);
+		}
 		SelectedAnimGraphNode.Reset();
-			}
+	}
 
 	// if we only have one node selected, let it know
 	UAnimGraphNode_Base* NewSelectedAnimGraphNode = nullptr;
 	if (NewSelection.Num() == 1)
-		{
+	{
 		NewSelectedAnimGraphNode = Cast<UAnimGraphNode_SkeletalControlBase>(*NewSelection.CreateConstIterator());
 		if (NewSelectedAnimGraphNode != nullptr)
-			{
+		{
 			SelectedAnimGraphNode = NewSelectedAnimGraphNode;
 
 			// copy values to the preview node to ensure data consistency
 			FAnimNode_Base* PreviewNode = FindAnimNode(SelectedAnimGraphNode.Get());
-
-			SelectedAnimGraphNode->OnNodeSelected(true, *GetAssetEditorModeManager(), PreviewNode);
+			if (PreviewNode && PersonaEditorModeManager)
+			{
+				SelectedAnimGraphNode->OnNodeSelected(true, *PersonaEditorModeManager, PreviewNode);
 			}
 		}
+	}
 }
 
 void FPersona::HandlePinDefaultValueChanged(UEdGraphPin* InPinThatChanged)
 {
 	UAnimGraphNode_Base* AnimGraphNode = Cast<UAnimGraphNode_Base>(InPinThatChanged->GetOwningNode());
 	if (AnimGraphNode)
-{
+	{
 		FAnimNode_Base* AnimNode = FindAnimNode(AnimGraphNode);
 		if (AnimNode)
-{
+		{
 			AnimGraphNode->CopyNodeDataToPreviewNode(AnimNode);
-}
-}
+		}
+	}
 }
 
 void FPersona::TogglePlayback()
@@ -2800,9 +2803,9 @@ void FPersona::TogglePlayback()
 }
 
 void FPersona::HandleAnimationSequenceBrowserCreated(const TSharedRef<IAnimationSequenceBrowser>& InSequenceBrowser)
-		{
+{
 	SequenceBrowser = InSequenceBrowser;
-	}
+}
 
 #undef LOCTEXT_NAMESPACE
 

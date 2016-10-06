@@ -157,6 +157,9 @@ public:
 		/** Called when a folder is entered */
 		SLATE_EVENT( FOnPathSelected, OnPathSelected )
 
+		/** Columns to hide by default */
+		SLATE_ARGUMENT( TArray<FString>, HiddenColumnNames )
+
 	SLATE_END_ARGS()
 
 	~SAssetView();
@@ -955,6 +958,7 @@ private:
 	FQuickJumpData QuickJumpData;
 	
 	/** Column filtering state */
+	TArray<FString> DefaultHiddenColumnNames;
 	TArray<FString> HiddenColumnNames;
 	int32 NumVisibleColumns;
 public:

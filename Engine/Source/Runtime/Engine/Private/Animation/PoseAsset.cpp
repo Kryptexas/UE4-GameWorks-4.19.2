@@ -472,7 +472,7 @@ bool UPoseAsset::GetAnimationPose(struct FCompactPose& OutPose, FBlendedCurve& O
 			TArray<float>	CurveWeights;
 
 			//if full pose, we'll have to normalize by weight
-			if (bNormalizeWeight && TotalWeight != 1.f)
+			if (bNormalizeWeight && TotalWeight > 1.f)
 			{
 				for (TPair<const FPoseData*, float>& WeightPair : IndexToWeightMap)
 				{
@@ -501,6 +501,8 @@ bool UPoseAsset::GetAnimationPose(struct FCompactPose& OutPose, FBlendedCurve& O
 					}
 				}
 
+				const int32 StartBlendLoopIndex = (!bAdditivePose && TotalLocalWeight < 1.f) ? 0 : 1;
+
 				if (BlendingTransform.Num() == 0)
 				{
 					// copy from out default pose
@@ -518,11 +520,18 @@ bool UPoseAsset::GetAnimationPose(struct FCompactPose& OutPose, FBlendedCurve& O
 					}
 					else
 					{
-						BlendedBoneTransform[TrackIndex] = BlendingTransform[0] * ScalarRegister(BlendingWeights[0]);
+						if (StartBlendLoopIndex == 0)
+						{
+							BlendedBoneTransform[TrackIndex] = OutPose[BoneIndices[TrackIndex].CompactBoneIndex] * ScalarRegister(1.f - TotalLocalWeight);
+						}
+						else
+						{
+							BlendedBoneTransform[TrackIndex] = BlendingTransform[0] * ScalarRegister(BlendingWeights[0]);
+						}
 					}
 				}
 
-				for (int32 BlendIndex = 1; BlendIndex < BlendingTransform.Num(); ++BlendIndex)
+				for (int32 BlendIndex = StartBlendLoopIndex; BlendIndex < BlendingTransform.Num(); ++BlendIndex)
 				{
 					BlendedBoneTransform[TrackIndex].AccumulateWithShortestRotation(BlendingTransform[BlendIndex], ScalarRegister(BlendingWeights[BlendIndex]));
 				}
@@ -904,18 +913,16 @@ void UPoseAsset::CreatePoseFromAnimation(class UAnimSequence* AnimSequence, cons
 				// stack allocator for extracting curve
 				FMemMark Mark(FMemStack::Get());
 
-				const int32 NumTracks = AnimSequence->AnimationTrackNames.Num();
-
 				// set up track data - @todo: add revaliation code when checked
-				for (int32 TrackIndex = 0; TrackIndex < NumTracks; ++TrackIndex)
+				for (const FName& TrackName : AnimSequence->GetAnimationTrackNames())
 				{
-					const FName& TrackName = AnimSequence->AnimationTrackNames[TrackIndex];
 					PoseContainer.Tracks.Add(TrackName);
 				}
 
 				// now create pose transform
 				TArray<FTransform> NewPose;
 				
+				const int32 NumTracks = AnimSequence->GetAnimationTrackNames().Num();
 				NewPose.Reset(NumTracks);
 				NewPose.AddUninitialized(NumTracks);
 
@@ -946,7 +953,7 @@ void UPoseAsset::CreatePoseFromAnimation(class UAnimSequence* AnimSequence, cons
 					// now get rawanimationdata, and each key is converted to new pose
 					for (int32 TrackIndex = 0; TrackIndex < NumTracks; ++TrackIndex)
 					{
-						const auto& RawTrack = AnimSequence->RawAnimationData[TrackIndex];
+						const auto& RawTrack = AnimSequence->GetRawAnimationTrack(TrackIndex);
 						AnimSequence->ExtractBoneTransform(RawTrack, NewPose[TrackIndex], PoseIndex);
 					}
 
@@ -1005,7 +1012,7 @@ void UPoseAsset::UpdatePoseFromAnimation(class UAnimSequence* AnimSequence)
 			ConvertToAdditivePose(OldBasePoseIndex);
 		}
 
-		OnAssetModifiedNotifier.Broadcast();
+		OnPoseListChanged.Broadcast();
 	}
 }
 #endif // WITH_EDITOR
@@ -1230,15 +1237,6 @@ void UPoseAsset::ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimati
 			SourceAnimation = *ReplacementAsset;
 		}
 	}
-}
-
-void UPoseAsset::RegisterOnAssetModifiedNotifier(const FAssetModifiedNotifier& Delegate)
-{
-	OnAssetModifiedNotifier.Add(Delegate);
-}
-void UPoseAsset::UnregisterOnAssetModifiedNotifier(void* Unregister)
-{
-	OnAssetModifiedNotifier.RemoveAll(Unregister);
 }
 
 #endif // WITH_EDITOR

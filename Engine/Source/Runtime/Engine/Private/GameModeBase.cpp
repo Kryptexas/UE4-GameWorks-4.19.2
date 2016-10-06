@@ -1140,6 +1140,8 @@ void AGameModeBase::RestartPlayerAtPlayerStart(AController* NewPlayer, AActor* S
 		return;
 	}
 
+	FRotator SpawnRotation = StartSpot->GetActorRotation();
+
 	UE_LOG(LogGameMode, Verbose, TEXT("RestartPlayerAtPlayerStart %s"), (NewPlayer && NewPlayer->PlayerState) ? *NewPlayer->PlayerState->PlayerName : TEXT("Unknown"));
 
 	if (MustSpectate(Cast<APlayerController>(NewPlayer)))
@@ -1148,9 +1150,14 @@ void AGameModeBase::RestartPlayerAtPlayerStart(AController* NewPlayer, AActor* S
 		return;
 	}
 
-	// Try to create a pawn to use of the default class for this player
-	if (NewPlayer->GetPawn() == nullptr && GetDefaultPawnClassForController(NewPlayer) != nullptr)
+	if (NewPlayer->GetPawn() != nullptr)
 	{
+		// If we have an existing pawn, just use it's rotation
+		SpawnRotation = NewPlayer->GetPawn()->GetActorRotation();
+	}
+	else if (GetDefaultPawnClassForController(NewPlayer) != nullptr)
+	{
+		// Try to create a pawn to use of the default class for this player
 		NewPlayer->SetPawn(SpawnDefaultPawnFor(NewPlayer, StartSpot));
 	}
 
@@ -1163,7 +1170,7 @@ void AGameModeBase::RestartPlayerAtPlayerStart(AController* NewPlayer, AActor* S
 		// Tell the start spot it was used
 		InitStartSpot(StartSpot, NewPlayer);
 
-		FinishRestartPlayer(NewPlayer, StartSpot->GetActorRotation());
+		FinishRestartPlayer(NewPlayer, SpawnRotation);
 	}
 }
 
@@ -1182,9 +1189,16 @@ void AGameModeBase::RestartPlayerAtTransform(AController* NewPlayer, const FTran
 		return;
 	}
 
-	// Try to create a pawn to use of the default class for this player
-	if (NewPlayer->GetPawn() == nullptr && GetDefaultPawnClassForController(NewPlayer) != nullptr)
+	FRotator SpawnRotation = SpawnTransform.GetRotation().Rotator();
+
+	if (NewPlayer->GetPawn() != nullptr)
 	{
+		// If we have an existing pawn, just use it's rotation
+		SpawnRotation = NewPlayer->GetPawn()->GetActorRotation();
+	}
+	else if (GetDefaultPawnClassForController(NewPlayer) != nullptr)
+	{
+		// Try to create a pawn to use of the default class for this player
 		NewPlayer->SetPawn(SpawnDefaultPawnAtTransform(NewPlayer, SpawnTransform));
 	}
 
@@ -1194,7 +1208,7 @@ void AGameModeBase::RestartPlayerAtTransform(AController* NewPlayer, const FTran
 	}
 	else
 	{
-		FinishRestartPlayer(NewPlayer, SpawnTransform.GetRotation().Rotator());
+		FinishRestartPlayer(NewPlayer, SpawnRotation);
 	}
 }
 

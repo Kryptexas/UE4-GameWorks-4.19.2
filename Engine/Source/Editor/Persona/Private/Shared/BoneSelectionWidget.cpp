@@ -14,6 +14,7 @@ void SBoneTreeMenu::Construct(const FArguments& InArgs, const TSharedRef<class I
 {
 	EditableSkeletonPtr = InEditableSkeleton;
 	OnSelectionChangedDelegate = InArgs._OnBoneSelectionChanged;
+	bShowVirtualBones = InArgs._bShowVirtualBones;
 
 	FText TitleToUse = !InArgs._Title.IsEmpty() ? InArgs._Title  : LOCTEXT("BonePickerTitle", "Pick Bone...");
 
@@ -108,7 +109,9 @@ void SBoneTreeMenu::RebuildBoneList()
 	SkeletonTreeInfoFlat.Empty();
 
 	const FReferenceSkeleton& RefSkeleton = EditableSkeletonPtr.Pin()->GetSkeleton().GetReferenceSkeleton();
-	for(int32 BoneIdx = 0; BoneIdx < RefSkeleton.GetNum(); ++BoneIdx)
+	const int32 MaxBone = bShowVirtualBones ? RefSkeleton.GetNum() : RefSkeleton.GetRawBoneNum();
+
+	for(int32 BoneIdx = 0; BoneIdx < MaxBone; ++BoneIdx)
 	{
 		TSharedRef<FBoneNameInfo> BoneInfo = MakeShareable(new FBoneNameInfo(RefSkeleton.GetBoneName(BoneIdx)));
 

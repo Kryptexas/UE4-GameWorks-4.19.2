@@ -338,13 +338,13 @@ FDlgMergeSkeleton::EResult FDlgMergeSkeleton::ShowModal()
 
 	// Make a list of all skeleton bone list
 	const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
-	for ( int32 BoneTreeId=0; BoneTreeId<RefSkeleton.GetNum(); ++BoneTreeId )
+	for ( int32 BoneTreeId=0; BoneTreeId<RefSkeleton.GetRawBoneNum(); ++BoneTreeId )
 	{
 		const FName& BoneName = RefSkeleton.GetBoneName(BoneTreeId);
 		BoneIndicesMap.Add(BoneName, BoneTreeId);
 	}
 
-	for ( int32 RefBoneId=0 ; RefBoneId< Mesh->RefSkeleton.GetNum() ; ++RefBoneId )
+	for ( int32 RefBoneId=0 ; RefBoneId< Mesh->RefSkeleton.GetRawBoneNum() ; ++RefBoneId )
 	{
 		const FName& BoneName = Mesh->RefSkeleton.GetBoneName(RefBoneId);
 		// if I can't find this from Skeleton
@@ -361,7 +361,7 @@ FDlgMergeSkeleton::EResult FDlgMergeSkeleton::ShowModal()
 	{
 		// it's all identical, but still need to return RequiredBones
 		// for the case, where they'd like to replace the one exactly same hierarchy but different skeleton 
-		for ( int32 RefBoneId= 0 ; RefBoneId< Mesh->RefSkeleton.GetNum() ; ++RefBoneId )
+		for ( int32 RefBoneId= 0 ; RefBoneId< Mesh->RefSkeleton.GetRawBoneNum() ; ++RefBoneId )
 		{
 			const FName& BoneName = Mesh->RefSkeleton.GetBoneName(RefBoneId);
 			RequiredBones.Add(RefBoneId);
@@ -378,7 +378,7 @@ FDlgMergeSkeleton::EResult FDlgMergeSkeleton::ShowModal()
 
 	if(UserResponse == EResult::Confirm)
 	{
-		for ( int32 RefBoneId= 0 ; RefBoneId< Mesh->RefSkeleton.GetNum() ; ++RefBoneId )
+		for ( int32 RefBoneId= 0 ; RefBoneId< Mesh->RefSkeleton.GetRawBoneNum() ; ++RefBoneId )
 		{
 			if ( DialogWidget->IsBoneIncluded(RefBoneId) )
 			{

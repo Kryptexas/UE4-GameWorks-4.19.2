@@ -168,6 +168,18 @@ namespace AbcImporterUtilities
 		MinTime = (float)TimeSampler->getSampleTime(0);
 		MaxTime = (float)TimeSampler->getSampleTime(Schema.getNumSamples() - 1);
 	}
+
+	template<typename T> void GetStartTimeAndFrame(T& Schema, float& StartTime, uint32& StartFrame)
+	{
+		checkf(Schema.valid(), TEXT("Invalid Schema"));
+		Alembic::AbcCoreAbstract::TimeSamplingPtr TimeSampler = Schema.getTimeSampling();
+
+		StartTime = (float)TimeSampler->getSampleTime(0);
+		Alembic::AbcCoreAbstract::TimeSamplingType SamplingType = TimeSampler->getTimeSamplingType();
+		// We know the seconds per frame, so if we take the time for the first stored sample we can work out how many 'empty' frames come before it
+		// Ensure that the start frame is never lower that 0
+		StartFrame = FMath::Max<int32>( (int32)(StartTime / (float)SamplingType.getTimePerCycle() - 1), 0 );
+	}
 	
 	FAbcMeshSample* MergeMeshSamples(const TArray<FAbcMeshSample*>& Samples);
 
@@ -191,7 +203,7 @@ namespace AbcImporterUtilities
 	void GenerateDeltaFrameDataMatrix(const TArray<FVector>& FrameVertexData, TArray<FVector>& AverageVertexData, const int32 SampleOffset, const int32 AverageVertexOffset, TArray<float>& OutGeneratedMatrix);
 
 	/** Populates compressed data structure from the result PCA compression bases and weights */
-	void GenerateCompressedMeshData(FCompressedAbcData& CompressedData, const uint32 NumUsedSingularValues, const uint32 NumSamples, const TArray<float>& BasesMatrix, const TArray<float>& BasesWeights, const float SampleTimeStep);
+	void GenerateCompressedMeshData(FCompressedAbcData& CompressedData, const uint32 NumUsedSingularValues, const uint32 NumSamples, const TArray<float>& BasesMatrix, const TArray<float>& BasesWeights, const float SampleTimeStep, const float StartTime);
 
 	/** Appends material names retrieve from the face sets to the compressed data */
 	void AppendMaterialNames(const TSharedPtr<FAbcPolyMeshObject>& MeshObject, FCompressedAbcData& CompressedData);
@@ -199,4 +211,11 @@ namespace AbcImporterUtilities
 	void CalculateNewStartAndEndFrameIndices(const float FrameStepRatio, uint32& InOutStartFrameIndex, uint32& InOutEndFrameIndex );
 
 	bool AreVerticesEqual(const FSoftSkinVertex& V1, const FSoftSkinVertex& V2);
+
+	/** Applies user/preset conversion to the given sample */
+	void ApplyConversion(FAbcMeshSample* InOutSample, const FAbcConversionSettings& InConversionSettings);
+
+	/** Applies user/preset conversion to the given matrices */
+	void ApplyConversion(TArray<FMatrix>& InOutMatrices, const FAbcConversionSettings& InConversionSettings);
+	
 }

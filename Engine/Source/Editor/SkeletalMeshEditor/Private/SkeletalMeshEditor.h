@@ -3,6 +3,7 @@
 #pragma once
 
 #include "ISkeletalMeshEditor.h"
+#include "TickableEditorObject.h"
 #include "EditorUndoClient.h"
 
 namespace SkeletalMeshEditorModes
@@ -23,7 +24,7 @@ namespace SkeletalMeshEditorTabs
 	extern const FName MeshDetailsTab;
 }
 
-class FSkeletalMeshEditor : public ISkeletalMeshEditor, public FGCObject, public FEditorUndoClient
+class FSkeletalMeshEditor : public ISkeletalMeshEditor, public FGCObject, public FEditorUndoClient, public FTickableEditorObject
 {
 public:
 	FSkeletalMeshEditor();
@@ -47,6 +48,11 @@ public:
 	/** FEditorUndoClient interface */
 	virtual void PostUndo(bool bSuccess) override;
 	virtual void PostRedo(bool bSuccess) override;
+
+	/** FTickableEditorObject Interface */
+	virtual void Tick(float DeltaTime) override;
+	virtual TStatId GetStatId() const override;
+	virtual bool IsTickable() const override { return true; }
 
 	/** @return the documentation location for this editor */
 	virtual FString GetDocumentationLink() const override

@@ -899,6 +899,7 @@ void UCrowdManager::DestroyCrowdManager()
 	DetourCrowd = NULL;
 }
 
+#if ENABLE_DRAW_DEBUG
 void UCrowdManager::DrawDebugCorners(const dtCrowdAgent* CrowdAgent) const
 {
 	{
@@ -1058,6 +1059,7 @@ void UCrowdManager::DrawDebugSharedBoundary() const
 		}
 	}
 }
+#endif // ENABLE_DRAW_DEBUG
 
 #endif // WITH_RECAST
 

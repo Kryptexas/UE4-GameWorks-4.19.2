@@ -3322,9 +3322,11 @@ static void	DeleteDormantActor( UWorld* InWorld )
 
 		UE_LOG(LogNet, Warning, TEXT("Deleting actor %s"), *ThisActor->GetName());
 
+#if ENABLE_DRAW_DEBUG
 		FBox Box = ThisActor->GetComponentsBoundingBox();
 		
 		DrawDebugBox( InWorld, Box.GetCenter(), Box.GetExtent(), FQuat::Identity, FColor::Red, true, 30 );
+#endif
 
 		ThisActor->Destroy();
 

@@ -812,6 +812,8 @@ bool UProceduralMeshComponent::GetPhysicsTriMeshData(struct FTriMeshCollisionDat
 	}
 
 	CollisionData->bFlipNormals = true;
+	CollisionData->bDeformableMesh = true;
+	CollisionData->bFastCook = true;
 
 	return true;
 }

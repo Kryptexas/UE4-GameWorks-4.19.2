@@ -80,6 +80,7 @@ FAnimationViewportClient::FAnimationViewportClient(const TSharedRef<ISkeletonTre
 
 	Widget->SetUsesEditorModeTools(ModeTools);
 	((FAssetEditorModeManager*)ModeTools)->SetPreviewScene(&InPreviewScene.Get());
+	((FAssetEditorModeManager*)ModeTools)->SetDefaultMode(FPersonaEditModes::SkeletonSelection);
 
 	// load config
 	ConfigOption = UPersonaOptions::StaticClass()->GetDefaultObject<UPersonaOptions>();
@@ -142,6 +143,11 @@ FAnimationViewportClient::~FAnimationViewportClient()
 	{
 		GetPreviewScene()->UnregisterOnPreviewMeshChanged(this);
 		GetPreviewScene()->UnregisterOnInvalidateViews(this);
+	}
+
+	if (AssetEditorToolkitPtr.IsValid())
+	{
+		AssetEditorToolkitPtr.Pin()->SetAssetEditorModeManager(nullptr);
 	}
 
 	((FAssetEditorModeManager*)ModeTools)->SetPreviewScene(nullptr);
@@ -550,9 +556,10 @@ bool FAnimationViewportClient::ShouldDisplayAdditiveScaleErrorMessage()
 	{
 		if (AnimSequence->IsValidAdditive() && AnimSequence->RefPoseSeq)
 		{
-			if (RefPoseGuid != AnimSequence->RefPoseSeq->RawDataGuid)
+			FGuid AnimSeqGuid = AnimSequence->RefPoseSeq->GetRawDataGuid();
+			if (RefPoseGuid != AnimSeqGuid)
 			{
-				RefPoseGuid = AnimSequence->RefPoseSeq->RawDataGuid;
+				RefPoseGuid = AnimSeqGuid;
 				bDoesAdditiveRefPoseHaveZeroScale = AnimSequence->DoesSequenceContainZeroScale();
 			}
 			return bDoesAdditiveRefPoseHaveZeroScale;
@@ -1452,10 +1459,10 @@ void FAnimationViewportClient::UpdateCameraSetup()
 		// Move the floor to the bottom of the bounding box of the mesh, rather than on the origin
 		FVector Bottom = PreviewMeshComponent->Bounds.GetBoxExtrema(0);
 
-		FVector FloorPos(0.f, 0.f, 0.f);
+		FVector FloorPos(0.f, 0.f, GetFloorOffset());
 		if (bAutoAlignFloor)
 		{
-			FloorPos.Z = GetFloorOffset() + Bottom.Z;
+			FloorPos.Z += Bottom.Z;
 		}
 		GetAnimPreviewScene()->SetFloorLocation(FloorPos);
 	}
@@ -1488,8 +1495,7 @@ void FAnimationViewportClient::FocusViewportOnPreviewMesh(bool bInstant /*= true
 	else
 	{
 		// dont auto-focus if there is nothing to focus on
-		UPersonaPreviewSceneDescription* PreviewSceneDescription = GetAnimPreviewScene()->GetPreviewSceneDescription();
-		if (!(!PreviewSceneDescription->PreviewMesh.IsValid() && (!PreviewSceneDescription->AdditionalMeshes.IsValid() || PreviewSceneDescription->AdditionalMeshes.LoadSynchronous()->SkeletalMeshes.Num() == 0)))
+		if (GetAnimPreviewScene()->GetPreviewMeshComponent()->SkeletalMesh)
 		{
 			FSphere Sphere = GetCameraTarget();
 			FocusViewportOnSphere(Sphere);
@@ -1695,6 +1701,11 @@ IPersonaEditorModeManager& FAnimationViewportClient::GetPersonaModeManager() con
 void FAnimationViewportClient::HandleInvalidateViews()
 {
 	Invalidate();
+}
+
+bool FAnimationViewportClient::CanCycleWidgetMode() const
+{
+	return ModeTools ? ModeTools->CanCycleWidgetMode() : false;
 }
 
 #undef LOCTEXT_NAMESPACE

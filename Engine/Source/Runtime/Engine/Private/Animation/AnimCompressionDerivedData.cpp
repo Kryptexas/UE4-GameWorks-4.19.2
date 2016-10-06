@@ -51,65 +51,22 @@ FString FDerivedDataAnimationCompression::GetPluginSpecificCacheKeySuffix() cons
 	char AdditiveType = bCanBakeAdditive ? NibbleToTChar(OriginalAnimSequence->AdditiveAnimType) : '0';
 	char RefType = bCanBakeAdditive ? NibbleToTChar(OriginalAnimSequence->RefPoseType) : '0';
 
-	FString Ret = FString::Printf(TEXT("%i_%i_%s%s_%c%c%i_%s_%s"),
+	FString Ret = FString::Printf(TEXT("%i_%i_%s%s%s_%c%c%i_%s_%s"),
 		(int32)UE_ANIMCOMPRESSION_DERIVEDDATA_VER,
 		(int32)CURRENT_ANIMATION_ENCODING_PACKAGE_VERSION,
-		*OriginalAnimSequence->RawDataGuid.ToString(),
+		*OriginalAnimSequence->GetRawDataGuid().ToString(),
 		*OriginalAnimSequence->GetSkeleton()->GetGuid().ToString(),
+		*OriginalAnimSequence->GetSkeleton()->GetVirtualBoneGuid().ToString(),
 		AdditiveType,
 		RefType,
 		OriginalAnimSequence->RefFrameIndex,
-		(bCanBakeAdditive && AdditiveBase) ? *AdditiveBase->RawDataGuid.ToString() : TEXT("NoAdditiveBase"),
+		(bCanBakeAdditive && AdditiveBase) ? *AdditiveBase->GetRawDataGuid().ToString() : TEXT("NoAdditiveBase"),
 		*OriginalAnimSequence->CompressionScheme->MakeDDCKey()
 		);
 
 	return Ret;
 
 }
-
-struct FScopedAnimSequenceRawDataCache
-{
-	UAnimSequence* SrcAnim;
-	TArray<FRawAnimSequenceTrack> RawAnimationData;
-	TArray<FName> AnimationTrackNames;
-	TArray<FTrackToSkeletonMap> TrackToSkeletonMapTable;
-	FRawCurveTracks RawCurveData;
-	bool bWasEmpty;
-
-	FScopedAnimSequenceRawDataCache() : SrcAnim(nullptr), bWasEmpty(false){}
-	~FScopedAnimSequenceRawDataCache()
-	{
-		if (SrcAnim)
-		{
-			RestoreTo(SrcAnim);
-		}
-	}
-
-	void InitFrom(UAnimSequence* Src)
-	{
-#if WITH_EDITORONLY_DATA
-		check(!SrcAnim);
-		SrcAnim = Src;
-		RawAnimationData = Src->RawAnimationData;
-		bWasEmpty = RawAnimationData.Num() == 0;
-		AnimationTrackNames = Src->AnimationTrackNames;
-		TrackToSkeletonMapTable = Src->TrackToSkeletonMapTable;
-		RawCurveData = Src->RawCurveData;
-#endif
-	}
-
-	void RestoreTo(UAnimSequence* Src)
-	{
-#if WITH_EDITORONLY_DATA
-		Src->RawAnimationData = MoveTemp(RawAnimationData);
-		check(bWasEmpty || Src->RawAnimationData.Num() > 0);
-		Src->AnimationTrackNames = MoveTemp(AnimationTrackNames);
-		Src->TrackToSkeletonMapTable = MoveTemp(TrackToSkeletonMapTable);
-		Src->RawCurveData = RawCurveData;
-#endif
-	}
-
-};
 
 bool FDerivedDataAnimationCompression::Build( TArray<uint8>& OutData )
 {
@@ -133,17 +90,24 @@ bool FDerivedDataAnimationCompression::Build( TArray<uint8>& OutData )
 	bool bCompressionSuccessful = false;
 	{
 		FScopedAnimSequenceRawDataCache RawDataCache;
-		if (AnimToOperateOn->CanBakeAdditive())
+		const bool bHasVirtualBones = AnimToOperateOn->GetSkeleton()->GetVirtualBones().Num() > 0;
+		const bool bNeedToModifyRawData = AnimToOperateOn->CanBakeAdditive() || bHasVirtualBones;
+		if (bDoCompressionInPlace && bNeedToModifyRawData)
 		{
-			if (bDoCompressionInPlace)
-			{
-				RawDataCache.InitFrom(AnimToOperateOn);
-			}
-
-			AnimToOperateOn->BakeOutAdditiveIntoRawData();
+			//Cache original raw data before we mess with it
+			RawDataCache.InitFrom(AnimToOperateOn);
 		}
 
-		AnimToOperateOn->CompressedTrackToSkeletonMapTable = AnimToOperateOn->TrackToSkeletonMapTable;
+		if (AnimToOperateOn->CanBakeAdditive())
+		{
+			AnimToOperateOn->BakeOutAdditiveIntoRawData();
+		}
+		else if(bHasVirtualBones)// If we aren't additive we must bake virtual bones
+		{
+			AnimToOperateOn->BakeOutVirtualBoneTracks();
+		}
+
+		AnimToOperateOn->UpdateCompressedTrackMapFromRaw();
 		AnimToOperateOn->CompressedCurveData = AnimToOperateOn->RawCurveData; //Curves don't actually get compressed, but could have additives baked in
 
 #ifdef DO_CHECK
@@ -164,8 +128,6 @@ bool FDerivedDataAnimationCompression::Build( TArray<uint8>& OutData )
 											CompressContext.Get()->MaxAnimations,
 											AAC,
 											OutputStr);
-
-		AnimToOperateOn->TemporaryAdditiveBaseAnimationData.Empty();
 	}
 
 	//Our compression scheme may change so copy the new one back
@@ -177,6 +139,7 @@ bool FDerivedDataAnimationCompression::Build( TArray<uint8>& OutData )
 
 	if (bCompressionSuccessful)
 	{
+		AnimToOperateOn->SetSkeletonVirtualBoneGuid(AnimToOperateOn->GetSkeleton()->GetVirtualBoneGuid());
 		FMemoryWriter Ar(OutData, true);
 		AnimToOperateOn->SerializeCompressedData(Ar, true); //Save out compressed
 	}

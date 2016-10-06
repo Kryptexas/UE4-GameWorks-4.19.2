@@ -100,14 +100,18 @@ FBoxSphereBounds UDebugSkelMeshComponent::CalcBounds(const FTransform& LocalToWo
 
 	if (! IsUsingInGameBounds())
 	{
-		// extend bounds by bones but without root bone
-		FBox BoundingBox(0);
-		const int32 NumBones = GetNumComponentSpaceTransforms();
-		for (int32 BoneIndex = 1; BoneIndex < NumBones; ++BoneIndex)
+		// extend bounds by required bones (respecting current LOD) but without root bone
+		if (GetNumComponentSpaceTransforms())
 		{
-			BoundingBox += GetBoneMatrix(BoneIndex).GetOrigin();
+			FBox BoundingBox(0);
+			const int32 NumRequiredBones = RequiredBones.Num();
+			for (int32 BoneIndex = 1; BoneIndex < NumRequiredBones; ++BoneIndex)
+			{
+				FBoneIndexType RequiredBoneIndex = RequiredBones[BoneIndex];
+				BoundingBox += GetBoneMatrix((int32)RequiredBoneIndex).GetOrigin();
+			}
+			Result = Result + FBoxSphereBounds(BoundingBox);
 		}
-		Result = Result + FBoxSphereBounds(BoundingBox);
 	}
 
 	return Result;
@@ -279,6 +283,13 @@ void UDebugSkelMeshComponent::InitAnim(bool bForceReinit)
 		}
 	}
 
+	if (PreviewInstance != nullptr && AnimScriptInstance == PreviewInstance && bForceReinit)
+	{
+		// Reset current animation data
+		AnimationData.PopulateFrom(PreviewInstance);
+		AnimationData.Initialize(PreviewInstance);
+	}
+
 	Super::InitAnim(bForceReinit);
 
 	// if PreviewInstance is NULL, create here once
@@ -436,9 +447,9 @@ void UDebugSkelMeshComponent::GenSpaceBases(TArray<FTransform>& OutSpaceBases)
 	TempBoneSpaceTransforms.AddUninitialized(OutSpaceBases.Num());
 	FVector TempRootBoneTranslation;
 	FBlendedHeapCurve TempCurve;
-	PreviewInstance->PrePerformAnimationEvaluation();
+	AnimScriptInstance->PreEvaluateAnimation();
 	PerformAnimationEvaluation(SkeletalMesh, AnimScriptInstance, OutSpaceBases, TempBoneSpaceTransforms, TempRootBoneTranslation, TempCurve);
-	PreviewInstance->PostPerformAnimationEvaluation();
+	AnimScriptInstance->PostEvaluateAnimation();
 }
 
 void UDebugSkelMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* TickFunction)

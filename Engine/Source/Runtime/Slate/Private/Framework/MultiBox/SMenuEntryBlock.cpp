@@ -5,7 +5,7 @@
 #include "SMenuEntryBlock.h"
 
 
-FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TSharedPtr< const FUICommandInfo > InCommand, TSharedPtr< const FUICommandList > InCommandList, const TAttribute<FText>& InLabelOverride, const TAttribute<FText>& InToolTipOverride, const FSlateIcon& InIconOverride, bool bInCloseSelfOnly )
+FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TSharedPtr< const FUICommandInfo > InCommand, TSharedPtr< const FUICommandList > InCommandList, const TAttribute<FText>& InLabelOverride, const TAttribute<FText>& InToolTipOverride, const FSlateIcon& InIconOverride, bool bInCloseSelfOnly, bool bInShouldCloseWindowAfterMenuSelection )
 	: FMultiBlock( InCommand, InCommandList, InExtensionHook, EMultiBlockType::MenuEntry )
 	, LabelOverride( InLabelOverride )
 	, ToolTipOverride( InToolTipOverride )
@@ -14,11 +14,12 @@ FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TSharedPtr
 	, bOpenSubMenuOnClick( false )
 	, UserInterfaceActionType( EUserInterfaceActionType::Button )
 	, bCloseSelfOnly( bInCloseSelfOnly )
+	, bShouldCloseWindowAfterMenuSelection( bInShouldCloseWindowAfterMenuSelection )
 {
 }
 
 
-FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const FNewMenuDelegate& InEntryBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, const FSlateIcon& InIcon, const FUIAction& InUIAction, const EUserInterfaceActionType::Type InUserInterfaceActionType, bool bInCloseSelfOnly )
+FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const FNewMenuDelegate& InEntryBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, const FSlateIcon& InIcon, const FUIAction& InUIAction, const EUserInterfaceActionType::Type InUserInterfaceActionType, bool bInCloseSelfOnly, bool bInShouldCloseWindowAfterMenuSelection)
 	: FMultiBlock( InUIAction, InExtensionHook, EMultiBlockType::MenuEntry )
 	, LabelOverride( InLabel )
 	, ToolTipOverride( InToolTip )
@@ -28,12 +29,13 @@ FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute
 	, bOpenSubMenuOnClick( bInSubMenuOnClick )
 	, UserInterfaceActionType( InUserInterfaceActionType )
 	, bCloseSelfOnly( bInCloseSelfOnly )
-	, Extender( InExtender )	
+	, Extender( InExtender )
+	, bShouldCloseWindowAfterMenuSelection( bInShouldCloseWindowAfterMenuSelection )
 {
 }
 
 
-FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const FSlateIcon& InIcon, const FUIAction& UIAction, const EUserInterfaceActionType::Type InUserInterfaceActionType, bool bInCloseSelfOnly )
+FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const FSlateIcon& InIcon, const FUIAction& UIAction, const EUserInterfaceActionType::Type InUserInterfaceActionType, bool bInCloseSelfOnly, bool bInShouldCloseWindowAfterMenuSelection )
 	: FMultiBlock( UIAction, InExtensionHook, EMultiBlockType::MenuEntry )
 	, LabelOverride( InLabel )
 	, ToolTipOverride( InToolTip )
@@ -42,11 +44,12 @@ FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute
 	, bOpenSubMenuOnClick( false )
 	, UserInterfaceActionType( InUserInterfaceActionType )
 	, bCloseSelfOnly( bInCloseSelfOnly )
+	, bShouldCloseWindowAfterMenuSelection( bInShouldCloseWindowAfterMenuSelection )
 {
 }
 
 
-FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const FNewMenuDelegate& InEntryBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly, const FSlateIcon& InIcon )
+FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const FNewMenuDelegate& InEntryBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly, const FSlateIcon& InIcon, bool bInShouldCloseWindowAfterMenuSelection )
 	: FMultiBlock( nullptr, InCommandList, InExtensionHook, EMultiBlockType::MenuEntry )
 	, LabelOverride( InLabel )
 	, ToolTipOverride( InToolTip )
@@ -57,11 +60,12 @@ FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute
 	, UserInterfaceActionType( EUserInterfaceActionType::Button )
 	, bCloseSelfOnly( bInCloseSelfOnly )
 	, Extender( InExtender )
+	, bShouldCloseWindowAfterMenuSelection( bInShouldCloseWindowAfterMenuSelection )
 {
 }
 
 
-FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const FOnGetContent& InMenuBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly, const FSlateIcon& InIcon )
+FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const FOnGetContent& InMenuBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly, const FSlateIcon& InIcon, bool bInShouldCloseWindowAfterMenuSelection )
 	: FMultiBlock( nullptr, InCommandList, InExtensionHook, EMultiBlockType::MenuEntry )
 	, LabelOverride( InLabel )
 	, ToolTipOverride( InToolTip )
@@ -72,11 +76,12 @@ FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute
 	, UserInterfaceActionType( EUserInterfaceActionType::Button )
 	, bCloseSelfOnly( bInCloseSelfOnly )
 	, Extender( InExtender )
+	, bShouldCloseWindowAfterMenuSelection( bInShouldCloseWindowAfterMenuSelection )
 {
 }
 
 
-FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const TSharedPtr<SWidget>& InEntryWidget, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly, const FSlateIcon& InIcon )
+FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const TSharedPtr<SWidget>& InEntryWidget, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly, const FSlateIcon& InIcon, bool bInShouldCloseWindowAfterMenuSelection )
 	: FMultiBlock( nullptr, InCommandList, InExtensionHook, EMultiBlockType::MenuEntry )
 	, LabelOverride( InLabel )
 	, ToolTipOverride( InToolTip )
@@ -87,10 +92,11 @@ FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TAttribute
 	, UserInterfaceActionType( EUserInterfaceActionType::Button )
 	, bCloseSelfOnly( bInCloseSelfOnly )
 	, Extender( InExtender )
+	, bShouldCloseWindowAfterMenuSelection( bInShouldCloseWindowAfterMenuSelection )
 {
 }
 
-FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const FUIAction& UIAction, const TSharedRef< SWidget > Contents, const TAttribute<FText>& InToolTip, const EUserInterfaceActionType::Type InUserInterfaceActionType, bool bInCloseSelfOnly )
+FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const FUIAction& UIAction, const TSharedRef< SWidget > Contents, const TAttribute<FText>& InToolTip, const EUserInterfaceActionType::Type InUserInterfaceActionType, bool bInCloseSelfOnly, bool bInShouldCloseWindowAfterMenuSelection )
 	: FMultiBlock( UIAction, InExtensionHook, EMultiBlockType::MenuEntry )
 	, ToolTipOverride( InToolTip )
 	, EntryWidget( Contents )
@@ -98,11 +104,12 @@ FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const FUIAction&
 	, bOpenSubMenuOnClick( false )
 	, UserInterfaceActionType( InUserInterfaceActionType )
 	, bCloseSelfOnly( bInCloseSelfOnly )
+	, bShouldCloseWindowAfterMenuSelection( bInShouldCloseWindowAfterMenuSelection )
 {
 }
 
 
-FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TSharedRef< SWidget > Contents, const FNewMenuDelegate& InEntryBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly )
+FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TSharedRef< SWidget > Contents, const FNewMenuDelegate& InEntryBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, bool bInSubMenuOnClick, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly, bool bInShouldCloseWindowAfterMenuSelection )
 	: FMultiBlock( nullptr, InCommandList, InExtensionHook, EMultiBlockType::MenuEntry )
 	, EntryBuilder( InEntryBuilder )
 	, EntryWidget( Contents )
@@ -111,11 +118,12 @@ FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const TSharedRef
 	, UserInterfaceActionType( EUserInterfaceActionType::Button )
 	, bCloseSelfOnly( bInCloseSelfOnly )
 	, Extender( InExtender )
+	, bShouldCloseWindowAfterMenuSelection( bInShouldCloseWindowAfterMenuSelection )
 {
 }
 
 
-FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const FUIAction& UIAction, const TSharedRef< SWidget > Contents, const FNewMenuDelegate& InEntryBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly )
+FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const FUIAction& UIAction, const TSharedRef< SWidget > Contents, const FNewMenuDelegate& InEntryBuilder, TSharedPtr<FExtender> InExtender, bool bInSubMenu, TSharedPtr< const FUICommandList > InCommandList, bool bInCloseSelfOnly, bool bInShouldCloseWindowAfterMenuSelection )
 	: FMultiBlock( UIAction, InExtensionHook, EMultiBlockType::MenuEntry )
 	, EntryBuilder( InEntryBuilder )
 	, EntryWidget( Contents )
@@ -124,6 +132,7 @@ FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const FUIAction&
 	, UserInterfaceActionType( EUserInterfaceActionType::Button )
 	, bCloseSelfOnly( bInCloseSelfOnly )
 	, Extender( InExtender )
+	, bShouldCloseWindowAfterMenuSelection( bInShouldCloseWindowAfterMenuSelection )
 {
 }
 
@@ -1343,9 +1352,8 @@ TSharedRef< SWidget > SMenuEntryBlock::MakeNewMenuWidget() const
 
 	if (MenuEntryBlock->EntryBuilder.IsBound())
 	{
-		const bool bShouldCloseWindowAfterMenuSelection = true;
 		const bool bCloseSelfOnly = false;
-		FMenuBuilder MenuBuilder( bShouldCloseWindowAfterMenuSelection, MultiBlock->GetActionList(), MenuEntryBlock->Extender, bCloseSelfOnly, StyleSet );
+		FMenuBuilder MenuBuilder(MenuEntryBlock->bShouldCloseWindowAfterMenuSelection, MultiBlock->GetActionList(), MenuEntryBlock->Extender, bCloseSelfOnly, StyleSet );
 		{
 			MenuEntryBlock->EntryBuilder.Execute( MenuBuilder );
 		}
@@ -1358,9 +1366,8 @@ TSharedRef< SWidget > SMenuEntryBlock::MakeNewMenuWidget() const
 	}
 	else if (MenuEntryBlock->EntryWidget.IsValid())
 	{
-		const bool bShouldCloseWindowAfterMenuSelection = true;
 		const bool bCloseSelfOnly = false;
-		FMenuBuilder MenuBuilder( bShouldCloseWindowAfterMenuSelection, nullptr, TSharedPtr<FExtender>(), bCloseSelfOnly, StyleSet );
+		FMenuBuilder MenuBuilder(MenuEntryBlock->bShouldCloseWindowAfterMenuSelection, nullptr, TSharedPtr<FExtender>(), bCloseSelfOnly, StyleSet );
 		{
 			MenuBuilder.AddWidget( MenuEntryBlock->EntryWidget.ToSharedRef(), FText::GetEmpty() );
 		}

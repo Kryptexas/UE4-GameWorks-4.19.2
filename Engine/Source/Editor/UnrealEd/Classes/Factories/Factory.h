@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreUObject.h"
+#include "Misc/SecureHash.h"
 #include "Factory.generated.h"
 
 
@@ -189,6 +190,14 @@ public:
 		return DefaultImportPriority;
 	}
 
+	//@third party code BEGIN SIMPLYGON
+	/** Get the Hash for the file being imported. Provides enormous speed impovements for large CAD file imports  */
+	static FMD5Hash GetFileHash()
+	{
+		return FileHash;
+	}
+	//@third party code END SIMPLYGON
+
 	/**
 	 * Resets the saved state of this factory.
 	 *
@@ -323,6 +332,10 @@ protected:
 	/** This is the import priority that all factories are given in the default constructor. */
 	static const int32 DefaultImportPriority;
 
+	//@third party code BEGIN SIMPLYGON
+	/** This is the HASH for the file being imported */
+	static FMD5Hash FileHash;
+	//@third party code END SIMPLYGON
 
 	/**
 	 * If this value is true, warning messages will be shown once for all objects

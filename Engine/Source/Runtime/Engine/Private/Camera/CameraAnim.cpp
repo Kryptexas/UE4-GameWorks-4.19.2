@@ -138,8 +138,34 @@ void UCameraAnim::CalcLocalAABB()
 
 		if (MoveTrack != NULL)
 		{
-			FVector Zero(0.f), MinBounds, MaxBounds;
-			MoveTrack->PosTrack.CalcBounds(MinBounds, MaxBounds, Zero);
+			FVector Zero(0.0f);
+			FVector MinBounds(0.0f);
+			FVector MaxBounds(0.0f);
+			if (bRelativeToInitialTransform)
+			{
+				if (MoveTrack->PosTrack.Points.Num() > 0 &&
+					MoveTrack->EulerTrack.Points.Num() > 0)
+				{
+					const FRotator InitialRotation = FRotator::MakeFromEuler(MoveTrack->EulerTrack.Points[0].OutVal);
+					const FVector InitialLocation = MoveTrack->PosTrack.Points[0].OutVal;
+					const FTransform MoveTrackInitialTransform(InitialRotation, InitialLocation);
+					const FTransform MoveTrackInitialTransformInverse = MoveTrackInitialTransform.Inverse();
+
+					// start at Index = 1 as the initial position will be transformed back to (0,0,0)
+					const int32 MoveTrackNum = MoveTrack->PosTrack.Points.Num();
+					for (int32 Index = 1; Index < MoveTrackNum; Index++)
+					{
+						const FVector CurrentPositionRelativeToInitial = MoveTrackInitialTransformInverse.TransformPosition(MoveTrack->PosTrack.Points[Index].OutVal);
+
+						MinBounds = CurrentPositionRelativeToInitial.ComponentMin(MinBounds);
+						MaxBounds = CurrentPositionRelativeToInitial.ComponentMax(MaxBounds);
+					}
+				}
+			}
+			else
+			{
+				MoveTrack->PosTrack.CalcBounds(MinBounds, MaxBounds, Zero);
+			}
 			BoundingBox = FBox(MinBounds, MaxBounds);
 		}
 	}

@@ -202,6 +202,7 @@ void FMetaNavMeshPath::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 
 void FMetaNavMeshPath::DebugDraw(const ANavigationData* NavData, FColor PathColor, UCanvas* Canvas, bool bPersistent, const uint32 NextPathPointIndex) const
 {
+#if ENABLE_DRAW_DEBUG
 	if (Waypoints.Num() > 0)
 	{
 		Super::DebugDraw(NavData, PathColor, Canvas, bPersistent, NextPathPointIndex);
@@ -219,4 +220,5 @@ void FMetaNavMeshPath::DebugDraw(const ANavigationData* NavData, FColor PathColo
 			WaypointLocation = NextWaypoint;
 		}
 	}
+#endif // ENABLE_DRAW_DEBUG
 }

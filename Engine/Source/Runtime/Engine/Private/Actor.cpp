@@ -2822,7 +2822,7 @@ void AActor::PostActorConstruction()
 		PreInitializeComponents();
 	}
 
-	// If this is dynamically spawned replicted actor, defer calls to BeginPlay and UpdateOverlaps until replicated properties are deserialized
+	// If this is dynamically spawned replicated actor, defer calls to BeginPlay and UpdateOverlaps until replicated properties are deserialized
 	const bool bDeferBeginPlayAndUpdateOverlaps = (bExchangedRoles && RemoteRole == ROLE_Authority);
 
 	if (bActorsInitialized)
@@ -4127,9 +4127,18 @@ void AActor::InitializeComponents()
 
 	for (UActorComponent* ActorComp : Components)
 	{
-		if (ActorComp->bWantsInitializeComponent && ActorComp->IsRegistered())
+		if (ActorComp->IsRegistered())
 		{
-			ActorComp->InitializeComponent();
+			if (!ActorComp->IsActive() && ActorComp->bAutoActivate)
+			{
+				ActorComp->Activate(true);
+			}
+
+			if (ActorComp->bWantsInitializeComponent)
+			{
+				// Broadcast the activation event since Activate occurs too early to fire a callback in a game
+				ActorComp->InitializeComponent();
+			}
 		}
 	}
 }
@@ -4150,6 +4159,7 @@ void AActor::UninitializeComponents()
 
 void AActor::DrawDebugComponents(FColor const& BaseColor) const
 {
+#if ENABLE_DRAW_DEBUG
 	TInlineComponentArray<USceneComponent*> Components;
 	GetComponents(Components);
 
@@ -4174,6 +4184,7 @@ void AActor::DrawDebugComponents(FColor const& BaseColor) const
 		// draw component name
 		DrawDebugString(MyWorld, Loc+FVector(0,0,32), *Component->GetName());
 	}
+#endif // ENABLE_DRAW_DEBUG
 }
 
 

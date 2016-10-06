@@ -49,9 +49,6 @@ public:
 	TArray<FTransform> BoneTransforms;
 	FBlendedHeapCurve BlendedCurve;
 
-	// Validate the instance and create if invalid
-	void ValidateInstance();
-
 	// FAnimNode_Base interface
 	virtual void Initialize(const FAnimationInitializeContext& Context) override;
 	virtual void CacheBones(const FAnimationCacheBonesContext& Context) override;

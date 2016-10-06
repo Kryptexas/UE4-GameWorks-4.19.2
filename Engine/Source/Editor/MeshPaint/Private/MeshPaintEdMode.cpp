@@ -1349,11 +1349,11 @@ void FEdModeMeshPaint::DoPaint( const FVector& InCameraOrigin,
 			{
 				if (UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(MeshComponent))
 				{
-					if (UStaticMesh* StaticMesh = StaticMeshComponent->StaticMesh)
+					if (UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh())
 					{
 						//@TODO: MESHPAINT: Direct assumptions about StaticMeshComponent
 						check(StaticMesh->GetNumLODs() > PaintingMeshLODIndex);
-						FStaticMeshLODResources& LODModel = StaticMeshComponent->StaticMesh->RenderData->LODResources[PaintingMeshLODIndex];
+						FStaticMeshLODResources& LODModel = StaticMesh->RenderData->LODResources[PaintingMeshLODIndex];
 
 						// Painting vertex colors
 						PaintMeshVertices(StaticMeshComponent, Params, bShouldApplyPaint, LODModel, ComponentSpaceCameraPosition, ComponentToWorldMatrix, ComponentSpaceSquaredBrushRadius, ComponentSpaceBrushPosition, PDI, VisualBiasDistance, *MeshAdapter);
@@ -1480,7 +1480,7 @@ void FEdModeMeshPaint::PaintMeshVertices(
 
 	const float InfluencedVertexCuePointSize = 3.5f;
 
-	UStaticMesh* StaticMesh = StaticMeshComponent->StaticMesh;
+	UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
 
 
 	// Paint the mesh
@@ -1845,11 +1845,11 @@ void FEdModeMeshPaint::PaintMeshTexture( UMeshComponent* MeshComponent, const FM
 
 	UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(MeshComponent);
 
-	if ((StaticMeshComponent != nullptr) && (StaticMeshComponent->StaticMesh != nullptr))
+	if ((StaticMeshComponent != nullptr) && (StaticMeshComponent->GetStaticMesh() != nullptr))
 	{
 		//@TODO: Find a better way to move this generically to the adapter
-		check(StaticMeshComponent->StaticMesh->GetNumLODs() > PaintingMeshLODIndex);
-		FStaticMeshLODResources& LODModel = StaticMeshComponent->StaticMesh->RenderData->LODResources[PaintingMeshLODIndex];
+		check(StaticMeshComponent->GetStaticMesh()->GetNumLODs() > PaintingMeshLODIndex);
+		FStaticMeshLODResources& LODModel = StaticMeshComponent->GetStaticMesh()->RenderData->LODResources[PaintingMeshLODIndex];
 		const int32 NumSections = LODModel.Sections.Num();
 
 		// Filter out triangles whose subelements don't use our paint target texture in their material
@@ -3370,13 +3370,13 @@ bool FEdModeMeshPaint::GenerateSeamMask(UMeshComponent* MeshComponent, int32 UVS
 	}
 
 	check(StaticMeshComponent != NULL);
-	check(StaticMeshComponent->StaticMesh != NULL);
+	check(StaticMeshComponent->GetStaticMesh() != NULL);
 	check(RenderTargetTexture != NULL);
-	check(StaticMeshComponent->StaticMesh->RenderData->LODResources[PaintingMeshLODIndex].VertexBuffer.GetNumTexCoords() > (uint32)UVSet);
+	check(StaticMeshComponent->GetStaticMesh()->RenderData->LODResources[PaintingMeshLODIndex].VertexBuffer.GetNumTexCoords() > (uint32)UVSet);
 		
 	bool RetVal = false;
 
-	FStaticMeshLODResources& LODModel = StaticMeshComponent->StaticMesh->RenderData->LODResources[PaintingMeshLODIndex];
+	FStaticMeshLODResources& LODModel = StaticMeshComponent->GetStaticMesh()->RenderData->LODResources[PaintingMeshLODIndex];
 
 	const uint32 Width = RenderTargetTexture->GetSurfaceWidth();
 	const uint32 Height = RenderTargetTexture->GetSurfaceHeight();
@@ -3637,7 +3637,7 @@ void FEdModeMeshPaint::RemoveInstanceVertexColors(UObject* Obj) const
 
 void FEdModeMeshPaint::RemoveComponentInstanceVertexColors(UStaticMeshComponent* StaticMeshComponent) const
 {
-	if( StaticMeshComponent != NULL && StaticMeshComponent->StaticMesh != NULL && StaticMeshComponent->StaticMesh->GetNumLODs() > PaintingMeshLODIndex )
+	if( StaticMeshComponent != NULL && StaticMeshComponent->GetStaticMesh() != nullptr && StaticMeshComponent->GetStaticMesh()->GetNumLODs() > PaintingMeshLODIndex )
 	{
 		// Mark the mesh component as modified
 		StaticMeshComponent->Modify();
@@ -3692,15 +3692,15 @@ void FEdModeMeshPaint::CopyInstanceVertexColors()
 			{
 				if( StaticMeshComponent )
 				{
-					FPerComponentVertexColorData& PerComponentData = CopiedColorsByComponent[CopiedColorsByComponent.Add(FPerComponentVertexColorData(StaticMeshComponent->StaticMesh, StaticMeshComponent->GetBlueprintCreatedComponentIndex()))];
+					FPerComponentVertexColorData& PerComponentData = CopiedColorsByComponent[CopiedColorsByComponent.Add(FPerComponentVertexColorData(StaticMeshComponent->GetStaticMesh(), StaticMeshComponent->GetBlueprintCreatedComponentIndex()))];
 
-					int32 NumLODs = StaticMeshComponent->StaticMesh->GetNumLODs();
+					int32 NumLODs = StaticMeshComponent->GetStaticMesh()->GetNumLODs();
 					for( int32 CurLODIndex = 0; CurLODIndex < NumLODs; ++CurLODIndex )
 					{
 						FPerLODVertexColorData& LodColorData =  PerComponentData.PerLODVertexColorData[PerComponentData.PerLODVertexColorData.AddZeroed()];
 
-						UStaticMesh* StaticMesh = StaticMeshComponent->StaticMesh;
-						FStaticMeshLODResources& LODModel = StaticMeshComponent->StaticMesh->RenderData->LODResources[ CurLODIndex ];
+						UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
+						FStaticMeshLODResources& LODModel = StaticMesh->RenderData->LODResources[ CurLODIndex ];
 						FColorVertexBuffer* ColBuffer = &LODModel.ColorVertexBuffer;
 
 						FPositionVertexBuffer* PosBuffer = &LODModel.PositionVertexBuffer;
@@ -3774,7 +3774,7 @@ void FEdModeMeshPaint::PasteInstanceVertexColors()
 			{
 				if( StaticMeshComponent )
 				{
-					int32 NumLods = StaticMeshComponent->StaticMesh->GetNumLODs();
+					int32 NumLods = StaticMeshComponent->GetStaticMesh()->GetNumLODs();
 					if (0 == NumLods)
 					{
 						continue;
@@ -3785,7 +3785,7 @@ void FEdModeMeshPaint::PasteInstanceVertexColors()
 					FPerComponentVertexColorData* FoundColors = NULL;
 					for(auto& CopiedColors : CopiedColorsByComponent)
 					{
-						if(CopiedColors.OriginalMesh.Get() == StaticMeshComponent->StaticMesh &&
+						if(CopiedColors.OriginalMesh.Get() == StaticMeshComponent->GetStaticMesh() &&
 							CopiedColors.ComponentIndex == BlueprintCreatedComponentIndex)
 						{
 							FoundColors = &CopiedColors;
@@ -3803,7 +3803,7 @@ void FEdModeMeshPaint::PasteInstanceVertexColors()
 
 						for( int32 CurLODIndex = 0; CurLODIndex < NumLods; ++CurLODIndex )
 						{
-							FStaticMeshLODResources& LodRenderData = StaticMeshComponent->StaticMesh->RenderData->LODResources[CurLODIndex];
+							FStaticMeshLODResources& LodRenderData = StaticMeshComponent->GetStaticMesh()->RenderData->LODResources[CurLODIndex];
 							FStaticMeshComponentLODInfo& ComponentLodInfo = StaticMeshComponent->LODData[CurLODIndex];
 
 							TArray< FColor > ReOrderedColors;
@@ -3869,7 +3869,7 @@ void FEdModeMeshPaint::PasteInstanceVertexColors()
 						}
 
 						StaticMeshComponent->CachePaintedDataIfNecessary();
-						StaticMeshComponent->StaticMeshDerivedDataKey = StaticMeshComponent->StaticMesh->RenderData->DerivedDataKey;
+						StaticMeshComponent->StaticMeshDerivedDataKey = StaticMeshComponent->GetStaticMesh()->RenderData->DerivedDataKey;
 					}
 				}
 			}
@@ -3973,9 +3973,9 @@ void FEdModeMeshPaint::ApplyVertexColorsToAllLODs(const IMeshPaintGeometryAdapte
 	UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(InMeshComponent);
 
 	// If a static mesh component was found, apply LOD0 painting to all lower LODs.
-	if( StaticMeshComponent && StaticMeshComponent->StaticMesh && FMeshPaintSettings::Get().ResourceType == EMeshPaintResource::VertexColors )
+	if( StaticMeshComponent && StaticMeshComponent->GetStaticMesh() && FMeshPaintSettings::Get().ResourceType == EMeshPaintResource::VertexColors )
 	{
-		uint32 NumLODs = StaticMeshComponent->StaticMesh->RenderData->LODResources.Num();
+		uint32 NumLODs = StaticMeshComponent->GetStaticMesh()->RenderData->LODResources.Num();
 		StaticMeshComponent->Modify();
 
 		// Ensure LODData has enough entries in it, free not required.
@@ -3983,7 +3983,7 @@ void FEdModeMeshPaint::ApplyVertexColorsToAllLODs(const IMeshPaintGeometryAdapte
 		for( uint32 i = 1 ; i < NumLODs ; ++i )
 		{
 			FStaticMeshComponentLODInfo* CurrInstanceMeshLODInfo = &StaticMeshComponent->LODData[ i ];
-			FStaticMeshLODResources& CurrRenderData = StaticMeshComponent->StaticMesh->RenderData->LODResources[ i ];
+			FStaticMeshLODResources& CurrRenderData = StaticMeshComponent->GetStaticMesh()->RenderData->LODResources[ i ];
 			// Destroy the instance vertex  color array if it doesn't fit
 			if(CurrInstanceMeshLODInfo->OverrideVertexColors
 				&& CurrInstanceMeshLODInfo->OverrideVertexColors->GetNumVertices() != CurrRenderData.GetNumVertices())
@@ -4004,11 +4004,11 @@ void FEdModeMeshPaint::ApplyVertexColorsToAllLODs(const IMeshPaintGeometryAdapte
 			
 		FlushRenderingCommands();
 		FStaticMeshComponentLODInfo& SourceCompLODInfo = StaticMeshComponent->LODData[ 0 ];
-		FStaticMeshLODResources& SourceRenderData = StaticMeshComponent->StaticMesh->RenderData->LODResources[ 0 ];
+		FStaticMeshLODResources& SourceRenderData = StaticMeshComponent->GetStaticMesh()->RenderData->LODResources[ 0 ];
 		for( uint32 i=1 ; i < NumLODs ; ++i )
 		{
 			FStaticMeshComponentLODInfo& CurCompLODInfo = StaticMeshComponent->LODData[ i ];
-			FStaticMeshLODResources& CurRenderData = StaticMeshComponent->StaticMesh->RenderData->LODResources[ i ];
+			FStaticMeshLODResources& CurRenderData = StaticMeshComponent->GetStaticMesh()->RenderData->LODResources[ i ];
 
 			check(CurCompLODInfo.OverrideVertexColors);
 
@@ -4122,10 +4122,10 @@ bool FEdModeMeshPaint::GetSelectedMeshInfo( int32& OutTotalBaseVertexColorBytes,
 			SelectedActor->GetComponents<UStaticMeshComponent>(StaticMeshComponents);
 			for(const auto& StaticMeshComponent : StaticMeshComponents)
 			{
-				if( StaticMeshComponent != NULL && StaticMeshComponent->StaticMesh != NULL && StaticMeshComponent->StaticMesh->GetNumLODs() > PaintingMeshLODIndex )
+				if( StaticMeshComponent != nullptr && StaticMeshComponent->GetStaticMesh() != nullptr && StaticMeshComponent->GetStaticMesh()->GetNumLODs() > PaintingMeshLODIndex )
 				{
 					// count the base mesh color data
-					FStaticMeshLODResources& LODModel = StaticMeshComponent->StaticMesh->RenderData->LODResources[ PaintingMeshLODIndex ];
+					FStaticMeshLODResources& LODModel = StaticMeshComponent->GetStaticMesh()->RenderData->LODResources[ PaintingMeshLODIndex ];
 					OutTotalBaseVertexColorBytes += LODModel.ColorVertexBuffer.GetNumVertices();
 
 					// count the instance color data
@@ -4327,8 +4327,8 @@ void FImportVertexTextureHelper::ImportVertexColors(FEditorModeTools* ModeTools,
 			continue;
 		}
 
-		UStaticMesh* StaticMesh = StaticMeshComponent->StaticMesh; 
-		if(StaticMesh == NULL)
+		UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
+		if(StaticMesh == nullptr)
 		{
 			continue;
 		}
@@ -4614,7 +4614,7 @@ int32 FEdModeMeshPaint::GetMaxNumUVSets() const
 
 		if (UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(MeshComponent))
 		{
-			NumUVSets = StaticMeshComponent->StaticMesh->RenderData->LODResources[PaintingMeshLODIndex].VertexBuffer.GetNumTexCoords();
+			NumUVSets = StaticMeshComponent->GetStaticMesh()->RenderData->LODResources[PaintingMeshLODIndex].VertexBuffer.GetNumTexCoords();
 		}
 		else
 		{

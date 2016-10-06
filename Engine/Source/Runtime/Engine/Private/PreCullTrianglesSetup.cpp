@@ -22,7 +22,7 @@ void PreCullTrianglesExec(UWorld* InWorld)
 			&& Component->Mobility == EComponentMobility::Static
 			&& Component->GetOwner() 
 			&& InWorld->ContainsActor(Component->GetOwner()) 
-			&& Component->StaticMesh 
+			&& Component->GetStaticMesh()
 			&& Component->IsRegistered()
 			&& Component->SceneProxy)
 		{

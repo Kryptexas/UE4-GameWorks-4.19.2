@@ -121,7 +121,7 @@ public:
 	{
 		FAnimationUpdateContext Result(AnimInstanceProxy, DeltaTime);
 		Result.CurrentWeight = CurrentWeight * WeightMultiplier;
-		Result.RootMotionWeightModifier = RootMotionMultiplier * RootMotionMultiplier;
+		Result.RootMotionWeightModifier = RootMotionWeightModifier * RootMotionMultiplier;
 
 		return Result;
 	}
@@ -138,7 +138,7 @@ public:
 	{
 		FAnimationUpdateContext Result(AnimInstanceProxy, DeltaTime * TimeMultiplier);
 		Result.CurrentWeight = CurrentWeight * WeightMultiplier;
-		Result.RootMotionWeightModifier = RootMotionMultiplier * RootMotionMultiplier;
+		Result.RootMotionWeightModifier = RootMotionWeightModifier * RootMotionMultiplier;
 
 		return Result;
 	}

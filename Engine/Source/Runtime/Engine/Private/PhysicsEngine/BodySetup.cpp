@@ -1032,18 +1032,17 @@ void UBodySetup::ClearCachedCookedPlatformData( const ITargetPlatform* TargetPla
 }
 #endif
 
-int32 UBodySetup::GetRuntimeOnlyCookOptimizationFlags() const
-{
-	int32 RuntimeCookFlags = 0;
 #if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
+EPhysXMeshCookFlags UBodySetup::GetRuntimeOnlyCookOptimizationFlags() const
+{
+	EPhysXMeshCookFlags RuntimeCookFlags = EPhysXMeshCookFlags::Default;
 	if(UPhysicsSettings::Get()->bSuppressFaceRemapTable)
 	{
-		RuntimeCookFlags |= ERuntimePhysxCookOptimizationFlags::SuppressFaceRemapTable;
+		RuntimeCookFlags |= EPhysXMeshCookFlags::SuppressFaceRemapTable;
 	}
-#endif
-
 	return RuntimeCookFlags;
 }
+#endif
 
 bool UBodySetup::CalcUVAtLocation(const FVector& BodySpaceLocation, int32 FaceIndex, int32 UVChannel, FVector2D& UV) const
 {
@@ -1125,7 +1124,7 @@ FByteBulkData* UBodySetup::GetCookedData(FName Format, bool bRuntimeOnlyOptimize
 #if WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
 		TArray<uint8> OutData;
 
-		const int32 CookingFlags = bEligibleForRuntimeOptimization ? GetRuntimeOnlyCookOptimizationFlags() : 0;
+		const EPhysXMeshCookFlags CookingFlags = bEligibleForRuntimeOptimization ? GetRuntimeOnlyCookOptimizationFlags() : EPhysXMeshCookFlags::Default;
 		FDerivedDataPhysXCooker* DerivedPhysXData = new FDerivedDataPhysXCooker(Format, CookingFlags, this);
 		if (DerivedPhysXData->CanBuild())
 		{

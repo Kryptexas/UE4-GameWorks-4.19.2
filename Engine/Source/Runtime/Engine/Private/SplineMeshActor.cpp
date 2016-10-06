@@ -47,9 +47,9 @@ bool ASplineMeshActor::GetReferencedContentObjects(TArray<UObject*>& Objects) co
 	Super::GetReferencedContentObjects(Objects);
 
 	check(SplineMeshComponent != nullptr);
-	if (SplineMeshComponent->StaticMesh != nullptr)
+	if (SplineMeshComponent->GetStaticMesh() != nullptr)
 	{
-		Objects.Add(SplineMeshComponent->StaticMesh);
+		Objects.Add(SplineMeshComponent->GetStaticMesh());
 	}
 	return true;
 }
@@ -60,7 +60,7 @@ void ASplineMeshActor::CheckForErrors()
 
 	FMessageLog MapCheck("MapCheck");
 
-	if (SplineMeshComponent->StaticMesh == NULL)
+	if (SplineMeshComponent->GetStaticMesh() == nullptr)
 	{
 		MapCheck.Warning()
 			->AddToken(FUObjectToken::Create(this))

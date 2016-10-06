@@ -115,8 +115,12 @@ private:
 	USceneComponent* AttachParent;
 
 	/** List of child SceneComponents that are attached to us. */
-	UPROPERTY(Replicated, transient)
+	UPROPERTY(ReplicatedUsing = OnRep_AttachChildren, Transient)
 	TArray<USceneComponent*> AttachChildren;
+
+	/** Set of attached SceneComponents that were attached by the client so we can fix up AttachChildren when it is replicated to us. */
+	UPROPERTY(Transient)
+	TSet<USceneComponent*> ClientAttachedChildren;
 
 	/** Optional socket name on AttachParent that we are attached to. */
 	UPROPERTY(ReplicatedUsing = OnRep_AttachSocketName)
@@ -251,6 +255,9 @@ private:
 
 	UFUNCTION()
 	void OnRep_AttachParent();
+
+	UFUNCTION()
+	void OnRep_AttachChildren();
 
 	UFUNCTION()
 	void OnRep_AttachSocketName();

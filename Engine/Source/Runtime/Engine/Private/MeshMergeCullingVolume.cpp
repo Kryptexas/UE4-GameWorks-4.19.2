@@ -3,9 +3,9 @@
 #include "EnginePrivate.h"
 #include "Components/BrushComponent.h"
 
-#include "../Classes/Engine/HLODMeshCullingVolume.h"
+#include "Classes/Engine/MeshMergeCullingVolume.h"
 
-AHLODMeshCullingVolume::AHLODMeshCullingVolume(const FObjectInitializer& ObjectInitializer)
+AMeshMergeCullingVolume::AMeshMergeCullingVolume(const FObjectInitializer& ObjectInitializer)
 :Super(ObjectInitializer)
 {
 	bNotForClientOrServer = true;

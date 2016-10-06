@@ -266,7 +266,11 @@ void AAudioVolume::PostUnregisterAllComponents()
 	// Route clear to super first.
 	Super::PostUnregisterAllComponents();
 
-	GetRootComponent()->TransformUpdated.RemoveAll(this);
+	// Component can be nulled due to GC at this point
+	if (GetRootComponent())
+	{
+		GetRootComponent()->TransformUpdated.RemoveAll(this);
+	}
 	RemoveProxy();
 
 	if (UWorld* World = GetWorld())

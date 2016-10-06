@@ -531,6 +531,21 @@ USkeletalMeshSocket* FEditableSkeleton::HandleAddSocket(const FName& InBoneName)
 	return NewSocket;
 }
 
+bool FEditableSkeleton::HandleAddVirtualBone(const FName SourceBoneName, const FName TargetBoneName)
+{
+	FScopedTransaction Transaction(LOCTEXT("AddVirtualBone", "Add Virtual Bone to Skeleton"));
+	const bool Success = Skeleton->AddNewVirtualBone(SourceBoneName, TargetBoneName);
+	if (!Success)
+	{
+		Transaction.Cancel();
+	}
+	else
+	{
+		OnTreeRefresh.Broadcast();
+	}
+	return Success;
+}
+
 void FEditableSkeleton::HandleCustomizeSocket(USkeletalMeshSocket* InSocketToCustomize)
 {
 	if (SkeletalMesh)
@@ -798,6 +813,14 @@ void FEditableSkeleton::HandleDeleteSockets(const TArray<FSelectedSocketInfo>& I
 			}
 		}
 	}
+
+	OnTreeRefresh.Broadcast();
+}
+
+void FEditableSkeleton::HandleDeleteVirtualBones(const TArray<FName>& InVirtualBoneInfo, TSharedPtr<class IPersonaPreviewScene> InPreviewScene)
+{
+	FScopedTransaction Transaction(LOCTEXT("RemoveVirtualBone", "Remove Virtual Bone from Skeleton"));
+	Skeleton->RemoveVirtualBones(InVirtualBoneInfo);
 
 	OnTreeRefresh.Broadcast();
 }
@@ -1221,7 +1244,7 @@ void FEditableSkeleton::RemoveUnusedBones()
 	TArray<FName> SkeletonBones;
 	const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
 
-	for (int32 BoneIndex = 0; BoneIndex < RefSkeleton.GetNum(); ++BoneIndex)
+	for (int32 BoneIndex = 0; BoneIndex < RefSkeleton.GetRawBoneNum(); ++BoneIndex)
 	{
 		SkeletonBones.Add(RefSkeleton.GetBoneName(BoneIndex));
 	}
@@ -1243,32 +1266,46 @@ void FEditableSkeleton::RemoveUnusedBones()
 		const FText StatusUpdate = FText::Format(LOCTEXT("RemoveUnusedBones_ProcessingAssetsFor", "Processing Skeletal Meshes for {0}"), FText::FromString(Skeleton->GetName()));
 		GWarn->BeginSlowTask(StatusUpdate, true);
 
-		// Loop through all SkeletalMeshes and remove the bones they use from our list
-		for (int32 MeshIdx = 0; MeshIdx < SkeletalMeshes.Num(); ++MeshIdx)
+		// Loop through virtual bones and remove the bones they use from the list
+		for (const FVirtualBone& VB : Skeleton->GetVirtualBones())
 		{
-			GWarn->StatusUpdate(MeshIdx, SkeletalMeshes.Num(), StatusUpdate);
-
-			USkeletalMesh* Mesh = Cast<USkeletalMesh>(SkeletalMeshes[MeshIdx].GetAsset());
-			const FReferenceSkeleton& MeshRefSkeleton = Mesh->RefSkeleton;
-
-			for (int32 BoneIndex = 0; BoneIndex < MeshRefSkeleton.GetNum(); ++BoneIndex)
-			{
-				SkeletonBones.Remove(MeshRefSkeleton.GetBoneName(BoneIndex));
-				if (SkeletonBones.Num() == 0)
-				{
-					break;
-				}
-			}
+			SkeletonBones.Remove(VB.SourceBoneName);
+			SkeletonBones.Remove(VB.TargetBoneName);
 			if (SkeletonBones.Num() == 0)
 			{
 				break;
 			}
 		}
 
+		if (SkeletonBones.Num() != 0)
+		{
+			// Loop through all SkeletalMeshes and remove the bones they use from our list
+			for (int32 MeshIdx = 0; MeshIdx < SkeletalMeshes.Num(); ++MeshIdx)
+			{
+				GWarn->StatusUpdate(MeshIdx, SkeletalMeshes.Num(), StatusUpdate);
+
+				USkeletalMesh* Mesh = Cast<USkeletalMesh>(SkeletalMeshes[MeshIdx].GetAsset());
+				const FReferenceSkeleton& MeshRefSkeleton = Mesh->RefSkeleton;
+
+				for (int32 BoneIndex = 0; BoneIndex < MeshRefSkeleton.GetRawBoneNum(); ++BoneIndex)
+				{
+					SkeletonBones.Remove(MeshRefSkeleton.GetBoneName(BoneIndex));
+					if (SkeletonBones.Num() == 0)
+					{
+						break;
+					}
+				}
+				if (SkeletonBones.Num() == 0)
+				{
+					break;
+				}
+			}
+		}
+
 		GWarn->EndSlowTask();
 
 		//Remove bones that are a parent to bones we aren't removing
-		for (int32 BoneIndex = RefSkeleton.GetNum() - 1; BoneIndex >= 0; --BoneIndex)
+		for (int32 BoneIndex = RefSkeleton.GetRawBoneNum() - 1; BoneIndex >= 0; --BoneIndex)
 		{
 			FName CurrBoneName = RefSkeleton.GetBoneName(BoneIndex);
 			if (!SkeletonBones.Contains(CurrBoneName))

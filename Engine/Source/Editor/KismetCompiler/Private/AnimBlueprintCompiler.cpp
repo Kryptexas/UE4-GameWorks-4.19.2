@@ -605,7 +605,6 @@ void FAnimBlueprintCompiler::ProcessSubInstance(UAnimGraphNode_SubInstance* SubI
 		if(NewProperty)
 		{
 			NewProperty->SetMetaData(TEXT("Category"), TEXT("SubInstance"));
-			NewProperty->SetPropertyFlags(CPF_Edit | CPF_BlueprintVisible);
 			FKismetCompilerUtilities::LinkAddedProperty(NewAnimBlueprintClass, NewProperty);
 
 			// Add mappings to the node
@@ -2571,16 +2570,25 @@ static UEdGraphNode* FollowKnots(UEdGraphPin* FromPin, UEdGraphPin*& DestPin)
 
 void FAnimBlueprintCompiler::FEvaluationHandlerRecord::RegisterPin(UEdGraphPin* SourcePin, UProperty* AssociatedProperty, int32 AssociatedPropertyArrayIndex)
 {
-	FAnimNodeSinglePropertyHandler& Handler = ServicedProperties.FindOrAdd(AssociatedProperty->GetFName());
+	bool bAddedNew = false;
+	FAnimNodeSinglePropertyHandler* HandlerPtr = ServicedProperties.Find(AssociatedProperty->GetFName());
+	if (HandlerPtr == nullptr)
+	{
+		HandlerPtr = &ServicedProperties.Add(AssociatedProperty->GetFName());
+		bAddedNew = true;
+	}
+
+	FAnimNodeSinglePropertyHandler& Handler = *HandlerPtr;
 
 	bool bIsMultiPropertyToArrayCopy = false;
 	if (AssociatedPropertyArrayIndex != INDEX_NONE)
 	{
-		if (Handler.SimpleCopyPropertyName != NAME_None)
+		if (!bAddedNew)
 		{
 			// already-existing handler with a simple copy into an array, so we will need multiple copy records. 
 			// For now we just fall back to slow path
 			Handler.SimpleCopyPropertyName = NAME_None;
+			Handler.bHasOnlyMemberAccess = false;
 			bIsMultiPropertyToArrayCopy = true;
 		}
 		Handler.ArrayPins.Add(AssociatedPropertyArrayIndex, SourcePin);

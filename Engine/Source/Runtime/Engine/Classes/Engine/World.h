@@ -34,6 +34,7 @@ class FUniqueNetId;
 class FWorldInGamePerformanceTrackers;
 class AGameModeBase;
 class AGameStateBase;
+class UActorComponent;
 struct FUniqueNetIdRepl;
 
 template<typename,typename> class TOctree;
@@ -425,12 +426,16 @@ struct ENGINE_API FActorSpawnParameters
 	/** Method for resolving collisions at the spawn point. Undefined means no override, use the actor's setting. */
 	ESpawnActorCollisionHandlingMethod SpawnCollisionHandlingOverride;
 
-	/* Determines whether a collision test will be performed when spawning the Actor. If true, no collision test will be performed when spawning the Actor regardless of the collision settings of the root component or template Actor. */
-	DEPRECATED(4.9, "bNoCollisionFail is deprecated. Use SpawnCollisionHandlingOverride to override the actor class's spawn collision handling setting.")
-	uint16	bNoCollisionFail:1;
+private:
 
-	/* Is the actor remotely owned. */
+	friend class UPackageMapClient;
+
+	/* Is the actor remotely owned. This should only be set true by the package map when it is creating an actor on a client that was replicated from the server. */
 	uint16	bRemoteOwned:1;
+	
+public:
+
+	bool IsRemoteOwned() const { return bRemoteOwned; }
 
 	/* Determines whether spawning will not fail if certain conditions are not met. If true, spawning will not fail because the class being spawned is `bStatic=true` or because the class of the template Actor is not the same as the class of the Actor being spawned. */
 	uint16	bNoFail:1;
@@ -902,10 +907,10 @@ private:
 	FPhysScene*									PhysicsScene;
 
 	/** Set of components that need updates at the end of the frame */
-	TSet<TWeakObjectPtr<class UActorComponent> > ComponentsThatNeedEndOfFrameUpdate;
+	TSet<TWeakObjectPtr<UActorComponent> > ComponentsThatNeedEndOfFrameUpdate;
 
 	/** Set of components that need recreates at the end of the frame */
-	TSet<TWeakObjectPtr<class UActorComponent> > ComponentsThatNeedEndOfFrameUpdate_OnGameThread;
+	TSet<TWeakObjectPtr<UActorComponent> > ComponentsThatNeedEndOfFrameUpdate_OnGameThread;
 
 	/** The state of async tracing - abstracted into its own object for easier reference */
 	FWorldAsyncTraceState AsyncTraceState;
@@ -1066,10 +1071,11 @@ public:
 	/** True we want to execute a call to UpdateCulledTriggerVolumes during Tick */
 	bool										bDoDelayedUpdateCullDistanceVolumes;
 
-	/** If true, this is a preview world used for editor tools, and not an actual loaded map world */
-	TEnumAsByte<EWorldType::Type>				WorldType;
+	/** The type of world this is. Describes the context in which it is being used (Editor, Game, Preview etc.) */
+	EWorldType::Type							WorldType;
 
 	/** Force UsesGameHiddenFlags to return true. */
+	DEPRECATED(4.14, "bHack_Force_UsesGameHiddenFlags_True is deprecated. Please use EWorldType::GamePreview (etc.) to enforce correct hidden flag usage for preview scenes.")
 	bool										bHack_Force_UsesGameHiddenFlags_True;
 
 	/** If true this world is in the process of running the construction script for an actor */
@@ -2345,14 +2351,20 @@ public:
 	 * @param Component - Component to update at the end of the frame
 	 * @param bForceGameThread - if true, force this to happen on the game thread
 	 */
-	void MarkActorComponentForNeededEndOfFrameUpdate(class UActorComponent* Component, bool bForceGameThread);
+	void MarkActorComponentForNeededEndOfFrameUpdate(UActorComponent* Component, bool bForceGameThread);
+
+	/**
+	* Clears the need for a component to have a end of frame update
+	* @param Component - Component to update at the end of the frame
+	*/
+	void ClearActorComponentEndOfFrameUpdate(UActorComponent* Component);
 
 	/**
 	 * Updates an ActorComponent's cached state of whether it has been marked for end of frame update based on the current
 	 * state of the World's NeedsEndOfFrameUpdate arrays
 	 * @param Component - Component to update the cached state of
 	 */
-	void UpdateActorComponentEndOfFrameUpdateState(class UActorComponent* Component) const;
+	void UpdateActorComponentEndOfFrameUpdateState(UActorComponent* Component) const;
 
 	/**
 	 * Send all render updates to the rendering thread.

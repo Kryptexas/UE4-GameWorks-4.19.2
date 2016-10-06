@@ -1885,7 +1885,7 @@ public:
 		{
 			if ( OutStaticMeshActor.StaticMeshActor->GetStaticMeshComponent() )
 			{
-				OutStaticMeshActor.StaticMesh = OutStaticMeshActor.StaticMeshActor->GetStaticMeshComponent()->StaticMesh;
+				OutStaticMeshActor.StaticMesh = OutStaticMeshActor.StaticMeshActor->GetStaticMeshComponent()->GetStaticMesh();
 			}
 		}
 		return OutStaticMeshActor.HasStaticMesh();

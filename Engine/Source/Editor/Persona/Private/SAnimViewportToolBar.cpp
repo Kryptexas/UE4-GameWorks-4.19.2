@@ -839,7 +839,7 @@ void SAnimViewportToolBar::GenerateSceneSetupMenu(FMenuBuilder& MenuBuilder)
 
 TSharedRef<class IDetailCustomization> SAnimViewportToolBar::CustomizePreviewSceneDescription()
 {
-	return MakeShareable(new FPreviewSceneDescriptionCustomization(FAssetData(&Viewport.Pin()->GetSkeletonTree()->GetEditableSkeleton()->GetSkeleton()).GetExportTextName(), Viewport.Pin()->GetPreviewScene(), Viewport.Pin()->GetSkeletonTree()->GetEditableSkeleton()));
+	return MakeShareable(new FPreviewSceneDescriptionCustomization(FAssetData(&Viewport.Pin()->GetSkeletonTree()->GetEditableSkeleton()->GetSkeleton()).GetExportTextName(), Viewport.Pin()->GetPreviewScene()->GetPersonaToolkit()));
 }
 
 TSharedRef<class IPropertyTypeCustomization> SAnimViewportToolBar::CustomizePreviewMeshCollectionEntry()

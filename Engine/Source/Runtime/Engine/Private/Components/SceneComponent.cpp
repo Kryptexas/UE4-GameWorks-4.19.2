@@ -559,7 +559,7 @@ void USceneComponent::OnRegister()
 	if (bVisualizeComponent && SpriteComponent == nullptr && GetOwner() && !GetWorld()->IsGameWorld() )
 	{
 		// Create a new billboard component to serve as a visualization of the actor until there is another primitive component
-		SpriteComponent = NewObject<UBillboardComponent>(GetOwner(), NAME_None, RF_Transactional | RF_Transient);
+		SpriteComponent = NewObject<UBillboardComponent>(GetOwner(), NAME_None, RF_Transactional | RF_Transient | RF_TextExportTransient);
 
 		SpriteComponent->Sprite = LoadObject<UTexture2D>(nullptr, TEXT("/Engine/EditorResources/EmptyActor.EmptyActor"));
 		SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
@@ -1762,6 +1762,11 @@ bool USceneComponent::AttachToComponent(USceneComponent* Parent, const FAttachme
 			Parent->AttachChildren.Add(this);
 		}
 
+		if (Parent->IsNetSimulating() && !IsNetSimulating())
+		{
+			Parent->ClientAttachedChildren.Add(this);
+		}
+
 		// Now apply attachment rules
 		FTransform SocketTransform = GetAttachParent()->GetSocketTransform(GetAttachSocketName());
 #if ENABLE_NAN_DIAGNOSTIC
@@ -1925,6 +1930,7 @@ void USceneComponent::DetachFromComponent(const FDetachmentTransformRules& Detac
 		PrimaryComponentTick.RemovePrerequisite(GetAttachParent(), GetAttachParent()->PrimaryComponentTick); // no longer required to tick after the attachment
 
 		GetAttachParent()->AttachChildren.Remove(this);
+		GetAttachParent()->ClientAttachedChildren.Remove(this);
 		GetAttachParent()->OnChildDetached(this);
 
 #if WITH_EDITOR
@@ -2538,16 +2544,17 @@ bool USceneComponent::CheckStaticMobilityAndWarn(const FText& ActionText) const
 	{
 		if (UWorld * World = GetWorld())
 		{
-			ULevel* Level = GetComponentLevel();
-
-			// It's only a problem if we're in gameplay, and the owning level is visible
-			if (World->HasBegunPlay() && IsRegistered() && Level && Level->bIsVisible)
+			if (World->IsGameWorld() && World->bIsWorldInitialized && !IsOwnerRunningUserConstructionScript())
 			{
+				AActor* MyOwner = GetOwner();
+				if (MyOwner && MyOwner->IsActorInitialized())
+				{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("InvalidMustBeMovable", "Mobility of {0} : {1} has to be 'Movable' if you'd like to {2}. "),
-					FText::FromString(GetNameSafe(GetOwner())), FText::FromString(GetName()), ActionText));
+					FMessageLog("PIE").Warning(FText::Format(LOCTEXT("InvalidMustBeMovable", "Mobility of {0} : {1} has to be 'Movable' if you'd like to {2}. "),
+						FText::FromString(GetNameSafe(GetOwner())), FText::FromString(GetName()), ActionText));
 #endif
-				return true;
+					return true;
+				}
 			}
 		}
 	}
@@ -2853,6 +2860,49 @@ void USceneComponent::OnRep_AttachParent()
 void USceneComponent::OnRep_AttachSocketName()
 {
 	bNetUpdateAttachment = true;
+}
+
+void USceneComponent::OnRep_AttachChildren()
+{
+	// Because replication of AttachChildren is not atomic with AttachParent of the corresponding component it is
+	// entirely possible to get duplicates in the AttachChildren array.  So we have to extract them and the later entry
+	// is always the duplicate
+	for (int32 SearchIndex = AttachChildren.Num()-1; SearchIndex >= 1; --SearchIndex)
+	{
+		if (USceneComponent* PossibleDuplicate = AttachChildren[SearchIndex])
+		{
+			for (int32 DuplicateCheckIndex = SearchIndex - 1; DuplicateCheckIndex >= 0; --DuplicateCheckIndex)
+			{
+				if (PossibleDuplicate == AttachChildren[DuplicateCheckIndex])
+				{
+					AttachChildren.RemoveAt(SearchIndex, 1, false);
+					break;
+				}
+			}
+		}
+	}
+
+	if (ClientAttachedChildren.Num())
+	{
+		for (USceneComponent* AttachChild : AttachChildren)
+		{
+			if (AttachChild)
+			{
+				// Clear out any initially attached components from the client attached list that end up becoming replicated
+				ClientAttachedChildren.Remove(AttachChild);
+			}
+		}
+
+		// When the server replicates the attach children array to the client it will wipe out any client only attachments
+		// so we need to fill back in the client attached children
+		for (USceneComponent* ClientAttachChild : ClientAttachedChildren)
+		{
+			if (ClientAttachChild)
+			{
+				AttachChildren.AddUnique(ClientAttachChild);
+			}
+		}
+	}
 }
 
 void USceneComponent::OnRep_Visibility(bool OldValue)

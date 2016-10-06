@@ -1153,7 +1153,7 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_UGameEngine_Tick_ConditionalCommitMapChange);
 		ConditionalCommitMapChange(Context);
 
-		if (Context.WorldType != EWorldType::Preview && !Context.World()->IsPaused())
+		if (Context.WorldType != EWorldType::EditorPreview && !Context.World()->IsPaused())
 		{
 			bIsAnyNonPreviewWorldUnpaused = true;
 		}

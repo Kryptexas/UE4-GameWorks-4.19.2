@@ -551,6 +551,7 @@ TSharedRef<SGraphEditor> FBehaviorTreeEditor::CreateGraphEditorWidget(UEdGraph* 
 	SGraphEditor::FGraphEditorEvents InEvents;
 	InEvents.OnSelectionChanged = SGraphEditor::FOnSelectionChanged::CreateSP(this, &FBehaviorTreeEditor::OnSelectedNodesChanged);
 	InEvents.OnNodeDoubleClicked = FSingleNodeEvent::CreateSP(this, &FBehaviorTreeEditor::OnNodeDoubleClicked);
+	InEvents.OnTextCommitted = FOnNodeTextCommitted::CreateSP(this, &FBehaviorTreeEditor::OnNodeTitleCommitted);
 
 	// Make title bar
 	TSharedRef<SWidget> TitleBarWidget = 
@@ -1561,6 +1562,23 @@ void FBehaviorTreeEditor::FocusWindow(UObject* ObjectToFocusOn)
 	}
 
 	FWorkflowCentricApplication::FocusWindow(ObjectToFocusOn);
+}
+
+void FBehaviorTreeEditor::OnNodeTitleCommitted(const FText& NewText, ETextCommit::Type CommitInfo, UEdGraphNode* NodeBeingChanged)
+{
+	if (NodeBeingChanged)
+	{
+		static const FText TranscationTitle = FText::FromString(FString(TEXT("Rename Node")));
+		const FScopedTransaction Transaction(TranscationTitle);
+		NodeBeingChanged->Modify();
+		NodeBeingChanged->OnRenameNode(NewText.ToString());
+	}
+}
+
+bool FBehaviorTreeEditor::GetBoundsForSelectedNodes(FSlateRect& Rect, float Padding) const
+{
+	TSharedPtr<SGraphEditor> FocusedGraphEd = UpdateGraphEdPtr.Pin();
+	return FocusedGraphEd.IsValid() && FocusedGraphEd->GetBoundsForSelectedNodes(Rect, Padding);
 }
 
 void FBehaviorTreeEditor::InitializeDebuggerState(class FBehaviorTreeDebugger* ParentDebugger) const

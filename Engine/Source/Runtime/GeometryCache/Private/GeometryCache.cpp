@@ -4,8 +4,10 @@
 #include "GeometryCacheTrackTransformAnimation.h"
 #include "GeometryCacheTrackFlipbookAnimation.h"
 #include "EditorFramework/AssetImportData.h"
+#include "TargetPlatform.h"
+#include "FrameworkObjectVersion.h"
 
-UGeometryCache::UGeometryCache(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/) : UObject(ObjectInitializer)
+UGeometryCache::UGeometryCache(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NumTransformAnimationTracks = 0;
 	NumVertexAnimationTracks = 0;
@@ -24,13 +26,21 @@ void UGeometryCache::PostInitProperties()
 
 void UGeometryCache::Serialize(FArchive& Ar)
 {
-	// Custom serialization
+	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
 #if WITH_EDITORONLY_DATA
-	Ar << AssetImportData;
+	if (( !Ar.IsCooking() || (Ar.CookingTarget() && Ar.CookingTarget()->HasEditorOnlyData())))
+	{
+		Ar << AssetImportData;
+	}
 #endif
 	Ar << Tracks;
 	Ar << NumVertexAnimationTracks;
-	Ar << NumTransformAnimationTracks;
+	Ar << NumTransformAnimationTracks;	
+
+	if (Ar.CustomVer(FFrameworkObjectVersion::GUID) >= FFrameworkObjectVersion::GeometryCacheMissingMaterials)
+	{
+		Ar << Materials;
+	}
 }
 
 FString UGeometryCache::GetDesc()
@@ -109,12 +119,6 @@ void UGeometryCache::PreEditChange(UProperty* PropertyAboutToChange)
 	ReleaseResourcesFence.Wait();
 }
 #endif
-
-void UGeometryCache::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
-{
-	UGeometryCache* This = CastChecked<UGeometryCache>(InThis);	
-	Super::AddReferencedObjects(This, Collector);
-}
 
 void UGeometryCache::AddTrack(UGeometryCacheTrack* Track)
 {

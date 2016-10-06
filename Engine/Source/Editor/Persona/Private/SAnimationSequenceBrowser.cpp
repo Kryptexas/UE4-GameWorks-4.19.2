@@ -337,27 +337,9 @@ void SAnimationSequenceBrowser::RetargetAnimationHandler(USkeleton* OldSkeleton,
 	{
 		FAssetRegistryModule::AssetCreated(AssetToOpen);
 
-		if (GetDefault<UPersonaOptions>()->bUseStandaloneAnimationEditors)
-		{
-			const bool bBringToFrontIfOpen = true;
-			if (IAssetEditorInstance* EditorInstance = FAssetEditorManager::Get().FindEditorForAsset(AnimAsset, bBringToFrontIfOpen))
-			{
-				EditorInstance->FocusWindow(AnimAsset);
-			}
-			else
-			{
-				IAnimationEditorModule& AnimationEditorModule = FModuleManager::LoadModuleChecked<IAnimationEditorModule>("AnimationEditor");
-				AnimationEditorModule.CreateAnimationEditor(EToolkitMode::Standalone, nullptr, AnimAsset);
-			}
-		}
-		else
-		{
-		// once all success, attempt to open new persona module with new skeleton
-		EToolkitMode::Type Mode = EToolkitMode::Standalone;
-		FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>("Persona");
-		PersonaModule.CreatePersona(Mode, TSharedPtr<IToolkitHost>(), NewSkeleton, NULL, AnimAsset, NULL);
+		// once all success, attempt to open new editor with new skeleton
+		FAssetEditorManager::Get().OpenEditorForAsset(AssetToOpen);
 	}
-}
 }
 
 void SAnimationSequenceBrowser::OnCreateCopy(TArray<FAssetData> Selected)
@@ -451,6 +433,17 @@ void SAnimationSequenceBrowser::Construct(const FArguments& InArgs, const TShare
 	Config.OnGetCustomAssetToolTip = FOnGetCustomAssetToolTip::CreateSP(this, &SAnimationSequenceBrowser::CreateCustomAssetToolTip);
 	Config.OnVisualizeAssetToolTip = FOnVisualizeAssetToolTip::CreateSP(this, &SAnimationSequenceBrowser::OnVisualizeAssetToolTip);
 	Config.OnAssetToolTipClosing = FOnAssetToolTipClosing::CreateSP( this, &SAnimationSequenceBrowser::OnAssetToolTipClosing );
+
+	// hide all asset registry columns by default (we only really want the name and path)
+	TArray<UObject::FAssetRegistryTag> AssetRegistryTags;
+	UAnimSequence::StaticClass()->GetDefaultObject()->GetAssetRegistryTags(AssetRegistryTags);
+	for(UObject::FAssetRegistryTag& AssetRegistryTag : AssetRegistryTags)
+	{
+		Config.HiddenColumnNames.Add(AssetRegistryTag.Name.ToString());
+	}
+
+	// Also hide the type column by default (but allow users to enable it, so don't use bShowTypeInColumnView)
+	Config.HiddenColumnNames.Add(TEXT("Class"));
 
 	static const FName DefaultForegroundName("DefaultForeground");
 

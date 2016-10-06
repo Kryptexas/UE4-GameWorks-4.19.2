@@ -16,6 +16,7 @@ public:
 	~FAnimationEditorPreviewScene();
 
 	/** IPersonaPreviewScene interface */
+	virtual TSharedRef<class IPersonaToolkit> GetPersonaToolkit() const override { return PersonaToolkit.Pin().ToSharedRef(); }
 	virtual void SetPreviewAnimationAsset(UAnimationAsset* AnimAsset, bool bEnablePreview = true) override;
 	virtual UAnimationAsset* GetPreviewAnimationAsset() const override;
 	virtual void SetPreviewMesh(USkeletalMesh* NewPreviewMesh) override;
@@ -86,6 +87,7 @@ public:
 	virtual AActor* GetSelectedActor() const override;
 	virtual FSelectedSocketInfo GetSelectedSocket() const override;
 	virtual int32 GetSelectedBoneIndex() const override;
+	virtual void TogglePlayback() override;
 
 	/** FPreviewScene interface */
 	virtual void Tick(float InDeltaTime) override;

@@ -827,30 +827,6 @@ bool FMeshRenderer::RenderMaterial(struct FMaterialMergeData& InMaterialData, FM
 			.SetWorldTimes(CurrentWorldTime, DeltaWorldTime, CurrentRealTime)
 			.SetGammaCorrection(CanvasRenderTarget->GetDisplayGamma()));
 		
-		static bool GRendererInitialized = false;
-
-		if (!GRendererInitialized)
-		{
-			// Force global shaders to be compiled and saved
-			if (GShaderCompilingManager)
-			{
-				// Process any asynchronous shader compile results that are ready, limit execution time
-				GShaderCompilingManager->ProcessAsyncResults(false, true);
-			}
-
-			// Initialize the renderer in a case if material LOD computed in UStaticMesh::PostLoad()
-			// when loading a scene on UnrealEd startup. Use GetRendererModule().BeginRenderingViewFamily()
-			// for that. Prepare a dummy scene because it is required by that function.
-			FClassThumbnailScene DummyScene;
-			DummyScene.SetClass(AStaticMeshActor::StaticClass());
-			ViewFamily.Scene = DummyScene.GetScene();
-			int32 X = 0, Y = 0, Width = 256, Height = 256;
-			DummyScene.GetView(&ViewFamily, X, Y, Width, Height);
-			GetRendererModule().BeginRenderingViewFamily(&Canvas, &ViewFamily);
-			GRendererInitialized = true;
-			ViewFamily.Scene = NULL;
-		}
-
 #if !SHOW_WIREFRAME_MESH
 		Canvas.Clear(InRenderTarget->ClearColor);
 #else
@@ -932,7 +908,7 @@ bool FMeshRenderer::RenderMaterial(struct FMaterialMergeData& InMaterialData, FM
 
 //#define SAVE_INTERMEDIATE_TEXTURES 1
 #ifdef SAVE_INTERMEDIATE_TEXTURES
-	FilenameString = FString::Printf(
+	FString FilenameString = FString::Printf(
 		TEXT( "D:/TextureTest/%s-mat%d-prop%d.bmp"),
 		*InMaterialProxy->GetFriendlyName(), InMaterialData.MaterialIndex, (int32)InMaterialProperty);
 	FFileHelper::CreateBitmap(*FilenameString, InRenderTarget->GetSurfaceWidth(), InRenderTarget->GetSurfaceHeight(), OutBMP.GetData());

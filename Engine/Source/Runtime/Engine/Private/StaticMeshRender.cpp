@@ -86,11 +86,11 @@ static FAutoConsoleCommand GToggleForceDefaultMaterialCmd(
 
 /** Initialization constructor. */
 FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
-	FPrimitiveSceneProxy(InComponent, InComponent->StaticMesh->GetFName())
+	FPrimitiveSceneProxy(InComponent, InComponent->GetStaticMesh()->GetFName())
 	, Owner(InComponent->GetOwner())
-	, StaticMesh(InComponent->StaticMesh)
+	, StaticMesh(InComponent->GetStaticMesh())
 	, BodySetup(InComponent->GetBodySetup())
-	, RenderData(InComponent->StaticMesh->RenderData)
+	, RenderData(InComponent->GetStaticMesh()->RenderData)
 	, ForcedLodModel(InComponent->ForcedLodModel)
 	, bCastShadow(InComponent->CastShadow)
 	, CollisionTraceFlag(ECollisionTraceFlag::CTF_UseSimpleAndComplex)
@@ -106,13 +106,13 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 	, LightMapResolution(InComponent->GetStaticLightMapResolution())
 #endif
 #if !(UE_BUILD_SHIPPING)
-	, LODForCollision(InComponent->StaticMesh->LODForCollision)
+	, LODForCollision(InComponent->GetStaticMesh()->LODForCollision)
 	, bDrawMeshCollisionWireframe(InComponent->bDrawMeshCollisionWireframe)
 #endif
 {
 	check(RenderData);
 
-	const int32 EffectiveMinLOD = InComponent->bOverrideMinLOD ? InComponent->MinLOD : InComponent->StaticMesh->MinLOD;
+	const int32 EffectiveMinLOD = InComponent->bOverrideMinLOD ? InComponent->MinLOD : InComponent->GetStaticMesh()->MinLOD;
 	ClampedMinLOD = FMath::Clamp(EffectiveMinLOD, 0, RenderData->LODResources.Num() - 1);
 
 	WireframeColor = InComponent->GetWireframeColor();
@@ -161,7 +161,7 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 
 	bStaticElementsAlwaysUseProxyPrimitiveUniformBuffer = true;
 
-	LpvBiasMultiplier = FMath::Min( InComponent->StaticMesh->LpvBiasMultiplier * InComponent->LpvBiasMultiplier, 3.0f );
+	LpvBiasMultiplier = FMath::Min( InComponent->GetStaticMesh()->LpvBiasMultiplier * InComponent->LpvBiasMultiplier, 3.0f );
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) || WITH_EDITOR
 	if( GIsEditor )
@@ -1306,7 +1306,7 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 {
 	const auto FeatureLevel = InComponent->GetWorld()->FeatureLevel;
 
-	FStaticMeshRenderData* MeshRenderData = InComponent->StaticMesh->RenderData;
+	FStaticMeshRenderData* MeshRenderData = InComponent->GetStaticMesh()->RenderData;
 	FStaticMeshLODResources& LODModel = MeshRenderData->LODResources[LODIndex];
 	if (LODIndex < InComponent->LODData.Num())
 	{
@@ -1374,7 +1374,7 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 		{
 			UE_LOG(LogStaticMesh, Warning, TEXT("Adjacency information not built for static mesh with a material that requires it. Using default material instead.\n\tMaterial: %s\n\tStaticMesh: %s"),
 				*SectionInfo.Material->GetPathName(), 
-				*InComponent->StaticMesh->GetPathName() );
+				*InComponent->GetStaticMesh()->GetPathName() );
 			SectionInfo.Material = UMaterial::GetDefaultMaterial(MD_Surface);
 		}
 
@@ -1551,10 +1551,10 @@ FLODMask FStaticMeshSceneProxy::GetLODMask(const FSceneView* View) const
 
 FPrimitiveSceneProxy* UStaticMeshComponent::CreateSceneProxy()
 {
-	if(StaticMesh == NULL
-		|| StaticMesh->RenderData == NULL
-		|| StaticMesh->RenderData->LODResources.Num() == 0
-		|| StaticMesh->RenderData->LODResources[0].VertexBuffer.GetNumVertices() == 0)
+	if(GetStaticMesh() == NULL
+		|| GetStaticMesh()->RenderData == NULL
+		|| GetStaticMesh()->RenderData->LODResources.Num() == 0
+		|| GetStaticMesh()->RenderData->LODResources[0].VertexBuffer.GetNumVertices() == 0)
 	{
 		return NULL;
 	}

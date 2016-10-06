@@ -1513,6 +1513,7 @@ void ARecastNavMesh::UpdateDrawing()
 
 void ARecastNavMesh::DrawDebugPathCorridor(NavNodeRef const* PathPolys, int32 NumPathPolys, bool bPersistent) const
 {
+#if ENABLE_DRAW_DEBUG
 	static const FColor PathLineColor(255, 128, 0);
 
 	// draw poly outlines
@@ -1547,6 +1548,7 @@ void ARecastNavMesh::DrawDebugPathCorridor(NavNodeRef const* PathPolys, int32 Nu
 			}
 		}
 	}
+#endif // ENABLE_DRAW_DEBUG
 }
 
 void ARecastNavMesh::InvalidateAffectedPaths(const TArray<uint32>& ChangedTiles)

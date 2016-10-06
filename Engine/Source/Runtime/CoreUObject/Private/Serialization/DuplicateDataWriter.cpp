@@ -51,10 +51,20 @@ FArchive& FDuplicateDataWriter::operator<<(FName& N)
 
 FArchive& FDuplicateDataWriter::operator<<(UObject*& Object)
 {
-	GetDuplicatedObject(Object);
+	if (Object &&
+		!Object->HasAnyFlags(RF_DuplicateTransient) &&
+		(!Object->HasAnyFlags(RF_NonPIEDuplicateTransient) || HasAnyPortFlags(PPF_DuplicateForPIE)))
+	{
+		GetDuplicatedObject(Object);
 
-	// store the pointer to this object
-	Serialize(&Object,sizeof(UObject*));
+		// store the pointer to this object
+		Serialize(&Object, sizeof(UObject*));
+	}
+	else
+	{
+		UObject* NullObject = nullptr;
+		Serialize(&NullObject, sizeof(UObject*));
+	}
 	return *this;
 }
 

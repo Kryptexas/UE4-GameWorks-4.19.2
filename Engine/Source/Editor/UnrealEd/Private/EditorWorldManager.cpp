@@ -98,7 +98,7 @@ TSharedPtr<FEditorWorldWrapper> FEditorWorldManager::OnWorldContextAdd(FWorldCon
 	//Only add editor type world to the map
 	UWorld* World = InWorldContext.World();
 	TSharedPtr<FEditorWorldWrapper> Result;
-	if(World && (InWorldContext.WorldType == EWorldType::Editor || InWorldContext.WorldType == EWorldType::Preview))
+	if(World && (InWorldContext.WorldType == EWorldType::Editor || InWorldContext.WorldType == EWorldType::EditorPreview))
 	{
 		TSharedPtr<FEditorWorldWrapper> EditorWorld(new FEditorWorldWrapper(InWorldContext));
 		Result = EditorWorld;

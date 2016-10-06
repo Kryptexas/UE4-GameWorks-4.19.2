@@ -30,6 +30,7 @@ private:
 		FAnimCurveBase* CurrentCurveData = RawCurveData.GetCurveData(CurveUID);
 		if (CurrentCurveData)
 		{
+			CurrentCurveData->Name.UID = RequestedNameUID;
 			CurrentCurveData->Name.DisplayName = RequestedName;
 		}
 	}
@@ -135,12 +136,12 @@ public:
 
 	void UpdateName(const SmartName::UID_Type& RequestedNameUID, FName RequestedName)
 	{
-		CurveUID = RequestedNameUID;
 		UpdateNameInternal(AnimSequenceBase.Get()->RawCurveData, RequestedNameUID, RequestedName);
 		if (UAnimSequence* Seq = AnimSequence.Get())
 		{
 			UpdateNameInternal(Seq->CompressedCurveData, RequestedNameUID, RequestedName);
 		}
+		CurveUID = RequestedNameUID;
 	}
 
 	/**
@@ -400,38 +401,50 @@ void SCurveEdTrack::NewCurveNameEntered( const FText& NewText, ETextCommit::Type
 			FName RequestedName = FName(*NewText.ToString());
 			const FSmartNameMapping* NameMapping = Skeleton->GetSmartNameContainer(USkeleton::AnimCurveMappingName);
 
+			FScopedTransaction Transaction(LOCTEXT("CurveEditor_RenameCurve", "Rename Curve"));
+
 			// If requested name exists, make sure it's not currently in use in this sequence.
-			const SmartName::UID_Type* RequestedNameUID = NameMapping->FindUID(RequestedName);
-			if (RequestedNameUID != nullptr)
+
+			SmartName::UID_Type RequestedNameUID;
+
+			if (const SmartName::UID_Type* RequestedNameUIDPtr = NameMapping->FindUID(RequestedName))
 			{
+				RequestedNameUID = *RequestedNameUIDPtr;
 				// Already in use in this sequence, skip
-				if (CurveInterface->AnimSequenceBase->RawCurveData.GetCurveData(*RequestedNameUID) != nullptr)
+				if (CurveInterface->AnimSequenceBase->RawCurveData.GetCurveData(RequestedNameUID) != nullptr)
 				{
 					FFormatNamedArguments Args;
 					Args.Add(TEXT("DestinationName"), FText::FromName(RequestedName));
 					const FText DialogMessage = FText::Format(LOCTEXT("CurveEditor_RenameCurve_AlreadyExists", "ERROR: A curve named '{DestinationName}' already exists in this Sequence."), Args);
 					FMessageDialog::Open(EAppMsgType::Ok, DialogMessage);
+					Transaction.Cancel();
 					return;
-				}
-
-				// Not in use in this sequence, switch it to the other curve name.
-				FScopedTransaction Transaction(LOCTEXT("CurveEditor_RenameCurve", "Rename Curve"));
-				CurveInterface->AnimSequenceBase->Modify(true);
-
-				CurveInterface->UpdateName(*RequestedNameUID, RequestedName);
-
-				// 2. refresh panel
-				TSharedPtr<SAnimCurvePanel> SharedPanel = PanelPtr.Pin();
-				if (SharedPanel.IsValid())
-				{
-					SharedPanel.Get()->UpdatePanel();
 				}
 			}
 			else
 			{
-				// If it doesn't exist, rename Curve.
-				FScopedTransaction Transaction(LOCTEXT("CurveEditor_RenameCurve", "Rename Curve"));
-				Skeleton->RenameSmartnameAndModify(USkeleton::AnimCurveMappingName, CurveInterface->CurveUID, FName(*NewText.ToString()));
+				FSmartName NewName;
+				const bool bAdded = Skeleton->AddSmartNameAndModify(USkeleton::AnimCurveMappingName, RequestedName, NewName);
+				if (!bAdded)
+				{
+					const FText DialogMessage = LOCTEXT("CurveEditor_RenameCurve_Unknownfailure", "ERROR: Failed to add new curve smart name, check the log for errors.");
+					FMessageDialog::Open(EAppMsgType::Ok, DialogMessage);
+					Transaction.Cancel();
+					return;
+				}
+				RequestedNameUID = NewName.UID;
+			}
+
+			// Not in use in this sequence, switch it to the other curve name.
+			CurveInterface->AnimSequenceBase->Modify(true);
+
+			CurveInterface->UpdateName(RequestedNameUID, RequestedName);
+
+			// 2. refresh panel
+			TSharedPtr<SAnimCurvePanel> SharedPanel = PanelPtr.Pin();
+			if (SharedPanel.IsValid())
+			{
+				SharedPanel.Get()->UpdatePanel();
 			}
 		}
 	}

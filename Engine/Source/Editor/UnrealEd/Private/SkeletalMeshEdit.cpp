@@ -1251,7 +1251,7 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 
 	// importing custom attribute END
 
-	const bool bSourceDataExists = (DestSeq->SourceRawAnimationData.Num() > 0);
+	const bool bSourceDataExists = DestSeq->HasSourceRawData();
 	TArray<AnimationTransformDebug::FAnimationTransformDebugData> TransformDebugData;
 	int32 TotalNumKeys = 0;
 	const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
@@ -1260,10 +1260,7 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 	{
 		GWarn->BeginSlowTask( LOCTEXT("BeginImportAnimation", "Importing Animation"), true);
 
-		TArray<struct FRawAnimSequenceTrack>& RawAnimationData = bSourceDataExists? DestSeq->SourceRawAnimationData : DestSeq->RawAnimationData;
-		DestSeq->TrackToSkeletonMapTable.Empty();
-		DestSeq->AnimationTrackNames.Empty();
-		RawAnimationData.Empty();
+		DestSeq->RecycleAnimSequence();
 
 		TArray<FName> FbxRawBoneNames;
 		FillAndVerifyBoneNames(Skeleton, SortedLinks, FbxRawBoneNames, FileName);
@@ -1411,13 +1408,11 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 				if (bSuccess)
 				{
 					//add new track
-					int32 NewTrackIdx = RawAnimationData.Add(RawTrack);
-					DestSeq->AnimationTrackNames.Add(BoneName);
+					int32 NewTrackIdx = DestSeq->AddNewRawTrack(BoneName, &RawTrack);
 
 					NewDebugData.SetTrackData(NewTrackIdx, BoneTreeIndex, BoneName);
 
 					// add mapping to skeleton bone track
-					DestSeq->TrackToSkeletonMapTable.Add(FTrackToSkeletonMap(BoneTreeIndex));
 					TransformDebugData.Add(NewDebugData);
 				}
 			}

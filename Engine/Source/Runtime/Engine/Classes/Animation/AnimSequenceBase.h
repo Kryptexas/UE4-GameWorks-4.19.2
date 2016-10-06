@@ -31,7 +31,7 @@ class UAnimSequenceBase : public UAnimationAsset
 	TArray<struct FAnimNotifyEvent> Notifies;
 
 	/** Length (in seconds) of this AnimSequence if played back with a speed of 1.0. */
-	UPROPERTY(Category=Length, AssetRegistrySearchable, VisibleAnywhere)
+	UPROPERTY(Category=Length, AssetRegistrySearchable, VisibleAnywhere, BlueprintReadOnly)
 	float SequenceLength;
 
 	/** Number for tweaking playback rate of this animation globally. */

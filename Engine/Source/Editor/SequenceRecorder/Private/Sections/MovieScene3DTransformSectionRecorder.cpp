@@ -100,7 +100,7 @@ void FMovieScene3DTransformSectionRecorder::FinalizeSection()
 				// find the root bone
 				int32 RootIndex = INDEX_NONE;
 				USkeleton* AnimSkeleton = AnimSequence->GetSkeleton();
-				for (int32 TrackIndex = 0; TrackIndex < AnimSequence->RawAnimationData.Num(); ++TrackIndex)
+				for (int32 TrackIndex = 0; TrackIndex < AnimSequence->GetRawAnimationData().Num(); ++TrackIndex)
 				{
 					// verify if this bone exists in skeleton
 					int32 BoneTreeIndex = AnimSequence->GetSkeletonIndexFromRawDataTrackIndex(TrackIndex);
@@ -124,7 +124,7 @@ void FMovieScene3DTransformSectionRecorder::FinalizeSection()
 				// we may need to offset the transform here if the animation was not recorded on the root component
 				FTransform InvComponentTransform = AnimRecorder->GetComponentTransform().Inverse();
 
-				FRawAnimSequenceTrack& RawTrack = AnimSequence->RawAnimationData[RootIndex];
+				const FRawAnimSequenceTrack& RawTrack = AnimSequence->GetRawAnimationData()[RootIndex];
 				const int32 KeyCount = FMath::Max(FMath::Max(RawTrack.PosKeys.Num(), RawTrack.RotKeys.Num()), RawTrack.ScaleKeys.Num());
 				for (int32 KeyIndex = 0; KeyIndex < KeyCount; KeyIndex++)
 				{

@@ -420,14 +420,12 @@ public:
     UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Character")
     int32 JumpCurrentCount;
 
-    /**
-     * Whether or not the JumpMaxCount value has been exceeded.
-     * This is set in CheckJumpInput, used in CanJump_Implementation, and reset in OnMovementModeChanged.
-     * When providing overrides for these methods, it's recommended to either manually
-     * set / reset this value, or call the Super:: method.
-     */
-    UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Character")
-    uint32 bJumpMaxCountExceeded:1;
+	DEPRECATED(4.14, "This value is no longer used.")
+	uint32 bJumpMaxCountExceeded:1;
+
+	// Tracks whether or not the character was already jumping last frame.
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category="Character")
+	uint32 bWasJumping:1;
 
 	//~ Begin AActor Interface.
 	virtual void ClearCrossLevelReferences() override;
@@ -513,7 +511,13 @@ protected:
 	bool CanJumpInternal() const;
 	virtual bool CanJumpInternal_Implementation() const;
 
-	void CheckResetJumpCount();
+	DEPRECATED(4.14, "This function is deprecated. Please use ResetJumpState instead.")
+	void CheckResetJumpCount()
+	{
+		ResetJumpState();
+	}
+
+	void ResetJumpState();
 
 public:
 

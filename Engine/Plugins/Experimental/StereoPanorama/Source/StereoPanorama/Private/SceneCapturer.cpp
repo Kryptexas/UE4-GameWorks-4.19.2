@@ -232,6 +232,20 @@ USceneCapturer::USceneCapturer()
 	CaptureStep = ECaptureStep::Reset;
 }
 
+UWorld* USceneCapturer::GetTickableGameObjectWorld() const 
+{
+	if (LeftEyeCaptureComponents.Num() > 0)
+	{
+		if (LeftEyeCaptureComponents[0])
+		{
+			return LeftEyeCaptureComponents[0]->GetWorld();
+		}
+	}
+
+	return nullptr;
+}
+
+
 void USceneCapturer::Reset()
 {
 	for( int CaptureIndex = 0; CaptureIndex < FStereoPanoramaManager::ConcurrentCaptures->GetInt(); CaptureIndex++ )

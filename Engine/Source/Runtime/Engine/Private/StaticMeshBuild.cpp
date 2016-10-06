@@ -146,7 +146,7 @@ void UStaticMesh::Build(bool bSilent, TArray<FText>* OutErrors)
 		const uint32 NumLODs = RenderData->LODResources.Num();
 		for (TObjectIterator<UStaticMeshComponent> It; It; ++It)
 		{
-			if ( It->StaticMesh == this )
+			if ( It->GetStaticMesh() == this )
 			{
 				It->FixupOverrideColorsIfNecessary(true);
 				It->InvalidateLightingCache();

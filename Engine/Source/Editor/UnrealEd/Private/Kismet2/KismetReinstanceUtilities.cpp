@@ -565,13 +565,13 @@ TSharedPtr<FReinstanceFinalizer> FBlueprintCompileReinstancer::ReinstanceFast()
 	GetObjectsOfClass(DuplicatedClass, Finalizer->ObjectsToReplace, /*bIncludeDerivedClasses=*/ false);
 
 	const bool bIsActor = ClassToReinstance->IsChildOf<AActor>();
-	const bool bIsAnimInstance = ClassToReinstance->IsChildOf<UAnimInstance>();
 	const bool bIsComponent = ClassToReinstance->IsChildOf<UActorComponent>();
 	for (UObject* Obj : Finalizer->ObjectsToReplace)
 	{
 		UE_LOG(LogBlueprint, Log, TEXT("  Fast path is refreshing (not replacing) %s"), *Obj->GetFullName());
 
-		if ((!Obj->IsTemplate() || bIsComponent) && !Obj->IsPendingKill())
+		const bool bIsChildActorTemplate = (bIsActor ? CastChecked<AActor>(Obj)->GetOuter()->IsA<UChildActorComponent>() : false);
+		if ((!Obj->IsTemplate() || bIsComponent || bIsChildActorTemplate) && !Obj->IsPendingKill())
 		{
 			if (bIsActor && Obj->IsSelected())
 			{

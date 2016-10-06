@@ -85,6 +85,9 @@ void USkeleton::PostLoad()
 
 	// Cache smart name uids for animation curve names
 	IncreaseAnimCurveUidVersion();
+
+	const bool bRebuildNameMap = false;
+	ReferenceSkeleton.RebuildRefSkeleton(this, bRebuildNameMap);
 }
 
 void USkeleton::PostDuplicate(bool bDuplicateForPIE)
@@ -184,6 +187,18 @@ void USkeleton::Serialize( FArchive& Ar )
 #endif
 }
 
+#if WITH_EDITOR
+void USkeleton::PostEditUndo()
+{
+	Super::PostEditUndo();
+
+	//if we were undoing virtual bone changes then we need to handle stale cache data
+	SkelMesh2LinkupCache.Empty();
+	LinkupCache.Empty();
+	HandleVirtualBoneChanges();
+}
+#endif // WITH_EDITOR
+
 void USkeleton::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
 	USkeleton* This = CastChecked<USkeleton>(InThis);
@@ -201,6 +216,8 @@ void USkeleton::AddReferencedObjects(UObject* InThis, FReferenceCollector& Colle
 /** Remove this function when VER_UE4_REFERENCE_SKELETON_REFACTOR is removed. */
 void USkeleton::ConvertToFReferenceSkeleton()
 {
+	FReferenceSkeletonModifier RefSkelModifier(ReferenceSkeleton, this);
+
 	check( BoneTree.Num() == RefLocalPoses_DEPRECATED.Num() );
 
 	const int32 NumRefBones = RefLocalPoses_DEPRECATED.Num();
@@ -213,7 +230,7 @@ void USkeleton::ConvertToFReferenceSkeleton()
 		const FTransform& BoneTransform = RefLocalPoses_DEPRECATED[BoneIndex];
 
 		// All should be good. Parents before children, no duplicate bones?
-		ReferenceSkeleton.Add(BoneInfo, BoneTransform);
+		RefSkelModifier.Add(BoneInfo, BoneTransform);
 	}
 
 	// technically here we should call 	RefershAllRetargetSources(); but this is added after 
@@ -274,7 +291,7 @@ bool USkeleton::IsCompatibleMesh(const USkeletalMesh* InSkelMesh) const
 
 	const FReferenceSkeleton& SkeletonRefSkel = ReferenceSkeleton;
 	const FReferenceSkeleton& MeshRefSkel = InSkelMesh->RefSkeleton;
-	const int32 NumBones = MeshRefSkel.GetNum();
+	const int32 NumBones = MeshRefSkel.GetRawBoneNum();
 
 	// first ensure the parent exists for each bone
 	for (int32 MeshBoneIndex=0; MeshBoneIndex<NumBones; MeshBoneIndex++)
@@ -460,14 +477,16 @@ void USkeleton::RebuildLinkup(const USkeletalMesh* InSkelMesh)
 void USkeleton::UpdateReferencePoseFromMesh(const USkeletalMesh* InSkelMesh)
 {
 	check(InSkelMesh);
+	
+	FReferenceSkeletonModifier RefSkelModifier(ReferenceSkeleton, this);
 
-	for (int32 BoneIndex = 0; BoneIndex < ReferenceSkeleton.GetNum(); BoneIndex++)
+	for (int32 BoneIndex = 0; BoneIndex < ReferenceSkeleton.GetRawBoneNum(); BoneIndex++)
 	{
 		// find index from ref pose array
-		const int32 MeshBoneIndex = InSkelMesh->RefSkeleton.FindBoneIndex(ReferenceSkeleton.GetBoneName(BoneIndex));
+		const int32 MeshBoneIndex = InSkelMesh->RefSkeleton.FindRawBoneIndex(ReferenceSkeleton.GetBoneName(BoneIndex));
 		if (MeshBoneIndex != INDEX_NONE)
 		{
-			ReferenceSkeleton.UpdateRefPoseTransform(BoneIndex, InSkelMesh->RefSkeleton.GetRefBonePose()[MeshBoneIndex]);
+			RefSkelModifier.UpdateRefPoseTransform(BoneIndex, InSkelMesh->RefSkeleton.GetRefBonePose()[MeshBoneIndex]);
 		}
 	}
 
@@ -496,9 +515,9 @@ bool USkeleton::MergeAllBonesToBoneTree(const USkeletalMesh* InSkelMesh)
 		TArray<int32> RequiredBoneIndices;
 
 		// for now add all in this case. 
-		RequiredBoneIndices.AddUninitialized(InSkelMesh->RefSkeleton.GetNum());
+		RequiredBoneIndices.AddUninitialized(InSkelMesh->RefSkeleton.GetRawBoneNum());
 		// gather bone list
-		for (int32 I=0; I<InSkelMesh->RefSkeleton.GetNum(); ++I)
+		for (int32 I=0; I<InSkelMesh->RefSkeleton.GetRawBoneNum(); ++I)
 		{
 			RequiredBoneIndices[I] = I;
 		}
@@ -519,6 +538,8 @@ bool USkeleton::CreateReferenceSkeletonFromMesh(const USkeletalMesh* InSkeletalM
 	TArray<int32> FilteredRequiredBones; 
 	FAnimationRuntime::ExcludeBonesWithNoParents(RequiredRefBones, InSkeletalMesh->RefSkeleton, FilteredRequiredBones);
 
+	FReferenceSkeletonModifier RefSkelModifier(ReferenceSkeleton, this);
+
 	if( FilteredRequiredBones.Num() > 0 )
 	{
 		const int32 NumBones = FilteredRequiredBones.Num();
@@ -538,9 +559,11 @@ bool USkeleton::CreateReferenceSkeletonFromMesh(const USkeletalMesh* InSkeletalM
 			}
 			else
 			{
-				NewMeshBoneInfo.ParentIndex = ReferenceSkeleton.FindBoneIndex(InSkeletalMesh->RefSkeleton.GetBoneName(InSkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex)));
+				const int32 ParentIndex = InSkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
+				const FName ParentName = InSkeletalMesh->RefSkeleton.GetBoneName(ParentIndex);
+				NewMeshBoneInfo.ParentIndex = ReferenceSkeleton.FindRawBoneIndex(ParentName);
 			}
-			ReferenceSkeleton.Add(NewMeshBoneInfo, InSkeletalMesh->RefSkeleton.GetRefBonePose()[BoneIndex]);
+			RefSkelModifier.Add(NewMeshBoneInfo, InSkeletalMesh->RefSkeleton.GetRefBonePose()[BoneIndex]);
 		}
 
 		return true;
@@ -573,26 +596,28 @@ bool USkeleton::MergeBonesToBoneTree(const USkeletalMesh* InSkeletalMesh, const 
 			TArray<int32> FilteredRequiredBones;
 			FAnimationRuntime::ExcludeBonesWithNoParents(RequiredRefBones, InSkeletalMesh->RefSkeleton, FilteredRequiredBones);
 
+			FReferenceSkeletonModifier RefSkelModifier(ReferenceSkeleton, this);
+
 			for (int32 Index=0; Index<FilteredRequiredBones.Num(); Index++)
 			{
 				const int32& MeshBoneIndex = FilteredRequiredBones[Index];
-				const int32& SkeletonBoneIndex = ReferenceSkeleton.FindBoneIndex(InSkeletalMesh->RefSkeleton.GetBoneName(MeshBoneIndex));
+				const int32& SkeletonBoneIndex = ReferenceSkeleton.FindRawBoneIndex(InSkeletalMesh->RefSkeleton.GetBoneName(MeshBoneIndex));
 				
 				// Bone doesn't already exist. Add it.
 				if( SkeletonBoneIndex == INDEX_NONE )
 				{
 					FMeshBoneInfo NewMeshBoneInfo = InSkeletalMesh->RefSkeleton.GetRefBoneInfo()[MeshBoneIndex];
 					// Fix up ParentIndex for our new Skeleton.
-					if( ReferenceSkeleton.GetNum() == 0 )
+					if( ReferenceSkeleton.GetRawBoneNum() == 0 )
 					{
 						NewMeshBoneInfo.ParentIndex = INDEX_NONE; // root
 					}
 					else
 					{
-						NewMeshBoneInfo.ParentIndex = ReferenceSkeleton.FindBoneIndex(InSkeletalMesh->RefSkeleton.GetBoneName(InSkeletalMesh->RefSkeleton.GetParentIndex(MeshBoneIndex)));
+						NewMeshBoneInfo.ParentIndex = ReferenceSkeleton.FindRawBoneIndex(InSkeletalMesh->RefSkeleton.GetBoneName(InSkeletalMesh->RefSkeleton.GetParentIndex(MeshBoneIndex)));
 					}
 
-					ReferenceSkeleton.Add(NewMeshBoneInfo, InSkeletalMesh->RefSkeleton.GetRefBonePose()[MeshBoneIndex]);
+					RefSkelModifier.Add(NewMeshBoneInfo, InSkeletalMesh->RefSkeleton.GetRefBonePose()[MeshBoneIndex]);
 					BoneTree.AddZeroed(1);
 					bShouldHandleHierarchyChange = true;
 				}
@@ -620,7 +645,7 @@ void USkeleton::SetBoneTranslationRetargetingMode(const int32& BoneIndex, EBoneT
 	if( bChildrenToo )
 	{
 		// Bones are guaranteed to be sorted in increasing order. So children will be after this bone.
-		const int32 NumBones = ReferenceSkeleton.GetNum();
+		const int32 NumBones = ReferenceSkeleton.GetRawBoneNum();
 		for(int32 ChildIndex=BoneIndex+1; ChildIndex<NumBones; ChildIndex++)
 		{
 			if( ReferenceSkeleton.BoneIsChildOf(ChildIndex, BoneIndex) )
@@ -633,7 +658,7 @@ void USkeleton::SetBoneTranslationRetargetingMode(const int32& BoneIndex, EBoneT
 
 int32 USkeleton::GetAnimationTrackIndex(const int32& InSkeletonBoneIndex, const UAnimSequence* InAnimSeq, const bool bUseRawData)
 {
-	const TArray<FTrackToSkeletonMap>& TrackToSkelMap = bUseRawData ? InAnimSeq->TrackToSkeletonMapTable : InAnimSeq->CompressedTrackToSkeletonMapTable;
+	const TArray<FTrackToSkeletonMap>& TrackToSkelMap = bUseRawData ? InAnimSeq->GetRawTrackToSkeletonMapTable() : InAnimSeq->GetCompressedTrackToSkeletonMapTable();
 	if( InSkeletonBoneIndex != INDEX_NONE )
 	{
 		for (int32 TrackIndex = 0; TrackIndex<TrackToSkelMap.Num(); ++TrackIndex)
@@ -776,6 +801,26 @@ void USkeleton::AddNewAnimationNotify(FName NewAnimNotifyName)
 	}
 }
 
+USkeletalMesh* USkeleton::FindCompatibleMesh() const
+{
+	FARFilter Filter;
+	Filter.ClassNames.Add(USkeletalMesh::StaticClass()->GetFName());
+
+	FString SkeletonString = FAssetData(this).GetExportTextName();
+	Filter.TagsAndValues.Add(GET_MEMBER_NAME_CHECKED(USkeletalMesh, Skeleton), SkeletonString);
+
+	TArray<FAssetData> AssetList;
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	AssetRegistryModule.Get().GetAssets(Filter, AssetList);
+
+	if (AssetList.Num() > 0)
+	{
+		return Cast<USkeletalMesh>(AssetList[0].GetAsset());
+	}
+
+	return nullptr;
+}
+
 USkeletalMesh* USkeleton::GetPreviewMesh(bool bFindIfNotSet)
 {
 	USkeletalMesh* PreviewMesh = PreviewSkeletalMesh.Get();
@@ -799,19 +844,10 @@ USkeletalMesh* USkeleton::GetPreviewMesh(bool bFindIfNotSet)
 	// if not existing, and if bFindIfNotExisting is true, then try find one
 	if(!PreviewMesh && bFindIfNotSet)
 	{
-		FARFilter Filter;
-		Filter.ClassNames.Add(USkeletalMesh::StaticClass()->GetFName());
-
-		FString SkeletonString = FAssetData(this).GetExportTextName();
-		Filter.TagsAndValues.Add(GET_MEMBER_NAME_CHECKED(USkeletalMesh, Skeleton), SkeletonString);
-
-		TArray<FAssetData> AssetList;
-		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-		AssetRegistryModule.Get().GetAssets(Filter, AssetList);
-
-		if(AssetList.Num() > 0)
+		USkeletalMesh* CompatibleSkeletalMesh = FindCompatibleMesh();
+		if(CompatibleSkeletalMesh)
 		{
-			SetPreviewMesh( Cast<USkeletalMesh>(AssetList[0].GetAsset()), false );
+			SetPreviewMesh(CompatibleSkeletalMesh, false);
 			// update PreviewMesh
 			PreviewMesh = PreviewSkeletalMesh.Get();
 		}
@@ -885,7 +921,7 @@ int32 USkeleton::ValidatePreviewAttachedObjects()
 
 void USkeleton::RemoveBonesFromSkeleton( const TArray<FName>& BonesToRemove, bool bRemoveChildBones )
 {
-	TArray<int32> BonesRemoved = ReferenceSkeleton.RemoveBonesByName(BonesToRemove);
+	TArray<int32> BonesRemoved = ReferenceSkeleton.RemoveBonesByName(this, BonesToRemove);
 	if(BonesRemoved.Num() > 0)
 	{
 		BonesRemoved.Sort();
@@ -1281,13 +1317,14 @@ bool USkeleton::VerifySmartNameInternal(const FName&  ContainerName, FSmartName&
 			else if (InOutSmartName.IsValid())
 			{
 				// this is only case where we add new one
-				ensureAlways(Mapping->AddSmartName(InOutSmartName));
 				Modify();
+				ensureAlways(Mapping->AddSmartName(InOutSmartName));
 				return true;
 			}
 			else
 			{
 				// this is only case where we add new one
+				Modify();
 				Mapping->FindOrAddSmartName(InOutSmartName.DisplayName, InOutSmartName);
 				return true;
 			}
@@ -1342,6 +1379,12 @@ void USkeleton::RegenerateGuid()
 {
 	Guid = FGuid::NewGuid();
 	check(Guid.IsValid());
+}
+
+void USkeleton::RegenerateVirtualBoneGuid()
+{
+	VirtualBoneGuid = FGuid::NewGuid();
+	check(VirtualBoneGuid.IsValid());
 }
 
 bool USkeleton::RenameSmartName(FName ContainerName, const SmartName::UID_Type& Uid, FName NewName)
@@ -1431,6 +1474,63 @@ void USkeleton::AccumulateCurveMetaData(FName CurveName, bool bMaterialSet, bool
 				CurveMetaData->Type.bMorphtarget |= bMorphtargetSet;
 				MarkPackageDirty();
 			}
+		}
+	}
+}
+
+bool USkeleton::AddNewVirtualBone(const FName SourceBoneName, const FName TargetBoneName)
+{
+	for (const FVirtualBone& SSBone : VirtualBones)
+	{
+		if (SSBone.SourceBoneName == SourceBoneName &&
+			SSBone.TargetBoneName == TargetBoneName)
+		{
+			return false;
+		}
+	}
+	Modify();
+	VirtualBones.Add(FVirtualBone(SourceBoneName, TargetBoneName));
+	
+	RegenerateVirtualBoneGuid();
+	HandleVirtualBoneChanges();
+
+
+	return true;
+}
+
+void USkeleton::RemoveVirtualBones(const TArray<FName>& BonesToRemove)
+{
+	Modify();
+	VirtualBones.RemoveAllSwap([&BonesToRemove](const FVirtualBone& VB) { return BonesToRemove.Contains(VB.VirtualBoneName); });
+
+	RegenerateVirtualBoneGuid();
+	HandleVirtualBoneChanges();
+}
+
+void USkeleton::HandleVirtualBoneChanges()
+{
+	const bool bRebuildNameMap = false;
+	ReferenceSkeleton.RebuildRefSkeleton(this, bRebuildNameMap);
+
+	for (TObjectIterator<USkeletalMesh> ItMesh; ItMesh; ++ItMesh)
+	{
+		USkeletalMesh* SkelMesh = *ItMesh;
+		if (SkelMesh->Skeleton == this)
+		{
+			SkelMesh->RefSkeleton.RebuildRefSkeleton(this, bRebuildNameMap);
+			RebuildLinkup(SkelMesh);
+		}
+	}
+
+	for (TObjectIterator<USkinnedMeshComponent> It; It; ++It)
+	{
+		USkinnedMeshComponent* MeshComponent = *It;
+		if (MeshComponent &&
+			MeshComponent->SkeletalMesh &&
+			MeshComponent->SkeletalMesh->Skeleton == this &&
+			!MeshComponent->IsTemplate())
+		{
+			FComponentReregisterContext Context(MeshComponent);
 		}
 	}
 }

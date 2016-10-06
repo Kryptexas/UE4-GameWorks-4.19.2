@@ -510,12 +510,12 @@ static void RefreshUDSValuesStoredAsString(const FEdGraphPinType& VarType, FStri
 		{
 			FStructOnScope StructInstance(UDS);
 			UDS->InitializeDefaultValue(StructInstance.GetStructMemory());
-			UStructProperty::ImportText_Static(UDS, FString(), *Value, StructInstance.GetStructMemory(), 0, nullptr, GLog);
+			UDS->ImportText(*Value, StructInstance.GetStructMemory(), nullptr, PPF_None, GLog, FString());
 
 			Value.Reset();
 			FStructOnScope DefaultStructInstance(UDS);
 			UDS->InitializeDefaultValue(DefaultStructInstance.GetStructMemory());
-			UStructProperty::ExportTextItem_Static(UDS, Value, StructInstance.GetStructMemory(), DefaultStructInstance.GetStructMemory(), nullptr, 0, nullptr);
+			UDS->ExportText(Value, StructInstance.GetStructMemory(), DefaultStructInstance.GetStructMemory(), nullptr, PPF_None, nullptr);
 		}
 	}
 }

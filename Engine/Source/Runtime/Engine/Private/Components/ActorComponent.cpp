@@ -666,7 +666,11 @@ void UActorComponent::OnRegister()
 
 	if (bAutoActivate)
 	{
-		Activate(true);
+		AActor* Owner = GetOwner();
+		if (Owner == nullptr || Owner->IsActorInitialized())
+		{
+			Activate(true);
+		}
 	}
 }
 
@@ -1407,7 +1411,7 @@ void UActorComponent::Activate(bool bReset)
 		SetComponentTickEnabled(true);
 		bIsActive = true;
 
-		OnComponentActivated.Broadcast(bReset);
+		OnComponentActivated.Broadcast(this, bReset);
 	}
 }
 
@@ -1418,7 +1422,7 @@ void UActorComponent::Deactivate()
 		SetComponentTickEnabled(false);
 		bIsActive = false;
 
-		OnComponentDeactivated.Broadcast();
+		OnComponentDeactivated.Broadcast(this);
 	}
 }
 

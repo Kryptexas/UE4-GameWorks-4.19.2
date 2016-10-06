@@ -1589,6 +1589,7 @@ void APlayerController::ServerUpdateCamera_Implementation(FVector_NetQuantize Ca
 	NewPOV.Rotation.Yaw = FRotator::DecompressAxisFromShort( (CamPitchAndYaw >> 16) & 65535 );
 	NewPOV.Rotation.Pitch = FRotator::DecompressAxisFromShort(CamPitchAndYaw & 65535);
 
+#if ENABLE_DRAW_DEBUG
 	if ( PlayerCameraManager->bDebugClientSideCamera )
 	{
 		// show differences (on server) between local and replicated camera
@@ -1600,6 +1601,7 @@ void APlayerController::ServerUpdateCamera_Implementation(FVector_NetQuantize Ca
 		DrawDebugLine(GetWorld(), NewPOV.Location, NewPOV.Location + 100*NewPOV.Rotation.Vector(), FColor::Yellow);
 	}
 	else
+#endif
 	{
 		//@TODO: CAMERA: Fat pipe
 		FMinimalViewInfo NewInfo = PlayerCameraManager->CameraCache.POV;
@@ -2663,9 +2665,9 @@ APlayerState* APlayerController::GetNextViewablePlayer(int32 dir)
 	{
 		APlayerState* const NextPlayerState = GameState->PlayerArray[NewIndex];
 		AController* NextController = (NextPlayerState ? Cast<AController>(NextPlayerState->GetOwner()) : nullptr);
-		if ( NextController && NextController->GetPawn() != nullptr && GameMode->CanSpectate(this, PlayerState) )
+		if ( NextController && NextController->GetPawn() != nullptr && GameMode->CanSpectate(this, NextPlayerState) )
 		{
-			return PlayerState;
+			return NextPlayerState;
 		}
 	}
 
@@ -2675,9 +2677,9 @@ APlayerState* APlayerController::GetNextViewablePlayer(int32 dir)
 	{
 		APlayerState* const NextPlayerState = GameState->PlayerArray[NewIndex];
 		AController* NextController = (NextPlayerState ? Cast<AController>(NextPlayerState->GetOwner()) : nullptr);
-		if ( NextController && NextController->GetPawn() != nullptr && GameMode->CanSpectate(this, PlayerState) )
+		if ( NextController && NextController->GetPawn() != nullptr && GameMode->CanSpectate(this, NextPlayerState) )
 		{
-			return PlayerState;
+			return NextPlayerState;
 		}
 	}
 

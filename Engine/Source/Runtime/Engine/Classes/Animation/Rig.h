@@ -187,7 +187,7 @@ public:
 #if WITH_EDITORONLY_DATA
 	// source skeleton related, since this has been added later, it's possible 
 	// some skeletons don't have it
-	bool IsSourceReferenceSkeletonAvailable() const { return SourceSkeleton.GetNum() > 0; }
+	bool IsSourceReferenceSkeletonAvailable() const { return SourceSkeleton.GetRawBoneNum() > 0; }
 	const FReferenceSkeleton& GetSourceReferenceSkeleton() const { return SourceSkeleton;  }
 	ENGINE_API void SetSourceReferenceSkeleton(const FReferenceSkeleton& InSrcSkeleton);
 #endif // WITH_EDITORONLY_DATA

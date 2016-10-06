@@ -794,7 +794,7 @@ void UReimportFbxSceneFactory::RecursivelySetComponentProperties(USCS_Node* Curr
 		{
 			UStaticMeshComponent *CurrentNodeMeshComponent = Cast<UStaticMeshComponent>(CurrentNodeSceneComponent);
 			UStaticMeshComponent *MeshComponent = Cast<UStaticMeshComponent>(SceneComponent);
-			if (CurrentNodeMeshComponent->StaticMesh != MeshComponent->StaticMesh)
+			if (CurrentNodeMeshComponent->GetStaticMesh() != MeshComponent->GetStaticMesh())
 				bShouldSerializeProperty = false;
 		}
 		else if (CurrentNodeComponentClass == USkeletalMeshComponent::StaticClass())

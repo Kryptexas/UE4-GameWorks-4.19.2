@@ -626,6 +626,8 @@ enum ECollisionChannel
 	ECC_MAX,
 };
 
+DECLARE_DELEGATE_OneParam(FOnConstraintBroken, int32 /*ConstraintIndex*/);
+
 
 #define COLLISION_GIZMO ECC_EngineTraceChannel1
 
@@ -775,13 +777,30 @@ namespace EWorldType
 {
 	enum Type
 	{
-		None,		// An untyped world, in most cases this will be the vestigial worlds of streamed in sub-levels
-		Game,		// The game world
-		Editor,		// A world being edited in the editor
-		PIE,		// A Play In Editor world
-		Preview,	// A preview world for an editor tool
-		Inactive	// An editor world that was loaded but not currently being edited in the level editor
+		/** An untyped world, in most cases this will be the vestigial worlds of streamed in sub-levels */
+		None,
+
+		/** The game world */
+		Game,
+
+		/** A world being edited in the editor */
+		Editor,
+
+		/** A Play In Editor world */
+		PIE,
+
+		/** A preview world for an editor tool */
+		EditorPreview,
+
+		/** A preview world for a game */
+		GamePreview,
+
+		/** An editor world that was loaded but not currently being edited in the level editor */
+		Inactive
 	};
+
+	DEPRECATED(4.14, "EWorldType::Preview is deprecated. Please use either EWorldType::EditorPreview or EWorldType::GamePreview")
+	const EWorldType::Type Preview = EWorldType::EditorPreview;
 }
 
 

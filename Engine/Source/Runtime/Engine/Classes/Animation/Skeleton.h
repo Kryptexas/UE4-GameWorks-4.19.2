@@ -215,6 +215,35 @@ public:
 	}
 };
 
+USTRUCT()
+struct FVirtualBone
+{
+	GENERATED_USTRUCT_BODY()
+
+public:
+	UPROPERTY()
+	FName SourceBoneName;
+
+	UPROPERTY()
+	FName TargetBoneName;
+
+	UPROPERTY()
+	FName VirtualBoneName;
+
+	FVirtualBone() {}
+
+	FVirtualBone(FName InSource, FName InTarget)
+		: SourceBoneName(InSource)
+		, TargetBoneName(InTarget)
+	{
+		// VB Prefix including space after VB so that it will never collide with 
+		// an actual bone name (as they cannot contain spaces)
+		static FString VirtualBonePrefix(TEXT("VB "));
+
+		VirtualBoneName = FName( *(VirtualBonePrefix + SourceBoneName.ToString() + TEXT("_") + TargetBoneName.ToString()) );
+	}
+};
+
 /**
  *	USkeleton : that links between mesh and animation
  *		- Bone hierarchy for animations
@@ -242,15 +271,35 @@ protected:
 	/** Guid for skeleton */
 	FGuid Guid;
 
+	/** Guid for virtual bones.
+	 *  Separate so that we don't have to dirty the original guid when only changing virtual bones */
+	UPROPERTY()
+	FGuid VirtualBoneGuid;
+
 	/** Conversion function. Remove when VER_UE4_REFERENCE_SKELETON_REFACTOR is removed. */
 	void ConvertToFReferenceSkeleton();
 
+	/**
+	*  Array of this skeletons virtual bones. These are new bones are links between two existing bones
+	*  and are baked into all the skeletons animations
+	*/
+	UPROPERTY()
+	TArray<FVirtualBone> VirtualBones;
+
 public:
+	//~ Begin UObject Interface.
+#if WITH_EDITOR
+	virtual void PostEditUndo() override;
+#endif
+
 	/** Accessor to Reference Skeleton to make data read only */
 	const FReferenceSkeleton& GetReferenceSkeleton() const
 	{
 		return ReferenceSkeleton;
 	}
+
+	/** Accessor for the array of virtual bones on this skeleton */
+	const TArray<FVirtualBone>& GetVirtualBones() const { return VirtualBones; }
 
 	/** Non-serialised cache of linkups between different skeletal meshes and this Skeleton. */
 	UPROPERTY(transient)
@@ -284,9 +333,14 @@ public:
 	// this is called when you know both flags - called by post serialize
 	ENGINE_API void AccumulateCurveMetaData(FName CurveName, bool bMaterialSet, bool bMorphtargetSet);
 
+	ENGINE_API bool AddNewVirtualBone(const FName SourceBoneName, const FName TargetBoneName);
+
+	ENGINE_API void RemoveVirtualBones(const TArray<FName>& BonesToRemove);
+	
+	void HandleVirtualBoneChanges();
+
 	// return version of AnimCurveUidVersion
 	uint16 GetAnimCurveUidVersion() const { return AnimCurveUidVersion;  }
-
 protected:
 	// Container for smart name mappings
 	UPROPERTY()
@@ -429,6 +483,11 @@ public:
 		return Guid;
 	}
 
+	FGuid GetVirtualBoneGuid() const
+	{
+		return VirtualBoneGuid;
+	}
+
 	/** Unregisters a delegate to be called after the preview animation has been changed */
 	void UnregisterOnRetargetSourceChanged(FDelegateHandle Handle)
 	{
@@ -458,6 +517,9 @@ public:
 	ENGINE_API USkeletalMesh* GetPreviewMesh(bool bFindIfNotSet=false);
 	ENGINE_API USkeletalMesh* GetPreviewMesh() const;
 	ENGINE_API USkeletalMesh* GetAssetPreviewMesh(class UAnimationAsset* AnimAsset);
+
+	/** Find the first compatible mesh for this skeleton */
+	ENGINE_API USkeletalMesh* FindCompatibleMesh() const;
 
 	/** Returns the skeletons preview mesh, loading it if necessary */
 	ENGINE_API void SetPreviewMesh(USkeletalMesh* PreviewMesh, bool bMarkAsDirty=true);
@@ -616,7 +678,11 @@ public:
 
 	EBoneTranslationRetargetingMode::Type GetBoneTranslationRetargetingMode(const int32& BoneTreeIdx) const
 	{
-		return BoneTree[BoneTreeIdx].TranslationRetargetingMode;
+		if (BoneTree.IsValidIndex(BoneTreeIdx))
+		{
+			return BoneTree[BoneTreeIdx].TranslationRetargetingMode;
+		}
+		return EBoneTranslationRetargetingMode::Animation;
 	}
 
 	/** 
@@ -738,6 +804,7 @@ public:
 
 private:
 	/** Regenerate new Guid */
-	void RegenerateGuid();	
+	void RegenerateGuid();
+	void RegenerateVirtualBoneGuid();
 };
 

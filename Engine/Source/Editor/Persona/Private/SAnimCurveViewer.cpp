@@ -247,7 +247,6 @@ void SAnimCurveListRow::OnAnimCurveWeightChanged( float NewWeight )
 	TSharedPtr<SAnimCurveViewer> AnimCurveViewer = AnimCurveViewerPtr.Pin();
 	if (AnimCurveViewer.IsValid())
 	{
-
 		// Add override
 		AnimCurveViewer->AddAnimCurveOverride(Item->SmartName.DisplayName, Item->Weight);
 
@@ -849,7 +848,15 @@ void SAnimCurveViewer::CreateAnimCurveList( const FString& SearchText )
 				// If not already in list, add it
 				if (FindIndexOfAnimCurveInfo(AnimCurveList, SmartName.DisplayName) == INDEX_NONE)
 				{
-					AnimCurveList.Add(FDisplayedAnimCurveInfo::Make(EditableSkeletonPtr, ContainerName, SmartName));
+					TSharedRef<FDisplayedAnimCurveInfo> NewInfo = FDisplayedAnimCurveInfo::Make(EditableSkeletonPtr, ContainerName, SmartName);
+
+					// See if we have an override set, and if so, grab info
+					float Weight = 0.f;
+					bool bOverride = GetAnimCurveOverride(SmartName.DisplayName, Weight);
+					NewInfo->bAutoFillData = !bOverride;
+					NewInfo->Weight = Weight;
+
+					AnimCurveList.Add(NewInfo);
 				}
 			}
 			// Don't want in list
@@ -924,6 +931,20 @@ void SAnimCurveViewer::RemoveAnimCurveOverride(FName& Name)
 	}
 }
 
+bool SAnimCurveViewer::GetAnimCurveOverride(FName& Name, float& Weight)
+{
+	Weight = 0.f;
+	float* WeightPtr = OverrideCurves.Find(Name);
+	if (WeightPtr)
+	{
+		Weight = *WeightPtr;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
 
 void SAnimCurveViewer::OnPostUndo()
 {

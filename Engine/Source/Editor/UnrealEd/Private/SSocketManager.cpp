@@ -691,7 +691,7 @@ void SSocketManager::OnSocketPropertyChanged( const UStaticMeshSocket* Socket, c
 
 			for (TObjectIterator<UStaticMeshComponent> It; It; ++It)
 			{
-				if (It->StaticMesh == CurrentStaticMesh)
+				if (It->GetStaticMesh() == CurrentStaticMesh)
 				{
 					const AActor* Actor = It->GetOwner();
 					if (Actor != nullptr)

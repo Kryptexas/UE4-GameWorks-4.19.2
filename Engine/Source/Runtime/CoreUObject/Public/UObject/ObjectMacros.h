@@ -474,9 +474,9 @@ enum EObjectFlags
 	RF_TextExportTransient		=0x00100000,	///< Do not export object to text form (e.g. copy/paste). Generally used for sub-objects that can be regenerated from data in their parent object.
 	RF_LoadCompleted			=0x00200000,	///< Object has been completely serialized by linkerload at least once. DO NOT USE THIS FLAG, It should be replaced with RF_WasLoaded.
 	RF_InheritableComponentTemplate = 0x00400000, ///< Archetype of the object can be in its super class
-	//RF_Unused = 0x00800000, ///
+	RF_DuplicateTransient = 0x00800000, ///< Object should not be included in any type of duplication (copy/paste, binary duplication, etc.)
 	RF_StrongRefOnFrame			= 0x01000000,	///< References to this object from persistent function frame are handled as strong ones.
-	//RF_Unused		= 0x02000000,  ///
+	RF_NonPIEDuplicateTransient		= 0x02000000,  ///< Object should not be included for duplication unless it's being duplicated for a PIE session
 	RF_Dynamic = 0x04000000, // Field Only. Dynamic field - doesn't get constructed during static initialization, can be constructed multiple times
 };
 
@@ -484,7 +484,7 @@ enum EObjectFlags
 #define RF_AllFlags				(EObjectFlags)0x07ffffff	///< All flags, used mainly for error checking
 
 	// Predefined groups of the above
-#define RF_Load						((EObjectFlags)(RF_Public | RF_Standalone | RF_Transactional | RF_ClassDefaultObject | RF_ArchetypeObject | RF_DefaultSubObject | RF_TextExportTransient | RF_InheritableComponentTemplate)) // Flags to load from Unrealfiles.
+#define RF_Load						((EObjectFlags)(RF_Public | RF_Standalone | RF_Transactional | RF_ClassDefaultObject | RF_ArchetypeObject | RF_DefaultSubObject | RF_TextExportTransient | RF_InheritableComponentTemplate | RF_DuplicateTransient | RF_NonPIEDuplicateTransient)) // Flags to load from Unrealfiles.
 #define RF_PropagateToSubObjects	((EObjectFlags)(RF_Public | RF_ArchetypeObject | RF_Transactional | RF_Transient))		// Sub-objects will inherit these flags from their SuperObject.
 
 FORCEINLINE EObjectFlags operator|(EObjectFlags Arg1,EObjectFlags Arg2)

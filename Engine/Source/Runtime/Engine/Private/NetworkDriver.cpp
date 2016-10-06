@@ -3197,6 +3197,7 @@ void UNetDriver::PrintDebugRelevantActors()
 
 void UNetDriver::DrawNetDriverDebug()
 {
+#if ENABLE_DRAW_DEBUG
 	UNetConnection *Connection = (ServerConnection ? ServerConnection : (ClientConnections.Num() >= 1 ? ClientConnections[0] : NULL));
 	if (!Connection)
 	{
@@ -3246,6 +3247,7 @@ void UNetDriver::DrawNetDriverDebug()
 		FBox Box = 	It->GetComponentsBoundingBox();
 		DrawDebugBox( LocalWorld, Box.GetCenter(), Box.GetExtent(), FQuat::Identity, DrawColor, false );
 	}
+#endif
 }
 
 bool UNetDriver::NetObjectIsDynamic(const UObject *Object) const

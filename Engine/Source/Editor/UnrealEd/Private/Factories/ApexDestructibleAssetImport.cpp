@@ -41,7 +41,7 @@ extern ExistingSkelMeshData* SaveExistingSkelMeshData(USkeletalMesh* ExistingSke
 extern void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeletalMesh* SkeletalMesh);
 extern void ProcessImportMeshInfluences(FSkeletalMeshImportData& ImportData);
 extern void ProcessImportMeshMaterials(TArray<FSkeletalMaterial>& Materials, FSkeletalMeshImportData& ImportData);
-extern bool ProcessImportMeshSkeleton(FReferenceSkeleton& RefSkeleton, int32& SkeletalDepth, FSkeletalMeshImportData& ImportData);
+extern bool ProcessImportMeshSkeleton(const USkeleton* SkeletonAsset, FReferenceSkeleton& RefSkeleton, int32& SkeletalDepth, FSkeletalMeshImportData& ImportData);
 
 
 // Temporary transform function, to be removed once the APEX SDK is updated
@@ -828,7 +828,7 @@ bool SetApexDestructibleAsset(UDestructibleMesh& DestructibleMesh, apex::Destruc
 	
 	// process reference skeleton from import data
 	int32 SkeletalDepth=0;
-	if(!ProcessImportMeshSkeleton(DestructibleMesh.RefSkeleton, SkeletalDepth, *SkelMeshImportDataPtr))
+	if(!ProcessImportMeshSkeleton(DestructibleMesh.Skeleton, DestructibleMesh.RefSkeleton, SkeletalDepth, *SkelMeshImportDataPtr))
 	{
 		return false;
 	}
@@ -962,7 +962,7 @@ UNREALED_API bool BuildDestructibleMeshFromFractureSettings(UDestructibleMesh& D
 			OverrideMaterials[MaterialIndex] = DestructibleMesh.Materials[MaterialIndex].MaterialInterface;
 		}
 
-		DestructibleMesh.Materials.SetNumUninitialized(DestructibleMesh.FractureSettings->Materials.Num());
+		DestructibleMesh.Materials.SetNum(DestructibleMesh.FractureSettings->Materials.Num());
 
 		for (int32 MaterialIndex = 0; MaterialIndex < DestructibleMesh.Materials.Num(); ++MaterialIndex)
 		{

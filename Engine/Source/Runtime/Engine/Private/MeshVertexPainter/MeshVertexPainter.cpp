@@ -8,12 +8,12 @@
 
 void FMeshVertexPainter::PaintVerticesSingleColor(UStaticMeshComponent* StaticMeshComponent, const FLinearColor& FillColor, bool bConvertToSRGB)
 {
-	if (!StaticMeshComponent || !StaticMeshComponent->StaticMesh)
+	if (!StaticMeshComponent || !StaticMeshComponent->GetStaticMesh())
 	{
 		return;
 	}
 
-	const int32 NumMeshLODs = StaticMeshComponent->StaticMesh->GetNumLODs();
+	const int32 NumMeshLODs = StaticMeshComponent->GetStaticMesh()->GetNumLODs();
 	StaticMeshComponent->SetLODDataCount(NumMeshLODs, NumMeshLODs);
 
 	const FColor Color = FillColor.ToFColor(bConvertToSRGB);
@@ -24,7 +24,7 @@ void FMeshVertexPainter::PaintVerticesSingleColor(UStaticMeshComponent* StaticMe
 		StaticMeshComponent->RemoveInstanceVertexColorsFromLOD(LODIndex);
 		check(LODInfo.OverrideVertexColors == nullptr);
 
-		const FStaticMeshLODResources& LODModel = StaticMeshComponent->StaticMesh->RenderData->LODResources[LODIndex];
+		const FStaticMeshLODResources& LODModel = StaticMeshComponent->GetStaticMesh()->RenderData->LODResources[LODIndex];
 		const FPositionVertexBuffer& PositionVertexBuffer = LODModel.PositionVertexBuffer;
 		const uint32 NumVertices = PositionVertexBuffer.GetNumVertices();
 
@@ -43,18 +43,18 @@ void FMeshVertexPainter::PaintVerticesSingleColor(UStaticMeshComponent* StaticMe
 
 void FMeshVertexPainter::PaintVerticesLerpAlongAxis(UStaticMeshComponent* StaticMeshComponent, const FLinearColor& StartColor, const FLinearColor& EndColor, EVertexPaintAxis Axis, bool bConvertToSRGB)
 {
-	if (!StaticMeshComponent || !StaticMeshComponent->StaticMesh)
+	if (!StaticMeshComponent || !StaticMeshComponent->GetStaticMesh())
 	{
 		return;
 	}
 
-	const FBoxSphereBounds Bounds = StaticMeshComponent->StaticMesh->GetBounds();
+	const FBoxSphereBounds Bounds = StaticMeshComponent->GetStaticMesh()->GetBounds();
 	const FBox Box = Bounds.GetBox();
 	static_assert(static_cast<int32>(EVertexPaintAxis::X) == 0, "EVertexPaintAxis not correctly defined");
 	const float AxisMin = Box.Min.Component(static_cast<int32>(Axis));
 	const float AxisMax = Box.Max.Component(static_cast<int32>(Axis));
 
-	const int32 NumMeshLODs = StaticMeshComponent->StaticMesh->GetNumLODs();
+	const int32 NumMeshLODs = StaticMeshComponent->GetStaticMesh()->GetNumLODs();
 	StaticMeshComponent->SetLODDataCount(NumMeshLODs, NumMeshLODs);
 
 	uint32 LODIndex = 0;
@@ -63,7 +63,7 @@ void FMeshVertexPainter::PaintVerticesLerpAlongAxis(UStaticMeshComponent* Static
 		StaticMeshComponent->RemoveInstanceVertexColorsFromLOD(LODIndex);
 		check(LODInfo.OverrideVertexColors == nullptr);
 
-		const FStaticMeshLODResources& LODModel = StaticMeshComponent->StaticMesh->RenderData->LODResources[LODIndex];
+		const FStaticMeshLODResources& LODModel = StaticMeshComponent->GetStaticMesh()->RenderData->LODResources[LODIndex];
 		const FPositionVertexBuffer& PositionVertexBuffer = LODModel.PositionVertexBuffer;
 		const uint32 NumVertices = PositionVertexBuffer.GetNumVertices();
 
@@ -92,7 +92,7 @@ void FMeshVertexPainter::PaintVerticesLerpAlongAxis(UStaticMeshComponent* Static
 
 void FMeshVertexPainter::RemovePaintedVertices(UStaticMeshComponent* StaticMeshComponent)
 {
-	if (!StaticMeshComponent || !StaticMeshComponent->StaticMesh)
+	if (!StaticMeshComponent || !StaticMeshComponent->GetStaticMesh())
 	{
 		return;
 	}

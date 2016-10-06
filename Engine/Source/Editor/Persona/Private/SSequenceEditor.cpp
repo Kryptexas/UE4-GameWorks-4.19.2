@@ -61,6 +61,7 @@ void SSequenceEditor::Construct(const FArguments& InArgs, TSharedRef<class IPers
 		.InputMax(this, &SAnimEditorBase::GetMaxInput)
 		.OnSetInputViewRange(this, &SAnimEditorBase::SetInputViewRange)
 		.OnGetScrubValue(this, &SAnimEditorBase::GetScrubValue)
+		.OnCurvesChanged(InArgs._OnCurvesChanged)
 	];
 
 	UAnimSequence * AnimSeq = Cast<UAnimSequence>(SequenceObj);
@@ -70,7 +71,7 @@ void SSequenceEditor::Construct(const FArguments& InArgs, TSharedRef<class IPers
 		.AutoHeight()
 		.Padding(0, 10)
 		[
-			SAssignNew(AnimTrackCurvePanel, SAnimTrackCurvePanel)
+			SAssignNew(AnimTrackCurvePanel, SAnimTrackCurvePanel, InPreviewScene)
 			.Sequence(AnimSeq)
 			.WidgetWidth(S2ColumnWidget::DEFAULT_RIGHT_COLUMN_WIDTH)
 			.ViewInputMin(this, &SAnimEditorBase::GetViewMinInput)
@@ -79,6 +80,7 @@ void SSequenceEditor::Construct(const FArguments& InArgs, TSharedRef<class IPers
 			.InputMax(this, &SAnimEditorBase::GetMaxInput)
 			.OnSetInputViewRange(this, &SAnimEditorBase::SetInputViewRange)
 			.OnGetScrubValue(this, &SAnimEditorBase::GetScrubValue)
+			.OnCurvesChanged(InArgs._OnCurvesChanged)
 		];
 	}
 }

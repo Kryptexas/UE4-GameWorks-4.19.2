@@ -261,7 +261,9 @@ void UKismetSystemLibrary::PrintText(UObject* WorldContextObject, const FText In
 
 void UKismetSystemLibrary::PrintWarning(const FString& InString)
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) // Do not Print in Shipping or Test
 	PrintString(NULL, InString, true, true);
+#endif
 }
 
 void UKismetSystemLibrary::SetWindowTitle(const FText& Title)
@@ -1399,6 +1401,7 @@ bool UKismetSystemLibrary::LineTraceSingle_DEPRECATED(UObject* WorldContextObjec
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
 	bool const bHit = World->LineTraceSingleByChannel(OutHit, Start, End, TraceChannel, Params);
 
+#if ENABLE_DRAW_DEBUG
 	if (DrawDebugType != EDrawDebugTrace::None)
 	{
 		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
@@ -1418,6 +1421,7 @@ bool UKismetSystemLibrary::LineTraceSingle_DEPRECATED(UObject* WorldContextObjec
 			::DrawDebugLine(World, Start, End, TraceColor.ToFColor(true), bPersistent, LifeTime);
 		}
 	}
+#endif
 
 	return bHit;
 }
@@ -1463,6 +1467,7 @@ bool UKismetSystemLibrary::LineTraceMulti_DEPRECATED(UObject* WorldContextObject
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );	
 	bool const bHit = World->LineTraceMultiByChannel(OutHits, Start, End, TraceChannel, Params);
 
+#if ENABLE_DRAW_DEBUG
 	if (DrawDebugType != EDrawDebugTrace::None)
 	{
 		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
@@ -1489,12 +1494,14 @@ bool UKismetSystemLibrary::LineTraceMulti_DEPRECATED(UObject* WorldContextObject
 			::DrawDebugPoint(World, Hit.ImpactPoint, KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE, (Hit.bBlockingHit ? TraceColor.ToFColor(true) : TraceHitColor.ToFColor(true)), bPersistent, LifeTime);
 		}
 	}
+#endif
 
 	return bHit;
 }
 
 void DrawDebugSweptSphere(const UWorld* InWorld, FVector const& Start, FVector const& End, float Radius, FColor const& Color, bool bPersistentLines=false, float LifeTime=-1.f, uint8 DepthPriority=0)
 {
+#if ENABLE_DRAW_DEBUG
 	FVector const TraceVec = End - Start;
 	float const Dist = TraceVec.Size();
 
@@ -1503,10 +1510,12 @@ void DrawDebugSweptSphere(const UWorld* InWorld, FVector const& Start, FVector c
 
 	FQuat const CapsuleRot = FRotationMatrix::MakeFromZ(TraceVec).ToQuat();
 	::DrawDebugCapsule(InWorld, Center, HalfHeight, Radius, CapsuleRot, Color, bPersistentLines, LifeTime, DepthPriority );
+#endif
 }
 
 void DrawDebugSweptBox(const UWorld* InWorld, FVector const& Start, FVector const& End, FRotator const & Orientation, FVector const & HalfSize, FColor const& Color, bool bPersistentLines = false, float LifeTime = -1.f, uint8 DepthPriority = 0)
 {
+#if ENABLE_DRAW_DEBUG
 	FVector const TraceVec = End - Start;
 	float const Dist = TraceVec.Size();
 
@@ -1531,6 +1540,7 @@ void DrawDebugSweptBox(const UWorld* InWorld, FVector const& Start, FVector cons
 	}
 
 	::DrawDebugBox(InWorld, End, HalfSize, CapsuleRot, Color, bPersistentLines, LifeTime, DepthPriority);
+#endif
 }
 
 
@@ -1570,6 +1580,7 @@ bool UKismetSystemLibrary::BoxTraceSingle(UObject* WorldContextObject, const FVe
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	bool const bHit = World ? World->SweepSingleByChannel(OutHit, Start, End, Orientation.Quaternion(), UEngineTypes::ConvertToCollisionChannel(TraceChannel), FCollisionShape::MakeBox(HalfSize), Params) : false;
 
+#if ENABLE_DRAW_DEBUG
 	if (DrawDebugType != EDrawDebugTrace::None && (World != nullptr))
 	{
 		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
@@ -1588,6 +1599,7 @@ bool UKismetSystemLibrary::BoxTraceSingle(UObject* WorldContextObject, const FVe
 			::DrawDebugSweptBox(World, Start, End, Orientation, HalfSize, FColor::Red, bPersistent, LifeTime);
 		}
 	}
+#endif
 
 	return bHit;
 }
@@ -1628,6 +1640,7 @@ bool UKismetSystemLibrary::BoxTraceMulti(UObject* WorldContextObject, const FVec
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	bool const bHit = World ? World->SweepMultiByChannel(OutHits, Start, End, Orientation.Quaternion(), UEngineTypes::ConvertToCollisionChannel(TraceChannel), FCollisionShape::MakeBox(HalfSize), Params) : false;
 
+#if ENABLE_DRAW_DEBUG
 	if (DrawDebugType != EDrawDebugTrace::None && (World != nullptr))
 	{
 		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
@@ -1653,6 +1666,7 @@ bool UKismetSystemLibrary::BoxTraceMulti(UObject* WorldContextObject, const FVec
 			::DrawDebugPoint(World, Hit.ImpactPoint, KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE, (Hit.bBlockingHit ? FColor::Red : FColor::Green), bPersistent, LifeTime);
 		}
 	}
+#endif
 
 	return bHit;
 }
@@ -1698,6 +1712,7 @@ bool UKismetSystemLibrary::SphereTraceSingle_DEPRECATED(UObject* WorldContextObj
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
 	bool const bHit = World->SweepSingleByChannel(OutHit, Start, End, FQuat::Identity, TraceChannel, FCollisionShape::MakeSphere(Radius), Params);
 
+#if ENABLE_DRAW_DEBUG
 	if (DrawDebugType != EDrawDebugTrace::None)
 	{
 		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
@@ -1716,7 +1731,8 @@ bool UKismetSystemLibrary::SphereTraceSingle_DEPRECATED(UObject* WorldContextObj
 			::DrawDebugSweptSphere(World, Start, End, Radius, FColor::Red, bPersistent, LifeTime);
 		}
 	}
-	
+#endif
+
 	return bHit;
 }
 
@@ -1761,6 +1777,7 @@ bool UKismetSystemLibrary::SphereTraceMulti_DEPRECATED(UObject* WorldContextObje
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
 	bool const bHit = World->SweepMultiByChannel(OutHits, Start, End, FQuat::Identity, TraceChannel, FCollisionShape::MakeSphere(Radius), Params);
 
+#if ENABLE_DRAW_DEBUG
 	if (DrawDebugType != EDrawDebugTrace::None)
 	{
 		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
@@ -1786,7 +1803,8 @@ bool UKismetSystemLibrary::SphereTraceMulti_DEPRECATED(UObject* WorldContextObje
 			::DrawDebugPoint(World, Hit.ImpactPoint, KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE, (Hit.bBlockingHit ? FColor::Red : FColor::Green), bPersistent, LifeTime);
 		}
 	}
-	
+#endif
+
 	return bHit;
 }
 
@@ -1831,6 +1849,7 @@ bool UKismetSystemLibrary::CapsuleTraceSingle_DEPRECATED(UObject* WorldContextOb
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
 	bool const bHit = World->SweepSingleByChannel(OutHit, Start, End, FQuat::Identity, TraceChannel, FCollisionShape::MakeCapsule(Radius, HalfHeight), Params);
 
+#if ENABLE_DRAW_DEBUG
 	if (DrawDebugType != EDrawDebugTrace::None)
 	{
 		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
@@ -1855,6 +1874,7 @@ bool UKismetSystemLibrary::CapsuleTraceSingle_DEPRECATED(UObject* WorldContextOb
 			::DrawDebugLine(World, Start, End, FColor::Red, bPersistent, LifeTime);
 		}
 	}
+#endif
 
 	return bHit;
 }
@@ -1900,6 +1920,7 @@ bool UKismetSystemLibrary::CapsuleTraceMulti_DEPRECATED(UObject* WorldContextObj
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
 	bool const bHit = World->SweepMultiByChannel(OutHits, Start, End, FQuat::Identity, TraceChannel, FCollisionShape::MakeCapsule(Radius, HalfHeight), Params);
 
+#if ENABLE_DRAW_DEBUG
 	if (DrawDebugType != EDrawDebugTrace::None)
 	{
 		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
@@ -1931,6 +1952,7 @@ bool UKismetSystemLibrary::CapsuleTraceMulti_DEPRECATED(UObject* WorldContextObj
 			::DrawDebugPoint(World, Hit.ImpactPoint, KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE, (Hit.bBlockingHit ? FColor::Red : FColor::Green), bPersistent, LifeTime);
 		}
 	}
+#endif
 
 	return bHit;
 }
@@ -2006,6 +2028,7 @@ bool UKismetSystemLibrary::LineTraceSingleByObject_DEPRECATED(UObject* WorldCont
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
 	bool const bHit = World->LineTraceSingleByObjectType(OutHit, Start, End, ObjectParams, Params);
 
+#if ENABLE_DRAW_DEBUG
 	if (DrawDebugType != EDrawDebugTrace::None)
 	{
 		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
@@ -2025,6 +2048,7 @@ bool UKismetSystemLibrary::LineTraceSingleByObject_DEPRECATED(UObject* WorldCont
 			::DrawDebugLine(World, Start, End, TraceColor.ToFColor(true), bPersistent, LifeTime);
 		}
 	}
+#endif
 
 	return bHit;
 }
@@ -2098,6 +2122,7 @@ bool UKismetSystemLibrary::LineTraceMultiByObject_DEPRECATED(UObject* WorldConte
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );	
 	bool const bHit = World->LineTraceMultiByObjectType(OutHits, Start, End, ObjectParams, Params);
 
+#if ENABLE_DRAW_DEBUG
 	if (DrawDebugType != EDrawDebugTrace::None)
 	{
 		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
@@ -2124,6 +2149,7 @@ bool UKismetSystemLibrary::LineTraceMultiByObject_DEPRECATED(UObject* WorldConte
 			::DrawDebugPoint(World, Hit.ImpactPoint, KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE, (Hit.bBlockingHit ? TraceColor.ToFColor(true) : TraceHitColor.ToFColor(true)), bPersistent, LifeTime);
 		}
 	}
+#endif
 
 	return bHit;
 }
@@ -2198,6 +2224,7 @@ bool UKismetSystemLibrary::SphereTraceSingleByObject_DEPRECATED(UObject* WorldCo
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
 	bool const bHit = World->SweepSingleByObjectType(OutHit, Start, End, FQuat::Identity, ObjectParams, FCollisionShape::MakeSphere(Radius), Params);
 
+#if ENABLE_DRAW_DEBUG
 	if (DrawDebugType != EDrawDebugTrace::None)
 	{
 		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
@@ -2216,6 +2243,7 @@ bool UKismetSystemLibrary::SphereTraceSingleByObject_DEPRECATED(UObject* WorldCo
 			::DrawDebugSweptSphere(World, Start, End, Radius, FColor::Red, bPersistent, LifeTime);
 		}
 	}
+#endif
 
 	return bHit;
 }
@@ -2289,6 +2317,7 @@ bool UKismetSystemLibrary::SphereTraceMultiByObject_DEPRECATED(UObject* WorldCon
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
 	bool const bHit = World->SweepMultiByObjectType(OutHits, Start, End, FQuat::Identity, ObjectParams, FCollisionShape::MakeSphere(Radius), Params);
 
+#if ENABLE_DRAW_DEBUG
 	if (DrawDebugType != EDrawDebugTrace::None)
 	{
 		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
@@ -2314,6 +2343,7 @@ bool UKismetSystemLibrary::SphereTraceMultiByObject_DEPRECATED(UObject* WorldCon
 			::DrawDebugPoint(World, Hit.ImpactPoint, KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE, (Hit.bBlockingHit ? FColor::Red : FColor::Green), bPersistent, LifeTime);
 		}
 	}
+#endif
 
 	return bHit;
 }
@@ -2382,6 +2412,7 @@ bool UKismetSystemLibrary::BoxTraceSingleForObjects(UObject* WorldContextObject,
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	bool const bHit = World ? World->SweepSingleByObjectType(OutHit, Start, End, Orientation.Quaternion(), ObjectParams, FCollisionShape::MakeBox(HalfSize), Params) : false;
 
+#if ENABLE_DRAW_DEBUG
 	if (DrawDebugType != EDrawDebugTrace::None && (World != nullptr))
 	{
 		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
@@ -2400,6 +2431,7 @@ bool UKismetSystemLibrary::BoxTraceSingleForObjects(UObject* WorldContextObject,
 			::DrawDebugSweptBox(World, Start, End, Orientation, HalfSize, FColor::Red, bPersistent, LifeTime);
 		}
 	}
+#endif
 
 	return bHit;
 }
@@ -2468,6 +2500,7 @@ bool UKismetSystemLibrary::BoxTraceMultiForObjects(UObject* WorldContextObject, 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	bool const bHit = World ? World->SweepMultiByObjectType(OutHits, Start, End, Orientation.Quaternion(), ObjectParams, FCollisionShape::MakeBox(HalfSize), Params) : false;
 
+#if ENABLE_DRAW_DEBUG
 	if (DrawDebugType != EDrawDebugTrace::None && (World != nullptr))
 	{
 		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
@@ -2493,6 +2526,7 @@ bool UKismetSystemLibrary::BoxTraceMultiForObjects(UObject* WorldContextObject, 
 			::DrawDebugPoint(World, Hit.ImpactPoint, KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE, (Hit.bBlockingHit ? FColor::Red : FColor::Green), bPersistent, LifeTime);
 		}
 	}
+#endif
 
 	return bHit;
 }
@@ -2566,6 +2600,7 @@ bool UKismetSystemLibrary::CapsuleTraceSingleByObject_DEPRECATED(UObject* WorldC
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
 	bool const bHit = World->SweepSingleByObjectType(OutHit, Start, End, FQuat::Identity, ObjectParams, FCollisionShape::MakeCapsule(Radius, HalfHeight), Params);
 
+#if ENABLE_DRAW_DEBUG
 	if (DrawDebugType != EDrawDebugTrace::None)
 	{
 		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
@@ -2590,6 +2625,7 @@ bool UKismetSystemLibrary::CapsuleTraceSingleByObject_DEPRECATED(UObject* WorldC
 			::DrawDebugLine(World, Start, End, FColor::Red, bPersistent, LifeTime);
 		}
 	}
+#endif
 
 	return bHit;
 }
@@ -2662,6 +2698,7 @@ bool UKismetSystemLibrary::CapsuleTraceMultiByObject_DEPRECATED(UObject* WorldCo
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
 	bool const bHit = World->SweepMultiByObjectType(OutHits, Start, End, FQuat::Identity, ObjectParams, FCollisionShape::MakeCapsule(Radius, HalfHeight), Params);
 
+#if ENABLE_DRAW_DEBUG
 	if (DrawDebugType != EDrawDebugTrace::None)
 	{
 		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
@@ -2693,6 +2730,7 @@ bool UKismetSystemLibrary::CapsuleTraceMultiByObject_DEPRECATED(UObject* WorldCo
 			::DrawDebugPoint(World, Hit.ImpactPoint, KISMET_TRACE_DEBUG_IMPACTPOINT_SIZE, (Hit.bBlockingHit ? FColor::Red : FColor::Green), bPersistent, LifeTime);
 		}
 	}
+#endif
 
 	return bHit;
 }
@@ -2700,42 +2738,51 @@ bool UKismetSystemLibrary::CapsuleTraceMultiByObject_DEPRECATED(UObject* WorldCo
 /** Draw a debug line */
 void UKismetSystemLibrary::DrawDebugLine(UObject* WorldContextObject, FVector const LineStart, FVector const LineEnd, FLinearColor Color, float LifeTime, float Thickness)
 {
+#if ENABLE_DRAW_DEBUG
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	if(World != nullptr)
 	{
 		::DrawDebugLine(World, LineStart, LineEnd, Color.ToFColor(true), false, LifeTime, SDPG_World, Thickness);
 	}
+#endif
 }
 
 /** Draw a debug circle */
 void UKismetSystemLibrary::DrawDebugCircle(UObject* WorldContextObject,FVector Center, float Radius, int32 NumSegments, FLinearColor LineColor, float LifeTime, float Thickness, FVector YAxis, FVector ZAxis, bool bDrawAxis)
 { 
+#if ENABLE_DRAW_DEBUG
 	::DrawDebugCircle(GEngine->GetWorldFromContextObject(WorldContextObject),Center, Radius, NumSegments, LineColor.ToFColor(true), false, LifeTime, SDPG_World, Thickness, YAxis, ZAxis, bDrawAxis);
+#endif
 }
 
 /** Draw a debug point */
 void UKismetSystemLibrary::DrawDebugPoint(UObject* WorldContextObject, FVector const Position, float Size, FLinearColor PointColor, float LifeTime)
 {
+#if ENABLE_DRAW_DEBUG
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	if (World != nullptr)
 	{
 		::DrawDebugPoint(World, Position, Size, PointColor.ToFColor(true), false, LifeTime, SDPG_World);
 	}
+#endif
 }
 
 /** Draw directional arrow, pointing from LineStart to LineEnd. */
 void UKismetSystemLibrary::DrawDebugArrow(UObject* WorldContextObject, FVector const LineStart, FVector const LineEnd, float ArrowSize, FLinearColor Color, float LifeTime, float Thickness)
 {
+#if ENABLE_DRAW_DEBUG
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	if (World != nullptr)
 	{
 		::DrawDebugDirectionalArrow(World, LineStart, LineEnd, ArrowSize, Color.ToFColor(true), false, LifeTime, SDPG_World, Thickness);
 	}
+#endif
 }
 
 /** Draw a debug box */
 void UKismetSystemLibrary::DrawDebugBox(UObject* WorldContextObject, FVector const Center, FVector Extent, FLinearColor Color, const FRotator Rotation, float LifeTime, float Thickness)
 {
+#if ENABLE_DRAW_DEBUG
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	if(World != nullptr)
 	{
@@ -2748,145 +2795,174 @@ void UKismetSystemLibrary::DrawDebugBox(UObject* WorldContextObject, FVector con
 			::DrawDebugBox(World, Center, Extent, Rotation.Quaternion(), Color.ToFColor(true), false, LifeTime, SDPG_World, Thickness);
 		}
 	}
+#endif
 }
 
 /** Draw a debug coordinate system. */
 void UKismetSystemLibrary::DrawDebugCoordinateSystem(UObject* WorldContextObject, FVector const AxisLoc, FRotator const AxisRot, float Scale, float LifeTime, float Thickness)
 {
+#if ENABLE_DRAW_DEBUG
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	if (World != nullptr)
 	{
 		::DrawDebugCoordinateSystem(World, AxisLoc, AxisRot, Scale, false, LifeTime, SDPG_World, Thickness);
 	}
+#endif
 }
 
 /** Draw a debug sphere */
 void UKismetSystemLibrary::DrawDebugSphere(UObject* WorldContextObject, FVector const Center, float Radius, int32 Segments, FLinearColor Color, float LifeTime, float Thickness)
 {
+#if ENABLE_DRAW_DEBUG
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	if (World != nullptr)
 	{
 		::DrawDebugSphere(World, Center, Radius, Segments, Color.ToFColor(true), false, LifeTime, SDPG_World, Thickness);
 	}
+#endif
 }
 
 /** Draw a debug cylinder */
 void UKismetSystemLibrary::DrawDebugCylinder(UObject* WorldContextObject, FVector const Start, FVector const End, float Radius, int32 Segments, FLinearColor Color, float LifeTime, float Thickness)
 {
+#if ENABLE_DRAW_DEBUG
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	if (World != nullptr)
 	{
 		::DrawDebugCylinder(World, Start, End, Radius, Segments, Color.ToFColor(true), false, LifeTime, SDPG_World, Thickness);
 	}
+#endif
 }
 
 /** Draw a debug cone */
 void UKismetSystemLibrary::DrawDebugCone(UObject* WorldContextObject, FVector const Origin, FVector const Direction, float Length, float AngleWidth, float AngleHeight, int32 NumSides, FLinearColor Color, float Duration, float Thickness)
 {
+#if ENABLE_DRAW_DEBUG
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	if (World != nullptr)
 	{
 		::DrawDebugCone(World, Origin, Direction, Length, AngleWidth, AngleHeight, NumSides, Color.ToFColor(true), false, Duration, SDPG_World, Thickness);
 	}
+#endif
 }
 
 void UKismetSystemLibrary::DrawDebugConeInDegrees(UObject* WorldContextObject, FVector const Origin, FVector const Direction, float Length, float AngleWidth, float AngleHeight, int32 NumSides, FLinearColor Color, float LifeTime, float Thickness)
 {
+#if ENABLE_DRAW_DEBUG
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	if (World != nullptr)
 	{
 		::DrawDebugCone(World, Origin, Direction, Length, FMath::DegreesToRadians(AngleWidth), FMath::DegreesToRadians(AngleHeight), NumSides, Color.ToFColor(true), false, LifeTime, SDPG_World, Thickness);
 	}
+#endif
 }
 
 /** Draw a debug capsule */
 void UKismetSystemLibrary::DrawDebugCapsule(UObject* WorldContextObject, FVector const Center, float HalfHeight, float Radius, const FRotator Rotation, FLinearColor Color, float LifeTime, float Thickness)
 {
+#if ENABLE_DRAW_DEBUG
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	if (World != nullptr)
 	{
 		::DrawDebugCapsule(World, Center, HalfHeight, Radius, Rotation.Quaternion(), Color.ToFColor(true), false, LifeTime, SDPG_World, Thickness);
 	}
+#endif
 }
 
 /** Draw a debug string at a 3d world location. */
 void UKismetSystemLibrary::DrawDebugString(UObject* WorldContextObject, FVector const TextLocation, const FString& Text, class AActor* TestBaseActor, FLinearColor TextColor, float Duration)
 {
+#if ENABLE_DRAW_DEBUG
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	if (World != nullptr)
 	{
 		::DrawDebugString(World, TextLocation, Text, TestBaseActor, TextColor.ToFColor(true), Duration);
 	}
+#endif
 }
 
 /** Removes all debug strings. */
 void UKismetSystemLibrary::FlushDebugStrings( UObject* WorldContextObject )
 {
+#if ENABLE_DRAW_DEBUG
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
 	if(World != nullptr)
 	{
 		::FlushDebugStrings( World );
 	}
+#endif
 }
 
 /** Draws a debug plane. */
 void UKismetSystemLibrary::DrawDebugPlane(UObject* WorldContextObject, FPlane const& P, FVector const Loc, float Size, FLinearColor Color, float LifeTime)
 {
+#if ENABLE_DRAW_DEBUG
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	if (World != nullptr)
 	{
 		::DrawDebugSolidPlane(World, P, Loc, Size, Color.ToFColor(true), false, LifeTime, SDPG_World);
 	}
+#endif
 }
 
 /** Flush all persistent debug lines and shapes */
 void UKismetSystemLibrary::FlushPersistentDebugLines(UObject* WorldContextObject)
 {
+#if ENABLE_DRAW_DEBUG
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
 	if(World != nullptr)
 	{
 		::FlushPersistentDebugLines( World );
 	}
+#endif
 }
 
 /** Draws a debug frustum. */
 void UKismetSystemLibrary::DrawDebugFrustum(UObject* WorldContextObject, const FTransform& FrustumTransform, FLinearColor FrustumColor, float Duration, float Thickness)
 {
+#if ENABLE_DRAW_DEBUG
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	if( World != nullptr && FrustumTransform.IsRotationNormalized() )
 	{
 		FMatrix FrustumToWorld =  FrustumTransform.ToMatrixWithScale();
 		::DrawDebugFrustum(World, FrustumToWorld, FrustumColor.ToFColor(true), false, Duration, SDPG_World, Thickness);
 	}
+#endif
 }
 
 /** Draw a debug camera shape. */
 void UKismetSystemLibrary::DrawDebugCamera(const ACameraActor* CameraActor, FLinearColor CameraColor, float Duration)
 {
+#if ENABLE_DRAW_DEBUG
 	if(CameraActor)
 	{
 		FVector CamLoc = CameraActor->GetActorLocation();
 		FRotator CamRot = CameraActor->GetActorRotation();
 		::DrawDebugCamera(CameraActor->GetWorld(), CameraActor->GetActorLocation(), CameraActor->GetActorRotation(), CameraActor->GetCameraComponent()->FieldOfView, 1.0f, CameraColor.ToFColor(true), false, Duration, SDPG_World);
 	}
+#endif
 }
 
 void UKismetSystemLibrary::DrawDebugFloatHistoryTransform(UObject* WorldContextObject, const FDebugFloatHistory& FloatHistory, const FTransform& DrawTransform, FVector2D DrawSize, FLinearColor DrawColor, float LifeTime)
 {
+#if ENABLE_DRAW_DEBUG
 	UWorld * World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	if (World)
 	{
 		::DrawDebugFloatHistory(*World, FloatHistory, DrawTransform, DrawSize, DrawColor.ToFColor(true), false, LifeTime);
 	}
+#endif
 }
 
 void UKismetSystemLibrary::DrawDebugFloatHistoryLocation(UObject* WorldContextObject, const FDebugFloatHistory& FloatHistory, FVector DrawLocation, FVector2D DrawSize, FLinearColor DrawColor, float LifeTime)
 {
+#if ENABLE_DRAW_DEBUG
 	UWorld * World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	if (World)
 	{
 		::DrawDebugFloatHistory(*World, FloatHistory, DrawLocation, DrawSize, DrawColor.ToFColor(true), false, LifeTime);
 	}
+#endif
 }
 
 FDebugFloatHistory UKismetSystemLibrary::AddFloatHistorySample(float Value, const FDebugFloatHistory& FloatHistory)

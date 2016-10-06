@@ -536,7 +536,7 @@ void SAnimationScrubPanel::OnReZeroAnimSequence( )
 				ApplyTranslation = PreviewSkelComp->ComponentToWorld.InverseTransformVector(WorldApplyTranslation);
 
 				// As above, animations don't have any idea of hierarchy, so we don't know for sure if track 0 is the root bone's track.
-				FRawAnimSequenceTrack& RawTrack = AnimSequence->RawAnimationData[0];
+				FRawAnimSequenceTrack& RawTrack = AnimSequence->GetRawAnimationTrack(0);
 				for(int32 i=0; i<RawTrack.PosKeys.Num(); i++)
 				{
 					RawTrack.PosKeys[i] += ApplyTranslation;

@@ -4,7 +4,9 @@
 #include "GeometryCacheModule.h"
 #include "GeometryCacheComponent.h"
 #include "ModuleManager.h"
+#if WITH_EDITOR
 #include "GeometryCacheEdModule.h"
+#endif // WITH_EDITOR
 
 IMPLEMENT_MODULE(FGeometryCacheModule, GeometryCache)
 

@@ -109,7 +109,7 @@ void FSplineMeshSceneProxy::InitVertexFactory(USplineMeshComponent* InComponent,
 	uint32 TangetnZOffset = 0;
 	uint32 UVsBaseOffset = 0;
 
-	auto& RD = InComponent->StaticMesh->RenderData->LODResources[InLODIndex];
+	auto& RD = InComponent->GetStaticMesh()->RenderData->LODResources[InLODIndex];
 	SELECT_STATIC_MESH_VERTEX_TYPE(
 		RD.VertexBuffer.GetUseHighPrecisionTangentBasis(),
 		RD.VertexBuffer.GetUseFullPrecisionUVs(),
@@ -123,8 +123,8 @@ void FSplineMeshSceneProxy::InitVertexFactory(USplineMeshComponent* InComponent,
 	// Initialize the static mesh's vertex factory.
 	ENQUEUE_UNIQUE_RENDER_COMMAND_SIXPARAMETER(
 		InitSplineMeshVertexFactory,
-		FStaticMeshLODResources*, RenderData, &InComponent->StaticMesh->RenderData->LODResources[InLODIndex],
-		UStaticMesh*, Parent, InComponent->StaticMesh,
+		FStaticMeshLODResources*, RenderData, &InComponent->GetStaticMesh()->RenderData->LODResources[InLODIndex],
+		UStaticMesh*, Parent, InComponent->GetStaticMesh(),
 		bool, bOverrideColorVertexBuffer, !!InOverrideColorVertexBuffer,
 		uint32, TangentXOffset, TangentXOffset,
 		uint32, TangetnZOffset, TangetnZOffset,
@@ -561,8 +561,8 @@ FPrimitiveSceneProxy* USplineMeshComponent::CreateSceneProxy()
 	// Verify that the mesh is valid before using it.
 	const bool bMeshIsValid = 
 		// make sure we have an actual staticmesh
-		StaticMesh &&
-		StaticMesh->HasValidRenderData();
+		GetStaticMesh() &&
+		GetStaticMesh()->HasValidRenderData();
 
 	if (bMeshIsValid)
 	{
@@ -615,7 +615,7 @@ static FVector SplineEvalDir(const FVector& StartPos, const FVector& StartTangen
 
 FBoxSphereBounds USplineMeshComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
-	if (!StaticMesh)
+	if (!GetStaticMesh())
 	{
 		return FBoxSphereBounds(FBox(0));
 	}
@@ -623,7 +623,7 @@ FBoxSphereBounds USplineMeshComponent::CalcBounds(const FTransform& LocalToWorld
 	float MinT = 0.0f;
 	float MaxT = 1.0f;
 
-	const FBoxSphereBounds MeshBounds = StaticMesh->GetBounds();
+	const FBoxSphereBounds MeshBounds = GetStaticMesh()->GetBounds();
 
 	const bool bHasCustomBoundary = !FMath::IsNearlyEqual(SplineBoundaryMin, SplineBoundaryMax);
 	if (bHasCustomBoundary)
@@ -769,7 +769,7 @@ FTransform USplineMeshComponent::CalcSliceTransform(const float DistanceAlong) c
 	}
 	else
 	{
-		const FBoxSphereBounds StaticMeshBounds = StaticMesh->GetBounds();
+		const FBoxSphereBounds StaticMeshBounds = GetStaticMesh()->GetBounds();
 		const float MeshMinZ = GetAxisValue(StaticMeshBounds.Origin, ForwardAxis) - GetAxisValue(StaticMeshBounds.BoxExtent, ForwardAxis);
 		const float MeshRangeZ = 2.0f * GetAxisValue(StaticMeshBounds.BoxExtent, ForwardAxis);
 		Alpha = (DistanceAlong - MeshMinZ) / MeshRangeZ;
@@ -833,9 +833,9 @@ FTransform USplineMeshComponent::CalcSliceTransformAtSplineOffset(const float Al
 
 bool USplineMeshComponent::GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionData, bool InUseAllTriData)
 {
-	if (StaticMesh)
+	if (GetStaticMesh())
 	{
-		StaticMesh->GetPhysicsTriMeshData(CollisionData, InUseAllTriData);
+		GetStaticMesh()->GetPhysicsTriMeshData(CollisionData, InUseAllTriData);
 
 		FVector Mask = FVector(1,1,1);
 		GetAxisValue(Mask, ForwardAxis) = 0;
@@ -844,6 +844,9 @@ bool USplineMeshComponent::GetPhysicsTriMeshData(struct FTriMeshCollisionData* C
 		{
 			CollisionVert = CalcSliceTransform(GetAxisValue(CollisionVert, ForwardAxis)).TransformPosition(CollisionVert * Mask);
 		}
+
+		CollisionData->bDeformableMesh = true;
+
 		return true;
 	}
 
@@ -852,9 +855,9 @@ bool USplineMeshComponent::GetPhysicsTriMeshData(struct FTriMeshCollisionData* C
 
 bool USplineMeshComponent::ContainsPhysicsTriMeshData(bool InUseAllTriData) const
 {
-	if (StaticMesh)
+	if (GetStaticMesh())
 	{
-		return StaticMesh->ContainsPhysicsTriMeshData(InUseAllTriData);
+		return GetStaticMesh()->ContainsPhysicsTriMeshData(InUseAllTriData);
 	}
 
 	return false;
@@ -863,9 +866,9 @@ bool USplineMeshComponent::ContainsPhysicsTriMeshData(bool InUseAllTriData) cons
 void USplineMeshComponent::GetMeshId(FString& OutMeshId)
 {
 	// First get the base mesh id from the static mesh
-	if (StaticMesh)
+	if (GetStaticMesh())
 	{
-		StaticMesh->GetMeshId(OutMeshId);
+		GetStaticMesh()->GetMeshId(OutMeshId);
 	}
 
 	// new method: Same guid as the base mesh but with a unique DDC-id based on the spline params.
@@ -912,14 +915,14 @@ void USplineMeshComponent::OnCreatePhysicsState()
 {
 #if WITH_EDITOR || WITH_RUNTIME_PHYSICS_COOKING
 	// With editor code we can recreate the collision if the mesh changes
-	const FGuid MeshBodySetupGuid = (StaticMesh != NULL ? StaticMesh->BodySetup->BodySetupGuid : FGuid());
+	const FGuid MeshBodySetupGuid = (GetStaticMesh() != nullptr ? GetStaticMesh()->BodySetup->BodySetupGuid : FGuid());
 	if (CachedMeshBodySetupGuid != MeshBodySetupGuid)
 	{
 		RecreateCollision();
 	}
 #else
 	// Without editor code we can only destroy the collision if the mesh is missing
-	if (StaticMesh == NULL && BodySetup != NULL)
+	if (GetStaticMesh() == NULL && BodySetup != NULL)
 	{
 		DestroyBodySetup();
 	}
@@ -944,9 +947,9 @@ bool USplineMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExp
 	// the NavCollision is supposed to be faster than exporting the regular collision,
 	// but I'm not sure that's true here, as the regular collision is pre-distorted to the spline
 
-	if (StaticMesh != NULL && StaticMesh->NavCollision != NULL)
+	if (GetStaticMesh() != nullptr && GetStaticMesh()->NavCollision != nullptr)
 	{
-		UNavCollision* NavCollision = StaticMesh->NavCollision;
+		UNavCollision* NavCollision = GetStaticMesh()->NavCollision;
 		
 		if (ensure(!NavCollision->bIsDynamicObstacle))
 		{
@@ -1003,11 +1006,11 @@ void USplineMeshComponent::DestroyBodySetup()
 #if WITH_EDITOR || WITH_RUNTIME_PHYSICS_COOKING
 void USplineMeshComponent::RecreateCollision()
 {
-	if (StaticMesh && IsCollisionEnabled())
+	if (GetStaticMesh() && IsCollisionEnabled())
 	{
 		if (BodySetup == NULL)
 		{
-			BodySetup = DuplicateObject<UBodySetup>(StaticMesh->BodySetup, this);
+			BodySetup = DuplicateObject<UBodySetup>(GetStaticMesh()->BodySetup, this);
 			BodySetup->SetFlags(RF_Transactional);
 			BodySetup->InvalidatePhysicsData();
 		}
@@ -1015,11 +1018,11 @@ void USplineMeshComponent::RecreateCollision()
 		{
 			BodySetup->Modify();
 			BodySetup->InvalidatePhysicsData();
-			BodySetup->CopyBodyPropertiesFrom(StaticMesh->BodySetup);
-			BodySetup->CollisionTraceFlag = StaticMesh->BodySetup->CollisionTraceFlag;
+			BodySetup->CopyBodyPropertiesFrom(GetStaticMesh()->BodySetup);
+			BodySetup->CollisionTraceFlag = GetStaticMesh()->BodySetup->CollisionTraceFlag;
 		}
-		BodySetup->BodySetupGuid = StaticMesh->BodySetup->BodySetupGuid;
-		CachedMeshBodySetupGuid = StaticMesh->BodySetup->BodySetupGuid;
+		BodySetup->BodySetupGuid = GetStaticMesh()->BodySetup->BodySetupGuid;
+		CachedMeshBodySetupGuid = GetStaticMesh()->BodySetup->BodySetupGuid;
 
 		if (BodySetup->GetCollisionTraceFlag() == CTF_UseComplexAsSimple)
 		{
@@ -1198,7 +1201,7 @@ bool USplineMeshComponent::GetStreamingTextureFactors(float& OutWorldTexelFactor
 
 		// We do this by looking at the ratio between current bounds (including deformation) and undeformed (straight from staticmesh)
 		const float MinExtent = 1.0f;
-		FBoxSphereBounds UndeformedBounds = StaticMesh->GetBounds().TransformBy(ComponentToWorld);
+		FBoxSphereBounds UndeformedBounds = GetStaticMesh()->GetBounds().TransformBy(ComponentToWorld);
 		if (UndeformedBounds.BoxExtent.X >= MinExtent)
 		{
 			SplineDeformFactor = FMath::Max(SplineDeformFactor, Bounds.BoxExtent.X / UndeformedBounds.BoxExtent.X);

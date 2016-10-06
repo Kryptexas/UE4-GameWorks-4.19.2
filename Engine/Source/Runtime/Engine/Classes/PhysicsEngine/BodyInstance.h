@@ -915,15 +915,16 @@ public:
 	bool LineTrace(struct FHitResult& OutHit, const FVector& Start, const FVector& End, bool bTraceComplex, bool bReturnPhysicalMaterial = false) const;
 
 	/** 
-	 *  Trace a box against just this bodyinstance
-	 *  @param  OutHit          Information about hit against this component, if true is returned
-	 *  @param  Start           Start location of the box
-	 *  @param  End             End location of the box
-	 *  @param  CollisionShape	Collision Shape
-	 *	@param	bTraceComplex	Should we trace against complex or simple collision of this body
+	 *  Trace a shape against just this bodyinstance
+	 *  @param  OutHit          	Information about hit against this component, if true is returned
+	 *  @param  Start           	Start location of the box
+	 *  @param  End             	End location of the box
+	 *  @param  ShapeWorldRotation  The rotation applied to the collision shape in world space.
+	 *  @param  CollisionShape		Collision Shape
+	 *	@param	bTraceComplex		Should we trace against complex or simple collision of this body
 	 *  @return true if a hit is found
 	 */
-	bool Sweep(struct FHitResult& OutHit, const FVector& Start, const FVector& End, const FCollisionShape& Shape, bool bTraceComplex) const;
+	bool Sweep(struct FHitResult& OutHit, const FVector& Start, const FVector& End, const FQuat& ShapeWorldRotation, const FCollisionShape& Shape, bool bTraceComplex) const;
 
 #if WITH_PHYSX
 	/**
@@ -1064,16 +1065,15 @@ public:
 
 private:
 	/**
-	 *  Trace a box against just this bodyinstance
+	 *  Trace a shape against just this bodyinstance
 	 *  @param  OutHit          Information about hit against this component, if true is returned
 	 *  @param  Start           Start location of the box
 	 *  @param  End             End location of the box
-	 *  @param  CollisionShape	Collision Shape
+	 *  @param  ShapeAdaptor    Adaptor containing geometry information about the shape to be swept.
 	 *  @param	bTraceComplex	Should we trace against complex or simple collision of this body
-	 *  @param	PGeom			Geometry that will sweep
 	 *  @return true if a hit is found
 	 */
-	bool InternalSweepPhysX(struct FHitResult& OutHit, const FVector& Start, const FVector& End, const FCollisionShape& Shape, bool bTraceComplex, const physx::PxRigidActor* RigidBody, const physx::PxGeometry* Geometry) const;
+	bool InternalSweepPhysX(struct FHitResult& OutHit, const FVector& Start, const FVector& End, const struct FPhysXShapeAdaptor& ShapeAdaptor, bool bTraceComplex, const physx::PxRigidActor* RigidBody) const;
 
 	/** 
 	 * Helper function to update per shape filtering info. This should interface is not very friendly and should only be used from inside FBodyInstance

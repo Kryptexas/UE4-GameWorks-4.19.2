@@ -19,7 +19,7 @@ THIRD_PARTY_INCLUDES_END
 namespace SPL = Simplygon::SPL::v80;
 
 #ifndef SPL_VERSION
-	#define SPL_VERSION 7
+	#define SPL_VERSION 8
 #endif // !SPL_VERSION
 
 #define SPL_CURRENT_VERSION SPL_VERSION

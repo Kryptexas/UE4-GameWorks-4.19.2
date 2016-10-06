@@ -529,7 +529,7 @@ bool FGameplayTagContainer::ComplexHasTag(FGameplayTag const& TagToCheck, TEnumA
 		for (TArray<FGameplayTag>::TConstIterator It(this->GameplayTags); It; ++It)
 		{
 			const FGameplayTagContainer* Parents = TagManager.GetAllParentsContainer(*It);
-			if (Parents && Parents->HasTag(TagToCheck, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::Explicit))
+			if (Parents && Parents->HasTag(TagToCheck, EGameplayTagMatchType::Explicit, TagToCheckMatchType))
 			{
 				return true;
 			}

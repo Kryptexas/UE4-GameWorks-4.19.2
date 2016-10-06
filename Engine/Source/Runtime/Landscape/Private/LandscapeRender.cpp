@@ -3100,10 +3100,10 @@ FLandscapeMeshProxySceneProxy::~FLandscapeMeshProxySceneProxy()
 
 FPrimitiveSceneProxy* ULandscapeMeshProxyComponent::CreateSceneProxy()
 {
-	if (StaticMesh == NULL
-		|| StaticMesh->RenderData == NULL
-		|| StaticMesh->RenderData->LODResources.Num() == 0
-		|| StaticMesh->RenderData->LODResources[0].VertexBuffer.GetNumVertices() == 0)
+	if (GetStaticMesh() == NULL
+		|| GetStaticMesh()->RenderData == NULL
+		|| GetStaticMesh()->RenderData->LODResources.Num() == 0
+		|| GetStaticMesh()->RenderData->LODResources[0].VertexBuffer.GetNumVertices() == 0)
 	{
 		return NULL;
 	}

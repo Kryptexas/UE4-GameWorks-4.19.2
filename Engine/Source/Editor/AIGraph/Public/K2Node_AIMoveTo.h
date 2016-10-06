@@ -1,13 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-
 #pragma once
 #include "K2Node_BaseAsyncTask.h"
 #include "K2Node_AIMoveTo.generated.h"
 
-// @TODO this should be moved to AIModule
 UCLASS()
-class BLUEPRINTGRAPH_API UK2Node_AIMoveTo : public UK2Node_BaseAsyncTask
+class AIGRAPH_API UK2Node_AIMoveTo : public UK2Node_BaseAsyncTask
 {
 	GENERATED_UCLASS_BODY()
 

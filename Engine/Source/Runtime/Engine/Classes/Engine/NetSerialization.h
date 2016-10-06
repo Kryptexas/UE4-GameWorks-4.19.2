@@ -1083,6 +1083,7 @@ bool WritePackedVector(FVector Value, FArchive& Ar)	// Note Value is intended to
 	// Nan Check
 	if( Value.ContainsNaN() )
 	{
+		logOrEnsureNanError(TEXT("WritePackedVector: Value contains NaN, clearing for safety."));
 		FVector	Dummy(0, 0, 0);
 		WritePackedVector<ScaleFactor, MaxBitsPerComponent>(Dummy, Ar);
 		return false;

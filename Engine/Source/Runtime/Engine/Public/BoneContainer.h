@@ -10,6 +10,25 @@
 class USkeleton;
 
 /**
+* This is a native transient structure. Used to store virtual bone mappings for compact poses
+**/
+struct FVirtualBoneCompactPoseData
+{
+	/** Index of this virtual bone */
+	FCompactPoseBoneIndex VBIndex;
+	/** Index of source bone */
+	FCompactPoseBoneIndex SourceIndex;
+	/** Index of target bone */
+	FCompactPoseBoneIndex TargetIndex;
+
+	FVirtualBoneCompactPoseData(FCompactPoseBoneIndex InVBIndex, FCompactPoseBoneIndex InSourceIndex, FCompactPoseBoneIndex InTargetIndex)
+		: VBIndex(InVBIndex)
+		, SourceIndex(InSourceIndex)
+		, TargetIndex(InTargetIndex)
+	{}
+};
+
+/**
 * This is a native transient structure.
 * Contains:
 * - BoneIndicesArray: Array of RequiredBoneIndices for Current Asset. In increasing order. Mapping to current Array of Transforms (Pose).
@@ -53,6 +72,9 @@ private:
 
 	// Compact pose format of Ref Pose Bones (to save us converting to mesh space and back)
 	TArray<FTransform>    CompactPoseRefPoseBones;
+
+	// Array of cached virtual bone data so that animations running from raw data can generate them.
+	TArray<FVirtualBoneCompactPoseData> VirtualBoneCompactPoseData;
 
 	/** For debugging. */
 	/** Disable Retargeting. Extract animation, but do not retarget it. */
@@ -138,6 +160,11 @@ public:
 	{
 		return BoneIndicesArray;
 	}
+
+	/**
+	* returns virutal bone cached data
+	*/
+	const TArray<FVirtualBoneCompactPoseData>& GetVirtualBoneCompactPoseData() const { return VirtualBoneCompactPoseData; }
 
 	/**
 	* returns Bone Switch Array. BitMask for RequiredBoneIndex array.

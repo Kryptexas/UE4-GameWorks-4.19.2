@@ -62,7 +62,7 @@ public:
 				.OnCheckStateChanged(this, &SAssetShortcut::HandleOpenAssetShortcut)
 				.IsChecked(this, &SAssetShortcut::GetCheckState)
 				.Visibility(this, &SAssetShortcut::GetButtonVisibility)
-				.ToolTipText(FText::FromString(InAssetData.GetExportTextName()))
+				.ToolTipText(this, &SAssetShortcut::GetButtonTooltip)
 				[
 					SNew(SHorizontalBox)
 					+ SHorizontalBox::Slot()
@@ -122,19 +122,16 @@ public:
 					.VAlign(VAlign_Center)
 					.AutoWidth()
 					[
-						SNew(SBox)
-						.WidthOverride(AssetShortcutConstants::ThumbnailSize + 16.0f)
-						.HeightOverride(AssetShortcutConstants::ThumbnailSize + 4.0f)
+						SNew(SHorizontalBox)
+						+SHorizontalBox::Slot()
+						.AutoWidth()
 						.VAlign(VAlign_Center)
-						.Visibility(this, &SAssetShortcut::GetThumbnailVisibility)
+						.Padding(4.0f)
 						[
 							SNew(STextBlock)
-							.Font(FEditorStyle::GetFontStyle("ContentBrowser.AssetTileViewNameFontSmall"))
 							.Text(this, &SAssetShortcut::GetAssetText)
-							.ColorAndOpacity(this, &SAssetShortcut::GetAssetTextColor)
-							.Justification(ETextJustify::Center)
-							.LineBreakPolicy(FBreakIterator::CreateCamelCaseBreakIterator())
-							.AutoWrapText(true)
+							.TextStyle(FEditorStyle::Get(), "Toolbar.Label")
+							.ShadowOffset(FVector2D::UnitVector)
 						]
 					]
 				]
@@ -142,6 +139,7 @@ public:
 			+SHorizontalBox::Slot()
 			.VAlign(VAlign_Fill)
 			.AutoWidth()
+			.Padding(2.0f, 0.0f, 0.0f, 0.0f)
 			[
 				SNew(SComboButton)
 				.Visibility(this, &SAssetShortcut::GetComboVisibility)
@@ -149,6 +147,7 @@ public:
 				.ForegroundColor(FSlateColor::UseForeground())
 				.ButtonStyle(FEditorStyle::Get(), "Toolbar.Button")
 				.OnGetMenuContent(this, &SAssetShortcut::HandleGetMenuContent)
+				.ToolTipText(LOCTEXT("AssetComboTooltip", "Find other assets of this type and perform asset operations."))
 			]
 		];
 
@@ -181,7 +180,7 @@ public:
 
 	FText GetAssetText() const
 	{
-		return FText::FromName(AssetData.AssetName);
+		return AssetFamily->GetAssetTypeDisplayName(AssetData.GetClass());
 	}
 
 	ECheckBoxState GetCheckState() const
@@ -259,6 +258,8 @@ public:
 
 	void HandleAssetSelectedFromPicker(const class FAssetData& InAssetData)
 	{
+		FSlateApplication::Get().DismissAllMenus();
+
 		TArray<UObject*> Assets;
 		Assets.Add(InAssetData.GetAsset());
 		FAssetEditorManager::Get().OpenEditorForAssets(Assets);
@@ -384,6 +385,11 @@ public:
 		return EActiveTimerReturnType::Continue;
 	}
 
+	FText GetButtonTooltip() const
+	{
+		return FText::Format(LOCTEXT("AssetTooltipFormat", "{0}\n{1}"), FText::FromName(AssetData.AssetName), FText::FromString(AssetData.GetFullName()));
+	}
+
 private:
 	/** The current asset data for this widget */
 	FAssetData AssetData;
@@ -428,26 +434,28 @@ void SAssetFamilyShortcutBar::Construct(const FArguments& InArgs, const TSharedR
 {
 	ThumbnailPool = MakeShareable(new FAssetThumbnailPool(16, false));
 
-	TSharedRef<SUniformGridPanel> Panel = SNew(SUniformGridPanel);
+	TSharedRef<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox);
 
-	int32 ColumnIndex = 0;
 	TArray<UClass*> AssetTypes;
 	InAssetFamily->GetAssetTypes(AssetTypes);
 
+	int32 AssetTypeIndex = 0;
 	for (UClass* Class : AssetTypes)
 	{
 		FAssetData AssetData = InAssetFamily->FindAssetOfType(Class);
-		Panel->AddSlot(ColumnIndex, 0)
+		HorizontalBox->AddSlot()
+		.AutoWidth()
+		.Padding(0.0f, 0.0f, AssetTypeIndex == AssetTypes.Num() - 1 ? 0.0f: 2.0f, 0.0f)
 		[
 			SNew(SAssetShortcut, InHostingApp, InAssetFamily, AssetData, ThumbnailPool.ToSharedRef())
 		];
 
-		ColumnIndex++;
+		AssetTypeIndex++;
 	}
 
 	ChildSlot
 	[
-		Panel
+		HorizontalBox
 	];
 }
 

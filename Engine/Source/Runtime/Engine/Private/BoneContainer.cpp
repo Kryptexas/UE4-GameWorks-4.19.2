@@ -120,6 +120,8 @@ void FBoneContainer::Initialize()
 
 	SkeletonToCompactPose.Reset(SkeletonToPoseBoneIndexArray.Num());
 
+	VirtualBoneCompactPoseData.Reset(RefSkeleton->GetVirtualBoneRefData().Num());
+
 	const TArray<FTransform>& RefPoseArray = RefSkeleton->GetRefBonePose();
 	TArray<int32>& MeshIndexToCompactPoseIndex = FBoneContainerScratchArea::Get().MeshIndexToCompactPoseIndex;
 	MeshIndexToCompactPoseIndex.Reset(PoseToSkeletonBoneIndexArray.Num());
@@ -161,6 +163,16 @@ void FBoneContainer::Initialize()
 		int32 PoseBoneIndex = SkeletonToPoseBoneIndexArray[SkeletonBoneIndex];
 		int32 CompactIndex = (PoseBoneIndex != INDEX_NONE) ? MeshIndexToCompactPoseIndex[PoseBoneIndex] : INDEX_NONE;
 		SkeletonToCompactPose.Add(FCompactPoseBoneIndex(CompactIndex));
+	}
+
+
+	for (const FVirtualBoneRefData& VBRefBone : RefSkeleton->GetVirtualBoneRefData())
+	{
+		int32 VBInd = MeshIndexToCompactPoseIndex[VBRefBone.VBRefSkelIndex];
+		int32 SourceInd = MeshIndexToCompactPoseIndex[VBRefBone.SourceRefSkelIndex];
+		int32 TargetInd = MeshIndexToCompactPoseIndex[VBRefBone.TargetRefSkelIndex];
+
+		VirtualBoneCompactPoseData.Add(FVirtualBoneCompactPoseData(FCompactPoseBoneIndex(VBInd), FCompactPoseBoneIndex(SourceInd), FCompactPoseBoneIndex(TargetInd)));
 	}
 
 	// cache required curve UID list according to new bone sets

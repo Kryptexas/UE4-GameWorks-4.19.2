@@ -19,7 +19,6 @@ class IDetailLayoutBuilder;
 class FAnimBlueprintCompiler;
 class FAnimGraphNodeDetails;
 
-// 
 struct FPoseLinkMappingRecord
 {
 public:
@@ -251,6 +250,11 @@ class ANIMGRAPH_API UAnimGraphNode_Base : public UK2Node
 		return nullptr;
 	}
 
+	// Event that observers can bind to so that they are notified about changes
+	// made to this node through the property system
+	DECLARE_EVENT_OneParam(UAnimGraphNode_Base, FOnNodePropertyChangedEvent, FPropertyChangedEvent&);
+	FOnNodePropertyChangedEvent& OnNodePropertyChanged() { return PropertyChangeEvent;	}
+
 protected:
 	friend FAnimBlueprintCompiler;
 	friend FAnimGraphNodeDetails;
@@ -274,6 +278,8 @@ protected:
 
 	// Allocates or reallocates pins
 	void InternalPinCreation(TArray<UEdGraphPin*>* OldPins);
+
+	FOnNodePropertyChangedEvent PropertyChangeEvent;
 };
 
 template<class AssetType>

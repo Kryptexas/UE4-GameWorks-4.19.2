@@ -1953,7 +1953,7 @@ bool FEditorFileUtils::AttemptUnloadInactiveWorldPackage(UPackage* PackageToUnlo
 
 				case EWorldType::Game:
 				case EWorldType::PIE:
-				case EWorldType::Preview:
+				case EWorldType::EditorPreview:
 				default:
 					OutErrorMessage = NSLOCTEXT("SaveAsImplementation", "ExistingWorldInvalid", "The level you are attempting to unload is invalid.");
 					bContinueUnloadingExistingWorld = false;

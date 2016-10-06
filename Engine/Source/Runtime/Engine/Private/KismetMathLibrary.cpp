@@ -2366,6 +2366,7 @@ void UKismetMathLibrary::MinimumAreaRectangle(class UObject* WorldContextObject,
 	OutSideLengthX = RectSideA.Size();
 	OutSideLengthY = RectSideB.Size();
 
+#if ENABLE_DRAW_DEBUG
 	if( bDebugDraw )
 	{
 		UWorld* World = (WorldContextObject) ? GEngine->GetWorldFromContextObject(WorldContextObject) : nullptr;
@@ -2381,6 +2382,7 @@ void UKismetMathLibrary::MinimumAreaRectangle(class UObject* WorldContextObject,
 			FFrame::KismetExecutionMessage(TEXT("WorldContext required for MinimumAreaRectangle to draw a debug visualization."), ELogVerbosity::Warning);
 		}
 	}
+#endif
 }
 
 bool UKismetMathLibrary::PointsAreCoplanar(const TArray<FVector>& Points, float Tolerance)

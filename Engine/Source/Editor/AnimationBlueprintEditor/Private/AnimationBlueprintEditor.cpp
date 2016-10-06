@@ -57,6 +57,8 @@
 #include "IPersonaEditorModeManager.h"
 #include "AnimationGraph.h"
 #include "IAssetFamily.h"
+#include "PersonaCommonCommands.h"
+#include "Editor/AnimGraph/Public/AnimGraphCommands.h"
 
 #define LOCTEXT_NAMESPACE "AnimationBlueprintEditor"
 
@@ -222,6 +224,8 @@ void FAnimationBlueprintEditor::InitAnimationBlueprintEditor(const EToolkitMode:
 
 	CommonInitialization(AnimBlueprints);
 
+	BindCommands();
+
 	AddApplicationMode(
 		FAnimationBlueprintEditorModes::AnimationBlueprintEditorMode,
 		MakeShareable(new FAnimationBlueprintEditorMode(SharedThis(this))));
@@ -240,16 +244,18 @@ void FAnimationBlueprintEditor::InitAnimationBlueprintEditor(const EToolkitMode:
 	// Activate the initial mode (which will populate with a real layout)
 	SetCurrentMode(FAnimationBlueprintEditorModes::AnimationBlueprintEditorMode);
 
-	// set up our editor mode
-	check(AssetEditorModeManager);
-	AssetEditorModeManager->SetDefaultMode(FPersonaEditModes::SkeletonSelection);
-
 	// Post-layout initialization
 	PostLayoutBlueprintEditorInitialization();
 
 	// register customization of Slot node for this Animation Blueprint Editor
 	// this is so that you can open the manage window per Animation Blueprint Editor
 	PersonaModule.CustomizeSlotNodeDetails(Inspector->GetPropertyView().ToSharedRef(), FOnInvokeTab::CreateSP(this, &FAssetEditorToolkit::InvokeTab));
+}
+
+void FAnimationBlueprintEditor::BindCommands()
+{
+	GetToolkitCommands()->MapAction(FPersonaCommonCommands::Get().TogglePlay,
+		FExecuteAction::CreateRaw(&GetPersonaToolkit()->GetPreviewScene().Get(), &IPersonaPreviewScene::TogglePlayback));
 }
 
 void FAnimationBlueprintEditor::ExtendToolbar()
@@ -354,6 +360,13 @@ void FAnimationBlueprintEditor::CreateDefaultCommands()
 	}
 }
 
+void FAnimationBlueprintEditor::OnCreateGraphEditorCommands(TSharedPtr<FUICommandList> GraphEditorCommandsList)
+{
+	GraphEditorCommandsList->MapAction(FAnimGraphCommands::Get().TogglePoseWatch,
+		FExecuteAction::CreateSP(this, &FAnimationBlueprintEditor::OnTogglePoseWatch));
+}
+
+
 void FAnimationBlueprintEditor::OnAddPosePin()
 {
 	const FGraphPanelSelectionSet SelectedNodes = GetSelectedNodes();
@@ -432,6 +445,28 @@ void FAnimationBlueprintEditor::OnRemovePosePin()
 
 			// Update the graph so that the node will be refreshed
 			FocusedGraphEd->NotifyGraphChanged();
+		}
+	}
+}
+
+void FAnimationBlueprintEditor::OnTogglePoseWatch()
+{
+	const FGraphPanelSelectionSet SelectedNodes = GetSelectedNodes();
+	UAnimBlueprint* AnimBP = GetAnimBlueprint();
+
+	for (FGraphPanelSelectionSet::TConstIterator NodeIt(SelectedNodes); NodeIt; ++NodeIt)
+	{
+		if (UAnimGraphNode_Base* SelectedNode = Cast<UAnimGraphNode_Base>(*NodeIt))
+		{
+			UPoseWatch* PoseWatch = AnimationEditorUtils::FindPoseWatchForNode(SelectedNode, AnimBP);
+			if (PoseWatch)
+			{
+				AnimationEditorUtils::RemovePoseWatch(PoseWatch, AnimBP);
+			}
+			else
+			{
+				AnimationEditorUtils::MakePoseWatchForNode(AnimBP, SelectedNode, FColor::Red);
+			}
 		}
 	}
 }
@@ -1158,10 +1193,15 @@ void FAnimationBlueprintEditor::OnSelectedNodesChangedImpl(const TSet<class UObj
 {
 	FBlueprintEditor::OnSelectedNodesChangedImpl(NewSelection);
 
+	IPersonaEditorModeManager* PersonaEditorModeManager = static_cast<IPersonaEditorModeManager*>(GetAssetEditorModeManager());
+
 	if (SelectedAnimGraphNode.IsValid())
 	{
 		FAnimNode_Base* PreviewNode = FindAnimNode(SelectedAnimGraphNode.Get());
-		SelectedAnimGraphNode->OnNodeSelected(false, *static_cast<IPersonaEditorModeManager*>(GetAssetEditorModeManager()), PreviewNode);
+		if (PersonaEditorModeManager)
+		{
+			SelectedAnimGraphNode->OnNodeSelected(false, *PersonaEditorModeManager, PreviewNode);
+		}
 
 		SelectedAnimGraphNode.Reset();
 	}
@@ -1176,9 +1216,9 @@ void FAnimationBlueprintEditor::OnSelectedNodesChangedImpl(const TSet<class UObj
 			SelectedAnimGraphNode = NewSelectedAnimGraphNode;
 
 			FAnimNode_Base* PreviewNode = FindAnimNode(SelectedAnimGraphNode.Get());
-			if (PreviewNode)
+			if (PreviewNode && PersonaEditorModeManager)
 			{
-				SelectedAnimGraphNode->OnNodeSelected(true, *static_cast<IPersonaEditorModeManager*>(GetAssetEditorModeManager()), PreviewNode);
+				SelectedAnimGraphNode->OnNodeSelected(true, *PersonaEditorModeManager, PreviewNode);
 			}
 		}
 	}

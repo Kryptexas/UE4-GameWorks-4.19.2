@@ -497,18 +497,18 @@ struct FScopedMultiSceneReadLock
 		UnlockAll();
 	}
 
-	inline void LockRead(PxScene* Scene, int32 SceneIndex)
+	inline void LockRead(const UWorld* World, PxScene* Scene, EPhysicsSceneType SceneType)
 	{
-		checkSlow(SceneLocks[SceneIndex] == nullptr); // no nested locks allowed.
+		checkSlow(SceneLocks[SceneType] == nullptr); // no nested locks allowed.
 		SCENE_LOCK_READ(Scene);
-		SceneLocks[SceneIndex] = Scene;
+		SceneLocks[SceneType] = Scene;
 	}
 
-	inline void UnlockRead(PxScene* Scene, int32 SceneIndex)
+	inline void UnlockRead(PxScene* Scene, EPhysicsSceneType SceneType)
 	{
-		checkSlow(SceneLocks[SceneIndex] == Scene || SceneLocks[SceneIndex] == nullptr);
+		checkSlow(SceneLocks[SceneType] == Scene || SceneLocks[SceneType] == nullptr);
 		SCENE_UNLOCK_READ(Scene);
-		SceneLocks[SceneIndex] = nullptr;
+		SceneLocks[SceneType] = nullptr;
 	}
 
 	inline void UnlockAll()
@@ -621,10 +621,11 @@ PxQueryHitType::Enum FPxQueryFilterCallback::preFilter(const PxFilterData& filte
 {
 	SCOPE_CYCLE_COUNTER(STAT_Collision_PreFilter);
 
+	ensureMsgf(shape, TEXT("Invalid shape encountered in FPxQueryFilterCallback::preFilter, actor: %p, filterData: %x %x %x %x"), actor, filterData.word0, filterData.word1, filterData.word2, filterData.word3);
+
 	if(!shape)
 	{
-		// Shape shouldn't be invalid here, dump what data we have and ignore the collision (eNONE)
-		UE_LOG(LogCollision, Warning, TEXT("Invalid shape encountered in FPxQueryFilterCallback::preFilter, actor: %p, filterData: %x %x %x %x"), actor, filterData.word0, filterData.word1, filterData.word2, filterData.word3);
+		// Early out to avoid crashing.
 		return (PrefilterReturnValue = PxQueryHitType::eNONE);
 	}
 
@@ -1007,7 +1008,7 @@ bool RaycastSingle(const UWorld* World, struct FHitResult& OutHit, const FVector
 			PxScene* SyncScene = PhysScene->GetPhysXScene(PST_Sync);
 
 			// Enable scene locks, in case they are required
-			SceneLocks.LockRead(SyncScene, PST_Sync);
+			SceneLocks.LockRead(World, SyncScene, PST_Sync);
 
 			PxRaycastBuffer PRaycastBuffer;
 			SyncScene->raycast(U2PVector(Start), PDir, DeltaMag, PRaycastBuffer, POutputFlags, PQueryFilterData, &PQueryCallback);
@@ -1022,7 +1023,7 @@ bool RaycastSingle(const UWorld* World, struct FHitResult& OutHit, const FVector
 			if (Params.bTraceAsyncScene && PhysScene->HasAsyncScene())
 			{
 				PxScene* AsyncScene = PhysScene->GetPhysXScene(PST_Async);
-				SceneLocks.LockRead(AsyncScene, PST_Async);
+				SceneLocks.LockRead(World, AsyncScene, PST_Async);
 				PxRaycastBuffer PRaycastBufferAsync;
 				AsyncScene->raycast(U2PVector(Start), PDir, DeltaMag, PRaycastBufferAsync, POutputFlags, PQueryFilterData, &PQueryCallback);
 				const bool bHaveBlockingHitAsync = PRaycastBufferAsync.hasBlock;
@@ -1176,7 +1177,7 @@ bool RaycastMulti(const UWorld* World, TArray<struct FHitResult>& OutHits, const
 		PxScene* SyncScene = PhysScene->GetPhysXScene(PST_Sync);
 
 		FScopedMultiSceneReadLock SceneLocks;
-		SceneLocks.LockRead(SyncScene, PST_Sync);
+		SceneLocks.LockRead(World, SyncScene, PST_Sync);
 
 		SyncScene->raycast(U2PVector(Start), PDir, DeltaMag, PRaycastBuffer, POutputFlags, PQueryFilterData, &PQueryCallback);
 		PxI32 NumHits = PRaycastBuffer.GetNumHits();
@@ -1191,7 +1192,7 @@ bool RaycastMulti(const UWorld* World, TArray<struct FHitResult>& OutHits, const
 		if( Params.bTraceAsyncScene && PhysScene->HasAsyncScene())
 		{
 			PxScene* AsyncScene = PhysScene->GetPhysXScene(PST_Async);
-			SceneLocks.LockRead(AsyncScene, PST_Async);
+			SceneLocks.LockRead(World, AsyncScene, PST_Async);
 
 			// Write into the same PHits buffer
 			bool bBlockingHitAsync = false;
@@ -1507,7 +1508,7 @@ bool GeomSweepSingle(const UWorld* World, const struct FCollisionShape& Collisio
 
 		// Enable scene locks, in case they are required
 		FScopedMultiSceneReadLock SceneLocks;
-		SceneLocks.LockRead(SyncScene, PST_Sync);
+		SceneLocks.LockRead(World, SyncScene, PST_Sync);
 
 		PxSweepBuffer PSweepBuffer;
 		SyncScene->sweep(PGeom, PStartTM, PDir, DeltaMag, PSweepBuffer, POutputFlags, PQueryFilterData, &PQueryCallbackSweep);
@@ -1524,7 +1525,7 @@ bool GeomSweepSingle(const UWorld* World, const struct FCollisionShape& Collisio
 		if( Params.bTraceAsyncScene && PhysScene->HasAsyncScene())
 		{
 			PxScene* AsyncScene = PhysScene->GetPhysXScene(PST_Async);
-			SceneLocks.LockRead(AsyncScene, PST_Async);
+			SceneLocks.LockRead(World, AsyncScene, PST_Async);
 
 			bool bHaveBlockingHitAsync;
 			PxSweepBuffer PSweepBufferAsync;
@@ -1617,7 +1618,7 @@ bool GeomSweepMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const Px
 
 		// Lock scene
 		FScopedMultiSceneReadLock SceneLocks;
-		SceneLocks.LockRead(SyncScene, PST_Sync);
+		SceneLocks.LockRead(World, SyncScene, PST_Sync);
 
 		const PxTransform PStartTM(U2PVector(Start), PGeomRot);
 		PxVec3 PDir = DeltaMag == 0.f ? PxVec3(1.f, 0.f, 0.f) : U2PVector(Delta/DeltaMag);	//If DeltaMag is 0 (equality of float is fine because we sanitized to 0) then just use any normalized direction
@@ -1646,7 +1647,7 @@ bool GeomSweepMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const Px
 		if (Params.bTraceAsyncScene && MinBlockDistance > SMALL_NUMBER && PhysScene->HasAsyncScene())
 		{
 			PxScene* AsyncScene = PhysScene->GetPhysXScene(PST_Async);
-			SceneLocks.LockRead(AsyncScene, PST_Async);
+			SceneLocks.LockRead(World, AsyncScene, PST_Async);
 
 			AsyncScene->sweep(PGeom, PStartTM, PDir, MinBlockDistance, PSweepBuffer, POutputFlags, PQueryFilterData, &PQueryCallbackSweep);
 			bool bBlockingHitAsync = PSweepBuffer.hasBlock;
@@ -1773,7 +1774,7 @@ bool GeomOverlapMultiImp_PhysX(const UWorld* World, const PxGeometry& PGeom, con
 		PxScene* SyncScene = PhysScene->GetPhysXScene(PST_Sync);
 
 		// we can't use scoped because we later do a conversion which depends on these results and it should all be atomic
-		SceneLocks.LockRead(SyncScene, PST_Sync);
+		SceneLocks.LockRead(World, SyncScene, PST_Sync);
 
 		FDynamicHitBuffer<PxOverlapHit> POverlapBuffer;
 		PxI32 NumHits = 0;
@@ -1804,7 +1805,7 @@ bool GeomOverlapMultiImp_PhysX(const UWorld* World, const PxGeometry& PGeom, con
 			PxScene* AsyncScene = PhysScene->GetPhysXScene(PST_Async);
 			
 			// we can't use scoped because we later do a conversion which depends on these results and it should all be atomic
-			SceneLocks.LockRead(AsyncScene, PST_Async);
+			SceneLocks.LockRead(World, AsyncScene, PST_Async);
 		
 			if ((InfoType == EQueryInfo::IsAnything) || (InfoType == EQueryInfo::IsBlocking))
 			{

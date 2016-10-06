@@ -39,7 +39,7 @@ UActorComponent* USCS_Node::GetActualComponentTemplate(UBlueprintGeneratedClass*
 			
 			do
 			{
-				auto InheritableComponentHandler = ActualBPGC->GetInheritableComponentHandler();
+				UInheritableComponentHandler* InheritableComponentHandler = ActualBPGC->GetInheritableComponentHandler();
 				if (InheritableComponentHandler)
 				{
 					OverridenComponentTemplate = InheritableComponentHandler->GetOverridenComponentTemplate(ComponentKey);
@@ -66,7 +66,7 @@ const FBlueprintCookedComponentInstancingData* USCS_Node::GetActualComponentTemp
 			
 			do
 			{
-				auto InheritableComponentHandler = ActualBPGC->GetInheritableComponentHandler();
+				UInheritableComponentHandler* InheritableComponentHandler = ActualBPGC->GetInheritableComponentHandler();
 				if (InheritableComponentHandler)
 				{
 					OverridenComponentTemplateData = InheritableComponentHandler->GetOverridenComponentTemplateData(ComponentKey);
@@ -88,8 +88,8 @@ UActorComponent* USCS_Node::ExecuteNodeOnActor(AActor* Actor, USceneComponent* P
 
 	// Create a new component instance based on the template
 	UActorComponent* NewActorComp = nullptr;
-	auto ActualBPGC = Cast<UBlueprintGeneratedClass>(Actor->GetClass());
-	auto ActualComponentTemplateData = FPlatformProperties::RequiresCookedData() ? GetActualComponentTemplateData(ActualBPGC) : nullptr;
+	UBlueprintGeneratedClass* ActualBPGC = Cast<UBlueprintGeneratedClass>(Actor->GetClass());
+	const FBlueprintCookedComponentInstancingData* ActualComponentTemplateData = FPlatformProperties::RequiresCookedData() ? GetActualComponentTemplateData(ActualBPGC) : nullptr;
 	if (ActualComponentTemplateData && ActualComponentTemplateData->bIsValid)
 	{
 		// Use cooked instancing data if valid (fast path).
@@ -545,9 +545,8 @@ USceneComponent* USCS_Node::GetParentComponentTemplate(UBlueprint* InBlueprint) 
 				TInlineComponentArray<USceneComponent*> Components;
 				CDO->GetComponents(Components);
 
-				for(auto CompIt = Components.CreateIterator(); CompIt; ++CompIt)
+				for (USceneComponent* CompTemplate : Components)
 				{
-					USceneComponent* CompTemplate = *CompIt;
 					if(CompTemplate->GetFName() == ParentComponentOrVariableName)
 					{
 						// Found a match; this is our parent, we're done

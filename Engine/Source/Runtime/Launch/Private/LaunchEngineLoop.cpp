@@ -2828,11 +2828,12 @@ void FEngineLoop::Tick()
 		// input is polled for motion controller devices each frame.
 #if WITH_ENGINE
 		extern ENGINE_API float GNewWorldToMetersScale;
-		if( GNewWorldToMetersScale != 0.0f && GWorld != nullptr )
+		UWorld* HackGWorld = GWorld;
+		if( GNewWorldToMetersScale != 0.0f && HackGWorld != nullptr )
 		{
-			if( GNewWorldToMetersScale != GWorld->GetWorldSettings()->WorldToMeters )
+			if( GNewWorldToMetersScale != HackGWorld->GetWorldSettings()->WorldToMeters )
 			{
-				GWorld->GetWorldSettings()->WorldToMeters = GNewWorldToMetersScale;
+				HackGWorld->GetWorldSettings()->WorldToMeters = GNewWorldToMetersScale;
 			}
 		}
 #endif	// WITH_ENGINE

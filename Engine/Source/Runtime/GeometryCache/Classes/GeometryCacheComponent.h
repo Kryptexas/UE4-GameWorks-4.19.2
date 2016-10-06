@@ -201,16 +201,16 @@ protected:
 	*/
 	void ReleaseResources();
 
-	UPROPERTY(EditAnywhere, Category = GeometryCache)
+	UPROPERTY(EditAnywhere, Interp, Category = GeometryCache)
 	bool bRunning;
 
-	UPROPERTY(EditAnywhere, Category = GeometryCache)
+	UPROPERTY(EditAnywhere, Interp, Category = GeometryCache)
 	bool bLooping;
 
-	UPROPERTY(EditAnywhere, Category = GeometryCache, meta = (UIMin = "-14400.0", UIMax = "14400.0", ClampMin = "-14400.0", ClampMax = "14400.0"))
+	UPROPERTY(EditAnywhere, Interp, Category = GeometryCache, meta = (UIMin = "-14400.0", UIMax = "14400.0", ClampMin = "-14400.0", ClampMax = "14400.0"))
 	float StartTimeOffset;
 
-	UPROPERTY(EditAnywhere, Category = GeometryCache, meta = (UIMin = "-512.0", UIMax = "512.0", ClampMin = "-512.0", ClampMax = "512.0"))
+	UPROPERTY(EditAnywhere, Interp, Category = GeometryCache, meta = (UIMin = "-512.0", UIMax = "512.0", ClampMin = "-512.0", ClampMax = "512.0"))
 	float PlaybackSpeed;
 
 	UPROPERTY(VisibleAnywhere, Category = GeometryCache)

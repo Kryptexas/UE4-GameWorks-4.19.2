@@ -154,7 +154,9 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=LOD, meta=(editcondition = "bOverrideMinLOD"))
 	int32 MinLOD;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=StaticMesh, ReplicatedUsing=OnRep_StaticMesh)
+	/** The static mesh that this component uses to render */
+	DEPRECATED(4.14, "Direct access to StaticMesh member is deprecated and will be made private soon. Please use SetStaticMesh and GetStaticMesh.")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=StaticMesh, ReplicatedUsing=OnRep_StaticMesh, meta=(AllowPrivateAccess="true"))
 	class UStaticMesh* StaticMesh;
 
 	UFUNCTION()
@@ -267,6 +269,14 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	/** Change the StaticMesh used by this instance. */
 	UFUNCTION(BlueprintCallable, Category="Components|StaticMesh")
 	virtual bool SetStaticMesh(class UStaticMesh* NewMesh);
+
+	/** Get the StaticMesh used by this instance. */
+	UStaticMesh* GetStaticMesh() const 
+	{ 
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
+		return StaticMesh; 
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
+	}
 
 	UFUNCTION(BlueprintCallable, Category="Rendering|LOD")
 	void SetForcedLodModel(int32 NewForcedLodModel);

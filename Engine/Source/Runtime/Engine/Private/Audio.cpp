@@ -339,6 +339,7 @@ void FSoundSource::UpdateStereoEmitterPositions()
 
 void FSoundSource::DrawDebugInfo()
 {
+#if ENABLE_DRAW_DEBUG
 	// Draw 3d Debug information about this source, if enabled
 	FAudioDeviceManager* DeviceManager = GEngine->GetAudioDeviceManager();
 
@@ -381,6 +382,7 @@ void FSoundSource::DrawDebugInfo()
 			}, GET_STATID(STAT_AudioDrawSourceDebugInfo));
 		}
 	}
+#endif // ENABLE_DRAW_DEBUG
 }
  
 float FSoundSource::GetDebugVolume(const float InVolume)

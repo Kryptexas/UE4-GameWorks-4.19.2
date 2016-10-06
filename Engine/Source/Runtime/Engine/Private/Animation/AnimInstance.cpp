@@ -728,6 +728,7 @@ void OutputTickRecords(const TArray<FAnimTickRecord>& Records, UCanvas* Canvas, 
 
 void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
+#if ENABLE_DRAW_DEBUG
 	FAnimInstanceProxy& Proxy = GetProxyOnGameThread<FAnimInstanceProxy>();
 
 	float Indent = 0.f;
@@ -960,6 +961,7 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 			}
 		}
 	}
+#endif // ENABLE_DRAW_DEBUG
 }
 
 void UAnimInstance::ResetDynamics()
@@ -1317,6 +1319,20 @@ void UAnimInstance::TriggerSingleAnimNotify(const FAnimNotifyEvent* AnimNotifyEv
 			}
 		}
 	}
+}
+
+void UAnimInstance::EndNotifyStates()
+{
+	USkeletalMeshComponent* SkelMeshComp = GetSkelMeshComponent();
+
+	for (FAnimNotifyEvent& Event : ActiveAnimNotifyState)
+	{
+		if (UAnimNotifyState* NotifyState = Event.NotifyStateClass)
+		{
+			NotifyState->NotifyEnd(SkelMeshComp, Cast<UAnimSequenceBase>(NotifyState->GetOuter()));
+		}
+	}
+	ActiveAnimNotifyState.Reset();
 }
 
 //to debug montage weight
@@ -2755,7 +2771,7 @@ int32 UAnimInstance::GetSyncGroupIndexFromName(FName SyncGroupName) const
 bool UAnimInstance::IsRunningParallelEvaluation() const
 {
 	USkeletalMeshComponent* Comp = GetOwningComponent();
-	if (Comp)
+	if (Comp && Comp->GetAnimInstance() == this)
 	{
 		return Comp->IsRunningParallelEvaluation();
 	}

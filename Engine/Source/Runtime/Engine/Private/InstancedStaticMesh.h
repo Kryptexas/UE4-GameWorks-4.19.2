@@ -386,7 +386,7 @@ public:
 	FInstancedStaticMeshRenderData(UInstancedStaticMeshComponent* InComponent, ERHIFeatureLevel::Type InFeatureLevel)
 	  : Component(InComponent)
 	  , PerInstanceRenderData(InComponent->PerInstanceRenderData)
-	  , LODModels(Component->StaticMesh->RenderData->LODResources)
+	  , LODModels(Component->GetStaticMesh()->RenderData->LODResources)
 	  , FeatureLevel(InFeatureLevel)
 	{
 		// Allocate the vertex factories for each LOD
@@ -414,7 +414,7 @@ public:
 	FInstancedStaticMeshRenderData(UInstancedStaticMeshComponent* InComponent, ERHIFeatureLevel::Type InFeatureLevel, FStaticMeshInstanceData& Other)
 		: Component(InComponent)
 		, PerInstanceRenderData(InComponent->PerInstanceRenderData)
-		, LODModels(Component->StaticMesh->RenderData->LODResources)
+		, LODModels(Component->GetStaticMesh()->RenderData->LODResources)
 		, FeatureLevel(InFeatureLevel)
 	{
 		InitVertexFactories();
@@ -440,7 +440,7 @@ public:
 			CallInitStaticMeshVertexFactory,
 			TIndirectArray<FInstancedStaticMeshVertexFactory>*,VertexFactories,&VertexFactories,
 			FInstancedStaticMeshRenderData*,InstancedRenderData,this,
-			UStaticMesh*,Parent,Component->StaticMesh,
+			UStaticMesh*,Parent,Component->GetStaticMesh(),
 		{
 			InitStaticMeshVertexFactories( VertexFactories, InstancedRenderData, Parent );
 		});
@@ -451,11 +451,11 @@ public:
 		}
 
 		// register SpeedTree wind with the scene
-		if (Component->StaticMesh->SpeedTreeWind.IsValid())
+		if (Component->GetStaticMesh()->SpeedTreeWind.IsValid())
 		{
 			for (int32 LODIndex = 0; LODIndex < LODModels.Num(); LODIndex++)
 			{
-				Component->GetScene()->AddSpeedTreeWind(&VertexFactories[LODIndex], Component->StaticMesh);
+				Component->GetScene()->AddSpeedTreeWind(&VertexFactories[LODIndex], Component->GetStaticMesh());
 			}
 		}
 	}
@@ -670,7 +670,7 @@ private:
 		const bool bInstanced = GRHISupportsInstancing;
 
 		// Copy the parameters for LOD - all instances
-		UserData_AllInstances.MeshRenderData = InComponent->StaticMesh->RenderData;
+		UserData_AllInstances.MeshRenderData = InComponent->GetStaticMesh()->RenderData;
 		UserData_AllInstances.StartCullDistance = InComponent->InstanceStartCullDistance;
 		UserData_AllInstances.EndCullDistance = InComponent->InstanceEndCullDistance;
 		UserData_AllInstances.MinLOD = ClampedMinLOD;

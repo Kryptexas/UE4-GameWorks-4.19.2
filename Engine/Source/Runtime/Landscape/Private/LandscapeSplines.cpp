@@ -1459,7 +1459,7 @@ void ULandscapeSplineControlPoint::UpdateSplinePoints(bool bUpdateCollision, boo
 			MeshComponent->InvalidateLightingCache();
 		}
 
-		if (MeshComponent->StaticMesh != Mesh)
+		if (MeshComponent->GetStaticMesh() != Mesh)
 		{
 			MeshComponent->Modify();
 			MeshComponent->UnregisterComponent();
@@ -1798,7 +1798,7 @@ void ULandscapeSplineSegment::PostLoad()
 		{
 			for (auto* LocalMeshComponent : LocalMeshComponents)
 			{
-				if (LocalMeshComponent->StaticMesh == nullptr)
+				if (LocalMeshComponent->GetStaticMesh() == nullptr)
 				{
 					LocalMeshComponent->ConditionalPostLoad();
 					LocalMeshComponent->SetStaticMesh(OuterSplines->SplineEditorMesh);
@@ -2190,7 +2190,7 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 		for (int32 i = 0; i < MeshComponents.Num(); i++)
 		{
 			USplineMeshComponent* const MeshComponent = MeshComponents[i];
-			const UStaticMesh* const Mesh = MeshComponent->StaticMesh;
+			const UStaticMesh* const Mesh = MeshComponent->GetStaticMesh();
 			const FBoxSphereBounds MeshBounds = Mesh->GetBounds();
 
 			const float RescaledT = MeshSettings[i].T * Rescale;

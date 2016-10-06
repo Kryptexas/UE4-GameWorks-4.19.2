@@ -55,9 +55,8 @@ void UBlueprintGeneratedClass::PostLoad()
 		};
 	};
 
-	for( auto SubObjIt = SubObjects.CreateIterator(); SubObjIt; ++SubObjIt )
+	for (UObject* CurrObj :	SubObjects)
 	{
-		UObject* CurrObj = *SubObjIt;
 		const bool bComponentChild = FCheckIfComponentChildHelper::IsComponentChild(CurrObj, ClassCDO);
 		if (!CurrObj->IsDefaultSubobject() && !CurrObj->IsRooted() && !bComponentChild)
 		{
@@ -216,7 +215,7 @@ void UBlueprintGeneratedClass::ConditionalRecompileClass(TArray<UObject*>* ObjLo
 	UBlueprint* GeneratingBP = Cast<UBlueprint>(ClassGeneratedBy);
 	if (GeneratingBP && (GeneratingBP->SkeletonGeneratedClass != this))
 	{
-		const auto NecessaryAction = FConditionalRecompileClassHepler::IsConditionalRecompilationNecessary(GeneratingBP);
+		const FConditionalRecompileClassHepler::ENeededAction NecessaryAction = FConditionalRecompileClassHepler::IsConditionalRecompilationNecessary(GeneratingBP);
 		if (FConditionalRecompileClassHepler::Recompile == NecessaryAction)
 		{
 			const bool bWasRegenerating = GeneratingBP->bIsRegeneratingOnLoad;
@@ -573,9 +572,9 @@ UDynamicBlueprintBinding* UBlueprintGeneratedClass::GetDynamicBindingObject(cons
 {
 	check(ThisClass);
 	UDynamicBlueprintBinding* DynamicBlueprintBinding = nullptr;
-	if (auto BPGC = Cast<UBlueprintGeneratedClass>(ThisClass))
+	if (const UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(ThisClass))
 	{
-		for (auto DynamicBindingObject : BPGC->DynamicBindingObjects)
+		for (UDynamicBlueprintBinding* DynamicBindingObject : BPGC->DynamicBindingObjects)
 		{
 			if (DynamicBindingObject && (DynamicBindingObject->GetClass() == BindingClass))
 			{
@@ -584,11 +583,11 @@ UDynamicBlueprintBinding* UBlueprintGeneratedClass::GetDynamicBindingObject(cons
 			}
 		}
 	}
-	else if (auto DynamicClass = Cast<UDynamicClass>(ThisClass))
+	else if (const UDynamicClass* DynamicClass = Cast<UDynamicClass>(ThisClass))
 	{
-		for (auto MiscObj : DynamicClass->DynamicBindingObjects)
+		for (UObject* MiscObj : DynamicClass->DynamicBindingObjects)
 		{
-			auto DynamicBindingObject = Cast<UDynamicBlueprintBinding>(MiscObj);
+			UDynamicBlueprintBinding* DynamicBindingObject = Cast<UDynamicBlueprintBinding>(MiscObj);
 			if (DynamicBindingObject && (DynamicBindingObject->GetClass() == BindingClass))
 			{
 				DynamicBlueprintBinding = DynamicBindingObject;
@@ -608,9 +607,9 @@ void UBlueprintGeneratedClass::BindDynamicDelegates(const UClass* ThisClass, UOb
 		return;
 	}
 
-	if (auto BPGC = Cast<UBlueprintGeneratedClass>(ThisClass))
+	if (const UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(ThisClass))
 	{
-		for (auto DynamicBindingObject : BPGC->DynamicBindingObjects)
+		for (UDynamicBlueprintBinding* DynamicBindingObject : BPGC->DynamicBindingObjects)
 		{
 			if (ensure(DynamicBindingObject))
 			{
@@ -618,11 +617,11 @@ void UBlueprintGeneratedClass::BindDynamicDelegates(const UClass* ThisClass, UOb
 			}
 		}
 	}
-	else if (auto DynamicClass = Cast<UDynamicClass>(ThisClass))
+	else if (const UDynamicClass* DynamicClass = Cast<UDynamicClass>(ThisClass))
 	{
-		for (auto MiscObj : DynamicClass->DynamicBindingObjects)
+		for (UObject* MiscObj : DynamicClass->DynamicBindingObjects)
 		{
-			auto DynamicBindingObject = Cast<UDynamicBlueprintBinding>(MiscObj);
+			UDynamicBlueprintBinding* DynamicBindingObject = Cast<UDynamicBlueprintBinding>(MiscObj);
 			if (DynamicBindingObject)
 			{
 				DynamicBindingObject->BindDynamicDelegates(InInstance);
@@ -630,7 +629,7 @@ void UBlueprintGeneratedClass::BindDynamicDelegates(const UClass* ThisClass, UOb
 		}
 	}
 
-	if (auto TheSuperClass = ThisClass->GetSuperClass())
+	if (UClass* TheSuperClass = ThisClass->GetSuperClass())
 	{
 		BindDynamicDelegates(TheSuperClass, InInstance);
 	}
@@ -646,9 +645,9 @@ void UBlueprintGeneratedClass::UnbindDynamicDelegates(const UClass* ThisClass, U
 		return;
 	}
 
-	if (auto BPGC = Cast<UBlueprintGeneratedClass>(ThisClass))
+	if (const UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(ThisClass))
 	{
-		for (auto DynamicBindingObject : BPGC->DynamicBindingObjects)
+		for (UDynamicBlueprintBinding* DynamicBindingObject : BPGC->DynamicBindingObjects)
 		{
 			if (ensure(DynamicBindingObject))
 			{
@@ -656,11 +655,11 @@ void UBlueprintGeneratedClass::UnbindDynamicDelegates(const UClass* ThisClass, U
 			}
 		}
 	}
-	else if (auto DynamicClass = Cast<UDynamicClass>(ThisClass))
+	else if (const UDynamicClass* DynamicClass = Cast<UDynamicClass>(ThisClass))
 	{
-		for (auto MiscObj : DynamicClass->DynamicBindingObjects)
+		for (UObject* MiscObj : DynamicClass->DynamicBindingObjects)
 		{
-			auto DynamicBindingObject = Cast<UDynamicBlueprintBinding>(MiscObj);
+			UDynamicBlueprintBinding* DynamicBindingObject = Cast<UDynamicBlueprintBinding>(MiscObj);
 			if (DynamicBindingObject)
 			{
 				DynamicBindingObject->UnbindDynamicDelegates(InInstance);
@@ -668,7 +667,7 @@ void UBlueprintGeneratedClass::UnbindDynamicDelegates(const UClass* ThisClass, U
 		}
 	}
 
-	if (auto TheSuperClass = ThisClass->GetSuperClass())
+	if (UClass* TheSuperClass = ThisClass->GetSuperClass())
 	{
 		UnbindDynamicDelegates(TheSuperClass, InInstance);
 	}
@@ -841,9 +840,9 @@ void UBlueprintGeneratedClass::CreateComponentsForActor(const UClass* ThisClass,
 	check(!Actor->IsTemplate());
 	check(!Actor->IsPendingKill());
 
-	if (auto BPGC = Cast<const UBlueprintGeneratedClass>(ThisClass))
+	if (const UBlueprintGeneratedClass* BPGC = Cast<const UBlueprintGeneratedClass>(ThisClass))
 	{
-		for (auto TimelineTemplate : BPGC->Timelines)
+		for (UTimelineTemplate* TimelineTemplate : BPGC->Timelines)
 		{
 			// Not fatal if NULL, but shouldn't happen and ignored if not wired up in graph
 			if (TimelineTemplate && TimelineTemplate->bValidatedAsWired)
@@ -852,11 +851,11 @@ void UBlueprintGeneratedClass::CreateComponentsForActor(const UClass* ThisClass,
 			}
 		}
 	}
-	else if (auto DynamicClass = Cast<UDynamicClass>(ThisClass))
+	else if (const UDynamicClass* DynamicClass = Cast<UDynamicClass>(ThisClass))
 	{
-		for (auto MiscObj : DynamicClass->Timelines)
+		for (UObject* MiscObj : DynamicClass->Timelines)
 		{
-			auto TimelineTemplate = Cast<const UTimelineTemplate>(MiscObj);
+			const UTimelineTemplate* TimelineTemplate = Cast<const UTimelineTemplate>(MiscObj);
 			// Not fatal if NULL, but shouldn't happen and ignored if not wired up in graph
 			if (TimelineTemplate && TimelineTemplate->bValidatedAsWired)
 			{
@@ -872,13 +871,13 @@ uint8* UBlueprintGeneratedClass::GetPersistentUberGraphFrame(UObject* Obj, UFunc
 	{
 		if (UberGraphFunction == FuncToCheck)
 		{
-			auto PointerToUberGraphFrame = UberGraphFramePointerProperty->ContainerPtrToValuePtr<FPointerToUberGraphFrame>(Obj);
+			FPointerToUberGraphFrame* PointerToUberGraphFrame = UberGraphFramePointerProperty->ContainerPtrToValuePtr<FPointerToUberGraphFrame>(Obj);
 			checkSlow(PointerToUberGraphFrame);
 			ensure(PointerToUberGraphFrame->RawPointer);
 			return PointerToUberGraphFrame->RawPointer;
 		}
 	}
-	auto ParentClass = GetSuperClass();
+	UClass* ParentClass = GetSuperClass();
 	checkSlow(ParentClass);
 	return ParentClass->GetPersistentUberGraphFrame(Obj, FuncToCheck);
 }
@@ -888,7 +887,7 @@ void UBlueprintGeneratedClass::CreatePersistentUberGraphFrame(UObject* Obj, bool
 	ensure(!UberGraphFramePointerProperty == !UberGraphFunction);
 	if (Obj && UsePersistentUberGraphFrame() && UberGraphFramePointerProperty && UberGraphFunction)
 	{
-		auto PointerToUberGraphFrame = UberGraphFramePointerProperty->ContainerPtrToValuePtr<FPointerToUberGraphFrame>(Obj);
+		FPointerToUberGraphFrame* PointerToUberGraphFrame = UberGraphFramePointerProperty->ContainerPtrToValuePtr<FPointerToUberGraphFrame>(Obj);
 		check(PointerToUberGraphFrame);
 
 		if ( !ensureMsgf(bCreateOnlyIfEmpty || !PointerToUberGraphFrame->RawPointer
@@ -927,7 +926,7 @@ void UBlueprintGeneratedClass::CreatePersistentUberGraphFrame(UObject* Obj, bool
 
 	if (!bSkipSuperClass)
 	{
-		auto ParentClass = GetSuperClass();
+		UClass* ParentClass = GetSuperClass();
 		checkSlow(ParentClass);
 		ParentClass->CreatePersistentUberGraphFrame(Obj, bCreateOnlyIfEmpty);
 	}
@@ -938,9 +937,9 @@ void UBlueprintGeneratedClass::DestroyPersistentUberGraphFrame(UObject* Obj, boo
 	ensure(!UberGraphFramePointerProperty == !UberGraphFunction);
 	if (Obj && UsePersistentUberGraphFrame() && UberGraphFramePointerProperty && UberGraphFunction)
 	{
-		auto PointerToUberGraphFrame = UberGraphFramePointerProperty->ContainerPtrToValuePtr<FPointerToUberGraphFrame>(Obj);
+		FPointerToUberGraphFrame* PointerToUberGraphFrame = UberGraphFramePointerProperty->ContainerPtrToValuePtr<FPointerToUberGraphFrame>(Obj);
 		checkSlow(PointerToUberGraphFrame);
-		auto FrameMemory = PointerToUberGraphFrame->RawPointer;
+		uint8* FrameMemory = PointerToUberGraphFrame->RawPointer;
 		PointerToUberGraphFrame->RawPointer = NULL;
 		if (FrameMemory)
 		{
@@ -959,7 +958,7 @@ void UBlueprintGeneratedClass::DestroyPersistentUberGraphFrame(UObject* Obj, boo
 
 	if (!bSkipSuperClass)
 	{
-		auto ParentClass = GetSuperClass();
+		UClass* ParentClass = GetSuperClass();
 		checkSlow(ParentClass);
 		ParentClass->DestroyPersistentUberGraphFrame(Obj);
 	}
@@ -1020,7 +1019,7 @@ void UBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProperties
 	{
 		Ar.Preload(UberGraphFunction);
 
-		for (auto Property : TFieldRange<UStructProperty>(this, EFieldIteratorFlags::ExcludeSuper))
+		for (UStructProperty* Property : TFieldRange<UStructProperty>(this, EFieldIteratorFlags::ExcludeSuper))
 		{
 			if (Property->GetFName() == GetUberGraphFrameName())
 			{
@@ -1093,11 +1092,11 @@ void UBlueprintGeneratedClass::AddReferencedObjectsInUbergraphFrame(UObject* InT
 	checkSlow(InThis);
 	for (UClass* CurrentClass = InThis->GetClass(); CurrentClass; CurrentClass = CurrentClass->GetSuperClass())
 	{
-		if (auto BPGC = Cast<UBlueprintGeneratedClass>(CurrentClass))
+		if (UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(CurrentClass))
 		{
 			if (BPGC->UberGraphFramePointerProperty)
 			{
-				auto PointerToUberGraphFrame = BPGC->UberGraphFramePointerProperty->ContainerPtrToValuePtr<FPointerToUberGraphFrame>(InThis);
+				FPointerToUberGraphFrame* PointerToUberGraphFrame = BPGC->UberGraphFramePointerProperty->ContainerPtrToValuePtr<FPointerToUberGraphFrame>(InThis);
 				checkSlow(PointerToUberGraphFrame)
 				if (PointerToUberGraphFrame->RawPointer)
 				{

@@ -335,7 +335,7 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxNode* Node, UStaticMesh
 	if (!Mesh->IsTriangleMesh())
 	{
 		if(!GIsAutomationTesting)
-			UE_LOG(LogFbx, Warning, TEXT("Triangulating static mesh %s"), UTF8_TO_TCHAR(Node->GetName()));
+		UE_LOG(LogFbx, Warning, TEXT("Triangulating static mesh %s"), UTF8_TO_TCHAR(Node->GetName()));
 
 		const bool bReplace = true;
 		FbxNodeAttribute* ConvertedNode = GeometryConverter->Triangulate(Mesh, bReplace);
@@ -1065,7 +1065,7 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 		ExistingMesh = FindObject<UStaticMesh>( Package, *MeshName );
 		ExistingObject = FindObject<UObject>( Package, *MeshName );		
 	}
-	
+
 	TArray<FName> LastImportedMaterialNames;
 	if (ExistingMesh)
 	{
@@ -1138,7 +1138,7 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 			VertexColorImportOption = EVertexColorImportOption::Replace;
 		}
 	}
-
+	
 	if (OrderedMaterialNames != nullptr)
 	{
 		LastImportedMaterialNames = (*OrderedMaterialNames);
@@ -1308,7 +1308,7 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 				)), 
 				FFbxErrors::StaticMesh_TooManyMaterials);
 		}
-		
+
 		// Sort materials based on _SkinXX in the name.
 		TArray<uint32> SortedMaterialIndex;
 		//Decide if we sort by name or by skinxx (By name must be the first try)
@@ -1337,30 +1337,30 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 		}
 		else
 		{
-			for (int32 MaterialIndex = 0; MaterialIndex < MeshMaterials.Num(); ++MaterialIndex)
+		for (int32 MaterialIndex = 0; MaterialIndex < MeshMaterials.Num(); ++MaterialIndex)
+		{
+			int32 SkinIndex = 0xffff;
+			int32 RemappedIndex = MaterialMap[MaterialIndex];
+			if (!SortedMaterialIndex.IsValidIndex(RemappedIndex))
 			{
-				int32 SkinIndex = 0xffff;
-				int32 RemappedIndex = MaterialMap[MaterialIndex];
-				if (!SortedMaterialIndex.IsValidIndex(RemappedIndex))
-				{
 					FString FbxMatName = /*UniqueMaterials[RemappedIndex].Material != nullptr ? UniqueMaterials[RemappedIndex].Material->GetName() :*/ UniqueMaterials[RemappedIndex].GetName();
 
-					int32 Offset = FbxMatName.Find(TEXT("_SKIN"), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
-					if (Offset != INDEX_NONE)
+				int32 Offset = FbxMatName.Find(TEXT("_SKIN"), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+				if (Offset != INDEX_NONE)
+				{
+					// Chop off the material name so we are left with the number in _SKINXX
+					FString SkinXXNumber = FbxMatName.Right(FbxMatName.Len() - (Offset + 1)).RightChop(4);
+
+					if (SkinXXNumber.IsNumeric())
 					{
-						// Chop off the material name so we are left with the number in _SKINXX
-						FString SkinXXNumber = FbxMatName.Right(FbxMatName.Len() - (Offset + 1)).RightChop(4);
-
-						if (SkinXXNumber.IsNumeric())
-						{
-							SkinIndex = FPlatformString::Atoi(*SkinXXNumber);
-							bDoRemap = true;
-						}
+						SkinIndex = FPlatformString::Atoi( *SkinXXNumber );
+						bDoRemap = true;
 					}
-
-					SortedMaterialIndex.Add(((uint32)SkinIndex << 16) | ((uint32)RemappedIndex & 0xffff));
 				}
+
+				SortedMaterialIndex.Add(((uint32)SkinIndex << 16) | ((uint32)RemappedIndex & 0xffff));
 			}
+		}
 		}
 		SortedMaterialIndex.Sort();
 
@@ -1519,7 +1519,16 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 		}
 
 		UFbxStaticMeshImportData* ImportData = UFbxStaticMeshImportData::GetImportDataForStaticMesh(StaticMesh, TemplateImportData);
-		ImportData->Update(UFactory::GetCurrentFilename(), &Md5Hash);
+		
+		//@third party BEGIN SIMPLYGON
+		/* ImportData->Update(UFactory::GetCurrentFilename());
+		Developer Note: Update method above computed Hash internally. Hash is calculated based on the file size.
+		Doing this for CAD files with thousands of components hugely increases the time.
+		The following method uses a precomputed hash (once per file). Huge time savings.
+		*/
+		ImportData->Update(UFactory::GetCurrentFilename(), UFactory::GetFileHash());
+		//@third party END SIMPLYGON
+		
 
 		// @todo This overrides restored values currently but we need to be able to import over the existing settings if the user chose to do so.
 		SrcModel.BuildSettings.bRemoveDegenerates = ImportOptions->bRemoveDegenerates;

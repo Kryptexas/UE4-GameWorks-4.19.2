@@ -133,24 +133,17 @@ float UAISense_Hearing::Update()
 			const float ClampedLoudness = FMath::Max(0.f, Event.Loudness);
 			const float DistToSoundSquared = FVector::DistSquared(Event.NoiseLocation, Listener.CachedLocation);
 			
-			if (Event.MaxRange > 0.f)
+			// Limit by loudness modified squared range (this is the old behavior)
+			if (DistToSoundSquared > PropDigest.HearingRangeSq * FMath::Square(ClampedLoudness))
 			{
-				// Limit by range
-				if (DistToSoundSquared > FMath::Square(Event.MaxRange * ClampedLoudness) ||
-					DistToSoundSquared > PropDigest.HearingRangeSq)
-				{
-					continue;
-				}
+				continue;
 			}
-			else
+			// Limit by max range
+			else if (Event.MaxRange > 0.f && DistToSoundSquared > FMath::Square(Event.MaxRange * ClampedLoudness))
 			{
-				// Limit by loudness modified squared range (this is the old behavior)
-				if (DistToSoundSquared > PropDigest.HearingRangeSq * ClampedLoudness)
-				{
-					continue;
-				}
+				continue;
 			}
-							
+
 			if (FAISenseAffiliationFilter::ShouldSenseTeam(Listener.TeamIdentifier, Event.TeamIdentifier, PropDigest.AffiliationFlags) == false)
 			{
 				continue;

@@ -14,6 +14,9 @@ public:
 	/** Get the skeleton that we are editing */
 	virtual class USkeleton* GetSkeleton() const = 0;
 
+	/** Get the editable skeleton that we are editing */
+	virtual TSharedPtr<class IEditableSkeleton> GetEditableSkeleton() const = 0;
+
 	/** Get the preview component that we are using */
 	virtual class UDebugSkelMeshComponent* GetPreviewMeshComponent() const = 0;
 
@@ -34,4 +37,13 @@ public:
 
 	/** Get the preview scene that we are using */
 	virtual TSharedRef<class IPersonaPreviewScene> GetPreviewScene() const = 0;
+
+	/** Set the preview mesh, according to context (mesh, skeleton or animation etc.) */
+	virtual class USkeletalMesh* GetPreviewMesh() const = 0;
+
+	/** Set the preview mesh, according to context (mesh, skeleton or animation etc.) */
+	virtual void SetPreviewMesh(class USkeletalMesh* InSkeletalMesh) = 0;
+
+	/** Get the context in which this toolkit is being used (usually the class name of the asset) */
+	virtual FName GetContext() const = 0;
 };

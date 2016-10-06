@@ -680,8 +680,10 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 	static int64 TotalSizeNow = 0;
 	static int64 TotalUncompressed = 0;
 
+	const int32 NumRawDataTracks = AnimSeq->GetRawAnimationData().Num();
+
 	// we must have raw data to continue
-	if( AnimSeq->RawAnimationData.Num() > 0 )
+	if(NumRawDataTracks > 0 )
 	{
 		// See if we're trying alternate compressors
 		bool const bTryAlternateCompressor = MasterTolerance > 0.0f;
@@ -691,7 +693,7 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 		TotalSizeBefore += OriginalSize;
 
 		// Estimate total uncompressed
-		TotalUncompressed += ((sizeof(FVector) + sizeof(FQuat)) * AnimSeq->RawAnimationData.Num() * AnimSeq->NumFrames);
+		TotalUncompressed += ((sizeof(FVector) + sizeof(FQuat)) * NumRawDataTracks * AnimSeq->NumFrames);
 
 		// Filter RAW data to get rid of mismatched tracks (translation/rotation data with a different number of keys than there are frames)
 		// No trivial key removal is done at this point (impossible error metrics of -1), since all of the techniques will perform it themselves

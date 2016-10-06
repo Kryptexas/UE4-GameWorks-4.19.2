@@ -1572,6 +1572,8 @@ void UWheeledVehicleMovementComponent::FixupSkeletalMesh()
 
 void UWheeledVehicleMovementComponent::DrawDebugLines()
 {
+#if ENABLE_DRAW_DEBUG
+
 	if ( PVehicle == NULL )
 	{
 		return;
@@ -1648,6 +1650,7 @@ void UWheeledVehicleMovementComponent::DrawDebugLines()
 			DrawDebugBox( World, AppPoint2, FVector(5.0f), FQuat::Identity, FColor( 0, 255, 255 ) );
 		}
 	}
+#endif // ENABLE_DRAW_DEBUG
 }
 
 #if WITH_EDITOR

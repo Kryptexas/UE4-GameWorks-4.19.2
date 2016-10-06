@@ -55,10 +55,10 @@ public:
 
 FPrimitiveSceneProxy* UStereoStaticMeshComponent::CreateSceneProxy()
 {
-    if ((StaticMesh == nullptr) ||
-		(StaticMesh->RenderData == nullptr) ||
-		(StaticMesh->RenderData->LODResources.Num() == 0) ||
-		(StaticMesh->RenderData->LODResources[0].VertexBuffer.GetNumVertices() == 0))
+    if ((GetStaticMesh() == nullptr) ||
+		(GetStaticMesh()->RenderData == nullptr) ||
+		(GetStaticMesh()->RenderData->LODResources.Num() == 0) ||
+		(GetStaticMesh()->RenderData->LODResources[0].VertexBuffer.GetNumVertices() == 0))
     {
         return nullptr;
     }

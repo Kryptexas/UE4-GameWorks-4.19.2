@@ -535,9 +535,9 @@ bool UEditorEngine::Exec_StaticMesh( UWorld* InWorld, const TCHAR* Str, FOutputD
 				TInlineComponentArray<UStaticMeshComponent*> SMComps(CastChecked<AActor>(*Iter));
 				for (UStaticMeshComponent* SMC : SMComps)
 				{
-					if (SMC->StaticMesh)
+					if (SMC->GetStaticMesh())
 					{
-						SelectedMeshes.AddUnique(SMC->StaticMesh);
+						SelectedMeshes.AddUnique(SMC->GetStaticMesh());
 					}
 				}
 
@@ -1857,7 +1857,7 @@ void UEditorEngine::CheckForWorldGCLeaks( UWorld* NewWorld, UPackage* WorldPacka
 	{
 		UWorld* RemainingWorld = *It;
 		const bool bIsNewWorld = (NewWorld && RemainingWorld == NewWorld);
-		const bool bIsPersistantWorldType = (RemainingWorld->WorldType == EWorldType::Inactive) || (RemainingWorld->WorldType == EWorldType::Preview);
+		const bool bIsPersistantWorldType = (RemainingWorld->WorldType == EWorldType::Inactive) || (RemainingWorld->WorldType == EWorldType::EditorPreview);
 		if(!bIsNewWorld && !bIsPersistantWorldType && !WorldHasValidContext(RemainingWorld))
 		{
 			StaticExec(RemainingWorld, *FString::Printf(TEXT("OBJ REFS CLASS=WORLD NAME=%s"), *RemainingWorld->GetPathName()));
@@ -1915,7 +1915,7 @@ void UEditorEngine::EditorDestroyWorld( FWorldContext & Context, const FText& Cl
 		WorldPackage = NULL;
 	}
 
-	if (ContextWorld->WorldType != EWorldType::Preview && ContextWorld->WorldType != EWorldType::Inactive)
+	if (ContextWorld->WorldType != EWorldType::EditorPreview && ContextWorld->WorldType != EWorldType::Inactive)
 	{
 		// Go away, come again never!
 		ContextWorld->ClearFlags(RF_Standalone | RF_Transactional);
@@ -6613,13 +6613,13 @@ bool IsComponentMergable(UStaticMeshComponent* Component)
 	}
 
 	// we need a static mesh to work
-	if (Component->StaticMesh == NULL || Component->StaticMesh->RenderData == NULL)
+	if (Component->GetStaticMesh() == nullptr || Component->GetStaticMesh()->RenderData == nullptr)
 	{
 		return false;
 	}
 
 	// only components with a single LOD can be merged
-	if (Component->StaticMesh->GetNumLODs() != 1)
+	if (Component->GetStaticMesh()->GetNumLODs() != 1)
 	{
 		return false;
 	}

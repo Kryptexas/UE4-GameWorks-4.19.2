@@ -775,6 +775,25 @@ void UWorld::UpdateActorComponentEndOfFrameUpdateState(UActorComponent* Componen
 	}
 }
 
+void UWorld::ClearActorComponentEndOfFrameUpdate(UActorComponent* Component)
+{
+	check(!bPostTickComponentUpdate); // can't call this while we are doing the updates
+
+	const uint32 CurrentState = Component->GetMarkedForEndOfFrameUpdateState();
+
+	if (CurrentState == EComponentMarkedForEndOfFrameUpdateState::Marked)
+	{
+		TWeakObjectPtr<UActorComponent> WeakComponent(Component);
+		verify(ComponentsThatNeedEndOfFrameUpdate.Remove(WeakComponent) == 1);
+	}
+	else if (CurrentState == EComponentMarkedForEndOfFrameUpdateState::MarkedForGameThread)
+	{
+		TWeakObjectPtr<UActorComponent> WeakComponent(Component);
+		verify(ComponentsThatNeedEndOfFrameUpdate_OnGameThread.Remove(WeakComponent) == 1);
+	}
+	FMarkComponentEndOfFrameUpdateState::Set(Component, EComponentMarkedForEndOfFrameUpdateState::Unmarked);
+}
+
 void UWorld::MarkActorComponentForNeededEndOfFrameUpdate(UActorComponent* Component, bool bForceGameThread)
 {
 	check(!bPostTickComponentUpdate); // can't call this while we are doing the updates
@@ -839,10 +858,10 @@ void UWorld::SendAllEndOfFrameUpdates()
 	auto ParallelWork = 
 		[](int32 Index) 
 		{
-			UActorComponent* NextComponent = LocalComponentsThatNeedEndOfFrameUpdate[Index].Get();
+			UActorComponent* NextComponent = LocalComponentsThatNeedEndOfFrameUpdate[Index].Get(/*bEvenIfPendingKill*/true);
 			if (NextComponent)
 			{
-				if (NextComponent->IsRegistered() && !NextComponent->IsTemplate())
+				if (NextComponent->IsRegistered() && !NextComponent->IsTemplate() && !NextComponent->IsPendingKill())
 				{
 					FScopeCycleCounterUObject ComponentScope(NextComponent);
 					FScopeCycleCounterUObject AdditionalScope(STATS ? NextComponent->AdditionalStatObject() : NULL);
@@ -858,10 +877,10 @@ void UWorld::SendAllEndOfFrameUpdates()
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_PostTickComponentUpdate_ForcedGameThread);
 			for (TWeakObjectPtr<UActorComponent> Elem : ComponentsThatNeedEndOfFrameUpdate_OnGameThread)
 			{
-				UActorComponent* Component = Elem.Get();
+				UActorComponent* Component = Elem.Get(/*bEvenIfPendingKill*/true);
 				if (Component)
 				{
-					if (Component->IsRegistered() && !Component->IsTemplate())
+					if (Component->IsRegistered() && !Component->IsTemplate() && !Component->IsPendingKill())
 					{
 						FScopeCycleCounterUObject ComponentScope(Component);
 						FScopeCycleCounterUObject AdditionalScope(STATS ? Component->AdditionalStatObject() : NULL);

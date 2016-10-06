@@ -1014,7 +1014,7 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 				};
 
 				FImportTextErrorContext ImportError;
-				const auto EndOfParsedBuff = UStructProperty::ImportText_Static(StructType, TEXT("FEmitHelper::LiteralTerm"), *CustomValue, StructOnScope.GetStructMemory(), 0, nullptr, &ImportError);
+				const TCHAR* EndOfParsedBuff = StructType->ImportText(*CustomValue, StructOnScope.GetStructMemory(), nullptr, PPF_None, &ImportError, TEXT("FEmitHelper::LiteralTerm"));
 				if (!EndOfParsedBuff || ImportError.NumErrors)
 				{
 					UE_LOG(LogK2Compiler, Error, TEXT("FEmitHelper::LiteralTerm cannot parse struct \"%s\" error: %s class: %s"), *CustomValue, *ImportError, *GetPathNameSafe(EmitterContext.GetCurrentlyGeneratedClass()));

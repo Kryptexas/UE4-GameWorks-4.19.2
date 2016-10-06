@@ -35,7 +35,7 @@ static int32 GetChildIndex(int32 BoneIndex, USkeletalMesh* SkelMesh, const TArra
 {
 	int32 ChildIndex = INDEX_NONE;
 
-	for(int32 i=0; i<SkelMesh->RefSkeleton.GetNum(); i++)
+	for(int32 i=0; i<SkelMesh->RefSkeleton.GetRawBoneNum(); i++)
 	{
 		int32 ParentIndex = SkelMesh->RefSkeleton.GetParentIndex(i);
 
@@ -80,14 +80,14 @@ static float CalcBoneInfoLength(const FBoneVertInfo& Info)
  */
 static float GetMaximalMinSizeBelow(int32 BoneIndex, USkeletalMesh* SkelMesh, const TArray<FBoneVertInfo>& Infos)
 {
-	check( Infos.Num() == SkelMesh->RefSkeleton.GetNum() );
+	check( Infos.Num() == SkelMesh->RefSkeleton.GetRawBoneNum() );
 
 	UE_LOG(LogPhysics, Log, TEXT("-------------------------------------------------"));
 
 	float MaximalMinBoxSize = 0.f;
 
 	// For all bones that are children of the supplied one...
-	for(int32 i=BoneIndex; i<SkelMesh->RefSkeleton.GetNum(); i++)
+	for(int32 i=BoneIndex; i<SkelMesh->RefSkeleton.GetRawBoneNum(); i++)
 	{
 		if( SkelMesh->RefSkeleton.BoneIsChildOf(i, BoneIndex) )
 		{
@@ -109,12 +109,12 @@ bool CreateFromSkeletalMeshInternal(UPhysicsAsset* PhysicsAsset, USkeletalMesh* 
 	// For each bone, get the vertices most firmly attached to it.
 	TArray<FBoneVertInfo> Infos;
 	MeshUtilities.CalcBoneVertInfos(SkelMesh, Infos, (Params.VertWeight == EVW_DominantWeight));
-	check(Infos.Num() == SkelMesh->RefSkeleton.GetNum());
+	check(Infos.Num() == SkelMesh->RefSkeleton.GetRawBoneNum());
 
 	bool bHitRoot = false;
 
 	// Iterate over each graphics bone creating body/joint.
-	for(int32 i=0; i<SkelMesh->RefSkeleton.GetNum(); i++)
+	for(int32 i=0; i<SkelMesh->RefSkeleton.GetRawBoneNum(); i++)
 	{
 		FName BoneName = SkelMesh->RefSkeleton.GetBoneName(i);
 

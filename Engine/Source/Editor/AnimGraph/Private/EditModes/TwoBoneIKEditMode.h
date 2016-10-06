@@ -5,6 +5,8 @@
 #include "AnimNodeEditMode.h"
 #include "AnimGraphNode_TwoBoneIK.h"
 
+struct FPropertyChangedEvent;
+
 class FTwoBoneIKEditMode : public FAnimNodeEditMode
 {
 public:
@@ -22,6 +24,10 @@ public:
 	virtual void Render(const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI) override;
 	virtual bool HandleClick(FEditorViewportClient* InViewportClient, HHitProxy* HitProxy, const FViewportClick& Click) override;
 	virtual void Tick(FEditorViewportClient* ViewportClient, float DeltaTime) override;
+
+protected:
+	void OnExternalNodePropertyChange(FPropertyChangedEvent& InPropertyEvent);
+	FDelegateHandle NodePropertyDelegateHandle;
 
 private:
 	/** Helper function for Render() */
@@ -45,6 +51,9 @@ private:
 
 	/** The current bone selection mode */
 	BoneSelectModeType BoneSelectMode;
+
+	/** The bone space we last saw for the current node */
+	EBoneControlSpace PreviousBoneSpace;
 
 	/** */
 	TWeakObjectPtr<class ABoneSelectActor> BoneSelectActor;

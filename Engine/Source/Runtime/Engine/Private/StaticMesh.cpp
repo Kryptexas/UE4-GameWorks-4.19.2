@@ -1292,22 +1292,28 @@ void FStaticMeshRenderData::Cache(UStaticMesh* Owner, const FStaticMeshLODSettin
 	if (CVar->GetValueOnGameThread() != 0)
 	{
 		FString DistanceFieldKey = BuildDistanceFieldDerivedDataKey(DerivedDataKey);
-		
-		if (!LODResources[0].DistanceFieldData)
+		if (LODResources.IsValidIndex(0))
 		{
-			LODResources[0].DistanceFieldData = new FDistanceFieldVolumeData();
+			if (!LODResources[0].DistanceFieldData)
+			{
+				LODResources[0].DistanceFieldData = new FDistanceFieldVolumeData();
+			}
+
+			const FMeshBuildSettings& BuildSettings = Owner->SourceModels[0].BuildSettings;
+			UStaticMesh* MeshToGenerateFrom = BuildSettings.DistanceFieldReplacementMesh ? BuildSettings.DistanceFieldReplacementMesh : Owner;
+
+			if (BuildSettings.DistanceFieldReplacementMesh)
+			{
+				// Make sure dependency is postloaded
+				BuildSettings.DistanceFieldReplacementMesh->ConditionalPostLoad();
+			}
+
+			LODResources[0].DistanceFieldData->CacheDerivedData(DistanceFieldKey, Owner, MeshToGenerateFrom, BuildSettings.DistanceFieldResolutionScale, BuildSettings.DistanceFieldBias, BuildSettings.bGenerateDistanceFieldAsIfTwoSided);
 		}
-
-		const FMeshBuildSettings& BuildSettings = Owner->SourceModels[0].BuildSettings;
-		UStaticMesh* MeshToGenerateFrom = BuildSettings.DistanceFieldReplacementMesh ? BuildSettings.DistanceFieldReplacementMesh : Owner;
-
-		if (BuildSettings.DistanceFieldReplacementMesh)
+		else
 		{
-			// Make sure dependency is postloaded
-			BuildSettings.DistanceFieldReplacementMesh->ConditionalPostLoad();
+			UE_LOG(LogStaticMesh, Error, TEXT("Failed to generate distance field data due to missing LODResource for LOD 0."));
 		}
-
-		LODResources[0].DistanceFieldData->CacheDerivedData(DistanceFieldKey, Owner, MeshToGenerateFrom, BuildSettings.DistanceFieldResolutionScale, BuildSettings.DistanceFieldBias, BuildSettings.bGenerateDistanceFieldAsIfTwoSided);
 	}
 }
 #endif // #if WITH_EDITOR

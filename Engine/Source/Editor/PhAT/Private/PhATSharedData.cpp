@@ -121,7 +121,7 @@ void FPhATSharedData::Initialize()
 	check(FloorMesh);
 
 	EditorFloorComp = NewObject<UStaticMeshComponent>();
-	EditorFloorComp->StaticMesh = FloorMesh;
+	EditorFloorComp->SetStaticMesh(FloorMesh);
 	EditorFloorComp->SetRelativeScale3D(FVector(4.f));
 
 	PreviewScene.AddComponent(EditorSkelComp, FTransform::Identity);
@@ -519,7 +519,7 @@ void FPhATSharedData::SetSelectedBody(const FSelection* Body, bool bGroupSelect 
 		return;
 	}
 
-	for (int32 i = 0; i <EditorSkelMesh->RefSkeleton.GetNum(); ++i)
+	for (int32 i = 0; i <EditorSkelMesh->RefSkeleton.GetRawBoneNum(); ++i)
 	{
 		int32 ControllerBodyIndex = PhysicsAsset->FindControllingBodyIndex(EditorSkelMesh, i);
 		if (ControllerBodyIndex == GetSelectedBody()->Index)
@@ -987,7 +987,7 @@ void FPhATSharedData::MakeNewBody(int32 NewBoneIndex, bool bAutoSelect)
 	}
 
 	// Check if the bone of the new body has any physical children bones
-	for (int32 i = 0; i < EditorSkelMesh->RefSkeleton.GetNum(); ++i)
+	for (int32 i = 0; i < EditorSkelMesh->RefSkeleton.GetRawBoneNum(); ++i)
 	{
 		if (EditorSkelMesh->RefSkeleton.BoneIsChildOf(i, NewBoneIndex))
 		{
@@ -1064,12 +1064,12 @@ void FPhATSharedData::MakeNewBody(int32 NewBoneIndex, bool bAutoSelect)
 	RefreshPhysicsAssetChange(PhysicsAsset);
 }
 
-void FPhATSharedData::SetSelectedConstraintRelTM(const FTransform& RelTM)
+void FPhATSharedData::SetConstraintRelTM(const FPhATSharedData::FSelection* Constraint, const FTransform& RelTM)
 {
-	FTransform WParentFrame = GetConstraintWorldTM(GetSelectedConstraint(), EConstraintFrame::Frame2);
+    FTransform WParentFrame = GetConstraintWorldTM(Constraint, EConstraintFrame::Frame2);
 	FTransform WNewChildFrame = RelTM * WParentFrame;
 
-	UPhysicsConstraintTemplate* ConstraintSetup = PhysicsAsset->ConstraintSetup[GetSelectedConstraint()->Index];
+    UPhysicsConstraintTemplate* ConstraintSetup = PhysicsAsset->ConstraintSetup[Constraint->Index];
 	ConstraintSetup->Modify();
 
 	// Get child bone transform

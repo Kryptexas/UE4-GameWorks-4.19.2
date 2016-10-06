@@ -118,6 +118,23 @@ void UAssetImportData::Update(const FString& InPath, FMD5Hash *Md5Hash/* = nullp
 	OnImportDataChanged.Broadcast(Old, this);
 }
 
+//@third party BEGIN SIMPLYGON
+void UAssetImportData::Update(const FString& InPath, const FMD5Hash InPreComputedHash)
+{
+	FAssetImportInfo Old = SourceData;
+
+	// Reset our current data
+	SourceData.SourceFiles.Reset();
+	SourceData.SourceFiles.Emplace(
+		SanitizeImportFilename(InPath),
+		IFileManager::Get().GetTimeStamp(*InPath),
+		InPreComputedHash
+	);
+
+	OnImportDataChanged.Broadcast(Old, this);
+}
+//@third party END SIMPLYGON
+
 FString UAssetImportData::GetFirstFilename() const
 {
 	return SourceData.SourceFiles.Num() > 0 ? ResolveImportFilename(SourceData.SourceFiles[0].RelativeFilename) : FString();

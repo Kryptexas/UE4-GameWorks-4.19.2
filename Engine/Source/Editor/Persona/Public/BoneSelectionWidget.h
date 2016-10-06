@@ -20,9 +20,11 @@ public:
 	};
 
 	SLATE_BEGIN_ARGS(SBoneTreeMenu)
+		: _bShowVirtualBones(true)
 		{}
 
 		SLATE_ARGUMENT(FText, Title)
+		SLATE_ARGUMENT(bool, bShowVirtualBones)
 		SLATE_EVENT(FOnBoneSelectionChanged, OnBoneSelectionChanged)
 
 	SLATE_END_ARGS();
@@ -32,7 +34,7 @@ public:
 	*
 	* @param	InArgs	The declaration data for this widget
 	*/
-		void Construct(const FArguments& InArgs, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton);
+	void Construct(const FArguments& InArgs, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton);
 
 	//Filter text widget
 	TSharedPtr<SSearchBox> FilterTextWidget;
@@ -68,6 +70,8 @@ private:
 	TSharedPtr<STreeView<TSharedPtr<FBoneNameInfo>>> TreeView;
 
 	FOnBoneSelectionChanged OnSelectionChangedDelegate;
+
+	bool bShowVirtualBones;
 };
 
 class PERSONA_API SBoneSelectionWidget : public SCompoundWidget

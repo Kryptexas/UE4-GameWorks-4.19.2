@@ -42,7 +42,7 @@ template<class BoneIndexType, typename InAllocator>
 struct FBasePose
 {
 public:
-	FORCEINLINE void InitBones(int32 NumBones) { Bones.Empty(NumBones); Bones.AddUninitialized(NumBones); }
+	FORCEINLINE void InitBones(int32 NumBones) { Bones.Reset(NumBones); Bones.AddUninitialized(NumBones); }
 
 	FORCEINLINE int32 GetNumBones() const { return Bones.Num(); }
 

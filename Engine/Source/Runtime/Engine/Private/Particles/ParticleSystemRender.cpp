@@ -6975,10 +6975,12 @@ void FParticleSystemSceneProxy::GetObjectPositionAndScale(const FSceneView& View
 		MacroUVRadius = MacroUVOverride.Radius;
 		MacroUVPosition = GetLocalToWorld().TransformVector(MacroUVOverride.Position);
 
+#if !(UE_BUILD_SHIPPING)
 		if (MacroUVPosition.ContainsNaN())
 		{
 			UE_LOG(LogParticles, Error, TEXT("MacroUVPosition.ContainsNaN()"));
 		}
+#endif
 	}
 
 	ObjectMacroUVScales = FVector2D(0,0);

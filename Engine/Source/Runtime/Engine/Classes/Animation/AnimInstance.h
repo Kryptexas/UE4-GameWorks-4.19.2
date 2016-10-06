@@ -1157,6 +1157,9 @@ public:
 	void TriggerAnimNotifies(float DeltaSeconds);
 	void TriggerSingleAnimNotify(const FAnimNotifyEvent* AnimNotifyEvent);
 
+	/** Triggers end on active notify states and clears the array */
+	void EndNotifyStates();
+
 	/** Add curve float data using a curve Uid, the name of the curve will be resolved from the skeleton **/
 	void AddCurveValue(const USkeleton::AnimCurveUID Uid, float Value);
 

@@ -121,12 +121,7 @@ const EAbcImportError FAbcImporter::ImportTrackData(const int32 InNumThreads, UA
 	ImportData->ImportSettings = ImportSettings;
 
 	const int32 NumMeshTracks = ImportData->PolyMeshObjects.Num();	
-	FAbcSamplingSettings& SamplingSettings = ImportSettings->SamplingSettings;
-	// When importing static meshes optimize frame import span
-	if (ImportSettings->ImportType == EAlembicImportType::StaticMesh)
-	{
-		SamplingSettings.FrameEnd = SamplingSettings.FrameStart + 1;
-	}
+	FAbcSamplingSettings& SamplingSettings = ImportSettings->SamplingSettings;	
 	
 	// This will remove all poly meshes that are set not to be imported in the settings UI
 	ImportData->PolyMeshObjects.RemoveAll([=](const TSharedPtr<FAbcPolyMeshObject>& Object) {return !Object->bShouldImport; });
@@ -151,8 +146,16 @@ const EAbcImportError FAbcImporter::ImportTrackData(const int32 InNumThreads, UA
 	}	
 
 	// Determining sampling time/types and when to start and stop sampling
-	uint32 StartFrameIndex = SamplingSettings.FrameStart;
+	uint32 StartFrameIndex = SamplingSettings.bSkipEmpty ? ImportData->MinFrameIndex : SamplingSettings.FrameStart;
 	uint32 EndFrameIndex = SamplingSettings.FrameEnd;
+
+	// When importing static meshes optimize frame import span
+	if (ImportSettings->ImportType == EAlembicImportType::StaticMesh)
+	{
+		SamplingSettings.FrameEnd = SamplingSettings.FrameStart + 1;
+		EndFrameIndex = StartFrameIndex + 1;
+	}
+		
 	int32 FrameSpan = EndFrameIndex - StartFrameIndex;
 	float CacheLength = ImportData->MaxTime - ImportData->MinTime;
 
@@ -202,6 +205,9 @@ const EAbcImportError FAbcImporter::ImportTrackData(const int32 InNumThreads, UA
 		checkf(false, TEXT("Incorrect sampling type found in import settings (%i)"), (uint8)SamplingType);
 	}
 
+	ImportData->SecondsPerFrame = TimeStep;
+	ImportData->ImportLength = FrameSpan * TimeStep;
+
 	// Override the frame start to not crash when indexing the sample array using it as a frame offset TODO CHANGE THIS TO BE MORE CLEAN
 	ImportSettings->SamplingSettings.FrameStart = StartFrameIndex;
 
@@ -234,7 +240,7 @@ const EAbcImportError FAbcImporter::ImportTrackData(const int32 InNumThreads, UA
 	});
 
 	// Now we have loaded all the transformations, cache the accumulated transforms for each used hierarchy path
-	CacheHierarchyTransforms();
+	CacheHierarchyTransforms(StartFrameIndex * TimeStep, EndFrameIndex * TimeStep);
 
 	// Allocating the number of meshsamples we will import for each object
 	for (TSharedPtr<FAbcPolyMeshObject>& MeshObject : ImportData->PolyMeshObjects)
@@ -302,7 +308,7 @@ const EAbcImportError FAbcImporter::ImportTrackData(const int32 InNumThreads, UA
 			{
 				if (MeshObject->MeshSamples[FirstSampleIndex]->Normals.Num() == 0)
 				{
-					AbcImporterUtilities::CalculateNormals(MeshObject->MeshSamples[FirstSampleIndex]);
+					AbcImporterUtilities::CalculateSmoothNormals(MeshObject->MeshSamples[FirstSampleIndex]);
 				}
 
 				AbcImporterUtilities::GenerateSmoothingGroupsIndices(MeshObject->MeshSamples[FirstSampleIndex], ImportData->ImportSettings);
@@ -434,6 +440,16 @@ const EAbcImportError FAbcImporter::ImportTrackData(const int32 InNumThreads, UA
 			}
 		});
 	}
+
+	// Apply conversion according to user set scale/rotation and uv flipping
+	ParallelFor(ImportData->PolyMeshObjects.Num(), [&](int32 MeshObjectIndex)
+	{
+		TSharedPtr<FAbcPolyMeshObject>& MeshObject = ImportData->PolyMeshObjects[MeshObjectIndex];
+		for (FAbcMeshSample* Sample : MeshObject->MeshSamples)
+		{
+			AbcImporterUtilities::ApplyConversion(Sample, ImportData->ImportSettings->ConversionSettings);
+		}
+	});
 	
 	return AbcImportError_NoError;
 }
@@ -495,7 +511,11 @@ void FAbcImporter::ParseAbcObject<Alembic::AbcGeom::IXform>(Alembic::AbcGeom::IX
 	AbcImporterUtilities::GetMinAndMaxTime(InXform.getSchema(), MinTime, MaxTime);
 	ImportData->MinTime = FMath::Min(ImportData->MinTime, MinTime);
 	ImportData->MaxTime = FMath::Max(ImportData->MaxTime, MaxTime);
-	ImportData->NumFrames = FMath::Max(ImportData->NumFrames, (uint32)InXform.getSchema().getNumSamples());
+	ImportData->NumFrames = FMath::Max(ImportData->NumFrames, (uint32)InXform.getSchema().getNumSamples());	
+
+	AbcImporterUtilities::GetStartTimeAndFrame(InXform.getSchema(), TransformObject->StartFrameTime, TransformObject->StartFrameIndex);
+	ImportData->MinFrameIndex = FMath::Min(ImportData->MinFrameIndex, TransformObject->StartFrameIndex);
+	ImportData->MaxFrameIndex = FMath::Max(ImportData->MaxFrameIndex, TransformObject->StartFrameIndex + TransformObject->NumSamples);
 
 	ImportData->TransformObjects.Push(TransformObject);
 }
@@ -522,6 +542,10 @@ void FAbcImporter::ParseAbcObject<Alembic::AbcGeom::IPolyMesh>(Alembic::AbcGeom:
 	ImportData->MinTime = FMath::Min(ImportData->MinTime, MinTime);
 	ImportData->MaxTime = FMath::Max(ImportData->MaxTime, MaxTime);
 	ImportData->NumFrames = FMath::Max(ImportData->NumFrames, PolyMeshObject->NumSamples);
+	
+	AbcImporterUtilities::GetStartTimeAndFrame(InPolyMesh.getSchema(), PolyMeshObject->StartFrameTime, PolyMeshObject->StartFrameIndex);
+	ImportData->MinFrameIndex = FMath::Min(ImportData->MinFrameIndex, PolyMeshObject->StartFrameIndex);
+	ImportData->MaxFrameIndex = FMath::Max(ImportData->MaxFrameIndex, PolyMeshObject->StartFrameIndex + PolyMeshObject->NumSamples);
 	
 	ImportData->PolyMeshObjects.Push(PolyMeshObject);
 }
@@ -609,7 +633,7 @@ UStaticMesh* FAbcImporter::CreateStaticMeshFromRawMesh(UObject* InParent, const 
 		check(DefaultMaterial);
 
 		// Material list
-	StaticMesh->StaticMaterials.Empty();
+		StaticMesh->StaticMaterials.Empty();
 		// If there were FaceSets available in the Alembic file use the number of unique face sets as num material entries, otherwise default to one material for the whole mesh
 		const uint32 FrameIndex = 0;
 		uint32 NumFaceSets = FaceSetNames.Num();
@@ -637,11 +661,11 @@ UStaticMesh* FAbcImporter::CreateStaticMeshFromRawMesh(UObject* InParent, const 
 		// Set lightmap UV index to 1 since we currently only import one set of UVs from the Alembic Data file
 		SrcModel.BuildSettings.DstLightmapIndex = 1;
 
-		// Build the static mesh (using the build setting etc.) this generates correct tangents using the extracting smoothing group along with the imported Normals data
-		StaticMesh->Build(false);
-
 		// Store the raw mesh within the RawMeshBulkData
 		SrcModel.RawMeshBulkData->SaveRawMesh(RawMesh);
+
+		// Build the static mesh (using the build setting etc.) this generates correct tangents using the extracting smoothing group along with the imported Normals data
+		StaticMesh->Build(false);
 
 		// No collision generation for now
 		StaticMesh->CreateBodySetup();
@@ -856,7 +880,10 @@ USkeletalMesh* FAbcImporter::ImportAsSkeletalMesh(UObject* InParent, EObjectFlag
 
 		const FMeshBoneInfo BoneInfo(FName(TEXT("RootBone"), FNAME_Add), TEXT("RootBone_Export"), INDEX_NONE);
 		const FTransform BoneTransform;
-		SkeletalMesh->RefSkeleton.Add(BoneInfo, BoneTransform);
+		{
+			FReferenceSkeletonModifier RefSkelModifier(SkeletalMesh->RefSkeleton, SkeletalMesh->Skeleton);
+			RefSkelModifier.Add(BoneInfo, BoneTransform);
+		}
 
 		// Forced to 1
 		ImportedResource->LODModels[0].NumTexCoords = 1;
@@ -899,8 +926,7 @@ USkeletalMesh* FAbcImporter::ImportAsSkeletalMesh(UObject* InParent, EObjectFlag
 		// Create animation sequence for the skeleton
 		UAnimSequence* Sequence = CreateObjectInstance<UAnimSequence>(InParent, FString::Printf(TEXT("%s_Animation"), *SkeletalMesh->GetName()), Flags);
 		Sequence->SetSkeleton(Skeleton);
-		Sequence->SequenceLength = ImportData->MaxTime - ImportData->MinTime;
-
+		Sequence->SequenceLength = ImportData->ImportLength;
 		int32 ObjectIndex = 0;
 		uint32 TriangleOffset = 0;
 		uint32 WedgeOffset = 0;
@@ -912,7 +938,7 @@ USkeletalMesh* FAbcImporter::ImportAsSkeletalMesh(UObject* InParent, EObjectFlag
 
 			if (CompressedData.BaseSamples.Num() > 0)
 			{
-				int32 NumBases = CompressedData.BaseSamples.Num();
+				const int32 NumBases = CompressedData.BaseSamples.Num();
 				int32 NumUsedBases = 0;
 
 				const int32 NumIndices = CompressedData.AverageSample->Indices.Num();
@@ -1099,7 +1125,7 @@ const bool FAbcImporter::CompressAnimationDataUsingPCA(const FAbcCompressionSett
 			FMemory::Memcpy(CompressedData.AverageSample->Vertices.GetData(), AverageVertexData.GetData(), sizeof(FVector) * NumVertices);
 
 			const float FrameStep = (MaxTime - MinTime) / (float)(NumSamples);
-			AbcImporterUtilities::GenerateCompressedMeshData(CompressedData, NumUsedSingularValues, NumSamples, OutU, OutV, FrameStep);
+			AbcImporterUtilities::GenerateCompressedMeshData(CompressedData, NumUsedSingularValues, NumSamples, OutU, OutV, FrameStep, MinTime);
 
 			if (bRunComparison)
 			{
@@ -1138,7 +1164,7 @@ const bool FAbcImporter::CompressAnimationDataUsingPCA(const FAbcCompressionSett
 				FMemory::Memcpy(CompressedData.AverageSample->Vertices.GetData(), AverageVertexData.GetData(), sizeof(FVector) * NumVertices);
 
 				const float FrameStep = (MaxTime - MinTime) / (float)(NumSamples);
-				AbcImporterUtilities::GenerateCompressedMeshData(CompressedData, NumUsedSingularValues, NumSamples, OutU, OutV, FrameStep);
+				AbcImporterUtilities::GenerateCompressedMeshData(CompressedData, NumUsedSingularValues, NumSamples, OutU, OutV, FrameStep, MinTime);
 				AbcImporterUtilities::AppendMaterialNames(MeshObject, CompressedData);
 
 				if (bRunComparison)
@@ -1287,6 +1313,16 @@ const TArray<TSharedPtr<FAbcPolyMeshObject>>& FAbcImporter::GetPolyMeshes() cons
 const uint32 FAbcImporter::GetNumFrames() const
 {
 	return (ImportData != nullptr) ? ImportData->NumFrames : 0;
+}
+
+const uint32 FAbcImporter::GetStartFrameIndex() const
+{
+	return (ImportData != nullptr) ? ImportData->MinFrameIndex : 0;
+}
+
+const uint32 FAbcImporter::GetEndFrameIndex() const
+{
+	return (ImportData != nullptr) ? ImportData->MaxFrameIndex : 1;
 }
 
 const uint32 FAbcImporter::GetNumMeshTracks() const
@@ -1555,7 +1591,8 @@ bool FAbcImporter::BuildSkeletalMesh(
 				NewVertex.Color = SourceSection.Colours[FaceOffset + VertexIndex];
 
 				// Set up bone influence (only using one bone so maxed out weight)
-				NewVertex.InfluenceBones[0] = 0;
+				FMemory::Memzero(NewVertex.InfluenceBones);
+				FMemory::Memzero(NewVertex.InfluenceWeights);
 				NewVertex.InfluenceWeights[0] = 255;
 				
 				int32 FinalVertexIndex = INDEX_NONE;
@@ -1720,7 +1757,7 @@ UMaterial* FAbcImporter::RetrieveMaterial(const FString& MaterialName, UObject* 
 	return Material;
 }
 
-void FAbcImporter::GetMatrixSamplesForGUID(const FGuid& InGUID, TArray<FMatrix>& MatrixSamples, TArray<float>& SampleTimes, bool& OutConstantTransform)
+void FAbcImporter::GetMatrixSamplesForGUID(const FGuid& InGUID, const float StartSampleTime, const float EndSampleTime, TArray<FMatrix>& MatrixSamples, TArray<float>& SampleTimes, bool& OutConstantTransform)
 {
 	bool bConstantTransforms = true;
 	const TArray<TSharedPtr<FAbcTransformObject>>* TransformHierarchyPtr = ImportData->Hierarchies.Find(InGUID);
@@ -1788,15 +1825,59 @@ void FAbcImporter::GetMatrixSamplesForGUID(const FGuid& InGUID, TArray<FMatrix>&
 		SampleTimes.Add(0.0f);
 	}
 
+	if (!bConstantTransforms)
+	{
+		// Remove matrix samples that fall outside of the import range and remap the remaining samples
+		uint32 ImportStart = 0, ImportEnd = 0;
+		for (int32 SampleIndex = 0; SampleIndex < MatrixSamples.Num(); ++SampleIndex)
+		{
+			if (SampleTimes[SampleIndex] >= StartSampleTime)
+			{	
+			    // Substract start sample time in order to remap the samples correctly   
+				SampleTimes[SampleIndex] -= StartSampleTime;
+			}
+			else
+			{
+				ImportStart = SampleIndex;
+			}
+
+			if (SampleTimes[SampleIndex] <= EndSampleTime)
+			{
+				ImportEnd = SampleIndex;
+			}
+		}
+
+		// Remove trailing samples
+		if (ImportEnd != MatrixSamples.Num() - 1)
+		{
+			MatrixSamples.RemoveAt(ImportEnd, (MatrixSamples.Num() - 1) - ImportEnd);
+			SampleTimes.RemoveAt(ImportEnd, (SampleTimes.Num() - 1) - ImportEnd);
+		}
+		
+		// Remove front samples
+		if (ImportStart != 0)
+		{
+			MatrixSamples.RemoveAt(0, ImportStart);
+			SampleTimes.RemoveAt(0, ImportStart);
+		}
+
+		if (MatrixSamples.Num() == 1)
+		{
+			bConstantTransforms = true;
+		}
+	}
+
+	AbcImporterUtilities::ApplyConversion(MatrixSamples, ImportData->ImportSettings->ConversionSettings);
+
 	OutConstantTransform = bConstantTransforms;
 }
 
-void FAbcImporter::CacheHierarchyTransforms()
+void FAbcImporter::CacheHierarchyTransforms(const float StartSampleTime, const float EndSampleTime)
 {
 	for (TSharedPtr<FAbcPolyMeshObject>& PolyMeshObject : ImportData->PolyMeshObjects)
 	{
 		TSharedPtr<FCachedHierarchyTransforms> CachedTransforms = TSharedPtr<FCachedHierarchyTransforms>( new FCachedHierarchyTransforms());
-		GetMatrixSamplesForGUID(PolyMeshObject->HierarchyGuid, CachedTransforms->MatrixSamples, CachedTransforms->TimeSamples, PolyMeshObject->bConstantTransformation);
+		GetMatrixSamplesForGUID(PolyMeshObject->HierarchyGuid, StartSampleTime, EndSampleTime, CachedTransforms->MatrixSamples, CachedTransforms->TimeSamples, PolyMeshObject->bConstantTransformation);
 		ImportData->CachedHierarchyTransforms.Add(PolyMeshObject->HierarchyGuid, CachedTransforms);
 	}
 }

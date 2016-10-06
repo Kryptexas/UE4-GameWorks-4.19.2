@@ -5526,6 +5526,11 @@ void UParticleSystemComponent::Activate(bool bReset)
 		if (bReset || ShouldActivate()==true)
 		{
 			ActivateSystem(bReset);
+
+			if (bIsActive)
+			{
+				OnComponentActivated.Broadcast(this, bReset);
+			}
 		}
 	}
 }
@@ -5536,6 +5541,11 @@ void UParticleSystemComponent::Deactivate()
 	if (ShouldActivate()==false)
 	{
 		DeactivateSystem();
+
+		if (bWasDeactivated)
+		{
+			OnComponentDeactivated.Broadcast(this);
+		}
 	}
 }
 

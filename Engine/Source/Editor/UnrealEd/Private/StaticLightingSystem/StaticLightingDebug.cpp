@@ -165,7 +165,7 @@ void SetDebugLightmapSample(TArray<UActorComponent*>* Components, UModel* Model,
 			for (int32 ComponentIndex = 0; ComponentIndex < Components->Num() && !SMComponent; ComponentIndex++)
 			{
 				SMComponent = Cast<UStaticMeshComponent>((*Components)[ComponentIndex]);
-				if (SMComponent && (!SMComponent->StaticMesh || SMComponent->LODData.Num() == 0))
+				if (SMComponent && (!SMComponent->GetStaticMesh() || SMComponent->LODData.Num() == 0))
 				{
 					SMComponent = NULL;
 				}
@@ -176,7 +176,7 @@ void SetDebugLightmapSample(TArray<UActorComponent*>* Components, UModel* Model,
 		// Only static mesh components and BSP handled for now
 		if (SMComponent)
 		{
-			UStaticMesh* StaticMesh = SMComponent->StaticMesh;
+			UStaticMesh* StaticMesh = SMComponent->GetStaticMesh();
 			check(StaticMesh);
 			check(StaticMesh->RenderData);
 			check(StaticMesh->RenderData->LODResources.Num());

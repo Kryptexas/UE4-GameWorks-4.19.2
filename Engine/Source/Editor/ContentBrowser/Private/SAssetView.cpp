@@ -200,6 +200,7 @@ void SAssetView::Construct( const FArguments& InArgs )
 	bAllowDragging = InArgs._AllowDragging;
 	bAllowFocusOnSync = InArgs._AllowFocusOnSync;
 	OnPathSelected = InArgs._OnPathSelected;
+	HiddenColumnNames = DefaultHiddenColumnNames = InArgs._HiddenColumnNames;
 
 	if ( InArgs._InitialViewType >= 0 && InArgs._InitialViewType < EAssetViewType::MAX )
 	{
@@ -741,7 +742,12 @@ void SAssetView::LoadSettings(const FString& IniFilename, const FString& IniSect
 		SetCurrentViewType( (EAssetViewType::Type)ViewType );
 	}
 	
-	GConfig->GetArray(*IniSection, *(SettingsString + TEXT(".HiddenColumns")), HiddenColumnNames, IniFilename);	
+	TArray<FString> LoadedHiddenColumnNames;
+	GConfig->GetArray(*IniSection, *(SettingsString + TEXT(".HiddenColumns")), LoadedHiddenColumnNames, IniFilename);
+	if (LoadedHiddenColumnNames.Num() > 0)
+	{
+		HiddenColumnNames = LoadedHiddenColumnNames;
+	}
 }
 
 // Adjusts the selected asset by the selection delta, which should be +1 or -1)
@@ -2768,7 +2774,10 @@ TSharedRef<SWidget> SAssetView::GetViewButtonContent()
 			MenuBuilder.AddSubMenu(
 				LOCTEXT("ToggleColumnsMenu", "Toggle columns"),
 				LOCTEXT("ToggleColumnsMenuTooltip", "Show or hide specific columns."),
-				FNewMenuDelegate::CreateSP(this, &SAssetView::FillToggleColumnsMenu)
+				FNewMenuDelegate::CreateSP(this, &SAssetView::FillToggleColumnsMenu),
+				false,
+				FSlateIcon(),
+				false
 				);
 
 			MenuBuilder.AddMenuEntry(

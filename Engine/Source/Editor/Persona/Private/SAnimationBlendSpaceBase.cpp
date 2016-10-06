@@ -1162,11 +1162,11 @@ FReply SBlendSpaceWidget::DeleteSample(int32 SampleIndex)
 
 FReply SBlendSpaceWidget::OpenAsset( int32 SampleIndex )
 {
-	check(CachedSamples.IsValidIndex(SampleIndex));
-	UAnimationAsset* AnimAsset = CachedSamples[SampleIndex].Animation;
+	FSlateApplication::Get().DismissAllMenus();
 
-	FPersonaModule* PersonaModule = &FModuleManager::Get().LoadModuleChecked<FPersonaModule>("Persona");
-	PersonaModule->CreatePersona(EToolkitMode::Standalone, TSharedPtr<IToolkitHost>(), BlendSpace->GetSkeleton(), NULL, AnimAsset, NULL);
+	check(CachedSamples.IsValidIndex(SampleIndex));
+	UAnimationAsset* AnimAsset = CachedSamples[SampleIndex].Animation;	
+	FAssetEditorManager::Get().OpenEditorForAsset(AnimAsset);
 
 	return FReply::Handled();
 }

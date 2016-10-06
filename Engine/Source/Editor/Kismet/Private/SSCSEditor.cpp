@@ -1178,7 +1178,7 @@ UActorComponent* FSCSEditorTreeNode::FindComponentInstanceInActor(const AActor* 
 					// Return the component instance that's stored in the property with the given variable name
 					ComponentInstance = Cast<UActorComponent>(Property->GetObjectPropertyValue_InContainer(InActor));
 				}
-				else if (World != nullptr && World->WorldType == EWorldType::Preview)
+				else if (World != nullptr && World->WorldType == EWorldType::EditorPreview)
 				{
 					// If this is the preview actor, return the cached component instance that's being used for the preview actor prior to recompiling the Blueprint
 					ComponentInstance = SCS_Node->EditorComponentInstance;

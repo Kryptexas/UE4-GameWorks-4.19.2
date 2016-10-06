@@ -11,6 +11,7 @@
 #include "Kismet2NameValidators.h"
 #include "SExpandableArea.h"
 #include "STextEntryPopup.h"
+#include "AnimPreviewInstance.h"
 
 #define LOCTEXT_NAMESPACE "AnimTrackCurvePanel"
 
@@ -503,7 +504,7 @@ FText STransformCurveEdTrack::GetCurveName(USkeleton::AnimCurveUID Uid, ETransfo
 //////////////////////////////////////////////////////////////////////////
 // SAnimTrackCurvePanel
 
-void SAnimTrackCurvePanel::Construct(const FArguments& InArgs)
+void SAnimTrackCurvePanel::Construct(const FArguments& InArgs, const TSharedRef<IPersonaPreviewScene>& InPreviewScene)
 {
 	SAnimTrackPanel::Construct( SAnimTrackPanel::FArguments()
 		.WidgetWidth(InArgs._WidgetWidth)
@@ -513,7 +514,7 @@ void SAnimTrackCurvePanel::Construct(const FArguments& InArgs)
 		.InputMax(InArgs._InputMax)
 		.OnSetInputViewRange(InArgs._OnSetInputViewRange));
 
-	WeakPersona = InArgs._Persona;
+	PreviewScenePtr = InPreviewScene;
 	Sequence = InArgs._Sequence;
 	WidgetWidth = InArgs._WidgetWidth;
 	OnGetScrubValue = InArgs._OnGetScrubValue;
@@ -578,7 +579,10 @@ void SAnimTrackCurvePanel::DeleteTrack(USkeleton::AnimCurveUID Uid)
 			Sequence->bNeedsRebake = true;
 			Sequence->RawCurveData.DeleteCurveData(CurveToDelete, FRawCurveTracks::TransformType);
 			UpdatePanel();
-			WeakPersona.Pin()->RefreshPreviewInstanceTrackCurves();
+			if (PreviewScenePtr.Pin()->GetPreviewMeshComponent()->PreviewInstance != nullptr)
+			{
+				PreviewScenePtr.Pin()->GetPreviewMeshComponent()->PreviewInstance->RefreshCurveBoneControllers();
+			}
 		}
 	}
 }
@@ -656,11 +660,7 @@ void SAnimTrackCurvePanel::UpdatePanel()
 			}
 		}
 
-		TSharedPtr<FPersona> SharedPersona = WeakPersona.Pin();
-		if(SharedPersona.IsValid())
-		{
-			SharedPersona->OnCurvesChanged.Broadcast();
-		}
+		OnCurvesChanged.ExecuteIfBound();
 	}
 }
 
@@ -841,7 +841,10 @@ void SAnimTrackCurvePanel::SetCurveFlagFromCheckboxState(ECheckBoxState CheckSta
 			// needs to rebake
 			Sequence->bNeedsRebake = true;
 			// need to update curves, otherwise they're not disabled
-			WeakPersona.Pin()->RefreshPreviewInstanceTrackCurves();		
+			if (PreviewScenePtr.Pin()->GetPreviewMeshComponent()->PreviewInstance != nullptr)
+			{
+				PreviewScenePtr.Pin()->GetPreviewMeshComponent()->PreviewInstance->RefreshCurveBoneControllers();
+			}
 		}
 	}
 }

@@ -425,7 +425,7 @@ public:
 	UPROPERTY(BlueprintReadWrite, replicatedUsing=OnRep_Instigator, meta=(ExposeOnSpawn=true), Category=Actor)
 	class APawn* Instigator;
 
-	/** Called on clients when Instigatolr is replicated. */
+	/** Called on clients when Instigator is replicated. */
 	UFUNCTION()
 	virtual void OnRep_Instigator();
 
@@ -537,6 +537,9 @@ public:
 	/** If true, prevents the actor from being moved in the editor viewport. */
 	UPROPERTY()
 	uint8 bLockLocation:1;
+
+	/** If true during PostEditMove the construction script will be run every time. If false it will only run when the drag finishes. */
+	uint8 bRunConstructionScriptOnDrag:1;
 
 	/** Returns how many lights are uncached for this actor. */
 	int32 GetNumUncachedLights();

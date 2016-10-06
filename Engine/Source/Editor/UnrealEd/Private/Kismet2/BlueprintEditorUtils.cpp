@@ -7544,7 +7544,7 @@ void FBlueprintEditorUtils::FindAndSetDebuggableBlueprintInstances()
 				{
 					AActor* ObjectAsActor = Cast<AActor>( Selected->GetSelectedObject( iSelected ) );
 					UWorld* ActorWorld = ObjectAsActor ? ObjectAsActor->GetWorld() : nullptr;
-					if ((ActorWorld != nullptr) && (ActorWorld->WorldType != EWorldType::Preview) && (ActorWorld->WorldType != EWorldType::Inactive))
+					if ((ActorWorld != nullptr) && (ActorWorld->WorldType != EWorldType::EditorPreview) && (ActorWorld->WorldType != EWorldType::Inactive))
 					{
 						if( IsObjectADebugCandidate(ObjectAsActor, EachBlueprint, true/*bInDisallowDerivedBlueprints*/ ) == true )
 						{
@@ -7571,7 +7571,7 @@ void FBlueprintEditorUtils::FindAndSetDebuggableBlueprintInstances()
 				{
 					AActor* ObjectAsActor = Cast<AActor>( *It );
 					UWorld* ActorWorld = ObjectAsActor ? ObjectAsActor->GetWorld() : nullptr;
-					if( ActorWorld && ( ActorWorld->WorldType != EWorldType::Preview) && ActorWorld->WorldType != EWorldType::Inactive )
+					if( ActorWorld && ( ActorWorld->WorldType != EWorldType::EditorPreview) && ActorWorld->WorldType != EWorldType::Inactive )
 					{
 						if( IsObjectADebugCandidate(ObjectAsActor, EachBlueprint, true/*bInDisallowDerivedBlueprints*/ ) == true )
 						{

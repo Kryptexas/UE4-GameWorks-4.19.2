@@ -17,8 +17,6 @@ class FMaterialRenderProxy;
 class FPrimitiveDrawInterface;
 class FMaterialRenderProxy;
 
-DECLARE_DELEGATE_OneParam(FOnConstraintBroken, int32 /*ConstraintIndex*/);
-
 /** Container for properties of a physics constraint that can be easily swapped at runtime. This is useful for switching different setups when going from ragdoll to standup for example */
 USTRUCT()
 struct ENGINE_API FConstraintProfileProperties
@@ -489,9 +487,6 @@ public:
 
 	bool Serialize(FArchive& Ar);
 	void PostSerialize(const FArchive& Ar);
-	
-	/** Notifies owner component that constraint has broken */
-	void OnConstraintBroken();
 
 	/** Turn on linear and angular projection */
 	void EnableProjection();
@@ -554,6 +549,8 @@ private:
 	void UpdateDriveTarget();
 
 	FOnConstraintBroken OnConstraintBrokenDelegate;
+
+	friend struct FConstraintBrokenDelegateData;
 
 public:
 

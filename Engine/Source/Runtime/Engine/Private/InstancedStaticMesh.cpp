@@ -784,9 +784,10 @@ int32 GetNumAggregates(int32 NumBodies, int32 NumShapes)
 class FInstancedStaticMeshComponentInstanceData : public FSceneComponentInstanceData
 {
 public:
+	
 	FInstancedStaticMeshComponentInstanceData(const UInstancedStaticMeshComponent& InComponent)
 		: FSceneComponentInstanceData(&InComponent)
-		, StaticMesh(InComponent.StaticMesh)
+		, StaticMesh(InComponent.GetStaticMesh())
 		, bHasCachedStaticLighting(false)
 	{
 	}
@@ -903,7 +904,7 @@ void UInstancedStaticMeshComponent::ApplyComponentInstanceData(FInstancedStaticM
 #if WITH_EDITOR
 	check(InstancedMeshData);
 
-	if (StaticMesh != InstancedMeshData->StaticMesh)
+	if (GetStaticMesh() != InstancedMeshData->StaticMesh)
 	{
 		return;
 	}
@@ -960,11 +961,11 @@ FPrimitiveSceneProxy* UInstancedStaticMeshComponent::CreateSceneProxy()
 		// make sure we have instances
 		PerInstanceSMData.Num() > 0 &&
 		// make sure we have an actual staticmesh
-		StaticMesh &&
-		StaticMesh->HasValidRenderData() &&
+		GetStaticMesh() &&
+		GetStaticMesh()->HasValidRenderData() &&
 		// You really can't use hardware instancing on the consoles with multiple elements because they share the same index buffer. 
 		// @todo: Level error or something to let LDs know this
-		1;//StaticMesh->LODModels(0).Elements.Num() == 1;
+		1;//GetStaticMesh()->LODModels(0).Elements.Num() == 1;
 
 	if(bMeshIsValid)
 	{
@@ -988,7 +989,7 @@ FPrimitiveSceneProxy* UInstancedStaticMeshComponent::CreateSceneProxy()
 
 void UInstancedStaticMeshComponent::InitInstanceBody(int32 InstanceIdx, FBodyInstance* InstanceBodyInstance)
 {
-	if (!StaticMesh)
+	if (!GetStaticMesh())
 	{
 		UE_LOG(LogStaticMesh, Warning, TEXT("Unabled to create a body instance for %s in Actor %s. No StaticMesh set."), *GetName(), GetOwner() ? *GetOwner()->GetName() : TEXT("?"));
 		return;
@@ -1202,11 +1203,11 @@ bool UInstancedStaticMeshComponent::CanEditSimulatePhysics()
 
 FBoxSphereBounds UInstancedStaticMeshComponent::CalcBounds(const FTransform& BoundTransform) const
 {
-	if(StaticMesh && PerInstanceSMData.Num() > 0)
+	if(GetStaticMesh() && PerInstanceSMData.Num() > 0)
 	{
 		FMatrix BoundTransformMatrix = BoundTransform.ToMatrixWithScale();
 
-		FBoxSphereBounds RenderBounds = StaticMesh->GetBounds();
+		FBoxSphereBounds RenderBounds = GetStaticMesh()->GetBounds();
 		FBoxSphereBounds NewBounds = RenderBounds.TransformBy(PerInstanceSMData[0].Transform * BoundTransformMatrix);
 
 		for (int32 InstanceIndex = 1; InstanceIndex < PerInstanceSMData.Num(); InstanceIndex++)
@@ -1279,7 +1280,7 @@ void UInstancedStaticMeshComponent::GetStaticLightingInfo(FStaticLightingPrimiti
 				->AddToken(FTextToken::Create(NSLOCTEXT("InstancedStaticMesh", "LargeStaticLightingWarning", "The total lightmap size for this InstancedStaticMeshComponent is large, consider reducing the component's lightmap resolution or number of mesh instances in this component")));
 		}
 
-		bool bCanLODsShareStaticLighting = StaticMesh->CanLODsShareStaticLighting();
+		bool bCanLODsShareStaticLighting = GetStaticMesh()->CanLODsShareStaticLighting();
 
 		// TODO: We currently only support one LOD of static lighting in instanced meshes
 		// Need to create per-LOD instance data to fix that
@@ -1291,21 +1292,21 @@ void UInstancedStaticMeshComponent::GetStaticLightingInfo(FStaticLightingPrimiti
 			bCanLODsShareStaticLighting = true;
 		}
 
-		int32 NumLODs = bCanLODsShareStaticLighting ? 1 : StaticMesh->RenderData->LODResources.Num();
+		int32 NumLODs = bCanLODsShareStaticLighting ? 1 : GetStaticMesh()->RenderData->LODResources.Num();
 
 		CachedMappings.Reset(PerInstanceSMData.Num() * NumLODs);
 		CachedMappings.AddZeroed(PerInstanceSMData.Num() * NumLODs);
 
 		for (int32 LODIndex = 0; LODIndex < NumLODs; LODIndex++)
 		{
-			const FStaticMeshLODResources& LODRenderData = StaticMesh->RenderData->LODResources[LODIndex];
+			const FStaticMeshLODResources& LODRenderData = GetStaticMesh()->RenderData->LODResources[LODIndex];
 
 			for (int32 InstanceIndex = 0; InstanceIndex < PerInstanceSMData.Num(); InstanceIndex++)
 			{
 				auto* StaticLightingMesh = new FStaticLightingMesh_InstancedStaticMesh(this, LODIndex, InstanceIndex, InRelevantLights);
 				OutPrimitiveInfo.Meshes.Add(StaticLightingMesh);
 
-				auto* InstancedMapping = new FStaticLightingTextureMapping_InstancedStaticMesh(this, LODIndex, InstanceIndex, StaticLightingMesh, LightMapWidth, LightMapHeight, StaticMesh->LightMapCoordinateIndex, true);
+				auto* InstancedMapping = new FStaticLightingTextureMapping_InstancedStaticMesh(this, LODIndex, InstanceIndex, StaticLightingMesh, LightMapWidth, LightMapHeight, GetStaticMesh()->LightMapCoordinateIndex, true);
 				OutPrimitiveInfo.Mappings.Add(InstancedMapping);
 
 				CachedMappings[LODIndex * PerInstanceSMData.Num() + InstanceIndex].Mapping = InstancedMapping;
@@ -1353,7 +1354,7 @@ void UInstancedStaticMeshComponent::ApplyLightMapping(FStaticLightingTextureMapp
 		TRefCountPtr<FShadowMap2D> NewShadowMap = bNeedsShadowMap ? FShadowMap2D::AllocateInstancedShadowMap(this, MoveTemp(AllShadowMapData), Bounds, PaddingType, SMF_Streamed) : nullptr;
 
 		// Ensure LODData has enough entries in it, free not required.
-		SetLODDataCount(StaticMesh->GetNumLODs(), StaticMesh->GetNumLODs());
+		SetLODDataCount(GetStaticMesh()->GetNumLODs(), GetStaticMesh()->GetNumLODs());
 
 		// Share lightmap/shadowmap over all LODs
 		for (FStaticMeshComponentLODInfo& ComponentLODInfo : LODData)
@@ -1629,7 +1630,7 @@ TArray<int32> UInstancedStaticMeshComponent::GetInstancesOverlappingSphere(const
 		Sphere = Sphere.TransformBy(ComponentToWorld.Inverse());
 	}
 
-	float StaticMeshBoundsRadius = StaticMesh->GetBounds().SphereRadius;
+	float StaticMeshBoundsRadius = GetStaticMesh()->GetBounds().SphereRadius;
 
 	for (int32 Index = 0; Index < PerInstanceSMData.Num(); Index++)
 	{
@@ -1655,7 +1656,7 @@ TArray<int32> UInstancedStaticMeshComponent::GetInstancesOverlappingBox(const FB
 		Box = Box.TransformBy(ComponentToWorld.Inverse());
 	}
 
-	FVector StaticMeshBoundsExtent = StaticMesh->GetBounds().BoxExtent;
+	FVector StaticMeshBoundsExtent = GetStaticMesh()->GetBounds().BoxExtent;
 
 	for (int32 Index = 0; Index < PerInstanceSMData.Num(); Index++)
 	{
@@ -1678,7 +1679,7 @@ bool UInstancedStaticMeshComponent::ShouldCreatePhysicsState() const
 
 bool UInstancedStaticMeshComponent::GetStreamingTextureFactors(float& OutTexelFactor, FBoxSphereBounds& OutBounds, int32 CoordinateIndex, int32 LODIndex, int32 ElementIndex) const
 {
-	if (!StaticMesh)
+	if (!GetStaticMesh())
 		return false;
 
 	FTransform InstanceTransform; 
@@ -1686,7 +1687,7 @@ bool UInstancedStaticMeshComponent::GetStreamingTextureFactors(float& OutTexelFa
 		return false;
 
 	float TexelFactor = 0;
-	if (!StaticMesh->GetStreamingTextureFactor(TexelFactor, OutBounds, CoordinateIndex, LODIndex, ElementIndex, InstanceTransform))
+	if (!GetStaticMesh()->GetStreamingTextureFactor(TexelFactor, OutBounds, CoordinateIndex, LODIndex, ElementIndex, InstanceTransform))
 		return false;
 
 	// Here we weight the texel factor by the by maximum axis scale as it would scale also the surface.
@@ -1699,7 +1700,7 @@ bool UInstancedStaticMeshComponent::GetStreamingTextureFactors(float& OutTexelFa
 		FBoxSphereBounds InstanceBounds;
 		if (GetInstanceTransform(InstanceIndex, InstanceTransform, true))
 		{
-			if (StaticMesh->GetStreamingTextureFactor(TexelFactor, InstanceBounds, CoordinateIndex, LODIndex, ElementIndex, InstanceTransform))
+			if (GetStaticMesh()->GetStreamingTextureFactor(TexelFactor, InstanceBounds, CoordinateIndex, LODIndex, ElementIndex, InstanceTransform))
 			{
 				Weight = InstanceTransform.GetMaximumAxisScale();
 				WeightedTexelFactorSum += TexelFactor * Weight;
@@ -1723,7 +1724,7 @@ bool UInstancedStaticMeshComponent::GetStreamingTextureFactors(float& OutTexelFa
 
 bool UInstancedStaticMeshComponent::GetStreamingTextureFactors(float& OutWorldTexelFactor, float& OutWorldLightmapFactor) const
 {
-	if (StaticMesh && PerInstanceSMData.Num() > 0)
+	if (GetStaticMesh() && PerInstanceSMData.Num() > 0)
 	{
 		float WeightedAxisScaleSum = 0;
 		float WeightSum  = 0;
@@ -1739,13 +1740,13 @@ bool UInstancedStaticMeshComponent::GetStreamingTextureFactors(float& OutWorldTe
 		if (WeightSum > SMALL_NUMBER)
 		{
 			OutWorldTexelFactor = OutWorldLightmapFactor = WeightedAxisScaleSum / WeightSum * ComponentToWorld.GetMaximumAxisScale();
-			OutWorldTexelFactor *= StaticMesh->GetStreamingTextureFactor(0);
+			OutWorldTexelFactor *= GetStaticMesh()->GetStreamingTextureFactor(0);
 
-			TIndirectArray<FStaticMeshLODResources>& LODResources = StaticMesh->RenderData->LODResources;
-			const bool bHasValidLightmapCoordinates = StaticMesh->LightMapCoordinateIndex >= 0 && (uint32)StaticMesh->LightMapCoordinateIndex < LODResources[0].VertexBuffer.GetNumTexCoords();
+			TIndirectArray<FStaticMeshLODResources>& LODResources = GetStaticMesh()->RenderData->LODResources;
+			const bool bHasValidLightmapCoordinates = GetStaticMesh()->LightMapCoordinateIndex >= 0 && (uint32)GetStaticMesh()->LightMapCoordinateIndex < LODResources[0].VertexBuffer.GetNumTexCoords();
 			if (bHasValidLightmapCoordinates)
 			{
-				OutWorldLightmapFactor *= StaticMesh->GetStreamingTextureFactor(StaticMesh->LightMapCoordinateIndex);
+				OutWorldLightmapFactor *= GetStaticMesh()->GetStreamingTextureFactor(GetStaticMesh()->LightMapCoordinateIndex);
 			}
 			else
 			{
@@ -1841,10 +1842,10 @@ void UInstancedStaticMeshComponent::PartialNavigationUpdate(int32 InstanceIdx)
 
 bool UInstancedStaticMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const
 {
-	if (StaticMesh && StaticMesh->NavCollision)
+	if (GetStaticMesh() && GetStaticMesh()->NavCollision)
 	{
-		UNavCollision* NavCollision = StaticMesh->NavCollision;
-		if (StaticMesh->NavCollision->bIsDynamicObstacle)
+		UNavCollision* NavCollision = GetStaticMesh()->NavCollision;
+		if (GetStaticMesh()->NavCollision->bIsDynamicObstacle)
 		{
 			return false;
 		}
@@ -1859,7 +1860,7 @@ bool UInstancedStaticMeshComponent::DoCustomNavigableGeometryExport(FNavigableGe
 		}
 		else
 		{
-			UBodySetup* BodySetup = StaticMesh->BodySetup;
+			UBodySetup* BodySetup = GetStaticMesh()->BodySetup;
 			if (BodySetup)
 			{
 				GeomExport.ExportRigidBodySetup(*BodySetup, FTransform::Identity);
@@ -1876,9 +1877,9 @@ bool UInstancedStaticMeshComponent::DoCustomNavigableGeometryExport(FNavigableGe
 
 void UInstancedStaticMeshComponent::GetNavigationData(FNavigationRelevantData& Data) const
 {
-	if (StaticMesh && StaticMesh->NavCollision)	
+	if (GetStaticMesh() && GetStaticMesh()->NavCollision)
 	{
-		UNavCollision* NavCollision = StaticMesh->NavCollision;
+		UNavCollision* NavCollision = GetStaticMesh()->NavCollision;
 		if (NavCollision->bIsDynamicObstacle)
 		{
 			NavCollision->GetNavigationModifier(Data.Modifiers, FTransform::Identity);

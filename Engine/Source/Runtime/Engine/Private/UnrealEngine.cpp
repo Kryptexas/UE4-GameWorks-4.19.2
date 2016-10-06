@@ -963,6 +963,7 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 	{
 		FModuleManager::Get().LoadModuleChecked(TEXT("StreamingPauseRendering"));
 		FModuleManager::Get().LoadModuleChecked(TEXT("Niagara"));
+		FModuleManager::Get().LoadModuleChecked(TEXT("GeometryCache"));
 	}
 
 	bool bIsRHS = true;
@@ -10706,7 +10707,7 @@ void UEngine::VerifyLoadMapWorldCleanup()
 	for( TObjectIterator<UWorld> It; It; ++It )
 	{
 		UWorld* World = *It;
-		const bool bIsPersistantWorldType = (World->WorldType == EWorldType::Inactive) || (World->WorldType == EWorldType::Preview);
+		const bool bIsPersistantWorldType = (World->WorldType == EWorldType::Inactive) || (World->WorldType == EWorldType::EditorPreview);
 		if (!bIsPersistantWorldType && !WorldHasValidContext(World))
 		{
 			if ((World->PersistentLevel == nullptr || !WorldHasValidContext(World->PersistentLevel->OwningWorld)) && !IsWorldDuplicate(World))

@@ -187,14 +187,19 @@ public:
 	TSharedRef<ITableRow> GenerateAnimCurveRow(TSharedPtr<FDisplayedAnimCurveInfo> InInfo, const TSharedRef<STableViewBase>& OwnerTable);
 
 	/**
-	* Adds a morph target override or updates the weight for an existing one
+	* Adds a curve override or updates the weight for an existing one
 	*
-	* @param Name - Name of the morph target we want to override
-	* @param Weight - How much of this morph target to apply (0.0 - 1.0)
+	* @param Name - Name of the curve we want to override
+	* @param Weight - How much of this curve to apply (0.0 - 1.0)
 	*
 	*/
 	void AddAnimCurveOverride( FName& Name, float Weight);
+
+	/** Removes an existing curve override */
 	void RemoveAnimCurveOverride(FName& Name);
+
+	/** Is there currently an override for this curve, and if so, what is its weight */
+	bool GetAnimCurveOverride(FName& Name, float& Weight);
 
 	/**
 	* Tells the AnimInstance to reset all of its morph target curves

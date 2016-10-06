@@ -8,6 +8,7 @@ FTwoBoneIKEditMode::FTwoBoneIKEditMode()
 	: TwoBoneIKRuntimeNode(nullptr)
 	, TwoBoneIKGraphNode(nullptr)
 	, BoneSelectMode(BSM_EndEffector)
+	, PreviousBoneSpace(BCS_BoneSpace)
 {
 }
 
@@ -15,6 +16,9 @@ void FTwoBoneIKEditMode::EnterMode(UAnimGraphNode_Base* InEditorNode, FAnimNode_
 {
 	TwoBoneIKRuntimeNode = static_cast<FAnimNode_TwoBoneIK*>(InRuntimeNode);
 	TwoBoneIKGraphNode = CastChecked<UAnimGraphNode_TwoBoneIK>(InEditorNode);
+
+	NodePropertyDelegateHandle = TwoBoneIKGraphNode->OnNodePropertyChanged().AddSP(this, &FTwoBoneIKEditMode::OnExternalNodePropertyChange);
+	PreviousBoneSpace = TwoBoneIKGraphNode->Node.EffectorLocationSpace;
 
 	FAnimNodeEditMode::EnterMode(InEditorNode, InRuntimeNode);
 
@@ -32,6 +36,8 @@ void FTwoBoneIKEditMode::ExitMode()
 			BoneSelectActor = nullptr;
 		}
 	}
+
+	TwoBoneIKGraphNode->OnNodePropertyChanged().Remove(NodePropertyDelegateHandle);
 
 	TwoBoneIKGraphNode = nullptr;
 	TwoBoneIKRuntimeNode = nullptr;
@@ -70,6 +76,11 @@ void FTwoBoneIKEditMode::DrawTargetLocation(FPrimitiveDrawInterface* PDI, USkele
 		DrawCoordinateSystem( PDI, WorldTransform.GetLocation(), WorldTransform.GetRotation().Rotator(), 20.f, SDPG_Foreground );
 		DrawWireDiamond( PDI, WorldTransform.ToMatrixWithScale(), 2.f, BoneColor, SDPG_Foreground );
 	}
+	else
+	{
+		DrawCoordinateSystem(PDI, WorldTransform.GetLocation(), WorldTransform.GetRotation().Rotator(), 20.f, SDPG_Foreground);
+		DrawWireDiamond(PDI, WorldTransform.ToMatrixWithScale(), 2.f, TargetColor, SDPG_Foreground);
+	}
 }
 
 FVector FTwoBoneIKEditMode::GetWidgetLocation() const
@@ -80,9 +91,9 @@ FVector FTwoBoneIKEditMode::GetWidgetLocation() const
 	 
 	if (BoneSelectMode == BSM_EndEffector)
 	{
-		Space = TwoBoneIKGraphNode->Node.EffectorLocationSpace;
-		Location = TwoBoneIKGraphNode->GetNodeValue(FString("EffectorLocation"), TwoBoneIKGraphNode->Node.EffectorLocation);
-		BoneName = TwoBoneIKGraphNode->Node.EffectorSpaceBoneName;
+		Space = TwoBoneIKRuntimeNode->EffectorLocationSpace;
+		Location = TwoBoneIKRuntimeNode->EffectorLocation;
+		BoneName = TwoBoneIKRuntimeNode->EffectorSpaceBoneName;
 
 	}
 	else // BSM_JointTarget
@@ -93,8 +104,8 @@ FVector FTwoBoneIKEditMode::GetWidgetLocation() const
 		{
 			return FVector::ZeroVector;
 		}
-		Location = TwoBoneIKGraphNode->GetNodeValue(FString("JointTargetLocation"), TwoBoneIKGraphNode->Node.JointTargetLocation);
-		BoneName = TwoBoneIKGraphNode->Node.JointTargetSpaceBoneName;
+		Location = TwoBoneIKRuntimeNode->JointTargetLocation;
+		BoneName = TwoBoneIKRuntimeNode->JointTargetSpaceBoneName;
 	}
 
 	USkeletalMeshComponent* SkelComp = GetAnimPreviewScene().GetPreviewMeshComponent();
@@ -203,6 +214,53 @@ void FTwoBoneIKEditMode::Tick(FEditorViewportClient* ViewportClient, float Delta
 			{
 				FVector ActorLocation = ConvertWidgetLocation(SkelComp, TwoBoneIKRuntimeNode->ForwardedPose, TwoBoneIKGraphNode->Node.JointTargetSpaceBoneName, TwoBoneIKGraphNode->Node.JointTargetLocation, TwoBoneIKGraphNode->Node.JointTargetLocationSpace);
 				BoneSelectActor->SetActorLocation(ActorLocation + FVector(0, 10, 0));
+			}
+		}
+	}
+
+	// Cache the current bone space
+	PreviousBoneSpace = TwoBoneIKGraphNode->Node.EffectorLocationSpace;
+}
+
+void FTwoBoneIKEditMode::OnExternalNodePropertyChange(FPropertyChangedEvent& InPropertyEvent)
+{
+	USkeletalMeshComponent* SkelComponent = GetAnimPreviewScene().GetPreviewMeshComponent();
+
+	if(!SkelComponent)
+	{
+		// Can't do anything below without the component
+		return;
+	}
+
+	UProperty* Property = InPropertyEvent.Property;
+	UProperty* InnerProperty = InPropertyEvent.MemberProperty;
+	
+	if(InnerProperty && InnerProperty->GetFName() == GET_MEMBER_NAME_CHECKED(UAnimGraphNode_TwoBoneIK, Node))
+	{
+		if(Property && Property->GetFName() == GET_MEMBER_NAME_CHECKED(FAnimNode_TwoBoneIK, EffectorLocationSpace))
+		{
+			if(TwoBoneIKGraphNode->Node.EffectorLocationSpace == BCS_BoneSpace || TwoBoneIKGraphNode->Node.EffectorLocationSpace == BCS_ParentBoneSpace)
+			{
+				// Moving to bone space, to actually do this we would need the transform at the node before the
+				// one we're editing... We can't do that so just reset the transform.
+				TwoBoneIKRuntimeNode->EffectorLocationSpace = TwoBoneIKGraphNode->Node.EffectorLocationSpace;
+				TwoBoneIKRuntimeNode->EffectorLocation = FVector::ZeroVector;
+				TwoBoneIKGraphNode->SetDefaultValue(GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_TwoBoneIK, EffectorLocation), TwoBoneIKRuntimeNode->EffectorLocation);
+			}
+			else
+			{
+				// Need to convert our transform into world/component space
+				FTransform CurrentTransform = FTransform(GetWidgetLocation());
+				FTransform NewBSTransform;
+
+				int32 SelectedBoneIndex = SkelComponent->SkeletalMesh->Skeleton->GetReferenceSkeleton().FindBoneIndex(TwoBoneIKGraphNode->Node.EffectorSpaceBoneName);
+
+				ConvertToBoneSpaceTransform(SkelComponent, CurrentTransform, NewBSTransform, SelectedBoneIndex, TwoBoneIKGraphNode->Node.EffectorLocationSpace);
+
+				TwoBoneIKRuntimeNode->EffectorLocationSpace = TwoBoneIKGraphNode->Node.EffectorLocationSpace;
+				TwoBoneIKRuntimeNode->EffectorLocation = NewBSTransform.GetLocation();
+
+				TwoBoneIKGraphNode->SetDefaultValue(GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_TwoBoneIK, EffectorLocation), TwoBoneIKRuntimeNode->EffectorLocation);
 			}
 		}
 	}

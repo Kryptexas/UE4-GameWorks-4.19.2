@@ -548,11 +548,9 @@ void FPhysXSimEventCallback::onConstraintBreak( PxConstraintInfo* constraints, P
 
 		if (Joint && Joint->userData)
 		{
-			FConstraintInstance* Constraint = FPhysxUserData::Get<FConstraintInstance>(Joint->userData);
-
-			if (Constraint)
+			if (FConstraintInstance* Constraint = FPhysxUserData::Get<FConstraintInstance>(Joint->userData))
 			{
-				Constraint->OnConstraintBroken();
+				OwningScene->AddPendingOnConstraintBreak(Constraint, SceneType);
 			}
 		}
 	}

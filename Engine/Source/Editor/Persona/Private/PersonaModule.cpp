@@ -46,6 +46,7 @@
 #include "PreviewSceneCustomizations.h"
 #include "SSkeletonSlotNames.h"
 #include "PersonaMeshDetails.h"
+#include "PersonaCommonCommands.h"
 
 IMPLEMENT_MODULE( FPersonaModule, Persona );
 
@@ -98,6 +99,8 @@ void FPersonaModule::StartupModule()
 
 	// Register the editor modes
 	FEditorModeRegistry::Get().RegisterMode<FSkeletonSelectionEditMode>(FPersonaEditModes::SkeletonSelection, LOCTEXT("SkeletonSelectionEditMode", "Skeleton Selection"), FSlateIcon(), false);
+
+	FPersonaCommonCommands::Register();
 }
 
 void FPersonaModule::ShutdownModule()
@@ -262,7 +265,8 @@ TSharedRef<SWidget> FPersonaModule::CreateEditorWidgetForAnimDocument(const TSha
 				.Sequence(Sequence)
 				.OnObjectsSelected(InArgs.OnDespatchObjectsSelected)
 				.OnAnimNotifiesChanged(InArgs.OnDespatchAnimNotifiesChanged)
-				.OnInvokeTab(InArgs.OnDespatchInvokeTab);
+				.OnInvokeTab(InArgs.OnDespatchInvokeTab)
+				.OnCurvesChanged(InArgs.OnDespatchCurvesChanged);
 
 			OutDocumentLink = TEXT("Engine/Animation/Sequences");
 		}
@@ -406,7 +410,7 @@ void FPersonaModule::TestSkeletonCurveNamesForUse(const TSharedRef<IEditableSkel
 			TArray<FName> UnusedNames;
 			Mapping->FillNameArray(UnusedNames);
 
-			const FText ProcessingStatusUpdate = FText::Format(LOCTEXT("VerifyCurves_ProcessingSkeletalMeshes", "Looking at curve useage for each skeletal mesh of skeleton '{0}'"), FText::FromString(Skeleton.GetName()));
+			const FText ProcessingStatusUpdate = FText::Format(LOCTEXT("VerifyCurves_ProcessingCurveUsage", "Looking at curve useage for each skeletal mesh of skeleton '{0}'"), FText::FromString(Skeleton.GetName()));
 			{
 				FScopedSlowTask LoadingSkelMeshSlowTask(SkeletalMeshes.Num(), ProcessingStatusUpdate);
 				LoadingSkelMeshSlowTask.MakeDialog();

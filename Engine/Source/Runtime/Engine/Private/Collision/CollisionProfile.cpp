@@ -691,9 +691,16 @@ void UCollisionProfile::SaveCustomResponses(FCollisionResponseTemplate& Template
 	Template.CustomResponses.Empty();
 	for(int32 Index=0; Index<32; ++Index)
 	{
+		//Save responses different from default
 		if(Template.ResponseToChannels.EnumArray[Index] != DefaultContainer.EnumArray[Index])
 		{
-			Template.CustomResponses.Add( FResponseChannel(ChannelDisplayNames[Index], (ECollisionResponse)(Template.ResponseToChannels.EnumArray[Index])));
+			const FName ChannelDisplayName = ChannelDisplayNames[Index];
+			//The channel should either be a public engine channel or an existing game channel
+			if((Index < ECollisionChannel::ECC_EngineTraceChannel1)
+				|| (DefaultChannelResponses.FindByPredicate([ChannelDisplayName](const FCustomChannelSetup& ChannelSetup) { return ChannelSetup.Name == ChannelDisplayName; }) != nullptr))
+			{
+				Template.CustomResponses.Add(FResponseChannel(ChannelDisplayName, (ECollisionResponse)(Template.ResponseToChannels.EnumArray[Index])));
+			}
 		}
 	}
 }

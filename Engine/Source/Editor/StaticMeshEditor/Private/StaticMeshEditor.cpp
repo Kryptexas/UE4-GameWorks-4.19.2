@@ -1354,45 +1354,6 @@ static void AddVertexIfNotPresent(TArray<FVector>& Vertices, const FVector& NewV
 	}
 }
 
-void FStaticMeshEditor::CreateBoxVertsFromBoxCollision(const FKBoxElem& BoxElem, TArray<FVector>& Verts, float Scale)
-{
-	FVector	B[2], P, Q, Radii;
-
-	// X,Y,Z member variables are LENGTH not RADIUS
-	Radii.X = Scale*0.5f*BoxElem.X;
-	Radii.Y = Scale*0.5f*BoxElem.Y;
-	Radii.Z = Scale*0.5f*BoxElem.Z;
-
-	B[0] = Radii; // max
-	B[1] = -1.0f * Radii; // min
-
-	FTransform BoxElemTM = BoxElem.GetTransform();
-
-	for( int32 i=0; i<2; i++ )
-	{
-		for( int32 j=0; j<2; j++ )
-		{
-			P.X=B[i].X; Q.X=B[i].X;
-			P.Y=B[j].Y; Q.Y=B[j].Y;
-			P.Z=B[0].Z; Q.Z=B[1].Z;
-			AddVertexIfNotPresent(Verts, BoxElemTM.TransformPosition(P));
-			AddVertexIfNotPresent(Verts, BoxElemTM.TransformPosition(Q));
-
-			P.Y=B[i].Y; Q.Y=B[i].Y;
-			P.Z=B[j].Z; Q.Z=B[j].Z;
-			P.X=B[0].X; Q.X=B[1].X;
-			AddVertexIfNotPresent(Verts, BoxElemTM.TransformPosition(P));
-			AddVertexIfNotPresent(Verts, BoxElemTM.TransformPosition(Q));
-
-			P.Z=B[i].Z; Q.Z=B[i].Z;
-			P.X=B[j].X; Q.X=B[j].X;
-			P.Y=B[0].Y; Q.Y=B[1].Y;
-			AddVertexIfNotPresent(Verts, BoxElemTM.TransformPosition(P));
-			AddVertexIfNotPresent(Verts, BoxElemTM.TransformPosition(Q));
-		}
-	}
-}
-
 void FStaticMeshEditor::OnConvertBoxToConvexCollision()
 {
 	// If we have a collision model for this staticmesh, ask if we want to replace it.
@@ -1423,11 +1384,7 @@ void FStaticMeshEditor::OnConvertBoxToConvexCollision()
 
 					//Create a new convex collision element
 					NewConvexColl = new(TempArray) FKConvexElem();
-					NewConvexColl->Reset();
-
-					//Fill the convex verts from the box elem collision and generate the convex hull
-					CreateBoxVertsFromBoxCollision(BoxColl, NewConvexColl->VertexData, 1.0f);
-					NewConvexColl->UpdateElemBox();
+					NewConvexColl->ConvexFromBoxElem(BoxColl);
 				}
 
 				//Clear the cache (PIE may have created some data), create new GUID

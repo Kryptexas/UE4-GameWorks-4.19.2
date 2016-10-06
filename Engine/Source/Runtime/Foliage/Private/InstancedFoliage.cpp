@@ -718,7 +718,7 @@ void FFoliageMeshInfo::CreateNewComponent(AInstancedFoliageActor* InIFA, const U
 	UFoliageInstancedStaticMeshComponent* FoliageComponent = NewObject<UFoliageInstancedStaticMeshComponent>(InIFA, ComponentClass, NAME_None, RF_Transactional);
 
 	Component = FoliageComponent;
-	Component->StaticMesh = InSettings->GetStaticMesh();
+	Component->SetStaticMesh(InSettings->GetStaticMesh());
 	Component->bSelectable = true;
 	Component->bHasPerInstanceHitProxies = true;
 	Component->InstancingRandomSeed = FMath::Rand();
@@ -793,9 +793,9 @@ void FFoliageMeshInfo::UpdateComponentSettings(const UFoliageType* InSettings)
 			FoliageType = InSettings->GetClass()->GetDefaultObject<UFoliageType>();
 		}
 
-		if (Component->StaticMesh != FoliageType->GetStaticMesh())
+		if (Component->GetStaticMesh() != FoliageType->GetStaticMesh())
 		{
-			Component->StaticMesh = FoliageType->GetStaticMesh();
+			Component->SetStaticMesh(FoliageType->GetStaticMesh());
 
 			bNeedsInvalidateLightingCache = true;
 			bNeedsMarkRenderStateDirty = true;
@@ -1418,7 +1418,7 @@ void AInstancedFoliageActor::GetOverlappingMeshCounts(const FSphere& Sphere, TMa
 			int32 const Count = MeshInfo->Component->GetOverlappingSphereCount(Sphere);
 			if (Count > 0)
 			{
-				UStaticMesh* const Mesh = MeshInfo->Component->StaticMesh;
+				UStaticMesh* const Mesh = MeshInfo->Component->GetStaticMesh();
 				int32& StoredCount = OutCounts.FindOrAdd(Mesh);
 				StoredCount += Count;
 			}

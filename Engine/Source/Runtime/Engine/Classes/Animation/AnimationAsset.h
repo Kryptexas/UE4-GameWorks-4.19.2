@@ -622,6 +622,7 @@ public:
 		, MarkerTickContext(ValidMarkerNames)
 		, DeltaTime(InDeltaTime)
 		, LeaderDelta(0.f)
+		, PreviousAnimLengthRatio(0.0f)
 		, AnimLengthRatio(0.0f)
 		, bIsMarkerPositionValid(ValidMarkerNames.Num() > 0)
 		, bIsLeader(true)
@@ -633,6 +634,7 @@ public:
 		: RootMotionMode(InRootMotionMode)
 		, DeltaTime(InDeltaTime)
 		, LeaderDelta(0.f)
+		, PreviousAnimLengthRatio(0.0f)
 		, AnimLengthRatio(0.0f)
 		, bIsMarkerPositionValid(false)
 		, bIsLeader(true)
@@ -667,9 +669,21 @@ public:
 		return LeaderDelta;
 	}
 
+	void SetPreviousAnimationPositionRatio(float NormalizedTime)
+	{
+		PreviousAnimLengthRatio = NormalizedTime;
+	}
+
 	void SetAnimationPositionRatio(float NormalizedTime)
 	{
 		AnimLengthRatio = NormalizedTime;
+	}
+
+	// Returns the previous synchronization point (normalized time; only legal to call if ticking a follower)
+	float GetPreviousAnimationPositionRatio() const
+	{
+		checkSlow(!bIsLeader);
+		return AnimLengthRatio;
 	}
 
 	// Returns the synchronization point (normalized time; only legal to call if ticking a follower)
@@ -712,6 +726,9 @@ private:
 
 	float LeaderDelta;
 
+	// Float in 0 - 1 range representing how far through an animation we were before ticking
+	float PreviousAnimLengthRatio;
+
 	// Float in 0 - 1 range representing how far through an animation we are
 	float AnimLengthRatio;
 
@@ -753,6 +770,9 @@ private:
 
 	/** Skeleton guid. If changes, you need to remap info*/
 	FGuid SkeletonGuid;
+
+	/** Allow animations to track virtual bone info */
+	FGuid SkeletonVirtualBoneGuid; 
 
 	/** Meta data that can be saved with the asset 
 	 * 
@@ -921,5 +941,8 @@ protected:
 
 public:
 	class USkeleton* GetSkeleton() const { return Skeleton; }
+
+	FGuid GetSkeletonVirtualBoneGuid() const { return SkeletonVirtualBoneGuid; }
+	void SetSkeletonVirtualBoneGuid(FGuid Guid) { SkeletonVirtualBoneGuid = Guid; }
 };
 

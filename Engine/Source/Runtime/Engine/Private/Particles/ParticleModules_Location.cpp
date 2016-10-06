@@ -2650,10 +2650,10 @@ bool UParticleModuleLocationSkelVertSurface::PerformCustomMenuEntry(int32 InEntr
 			if (EditorSkelMesh != NULL)
 			{
 				// Retrieve all the bones
-				if (EditorSkelMesh->RefSkeleton.GetNum() > 0)
+				if (EditorSkelMesh->RefSkeleton.GetRawBoneNum() > 0)
 				{
 					ValidAssociatedBones.Empty();
-					for (int32 BoneIdx = 0; BoneIdx < EditorSkelMesh->RefSkeleton.GetNum(); BoneIdx++)
+					for (int32 BoneIdx = 0; BoneIdx < EditorSkelMesh->RefSkeleton.GetRawBoneNum(); BoneIdx++)
 					{
 						int32 NewItemIdx = ValidAssociatedBones.AddZeroed();
 						ValidAssociatedBones[NewItemIdx] = EditorSkelMesh->RefSkeleton.GetBoneName(BoneIdx);

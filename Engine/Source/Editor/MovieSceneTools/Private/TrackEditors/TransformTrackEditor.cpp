@@ -917,7 +917,7 @@ void F3DTransformTrackEditor::ImportAnimSequenceTransforms(const FAssetData& Ass
 		}
 	}
 
-	if(AnimSequence && AnimSequence->RawAnimationData.Num() > 0)
+	if(AnimSequence && AnimSequence->GetRawAnimationData().Num() > 0)
 	{
 		const FScopedTransaction Transaction( NSLOCTEXT( "Sequencer", "ImportAnimSequenceTransforms", "Import Anim Sequence Transforms" ) );
 
@@ -943,7 +943,7 @@ void F3DTransformTrackEditor::ImportAnimSequenceTransforms(const FAssetData& Ass
 
 			TArray<FTempTransformKey> TempKeys;
 
-			FRawAnimSequenceTrack& RawTrack = AnimSequence->RawAnimationData[0];
+			FRawAnimSequenceTrack& RawTrack = AnimSequence->GetRawAnimationTrack(0);
 			const int32 KeyCount = FMath::Max(FMath::Max(RawTrack.PosKeys.Num(), RawTrack.RotKeys.Num()), RawTrack.ScaleKeys.Num());
 			for(int32 KeyIndex = 0; KeyIndex < KeyCount; KeyIndex++)
 			{

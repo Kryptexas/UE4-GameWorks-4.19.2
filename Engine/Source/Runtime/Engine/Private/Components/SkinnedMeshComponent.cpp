@@ -500,11 +500,13 @@ void USkinnedMeshComponent::TickUpdateRate(float DeltaTime, bool bNeedsValidRoot
 			// Tick Owner once per frame. All attached SkinnedMeshComponents will share the same settings.
 			FAnimUpdateRateManager::TickUpdateRateParameters(this, DeltaTime, bNeedsValidRootMotion);
 
+#if ENABLE_DRAW_DEBUG
 			if ((CVarDrawAnimRateOptimization.GetValueOnGameThread() > 0) || bDisplayDebugUpdateRateOptimizations)
 			{
 				FColor DrawColor = AnimUpdateRateParams->GetUpdateRateDebugColor();
 				DrawDebugBox(GetWorld(), Bounds.Origin, Bounds.BoxExtent, FQuat::Identity, DrawColor, false);
 			}
+#endif // ENABLE_DRAW_DEBUG
 		}
 	}
 }

@@ -67,8 +67,8 @@ public:
 	FStaticMeshVertexIterator( UStaticMeshComponent* SMC )
 		: ComponentToWorldIT( SMC->ComponentToWorld.ToInverseMatrixWithScale().GetTransposed() )
 		, StaticMeshComponent( SMC )
-		, PositionBuffer( SMC->StaticMesh->RenderData->LODResources[0].PositionVertexBuffer )
-		, VertexBuffer( SMC->StaticMesh->RenderData->LODResources[0].VertexBuffer )
+		, PositionBuffer( SMC->GetStaticMesh()->RenderData->LODResources[0].PositionVertexBuffer )
+		, VertexBuffer( SMC->GetStaticMesh()->RenderData->LODResources[0].VertexBuffer )
 		, CurrentVertexIndex( 0 )
 	{
 
@@ -242,7 +242,7 @@ private:
 static TSharedPtr<FVertexIterator> MakeVertexIterator( UPrimitiveComponent* Component )
 {
 	UStaticMeshComponent* SMC = Cast<UStaticMeshComponent>( Component );
-	if( SMC && SMC->StaticMesh )
+	if( SMC && SMC->GetStaticMesh())
 	{
 		return MakeShareable( new FStaticMeshVertexIterator( SMC ) );
 	}

@@ -43,10 +43,10 @@ FString FMeshProxyTool::GetDefaultPackageName() const
 			Actor->GetComponents<UStaticMeshComponent>(SMComponets);
 			for (UStaticMeshComponent* Component : SMComponets)
 			{
-				if (Component->StaticMesh)
+				if (Component->GetStaticMesh())
 				{
-					PackageName = FPackageName::GetLongPackagePath(Component->StaticMesh->GetOutermost()->GetName());
-					PackageName += FString(TEXT("/PROXY_")) + Component->StaticMesh->GetName();
+					PackageName = FPackageName::GetLongPackagePath(Component->GetStaticMesh()->GetOutermost()->GetName());
+					PackageName += FString(TEXT("/PROXY_")) + Component->GetStaticMesh()->GetName();
 					break;
 				}
 			}

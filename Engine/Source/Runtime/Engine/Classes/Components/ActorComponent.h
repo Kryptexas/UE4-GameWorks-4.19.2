@@ -57,8 +57,8 @@ CONSTEXPR inline EUpdateTransformFlags operator ~(EUpdateTransformFlags Value)
 FORCEINLINE EUpdateTransformFlags SkipPhysicsToEnum(bool bSkipPhysics){ return bSkipPhysics ? EUpdateTransformFlags::SkipPhysicsUpdate : EUpdateTransformFlags::None; }
 
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FActorComponentActivatedSignature, bool, bReset);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FActorComponentDeactivateSignature);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FActorComponentActivatedSignature, UActorComponent*, Component, bool, bReset);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FActorComponentDeactivateSignature, UActorComponent*, Component);
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FActorComponentCreatePhysicsSignature, UActorComponent*);
 DECLARE_MULTICAST_DELEGATE_OneParam(FActorComponentDestroyPhysicsSignature, UActorComponent*);
@@ -71,7 +71,7 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FActorComponentDestroyPhysicsSignature, UAct
  * @see USceneComponent
  * @see UPrimitiveComponent
  */
-UCLASS(DefaultToInstanced, BlueprintType, abstract, hideCategories=(ComponentReplication), meta=(ShortTooltip="An ActorComponent is a reusable component that can be added to any actor."))
+UCLASS(DefaultToInstanced, BlueprintType, abstract, meta=(ShortTooltip="An ActorComponent is a reusable component that can be added to any actor."))
 class ENGINE_API UActorComponent : public UObject, public IInterface_AssetUserData
 {
 	GENERATED_BODY()
@@ -222,6 +222,7 @@ private:
 	friend struct FMarkComponentEndOfFrameUpdateState;
 
 	friend class FActorComponentInstanceData;
+	friend class FActorComponentDetails;
 
 public:
 	UPROPERTY()

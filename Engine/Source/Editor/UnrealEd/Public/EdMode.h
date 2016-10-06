@@ -68,6 +68,9 @@ public:
 	/** If the EdMode is handling InputDelta (i.e., returning true from it), this allows a mode to indicated whether or not the Widget should also move. */
 	virtual bool AllowWidgetMove() { return true; }
 	
+	/** Check to see if the current widget mode can be cycled */
+	virtual bool CanCycleWidgetMode() const { return true; }
+
 	/** If the Edmode is handling its own mouse deltas, it can disable the MouseDeltaTacker */
 	virtual bool DisallowMouseDeltaTracking() const { return false; }
 

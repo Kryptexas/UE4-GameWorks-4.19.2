@@ -182,11 +182,13 @@ void AGameplayAbilityTargetActor_Trace::Tick(float DeltaSeconds)
 		FHitResult HitResult = PerformTrace(SourceActor);
 		FVector EndPoint = HitResult.Component.IsValid() ? HitResult.ImpactPoint : HitResult.TraceEnd;
 
+#if ENABLE_DRAW_DEBUG
 		if (bDebug)
 		{
 			DrawDebugLine(GetWorld(), SourceActor->GetActorLocation(), EndPoint, FColor::Green, false);
 			DrawDebugSphere(GetWorld(), EndPoint, 16, 10, FColor::Green, false);
 		}
+#endif // ENABLE_DRAW_DEBUG
 
 		SetActorLocationAndRotation(EndPoint, SourceActor->GetActorRotation());
 	}

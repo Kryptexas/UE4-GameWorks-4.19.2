@@ -517,18 +517,18 @@ bool FPhATEdPreviewViewportClient::InputWidgetDelta( FViewport* InViewport, EAxi
 			{
 				UPhysicsConstraintTemplate* ConstraintSetup = SharedData->PhysicsAsset->ConstraintSetup[SelectedObject.Index];
 
-				ConstraintSetup->DefaultInstance.SetRefFrame(EConstraintFrame::Frame2, SelectedObject.ManipulateTM * StartManParentConTM);
+                ConstraintSetup->DefaultInstance.SetRefFrame(EConstraintFrame::Frame2, SelectedObject.ManipulateTM * StartManParentConTM[i]);
 
 				//Rotation by default only rotates one frame, but translation by default moves both
 				bool bMultiFrame = (IsAltPressed() && GetWidgetMode() == FWidget::WM_Rotate) || (!IsAltPressed() && GetWidgetMode() == FWidget::WM_Translate);
 				
 				if (bMultiFrame)
 				{
-					SharedData->SetSelectedConstraintRelTM(StartManRelConTM);
+					SharedData->SetConstraintRelTM(&SelectedObject, StartManRelConTM[i]);
 				}
 				else
 				{
-					ConstraintSetup->DefaultInstance.SetRefFrame(EConstraintFrame::Frame1, FTransform(StartManChildConTM));
+					ConstraintSetup->DefaultInstance.SetRefFrame(EConstraintFrame::Frame1, FTransform(StartManChildConTM[i]));
 				}
 			}
 
@@ -760,20 +760,26 @@ void FPhATEdPreviewViewportClient::StartManipulating(EAxisList::Type Axis, const
 	else if( SharedData->GetSelectedConstraint())
 	{
 		GEditor->BeginTransaction( NSLOCTEXT("UnrealEd", "MoveConstraint", "Move Constraint") );
-		for(int32 i=0; i<SharedData->SelectedConstraints.Num(); ++i)
+
+        const int32 Count = SharedData->SelectedConstraints.Num();
+        StartManRelConTM.SetNumUninitialized(Count);
+        StartManParentConTM.SetNumUninitialized(Count);
+        StartManChildConTM.SetNumUninitialized(Count);
+
+		for(int32 i=0; i < SharedData->SelectedConstraints.Num(); ++i)
 		{
-			SharedData->PhysicsAsset->ConstraintSetup[SharedData->SelectedConstraints[i].Index]->Modify();
-			SharedData->SelectedConstraints[i].ManipulateTM = FTransform::Identity;
+            FPhATSharedData::FSelection& Constraint = SharedData->SelectedConstraints[i];
+			SharedData->PhysicsAsset->ConstraintSetup[Constraint.Index]->Modify();
+			Constraint.ManipulateTM = FTransform::Identity;
+
+            const FTransform WParentFrame = SharedData->GetConstraintWorldTM(&Constraint, EConstraintFrame::Frame2);
+            const FTransform WChildFrame = SharedData->GetConstraintWorldTM(&Constraint, EConstraintFrame::Frame1);
+            const UPhysicsConstraintTemplate* Setup = SharedData->PhysicsAsset->ConstraintSetup[Constraint.Index];
+
+            StartManRelConTM[i] = WChildFrame * WParentFrame.Inverse();
+            StartManParentConTM[i] = Setup->DefaultInstance.GetRefFrame(EConstraintFrame::Frame2);
+            StartManChildConTM[i] = Setup->DefaultInstance.GetRefFrame(EConstraintFrame::Frame1);
 		}
-
-		const FTransform WParentFrame = SharedData->GetConstraintWorldTM(SharedData->GetSelectedConstraint(), EConstraintFrame::Frame2);
-		const FTransform WChildFrame = SharedData->GetConstraintWorldTM(SharedData->GetSelectedConstraint(), EConstraintFrame::Frame1);
-		StartManRelConTM = WChildFrame * WParentFrame.Inverse();
-
-		UPhysicsConstraintTemplate* Setup = SharedData->PhysicsAsset->ConstraintSetup[SharedData->GetSelectedConstraint()->Index];
-
-		StartManParentConTM = Setup->DefaultInstance.GetRefFrame(EConstraintFrame::Frame2);
-		StartManChildConTM = Setup->DefaultInstance.GetRefFrame(EConstraintFrame::Frame1);
 
 		SharedData->bManipulating = true;
 	}

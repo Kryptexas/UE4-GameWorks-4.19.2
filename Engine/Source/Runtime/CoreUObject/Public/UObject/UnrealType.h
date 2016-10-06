@@ -3732,7 +3732,10 @@ public:
 	virtual bool ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty) override;
 	// End of UProperty interface
 
+	DEPRECATED(4.14, "Use UScriptStruct::ImportText instead")
 	static const TCHAR* ImportText_Static(UScriptStruct* InStruct, const FString& InName, const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText);
+	
+	DEPRECATED(4.14, "Use UScriptStruct::ExportText instead")
 	static void ExportTextItem_Static(class UScriptStruct* InStruct, FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope);
 
 	bool UseBinaryOrNativeSerialization(const FArchive& Ar) const;

@@ -156,11 +156,11 @@ FCascade::~FCascade()
 			EditorOptions->FloorRotation = FloorComponent->RelativeRotation;
 			EditorOptions->FloorScale3D = FloorComponent->RelativeScale3D;
 
-			if (FloorComponent->StaticMesh)
+			if (FloorComponent->GetStaticMesh())
 			{
-				if (FloorComponent->StaticMesh->GetOuter())
+				if (FloorComponent->GetStaticMesh()->GetOuter())
 				{
-					EditorOptions->FloorMesh = FloorComponent->StaticMesh->GetOuter()->GetName();
+					EditorOptions->FloorMesh = FloorComponent->GetStaticMesh()->GetOuter()->GetName();
 					EditorOptions->FloorMesh += TEXT(".");
 				}
 				else
@@ -169,7 +169,7 @@ FCascade::~FCascade()
 					EditorOptions->FloorMesh = TEXT("");
 				}
 
-				EditorOptions->FloorMesh += FloorComponent->StaticMesh->GetName();
+				EditorOptions->FloorMesh += FloorComponent->GetStaticMesh()->GetName();
 			}
 			else
 			{
@@ -5227,7 +5227,7 @@ bool UCascadeParticleSystemComponent::ParticleLineCheck(FHitResult& Hit, AActor*
 		if (CascadePreviewViewportPtr && CascadePreviewViewportPtr->GetFloorComponent() && CascadePreviewViewportPtr->GetFloorComponent()->IsVisibleInEditor())
 		{
 			Hit = FHitResult(1.f);
-			return CascadePreviewViewportPtr->GetFloorComponent()->SweepComponent( Hit, Start, End, FCollisionShape::MakeBox(Extent) );
+			return CascadePreviewViewportPtr->GetFloorComponent()->SweepComponent( Hit, Start, End, FQuat::Identity, FCollisionShape::MakeBox(Extent) );
 		}
 	}
 

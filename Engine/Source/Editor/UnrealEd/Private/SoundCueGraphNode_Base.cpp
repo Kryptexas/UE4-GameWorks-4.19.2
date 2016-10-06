@@ -171,9 +171,12 @@ void USoundCueGraphNode_Base::ReconstructNode()
 		}
 	}
 
-	NewOutputPin->CopyPersistentDataFromOldPin(*OldOutputPin);
-	OldInputPins.Empty();
-	OldOutputPin = NULL;
+	if (OldOutputPin)
+	{
+		NewOutputPin->CopyPersistentDataFromOldPin(*OldOutputPin);
+		OldInputPins.Empty();
+		OldOutputPin = NULL;
+	}
 
 	// Throw away the original pins
 	for (int32 OldPinIndex = 0; OldPinIndex < OldPins.Num(); ++OldPinIndex)

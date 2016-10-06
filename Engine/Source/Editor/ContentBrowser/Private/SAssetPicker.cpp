@@ -233,6 +233,7 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 		.AssetShowWarningText( InArgs._AssetPickerConfig.AssetShowWarningText)
 		.AllowFocusOnSync(false)	// Stop the asset view from stealing focus (we're in control of that)
 		.OnPathSelected(this, &SAssetPicker::FolderEntered)
+		.HiddenColumnNames(InArgs._AssetPickerConfig.HiddenColumnNames)
 	];
 
 	LoadSettings();

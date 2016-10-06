@@ -26,8 +26,8 @@ public class SimplygonMeshReduction : ModuleRules
                 "MeshUtilities"                
             }
         );
-        		
-		AddEngineThirdPartyPrivateStaticDependencies(Target, "Simplygon");		
+
+        AddEngineThirdPartyPrivateStaticDependencies(Target, "Simplygon");		
 
 		if(Target.Platform == UnrealTargetPlatform.Win64)
 		{

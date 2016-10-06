@@ -901,6 +901,7 @@ void UCheatManager::DebugCapsuleSweepClear()
 
 void UCheatManager::TestCollisionDistance()
 {
+#if ENABLE_DRAW_DEBUG
 	APlayerController* PC = GetOuterAPlayerController();
 	if(PC)
 	{
@@ -928,6 +929,7 @@ void UCheatManager::TestCollisionDistance()
 			}
 		}
 	}
+#endif
 }
 
 void UCheatManager::RebuildNavigation()

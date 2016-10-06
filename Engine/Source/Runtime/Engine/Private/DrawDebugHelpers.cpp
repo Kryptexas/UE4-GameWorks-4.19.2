@@ -8,6 +8,8 @@
 #include "Components/LineBatchComponent.h"
 #include "GameFramework/HUD.h"
 
+#if ENABLE_DRAW_DEBUG
+
 void FlushPersistentDebugLines( const UWorld* InWorld )
 {
 	if(InWorld && InWorld->PersistentLineBatcher)
@@ -1049,3 +1051,5 @@ void DrawDebugCanvas2DCircle(UCanvas* Canvas, const FVector2D& Center, float Rad
 		LastVertex = Vertex;
 	}
 }
+
+#endif // ENABLE_DRAW_DEBUG

@@ -4,6 +4,8 @@
 #include "PhysicsPublic.h"
 #include "CollisionDebugDrawingPublic.h"
 
+#if ENABLE_DRAW_DEBUG
+
 static FColor TraceColor(255,255,255);
 static FColor HitColor(156, 179, 209);
 static FColor PenetratingColor(64, 64, 255);
@@ -238,4 +240,6 @@ void DrawGeomSweeps(const UWorld* InWorld, const FVector& Start, const FVector& 
 }
 
 
-#endif
+#endif // WITH_PHYSX
+
+#endif // ENABLE_DRAW_DEBUG

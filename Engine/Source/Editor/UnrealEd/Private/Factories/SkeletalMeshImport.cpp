@@ -30,7 +30,7 @@ bool SkeletonsAreCompatible( const FReferenceSkeleton& NewSkel, const FReference
 		return false;
 	}
 
-	for(int32 i=1; i<NewSkel.GetNum(); i++)
+	for(int32 i=1; i<NewSkel.GetRawBoneNum(); i++)
 	{
 		// See if bone is in both skeletons.
 		int32 NewBoneIndex = i;
@@ -206,12 +206,14 @@ void ProcessImportMeshMaterials(TArray<FSkeletalMaterial>& Materials, FSkeletalM
 * @param ImportData - raw binary import data to process
 * @return true if the operation completed successfully
 */
-bool ProcessImportMeshSkeleton(FReferenceSkeleton& RefSkeleton, int32& SkeletalDepth, FSkeletalMeshImportData& ImportData)
+bool ProcessImportMeshSkeleton(const USkeleton* SkeletonAsset, FReferenceSkeleton& RefSkeleton, int32& SkeletalDepth, FSkeletalMeshImportData& ImportData)
 {
 	TArray <VBone>&	RefBonesBinary = ImportData.RefBonesBinary;
 
 	// Setup skeletal hierarchy + names structure.
 	RefSkeleton.Empty();
+
+	FReferenceSkeletonModifier RefSkelModifier(RefSkeleton, SkeletonAsset);
 
 	// Digest bones to the serializable format.
 	for( int32 b=0; b<RefBonesBinary.Num(); b++ )
@@ -221,14 +223,14 @@ bool ProcessImportMeshSkeleton(FReferenceSkeleton& RefSkeleton, int32& SkeletalD
 		const FMeshBoneInfo BoneInfo(FName(*BoneName, FNAME_Add), BinaryBone.Name, BinaryBone.ParentIndex);
 		const FTransform BoneTransform(BinaryBone.BonePos.Transform);
 
-		if(RefSkeleton.FindBoneIndex(BoneInfo.Name) != INDEX_NONE)
+		if(RefSkeleton.FindRawBoneIndex(BoneInfo.Name) != INDEX_NONE)
 		{
 			UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
 			FFbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, FText::Format(LOCTEXT("SkeletonHasDuplicateBones", "Skeleton has non-unique bone names.\nBone named '{0}' encountered more than once."), FText::FromName(BoneInfo.Name))), FFbxErrors::SkeletalMesh_DuplicateBones);
 			return false;
 		}
 
-		RefSkeleton.Add(BoneInfo, BoneTransform);
+		RefSkelModifier.Add(BoneInfo, BoneTransform);
 	}
 
 	// Add hierarchy index to each bone and detect max depth.
@@ -237,9 +239,9 @@ bool ProcessImportMeshSkeleton(FReferenceSkeleton& RefSkeleton, int32& SkeletalD
 	TArray<int32> SkeletalDepths;
 	SkeletalDepths.Empty( RefBonesBinary.Num() );
 	SkeletalDepths.AddZeroed( RefBonesBinary.Num() );
-	for( int32 b=0; b < RefSkeleton.GetNum(); b++ )
+	for( int32 b=0; b < RefSkeleton.GetRawBoneNum(); b++ )
 	{
-		int32 Parent	= RefSkeleton.GetParentIndex(b);
+		int32 Parent	= RefSkeleton.GetRawParentIndex(b);
 		int32 Depth	= 1.0f;
 
 		SkeletalDepths[b]	= 1.0f;
@@ -909,7 +911,7 @@ void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeletalMesh* 
 
 		// this is not ideal. Ideally we'll have to save only diff with indicating which joints, 
 		// but for now, we allow them to keep the previous pose IF the element count is same
-		if (MeshData->ExistingRetargetBasePose.Num() == SkeletalMesh->RefSkeleton.GetNum())
+		if (MeshData->ExistingRetargetBasePose.Num() == SkeletalMesh->RefSkeleton.GetRawBoneNum())
 		{
 			SkeletalMesh->RetargetBasePose = MeshData->ExistingRetargetBasePose;
 		}
@@ -934,8 +936,8 @@ void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeletalMesh* 
 				bRegenLODs = false;
 				// First create mapping table from old skeleton to new skeleton.
 				TArray<int32> OldToNewMap;
-				OldToNewMap.AddUninitialized(MeshData->ExistingRefSkeleton.GetNum());
-				for (int32 i = 0; i < MeshData->ExistingRefSkeleton.GetNum(); i++)
+				OldToNewMap.AddUninitialized(MeshData->ExistingRefSkeleton.GetRawBoneNum());
+				for (int32 i = 0; i < MeshData->ExistingRefSkeleton.GetRawBoneNum(); i++)
 				{
 					OldToNewMap[i] = SkeletalMesh->RefSkeleton.FindBoneIndex(MeshData->ExistingRefSkeleton.GetBoneName(i));
 				}

@@ -186,13 +186,13 @@ void SStaticMeshEditorViewport::OnObjectPropertyChanged(UObject* ObjectBeingModi
 
 	if( PreviewMeshComponent )
 	{
-		bool bShouldUpdatePreviewSocketMeshes = (ObjectBeingModified == PreviewMeshComponent->StaticMesh);
-		if( !bShouldUpdatePreviewSocketMeshes && PreviewMeshComponent->StaticMesh )
+		bool bShouldUpdatePreviewSocketMeshes = (ObjectBeingModified == PreviewMeshComponent->GetStaticMesh());
+		if( !bShouldUpdatePreviewSocketMeshes && PreviewMeshComponent->GetStaticMesh())
 		{
-			const int32 SocketCount = PreviewMeshComponent->StaticMesh->Sockets.Num();
+			const int32 SocketCount = PreviewMeshComponent->GetStaticMesh()->Sockets.Num();
 			for( int32 i = 0; i < SocketCount; ++i )
 			{
-				if( ObjectBeingModified == PreviewMeshComponent->StaticMesh->Sockets[i] )
+				if( ObjectBeingModified == PreviewMeshComponent->GetStaticMesh()->Sockets[i] )
 				{
 					bShouldUpdatePreviewSocketMeshes = true;
 					break;
@@ -210,7 +210,7 @@ void SStaticMeshEditorViewport::OnObjectPropertyChanged(UObject* ObjectBeingModi
 
 void SStaticMeshEditorViewport::UpdatePreviewSocketMeshes()
 {
-	UStaticMesh* const PreviewStaticMesh = PreviewMeshComponent ? PreviewMeshComponent->StaticMesh : NULL;
+	UStaticMesh* const PreviewStaticMesh = PreviewMeshComponent ? PreviewMeshComponent->GetStaticMesh() : nullptr;
 
 	if( PreviewStaticMesh )
 	{
@@ -264,7 +264,7 @@ void SStaticMeshEditorViewport::SetPreviewMesh(UStaticMesh* InStaticMesh)
 {
 	// Set the new preview static mesh.
 	FComponentReregisterContext ReregisterContext( PreviewMeshComponent );
-	PreviewMeshComponent->StaticMesh = InStaticMesh;
+	PreviewMeshComponent->SetStaticMesh(InStaticMesh);
 
 	FTransform Transform = FTransform::Identity;
 	PreviewScene->AddComponent( PreviewMeshComponent, Transform );

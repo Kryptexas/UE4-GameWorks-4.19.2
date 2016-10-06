@@ -1669,10 +1669,10 @@ struct CompressAnimationsFunctor
 				{
 					bool bCandidate = false;
 
-					for (int32 i = 0; i<AnimSeq->CompressedTrackToSkeletonMapTable.Num(); i++)
+					for (int32 i = 0; i<AnimSeq->GetCompressedTrackToSkeletonMapTable().Num(); i++)
  					{
  						const int32 TrackIndex = i;
-						const int32 BoneTreeIndex = AnimSeq->CompressedTrackToSkeletonMapTable[TrackIndex].BoneTreeIndex;
+						const int32 BoneTreeIndex = AnimSeq->GetCompressedTrackToSkeletonMapTable()[TrackIndex].BoneTreeIndex;
 						const FName BoneTreeName = Skeleton->GetReferenceSkeleton().GetBoneName(BoneTreeIndex);
 
  						// Translation

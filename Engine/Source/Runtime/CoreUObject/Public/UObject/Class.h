@@ -1124,6 +1124,33 @@ public:
 	COREUOBJECT_API void SerializeItem(FArchive& Ar, void* Value, void const* Defaults);
 
 	/**
+	 * Export script struct to a string that can later be imported
+	 *
+	 * @param	ValueStr		String to write to
+	 * @param	Value			Actual struct being exported
+	 * @param	Defaults		Default value for this struct, pass nullptr to not use defaults 
+	 * @param	OwnerObject		UObject that contains this struct
+	 * @param	PortFlags		EPropertyPortFlags controlling export behavior
+	 * @param	ExportRootScope	The scope to create relative paths from, if the PPF_ExportsNotFullyQualified flag is passed in.  If NULL, the package containing the object will be used instead.
+	 * @param	bAllowNativeOverride If true, will try to run native version of export text on the struct
+	 */
+	COREUOBJECT_API void ExportText(FString& ValueStr, const void* Value, const void* Defaults, UObject* OwnerObject, int32 PortFlags, UObject* ExportRootScope, bool bAllowNativeOverride = true);
+
+	/**
+	 * Sets value of script struct based on imported string
+	 *
+	 * @param	Buffer			String to read text data out of
+	 * @param	Value			Struct that will be modified
+	 * @param	OwnerObject		UObject that contains this struct
+	 * @param	PortFlags		EPropertyPortFlags controlling import behavior
+	 * @param	ErrorText		What to print import errors to
+	 * @param	StructName		Name of struct, used in error display
+	 * @param	bAllowNativeOverride If true, will try to run native version of export text on the struct
+	 * @return Buffer after parsing has succeeded, or NULL on failure
+	 */
+	COREUOBJECT_API const TCHAR* ImportText(const TCHAR* Buffer, void* Value, UObject* OwnerObject, int32 PortFlags, FOutputDevice* ErrorText, const FString& StructName, bool bAllowNativeOverride = true);
+
+	/**
 	 * Compare two script structs
 	 *
 	 * @param	Dest		Pointer to memory to a struct
@@ -1142,6 +1169,7 @@ public:
 	 * @param	Stride		Stride of the array, If this default (0), then we will pull the size from the struct
 	 */
 	COREUOBJECT_API void CopyScriptStruct(void* Dest, void const* Src, int32 ArrayDim = 1) const;
+	
 	/**
 	 * Reinitialize a struct in memory. This may be done by calling the native destructor and then the constructor or individually reinitializing properties
 	 *
@@ -1149,7 +1177,7 @@ public:
 	 * @param	ArrayDim	Number of elements in the array
 	 * @param	Stride		Stride of the array, only relevant if there more than one element. If this default (0), then we will pull the size from the struct
 	 */
-	void ClearScriptStruct(void* Dest, int32 ArrayDim = 1) const;
+	COREUOBJECT_API void ClearScriptStruct(void* Dest, int32 ArrayDim = 1) const;
 
 	virtual COREUOBJECT_API void RecursivelyPreload();
 
@@ -2169,7 +2197,7 @@ public:
 	T* GetDefaultObject()
 	{
 		UObject *Ret = GetDefaultObject();
-		checkSlow(Ret->IsA(T::StaticClass()));
+		check(Ret->IsA(T::StaticClass()));
 		return (T*)Ret;
 	}
 

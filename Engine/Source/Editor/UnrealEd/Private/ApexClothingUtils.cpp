@@ -958,6 +958,7 @@ bool AssociateClothingAssetWithSkeletalMesh(USkeletalMesh* SkelMesh, int32 LODIn
 	ClothSection.MaterialIndex = OriginMeshSection.MaterialIndex;
 	ClothSection.TriangleSorting = OriginMeshSection.TriangleSorting;
 	ClothSection.bSelected = OriginMeshSection.bSelected;
+	ClothSection.bCastShadow = OriginMeshSection.bCastShadow;
 	ClothSection.bRecomputeTangent = OriginMeshSection.bRecomputeTangent;
 	ClothSection.bEnableClothLOD_DEPRECATED = OriginMeshSection.bEnableClothLOD_DEPRECATED;
 

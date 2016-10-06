@@ -3143,7 +3143,7 @@ struct FConvertStaticMeshActorInfo
 		InternalGetFromActor(Actor);
 
 		// Copy over component properties.
-		StaticMesh				= MeshComp->StaticMesh;
+		StaticMesh				= MeshComp->GetStaticMesh();
 		OverrideMaterials		= MeshComp->OverrideMaterials;
 		IrrelevantLights		= MeshComp->IrrelevantLights;
 		CachedMaxDrawDistance	= MeshComp->CachedMaxDrawDistance;
@@ -3187,7 +3187,7 @@ struct FConvertStaticMeshActorInfo
 		InternalSetToActor(Actor);
 
 		// Set component properties.
-		if ( bComponentPropsDifferFromDefaults[0] ) MeshComp->StaticMesh			= StaticMesh;
+		if ( bComponentPropsDifferFromDefaults[0] ) MeshComp->SetStaticMesh(StaticMesh);
 		if ( bComponentPropsDifferFromDefaults[1] ) MeshComp->OverrideMaterials		= OverrideMaterials;
 		if ( bComponentPropsDifferFromDefaults[2] ) MeshComp->IrrelevantLights		= IrrelevantLights;
 		if ( bComponentPropsDifferFromDefaults[3] ) MeshComp->CachedMaxDrawDistance	= CachedMaxDrawDistance;
@@ -3199,7 +3199,7 @@ struct FConvertStaticMeshActorInfo
 		if ( bComponentPropsDifferFromDefaults[6] )
 		{
 			// Ensure the LODInfo has the right number of entries
-			MeshComp->SetLODDataCount( OverrideVertexColors.Num(), MeshComp->StaticMesh->GetNumLODs() );
+			MeshComp->SetLODDataCount( OverrideVertexColors.Num(), MeshComp->GetStaticMesh()->GetNumLODs() );
 			
 			// Loop over each LODInfo to see if there are any vertex override colors to restore
 			for ( int32 LODIndex = 0; LODIndex < MeshComp->LODData.Num(); ++LODIndex )
@@ -6075,7 +6075,7 @@ bool UEditorEngine::LoadPreviewMesh( int32 Index )
 		if( PreviewMesh )
 		{
 			bMeshLoaded = true;
-			PreviewMeshComp->StaticMesh = PreviewMesh;
+			PreviewMeshComp->SetStaticMesh(PreviewMesh);
 		}
 		else
 		{
@@ -6421,7 +6421,7 @@ void UEditorEngine::VerifyLoadMapWorldCleanup()
 	for( TObjectIterator<UWorld> It; It; ++It )
 	{
 		UWorld* World = *It;
-		if (World->WorldType != EWorldType::Preview && World->WorldType != EWorldType::Editor && World->WorldType != EWorldType::Inactive)
+		if (World->WorldType != EWorldType::EditorPreview && World->WorldType != EWorldType::Editor && World->WorldType != EWorldType::Inactive)
 		{
 			TArray<UWorld*> OtherEditorWorlds;
 			EditorLevelUtils::GetWorlds(EditorWorld, OtherEditorWorlds, true, false);

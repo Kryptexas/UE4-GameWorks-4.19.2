@@ -6,7 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "Engine/LODActor.h"
-#include "Engine/HLODMeshCullingVolume.h"
+#include "Engine/MeshMergeCullingVolume.h"
 #include "MapErrors.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"
@@ -317,7 +317,7 @@ void ALODActor::CheckForErrors()
 			->AddToken(FMapErrorToken::Create(FMapErrors::StaticMeshComponent));
 	}
 
-	if (StaticMeshComponent && StaticMeshComponent->StaticMesh == NULL)
+	if (StaticMeshComponent && StaticMeshComponent->GetStaticMesh() == nullptr)
 	{
 		FFormatNamedArguments Arguments;
 		Arguments.Add(TEXT("ActorName"), FText::FromString(GetName()));
@@ -383,9 +383,9 @@ void ALODActor::AddSubActor(AActor* InActor)
 		InActor->GetComponents<UStaticMeshComponent>(StaticMeshComponents);
 		for (UStaticMeshComponent* Component : StaticMeshComponents)
 		{
-			if (Component && Component->StaticMesh && Component->StaticMesh->RenderData)
+			if (Component && Component->GetStaticMesh() && Component->GetStaticMesh()->RenderData)
 			{
-				NumTrianglesInSubActors += Component->StaticMesh->RenderData->LODResources[0].GetNumTriangles();
+				NumTrianglesInSubActors += Component->GetStaticMesh()->RenderData->LODResources[0].GetNumTriangles();
 			}
 			Component->MarkRenderStateDirty();
 		}
@@ -416,9 +416,9 @@ const bool ALODActor::RemoveSubActor(AActor* InActor)
 			InActor->GetComponents<UStaticMeshComponent>(StaticMeshComponents);
 			for (UStaticMeshComponent* Component : StaticMeshComponents)
 			{
-				if (Component && Component->StaticMesh && Component->StaticMesh->RenderData)
+				if (Component && Component->GetStaticMesh() && Component->GetStaticMesh()->RenderData)
 				{
-					NumTrianglesInSubActors -= Component->StaticMesh->RenderData->LODResources[0].GetNumTriangles();
+					NumTrianglesInSubActors -= Component->GetStaticMesh()->RenderData->LODResources[0].GetNumTriangles();
 				}
 
 				Component->MarkRenderStateDirty();
@@ -490,10 +490,8 @@ void ALODActor::SetIsDirty(const bool bNewState)
 			}
 		}
 
-		// Set static mesh to null (this so we can revert without destroying the previously build static mesh)
-		StaticMeshComponent->StaticMesh = nullptr;
-		// Mark render state dirty to update viewport
-		StaticMeshComponent->MarkRenderStateDirty();
+		// Set static mesh to null
+		StaticMeshComponent->SetStaticMesh(nullptr);
 #if WITH_EDITOR
 		// Broadcast actor marked dirty event
 		if (GEditor)
@@ -584,12 +582,12 @@ void ALODActor::SetStaticMesh(class UStaticMesh* InStaticMesh)
 {
 	if (StaticMeshComponent)
 	{
-		StaticMeshComponent->StaticMesh = InStaticMesh;
+		StaticMeshComponent->SetStaticMesh(InStaticMesh);
 		SetIsDirty(false);
 
-		if (StaticMeshComponent && StaticMeshComponent->StaticMesh && StaticMeshComponent->StaticMesh->RenderData)
+		if (StaticMeshComponent && StaticMeshComponent->GetStaticMesh() && StaticMeshComponent->GetStaticMesh()->RenderData)
 		{
-			NumTrianglesInMergedMesh = StaticMeshComponent->StaticMesh->RenderData->LODResources[0].GetNumTriangles();
+			NumTrianglesInMergedMesh = StaticMeshComponent->GetStaticMesh()->RenderData->LODResources[0].GetNumTriangles();
 		}
 	}
 }
@@ -673,9 +671,9 @@ FBox ALODActor::GetComponentsBoundingBox(bool bNonColliding) const
 
 	if (bNonColliding)
 	{
-		if (StaticMeshComponent && StaticMeshComponent->StaticMesh)
+		if (StaticMeshComponent && StaticMeshComponent->GetStaticMesh())
 		{
-			FBoxSphereBounds StaticBound = StaticMeshComponent->StaticMesh->GetBounds();
+			FBoxSphereBounds StaticBound = StaticMeshComponent->GetStaticMesh()->GetBounds();
 			FBox StaticBoundBox(BoundBox.GetCenter()-StaticBound.BoxExtent, BoundBox.GetCenter()+StaticBound.BoxExtent);
 			BoundBox += StaticBoundBox;
 		}

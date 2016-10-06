@@ -672,7 +672,7 @@ public:
 					const bool bParsedUsingCustomFormat = FDefaultValueHelper::ParseVector(Term->Name, /*out*/ V);
 					if (!bParsedUsingCustomFormat)
 					{
-						UStructProperty::ImportText_Static(Struct, GetPathNameSafe(StructProperty), *Term->Name, &V, PPF_None, nullptr, (FOutputDevice*)GWarn);
+						Struct->ImportText(*Term->Name, &V, nullptr, PPF_None, GWarn, GetPathNameSafe(StructProperty));
 					}
 					Writer << EX_VectorConst;
 					Writer << V;
@@ -683,7 +683,7 @@ public:
 					const bool bParsedUsingCustomFormat = FDefaultValueHelper::ParseRotator(Term->Name, /*out*/ R);
 					if (!bParsedUsingCustomFormat)
 					{
-						UStructProperty::ImportText_Static(Struct, GetPathNameSafe(StructProperty), *Term->Name, &R, PPF_None, nullptr, (FOutputDevice*)GWarn);
+						Struct->ImportText(*Term->Name, &R, nullptr, PPF_None, GWarn, GetPathNameSafe(StructProperty));
 					}
 					Writer << EX_RotationConst;
 					Writer << R;
@@ -694,7 +694,7 @@ public:
 					const bool bParsedUsingCustomFormat = T.InitFromString(Term->Name);
 					if (!bParsedUsingCustomFormat)
 					{
-						UStructProperty::ImportText_Static(Struct, GetPathNameSafe(StructProperty), *Term->Name, &T, PPF_None, nullptr, (FOutputDevice*)GWarn);
+						Struct->ImportText(*Term->Name, &T, nullptr, PPF_None, GWarn, GetPathNameSafe(StructProperty));
 					}
 					Writer << EX_TransformConst;
 					Writer << T;
@@ -715,7 +715,7 @@ public:
 					}
 
 					// Assume that any errors on the import of the name string have been caught in the function call generation
-					UStructProperty::ImportText_Static(Struct, GetPathNameSafe(StructProperty), Term->Name.IsEmpty() ? TEXT("()") : *Term->Name, StructData, 0, nullptr, GLog);
+					Struct->ImportText(Term->Name.IsEmpty() ? TEXT("()") : *Term->Name, StructData, nullptr, PPF_None, GLog, GetPathNameSafe(StructProperty));
 
  					Writer << EX_StructConst;
 					Writer << Struct;

@@ -833,7 +833,7 @@ void FStaticMeshEditorViewportClient::DrawUVsForMesh(FViewport* InViewport, FCan
 
 	int32 UVChannel = StaticMeshEditorPtr.Pin()->GetCurrentUVChannel();
 
-	DrawUVs(InViewport, InCanvas, InTextYPos, LODLevel, UVChannel, SelectedEdgeTexCoords[UVChannel], StaticMeshComponent->StaticMesh->RenderData, NULL);
+	DrawUVs(InViewport, InCanvas, InTextYPos, LODLevel, UVChannel, SelectedEdgeTexCoords[UVChannel], StaticMeshComponent->GetStaticMesh()->RenderData, NULL);
 }
 
 void FStaticMeshEditorViewportClient::MouseMove(FViewport* InViewport,int32 x, int32 y)
@@ -986,9 +986,9 @@ void FStaticMeshEditorViewportClient::ProcessClick(class FSceneView& InView, cla
 				TArray< int32 > ClosestEdgeIndices;
 				FVector ClosestEdgeVertices[ 2 ];
 
-				const uint32 LODLevel = FMath::Clamp( StaticMeshComponent->ForcedLodModel - 1, 0, StaticMeshComponent->StaticMesh->GetNumLODs() - 1 );
+				const uint32 LODLevel = FMath::Clamp( StaticMeshComponent->ForcedLodModel - 1, 0, StaticMeshComponent->GetStaticMesh()->GetNumLODs() - 1 );
 				FRawMesh RawMesh;
-				StaticMeshComponent->StaticMesh->SourceModels[LODLevel].RawMeshBulkData->LoadRawMesh(RawMesh);
+				StaticMeshComponent->GetStaticMesh()->SourceModels[LODLevel].RawMeshBulkData->LoadRawMesh(RawMesh);
 
 				const int32 RawEdgeCount = RawMesh.WedgeIndices.Num() - 1; 
 				const int32 NumFaces = RawMesh.WedgeIndices.Num() / 3;

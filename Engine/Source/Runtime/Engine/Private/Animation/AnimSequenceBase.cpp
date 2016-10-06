@@ -216,6 +216,8 @@ void UAnimSequenceBase::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimN
 		MoveDelta = PlayRate * DeltaTime;
 
 		Context.SetLeaderDelta(MoveDelta);
+		Context.SetPreviousAnimationPositionRatio(PreviousTime / SequenceLength);
+
 		if (MoveDelta != 0.f)
 		{
 			if (Instance.bCanUseMarkerSync && Context.CanUseMarkerPosition())
@@ -250,6 +252,7 @@ void UAnimSequenceBase::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimN
 		}
 		else
 		{
+			PreviousTime = Context.GetPreviousAnimationPositionRatio() * SequenceLength;
 			CurrentTime = Context.GetAnimationPositionRatio() * SequenceLength;
 			UE_LOG(LogAnimMarkerSync, Log, TEXT("Follower (%s) (normalized position advance) - PreviousTime (%0.2f), CurrentTime (%0.2f), MoveDelta (%0.2f), Looping (%d) "), *GetName(), PreviousTime, CurrentTime, MoveDelta, Instance.bLooping ? 1 : 0);
 		}
@@ -302,30 +305,76 @@ void UAnimSequenceBase::TickByMarkerAsLeader(FMarkerTickRecord& Instance, FMarke
 	UE_LOG(LogAnimMarkerSync, Log, TEXT("Leader (%s) - PreviousTime (%0.2f), CurrentTime (%0.2f), MoveDelta (%0.2f), Looping(%d) "), *GetName(), OutPreviousTime, CurrentTime, MoveDelta, bLooping ? 1 : 0);
 }
 
+bool CanNotifyUseTrack(const FAnimNotifyTrack& Track, const FAnimNotifyEvent& Notify)
+{
+	for (const FAnimNotifyEvent* Event : Track.Notifies)
+	{
+		if (FMath::IsNearlyEqual(Event->GetTime(), Notify.GetTime()))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+FAnimNotifyTrack& AddNewTrack(TArray<FAnimNotifyTrack>& Tracks)
+{
+	const int32 Index = Tracks.Add(FAnimNotifyTrack(*FString::FromInt(Tracks.Num() + 1), FLinearColor::White));
+	return Tracks[Index];
+}
+
 void UAnimSequenceBase::RefreshCacheData()
 {
 	SortNotifies();
 
 #if WITH_EDITOR
-	for (int32 TrackIndex=0; TrackIndex<AnimNotifyTracks.Num(); ++TrackIndex)
+	for (int32 TrackIndex = 0; TrackIndex < AnimNotifyTracks.Num(); ++TrackIndex)
 	{
 		AnimNotifyTracks[TrackIndex].Notifies.Empty();
 	}
 
-	for (int32 NotifyIndex = 0; NotifyIndex<Notifies.Num(); ++NotifyIndex)
+	for (FAnimNotifyEvent& Notify : Notifies)
 	{
-		int32 TrackIndex = Notifies[NotifyIndex].TrackIndex;
-		if (AnimNotifyTracks.IsValidIndex(TrackIndex))
+		// Handle busted track indices
+		if (!AnimNotifyTracks.IsValidIndex(Notify.TrackIndex))
 		{
-			AnimNotifyTracks[TrackIndex].Notifies.Add(&Notifies[NotifyIndex]);
+			// This really shouldn't happen, but try to handle it
+			ensureMsgf(0, TEXT("AnimNotifyTrack: Anim (%s) has notify (%s) with track index (%i) that does not exist"), *GetFullName(), *Notify.NotifyName.ToString(), Notify.TrackIndex);
+
+			// Don't create lots of extra tracks if we are way off supporting this track
+			if (Notify.TrackIndex < 0 || Notify.TrackIndex > 20)
+			{
+				Notify.TrackIndex = 0;
+			}
+			else
+			{
+				while (!AnimNotifyTracks.IsValidIndex(Notify.TrackIndex))
+				{
+					AddNewTrack(AnimNotifyTracks);
+				}
+			}
 		}
-		else
+
+		// Handle overlapping notifies
+		FAnimNotifyTrack* TrackToUse = nullptr;
+		for (int32 TrackOffset = 0; TrackOffset < AnimNotifyTracks.Num(); ++TrackOffset)
 		{
-			// this notifyindex isn't valid, delete
-			// this should not happen, but if it doesn, find best place to add
-			ensureMsgf(0, TEXT("AnimNotifyTrack: Wrong indices found"));
-			AnimNotifyTracks[0].Notifies.Add(&Notifies[NotifyIndex]);
+			const int32 TrackIndex = (Notify.TrackIndex + TrackOffset) % AnimNotifyTracks.Num();
+			if (CanNotifyUseTrack(AnimNotifyTracks[TrackIndex], Notify))
+			{
+				TrackToUse = &AnimNotifyTracks[TrackIndex];
+				break;
+			}
 		}
+
+		if (TrackToUse == nullptr)
+		{
+			TrackToUse = &AddNewTrack(AnimNotifyTracks);
+		}
+
+		check(TrackToUse);
+
+		TrackToUse->Notifies.Add(&Notify);
 	}
 
 	// this is a separate loop of checkin if they contains valid notifies

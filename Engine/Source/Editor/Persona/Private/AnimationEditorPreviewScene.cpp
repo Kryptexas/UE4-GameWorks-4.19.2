@@ -54,7 +54,7 @@ FAnimationEditorPreviewScene::FAnimationEditorPreviewScene(const ConstructionVal
 
 	PreviewSceneDescription->AnimationMode = EPreviewAnimationMode::Default;
 	PreviewSceneDescription->Animation = InPersonaToolkit->GetAnimationAsset();
-	PreviewSceneDescription->PreviewMesh = InPersonaToolkit->GetSkeleton()->GetPreviewMesh();
+	PreviewSceneDescription->PreviewMesh = InPersonaToolkit->GetPreviewMesh();
 	PreviewSceneDescription->AdditionalMeshes = InEditableSkeleton->GetSkeleton().GetAdditionalPreviewSkeletalMeshes();
 
 	// Force validation of preview attached assets (catch case of never doing it if we dont have a valid preview mesh)
@@ -177,9 +177,6 @@ void FAnimationEditorPreviewScene::SetPreviewMeshInternal(USkeletalMesh* NewPrev
 	}
 
 	OnPreviewMeshChanged.Broadcast(NewPreviewMesh);
-
-	// make sure the scene desc is up to date, as this funciton is not necessarily called from the UI code that customizes it
-	PreviewSceneDescription->PreviewMesh = NewPreviewMesh;
 }
 
 void FAnimationEditorPreviewScene::ValidatePreviewAttachedAssets(USkeletalMesh* PreviewSkeletalMesh)
@@ -866,6 +863,21 @@ FSelectedSocketInfo FAnimationEditorPreviewScene::GetSelectedSocket() const
 int32 FAnimationEditorPreviewScene::GetSelectedBoneIndex() const
 { 
 	return SelectedBoneIndex;
+}
+
+void FAnimationEditorPreviewScene::TogglePlayback()
+{
+	if (SkeletalMeshComponent)
+	{
+		if (SkeletalMeshComponent->IsPreviewOn() && SkeletalMeshComponent->PreviewInstance)
+		{
+			SkeletalMeshComponent->PreviewInstance->SetPlaying(!SkeletalMeshComponent->PreviewInstance->IsPlaying());
+		}
+		else
+		{
+			SkeletalMeshComponent->GlobalAnimRateScale = (SkeletalMeshComponent->GlobalAnimRateScale > 0.0f) ? 0.0f : 1.0f;
+		}
+	}
 }
 
 void FAnimationEditorPreviewScene::Tick(float InDeltaTime)

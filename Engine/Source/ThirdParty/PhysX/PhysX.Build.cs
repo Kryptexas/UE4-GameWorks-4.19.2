@@ -161,11 +161,6 @@ public class PhysX : ModuleRules
 				"PhysX3Common{0}_x64.dll",
 			};
 
-			string[] PhysXRuntimeDependenciesX64 = new string[] {
-				"PhysX3{0}_x64.dll",
-				"PhysX3Common{0}_x64.dll",
-				"PhysX3Cooking{0}_x64.dll",
-			};
 			string[] PxSharedRuntimeDependenciesX64 = new string[] {
 				"PxFoundation{0}_x64.dll",
 				"PxPvdSDK{0}_x64.dll",
@@ -182,7 +177,7 @@ public class PhysX : ModuleRules
 			}
 
 			string PhysXBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/PhysX/Win64/VS{0}/", WindowsPlatform.GetVisualStudioCompilerVersionName());
-			foreach (string DLL in PhysXRuntimeDependenciesX64)
+			foreach (string DLL in DelayLoadDLLsX64)
 			{
 				string FileName = PhysXBinariesDir + String.Format(DLL, LibrarySuffix);
 				RuntimeDependencies.Add(FileName, StagedFileType.NonUFS);
@@ -220,15 +215,11 @@ public class PhysX : ModuleRules
 			};
 
 			string[] DelayLoadDLLsX86 = new string[] {
-				"PhysX3{0}_x86.dll",
+                "PxFoundation{0}_x86.dll",
+                "PxPvdSDK{0}_x86.dll",
+                "PhysX3{0}_x86.dll",
 				"PhysX3Cooking{0}_x86.dll",
 				"PhysX3Common{0}_x86.dll"
-			};
-
-			string[] RuntimeDependenciesX86 = new string[] {
-				"PhysX3{0}_x86.dll",
-				"PhysX3Common{0}_x86.dll",
-				"PhysX3Cooking{0}_x86.dll",
 			};
 
 			foreach (string Lib in StaticLibrariesX86)
@@ -242,7 +233,7 @@ public class PhysX : ModuleRules
 			}
 
 			string PhysXBinariesDir = String.Format("$(EngineDir)/Binaries/ThirdParty/PhysX/Win32/VS{0}/", WindowsPlatform.GetVisualStudioCompilerVersionName());
-			foreach (string DLL in RuntimeDependenciesX86)
+			foreach (string DLL in DelayLoadDLLsX86)
 			{
 				string FileName = PhysXBinariesDir + String.Format(DLL, LibrarySuffix);
 				RuntimeDependencies.Add(FileName, StagedFileType.NonUFS);

@@ -80,7 +80,7 @@ struct PrimitiveStatsGenerator
 		// The static mesh is a static mesh component's resource.
 		if( StaticMeshComponent )
 		{
-			UStaticMesh* Mesh = StaticMeshComponent->StaticMesh;
+			UStaticMesh* Mesh = StaticMeshComponent->GetStaticMesh();
 			Resource = Mesh;
 
 			// Calculate vertex color memory on the actual mesh.
@@ -280,7 +280,7 @@ struct PrimitiveStatsGenerator
 				// ... in the case of a static mesh component.
 				if( StaticMeshComponent )
 				{
-					UStaticMesh* StaticMesh = StaticMeshComponent->StaticMesh;
+					UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
 					if( StaticMesh && StaticMesh->RenderData )
 					{
 						for( int32 SectionIndex=0; SectionIndex<StaticMesh->RenderData->LODResources[0].Sections.Num(); SectionIndex++ )

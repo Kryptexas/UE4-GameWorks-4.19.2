@@ -3,6 +3,7 @@
 #pragma once
 
 #include "IAnimationEditor.h"
+#include "TickableEditorObject.h"
 #include "EditorUndoClient.h"
 
 namespace AnimationEditorModes
@@ -25,7 +26,7 @@ namespace AnimationEditorTabs
 	extern const FName SlotNamesTab;
 }
 
-class FAnimationEditor : public IAnimationEditor, public FGCObject, public FEditorUndoClient
+class FAnimationEditor : public IAnimationEditor, public FGCObject, public FEditorUndoClient, public FTickableEditorObject
 {
 public:
 	FAnimationEditor();
@@ -46,6 +47,11 @@ public:
 	virtual FString GetWorldCentricTabPrefix() const override;
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 
+	/** FTickableEditorObject Interface */
+	virtual void Tick(float DeltaTime) override;
+	virtual TStatId GetStatId() const override;
+	virtual bool IsTickable() const override { return true; }
+	
 	/** FEditorUndoClient interface */
 	virtual void PostUndo(bool bSuccess) override;
 	virtual void PostRedo(bool bSuccess) override;

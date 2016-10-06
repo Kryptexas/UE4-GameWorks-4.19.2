@@ -165,43 +165,6 @@ bool FSkeletonSelectionEditMode::EndTracking(FEditorViewportClient* InViewportCl
 	return false;
 }
 
-bool FSkeletonSelectionEditMode::InputKey(FEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent)
-{
-	const FWidget::EWidgetMode WidgetMode = InViewportClient->GetWidgetMode();
-	const int32 HitX = InViewport->GetMouseX();
-	const int32 HitY = InViewport->GetMouseY();
-
-	bool bHandled = false;
-
-	// Handle switching modes - only allowed when not already manipulating
-	if ((InEvent == IE_Pressed) && (InKey == EKeys::SpaceBar) && !bManipulating)
-	{
-		int32 SelectedBoneIndex = GetAnimPreviewScene().GetSelectedBoneIndex();
-		USkeletalMeshSocket* SelectedSocket = GetAnimPreviewScene().GetSelectedSocket().Socket;
-		AActor* SelectedActor = GetAnimPreviewScene().GetSelectedActor();
-
-		if (SelectedBoneIndex >= 0 || SelectedSocket || SelectedActor != nullptr)
-		{
-			if (WidgetMode == FWidget::WM_Rotate)
-			{
-				InViewportClient->SetWidgetMode(FWidget::WM_Scale);
-			}
-			else if (WidgetMode == FWidget::WM_Scale)
-			{
-				InViewportClient->SetWidgetMode(FWidget::WM_Translate);
-			}
-			else
-			{
-				InViewportClient->SetWidgetMode(FWidget::WM_Rotate);
-			}
-		}
-		bHandled = true;
-		InViewportClient->Invalidate();
-	}
-
-	return bHandled;
-}
-
 bool FSkeletonSelectionEditMode::InputDelta(FEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale)
 {
 	const EAxisList::Type CurrentAxis = InViewportClient->GetCurrentWidgetAxis();
@@ -426,6 +389,11 @@ bool FSkeletonSelectionEditMode::UsesTransformWidget() const
 	return true;
 }
 
+bool FSkeletonSelectionEditMode::UsesTransformWidget(FWidget::EWidgetMode CheckMode) const
+{
+	return CheckMode == FWidget::WM_Scale || CheckMode == FWidget::WM_Translate || CheckMode == FWidget::WM_Rotate;
+}
+
 bool FSkeletonSelectionEditMode::GetCustomDrawingCoordinateSystem(FMatrix& InMatrix, void* InData)
 {
 	UDebugSkelMeshComponent* PreviewMeshComponent = GetAnimPreviewScene().GetPreviewMeshComponent();
@@ -536,6 +504,15 @@ bool FSkeletonSelectionEditMode::HandleClick(FEditorViewportClient* InViewportCl
 	}
 
 	return bHandled;
+}
+
+bool FSkeletonSelectionEditMode::CanCycleWidgetMode() const
+{
+	int32 SelectedBoneIndex = GetAnimPreviewScene().GetSelectedBoneIndex();
+	USkeletalMeshSocket* SelectedSocket = GetAnimPreviewScene().GetSelectedSocket().Socket;
+	AActor* SelectedActor = GetAnimPreviewScene().GetSelectedActor();
+
+	return (SelectedBoneIndex >= 0 || SelectedSocket || SelectedActor != nullptr);
 }
 
 #undef LOCTEXT_NAMESPACE

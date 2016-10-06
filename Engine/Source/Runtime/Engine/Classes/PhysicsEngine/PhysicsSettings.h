@@ -90,7 +90,7 @@ class ENGINE_API UPhysicsSettings : public UDeveloperSettings
 	UPROPERTY(config, EditAnywhere, Category = Constants)
 	float DefaultFluidFriction;
 	
-	/** Amount of memory to reserve for PhysX simulate(), this is per pxscene */
+	/** Amount of memory to reserve for PhysX simulate(), this is per pxscene and will be rounded up to the next 16K boundary */
 	UPROPERTY(config, EditAnywhere, Category = Constants, meta = (ClampMin = "0", UIMin = "0"))
 	int32 SimulateScratchMemorySize;
 

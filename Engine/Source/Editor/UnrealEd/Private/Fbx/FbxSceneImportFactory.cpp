@@ -1059,7 +1059,7 @@ FFeedbackContext*	Warn
 bool UFbxSceneImportFactory::SetStaticMeshComponentOverrideMaterial(UStaticMeshComponent* StaticMeshComponent, TSharedPtr<FFbxNodeInfo> NodeInfo)
 {
 	bool bOverrideMaterial = false;
-	UStaticMesh *StaticMesh = StaticMeshComponent->StaticMesh;
+	UStaticMesh *StaticMesh = StaticMeshComponent->GetStaticMesh();
 	if (StaticMesh->StaticMaterials.Num() == NodeInfo->Materials.Num())
 	{
 		for (int32 MaterialIndex = 0; MaterialIndex < NodeInfo->Materials.Num(); ++MaterialIndex)

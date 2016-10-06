@@ -93,7 +93,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 	{
 #if WITH_EDITOR
 		UClass* ParentClass = CDO->GetClass()->GetSuperClass();
-		if (T* ParentCDO = ParentClass->GetDefaultObject<T>())
+		if (T* ParentCDO = Cast<T>(ParentClass->GetDefaultObject()))
 		{
 			if (ParentCDO->GameplayCueTag.IsValid() && (ParentCDO->GameplayCueTag == CDO->GameplayCueTag))
 			{

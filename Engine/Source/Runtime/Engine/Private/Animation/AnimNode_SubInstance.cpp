@@ -18,27 +18,6 @@ void FAnimNode_SubInstance::Initialize(const FAnimationInitializeContext& Contex
 	FAnimNode_Base::Initialize(Context);
 
 	InPose.Initialize(Context);
-
-	if(InstanceToRun)
-	{
-		InstanceToRun->InitializeAnimation();
-	}
-}
-
-void FAnimNode_SubInstance::ValidateInstance()
-{
-	if(!InstanceToRun)
-	{
-		// Need an instance to run
-		if(*InstanceClass)
-		{
-			InstanceToRun = NewObject<UAnimInstance>(GetTransientPackage(), InstanceClass);
-		}
-		else
-		{
-			UE_LOG(LogAnimation, Warning, TEXT("FAnimNode_SubInstance: Attempting to use a subgraph node without setting an instance class."));
-		}
-	}
 }
 
 void FAnimNode_SubInstance::CacheBones(const FAnimationCacheBonesContext& Context)
@@ -113,16 +92,19 @@ void FAnimNode_SubInstance::GatherDebugData(FNodeDebugData& DebugData)
 {
 	// Add our entry
 	FString DebugLine = DebugData.GetNodeName(this);
+	DebugLine += FString::Printf(TEXT("Target: %s"), (*InstanceClass) ? *InstanceClass->GetName() : TEXT("None"));
+
+	DebugData.AddDebugItem(DebugLine);
 
 	// Gather data from the sub instance
 	if(InstanceToRun)
 	{
 		FAnimInstanceProxy& Proxy = InstanceToRun->GetProxyOnAnyThread<FAnimInstanceProxy>();
-		Proxy.GatherDebugData(DebugData);
+		Proxy.GatherDebugData(DebugData.BranchFlow(1.0f));
 	}
 
 	// Pass to next
-	InPose.GatherDebugData(DebugData);
+	InPose.GatherDebugData(DebugData.BranchFlow(1.0f));
 }
 
 bool FAnimNode_SubInstance::HasPreUpdate() const
@@ -159,6 +141,7 @@ void FAnimNode_SubInstance::RootInitialize(const FAnimInstanceProxy* InProxy)
 
 		// Need an instance to run
 		InstanceToRun = NewObject<UAnimInstance>(MeshComp, InstanceClass);
+		InstanceToRun->InitializeAnimation();
 
 		MeshComp->SubInstances.Add(InstanceToRun);
 

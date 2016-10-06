@@ -11,6 +11,10 @@ DEFINE_LOG_CATEGORY_STATIC(LogFactory, Log, All);
 
 FString UFactory::CurrentFilename(TEXT(""));
 
+//@third party BEGIN SIMPLYGON
+FMD5Hash UFactory::FileHash;
+//@third party END SIMPLYGON
+
 // This needs to be greater than 0 to allow factories to have both higher and lower priority than the default
 const int32 UFactory::DefaultImportPriority = 100;
 bool UFactory::bAllowOneTimeWarningMessages = true;
@@ -117,6 +121,10 @@ UObject* UFactory::ImportObject(UClass* InClass, UObject* InOuter, FName InName,
 {
 	UObject* Result = nullptr;
 	CurrentFilename = Filename;
+	//@third party BEGIN SIMPLYGON
+	FileHash = FMD5Hash::HashFile(*CurrentFilename);
+	//@third party END SIMPLYGON
+
 
 	if (CanCreateNew())
 	{

@@ -150,7 +150,7 @@ FCascadeEdPreviewViewportClient::FCascadeEdPreviewViewportClient(TWeakPtr<FCasca
 	{
 		FloorComponent = NewObject<UStaticMeshComponent>(GetTransientPackage(), TEXT("FloorComponent"));
 		check(FloorComponent);
-		FloorComponent->StaticMesh = Mesh;
+		FloorComponent->SetStaticMesh(Mesh);
 		FloorComponent->DepthPriorityGroup = SDPG_World;
 
 		// Hide it for now...

@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "EdGraphSchema_K2.h"
 #include "EdGraphSchema_K2_Actions.h"
 #include "K2Node_BaseAsyncTask.generated.h"
 

@@ -288,17 +288,7 @@ namespace EditorAnimUtils
 
 	void OpenAssetFromNotify(UObject* AssetToOpen)
 	{
-		EToolkitMode::Type Mode = EToolkitMode::Standalone;
-		FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>( "Persona" );
-
-		if(UAnimationAsset* AnimAsset = Cast<UAnimationAsset>(AssetToOpen))
-		{
-			PersonaModule.CreatePersona( Mode, TSharedPtr<IToolkitHost>(), AnimAsset->GetSkeleton(), NULL, AnimAsset, NULL );
-		}
-		else if(UAnimBlueprint* AnimBlueprint = Cast<UAnimBlueprint>(AssetToOpen))
-		{
-			PersonaModule.CreatePersona( Mode, TSharedPtr<IToolkitHost>(), AnimBlueprint->TargetSkeleton, AnimBlueprint, NULL, NULL );
-		}
+		FAssetEditorManager::Get().OpenEditorForAsset(AssetToOpen);
 	}
 
 	//////////////////////////////////////////////////////////////////

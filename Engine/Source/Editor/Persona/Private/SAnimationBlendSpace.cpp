@@ -259,7 +259,7 @@ FDelaunayTriangleGenerator::ECircumCircleState FDelaunayTriangleGenerator::GetCi
 
 	float Det = M00*M11*M22+M01*M12*M20+M02*M10*M21 - (M02*M11*M20+M01*M10*M22+M00*M12*M21);
 	
-	if( FMath::Abs(Det) <= KINDA_SMALL_NUMBER )
+	if( FMath::IsNearlyZero(FMath::Abs(Det)) )
 	{
 		return ECCS_On;
 	}

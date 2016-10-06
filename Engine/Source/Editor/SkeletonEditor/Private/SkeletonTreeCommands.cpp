@@ -25,7 +25,7 @@ void FSkeletonTreeCommands::RegisterCommands()
 	UI_COMMAND( RemoveMeshSocket, "Remove Mesh Socket", "Remove duplicated version of this socket for the current mesh (reverts to the socket in the skeleton)", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( PromoteSocketToSkeleton, "Promote Socket To Skeleton", "Makes this socket available for all meshes that use the same skeleton (copies the socket from this mesh to the skeleton)", EUserInterfaceActionType::Button, FInputChord() );
 
-	UI_COMMAND(DeleteSelectedRows, "Delete", "Delete all selected sockets and attached meshes in the tree", EUserInterfaceActionType::Button, FInputChord(EKeys::Platform_Delete));
+	UI_COMMAND(DeleteSelectedRows, "Delete", "Delete all selected items in the tree", EUserInterfaceActionType::Button, FInputChord(EKeys::Platform_Delete));
 
 	UI_COMMAND( ShowActiveSockets, "Show Active Sockets", "Show mesh and skeleton sockets, hiding the skeleton sockets that have a customized mesh socket", EUserInterfaceActionType::RadioButton, FInputChord() );
 	UI_COMMAND( ShowAllSockets, "Show All Sockets", "Show all sockets that are in the mesh and skeleton", EUserInterfaceActionType::RadioButton, FInputChord() );

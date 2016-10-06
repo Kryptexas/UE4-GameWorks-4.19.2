@@ -29,7 +29,7 @@
 #include "DesktopPlatformModule.h"
 #include "LevelUtils.h"
 #include "ConsolidateWindow.h"
-#include "ComponentReregisterContext.h"
+#include "ComponentRecreateRenderStateContext.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "Layers/ILayers.h"
@@ -818,7 +818,7 @@ namespace ObjectTools
 			// Scope the reregister context below to complete after object deletion and before garbage collection
 			{
 				// Replacing references inside already loaded objects could cause rendering issues, so globally detach all components from their scenes for now
-				FGlobalComponentReregisterContext ReregisterContext;
+				FGlobalComponentRecreateRenderStateContext ReregisterContext;
 				
 				ForceReplaceReferences(ObjectToConsolidateTo, ObjectsToConsolidate, ReplaceInfo);
 
@@ -2162,7 +2162,7 @@ namespace ObjectTools
 				}
 
 				// Replacing references inside already loaded objects could cause rendering issues, so globally detach all components from their scenes for now
-				FGlobalComponentReregisterContext ReregisterContext;
+				FGlobalComponentRecreateRenderStateContext ReregisterContext;
 
 				// UserDefinedStructs (probably all SctiptStructs) should be replaced with the FallbackStruct
 				{

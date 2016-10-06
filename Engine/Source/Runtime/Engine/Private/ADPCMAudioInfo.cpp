@@ -52,10 +52,12 @@ bool FADPCMAudioInfo::ReadCompressedInfo(const uint8* InSrcBufferData, uint32 In
 	TotalDecodedSize = (WaveInfo.SampleDataSize / CompressedBlockSize) * UncompressedBlockSize;
 	if (QualityInfo)
 	{
+		uint32 TrueSampleCount = TotalDecodedSize / *WaveInfo.pBitsPerSample;
+
 		QualityInfo->SampleRate = *WaveInfo.pSamplesPerSec;
 		QualityInfo->NumChannels = *WaveInfo.pChannels;
 		QualityInfo->SampleDataSize = TotalDecodedSize;
-		QualityInfo->Duration = 0.0f; // (float)TrueSampleCount / QualityInfo->SampleRate;
+		QualityInfo->Duration = (float)TrueSampleCount / QualityInfo->SampleRate;
 	}
 
 	return true;

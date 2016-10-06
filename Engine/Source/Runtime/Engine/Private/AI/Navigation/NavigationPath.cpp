@@ -181,6 +181,8 @@ void FNavigationPath::ResetForRepath()
 
 void FNavigationPath::DebugDraw(const ANavigationData* NavData, FColor PathColor, UCanvas* Canvas, bool bPersistent, const uint32 NextPathPointIndex) const
 {
+#if ENABLE_DRAW_DEBUG
+
 	static const FColor Grey(100,100,100);
 	const int32 NumPathVerts = PathPoints.Num();
 
@@ -214,6 +216,8 @@ void FNavigationPath::DebugDraw(const ANavigationData* NavData, FColor PathColor
 		DrawDebugCylinder(World, EndLocation - CylinderHalfHeight, EndLocation + CylinderHalfHeight, FMath::Sqrt(GoalActorLocationTetherDistanceSq), 16, PathColor, bPersistent);
 		DrawDebugLine(World, EndLocation, GoalLocation, Grey, bPersistent);
 	}
+
+#endif
 }
 
 bool FNavigationPath::ContainsNode(NavNodeRef NodeRef) const
@@ -905,7 +909,7 @@ void FNavMeshPath::DebugDraw(const ANavigationData* NavData, FColor PathColor, U
 {
 	Super::DebugDraw(NavData, PathColor, Canvas, bPersistent, NextPathPointIndex);
 
-#if WITH_RECAST
+#if WITH_RECAST && ENABLE_DRAW_DEBUG
 	const ARecastNavMesh* RecastNavMesh = Cast<const ARecastNavMesh>(NavData);		
 	const TArray<FNavigationPortalEdge>& Edges = (const_cast<FNavMeshPath*>(this))->GetPathCorridorEdges();	
 	const int32 CorridorEdgesCount = Edges.Num();
@@ -935,7 +939,7 @@ void FNavMeshPath::DebugDraw(const ANavigationData* NavData, FColor PathColor, U
 			Canvas->DrawText(RenderFont, FString::Printf(TEXT("%d: %s"), VertIdx, *GetNameSafe(NavAreaClass)), ScreenLocation.X, ScreenLocation.Y );
 		}
 	}
-#endif // WITH_RECAST
+#endif // WITH_RECAST && ENABLE_DRAW_DEBUG
 }
 
 bool FNavMeshPath::ContainsWithSameEnd(const FNavMeshPath* Other) const

@@ -877,14 +877,17 @@ void FPersonaMeshDetails::ApplyChanges()
 			// if no previous setting found, it will use default setting. 
 			FLODUtilities::SimplifySkeletalMeshLOD(UpdateContext, Settings, LODIdx);
 
-			FSkeletalMeshLODInfo& Info = SkelMesh->LODInfo[LODIdx];
-			Info.ReductionSettings = Settings;
-
-			// If there is a valid screensize value use that one for this new LOD
-			if (bHasValidUserSetting)
+			if (SkelMesh->LODInfo.IsValidIndex(LODIdx))
 			{
-				const FSkeletalMeshLODGroupSettings& GroupSettings = ReductionSettings->GetDefaultSettingsForLODLevel(SettingsIndex);
-				Info.ScreenSize = GroupSettings.GetScreenSize();
+				FSkeletalMeshLODInfo& Info = SkelMesh->LODInfo[LODIdx];
+				Info.ReductionSettings = Settings;
+
+				// If there is a valid screensize value use that one for this new LOD
+				if (bHasValidUserSetting)
+				{
+					const FSkeletalMeshLODGroupSettings& GroupSettings = ReductionSettings->GetDefaultSettingsForLODLevel(SettingsIndex);
+					Info.ScreenSize = GroupSettings.GetScreenSize();
+				}
 			}
 		}
 	}

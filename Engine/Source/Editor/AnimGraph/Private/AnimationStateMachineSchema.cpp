@@ -14,7 +14,7 @@
 #include "AnimStateTransitionNode.h"
 #include "AnimStateConduitNode.h"
 #include "AnimStateNodeBase.h"
-
+#include "AnimGraphNode_AssetPlayerBase.h"
 #include "ScopedTransaction.h"
 #include "GraphEditorActions.h"
 
@@ -358,7 +358,7 @@ void UAnimationStateMachineSchema::GetGraphDisplayInformation(const UEdGraph& Gr
 void UAnimationStateMachineSchema::DroppedAssetsOnGraph(const TArray<FAssetData>& Assets, const FVector2D& GraphPosition, UEdGraph* Graph) const
 {
 	UAnimationAsset* Asset = FAssetData::GetFirstAsset<UAnimationAsset>(Assets);
-	if(Asset != NULL)
+	if(Asset != NULL && GetNodeClassForAsset(Asset->GetClass()))
 	{
 		// Spawn new state
 		UAnimStateNode* NewStateNode = FEdGraphSchemaAction_NewStateNode::SpawnNodeFromTemplate<UAnimStateNode>(Graph, NewObject<UAnimStateNode>(), GraphPosition);

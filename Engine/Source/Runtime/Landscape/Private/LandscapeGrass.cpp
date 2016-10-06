@@ -2116,7 +2116,7 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 										HierarchicalInstancedStaticMeshComponent->Mobility = EComponentMobility::Static;
 										HierarchicalInstancedStaticMeshComponent->bCastStaticShadow = false;
 
-										HierarchicalInstancedStaticMeshComponent->StaticMesh = GrassVariety.GrassMesh;
+										HierarchicalInstancedStaticMeshComponent->SetStaticMesh(GrassVariety.GrassMesh);
 										HierarchicalInstancedStaticMeshComponent->MinLOD = GrassVariety.MinLOD;
 										HierarchicalInstancedStaticMeshComponent->bSelectable = false;
 										HierarchicalInstancedStaticMeshComponent->bHasPerInstanceHitProxies = false;

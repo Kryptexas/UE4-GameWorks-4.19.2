@@ -9,7 +9,7 @@
 
 #include "IPhysXFormatModule.h"
 
-FDerivedDataPhysXCooker::FDerivedDataPhysXCooker(FName InFormat, int32 InRuntimeCookFlags, UBodySetup* InBodySetup)
+FDerivedDataPhysXCooker::FDerivedDataPhysXCooker(FName InFormat, EPhysXMeshCookFlags InRuntimeCookFlags, UBodySetup* InBodySetup)
 	: BodySetup( InBodySetup )
 	, CollisionDataProvider( NULL )
 	, Format( InFormat )
@@ -133,10 +133,17 @@ bool FDerivedDataPhysXCooker::BuildConvex( TArray<uint8>& OutData, bool InMirror
 		// Store info on the cooking result (1 byte)
 		int32 ResultInfoOffset = OutData.Add( false );
 
+		// Get cook flags to use
+		const bool bDeformableMesh = CollisionDataProvider->IsA(USplineMeshComponent::StaticClass());
+		EPhysXMeshCookFlags CookFlags = RuntimeCookFlags;
+		if (bDeformableMesh)
+		{
+			CookFlags |= EPhysXMeshCookFlags::DeformableMesh;
+		}
+
 		// Cook and store Result at ResultInfoOffset
 		UE_LOG(LogPhysics, Log, TEXT("Cook Convex: %s %d (FlipX:%d)"), *BodySetup->GetOuter()->GetPathName(), ElementIndex, InMirrored);		
-		const bool bDeformableMesh = CollisionDataProvider->IsA(USplineMeshComponent::StaticClass());
-		const EPhysXCookingResult Result = Cooker->CookConvex(Format, RuntimeCookFlags, *MeshVertices, OutData, bDeformableMesh);
+		const EPhysXCookingResult Result = Cooker->CookConvex(Format, CookFlags, *MeshVertices, OutData);
 		switch (Result)
 		{
 		case EPhysXCookingResult::Succeeded:
@@ -204,14 +211,21 @@ bool FDerivedDataPhysXCooker::BuildTriMesh( TArray<uint8>& OutData, bool InUseAl
 		TArray<FVector>* MeshVertices = NULL;
 		MeshVertices = &TriangleMeshDesc.Vertices;
 		
-		UE_LOG(LogPhysics, Log, TEXT("Cook TriMesh: %s"), *CollisionDataProvider->GetPathName());
-		bool bDeformableMesh = CollisionDataProvider->IsA(USplineMeshComponent::StaticClass());
-		if (USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(CollisionDataProvider))
+		// Set up cooking flags
+		EPhysXMeshCookFlags CookFlags = RuntimeCookFlags;
+
+		if (TriangleMeshDesc.bDeformableMesh)
 		{
-			ensure(SkeletalMesh->bEnablePerPolyCollision);
-			bDeformableMesh = true;
+			CookFlags |= EPhysXMeshCookFlags::DeformableMesh;
 		}
-		bResult = Cooker->CookTriMesh( Format, RuntimeCookFlags, *MeshVertices, TriangleMeshDesc.Indices, TriangleMeshDesc.MaterialIndices, TriangleMeshDesc.bFlipNormals, OutData, bDeformableMesh );
+
+		if (TriangleMeshDesc.bFastCook)
+		{
+			CookFlags |= EPhysXMeshCookFlags::FastCook;
+		}
+
+		UE_LOG(LogPhysics, Log, TEXT("Cook TriMesh: %s"), *CollisionDataProvider->GetPathName());
+		bResult = Cooker->CookTriMesh( Format, CookFlags, *MeshVertices, TriangleMeshDesc.Indices, TriangleMeshDesc.MaterialIndices, TriangleMeshDesc.bFlipNormals, OutData);
 		if( !bResult )
 		{
 			bError = true;

@@ -22,7 +22,7 @@ bool FSmartNameMapping::AddOrFindName(FName Name, SmartName::UID_Type& OutUid, F
 
 	// make sure they both exists and same 
 	check(!!ExistingUid == !!ExistingGuid);
-	if(ExistingUid)
+	if(ExistingUid && ExistingGuid->IsValid())
 	{
 		// Already present in the list
 		OutUid = *ExistingUid;
@@ -38,7 +38,12 @@ bool FSmartNameMapping::AddOrFindName(FName Name, SmartName::UID_Type& OutUid, F
 bool FSmartNameMapping::AddName(FName Name, SmartName::UID_Type& OutUid, const FGuid& InGuid)
 {
 	check(Name.IsValid());
-	if (GuidMap.Find(Name) == nullptr && GuidMap.FindKey(InGuid) == nullptr)
+	check(InGuid.IsValid());
+
+	const SmartName::UID_Type* ExistingUid = UidMap.FindKey(Name);
+	const FGuid* ExistingGuid = GuidMap.Find(Name);
+
+	if (ExistingUid == nullptr && (ExistingGuid == nullptr || !ExistingGuid->IsValid()))
 	{
 		// make sure we didn't reach till end
 		check(NextUid != SmartName::MaxUID);
@@ -68,11 +73,14 @@ bool FSmartNameMapping::GetName(const SmartName::UID_Type& Uid, FName& OutName) 
 
 bool FSmartNameMapping::GetNameByGuid(const FGuid& Guid, FName& OutName) const
 {
-	const FName* FoundName = GuidMap.FindKey(Guid);
-	if (FoundName)
+	if (Guid.IsValid())
 	{
-		OutName = *FoundName;
-		return true;
+		const FName* FoundName = GuidMap.FindKey(Guid);
+		if (FoundName)
+		{
+			OutName = *FoundName;
+			return true;
+		}
 	}
 
 	return false;

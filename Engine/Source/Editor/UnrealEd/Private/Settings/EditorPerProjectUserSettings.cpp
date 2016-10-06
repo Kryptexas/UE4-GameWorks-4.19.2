@@ -17,8 +17,10 @@ UEditorPerProjectUserSettings::UEditorPerProjectUserSettings(const FObjectInitia
 	AssetViewerProfileIndex = 0;
 
 	SimplygonServerIP = "127.0.0.1";
-	SimplygonSwarmDelay = 500;
+	SimplygonSwarmDelay = 5000;
 	bEnableSwarmDebugging = false;
+	SwarmNumOfConcurrentJobs = 16;
+	SwarmMaxUploadChunkSizeInMB = 100;
 	SwarmIntermediateFolder = FPaths::ConvertRelativePathToFull(FPaths::GameIntermediateDir() + TEXT("Simplygon/"));
 }
 

@@ -16,6 +16,7 @@
 #include "EditorReimportHandler.h"
 #include "IAssetFamily.h"
 #include "AssetEditorModeManager.h"
+#include "PersonaCommonCommands.h"
 
 const FName SkeletalMeshEditorAppIdentifier = FName(TEXT("SkeletalMeshEditorApp"));
 
@@ -94,10 +95,6 @@ void FSkeletalMeshEditor::InitSkeletalMeshEditor(const EToolkitMode::Type Mode, 
 
 	SetCurrentMode(SkeletalMeshEditorModes::SkeletalMeshEditorMode);
 
-	// set up our editor mode
-	check(AssetEditorModeManager);
-	AssetEditorModeManager->SetDefaultMode(FPersonaEditModes::SkeletonSelection);
-
 	ExtendMenu();
 	ExtendToolbar();
 	RegenerateMenusAndToolbars();
@@ -134,6 +131,9 @@ void FSkeletalMeshEditor::BindCommands()
 
 	ToolkitCommands->MapAction(FSkeletalMeshEditorCommands::Get().ReimportMesh,
 		FExecuteAction::CreateSP(this, &FSkeletalMeshEditor::HandleReimportMesh));
+
+	ToolkitCommands->MapAction(FPersonaCommonCommands::Get().TogglePlay,
+		FExecuteAction::CreateRaw(&GetPersonaToolkit()->GetPreviewScene().Get(), &IPersonaPreviewScene::TogglePlayback));
 }
 
 void FSkeletalMeshEditor::ExtendToolbar()
@@ -230,6 +230,16 @@ void FSkeletalMeshEditor::PostUndo(bool bSuccess)
 void FSkeletalMeshEditor::PostRedo(bool bSuccess)
 {
 	OnPostUndo.Broadcast();
+}
+
+void FSkeletalMeshEditor::Tick(float DeltaTime)
+{
+	GetPersonaToolkit()->GetPreviewScene()->InvalidateViews();
+}
+
+TStatId FSkeletalMeshEditor::GetStatId() const
+{
+	RETURN_QUICK_DECLARE_CYCLE_STAT(FSkeletalMeshEditor, STATGROUP_Tickables);
 }
 
 void FSkeletalMeshEditor::HandleDetailsCreated(const TSharedRef<IDetailsView>& InDetailsView)

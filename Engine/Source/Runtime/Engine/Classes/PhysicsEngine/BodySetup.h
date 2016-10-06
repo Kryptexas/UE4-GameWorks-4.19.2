@@ -12,6 +12,8 @@ namespace physx
 	class PxRigidActor;
 }
 
+enum class EPhysXMeshCookFlags : uint8;
+
 /** UV information for BodySetup, only created if UPhysicsSettings::bSupportUVFromHitResults */
 struct FBodySetupUVInfo
 {
@@ -150,7 +152,11 @@ private:
 	FFormatContainer CookedFormatDataRuntimeOnlyOptimization;
 #endif
 
-	int32 GetRuntimeOnlyCookOptimizationFlags() const;
+#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
+	/** Get cook flags for 'runtime only' cooked physics data */
+	EPhysXMeshCookFlags GetRuntimeOnlyCookOptimizationFlags() const;
+#endif 
+
 public:
 
 	/** Cooked physics data override. This is needed in cases where some other body setup has the cooked data and you don't want to own it or copy it. See per poly skeletal mesh */

@@ -115,6 +115,10 @@ class ENGINE_API UAudioComponent : public USceneComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attenuation)
 	uint8 bOverrideAttenuation:1;
 
+	/** Whether or not to override the sound's subtitle priority. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Sound)
+	uint32 bOverrideSubtitlePriority:1;
+
 	/** Whether or not this sound plays when the game is paused in the UI */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Sound)
 	uint8 bIsUISound : 1;
@@ -185,6 +189,7 @@ class ENGINE_API UAudioComponent : public USceneComponent
 	float Priority;
 
 	/** Used by the subtitle manager to prioritize subtitles wave instances spawned by this component. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Sound, meta = (ClampMin = "0.0", UIMin = "0.0", EditCondition = "bOverrideSubtitlePriority"))
 	float SubtitlePriority;
 
 	UPROPERTY()

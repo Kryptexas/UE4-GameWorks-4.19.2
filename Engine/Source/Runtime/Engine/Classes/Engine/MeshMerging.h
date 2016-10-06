@@ -115,7 +115,7 @@ struct FMeshReductionSettings
 		, PixelError(1.0f)
 		, WeldingThreshold(Other.WeldingThreshold)
 		, HardAngleThreshold(Other.HardAngleThreshold)
-		, SilhouetteImportance(Other.ShadingImportance)
+		, SilhouetteImportance(Other.SilhouetteImportance)
 		, TextureImportance(Other.TextureImportance)
 		, ShadingImportance(Other.ShadingImportance)
 		, bRecalculateNormals(Other.bRecalculateNormals)
@@ -301,10 +301,6 @@ struct FMeshMergingSettings
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = MeshSettings)
 	bool bGenerateLightMapUV;
 
-	/** Target UV channel in a merged mesh for a lightmap */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = MeshSettings)
-	int32 TargetLightMapUVChannel;
-
 	/** Target lightmap resolution */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = MeshSettings)
 	int32 TargetLightMapResolution;
@@ -379,7 +375,6 @@ struct FMeshMergingSettings
 	/** Default settings. */
 	FMeshMergingSettings()
 		: bGenerateLightMapUV(true)
-		, TargetLightMapUVChannel(1)
 		, TargetLightMapResolution(256)
 		, bImportVertexColors_DEPRECATED(false)
 		, bPivotPointAtZero(false)
@@ -404,4 +399,17 @@ struct FMeshMergingSettings
 
 	/** Handles deprecated properties */
 	void PostLoadDeprecated();
+};
+
+/** Struct to store per section info used to populate data after (multiple) meshes are merged together */
+struct FSectionInfo
+{
+	class UMaterialInterface* Material;
+	bool bCollisionEnabled;
+	bool bShadowCastingEnabled;
+
+	bool operator==(const FSectionInfo& Other) const
+	{
+		return Material == Other.Material && bCollisionEnabled == Other.bCollisionEnabled && bShadowCastingEnabled == Other.bShadowCastingEnabled;
+	}
 };

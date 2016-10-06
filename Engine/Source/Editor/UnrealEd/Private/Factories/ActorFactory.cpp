@@ -298,7 +298,7 @@ void UActorFactoryStaticMesh::PostSpawnActor( UObject* Asset, AActor* NewActor)
 
 	StaticMeshComponent->UnregisterComponent();
 
-	StaticMeshComponent->StaticMesh = StaticMesh;
+	StaticMeshComponent->SetStaticMesh(StaticMesh);
 	StaticMeshComponent->StaticMeshDerivedDataKey = StaticMesh->RenderData->DerivedDataKey;
 
 	// Init Component
@@ -311,7 +311,7 @@ UObject* UActorFactoryStaticMesh::GetAssetFromActorInstance(AActor* Instance)
 	AStaticMeshActor* SMA = CastChecked<AStaticMeshActor>(Instance);
 
 	check(SMA->GetStaticMeshComponent());
-	return SMA->GetStaticMeshComponent()->StaticMesh;
+	return SMA->GetStaticMeshComponent()->GetStaticMesh();
 }
 
 void UActorFactoryStaticMesh::PostCreateBlueprint( UObject* Asset, AActor* CDO )
@@ -322,7 +322,7 @@ void UActorFactoryStaticMesh::PostCreateBlueprint( UObject* Asset, AActor* CDO )
 		AStaticMeshActor* StaticMeshActor = CastChecked<AStaticMeshActor>(CDO);
 		UStaticMeshComponent* StaticMeshComponent = StaticMeshActor->GetStaticMeshComponent();
 
-		StaticMeshComponent->StaticMesh = StaticMesh;
+		StaticMeshComponent->SetStaticMesh(StaticMesh);
 		StaticMeshComponent->StaticMeshDerivedDataKey = StaticMesh->RenderData->DerivedDataKey;
 	}
 }
@@ -374,7 +374,7 @@ void UActorFactoryBasicShape::PostSpawnActor(UObject* Asset, AActor* NewActor)
 	{
 		StaticMeshComponent->UnregisterComponent();
 
-		StaticMeshComponent->StaticMesh = StaticMesh;
+		StaticMeshComponent->SetStaticMesh(StaticMesh);
 		StaticMeshComponent->StaticMeshDerivedDataKey = StaticMesh->RenderData->DerivedDataKey;
 		StaticMeshComponent->SetMaterial(0, LoadObject<UMaterial>(nullptr, TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial")));
 		// Init Component

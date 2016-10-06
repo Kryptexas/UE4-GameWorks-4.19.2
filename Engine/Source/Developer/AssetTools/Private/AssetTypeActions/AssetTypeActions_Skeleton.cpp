@@ -335,7 +335,7 @@ FCreateRigDlg::EResult FCreateRigDlg::ShowModal()
 
 	// Make a list of all skeleton bone list
 	const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
-	for ( int32 BoneTreeId=0; BoneTreeId<RefSkeleton.GetNum(); ++BoneTreeId )
+	for ( int32 BoneTreeId=0; BoneTreeId<RefSkeleton.GetRawBoneNum(); ++BoneTreeId )
 	{
 		const FName& BoneName = RefSkeleton.GetBoneName(BoneTreeId);
 
@@ -359,7 +359,7 @@ FCreateRigDlg::EResult FCreateRigDlg::ShowModal()
 
 	if(UserResponse == EResult::Confirm)
 	{
-		for ( int32 RefBoneId= 0 ; RefBoneId< RefSkeleton.GetNum() ; ++RefBoneId )
+		for ( int32 RefBoneId= 0 ; RefBoneId< RefSkeleton.GetRawBoneNum() ; ++RefBoneId )
 		{
 			if ( DialogWidget->IsBoneIncluded(RefBoneId) )
 			{

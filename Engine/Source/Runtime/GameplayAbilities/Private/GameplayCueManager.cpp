@@ -140,12 +140,14 @@ void UGameplayCueManager::RouteGameplayCue(AActor* TargetActor, FGameplayTag Gam
 		bAcceptsCue = GameplayCueInterface->ShouldAcceptGameplayCue(TargetActor, GameplayCueTag, EventType, Parameters);
 	}
 
+#if ENABLE_DRAW_DEBUG
 	if (DisplayGameplayCues)
 	{
 		FString DebugStr = FString::Printf(TEXT("%s - %s"), *GameplayCueTag.ToString(), *EGameplayCueEventToString(EventType) );
 		FColor DebugColor = FColor::Green;
 		DrawDebugString(TargetActor->GetWorld(), FVector(0.f, 0.f, 100.f), DebugStr, TargetActor, DebugColor, DisplayGameplayCueDuration);
 	}
+#endif // ENABLE_DRAW_DEBUG
 
 	CurrentWorld = TargetActor->GetWorld();
 

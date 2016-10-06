@@ -1817,7 +1817,7 @@ FText SAnimationEditorViewportTabBody::GetViewportCornerTooltip() const
 {
 	if(GetPreviewScene()->IsRecording())
 	{
-		return LOCTEXT("RecordingStatusTooltip", "Shows the status of animation recording.\nClick to stop the recording.");
+		return LOCTEXT("RecordingStatusTooltip", "Shows the status of animation recording.");
 	}
 
 	if(BlueprintEditorPtr.IsValid() && BlueprintEditorPtr.Pin()->IsModeCurrent(FPersonaModes::AnimBlueprintEditMode))

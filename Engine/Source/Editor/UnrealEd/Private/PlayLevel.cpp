@@ -2358,15 +2358,9 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 	// Flush all audio sources from the editor world
 	if (FAudioDevice* AudioDevice = EditorWorld->GetAudioDevice())
 	{
-		const bool bEnableSound = PlayInSettings->EnableSound;
 		AudioDevice->Flush(EditorWorld);
 		AudioDevice->ResetInterpolation();
 		AudioDevice->OnBeginPIE(bInSimulateInEditor);
-
-		if (!bEnableSound)
-		{
-			AudioDevice->SetTransientMasterVolume(0.0f);
-		}
 	}
 	EditorWorld->bAllowAudioPlayback = false;
 
@@ -2440,6 +2434,15 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 		// Only spawning 1 PIE instance under this process, only set the PIEInstance value if we're not connecting to another local instance of the game, otherwise it will run the wrong streaming levels
 		PIEInstance = ( !CanRunUnderOneProcess && PlayNetMode == EPlayNetMode::PIE_Client ) ? INDEX_NONE : 0;
 		UGameInstance* const GameInstance = CreatePIEGameInstance(PIEInstance, bInSimulateInEditor, bAnyBlueprintErrors, bStartInSpectatorMode, false, PIEStartTime);
+
+		if (!PlayInSettings->EnableSound)
+		{
+			UWorld* GameInstanceWorld = GameInstance->GetWorld();
+			if (FAudioDevice* GameInstanceAudioDevice = GameInstanceWorld->GetAudioDevice())
+			{
+				GameInstanceAudioDevice->SetTransientMasterVolume(0.0f);
+			}
+		}
 
 		if (bInSimulateInEditor)
 		{

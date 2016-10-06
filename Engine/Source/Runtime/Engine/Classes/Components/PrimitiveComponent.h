@@ -1885,16 +1885,17 @@ public:
 	virtual bool LineTraceComponent( FHitResult& OutHit, const FVector Start, const FVector End, const FCollisionQueryParams& Params );
 	
 	/** 
-	 *  Trace a box against just this component.
-	 *  @param  OutHit          Information about hit against this component, if true is returned
-	 *  @param  Start           Start location of the box
-	 *  @param  End             End location of the box
-	 *  @param  BoxHalfExtent 	Half Extent of the box
+	 *  Trace a shape against just this component.
+	 *  @param  OutHit          	Information about hit against this component, if true is returned
+	 *  @param  Start           	Start location of the box
+	 *  @param  End             	End location of the box
+	 *  @param  ShapeWorldRotation  The rotation applied to the collision shape in world space.
+	 *  @param  CollisionShape  	Collision Shape
 	 *	@param	bTraceComplex	Whether or not to trace complex
 	 *  @return true if a hit is found
 	 */
-	virtual bool SweepComponent(FHitResult& OutHit, const FVector Start, const FVector End, const FCollisionShape &CollisionShape, bool bTraceComplex=false);
-	
+	virtual bool SweepComponent(FHitResult& OutHit, const FVector Start, const FVector End, const FQuat& ShapeWorldRotation, const FCollisionShape &CollisionShape, bool bTraceComplex=false);
+
 	/** 
 	 *  Test the collision of the supplied component at the supplied location/rotation, and determine if it overlaps this component.
 	 *  @note This overload taking rotation as a FQuat is slightly faster than the version using FRotator.

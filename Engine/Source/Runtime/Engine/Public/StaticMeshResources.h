@@ -892,7 +892,7 @@ public:
 	{
 		for ( TObjectIterator<UStaticMeshComponent> It;It;++It )
 		{
-			if ( It->StaticMesh == InStaticMesh )
+			if ( It->GetStaticMesh() == InStaticMesh )
 			{
 				checkf( !It->IsUnreachable(), TEXT("%s"), *It->GetFullName() );
 

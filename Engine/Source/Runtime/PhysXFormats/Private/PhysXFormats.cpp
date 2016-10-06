@@ -84,7 +84,7 @@ public:
 		OutFormats.Add(NAME_PhysXPS4);
 	}
 
-	virtual EPhysXCookingResult CookConvex(FName Format, int32 RuntimeCookFlags, const TArray<FVector>& SrcBuffer, TArray<uint8>& OutBuffer, bool bDeformableMesh = false) const override
+	virtual EPhysXCookingResult CookConvex(FName Format, EPhysXMeshCookFlags CookFlags, const TArray<FVector>& SrcBuffer, TArray<uint8>& OutBuffer) const override
 	{
 		EPhysXCookingResult CookResult = EPhysXCookingResult::Failed;
 
@@ -100,16 +100,16 @@ public:
 		PConvexMeshDesc.flags = PxConvexFlag::eCOMPUTE_CONVEX;
 
 		// Set up cooking
-		const PxCookingParams Params = PhysXCooking->getParams();
-		PxCookingParams NewParams = Params;
+		const PxCookingParams CurrentParams = PhysXCooking->getParams();
+		PxCookingParams NewParams = CurrentParams;
 		NewParams.targetPlatform = PhysXFormat;
 
-		if(RuntimeCookFlags & ERuntimePhysxCookOptimizationFlags::SuppressFaceRemapTable)
+		if(!!(CookFlags & EPhysXMeshCookFlags::SuppressFaceRemapTable))
 		{
 			NewParams.suppressTriangleMeshRemapTable = true;
 		}
 
-		if (bDeformableMesh)
+		if (!!(CookFlags & EPhysXMeshCookFlags::DeformableMesh))
 		{
 			// Meshes which can be deformed need different cooking parameters to inhibit vertex welding and add an extra skin around the collision mesh for safety.
 			// We need to set the meshWeldTolerance to zero, even when disabling 'clean mesh' as PhysX will attempt to perform mesh cleaning anyway according to this meshWeldTolerance
@@ -120,6 +120,12 @@ public:
 
 			NewParams.meshPreprocessParams = PxMeshPreprocessingFlags(PxMeshPreprocessingFlag::eDISABLE_CLEAN_MESH);
 			NewParams.meshWeldTolerance = 0.0f;
+		}
+
+		// Do we want to do a 'fast' cook on this mesh, may slow down collision performance at runtime
+		if (!!(CookFlags & EPhysXMeshCookFlags::FastCook))
+		{
+			NewParams.meshCookingHint = PxMeshCookingHint::eCOOKING_PERFORMANCE;
 		}
 
 		PhysXCooking->setParams(NewParams);
@@ -146,10 +152,7 @@ public:
 		}
 
 		// Return default cooking params to normal
-		if (bDeformableMesh)
-		{
-			PhysXCooking->setParams(Params);
-		}
+		PhysXCooking->setParams(CurrentParams);
 
 		if (CookedMeshBuffer.Num() == 0)
 		{
@@ -166,7 +169,7 @@ public:
 		return CookResult;
 	}
 
-	virtual bool CookTriMesh(FName Format, int32 RuntimeCookFlags, const TArray<FVector>& SrcVertices, const TArray<FTriIndices>& SrcIndices, const TArray<uint16>& SrcMaterialIndices, const bool FlipNormals, TArray<uint8>& OutBuffer, bool bDeformableMesh = false) const override
+	virtual bool CookTriMesh(FName Format, EPhysXMeshCookFlags CookFlags, const TArray<FVector>& SrcVertices, const TArray<FTriIndices>& SrcIndices, const TArray<uint16>& SrcMaterialIndices, const bool FlipNormals, TArray<uint8>& OutBuffer) const override
 	{
 #if WITH_PHYSX
 		PxPlatform::Enum PhysXFormat = PxPlatform::ePC;
@@ -185,17 +188,16 @@ public:
 		PTriMeshDesc.flags = FlipNormals ? PxMeshFlag::eFLIPNORMALS : (PxMeshFlags)0;
 
 		// Set up cooking
-		const PxCookingParams& Params = PhysXCooking->getParams();
-		PxCookingParams NewParams = Params;
+		const PxCookingParams CurrentParams = PhysXCooking->getParams();
+		PxCookingParams NewParams = CurrentParams;
 		NewParams.targetPlatform = PhysXFormat;
-		PxMeshPreprocessingFlags OldCookingFlags = NewParams.meshPreprocessParams;
 
-		if (RuntimeCookFlags & ERuntimePhysxCookOptimizationFlags::SuppressFaceRemapTable)
+		if (!!(CookFlags & EPhysXMeshCookFlags::SuppressFaceRemapTable))
 		{
 			NewParams.suppressTriangleMeshRemapTable = true;
 		}
 
-		if (bDeformableMesh)
+		if (!!(CookFlags & EPhysXMeshCookFlags::DeformableMesh))
 		{
 			// In the case of a deformable mesh, we have to change the cook params
 			NewParams.meshPreprocessParams = PxMeshPreprocessingFlag::eDISABLE_CLEAN_MESH;
@@ -207,12 +209,9 @@ public:
 		// Cook TriMesh Data
 		FPhysXOutputStream Buffer(&OutBuffer);
 		bool Result = PhysXCooking->cookTriangleMesh(PTriMeshDesc, Buffer);
-		
-		if (bDeformableMesh)	//restore old params
-		{
-			NewParams.meshPreprocessParams = OldCookingFlags;
-			PhysXCooking->setParams(NewParams);
-		}
+
+		// Restore cooking params
+		PhysXCooking->setParams(CurrentParams);
 		return Result;
 #else
 		return false;

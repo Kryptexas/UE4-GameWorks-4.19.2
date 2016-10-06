@@ -1096,14 +1096,4 @@ FAnimInstanceProxy* UAnimPreviewInstance::CreateAnimInstanceProxy()
 	return new FAnimPreviewInstanceProxy(this);
 }
 
-void UAnimPreviewInstance::PrePerformAnimationEvaluation()
-{
-	GetProxyOnGameThread<FAnimPreviewInstanceProxy>().InitializeObjects(this);
-}
-
-void UAnimPreviewInstance::PostPerformAnimationEvaluation()
-{
-	GetProxyOnGameThread<FAnimPreviewInstanceProxy>().ClearObjects();
-}
-
 #undef LOCTEXT_NAMESPACE

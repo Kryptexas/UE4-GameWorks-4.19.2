@@ -144,8 +144,6 @@ bool FHierarchicalLODUtilities::BuildStaticMeshForLODActor(ALODActor* LODActor, 
 		
 		TArray<UStaticMeshComponent*> AllComponents;
 		{
-			FScopedSlowTask SlowTask(LODActor->SubActors.Num(), (LOCTEXT("HierarchicalLODUtils_CollectStaticMeshes", "Collecting Static Meshes for Cluster")));
-			SlowTask.MakeDialog();
 			for (auto& Actor : LODActor->SubActors)
 			{
 				TArray<UStaticMeshComponent*> Components;
@@ -163,16 +161,12 @@ bool FHierarchicalLODUtilities::BuildStaticMeshForLODActor(ALODActor* LODActor, 
 				Components.RemoveAll([](UStaticMeshComponent* Val){ return Val->IsA(UInstancedStaticMeshComponent::StaticClass()); });
 
 				AllComponents.Append(Components);
-				SlowTask.EnterProgressFrame(1);
 			}
 		}
 
 		// it shouldn't even have come here if it didn't have any staticmesh
 		if (ensure(AllComponents.Num() > 0))
 		{
-			FScopedSlowTask SlowTask(LODActor->SubActors.Num(), (LOCTEXT("HierarchicalLODUtils_MergingMeshes", "Merging Static Meshes and creating LODActor")));
-			SlowTask.MakeDialog();
-
 			// In case we don't have outer generated assets should have same path as LOD level
 			const FString AssetsPath = AssetsOuter->GetName() + TEXT("/");
 			AActor* FirstActor = LODActor->SubActors[0];
@@ -267,8 +261,6 @@ bool FHierarchicalLODUtilities::BuildStaticMeshForLODActor(ALODActor* LODActor, 
 
 				// Freshly build so mark not dirty
 				LODActor->SetIsDirty(false);
-
-
 
 				return true;
 			}
@@ -736,11 +728,11 @@ int32 FHierarchicalLODUtilities::ComputeStaticMeshLODLevel(const TArray<FStaticM
 int32 FHierarchicalLODUtilities::GetLODLevelForScreenAreaSize(const UStaticMeshComponent* StaticMeshComponent, const float ScreenAreaSize)
 {
 	check(StaticMeshComponent != nullptr);
-	const FStaticMeshRenderData* RenderData = StaticMeshComponent->StaticMesh->RenderData.GetOwnedPointer();
+	const FStaticMeshRenderData* RenderData = StaticMeshComponent->GetStaticMesh()->RenderData.GetOwnedPointer();
 	checkf(RenderData != nullptr, TEXT("StaticMesh in StaticMeshComponent %s contains invalid render data"), *StaticMeshComponent->GetName());
-	checkf(StaticMeshComponent->StaticMesh->SourceModels.Num() > 0, TEXT("StaticMesh in StaticMeshComponent %s contains no SourceModels"), *StaticMeshComponent->GetName());
+	checkf(StaticMeshComponent->GetStaticMesh()->SourceModels.Num() > 0, TEXT("StaticMesh in StaticMeshComponent %s contains no SourceModels"), *StaticMeshComponent->GetName());
 
-	return ComputeStaticMeshLODLevel(StaticMeshComponent->StaticMesh->SourceModels, RenderData, ScreenAreaSize);
+	return ComputeStaticMeshLODLevel(StaticMeshComponent->GetStaticMesh()->SourceModels, RenderData, ScreenAreaSize);
 }
 
 AHierarchicalLODVolume* FHierarchicalLODUtilities::CreateVolumeForLODActor(ALODActor* InLODActor, UWorld* InWorld)

@@ -1734,9 +1734,9 @@ TArray<FPoly*> GetSelectedPolygons()
 		{
 			// If its a static mesh component, with a static mesh
 			UStaticMeshComponent* SMComp = StaticMeshComponents[j];
-			if(SMComp->IsRegistered() && SMComp->StaticMesh)
+			if(SMComp->IsRegistered() && SMComp->GetStaticMesh())
 			{
-				UStaticMesh* StaticMesh = SMComp->StaticMesh;
+				UStaticMesh* StaticMesh = SMComp->GetStaticMesh();
 				if ( StaticMesh )
 				{
 					int32 NumLods = StaticMesh->GetNumLODs();

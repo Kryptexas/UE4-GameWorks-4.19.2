@@ -11,6 +11,7 @@
 #include "LinkerPlaceholderFunction.h"
 #include "StructScriptLoader.h"
 #include "LoadTimeTracker.h"
+#include "PropertyHelper.h"
 
 // This flag enables some expensive class tree validation that is meant to catch mutations of 
 // the class tree outside of SetSuperStruct. It has been disabled because loading blueprints 
@@ -2014,6 +2015,165 @@ void UScriptStruct::SerializeItem(FArchive& Ar, void* Value, void const* Default
 	}
 }
 
+const TCHAR* UScriptStruct::ImportText(const TCHAR* InBuffer, void* Value, UObject* OwnerObject, int32 PortFlags, FOutputDevice* ErrorText, const FString& StructName, bool bAllowNativeOverride)
+{
+	if (bAllowNativeOverride && StructFlags & STRUCT_ImportTextItemNative)
+	{
+		UScriptStruct::ICppStructOps* TheCppStructOps = GetCppStructOps();
+		check(TheCppStructOps); // else should not have STRUCT_ImportTextItemNative
+		if (TheCppStructOps->ImportTextItem(InBuffer, Value, PortFlags, OwnerObject, ErrorText))
+		{
+			return InBuffer;
+		}
+	}
+
+	TArray<FDefinedProperty> DefinedProperties;
+	// this keeps track of the number of errors we've logged, so that we can add new lines when logging more than one error
+	int32 ErrorCount = 0;
+	const TCHAR* Buffer = InBuffer;
+	if (*Buffer++ == TCHAR('('))
+	{
+		// Parse all properties.
+		while (*Buffer != TCHAR(')'))
+		{
+			// parse and import the value
+			Buffer = UProperty::ImportSingleProperty(Buffer, Value, this, OwnerObject, PortFlags | PPF_Delimited, ErrorText, DefinedProperties);
+
+			// skip any remaining text before the next property value
+			SkipWhitespace(Buffer);
+			int32 SubCount = 0;
+			while (*Buffer && *Buffer != TCHAR('\r') && *Buffer != TCHAR('\n') &&
+				(SubCount > 0 || *Buffer != TCHAR(')')) && (SubCount > 0 || *Buffer != TCHAR(',')))
+			{
+				SkipWhitespace(Buffer);
+				if (*Buffer == TCHAR('\"'))
+				{
+					do
+					{
+						Buffer++;
+					} while (*Buffer && *Buffer != TCHAR('\"') && *Buffer != TCHAR('\n') && *Buffer != TCHAR('\r'));
+
+					if (*Buffer != TCHAR('\"'))
+					{
+						ErrorText->Logf(TEXT("%sImportText (%s): Bad quoted string at: %s"), ErrorCount++ > 0 ? LINE_TERMINATOR : TEXT(""), *StructName, Buffer);
+						return nullptr;
+					}
+				}
+				else if (*Buffer == TCHAR('('))
+				{
+					SubCount++;
+				}
+				else if (*Buffer == TCHAR(')'))
+				{
+					SubCount--;
+					if (SubCount < 0)
+					{
+						ErrorText->Logf(TEXT("%sImportText (%s): Too many closing parenthesis in: %s"), ErrorCount++ > 0 ? LINE_TERMINATOR : TEXT(""), *StructName, InBuffer);
+						return nullptr;
+					}
+				}
+				Buffer++;
+			}
+			if (SubCount > 0)
+			{
+				ErrorText->Logf(TEXT("%sImportText(%s): Not enough closing parenthesis in: %s"), ErrorCount++ > 0 ? LINE_TERMINATOR : TEXT(""), *StructName, InBuffer);
+				return nullptr;
+			}
+
+			// Skip comma.
+			if (*Buffer == TCHAR(','))
+			{
+				// Skip comma.
+				Buffer++;
+			}
+			else if (*Buffer != TCHAR(')'))
+			{
+				ErrorText->Logf(TEXT("%sImportText (%s): Missing closing parenthesis: %s"), ErrorCount++ > 0 ? LINE_TERMINATOR : TEXT(""), *StructName, InBuffer);
+				return nullptr;
+			}
+
+			SkipWhitespace(Buffer);
+		}
+
+		// Skip trailing ')'.
+		Buffer++;
+	}
+	else
+	{
+		ErrorText->Logf(TEXT("%sImportText (%s): Missing opening parenthesis: %s"), ErrorCount++ > 0 ? LINE_TERMINATOR : TEXT(""), *StructName, InBuffer);
+		return nullptr;
+	}
+	return Buffer;
+}
+
+void UScriptStruct::ExportText(FString& ValueStr, const void* Value, const void* Defaults, UObject* OwnerObject, int32 PortFlags, UObject* ExportRootScope, bool bAllowNativeOverride)
+{
+	if (bAllowNativeOverride && StructFlags & STRUCT_ExportTextItemNative)
+	{
+		UScriptStruct::ICppStructOps* TheCppStructOps = GetCppStructOps();
+		check(TheCppStructOps); // else should not have STRUCT_ExportTextItemNative
+		if (TheCppStructOps->ExportTextItem(ValueStr, Value, Defaults, OwnerObject, PortFlags, ExportRootScope))
+		{
+			return;
+		}
+	}
+
+	if (0 != (PortFlags & PPF_ExportCpp))
+	{
+		return;
+	}
+
+	int32 Count = 0;
+
+	// if this struct is configured to be serialized as a unit, it must be exported as a unit as well.
+	if ((StructFlags & STRUCT_Atomic) != 0)
+	{
+		// change Defaults to match Value so that ExportText always exports this item
+		Defaults = Value;
+	}
+
+	for (TFieldIterator<UProperty> It(this); It; ++It)
+	{
+		if (It->ShouldPort(PortFlags))
+		{
+			for (int32 Index = 0; Index < It->ArrayDim; Index++)
+			{
+				FString InnerValue;
+				if (It->ExportText_InContainer(Index, InnerValue, Value, Defaults, OwnerObject, PPF_Delimited | PortFlags, ExportRootScope))
+				{
+					Count++;
+					if (Count == 1)
+					{
+						ValueStr += TEXT("(");
+					}
+					else
+					{
+						ValueStr += TEXT(",");
+					}
+
+					if (It->ArrayDim == 1)
+					{
+						ValueStr += FString::Printf(TEXT("%s="), *It->GetName());
+					}
+					else
+					{
+						ValueStr += FString::Printf(TEXT("%s[%i]="), *It->GetName(), Index);
+					}
+					ValueStr += InnerValue;
+				}
+			}
+		}
+	}
+
+	if (Count > 0)
+	{
+		ValueStr += TEXT(")");
+	}
+	else
+	{
+		ValueStr += TEXT("()");
+	}
+}
 
 void UScriptStruct::Link(FArchive& Ar, bool bRelinkExistingProperties)
 {

@@ -2,11 +2,6 @@
 
 #pragma once
 
-enum ERuntimePhysxCookOptimizationFlags
-{
-	SuppressFaceRemapTable = 0x1
-};
-
 // The result of a cooking operation
 enum class EPhysXCookingResult : uint8
 {
@@ -19,6 +14,21 @@ enum class EPhysXCookingResult : uint8
 	// Cooking the exact source data failed, but succeeded after retrying with inflation enabled
 	SucceededWithInflation,
 };
+
+enum class EPhysXMeshCookFlags : uint8
+{
+	Default = 0x0,
+
+	// Don't perform mesh cleaning, so resulting mesh has same vertex order as input mesh
+	DeformableMesh = 0x1,
+
+	// Prioritize cooking speed over runtime speed
+	FastCook = 0x2,
+
+	// Do not create remap table for this mesh
+	SuppressFaceRemapTable = 0x4
+};
+ENUM_CLASS_FLAGS(EPhysXMeshCookFlags);
 
 /**
  * IPhysXFormat, PhysX cooking and serialization abstraction
@@ -43,25 +53,23 @@ public:
 	 * Cooks the source convex data for the platform and stores the cooked data internally.
 	 *
 	 * @param Format The desired format
-	 * @param RuntimeCookFlags Any special runtime flags we want to pass in
+	 * @param CookFlags Flags used to provide options for this cook
 	 * @param SrcBuffer The source buffer
 	 * @param OutBuffer The resulting cooked data
-	 * @param bDeformableMesh Whether this mesh is deformable and hence needs to be cooked with different parameters
 	 * @return An enum indicating full success, partial success, or failure (@see EPhysXCookingResult)
 	 */
-	virtual EPhysXCookingResult CookConvex( FName Format, int32 RuntimeCookFlags, const TArray<FVector>& SrcBuffer, TArray<uint8>& OutBuffer, bool bDeformableMesh = false ) const = 0;
+	virtual EPhysXCookingResult CookConvex( FName Format, EPhysXMeshCookFlags CookFlags, const TArray<FVector>& SrcBuffer, TArray<uint8>& OutBuffer ) const = 0;
 
 	/**
 	 * Cooks the source Tri-Mesh data for the platform and stores the cooked data internally.
 	 *
 	 * @param Format The desired format.
-	 * @param RuntimeCookFlags Any special runtime flags we want to pass in
+	 * @param CookFlags Flags used to provide options for this cook
 	 * @param SrcBuffer The source buffer.
 	 * @param OutBuffer The resulting cooked data.
-	 * @param bDeformableMesh This is a very special case that requires different cooking parameters set.
 	 * @return true on success, false otherwise.
 	 */
-	virtual bool CookTriMesh( FName Format, int32 RuntimeCookFlags, const TArray<FVector>& SrcVertices, const TArray<struct FTriIndices>& SrcIndices, const TArray<uint16>& SrcMaterialIndices, const bool FlipNormals, TArray<uint8>& OutBuffer, bool bDeformableMesh = false ) const = 0;
+	virtual bool CookTriMesh( FName Format, EPhysXMeshCookFlags CookFlags, const TArray<FVector>& SrcVertices, const TArray<struct FTriIndices>& SrcIndices, const TArray<uint16>& SrcMaterialIndices, const bool FlipNormals, TArray<uint8>& OutBuffer) const = 0;
 		
 	/**
 	 * Cooks the source height field data for the platform and stores the cooked data internally.

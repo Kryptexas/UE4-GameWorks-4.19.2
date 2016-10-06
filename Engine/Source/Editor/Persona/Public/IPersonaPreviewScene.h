@@ -34,6 +34,9 @@ public:
 		: FAdvancedPreviewScene(CVS)
 	{}
 
+	/** Get the persona toolkit we are associated with */
+	virtual TSharedRef<class IPersonaToolkit> GetPersonaToolkit() const = 0;
+
 	/** Flag that we want our views to be updated */
 	virtual void InvalidateViews() = 0;
 
@@ -144,4 +147,7 @@ public:
 
 	/** Get the currently selected bone index */
 	virtual int32 GetSelectedBoneIndex() const = 0;
+
+	/** Toggle the playback of animation, if any */
+	virtual void TogglePlayback() = 0;
 };

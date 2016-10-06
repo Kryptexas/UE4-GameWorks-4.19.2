@@ -72,6 +72,8 @@ struct FSkeletalMeshCustomVersion
 		RecalcMaxBoneInfluences = 3,
 		// Add NumVertices that can be accessed when stripping editor data
 		SaveNumVertices = 4,
+		// Regenerated clothing section shadow flags from source sections
+		RegenerateClothingShadowFlags = 5,
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1
@@ -3193,17 +3195,19 @@ void USkeletalMesh::PreSave(const class ITargetPlatform* TargetPlatform)
 // Pre-calculate refpose-to-local transforms
 void USkeletalMesh::CalculateInvRefMatrices()
 {
-	if( RefBasesInvMatrix.Num() != RefSkeleton.GetNum() )
+	const int32 NumRealBones = RefSkeleton.GetRawBoneNum();
+
+	if( RefBasesInvMatrix.Num() != NumRealBones)
 	{
-		RefBasesInvMatrix.Empty(RefSkeleton.GetNum());
-		RefBasesInvMatrix.AddUninitialized(RefSkeleton.GetNum());
+		RefBasesInvMatrix.Empty(NumRealBones);
+		RefBasesInvMatrix.AddUninitialized(NumRealBones);
 
 		// Reset cached mesh-space ref pose
-		CachedComposedRefPoseMatrices.Empty( RefSkeleton.GetNum() );
-		CachedComposedRefPoseMatrices.AddUninitialized( RefSkeleton.GetNum() );
+		CachedComposedRefPoseMatrices.Empty(NumRealBones);
+		CachedComposedRefPoseMatrices.AddUninitialized(NumRealBones);
 
 		// Precompute the Mesh.RefBasesInverse.
-		for( int32 b=0; b<RefSkeleton.GetNum(); b++)
+		for( int32 b=0; b<NumRealBones; b++)
 		{
 			// Render the default pose.
 			CachedComposedRefPoseMatrices[b] = GetRefPoseMatrix(b);
@@ -3211,7 +3215,7 @@ void USkeletalMesh::CalculateInvRefMatrices()
 			// Construct mesh-space skeletal hierarchy.
 			if( b>0 )
 			{
-				int32 Parent = RefSkeleton.GetParentIndex(b);
+				int32 Parent = RefSkeleton.GetRawParentIndex(b);
 				CachedComposedRefPoseMatrices[b] = CachedComposedRefPoseMatrices[b] * CachedComposedRefPoseMatrices[Parent];
 			}
 
@@ -3233,7 +3237,7 @@ void USkeletalMesh::CalculateInvRefMatrices()
 #if WITH_EDITORONLY_DATA
 		if(RetargetBasePose.Num() == 0)
 		{
-			RetargetBasePose = RefSkeleton.GetRefBonePose();
+			RetargetBasePose = RefSkeleton.GetRawRefBonePose();
 		}
 #endif // WITH_EDITORONLY_DATA
 	}
@@ -3438,6 +3442,29 @@ void USkeletalMesh::PostLoad()
 
 	// Bounds have been loaded - apply extensions.
 	CalculateExtendedBounds();
+
+	const bool bRebuildNameMap = false;
+	RefSkeleton.RebuildRefSkeleton(Skeleton, bRebuildNameMap);
+
+	if(GetLinkerCustomVersion(FSkeletalMeshCustomVersion::GUID) < FSkeletalMeshCustomVersion::RegenerateClothingShadowFlags)
+	{
+		if(FSkeletalMeshResource* MeshResource = GetImportedResource())
+		{
+			for(FStaticLODModel& LodModel : MeshResource->LODModels)
+			{
+				for(FSkelMeshSection& Section : LodModel.Sections)
+				{
+					if(Section.HasApexClothData())
+					{
+						check(LodModel.Sections.IsValidIndex(Section.CorrespondClothSectionIndex));
+
+						FSkelMeshSection& OriginalSection = LodModel.Sections[Section.CorrespondClothSectionIndex];
+						Section.bCastShadow = OriginalSection.bCastShadow;
+					}
+				}
+			}
+		}
+	}
 }
 
 void USkeletalMesh::RebuildRefSkeletonNameToIndexMap()
@@ -3497,7 +3524,7 @@ void USkeletalMesh::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) con
 	}
 
 	OutTags.Add(FAssetRegistryTag("Triangles", FString::FromInt(NumTriangles), FAssetRegistryTag::TT_Numerical));
-	OutTags.Add(FAssetRegistryTag("Bones", FString::FromInt(RefSkeleton.GetNum()), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add(FAssetRegistryTag("Bones", FString::FromInt(RefSkeleton.GetRawBoneNum()), FAssetRegistryTag::TT_Numerical));
 	OutTags.Add(FAssetRegistryTag("MorphTargets", FString::FromInt(MorphTargets.Num()), FAssetRegistryTag::TT_Numerical));
 
 #if WITH_EDITORONLY_DATA
@@ -3725,8 +3752,8 @@ FString USkeletalMesh::GetDetailedInfoInternal() const
 
 FMatrix USkeletalMesh::GetRefPoseMatrix( int32 BoneIndex ) const
 {
-	check( BoneIndex >= 0 && BoneIndex < RefSkeleton.GetNum() );
-	FTransform BoneTransform = RefSkeleton.GetRefBonePose()[BoneIndex];
+	check( BoneIndex >= 0 && BoneIndex < RefSkeleton.GetRawBoneNum() );
+	FTransform BoneTransform = RefSkeleton.GetRawRefBonePose()[BoneIndex];
 	// Make sure quaternion is normalized!
 	BoneTransform.NormalizeRotation();
 	return BoneTransform.ToMatrixWithScale();
@@ -4316,6 +4343,7 @@ bool USkeletalMesh::GetPhysicsTriMeshData(FTriMeshCollisionData* CollisionData, 
 	}
 
 	CollisionData->bFlipNormals = true;
+	CollisionData->bDeformableMesh = true;
 
 	// We only have a valid TriMesh if the CollisionData has vertices AND indices. For meshes with disabled section collision, it
 	// can happen that the indices will be empty, in which case we do not want to consider that as valid trimesh data
@@ -4378,7 +4406,7 @@ FString USkeletalMesh::GetDesc()
 {
 	FSkeletalMeshResource* Resource = GetImportedResource();
 	check(Resource->LODModels.Num() > 0);
-	return FString::Printf( TEXT("%d Triangles, %d Bones"), Resource->LODModels[0].GetTotalFaces(), RefSkeleton.GetNum() );
+	return FString::Printf( TEXT("%d Triangles, %d Bones"), Resource->LODModels[0].GetTotalFaces(), RefSkeleton.GetRawBoneNum() );
 }
 
 bool USkeletalMesh::IsSectionUsingCloth(int32 InSectionIndex, bool bCheckCorrespondingSections) const

@@ -327,6 +327,7 @@ protected:
 	void CreateCrowdManager();
 	void DestroyCrowdManager();
 
+#if ENABLE_DRAW_DEBUG
 	void DrawDebugCorners(const dtCrowdAgent* CrowdAgent) const;
 	void DrawDebugCollisionSegments(const dtCrowdAgent* CrowdAgent) const;
 	void DrawDebugPath(const dtCrowdAgent* CrowdAgent) const;
@@ -334,5 +335,7 @@ protected:
 	void DrawDebugPathOptimization(const dtCrowdAgent* CrowdAgent) const;
 	void DrawDebugNeighbors(const dtCrowdAgent* CrowdAgent) const;
 	void DrawDebugSharedBoundary() const;
+#endif // ENABLE_DRAW_DEBUG
+
 #endif
 };

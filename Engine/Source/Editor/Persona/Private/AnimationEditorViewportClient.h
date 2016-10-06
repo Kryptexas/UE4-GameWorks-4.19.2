@@ -136,6 +136,7 @@ public:
 	virtual void SetViewMode(EViewModeIndex InViewModeIndex) override;
 	virtual void SetViewportType(ELevelViewportType InViewportType) override;
 	virtual void RotateViewportType() override;
+	virtual bool CanCycleWidgetMode() const override;
 	// End of FEditorViewportClient interface
 
 	/** Draw call to render UV overlay */

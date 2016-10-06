@@ -74,6 +74,9 @@ public:
 	/** Handles adding a socket to the specified bone (i.e. skeleton, not mesh) */
 	USkeletalMeshSocket* HandleAddSocket(const FName& InBoneName);
 
+	/** Handle adding a new virtual bone to the skeleton */
+	bool HandleAddVirtualBone(const FName SourceBoneName, const FName TargetBoneName);
+
 	/** Function to customize a socket - this essentially copies a socket from the skeleton to the mesh */
 	void HandleCustomizeSocket(USkeletalMeshSocket* InSocketToCustomize);
 
@@ -91,6 +94,9 @@ public:
 
 	/** Handle deleting sockets, optionally keeping a preview scene in sync */
 	void HandleDeleteSockets(const TArray<FSelectedSocketInfo>& InSocketInfo, TSharedPtr<class IPersonaPreviewScene> InPreviewScene);
+
+	/** Handle deleting virtual bones, optionally keeping a preview scene in sync */
+	void HandleDeleteVirtualBones(const TArray<FName>& InVirtualBoneInfo, TSharedPtr<class IPersonaPreviewScene> InPreviewScene);
 
 	/** Set Bone Translation Retargeting Mode for the passed-in bones and their children. */
 	void SetBoneTranslationRetargetingModeRecursive(const TArray<FName>& InBoneNames, EBoneTranslationRetargetingMode::Type NewRetargetingMode);

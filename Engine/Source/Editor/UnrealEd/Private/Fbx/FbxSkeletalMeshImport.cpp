@@ -295,7 +295,7 @@ void FFbxImporter::SkinControlPointsToPose(FSkeletalMeshImportData& ImportData, 
 
 extern void ProcessImportMeshInfluences(FSkeletalMeshImportData& ImportData);
 extern void ProcessImportMeshMaterials( TArray<FSkeletalMaterial>& Materials, FSkeletalMeshImportData& ImportData );
-extern bool ProcessImportMeshSkeleton(FReferenceSkeleton& RefSkeleton, int32& SkeletalDepth, FSkeletalMeshImportData& ImportData);
+extern bool ProcessImportMeshSkeleton(const USkeleton* SkeletonAsset, FReferenceSkeleton& RefSkeleton, int32& SkeletalDepth, FSkeletalMeshImportData& ImportData);
 
 struct tFaceRecord
 {
@@ -1358,7 +1358,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 
 	// process reference skeleton from import data
 	int32 SkeletalDepth = 0;
-	if (!ProcessImportMeshSkeleton(SkeletalMesh->RefSkeleton, SkeletalDepth, *SkelMeshImportDataPtr))
+	if (!ProcessImportMeshSkeleton(SkeletalMesh->Skeleton, SkeletalMesh->RefSkeleton, SkeletalDepth, *SkelMeshImportDataPtr))
 	{
 		SkeletalMesh->ClearFlags(RF_Standalone);
 		SkeletalMesh->Rename(NULL, GetTransientPackage());
@@ -2957,6 +2957,10 @@ void UnFbx::FFbxImporter::InsertNewLODToBaseSkeletalMesh(USkeletalMesh* InSkelet
 	DestImportedResource->LODModels[DesiredLOD] = NewLODModel;
 
 	DestImportedResource->LODModels[DesiredLOD].RebuildIndexBuffer(&Data, &AdjacencyData);
+
+	// If this LOD had been generated previously by automatic mesh reduction, clear that flag.
+	LODInfo.bHasBeenSimplified = false;
+
 	// rebuild vertex buffers and reinit RHI resources
 	BaseSkeletalMesh->PostEditChange();
 }
@@ -2983,7 +2987,7 @@ bool UnFbx::FFbxImporter::ImportSkeletalMeshLOD(USkeletalMesh* InSkeletalMesh, U
 	}
 
 	// We do some checking here that for every bone in the mesh we just imported, it's in our base ref skeleton, and the parent is the same.
-	for (int32 i = 0; i < InSkeletalMesh->RefSkeleton.GetNum(); i++)
+	for (int32 i = 0; i < InSkeletalMesh->RefSkeleton.GetRawBoneNum(); i++)
 	{
 		int32 LODBoneIndex = i;
 		FName LODBoneName = InSkeletalMesh->RefSkeleton.GetBoneName(LODBoneIndex);

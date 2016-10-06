@@ -150,41 +150,26 @@ bool FComponentEditorUtils::CanEditNativeComponent(const UActorComponent* Native
 
 	bool bCanEdit = false;
 	
-	UClass* OwnerClass = (NativeComponent && NativeComponent->GetOwner()) ? NativeComponent->GetOwner()->GetClass() : nullptr;
+	UObject* ComponentOuter = (NativeComponent ? NativeComponent->GetOuter() : nullptr);
+	UClass* OwnerClass = (ComponentOuter ? ComponentOuter->GetClass() : nullptr);
 	if (OwnerClass != nullptr)
 	{
-		// If the owner is a blueprint generated class, use the BP parent class
-		UBlueprint* Blueprint = UBlueprint::GetBlueprintFromClass(OwnerClass);
-		if (Blueprint != nullptr && Blueprint->ParentClass != nullptr)
+		for (TFieldIterator<UObjectProperty> It(OwnerClass); It; ++It)
 		{
-			OwnerClass = Blueprint->ParentClass;
-		}
+			UObjectProperty* ObjectProp = *It;
 
-		for (TFieldIterator<UProperty> It(OwnerClass); It; ++It)
-		{
-			UProperty* Property = *It;
-			if (UObjectProperty* ObjectProp = Cast<UObjectProperty>(Property))
+			// Must be visible - note CPF_Edit is set for all properties that should be visible, not just those that are editable
+			if (( ObjectProp->PropertyFlags & ( CPF_Edit ) ) == 0)
 			{
-				// Must be visible - note CPF_Edit is set for all properties that should be visible, not just those that are editable
-				if (( Property->PropertyFlags & ( CPF_Edit ) ) == 0)
-				{
-					continue;
-				}
+				continue;
+			}
 
-				UObject* ParentCDO = OwnerClass->GetDefaultObject();
+			UObject* Object = ObjectProp->GetObjectPropertyValue(ObjectProp->ContainerPtrToValuePtr<void>(ComponentOuter));
+			bCanEdit = Object != nullptr && Object->GetFName() == NativeComponent->GetFName();
 
-				if (!NativeComponent->GetClass()->IsChildOf(ObjectProp->PropertyClass))
-				{
-					continue;
-				}
-
-				UObject* Object = ObjectProp->GetObjectPropertyValue(ObjectProp->ContainerPtrToValuePtr<void>(ParentCDO));
-				bCanEdit = Object != nullptr && Object->GetFName() == NativeComponent->GetFName();
-
-				if (bCanEdit)
-				{
-					break;
-				}
+			if (bCanEdit)
+			{
+				break;
 			}
 		}
 	}

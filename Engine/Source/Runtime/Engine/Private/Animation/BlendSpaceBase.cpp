@@ -320,7 +320,7 @@ void UBlendSpaceBase::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNot
 			}
 
 			float& NormalizedCurrentTime = *(Instance.TimeAccumulator);
-			const float NormalizedPreviousTime = NormalizedCurrentTime;
+			float NormalizedPreviousTime = NormalizedCurrentTime;
 
 			// @note for sync group vs non sync group
 			// in blendspace, it will still sync even if only one node in sync group
@@ -341,6 +341,8 @@ void UBlendSpaceBase::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNot
 				// advance current time - blend spaces hold normalized time as when dealing with changing anim length it would be possible to go backwards
 				UE_LOG(LogAnimation, Verbose, TEXT("BlendSpace(%s) - BlendInput(%s) : AnimLength(%0.5f) "), *GetName(), *BlendInput.ToString(), NewAnimLength);
 				
+				Context.SetPreviousAnimationPositionRatio(NormalizedCurrentTime);
+
 				const int32 HighestMarkerSyncWeightIndex = bCanDoMarkerSync ? GetHighestWeightMarkerSyncSample(SampleDataList, SampleData) : -1;
 
 				if (HighestMarkerSyncWeightIndex == -1)
@@ -413,7 +415,8 @@ void UBlendSpaceBase::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNot
 				}
 				else
 				{
-					NormalizedCurrentTime =  Context.GetAnimationPositionRatio();
+					NormalizedPreviousTime = Context.GetPreviousAnimationPositionRatio();
+					NormalizedCurrentTime = Context.GetAnimationPositionRatio();
 					UE_LOG(LogAnimMarkerSync, Log, TEXT("Leader (%s) (normal advance)  - PreviousTime (%0.2f), CurrentTime (%0.2f), MoveDelta (%0.2f) "), *GetName(), NormalizedPreviousTime, NormalizedCurrentTime, MoveDelta);
 				}
 			}

@@ -23,6 +23,7 @@ public:
 			, bCreatePhysicsScene(true)
 			, bShouldSimulatePhysics(false)
 			, bTransactional(true)
+			, bEditor(true)
 		{
 		}
 
@@ -34,6 +35,7 @@ public:
 		uint32 bCreatePhysicsScene:1;
 		uint32 bShouldSimulatePhysics:1;
 		uint32 bTransactional:1;
+		uint32 bEditor:1;
 		
 		ConstructionValues& SetLightRotation(const FRotator& Rotation) { LightRotation = Rotation; return *this; }
 		ConstructionValues& SetSkyBrightness(const float Brightness) { SkyBrightness = Brightness; return *this; }
@@ -43,6 +45,7 @@ public:
 		ConstructionValues& SetCreatePhysicsScene(const bool bCreate) { bCreatePhysicsScene = bCreate; return *this; }
 		ConstructionValues& ShouldSimulatePhysics(const bool bInShouldSimulatePhysics) { bShouldSimulatePhysics = bInShouldSimulatePhysics; return *this; }
 		ConstructionValues& SetTransactional(const bool bInTransactional) { bTransactional = bInTransactional; return *this; }
+		ConstructionValues& SetEditor(const bool bInEditor) { bEditor = bInEditor; return *this; }
 	};
 
 	// for physical correct light computations we multiply diffuse and specular lights by PI (see LABEL_RealEnergy)

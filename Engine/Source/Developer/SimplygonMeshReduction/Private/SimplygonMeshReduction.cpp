@@ -124,22 +124,14 @@ public:
 		{
 			check( sizeof(int32) == EventParameterBlockSize );
 			int32 ProgressPercent = *((int32*)EventParameterBlock);
-			GWarn->UpdateProgress( ProgressPercent, 100 );
 
-			if (Task != nullptr)
-			if (!IsInGameThread())
-			{					
-				// Protection agains execition of this callback from non-game thread.
-				UE_LOG(LogSimplygon,Warning,TEXT("FDefaultEventHandler called from non-game thread. Progress is %d%%."), ProgressPercent);
-			}
-			else
+			if (IsInGameThread())
 			{
 				if ( Task != nullptr)
 				{
 					Task->EnterProgressFrame(ProgressPercent - PreviousProgress);
 					PreviousProgress = ProgressPercent;
 				}
-				GWarn->UpdateProgress( ProgressPercent, 100 );
 			}
 
 			// We are required to pass '1' back through the EventParametersBlock for the process to continue.
@@ -509,15 +501,35 @@ public:
 			UE_LOG(LogSimplygon, Warning, TEXT("Simplygon is disabled with -NoSimplygon flag"));
 			return  NULL;
 		}
-		const ANSICHAR* SIMPLYGON_VERSION_STRING = "7.1";  
+		//@third party BEGIN SIMPLYGON
+		const FString SUPPORTED_SIMPLYGON_VERSION = "8";
+		//@third party END SIMPLYGON
 
-		FString DllPath(FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries/ThirdParty/NotForLicensees/Simplygon")));
+		// Load d3d compiler first
+		FString DllPath; 
+#if !PLATFORM_64BITS
+		DllPath = FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries/ThirdParty/Windows/DirectX/x86/d3dcompiler_47.dll"));		
+#else
+		DllPath = FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries/ThirdParty/Windows/DirectX/x64/d3dcompiler_47.dll"));
+#endif
+		if (!FPaths::FileExists(DllPath))
+		{
+			UE_LOG(LogSimplygon, Warning, TEXT("Could not find d3dcompiler_47 DLL, which is required for loading Simplygon."));
+			return NULL;
+		}
+		else
+		{
+			void* D3DHandle = FPlatformProcess::GetDllHandle(*DllPath);
+		}
+		
+
+		DllPath = (FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries/ThirdParty/NotForLicensees/Simplygon")));
 		FString DllFilename(FPaths::Combine(*DllPath, TEXT("SimplygonSDKRuntimeReleasex64.dll")));
 
 		// If the DLL just doesn't exist, fail gracefully. Licensees and Subscribers will not necessarily have Simplygon.
 		if( !FPaths::FileExists(DllFilename) )
 		{
-			UE_LOG(LogSimplygon,Log,TEXT("Simplygon DLL not present - disabling."));
+			UE_LOG(LogSimplygon,Warning,TEXT("Simplygon DLL not present - disabling."));
 			return NULL;
 		}
 
@@ -548,14 +560,23 @@ public:
 			return NULL;
 		}
 
-		if (FCStringAnsi::Strncmp(SimplygonSDK::GetHeaderVersion(), SIMPLYGON_VERSION_STRING, FCStringAnsi::Strlen(SIMPLYGON_VERSION_STRING)) != 0) 
+		//@third party BEGIN SIMPLYGON
+		//NOTE: Only major version check is required. This removes the dependency to update each time the SDK is updated to a minor release with bug fixes
+		//TODO : Tokenize the version string. This would allow for better granularity when a tight coupling to the dll is required. (i.e Custom Dll Version)
+		FString MajorVersion, MinorAndBuildRevision;
+		FString SimplygonHeaderVersioString = ANSI_TO_TCHAR(SimplygonSDK::GetHeaderVersion());
+		SimplygonHeaderVersioString.Split(TEXT("."), &MajorVersion, &MinorAndBuildRevision);
+
+		if (SUPPORTED_SIMPLYGON_VERSION.Compare(MajorVersion) != 0)
 		{
-			UE_LOG(LogSimplygon, Error, TEXT("Simplygon version doesn't match the version expected by the Simplygon UE4 integration"));
-			UE_LOG(LogSimplygon, Error, TEXT("Expected version %s, found version %s"), ANSI_TO_TCHAR(SIMPLYGON_VERSION_STRING), ANSI_TO_TCHAR(SimplygonSDK::GetHeaderVersion()));
+			UE_LOG(LogSimplygon, Warning, TEXT("Simplygon version doesn't match the version expected by the Simplygon UE4 integration"));
+			UE_LOG(LogSimplygon, Warning, TEXT("Min version %s, found version %s"), *SUPPORTED_SIMPLYGON_VERSION, ANSI_TO_TCHAR(SimplygonSDK::GetHeaderVersion()));
 			FPlatformProcess::FreeDllHandle(GSimplygonSDKDLLHandle);
 			GSimplygonSDKDLLHandle = NULL;
 			return NULL;
 		}  
+		//@third party END SIMPLYGON
+
 
 		ANSICHAR VersionHash[200];
 		GetInterfaceVersionSimplygonSDK(VersionHash);
@@ -578,7 +599,7 @@ public:
 				, RealDataOffset(0)
 			{
 				TArray<uint8> LicenseFileContents;
-				if (FFileHelper::LoadFileToArray(LicenseFileContents, *FPaths::Combine(InDllPath, TEXT("Simplygon_5_license.dat")), FILEREAD_Silent))
+				if (FFileHelper::LoadFileToArray(LicenseFileContents, *FPaths::Combine(InDllPath, TEXT("Simplygon_8_license.dat")), FILEREAD_Silent))
 				{
 					if (LicenseFileContents.Num() > 0)
 					{
@@ -675,7 +696,11 @@ public:
 
 		// Convert FFlattenMaterial array to Simplygon materials
 		SimplygonSDK::spMaterialTable InputMaterialTable = SDK->CreateMaterialTable();
-		CreateSGMaterialFromFlattenMaterial(FlattenedMaterials, MaterialLODSettings, InputMaterialTable, false);
+		//@third party BEGIN SIMPLYGON
+		SimplygonSDK::spTextureTable InputTextureTable = Processor->GetScene()->GetTextureTable();
+		CreateSGMaterialFromFlattenMaterial(FlattenedMaterials, MaterialLODSettings, InputMaterialTable, InputTextureTable, true);
+		//@third party END SIMPLYGON
+
 		
 		// Perform LOD processing
 		UE_LOG(LogSimplygon, Log, TEXT("Processing with %s."), *FString(Processor->GetClass()));
@@ -689,8 +714,13 @@ public:
 		// Cast input materials to output materials and convert to FFlattenMaterial
 		UE_LOG(LogSimplygon, Log, TEXT("Casting materials."));
 		SimplygonSDK::spMappingImage MappingImage = Processor->GetMappingImage();
-		SimplygonSDK::spMaterial SgMaterial = RebakeMaterials(MaterialLODSettings, MappingImage, InputMaterialTable);
-		CreateFlattenMaterialFromSGMaterial(SgMaterial, OutMaterial);
+		//@third party BEGIN SIMPLYGON
+		SimplygonSDK::spMaterial SgMaterial = RebakeMaterials(MaterialLODSettings, MappingImage, InputMaterialTable, InputTextureTable);
+		CreateFlattenMaterialFromSGMaterial(SgMaterial, InputTextureTable, OutMaterial);
+		//@third party END SIMPLYGON
+
+		// Fill flatten material samples alpha values with 255 (to prevent the data from being optimized away)
+		OutMaterial.FillAlphaValues(255);
 
 		if (FlattenedMaterials.Num())
 		{
@@ -786,7 +816,6 @@ public:
 			SimplygonSDK::spRemeshingProcessor RemeshingProcessor = SDK->CreateRemeshingProcessor();
 
 			//Setup the remesher
-			//RemeshingProcessor->AddObserver(&EventHandler, SimplygonSDK::SG_EVENT_PROGRESS);
 			// TODO add more settings back in
 			RemeshingProcessor->GetRemeshingSettings()->SetOnScreenSize(ProxySettings.ScreenSize);
 			RemeshingProcessor->GetRemeshingSettings()->SetMergeDistance(ProxySettings.MergeDistance);
@@ -858,9 +887,8 @@ public:
 		const TArray<FFlattenMaterial>& InputMaterials,
 		const FGuid InJobGUID) override
 	{
-		/*	FProxyLODTask* Task = new FProxyLODTask(InData, InProxySettings, InputMaterials, InJobGUID, CompleteDelegate, SDK, this);
-			Task->StartJobAsync();
-			return;*/
+		FScopedSlowTask SlowTask(100.f, (LOCTEXT("SimplygonProxyLOD_ProxyLOD", "Generating Proxy Mesh using Simplygon")));
+		SlowTask.MakeDialog();
 
 		FRawMesh OutProxyMesh;
 		FFlattenMaterial OutMaterial;
@@ -895,7 +923,6 @@ public:
 			SimplygonSDK::spGeometryData GeometryData = CreateGeometryFromRawMesh(*InData[MeshIndex].RawMesh, InData[MeshIndex].TexCoordBounds, InData[MeshIndex].NewUVs);
 			if (!GeometryData)
 			{
-				UE_LOG(LogSimplygon, Warning, TEXT("Geometry data is NULL"));
 				FailedDelegate.ExecuteIfBound(InJobGUID, TEXT("Simplygon failed to generate Geometry Data"));
 				continue;
 			}
@@ -904,7 +931,7 @@ public:
 
 			//Validate the geometry
 			ValidateGeometry(GeometryValidator, GeometryData);
-			
+
 #ifdef DEBUG_PROXY_MESH
 				SimplygonSDK::spWavefrontExporter objexp = SDK->CreateWavefrontExporter();
 			objexp->SetExportFilePath("d:/BeforeProxyMesh.obj");
@@ -936,6 +963,7 @@ public:
 		RemeshingProcessor->Clear();
 
 		//Setup the remesher
+		EventHandler.Task = &SlowTask;
 		RemeshingProcessor->AddObserver(&EventHandler, SimplygonSDK::SG_EVENT_PROGRESS);
 		RemeshingProcessor->GetRemeshingSettings()->SetOnScreenSize(InProxySettings.ScreenSize);
 		RemeshingProcessor->GetRemeshingSettings()->SetMergeDistance(InProxySettings.MergeDistance);
@@ -981,25 +1009,27 @@ public:
 		else
 		{
 #ifdef DEBUG_PROXY_MESH
-			SimplygonSDK::spWavefrontExporter objexp = SDK->CreateWavefrontExporter();
-			objexp->SetExportFilePath("d:/AfterProxyMesh.obj");
-			objexp->SetSingleGeometry(ProxyMesh->GetGeometry());
-			objexp->RunExport();
+		SimplygonSDK::spWavefrontExporter objexp = SDK->CreateWavefrontExporter();
+		objexp->SetExportFilePath("d:/AfterProxyMesh.obj");
+		objexp->SetSingleGeometry(ProxyMesh->GetGeometry());
+		objexp->RunExport();
 #endif
 
-			//Convert geometry data to raw mesh data
-			SimplygonSDK::spGeometryData outGeom = ProxyMesh->GetGeometry();
-			CreateRawMeshFromGeometry(OutProxyMesh, ProxyMesh->GetGeometry(), WINDING_Keep);
+		//Convert geometry data to raw mesh data
+		SimplygonSDK::spGeometryData outGeom = ProxyMesh->GetGeometry();
+		CreateRawMeshFromGeometry(OutProxyMesh, ProxyMesh->GetGeometry(), WINDING_Keep);
 		
-			// Default smoothing
-			OutProxyMesh.FaceSmoothingMasks.SetNum(OutProxyMesh.FaceMaterialIndices.Num());
-			for (uint32& SmoothingMask : OutProxyMesh.FaceSmoothingMasks)
-			{
-				SmoothingMask = 1;
-			}
-				
-			CompleteDelegate.ExecuteIfBound(OutProxyMesh, OutMaterial, InJobGUID);
+		// Default smoothing
+		OutProxyMesh.FaceSmoothingMasks.SetNum(OutProxyMesh.FaceMaterialIndices.Num());
+		for (uint32& SmoothingMask : OutProxyMesh.FaceSmoothingMasks)
+		{
+			SmoothingMask = 1;
 		}
+				
+		CompleteDelegate.ExecuteIfBound(OutProxyMesh, OutMaterial, InJobGUID);
+	}
+
+		EventHandler.Task = nullptr;
 	}
 
 private:
@@ -1463,14 +1493,14 @@ private:
 		TArray<SimplygonSDK::spSceneBone> BoneArray;
 		
 		//Create Simplygon scene nodes for each bone in our Skeletal Hierarchy
-		for(int32 BoneIndex=0; BoneIndex < InSkeleton.GetNum(); ++BoneIndex)
+		for(int32 BoneIndex=0; BoneIndex < InSkeleton.GetRawBoneNum(); ++BoneIndex)
 		{	
 			SimplygonSDK::spSceneBone SceneBone = SDK->CreateSceneBone();
 			BoneArray.Add(SceneBone);
 		}
 
 		SimplygonSDK::spSceneBoneTable BoneTable = InScene->GetBoneTable();
-		for(int32 BoneIndex=0; BoneIndex < InSkeleton.GetNum(); ++BoneIndex)
+		for(int32 BoneIndex=0; BoneIndex < InSkeleton.GetRawBoneNum(); ++BoneIndex)
 		{
 			int32 ParentIndex = InSkeleton.GetParentIndex(BoneIndex);
 			SimplygonSDK::spSceneBone CurrentBone = BoneArray[BoneIndex];
@@ -2063,6 +2093,10 @@ private:
 		const TArray<FColor>& InSamples, 
 		FIntPoint InTextureSize,
 		SimplygonSDK::spMaterial& InSGMaterial, 
+		//@third party BEGIN SIMPLYGON
+		SimplygonSDK::spTextureTable& TextureTable,
+		//@third party END SIMPLYGON
+
 		const char* SGMaterialChannelName)
 	{
 		if (InSamples.Num() > 1)
@@ -2095,27 +2129,77 @@ private:
 
 				ImageColors->SetTuple(TexelIndex, Texel);
 			}
-			InSGMaterial->SetColor(SGMaterialChannelName, 1.0, 1.0, 1.0, 1.0);
-			InSGMaterial->SetLayeredTextureImage(SGMaterialChannelName, 0, ImageData);
-			InSGMaterial->SetLayeredTextureLevel(SGMaterialChannelName, 0, 0);
+
+			//@third party BEGIN SIMPLYGON
+			// Need to add a texture to the texture table in order to be able
+			// to reference it in the shading network.
+			FGuid TextureGuid = FGuid::NewGuid();
+			SimplygonSDK::spTexture Texture = SDK->CreateTexture();
+			Texture->SetImageData(ImageData);
+			Texture->SetName(TCHAR_TO_ANSI(*TextureGuid.ToString()));
+			TextureTable->AddTexture(Texture);
+
+			//Create texture node
+			SimplygonSDK::spShadingTextureNode TextureNode = SDK->CreateShadingTextureNode();
+			TextureNode->SetTextureLevel(0);	// UV Coordinate to use
+			TextureNode->SetTextureName(TCHAR_TO_ANSI(*TextureGuid.ToString()));
+			TextureNode->SetUseSRGB(false);
+			//hook node into desired channel. 
+			InSGMaterial->SetShadingNetwork(SGMaterialChannelName, TextureNode);
+			//@third party END SIMPLYGON
+
 
 
 		}
 		else if (InSamples.Num() == 1)
 		{
-			// handle uniform value
-			InSGMaterial->SetColorRGB(SGMaterialChannelName, InSamples[0].R / 255.0f, InSamples[0].G / 255.0f, InSamples[0].B / 255.0f);
+			//@third party BEGIN SIMPLYGON
+			// Setup a color node
+			SimplygonSDK::spShadingColorNode ColorNode = SDK->CreateShadingColorNode();
+			ColorNode->SetColor(InSamples[0].R / 255.0f, InSamples[0].G / 255.0f, InSamples[0].B / 255.0f, 1.0f);
+			InSGMaterial->SetShadingNetwork(SGMaterialChannelName, ColorNode);
+			//@third party END SIMPLYGON
+
 		}
 		else
 		{
-			InSGMaterial->SetColorRGB(SGMaterialChannelName, 1.0f, 1.0f, 1.0f);
+			//@third party BEGIN SIMPLYGON
+			SimplygonSDK::spShadingColorNode ColorNode = SDK->CreateShadingColorNode();
+			ColorNode->SetColor(1.0f, 1.0f, 1.0f, 1.0f);
+			InSGMaterial->SetShadingNetwork(SGMaterialChannelName, ColorNode);
+			//@third party END SIMPLYGON
+
 		}
 	}
 
 	//Material conversions
-	void GetMaterialChannelData(const SimplygonSDK::spMaterial& InSGMaterial, const char* SGMaterialChannelName, TArray<FColor>& OutSamples, FIntPoint& OutTextureSize)
+	//@third party BEGIN SIMPLYGON
+	void GetMaterialChannelData(const SimplygonSDK::spMaterial& InSGMaterial, const SimplygonSDK::spTextureTable& TextureTable, const char* SGMaterialChannelName, TArray<FColor>& OutSamples, FIntPoint& OutTextureSize)
+	//@third party END SIMPLYGON
+
 	{
-		SimplygonSDK::spImageData SGChannelData = InSGMaterial->GetLayeredTextureImage(SGMaterialChannelName, 0);
+		//@third party BEGIN SIMPLYGON
+		SimplygonSDK::spShadingNode ExitNode = InSGMaterial->GetShadingNetwork(SGMaterialChannelName);
+		if (ExitNode == nullptr)
+		{
+			//Current channel has not been baked
+			return;
+		}
+
+		SimplygonSDK::spShadingTextureNode TextureNode = SimplygonSDK::Cast<SimplygonSDK::IShadingTextureNode>(ExitNode);
+		SimplygonSDK::rid TextureId = TextureTable->FindTextureId(TextureNode->GetTextureName());
+		
+		if (TextureId < 0)
+	{
+			UE_LOG(LogSimplygon, Warning, TEXT("Could not retrieve texture for texture table for channel %s"), ANSI_TO_TCHAR(SGMaterialChannelName));
+			return;
+		}
+		
+		SimplygonSDK::spTexture Texture = TextureTable->GetTexture(TextureId);
+		SimplygonSDK::spImageData SGChannelData = Texture->GetImageData();
+		//@third party END SIMPLYGON
+
+
 		if (SGChannelData)
 		{
 			SimplygonSDK::spUnsignedCharArray ImageColors = SimplygonSDK::SafeCast<SimplygonSDK::IUnsignedCharArray>(SGChannelData->GetColors());
@@ -2154,84 +2238,92 @@ private:
 
 	void CreateFlattenMaterialFromSGMaterial(
 		SimplygonSDK::spMaterialTable& InSGMaterialTable,
+		//@third party BEGIN SIMPLYGON
+		SimplygonSDK::spTextureTable& TextureTable,
+		//@third party END SIMPLYGON
+
 		FFlattenMaterial& OutMaterial)
 	{
 		FIntPoint Size;
 		SimplygonSDK::spMaterial SGMaterial = InSGMaterialTable->GetMaterial(0);
 
-		// Diffuse		
+		// Diffuse
 		Size = FIntPoint::ZeroValue;
-		GetMaterialChannelData(SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_DIFFUSE, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Diffuse), Size);
+		GetMaterialChannelData(SGMaterial, TextureTable,  SimplygonSDK::SG_MATERIAL_CHANNEL_DIFFUSE, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Diffuse), Size);
 		OutMaterial.SetPropertySize(EFlattenMaterialProperties::Diffuse, Size);
 
 		// Normal
 		Size = FIntPoint::ZeroValue;
-		GetMaterialChannelData(SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_NORMALS, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Normal), Size);
+		GetMaterialChannelData(SGMaterial, TextureTable,  SimplygonSDK::SG_MATERIAL_CHANNEL_NORMALS, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Normal), Size);
 		OutMaterial.SetPropertySize(EFlattenMaterialProperties::Normal, Size);
 
 		// Metallic
 		Size = FIntPoint::ZeroValue;
-		GetMaterialChannelData(SGMaterial, USER_MATERIAL_CHANNEL_METALLIC, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Metallic), Size);
+		GetMaterialChannelData(SGMaterial, TextureTable,  USER_MATERIAL_CHANNEL_METALLIC, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Metallic), Size);
 		OutMaterial.SetPropertySize(EFlattenMaterialProperties::Metallic, Size);
 
 		// Roughness
 		Size = FIntPoint::ZeroValue;
-		GetMaterialChannelData(SGMaterial, USER_MATERIAL_CHANNEL_ROUGHNESS, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Roughness), Size);
+		GetMaterialChannelData(SGMaterial, TextureTable,  USER_MATERIAL_CHANNEL_ROUGHNESS, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Roughness), Size);
 		OutMaterial.SetPropertySize(EFlattenMaterialProperties::Roughness, Size);
 
 		// Specular
 		Size = FIntPoint::ZeroValue;
-		GetMaterialChannelData(SGMaterial, USER_MATERIAL_CHANNEL_SPECULAR, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Specular), Size);
+		GetMaterialChannelData(SGMaterial, TextureTable,  USER_MATERIAL_CHANNEL_SPECULAR, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Specular), Size);
 		OutMaterial.SetPropertySize(EFlattenMaterialProperties::Specular, Size);
 	}
 
 	void CreateFlattenMaterialFromSGMaterial(
 		SimplygonSDK::spMaterial& SGMaterial,
+		//@third party BEGIN SIMPLYGON
+		SimplygonSDK::spTextureTable& TextureTable,
+		//@third party END SIMPLYGON
+
 		FFlattenMaterial& OutMaterial)
 	{
 		FIntPoint Size;
 
 		// Diffuse
 		Size = FIntPoint::ZeroValue;
-		GetMaterialChannelData(SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_BASECOLOR, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Diffuse), Size);
+		GetMaterialChannelData(SGMaterial, TextureTable,  SimplygonSDK::SG_MATERIAL_CHANNEL_BASECOLOR, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Diffuse), Size);
 		OutMaterial.SetPropertySize(EFlattenMaterialProperties::Diffuse, Size);
 
 		// Normal
 		Size = FIntPoint::ZeroValue;
-		GetMaterialChannelData(SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_NORMALS, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Normal), Size);
+		GetMaterialChannelData(SGMaterial, TextureTable,  SimplygonSDK::SG_MATERIAL_CHANNEL_NORMALS, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Normal), Size);
 		OutMaterial.SetPropertySize(EFlattenMaterialProperties::Normal, Size);
 
 		// Metallic
 		Size = FIntPoint::ZeroValue;
-		GetMaterialChannelData(SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_METALLIC, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Metallic), Size);
+		GetMaterialChannelData(SGMaterial, TextureTable,  SimplygonSDK::SG_MATERIAL_CHANNEL_METALNESS, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Metallic), Size);
 		OutMaterial.SetPropertySize(EFlattenMaterialProperties::Metallic, Size);
 
 		// Roughness
 		Size = FIntPoint::ZeroValue;
-		GetMaterialChannelData(SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_ROUGHNESS, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Roughness), Size);
+		GetMaterialChannelData(SGMaterial, TextureTable,  SimplygonSDK::SG_MATERIAL_CHANNEL_ROUGHNESS, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Roughness), Size);
 		OutMaterial.SetPropertySize(EFlattenMaterialProperties::Roughness, Size);
 
 		// Specular
 		Size = FIntPoint::ZeroValue;
-		GetMaterialChannelData(SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_SPECULAR, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Specular), Size);
+		GetMaterialChannelData(SGMaterial, TextureTable,  SimplygonSDK::SG_MATERIAL_CHANNEL_SPECULAR, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Specular), Size);
 		OutMaterial.SetPropertySize(EFlattenMaterialProperties::Specular, Size);
 
 		// Opacity
 		Size = FIntPoint::ZeroValue;
 #if USE_USER_OPACITY_CHANNEL
-		GetMaterialChannelData(SGMaterial, USER_MATERIAL_CHANNEL_OPACITY, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Opacity), Size);
+		GetMaterialChannelData(SGMaterial, TextureTable,  USER_MATERIAL_CHANNEL_OPACITY, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Opacity), Size);
 #else
-		GetMaterialChannelData(SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_OPACITY, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Opacity), Size);		
+		GetMaterialChannelData(SGMaterial, TextureTable,  SimplygonSDK::SG_MATERIAL_CHANNEL_OPACITY, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Opacity), Size);		
 #endif
 		OutMaterial.SetPropertySize(EFlattenMaterialProperties::Opacity, Size);
 
 		// Emissive
 		Size = FIntPoint::ZeroValue;
-		GetMaterialChannelData(SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_EMISSIVE, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Emissive), Size);
+		GetMaterialChannelData(SGMaterial, TextureTable,  SimplygonSDK::SG_MATERIAL_CHANNEL_EMISSIVE, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::Emissive), Size);
 		OutMaterial.SetPropertySize(EFlattenMaterialProperties::Emissive, Size);
 		
 		Size = FIntPoint::ZeroValue;
-		GetMaterialChannelData(SGMaterial, USER_MATERIAL_CHANNEL_SUBSURFACE_COLOR, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::SubSurface), Size);
+		GetMaterialChannelData(SGMaterial, TextureTable,  USER_MATERIAL_CHANNEL_SUBSURFACE_COLOR, OutMaterial.GetPropertySamples(EFlattenMaterialProperties::SubSurface), Size);
 		OutMaterial.SetPropertySize(EFlattenMaterialProperties::SubSurface, Size);
 	}
 
@@ -2249,6 +2341,10 @@ private:
 		const TArray<FFlattenMaterial>& InputMaterials,
 		const FSimplygonMaterialLODSettings& InMaterialLODSettings,
 		SimplygonSDK::spMaterialTable& OutSGMaterialTable,
+		//@third party BEGIN SIMPLYGON
+		SimplygonSDK::spTextureTable& OutTextureTable,
+		//@third party END SIMPLYGON
+
 		bool bReleaseInputMaterials)
 	{
 		if (InputMaterials.Num() == 0)
@@ -2270,66 +2366,67 @@ private:
 			SGMaterial->AddUserChannel(USER_MATERIAL_CHANNEL_SUBSURFACE_COLOR);
 
 			SGMaterial->SetName(TCHAR_TO_ANSI(*FString::Printf(TEXT("Material%d"), MaterialIndex)));
-			
+
 			// Does current material have BaseColor?
 			if (FlattenMaterial.DoesPropertyContainData(EFlattenMaterialProperties::Diffuse))
 			{
-				if (InMaterialLODSettings.ChannelsToCast[0].bBakeVertexColors)
-				{
-					SGMaterial->SetVertexColorChannel(SimplygonSDK::SG_MATERIAL_CHANNEL_BASECOLOR, 0);
-				}
+					//@third party BEGIN SIMPLYGON
+				//NOTE: Currently bBakeVertexData is marked as deprecated in FMaterialProxySetting. We can add the support before 4.15 lockdown
 
-				SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Diffuse), FlattenMaterial.RenderSize, SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_BASECOLOR);
+				SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Diffuse), FlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Diffuse), SGMaterial, OutTextureTable, SimplygonSDK::SG_MATERIAL_CHANNEL_BASECOLOR);
 			}
 
 			// Does current material have Metallic?
 			if (FlattenMaterial.DoesPropertyContainData(EFlattenMaterialProperties::Metallic))
 			{
-				SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Metallic), FlattenMaterial.RenderSize, SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_METALLIC);
+				SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Metallic), FlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Metallic), SGMaterial, OutTextureTable, SimplygonSDK::SG_MATERIAL_CHANNEL_METALNESS);
 			}
 
 			// Does current material have Specular?
 			if (FlattenMaterial.DoesPropertyContainData(EFlattenMaterialProperties::Specular))
 			{
-				SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Specular), FlattenMaterial.RenderSize, SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_SPECULAR);
+				SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Specular), FlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Specular), SGMaterial, OutTextureTable, SimplygonSDK::SG_MATERIAL_CHANNEL_SPECULAR);
 			}
 
 			// Does current material have Roughness?
 			if (FlattenMaterial.DoesPropertyContainData(EFlattenMaterialProperties::Roughness))
 			{
-				SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Roughness), FlattenMaterial.RenderSize, SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_ROUGHNESS);
+				SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Roughness), FlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Roughness), SGMaterial, OutTextureTable, SimplygonSDK::SG_MATERIAL_CHANNEL_ROUGHNESS);
 			}
 
 			//Does current material have a normalmap?
 			if (FlattenMaterial.DoesPropertyContainData(EFlattenMaterialProperties::Normal))
 			{
-				SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Normal), FlattenMaterial.RenderSize, SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_NORMALS);
+				SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Normal), FlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Normal), SGMaterial, OutTextureTable, SimplygonSDK::SG_MATERIAL_CHANNEL_NORMALS);
 			}
 
 			// Does current material have Opacity?
 			if (FlattenMaterial.DoesPropertyContainData(EFlattenMaterialProperties::Opacity))
 			{
 #if USE_USER_OPACITY_CHANNEL
-				SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Opacity), FlattenMaterial.RenderSize, SGMaterial, USER_MATERIAL_CHANNEL_OPACITY);
+				SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Opacity), FlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Opacity), SGMaterial, OutTextureTable, USER_MATERIAL_CHANNEL_OPACITY);
 #else
-				SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Opacity), FlattenMaterial.RenderSize, SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_OPACITY);
+				SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Opacity), FlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Opacity), SGMaterial, OutTextureTable, SimplygonSDK::SG_MATERIAL_CHANNEL_OPACITY);
 #endif
 			}
 
 			if (FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Emissive).Num())
 			{
-				SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Emissive), FlattenMaterial.RenderSize, SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_EMISSIVE);
+				SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Emissive), FlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Emissive), SGMaterial, OutTextureTable, SimplygonSDK::SG_MATERIAL_CHANNEL_EMISSIVE);
 			}
 			else
 			{
 				TArray<FColor> BlackEmissive;
 				BlackEmissive.AddZeroed(1);
-				SetMaterialChannelData(BlackEmissive, FlattenMaterial.RenderSize, SGMaterial, SimplygonSDK::SG_MATERIAL_CHANNEL_EMISSIVE);
+				//@third party BEGIN SIMPLYGON
+				SetMaterialChannelData(BlackEmissive, FIntPoint(1,1), SGMaterial, OutTextureTable, SimplygonSDK::SG_MATERIAL_CHANNEL_EMISSIVE);
+				//@third party END SIMPLYGON
+
 			}
 
 			if (FlattenMaterial.DoesPropertyContainData(EFlattenMaterialProperties::SubSurface))
 			{
-				SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Emissive), FlattenMaterial.RenderSize, SGMaterial, USER_MATERIAL_CHANNEL_SUBSURFACE_COLOR);
+				SetMaterialChannelData(FlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::SubSurface), FlattenMaterial.GetPropertySize(EFlattenMaterialProperties::SubSurface), SGMaterial, OutTextureTable, USER_MATERIAL_CHANNEL_SUBSURFACE_COLOR);
 			}
 
 			OutSGMaterialTable->AddMaterial(SGMaterial);
@@ -2393,14 +2490,14 @@ private:
 	void CastColorChannel(const FSimplygonChannelCastingSettings& InCasterSettings, 
 		SimplygonSDK::spMappingImage& InMappingImage,
 		SimplygonSDK::spMaterialTable& InMaterialTable,
-		//SimplygonSDK::spTextureTable& InTextureTable,
+		const SimplygonSDK::spTextureTable& InTextureTable,
 		SimplygonSDK::spImageData& OutColorData)
 	{
 		SimplygonSDK::spColorCaster cast = SDK->CreateColorCaster();
 		
 		cast->SetColorType( GetSimplygonMaterialChannel(InCasterSettings.MaterialChannel) );
 		cast->SetSourceMaterials( InMaterialTable );
-		//cast->SetSourceTextures(InTextureTable);
+		cast->SetSourceTextures(InTextureTable);
 		cast->SetMappingImage( InMappingImage ); // The mapping image we got from the remeshing process.
 		cast->SetOutputChannels( ConvertColorChannelToInt(InCasterSettings.ColorChannels) ); // RGB, 3 channels! (1 would be for grey scale, and 4 would be for RGBA.)
 		cast->SetOutputChannelBitDepth( InCasterSettings.BitsPerChannel ); // 8 bits per channel. So in this case we will have 24bit colors RGB.
@@ -2408,7 +2505,10 @@ private:
 		cast->SetOutputImage(OutColorData);
 		cast->SetBakeOpacityInAlpha(false);
 		//cast->SetBakeVertexColors(InCasterSettings.bBakeVertexColors);
-		cast->SetIsSRGB(InCasterSettings.bUseSRGB);
+		//@third party BEGIN SIMPLYGON
+		cast->SetOutputSRGB(InCasterSettings.bUseSRGB);
+		//@third party END SIMPLYGON
+
 		cast->CastMaterials(); // Fetch!
 	}
 
@@ -2423,13 +2523,13 @@ private:
 	void CastNormalsChannel(FSimplygonChannelCastingSettings InCasterSettings, 
 		SimplygonSDK::spMappingImage& InMappingImage,
 		SimplygonSDK::spMaterialTable& InMaterialTable,
-		//SimplygonSDK::spTextureTable& InTextureTable,
+		const SimplygonSDK::spTextureTable& InTextureTable,
 		SimplygonSDK::spImageData& OutColorData,
 		int32 DestinationMaterialIndex = -1)
 	{
 		SimplygonSDK::spNormalCaster cast = SDK->CreateNormalCaster();
 		cast->SetSourceMaterials( InMaterialTable );
-		//cast->SetSourceTextures(InTextureTable);
+		cast->SetSourceTextures(InTextureTable);
 		cast->SetMappingImage( InMappingImage ); // The mapping image we got from the remeshing process.
 		cast->SetOutputChannels( ConvertColorChannelToInt(InCasterSettings.ColorChannels) ); // RGB, 3 channels! (1 would be for grey scale, and 4 would be for RGBA.)
 		cast->SetOutputChannelBitDepth( 8 ); // 8 bits per channel. So in this case we will have 24bit colors RGB.
@@ -2454,12 +2554,12 @@ private:
 	void CastOpacityChannel(FSimplygonChannelCastingSettings InCasterSettings, 
 		SimplygonSDK::spMappingImage& InMappingImage,
 		SimplygonSDK::spMaterialTable& InMaterialTable,
-		//SimplygonSDK::spTextureTable& InTextureTable,
+		const SimplygonSDK::spTextureTable& InTextureTable,
 		SimplygonSDK::spImageData& OutColorData)
 	{
 		SimplygonSDK::spOpacityCaster cast = SDK->CreateOpacityCaster();
 		cast->SetSourceMaterials( InMaterialTable );
-		//cast->SetSourceTextures(InTextureTable);
+		cast->SetSourceTextures(InTextureTable);
 		cast->SetMappingImage( InMappingImage ); // The mapping image we got from the remeshing process.
 		cast->SetOutputChannels( ConvertColorChannelToInt(InCasterSettings.ColorChannels) ); // RGB, 3 channels! (1 would be for grey scale, and 4 would be for RGBA.)
 		cast->SetOutputChannelBitDepth( 8 ); // 8 bits per channel. So in this case we will have 24bit colors RGB.
@@ -2538,6 +2638,10 @@ private:
 	SimplygonSDK::spMaterial RebakeMaterials(const FSimplygonMaterialLODSettings& InMaterialLODSettings,
 		SimplygonSDK::spMappingImage& InMappingImage,
 		SimplygonSDK::spMaterialTable& InSGMaterialTable,
+		//@third party BEGIN SIMPLYGON
+		const SimplygonSDK::spTextureTable& TextureTable,
+		//@third party END SIMPLYGON
+
 		int32 DestinationMaterialIndex = -1)
 	{
 		SimplygonSDK::spMaterial OutMaterial = SDK->CreateMaterial();
@@ -2558,24 +2662,35 @@ private:
 				switch(CasterSetting.Caster)
 				{
 				case ESimplygonCasterType::Color:
-					CastColorChannel(CasterSetting,InMappingImage,InSGMaterialTable,OutColorData);
+					CastColorChannel(CasterSetting,InMappingImage,InSGMaterialTable, TextureTable, OutColorData);
 					break;
 				case ESimplygonCasterType::Normals:
-					CastNormalsChannel(CasterSetting,InMappingImage,InSGMaterialTable,OutColorData, DestinationMaterialIndex);
+					CastNormalsChannel(CasterSetting,InMappingImage,InSGMaterialTable, TextureTable, OutColorData, DestinationMaterialIndex);
 					break;
 				case ESimplygonCasterType::Opacity:
 #if USE_USER_OPACITY_CHANNEL
-					CastColorChannel(CasterSetting,InMappingImage,InSGMaterialTable,OutColorData);
+					CastColorChannel(CasterSetting,InMappingImage,InSGMaterialTable, TextureTable, OutColorData);
 #else
-					CastOpacityChannel(CasterSetting,InMappingImage,InSGMaterialTable,OutColorData);
+					CastOpacityChannel(CasterSetting,InMappingImage,InSGMaterialTable,OutColorData, TextureTable);
 #endif
 					break;
 				default:
 					break;
 				}
 			
-				OutMaterial->SetLayeredTextureImage(GetSimplygonMaterialChannel(CasterSetting.MaterialChannel), 0, OutColorData);
-				OutMaterial->SetLayeredTextureLevel(GetSimplygonMaterialChannel(CasterSetting.MaterialChannel),0,0);
+				//@third party BEGIN SIMPLYGON
+				FGuid TextureGuid = FGuid::NewGuid();
+				SimplygonSDK::spTexture BakedTexture = SDK->CreateTexture();
+				BakedTexture->SetImageData(OutColorData);
+				BakedTexture->SetName(TCHAR_TO_ANSI(*TextureGuid.ToString()));
+				TextureTable->AddTexture(BakedTexture);
+
+				SimplygonSDK::spShadingTextureNode BakedTextureNode = SDK->CreateShadingTextureNode();
+				BakedTextureNode->SetTextureLevel(0);
+				BakedTextureNode->SetTextureName(TCHAR_TO_ANSI(*TextureGuid.ToString()));
+				OutMaterial->SetShadingNetwork(GetSimplygonMaterialChannel(CasterSetting.MaterialChannel), BakedTextureNode);
+				//@third party END SIMPLYGON
+
 			}
 		}
 

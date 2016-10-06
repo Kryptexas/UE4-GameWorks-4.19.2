@@ -22,16 +22,16 @@ FbxNode* FFbxExporter::CreateSkeleton(const USkeletalMesh* SkelMesh, TArray<FbxN
 {
 	const FReferenceSkeleton& RefSkeleton= SkelMesh->RefSkeleton;
 
-	if(RefSkeleton.GetNum() == 0)
+	if(RefSkeleton.GetRawBoneNum() == 0)
 	{
 		return NULL;
 	}
 
 	// Create a list of the nodes we create for each bone, so that children can 
 	// later look up their parent
-	BoneNodes.Reserve(RefSkeleton.GetNum());
+	BoneNodes.Reserve(RefSkeleton.GetRawBoneNum());
 
-	for(int32 BoneIndex = 0; BoneIndex < RefSkeleton.GetNum(); ++BoneIndex)
+	for(int32 BoneIndex = 0; BoneIndex < RefSkeleton.GetRawBoneNum(); ++BoneIndex)
 	{
 		const FMeshBoneInfo& CurrentBone = RefSkeleton.GetRefBoneInfo()[BoneIndex];
 		const FTransform& BoneTransform = RefSkeleton.GetRefBonePose()[BoneIndex];

@@ -24,7 +24,7 @@ void SSurfaceProperties::Construct( const FArguments& InArgs )
 	CachedScalingValueV = 1.0f;
 
 	// Initialize scale fields according to the scale of the first selected surface
-	for (TSelectedSurfaceIterator<> It(GWorld); It; ++It)
+	for (TSelectedSurfaceIterator<> It(GetWorld()); It; ++It)
 	{
 		FBspSurf* Surf = *It;
 		UModel* Model = It.GetModel();

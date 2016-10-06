@@ -513,7 +513,6 @@ bool FLinkerLoad::IsSuppressableBlueprintImportError(int32 ImportIndex) const
 	// compiled-on-load.
 	static const FName NAME_BlueprintGeneratedClass("BlueprintGeneratedClass");
 
-	bool bImportBelongsToBlueprint = false;
 	// We will look at each outer of the Import to see if any of them are a BPGC
 	while (ImportMap.IsValidIndex(ImportIndex))
 	{
@@ -521,8 +520,16 @@ bool FLinkerLoad::IsSuppressableBlueprintImportError(int32 ImportIndex) const
 		if (TestImport.ClassName == NAME_BlueprintGeneratedClass)
 		{
 			// The import is a BPGC, suppress errors
-			bImportBelongsToBlueprint = true;
-			break;
+			return true;
+		}
+
+		// Check if this is a BP CDO, if so our class will be in the import table
+		for (const FObjectImport& PotentialBPClass : ImportMap)
+		{
+			if (PotentialBPClass.ObjectName == TestImport.ClassName && PotentialBPClass.ClassName == NAME_BlueprintGeneratedClass)
+			{
+				return true;
+			}
 		}
 
 		if (!TestImport.OuterIndex.IsNull() && TestImport.OuterIndex.IsImport())
@@ -536,7 +543,7 @@ bool FLinkerLoad::IsSuppressableBlueprintImportError(int32 ImportIndex) const
 		}
 	}
 
-	return bImportBelongsToBlueprint;
+	return false;
 }
 #endif // WITH_EDITOR
 

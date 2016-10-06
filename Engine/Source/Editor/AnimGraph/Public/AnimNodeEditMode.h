@@ -43,8 +43,9 @@ public:
 	virtual void Tick(FEditorViewportClient* ViewportClient, float DeltaTime) override;
 
 protected:
-	// local conversion function for drawing
+	// local conversion functions for drawing
 	static void ConvertToComponentSpaceTransform(const USkeletalMeshComponent* SkelComp, const FTransform & InTransform, FTransform & OutCSTransform, int32 BoneIndex, EBoneControlSpace Space);
+	static void ConvertToBoneSpaceTransform(const USkeletalMeshComponent* SkelComp, const FTransform & InCSTransform, FTransform & OutBSTransform, int32 BoneIndex, EBoneControlSpace Space);
 	// convert drag vector in component space to bone space 
 	static FVector ConvertCSVectorToBoneSpace(const USkeletalMeshComponent* SkelComp, FVector& InCSVector, FCSPose<FCompactHeapPose>& MeshBases, const FName& BoneName, const EBoneControlSpace Space);
 	// convert rotator in component space to bone space 

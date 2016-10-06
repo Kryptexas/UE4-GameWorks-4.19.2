@@ -24,6 +24,7 @@
 #include "Animation/PoseAsset.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "PersonaCommonCommands.h"
 
 const FName AnimationEditorAppIdentifier = FName(TEXT("AnimationEditorApp"));
 
@@ -109,10 +110,6 @@ void FAnimationEditor::InitAnimationEditor(const EToolkitMode::Type Mode, const 
 
 	SetCurrentMode(AnimationEditorModes::AnimationEditorMode);
 
-	// set up our editor mode
-	check(AssetEditorModeManager);
-	AssetEditorModeManager->SetDefaultMode(FPersonaEditModes::SkeletonSelection);
-
 	ExtendMenu();
 	ExtendToolbar();
 	RegenerateMenusAndToolbars();
@@ -138,6 +135,16 @@ FString FAnimationEditor::GetWorldCentricTabPrefix() const
 FLinearColor FAnimationEditor::GetWorldCentricTabColorScale() const
 {
 	return FLinearColor(0.3f, 0.2f, 0.5f, 0.5f);
+}
+
+void FAnimationEditor::Tick(float DeltaTime)
+{
+	GetPersonaToolkit()->GetPreviewScene()->InvalidateViews();
+}
+
+TStatId FAnimationEditor::GetStatId() const
+{
+	RETURN_QUICK_DECLARE_CYCLE_STAT(FAnimationEditor, STATGROUP_Tickables);
 }
 
 void FAnimationEditor::AddReferencedObjects(FReferenceCollector& Collector)
@@ -168,6 +175,9 @@ void FAnimationEditor::BindCommands()
 	ToolkitCommands->MapAction(FAnimationEditorCommands::Get().AddLoopingInterpolation,
 		FExecuteAction::CreateSP(this, &FAnimationEditor::OnAddLoopingInterpolation),
 		FCanExecuteAction::CreateSP(this, &FAnimationEditor::HasValidAnimationSequence));
+
+	ToolkitCommands->MapAction(FPersonaCommonCommands::Get().TogglePlay,
+		FExecuteAction::CreateRaw(&GetPersonaToolkit()->GetPreviewScene().Get(), &IPersonaPreviewScene::TogglePlayback));
 }
 
 void FAnimationEditor::ExtendToolbar()

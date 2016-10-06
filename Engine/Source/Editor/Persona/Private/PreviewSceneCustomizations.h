@@ -3,14 +3,16 @@
 #pragma once
 
 #include "AnimationEditorPreviewScene.h"
+#include "IPersonaToolkit.h"
 
 class FPreviewSceneDescriptionCustomization : public IDetailCustomization
 {
 public:
-	FPreviewSceneDescriptionCustomization(const FString& InSkeletonName, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton)
+	FPreviewSceneDescriptionCustomization(const FString& InSkeletonName, const TSharedRef<class IPersonaToolkit>& InPersonaToolkit)
 		: SkeletonName(InSkeletonName)
-		, PreviewScene(StaticCastSharedRef<FAnimationEditorPreviewScene>(InPreviewScene))
-		, EditableSkeleton(InEditableSkeleton)
+		, PersonaToolkit(InPersonaToolkit)
+		, PreviewScene(StaticCastSharedRef<FAnimationEditorPreviewScene>(InPersonaToolkit->GetPreviewScene()))
+		, EditableSkeleton(InPersonaToolkit->GetEditableSkeleton())
 	{}
 
 	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder) override;
@@ -29,6 +31,9 @@ private:
 private:
 	/** Cached skeleton name to check for asset registry tags */
 	FString SkeletonName;
+
+	/** The persona toolkit we are associated with */
+	TWeakPtr<class IPersonaToolkit> PersonaToolkit;
 
 	/** Preview scene we will be editing */
 	TWeakPtr<class FAnimationEditorPreviewScene> PreviewScene;

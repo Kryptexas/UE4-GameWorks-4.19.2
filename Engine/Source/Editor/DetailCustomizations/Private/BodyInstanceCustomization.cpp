@@ -212,7 +212,9 @@ void FBodyInstanceCustomization::CustomizeChildren( TSharedRef<class IPropertyHa
 
 	if (StaticMeshComponentHandle.IsValid())
 	{
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		StaticMeshHandle = StaticMeshComponentHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(UStaticMeshComponent, StaticMesh));
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 		if(StaticMeshHandle.IsValid())
 		{
 			FSimpleDelegate OnStaticMeshChangedDelegate = FSimpleDelegate::CreateSP(this, &FBodyInstanceCustomization::RefreshCollisionProfiles);

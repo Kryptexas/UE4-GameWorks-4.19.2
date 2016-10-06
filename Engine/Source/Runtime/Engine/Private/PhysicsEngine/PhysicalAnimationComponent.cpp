@@ -135,8 +135,7 @@ void UPhysicalAnimationComponent::ApplyPhysicalAnimationProfileBelow(FName BodyN
 		bool bNeedsUpdating = false;
 		SkeletalMeshComponent->ForEachBodyBelow(BodyName, bIncludeSelf, /*bSkipCustomType=*/false, [bClearNotFound, ProfileName, PhysAsset, &NewDriveData, &bNeedsUpdating](const FBodyInstance* BI)
 		{
-			USkeletalBodySetup* BodySetup = Cast<USkeletalBodySetup>(BI->BodySetup.Get());
-			if(ensure(BodySetup))
+			if(USkeletalBodySetup* BodySetup = Cast<USkeletalBodySetup>(BI->BodySetup.Get()))
 			{
 				const FName IterBodyName = PhysAsset->SkeletalBodySetups[BI->InstanceBodyIndex]->BoneName;
 				if(FPhysicalAnimationProfile* Profile = BodySetup->FindPhysicalAnimationProfile(ProfileName))
@@ -216,10 +215,11 @@ void UPhysicalAnimationComponent::TickComponent(float DeltaTime, enum ELevelTick
 				if(PxRigidDynamic* TargetActor = InstanceData.TargetActor)
 				{
 					const int32 BoneIdx = RefSkeleton.FindBoneIndex(PhysAnimData.BodyName);
-					check(BoneIdx != INDEX_NONE);	//If we've created the actor the bone name should exist
-
-					const FTransform TargetTM =	ComputeTargetTM(PhysAnimData, *SkeletalMeshComponent, *PhysAsset, SpaceBases, BoneIdx);
-					TargetActor->setKinematicTarget(U2PTransform(TargetTM));	//TODO: this doesn't work with sub-stepping!
+					if(BoneIdx != INDEX_NONE)	//It's possible the skeletal mesh has changed out from under us. In that case we should probably reset, but at the very least don't do work on non-existent bones
+					{
+						const FTransform TargetTM = ComputeTargetTM(PhysAnimData, *SkeletalMeshComponent, *PhysAsset, SpaceBases, BoneIdx);
+						TargetActor->setKinematicTarget(U2PTransform(TargetTM));	//TODO: this doesn't work with sub-stepping!
+					}
 				}
 			}
 		}

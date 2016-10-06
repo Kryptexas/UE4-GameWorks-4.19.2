@@ -117,6 +117,7 @@ void FAnimNode_AimOffsetLookAt::UpdateFromLookAtTarget(FPoseContext& LocalPoseCo
 					// Generate BlendSampleDataCache from inputs.
 					BlendSpace->GetSamplesFromBlendInput(BlendInput, BlendSampleDataCache);
 
+#if ENABLE_DRAW_DEBUG
 					if (CVarAimOffsetLookAtDebug.GetValueOnAnyThread() == 1)
 					{
 						DrawDebugLine(Component->GetWorld(), SocketWorldTransform.GetLocation(), TargetWorldTransform.GetLocation(), FColor::Green);
@@ -132,6 +133,7 @@ void FAnimNode_AimOffsetLookAt::UpdateFromLookAtTarget(FPoseContext& LocalPoseCo
 							, BlendInput.Y);
 						GEngine->AddOnScreenDebugMessage(INDEX_NONE, 0.f, FColor::Red, DebugString, false);
 					}
+#endif // ENABLE_DRAW_DEBUG
 				}
 			}
 		}

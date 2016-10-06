@@ -327,29 +327,6 @@ static FTexture2DResourceMem* CreateResourceMem(int32 SizeX, int32 SizeY, int32 
 	return ResourceMem;
 }
 
-/** 
- * Returns whether we should ignore the fact that this class has been removed instead of deprecated. 
- * Normally the script compiler would spit out an error but it makes sense to silently ingore it in 
- * certain cases in which case the below code should be extended to include the class' name.
- *
- * @param	ClassName	Name of class to find out whether we should ignore complaining about it not being present
- * @return	true if we should ignore the fact that it doesn't exist, false otherwise
- */
-static bool IgnoreMissingReferencedClass( FName ClassName )
-{
-	static TArray<FName>	MissingClassesToIgnore;
-	static bool			bAlreadyInitialized = false;
-	if( !bAlreadyInitialized )
-	{
-		//@deprecated with VER_RENDERING_REFACTOR
-		MissingClassesToIgnore.Add( FName(TEXT("SphericalHarmonicMap")) );
-		MissingClassesToIgnore.Add( FName(TEXT("LightMap1D")) );
-		MissingClassesToIgnore.Add( FName(TEXT("LightMap2D")) );
-		bAlreadyInitialized = true;
-	}
-	return MissingClassesToIgnore.Find( ClassName ) != INDEX_NONE;
-}
-
 static inline int32 HashNames(FName Object, FName Class, FName Package)
 {
 	return Object.GetComparisonIndex() + 7 * Class.GetComparisonIndex() + 31 * FPackageName::GetShortFName(Package).GetComparisonIndex();
@@ -2456,55 +2433,40 @@ FLinkerLoad::EVerifyResult FLinkerLoad::VerifyImport(int32 ImportIndex)
 			// otherwise just printout warnings, and if in the editor, popup the EdLoadWarnings box
 			else
 			{
-				bool bSupressLinkerError = false;
 #if WITH_EDITOR
-				if( GIsEditor && !IsRunningCommandlet())
+				// print warnings in editor, standalone game, or commandlet
+				bool bSupressLinkerError = IsSuppressableBlueprintImportError(ImportIndex);
+				if (!bSupressLinkerError)
 				{
-					bSupressLinkerError = IsSuppressableBlueprintImportError(ImportIndex);
-					if (!bSupressLinkerError)
-					{
-						FDeferredMessageLog LoadErrors(NAME_LoadErrors);
-						// put something into the load warnings dialog, with any extra information from above (in WarningAppend)
-						TSharedRef<FTokenizedMessage> TokenizedMessage = LoadErrors.Error(FText());
-						TokenizedMessage->AddToken(FAssetNameToken::Create(LinkerRoot->GetName()));
-						TokenizedMessage->AddToken(FTextToken::Create(FText::Format(LOCTEXT("ImportFailure", " : Failed import for {ImportClass}"), FText::FromName(GetImportClassName(ImportIndex)))));
-						TokenizedMessage->AddToken(FAssetNameToken::Create(GetImportPathName(ImportIndex)));
+					FDeferredMessageLog LoadErrors(NAME_LoadErrors);
+					// put something into the load warnings dialog, with any extra information from above (in WarningAppend)
+					TSharedRef<FTokenizedMessage> TokenizedMessage = LoadErrors.Error(FText());
+					TokenizedMessage->AddToken(FAssetNameToken::Create(LinkerRoot->GetName()));
+					TokenizedMessage->AddToken(FTextToken::Create(FText::Format(LOCTEXT("ImportFailure", " : Failed import for {0}"), FText::FromName(GetImportClassName(ImportIndex)))));
+					TokenizedMessage->AddToken(FAssetNameToken::Create(GetImportPathName(ImportIndex)));
 
-						if (!WarningAppend.IsEmpty())
-						{
-							TokenizedMessage->AddToken(FTextToken::Create(FText::Format(LOCTEXT("ImportFailure_WarningIn", "{0} in {1}"),
-								FText::FromString(WarningAppend),
-								FText::FromString(LinkerRoot->GetName())))
-								);
-						}
+					if (!WarningAppend.IsEmpty())
+					{
+						TokenizedMessage->AddToken(FTextToken::Create(FText::Format(LOCTEXT("ImportFailure_WarningIn", "{0} in {1}"),
+							FText::FromString(WarningAppend),
+							FText::FromString(LinkerRoot->GetName())))
+							);
+					}
+
+					// try to get a pointer to the class of the original object so that we can display the class name of the missing resource
+					UObject* ClassPackage = FindObject<UPackage>(nullptr, *Import.ClassPackage.ToString());
+					UClass* FindClass = ClassPackage ? FindObject<UClass>(ClassPackage, *OriginalImport.ClassName.ToString()) : nullptr;
+
+					// print warning about missing class
+					if (!FindClass)
+					{
+						UE_LOG(LogLinker, Warning, TEXT("Missing Class %s for '%s' referenced by package '%s'.  Classes should not be removed if referenced by content; mark the class 'deprecated' instead."),
+							*OriginalImport.ClassName.ToString(),
+							*GetImportFullName(ImportIndex),
+							*LinkerRoot->GetName());
 					}
 				}
 #endif // WITH_EDITOR
-#if UE_BUILD_DEBUG
-				// try to get a pointer to the class of the original object so that we can display the class name of the missing resource
-				UObject* ClassPackage = FindObject<UPackage>(NULL, *Import.ClassPackage.ToString());
-				UClass* FindClass = ClassPackage ? FindObject<UClass>(ClassPackage, *OriginalImport.ClassName.ToString()) : NULL;
-				if( !bSupressLinkerError && !IgnoreMissingReferencedClass( Import.ObjectName ) )
-				{
-					FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
-					// failure to load a class, most likely deleted instead of deprecated
-					if ( (!GIsEditor || IsRunningCommandlet()) && FindClass && FindClass->IsChildOf(UClass::StaticClass()) )
-					{
-						UE_LOG(LogLinker, Warning, TEXT("Missing Class '%s' referenced by package '%s' ('%s').  Classes should not be removed if referenced by content; mark the class 'deprecated' instead."),
-							*GetImportFullName(ImportIndex),
-							*LinkerRoot->GetName(),
-							ThreadContext.SerializedExportLinker ? *ThreadContext.SerializedExportLinker->GetExportPathName(ThreadContext.SerializedExportIndex) : TEXT("Unknown") );
-					}
-					// ignore warnings for missing imports if the object's class has been deprecated.
-					else if ( FindClass == NULL || !FindClass->HasAnyClassFlags(CLASS_Deprecated) )
-					{
-						UE_LOG(LogLinker, Warning, TEXT("Missing Class '%s' referenced by package '%s' ('%s')."),
-							*GetImportFullName(ImportIndex),
-							*LinkerRoot->GetName(),
-							ThreadContext.SerializedExportLinker ? *ThreadContext.SerializedExportLinker->GetExportPathName(ThreadContext.SerializedExportIndex) : TEXT("Unknown") );
-					}
-				}
-#endif
 			}
 		}
 	}

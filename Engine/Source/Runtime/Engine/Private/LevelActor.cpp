@@ -358,14 +358,7 @@ AActor* UWorld::SpawnActor( UClass* Class, FTransform const* UserTransformPtr, c
 
 	FTransform const UserTransform = UserTransformPtr ? *UserTransformPtr : FTransform::Identity;
 
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS;
-	// handle existing (but deprecated) uses of bNoCollisionFail where user set it to true
 	ESpawnActorCollisionHandlingMethod CollisionHandlingOverride = SpawnParameters.SpawnCollisionHandlingOverride;
-	if ((CollisionHandlingOverride == ESpawnActorCollisionHandlingMethod::Undefined) && SpawnParameters.bNoCollisionFail)
-	{
-		CollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	}
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS;
 
 	// "no fail" take preedence over collision handling settings that include fails
 	if (SpawnParameters.bNoFail)
@@ -440,7 +433,7 @@ AActor* UWorld::SpawnActor( UClass* Class, FTransform const* UserTransformPtr, c
 	// tell the actor what method to use, in case it was overridden
 	Actor->SpawnCollisionHandlingMethod = CollisionHandlingMethod;
 
-	Actor->PostSpawnInitialize(UserTransform, SpawnParameters.Owner, SpawnParameters.Instigator, SpawnParameters.bRemoteOwned, SpawnParameters.bNoFail, SpawnParameters.bDeferConstruction);
+	Actor->PostSpawnInitialize(UserTransform, SpawnParameters.Owner, SpawnParameters.Instigator, SpawnParameters.IsRemoteOwned(), SpawnParameters.bNoFail, SpawnParameters.bDeferConstruction);
 
 	if (Actor->IsPendingKill() && !SpawnParameters.bNoFail)
 	{
@@ -742,6 +735,7 @@ bool UWorld::FindTeleportSpot(AActor* TestActor, FVector& TestLocation, FRotator
 	if (!FMath::IsNearlyZero(Adjust.X) || !FMath::IsNearlyZero(Adjust.Y))
 	{
 		const FVector OriginalTestLocation = TestLocation;
+		const FVector OriginalAdjust = Adjust;
 		// If initially spawning allow testing a few permutations (though this needs improvement).
 		// During play only test the first adjustment, permuting axes could put the location on other sides of geometry.
 		const int32 Iterations = (TestActor->HasActorBegunPlay() ? 1 : 8);
@@ -754,7 +748,9 @@ bool UWorld::FindTeleportSpot(AActor* TestActor, FVector& TestLocation, FRotator
 				return true;
 			}
 
+			// Restore original location and adjust, previous iterations should not affect the next test
 			TestLocation = OriginalTestLocation;
+			Adjust = OriginalAdjust;
 		}
 	}
 
