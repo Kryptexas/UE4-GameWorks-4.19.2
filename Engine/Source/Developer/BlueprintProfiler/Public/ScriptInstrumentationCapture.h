@@ -13,9 +13,10 @@ public:
 
 	FScriptInstrumentedEvent() {}
 
-	FScriptInstrumentedEvent(EScriptInstrumentation::Type InEventType, const FName InFunctionClassScopeName, const FString& InPathData)
+	FScriptInstrumentedEvent(EScriptInstrumentation::Type InEventType, const FName InFunctionClassScopeName, const FName InFunctionName, const FString& InPathData)
 		: EventType(InEventType)
 		, FunctionClassScopeName(InFunctionClassScopeName)
+		, FunctionName(InFunctionName)
 		, PathData(InPathData)
 		, CodeOffset(-1)
 		, Time(FPlatformTime::Seconds())
@@ -114,18 +115,23 @@ public:
 	/** Reset the current event context */
 	void ResetContext();
 
+	/** Return to previous scope */
+	void PopScope();
+
 private:
 
-	/** The current class/blueprint context */
-	TWeakObjectPtr<const UClass> ContextClass;
-	/** The current function class scope */
-	TWeakObjectPtr<const UClass> ContextFunctionClassScope;
-	/** The current instance context */
-	TWeakObjectPtr<const UObject> ContextObject;
-	/** The current event context */
-	FName ActiveEvent;
+	struct FContextScope
+	{
+		/** The current class/blueprint context */
+		TWeakObjectPtr<const UClass> ContextClass;
+		/** The current function class scope */
+		TWeakObjectPtr<const UClass> ContextFunctionClassScope;
+		/** The current instance context */
+		TWeakObjectPtr<const UObject> ContextObject;
+	};
+
 	/** The current pending inline Event. NAME_None if no event is pending */
 	FName PendingInlineEventName;
 	/** The Class Scope Stack for traversing through parent blueprint calls */
-	TArray<FName> ScopeStack;
+	TArray<FContextScope> ScopeStack;
 };

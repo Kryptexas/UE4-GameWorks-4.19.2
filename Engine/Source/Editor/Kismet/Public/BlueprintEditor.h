@@ -842,7 +842,7 @@ protected:
 	 * @param InDestinationGraph		The destination graph to move the selected nodes to
 	 * @param InCollapsableNodes		The selection of nodes being collapsed
 	 */
-	void CollapseNodesIntoGraph(UEdGraphNode* InGatewayNode, class UK2Node_EditablePinBase* InEntryNode, class UK2Node_EditablePinBase* InResultNode, UEdGraph* InSourceGraph, UEdGraph* InDestinationGraph, TSet<UEdGraphNode*>& InCollapsableNodes, bool bCanDiscardEmptyReturnNode = false);
+	void CollapseNodesIntoGraph(UEdGraphNode* InGatewayNode, class UK2Node_EditablePinBase* InEntryNode, class UK2Node_EditablePinBase* InResultNode, UEdGraph* InSourceGraph, UEdGraph* InDestinationGraph, TSet<UEdGraphNode*>& InCollapsableNodes, bool bCanDiscardEmptyReturnNode, bool bCanHaveWeakObjPtrParam);
 
 	/** Called when a selection of nodes are being collapsed into a sub-graph */
 	void CollapseNodes(TSet<class UEdGraphNode*>& InCollapsableNodes);

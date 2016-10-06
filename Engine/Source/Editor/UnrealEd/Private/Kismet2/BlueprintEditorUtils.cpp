@@ -2180,6 +2180,16 @@ void FBlueprintEditorUtils::UpdateDelegatesInBlueprint(UBlueprint* Blueprint)
 			{
 				EventNode->UpdateDelegatePin();
 			}
+
+			TArray<UK2Node_Knot*> Knots;
+			Graph->GetNodesOfClass(Knots);
+			for (UK2Node_Knot* Knot : Knots)
+			{
+				// Indiscriminate reuse of UK2Node_Knot::PostReconstructNode() is the convention established
+				// by UEdGraphSchema_K2::OnPinConnectionDoubleCicked. This forces the pin type data to be
+				// refreshed (e.g. due to changes in UpdateDelegatePin())
+				Knot->PostReconstructNode();
+			}
 		}
 	}
 }
@@ -3551,7 +3561,7 @@ int32 FBlueprintEditorUtils::FindSCS_Node(const UBlueprint* Blueprint, const FNa
 	
 		for(int32 i=0; i<AllSCS_Nodes.Num(); i++)
 		{
-			if(AllSCS_Nodes[i]->VariableName == InName)
+			if(AllSCS_Nodes[i]->GetVariableName() == InName)
 			{
 				return i;
 			}
@@ -4366,14 +4376,14 @@ void FBlueprintEditorUtils::RenameComponentMemberVariable(UBlueprint* Blueprint,
 	// Should not allow renaming to "none" (UI should prevent this)
 	check(!NewName.IsNone());
 
-	if (!NewName.IsEqual(Node->VariableName, ENameCase::CaseSensitive))
+	if (!NewName.IsEqual(Node->GetVariableName(), ENameCase::CaseSensitive))
 	{
 		Blueprint->Modify();
 
 		// Update the name
-		const FName OldName = Node->VariableName;
+		const FName OldName = Node->GetVariableName();
 		Node->Modify();
-		Node->VariableName = NewName;
+		Node->SetVariableName(NewName);
 
 		// Rename Inheritable Component Templates
 		{
@@ -4484,7 +4494,7 @@ void FBlueprintEditorUtils::RenameMemberVariable(UBlueprint* Blueprint, const FN
 			for (TArray<USCS_Node*>::TConstIterator NodeIt(Nodes); NodeIt; ++NodeIt)
 			{
 				USCS_Node* CurrentNode = *NodeIt;
-				if (CurrentNode->VariableName == OldName)
+				if (CurrentNode->GetVariableName() == OldName)
 				{
 					RenameComponentMemberVariable(Blueprint, CurrentNode, NewName);
 					break;
@@ -6435,7 +6445,7 @@ bool FBlueprintEditorUtils::IsSCSComponentProperty(UObjectProperty* MemberProper
 					return true;
 				}
 			}
-			else if (ScsNode->VariableName == MemberRef.GetMemberName())
+			else if (ScsNode->GetVariableName() == MemberRef.GetMemberName())
 			{
 				return true;
 			}
@@ -7961,7 +7971,7 @@ bool FBlueprintEditorUtils::IsPaletteActionReadOnly(TSharedPtr<FEdGraphSchemaAct
 			for (TArray<USCS_Node*>::TConstIterator NodeIt(Nodes); NodeIt; ++NodeIt)
 			{
 				USCS_Node* CurrentNode = *NodeIt;
-				if (CurrentNode->VariableName == VarAction->GetVariableName())
+				if (CurrentNode->GetVariableName() == VarAction->GetVariableName())
 				{
 					bIsReadOnly = false;
 					break;
@@ -8394,6 +8404,21 @@ const FSlateBrush* FBlueprintEditorUtils::GetSecondaryIconFromPin(const FEdGraph
 		return FEditorStyle::GetBrush(TEXT("Kismet.VariableList.MapValueTypeIcon"));
 	}
 	return nullptr;
+}
+
+bool FBlueprintEditorUtils::HasGetTypeHash(const FEdGraphPinType& PinType)
+{
+	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+	if (PinType.PinCategory != K2Schema->PC_Struct)
+	{
+		// even object or class types can be hashed, no reason to investigate further
+		return true;
+	}
+
+	// Disabling hasing of structs until work on data integrity is finished. Need to make
+	// sure that we can load sets and maps of sets that have been altered since the container
+	// was originally created:
+	return false;
 }
 
 FText FBlueprintEditorUtils::GetFriendlyClassDisplayName(const UClass* Class)

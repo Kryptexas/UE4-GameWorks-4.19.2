@@ -32,6 +32,7 @@ class UK2Node_CustomEvent : public UK2Node_Event
 	virtual FSlateIcon GetIconAndTint(FLinearColor& OutColor) const override;
 	virtual void AutowireNewNode(UEdGraphPin* FromPin) override;
 	virtual void AddSearchMetaDataInfo(TArray<struct FSearchTagDataPair>& OutTaggedMetaData) const override;
+	virtual FText GetKeywords() const override;
 	//~ End UEdGraphNode Interface
 
 	//~ Begin UK2Node Interface

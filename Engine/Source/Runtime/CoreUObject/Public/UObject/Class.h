@@ -425,6 +425,14 @@ public:
 
 	/** Try and find string metadata with the given key. If not found on this class, work up hierarchy looking for it. */
 	bool GetStringMetaDataHierarchical(const FName& Key, FString* OutValue = nullptr) const;
+
+	/**
+	* Determines if the struct or any of its super structs has any metadata associated with the provided key
+	*
+	* @param Key The key to lookup in the metadata
+	* @return pointer to the UStruct that has associated metadata, nullptr if Key is not associated with any UStruct in the hierarchy
+	*/
+	const UStruct* HasMetaDataHierarchical(const FName& Key) const;
 #endif
 
 #if HACK_HEADER_GENERATOR

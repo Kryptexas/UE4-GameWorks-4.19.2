@@ -2693,6 +2693,10 @@ void SMyBlueprint::OnResetItemFilter()
 void SMyBlueprint::EnsureLastPinTypeValid()
 {
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+
+	LastPinType.bIsWeakPointer = false;
+	LastFunctionPinType.bIsWeakPointer = false;
+
 	const bool bLastPinTypeValid = (Schema->PC_Struct != LastPinType.PinCategory) || LastPinType.PinSubCategoryObject.IsValid();
 	const bool bLastFunctionPinTypeValid = (Schema->PC_Struct != LastFunctionPinType.PinCategory) || LastFunctionPinType.PinSubCategoryObject.IsValid();
 	const bool bConstType = LastPinType.bIsConst || LastFunctionPinType.bIsConst;

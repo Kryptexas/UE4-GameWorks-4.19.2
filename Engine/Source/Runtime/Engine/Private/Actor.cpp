@@ -98,6 +98,7 @@ void AActor::InitializeDefaults()
 	bAllowReceiveTickEventOnDedicatedServer = true;
 	bRelevantForNetworkReplays = true;
 	bGenerateOverlapEventsDuringLevelStreaming = false;
+	bHasDeferredComponentRegistration = false;
 #if WITH_EDITORONLY_DATA
 	PivotOffset = FVector::ZeroVector;
 #endif
@@ -2699,7 +2700,7 @@ void AActor::PostSpawnInitialize(FTransform const& UserSpawnTransform, AActor* I
 	ExchangeNetRoles(bRemoteOwned);
 
 	USceneComponent* const SceneRootComponent = FixupNativeActorComponents(this);
-	if (SceneRootComponent != NULL)
+	if (SceneRootComponent != nullptr)
 	{
 		// Set the actor's location and rotation since it has a native rootcomponent
 		// Note that we respect any initial transformation the root component may have from the CDO, so the final transform
@@ -2712,8 +2713,14 @@ void AActor::PostSpawnInitialize(FTransform const& UserSpawnTransform, AActor* I
 	// Call OnComponentCreated on all default (native) components
 	DispatchOnComponentsCreated(this);
 
-	// Initialize the actor's components.
-	RegisterAllComponents();
+	// Register the actor's default (native) components, but only if we have a native scene root. If we don't, it implies that there could be only non-scene components
+	// at the native class level. In that case, if this is a Blueprint instance, we need to defer native registration until after SCS execution can establish a scene root.
+	// Note: This API will also call PostRegisterAllComponents() on the actor instance. If deferred, PostRegisterAllComponents() won't be called until the root is set by SCS.
+	bHasDeferredComponentRegistration = (SceneRootComponent == nullptr && Cast<UBlueprintGeneratedClass>(GetClass()) != nullptr);
+	if (!bHasDeferredComponentRegistration)
+	{
+		RegisterAllComponents();
+	}
 
 	// Set owner.
 	SetOwner(InOwner);
@@ -3929,6 +3936,9 @@ void AActor::RegisterAllComponents()
 {
 	// 0 - means register all components
 	verify(IncrementalRegisterComponents(0));
+
+	// Clear this flag as it's no longer deferred
+	bHasDeferredComponentRegistration = false;
 }
 
 // Walks through components hierarchy and returns closest to root parent component that is unregistered

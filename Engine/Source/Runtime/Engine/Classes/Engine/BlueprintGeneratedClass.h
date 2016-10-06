@@ -317,6 +317,30 @@ public:
 		return INDEX_NONE;
 	}
 
+	// Finds all code locations (Function+CodeOffset) associated with the source node
+	void FindAllCodeLocationsFromSourceNode(UEdGraphNode* SourceNode, UFunction* InFunction, TArray<int32>& OutNodeToCodeAssociations) const
+	{
+		OutNodeToCodeAssociations.Empty();
+
+		if (const FDebuggingInfoForSingleFunction* pFuncInfo = PerFunctionLineNumbers.Find(InFunction))
+		{
+			for (auto CodeLocation : pFuncInfo->LineNumberToSourceNodeMap)
+			{
+				if (CodeLocation.Value == SourceNode)
+				{
+					OutNodeToCodeAssociations.Add(CodeLocation.Key);
+				}
+			}
+			for (auto CodeLocation : pFuncInfo->LineNumberToMacroSourceNodeMap)
+			{
+				if (CodeLocation.Value == SourceNode)
+				{
+					OutNodeToCodeAssociations.Add(CodeLocation.Key);
+				}
+			}
+		}
+	}
+
 	// Finds the pure node script code range associated with the [impure] source node, or FInt32Range(INDEX_NONE) if there is no existing association
 	FInt32Range FindPureNodeScriptCodeRangeFromSourceNode(const UEdGraphNode* SourceNode, UFunction* InFunction) const
 	{

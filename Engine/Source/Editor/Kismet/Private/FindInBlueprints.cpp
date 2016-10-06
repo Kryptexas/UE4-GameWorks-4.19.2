@@ -412,7 +412,7 @@ FReply FFindInBlueprintsProperty::OnClick()
 				const TArray<USCS_Node*>& Nodes = Blueprint->SimpleConstructionScript->GetAllNodes();
 				for (USCS_Node* Node : Nodes)
 				{
-					if (Node->VariableName.ToString() == DisplayText.ToString())
+					if (Node->GetVariableName().ToString() == DisplayText.ToString())
 					{
 						UBlueprintGeneratedClass* GeneratedClass = Cast<UBlueprintGeneratedClass>(Blueprint->GeneratedClass);
 						if (GeneratedClass)

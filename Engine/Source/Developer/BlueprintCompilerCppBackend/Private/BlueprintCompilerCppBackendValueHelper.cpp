@@ -649,7 +649,7 @@ FString FEmitDefaultValueHelper::HandleNonNativeComponent(FEmitterLocalContext& 
 	UBlueprintGeneratedClass* BPGC = CastChecked<UBlueprintGeneratedClass>(Context.GetCurrentlyGeneratedClass());
 	if (UActorComponent* ComponentTemplate = Node->GetActualComponentTemplate(BPGC))
 	{
-		const FString VariableCleanName = Node->VariableName.ToString();
+		const FString VariableCleanName = Node->GetVariableName().ToString();
 
 		const UObjectProperty* VariableProperty = FindField<UObjectProperty>(BPGC, *VariableCleanName);
 		if (VariableProperty)
@@ -695,7 +695,7 @@ FString FEmitDefaultValueHelper::HandleNonNativeComponent(FEmitterLocalContext& 
 				FString ParentVariableName;
 				if (ParentNode)
 				{
-					const FString CleanParentVariableName = ParentNode->VariableName.ToString();
+					const FString CleanParentVariableName = ParentNode->GetVariableName().ToString();
 					const UObjectProperty* ParentVariableProperty = FindField<UObjectProperty>(BPGC, *CleanParentVariableName);
 					ParentVariableName = ParentVariableProperty ? FEmitHelper::GetCppName(ParentVariableProperty) : CleanParentVariableName;
 				}

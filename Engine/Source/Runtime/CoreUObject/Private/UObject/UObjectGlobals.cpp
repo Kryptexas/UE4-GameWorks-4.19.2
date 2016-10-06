@@ -2333,13 +2333,27 @@ UObject* StaticAllocateObject
 		}
 		else if(!InOuter || !InOuter->HasAnyFlags(RF_ClassDefaultObject))
 		{
+#if !UE_BUILD_SHIPPING
+			// Handle nested DSOs
+			bool bIsOwnedByCDO = false;
+			UObject* Iter = InOuter;
+			while (Iter)
+			{
+				if (Iter->HasAnyFlags(RF_ClassDefaultObject))
+				{
+					bIsOwnedByCDO = true;
+					break;
+				}
+				Iter = Iter->GetOuter();
+			}
 			// Should only get in here if we're NOT creating a subobject of a CDO.  CDO subobjects may still need to be serialized off of disk after being created by the constructor
 			// if really necessary there was code to allow replacement of object just needing postload, but lets not go there unless we have to
-			checkf(!Obj->HasAnyFlags(RF_NeedLoad|RF_NeedPostLoad|RF_ClassDefaultObject),
+			checkf(!Obj->HasAnyFlags(RF_NeedLoad|RF_NeedPostLoad|RF_ClassDefaultObject) || bIsOwnedByCDO,
 				*FText::Format(NSLOCTEXT("Core", "ReplaceNotFullyLoaded_f", "Attempting to replace an object that hasn't been fully loaded: {0} (Outer={1}, Flags={2})"),
 					FText::FromString(Obj->GetFullName()),
 					InOuter ? FText::FromString(InOuter->GetFullName()) : FText::FromString(TEXT("NULL")),
 					FText::FromString(FString::Printf(TEXT("0x%08x"), (int32)Obj->GetFlags()))).ToString());
+#endif//UE_BUILD_SHIPPING
 		}
 		// Subobjects are always created in the constructor, no need to re-create them here unless their archetype != CDO or they're blueprint generated.	
 		if (!bCreatingCDO && (!bCanRecycleSubobjects || !Obj->IsDefaultSubobject()))

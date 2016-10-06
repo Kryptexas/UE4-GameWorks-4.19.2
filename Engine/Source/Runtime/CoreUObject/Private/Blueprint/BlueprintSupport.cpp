@@ -1525,7 +1525,7 @@ void FLinkerLoad::ResolveDeferredExports(UClass* LoadClass)
 		// sub-classes of this Blueprint could have had their CDO's 
 		// initialization deferred (this occurs when the sub-class CDO is 
 		// created before this super CDO has been fully serialized; we do this
-		// because the  sub-class's CDO would not have been initialized with 
+		// because the sub-class's CDO would not have been initialized with 
 		// accurate values)
 		//
 		// in that case, the sub-class CDOs are waiting around until their 
@@ -2008,6 +2008,24 @@ void FDeferredObjInitializerTracker::ResolveDeferredSubObjects(UObject* CDO)
 
 	for (FObjectInitializer* DeferredInitializer : DeferredSubObjInitializers)
 	{
+		UObject* SubObjArchetype = DeferredInitializer->GetArchetype();
+		// just because the class's CDO archetype has completed serialization 
+		// does not mean that the archetypes for these sub-objects have... 
+		// unfortunately there isn't anywhere else where we ensure that these 
+		// archetypes are loaded (else we should defer this further, until then 
+		// when we can guarantee that each archetype is complete) - we don't  
+		// even force a load of these sub-object archetypes prior to their own 
+		// Blueprint's regeneration, meaning it's compiled-on-load potentially 
+		// with incomplete component templates; this is potentially bad in 
+		// itself (TODO: investigate)
+		if (SubObjArchetype && !SubObjArchetype->HasAnyFlags(RF_LoadCompleted))
+		{
+			if (FLinkerLoad* SubObjLinker = SubObjArchetype->GetLinker())
+			{
+				SubObjArchetype->SetFlags(RF_NeedLoad);
+				SubObjLinker->Preload(SubObjArchetype);
+			}
+		}
 		FScriptIntegrationObjectHelper::PostConstructInitObject(*DeferredInitializer);
 	}
 	ThreadInst.DeferredSubObjInitializers.Remove(LoadClass);

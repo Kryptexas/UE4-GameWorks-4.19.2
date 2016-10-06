@@ -17,8 +17,17 @@
 
 
 UK2Node_MakeStruct::FMakeStructPinManager::FMakeStructPinManager(const uint8* InSampleStructMemory)
-	: FStructOperationOptionalPinManager(), SampleStructMemory(InSampleStructMemory)
+	: FStructOperationOptionalPinManager()
+	, SampleStructMemory(InSampleStructMemory)
+	, bHasAdvancedPins(false)
 {
+}
+
+void UK2Node_MakeStruct::FMakeStructPinManager::GetRecordDefaults(UProperty* TestProperty, FOptionalPinFromProperty& Record) const
+{
+	UK2Node_StructOperation::FStructOperationOptionalPinManager::GetRecordDefaults(TestProperty, Record);
+	Record.bIsMarkedForAdvancedDisplay = TestProperty ? TestProperty->HasAnyPropertyFlags(CPF_AdvancedDisplay) : false;
+	bHasAdvancedPins |= Record.bIsMarkedForAdvancedDisplay;
 }
 
 void UK2Node_MakeStruct::FMakeStructPinManager::CustomizePinData(UEdGraphPin* Pin, FName SourcePropertyName, int32 ArrayIndex, UProperty* Property) const
@@ -66,6 +75,12 @@ void UK2Node_MakeStruct::FMakeStructPinManager::CustomizePinData(UEdGraphPin* Pi
 		const bool bIsObject = Property->IsA<UObjectPropertyBase>();
 		checkSlow(bIsObject == ((Schema->PC_Object == Pin->PinType.PinCategory || Schema->PC_Class == Pin->PinType.PinCategory || 
 			Schema->PC_Asset == Pin->PinType.PinCategory || Schema->PC_AssetClass == Pin->PinType.PinCategory) && !Pin->PinType.bIsArray));
+
+		if (Property->HasAnyPropertyFlags(CPF_AdvancedDisplay))
+		{
+			Pin->bAdvancedView = true;
+			bHasAdvancedPins = true;
+		}
 
 		const FString& MetadataDefaultValue = Property->GetMetaData(TEXT("MakeStructureDefaultValue"));
 		if (!MetadataDefaultValue.IsEmpty())
@@ -130,28 +145,32 @@ void UK2Node_MakeStruct::AllocateDefaultPins()
 	{
 		CreatePin(EGPD_Output, Schema->PC_Struct, TEXT(""), StructType, false, false, StructType->GetName());
 		
+		bool bHasAdvancedPins = false;
 		{
 			FStructOnScope StructOnScope(Cast<UScriptStruct>(StructType));
 			FMakeStructPinManager OptionalPinManager(StructOnScope.GetStructMemory());
 			OptionalPinManager.RebuildPropertyList(ShowPinForProperties, StructType);
 			OptionalPinManager.CreateVisiblePins(ShowPinForProperties, StructType, EGPD_Input, this);
+
+			bHasAdvancedPins = OptionalPinManager.HasAdvancedPins();
 		}
 
 		// When struct has a lot of fields, mark their pins as advanced
-		if(Pins.Num() > 5)
+		if(!bHasAdvancedPins && Pins.Num() > 5)
 		{
-			if(ENodeAdvancedPins::NoPins == AdvancedPinDisplay)
-			{
-				AdvancedPinDisplay = ENodeAdvancedPins::Hidden;
-			}
-
 			for(int32 PinIndex = 3; PinIndex < Pins.Num(); ++PinIndex)
 			{
 				if(UEdGraphPin * EdGraphPin = Pins[PinIndex])
 				{
 					EdGraphPin->bAdvancedView = true;
+					bHasAdvancedPins = true;
 				}
 			}
+		}
+
+		if (bHasAdvancedPins && (ENodeAdvancedPins::NoPins == AdvancedPinDisplay))
+		{
+			AdvancedPinDisplay = ENodeAdvancedPins::Hidden;
 		}
 	}
 }

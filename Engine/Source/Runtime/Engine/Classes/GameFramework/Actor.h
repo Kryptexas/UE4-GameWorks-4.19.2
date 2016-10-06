@@ -192,6 +192,9 @@ private:
 	/** Whether we've tried to register tick functions. Reset when they are unregistered. */
 	uint8 bTickFunctionsRegistered : 1;
 
+	/** Whether we've deferred the RegisterAllComponents() call at spawn time. Reset when RegisterAllComponents() is called. */
+	uint8 bHasDeferredComponentRegistration : 1;
+
 	/**
 	 * Enables any collision on this actor.
 	 * @see SetActorEnableCollision(), GetActorEnableCollision()
@@ -2200,6 +2203,9 @@ public:
 	/** Called after all the components in the Components array are registered */
 	virtual void PostRegisterAllComponents();
 
+	/** Returns true if Actor has deferred the RegisterAllComponents() call at spawn time (e.g. pending Blueprint SCS execution to set up a scene root component). */
+	FORCEINLINE bool HasDeferredComponentRegistration() const { return bHasDeferredComponentRegistration; }
+
 	/** Returns true if Actor has a registered root component */
 	bool HasValidRootComponent();
 
@@ -2421,13 +2427,13 @@ protected:
 	*/
 	bool CheckActorComponents();
 
-	/** Checks for and resolve any name conflicts prior to instancing a new Blueprint Component. */
-	void CheckComponentInstanceName(const FName InName);
-
 	/** Called after instancing a new Blueprint Component from either a template or cooked data. */
 	void PostCreateBlueprintComponent(UActorComponent* NewActorComp);
 
 public:
+
+	/** Checks for and resolve any name conflicts prior to instancing a new Blueprint Component. */
+	void CheckComponentInstanceName(const FName InName);
 
 	/** Walk up the attachment chain from RootComponent until we encounter a different actor, and return it. If we are not attached to a component in a different actor, returns NULL */
 	virtual AActor* GetAttachParentActor() const;

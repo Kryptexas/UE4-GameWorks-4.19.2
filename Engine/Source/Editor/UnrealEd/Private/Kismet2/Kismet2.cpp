@@ -774,6 +774,11 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 	CompileOptions.bSaveIntermediateProducts = bSaveIntermediateProducts;
 	CompileOptions.bRegenerateSkelton = !bSkeletonUpToDate;
 	CompileOptions.bAddInstrumentation = bAddInstrumentation;
+	if (pResults)
+	{
+		// enable debug information for composite graph instances if we are instrumenting the blueprint.
+		pResults->bTreatCompositeGraphsAsTunnels = bAddInstrumentation;
+	}
 	Compiler.CompileBlueprint(BlueprintObj, CompileOptions, Results, ReinstanceHelper);
 
 	FBlueprintEditorUtils::UpdateDelegatesInBlueprint(BlueprintObj);

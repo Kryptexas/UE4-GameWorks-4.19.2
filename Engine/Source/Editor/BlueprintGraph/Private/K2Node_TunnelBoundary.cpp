@@ -25,7 +25,7 @@ public:
 				case TBT_EntrySite:
 				case TBT_ExitSite:
 				{
-		GenerateSimpleThenGoto(Context, *Node);
+					GenerateSimpleThenGoto(Context, *Node);
 					break;
 				}
 				case TBT_EndOfThread:
@@ -55,7 +55,7 @@ UK2Node_TunnelBoundary::UK2Node_TunnelBoundary(const FObjectInitializer& ObjectI
 FText UK2Node_TunnelBoundary::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	FFormatNamedArguments Args;
-	Args.Add(TEXT("GraphName"), FText::FromName(TunnelGraphName));
+	Args.Add(TEXT("BaseName"), FText::FromName(BaseName));
 	switch(TunnelBoundaryType)
 	{
 		case TBT_EntrySite:
@@ -74,7 +74,7 @@ FText UK2Node_TunnelBoundary::GetNodeTitle(ENodeTitleType::Type TitleType) const
 			break;
 		}
 	}
-	return FText::Format(LOCTEXT("UK2Node_TunnelBoundary_FullTitle", "{GraphName} {EntryType}"), Args);
+	return FText::Format(LOCTEXT("UK2Node_TunnelBoundary_FullTitle", "{BaseName} {EntryType}"), Args);
 }
 
 FNodeHandlingFunctor* UK2Node_TunnelBoundary::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const
@@ -82,7 +82,7 @@ FNodeHandlingFunctor* UK2Node_TunnelBoundary::CreateNodeHandler(FKismetCompilerC
 	return new FKCHandler_TunnelBoundary(CompilerContext);
 }
 
-void UK2Node_TunnelBoundary::CreateBoundaryNodesForGraph(UEdGraph* TunnelGraph, class FCompilerResultsLog& MessageLog)
+void UK2Node_TunnelBoundary::CreateBoundaryNodesForGraph(UEdGraph* TunnelGraph, FCompilerResultsLog& MessageLog)
 {
 	if (UK2Node_Tunnel* OuterTunnel = TunnelGraph->GetTypedOuter<UK2Node_Tunnel>())
 	{
@@ -91,7 +91,7 @@ void UK2Node_TunnelBoundary::CreateBoundaryNodesForGraph(UEdGraph* TunnelGraph, 
 	}
 }
 
-void UK2Node_TunnelBoundary::CreateBoundaryNodesForTunnelInstance(UK2Node_Tunnel* TunnelInstance, UEdGraph* TunnelGraph, class FCompilerResultsLog& MessageLog)
+void UK2Node_TunnelBoundary::CreateBoundaryNodesForTunnelInstance(UK2Node_Tunnel* TunnelInstance, UEdGraph* TunnelGraph, FCompilerResultsLog& MessageLog)
 {
 	if (!TunnelGraph)
 	{
@@ -127,6 +127,7 @@ void UK2Node_TunnelBoundary::CreateBoundaryNodesForTunnelInstance(UK2Node_Tunnel
 	// Find the blueprint tunnel instance.
 	UEdGraphNode* SourceTunnelInstance = Cast<UEdGraphNode>(MessageLog.FindSourceObject(TunnelInstance));
 	SourceTunnelInstance = FindTrueSourceTunnelInstance(TunnelInstance, SourceTunnelInstance);
+	UEdGraphNode* RegistrantTunnelInstance = TunnelInstance->IsA<UK2Node_Composite>() ? SourceTunnelInstance : TunnelInstance;
 	// Create the Boundary nodes for each unique entry/exit site.
 	TArray<UEdGraphPin*> ExecutionEndpointPins;
 	TArray<UEdGraphPin*> VisitedPins;
@@ -135,7 +136,7 @@ void UK2Node_TunnelBoundary::CreateBoundaryNodesForTunnelInstance(UK2Node_Tunnel
 		UK2Node_TunnelBoundary* TunnelBoundaryNode = TunnelGraph->CreateBlankNode<UK2Node_TunnelBoundary>();
 		MessageLog.NotifyIntermediateObjectCreation(TunnelBoundaryNode, TunnelInstance);
 		TunnelBoundaryNode->CreateNewGuid();
-		MessageLog.IntermediateTunnelNodeToSourceNodeMap.Add(TunnelBoundaryNode, SourceTunnelInstance);
+		MessageLog.RegisterIntermediateTunnelNode(TunnelBoundaryNode, RegistrantTunnelInstance);
 		TunnelBoundaryNode->WireUpTunnelEntry(TunnelInstance, EntryPin, MessageLog);
 		for (auto LinkedPin : EntryPin->LinkedTo)
 		{
@@ -149,7 +150,7 @@ void UK2Node_TunnelBoundary::CreateBoundaryNodesForTunnelInstance(UK2Node_Tunnel
 		MessageLog.NotifyIntermediateObjectCreation(TunnelBoundaryNode, TunnelInstance);
 		TunnelBoundaryNode->CreateNewGuid();
 		TunnelBoundaryNode->TunnelBoundaryType = TBT_EndOfThread;
-		MessageLog.IntermediateTunnelNodeToSourceNodeMap.Add(TunnelBoundaryNode, SourceTunnelInstance);
+		MessageLog.RegisterIntermediateTunnelNode(TunnelBoundaryNode, RegistrantTunnelInstance);
 		// Create exit point pin
 		UEdGraphPin* BoundaryTerminalPin = TunnelBoundaryNode->CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Exec, TEXT(""), NULL, false, false, TEXT("TunnelEndOfThread"));
 		// Wire up the endpoint unwired links to the boundary node.
@@ -163,25 +164,65 @@ void UK2Node_TunnelBoundary::CreateBoundaryNodesForTunnelInstance(UK2Node_Tunnel
 		UK2Node_TunnelBoundary* TunnelBoundaryNode = TunnelGraph->CreateBlankNode<UK2Node_TunnelBoundary>();
 		MessageLog.NotifyIntermediateObjectCreation(TunnelBoundaryNode, TunnelInstance);
 		TunnelBoundaryNode->CreateNewGuid();
-		MessageLog.IntermediateTunnelNodeToSourceNodeMap.Add(TunnelBoundaryNode, SourceTunnelInstance);
+		MessageLog.RegisterIntermediateTunnelNode(TunnelBoundaryNode, RegistrantTunnelInstance);
 		TunnelBoundaryNode->WireUpTunnelExit(TunnelInstance, ExitPin, MessageLog);
 	}
 	// Build node guid map to locate true source node.
 	TMap<FGuid, const UEdGraphNode*> TrueSourceNodeMap;
 	BuildSourceNodeMap(SourceTunnelInstance, TrueSourceNodeMap);
-	// Register all the nodes to the tunnel instance map
-	if (SourceTunnelInstance)
+}
+
+void UK2Node_TunnelBoundary::CreateBoundariesForExpansionNodes(UEdGraphNode* SourceNode, TArray<UEdGraphNode*>& ExpansionNodes, TMap<UEdGraphPin*, UEdGraphPin*>& LinkedPinMap, FCompilerResultsLog& MessageLog)
+{
+	// Find boundary points and map them to the source pins
+	UEdGraph* TargetGraph = nullptr;
+	TMap<UEdGraphPin*, TArray<UEdGraphPin*>> EntryPins;
+	TMap<UEdGraphPin*, TArray<UEdGraphPin*>> ExitPins;
+	for (auto ExpansionNode : ExpansionNodes)
 	{
-		for (auto Node : TunnelGraph->Nodes)
+		if (!TargetGraph)
 		{
-			MessageLog.SourceNodeToTunnelInstanceNodeMap.Add(Node, SourceTunnelInstance);
-			if (const UEdGraphNode** SearchNode = TrueSourceNodeMap.Find(Node->NodeGuid))
+			TargetGraph = ExpansionNode->GetGraph();
+		}
+		for (UEdGraphPin* Pin : ExpansionNode->Pins)
+		{
+			for (UEdGraphPin* LinkedPin : Pin->LinkedTo)
 			{
-				const UEdGraphNode* SourceGraphNode = *SearchNode;
-				MessageLog.IntermediateTunnelNodeToSourceNodeMap.Add(Node, SourceGraphNode);
+				if (UEdGraphPin** SourcePin = LinkedPinMap.Find(LinkedPin))
+				{
+					if (Pin->Direction == EGPD_Input)
+					{
+						TArray<UEdGraphPin*>& PinLinks = EntryPins.FindOrAdd(*SourcePin);
+						PinLinks.Add(Pin);
+					}
+					else
+					{
+						TArray<UEdGraphPin*>& PinLinks = ExitPins.FindOrAdd(*SourcePin);
+						PinLinks.Add(Pin);
+					}
+				}
 			}
 		}
-		MessageLog.SourceNodeToTunnelInstanceNodeMap.Add(TunnelInstance, SourceTunnelInstance);
+	}
+	// Create the Boundary nodes for each unique entry/exit site.
+	if (TargetGraph)
+	{
+		// Create entry node and pins
+		UK2Node_TunnelBoundary* EntryBoundaryNode = TargetGraph->CreateBlankNode<UK2Node_TunnelBoundary>();
+		MessageLog.NotifyIntermediateObjectCreation(EntryBoundaryNode, SourceNode);
+		EntryBoundaryNode->CreateNewGuid();
+		for (auto PinEntry : EntryPins)
+		{
+			EntryBoundaryNode->WireUpEntry(SourceNode, PinEntry.Key, PinEntry.Value, MessageLog);
+		}
+		// Create exit node and pins
+		UK2Node_TunnelBoundary* ExitBoundaryNode = TargetGraph->CreateBlankNode<UK2Node_TunnelBoundary>();
+		MessageLog.NotifyIntermediateObjectCreation(ExitBoundaryNode, SourceNode);
+		ExitBoundaryNode->CreateNewGuid();
+		for (auto PinExit : ExitPins)
+		{
+			ExitBoundaryNode->WireUpExit(SourceNode, PinExit.Key, PinExit.Value, MessageLog);
+		}
 	}
 }
 
@@ -197,7 +238,7 @@ void UK2Node_TunnelBoundary::WireUpTunnelEntry(UK2Node_Tunnel* TunnelInstance, U
 		// Mark as entry node
 		TunnelBoundaryType = TBT_EntrySite;
 		// Grab the graph name
-		DetermineTunnelGraphName(TunnelInstance);
+		CreateBaseNodeName(TunnelInstance);
 		// Find the true source pin
 		UEdGraphPin* SourcePin = TunnelInstance->FindPin(TunnelPin->PinName);
 		// Wire in the node
@@ -220,7 +261,7 @@ void UK2Node_TunnelBoundary::WireUpTunnelExit(UK2Node_Tunnel* TunnelInstance, UE
 		// Mark as exit node
 		TunnelBoundaryType = TBT_ExitSite;
 		// Grab the graph name
-		DetermineTunnelGraphName(TunnelInstance);
+		CreateBaseNodeName(TunnelInstance);
 		// Find the true source pin
 		UEdGraphPin* SourcePin = TunnelInstance->FindPin(TunnelPin->PinName);
 		// Wire in the node
@@ -236,18 +277,77 @@ void UK2Node_TunnelBoundary::WireUpTunnelExit(UK2Node_Tunnel* TunnelInstance, UE
 	}
 }
 
-void UK2Node_TunnelBoundary::DetermineTunnelGraphName(UK2Node_Tunnel* TunnelInstance)
+void UK2Node_TunnelBoundary::WireUpEntry(UEdGraphNode* SourceNode, UEdGraphPin* SourcePin, TArray<UEdGraphPin*>& EntryPins, FCompilerResultsLog& MessageLog)
+{
+	if (SourceNode && SourcePin && EntryPins.Num())
+	{
+		// Mark as entry node
+		TunnelBoundaryType = TBT_EntrySite;
+		// Create the pin base name
+		CreateBaseNodeName(SourceNode);
+		// Wire in the node
+		UEdGraphPin* InputPin = CreatePin(EGPD_Input, SourcePin->PinType.PinCategory, SourcePin->PinType.PinSubCategory, SourcePin->PinType.PinSubCategoryObject.Get(), SourcePin->PinType.bIsArray, SourcePin->PinType.bIsReference, TEXT("EntryBoundary"), SourcePin->PinType.bIsConst);
+		MessageLog.NotifyIntermediatePinCreation(InputPin, SourcePin);
+		UEdGraphPin* OutputPin = CreatePin(EGPD_Output, SourcePin->PinType.PinCategory, SourcePin->PinType.PinSubCategory, SourcePin->PinType.PinSubCategoryObject.Get(), SourcePin->PinType.bIsArray, SourcePin->PinType.bIsReference, SourcePin->PinName, SourcePin->PinType.bIsConst);
+		MessageLog.AddPinTraceFilter(OutputPin);
+		for (auto EntryPin : EntryPins)
+		{
+			for (auto LinkedPin : EntryPin->LinkedTo)
+			{
+				check (LinkedPin->Direction != InputPin->Direction);
+				LinkedPin->MakeLinkTo(InputPin);
+			}
+			EntryPin->BreakAllPinLinks();
+			check (EntryPin->Direction != OutputPin->Direction);
+			EntryPin->MakeLinkTo(OutputPin);
+		}
+	}
+}
+
+void UK2Node_TunnelBoundary::WireUpExit(UEdGraphNode* SourceNode, UEdGraphPin* SourcePin, TArray<UEdGraphPin*>& ExitPins, FCompilerResultsLog& MessageLog)
+{
+	if (SourceNode && SourcePin && ExitPins.Num())
+	{
+		// Mark as exit node
+		TunnelBoundaryType = TBT_ExitSite;
+		// Create the pin base name
+		CreateBaseNodeName(SourceNode);
+		// Wire in the node
+		UEdGraphPin* OutputPin = CreatePin(EGPD_Output, SourcePin->PinType.PinCategory, SourcePin->PinType.PinSubCategory, SourcePin->PinType.PinSubCategoryObject.Get(), SourcePin->PinType.bIsArray, SourcePin->PinType.bIsReference, SourcePin->PinName, SourcePin->PinType.bIsConst);
+		MessageLog.NotifyIntermediatePinCreation(OutputPin, SourcePin);
+		UEdGraphPin* InputPin = CreatePin(EGPD_Input, SourcePin->PinType.PinCategory, SourcePin->PinType.PinSubCategory, SourcePin->PinType.PinSubCategoryObject.Get(), SourcePin->PinType.bIsArray, SourcePin->PinType.bIsReference, TEXT("ExitBoundary"), SourcePin->PinType.bIsConst);
+		MessageLog.AddPinTraceFilter(InputPin);
+		for (auto ExitPin : ExitPins)
+		{
+			for (auto LinkedPin : ExitPin->LinkedTo)
+			{
+				check (LinkedPin->Direction != OutputPin->Direction);
+				LinkedPin->MakeLinkTo(OutputPin);
+			}
+			ExitPin->BreakAllPinLinks();
+			check (ExitPin->Direction != InputPin->Direction);
+			ExitPin->MakeLinkTo(InputPin);
+		}
+	}
+}
+
+void UK2Node_TunnelBoundary::CreateBaseNodeName(UEdGraphNode* SourceNode)
 {
 	UEdGraph* TunnelGraph = nullptr;
-	if (const UK2Node_MacroInstance* MacroInstance = Cast<UK2Node_MacroInstance>(TunnelInstance))
+	if (const UK2Node_MacroInstance* MacroInstance = Cast<UK2Node_MacroInstance>(SourceNode))
 	{
 		TunnelGraph = MacroInstance->GetMacroGraph();
+		BaseName = TunnelGraph ? TunnelGraph->GetFName() : NAME_None;
 	}
-	else if (const UK2Node_Composite* CompositeInstance = Cast<UK2Node_Composite>(TunnelInstance))
+	else if (const UK2Node_Composite* CompositeInstance = Cast<UK2Node_Composite>(SourceNode))
 	{
 		TunnelGraph = CompositeInstance->BoundGraph;
+		BaseName = TunnelGraph ? TunnelGraph->GetFName() : NAME_None;
 	}
-	TunnelGraphName = TunnelGraph ? TunnelGraph->GetFName() : NAME_None;
+	else
+	{
+		BaseName = SourceNode ? SourceNode->GetFName() : NAME_None;
+	}
 }
 
 void UK2Node_TunnelBoundary::BuildSourceNodeMap(UEdGraphNode* Tunnel, TMap<FGuid, const UEdGraphNode*>& SourceNodeMap)

@@ -199,6 +199,14 @@ enum class EPinResolveType : uint8
 	ReferencePassThroughConnection
 };
 
+enum class EPinResolveResult : uint8
+{
+	FailedParse, // failed to even parse the text buffer, meaning we have to bail out
+	FailedSafely, // simply failed to resolve the object referenced by the text buffer, meaning we have to disconnect
+	Deferred, // owning object was found, but referenced pin is not presenet yet
+	Suceeded // immediately resolved
+};
+
 struct FUnresolvedPinData
 {
 	UEdGraphPin* ReferencingPin;
@@ -274,6 +282,7 @@ namespace PinHelpers
 	// Don't need bDisplayAsMutableRef's name because it is transient
 	// Don't need bWasTrashed's name because it is transient
 #endif
+	static EPinResolveResult ImportText_PinReference(const TCHAR*& Buffer, UEdGraphPin*& PinRef, int32 ArrayIdx, UEdGraphPin* RequestingPin, EPinResolveType ResolveType);
 }
 
 /////////////////////////////////////////////////////
@@ -912,11 +921,11 @@ bool UEdGraphPin::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, class UO
 		}
 		else if (PropertyToken == PinHelpers::ParentPinName)
 		{
-			bParseSuccess = UEdGraphPin::ImportText_PinReference(Buffer, ParentPin, INDEX_NONE, this, EPinResolveType::ParentPin);
+			bParseSuccess = PinHelpers::ImportText_PinReference(Buffer, ParentPin, INDEX_NONE, this, EPinResolveType::ParentPin) != EPinResolveResult::FailedParse;
 		}
 		else if (PropertyToken == PinHelpers::ReferencePassThroughConnectionName)
 		{
-			bParseSuccess = UEdGraphPin::ImportText_PinReference(Buffer, ReferencePassThroughConnection, INDEX_NONE, this, EPinResolveType::ReferencePassThroughConnection);
+			bParseSuccess = PinHelpers::ImportText_PinReference(Buffer, ReferencePassThroughConnection, INDEX_NONE, this, EPinResolveType::ReferencePassThroughConnection) != EPinResolveResult::FailedParse;
 		}
 #if WITH_EDITORONLY_DATA
 		else if (PropertyToken == PinHelpers::PersistentGuidName)
@@ -989,7 +998,7 @@ bool UEdGraphPin::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, class UO
 	}
 
 	// Someone might have been waiting for this pin to be created. Let them know that this pin now exists.
-	ResolveReferencesToPin(this, false);
+	ResolveReferencesToPin(this);
 
 	return true;
 }
@@ -1618,7 +1627,7 @@ FString UEdGraphPin::ExportText_PinArray(const TArray<UEdGraphPin*>& PinArray)
 	return RetVal;
 }
 
-bool UEdGraphPin::ImportText_PinReference(const TCHAR*& Buffer, UEdGraphPin*& PinRef, int32 ArrayIdx, UEdGraphPin* RequestingPin, EPinResolveType ResolveType)
+EPinResolveResult PinHelpers::ImportText_PinReference(const TCHAR*& Buffer, UEdGraphPin*& PinRef, int32 ArrayIdx, UEdGraphPin* RequestingPin, EPinResolveType ResolveType)
 {
 	const TCHAR* BufferStart = Buffer;
 	while (*Buffer != PinHelpers::ExportTextPropDelimiter && *Buffer != ')')
@@ -1626,7 +1635,7 @@ bool UEdGraphPin::ImportText_PinReference(const TCHAR*& Buffer, UEdGraphPin*& Pi
 		if (*Buffer == 0)
 		{
 			// Parse error
-			return false;
+			return EPinResolveResult::FailedParse;
 		}
 
 		Buffer++;
@@ -1647,17 +1656,20 @@ bool UEdGraphPin::ImportText_PinReference(const TCHAR*& Buffer, UEdGraphPin*& Pi
 				if (ExistingPin)
 				{
 					PinRef = *ExistingPin;
+					return EPinResolveResult::Suceeded;
 				}
 				else
 				{
 					TArray<FUnresolvedPinData>& UnresolvedPinData = PinHelpers::UnresolvedPins.FindOrAdd(FPinResolveId(PinGuid, LocalOwningNode));
 					UnresolvedPinData.Add(FUnresolvedPinData(RequestingPin, ResolveType, ArrayIdx));
+					return EPinResolveResult::Deferred;
 				}
 			}
 		}
+		
 	}
 
-	return true;
+	return EPinResolveResult::FailedSafely;
 }
 
 bool UEdGraphPin::ImportText_PinArray(const TCHAR*& Buffer, TArray<UEdGraphPin*>& ArrayRef, UEdGraphPin* RequestingPin, EPinResolveType ResolveType)
@@ -1678,10 +1690,16 @@ bool UEdGraphPin::ImportText_PinArray(const TCHAR*& Buffer, TArray<UEdGraphPin*>
 			}
 
 			int32 NewItemIdx = ArrayRef.Add(nullptr);
-			bool bParseSuccess = ImportText_PinReference(Buffer, ArrayRef[NewItemIdx], NewItemIdx, RequestingPin, ResolveType);
-			if (!bParseSuccess)
+			EPinResolveResult ResolveResult = PinHelpers::ImportText_PinReference(Buffer, ArrayRef[NewItemIdx], NewItemIdx, RequestingPin, ResolveType);
+
+			if (ResolveResult == EPinResolveResult::FailedParse)
 			{
+				ArrayRef.Pop();
 				return false;
+			}
+			else if (ResolveResult == EPinResolveResult::FailedSafely)
+			{
+				ArrayRef.Pop();
 			}
 
 			if (*Buffer == PinHelpers::ExportTextPropDelimiter)

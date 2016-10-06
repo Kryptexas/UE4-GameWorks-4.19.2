@@ -8,6 +8,7 @@
 #include "SourceCodeNavigation.h"
 #include "Developer/HotReload/Public/IHotReload.h"
 #include "EngineLogs.h"
+#include "K2Node_MacroInstance.h"
 
 #if WITH_EDITOR
 
@@ -124,6 +125,7 @@ FCompilerResultsLog::FCompilerResultsLog(bool bIsCompatibleWithEvents/* = true*/
 	, bLogInfoOnly(false)
 	, bAnnotateMentionedNodes(true)
 	, bLogDetailedResults(false)
+	, bTreatCompositeGraphsAsTunnels(false)
 	, EventDisplayThresholdMs(0)
 {
 	CurrentEventScope = nullptr;
@@ -588,6 +590,94 @@ void FCompilerResultsLog::AddChildEvent(TSharedPtr<FCompilerEvent>& ParentEventS
 	}
 }
 
+void FCompilerResultsLog::RegisterIntermediateTunnelNode(UEdGraphNode* IntermediateNode, UEdGraphNode* OwningTunnelInstance)
+{
+	IntermediateTunnelNodeToTunnelInstanceMap.Add(IntermediateNode, OwningTunnelInstance);
+	UObject* TrueSourceNode = SourceBacktrackMap.FindSourceObject(IntermediateNode);
+	if (IntermediateNode != TrueSourceNode)
+	{
+		FinalNodeBackToTunnelSourceMap.NotifyIntermediateObjectCreation(IntermediateNode, TrueSourceNode);
+	}
+}
+
+void FCompilerResultsLog::RegisterIntermediateTunnelInstance(UEdGraphNode* IntermediateTunnel, TArray<TWeakObjectPtr<UEdGraphNode>>& ActiveTunnels)
+{
+	for (auto Tunnel : ActiveTunnels)
+	{
+		if (Tunnel.Get()->IsA<UK2Node_MacroInstance>() || bTreatCompositeGraphsAsTunnels)
+		{
+			IntermediateTunnelInstanceHierarchyMap.Add(IntermediateTunnel, Tunnel);
+		}
+	}
+	UEdGraphNode* TrueSourceTunnelInstance = Cast<UEdGraphNode>(SourceBacktrackMap.FindSourceObject(IntermediateTunnel));
+	if (!ActiveTunnels.Contains(TrueSourceTunnelInstance))
+	{
+		if (TrueSourceTunnelInstance->IsA<UK2Node_MacroInstance>() || bTreatCompositeGraphsAsTunnels)
+		{
+			IntermediateTunnelInstanceHierarchyMap.Add(IntermediateTunnel, TrueSourceTunnelInstance);
+		}
+	}
+}
+
+UEdGraphNode* FCompilerResultsLog::GetSourceNode(const UEdGraphNode* IntermediateNode)
+{
+	UEdGraphNode* Result = nullptr;
+	if (UEdGraphNode* SourceTunnelInstance = GetSourceTunnelInstance(IntermediateNode))
+	{
+		if (SourceTunnelInstance->IsA<UK2Node_MacroInstance>() || bTreatCompositeGraphsAsTunnels)
+		{
+			Result = SourceTunnelInstance;
+		}
+	}
+	if (!Result)
+	{
+		Result = Cast<UEdGraphNode>(SourceBacktrackMap.FindSourceObject(const_cast<UEdGraphNode*>(IntermediateNode)));
+	}
+	return Result;
+}
+
+UEdGraphNode* FCompilerResultsLog::GetIntermediateTunnelInstance(const UEdGraphNode* IntermediateNode)
+{
+	TWeakObjectPtr<UEdGraphNode> Result;
+	if (TWeakObjectPtr<UEdGraphNode>* IntermediateTunnelInstanceNode = IntermediateTunnelNodeToTunnelInstanceMap.Find(IntermediateNode))
+	{
+		Result = *IntermediateTunnelInstanceNode;
+	}
+	return Result.Get();
+}
+
+UEdGraphNode* FCompilerResultsLog::GetSourceTunnelNode(const UEdGraphNode* IntermediateNode)
+{
+	UEdGraphNode* SourceNode = Cast<UEdGraphNode>(FinalNodeBackToTunnelSourceMap.FindSourceObject(const_cast<UEdGraphNode*>(IntermediateNode)));
+	if (SourceNode == IntermediateNode)
+	{
+		// No source node available because we haven't mapped this yet, this could be a top level Tunnel so look it up.
+		SourceNode = Cast<UEdGraphNode>(SourceBacktrackMap.FindSourceObject(const_cast<UEdGraphNode*>(IntermediateNode)));
+	}
+	return SourceNode;
+}
+
+UEdGraphNode* FCompilerResultsLog::GetSourceTunnelInstance(const UEdGraphNode* IntermediateNode)
+{
+	TWeakObjectPtr<UEdGraphNode> Result;
+	if (UEdGraphNode* IntermediateTunnelInstance = GetIntermediateTunnelInstance(IntermediateNode))
+	{
+		if (UEdGraphNode* SourceTunnelInstanceNode = Cast<UEdGraphNode>(SourceBacktrackMap.FindSourceObject(IntermediateTunnelInstance)))
+		{
+			if (SourceTunnelInstanceNode != IntermediateNode)
+			{
+				Result = SourceTunnelInstanceNode;
+			}
+		}
+	}
+	return Result.Get();
+}
+
+void FCompilerResultsLog::GetTunnelsActiveForNode(const UEdGraphNode* IntermediateNode, TArray<TWeakObjectPtr<UEdGraphNode>>& ActiveTunnelsOut)
+{
+	IntermediateTunnelInstanceHierarchyMap.MultiFind(IntermediateNode, ActiveTunnelsOut, true);
+}
+
 #undef LOCTEXT_NAMESPACE
 
-#endif	//#if !WITH_EDITOR
+#endif	//#if WITH_EDITOR

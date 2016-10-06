@@ -4,6 +4,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "K2Node_FunctionTerminator.h"
 #include "GraphEditorSettings.h"
+#include "CompilerResultsLog.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -101,6 +102,22 @@ void UK2Node_FunctionTerminator::PromoteFromInterfaceOverride(bool bIsPrimaryTer
 	}
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 	Schema->ReconstructNode(*this, true);
+}
+
+void UK2Node_FunctionTerminator::ValidateNodeDuringCompilation(FCompilerResultsLog& MessageLog) const
+{
+	Super::ValidateNodeDuringCompilation(MessageLog);
+
+	for (UEdGraphPin* Pin : Pins)
+	{
+		if (Pin && Pin->PinType.bIsWeakPointer && !Pin->PinType.IsContainer())
+		{
+			const FString ErrorString = FString::Printf(
+				*LOCTEXT("WeakPtrNotSupportedError", "Weak prointer is not supported as function parameter. Pin '%s' @@").ToString(), 
+				*Pin->GetName());
+			MessageLog.Error(*ErrorString, this);
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

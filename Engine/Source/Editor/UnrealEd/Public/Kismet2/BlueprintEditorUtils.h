@@ -1308,6 +1308,11 @@ public:
 	static const struct FSlateBrush* GetSecondaryIconFromPin(const FEdGraphPinType& PinType);
 
 	/**
+	 * Returns true if this terminal type can be hashed (native types need GetTypeHash, script types are always hashable).
+	 */
+	static bool HasGetTypeHash(const FEdGraphPinType& PinType);
+
+	/**
 	 * Generate component instancing data (for cooked builds).
 	 *
 	 * @param ComponentTemplate	The component template to generate instancing data for.
@@ -1433,4 +1438,37 @@ struct UNREALED_API FBlueprintDuplicationScopeFlags
 
 	TGuardValue<uint32> Guard;
 	FBlueprintDuplicationScopeFlags(uint32 InFlags) : Guard(bStaticFlags, InFlags) {}
+};
+
+struct UNREALED_API FMakeClassSpawnableOnScope
+{
+	UClass* Class;
+	bool bIsDeprecated;
+	bool bIsAbstract;
+	FMakeClassSpawnableOnScope(UClass* InClass)
+		: Class(InClass), bIsDeprecated(false), bIsAbstract(false)
+	{
+		if (Class)
+		{
+			bIsDeprecated = Class->HasAnyClassFlags(CLASS_Deprecated);
+			Class->ClassFlags &= ~CLASS_Deprecated;
+			bIsAbstract = Class->HasAnyClassFlags(CLASS_Abstract);
+			Class->ClassFlags &= ~CLASS_Abstract;
+		}
+	}
+	~FMakeClassSpawnableOnScope()
+	{
+		if (Class)
+		{
+			if (bIsAbstract)
+			{
+				Class->ClassFlags |= CLASS_Abstract;
+			}
+
+			if (bIsDeprecated)
+			{
+				Class->ClassFlags |= CLASS_Deprecated;
+			}
+		}
+	}
 };

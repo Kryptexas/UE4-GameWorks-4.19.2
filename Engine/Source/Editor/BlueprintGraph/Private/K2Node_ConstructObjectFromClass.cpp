@@ -35,7 +35,7 @@ bool UK2Node_ConstructObjectFromClass::UseWorldContext() const
 {
 	auto BP = GetBlueprint();
 	const UClass* ParentClass = BP ? BP->ParentClass : nullptr;
-	return ParentClass ? ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowWorldContextPin) : false;
+	return ParentClass ? ParentClass->HasMetaDataHierarchical(FBlueprintMetadata::MD_ShowWorldContextPin) != nullptr : false;
 }
 
 void UK2Node_ConstructObjectFromClass::AllocateDefaultPins()

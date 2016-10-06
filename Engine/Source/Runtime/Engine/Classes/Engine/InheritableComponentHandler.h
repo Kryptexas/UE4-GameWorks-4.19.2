@@ -66,6 +66,9 @@ struct FComponentOverrideRecord
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
+	UClass* ComponentClass;
+
+	UPROPERTY()
 	UActorComponent* ComponentTemplate;
 
 	UPROPERTY()
@@ -75,7 +78,8 @@ struct FComponentOverrideRecord
 	FBlueprintCookedComponentInstancingData CookedComponentInstancingData;
 
 	FComponentOverrideRecord()
-		: ComponentTemplate(nullptr)
+		: ComponentClass(nullptr)
+		, ComponentTemplate(nullptr)
 	{}
 };
 

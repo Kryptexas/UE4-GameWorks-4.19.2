@@ -169,6 +169,18 @@ private:
 };
 
 //////////////////////////////////////////////////////////////////////////
+// FNodeExecutionContext
+
+struct FNodeExecutionContext
+{
+	bool IsValid() const { return ProfilerNode.IsValid() && ProfilerContext.IsValid(); }
+
+	TSharedPtr<FScriptExecutionNode> ProfilerNode;
+	TSharedPtr<FBlueprintFunctionContext> ProfilerContext;
+	TWeakObjectPtr<const UEdGraphNode> GraphNode;
+};
+
+//////////////////////////////////////////////////////////////////////////
 // FBlueprintFunctionContext
 
 class FBlueprintFunctionContext : public TSharedFromThis<FBlueprintFunctionContext>
@@ -208,10 +220,13 @@ public:
 	const UEdGraphPin* GetPinFromCodeLocation(const int32 ScriptOffset);
 
 	/** Returns the script offset for the specified pin */
-	const int32 GetCodeLocationFromPin(const UEdGraphPin* Pin) const;
+	virtual const int32 GetCodeLocationFromPin(const UEdGraphPin* Pin);
 
 	/** Returns all registered script offsets for the specified pin */
 	void GetAllCodeLocationsFromPin(const UEdGraphPin* Pin, TArray<int32>& OutCodeLocations) const;
+
+	/** Returns all tunnels active at the code location */
+	void FindAllTunnelsAtCodeLocation(const int32 CodeLocation, TArray<UEdGraphNode*>& MacrosAtLocation) const;
 
 	/** Returns the pure node script code range for the specified node */
 	FInt32Range GetPureNodeScriptCodeRange(const UEdGraphNode* Node) const;
@@ -238,7 +253,7 @@ public:
 	template<typename ExecNodeType> TSharedPtr<ExecNodeType> GetTypedProfilerDataForGraphNode(const UEdGraphNode* Node);
 
 	/** Returns true if the execution node and function context can be located and initialised from the script offset */
-	virtual bool GetProfilerContextFromScriptOffset(const int32 ScriptOffset, TSharedPtr<FScriptExecutionNode>& ExecNode, TSharedPtr<FBlueprintFunctionContext>& FunctionContext);
+	virtual bool GetProfilerContextFromScriptOffset(const int32 ScriptOffset, FNodeExecutionContext& ExecContextOut);
 
 	/** Adds all function entry points to node as children */
 	void AddCallSiteEntryPointsToNode(TSharedPtr<FScriptExecutionNode> CallingNode) const;
@@ -277,7 +292,7 @@ public:
 	static FName GetGraphNameFromNode(const UEdGraphNode* GraphNode);
 
 	/** Utility function that returns the tunnel instance function name */
-	static FName GetTunnelInstanceFunctionName(const UEdGraphNode* GraphNode);
+	virtual FName GetTunnelInstanceFunctionName(const UEdGraphNode* GraphNode) const;
 
 	/** Utility to get the scoped function name from the graph node */
 	FName GetScopedFunctionNameFromNode(const UEdGraphNode* GraphNode) const;
@@ -287,6 +302,9 @@ public:
 
 	/** Utility function that returns customizations for a node (e.g. Node Color/Icon) */
 	void GetNodeCustomizations(FScriptExecNodeParams& ParamsInOut) const;
+
+	/** Lookup node execution context using the script offset - implements caching internally */
+	virtual FNodeExecutionContext& GetNodeExecutionContext(const int32 ScriptOffset);
 
 protected:
 
@@ -351,6 +369,12 @@ protected:
 	/** Maps execution pin tunnel entry */
 	void MapTunnelExits(TSharedPtr<FScriptExecutionTunnelEntry> TunnelEntryPoint);
 
+	/** Register a function context name to a particular graph node for discovery during playback. */
+	void AddGraphNodeContextPath(const UEdGraphNode* GraphNode, const FName ScopedTunnelContextName)
+	{
+		GraphNodeToContextName.Add(GraphNode, ScopedTunnelContextName);
+	}
+
 protected:
 
 	/** The graph name */
@@ -369,6 +393,10 @@ protected:
 	TWeakObjectPtr<UBlueprintGeneratedClass> BlueprintClass;
 	/** ScriptCode offset to node cache */
 	TMap<int32, TWeakObjectPtr<const UEdGraphNode>> ScriptOffsetToNodes;
+	/** ScriptCode offset to node context */
+	TMap<int32, FNodeExecutionContext> ScriptOffsetToNodeContext;
+	/** GraphNode to tunnel context names */
+	TMultiMap<TWeakObjectPtr<const UEdGraphNode>, FName> GraphNodeToContextName;
 	/** ScriptCode offset to tunnel node cache */
 	TMap<TWeakObjectPtr<const UEdGraphNode>, TWeakObjectPtr<const UEdGraphNode>> NodeToTunnelNode;
 	/** ScriptCode offset to pin cache */
@@ -393,10 +421,12 @@ public:
 	// ~FBlueprintFunctionContext Begin
 	virtual void InitialiseContextFromGraph(TSharedPtr<FBlueprintExecutionContext> BlueprintContext, const FName TunnelInstanceName, UEdGraph* TunnelGraph);
 	virtual void MapFunction() override {}
+	virtual const int32 GetCodeLocationFromPin(const UEdGraphPin* Pin) override;
+	virtual bool GetProfilerContextFromScriptOffset(const int32 ScriptOffset, FNodeExecutionContext& ExecContextOut) override;
 	// ~FBlueprintFunctionContext End
 
 	/** Maps a tunnel function context */
-	void MapTunnelContext(TSharedPtr<FBlueprintFunctionContext> CallingFunctionContext, UK2Node_Tunnel* TunnelInstance);
+	void MapTunnelContext(TSharedPtr<FBlueprintFunctionContext> RootFunctionContextIn, TSharedPtr<FBlueprintFunctionContext> CallingFunctionContext, TArray<UK2Node_Tunnel*> TunnelInstances);
 
 	/** Sets the tunnel context parent context */
 	void SetParentContext(TSharedPtr<FBlueprintFunctionContext> ParentContextIn);
@@ -411,6 +441,7 @@ private:
 	virtual TSharedPtr<FScriptExecutionNode> MapPureNodeExecution(const UEdGraphPin* LinkedPin) override;
 	virtual TSharedPtr<FScriptExecutionNode> GetTunnelBoundaryNode(const UEdGraphPin* TunnelPin) override;
 	virtual TSharedPtr<FScriptExecutionNode> MapTunnelBoundary(const UEdGraphPin* TunnelPin) override;
+	virtual FName GetTunnelInstanceFunctionName(const UEdGraphNode* GraphNode) const override;
 	// ~FBlueprintFunctionContext End
 	
 	/** Maps input and output pins in a tunnel graph */
@@ -431,12 +462,19 @@ private:
 	/** Looks up a function context using the nodes graph */
 	TSharedPtr<FBlueprintFunctionContext> FindContextByNodeGraph(const UEdGraphNode* GraphNode);
 
+	/** Determines if a code location is valid for this tunnel context instance using the active tunnel hierarchy */
+	bool IsCodeLocationValidForThisTunnel(const int32 CodeLocation) const;
+
 private:
 
+	/** Root function context */
+	TWeakPtr<FBlueprintFunctionContext> RootFunctionContext;
 	/** Tunnel context that are contained by this tunnel context */
 	TWeakPtr<FBlueprintTunnelInstanceContext> ParentTunnel;
 	/** The tunnel instance this context represents */
 	TWeakObjectPtr<UK2Node_Tunnel> TunnelInstanceNode;
+	/** The nested tunnel instance stack */
+	TArray<UK2Node_Tunnel*> NestedTunnelInstanceStack;
 	/** The tunnel pure pin link nodes */
 	TMap<FEdGraphPinReference, TSharedPtr<FScriptExecutionNode>> PureLinkNodes;
 	/** Staging entry point */
@@ -451,12 +489,13 @@ class FScriptEventPlayback : public TSharedFromThis<FScriptEventPlayback>
 {
 public:
 
-	struct NodeSignalHelper
+	struct FNodeSignalHelper
 	{
 		/** Easy validation */
 		bool IsValid() const { return ImpureNode.IsValid() && FunctionContext.IsValid(); }
 
 		/** Node signal properties */
+		TWeakObjectPtr<const UEdGraphNode> GraphNode;
 		TSharedPtr<FScriptExecutionNode> ImpureNode;
 		TMap<int32, TSharedPtr<FScriptExecutionNode>> PureNodes;
 		TSharedPtr<FBlueprintFunctionContext> FunctionContext;
@@ -467,7 +506,7 @@ public:
 		TArray<FTracePath> InclusiveTracePaths;
 	};
 
-	struct TunnelEventHelper
+	struct FTunnelEventHelper
 	{
 		double TunnelEntryTime;
 		FTracePath EntryTracePath;
@@ -509,10 +548,10 @@ public:
 private:
 
 	/** Process tunel boundries */
-	void ProcessTunnelBoundary(NodeSignalHelper& CurrentNodeData, const FScriptInstrumentedEvent& CurrSignal);
+	void ProcessTunnelBoundary(FNodeSignalHelper& CurrentNodeData, const FScriptInstrumentedEvent& CurrSignal);
 
 	/** Process execution sequence */
-	void ProcessExecutionSequence(NodeSignalHelper& CurrentNodeData, const FScriptInstrumentedEvent& CurrSignal);
+	void ProcessExecutionSequence(FNodeSignalHelper& CurrentNodeData, const FScriptInstrumentedEvent& CurrSignal);
 
 	/** Add to trace history */
 	void AddToTraceHistory(const TSharedPtr<FScriptExecutionNode> ProfilerNode, const FScriptInstrumentedEvent& TraceSignal);
@@ -537,8 +576,6 @@ private:
 	TArray<FTracePath> TraceStack;
 	/** Current tunnel tracepath stack */
 	TArray<FTracePath> TunnelTraceStack;
-	/** Active tunnels */
-	TMap<FName, TunnelEventHelper> ActiveTunnels;
 	/** Event Timings */
 	TMultiMap<FName, double> EventTimings;
 	/** Blueprint exec context */

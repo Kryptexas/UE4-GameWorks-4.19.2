@@ -2,6 +2,7 @@
 
 #include "CoreUObjectPrivate.h"
 #include "StructScriptLoader.h"
+#include "ArchiveScriptReferenceCollector.h"
 
 /*******************************************************************************
  * FDeferredScriptTracker

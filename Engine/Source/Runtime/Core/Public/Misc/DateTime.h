@@ -694,7 +694,7 @@ public:
 	 * @param DateTime The date and time to get the hash for.
 	 * @return Hash value.
 	 */
-	friend uint32 GetTypeHash(const FDateTime& DateTime);
+	friend CORE_API uint32 GetTypeHash(const FDateTime& DateTime);
 
 protected:
 

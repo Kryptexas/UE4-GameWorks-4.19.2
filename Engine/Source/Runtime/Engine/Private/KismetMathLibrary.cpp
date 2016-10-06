@@ -1132,7 +1132,7 @@ FVector UKismetMathLibrary::GetVectorArrayAverage(const TArray<FVector>& Vectors
 }
 
 /** Find the unit direction vector from one position to another. */
-FVector UKismetMathLibrary::GetDirectionVector(FVector From, FVector To)
+FVector UKismetMathLibrary::GetDirectionUnitVector(FVector From, FVector To)
 {
 	return (To - From).GetSafeNormal();
 }

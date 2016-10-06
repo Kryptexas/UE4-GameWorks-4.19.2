@@ -425,6 +425,9 @@ protected:
 	/** Validates the generated class */
 	virtual bool ValidateGeneratedClass(UBlueprintGeneratedClass* Class);
 
+	/** Discovers exec pin links for the sourcenode */
+	void DetermineNodeExecLinks(UEdGraphNode* SourceNode, TMap<UEdGraphPin*, UEdGraphPin*>& SourceNodeLinks) const;
+
 private:
 	/**
 	 * Handles creating a new event node for a given output on a timeline node utilizing the named function

@@ -887,6 +887,15 @@ namespace
 			// Script VM doesn't support array of weak ptrs.
 			return IsPropertySupportedByBlueprint(ArrayProperty->Inner, false);
 		}
+		else if (const USetProperty* SetProperty = Cast<const USetProperty>(Property))
+		{
+			return IsPropertySupportedByBlueprint(SetProperty->ElementProp, false);
+		}
+		else if (const UMapProperty* MapProperty = Cast<const UMapProperty>(Property))
+		{
+			return IsPropertySupportedByBlueprint(MapProperty->KeyProp, false) &&
+				IsPropertySupportedByBlueprint(MapProperty->ValueProp, false);
+		}
 
 		const bool bSupportedType = Property->IsA<UInterfaceProperty>()
 			|| Property->IsA<UClassProperty>()

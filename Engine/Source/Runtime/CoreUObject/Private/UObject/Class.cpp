@@ -1312,18 +1312,6 @@ void UStruct::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collect
 		// Required by the unified GC when running in the editor
 		Collector.AddReferencedObject( This->SuperStruct, This );
 		Collector.AddReferencedObject( This->Children, This );
-
-		TArray<UObject*> ScriptObjectReferences;
-		FArchiveScriptReferenceCollector ObjectReferenceCollector( ScriptObjectReferences );
-		int32 iCode = 0;
-		while( iCode < This->Script.Num() )
-		{	
-			This->SerializeExpr( iCode, ObjectReferenceCollector );
-		}
-		for( int32 Index = 0; Index < ScriptObjectReferences.Num(); Index++ )
-		{
-			Collector.AddReferencedObject( ScriptObjectReferences[ Index ], This );
-		}
 	}
 
 	//@todo NickW, temp hack to make stale property chains less crashy
@@ -1388,6 +1376,19 @@ bool UStruct::GetStringMetaDataHierarchical(const FName& Key, FString* OutValue)
 	}
 
 	return false;
+}
+
+const UStruct* UStruct::HasMetaDataHierarchical(const FName& Key) const
+{
+	for (const UStruct* TestStruct = this; TestStruct != nullptr; TestStruct = TestStruct->GetSuperStruct())
+	{
+		if (TestStruct->HasMetaData(Key))
+		{
+			return TestStruct;
+		}
+	}
+
+	return nullptr;
 }
 
 #endif
@@ -3909,7 +3910,7 @@ UFunction* UClass::FindFunctionByName(FName InName, EIncludeSuperFlag::Type Incl
 			{
 				for (const FImplementedInterface& Inter : Interfaces)
 				{
-					Result = Inter.Class->FindFunctionByName(InName);
+					Result = Inter.Class ? Inter.Class->FindFunctionByName(InName) : nullptr;
 					if (Result)
 					{
 						break;

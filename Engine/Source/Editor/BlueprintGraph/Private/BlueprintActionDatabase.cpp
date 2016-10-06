@@ -1304,7 +1304,7 @@ void FBlueprintActionDatabase::RefreshAssetActions(UObject* const AssetObject)
 		for( auto Level : WorldAsset->GetLevels() )
 		{
 			UBlueprint* LevelScript = Cast<UBlueprint>(Level->GetLevelScriptBlueprint(true));
-			if (Level->bIsVisible && LevelScript)
+			if (LevelScript != nullptr)
 			{
 				AddBlueprintGraphActions(LevelScript, AssetActionList);
 				if (UClass* SkeletonClass = LevelScript->SkeletonGeneratedClass)

@@ -50,6 +50,7 @@ class UK2Node_TransitionRuleGetter : public UK2Node
 
 	// UK2Node interface
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
+	virtual bool IsNodePure() const override { return true; }
 	// end of UK2Node interface
 
 	// @todo document

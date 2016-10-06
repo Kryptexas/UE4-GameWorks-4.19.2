@@ -9,6 +9,7 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "K2Node_TunnelBoundary.h"
+#include "K2Node_Composite.h"
 
 /////////////////////////////////////////////////////
 // FGraphObjectTextFactory
@@ -22,8 +23,6 @@ public:
 	const UEdGraph* DestinationGraph;
 	TArray<FName> ExtraNamesInUse;
 	TArray<UEdGraphNode*> NodesToDestroy;
-
-	TArray<UEdGraphNode*> PendingNodes;
 public:
 	FGraphObjectTextFactory(const UEdGraph* InDestinationGraph)
 		: FCustomizableTextObjectFactory(GWarn)
@@ -59,9 +58,9 @@ protected:
 		return false;
 	}
 
-	void HandleNode(UEdGraphNode* CreatedObject)
+	virtual void ProcessConstructedObject(UObject* CreatedObject) override
 	{
-		if (UEdGraphNode* Node = CreatedObject)
+		if (UEdGraphNode* Node = Cast<UEdGraphNode>(CreatedObject))
 		{
 			UEdGraphNode* CreatedNode = Node;
 			if (!Node->CanPasteHere(DestinationGraph))
@@ -85,48 +84,8 @@ protected:
 		}
 	}
 
-	virtual void ProcessConstructedObject(UObject* CreatedObject) override
-	{
-		if (UEdGraphNode* Node = Cast<UEdGraphNode>(CreatedObject))
-		{
-			PendingNodes.Add(Node);
-		}
-	}
-
 	virtual void PostProcessConstructedObjects() override
 	{
-		// First handle elements that can change the BPGC signature (for example Custom Event nodes).
-		for (int32 Idx = 0; Idx < PendingNodes.Num();)
-		{
-			UK2Node* Node = Cast<UK2Node>(PendingNodes[Idx]);
-			if (Node && Node->NodeCausesStructuralBlueprintChange())
-			{
-				HandleNode(Node);
-				PendingNodes.RemoveAtSwap(Idx);
-			}
-			else
-			{
-				Idx++;
-			}
-		}
-
-		// Update Skel Class signature
-		if (SpawnedNodes.Num())
-		{
-			UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(DestinationGraph);
-			if (Blueprint)
-			{
-				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
-			}
-
-		}
-
-		// Handle all remaining nodes. Some of them can depend on the BPGC signature
-		for (UEdGraphNode* Node : PendingNodes)
-		{
-			HandleNode(Node);
-		}
-
 		if (SubstituteNodes.Num() > 0)
 		{
 			// Display a notification to inform the user that the variable type was invalid (likely due to corruption), it should no longer appear in the list.
@@ -139,8 +98,6 @@ protected:
 			{
 				Notification->SetCompletionState(SNotificationItem::CS_None);
 			}
-
-
 		}
 
 		for (UEdGraphNode* Node : NodesToDestroy)
@@ -320,7 +277,41 @@ void FEdGraphUtilities::MergeChildrenGraphsIn(UEdGraph* MergeTarget, UEdGraph* P
 	{
 		UEdGraph* ChildGraph = ParentGraph->SubGraphs[Index];
 
-		if (bWantBoundaryNodes)
+		if (ChildGraph && MessageLog)
+		{
+			UK2Node_Composite* CompositeInstance = ChildGraph->GetTypedOuter<UK2Node_Composite>();
+			if (MessageLog->bTreatCompositeGraphsAsTunnels && CompositeInstance != nullptr)
+			{
+				// Locate or register active tunnels for this child graph.
+				TArray<TWeakObjectPtr<UEdGraphNode>> ActiveTunnels;
+				UEdGraphNode* TrueCompositeInstance = MessageLog->GetSourceTunnelNode(CompositeInstance);
+				MessageLog->GetTunnelsActiveForNode(TrueCompositeInstance, ActiveTunnels);
+				if (!ActiveTunnels.Num())
+				{
+					ActiveTunnels.Add(TrueCompositeInstance);
+					MessageLog->RegisterIntermediateTunnelInstance(TrueCompositeInstance, ActiveTunnels);
+				}
+				// Register composite nodes to the source composite instance.
+				for (auto Node : ChildGraph->Nodes)
+				{
+					MessageLog->RegisterIntermediateTunnelNode(Node, TrueCompositeInstance);
+					if (FBlueprintEditorUtils::IsTunnelInstanceNode(Node))
+					{
+						if (Node->IsA<UK2Node_Composite>())
+						{
+							UEdGraphNode* SourceNode = MessageLog->GetSourceTunnelNode(Node);
+							MessageLog->RegisterIntermediateTunnelInstance(SourceNode, ActiveTunnels);
+						}
+						else
+						{
+							// Register child macro instance nodes using the duplicated instance.
+							MessageLog->RegisterIntermediateTunnelInstance(Node, ActiveTunnels);
+						}
+					}
+				}
+			}
+		}
+		if (bWantBoundaryNodes && MessageLog)
 		{
 			// Create boundary nodes around tunnels for debugging/profiling if requested.
 			UK2Node_TunnelBoundary::CreateBoundaryNodesForGraph(ChildGraph, *MessageLog);

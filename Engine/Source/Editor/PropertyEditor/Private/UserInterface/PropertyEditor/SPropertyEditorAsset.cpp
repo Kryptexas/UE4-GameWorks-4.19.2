@@ -504,6 +504,10 @@ FText SPropertyEditorAsset::OnGetAssetName() const
 				AActor* Actor = CastChecked<AActor>(Value.Object);
 				Name = FText::FromString(Actor->GetActorLabel());
 			}
+			else if (UField* AsField = Cast<UField>(Value.Object))
+			{
+				Name = AsField->GetDisplayNameText();
+			}
 			else
 			{
 				Name = FText::FromString(Value.Object->GetName());

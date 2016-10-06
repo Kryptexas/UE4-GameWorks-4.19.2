@@ -14,20 +14,37 @@ void UInheritableComponentHandler::PostLoad()
 {
 	Super::PostLoad();
 
-	for (int32 Index = Records.Num() - 1; Index >= 0; --Index)
+	if (!GIsDuplicatingClassForReinstancing)
 	{
-		FComponentOverrideRecord& Record = Records[Index];
-		if (Record.ComponentTemplate)
+		for (int32 Index = Records.Num() - 1; Index >= 0; --Index)
 		{
-			if (!CastChecked<UActorComponent>(Record.ComponentTemplate->GetArchetype())->IsEditableWhenInherited())
+			FComponentOverrideRecord& Record = Records[Index];
+			if (Record.ComponentTemplate)
 			{
-				Record.ComponentTemplate->MarkPendingKill(); // hack needed to be able to identify if NewObject returns this back to us in the future
-				Records.RemoveAtSwap(Index);
-			}
-			else if(Record.CookedComponentInstancingData.bIsValid)
-			{
-				// Generate "fast path" instancing data.
-				Record.CookedComponentInstancingData.LoadCachedPropertyDataForSerialization(Record.ComponentTemplate);
+				// Fix up component class on load, if it's not already set.
+				if (Record.ComponentClass == nullptr)
+				{
+					Record.ComponentClass = Record.ComponentTemplate->GetClass();
+				}
+
+				// Fix up component template name on load, if it doesn't match the original template name. Otherwise, archetype lookups will fail for this template.
+				// For example, this can occur after a component variable rename in a parent BP class, but before a child BP class with an override template is loaded.
+				UActorComponent* OriginalTemplate = Record.ComponentKey.GetOriginalTemplate();
+				if (OriginalTemplate && OriginalTemplate->GetFName() != Record.ComponentTemplate->GetFName())
+				{
+					Record.ComponentTemplate->Rename(*OriginalTemplate->GetName(), nullptr, REN_DontCreateRedirectors | REN_ForceNoResetLoaders);
+				}
+
+				if (!CastChecked<UActorComponent>(Record.ComponentTemplate->GetArchetype())->IsEditableWhenInherited())
+				{
+					Record.ComponentTemplate->MarkPendingKill(); // hack needed to be able to identify if NewObject returns this back to us in the future
+					Records.RemoveAtSwap(Index);
+				}
+				else if (Record.CookedComponentInstancingData.bIsValid)
+				{
+					// Generate "fast path" instancing data.
+					Record.CookedComponentInstancingData.LoadCachedPropertyDataForSerialization(Record.ComponentTemplate);
+				}
 			}
 		}
 	}
@@ -83,6 +100,7 @@ UActorComponent* UInheritableComponentHandler::CreateOverridenComponentTemplate(
 
 	FComponentOverrideRecord NewRecord;
 	NewRecord.ComponentKey = Key;
+	NewRecord.ComponentClass = NewComponentTemplate->GetClass();
 	NewRecord.ComponentTemplate = NewComponentTemplate;
 	Records.Add(NewRecord);
 
@@ -143,13 +161,13 @@ void UInheritableComponentHandler::ValidateTemplates()
 				}
 				else
 				{
-					UE_LOG(LogBlueprint, Log, TEXT("ValidateTemplates '%s': overridden template is unnecessary - component '%s' from '%s'"),
+					UE_LOG(LogBlueprint, Log, TEXT("ValidateTemplates '%s': overridden template is unnecessary and will be removed - component '%s' from '%s'"),
 						*GetPathNameSafe(this), *VarName.ToString(), *GetPathNameSafe(ComponentKey.GetComponentOwner()));
 				}
 			}
 			else
 			{
-				UE_LOG(LogBlueprint, Warning, TEXT("ValidateTemplates '%s': overridden template is invalid - component '%s' from '%s'"),
+				UE_LOG(LogBlueprint, Warning, TEXT("ValidateTemplates '%s': overridden template is invalid and will be removed - component '%s' from '%s'"),
 					*GetPathNameSafe(this), *VarName.ToString(), *GetPathNameSafe(ComponentKey.GetComponentOwner()));
 			}
 		}
@@ -187,7 +205,8 @@ bool UInheritableComponentHandler::IsRecordValid(const FComponentOverrideRecord&
 
 	if (!Record.ComponentTemplate)
 	{
-		return false;
+		// Note: We still consider the record to be valid, even if the template is missing, if we have valid class information. This typically will indicate that the template object was filtered at load time (to save space, e.g. dedicated server).
+		return Record.ComponentClass != nullptr;
 	}
 
 	if (Record.ComponentTemplate->GetOuter() != OwnerClass)
@@ -206,13 +225,9 @@ bool UInheritableComponentHandler::IsRecordValid(const FComponentOverrideRecord&
 		return false;
 	}
 
-	auto OriginalTemplate = Record.ComponentKey.GetOriginalTemplate();
-	if (!OriginalTemplate)
-	{
-		return false;
-	}
-
-	if (OriginalTemplate->GetClass() != Record.ComponentTemplate->GetClass())
+	// Note: If the original template is missing, we consider the record to be unnecessary, but not invalid.
+	UActorComponent* OriginalTemplate = Record.ComponentKey.GetOriginalTemplate();
+	if (OriginalTemplate != nullptr && OriginalTemplate->GetClass() != Record.ComponentTemplate->GetClass())
 	{
 		return false;
 	}
@@ -255,10 +270,36 @@ struct FComponentComparisonHelper
 
 bool UInheritableComponentHandler::IsRecordNecessary(const FComponentOverrideRecord& Record) const
 {
-	auto ChildComponentTemplate = Record.ComponentTemplate;
-	auto ParentComponentTemplate = FindBestArchetype(Record.ComponentKey);
-	check(ChildComponentTemplate && ParentComponentTemplate && (ParentComponentTemplate != ChildComponentTemplate));
-	return !FComponentComparisonHelper::AreIdentical(ChildComponentTemplate, ParentComponentTemplate);
+	// If the record's template was not loaded, check to see if the class information is valid.
+	if (Record.ComponentTemplate == nullptr)
+	{
+		if (Record.ComponentClass != nullptr)
+		{
+			UObject* ComponentCDO = Record.ComponentClass->GetDefaultObject();
+			if (ComponentCDO != nullptr)
+			{
+				// The record is considered necessary if the class information is valid but the template was not loaded due to client/server exclusion at load time (e.g. uncooked dedicated server).
+				return !UObject::CanCreateInCurrentContext(ComponentCDO);
+			}
+		}
+		
+		// Otherwise, we don't need to keep the record if the template is NULL.
+		return false;
+	}
+	else
+	{
+		// Consider the record to be unnecessary if the original template no longer exists.
+		UActorComponent* OriginalTemplate = Record.ComponentKey.GetOriginalTemplate();
+		if (OriginalTemplate == nullptr)
+		{
+			return false;
+		}
+	
+		auto ChildComponentTemplate = Record.ComponentTemplate;
+		auto ParentComponentTemplate = FindBestArchetype(Record.ComponentKey);
+		check(ChildComponentTemplate && ParentComponentTemplate && (ParentComponentTemplate != ChildComponentTemplate));
+		return !FComponentComparisonHelper::AreIdentical(ChildComponentTemplate, ParentComponentTemplate);
+	}
 }
 
 UActorComponent* UInheritableComponentHandler::FindBestArchetype(FComponentKey Key) const

@@ -222,9 +222,10 @@ FText SKismetInspector::GetContextualEditingWidgetTitle() const
 			{
 				if (SCSNode->ComponentTemplate != NULL)
 				{
-					if (SCSNode->VariableName != NAME_None)
+					const FName VariableName = SCSNode->GetVariableName();
+					if (VariableName != NAME_None)
 					{
-						Title = FText::Format(LOCTEXT("TemplateForFmt", "Template for {0}"), FText::FromName(SCSNode->VariableName));
+						Title = FText::Format(LOCTEXT("TemplateForFmt", "Template for {0}"), FText::FromName(VariableName));
 					}
 					else 
 					{

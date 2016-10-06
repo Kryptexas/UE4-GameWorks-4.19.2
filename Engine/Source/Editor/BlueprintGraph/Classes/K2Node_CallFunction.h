@@ -91,7 +91,7 @@ public:
 	virtual bool ShouldDrawAsBead() const override;
 	virtual FText GetCompactNodeTitle() const override;
 	virtual void PostPasteNode() override;
-	virtual void ValidateNodeAfterPrune(class FCompilerResultsLog& MessageLog) const override;
+	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
 	virtual bool ShouldShowNodeProperties() const override;
 	virtual void GetRedirectPinNames(const UEdGraphPin& Pin, TArray<FString>& RedirectPinNames) const override;
 	virtual void NotifyPinConnectionListChanged(UEdGraphPin* Pin) override;

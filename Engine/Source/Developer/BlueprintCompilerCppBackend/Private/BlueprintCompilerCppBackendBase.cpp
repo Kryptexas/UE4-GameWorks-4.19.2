@@ -405,7 +405,7 @@ static void DeclareLocalVariables(FEmitterLocalContext& EmitterContext, TArray<U
 		UProperty* LocalVariable = LocalVariables[i];
 		if (!bUseExecutionGroup || PropertiesUsedByCurrentExecutionGroup.Contains(LocalVariable))
 		{
-			const FString CppDeclaration = EmitterContext.ExportCppDeclaration(LocalVariable, EExportedDeclaration::Local, EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend);
+			const FString CppDeclaration = EmitterContext.ExportCppDeclaration(LocalVariable, EExportedDeclaration::Local, EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend | EPropertyExportCPPFlags::CPPF_NoConst);
 			UStructProperty* StructProperty = Cast<UStructProperty>(LocalVariable);
 			const TCHAR* EmptyDefaultConstructor = FEmitHelper::EmptyDefaultConstructor(StructProperty ? StructProperty->Struct : nullptr);
 			EmitterContext.AddLine(CppDeclaration + EmptyDefaultConstructor + TEXT(";"));

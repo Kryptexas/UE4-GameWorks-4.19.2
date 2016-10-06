@@ -781,11 +781,11 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	static float VSize2DSquared(FVector2D A);
 
 	/* Returns a unit normal version of the FVector A */
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "Normalize"), Category="Math|Vector")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "Normalize", Keywords="Unit Vector"), Category="Math|Vector")
 	static FVector Normal(FVector A);
 
 	/* Returns a unit normal version of the vector2d A */
-	UFUNCTION(BlueprintPure, meta=(DisplayName = "Normalize2D"), Category="Math|Vector2D")
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "Normalize2D", Keywords="Unit Vector"), Category="Math|Vector2D")
 	static FVector2D Normal2D(FVector2D A);
 
 	/* Linearly interpolates between A and B based on Alpha (100% of A when Alpha=0 and 100% of B when Alpha=1) */
@@ -935,8 +935,8 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	static FVector GetVectorArrayAverage(const TArray<FVector>& Vectors);
 
 	/** Find the unit direction vector from one position to another. */
-	UFUNCTION(BlueprintPure, Category="Math|Vector")
-	static FVector GetDirectionVector(FVector From, FVector To);
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "Get Unit Direction Vector", Keywords = "Unit Vector"), Category="Math|Vector")
+	static FVector GetDirectionUnitVector(FVector From, FVector To);
 
 	//
 	// Rotator functions.

@@ -1407,7 +1407,7 @@ FBlueprintCompiledStatement& FNodeHandlingFunctor::GenerateSimpleThenGoto(FKisme
 		TargetNode = ThenExecPin->LinkedTo[0]->GetOwningNode();
 	}
 
-	if (Context.bCreateDebugData || Context.bInstrumentScriptCode)
+	if (Context.bCreateDebugData && (!Context.bInstrumentScriptCode || Context.IsInstrumentationRequiredForPin(ThenExecPin)))
 	{
 		FBlueprintCompiledStatement& TraceStatement = Context.AppendStatementForNode(&Node);
 		TraceStatement.Type = Context.GetWireTraceType();
@@ -1728,8 +1728,10 @@ void FKismetFunctionContext::ResolveGotoFixups()
 			{
 				continue;
 			}
-
-			InsertWireTrace(GotoIt.Key(), GotoIt.Value());
+			if (!bInstrumentScriptCode || IsInstrumentationRequiredForPin(GotoIt->Value))
+			{
+				InsertWireTrace(GotoIt.Key(), GotoIt.Value());
+			}
 		}
 	}
 

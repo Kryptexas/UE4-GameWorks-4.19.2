@@ -412,17 +412,16 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 			}
 
 			bool bInlineEventCall = false;
-			bool bLocalCall = false;
+			bool bEmitInstrumentPushState = false;
 			FName EventName = NAME_None;
 			if (Context.IsInstrumentationRequired())
 			{
 				if (UK2Node_CallFunction* CallFunctionNode = Cast<UK2Node_CallFunction>(Node))
 				{
-					if (CallFunctionNode->FunctionReference.IsSelfContext())
+					const UEdGraphNode* EventNodeOut = nullptr;
+					if (UEdGraph* FunctionGraph = CallFunctionNode->GetFunctionGraph(EventNodeOut))
 					{
-						bLocalCall = true;
-						const UEdGraphNode* EventNodeOut = nullptr;
-						CallFunctionNode->GetFunctionGraph(EventNodeOut);
+						bEmitInstrumentPushState = true;
 						if (const UK2Node_Event* EventNode = Cast<UK2Node_Event>(EventNodeOut))
 						{
 							bInlineEventCall = true;
@@ -431,7 +430,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 					}
 				}
 			}
-			const bool bInstrumentFunctionEntry = Context.IsInstrumentationRequired() && (bIsLatent || bInlineEventCall || bLocalCall);
+			const bool bInstrumentFunctionEntry = Context.IsInstrumentationRequired() && (bIsLatent || bInlineEventCall || bEmitInstrumentPushState);
 			if (bInstrumentFunctionEntry)
 			{
 				if (bInlineEventCall)

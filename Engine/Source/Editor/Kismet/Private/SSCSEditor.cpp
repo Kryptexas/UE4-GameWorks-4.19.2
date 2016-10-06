@@ -4025,7 +4025,7 @@ FSCSEditorTreeNodePtrType SSCSEditor::GetNodeFromActorComponent(const UActorComp
 							for (USCS_Node* SCS_Node : ParentBPStack[StackIndex]->SimpleConstructionScript->GetAllNodes())
 							{
 								check(SCS_Node != NULL);
-								if (SCS_Node->VariableName == ActorComponent->GetFName())
+								if (SCS_Node->GetVariableName() == ActorComponent->GetFName())
 								{
 									// We found a match; redirect to the component archetype instance that may be associated with a tree node
 									ActorComponent = SCS_Node->ComponentTemplate;
@@ -4735,9 +4735,10 @@ UActorComponent* SSCSEditor::AddNewNode(USCS_Node* NewNode, UObject* Asset, bool
 	NewNodePtr = AddTreeNode(NewNode, SceneRootNodePtr, false);
 
 	// Potentially adjust variable names for any child blueprints
-	if(NewNode->VariableName != NAME_None)
+	const FName VariableName = NewNode->GetVariableName();
+	if(VariableName != NAME_None)
 	{
-		FBlueprintEditorUtils::ValidateBlueprintChildVariables(Blueprint, NewNode->VariableName);
+		FBlueprintEditorUtils::ValidateBlueprintChildVariables(Blueprint, VariableName);
 	}
 	
 	if(bSetFocusToNewItem)
@@ -5221,14 +5222,14 @@ FSCSEditorTreeNodePtrType SSCSEditor::AddTreeNode(USCS_Node* InSCSNode, FSCSEdit
 	{
 		check(InSCSNode->ComponentTemplate != NULL);
 		checkf(InSCSNode->ParentComponentOrVariableName == NAME_None
-			|| (!InSCSNode->bIsParentComponentNative && InParentNodePtr->GetSCSNode() != NULL && InParentNodePtr->GetSCSNode()->VariableName == InSCSNode->ParentComponentOrVariableName)
+			|| (!InSCSNode->bIsParentComponentNative && InParentNodePtr->GetSCSNode() != NULL && InParentNodePtr->GetSCSNode()->GetVariableName() == InSCSNode->ParentComponentOrVariableName)
 			|| (InSCSNode->bIsParentComponentNative && InParentNodePtr->GetComponentTemplate() != NULL && InParentNodePtr->GetComponentTemplate()->GetFName() == InSCSNode->ParentComponentOrVariableName),
 			TEXT("Failed to add SCS node %s to tree:\n- bIsParentComponentNative=%d\n- Stored ParentComponentOrVariableName=%s\n- Actual ParentComponentOrVariableName=%s"),
-			*InSCSNode->VariableName.ToString(),
+			*InSCSNode->GetVariableName().ToString(),
 			!!InSCSNode->bIsParentComponentNative,
 			*InSCSNode->ParentComponentOrVariableName.ToString(),
 			!InSCSNode->bIsParentComponentNative
-			? (InParentNodePtr->GetSCSNode() != NULL ? *InParentNodePtr->GetSCSNode()->VariableName.ToString() : TEXT("NULL"))
+			? (InParentNodePtr->GetSCSNode() != NULL ? *InParentNodePtr->GetSCSNode()->GetVariableName().ToString() : TEXT("NULL"))
 			: (InParentNodePtr->GetComponentTemplate() != NULL ? *InParentNodePtr->GetComponentTemplate()->GetFName().ToString() : TEXT("NULL")));
 	}
 	

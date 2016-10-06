@@ -863,18 +863,21 @@ const FSlateBrush* SGraphPin::GetPinBorder() const
 
 FSlateColor SGraphPin::GetPinColor() const
 {
-	if(GraphPinObj->bIsDiffing)
+	if (!GraphPinObj->IsPendingKill())
 	{
-		return FSlateColor(FLinearColor(0.9f,0.2f,0.15f));
-	}
-	if (const UEdGraphSchema* Schema = GraphPinObj->GetSchema())
-	{
-		if(!GetPinObj()->GetOwningNode()->IsNodeEnabled() || !IsEditingEnabled())
+		if (GraphPinObj->bIsDiffing)
 		{
-			return Schema->GetPinTypeColor(GraphPinObj->PinType) * FLinearColor(1.0f, 1.0f, 1.0f, 0.5f);
+			return FSlateColor(FLinearColor(0.9f, 0.2f, 0.15f));
 		}
+		if (const UEdGraphSchema* Schema = GraphPinObj->GetSchema())
+		{
+			if (!GetPinObj()->GetOwningNode()->IsNodeEnabled() || !IsEditingEnabled())
+			{
+				return Schema->GetPinTypeColor(GraphPinObj->PinType) * FLinearColor(1.0f, 1.0f, 1.0f, 0.5f);
+			}
 
-		return Schema->GetPinTypeColor(GraphPinObj->PinType) * PinColorModifier;
+			return Schema->GetPinTypeColor(GraphPinObj->PinType) * PinColorModifier;
+		}
 	}
 
 	return FLinearColor::White;
@@ -900,15 +903,18 @@ FSlateColor SGraphPin::GetPinTextColor() const
 
 const FSlateBrush* SGraphPin::GetPinStatusIcon() const
 {
-	UEdGraphPin* WatchedPin = ((GraphPinObj->Direction == EGPD_Input) && (GraphPinObj->LinkedTo.Num() > 0)) ? GraphPinObj->LinkedTo[0] : GraphPinObj;
-
-	if (UEdGraphNode* GraphNode = WatchedPin->GetOwningNodeUnchecked())
+	if (!GraphPinObj->IsPendingKill())
 	{
-		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNodeChecked(GraphNode);
+		UEdGraphPin* WatchedPin = ((GraphPinObj->Direction == EGPD_Input) && (GraphPinObj->LinkedTo.Num() > 0)) ? GraphPinObj->LinkedTo[0] : GraphPinObj;
 
-		if (FKismetDebugUtilities::IsPinBeingWatched(Blueprint, WatchedPin) )
+		if (UEdGraphNode* GraphNode = WatchedPin->GetOwningNodeUnchecked())
 		{
-			return FEditorStyle::GetBrush( TEXT("Graph.WatchedPinIcon_Pinned") );
+			UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNodeChecked(GraphNode);
+
+			if (FKismetDebugUtilities::IsPinBeingWatched(Blueprint, WatchedPin))
+			{
+				return FEditorStyle::GetBrush(TEXT("Graph.WatchedPinIcon_Pinned"));
+			}
 		}
 	}
 
@@ -917,6 +923,11 @@ const FSlateBrush* SGraphPin::GetPinStatusIcon() const
 
 EVisibility SGraphPin::GetPinStatusIconVisibility() const
 {
+	if (GraphPinObj->IsPendingKill())
+	{
+		return EVisibility::Collapsed;
+	}
+
 	UEdGraphPin const* WatchedPin = ((GraphPinObj->Direction == EGPD_Input) && (GraphPinObj->LinkedTo.Num() > 0)) ? GraphPinObj->LinkedTo[0] : GraphPinObj;
 
 	UEdGraphSchema const* Schema = GraphPinObj->GetSchema();
@@ -925,6 +936,11 @@ EVisibility SGraphPin::GetPinStatusIconVisibility() const
 
 FReply SGraphPin::ClickedOnPinStatusIcon()
 {
+	if (GraphPinObj->IsPendingKill())
+	{
+		return FReply::Handled();
+	}
+
 	UEdGraphPin* WatchedPin = ((GraphPinObj->Direction == EGPD_Input) && (GraphPinObj->LinkedTo.Num() > 0)) ? GraphPinObj->LinkedTo[0] : GraphPinObj;
 
 	UEdGraphSchema const* Schema = GraphPinObj->GetSchema();
@@ -936,7 +952,7 @@ FReply SGraphPin::ClickedOnPinStatusIcon()
 EVisibility SGraphPin::GetDefaultValueVisibility() const
 {
 	// First ask schema
-	const UEdGraphSchema* Schema = GraphPinObj->GetSchema();
+	const UEdGraphSchema* Schema = !GraphPinObj->IsPendingKill() ? GraphPinObj->GetSchema() : nullptr;
 	if (Schema == nullptr || Schema->ShouldHidePinDefaultValue(GraphPinObj))
 	{
 		return EVisibility::Collapsed;

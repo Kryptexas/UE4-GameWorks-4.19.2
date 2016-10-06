@@ -971,6 +971,7 @@ void FOptionalPinManager::RebuildProperty(UProperty* TestProperty, FName Categor
 
 	bool bNegate = false;
 	Record->bHasOverridePin = PropertyCustomizationHelpers::GetEditConditionProperty(TestProperty, bNegate) != nullptr;
+	Record->bIsMarkedForAdvancedDisplay = TestProperty->HasAnyPropertyFlags(CPF_AdvancedDisplay);
 
 	// Get the defaults
 	GetRecordDefaults(TestProperty, *Record);

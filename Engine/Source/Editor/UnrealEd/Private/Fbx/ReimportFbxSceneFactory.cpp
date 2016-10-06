@@ -720,7 +720,7 @@ void UReimportFbxSceneFactory::RecursivelySetComponentProperties(USCS_Node* Curr
 	if (!CurrentNodeActorComponent) //We need a component
 		return;
 
-	int32 IndexTemplateSuffixe = CurrentNodeActorComponent->GetName().Find(TEXT("_GEN_VARIABLE"));
+	int32 IndexTemplateSuffixe = CurrentNodeActorComponent->GetName().Find(USimpleConstructionScript::ComponentTemplateNameSuffix);
 	bool NameContainTemplateSuffixe = IndexTemplateSuffixe != INDEX_NONE;
 	FString NodeName = CurrentNodeActorComponent->GetName();
 	FString ReduceNodeName = NodeName;
@@ -747,7 +747,7 @@ void UReimportFbxSceneFactory::RecursivelySetComponentProperties(USCS_Node* Curr
 
 		if (NameContainTemplateSuffixe)
 		{
-			ComponentName += TEXT("_GEN_VARIABLE");
+			ComponentName += USimpleConstructionScript::ComponentTemplateNameSuffix;
 		}
 		USceneComponent *SceneComponent = Cast<USceneComponent>(ActorComponent);
 		if (!SceneComponent) //We support only scene component
@@ -765,7 +765,7 @@ void UReimportFbxSceneFactory::RecursivelySetComponentProperties(USCS_Node* Curr
 			FString ComponentParentName = ParentComponent->GetName();
 			if (NameContainTemplateSuffixe)
 			{
-				ComponentParentName += TEXT("_GEN_VARIABLE");
+				ComponentParentName += USimpleConstructionScript::ComponentTemplateNameSuffix;
 			}
 			ComponentParentNames.Insert(ComponentParentName, 0);
 			ParentComponent = ParentComponent->GetAttachParent();

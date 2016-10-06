@@ -1607,12 +1607,12 @@ public:
 		if (SourceNode != NULL)
 		{
 			// Record where this NOP is
-			UEdGraphNode* TrueSourceNode = Cast<UEdGraphNode>(FunctionContext.MessageLog.FindSourceObject(SourceNode));
+			UEdGraphNode* TrueSourceNode = FunctionContext.MessageLog.GetSourceNode(SourceNode);
 			if (TrueSourceNode)
 			{
 				// If this is a debug site for an expanded macro instruction, there should also be a macro source node associated with it
-				UEdGraphNode* MacroSourceNode = Cast<UEdGraphNode>(CompilerContext.MessageLog.FinalNodeBackToMacroSourceMap.FindSourceObject(SourceNode));
-				if (MacroSourceNode == SourceNode)
+				UEdGraphNode* MacroSourceNode = CompilerContext.MessageLog.GetSourceTunnelNode(SourceNode);
+				if (MacroSourceNode == TrueSourceNode)
 				{
 					// The function above will return the given node if not found in the map. In that case there is no associated source macro node, so we clear it.
 					MacroSourceNode = NULL;
@@ -1637,36 +1637,15 @@ public:
 					}
 
 					// Gather up all the macro instance nodes that lead to this macro source node
-					CompilerContext.MessageLog.MacroSourceToMacroInstanceNodeMap.MultiFind(MacroSourceNode, MacroInstanceNodes);
-				}
-
-				// Register source tunnels for instrumentation.
-				if (FunctionContext.IsInstrumentationRequired())
-				{
-					// After blueprint profiler MVP these changes will be refactored and rolled back into normal compilation.
-
-					// Locate the source tunnel instance
-					if (TWeakObjectPtr<UEdGraphNode>* SourceTunnelInstance = CompilerContext.MessageLog.SourceNodeToTunnelInstanceNodeMap.Find(SourceNode))
+					UEdGraphNode* IntermediateMacroInstance = CompilerContext.MessageLog.GetIntermediateTunnelInstance(SourceNode);
+					CompilerContext.MessageLog.GetTunnelsActiveForNode(IntermediateMacroInstance, MacroInstanceNodes);
+					if (MacroInstanceNodes.Num())
 					{
-						if (SourceTunnelInstance->IsValid())
-						{
-							TrueSourceNode = SourceTunnelInstance->Get();
-						}
+						TrueSourceNode = MacroInstanceNodes[0].Get();
 					}
-					// Locate the real source node, as the code above fails with nested tunnels
-					if (TWeakObjectPtr<UEdGraphNode>* NewSourceNode = CompilerContext.MessageLog.IntermediateTunnelNodeToSourceNodeMap.Find(SourceNode))
-					{
-						if (NewSourceNode->IsValid())
-						{
-							MacroSourceNode = NewSourceNode->Get();
-						}
-					}
-					ClassBeingBuilt->GetDebugData().RegisterNodeToCodeAssociation(TrueSourceNode, MacroSourceNode, MacroInstanceNodes, FunctionContext.Function, Offset, bBreakpointSite);
 				}
-				else
-				{
-					ClassBeingBuilt->GetDebugData().RegisterNodeToCodeAssociation(TrueSourceNode, MacroSourceNode, MacroInstanceNodes, FunctionContext.Function, Offset, bBreakpointSite);
-				}
+				// Register the debug information for the node.
+				ClassBeingBuilt->GetDebugData().RegisterNodeToCodeAssociation(TrueSourceNode, MacroSourceNode, MacroInstanceNodes, FunctionContext.Function, Offset, bBreakpointSite);
 
 				// Track pure node script code range for the current impure (exec) node
 				if (Statement.Type == KCST_InstrumentedPureNodeEntry)

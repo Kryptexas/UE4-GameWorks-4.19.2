@@ -614,7 +614,7 @@ UObject* FBlueprintNativeCodeGenModule::FindReplacedNameAndOuter(UObject* Object
 				{
 					if (Node->ComponentTemplate == ActorComponent)
 					{
-						OutName = Node->VariableName;
+						OutName = Node->GetVariableName();
 						if (OutName != NAME_None)
 						{
 							Outer = BPGC->GetDefaultObject(false);

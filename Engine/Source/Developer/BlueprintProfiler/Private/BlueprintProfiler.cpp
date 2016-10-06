@@ -73,7 +73,7 @@ void FBlueprintProfiler::InstrumentEvent(const FScriptInstrumentationSignal& Eve
 		// Reset context on event end
 		if (Event.GetType() == EScriptInstrumentation::Stop)
 		{
-			CaptureContext.ResetContext();
+			CaptureContext.PopScope();
 		}
 	}
 }
@@ -244,12 +244,12 @@ void FBlueprintProfiler::ProcessEventProfilingData()
 				if (ScriptEventRanges.Num() > 0)
 				{
 					// Check against the last class scope first before adding another range.
-					FEventRange& LastEventRange = ScriptEventRanges.Last();
-					const FName NewClassScope = InstrumentationEventQueue[EventIdx].GetFunctionClassScopeName();
+					const FEventRange& LastEventRange = ScriptEventRanges.Last();
+					const FName NewClassScope = CurrEvent.GetFunctionClassScopeName();
 					if (LastEventRange.ClassScope != NewClassScope)
 					{
 						// Override the class scope signal to be an event.
-						InstrumentationEventQueue[EventIdx].OverrideType(EScriptInstrumentation::Event);
+						CurrEvent.OverrideType(EScriptInstrumentation::Event);
 						// Create new sub event event range to be processed as a sub event.
 						FEventRange NewClassScopeRange;
 						NewClassScopeRange.BlueprintContext = LastEventRange.BlueprintContext;
@@ -274,12 +274,11 @@ void FBlueprintProfiler::ProcessEventProfilingData()
 							StopTime = FMath::Max<double>(StopTime, EventTime);
 						}
 						// Set event timings
-						InstrumentationEventQueue[EventIdx].OverrideTime(StartTime);
+						CurrEvent.OverrideTime(StartTime);
 						// Insert Stop marker
 						FScriptInstrumentedEvent StopMarker(EScriptInstrumentation::Stop, NewClassScope, InstrumentationEventQueue[EventIdx].GetFunctionName(), INDEX_NONE);
 						StopMarker.OverrideTime(StopTime);
 						InstrumentationEventQueue.Insert(StopMarker, SubClassIdx);
-						// Note: we could skip the class scope signals and jump straight to processing here - it might cause problems though.
 					}
 					else
 					{
@@ -355,6 +354,8 @@ void FBlueprintProfiler::ProcessEventProfilingData()
 								SuspendedEventMap.Add(EventToProcess->GetLatentLinkId()) = EventToProcess;
 							}
 						}
+						// Note: We should probably assert here if the above Process call returned false. We should always
+						// Process successfully after a Stop event. If false is returned then something is wrong.
 					}
 					ScriptEventRanges.Pop();
 				}
@@ -362,6 +363,10 @@ void FBlueprintProfiler::ProcessEventProfilingData()
 			}
 		}
 	}
+	// For the time being, we should have processed all events in the queue.
+	// In the future we will potentially only process a few events at a time, and this check should be removed.
+	// Removed this check after finding an issue with it switching out maps.
+//	check(InstrumentationEventQueue.Num() == 0);
 	// Update all active contexts if the display settings changed.
 	UBlueprintProfilerSettings* Settings = GetMutableDefault<UBlueprintProfilerSettings>();
 	if (Settings->GetPerformanceThresholdsModified())

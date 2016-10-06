@@ -126,6 +126,66 @@ struct FReplaceReferenceHelper
 	}
 };
 
+struct FArchetypeReinstanceHelper
+{
+	/** Returns the full set of archetypes rooted at a single archetype object, with additional object flags (optional) */
+	static void GetArchetypeObjects(UObject* InObject, TArray<UObject*>& OutArchetypeObjects, EObjectFlags SubArchetypeFlags = RF_NoFlags)
+	{
+		OutArchetypeObjects.Empty();
+
+		if (InObject != nullptr && InObject->HasAllFlags(RF_ArchetypeObject))
+		{
+			OutArchetypeObjects.Add(InObject);
+
+			TArray<UObject*> ArchetypeInstances;
+			InObject->GetArchetypeInstances(ArchetypeInstances);
+
+			for (int32 Idx = 0; Idx < ArchetypeInstances.Num(); ++Idx)
+			{
+				UObject* ArchetypeInstance = ArchetypeInstances[Idx];
+				if (ArchetypeInstance != nullptr && !ArchetypeInstance->IsPendingKill() && ArchetypeInstance->HasAllFlags(RF_ArchetypeObject | SubArchetypeFlags))
+				{
+					OutArchetypeObjects.Add(ArchetypeInstance);
+
+					TArray<UObject*> SubArchetypeInstances;
+					ArchetypeInstance->GetArchetypeInstances(SubArchetypeInstances);
+
+					if (SubArchetypeInstances.Num() > 0)
+					{
+						ArchetypeInstances.Append(SubArchetypeInstances);
+					}
+				}
+			}
+		}
+	}
+
+	/** Returns an object name that's found to be unique within the given set of archetype objects */
+	static FName FindUniqueArchetypeObjectName(TArray<UObject*>& InArchetypeObjects)
+	{
+		FName OutName = NAME_None;
+
+		if (InArchetypeObjects.Num() > 0)
+		{
+			while (OutName == NAME_None)
+			{
+				UObject* ArchetypeObject = InArchetypeObjects[0];
+				OutName = MakeUniqueObjectName(ArchetypeObject->GetOuter(), ArchetypeObject->GetClass());
+				for (int32 ObjIdx = 1; ObjIdx < InArchetypeObjects.Num(); ++ObjIdx)
+				{
+					ArchetypeObject = InArchetypeObjects[ObjIdx];
+					if (StaticFindObjectFast(ArchetypeObject->GetClass(), ArchetypeObject->GetOuter(), OutName))
+					{
+						OutName = NAME_None;
+						break;
+					}
+				}
+			}
+		}
+
+		return OutName;
+	}
+};
+
 /////////////////////////////////////////////////////////////////////////////////
 // FBlueprintCompileReinstancer
 
@@ -1432,6 +1492,9 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 	// Map of old objects to new objects
 	TMap<UObject*, UObject*> OldToNewInstanceMap;
 
+	// Map of old objects to new name (used to assist with reinstancing archetypes)
+	TMap<UObject*, FName> OldToNewNameMap;
+
 	TMap<FStringAssetReference, UObject*> ReinstancedObjectsWeakReferenceMap;
 
 	// actors being replace
@@ -1575,22 +1638,17 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 						SpawnInfo.bDeferConstruction = true;
 						SpawnInfo.Name = OldActor->GetFName();
 
-						// Temporarily remove the deprecated flag so we can respawn the Blueprint in the level
-						const bool bIsClassDeprecated = SpawnClass->HasAnyClassFlags(CLASS_Deprecated);
-						SpawnClass->ClassFlags &= ~CLASS_Deprecated;
-
 						OldActor->UObject::Rename(nullptr, OldObject->GetOuter(), REN_DoNotDirty | REN_DontCreateRedirectors);
-						AActor* NewActor = World->SpawnActor(SpawnClass, &Location, &Rotation, SpawnInfo);
-						
+
+						AActor* NewActor = nullptr;
+						{
+							FMakeClassSpawnableOnScope TemporarilySpawnable(SpawnClass);
+							NewActor = World->SpawnActor(SpawnClass, &Location, &Rotation, SpawnInfo);
+						}
+
 						if (OldActor->CurrentTransactionAnnotation.IsValid())
 						{
 							NewActor->CurrentTransactionAnnotation = OldActor->CurrentTransactionAnnotation;
-						}
-
-						// Reassign the deprecated flag if it was previously assigned
-						if (bIsClassDeprecated)
-						{
-							SpawnClass->ClassFlags |= CLASS_Deprecated;
 						}
 
 						check(NewActor != nullptr);
@@ -1684,8 +1742,45 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 						EObjectFlags OldFlags = OldObject->GetFlags();
 
 						FName OldName(OldObject->GetFName());
-						OldObject->Rename(nullptr, OldObject->GetOuter(), REN_DoNotDirty | REN_DontCreateRedirectors);
-						NewUObject = NewObject<UObject>(OldObject->GetOuter(), NewClass, OldName, RF_NoFlags, NewArchetype);
+
+						// If the old object is in this table, we've already renamed it away in a previous iteration. Don't rename it again!
+						if (!OldToNewNameMap.Contains(OldObject))
+						{
+							// If we're reinstancing a component template, we also need to rename any inherited templates that are found to be based on it, in order to preserve archetype paths.
+							if (bIsComponent && OldObject->HasAllFlags(RF_ArchetypeObject) && OldObject->GetOuter()->IsA<UBlueprintGeneratedClass>())
+							{
+								// Gather all component templates from the current archetype to the farthest antecedent inherited template(s).
+								TArray<UObject*> OldArchetypeObjects;
+								FArchetypeReinstanceHelper::GetArchetypeObjects(OldObject, OldArchetypeObjects, RF_InheritableComponentTemplate);
+
+								// Find a unique object name that does not conflict with anything in the scope of all outers in the template chain.
+								const FString OldArchetypeName = FArchetypeReinstanceHelper::FindUniqueArchetypeObjectName(OldArchetypeObjects).ToString();
+
+								for (UObject* OldArchetypeObject : OldArchetypeObjects)
+								{
+									OldToNewNameMap.Add(OldArchetypeObject, OldName);
+									OldArchetypeObject->Rename(*OldArchetypeName, OldArchetypeObject->GetOuter(), REN_DoNotDirty | REN_DontCreateRedirectors);
+								}
+							}
+							else
+							{
+								OldObject->Rename(nullptr, OldObject->GetOuter(), REN_DoNotDirty | REN_DontCreateRedirectors);
+							}
+						}
+						
+						{
+							// We may have already renamed this object to temp space if it was an inherited archetype in a previous iteration; check for that here.
+							FName NewName = OldToNewNameMap.FindRef(OldObject);
+							if (NewName == NAME_None)
+							{
+								// Otherwise, just use the old object's current name.
+								NewName = OldName;
+							}
+
+							FMakeClassSpawnableOnScope TemporarilySpawnable(NewClass);
+							NewUObject = NewObject<UObject>(OldObject->GetOuter(), NewClass, NewName, RF_NoFlags, NewArchetype);
+						}
+
 						check(NewUObject != nullptr);
 
 						const EObjectFlags FlagMask = RF_Public | RF_ArchetypeObject | RF_Transactional | RF_Transient | RF_TextExportTransient | RF_InheritableComponentTemplate; //TODO: what about RF_RootSet and RF_Standalone ?
@@ -1785,7 +1880,7 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass_Inner(TMap<UClass*, U
 
 					if (bLogConversions)
 					{
-						UE_LOG(LogBlueprint, Log, TEXT("Converted instance '%s' to '%s'"), *OldObject->GetPathName(), *NewUObject->GetPathName());
+						UE_LOG(LogBlueprint, Log, TEXT("Converted instance '%s' to '%s'"), *GetPathNameSafe(OldObject), *GetPathNameSafe(NewUObject));
 					}
 				}
 			}

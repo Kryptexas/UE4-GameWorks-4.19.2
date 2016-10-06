@@ -374,7 +374,7 @@ static void UpdateAttachedIsEditorOnly(USceneComponent* ComponentThatChanged)
 	const int32 NumComponentsChanged = SetDescendantIsEditorOnly(ComponentThatChanged);
 
 	// if we altered any components (other than the ones selected), then notify the user
-	if (NumComponentsChanged > 0 && !ComponentThatChanged->GetName().EndsWith(UActorComponent::ComponentTemplateNameSuffix))
+	if (NumComponentsChanged > 0 && !ComponentThatChanged->HasAllFlags(RF_ArchetypeObject))
 	{
 		FText NotificationText = LOCTEXT("IsEditorOnlyAlteredSingularNotification", "Caused 1 component to also change its IsEditorOnly behaviour");
 		if (NumComponentsChanged > 1)

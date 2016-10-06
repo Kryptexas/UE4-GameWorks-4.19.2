@@ -62,9 +62,15 @@ protected:
 		const uint8* const SampleStructMemory;
 	public:
 		FMakeStructPinManager(const uint8* InSampleStructMemory);
+
+		bool HasAdvancedPins() const { return bHasAdvancedPins; }
 	protected:
+		virtual void GetRecordDefaults(UProperty* TestProperty, FOptionalPinFromProperty& Record) const override;
 		virtual void CustomizePinData(UEdGraphPin* Pin, FName SourcePropertyName, int32 ArrayIndex, UProperty* Property) const override;
 		virtual bool CanTreatPropertyAsOptional(UProperty* TestProperty) const override;
+
+		/** set by GetRecordDefaults(), mutable as it is a const function */
+		mutable bool bHasAdvancedPins;
 	};
 
 private:
