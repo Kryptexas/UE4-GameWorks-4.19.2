@@ -7842,8 +7842,6 @@ int32 UMaterialFunction::Compile(class FMaterialCompiler* Compiler, const FFunct
 	return ReturnValue;
 }
 
-#endif // WITH_EDITOR
-
 void UMaterialFunction::LinkIntoCaller(const TArray<FFunctionExpressionInput>& CallerInputs)
 {
 	// Go through all the function's input expressions and hook their inputs up to the corresponding expression in the material being compiled.
@@ -7896,6 +7894,8 @@ void UMaterialFunction::UnlinkFromCaller()
 		}
 	}
 }
+
+#endif // WITH_EDITOR
 
 bool UMaterialFunction::IsDependent(UMaterialFunction* OtherFunction)
 {
