@@ -1338,15 +1338,15 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 				bool bIsOrtho = false;
 
 				bool bDisableCull = !!CVarDisableCull.GetValueOnRenderThread();
-				ElementParams.ShadowFrustum = !!View->ViewMatrices.GetDynamicMeshElementsShadowCullFrustum;
-				if (View->ViewMatrices.GetDynamicMeshElementsShadowCullFrustum)
+				ElementParams.ShadowFrustum = !!View->GetDynamicMeshElementsShadowCullFrustum();
+				if (View->GetDynamicMeshElementsShadowCullFrustum())
 				{
-					for (int32 Index = 0; Index < View->ViewMatrices.GetDynamicMeshElementsShadowCullFrustum->Planes.Num(); Index++)
+					for (int32 Index = 0; Index < View->GetDynamicMeshElementsShadowCullFrustum()->Planes.Num(); Index++)
 					{
-						FPlane Src = View->ViewMatrices.GetDynamicMeshElementsShadowCullFrustum->Planes[Index];
+						FPlane Src = View->GetDynamicMeshElementsShadowCullFrustum()->Planes[Index];
 						FPlane Norm = Src / Src.Size();
 						// remove world space preview translation
-						Norm.W -= (FVector(Norm) | View->ViewMatrices.PreShadowTranslation);
+						Norm.W -= (FVector(Norm) | View->GetPreShadowTranslation());
 						FPlane Local = Norm.TransformBy(WorldToLocal);
 						FPlane LocalNorm = Local / Local.Size();
 						InstanceParams.ViewFrustumLocal.Planes.Add(LocalNorm);
@@ -1361,8 +1361,8 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 					{
 						check(Views.Num() == 2);
 						
-						const FMatrix LeftEyeLocalViewProjForCulling  = GetLocalToWorld() * Views[0]->ViewMatrices.GetViewProjMatrix();
-						const FMatrix RightEyeLocalViewProjForCulling = GetLocalToWorld() * Views[1]->ViewMatrices.GetViewProjMatrix();
+						const FMatrix LeftEyeLocalViewProjForCulling  = GetLocalToWorld() * Views[0]->ViewMatrices.GetViewProjectionMatrix();
+						const FMatrix RightEyeLocalViewProjForCulling = GetLocalToWorld() * Views[1]->ViewMatrices.GetViewProjectionMatrix();
 
 						FConvexVolume LeftEyeBounds, RightEyeBounds;
 						GetViewFrustumBounds(LeftEyeBounds, LeftEyeLocalViewProjForCulling, false);
@@ -1378,7 +1378,7 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 					}
 					else
 					{
-						const FMatrix LocalViewProjForCulling = GetLocalToWorld() * View->ViewMatrices.GetViewProjMatrix();
+						const FMatrix LocalViewProjForCulling = GetLocalToWorld() * View->ViewMatrices.GetViewProjectionMatrix();
 						GetViewFrustumBounds(InstanceParams.ViewFrustumLocal, LocalViewProjForCulling, false);
 					}
 
@@ -1929,46 +1929,6 @@ bool UHierarchicalInstancedStaticMeshComponent::RemoveInstance(int32 InstanceInd
 	return true;
 }
 
-void UHierarchicalInstancedStaticMeshComponent::UpdateInstanceTreeBoundsInternal(int32 InstanceIndex, const FBox& NewBounds)
-{
-	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
-		FUpdateInstanceTreeBoundsInternal,
-		TArray<FClusterNode>&, ClusterTree, *ClusterTreePtr,
-		const int32, InstanceIndex, InstanceIndex,
-		const FBox, NewBounds, NewBounds,
-		{
-			UpdateInstanceTreeBoundsInternal_RenderThread(ClusterTree, InstanceIndex, NewBounds);
-		});
-}
-
-void UHierarchicalInstancedStaticMeshComponent::UpdateInstanceTreeBoundsInternal_RenderThread(TArray<FClusterNode>& ClusterTree, int32 InstanceIndex, const FBox& NewBounds)
-{
-	checkSlow(IsInRenderingThread());
-
-	FClusterNode* Node = &ClusterTree[0];
-	checkSlow(InstanceIndex >= Node->FirstInstance && InstanceIndex <= Node->LastInstance);
-	while (1)
-	{
-		Node->BoundMin = Node->BoundMin.ComponentMin(NewBounds.Min);
-		Node->BoundMax = Node->BoundMax.ComponentMax(NewBounds.Max);
-
-		if (Node->FirstChild == INDEX_NONE)
-		{
-			break;
-		}
-
-		for (int32 i = Node->FirstChild; i <= Node->LastChild; ++i)
-		{
-			FClusterNode* ChildNode = &ClusterTree[i];
-			if (InstanceIndex >= ChildNode->FirstInstance && InstanceIndex <= ChildNode->LastInstance)
-			{
-				Node = ChildNode;
-				break;
-			}
-		}
-	}
-}
-
 bool UHierarchicalInstancedStaticMeshComponent::UpdateInstanceTransform(int32 InstanceIndex, const FTransform& NewInstanceTransform, bool bWorldSpace, bool bMarkRenderStateDirty, bool bTeleport)
 {
 	if (!PerInstanceSMData.IsValidIndex(InstanceIndex))
@@ -1993,7 +1953,8 @@ bool UHierarchicalInstancedStaticMeshComponent::UpdateInstanceTransform(int32 In
 	const bool bDoInPlaceUpdate = !bIsOmittedInstance && (!bIsBuiltInstance || NewLocalLocation.Equals(OldTransform.GetOrigin()));
 
 	bool Result = Super::UpdateInstanceTransform(InstanceIndex, NewInstanceTransform, bWorldSpace, bMarkRenderStateDirty, bTeleport);
-
+	
+	bool bDirtyRenderState = false;
 	if (GetStaticMesh())
 	{
 		const FBox NewInstanceBounds = GetStaticMesh()->GetBounds().GetBox().TransformBy(NewLocalTransform);
@@ -2007,7 +1968,7 @@ bool UHierarchicalInstancedStaticMeshComponent::UpdateInstanceTransform(int32 In
 				if (!OldInstanceBounds.IsInside(NewInstanceBounds))
 				{
 					BuiltInstanceBounds += NewInstanceBounds;
-					UpdateInstanceTreeBoundsInternal(RenderIndex, NewInstanceBounds);
+					bDirtyRenderState = true;
 				}
 			}
 			else
@@ -2032,6 +1993,11 @@ bool UHierarchicalInstancedStaticMeshComponent::UpdateInstanceTransform(int32 In
 
 			UnbuiltInstanceBounds += NewInstanceBounds;
 			UnbuiltInstanceBoundsList.Add(NewInstanceBounds);
+		}
+
+		if(bDirtyRenderState)
+		{
+			MarkRenderStateDirty();
 		}
 
 		if (!bDoInPlaceUpdate && !IsAsyncBuilding())
@@ -2507,13 +2473,29 @@ void FAsyncBuildInstanceBuffer::DoWork()
 	bool bUseRemapTable = Component->PerInstanceSMData.Num() == Component->InstanceReorderTable.Num();
 
 	int32 InitializedIndexCount = 0;
+	const FMeshMapBuildData* MeshMapBuildData = NULL;
+	
+	if (Component->LODData.Num() > 0)
+	{
+		MeshMapBuildData = Component->GetMeshMapBuildData(Component->LODData[0]);
+	}
+
 	for (int32 InstanceIndex = 0; InstanceIndex < NumInstances; InstanceIndex++)
 	{
 		const FInstancedStaticMeshInstanceData& Instance = Component->PerInstanceSMData[InstanceIndex];
 		const int32 DestInstanceIndex = bUseRemapTable ? Component->InstanceReorderTable[InstanceIndex] : InstanceIndex;
 		if (DestInstanceIndex != INDEX_NONE)
 		{
-			Component->WriteOncePrebuiltInstanceBuffer.SetInstance(DestInstanceIndex, Instance.Transform, RandomStream.GetFraction(), Instance.LightmapUVBias, Instance.ShadowmapUVBias);
+			FVector2D LightmapUVBias = Instance.LightmapUVBias_DEPRECATED;
+			FVector2D ShadowmapUVBias = Instance.ShadowmapUVBias_DEPRECATED;
+
+			if (MeshMapBuildData && MeshMapBuildData->PerInstanceLightmapData.IsValidIndex(InstanceIndex))
+			{
+				LightmapUVBias = MeshMapBuildData->PerInstanceLightmapData[InstanceIndex].LightmapUVBias;
+				ShadowmapUVBias = MeshMapBuildData->PerInstanceLightmapData[InstanceIndex].ShadowmapUVBias;
+			}
+
+			Component->WriteOncePrebuiltInstanceBuffer.SetInstance(DestInstanceIndex, Instance.Transform, RandomStream.GetFraction(), LightmapUVBias, ShadowmapUVBias);
 			InitializedIndexCount++;
 		}
 	}

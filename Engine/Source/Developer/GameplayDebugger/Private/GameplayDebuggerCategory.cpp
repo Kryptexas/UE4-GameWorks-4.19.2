@@ -30,8 +30,9 @@ void FGameplayDebuggerCategory::DrawData(APlayerController* OwnerPC, FGameplayDe
 	// empty in base class
 }
 
-FDebugRenderSceneProxy* FGameplayDebuggerCategory::CreateSceneProxy(const UPrimitiveComponent* InComponent)
+FDebugRenderSceneProxy* FGameplayDebuggerCategory::CreateDebugSceneProxy(const UPrimitiveComponent* InComponent, FDebugDrawDelegateHelper*& OutDelegateHelper)
 {
+	OutDelegateHelper = nullptr;
 	// empty in base class
 	return nullptr;
 }

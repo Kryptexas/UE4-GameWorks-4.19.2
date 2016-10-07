@@ -1646,6 +1646,8 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 						// load sublevels
 						UWorld* World = UWorld::FindWorldInPackage(Package);
 
+						World->PersistentLevel->HandleLegacyMapBuildData();
+
 						// TArray<FString> PreviouslyCookedPackages;
 						if (World->StreamingLevels.Num())
 						{
@@ -1666,8 +1668,6 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 							FString Filename;
 							if ( FPackageName::DoesPackageExist(PackageName, NULL, &Filename) )
 							{
-
-
 								FString StandardFilename = FPaths::ConvertRelativePathToFull(Filename);
 								FPaths::MakeStandardFilename(StandardFilename);
 								FName StandardPackageFName = FName(*StandardFilename);
@@ -2017,33 +2017,33 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 				if ( IsCookOnTheFlyMode() )
 				{
 					if (ProcessingUnsolicitedPackages)
-				{
-					SCOPE_TIMER(WaitingForCachedCookedPlatformData);
-					if ( CookRequests.HasItems() )
 					{
-						bShouldFinishTick = true;
-					}
-					if (Timer.IsTimeUp())
-					{
-						bShouldFinishTick = true;
-						// our timeslice is up
-					}
-					bool bFinishedCachingCookedPlatformData = false;
-					// if we are in realtime mode then don't wait forever for the package to be ready
-					while ( (!Timer.IsTimeUp()) && IsRealtimeMode() && (bShouldFinishTick == false) )
-					{
-						if ( FinishPackageCacheForCookedPlatformData(Package) == true )
+						SCOPE_TIMER(WaitingForCachedCookedPlatformData);
+						if ( CookRequests.HasItems() )
 						{
-							bFinishedCachingCookedPlatformData = true;
-							break;
+							bShouldFinishTick = true;
 						}
+						if (Timer.IsTimeUp())
+						{
+							bShouldFinishTick = true;
+							// our timeslice is up
+						}
+						bool bFinishedCachingCookedPlatformData = false;
+						// if we are in realtime mode then don't wait forever for the package to be ready
+						while ( (!Timer.IsTimeUp()) && IsRealtimeMode() && (bShouldFinishTick == false) )
+						{
+							if ( FinishPackageCacheForCookedPlatformData(Package) == true )
+							{
+								bFinishedCachingCookedPlatformData = true;
+								break;
+							}
 
-						GShaderCompilingManager->ProcessAsyncResults(true, false);
-						// sleep for a bit
-						FPlatformProcess::Sleep(0.0f);
+							GShaderCompilingManager->ProcessAsyncResults(true, false);
+							// sleep for a bit
+							FPlatformProcess::Sleep(0.0f);
+						}
+						bShouldFinishTick |= !bFinishedCachingCookedPlatformData;
 					}
-					bShouldFinishTick |= !bFinishedCachingCookedPlatformData;
-				}
 					else
 					{
 						ForceSavePackage = true;

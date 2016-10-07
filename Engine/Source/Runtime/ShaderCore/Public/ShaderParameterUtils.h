@@ -90,6 +90,20 @@ void SetShaderValue(
 	SetShaderValue(RHICmdList, Shader, Parameter, BoolValue, ElementIndex);
 }
 
+/** Specialization of the above for C++ bool type. */
+template<typename ShaderRHIParamRef>
+void SetShaderValue(
+	FRHIAsyncComputeCommandList& RHICmdList,
+	ShaderRHIParamRef Shader,
+	const FShaderParameter& Parameter,
+	const bool& Value,
+	uint32 ElementIndex = 0
+	)
+{
+	const uint32 BoolValue = Value;
+	SetShaderValue(RHICmdList, Shader, Parameter, BoolValue, ElementIndex);
+}
+
 /**
  * Sets the value of a shader parameter array.  Template'd on shader type
  * A template parameter specified the type of the parameter value.

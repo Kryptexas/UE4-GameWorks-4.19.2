@@ -262,6 +262,7 @@ struct FMaterialVertexParameters
 	/** Per-particle properties. */
 	float4x4 InstanceLocalToWorld;
 #endif
+	float3 PreSkinnedPosition;
 
 	half4 VertexColor;
 #if NUM_MATERIAL_TEXCOORDS_VERTEX

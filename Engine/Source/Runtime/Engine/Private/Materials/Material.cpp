@@ -122,12 +122,19 @@ int32 FMaterialResource::CompilePropertyAndSetMaterialProperty(EMaterialProperty
 	};
 
 	// output should always be the right type for this property
-	return Compiler->ForceCast(Ret, GetMaterialPropertyType(Property));
+	return Compiler->ForceCast(Ret, FMaterialAttributeDefinitionMap::GetValueType(Property));
 #else // WITH_EDITOR
 	check(0); // This is editor-only function
 	return INDEX_NONE;
 #endif // WITH_EDITOR
 }
+
+#if HANDLE_CUSTOM_OUTPUTS_AS_MATERIAL_ATTRIBUTES
+int32 FMaterialResource::CompileCustomAttribute(const FGuid& AttributeID, FMaterialCompiler* Compiler) const
+{
+	return Material->CompilePropertyEx(Compiler, AttributeID);
+}
+#endif
 
 void FMaterialResource::GatherCustomOutputExpressions(TArray<UMaterialExpressionCustomOutput*>& OutCustomOutputs) const
 {
@@ -635,6 +642,7 @@ UMaterial::UMaterial(const FObjectInitializer& ObjectInitializer)
 	bUseTranslucencyVertexFog = true;
 	BlendableLocation = BL_AfterTonemapping;
 	BlendablePriority = 0;
+	BlendableOutputAlpha = false;
 
 	bUseEmissiveForDynamicAreaLighting = false;
 	bBlockGI = false;
@@ -2331,7 +2339,7 @@ void UMaterial::Serialize(FArchive& Ar)
 	}
 #endif // #if WITH_EDITOR
 
-	static_assert(MP_MAX == 28, "New material properties must have DoMaterialAttributesReorder called on them to ensure that any future reordering of property pins is correctly applied.");
+	static_assert(MP_MAX == 29, "New material properties must have DoMaterialAttributesReorder called on them to ensure that any future reordering of property pins is correctly applied.");
 
 	if (Ar.UE4Ver() < VER_UE4_MATERIAL_MASKED_BLENDMODE_TIDY)
 	{
@@ -2881,8 +2889,8 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 		}
 
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, BlendableLocation) ||
-			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, BlendablePriority)
-			)
+			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, BlendablePriority) || 
+			PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, BlendableOutputAlpha)	)
 		{
 			return MaterialDomain == MD_PostProcess;
 		}
@@ -4053,11 +4061,13 @@ void UMaterial::GetReferencedParameterCollectionIds(TArray<FGuid>& Ids) const
 }
 
 #if WITH_EDITOR
-int32 UMaterial::CompilePropertyEx( FMaterialCompiler* Compiler, EMaterialProperty Property )
+int32 UMaterial::CompilePropertyEx( FMaterialCompiler* Compiler, const FGuid& AttributeID )
 {
+	const EMaterialProperty Property = FMaterialAttributeDefinitionMap::GetProperty(AttributeID);
+
 	if( bUseMaterialAttributes && MP_DiffuseColor != Property && MP_SpecularColor != Property )
 	{
-		return MaterialAttributes.CompileWithDefault(Compiler, Property);
+		return MaterialAttributes.CompileWithDefault(Compiler, AttributeID);
 	}
 
 	switch (Property)
@@ -4241,7 +4251,7 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty) const
 {
 	if(MaterialDomain == MD_PostProcess)
 	{
-		return InProperty == MP_EmissiveColor;
+		return InProperty == MP_EmissiveColor || ( BlendableOutputAlpha && InProperty == MP_Opacity );
 	}
 	else if(MaterialDomain == MD_LightFunction)
 	{

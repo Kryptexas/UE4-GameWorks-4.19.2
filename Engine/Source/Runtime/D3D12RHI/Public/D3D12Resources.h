@@ -15,6 +15,7 @@ class FD3D12StateCacheBase;
 class FD3D12CommandListManager;
 class FD3D12CommandContext;
 class FD3D12CommandListHandle;
+struct FD2D12GraphicsPipelineState;
 typedef FD3D12StateCacheBase FD3D12StateCache;
 
 class FD3D12PendingResourceBarrier
@@ -802,4 +803,9 @@ template<>
 struct TD3D12ResourceTraits<FRHIComputeFence>
 {
 	typedef FD3D12Fence TConcreteType;
+};
+template<>
+struct TD3D12ResourceTraits<FRHIGraphicsPipelineState>
+{
+	typedef FD2D12GraphicsPipelineState TConcreteType;
 };

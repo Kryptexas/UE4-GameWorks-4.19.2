@@ -1311,7 +1311,7 @@ void UParticleModuleRequired::GetDefaultCutout()
 	{
 		// Try to find an opacity mask texture to default to, if not try to find an opacity texture
 		TArray<UTexture*> OpacityMaskTextures;
-		Material->GetTexturesInPropertyChain(EMaterialProperty::MP_OpacityMask, OpacityMaskTextures, nullptr, nullptr);
+		Material->GetTexturesInPropertyChain(MP_OpacityMask, OpacityMaskTextures, nullptr, nullptr);
 
 		if (OpacityMaskTextures.Num())
 		{
@@ -1320,7 +1320,7 @@ void UParticleModuleRequired::GetDefaultCutout()
 		else
 		{
 			TArray<UTexture*> OpacityTextures;
-			Material->GetTexturesInPropertyChain(EMaterialProperty::MP_Opacity, OpacityTextures, nullptr, nullptr);
+			Material->GetTexturesInPropertyChain(MP_Opacity, OpacityTextures, nullptr, nullptr);
 
 			if (OpacityTextures.Num())
 			{

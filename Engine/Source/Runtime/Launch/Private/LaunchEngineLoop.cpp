@@ -2752,6 +2752,7 @@ void FEngineLoop::Tick()
 			GRHICommandList.LatchBypass();
 			GFrameNumberRenderThread++;
 			RHICmdList.PushEvent(*FString::Printf(TEXT("Frame%d"),GFrameNumberRenderThread), FColor(0, 255, 0, 255));
+			GPU_STATS_BEGINFRAME(RHICmdList);
 			RHICmdList.BeginFrame();
 		});
 
@@ -2968,6 +2969,7 @@ void FEngineLoop::Tick()
 			EndFrame,
 		{
 			RHICmdList.EndFrame();
+			GPU_STATS_ENDFRAME(RHICmdList);
 			RHICmdList.PopEvent();
 		});
 

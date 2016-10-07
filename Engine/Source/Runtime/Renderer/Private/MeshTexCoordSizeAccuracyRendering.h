@@ -17,7 +17,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return AllowDebugViewPS(DVSM_MeshTexCoordSizeAccuracy, Platform);
+		return AllowDebugViewPS(DVSM_MeshUVDensityAccuracy, Platform);
 	}
 
 	FMeshTexCoordSizeAccuracyPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
@@ -26,6 +26,7 @@ public:
 		AccuracyColorsParameter.Bind(Initializer.ParameterMap,TEXT("AccuracyColors"));
 		CPUTexelFactorParameter.Bind(Initializer.ParameterMap,TEXT("CPUTexelFactor"));
 		PrimitiveAlphaParameter.Bind(Initializer.ParameterMap, TEXT("PrimitiveAlpha"));
+		TexCoordAnalysisIndexParameter.Bind(Initializer.ParameterMap, TEXT("TexCoordAnalysisIndex"));
 	}
 
 	FMeshTexCoordSizeAccuracyPS() {}
@@ -36,6 +37,7 @@ public:
 		Ar << AccuracyColorsParameter;
 		Ar << CPUTexelFactorParameter;
 		Ar << PrimitiveAlphaParameter;
+		Ar << TexCoordAnalysisIndexParameter;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -72,4 +74,5 @@ private:
 	FShaderParameter AccuracyColorsParameter;
 	FShaderParameter CPUTexelFactorParameter;
 	FShaderParameter PrimitiveAlphaParameter;
+	FShaderParameter TexCoordAnalysisIndexParameter;
 };

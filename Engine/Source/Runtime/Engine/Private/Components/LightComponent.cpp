@@ -16,63 +16,28 @@
 #include "Components/PointLightComponent.h"
 #include "Components/LightComponent.h"
 #include "Components/DirectionalLightComponent.h"
-
-FArchive& operator<<(FArchive& Ar, FStaticShadowDepthMapData& ShadowMapData)
-{
-	Ar << ShadowMapData.WorldToLight;
-	Ar << ShadowMapData.ShadowMapSizeX;
-	Ar << ShadowMapData.ShadowMapSizeY;
-	Ar << ShadowMapData.DepthSamples;
-
-	return Ar;
-}
+#include "ComponentRecreateRenderStateContext.h"
+#include "RenderingObjectVersion.h"
 
 void FStaticShadowDepthMap::InitRHI()
 {
-	if (FApp::CanEverRender() && Data.ShadowMapSizeX > 0 && Data.ShadowMapSizeY > 0 && GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+	if (FApp::CanEverRender() && Data && Data->ShadowMapSizeX > 0 && Data->ShadowMapSizeY > 0 && GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		FRHIResourceCreateInfo CreateInfo;
-		FTexture2DRHIRef Texture2DRHI = RHICreateTexture2D(Data.ShadowMapSizeX, Data.ShadowMapSizeY, PF_R16F, 1, 1, 0, CreateInfo);
+		FTexture2DRHIRef Texture2DRHI = RHICreateTexture2D(Data->ShadowMapSizeX, Data->ShadowMapSizeY, PF_R16F, 1, 1, 0, CreateInfo);
 		TextureRHI = Texture2DRHI;
 
 		uint32 DestStride = 0;
 		uint8* TextureData = (uint8*)RHILockTexture2D(Texture2DRHI, 0, RLM_WriteOnly, DestStride, false);
-		uint32 RowSize = Data.ShadowMapSizeX * GPixelFormats[PF_R16F].BlockBytes;
+		uint32 RowSize = Data->ShadowMapSizeX * GPixelFormats[PF_R16F].BlockBytes;
 
-		for (int32 Y = 0; Y < Data.ShadowMapSizeY; Y++)
+		for (int32 Y = 0; Y < Data->ShadowMapSizeY; Y++)
 		{
-			FMemory::Memcpy(TextureData + DestStride * Y, ((uint8*)Data.DepthSamples.GetData()) + RowSize * Y, RowSize);
+			FMemory::Memcpy(TextureData + DestStride * Y, ((uint8*)Data->DepthSamples.GetData()) + RowSize * Y, RowSize);
 		}
 
 		RHIUnlockTexture2D(Texture2DRHI, 0, false);
 	}
-}
-
-void FStaticShadowDepthMap::Empty()
-{
-	DEC_DWORD_STAT_BY(STAT_PrecomputedShadowDepthMapMemory, Data.DepthSamples.GetAllocatedSize());
-
-	Data.ShadowMapSizeX = 0;
-	Data.ShadowMapSizeY = 0;
-	Data.DepthSamples.Empty();
-}
-
-void FStaticShadowDepthMap::InitializeAfterImport()
-{
-	INC_DWORD_STAT_BY(STAT_PrecomputedShadowDepthMapMemory, Data.DepthSamples.GetAllocatedSize());
-	BeginInitResource(this);
-}
-
-FArchive& operator<<(FArchive& Ar, FStaticShadowDepthMap& ShadowMap)
-{
-	Ar << ShadowMap.Data;
-
-	if (Ar.IsLoading())
-	{
-		INC_DWORD_STAT_BY(STAT_PrecomputedShadowDepthMapMemory, ShadowMap.Data.DepthSamples.GetAllocatedSize());
-	}
-
-	return Ar;
 }
 
 void ULightComponentBase::SetCastShadows(bool bNewValue)
@@ -218,8 +183,6 @@ FLightSceneProxy::FLightSceneProxy(const ULightComponent* InLightComponent)
 	, ContactShadowLength(InLightComponent->ContactShadowLength)
 	, MinRoughness(InLightComponent->MinRoughness)
 	, LightGuid(InLightComponent->LightGuid)
-	, ShadowMapChannel(InLightComponent->ShadowMapChannel)
-	, PreviewShadowMapChannel(InLightComponent->PreviewShadowMapChannel)
 	, IESTexture(0)
 	, bMovable(InLightComponent->IsMovable())
 	, bStaticLighting(InLightComponent->HasStaticLighting())
@@ -244,6 +207,22 @@ FLightSceneProxy::FLightSceneProxy(const ULightComponent* InLightComponent)
 	, FarShadowDistance(0)
 	, FarShadowCascadeCount(0)
 {
+	const FLightComponentMapBuildData* MapBuildData = InLightComponent->GetLightComponentMapBuildData();
+	
+	if (MapBuildData)
+	{
+		ShadowMapChannel = MapBuildData->ShadowMapChannel;
+	}
+	else
+	{
+		ShadowMapChannel = INDEX_NONE;
+	}
+
+	// Use the preview channel if valid, otherwise fallback to the lighting build channel
+	PreviewShadowMapChannel = InLightComponent->PreviewShadowMapChannel != INDEX_NONE ? InLightComponent->PreviewShadowMapChannel : ShadowMapChannel;
+
+	StaticShadowDepthMap = &LightComponent->StaticShadowDepthMap;
+
 	// Brightness in Lumens
 	float LightBrightness = InLightComponent->ComputeLightBrightness();
 
@@ -276,8 +255,6 @@ FLightSceneProxy::FLightSceneProxy(const ULightComponent* InLightComponent)
 	LightFunctionScale = LightComponent->LightFunctionScale;
 	LightFunctionFadeDistance = LightComponent->LightFunctionFadeDistance;
 	LightFunctionDisabledBrightness = LightComponent->DisabledBrightness;
-
-	StaticShadowDepthMap = &LightComponent->StaticShadowDepthMap;
 }
 
 bool FLightSceneProxy::ShouldCreatePerObjectShadowsForDynamicObjects() const
@@ -321,7 +298,6 @@ ULightComponentBase::ULightComponentBase(const FObjectInitializer& ObjectInitial
 	CastShadows = true;
 	CastStaticShadows = true;
 	CastDynamicShadows = true;
-	bPrecomputedLightingIsValid = true;
 #if WITH_EDITORONLY_DATA
 	bVisualizeComponent = true;
 #endif
@@ -335,7 +311,6 @@ ULightComponent::ULightComponent(const FObjectInitializer& ObjectInitializer)
 {
 	Temperature = 6500.0f;
 	bUseTemperature = false;
-	ShadowMapChannel = INDEX_NONE;
 	PreviewShadowMapChannel = INDEX_NONE;
 	IndirectLightingIntensity = 1.0f;
 	ShadowBias = 0.5f;
@@ -364,7 +339,6 @@ ULightComponent::ULightComponent(const FObjectInitializer& ObjectInitializer)
 void ULightComponent::UpdateLightGUIDs()
 {
 	Super::UpdateLightGUIDs();
-	ShadowMapChannel = INDEX_NONE;
 }
 
 bool ULightComponent::AffectsPrimitive(const UPrimitiveComponent* Primitive) const
@@ -416,17 +390,20 @@ void ULightComponent::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
+	Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
+
 	if (Ar.UE4Ver() >= VER_UE4_STATIC_SHADOW_DEPTH_MAPS)
 	{
-		if (Ar.IsCooking() && !Ar.CookingTarget()->SupportsFeature(ETargetPlatformFeatures::HighQualityLightmaps))
+		if (Ar.IsLoading() && Ar.CustomVer(FRenderingObjectVersion::GUID) < FRenderingObjectVersion::MapBuildDataSeparatePackage)
 		{
-			// Toss lighting data only needed for high quality lightmaps
-			FStaticShadowDepthMap EmptyDepthMap;
-			Ar << EmptyDepthMap;
-		}
-		else
-		{
-			Ar << StaticShadowDepthMap;
+			FLightComponentMapBuildData* LegacyData = new FLightComponentMapBuildData();
+			Ar << LegacyData->DepthMap;
+			LegacyData->ShadowMapChannel = ShadowMapChannel_DEPRECATED;
+
+			FLightComponentLegacyMapBuildData LegacyLightData;
+			LegacyLightData.Id = LightGuid;
+			LegacyLightData.Data = LegacyData;
+			GLightComponentsWithLegacyBuildData.AddAnnotation(this, LegacyLightData);
 		}
 	}
 }
@@ -444,7 +421,7 @@ void ULightComponent::PostLoad()
 		LightFunctionMaterial = NULL;
 	}
 
-	PreviewShadowMapChannel = ShadowMapChannel;
+	PreviewShadowMapChannel = INDEX_NONE;
 	Intensity = FMath::Max(0.0f, Intensity);
 
 	if (GetLinkerUE4Version() < VER_UE4_LIGHTCOMPONENT_USE_IES_TEXTURE_MULTIPLIER_ON_NON_IES_BRIGHTNESS)
@@ -460,11 +437,6 @@ void ULightComponent::PostLoad()
 				IESBrightnessScale /= IESTextureObject->TextureMultiplier; // Previous version didn't apply IES texture multiplier, so cancel out
 			}
 		}
-	}
-
-	if (HasStaticShadowing() && !HasStaticLighting())
-	{
-		BeginInitResource(&StaticShadowDepthMap);
 	}
 }
 
@@ -641,7 +613,6 @@ void ULightComponent::BeginDestroy()
 	Super::BeginDestroy();
 
 	BeginReleaseResource(&StaticShadowDepthMap);
-	StaticShadowDepthMap.Empty();
 
 	// Use a fence to keep track of when the rendering thread executes the release command
 	DestroyFence.BeginFence();
@@ -680,6 +651,8 @@ void ULightComponent::CreateRenderState_Concurrent()
 		UWorld* World = GetWorld();
 		if (bVisible && !bHidden)
 		{
+			InitializeStaticShadowDepthMap();
+
 			// Add the light to the scene.
 			World->Scene->AddLight(this);
 		}
@@ -692,6 +665,8 @@ void ULightComponent::CreateRenderState_Concurrent()
 			&& HasStaticShadowing()
 			&& !HasStaticLighting())
 		{
+			InitializeStaticShadowDepthMap();
+
 			World->Scene->AddInvisibleLight(this);
 		}
 	}
@@ -927,7 +902,7 @@ void ULightComponent::InvalidateLightingCacheDetailed(bool bInvalidateBuildEnque
 		&& HasStaticShadowing()
 		&& !HasStaticLighting())
 	{
-		ReassignStationaryLightChannels(World, false);
+		ReassignStationaryLightChannels(World, false, NULL);
 	}
 }
 
@@ -943,10 +918,7 @@ void ULightComponent::InvalidateLightingCacheInner(bool bRecreateLightGuids)
 	// Block until the RT processes the unregister before modifying variables that it may need to access
 	FlushRenderingCommands();
 
-	StaticShadowDepthMap.Empty();
 	BeginReleaseResource(&StaticShadowDepthMap);
-
-	bPrecomputedLightingIsValid = false;
 
 	if (bRecreateLightGuids)
 	{
@@ -956,11 +928,7 @@ void ULightComponent::InvalidateLightingCacheInner(bool bRecreateLightGuids)
 	else
 	{
 		ValidateLightGUIDs();
-		ShadowMapChannel = INDEX_NONE;
 	}
-	
-	// Send to render thread
-	MarkRenderStateDirty();
 }
 
 /** Used to store lightmap data during RerunConstructionScripts */
@@ -971,10 +939,7 @@ public:
 		: FSceneComponentInstanceData(SourceComponent)
 		, Transform(SourceComponent->ComponentToWorld)
 		, LightGuid(SourceComponent->LightGuid)
-		, ShadowMapChannel(SourceComponent->ShadowMapChannel)
 		, PreviewShadowMapChannel(SourceComponent->PreviewShadowMapChannel)
-		, bPrecomputedLightingIsValid(SourceComponent->bPrecomputedLightingIsValid)
-		, StaticShadowDepthMapData(SourceComponent->StaticShadowDepthMap.Data)
 	{}
 
 	virtual void ApplyToComponent(UActorComponent* Component, const ECacheApplyPhase CacheApplyPhase) override
@@ -985,10 +950,7 @@ public:
 
 	FTransform Transform;
 	FGuid LightGuid;
-	int32 ShadowMapChannel;
 	int32 PreviewShadowMapChannel;
-	bool bPrecomputedLightingIsValid;
-	FStaticShadowDepthMapData StaticShadowDepthMapData;
 };
 
 FActorComponentInstanceData* ULightComponent::GetComponentInstanceData() const
@@ -1007,15 +969,7 @@ void ULightComponent::ApplyComponentInstanceData(FPrecomputedLightInstanceData* 
 	}
 
 	LightGuid = LightMapData->LightGuid;
-	ShadowMapChannel = LightMapData->ShadowMapChannel;
 	PreviewShadowMapChannel = LightMapData->PreviewShadowMapChannel;
-	bPrecomputedLightingIsValid = LightMapData->bPrecomputedLightingIsValid;
-	StaticShadowDepthMap.Data = LightMapData->StaticShadowDepthMapData;
-
-	if (HasStaticShadowing() && !HasStaticLighting())
-	{
-		BeginUpdateResourceRHI(&StaticShadowDepthMap);
-	}
 
 	MarkRenderStateDirty();
 
@@ -1025,9 +979,77 @@ void ULightComponent::ApplyComponentInstanceData(FPrecomputedLightInstanceData* 
 #endif
 }
 
+void ULightComponent::PropagateLightingScenarioChange()
+{
+	FComponentRecreateRenderStateContext Context(this);
+	BeginReleaseResource(&StaticShadowDepthMap);
+}
+
+bool ULightComponent::IsPrecomputedLightingValid() const
+{
+	return GetLightComponentMapBuildData() != NULL;
+}
+
 int32 ULightComponent::GetNumMaterials() const
 {
 	return 1;
+}
+
+const FLightComponentMapBuildData* ULightComponent::GetLightComponentMapBuildData() const
+{
+	AActor* Owner = GetOwner();
+
+	if (Owner)
+	{
+		ULevel* OwnerLevel = Owner->GetLevel();
+
+		if (OwnerLevel && OwnerLevel->OwningWorld)
+		{
+			ULevel* ActiveLightingScenario = OwnerLevel->OwningWorld->GetActiveLightingScenario();
+			UMapBuildDataRegistry* MapBuildData = NULL;
+
+			if (ActiveLightingScenario && ActiveLightingScenario->MapBuildData)
+			{
+				MapBuildData = ActiveLightingScenario->MapBuildData;
+			}
+			else if (OwnerLevel->MapBuildData)
+			{
+				MapBuildData = OwnerLevel->MapBuildData;
+			}
+
+			if (MapBuildData)
+			{
+				return MapBuildData->GetLightBuildData(LightGuid);
+			}
+		}
+	}
+
+	return NULL;
+}
+
+void ULightComponent::InitializeStaticShadowDepthMap()
+{
+	if (HasStaticShadowing() && !HasStaticLighting())
+	{
+		const FStaticShadowDepthMapData* DepthMapData = NULL;
+		const FLightComponentMapBuildData* MapBuildData = GetLightComponentMapBuildData();
+	
+		if (MapBuildData)
+		{
+			DepthMapData = &MapBuildData->DepthMap;
+		}
+
+		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+			SetDepthMapData,
+			FStaticShadowDepthMap*, DepthMap, &StaticShadowDepthMap,
+			const FStaticShadowDepthMapData*, DepthMapData, DepthMapData,
+			{
+				DepthMap->Data = DepthMapData;
+			}
+		);
+
+		BeginInitResource(&StaticShadowDepthMap);
+	}
 }
 
 UMaterialInterface* ULightComponent::GetMaterial(int32 ElementIndex) const
@@ -1106,7 +1128,7 @@ struct FCompareLightsByArrayCount
 	}
 };
 
-void ULightComponent::ReassignStationaryLightChannels(UWorld* TargetWorld, bool bAssignForLightingBuild)
+void ULightComponent::ReassignStationaryLightChannels(UWorld* TargetWorld, bool bAssignForLightingBuild, ULevel* LightingScenario)
 {
 	TMap<FLightAndChannel*, TArray<FLightAndChannel*> > LightToOverlapMap;
 
@@ -1114,29 +1136,35 @@ void ULightComponent::ReassignStationaryLightChannels(UWorld* TargetWorld, bool 
 	for (TObjectIterator<ULightComponent> LightIt(RF_ClassDefaultObject, /** bIncludeDerivedClasses */ true, /** InternalExcludeFlags */ EInternalObjectFlags::PendingKill); LightIt; ++LightIt)
 	{
 		ULightComponent* const LightComponent = *LightIt;
+		AActor* LightOwner = LightComponent->GetOwner();
 
-		const bool bLightIsInWorld = LightComponent->GetOwner() && TargetWorld->ContainsActor(LightComponent->GetOwner()) && !LightComponent->GetOwner()->IsPendingKill();
+		const bool bLightIsInWorld = LightOwner && TargetWorld->ContainsActor(LightOwner) && !LightOwner->IsPendingKill();
 
 		if (bLightIsInWorld 
 			// Only operate on stationary light components (static shadowing only)
 			&& LightComponent->HasStaticShadowing()
 			&& !LightComponent->HasStaticLighting())
 		{
-			if (LightComponent->bAffectsWorld
-				&& LightComponent->CastShadows 
-				&& LightComponent->CastStaticShadows)
-			{
-				LightToOverlapMap.Add(new FLightAndChannel(LightComponent), TArray<FLightAndChannel*>());
-			}
-			else
-			{
-				// Reset the preview channel of stationary light components that shouldn't get a channel
-				// This is necessary to handle a light being newly disabled
-				LightComponent->PreviewShadowMapChannel = INDEX_NONE;
+			ULevel* LightLevel = LightOwner->GetLevel();
+
+			if (!LightingScenario || LightLevel == LightingScenario)
+			{				
+				if (LightComponent->bAffectsWorld
+					&& LightComponent->CastShadows 
+					&& LightComponent->CastStaticShadows)
+				{
+					LightToOverlapMap.Add(new FLightAndChannel(LightComponent), TArray<FLightAndChannel*>());
+				}
+				else
+				{
+					// Reset the preview channel of stationary light components that shouldn't get a channel
+					// This is necessary to handle a light being newly disabled
+					LightComponent->PreviewShadowMapChannel = INDEX_NONE;
 
 #if WITH_EDITOR
-				LightComponent->UpdateLightSpriteTexture();
+					LightComponent->UpdateLightSpriteTexture();
 #endif
+				}
 			}
 		}
 	}
@@ -1149,8 +1177,10 @@ void ULightComponent::ReassignStationaryLightChannels(UWorld* TargetWorld, bool 
 
 		if (bAssignForLightingBuild)
 		{
-			// This should have happened during lighting invalidation at the beginning of the build anyway
-			CurrentLight->ShadowMapChannel = INDEX_NONE;
+			ULevel* StorageLevel = LightingScenario ? LightingScenario : CurrentLight->GetOwner()->GetLevel();
+			UMapBuildDataRegistry* Registry = StorageLevel->GetOrCreateMapBuildData();
+			FLightComponentMapBuildData& LightBuildData = Registry->FindOrAllocateLightBuildData(CurrentLight->LightGuid, true);
+			LightBuildData.ShadowMapChannel = INDEX_NONE;
 		}
 
 		for (TMap<FLightAndChannel*, TArray<FLightAndChannel*> >::TIterator OtherIt(LightToOverlapMap); OtherIt; ++OtherIt)
@@ -1242,9 +1272,12 @@ void ULightComponent::ReassignStationaryLightChannels(UWorld* TargetWorld, bool 
 
 		if (bAssignForLightingBuild)
 		{
-			CurrentLight->Light->ShadowMapChannel = CurrentLight->Channel;
+			ULevel* StorageLevel = LightingScenario ? LightingScenario : CurrentLight->Light->GetOwner()->GetLevel();
+			UMapBuildDataRegistry* Registry = StorageLevel->GetOrCreateMapBuildData();
+			FLightComponentMapBuildData& LightBuildData = Registry->FindOrAllocateLightBuildData(CurrentLight->Light->LightGuid, true);
+			LightBuildData.ShadowMapChannel = CurrentLight->Channel;
 
-			if (CurrentLight->Light->ShadowMapChannel == INDEX_NONE)
+			if (CurrentLight->Channel == INDEX_NONE)
 			{
 				FMessageLog("LightingResults").Error()
 					->AddToken(FUObjectToken::Create(CurrentLight->Light->GetOwner()))

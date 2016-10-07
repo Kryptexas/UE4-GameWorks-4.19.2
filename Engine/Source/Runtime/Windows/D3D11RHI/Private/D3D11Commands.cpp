@@ -1713,6 +1713,65 @@ void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor, int32 NumClearColors, const
 	RHIClearMRTImpl(bClearColor, NumClearColors, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect, true, EForceFullScreenClear::EDoNotForce);
 }
 
+void FD3D11DynamicRHI::RHIClearDepthStencilTexture(FTextureRHIParamRef Texture, EClearDepthStencil ClearDepthStencil, float Depth, uint32 Stencil, FIntRect ExcludeRect)
+{
+	check(Texture && Texture->GetTexture2D());
+	FD3D11Texture2D* Texture2D = ResourceCast(Texture->GetTexture2D());
+	{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+//#todo-rco: Temporary check to track down texture mismatches
+		check(CurrentDepthStencilTarget);
+		ID3D11Resource* Resource;
+		CurrentDepthStencilTarget->GetResource(&Resource);
+		ensureMsgf(Resource == Texture2D->GetResource(), TEXT("Texture passed to ClearDepthStencil is not what is currently set as RenderTarget! Please fix!"));
+		Resource->Release();
+#endif
+	}
+	FD3D11DynamicRHI::RHIClearMRTImpl(false, 0, nullptr, ClearDepthStencil != EClearDepthStencil::Stencil, Depth, ClearDepthStencil != EClearDepthStencil::Depth, Stencil, ExcludeRect, true, EForceFullScreenClear::EDoNotForce);
+}
+
+void FD3D11DynamicRHI::RHIClearColorTexture(FTextureRHIParamRef Texture, const FLinearColor& ColorArray, FIntRect ExcludeRect)
+{
+	RHIClearColorTextures(1, &Texture, &ColorArray, ExcludeRect);
+}
+
+void FD3D11DynamicRHI::RHIClearColorTextures(int32 NumTextures, FTextureRHIParamRef* Textures, const FLinearColor* ColorArray, FIntRect ExcludeRect)
+{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+	//#todo-rco: Temporary check to track down texture mismatches
+	for (int32 Index = 0; Index < NumTextures; ++Index)
+	{
+		auto VerifyHandle = [Index](ID3D11RenderTargetView* Source, ID3D11Resource* DestResource)
+		{
+			ID3D11Resource* SourceResource;
+			Source->GetResource(&SourceResource);
+			ensureMsgf(SourceResource == DestResource, TEXT("Texture %d passed to ClearColorTexture(s) is not what is currently set as RenderTarget! Please fix!"), Index);
+			SourceResource->Release();
+		};
+
+		FRHITexture* Texture = Textures[Index];
+		check(Texture);
+		if (FRHITexture2D* Texture2D = Texture->GetTexture2D())
+		{
+			VerifyHandle(CurrentRenderTargets[Index], ResourceCast(Texture2D)->GetResource());
+		}
+		else if (FRHITextureCube* TextureCube = Texture->GetTextureCube())
+		{
+			VerifyHandle(CurrentRenderTargets[Index], ResourceCast(TextureCube)->GetResource());
+		}
+		else if (FRHITexture3D* Texture3D = Texture->GetTexture3D())
+		{
+			VerifyHandle(CurrentRenderTargets[Index], ResourceCast(Texture3D)->GetResource());
+		}
+		else
+		{
+			ensure(0);
+		}
+	}
+#endif
+	FD3D11DynamicRHI::RHIClearMRTImpl(true, NumTextures, ColorArray, false, 0, false, 0, ExcludeRect, true, EForceFullScreenClear::EDoNotForce);
+}
+
 void FD3D11DynamicRHI::RHIClearMRTImpl(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect, bool bForceShaderClear, EForceFullScreenClear ForceFullScreen)
 {	
 	//don't force shaders clears for the moment.  There are bugs with the state cache/restore behavior.

@@ -520,6 +520,8 @@ void ULevelStreaming::AsyncLevelLoadComplete(const FName& InPackageName, UPackag
 				check(PendingUnloadLevel == NULL);
 				SetLoadedLevel(Level);
 
+				Level->HandleLegacyMapBuildData();
+
 				// Broadcast level loaded event to blueprints
 				OnLevelLoaded.Broadcast();
 

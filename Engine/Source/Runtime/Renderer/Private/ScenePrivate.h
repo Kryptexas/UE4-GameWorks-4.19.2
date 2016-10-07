@@ -2093,7 +2093,7 @@ public:
 
 	virtual void ApplyWorldOffset(FVector InOffset) override;
 
-	virtual void OnLevelAddedToWorld(FName InLevelName) override;
+	virtual void OnLevelAddedToWorld(FName InLevelName, UWorld* InWorld, bool bIsLightingScenario) override;
 
 	virtual bool HasAnyLights() const override 
 	{ 

@@ -494,6 +494,59 @@ void FD3D12CommandContext::RHISetBoundShaderState(FBoundShaderStateRHIParamRef B
 	StateCache.ClearSRVs();
 }
 
+void FD3D12CommandContext::RHISetGraphicsPipelineState(FGraphicsPipelineStateRHIParamRef GraphicsState)
+{
+	FD2D12GraphicsPipelineState* GraphicsPipelineState = FD3D12DynamicRHI::ResourceCast(GraphicsState);
+
+	auto& PsoInit = GraphicsPipelineState->PipelineStateInitializer;
+
+	// TODO: [PSO API] Every thing inside this scope is only necessary to keep the PSO shadow in sync while we convert the high level to only use PSOs
+	{
+		FLinearColor BlendFactor(*reinterpret_cast<const FLinearColor*>(StateCache.GetBlendFactor()));
+		if (PsoInit.GetOptionalSetState() & FGraphicsPipelineStateInitializer::OptionalState::OS_SetBlendFactor)
+		{
+			BlendFactor = PsoInit.GetBlendFactor();
+		}
+
+		uint32 StencilRef = StateCache.GetStencilRef();
+		if (PsoInit.GetOptionalSetState() & FGraphicsPipelineStateInitializer::OptionalState::OS_SetStencilRef)
+		{
+			StencilRef = PsoInit.GetStencilRef();
+		}
+
+		TRenderTargetFormatsArray RenderTargetFormats;
+		DXGI_FORMAT DepthStencilFormat = DXGI_FORMAT_UNKNOWN;
+		uint32 NumTargets = PsoInit.RenderTargetsEnabled;
+
+		TranslateRenderTargetFormats(PsoInit, RenderTargetFormats, DepthStencilFormat);
+
+		// Set the tracking cache to the PSO state we are about to set
+		RHISetBoundShaderState(
+			FD3D12DynamicRHI::ResourceCast(
+				RHICreateBoundShaderState(
+					PsoInit.BoundShaderState.VertexDeclarationRHI,
+					PsoInit.BoundShaderState.VertexShaderRHI,
+					PsoInit.BoundShaderState.HullShaderRHI,
+					PsoInit.BoundShaderState.DomainShaderRHI,
+					PsoInit.BoundShaderState.PixelShaderRHI,
+					PsoInit.BoundShaderState.GeometryShaderRHI
+					).GetReference()
+				)
+			);
+
+		RHISetBlendState(PsoInit.BlendState, BlendFactor);
+		RHISetRasterizerState(PsoInit.RasterizerState);
+		RHISetDepthStencilState(PsoInit.DepthStencilState, StencilRef);
+
+		StateCache.SetPrimitiveTopologyType(D3D12PrimitiveTypeToTopologyType(TranslatePrimitiveType(PsoInit.PrimitiveType)));
+		StateCache.SetRenderDepthStencilTargetFormats(NumTargets, RenderTargetFormats, DepthStencilFormat, PsoInit.NumSamples);
+	}
+
+	// No need to build the PSO, this one is pre-built
+	StateCache.CommitPendingPipelineState(false);
+	StateCache.SetPipelineState(GraphicsPipelineState->PipelineState, false, false);
+}
+
 void FD3D12CommandContext::RHISetShaderTexture(FVertexShaderRHIParamRef VertexShaderRHI, uint32 TextureIndex, FTextureRHIParamRef NewTextureRHI)
 {
 	uint32 Start = FPlatformTime::Cycles();
@@ -951,10 +1004,20 @@ void FD3D12CommandContext::RHISetDepthStencilState(FDepthStencilStateRHIParamRef
 	StateCache.SetDepthStencilState(&NewState->Desc, StencilRef);
 }
 
+void FD3D12CommandContext::RHISetStencilRef(uint32 StencilRef)
+{
+	StateCache.SetStencilRef(StencilRef);
+}
+
 void FD3D12CommandContext::RHISetBlendState(FBlendStateRHIParamRef NewStateRHI, const FLinearColor& BlendFactor)
 {
 	FD3D12BlendState* NewState = FD3D12DynamicRHI::ResourceCast(NewStateRHI);
 	StateCache.SetBlendState(&NewState->Desc, (const float*)&BlendFactor, 0xffffffff);
+}
+
+void FD3D12CommandContext::RHISetBlendFactor(const FLinearColor& BlendFactor)
+{
+	StateCache.SetBlendFactor((const float*)&BlendFactor);
 }
 
 void FD3D12CommandContext::CommitRenderTargetsAndUAVs()

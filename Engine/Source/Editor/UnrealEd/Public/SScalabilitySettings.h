@@ -42,13 +42,13 @@ private:
 	TSharedRef<SWidget> MakeButtonWidget(const FText& InName, const TCHAR* InGroupName, int32 InQualityLevel, const FText& InToolTip);
 
 	// Makes a general quality level header button widget
-	TSharedRef<SWidget> MakeHeaderButtonWidget(const FText& InName, int32 InQualityLevel, const FText& InToolTip);
+	TSharedRef<SWidget> MakeHeaderButtonWidget(const FText& InName, int32 InQualityLevel, const FText& InToolTip, Scalability::EQualityLevelBehavior Behavior);
 
 	// Makes the auto benchmark button
 	TSharedRef<SWidget> MakeAutoButtonWidget();
 
 	// Callback for when a quality level header button is pressed
-	FReply OnHeaderClicked(int32 InQualityLevel);
+	FReply OnHeaderClicked(int32 InQualityLevel, Scalability::EQualityLevelBehavior Behavior);
 
 	// Callback for auto benchmark button
 	FReply OnAutoClicked();
@@ -63,7 +63,7 @@ private:
 	void OnMonitorPerformanceChanged(ECheckBoxState NewState);
 
 	/** Adds buttons for one settings strip to the grid */
-	void AddButtonsToGrid(int32 X0, int32 Y0, TSharedRef<SGridPanel> ButtonMatrix, const FText* FourNameArray, int32 ButtonCount, const TCHAR* GroupName, const FText& TooltipShape);
+	void AddButtonsToGrid(int32 X0, int32 Y0, TSharedRef<SGridPanel> ButtonMatrix, const FText* FiveNameArray, int32 ButtonCount, const TCHAR* GroupName, const FText& TooltipShape);
 
 private:
 	/* The state of scalability settings at the point of opening the menu*/

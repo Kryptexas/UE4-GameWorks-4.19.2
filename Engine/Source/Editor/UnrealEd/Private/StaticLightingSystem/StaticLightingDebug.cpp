@@ -56,7 +56,7 @@ static void WriteTexel(UTexture2D* Texture, int32 X, int32 Y, FColor NewColor)
 static bool UpdateSelectedTexel(
 	UPrimitiveComponent* Component, 
 	int32 NodeIndex, 
-	FLightMapRef& Lightmap, 
+	FLightMapRef Lightmap, 
 	const FVector& Position, 
 	FVector2D InterpolatedUV, 
 	int32 LocalX, int32 LocalY,
@@ -267,7 +267,12 @@ void SetDebugLightmapSample(TArray<UActorComponent*>* Components, UModel* Model,
 						}
 						else
 						{
-							bFoundLightmapSample = UpdateSelectedTexel(SMComponent, -1, SMComponent->LODData[LODIndex].LightMap, ClickLocation, InterpolatedUV, LocalX, LocalY, LightmapSizeX, LightmapSizeY);
+							const FMeshMapBuildData* MeshMapBuildData = SMComponent->GetMeshMapBuildData(SMComponent->LODData[LODIndex]);
+
+							if (MeshMapBuildData)
+							{
+								bFoundLightmapSample = UpdateSelectedTexel(SMComponent, -1, MeshMapBuildData->LightMap, ClickLocation, InterpolatedUV, LocalX, LocalY, LightmapSizeX, LightmapSizeY);
+							}
 						}
 					}
 				}
@@ -317,7 +322,12 @@ void SetDebugLightmapSample(TArray<UActorComponent*>* Components, UModel* Model,
 					}
 					else
 					{
-						bFoundLightmapSample = UpdateSelectedTexel(SMComponent, -1, SMComponent->LODData[LODIndex].LightMap, ClickLocation, InterpolatedUV, LocalX, LocalY, LightmapSizeX, LightmapSizeY);
+						const FMeshMapBuildData* MeshMapBuildData = SMComponent->GetMeshMapBuildData(SMComponent->LODData[LODIndex]);
+
+						if (MeshMapBuildData)
+						{
+							bFoundLightmapSample = UpdateSelectedTexel(SMComponent, -1, MeshMapBuildData->LightMap, ClickLocation, InterpolatedUV, LocalX, LocalY, LightmapSizeX, LightmapSizeY);
+						}
 					}		
 				}
 			}
@@ -456,14 +466,19 @@ void SetDebugLightmapSample(TArray<UActorComponent*>* Components, UModel* Model,
 				const int32 LocalY = FMath::TruncToInt(StaticLightingTextureCoordinate.Y * PaddedSizeY);
 				check(LocalX >= 0 && LocalX < PaddedSizeX && LocalY >= 0 && LocalY < PaddedSizeY);
 
-				bFoundLightmapSample = UpdateSelectedTexel(
-					ClosestComponent, 
-					SelectedNodeIndex, 
-					Element.LightMap, 
-					ClickLocation, 
-					InterpolatedUV, 
-					LocalX, LocalY,
-					LightmapSizeX, LightmapSizeY);
+				const FMeshMapBuildData* MeshMapBuildData = Element.GetMeshMapBuildData();
+
+				if (MeshMapBuildData)
+				{
+					bFoundLightmapSample = UpdateSelectedTexel(
+						ClosestComponent,
+						SelectedNodeIndex,
+						MeshMapBuildData->LightMap,
+						ClickLocation,
+						InterpolatedUV,
+						LocalX, LocalY,
+						LightmapSizeX, LightmapSizeY);
+				}
 
 				if (!bFoundLightmapSample)
 				{

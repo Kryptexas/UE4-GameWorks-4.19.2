@@ -93,6 +93,8 @@ public:
 		Submitted,
 	};
 
+	bool bNeedsDynamicStateSet;
+
 private:
 	FVulkanDevice* Device;
 	VkCommandBuffer CommandBufferHandle;
@@ -128,6 +130,7 @@ public:
 	FVulkanCmdBuffer* GetUploadCmdBuffer();
 
 	void SubmitUploadCmdBuffer(bool bWaitForFence);
+	void SubmitActiveCmdBuffer(bool bWaitForFence);
 
 	void RefreshFenceStatus();
 	void PrepareForNewActiveCommandBuffer();

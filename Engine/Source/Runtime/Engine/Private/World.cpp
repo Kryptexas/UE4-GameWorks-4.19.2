@@ -437,25 +437,7 @@ bool UWorld::Rename(const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags)
 {
 	check(PersistentLevel);
 
-	// Rename LightMaps and ShadowMaps to the new location. Keep the old name, since they are not named after the world.
-	TArray<UTexture2D*> LightMapsAndShadowMaps;
-	GetLightMapsAndShadowMaps(PersistentLevel, LightMapsAndShadowMaps);
-
 	UPackage* OldPackage = GetOutermost();
-
-	for (auto* Tex : LightMapsAndShadowMaps)
-	{
-		if ( Tex )
-		{
-			// We don't want to attempt to rename LightMaps and ShadowMaps from a different package.
-			bool bIsFromSamePackage = ensure(OldPackage == Tex->GetOutermost());
-
-			if ( bIsFromSamePackage && !Tex->Rename(*Tex->GetName(), NewOuter, Flags) )
-			{
-				return false;
-			}
-		}
-	}
 
 	bool bShouldFail = false;
 	FWorldDelegates::OnPreWorldRename.Broadcast(this, InName, NewOuter, Flags, bShouldFail);
@@ -558,20 +540,6 @@ void UWorld::PostDuplicate(bool bDuplicateForPIE)
 #if WITH_EDITOR
 		// Add the world to the list of objects in which to fix up references.
 		ObjectsToFixReferences.Add(this);
-
-		// Gather the textures
-		TArray<UTexture2D*> LightMapsAndShadowMaps;
-		GetLightMapsAndShadowMaps(PersistentLevel, LightMapsAndShadowMaps);
-
-		// Duplicate the textures, if any
-		for (auto* Tex : LightMapsAndShadowMaps)
-		{
-			if (Tex && Tex->GetOutermost() != MyPackage)
-			{
-				UObject* NewTex = StaticDuplicateObject(Tex, MyPackage, Tex->GetFName());
-				ReplacementMap.Add(Tex, NewTex);
-			}
-		}
 
 		// Duplicate the level script blueprint generated classes as well
 		const bool bDontCreate = true;
@@ -2656,7 +2624,7 @@ void UWorld::UpdateLevelStreamingInner(ULevelStreaming* StreamingLevel)
 					{
 						QUICK_SCOPE_CYCLE_COUNTER(STAT_UpdateLevelStreamingInner_OnLevelAddedToWorld);
 						// Notify the new level has been added after the old has been discarded
-						Scene->OnLevelAddedToWorld(Level->GetOutermost()->GetFName());
+						Scene->OnLevelAddedToWorld(Level->GetOutermost()->GetFName(), this, Level->bIsLightingScenario);
 					}
 				}
 			}
@@ -3382,6 +3350,19 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* Ne
 			if ( CurrentObject != this )
 			{
 				CurrentObject->ClearFlags( RF_Standalone );
+			}
+		}
+
+		if (bCleanupResources && WorldType != EWorldType::PIE)
+		{
+			for (int32 LevelIndex = 0; LevelIndex < GetNumLevels(); ++LevelIndex)
+			{
+				ULevel* Level = GetLevel(LevelIndex);
+
+				if (Level->MapBuildData)
+				{
+					Level->MapBuildData->ClearFlags(RF_Standalone);
+				}
 			}
 		}
 	}
@@ -4582,6 +4563,11 @@ void FSeamlessTravelHandler::SeamlessTravelLoadCallback(const FName& PackageName
 		// Now that the p map is loaded, start async loading any always loaded levels
 		if (World)
 		{
+			if (World->PersistentLevel)
+			{
+				World->PersistentLevel->HandleLegacyMapBuildData();
+			}
+
 			World->AsyncLoadAlwaysLoadedLevelsForSeamlessTravel();
 		}
 	}

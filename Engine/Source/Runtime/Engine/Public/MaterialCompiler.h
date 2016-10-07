@@ -24,6 +24,16 @@ public:
 	// sets internal state CurrentShaderFrequency 
 	// @param OverrideShaderFrequency SF_NumFrequencies to not override
 	virtual void SetMaterialProperty(EMaterialProperty InProperty, EShaderFrequency OverrideShaderFrequency = SF_NumFrequencies, bool bUsePreviousFrameTime = false) = 0;
+	
+	/** Pushes a material attriubtes property onto the stack. Called as we begin compiling a property through a MaterialAttributes pin. */
+	virtual void PushMaterialAttribute(const FGuid& InAttributeID) = 0;
+	/** Pops a MaterialAttributes property off the stack. Called as we finish compiling a property through a MaterialAttributes pin. */
+	virtual FGuid PopMaterialAttribute() = 0;
+	/** Gets the current top of the MaterialAttributes property stack. */
+	virtual const FGuid GetMaterialAttribute() = 0;
+	/** Sets the bottom MaterialAttributes property of the stack. */
+	virtual void SetBaseMaterialAttribute(const FGuid& InAttributeID) = 0;
+
 	// gets value stored by SetMaterialProperty()
 	virtual EShaderFrequency GetCurrentShaderFrequency() const = 0;
 	//
@@ -149,6 +159,8 @@ public:
 
 	virtual int32 VertexColor() = 0;
 
+	virtual int32 PreSkinnedPosition() = 0;
+
 #if WITH_EDITOR
 	virtual int32 MaterialBakingWorldPosition() = 0;
 #endif
@@ -233,6 +245,10 @@ public:
 
 	virtual EMaterialShadingModel GetMaterialShadingModel() const { return Compiler->GetMaterialShadingModel();  }
 	virtual void SetMaterialProperty(EMaterialProperty InProperty, EShaderFrequency OverrideShaderFrequency, bool bUsePreviousFrameTime) override { Compiler->SetMaterialProperty(InProperty, OverrideShaderFrequency, bUsePreviousFrameTime); }
+	virtual void PushMaterialAttribute(const FGuid& InAttributeID) override { Compiler->PushMaterialAttribute(InAttributeID); }
+	virtual FGuid PopMaterialAttribute() override { return Compiler->PopMaterialAttribute(); }
+	virtual const FGuid GetMaterialAttribute() override { return Compiler->GetMaterialAttribute(); }
+	virtual void SetBaseMaterialAttribute(const FGuid& InAttributeID) override { Compiler->SetBaseMaterialAttribute(InAttributeID); }
 	virtual EShaderFrequency GetCurrentShaderFrequency() const override { return Compiler->GetCurrentShaderFrequency(); }
 	virtual int32 Error(const TCHAR* Text) override { return Compiler->Error(Text); }
 
@@ -322,6 +338,8 @@ public:
 	virtual int32 StaticTerrainLayerWeight(FName ParameterName,int32 Default) override { return Compiler->StaticTerrainLayerWeight(ParameterName,Default); }
 
 	virtual int32 VertexColor() override { return Compiler->VertexColor(); }
+	
+	virtual int32 PreSkinnedPosition() override { return Compiler->PreSkinnedPosition(); }
 
 	virtual int32 Add(int32 A,int32 B) override { return Compiler->Add(A,B); }
 	virtual int32 Sub(int32 A,int32 B) override { return Compiler->Sub(A,B); }
@@ -428,4 +446,26 @@ public:
 protected:
 		
 	FMaterialCompiler* Compiler;
+};
+
+// Helper class to handle MaterialAttribute changes on the compiler stack
+class FScopedMaterialCompilerAttribute
+{
+public:
+	FScopedMaterialCompilerAttribute(FMaterialCompiler* InCompiler, const FGuid& InAttributeID)
+	: Compiler(InCompiler)
+	, AttributeID(InAttributeID)
+	{
+		check(Compiler);
+		Compiler->PushMaterialAttribute(AttributeID);
+	}
+
+	~FScopedMaterialCompilerAttribute()
+	{
+		verify(AttributeID == Compiler->PopMaterialAttribute());
+	}
+
+private:
+	FMaterialCompiler*	Compiler;
+	FGuid				AttributeID;
 };

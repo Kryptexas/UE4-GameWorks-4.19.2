@@ -226,11 +226,11 @@ static void UpdatePlanarReflectionContents_RenderThread(
 #endif
 
 				const FRenderTarget* Target = SceneRenderer->ViewFamily.RenderTarget;
-				SetRenderTarget(RHICmdList, Target->GetRenderTargetTexture(), NULL, true);
+				SetRenderTarget(RHICmdList, Target->GetRenderTargetTexture(), nullptr, true);
 
 				// Note: relying on GBuffer SceneColor alpha being cleared to 1 in the main scene rendering
 				check(GetSceneColorClearAlpha() == 1.0f);
-				RHICmdList.Clear(true, FLinearColor(0, 0, 0, 1), false, (float)ERHIZBuffer::FarPlane, false, 0, FIntRect());
+				RHICmdList.ClearColorTexture(Target->GetRenderTargetTexture(), FLinearColor(0, 0, 0, 1), FIntRect());
 
 				// Reflection view late update
 				if (SceneRenderer->Views.Num() > 1)
@@ -343,10 +343,10 @@ void FScene::UpdatePlanarReflectionContents(UPlanarReflectionComponent* CaptureC
 
 			// Create a mirror matrix and premultiply the view transform by it
 			const FMirrorMatrix MirrorMatrix(MirrorPlane);
-			const FMatrix ViewMatrix(MirrorMatrix * View.ViewMatrices.ViewMatrix);
+			const FMatrix ViewMatrix(MirrorMatrix * View.ViewMatrices.GetViewMatrix());
 			const FVector ViewLocation = ViewMatrix.InverseTransformPosition(FVector::ZeroVector);
 			const FMatrix ViewRotationMatrix = ViewMatrix.RemoveTranslation();
-			const float FOV = FMath::Atan(1.0f / View.ViewMatrices.ProjMatrix.M[0][0]);
+			const float FOV = FMath::Atan(1.0f / View.ViewMatrices.GetProjectionMatrix().M[0][0]);
 
 			FMatrix ProjectionMatrix;
 			BuildProjectionMatrix(View.ViewRect.Size(), ECameraProjectionMode::Perspective, FOV + CaptureComponent->ExtraFOV * (float)PI / 180.0f, 1.0f, ProjectionMatrix);
@@ -499,31 +499,27 @@ private:
 
 IMPLEMENT_SHADER_TYPE(,FPlanarReflectionPS,TEXT("PlanarReflectionShaders"),TEXT("PlanarReflectionPS"),SF_Pixel);
 
-bool FDeferredShadingSceneRenderer::RenderDeferredPlanarReflections(FRHICommandListImmediate& RHICmdList, bool bLightAccumulationIsInUse, TRefCountPtr<IPooledRenderTarget>& Output)
+bool FDeferredShadingSceneRenderer::RenderDeferredPlanarReflections(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, bool bLightAccumulationIsInUse, TRefCountPtr<IPooledRenderTarget>& Output)
 {
-	bool bAnyViewIsReflectionCapture = false;
 	bool bAnyVisiblePlanarReflections = false;
 
-	for (int32 ViewIndex = 0, Num = Views.Num(); ViewIndex < Num; ViewIndex++)
+	for (int32 PlanarReflectionIndex = 0; PlanarReflectionIndex < Scene->PlanarReflections.Num(); PlanarReflectionIndex++)
 	{
-		const FViewInfo& View = Views[ViewIndex];
+		FPlanarReflectionSceneProxy* ReflectionSceneProxy = Scene->PlanarReflections[PlanarReflectionIndex];
 
-		for (int32 PlanarReflectionIndex = 0; PlanarReflectionIndex < Scene->PlanarReflections.Num(); PlanarReflectionIndex++)
+		if (View.ViewFrustum.IntersectBox(ReflectionSceneProxy->WorldBounds.GetCenter(), ReflectionSceneProxy->WorldBounds.GetExtent()))
 		{
-			FPlanarReflectionSceneProxy* ReflectionSceneProxy = Scene->PlanarReflections[PlanarReflectionIndex];
-
-			if (View.ViewFrustum.IntersectBox(ReflectionSceneProxy->WorldBounds.GetCenter(), ReflectionSceneProxy->WorldBounds.GetExtent()))
-			{
-				bAnyVisiblePlanarReflections = true;
-			}
+			bAnyVisiblePlanarReflections = true;
 		}
-
-		bAnyViewIsReflectionCapture = bAnyViewIsReflectionCapture || View.bIsPlanarReflection || View.bIsReflectionCapture;
 	}
 
+	bool bViewIsReflectionCapture = View.bIsPlanarReflection || View.bIsReflectionCapture;
+
 	// Prevent reflection recursion, or view-dependent planar reflections being seen in reflection captures
-	if (Scene->PlanarReflections.Num() > 0 && !bAnyViewIsReflectionCapture && bAnyVisiblePlanarReflections)
+	if (Scene->PlanarReflections.Num() > 0 && !bViewIsReflectionCapture && bAnyVisiblePlanarReflections)
 	{
+		SCOPED_DRAW_EVENT(RHICmdList, CompositePlanarReflections);
+
 		bool bSSRAsInput = true;
 
 		if (Output == GSystemTextures.BlackDummy)
@@ -542,19 +538,14 @@ bool FDeferredShadingSceneRenderer::RenderDeferredPlanarReflections(FRHICommandL
 			}
 		}
 
-		SCOPED_DRAW_EVENT(RHICmdList, CompositePlanarReflections);
-
-		SetRenderTarget(RHICmdList, Output->GetRenderTargetItem().TargetableTexture, NULL);
+		SetRenderTarget(RHICmdList, Output->GetRenderTargetItem().TargetableTexture, nullptr);
 
 		if (!bSSRAsInput)
 		{
-			RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), false, 0, false, 0, FIntRect());
+			RHICmdList.ClearColorTexture(Output->GetRenderTargetItem().TargetableTexture, FLinearColor(0, 0, 0, 0), FIntRect());
 		}
 
-		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 		{
-			FViewInfo& View = Views[ViewIndex];
-
 			RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 
 			// Blend over previous reflections in the output target (SSR or planar reflections that have already been rendered)
@@ -622,6 +613,10 @@ void FPlanarReflectionParameters::SetParameters(FRHICommandList& RHICmdList, FPi
 		SetShaderValue(RHICmdList, ShaderRHI, PlanarReflectionParameters2, ReflectionSceneProxy->PlanarReflectionParameters2);
 		SetShaderValue(RHICmdList, ShaderRHI, IsStereoParameter, ReflectionSceneProxy->bIsStereo);
 		SetShaderValueArray(RHICmdList, ShaderRHI, ProjectionWithExtraFOV, ReflectionSceneProxy->ProjectionWithExtraFOV, 2);
+	}
+	else // Metal needs the IsStereoParameter set always otherwise the access in the shader may be invalid.
+	{
+		SetShaderValue(RHICmdList, ShaderRHI, IsStereoParameter, false);
 	}
 
 	SetShaderValue(RHICmdList, ShaderRHI, ReflectionPlane, ReflectionPlaneValue);

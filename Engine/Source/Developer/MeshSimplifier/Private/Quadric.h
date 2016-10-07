@@ -79,21 +79,25 @@ inline FQuadric::FQuadric( const FVector& p0, const FVector& p1, const FVector& 
 	checkSlow( FMath::IsFinite( n.X ) );
 	checkSlow( FMath::IsFinite( n.Y ) );
 	checkSlow( FMath::IsFinite( n.Z ) );
+
+	double nX = n.X;
+	double nY = n.Y;
+	double nZ = n.Z;
 	
 	double area = 0.5f * Length;
-	double dist = -( n | p0 );
+	double dist = -( nX * p0.X + nY * p0.Y + nZ * p0.Z );
 
-	nxx = n.X * n.X;
-	nyy = n.Y * n.Y;
-	nzz = n.Z * n.Z;
+	nxx = nX * nX;
+	nyy = nY * nY;
+	nzz = nZ * nZ;
 
-	nxy = n.X * n.Y;
-	nxz = n.X * n.Z;
-	nyz = n.Y * n.Z;
+	nxy = nX * nY;
+	nxz = nX * nZ;
+	nyz = nY * nZ;
 
-	dnx = dist * n.X;
-	dny = dist * n.Y;
-	dnz = dist * n.Z;
+	dnx = dist * nX;
+	dny = dist * nY;
+	dnz = dist * nZ;
 
 	d2 = dist * dist;
 
@@ -140,20 +144,24 @@ inline FQuadric::FQuadric( const FVector& p0, const FVector& p1, const FVector& 
 	checkSlow( FMath::IsFinite( n.Y ) );
 	checkSlow( FMath::IsFinite( n.Z ) );
 
-	double dist = -( n | p0 );
+	double nX = n.X;
+	double nY = n.Y;
+	double nZ = n.Z;
+
+	double dist = -( nX * p0.X + nY * p0.Y + nZ * p0.Z );
 	double weight = edgeWeight * edge.Size();
 
-	nxx = weight * n.X * n.X;
-	nyy = weight * n.Y * n.Y;
-	nzz = weight * n.Z * n.Z;
+	nxx = weight * nX * nX;
+	nyy = weight * nY * nY;
+	nzz = weight * nZ * nZ;
 
-	nxy = weight * n.X * n.Y;
-	nxz = weight * n.X * n.Z;
-	nyz = weight * n.Y * n.Z;
+	nxy = weight * nX * nY;
+	nxz = weight * nX * nZ;
+	nyz = weight * nY * nZ;
 
-	dnx = weight * dist * n.X;
-	dny = weight * dist * n.Y;
-	dnz = weight * dist * n.Z;
+	dnx = weight * dist * nX;
+	dny = weight * dist * nY;
+	dnz = weight * dist * nZ;
 
 	d2 = weight * dist * dist;
 	
@@ -316,27 +324,31 @@ inline TQuadricAttr< NumAttributes >::TQuadricAttr(
 	checkSlow( FMath::IsFinite( n.Y ) );
 	checkSlow( FMath::IsFinite( n.Z ) );
 
+	double nX = n.X;
+	double nY = n.Y;
+	double nZ = n.Z;
+
 	double area = 0.5f * Length;
-	double dist = -( n | p0 );
+	double dist = -( nX * p0.X + nY * p0.Y + nZ * p0.Z );
 
-	nxx = n.X * n.X;
-	nyy = n.Y * n.Y;
-	nzz = n.Z * n.Z;
+	nxx = nX * nX;
+	nyy = nY * nY;
+	nzz = nZ * nZ;
 
-	nxy = n.X * n.Y;
-	nxz = n.X * n.Z;
-	nyz = n.Y * n.Z;
+	nxy = nX * nY;
+	nxz = nX * nZ;
+	nyz = nY * nZ;
 
-	dnx = dist * n.X;
-	dny = dist * n.Y;
-	dnz = dist * n.Z;
+	dnx = dist * nX;
+	dny = dist * nY;
+	dnz = dist * nZ;
 
 	d2 = dist * dist;
 
 #if VOLUME_CONSTRAINT
-	nvx = n.X * ( area / 3.0 );
-	nvy = n.Y * ( area / 3.0 );
-	nvz = n.Z * ( area / 3.0 );
+	nvx = nX * ( area / 3.0 );
+	nvy = nY * ( area / 3.0 );
+	nvz = nZ * ( area / 3.0 );
 	dv = dist * ( area / 3.0 );
 #endif
 

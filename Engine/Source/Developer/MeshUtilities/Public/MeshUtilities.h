@@ -106,9 +106,14 @@ class IMeshReductionModule : public IModuleInterface
 {
 public:
 	/**
-	 * Retrieve the mesh reduction interface.
+	 * Retrieve the static mesh reduction interface.
 	 */
-	virtual class IMeshReduction* GetMeshReductionInterface() = 0;
+	virtual class IMeshReduction* GetStaticMeshReductionInterface() = 0;
+
+	/**
+	 * Retrieve the static mesh reduction interface.
+	 */
+	virtual class IMeshReduction* GetSkeletalMeshReductionInterface() = 0;
 	
 	/**
 	 * Retrieve the mesh merging interface.
@@ -201,7 +206,10 @@ public:
 		) = 0;
 
 	/** Returns the mesh reduction plugin if available. */
-	virtual IMeshReduction* GetMeshReductionInterface() = 0;
+	virtual IMeshReduction* GetStaticMeshReductionInterface() = 0;
+
+	/** Returns the mesh reduction plugin if available. */
+	virtual IMeshReduction* GetSkeletalMeshReductionInterface() = 0;
 
 	/** Returns the mesh merging plugin if available. */
 	virtual IMeshMerging* GetMeshMergingInterface() = 0;

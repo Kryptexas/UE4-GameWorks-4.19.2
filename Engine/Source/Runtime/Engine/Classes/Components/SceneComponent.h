@@ -1173,6 +1173,13 @@ public:
 	/** Determines whether or not the component can have its mobility set to static */
 	virtual const bool CanHaveStaticMobility() const { return true; }
 
+	virtual void PropagateLightingScenarioChange() {}
+
+	virtual bool IsPrecomputedLightingValid() const
+	{
+		return false;
+	}
+
 private:
 
 	friend struct FDirectAttachChildrenAccessor;

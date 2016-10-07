@@ -765,7 +765,7 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 				if( CurrentView.IsPerspectiveProjection() )
 				{
 					// Compute the distance between the view and the primitive.
-					float DistanceSquared = (Proxy->GetBounds().Origin - CurrentView.ShadowViewMatrices.ViewOrigin).SizeSquared();
+					float DistanceSquared = (Proxy->GetBounds().Origin - CurrentView.ShadowViewMatrices.GetViewOrigin()).SizeSquared();
 
 					bool bIsDistanceCulled = CurrentView.IsDistanceCulled(
 						DistanceSquared,
@@ -824,7 +824,7 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 				{
 					FViewInfo& CurrentView = *Views[ViewIndex];
 
-					const float DistanceSquared = ( Bounds.Origin - CurrentView.ShadowViewMatrices.ViewOrigin ).SizeSquared();
+					const float DistanceSquared = ( Bounds.Origin - CurrentView.ShadowViewMatrices.GetViewOrigin() ).SizeSquared();
 
 					if (bWholeSceneShadow)
 					{
@@ -1077,14 +1077,14 @@ void FProjectedShadowInfo::GatherDynamicMeshElements(FSceneRenderer& Renderer, F
 
 
 		    // Backup properties of the view that we will override
-		    FMatrix OriginalViewMatrix = FoundView->ViewMatrices.ViewMatrix;
+		    FMatrix OriginalViewMatrix = FoundView->ViewMatrices.GetViewMatrix();
     
 		    // Override the view matrix so that billboarding primitives will be aligned to the light
-		    FoundView->ViewMatrices.ViewMatrix = ShadowViewMatrix;
+		    FoundView->ViewMatrices.HackOverrideViewMatrixForShadows(ShadowViewMatrix);
     
 		    ReusedViewsArray[0] = FoundView;
     
-		    check(!FoundView->ViewMatrices.GetDynamicMeshElementsShadowCullFrustum);
+		    check(!FoundView->GetDynamicMeshElementsShadowCullFrustum());
     
 		    int32 Disable = 0; //CVarDisableCullShadows.GetValueOnRenderThread();
 		    FConvexVolume NoCull;
@@ -1096,31 +1096,31 @@ void FProjectedShadowInfo::GatherDynamicMeshElements(FSceneRenderer& Renderer, F
 
 		    if (IsWholeSceneDirectionalShadow())
 		    {
-			    FoundView->ViewMatrices.PreShadowTranslation = FVector(0,0,0);
-			    FoundView->ViewMatrices.GetDynamicMeshElementsShadowCullFrustum = (Disable & 1) ? &NoCull : &CascadeSettings.ShadowBoundsAccurate;
+			    FoundView->SetPreShadowTranslation(FVector(0,0,0));
+			    FoundView->SetDynamicMeshElementsShadowCullFrustum((Disable & 1) ? &NoCull : &CascadeSettings.ShadowBoundsAccurate);
 			    GatherDynamicMeshElementsArray(FoundView, Renderer, DynamicSubjectPrimitives, DynamicSubjectMeshElements, ReusedViewsArray);
-			    FoundView->ViewMatrices.PreShadowTranslation = PreShadowTranslation;
+			    FoundView->SetPreShadowTranslation(PreShadowTranslation);
 		    }
 		    else
 		    {
-			    FoundView->ViewMatrices.PreShadowTranslation = PreShadowTranslation;
-			    FoundView->ViewMatrices.GetDynamicMeshElementsShadowCullFrustum = (Disable & 1) ? &NoCull : &CasterFrustum;
+			    FoundView->SetPreShadowTranslation(PreShadowTranslation);
+			    FoundView->SetDynamicMeshElementsShadowCullFrustum((Disable & 1) ? &NoCull : &CasterFrustum);
 			    GatherDynamicMeshElementsArray(FoundView, Renderer, DynamicSubjectPrimitives, DynamicSubjectMeshElements, ReusedViewsArray);
 		    }
 
 			FoundView->DrawDynamicFlags = EDrawDynamicFlags::None;
     
-		    FoundView->ViewMatrices.GetDynamicMeshElementsShadowCullFrustum = (Disable & 2) ? &NoCull : &ReceiverFrustum;
+		    FoundView->SetDynamicMeshElementsShadowCullFrustum((Disable & 2) ? &NoCull : &ReceiverFrustum);
 		    GatherDynamicMeshElementsArray(FoundView, Renderer, ReceiverPrimitives, DynamicReceiverMeshElements, ReusedViewsArray);
     
-		    FoundView->ViewMatrices.GetDynamicMeshElementsShadowCullFrustum = (Disable & 4) ? &NoCull : &CasterFrustum;
+		    FoundView->SetDynamicMeshElementsShadowCullFrustum((Disable & 4) ? &NoCull : &CasterFrustum);
 		    GatherDynamicMeshElementsArray(FoundView, Renderer, SubjectTranslucentPrimitives, DynamicSubjectTranslucentMeshElements, ReusedViewsArray);
     
 			if (!bMakeViewSnapshot)
 			{
-				FoundView->ViewMatrices.GetDynamicMeshElementsShadowCullFrustum = nullptr;
+				FoundView->SetDynamicMeshElementsShadowCullFrustum(nullptr);
 
-				FoundView->ViewMatrices.ViewMatrix = OriginalViewMatrix;
+				FoundView->ViewMatrices.HackOverrideViewMatrixForShadows(OriginalViewMatrix);
 			}
 
 			Renderer.MeshCollector.ProcessTasks();
@@ -1518,17 +1518,17 @@ void FSceneRenderer::CreatePerObjectProjectedShadow(
 		const FViewInfo& View = Views[ViewIndex];
 
 		// Determine the size of the subject's bounding sphere in this view.
-		const FVector ShadowViewOrigin = View.ViewMatrices.ViewOrigin;
+		const FVector ShadowViewOrigin = View.ViewMatrices.GetViewOrigin();
 		float ShadowViewDistFromBounds = (OriginalBounds.Origin - ShadowViewOrigin).Size();
-		const float ScreenRadius = View.ShadowViewMatrices.ScreenScale *
+		const float ScreenRadius = View.ShadowViewMatrices.GetScreenScale() *
 			OriginalBounds.SphereRadius /
 			FMath::Max(ShadowViewDistFromBounds, 1.0f);
 		// Early catch for invalid CalculateShadowFadeAlpha()
-		ensureMsgf(ScreenRadius >= 0.0f, TEXT("View.ShadowViewMatrices.ScreenScale %f, OriginalBounds.SphereRadius %f, ShadowViewDistFromBounds %f"), View.ShadowViewMatrices.ScreenScale, OriginalBounds.SphereRadius, ShadowViewDistFromBounds);
+		ensureMsgf(ScreenRadius >= 0.0f, TEXT("View.ShadowViewMatrices.ScreenScale %f, OriginalBounds.SphereRadius %f, ShadowViewDistFromBounds %f"), View.ShadowViewMatrices.GetScreenScale(), OriginalBounds.SphereRadius, ShadowViewDistFromBounds);
 
 		const float ScreenPercent = FMath::Max(
-			1.0f / 2.0f * View.ShadowViewMatrices.ProjectionScale.X,
-			1.0f / 2.0f * View.ShadowViewMatrices.ProjectionScale.Y
+			1.0f / 2.0f * View.ShadowViewMatrices.GetProjectionScale().X,
+			1.0f / 2.0f * View.ShadowViewMatrices.GetProjectionScale().Y
 			) *
 			OriginalBounds.SphereRadius /
 			FMath::Max(ShadowViewDistFromBounds, 1.0f);
@@ -1695,7 +1695,7 @@ void FSceneRenderer::CreatePerObjectProjectedShadow(
 				const float DistanceFromShadowCenterSquared = (WholeSceneShadow->ShadowBounds.Center - Bounds.Origin).SizeSquared();
 				//@todo - if view dependent whole scene shadows are ever supported in splitscreen, 
 				// We can only disable the preshadow at this point if it is inside a whole scene shadow for all views
-				const float DistanceFromViewSquared = ((FVector)WholeSceneShadow->DependentView->ShadowViewMatrices.ViewOrigin - Bounds.Origin).SizeSquared();
+				const float DistanceFromViewSquared = ((FVector)WholeSceneShadow->DependentView->ShadowViewMatrices.GetViewOrigin() - Bounds.Origin).SizeSquared();
 				// Mark the preshadow as inside the whole scene shadow if its bounding sphere is inside the near fade distance
 				if (DistanceFromShadowCenterSquared < FMath::Square(FMath::Max(WholeSceneShadow->ShadowBounds.W - Bounds.SphereRadius, 0.0f))
 					//@todo - why is this extra threshold required?
@@ -1882,7 +1882,7 @@ void FSceneRenderer::CreateWholeSceneProjectedShadow(FLightSceneInfo* LightScene
 
 			// Determine the size of the light's bounding sphere in this view.
 			const FVector4 ScreenPosition = View.WorldToScreen(LightSceneInfo->Proxy->GetOrigin());
-			const float ScreenRadius = View.ShadowViewMatrices.ScreenScale *
+			const float ScreenRadius = View.ShadowViewMatrices.GetScreenScale() *
 				LightSceneInfo->Proxy->GetRadius() /
 				FMath::Max(ScreenPosition.W,1.0f);
 
@@ -2185,9 +2185,9 @@ void FSceneRenderer::InitProjectedShadowVisibility(FRHICommandListImmediate& RHI
 									case 3: Color = FColor::Blue; break;
 								}
 
-								const FMatrix ViewMatrix = View.ViewMatrices.ViewMatrix;
-								const FMatrix ProjectionMatrix = View.ViewMatrices.ProjMatrix;
-								const FVector4 ViewOrigin = View.ViewMatrices.ViewOrigin;
+								const FMatrix ViewMatrix = View.ViewMatrices.GetViewMatrix();
+								const FMatrix ProjectionMatrix = View.ViewMatrices.GetProjectionMatrix();
+								const FVector4 ViewOrigin = View.ViewMatrices.GetViewOrigin();
 
 								float AspectRatio = ProjectionMatrix.M[1][1] / ProjectionMatrix.M[0][0];
 								float ActualFOV = (ViewOrigin.W > 0.0f) ? FMath::Atan(1.0f / ProjectionMatrix.M[0][0]) : PI/4.0f;
@@ -2372,7 +2372,7 @@ inline void FSceneRenderer::GatherShadowsForPrimitiveInner(
 						check( ProjectedShadowInfo->DependentView );
 						if ( ProjectedShadowInfo->DependentView ) 
 						{
-							const float DistanceSquared = ( PrimitiveBounds.Origin - ProjectedShadowInfo->DependentView->ShadowViewMatrices.ViewOrigin ).SizeSquared();
+							const float DistanceSquared = ( PrimitiveBounds.Origin - ProjectedShadowInfo->DependentView->ShadowViewMatrices.GetViewOrigin() ).SizeSquared();
 							bScreenSpaceSizeCulled = FMath::Square( PrimitiveBounds.SphereRadius ) < FMath::Square( MinScreenRadiusForShadowCaster ) * DistanceSquared * ProjectedShadowInfo->DependentView->LODDistanceFactorSquared;
 						}
 
@@ -2567,13 +2567,15 @@ void FSceneRenderer::AddViewDependentWholeSceneShadowsForView(
 					// Create the projected shadow info.
 					FProjectedShadowInfo* ProjectedShadowInfo = new(FMemStack::Get(), 1, 16) FProjectedShadowInfo;
 
+					uint32 ShadowBorder = GRHINeedsUnatlasedCSMDepthsWorkaround ? 0 : SHADOW_BORDER;
+
 					ProjectedShadowInfo->SetupWholeSceneProjection(
 						&LightSceneInfo,
 						&View,
 						ProjectedShadowInitializer,
-						ShadowBufferResolution.X - SHADOW_BORDER * 2,
-						ShadowBufferResolution.Y - SHADOW_BORDER * 2,
-						SHADOW_BORDER,
+						ShadowBufferResolution.X - ShadowBorder * 2,
+						ShadowBufferResolution.Y - ShadowBorder * 2,
+						ShadowBorder,
 						false	// no RSM
 						);
 
@@ -2960,22 +2962,62 @@ void FSceneRenderer::AllocateCachedSpotlightShadowDepthTargets(FRHICommandListIm
 	}
 }
 
+/**
+* Helper function to get the name of a CSM rendertarget, keeping the pointers around (this is required by the rendertarget pool)
+* @param ShadowMapIndex - the index of the shadow map cascade
+*/
+const TCHAR* GetCSMRenderTargetName(int32 ShadowMapIndex)
+{
+	// Render target names require string pointers not to be released, so we cache them in a static array and grow as necessary
+	static TArray<FString*> ShadowmapNames;
+	while (ShadowmapNames.Num() < ShadowMapIndex + 1)
+	{
+		if (ShadowMapIndex == 0)
+		{
+			ShadowmapNames.Add(new FString(TEXT("WholeSceneShadowmap")));
+		}
+		else
+		{
+			ShadowmapNames.Add(new FString(FString::Printf(TEXT("WholeSceneShadowmap%d"), ShadowmapNames.Num())));
+		}
+	}
+	return **ShadowmapNames[ShadowMapIndex];
+}
+
+struct FLayoutAndAssignedShadows
+{
+	FLayoutAndAssignedShadows(int32 MaxTextureSize) :
+		TextureLayout(1, 1, MaxTextureSize, MaxTextureSize, false, false)
+	{}
+
+	FTextureLayout TextureLayout;
+	TArray<FProjectedShadowInfo*, SceneRenderingAllocator> Shadows;
+};
+
 void FSceneRenderer::AllocateCSMDepthTargets(FRHICommandListImmediate& RHICmdList, const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& WholeSceneDirectionalShadows)
 {
 	if (WholeSceneDirectionalShadows.Num() > 0)
 	{
+		const bool bAllowAtlasing = !GRHINeedsUnatlasedCSMDepthsWorkaround;
+
 		const int32 MaxTextureSize = 1 << (GMaxTextureMipCount - 1);
-		FTextureLayout ShadowLayout(1, 1, MaxTextureSize, MaxTextureSize, false, false);
+		TArray<FLayoutAndAssignedShadows, SceneRenderingAllocator> Layouts;
+		Layouts.Add(FLayoutAndAssignedShadows(MaxTextureSize));
 
 		for (int32 ShadowIndex = 0; ShadowIndex < WholeSceneDirectionalShadows.Num(); ShadowIndex++)
 		{
+			if (!bAllowAtlasing && ShadowIndex > 0)
+			{
+				Layouts.Add(FLayoutAndAssignedShadows(MaxTextureSize));
+			}
+
 			FProjectedShadowInfo* ProjectedShadowInfo = WholeSceneDirectionalShadows[ShadowIndex];
 
 			// Atlased shadows need a border
-			check(ProjectedShadowInfo->BorderSize != 0);
+			check(!bAllowAtlasing || ProjectedShadowInfo->BorderSize != 0);
 			check(!ProjectedShadowInfo->bAllocated);
 
-			if (ShadowLayout.AddElement(
+			if (Layouts.Last().TextureLayout.AddElement(
 				ProjectedShadowInfo->X,
 				ProjectedShadowInfo->Y,
 				ProjectedShadowInfo->ResolutionX + ProjectedShadowInfo->BorderSize * 2,
@@ -2983,25 +3025,31 @@ void FSceneRenderer::AllocateCSMDepthTargets(FRHICommandListImmediate& RHICmdLis
 				)
 			{
 				ProjectedShadowInfo->bAllocated = true;
+				Layouts.Last().Shadows.Add(ProjectedShadowInfo);
 			}
 		}
 
-		SortedShadowsForShadowDepthPass.ShadowMapAtlases.AddDefaulted();
-		FSortedShadowMapAtlas& ShadowMapAtlas = SortedShadowsForShadowDepthPass.ShadowMapAtlases.Last();
-
-		FIntPoint WholeSceneAtlasSize(ShadowLayout.GetSizeX(), ShadowLayout.GetSizeY());
-		FPooledRenderTargetDesc WholeSceneShadowMapDesc2D(FPooledRenderTargetDesc::Create2DDesc(WholeSceneAtlasSize, PF_ShadowDepth, FClearValueBinding::DepthOne, TexCreate_None, TexCreate_DepthStencilTargetable, false));
-		GRenderTargetPool.FindFreeElement(RHICmdList, WholeSceneShadowMapDesc2D, ShadowMapAtlas.RenderTargets.DepthTarget, TEXT("WholeSceneShadowMap"));
-
-		for (int32 ShadowIndex = 0; ShadowIndex < WholeSceneDirectionalShadows.Num(); ShadowIndex++)
+		for (int32 LayoutIndex = 0; LayoutIndex < Layouts.Num(); LayoutIndex++)
 		{
-			FProjectedShadowInfo* ProjectedShadowInfo = WholeSceneDirectionalShadows[ShadowIndex];
+			const FLayoutAndAssignedShadows& CurrentLayout = Layouts[LayoutIndex];
 
-			if (ProjectedShadowInfo->bAllocated)
+			SortedShadowsForShadowDepthPass.ShadowMapAtlases.AddDefaulted();
+			FSortedShadowMapAtlas& ShadowMapAtlas = SortedShadowsForShadowDepthPass.ShadowMapAtlases.Last();
+
+			FIntPoint WholeSceneAtlasSize(CurrentLayout.TextureLayout.GetSizeX(), CurrentLayout.TextureLayout.GetSizeY());
+			FPooledRenderTargetDesc WholeSceneShadowMapDesc2D(FPooledRenderTargetDesc::Create2DDesc(WholeSceneAtlasSize, PF_ShadowDepth, FClearValueBinding::DepthOne, TexCreate_None, TexCreate_DepthStencilTargetable, false));
+			GRenderTargetPool.FindFreeElement(RHICmdList, WholeSceneShadowMapDesc2D, ShadowMapAtlas.RenderTargets.DepthTarget, GetCSMRenderTargetName(LayoutIndex));
+
+			for (int32 ShadowIndex = 0; ShadowIndex < CurrentLayout.Shadows.Num(); ShadowIndex++)
 			{
-				ProjectedShadowInfo->RenderTargets.DepthTarget = ShadowMapAtlas.RenderTargets.DepthTarget.GetReference();
-				ProjectedShadowInfo->SetupShadowDepthView(RHICmdList, this);
-				ShadowMapAtlas.Shadows.Add(ProjectedShadowInfo);
+				FProjectedShadowInfo* ProjectedShadowInfo = CurrentLayout.Shadows[ShadowIndex];
+
+				if (ProjectedShadowInfo->bAllocated)
+				{
+					ProjectedShadowInfo->RenderTargets.DepthTarget = ShadowMapAtlas.RenderTargets.DepthTarget.GetReference();
+					ProjectedShadowInfo->SetupShadowDepthView(RHICmdList, this);
+					ShadowMapAtlas.Shadows.Add(ProjectedShadowInfo);
+				}
 			}
 		}
 	}

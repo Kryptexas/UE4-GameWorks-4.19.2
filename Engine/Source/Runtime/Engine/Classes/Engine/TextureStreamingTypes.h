@@ -5,6 +5,7 @@
 #pragma once 
 
 #include "EngineTypes.h"
+#include "Components.h" // For FMeshUVChannelInfo
 #include "TextureStreamingTypes.generated.h"
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(TextureStreamingBuild, Log, All);
@@ -101,58 +102,45 @@ struct FStreamingTextureBuildInfo
 
 };
 
+// The max number of uv channels processed in the texture streaming build.
+#define TEXSTREAM_MAX_NUM_UVCHANNELS  4
+// The initial texture scales (must be bigger than actual used values)
+#define TEXSTREAM_INITIAL_GPU_SCALE 256
+// The tile size when outputting the material texture scales.
+#define TEXSTREAM_TILE_RESOLUTION 32
+// The max number of textures processed in the material texture scales build.
+#define TEXSTREAM_MAX_NUM_TEXTURES_PER_MATERIAL 32
+
 /** 
  * This struct holds data about the texture coordinate used to sample a texture within a material.
  */
-struct FMaterialTexCoordBuildInfo
+struct FMaterialTextureInfo
 {
-	enum 
-	{
-		MAX_NUM_TEX_COORD = 4,			// The max number of texcoords processed in the analysis.
-		INITIAL_GPU_SCALE = 256,		// The initial texcoord scale (must be bigger than actual used values)
-		TILE_RESOLUTION = 32,			// The tile size of the render used when analysis the shader scales.
-		MAX_NUM_TEXTURE_REGISTER = 32	// The max number of texture indices processed in the analysis.
-	};
 
-	FMaterialTexCoordBuildInfo() : Scale(0), Index(INDEX_NONE) {}
+	FMaterialTextureInfo() : SamplingScale(0), UVChannelIndex(INDEX_NONE) {}
 
-	/** The coordinate scale */
-	float Scale;
+	/** The scale used when sampling the texture */
+	float SamplingScale;
 
-	/** The coordinate index */
-	int32 Index;
+	/** The coordinate index used when sampling the texture */
+	int32 UVChannelIndex;
+
+	/** The texture name currently bound */
+	FName TextureName;
 };
 
 /** 
  * This struct holds the transient data used in the texture streaming build and is also useful for debugging results.
  */
-struct FStreamingSectionBuildInfo
+struct FPrimitiveMaterialInfo
 {
-	FStreamingSectionBuildInfo() : LODIndex(INDEX_NONE), ElementIndex(INDEX_NONE), MaterialIndex(INDEX_NONE), BoxOrigin(0, 0, 0), BoxExtent(0, 0, 0)  
-	{
-		FMemory::Memzero(TexelFactors);
-	}
+	FPrimitiveMaterialInfo() : Box(ForceInitToZero) {}
 
-	/** LOD Index related to this data. */
-	int32 LODIndex;
+	/** The bounds surrounding the material info.*/
+	FBox Box;
 
-	/** Element (Section) Index related to this data. */
-	int32 ElementIndex;
-
-	/** The material index used for this LOD Section. */
-	int32 MaterialIndex;
-
-	/** The world space box origin of the lod section.*/
-	FVector	BoxOrigin;
-
-	/** The world space box extent of the lod section.*/
-	FVector BoxExtent;
-
-	/** The texture world size associated to the mesh UV mapping.*/
-	TArray<FMaterialTexCoordBuildInfo> TexCoordData;
-
-	/** The texture world size computed from the mesh UV mapping.*/
-	float TexelFactors[FMaterialTexCoordBuildInfo::MAX_NUM_TEX_COORD];
+	/** The texcoord scale and texcoord index for each of the material textures (index based). */
+	TArray<FMaterialTextureInfo> TextureData;
 };
 
 /** 
@@ -187,10 +175,9 @@ class FStreamingTextureLevelContext
 	const TArray<FStreamingTextureBuildInfo>* ComponentBuildData;
 	/** The last bound component bounds. */
 	FBoxSphereBounds ComponentBounds;
-	/** The last bound component precomputed data scale. */
-	float ComponentPrecomputedDataScale;
-	/** The last bound component streaming fallback scale. */
-	float ComponentFallbackScale;
+
+	/** The last bound component streaming scale. */
+	float ComponentScale;
 
 	struct FTextureBoundState
 	{
@@ -213,8 +200,8 @@ public:
 	FStreamingTextureLevelContext(const ULevel* InLevel = nullptr);
 	~FStreamingTextureLevelContext();
 
-	void BindComponent(const TArray<FStreamingTextureBuildInfo>* BuildData, const FBoxSphereBounds& Bounds, float PrecomputedDataScale, float FallbackScale);
-	void Process(const TArray<UTexture*>& InTextures, TArray<FStreamingTexturePrimitiveInfo>& OutInfos);
+	void BindComponent(const TArray<FStreamingTextureBuildInfo>* BuildData, const FBoxSphereBounds& Bounds, float Scale);
+	void Process(const TArray<UTexture*>& InTextures, float FallbackUVDensity, TArray<FStreamingTexturePrimitiveInfo>& OutInfos);
 };
 
 
@@ -224,7 +211,7 @@ public:
  * This is reflected in UMaterialInterface::GetUsedTexturesAndIndices where each texture is bound to 
  * an array of texture register indices.
  */
-typedef TMap<UMaterialInterface*, TArray<FMaterialTexCoordBuildInfo> > FTexCoordScaleMap;
+typedef TMap<UMaterialInterface*, TArray<FMaterialTextureInfo> > FTexCoordScaleMap;
 
 /** A mapping between used material and levels for refering primitives. */
 typedef TMap<UMaterialInterface*, TArray<ULevel*> > FMaterialToLevelsMap;

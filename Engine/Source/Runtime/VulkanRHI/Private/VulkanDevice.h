@@ -138,7 +138,14 @@ public:
 	{
 		return CmdDbgMarkerEnd;
 	}
+
+	PFN_vkDebugMarkerSetObjectNameEXT GetDebugMarkerSetObjectName() const
+	{
+		return DebugMarkerSetObjectName;
+	}
 #endif
+
+	void PrepareForCPURead();
 
 private:
 	void MapFormatSupport(EPixelFormat UEFormat, VkFormat VulkanFormat);

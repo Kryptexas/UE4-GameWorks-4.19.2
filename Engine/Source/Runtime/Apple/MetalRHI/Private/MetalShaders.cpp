@@ -53,6 +53,10 @@ public:
 	{
 		int Err = pthread_rwlock_destroy(&Lock);
 		checkf(Err == 0, TEXT("pthread_rwlock_destroy failed with error: %d"), errno);
+		for (TPair<FMetalCompiledShaderKey, id<MTLFunction>> Pair : Cache)
+		{
+			[Pair.Value release];
+		}
 	}
 	
 	id<MTLFunction> FindRef(FMetalCompiledShaderKey Key)
@@ -125,23 +129,29 @@ TMetalBaseShader<BaseResourceType, ShaderType>::TMetalBaseShader(const TArray<ui
 		// CRC the source
 		CodeCRC = FCrc::MemCrc_DEPRECATED(SourceCode, CodeLength);
 	}
+
 	FMetalCompiledShaderKey Key(CodeLength, CodeCRC);
 
+	static NSString* const Offline = @"OFFLINE";
+	bool bOfflineCompile = (OfflineCompiledFlag > 0);
+	if (bOfflineCompile && (Header.ShaderCode.Len() > 0))
+	{
+		NSString* ShaderSource = Header.ShaderCode.GetNSString();
+		GlslCodeNSString = ShaderSource;
+		[GlslCodeNSString retain];
+	}
+	else
+	{
+		GlslCodeNSString = [Offline retain];
+	}
+
 	// Find the existing compiled shader in the cache.
+	Function = [GetMetalCompiledShaderCache().FindRef(Key) retain];
+	if (!Function)
 	{
 		id<MTLLibrary> Library;
-		
-		GlslCodeNSString = @"OFFLINE";
-		
-		bool bOfflineCompile = (OfflineCompiledFlag > 0);
-		
 		if (bOfflineCompile && (Header.ShaderCode.Len() > 0))
 		{
-			NSString* ShaderSource = Header.ShaderCode.GetNSString();
-			
-			GlslCodeNSString = ShaderSource;
-			[GlslCodeNSString retain];
-			
 			// For debug/dev/test builds we can use the stored code for debugging - but shipping builds shouldn't have this as it is inappropriate.
 #if !UE_BUILD_SHIPPING
 			// For iOS/tvOS we must use runtime compilation to make the shaders debuggable, but
@@ -153,7 +163,7 @@ TMetalBaseShader<BaseResourceType, ShaderType>::TMetalBaseShader(const TArray<ui
 			{
 				if (IFileManager::Get().MakeDirectory(*FPaths::GetPath(Header.ShaderPath), true))
 				{
-					bSavedSource = FFileHelper::SaveStringToFile(FString(ShaderSource), *Header.ShaderPath);
+					bSavedSource = FFileHelper::SaveStringToFile(FString(GlslCodeNSString), *Header.ShaderPath);
 				}
 				
 				static bool bAttemptedAuth = false;
@@ -163,7 +173,7 @@ TMetalBaseShader<BaseResourceType, ShaderType>::TMetalBaseShader(const TArray<ui
 					
 					if (IFileManager::Get().MakeDirectory(*FPaths::GetPath(Header.ShaderPath), true))
 					{
-						bSavedSource = FFileHelper::SaveStringToFile(FString(ShaderSource), *Header.ShaderPath);
+						bSavedSource = FFileHelper::SaveStringToFile(FString(GlslCodeNSString), *Header.ShaderPath);
 					}
 					
 					if (!bSavedSource)
@@ -178,6 +188,10 @@ TMetalBaseShader<BaseResourceType, ShaderType>::TMetalBaseShader(const TArray<ui
 			// shader debugging we wouldn't have included the code...
 			bOfflineCompile = bSavedSource;
 #endif
+		}
+		else
+		{
+			GlslCodeNSString = [Offline retain];
 		}
 
 		if (bOfflineCompile)
@@ -238,7 +252,7 @@ TMetalBaseShader<BaseResourceType, ShaderType>::TMetalBaseShader(const TArray<ui
 		}
 
 		// assume there's only one function called 'Main', and use that to get the function from the library
-		Function = [Library newFunctionWithName:@"Main"];
+		Function = [[Library newFunctionWithName:@"Main"] retain];
 		check(Function);
 		GetMetalCompiledShaderCache().Add(Key, Function);
 		[Library release];
@@ -411,11 +425,14 @@ FMetalBoundShaderState::~FMetalBoundShaderState()
 
 void FMetalBoundShaderState::PrepareToDraw(FMetalContext* Context, FMetalHashedVertexDescriptor const& VertexDesc, const FMetalRenderPipelineDesc& RenderPipelineDesc, MTLRenderPipelineReflection** Reflection)
 {
+	SCOPE_CYCLE_COUNTER(STAT_MetalBoundShaderPrepareDrawTime);
+	
 	// generate a key for the current statez
 	FMetalRenderPipelineHash PipelineHash = RenderPipelineDesc.GetHash();
 	
 	if(GUseRHIThread)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_MetalBoundShaderLockTime);
 		int Err = pthread_rwlock_rdlock(&PipelineMutex);
 		checkf(Err == 0, TEXT("pthread_rwlock_rdlock failed with errno: %d"), errno);
 	}
@@ -430,6 +447,7 @@ void FMetalBoundShaderState::PrepareToDraw(FMetalContext* Context, FMetalHashedV
 	
 	if(GUseRHIThread)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_MetalBoundShaderLockTime);
 		int Err = pthread_rwlock_unlock(&PipelineMutex);
 		checkf(Err == 0, TEXT("pthread_rwlock_unlock failed with errno: %d"), errno);
 	}
@@ -443,6 +461,7 @@ void FMetalBoundShaderState::PrepareToDraw(FMetalContext* Context, FMetalHashedV
 		
 		if(GUseRHIThread)
 		{
+			SCOPE_CYCLE_COUNTER(STAT_MetalBoundShaderLockTime);
 			int Err = pthread_rwlock_wrlock(&PipelineMutex);
 			checkf(Err == 0, TEXT("pthread_rwlock_wrlock failed with errno: %d"), errno);
 		}
@@ -475,6 +494,7 @@ void FMetalBoundShaderState::PrepareToDraw(FMetalContext* Context, FMetalHashedV
 		
 		if(GUseRHIThread)
 		{
+			SCOPE_CYCLE_COUNTER(STAT_MetalBoundShaderLockTime);
 			int Err = pthread_rwlock_unlock(&PipelineMutex);
 			checkf(Err == 0, TEXT("pthread_rwlock_unlock failed with errno: %d"), errno);
 		}
@@ -739,7 +759,7 @@ void FMetalShaderParameterCache::CommitPackedUniformBuffers(TRefCountPtr<FMetalB
 			const FRHIUniformBuffer* RHIUniformBuffer = RHIUniformBuffers[BufferIndex];
 			check(RHIUniformBuffer);
 			FMetalUniformBuffer* EmulatedUniformBuffer = (FMetalUniformBuffer*)RHIUniformBuffer;
-			const uint32* RESTRICT SourceData = (uint32*)((uint8*)[EmulatedUniformBuffer->Buffer contents] + EmulatedUniformBuffer->Offset);//->Data.GetTypedData();
+			const uint32* RESTRICT SourceData = (uint32 const*)((uint8 const*)EmulatedUniformBuffer->GetData() + EmulatedUniformBuffer->Offset);
 			for (int32 InfoIndex = LastInfoIndex; InfoIndex < UniformBuffersCopyInfo.Num(); ++InfoIndex)
 			{
 				const CrossCompiler::FUniformBufferCopyInfo& Info = UniformBuffersCopyInfo[InfoIndex];

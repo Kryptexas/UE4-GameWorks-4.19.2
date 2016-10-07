@@ -2791,9 +2791,9 @@ bool UMaterialInstance::IsPropertyActive(EMaterialProperty InProperty) const
 }
 
 #if WITH_EDITOR
-int32 UMaterialInstance::CompilePropertyEx( class FMaterialCompiler* Compiler, EMaterialProperty Property )
+int32 UMaterialInstance::CompilePropertyEx( class FMaterialCompiler* Compiler, const FGuid& AttributeID )
 {
-	return Parent ? Parent->CompilePropertyEx(Compiler, Property) : INDEX_NONE;
+	return Parent ? Parent->CompilePropertyEx(Compiler, AttributeID) : INDEX_NONE;
 }
 #endif // WITH_EDITOR
 

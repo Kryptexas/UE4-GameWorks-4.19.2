@@ -998,6 +998,10 @@ static void InitRHICapabilitiesForGL()
 	GPixelFormats[ PF_DepthStencil		].BlockBytes	 = 4;
 	GPixelFormats[ PF_FloatRGB			].BlockBytes	 = 4;
 	GPixelFormats[ PF_FloatRGBA			].BlockBytes	 = 8;
+
+	// Temporary fix for nvidia driver issue with non-power-of-two shadowmaps (9/8/2016) UE-35312
+	// @TODO revisit this with newer drivers
+	GRHINeedsUnatlasedCSMDepthsWorkaround = true;
 }
 
 FDynamicRHI* FOpenGLDynamicRHIModule::CreateRHI(ERHIFeatureLevel::Type InRequestedFeatureLevel)
@@ -1025,6 +1029,27 @@ FOpenGLDynamicRHI::FOpenGLDynamicRHI()
 	InitRHICapabilitiesForGL();
 
 	check(PlatformOpenGLCurrentContext(PlatformDevice) == CONTEXT_Shared);
+
+	if (PlatformCanEnableGPUCapture())
+	{
+		EnableIdealGPUCaptureOptions(true);
+
+		// Disable persistent mapping
+		{
+			auto* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("OpenGL.UBODirectWrite"));
+			if (CVar)
+			{
+				CVar->Set(false);
+			}
+		}
+		{
+			auto* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("OpenGL.UseStagingBuffer"));
+			if (CVar)
+			{
+				CVar->Set(false);
+			}
+		}
+	}
 
 	PrivateOpenGLDevicePtr = this;
 }

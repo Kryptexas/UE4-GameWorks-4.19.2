@@ -345,28 +345,12 @@ void FD3D12StateCacheBase::ApplyState()
 		PipelineState.Compute.CurrentComputeShader->pRootSignature : PipelineState.Graphics.HighLevelDesc.BoundShaderState->pRootSignature;
 
 	// PSO
+	FD3D12PipelineState* Pso = nullptr;
 	if (IsCompute)
 	{
 		if (PipelineState.Compute.bNeedRebuildPSO || bForceState)
 		{
-			SCOPE_CYCLE_COUNTER(STAT_D3D12ApplyStateRebuildPSOTime);
-			FD3D12ComputePipelineStateDesc psoDescCompute;
-			FMemory::Memzero(&psoDescCompute, sizeof(psoDescCompute));
-
-			psoDescCompute.pRootSignature = PipelineState.Compute.CurrentComputeShader->pRootSignature;
-			psoDescCompute.Desc.pRootSignature = psoDescCompute.pRootSignature->GetRootSignature();
-			psoDescCompute.Desc.CS = PipelineState.Compute.CurrentComputeShader->ShaderBytecode.GetShaderBytecode();
-			psoDescCompute.CSHash = PipelineState.Compute.CurrentComputeShader->ShaderBytecode.GetHash();
-
-			ID3D12PipelineState* psoCompute = PSOCache.FindCompute(&psoDescCompute);
-
-			// Save the current PSO
-			PipelineState.Common.CurrentPipelineStateObject = psoCompute;
-			PipelineState.Compute.CurrentPipelineStateObject = psoCompute;
-
-			// Indicate we need to set the PSO on the command list
-			PipelineState.Common.bNeedSetPSO = true;
-			PipelineState.Compute.bNeedRebuildPSO = false;
+			Pso = CommitPendingPipelineState(IsCompute);
 		}
 
 		// See if we need to set a compute root signature
@@ -391,61 +375,55 @@ void FD3D12StateCacheBase::ApplyState()
 		if (PipelineState.Graphics.bNeedRebuildPSO || bForceState)
 		{
 			// The desc is mostly initialized, just need to copy the RTV/DSV formats and sample properties in
-			SCOPE_CYCLE_COUNTER(STAT_D3D12ApplyStateRebuildPSOTime);
-			FD3D12HighLevelGraphicsPipelineStateDesc& psoDesc = PipelineState.Graphics.HighLevelDesc;
+			FD3D12HighLevelGraphicsPipelineStateDesc& PsoDesc = PipelineState.Graphics.HighLevelDesc;
 
-			FMemory::Memzero(psoDesc.RTVFormats, sizeof(psoDesc.RTVFormats));
-			psoDesc.SampleDesc.Count = psoDesc.SampleDesc.Quality = 0;
-			for (uint32 i = 0; i < psoDesc.NumRenderTargets; i++)
+			FMemory::Memzero(&PsoDesc.RTVFormats[0], sizeof(PsoDesc.RTVFormats[0]) * PsoDesc.RTVFormats.Num());
+			PsoDesc.SampleDesc.Count = 0;
+			PsoDesc.SampleDesc.Quality = 0;
+
+			for (uint32 i = 0; i < PsoDesc.NumRenderTargets; i++)
 			{
-				if (PipelineState.Graphics.RenderTargetArray[i] != NULL)
+				if (PipelineState.Graphics.RenderTargetArray[i] != nullptr)
 				{
 					const D3D12_RENDER_TARGET_VIEW_DESC &desc = PipelineState.Graphics.RenderTargetArray[i]->GetDesc();
 					D3D12_RESOURCE_DESC const& resDesc = PipelineState.Graphics.RenderTargetArray[i]->GetResource()->GetDesc();
 
 					if (desc.Format == DXGI_FORMAT_UNKNOWN)
 					{
-						psoDesc.RTVFormats[i] = resDesc.Format;
+						PsoDesc.RTVFormats[i] = resDesc.Format;
 					}
 					else
 					{
-						psoDesc.RTVFormats[i] = desc.Format;
+						PsoDesc.RTVFormats[i] = desc.Format;
 					}
-					check(psoDesc.RTVFormats[i] != DXGI_FORMAT_UNKNOWN);
+					check(PsoDesc.RTVFormats[i] != DXGI_FORMAT_UNKNOWN);
 
-					if (psoDesc.SampleDesc.Count == 0)
+					if (PsoDesc.SampleDesc.Count == 0)
 					{
-						psoDesc.SampleDesc.Count = resDesc.SampleDesc.Count;
-						psoDesc.SampleDesc.Quality = resDesc.SampleDesc.Quality;
+						PsoDesc.SampleDesc.Count = resDesc.SampleDesc.Count;
+						PsoDesc.SampleDesc.Quality = resDesc.SampleDesc.Quality;
 					}
 				}
 			}
 
-			psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
+			PsoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
 			if (PipelineState.Graphics.CurrentDepthStencilTarget)
 			{
 				const D3D12_DEPTH_STENCIL_VIEW_DESC &dsvDesc = PipelineState.Graphics.CurrentDepthStencilTarget->GetDesc();
 				D3D12_RESOURCE_DESC const& resDesc = PipelineState.Graphics.CurrentDepthStencilTarget->GetResource()->GetDesc();
 
-				psoDesc.DSVFormat = dsvDesc.Format;
-				if (psoDesc.NumRenderTargets == 0 || psoDesc.SampleDesc.Count == 0)
+				PsoDesc.DSVFormat = dsvDesc.Format;
+				if (PsoDesc.NumRenderTargets == 0 || PsoDesc.SampleDesc.Count == 0)
 				{
-					psoDesc.SampleDesc.Count = resDesc.SampleDesc.Count;
-					psoDesc.SampleDesc.Quality = resDesc.SampleDesc.Quality;
+					PsoDesc.SampleDesc.Count = resDesc.SampleDesc.Count;
+					PsoDesc.SampleDesc.Quality = resDesc.SampleDesc.Quality;
 				}
 			}
 
-			ID3D12PipelineState* psoGraphics =
-				PSOCache.FindGraphics(&PipelineState.Graphics.HighLevelDesc);
-
-			// Save the current PSO
-			PipelineState.Common.CurrentPipelineStateObject = psoGraphics;
-			PipelineState.Graphics.CurrentPipelineStateObject = psoGraphics;
-
-			// Indicate we need to set the PSO on the command list
-			PipelineState.Common.bNeedSetPSO = true;
-			PipelineState.Graphics.bNeedRebuildPSO = false;
+			Pso = CommitPendingPipelineState(IsCompute);
 		}
+
+		SetPipelineState(Pso, IsCompute, bForceState);
 
 		// See if we need to set a graphics root signature
 		if (PipelineState.Graphics.bNeedSetRootSignature)
@@ -468,15 +446,7 @@ void FD3D12StateCacheBase::ApplyState()
 		}
 	}
 
-	// See if we need to set our PSO:
-	// In D3D11, you could Set dispatch arguments, then set Draw arguments, then call Draw/Dispatch/Draw/Dispatch without setting arguments again.
-	// In D3D12, we need to understand when the app switches between Draw/Dispatch and make sure the correct PSO is set.
-	if (PipelineState.Common.bNeedSetPSO || bForceState)
-	{
-		// Set the PSO, could be a Compute or Graphics PSO
-		CommandList->SetPipelineState(PipelineState.Common.CurrentPipelineStateObject);
-		PipelineState.Common.bNeedSetPSO = false;
-	}
+	SetPipelineState(Pso, IsCompute, bForceState);
 
 	if (!IsCompute)
 	{
@@ -1004,34 +974,32 @@ void FD3D12StateCacheBase::SetUAVs(EShaderFrequency ShaderStage, uint32 UAVStart
 	bNeedSetUAVsPerShaderStage[ShaderStage] = true;
 }
 
+void FD3D12StateCacheBase::SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE PrimitiveTopologyType)
+{
+	if (PipelineState.Graphics.HighLevelDesc.PrimitiveTopologyType != PrimitiveTopologyType || GD3D12SkipStateCaching)
+	{
+		PipelineState.Graphics.HighLevelDesc.PrimitiveTopologyType = PrimitiveTopologyType;
+		PipelineState.Graphics.bNeedRebuildPSO = true;
+
+		PipelineState.Graphics.CurrentPrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+		bNeedSetPrimitiveTopology = true;
+	}
+}
+
 void FD3D12StateCacheBase::SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY PrimitiveTopology)
 {
 	if ((PipelineState.Graphics.CurrentPrimitiveTopology != PrimitiveTopology) || GD3D12SkipStateCaching)
 	{
 		PipelineState.Graphics.CurrentPrimitiveTopology = PrimitiveTopology;
-		switch (PipelineState.Graphics.CurrentPrimitiveTopology)
-		{
-		case D3D_PRIMITIVE_TOPOLOGY_POINTLIST:
-			PipelineState.Graphics.HighLevelDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
-			break;
-		case D3D_PRIMITIVE_TOPOLOGY_LINELIST:
-		case D3D_PRIMITIVE_TOPOLOGY_LINESTRIP:
-		case D3D_PRIMITIVE_TOPOLOGY_LINELIST_ADJ:
-		case D3D_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ:
-			PipelineState.Graphics.HighLevelDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
-			break;
-		case D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST:
-		case D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP:
-		case D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ:
-		case D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ:
-			PipelineState.Graphics.HighLevelDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-			break;
-		default:
-			PipelineState.Graphics.HighLevelDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
-			break;
-		}
 		bNeedSetPrimitiveTopology = true;
-		PipelineState.Graphics.bNeedRebuildPSO = true;
+
+		D3D12_PRIMITIVE_TOPOLOGY_TYPE CurrentPrimitiveTopologyType = D3D12PrimitiveTypeToTopologyType(PipelineState.Graphics.CurrentPrimitiveTopology);
+
+		if (PipelineState.Graphics.HighLevelDesc.PrimitiveTopologyType != CurrentPrimitiveTopologyType || GD3D12SkipStateCaching)
+		{
+			PipelineState.Graphics.HighLevelDesc.PrimitiveTopologyType = CurrentPrimitiveTopologyType;
+			PipelineState.Graphics.bNeedRebuildPSO = true;
+		}
 	}
 }
 
@@ -1044,6 +1012,11 @@ void FD3D12StateCacheBase::SetBlendState(D3D12_BLEND_DESC* State, const float Bl
 		PipelineState.Graphics.bNeedRebuildPSO = true;
 	}
 
+	SetBlendFactor(BlendFactor);
+}
+
+void FD3D12StateCacheBase::SetBlendFactor(const float BlendFactor[4])
+{
 	if (FMemory::Memcmp(PipelineState.Graphics.CurrentBlendFactor, BlendFactor, sizeof(PipelineState.Graphics.CurrentBlendFactor)))
 	{
 		FMemory::Memcpy(PipelineState.Graphics.CurrentBlendFactor, BlendFactor, sizeof(PipelineState.Graphics.CurrentBlendFactor));
@@ -1059,9 +1032,14 @@ void FD3D12StateCacheBase::SetDepthStencilState(D3D12_DEPTH_STENCIL_DESC* State,
 		PipelineState.Graphics.bNeedRebuildPSO = true;
 	}
 
-	if (PipelineState.Graphics.CurrentReferenceStencil != RefStencil)
+	SetStencilRef(RefStencil);
+}
+
+void FD3D12StateCacheBase::SetStencilRef(uint32 StencilRef)
+{
+	if (PipelineState.Graphics.CurrentReferenceStencil != StencilRef)
 	{
-		PipelineState.Graphics.CurrentReferenceStencil = RefStencil;
+		PipelineState.Graphics.CurrentReferenceStencil = StencilRef;
 		bNeedSetStencilRef = true;
 	}
 }
@@ -1241,6 +1219,105 @@ void FD3D12StateCacheBase::SetRenderTargets(uint32 NumSimultaneousRenderTargets,
 		}
 	}
 	PipelineState.Graphics.HighLevelDesc.NumRenderTargets = ActiveNumSimultaneousRenderTargets;
+}
+
+void FD3D12StateCacheBase::SetPipelineState(FD3D12PipelineState* PSO, bool IsCompute, bool bForceState)
+{
+	// See if we need to set our PSO:
+	// In D3D11, you could Set dispatch arguments, then set Draw arguments, then call Draw/Dispatch/Draw/Dispatch without setting arguments again.
+	// In D3D12, we need to understand when the app switches between Draw/Dispatch and make sure the correct PSO is set.
+	if (PipelineState.Common.bNeedSetPSO || bForceState)
+	{
+		// Save the current PSO
+		if (IsCompute)
+		{
+			PipelineState.Compute.CurrentPipelineStateObject = PSO->GetPipelineState();
+			check(!PipelineState.Compute.bNeedRebuildPSO);
+		}
+		else
+		{
+			PipelineState.Graphics.CurrentPipelineStateObject = PSO->GetPipelineState();
+			check(!PipelineState.Graphics.bNeedRebuildPSO);
+		}
+
+		PipelineState.Common.CurrentPipelineStateObject = PSO->GetPipelineState();
+
+		CmdContext->CommandListHandle->SetPipelineState(PipelineState.Common.CurrentPipelineStateObject);
+		PipelineState.Common.bNeedSetPSO = false;
+	}
+}
+
+void FD3D12StateCacheBase::SetRenderDepthStencilTargetFormats(
+	uint32 NumRenderTargets,
+	const TRenderTargetFormatsArray& RenderTargetFormats,
+	DXGI_FORMAT DepthStencilFormat,
+	uint32 NumSamples
+)
+{
+	auto& PsoDesc = PipelineState.Graphics.HighLevelDesc;
+
+	if (FMemory::Memcmp(&PsoDesc.RTVFormats[0], &RenderTargetFormats[0], sizeof(RenderTargetFormats[0]) * D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT))
+	{
+		PsoDesc.NumRenderTargets = NumRenderTargets;
+
+		uint32 RTIdx = 0;
+		for (; RTIdx < PsoDesc.NumRenderTargets; ++RTIdx)
+		{
+			PsoDesc.RTVFormats[RTIdx] = RenderTargetFormats[RTIdx];
+		}
+
+		for (; RTIdx < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++RTIdx)
+		{
+			PsoDesc.RTVFormats[RTIdx] = DXGI_FORMAT_UNKNOWN;
+		}
+
+		PipelineState.Graphics.bNeedRebuildPSO = true;
+	}
+
+	if (PsoDesc.DSVFormat != DepthStencilFormat)
+	{
+		PsoDesc.DSVFormat = DepthStencilFormat;
+		PipelineState.Graphics.bNeedRebuildPSO = true;
+	}
+
+	if (PsoDesc.SampleDesc.Count != NumSamples || PsoDesc.SampleDesc.Quality != GetMaxMSAAQuality(NumSamples))
+	{
+		PsoDesc.SampleDesc.Count = NumSamples;
+		PsoDesc.SampleDesc.Quality = GetMaxMSAAQuality(NumSamples);
+		PipelineState.Graphics.bNeedRebuildPSO = true;
+	}
+}
+
+FD3D12PipelineState* FD3D12StateCacheBase::CommitPendingPipelineState(bool IsCompute)
+{
+	FD3D12PipelineStateCache& PSOCache = GetParentDevice()->GetParentAdapter()->GetPSOCache();
+
+	FD3D12PipelineState* Pso = nullptr;
+
+	if (IsCompute)
+	{
+		FD3D12ComputePipelineStateDesc PsoDesc;
+		FMemory::Memzero(&PsoDesc, sizeof(PsoDesc));
+
+		PsoDesc.pRootSignature = PipelineState.Compute.CurrentComputeShader->pRootSignature;
+		PsoDesc.Desc.pRootSignature = PsoDesc.pRootSignature->GetRootSignature();
+		PsoDesc.Desc.CS = PipelineState.Compute.CurrentComputeShader->ShaderBytecode.GetShaderBytecode();
+		PsoDesc.CSHash = PipelineState.Compute.CurrentComputeShader->ShaderBytecode.GetHash();
+
+		Pso = PSOCache.FindCompute(&PsoDesc);
+		PipelineState.Compute.bNeedRebuildPSO = false;
+	}
+	else
+	{
+		FD3D12HighLevelGraphicsPipelineStateDesc& PsoDesc = PipelineState.Graphics.HighLevelDesc;
+		Pso = PSOCache.FindGraphics(&PsoDesc);
+		PipelineState.Graphics.bNeedRebuildPSO = false;
+	}
+
+	// Indicate we need to set the PSO on the command list
+	PipelineState.Common.bNeedSetPSO = true;
+
+	return Pso;
 }
 
 void FD3D12StateCacheBase::SetStreamOutTargets(uint32 NumSimultaneousStreamOutTargets, FD3D12Resource** SOArray, const uint32* SOOffsets)

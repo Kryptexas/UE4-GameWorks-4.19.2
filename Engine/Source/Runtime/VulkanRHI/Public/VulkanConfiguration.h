@@ -76,6 +76,9 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 #define VULKAN_ENABLE_DRAW_MARKERS								PLATFORM_WINDOWS
 #define VULKAN_ALLOW_MIDPASS_CLEAR								0
 
+// Keep the Vk*CreateInfo stored per object
+#define VULKAN_KEEP_CREATE_INFO									0
+
 #define VULKAN_SINGLE_ALLOCATION_PER_RESOURCE					0
 
 #define VULKAN_CUSTOM_MEMORY_MANAGER_ENABLED					0
@@ -118,3 +121,31 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 		#define VULKAN_DISABLE_DEBUG_CALLBACK 0
 	#endif
 #endif
+
+namespace EVulkanBindingType
+{
+	enum EType : uint8
+	{
+		PackedUniformBuffer,		//VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
+		UniformBuffer,			//VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
+
+		CombinedImageSampler,	//VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+		Sampler,					//VK_DESCRIPTOR_TYPE_SAMPLER
+		Image,						//VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE
+
+		SamplerBuffer,			//VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER	Buffer<>
+
+		//A storage image (VK_DESCRIPTOR_TYPE_STORAGE_IMAGE) is a descriptor type that is used for load, store, and atomic operations on image memory from within shaders bound to pipelines.
+		StorageImage,				//VK_DESCRIPTOR_TYPE_STORAGE_IMAGE		RWTexture
+
+		//RWBuffer/RWTexture?
+		//A storage texel buffer (VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER) represents a tightly packed array of homogeneous formatted data that is stored in a buffer and is made accessible to shaders. Storage texel buffers differ from uniform texel buffers in that they support stores and atomic operations in shaders, may support a different maximum length, and may have different performance characteristics.
+		TexelBuffer,
+
+		// UAV/RWBuffer
+		//A storage buffer(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER) is a region of structured storage that supports both read and write access for shaders.In addition to general read and write operations, some members of storage buffers can be used as the target of atomic operations.In general, atomic operations are only supported on members that have unsigned integer formats.
+
+
+		Count,
+	};
+}

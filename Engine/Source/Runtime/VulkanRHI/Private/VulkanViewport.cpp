@@ -154,7 +154,6 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 	: Framebuffer(VK_NULL_HANDLE)
 	, RTInfo(InRTInfo)
 	, NumColorAttachments(0)
-	, BackBuffer(0)
 {
 	AttachmentViews.Empty(RTLayout.GetNumAttachments());
 	uint32 MipIndex = 0;
@@ -210,11 +209,11 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 		else if (Texture->Surface.GetViewType() == VK_IMAGE_VIEW_TYPE_CUBE)
 		{
 			// Cube always renders one face at a time
-			RTView = FVulkanTextureView::StaticCreate(*Texture->Surface.Device, Texture->Surface.Image, VK_IMAGE_VIEW_TYPE_2D, Texture->Surface.GetFullAspectMask(), Texture->Surface.Format, Texture->Surface.InternalFormat, MipIndex, 1, InRTInfo.ColorRenderTarget[Index].ArraySliceIndex, 1, true);
+			RTView = FVulkanTextureView::StaticCreate(*Texture->Surface.Device, Texture->Surface.Image, VK_IMAGE_VIEW_TYPE_2D, Texture->Surface.GetFullAspectMask(), Texture->Surface.PixelFormat, Texture->Surface.ViewFormat, MipIndex, 1, InRTInfo.ColorRenderTarget[Index].ArraySliceIndex, 1, true);
 		}
 		else if (Texture->Surface.GetViewType() == VK_IMAGE_VIEW_TYPE_3D)
 		{
-			RTView = FVulkanTextureView::StaticCreate(*Texture->Surface.Device, Texture->Surface.Image, VK_IMAGE_VIEW_TYPE_2D_ARRAY, Texture->Surface.GetFullAspectMask(), Texture->Surface.Format, Texture->Surface.InternalFormat, MipIndex, 1, 0, Texture->Surface.Depth, true);
+			RTView = FVulkanTextureView::StaticCreate(*Texture->Surface.Device, Texture->Surface.Image, VK_IMAGE_VIEW_TYPE_2D_ARRAY, Texture->Surface.GetFullAspectMask(), Texture->Surface.PixelFormat, Texture->Surface.ViewFormat, MipIndex, 1, 0, Texture->Surface.Depth, true);
 		}
 		else
 		{
@@ -241,12 +240,6 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 		Barrier.subresourceRange.levelCount = 1;
 		//Barrier.subresourceRange.baseArrayLayer = 0;
 		Barrier.subresourceRange.layerCount = 1;
-
-		if (Texture->Surface.GetViewType() == VK_IMAGE_VIEW_TYPE_2D)
-		{
-			FVulkanTexture2D* Texture2D = (FVulkanTexture2D*)Texture;
-			BackBuffer = Texture2D->GetBackBuffer();
-		}
 #endif
 		NumColorAttachments++;
 	}
@@ -255,7 +248,7 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 	{
 		FVulkanTextureBase* Texture = FVulkanTextureBase::Cast(InRTInfo.DepthStencilRenderTarget.Texture);
 
-		bool bHasStencil = (Texture->Surface.Format == PF_DepthStencil);
+		bool bHasStencil = (Texture->Surface.PixelFormat == PF_DepthStencil || Texture->Surface.PixelFormat == PF_X24_G8);
 #if VULKAN_USE_NEW_RENDERPASSES
 		ensure(Texture->Surface.GetViewType() == VK_IMAGE_VIEW_TYPE_2D);
 		AttachmentViews.Add(Texture->DefaultView.View);
@@ -283,21 +276,23 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 #endif
 	}
 
-	VkFramebufferCreateInfo Info;
-	FMemory::Memzero(Info);
-	Info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-	Info.pNext = nullptr;
-	Info.renderPass = RenderPass.GetHandle();
-	Info.attachmentCount = AttachmentViews.Num();
-	Info.pAttachments = AttachmentViews.GetData();
+#if !VULKAN_KEEP_CREATE_INFO
+	VkFramebufferCreateInfo CreateInfo;
+#endif
+	FMemory::Memzero(CreateInfo);
+	CreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+	CreateInfo.pNext = nullptr;
+	CreateInfo.renderPass = RenderPass.GetHandle();
+	CreateInfo.attachmentCount = AttachmentViews.Num();
+	CreateInfo.pAttachments = AttachmentViews.GetData();
 	const VkExtent3D& RTExtents = RTLayout.GetExtent3D();
-	Info.width  = RTExtents.width;
-	Info.height = RTExtents.height;
-	Info.layers = RTExtents.depth;
-	VERIFYVULKANRESULT_EXPANDED(VulkanRHI::vkCreateFramebuffer(Device.GetInstanceHandle(), &Info, nullptr, &Framebuffer));
+	CreateInfo.width  = RTExtents.width;
+	CreateInfo.height = RTExtents.height;
+	CreateInfo.layers = RTExtents.depth;
+	VERIFYVULKANRESULT_EXPANDED(VulkanRHI::vkCreateFramebuffer(Device.GetInstanceHandle(), &CreateInfo, nullptr, &Framebuffer));
 
-	Extents.width = Info.width;
-	Extents.height = Info.height;
+	Extents.width = CreateInfo.width;
+	Extents.height = CreateInfo.height;
 }
 
 void FVulkanFramebuffer::Destroy(FVulkanDevice& Device)
@@ -717,7 +712,7 @@ void FVulkanDynamicRHI::RHIAdvanceFrameForGetViewportBackBuffer()
 void FVulkanCommandListContext::RHISetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ)
 {
 	check(Device);
-	PendingState->SetViewport(MinX, MinY, MinZ, MaxX, MaxY, MaxZ);
+	PendingGfxState->SetViewport(MinX, MinY, MinZ, MaxX, MaxY, MaxZ);
 }
 
 void FVulkanCommandListContext::RHISetStereoViewport(uint32 LeftMinX, uint32 RightMinX, uint32 MinY, float MinZ, uint32 LeftMaxX, uint32 RightMaxX, uint32 MaxY, float MaxZ)
@@ -733,5 +728,5 @@ void FVulkanCommandListContext::RHISetMultipleViewports(uint32 Count, const FVie
 void FVulkanCommandListContext::RHISetScissorRect(bool bEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY)
 {
 	check(Device);
-	PendingState->SetScissor(bEnable, MinX, MinY, MaxX, MaxY);
+	PendingGfxState->SetScissor(bEnable, MinX, MinY, MaxX, MaxY);
 }

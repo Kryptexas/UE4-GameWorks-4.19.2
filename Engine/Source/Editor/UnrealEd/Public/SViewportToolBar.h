@@ -30,6 +30,10 @@ public:
 	 * @return The color and opacity of this viewport. 
 	 */ 
 	FLinearColor OnGetColorAndOpacity() const;
+
+	/** @return Whether the given viewmode is supported. */ 
+	virtual bool IsViewModeSupported(EViewModeIndex ViewModeIndex) const;
+
 private:
 	
 	/**

@@ -43,7 +43,7 @@ static TAutoConsoleVariable<int32> CVarSSSSampleSet(
 
 static TAutoConsoleVariable<int32> CVarCheckerboardSubsurfaceProfileRendering(
 	TEXT("r.SSS.Checkerboard"),
-	1,
+	2,
 	TEXT("Enables or disables checkerboard rendering for subsurface profile rendering.\n")
 	TEXT("This is necessary if SceneColor does not include a floating point alpha channel (e.g 32-bit formats)\n")
 	TEXT(" 0: Disabled (high quality) \n")
@@ -111,7 +111,7 @@ public:
 			FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
 			// Calculate the sssWidth scale (1.0 for a unit plane sitting on the projection window):
-			float DistanceToProjectionWindow = Context.View.ViewMatrices.ProjMatrix.M[0][0]; 
+			float DistanceToProjectionWindow = Context.View.ViewMatrices.GetProjectionMatrix().M[0][0]; 
 
 			float SSSScaleZ = DistanceToProjectionWindow * GetSubsurfaceRadiusScale();
 
@@ -272,7 +272,7 @@ void FRCPassPostProcessSubsurfaceVisualize::Process(FRenderingCompositePassConte
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 
 	// is optimized away if possible (RT size=view size, )
-	Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, DestRect);
+	Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black, DestRect);
 
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
 

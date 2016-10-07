@@ -3608,3 +3608,10 @@ void ApplyCVarSettingsGroupFromIni(const TCHAR* InSectionBaseName, int32 InGroup
 	FString SectionName = FString::Printf(TEXT("%s@%d"), InSectionBaseName, InGroupNumber);
 	ApplyCVarSettingsFromIni(*SectionName,InIniFilename, SetBy);
 }
+
+void ApplyCVarSettingsGroupFromIni(const TCHAR* InSectionBaseName, const TCHAR* InSectionTag, const TCHAR* InIniFilename, uint32 SetBy)
+{
+	// Lookup the config section for this section and group number
+	FString SectionName = FString::Printf(TEXT("%s@%s"), InSectionBaseName, InSectionTag);
+	ApplyCVarSettingsFromIni(*SectionName, InIniFilename, SetBy);
+}

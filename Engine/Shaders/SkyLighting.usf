@@ -133,7 +133,7 @@ void SkyLightDiffusePS(
 
 		const bool bNeedsSeparateSubsurfaceLightAccumulation = ShadingModelId == SHADINGMODELID_SUBSURFACE_PROFILE;
 
-		LightAccumulator_Add(LightAccumulator, Lighting, 0, 1.0f, bNeedsSeparateSubsurfaceLightAccumulation);
+		LightAccumulator_Add(LightAccumulator, Lighting, Lighting, 1.0f, bNeedsSeparateSubsurfaceLightAccumulation);
 		OutColor = LightAccumulator_GetResult(LightAccumulator);
 	}
 }

@@ -388,11 +388,11 @@ void FDynamicSpriteEmitterDataBase::SortSpriteParticles(int32 SortMode, bool bLo
 			float InZ;
 			if (bLocalSpace)
 			{
-				InZ = View->ViewProjectionMatrix.TransformPosition(LocalToWorld.TransformPosition(Particle.Location)).W;
+				InZ = View->ViewMatrices.GetViewProjectionMatrix().TransformPosition(LocalToWorld.TransformPosition(Particle.Location)).W;
 			}
 			else
 			{
-				InZ = View->ViewProjectionMatrix.TransformPosition(Particle.Location).W;
+				InZ = View->ViewMatrices.GetViewProjectionMatrix().TransformPosition(Particle.Location).W;
 			}
 			ParticleOrder[ParticleIndex].ParticleIndex = ParticleIndex;
 
@@ -415,7 +415,7 @@ void FDynamicSpriteEmitterDataBase::SortSpriteParticles(int32 SortMode, bool bLo
 			{
 				Position = Particle.Location;
 			}
-			InZ = (View->ViewMatrices.ViewOrigin - Position).SizeSquared();
+			InZ = (View->ViewMatrices.GetViewOrigin() - Position).SizeSquared();
 			ParticleOrder[ParticleIndex].ParticleIndex = ParticleIndex;
 			ParticleOrder[ParticleIndex].Z = InZ;
 		}
@@ -452,7 +452,7 @@ void FDynamicSpriteEmitterDataBase::RenderDebug(const FParticleSystemSceneProxy*
 
 	const FMatrix& LocalToWorld = SpriteSource.bUseLocalSpace ? Proxy->GetLocalToWorld() : FMatrix::Identity;
 
-	FMatrix CameraToWorld = View->ViewMatrices.ViewMatrix.InverseFast();
+	FMatrix CameraToWorld = View->ViewMatrices.GetInvViewMatrix();
 	FVector CamX = CameraToWorld.TransformVector(FVector(1,0,0));
 	FVector CamY = CameraToWorld.TransformVector(FVector(0,1,0));
 
@@ -1087,11 +1087,11 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 								// Fill vertex buffers.
 								if(bInstanced)
 								{
-									GetVertexAndIndexData(Allocation.Buffer, DynamicParameterAllocation.Buffer, NULL, ParticleOrder, View->ViewMatrices.ViewOrigin, Proxy->GetLocalToWorld());
+									GetVertexAndIndexData(Allocation.Buffer, DynamicParameterAllocation.Buffer, NULL, ParticleOrder, View->ViewMatrices.GetViewOrigin(), Proxy->GetLocalToWorld());
 								}
 								else
 								{
-									GetVertexAndIndexDataNonInstanced(Allocation.Buffer, DynamicParameterAllocation.Buffer, NULL, ParticleOrder, View->ViewMatrices.ViewOrigin, Proxy->GetLocalToWorld(), NumVerticesPerParticleInBuffer);
+									GetVertexAndIndexDataNonInstanced(Allocation.Buffer, DynamicParameterAllocation.Buffer, NULL, ParticleOrder, View->ViewMatrices.GetViewOrigin(), Proxy->GetLocalToWorld(), NumVerticesPerParticleInBuffer);
 								}
 							}
 						);
@@ -1111,11 +1111,11 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 				// Fill vertex buffers.
 				if(bInstanced)
 				{
-					GetVertexAndIndexData(Allocation.Buffer, DynamicParameterAllocation.Buffer, NULL, ParticleOrder, View->ViewMatrices.ViewOrigin, Proxy->GetLocalToWorld());
+					GetVertexAndIndexData(Allocation.Buffer, DynamicParameterAllocation.Buffer, NULL, ParticleOrder, View->ViewMatrices.GetViewOrigin(), Proxy->GetLocalToWorld());
 				}
 				else
 				{
-							GetVertexAndIndexDataNonInstanced(Allocation.Buffer, DynamicParameterAllocation.Buffer, NULL, ParticleOrder, View->ViewMatrices.ViewOrigin, Proxy->GetLocalToWorld(), NumVerticesPerParticleInBuffer);
+							GetVertexAndIndexDataNonInstanced(Allocation.Buffer, DynamicParameterAllocation.Buffer, NULL, ParticleOrder, View->ViewMatrices.GetViewOrigin(), Proxy->GetLocalToWorld(), NumVerticesPerParticleInBuffer);
 				}
 					}
 				}
@@ -1828,7 +1828,7 @@ void FDynamicMeshEmitterData::GetParticleTransform(
 	if (Source.CameraPayloadOffset != 0)
 	{
 		// Put the camera origin in the appropriate coordinate space.
-		FVector CameraPosition = View->ViewMatrices.ViewOrigin;
+		FVector CameraPosition = View->ViewMatrices.GetViewOrigin();
 		if (Source.bUseLocalSpace)
 		{
 			const FMatrix InvLocalToWorld = Proxy->GetLocalToWorld().Inverse();
@@ -1856,7 +1856,7 @@ void FDynamicMeshEmitterData::GetParticleTransform(
 		RotationPayloadRotation,
 		CameraPayloadCameraOffset,
 		OrbitPayloadOrbitOffset,
-		View->ViewMatrices.ViewOrigin,
+		View->ViewMatrices.GetViewOrigin(),
 		View->GetViewDirection(),
 		OutTransformMat
 		);
@@ -1878,7 +1878,7 @@ void FDynamicMeshEmitterData::GetParticlePrevTransform(
 	if (Source.CameraPayloadOffset != 0)
 	{
 		// Put the camera origin in the appropriate coordinate space.
-		FVector CameraPosition = ViewInfo->PrevViewMatrices.ViewOrigin;
+		FVector CameraPosition = ViewInfo->PrevViewMatrices.GetViewOrigin();
 		if (Source.bUseLocalSpace)
 		{
 			const FMatrix InvLocalToWorld = Proxy->GetLocalToWorld().Inverse();
@@ -1898,7 +1898,7 @@ void FDynamicMeshEmitterData::GetParticlePrevTransform(
 		MotionBlurPayload->PayloadPrevRotation,
 		CameraPayloadCameraOffset,
 		MotionBlurPayload->PayloadPrevOrbitOffset,
-		ViewInfo->PrevViewMatrices.ViewOrigin,
+		ViewInfo->PrevViewMatrices.GetViewOrigin(),
 		ViewInfo->GetPrevViewDirection(),
 		OutTransformMat
 		);
@@ -2587,8 +2587,8 @@ FParticleBeamTrailUniformBufferRef CreateBeamTrailUniformBuffer(
 	const EParticleAxisLock LockAxisFlag = (EParticleAxisLock)SourceData->LockAxisFlag;
 	if (LockAxisFlag == EPAL_NONE)
 	{
-		CameraUp	= -View->InvViewProjectionMatrix.TransformVector(FVector(1.0f,0.0f,0.0f)).GetSafeNormal();
-		CameraRight	= -View->InvViewProjectionMatrix.TransformVector(FVector(0.0f,1.0f,0.0f)).GetSafeNormal();
+		CameraUp	= -View->ViewMatrices.GetInvViewProjectionMatrix().TransformVector(FVector(1.0f,0.0f,0.0f)).GetSafeNormal();
+		CameraRight	= -View->ViewMatrices.GetInvViewProjectionMatrix().TransformVector(FVector(0.0f,1.0f,0.0f)).GetSafeNormal();
 	}
 	else
 	{
@@ -2767,7 +2767,7 @@ void FDynamicBeam2EmitterData::RenderLines(const FParticleSystemSceneProxy* Prox
 
 		FMatrix WorldToLocal = Proxy->GetWorldToLocal();
 		FMatrix LocalToWorld = Proxy->GetLocalToWorld();
-		FMatrix CameraToWorld = View->ViewMatrices.ViewMatrix.InverseFast();
+		FMatrix CameraToWorld = View->ViewMatrices.GetInvViewMatrix();
 		FVector	ViewOrigin = CameraToWorld.GetOrigin();
 
 		// NoiseTessellation is the amount of tessellation that should occur between noise points.
@@ -3116,7 +3116,7 @@ void FDynamicBeam2EmitterData::RenderLines(const FParticleSystemSceneProxy* Prox
 
 	if (Source.InterpolationPoints > 1)
 	{
-		FMatrix CameraToWorld = View->ViewMatrices.ViewMatrix.InverseFast();
+		FMatrix CameraToWorld = View->ViewMatrices.GetInvViewMatrix();
 		FVector	ViewOrigin = CameraToWorld.GetOrigin();
 		int32 TessFactor = Source.InterpolationPoints ? Source.InterpolationPoints : 1;
 
@@ -3347,7 +3347,7 @@ int32 FDynamicBeam2EmitterData::FillVertexData_NoNoise(FAsyncBufferFillData& Me)
 	int32	TrianglesToRender = 0;
 
 	FParticleBeamTrailVertex* Vertex = (FParticleBeamTrailVertex*)Me.VertexData;
-	FMatrix CameraToWorld = Me.View->ViewMatrices.ViewMatrix.Inverse();
+	FMatrix CameraToWorld = Me.View->ViewMatrices.GetInvViewMatrix();
 	FVector	ViewOrigin = CameraToWorld.GetOrigin();
 	int32 TessFactor = Source.InterpolationPoints ? Source.InterpolationPoints : 1;
 
@@ -3763,7 +3763,7 @@ int32 FDynamicBeam2EmitterData::FillData_Noise(FAsyncBufferFillData& Me) const
 	}
 
 	FParticleBeamTrailVertex* Vertex = (FParticleBeamTrailVertex*)Me.VertexData;
-	FMatrix CameraToWorld = Me.View->ViewMatrices.ViewMatrix.Inverse();
+	FMatrix CameraToWorld = Me.View->ViewMatrices.GetInvViewMatrix();
 
 	FVector	ViewOrigin	= CameraToWorld.GetOrigin();
 
@@ -4724,7 +4724,7 @@ int32 FDynamicBeam2EmitterData::FillData_InterpolatedNoise(FAsyncBufferFillData&
 	check(Source.Frequency > 0);
 
 	FParticleBeamTrailVertex* Vertex = (FParticleBeamTrailVertex*)Me.VertexData;
-	FMatrix CameraToWorld = Me.View->ViewMatrices.ViewMatrix.InverseFast();
+	FMatrix CameraToWorld = Me.View->ViewMatrices.GetInvViewMatrix();
 	
 	FVector	ViewOrigin	= CameraToWorld.GetOrigin();
 
@@ -5804,7 +5804,7 @@ int32 FDynamicRibbonEmitterData::FillVertexData(struct FAsyncBufferFillData& Dat
 	FParticleBeamTrailVertex* Vertex;
 	FParticleBeamTrailVertexDynamicParameter* DynParamVertex;
 
-	FMatrix CameraToWorld = Data.View->ViewMatrices.ViewMatrix.InverseFast();
+	FMatrix CameraToWorld = Data.View->ViewMatrices.GetInvViewMatrix();
 	FVector CameraUp = CameraToWorld.TransformVector(FVector(0,0,1));
 	FVector	ViewOrigin	= CameraToWorld.GetOrigin();
 
@@ -6933,7 +6933,7 @@ void FParticleSystemSceneProxy::DetermineLODDistance(const FSceneView* View, int
 	if (LODMethod == PARTICLESYSTEMLODMETHOD_Automatic)
 	{
 		// Default to the highest LOD level
-		FVector	CameraPosition		= View->ViewMatrices.ViewOrigin;
+		FVector	CameraPosition		= View->ViewMatrices.GetViewOrigin();
 		FVector	ComponentPosition	= GetLocalToWorld().GetOrigin();
 		FVector	DistDiff			= ComponentPosition - CameraPosition;
 		float	Distance			= DistDiff.Size() * View->LODDistanceFactor;
@@ -6962,7 +6962,7 @@ static FAutoConsoleVariableRef EnableMacroUVDebugSpam(
 /** Object position in post projection space. */
 void FParticleSystemSceneProxy::GetObjectPositionAndScale(const FSceneView& View, FVector2D& ObjectNDCPosition, FVector2D& ObjectMacroUVScales) const
 {
-	const FVector4 ObjectPostProjectionPositionWithW = View.ViewProjectionMatrix.TransformPosition(DynamicData->SystemPositionForMacroUVs);
+	const FVector4 ObjectPostProjectionPositionWithW = View.ViewMatrices.GetViewProjectionMatrix().TransformPosition(DynamicData->SystemPositionForMacroUVs);
 	ObjectNDCPosition = FVector2D(ObjectPostProjectionPositionWithW / FMath::Max(ObjectPostProjectionPositionWithW.W, 0.00001f));
 	
 	float MacroUVRadius = DynamicData->SystemRadiusForMacroUVs;
@@ -6988,8 +6988,8 @@ void FParticleSystemSceneProxy::GetObjectPositionAndScale(const FSceneView& View
 	{
 		// Need to determine the scales required to transform positions into UV's for the ParticleMacroUVs material node
 		// Determine screenspace extents by transforming the object position + appropriate camera vector * radius
-		const FVector4 RightPostProjectionPosition = View.ViewProjectionMatrix.TransformPosition(MacroUVPosition + MacroUVRadius * View.ViewMatrices.TranslatedViewMatrix.GetColumn(0));
-		const FVector4 UpPostProjectionPosition = View.ViewProjectionMatrix.TransformPosition(MacroUVPosition + MacroUVRadius * View.ViewMatrices.TranslatedViewMatrix.GetColumn(1));
+		const FVector4 RightPostProjectionPosition = View.ViewMatrices.GetViewProjectionMatrix().TransformPosition(MacroUVPosition + MacroUVRadius * View.ViewMatrices.GetTranslatedViewMatrix().GetColumn(0));
+		const FVector4 UpPostProjectionPosition = View.ViewMatrices.GetViewProjectionMatrix().TransformPosition(MacroUVPosition + MacroUVRadius * View.ViewMatrices.GetTranslatedViewMatrix().GetColumn(1));
 		//checkSlow(RightPostProjectionPosition.X - ObjectPostProjectionPositionWithW.X >= 0.0f && UpPostProjectionPosition.Y - ObjectPostProjectionPositionWithW.Y >= 0.0f);
 
 		// Scales to transform the view space positions corresponding to SystemPositionForMacroUVs +- SystemRadiusForMacroUVs into [0, 1] in xy
@@ -7020,18 +7020,18 @@ void FParticleSystemSceneProxy::GetObjectPositionAndScale(const FSceneView& View
 				UE_LOG(LogParticles, Error, TEXT("MacroUVRadius: %.6f"), MacroUVRadius);
 				UE_LOG(LogParticles, Error, TEXT("DX: %.6f"), DX);
 				UE_LOG(LogParticles, Error, TEXT("DY: %.6f"), DY);
-				FVector4 View0 = View.ViewMatrices.ViewMatrix.GetColumn(0);
-				FVector4 View1 = View.ViewMatrices.ViewMatrix.GetColumn(1);
-				FVector4 View2 = View.ViewMatrices.ViewMatrix.GetColumn(2);
-				FVector4 View3 = View.ViewMatrices.ViewMatrix.GetColumn(3);
+				FVector4 View0 = View.ViewMatrices.GetViewMatrix().GetColumn(0);
+				FVector4 View1 = View.ViewMatrices.GetViewMatrix().GetColumn(1);
+				FVector4 View2 = View.ViewMatrices.GetViewMatrix().GetColumn(2);
+				FVector4 View3 = View.ViewMatrices.GetViewMatrix().GetColumn(3);
 				UE_LOG(LogParticles, Error, TEXT("View0: {%.6f, %.6f, %.6f, %.6f}"), View0.X, View0.Y, View0.Z, View0.W);
 				UE_LOG(LogParticles, Error, TEXT("View1: {%.6f, %.6f, %.6f, %.6f}"), View1.X, View1.Y, View1.Z, View1.W);
 				UE_LOG(LogParticles, Error, TEXT("View2: {%.6f, %.6f, %.6f, %.6f}"), View2.X, View2.Y, View2.Z, View2.W);
 				UE_LOG(LogParticles, Error, TEXT("View3: {%.6f, %.6f, %.6f, %.6f}"), View3.X, View3.Y, View3.Z, View3.W);
-				FVector4 ViewProj0 = View.ViewProjectionMatrix.GetColumn(0);
-				FVector4 ViewProj1 = View.ViewProjectionMatrix.GetColumn(1);
-				FVector4 ViewProj2 = View.ViewProjectionMatrix.GetColumn(2);
-				FVector4 ViewProj3 = View.ViewProjectionMatrix.GetColumn(3);
+				FVector4 ViewProj0 = View.ViewMatrices.GetViewProjectionMatrix().GetColumn(0);
+				FVector4 ViewProj1 = View.ViewMatrices.GetViewProjectionMatrix().GetColumn(1);
+				FVector4 ViewProj2 = View.ViewMatrices.GetViewProjectionMatrix().GetColumn(2);
+				FVector4 ViewProj3 = View.ViewMatrices.GetViewProjectionMatrix().GetColumn(3);
 				UE_LOG(LogParticles, Error, TEXT("ViewProj0: {%.6f, %.6f, %.6f, %.6f}"), ViewProj0.X, ViewProj0.Y, ViewProj0.Z, ViewProj0.W);
 				UE_LOG(LogParticles, Error, TEXT("ViewProj1: {%.6f, %.6f, %.6f, %.6f}"), ViewProj1.X, ViewProj1.Y, ViewProj1.Z, ViewProj1.W);
 				UE_LOG(LogParticles, Error, TEXT("ViewProj2: {%.6f, %.6f, %.6f, %.6f}"), ViewProj2.X, ViewProj2.Y, ViewProj2.Z, ViewProj2.W);
@@ -7093,6 +7093,7 @@ void FParticleSystemSceneProxy::UpdateWorldSpacePrimitiveUniformBuffer() const
 			false,
 			UseSingleSampleShadowFromStationaryLights(),
 			UseEditorDepthTest(),
+			GetLightingChannelMask(),
 			1.0f			// LPV bias
 			);
 		WorldSpacePrimitiveUniformBuffer.SetContents(PrimitiveUniformShaderParameters);

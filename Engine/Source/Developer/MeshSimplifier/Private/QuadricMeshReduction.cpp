@@ -17,7 +17,8 @@ public:
 	virtual void ShutdownModule() override;
 
 	// IMeshReductionModule interface.
-	virtual class IMeshReduction* GetMeshReductionInterface() override;
+	virtual class IMeshReduction* GetStaticMeshReductionInterface() override;
+	virtual class IMeshReduction* GetSkeletalMeshReductionInterface() override;
 	virtual class IMeshMerging* GetMeshMergingInterface() override;
 };
 
@@ -385,6 +386,10 @@ public:
 					OutReducedMesh.WedgeColors[i] = Verts[ Indexes[i] ].Color.ToFColor(true);
 				}
 			}
+			else
+			{
+				OutReducedMesh.WedgeColors.Empty();
+			}
 
 			for( int32 TexCoordIndex = 0; TexCoordIndex < NumTexCoords; TexCoordIndex++ )
 			{
@@ -449,12 +454,17 @@ void FQuadricSimplifierMeshReductionModule::ShutdownModule()
 	GQuadricSimplifierMeshReduction = NULL;
 }
 
-IMeshReduction* FQuadricSimplifierMeshReductionModule::GetMeshReductionInterface()
+IMeshReduction* FQuadricSimplifierMeshReductionModule::GetStaticMeshReductionInterface()
 {
 	return GQuadricSimplifierMeshReduction;
 }
 
+IMeshReduction* FQuadricSimplifierMeshReductionModule::GetSkeletalMeshReductionInterface()
+{
+	return nullptr;
+}
+
 IMeshMerging* FQuadricSimplifierMeshReductionModule::GetMeshMergingInterface()
 {
-	return NULL;
+	return nullptr;
 }

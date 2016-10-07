@@ -277,6 +277,7 @@ protected:
 		VertexParametersType::Bind(Initializer.ParameterMap);
 		HeightFogParameters.Bind(Initializer.ParameterMap);
 		TranslucentLightingVolumeParameters.Bind(Initializer.ParameterMap);
+		ForwardLightingParameters.Bind(Initializer.ParameterMap);
 		const bool bOutputsVelocityToGBuffer = FVelocityRendering::OutputsToGBuffer();
 		if (bOutputsVelocityToGBuffer)
 		{
@@ -294,6 +295,7 @@ public:
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FMeshMaterialShader::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		FForwardLightingParameters::ModifyCompilationEnvironment(Platform, OutEnvironment);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -302,6 +304,7 @@ public:
 		VertexParametersType::Serialize(Ar);
 		Ar << HeightFogParameters;
 		Ar << TranslucentLightingVolumeParameters;
+		Ar << ForwardLightingParameters;
 		Ar << PreviousLocalToWorldParameter;
 		Ar << SkipOutputVelocityParameter;
 		Ar << InstancedEyeIndexParameter;
@@ -314,8 +317,7 @@ public:
 		const FMaterialRenderProxy* MaterialRenderProxy,
 		const FVertexFactory* VertexFactory,
 		const FMaterial& InMaterialResource,
-		const FSceneView& View,
-		bool bAllowGlobalFog,
+		const FViewInfo& View,
 		ESceneRenderTargetsMode::Type TextureMode, 
 		bool bIsInstancedStereo,
 		bool bUseDownsampledTranslucencyViewUniformBuffer
@@ -325,12 +327,10 @@ public:
 		const TUniformBufferRef<FViewUniformShaderParameters>& ViewUniformBuffer = bUseDownsampledTranslucencyViewUniformBuffer ? View.DownsampledTranslucencyViewUniformBuffer : View.ViewUniformBuffer;
 		FMeshMaterialShader::SetParameters(RHICmdList, GetVertexShader(), MaterialRenderProxy, InMaterialResource, View, ViewUniformBuffer, TextureMode);
 
-		if (bAllowGlobalFog)
-		{
-			HeightFogParameters.Set(RHICmdList, GetVertexShader(), &View);
-		}
+		HeightFogParameters.Set(RHICmdList, GetVertexShader(), &View);
 
 		TranslucentLightingVolumeParameters.Set(RHICmdList, GetVertexShader());
+		ForwardLightingParameters.Set(RHICmdList, GetVertexShader(), View, bIsInstancedStereo);
 
 		if (IsInstancedStereoParameter.IsBound())
 		{
@@ -352,6 +352,7 @@ private:
 	/** The parameters needed to calculate the fog contribution from height fog layers. */
 	FHeightFogShaderParameters HeightFogParameters;
 	FTranslucentLightingVolumeParameters TranslucentLightingVolumeParameters;
+	FForwardLightingParameters ForwardLightingParameters;
 	// When outputting from base pass, the previous transform
 	FShaderParameter PreviousLocalToWorldParameter;
 	FShaderParameter SkipOutputVelocityParameter;
@@ -584,7 +585,7 @@ public:
 
 	void Set(FRHICommandList& RHICmdList, FPixelShaderRHIParamRef PixelShaderRHI, const FViewInfo* View);
 
-	void SetMesh(FRHICommandList& RHICmdList, FPixelShaderRHIParamRef PixelShaderRH, const FPrimitiveSceneProxy* Proxy, ERHIFeatureLevel::Type FeatureLevel);
+	void SetMesh(FRHICommandList& RHICmdList, FPixelShaderRHIParamRef PixelShaderRH, const FSceneView& View, const FPrimitiveSceneProxy* Proxy, ERHIFeatureLevel::Type FeatureLevel);
 
 	/** Serializer. */
 	friend FArchive& operator<<(FArchive& Ar,FBasePassReflectionParameters& P)
@@ -899,7 +900,6 @@ public:
 		bool bInEnableSkyLight,
 		bool bInEnableAtmosphericFog,
 		EDebugViewShaderMode InDebugViewShaderMode = DVSM_None,
-		bool bInAllowGlobalFog = false,
 		bool bInEnableEditorPrimitiveDepthTest = false,
 		bool bInEnableReceiveDecalOutput = false
 		):
@@ -907,7 +907,6 @@ public:
 		LightMapPolicy(InLightMapPolicy),
 		BlendMode(InBlendMode), 
 		SceneTextureMode(InSceneTextureMode),
-		bAllowGlobalFog(bInAllowGlobalFog),
 		bEnableSkyLight(bInEnableSkyLight),
 		bEnableEditorPrimitiveDepthTest(bInEnableEditorPrimitiveDepthTest),
 		bEnableAtmosphericFog(bInEnableAtmosphericFog),
@@ -955,7 +954,6 @@ public:
 			DRAWING_POLICY_MATCH(HullShader == Other.HullShader) &&
 			DRAWING_POLICY_MATCH(DomainShader == Other.DomainShader) &&
 			DRAWING_POLICY_MATCH(SceneTextureMode == Other.SceneTextureMode) &&
-			DRAWING_POLICY_MATCH(bAllowGlobalFog == Other.bAllowGlobalFog) &&
 			DRAWING_POLICY_MATCH(bEnableSkyLight == Other.bEnableSkyLight) && 
 			DRAWING_POLICY_MATCH(LightMapPolicy == Other.LightMapPolicy);
 		DRAWING_POLICY_MATCH_END
@@ -973,7 +971,7 @@ public:
 			// Set the light-map policy.
 			LightMapPolicy.Set(RHICmdList, VertexShader, !UseDebugViewPS() ? PixelShader : nullptr, VertexShader, PixelShader, VertexFactory, MaterialRenderProxy, View);
 
-			VertexShader->SetParameters(RHICmdList, MaterialRenderProxy, VertexFactory, *MaterialResource, *View, bAllowGlobalFog, SceneTextureMode, PolicyContext.bIsInstancedStereo, bUseDownsampledTranslucencyViewUniformBuffer);
+			VertexShader->SetParameters(RHICmdList, MaterialRenderProxy, VertexFactory, *MaterialResource, *View, SceneTextureMode, PolicyContext.bIsInstancedStereo, bUseDownsampledTranslucencyViewUniformBuffer);
 
 			if(HullShader)
 			{
@@ -994,7 +992,7 @@ public:
 				{	// If we are in the translucent pass then override the blend mode, otherwise maintain additive blending.
 					RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_Zero, BF_One>::GetRHI());
 				}
-				else if (View->Family->GetDebugViewShaderMode() != DVSM_MaterialTexCoordScalesAnalysis)
+				else if (View->Family->GetDebugViewShaderMode() != DVSM_OutputMaterialTextureScales)
 				{	// Otherwise, force translucent blend mode (shaders will use an hardcoded alpha).
 					RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha>::GetRHI());
 				}
@@ -1166,7 +1164,6 @@ public:
 		COMPAREDRAWINGPOLICYMEMBERS(VertexFactory);
 		COMPAREDRAWINGPOLICYMEMBERS(MaterialRenderProxy);
 		COMPAREDRAWINGPOLICYMEMBERS(SceneTextureMode);
-		COMPAREDRAWINGPOLICYMEMBERS(bAllowGlobalFog);
 		COMPAREDRAWINGPOLICYMEMBERS(bEnableSkyLight);
 		COMPAREDRAWINGPOLICYMEMBERS(bEnableReceiveDecalOutput);
 
@@ -1186,8 +1183,6 @@ protected:
 	EBlendMode BlendMode;
 
 	ESceneRenderTargetsMode::Type SceneTextureMode;
-
-	uint32 bAllowGlobalFog : 1;
 
 	uint32 bEnableSkyLight : 1;
 

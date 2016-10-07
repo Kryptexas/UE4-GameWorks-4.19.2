@@ -100,7 +100,7 @@ struct MATERIALUTILITIES_API FExportMaterialProxyCache
 {
 	// Material proxies for each property. Note: we're not handling all properties here,
 	// so hold only up to MP_Normal inclusive.
-	class FMaterialRenderProxy* Proxies[EMaterialProperty::MP_MAX];
+	class FMaterialRenderProxy* Proxies[MP_MAX];
 
 	FExportMaterialProxyCache();
 	~FExportMaterialProxyCache();
@@ -391,11 +391,11 @@ public:
 		* Register a new error.
 		*
 		* @param Material			The material having this error.
-		* @param Texture			The texture for which the scale could not be generated.
+		* @param TextureName		The texture for which the scale could not be generated.
 		* @param RegisterIndex		The register index bound to this texture.
 		* @param ErrorType			The issue encountered.
 		*/
-		void Register(const UMaterialInterface* Material, const UTexture* Texture, int32 RegisterIndex, EErrorType ErrorType);
+		void Register(const UMaterialInterface* Material, FName TextureName, int32 RegisterIndex, EErrorType ErrorType);
 
 		/**
 		* Output all errors registered.
@@ -416,7 +416,7 @@ public:
 		struct FInstance
 		{
 			const UMaterialInterface* Material;
-			const UTexture* Texture;
+			FName TextureName;
 		};
 
 		friend uint32 GetTypeHash(const FError& Error);
@@ -434,7 +434,7 @@ public:
 	* @param OutScales			TheOutput array of rendered samples	
 	* @return					Whether operation was successful
 	*/
-	static bool ExportMaterialTexCoordScales(UMaterialInterface* InMaterial, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, TArray<FMaterialTexCoordBuildInfo>& OutScales, FExportErrorManager& OutErrors);
+	static bool ExportMaterialTexCoordScales(UMaterialInterface* InMaterial, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, TArray<FMaterialTextureInfo>& OutScales, FExportErrorManager& OutErrors);
 
 	// QQQ COMMENTS
 	static void DetermineMaterialImportance(const TArray<UMaterialInterface*>& InMaterials, TArray<float>& OutImportance);

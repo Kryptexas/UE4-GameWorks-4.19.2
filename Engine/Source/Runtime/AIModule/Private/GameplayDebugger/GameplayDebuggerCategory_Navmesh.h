@@ -13,7 +13,7 @@ public:
 	FGameplayDebuggerCategory_Navmesh();
 
 	virtual void CollectData(APlayerController* OwnerPC, AActor* DebugActor) override;
-	virtual FDebugRenderSceneProxy* CreateSceneProxy(const UPrimitiveComponent* InComponent) override;
+	virtual FDebugRenderSceneProxy* CreateDebugSceneProxy(const UPrimitiveComponent* InComponent, FDebugDrawDelegateHelper*& OutDelegateHelper) override;
 	virtual void OnDataPackReplicated(int32 DataPackId) override;
 
 	static TSharedRef<FGameplayDebuggerCategory> MakeInstance();

@@ -265,8 +265,8 @@ void FEQSSceneProxy::CollectEQSData(const FEnvQueryResult* ResultItems, const FE
 		}
 	}
 }
-#endif //USE_EQS_DEBUGGER 
-void FEQSSceneProxy::DrawDebugLabels(UCanvas* Canvas, APlayerController* PC)
+ 
+void FEQSRenderingDebugDrawDelegateHelper::DrawDebugLabels(UCanvas* Canvas, APlayerController* PC)
 {
 	if ( !ActorOwner
 		 || (ActorOwner->IsSelected() == false && bDrawOnlyWhenSelected == true)
@@ -281,8 +281,9 @@ void FEQSSceneProxy::DrawDebugLabels(UCanvas* Canvas, APlayerController* PC)
 		return;
 	}
 
-	FDebugRenderSceneProxy::DrawDebugLabels(Canvas, PC);
+	FDebugDrawDelegateHelper::DrawDebugLabels(Canvas, PC);
 }
+#endif //USE_EQS_DEBUGGER
 
 bool FEQSSceneProxy::SafeIsActorSelected() const
 {
@@ -318,9 +319,15 @@ UEQSRenderingComponent::UEQSRenderingComponent(const FObjectInitializer& ObjectI
 FPrimitiveSceneProxy* UEQSRenderingComponent::CreateSceneProxy()
 {
 #if  USE_EQS_DEBUGGER || ENABLE_VISUAL_LOG
+	FEQSSceneProxy* SceneProxy2;
 	if (DebugData.SolidSpheres.Num() > 0 || DebugData.Texts.Num() > 0)
 	{
-		return new FEQSSceneProxy(this, DrawFlagName, DebugData.SolidSpheres, DebugData.Texts);
+		SceneProxy2 = new FEQSSceneProxy(this, DrawFlagName, DebugData.SolidSpheres, DebugData.Texts);
+#if  USE_EQS_DEBUGGER
+		EQSRenderingDebugDrawDelegateHelper.InitDelegateHelper(SceneProxy2);
+		EQSRenderingDebugDrawDelegateHelper.ReregisterDebugDrawDelgate();
+#endif
+		return SceneProxy2;
 	}
 #endif
 	return new FEQSSceneProxy(this, DrawFlagName);
@@ -337,20 +344,14 @@ void UEQSRenderingComponent::CreateRenderState_Concurrent()
 	Super::CreateRenderState_Concurrent();
 
 #if USE_EQS_DEBUGGER
-	if (SceneProxy)
-	{
-		static_cast<FEQSSceneProxy*>(SceneProxy)->RegisterDebugDrawDelgate();
-	}
+	EQSRenderingDebugDrawDelegateHelper.RegisterDebugDrawDelgate();
 #endif
 }
 
 void UEQSRenderingComponent::DestroyRenderState_Concurrent()
 {
 #if USE_EQS_DEBUGGER
-	if (SceneProxy)
-	{
-		static_cast<FEQSSceneProxy*>(SceneProxy)->UnregisterDebugDrawDelgate();
-	}
+	EQSRenderingDebugDrawDelegateHelper.UnregisterDebugDrawDelgate();
 #endif
 
 	Super::DestroyRenderState_Concurrent();

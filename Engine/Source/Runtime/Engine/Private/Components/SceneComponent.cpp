@@ -67,6 +67,17 @@ void USceneComponent::AddReferencedObjects(UObject* InThis, FReferenceCollector&
 {
 	USceneComponent* This = CastChecked<USceneComponent>(InThis);
 	Collector.AddReferencedObject(This->SpriteComponent);
+
+	if (GComponentsWithLegacyLightmaps.GetAnnotationMap().Num() > 0)
+	{
+		FMeshMapBuildLegacyData LegacyMeshData = GComponentsWithLegacyLightmaps.GetAnnotation(This);
+
+		for (int32 EntryIndex = 0; EntryIndex < LegacyMeshData.Data.Num(); EntryIndex++)
+		{
+			LegacyMeshData.Data[EntryIndex].Value->AddReferencedObjects(Collector);
+		}
+	}
+
 	Super::AddReferencedObjects(InThis, Collector);
 }
 #endif
@@ -2481,11 +2492,21 @@ bool USceneComponent::InternalSetWorldLocationAndRotation(FVector NewLocation, c
 		}
 	}
 
-	if (!NewLocation.Equals(RelativeLocation) || !NewRotationQuat.Equals(RelativeRotationCache.RotatorToQuat_ReadOnly(RelativeRotation), SCENECOMPONENT_QUAT_TOLERANCE))
+	const FRotator NewRelativeRotation = RelativeRotationCache.QuatToRotator_ReadOnly(NewRotationQuat);
+	if (!NewLocation.Equals(RelativeLocation) || !NewRelativeRotation.Equals(RelativeRotation))
 	{
 		RelativeLocation = NewLocation;
-		RelativeRotation = RelativeRotationCache.QuatToRotator(NewRotationQuat); // Normalizes quat, if this is a new rotation. Then we'll use it below.
-		
+
+		// Here it is important to compute the quaternion from the rotator and not the opposite.
+		// In some cases, similar quaternions generate the same rotator, which create issues.
+		// When the component is loaded, the rotator is used to generate the quaternion, which
+		// is then used to compute the ComponentToWorld matrix. When running a blueprint script,  
+		// it is required to generate that same ComponentToWorld otherwise the FComponentInstanceDataCache
+		// might fail to apply to the relevant component. In order to have the exact same transform
+		// we must enforce the quaternion to come from the rotator (as in load)
+		RelativeRotation = NewRelativeRotation;
+		RelativeRotationCache.RotatorToQuat(NewRelativeRotation);
+
 #if ENABLE_NAN_DIAGNOSTIC
 		if (RelativeRotation.ContainsNaN())
 		{

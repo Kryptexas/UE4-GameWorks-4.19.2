@@ -162,6 +162,11 @@ struct FExportMaterialCompiler : public FProxyMaterialCompiler
 		return Compiler->VertexColor(); 
 	}
 
+	virtual int32 PreSkinnedPosition() override
+	{
+		return Compiler->PreSkinnedPosition();
+	}
+
 	virtual int32 LightVector() override
 	{
 		return Compiler->LightVector();
@@ -359,7 +364,7 @@ public:
 
 		int32 Ret = CompilePropertyAndSetMaterialPropertyWithoutCast(Property, Compiler);
 
-		return Compiler->ForceCast(Ret, GetMaterialPropertyType(Property));
+		return Compiler->ForceCast(Ret, FMaterialAttributeDefinitionMap::GetValueType(Property));
 	}
 
 	/** helper for CompilePropertyAndSetMaterialProperty() */
@@ -1829,9 +1834,9 @@ bool FMaterialUtilities::FExportErrorManager::FError::operator==(const FError& R
 }
 
 
-void FMaterialUtilities::FExportErrorManager::Register(const UMaterialInterface* Material, const UTexture* Texture, int32 RegisterIndex, EErrorType ErrorType)
+void FMaterialUtilities::FExportErrorManager::Register(const UMaterialInterface* Material, FName TextureName, int32 RegisterIndex, EErrorType ErrorType)
 {
-	if (!Material || !Texture) return;
+	if (!Material || TextureName == NAME_None) return;
 
 	FError Error;
 	Error.Material = Material->GetMaterialResource(FeatureLevel);
@@ -1841,7 +1846,7 @@ void FMaterialUtilities::FExportErrorManager::Register(const UMaterialInterface*
 
 	FInstance Instance;
 	Instance.Material = Material;
-	Instance.Texture = Texture;
+	Instance.TextureName = TextureName;
 
 	ErrorInstances.FindOrAdd(Error).Push(Instance);
 }
@@ -1905,11 +1910,11 @@ void FMaterialUtilities::FExportErrorManager::OutputToLog()
 			ErrorMsg = TEXT("NoValues");
 		}
 
-		TextureErrors.Append(FString::Printf(TEXT("(%s:%d,%s) "), ErrorMsg, It->Key.RegisterIndex, *It->Value[0].Texture->GetName()));
+		TextureErrors.Append(FString::Printf(TEXT("(%s:%d,%s) "), ErrorMsg, It->Key.RegisterIndex, *It->Value[0].TextureName.ToString()));
 	}
 }
 
-bool FMaterialUtilities::ExportMaterialTexCoordScales(UMaterialInterface* InMaterial, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, TArray<FMaterialTexCoordBuildInfo>& OutScales, FExportErrorManager& OutErrors)
+bool FMaterialUtilities::ExportMaterialTexCoordScales(UMaterialInterface* InMaterial, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, TArray<FMaterialTextureInfo>& OutScales, FExportErrorManager& OutErrors)
 {
 	TArray<FFloat16Color> RenderedVectors;
 
@@ -1929,10 +1934,6 @@ bool FMaterialUtilities::ExportMaterialTexCoordScales(UMaterialInterface* InMate
 	}
 
 	const int32 SCALE_PRECISION = 64.f;
-	const int32 TILE_RESOLUTION = FMaterialTexCoordBuildInfo::TILE_RESOLUTION;
-	const int32 INITIAL_GPU_SCALE = FMaterialTexCoordBuildInfo::INITIAL_GPU_SCALE;
-	const int32 MAX_NUM_TEX_COORD = FMaterialTexCoordBuildInfo::MAX_NUM_TEX_COORD;
-	const int32 MAX_NUM_TEXTURE_REGISTER = FMaterialTexCoordBuildInfo::MAX_NUM_TEXTURE_REGISTER;
 
 	const bool bUseMetrics = CVarStreamingUseNewMetrics.GetValueOnGameThread() != 0;
 
@@ -1962,10 +1963,9 @@ bool FMaterialUtilities::ExportMaterialTexCoordScales(UMaterialInterface* InMate
 		}
 	}
 
-
 	const int32 NumTileX = (MaxRegisterIndex / 4 + 1);
-	const int32 NumTileY = MAX_NUM_TEX_COORD;
-	FIntPoint RenderTargetSize(TILE_RESOLUTION * NumTileX, TILE_RESOLUTION * NumTileY);
+	const int32 NumTileY = TEXSTREAM_MAX_NUM_UVCHANNELS;
+	FIntPoint RenderTargetSize(TEXSTREAM_TILE_RESOLUTION * NumTileX, TEXSTREAM_TILE_RESOLUTION * NumTileY);
 
 	// Render the vectors
 	{
@@ -1997,6 +1997,20 @@ bool FMaterialUtilities::ExportMaterialTexCoordScales(UMaterialInterface* InMate
 
 	OutScales.AddDefaulted(MaxRegisterIndex + 1);
 
+	// Set the texture names
+	for (int32 Index = 0; Index < Textures.Num(); ++Index)
+	{
+		if (!Textures[Index] || !Indices.IsValidIndex(Index)) continue;
+		
+		for (int32 RegisterIndex : Indices[Index])
+		{
+			if (OutScales.IsValidIndex(RegisterIndex))
+			{
+				OutScales[RegisterIndex].TextureName = Textures[Index]->GetFName();
+			}
+		}
+	}
+
 	TArray<float> TextureIndexScales;
 
 	// Now compute the scale for each
@@ -2004,9 +2018,10 @@ bool FMaterialUtilities::ExportMaterialTexCoordScales(UMaterialInterface* InMate
 	{
 		if (!RegisterInUse[RegisterIndex]) continue;
 
+		FMaterialTextureInfo& TextureInfo = OutScales[RegisterIndex];
 		// If nothing works, this will fallback to 1.f
-		OutScales[RegisterIndex].Scale = 1.f;
-		OutScales[RegisterIndex].Index = 0;
+		TextureInfo.SamplingScale = 1.f;
+		TextureInfo.UVChannelIndex = 0;
 
 		if (!bUseMetrics) continue; // Old metrics would always use 1.f
 
@@ -2014,14 +2029,14 @@ bool FMaterialUtilities::ExportMaterialTexCoordScales(UMaterialInterface* InMate
 		int32 ComponentIndex = RegisterIndex % 4;
 
 		bool bSuccess = false;
-		for (int32 CoordIndex = 0; CoordIndex < MAX_NUM_TEX_COORD && !bSuccess; ++CoordIndex)
+		for (int32 CoordIndex = 0; CoordIndex < TEXSTREAM_MAX_NUM_UVCHANNELS && !bSuccess; ++CoordIndex)
 		{
-			TextureIndexScales.Empty(TILE_RESOLUTION * TILE_RESOLUTION);
-			for (int32 TexelX = 0; TexelX < TILE_RESOLUTION; ++TexelX)
+			TextureIndexScales.Empty(TEXSTREAM_TILE_RESOLUTION * TEXSTREAM_TILE_RESOLUTION);
+			for (int32 TexelX = 0; TexelX < TEXSTREAM_TILE_RESOLUTION; ++TexelX)
 			{
-				for (int32 TexelY = 0; TexelY < TILE_RESOLUTION; ++TexelY)
+				for (int32 TexelY = 0; TexelY < TEXSTREAM_TILE_RESOLUTION; ++TexelY)
 				{
-					int32 TexelIndex = TextureTile * TILE_RESOLUTION + TexelX + (TexelY + CoordIndex * TILE_RESOLUTION) * RenderTargetSize.X;
+					int32 TexelIndex = TextureTile * TEXSTREAM_TILE_RESOLUTION + TexelX + (TexelY + CoordIndex * TEXSTREAM_TILE_RESOLUTION) * RenderTargetSize.X;
 					FFloat16Color& Scale16 = RenderedVectors[TexelIndex];
 
 					float TexelScale = 0;
@@ -2033,16 +2048,16 @@ bool FMaterialUtilities::ExportMaterialTexCoordScales(UMaterialInterface* InMate
 					// Quantize scale to converge faster in the TryLogic
 					TexelScale = FMath::RoundToFloat(TexelScale * SCALE_PRECISION) / SCALE_PRECISION;
 
-					if (TexelScale > 0 && TexelScale < INITIAL_GPU_SCALE)
+					if (TexelScale > 0 && TexelScale < TEXSTREAM_INITIAL_GPU_SCALE)
 					{
 						TextureIndexScales.Push(TexelScale);
 					}
 				}
 			}
 
-			if (GetUniformScale(TextureIndexScales, OutScales[RegisterIndex].Scale))
+			if (GetUniformScale(TextureIndexScales, TextureInfo.SamplingScale))
 			{
-				OutScales[RegisterIndex].Index = CoordIndex;
+				TextureInfo.UVChannelIndex = CoordIndex;
 				bSuccess = true;
 			}
 		}
@@ -2050,20 +2065,7 @@ bool FMaterialUtilities::ExportMaterialTexCoordScales(UMaterialInterface* InMate
 		// If we couldn't find the scale, then output a warning detailing which index, texture, material is having an issue.
 		if (!bSuccess)
 		{
-			UTexture* FailedTexture = nullptr;
-			for (int32 Index = 0; Index < Indices.Num() && !FailedTexture; ++Index)
-			{
-				for (int32 SubIndex : Indices[Index])
-				{
-					if (SubIndex == RegisterIndex)
-					{
-						FailedTexture = Textures[Index];
-						break;
-					}
-				}
-			}
-
-			OutErrors.Register(InMaterial, FailedTexture, RegisterIndex, TextureIndexScales.Num() ? FExportErrorManager::EErrorType::EET_IncohorentValues : FExportErrorManager::EErrorType::EET_NoValues);
+			OutErrors.Register(InMaterial, TextureInfo.TextureName, RegisterIndex, TextureIndexScales.Num() ? FExportErrorManager::EErrorType::EET_IncohorentValues : FExportErrorManager::EErrorType::EET_NoValues);
 		}
 	}
 

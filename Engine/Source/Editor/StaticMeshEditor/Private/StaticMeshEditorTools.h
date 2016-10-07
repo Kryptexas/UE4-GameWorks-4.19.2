@@ -354,6 +354,16 @@ private:
 	ECheckBoxState IsShadowCastingEnabled(int32 SlotIndex) const;
 	void OnShadowCastingChanged(ECheckBoxState NewState, int32 SlotIndex);
 
+	EVisibility GetOverrideUVDensityVisibililty() const;
+	ECheckBoxState IsUVDensityOverridden(int32 SlotIndex) const;
+	void OnOverrideUVDensityChanged(ECheckBoxState NewState, int32 SlotIndex);
+
+	EVisibility GetUVDensityVisibility(int32 SlotIndex, int32 UVChannelIndex) const;
+	TOptional<float> GetUVDensityValue(int32 SlotIndex, int32 UVChannelIndex) const;
+	void SetUVDensityValue(float InDensity, ETextCommit::Type CommitType, int32 SlotIndex, int32 UVChannelIndex);
+
+	SVerticalBox::FSlot& GetUVDensitySlot(int32 SlotIndex, int32 UVChannelIndex) const;
+
 	void CallPostEditChange(UProperty* PropertyChanged = nullptr);
 
 	IStaticMeshEditor& StaticMeshEditor;

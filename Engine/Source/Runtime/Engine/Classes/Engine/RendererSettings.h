@@ -162,15 +162,20 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ToolTip = "Use a separate normal map for the bottom layer of a clear coat material. This is a higher quality feature that is expensive."))
 		uint32 bClearCoatEnableSecondNormal : 1;
 
-	UPROPERTY(config, EditAnywhere, Category = Textures, meta = (
+	UPROPERTY(config, EditAnywhere, Category = Reflections, meta = (
 		ConsoleVariable = "r.ReflectionCaptureResolution", DisplayName = "Reflection Capture Resolution",
 		ToolTip = "The cubemap resolution for all reflection capture probes. Must be power of 2. Note that for very high values the memory and performance impact may be severe."))
 	int32 ReflectionCaptureResolution;
 
+	UPROPERTY(config, EditAnywhere, Category = Reflections, meta = (
+		ConsoleVariable = "r.ReflectionEnvironmentLightmapMixBasedOnRoughness", DisplayName = "Reduce lightmap mixing on smooth surfaces",
+		ToolTip = "Whether to reduce lightmap mixing with reflection captures for very smooth surfaces.  This is useful to make sure reflection captures match SSR / planar reflections in brightness."))
+	uint32 ReflectionEnvironmentLightmapMixBasedOnRoughness : 1;
+
 	UPROPERTY(config, EditAnywhere, Category=ForwardShading, meta=(
 		ConsoleVariable="r.ForwardShading",
-		DisplayName = "Forward Shading (experimental)",
-		ToolTip="Whether to use forward shading on desktop platforms.  Requires Shader Model 5 hardware.  Forward shading has lower constant cost, but fewer features supported.  Changing this setting requires restarting the editor.",
+		DisplayName = "Forward Shading",
+		ToolTip="Whether to use forward shading on desktop platforms, requires Shader Model 5 hardware.  Forward shading supports MSAA and has lower default cost, but fewer features supported overall.  Materials have to opt-in to more expensive features like high quality reflections.  Changing this setting requires restarting the editor.",
 		ConfigRestartRequired=true))
 	uint32 bForwardShading:1;
 
@@ -265,7 +270,7 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 
 	UPROPERTY(config, EditAnywhere, Category = DefaultSettings, meta = (
 		ConsoleVariable = "r.DefaultFeature.AntiAliasing", DisplayName = "Anti-Aliasing Method",
-		ToolTip = "What anti-aliasing mode is used by default (postprocess volume/camera/game setting can still override and enable or disable it independently)"))
+		ToolTip = "What anti-aliasing mode is used by default"))
 	TEnumAsByte<EAntiAliasingMethod> DefaultFeatureAntiAliasing;
 
 	UPROPERTY(config, EditAnywhere, Category=Optimizations, meta=(
@@ -383,6 +388,14 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ConsoleVariable = "r.SupportAtmosphericFog", DisplayName = "Support Atmospheric Fog",	
 		ConfigRestartRequired = true))
 		uint32 bSupportAtmosphericFog : 1;
+
+	/**
+	"Skincache shaders require special compute shader permutations of the vertex shaders. This setting will also enable the SkinCache globally! Optionally this setting will also allow to recompute tangents per skinned mesh instance. Disabling will reduce the number of shader permutations required per material. Changing this setting requires restarting the editor."
+	*/
+	UPROPERTY(config, EditAnywhere, Category = ShaderPermutationReduction, meta = (
+		ConsoleVariable = "r.SkinCache.CompileShaders", DisplayName = "Support Skincache Shaders",
+		ConfigRestartRequired = true))
+		uint32 bSupportSkinCacheShaders : 1;
 
 public:
 

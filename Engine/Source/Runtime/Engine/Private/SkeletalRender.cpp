@@ -70,8 +70,8 @@ void FSkeletalMeshObject::UpdateMinDesiredLODLevel(const FSceneView* View, const
 	float LODScale = FMath::Clamp(SkeletalMeshLODRadiusScale->GetValueOnRenderThread(), 0.25f, 1.0f);
 
 	const FVector4 ScreenPosition( View->WorldToScreen(Bounds.Origin) );
-	const float ScreenRadius = FMath::Max(View->ViewRect.Width() / 2.0f * View->ViewMatrices.ProjMatrix.M[0][0],
-		View->ViewRect.Height() / 2.0f * View->ViewMatrices.ProjMatrix.M[1][1]) * Bounds.SphereRadius / FMath::Max(ScreenPosition.W,1.0f);
+	const float ScreenRadius = FMath::Max(View->ViewRect.Width() / 2.0f * View->ViewMatrices.GetProjectionMatrix().M[0][0],
+		View->ViewRect.Height() / 2.0f * View->ViewMatrices.GetProjectionMatrix().M[1][1]) * Bounds.SphereRadius / FMath::Max(ScreenPosition.W,1.0f);
 
 	const float LODFactor = LODScale * ScreenRadius / 320.0f;
 

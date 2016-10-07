@@ -131,9 +131,10 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	const bool bStereoRenderingAndHMD = View.Family->EngineShowFlags.StereoRendering && View.Family->EngineShowFlags.HMDDistortion;
 	const bool bRenderToSceneColor = bStereoRenderingAndHMD || bRequiresUpscale || FSceneRenderer::ShouldCompositeEditorPrimitives(View) || View.bIsSceneCapture;
 
+	FTextureRHIParamRef SceneColor = nullptr;
 	if (bGammaSpace && !bRenderToSceneColor)
 	{
-		const FTextureRHIParamRef SceneColor = (View.bIsMobileMultiViewEnabled) ? SceneContext.MobileMultiViewSceneColor->GetRenderTargetItem().TargetableTexture : static_cast<FTextureRHIRef>(ViewFamily.RenderTarget->GetRenderTargetTexture());
+		SceneColor = (View.bIsMobileMultiViewEnabled) ? SceneContext.MobileMultiViewSceneColor->GetRenderTargetItem().TargetableTexture : static_cast<FTextureRHIRef>(ViewFamily.RenderTarget->GetRenderTargetTexture());
 		const FTextureRHIParamRef SceneDepth = (View.bIsMobileMultiViewEnabled) ? SceneContext.MobileMultiViewSceneDepthZ->GetRenderTargetItem().TargetableTexture : static_cast<FTextureRHIRef>(SceneContext.GetSceneDepthTexture());
 		SetRenderTarget(RHICmdList, SceneColor, SceneDepth, ESimpleRenderTargetMode::EClearColorAndDepth);
 	}
@@ -141,11 +142,12 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	{
 		// Begin rendering to scene color
 		SceneContext.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EClearColorAndDepth);
+		SceneColor = SceneContext.GetSceneColorSurface();
 	}
 
 	if (GIsEditor && !View.bIsSceneCapture)
 	{
-		RHICmdList.Clear(true, Views[0].BackgroundColor, false, (float)ERHIZBuffer::FarPlane, false, 0, FIntRect());
+		RHICmdList.ClearColorTexture(SceneColor, Views[0].BackgroundColor, FIntRect());
 	}
 
 	RenderMobileBasePass(RHICmdList);

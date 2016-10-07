@@ -25,6 +25,12 @@ extern RHI_API TAutoConsoleVariable<int32> CVarRHICmdWidth;
 extern RHI_API TAutoConsoleVariable<int32> CVarRHICmdFlushRenderThreadTasks;
 class FRHICommandListBase;
 
+#ifdef CONTINUABLE_PSO_VERIFY
+#define PSO_VERIFY ensureAlways
+#else
+#define PSO_VERIFY	check
+#endif
+
 enum class ECmdList
 {
 	EGfx,
@@ -110,6 +116,7 @@ extern RHI_API FRHICommandListFenceAllocator GRHIFenceAllocator;
 class RHI_API FRHICommandListBase : public FNoncopyable
 {
 public:
+	mutable uint32 StrictGraphicsPipelineStateUse;
 
 	FRHICommandListBase();
 	~FRHICommandListBase();
@@ -259,9 +266,31 @@ public:
 	};
 	void *RenderThreadContexts[(int32)ERenderThreadContext::Num];
 	static int32 StateCacheEnabled;
+
+	uint32 CachedNumSimultanousRenderTargets;
+	TStaticArray<FRHIRenderTargetView, MaxSimultaneousRenderTargets> CachedRenderTargets;
+	FRHIDepthRenderTargetView CachedDepthStencilTarget;
+
 protected:
 	struct FRHICommandSetRasterizerState* CachedRasterizerState;
 	struct FRHICommandSetDepthStencilState* CachedDepthStencilState;
+
+	void CacheActiveRenderTargets(
+		uint32 NewNumSimultaneousRenderTargets,
+		const FRHIRenderTargetView* NewRenderTargetsRHI,
+		const FRHIDepthRenderTargetView* NewDepthStencilTargetRHI
+		)
+	{
+		CachedNumSimultanousRenderTargets = NewNumSimultaneousRenderTargets;
+
+		for (uint32 RTIdx = 0; RTIdx < CachedNumSimultanousRenderTargets; ++RTIdx)
+		{
+			CachedRenderTargets[RTIdx] = NewRenderTargetsRHI[RTIdx];
+		}
+
+		CachedDepthStencilTarget = (NewDepthStencilTargetRHI) ? *NewDepthStencilTargetRHI : FRHIDepthRenderTargetView();
+	}
+
 public:
 	void FORCEINLINE FlushStateCache()
 	{
@@ -290,6 +319,25 @@ public:
 	FDrawUpData DrawUPData; 
 };
 
+class ScopedStrictGraphicsPipelineStateUse
+{
+public:
+	ScopedStrictGraphicsPipelineStateUse(
+		FRHICommandListBase& InRHICmdList
+	)
+		: RHICmdList(InRHICmdList)
+	{
+		RHICmdList.StrictGraphicsPipelineStateUse = 1;
+	}
+
+	~ScopedStrictGraphicsPipelineStateUse()
+	{
+		RHICmdList.StrictGraphicsPipelineStateUse = 0;
+	}
+
+private:
+	const FRHICommandListBase& RHICmdList;
+};
 
 template<typename TCmd>
 struct FRHICommand : public FRHICommandBase
@@ -324,6 +372,16 @@ struct FRHICommandSetDepthStencilState : public FRHICommand<FRHICommandSetDepthS
 	FORCEINLINE_DEBUGGABLE FRHICommandSetDepthStencilState(FDepthStencilStateRHIParamRef InState, uint32 InStencilRef)
 		: State(InState)
 		, StencilRef(InStencilRef)
+	{
+	}
+	RHI_API void Execute(FRHICommandListBase& CmdList);
+};
+
+struct FRHICommandSetStencilRef : public FRHICommand<FRHICommandSetStencilRef>
+{
+	uint32 StencilRef;
+	FORCEINLINE_DEBUGGABLE FRHICommandSetStencilRef(uint32 InStencilRef)
+		: StencilRef(InStencilRef)
 	{
 	}
 	RHI_API void Execute(FRHICommandListBase& CmdList);
@@ -497,6 +555,16 @@ struct FRHICommandSetBlendState : public FRHICommand<FRHICommandSetBlendState>
 	FORCEINLINE_DEBUGGABLE FRHICommandSetBlendState(FBlendStateRHIParamRef InState, const FLinearColor& InBlendFactor)
 		: State(InState)
 		, BlendFactor(InBlendFactor)
+	{
+	}
+	RHI_API void Execute(FRHICommandListBase& CmdList);
+};
+
+struct FRHICommandSetBlendFactor : public FRHICommand<FRHICommandSetBlendFactor>
+{
+	FLinearColor BlendFactor;
+	FORCEINLINE_DEBUGGABLE FRHICommandSetBlendFactor(const FLinearColor& InBlendFactor)
+		: BlendFactor(InBlendFactor)
 	{
 	}
 	RHI_API void Execute(FRHICommandListBase& CmdList);
@@ -929,104 +997,74 @@ struct FRHICommandWaitComputeFence : public FRHICommand<FRHICommandWaitComputeFe
 	RHI_API void Execute(FRHICommandListBase& CmdList);
 };
 
-struct FRHICommandClear : public FRHICommand<FRHICommandClear>
+struct FRHICommandClearColorTexture : public FRHICommand<FRHICommandClearColorTexture>
 {
+	FTextureRHIParamRef Texture;
 	FLinearColor Color;
 	FIntRect ExcludeRect;
-	float Depth;
-	uint32 Stencil;
-	bool bClearColor;
-	bool bClearDepth;
-	bool bClearStencil;
 
-	FORCEINLINE_DEBUGGABLE FRHICommandClear(
-		bool InbClearColor,
+	FORCEINLINE_DEBUGGABLE FRHICommandClearColorTexture(
+		FTextureRHIParamRef InTexture,
 		const FLinearColor& InColor,
-		bool InbClearDepth,
-		float InDepth,
-		bool InbClearStencil,
-		uint32 InStencil,
 		FIntRect InExcludeRect
 		)
-		: Color(InColor)
+		: Texture(InTexture)
+		, Color(InColor)
 		, ExcludeRect(InExcludeRect)
-		, Depth(InDepth)
-		, Stencil(InStencil)
-		, bClearColor(InbClearColor)
-		, bClearDepth(InbClearDepth)
-		, bClearStencil(InbClearStencil)
 	{
 	}
 	RHI_API void Execute(FRHICommandListBase& CmdList);
 };
 
-struct FRHICommandClearMRT : public FRHICommand<FRHICommandClearMRT>
+struct FRHICommandClearDepthStencilTexture : public FRHICommand<FRHICommandClearDepthStencilTexture>
 {
-	FLinearColor ColorArray[MaxSimultaneousRenderTargets];
+	FTextureRHIParamRef Texture;
 	FIntRect ExcludeRect;
 	float Depth;
 	uint32 Stencil;
-	int32 NumClearColors;
-	bool bClearColor;
-	bool bClearDepth;
-	bool bClearStencil;
+	EClearDepthStencil ClearDepthStencil;
 
-	FORCEINLINE_DEBUGGABLE FRHICommandClearMRT(
-		bool InbClearColor,
-		int32 InNumClearColors,
-		const FLinearColor* InColorArray,
-		bool InbClearDepth,
+	FORCEINLINE_DEBUGGABLE FRHICommandClearDepthStencilTexture(
+		FTextureRHIParamRef InTexture,
+		EClearDepthStencil InClearDepthStencil,
 		float InDepth,
-		bool InbClearStencil,
 		uint32 InStencil,
+		FIntRect InExcludeRect
+	)
+		: Texture(InTexture)
+		, ExcludeRect(InExcludeRect)
+		, Depth(InDepth)
+		, Stencil(InStencil)
+		, ClearDepthStencil(InClearDepthStencil)
+	{
+	}
+	RHI_API void Execute(FRHICommandListBase& CmdList);
+};
+
+struct FRHICommandClearColorTextures : public FRHICommand<FRHICommandClearColorTextures>
+{
+	FLinearColor ColorArray[MaxSimultaneousRenderTargets];
+	FTextureRHIParamRef Textures[MaxSimultaneousRenderTargets];
+	FIntRect ExcludeRect;
+	int32 NumClearColors;
+
+	FORCEINLINE_DEBUGGABLE FRHICommandClearColorTextures(
+		int32 InNumClearColors,
+		FTextureRHIParamRef* InTextures,
+		const FLinearColor* InColorArray,
 		FIntRect InExcludeRect
 		)
 		: ExcludeRect(InExcludeRect)
-		, Depth(InDepth)
-		, Stencil(InStencil)
 		, NumClearColors(InNumClearColors)
-		, bClearColor(InbClearColor)
-		, bClearDepth(InbClearDepth)
-		, bClearStencil(InbClearStencil)
 	{
 		check(InNumClearColors <= MaxSimultaneousRenderTargets);
 		for (int32 Index = 0; Index < InNumClearColors; Index++)
 		{
 			ColorArray[Index] = InColorArray[Index];
+			Textures[Index] = InTextures[Index];
 		}
 	}
 	RHI_API void Execute(FRHICommandListBase& CmdList);
-};
-
-
-struct FBoundShaderStateInput
-{
-	FVertexDeclarationRHIParamRef VertexDeclarationRHI;
-	FVertexShaderRHIParamRef VertexShaderRHI;
-	FHullShaderRHIParamRef HullShaderRHI;
-	FDomainShaderRHIParamRef DomainShaderRHI;
-	FPixelShaderRHIParamRef PixelShaderRHI;
-	FGeometryShaderRHIParamRef GeometryShaderRHI;
-
-	FORCEINLINE FBoundShaderStateInput()
-	{
-	}
-
-	FORCEINLINE FBoundShaderStateInput(FVertexDeclarationRHIParamRef InVertexDeclarationRHI,
-		FVertexShaderRHIParamRef InVertexShaderRHI,
-		FHullShaderRHIParamRef InHullShaderRHI,
-		FDomainShaderRHIParamRef InDomainShaderRHI,
-		FPixelShaderRHIParamRef InPixelShaderRHI,
-		FGeometryShaderRHIParamRef InGeometryShaderRHI
-		)
-		: VertexDeclarationRHI(InVertexDeclarationRHI)
-		, VertexShaderRHI(InVertexShaderRHI)
-		, HullShaderRHI(InHullShaderRHI)
-		, DomainShaderRHI(InDomainShaderRHI)
-		, PixelShaderRHI(InPixelShaderRHI)
-		, GeometryShaderRHI(InGeometryShaderRHI)
-	{
-	}
 };
 
 struct FComputedBSS
@@ -1114,6 +1152,83 @@ struct FRHICommandSetLocalBoundShaderState : public FRHICommand<FRHICommandSetLo
 	RHI_API void Execute(FRHICommandListBase& CmdList);
 };
 
+struct FComputedGraphicsPipelineState
+{
+	FGraphicsPipelineStateRHIRef GraphicsPipelineState;
+	int32 UseCount;
+	FComputedGraphicsPipelineState()
+		: UseCount(0)
+	{
+	}
+};
+
+struct FLocalGraphicsPipelineStateWorkArea
+{
+	FGraphicsPipelineStateInitializer Args;
+	FComputedGraphicsPipelineState* ComputedGraphicsPipelineState;
+#if DO_CHECK // the below variables are used in check(), which can be enabled in Shipping builds (see Build.h)
+	FRHICommandListBase* CheckCmdList;
+	int32 UID;
+#endif
+
+	FORCEINLINE_DEBUGGABLE FLocalGraphicsPipelineStateWorkArea(
+		FRHICommandListBase* InCheckCmdList,
+		const FGraphicsPipelineStateInitializer& Initializer
+		)
+		: Args(Initializer)
+#if DO_CHECK
+		, CheckCmdList(InCheckCmdList)
+		, UID(InCheckCmdList->GetUID())
+#endif
+	{
+		ComputedGraphicsPipelineState = new (InCheckCmdList->Alloc<FComputedGraphicsPipelineState>()) FComputedGraphicsPipelineState;
+	}
+};
+
+struct FLocalGraphicsPipelineState
+{
+	FLocalGraphicsPipelineStateWorkArea* WorkArea;
+	FGraphicsPipelineStateRHIRef BypassGraphicsPipelineState; // this is only used in the case of Bypass, should eventually be deleted
+
+	FLocalGraphicsPipelineState()
+		: WorkArea(nullptr)
+	{
+	}
+
+	FLocalGraphicsPipelineState(const FLocalGraphicsPipelineState& Other)
+		: WorkArea(Other.WorkArea)
+		, BypassGraphicsPipelineState(Other.BypassGraphicsPipelineState)
+	{
+	}
+};
+
+struct FRHICommandBuildLocalGraphicsPipelineState : public FRHICommand<FRHICommandBuildLocalGraphicsPipelineState>
+{
+	FLocalGraphicsPipelineStateWorkArea WorkArea;
+
+	FORCEINLINE_DEBUGGABLE FRHICommandBuildLocalGraphicsPipelineState(
+		FRHICommandListBase* CheckCmdList,
+		const FGraphicsPipelineStateInitializer& Initializer
+		)
+		: WorkArea(CheckCmdList, Initializer)
+	{
+	}
+
+	RHI_API void Execute(FRHICommandListBase& CmdList);
+};
+
+struct FRHICommandSetLocalGraphicsPipelineState : public FRHICommand<FRHICommandSetLocalGraphicsPipelineState>
+{
+	FLocalGraphicsPipelineState LocalGraphicsPipelineState;
+	FORCEINLINE_DEBUGGABLE FRHICommandSetLocalGraphicsPipelineState(FRHICommandListBase* CheckCmdList, FLocalGraphicsPipelineState& InLocalGraphicsPipelineState)
+		: LocalGraphicsPipelineState(InLocalGraphicsPipelineState)
+	{
+		check(CheckCmdList == LocalGraphicsPipelineState.WorkArea->CheckCmdList && CheckCmdList->GetUID() == LocalGraphicsPipelineState.WorkArea->UID); // this PSO was not built for this particular commandlist
+		LocalGraphicsPipelineState.WorkArea->ComputedGraphicsPipelineState->UseCount++;
+	}
+
+	RHI_API void Execute(FRHICommandListBase& CmdList);
+};
 
 struct FComputedUniformBuffer
 {
@@ -1124,7 +1239,6 @@ struct FComputedUniformBuffer
 	{
 	}
 };
-
 
 struct FLocalUniformBufferWorkArea
 {
@@ -1419,6 +1533,8 @@ public:
 
 	FORCEINLINE_DEBUGGABLE void SetLocalBoundShaderState(FLocalBoundShaderState LocalBoundShaderState)
 	{
+		PSO_VERIFY(StrictGraphicsPipelineStateUse == 0);
+
 		if (Bypass())
 		{
 			CMD_CONTEXT(RHISetBoundShaderState)(LocalBoundShaderState.BypassBSS);
@@ -1427,6 +1543,33 @@ public:
 		new (AllocCommand<FRHICommandSetLocalBoundShaderState>()) FRHICommandSetLocalBoundShaderState(this, LocalBoundShaderState);
 	}
 
+	FORCEINLINE_DEBUGGABLE FLocalGraphicsPipelineState BuildLocalGraphicsPipelineState(
+		const FGraphicsPipelineStateInitializer& Initializer
+		)
+	{
+		FLocalGraphicsPipelineState Result;
+		if (Bypass())
+		{
+			Result.BypassGraphicsPipelineState = RHICreateGraphicsPipelineState(Initializer);
+		}
+		else
+		{
+			auto* Cmd = new (AllocCommand<FRHICommandBuildLocalGraphicsPipelineState>()) FRHICommandBuildLocalGraphicsPipelineState(this, Initializer);
+			Result.WorkArea = &Cmd->WorkArea;
+		}
+		return Result;
+	}
+
+	FORCEINLINE_DEBUGGABLE void SetLocalGraphicsPipelineState(FLocalGraphicsPipelineState LocalGraphicsPipelineState)
+	{
+		if (Bypass())
+		{
+			CMD_CONTEXT(RHISetGraphicsPipelineState)(LocalGraphicsPipelineState.BypassGraphicsPipelineState);
+			return;
+		}
+		new (AllocCommand<FRHICommandSetLocalGraphicsPipelineState>()) FRHICommandSetLocalGraphicsPipelineState(this, LocalGraphicsPipelineState);
+	}
+	
 	FORCEINLINE_DEBUGGABLE FLocalUniformBuffer BuildLocalUniformBuffer(const void* Contents, uint32 ContentsSize, const FRHIUniformBufferLayout& Layout)
 	{
 		FLocalUniformBuffer Result;
@@ -1577,6 +1720,8 @@ public:
 
 	FORCEINLINE_DEBUGGABLE void SetBoundShaderState(FBoundShaderStateRHIParamRef BoundShaderState)
 	{
+		PSO_VERIFY(StrictGraphicsPipelineStateUse == 0);
+
 		if (Bypass())
 		{
 			CMD_CONTEXT(RHISetBoundShaderState)(BoundShaderState);
@@ -1587,6 +1732,8 @@ public:
 
 	FORCEINLINE_DEBUGGABLE void SetRasterizerState(FRasterizerStateRHIParamRef State)
 	{
+		PSO_VERIFY(StrictGraphicsPipelineStateUse == 0);
+
 		if (Bypass())
 		{
 			CMD_CONTEXT(RHISetRasterizerState)(State);
@@ -1601,12 +1748,24 @@ public:
 
 	FORCEINLINE_DEBUGGABLE void SetBlendState(FBlendStateRHIParamRef State, const FLinearColor& BlendFactor = FLinearColor::White)
 	{
+		PSO_VERIFY(StrictGraphicsPipelineStateUse == 0);
+
 		if (Bypass())
 		{
 			CMD_CONTEXT(RHISetBlendState)(State, BlendFactor);
 			return;
 		}
 		new (AllocCommand<FRHICommandSetBlendState>()) FRHICommandSetBlendState(State, BlendFactor);
+	}
+
+	FORCEINLINE_DEBUGGABLE void SetBlendFactor(const FLinearColor& BlendFactor = FLinearColor::White)
+	{
+		if (Bypass())
+		{
+			CMD_CONTEXT(RHISetBlendFactor)(BlendFactor);
+			return;
+		}
+		new (AllocCommand<FRHICommandSetBlendFactor>()) FRHICommandSetBlendFactor(BlendFactor);
 	}
 
 	FORCEINLINE_DEBUGGABLE void DrawPrimitive(uint32 PrimitiveType, uint32 BaseVertexIndex, uint32 NumPrimitives, uint32 NumInstances)
@@ -1639,8 +1798,10 @@ public:
 		new (AllocCommand<FRHICommandSetStreamSource>()) FRHICommandSetStreamSource(StreamIndex, VertexBuffer, Stride, Offset);
 	}
 
-	FORCEINLINE_DEBUGGABLE void SetDepthStencilState(FDepthStencilStateRHIParamRef NewStateRHI, uint32 StencilRef = 0)
+	void SetDepthStencilState(FDepthStencilStateRHIParamRef NewStateRHI, uint32 StencilRef = 0)
 	{
+		PSO_VERIFY(StrictGraphicsPipelineStateUse == 0);
+
 		if (Bypass())
 		{
 			CMD_CONTEXT(RHISetDepthStencilState)(NewStateRHI, StencilRef);
@@ -1651,6 +1812,22 @@ public:
 			return;
 		}
 		CachedDepthStencilState = new(AllocCommand<FRHICommandSetDepthStencilState>()) FRHICommandSetDepthStencilState(NewStateRHI, StencilRef);
+	}
+
+	FORCEINLINE_DEBUGGABLE void SetStencilRef(uint32 StencilRef)
+	{
+		if (Bypass())
+		{
+			CMD_CONTEXT(RHISetStencilRef)(StencilRef);
+			return;
+		}
+
+		if (StateCacheEnabled && CachedDepthStencilState && CachedDepthStencilState->StencilRef == StencilRef)
+		{
+			return;
+		}
+
+		new(AllocCommand<FRHICommandSetStencilRef>()) FRHICommandSetStencilRef(StencilRef);
 	}
 
 	FORCEINLINE_DEBUGGABLE void SetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ)
@@ -1683,6 +1860,52 @@ public:
 		new (AllocCommand<FRHICommandSetScissorRect>()) FRHICommandSetScissorRect(bEnable, MinX, MinY, MaxX, MaxY);
 	}
 
+	void ApplyCachedRenderTargets(
+		FGraphicsPipelineStateInitializer& GraphicsPSOInit
+		)
+	{
+		GraphicsPSOInit.RenderTargetsEnabled = CachedNumSimultanousRenderTargets;
+
+		for (uint32 i = 0; i < GraphicsPSOInit.RenderTargetsEnabled; ++i)
+		{
+			if (CachedRenderTargets[i].Texture)
+			{
+				GraphicsPSOInit.RenderTargetFormats[i] = CachedRenderTargets[i].Texture->GetFormat();
+				GraphicsPSOInit.RenderTargetFlags[i] = CachedRenderTargets[i].Texture->GetFlags();
+			}
+			else
+			{
+				GraphicsPSOInit.RenderTargetFormats[i] = PF_Unknown;
+			}
+
+			GraphicsPSOInit.RenderTargetLoadActions[i] = CachedRenderTargets[i].LoadAction;
+			GraphicsPSOInit.RenderTargetStoreActions[i] = CachedRenderTargets[i].StoreAction;
+
+			if (GraphicsPSOInit.RenderTargetFormats[i] != PF_Unknown)
+			{
+				GraphicsPSOInit.NumSamples = CachedRenderTargets[i].Texture->GetNumSamples();
+			}
+		}
+
+		if (CachedDepthStencilTarget.Texture)
+		{
+			GraphicsPSOInit.DepthStencilTargetFormat = CachedDepthStencilTarget.Texture->GetFormat();
+			GraphicsPSOInit.DepthStencilTargetFlag = CachedDepthStencilTarget.Texture->GetFlags();
+		}
+		else
+		{
+			GraphicsPSOInit.DepthStencilTargetFormat = PF_Unknown;
+		}
+
+		GraphicsPSOInit.DepthStencilTargetLoadAction = CachedDepthStencilTarget.DepthLoadAction;
+		GraphicsPSOInit.DepthStencilTargetStoreAction = CachedDepthStencilTarget.DepthStoreAction;
+
+		if (GraphicsPSOInit.DepthStencilTargetFormat != PF_Unknown)
+		{
+			GraphicsPSOInit.NumSamples = CachedDepthStencilTarget.Texture->GetNumSamples();
+		}
+	}
+
 	FORCEINLINE_DEBUGGABLE void SetRenderTargets(
 		uint32 NewNumSimultaneousRenderTargets,
 		const FRHIRenderTargetView* NewRenderTargetsRHI,
@@ -1691,6 +1914,12 @@ public:
 		const FUnorderedAccessViewRHIParamRef* UAVs
 		)
 	{
+		CacheActiveRenderTargets(
+			NewNumSimultaneousRenderTargets, 
+			NewRenderTargetsRHI, 
+			NewDepthStencilTargetRHI
+			);
+
 		if (Bypass())
 		{
 			CMD_CONTEXT(RHISetRenderTargets)(
@@ -1711,6 +1940,12 @@ public:
 
 	FORCEINLINE_DEBUGGABLE void SetRenderTargetsAndClear(const FRHISetRenderTargetsInfo& RenderTargetsInfo)
 	{
+		CacheActiveRenderTargets(
+			RenderTargetsInfo.NumColorRenderTargets, 
+			RenderTargetsInfo.ColorRenderTarget, 
+			&RenderTargetsInfo.DepthStencilRenderTarget
+			);
+
 		if (Bypass())
 		{
 			CMD_CONTEXT(RHISetRenderTargetsAndClear)(RenderTargetsInfo);
@@ -1912,24 +2147,34 @@ public:
 		new (AllocCommand<FRHICommandCopyToResolveTarget>()) FRHICommandCopyToResolveTarget(SourceTextureRHI, DestTextureRHI, bKeepOriginalSurface, ResolveParams);
 	}
 
-	FORCEINLINE_DEBUGGABLE void Clear(bool bClearColor, const FLinearColor& Color, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect)
+	FORCEINLINE_DEBUGGABLE void ClearColorTexture(FTextureRHIParamRef Texture, const FLinearColor& Color, FIntRect ExcludeRect)
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(RHIClear)(bClearColor, Color, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
+			CMD_CONTEXT(RHIClearColorTexture)(Texture, Color, ExcludeRect);
 			return;
 		}
-		new (AllocCommand<FRHICommandClear>()) FRHICommandClear(bClearColor, Color, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
+		new (AllocCommand<FRHICommandClearColorTexture>()) FRHICommandClearColorTexture(Texture, Color, ExcludeRect);
 	}
 
-	FORCEINLINE_DEBUGGABLE void ClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect)
+	FORCEINLINE_DEBUGGABLE void ClearDepthStencilTexture(FTextureRHIParamRef Texture, EClearDepthStencil ClearDepthStencil, float Depth, uint32 Stencil, FIntRect ExcludeRect)
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(RHIClearMRT)(bClearColor, NumClearColors, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
+			CMD_CONTEXT(RHIClearDepthStencilTexture)(Texture, ClearDepthStencil, Depth, Stencil, ExcludeRect);
 			return;
 		}
-		new (AllocCommand<FRHICommandClearMRT>()) FRHICommandClearMRT(bClearColor, NumClearColors, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
+		new (AllocCommand<FRHICommandClearDepthStencilTexture>()) FRHICommandClearDepthStencilTexture(Texture, ClearDepthStencil, Depth, Stencil, ExcludeRect);
+	}
+
+	FORCEINLINE_DEBUGGABLE void ClearColorTextures(int32 NumTextures, FTextureRHIParamRef* Textures, const FLinearColor* ClearColorArray, FIntRect ExcludeRect)
+	{
+		if (Bypass())
+		{
+			CMD_CONTEXT(RHIClearColorTextures)(NumTextures, Textures, ClearColorArray, ExcludeRect);
+			return;
+		}
+		new (AllocCommand<FRHICommandClearColorTextures>()) FRHICommandClearColorTextures(NumTextures, Textures, ClearColorArray, ExcludeRect);
 	}
 
 	FORCEINLINE_DEBUGGABLE void BeginRenderQuery(FRenderQueryRHIParamRef RenderQuery)
@@ -2444,6 +2689,11 @@ public:
 	FORCEINLINE FBoundShaderStateRHIRef CreateBoundShaderState(FVertexDeclarationRHIParamRef VertexDeclaration, FVertexShaderRHIParamRef VertexShader, FHullShaderRHIParamRef HullShader, FDomainShaderRHIParamRef DomainShader, FPixelShaderRHIParamRef PixelShader, FGeometryShaderRHIParamRef GeometryShader)
 	{
 		return RHICreateBoundShaderState(VertexDeclaration, VertexShader, HullShader, DomainShader, PixelShader, GeometryShader);
+	}
+
+	FORCEINLINE FGraphicsPipelineStateRHIRef CreateGraphicsPipelineState(const FGraphicsPipelineStateInitializer& Initializer)
+	{
+		return RHICreateGraphicsPipelineState(Initializer);
 	}
 	
 	FORCEINLINE FUniformBufferRHIRef CreateUniformBuffer(const void* Contents, const FRHIUniformBufferLayout& Layout, EUniformBufferUsage Usage)

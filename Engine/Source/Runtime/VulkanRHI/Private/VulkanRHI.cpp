@@ -271,6 +271,7 @@ FVulkanCommandListContext::FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, F
 	: RHI(InRHI)
 	, Device(InDevice)
 	, bIsImmediate(bInIsImmediate)
+	, bSubmitAtNextSafePoint(false)
 	, PendingNumVertices(0)
 	, PendingVertexDataStride(0)
 	, PendingPrimitiveIndexType(VK_INDEX_TYPE_MAX_ENUM)
@@ -280,13 +281,15 @@ FVulkanCommandListContext::FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, F
 	, PendingIndexDataStride(0)
 	, TempFrameAllocationBuffer(InDevice, VULKAN_TEMP_FRAME_ALLOCATOR_SIZE)
 	, CommandBufferManager(nullptr)
-	, PendingState(nullptr)
+	, PendingGfxState(nullptr)
+	, PendingComputeState(nullptr)
 {
 	// Create CommandBufferManager, contain all active buffers
 	CommandBufferManager = new FVulkanCommandBufferManager(InDevice);
 
 	// Create Pending state, contains pipeline states such as current shader and etc..
-	PendingState = new FVulkanPendingState(InDevice);
+	PendingGfxState = new FVulkanPendingGfxState(InDevice);
+	PendingComputeState = new FVulkanPendingComputeState(InDevice);
 
 	// Add an initial pool
 	FVulkanDescriptorPool* Pool = new FVulkanDescriptorPool(Device);
@@ -299,7 +302,12 @@ FVulkanCommandListContext::~FVulkanCommandListContext()
 	delete CommandBufferManager;
 	CommandBufferManager = nullptr;
 
-	delete PendingState;
+#if VULKAN_USE_NEW_RENDERPASSES
+	RenderPassState.Destroy(*Device);
+#endif
+
+	delete PendingGfxState;
+	delete PendingComputeState;
 
 	TempFrameAllocationBuffer.Destroy();
 
@@ -578,9 +586,6 @@ void FVulkanDynamicRHI::InitInstance()
 
 #if VULKAN_USE_NEW_RENDERPASSES
 		GSupportsVolumeTextureRendering = true;
-
-		//@todo-rco: TEMP
-		GSupportsDepthFetchDuringDepthTest = false;
 #endif
 		// Indicate that the RHI needs to use the engine's deferred deletion queue.
 		GRHINeedsExtraDeletionLatency = true;
@@ -652,7 +657,8 @@ void FVulkanDynamicRHI::InitInstance()
 void FVulkanCommandListContext::RHIBeginFrame()
 {
 	//FRCLog::Printf(FString::Printf(TEXT("FVulkanCommandListContext::RHIBeginFrame()")));
-	PendingState->GetGlobalUniformPool().BeginFrame();
+	PendingGfxState->GetGlobalUniformPool().BeginFrame();
+	PendingComputeState->GetGlobalUniformPool().BeginFrame();
 
 	VulkanRHI::GManager.GPUProfilingData.BeginFrame(this, Device->GetTimestampQueryPool(RHI->GetPresentCount() % FVulkanDevice::NumTimestampPools));
 }
@@ -668,9 +674,9 @@ void FVulkanCommandListContext::RHIEndScene()
 	//FRCLog::Printf(FString::Printf(TEXT("FVulkanCommandListContext::RHIEndScene()")));
 #if !VULKAN_USE_NEW_RENDERPASSES
 	FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
-	if (PendingState->IsRenderPassActive())
+	if (PendingGfxState->IsRenderPassActive())
 	{
-		PendingState->RenderPassEnd(CmdBuffer);
+		PendingGfxState->RenderPassEnd(CmdBuffer);
 	}
 #endif
 }
@@ -704,7 +710,7 @@ void FVulkanCommandListContext::RHIEndDrawingViewport(FViewportRHIParamRef Viewp
 		RenderPassState.EndRenderPass(CmdBuffer);
 #else
 		checkf(bPresent, TEXT("An open render pass when not presenting is not allowed..."));
-		PendingState->RenderPassEnd(CmdBuffer);
+		PendingGfxState->RenderPassEnd(CmdBuffer);
 #endif
 	}
 
@@ -713,7 +719,7 @@ void FVulkanCommandListContext::RHIEndDrawingViewport(FViewportRHIParamRef Viewp
 	{
 		//#todo-rco: Check for r.FinishCurrentFrame
 	}
-	PendingState->InitFrame();
+	PendingGfxState->InitFrame();
 }
 
 void FVulkanCommandListContext::RHIEndFrame()
@@ -995,27 +1001,27 @@ void FVulkanDescriptorSetsLayout::Compile()
 }
 
 
-FVulkanDescriptorSets::FVulkanDescriptorSets(FVulkanDevice* InDevice, const FVulkanBoundShaderState* InState, FVulkanCommandListContext* InContext)
+FVulkanDescriptorSets::FVulkanDescriptorSets(FVulkanDevice* InDevice, const FVulkanDescriptorSetsLayout& InLayout, FVulkanCommandListContext* InContext)
 	: Device(InDevice)
 	, Pool(nullptr)
-	, Layout(InState->GetDescriptorSetsLayout())
+	, Layout(InLayout)
 {
 	const TArray<VkDescriptorSetLayout>& LayoutHandles = Layout.GetHandles();
 	if (LayoutHandles.Num() > 0)
 	{
-	VkDescriptorSetAllocateInfo DescriptorSetAllocateInfo;
-	FMemory::Memzero(DescriptorSetAllocateInfo);
-	DescriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	// Pool will be filled in by FVulkanCommandListContext::AllocateDescriptorSets
-	//DescriptorSetAllocateInfo.descriptorPool = Pool->GetHandle();
-	DescriptorSetAllocateInfo.descriptorSetCount = LayoutHandles.Num();
-	DescriptorSetAllocateInfo.pSetLayouts = LayoutHandles.GetData();
+		VkDescriptorSetAllocateInfo DescriptorSetAllocateInfo;
+		FMemory::Memzero(DescriptorSetAllocateInfo);
+		DescriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		// Pool will be filled in by FVulkanCommandListContext::AllocateDescriptorSets
+		//DescriptorSetAllocateInfo.descriptorPool = Pool->GetHandle();
+		DescriptorSetAllocateInfo.descriptorSetCount = LayoutHandles.Num();
+		DescriptorSetAllocateInfo.pSetLayouts = LayoutHandles.GetData();
 
-	Sets.AddZeroed(LayoutHandles.Num());
+		Sets.AddZeroed(LayoutHandles.Num());
 
-	Pool = InContext->AllocateDescriptorSets(DescriptorSetAllocateInfo, Sets.GetData());
-	Pool->TrackAddUsage(Layout);
-}
+		Pool = InContext->AllocateDescriptorSets(DescriptorSetAllocateInfo, InLayout, Sets.GetData());
+		Pool->TrackAddUsage(Layout);
+	}
 }
 
 FVulkanDescriptorSets::~FVulkanDescriptorSets()
@@ -1079,38 +1085,46 @@ void FVulkanBufferView::Destroy()
 	}
 }
 
-FVulkanRenderPass::FVulkanRenderPass(FVulkanDevice& InDevice, const FVulkanRenderTargetLayout& RTLayout) :
-	Layout(RTLayout),
+FVulkanRenderPass::FVulkanRenderPass(FVulkanDevice& InDevice, const FVulkanRenderTargetLayout& InRTLayout) :
+	Layout(InRTLayout),
+#if VULKAN_KEEP_CREATE_INFO
+	RTLayout(InRTLayout),
+#endif
 	RenderPass(VK_NULL_HANDLE),
 	Device(InDevice)
 {
 	INC_DWORD_STAT(STAT_VulkanNumRenderPasses);
 
-	VkSubpassDescription Subpass;
-	FMemory::Memzero(Subpass);
-	Subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	Subpass.flags = 0;
-	Subpass.inputAttachmentCount = 0;
-	Subpass.pInputAttachments = nullptr;
-	Subpass.colorAttachmentCount = RTLayout.GetNumColorAttachments();
-	Subpass.pColorAttachments = RTLayout.GetColorAttachmentReferences();
-	Subpass.pResolveAttachments = RTLayout.GetResolveAttachmentReferences();
-	Subpass.pDepthStencilAttachment = RTLayout.GetDepthStencilAttachmentReference();
-	Subpass.preserveAttachmentCount = 0;
-	Subpass.pPreserveAttachments = nullptr;
+#if !VULKAN_KEEP_CREATE_INFO
+	const FVulkanRenderTargetLayout& RTLayout = InRTLayout;
+	VkSubpassDescription SubpassDesc;
+#endif
+	FMemory::Memzero(SubpassDesc);
+	SubpassDesc.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	SubpassDesc.flags = 0;
+	SubpassDesc.inputAttachmentCount = 0;
+	SubpassDesc.pInputAttachments = nullptr;
+	SubpassDesc.colorAttachmentCount = RTLayout.GetNumColorAttachments();
+	SubpassDesc.pColorAttachments = RTLayout.GetColorAttachmentReferences();
+	SubpassDesc.pResolveAttachments = RTLayout.GetResolveAttachmentReferences();
+	SubpassDesc.pDepthStencilAttachment = RTLayout.GetDepthStencilAttachmentReference();
+	SubpassDesc.preserveAttachmentCount = 0;
+	SubpassDesc.pPreserveAttachments = nullptr;
 
-	VkRenderPassCreateInfo RenderPassInfo;
-	FMemory::Memzero(RenderPassInfo);
-	RenderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	RenderPassInfo.pNext = nullptr;
-	RenderPassInfo.attachmentCount = RTLayout.GetNumAttachments();
-	RenderPassInfo.pAttachments = RTLayout.GetAttachmentDescriptions();
-	RenderPassInfo.subpassCount = 1;
-	RenderPassInfo.pSubpasses = &Subpass;
-	RenderPassInfo.dependencyCount = 0;
-	RenderPassInfo.pDependencies = nullptr;
+#if !VULKAN_KEEP_CREATE_INFO
+	VkRenderPassCreateInfo CreateInfo;
+#endif
+	FMemory::Memzero(CreateInfo);
+	CreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	CreateInfo.pNext = nullptr;
+	CreateInfo.attachmentCount = RTLayout.GetNumAttachments();
+	CreateInfo.pAttachments = RTLayout.GetAttachmentDescriptions();
+	CreateInfo.subpassCount = 1;
+	CreateInfo.pSubpasses = &SubpassDesc;
+	CreateInfo.dependencyCount = 0;
+	CreateInfo.pDependencies = nullptr;
 
-	VERIFYVULKANRESULT_EXPANDED(VulkanRHI::vkCreateRenderPass(Device.GetInstanceHandle(), &RenderPassInfo, nullptr, &RenderPass));
+	VERIFYVULKANRESULT_EXPANDED(VulkanRHI::vkCreateRenderPass(Device.GetInstanceHandle(), &CreateInfo, nullptr, &RenderPass));
 }
 
 FVulkanRenderPass::~FVulkanRenderPass()

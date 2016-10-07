@@ -20,13 +20,17 @@ public:
 	template<typename ShaderRHIParamRef>
 	void Set(FRHICommandList& RHICmdList, ShaderRHIParamRef Shader, const FSceneView* View) const
 	{
-		const FViewInfo* ViewInfo = static_cast<const FViewInfo*>(View);
-		SetShaderValue(RHICmdList, Shader, ExponentialFogParameters, ViewInfo->ExponentialFogParameters);
-		SetShaderValue(RHICmdList, Shader, ExponentialFogColorParameter, FVector4(ViewInfo->ExponentialFogColor, 1.0f - ViewInfo->FogMaxOpacity));
-		SetShaderValue(RHICmdList, Shader, ExponentialFogParameters3, ViewInfo->ExponentialFogParameters3);
-		SetShaderValue(RHICmdList, Shader, InscatteringLightDirection, FVector4(ViewInfo->InscatteringLightDirection, ViewInfo->bUseDirectionalInscattering ? 1 : 0));
-		SetShaderValue(RHICmdList, Shader, DirectionalInscatteringColor, FVector4(FVector(ViewInfo->DirectionalInscatteringColor), FMath::Clamp(ViewInfo->DirectionalInscatteringExponent, 0.000001f, 1000.0f)));
-		SetShaderValue(RHICmdList, Shader, DirectionalInscatteringStartDistance, ViewInfo->DirectionalInscatteringStartDistance);
+		// InscatteringLightDirection.w controls a branch and may cause NaNs so it will need to exist
+		if (InscatteringLightDirection.IsBound())
+		{
+			const FViewInfo* ViewInfo = static_cast<const FViewInfo*>(View);
+			SetShaderValue(RHICmdList, Shader, ExponentialFogParameters, ViewInfo->ExponentialFogParameters);
+			SetShaderValue(RHICmdList, Shader, ExponentialFogColorParameter, FVector4(ViewInfo->ExponentialFogColor, 1.0f - ViewInfo->FogMaxOpacity));
+			SetShaderValue(RHICmdList, Shader, ExponentialFogParameters3, ViewInfo->ExponentialFogParameters3);
+			SetShaderValue(RHICmdList, Shader, InscatteringLightDirection, FVector4(ViewInfo->InscatteringLightDirection, ViewInfo->bUseDirectionalInscattering ? 1 : 0));
+			SetShaderValue(RHICmdList, Shader, DirectionalInscatteringColor, FVector4(FVector(ViewInfo->DirectionalInscatteringColor), FMath::Clamp(ViewInfo->DirectionalInscatteringExponent, 0.000001f, 1000.0f)));
+			SetShaderValue(RHICmdList, Shader, DirectionalInscatteringStartDistance, ViewInfo->DirectionalInscatteringStartDistance);
+		}
 	}
 
 	/** Serializer. */
@@ -51,8 +55,8 @@ public:
 	/** 
 	 * Sets height fog shader parameters.
 	 */
-	template<typename ShaderRHIParamRef>
-	void Set(FRHICommandList& RHICmdList, ShaderRHIParamRef Shader, const FSceneView* View) const
+	template<typename TShaderRHIParamRef>
+	void Set(FRHICommandList& RHICmdList, TShaderRHIParamRef Shader, const FSceneView* View) const
 	{
 		// Set the fog constants.
 		ExponentialParameters.Set(RHICmdList, Shader, View);

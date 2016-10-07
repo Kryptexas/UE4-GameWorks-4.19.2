@@ -18,6 +18,7 @@ URendererSettings::URendererSettings(const FObjectInitializer& ObjectInitializer
 	bSupportStationarySkylight = true;
 	bSupportPointLightWholeSceneShadows = true;
 	bSupportAtmosphericFog = true;
+	bSupportSkinCacheShaders = false;
 }
 
 void URendererSettings::PostInitProperties()

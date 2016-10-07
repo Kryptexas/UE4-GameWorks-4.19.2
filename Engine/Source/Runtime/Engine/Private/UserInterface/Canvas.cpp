@@ -898,8 +898,14 @@ void FCanvas::Clear(const FLinearColor& LinearColor)
 		{
 			::SetRenderTarget(RHICmdList, CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef(), true);
 			RHICmdList.SetViewport(0, 0, 0.0f, CanvasRenderTarget->GetSizeXY().X, CanvasRenderTarget->GetSizeXY().Y, 1.0f);
+			RHICmdList.ClearColorTexture(CanvasRenderTarget->GetRenderTargetTexture(), ClearColor, FIntRect());
 		}
-		RHICmdList.Clear(true, ClearColor, false, 0.0f, false, 0, FIntRect());
+		else
+		{
+			//#todo-rco!
+			ensure(0);
+			//RHICmdList.ClearColorTexture(CanvasRenderTarget->GetRenderTargetTexture(), ClearColor, FIntRect());
+		}
 	});
 }
 
@@ -1863,7 +1869,7 @@ void UCanvas::SetView(FSceneView* InView)
 		}
 		else
 		{
-			ViewProjectionMatrix = InView->ViewProjectionMatrix;
+			ViewProjectionMatrix = InView->ViewMatrices.GetViewProjectionMatrix();
 		}
 	}
 	else

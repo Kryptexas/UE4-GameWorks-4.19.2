@@ -15,6 +15,7 @@
 #include "EngineAnalytics.h"
 #include "STextComboBox.h"
 #include "ScopedTransaction.h"
+#include "SNumericEntryBox.h"
 
 const float MaxHullAccuracy = 1.f;
 const float MinHullAccuracy = 0.f;
@@ -1786,6 +1787,27 @@ TSharedRef<SWidget> FMeshMaterialsLayout::OnGenerateWidgetsForMaterial(UMaterial
 		.CanDeleteMaterialSlot(this, &FMeshMaterialsLayout::CanDeleteMaterialSlot, SlotIndex)
 		.OnDeleteMaterialSlot(this, &FMeshMaterialsLayout::OnDeleteMaterialSlot, SlotIndex)
 		.ToolTipText(this, &FMeshMaterialsLayout::GetOriginalImportMaterialNameText, SlotIndex);
+
+#if 0 // HACK!!! Temporary disabled
+		+SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(0,2,0,0)
+		[
+			SNew(SCheckBox)
+				.Visibility(this, &FMeshMaterialsLayout::GetOverrideUVDensityVisibililty)
+				.IsChecked(this, &FMeshMaterialsLayout::IsUVDensityOverridden, SlotIndex)
+				.OnCheckStateChanged(this, &FMeshMaterialsLayout::OnOverrideUVDensityChanged, SlotIndex)
+			[
+				SNew(STextBlock)
+					.Font(FEditorStyle::GetFontStyle("StaticMeshEditor.NormalFont"))
+					.Text(LOCTEXT("OverrideUVDensity", "Override UV Density"))
+			]
+		]
+		+ GetUVDensitySlot(SlotIndex, 0)
+		+ GetUVDensitySlot(SlotIndex, 1)
+		+ GetUVDensitySlot(SlotIndex, 2)
+		+ GetUVDensitySlot(SlotIndex, 3);
+#endif
 }
 
 void FMeshMaterialsLayout::OnResetMaterialToDefaultClicked(UMaterialInterface* Material, int32 MaterialIndex)
@@ -2010,6 +2032,80 @@ void FMeshMaterialsLayout::OnShadowCastingChanged(ECheckBoxState NewState, int32
 	}
 }
 
+EVisibility FMeshMaterialsLayout::GetOverrideUVDensityVisibililty() const
+{
+	if (StaticMeshEditor.GetViewMode() == VMI_MeshUVDensityAccuracy)
+	{
+		return EVisibility::SelfHitTestInvisible;
+	}
+	else
+	{
+		return EVisibility::Collapsed;
+	}
+}
+
+ECheckBoxState FMeshMaterialsLayout::IsUVDensityOverridden(int32 SlotIndex) const
+{
+	const UStaticMesh& StaticMesh = GetStaticMesh();
+	if (!StaticMesh.StaticMaterials.IsValidIndex(SlotIndex))
+	{
+		return ECheckBoxState::Undetermined;
+	}
+	else if (StaticMesh.StaticMaterials[SlotIndex].UVChannelData.bOverrideDensities)
+	{
+		return ECheckBoxState::Checked;
+	}
+	else
+	{
+		return ECheckBoxState::Unchecked;
+	}
+}
+
+
+void FMeshMaterialsLayout::OnOverrideUVDensityChanged(ECheckBoxState NewState, int32 SlotIndex)
+{
+	UStaticMesh& StaticMesh = GetStaticMesh();
+	if (NewState != ECheckBoxState::Undetermined && StaticMesh.StaticMaterials.IsValidIndex(SlotIndex))
+	{
+		StaticMesh.StaticMaterials[SlotIndex].UVChannelData.bOverrideDensities = (NewState == ECheckBoxState::Checked);
+		StaticMesh.UpdateUVChannelData(true);
+	}
+}
+
+EVisibility FMeshMaterialsLayout::GetUVDensityVisibility(int32 SlotIndex, int32 UVChannelIndex) const
+{
+	UStaticMesh& StaticMesh = GetStaticMesh();
+	if (StaticMeshEditor.GetViewMode() == VMI_MeshUVDensityAccuracy && IsUVDensityOverridden(SlotIndex) == ECheckBoxState::Checked && UVChannelIndex < StaticMeshEditor.GetNumUVChannels())
+	{
+		return EVisibility::SelfHitTestInvisible;
+	}
+	else
+	{
+		return EVisibility::Collapsed;
+	}
+}
+
+TOptional<float> FMeshMaterialsLayout::GetUVDensityValue(int32 SlotIndex, int32 UVChannelIndex) const
+{
+	const UStaticMesh& StaticMesh = GetStaticMesh();
+	if (StaticMesh.StaticMaterials.IsValidIndex(SlotIndex))
+	{
+		float Value = StaticMesh.StaticMaterials[SlotIndex].UVChannelData.LocalUVDensities[UVChannelIndex];
+		return FMath::RoundToFloat(Value * 4.f) * .25f;
+	}
+	return TOptional<float>();
+}
+
+void FMeshMaterialsLayout::SetUVDensityValue(float InDensity, ETextCommit::Type CommitType, int32 SlotIndex, int32 UVChannelIndex)
+{
+	UStaticMesh& StaticMesh = GetStaticMesh();
+	if (StaticMesh.StaticMaterials.IsValidIndex(SlotIndex))
+	{
+		StaticMesh.StaticMaterials[SlotIndex].UVChannelData.LocalUVDensities[UVChannelIndex] = FMath::Max<float>(0, InDensity);
+		StaticMesh.UpdateUVChannelData(true);
+	}
+}
+
 void FMeshMaterialsLayout::CallPostEditChange(UProperty* PropertyChanged/*=nullptr*/)
 {
 	UStaticMesh& StaticMesh = GetStaticMesh();
@@ -2062,7 +2158,7 @@ FLevelOfDetailSettingsLayout::FLevelOfDetailSettingsLayout( FStaticMeshEditor& I
 /** Returns true if automatic mesh reduction is available. */
 static bool IsAutoMeshReductionAvailable()
 {
-	static bool bAutoMeshReductionAvailable = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities").GetMeshReductionInterface() != NULL;
+	static bool bAutoMeshReductionAvailable = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities").GetStaticMeshReductionInterface() != NULL;
 	return bAutoMeshReductionAvailable;
 }
 

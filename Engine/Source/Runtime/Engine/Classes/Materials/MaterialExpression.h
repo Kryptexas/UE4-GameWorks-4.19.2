@@ -207,11 +207,10 @@ class ENGINE_API UMaterialExpression : public UObject
 	 * Create the new shader code chunk needed for the Abs expression
 	 *
 	 * @param	Compiler - UMaterial compiler that knows how to handle this expression.
-	 * @param	MultiplexIndex - An index used by some expressions to send multiple values across a single connection.
 	 * @return	Index to the new FMaterialCompiler::CodeChunk entry for this expression
 	 */	
-	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) { return INDEX_NONE; }
-	virtual int32 CompilePreview(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) { return Compile(Compiler, OutputIndex, MultiplexIndex); }
+	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex) { return INDEX_NONE; }
+	virtual int32 CompilePreview(class FMaterialCompiler* Compiler, int32 OutputIndex) { return Compile(Compiler, OutputIndex); }
 #endif
 
 	/**

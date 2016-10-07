@@ -1811,6 +1811,12 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 		Scene.GeneralSettings.NumIndirectLightingBounces = LevelSettings.NumIndirectLightingBounces;
 		Scene.GeneralSettings.IndirectLightingSmoothness = LevelSettings.IndirectLightingSmoothness;
 		Scene.GeneralSettings.IndirectLightingQuality = LevelSettings.IndirectLightingQuality;
+
+		if (QualityLevel == Quality_Preview)
+		{
+			Scene.GeneralSettings.IndirectLightingQuality = FMath::Min(Scene.GeneralSettings.IndirectLightingQuality, 1.0f);
+		}
+
 		verify(GConfig->GetInt(TEXT("DevOptions.StaticLighting"), TEXT("ViewSingleBounceNumber"), Scene.GeneralSettings.ViewSingleBounceNumber, GLightmassIni));
 		verify(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bUseConservativeTexelRasterization"), bConfigBool, GLightmassIni));
 		Scene.GeneralSettings.bUseConservativeTexelRasterization = bConfigBool;
@@ -3011,8 +3017,6 @@ void FLightmassProcessor::ImportVolumeSamples()
 			FVector4 VolumeExtent;
 			Swarm.ReadChannel(Channel, &VolumeExtent, sizeof(VolumeExtent));
 
-			System.GetWorld()->PersistentLevel->PrecomputedLightVolume->Initialize(FBox(VolumeCenter - VolumeExtent, VolumeCenter + VolumeExtent));
-
 			int32 NumStreamLevels = System.GetWorld()->StreamingLevels.Num();
 			int32 NumVolumeSampleArrays;
 			Swarm.ReadChannel(Channel, &NumVolumeSampleArrays, sizeof(NumVolumeSampleArrays));
@@ -3022,18 +3026,18 @@ void FLightmassProcessor::ImportVolumeSamples()
 				Swarm.ReadChannel(Channel, &LevelGuid, sizeof(LevelGuid));
 				TArray<Lightmass::FVolumeLightingSampleData> VolumeSamples;
 				ReadArray(Channel, VolumeSamples);
-				const ULevel* CurrentLevel = FindLevel(LevelGuid);
+				ULevel* CurrentLevel = FindLevel(LevelGuid);
 
 				if (CurrentLevel)
 				{
-					bool bIsPersistent = (CurrentLevel == System.GetWorld()->PersistentLevel);
-					if (!bIsPersistent)
-					{
-						CurrentLevel->PrecomputedLightVolume->Initialize(FBox(VolumeCenter - VolumeExtent, VolumeCenter + VolumeExtent));
-					}
+					ULevel* CurrentStorageLevel = System.LightingScenario ? System.LightingScenario : CurrentLevel;
+					UMapBuildDataRegistry* CurrentRegistry = CurrentStorageLevel->GetOrCreateMapBuildData();
+					FPrecomputedLightVolumeData& CurrentLevelData = CurrentRegistry->AllocateLevelBuildData(CurrentLevel->LevelBuildDataId);
 
-					// Only build precomputed light for persistent or visible streamed levels
-					if (bIsPersistent || CurrentLevel->bIsVisible)
+					CurrentLevelData.Initialize(FBox(VolumeCenter - VolumeExtent, VolumeCenter + VolumeExtent));
+
+					// Only build precomputed light for visible streamed levels
+					if (CurrentLevel->bIsVisible)
 					{
 						for (int32 SampleIndex = 0; SampleIndex < VolumeSamples.Num(); SampleIndex++)
 						{
@@ -3064,21 +3068,14 @@ void FLightmassProcessor::ImportVolumeSamples()
 								NewLowQualitySample.Lighting.B.V[CoefficientIndex] = CurrentSample.LowQualityCoefficients[CoefficientIndex][2];
 							}							
 
-							CurrentLevel->PrecomputedLightVolume->AddHighQualityLightingSample(NewHighQualitySample);
-							CurrentLevel->PrecomputedLightVolume->AddLowQualityLightingSample(NewLowQualitySample);
+							CurrentLevelData.AddHighQualityLightingSample(NewHighQualitySample);
+							CurrentLevelData.AddLowQualityLightingSample(NewLowQualitySample);
 						}
 
-						if (CurrentLevel != System.GetWorld()->PersistentLevel)
-						{
-							CurrentLevel->PrecomputedLightVolume->FinalizeSamples();
-							CurrentLevel->PrecomputedLightVolume->AddToScene(System.GetWorld()->Scene);
-						}
+						CurrentLevelData.FinalizeSamples();
 					}
 				}
 			}
-
-			System.GetWorld()->PersistentLevel->PrecomputedLightVolume->FinalizeSamples();
-			System.GetWorld()->PersistentLevel->PrecomputedLightVolume->AddToScene(System.GetWorld()->Scene);
 
 			Swarm.CloseChannel(Channel);
 		}
@@ -3716,21 +3713,22 @@ void FLightmassProcessor::ImportStaticShadowDepthMap(ULightComponent* Light)
 	const int32 Channel = Swarm.OpenChannel( *ChannelName, LM_DOMINANTSHADOW_CHANNEL_FLAGS );
 	if (Channel >= 0)
 	{
-		FStaticShadowDepthMap& DepthMap = Light->StaticShadowDepthMap;
+		ULevel* CurrentStorageLevel = System.LightingScenario ? System.LightingScenario : Light->GetOwner()->GetLevel();
+		UMapBuildDataRegistry* CurrentRegistry = CurrentStorageLevel->GetOrCreateMapBuildData();
+		FLightComponentMapBuildData& CurrentLightData = CurrentRegistry->FindOrAllocateLightBuildData(Light->LightGuid, true);
+
 		Lightmass::FStaticShadowDepthMapData ShadowMapData;
 		Swarm.ReadChannel(Channel, &ShadowMapData, sizeof(ShadowMapData));
 
-		BeginReleaseResource(&DepthMap);
-		DepthMap.Empty();
+		BeginReleaseResource(&Light->StaticShadowDepthMap);
+		CurrentLightData.DepthMap.Empty();
 
-		DepthMap.Data.WorldToLight = ShadowMapData.WorldToLight;
-		DepthMap.Data.ShadowMapSizeX = ShadowMapData.ShadowMapSizeX;
-		DepthMap.Data.ShadowMapSizeY = ShadowMapData.ShadowMapSizeY;
+		CurrentLightData.DepthMap.WorldToLight = ShadowMapData.WorldToLight;
+		CurrentLightData.DepthMap.ShadowMapSizeX = ShadowMapData.ShadowMapSizeX;
+		CurrentLightData.DepthMap.ShadowMapSizeY = ShadowMapData.ShadowMapSizeY;
 
-		ReadArray(Channel, DepthMap.Data.DepthSamples);
+		ReadArray(Channel, CurrentLightData.DepthMap.DepthSamples);
 		Swarm.CloseChannel(Channel);
-
-		DepthMap.InitializeAfterImport();
 	}
 	else
 	{
@@ -3995,7 +3993,7 @@ UStaticMesh* FLightmassProcessor::FindStaticMesh(FGuid& Guid)
 	return NULL;
 }
 
-const ULevel* FLightmassProcessor::FindLevel(FGuid& Guid)
+ULevel* FLightmassProcessor::FindLevel(FGuid& Guid)
 {
 	if (Exporter)
 	{

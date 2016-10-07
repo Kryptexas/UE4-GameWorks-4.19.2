@@ -219,14 +219,8 @@ void UPrimitiveComponent::GetLightAndShadowMapMemoryUsage( int32& LightMapMemory
 
 void UPrimitiveComponent::InvalidateLightingCacheDetailed(bool bInvalidateBuildEnqueuedLighting, bool bTranslationOnly) 
 {
-	bHasCachedStaticLighting = false;
-	if (bInvalidateBuildEnqueuedLighting)
-	{
-		bStaticLightingBuildEnqueued = false;
-	}
-
 	// If a static lighting build has been enqueued for this primitive, don't stomp on its visibility ID.
-	if (bInvalidateBuildEnqueuedLighting || !bStaticLightingBuildEnqueued)
+	if (bInvalidateBuildEnqueuedLighting)
 	{
 		VisibilityId = INDEX_NONE;
 	}
@@ -641,11 +635,6 @@ FMatrix UPrimitiveComponent::GetRenderMatrix() const
 void UPrimitiveComponent::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
-
-	if (Ar.UE4Ver() < VER_UE4_COMBINED_LIGHTMAP_TEXTURES)
-	{
-		bHasCachedStaticLighting = false;
-	}
 
 	// as temporary fix for the bug TTP 299926
 	// permanent fix is coming

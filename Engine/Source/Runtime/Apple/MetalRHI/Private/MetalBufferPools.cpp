@@ -94,6 +94,10 @@ uint32 FMetalBufferPoolPolicyData::GetPoolBucketSize(uint32 Bucket)
 	{
 		Index -= NumPoolBucketSizes;
 	}
+	if(Index >= NumPoolBucketSizes)
+	{
+		Index -= NumPoolBucketSizes;
+	}
 	checkf(Index < NumPoolBucketSizes, TEXT("%d %d"), Index, NumPoolBucketSizes);
 	return BucketSizes[Index];
 }

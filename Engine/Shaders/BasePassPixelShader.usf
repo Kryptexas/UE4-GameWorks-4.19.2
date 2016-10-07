@@ -64,9 +64,11 @@ SamplerState	PrevSceneColorSampler;
 // Optimization: if opacity is 0 then revert to default shading model 
 #define SUBSURFACE_PROFILE_OPACITY_THRESHOLD 1
 
-#if TRANSLUCENCY_LIGHTING_SURFACE || TRANSLUCENCY_LIGHTING_SURFACE_PERPIXEL || FORWARD_SHADING
+#if TRANSLUCENCY_LIGHTING_SURFACE_LIGHTINGVOLUME || TRANSLUCENCY_LIGHTING_SURFACE_FORWARDSHADING || FORWARD_SHADING
 #include "ForwardLightingCommon.usf" 
 #endif
+
+#if !FORWARD_SHADING
 
 void GetVolumeLightingNonDirectional(float4 AmbientLightingVector, float3 DiffuseColor, inout float3 InterpolatedLighting, out float4 VolumeLighting)
 {
@@ -107,7 +109,7 @@ void GetVolumeLightingDirectional(float4 AmbientLightingVector, float3 Direction
 }
 
 /** Calculates lighting for translucency. */
-float3 GetTranslucencyLighting(
+float3 GetTranslucencyVolumeLighting(
 	FMaterialPixelParameters MaterialParameters, 
 	FPixelMaterialInputs PixelMaterialInputs,
 	FBasePassInterpolantsVSToPS BasePassInterpolants, 
@@ -130,7 +132,7 @@ float3 GetTranslucencyLighting(
 
 		GetVolumeLightingNonDirectional(float4(BasePassInterpolants.AmbientLightingVector, 1), GBuffer.DiffuseColor, InterpolatedLighting, VolumeLighting);
 
-	#elif TRANSLUCENCY_LIGHTING_VOLUMETRIC_DIRECTIONAL || TRANSLUCENCY_LIGHTING_SURFACE
+	#elif TRANSLUCENCY_LIGHTING_VOLUMETRIC_DIRECTIONAL || TRANSLUCENCY_LIGHTING_SURFACE_LIGHTINGVOLUME
 	
 		float4 AmbientLightingVector = GetAmbientLightingVectorFromTranslucentLightingVolume(InnerVolumeUVs, OuterVolumeUVs, FinalLerpFactor);
 		float3 DirectionalLightingVector = GetDirectionalLightingVectorFromTranslucentLightingVolume(InnerVolumeUVs, OuterVolumeUVs, FinalLerpFactor);
@@ -143,7 +145,7 @@ float3 GetTranslucencyLighting(
 
 	#endif
 
-	#if (TRANSLUCENCY_LIGHTING_VOLUMETRIC_DIRECTIONAL || TRANSLUCENCY_LIGHTING_VOLUMETRIC_NONDIRECTIONAL || TRANSLUCENCY_LIGHTING_SURFACE) && TRANSLUCENT_SELF_SHADOWING
+	#if (TRANSLUCENCY_LIGHTING_VOLUMETRIC_DIRECTIONAL || TRANSLUCENCY_LIGHTING_VOLUMETRIC_NONDIRECTIONAL || TRANSLUCENCY_LIGHTING_SURFACE_LIGHTINGVOLUME) && TRANSLUCENT_SELF_SHADOWING
 
 		// Only apply self shadowing if the shadow hasn't faded out completely
 		if (DirectionalLightColor.a > 0)
@@ -202,12 +204,10 @@ float3 GetTranslucencyLighting(
 
 	#endif
 
-	#if TRANSLUCENCY_LIGHTING_SURFACE
-		InterpolatedLighting += GetImageBasedReflectionLighting(MaterialParameters, GBuffer.Roughness, GBuffer.SpecularColor, IndirectIrradiance, 0);
-	#endif
-
 	return InterpolatedLighting;
 }
+
+#endif
 
 #if SIMPLE_FORWARD_SHADING
 	#define GetEffectiveSkySHDiffuse GetSkySHDiffuseSimple
@@ -863,7 +863,11 @@ void FPixelShaderInOut_MainPS(
 
 		DiffuseColor += (DiffuseIndirectLighting * DiffuseColorForIndirect + SubsurfaceIndirectLighting * SubsurfaceColor) * MaterialAO;
 
-		#if FORWARD_SHADING || TRANSLUCENCY_LIGHTING_SURFACE_PERPIXEL
+		#if TRANSLUCENCY_PERVERTEX_FORWARD_SHADING
+
+			Color += BasePassInterpolants.VertexDiffuseLighting * GBuffer.DiffuseColor;
+
+		#elif FORWARD_SHADING || TRANSLUCENCY_LIGHTING_SURFACE_FORWARDSHADING || TRANSLUCENCY_LIGHTING_SURFACE_LIGHTINGVOLUME
 			uint GridIndex = 0;
 
 			#if INSTANCED_STEREO
@@ -874,7 +878,18 @@ void FPixelShaderInOut_MainPS(
 
 			#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 				GridIndex = ComputeLightGridCellIndex((uint2)(MaterialParameters.SvPosition.xy - ResolvedView.ViewRectMin.xy), MaterialParameters.SvPosition.w, EyeIndex);
-				Color += GetForwardDirectLighting(GridIndex, MaterialParameters.ScreenPosition, MaterialParameters.AbsoluteWorldPosition, MaterialParameters.CameraVector, GBuffer, EyeIndex);
+
+				#if FORWARD_SHADING || TRANSLUCENCY_LIGHTING_SURFACE_FORWARDSHADING
+					float4 DynamicShadowFactors = 1;
+
+					#if MATERIALBLENDING_SOLID || MATERIALBLENDING_MASKED
+						float2 NDC = MaterialParameters.ScreenPosition.xy / MaterialParameters.ScreenPosition.w;
+						float2 ScreenUV = NDC * ResolvedView.ScreenPositionScaleBias.xy + ResolvedView.ScreenPositionScaleBias.wz;
+						DynamicShadowFactors = GetPerPixelLightAttenuation(ScreenUV);
+					#endif
+
+					Color += GetForwardDirectLighting(GridIndex, MaterialParameters.AbsoluteWorldPosition, MaterialParameters.CameraVector, GBuffer, DynamicShadowFactors, EyeIndex);
+				#endif
 			#endif
 
 			Color += GetImageBasedReflectionLighting(MaterialParameters, GBuffer.Roughness, GBuffer.SpecularColor, IndirectIrradiance, GridIndex, EyeIndex) * IndirectOcclusion;
@@ -909,7 +924,7 @@ void FPixelShaderInOut_MainPS(
 		
 	// Volume lighting for lit translucency
 	#if (MATERIAL_SHADINGMODEL_DEFAULT_LIT || MATERIAL_SHADINGMODEL_SUBSURFACE) && (MATERIALBLENDING_TRANSLUCENT || MATERIALBLENDING_ADDITIVE) && !SIMPLE_FORWARD_SHADING && !FORWARD_SHADING
-		Color += GetTranslucencyLighting(MaterialParameters, PixelMaterialInputs, BasePassInterpolants, GBuffer, IndirectIrradiance);
+		Color += GetTranslucencyVolumeLighting(MaterialParameters, PixelMaterialInputs, BasePassInterpolants, GBuffer, IndirectIrradiance);
 	#endif
 
 	#if !MATERIAL_SHADINGMODEL_UNLIT && USE_DEVELOPMENT_SHADERS

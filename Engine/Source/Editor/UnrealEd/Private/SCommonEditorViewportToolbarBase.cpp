@@ -85,6 +85,18 @@ void SCommonEditorViewportToolbarBase::Construct(const FArguments& InArgs, TShar
 					.ParentToolBar( SharedThis( this ) )
 					.OnGetMenuContent(this, &SCommonEditorViewportToolbarBase::GenerateShowMenu)
 				]
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding( ToolbarSlotPadding )
+				[
+
+					SNew( SEditorViewportToolbarMenu )
+					.Label( LOCTEXT("ViewParamMenuTitle", "View Mode Options") )
+					.Cursor( EMouseCursor::Default )
+					.ParentToolBar( SharedThis( this ) )
+					.Visibility( this, &SCommonEditorViewportToolbarBase::GetViewModeOptionsVisibility )
+					.OnGetMenuContent( this, &SCommonEditorViewportToolbarBase::GenerateViewModeOptionsMenu ) 
+				]
 
 				// Transform toolbar
 				+ SHorizontalBox::Slot()
@@ -186,6 +198,28 @@ const FSlateBrush* SCommonEditorViewportToolbarBase::GetCameraMenuLabelIcon() co
 
 	return FEditorStyle::GetBrush( Icon );
 }
+
+EVisibility SCommonEditorViewportToolbarBase::GetViewModeOptionsVisibility() const
+{
+	const FEditorViewportClient& ViewClient = GetViewportClient();
+	if (ViewClient.GetViewMode() == VMI_MeshUVDensityAccuracy || ViewClient.GetViewMode() == VMI_MaterialTextureScaleAccuracy)
+	{
+		return EVisibility::SelfHitTestInvisible;
+	}
+	else
+	{
+		return EVisibility::Collapsed;
+	}
+}
+
+TSharedRef<SWidget> SCommonEditorViewportToolbarBase::GenerateViewModeOptionsMenu() const
+{
+	GetInfoProvider().OnFloatingButtonClicked();
+	TSharedRef<SEditorViewport> ViewportRef = GetInfoProvider().GetViewportWidget();
+	const FEditorViewportClient& ViewClient = GetViewportClient();
+	return BuildViewModeOptionsMenu(ViewportRef->GetCommandList(), ViewClient.GetViewMode());
+}
+
 
 TSharedRef<SWidget> SCommonEditorViewportToolbarBase::GenerateOptionsMenu() const
 {

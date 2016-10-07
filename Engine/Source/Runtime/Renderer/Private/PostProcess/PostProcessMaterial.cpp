@@ -120,6 +120,10 @@ public:
 		{
 			OutEnvironment.SetDefine(TEXT("POST_PROCESS_MATERIAL_BEFORE_TONEMAP"), (Material->GetBlendableLocation() != BL_AfterTonemapping) ? 1 : 0);
 		}
+		else
+		{
+			OutEnvironment.SetDefine(TEXT("POST_PROCESS_MATERIAL_OUTPUT_ALPHA"), (Material->GetBlendableOutputAlpha() ) ? 1 : 0);
+		}
 	}
 
 	FPostProcessMaterialPS() {}
@@ -233,7 +237,7 @@ void FRCPassPostProcessMaterial::Process(FRenderingCompositePassContext& Context
 
 	if( ViewFamily.RenderTarget->GetRenderTargetTexture() != DestRenderTarget.TargetableTexture )
 	{
-		Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, View.ViewRect);
+		Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black, View.ViewRect);
 	}
 
 	Context.SetViewportAndCallRHI(View.ViewRect);

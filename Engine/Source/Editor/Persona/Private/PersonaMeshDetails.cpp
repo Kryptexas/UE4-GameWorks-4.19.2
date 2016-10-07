@@ -24,14 +24,23 @@
 #include "Engine/SkeletalMeshReductionSettings.h"
 #include "Animation/AnimInstance.h"
 #include "IPersonaToolkit.h"
+#include "SNumericEntryBox.h"
 
 #define LOCTEXT_NAMESPACE "PersonaMeshDetails"
 
 /** Returns true if automatic mesh reduction is available. */
 static bool IsAutoMeshReductionAvailable()
 {
-	static bool bAutoMeshReductionAvailable = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities").GetMeshReductionInterface() != NULL;
+	static bool bAutoMeshReductionAvailable = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities").GetSkeletalMeshReductionInterface() != NULL;
 	return bAutoMeshReductionAvailable;
+}
+
+/** Returns true if Skincache and -shaders are enabled */
+static bool IsSkinCacheAvailable()
+{
+	extern ENGINE_API int32 GEnableGPUSkinCacheShaders;
+	static bool bSkinCacheAvailable = !!GEnableGPUSkinCacheShaders;
+	return bSkinCacheAvailable;
 }
 
 /**
@@ -1530,13 +1539,14 @@ TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomSectionWidgetsForSectio
 		.Padding(0, 2, 0, 0)
 		[
 			SNew(SCheckBox)
+			.IsEnabled(IsSkinCacheAvailable())
 			.IsChecked(this, &FPersonaMeshDetails::IsSectionRecomputeTangentEnabled, LODIndex, SectionIndex)
 			.OnCheckStateChanged(this, &FPersonaMeshDetails::OnSectionRecomputeTangentChanged, LODIndex, SectionIndex)
 			[
 				SNew(STextBlock)
 				.Font(FEditorStyle::GetFontStyle("StaticMeshEditor.NormalFont"))
 				.Text(LOCTEXT("RecomputeTangent_Title", "Recompute Tangent"))
-				.ToolTipText(LOCTEXT("RecomputeTangent_Tooltip", "This feature only works if you enable skin cache (r.SkinCache.Mode) and recompute tangent console variable(r.SkinCache.RecomputeTangents). Please note that skin cache is an experimental feature and only works if you have compute shaders."))
+				.ToolTipText(LOCTEXT("RecomputeTangent_Tooltip", "This feature only works if you enable (Support Skincache Shaders) in the Project Settings. Please note that skin cache is an experimental feature and only works if you have compute shaders."))
 			]
 		];
 #if WITH_APEX_CLOTHING
@@ -1978,6 +1988,80 @@ void FPersonaMeshDetails::OnSectionRecomputeTangentChanged(ECheckBoxState NewSta
 	GetPersonaToolkit()->GetPreviewScene()->InvalidateViews();
 }
 
+EVisibility FPersonaMeshDetails::GetOverrideUVDensityVisibililty() const
+{
+	if (/*GetViewMode() == VMI_MeshUVDensityAccuracy*/ true)
+	{
+		return EVisibility::SelfHitTestInvisible;
+	}
+	else
+	{
+		return EVisibility::Collapsed;
+	}
+}
+
+ECheckBoxState FPersonaMeshDetails::IsUVDensityOverridden(int32 MaterialIndex) const
+{
+	USkeletalMesh* Mesh = SkeletalMeshPtr.Get();
+	if (!Mesh || !Mesh->Materials.IsValidIndex(MaterialIndex))
+	{
+		return ECheckBoxState::Undetermined;
+	}
+	else if (Mesh->Materials[MaterialIndex].UVChannelData.bOverrideDensities)
+	{
+		return ECheckBoxState::Checked;
+	}
+	else
+	{
+		return ECheckBoxState::Unchecked;
+	}
+}
+
+
+void FPersonaMeshDetails::OnOverrideUVDensityChanged(ECheckBoxState NewState, int32 MaterialIndex)
+{
+	USkeletalMesh* Mesh = SkeletalMeshPtr.Get();
+	if (NewState != ECheckBoxState::Undetermined && Mesh && Mesh->Materials.IsValidIndex(MaterialIndex))
+	{
+		Mesh->Materials[MaterialIndex].UVChannelData.bOverrideDensities = (NewState == ECheckBoxState::Checked);
+		Mesh->UpdateUVChannelData(true);
+	}
+}
+
+EVisibility FPersonaMeshDetails::GetUVDensityVisibility(int32 MaterialIndex, int32 UVChannelIndex) const
+{
+	USkeletalMesh* Mesh = SkeletalMeshPtr.Get();
+	if (/*MeshGetViewMode() == VMI_MeshUVDensityAccuracy && */ Mesh && IsUVDensityOverridden(MaterialIndex) == ECheckBoxState::Checked)
+	{
+		return EVisibility::SelfHitTestInvisible;
+	}
+	else
+	{
+		return EVisibility::Collapsed;
+	}
+}
+
+TOptional<float> FPersonaMeshDetails::GetUVDensityValue(int32 MaterialIndex, int32 UVChannelIndex) const
+{
+	USkeletalMesh* Mesh = SkeletalMeshPtr.Get();
+	if (Mesh && Mesh->Materials.IsValidIndex(MaterialIndex))
+	{
+		float Value = Mesh->Materials[MaterialIndex].UVChannelData.LocalUVDensities[UVChannelIndex];
+		return FMath::RoundToFloat(Value * 4.f) * .25f;
+	}
+	return TOptional<float>();
+}
+
+void FPersonaMeshDetails::SetUVDensityValue(float InDensity, ETextCommit::Type CommitType, int32 MaterialIndex, int32 UVChannelIndex)
+{
+	USkeletalMesh* Mesh = SkeletalMeshPtr.Get();
+	if (Mesh && Mesh->Materials.IsValidIndex(MaterialIndex))
+	{
+		Mesh->Materials[MaterialIndex].UVChannelData.LocalUVDensities[UVChannelIndex] = FMath::Max<float>(0, InDensity);
+		Mesh->UpdateUVChannelData(true);
+	}
+}
+
 int32 FPersonaMeshDetails::GetMaterialIndex(int32 LODIndex, int32 SectionIndex) const
 {
 	USkeletalMesh* SkelMesh = GetPersonaToolkit()->GetMesh();
@@ -2056,7 +2140,7 @@ void FPersonaMeshDetails::OnSectionChanged(int32 LODIndex, int32 SectionIndex, i
 				NewSkeletalMaterialIndex = SkeletalMaterialIndex;
 				break;
 			}
-		}
+			}
 
 		check(NewSkeletalMaterialIndex != INDEX_NONE);
 
@@ -2067,21 +2151,21 @@ void FPersonaMeshDetails::OnSectionChanged(int32 LODIndex, int32 SectionIndex, i
 
 		FSkeletalMeshLODInfo& Info = Mesh->LODInfo[LODIndex];
 		if (LODIndex == 0 || Info.LODMaterialMap.Num() == 0)
-		{
+				{
 			ImportedResource->LODModels[LODIndex].Sections[SectionIndex].MaterialIndex = NewSkeletalMaterialIndex;
-		}
-		else
-		{
+				}
+				else
+				{
 			check(SectionIndex < Info.LODMaterialMap.Num());
 			Info.LODMaterialMap[SectionIndex] = NewSkeletalMaterialIndex;
-		}
+				}
 
 		Mesh->PostEditChange();
 
-		// Redraw viewports to reflect the material changes 
-		GUnrealEd->RedrawLevelEditingViewports();
+			// Redraw viewports to reflect the material changes 
+			GUnrealEd->RedrawLevelEditingViewports();
+		}
 	}
-}
 
 #if WITH_APEX_CLOTHING
 

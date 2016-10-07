@@ -182,10 +182,15 @@ void USceneCaptureComponent::AddReferencedObjects(UObject* InThis, FReferenceCol
 	USceneCaptureComponent* This = CastChecked<USceneCaptureComponent>(InThis);
 
 	FSceneViewStateInterface* Ref = This->ViewState.GetReference();
-
 	if (Ref)
 	{
 		Ref->AddReferencedObjects(Collector);
+	}
+	
+	FSceneViewStateInterface* StereoRef = This->StereoViewState.GetReference();
+	if (StereoRef)
+	{
+		StereoRef->AddReferencedObjects(Collector);
 	}
 
 	Super::AddReferencedObjects(This, Collector);

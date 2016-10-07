@@ -1405,7 +1405,7 @@ FPrimitiveSceneProxy* USplineComponent::CreateSceneProxy()
 					const FMatrix& LocalToWorld = GetLocalToWorld();
 
 					// Taking into account the min and maximum drawing distance
-					const float DistanceSqr = (View->ViewMatrices.ViewOrigin - LocalToWorld.GetOrigin()).SizeSquared();
+					const float DistanceSqr = (View->ViewMatrices.GetViewOrigin() - LocalToWorld.GetOrigin()).SizeSquared();
 					if (DistanceSqr < FMath::Square(GetMinDrawDistance()) || DistanceSqr > FMath::Square(GetMaxDrawDistance()))
 					{
 						continue;

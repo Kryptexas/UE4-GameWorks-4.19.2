@@ -812,7 +812,7 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 	if ( View )
 	{
 		// Going to ignore these parameters in favor of just using the values directly from the scene view, so ensure that they're identical.
-		check(Transform == View->ViewProjectionMatrix);
+		check(Transform == View->ViewMatrices.GetViewProjectionMatrix());
 		check(ViewportSizeX == View->ViewRect.Width());
 		check(ViewportSizeY == View->ViewRect.Height());
 
@@ -828,7 +828,7 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 
 bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, bool bNeedToSwitchVerticalAxis, const FSceneView& View, bool bHitTesting, float Gamma /* = 1.0f */, FTexture2DRHIRef DepthTexture /* = FTexture2DRHIRef() */, EBlendModeFilter::Type Filter /* = EBlendModeFilter::All */) const
 {
-	const FMatrix& Transform = View.ViewProjectionMatrix;
+	const FMatrix& Transform = View.ViewMatrices.GetViewProjectionMatrix();
 	const uint32 ViewportSizeX = View.ViewRect.Width();
 	const uint32 ViewportSizeY = View.ViewRect.Height();
 
@@ -882,10 +882,10 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 				PrepareShaders(RHICmdList, FeatureLevel, SE_BLEND_Translucent, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, GWhiteTexture, bHitTesting, Gamma, NULL, &View, DepthTexture);
 				float OrthoZoomFactor = 1.0f;
 
-				const bool bIsPerspective = View.ViewMatrices.ProjMatrix.M[3][3] < 1.0f ? true : false;
+				const bool bIsPerspective = View.ViewMatrices.GetProjectionMatrix().M[3][3] < 1.0f ? true : false;
 				if (!bIsPerspective)
 				{
-					OrthoZoomFactor = 1.0f / View.ViewMatrices.ProjMatrix.M[0][0];
+					OrthoZoomFactor = 1.0f / View.ViewMatrices.GetProjectionMatrix().M[0][0];
 				}
 
 				int32 LineIndex = 0;

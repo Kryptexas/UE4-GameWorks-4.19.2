@@ -363,13 +363,6 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting)
 	FLightingChannels LightingChannels;
 
-	UPROPERTY()
-	bool bHasCachedStaticLighting;
-
-	/** If true, asynchronous static build lighting will be enqueued to be applied to this */
-	UPROPERTY(Transient)
-	bool bStaticLightingBuildEnqueued;
-	
 	// Physics
 	
 	/** Will ignore radial impulses applied to this component. */
@@ -1234,13 +1227,15 @@ public:
 	virtual bool RequiresStreamingTextureData() const { return false; }
 
 	/**
-	* Return whether this primitive has (good) section data for texture streaming. Used in the texture streaming build and accuracy viewmodes.
+	* Return whether this primitive has (good) material texcoord size for texture streaming. Used in the texture streaming build and accuracy viewmodes.
 	*
-	* @param bCheckTexCoordScales - If true, section data must contains texcoord scales to be valid.
+	* @param bCheckForScales - If true, section data must contains texcoord scales to be valid.
+	* @param TextureIndex - Specific texture index to check. INDEX_NONE if to check for any texture.
+	* @param OutTextureData - Information about how the texture was sampled.
 	*
 	* @return - true if streaming section data is valid.
 	*/
-	virtual bool HasStreamingSectionData(bool bCheckTexCoordScales) const { return false; }
+	virtual bool HasTextureStreamingMaterialData(bool bCheckForScales, int32 TextureIndex = INDEX_NONE, FMaterialTextureInfo* OutTextureData = nullptr) const { return false; }
 
 	/**
 	* Return whether this primitive has (good) built data for texture streaming. Used for the "Texture Streaming Needs Rebuilt" check.
@@ -1250,12 +1245,12 @@ public:
 	virtual bool HasStreamingTextureData() const { return false; }
 
 	/**
-	* Update section data for texture streaming. Note that this data is expected to be transient.
+	* Update material texcoord size for texture streaming. Note that this data is expected to be transient.
 	* Only useful within the texture streaming build, or streaming accuracy viewmodes.
 	*
 	* @param	TexCoordScales - The texcoord scales for each texture register of each relevant materials.
 	*/
-	virtual void UpdateStreamingSectionData(const FTexCoordScaleMap& TexCoordScales) {}
+	virtual void UpdateTextureStreamingMaterialData(const FTexCoordScaleMap& TexCoordScales) {}
 
 	/**
 	 *	Update the precomputed streaming data of this component.

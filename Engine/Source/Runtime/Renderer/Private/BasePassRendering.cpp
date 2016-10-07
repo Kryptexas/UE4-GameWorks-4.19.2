@@ -190,10 +190,10 @@ void FBasePassReflectionParameters::Set(FRHICommandList& RHICmdList, FPixelShade
 {
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
-	SkyLightReflectionParameters.SetParameters(RHICmdList, PixelShaderRHI, (const FScene*)(View->Family->Scene), true);
+	SkyLightReflectionParameters.SetParameters(RHICmdList, PixelShaderRHI, (const FScene*)(View->Family->Scene), View->Family->EngineShowFlags.SkyLighting);
 }
 
-void FBasePassReflectionParameters::SetMesh(FRHICommandList& RHICmdList, FPixelShaderRHIParamRef PixelShaderRHI, const FPrimitiveSceneProxy* Proxy, ERHIFeatureLevel::Type FeatureLevel)
+void FBasePassReflectionParameters::SetMesh(FRHICommandList& RHICmdList, FPixelShaderRHIParamRef PixelShaderRHI, const FSceneView& View, const FPrimitiveSceneProxy* Proxy, ERHIFeatureLevel::Type FeatureLevel)
 {
 	const FPrimitiveSceneInfo* PrimitiveSceneInfo = Proxy ? Proxy->GetPrimitiveSceneInfo() : NULL;
 	const FPlanarReflectionSceneProxy* ReflectionSceneProxy = NULL;
@@ -212,7 +212,7 @@ void FBasePassReflectionParameters::SetMesh(FRHICommandList& RHICmdList, FPixelS
 	FVector4 CaptureOffsetAndAverageBrightnessValue(0, 0, 0, 1);
 	FVector4 PositionAndRadius = FVector4(0, 0, 0, 1);
 
-	if (PrimitiveSceneInfo && ReflectionProxy)
+	if (PrimitiveSceneInfo && ReflectionProxy && View.Family->EngineShowFlags.ReflectionEnvironment)
 	{
 		PrimitiveSceneInfo->Scene->GetCaptureParameters(ReflectionProxy, CubeArrayTexture, ArrayIndex);
 		CaptureOffsetAndAverageBrightnessValue = FVector4(ReflectionProxy->CaptureOffset, ReflectionProxy->AverageBrightness);
@@ -367,7 +367,6 @@ public:
 					bRenderSkylight,
 					bRenderAtmosphericFog,
 					DVSM_None,
-					Scene->ReadOnlyCVARCache.bEnableVertexFoggingForOpaque,
 					/* bInEnableEditorPrimitiveDepthTest = */ false,
 					/* bInEnableReceiveDecalOutput = */ true
 				),
@@ -412,7 +411,6 @@ public:
 	const FViewInfo& View;
 	bool bBackFace;
 	float DitheredLODTransitionAlpha;
-	bool bPreFog;
 	FHitProxyId HitProxyId;
 
 	/** Initialization constructor. */
@@ -461,7 +459,7 @@ public:
 			// Then rendering in the base pass with additive complexity blending, depth tests on, and depth writes off.
 			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_DepthNearOrEqual>::GetRHI());
 		}
-		else if (View.Family->UseDebugViewPS() && View.Family->GetDebugViewShaderMode() != DVSM_MaterialTexCoordScalesAnalysis)
+		else if (View.Family->UseDebugViewPS() && View.Family->GetDebugViewShaderMode() != DVSM_OutputMaterialTextureScales)
 		{
 			if (Parameters.PrimitiveSceneProxy && Parameters.PrimitiveSceneProxy->IsSelected())
 			{
@@ -489,7 +487,6 @@ public:
 			bRenderSkylight,
 			bRenderAtmosphericFog,
 			View.Family->GetDebugViewShaderMode(),
-			Scene ? Scene->ReadOnlyCVARCache.bEnableVertexFoggingForOpaque : false,
 			Parameters.bEditorCompositeDepthTest,
 			/* bInEnableReceiveDecalOutput = */ Scene != nullptr
 			);

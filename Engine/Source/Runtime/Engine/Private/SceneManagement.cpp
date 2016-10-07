@@ -28,7 +28,7 @@ void FTemporalLODState::UpdateTemporalLODTransition(const FViewInfo& View, float
 				TemporalDistanceFactor[0] = TemporalDistanceFactor[1];
 				TemporalLODTime[0] = TemporalLODTime[1];
 			}
-			TemporalLODViewOrigin[1] = View.ViewMatrices.ViewOrigin;
+			TemporalLODViewOrigin[1] = View.ViewMatrices.GetViewOrigin();
 			TemporalDistanceFactor[1] = View.GetLODDistanceFactor();
 			TemporalLODTime[1] = LastRenderTime;
 			if (TemporalLODTime[1] <= TemporalLODTime[0])
@@ -39,8 +39,8 @@ void FTemporalLODState::UpdateTemporalLODTransition(const FViewInfo& View, float
 	}
 	if (!bOk)
 	{
-		TemporalLODViewOrigin[0] = View.ViewMatrices.ViewOrigin;
-		TemporalLODViewOrigin[1] = View.ViewMatrices.ViewOrigin;
+		TemporalLODViewOrigin[0] = View.ViewMatrices.GetViewOrigin();
+		TemporalLODViewOrigin[1] = View.ViewMatrices.GetViewOrigin();
 		TemporalDistanceFactor[0] = View.GetLODDistanceFactor();
 		TemporalDistanceFactor[1] = TemporalDistanceFactor[0];
 		TemporalLODTime[0] = LastRenderTime;
@@ -308,11 +308,11 @@ FLightMapInteraction FLightMapInteraction::Texture(
 
 float ComputeBoundsScreenSize( const FVector4& Origin, const float SphereRadius, const FSceneView& View )
 {
-	const float DistSqr = FVector::DistSquared( Origin, View.ViewMatrices.ViewOrigin );
+	const float DistSqr = FVector::DistSquared( Origin, View.ViewMatrices.GetViewOrigin() );
 
 	// Get projection multiple accounting for view scaling.
-	const float ScreenMultiple = FMath::Max(View.ViewRect.Width() / 2.0f * View.ViewMatrices.ProjMatrix.M[0][0],
-		View.ViewRect.Height() / 2.0f * View.ViewMatrices.ProjMatrix.M[1][1]);
+	const float ScreenMultiple = FMath::Max(View.ViewRect.Width() / 2.0f * View.ViewMatrices.GetProjectionMatrix().M[0][0],
+		View.ViewRect.Height() / 2.0f * View.ViewMatrices.GetProjectionMatrix().M[1][1]);
 
 	// Approximate number of pixels the sphere covers
 	const float ScreenArea = PI * FMath::Square( ScreenMultiple * SphereRadius ) / FMath::Max( DistSqr, 1.0f );
@@ -324,8 +324,8 @@ float ComputeTemporalLODBoundsScreenSize( const FVector& Origin, const float Sph
 	const float DistSqr =  (Origin - View.GetTemporalLODOrigin(SampleIndex)).SizeSquared();
 
 	// Get projection multiple accounting for view scaling.
-	const float ScreenMultiple = FMath::Max(View.ViewRect.Width() / 2.0f * View.ViewMatrices.ProjMatrix.M[0][0],
-		View.ViewRect.Height() / 2.0f * View.ViewMatrices.ProjMatrix.M[1][1]);
+	const float ScreenMultiple = FMath::Max(View.ViewRect.Width() / 2.0f * View.ViewMatrices.GetProjectionMatrix().M[0][0],
+		View.ViewRect.Height() / 2.0f * View.ViewMatrices.GetProjectionMatrix().M[1][1]);
 
 	// Approximate number of pixels the sphere covers
 	const float ScreenArea = PI * FMath::Square( ScreenMultiple * SphereRadius ) / FMath::Max( DistSqr, 1.0f );

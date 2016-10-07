@@ -295,7 +295,7 @@ void FTextureRenderTargetCubeResource::UpdateDeferredResource(FRHICommandListImm
 		{
 			SetRenderTarget(RHICmdList, RenderTargetTextureRHI, FTextureRHIParamRef(), true);
 			RHICmdList.SetViewport(0, 0, 0.0f, Dims.X, Dims.Y, 1.0f);
-			RHICmdList.Clear(true, Owner->ClearColor, false, 0.f, false, 0, FIntRect());
+			RHICmdList.ClearColorTexture(RenderTargetTextureRHI, Owner->ClearColor, FIntRect());
 		}
 
 		// copy surface to the texture for use

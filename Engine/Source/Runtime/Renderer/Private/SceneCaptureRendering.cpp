@@ -397,8 +397,8 @@ static void UpdateSceneCaptureContent_RenderThread(
 		FViewInfo& View = SceneRenderer->Views[0];
 		FIntRect ViewRect = View.ViewRect;
 		FIntRect UnconstrainedViewRect = View.UnconstrainedViewRect;
-		SetRenderTarget(RHICmdList, Target->GetRenderTargetTexture(), NULL, true);
-		RHICmdList.Clear(true, FLinearColor::Black, false, (float)ERHIZBuffer::FarPlane, false, 0, ViewRect);
+		SetRenderTarget(RHICmdList, Target->GetRenderTargetTexture(), nullptr, true);
+		RHICmdList.ClearColorTexture(Target->GetRenderTargetTexture(), FLinearColor::Black, ViewRect);
 
 		// Render the scene normally
 		{

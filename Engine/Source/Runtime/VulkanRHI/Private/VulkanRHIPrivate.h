@@ -37,7 +37,13 @@ DECLARE_LOG_CATEGORY_EXTERN(LogVulkanRHI, Log, All);
 #if VULKAN_DYNAMICALLYLOADED
 	#include "VulkanLoader.h"
 #else
-	#include <vulkan.h>
+	#if PLATFORM_WINDOWS
+		#include "AllowWindowsPlatformTypes.h"
+	#endif
+#include <vulkan.h>
+	#if PLATFORM_WINDOWS
+		#include "HideWindowsPlatformTypes.h"
+	#endif
 #endif
 
 #if VULKAN_COMMANDWRAPPERS_ENABLE
@@ -79,10 +85,10 @@ class FVulkanDescriptorSetsLayout;
 class FVulkanBlendState;
 class FVulkanDepthStencilState;
 class FVulkanBoundShaderState;
-class FVulkanPipeline;
+class FVulkanGfxPipeline;
 class FVulkanRenderPass;
 class FVulkanCommandBufferManager;
-class FVulkanPendingState;
+class FVulkanPendingGfxState;
 
 inline VkShaderStageFlagBits UEFrequencyToVKStageBit(EShaderFrequency InStage)
 {
@@ -227,10 +233,24 @@ public:
 #if !VULKAN_USE_NEW_RENDERPASSES
 	void InsertWriteBarriers(FVulkanCmdBuffer* CmdBuffer);
 #endif
-	// Returns the backbuffer render target if used by this framebuffer
-	FVulkanBackBuffer* GetBackBuffer()
+
+	inline bool ContainsRenderTarget(FRHITexture* Texture) const
 	{
-		return BackBuffer;
+		ensure(Texture);
+		for (int32 Index = 0; Index < FMath::Min((int32)NumColorAttachments, RTInfo.NumColorRenderTargets); ++Index)
+		{
+			if (RTInfo.ColorRenderTarget[Index].Texture == Texture)
+			{
+				return true;
+			}
+		}
+
+		if (RTInfo.DepthStencilRenderTarget.Texture == Texture)
+		{
+			return true;
+		}
+
+		return false;
 	}
 
 	inline bool ContainsRenderTarget(VkImage Image) const
@@ -291,10 +311,12 @@ private:
 	const FRHISetRenderTargetsInfo RTInfo;
 	uint32 NumColorAttachments;
 
-	FVulkanBackBuffer* BackBuffer;
-
 	// Predefined set of barriers, when executes ensuring all writes are finished
 	TArray<VkImageMemoryBarrier> WriteBarriers;
+
+#if VULKAN_KEEP_CREATE_INFO
+	VkFramebufferCreateInfo CreateInfo;
+#endif
 };
 
 class FVulkanRenderPass
@@ -304,7 +326,7 @@ public:
 	VkRenderPass GetHandle() const { check(RenderPass != VK_NULL_HANDLE); return RenderPass; }
 
 private:
-	friend class FVulkanPendingState;
+	friend class FVulkanPendingGfxState;
 	friend class FVulkanCommandListContext;
 
 #if VULKAN_ENABLE_PIPELINE_CACHE
@@ -318,6 +340,12 @@ private:
 	FVulkanRenderTargetLayout Layout;
 	VkRenderPass RenderPass;
 	FVulkanDevice& Device;
+
+#if VULKAN_KEEP_CREATE_INFO
+	const FVulkanRenderTargetLayout& RTLayout;
+	VkSubpassDescription SubpassDesc;
+	VkRenderPassCreateInfo CreateInfo;
+#endif
 };
 
 class FVulkanDescriptorSetsLayout
@@ -373,6 +401,19 @@ public:
 		return DescriptorPool;
 	}
 
+	inline bool CanAllocate(const FVulkanDescriptorSetsLayout& Layout) const
+	{
+		for (uint32 TypeIndex = VK_DESCRIPTOR_TYPE_BEGIN_RANGE; TypeIndex < VK_DESCRIPTOR_TYPE_END_RANGE; ++TypeIndex)
+		{
+			if (NumAllocatedTypes[TypeIndex] +	(int32)Layout.GetTypesUsed((VkDescriptorType)TypeIndex) > MaxAllocatedTypes[TypeIndex])
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
 	void TrackAddUsage(const FVulkanDescriptorSetsLayout& Layout);
 	void TrackRemoveUsage(const FVulkanDescriptorSetsLayout& Layout);
 
@@ -398,26 +439,33 @@ private:
 
 struct FVulkanDescriptorSets
 {
-	const TArray<VkDescriptorSet>& GetHandles() const
+	~FVulkanDescriptorSets();
+
+	inline const TArray<VkDescriptorSet>& GetHandles() const
 	{
 		return Sets;
 	}
 
-	void Bind(FVulkanCmdBuffer* Cmd, FVulkanBoundShaderState* State);
+	inline void Bind(FVulkanCmdBuffer* Cmd, VkPipelineLayout PipelineLayout, VkPipelineBindPoint BindPoint)
+	{
+		VulkanRHI::vkCmdBindDescriptorSets(Cmd->GetHandle(),
+			BindPoint,
+			PipelineLayout,
+			0, Sets.Num(), Sets.GetData(),
+			0, nullptr);
+	}
 
 private:
 	friend class FVulkanDescriptorPool;
-	friend class FVulkanPendingState;
+	friend class FVulkanShaderState;
 
-	FVulkanDescriptorSets(FVulkanDevice* InDevice, const FVulkanBoundShaderState* InState, FVulkanCommandListContext* InContext);
-	~FVulkanDescriptorSets();
+	FVulkanDescriptorSets(FVulkanDevice* InDevice, const FVulkanDescriptorSetsLayout& InLayout, FVulkanCommandListContext* InContext);
 
 	FVulkanDevice* Device;
 	FVulkanDescriptorPool* Pool;
 	const FVulkanDescriptorSetsLayout& Layout;
 	TArray<VkDescriptorSet> Sets;
 
-	friend class FVulkanBoundShaderState;
 	friend class FVulkanCommandListContext;
 };
 
@@ -441,7 +489,7 @@ namespace VulkanRHI
 		Barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	}
 
-	inline void SetupBufferBarrier(VkBufferMemoryBarrier& Barrier, VkAccessFlags SrcAccess, VkAccessFlags DstAccess, VkBuffer Buffer, uint32 Offset, uint32 Size)
+	inline void SetupBufferBarrier(VkBufferMemoryBarrier& Barrier, VkAccessFlags SrcAccess, VkAccessFlags DstAccess, VkBuffer Buffer, uint32 Offset, VkDeviceSize Size)
 	{
 		Barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
 		Barrier.srcAccessMask = SrcAccess;
@@ -457,7 +505,7 @@ namespace VulkanRHI
 		SetupImageBarrier(Barrier, Surface, SrcMask, SrcLayout, DstMask, DstLayout);
 	}
 
-	inline void SetupAndZeroBufferBarrier(VkBufferMemoryBarrier& Barrier, VkAccessFlags SrcAccess, VkAccessFlags DstAccess, VkBuffer Buffer, uint32 Offset, uint32 Size)
+	inline void SetupAndZeroBufferBarrier(VkBufferMemoryBarrier& Barrier, VkAccessFlags SrcAccess, VkAccessFlags DstAccess, VkBuffer Buffer, uint32 Offset, VkDeviceSize Size)
 	{
 		FMemory::Memzero(Barrier);
 		SetupBufferBarrier(Barrier, SrcAccess, DstAccess, Buffer, Offset, Size);
@@ -486,7 +534,9 @@ DECLARE_STATS_GROUP(TEXT("Vulkan RHI"), STATGROUP_VulkanRHI, STATCAT_Advanced);
 //DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Textures Allocated"), STAT_VulkanTexturesAllocated, STATGROUP_VulkanRHI, );
 //DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Textures Released"), STAT_VulkanTexturesReleased, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Draw call time"), STAT_VulkanDrawCallTime, STATGROUP_VulkanRHI, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Dispatch call time"), STAT_VulkanDispatchCallTime, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Draw call prep time"), STAT_VulkanDrawCallPrepareTime, STATGROUP_VulkanRHI, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Dispatch call prep time"), STAT_VulkanDispatchCallPrepareTime, STATGROUP_VulkanRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Create uniform buffer time"), STAT_VulkanCreateUniformBufferTime, STATGROUP_VulkanRHI, );
 //DECLARE_CYCLE_STAT_EXTERN(TEXT("Update uniform buffer"), STAT_VulkanUpdateUniformBufferTime, STATGROUP_VulkanRHI, );
 //DECLARE_CYCLE_STAT_EXTERN(TEXT("GPU Flip Wait Time"), STAT_VulkanGPUFlipWaitTime, STATGROUP_VulkanRHI, );
@@ -610,7 +660,8 @@ static inline VkAttachmentStoreOp RenderTargetStoreActionToVulkan(ERenderTargetS
 	switch (InStoreAction)
 	{
 	case ERenderTargetStoreAction::EStore:		OutStoreAction = VK_ATTACHMENT_STORE_OP_STORE;		break;
-	case ERenderTargetStoreAction::ENoAction:	OutStoreAction = VK_ATTACHMENT_STORE_OP_DONT_CARE;	break;
+	//#todo-rco: Temp until we have a better RenderPass system
+	case ERenderTargetStoreAction::ENoAction:	OutStoreAction = VK_ATTACHMENT_STORE_OP_STORE/*DONT_CARE*/;	break;
 	default:																						break;
 	}
 
@@ -626,13 +677,38 @@ inline VkFormat UEToVkFormat(EPixelFormat UEFormat, const bool bIsSRGB)
 	{
 		switch (Format)
 		{
-		case VK_FORMAT_B8G8R8A8_UNORM:			Format = VK_FORMAT_B8G8R8A8_SRGB; break;
-		case VK_FORMAT_R8G8B8A8_UNORM:			Format = VK_FORMAT_R8G8B8A8_SRGB; break;
-		case VK_FORMAT_BC1_RGB_UNORM_BLOCK:		Format = VK_FORMAT_BC1_RGB_SRGB_BLOCK; break;
-		case VK_FORMAT_BC1_RGBA_UNORM_BLOCK:	Format = VK_FORMAT_BC1_RGBA_SRGB_BLOCK; break;
-		case VK_FORMAT_BC2_UNORM_BLOCK:			Format = VK_FORMAT_BC2_SRGB_BLOCK; break;
-		case VK_FORMAT_BC3_UNORM_BLOCK:			Format = VK_FORMAT_BC3_SRGB_BLOCK; break;
-		case VK_FORMAT_BC7_UNORM_BLOCK:			Format = VK_FORMAT_BC7_SRGB_BLOCK; break;
+		case VK_FORMAT_B8G8R8A8_UNORM:				Format = VK_FORMAT_B8G8R8A8_SRGB; break;
+		case VK_FORMAT_A8B8G8R8_UNORM_PACK32:		Format = VK_FORMAT_A8B8G8R8_SRGB_PACK32; break;
+		case VK_FORMAT_R8_UNORM:					Format = VK_FORMAT_R8_SRGB; break;
+		case VK_FORMAT_R8G8_UNORM:					Format = VK_FORMAT_R8G8_SRGB; break;
+		case VK_FORMAT_R8G8B8_UNORM:				Format = VK_FORMAT_R8G8B8_SRGB; break;
+		case VK_FORMAT_R8G8B8A8_UNORM:				Format = VK_FORMAT_R8G8B8A8_SRGB; break;
+		case VK_FORMAT_BC1_RGB_UNORM_BLOCK:			Format = VK_FORMAT_BC1_RGB_SRGB_BLOCK; break;
+		case VK_FORMAT_BC1_RGBA_UNORM_BLOCK:		Format = VK_FORMAT_BC1_RGBA_SRGB_BLOCK; break;
+		case VK_FORMAT_BC2_UNORM_BLOCK:				Format = VK_FORMAT_BC2_SRGB_BLOCK; break;
+		case VK_FORMAT_BC3_UNORM_BLOCK:				Format = VK_FORMAT_BC3_SRGB_BLOCK; break;
+		case VK_FORMAT_BC7_UNORM_BLOCK:				Format = VK_FORMAT_BC7_SRGB_BLOCK; break;
+		case VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK:		Format = VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK; break;
+		case VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK:	Format = VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK; break;
+		case VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK:	Format = VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK; break;
+		case VK_FORMAT_ASTC_4x4_UNORM_BLOCK:		Format = VK_FORMAT_ASTC_4x4_SRGB_BLOCK; break;
+		case VK_FORMAT_ASTC_5x4_UNORM_BLOCK:		Format = VK_FORMAT_ASTC_5x4_SRGB_BLOCK; break;
+		case VK_FORMAT_ASTC_5x5_UNORM_BLOCK:		Format = VK_FORMAT_ASTC_5x5_SRGB_BLOCK; break;
+		case VK_FORMAT_ASTC_6x5_UNORM_BLOCK:		Format = VK_FORMAT_ASTC_6x5_SRGB_BLOCK; break;
+		case VK_FORMAT_ASTC_6x6_UNORM_BLOCK:		Format = VK_FORMAT_ASTC_6x6_SRGB_BLOCK; break;
+		case VK_FORMAT_ASTC_8x5_UNORM_BLOCK:		Format = VK_FORMAT_ASTC_8x5_SRGB_BLOCK; break;
+		case VK_FORMAT_ASTC_8x6_UNORM_BLOCK:		Format = VK_FORMAT_ASTC_8x6_SRGB_BLOCK; break;
+		case VK_FORMAT_ASTC_8x8_UNORM_BLOCK:		Format = VK_FORMAT_ASTC_8x8_SRGB_BLOCK; break;
+		case VK_FORMAT_ASTC_10x5_UNORM_BLOCK:		Format = VK_FORMAT_ASTC_10x5_SRGB_BLOCK; break;
+		case VK_FORMAT_ASTC_10x6_UNORM_BLOCK:		Format = VK_FORMAT_ASTC_10x6_SRGB_BLOCK; break;
+		case VK_FORMAT_ASTC_10x8_UNORM_BLOCK:		Format = VK_FORMAT_ASTC_10x8_SRGB_BLOCK; break;
+		case VK_FORMAT_ASTC_10x10_UNORM_BLOCK:		Format = VK_FORMAT_ASTC_10x10_SRGB_BLOCK; break;
+		case VK_FORMAT_ASTC_12x10_UNORM_BLOCK:		Format = VK_FORMAT_ASTC_12x10_SRGB_BLOCK; break;
+		case VK_FORMAT_ASTC_12x12_UNORM_BLOCK:		Format = VK_FORMAT_ASTC_12x12_SRGB_BLOCK; break;
+		case VK_FORMAT_PVRTC1_2BPP_UNORM_BLOCK_IMG:	Format = VK_FORMAT_PVRTC1_2BPP_SRGB_BLOCK_IMG; break;
+		case VK_FORMAT_PVRTC1_4BPP_UNORM_BLOCK_IMG:	Format = VK_FORMAT_PVRTC1_4BPP_SRGB_BLOCK_IMG; break;
+		case VK_FORMAT_PVRTC2_2BPP_UNORM_BLOCK_IMG:	Format = VK_FORMAT_PVRTC2_2BPP_SRGB_BLOCK_IMG; break;
+		case VK_FORMAT_PVRTC2_4BPP_UNORM_BLOCK_IMG:	Format = VK_FORMAT_PVRTC2_4BPP_SRGB_BLOCK_IMG; break;
 		default:	break;
 		}
 	}

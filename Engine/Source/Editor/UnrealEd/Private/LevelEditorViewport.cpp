@@ -80,7 +80,7 @@ FViewportCursorLocation::FViewportCursorLocation( const FSceneView* View, FEdito
 	FVector4 ScreenPos = View->PixelToScreen(X, Y, 0);
 
 	const FMatrix InvViewMatrix = View->ViewMatrices.GetInvViewMatrix();
-	const FMatrix InvProjMatrix = View->ViewMatrices.GetInvProjMatrix();
+	const FMatrix InvProjMatrix = View->ViewMatrices.GetInvProjectionMatrix();
 
 	const float ScreenX = ScreenPos.X;
 	const float ScreenY = ScreenPos.Y;
@@ -89,7 +89,7 @@ FViewportCursorLocation::FViewportCursorLocation( const FSceneView* View, FEdito
 
 	if ( ViewportClient->IsPerspective() )
 	{
-		Origin = View->ViewMatrices.ViewOrigin;
+		Origin = View->ViewMatrices.GetViewOrigin();
 		Direction = InvViewMatrix.TransformVector(FVector(InvProjMatrix.TransformFVector4(FVector4(ScreenX * GNearClippingPlane,ScreenY * GNearClippingPlane,0.0f,GNearClippingPlane)))).GetSafeNormal();
 	}
 	else
@@ -2058,7 +2058,7 @@ void FLevelEditorViewportClient::Tick(float DeltaTime)
 			EngineShowFlags)
 			.SetRealtimeUpdate( IsRealtime() ) );
 		FSceneView* View = CalcSceneView(&ViewFamily);
-		GPerspViewMatrix = View->ViewMatrices.ViewMatrix;
+		GPerspViewMatrix = View->ViewMatrices.GetViewMatrix();
 	}
 
 	UpdateViewForLockedActor();
@@ -2161,7 +2161,7 @@ void FLevelEditorViewportClient::ProjectActorsIntoWorld(const TArray<AActor*>& A
 
 	// Calculate the frustum so we can trim rays to it
 	const FConvexVolume Frustum;
-	GetViewFrustumBounds(const_cast<FConvexVolume&>(Frustum), SceneView->ViewProjectionMatrix, true);
+	GetViewFrustumBounds(const_cast<FConvexVolume&>(Frustum), SceneView->ViewMatrices.GetViewProjectionMatrix(), true);
 
 	const FMatrix InputCoordSystem = GetWidgetCoordSystem();
 	const EAxisList::Type CurrentAxis = GetCurrentWidgetAxis();
@@ -4076,7 +4076,7 @@ void FLevelEditorViewportClient::DrawBrushDetails(const FSceneView* View, FPrimi
 							const FVector& PolyVertex = poly->Vertices[VertexIndex];
 							const FVector WorldLocation = BrushTransform.TransformPosition(PolyVertex);
 
-							const float Scale = View->WorldToScreen(WorldLocation).W * (4.0f / View->ViewRect.Width() / View->ViewMatrices.ProjMatrix.M[0][0]);
+							const float Scale = View->WorldToScreen(WorldLocation).W * (4.0f / View->ViewRect.Width() / View->ViewMatrices.GetProjectionMatrix().M[0][0]);
 
 							const FColor Color(Brush->GetWireColor());
 							PDI->SetHitProxy(new HBSPBrushVert(Brush, &poly->Vertices[VertexIndex]));
@@ -4102,7 +4102,7 @@ void FLevelEditorViewportClient::UpdateAudioListener(const FSceneView& View)
 		{
 			const FVector& ViewLocation = GetViewLocation();
 
-			FMatrix CameraToWorld = View.ViewMatrices.ViewMatrix.InverseFast();
+			FMatrix CameraToWorld = View.ViewMatrices.GetInvViewMatrix();
 			FVector ProjUp = CameraToWorld.TransformVector(FVector(0, 1000, 0));
 			FVector ProjRight = CameraToWorld.TransformVector(FVector(1000, 0, 0));
 

@@ -13,6 +13,7 @@
 #include "../../Renderer/Private/ScenePrivate.h"
 #include "PhysicsSerializer.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "ComponentRecreateRenderStateContext.h"
 
 const int32 InstancedStaticMeshMaxTexCoord = 8;
 
@@ -88,13 +89,29 @@ void FStaticMeshInstanceBuffer::Init(UInstancedStaticMeshComponent* InComponent,
 	// given instance index between reattaches
 	FRandomStream RandomStream( InComponent->InstancingRandomSeed );
 
+	const FMeshMapBuildData* MeshMapBuildData = NULL;
+	
+	if (InComponent->LODData.Num() > 0)
+	{
+		MeshMapBuildData = InComponent->GetMeshMapBuildData(InComponent->LODData[0]);
+	}
+	
 	for (int32 InstanceIndex = 0; InstanceIndex < NumRealInstances; InstanceIndex++)
 	{
 		const FInstancedStaticMeshInstanceData& Instance = InComponent->PerInstanceSMData[InstanceIndex];
 		const int32 DestInstanceIndex = bUseRemapTable ? InComponent->InstanceReorderTable[InstanceIndex] : InstanceIndex;
 		if (DestInstanceIndex != INDEX_NONE)
 		{
-			InstanceData->SetInstance(DestInstanceIndex, Instance.Transform, RandomStream.GetFraction(), Instance.LightmapUVBias, Instance.ShadowmapUVBias);
+			FVector2D LightmapUVBias = Instance.LightmapUVBias_DEPRECATED;
+			FVector2D ShadowmapUVBias = Instance.ShadowmapUVBias_DEPRECATED;
+
+			if (MeshMapBuildData && MeshMapBuildData->PerInstanceLightmapData.IsValidIndex(InstanceIndex))
+			{
+				LightmapUVBias = MeshMapBuildData->PerInstanceLightmapData[InstanceIndex].LightmapUVBias;
+				ShadowmapUVBias = MeshMapBuildData->PerInstanceLightmapData[InstanceIndex].ShadowmapUVBias;
+			}
+
+			InstanceData->SetInstance(DestInstanceIndex, Instance.Transform, RandomStream.GetFraction(), LightmapUVBias, ShadowmapUVBias);
 		}
 	}
 
@@ -788,7 +805,6 @@ public:
 	FInstancedStaticMeshComponentInstanceData(const UInstancedStaticMeshComponent& InComponent)
 		: FSceneComponentInstanceData(&InComponent)
 		, StaticMesh(InComponent.GetStaticMesh())
-		, bHasCachedStaticLighting(false)
 	{
 	}
 
@@ -803,23 +819,6 @@ public:
 		FSceneComponentInstanceData::AddReferencedObjects(Collector);
 
 		Collector.AddReferencedObject(StaticMesh);
-		if (bHasCachedStaticLighting)
-		{
-			for (FLightMapRef& LightMapRef : CachedStaticLighting.LODDataLightMap)
-			{
-				if (LightMapRef != nullptr)
-				{
-					LightMapRef->AddReferencedObjects(Collector);
-				}
-			}
-			for (FShadowMapRef& ShadowMapRef : CachedStaticLighting.LODDataShadowMap)
-			{
-				if (ShadowMapRef != nullptr)
-				{
-					ShadowMapRef->AddReferencedObjects(Collector);
-				}
-			}		
-		}
 	}
 
 	/** Used to store lightmap data during RerunConstructionScripts */
@@ -828,11 +827,8 @@ public:
 		/** Transform of component */
 		FTransform Transform;
 
-		/** Lightmaps from LODData */
-		TArray<FLightMapRef>	LODDataLightMap;
-		TArray<FShadowMapRef>	LODDataShadowMap;
-
-		TArray<FGuid> IrrelevantLights;
+		/** guid from LODData */
+		TArray<FGuid> MapBuildDataIds;
 	};
 
 public:
@@ -840,7 +836,6 @@ public:
 	UStaticMesh* StaticMesh;
 
 	// Static lighting info
-	bool bHasCachedStaticLighting;
 	FLightMapInstanceData CachedStaticLighting;
 	TArray<FInstancedStaticMeshInstanceData> PerInstanceSMData;
 
@@ -854,44 +849,21 @@ FActorComponentInstanceData* UInstancedStaticMeshComponent::GetComponentInstance
 #if WITH_EDITOR
 	FActorComponentInstanceData* InstanceData = nullptr;
 	FInstancedStaticMeshComponentInstanceData* StaticMeshInstanceData = nullptr;
-
-	bool bHasSelectedInstances = SelectedInstances.Num() > 0;
-
-	// Don't back up static lighting if there isn't any
-	if (bHasCachedStaticLighting || bHasSelectedInstances)
-	{
 		InstanceData = StaticMeshInstanceData = new FInstancedStaticMeshComponentInstanceData(*this);	
-	}
 
-	// Don't back up static lighting if there isn't any
-	if (bHasCachedStaticLighting)
-	{
 		// Fill in info (copied from UStaticMeshComponent::GetComponentInstanceData)
-		StaticMeshInstanceData->bHasCachedStaticLighting = true;
 		StaticMeshInstanceData->CachedStaticLighting.Transform = ComponentToWorld;
-		StaticMeshInstanceData->CachedStaticLighting.IrrelevantLights = IrrelevantLights;
-		StaticMeshInstanceData->CachedStaticLighting.LODDataLightMap.Empty(LODData.Num());
+
 		for (const FStaticMeshComponentLODInfo& LODDataEntry : LODData)
 		{
-			StaticMeshInstanceData->CachedStaticLighting.LODDataLightMap.Add(LODDataEntry.LightMap);
-			StaticMeshInstanceData->CachedStaticLighting.LODDataShadowMap.Add(LODDataEntry.ShadowMap);
+		StaticMeshInstanceData->CachedStaticLighting.MapBuildDataIds.Add(LODDataEntry.MapBuildDataId);
 		}
 
 		// Back up per-instance lightmap/shadowmap info
 		StaticMeshInstanceData->PerInstanceSMData = PerInstanceSMData;
-	}
 
 	// Back up instance selection
-	if (bHasSelectedInstances)
-	{
 		StaticMeshInstanceData->SelectedInstances = SelectedInstances;
-	}
-
-	if (InstanceData == nullptr)
-	{
-		// Skip up the hierarchy
-		InstanceData = UPrimitiveComponent::GetComponentInstanceData();
-	}
 
 	return InstanceData;
 #else
@@ -909,9 +881,6 @@ void UInstancedStaticMeshComponent::ApplyComponentInstanceData(FInstancedStaticM
 		return;
 	}
 
-	// See if data matches current state
-	if (InstancedMeshData->bHasCachedStaticLighting)
-	{
 		bool bMatch = false;
 
 		// Check for any instance having moved as that would invalidate static lighting
@@ -933,17 +902,15 @@ void UInstancedStaticMeshComponent::ApplyComponentInstanceData(FInstancedStaticM
 		// Restore static lighting if appropriate
 		if (bMatch)
 		{
-			const int32 NumLODLightMaps = InstancedMeshData->CachedStaticLighting.LODDataLightMap.Num();
+		const int32 NumLODLightMaps = InstancedMeshData->CachedStaticLighting.MapBuildDataIds.Num();
 			SetLODDataCount(NumLODLightMaps, NumLODLightMaps);
+
 			for (int32 i = 0; i < NumLODLightMaps; ++i)
 			{
-				LODData[i].LightMap = InstancedMeshData->CachedStaticLighting.LODDataLightMap[i];
-				LODData[i].ShadowMap = InstancedMeshData->CachedStaticLighting.LODDataShadowMap[i];
+			LODData[i].MapBuildDataId = InstancedMeshData->CachedStaticLighting.MapBuildDataIds[i];
 			}
-			IrrelevantLights = InstancedMeshData->CachedStaticLighting.IrrelevantLights;
+
 			PerInstanceSMData = InstancedMeshData->PerInstanceSMData;
-			bHasCachedStaticLighting = true;
-		}
 	}
 
 	SelectedInstances = InstancedMeshData->SelectedInstances;
@@ -1297,6 +1264,8 @@ void UInstancedStaticMeshComponent::GetStaticLightingInfo(FStaticLightingPrimiti
 		CachedMappings.Reset(PerInstanceSMData.Num() * NumLODs);
 		CachedMappings.AddZeroed(PerInstanceSMData.Num() * NumLODs);
 
+		NumPendingLightmaps = 0;
+
 		for (int32 LODIndex = 0; LODIndex < NumLODs; LODIndex++)
 		{
 			const FStaticMeshLODResources& LODRenderData = GetStaticMesh()->RenderData->LODResources[LODIndex];
@@ -1320,7 +1289,7 @@ void UInstancedStaticMeshComponent::GetStaticLightingInfo(FStaticLightingPrimiti
 	}
 }
 
-void UInstancedStaticMeshComponent::ApplyLightMapping(FStaticLightingTextureMapping_InstancedStaticMesh* InMapping)
+void UInstancedStaticMeshComponent::ApplyLightMapping(FStaticLightingTextureMapping_InstancedStaticMesh* InMapping, ULevel* LightingScenario)
 {
 	NumPendingLightmaps--;
 
@@ -1346,22 +1315,31 @@ void UInstancedStaticMeshComponent::ApplyLightMapping(FStaticLightingTextureMapp
 			AllShadowMapData.Add(MoveTemp(Mapping->ShadowMapData));
 		}
 
-		// Create a light-map for the primitive.
-		const ELightMapPaddingType PaddingType = GAllowLightmapPadding ? LMPT_NormalPadding : LMPT_NoPadding;
-		TRefCountPtr<FLightMap2D> NewLightMap = FLightMap2D::AllocateInstancedLightMap(this, MoveTemp(AllQuantizedData), Bounds, PaddingType, LMF_Streamed);
-
-		// Create a shadow-map for the primitive.
-		TRefCountPtr<FShadowMap2D> NewShadowMap = bNeedsShadowMap ? FShadowMap2D::AllocateInstancedShadowMap(this, MoveTemp(AllShadowMapData), Bounds, PaddingType, SMF_Streamed) : nullptr;
+		UStaticMesh* ResolvedMesh = GetStaticMesh();
+		if (LODData.Num() != ResolvedMesh->GetNumLODs())
+		{
+			MarkPackageDirty();
+		}
 
 		// Ensure LODData has enough entries in it, free not required.
-		SetLODDataCount(GetStaticMesh()->GetNumLODs(), GetStaticMesh()->GetNumLODs());
+		SetLODDataCount(ResolvedMesh->GetNumLODs(), ResolvedMesh->GetNumLODs());
 
-		// Share lightmap/shadowmap over all LODs
-		for (FStaticMeshComponentLODInfo& ComponentLODInfo : LODData)
-		{
-			ComponentLODInfo.LightMap = NewLightMap;
-			ComponentLODInfo.ShadowMap = NewShadowMap;
-		}
+		ULevel* StorageLevel = LightingScenario ? LightingScenario : GetOwner()->GetLevel();
+		UMapBuildDataRegistry* Registry = StorageLevel->GetOrCreateMapBuildData();
+		FMeshMapBuildData& MeshBuildData = Registry->AllocateMeshBuildData(LODData[0].MapBuildDataId, true);
+
+		MeshBuildData.PerInstanceLightmapData.Empty(AllQuantizedData.Num());
+		MeshBuildData.PerInstanceLightmapData.AddZeroed(AllQuantizedData.Num());
+
+		// Create a light-map for the primitive.
+		const ELightMapPaddingType PaddingType = GAllowLightmapPadding ? LMPT_NormalPadding : LMPT_NoPadding;
+		TRefCountPtr<FLightMap2D> NewLightMap = FLightMap2D::AllocateInstancedLightMap(Registry, this, MoveTemp(AllQuantizedData), Registry, LODData[0].MapBuildDataId, Bounds, PaddingType, LMF_Streamed);
+
+		// Create a shadow-map for the primitive.
+		TRefCountPtr<FShadowMap2D> NewShadowMap = bNeedsShadowMap ? FShadowMap2D::AllocateInstancedShadowMap(Registry, this, MoveTemp(AllShadowMapData), Registry, LODData[0].MapBuildDataId, Bounds, PaddingType, SMF_Streamed) : nullptr;
+
+		MeshBuildData.LightMap = NewLightMap;
+		MeshBuildData.ShadowMap = NewShadowMap;
 
 		// Build the list of statically irrelevant lights.
 		// TODO: This should be stored per LOD.
@@ -1372,10 +1350,10 @@ void UInstancedStaticMeshComponent::ApplyLightMapping(FStaticLightingTextureMapp
 			for (const ULightComponent* Light : MappingInfo.Mapping->Mesh->RelevantLights)
 			{
 				// Check if the light is stored in the light-map.
-				const bool bIsInLightMap = LODData[0].LightMap && LODData[0].LightMap->LightGuids.Contains(Light->LightGuid);
+				const bool bIsInLightMap = MeshBuildData.LightMap && MeshBuildData.LightMap->LightGuids.Contains(Light->LightGuid);
 
 				// Check if the light is stored in the shadow-map.
-				const bool bIsInShadowMap = LODData[0].ShadowMap && LODData[0].ShadowMap->LightGuids.Contains(Light->LightGuid);
+				const bool bIsInShadowMap = MeshBuildData.ShadowMap && MeshBuildData.ShadowMap->LightGuids.Contains(Light->LightGuid);
 
 				// If the light isn't already relevant to another mapping, add it to the potentially irrelevant list
 				if (!bIsInLightMap && !bIsInShadowMap && !RelevantLights.Contains(Light->LightGuid))
@@ -1392,14 +1370,9 @@ void UInstancedStaticMeshComponent::ApplyLightMapping(FStaticLightingTextureMapp
 			}
 		}
 
-		IrrelevantLights = PossiblyIrrelevantLights.Array();
-
-		bHasCachedStaticLighting = true;
+		MeshBuildData.IrrelevantLights = PossiblyIrrelevantLights.Array();
 
 		ReleasePerInstanceRenderData();
-		MarkRenderStateDirty();
-
-		MarkPackageDirty();
 	}
 }
 #endif
@@ -1425,6 +1398,12 @@ void UInstancedStaticMeshComponent::ReleasePerInstanceRenderData()
 			delete InCleanupRenderDataPtr;
 		});
 	}
+}
+
+void UInstancedStaticMeshComponent::PropagateLightingScenarioChange()
+{
+	FComponentRecreateRenderStateContext Context(this);
+	ReleasePerInstanceRenderData();
 }
 
 void UInstancedStaticMeshComponent::GetLightAndShadowMapMemoryUsage( int32& LightMapMemoryUsage, int32& ShadowMapMemoryUsage ) const
@@ -1677,86 +1656,41 @@ bool UInstancedStaticMeshComponent::ShouldCreatePhysicsState() const
 	return IsRegistered() && !IsBeingDestroyed() && (bAlwaysCreatePhysicsState || IsCollisionEnabled());
 }
 
-bool UInstancedStaticMeshComponent::GetStreamingTextureFactors(float& OutTexelFactor, FBoxSphereBounds& OutBounds, int32 CoordinateIndex, int32 LODIndex, int32 ElementIndex) const
+FBox UInstancedStaticMeshComponent::GetTextureStreamingBox(int32 MaterialIndex) const
 {
-	if (!GetStaticMesh())
-		return false;
-
-	FTransform InstanceTransform; 
-	if (!GetInstanceTransform(0, InstanceTransform, true)) 
-		return false;
-
-	float TexelFactor = 0;
-	if (!GetStaticMesh()->GetStreamingTextureFactor(TexelFactor, OutBounds, CoordinateIndex, LODIndex, ElementIndex, InstanceTransform))
-		return false;
-
-	// Here we weight the texel factor by the by maximum axis scale as it would scale also the surface.
-	float Weight = InstanceTransform.GetMaximumAxisScale();
-	float WeightedTexelFactorSum = TexelFactor * Weight;
-	float WeightSum = Weight;
-
-	for (int32 InstanceIndex = 1; InstanceIndex < PerInstanceSMData.Num(); ++InstanceIndex)
-	{
-		FBoxSphereBounds InstanceBounds;
-		if (GetInstanceTransform(InstanceIndex, InstanceTransform, true))
-		{
-			if (GetStaticMesh()->GetStreamingTextureFactor(TexelFactor, InstanceBounds, CoordinateIndex, LODIndex, ElementIndex, InstanceTransform))
-			{
-				Weight = InstanceTransform.GetMaximumAxisScale();
-				WeightedTexelFactorSum += TexelFactor * Weight;
-				WeightSum += Weight;
-
-				OutBounds = Union(OutBounds, InstanceBounds);
-			}
-		}
-	}
-
-	if (WeightSum > SMALL_NUMBER)
-	{
-		OutTexelFactor = WeightedTexelFactorSum / WeightSum;
-		return true;
-	}
-	else
-	{
-		return false;
-	}
+	// With instanced meshes, use the sum of component bounds instead of the sum of material bounds as a simplification.
+	return Bounds.GetBox();
 }
 
-bool UInstancedStaticMeshComponent::GetStreamingTextureFactors(float& OutWorldTexelFactor, float& OutWorldLightmapFactor) const
+bool UInstancedStaticMeshComponent::RequiresStreamingTextureData() const 
 {
+	return Super::RequiresStreamingTextureData() && GetInstanceCount() > 0;
+}
+
+float UInstancedStaticMeshComponent::GetTextureStreamingTransformScale() const
+{
+	float TransformScale = Super::GetTextureStreamingTransformScale();
 	if (GetStaticMesh() && PerInstanceSMData.Num() > 0)
 	{
 		float WeightedAxisScaleSum = 0;
-		float WeightSum  = 0;
+		float WeightSum = 0;
 
 		for (int32 InstanceIndex = 0; InstanceIndex < PerInstanceSMData.Num(); InstanceIndex++)
 		{
 			const float AxisScale = PerInstanceSMData[InstanceIndex].Transform.GetMaximumAxisScale();
 			const float Weight = AxisScale; // The weight is the axis scale since we want to weight by surface coverage.
 			WeightedAxisScaleSum += AxisScale * Weight;
-			WeightSum  += Weight;
+			WeightSum += Weight;
 		}
 
 		if (WeightSum > SMALL_NUMBER)
 		{
-			OutWorldTexelFactor = OutWorldLightmapFactor = WeightedAxisScaleSum / WeightSum * ComponentToWorld.GetMaximumAxisScale();
-			OutWorldTexelFactor *= GetStaticMesh()->GetStreamingTextureFactor(0);
-
-			TIndirectArray<FStaticMeshLODResources>& LODResources = GetStaticMesh()->RenderData->LODResources;
-			const bool bHasValidLightmapCoordinates = GetStaticMesh()->LightMapCoordinateIndex >= 0 && (uint32)GetStaticMesh()->LightMapCoordinateIndex < LODResources[0].VertexBuffer.GetNumTexCoords();
-			if (bHasValidLightmapCoordinates)
-			{
-				OutWorldLightmapFactor *= GetStaticMesh()->GetStreamingTextureFactor(GetStaticMesh()->LightMapCoordinateIndex);
-			}
-			else
-			{
-				OutWorldLightmapFactor = 0;
-			}
-			return true;
+			TransformScale *= WeightedAxisScaleSum / WeightSum;
 		}
 	}
-	return false;
+	return TransformScale;
 }
+
 void UInstancedStaticMeshComponent::ClearInstances()
 {
 	// Clear all the per-instance data
@@ -1792,8 +1726,8 @@ void UInstancedStaticMeshComponent::SetCullDistances(int32 StartCullDistance, in
 void UInstancedStaticMeshComponent::SetupNewInstanceData(FInstancedStaticMeshInstanceData& InOutNewInstanceData, int32 InInstanceIndex, const FTransform& InInstanceTransform)
 {
 	InOutNewInstanceData.Transform = InInstanceTransform.ToMatrixWithScale();
-	InOutNewInstanceData.LightmapUVBias = FVector2D( -1.0f, -1.0f );
-	InOutNewInstanceData.ShadowmapUVBias = FVector2D( -1.0f, -1.0f );
+	InOutNewInstanceData.LightmapUVBias_DEPRECATED = FVector2D( -1.0f, -1.0f );
+	InOutNewInstanceData.ShadowmapUVBias_DEPRECATED = FVector2D( -1.0f, -1.0f );
 
 	if (bPhysicsStateCreated)
 	{

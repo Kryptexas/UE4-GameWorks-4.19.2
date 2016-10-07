@@ -30,6 +30,8 @@
 #include "AI/Navigation/NavCollision.h"
 #include "CookStats.h"
 #include "ReleaseObjectVersion.h"
+#include "Streaming/UVChannelDensity.h"
+#include "ScopedTimers.h"
 
 DEFINE_LOG_CATEGORY(LogStaticMesh);	
 
@@ -278,6 +280,18 @@ FArchive& operator<<(FArchive& Ar, FStaticMeshSection& Section)
 	Ar << Section.MaxVertexIndex;
 	Ar << Section.bEnableCollision;
 	Ar << Section.bCastShadow;
+
+#if WITH_EDITORONLY_DATA
+	if(!Ar.IsCooking() || Ar.CookingTarget()->HasEditorOnlyData())
+	{
+		for (int32 UVIndex = 0; UVIndex < MAX_STATIC_TEXCOORDS; ++UVIndex)
+		{
+			Ar << Section.UVDensities[UVIndex];
+			Ar << Section.Weights[UVIndex];
+		}
+	}
+#endif
+
 	return Ar;
 }
 
@@ -658,17 +672,11 @@ void FStaticMeshLODResources::ReleaseResources()
 ------------------------------------------------------------------------------*/
 
 FStaticMeshRenderData::FStaticMeshRenderData()
-	: MaxStreamingTextureFactor(0.0f)
-	, bLODsShareStaticLighting(false)
+	: bLODsShareStaticLighting(false)
 {
 	for (int32 LODIndex = 0; LODIndex < MAX_STATIC_MESH_LODS; ++LODIndex)
 	{
 		ScreenSize[LODIndex] = 0.0f;
-	}
-
-	for (int32 TexCoordIndex = 0; TexCoordIndex < MAX_STATIC_TEXCOORDS; ++TexCoordIndex)
-	{
-		StreamingTextureFactors[TexCoordIndex] = 0.0f;
 	}
 }
 
@@ -729,13 +737,16 @@ void FStaticMeshRenderData::Serialize(FArchive& Ar, UStaticMesh* Owner, bool bCo
 
 	Ar << Bounds;
 	Ar << bLODsShareStaticLighting;
-	Ar << bReducedBySimplygon;
 
-	for (int32 TexCoordIndex = 0; TexCoordIndex < MAX_STATIC_TEXCOORDS; ++TexCoordIndex)
+	if (Ar.IsLoading() && Ar.CustomVer(FRenderingObjectVersion::GUID) < FRenderingObjectVersion::TextureStreamingMeshUVChannelData)
 	{
-		Ar << StreamingTextureFactors[TexCoordIndex];
+		float DummyFactor;
+		for (int32 TexCoordIndex = 0; TexCoordIndex < MAX_STATIC_TEXCOORDS; ++TexCoordIndex)
+		{
+			Ar << DummyFactor; // StreamingTextureFactors[TexCoordIndex];
+		}
+		Ar << DummyFactor; // MaxStreamingTextureFactor;
 	}
-	Ar << MaxStreamingTextureFactor;
 
 	if (bCooked)
 	{
@@ -856,6 +867,25 @@ void FStaticMeshRenderData::ResolveSectionInfo(UStaticMesh* Owner)
 	{
 		ScreenSize[LODIndex] = 0.0f;
 	}
+}
+
+void FStaticMeshRenderData::SyncUVChannelData(const TArray<FStaticMaterial>& ObjectData)
+{
+	TSharedPtr< TArray<FMeshUVChannelInfo> > UpdateData = TSharedPtr< TArray<FMeshUVChannelInfo> >(new TArray<FMeshUVChannelInfo>);
+	UpdateData->Empty(ObjectData.Num());
+
+	for (const FStaticMaterial& StaticMaterial : ObjectData)
+	{
+		UpdateData->Add(StaticMaterial.UVChannelData);
+	}
+
+	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+		SyncUVChannelData,
+		FStaticMeshRenderData*, This, this,
+		TSharedPtr< TArray<FMeshUVChannelInfo> >, Data, UpdateData,
+		{
+			FMemory::Memswap(&This->UVChannelDataPerMaterial, Data.Get(), sizeof(TArray<FMeshUVChannelInfo>));
+		} );
 }
 
 /*------------------------------------------------------------------------------
@@ -1129,8 +1159,8 @@ FArchive& operator<<(FArchive& Ar, FMeshBuildSettings& BuildSettings)
 // If static mesh derived data needs to be rebuilt (new format, serialization
 // differences, etc.) replace the version GUID below with a new one.
 // In case of merge conflicts with DDC versions, you MUST generate a new GUID
-// and set this new GUID as the version.                                       
-#define STATICMESH_DERIVEDDATA_VER TEXT("6F4494992CB61A37E4B1403C6156E6A")
+// and set this new GUID as the version.        
+#define STATICMESH_DERIVEDDATA_VER TEXT("9028D97FC1F34C33B2F24FA81D5F45F3")
 
 static const FString& GetStaticMeshDerivedDataVersion()
 {
@@ -1234,6 +1264,68 @@ static FString BuildDistanceFieldDerivedDataKey(const FString& InMeshKey)
 		TEXT(""));
 }
 
+void FStaticMeshRenderData::ComputeUVDensities()
+{
+#if WITH_EDITORONLY_DATA
+	for (FStaticMeshLODResources& LODModel : LODResources)
+	{
+		const int32 NumTexCoords = FMath::Min<int32>(LODModel.GetNumTexCoords(), MAX_STATIC_TEXCOORDS);
+
+		for (FStaticMeshSection& SectionInfo : LODModel.Sections)
+		{
+			FMemory::Memzero(SectionInfo.UVDensities);
+			FMemory::Memzero(SectionInfo.Weights);
+
+			FUVDensityAccumulator UVDensityAccs[MAX_STATIC_TEXCOORDS];
+			for (int32 UVIndex = 0; UVIndex < NumTexCoords; ++UVIndex)
+			{
+				UVDensityAccs[UVIndex].Reserve(SectionInfo.NumTriangles);
+			}
+
+			FIndexArrayView IndexBuffer = LODModel.IndexBuffer.GetArrayView();
+
+			for (uint32 TriangleIndex = 0; TriangleIndex < SectionInfo.NumTriangles; ++TriangleIndex)
+			{
+				const int32 Index0 = IndexBuffer[SectionInfo.FirstIndex + TriangleIndex * 3 + 0];
+				const int32 Index1 = IndexBuffer[SectionInfo.FirstIndex + TriangleIndex * 3 + 1];
+				const int32 Index2 = IndexBuffer[SectionInfo.FirstIndex + TriangleIndex * 3 + 2];
+
+				const float Aera = FUVDensityAccumulator::GetTriangleAera(
+										LODModel.PositionVertexBuffer.VertexPosition(Index0), 
+										LODModel.PositionVertexBuffer.VertexPosition(Index1), 
+										LODModel.PositionVertexBuffer.VertexPosition(Index2));
+
+				if (Aera > SMALL_NUMBER)
+				{
+					for (int32 UVIndex = 0; UVIndex < NumTexCoords; ++UVIndex)
+					{
+						const float UVAera = FUVDensityAccumulator::GetUVChannelAera(
+												LODModel.VertexBuffer.GetVertexUV(Index0, UVIndex), 
+												LODModel.VertexBuffer.GetVertexUV(Index1, UVIndex), 
+												LODModel.VertexBuffer.GetVertexUV(Index2, UVIndex));
+
+						UVDensityAccs[UVIndex].PushTriangle(Aera, UVAera);
+					}
+				}
+			}
+
+			for (int32 UVIndex = 0; UVIndex < NumTexCoords; ++UVIndex)
+			{
+				float WeightedUVDensity = 0;
+				float Weight = 0;
+				UVDensityAccs[UVIndex].AccumulateDensity(WeightedUVDensity, Weight);
+
+				if (Weight > SMALL_NUMBER)
+				{
+					SectionInfo.UVDensities[UVIndex] = WeightedUVDensity / Weight;
+					SectionInfo.Weights[UVIndex] = Weight;
+				}
+			}
+		}
+	}
+#endif // WITH_EDITORONLY_DATA
+}
+
 void FStaticMeshRenderData::Cache(UStaticMesh* Owner, const FStaticMeshLODSettings& LODSettings)
 {
 	if (Owner->GetOutermost()->HasAnyPackageFlags(PKG_FilterEditorOnly))
@@ -1272,6 +1364,7 @@ void FStaticMeshRenderData::Cache(UStaticMesh* Owner, const FStaticMeshLODSettin
 
 			IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>(TEXT("MeshUtilities"));
 			MeshUtilities.BuildStaticMesh(*this, Owner->SourceModels, LODGroup);
+			ComputeUVDensities();
 			bLODsShareStaticLighting = Owner->CanLODsShareStaticLighting();
 			FMemoryWriter Ar(DerivedData, /*bIsPersistent=*/ true);
 			Serialize(Ar, Owner, /*bCooked=*/ false);
@@ -1329,6 +1422,12 @@ FArchive& operator<<(FArchive& Ar, FStaticMaterial& Elem)
 		Ar << Elem.ImportedMaterialSlotName;
 	}
 #endif //#if WITH_EDITORONLY_DATA
+
+	if (!Ar.IsLoading() || Ar.CustomVer(FRenderingObjectVersion::GUID) >= FRenderingObjectVersion::TextureStreamingMeshUVChannelData)
+	{
+		Ar << Elem.UVChannelData;
+	}
+	
 	return Ar;
 }
 
@@ -1364,7 +1463,6 @@ UStaticMesh::UStaticMesh(const FObjectInitializer& ObjectInitializer)
 	: UObject(ObjectInitializer)
 {
 	ElementToIgnoreForTexFactor = -1;
-	StreamingDistanceMultiplier=1.0f;
 	bHasNavigationData=true;
 #if WITH_EDITORONLY_DATA
 	bAutoComputeLODScreenSize=true;
@@ -1390,6 +1488,8 @@ void UStaticMesh::PostInitProperties()
  */
 void UStaticMesh::InitResources()
 {
+	UpdateUVChannelData(false);
+
 	if (RenderData)
 	{
 		RenderData->InitResources(this);
@@ -1542,75 +1642,104 @@ int32 UStaticMesh::GetNumSections(int32 InLOD) const
 	return NumSections;
 }
 
-float UStaticMesh::GetStreamingTextureFactor(int32 RequestedUVIndex) const
+#if WITH_EDITORONLY_DATA
+static float GetUVDensity(const TIndirectArray<FStaticMeshLODResources>& LODResources, int32 UVIndex)
 {
-	check(RequestedUVIndex >= 0);
-	check(RequestedUVIndex < MAX_STATIC_TEXCOORDS);
+	float WeightedUVDensity = 0;
+	float WeightSum = 0;
 
-	float StreamingTextureFactor = 0.0f;
-	if (RenderData)
+	if (UVIndex < MAX_STATIC_TEXCOORDS)
 	{
-		if( bUseMaximumStreamingTexelRatio )
+		// Parse all LOD-SECTION using this material index.
+		for (const FStaticMeshLODResources& LODModel : LODResources)
 		{
-			StreamingTextureFactor = RenderData->MaxStreamingTextureFactor * FMath::Max(0.0f, StreamingDistanceMultiplier);
-		}
-		else if( RequestedUVIndex == 0 )
-		{
-			StreamingTextureFactor = RenderData->StreamingTextureFactors[RequestedUVIndex] * FMath::Max(0.0f, StreamingDistanceMultiplier);
-		}
-		else
-		{
-			StreamingTextureFactor = RenderData->StreamingTextureFactors[RequestedUVIndex];
+			if (UVIndex < LODModel.GetNumTexCoords())
+			{
+				for (const FStaticMeshSection& SectionInfo : LODModel.Sections)
+				{
+					WeightedUVDensity += SectionInfo.UVDensities[UVIndex] * SectionInfo.Weights[UVIndex];
+					WeightSum += SectionInfo.Weights[UVIndex];
+				}
+			}
 		}
 	}
-	return StreamingTextureFactor;
-}
 
-bool UStaticMesh::GetStreamingTextureFactor(float& OutTexelFactor, FBoxSphereBounds& OutBounds, int32 CoordinateIndex, int32 LODIndex, int32 ElementIndex, const FTransform& Transform) const 
+	return (WeightSum > SMALL_NUMBER) ? (WeightedUVDensity / WeightSum) : 0;
+}
+#endif
+
+void UStaticMesh::UpdateUVChannelData(bool bRebuildAll)
 {
 #if WITH_EDITORONLY_DATA
-	if (!GIsEditor || !RenderData || !RenderData->LODResources.IsValidIndex(LODIndex))
+	// Once cooked, the data required to compute the scales will not be CPU accessible.
+	if (FPlatformProperties::HasEditorOnlyData() && RenderData)
 	{
-		return false;
+		bool bDensityChanged = false;
+
+		for (int32 MaterialIndex = 0; MaterialIndex < StaticMaterials.Num(); ++MaterialIndex)
+		{
+			FMeshUVChannelInfo& UVChannelData = StaticMaterials[MaterialIndex].UVChannelData;
+
+			// Skip it if we want to keep it.
+			if (UVChannelData.bInitialized && (!bRebuildAll || UVChannelData.bOverrideDensities))
+			{
+				continue;
+			}
+
+			float WeightedUVDensities[TEXSTREAM_MAX_NUM_UVCHANNELS] = {0, 0, 0, 0};
+			float Weights[TEXSTREAM_MAX_NUM_UVCHANNELS] = {0, 0, 0, 0};
+
+			// Parse all LOD-SECTION using this material index.
+			for (const FStaticMeshLODResources& LODModel : RenderData->LODResources)
+			{
+				const int32 NumTexCoords = FMath::Min<int32>(LODModel.GetNumTexCoords(), TEXSTREAM_MAX_NUM_UVCHANNELS);
+				for (const FStaticMeshSection& SectionInfo : LODModel.Sections)
+				{
+					if (SectionInfo.MaterialIndex == MaterialIndex)
+					{
+						for (int32 UVIndex = 0; UVIndex < NumTexCoords; ++UVIndex)
+						{
+							WeightedUVDensities[UVIndex] += SectionInfo.UVDensities[UVIndex] * SectionInfo.Weights[UVIndex];
+							Weights[UVIndex] += SectionInfo.Weights[UVIndex];
+						}
+
+						// If anything needs to be updated, also update the lightmap densities.
+						bDensityChanged = true;
+					}
+				}
+			}
+
+			UVChannelData.bInitialized = true;
+			UVChannelData.bOverrideDensities = false;
+			for (int32 UVIndex = 0; UVIndex < TEXSTREAM_MAX_NUM_UVCHANNELS; ++UVIndex)
+			{
+				UVChannelData.LocalUVDensities[UVIndex] = (Weights[UVIndex] > SMALL_NUMBER) ? (WeightedUVDensities[UVIndex] / Weights[UVIndex]) : 0;
+			}
+		}
+
+		if (bDensityChanged || bRebuildAll)
+		{
+			LightmapUVDensity = GetUVDensity(RenderData->LODResources, LightMapCoordinateIndex);
+
+			if (GEngine)
+			{
+				GEngine->TriggerStreamingDataRebuild();
+			}
+		}
+
+		// Update the data for the renderthread debug viewmodes
+		RenderData->SyncUVChannelData(StaticMaterials);
 	}
+#endif
+}
 
-	const FStaticMeshLODResources& LODModel = RenderData->LODResources[LODIndex];
-
-	if (CoordinateIndex < 0 || CoordinateIndex >= LODModel.GetNumTexCoords())
-	{
-		return false;
-	}
-
-	if (!LODModel.Sections.IsValidIndex(ElementIndex))
-	{
-		return false;
-	}
-
-	struct FTriangleInfo
-	{
-		FTriangleInfo(float InAera, float InTexelRatio) : Aera(InAera), TexelRatio(InTexelRatio) {}
-		float Aera;
-		float TexelRatio;
-	};
-
-	struct FCompareAera
-	{
-		FORCEINLINE bool operator()(FTriangleInfo const& A, FTriangleInfo const& B) const { return A.Aera < B.Aera; }
-	};
-
-	struct FCompareTexelRatio
-	{
-		FORCEINLINE bool operator()(FTriangleInfo const& A, FTriangleInfo const& B) const { return A.TexelRatio < B.TexelRatio; }
-	};
-
-	TArray<FTriangleInfo> TriangleInfos;
-
-	const FStaticMeshSection& SectionInfo = LODModel.Sections[ElementIndex];
+#if WITH_EDITORONLY_DATA
+static void AccumulateBounds(FBox& Bounds, const FStaticMeshLODResources& LODModel, const FStaticMeshSection& SectionInfo, const FTransform& Transform)
+{
 	const int32 SectionIndexCount = SectionInfo.NumTriangles * 3;
 	FIndexArrayView IndexBuffer = LODModel.IndexBuffer.GetArrayView();
-	
-	FBox TransformedSectionBox(ForceInit);
 
+	FBox TransformedBox(ForceInit);
 	for (uint32 TriangleIndex = 0; TriangleIndex < SectionInfo.NumTriangles; ++TriangleIndex)
 	{
 		const int32 Index0 = IndexBuffer[SectionInfo.FirstIndex + TriangleIndex * 3 + 0];
@@ -1621,63 +1750,47 @@ bool UStaticMesh::GetStreamingTextureFactor(float& OutTexelFactor, FBoxSphereBou
 		FVector Pos1 = Transform.TransformPosition(LODModel.PositionVertexBuffer.VertexPosition(Index1));
 		FVector Pos2 = Transform.TransformPosition(LODModel.PositionVertexBuffer.VertexPosition(Index2));
 
-		TransformedSectionBox += Pos0;
-		TransformedSectionBox += Pos1;
-		TransformedSectionBox += Pos2;
+		Bounds += Pos0;
+		Bounds += Pos1;
+		Bounds += Pos2;
+	}
+}
+#endif
 
-		FVector2D UV0 = LODModel.VertexBuffer.GetVertexUV(Index0, CoordinateIndex);
-		FVector2D UV1 = LODModel.VertexBuffer.GetVertexUV(Index1, CoordinateIndex);
-		FVector2D UV2 = LODModel.VertexBuffer.GetVertexUV(Index2, CoordinateIndex);
-
-		FVector P01 = Pos1 - Pos0;
-		FVector P02 = Pos2 - Pos0;
-
-		float Aera = FVector::CrossProduct(P01, P02).Size();
-
-		if (Aera > SMALL_NUMBER)
+FBox UStaticMesh::GetMaterialBox(int32 MaterialIndex, const FTransform& Transform) const
+{
+#if WITH_EDITORONLY_DATA
+	// Once cooked, the data requires to compute the scales will not be CPU accessible.
+	if (FPlatformProperties::HasEditorOnlyData() && RenderData)
+	{
+		FBox MaterialBounds(ForceInit);
+		for (const FStaticMeshLODResources& LODModel : RenderData->LODResources)
 		{
-			float L1 = P01.Size();
-			float L2 = P02.Size();
-
-			float T1 = (UV1 - UV0).Size();
-			float T2 = (UV2 - UV0).Size();
-
-			if (T1 > SMALL_NUMBER && T2 > SMALL_NUMBER)
+			for (const FStaticMeshSection& SectionInfo : LODModel.Sections)
 			{
-				float TexelRatio = FMath::Max(L1 / T1, L2 / T2);
-				TriangleInfos.Push(FTriangleInfo(Aera, TexelRatio));
+				if (SectionInfo.MaterialIndex != MaterialIndex)
+					continue;
+
+				AccumulateBounds(MaterialBounds, LODModel, SectionInfo, Transform);
 			}
 		}
+		return MaterialBounds;
 	}
-
-	TriangleInfos.Sort(FCompareTexelRatio());
-
-	float WeightedTexelFactorSum = 0;
-	float AreaSum = 0;
-
-	// Remove 10% of higher and lower texel factors.
-	int32 Threshold = FMath::FloorToInt(.10f * (float)TriangleInfos.Num());
-	for (int32 Index = Threshold; Index < TriangleInfos.Num() - Threshold; ++Index)
-	{
-		WeightedTexelFactorSum += TriangleInfos[Index].TexelRatio * TriangleInfos[Index].Aera;
-		AreaSum += TriangleInfos[Index].Aera;
-	}
-
-	if (AreaSum == 0)
-	{
-		return false;
-	}
-
-	OutBounds = TransformedSectionBox;
-	OutTexelFactor = WeightedTexelFactorSum / AreaSum; 
-	// Don't take into account StreamingDistanceMultiplier here (but rather in the components using it). That allows realtime feedback without requiring a TextureStreamingBuild.
-	return true;
-
-#else
-	return false;
 #endif
-}	
+	// Fallback back using the full bounds.
+	return GetBoundingBox().TransformBy(Transform);
+}
 
+const FMeshUVChannelInfo* UStaticMesh::GetUVChannelData(int32 MaterialIndex) const
+{
+	if (StaticMaterials.IsValidIndex(MaterialIndex))
+	{
+		ensure(StaticMaterials[MaterialIndex].UVChannelData.bInitialized);
+		return &StaticMaterials[MaterialIndex].UVChannelData;
+	}
+
+	return nullptr;
+}
 
 /**
  * Releases the static mesh's render resources.
@@ -1722,11 +1835,6 @@ void UStaticMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedE
 
 #if WITH_EDITORONLY_DATA
 	LightMapResolution = FMath::Max(LightMapResolution, 0);
-
-	if ( PropertyThatChanged && PropertyThatChanged->GetName() == TEXT("StreamingDistanceMultiplier") )
-	{
-		GEngine->TriggerStreamingDataRebuild();
-	}
 
 	if (PropertyChangedEvent.MemberProperty && ( (PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(UStaticMesh, PositiveBoundsExtension) ) || ( PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(UStaticMesh, NegativeBoundsExtension) ) ))
 	{
@@ -2156,6 +2264,7 @@ void UStaticMesh::Serialize(FArchive& Ar)
 
 	Ar.UsingCustomVersion(FReleaseObjectVersion::GUID);
 	Ar.UsingCustomVersion(FEditorObjectVersion::GUID);
+	Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
 
 	FStripDataFlags StripFlags( Ar );
 
@@ -2423,6 +2532,11 @@ void UStaticMesh::PostLoad()
 	if( FApp::CanEverRender() && !HasAnyFlags(RF_ClassDefaultObject) )
 	{
 		InitResources();
+	}
+	else
+	{
+		// Update any missing data when cooking.
+		UpdateUVChannelData(false);
 	}
 
 #if WITH_EDITOR

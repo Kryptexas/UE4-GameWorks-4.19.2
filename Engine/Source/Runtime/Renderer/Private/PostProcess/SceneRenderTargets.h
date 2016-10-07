@@ -400,7 +400,7 @@ public:
 	{ 
 		// if this triggers you need to make sure the GBuffer is not getting released before (using AdjustGBufferRefCount(1) and AdjustGBufferRefCount(-1))
 		// Maybe You use a SceneTexture material expression that should set MaterialCompilationOutput.bNeedsGBuffer
-		check(IsValidRef(GBufferResourcesUniformBuffer));
+		checkf(IsValidRef(GBufferResourcesUniformBuffer), TEXT("GBuffer required but not available. Failure often caused by incorrect custom code use in a post processing material."));
 
 		return GBufferResourcesUniformBuffer; 
 	}

@@ -719,7 +719,7 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 			const int32 HalfX = Viewport->GetSizeXY().X / 2;
 			const int32 HalfY = Viewport->GetSizeXY().Y / 2;
 
-			const float ScreenRadius = FMath::Max((float)HalfX * View->ViewMatrices.ProjMatrix.M[0][0], (float)HalfY * View->ViewMatrices.ProjMatrix.M[1][1]) * SkelBounds.SphereRadius / FMath::Max(ScreenPosition.W, 1.0f);
+			const float ScreenRadius = FMath::Max((float)HalfX * View->ViewMatrices.GetProjectionMatrix().M[0][0], (float)HalfY * View->ViewMatrices.GetProjectionMatrix().M[1][1]) * SkelBounds.SphereRadius / FMath::Max(ScreenPosition.W, 1.0f);
 			const float LODFactor = ScreenRadius / 320.0f;
 
 			int32 NumBonesInUse;
@@ -843,7 +843,7 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 
 			const int32 HalfX = Viewport->GetSizeXY().X / 2;
 			const int32 HalfY = Viewport->GetSizeXY().Y / 2;
-			const float ScreenRadius = FMath::Max((float)HalfX * View->ViewMatrices.ProjMatrix.M[0][0], (float)HalfY * View->ViewMatrices.ProjMatrix.M[1][1]) * SkelBounds.SphereRadius / FMath::Max(ScreenPosition.W, 1.0f);
+			const float ScreenRadius = FMath::Max((float)HalfX * View->ViewMatrices.GetProjectionMatrix().M[0][0], (float)HalfY * View->ViewMatrices.GetProjectionMatrix().M[1][1]) * SkelBounds.SphereRadius / FMath::Max(ScreenPosition.W, 1.0f);
 			const float LODFactor = ScreenRadius / 320.0f;
 
 			float ScreenSize = ComputeBoundsScreenSize(ScreenPosition, SkelBounds.SphereRadius, *View);

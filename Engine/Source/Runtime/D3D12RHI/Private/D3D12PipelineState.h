@@ -226,9 +226,40 @@ public:
 
 	ID3D12PipelineState* GetPipelineState();
 
+	FD3D12PipelineState& operator=(const FD3D12PipelineState& other)
+	{
+		checkSlow(m_NodeMask == other.m_NodeMask);
+		checkSlow(m_VisibilityMask == other.m_VisibilityMask);
+
+		PipelineState = other.PipelineState;
+		Worker = other.Worker;
+
+		return *this;
+	}
+
 protected:
 	TRefCountPtr<ID3D12PipelineState> PipelineState;
 	FAsyncTask<FD3D12PipelineStateWorker>* Worker;
+};
+
+struct FD2D12GraphicsPipelineState : public FRHIGraphicsPipelineState
+{
+	FD2D12GraphicsPipelineState()
+		: PipelineState(nullptr)
+	{
+	}
+
+	FD2D12GraphicsPipelineState(
+		const FGraphicsPipelineStateInitializer& Initializer,
+		FD3D12PipelineState* InPipelineState
+	)
+		: PipelineStateInitializer(Initializer)
+		, PipelineState(InPipelineState)
+	{
+	}
+
+	FGraphicsPipelineStateInitializer PipelineStateInitializer;
+	FD3D12PipelineState* PipelineState;
 };
 
 class FD3D12PipelineStateCacheBase : public FD3D12AdapterChild
@@ -265,7 +296,7 @@ protected:
 	template <typename TDesc, typename TValue = FD3D12PipelineState>
 	using TPipelineCache = TMap<TDesc, TValue, FDefaultSetAllocator, TStateCacheKeyFuncs<TDesc, TValue>>;
 
-	TPipelineCache<FD3D12HighLevelGraphicsPipelineStateDesc, TPair<ID3D12PipelineState*, uint64>> HighLevelGraphicsPipelineStateCache;
+	TPipelineCache<FD3D12HighLevelGraphicsPipelineStateDesc, TPair<FD3D12PipelineState, uint64>> HighLevelGraphicsPipelineStateCache;
 	TPipelineCache<FD3D12LowLevelGraphicsPipelineStateDesc> LowLevelGraphicsPipelineStateCache;
 	TPipelineCache<FD3D12ComputePipelineStateDesc> ComputePipelineStateCache;
 

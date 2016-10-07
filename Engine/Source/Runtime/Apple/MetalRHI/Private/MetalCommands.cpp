@@ -52,7 +52,7 @@ static MTLPrimitiveType TranslatePrimitiveType(uint32 PrimitiveType)
 void FMetalRHICommandContext::RHISetStreamSource(uint32 StreamIndex,FVertexBufferRHIParamRef VertexBufferRHI,uint32 Stride,uint32 Offset)
 {
 	FMetalVertexBuffer* VertexBuffer = ResourceCast(VertexBufferRHI);
-	Context->GetCurrentState().SetVertexBuffer(UNREAL_TO_METAL_BUFFER_INDEX(StreamIndex), VertexBuffer ? VertexBuffer->Buffer : nil, Stride, Offset);
+	Context->GetCurrentState().SetVertexStream(StreamIndex, VertexBuffer ? VertexBuffer->Buffer : nil, VertexBuffer ? VertexBuffer->Data : nil, Stride, Offset);
 }
 
 void FMetalDynamicRHI::RHISetStreamOutTargets(uint32 NumTargets, const FVertexBufferRHIParamRef* VertexBuffers, const uint32* Offsets)
@@ -365,7 +365,14 @@ void FMetalRHICommandContext::RHISetShaderUniformBuffer(FVertexShaderRHIParamRef
 	if (Bindings.bHasRegularUniformBuffers)
 	{
 		auto* UB = (FMetalUniformBuffer*)BufferRHI;
-		Context->GetCommandEncoder().SetShaderBuffer(SF_Vertex, UB->Buffer, UB->Offset, BufferIndex);
+		if (UB->Buffer || UB->Size >= MetalBufferPageSize)
+		{
+			Context->GetCommandEncoder().SetShaderBuffer(SF_Vertex, UB->Buffer, UB->Offset, BufferIndex);
+		}
+		else
+		{
+			Context->GetCommandEncoder().SetShaderBytes(SF_Vertex, UB->Data, UB->Offset, BufferIndex);
+		}
 	}
 }
 
@@ -394,7 +401,14 @@ void FMetalRHICommandContext::RHISetShaderUniformBuffer(FPixelShaderRHIParamRef 
 	if (Bindings.bHasRegularUniformBuffers)
 	{
 		auto* UB = (FMetalUniformBuffer*)BufferRHI;
-		Context->GetCommandEncoder().SetShaderBuffer(SF_Pixel, UB->Buffer, UB->Offset, BufferIndex);
+		if (UB->Buffer || UB->Size >= MetalBufferPageSize)
+		{
+			Context->GetCommandEncoder().SetShaderBuffer(SF_Pixel, UB->Buffer, UB->Offset, BufferIndex);
+		}
+		else
+		{
+			Context->GetCommandEncoder().SetShaderBytes(SF_Pixel, UB->Data, UB->Offset, BufferIndex);
+		}
 	}
 }
 
@@ -408,7 +422,14 @@ void FMetalRHICommandContext::RHISetShaderUniformBuffer(FComputeShaderRHIParamRe
 	if (Bindings.bHasRegularUniformBuffers)
 	{
 		auto* UB = (FMetalUniformBuffer*)BufferRHI;
-		Context->GetCommandEncoder().SetShaderBuffer(SF_Compute, UB->Buffer, UB->Offset, BufferIndex);
+		if (UB->Buffer || UB->Size >= MetalBufferPageSize)
+		{
+			Context->GetCommandEncoder().SetShaderBuffer(SF_Compute, UB->Buffer, UB->Offset, BufferIndex);
+		}
+		else
+		{
+			Context->GetCommandEncoder().SetShaderBytes(SF_Compute, UB->Data, UB->Offset, BufferIndex);
+		}
 	}
 }
 
@@ -720,7 +741,7 @@ void FMetalRHICommandContext::RHIEndDrawPrimitiveUP()
 	RHI_DRAW_CALL_STATS(PendingPrimitiveType,PendingNumPrimitives);
 
 	// set the vertex buffer
-	Context->GetCurrentState().SetVertexBuffer(UNREAL_TO_METAL_BUFFER_INDEX(0), Context->GetRingBuffer(), PendingVertexDataStride, PendingVertexBufferOffset);
+	Context->GetCurrentState().SetVertexStream(0, Context->GetRingBuffer(), nil, PendingVertexDataStride, PendingVertexBufferOffset);
 	
 	// how many to draw
 	uint32 NumVertices = GetVertexCountForPrimitiveCount(PendingNumPrimitives, PendingPrimitiveType);
@@ -780,7 +801,7 @@ void FMetalRHICommandContext::RHIEndDrawIndexedPrimitiveUP()
 	RHI_DRAW_CALL_STATS(PendingPrimitiveType,PendingNumPrimitives);
 
 	// set the vertex buffer
-	Context->GetCurrentState().SetVertexBuffer(UNREAL_TO_METAL_BUFFER_INDEX(0), Context->GetRingBuffer(), PendingVertexDataStride, PendingVertexBufferOffset);
+	Context->GetCurrentState().SetVertexStream(0, Context->GetRingBuffer(), nil, PendingVertexDataStride, PendingVertexBufferOffset);
 
 	// how many to draw
 	uint32 NumIndices = GetVertexCountForPrimitiveCount(PendingNumPrimitives, PendingPrimitiveType);
@@ -836,7 +857,7 @@ void FMetalRHICommandContext::RHIDrawInstancedPrimitiveUP( FRHICommandList& RHIC
 	RHI_DRAW_CALL_STATS(PrimitiveType,NumPrimitives);
 	
 	// set the vertex buffer
-	Context->GetCurrentState().SetVertexBuffer(UNREAL_TO_METAL_BUFFER_INDEX(0), Context->GetRingBuffer(), VertexDataStride, PendingVertexBufferOffset);
+	Context->GetCurrentState().SetVertexStream(0, Context->GetRingBuffer(), nil, VertexDataStride, PendingVertexBufferOffset);
 	
 	// last minute draw setup
 	if(!Context->PrepareToDraw(PrimitiveType))

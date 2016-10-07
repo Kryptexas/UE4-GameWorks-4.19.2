@@ -212,6 +212,11 @@ FPlatformOpenGLDevice* PlatformCreateOpenGLDevice()
 	return new FPlatformOpenGLDevice;
 }
 
+bool PlatformCanEnableGPUCapture()
+{
+	return false;
+}
+
 void PlatformReleaseOpenGLContext(FPlatformOpenGLDevice* Device, FPlatformOpenGLContext* Context)
 {
 	check (Device);

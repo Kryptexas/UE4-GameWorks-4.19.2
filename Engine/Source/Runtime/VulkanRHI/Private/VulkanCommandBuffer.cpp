@@ -8,7 +8,8 @@
 #include "VulkanCommandBuffer.h"
 
 FVulkanCmdBuffer::FVulkanCmdBuffer(FVulkanDevice* InDevice, FVulkanCommandBufferManager* InCommandBufferManager)
-	: Device(InDevice)
+	: bNeedsDynamicStateSet(true)
+	, Device(InDevice)
 	, CommandBufferManager(InCommandBufferManager)
 	, CommandBufferHandle(VK_NULL_HANDLE)
 	, State(EState::ReadyForBegin)
@@ -77,6 +78,7 @@ void FVulkanCmdBuffer::Begin()
 
 	VERIFYVULKANRESULT(VulkanRHI::vkBeginCommandBuffer(CommandBufferHandle, &CmdBufBeginInfo));
 
+	bNeedsDynamicStateSet = true;
 	State = EState::IsInsideBegin;
 }
 
@@ -144,6 +146,22 @@ void FVulkanCommandBufferManager::SubmitUploadCmdBuffer(bool bWaitForFence)
 	UploadCmdBuffer->End();
 	Device->GetQueue()->Submit(UploadCmdBuffer, nullptr, 0, nullptr);
 	UploadCmdBuffer = nullptr;
+
+	if (bWaitForFence)
+	{
+		Device->WaitUntilIdle();
+		RefreshFenceStatus();
+	}
+}
+
+void FVulkanCommandBufferManager::SubmitActiveCmdBuffer(bool bWaitForFence)
+{
+	check(!UploadCmdBuffer);
+	check(ActiveCmdBuffer);
+	check(ActiveCmdBuffer->IsOutsideRenderPass());
+	ActiveCmdBuffer->End();
+	Device->GetQueue()->Submit(ActiveCmdBuffer, nullptr, 0, nullptr);
+	ActiveCmdBuffer = nullptr;
 
 	if (bWaitForFence)
 	{

@@ -167,6 +167,11 @@ bool PlatformContextIsCurrent( uint64 QueryContext );
 FPlatformOpenGLDevice* PlatformCreateOpenGLDevice();
 
 /**
+* Returns true if the platform supports a GPU capture tool (eg RenderDoc)
+*/
+bool PlatformCanEnableGPUCapture();
+
+/**
  * Label Objects. Needs a separate function because label GLSL api procedure would be loaded later down the line, and we need to label objects after that.
  */
 void PlatformLabelObjects();

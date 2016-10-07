@@ -43,6 +43,7 @@ class UMaterialGraphNode_Base : public UEdGraphNode
 	//~ Begin UEdGraphNode Interface.
 	virtual void AllocateDefaultPins() override;
 	virtual void ReconstructNode() override;
+	virtual void RemovePinAt(const int32 PinIndex, const EEdGraphPinDirection PinDirection) override;
 	virtual void AutowireNewNode(UEdGraphPin* FromPin) override;
 	virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* Schema) const override;
 	virtual FString GetDocumentationLink() const override;

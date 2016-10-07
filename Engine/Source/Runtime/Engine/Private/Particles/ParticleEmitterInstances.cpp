@@ -1980,6 +1980,8 @@ void FParticleEmitterInstance::SpawnParticles( int32 Count, float StartTime, flo
 			{
 				UParticleModule* OffsetModule = HighestLODLevel->SpawnModules[ModuleIndex];
 				SpawnModule->Spawn(this, GetModuleDataOffset(OffsetModule), SpawnTime, Particle);
+
+				ensureMsgf(!Particle->Location.ContainsNaN(), TEXT("NaN in Particle Location. Template: %s, Component: %s"), Component ? *GetNameSafe(Component->Template) : TEXT("UNKNOWN"), *GetPathNameSafe(Component));
 			}
 		}
 		PostSpawn(Particle, Interp, SpawnTime);

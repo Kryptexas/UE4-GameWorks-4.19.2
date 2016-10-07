@@ -550,7 +550,7 @@ void FPhATEdPreviewViewportClient::TrackingStarted( const struct FInputEventStat
 		const int32	HitX = InInputState.GetViewport()->GetMouseX();
 		const int32	HitY = InInputState.GetViewport()->GetMouseY();
 		
-		StartManipulating(Widget->GetCurrentAxis(), FViewportClick(View, this, InInputState.GetKey(), InInputState.GetInputEvent(), HitX, HitY), View->ViewMatrices.ViewMatrix);
+		StartManipulating(Widget->GetCurrentAxis(), FViewportClick(View, this, InInputState.GetKey(), InInputState.GetInputEvent(), HitX, HitY), View->ViewMatrices.GetViewMatrix());
 
 		// If we are manipulating, don't move the camera as we drag now.
 		if (SharedData->bManipulating)
@@ -870,7 +870,7 @@ void FPhATEdPreviewViewportClient::SimMousePress(FViewport* InViewport, bool bCo
 			// Create handle to object.
 			SharedData->MouseHandle->GrabComponentAtLocationWithRotation(SharedData->EditorSkelComp, BoneName, Result.Location, FRotator::ZeroRotator);
 
-			FMatrix	InvViewMatrix = View->ViewMatrices.ViewMatrix.InverseFast();
+			FMatrix	InvViewMatrix = View->ViewMatrices.GetInvViewMatrix();
 
 			SimGrabMinPush = SimMinHoldDistance - (Result.Time * SimGrabCheckDistance);
 
@@ -908,7 +908,7 @@ void FPhATEdPreviewViewportClient::SimMouseMove(float DeltaX, float DeltaY)
 	FVector4 WorldDelta;
 
 	//Now we project new ScreenPos to xy-plane of SimGrabLocation
-	FVector LocalOffset = View->ViewMatrices.ViewMatrix.TransformPosition(SimGrabLocation + SimGrabZ * SimGrabPush);
+	FVector LocalOffset = View->ViewMatrices.GetViewMatrix().TransformPosition(SimGrabLocation + SimGrabZ * SimGrabPush);
 	float ZDistance = GetViewportType() == ELevelViewportType::LVT_Perspective ? fabs(LocalOffset.Z) : 1.f;	//in the ortho case we don't need to do any fixup because there is no perspective
 	WorldDelta = ProjectedDelta * ZDistance;
 	

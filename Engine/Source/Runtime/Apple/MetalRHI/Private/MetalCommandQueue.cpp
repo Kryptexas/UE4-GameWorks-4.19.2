@@ -25,6 +25,7 @@ FMetalCommandQueue::FMetalCommandQueue(id<MTLDevice> Device, uint32 const MaxNum
 #if !UE_BUILD_SHIPPING
 , RuntimeDebuggingLevel(EMetalDebugLevelOff)
 #endif
+, Features(0)
 {
 	if(MaxNumCommandBuffers == 0)
 	{
@@ -48,6 +49,48 @@ FMetalCommandQueue::FMetalCommandQueue(id<MTLDevice> Device, uint32 const MaxNum
 			Statistics = nullptr;
 		}
 	}
+#endif
+
+#if PLATFORM_IOS
+	NSOperatingSystemVersion Vers = [[NSProcessInfo processInfo] operatingSystemVersion];
+	if(Vers.majorVersion >= 9)
+	{
+		Features = EMetalFeaturesSeparateStencil | EMetalFeaturesSetBufferOffset | EMetalFeaturesResourceOptions | EMetalFeaturesDepthStencilBlitOptions;
+
+#if PLATFORM_TVOS
+		if(FParse::Param(FCommandLine::Get(),TEXT("metalv2")) || [Device supportsFeatureSet:MTLFeatureSet_tvOS_GPUFamily1_v2])
+		{
+			Features |= EMetalFeaturesStencilView;
+		}
+#else
+		if ([Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v1])
+		{
+			Features |= EMetalFeaturesCountingQueries | EMetalFeaturesBaseVertexInstance | EMetalFeaturesIndirectBuffer;
+		}
+		
+		if(FParse::Param(FCommandLine::Get(),TEXT("metalv2")) || [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v2] || [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily2_v3] || [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily1_v3])
+		{
+			Features |= EMetalFeaturesStencilView;
+		}
+#endif
+	}
+	else if(Vers.majorVersion == 8 && Vers.minorVersion >= 3)
+	{
+		Features = EMetalFeaturesSeparateStencil | EMetalFeaturesSetBufferOffset;
+	}
+#else // Assume that Mac & other platforms all support these from the start. They can diverge later.
+	Features = EMetalFeaturesSeparateStencil | EMetalFeaturesSetBufferOffset | EMetalFeaturesDepthClipMode | EMetalFeaturesResourceOptions | EMetalFeaturesDepthStencilBlitOptions | EMetalFeaturesCountingQueries | EMetalFeaturesBaseVertexInstance | EMetalFeaturesIndirectBuffer | EMetalFeaturesLayeredRendering;
+    if (!FParse::Param(FCommandLine::Get(),TEXT("nometalv2")) && [Device supportsFeatureSet:MTLFeatureSet_OSX_GPUFamily1_v2])
+    {
+        Features |= EMetalFeaturesStencilView | EMetalFeaturesDepth16;
+        
+        // Assume that set*Bytes only works on macOS Sierra and above as no-one has tested it anywhere else.
+        Features |= EMetalFeaturesSetBytes;
+    }
+    else if ([Device.name rangeOfString:@"Nvidia" options:NSCaseInsensitiveSearch].location != NSNotFound)
+    {
+    	Features |= EMetalFeaturesSetBytes;
+    }
 #endif
 }
 
@@ -74,6 +117,7 @@ id<MTLCommandBuffer> FMetalCommandQueue::CreateRetainedCommandBuffer(void)
 			CmdBuffer = [[FMetalDebugCommandBuffer alloc] initWithCommandBuffer:CmdBuffer];
 		}
 #endif
+		INC_DWORD_STAT(STAT_MetalCommandBufferCreatedPerFrame);
 		TRACK_OBJECT(STAT_MetalCommandBufferCount, CmdBuffer);
 		return CmdBuffer;
 	}
@@ -93,6 +137,7 @@ id<MTLCommandBuffer> FMetalCommandQueue::CreateUnretainedCommandBuffer(void)
 		}
 #endif
 	}
+	INC_DWORD_STAT(STAT_MetalCommandBufferCreatedPerFrame);
 	TRACK_OBJECT(STAT_MetalCommandBufferCount, CmdBuffer);
 	return CmdBuffer;
 }
@@ -101,6 +146,8 @@ void FMetalCommandQueue::CommitCommandBuffer(id<MTLCommandBuffer> const CommandB
 {
 	check(CommandBuffer);
 	UNTRACK_OBJECT(STAT_MetalCommandBufferCount, CommandBuffer);
+	
+	INC_DWORD_STAT(STAT_MetalCommandBufferCommittedPerFrame);
 	
 	[CommandBuffer commit];
 	

@@ -68,6 +68,14 @@ static TAutoConsoleVariable<int32> CVarEnableModulatedSelfShadow(
 	TEXT("Allows modulated shadows to affect the shadow caster. (mobile only)"),
 	ECVF_RenderThreadSafe);
 
+static int GStencilOptimization = 1;
+static FAutoConsoleVariableRef CVarStencilOptimization(
+	TEXT("r.Shadow.StencilOptimization"),
+	GStencilOptimization,
+	TEXT("Removes stencil clears between shadow projections by zeroing the stencil during testing"),
+	ECVF_RenderThreadSafe
+	);
+
 DECLARE_FLOAT_COUNTER_STAT(TEXT("ShadowProjection"), Stat_GPU_ShadowProjection, STATGROUP_GPU);
 
 // 0:off, 1:low, 2:med, 3:high, 4:very high, 5:max
@@ -104,7 +112,7 @@ float GetLightFadeFactor(const FSceneView& View, const FLightSceneProxy* Proxy)
 	// Distance fade
 	FSphere Bounds = Proxy->GetBoundingSphere();
 
-	const float DistanceSquared = (Bounds.Center - View.ViewMatrices.ViewOrigin).SizeSquared();
+	const float DistanceSquared = (Bounds.Center - View.ViewMatrices.GetViewOrigin()).SizeSquared();
 	extern float GMinScreenRadiusForLights;
 	float SizeFade = FMath::Square(FMath::Min(0.0002f, GMinScreenRadiusForLights / Bounds.W) * View.LODDistanceFactor) * DistanceSquared;
 	SizeFade = FMath::Clamp(6.0f - 6.0f * SizeFade, 0.0f, 1.0f);
@@ -456,7 +464,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 	if (!IsWholeSceneDirectionalShadow())
 	{
 		// The shadow transforms and view transforms are relative to different origins, so the world coordinates need to be translated.
-		const FVector PreShadowToPreViewTranslation(View->ViewMatrices.PreViewTranslation - PreShadowTranslation);
+		const FVector PreShadowToPreViewTranslation(View->ViewMatrices.GetPreViewTranslation() - PreShadowTranslation);
 
 		// fill out the frustum vertices (this is only needed in the non-whole scene case)
 		for(uint32 vZ = 0;vZ < 2;vZ++)
@@ -479,32 +487,35 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 			}
 		}
 
-		const FVector FrontTopRight = FrustumVertices[GetCubeVertexIndex(0,0,1)] - View->ViewMatrices.PreViewTranslation;
-		const FVector FrontTopLeft = FrustumVertices[GetCubeVertexIndex(1,0,1)] - View->ViewMatrices.PreViewTranslation;
-		const FVector FrontBottomLeft = FrustumVertices[GetCubeVertexIndex(1,1,1)] - View->ViewMatrices.PreViewTranslation;
-		const FVector FrontBottomRight = FrustumVertices[GetCubeVertexIndex(0,1,1)] - View->ViewMatrices.PreViewTranslation;
-		const FVector BackTopRight = FrustumVertices[GetCubeVertexIndex(0,0,0)] - View->ViewMatrices.PreViewTranslation;
-		const FVector BackTopLeft = FrustumVertices[GetCubeVertexIndex(1,0,0)] - View->ViewMatrices.PreViewTranslation;
-		const FVector BackBottomLeft = FrustumVertices[GetCubeVertexIndex(1,1,0)] - View->ViewMatrices.PreViewTranslation;
-		const FVector BackBottomRight = FrustumVertices[GetCubeVertexIndex(0,1,0)] - View->ViewMatrices.PreViewTranslation;
+		const FVector ShadowViewOrigin = View->ViewMatrices.GetViewOrigin();
+		const FVector ShadowPreViewTranslation = View->ViewMatrices.GetPreViewTranslation();
+
+		const FVector FrontTopRight		= FrustumVertices[GetCubeVertexIndex(0,0,1)] - ShadowPreViewTranslation;
+		const FVector FrontTopLeft		= FrustumVertices[GetCubeVertexIndex(1,0,1)] - ShadowPreViewTranslation;
+		const FVector FrontBottomLeft	= FrustumVertices[GetCubeVertexIndex(1,1,1)] - ShadowPreViewTranslation;
+		const FVector FrontBottomRight	= FrustumVertices[GetCubeVertexIndex(0,1,1)] - ShadowPreViewTranslation;
+		const FVector BackTopRight		= FrustumVertices[GetCubeVertexIndex(0,0,0)] - ShadowPreViewTranslation;
+		const FVector BackTopLeft		= FrustumVertices[GetCubeVertexIndex(1,0,0)] - ShadowPreViewTranslation;
+		const FVector BackBottomLeft	= FrustumVertices[GetCubeVertexIndex(1,1,0)] - ShadowPreViewTranslation;
+		const FVector BackBottomRight	= FrustumVertices[GetCubeVertexIndex(0,1,0)] - ShadowPreViewTranslation;
 
 		const FPlane Front(FrontTopRight, FrontTopLeft, FrontBottomLeft);
-		const float FrontDistance = Front.PlaneDot(View->ViewMatrices.ViewOrigin);
+		const float FrontDistance = Front.PlaneDot(ShadowViewOrigin);
 
         const FPlane Right(BackBottomRight, BackTopRight, FrontTopRight);
-		const float RightDistance = Right.PlaneDot(View->ViewMatrices.ViewOrigin);
+		const float RightDistance = Right.PlaneDot(ShadowViewOrigin);
 
 		const FPlane Back(BackTopLeft, BackTopRight, BackBottomRight);
-		const float BackDistance = Back.PlaneDot(View->ViewMatrices.ViewOrigin);
+		const float BackDistance = Back.PlaneDot(ShadowViewOrigin);
 
 		const FPlane Left(FrontTopLeft, BackTopLeft, BackBottomLeft);
-		const float LeftDistance = Left.PlaneDot(View->ViewMatrices.ViewOrigin);
+		const float LeftDistance = Left.PlaneDot(ShadowViewOrigin);
 
 		const FPlane Top(BackTopRight, BackTopLeft, FrontTopLeft);
-		const float TopDistance = Top.PlaneDot(View->ViewMatrices.ViewOrigin);
+		const float TopDistance = Top.PlaneDot(ShadowViewOrigin);
 
 		const FPlane Bottom(FrontBottomRight, FrontBottomLeft, BackBottomLeft);
-		const float BottomDistance = Bottom.PlaneDot(View->ViewMatrices.ViewOrigin);
+		const float BottomDistance = Bottom.PlaneDot(ShadowViewOrigin);
 
 		// Use a distance threshold to treat the case where the near plane is intersecting the frustum as the camera being inside
 		// The near plane handling is not exact since it just needs to be conservative about saying the camera is outside the frustum
@@ -631,8 +642,8 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 	{
 		if( GSupportsDepthBoundsTest && CVarCSMDepthBoundsTest.GetValueOnRenderThread() != 0 )
 		{
-			FVector4 Near = View->ViewMatrices.ProjMatrix.TransformFVector4(FVector4(0, 0, CascadeSettings.SplitNear));
-			FVector4 Far = View->ViewMatrices.ProjMatrix.TransformFVector4(FVector4(0, 0, CascadeSettings.SplitFar));
+			FVector4 Near = View->ViewMatrices.GetProjectionMatrix().TransformFVector4(FVector4(0, 0, CascadeSettings.SplitNear));
+			FVector4 Far = View->ViewMatrices.GetProjectionMatrix().TransformFVector4(FVector4(0, 0, CascadeSettings.SplitFar));
 			float DepthNear = Near.Z / Near.W;
 			float DepthFar = Far.Z / Far.W;
 
@@ -671,8 +682,8 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 			VertexShaderNoTransform->SetParameters(RHICmdList, *View);
 			SetGlobalBoundShaderState(RHICmdList, View->GetFeatureLevel(), MaskBoundShaderState[0], GetVertexDeclarationFVector4(), *VertexShaderNoTransform, nullptr);
 
-			FVector4 Near = View->ViewMatrices.ProjMatrix.TransformFVector4(FVector4(0, 0, CascadeSettings.SplitNear));
-			FVector4 Far = View->ViewMatrices.ProjMatrix.TransformFVector4(FVector4(0, 0, CascadeSettings.SplitFar));
+			FVector4 Near = View->ViewMatrices.GetProjectionMatrix().TransformFVector4(FVector4(0, 0, CascadeSettings.SplitNear));
+			FVector4 Far = View->ViewMatrices.GetProjectionMatrix().TransformFVector4(FVector4(0, 0, CascadeSettings.SplitFar));
 			float StencilNear = Near.Z / Near.W;
 			float StencilFar = Far.Z / Far.W;
 
@@ -773,13 +784,28 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 	}
 	else
 	{
-		// no depth test or writes, Test stencil for non-zero.
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
-			false,CF_Always,
-			true,CF_NotEqual,SO_Keep,SO_Keep,SO_Keep,
-			false,CF_Always,SO_Keep,SO_Keep,SO_Keep,
-			0xff,0xff
+		if (GStencilOptimization)
+		{
+			// No depth test or writes, zero the stencil
+			// Note: this will disable hi-stencil on many GPUs, but still seems 
+			// to be faster. However, early stencil still works 
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
+				false, CF_Always,
+				true, CF_NotEqual, SO_Zero, SO_Zero, SO_Zero,
+				false, CF_Always, SO_Zero, SO_Zero, SO_Zero,
+				0xff, 0xff
 			>::GetRHI());
+		}
+		else
+		{
+			// no depth test or writes, Test stencil for non-zero.
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
+				false, CF_Always,
+				true, CF_NotEqual, SO_Keep, SO_Keep, SO_Keep,
+				false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
+				0xff, 0xff
+			>::GetRHI());
+		}
 	}
 
 	SetBlendStateForProjection(RHICmdList, bProjectingForForwardShading, bMobileModulatedProjections);
@@ -854,7 +880,11 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 	else
 	{
 		// Clear the stencil buffer to 0.
-		RHICmdList.Clear(false, FColor(0, 0, 0), false, 0, true, 0, FIntRect());
+		if (!GStencilOptimization)
+		{
+			FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+			RHICmdList.ClearDepthStencilTexture(SceneContext.GetSceneDepthSurface(), EClearDepthStencil::Stencil, 0, 0, FIntRect());
+		}
 	}
 }
 
@@ -884,7 +914,7 @@ void FProjectedShadowInfo::RenderOnePassPointLightProjection(FRHICommandListImme
 
 	SetBlendStateForProjection(RHICmdList, bProjectingForForwardShading, false);
 
-	const bool bCameraInsideLightGeometry = ((FVector)View.ViewMatrices.ViewOrigin - LightBounds.Center).SizeSquared() < FMath::Square(LightBounds.W * 1.05f + View.NearClippingDistance * 2.0f);
+	const bool bCameraInsideLightGeometry = ((FVector)View.ViewMatrices.GetViewOrigin() - LightBounds.Center).SizeSquared() < FMath::Square(LightBounds.W * 1.05f + View.NearClippingDistance * 2.0f);
 
 	if (bCameraInsideLightGeometry)
 	{
@@ -989,14 +1019,14 @@ FMatrix FProjectedShadowInfo::GetScreenToShadowMatrix(const FSceneView& View, ui
 		FMatrix(
 			FPlane(1,0,0,0),
 			FPlane(0,1,0,0),
-			FPlane(0,0,View.ViewMatrices.ProjMatrix.M[2][2],1),
-			FPlane(0,0,View.ViewMatrices.ProjMatrix.M[3][2],0)) * 
+			FPlane(0,0,View.ViewMatrices.GetProjectionMatrix().M[2][2],1),
+			FPlane(0,0,View.ViewMatrices.GetProjectionMatrix().M[3][2],0)) * 
 		// Transform the post projection space position into translated world space
 		// Translated world space is normal world space translated to the view's origin, 
 		// Which prevents floating point imprecision far from the world origin.
-		View.ViewMatrices.InvTranslatedViewProjectionMatrix *
+		View.ViewMatrices.GetInvTranslatedViewProjectionMatrix() *
 		// Translate to the origin of the shadow's translated world space
-		FTranslationMatrix(PreShadowTranslation - View.ViewMatrices.PreViewTranslation) *
+		FTranslationMatrix(PreShadowTranslation - View.ViewMatrices.GetPreViewTranslation()) *
 		// Transform into the shadow's post projection space
 		// This has to be the same transform used to render the shadow depths
 		SubjectAndReceiverMatrix *

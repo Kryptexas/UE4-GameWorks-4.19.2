@@ -1100,7 +1100,7 @@ bool FEditorBuildUtils::EditorBuildTextureStreaming(UWorld* InWorld, bool bWithT
 			if (GWarn->ReceivedUserCancel()) return false;
 
 			UMaterialInterface* MaterialInterface = It.Key();
-			TArray<FMaterialTexCoordBuildInfo>& Scales = It.Value();
+			TArray<FMaterialTextureInfo>& Scales = It.Value();
 
 			const bool bExportSuccess = FMaterialUtilities::ExportMaterialTexCoordScales(MaterialInterface, QualityLevel, FeatureLevel, Scales, ExportErrors);
 

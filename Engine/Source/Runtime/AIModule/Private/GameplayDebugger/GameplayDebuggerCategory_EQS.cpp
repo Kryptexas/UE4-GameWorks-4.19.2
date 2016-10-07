@@ -99,17 +99,24 @@ void FGameplayDebuggerCategory_EQS::OnDataPackReplicated(int32 DataPackId)
 #endif
 }
 
-FDebugRenderSceneProxy* FGameplayDebuggerCategory_EQS::CreateSceneProxy(const UPrimitiveComponent* InComponent)
+FDebugRenderSceneProxy* FGameplayDebuggerCategory_EQS::CreateDebugSceneProxy(const UPrimitiveComponent* InComponent, FDebugDrawDelegateHelper*& OutDelegateHelper)
 {
 #if USE_EQS_DEBUGGER
 	if (DataPack.QueryDebugData.IsValidIndex(ShownQueryIndex))
 	{
 		const EQSDebug::FQueryData& QueryData = DataPack.QueryDebugData[ShownQueryIndex];
 		const FString ViewFlagName = GetSceneProxyViewFlag();
-		return new FEQSSceneProxy(InComponent, ViewFlagName, QueryData.SolidSpheres, QueryData.Texts);
+		FEQSSceneProxy* EQSSceneProxy = new FEQSSceneProxy(InComponent, ViewFlagName, QueryData.SolidSpheres, QueryData.Texts);
+
+		auto* OutDelegateHelper2 = new FEQSRenderingDebugDrawDelegateHelper();
+		OutDelegateHelper2->InitDelegateHelper(EQSSceneProxy);
+		OutDelegateHelper = OutDelegateHelper2;
+
+		return EQSSceneProxy;
 	}
 #endif // USE_EQS_DEBUGGER
 
+	OutDelegateHelper = nullptr;
 	return nullptr;
 }
 
@@ -177,7 +184,7 @@ void FGameplayDebuggerCategory_EQS::DrawLookedAtItem(const EQSDebug::FQueryData&
 	else
 	{
 		CameraDirection = CanvasContext.Canvas->SceneView->GetViewDirection();
-		CameraLocation = CanvasContext.Canvas->SceneView->ViewMatrices.ViewOrigin;
+		CameraLocation = CanvasContext.Canvas->SceneView->ViewMatrices.GetViewOrigin();
 	}
 
 	int32 BestItemIndex = INDEX_NONE;

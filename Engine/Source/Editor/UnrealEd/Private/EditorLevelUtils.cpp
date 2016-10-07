@@ -825,6 +825,11 @@ namespace EditorLevelUtils
 		}
 
 		Level->bIsVisible = bShouldBeVisible;
+
+		if (Level->bIsLightingScenario)
+		{
+			Level->OwningWorld->PropagateLightingScenarioChange();
+		}
 	}
 
 	/**

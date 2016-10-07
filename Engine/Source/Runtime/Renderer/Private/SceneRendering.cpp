@@ -763,8 +763,7 @@ void FViewInfo::SetupUniformBufferParameters(
 
 		bool bApplyPrecomputedBentNormalShadowing = 
 			SkyLight->bCastShadows 
-			&& SkyLight->bWantsStaticShadowing
-			&& SkyLight->bPrecomputedLightingIsValid;
+			&& SkyLight->bWantsStaticShadowing;
 
 		ViewUniformShaderParameters.SkyLightParameters = bApplyPrecomputedBentNormalShadowing ? 1 : 0;
 	}
@@ -817,7 +816,7 @@ void FViewInfo::InitRHIResources()
 	FBox VolumeBounds[TVC_MAX];
 
 	/** The view transform, starting from world-space points translated by -ViewOrigin. */
-	FMatrix TranslatedViewMatrix = FTranslationMatrix(-ViewMatrices.PreViewTranslation) * ViewMatrices.ViewMatrix;
+	FMatrix TranslatedViewMatrix = FTranslationMatrix(-ViewMatrices.GetPreViewTranslation()) * ViewMatrices.GetViewMatrix();
 
 	check(IsInRenderingThread());
 
@@ -828,7 +827,7 @@ void FViewInfo::InitRHIResources()
 	SetupUniformBufferParameters(
 		SceneContext,
 		TranslatedViewMatrix,
-		InvViewMatrix * FTranslationMatrix(ViewMatrices.PreViewTranslation),
+		ViewMatrices.GetInvViewMatrix() * FTranslationMatrix(ViewMatrices.GetPreViewTranslation()),
 		VolumeBounds,
 		TVC_MAX,
 		*CachedViewUniformShaderParameters);
@@ -1625,9 +1624,7 @@ static void RenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, 
 
 	{
 		SCOPE_CYCLE_COUNTER(STAT_TotalSceneRenderingTime);
-		
-		GPU_STATS_UPDATE(RHICmdList);
-		
+	
 		if(SceneRenderer->ViewFamily.EngineShowFlags.HitProxies)
 		{
 			// Render the scene's hit proxies.
@@ -1862,8 +1859,8 @@ void FRendererModule::RenderPostOpaqueExtensions(const FSceneView& View, FRHICom
 {
 	check(IsInRenderingThread());
 	FPostOpaqueRenderParameters RenderParameters;
-	RenderParameters.ViewMatrix = View.ViewMatrices.ViewMatrix;
-	RenderParameters.ProjMatrix = View.ViewMatrices.ProjMatrix;
+	RenderParameters.ViewMatrix = View.ViewMatrices.GetViewMatrix();
+	RenderParameters.ProjMatrix = View.ViewMatrices.GetProjectionMatrix();
 	RenderParameters.DepthTexture = SceneContext.GetSceneDepthSurface()->GetTexture2D();
 	RenderParameters.SmallDepthTexture = SceneContext.GetSmallDepthSurface()->GetTexture2D();
 
@@ -1878,8 +1875,8 @@ void FRendererModule::RenderOverlayExtensions(const FSceneView& View, FRHIComman
 {
 	check(IsInRenderingThread());
 	FPostOpaqueRenderParameters RenderParameters;
-	RenderParameters.ViewMatrix = View.ViewMatrices.ViewMatrix;
-	RenderParameters.ProjMatrix = View.ViewMatrices.ProjMatrix;
+	RenderParameters.ViewMatrix = View.ViewMatrices.GetViewMatrix();
+	RenderParameters.ProjMatrix = View.ViewMatrices.GetProjectionMatrix();
 	RenderParameters.DepthTexture = SceneContext.GetSceneDepthSurface()->GetTexture2D();
 	RenderParameters.SmallDepthTexture = SceneContext.GetSmallDepthSurface()->GetTexture2D();
 
@@ -2018,7 +2015,7 @@ static void DisplayInternals(FRHICommandListImmediate& RHICmdList, FSceneView& I
 
 		CANVAS_HEADER(TEXT("View:"))
 		CANVAS_LINE(false, TEXT("  TemporalJitter: %.2f/%.2f"), InView.TemporalJitterPixelsX, InView.TemporalJitterPixelsY)
-		CANVAS_LINE(false, TEXT("  ViewProjectionMatrix Hash: %x"), InView.ViewProjectionMatrix.ComputeHash())
+		CANVAS_LINE(false, TEXT("  ViewProjectionMatrix Hash: %x"), InView.ViewMatrices.GetViewProjectionMatrix().ComputeHash())
 		CANVAS_LINE(false, TEXT("  ViewLocation: %s"), *InView.ViewLocation.ToString())
 		CANVAS_LINE(false, TEXT("  ViewRotation: %s"), *InView.ViewRotation.ToString())
 		CANVAS_LINE(false, TEXT("  ViewRect: %s"), *InView.ViewRect.ToString())

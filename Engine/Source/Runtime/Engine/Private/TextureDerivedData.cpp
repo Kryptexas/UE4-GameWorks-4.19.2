@@ -1766,7 +1766,7 @@ void UTexture::FinishCachePlatformData()
 	{
 		FTexturePlatformData*& RunningPlatformData = *RunningPlatformDataPtr;
 		
-		if ( FApp::CanEverRender() )
+		if (Source.IsValid() && FApp::CanEverRender())
 		{
 			if ( RunningPlatformData == NULL )
 			{

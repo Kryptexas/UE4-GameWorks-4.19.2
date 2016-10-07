@@ -422,10 +422,6 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	UPROPERTY(EditAnywhere, Category=Lightmass)
 	struct FLightmassWorldInfoSettings LightmassSettings;
 
-	/** The lighting quality the level was last built with */
-	UPROPERTY(Category=Lightmass, VisibleAnywhere)
-	TEnumAsByte<enum ELightingBuildQuality> LevelLightingQuality;
-
 	/************************************/
 	/** AUDIO SETTINGS **/
 	/** Default reverb settings used by audio volumes.													*/

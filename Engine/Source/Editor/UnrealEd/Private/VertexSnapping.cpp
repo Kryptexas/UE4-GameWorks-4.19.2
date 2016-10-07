@@ -412,7 +412,7 @@ bool FVertexSnappingImpl::GetClosestVertexOnComponent( const FSnapActor& SnapAct
 			{
 				// When moving in screen space compute the vertex closest to the mouse location for more accuracy
 
-				FVector ViewToVertex = View->ViewMatrices.ViewOrigin - Position;
+				FVector ViewToVertex = View->ViewMatrices.GetViewOrigin() - Position;
 
 				// Ignore backface vertices 
 				if( View->IsPerspectiveProjection() && Normal != FVector::ZeroVector && FVector::DotProduct( ViewToVertex, Normal ) < 0 )
@@ -430,7 +430,7 @@ bool FVertexSnappingImpl::GetClosestVertexOnComponent( const FSnapActor& SnapAct
 
 					if( !bOutside )
 					{
-						DistanceFromCamera = View->IsPerspectiveProjection() ? FVector::DistSquared( Position, View->ViewMatrices.ViewOrigin ) : 0;
+						DistanceFromCamera = View->IsPerspectiveProjection() ? FVector::DistSquared( Position, View->ViewMatrices.GetViewOrigin() ) : 0;
 						Distance = FVector::DistSquared( FVector( MousePosition, 0 ), FVector( PixelPos, 0 ) );
 					}
 				}

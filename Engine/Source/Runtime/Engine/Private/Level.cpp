@@ -297,6 +297,14 @@ void ULevel::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 	Super::AddReferencedObjects( This, Collector );
 }
 
+void ULevel::PostInitProperties()
+{
+	Super::PostInitProperties();
+
+	// Initialize LevelBuildDataId to something unique, in case this is a new ULevel
+	LevelBuildDataId = FGuid::NewGuid();
+}
+
 void ULevel::Serialize( FArchive& Ar )
 {
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ULevel::Serialize"), STAT_Level_Serialize, STATGROUP_LoadTime);
@@ -304,6 +312,7 @@ void ULevel::Serialize( FArchive& Ar )
 	Super::Serialize( Ar );
 
 	Ar.UsingCustomVersion(FReleaseObjectVersion::GUID);
+	Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
 
 	if (Ar.IsLoading() && Ar.CustomVer(FReleaseObjectVersion::GUID) < FReleaseObjectVersion::LevelTransArrayConvertedToTArray)
 	{
@@ -392,14 +401,15 @@ void ULevel::Serialize( FArchive& Ar )
 	Ar << NavListStart;
 	Ar << NavListEnd;
 
-	if (HasAnyFlags(RF_ClassDefaultObject))
+	if (Ar.IsLoading() && Ar.CustomVer(FRenderingObjectVersion::GUID) < FRenderingObjectVersion::MapBuildDataSeparatePackage)
 	{
-		FPrecomputedLightVolume DummyVolume;
-		Ar << DummyVolume;
-	}
-	else
-	{
-		Ar << *PrecomputedLightVolume;
+		FPrecomputedLightVolumeData* LegacyData = new FPrecomputedLightVolumeData();
+		Ar << (*LegacyData);
+
+		FLevelLegacyMapBuildData LegacyLevelData;
+		LegacyLevelData.Id = LevelBuildDataId;
+		LegacyLevelData.Data = LegacyData;
+		GLevelsWithLegacyBuildData.AddAnnotation(this, LegacyLevelData);
 	}
 
 	Ar << PrecomputedVisibilityHandler;
@@ -1609,7 +1619,15 @@ void ULevel::InitializeRenderingResources()
 	{
 		if( !PrecomputedLightVolume->IsAddedToScene() )
 		{
-			PrecomputedLightVolume->AddToScene(OwningWorld->Scene);
+			ULevel* ActiveLightingScenario = OwningWorld->GetActiveLightingScenario();
+			UMapBuildDataRegistry* EffectiveMapBuildData = MapBuildData;
+
+			if (ActiveLightingScenario && ActiveLightingScenario->MapBuildData)
+			{
+				EffectiveMapBuildData = ActiveLightingScenario->MapBuildData;
+			}
+
+			PrecomputedLightVolume->AddToScene(OwningWorld->Scene, EffectiveMapBuildData, LevelBuildDataId);
 		}
 	}
 }
@@ -1674,6 +1692,44 @@ void ULevel::RouteActorInitialize()
 		SCOPE_CYCLE_COUNTER(STAT_ActorBeginPlay);
 		Actor->BeginPlay();			
 	}
+}
+
+UMapBuildDataRegistry* ULevel::CreateMapBuildDataRegistry() const
+{
+	FString PackageName = GetOutermost()->GetName() + TEXT("_BuiltData");
+	UPackage* BuiltDataPackage = CreatePackage(NULL, *PackageName);
+
+	// PKG_ContainsMapData required so FEditorFileUtils::GetDirtyContentPackages can treat this as a map package
+	BuiltDataPackage->SetPackageFlags(PKG_ContainsMapData);
+	FName ShortPackageName = FPackageName::GetShortFName(*PackageName);
+	UMapBuildDataRegistry* NewMapBuildData = NewObject<UMapBuildDataRegistry>(BuiltDataPackage, ShortPackageName, RF_Standalone | RF_Public);
+	return NewMapBuildData;
+}
+
+UMapBuildDataRegistry* ULevel::GetOrCreateMapBuildData()
+{
+	if (!MapBuildData 
+		// If MapBuildData is in the level package we need to create a new one, see CreateRegistryForLegacyMap
+		|| MapBuildData->GetOutermost() == GetOutermost())
+	{
+		if (MapBuildData)
+		{
+			// Allow the legacy registry to be GC'ed
+			MapBuildData->ClearFlags(RF_Standalone);
+		}
+
+		MapBuildData = CreateMapBuildDataRegistry();
+		MarkPackageDirty();
+	}
+
+	return MapBuildData;
+}
+
+void ULevel::SetLightingScenario(bool bNewIsLightingScenario)
+{
+	bIsLightingScenario = bNewIsLightingScenario;
+
+	OwningWorld->PropagateLightingScenarioChange();
 }
 
 bool ULevel::HasAnyActorsOfType(UClass *SearchType)

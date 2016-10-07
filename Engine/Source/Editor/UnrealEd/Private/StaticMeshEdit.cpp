@@ -827,13 +827,13 @@ struct ExistingLODMeshData
 
 struct ExistingStaticMeshData
 {
-	TArray<FStaticMaterial> ExistingMaterials;
+	TArray<FStaticMaterial> 	ExistingMaterials;
+
 	FMeshSectionInfoMap			ExistingSectionInfoMap;
 	TArray<ExistingLODMeshData>	ExistingLODData;
 
 	TArray<UStaticMeshSocket*>	ExistingSockets;
 
-	bool						ExistingUseMaximumStreamingTexelRatio;
 	bool						ExistingCustomizedCollision;
 	bool						bAutoComputeLODScreenSize;
 
@@ -845,8 +845,6 @@ struct ExistingStaticMeshData
 
 	UModel*						ExistingCollisionModel;
 	UBodySetup*					ExistingBodySetup;
-
-	float						ExistingStreamingDistanceMultiplier;
 
 	// A mapping of vertex positions to their color in the existing static mesh
 	TMap<FVector, FColor>		ExistingVertexColorData;
@@ -920,7 +918,6 @@ ExistingStaticMeshData* SaveExistingStaticMeshData(UStaticMesh* ExistingMesh, bo
 
 		ExistingMeshDataPtr->ExistingSockets = ExistingMesh->Sockets;
 
-		ExistingMeshDataPtr->ExistingUseMaximumStreamingTexelRatio = ExistingMesh->bUseMaximumStreamingTexelRatio;
 		ExistingMeshDataPtr->ExistingCustomizedCollision = ExistingMesh->bCustomizedCollision;
 		ExistingMeshDataPtr->bAutoComputeLODScreenSize = ExistingMesh->bAutoComputeLODScreenSize;
 
@@ -931,8 +928,6 @@ ExistingStaticMeshData* SaveExistingStaticMeshData(UStaticMesh* ExistingMesh, bo
 		ExistingMeshDataPtr->ExistingThumbnailInfo = ExistingMesh->ThumbnailInfo;
 
 		ExistingMeshDataPtr->ExistingBodySetup = ExistingMesh->BodySetup;
-
-		ExistingMeshDataPtr->ExistingStreamingDistanceMultiplier = ExistingMesh->StreamingDistanceMultiplier;
 
 		ExistingMeshDataPtr->LpvBiasMultiplier = ExistingMesh->LpvBiasMultiplier;
 		ExistingMeshDataPtr->bHasNavigationData = ExistingMesh->bHasNavigationData;
@@ -1077,7 +1072,6 @@ void RestoreExistingMeshData(ExistingStaticMeshData* ExistingMeshDataPtr, UStati
 			NewMesh->Sockets.Add( ExistingMeshDataPtr->ExistingSockets[i] );
 		}
 
-		NewMesh->bUseMaximumStreamingTexelRatio = ExistingMeshDataPtr->ExistingUseMaximumStreamingTexelRatio;
 		NewMesh->bCustomizedCollision = ExistingMeshDataPtr->ExistingCustomizedCollision;
 		NewMesh->bAutoComputeLODScreenSize = ExistingMeshDataPtr->bAutoComputeLODScreenSize;
 
@@ -1086,8 +1080,6 @@ void RestoreExistingMeshData(ExistingStaticMeshData* ExistingMeshDataPtr, UStati
 
 		NewMesh->AssetImportData = ExistingMeshDataPtr->ExistingImportData.Get();
 		NewMesh->ThumbnailInfo = ExistingMeshDataPtr->ExistingThumbnailInfo.Get();
-
-		NewMesh->StreamingDistanceMultiplier = ExistingMeshDataPtr->ExistingStreamingDistanceMultiplier;
 
 		// If we already had some collision info...
 		if(ExistingMeshDataPtr->ExistingBodySetup)

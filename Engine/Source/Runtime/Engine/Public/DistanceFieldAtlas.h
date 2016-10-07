@@ -22,11 +22,7 @@ public:
 		bReferencedByAtlas(false)
 	{}
 
-	~FDistanceFieldVolumeTexture()
-	{
-		// Make sure we have been properly removed from the atlas before deleting
-		check(!bReferencedByAtlas);
-	}
+	~FDistanceFieldVolumeTexture();
 
 	/** Called at load time on game thread */
 	void Initialize();

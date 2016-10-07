@@ -370,6 +370,12 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting, meta=(EditCondition="CastShadow", DisplayName = "Capsule Indirect Shadow"))
 	uint32 bCastCapsuleIndirectShadow:1;
 
+	/** 
+	 * Controls how dark the capsule indirect shadow can be.
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting, meta=(UIMin = "0", UIMax = "1", EditCondition="CastShadow", DisplayName = "Capsule Indirect Shadow Min Visibility"))
+	float CapsuleIndirectShadowMinVisibility;
+
 	/** CPU skinning rendering - only for previewing in Persona and conversion tools */
 	UPROPERTY(transient)
 	uint32 bCPUSkinning : 1;

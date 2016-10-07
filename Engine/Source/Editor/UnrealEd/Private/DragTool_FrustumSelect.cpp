@@ -300,11 +300,11 @@ void FDragTool_ActorFrustumSelect::CalculateFrustum( FSceneView* View, FConvexVo
 		FPlane NearPlane;
 		FPlane FarPlane;
 		OutFrustum.Planes.Empty();
-		if ( View->ViewProjectionMatrix.GetFrustumNearPlane(NearPlane) )
+		if ( View->ViewMatrices.GetViewProjectionMatrix().GetFrustumNearPlane(NearPlane) )
 		{
 			OutFrustum.Planes.Add(NearPlane);
 		}
-		if ( View->ViewProjectionMatrix.GetFrustumFarPlane(FarPlane) )
+		if ( View->ViewMatrices.GetViewProjectionMatrix().GetFrustumFarPlane(FarPlane) )
 		{
 			OutFrustum.Planes.Add(FarPlane);
 		}

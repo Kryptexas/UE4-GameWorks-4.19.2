@@ -1899,6 +1899,18 @@ void FStaticMeshEditor::SaveAsset_Execute()
 	FAssetEditorToolkit::SaveAsset_Execute();
 }
 
+EViewModeIndex FStaticMeshEditor::GetViewMode() const
+{
+	if (Viewport.IsValid())
+	{
+		const FStaticMeshEditorViewportClient& ViewportClient = Viewport->GetViewportClient();
+		return ViewportClient.GetViewMode();
+	}
+	else
+	{
+		return VMI_Unknown;
+	}
+}
 
 void FStaticMeshEditor::OnConvexDecomposition()
 {

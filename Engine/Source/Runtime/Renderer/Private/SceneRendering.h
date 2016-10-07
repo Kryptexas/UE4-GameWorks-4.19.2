@@ -956,7 +956,7 @@ public:
 		return DrawRenderState;
 	}
 
-	inline FVector GetPrevViewDirection() const { return PrevViewMatrices.ViewMatrix.GetColumn(2); }
+	inline FVector GetPrevViewDirection() const { return PrevViewMatrices.GetViewMatrix().GetColumn(2); }
 
 	/** Create a snapshot of this view info on the scene allocator. */
 	FViewInfo* CreateSnapshot() const;
@@ -1053,14 +1053,7 @@ public:
 			Desc = &ColorTargets[0]->GetDesc();
 		}
 
-		if (Desc->IsCubemap())
-		{
-			return FIntPoint(Desc->Extent.X, Desc->Extent.X);
-		}
-		else
-		{
-			return Desc->Extent;
-		}
+		return Desc->Extent;
 	}
 
 	int64 ComputeMemorySize() const

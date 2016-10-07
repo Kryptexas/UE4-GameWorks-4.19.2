@@ -8,6 +8,12 @@
 
 namespace Scalability
 { 
+	enum class EQualityLevelBehavior
+	{
+		EAbsolute,
+		ERelativeToMax,
+	};
+
 	/**
 	 * Structure for holding the state of the engine scalability groups
 	 * Actual engine state you can get though GetQualityLevels().
@@ -55,6 +61,10 @@ namespace Scalability
 		// Sets all other settings based on an overall value
 		// @param Value 0:low, 1:medium, 2:high, 3:epic (gets clamped if needed)
 		void SetFromSingleQualityLevel(int32 Value);
+
+		// Sets all other settings based on an overall value, but relative to the maximum.
+		// @param Value 0: maximum level, 1: maximumlevel -1, etc
+		void SetFromSingleQualityLevelRelativeToMax(int32 Value);
 
 		// Returns the overall value if all settings are set to the same thing
 		// @param Value -1:custom, 0:low, 1:medium, 2:high, 3:epic

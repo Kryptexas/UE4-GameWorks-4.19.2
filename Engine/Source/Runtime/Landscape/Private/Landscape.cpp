@@ -37,6 +37,8 @@ Landscape.cpp: Terrain rendering
 #include "Materials/MaterialExpressionLandscapeLayerBlend.h"
 #include "Materials/MaterialExpressionLandscapeVisibilityMask.h"
 #include "CookStats.h"
+#include "RenderingObjectVersion.h"
+#include "ComponentRecreateRenderStateContext.h"
 
 #if WITH_EDITOR
 #include "MaterialUtilities.h"
@@ -132,14 +134,6 @@ ULandscapeComponent::ULandscapeComponent(const FObjectInitializer& ObjectInitial
 void ULandscapeComponent::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
 	ULandscapeComponent* This = CastChecked<ULandscapeComponent>(InThis);
-	if (This->LightMap != nullptr)
-	{
-		This->LightMap->AddReferencedObjects(Collector);
-	}
-	if (This->ShadowMap != nullptr)
-	{
-		This->ShadowMap->AddReferencedObjects(Collector);
-	}
 	Super::AddReferencedObjects(This, Collector);
 }
 
@@ -223,6 +217,8 @@ void ULandscapeComponent::CheckGenerateLandscapePlatformData(bool bIsCooking)
 
 void ULandscapeComponent::Serialize(FArchive& Ar)
 {
+	Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
+
 #if WITH_EDITOR
 	if (Ar.IsCooking() && !HasAnyFlags(RF_ClassDefaultObject) && Ar.CookingTarget()->SupportsFeature(ETargetPlatformFeatures::MobileRendering))
 	{
@@ -258,8 +254,17 @@ void ULandscapeComponent::Serialize(FArchive& Ar)
 		Super::Serialize(Ar);
 	}
 
-	Ar << LightMap;
-	Ar << ShadowMap;
+	if (Ar.IsLoading() && Ar.CustomVer(FRenderingObjectVersion::GUID) < FRenderingObjectVersion::MapBuildDataSeparatePackage)
+	{
+		FMeshMapBuildData* LegacyMapBuildData = new FMeshMapBuildData();
+		Ar << LegacyMapBuildData->LightMap;
+		Ar << LegacyMapBuildData->ShadowMap;
+		LegacyMapBuildData->IrrelevantLights = IrrelevantLights_DEPRECATED;
+
+		FMeshMapBuildLegacyData LegacyComponentData;
+		LegacyComponentData.Data.Add(TPairInitializer<FGuid, FMeshMapBuildData*>(MapBuildDataId, LegacyMapBuildData));
+		GComponentsWithLegacyLightmaps.AddAnnotation(this, LegacyComponentData);
+	}
 
 	if (Ar.UE4Ver() >= VER_UE4_SERIALIZE_LANDSCAPE_GRASS_DATA)
 	{
@@ -846,6 +851,48 @@ void ULandscapeComponent::SetSectionBase(FIntPoint InSectionBase)
 	SectionBaseY = InSectionBase.Y;
 }
 
+const FMeshMapBuildData* ULandscapeComponent::GetMeshMapBuildData() const
+{
+	AActor* Owner = GetOwner();
+
+	if (Owner)
+	{
+		ULevel* OwnerLevel = Owner->GetLevel();
+
+		if (OwnerLevel && OwnerLevel->OwningWorld)
+		{
+			ULevel* ActiveLightingScenario = OwnerLevel->OwningWorld->GetActiveLightingScenario();
+			UMapBuildDataRegistry* MapBuildData = NULL;
+
+			if (ActiveLightingScenario && ActiveLightingScenario->MapBuildData)
+			{
+				MapBuildData = ActiveLightingScenario->MapBuildData;
+			}
+			else if (OwnerLevel->MapBuildData)
+			{
+				MapBuildData = OwnerLevel->MapBuildData;
+			}
+
+			if (MapBuildData)
+			{
+				return MapBuildData->GetMeshBuildData(MapBuildDataId);
+			}
+		}
+	}
+	
+	return NULL;
+}
+
+bool ULandscapeComponent::IsPrecomputedLightingValid() const
+{
+	return GetMeshMapBuildData() != NULL;
+}
+
+void ULandscapeComponent::PropagateLightingScenarioChange()
+{
+	FComponentRecreateRenderStateContext Context(this);
+}
+
 #if WITH_EDITOR
 ULandscapeInfo* ULandscapeComponent::GetLandscapeInfo() const
 {
@@ -1112,7 +1159,7 @@ void ALandscape::PostLoad()
 			}
 		}
 #endif
-	}
+}
 
 	Super::PostLoad();
 }
@@ -1194,13 +1241,13 @@ FLandscapeEditorLayerSettings& ULandscapeInfo::GetLayerEditorSettings(ULandscape
 void ULandscapeInfo::CreateLayerEditorSettingsFor(ULandscapeLayerInfoObject* LayerInfo)
 {
 	ForAllLandscapeProxies([LayerInfo](ALandscapeProxy* Proxy)
-	{
+		{
 		FLandscapeEditorLayerSettings* EditorLayerSettings = Proxy->EditorLayerSettings.FindByKey(LayerInfo);
 		if (!EditorLayerSettings)
 		{
 			Proxy->Modify();
 			Proxy->EditorLayerSettings.Add(FLandscapeEditorLayerSettings(LayerInfo));
-		}
+	}
 	});
 }
 
@@ -1399,10 +1446,10 @@ bool ULandscapeInfo::UpdateLayerInfoMap(ALandscapeProxy* Proxy /*= nullptr*/, bo
 				ForAllLandscapeProxies([this](ALandscapeProxy* EachProxy)
 				{
 					if (!EachProxy->IsPendingKillPending())
-					{
+				{
 						checkSlow(EachProxy->GetLandscapeInfo() == this);
 						UpdateLayerInfoMap(EachProxy, false);
-					}
+				}
 				});
 			}
 		}
@@ -1710,12 +1757,12 @@ ALandscapeProxy* ULandscapeInfo::GetLandscapeProxyForLevel(ULevel* Level) const
 	ForAllLandscapeProxies([&LandscapeProxy, Level](ALandscapeProxy* Proxy)
 	{
 		if (Proxy->GetLevel() == Level)
-		{
+	{
 			LandscapeProxy = Proxy;
-		}
+	}
 	});
-	return LandscapeProxy;
-}
+			return LandscapeProxy;
+		}
 
 ALandscapeProxy* ULandscapeInfo::GetCurrentLevelLandscapeProxy(bool bRegistered) const
 {
@@ -1861,7 +1908,7 @@ void ULandscapeInfo::UnregisterActor(ALandscapeProxy* Proxy)
 
 		if (LandscapeActor.Get() == Landscape)
 		{
-			LandscapeActor = nullptr;
+		LandscapeActor = nullptr;
 		}
 
 		// update proxies reference to landscape actor
@@ -1952,17 +1999,17 @@ void ULandscapeInfo::UnregisterActorComponent(ULandscapeComponent* Component)
 {
 	if (ensure(Component))
 	{
-		FIntPoint ComponentKey = Component->GetSectionBase() / Component->ComponentSizeQuads;
-		auto RegisteredComponent = XYtoComponentMap.FindRef(ComponentKey);
+	FIntPoint ComponentKey = Component->GetSectionBase() / Component->ComponentSizeQuads;
+	auto RegisteredComponent = XYtoComponentMap.FindRef(ComponentKey);
 
-		if (RegisteredComponent == Component)
-		{
-			XYtoComponentMap.Remove(ComponentKey);
-		}
-
-		SelectedComponents.Remove(Component);
-		SelectedRegionComponents.Remove(Component);
+	if (RegisteredComponent == Component)
+	{
+		XYtoComponentMap.Remove(ComponentKey);
 	}
+
+	SelectedComponents.Remove(Component);
+	SelectedRegionComponents.Remove(Component);
+}
 }
 
 void ULandscapeInfo::Reset()
@@ -2100,6 +2147,9 @@ void ULandscapeComponent::PostInitProperties()
 	// Create a new guid in case this is a newly created component
 	// If not, this guid will be overwritten when serialized
 	FPlatformMisc::CreateGuid(StateId);
+
+	// Initialize MapBuildDataId to something unique, in case this is a new UModelComponent
+	MapBuildDataId = FGuid::NewGuid();
 }
 
 void ULandscapeComponent::PostDuplicate(bool bDuplicateForPIE)

@@ -2,6 +2,7 @@
 
 #pragma once
 #include "MaterialMerging.h"
+#include "MapBuildDataRegistry.h"
 #include "Level.generated.h"
 
 class ALevelBounds;
@@ -441,6 +442,23 @@ public:
 	/** Fence used to track when the rendering thread has finished referencing this ULevel's resources. */
 	FRenderCommandFence							RemoveFromSceneFence;
 
+	/** 
+	 * Whether the level is a lighting scenario.  Lighting is built separately for each lighting scenario level with all other scenario levels hidden. 
+	 * Only one lighting scenario level should be visible at a time for correct rendering, and lightmaps from that level will be used on the rest of the world.
+	 * Note: When a lighting scenario level is present, lightmaps for all streaming levels are placed in the scenario's _BuildData package.  
+	 *		This means that lightmaps for those streaming levels will not be streamed with them.
+	 */
+	UPROPERTY()
+	bool bIsLightingScenario;
+
+	/** Identifies map build data specific to this level, eg lighting volume samples. */
+	UPROPERTY()
+	FGuid LevelBuildDataId;
+
+	/** Registry for data from the map build.  This is stored in a separate package from the level to speed up saving / autosaving. */
+	UPROPERTY()
+	UMapBuildDataRegistry* MapBuildData;
+
 	/** Whether components are currently registered or not. */
 	uint8										bAreComponentsCurrentlyRegistered:1;
 
@@ -569,6 +587,7 @@ public:
 	~ULevel();
 
 	//~ Begin UObject Interface.
+	virtual void PostInitProperties() override;	
 	virtual void Serialize( FArchive& Ar ) override;
 	virtual void BeginDestroy() override;
 	virtual bool IsReadyForFinishDestroy() override;
@@ -654,7 +673,7 @@ public:
 	void InitializeNetworkActors();
 
 	/** Initializes rendering resources for this level. */
-	void InitializeRenderingResources();
+	ENGINE_API void InitializeRenderingResources();
 
 	/** Releases rendering resources for this level. */
 	ENGINE_API void ReleaseRenderingResources();
@@ -720,6 +739,17 @@ public:
 	 * Resets the level nav list.
 	 */
 	ENGINE_API void ResetNavList();
+
+	/** Creates a new UMapBuildDataRegistry and its package for use by this level. */
+	ENGINE_API UMapBuildDataRegistry* CreateMapBuildDataRegistry() const;
+
+	ENGINE_API UMapBuildDataRegistry* GetOrCreateMapBuildData();
+
+	/** Sets whether this level is a lighting scenario and handles propagating the change. */
+	ENGINE_API void SetLightingScenario(bool bNewIsLightingScenario);
+
+	/** Creates UMapBuildDataRegistry entries for legacy lightmaps from components loaded for this level. */
+	ENGINE_API void HandleLegacyMapBuildData();
 
 #if WITH_EDITOR
 	/**

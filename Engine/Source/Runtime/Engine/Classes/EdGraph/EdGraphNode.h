@@ -335,6 +335,11 @@ public:
 	virtual void ReconstructNode() {}
 
 	/**
+	 * Removes the specified pin from the node, preserving remaining pin ordering.
+	 */
+	virtual void RemovePinAt(const int32 PinIndex, const EEdGraphPinDirection PinDirection);
+
+	/**
 	 * Perform any steps necessary prior to copying a node into the paste buffer
 	 */
 	virtual void PrepareForCopying() {}

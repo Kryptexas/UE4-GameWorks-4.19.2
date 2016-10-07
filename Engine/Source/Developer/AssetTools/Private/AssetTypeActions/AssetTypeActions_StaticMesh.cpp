@@ -194,7 +194,6 @@ void FAssetTypeActions_StaticMesh::ExecutePasteLODSettings(TArray<TWeakObjectPtr
 	}
 
 	const bool bAutoComputeLODScreenSize = LODCopyMesh->bAutoComputeLODScreenSize;
-	const float StreamingDistanceMultiplier = LODCopyMesh->StreamingDistanceMultiplier;
 
 	// Copy LOD settings over to selected objects in content browser (meshes)
 	for (TWeakObjectPtr<UStaticMesh> MeshPtr : Objects)
@@ -230,7 +229,6 @@ void FAssetTypeActions_StaticMesh::ExecutePasteLODSettings(TArray<TWeakObjectPtr
 			}
 
 			Mesh->bAutoComputeLODScreenSize = bAutoComputeLODScreenSize;
-			Mesh->StreamingDistanceMultiplier = StreamingDistanceMultiplier;
 
 			Mesh->PostEditChange();
 			Mesh->MarkPackageDirty();

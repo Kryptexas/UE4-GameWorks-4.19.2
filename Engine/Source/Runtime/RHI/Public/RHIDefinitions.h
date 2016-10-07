@@ -359,6 +359,17 @@ enum ERangeCompressionMode
 	RCM_MinMax,
 };
 
+enum class EPrimitiveTopologyType : uint8
+{
+	Triangle,
+	Patch,
+	Line,
+	Point,
+	Quad,
+	Num,
+	NumBits = 3
+};
+
 enum EPrimitiveType
 {
 	PT_TriangleList,
@@ -601,6 +612,13 @@ enum class ESimpleRenderTargetMode
 	// If you add an item here, make sure to add it to DecodeRenderTargetMode() as well!
 };
 
+enum class EClearDepthStencil
+{
+	Depth,
+	Stencil,
+	DepthStencil,
+};
+
 /**
  * Hint to the driver on how to load balance async compute work.  On some platforms this may be a priority, on others actually masking out parts of the GPU for types of work.
  */
@@ -824,20 +842,24 @@ inline bool IsUniformBufferResourceType(EUniformBufferBaseType BaseType)
 	return BaseType == UBMT_SRV || BaseType == UBMT_UAV || BaseType == UBMT_SAMPLER || BaseType == UBMT_TEXTURE;
 }
 
-inline const TCHAR* GetShaderFrequencyString(EShaderFrequency Frequency)
+inline const TCHAR* GetShaderFrequencyString(EShaderFrequency Frequency, bool bIncludePrefix = true)
 {
+	const TCHAR* String = TEXT("SF_NumFrequencies");
 	switch (Frequency)
 	{
-	case SF_Vertex:			return TEXT("SF_Vertex");
-	case SF_Hull:			return TEXT("SF_Hull");
-	case SF_Domain:			return TEXT("SF_Domain");
-	case SF_Geometry:		return TEXT("SF_Geometry");
-	case SF_Pixel:			return TEXT("SF_Pixel");
-	case SF_Compute:		return TEXT("SF_Compute");
+	case SF_Vertex:			String = TEXT("SF_Vertex"); break;
+	case SF_Hull:			String = TEXT("SF_Hull"); break;
+	case SF_Domain:			String = TEXT("SF_Domain"); break;
+	case SF_Geometry:		String = TEXT("SF_Geometry"); break;
+	case SF_Pixel:			String = TEXT("SF_Pixel"); break;
+	case SF_Compute:		String = TEXT("SF_Compute"); break;
 	default:				
 		checkf(0, TEXT("Unknown ShaderFrequency %d"), (int32)Frequency);
 		break;
 	}
 
-	return nullptr;
+	// Skip SF_
+	int32 Index = bIncludePrefix ? 0 : 3;
+	String += Index;
+	return String;
 };

@@ -322,6 +322,7 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools* InModeTools, FPre
 	, MovingPreviewLightTimer(0.0f)
 	, PerspViewModeIndex(DefaultPerspectiveViewMode)
 	, OrthoViewModeIndex(DefaultOrthoViewMode)
+	, ViewModeParam(-1)
 	, NearPlane(-1.0f)
 	, FarPlane(0.0f)
 	, bInGameViewMode(false)
@@ -3267,7 +3268,8 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 		GetScene(),
 		EngineShowFlags)
 		.SetWorldTimes( TimeSeconds, DeltaTimeSeconds, RealTimeSeconds )
-		.SetRealtimeUpdate( IsRealtime() ));
+		.SetRealtimeUpdate( IsRealtime() )
+		.SetViewModeParam( ViewModeParam ) );
 
 	ViewFamily.EngineShowFlags = EngineShowFlags;
 
@@ -4675,11 +4677,13 @@ void FEditorViewportClient::SetRealtimePreview()
 
 void FEditorViewportClient::SetViewMode(EViewModeIndex InViewModeIndex)
 {
+	ViewModeParam = -1; // Reset value when the viewmode changes
+
 	if (IsPerspective())
 	{
-		if (InViewModeIndex == VMI_PrimitiveDistanceAccuracy || InViewModeIndex == VMI_MeshTexCoordSizeAccuracy || InViewModeIndex == VMI_MaterialTexCoordScalesAccuracy)
+		if (InViewModeIndex == VMI_PrimitiveDistanceAccuracy || InViewModeIndex == VMI_MeshUVDensityAccuracy || InViewModeIndex == VMI_MaterialTextureScaleAccuracy)
 		{
-			FEditorBuildUtils::EditorBuildTextureStreaming(GetWorld(), InViewModeIndex == VMI_MaterialTexCoordScalesAccuracy, true);
+			FEditorBuildUtils::EditorBuildTextureStreaming(GetWorld(), InViewModeIndex == VMI_MaterialTextureScaleAccuracy, true);
 		}
 		PerspViewModeIndex = InViewModeIndex;
 		ApplyViewMode(PerspViewModeIndex, true, EngineShowFlags);
@@ -4710,6 +4714,12 @@ void FEditorViewportClient::SetViewModes(const EViewModeIndex InPerspViewModeInd
 	}
 
 	UpdateHiddenCollisionDrawing();
+	Invalidate();
+}
+
+void FEditorViewportClient::SetViewModeParam(int32 InViewModeParam)
+{
+	ViewModeParam = InViewModeParam;
 	Invalidate();
 }
 
@@ -4931,7 +4941,8 @@ void FEditorViewportClient::ProcessScreenShots(FViewport* InViewport)
 				InViewport,
 				GetScene(),
 				EngineShowFlags)
-				.SetRealtimeUpdate(IsRealtime()));
+				.SetRealtimeUpdate(IsRealtime())
+				.SetViewModeParam(ViewModeParam));
 			auto* ViewportBak = Viewport;
 			Viewport = InViewport;
 			FSceneView* View = CalcSceneView(&ViewFamily);

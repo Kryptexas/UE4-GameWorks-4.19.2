@@ -78,7 +78,7 @@ public:
 	/** Get the inputs and outputs that this function exposes, for a function call expression to use. */
 	void GetInputsAndOutputs(TArray<struct FFunctionExpressionInput>& OutInputs, TArray<struct FFunctionExpressionOutput>& OutOutputs) const;
 
-	int32 Compile(class FMaterialCompiler* Compiler, const struct FFunctionExpressionOutput& Output, int32 MultiplexIndex, const TArray<struct FFunctionExpressionInput>& Inputs);
+	int32 Compile(class FMaterialCompiler* Compiler, const struct FFunctionExpressionOutput& Output, const TArray<struct FFunctionExpressionInput>& Inputs);
 
 	/** @return true if this function is dependent on the passed in function, directly or indirectly. */
 	ENGINE_API bool IsDependent(UMaterialFunction* OtherFunction);

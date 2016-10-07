@@ -70,6 +70,7 @@ id<MTLRenderPipelineState> FMetalRenderPipelineDesc::CreatePipelineStateForBound
 	
 	if(GUseRHIThread)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_MetalPipelineLockTime);
 		int Err = pthread_rwlock_rdlock(&MetalPipelineMutex);
 		checkf(Err == 0, TEXT("pthread_rwlock_rdlock failed with error: %d"), errno);
 	}
@@ -85,6 +86,7 @@ id<MTLRenderPipelineState> FMetalRenderPipelineDesc::CreatePipelineStateForBound
 	{
 		if(GUseRHIThread)
 		{
+			SCOPE_CYCLE_COUNTER(STAT_MetalPipelineLockTime);
 			int Err = pthread_rwlock_unlock(&MetalPipelineMutex);
 			checkf(Err == 0, TEXT("pthread_rwlock_unlock failed with error: %d"), errno);
 		}
@@ -106,6 +108,7 @@ id<MTLRenderPipelineState> FMetalRenderPipelineDesc::CreatePipelineStateForBound
 		{
 			if(GUseRHIThread)
 			{
+				SCOPE_CYCLE_COUNTER(STAT_MetalPipelineLockTime);
 				int Err = pthread_rwlock_wrlock(&MetalPipelineMutex);
 				checkf(Err == 0, TEXT("pthread_rwlock_wrlock failed with error: %d"), errno);
 			}
@@ -136,6 +139,7 @@ id<MTLRenderPipelineState> FMetalRenderPipelineDesc::CreatePipelineStateForBound
 			
 			if(GUseRHIThread)
 			{
+				SCOPE_CYCLE_COUNTER(STAT_MetalPipelineLockTime);
 				int Err = pthread_rwlock_unlock(&MetalPipelineMutex);
 				checkf(Err == 0, TEXT("pthread_rwlock_unlock failed with error: %d"), errno);
 			}
@@ -147,6 +151,7 @@ id<MTLRenderPipelineState> FMetalRenderPipelineDesc::CreatePipelineStateForBound
 		*Reflection = MetalReflectionCache.FindChecked(ComparableDesc);
 		if(GUseRHIThread)
 		{
+			SCOPE_CYCLE_COUNTER(STAT_MetalPipelineLockTime);
 			int Err = pthread_rwlock_unlock(&MetalPipelineMutex);
 			checkf(Err == 0, TEXT("pthread_rwlock_unlock failed with error: %d"), errno);
 		}
@@ -154,6 +159,7 @@ id<MTLRenderPipelineState> FMetalRenderPipelineDesc::CreatePipelineStateForBound
 #endif
 	else if(GUseRHIThread)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_MetalPipelineLockTime);
 		int Err = pthread_rwlock_unlock(&MetalPipelineMutex);
 		checkf(Err == 0, TEXT("pthread_rwlock_unlock failed with error: %d"), errno);
 	}
@@ -179,6 +185,7 @@ MTLRenderPipelineReflection* FMetalRenderPipelineDesc::GetReflectionData(FMetalB
 {
 	if(GUseRHIThread)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_MetalPipelineLockTime);
 		int Err = pthread_rwlock_rdlock(&MetalPipelineMutex);
 		checkf(Err == 0, TEXT("pthread_rwlock_rdlock failed with error: %d"), errno);
 	}
@@ -193,6 +200,7 @@ MTLRenderPipelineReflection* FMetalRenderPipelineDesc::GetReflectionData(FMetalB
 	
 	if(GUseRHIThread)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_MetalPipelineLockTime);
 		int Err = pthread_rwlock_unlock(&MetalPipelineMutex);
 		checkf(Err == 0, TEXT("pthread_rwlock_unlock failed with error: %d"), errno);
 	}

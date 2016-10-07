@@ -282,7 +282,7 @@ public:
 
 		float Ratio = View.UnscaledViewRect.Width() / (float)View.UnscaledViewRect.Height();
 		float Params[4];
-		Params[0] = View.ViewMatrices.ProjMatrix.M[0][0];
+		Params[0] = View.ViewMatrices.GetProjectionMatrix().M[0][0];
 		Params[1] = Ratio;
 		Params[2] = (float)View.UnscaledViewRect.Width();
 		Params[3] = (float)View.UnscaledViewRect.Height();

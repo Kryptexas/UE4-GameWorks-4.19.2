@@ -32,8 +32,9 @@ void MainBenchmarkVS(
 	in float4 Arg2 : ATTRIBUTE2,
 	in float4 Arg3 : ATTRIBUTE3,
 	in float4 Arg4 : ATTRIBUTE4,
-	out float4 OutPosition : SV_POSITION,
-	out float2 OutUV : TEXCOORD0)
+	out float2 OutUV : TEXCOORD0,
+	out float4 OutPosition : SV_POSITION
+	)
 {
 	OutPosition = Arg0 + Arg1 + Arg2 + Arg3 + Arg4;
 	OutUV = 0.0f;
@@ -43,8 +44,9 @@ void MainBenchmarkVS(
 
 void MainBenchmarkVS(
 	in uint VertexID : SV_VertexID,
-	out float4 OutPosition : SV_POSITION,
-	out float2 OutUV : TEXCOORD0)
+	out float2 OutUV : TEXCOORD0,
+	out float4 OutPosition : SV_POSITION
+	)
 {
 	OutPosition = float4(VertexID, 0, 0, 0);
 	OutUV = 0.0f;

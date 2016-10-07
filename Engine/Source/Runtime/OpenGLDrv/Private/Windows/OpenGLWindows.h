@@ -404,12 +404,17 @@ extern PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
 #if !EMULATE_ES31
 #include "OpenGL4.h"
 
+// RenderDoc defines
+#define GL_DEBUG_TOOL_EXT                 0x6789
+#define GL_DEBUG_TOOL_NAME_EXT            0x678A
+#define GL_DEBUG_TOOL_PURPOSE_EXT         0x678B
 
 struct FWindowsOpenGL : public FOpenGL4
 {
 	static FORCEINLINE void InitDebugContext()
 	{
-		bDebugContext = glIsEnabled( GL_DEBUG_OUTPUT) != GL_FALSE;
+		extern bool GRunningUnderRenderDoc;
+		bDebugContext = glIsEnabled( GL_DEBUG_OUTPUT) != GL_FALSE || GRunningUnderRenderDoc;
 	}
 
 	static FORCEINLINE void LabelObject(GLenum Type, GLuint Object, const ANSICHAR* Name)

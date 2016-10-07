@@ -1523,6 +1523,32 @@ namespace VulkanRHI
 		}
 	}
 
+	void DumpQueuePresent(VkQueue Queue, const VkPresentInfoKHR* PresentInfo)
+	{
+		if (CVarVulkanDumpLayer.GetValueOnAnyThread())
+		{
+			PrintfBeginResult(FString::Printf(TEXT("vkQueuePresentKHR(Queue=%p, Info=%p)[...]"), Queue, PresentInfo));
+
+			DebugLog += FString::Printf(TEXT("\n%sPresentInfo: Results=%p"), Tabs, PresentInfo->pResults);
+			if (PresentInfo->waitSemaphoreCount > 0)
+			{
+				DebugLog += FString::Printf(TEXT("\n%s\tWaitSemaphores: "), Tabs);
+				for (uint32 SubIndex = 0; SubIndex < PresentInfo->waitSemaphoreCount; ++SubIndex)
+				{
+					DebugLog += FString::Printf(TEXT("%p "), PresentInfo->pWaitSemaphores[SubIndex]);
+				}
+			}
+			if (PresentInfo->swapchainCount > 0)
+			{
+				DebugLog += FString::Printf(TEXT("\n%s\tSwapchains (ImageIndex): "), Tabs);
+				for (uint32 SubIndex = 0; SubIndex < PresentInfo->swapchainCount; ++SubIndex)
+				{
+					DebugLog += FString::Printf(TEXT("%p(%d)"), PresentInfo->pSwapchains[SubIndex], PresentInfo->pImageIndices[SubIndex]);
+				}
+			}
+		}
+	}
+
 	static struct FGlobalDumpLog
 	{
 		~FGlobalDumpLog()

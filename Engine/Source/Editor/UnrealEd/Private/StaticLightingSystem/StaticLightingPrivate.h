@@ -200,6 +200,9 @@ public:
 	/** Updates current notification with new text */
 	void SetNotificationText( FText Text );
 	
+	static void ImportRequested();
+	static void DiscardRequested();
+
 	/** Initializes the static lighting system to defaults and kicks it off if possible */
 	void CreateStaticLightingSystem(const FLightingBuildOptions& Options);
 	/** Updates the build lighting with info from Lightmass, checking for completion */
@@ -213,21 +216,25 @@ public:
 	bool IsLightingBuildCurrentlyExporting() const;
 
 private:
-	FStaticLightingManager()
-		: StaticLightingSystem(NULL) {}
+	FStaticLightingManager() 
+		: ActiveStaticLightingSystem(NULL) 
+	{}
 	
-	/** Destroys the static lighting system if it exists */
-	void DestroyStaticLightingSystem();
+	class FStaticLightingSystem* ActiveStaticLightingSystem;
 
-private:
 	/** The system for kicking off the asynchronous lightmass */
-	class FStaticLightingSystem* StaticLightingSystem;
+	TArray<TScopedPointer<class FStaticLightingSystem>> StaticLightingSystems;
 
 	/** Notification we hold on to that indicates progress. */
 	TWeakPtr<SNotificationItem> LightBuildNotification;
 
 	/** Singleton of static lighting manager */
 	static TSharedPtr<FStaticLightingManager> StaticLightingManager;
+
+	void FinishLightingBuild();
+
+	/** Destroys the static lighting system if it exists */
+	void DestroyStaticLightingSystems();
 };
 
 /** The state of the static lighting system. */
@@ -240,7 +247,7 @@ public:
 	 * @param InOptions - The static lighting build options.
 	 * @param InWorld -   The world we wish to build the lighting for
 	 */
-	FStaticLightingSystem(const FLightingBuildOptions& InOptions , UWorld* InWorld );
+	FStaticLightingSystem(const FLightingBuildOptions& InOptions, UWorld* InWorld, ULevel* InLightingScenario);
 	~FStaticLightingSystem();
 	
 	/** Kicks off the lightmass processing, and, if successful, starts the asynchronous task */
@@ -268,6 +275,11 @@ public:
 	bool IsAsyncBuilding() const;
 
 	bool IsAmortizedExporting() const;
+
+	bool ShouldOperateOnLevel(ULevel* InLevel) const
+	{
+		return !InLevel->bIsLightingScenario || InLevel == LightingScenario;
+	}
 
 private:
 	/**
@@ -316,12 +328,6 @@ private:
 	
 	/** Invalidates the lighting of the current levels so new lighting can be applied */
 	void InvalidateStaticLighting();
-
-	/**
-	 * Invalidates the lighting of static mesh actors which have been modified between
-	 * the kickoff of the lighting build and the completion of it
-	 */
-	void PostInvalidateStaticLighting();
 
 	/**
 	 * Don't auto-apply during interpolation editing, if there's another slow task
@@ -384,7 +390,9 @@ private:
 		AsynchronousBuilding,
 		AutoApplyingImport,
 		WaitingForImport,
+		ImportRequested,
 		Import,
+		Finished
 	};
 	FStaticLightingSystem::LightingStage CurrentBuildStage;
 
@@ -406,8 +414,14 @@ private:
 	/** The world this light system was created with */
 	UWorld*	 World;
 
+	/** The lighting scenario that's currently being built, if any.  When valid, any outputs of the lighting build should go into this level's MapBuildData. */
+	ULevel* LightingScenario;
+
 	/** A handle on the processor that actually interfacets with Lightmass */
 	class FLightmassProcessor* LightmassProcessor;
+
+	friend FStaticLightingManager;
+	friend FLightmassProcessor;
 };
 
 /** 

@@ -112,6 +112,9 @@ public:
 	TArray< TSharedPtr< FString > >& GetLODLevels() { return LODLevels; }
 	const TArray< TSharedPtr< FString > >& GetLODLevels() const { return LODLevels; }
 
+	/** Get the active view mode */
+	virtual EViewModeIndex GetViewMode() const override;
+
 private:
 	TSharedRef<SDockTab> SpawnTab_Viewport(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_Properties(const FSpawnTabArgs& Args);

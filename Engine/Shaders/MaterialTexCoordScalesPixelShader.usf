@@ -12,8 +12,13 @@
 
  // If -1, output everything to the RW texture.
 float4 AccuracyColors[5];
-int TextureAnalysisIndex;
+int2 AnalysisParams; // (TextureAnalysisIndex, bOutputScales)
 float PrimitiveAlpha;
+
+// Analysis index will be in [0, 31] if analysing a single texture, otherwise -1
+#define TextureAnalysisIndex AnalysisParams.x
+#define bOutputScales AnalysisParams.y
+
 
 float4 OneOverCPUTexCoordScales[MAX_NUM_TEXTURE_REGISTER / 4];
 int4 TexCoordIndices[MAX_NUM_TEXTURE_REGISTER / 4];
@@ -62,17 +67,18 @@ MaterialFloat StoreTexCoordScale(in out FTexCoordScalesParams Params, float2 UV,
 		
 		float GPUScale = min(GPUScaleX * GetComponent(Params.OneOverDDU, TexCoordIndex), GPUScaleY * GetComponent(Params.OneOverDDV, TexCoordIndex));
 
-		// Code path when searching the worst scales
-		const bool bUpdateMinMax = (OneOverCPUScale > 0 && (TextureAnalysisIndex == MAX_NUM_TEXTURE_REGISTER || TextureAnalysisIndex == TextureReferenceIndex));
+		// Code path when searching the worst scales. MinScale and MaxScale are only used when rendering for accuracies (!bOutputScales)
+		const bool bUpdateMinMax = (OneOverCPUScale > 0 && (TextureAnalysisIndex == -1 || TextureAnalysisIndex == TextureReferenceIndex));
 		Params.MinScale = bUpdateMinMax ? min(Params.MinScale, GPUScale * OneOverCPUScale) : Params.MinScale;
 		Params.MaxScale = bUpdateMinMax ? max(Params.MaxScale, GPUScale * OneOverCPUScale) : Params.MaxScale;
 
 		// Code path when rendering the material in a render target. Each TILE_RESOLUTION X TILE_RESOLUTION maps to different texture.
-		const bool bUpdateScale = (TextureAnalysisIndex == -1 && Params.PixelPosition.x / TILE_RESOLUTION == TextureReferenceIndex / 4) ;
+		const bool bUpdateScale = (bOutputScales && Params.PixelPosition.x / TILE_RESOLUTION == TextureReferenceIndex / 4) ;
 		Params.ScalesPerIndex[TextureReferenceIndex % 4] = bUpdateScale ? min(Params.ScalesPerIndex[TextureReferenceIndex % 4], GPUScale) : Params.ScalesPerIndex[TextureReferenceIndex % 4];
 	}
 	return 1.f;
 }
+
 
 MaterialFloat StoreTexSample(in out FTexCoordScalesParams Params, float4 C, int TextureReferenceIndex)
 {
@@ -116,7 +122,7 @@ void Main(
 
 	// This is used to patch invalid parameters when computing the scales with FMeshMaterialRenderItem::EnqueueMaterialRender
 	FLATTEN
-	if (TextureAnalysisIndex == -1)
+	if (bOutputScales)
 	{
 #if NUM_MATERIAL_TEXCOORDS > 0
 		// Set all texcoord but one to 0. This allows the analysis to figure out which texcoord is driving the lookup.
@@ -162,19 +168,19 @@ void Main(
 	}
 	Params = MaterialParameters.TexCoordScalesParams;
 
-	if (TextureAnalysisIndex == -1)
+	if (bOutputScales)
 	{
 		// Output the scales
 		OutColor = Params.ScalesPerIndex;
 	}
 	else
 	{
-		float PixelScale = (Params.PixelPosition.x & 0x08) == (Params.PixelPosition.y & 0x08) ? Params.MinScale : Params.MaxScale;
+		float PixelScale = ((Params.PixelPosition.x & 0x08) == (Params.PixelPosition.y & 0x08) || TextureAnalysisIndex != -1) ? Params.MinScale : Params.MaxScale;
 
 		// Output accuracy. If the GPU Scale is INITIAL_GPU_SCALE, then the texcoord was not updated.
 		if (Params.MinScale != INITIAL_GPU_SCALE)
 		{
-			Params.TexSample = TextureAnalysisIndex == MAX_NUM_TEXTURE_REGISTER ? lerp(.4f, 1.f, saturate(Luminance(BaseColor))) : Params.TexSample;
+			Params.TexSample = TextureAnalysisIndex == -1 ? lerp(.4f, 1.f, saturate(Luminance(BaseColor))) : Params.TexSample;
 
 			float Accuracy = clamp(log2(PixelScale), -1.99, 1.99);
 			int ColorIndex = floor(Accuracy) + 2;

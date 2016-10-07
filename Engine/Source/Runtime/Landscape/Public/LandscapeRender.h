@@ -461,9 +461,16 @@ class FLandscapeComponentSceneProxy : public FPrimitiveSceneProxy, public FLands
 	public:
 		/** Initialization constructor. */
 		FLandscapeLCI(const ULandscapeComponent* InComponent)
-			: FLightCacheInterface(InComponent->LightMap, InComponent->ShadowMap)
+			: FLightCacheInterface(NULL, NULL)
 		{
-			IrrelevantLights = InComponent->IrrelevantLights;
+			const FMeshMapBuildData* MapBuildData = InComponent->GetMeshMapBuildData();
+
+			if (MapBuildData)
+			{
+				SetLightMap(MapBuildData->LightMap);
+				SetShadowMap(MapBuildData->ShadowMap);
+				IrrelevantLights = MapBuildData->IrrelevantLights;
+			}
 		}
 
 		// FLightCacheInterface

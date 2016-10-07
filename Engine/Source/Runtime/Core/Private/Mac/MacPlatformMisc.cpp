@@ -2425,8 +2425,7 @@ bool FMacPlatformMisc::HasPlatformFeature(const TCHAR* FeatureName)
 	{
 		bool bHasMetal = false;
 		
-		// Metal is only permitted on 10.11.4 and above now because of all the bug-fixes Apple made for us in 10.11.4.
-		if (FPlatformMisc::MacOSXVersionCompare(10, 11, 4) >= 0 && !FParse::Param(FCommandLine::Get(),TEXT("opengl")) && FModuleManager::Get().ModuleExists(TEXT("MetalRHI")))
+		if (!FParse::Param(FCommandLine::Get(),TEXT("opengl")) && FModuleManager::Get().ModuleExists(TEXT("MetalRHI")))
 		{
 			// Find out if there are any Metal devices on the system - some Mac's have none
 			void* DLLHandle = FPlatformProcess::GetDllHandle(TEXT("/System/Library/Frameworks/Metal.framework/Metal"));
@@ -2444,6 +2443,15 @@ bool FMacPlatformMisc::HasPlatformFeature(const TCHAR* FeatureName)
 				
 				FPlatformProcess::FreeDllHandle(DLLHandle);
 			}
+		}
+		
+		// Metal is only permitted on 10.11.4 and above now because of all the bug-fixes Apple made for us in 10.11.4.
+		if (bHasMetal && FPlatformMisc::MacOSXVersionCompare(10, 11, 4) < 0)
+		{
+			bHasMetal = false;
+			FText Title = NSLOCTEXT("MacPlatform", "UpdateMacOSTitle","Update Mac OS");
+			FText Msg = NSLOCTEXT("MacPlatform", "UpdateMacOS.", "Please update to Mac OS X 10.11.4 or later (macOS Sierra 10.12 or later strongly recommended) to enable Metal rendering support for improved compatibility and performance.");
+			FMacPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *Msg.ToString(), *Title.ToString());
 		}
 		
 		return bHasMetal;

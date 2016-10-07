@@ -23,7 +23,7 @@ void FSteamVRHMD::RenderTexture_RenderThread(FRHICommandListImmediate& RHICmdLis
 	if (bSplashIsShown)
 	{
 		SetRenderTarget(RHICmdList, SrcTexture, FTextureRHIRef());
-		RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), false, (float)ERHIZBuffer::FarPlane, false, 0, FIntRect());
+		RHICmdList.ClearColorTexture(SrcTexture, FLinearColor(0, 0, 0, 0), FIntRect());
 	}
 
 	if (WindowMirrorMode != 0)
@@ -52,7 +52,7 @@ void FSteamVRHMD::RenderTexture_RenderThread(FRHICommandListImmediate& RHICmdLis
 		if (WindowMirrorMode == 1)
 		{
 			// need to clear when rendering only one eye since the borders won't be touched by the DrawRect below
-			RHICmdList.Clear(true, FLinearColor::Black, false, 0, false, 0, FIntRect());
+			RHICmdList.ClearColorTexture(BackBuffer, FLinearColor::Black, FIntRect());
 
 			RendererModule->DrawRectangle(
 				RHICmdList,

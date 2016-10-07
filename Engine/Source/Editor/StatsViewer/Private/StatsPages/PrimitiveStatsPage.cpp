@@ -109,9 +109,10 @@ struct PrimitiveStatsGenerator
 				if( StaticMeshComponent->LODData.Num() > 0 )
 				{
 					FStaticMeshComponentLODInfo& ComponentLODInfo = StaticMeshComponent->LODData[0];
-					if( ComponentLODInfo.LightMap )
+					const FMeshMapBuildData* MeshMapBuildData = StaticMeshComponent->GetMeshMapBuildData(ComponentLODInfo);
+					if( MeshMapBuildData && MeshMapBuildData->LightMap )
 					{
-						LightsLMCount = ComponentLODInfo.LightMap->LightGuids.Num();
+						LightsLMCount = MeshMapBuildData->LightMap->LightGuids.Num();
 					}
 				}
 			}
@@ -131,9 +132,10 @@ struct PrimitiveStatsGenerator
 					const TIndirectArray<FModelElement> Elements = ModelComponent->GetElements();
 					if( Elements.Num() > 0 )
 					{
-						if( Elements[0].LightMap )
+						const FMeshMapBuildData* MeshMapBuildData = Elements[0].GetMeshMapBuildData();
+						if( MeshMapBuildData && MeshMapBuildData->LightMap )
 						{
-							LightsLMCount = Elements[0].LightMap->LightGuids.Num();
+							LightsLMCount = MeshMapBuildData->LightMap->LightGuids.Num();
 						}
 					}
 				}
@@ -159,9 +161,11 @@ struct PrimitiveStatsGenerator
 		else if (LandscapeComponent)
 		{
 			Resource = LandscapeComponent->GetLandscapeProxy();
-			if (LandscapeComponent->LightMap)
+			const FMeshMapBuildData* MeshMapBuildData = LandscapeComponent->GetMeshMapBuildData();
+
+			if (MeshMapBuildData && MeshMapBuildData->LightMap)
 			{
-				LightsLMCount = LandscapeComponent->LightMap->LightGuids.Num();
+				LightsLMCount = MeshMapBuildData->LightMap->LightGuids.Num();
 			}
 		}
 

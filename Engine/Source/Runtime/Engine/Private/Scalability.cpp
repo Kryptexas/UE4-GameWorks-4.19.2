@@ -64,51 +64,51 @@ static TAutoConsoleVariable<int32> CVarFoliageQuality(
 
 static TAutoConsoleVariable<int32> CVarViewDistanceQuality_NumLevels(
 	TEXT("sg.ViewDistanceQuality.NumLevels"),
-	4,
+	5,
 	TEXT("Number of settings quality levels in sg.ViewDistanceQuality\n")
-	TEXT(" default: 4 (0..3)"),
+	TEXT(" default: 5 (0..4)"),
 	ECVF_ReadOnly);
 
 static TAutoConsoleVariable<int32> CVarAntiAliasingQuality_NumLevels(
 	TEXT("sg.AntiAliasingQuality.NumLevels"),
-	4,
+	5,
 	TEXT("Number of settings quality levels in sg.AntiAliasingQuality\n")
-	TEXT(" default: 4 (0..3)"),
+	TEXT(" default: 5 (0..4)"),
 	ECVF_ReadOnly);
 
 static TAutoConsoleVariable<int32> CVarShadowQuality_NumLevels(
 	TEXT("sg.ShadowQuality.NumLevels"),
-	4,
+	5,
 	TEXT("Number of settings quality levels in sg.ShadowQuality\n")
-	TEXT(" default: 4 (0..3)"),
+	TEXT(" default: 5 (0..4)"),
 	ECVF_ReadOnly);
 
 static TAutoConsoleVariable<int32> CVarPostProcessQuality_NumLevels(
 	TEXT("sg.PostProcessQuality.NumLevels"),
-	4,
+	5,
 	TEXT("Number of settings quality levels in sg.PostProcessQuality\n")
-	TEXT(" default: 4 (0..3)"),
+	TEXT(" default: 5 (0..4)"),
 	ECVF_ReadOnly);
 
 static TAutoConsoleVariable<int32> CVarTextureQuality_NumLevels(
 	TEXT("sg.TextureQuality.NumLevels"),
-	4,
+	5,
 	TEXT("Number of settings quality levels in sg.TextureQuality\n")
-	TEXT(" default: 4 (0..3)"),
+	TEXT(" default: 5 (0..4)"),
 	ECVF_ReadOnly);
 
 static TAutoConsoleVariable<int32> CVarEffectsQuality_NumLevels(
 	TEXT("sg.EffectsQuality.NumLevels"),
-	4,
+	5,
 	TEXT("Number of settings quality levels in sg.EffectsQuality\n")
-	TEXT(" default: 4 (0..3)"),
+	TEXT(" default: 5 (0..4)"),
 	ECVF_ReadOnly);
 	
 static TAutoConsoleVariable<int32> CVarFoliageQuality_NumLevels(
 	TEXT("sg.FoliageQuality.NumLevels"),
-	4,
+	5,
 	TEXT("Number of settings quality levels in sg.FoliageQuality\n")
-	TEXT(" default: 4 (0..3)"),
+	TEXT(" default: 5 (0..4)"),
 	ECVF_ReadOnly);
 
 
@@ -252,11 +252,19 @@ static void InferCurrentQualityLevel(const FString& InGroupName, int32& OutQuali
 static void SetGroupQualityLevel(const TCHAR* InGroupName, int32 InQualityLevel, int32 InNumLevels)
 {
 	check(InNumLevels > 0);
-	InQualityLevel = FMath::Clamp(InQualityLevel, 0, InNumLevels - 1);
+	const int32 MaxLevel = InNumLevels - 1;
+	InQualityLevel = FMath::Clamp(InQualityLevel, 0, MaxLevel);
 
 //	UE_LOG(LogConsoleResponse, Display, TEXT("  %s %d"), InGroupName, InQualityLevel);
 
-	ApplyCVarSettingsGroupFromIni(InGroupName, InQualityLevel, *GScalabilityIni, ECVF_SetByScalability);
+	if (InQualityLevel == MaxLevel)
+	{
+		ApplyCVarSettingsGroupFromIni(InGroupName, TEXT("Cine"), *GScalabilityIni, ECVF_SetByScalability);
+	}
+	else
+	{
+		ApplyCVarSettingsGroupFromIni(InGroupName, InQualityLevel, *GScalabilityIni, ECVF_SetByScalability);
+	}	
 }
 
 static void SetResolutionQualityLevel(float InResolutionQualityLevel)
@@ -338,13 +346,22 @@ void InitScalabilitySystem()
 }
 
 /** Get the percentage scale for a given quality level */
-static float GetRenderScaleLevelFromQualityLevel(int32 InQualityLevel)
+static float GetRenderScaleLevelFromQualityLevel(int32 InQualityLevel, EQualityLevelBehavior Behavior = EQualityLevelBehavior::EAbsolute)
 {
 	TArray<FString> ResolutionValueStrings;
 	GConfig->GetSingleLineArray(TEXT("ScalabilitySettings"), TEXT("PerfIndexValues_ResolutionQuality"), ResolutionValueStrings, GScalabilityIni);
 
 	check(ResolutionValueStrings.Num() > 0);
-	InQualityLevel = FMath::Clamp(InQualityLevel, 0, ResolutionValueStrings.Num() - 1);
+	//no negative levels.
+	InQualityLevel = FMath::Max(0, InQualityLevel);
+	if (Behavior == EQualityLevelBehavior::ERelativeToMax)
+	{
+		InQualityLevel = FMath::Max(ResolutionValueStrings.Num() - 1 - InQualityLevel, 0);
+	}
+	else
+	{
+		InQualityLevel = FMath::Clamp(InQualityLevel, 0, ResolutionValueStrings.Num() - 1);
+	}
 
 	return FCString::Atof(*ResolutionValueStrings[InQualityLevel]);
 }
@@ -405,7 +422,7 @@ void ProcessCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 	bool bPrintUsage = true;
 	bool bPrintCurrentSettings = true;
 	bool bInfoMode = false;
-	FString Token;
+	FString Token;	
 
 	float CPUBenchmarkValue = -1.0f;
 	float GPUBenchmarkValue = -1.0f;
@@ -427,6 +444,15 @@ void ProcessCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 		{
 			FQualityLevels State = Scalability::GetQualityLevels();
 			Scalability::SetQualityLevels(State);
+			bPrintUsage = false;
+		}
+		else if (Token == TEXT("cine"))
+		{
+			FQualityLevels QualityLevels;			
+			QualityLevels.SetFromSingleQualityLevel(MAX_int32);
+			SetQualityLevels(QualityLevels);
+			Scalability::SaveState(GIsEditor ? GEditorSettingsIni : GGameUserSettingsIni);
+
 			bPrintUsage = false;
 		}
 		else if (Token.IsNumeric())
@@ -545,7 +571,7 @@ void FQualityLevels::SetDefaults()
 
 void FQualityLevels::SetFromSingleQualityLevel(int32 Value)
 {
-	ResolutionQuality = GetRenderScaleLevelFromQualityLevel(Value);
+	ResolutionQuality = GetRenderScaleLevelFromQualityLevel(Value, EQualityLevelBehavior::EAbsolute);
 	ViewDistanceQuality = FMath::Clamp(Value, 0, CVarViewDistanceQuality_NumLevels->GetInt() - 1);
 	AntiAliasingQuality = FMath::Clamp(Value, 0, CVarAntiAliasingQuality_NumLevels->GetInt() - 1);
 	ShadowQuality = FMath::Clamp(Value, 0, CVarShadowQuality_NumLevels->GetInt() - 1);
@@ -553,6 +579,21 @@ void FQualityLevels::SetFromSingleQualityLevel(int32 Value)
 	TextureQuality = FMath::Clamp(Value, 0, CVarTextureQuality_NumLevels->GetInt() - 1);
 	EffectsQuality = FMath::Clamp(Value, 0, CVarEffectsQuality_NumLevels->GetInt() - 1);
 	FoliageQuality = FMath::Clamp(Value, 0, CVarFoliageQuality_NumLevels->GetInt() - 1);
+}
+
+void FQualityLevels::SetFromSingleQualityLevelRelativeToMax(int32 Value)
+{
+	//account for 0 indexing.
+	Value += 1;
+
+	ResolutionQuality = GetRenderScaleLevelFromQualityLevel(Value, EQualityLevelBehavior::ERelativeToMax);
+	ViewDistanceQuality = FMath::Max(CVarViewDistanceQuality_NumLevels->GetInt() - Value, 0);
+	AntiAliasingQuality = FMath::Max(CVarAntiAliasingQuality_NumLevels->GetInt() - Value, 0);
+	ShadowQuality = FMath::Max(CVarShadowQuality_NumLevels->GetInt() - Value, 0);
+	PostProcessQuality = FMath::Max(CVarPostProcessQuality_NumLevels->GetInt() - Value, 0);
+	TextureQuality = FMath::Max(CVarTextureQuality_NumLevels->GetInt() - Value, 0);
+	EffectsQuality = FMath::Max(CVarEffectsQuality_NumLevels->GetInt() - Value, 0);
+	FoliageQuality = FMath::Max(CVarFoliageQuality_NumLevels->GetInt() - Value, 0);
 }
 
 // Returns the overall value if all settings are set to the same thing

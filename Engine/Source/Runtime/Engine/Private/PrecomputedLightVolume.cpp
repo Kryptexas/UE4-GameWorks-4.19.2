@@ -93,15 +93,13 @@ FArchive& operator<<(FArchive& Ar, TVolumeLightingSample<3>& Sample)
 	return Ar;
 }
 
-FPrecomputedLightVolume::FPrecomputedLightVolume() :
+FPrecomputedLightVolumeData::FPrecomputedLightVolumeData() :
 	bInitialized(false),
-	bAddedToScene(false),
 	HighQualityLightmapOctree(FVector::ZeroVector, HALF_WORLD_MAX),
-	LowQualityLightmapOctree(FVector::ZeroVector, HALF_WORLD_MAX),
-	OctreeForRendering(NULL)
+	LowQualityLightmapOctree(FVector::ZeroVector, HALF_WORLD_MAX)
 {}
 
-FPrecomputedLightVolume::~FPrecomputedLightVolume()
+FPrecomputedLightVolumeData::~FPrecomputedLightVolumeData()
 {
 	if (bInitialized)
 	{
@@ -140,7 +138,7 @@ static void LoadVolumeLightSamples(FArchive& Ar, int32 ArchiveNumSHSamples, TArr
 	}	
 }
 
-FArchive& operator<<(FArchive& Ar,FPrecomputedLightVolume& Volume)
+FArchive& operator<<(FArchive& Ar,FPrecomputedLightVolumeData& Volume)
 {
 	Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
 
@@ -269,8 +267,27 @@ FArchive& operator<<(FArchive& Ar,FPrecomputedLightVolume& Volume)
 	return Ar;
 }
 
+FArchive& operator<<(FArchive& Ar, FPrecomputedLightVolumeData*& Volume)
+{
+	bool bValid = Volume != NULL;
+
+	Ar << bValid;
+
+	if (bValid)
+	{
+		if (Ar.IsLoading())
+		{
+			Volume = new FPrecomputedLightVolumeData();
+		}
+
+		Ar << (*Volume);
+	}
+
+	return Ar;
+}
+
 /** Frees any previous samples, prepares the volume to have new samples added. */
-void FPrecomputedLightVolume::Initialize(const FBox& NewBounds)
+void FPrecomputedLightVolumeData::Initialize(const FBox& NewBounds)
 {
 	InvalidateLightingCache();
 	bInitialized = true;
@@ -278,25 +295,23 @@ void FPrecomputedLightVolume::Initialize(const FBox& NewBounds)
 	// Initialize the octree based on the passed in bounds
 	HighQualityLightmapOctree = FLightVolumeOctree(NewBounds.GetCenter(), NewBounds.GetExtent().GetMax());
 	LowQualityLightmapOctree = FLightVolumeOctree(NewBounds.GetCenter(), NewBounds.GetExtent().GetMax());
-
-	OctreeForRendering = AllowHighQualityLightmaps(GMaxRHIFeatureLevel) ? &HighQualityLightmapOctree : &LowQualityLightmapOctree;
 }
 
 /** Adds a lighting sample. */
-void FPrecomputedLightVolume::AddHighQualityLightingSample(const FVolumeLightingSample& NewHighQualitySample)
+void FPrecomputedLightVolumeData::AddHighQualityLightingSample(const FVolumeLightingSample& NewHighQualitySample)
 {
 	check(bInitialized);
 	HighQualityLightmapOctree.AddElement(NewHighQualitySample);
 }
 
-void FPrecomputedLightVolume::AddLowQualityLightingSample(const FVolumeLightingSample& NewLowQualitySample)
+void FPrecomputedLightVolumeData::AddLowQualityLightingSample(const FVolumeLightingSample& NewLowQualitySample)
 {
 	check(bInitialized);
 	LowQualityLightmapOctree.AddElement(NewLowQualitySample);
 }
 
 /** Shrinks the octree and updates memory stats. */
-void FPrecomputedLightVolume::FinalizeSamples()
+void FPrecomputedLightVolumeData::FinalizeSamples()
 {
 	check(bInitialized);
 	// No more samples will be added, shrink octree node element arrays
@@ -307,31 +322,82 @@ void FPrecomputedLightVolume::FinalizeSamples()
 }
 
 /** Invalidates anything produced by the last lighting build. */
-void FPrecomputedLightVolume::InvalidateLightingCache()
+void FPrecomputedLightVolumeData::InvalidateLightingCache()
 {
 	if (bInitialized)
 	{
-		check(!bAddedToScene);
-
 		// Release existing samples
 		const SIZE_T VolumeBytes = GetAllocatedBytes();
 		DEC_DWORD_STAT_BY(STAT_PrecomputedLightVolumeMemory, VolumeBytes);
 		HighQualityLightmapOctree.Destroy();
 		LowQualityLightmapOctree.Destroy();
-		OctreeForRendering = NULL;
 		bInitialized = false;
 	}
 }
 
-void FPrecomputedLightVolume::AddToScene(FSceneInterface* Scene)
+SIZE_T FPrecomputedLightVolumeData::GetAllocatedBytes() const
+{
+	SIZE_T NodeBytes = 0;
+
+	for (FLightVolumeOctree::TConstIterator<> NodeIt(HighQualityLightmapOctree); NodeIt.HasPendingNodes(); NodeIt.Advance())
+	{
+		const FLightVolumeOctree::FNode& CurrentNode = NodeIt.GetCurrentNode();
+		NodeBytes += sizeof(FLightVolumeOctree::FNode);
+		NodeBytes += CurrentNode.GetElements().GetAllocatedSize();
+
+		FOREACH_OCTREE_CHILD_NODE(ChildRef)
+		{
+			if(CurrentNode.HasChild(ChildRef))
+			{
+				NodeIt.PushChild(ChildRef);
+			}
+		}
+	}
+
+	for (FLightVolumeOctree::TConstIterator<> NodeIt(LowQualityLightmapOctree); NodeIt.HasPendingNodes(); NodeIt.Advance())
+	{
+		const FLightVolumeOctree::FNode& CurrentNode = NodeIt.GetCurrentNode();
+		NodeBytes += sizeof(FLightVolumeOctree::FNode);
+		NodeBytes += CurrentNode.GetElements().GetAllocatedSize();
+
+		FOREACH_OCTREE_CHILD_NODE(ChildRef)
+		{
+			if(CurrentNode.HasChild(ChildRef))
+			{
+				NodeIt.PushChild(ChildRef);
+			}
+		}
+	}
+
+	return NodeBytes;
+}
+
+
+FPrecomputedLightVolume::FPrecomputedLightVolume() :
+	Data(NULL),
+	bAddedToScene(false),
+	OctreeForRendering(NULL)
+{}
+
+FPrecomputedLightVolume::~FPrecomputedLightVolume()
+{
+}
+
+void FPrecomputedLightVolume::AddToScene(FSceneInterface* Scene, UMapBuildDataRegistry* Registry, FGuid LevelBuildDataId)
 {
 	check(!bAddedToScene);
-	bAddedToScene = true;
 
-	if (bInitialized && Scene)
+	if (Registry)
 	{
+		Data = Registry->GetLevelBuildData(LevelBuildDataId);
+	}
+
+	if (Data && Data->bInitialized && Scene)
+	{
+		bAddedToScene = true;
+
+		OctreeForRendering = AllowHighQualityLightmaps(Scene->GetFeatureLevel()) ? &Data->HighQualityLightmapOctree : &Data->LowQualityLightmapOctree;
 		Scene->AddPrecomputedLightVolume(this);
-		OctreeForRendering = AllowHighQualityLightmaps(Scene->GetFeatureLevel()) ? &HighQualityLightmapOctree : &LowQualityLightmapOctree;
 	}
 }
 
@@ -341,7 +407,7 @@ void FPrecomputedLightVolume::RemoveFromScene(FSceneInterface* Scene)
 	{
 		bAddedToScene = false;
 
-		if (bInitialized && Scene)
+		if (Data->bInitialized && Scene)
 		{
 			Scene->RemovePrecomputedLightVolume(this);
 		}
@@ -359,7 +425,7 @@ void FPrecomputedLightVolume::InterpolateIncidentRadiancePoint(
 	checkf(this, TEXT("FPrecomputedLightVolume::InterpolateIncidentRadiancePoint() is called on a null volume. Fix the call site."));
 
 	// Handle being called on a volume that hasn't been initialized yet, which can happen if lighting hasn't been built yet.
-	if (bInitialized)
+	if (Data->bInitialized)
 	{
 		FBoxCenterAndExtent BoundingBox( WorldPosition, FVector::ZeroVector );
 		// Iterate over the octree nodes containing the query point.
@@ -401,7 +467,7 @@ void FPrecomputedLightVolume::InterpolateIncidentRadianceBlock(
 	checkf(this, TEXT("FPrecomputedLightVolume::InterpolateIncidentRadianceBlock() is called on a null volume. Fix the call site."));
 
 	// Handle being called on a volume that hasn't been initialized yet, which can happen if lighting hasn't been built yet.
-	if (bInitialized)
+	if (Data->bInitialized)
 	{
 		static TArray<const FVolumeLightingSample*> PotentiallyIntersectingSamples;
 		PotentiallyIntersectingSamples.Reset(100);
@@ -480,47 +546,12 @@ void FPrecomputedLightVolume::DebugDrawSamples(FPrimitiveDrawInterface* PDI, boo
 	}
 }
 
-SIZE_T FPrecomputedLightVolume::GetAllocatedBytes() const
-{
-	SIZE_T NodeBytes = 0;
-
-	for (FLightVolumeOctree::TConstIterator<> NodeIt(HighQualityLightmapOctree); NodeIt.HasPendingNodes(); NodeIt.Advance())
-	{
-		const FLightVolumeOctree::FNode& CurrentNode = NodeIt.GetCurrentNode();
-		NodeBytes += sizeof(FLightVolumeOctree::FNode);
-		NodeBytes += CurrentNode.GetElements().GetAllocatedSize();
-
-		FOREACH_OCTREE_CHILD_NODE(ChildRef)
-		{
-			if(CurrentNode.HasChild(ChildRef))
-			{
-				NodeIt.PushChild(ChildRef);
-			}
-		}
-	}
-
-	for (FLightVolumeOctree::TConstIterator<> NodeIt(LowQualityLightmapOctree); NodeIt.HasPendingNodes(); NodeIt.Advance())
-	{
-		const FLightVolumeOctree::FNode& CurrentNode = NodeIt.GetCurrentNode();
-		NodeBytes += sizeof(FLightVolumeOctree::FNode);
-		NodeBytes += CurrentNode.GetElements().GetAllocatedSize();
-
-		FOREACH_OCTREE_CHILD_NODE(ChildRef)
-		{
-			if(CurrentNode.HasChild(ChildRef))
-			{
-				NodeIt.PushChild(ChildRef);
-			}
-		}
-	}
-
-	return NodeBytes;
-}
-
 void FPrecomputedLightVolume::ApplyWorldOffset(const FVector& InOffset)
 {
+	/*
 	Bounds.Min+= InOffset;
 	Bounds.Max+= InOffset;
 	HighQualityLightmapOctree.ApplyOffset(InOffset);
 	LowQualityLightmapOctree.ApplyOffset(InOffset);
+	*/
 }

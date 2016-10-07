@@ -809,7 +809,7 @@ private:
 /** 
  * Enum that contains entries for the ways that material properties need to be compiled.
  * This 'inherits' from EMaterialProperty in the sense that all of its values start after the values in EMaterialProperty.
- * Each material property is compiled once for its usual shader frequency, determined by GetMaterialPropertyShaderFrequency(),
+ * Each material property is compiled once for its usual shader frequency, determined by GetShaderFrequency(),
  * And then this enum contains entries for extra compiles of a material property with a different shader frequency.
  * This is necessary for material properties which need to be evaluated in multiple shader frequencies.
  */
@@ -829,29 +829,29 @@ class FMaterialExpressionKey
 public:
 	UMaterialExpression* Expression;
 	int32 OutputIndex;
-	/** An index used by some expressions to send multiple values across a single connection.*/
-	int32 MultiplexIndex;
+	/** Attribute currently being compiled through a MatterialAttributes connection. */
+	FGuid MaterialAttributeID;
 	// Expressions are different (e.g. View.PrevWorldViewOrigin) when using previous frame's values, value if from FHLSLMaterialTranslator::bCompilingPreviousFrame
 	bool bCompilingPreviousFrameKey;
 
 	FMaterialExpressionKey(UMaterialExpression* InExpression, int32 InOutputIndex) :
 		Expression(InExpression),
 		OutputIndex(InOutputIndex),
-		MultiplexIndex(INDEX_NONE),
+		MaterialAttributeID(FGuid(0,0,0,0)),
 		bCompilingPreviousFrameKey(false)
 	{}
 
-	FMaterialExpressionKey(UMaterialExpression* InExpression, int32 InOutputIndex, int32 InMultiplexIndex, bool bInCompilingPreviousFrameKey) :
+	FMaterialExpressionKey(UMaterialExpression* InExpression, int32 InOutputIndex, const FGuid& InMaterialAttributeID, bool bInCompilingPreviousFrameKey) :
 		Expression(InExpression),
 		OutputIndex(InOutputIndex),
-		MultiplexIndex(InMultiplexIndex),
+		MaterialAttributeID(InMaterialAttributeID),
 		bCompilingPreviousFrameKey(bInCompilingPreviousFrameKey)
 	{}
 
 
 	friend bool operator==(const FMaterialExpressionKey& X, const FMaterialExpressionKey& Y)
 	{
-		return X.Expression == Y.Expression && X.OutputIndex == Y.OutputIndex && X.MultiplexIndex == Y.MultiplexIndex && X.bCompilingPreviousFrameKey == Y.bCompilingPreviousFrameKey;
+		return X.Expression == Y.Expression && X.OutputIndex == Y.OutputIndex && X.MaterialAttributeID == Y.MaterialAttributeID && X.bCompilingPreviousFrameKey == Y.bCompilingPreviousFrameKey;
 	}
 
 	friend uint32 GetTypeHash(const FMaterialExpressionKey& ExpressionKey)
@@ -877,14 +877,6 @@ public:
 		FunctionCall(InFunctionCall)
 	{}
 };
-
-/**
- * @return The type of value expected for the given material property.
- */
-extern ENGINE_API EMaterialValueType GetMaterialPropertyType(EMaterialProperty Property);
-
-/** Returns the shader frequency corresponding to the given material input. */
-extern ENGINE_API EShaderFrequency GetMaterialPropertyShaderFrequency(EMaterialProperty Property);
 
 /** Returns whether the given expression class is allowed. */
 extern ENGINE_API bool IsAllowedExpressionType(UClass* Class, bool bMaterialFunction);
@@ -1038,6 +1030,7 @@ public:
 	virtual bool IsDefaultMaterial() const { return false; };
 	virtual int32 GetNumCustomizedUVs() const { return 0; }
 	virtual int32 GetBlendableLocation() const { return 0; }
+	virtual bool GetBlendableOutputAlpha() const { return false; }
 	/**
 	 * Should shaders compiled for this material be saved to disk?
 	 */
@@ -1159,7 +1152,7 @@ public:
 		return (ShaderType*)GetShader(&ShaderType::StaticType, VertexFactoryType);
 	}
 
-	ENGINE_API FShaderPipeline* GetShaderPipeline(class FShaderPipelineType* ShaderPipelineType, FVertexFactoryType* VertexFactoryType) const;
+	ENGINE_API FShaderPipeline* GetShaderPipeline(class FShaderPipelineType* ShaderPipelineType, FVertexFactoryType* VertexFactoryType, bool bFatalIfNotFound = true) const;
 
 	/** Returns a string that describes the material's usage for debugging purposes. */
 	virtual FString GetMaterialUsageDescription() const = 0;
@@ -1215,9 +1208,14 @@ protected:
 	/**
 	 * Entry point for compiling a specific material property.  This must call SetMaterialProperty. 
 	 * @param OverrideShaderFrequency SF_NumFrequencies to not override
-	 * @return cases to the proper type e.g. Compiler->ForceCast(Ret, GetMaterialPropertyType(Property));
+	 * @return cases to the proper type e.g. Compiler->ForceCast(Ret, GetValueType(Property));
 	 */
 	virtual int32 CompilePropertyAndSetMaterialProperty(EMaterialProperty Property, class FMaterialCompiler* Compiler, EShaderFrequency OverrideShaderFrequency = SF_NumFrequencies, bool bUsePreviousFrameTime = false) const = 0;
+	
+#if HANDLE_CUSTOM_OUTPUTS_AS_MATERIAL_ATTRIBUTES
+	/** Used to translate code for custom output attributes such as ClearCoatBottomNormal  */
+	virtual int32 CompileCustomAttribute(const FGuid& AttributeID, class FMaterialCompiler* Compiler) const {return INDEX_NONE;}
+#endif
 
 	/* Gather any UMaterialExpressionCustomOutput expressions they can be compiled in turn */
 	virtual void GatherCustomOutputExpressions(TArray<class UMaterialExpressionCustomOutput*>& OutCustomOutputs) const {}
@@ -1661,6 +1659,7 @@ public:
 	ENGINE_API virtual bool IsDefaultMaterial() const override;
 	ENGINE_API virtual int32 GetNumCustomizedUVs() const override;
 	ENGINE_API virtual int32 GetBlendableLocation() const override;
+	ENGINE_API virtual bool GetBlendableOutputAlpha() const override;
 	ENGINE_API virtual float GetRefractionDepthBiasValue() const override;
 	ENGINE_API virtual float GetMaxDisplacement() const override;
 	ENGINE_API virtual bool UseTranslucencyVertexFog() const override;
@@ -1699,6 +1698,11 @@ protected:
 
 	/** Entry point for compiling a specific material property.  This must call SetMaterialProperty. */
 	ENGINE_API virtual int32 CompilePropertyAndSetMaterialProperty(EMaterialProperty Property, class FMaterialCompiler* Compiler, EShaderFrequency OverrideShaderFrequency, bool bUsePreviousFrameTime) const override;
+#if HANDLE_CUSTOM_OUTPUTS_AS_MATERIAL_ATTRIBUTES
+	/** Used to translate code for custom output attributes such as ClearCoatBottomNormal  */
+	ENGINE_API virtual int32 CompileCustomAttribute(const FGuid& AttributeID, FMaterialCompiler* Compiler) const override;
+#endif
+
 	/* Gives the material a chance to compile any custom output nodes it has added */
 	ENGINE_API virtual void GatherCustomOutputExpressions(TArray<class UMaterialExpressionCustomOutput*>& OutCustomOutputs) const override;
 	ENGINE_API virtual bool HasVertexPositionOffsetConnected() const override;
@@ -1774,27 +1778,181 @@ public:
  */
 ENGINE_API bool DoesMaterialUseTexture(const UMaterialInterface* Material,const UTexture* CheckTexture);
 
-/**
- * @return Gets the index for a material property to its EMaterialProperty.
- */
-ENGINE_API EMaterialProperty GetMaterialPropertyFromInputOutputIndex(int32 Index);
-
-/**
- * @return Gets the material property for a particular I/O index into the material attributes nodes.
- */
-ENGINE_API int32 GetInputOutputIndexFromMaterialProperty(EMaterialProperty Property);
-
-/**
- * @return Gets the default (usually constant) for a material property
- */
-ENGINE_API int32 GetDefaultExpressionForMaterialProperty(FMaterialCompiler* Compiler, EMaterialProperty Property);
-
-/**
- * @return Gets the name of a property.
- */
-ENGINE_API FString GetNameOfMaterialProperty(EMaterialProperty Property);
-
 #if WITH_EDITORONLY_DATA
 /** TODO - This can be removed whenever VER_UE4_MATERIAL_ATTRIBUTES_REORDERING is no longer relevant. */
 ENGINE_API void DoMaterialAttributeReorder(FExpressionInput* Input, int32 UE4Ver);
 #endif // WITH_EDITORONLY_DATA
+
+/**
+ * Custom attribute blend functions
+ */
+typedef int32 (*MaterialAttributeBlendFunction)(FMaterialCompiler* Compiler, int32 A, int32 B, int32 Alpha);
+
+/**
+ * Attribute data describing a material property
+ */
+class FMaterialAttributeDefintion
+{
+public:
+	FMaterialAttributeDefintion(const FGuid& InGUID, const FString& InDisplayName, EMaterialProperty InProperty,
+		EMaterialValueType InValueType, const FVector4& InDefaultValue, EShaderFrequency InShaderFrequency,
+		int32 InTexCoordIndex = INDEX_NONE, bool bInIsHidden = false, MaterialAttributeBlendFunction InBlendFunction = nullptr);
+
+	int32 CompileDefaultValue(FMaterialCompiler* Compiler);
+
+	bool operator==(const FMaterialAttributeDefintion& Other) const
+	{
+		return (AttributeID == Other.AttributeID);
+	}
+
+	FGuid				AttributeID;
+	FString				DisplayName;
+	EMaterialProperty	Property;	
+	EMaterialValueType	ValueType;
+	FVector4			DefaultValue;
+	EShaderFrequency	ShaderFrequency;
+	int32				TexCoordIndex;
+
+	// Optional function pointer for custom blend behavior
+	MaterialAttributeBlendFunction BlendFunction;
+
+	// Hidden from auto-generated lists but valid for manual material creation
+	bool				bIsHidden;
+};
+
+/**
+ * Material property to attribute data mappings
+ */
+class FMaterialAttributeDefinitionMap
+{
+public:
+	FMaterialAttributeDefinitionMap()
+	: AttributeDDCString(TEXT(""))
+	, bIsInitialized(false)
+	{
+		AttributeMap.Empty(MP_MAX);
+		InitializeAttributeMap();
+	}
+
+	/** Compiles the default expression for a material attribute */
+	ENGINE_API static int32 CompileDefaultExpression(FMaterialCompiler* Compiler, EMaterialProperty Property)
+	{
+		FMaterialAttributeDefintion* Attribute = GMaterialPropertyAttributesMap.Find(Property);
+		return Attribute->CompileDefaultValue(Compiler);
+	}
+
+	/** Compiles the default expression for a material attribute */
+	ENGINE_API static int32 CompileDefaultExpression(FMaterialCompiler* Compiler, const FGuid& AttributeID)
+	{
+		FMaterialAttributeDefintion* Attribute = GMaterialPropertyAttributesMap.Find(AttributeID);
+		return Attribute->CompileDefaultValue(Compiler);
+	}
+
+	/** Returns the display name of a material attribute */
+	ENGINE_API static FString GetDisplayName(EMaterialProperty Property)
+	{
+		FMaterialAttributeDefintion* Attribute = GMaterialPropertyAttributesMap.Find(Property);
+		return Attribute->DisplayName;
+	}
+
+	/** Returns the display name of a material attribute */
+	ENGINE_API static FString GetDisplayName(const FGuid& AttributeID)
+	{
+		FMaterialAttributeDefintion* Attribute = GMaterialPropertyAttributesMap.Find(AttributeID);
+		return Attribute->DisplayName;
+	}
+
+	/** Returns the value type of a material attribute */
+	ENGINE_API static EMaterialValueType GetValueType(EMaterialProperty Property)
+	{
+		FMaterialAttributeDefintion* Attribute = GMaterialPropertyAttributesMap.Find(Property);
+		return Attribute->ValueType;
+	}
+
+	/** Returns the value type of a material attribute */
+	ENGINE_API static EMaterialValueType GetValueType(const FGuid& AttributeID)
+	{
+		FMaterialAttributeDefintion* Attribute = GMaterialPropertyAttributesMap.Find(AttributeID);
+		return Attribute->ValueType;
+	}
+	
+	/** Returns the shader frequency of a material attribute */
+	ENGINE_API static EShaderFrequency GetShaderFrequency(EMaterialProperty Property)
+	{
+		FMaterialAttributeDefintion* Attribute = GMaterialPropertyAttributesMap.Find(Property);
+		return Attribute->ShaderFrequency;
+	}
+
+	/** Returns the shader frequency of a material attribute */
+	ENGINE_API static EShaderFrequency GetShaderFrequency(const FGuid& AttributeID)
+	{
+		FMaterialAttributeDefintion* Attribute = GMaterialPropertyAttributesMap.Find(AttributeID);
+		return Attribute->ShaderFrequency;
+	}
+
+	/** Returns the attribute ID for a matching material property */
+	ENGINE_API static FGuid GetID(EMaterialProperty Property)
+	{
+		FMaterialAttributeDefintion* Attribute = GMaterialPropertyAttributesMap.Find(Property);
+		return Attribute->AttributeID;
+	}
+
+	/** Returns a the material property matching the specified attribute AttributeID */
+	ENGINE_API static EMaterialProperty GetProperty(const FGuid& AttributeID)
+	{
+		if (FMaterialAttributeDefintion* Attribute = GMaterialPropertyAttributesMap.Find(AttributeID))
+		{
+			return Attribute->Property;
+		}
+		return MP_MAX;
+	}
+
+	/** Returns the custom blend function of a material attribute */
+	ENGINE_API static MaterialAttributeBlendFunction GetBlendFunction(const FGuid& AttributeID)
+	{
+		FMaterialAttributeDefintion* Attribute = GMaterialPropertyAttributesMap.Find(AttributeID);
+		return Attribute->BlendFunction;
+	}
+
+	/** Returns a default attribute AttributeID */
+	ENGINE_API static FGuid GetDefaultID()
+	{
+		return GMaterialPropertyAttributesMap.Find(MP_MAX)->AttributeID;
+	}
+
+	/** Appends a hash of the property map intended for use with the DDC key */
+	ENGINE_API static void AppendDDCKeyString(FString& String);
+
+	/** Appends a new attribute definition to the custom output list */
+	ENGINE_API static void AddCustomAttribute(const FGuid& AttributeID, const FString& DisplayName, EMaterialValueType ValueType, const FVector4& DefaultValue, MaterialAttributeBlendFunction BlendFunction = nullptr);
+
+	/** Returns a list of registered custom attributes */
+	ENGINE_API static void GetCustomAttributeList(TArray<FMaterialAttributeDefintion>& CustomAttributeList);
+
+private:
+	// Customization class for displaying data in the material editor
+	friend class FMaterialAttributePropertyDetails;
+
+	/** Returns a list of display names and their associated GUIDs for material properties */
+	ENGINE_API static void GetDisplayNameToIDList(TArray<TPair<FString, FGuid>>& NameToIDList);
+
+	// Internal map management
+	void InitializeAttributeMap();
+
+	void Add(const FGuid& AttributeID, const FString& DisplayName, EMaterialProperty Property,
+		EMaterialValueType ValueType, const FVector4& DefaultValue, EShaderFrequency ShaderFrequency,
+		int32 TexCoordIndex = INDEX_NONE, bool bIsHidden = false, MaterialAttributeBlendFunction BlendFunction = nullptr);
+
+	FMaterialAttributeDefintion* Find(const FGuid& AttributeID);
+	FMaterialAttributeDefintion* Find(EMaterialProperty Property);
+
+	ENGINE_API static FMaterialAttributeDefinitionMap GMaterialPropertyAttributesMap;
+
+	TMap<EMaterialProperty, FMaterialAttributeDefintion>	AttributeMap; // Fixed map of compile-time definitions
+	TArray<FMaterialAttributeDefintion>						CustomAttributes; // Array of custom output definitions
+
+	FString													AttributeDDCString;
+	bool bIsInitialized;
+};
+
+

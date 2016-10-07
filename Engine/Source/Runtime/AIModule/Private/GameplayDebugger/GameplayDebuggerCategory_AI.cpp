@@ -331,7 +331,7 @@ void FGameplayDebuggerCategory_AI::DrawData(APlayerController* OwnerPC, FGamepla
 	}
 }
 
-FDebugRenderSceneProxy* FGameplayDebuggerCategory_AI::CreateSceneProxy(const UPrimitiveComponent* InComponent)
+FDebugRenderSceneProxy* FGameplayDebuggerCategory_AI::CreateDebugSceneProxy(const UPrimitiveComponent* InComponent, FDebugDrawDelegateHelper*& OutDelegateHelper)
 {
 	class FPathDebugRenderSceneProxy : public FDebugRenderSceneProxy
 	{
@@ -395,9 +395,15 @@ FDebugRenderSceneProxy* FGameplayDebuggerCategory_AI::CreateSceneProxy(const UPr
 		FPathDebugRenderSceneProxy* DebugSceneProxy = new FPathDebugRenderSceneProxy(InComponent, ViewFlagName);
 		DebugSceneProxy->Lines = Lines;
 		DebugSceneProxy->Meshes = Meshes;
+
+		auto* OutDelegateHelper2 = new FDebugDrawDelegateHelper();
+		OutDelegateHelper2->InitDelegateHelper(DebugSceneProxy);
+		OutDelegateHelper = OutDelegateHelper2;
+
 		return DebugSceneProxy;
 	}
 
+	OutDelegateHelper = nullptr;
 	return nullptr;
 }
 

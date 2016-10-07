@@ -312,6 +312,32 @@ FVulkanDepthStencilState::FVulkanDepthStencilState(const FDepthStencilStateIniti
 
 	DepthStencilState.stencilTestEnable = (Initializer.bEnableFrontFaceStencil || Initializer.bEnableBackFaceStencil) ? VK_TRUE : VK_FALSE;
 
+#if VULKAN_USE_NEW_RENDERPASSES
+	// Front
+	DepthStencilState.back.failOp = StencilOpToVulkan(Initializer.FrontFaceStencilFailStencilOp);
+	DepthStencilState.back.passOp = StencilOpToVulkan(Initializer.FrontFacePassStencilOp);
+	DepthStencilState.back.depthFailOp = StencilOpToVulkan(Initializer.FrontFaceDepthFailStencilOp);
+	DepthStencilState.back.compareOp = CompareOpToVulkan(Initializer.FrontFaceStencilTest);
+	DepthStencilState.back.compareMask = Initializer.StencilReadMask;
+	DepthStencilState.back.writeMask = Initializer.StencilWriteMask;
+	DepthStencilState.back.reference = 0;
+
+	if (Initializer.bEnableBackFaceStencil)
+	{
+		// Back
+		DepthStencilState.front.failOp = StencilOpToVulkan(Initializer.BackFaceStencilFailStencilOp);
+		DepthStencilState.front.passOp = StencilOpToVulkan(Initializer.BackFacePassStencilOp);
+		DepthStencilState.front.depthFailOp = StencilOpToVulkan(Initializer.BackFaceDepthFailStencilOp);
+		DepthStencilState.front.compareOp = CompareOpToVulkan(Initializer.BackFaceStencilTest);
+		DepthStencilState.front.compareMask = Initializer.StencilReadMask;
+		DepthStencilState.front.writeMask = Initializer.StencilWriteMask;
+		DepthStencilState.front.reference = 0;
+	}
+	else
+	{
+		DepthStencilState.front = DepthStencilState.back;
+	}
+#else
 	// Front
 	DepthStencilState.front.failOp = StencilOpToVulkan(Initializer.FrontFaceStencilFailStencilOp);
 	DepthStencilState.front.passOp = StencilOpToVulkan(Initializer.FrontFacePassStencilOp);
@@ -336,7 +362,7 @@ FVulkanDepthStencilState::FVulkanDepthStencilState(const FDepthStencilStateIniti
 	{
 		DepthStencilState.back = DepthStencilState.front;
 	}
-
+#endif
 
 	// set the keys
 	FrontStencilKey = StencilStateToKey(DepthStencilState.front);
@@ -348,8 +374,7 @@ uint8 FVulkanDepthStencilState::StencilStateToKey(const VkStencilOpState& State)
 	// get the unique key
 	uint64 StencilBitMask =
 		(State.failOp << 0) | (State.passOp << 3) | (State.depthFailOp << 6) |
-		(State.compareOp << 9) | (State.compareMask << 12) | (State.writeMask << 20) |
-		(State.reference << 28);
+		(State.compareOp << 9) | (State.compareMask << 12) | (State.writeMask << 20);
 
 	uint8* Key = StencilSettingsToUniqueKeyMap.Find(StencilBitMask);
 	if (Key == NULL)

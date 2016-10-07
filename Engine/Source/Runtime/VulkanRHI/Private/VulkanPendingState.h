@@ -15,14 +15,65 @@ typedef uint32 FStateKey;
 class FVulkanPendingState
 {
 public:
+	FVulkanPendingState(FVulkanDevice* InDevice);
+	virtual ~FVulkanPendingState();
+
+	inline FVulkanGlobalUniformPool& GetGlobalUniformPool()
+	{
+		return *GlobalUniformPool;
+	}
+
+protected:
+	FVulkanDevice* Device;
+
+	FVulkanGlobalUniformPool* GlobalUniformPool;
+
+	friend class FVulkanCommandListContext;
+};
+
+class FVulkanPendingComputeState : public FVulkanPendingState
+{
+public:
+	FVulkanPendingComputeState(FVulkanDevice* InDevice)
+		: FVulkanPendingState(InDevice)
+	{
+	}
+
+	inline void SetComputeShader(FVulkanComputeShader* InComputeShader)
+	{
+		TRefCountPtr<FVulkanComputeShaderState>* Found = ComputeShaderStates.Find(InComputeShader);
+		FVulkanComputeShaderState* CSS = nullptr;
+		if (Found)
+		{
+			CSS = *Found;
+		}
+		else
+		{
+			CSS = new FVulkanComputeShaderState(Device, InComputeShader);
+			ComputeShaderStates.Add(InComputeShader, CSS);
+		}
+
+		CSS->ResetState();
+		CurrentState.CSS = CSS;
+	}
+
+	void PrepareDispatch(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* CmdBuffer);
+
+private:
+	FVulkanComputePipelineState CurrentState;
+	TMap<FVulkanComputeShader*, TRefCountPtr<FVulkanComputeShaderState>> ComputeShaderStates;
+
+	friend class FVulkanCommandListContext;
+};
+
+class FVulkanPendingGfxState : public FVulkanPendingState
+{
+public:
 	typedef TMap<FStateKey, FVulkanRenderPass*> FMapRenderPass;
 	typedef TMap<FStateKey, TArray<FVulkanFramebuffer*> > FMapFrameBufferArray;
 
-	FVulkanPendingState(FVulkanDevice* InDevice);
-
-	~FVulkanPendingState();
-
-    FVulkanGlobalUniformPool& GetGlobalUniformPool();
+	FVulkanPendingGfxState(FVulkanDevice* InDevice);
+	virtual ~FVulkanPendingGfxState();
 
 #if !VULKAN_USE_NEW_RENDERPASSES
 	void SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& InRTInfo);
@@ -73,11 +124,9 @@ public:
 	{
 		return CurrentState.FrameBuffer;
 	}
-#endif
 
 	void NotifyDeletedRenderTarget(const FVulkanTextureBase* Texture);
 
-#if !VULKAN_USE_NEW_RENDERPASSES
 	inline void UpdateRenderPass(FVulkanCmdBuffer* CmdBuffer)
 	{
 		//#todo-rco: Don't test here, move earlier to SetRenderTarget
@@ -108,9 +157,9 @@ public:
 		PendingStreams[StreamIndex].Stream2  = nullptr;
 		PendingStreams[StreamIndex].Stream3  = VK_NULL_HANDLE;
 		PendingStreams[StreamIndex].BufferOffset = Offset;
-		if (CurrentState.Shader)
+		if (CurrentState.BSS)
 		{
-			CurrentState.Shader->MarkDirtyVertexStreams();
+			CurrentState.BSS->MarkDirtyVertexStreams();
 		}
 	}
 
@@ -120,9 +169,9 @@ public:
 		PendingStreams[StreamIndex].Stream2 = VertexBuffer;
 		PendingStreams[StreamIndex].Stream3  = VK_NULL_HANDLE;
 		PendingStreams[StreamIndex].BufferOffset = Offset;
-		if (CurrentState.Shader)
+		if (CurrentState.BSS)
 		{
-			CurrentState.Shader->MarkDirtyVertexStreams();
+			CurrentState.BSS->MarkDirtyVertexStreams();
 		}
 	}
 
@@ -132,9 +181,9 @@ public:
 		PendingStreams[StreamIndex].Stream2 = nullptr;
 		PendingStreams[StreamIndex].Stream3  = InBuffer;
 		PendingStreams[StreamIndex].BufferOffset = Offset;
-		if (CurrentState.Shader)
+		if (CurrentState.BSS)
 		{
-			CurrentState.Shader->MarkDirtyVertexStreams();
+			CurrentState.BSS->MarkDirtyVertexStreams();
 		}
 	}
 
@@ -157,26 +206,21 @@ public:
 private:
 #if !VULKAN_USE_NEW_RENDERPASSES
 	FVulkanRenderPass* GetOrCreateRenderPass(const FVulkanRenderTargetLayout& RTLayout);
+	FVulkanFramebuffer* GetOrCreateFramebuffer(const FRHISetRenderTargetsInfo& RHIRTInfo, const FVulkanRenderTargetLayout& RTInfo, const FVulkanRenderPass& RenderPass);
 #endif
-	FVulkanFramebuffer* GetOrCreateFramebuffer(const FRHISetRenderTargetsInfo& RHIRTInfo,
-		const FVulkanRenderTargetLayout& RTInfo, const FVulkanRenderPass& RenderPass);
 
 #if !VULKAN_USE_NEW_RENDERPASSES
 	bool NeedsToSetRenderTarget(const FRHISetRenderTargetsInfo& InRTInfo);
 #endif
 
 private:
-	FVulkanDevice* Device;
-
 #if !VULKAN_USE_NEW_RENDERPASSES
 	bool bBeginRenderPass;
 	bool bChangeRenderTarget;
 #endif
 	bool bScissorEnable;
 
-	FVulkanGlobalUniformPool* GlobalUniformPool;
-
-	FVulkanPipelineState CurrentState;
+	FVulkanGfxPipelineState CurrentState;
 
 #if !VULKAN_USE_NEW_RENDERPASSES
 	//@TODO: probably needs to go somewhere else
@@ -190,14 +234,16 @@ private:
 
 	// Resources caching
 	FMapRenderPass RenderPassMap;
-#endif
 	FMapFrameBufferArray FrameBufferMap;
+#endif
 
 	FVertexStream PendingStreams[MaxVertexElementCount];
 
 	// running key of the current pipeline state
 	FVulkanPipelineGraphicsKey CurrentKey;
 
+#if !VULKAN_USE_NEW_RENDERPASSES
 	// bResetMap true if only reset the map, false to free the map's memory
 	void DestroyFrameBuffers(bool bResetMap);
+#endif
 };

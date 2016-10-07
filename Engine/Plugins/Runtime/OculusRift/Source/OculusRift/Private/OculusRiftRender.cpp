@@ -57,7 +57,7 @@ void FViewExtension::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& 
 		const int ViewportSizeY = (ViewFamily.RenderTarget->GetRenderTargetTexture()) ? 
 			ViewFamily.RenderTarget->GetRenderTargetTexture()->GetSizeY() : ViewFamily.RenderTarget->GetSizeXY().Y;
 		RHICmdList.SetViewport(GapMinX, 0, 0, GapMaxX, ViewportSizeY, 1.0f);
-		RHICmdList.Clear(true, FLinearColor::Black, false, 0, false, 0, FIntRect());
+		RHICmdList.ClearColorTexture(ViewFamily.RenderTarget->GetRenderTargetTexture(), FLinearColor::Black, FIntRect());
 	}
 
 	check(ViewFamily.RenderTarget->GetRenderTargetTexture());
@@ -240,7 +240,7 @@ void FCustomPresent::CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdLi
 		if (bNoAlphaWrite)
 		{
 			// for quads, write RGB, RGB = src.rgb * 1 + dst.rgb * 0
-			RHICmdList.Clear(true, FLinearColor(0.0f, 0.0f, 0.0f, 1.0f), false, 0.0f, false, 0, FIntRect(0, 0, 0, 0));
+			RHICmdList.ClearColorTexture(DstTexture, FLinearColor(0.0f, 0.0f, 0.0f, 1.0f), FIntRect(0, 0, 0, 0));
 			RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_Zero, BO_Add, BF_One, BF_Zero>::GetRHI());
 		}
 		else
@@ -253,7 +253,7 @@ void FCustomPresent::CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdLi
 	{
 		if (bNoAlphaWrite)
 		{
-			RHICmdList.Clear(true, FLinearColor(1.0f, 1.0f, 1.0f, 1.0f), false, 0.0f, false, 0, FIntRect(0, 0, 0, 0));
+			RHICmdList.ClearColorTexture(DstTexture, FLinearColor(1.0f, 1.0f, 1.0f, 1.0f), FIntRect(0, 0, 0, 0));
 			RHICmdList.SetBlendState(TStaticBlendState<CW_RGB>::GetRHI());
 		}
 		else
@@ -384,7 +384,7 @@ void FOculusRiftHMD::RenderTexture_RenderThread(class FRHICommandListImmediate& 
 			if( DstViewRect != BackBufferRect )
 			{
 				SetRenderTarget(RHICmdList, BackBuffer, FTextureRHIRef());
-				RHICmdList.Clear(true, FLinearColor(0.0f, 0.0f, 0.0f, 1.0f), false, 0.0f, false, 0, DstViewRect);
+				RHICmdList.ClearColorTexture(BackBuffer, FLinearColor(0.0f, 0.0f, 0.0f, 1.0f), DstViewRect);
 			}
 
 			pCustomPresent->CopyTexture_RenderThread(RHICmdList, BackBuffer, SrcTexture, SrcTexture->GetTexture2D()->GetSizeX(), SrcTexture->GetTexture2D()->GetSizeY(), DstViewRect, SrcViewRect, false, false);

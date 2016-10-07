@@ -191,7 +191,7 @@ static FSceneView& CreateSceneView( FSceneViewFamilyContext& ViewFamilyContext, 
 	ViewFamilyContext.Views.Add( View );
 
 	/** The view transform, starting from world-space points translated by -ViewOrigin. */
-	FMatrix EffectiveTranslatedViewMatrix = FTranslationMatrix(-View->ViewMatrices.PreViewTranslation) * View->ViewMatrices.ViewMatrix;
+	FMatrix EffectiveTranslatedViewMatrix = FTranslationMatrix(-View->ViewMatrices.GetPreViewTranslation()) * View->ViewMatrices.GetViewMatrix();
 
 	const FIntPoint BufferSize = BackBuffer.GetSizeXY();
 
@@ -203,12 +203,12 @@ static FSceneView& CreateSceneView( FSceneViewFamilyContext& ViewFamilyContext, 
 		BufferSize,
 		ViewRect,
 		EffectiveTranslatedViewMatrix, 
-		View->InvViewMatrix * FTranslationMatrix(View->ViewMatrices.PreViewTranslation),
+		View->ViewMatrices.GetInvViewMatrix() * FTranslationMatrix(View->ViewMatrices.GetPreViewTranslation()),
 		FViewMatrices(), 
 		FMatrix::Identity,
 		FMatrix::Identity);
 
-	ViewUniformShaderParameters.WorldViewOrigin = View->ViewMatrices.ViewOrigin;
+	ViewUniformShaderParameters.WorldViewOrigin = View->ViewMatrices.GetViewOrigin();
 
 	UpdateNoiseTextureParameters(ViewUniformShaderParameters);
 

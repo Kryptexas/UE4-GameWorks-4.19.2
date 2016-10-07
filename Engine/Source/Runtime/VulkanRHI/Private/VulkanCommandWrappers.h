@@ -65,6 +65,7 @@ namespace VulkanRHI
 	void DumpCmdClearAttachments(VkCommandBuffer CommandBuffer, uint32 AttachmentCount, const VkClearAttachment* Attachments, uint32 RectCount, const VkClearRect* Rects);
 	void DumpCmdClearColorImage(VkCommandBuffer CommandBuffer, VkImage Image, VkImageLayout ImageLayout, const VkClearColorValue* ColorValue, uint32 RangeCount, const VkImageSubresourceRange* Ranges);
 	void DumpCmdClearDepthStencilImage(VkCommandBuffer CommandBuffer, VkImage Image, VkImageLayout ImageLayout, const VkClearDepthStencilValue* DepthStencil, uint32 RangeCount, const VkImageSubresourceRange* Ranges);
+	void DumpQueuePresent(VkQueue Queue, const VkPresentInfoKHR* PresentInfo);
 #else
 	#define FlushDebugWrapperLog()
 	#define DevicePrintfBeginResult(d, x)
@@ -121,6 +122,7 @@ namespace VulkanRHI
 	#define DumpCmdClearAttachments(c, ac, a, rc, r)
 	#define DumpCmdClearColorImage(c, i, il, ds, rc, r)
 	#define DumpCmdClearDepthStencilImage(c, i, il, ds, rc, r)
+	#define DumpQueuePresent(q, i)
 #endif
 
 	FORCEINLINE_DEBUGGABLE VkResult  vkCreateInstance(const VkInstanceCreateInfo* CreateInfo, const VkAllocationCallbacks* Allocator, VkInstance* Instance)
@@ -1040,13 +1042,14 @@ namespace VulkanRHI
 		VkDeviceSize                                offset,
 		uint32                                    drawCount,
 		uint32                                    stride);
+#endif
+	static FORCEINLINE_DEBUGGABLE void  vkCmdDispatch(VkCommandBuffer CommandBuffer, uint32 X, uint32 Y, uint32 Z)
+	{
+		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdDispatch(X=%d, Y=%d Z=%d)"), X, Y, Z));
 
-	static FORCEINLINE_DEBUGGABLE void  vkCmdDispatch(
-		VkCommandBuffer                             commandBuffer,
-		uint32                                    x,
-		uint32                                    y,
-		uint32                                    z);
-
+		VULKANAPINAMESPACE::vkCmdDispatch(CommandBuffer, X, Y, Z);
+	}
+#if 0
 	static FORCEINLINE_DEBUGGABLE void  vkCmdDispatchIndirect(
 		VkCommandBuffer                             commandBuffer,
 		VkBuffer                                    Buffer,
@@ -1275,13 +1278,13 @@ namespace VulkanRHI
 
 		VkResult Result = VULKANAPINAMESPACE::vkAcquireNextImageKHR(Device, Swapchain, Timeout, Semaphore, Fence, ImageIndex);
 
-		PrintResultAndNamedHandle(Result, TEXT("ImageIndex"), ImageIndex);
+		PrintResultAndNamedHandle(Result, TEXT("ImageIndex"), *ImageIndex);
 		return Result;
 	}
 
 	static FORCEINLINE_DEBUGGABLE VkResult vkQueuePresentKHR(VkQueue Queue, const VkPresentInfoKHR* PresentInfo)
 	{
-		PrintfBeginResult(FString::Printf(TEXT("vkQueuePresentKHR(Queue=%p, Info=%p)[...]"), Queue, PresentInfo));
+		DumpQueuePresent(Queue, PresentInfo);
 
 		VkResult Result = VULKANAPINAMESPACE::vkQueuePresentKHR(Queue, PresentInfo);
 		PrintResult(Result);

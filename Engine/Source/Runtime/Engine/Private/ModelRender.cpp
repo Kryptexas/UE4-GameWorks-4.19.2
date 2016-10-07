@@ -555,11 +555,19 @@ private:
 
 		/** Initialization constructor. */
 		FElementInfo(const FModelElement& InModelElement)
-			: FLightCacheInterface(InModelElement.LightMap, InModelElement.ShadowMap)
-			, IrrelevantLights(InModelElement.IrrelevantLights)
+			: FLightCacheInterface(NULL, NULL)
 			, Bounds(InModelElement.BoundingBox)
 		{
-			const bool bHasStaticLighting = InModelElement.LightMap != nullptr || InModelElement.ShadowMap != nullptr;
+			const FMeshMapBuildData* MapBuildData = InModelElement.GetMeshMapBuildData();
+
+			if (MapBuildData)
+			{
+				SetLightMap(MapBuildData->LightMap);
+				SetShadowMap(MapBuildData->ShadowMap);
+				IrrelevantLights = MapBuildData->IrrelevantLights;
+			}
+
+			const bool bHasStaticLighting = GetLightMap() != nullptr || GetShadowMap() != nullptr;
 
 			// Determine the material applied to the model element.
 			Material = InModelElement.Material;

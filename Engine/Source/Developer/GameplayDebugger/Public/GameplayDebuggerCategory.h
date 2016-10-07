@@ -40,6 +40,7 @@ class UPrimitiveComponent;
 class UWorld;
 class APlayerController;
 class FDebugRenderSceneProxy;
+struct FDebugDrawDelegateHelper;
 
 /**
  * Single category of visual debugger tool
@@ -58,7 +59,7 @@ public:
 	virtual void DrawData(APlayerController* OwnerPC, FGameplayDebuggerCanvasContext& CanvasContext);
 
 	/** [LOCAL] creates a scene proxy for more advanced debug rendering */
-	virtual FDebugRenderSceneProxy* CreateSceneProxy(const UPrimitiveComponent* InComponent);
+	virtual FDebugRenderSceneProxy* CreateDebugSceneProxy(const UPrimitiveComponent* InComponent, FDebugDrawDelegateHelper*& OutDelegateHelper);
 
 	/** [LOCAL] called after successful replication of entire data pack to client */
 	virtual void OnDataPackReplicated(int32 DataPackId);

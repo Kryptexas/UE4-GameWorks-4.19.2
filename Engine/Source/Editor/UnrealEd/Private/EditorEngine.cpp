@@ -3093,7 +3093,6 @@ struct FConvertStaticMeshActorInfo
 	UStaticMesh*						StaticMesh;
 	USkeletalMesh*						SkeletalMesh;
 	TArray<UMaterialInterface*>			OverrideMaterials;
-	TArray<FGuid>						IrrelevantLights;
 	float								CachedMaxDrawDistance;
 	bool								CastShadow;
 
@@ -3116,7 +3115,7 @@ struct FConvertStaticMeshActorInfo
 	 * We don't want to simply copy all properties, because classes with different defaults will have
 	 * their defaults hosed by other types.
 	 */
-	bool bComponentPropsDifferFromDefaults[7];
+	bool bComponentPropsDifferFromDefaults[6];
 
 	AGroupActor* ActorGroup;
 
@@ -3145,7 +3144,6 @@ struct FConvertStaticMeshActorInfo
 		// Copy over component properties.
 		StaticMesh				= MeshComp->GetStaticMesh();
 		OverrideMaterials		= MeshComp->OverrideMaterials;
-		IrrelevantLights		= MeshComp->IrrelevantLights;
 		CachedMaxDrawDistance	= MeshComp->CachedMaxDrawDistance;
 		CastShadow				= MeshComp->CastShadow;
 
@@ -3175,11 +3173,10 @@ struct FConvertStaticMeshActorInfo
 		// Record which component properties differ from their defaults.
 		bComponentPropsDifferFromDefaults[0] = PropsDiffer( TEXT("Engine.StaticMeshComponent:StaticMesh"), MeshComp );
 		bComponentPropsDifferFromDefaults[1] = true; // Assume the materials array always differs.
-		bComponentPropsDifferFromDefaults[2] = true; // Assume the set of irrelevant lights always differs.
-		bComponentPropsDifferFromDefaults[3] = PropsDiffer( TEXT("Engine.PrimitiveComponent:CachedMaxDrawDistance"), MeshComp );
-		bComponentPropsDifferFromDefaults[4] = PropsDiffer( TEXT("Engine.PrimitiveComponent:CastShadow"), MeshComp );
-		bComponentPropsDifferFromDefaults[5] = PropsDiffer( TEXT("Engine.PrimitiveComponent:BodyInstance"), MeshComp );
-		bComponentPropsDifferFromDefaults[6] = bHasAnyVertexOverrideColors;	// Differs from default if there are any vertex override colors
+		bComponentPropsDifferFromDefaults[2] = PropsDiffer( TEXT("Engine.PrimitiveComponent:CachedMaxDrawDistance"), MeshComp );
+		bComponentPropsDifferFromDefaults[3] = PropsDiffer( TEXT("Engine.PrimitiveComponent:CastShadow"), MeshComp );
+		bComponentPropsDifferFromDefaults[4] = PropsDiffer( TEXT("Engine.PrimitiveComponent:BodyInstance"), MeshComp );
+		bComponentPropsDifferFromDefaults[5] = bHasAnyVertexOverrideColors;	// Differs from default if there are any vertex override colors
 	}
 
 	void SetToActor(AActor* Actor, UStaticMeshComponent* MeshComp)
@@ -3189,14 +3186,13 @@ struct FConvertStaticMeshActorInfo
 		// Set component properties.
 		if ( bComponentPropsDifferFromDefaults[0] ) MeshComp->SetStaticMesh(StaticMesh);
 		if ( bComponentPropsDifferFromDefaults[1] ) MeshComp->OverrideMaterials		= OverrideMaterials;
-		if ( bComponentPropsDifferFromDefaults[2] ) MeshComp->IrrelevantLights		= IrrelevantLights;
-		if ( bComponentPropsDifferFromDefaults[3] ) MeshComp->CachedMaxDrawDistance	= CachedMaxDrawDistance;
-		if ( bComponentPropsDifferFromDefaults[4] ) MeshComp->CastShadow			= CastShadow;
-		if ( bComponentPropsDifferFromDefaults[5] ) 
+		if ( bComponentPropsDifferFromDefaults[2] ) MeshComp->CachedMaxDrawDistance	= CachedMaxDrawDistance;
+		if ( bComponentPropsDifferFromDefaults[3] ) MeshComp->CastShadow			= CastShadow;
+		if ( bComponentPropsDifferFromDefaults[4] ) 
 		{
 			MeshComp->BodyInstance.CopyBodyInstancePropertiesFrom(&BodyInstance);
 		}
-		if ( bComponentPropsDifferFromDefaults[6] )
+		if ( bComponentPropsDifferFromDefaults[5] )
 		{
 			// Ensure the LODInfo has the right number of entries
 			MeshComp->SetLODDataCount( OverrideVertexColors.Num(), MeshComp->GetStaticMesh()->GetNumLODs() );
@@ -3256,11 +3252,10 @@ struct FConvertStaticMeshActorInfo
 		// Record which component properties differ from their defaults.
 		bComponentPropsDifferFromDefaults[0] = PropsDiffer( TEXT("Engine.SkinnedMeshComponent:SkeletalMesh"), MeshComp );
 		bComponentPropsDifferFromDefaults[1] = true; // Assume the materials array always differs.
-		bComponentPropsDifferFromDefaults[2] = true; // Assume the set of irrelevant lights always differs.
-		bComponentPropsDifferFromDefaults[3] = PropsDiffer( TEXT("Engine.PrimitiveComponent:CachedMaxDrawDistance"), MeshComp );
-		bComponentPropsDifferFromDefaults[4] = PropsDiffer( TEXT("Engine.PrimitiveComponent:CastShadow"), MeshComp );
-		bComponentPropsDifferFromDefaults[5] = PropsDiffer( TEXT("Engine.PrimitiveComponent:BodyInstance"), MeshComp );
-		bComponentPropsDifferFromDefaults[6] = false;	// Differs from default if there are any vertex override colors
+		bComponentPropsDifferFromDefaults[2] = PropsDiffer( TEXT("Engine.PrimitiveComponent:CachedMaxDrawDistance"), MeshComp );
+		bComponentPropsDifferFromDefaults[3] = PropsDiffer( TEXT("Engine.PrimitiveComponent:CastShadow"), MeshComp );
+		bComponentPropsDifferFromDefaults[4] = PropsDiffer( TEXT("Engine.PrimitiveComponent:BodyInstance"), MeshComp );
+		bComponentPropsDifferFromDefaults[5] = false;	// Differs from default if there are any vertex override colors
 
 		InternalGetAnimationData(MeshComp);
 	}
@@ -3272,9 +3267,9 @@ struct FConvertStaticMeshActorInfo
 		// Set component properties.
 		if ( bComponentPropsDifferFromDefaults[0] ) MeshComp->SkeletalMesh			= SkeletalMesh;
 		if ( bComponentPropsDifferFromDefaults[1] ) MeshComp->OverrideMaterials		= OverrideMaterials;
-		if ( bComponentPropsDifferFromDefaults[3] ) MeshComp->CachedMaxDrawDistance	= CachedMaxDrawDistance;
-		if ( bComponentPropsDifferFromDefaults[4] ) MeshComp->CastShadow			= CastShadow;
-		if ( bComponentPropsDifferFromDefaults[5] ) MeshComp->BodyInstance.CopyBodyInstancePropertiesFrom(&BodyInstance);
+		if ( bComponentPropsDifferFromDefaults[2] ) MeshComp->CachedMaxDrawDistance	= CachedMaxDrawDistance;
+		if ( bComponentPropsDifferFromDefaults[3] ) MeshComp->CastShadow			= CastShadow;
+		if ( bComponentPropsDifferFromDefaults[4] ) MeshComp->BodyInstance.CopyBodyInstancePropertiesFrom(&BodyInstance);
 
 		InternalSetAnimationData(MeshComp);
 	}
@@ -6218,7 +6213,7 @@ void UEditorEngine::UpdateAutoLoadProject()
 			TTypeFromString<uint8>::FromString(ComponentValues[i], *Components[i]);
 		}
 		
-		if(ComponentValues[0] < 10 || ComponentValues[1] < 9 || (ComponentValues[1] == 9 && ComponentValues[2] < 4))
+		if(ComponentValues[0] < 10 || ComponentValues[1] < 12 || (ComponentValues[1] == 12 && ComponentValues[2] < 0))
 		{
 			if(FSlateApplication::IsInitialized())
 			{
@@ -6231,6 +6226,22 @@ void UEditorEngine::UpdateAutoLoadProject()
 			else
 			{
 				UE_LOG(LogEditor, Warning, TEXT("Please update to the latest version of Mac OS X for best performance."));
+			}
+		}
+		
+		if(!FPlatformMisc::HasPlatformFeature(TEXT("Metal")))
+		{
+			if(FSlateApplication::IsInitialized())
+			{
+				FSuppressableWarningDialog::FSetupInfo Info(NSLOCTEXT("MessageDialog", "MessageMacOpenGLDeprecated","Support for running Unreal Engine 4 using OpenGL on macOS is deprecated and will be removed in a future release. Unreal Engine 4 may not render correctly and may run at substantially reduced performance."), NSLOCTEXT("MessageDialog", "TitleMacOpenGLDeprecated", "WARNING: OpenGL on macOS Deprecated"), TEXT("MacOpenGLDeprecated"), GEditorSettingsIni );
+				Info.ConfirmText = LOCTEXT( "OK", "OK");
+				Info.bDefaultToSuppressInTheFuture = true;
+				FSuppressableWarningDialog OSUpdateWarning( Info );
+				OSUpdateWarning.ShowModal();
+			}
+			else
+			{
+				UE_LOG(LogEditor, Warning, TEXT("Support for running Unreal Engine 4 using OpenGL on macOS is deprecated and will be removed in a future release. Unreal Engine 4 may not render correctly and may run at substantially reduced performance."));
 			}
 		}
 		

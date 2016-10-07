@@ -202,6 +202,16 @@ void FStreamingLevelCollectionModel::BindCommands()
 		FCanExecuteAction::CreateSP( this, &FStreamingLevelCollectionModel::AreAllSelectedLevelsEditable ),
 		FIsActionChecked::CreateSP( this, &FStreamingLevelCollectionModel::IsStreamingMethodChecked, ULevelStreamingAlwaysLoaded::StaticClass()));
 
+	ActionList.MapAction( Commands.SetLightingScenario_Enabled,
+		FExecuteAction::CreateSP( this, &FStreamingLevelCollectionModel::SetIsLightingScenario, true  ),
+		FCanExecuteAction::CreateSP( this, &FStreamingLevelCollectionModel::IsNewLightingScenarioState, true ),
+		FIsActionChecked::CreateSP( this, &FStreamingLevelCollectionModel::IsNewLightingScenarioState, false ));
+
+	ActionList.MapAction( Commands.SetLightingScenario_Disabled,
+		FExecuteAction::CreateSP( this, &FStreamingLevelCollectionModel::SetIsLightingScenario, false  ),
+		FCanExecuteAction::CreateSP( this, &FStreamingLevelCollectionModel::IsNewLightingScenarioState, false ),
+		FIsActionChecked::CreateSP( this, &FStreamingLevelCollectionModel::IsNewLightingScenarioState, true ));
+
 	//streaming volume
 	ActionList.MapAction( Commands.SelectStreamingVolumes,
 		FExecuteAction::CreateSP( this, &FStreamingLevelCollectionModel::SelectStreamingVolumes_Executed  ),
@@ -280,6 +290,14 @@ void FStreamingLevelCollectionModel::BuildHierarchyMenu(FMenuBuilder& InMenuBuil
 				FNewMenuDelegate::CreateRaw(this, &FStreamingLevelCollectionModel::FillSetStreamingMethodSubMenu ));
 		}
 
+		if (IsOneLevelSelected() && !GetSelectedLevels()[0]->IsPersistent())
+		{
+			InMenuBuilder.AddSubMenu( 
+				LOCTEXT("LevelsChangeLightingScenario", "Lighting Scenario"),
+				LOCTEXT("LevelsChangeLightingScenario_Tooltip", "Changes Lighting Scenario Status for the selected level"),
+				FNewMenuDelegate::CreateRaw(this, &FStreamingLevelCollectionModel::FillChangeLightingScenarioSubMenu ));
+		}
+
 		InMenuBuilder.AddMenuEntry(Commands.World_FindInContentBrowser);
 	}
 	InMenuBuilder.EndSection();
@@ -320,6 +338,13 @@ void FStreamingLevelCollectionModel::FillSetStreamingMethodSubMenu(FMenuBuilder&
 	const FLevelCollectionCommands& Commands = FLevelCollectionCommands::Get();
 	InMenuBuilder.AddMenuEntry( Commands.SetStreamingMethod_Blueprint, NAME_None, LOCTEXT("SetStreamingMethodBlueprintOverride", "Blueprint") );
 	InMenuBuilder.AddMenuEntry( Commands.SetStreamingMethod_AlwaysLoaded, NAME_None, LOCTEXT("SetStreamingMethodAlwaysLoadedOverride", "Always Loaded") );
+}
+
+void FStreamingLevelCollectionModel::FillChangeLightingScenarioSubMenu(FMenuBuilder& InMenuBuilder)
+{
+	const FLevelCollectionCommands& Commands = FLevelCollectionCommands::Get();
+	InMenuBuilder.AddMenuEntry( Commands.SetLightingScenario_Enabled, NAME_None, LOCTEXT("SetLightingScenarioEnabled", "Change to Lighting Scenario") );
+	InMenuBuilder.AddMenuEntry( Commands.SetLightingScenario_Disabled, NAME_None, LOCTEXT("SetLightingScenarioDisabled", "Change to regular Level") );
 }
 
 void FStreamingLevelCollectionModel::CustomizeFileMainMenu(FMenuBuilder& InMenuBuilder) const

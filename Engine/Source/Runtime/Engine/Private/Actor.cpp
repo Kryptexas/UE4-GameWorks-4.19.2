@@ -1056,6 +1056,8 @@ bool AActor::Modify( bool bAlwaysMarkDirty/*=true*/ )
 		bSavedToTransactionBuffer = RootComponent->Modify( bAlwaysMarkDirty ) || bSavedToTransactionBuffer;
 	}
 
+	ULevel* Level = GetLevel();
+
 	return bSavedToTransactionBuffer;
 }
 

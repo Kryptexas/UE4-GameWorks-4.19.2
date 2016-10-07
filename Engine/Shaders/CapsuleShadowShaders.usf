@@ -32,6 +32,16 @@ Buffer<float4> ShadowCapsuleShapes;
 
 #if LIGHT_SOURCE_MODE == LIGHT_SOURCE_FROM_CAPSULE
 Buffer<float4> LightDirectionData;
+
+void GetLightDirectionData(uint ShapeIndex, out float3 LightDirection, out float LightAngle, out float MinVisibility)
+{
+	float4 VectorValue = LightDirectionData[ShapeIndex];
+	LightDirection = VectorValue.xyz;
+	uint WInt = asuint(VectorValue.w);
+	LightAngle = f16tof32(WInt);
+	MinVisibility = f16tof32(WInt >> 16);
+}
+
 #endif
 
 bool SphereIntersectCone(float4 SphereCenterAndRadius, float3 ConeVertex, float3 ConeAxis, float ConeAngleCos, float ConeAngleSin)
@@ -319,9 +329,11 @@ uint CullCapsuleShapesToTile(
 	{
 		#if LIGHT_SOURCE_MODE == LIGHT_SOURCE_FROM_CAPSULE
 
-			float4 LightData = LightDirectionData[ShapeIndex];
-			float3 ConeAxis0 = LightData.xyz;
-			float LightAngle = LightData.w;
+			float3 ConeAxis0;
+			float LightAngle;
+			float Unused;
+			GetLightDirectionData(ShapeIndex, ConeAxis0, LightAngle, Unused);
+			
 			float ConeAngleCos0 = cos(LightAngle);
 			float ConeAngleSin0 = sin(LightAngle);
 
@@ -473,10 +485,10 @@ float ShadowConeTraceAgainstCulledCapsuleShapes(
 			ObjectIndex = ListObjectIndex;
 		}
 
+		float MinVisibility = 0.0f;
+
 		#if LIGHT_SOURCE_MODE == LIGHT_SOURCE_FROM_CAPSULE
-			float4 LightData = LightDirectionData[ObjectIndex];
-			UnitRayDirection = LightData.xyz;
-			LightAngle = LightData.w;
+			GetLightDirectionData(ObjectIndex, UnitRayDirection, LightAngle, MinVisibility);
 			AreaOfLight = 6.283185308f - 6.283185308f * cos(LightAngle);
 		#endif
 
@@ -555,6 +567,11 @@ float ShadowConeTraceAgainstCulledCapsuleShapes(
 		float DistanceFadeAlpha = saturate(DistanceToShadowSphere * InvMaxOcclusionDistance * 3 - 2);
 		ConeConeIntersection = lerp(ConeConeIntersection, 1, DistanceFadeAlpha);
 		
+		#if LIGHT_SOURCE_MODE != LIGHT_SOURCE_PUNCTUAL
+			// Apply to indirect shadows only
+			ConeConeIntersection = lerp(MinVisibility, 1, ConeConeIntersection);
+		#endif
+
 		ConeVisibility *= ConeConeIntersection;
 	}
 
@@ -570,7 +587,6 @@ float IndirectCapsuleSelfShadowingIntensity;
 uint DownsampleFactor;
 RWTexture2D<float2> RWShadowFactors;
 float MaxOcclusionDistance;
-float MinVisibility;
 
 uint2 TileDimensions;
 RWBuffer<uint> RWTileIntersectionCounts;
@@ -694,10 +710,6 @@ void CapsuleShadowingCS(
 	}
 #endif
 
-#if LIGHT_SOURCE_MODE != LIGHT_SOURCE_PUNCTUAL
-	// Apply to indirect shadows only
-	Visibility = lerp(MinVisibility, 1, Visibility);
-#endif
 	//Visibility = NumPixelIntersectingShapes / 20.0f;
 	//Visibility = bTileShouldComputeShadowing ? 1 : 0;
 

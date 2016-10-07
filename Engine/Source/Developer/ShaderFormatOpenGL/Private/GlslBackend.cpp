@@ -1,5 +1,5 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-// ..
+// .
 
 // This code is largely based on that in ir_print_glsl_visitor.cpp from
 // glsl-optimizer.
@@ -906,7 +906,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 		}
 
 		if (bBuiltinVariable &&
-			var->centroid == 0 && var->interpolation == 0 &&
+			var->centroid == 0 && (var->interpolation == 0 || strncmp(var->name, "gl_Layer", 3) == 0) &&
 			var->invariant == 0 && var->origin_upper_left == 0 &&
 			var->pixel_center_integer == 0)
 		{
@@ -1099,11 +1099,11 @@ class ir_gen_glsl_visitor : public ir_visitor
 					buffer,
 					"%s%s%s%s%s%s",
 					layout ? layout : layout_str[layout_bits],
+					var->mode != ir_var_temporary && var->mode != ir_var_auto ? interp_str[var->interpolation] : "",
 					var->mode != ir_var_temporary && var->mode != ir_var_auto ? centroid_str[var->centroid] : "",
 					var->mode != ir_var_temporary && var->mode != ir_var_auto ? invariant_str[var->invariant] : "",
 					patch_constant_str[var->is_patch_constant],
-					mode_str[var->mode],
-					var->mode != ir_var_temporary && var->mode != ir_var_auto ? interp_str[var->interpolation] : ""
+					mode_str[var->mode]
 					);
 
 				if (bUseGlobalUniformBufferWrapper)
@@ -3121,14 +3121,14 @@ public:
 					ralloc_asprintf_append(buffer, "in gl_PerVertex\n"
 										   "{\n"
 										   "\tvec4 gl_Position;\n"
-										   "\tfloat gl_ClipDistance[6];\n"
+										   "\tfloat gl_ClipDistance[];\n"
 										   "} gl_in[];\n"
 										   );
 				case vertex_shader:
 					ralloc_asprintf_append(buffer, "out gl_PerVertex\n"
 										   "{\n"
 										   "\tvec4 gl_Position;\n"
-										   "\tfloat gl_ClipDistance[6];\n"
+										   "\tfloat gl_ClipDistance[];\n"
 										   "};\n"
 										   );
 					break;
@@ -3136,13 +3136,13 @@ public:
 					ralloc_asprintf_append(buffer, "in gl_PerVertex\n"
 										   "{\n"
 										   "\tvec4 gl_Position;\n"
-										   "\tfloat gl_ClipDistance[6];\n"
+										   "\tfloat gl_ClipDistance[];\n"
 										   "} gl_in[gl_MaxPatchVertices];\n"
 										   );
 					ralloc_asprintf_append(buffer, "out gl_PerVertex\n"
 										   "{\n"
 										   "\tvec4 gl_Position;\n"
-										   "\tfloat gl_ClipDistance[6];\n"
+										   "\tfloat gl_ClipDistance[];\n"
 										   "} gl_out[];\n"
 										   );
 					break;
@@ -3150,13 +3150,13 @@ public:
 					ralloc_asprintf_append(buffer, "in gl_PerVertex\n"
 										   "{\n"
 										   "\tvec4 gl_Position;\n"
-										   "\tfloat gl_ClipDistance[6];\n"
+										   "\tfloat gl_ClipDistance[];\n"
 										   "} gl_in[gl_MaxPatchVertices];\n"
 										   );
 					ralloc_asprintf_append(buffer, "out gl_PerVertex\n"
 										   "{\n"
 										   "\tvec4 gl_Position;\n"
-										   "\tfloat gl_ClipDistance[6];\n"
+										   "\tfloat gl_ClipDistance[];\n"
 										   "};\n"
 										   );
 					break;
@@ -3977,16 +3977,25 @@ static ir_rvalue* GenShaderOutputSemantic(
 	if (Variable == NULL && Frequency == HSF_VertexShader)
 	{
 		const int PrefixLength = 15;
-		if (FCStringAnsi::Strnicmp(Semantic, "SV_ClipDistance", PrefixLength) == 0
-			&& Semantic[PrefixLength] >= '0'
-			&& Semantic[PrefixLength] <= '9')
+		if (FCStringAnsi::Strnicmp(Semantic, "SV_ClipDistance", PrefixLength) == 0)
 		{
-			int OutputIndex = Semantic[15] - '0';
-			Variable = new(ParseState)ir_variable(
-				glsl_type::float_type,
-				ralloc_asprintf(ParseState, "gl_ClipDistance[%d]", OutputIndex),
-				ir_var_out
-				);
+			int OutputIndex = -1;
+			if (Semantic[PrefixLength] >= '0' && Semantic[PrefixLength] <= '9')
+			{
+				OutputIndex = Semantic[15] - '0';
+			}
+			else if (Semantic[PrefixLength] == 0)
+			{
+				OutputIndex = 0;
+			}
+			if (OutputIndex != -1)
+			{
+				Variable = new(ParseState)ir_variable(
+					glsl_type::float_type,
+					ralloc_asprintf(ParseState, "gl_ClipDistance[%d]", OutputIndex),
+					ir_var_out
+					);
+			}
 		}
 	}
 

@@ -205,6 +205,11 @@ public:
 	/** @return whether currently only one level selected and it is editable */
 	bool IsSelectedLevelEditable() const;
 
+	/** @return whether currently only one level selected and a lighting scenario */
+	bool IsNewLightingScenarioState(bool bExistingState) const;
+
+	void SetIsLightingScenario(bool bNewLightingScenario);
+
 	/** @return whether any of the currently selected levels is dirty */
 	bool AreAnySelectedLevelsDirty() const;
 

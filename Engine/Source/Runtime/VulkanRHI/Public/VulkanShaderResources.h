@@ -71,18 +71,6 @@ public:
 		FMemory::Memzero(PackedUBTypeIndex);
 	}
 
-	enum EBindingType : uint16
-	{
-		TYPE_COMBINED_IMAGE_SAMPLER,
-		TYPE_SAMPLER_BUFFER,
-		TYPE_UNIFORM_BUFFER,
-		TYPE_PACKED_UNIFORM_BUFFER,
-		//TYPE_SAMPLER,
-		//TYPE_IMAGE,
-
-		TYPE_MAX,
-	};
-
 	struct FBindMap
 	{
 		FBindMap() :
@@ -95,7 +83,7 @@ public:
 		int16 EngineBindingIndex;	// Used to remap EngineBindingIndex -> VulkanBindingIndex
 	};
 
-	TArray<FBindMap> Bindings[TYPE_MAX];
+	TArray<FBindMap> Bindings[EVulkanBindingType::Count];
 	// For the packed UB bindings, what is the packed type index to use
 	uint8 PackedUBTypeIndex[CrossCompiler::PACKED_TYPEINDEX_MAX];
 
@@ -114,7 +102,7 @@ inline FArchive& operator<<(FArchive& Ar, FVulkanShaderSerializedBindings& Bindi
 {
 	Ar << Bindings.PackedUniformBuffers;
 	Ar << Bindings.PackedGlobalArrays;
-	for (int32 Index = 0; Index < FVulkanShaderSerializedBindings::TYPE_MAX; ++Index)
+	for (int32 Index = 0; Index < (int32)EVulkanBindingType::Count; ++Index)
 	{
 		Ar << Bindings.Bindings[Index];
 	}

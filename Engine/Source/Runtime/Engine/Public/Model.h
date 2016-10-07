@@ -10,6 +10,7 @@
 #include "LocalVertexFactory.h"
 #include "SceneTypes.h"
 #include "RawIndexBuffer.h"
+#include "Classes/Engine/MapBuildDataRegistry.h"
 
 struct FLightmassPrimitiveSettings;
 struct FStaticLightingVertex;
@@ -408,7 +409,7 @@ class UModel : public UObject
 	int32 NumIncompleteNodeGroups;
 
 	/** The level used to generate NodeGroups */
-	const ULevel* LightingLevel;
+	ULevel* LightingLevel;
 
 	/** Cached transform of the owner brush when the geometry was last built */
 	FVector OwnerLocationWhenLastBuilt;
@@ -538,12 +539,12 @@ public:
 	 * @param Level The level for this model
 	 * @param Lights The possible lights that will be cached in the NodeGroups
 	 */
-	ENGINE_API void GroupAllNodes(const ULevel* Level, const TArray<class ULightComponentBase*>& Lights);
+	ENGINE_API void GroupAllNodes(ULevel* Level, const TArray<class ULightComponentBase*>& Lights);
 
 	/**
 	 * Applies all of the finished lighting cached in the NodeGroups 
 	 */
-	void ApplyStaticLighting();
+	void ApplyStaticLighting(ULevel* LightingScenario);
 
 	/**
 	 * Apply world origin changes
@@ -586,13 +587,10 @@ public:
 	/** The nodes in the element. */
 	TArray<uint16> Nodes;
 
-	/** The light-map for this element. */
-	FLightMapRef LightMap;
+	FMeshMapBuildData* LegacyMapBuildData;
 
-	FShadowMapRef ShadowMap;
-
-	/** The statically irrelevant lights for this element. */
-	TArray<FGuid> IrrelevantLights;
+	/** Uniquely identifies this component's built map data. */
+	FGuid MapBuildDataId;
 
 	/** A pointer to the index buffer holding this element's indices. */
 	FIndexBuffer* IndexBuffer;
@@ -618,6 +616,8 @@ public:
 	ENGINE_API FModelElement(UModelComponent* InComponent,UMaterialInterface* InMaterial);
 	ENGINE_API FModelElement();
 	ENGINE_API virtual ~FModelElement();
+
+	ENGINE_API const FMeshMapBuildData* GetMeshMapBuildData() const;
 
 	/**
 	 * Serializer.

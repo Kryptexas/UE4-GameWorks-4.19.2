@@ -300,7 +300,7 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 			bAnyViewUsesTranslucentSurfaceLighting |= View.bTranslucentSurfaceLighting;
 		}
 
-		const bool bCullLightsToGrid = IsForwardShadingEnabled(FeatureLevel) || bAnyViewUsesTranslucentSurfaceLighting;
+		const bool bCullLightsToGrid = (IsForwardShadingEnabled(FeatureLevel) || bAnyViewUsesTranslucentSurfaceLighting) && ViewFamily.EngineShowFlags.DirectLighting;
 
 		FSimpleLightArray SimpleLights;
 
@@ -376,7 +376,7 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 						}
 
 						// Static shadowing uses ShadowMapChannel, dynamic shadows are packed into light attenuation using PreviewShadowMapChannel
-						const uint32 ShadowMapChannelMaskPacked =
+						uint32 ShadowMapChannelMaskPacked =
 							(ShadowMapChannel == 0 ? 1 : 0) |
 							(ShadowMapChannel == 1 ? 2 : 0) |
 							(ShadowMapChannel == 2 ? 4 : 0) |
@@ -386,7 +386,10 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 							(PreviewShadowMapChannel == 2 ? 64 : 0) |
 							(PreviewShadowMapChannel == 3 ? 128 : 0);
 
-						if (LightSceneInfoCompact.LightType == LightType_Point || LightSceneInfoCompact.LightType == LightType_Spot)
+						ShadowMapChannelMaskPacked |= LightSceneInfo->Proxy->GetLightingChannelMask() << 8;
+
+						if ((LightSceneInfoCompact.LightType == LightType_Point && ViewFamily.EngineShowFlags.PointLights)
+							|| (LightSceneInfoCompact.LightType == LightType_Spot && ViewFamily.EngineShowFlags.SpotLights))
 						{
 							ForwardLocalLightData.AddUninitialized(1);
 							FForwardLocalLightData& LightData = ForwardLocalLightData.Last();
@@ -402,10 +405,10 @@ void FDeferredShadingSceneRenderer::ComputeLightGrid(FRHICommandListImmediate& R
 							LightData.SpotAnglesAndSourceRadius = FVector4(SpotAngles.X, SpotAngles.Y, SourceRadius, SourceLength);
 
 							const FSphere BoundingSphere = LightSceneInfo->Proxy->GetBoundingSphere();
-							const float Distance = View.ViewMatrices.ViewMatrix.TransformPosition(BoundingSphere.Center).Z + BoundingSphere.W;
+							const float Distance = View.ViewMatrices.GetViewMatrix().TransformPosition(BoundingSphere.Center).Z + BoundingSphere.W;
 							FurthestLight = FMath::Max(FurthestLight, Distance);
 						}
-						else if (LightSceneInfoCompact.LightType == LightType_Directional)
+						else if (LightSceneInfoCompact.LightType == LightType_Directional && ViewFamily.EngineShowFlags.DirectionalLights)
 						{
 							GlobalLightData.HasDirectionalLight = 1;
 							GlobalLightData.DirectionalLightColor = LightColorAndFalloffExponent;
@@ -599,6 +602,12 @@ void FDeferredShadingSceneRenderer::RenderForwardShadingShadowProjections(FRHICo
 			const FLightSceneInfoCompact& LightSceneInfoCompact = *LightIt;
 			const FLightSceneInfo* const LightSceneInfo = LightSceneInfoCompact.LightSceneInfo;
 			FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightSceneInfo->Id];
+
+			const bool bIssueLightDrawEvent = VisibleLightInfo.ShadowsToProject.Num() > 0 || VisibleLightInfo.CapsuleShadowsToProject.Num() > 0;
+
+			FString LightNameWithLevel;
+			GetLightNameForDrawEvent(LightSceneInfo->Proxy, LightNameWithLevel);
+			SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventLightPass, bIssueLightDrawEvent, *LightNameWithLevel);
 
 			if (VisibleLightInfo.ShadowsToProject.Num() > 0)
 			{

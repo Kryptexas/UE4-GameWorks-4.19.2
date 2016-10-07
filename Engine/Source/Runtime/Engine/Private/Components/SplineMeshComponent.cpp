@@ -1191,12 +1191,8 @@ FStaticMeshStaticLightingMesh* USplineMeshComponent::AllocateStaticLightingMesh(
 }
 
 
-bool USplineMeshComponent::GetStreamingTextureFactors(float& OutWorldTexelFactor, float& OutWorldLightmapFactor) const
+float USplineMeshComponent::GetTextureStreamingTransformScale() const
 {
-	if (UStaticMeshComponent::GetStreamingTextureFactors(OutWorldTexelFactor, OutWorldLightmapFactor))
-	{
-		// We need to come up with a compensation factor for spline deformed meshes
-
 		float SplineDeformFactor = 1.f;
 
 		// We do this by looking at the ratio between current bounds (including deformation) and undeformed (straight from staticmesh)
@@ -1215,15 +1211,7 @@ bool USplineMeshComponent::GetStreamingTextureFactors(float& OutWorldTexelFactor
 			SplineDeformFactor = FMath::Max(SplineDeformFactor, Bounds.BoxExtent.Z / UndeformedBounds.BoxExtent.Z);
 		}
 
-		OutWorldTexelFactor *= SplineDeformFactor;
-		OutWorldLightmapFactor *= SplineDeformFactor;
-
-		return true;
-	}
-	else
-	{
-		return false;
-	}
+	return SplineDeformFactor * Super::GetTextureStreamingTransformScale();
 }
 
 #if WITH_EDITOR

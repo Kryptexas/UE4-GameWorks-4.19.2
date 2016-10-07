@@ -131,13 +131,13 @@ public:
 				const bool bIsWireframe = View->Family->EngineShowFlags.Wireframe;
 				// Determine the position of the source
 				const FVector SourcePosition = GetLocalToWorld().GetOrigin();
-				const FVector CameraToSource = View->ViewMatrices.ViewOrigin - SourcePosition;
+				const FVector CameraToSource = View->ViewMatrices.GetViewOrigin() - SourcePosition;
 				const float DistanceToSource = CameraToSource.Size();
 
-				const FVector CameraUp      = -View->InvViewProjectionMatrix.TransformVector(FVector(1.0f,0.0f,0.0f));
-				const FVector CameraRight   = -View->InvViewProjectionMatrix.TransformVector(FVector(0.0f,1.0f,0.0f));
-				const FVector CameraForward = -View->InvViewProjectionMatrix.TransformVector(FVector(0.0f,0.0f,1.0f));
-				const FMatrix WorldToLocal = GetLocalToWorld().InverseFast();
+				const FVector CameraUp      = -View->ViewMatrices.GetInvViewProjectionMatrix().TransformVector(FVector(1.0f,0.0f,0.0f));
+				const FVector CameraRight   = -View->ViewMatrices.GetInvViewProjectionMatrix().TransformVector(FVector(0.0f,1.0f,0.0f));
+				const FVector CameraForward = -View->ViewMatrices.GetInvViewProjectionMatrix().TransformVector(FVector(0.0f,0.0f,1.0f));
+				const FMatrix WorldToLocal	= GetLocalToWorld().InverseFast();
 				const FVector LocalCameraUp = WorldToLocal.TransformVector(CameraUp);
 				const FVector LocalCameraRight = WorldToLocal.TransformVector(CameraRight);
 				const FVector LocalCameraForward = WorldToLocal.TransformVector(CameraForward);
@@ -160,7 +160,7 @@ public:
 						}
 						
 						// Convert the size into world-space.
-						const float W = View->ViewProjectionMatrix.TransformPosition(SourcePosition).W;
+						const float W = View->ViewMatrices.GetViewProjectionMatrix().TransformPosition(SourcePosition).W;
 						const float AspectRatio = CameraRight.Size() / CameraUp.Size();
 						const float WorldSizeX = Element.bSizeIsInScreenSpace ? (SizeX               * W) : (SizeX / CameraRight.Size());
 						const float WorldSizeY = Element.bSizeIsInScreenSpace ? (SizeY * AspectRatio * W) : (SizeY / CameraUp.Size());

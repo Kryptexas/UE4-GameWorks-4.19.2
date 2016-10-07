@@ -77,21 +77,19 @@ static TAutoConsoleVariable<int32> CVarTriangleOrderOptimization(
 	TEXT("2: No triangle order optimization. (least efficient, debugging purposes only)"),
 	ECVF_Default);
 
-static TAutoConsoleVariable<int32> CVarUseSimplygon(
-	TEXT("r.UseSimplygon"),
-	1,
-	TEXT("Whether to use Simplygon.\n")
-	TEXT("0: Don't use Simplygon for anything\n")
-	TEXT("1: Use Simplygon where necessary (not for static mesh reduction)")
-	TEXT("2: Use Simplygon for everything (including static mesh reduction)"),
-	ECVF_Default);
+static FAutoConsoleVariable CVarMeshReductionModule(
+	TEXT("r.MeshReductionModule"),
+	TEXT("QuadricMeshReduction"),
+	TEXT("Name of what mesh reduction module to choose. If blank it chooses any that exist.\n")
+	);
 
 class FMeshUtilities : public IMeshUtilities
 {
 public:
 	/** Default constructor. */
 	FMeshUtilities()
-		: MeshReduction(NULL)
+		: StaticMeshReduction(NULL)
+		, SkeletalMeshReduction(NULL)
 		, MeshMerging(NULL)
 		, DistributedMeshMerging(NULL)
 		, Processor(NULL)
@@ -100,7 +98,9 @@ public:
 
 private:
 	/** Cached pointer to the mesh reduction interface. */
-	IMeshReduction* MeshReduction;
+	IMeshReduction* StaticMeshReduction;
+	/** Cached pointer to the mesh reduction interface. */
+	IMeshReduction* SkeletalMeshReduction;
 	/** Cached pointer to the mesh merging interface. */
 	IMeshMerging* MeshMerging;
 	/** Cached pointer to the distributed mesh merging interface. */
@@ -143,7 +143,7 @@ private:
 
 	virtual void GenerateSignedDistanceFieldVolumeData(
 		const FStaticMeshLODResources& LODModel,
-	class FQueuedThreadPool& ThreadPool,
+		class FQueuedThreadPool& ThreadPool,
 		const TArray<EBlendMode>& MaterialBlendModes,
 		const FBoxSphereBounds& Bounds,
 		float DistanceFieldResolutionScale,
@@ -154,7 +154,8 @@ private:
 	virtual bool BuildSkeletalMesh(FStaticLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, const TArray<FVertInfluence>& Influences, const TArray<FMeshWedge>& Wedges, const TArray<FMeshFace>& Faces, const TArray<FVector>& Points, const TArray<int32>& PointToOriginalMap, const MeshBuildOptions& BuildOptions = MeshBuildOptions(), TArray<FText> * OutWarningMessages = NULL, TArray<FName> * OutWarningNames = NULL) override;
 	bool BuildSkeletalMesh_Legacy(FStaticLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, const TArray<FVertInfluence>& Influences, const TArray<FMeshWedge>& Wedges, const TArray<FMeshFace>& Faces, const TArray<FVector>& Points, const TArray<int32>& PointToOriginalMap, bool bKeepOverlappingVertices = false, bool bComputeNormals = true, bool bComputeTangents = true, TArray<FText> * OutWarningMessages = NULL, TArray<FName> * OutWarningNames = NULL);
 
-	virtual IMeshReduction* GetMeshReductionInterface() override;
+	virtual IMeshReduction* GetStaticMeshReductionInterface() override;
+	virtual IMeshReduction* GetSkeletalMeshReductionInterface() override;
 	virtual IMeshMerging* GetMeshMergingInterface() override;
 	virtual void CacheOptimizeIndexBuffer(TArray<uint16>& Indices) override;
 	virtual void CacheOptimizeIndexBuffer(TArray<uint32>& Indices) override;
@@ -171,7 +172,7 @@ private:
 
 	virtual void CalcBoneVertInfos(USkeletalMesh* SkeletalMesh, TArray<FBoneVertInfo>& Infos, bool bOnlyDominant) override;
 
-	/**
+	/** 
 	 * Convert a set of mesh components in their current pose to a static mesh. 
 	 * @param	InMeshComponents		The mesh components we want to convert
 	 * @param	InRootTransform			The transform of the root of the mesh we want to output
@@ -725,7 +726,7 @@ void FMeshDistanceFieldAsyncTask::DoWork()
 
 void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
 	const FStaticMeshLODResources& LODModel,
-class FQueuedThreadPool& ThreadPool,
+	class FQueuedThreadPool& ThreadPool,
 	const TArray<EBlendMode>& MaterialBlendModes,
 	const FBoxSphereBounds& Bounds,
 	float DistanceFieldResolutionScale,
@@ -903,7 +904,7 @@ class FQueuedThreadPool& ThreadPool,
 
 void FMeshUtilities::GenerateSignedDistanceFieldVolumeData(
 	const FStaticMeshLODResources& LODModel,
-class FQueuedThreadPool& ThreadPool,
+	class FQueuedThreadPool& ThreadPool,
 	const TArray<EBlendMode>& MaterialBlendModes,
 	const FBoxSphereBounds& Bounds,
 	float DistanceFieldResolutionScale,
@@ -3230,67 +3231,6 @@ static void ComputeTangents_MikkTSpace(
 	check(RawMesh.WedgeTangentZ.Num() == NumWedges);
 }
 
-static void ComputeStreamingTextureFactors(
-	float* OutStreamingTextureFactors,
-	float* OutMaxStreamingTextureFactor,
-	const FRawMesh& Mesh,
-	const FVector& BuildScale
-	)
-{
-	int32 NumTexCoords = ComputeNumTexCoords(Mesh, MAX_STATIC_TEXCOORDS);
-	int32 NumFaces = Mesh.WedgeIndices.Num() / 3;
-	TArray<float> TexelRatios[MAX_STATIC_TEXCOORDS];
-	float MaxStreamingTextureFactor = 0.0f;
-	for (int32 FaceIndex = 0; FaceIndex < NumFaces; ++FaceIndex)
-	{
-		int32 Wedge0 = FaceIndex * 3 + 0;
-		int32 Wedge1 = FaceIndex * 3 + 1;
-		int32 Wedge2 = FaceIndex * 3 + 2;
-
-		const FVector& Pos0 = Mesh.GetWedgePosition(Wedge0) * BuildScale;
-		const FVector& Pos1 = Mesh.GetWedgePosition(Wedge1) * BuildScale;
-		const FVector& Pos2 = Mesh.GetWedgePosition(Wedge2) * BuildScale;
-		float	L1 = (Pos0 - Pos1).Size(),
-			L2 = (Pos0 - Pos2).Size();
-
-		for (int32 UVIndex = 0; UVIndex < NumTexCoords; UVIndex++)
-		{
-			FVector2D UV0 = Mesh.WedgeTexCoords[UVIndex][Wedge0];
-			FVector2D UV1 = Mesh.WedgeTexCoords[UVIndex][Wedge1];
-			FVector2D UV2 = Mesh.WedgeTexCoords[UVIndex][Wedge2];
-
-			float	T1 = (UV0 - UV1).Size(),
-				T2 = (UV0 - UV2).Size();
-
-			if (FMath::Abs(T1 * T2) > FMath::Square(SMALL_NUMBER))
-			{
-				const float TexelRatio = FMath::Max(L1 / T1, L2 / T2);
-				TexelRatios[UVIndex].Add(TexelRatio);
-
-				// Update max texel ratio
-				if (TexelRatio > MaxStreamingTextureFactor)
-				{
-					MaxStreamingTextureFactor = TexelRatio;
-				}
-			}
-		}
-	}
-
-	for (int32 UVIndex = 0; UVIndex < MAX_STATIC_TEXCOORDS; UVIndex++)
-	{
-		OutStreamingTextureFactors[UVIndex] = 0.0f;
-		if (TexelRatios[UVIndex].Num())
-		{
-			// Disregard upper 75% of texel ratios.
-			// This is to ignore backfacing surfaces or other non-visible surfaces that tend to map a small number of texels to a large surface.
-			TexelRatios[UVIndex].Sort(TGreater<float>());
-			float TexelRatio = TexelRatios[UVIndex][FMath::TruncToInt(TexelRatios[UVIndex].Num() * 0.75f)];
-			OutStreamingTextureFactors[UVIndex] = TexelRatio;
-		}
-	}
-	*OutMaxStreamingTextureFactor = MaxStreamingTextureFactor;
-}
-
 static void BuildDepthOnlyIndexBuffer(
 	TArray<uint32>& OutDepthIndices,
 	const TArray<FStaticMeshBuildVertex>& InVertices,
@@ -3855,16 +3795,6 @@ public:
 			}
 			LODModel.IndexBuffer.SetIndices(CombinedIndices, bNeeds32BitIndices ? EIndexBufferStride::Force32Bit : EIndexBufferStride::Force16Bit);
 
-			if (LODIndex == 0)
-			{
-				ComputeStreamingTextureFactors(
-					OutRenderData.StreamingTextureFactors,
-					&OutRenderData.MaxStreamingTextureFactor,
-					RawMesh,
-					LODBuildSettings[LODIndex].BuildScale3D
-					);
-			}
-
 			// Build the reversed index buffer.
 			if (InOutModels[0].BuildSettings.bBuildReversedIndexBuffer)
 			{
@@ -4020,18 +3950,16 @@ private:
 bool FMeshUtilities::BuildStaticMesh(FStaticMeshRenderData& OutRenderData, TArray<FStaticMeshSourceModel>& SourceModels, const FStaticMeshLODGroup& LODGroup)
 {
 	FStaticMeshUtilityBuilder Builder;
-	if (!Builder.GatherSourceMeshesPerLOD(SourceModels, MeshReduction))
+	if (!Builder.GatherSourceMeshesPerLOD(SourceModels, StaticMeshReduction))
 	{
 		return false;
 	}
 
-	OutRenderData.bReducedBySimplygon = false;
 	bool bWasReduced = false;
-	if (!Builder.ReduceLODs(SourceModels, LODGroup, MeshReduction, bWasReduced))
+	if (!Builder.ReduceLODs(SourceModels, LODGroup, StaticMeshReduction, bWasReduced))
 	{
 		return false;
 	}
-	OutRenderData.bReducedBySimplygon = (bWasReduced && bUsingSimplygon);
 
 	return Builder.GenerateRenderingMeshes(*this, OutRenderData, SourceModels);
 }
@@ -4039,13 +3967,13 @@ bool FMeshUtilities::BuildStaticMesh(FStaticMeshRenderData& OutRenderData, TArra
 bool FMeshUtilities::GenerateStaticMeshLODs(TArray<FStaticMeshSourceModel>& Models, const FStaticMeshLODGroup& LODGroup)
 {
 	FStaticMeshUtilityBuilder Builder;
-	if (!Builder.GatherSourceMeshesPerLOD(Models, MeshReduction))
+	if (!Builder.GatherSourceMeshesPerLOD(Models, StaticMeshReduction))
 	{
 		return false;
 	}
 
 	bool bWasReduced = false;
-	if (!Builder.ReduceLODs(Models, LODGroup, MeshReduction, bWasReduced))
+	if (!Builder.ReduceLODs(Models, LODGroup, StaticMeshReduction, bWasReduced))
 	{
 		return false;
 	}
@@ -6033,7 +5961,7 @@ void FMeshUtilities::CreateProxyMesh(const TArray<AActor*>& InActors, const stru
 		SlowTask.EnterProgressFrame(5.0f, LOCTEXT("CreateProxyMesh_LandscapeCulling", "Applying Landscape Culling"));
 
 		// Extract landscape proxies and cull volumes from the world
-		TArray<ALandscapeProxy*> LandscapeActors;	
+		TArray<ALandscapeProxy*> LandscapeActors;		
 		TArray<AMeshMergeCullingVolume*> CullVolumes;
 		
 		UWorld* InWorld = InActors[0]->GetWorld();
@@ -7164,8 +7092,8 @@ void FMeshUtilities::CalculateTextureCoordinateBoundsForRawMesh(const FRawMesh& 
 				WedgeIndex = CachedWedgeIndex;
 				if (InRawMesh.WedgeTexCoords[UVIndex].Num())
 				{
-					for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++, WedgeIndex++)
-					{
+			for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++, WedgeIndex++)
+			{
 						OutBounds[MaterialIndex] += InRawMesh.WedgeTexCoords[UVIndex][WedgeIndex];
 					}
 				}
@@ -7302,7 +7230,7 @@ static void MergeFlattenedMaterials(TArray<struct FFlattenMaterial>& InMaterialL
 	FIntPoint AtlasTextureSize = OutMergedMaterial.GetPropertySize(EFlattenMaterialProperties::Diffuse);
 	FIntPoint ExportTextureSize = AtlasTextureSize / AtlasGridSize;
 	int32 AtlasNumSamples = AtlasTextureSize.X*AtlasTextureSize.Y;
-
+	
 
 	for (int32 PropertyIndex = 0; PropertyIndex < (int32)EFlattenMaterialProperties::NumFlattenMaterialProperties; ++PropertyIndex)
 	{
@@ -7338,7 +7266,7 @@ static void MergeFlattenedMaterials(TArray<struct FFlattenMaterial>& InMaterialL
 					SetTextureRect(SourceSamples[0], ExportTextureSize, TargetSamples.GetData(), AtlasTextureSize, AtlasTargetPos);
 				}
 				else
-				{	
+				{
 					FIntPoint PropertySize = FlatMaterial.GetPropertySize(Property);
 					PropertySize = ConditionalImageResize(PropertySize, ExportTextureSize, SourceSamples, false);
 					CopyTextureRect(SourceSamples.GetData(), ExportTextureSize, TargetSamples.GetData(), AtlasTextureSize, AtlasTargetPos);
@@ -7366,7 +7294,7 @@ static void MergeFlattenedMaterials(TArray<struct FFlattenMaterial>& InMaterialL
 			AtlasRowIdx++;
 		}
 
-		AtlasTargetPos = FIntPoint(AtlasColIdx*ExportTextureSize.X, AtlasRowIdx*ExportTextureSize.Y);	
+		AtlasTargetPos = FIntPoint(AtlasColIdx*ExportTextureSize.X, AtlasRowIdx*ExportTextureSize.Y);
 	}
 
 	// Check if some properties weren't populated with data (which means we can empty them out)
@@ -7396,7 +7324,7 @@ static void FlattenBinnedMaterials(TArray<struct FFlattenMaterial>& InMaterialLi
 		UVTransform.Scale = FVector2D::ZeroVector;
 		OutUVTransforms.Add(UVTransform);
 	}
-
+	
 	// Merge all material properties
 	for (int32 Index = 0; Index < (int32)EFlattenMaterialProperties::NumFlattenMaterialProperties; ++Index)
 	{
@@ -7413,9 +7341,9 @@ static void FlattenBinnedMaterials(TArray<struct FFlattenMaterial>& InMaterialLi
 			{
 				// Determine output size and offset
 				FFlattenMaterial& FlatMaterial = InMaterialList[MaterialIndex];
-
+								
 				if (FlatMaterial.DoesPropertyContainData(Property))
-				{
+				{					
 					FBox2D MaterialBox = InMaterialBoxes[MaterialIndex];
 					const FIntPoint& InputSize = FlatMaterial.GetPropertySize(Property);
 					TArray<FColor>& InputSamples = FlatMaterial.GetPropertySamples(Property);
@@ -7438,14 +7366,14 @@ static void FlattenBinnedMaterials(TArray<struct FFlattenMaterial>& InMaterialLi
 
 					bMaterialsWritten = true;
 				}
-			}
+				}
 
 			if (!bMaterialsWritten)
 			{
 				OutSamples.Empty();
 				OutMergedMaterial.SetPropertySize(Property, FIntPoint(0, 0));
 			}
-		}
+		}		
 	}
 }
 
@@ -7501,7 +7429,7 @@ void FMeshUtilities::MergeActors(
 }
 
 void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent*>& ComponentsToMerge, UWorld* World, const FMeshMergingSettings& InSettings, UPackage* InOuter, const FString& InBasePackageName, TArray<UObject*>& OutAssetsToSync, FVector& OutMergedActorLocation, const float ScreenAreaSize, bool bSilent /*= false*/) const
-{
+			{
 	FScopedSlowTask SlowTask(100.f, (LOCTEXT("MergeStaticMeshComponents_BuildingMesh", "Merging Static Mesh Components")));
 	SlowTask.MakeDialog();
 
@@ -7542,7 +7470,7 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 	NumMaxLOD = FMath::Min(NumMaxLOD, MAX_STATIC_MESH_LODS);
 
 	int32 BaseLODIndex = 0;
-	// Are we going to export a single LOD or not	
+	// Are we going to export a single LOD or not
 	if (InSettings.LODSelectionType == EMeshLODSelectionType::SpecificLOD && InSettings.SpecificLOD >= 0)
 	{
 		// Will export only one specified LOD as LOD0 for the merged mesh
@@ -7569,7 +7497,7 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 		// Retrieve the lowest available LOD level from the mesh 
 		int32 StartLODIndex = InSettings.LODSelectionType == EMeshLODSelectionType::CalculateLOD ? CalculatedLODIndex : FMath::Min(BaseLODIndex, StaticMeshComponent->GetStaticMesh()->SourceModels.Num() - 1);
 		int32 EndLODIndex = bMergeAllAvailableLODs ? FMath::Min(StaticMeshComponent->GetStaticMesh()->SourceModels.Num(), MAX_STATIC_MESH_LODS) : StartLODIndex + 1;
-		
+
 		SourceMeshes[MeshId].MaxLODExport = EndLODIndex - 1;
 
 		// Set export LOD index if we are exporting one specifically
@@ -7584,7 +7512,7 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 			TArray<int32> MeshMaterialMap;
 			// Retrieve and construct raw mesh from source meshes
 			SourceMeshes[MeshId].MeshLODData[LODIndex].RawMesh = new FRawMesh();
-			FRawMesh* RawMeshLOD = SourceMeshes[MeshId].MeshLODData[LODIndex].RawMesh;		
+			FRawMesh* RawMeshLOD = SourceMeshes[MeshId].MeshLODData[LODIndex].RawMesh;
 			if (ConstructRawMesh(StaticMeshComponent, LODIndex, InSettings.bBakeVertexDataToMesh || InSettings.bUseVertexDataForBakingMaterial, *RawMeshLOD, UniqueSections, MeshMaterialMap))
 			{
 				// Check if vertex colours should be propagated
@@ -7620,7 +7548,7 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 			}
 		}
 	}
-
+	
 	// Failed to retrieve static meshes/materials cannot merge anything
 	if (MaterialMap.Num() == 0)
 	{	
@@ -7675,7 +7603,7 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 	{
 		// Should merge flattened materials into one texture
 		SlowTask.EnterProgressFrame(30.0f, LOCTEXT("MergeStaticMeshComponents_BakingDownMaterials", "Rendering out Materials"));
-		
+
 		// Flatten Materials
 		TArray<FFlattenMaterial> FlattenedMaterials;
 		TArray<UMaterialInterface*> Materials;
@@ -7853,93 +7781,93 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 				MergedMesh.MeshLODData[TargetLODIndex].RawMesh = new FRawMesh();
 			}
 
-		// Merge vertex data from source mesh list into single mesh
+			// Merge vertex data from source mesh list into single mesh
 			const FRawMesh& SourceRawMesh = *SourceMeshes[SourceMeshIdx].MeshLODData[SourceLODIndex].RawMesh;
 
-		if (SourceRawMesh.VertexPositions.Num() == 0)
-		{
-			continue;
-		}
+			if (SourceRawMesh.VertexPositions.Num() == 0)
+			{
+				continue;
+			}
 
 			const TArray<int32> MaterialIndices = MaterialMap[FMeshIdAndLOD(SourceMeshIdx, SourceLODIndex)];
-		check(MaterialIndices.Num() > 0);
+			check(MaterialIndices.Num() > 0);
 
 			FRawMesh& TargetRawMesh = *MergedMesh.MeshLODData[TargetLODIndex].RawMesh;
-		TargetRawMesh.FaceSmoothingMasks.Append(SourceRawMesh.FaceSmoothingMasks);
+			TargetRawMesh.FaceSmoothingMasks.Append(SourceRawMesh.FaceSmoothingMasks);
 
 			if (InSettings.bMergeMaterials && !bMergeAllAvailableLODs)
 			{
 				TargetRawMesh.FaceMaterialIndices.AddZeroed(SourceRawMesh.FaceMaterialIndices.Num());
 			}
 			else
-		{
-			for (const int32 Index : SourceRawMesh.FaceMaterialIndices)
 			{
-				TargetRawMesh.FaceMaterialIndices.Add(MaterialIndices[Index]);
-			}
-		}
-
-		int32 IndicesOffset = TargetRawMesh.VertexPositions.Num();
-
-		for (int32 Index : SourceRawMesh.WedgeIndices)
-		{
-			TargetRawMesh.WedgeIndices.Add(Index + IndicesOffset);
-		}
-
-		for (FVector VertexPos : SourceRawMesh.VertexPositions)
-		{
-			TargetRawMesh.VertexPositions.Add(VertexPos - MergedAssetPivot);
-		}
-
-		TargetRawMesh.WedgeTangentX.Append(SourceRawMesh.WedgeTangentX);
-		TargetRawMesh.WedgeTangentY.Append(SourceRawMesh.WedgeTangentY);
-		TargetRawMesh.WedgeTangentZ.Append(SourceRawMesh.WedgeTangentZ);
-
-		// Deal with vertex colors
-		// Some meshes may have it, in this case merged mesh will be forced to have vertex colors as well
-			if (InSettings.bBakeVertexDataToMesh)
-		{
-				if (bWithVertexColors[SourceLODIndex] && SourceRawMesh.WedgeColors.Num())
-			{
-				TargetRawMesh.WedgeColors.Append(SourceRawMesh.WedgeColors);
-			}
-			else
-			{
-				// In case this source mesh does not have vertex colors, fill target with 0xFF
-				int32 ColorsOffset = TargetRawMesh.WedgeColors.Num();
-				int32 ColorsNum = SourceRawMesh.WedgeIndices.Num();
-				TargetRawMesh.WedgeColors.AddUninitialized(ColorsNum);
-				FMemory::Memset(&TargetRawMesh.WedgeColors[ColorsOffset], 0xFF, ColorsNum*TargetRawMesh.WedgeColors.GetTypeSize());
-			}
-		}
-
-
-		// Merge all other UV channels 
-		for (int32 ChannelIdx = 0; ChannelIdx < MAX_MESH_TEXTURE_COORDS; ++ChannelIdx)
-		{
-			// Whether this channel has data
-				if (bFlattenedOcuppiedUVChannels[ChannelIdx])
-			{
-				const TArray<FVector2D>& SourceChannel = SourceRawMesh.WedgeTexCoords[ChannelIdx];
-				TArray<FVector2D>& TargetChannel = TargetRawMesh.WedgeTexCoords[ChannelIdx];
-
-				// Whether source mesh has data in this channel
-				if (SourceChannel.Num())
+				for (const int32 Index : SourceRawMesh.FaceMaterialIndices)
 				{
-					TargetChannel.Append(SourceChannel);
+					TargetRawMesh.FaceMaterialIndices.Add(MaterialIndices[Index]);
 				}
+			}
+
+			int32 IndicesOffset = TargetRawMesh.VertexPositions.Num();
+
+			for (int32 Index : SourceRawMesh.WedgeIndices)
+			{
+				TargetRawMesh.WedgeIndices.Add(Index + IndicesOffset);
+			}
+
+			for (FVector VertexPos : SourceRawMesh.VertexPositions)
+			{
+				TargetRawMesh.VertexPositions.Add(VertexPos - MergedAssetPivot);
+			}
+
+			TargetRawMesh.WedgeTangentX.Append(SourceRawMesh.WedgeTangentX);
+			TargetRawMesh.WedgeTangentY.Append(SourceRawMesh.WedgeTangentY);
+			TargetRawMesh.WedgeTangentZ.Append(SourceRawMesh.WedgeTangentZ);
+
+			// Deal with vertex colors
+			// Some meshes may have it, in this case merged mesh will be forced to have vertex colors as well
+			if (InSettings.bBakeVertexDataToMesh)
+			{
+				if (bWithVertexColors[SourceLODIndex] && SourceRawMesh.WedgeColors.Num())
+				{
+					TargetRawMesh.WedgeColors.Append(SourceRawMesh.WedgeColors);
+				}	
 				else
 				{
-					// Fill with zero coordinates if source mesh has no data for this channel
-					const int32 TexCoordNum = SourceRawMesh.WedgeIndices.Num();
-					for (int32 CoordIdx = 0; CoordIdx < TexCoordNum; ++CoordIdx)
-					{
-						TargetChannel.Add(FVector2D::ZeroVector);
-					}
+					// In case this source mesh does not have vertex colors, fill target with 0xFF
+					int32 ColorsOffset = TargetRawMesh.WedgeColors.Num();
+					int32 ColorsNum = SourceRawMesh.WedgeIndices.Num();
+					TargetRawMesh.WedgeColors.AddUninitialized(ColorsNum);
+					FMemory::Memset(&TargetRawMesh.WedgeColors[ColorsOffset], 0xFF, ColorsNum*TargetRawMesh.WedgeColors.GetTypeSize());
 				}
 			}
+			
+
+			// Merge all other UV channels 
+			for (int32 ChannelIdx = 0; ChannelIdx < MAX_MESH_TEXTURE_COORDS; ++ChannelIdx)
+			{
+				// Whether this channel has data
+				if (bFlattenedOcuppiedUVChannels[ChannelIdx])
+				{
+					const TArray<FVector2D>& SourceChannel = SourceRawMesh.WedgeTexCoords[ChannelIdx];
+					TArray<FVector2D>& TargetChannel = TargetRawMesh.WedgeTexCoords[ChannelIdx];
+
+					// Whether source mesh has data in this channel
+					if (SourceChannel.Num())
+					{
+						TargetChannel.Append(SourceChannel);
+					}
+					else
+					{
+						// Fill with zero coordinates if source mesh has no data for this channel
+						const int32 TexCoordNum = SourceRawMesh.WedgeIndices.Num();
+						for (int32 CoordIdx = 0; CoordIdx < TexCoordNum; ++CoordIdx)
+						{
+							TargetChannel.Add(FVector2D::ZeroVector);
+						}
+					}
+				}
+			}			
 		}
-	}
 	}
 
 	// Populate mesh section map
@@ -7988,7 +7916,7 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 			continue;
 		}
 		else
-	{
+		{
 			LightMapUVChannel = ChannelIdx;
 			break;
 		}
@@ -8096,7 +8024,7 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 
 			// Bake rotation into verts of convex hulls, so they scale correctly after rotation
 			for (FKConvexElem& ConvexElem : StaticMesh->BodySetup->AggGeom.ConvexElems)
-			{
+				{
 				ConvexElem.BakeTransformToVerts();
 			}
 		}
@@ -8141,9 +8069,14 @@ bool FMeshUtilities::RemoveBonesFromMesh(USkeletalMesh* SkeletalMesh, int32 LODI
 Mesh reduction.
 ------------------------------------------------------------------------------*/
 
-IMeshReduction* FMeshUtilities::GetMeshReductionInterface()
+IMeshReduction* FMeshUtilities::GetStaticMeshReductionInterface()
 {
-	return MeshReduction;
+	return StaticMeshReduction;
+}
+
+IMeshReduction* FMeshUtilities::GetSkeletalMeshReductionInterface()
+{
+	return SkeletalMeshReduction;
 }
 
 /*------------------------------------------------------------------------------
@@ -8160,7 +8093,8 @@ Module initialization / teardown.
 
 void FMeshUtilities::StartupModule()
 {
-	check(MeshReduction == NULL);
+	check(StaticMeshReduction == NULL);
+	check(SkeletalMeshReduction == NULL);
 	check(MeshMerging == NULL);
 
 	Processor = new FProxyGenerationProcessor();
@@ -8172,46 +8106,40 @@ void FMeshUtilities::StartupModule()
 		TArray<FName> SwarmModuleNames;
 		FModuleManager::Get().FindModules(TEXT("*SimplygonSwarm"), SwarmModuleNames);
 
-
 		for (int32 Index = 0; Index < ModuleNames.Num(); Index++)
 		{
-			bool bIsSimplygon = ModuleNames[Index].GetPlainNameString().Contains(TEXT("Simplygon"));
-
-			if( CVarUseSimplygon.GetValueOnAnyThread() == 0 && bIsSimplygon )
-			{
-				continue;
-			}
-			if( CVarUseSimplygon.GetValueOnAnyThread() == 2 && !bIsSimplygon )
-			{
-				continue;
-			}
+			bool bIsChoosenModule = ModuleNames[Index].GetPlainNameString().Equals( CVarMeshReductionModule->GetString() );
 			
 			IMeshReductionModule& MeshReductionModule = FModuleManager::LoadModuleChecked<IMeshReductionModule>(ModuleNames[Index]);
 
 			// Look for MeshReduction interface
-			if (MeshReduction == NULL)
+			if( MeshReductionModule.GetStaticMeshReductionInterface() )
 			{
-				MeshReduction = MeshReductionModule.GetMeshReductionInterface();
-				if (MeshReduction)
+				if( bIsChoosenModule || StaticMeshReduction == NULL )
+			{
+					StaticMeshReduction = MeshReductionModule.GetStaticMeshReductionInterface();
+					UE_LOG(LogMeshUtilities, Log, TEXT("Using %s for automatic static mesh reduction"), *ModuleNames[Index].ToString());
+			}
+			}
+			
+			// Look for MeshReduction interface
+			if( MeshReductionModule.GetSkeletalMeshReductionInterface() )
+			{
+				if( bIsChoosenModule || SkeletalMeshReduction == NULL )
 				{
-					UE_LOG(LogMeshUtilities, Log, TEXT("Using %s for automatic mesh reduction"), *ModuleNames[Index].ToString());
+					SkeletalMeshReduction = MeshReductionModule.GetSkeletalMeshReductionInterface();
+					UE_LOG(LogMeshUtilities, Log, TEXT("Using %s for automatic skeletal mesh reduction"), *ModuleNames[Index].ToString());
 				}
 			}
 
 			// Look for MeshMerging interface
-			if (MeshMerging == NULL)
+			if( MeshReductionModule.GetMeshMergingInterface() )
+			{
+				if( bIsChoosenModule || MeshMerging == NULL )
 			{
 				MeshMerging = MeshReductionModule.GetMeshMergingInterface();
-				if (MeshMerging)
-				{
 					UE_LOG(LogMeshUtilities, Log, TEXT("Using %s for automatic mesh merging"), *ModuleNames[Index].ToString());
 				}
-			}
-
-			// Break early if both interfaces were found
-			if (MeshReduction && MeshMerging)
-			{
-				break;
 			}
 		}
 
@@ -8232,9 +8160,13 @@ void FMeshUtilities::StartupModule()
 			}
 		}
 
-		if (!MeshReduction)
+		if (!StaticMeshReduction)
 		{
-			UE_LOG(LogMeshUtilities, Log, TEXT("No automatic mesh reduction module available"));
+			UE_LOG(LogMeshUtilities, Log, TEXT("No automatic static mesh reduction module available"));
+		}
+		if (!SkeletalMeshReduction)
+		{
+			UE_LOG(LogMeshUtilities, Log, TEXT("No automatic skeletal mesh reduction module available"));
 		}
 
 		if (!MeshMerging)
@@ -8266,7 +8198,7 @@ void FMeshUtilities::StartupModule()
 	VersionString = FString::Printf(
 		TEXT("%s%s%s"),
 		MESH_UTILITIES_VER,
-		MeshReduction ? *MeshReduction->GetVersionString() : TEXT(""),
+		StaticMeshReduction ? *StaticMeshReduction->GetVersionString() : TEXT(""),
 		bUsingNvTriStrip ? TEXT("_NvTriStrip") : TEXT("")
 		);
 	bUsingSimplygon = VersionString.Contains(TEXT("Simplygon"));
@@ -8308,7 +8240,8 @@ void FMeshUtilities::ShutdownModule()
 	RemoveSkeletalMeshEditorToolbarExtender();
 	RemoveSkeletonEditorToolbarExtender();
 	FModuleManager::Get().OnModulesChanged().Remove(ModuleLoadedDelegateHandle);
-	MeshReduction = NULL;
+	StaticMeshReduction = NULL;
+	SkeletalMeshReduction = NULL;
 	MeshMerging = NULL;
 	VersionString.Empty();
 }

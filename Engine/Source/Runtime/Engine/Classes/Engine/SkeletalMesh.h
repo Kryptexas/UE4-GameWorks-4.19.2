@@ -12,6 +12,7 @@
 #include "Interfaces/Interface_CollisionDataProvider.h"
 #include "Interfaces/Interface_AssetUserData.h"
 #include "BoneIndices.h"
+#include "Components.h"
 #include "SkeletalMesh.generated.h"
 
 /** The maximum number of skeletal mesh LODs allowed. */
@@ -529,6 +530,10 @@ struct FSkeletalMaterial
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = SkeletalMesh)
 	FName						ImportedMaterialSlotName;
 #endif //WITH_EDITORONLY_DATA
+
+	/** Data used for texture streaming relative to each UV channels. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = SkeletalMesh)
+	FMeshUVChannelInfo			UVChannelData;
 };
 
 class FSkeletalMeshResource;
@@ -692,14 +697,6 @@ public:
 
 #endif // WITH_EDITORONLY_DATA
 
-	/**
-	 * Allows artists to adjust the distance where textures using UV 0 are streamed in/out.
-	 * 1.0 is the default, whereas a higher value increases the streamed-in resolution.
-	 * Value can be < 0 (from legcay content, or code changes)
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=TextureStreaming, meta=(ClampMin = 0))
-	float StreamingDistanceMultiplier;
-
 	UPROPERTY(Category=Mesh, BlueprintReadWrite)
 	TArray<UMorphTarget*> MorphTargets;
 
@@ -755,9 +752,6 @@ private:
 	/** Skeletal mesh source data */
 	class FSkeletalMeshSourceData* SourceData;
 
-	/** The cached streaming texture factors.  If the array doesn't have MAX_TEXCOORDS entries in it, the cache is outdated. */
-	TArray<float> CachedStreamingTextureFactors;
-
 	/** 
 	 *	Array of named socket locations, set up in editor and used as a shortcut instead of specifying 
 	 *	everything explicitly to AttachComponent in the SkeletalMeshComponent. 
@@ -783,13 +777,21 @@ public:
 	/** Release CPU access version of buffer */
 	void ReleaseCPUResources();
 
-	/**
-	 * Returns the scale dependent texture factor used by the texture streaming code.	
+	/** 
+	 * Update the material UV channel data used by the texture streamer. 
 	 *
-	 * @param RequestedUVIndex UVIndex to look at
-	 * @return scale dependent texture factor
+	 * @param bResetOverrides		True if overridden values should be reset.
 	 */
-	float GetStreamingTextureFactor( int32 RequestedUVIndex );
+	ENGINE_API void UpdateUVChannelData(bool bResetOverrides);
+
+	/**
+	 * Returns the UV channel data for a given material index. Used by the texture streamer.
+	 * This data applies to all lod-section using the same material.
+	 *
+	 * @param MaterialIndex		the material index for which to get the data for.
+	 * @return the data, or null if none exists.
+	 */
+	ENGINE_API const FMeshUVChannelInfo* GetUVChannelData(int32 MaterialIndex) const;
 
 	/**
 	 * Gets the center point from which triangles should be sorted, if any.

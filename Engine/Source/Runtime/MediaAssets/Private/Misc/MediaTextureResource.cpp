@@ -448,7 +448,7 @@ void FMediaTextureResource::InitDynamicRHI()
 	{
 		SetRenderTarget(CommandList, RenderTargetTextureRHI, FTextureRHIRef());
 		CommandList.SetViewport(0, 0, 0.0f, OutputDimensions.X, OutputDimensions.Y, 1.0f);
-		CommandList.Clear(true, BufferClearColor, false, 0.0f, false, 0, FIntRect());
+		CommandList.ClearColorTexture(RenderTargetTextureRHI, BufferClearColor, FIntRect());
 		CommandList.CopyToResolveTarget(TextureRHI, TextureRHI, true, FResolveParams());
 	}
 

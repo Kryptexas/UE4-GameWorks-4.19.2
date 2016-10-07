@@ -336,7 +336,7 @@ void UPhATEdSkeletalMeshComponent::DrawConstraint(int32 ConstraintIndex, const F
 	FTransform Con1Frame = SharedData->GetConstraintMatrix(ConstraintIndex, EConstraintFrame::Frame1, 1.f);
 	FTransform Con2Frame = SharedData->GetConstraintMatrix(ConstraintIndex, EConstraintFrame::Frame2, 1.f);
 
-	float ZoomFactor = FMath::Min<float>(View->ViewMatrices.ProjMatrix.M[0][0], View->ViewMatrices.ProjMatrix.M[1][1]);
+	float ZoomFactor = FMath::Min<float>(View->ViewMatrices.GetProjectionMatrix().M[0][0], View->ViewMatrices.GetProjectionMatrix().M[1][1]);
 	float DrawScale = View->Project(Con1Frame.GetTranslation()).W * (SharedData->EditorSimOptions->ConstraintDrawSize / ZoomFactor);
 
 	ConstraintSetup->DefaultInstance.DrawConstraint(PDI, 1.f, DrawScale, bDrawLimits, bDrawSelected, Con1Frame, Con2Frame, bDrawAsPoint);

@@ -17,5 +17,10 @@ public:
 	virtual FBoxSphereBounds CalcBounds(const FTransform &LocalToWorld) const override;
 	virtual void CreateRenderState_Concurrent() override;
 	virtual void DestroyRenderState_Concurrent() override;
+
+private:
+#if WITH_EDITOR
+	FDebugDrawDelegateHelper DebugDrawDelegateHelper;
+#endif
 };
 

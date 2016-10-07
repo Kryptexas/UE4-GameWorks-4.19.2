@@ -159,7 +159,7 @@ static bool MobileDetermineStaticMeshesCSMVisibilityState(FScene* Scene, FProjec
 {
 	FConvexVolume ViewFrustum;
 	FViewInfo* View = WholeSceneShadow->DependentView;
-	GetViewFrustumBounds(ViewFrustum, View->ViewMatrices.GetViewProjMatrix(), true);
+	GetViewFrustumBounds(ViewFrustum, View->ViewMatrices.GetViewProjectionMatrix(), true);
 	bool bFoundReceiver = false;
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_ShadowOctreeTraversal);
@@ -395,7 +395,7 @@ void FMobileSceneRenderer::BuildCombinedStaticAndCSMVisibilityState(FLightSceneI
 				}
 
 				FConvexVolume ViewFrustum;
-				GetViewFrustumBounds(ViewFrustum, View.ViewMatrices.GetViewProjMatrix(), true);
+				GetViewFrustumBounds(ViewFrustum, View.ViewMatrices.GetViewProjectionMatrix(), true);
 				FConvexVolume& ShadowReceiverFrustum = ProjectedShadowInfo->ReceiverFrustum;
 				FVector& PreShadowTranslation = ProjectedShadowInfo->PreShadowTranslation;
 

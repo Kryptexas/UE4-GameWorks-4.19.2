@@ -527,8 +527,8 @@ void FLayerManager::GetPokeAHoleMatrices(const FViewInfo *LeftView, const FViewI
 	multiplierMatrix.M[0][0] = -1;
 	multiplierMatrix.M[2][2] = -1;
 
-	FMatrix leftViewMatrix = LeftView->ViewMatrices.ViewMatrix * multiplierMatrix;
-	FMatrix rightViewMatrix = RightView->ViewMatrices.ViewMatrix * multiplierMatrix;
+	FMatrix leftViewMatrix = LeftView->ViewMatrices.GetViewMatrix() * multiplierMatrix;
+	FMatrix rightViewMatrix = RightView->ViewMatrices.GetViewMatrix() * multiplierMatrix;
 	rightViewMatrix.ScaleTranslation(FVector(-1, -1, -1));
 	leftViewMatrix.ScaleTranslation(FVector(-1, -1, -1));
 
@@ -547,13 +547,13 @@ void FLayerManager::GetPokeAHoleMatrices(const FViewInfo *LeftView, const FViewI
 		FMatrix torsoTranslate = FTransform((CurrentFrame->PlayerLocation)).ToMatrixNoScale();
 
 		FMatrix torsoMatrix = torsoTransform.ToMatrixNoScale();
-		LeftMatrix = fmat * torsoRotate.Inverse()* torsoTranslate.Inverse()  * leftViewMatrix * LeftView->ViewMatrices.GetProjNoAAMatrix();
-		RightMatrix = fmat * torsoRotate.Inverse() * torsoTranslate.Inverse() * rightViewMatrix * RightView->ViewMatrices.GetProjNoAAMatrix();
+		LeftMatrix = fmat * torsoRotate.Inverse()* torsoTranslate.Inverse()  * leftViewMatrix * LeftView->ViewMatrices.ComputeProjectionNoAAMatrix();
+		RightMatrix = fmat * torsoRotate.Inverse() * torsoTranslate.Inverse() * rightViewMatrix * RightView->ViewMatrices.ComputeProjectionNoAAMatrix();
 	}
 	else if (LayerDesc.IsWorldLocked())
 	{
-		LeftMatrix = fmat * leftViewMatrix * LeftView->ViewMatrices.GetProjNoAAMatrix();
-		RightMatrix = fmat * rightViewMatrix * RightView->ViewMatrices.GetProjNoAAMatrix();
+		LeftMatrix = fmat * leftViewMatrix * LeftView->ViewMatrices.ComputeProjectionNoAAMatrix();
+		RightMatrix = fmat * rightViewMatrix * RightView->ViewMatrices.ComputeProjectionNoAAMatrix();
 	}
 }
 
@@ -1280,7 +1280,7 @@ void FCustomPresent::CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdLi
 
 	SetRenderTarget(RHICmdList, DstTexture, FTextureRHIRef());
 	//RHICmdList.Clear(true, FLinearColor(1.0f, 0.0f, 0.0f, 1.0f), false, 0.0f, false, 0, FIntRect()); // @DBG
-	RHICmdList.Clear(true, FLinearColor(0.0f, 0.0f, 0.0f, 0.0f), false, 0.0f, false, 0, FIntRect());
+	RHICmdList.ClearColor(FLinearColor(0.0f, 0.0f, 0.0f, 0.0f), FIntRect());
 	RHICmdList.SetViewport(DstRect.Min.X, DstRect.Min.Y, 0, DstRect.Max.X, DstRect.Max.Y, 1.0f);
 
 	if (bAlphaPremultiply)

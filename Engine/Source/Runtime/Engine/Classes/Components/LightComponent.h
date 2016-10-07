@@ -5,27 +5,8 @@
 #include "LightComponentBase.h"
 #include "SceneTypes.h"
 #include "EngineDefines.h"
+#include "Classes/Engine/MapBuildDataRegistry.h"
 #include "LightComponent.generated.h"
-
-class FStaticShadowDepthMapData
-{
-public:
-	/** Transform from world space to the coordinate space that DepthSamples are stored in. */
-	FMatrix WorldToLight;
-	/** Dimensions of the generated shadow map. */
-	int32 ShadowMapSizeX;
-	int32 ShadowMapSizeY;
-	/** Shadowmap depth values */
-	TArray<FFloat16> DepthSamples;
-
-	FStaticShadowDepthMapData() :
-		WorldToLight(FMatrix::Identity),
-		ShadowMapSizeX(0),
-		ShadowMapSizeY(0)
-	{}
-
-	friend FArchive& operator<<(FArchive& Ar, FStaticShadowDepthMapData& ShadowMap);
-};
 
 /** 
  * A texture containing depth values of static objects that was computed during the lighting build.
@@ -34,17 +15,14 @@ public:
 class FStaticShadowDepthMap : public FTexture
 {
 public:
-	FStaticShadowDepthMapData Data;
+
+	FStaticShadowDepthMap() : 
+		Data(NULL)
+	{}
+
+	const FStaticShadowDepthMapData* Data;
 
 	virtual void InitRHI();
-
-	/** Frees the CPU backing of the shadowmap. */
-	ENGINE_API void Empty();
-
-	/** Called after being imported during a lighting build. */
-	ENGINE_API void InitializeAfterImport();
-
-	friend FArchive& operator<<(FArchive& Ar, FStaticShadowDepthMap& ShadowMap);
 };
 
 UCLASS(abstract, HideCategories=(Trigger,Activation,"Components|Activation",Physics), ShowCategories=(Mobility))
@@ -70,11 +48,10 @@ class ENGINE_API ULightComponent : public ULightComponentBase
 	uint32 bUseTemperature : 1;
 
 	/** 
-	 * Shadow map channel which is used to match up with the appropriate static shadowing during a deferred shading pass.
-	 * This is generated during a lighting build.
+	 * Legacy shadowmap channel from the lighting build, now stored in FLightComponentMapBuildData.
 	 */
 	UPROPERTY()
-	int32 ShadowMapChannel;
+	int32 ShadowMapChannel_DEPRECATED;
 
 	/** Transient shadowmap channel used to preview the results of stationary light shadowmap packing. */
 	int32 PreviewShadowMapChannel;
@@ -331,7 +308,9 @@ public:
 	//~ End UObject Interface.
 
 	virtual FActorComponentInstanceData* GetComponentInstanceData() const override;
-	 void ApplyComponentInstanceData(class FPrecomputedLightInstanceData* ComponentInstanceData);
+	void ApplyComponentInstanceData(class FPrecomputedLightInstanceData* ComponentInstanceData);
+	virtual void PropagateLightingScenarioChange() override;
+	virtual bool IsPrecomputedLightingValid() const override;
 
 	/** @return number of material elements in this primitive */
 	virtual int32 GetNumMaterials() const;
@@ -341,7 +320,6 @@ public:
 
 	/** Set the MaterialInterface to use for the given element index (if valid) */
 	virtual void SetMaterial(int32 ElementIndex, UMaterialInterface* InMaterial);
-	
 
 	virtual class FLightSceneProxy* CreateSceneProxy() const
 	{
@@ -368,6 +346,10 @@ public:
 	/** Script interface to update the color and brightness on the render thread. */
 	void UpdateColorAndBrightness();
 
+	const FLightComponentMapBuildData* GetLightComponentMapBuildData() const;
+
+	void InitializeStaticShadowDepthMap();
+
 	/** 
 	 * Called when property is modified by InterpPropertyTracks
 	 *
@@ -379,7 +361,7 @@ public:
 	 * Iterates over ALL stationary light components in the target world and assigns their preview shadowmap channel, and updates light icons accordingly.
 	 * Also handles assignment after a lighting build, so that the same algorithm is used for previewing and static lighting.
 	 */
-	static void ReassignStationaryLightChannels(UWorld* TargetWorld, bool bAssignForLightingBuild);
+	static void ReassignStationaryLightChannels(UWorld* TargetWorld, bool bAssignForLightingBuild, ULevel* LightingScenario);
 
 };
 

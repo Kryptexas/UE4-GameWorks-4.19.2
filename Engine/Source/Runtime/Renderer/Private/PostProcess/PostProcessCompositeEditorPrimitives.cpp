@@ -223,8 +223,8 @@ void FRCPassPostProcessCompositeEditorPrimitives::Process(FRenderingCompositePas
 		if (bClearIsNeeded)
 		{
 			SCOPED_DRAW_EVENT(Context.RHICmdList, ClearViewEditorPrimitives);
-			// Clear color and depth
-			Context.RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), true, (float)ERHIZBuffer::FarPlane, false, 0, FIntRect());
+			Context.RHICmdList.ClearColorTexture(ColorTarget, FLinearColor(0, 0, 0, 0), FIntRect());
+			Context.RHICmdList.ClearDepthStencilTexture(DepthTarget, EClearDepthStencil::Depth, (float)ERHIZBuffer::FarPlane, 0, FIntRect());
 		}
 
 		SCOPED_DRAW_EVENT(Context.RHICmdList, RenderEditorPrimitives);

@@ -148,6 +148,24 @@ bool FLevelModel::IsDirty() const
 	return false;
 }
 
+bool FLevelModel::IsLightingScenario() const
+{
+	if (GetLevelObject())
+	{
+		return GetLevelObject()->bIsLightingScenario;
+	}
+	
+	return false;
+}
+
+void FLevelModel::SetIsLightingScenario(bool bNew)
+{
+	if (GetLevelObject())
+	{
+		GetLevelObject()->SetLightingScenario(bNew);
+	}
+}
+
 bool FLevelModel::IsLoaded() const
 {
 	return (LevelCollectionModel.IsSimulating() ? SimulationStatus.bLoaded : (GetLevelObject() != NULL));

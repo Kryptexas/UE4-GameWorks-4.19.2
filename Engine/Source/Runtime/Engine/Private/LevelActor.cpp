@@ -1156,6 +1156,8 @@ void UWorld::LoadSecondaryLevels(bool bForce, TSet<FString>* CookedPackages)
 							// Keep reference to prevent garbage collection.
 							check( LoadedWorld->PersistentLevel );
 
+							LoadedWorld->PersistentLevel->HandleLegacyMapBuildData();
+
 							ULevel* NewLoadedLevel = LoadedWorld->PersistentLevel;
 							NewLoadedLevel->OwningWorld = this;
 

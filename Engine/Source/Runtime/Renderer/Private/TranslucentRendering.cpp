@@ -384,7 +384,6 @@ public:
 			bRenderSkylight,
 			bRenderAtmosphericFog,
 			View.Family->GetDebugViewShaderMode(),
-			Parameters.bAllowFog,
 			false,
 			false);
 		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
@@ -836,20 +835,20 @@ inline float CalculateTranslucentSortKey(FPrimitiveSceneInfo* PrimitiveSceneInfo
 	if (ViewInfo.TranslucentSortPolicy == ETranslucentSortPolicy::SortByDistance)
 	{
 		//sort based on distance to the view position, view rotation is not a factor
-		SortKey = (PrimitiveSceneInfo->Proxy->GetBounds().Origin - ViewInfo.ViewMatrices.ViewOrigin).Size();
+		SortKey = (PrimitiveSceneInfo->Proxy->GetBounds().Origin - ViewInfo.ViewMatrices.GetViewOrigin()).Size();
 		// UE4_TODO: also account for DPG in the sort key.
 	}
 	else if (ViewInfo.TranslucentSortPolicy == ETranslucentSortPolicy::SortAlongAxis)
 	{
 		// Sort based on enforced orthogonal distance
-		const FVector CameraToObject = PrimitiveSceneInfo->Proxy->GetBounds().Origin - ViewInfo.ViewMatrices.ViewOrigin;
+		const FVector CameraToObject = PrimitiveSceneInfo->Proxy->GetBounds().Origin - ViewInfo.ViewMatrices.GetViewOrigin();
 		SortKey = FVector::DotProduct(CameraToObject, ViewInfo.TranslucentSortAxis);
 	}
 	else
 	{
 		// Sort based on projected Z distance
 		check(ViewInfo.TranslucentSortPolicy == ETranslucentSortPolicy::SortByProjectedZ);
-		SortKey = ViewInfo.ViewMatrices.ViewMatrix.TransformPosition(PrimitiveSceneInfo->Proxy->GetBounds().Origin).Z;
+		SortKey = ViewInfo.ViewMatrices.GetViewMatrix().TransformPosition(PrimitiveSceneInfo->Proxy->GetBounds().Origin).Z;
 	}
 
 	return SortKey;

@@ -336,6 +336,10 @@ struct FStaticMaterial
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = StaticMesh)
 	FName ImportedMaterialSlotName;
 #endif //WITH_EDITORONLY_DATA
+
+	/** Data used for texture streaming relative to each UV channels. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = StaticMesh)
+	FMeshUVChannelInfo			UVChannelData;
 };
 
 
@@ -392,6 +396,9 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	UPROPERTY()
 	TArray<FStaticMaterial> StaticMaterials;
 
+	UPROPERTY()
+	float LightmapUVDensity;
+
 	UPROPERTY(EditAnywhere, Category=StaticMesh, meta=(ToolTip="The light map resolution", FixedIncrement="4.0"))
 	int32 LightMapResolution;
 
@@ -411,11 +418,6 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	UPROPERTY(EditAnywhere, Category = StaticMesh, meta=(DisplayName="LOD For Collision"))
 	int32 LODForCollision;
 
-	/** True if mesh should use a less-conservative method of mip LOD texture factor computation.
-		requires mesh to be resaved to take effect as algorithm is applied on save. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=StaticMesh, meta=(ToolTip="If true, use a less-conservative method of mip LOD texture factor computation.  Requires mesh to be resaved to take effect as algorithm is applied on save"))
-	uint32 bUseMaximumStreamingTexelRatio:1;
-
 	/** If true, strips unwanted complex collision data aka kDOP tree when cooking for consoles.
 		On the Playstation 3 data of this mesh will be stored in video memory. */
 	UPROPERTY()
@@ -425,14 +427,6 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	    Set to false for distant meshes (always outside navigation bounds) to save memory on collision data. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Navigation)
 	uint32 bHasNavigationData:1;
-
-	/**
-	 * Allows artists to adjust the distance where textures using UV 0 are streamed in/out.
-	 * 1.0 is the default, whereas a higher value increases the streamed-in resolution.
-	 * Value can be < 0 (from legcay content, or code changes)
-	 */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=StaticMesh, meta=(ClampMin = 0))
-	float StreamingDistanceMultiplier;
 
 	/** Bias multiplier for Light Propagation Volume lighting */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=StaticMesh, meta=(UIMin = "0.0", UIMax = "3.0"))
@@ -563,25 +557,30 @@ public:
 	ENGINE_API virtual void ReleaseResources();
 
 	/**
-	 * Returns the scale dependent texture factor used by the texture streaming code.
+	 * Update missing material UV channel data used for texture streaming. 
 	 *
-	 * @param RequestedUVIndex UVIndex to look at
-	 * @return scale dependent texture factor
+	 * @param bRebuildAll		If true, rebuild everything and not only missing data.
 	 */
-	float GetStreamingTextureFactor( int32 RequestedUVIndex ) const;
+	ENGINE_API void UpdateUVChannelData(bool bRebuildAll);
 
 	/**
-	 * Returns the scale dependent texture factor and bound used by the texture streaming code.
+	 * Returns the material bounding box. Computed from all lod-section using the material index.
 	 *
-	 * @param OutTexelFactor		The requested texel factor
-	 * @param OutTexelFactor		The requested bound for this texel factor
-	 * @param CoordinateIndex		UV Index to look at
-	 * @param LODIndex				LOD index to look at
-	 * @param ElementIndex			Element index to look at
+	 * @param MaterialIndex			Material Index to look at
 	 * @param TransformMatrix		Matrix to be applied to the position before computing the bounds
+	 *
 	 * @return false if some parameters are invalid
 	 */
-	bool GetStreamingTextureFactor( float& OutTexelFactor, FBoxSphereBounds& OutBounds, int32 CoordinateIndex, int32 LODIndex, int32 ElementIndex, const FTransform& Transform ) const;
+	ENGINE_API FBox GetMaterialBox(int32 MaterialIndex, const FTransform& Transform) const;
+
+	/**
+	 * Returns the UV channel data for a given material index. Used by the texture streamer.
+	 * This data applies to all lod-section using the same material.
+	 *
+	 * @param MaterialIndex		the material index for which to get the data for.
+	 * @return the data, or null if none exists.
+	 */
+	ENGINE_API const FMeshUVChannelInfo* GetUVChannelData(int32 MaterialIndex) const;
 
 	/**
 	 * Returns the number of vertices for the specified LOD.

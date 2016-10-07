@@ -75,6 +75,13 @@ static FAutoConsoleVariableRef CVarDumpShaderDebugSCWCommandLine(
 	TEXT("When set to 1, it will generate a file that can be used with ShaderCompileWorker's -directcompile.")
 	);
 
+static int32 GDumpSCWJobInfoOnCrash = 0;
+static FAutoConsoleVariableRef CVarDumpSCWJobInfoOnCrash(
+	TEXT("r.DumpSCWQueuedJobs"),
+	GDumpSCWJobInfoOnCrash,
+	TEXT("When set to 1, it will dump a job list to help track down crashes that happened on ShaderCompileWorker.")
+);
+
 static int32 GShowShaderWarnings = 0;
 static FAutoConsoleVariableRef CVarShowShaderWarnings(
 	TEXT("r.ShowShaderCompilerWarnings"),
@@ -526,7 +533,47 @@ static void DoReadTaskResults(const TArray<FShaderCommonCompileJob*>& QueuedJobs
 		{
 		default:
 		case SCWErrorCode::GeneralCrash:
-			SCWErrorCode::HandleGeneralCrash(ExceptionInfo.GetData(), Callstack.GetData());
+			{
+				if (GDumpSCWJobInfoOnCrash != 0)
+				{
+					auto DumpSingleJob = [](FShaderCompileJob* SingleJob) -> FString
+					{
+						if (!SingleJob)
+						{
+							return TEXT("Internal error, not a Job!");
+						}
+						FString String = SingleJob->Input.GenerateShaderName();
+						if (SingleJob->VFType)
+						{
+							String += FString::Printf(TEXT(" VF '%s'"), SingleJob->VFType->GetName());
+						}
+						String += FString::Printf(TEXT(" Type '%s'"), SingleJob->ShaderType->GetName());
+						String += FString::Printf(TEXT(" '%s' Entry '%s'"), *SingleJob->Input.SourceFilename, *SingleJob->Input.EntryPointName);
+						return String;
+					};
+					UE_LOG(LogShaderCompilers, Error, TEXT("SCW %d Queued Jobs:"), QueuedJobs.Num());
+					for (int32 Index = 0; Index < QueuedJobs.Num(); ++Index)
+					{
+						FShaderCommonCompileJob* CommonJob = QueuedJobs[0];
+						FShaderCompileJob* SingleJob = CommonJob->GetSingleShaderJob();
+						GLog->Flush();
+						if (SingleJob)
+						{
+							UE_LOG(LogShaderCompilers, Error, TEXT("Job %d [Single] %s"), Index, *DumpSingleJob(SingleJob));
+						}
+						else
+						{
+							FShaderPipelineCompileJob* PipelineJob = CommonJob->GetShaderPipelineJob();
+							UE_LOG(LogShaderCompilers, Error, TEXT("Job %d: Pipeline %s "), Index, PipelineJob->ShaderPipeline->GetName());
+							for (int32 Job = 0; Job < PipelineJob->StageJobs.Num(); ++Job)
+							{
+								UE_LOG(LogShaderCompilers, Error, TEXT("PipelineJob %d %s"), Job, *DumpSingleJob(PipelineJob->StageJobs[Job]->GetSingleShaderJob()));
+							}
+						}
+					}
+				}
+				SCWErrorCode::HandleGeneralCrash(ExceptionInfo.GetData(), Callstack.GetData());
+			}
 			break;
 		case SCWErrorCode::BadShaderFormatVersion:
 			SCWErrorCode::HandleBadShaderFormatVersion(ExceptionInfo.GetData());
@@ -2651,14 +2698,14 @@ void GlobalBeginCompileShader(
 		Input.Environment.SetDefine(TEXT("PROJECT_ALLOW_GLOBAL_CLIP_PLANE"), CVar ? (CVar->GetInt() != 0) : 0);
 	}
 
-	{
-		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ForwardShading"));
-		Input.Environment.SetDefine(TEXT("FORWARD_SHADING"), CVar ? (CVar->GetInt() != 0) : 0);
-	}
+	static IConsoleVariable* CVarForwardShading = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ForwardShading"));
+	const bool bForwardShading = CVarForwardShading ? (CVarForwardShading->GetInt() != 0) : false;
+
+	Input.Environment.SetDefine(TEXT("FORWARD_SHADING"), bForwardShading);
 
 	{
 		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VertexFoggingForOpaque"));
-		Input.Environment.SetDefine(TEXT("VERTEX_FOGGING_FOR_OPAQUE"), CVar ? (CVar->GetInt() != 0) : 0);
+		Input.Environment.SetDefine(TEXT("VERTEX_FOGGING_FOR_OPAQUE"), bForwardShading && (CVar ? (CVar->GetInt() != 0) : 0));
 	}
 
 	if (GSupportsRenderTargetWriteMask)

@@ -163,7 +163,7 @@ void FD3D12PipelineStateCache::RebuildFromDiskCache(ID3D12RootSignature* Graphic
 	}
 }
 
-ID3D12PipelineState* FD3D12PipelineStateCache::FindGraphics(FD3D12HighLevelGraphicsPipelineStateDesc* Desc)
+FD3D12PipelineState* FD3D12PipelineStateCache::FindGraphics(FD3D12HighLevelGraphicsPipelineStateDesc* Desc)
 {
 	SCOPE_CYCLE_COUNTER(STAT_D3D12ApplyStateFindPSOTime);
 
@@ -176,13 +176,13 @@ ID3D12PipelineState* FD3D12PipelineStateCache::FindGraphics(FD3D12HighLevelGraph
 	Desc->CombinedHash = FD3D12PipelineStateCache::HashPSODesc(*Desc);
 
 	uint64 BSSUniqueID = Desc->BoundShaderState ? Desc->BoundShaderState->UniqueID : 0;
-	TPair<ID3D12PipelineState*, uint64>* HighLevelCacheEntry = HighLevelGraphicsPipelineStateCache.Find(*Desc);
+	TPair<FD3D12PipelineState, uint64>* HighLevelCacheEntry = HighLevelGraphicsPipelineStateCache.Find(*Desc);
 	if (HighLevelCacheEntry && HighLevelCacheEntry->Value == BSSUniqueID)
 	{
 #if UE_BUILD_DEBUG
 		++HighLevelCacheFulfillCount; // No low-level cache hit
 #endif
-		return HighLevelCacheEntry->Key;
+		return &HighLevelCacheEntry->Key;
 	}
 
 	FD3D12LowLevelGraphicsPipelineStateDesc LowLevelDesc;
@@ -191,14 +191,14 @@ ID3D12PipelineState* FD3D12PipelineStateCache::FindGraphics(FD3D12HighLevelGraph
 	//TODO: for now PSOs will be created on every node of the LDA chain
 	LowLevelDesc.Desc.NodeMask = GetParentAdapter()->ActiveGPUMask();
 
-	ID3D12PipelineState* PSO = FindGraphicsLowLevel(&LowLevelDesc);
+	FD3D12PipelineState* PSO = FindGraphicsLowLevel(&LowLevelDesc);
 
 	if (HighLevelCacheEntry)
 	{
 #if UE_BUILD_DEBUG
 		++HighLevelCacheStaleCount; // High-level cache hit, but was stale due to BSS memory re-use
 #endif
-		HighLevelCacheEntry->Key = PSO;
+		HighLevelCacheEntry->Key = *PSO;
 		HighLevelCacheEntry->Value = BSSUniqueID;
 	}
 	else
@@ -206,13 +206,16 @@ ID3D12PipelineState* FD3D12PipelineStateCache::FindGraphics(FD3D12HighLevelGraph
 #if UE_BUILD_DEBUG
 		++HighLevelCacheMissCount; // No high-level cache hit
 #endif
-		HighLevelGraphicsPipelineStateCache.Add(*Desc, TPairInitializer<ID3D12PipelineState*, uint64>(PSO, BSSUniqueID));
+		HighLevelCacheEntry = &HighLevelGraphicsPipelineStateCache.Add(
+			*Desc,
+			TPairInitializer<FD3D12PipelineState, uint64>(*PSO, BSSUniqueID)
+			);
 	}
 
-	return PSO;
+	return &HighLevelCacheEntry->Key;
 }
 
-ID3D12PipelineState* FD3D12PipelineStateCache::FindGraphicsLowLevel(FD3D12LowLevelGraphicsPipelineStateDesc* Desc)
+FD3D12PipelineState* FD3D12PipelineStateCache::FindGraphicsLowLevel(FD3D12LowLevelGraphicsPipelineStateDesc* Desc)
 {
 	// Lock already taken by high level find
 	Desc->CombinedHash = FD3D12PipelineStateCache::HashPSODesc(*Desc);
@@ -225,7 +228,7 @@ ID3D12PipelineState* FD3D12PipelineStateCache::FindGraphicsLowLevel(FD3D12LowLev
 
 		if (APIPso)
 		{
-			return APIPso;
+			return PSO;
 		}
 		else
 		{
@@ -240,7 +243,7 @@ ID3D12PipelineState* FD3D12PipelineStateCache::FindGraphicsLowLevel(FD3D12LowLev
 	return Add(GraphicsPipelineCreationArgs(Desc, PipelineLibrary));
 }
 
-ID3D12PipelineState* FD3D12PipelineStateCache::FindCompute(FD3D12ComputePipelineStateDesc* Desc)
+FD3D12PipelineState* FD3D12PipelineStateCache::FindCompute(FD3D12ComputePipelineStateDesc* Desc)
 {
 	SCOPE_CYCLE_COUNTER(STAT_D3D12ApplyStateFindPSOTime);
 
@@ -259,7 +262,7 @@ ID3D12PipelineState* FD3D12PipelineStateCache::FindCompute(FD3D12ComputePipeline
 
 		if (APIPso)
 		{
-			return APIPso;
+			return PSO;
 		}
 		else
 		{
@@ -274,7 +277,7 @@ ID3D12PipelineState* FD3D12PipelineStateCache::FindCompute(FD3D12ComputePipeline
 	return Add(ComputePipelineCreationArgs(Desc, PipelineLibrary));
 }
 
-ID3D12PipelineState* FD3D12PipelineStateCache::Add(const GraphicsPipelineCreationArgs& Args)
+FD3D12PipelineState* FD3D12PipelineStateCache::Add(const GraphicsPipelineCreationArgs& Args)
 {
 	FScopeLock Lock(&CS);
 
@@ -292,7 +295,7 @@ ID3D12PipelineState* FD3D12PipelineStateCache::Add(const GraphicsPipelineCreatio
 		return nullptr;
 	}
 
-	const D3D12_GRAPHICS_PIPELINE_STATE_DESC &psoDesc = Args.Args.Desc->Desc;
+	const D3D12_GRAPHICS_PIPELINE_STATE_DESC &PsoDesc = Args.Args.Desc->Desc;
 
 	//TODO: Optimize by only storing unique pointers
 	if (!DiskCaches[PSO_CACHE_GRAPHICS].IsInErrorState())
@@ -305,57 +308,57 @@ ID3D12PipelineState* FD3D12PipelineStateCache::Add(const GraphicsPipelineCreatio
 		if (RSBlobLength > 0)
 		{
 			// Save the root signature
-			check(Args.Args.Desc->pRootSignature->GetRootSignature() == psoDesc.pRootSignature);
+			check(Args.Args.Desc->pRootSignature->GetRootSignature() == PsoDesc.pRootSignature);
 			DiskCaches[PSO_CACHE_GRAPHICS].AppendData(pRSBlob->GetBufferPointer(), RSBlobLength);
 		}
-		if (psoDesc.InputLayout.NumElements)
+		if (PsoDesc.InputLayout.NumElements)
 		{
 			//Save the layout structs
-			DiskCaches[PSO_CACHE_GRAPHICS].AppendData((void*)psoDesc.InputLayout.pInputElementDescs, psoDesc.InputLayout.NumElements * sizeof(D3D12_INPUT_ELEMENT_DESC));
-			for (uint32 i = 0; i < psoDesc.InputLayout.NumElements; i++)
+			DiskCaches[PSO_CACHE_GRAPHICS].AppendData((void*)PsoDesc.InputLayout.pInputElementDescs, PsoDesc.InputLayout.NumElements * sizeof(D3D12_INPUT_ELEMENT_DESC));
+			for (uint32 i = 0; i < PsoDesc.InputLayout.NumElements; i++)
 			{
 				//Save the Sematic name string
-				uint32 stringLength = (uint32)strnlen_s(psoDesc.InputLayout.pInputElementDescs[i].SemanticName, IL_MAX_SEMANTIC_NAME);
+				uint32 stringLength = (uint32)strnlen_s(PsoDesc.InputLayout.pInputElementDescs[i].SemanticName, IL_MAX_SEMANTIC_NAME);
 				stringLength++; // include the NULL char
 				DiskCaches[PSO_CACHE_GRAPHICS].AppendData((void*)&stringLength, sizeof(stringLength));
-				DiskCaches[PSO_CACHE_GRAPHICS].AppendData((void*)psoDesc.InputLayout.pInputElementDescs[i].SemanticName, stringLength);
+				DiskCaches[PSO_CACHE_GRAPHICS].AppendData((void*)PsoDesc.InputLayout.pInputElementDescs[i].SemanticName, stringLength);
 			}
 		}
-		if (psoDesc.StreamOutput.NumEntries)
+		if (PsoDesc.StreamOutput.NumEntries)
 		{
-			DiskCaches[PSO_CACHE_GRAPHICS].AppendData((void*)&psoDesc.StreamOutput.pSODeclaration, psoDesc.StreamOutput.NumEntries * sizeof(D3D12_SO_DECLARATION_ENTRY));
-			for (uint32 i = 0; i < psoDesc.StreamOutput.NumEntries; i++)
+			DiskCaches[PSO_CACHE_GRAPHICS].AppendData((void*)&PsoDesc.StreamOutput.pSODeclaration, PsoDesc.StreamOutput.NumEntries * sizeof(D3D12_SO_DECLARATION_ENTRY));
+			for (uint32 i = 0; i < PsoDesc.StreamOutput.NumEntries; i++)
 			{
 				//Save the Sematic name string
-				uint32 stringLength = (uint32)strnlen_s(psoDesc.StreamOutput.pSODeclaration[i].SemanticName, IL_MAX_SEMANTIC_NAME);
+				uint32 stringLength = (uint32)strnlen_s(PsoDesc.StreamOutput.pSODeclaration[i].SemanticName, IL_MAX_SEMANTIC_NAME);
 				stringLength++; // include the NULL char
 				DiskCaches[PSO_CACHE_GRAPHICS].AppendData((void*)&stringLength, sizeof(stringLength));
-				DiskCaches[PSO_CACHE_GRAPHICS].AppendData((void*)psoDesc.StreamOutput.pSODeclaration[i].SemanticName, stringLength);
+				DiskCaches[PSO_CACHE_GRAPHICS].AppendData((void*)PsoDesc.StreamOutput.pSODeclaration[i].SemanticName, stringLength);
 			}
 		}
-		if (psoDesc.StreamOutput.NumStrides)
+		if (PsoDesc.StreamOutput.NumStrides)
 		{
-			DiskCaches[PSO_CACHE_GRAPHICS].AppendData((void*)&psoDesc.StreamOutput.pBufferStrides, psoDesc.StreamOutput.NumStrides * sizeof(uint32));
+			DiskCaches[PSO_CACHE_GRAPHICS].AppendData((void*)&PsoDesc.StreamOutput.pBufferStrides, PsoDesc.StreamOutput.NumStrides * sizeof(uint32));
 		}
-		if (psoDesc.VS.BytecodeLength)
+		if (PsoDesc.VS.BytecodeLength)
 		{
-			DiskCaches[PSO_CACHE_GRAPHICS].AppendData((void*)psoDesc.VS.pShaderBytecode, psoDesc.VS.BytecodeLength);
+			DiskCaches[PSO_CACHE_GRAPHICS].AppendData((void*)PsoDesc.VS.pShaderBytecode, PsoDesc.VS.BytecodeLength);
 		}
-		if (psoDesc.PS.BytecodeLength)
+		if (PsoDesc.PS.BytecodeLength)
 		{
-			DiskCaches[PSO_CACHE_GRAPHICS].AppendData((void*)psoDesc.PS.pShaderBytecode, psoDesc.PS.BytecodeLength);
+			DiskCaches[PSO_CACHE_GRAPHICS].AppendData((void*)PsoDesc.PS.pShaderBytecode, PsoDesc.PS.BytecodeLength);
 		}
-		if (psoDesc.DS.BytecodeLength)
+		if (PsoDesc.DS.BytecodeLength)
 		{
-			DiskCaches[PSO_CACHE_GRAPHICS].AppendData((void*)psoDesc.DS.pShaderBytecode, psoDesc.DS.BytecodeLength);
+			DiskCaches[PSO_CACHE_GRAPHICS].AppendData((void*)PsoDesc.DS.pShaderBytecode, PsoDesc.DS.BytecodeLength);
 		}
-		if (psoDesc.HS.BytecodeLength)
+		if (PsoDesc.HS.BytecodeLength)
 		{
-			DiskCaches[PSO_CACHE_GRAPHICS].AppendData((void*)psoDesc.HS.pShaderBytecode, psoDesc.HS.BytecodeLength);
+			DiskCaches[PSO_CACHE_GRAPHICS].AppendData((void*)PsoDesc.HS.pShaderBytecode, PsoDesc.HS.BytecodeLength);
 		}
-		if (psoDesc.GS.BytecodeLength)
+		if (PsoDesc.GS.BytecodeLength)
 		{
-			DiskCaches[PSO_CACHE_GRAPHICS].AppendData((void*)psoDesc.GS.pShaderBytecode, psoDesc.GS.BytecodeLength);
+			DiskCaches[PSO_CACHE_GRAPHICS].AppendData((void*)PsoDesc.GS.pShaderBytecode, PsoDesc.GS.BytecodeLength);
 		}
 
 		WriteOutShaderBlob(PSO_CACHE_GRAPHICS, APIPso);
@@ -363,10 +366,10 @@ ID3D12PipelineState* FD3D12PipelineStateCache::Add(const GraphicsPipelineCreatio
 		DiskCaches[PSO_CACHE_GRAPHICS].Flush(LowLevelGraphicsPipelineStateCache.Num());
 	}
 
-	return APIPso;
+	return &PSOOut;
 }
 
-ID3D12PipelineState* FD3D12PipelineStateCache::Add(const ComputePipelineCreationArgs& Args)
+FD3D12PipelineState* FD3D12PipelineStateCache::Add(const ComputePipelineCreationArgs& Args)
 {
 	FScopeLock Lock(&CS);
 
@@ -380,7 +383,7 @@ ID3D12PipelineState* FD3D12PipelineStateCache::Add(const ComputePipelineCreation
 		return nullptr;
 	}
 
-	const D3D12_COMPUTE_PIPELINE_STATE_DESC &psoDesc = Args.Args.Desc->Desc;
+	const D3D12_COMPUTE_PIPELINE_STATE_DESC &PsoDesc = Args.Args.Desc->Desc;
 
 	if (!DiskCaches[PSO_CACHE_COMPUTE].IsInErrorState())
 	{
@@ -393,12 +396,12 @@ ID3D12PipelineState* FD3D12PipelineStateCache::Add(const ComputePipelineCreation
 		{
 			// Save the root signature
 			CA_SUPPRESS(6011);
-			check(Args.Args.Desc->pRootSignature->GetRootSignature() == psoDesc.pRootSignature);
+			check(Args.Args.Desc->pRootSignature->GetRootSignature() == PsoDesc.pRootSignature);
 			DiskCaches[PSO_CACHE_COMPUTE].AppendData(pRSBlob->GetBufferPointer(), RSBlobLength);
 		}
-		if (psoDesc.CS.BytecodeLength)
+		if (PsoDesc.CS.BytecodeLength)
 		{
-			DiskCaches[PSO_CACHE_COMPUTE].AppendData((void*)psoDesc.CS.pShaderBytecode, psoDesc.CS.BytecodeLength);
+			DiskCaches[PSO_CACHE_COMPUTE].AppendData((void*)PsoDesc.CS.pShaderBytecode, PsoDesc.CS.BytecodeLength);
 		}
 
 		WriteOutShaderBlob(PSO_CACHE_COMPUTE, APIPso);
@@ -406,7 +409,7 @@ ID3D12PipelineState* FD3D12PipelineStateCache::Add(const ComputePipelineCreation
 		DiskCaches[PSO_CACHE_COMPUTE].Flush(ComputePipelineStateCache.Num());
 	}
 
-	return APIPso;
+	return &PSOOut;
 }
 
 void FD3D12PipelineStateCache::WriteOutShaderBlob(PSO_CACHE_TYPE Cache, ID3D12PipelineState* APIPso)

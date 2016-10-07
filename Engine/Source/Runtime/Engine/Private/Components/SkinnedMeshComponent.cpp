@@ -631,29 +631,24 @@ void USkinnedMeshComponent::GetStreamingTextureInfo(FStreamingTextureLevelContex
 {
 	if( SkeletalMesh )
 	{
-		const float LocalTexelFactor = SkeletalMesh->GetStreamingTextureFactor(0) * FMath::Max(0.0f, StreamingDistanceMultiplier);
-		const float WorldTexelFactor = LocalTexelFactor * ComponentToWorld.GetMaximumAxisScale();
-		const int32 NumMaterials = FMath::Max(SkeletalMesh->Materials.Num(), OverrideMaterials.Num());
-		for( int32 MatIndex = 0; MatIndex < NumMaterials; MatIndex++ )
-		{
-			UMaterialInterface* const MaterialInterface = GetMaterial(MatIndex);
-			if(MaterialInterface)
-			{
-				TArray<UTexture*> Textures;
-				
-				auto World = GetWorld();
-				MaterialInterface->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, World ? World->FeatureLevel : GMaxRHIFeatureLevel, false);
-				for(int32 TextureIndex = 0; TextureIndex < Textures.Num(); TextureIndex++ )
-				{
-					UTexture2D* Texture2D = Cast<UTexture2D>(Textures[TextureIndex]);
-					if (!Texture2D) continue;
+		const ERHIFeatureLevel::Type FeatureLevel = GetWorld() ? GetWorld()->FeatureLevel : GMaxRHIFeatureLevel;
+		const int32 NumMaterials = GetNumMaterials();
 
-					FStreamingTexturePrimitiveInfo& StreamingTexture = *new(OutStreamingTextures) FStreamingTexturePrimitiveInfo;
-					StreamingTexture.Bounds = Bounds.GetSphere();
-					StreamingTexture.TexelFactor = WorldTexelFactor;
-					StreamingTexture.Texture = Texture2D;
-				}
-			}
+		const float TransformScale = ComponentToWorld.GetMaximumAxisScale();
+		LevelContext.BindComponent(nullptr, Bounds, TransformScale * StreamingDistanceMultiplier);
+
+		// Process the material entries.
+		for (int32 MaterialIndex = 0; MaterialIndex < NumMaterials; ++MaterialIndex)
+		{
+			UMaterialInterface* Material = GetMaterial(MaterialIndex);
+			if (!Material) continue;
+
+			// Enumerate the textures used by the material.
+			TArray<UTexture*> Textures;
+			Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, FeatureLevel, false);
+
+			const FMeshUVChannelInfo* UVChannelData = SkeletalMesh->GetUVChannelData(MaterialIndex);
+			LevelContext.Process(Textures, UVChannelData ? UVChannelData->LocalUVDensities[0] : 1.f, OutStreamingTextures);
 		}
 	}
 }

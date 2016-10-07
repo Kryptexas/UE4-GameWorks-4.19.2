@@ -131,6 +131,8 @@ FGameplayDebuggerShapeElement FGameplayDebuggerShapeElement::MakePolygon(const T
 //----------------------------------------------------------------------//
 class FDebugRenderSceneCompositeProxy : public FDebugRenderSceneProxy
 {
+	friend class FDebugRenderDebugDrawDelegateHelper;
+
 public:
 	FDebugRenderSceneCompositeProxy(const UPrimitiveComponent* InComponent) 
 		: FDebugRenderSceneProxy(InComponent)
@@ -158,22 +160,6 @@ public:
 		for (int32 Index = 0; Index < ChildProxies.Num(); ++Index)
 		{
 			ChildProxies[Index]->GetDynamicMeshElements(Views, ViewFamily, VisibilityMap, Collector);
-		}
-	}
-
-	virtual void RegisterDebugDrawDelgate() override
-	{
-		for (int32 Index = 0; Index < ChildProxies.Num(); ++Index)
-		{
-			ChildProxies[Index]->RegisterDebugDrawDelgate();
-		}
-	}
-	
-	virtual void UnregisterDebugDrawDelgate() override
-	{
-		for (int32 Index = 0; Index < ChildProxies.Num(); ++Index)
-		{
-			ChildProxies[Index]->UnregisterDebugDrawDelgate();
 		}
 	}
 
@@ -215,6 +201,77 @@ protected:
 //----------------------------------------------------------------------//
 // UGameplayDebuggingComponent
 //----------------------------------------------------------------------//
+
+#if WITH_EDITOR
+void FDebugRenderDebugDrawDelegateHelper::Reset()
+{
+	ensureMsgf(State != RegisteredState, TEXT("Cannot reset while being registered!"));
+	for (int32 Idx = 0; Idx < DebugDrawDelegateHelpers.Num(); Idx++)
+	{
+		delete DebugDrawDelegateHelpers[Idx];
+	}
+	DebugDrawDelegateHelpers.Reset();
+}
+
+void FDebugRenderDebugDrawDelegateHelper::InitDelegateHelper(const FDebugRenderSceneCompositeProxy* InSceneProxy)
+{
+	Super::InitDelegateHelper(InSceneProxy);
+}
+
+void FDebugRenderDebugDrawDelegateHelper::AddDelegateHelper(const FDebugRenderSceneProxy* InSceneProxy)
+{
+	ensureMsgf(State != RegisteredState, TEXT("Cannot add while being registered!"));
+	FDebugDrawDelegateHelper* DebugDrawDelegateHelper = new FDebugDrawDelegateHelper();
+	DebugDrawDelegateHelper->InitDelegateHelper(InSceneProxy);
+	DebugDrawDelegateHelpers.Add(DebugDrawDelegateHelper);
+}
+
+#if USE_EQS_DEBUGGER
+void FDebugRenderDebugDrawDelegateHelper::AddDelegateHelper(const FEQSSceneProxy* InSceneProxy)
+{
+	ensureMsgf(State != RegisteredState, TEXT("Cannot add while being registered!"));
+	FEQSRenderingDebugDrawDelegateHelper* EQSSceneDelegateHelper = new FEQSRenderingDebugDrawDelegateHelper();
+	EQSSceneDelegateHelper->InitDelegateHelper(InSceneProxy);
+	DebugDrawDelegateHelpers.Add(EQSSceneDelegateHelper);
+}
+#endif
+
+#if WITH_RECAST && !UE_BUILD_SHIPPING && !UE_BUILD_TEST
+void FDebugRenderDebugDrawDelegateHelper::AddDelegateHelper(const FNavMeshSceneProxy* InSceneProxy)
+{
+	ensureMsgf(State != RegisteredState, TEXT("Cannot add while being registered!"));
+	FNavMeshDebugDrawDelegateHelper* NavMeshDelegateHelper = new FNavMeshDebugDrawDelegateHelper();
+	NavMeshDelegateHelper->InitDelegateHelper(InSceneProxy);
+	DebugDrawDelegateHelpers.Add(NavMeshDelegateHelper);
+}
+#endif
+
+void FDebugRenderDebugDrawDelegateHelper::RegisterDebugDrawDelgate()
+{
+	ensureMsgf(State != RegisteredState, TEXT("RegisterDebugDrawDelgate is already Registered!"));
+	if (State == InitializedState)
+	{
+		for (int32 Idx = 0; Idx < DebugDrawDelegateHelpers.Num(); Idx++)
+		{
+			DebugDrawDelegateHelpers[Idx]->RegisterDebugDrawDelgate();
+		}
+		State = RegisteredState;
+	}
+}
+
+void FDebugRenderDebugDrawDelegateHelper::UnregisterDebugDrawDelgate()
+{
+	ensureMsgf(State != InitializedState, TEXT("UnegisterDebugDrawDelgate is in an invalid State: %i !"), State);
+	if (State == RegisteredState)
+	{
+		for (int32 Idx = 0; Idx < DebugDrawDelegateHelpers.Num(); Idx++)
+		{
+			DebugDrawDelegateHelpers[Idx]->UnregisterDebugDrawDelgate();
+		}
+		State = InitializedState;
+	}
+}
+#endif
 
 FName UGameplayDebuggingComponent::DefaultComponentName = TEXT("GameplayDebuggingComponent");
 FOnDebuggingTargetChanged UGameplayDebuggingComponent::OnDebuggingTargetChangedDelegate;
@@ -1268,8 +1325,8 @@ namespace FNavMeshRenderingHelpers_DEPRECATEDSUPPORT
 {
 	bool LineInView(const FVector& Start, const FVector& End, const FSceneView* View, bool bUseDistanceCheck)
 	{
-		if (FVector::DistSquared(Start, View->ViewMatrices.ViewOrigin) > ARecastNavMesh::GetDrawDistanceSq() ||
-			FVector::DistSquared(End, View->ViewMatrices.ViewOrigin) > ARecastNavMesh::GetDrawDistanceSq())
+		if (FVector::DistSquared(Start, View->ViewMatrices.GetViewOrigin()) > ARecastNavMesh::GetDrawDistanceSq() ||
+			FVector::DistSquared(End, View->ViewMatrices.GetViewOrigin()) > ARecastNavMesh::GetDrawDistanceSq())
 		{
 			return false;
 		}
@@ -1289,8 +1346,8 @@ namespace FNavMeshRenderingHelpers_DEPRECATEDSUPPORT
 	bool LineInCorrectDistance(const FVector& Start, const FVector& End, const FSceneView* View, float CorrectDistance = -1)
 	{
 		const float MaxDistanceSq = (CorrectDistance > 0) ? FMath::Square(CorrectDistance) : ARecastNavMesh::GetDrawDistanceSq();
-		return FVector::DistSquared(Start, View->ViewMatrices.ViewOrigin) < MaxDistanceSq &&
-			FVector::DistSquared(End, View->ViewMatrices.ViewOrigin) < MaxDistanceSq;
+		return FVector::DistSquared(Start, View->ViewMatrices.GetViewOrigin()) < MaxDistanceSq &&
+			FVector::DistSquared(End, View->ViewMatrices.GetViewOrigin()) < MaxDistanceSq;
 	}
 
 	FVector EvalArc(const FVector& Org, const FVector& Dir, const float h, const float u)
@@ -1692,6 +1749,10 @@ public:
 
 FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 {
+#if WITH_EDITOR
+	DebugRenderDebugDrawDelegateHelper.Reset();
+#endif
+
 	FDebugRenderSceneCompositeProxy* CompositeProxy = nullptr;
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(GetOwner());
@@ -1716,7 +1777,12 @@ FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 
 		NavMeshBounds = NewNavmeshRenderData.Bounds.GetCenter().ContainsNaN() || NewNavmeshRenderData.Bounds.GetExtent().ContainsNaN() ? FBox(FVector(-HALF_WORLD_MAX1, -HALF_WORLD_MAX1, -HALF_WORLD_MAX1), FVector(HALF_WORLD_MAX1, HALF_WORLD_MAX1, HALF_WORLD_MAX1)) : NewNavmeshRenderData.Bounds;
 		CompositeProxy = CompositeProxy ? CompositeProxy : (new FDebugRenderSceneCompositeProxy(this));
-		CompositeProxy->AddChild(new FNavMeshSceneProxy(this, &NewNavmeshRenderData, true));
+
+		FNavMeshSceneProxy* NavMeshSceneProxy = new FNavMeshSceneProxy(this, &NewNavmeshRenderData, true);
+		CompositeProxy->AddChild(NavMeshSceneProxy);
+#if WITH_EDITOR && WITH_RECAST && !UE_BUILD_SHIPPING && !UE_BUILD_TEST
+		DebugRenderDebugDrawDelegateHelper.AddDelegateHelper(NavMeshSceneProxy);
+#endif
 	}
 #endif
 
@@ -1737,7 +1803,11 @@ FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 				ViewFlagName = TEXT("DebugAI");
 			}
 #endif
-			CompositeProxy->AddChild(new FEQSSceneProxy(this, ViewFlagName, CurrentLocalData.SolidSpheres, CurrentLocalData.Texts));
+			FEQSSceneProxy* EQSSceneProxy = new FEQSSceneProxy(this, ViewFlagName, CurrentLocalData.SolidSpheres, CurrentLocalData.Texts);
+			CompositeProxy->AddChild(EQSSceneProxy);
+#if WITH_EDITOR
+			DebugRenderDebugDrawDelegateHelper.AddDelegateHelper(EQSSceneProxy);
+#endif
 		}
 	}
 #endif // USE_EQS_DEBUGGER
@@ -1793,9 +1863,19 @@ FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 		DebugSceneProxy->Lines = Lines;
 		DebugSceneProxy->Meshes = Meshes;
 		CompositeProxy->AddChild(DebugSceneProxy);
+#if WITH_EDITOR
+		DebugRenderDebugDrawDelegateHelper.AddDelegateHelper(DebugSceneProxy);
+#endif
 	}
 
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if WITH_EDITOR
+	if (CompositeProxy)
+	{
+		DebugRenderDebugDrawDelegateHelper.InitDelegateHelper(CompositeProxy);
+		DebugRenderDebugDrawDelegateHelper.ReregisterDebugDrawDelgate();
+	}
+#endif
 	return CompositeProxy;
 }
 
@@ -1826,20 +1906,14 @@ void UGameplayDebuggingComponent::CreateRenderState_Concurrent()
 	Super::CreateRenderState_Concurrent();
 
 #if WITH_EDITOR
-	if (SceneProxy)
-	{
-		static_cast<FDebugRenderSceneCompositeProxy*>(SceneProxy)->RegisterDebugDrawDelgate();
-	}
+	DebugRenderDebugDrawDelegateHelper.RegisterDebugDrawDelgate();
 #endif
 }
 
 void UGameplayDebuggingComponent::DestroyRenderState_Concurrent()
 {
 #if WITH_EDITOR
-	if (SceneProxy)
-	{
-		static_cast<FDebugRenderSceneCompositeProxy*>(SceneProxy)->UnregisterDebugDrawDelgate();
-	}
+	DebugRenderDebugDrawDelegateHelper.UnregisterDebugDrawDelgate();
 #endif
 
 	Super::DestroyRenderState_Concurrent();

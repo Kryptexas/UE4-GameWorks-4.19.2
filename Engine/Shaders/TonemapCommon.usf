@@ -104,13 +104,6 @@ Shoulder = 0.45;
 BlackClip = 0;
 WhiteClip = 0;
 
-// Weta settings
-Slope = 0.6;
-Toe = 0.72;
-Shoulder = 0.55;
-BlackClip = 0;
-WhiteClip = 0.02;
-
 // Legacy settings
 Slope = 0.98;
 Toe = 0.3;

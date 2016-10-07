@@ -633,7 +633,11 @@ public:
 
 	FGPUSpriteVertexFactory()
 		: FParticleVertexFactoryBase(PVFT_MAX, ERHIFeatureLevel::Num)
+		, ParticleIndicesBuffer(nullptr)
 		, ParticleIndicesOffset(0)
+		, PositionTextureRHI(nullptr)
+		, VelocityTextureRHI(nullptr)
+		, AttributesTextureRHI(nullptr)
 	{}
 
 	/**
@@ -2448,10 +2452,12 @@ public:
 	/** Initialize RHI resources. */
 	virtual void InitRHI() override
 	{
-		if ( ParticleCount > 0 && RHISupportsGPUParticles() )
+		if ( RHISupportsGPUParticles() )
 		{
+			// Metal *requires* that a buffer be bound - you cannot protect access with a branch in the shader.
+			int32 Count = FMath::Max(ParticleCount, 1);
 			const int32 BufferStride = sizeof(FParticleIndex);
-			const int32 BufferSize = ParticleCount * BufferStride;
+			const int32 BufferSize = Count * BufferStride;
 			uint32 Flags = BUF_Static | /*BUF_KeepCPUAccessible | */BUF_ShaderResource;
 			FRHIResourceCreateInfo CreateInfo;
 			VertexBufferRHI = RHICreateVertexBuffer(BufferSize, Flags, CreateInfo);
@@ -2539,31 +2545,35 @@ public:
 	 */
 	void InitResources(const TArray<uint32>& Tiles, const FParticleEmitterSimulationResources* InEmitterSimulationResources)
 	{
-		check(InEmitterSimulationResources);
+		ensure(InEmitterSimulationResources);
 
-		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
-			FInitParticleSimulationGPUCommand,
-			FParticleSimulationGPU*, Simulation, this,
-			TArray<uint32>, Tiles, Tiles,
-			const FParticleEmitterSimulationResources*, InEmitterSimulationResources, InEmitterSimulationResources,
+		if (InEmitterSimulationResources)
 		{
-			// Release vertex buffers.
-			Simulation->VertexBuffer.ReleaseResource();
-			Simulation->TileVertexBuffer.ReleaseResource();
+			ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+				FInitParticleSimulationGPUCommand,
+				FParticleSimulationGPU*, Simulation, this,
+				TArray<uint32>, Tiles, Tiles,
+				const FParticleEmitterSimulationResources*, InEmitterSimulationResources, InEmitterSimulationResources,
+				{
+					// Release vertex buffers.
+					Simulation->VertexBuffer.ReleaseResource();
+					Simulation->TileVertexBuffer.ReleaseResource();
 
-			// Initialize new buffers with list of tiles.
-			Simulation->VertexBuffer.Init(Tiles);
-			Simulation->TileVertexBuffer.Init(Tiles);
+					// Initialize new buffers with list of tiles.
+					Simulation->VertexBuffer.Init(Tiles);
+					Simulation->TileVertexBuffer.Init(Tiles);
 
-			// Store simulation resources for this emitter.
-			Simulation->EmitterSimulationResources = InEmitterSimulationResources;
+					// Store simulation resources for this emitter.
+					Simulation->EmitterSimulationResources = InEmitterSimulationResources;
 
-			// If a visualization vertex factory has been created, initialize it.
-			if (Simulation->VectorFieldVisualizationVertexFactory)
-			{
-				Simulation->VectorFieldVisualizationVertexFactory->InitResource();
-			}
-		});
+					// If a visualization vertex factory has been created, initialize it.
+					if (Simulation->VectorFieldVisualizationVertexFactory)
+					{
+						Simulation->VectorFieldVisualizationVertexFactory->InitResource();
+					}
+				});
+		}
+
 		bDirty_GameThread = false;
 		bReleased_GameThread = false;
 	}
@@ -2908,7 +2918,7 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 					// Extensibility TODO: This call to AddSortedGPUSimulation is very awkward. When rendering a frame we need to
 					// accumulate all GPU particle emitters that need to be sorted. That is so they can be sorted in one big radix
 					// sort for efficiency. Ideally that state is per-scene renderer but the renderer doesn't know anything about particles.
-					const int32 SortedBufferOffset = FXSystem->AddSortedGPUSimulation(Simulation, View->ViewMatrices.ViewOrigin);
+					const int32 SortedBufferOffset = FXSystem->AddSortedGPUSimulation(Simulation, View->ViewMatrices.GetViewOrigin());
 					check(SimulationResources->SortedVertexBuffer.IsInitialized());
 					VertexFactory.SetVertexBuffer(&SimulationResources->SortedVertexBuffer, SortedBufferOffset);
 				}
@@ -4402,6 +4412,13 @@ void FFXSystem::SortGPUParticles(FRHICommandListImmediate& RHICmdList)
 			GParticleSortBuffers.GetSortedVertexBufferRHI(BufferIndex);
 		ParticleSimulationResources->SortedVertexBuffer.VertexBufferSRV =
 			GParticleSortBuffers.GetSortedVertexBufferSRV(BufferIndex);
+	}
+	else
+	{
+		ParticleSimulationResources->SortedVertexBuffer.VertexBufferRHI =
+		GParticleSortBuffers.GetSortedVertexBufferRHI(0);
+		ParticleSimulationResources->SortedVertexBuffer.VertexBufferSRV =
+		GParticleSortBuffers.GetSortedVertexBufferSRV(0);
 	}
 }
 

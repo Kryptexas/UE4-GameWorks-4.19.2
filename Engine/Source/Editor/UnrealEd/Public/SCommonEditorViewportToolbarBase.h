@@ -121,6 +121,21 @@ private:
 	 */
 	virtual TSharedRef<SWidget> GenerateShowMenu() const;
 
+
+	/**
+	 * Returns the initial visibility of the view mode options widget 
+	 *
+	 * @return The visibility value
+	 */
+	EVisibility GetViewModeOptionsVisibility() const;
+
+	/**
+	 * Generates the toolbar view param menu content 
+	 *
+	 * @return The widget containing the show menu content
+	 */
+	TSharedRef<SWidget> GenerateViewModeOptionsMenu() const;
+
 	/**
 	 * @return The widget containing the perspective only FOV window.
 	 */

@@ -551,6 +551,9 @@ public:
 		FMemory::Memcpy(BlendFactor, PipelineState.Graphics.CurrentBlendFactor, sizeof(PipelineState.Graphics.CurrentBlendFactor));
 	}
 
+	void SetBlendFactor(const float BlendFactor[4]);
+	const float* GetBlendFactor() const { return PipelineState.Graphics.CurrentBlendFactor; }
+	
 	void SetDepthStencilState(D3D12_DEPTH_STENCIL_DESC* State, uint32 RefStencil);
 
 	D3D12_STATE_CACHE_INLINE void GetDepthStencilState(D3D12_DEPTH_STENCIL_DESC** DepthStencilState, uint32* StencilRef) const
@@ -558,6 +561,9 @@ public:
 		*DepthStencilState = PipelineState.Graphics.HighLevelDesc.DepthStencilState;
 		*StencilRef = PipelineState.Graphics.CurrentReferenceStencil;
 	}
+
+	void SetStencilRef(uint32 StencilRef);
+	uint32 GetStencilRef() const { return PipelineState.Graphics.CurrentReferenceStencil; }
 
 	D3D12_STATE_CACHE_INLINE void GetVertexShader(FD3D12VertexShader** Shader)
 	{
@@ -622,6 +628,8 @@ public:
 	{
 		*BoundShaderState = PipelineState.Graphics.HighLevelDesc.BoundShaderState;
 	}
+
+	void SetPipelineState(FD3D12PipelineState* PipelineState, bool IsCompute, bool bForceState);
 
 	D3D12_STATE_CACHE_INLINE void SetComputeShader(FD3D12ComputeShader* Shader)
 	{
@@ -708,9 +716,9 @@ public:
 		return PipelineState.Graphics.IBCache.CurrentIndexBufferLocation == ResourceLocation;
 	}
 
+	void SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE PrimitiveTopologyType);
 	void SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY PrimitiveTopology);
-
-
+	
 	D3D12_STATE_CACHE_INLINE void GetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY* PrimitiveTopology) const
 	{
 		*PrimitiveTopology = PipelineState.Graphics.CurrentPrimitiveTopology;
@@ -724,7 +732,8 @@ public:
 	{
 	}
 
-	template <bool IsCompute = false> void ApplyState();
+	template <bool IsCompute = false> 
+	void ApplyState();
 	void ApplySamplers(const FD3D12RootSignature* const pRootSignature, uint32 StartStage, uint32 EndStage);
 	void RestoreState();
 	void DirtyViewDescriptorTables();
@@ -746,6 +755,15 @@ public:
 			*DepthStencilTarget = PipelineState.Graphics.CurrentDepthStencilTarget;
 		}
 	}
+
+	void SetRenderDepthStencilTargetFormats(
+		uint32 NumRenderTargets,
+		const TRenderTargetFormatsArray& RenderTargetFormats,
+		DXGI_FORMAT DepthStencilFormat,
+		uint32 NumSamples
+		);
+
+	FD3D12PipelineState* CommitPendingPipelineState(bool IsCompute);
 
 	void SetStreamOutTargets(uint32 NumSimultaneousStreamOutTargets, FD3D12Resource** SOArray, const uint32* SOOffsets);
 

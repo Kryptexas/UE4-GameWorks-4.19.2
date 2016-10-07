@@ -21,14 +21,15 @@ static FAutoConsoleVariableRef CVarMetalCommandBufferCommitThreshold(
 	TEXT("When enabled (> 0) if the command buffer has more than this number of draw/dispatch command encoded then it will be committed at the next encoder boundary to keep the GPU busy. (Default: 100, set to <= 0 to disable)"));
 
 #if PLATFORM_MAC
-static int32 GMetalCommandQueueSize = 256;
+static int32 GMetalCommandQueueSize = 5120; // This number is large due to texture streaming - currently each texture is its own command-buffer.
+// The whole MetalRHI needs to be changed to use MTLHeaps/MTLFences & reworked so that operations with the same synchronisation requirements are collapsed into a single blit command-encoder/buffer.
 #else
 static int32 GMetalCommandQueueSize = 64;
 #endif
 static FAutoConsoleVariableRef CVarMetalCommandQueueSize(
 	TEXT("rhi.Metal.CommandQueueSize"),
 	GMetalCommandQueueSize,
-	TEXT("The maximum number of command-buffers that can be allocated from each command-queue. (Default: 256 Mac, 64 iOS/tvOS)"));
+	TEXT("The maximum number of command-buffers that can be allocated from each command-queue. (Default: 5120 Mac, 64 iOS/tvOS)"));
 
 #if !UE_BUILD_SHIPPING
 static int32 GMetalRuntimeDebugLevel = 0;
@@ -186,10 +187,10 @@ static id<MTLDevice> GetMTLDevice(uint32& DeviceIndex)
 				bool bMatchesName = (NameComponents.Num() > 0);
 				for (FString& Component : NameComponents)
 				{
-					bMatchesName &= FString(SelectedDevice.name).Contains(Component);
+					bMatchesName &= FString(Device.name).Contains(Component);
 				}
-				if((Device.headless == GPU.GPUHeadless && GPU.GPUVendorId == 0x1002) || FString(Device.name).Contains(FString(GPU.GPUName).Trim()))
-				{
+				if((Device.headless == GPU.GPUHeadless || GPU.GPUVendorId != 0x1002) && bMatchesName)
+                {
 					DeviceIndex = ExplicitRendererId;
 					SelectedDevice = Device;
 					break;
@@ -219,8 +220,8 @@ static id<MTLDevice> GetMTLDevice(uint32& DeviceIndex)
 				{
 					bMatchesName &= FString(SelectedDevice.name).Contains(Component);
 				}
-				if((SelectedDevice.headless == GPU.GPUHeadless && GPU.GPUVendorId == 0x1002) || bMatchesName)
-				{
+				if((SelectedDevice.headless == GPU.GPUHeadless || GPU.GPUVendorId != 0x1002) && bMatchesName)
+                {
 					DeviceIndex = i;
 					bFoundDefault = true;
 					break;
@@ -275,51 +276,10 @@ FMetalDeviceContext::FMetalDeviceContext(id<MTLDevice> MetalDevice, uint32 InDev
 , FreeBuffers([NSMutableSet new])
 , SceneFrameCounter(0)
 , FrameCounter(0)
-, Features(0)
 , ActiveContexts(1)
 {
 #if !UE_BUILD_SHIPPING
 	CommandQueue.SetRuntimeDebuggingLevel(GMetalRuntimeDebugLevel);
-#endif
-	
-#if PLATFORM_IOS
-	NSOperatingSystemVersion Vers = [[NSProcessInfo processInfo] operatingSystemVersion];
-	if(Vers.majorVersion >= 9)
-	{
-		Features = EMetalFeaturesSeparateStencil | EMetalFeaturesSetBufferOffset | EMetalFeaturesResourceOptions | EMetalFeaturesDepthStencilBlitOptions;
-
-#if PLATFORM_TVOS
-		Features |= EMetalFeaturesDepthClipMode;
-		if(FParse::Param(FCommandLine::Get(),TEXT("metalv2")) || [Device supportsFeatureSet:MTLFeatureSet_tvOS_GPUFamily1_v2])
-		{
-			Features |= EMetalFeaturesStencilView;
-		}
-#else
-		{
-			Features |= EMetalFeaturesDepthClipMode;
-		}
-		
-		if ([Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v1])
-		{
-			Features |= EMetalFeaturesCountingQueries | EMetalFeaturesBaseVertexInstance | EMetalFeaturesIndirectBuffer;
-		}
-		
-		if(FParse::Param(FCommandLine::Get(),TEXT("metalv2")) || [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v2] || [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily2_v3] || [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily1_v3])
-		{
-			Features |= EMetalFeaturesStencilView;
-		}
-#endif
-	}
-	else if(Vers.majorVersion == 8 && Vers.minorVersion >= 3)
-	{
-		Features = EMetalFeaturesSeparateStencil | EMetalFeaturesSetBufferOffset;
-	}
-#else // Assume that Mac & other platforms all support these from the start. They can diverge later.
-	Features = EMetalFeaturesSeparateStencil | EMetalFeaturesSetBufferOffset | EMetalFeaturesDepthClipMode | EMetalFeaturesResourceOptions | EMetalFeaturesDepthStencilBlitOptions | EMetalFeaturesCountingQueries | EMetalFeaturesBaseVertexInstance | EMetalFeaturesIndirectBuffer | EMetalFeaturesLayeredRendering;
-    if (FParse::Param(FCommandLine::Get(),TEXT("metalv2")) || [Device supportsFeatureSet:MTLFeatureSet_OSX_GPUFamily1_v2])
-    {
-        Features |= EMetalFeaturesStencilView | EMetalFeaturesDepth16;
-    }
 #endif
 	
 	// Hook into the ios framepacer, if it's enabled for this platform.
@@ -928,20 +888,26 @@ bool FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 #endif
 	
 	bool bUpdatedStrides = false;
+	uint32 StrideHash = 0;
 	MTLVertexDescriptor* Layout = CurrentBoundShaderState->VertexDeclaration->Layout.VertexDesc;
 	if(Layout && Layout.layouts)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_MetalPrepareVertexDescTime);
+		
 		for (uint32 ElementIndex = 0; ElementIndex < CurrentBoundShaderState->VertexDeclaration->Elements.Num(); ElementIndex++)
 		{
 			const FVertexElement& Element = CurrentBoundShaderState->VertexDeclaration->Elements[ElementIndex];
 			
-			uint32 StreamStride = StateCache.GetVertexStride(UNREAL_TO_METAL_BUFFER_INDEX(Element.StreamIndex));
+			uint32 StreamStride = StateCache.GetVertexStride(Element.StreamIndex);
+			StrideHash ^= (StreamStride << 1);
+
 			if (StreamStride > 0 && Element.Stride != StreamStride)
 			{
 				if (!bUpdatedStrides)
 				{
 					bUpdatedStrides = true;
-					Layout = [[Layout copy] autorelease];
+					Layout = [Layout copy];
+					TRACK_OBJECT(STAT_MetalVertexDescriptorCount, Layout);
 				}
 				auto BufferLayout = [Layout.layouts objectAtIndexedSubscript:UNREAL_TO_METAL_BUFFER_INDEX(Element.StreamIndex)];
 				check(BufferLayout);
@@ -950,7 +916,11 @@ bool FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 		}
 	}
 	
-	FMetalHashedVertexDescriptor VertexDesc = !bUpdatedStrides ? CurrentBoundShaderState->VertexDeclaration->Layout : FMetalHashedVertexDescriptor(Layout);
+	FMetalHashedVertexDescriptor VertexDesc;
+	{
+		SCOPE_CYCLE_COUNTER(STAT_MetalPrepareVertexDescTime);
+		VertexDesc = !bUpdatedStrides ? CurrentBoundShaderState->VertexDeclaration->Layout : FMetalHashedVertexDescriptor(Layout, (CurrentBoundShaderState->VertexDeclaration->BaseHash ^ StrideHash));
+	}
 	
 	// Validate the vertex layout in debug mode, or when the validation layer is enabled for development builds.
 	// Other builds will just crash & burn if it is incorrect.
@@ -959,19 +929,21 @@ bool FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 	{
 		if(Layout && Layout.layouts)
 		{
-			for (uint32 i = 0; i < MaxMetalStreams; i++)
+			for (uint32 i = 0; i < MaxVertexElementCount; i++)
 			{
 				auto Attribute = [Layout.attributes objectAtIndexedSubscript:i];
 				if(Attribute)
 				{
 					auto BufferLayout = [Layout.layouts objectAtIndexedSubscript:Attribute.bufferIndex];
 					uint32 BufferLayoutStride = BufferLayout ? BufferLayout.stride : 0;
-					uint64 MetalSize = StateCache.GetVertexBuffer(Attribute.bufferIndex) ? (uint64)StateCache.GetVertexBuffer(Attribute.bufferIndex).length : 0llu;
 					
-					if(!(BufferLayoutStride == StateCache.GetVertexStride(Attribute.bufferIndex) || (MetalSize > 0 && StateCache.GetVertexStride(Attribute.bufferIndex) == 0 && StateCache.GetVertexBuffer(Attribute.bufferIndex) && MetalSize == BufferLayoutStride)))
+					uint32 BufferIndex = METAL_TO_UNREAL_BUFFER_INDEX(Attribute.bufferIndex);
+					
+					uint64 MetalSize = StateCache.GetVertexBufferSize(BufferIndex);
+					
+					if(!(BufferLayoutStride == StateCache.GetVertexStride(BufferIndex) || (MetalSize > 0 && StateCache.GetVertexStride(BufferIndex) == 0 && StateCache.GetVertexBufferSize(BufferIndex) && MetalSize == BufferLayoutStride)))
 					{
-						FString Report = FString::Printf(TEXT("Vertex Layout Mismatch: Index: %d, Buffer: %p, Len: %lld, Decl. Stride: %d, Stream Stride: %d"), Attribute.bufferIndex, StateCache.GetVertexBuffer(Attribute.bufferIndex), MetalSize, BufferLayoutStride, StateCache.GetVertexStride(Attribute.bufferIndex));
-						
+						FString Report = FString::Printf(TEXT("Vertex Layout Mismatch: Index: %d, Len: %lld, Decl. Stride: %d, Stream Stride: %d"), Attribute.bufferIndex, MetalSize, BufferLayoutStride, StateCache.GetVertexStride(BufferIndex));
 						UE_LOG(LogMetal, Warning, TEXT("%s"), *Report);
 						
 						if (GEmitDrawEvents)
@@ -1348,7 +1320,14 @@ void FMetalContext::SetShaderResourceView(EShaderFrequency ShaderStage, uint32 B
 		else if (VB)
 		{
 			BufferSideTable[ShaderStage][BindIndex] = VB->GetSize();
-			GetCommandEncoder().SetShaderBuffer(ShaderStage, VB->Buffer, 0, BindIndex);
+			if (!VB->Data)
+			{
+		        GetCommandEncoder().SetShaderBuffer(ShaderStage, VB->Buffer, 0, BindIndex);
+			}
+			else
+			{
+		        GetCommandEncoder().SetShaderBytes(ShaderStage, VB->Data, 0, BindIndex);
+			}
 		}
 		else if (IB)
 		{
@@ -1379,7 +1358,8 @@ void FMetalContext::SetShaderUnorderedAccessView(EShaderFrequency ShaderStage, u
 		else if (VertexBuffer)
 		{
 			BufferSideTable[ShaderStage][BindIndex] = VertexBuffer->GetSize();
-			GetCommandEncoder().SetShaderBuffer(ShaderStage, VertexBuffer->Buffer, 0, BindIndex);
+			check(!VertexBuffer->Data && VertexBuffer->Buffer);
+	        GetCommandEncoder().SetShaderBuffer(ShaderStage, VertexBuffer->Buffer, 0, BindIndex);
 		}
 		else if (Texture)
 		{

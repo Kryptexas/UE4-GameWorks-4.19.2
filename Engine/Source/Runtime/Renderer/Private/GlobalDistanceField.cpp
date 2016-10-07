@@ -623,7 +623,7 @@ void FHeightfieldLightingViewInfo::CompositeHeightfieldsIntoGlobalDistanceField(
 		{
 			const FPrimitiveSceneInfo* HeightfieldPrimitive = Scene->DistanceFieldSceneData.HeightfieldPrimitives[HeightfieldPrimitiveIndex];
 			const FBoxSphereBounds& PrimitiveBounds = HeightfieldPrimitive->Proxy->GetBounds();
-			const float DistanceToPrimitiveSq = (PrimitiveBounds.Origin - View.ViewMatrices.ViewOrigin).SizeSquared();
+			const float DistanceToPrimitiveSq = (PrimitiveBounds.Origin - View.ViewMatrices.GetViewOrigin()).SizeSquared();
 
 			if (UpdateRegion.Bounds.Intersect(PrimitiveBounds.GetBox()))
 			{
@@ -853,7 +853,7 @@ void ComputeUpdateRegionsAndUpdateViewState(
 			if (ShouldUpdateClipmapThisFrame(ClipmapIndex, View.ViewState->GlobalDistanceFieldUpdateIndex)
 				|| bForceFullUpdate)
 			{
-				const FVector NewCenter = View.ViewMatrices.ViewOrigin;
+				const FVector NewCenter = View.ViewMatrices.GetViewOrigin();
 
 				FIntVector GridCenter;
 				GridCenter.X = FMath::FloorToInt(NewCenter.X / CellSize);
@@ -966,7 +966,7 @@ void ComputeUpdateRegionsAndUpdateViewState(
 			Clipmap.ScrollOffset = FVector::ZeroVector;
 
 			const float Extent = ComputeClipmapExtent(ClipmapIndex, Scene);
-			FVector Center = View.ViewMatrices.ViewOrigin;
+			FVector Center = View.ViewMatrices.GetViewOrigin();
 
 			const float CellSize = (Extent * 2) / GAOGlobalDFResolution;
 

@@ -82,14 +82,6 @@ FAutoConsoleVariableRef CVarCapsuleMinSkyAngle(
 	ECVF_Scalability | ECVF_RenderThreadSafe
 	);
 
-float GCapsuleIndirectShadowMinVisibility = .1f;
-FAutoConsoleVariableRef CVarCapsuleIndirectShadowMinVisibility(
-	TEXT("r.CapsuleIndirectShadowMinVisibility"),
-	GCapsuleIndirectShadowMinVisibility,
-	TEXT("Minimum visibility caused by capsule indirect shadows.  This is used to keep the indirect shadows from going fully black."),
-	ECVF_Scalability | ECVF_RenderThreadSafe
-	);
-
 float GCapsuleIndirectShadowSelfShadowIntensity = .2f;
 FAutoConsoleVariableRef CVarCapsuleIndirectShadowSelfShadowIntensity(
 	TEXT("r.CapsuleIndirectShadowSelfShadowIntensity"),
@@ -185,7 +177,6 @@ public:
 		ShadowCapsuleShapes.Bind(Initializer.ParameterMap, TEXT("ShadowCapsuleShapes"));
 		MaxOcclusionDistance.Bind(Initializer.ParameterMap, TEXT("MaxOcclusionDistance"));
 		LightDirectionData.Bind(Initializer.ParameterMap, TEXT("LightDirectionData"));
-		MinVisibility.Bind(Initializer.ParameterMap, TEXT("MinVisibility"));
 		IndirectCapsuleSelfShadowingIntensity.Bind(Initializer.ParameterMap, TEXT("IndirectCapsuleSelfShadowingIntensity"));
 	}
 
@@ -296,8 +287,6 @@ public:
 		SetShaderValue(RHICmdList, ShaderRHI, MaxOcclusionDistance, MaxOcclusionDistanceValue);
 		SetSRVParameter(RHICmdList, ShaderRHI, LightDirectionData, LightDirectionDataSRV);
 
-		SetShaderValue(RHICmdList, ShaderRHI, MinVisibility, GCapsuleIndirectShadowMinVisibility);
-
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GenerateMeshDistanceFields"));
 		// Self shadowing detection reuses the distance field GBuffer bit, so disable self-shadowing reduction when distance field features are in use
 		float IndirectCapsuleSelfShadowingIntensityValue = CVar->GetValueOnRenderThread() == 0 ? GCapsuleIndirectShadowSelfShadowIntensity : 1.0f;
@@ -343,7 +332,6 @@ public:
 		Ar << ShadowCapsuleShapes;
 		Ar << MaxOcclusionDistance;
 		Ar << LightDirectionData;
-		Ar << MinVisibility;
 		Ar << IndirectCapsuleSelfShadowingIntensity;
 		return bShaderHasOutdatedParameters;
 	}
@@ -368,7 +356,6 @@ private:
 	FShaderResourceParameter ShadowCapsuleShapes;
 	FShaderParameter MaxOcclusionDistance;
 	FShaderResourceParameter LightDirectionData;
-	FShaderParameter MinVisibility;
 	FShaderParameter IndirectCapsuleSelfShadowingIntensity;
 };
 
@@ -941,6 +928,12 @@ void FDeferredShadingSceneRenderer::SetupIndirectCapsuleShadows(FRHICommandListI
 				}
 			}
 
+			// Pack both values into a single float to keep float4 alignment
+			const FFloat16 LightAngle16f = FFloat16(PackedLightDirection.W);
+			const FFloat16 MinVisibility16f = FFloat16(PrimitiveSceneInfo->Proxy->GetCapsuleIndirectShadowMinVisibility());
+			const uint32 PackedWInt = ((uint32)LightAngle16f.Encoded) | ((uint32)MinVisibility16f.Encoded << 16);
+			PackedLightDirection.W = *(float*)&PackedWInt;
+
 			//@todo - remove entries with 0 fade alpha
 			for (int32 ShapeIndex = OriginalNumCapsuleShapes; ShapeIndex < CapsuleShapeData.Num(); ShapeIndex++)
 			{
@@ -1046,7 +1039,7 @@ void FDeferredShadingSceneRenderer::RenderIndirectCapsuleShadows(
 				SCOPED_DRAW_EVENT(RHICmdList, ClearIndirectOcclusion);
 				// We are the first users of the indirect occlusion texture so we must clear to unoccluded
 				SetRenderTargets(RHICmdList, RenderTargets.Num(), RenderTargets.GetData(), FTextureRHIParamRef(), 0, NULL, true);
-				RHICmdList.Clear(true, FLinearColor::White, false, 0, false, 0, FIntRect());
+				RHICmdList.ClearColorTexture(SceneContext.ScreenSpaceAO->GetRenderTargetItem().TargetableTexture, FLinearColor::White, FIntRect());
 			}
 							
 			check(RenderTargets.Num() > 0);

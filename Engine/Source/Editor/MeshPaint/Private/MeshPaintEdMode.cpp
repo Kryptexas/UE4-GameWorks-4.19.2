@@ -374,7 +374,7 @@ bool FEdModeMeshPaint::CapturedMouseMove( FEditorViewportClient* InViewportClien
 
 			bool bAnyPaintableActorsUnderCursor = false;
 
-			DoPaint( View->ViewMatrices.ViewOrigin, MouseViewportRay.GetOrigin(), MouseViewportRay.GetDirection(), NULL, PaintAction, bVisualCueOnly, StrengthScale, /* Out */ bAnyPaintableActorsUnderCursor );
+			DoPaint( View->ViewMatrices.GetViewOrigin(), MouseViewportRay.GetOrigin(), MouseViewportRay.GetDirection(), NULL, PaintAction, bVisualCueOnly, StrengthScale, /* Out */ bAnyPaintableActorsUnderCursor );
 
 			return true;
 		}
@@ -561,7 +561,7 @@ bool FEdModeMeshPaint::InputKey( FEditorViewportClient* InViewportClient, FViewp
 						const bool bVisualCueOnly = false;
 						const EMeshPaintAction::Type PaintAction = GetPaintAction(InViewport);
 						const float StrengthScale = 1.0f;
-						DoPaint( View->ViewMatrices.ViewOrigin, MouseViewportRay.GetOrigin(), MouseViewportRay.GetDirection(), NULL, PaintAction, bVisualCueOnly, StrengthScale, /* Out */ bAnyPaintableActorsUnderCursor );
+						DoPaint( View->ViewMatrices.GetViewOrigin(), MouseViewportRay.GetOrigin(), MouseViewportRay.GetDirection(), NULL, PaintAction, bVisualCueOnly, StrengthScale, /* Out */ bAnyPaintableActorsUnderCursor );
 					}
 				}
 				else
@@ -2674,7 +2674,7 @@ void FEdModeMeshPaint::Render( const FSceneView* View, FViewport* Viewport, FPri
 	check( ViewportClient != nullptr );
 
 	// We only care about perspective viewports
-	const bool bIsPerspectiveViewport = ( View->ViewMatrices.ProjMatrix.M[ 3 ][ 3 ] < ( 1.0f - SMALL_NUMBER ) );
+	const bool bIsPerspectiveViewport = ( View->ViewMatrices.GetProjectionMatrix().M[ 3 ][ 3 ] < ( 1.0f - SMALL_NUMBER ) );
 	if( bIsPerspectiveViewport )
 	{
 		// Make sure perspective viewports are still set to real-time
@@ -2749,7 +2749,7 @@ void FEdModeMeshPaint::Render( const FSceneView* View, FViewport* Viewport, FPri
 						FViewportCursorLocation MouseViewportRay(View, ViewportClient, MousePosition.X, MousePosition.Y);
 
 						FPaintRay& NewPaintRay = *new( PaintRays ) FPaintRay();
-						NewPaintRay.CameraLocation = View->ViewMatrices.ViewOrigin;
+						NewPaintRay.CameraLocation = View->ViewMatrices.GetViewOrigin();
 						NewPaintRay.RayStart = MouseViewportRay.GetOrigin();
 						NewPaintRay.RayDirection = MouseViewportRay.GetDirection();
 						NewPaintRay.ViewportInteractor = nullptr;

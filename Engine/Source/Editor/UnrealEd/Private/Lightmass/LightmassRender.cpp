@@ -152,6 +152,11 @@ struct FLightmassMaterialCompiler : public FProxyMaterialCompiler
 		return Compiler->Constant4(1.0f,1.0f,1.0f,1.0f);
 	}
 
+	virtual int32 PreSkinnedPosition() override
+	{
+		return Compiler->Constant3(0.f,0.f,0.f);
+	}
+
 	virtual int32 RealTime(bool bPeriodic, float Period) override
 	{
 		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered RealTime... Forcing constant 0.0f."));
@@ -308,7 +313,7 @@ public:
 
 		int32 Ret = CompilePropertyAndSetMaterialPropertyWithoutCast(Property, Compiler);
 
-		return Compiler->ForceCast(Ret, GetMaterialPropertyType(Property));
+		return Compiler->ForceCast(Ret, FMaterialAttributeDefinitionMap::GetValueType(Property));
 	}
 
 	/** helper for CompilePropertyAndSetMaterialProperty() */

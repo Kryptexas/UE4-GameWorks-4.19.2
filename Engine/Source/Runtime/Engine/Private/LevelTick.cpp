@@ -32,6 +32,10 @@
 #include "InGamePerformanceTracker.h"
 #include "Streaming/TextureStreamingHelpers.h"
 
+#if WITH_EDITOR
+	#include "UnrealEd.h"
+#endif
+
 // this will log out all of the objects that were ticked in the FDetailedTickStats struct so you can isolate what is expensive
 #define LOG_DETAILED_DUMPSTATS 0
 
@@ -408,6 +412,17 @@ bool UWorld::IsPaused() const
 				(IsPlayInEditor() && bDebugPauseExecution) );
 }
 
+
+bool UWorld::IsCameraMoveable() const
+{
+	bool bIsCameraMoveable = (!IsPaused() || bIsCameraMoveableWhenPaused);
+#if WITH_EDITOR
+	// to fix UE-17047 Motion Blur exaggeration when Paused in Simulate:
+	// Simulate is excluded as the camera can move which invalidates motionblur
+	bIsCameraMoveable = bIsCameraMoveable || (GEditor && GEditor->bIsSimulatingInEditor);
+#endif
+	return bIsCameraMoveable;
+}
 
 /**
  * Streaming settings for levels which are determined visible by level streaming volumes.
@@ -1389,10 +1404,7 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 				for( FConstPlayerControllerIterator Iterator = GetPlayerControllerIterator(); Iterator; ++Iterator )
 				{
 					APlayerController* PlayerController = *Iterator;			
-					if (!bIsPaused || PlayerController->ShouldPerformFullTickWhenPaused())
-					{
-						PlayerController->UpdateCameraManager(DeltaSeconds);
-					}
+					PlayerController->UpdateCameraManager(DeltaSeconds);
 				}
 
 				if( !bIsPaused )

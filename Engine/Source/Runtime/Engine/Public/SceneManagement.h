@@ -648,22 +648,24 @@ class FAsyncEncode : public IQueuedWork
 private:
 	TPendingTextureType* PendingTexture;
 	FThreadSafeCounter& Counter;
+	ULevel* LightingScenario;
 public:
 
-	FAsyncEncode(TPendingTextureType* InPendingTexture, FThreadSafeCounter& InCounter) : PendingTexture(nullptr), Counter(InCounter)
+	FAsyncEncode(TPendingTextureType* InPendingTexture, ULevel* InLightingScenario, FThreadSafeCounter& InCounter) : PendingTexture(nullptr), Counter(InCounter)
 	{
+		LightingScenario = InLightingScenario;
 		PendingTexture = InPendingTexture;
 	}
 
 	void Abandon()
 	{
-		PendingTexture->StartEncoding();
+		PendingTexture->StartEncoding(LightingScenario);
 		Counter.Decrement();
 	}
 
 	void DoThreadedWork()
 	{
-		PendingTexture->StartEncoding();
+		PendingTexture->StartEncoding(LightingScenario);
 		Counter.Decrement();
 	}
 };
@@ -818,7 +820,6 @@ public:
 	float SkyDistanceThreshold;
 	bool bCastShadows;
 	bool bWantsStaticShadowing;
-	bool bPrecomputedLightingIsValid;
 	bool bHasStaticLighting;
 	FLinearColor LightColor;
 	FSHVectorRGB3 IrradianceEnvironmentMap;

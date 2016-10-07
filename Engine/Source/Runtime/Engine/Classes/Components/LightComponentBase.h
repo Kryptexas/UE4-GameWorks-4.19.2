@@ -64,10 +64,6 @@ class ENGINE_API ULightComponentBase : public USceneComponent
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, AdvancedDisplay)
 	uint32 bAffectTranslucentLighting:1;
 
-	/** The precomputed lighting for that light source is valid. It might become invalid if some properties change (e.g. position, brightness). */
-	UPROPERTY()
-	uint32 bPrecomputedLightingIsValid:1;
-
 	/** 
 	 * Scales the indirect lighting contribution from this light. 
 	 * A value of 0 disables any GI from this light. Default is 1.

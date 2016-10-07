@@ -69,7 +69,8 @@ public:
 	virtual void ShutdownModule() override;
 
 	// IMeshReductionModule interface.
-	virtual class IMeshReduction* GetMeshReductionInterface() override;
+	virtual class IMeshReduction* GetStaticMeshReductionInterface() override;
+	virtual class IMeshReduction* GetSkeletalMeshReductionInterface() override;
 	virtual class IMeshMerging* GetMeshMergingInterface() override;
 private:
 };
@@ -1651,7 +1652,12 @@ void FSimplygonSwarmModule::ShutdownModule()
 	FSimplygonRESTClient::Shutdown();
 }
 
-IMeshReduction* FSimplygonSwarmModule::GetMeshReductionInterface()
+IMeshReduction* FSimplygonSwarmModule::GetStaticMeshReductionInterface()
+{
+	return nullptr;
+}
+
+IMeshReduction* FSimplygonSwarmModule::GetSkeletalMeshReductionInterface()
 {
 	return nullptr;
 }

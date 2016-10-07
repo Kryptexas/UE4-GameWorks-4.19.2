@@ -106,7 +106,6 @@ static FAutoConsoleVariableRef CVarRHICmdListStateCache(
 	TEXT("If > 0, then enable a minor state cache on the from of cmdlist recording.")
 	);
 
-
 RHI_API bool GEnableAsyncCompute = true;
 RHI_API FRHICommandListExecutor GRHICommandList;
 
@@ -129,7 +128,6 @@ RHI_API FAutoConsoleTaskPriority CPrio_SceneRenderingTask(
 	ENamedThreads::NormalThreadPriority, 
 	ENamedThreads::HighTaskPriority 
 	);
-
 
 struct FRHICommandStat : public FRHICommand<FRHICommandStat>
 {
@@ -684,7 +682,9 @@ void FRHICommandListExecutor::WaitOnRHIThreadFence(FGraphEventRef& Fence)
 
 
 FRHICommandListBase::FRHICommandListBase()
-	: MemManager(0)
+	: StrictGraphicsPipelineStateUse(0)
+	, MemManager(0)
+	, CachedNumSimultanousRenderTargets(0)
 {
 	GRHICommandList.OutstandingCmdListCount.Increment();
 	Reset();

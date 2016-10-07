@@ -350,6 +350,16 @@ private:
 	/** Access the persona toolkit ptr. It should always be valid in the lifetime of this customization */
 	TSharedRef<IPersonaToolkit> GetPersonaToolkit() const { check(PersonaToolkitPtr.IsValid()); return PersonaToolkitPtr.Pin().ToSharedRef(); }
 
+	EVisibility GetOverrideUVDensityVisibililty() const;
+	ECheckBoxState IsUVDensityOverridden(int32 MaterialIndex) const;
+	void OnOverrideUVDensityChanged(ECheckBoxState NewState, int32 MaterialIndex);
+
+	EVisibility GetUVDensityVisibility(int32 MaterialIndex, int32 UVChannelIndex) const;
+	TOptional<float> GetUVDensityValue(int32 MaterialIndex, int32 UVChannelIndex) const;
+	void SetUVDensityValue(float InDensity, ETextCommit::Type CommitType, int32 MaterialIndex, int32 UVChannelIndex);
+
+	SVerticalBox::FSlot& GetUVDensitySlot(int32 MaterialIndex, int32 UVChannelIndex) const;
+
 public:
 
 	bool IsApplyNeeded() const;

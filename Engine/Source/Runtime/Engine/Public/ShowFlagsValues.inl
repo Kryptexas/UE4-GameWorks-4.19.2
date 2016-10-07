@@ -296,14 +296,14 @@ SHOWFLAG_FIXED_IN_SHIPPING(0, HLODColoration, SFG_Hidden, LOCTEXT("VisualizeHLOD
 SHOWFLAG_FIXED_IN_SHIPPING(0, QuadOverdraw, SFG_Hidden, LOCTEXT("QuadOverdrawSF", "Quad Overdraw"))
 /** Visualize the overhead of material quads */
 SHOWFLAG_FIXED_IN_SHIPPING(0, ShaderComplexityWithQuadOverdraw, SFG_Hidden, LOCTEXT("ShaderComplexityWithQuadOverdraw", "Shader Complexity With Quad Overdraw"))
-/** Visualize the accuracy of the CPU primitive distance when compared with the GPU value */
+/** Visualize the accuracy of the primitive distance computed for texture streaming */
 SHOWFLAG_FIXED_IN_SHIPPING(0, PrimitiveDistanceAccuracy, SFG_Hidden, LOCTEXT("PrimitiveDistanceAccuracy", "Primitive Distance Accuracy"))
-/** Visualize the accuracy of the CPU mesh texture coordinate size when compared to the GPU value */
-SHOWFLAG_FIXED_IN_SHIPPING(0, MeshTexCoordSizeAccuracy, SFG_Hidden, LOCTEXT("MeshTexCoordSizeAccuracy", "Mesh Texture Coordinate Size Accuracy"))
-/** Visualize the accuracy of CPU material texture coordinate scales when compared to the GPU values */
-SHOWFLAG_FIXED_IN_SHIPPING(0, MaterialTexCoordScalesAccuracy, SFG_Hidden, LOCTEXT("MaterialTexCoordScalesAccuracy", "Material Texture Coordinate Scales Accuracy"))
-/** Outputs the material texture coordinate scales. */
-SHOWFLAG_FIXED_IN_SHIPPING(0, MaterialTexCoordScalesAnalysis, SFG_Hidden, LOCTEXT("MaterialTexCoordScalesAnalysis", "Material Texture Coordinate Scales Analysis"))
+/** Visualize the accuracy of the mesh UV density computed for texture streaming */
+SHOWFLAG_FIXED_IN_SHIPPING(0, MeshUVDensityAccuracy, SFG_Hidden, LOCTEXT("MeshUVDensityAccuracy", "Mesh UV Densities Accuracy"))
+/** Visualize the accuracy of CPU material texture scales when compared to the GPU values */
+SHOWFLAG_FIXED_IN_SHIPPING(0, MaterialTextureScaleAccuracy, SFG_Hidden, LOCTEXT("MaterialTextureScaleAccuracy", "Material Texture Scales Accuracy"))
+/** Outputs the material texture scales. */
+SHOWFLAG_FIXED_IN_SHIPPING(0, OutputMaterialTextureScales, SFG_Hidden, LOCTEXT("OutputMaterialTextureScales", "Output Material Texture Scales"))
 /** If WidgetComponents should be rendered in the scene */
 SHOWFLAG_ALWAYS_ACCESSIBLE(WidgetComponents, SFG_Normal, LOCTEXT("WidgetComponentsSF", "Widget Components"))
 #undef SHOWFLAG_ALWAYS_ACCESSIBLE
