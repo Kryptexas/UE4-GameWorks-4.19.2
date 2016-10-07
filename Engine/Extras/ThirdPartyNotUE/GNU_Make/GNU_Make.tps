@@ -5,24 +5,10 @@
   <Date>2016-07-28T17:04:48.6538965-04:00</Date>
   <Function>Allows users to generate PhysX project files (so they can compile physx source)</Function>
   <Justification>Allows licensees to easily compile physx from source on any platform we support</Justification>
-  <Platforms>
-    <Platform>PC</Platform>
-    <Platform>Mac</Platform>
-    <Platform>Linux</Platform>
-  </Platforms>
-  <Products>
-    <Product>UDK4</Product>
-    <Product>UE4</Product>
-  </Products>
-  <TpsType>dll</TpsType>
   <Eula>http://www.gnu.org/licenses/gpl.html</Eula> <RedistributeTo>
     <EndUserGroup>Licensees</EndUserGroup>
     <EndUserGroup>Git</EndUserGroup>
     <EndUserGroup>P4</EndUserGroup>
   </RedistributeTo>
-  <Redistribute>false</Redistribute>
-  <IsSourceAvailable>false</IsSourceAvailable>
-  <NoticeType>Full EULA Text</NoticeType>
-  <Notification />
   <LicenseFolder>/Engine/Extras/ThirdPartyNotUE/Gnu_Make/Gnu_Make_License.txt</LicenseFolder>
 </TpsData>

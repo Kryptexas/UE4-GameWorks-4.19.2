@@ -8,8 +8,6 @@
   <Products />
   <Eula />
   <RedistributeTo />
-  <Redistribute>false</Redistribute>
-  <IsSourceAvailable>false</IsSourceAvailable>
   <Notification>
 Redirect: 
 ../../../../../Build/Android/Java/AndroidOpenSourceProject.tps

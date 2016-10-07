@@ -5,27 +5,11 @@
   <Date>2016-06-07T17:29:31.5544216-04:00</Date>
   <Function>Used to encode textures to ASTC format, a new standard supported by the latest Android devices.</Function>
   <Justification>Would be nice to support ASTC for Android due to size and quality advantages over other formats.</Justification>
-  <Platforms>
-    <Platform>PC</Platform>
-    <Platform>Mac</Platform>
-    <Platform>Android</Platform>
-    <Platform>Windows 8</Platform>
-    <Platform>Linux</Platform>
-  </Platforms>
-  <Products>
-    <Product>UDK4</Product>
-    <Product>UE4</Product>
-  </Products>
-  <TpsType />
   <Eula>http://malideveloper.arm.com/?modals=astc-evaluation-codec</Eula>
   <RedistributeTo>
     <EndUserGroup>Licensees</EndUserGroup>
     <EndUserGroup>Git</EndUserGroup>
     <EndUserGroup>P4</EndUserGroup>
   </RedistributeTo>
-  <Redistribute>false</Redistribute>
-  <IsSourceAvailable>false</IsSourceAvailable>
-  <NoticeType>None</NoticeType>
-  <Notification />
   <LicenseFolder>None</LicenseFolder>
 </TpsData>
