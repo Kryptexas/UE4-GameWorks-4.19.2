@@ -48,6 +48,10 @@ void ATP_RollingBall::SetupPlayerInputComponent(class UInputComponent* PlayerInp
 	PlayerInputComponent->BindAxis("MoveForward", this, &ATP_RollingBall::MoveForward);
 
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ATP_RollingBall::Jump);
+
+	// handle touch devices
+	PlayerInputComponent->BindTouch(IE_Pressed, this, &ATP_RollingBall::TouchStarted);
+	PlayerInputComponent->BindTouch(IE_Released, this, &ATP_RollingBall::TouchStopped);
 }
 
 void ATP_RollingBall::MoveRight(float Val)
@@ -77,4 +81,25 @@ void ATP_RollingBall::NotifyHit(class UPrimitiveComponent* MyComp, class AActor*
 	Super::NotifyHit(MyComp, Other, OtherComp, bSelfMoved, HitLocation, HitNormal, NormalImpulse, Hit);
 
 	bCanJump = true;
+}
+
+void ATP_RollingBall::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
+{
+	if (bCanJump)
+	{
+		const FVector Impulse = FVector(0.f, 0.f, JumpImpulse);
+		Ball->AddImpulse(Impulse);
+		bCanJump = false;
+	}
+
+}
+
+void ATP_RollingBall::TouchStopped(ETouchIndex::Type FingerIndex, FVector Location)
+{
+	if (bCanJump)
+	{
+		const FVector Impulse = FVector(0.f, 0.f, JumpImpulse);
+		Ball->AddImpulse(Impulse);
+		bCanJump = false;
+	}
 }
