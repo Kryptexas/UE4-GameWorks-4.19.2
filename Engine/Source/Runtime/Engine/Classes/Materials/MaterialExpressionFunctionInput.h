@@ -25,7 +25,7 @@ class UMaterialExpressionFunctionInput : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Used for previewing when editing the function, also temporarily used to connect to the outside material when compiling that material. */
+	/** Used for previewing when editing the function, or when bUsePreviewValueAsDefault is enabled. */
 	UPROPERTY(meta=(RequiredInput = "false"))
 	FExpressionInput Preview;
 
