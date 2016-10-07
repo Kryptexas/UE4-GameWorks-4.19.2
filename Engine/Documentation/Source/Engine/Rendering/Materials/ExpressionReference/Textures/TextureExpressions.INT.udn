@@ -39,7 +39,7 @@ Sprite instances will pass in their color as a vertex color, but it can be used 
 | [REGION:tablesection]Properties[/REGION] ||
 | **Texture** | Specifies the texture sampled by the expression. To set the texture, first select a texture in the **Content Browser**.  Then, select the Texture property in the expression's property window and click the 'Use Current Selection' button. |
 | **Sampler Type** | The type of data that will be sampled and output from the node. |
-| **MipValueMode** | Applies a noise value to the texture that affects the look and performance. |
+| **MipValueMode** | Selects how to customize the sample's mip-level or derivatives from the default hardware computed. Affects the look and performance. |
 | [REGION:tablesection]Inputs[/REGION] ||
 | **UVs** | Takes in UV texture coordinates to use for the texture. If no values are input to the UVs, the texture coordinates of the mesh the material is applied to are used. |
 | [REGION:tablesection]Outputs[/REGION] ||

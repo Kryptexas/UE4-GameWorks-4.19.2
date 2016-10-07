@@ -443,10 +443,10 @@ The image below shows what data the DistanceFieldGradient will use when the vari
 
 |Function| Description|
 |---------|-----------|
-|Cellnoise | Random color for each integer grid cell in 3D space. |
-|Perlin 3D Noise | Computational Perlin noise with 3D output, each channel output ranges from -1 to 1.|
-|Perlin Gradient | Computes the gradient of a Perlin noise function. RGB output contains the gradient vector, A is the scalar noise. |
-|Perlin Curl | Computes a 3D curl noise. Output is the mathematical curl of Perlin 3D Noise. |
-| Voronoi | The same algorithm as the Voronoi function in the *Noise* expression, but RGB is the location of the closest seed point in each Voronoi cell, and A is the distance to that seed point. |
+| Cellnoise | Random color for each integer grid cell in 3D space. About 10 instructions. |
+| Perlin 3D Noise | Computational Perlin noise with 3D output, each channel output ranges from -1 to 1. About 83 instructions if only the red channel is used, 125 instructions if all three channels are used|
+| Perlin Gradient | Computes the gradient of a Perlin noise function. RGB output contains the gradient vector, A is the scalar noise. About 106 instructions. |
+| Perlin Curl | Computes a 3D curl noise. Output is the mathematical curl of Perlin 3D Noise. About 162 instructions. |
+| Voronoi | The same algorithm and instruction counts as the Voronoi function in the *Noise* expression, but RGB is the location of the closest seed point in each Voronoi cell, and A is the distance to that seed point. |
 [/EXCERPT]
 -->
