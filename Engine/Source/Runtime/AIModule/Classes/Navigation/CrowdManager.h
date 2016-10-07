@@ -2,6 +2,7 @@
 
 #pragma once
 #include "Tickable.h"
+#include "DrawDebugHelpers.h"
 #include "CrowdManager.generated.h"
 
 class UWorld;
