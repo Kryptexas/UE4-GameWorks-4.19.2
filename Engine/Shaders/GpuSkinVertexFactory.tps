@@ -5,7 +5,7 @@
   <Date>2016-06-09T17:02:15.3367579-04:00</Date>
   <Function>A algorithm for skinning models</Function>
   <Justification>For skinning models</Justification>
-  <Eula>http://isg.cs.tcd.ie/projects/DualQuaternions/</Eula>
+  <Eula>https://www.cs.utah.edu/~ladislav/dq/licence.txt</Eula>
   <RedistributeTo>
     <EndUserGroup>Licensees</EndUserGroup>
     <EndUserGroup>Git</EndUserGroup>

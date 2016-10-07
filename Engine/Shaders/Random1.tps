@@ -3,9 +3,9 @@
   <Name>Fast gradient Perlin noise</Name>
   <Location>/Engine/Shaders/Random.usf</Location>
   <Date>2016-06-09T17:10:42.1914383-04:00</Date>
-  <Function>Function that coherent noise from a given position in n dimensions</Function>
+  <Function>Function that computes coherent noise from a given position in n dimensions</Function>
   <Justification>Faster version of the existing perlin noise, similar quality</Justification>
-  <Eula>http://prettyprocs.wordpress.com/2012/10/20/fast-perlin-noise</Eula>
+  <Eula>None available, see http://prettyprocs.wordpress.com/2012/10/20/fast-perlin-noise</Eula>
   <RedistributeTo>
     <EndUserGroup>Licensees</EndUserGroup>
     <EndUserGroup>Git</EndUserGroup>

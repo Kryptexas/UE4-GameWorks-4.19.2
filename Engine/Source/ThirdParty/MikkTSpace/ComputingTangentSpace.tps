@@ -5,7 +5,7 @@
   <Date>2016-06-17T13:50:17.3064259-04:00</Date>
   <Function>Save performance and memory</Function>
   <Justification>Save performance and memory</Justification>
-  <Eula> http://mmikkelsen3d.blogspot.com/2011/07/derivative-maps.html</Eula>
+  <Eula>No web URL available, instead see http://mmikkelsen3d.blogspot.com/2011/07/derivative-maps.html</Eula>
   <RedistributeTo>
     <EndUserGroup>Licensees</EndUserGroup>
     <EndUserGroup>Git</EndUserGroup>

@@ -5,7 +5,7 @@
   <Date>2016-06-10T17:06:31.4977906-04:00</Date>
   <Function>UE contribution from MS</Function>
   <Justification />
-  <Eula>Custom agreement between Epic/Microsoft, refer to Microsoft UE License Amendment 3 in Contraxx</Eula>
+  <Eula>Custom agreement between Epic/Microsoft</Eula>
   <RedistributeTo>
     <EndUserGroup>Licensees</EndUserGroup>
     <EndUserGroup>Git</EndUserGroup>

@@ -5,7 +5,7 @@
   <Date>2016-06-16T12:13:22.5191101-04:00</Date>
   <Function>Generates cache optimized triangle strips</Function>
   <Justification>Potential to massively reduce import times for meshes, possibly improves rendering performance.</Justification>
-  <Eula>http://users.telenet.be/tfautre/softdev/tristripper/</Eula>
+  <Eula>https://github.com/spoonless/tristripper</Eula>
   <RedistributeTo>
     <EndUserGroup>Licensees</EndUserGroup>
     <EndUserGroup>Git</EndUserGroup>

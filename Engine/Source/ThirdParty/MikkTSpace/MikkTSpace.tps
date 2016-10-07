@@ -5,7 +5,7 @@
   <Date>2016-06-07T18:58:11.381967-04:00</Date>
   <Function>Compute tangent bases for meshes.</Function>
   <Justification>Higher quality tangents that match DCC tools / existing pipelines</Justification>
-  <Eula>http://wiki.blender.org/index.php/Dev:Shading/Tangent_Space_Normal_Maps</Eula>
+  <Eula> See copyright notice in source file and http://wiki.blender.org/index.php/Dev:Shading/Tangent_Space_Normal_Maps</Eula>
   <RedistributeTo>
     <EndUserGroup>Licensees</EndUserGroup>
     <EndUserGroup>Git</EndUserGroup>

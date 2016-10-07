@@ -5,7 +5,7 @@
   <Date>2016-06-09T18:27:34.0825813-04:00</Date>
   <Function>Function that computes pseudo random numbers with only math few instructions.</Function>
   <Justification>Very useful for shader programming, all kind of procedural textures, even without UV mapping, can be created with no memory cost</Justification>
-  <Eula>http://bpeers.com/blog/?itemid=746</Eula>
+  <Eula>None available, see http://bpeers.com/blog/?itemid=746</Eula>
   <RedistributeTo>
     <EndUserGroup>Licensees</EndUserGroup>
     <EndUserGroup>Git</EndUserGroup>

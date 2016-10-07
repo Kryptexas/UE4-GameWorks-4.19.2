@@ -4,8 +4,8 @@
   <Location>/Engine/Extras/Maya_AnimationRiggingTools/</Location>
   <Date>2016-06-13T16:34:25.3404692-04:00</Date>
   <Function>adds python bindings for perforce</Function>
-  <Justification>so we can automate tasks for artists, like auto-syncing the files they need on file open, checking for latest, etc. I cannot find a EULA online, but the following text is included directly in the python file,which I've pasted here: http://pastebin.com/prYGpqPe</Justification>
-  <Eula>https://www.perforce.com/perforce/doc.current/manuals/p4script/03_python.html</Eula>
+  <Justification>so we can automate tasks for artists, like auto-syncing the files they need on file open, checking for latest, etc.</Justification>
+  <Eula>See copyright notice within source code</Eula>
   <RedistributeTo>
     <EndUserGroup>Licensees</EndUserGroup>
     <EndUserGroup>Git</EndUserGroup>

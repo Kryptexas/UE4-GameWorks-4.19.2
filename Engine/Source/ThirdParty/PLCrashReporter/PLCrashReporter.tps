@@ -5,7 +5,7 @@
   <Date>2016-06-14T11:42:15.691603-04:00</Date>
   <Function>In-process, multi-thread crash recoding &amp; symbolication for Mac OS X &amp; iOS.</Function>
   <Justification>Our naive signal handler crash reporting is insufficient for Darwin platforms (OS X &amp; iOS), it cannot record all crashes and fails to gather correct reporting details for stack-overflows &amp; other errors that require signals to be handled on a thread other than the raising thread which are unfortunately common</Justification>
-  <Eula>https://www.plcrashreporter.org</Eula>
+  <Eula> See installer EULA: https://www.plcrashreporter.org</Eula>
   <RedistributeTo>
     <EndUserGroup>Licensees</EndUserGroup>
     <EndUserGroup>Git</EndUserGroup>

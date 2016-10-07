@@ -5,7 +5,7 @@
   <Date>2016-06-10T14:04:17.9005402-04:00</Date>
   <Function>We need it because it is a 3rd party lib in GFx</Function>
   <Justification />
-  <Eula>http://www.ijg.org/</Eula>
+  <Eula> See license in download: http://www.ijg.org/</Eula>
   <RedistributeTo>
     <EndUserGroup>Licensees</EndUserGroup>
     <EndUserGroup>Git</EndUserGroup>

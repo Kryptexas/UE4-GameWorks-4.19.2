@@ -5,7 +5,7 @@
   <Date>2016-06-07T18:04:08.7251179-04:00</Date>
   <Function>Included as part of DotNetZip</Function>
   <Justification />
-  <Eula>http://www.bzip.org/docs.html</Eula>
+  <Eula> See license within download: http://www.bzip.org/docs.html</Eula>
   <RedistributeTo>
     <EndUserGroup>Licensees</EndUserGroup>
     <EndUserGroup>Git</EndUserGroup>

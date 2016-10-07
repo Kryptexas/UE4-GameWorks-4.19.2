@@ -3,7 +3,7 @@
   <Name>D3DCompiler_47.dll (Windows 8.1 SDK)</Name>
   <Location>/Engine/Binaries/ThirdParty/Windows/DirectX/d3dcompiler_47.dll</Location>
   <Date>2016-05-26T18:11:57.4357027-04:00</Date>
-  <Function>More recent version of Microsoft's D3D compiler dll included in the Windows 8.1 SDK, allows shader compilation on Windows platform. Taken from local installation of C:\Program Files (x86)\Windows Kits\8.1\Redist\D3D\x64\d3dcompiler_47.dll. Would need to include both the x86 and x64 versions.</Function>
+  <Function>More recent version of Microsoft's D3D compiler dll included in the Windows 8.1 SDK, allows shader compilation on Windows platform.</Function>
   <Justification>Improved shader output and large compilation speed improvement.</Justification>
   <Eula>See license from Microsoft 8.1 SDK installer: https://developer.microsoft.com/en-us/windows/downloads/windows-8-1-sdk</Eula>
   <RedistributeTo>

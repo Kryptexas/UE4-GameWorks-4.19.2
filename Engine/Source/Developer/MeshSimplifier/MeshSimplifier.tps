@@ -5,7 +5,7 @@
   <Date>2016-06-10T17:29:01.9478221-04:00</Date>
   <Function />
   <Justification />
-  <Eula>Custom agreement between Epic/Nine Realms, see Software License Agreement in Contraxx</Eula>
+  <Eula>Custom agreement between Epic/Nine Realms</Eula>
   <RedistributeTo>
     <EndUserGroup>Licensees</EndUserGroup>
     <EndUserGroup>Git</EndUserGroup>

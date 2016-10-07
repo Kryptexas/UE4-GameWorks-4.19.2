@@ -4,7 +4,7 @@
   <Location>/Engine/Source/ThirdParty/WebRTC/</Location>
   <Date>2016-06-16T14:09:57.3865269-04:00</Date>
   <Function>Real-time communicate with XMPP server Required for social features in all of our games as well the Launcher </Function>
-  <Justification>Earliest usage will be for Fortnite OT1 (12/01/2014) Currently NoRedist but will eventually want to include with UE4 distro P4 </Justification>
+  <Justification></Justification>
   <Eula>http://www.webrtc.org/license-rights</Eula>
   <RedistributeTo>
     <EndUserGroup>Licensees</EndUserGroup>
