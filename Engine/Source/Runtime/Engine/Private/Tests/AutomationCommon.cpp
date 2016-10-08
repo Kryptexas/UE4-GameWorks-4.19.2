@@ -105,20 +105,7 @@ namespace AutomationCommon
 		Data.Rhi = FHardwareInfo::GetHardwareInfo(NAME_RHI);
 		GetFeatureLevelName(GMaxRHIFeatureLevel, Data.FeatureLevel);
 		Data.bIsStereo = GEngine->StereoRenderingDevice.IsValid();
-
-		if ( IsRHIDeviceNVIDIA() )
-		{
-			Data.Vendor = TEXT("NVIDIA");
-		}
-		else if ( IsRHIDeviceAMD() )
-		{
-			Data.Vendor = TEXT("AMD");
-		}
-		else if ( IsRHIDeviceIntel() )
-		{
-			Data.Vendor = TEXT("Intel");
-		}
-
+		Data.Vendor = RHIVendorIdToString();
 		Data.AdapterName = GRHIAdapterName;
 		Data.AdapterInternalDriverVersion = GRHIAdapterInternalDriverVersion;
 		Data.AdapterUserDriverVersion = GRHIAdapterUserDriverVersion;

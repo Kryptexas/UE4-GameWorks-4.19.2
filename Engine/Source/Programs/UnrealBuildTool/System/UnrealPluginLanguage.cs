@@ -2117,11 +2117,12 @@ namespace UnrealBuildTool
 			return GlobalContext.StringVariables["Output"];
 		}
 
-		public void Init(List<string> Architectures, bool bDistribution, string EngineDirectory, string BuildDirectory)
+		public void Init(List<string> Architectures, bool bDistribution, string EngineDirectory, string BuildDirectory, string ProjectDirectory)
 		{
 			GlobalContext.BoolVariables["Distribution"] = bDistribution;
 			GlobalContext.StringVariables["EngineDir"] = EngineDirectory;
 			GlobalContext.StringVariables["BuildDir"] = BuildDirectory;
+			GlobalContext.StringVariables["ProjectDir"] = ProjectDirectory;
 
 			foreach (string Arch in Architectures)
 			{

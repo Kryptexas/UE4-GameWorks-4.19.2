@@ -501,21 +501,39 @@ void FOpenGLBase::ProcessExtensions( const FString& ExtensionsString )
 
 	bSupportsDrawBuffersBlend = ExtensionsString.Contains(TEXT("GL_ARB_draw_buffers_blend"));
 
-#if PLATFORM_WINDOWS || PLATFORM_LINUX
+#if PLATFORM_IOS
+	GRHIVendorId = 0x1010;
+#else
 	FString VendorName( ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_VENDOR) ) );
 	if (VendorName.Contains(TEXT("ATI ")))
 	{
-		bAmdWorkaround = true;
 		GRHIVendorId = 0x1002;
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
+		bAmdWorkaround = true;
+#endif
 	}
 	else if (VendorName.Contains(TEXT("Intel ")))
 	{
-		bAmdWorkaround = true;
 		GRHIVendorId = 0x8086;
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
+		bAmdWorkaround = true;
+#endif
 	}
 	else if (VendorName.Contains(TEXT("NVIDIA ")))
 	{
 		GRHIVendorId = 0x10DE;
+	}
+	else if (VendorName.Contains(TEXT("ImgTec")))
+	{
+		GRHIVendorId = 0x1010;
+	}
+	else if (VendorName.Contains(TEXT("ARM")))
+	{
+		GRHIVendorId = 0x13B5;
+	}
+	else if (VendorName.Contains(TEXT("Qualcomm")))
+	{
+		GRHIVendorId = 0x5143;
 	}
 #endif
 

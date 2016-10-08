@@ -673,8 +673,6 @@ SamplerState DBufferCTextureSampler;
 
 Texture2D ScreenSpaceAOTexture;
 SamplerState ScreenSpaceAOTextureSampler;
-Texture2D CustomDepthTexture;
-SamplerState CustomDepthTextureSampler;
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 
 Texture2D<uint2> CustomStencilTexture;

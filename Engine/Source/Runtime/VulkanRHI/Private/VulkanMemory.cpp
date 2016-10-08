@@ -612,12 +612,12 @@ namespace VulkanRHI
 			++NumTypesPerHeap[MemoryProperties.memoryTypes[Index].heapIndex];
 		}
 
-		auto GetMemoryTypesFromProperties = [MemoryProperties](uint32 TypeBits, VkMemoryPropertyFlags Properties, TArray<uint32>& OutTypeIndices)
+		auto GetMemoryTypesFromProperties = [MemoryProperties](uint32 InTypeBits, VkMemoryPropertyFlags Properties, TArray<uint32>& OutTypeIndices)
 		{
 			// Search memtypes to find first index with those properties
-			for (uint32 i = 0; i < MemoryProperties.memoryTypeCount && TypeBits; i++)
+			for (uint32 i = 0; i < MemoryProperties.memoryTypeCount && InTypeBits; i++)
 			{
-				if ((TypeBits & 1) == 1)
+				if ((InTypeBits & 1) == 1)
 				{
 					// Type is available, does it match user properties?
 					if ((MemoryProperties.memoryTypes[i].propertyFlags & Properties) == Properties)
@@ -625,7 +625,7 @@ namespace VulkanRHI
 						OutTypeIndices.Add(i);
 					}
 				}
-				TypeBits >>= 1;
+				InTypeBits >>= 1;
 			}
 
 			for (int32 Index = OutTypeIndices.Num() - 1; Index >= 1; --Index)

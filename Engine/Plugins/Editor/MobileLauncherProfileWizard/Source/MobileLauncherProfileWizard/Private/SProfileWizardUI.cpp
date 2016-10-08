@@ -700,16 +700,12 @@ void SProfileWizardUI::CacheProjectMapList()
 {
 	ProjectMapList.Reset();
 
-	FString BaseProjectPath = ProjectPath;
-	if (FPaths::MakePathRelativeTo(BaseProjectPath, *FPaths::RootDir()))
-	{
-		BaseProjectPath = FPaths::GetPath(BaseProjectPath);
-		TArray<FString> AvailableMaps = FGameProjectHelper::GetAvailableMaps(BaseProjectPath, false, true);
+	FString BaseProjectPath = FPaths::GetPath(ProjectPath);
+	TArray<FString> AvailableMaps = FGameProjectHelper::GetAvailableMaps(BaseProjectPath, false, true);
 
-		for (const FString& MapName : AvailableMaps)
-		{
-			ProjectMapList.Add(MakeShareable(new FString(MapName)));
-		}
+	for (const FString& MapName : AvailableMaps)
+	{
+		ProjectMapList.Add(MakeShareable(new FString(MapName)));
 	}
 }
 

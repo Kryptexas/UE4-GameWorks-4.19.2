@@ -582,6 +582,11 @@ bool FAndroidMisc::SupportsShaderFramebufferFetch()
 	return FAndroidGPUInfo::Get().bSupportsFrameBufferFetch;
 }
 
+bool FAndroidMisc::SupportsShaderIOBlocks()
+{
+	return FAndroidGPUInfo::Get().bSupportsShaderIOBlocks;
+}
+
 void FAndroidMisc::GetValidTargetPlatforms(TArray<FString>& TargetPlatformNames)
 {
 	TargetPlatformNames = FAndroidGPUInfo::Get().TargetPlatformNames;

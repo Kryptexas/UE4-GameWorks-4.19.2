@@ -131,7 +131,11 @@ void FClientFunctionalTestingMaps::GetTests(TArray<FString>& OutBeautifiedNames,
 	if ( !AssetRegistry.IsLoadingAssets() )
 	{
 		TArray<FAssetData> MapList;
-		if ( AssetRegistry.GetAssetsByClass(UWorld::StaticClass()->GetFName(), /*out*/ MapList) )
+		FARFilter Filter;
+		Filter.ClassNames.Add(UWorld::StaticClass()->GetFName());
+		Filter.bRecursiveClasses = true;
+		Filter.bIncludeOnlyOnDiskAssets = true;
+		if ( AssetRegistry.GetAssets(Filter, /*out*/ MapList) )
 		{
 			for ( const FAssetData& MapAsset : MapList )
 			{

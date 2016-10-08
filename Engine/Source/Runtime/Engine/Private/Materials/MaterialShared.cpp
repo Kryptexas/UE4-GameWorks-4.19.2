@@ -313,6 +313,7 @@ void FMaterialCompilationOutput::Serialize(FArchive& Ar)
 	Ar << bNeedsGBuffer;
 	Ar << bUsesGlobalDistanceField;
 	Ar << bUsesPixelDepthOffset;
+	Ar << bUsesSceneDepthLookup;
 }
 
 void FMaterial::GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& OutId) const
@@ -583,6 +584,12 @@ bool FMaterial::MaterialUsesPixelDepthOffset() const
 {
 	check(IsInParallelRenderingThread());
 	return RenderingThreadShaderMap ? RenderingThreadShaderMap->UsesPixelDepthOffset() : false;
+}
+
+bool FMaterial::MaterialUsesSceneDepthLookup() const
+{
+	check(IsInParallelRenderingThread());
+	return RenderingThreadShaderMap ? RenderingThreadShaderMap->UsesSceneDepthLookup() : false;
 }
 
 FMaterialShaderMap* FMaterial::GetRenderingThreadShaderMap() const 
@@ -2706,7 +2713,6 @@ bool FMaterialShaderMapId::ContainsVertexFactoryType(const FVertexFactoryType* V
 
 	return false;
 }
-
 //////////////////////////////////////////////////////////////////////////
 
 FMaterialAttributeDefintion::FMaterialAttributeDefintion(

@@ -421,6 +421,9 @@ void FViewInfo::Init()
 	NumBoxReflectionCaptures = 0;
 	NumSphereReflectionCaptures = 0;
 	FurthestReflectionCaptureDistance = 0;
+
+	// Disable HDR encoding for editor elements.
+	EditorSimpleElementCollector.BatchedElements.EnableMobileHDREncoding(false);
 }
 
 FViewInfo::~FViewInfo()
@@ -1402,12 +1405,6 @@ void FSceneRenderer::RenderCustomDepthPassAtLocation(FRHICommandListImmediate& R
 
 void FSceneRenderer::RenderCustomDepthPass(FRHICommandListImmediate& RHICmdList)
 {
-	if(FeatureLevel < ERHIFeatureLevel::SM4)
-	{
-		// not yet supported on lower end platforms
-		return;
-	}
-
 	// do we have primitives in this pass?
 	bool bPrimitives = false;
 

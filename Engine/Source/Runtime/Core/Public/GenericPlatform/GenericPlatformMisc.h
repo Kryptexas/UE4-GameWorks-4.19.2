@@ -917,6 +917,14 @@ public:
 	}
 
 	/**
+	 * Returns whether WiFi connection is currently active
+	 */
+	static bool HasActiveWiFiConnection()
+	{
+		return false;
+	}
+
+	/**
 	 * Returns whether the given platform feature is currently available (for instance, Metal is only available in IOS8 and with A7 devices)
 	 */
 	static bool HasPlatformFeature(const TCHAR* FeatureName)

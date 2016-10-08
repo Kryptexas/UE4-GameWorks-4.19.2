@@ -453,6 +453,8 @@ public:
 				Errorf(TEXT("Only transparent or postprocess materials can read from scene depth."));
 			}
 
+			MaterialCompilationOutput.bUsesSceneDepthLookup = bUsesSceneDepth;
+
 			if (MaterialCompilationOutput.bRequiresSceneColorCopy)
 			{
 				if (Domain != MD_Surface)
@@ -2963,8 +2965,11 @@ protected:
 	// @param SceneTextureId of type ESceneTextureId e.g. PPI_SubsurfaceColor
 	virtual int32 SceneTextureLookup(int32 UV, uint32 InSceneTextureId, bool bFiltered) override
 	{
-		if (InSceneTextureId != PPI_PostProcessInput0 // fetching PostProcessInput0 supported on all platforms
-			&& ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
+		const bool bSupportedOnMobile = InSceneTextureId == PPI_PostProcessInput0 ||
+										InSceneTextureId == PPI_CustomDepth ||
+										InSceneTextureId == PPI_SceneDepth;
+
+		if (!bSupportedOnMobile	&& ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
 		{
 			return INDEX_NONE;
 		}
@@ -3003,8 +3008,7 @@ protected:
 				UV = TextureCoordinate(0, false, false);
 			}
 			FString TexCoordCode = CoerceParameter(UV, MCT_Float2);
-			// Only PPI_PostProcessInput0, which holds scene color 
-			return AddCodeChunk(MCT_Float4,	TEXT("MobileLookupPostProcessInput0(Parameters, %s)"), *TexCoordCode);
+			return AddCodeChunk(MCT_Float4,	TEXT("MobileSceneTextureLookup(Parameters, %d, %s)"), (int32)SceneTextureId, *TexCoordCode);
 		}
 	}
 
@@ -3147,6 +3151,12 @@ protected:
 			bNeedsSceneTexturePostProcessInputs = bNeedsSceneTexturePostProcessInputs
 				|| ((SceneTextureId >= PPI_PostProcessInput0 && SceneTextureId <= PPI_PostProcessInput6)
 				|| SceneTextureId == PPI_SceneColor);
+
+		}
+
+		if (SceneTextureId == PPI_SceneDepth && bTextureLookup)
+		{
+			bUsesSceneDepth = true;
 		}
 
 		const bool bNeedsGBuffer = SceneTextureId == PPI_DiffuseColor 

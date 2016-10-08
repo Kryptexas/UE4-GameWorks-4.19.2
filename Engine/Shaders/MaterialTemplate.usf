@@ -1093,19 +1093,37 @@ float4 GetPostProcessInputMinMax(uint Index)
 	return 1.0f;
 }
 
-MaterialFloat4 MobileLookupPostProcessInput0(inout FMaterialPixelParameters Parameters, float2 UV)
+MaterialFloat4 MobileSceneTextureLookup(inout FMaterialPixelParameters Parameters, int SceneTextureId, float2 UV)
 {
-#if POST_PROCESS_MATERIAL && (FEATURE_LEVEL <= FEATURE_LEVEL_ES3_1)
-	MaterialFloat4 Input0 = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV);
-	#if POST_PROCESS_MATERIAL_BEFORE_TONEMAP
+#if (FEATURE_LEVEL <= FEATURE_LEVEL_ES3_1)
+	//PPI_SceneDepth
+	if (SceneTextureId == 1)
+	{
+		MaterialFloat Depth = ConvertFromDeviceZ(Texture2DSample(SceneDepthTexture, SceneDepthTextureSampler, UV).r);
+		return MaterialFloat4(Depth.rrr, 0.f);
+	}
+	//PPI_CustomDepth
+	else if (SceneTextureId == 13)
+	{
+		MaterialFloat Depth = ConvertFromDeviceZ(Texture2DSample(CustomDepthTexture, CustomDepthTextureSampler, UV).r);
+		return MaterialFloat4(Depth.rrr, 0.f);
+	}
+	// PPI_PostprocessInput
+	else if (SceneTextureId == 14)
+	{
+#if POST_PROCESS_MATERIAL	
+		MaterialFloat4 Input0 = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV);
+		#if POST_PROCESS_MATERIAL_BEFORE_TONEMAP
 		Input0 = Decode32BPPHDR(Input0);
-	#endif
-	// We need to preserve original SceneColor Alpha as it's used by tonemaper on mobile
-	Parameters.BackupSceneColorAlpha = Input0.a;
-	return Input0;
-#else
+		#endif
+		// We need to preserve original SceneColor Alpha as it's used by tonemaper on mobile
+		Parameters.BackupSceneColorAlpha = Input0.a;
+		return Input0;
+#endif// POST_PROCESS_MATERIAL	
+	}
+#endif// FEATURE_LEVEL
+
 	return MaterialFloat4(0.0f, 0.0f, 0.0f, 0.0f);
-#endif
 }
 
 /** Applies an offset to the scene texture lookup and decodes the HDR linear space color. */

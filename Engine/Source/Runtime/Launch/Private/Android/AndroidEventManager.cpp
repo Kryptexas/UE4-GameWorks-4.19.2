@@ -208,7 +208,7 @@ FAppEventManager::FAppEventManager():
 	,EmptyQueueHandlerEvent(nullptr)
 	,FirstInitialized(false)
 	,bCreateWindow(false)
-	,bWindowInFocus(false)
+	,bWindowInFocus(true)
 	,bSaveState(false)
 	,bAudioPaused(false)
 	,PendingWindow(NULL)

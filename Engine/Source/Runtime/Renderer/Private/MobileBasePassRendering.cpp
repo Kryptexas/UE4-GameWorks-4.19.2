@@ -9,6 +9,13 @@
 #include "SceneUtils.h"
 #include "MaterialShaderQualitySettings.h"
 
+// Changing this causes a full shader recompile
+static TAutoConsoleVariable<int32> CVarMobileDisableVertexFog(
+	TEXT("r.Mobile.DisableVertexFog"),
+	0,
+	TEXT("Set to 1 to disable vertex fogging in all mobile shaders."),
+	ECVF_ReadOnly | ECVF_RenderThreadSafe);
+
 #define IMPLEMENT_MOBILE_SHADING_BASEPASS_LIGHTMAPPED_VERTEX_SHADER_TYPE(LightMapPolicyType,LightMapPolicyName) \
 	typedef TMobileBasePassVS< LightMapPolicyType, LDR_GAMMA_32 > TMobileBasePassVS##LightMapPolicyName##LDRGamma32; \
 	typedef TMobileBasePassVS< LightMapPolicyType, HDR_LINEAR_64 > TMobileBasePassVS##LightMapPolicyName##HDRLinear64; \
@@ -71,7 +78,8 @@ bool TMobileBasePassPSPolicyParamType<PixelParametersType, NumDynamicPointLights
 	OutEnvironment.SetDefine(TEXT("MOBILE_QL_FORCE_NONMETAL"), QualityOverrides.bEnableOverride && QualityOverrides.bForceNonMetal != 0 ? 1u : 0u);
 	OutEnvironment.SetDefine(TEXT("QL_FORCEDISABLE_LM_DIRECTIONALITY"), QualityOverrides.bEnableOverride && QualityOverrides.bForceDisableLMDirectionality != 0 ? 1u : 0u);
 	OutEnvironment.SetDefine(TEXT("MOBILE_QL_FORCE_LQ_REFLECTIONS"), QualityOverrides.bEnableOverride && QualityOverrides.bForceLQReflections != 0 ? 1u : 0u);
-	
+	OutEnvironment.SetDefine(TEXT("MOBILE_CSM_QUALITY"), (uint32)QualityOverrides.MobileCSMQuality);
+
 	return true;
 }
 
@@ -521,8 +529,9 @@ namespace EBasePassSort
 TAutoConsoleVariable<int32> GSortBasePass(TEXT("r.ForwardBasePassSort"),0,
 	TEXT("How to sort the mobile base pass:\n")
 	TEXT("\t0: Decide automatically based on the hardware.\n")
-	TEXT("\t1: Sort drawing policies.\n")
-	TEXT("\t2: Sort drawing policies and the meshes within them."),
+	TEXT("\t1: No sorting.\n")
+	TEXT("\t2: Sort drawing policies.\n")
+	TEXT("\t3: Sort drawing policies and the meshes within them."),
 	ECVF_RenderThreadSafe);
 TAutoConsoleVariable<int32> GMaxBasePassDraws(TEXT("r.MaxForwardBasePassDraws"),0,TEXT("Stops rendering static mobile base pass draws after the specified number of times. Useful for seeing the order in which meshes render when optimizing."),ECVF_RenderThreadSafe);
 

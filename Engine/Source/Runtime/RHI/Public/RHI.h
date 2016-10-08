@@ -90,6 +90,9 @@ RHI_API bool IsRHIDeviceIntel();
 // to trigger GPU specific optimizations and fallbacks
 RHI_API bool IsRHIDeviceNVIDIA();
 
+// helper to convert GRHIVendorId into a printable string, or "Unknown" if unknown.
+RHI_API const TCHAR* RHIVendorIdToString();
+
 /** true if PF_G8 render targets are supported */
 extern RHI_API bool GSupportsRenderTargetFormat_PF_G8;
 

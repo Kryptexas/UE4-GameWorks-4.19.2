@@ -3500,6 +3500,11 @@ void FOpenGLDynamicRHI::RHIBlockUntilGPUIdle()
 	// Not really supported
 }
 
+void FOpenGLDynamicRHI::RHISubmitCommandsAndFlushGPU()
+{
+	FOpenGL::Flush();
+}
+
 /**
  * Returns the total GPU time taken to render the last frame. Same metric as FPlatformTime::Cycles().
  */

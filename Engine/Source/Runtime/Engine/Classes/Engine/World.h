@@ -1169,6 +1169,9 @@ public:
 	 * have lighting rebuilt.
 	 **/
 	uint32 NumLightingUnbuiltObjects;
+	
+	/** Num of reflection capture components missing valid data. This can be non-zero only in game with FeatureLevel < SM4*/
+	uint32 NumInvalidReflectionCaptureComponents;
 
 	/** Num of components missing valid texture streaming data. Updated in map check. */
 	int32 NumTextureStreamingUnbuiltComponents;

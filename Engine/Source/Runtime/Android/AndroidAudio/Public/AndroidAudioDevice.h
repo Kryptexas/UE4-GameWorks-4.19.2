@@ -241,6 +241,8 @@ protected:
 	int32						BufferInUse;
 	float						VolumePreviousUpdate;
 	bool						bHasLooped;
+	/** Lets us know if calls to SL_PlayerPlayInterface->GetPosition have progressed past 0 at some point so we can determine when a non-looping sound has finished */
+	bool						bHasPositionUpdated;
 
 	bool CreatePlayer();
 	void DestroyPlayer();

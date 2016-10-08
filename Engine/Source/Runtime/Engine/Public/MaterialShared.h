@@ -305,7 +305,8 @@ public:
 		bUsesWorldPositionOffset(false),
 		bNeedsGBuffer(false),
 		bUsesGlobalDistanceField(false),
-		bUsesPixelDepthOffset(false)
+		bUsesPixelDepthOffset(false),
+		bUsesSceneDepthLookup(false)
 	{}
 
 	ENGINE_API void Serialize(FArchive& Ar);
@@ -337,6 +338,9 @@ public:
 
 	/** true if the material writes a pixel depth offset */
 	bool bUsesPixelDepthOffset;
+
+	/** true if the material uses the SceneDepth lookup */
+	bool bUsesSceneDepthLookup;
 };
 
 /** 
@@ -716,6 +720,7 @@ public:
 	bool UsesEyeAdaptation() const { return MaterialCompilationOutput.bUsesEyeAdaptation; }
 	bool ModifiesMeshPosition() const { return MaterialCompilationOutput.bModifiesMeshPosition; }
 	bool UsesPixelDepthOffset() const { return MaterialCompilationOutput.bUsesPixelDepthOffset; }
+	bool UsesSceneDepthLookup() const { return MaterialCompilationOutput.bUsesSceneDepthLookup; }
 
 	bool IsValidForRendering() const
 	{
@@ -1101,6 +1106,9 @@ public:
 
 	/** Does the material use a pixel depth offset. */
 	ENGINE_API bool MaterialUsesPixelDepthOffset() const;
+
+	/** Does the material use a SceneDepth lookup. */
+	ENGINE_API bool MaterialUsesSceneDepthLookup() const;
 
 	/** Note: This function is only intended for use in deciding whether or not shader permutations are required before material translation occurs. */
 	ENGINE_API bool MaterialMayModifyMeshPosition() const;

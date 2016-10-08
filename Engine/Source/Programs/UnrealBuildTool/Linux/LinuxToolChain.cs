@@ -21,7 +21,7 @@ namespace UnrealBuildTool
 			if (!CrossCompiling())
 			{
 				// use native linux toolchain
-				string[] ClangNames = { "clang++", "clang++-3.8", "clang++-3.7", "clang++-3.6", "clang++-3.5" };
+				string[] ClangNames = { "clang++", "clang++-3.9", "clang++-3.8", "clang++-3.7", "clang++-3.6", "clang++-3.5" };
 				foreach (var ClangName in ClangNames)
 				{
 					ClangPath = Which(ClangName);
@@ -43,12 +43,29 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				// use cross linux toolchain if LINUX_ROOT is specified
-				BaseLinuxPath = Environment.GetEnvironmentVariable("LINUX_ROOT");
+				// if new multi-arch toolchain is used, prefer it
+				string MultiArchRoot = Environment.GetEnvironmentVariable("LINUX_MULTIARCH_ROOT");
+
+				if (MultiArchRoot != null)
+				{
+					// FIXME: UBT should loop across all the architectures and compile for all the selected ones.
+					BaseLinuxPath = Path.Combine(MultiArchRoot, LinuxPlatform.DefaultArchitecture);
+
+					Console.WriteLine("Using LINUX_MULTIARCH_ROOT, building with toolchain '{0}'", BaseLinuxPath);
+				}
+				else
+				{
+					// use cross linux toolchain if LINUX_ROOT is specified
+					BaseLinuxPath = Environment.GetEnvironmentVariable("LINUX_ROOT");
+
+					Console.WriteLine("Using LINUX_ROOT (deprecated, consider LINUX_MULTIARCH_ROOT), building with toolchain '{0}'", BaseLinuxPath);
+				}
 
 				// don't register if we don't have an LINUX_ROOT specified
 				if (String.IsNullOrEmpty(BaseLinuxPath))
+				{
 					throw new BuildException("LINUX_ROOT environment variable is not set; cannot instantiate Linux toolchain");
+				}
 
 				BaseLinuxPath = BaseLinuxPath.Replace("\"", "");
 
@@ -361,6 +378,15 @@ namespace UnrealBuildTool
 				{
 					Result += " -Wno-unused-local-typedef";	// clang is being overly strict here? PhysX headers trigger this.
 					Result += " -Wno-inconsistent-missing-override";	// these have to be suppressed for UE 4.8, should be fixed later.
+				}
+
+				if (CompilerVersionGreaterOrEqual(3, 9, 0))
+				{
+					Result += " -Wno-undefined-var-template"; // not really a good warning to disable
+					Result += " -Wno-delete-non-virtual-dtor";  // at least for 4.14
+					Result += " -Wno-expansion-to-defined";		// at least for 4.14
+					Result += " -Wno-null-dereference";         // at least for 4.14
+					Result += " -Wno-literal-conversion";       // at least for 4.14
 				}
 			}
 

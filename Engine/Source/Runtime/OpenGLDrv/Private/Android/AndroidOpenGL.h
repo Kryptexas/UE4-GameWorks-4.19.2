@@ -155,22 +155,10 @@ extern "C"
 
 struct FAndroidOpenGL : public FOpenGLES2
 {
-	static FORCEINLINE bool IsBuiltForES31()
-	{
-		static int32 ES31BuiltState = -1;
-		if(ES31BuiltState == -1)
-		{
-			bool bBuildForES31 = false;
-			GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bBuildForES31"), bBuildForES31, GEngineIni);
-			ES31BuiltState = bBuildForES31 ? 1 : 0;
-		}
-		return ES31BuiltState == 1;
-	}
-
 	static FORCEINLINE bool IsES31Usable()
 	{
-		static const auto CVarDisableES31 = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Android.DisableOpenGLES31Support"));
-		return bES31Support && IsBuiltForES31() && CVarDisableES31->GetValueOnAnyThread() == 0;
+		check(CurrentFeatureLevelSupport != EFeatureLevelSupport::Invalid);
+		return CurrentFeatureLevelSupport == EFeatureLevelSupport::ES31;
 	}
 
 	static FORCEINLINE EShaderPlatform GetShaderPlatform()
@@ -486,6 +474,16 @@ struct FAndroidOpenGL : public FOpenGLES2
 
 	/** Whether device supports mobile multi-view */
 	static bool bSupportsMobileMultiView;
+
+	enum class EFeatureLevelSupport : uint8
+	{
+		Invalid,	// no feature level has yet been determined
+		ES2,
+		ES31,
+	};
+
+	/** Describes which feature level is currently being supported */
+	static EFeatureLevelSupport CurrentFeatureLevelSupport;
 };
 
 typedef FAndroidOpenGL FOpenGL;

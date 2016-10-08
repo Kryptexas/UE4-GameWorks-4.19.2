@@ -1538,6 +1538,12 @@ int FAndroidMisc::GetVolumeState(double* OutTimeOfChangeInSec)
 	return v;
 }
 
+const TCHAR* FAndroidMisc::GamePersistentDownloadDir()
+{
+	extern FString GExternalFilePath;
+	return *GExternalFilePath;
+}
+
 FAndroidMisc::FBatteryState FAndroidMisc::GetBatteryState()
 {
 	FBatteryState CurState;
@@ -1550,5 +1556,11 @@ FAndroidMisc::FBatteryState FAndroidMisc::GetBatteryState()
 bool FAndroidMisc::AreHeadPhonesPluggedIn()
 {
 	return HeadPhonesArePluggedIn;
+}
+
+bool FAndroidMisc::HasActiveWiFiConnection()
+{
+	extern bool AndroidThunkCpp_HasActiveWiFiConnection();
+	return AndroidThunkCpp_HasActiveWiFiConnection();
 }
 

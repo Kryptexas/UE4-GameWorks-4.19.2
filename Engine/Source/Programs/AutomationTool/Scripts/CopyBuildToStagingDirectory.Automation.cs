@@ -1061,7 +1061,6 @@ public partial class Project : CommandUtils
 
 				string BuildRoot = MakePathSafeToUseWithCommandLine(RawDataPath);
 				string CloudDir = MakePathSafeToUseWithCommandLine(CombinePaths(ChunkInstallBasePath, "CloudDir"));
-                InternalUtils.SafeDeleteDirectory(CloudDir, true);
 				string ManifestDir = CombinePaths(ChunkInstallBasePath, "ManifestDir");
 				var AppID = 1; // For a chunk install this value doesn't seem to matter
 				string AppName = String.Format("{0}_{1}", SC.ShortProjectName, PakName);

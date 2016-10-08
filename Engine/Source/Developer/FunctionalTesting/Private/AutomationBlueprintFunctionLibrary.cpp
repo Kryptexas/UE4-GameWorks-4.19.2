@@ -204,17 +204,25 @@ bool UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(const
 	FAutomationScreenshotTaker* TempObject = new FAutomationScreenshotTaker(Name, Options);
 #endif
 
-	FHighResScreenshotConfig& Config = GetHighResScreenshotConfig();
-	if ( Config.SetResolution(ResolutionX, ResolutionY, 1.0f) )
+    if (FPlatformProperties::HasFixedResolution())
+    {
+	    FScreenshotRequest::RequestScreenshot(false);
+	    return true;
+    }
+	else
 	{
-		if ( !GEngine->GameViewport->GetGameViewport()->TakeHighResScreenShot() )
-		{
-			// If we failed to take the screenshot, we're going to need to cleanup the automation screenshot taker.
-			delete TempObject;
-			return false;
-		}
+	    FHighResScreenshotConfig& Config = GetHighResScreenshotConfig();
+	    if ( Config.SetResolution(ResolutionX, ResolutionY, 1.0f) )
+	    {
+			if ( !GEngine->GameViewport->GetGameViewport()->TakeHighResScreenShot() )
+			{
+				// If we failed to take the screenshot, we're going to need to cleanup the automation screenshot taker.
+				delete TempObject;
+				return false;
+			}
 
-		return true;
+			return true;
+		}
 	}
 
 	return false;

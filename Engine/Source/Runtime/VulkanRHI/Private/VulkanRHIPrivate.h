@@ -34,16 +34,18 @@ DECLARE_LOG_CATEGORY_EXTERN(LogVulkanRHI, Log, All);
 	#define VULKAN_DYNAMICALLYLOADED 0
 #endif
 
+#if PLATFORM_WINDOWS
+#include "AllowWindowsPlatformTypes.h"
+#endif
+
 #if VULKAN_DYNAMICALLYLOADED
 	#include "VulkanLoader.h"
 #else
-	#if PLATFORM_WINDOWS
-		#include "AllowWindowsPlatformTypes.h"
-	#endif
-#include <vulkan.h>
-	#if PLATFORM_WINDOWS
-		#include "HideWindowsPlatformTypes.h"
-	#endif
+	#include <vulkan.h>
+#endif
+
+#if PLATFORM_WINDOWS
+#include "HideWindowsPlatformTypes.h"
 #endif
 
 #if VULKAN_COMMANDWRAPPERS_ENABLE

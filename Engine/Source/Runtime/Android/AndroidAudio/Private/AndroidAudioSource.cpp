@@ -163,6 +163,7 @@ bool FSLESSoundSource::EnqueuePCMBuffer( bool bLoop)
 
 	bStreamedSound = false;
 	bHasLooped = false;
+	bHasPositionUpdated = false;
 	bBuffersToFlush = false;
 
 	return true;
@@ -252,6 +253,7 @@ bool FSLESSoundSource::EnqueuePCMRTBuffer( bool bLoop )
 	bStreamedSound = true;
 	bHasLooped = false;
 	bBuffersToFlush = false;
+	bHasPositionUpdated = false;
 	BufferInUse = 1;
 	return true;
 }
@@ -358,6 +360,7 @@ FSLESSoundSource::FSLESSoundSource( class FAudioDevice* InAudioDevice )
 		BufferInUse(0),
 		VolumePreviousUpdate(-1.0f),
 		bHasLooped(false),
+		bHasPositionUpdated(false),
 		SL_PlayerObject(NULL),
 		SL_PlayerPlayInterface(NULL),
 		SL_PlayerBufferQueue(NULL),
@@ -554,6 +557,32 @@ bool FSLESSoundSource::IsSourceFinished( void )
 	{
 		return true;
 	}
+
+	if (WaveInstance && WaveInstance->LoopingMode == LOOP_Never)
+	{
+		// if it wasn't that simple, see if we're at the end position
+		SLmillisecond PositionMs;
+		SLmillisecond DurationMs;
+
+		result = (*SL_PlayerPlayInterface)->GetPosition(SL_PlayerPlayInterface, &PositionMs);
+		check(SL_RESULT_SUCCESS == result);
+
+		result = (*SL_PlayerPlayInterface)->GetDuration(SL_PlayerPlayInterface, &DurationMs);
+		check(SL_RESULT_SUCCESS == result);
+
+		// on some android devices, the value for GetPosition wraps back to 0 when the playback is done, however it's very possible
+		// for us to try to check for IsSourceFinished when the Position is genuinely "0". Therefore, we'll flip bHasPositionUpdated once
+		// we've actually started the sound to denote a wrap-back 0 position versus a real 0 position
+		if ((DurationMs != SL_TIME_UNKNOWN && PositionMs == DurationMs) || (PositionMs == 0 && bHasPositionUpdated))
+		{
+			return true;
+		}
+		else if (!bHasPositionUpdated && PositionMs > 0)
+		{
+			bHasPositionUpdated = true;
+		}
+	}
+	
 
 	return false;
 }

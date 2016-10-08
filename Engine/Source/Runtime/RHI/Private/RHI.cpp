@@ -526,3 +526,17 @@ RHI_API bool IsRHIDeviceNVIDIA()
 	// NVIDIA GPUs are discrete and use DedicatedVideoMemory only.
 	return GRHIVendorId == 0x10DE;
 }
+
+RHI_API const TCHAR* RHIVendorIdToString()
+{
+	switch (GRHIVendorId)
+	{
+	case 0x1002: return TEXT("AMD");
+	case 0x1010: return TEXT("ImgTec");
+	case 0x10DE: return TEXT("NVIDIA");
+	case 0x13B5: return TEXT("ARM");
+	case 0x5143: return TEXT("Qualcomm");
+	case 0x8086: return TEXT("Intel");
+	default: return TEXT("Unknown");
+	}
+}

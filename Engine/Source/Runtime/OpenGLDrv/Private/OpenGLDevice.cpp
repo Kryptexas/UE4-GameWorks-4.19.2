@@ -567,6 +567,7 @@ static void InitRHICapabilitiesForGL()
 	#undef LOG_GL_STRING
 
 	GRHIAdapterName = FOpenGL::GetAdapterName();
+	GRHIAdapterInternalDriverVersion = ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_VERSION));
 
 	// Log all supported extensions.
 #if PLATFORM_WINDOWS

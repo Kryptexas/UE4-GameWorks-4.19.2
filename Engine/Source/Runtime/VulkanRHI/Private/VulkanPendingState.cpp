@@ -437,7 +437,9 @@ FVulkanDescriptorPool::FVulkanDescriptorPool(FVulkanDevice* InDevice)
 	, NumAllocatedDescriptorSets(0)
 	, PeakAllocatedDescriptorSets(0)
 {
-	MaxDescriptorSets = 8192;
+	// Increased from 8192 to prevent Protostar crashing on Mali
+	MaxDescriptorSets = 16384;
+
 	const VkPhysicalDeviceLimits& Limits = Device->GetLimits();
 	FMemory::Memzero(MaxAllocatedTypes);
 	FMemory::Memzero(NumAllocatedTypes);

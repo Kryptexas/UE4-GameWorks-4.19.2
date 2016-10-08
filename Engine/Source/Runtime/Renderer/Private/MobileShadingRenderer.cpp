@@ -20,11 +20,18 @@
 
 uint32 GetShadowQuality();
 
+static TAutoConsoleVariable<int32> CVarMobileForceDepthResolve(
+	TEXT("r.Mobile.ForceDepthResolve"),
+	0,
+	TEXT("0: Depth buffer is resolved after opaque pass only when decals or modulated shadows are in use. (Default)\n")
+	TEXT("1: Depth buffer is always resolved after opaque pass.\n"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 FMobileSceneRenderer::FMobileSceneRenderer(const FSceneViewFamily* InViewFamily,FHitProxyConsumer* HitProxyConsumer)
 	:	FSceneRenderer(InViewFamily, HitProxyConsumer)
 {
 	bModulatedShadowsInUse = false;
+	bPostProcessUsesDepthTexture = false;
 }
 
 /**
@@ -68,6 +75,8 @@ void FMobileSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdList)
 
 	// Now that the indirect lighting cache is updated, we can update the primitive precomputed lighting buffers.
 	UpdatePrimitivePrecomputedLightingBuffers();
+
+	UpdatePostProcessUsageFlags();
 	
 	OnStartFrame();
 }
@@ -107,7 +116,7 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	}
 
 	// Notify the FX system that the scene is about to be rendered.
-	if (Scene->FXSystem && ViewFamily.EngineShowFlags.Particles)
+	if (Scene->FXSystem && !Views[0].bIsPlanarReflection && ViewFamily.EngineShowFlags.Particles)
 	{
 		Scene->FXSystem->PreRender(RHICmdList, NULL);
 	}
@@ -130,6 +139,11 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	// For the most part this is not the case when using scene captures. Thus scene captures always render to scene color target.
 	const bool bStereoRenderingAndHMD = View.Family->EngineShowFlags.StereoRendering && View.Family->EngineShowFlags.HMDDistortion;
 	const bool bRenderToSceneColor = bStereoRenderingAndHMD || bRequiresUpscale || FSceneRenderer::ShouldCompositeEditorPrimitives(View) || View.bIsSceneCapture;
+
+	if (!bGammaSpace)
+	{
+		RenderCustomDepthPass(RHICmdList);
+	}
 
 	FTextureRHIParamRef SceneColor = nullptr;
 	if (bGammaSpace && !bRenderToSceneColor)
@@ -161,7 +175,7 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	}
 
 	// Notify the FX system that opaque primitives have been rendered.
-	if (Scene->FXSystem && ViewFamily.EngineShowFlags.Particles)
+	if (Scene->FXSystem && !Views[0].bIsPlanarReflection && ViewFamily.EngineShowFlags.Particles)
 	{
 		//#todo-rco: This is switching to another RT!
 		Scene->FXSystem->PostRenderOpaque(RHICmdList);
@@ -216,8 +230,12 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		// Resolve the scene color for post processing.
 		SceneContext.ResolveSceneColor(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
 
+		const bool bKeepDepthContent = bPostProcessUsesDepthTexture || (View.bIsSceneCapture && (ViewFamily.SceneCaptureSource == ESceneCaptureSource::SCS_SceneColorHDR || ViewFamily.SceneCaptureSource == ESceneCaptureSource::SCS_SceneColorSceneDepth));
 		// Drop depth and stencil before post processing to avoid export.
-		RHICmdList.DiscardRenderTargets(true, true, 0);
+		if (!bKeepDepthContent)
+		{
+			RHICmdList.DiscardRenderTargets(true, true, 0);
+		}
 	}
 
 	if (!bGammaSpace)
@@ -332,19 +350,20 @@ void FMobileSceneRenderer::ConditionalResolveSceneDepth(FRHICommandListImmediate
 		bool bSceneDepthInAlpha = (SceneContext.GetSceneColor()->GetDesc().Format == PF_FloatRGBA);
 		bool bOnChipDepthFetch = (GSupportsShaderDepthStencilFetch || (bSceneDepthInAlpha && GSupportsShaderFramebufferFetch));
 		
-		if (!bOnChipDepthFetch)
+		const bool bForceDepthResolve = CVarMobileForceDepthResolve.GetValueOnRenderThread() == 1;
+
+		if (!bOnChipDepthFetch || bForceDepthResolve )
 		{
 			// Only these features require depth texture
 			bool bDecals = ViewFamily.EngineShowFlags.Decals && Scene->Decals.Num();
 			bool bModulatedShadows = ViewFamily.EngineShowFlags.DynamicShadows && bModulatedShadowsInUse;
 
-			if (bDecals || bModulatedShadows)
+			if (bDecals || bModulatedShadows || bForceDepthResolve)
 			{
 				// Switch target to force hardware flush current depth to texture
 				FTextureRHIRef DummySceneColor = GSystemTextures.BlackDummy->GetRenderTargetItem().TargetableTexture;
 				FTextureRHIRef DummyDepthTarget = GSystemTextures.DepthDummy->GetRenderTargetItem().TargetableTexture;
 				SetRenderTarget(RHICmdList, DummySceneColor, DummyDepthTarget, ESimpleRenderTargetMode::EUninitializedColorClearDepth, FExclusiveDepthStencil::DepthWrite_StencilWrite);
-				RHICmdList.DiscardRenderTargets(true, true, 0);
 			}
 		}
 	}
@@ -397,7 +416,6 @@ void FMobileSceneRenderer::CreateDirectionalLightUniformBuffers(FSceneView& Scen
 		SceneView.MobileDirectionalLightUniformBuffers[ChannelIdx + 1] = TUniformBufferRef<FMobileDirectionalLightShaderParameters>::CreateUniformBufferImmediate(Params, UniformBuffer_SingleFrame);
 	}
 }
-
 class FCopyMobileMultiViewSceneColorPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FCopyMobileMultiViewSceneColorPS, Global);
@@ -494,5 +512,34 @@ void FMobileSceneRenderer::CopyMobileMultiViewSceneColor(FRHICommandListImmediat
 			TargetSize,
 			*VertexShader,
 			EDRF_UseTriangleOptimization);
+	}
+}
+
+void FMobileSceneRenderer::UpdatePostProcessUsageFlags()
+{
+	bPostProcessUsesDepthTexture = false;
+	// Find out whether post-process materials require SceneDepth lookups, otherwise renderer can discard depth buffer before starting post-processing pass
+	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+	{
+		const FBlendableManager& BlendableManager = Views[ViewIndex].FinalPostProcessSettings.BlendableManager;
+		FBlendableEntry* BlendableIt = nullptr;
+
+		while (FPostProcessMaterialNode* DataPtr = BlendableManager.IterateBlendables<FPostProcessMaterialNode>(BlendableIt))
+		{
+			if (DataPtr->IsValid())
+			{
+				FMaterialRenderProxy* Proxy = DataPtr->GetMaterialInterface()->GetRenderProxy(false);
+				check(Proxy);
+
+				const FMaterial* Material = Proxy->GetMaterial(Views[ViewIndex].GetFeatureLevel());
+				check(Material);
+
+				if (Material->MaterialUsesSceneDepthLookup())
+				{
+					bPostProcessUsesDepthTexture = true;
+					break;
+				}
+			}
+		}
 	}
 }

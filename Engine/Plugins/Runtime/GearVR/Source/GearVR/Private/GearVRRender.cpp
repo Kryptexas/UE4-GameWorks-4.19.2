@@ -1280,7 +1280,7 @@ void FCustomPresent::CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdLi
 
 	SetRenderTarget(RHICmdList, DstTexture, FTextureRHIRef());
 	//RHICmdList.Clear(true, FLinearColor(1.0f, 0.0f, 0.0f, 1.0f), false, 0.0f, false, 0, FIntRect()); // @DBG
-	RHICmdList.ClearColor(FLinearColor(0.0f, 0.0f, 0.0f, 0.0f), FIntRect());
+	RHICmdList.ClearColorTexture(DstTexture, FLinearColor(0.0f, 0.0f, 0.0f, 0.0f), FIntRect());
 	RHICmdList.SetViewport(DstRect.Min.X, DstRect.Min.Y, 0, DstRect.Max.X, DstRect.Max.Y, 1.0f);
 
 	if (bAlphaPremultiply)

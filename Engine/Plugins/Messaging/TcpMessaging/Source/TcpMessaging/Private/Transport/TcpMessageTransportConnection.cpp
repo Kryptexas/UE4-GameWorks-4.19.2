@@ -16,21 +16,26 @@ struct FTcpMessageHeader
 
 	FTcpMessageHeader(const FGuid& InNodeId)
 	:	MagicNumber(TCP_MESSAGING_TRANSPORT_PROTOCOL_MAGIC)
-	,	Version(TCP_MESSAGING_TRANSPORT_PROTOCOL_VERSION)
+	,	Version(ETcpMessagingVersion::LatestVersion)
 	,	NodeId(InNodeId)
 	{}
 
-	bool IsValid()
+	bool IsValid() const
 	{
 		return
 			MagicNumber == TCP_MESSAGING_TRANSPORT_PROTOCOL_MAGIC &&
-			Version == TCP_MESSAGING_TRANSPORT_PROTOCOL_VERSION &&
+			Version == ETcpMessagingVersion::OldestSupportedVersion &&
 			NodeId.IsValid();
 	}
 
-	FGuid GetNodeId()
+	FGuid GetNodeId() const
 	{
 		return NodeId;
+	}
+
+	uint32 GetVersion() const
+	{
+		return Version;
 	}
 
 	// Serializer
@@ -51,12 +56,14 @@ FTcpMessageTransportConnection::FTcpMessageTransportConnection(FSocket* InSocket
 	, LocalNodeId(FGuid::NewGuid())
 	, bSentHeader(false)
 	, bReceivedHeader(false)
+	, RemoteProtocolVersion(0)
 	, Socket(InSocket)
 	, Thread(nullptr)
 	, TotalBytesReceived(0)
 	, TotalBytesSent(0)
 	, bRun(false)
 	, ConnectionRetryDelay(InConnectionRetryDelay)
+	, RecvMessageDataRemaining(0)
 {
 	int32 NewSize = 0;
 	Socket->SetReceiveBufferSize(2*1024*1024, NewSize);
@@ -67,8 +74,11 @@ FTcpMessageTransportConnection::~FTcpMessageTransportConnection()
 {
 	if (Thread != nullptr)
 	{
-		bRun = false;
-		Thread->WaitForCompletion();
+		if(bRun)
+		{
+			bRun = false;
+			Thread->WaitForCompletion();
+		}
 		delete Thread;
 	}
 
@@ -122,10 +132,8 @@ uint32 FTcpMessageTransportConnection::Run()
 {
 	while (bRun)
 	{
-		// Check if we can are ready to send or receive, and if so try sending and receiving messages.
-		// Otherwise, check for a connection error.
-		if (((Socket->Wait(ESocketWaitConditions::WaitForReadOrWrite, FTimespan::Zero()) && (!ReceiveMessages() || !SendMessages())) ||
-			(Socket->GetConnectionState() == SCS_ConnectionError)) && bRun)
+		// Try sending and receiving messages and detect if they fail or if another connection error is reported.
+		if ((!ReceiveMessages() || !SendMessages() || Socket->GetConnectionState() == SCS_ConnectionError) && bRun)
 		{
 			// Disconnected. Reconnect if requested.
 			if (ConnectionRetryDelay > 0)
@@ -284,6 +292,7 @@ bool FTcpMessageTransportConnection::ReceiveMessages()
 			else
 			{
 				RemoteNodeId = MessageHeader.GetNodeId();
+				RemoteProtocolVersion = MessageHeader.GetVersion();
 				bReceivedHeader = true;
 				OpenedTime = FDateTime::UtcNow();
 				UpdateConnectionState(STATE_Connected);
@@ -296,62 +305,92 @@ bool FTcpMessageTransportConnection::ReceiveMessages()
 		}
 	}
 
-	// if we received a payload size...
-	while (Socket->HasPendingData(PendingDataSize) && (PendingDataSize >= sizeof(uint16)))
+	// keep going until we have no data.
+	for(;;)
 	{
 		int32 BytesRead = 0;
+		// See if we're in the process of receiving a (large) message
+		if (RecvMessageDataRemaining == 0)
+		{
+			// no partial message. Try to receive the size of a message
+			if (!Socket->HasPendingData(PendingDataSize) || (PendingDataSize < sizeof(uint32)))
+			{
+				// no messages
+				return true;
+			}
 
-		FArrayReader MessagesizeData = FArrayReader(true);
-		MessagesizeData.SetNumUninitialized(sizeof(uint16));
+			FArrayReader MessagesizeData = FArrayReader(true);
+			MessagesizeData.SetNumUninitialized(sizeof(uint32));
 
-		// ... read it from the stream without removing it...
-		if (!Socket->Recv(MessagesizeData.GetData(), sizeof(uint16), BytesRead, ESocketReceiveFlags::Peek))
+			// read message size from the stream
+			BytesRead = 0;
+			if (!Socket->Recv(MessagesizeData.GetData(), sizeof(uint32), BytesRead))
+			{
+				return false;
+			}
+
+			check(BytesRead == sizeof(uint32));
+			TotalBytesReceived += BytesRead;
+
+			// Setup variables to receive the message
+			MessagesizeData << RecvMessageDataRemaining;
+
+			RecvMessageData = MakeShareable(new FArrayReader(true));
+			RecvMessageData->SetNumUninitialized(RecvMessageDataRemaining);
+			check(RecvMessageDataRemaining > 0);
+		}
+
+		BytesRead = 0;
+		if (!Socket->Recv(RecvMessageData->GetData() + RecvMessageData->Num() - RecvMessageDataRemaining, RecvMessageDataRemaining, BytesRead))
 		{
 			return false;
 		}
 
-		check(BytesRead == sizeof(uint16));
-
-		uint16 Messagesize;
-		MessagesizeData << Messagesize;
-
-		// ... and if we received the complete payload...
-		if (Socket->HasPendingData(PendingDataSize) && (PendingDataSize >= sizeof(uint16) + Messagesize))
+		if (BytesRead > 0)
 		{
-			// ... then remove the payload size from the stream...
-			if (!Socket->Recv((uint8*)&Messagesize, sizeof(uint16), BytesRead))
-			{
-				return false;
-			}
-
-			check(BytesRead == sizeof(uint16));
+			check(BytesRead <= RecvMessageDataRemaining);
 			TotalBytesReceived += BytesRead;
-
-			// ... receive the payload
-			FArrayReaderPtr Payload = MakeShareable(new FArrayReader(true));
-			Payload->SetNumUninitialized(Messagesize);
-
-			if (!Socket->Recv(Payload->GetData(), Payload->Num(), BytesRead))
+			RecvMessageDataRemaining -= BytesRead;
+			if (RecvMessageDataRemaining == 0)
 			{
-				return false;
-			}
-
-			check(BytesRead == Messagesize);
-			TotalBytesReceived += BytesRead;
-
-			// @todo gmp: move message deserialization into an async task
-			FTcpDeserializedMessage* DeserializedMessage = new FTcpDeserializedMessage(nullptr);
-			if (DeserializedMessage->Deserialize(Payload))
-			{
-				Inbox.Enqueue(MakeShareable(DeserializedMessage));
+				// @todo gmp: move message deserialization into an async task
+				FTcpDeserializedMessage* DeserializedMessage = new FTcpDeserializedMessage(nullptr);
+				if (DeserializedMessage->Deserialize(RecvMessageData))
+				{
+					Inbox.Enqueue(MakeShareable(DeserializedMessage));
+				}
+				RecvMessageData.Reset();
 			}
 		}
 		else
 		{
-			break;
+			// no data
+			return true;
 		}
 	}
+}
 
+bool FTcpMessageTransportConnection::BlockingSend(const uint8* Data, int32 BytesToSend)
+{
+	int32 TotalBytes = BytesToSend;
+	while (BytesToSend > 0)
+	{
+		while (!Socket->Wait(ESocketWaitConditions::WaitForWrite, FTimespan(0, 0, 1)))
+		{
+			if (Socket->GetConnectionState() == SCS_ConnectionError)
+			{
+				return false;
+			}
+		}
+
+		int32 BytesSent = 0;
+		if (!Socket->Send(Data, BytesToSend, BytesSent))
+		{
+			return false;
+		}
+		BytesToSend -= BytesSent;
+		Data += BytesSent;
+	}
 	return true;
 }
 
@@ -373,14 +412,13 @@ bool FTcpMessageTransportConnection::SendMessages()
 		FTcpMessageHeader MessageHeader(LocalNodeId);
 		HeaderData << MessageHeader;
 
-		int32 BytesSent = 0;
-		if (!Socket->Send(HeaderData.GetData(), sizeof(FTcpMessageHeader), BytesSent))
+		if (!BlockingSend(HeaderData.GetData(), sizeof(FTcpMessageHeader)))
 		{
 			return false;
 		}
 
 		bSentHeader = true;
-		TotalBytesSent += BytesSent;
+		TotalBytesSent += sizeof(FTcpMessageHeader);
 	}
 	else
 	{
@@ -392,23 +430,23 @@ bool FTcpMessageTransportConnection::SendMessages()
 
 			// send the payload size
 			FArrayWriter MessagesizeData = FArrayWriter(true);
-			uint16 Messagesize = Payload.Num();
+			uint32 Messagesize = Payload.Num();
 			MessagesizeData << Messagesize;
 
-			if (!Socket->Send(MessagesizeData.GetData(), sizeof(uint16), BytesSent))
+			if (!BlockingSend(MessagesizeData.GetData(), sizeof(uint32)))
 			{
 				return false;
 			}
 
-			TotalBytesSent += BytesSent;
+			TotalBytesSent += sizeof(uint32);
 
 			// send the payload
-			if (!Socket->Send(Payload.GetData(), Payload.Num(), BytesSent))
+			if (!BlockingSend(Payload.GetData(), Payload.Num()))
 			{
 				return false;
 			}
 
-			TotalBytesSent += BytesSent;
+			TotalBytesSent += Payload.Num();
 
 			// return if the socket is no longer writable, or that was the last message
 			if (Outbox.IsEmpty() || !Socket->Wait(ESocketWaitConditions::WaitForWrite, FTimespan::Zero()))

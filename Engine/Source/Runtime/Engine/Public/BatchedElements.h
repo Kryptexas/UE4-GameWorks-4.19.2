@@ -100,6 +100,7 @@ public:
 		:	MaxMeshIndicesAllowed(GDrawUPIndexCheckCount / sizeof(int32))
 			// the index buffer is 2 bytes, so make sure we only address 0xFFFF vertices in the index buffer
 		,	MaxMeshVerticesAllowed(FMath::Min<uint32>(0xFFFF, GDrawUPVertexCheckCount / sizeof(FSimpleElementVertex)))
+		,	bEnableHDREncoding(true)
 	{
 	}
 
@@ -234,6 +235,12 @@ public:
 		return sizeof(*this) + Points.GetAllocatedSize() + WireTris.GetAllocatedSize() + WireTriVerts.GetAllocatedSize() + ThickLines.GetAllocatedSize()
 			+ Sprites.GetAllocatedSize() + MeshElements.GetAllocatedSize() + MeshVertices.GetAllocatedSize();
 	}
+
+	void EnableMobileHDREncoding(bool bInEnableHDREncoding)
+	{
+		bEnableHDREncoding = bInEnableHDREncoding;
+	}
+
 private:
 
 	/**
@@ -376,5 +383,8 @@ private:
 		const FSceneView* View = NULL,
 		FTexture2DRHIRef DepthTexture = FTexture2DRHIRef()
 		) const;
+
+	/** if false then prevent the use of HDR encoded shaders. */
+	bool bEnableHDREncoding;
 };
 

@@ -218,6 +218,10 @@
 #define MOBILE_EMULATION ((FEATURE_LEVEL == FEATURE_LEVEL_ES2 || FEATURE_LEVEL == FEATURE_LEVEL_ES3_1) && (!(COMPILER_GLSL_ES3_1 || COMPILER_GLSL_ES2) && USE_DEVELOPMENT_SHADERS && !(METAL_PROFILE && MAC) && !VULKAN_PROFILE && !WOLF_PROFILE))
 #endif
 
+#ifndef MOBILE_FORCE_DEPTH_TEXTURE_READS
+#define MOBILE_FORCE_DEPTH_TEXTURE_READS 0
+#endif
+
 // If we didn't request color component swizzling, just make it empty
 #ifndef FCOLOR_COMPONENT_SWIZZLE
 #define FCOLOR_COMPONENT_SWIZZLE
@@ -573,6 +577,8 @@ MaterialFloat PhongShadingPow(MaterialFloat X, MaterialFloat Y)
 // depth in the red channel in DeviceZ
 Texture2D		SceneDepthTexture;
 SamplerState	SceneDepthTextureSampler;
+Texture2D		CustomDepthTexture;
+SamplerState	CustomDepthTextureSampler;
 // scene HDR color
 Texture2D		SceneColorTexture;
 SamplerState	SceneColorTextureSampler;
@@ -1074,26 +1080,25 @@ float CalcSceneDepth(float2 ScreenUV)
 #if SCENE_TEXTURES_DISABLED
 	return 0.0f;
 #else
-
-#if FEATURE_LEVEL > FEATURE_LEVEL_ES3_1
-	return ConvertFromDeviceZ(Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, ScreenUV, 0).r);
-#else
-	#if COMPILER_GLSL_ES2
-		#if IOS
-			// Only call FramebufferFetch when actually compiling for IOS ES2.
-			return FramebufferFetchES2().w;
-		#elif WEBGL
-			return Texture2DSampleLevel(SceneAlphaCopyTexture, SceneAlphaCopyTextureSampler, ScreenUV, 0).r;
-		#else 
-			float SceneW = ConvertFromDeviceZ(Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, ScreenUV, 0).r);		
-			return DepthbufferFetchES2(SceneW, View.InvDeviceZToWorldZTransform[2], View.InvDeviceZToWorldZTransform[3]);
-		#endif 
-	#elif METAL_PROFILE && !MAC
-			return FramebufferFetchES2().w;
-	#else
+	#if FEATURE_LEVEL > FEATURE_LEVEL_ES3_1 || MOBILE_FORCE_DEPTH_TEXTURE_READS
 		return ConvertFromDeviceZ(Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, ScreenUV, 0).r);
+	#else
+		#if COMPILER_GLSL_ES2
+			#if IOS
+				// Only call FramebufferFetch when actually compiling for IOS ES2.
+				return FramebufferFetchES2().w;
+			#elif WEBGL
+				return Texture2DSampleLevel(SceneAlphaCopyTexture, SceneAlphaCopyTextureSampler, ScreenUV, 0).r;
+			#else 
+				float SceneW = ConvertFromDeviceZ(Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, ScreenUV, 0).r);		
+				return DepthbufferFetchES2(SceneW, View.InvDeviceZToWorldZTransform[2], View.InvDeviceZToWorldZTransform[3]);
+			#endif 
+		#elif METAL_PROFILE && !MAC
+				return FramebufferFetchES2().w;
+		#else
+			return ConvertFromDeviceZ(Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, ScreenUV, 0).r);
+		#endif
 	#endif
-#endif
 #endif
 }
 

@@ -113,7 +113,10 @@ void PrefilterPlanarReflection(FRHICommandListImmediate& RHICmdList, FViewInfo& 
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, PrefilterPlanarReflection);
 
-		FRHIRenderTargetView ColorView(Target->GetRenderTargetTexture(), 0, -1, ERenderTargetLoadAction::ENoAction, ERenderTargetStoreAction::EStore);
+		// Workaround for a possible driver bug on S7 Adreno, missing planar reflections
+		ERenderTargetLoadAction RTLoadAction = IsVulkanMobilePlatform(View.GetShaderPlatform()) ?  ERenderTargetLoadAction::EClear : ERenderTargetLoadAction::ENoAction;
+
+		FRHIRenderTargetView ColorView(Target->GetRenderTargetTexture(), 0, -1, RTLoadAction, ERenderTargetStoreAction::EStore);
 		FRHISetRenderTargetsInfo Info(1, &ColorView, FRHIDepthRenderTargetView());
 		RHICmdList.SetRenderTargetsAndClear(Info);
 

@@ -2395,6 +2395,10 @@ void UHierarchicalInstancedStaticMeshComponent::BuildTreeAsync()
 		InstanceReorderTable.Empty();
 		SortedInstances.Empty();
 		RemovedInstances.Empty();
+
+		UnbuiltInstanceBoundsList.Empty();
+		BuiltInstanceBounds.Init();
+		ReleasePerInstanceRenderData();
 	}
 }
 

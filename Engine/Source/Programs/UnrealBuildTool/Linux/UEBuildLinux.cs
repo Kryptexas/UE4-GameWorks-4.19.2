@@ -335,11 +335,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// This is the SDK version we support
 		/// </summary>
-		static private Dictionary<string, string> ExpectedSDKVersions = new Dictionary<string, string>()
-		{
-			{ "x86_64-unknown-linux-gnu", "v7_clang-3.7.0_ld-2.24_glibc-2.12.2" },
-			{ "arm-unknown-linux-gnueabihf", "arm-unknown-linux-gnueabihf_v5_clang-3.5.0-ld-2.23.1-glibc-2.13" },
-		};
+		static string ExpectedSDKVersion = "v8_clang-3.9.0-centos7";	// now unified for all the architectures
 
 		/// <summary>
 		/// Platform name (embeds architecture for now)
@@ -370,13 +366,7 @@ namespace UnrealBuildTool
 		/// <returns>Valid SDK string</returns>
 		protected override string GetRequiredSDKString()
 		{
-			string SDKString;
-			if (!ExpectedSDKVersions.TryGetValue(LinuxPlatform.DefaultArchitecture, out SDKString))
-			{
-				throw new BuildException("LinuxPlatform::GetRequiredSDKString: no toolchain set up for architecture '{0}'", LinuxPlatform.DefaultArchitecture);
-			}
-
-			return SDKString;
+			return ExpectedSDKVersion;
 		}
 
 		protected override String GetRequiredScriptVersionString()
@@ -400,18 +390,34 @@ namespace UnrealBuildTool
 				return SDKStatus.Valid;
 			}
 
-			string BaseLinuxPath = Environment.GetEnvironmentVariable("LINUX_ROOT");
+			string MultiArchRoot = Environment.GetEnvironmentVariable("LINUX_MULTIARCH_ROOT");
+			string BaseLinuxPath;
+
+			if (MultiArchRoot != null)
+			{
+				// FIXME: UBT should loop across all the architectures and compile for all the selected ones.
+				BaseLinuxPath = Path.Combine(MultiArchRoot, LinuxPlatform.DefaultArchitecture);
+			}
+			else
+			{
+				// support the existing, non-multiarch toolchains for continuity
+				BaseLinuxPath = Environment.GetEnvironmentVariable("LINUX_ROOT");
+			}
 
 			// we don't have an LINUX_ROOT specified
 			if (String.IsNullOrEmpty(BaseLinuxPath))
+			{
 				return SDKStatus.Invalid;
+			}
 
 			// paths to our toolchains
 			BaseLinuxPath = BaseLinuxPath.Replace("\"", "");
-			string ClangPath = Path.Combine(BaseLinuxPath, @"bin\Clang++.exe");
+			string ClangPath = Path.Combine(BaseLinuxPath, @"bin\clang++.exe");
 
 			if (File.Exists(ClangPath))
+			{
 				return SDKStatus.Valid;
+			}
 
 			return SDKStatus.Invalid;
 		}

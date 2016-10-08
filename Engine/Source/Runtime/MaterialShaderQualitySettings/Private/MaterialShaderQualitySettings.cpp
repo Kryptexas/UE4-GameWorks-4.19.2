@@ -148,5 +148,12 @@ void UShaderPlatformQualitySettings::AppendToHashState(EMaterialQualityLevel::Ty
 
 bool FMaterialQualityOverrides::HasAnyOverridesSet() const
 {
-	return bForceDisableLMDirectionality || bForceFullyRough || bForceNonMetal || bForceDisableLMDirectionality || bForceLQReflections;
+	static const FMaterialQualityOverrides DefaultOverrides;
+
+	return
+		MobileCSMQuality != DefaultOverrides.MobileCSMQuality
+		|| bForceDisableLMDirectionality != DefaultOverrides.bForceDisableLMDirectionality
+		|| bForceFullyRough != DefaultOverrides.bForceFullyRough
+		|| bForceNonMetal != DefaultOverrides.bForceNonMetal
+		|| bForceLQReflections != DefaultOverrides.bForceLQReflections;
 }

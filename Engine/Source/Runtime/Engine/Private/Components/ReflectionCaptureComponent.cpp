@@ -842,6 +842,34 @@ void UReflectionCaptureComponent::SendRenderTransform_Concurrent()
 	Super::SendRenderTransform_Concurrent();
 }
 
+void UReflectionCaptureComponent::OnRegister()
+{
+	Super::OnRegister();
+
+	UWorld* World = GetWorld();
+	if (World->IsGameWorld() && GMaxRHIFeatureLevel < ERHIFeatureLevel::SM4)
+	{
+		if (EncodedHDRDerivedData == nullptr)
+		{
+			World->NumInvalidReflectionCaptureComponents+= 1;
+		}
+	}
+}
+
+void UReflectionCaptureComponent::OnUnregister()
+{
+	UWorld* World = GetWorld();
+	if (World->IsGameWorld() && GMaxRHIFeatureLevel < ERHIFeatureLevel::SM4)
+	{
+		if (EncodedHDRDerivedData == nullptr && World->NumInvalidReflectionCaptureComponents > 0)
+		{
+			World->NumInvalidReflectionCaptureComponents-= 1;
+		}
+	}
+
+	Super::OnUnregister();
+}
+
 void UReflectionCaptureComponent::DestroyRenderState_Concurrent()
 {
 	Super::DestroyRenderState_Concurrent();

@@ -919,6 +919,7 @@ struct FRenderTargetLayoutHashableStruct
 	uint32 ArraySliceIndex[MaxSimultaneousRenderTargets];
 	ERenderTargetLoadAction LoadAction[MaxSimultaneousRenderTargets];
 	ERenderTargetStoreAction StoreAction[MaxSimultaneousRenderTargets];
+	EPixelFormat TextureFormat[MaxSimultaneousRenderTargets + 1];
 
 	ERenderTargetLoadAction		DepthLoadAction;
 	ERenderTargetStoreAction	DepthStoreAction;
@@ -943,9 +944,11 @@ struct FRenderTargetLayoutHashableStruct
 			ArraySliceIndex[Index] = RTInfo.ColorRenderTarget[Index].ArraySliceIndex;
 			LoadAction[Index] = RTInfo.ColorRenderTarget[Index].LoadAction;
 			StoreAction[Index] = RTInfo.ColorRenderTarget[Index].StoreAction;
+			TextureFormat[Index] = Texture[Index] ? Texture[Index]->GetFormat() : PF_Unknown;
 		}
 
 		Texture[MaxSimultaneousRenderTargets] = RTInfo.DepthStencilRenderTarget.Texture;
+		TextureFormat[MaxSimultaneousRenderTargets] = Texture[MaxSimultaneousRenderTargets] ? Texture[MaxSimultaneousRenderTargets]->GetFormat() : PF_Unknown;
 		DepthLoadAction = RTInfo.DepthStencilRenderTarget.DepthLoadAction;
 		DepthStoreAction = RTInfo.DepthStencilRenderTarget.DepthStoreAction;
 		StencilLoadAction = RTInfo.DepthStencilRenderTarget.StencilLoadAction;
