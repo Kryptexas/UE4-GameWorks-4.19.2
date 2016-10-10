@@ -1372,16 +1372,24 @@ int32 UMaterialExpressionTextureSample::Compile(class FMaterialCompiler* Compile
 		{
 			UMaterialExpression* InputExpression = TextureObject.Expression;
 			UMaterialExpressionFunctionInput* FunctionInput = Cast<UMaterialExpressionFunctionInput>(InputExpression);
-			if (FunctionInput && FunctionInput->Preview.Expression)
-			{
+			if (FunctionInput)
+			{	
 				UMaterialExpressionFunctionInput* NestedFunctionInput = FunctionInput;
 
 				// Walk the input chain to find the last node in the chain
-				while (NestedFunctionInput->Preview.Expression && NestedFunctionInput->Preview.Expression->IsA(UMaterialExpressionFunctionInput::StaticClass()))
+				while (true)
 				{
-					NestedFunctionInput = CastChecked<UMaterialExpressionFunctionInput>(NestedFunctionInput->Preview.Expression);
+					UMaterialExpression* PreviewExpression = NestedFunctionInput->GetEffectivePreviewExpression();
+					if (PreviewExpression && PreviewExpression->IsA(UMaterialExpressionFunctionInput::StaticClass()))
+					{
+						NestedFunctionInput = CastChecked<UMaterialExpressionFunctionInput>(PreviewExpression);
+					}
+					else
+					{
+						break;
+					}
 				}
-				InputExpression = NestedFunctionInput->Preview.Expression;
+				InputExpression = NestedFunctionInput->GetEffectivePreviewExpression();
 			}
 
 			UMaterialExpressionTextureObject* TextureObjectExpression = Cast<UMaterialExpressionTextureObject>(InputExpression);
