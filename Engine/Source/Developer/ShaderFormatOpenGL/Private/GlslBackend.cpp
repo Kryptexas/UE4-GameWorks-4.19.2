@@ -1736,8 +1736,13 @@ class ir_gen_glsl_visitor : public ir_visitor
 						ralloc_asprintf_append(buffer, "(-1.0/0.0)");
 						break;
 
+					case 0x7fc00000u:
+						ralloc_asprintf_append(buffer, "(0.0/0.0) /*Real Nan*/");
+						break;
+
 					default:
-						check(0);
+						ralloc_asprintf_append(buffer, "Unhandled_Nan0x%08x", constant->value.u[index]);
+						break;
 				}
 			}
 		}
