@@ -22,6 +22,12 @@ LOCAL_SRC_FILES :=\
 LOCAL_MODULE := libpng
 LOCAL_CLANG := true
 LOCAL_CFLAGS := -O2 -Os -DNDEBUG -fomit-frame-pointer -g0
+ifeq ($(TARGET_ARCH_ABI),x86)
+	LOCAL_CFLAGS += -fno-stack-protector
+endif
+ifeq ($(TARGET_ARCH_ABI),x86_64)
+	LOCAL_CFLAGS += -fno-stack-protector
+endif
 LOCAL_EXPORT_LDLIBS := -lz
 LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/.
 LOCAL_SDK_VERSION := 9
