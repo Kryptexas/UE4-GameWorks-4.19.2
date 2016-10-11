@@ -347,8 +347,14 @@ FAIRequestID UPathFollowingComponent::RequestMove(const FAIMoveRequest& RequestD
 	{
 		if (Status != EPathFollowingStatus::Idle)
 		{
+			// setting to false to make sure OnPathFinished won't result in stoping 
+			bStopMovementOnFinish = false;
 			OnPathFinished(EPathFollowingResult::Aborted, FPathFollowingResultFlags::NewRequest);
 		}
+		
+		// force-setting this to true since this is the default state, and gets modified only 
+		// when aborting movement.
+		bStopMovementOnFinish = true;
 		
 		Reset();
 		StoreRequestId();
