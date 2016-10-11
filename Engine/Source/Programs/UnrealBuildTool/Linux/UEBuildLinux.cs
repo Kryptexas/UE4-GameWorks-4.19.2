@@ -235,7 +235,7 @@ namespace UnrealBuildTool
 
 		public override bool CanUseXGE()
 		{
-			return BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Linux;
+			return true;
 		}
 
 		/// <summary>
