@@ -41,7 +41,7 @@ bool FCrashDebugHelperWindows::CreateMinidumpDiagnosticReport( const FString& In
 			{
 				// Scoped lock
 				UE_LOG(LogCrashDebugHelper, Log, TEXT("Locking for InitSymbols()"));
-				FSystemWideCriticalSection PDBCacheLock(CrashInfo.PDBCacheLockName, FTimespan(0, 0, 3, 0, 0));
+				FSystemWideCriticalSection PDBCacheLock(CrashInfo.PDBCacheLockName, FTimespan(0, 0, 10, 0, 0));
 				if (PDBCacheLock.IsValid())
 				{
 					bInitSymbols = InitSymbols(WindowsStackWalkExt, bSyncSymbols);
