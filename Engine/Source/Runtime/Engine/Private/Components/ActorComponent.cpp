@@ -667,7 +667,7 @@ void UActorComponent::OnRegister()
 	if (bAutoActivate)
 	{
 		AActor* Owner = GetOwner();
-		if (Owner == nullptr || Owner->IsActorInitialized())
+		if (!WorldPrivate->IsGameWorld() || Owner == nullptr || Owner->IsActorInitialized())
 		{
 			Activate(true);
 		}
