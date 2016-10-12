@@ -1702,6 +1702,7 @@ UMapBuildDataRegistry* ULevel::CreateMapBuildDataRegistry() const
 	// PKG_ContainsMapData required so FEditorFileUtils::GetDirtyContentPackages can treat this as a map package
 	BuiltDataPackage->SetPackageFlags(PKG_ContainsMapData);
 	FName ShortPackageName = FPackageName::GetShortFName(*PackageName);
+	// Top level UObjects have to have both RF_Standalone and RF_Public to be saved into packages
 	UMapBuildDataRegistry* NewMapBuildData = NewObject<UMapBuildDataRegistry>(BuiltDataPackage, ShortPackageName, RF_Standalone | RF_Public);
 	return NewMapBuildData;
 }
@@ -1710,7 +1711,8 @@ UMapBuildDataRegistry* ULevel::GetOrCreateMapBuildData()
 {
 	if (!MapBuildData 
 		// If MapBuildData is in the level package we need to create a new one, see CreateRegistryForLegacyMap
-		|| MapBuildData->GetOutermost() == GetOutermost())
+		|| MapBuildData->GetOutermost() == GetOutermost()
+		|| !MapBuildData->HasAllFlags(RF_Public | RF_Standalone))
 	{
 		if (MapBuildData)
 		{
