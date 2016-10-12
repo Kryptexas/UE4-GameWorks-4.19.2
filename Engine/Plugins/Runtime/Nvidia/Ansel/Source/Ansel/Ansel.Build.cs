@@ -69,7 +69,7 @@ public class Ansel : ModuleRules
 
             string DLLName = LibName + ".dll";
             PublicDelayLoadDLLs.Add(DLLName);
-            RuntimeDependencies.Add(new RuntimeDependency("BinariesPath" + DLLName));
+            RuntimeDependencies.Add(new RuntimeDependency(BinariesPath + DLLName));
 
             Definitions.Add("WITH_ANSEL=1");
             Definitions.Add("ANSEL_DLL=" + DLLName);
