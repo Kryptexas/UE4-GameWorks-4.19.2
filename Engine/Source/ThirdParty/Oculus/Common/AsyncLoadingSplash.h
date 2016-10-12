@@ -28,22 +28,28 @@ public:
 		FTransform			TransformInMeters;				// transform of center of quad (meters)
 		FVector2D			QuadSizeInMeters;				// dimensions in meters
 		FQuat				DeltaRotation;					// a delta rotation that will be added each rendering frame (half rate of full vsync)
+		FTextureRHIRef		LoadedTexture;					// texture reference for when a TexturePath or UTexture is not available
+		FVector2D			TextureOffset;					// texture offset amount from the top left corner
+		FVector2D			TextureScale;					// texture scale
+		bool				bNoAlphaChannel;				// whether the splash layer uses it's alpha channel
 
 		FSplashDesc() : LoadingTexture(nullptr)
 			, TransformInMeters(FVector(4.0f, 0.f, 0.f))
 			, QuadSizeInMeters(3.f, 3.f)
 			, DeltaRotation(FQuat::Identity)
 			, LoadedTexture(nullptr)
+			, TextureOffset(0.0f, 0.0f)
+			, TextureScale(1.0f, 1.0f)
+			, bNoAlphaChannel(false)
 		{
 		}
 		bool operator==(const FSplashDesc& d) const
 		{
-			return LoadingTexture == d.LoadingTexture && TexturePath == d.TexturePath && 
+			return LoadingTexture == d.LoadingTexture && TexturePath == d.TexturePath && LoadedTexture == d.LoadedTexture &&
 				TransformInMeters.Equals(d.TransformInMeters) && 
-				QuadSizeInMeters == d.QuadSizeInMeters && DeltaRotation.Equals(d.DeltaRotation);
+				QuadSizeInMeters == d.QuadSizeInMeters && DeltaRotation.Equals(d.DeltaRotation) &&
+				TextureOffset == d.TextureOffset && TextureScale == d.TextureScale;
 		}
-
-		FTextureRHIRef LoadedTexture;
 	};
 
 	FAsyncLoadingSplash();

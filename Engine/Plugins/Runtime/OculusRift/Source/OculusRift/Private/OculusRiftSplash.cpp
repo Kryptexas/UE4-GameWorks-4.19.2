@@ -200,34 +200,41 @@ void FOculusRiftSplash::Show(EShowType InShowType)
 			}
 			for (int32 i = 0; i < SplashScreenDescs.Num(); ++i)
 			{
+				FSplashDesc& CurrSplashDesc = SplashScreenDescs[i];
 				//@DBG BEGIN
-				if (SplashScreenDescs[i].LoadingTexture->IsValidLowLevel())
+				if (CurrSplashDesc.LoadingTexture->IsValidLowLevel())
 				{
-					if (SplashScreenDescs[i].LoadingTexture->Resource && SplashScreenDescs[i].LoadingTexture->Resource->TextureRHI)
+					if (CurrSplashDesc.LoadingTexture->Resource && CurrSplashDesc.LoadingTexture->Resource->TextureRHI)
 					{
-						SplashScreenDescs[i].LoadedTexture = SplashScreenDescs[i].LoadingTexture->Resource->TextureRHI;
+						CurrSplashDesc.LoadedTexture = CurrSplashDesc.LoadingTexture->Resource->TextureRHI;
 					}
 					else
 					{
-						UE_LOG(LogHMD, Warning, TEXT("Splash, %s - no Resource"), *SplashScreenDescs[i].LoadingTexture->GetDesc());
+						UE_LOG(LogHMD, Warning, TEXT("Splash, %s - no Resource"), *CurrSplashDesc.LoadingTexture->GetDesc());
 					}
 				}
 				//@DBG END
 
-				if (SplashScreenDescs[i].LoadedTexture)
+				if (CurrSplashDesc.LoadedTexture)
 				{
 					FRenderSplashInfo RenSplash;
 					// use X (depth) as layers priority
-					const uint32 Prio = FHMDLayerDesc::MaxPriority - uint32(SplashScreenDescs[i].TransformInMeters.GetTranslation().X * 1000.f);
+					const uint32 Prio = FHMDLayerDesc::MaxPriority - uint32(CurrSplashDesc.TransformInMeters.GetTranslation().X * 1000.f);
 					TSharedPtr<FHMDLayerDesc> layer = LayerMgr->AddLayer(FHMDLayerDesc::Quad, Prio, FHMDLayerManager::Layer_TorsoLocked, RenSplash.SplashLID);
 					check(layer.IsValid());
-					layer->SetTexture(SplashScreenDescs[i].LoadedTexture);
-					layer->SetTransform(SplashScreenDescs[i].TransformInMeters);
-					layer->SetQuadSize(SplashScreenDescs[i].QuadSizeInMeters);
+					layer->SetTexture(CurrSplashDesc.LoadedTexture);
+					layer->SetTransform(CurrSplashDesc.TransformInMeters);
+					layer->SetQuadSize(CurrSplashDesc.QuadSizeInMeters);
+					layer->SetTextureViewport(FBox2D(CurrSplashDesc.TextureOffset, CurrSplashDesc.TextureOffset + CurrSplashDesc.TextureScale));
+
+					if (CurrSplashDesc.bNoAlphaChannel)
+					{
+						layer->SetFlags(IStereoLayers::ELayerFlags::LAYER_FLAG_TEX_NO_ALPHA_CHANNEL);
+					}
 
 					ReadyToPush = true;
 
-					RenSplash.Desc = SplashScreenDescs[i];
+					RenSplash.Desc = CurrSplashDesc;
 
 					FScopeLock ScopeLock2(&RenderSplashScreensLock);
 					RenderSplashScreens.Add(RenSplash);
