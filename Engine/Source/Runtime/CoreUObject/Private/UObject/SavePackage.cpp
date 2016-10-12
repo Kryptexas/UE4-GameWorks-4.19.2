@@ -1176,7 +1176,7 @@ FArchive& FArchiveSaveTagImports::operator<<( UObject*& Obj )
 
 							const bool bCDOIsEditorOnly = IsCookingForNoEditorDataPlatform(*this) && IsEditorOnlyObject(CDO);
 
-							if (!bCDOIsEditorOnly && !CDO->HasAnyFlags(RF_Transient))
+							if (!bCDOIsEditorOnly && !CDO->HasAnyFlags(RF_Transient) && !CDO->IsPendingKill())
 							{
 								CDO->Mark(OBJECTMARK_TagImp);
 
@@ -1192,7 +1192,7 @@ FArchive& FArchiveSaveTagImports::operator<<( UObject*& Obj )
 
 										const bool bCompIsEditorOnly = IsCookingForNoEditorDataPlatform(*this) && IsEditorOnlyObject(SubObj);
 
-										if (!bCompIsEditorOnly && !SubObj->HasAnyFlags(RF_Transient))
+										if (!bCompIsEditorOnly && !SubObj->HasAnyFlags(RF_Transient) && !SubObj->IsPendingKill())
 										{
 											SubObj->Mark(OBJECTMARK_TagImp);
 										}
@@ -4868,7 +4868,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 					auto IncludeObjectAsDependency = [Linker,ObjectMarks](TSet<FPackageIndex>& AddTo, UObject* ToTest, UObject* ForObj, bool bMandatory)
 					{
 						// Skip transient, editor only, and excluded client/server objects
-						if (ToTest && !ToTest->HasAllFlags(RF_Transient))
+						if (ToTest && !ToTest->HasAllFlags(RF_Transient) && !ToTest->IsPendingKill())
 						{
 							UPackage* Outermost = ToTest->GetOutermost();
 							check(Outermost);
@@ -4876,10 +4876,10 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 							{
 								return; // we never add dependencies for things that are compiled in
 							}
-							bool bNotFiltered = !ToTest->HasAnyMarks(ObjectMarks) && (!(Linker->Summary.PackageFlags & PKG_FilterEditorOnly) || !ToTest->HasAnyMarks(OBJECTMARK_EditorOnly));
+							bool bNotFiltered = !ToTest->HasAllMarks(ObjectMarks) && (!(Linker->Summary.PackageFlags & PKG_FilterEditorOnly) || !ToTest->HasAnyMarks(OBJECTMARK_EditorOnly));
 							if (bMandatory && !bNotFiltered)
 							{
-								UE_LOG(LogSavePackage, Log, TEXT("A dependency '%s' of '%s' was filtered, but is mandatory. This indicates a problem with editor only stripping. We will keep the dependency anyway."), *ToTest->GetFullName(), *ForObj->GetFullName());
+								UE_LOG(LogSavePackage, Warning, TEXT("A dependency '%s' of '%s' was filtered, but is mandatory. This indicates a problem with editor only stripping. We will keep the dependency anyway."), *ToTest->GetFullName(), *ForObj->GetFullName());
 								bNotFiltered = true;
 							}
 							if (bNotFiltered)
@@ -4928,14 +4928,12 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 								IncludeIndexAsDependency(SerializationBeforeCreateDependencies, Export.SuperIndex);
 								UObject* CDO = Export.Object->GetArchetype();
 								IncludeObjectAsDependency(SerializationBeforeCreateDependencies, CDO, Export.Object, true);
-#if 1 //@todoio delete?
 								Subobjects.Reset();
 								GetObjectsWithOuter(CDO, Subobjects);
 								for (UObject* SubObj : Subobjects)
 								{
 									IncludeObjectAsDependency(SerializationBeforeCreateDependencies, SubObj, Export.Object, false);
 								}
-#endif
 							}
 							TSet<FPackageIndex> SerializationBeforeSerializationDependencies;
 							{
