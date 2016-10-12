@@ -14,6 +14,7 @@
 
 #include "Settings/EditorSettings.h"
 #include "AnalyticsEventAttribute.h"
+#include "DebuggerCommands.h"
 
 #define LOCTEXT_NAMESPACE "MainFrameActions"
 
@@ -171,10 +172,15 @@ void FMainFrameCommands::RegisterCommands()
 
 FReply FMainFrameActionCallbacks::OnUnhandledKeyDownEvent(const FKeyEvent& InKeyEvent)
 {
-	if ( FMainFrameCommands::ActionList->ProcessCommandBindings( InKeyEvent ) )
+	if(FMainFrameCommands::ActionList->ProcessCommandBindings(InKeyEvent))
 	{
 		return FReply::Handled();
 	}
+	else if(FPlayWorldCommands::GlobalPlayWorldActions->ProcessCommandBindings(InKeyEvent))
+	{
+		return FReply::Handled();
+	}
+
 	return FReply::Unhandled();
 }
 
