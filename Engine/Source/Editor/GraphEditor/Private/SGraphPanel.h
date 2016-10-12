@@ -4,6 +4,7 @@
 
 #include "GraphEditor.h"
 #include "GraphSplineOverlapResult.h"
+#include "SGraphPin.h" // for FGraphPinHandle
 
 class SGraphNode;
 class SGraphPin;
@@ -25,9 +26,6 @@ struct FGraphContextMenuArguments
 
 	// 
 	TArray<UEdGraphPin*> DragFromPins;
-
-	// Was shift held down when the operation started?
-	bool bShiftOperation;
 };
 
 
@@ -107,9 +105,10 @@ public:
 	// End of FGCObject interface.
 
 	void ArrangeChildrenForContextMenuSummon(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const;
-	TSharedPtr<SWidget> SummonContextMenu(const FVector2D& WhereToSummon, const FVector2D& WhereToAddNode, UEdGraphNode* ForNode, UEdGraphPin* ForPin, const TArray<UEdGraphPin*>& DragFromPins, bool bShiftOperation);
+	TSharedPtr<SWidget> SummonContextMenu(const FVector2D& WhereToSummon, const FVector2D& WhereToAddNode, UEdGraphNode* ForNode, UEdGraphPin* ForPin, const TArray<UEdGraphPin*>& DragFromPins);
 
 	void OnBeginMakingConnection(UEdGraphPin* InOriginatingPin);
+	void OnBeginMakingConnection(FGraphPinHandle PinHandle);
 	void OnStopMakingConnection(bool bForceStop = false);
 	void PreservePinPreviewUntilForced();
 

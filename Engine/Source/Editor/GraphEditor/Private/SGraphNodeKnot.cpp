@@ -34,17 +34,17 @@ public:
 	// End of FDragConnection interface
 
 
-	static TSharedRef<FAmbivalentDirectionDragConnection> New(UK2Node_Knot* InKnot, const TSharedRef<SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphPin> >& InStartingPins, bool bInShiftOperation)
+	static TSharedRef<FAmbivalentDirectionDragConnection> New(UK2Node_Knot* InKnot, const TSharedRef<SGraphPanel>& InGraphPanel, const FDraggedPinTable& InStartingPins)
 	{
-		TSharedRef<FAmbivalentDirectionDragConnection> Operation = MakeShareable(new FAmbivalentDirectionDragConnection(InKnot, InGraphPanel, InStartingPins, bInShiftOperation));
+		TSharedRef<FAmbivalentDirectionDragConnection> Operation = MakeShareable(new FAmbivalentDirectionDragConnection(InKnot, InGraphPanel, InStartingPins));
 		Operation->Construct();
 
 		return Operation;
 	}
 
 protected:
-	FAmbivalentDirectionDragConnection(UK2Node_Knot* InKnot, const TSharedRef<SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphPin> >& InStartingPins, bool bInShiftOperation)
-		: FDragConnection(InGraphPanel, InStartingPins, bInShiftOperation)
+	FAmbivalentDirectionDragConnection(UK2Node_Knot* InKnot, const TSharedRef<SGraphPanel>& InGraphPanel, const FDraggedPinTable& InStartingPins)
+		: FDragConnection(InGraphPanel, InStartingPins)
 		, KnotPtr(InKnot)
 		, StartScreenPos(FVector2D::ZeroVector)
 		, MostRecentScreenPos(FVector2D::ZeroVector)
@@ -103,7 +103,7 @@ void FAmbivalentDirectionDragConnection::OnDragged(const class FDragDropEvent& D
 
 void FAmbivalentDirectionDragConnection::ValidateGraphPinList(TArray<UEdGraphPin*>& OutValidPins)
 {
-	OutValidPins.Empty(StartingPins.Num());
+	OutValidPins.Empty(DraggingPins.Num());
 
 	if (UK2Node_Knot* Knot = KnotPtr.Get())
 	{
@@ -170,7 +170,7 @@ public:
 protected:
 	// Begin SGraphPin interface
 	virtual TSharedRef<SWidget>	GetDefaultValueWidget() override;
-	virtual TSharedRef<FDragDropOperation> SpawnPinDragEvent(const TSharedRef<SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphPin> >& InStartingPins, bool bInShiftOperation) override;
+	virtual TSharedRef<FDragDropOperation> SpawnPinDragEvent(const TSharedRef<SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphPin> >& InStartingPins) override;
 	virtual FReply OnPinMouseDown(const FGeometry& SenderGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FSlateColor GetPinColor() const override;
 	// End SGraphPin interface
@@ -221,9 +221,19 @@ TSharedRef<SWidget>	SGraphPinKnot::GetDefaultValueWidget()
 	return SNullWidget::NullWidget;
 }
 
-TSharedRef<FDragDropOperation> SGraphPinKnot::SpawnPinDragEvent(const TSharedRef<SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphPin> >& InStartingPins, bool bInShiftOperation)
+TSharedRef<FDragDropOperation> SGraphPinKnot::SpawnPinDragEvent(const TSharedRef<SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphPin> >& InStartingPins)
 {
-	TSharedRef<FAmbivalentDirectionDragConnection> Operation = FAmbivalentDirectionDragConnection::New(CastChecked<UK2Node_Knot>(GetPinObj()->GetOwningNode()), InGraphPanel, InStartingPins, bInShiftOperation);
+	FAmbivalentDirectionDragConnection::FDraggedPinTable PinHandles;
+	PinHandles.Reserve(InStartingPins.Num());
+	// since the graph can be refreshed and pins can be reconstructed/replaced 
+	// behind the scenes, the DragDropOperation holds onto FGraphPinHandles 
+	// instead of direct widgets/graph-pins
+	for (const TSharedRef<SGraphPin>& PinWidget : InStartingPins)
+	{
+		PinHandles.Add(PinWidget->GetPinObj());
+	}
+
+	TSharedRef<FAmbivalentDirectionDragConnection> Operation = FAmbivalentDirectionDragConnection::New(CastChecked<UK2Node_Knot>(GetPinObj()->GetOwningNode()), InGraphPanel, PinHandles);
 	return Operation;
 }
 
