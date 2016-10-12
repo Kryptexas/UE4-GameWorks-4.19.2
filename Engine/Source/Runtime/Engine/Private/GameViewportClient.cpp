@@ -1188,6 +1188,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 						CanvasObject->Init(View->UnscaledViewRect.Width(), View->UnscaledViewRect.Height(), View);
 
 						// Set the canvas transform for the player's view rectangle.
+						check(SceneCanvas);
 						SceneCanvas->PushAbsoluteTransform(FTranslationMatrix(CanvasOrigin));
 						CanvasObject->ApplySafeZoneTransform();						
 
