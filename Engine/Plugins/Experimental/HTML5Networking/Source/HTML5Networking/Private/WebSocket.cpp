@@ -92,14 +92,31 @@ FWebSocket::FWebSocket(
 
 #endif
 
+	// Windows XP does not have support for inet_pton
+#if PLATFORM_WINDOWS && _WIN32_WINNT <= 0x0502
+	memset(&RemoteAddr, 0, sizeof(RemoteAddr));
+	int32 SizeOfRemoteAddr = sizeof(RemoteAddr);
+
+	// Force ServerAddress into non-const array. API doesn't modify contents but old API still requires non-const string
+	if (WSAStringToAddress(ServerAddress.ToString(false).GetCharArray().GetData(), AF_INET, NULL, (sockaddr*)&RemoteAddr, &SizeOfRemoteAddr) != 0)
+	{
+		UE_LOG(LogHTML5Networking, Warning, TEXT("WSAStringToAddress failed "));
+		return;
+	}
+
+	RemoteAddr.sin_family = AF_INET;
+	RemoteAddr.sin_port = htons(ServerAddress.GetPort());
+#else
 	memset(&RemoteAddr, 0, sizeof(RemoteAddr));
 	RemoteAddr.sin_family = AF_INET;
 	RemoteAddr.sin_port = htons(ServerAddress.GetPort());
 
-	if (inet_pton(AF_INET, TCHAR_TO_ANSI(*ServerAddress.ToString(false)), &RemoteAddr.sin_addr) != 1) {
+	if (inet_pton(AF_INET, TCHAR_TO_ANSI(*ServerAddress.ToString(false)), &RemoteAddr.sin_addr) != 1)
+	{
 		UE_LOG(LogHTML5Networking, Warning, TEXT("inet_pton failed "));
 		return;
 	}
+#endif
 
 #if PLATFORM_HTML5_BROWSER
 	int Ret = connect(SockFd, (struct sockaddr *)&RemoteAddr, sizeof(RemoteAddr));
@@ -142,12 +159,29 @@ void FWebSocket::SetRecieveCallBack(FWebsocketPacketRecievedCallBack CallBack)
 
 FString FWebSocket::RemoteEndPoint(bool bAppendPort)
 {
+	// Windows XP does not have support for inet_ntop
+#if PLATFORM_WINDOWS && _WIN32_WINNT <= 0x0502
+	TCHAR Buffer[INET_ADDRSTRLEN];
+	::DWORD BufferSize = INET_ADDRSTRLEN;
+	FString remote = "";
+	sockaddr_in AddressToConvert = RemoteAddr;
+	if (!bAppendPort)
+	{
+		AddressToConvert.sin_port = 0;
+	}
+	if (WSAAddressToString((sockaddr*)&AddressToConvert, sizeof(AddressToConvert), NULL, Buffer, &BufferSize) == 0)
+	{
+		remote = Buffer;
+	}
+#else
 	ANSICHAR Buffer[INET_ADDRSTRLEN];
 	FString remote(ANSI_TO_TCHAR(inet_ntop(AF_INET, &RemoteAddr.sin_addr, Buffer, INET_ADDRSTRLEN)));
 	if ( bAppendPort )
 	{
 		remote += FString::Printf(TEXT(":%i"), ntohs(RemoteAddr.sin_port));
 	}
+#endif
+
 	return remote;
 }
 
@@ -164,12 +198,28 @@ FString FWebSocket::LocalEndPoint(bool bAppendPort)
 	socklen_t len = sizeof addr;
 	getsockname(sock, (struct sockaddr*)&addr, &len);
 
+	// Windows XP does not have support for inet_ntop
+#if PLATFORM_WINDOWS && _WIN32_WINNT <= 0x0502
+	TCHAR Buffer[INET_ADDRSTRLEN];
+	::DWORD BufferSize = INET_ADDRSTRLEN;
+	FString remote = "";
+	if (!bAppendPort)
+	{
+		addr.sin_port = 0;
+	}
+	if (WSAAddressToString((sockaddr*)&addr, sizeof(addr), NULL, Buffer, &BufferSize) == 0)
+	{
+		remote = Buffer;
+	}
+#else
 	ANSICHAR Buffer[INET_ADDRSTRLEN];
 	FString remote(ANSI_TO_TCHAR(inet_ntop(AF_INET, &addr.sin_addr, Buffer, INET_ADDRSTRLEN)));
 	if ( bAppendPort )
 	{
 		remote += FString::Printf(TEXT(":%i"), ntohs(addr.sin_port));
 	}
+#endif
+
 	return remote;
 #else
 	// NOTE: there's no way to get this info from browsers...

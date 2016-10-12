@@ -4,6 +4,8 @@
 #include "SteamVRSplash.h"
 #include "SteamVRHMD.h"
 
+#if STEAMVR_SUPPORTED_PLATFORMS
+
 FSteamSplashTicker::FSteamSplashTicker(class FSteamVRHMD* InSteamVRHMD)
 	: FTickableObjectRenderThread(false, true)
 	, SteamVRHMD(InSteamVRHMD)
@@ -58,3 +60,5 @@ bool FSteamSplashTicker::IsTickable() const
 {
 	return true;
 }
+
+#endif

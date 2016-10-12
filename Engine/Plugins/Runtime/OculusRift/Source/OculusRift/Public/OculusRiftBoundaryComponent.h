@@ -167,6 +167,7 @@ class UOculusRiftBoundaryComponent : public UActorComponent
 	FOculusOuterBoundaryReturnedEvent OnOuterBoundaryReturned; 
 
 private:
+#if OCULUS_RIFT_SUPPORTED_PLATFORMS
 	/** Reference to current ovrSession to use in OVR_CAPI calls */
 	ovrSession Session;
 
@@ -181,4 +182,5 @@ private:
 
 	/** Used to store list of outer boundary or play area points */
 	ovrVector3f BoundaryPoints[MaxNumBoundaryPoints];
+#endif
 };
