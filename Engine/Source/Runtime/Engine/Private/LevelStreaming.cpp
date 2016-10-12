@@ -317,6 +317,12 @@ void ULevelStreaming::SetLoadedLevel(class ULevel* Level)
 
 	FLevelCollection& LC = GetWorld()->FindOrAddCollectionByType(CollectionType);
 	LC.RemoveLevel(PendingUnloadLevel);
+	
+	// Remove the loaded level from its current collection, if any.
+	if (LoadedLevel && LoadedLevel->GetCachedLevelCollection())
+	{
+		LoadedLevel->GetCachedLevelCollection()->RemoveLevel(LoadedLevel);
+	}
 	LC.AddLevel(LoadedLevel);
 }
 
