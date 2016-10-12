@@ -2534,13 +2534,21 @@ namespace UnrealBuildTool
 				bool bLicenseViolation = false;
 				foreach (UEBuildBinary Binary in AppBinaries)
 				{
-					IEnumerable<UEBuildModule> NonRedistModules = Binary.GetAllDependencyModules(true, false).Where((DependencyModule) =>
+					List<UEBuildModule> AllDependencies = Binary.GetAllDependencyModules(true, false);
+					IEnumerable<UEBuildModule> NonRedistModules = AllDependencies.Where((DependencyModule) =>
 							!IsRedistributable(DependencyModule) && DependencyModule.Name != Binary.Target.AppName
 						);
 
 					if (NonRedistModules.Count() != 0)
 					{
+						IEnumerable<UEBuildModule> NonRedistDeps = AllDependencies.Where((DependantModule) =>
+							DependantModule.GetDirectDependencyModules().Intersect(NonRedistModules).Any()
+						);
 						string Message = string.Format("Non-editor build cannot depend on non-redistributable modules. {0} depends on '{1}'.", Binary.ToString(), string.Join("', '", NonRedistModules));
+						if (NonRedistDeps.Any())
+						{
+							Message = string.Format("{0}\nDependant modules '{1}'", Message, string.Join("', '", NonRedistDeps));
+						}
 						if(BuildConfiguration.bBreakBuildOnLicenseViolation)
 						{
 							Log.TraceError("ERROR: {0}", Message);
