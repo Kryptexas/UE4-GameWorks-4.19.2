@@ -70,7 +70,7 @@ UMapBuildDataRegistry* CreateRegistryForLegacyMap(ULevel* Level)
 	static FName RegistryName(TEXT("MapBuildDataRegistry"));
 	// Create a new registry for legacy map build data, but put it in the level's package.  
 	// This avoids creating a new package during cooking which the cooker won't know about.
-	Level->MapBuildData = NewObject<UMapBuildDataRegistry>(Level->GetOutermost(), RegistryName, RF_Standalone | RF_Public);
+	Level->MapBuildData = NewObject<UMapBuildDataRegistry>(Level->GetOutermost(), RegistryName, RF_NoFlags);
 	return Level->MapBuildData;
 }
 
