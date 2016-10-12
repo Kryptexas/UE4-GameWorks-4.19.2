@@ -374,6 +374,7 @@ EPropertyDataValidationResult FPropertyNode::EnsureDataIsValid()
 			UArrayProperty* ArrayProperty = Cast<UArrayProperty>(MyProperty);
 			USetProperty* SetProperty = Cast<USetProperty>(MyProperty);
 			UMapProperty* MapProperty = Cast<UMapProperty>(MyProperty);
+			UStructProperty* StructProperty = Cast<UStructProperty>(MyProperty);
 
 			//default to unknown array length
 			int32 NumArrayChildren = -1;
@@ -400,6 +401,10 @@ EPropertyDataValidationResult FPropertyNode::EnsureDataIsValid()
 				bValidateChildrenKeyNodes = DoesChildPropertyRequireValidation(MapProperty->KeyProp);
 
 				ContainerElementProperty = MapProperty->ValueProp;
+			}
+			else if(StructProperty)
+			{
+				ContainerElementProperty = StructProperty;
 			}
 
 			bValidateChildren = DoesChildPropertyRequireValidation(ContainerElementProperty);
