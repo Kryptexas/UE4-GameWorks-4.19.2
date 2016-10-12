@@ -2665,7 +2665,9 @@ public:
 						FName(TEXT("TBasePassVSFCachedPointIndirectLightingPolicy")),
 						FName(TEXT("TBasePassPSFCachedPointIndirectLightingPolicy")),
 						FName(TEXT("TShadowDepthVSVertexShadowDepth_OutputDepthfalse")),
+						FName(TEXT("TShadowDepthVSVertexShadowDepth_OutputDepthtrue")), // used by LPV
 						FName(TEXT("TShadowDepthPSPixelShadowDepth_NonPerspectiveCorrectfalse")),
+						FName(TEXT("TShadowDepthPSPixelShadowDepth_NonPerspectiveCorrecttrue")), // used by LPV
 						FName(TEXT("TDepthOnlyVS<false>")),
 						FName(TEXT("TDepthOnlyVS<true>")),
 						FName(TEXT("FDepthOnlyPS")),
