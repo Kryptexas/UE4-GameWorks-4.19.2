@@ -1368,8 +1368,8 @@ void FInternalPlayWorldCommandCallbacks::PlayInEditorFloating_Clicked( )
 	}
 	else
 	{
-		// Terminate existing session
-		GUnrealEd->EndPlayMap();
+		// Terminate existing session.  This is deferred because we could be processing this from the play world and we should not clear the play world while in it.
+		GUnrealEd->RequestEndPlayMap();
 	}
 }
 
