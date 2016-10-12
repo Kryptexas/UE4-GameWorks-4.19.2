@@ -267,8 +267,8 @@ EVisibility SDetailsView::GetActorNameAreaVisibility() const
 
 EVisibility SDetailsView::GetScrollBarVisibility() const
 {
-	const bool bHasObjects = RootPropertyNodes.Num() > 0;
-	const bool bShowScrollBar = DetailsViewArgs.bShowScrollBar && bHasObjects;
+	const bool bHasAnythingToShow = RootTreeNodes.Num() > 0;
+	const bool bShowScrollBar = DetailsViewArgs.bShowScrollBar && bHasAnythingToShow;
 	return bShowScrollBar ? EVisibility::Visible : EVisibility::Collapsed;
 }
 

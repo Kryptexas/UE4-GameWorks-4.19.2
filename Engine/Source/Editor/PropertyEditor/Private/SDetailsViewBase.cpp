@@ -994,7 +994,7 @@ void SDetailsViewBase::QueryCustomDetailLayout(FDetailLayoutData& LayoutData)
 EVisibility SDetailsViewBase::GetFilterBoxVisibility() const
 {
 	// Visible if we allow search and we have anything to search otherwise collapsed so it doesn't take up room
-	return (DetailsViewArgs.bAllowSearch && IsConnected()) ? EVisibility::Visible : EVisibility::Collapsed;
+	return (DetailsViewArgs.bAllowSearch && IsConnected() && RootTreeNodes.Num() > 0) ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 bool SDetailsViewBase::SupportsKeyboardFocus() const
