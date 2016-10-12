@@ -74,6 +74,14 @@ namespace UnrealBuildTool
 				throw new BuildException(WindowsPlatform.GetCompilerName(WindowsPlatform.Compiler) + " must be installed in order to build this target.");
 			}
 
+			// Figure out the default toolchain directory. VS15 separates this out into separate directories, with platforms as subdirectories under that.
+			DirectoryReference VCToolChainDir = null;
+			if(WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2017)
+			{
+				string Version = File.ReadAllText(FileReference.Combine(VCInstallDir, "Auxiliary", "Build", "Microsoft.VCToolsVersion.default.txt").FullName).Trim();
+				VCToolChainDir = DirectoryReference.Combine(VCInstallDir, "Tools", "MSVC", Version);
+			}
+
 			WindowsSDKDir = FindWindowsSDKInstallationFolder(Platform, bSupportWindowsXP);
 			WindowsSDKLibVersion = FindWindowsSDKLibVersion(WindowsSDKDir);
 			WindowsSDKExtensionDir = FindWindowsSDKExtensionInstallationFolder();
@@ -82,8 +90,8 @@ namespace UnrealBuildTool
 			UniversalCRTDir = bSupportWindowsXP ? "" : FindUniversalCRTInstallationFolder();
 			UniversalCRTVersion = bSupportWindowsXP ? "0.0.0.0" : FindUniversalCRTVersion(UniversalCRTDir);
 
-			VCToolPath32 = GetVCToolPath32(VCInstallDir);
-			VCToolPath64 = GetVCToolPath64(VCInstallDir);
+			VCToolPath32 = GetVCToolPath32(VCInstallDir, VCToolChainDir);
+			VCToolPath64 = GetVCToolPath64(VCInstallDir, VCToolChainDir);
 
 			// Compile using 64 bit tools for 64 bit targets, and 32 for 32.
 			DirectoryReference CompilerDir = (Platform == CPPTargetPlatform.Win64) ? VCToolPath64 : VCToolPath32;
@@ -106,7 +114,7 @@ namespace UnrealBuildTool
             }
 
 			// Setup the INCLUDE environment variable
-			List<string> IncludePaths = GetVisualCppIncludePaths(VCInstallDir.FullName, UniversalCRTDir, UniversalCRTVersion, NetFxSDKExtensionDir, WindowsSDKDir, WindowsSDKLibVersion, bSupportWindowsXP);
+			List<string> IncludePaths = GetVisualCppIncludePaths(VCInstallDir, VCToolChainDir, UniversalCRTDir, UniversalCRTVersion, NetFxSDKExtensionDir, WindowsSDKDir, WindowsSDKLibVersion, bSupportWindowsXP);
 			if(InitialIncludePaths != null)
 			{
 				IncludePaths.Add(InitialIncludePaths);
@@ -114,7 +122,7 @@ namespace UnrealBuildTool
             Environment.SetEnvironmentVariable("INCLUDE", String.Join(";", IncludePaths));
 			
 			// Setup the LIB environment variable
-            List<string> LibraryPaths = GetVisualCppLibraryPaths(VCInstallDir.FullName, UniversalCRTDir, UniversalCRTVersion, NetFxSDKExtensionDir, WindowsSDKDir, WindowsSDKLibVersion, Platform, bSupportWindowsXP);
+            List<string> LibraryPaths = GetVisualCppLibraryPaths(VCInstallDir, VCToolChainDir, UniversalCRTDir, UniversalCRTVersion, NetFxSDKExtensionDir, WindowsSDKDir, WindowsSDKLibVersion, Platform, bSupportWindowsXP);
 			if(InitialLibraryPaths != null)
 			{
 				LibraryPaths.Add(InitialLibraryPaths);
@@ -305,14 +313,33 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="VCInstallDir">Base install directory for the VC toolchain</param>
 		/// <returns>Directory containing the 32-bit toolchain binaries</returns>
-		static DirectoryReference GetVCToolPath32(DirectoryReference VCInstallDir)
+		static DirectoryReference GetVCToolPath32(DirectoryReference VCInstallDir, DirectoryReference VCToolChainDir)
 		{
-			FileReference CompilerPath = FileReference.Combine(VCInstallDir, "bin", "cl.exe");
-			if(CompilerPath.Exists())
+			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2017)
 			{
-				return CompilerPath.Directory;
+				FileReference NativeCompilerPath = FileReference.Combine(VCToolChainDir, "bin", "HostX64", "x86", "cl.exe");
+				if (NativeCompilerPath.Exists())
+				{
+					return NativeCompilerPath.Directory;
+				}
+
+				FileReference CrossCompilerPath = FileReference.Combine(VCToolChainDir, "bin", "HostX86", "x86", "cl.exe");
+				if (CrossCompilerPath.Exists())
+				{
+					return CrossCompilerPath.Directory;
+				}
+
+				throw new BuildException("No 32-bit compiler toolchain found in {0} or {1}", NativeCompilerPath, CrossCompilerPath);
 			}
-			throw new BuildException("No 32-bit compiler toolchain found in {0} or {1}", CompilerPath);
+			else
+			{
+				FileReference CompilerPath = FileReference.Combine(VCInstallDir, "bin", "cl.exe");
+				if (CompilerPath.Exists())
+				{
+					return CompilerPath.Directory;
+				}
+				throw new BuildException("No 32-bit compiler toolchain found in {0}", CompilerPath);
+			}
 		}
 
 		/// <summary>
@@ -320,24 +347,44 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="VCInstallDir">Base install directory for the VC toolchain</param>
 		/// <returns>Directory containing the 64-bit toolchain binaries</returns>
-		static DirectoryReference GetVCToolPath64(DirectoryReference VCInstallDir)
+		static DirectoryReference GetVCToolPath64(DirectoryReference VCInstallDir, DirectoryReference VCToolChainDir)
 		{
-			// Use the native 64-bit compiler if present
-			FileReference NativePath = FileReference.Combine(VCInstallDir, "bin", "amd64", "cl.exe");
-			if(NativePath.Exists())
+			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2017)
 			{
-				return NativePath.Directory;
-			}
+				// Use the native 64-bit compiler if present
+				FileReference NativeCompilerPath = FileReference.Combine(VCToolChainDir, "bin", "HostX64", "x64", "cl.exe");
+				if (NativeCompilerPath.Exists())
+				{
+					return NativeCompilerPath.Directory;
+				}
 
-			// Otherwise use the amd64-on-x86 compiler. VS2012 Express only includes the latter.
-			FileReference CrossCompilePath = FileReference.Combine(VCInstallDir, "bin", "x86_amd64", "cl.exe");
-			if(CrossCompilePath.Exists())
+				// Otherwise try the x64-on-x86 compiler. VS Express only includes the latter.
+				FileReference CrossCompilerPath = FileReference.Combine(VCToolChainDir, "bin", "HostX86", "x64", "cl.exe");
+				if (CrossCompilerPath.Exists())
+				{
+					return CrossCompilerPath.Directory;
+				}
+
+				throw new BuildException("No 64-bit compiler toolchain found in {0} or {1}", NativeCompilerPath, CrossCompilerPath);
+			}
+			else
 			{
-				return CrossCompilePath.Directory;
-			}
+				// Use the native 64-bit compiler if present
+				FileReference NativeCompilerPath = FileReference.Combine(VCInstallDir, "bin", "amd64", "cl.exe");
+				if (NativeCompilerPath.Exists())
+				{
+					return NativeCompilerPath.Directory;
+				}
 
-			// Otherwise return nothing
-			throw new BuildException("No 64-bit compiler toolchain found in {0} or {1}", NativePath, CrossCompilePath);
+				// Otherwise use the amd64-on-x86 compiler. VS2012 Express only includes the latter.
+				FileReference CrossCompilerPath = FileReference.Combine(VCInstallDir, "bin", "x86_amd64", "cl.exe");
+				if (CrossCompilerPath.Exists())
+				{
+					return CrossCompilerPath.Directory;
+				}
+
+				throw new BuildException("No 64-bit compiler toolchain found in {0} or {1}", NativeCompilerPath, CrossCompilerPath);
+			}
 		}
 
 		/// <summary>
@@ -585,20 +632,36 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Sets the Visual C++ INCLUDE environment variable
 		/// </summary>
-		static List<string> GetVisualCppIncludePaths(string VisualCppDir, string UniversalCRTDir, string UniversalCRTVersion, string NetFXSDKDir, string WindowsSDKDir, string WindowsSDKLibVersion, bool bSupportWindowsXP)
+		static List<string> GetVisualCppIncludePaths(DirectoryReference VisualCppDir, DirectoryReference VisualCppToolchainDir, string UniversalCRTDir, string UniversalCRTVersion, string NetFXSDKDir, string WindowsSDKDir, string WindowsSDKLibVersion, bool bSupportWindowsXP)
 		{
 			List<string> IncludePaths = new List<string>();
 
 			// Add the standard Visual C++ include paths
-			string StdIncludeDir = Path.Combine(VisualCppDir, "INCLUDE");
-			if (Directory.Exists(StdIncludeDir))
+			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2017)
 			{
-				IncludePaths.Add(StdIncludeDir);
+				DirectoryReference StdIncludeDir = DirectoryReference.Combine(VisualCppToolchainDir, "INCLUDE");
+				if (StdIncludeDir.Exists())
+				{
+					IncludePaths.Add(StdIncludeDir.FullName);
+				}
+				DirectoryReference AtlMfcIncludeDir = DirectoryReference.Combine(VisualCppToolchainDir, "ATLMFC", "INCLUDE");
+				if (AtlMfcIncludeDir.Exists())
+				{
+					IncludePaths.Add(AtlMfcIncludeDir.FullName);
+				}
 			}
-			string AtlMfcIncludeDir = Path.Combine(VisualCppDir, "ATLMFC", "INCLUDE");
-			if (Directory.Exists(AtlMfcIncludeDir))
+			else
 			{
-				IncludePaths.Add(AtlMfcIncludeDir);
+			    DirectoryReference StdIncludeDir = DirectoryReference.Combine(VisualCppDir, "INCLUDE");
+			    if (StdIncludeDir.Exists())
+			    {
+				    IncludePaths.Add(StdIncludeDir.FullName);
+			    }
+				DirectoryReference AtlMfcIncludeDir = DirectoryReference.Combine(VisualCppDir, "ATLMFC", "INCLUDE");
+			    if (AtlMfcIncludeDir.Exists())
+			    {
+				    IncludePaths.Add(AtlMfcIncludeDir.FullName);
+			    }
 			}
 
 			// Add the universal CRT paths
@@ -645,35 +708,57 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Sets the Visual C++ LIB environment variable
 		/// </summary>
-		static List<string> GetVisualCppLibraryPaths(string VisualCppDir, string UniversalCRTDir, string UniversalCRTVersion, string NetFXSDKDir, string WindowsSDKDir, string WindowsSDKLibVersion, CPPTargetPlatform Platform, bool bSupportWindowsXP)
+		static List<string> GetVisualCppLibraryPaths(DirectoryReference VisualCppDir, DirectoryReference VisualCppToolchainDir, string UniversalCRTDir, string UniversalCRTVersion, string NetFXSDKDir, string WindowsSDKDir, string WindowsSDKLibVersion, CPPTargetPlatform Platform, bool bSupportWindowsXP)
 		{
 			List<string> LibraryPaths = new List<string>();
 
 			// Add the standard Visual C++ library paths
-			if (Platform == CPPTargetPlatform.Win32)
+			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2017)
 			{
-				string StdLibraryDir = Path.Combine(VisualCppDir, "LIB");
-				if (Directory.Exists(StdLibraryDir))
+				if (Platform == CPPTargetPlatform.Win32)
 				{
-					LibraryPaths.Add(StdLibraryDir);
+					DirectoryReference StdLibraryDir = DirectoryReference.Combine(VisualCppToolchainDir, "lib", "x86");
+					if (StdLibraryDir.Exists())
+					{
+						LibraryPaths.Add(StdLibraryDir.FullName);
+					}
 				}
-				string AtlMfcLibraryDir = Path.Combine(VisualCppDir, "ATLMFC", "LIB");
-				if (Directory.Exists(AtlMfcLibraryDir))
+				else
 				{
-					LibraryPaths.Add(AtlMfcLibraryDir);
+					DirectoryReference StdLibraryDir = DirectoryReference.Combine(VisualCppToolchainDir, "lib", "x64");
+					if (StdLibraryDir.Exists())
+					{
+						LibraryPaths.Add(StdLibraryDir.FullName);
+					}
 				}
 			}
 			else
 			{
-				string StdLibraryDir = Path.Combine(VisualCppDir, "LIB", "amd64");
-				if (Directory.Exists(StdLibraryDir))
+				if (Platform == CPPTargetPlatform.Win32)
 				{
-					LibraryPaths.Add(StdLibraryDir);
+					DirectoryReference StdLibraryDir = DirectoryReference.Combine(VisualCppDir, "LIB");
+					if (StdLibraryDir.Exists())
+					{
+						LibraryPaths.Add(StdLibraryDir.FullName);
+					}
+					DirectoryReference AtlMfcLibraryDir = DirectoryReference.Combine(VisualCppDir, "ATLMFC", "LIB");
+					if (AtlMfcLibraryDir.Exists())
+					{
+						LibraryPaths.Add(AtlMfcLibraryDir.FullName);
+					}
 				}
-				string AtlMfcLibraryDir = Path.Combine(VisualCppDir, "ATLMFC", "LIB", "amd64");
-				if (Directory.Exists(AtlMfcLibraryDir))
+				else
 				{
-					LibraryPaths.Add(AtlMfcLibraryDir);
+					DirectoryReference StdLibraryDir = DirectoryReference.Combine(VisualCppDir, "LIB", "amd64");
+					if (StdLibraryDir.Exists())
+					{
+						LibraryPaths.Add(StdLibraryDir.FullName);
+					}
+					DirectoryReference AtlMfcLibraryDir = DirectoryReference.Combine(VisualCppDir, "ATLMFC", "LIB", "amd64");
+					if (AtlMfcLibraryDir.Exists())
+					{
+						LibraryPaths.Add(AtlMfcLibraryDir.FullName);
+					}
 				}
 			}
 

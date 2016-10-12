@@ -738,7 +738,9 @@ FProcHandle FDesktopPlatformBase::InvokeUnrealBuildToolAsync(const FString& InCm
 	FString CmdLineParams = InCmdLineParams;
 
 #if PLATFORM_WINDOWS
-	#if _MSC_VER >= 1900
+	#if _MSC_VER >= 1910
+		CmdLineParams += TEXT(" -2017");
+	#elif _MSC_VER >= 1900
 		CmdLineParams += TEXT(" -2015");
 	#elif _MSC_VER >= 1800
 		CmdLineParams += TEXT(" -2013");
@@ -1159,12 +1161,10 @@ bool FDesktopPlatformBase::BuildUnrealBuildTool(const FString& RootDir, FOutputD
 		FString VCVarsBat;
 
 #if PLATFORM_WINDOWS
-	#if _MSC_VER >= 1900
-		#if _MSC_FULL_VER >= 190024406
-			FPlatformMisc::GetVSComnTools(15, VCVarsBat);
-		#else 
-			FPlatformMisc::GetVSComnTools(14, VCVarsBat);
-		#endif
+	#if _MSC_VER >= 1910
+		FPlatformMisc::GetVSComnTools(15, VCVarsBat);
+	#elif _MSC_VER >= 1900
+		FPlatformMisc::GetVSComnTools(14, VCVarsBat);
 	#elif _MSC_VER >= 1800
 		FPlatformMisc::GetVSComnTools(12, VCVarsBat);
 	#else

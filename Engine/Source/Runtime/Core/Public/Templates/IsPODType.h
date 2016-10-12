@@ -10,7 +10,7 @@
  * Traits class which tests if a type is POD.
  */
 
-#if _MSC_VER == 1900
+#if _MSC_VER == 1900 || _MSC_VER == 1910
 	// __is_pod changed in VS2015, however the results are still correct for all usages I've been able to locate.
 	#pragma warning(push)
 	#pragma warning(disable:4647)
@@ -24,4 +24,4 @@ struct TIsPODType
 
 #if _MSC_VER == 1900
 	#pragma warning(pop)
-#endif // _MSC_VER == 1900
+#endif // _MSC_VER == 1900 || _MSC_VER == 1910

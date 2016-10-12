@@ -497,7 +497,7 @@ public:
 		CommandListData->FlushResourceBarriers();
 	}
 
-	void FD3D12CommandListHandle::LogResourceBarriers()
+	void LogResourceBarriers()
 	{
 #if DEBUG_RESOURCE_STATES
 		::LogResourceBarriers(CommandListData->ResourceBarriers.Num(), CommandListData->ResourceBarriers.GetData(), CommandList());

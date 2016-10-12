@@ -63,7 +63,7 @@ class FSteamVRPlugin : public ISteamVRPlugin
 	}
 
 public:
-	FSteamVRPlugin::FSteamVRPlugin()
+	FSteamVRPlugin()
 #if !STEAMVR_SUPPORTED_PLATFORMS
 	{
 	}
