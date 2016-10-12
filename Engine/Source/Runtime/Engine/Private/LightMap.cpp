@@ -1603,7 +1603,7 @@ TRefCountPtr<FLightMap2D> FLightMap2D::AllocateLightMap(UObject* LightMapOuter, 
 
 #if WITH_EDITOR
 	FLightMapAllocationGroup AllocationGroup;
-	AllocationGroup.Outer = LightMapOuter->GetOutermost();
+	AllocationGroup.Outer = LightMapOuter;
 	AllocationGroup.LightmapFlags = InLightmapFlags;
 	AllocationGroup.Bounds = Bounds;
 	if (!GAllowStreamingLightmaps)
@@ -1781,7 +1781,7 @@ TRefCountPtr<FLightMap2D> FLightMap2D::AllocateInstancedLightMap(UObject* LightM
 	}
 
 	FLightMapAllocationGroup AllocationGroup = FLightMapAllocationGroup();
-	AllocationGroup.Outer = LightMapOuter->GetOutermost();
+	AllocationGroup.Outer = LightMapOuter;
 	AllocationGroup.LightmapFlags = InLightmapFlags;
 	AllocationGroup.Bounds = Bounds;
 	if (!GAllowStreamingLightmaps)

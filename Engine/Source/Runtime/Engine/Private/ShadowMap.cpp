@@ -445,7 +445,7 @@ TRefCountPtr<FShadowMap2D> FShadowMap2D::AllocateShadowMap(
 	check(ShadowMapData.Num() > 0);
 
 	FShadowMapAllocationGroup AllocationGroup;
-	AllocationGroup.TextureOuter = LightMapOuter->GetOutermost();
+	AllocationGroup.TextureOuter = LightMapOuter;
 	AllocationGroup.ShadowmapFlags = InShadowmapFlags;
 	AllocationGroup.Bounds = Bounds;
 	if (!GAllowStreamingLightmaps)
@@ -656,7 +656,7 @@ TRefCountPtr<FShadowMap2D> FShadowMap2D::AllocateInstancedShadowMap(UObject* Lig
 	}
 
 	FShadowMapAllocationGroup AllocationGroup;
-	AllocationGroup.TextureOuter = LightMapOuter->GetOutermost();
+	AllocationGroup.TextureOuter = LightMapOuter;
 	AllocationGroup.ShadowmapFlags = InShadowmapFlags;
 	AllocationGroup.Bounds = Bounds;
 	if (!GAllowStreamingLightmaps)
