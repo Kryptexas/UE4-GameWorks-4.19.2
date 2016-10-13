@@ -209,7 +209,7 @@ FLightSceneProxy::FLightSceneProxy(const ULightComponent* InLightComponent)
 {
 	const FLightComponentMapBuildData* MapBuildData = InLightComponent->GetLightComponentMapBuildData();
 	
-	if (MapBuildData && bStaticShadowing && !bStaticLighting))
+	if (MapBuildData && bStaticShadowing && !bStaticLighting)
 	{
 		ShadowMapChannel = MapBuildData->ShadowMapChannel;
 	}
