@@ -140,7 +140,7 @@ private:
 	float ChunkSuccessRate;
 
 	// Used to help time health states
-	volatile int64 CyclesAtLastHealthState;
+	volatile FStatsCollector::FAtomicValue CyclesAtLastHealthState;
 
 	// Timers in seconds for how long we were in each health state
 	TArray<float> HealthStateTimes;
@@ -152,7 +152,7 @@ private:
 	FCriticalSection FlagsLock;
 
 	// The time in cycles since we received data
-	volatile int64 CyclesAtLastData;
+	volatile FStatsCollector::FAtomicValue CyclesAtLastData;
 
 	// Store a record of each download we made for info
 	TArray< FBuildPatchDownloadRecord > DownloadRecords;

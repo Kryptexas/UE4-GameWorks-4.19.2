@@ -34,13 +34,13 @@ namespace BuildPatchServices
 		FRollingHash<WindowSize> RollingHash;
 		TMap<uint64, TSet<FGuid>> ChunkInventory;
 		TMap<FGuid, FSHAHash> ChunkShaHashes;
-		volatile int64* StatCreatedScanners;
-		volatile int64* StatRunningScanners;
-		volatile int64* StatCpuTime;
-		volatile int64* StatRealTime;
-		volatile int64* StatHashCollisions;
-		volatile int64* StatProcessedData;
-		volatile int64* StatProcessingSpeed;
+		volatile FStatsCollector::FAtomicValue* StatCreatedScanners;
+		volatile FStatsCollector::FAtomicValue* StatRunningScanners;
+		volatile FStatsCollector::FAtomicValue* StatCpuTime;
+		volatile FStatsCollector::FAtomicValue* StatRealTime;
+		volatile FStatsCollector::FAtomicValue* StatHashCollisions;
+		volatile FStatsCollector::FAtomicValue* StatProcessedData;
+		volatile FStatsCollector::FAtomicValue* StatProcessingSpeed;
 
 	public:
 		static FThreadSafeCounter NumIncompleteScanners;
@@ -134,7 +134,7 @@ namespace BuildPatchServices
 
 	TArray<FChunkMatch> FDataScanner::ScanData()
 	{
-		static volatile int64 TempTimerValue;
+		static volatile FStatsCollector::FAtomicValue TempTimerValue;
 		// The return data.
 		TArray<FChunkMatch> DataScanResult;
 

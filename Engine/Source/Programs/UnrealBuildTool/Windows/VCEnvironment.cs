@@ -83,10 +83,10 @@ namespace UnrealBuildTool
 			}
 
 			WindowsSDKDir = FindWindowsSDKInstallationFolder(Platform, bSupportWindowsXP);
-			WindowsSDKLibVersion = FindWindowsSDKLibVersion(WindowsSDKDir);
-			WindowsSDKExtensionDir = FindWindowsSDKExtensionInstallationFolder();
-			NetFxSDKExtensionDir = FindNetFxSDKExtensionInstallationFolder();
-			WindowsSDKExtensionHeaderLibVersion = FindWindowsSDKExtensionLatestVersion(WindowsSDKExtensionDir);
+			WindowsSDKLibVersion = FindWindowsSDKLibVersion(WindowsSDKDir, bSupportWindowsXP);
+			WindowsSDKExtensionDir = bSupportWindowsXP ? "" : FindWindowsSDKExtensionInstallationFolder();
+			NetFxSDKExtensionDir = bSupportWindowsXP ? "" : FindNetFxSDKExtensionInstallationFolder();
+			WindowsSDKExtensionHeaderLibVersion = bSupportWindowsXP ? new Version(0, 0, 0, 0) : FindWindowsSDKExtensionLatestVersion(WindowsSDKExtensionDir);
 			UniversalCRTDir = bSupportWindowsXP ? "" : FindUniversalCRTInstallationFolder();
 			UniversalCRTVersion = bSupportWindowsXP ? "0.0.0.0" : FindUniversalCRTVersion(UniversalCRTDir);
 
@@ -187,10 +187,10 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Gets the version of the Windows SDK libraries to use. As per VCVarsQueryRegistry.bat, this is the directory name that sorts last.
 		/// </summary>
-		static string FindWindowsSDKLibVersion(string WindowsSDKDir)
+		static string FindWindowsSDKLibVersion(string WindowsSDKDir, bool bSupportWindowsXP)
 		{
 			string WindowsSDKLibVersion;
-			if (WindowsPlatform.bUseWindowsSDK10)
+			if (WindowsPlatform.bUseWindowsSDK10 && !bSupportWindowsXP)
 			{
 				DirectoryInfo IncludeDir = new DirectoryInfo(Path.Combine(WindowsSDKDir, "include"));
 				if (!IncludeDir.Exists)

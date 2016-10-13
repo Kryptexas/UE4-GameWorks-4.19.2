@@ -135,9 +135,7 @@ bool FBuildPatchFileAttributesImpl::SetFileReadOnlyFlag(const FString& FilePath,
 // Start of region that uses windows types
 #include "AllowWindowsPlatformTypes.h"
 #include <wtypes.h>
-#include <ioapiset.h>
 #include <winbase.h>
-#include <fileapi.h>
 #include <winioctl.h>
 
 bool FBuildPatchFileAttributesImpl::GetCurrentFileAttributes(const FString& FilePath, bool& OutFileExists, bool& OutIsReadonly, bool& OutIsCompressed, bool& OutIsUnixExecutable)
