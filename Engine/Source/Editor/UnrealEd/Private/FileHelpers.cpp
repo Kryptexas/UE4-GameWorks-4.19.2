@@ -2924,7 +2924,11 @@ bool FEditorFileUtils::SaveLevel(ULevel* Level, const FString& DefaultFilename, 
 				if (Level->MapBuildData)
 				{
 					UPackage* BuiltDataPackage = Level->MapBuildData->GetOutermost();
-					PackagesToSave.Add(BuiltDataPackage);
+
+					if (BuiltDataPackage != WorldPackage)
+					{
+						PackagesToSave.Add(BuiltDataPackage);
+					}
 				}
 			}
 			
@@ -3667,7 +3671,7 @@ void FEditorFileUtils::GetDirtyWorldPackages(TArray<UPackage*>& OutDirtyPackages
 				{
 					UPackage* BuiltDataPackage = Level->MapBuildData->GetOutermost();
 
-					if (BuiltDataPackage->IsDirty())
+					if (BuiltDataPackage->IsDirty() && BuiltDataPackage != WorldPackage)
 					{
 						OutDirtyPackages.Add(BuiltDataPackage);
 					}
