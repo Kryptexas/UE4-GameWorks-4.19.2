@@ -3466,7 +3466,13 @@ void UTextureFactory::PostInitProperties()
 
 UTexture2D* UTextureFactory::CreateTexture2D( UObject* InParent, FName Name, EObjectFlags Flags )
 {
-	UTexture2D* NewTexture = CastChecked<UTexture2D>( CreateOrOverwriteAsset(UTexture2D::StaticClass(),InParent,Name,Flags) );
+	UObject* NewObject = CreateOrOverwriteAsset(UTexture2D::StaticClass(), InParent, Name, Flags);
+	UTexture2D* NewTexture = nullptr;
+	if(NewObject)
+	{
+		NewTexture = CastChecked<UTexture2D>(NewObject);
+	}
+	
 	return NewTexture;
 }
 
