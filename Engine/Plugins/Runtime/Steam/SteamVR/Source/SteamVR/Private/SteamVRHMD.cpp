@@ -883,6 +883,23 @@ bool FSteamVRHMD::OnStartGameFrame(FWorldContext& WorldContext)
 	{
 		bShouldCheckHMDPosition = false;
 		Shutdown();
+
+#if WITH_EDITOR
+		if (GIsEditor)
+		{
+			FSceneViewport* SceneVP = FindSceneViewport();
+			if (SceneVP && SceneVP->IsStereoRenderingAllowed())
+			{
+				TSharedPtr<SWindow> Window = SceneVP->FindWindow();
+				Window->RequestDestroyWindow();
+			}
+		}
+		else
+#endif//WITH_EDITOR
+		{
+			// ApplicationWillTerminateDelegate will fire from inside of the RequestExit
+			FPlatformMisc::RequestExit(false);
+		}
 	}
 
 	// If the HMD is being interacted with, but we haven't decided the HMD is worn yet.  
