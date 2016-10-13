@@ -10,7 +10,7 @@
  *****************************************************************************/
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void SChordEditBox::Construct( const FArguments& InArgs, TSharedPtr<FChordTreeItem> InputCommand )
+void SChordEditBox::Construct( const FArguments& InArgs, TSharedPtr<FUICommandInfo> InputCommand )
 {
 	BorderImageNormal = FEditorStyle::GetBrush( "EditableTextBox.Background.Normal" );
 	BorderImageHovered = FEditorStyle::GetBrush( "EditableTextBox.Background.Hovered" );

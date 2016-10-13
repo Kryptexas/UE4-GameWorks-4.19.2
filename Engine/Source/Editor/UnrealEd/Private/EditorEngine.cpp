@@ -697,14 +697,12 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			TEXT("AutomationController"),
 			TEXT("DeviceManager"),
 			TEXT("ProfilerClient"),
-//			TEXT("Search"),
 			TEXT("SessionFrontend"),
 			TEXT("ProjectLauncher"),
 			TEXT("SettingsEditor"),
 			TEXT("EditorSettingsViewer"),
 			TEXT("ProjectSettingsViewer"),
 			TEXT("Blutility"),
-			//TEXT("OnlineBlueprintSupport"),
 			TEXT("XmlParser"),
 			TEXT("UserFeedback"),
 			TEXT("GameplayTagsEditor"),
@@ -719,6 +717,7 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			TEXT("SizeMap"),
 			TEXT("MergeActors"),
 			TEXT("NiagaraEditor"),
+			TEXT("InputBindingEditor")
 		};
 
 		FScopedSlowTask ModuleSlowTask(ARRAY_COUNT(ModuleNames));
