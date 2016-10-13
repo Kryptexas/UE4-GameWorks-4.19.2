@@ -7507,14 +7507,17 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 		{
 			// Store source static mesh and set LOD export flag
 			SourceMeshes[MeshId].SourceStaticMesh = StaticMeshComponent->GetStaticMesh();
-			SourceMeshes[MeshId].bShouldExportLOD[LODIndex] = true;
+			SourceMeshes[MeshId].bShouldExportLOD[LODIndex] = false;
 
 			TArray<int32> MeshMaterialMap;
 			// Retrieve and construct raw mesh from source meshes
 			SourceMeshes[MeshId].MeshLODData[LODIndex].RawMesh = new FRawMesh();
 			FRawMesh* RawMeshLOD = SourceMeshes[MeshId].MeshLODData[LODIndex].RawMesh;
-			if (ConstructRawMesh(StaticMeshComponent, LODIndex, InSettings.bBakeVertexDataToMesh || InSettings.bUseVertexDataForBakingMaterial, *RawMeshLOD, UniqueSections, MeshMaterialMap))
+			if ( ConstructRawMesh(StaticMeshComponent, LODIndex, InSettings.bBakeVertexDataToMesh || InSettings.bUseVertexDataForBakingMaterial, *RawMeshLOD, UniqueSections, MeshMaterialMap))
 			{
+				// Only flag the lod to be eligible for exporting if we found valid data
+				SourceMeshes[MeshId].bShouldExportLOD[LODIndex] = true;
+
 				// Check if vertex colours should be propagated
 				if (InSettings.bBakeVertexDataToMesh)
 				{
@@ -7533,8 +7536,8 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 					// Landscape / volume culling
 					CullTrianglesFromVolumesAndUnderLandscapes(StaticMeshComponent, *RawMeshLOD);
 
-					if ( !RawMeshLOD->IsValid())
-					{ 
+					if (!RawMeshLOD->IsValid())
+					{
 						RawMeshLOD = nullptr;
 						SourceMeshes[MeshId].bShouldExportLOD[LODIndex] = false;
 					}
