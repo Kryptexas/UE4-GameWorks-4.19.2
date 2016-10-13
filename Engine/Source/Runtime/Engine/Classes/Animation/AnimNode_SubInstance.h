@@ -64,4 +64,7 @@ protected:
 
 	// Shutdown the currently running instance
 	void TeardownInstance();
+
+	// Makes sure the bone transforms array can contain the pose information from the provided anim instance
+	void AllocateBoneTransforms(const UAnimInstance* InAnimInstance);
 };
