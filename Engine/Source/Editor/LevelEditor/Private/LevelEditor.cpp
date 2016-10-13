@@ -28,6 +28,7 @@
 // @todo Editor: remove this circular dependency
 #include "Editor/MainFrame/Public/Interfaces/IMainFrameModule.h"
 #include "GenericCommands.h"
+#include "EngineBuildSettings.h"
 
 #define LOCTEXT_NAMESPACE "LevelEditor"
 
@@ -67,7 +68,7 @@ public:
 		FFormatNamedArguments Args;
 
 		Args.Add(TEXT("ProjectNameWatermarkPrefix"), FText::FromString(ProjectNameWatermarkPrefix));
-		Args.Add(TEXT("Branch"), FText::FromString(FApp::GetBranchName()));
+		Args.Add(TEXT("Branch"), FEngineBuildSettings::IsPerforceBuild() ? FText::FromString(FApp::GetBranchName()) : FText::GetEmpty());
 		Args.Add(TEXT("GameName"), FText::FromString(FString(FApp::GetGameName())));
 		Args.Add(TEXT("EngineVersion"), (GetDefault<UEditorPerProjectUserSettings>()->bDisplayEngineVersionInBadge) ? FText::FromString("(" + EngineVersionString + ")") : FText());
 
