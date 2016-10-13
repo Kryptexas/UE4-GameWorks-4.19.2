@@ -7,6 +7,7 @@
 #include "PropertyEditing.h"
 #include "UnrealEdMisc.h"
 #include "MessageLog.h"
+#include "Dialogs.h"
 
 
 #define LOCTEXT_NAMESPACE "InputBindingEditor"
