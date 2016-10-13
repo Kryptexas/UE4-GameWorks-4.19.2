@@ -496,7 +496,7 @@ void SMediaPlayerEditorViewer::SetDesiredPlayerName(FName PlayerName)
 	{
 		MediaPlayer->DesiredPlayerName = PlayerName;
 
-		if (PlayerName != NAME_None)
+		if ((PlayerName != NAME_None) && (PlayerName != MediaPlayer->GetPlayerName()))
 		{
 			MediaPlayer->Reopen();
 		}
