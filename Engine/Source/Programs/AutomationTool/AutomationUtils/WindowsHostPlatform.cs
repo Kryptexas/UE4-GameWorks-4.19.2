@@ -42,9 +42,11 @@ namespace AutomationTool
 
 		public override string GetMsDevExe()
 		{
+			WindowsCompiler Compiler = WindowsPlatform.GetDefaultCompiler(new string[0], null);
+
 			// Locate MsDevEnv executable
 			DirectoryReference VSInstallDir;
-			if(!WindowsPlatform.TryGetVSInstallDir(WindowsPlatform.Compiler, out VSInstallDir))
+			if(!WindowsPlatform.TryGetVSInstallDir(Compiler, out VSInstallDir))
 			{
 				throw new NotSupportedException("Couldn't find installation of Visual Studio");
 			}
