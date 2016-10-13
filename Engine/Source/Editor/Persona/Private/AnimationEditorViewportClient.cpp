@@ -280,15 +280,14 @@ bool FAnimationViewportClient::IsSetCameraFollowChecked() const
 
 void FAnimationViewportClient::HandleSkeletalMeshChanged(USkeletalMesh* InSkeletalMesh)
 {
+	GetSkeletonTree()->DeselectAll();
+
 	FocusViewportOnPreviewMesh();
-
-	UDebugSkelMeshComponent* PreviewMeshComponent = GetAnimPreviewScene()->GetPreviewMeshComponent();
-
-	PreviewMeshComponent->BonesOfInterest.Empty();
 
 	UpdateCameraSetup();
 
 	// Setup physics data from physics assets if available, clearing any physics setup on the component
+	UDebugSkelMeshComponent* PreviewMeshComponent = GetAnimPreviewScene()->GetPreviewMeshComponent();
 	UPhysicsAsset* PhysAsset = PreviewMeshComponent->GetPhysicsAsset();
 	if(PhysAsset)
 	{
