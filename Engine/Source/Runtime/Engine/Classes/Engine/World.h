@@ -792,7 +792,7 @@ private:
 	TArray<class ULevel*>						Levels;
 
 	/** Array of level collections currently in this world. */
-	UPROPERTY(Transient)
+	UPROPERTY(Transient, NonTransactional)
 	TArray<FLevelCollection>					LevelCollections;
 
 	/** Pointer to the level collection that's currently ticking. */

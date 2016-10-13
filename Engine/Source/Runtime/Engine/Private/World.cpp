@@ -142,8 +142,11 @@ FLevelCollection::~FLevelCollection()
 {
 	for (ULevel* Level : Levels)
 	{
-		check(Level->GetCachedLevelCollection() == this);
-		Level->SetCachedLevelCollection(nullptr);
+		if (Level)
+		{
+			check(Level->GetCachedLevelCollection() == this);
+			Level->SetCachedLevelCollection(nullptr);
+		}
 	}
 }
 
@@ -158,8 +161,11 @@ FLevelCollection::FLevelCollection(FLevelCollection&& Other)
 {
 	for (ULevel* Level : Levels)
 	{
-		check(Level->GetCachedLevelCollection() == &Other);
-		Level->SetCachedLevelCollection(this);
+		if (Level)
+		{
+			check(Level->GetCachedLevelCollection() == &Other);
+			Level->SetCachedLevelCollection(this);
+		}
 	}
 }
 
@@ -177,8 +183,11 @@ FLevelCollection& FLevelCollection::operator=(FLevelCollection&& Other)
 
 		for (ULevel* Level : Levels)
 		{
-			check(Level->GetCachedLevelCollection() == &Other);
-			Level->SetCachedLevelCollection(this);
+			if (Level)
+			{
+				check(Level->GetCachedLevelCollection() == &Other);
+				Level->SetCachedLevelCollection(this);
+			}
 		}
 	}
 
@@ -6006,7 +6015,10 @@ void UWorld::SetActiveLevelCollection(const FLevelCollection* InCollection)
 	ActiveLevelCollection = InCollection;
 
 	PersistentLevel = InCollection->GetPersistentLevel();
-	SetCurrentLevel(InCollection->GetPersistentLevel());
+	if (IsGameWorld())
+	{
+		SetCurrentLevel(InCollection->GetPersistentLevel());
+	}
 	GameState = InCollection->GetGameState();
 	NetDriver = InCollection->GetNetDriver();
 	DemoNetDriver = InCollection->GetDemoNetDriver();
