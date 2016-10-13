@@ -15,6 +15,9 @@ namespace UnrealBuildTool
 	/// </summary>
 	public enum WindowsCompiler
 	{
+		/// Has not been initialized yet
+		Default,
+
 		/// Visual Studio 2013 (Visual C++ 12.0)
 		VisualStudio2013,
 
@@ -494,49 +497,61 @@ namespace UnrealBuildTool
 
 	public class WindowsPlatform : UEBuildPlatform
 	{
-		/// Property caching.
-		private static WindowsCompiler? CachedCompiler;
-
-		/// Version of the compiler toolchain to use on Windows platform
-		public static WindowsCompiler Compiler
-		{
-			get
-			{
-				// Cache the result because Compiler is often used.
-				if (!CachedCompiler.HasValue)
-				{
-					CachedCompiler = GetDefaultCompiler();
-				}
-				return CachedCompiler.Value;
-			}
-			set
-			{
-				CachedCompiler = value;
-			}
-		}
+		/// <summary>
+		/// Version of the compiler toolchain to use on Windows platform. A value of "default" will be changed to a specific version at UBT startup.
+		/// </summary>
+		[XmlConfig]
+		public static WindowsCompiler Compiler = WindowsCompiler.Default;
 
 		/// <summary>
 		/// Gets the default compiler which should be used
 		/// </summary>
 		/// <returns>The default compiler version</returns>
-		private static WindowsCompiler GetDefaultCompiler()
+		public static WindowsCompiler GetDefaultCompiler(string[] Arguments, FileReference ProjectFile)
 		{
 			// First, default based on whether there is a command line override...
-			if (UnrealBuildTool.CommandLineContains("-2013"))
+			if (Arguments.Contains("-2013"))
 			{
 				return WindowsCompiler.VisualStudio2013;
 			}
-			if (UnrealBuildTool.CommandLineContains("-2015"))
+			if (Arguments.Contains("-2015"))
 			{
 				return WindowsCompiler.VisualStudio2015;
 			}
-			if (UnrealBuildTool.CommandLineContains("-2017"))
+			if (Arguments.Contains("-2017"))
 			{
 				return WindowsCompiler.VisualStudio2017;
 			}
 
 			// Assume 2013 on non-Windows platforms (which all still enable the Windows toolchain for some reason)
 			if(Utils.IsRunningOnMono)
+			{
+				return WindowsCompiler.VisualStudio2013;
+			}
+
+			// Read the project setting
+			ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.Win64, "Engine", DirectoryReference.FromFile(ProjectFile));
+
+			string CompilerVersionString;
+			if (Ini.GetString("/Script/WindowsTargetPlatform.WindowsTargetSettings", "CompilerVersion", out CompilerVersionString))
+			{
+				WindowsCompiler Compiler;
+				if (Enum.TryParse(CompilerVersionString, out Compiler))
+				{
+					return Compiler;
+				}
+			}
+
+			// If there's no specific compiler set, try to pick the matching compiler for the selected IDE
+			if(ProjectFileGenerator.Type == ProjectFileType.VisualStudio2017)
+			{
+				return WindowsCompiler.VisualStudio2017;
+			}
+			else if(ProjectFileGenerator.Type == ProjectFileType.VisualStudio2015)
+			{
+				return WindowsCompiler.VisualStudio2015;
+			}
+			else if(ProjectFileGenerator.Type == ProjectFileType.VisualStudio2013)
 			{
 				return WindowsCompiler.VisualStudio2013;
 			}
@@ -1036,7 +1051,7 @@ namespace UnrealBuildTool
 			if (Context.SupportWindowsXP)
 			{
 				// There are still issues with VS2015's support for XP. For now we need to lock it to the 2013 toolchain.
-				CachedCompiler = WindowsCompiler.VisualStudio2013;
+				Compiler = WindowsCompiler.VisualStudio2013;
 			}
             return Context;
 		}

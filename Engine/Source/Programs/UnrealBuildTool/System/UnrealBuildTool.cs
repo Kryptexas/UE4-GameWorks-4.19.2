@@ -1022,14 +1022,6 @@ namespace UnrealBuildTool
 				try
 				{
 					string GameName = null;
-					bool bGenerateVCProjectFiles = false;
-					bool bGenerateXcodeProjectFiles = false;
-					bool bGenerateMakefiles = false;
-					bool bGenerateCMakefiles = false;
-					bool bGenerateQMakefiles = false;
-					bool bGenerateKDevelopFiles = false;
-					bool bGenerateCodeLiteFiles = false;
-					bool bValidPlatformsOnly = false;
 					bool bSpecificModulesOnly = false;
 
 					// We need to be able to identify if one of the arguments is the platform...
@@ -1082,42 +1074,57 @@ namespace UnrealBuildTool
 						}
 						else if (LowercaseArg.StartsWith("-makefile"))
 						{
-							bGenerateMakefiles = true;
+							ProjectFileGenerator.Type = ProjectFileType.Make;
 							ProjectFileGenerator.bGenerateProjectFiles = true;
 						}
 						else if (LowercaseArg.StartsWith("-cmakefile"))
 						{
-							bGenerateCMakefiles = true;
+							ProjectFileGenerator.Type = ProjectFileType.CMake;
 							ProjectFileGenerator.bGenerateProjectFiles = true;
 						}
 						else if (LowercaseArg.StartsWith("-qmakefile"))
 						{
-							bGenerateQMakefiles = true;
+							ProjectFileGenerator.Type = ProjectFileType.QMake;
 							ProjectFileGenerator.bGenerateProjectFiles = true;
 						}
 						else if (LowercaseArg.StartsWith("-kdevelopfile"))
 						{
-							bGenerateKDevelopFiles = true;
+							ProjectFileGenerator.Type = ProjectFileType.KDevelop;
 							ProjectFileGenerator.bGenerateProjectFiles = true;
 						}
 						else if (LowercaseArg.StartsWith("-codelitefile"))
 						{
-							bGenerateCodeLiteFiles = true;
+							ProjectFileGenerator.Type = ProjectFileType.CodeLite;
 							ProjectFileGenerator.bGenerateProjectFiles = true;
 						}
 						else if (LowercaseArg.StartsWith("-projectfile"))
 						{
-							bGenerateVCProjectFiles = true;
+							if(Arguments.Contains("-2012unsupported", StringComparer.InvariantCultureIgnoreCase))
+							{
+								ProjectFileGenerator.Type = ProjectFileType.VisualStudio2012;
+							}
+							else if (Arguments.Contains("-2013"))
+							{
+								ProjectFileGenerator.Type = ProjectFileType.VisualStudio2013;
+							}
+							else if(Arguments.Contains("-2015"))
+							{
+								ProjectFileGenerator.Type = ProjectFileType.VisualStudio2015;
+							}
+							else if(Arguments.Contains("-2017"))
+							{
+								ProjectFileGenerator.Type = ProjectFileType.VisualStudio2017;
+							}
+							else if(ProjectFileGenerator.Type == ProjectFileType.Default)
+							{
+								ProjectFileGenerator.Type = ProjectFileType.VisualStudio;
+							}
 							ProjectFileGenerator.bGenerateProjectFiles = true;
 						}
 						else if (LowercaseArg.StartsWith("-xcodeprojectfile"))
 						{
-							bGenerateXcodeProjectFiles = true;
+							ProjectFileGenerator.Type = ProjectFileType.XCode;
 							ProjectFileGenerator.bGenerateProjectFiles = true;
-						}
-						else if (LowercaseArg == "-validplatformsonly")
-						{
-							bValidPlatformsOnly = true;
 						}
 						else if (LowercaseArg == "development" || LowercaseArg == "debug" || LowercaseArg == "shipping" || LowercaseArg == "test" || LowercaseArg == "debuggame")
 						{
@@ -1192,6 +1199,13 @@ namespace UnrealBuildTool
 						}
 					}
 
+					// Configure the windows compiler. We shouldn't normally have any platform-specific stuff here, but until this setting is moved onto the PlatformContext 
+					// it needs to be configured globally so we can read any overriden settings from the the config files.
+					if(WindowsPlatform.Compiler == WindowsCompiler.Default)
+					{
+						WindowsPlatform.Compiler = WindowsPlatform.GetDefaultCompiler(Arguments, ProjectFile);
+					}
+
 					if (!bIsGatheringBuild_Unsafe && !bIsAssemblingBuild_Unsafe)
 					{
 						throw new BuildException("UnrealBuildTool: At least one of either IsGatheringBuild or IsAssemblingBuild must be true.  Did you pass '-NoGather' with '-NoAssemble'?");
@@ -1227,42 +1241,15 @@ namespace UnrealBuildTool
 						"User", Environment.UserName,
 						"Domain", Environment.UserDomainName,
 						"CommandLine", string.Join("|", Arguments),
-						"UBT Action", bGenerateVCProjectFiles
-							? "GenerateVCProjectFiles"
-							: bGenerateXcodeProjectFiles
-							? "GenerateXcodeProjectFiles"
-							: bGenerateMakefiles
-							? "GenerateMakefiles"
-							: bGenerateCMakefiles
-							? "GenerateCMakeFiles"
-							: bGenerateQMakefiles
-							? "GenerateQMakefiles"
-							: bGenerateKDevelopFiles
-							? "GenerateKDevelopFiles"
-							: bGenerateCodeLiteFiles
-							? "GenerateCodeLiteFiles"
-							: bValidatePlatforms
-							? "ValidatePlatforms"
-							: "Build",
+						"UBT Action", (ProjectFileGenerator.bGenerateProjectFiles? String.Format("GenerateProjectsFor{0}", ProjectFileGenerator.Type) : "Build"),
 						"Platform", CheckPlatform.ToString(),
 						"Configuration", CheckConfiguration.ToString(),
 						"EngineVersion", (Version == null) ? "0" : Version.Changelist.ToString(),
 						"Branch", (Version == null) ? "" : Version.BranchName
 						);
 
-
-
-					if (bValidPlatformsOnly == true)
-					{
-						// We turned the flag on if generating projects so that the
-						// build platforms would know we are doing so... In this case,
-						// turn it off to only generate projects for valid platforms.
-						ProjectFileGenerator.bGenerateProjectFiles = false;
-					}
-
 					// Find and register all tool chains, build platforms, etc. that are present
 					RegisterAllUBTClasses(bValidatingPlatforms:bValidatePlatforms);
-					ProjectFileGenerator.bGenerateProjectFiles = false;
 
 					if (BuildConfiguration.bPrintPerformanceInfo)
 					{
@@ -1276,38 +1263,48 @@ namespace UnrealBuildTool
 						JunkDeleter.DeleteJunk();
 					}
 
-					if (bGenerateCodeLiteFiles || bGenerateVCProjectFiles || bGenerateXcodeProjectFiles || bGenerateMakefiles || bGenerateCMakefiles || bGenerateQMakefiles || bGenerateKDevelopFiles)
+					if (ProjectFileGenerator.bGenerateProjectFiles)
 					{
-						bool bGenerationSuccess = true;
-						if (bGenerateVCProjectFiles)
+						ProjectFileGenerator Generator;
+						switch (ProjectFileGenerator.Type)
 						{
-							bGenerationSuccess &= GenerateProjectFiles(new VCProjectFileGenerator(ProjectFile), Arguments);
+							case ProjectFileType.Make:
+								Generator = new MakefileGenerator(ProjectFile);
+								break;
+							case ProjectFileType.CMake:
+								Generator = new CMakefileGenerator(ProjectFile);
+								break;
+							case ProjectFileType.QMake:
+								Generator = new QMakefileGenerator(ProjectFile);
+								break;
+							case ProjectFileType.KDevelop:
+								Generator = new KDevelopGenerator(ProjectFile);
+								break;
+							case ProjectFileType.CodeLite:
+								Generator = new CodeLiteGenerator(ProjectFile);
+								break;
+							case ProjectFileType.VisualStudio:
+								Generator = new VCProjectFileGenerator(ProjectFile, VCProjectFileFormat.Default);
+								break;
+							case ProjectFileType.VisualStudio2012:
+								Generator = new VCProjectFileGenerator(ProjectFile, VCProjectFileFormat.VisualStudio2012);
+								break;
+							case ProjectFileType.VisualStudio2013:
+								Generator = new VCProjectFileGenerator(ProjectFile, VCProjectFileFormat.VisualStudio2013);
+								break;
+							case ProjectFileType.VisualStudio2015:
+								Generator = new VCProjectFileGenerator(ProjectFile, VCProjectFileFormat.VisualStudio2015);
+								break;
+							case ProjectFileType.VisualStudio2017:
+								Generator = new VCProjectFileGenerator(ProjectFile, VCProjectFileFormat.VisualStudio2017);
+								break;
+							case ProjectFileType.XCode:
+								Generator = new XcodeProjectFileGenerator(ProjectFile);
+								break;
+							default:
+								throw new BuildException("Unhandled project file type '{0}", ProjectFileGenerator.Type);
 						}
-						if (bGenerateXcodeProjectFiles)
-						{
-							bGenerationSuccess &= GenerateProjectFiles(new XcodeProjectFileGenerator(ProjectFile), Arguments);
-						}
-						if (bGenerateMakefiles)
-						{
-							bGenerationSuccess &= GenerateProjectFiles(new MakefileGenerator(ProjectFile), Arguments);
-						}
-						if (bGenerateCMakefiles)
-						{
-							bGenerationSuccess &= GenerateProjectFiles(new CMakefileGenerator(ProjectFile), Arguments);
-						}
-						if (bGenerateQMakefiles)
-						{
-							bGenerationSuccess &= GenerateProjectFiles(new QMakefileGenerator(ProjectFile), Arguments);
-						}
-						if (bGenerateKDevelopFiles)
-						{
-							bGenerationSuccess &= GenerateProjectFiles(new KDevelopGenerator(ProjectFile), Arguments);
-						}
-						if (bGenerateCodeLiteFiles)
-						{
-							bGenerationSuccess &= GenerateProjectFiles(new CodeLiteGenerator(ProjectFile), Arguments);
-						}
-						if (!bGenerationSuccess)
+						if(!Generator.GenerateProjectFiles(Arguments))
 						{
 							Result = ECompilationResult.OtherCompilationError;
 						}
@@ -1466,9 +1463,8 @@ namespace UnrealBuildTool
 		/// <returns>True if successful</returns>
 		public static bool GenerateProjectFiles(ProjectFileGenerator Generator, string[] Arguments)
 		{
-			bool bSuccess;
 			ProjectFileGenerator.bGenerateProjectFiles = true;
-			Generator.GenerateProjectFiles(Arguments, out bSuccess);
+			bool bSuccess = Generator.GenerateProjectFiles(Arguments);
 			ProjectFileGenerator.bGenerateProjectFiles = false;
 			return bSuccess;
 		}

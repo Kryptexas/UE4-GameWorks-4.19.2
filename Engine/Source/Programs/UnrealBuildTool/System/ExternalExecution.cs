@@ -1041,6 +1041,10 @@ namespace UnrealBuildTool
 						}
 
 						// Propagate command-line options
+						if ( UnrealBuildTool.CommandLineContains( "-2017" ) )
+						{
+							UBTArguments.Append(" -2017");
+						}
 						if ( UnrealBuildTool.CommandLineContains( "-2015" ) )
 						{
 							UBTArguments.Append( " -2015" );

@@ -83,7 +83,7 @@ void OnModuleCompileStarted(bool bIsAsyncCompile)
 
 int32 GetVisualStudioVersionForCompiler()
 {
-#if _MSC_VER == 1910
+#if _MSC_VER >= 1910
 	return 15; // Visual Studio "15"
 #elif _MSC_VER == 1900
 	return 14; // Visual Studio 2015

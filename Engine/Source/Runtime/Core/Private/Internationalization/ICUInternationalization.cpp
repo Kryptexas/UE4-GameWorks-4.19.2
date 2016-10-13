@@ -172,7 +172,7 @@ void FICUInternationalization::LoadDLLs()
 	const FString PlatformFolderName = TEXT("Win32");
 #endif //PLATFORM_*BITS
 
-#if _MSC_VER == 1900 || _MSC_VER == 1910
+#if _MSC_VER >= 1900
 	const FString VSVersionFolderName = TEXT("VS2015");
 #elif _MSC_VER == 1800
 	const FString VSVersionFolderName = TEXT("VS2013");
