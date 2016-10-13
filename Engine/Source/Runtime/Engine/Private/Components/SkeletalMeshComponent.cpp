@@ -1823,14 +1823,21 @@ void USkeletalMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkelMesh, bool bRe
 		UpdateHasValidBodies();
 
 		InitAnim(bReinitPose);
+
+		// clean up any override materials as they are no longer valid with this new mesh
+		OverrideMaterials.Empty();
+
+		// Mark cached material parameter names dirty
+		MarkCachedMaterialParameterNameIndicesDirty();
+
+		// Make sure we refresh any morph targets (and materials!?). This will re-create any MIDs
+		// for override materials that are still relevant
+		RefreshMorphTargets();
 	}
 
 #if WITH_APEX_CLOTHING
 	RecreateClothingActors();
 #endif
-
-	// Mark cached material parameter names dirty
-	MarkCachedMaterialParameterNameIndicesDirty();
 }
 
 void USkeletalMeshComponent::SetSkeletalMeshWithoutResettingAnimation(USkeletalMesh* InSkelMesh)
