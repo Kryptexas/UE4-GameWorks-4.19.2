@@ -421,6 +421,7 @@ protected:
 	FString Path;
 
 	/** Pointer on the fbx scene import data, we fill this object to be able to do re import of the scene */
+	UPROPERTY()
 	UFbxSceneImportData* ReimportData;
 	
 	/** Assets created by the factory*/
