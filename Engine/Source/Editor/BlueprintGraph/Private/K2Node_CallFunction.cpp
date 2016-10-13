@@ -975,7 +975,7 @@ void UK2Node_CallFunction::PostReconstructNode()
 	UEdGraphPin* ReturnPin = GetReturnValuePin();
 	if(TemplateComp && ReturnPin)
 	{
-		ReturnPin->PinType.PinSubCategoryObject = TemplateComp->GetClass();
+		ReturnPin->PinType.PinSubCategoryObject = TemplateComp->GetClass()->GetAuthoritativeClass();
 	}
 
 	if (UEdGraphPin* TypePickerPin = FDynamicOutputHelper::GetTypePickerPin(this))
