@@ -234,13 +234,22 @@ public:
 	static FString GetDelegateResolvedPackagePath(const FString& InSourcePackagePath);
 
 	/**
-	* Gets the localized version of a long package path for the given culture, or returns the source package if there is no suitable localized package.
-	*
-	* @param InSourcePackagePath	Path to the source package.
-	* @param InCultureName			Culture name to get the localized package for.
-	*
-	* @returns Localized package path, or the source package path if there is no suitable localized package.
-	*/
+	 * Gets the localized version of a long package path for the current culture, or returns the source package if there is no suitable localized package.
+	 *
+	 * @param InSourcePackagePath	Path to the source package.
+	 *
+	 * @returns Localized package path, or the source package path if there is no suitable localized package.
+	 */
+	static FString GetLocalizedPackagePath(const FString& InSourcePackagePath);
+
+	/**
+	 * Gets the localized version of a long package path for the given culture, or returns the source package if there is no suitable localized package.
+	 *
+	 * @param InSourcePackagePath	Path to the source package.
+	 * @param InCultureName			Culture name to get the localized package for.
+	 *
+	 * @returns Localized package path, or the source package path if there is no suitable localized package.
+	 */
 	static FString GetLocalizedPackagePath(const FString& InSourcePackagePath, const FString& InCultureName);
 
 	/**
