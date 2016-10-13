@@ -26,7 +26,7 @@ public:
 	*/
 	static inline ICameraPhotographyModule& Get()
 	{
-		return FModuleManager::LoadModuleChecked< ICameraPhotographyModule >("InputDevice");
+		return FModuleManager::LoadModuleChecked< ICameraPhotographyModule >(GetModularFeatureName());
 	}
 
 	/**
@@ -36,13 +36,13 @@ public:
 	*/
 	static inline bool IsAvailable()
 	{
-		return FModuleManager::Get().IsModuleLoaded("InputDevice");
+		return FModuleManager::Get().IsModuleLoaded(GetModularFeatureName());
 	}
 
 	/**
-	* Attempts to create a new head tracking device interface
+	* Attempts to create a new photography interface
 	*
-	* @return	Interface to the new head tracking device, if we were able to successfully create one
+	* @return Interface to the photography implementation, if we were able to successfully create one
 	*/
 	virtual TSharedPtr< class ICameraPhotography > CreateCameraPhotography() = 0;
 };
