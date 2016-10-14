@@ -234,7 +234,12 @@ inline void FAndroidTargetPlatform<TPlatformProperties>::GetTextureFormats( cons
 #endif
 
 	// Determine the pixel format of the compressed texture.
-	if (bNoCompression && InTexture->HasHDRSource())
+	if (InTexture->LODGroup == TEXTUREGROUP_Shadowmap)
+	{
+		// forward rendering only needs one channel for shadow maps
+		OutFormats.Add(AndroidTexFormat::NameG8);
+	}
+	else if (bNoCompression && InTexture->HasHDRSource())
 	{
 		OutFormats.Add(AndroidTexFormat::NameRGBA16F);
 	}
