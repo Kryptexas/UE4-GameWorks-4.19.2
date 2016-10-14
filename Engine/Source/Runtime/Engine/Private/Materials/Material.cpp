@@ -218,7 +218,9 @@ public:
 				{
 					if( IsSelected() )
 					{
-						*OutValue = GEngine->GetSelectedMaterialColor() * GEngine->SelectionHighlightIntensity;
+						// Note this code is only used for mesh selections in mesh editors now
+						// Selected objects in the level editor now goes through the selection outline post process effect where it applies the highlight intensity there
+						*OutValue = GEngine->GetSelectedMaterialColor() * GEngine->SelectionMeshSectionHighlightIntensity;
 					}
 					else if( IsHovered() )
 					{

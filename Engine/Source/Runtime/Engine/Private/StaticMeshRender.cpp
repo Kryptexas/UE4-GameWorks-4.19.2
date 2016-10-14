@@ -1209,6 +1209,9 @@ FPrimitiveViewRelevance FStaticMeshSceneProxy::GetViewRelevance(const FSceneView
 		bInCollisionView ||
 		View->Family->EngineShowFlags.Bounds ||
 #endif
+#if WITH_EDITOR
+		(IsSelected() && View->Family->EngineShowFlags.VertexColors) ||
+#endif
 #if !(UE_BUILD_SHIPPING)
 		bDrawMeshCollisionWireframe ||
 #endif // !(UE_BUILD_SHIPPING)
