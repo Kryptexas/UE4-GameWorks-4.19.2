@@ -249,7 +249,8 @@ FReply SSkeletonTreeRow::OnDrop( const FGeometry& MyGeometry, const FDragDropEve
 			*static_cast<FName*>( Item->GetData() ) != SocketInfo.Socket->BoneName )
 		{
 			// The socket can be dropped here if we're a bone and NOT the socket's existing parent
-			GetEditableSkeleton()->SetSocketParent(SocketInfo.Socket->SocketName, *static_cast<FName*>(Item->GetData()));
+			USkeletalMesh* SkeletalMesh = GetSkeletonTree()->GetPreviewScene().IsValid() ? GetSkeletonTree()->GetPreviewScene()->GetPreviewMeshComponent()->SkeletalMesh : nullptr;
+			GetEditableSkeleton()->SetSocketParent(SocketInfo.Socket->SocketName, *static_cast<FName*>(Item->GetData()), SkeletalMesh);
 
 			GetSkeletonTree()->CreateFromSkeleton();
 
@@ -657,6 +658,7 @@ void FDisplayedSocketInfo::GenerateWidgetForNameColumn( TSharedPtr< SHorizontalB
 	Box->AddSlot()
 	.AutoWidth()
 	.Padding(2, 0, 0, 0)
+	.VAlign(VAlign_Center)
 	[
 		SAssignNew( InlineWidget, SInlineEditableTextBlock )
 			.ColorAndOpacity( this, &FDisplayedSocketInfo::GetTextColor )
@@ -679,6 +681,7 @@ void FDisplayedSocketInfo::GenerateWidgetForNameColumn( TSharedPtr< SHorizontalB
 
 		Box->AddSlot()
 		.AutoWidth()
+		.VAlign(VAlign_Center)
 		[
 			SNew( STextBlock )
 			.ColorAndOpacity( FLinearColor::Gray )
@@ -756,7 +759,8 @@ bool FDisplayedSocketInfo::CanCustomizeSocket() const
 {
 	// If the socket is on the skeleton, we have a valid mesh
 	// and there isn't one of the same name on the mesh, we can customize it
-	return (GetEditableSkeleton()->GetSkeletalMesh() && !IsSocketCustomized());
+	USkeletalMesh* SkeletalMesh = GetSkeletonTree()->GetPreviewScene().IsValid() ? GetSkeletonTree()->GetPreviewScene()->GetPreviewMeshComponent()->SkeletalMesh : nullptr;
+	return (SkeletalMesh && !IsSocketCustomized());
 }
 
 void FDisplayedSocketInfo::RequestRename()
@@ -779,7 +783,8 @@ bool FDisplayedSocketInfo::OnVerifySocketNameChanged( const FText& InText, FText
 	}
 	else
 	{
-		bVerifyName = !GetEditableSkeleton()->DoesSocketAlreadyExist( SocketData, NewText, ParentType);
+		USkeletalMesh* SkeletalMesh = GetSkeletonTree()->GetPreviewScene().IsValid() ? GetSkeletonTree()->GetPreviewScene()->GetPreviewMeshComponent()->SkeletalMesh : nullptr;
+		bVerifyName = !GetEditableSkeleton()->DoesSocketAlreadyExist( SocketData, NewText, ParentType, SkeletalMesh );
 
 		// Needs to be checked on verify.
 		if ( !bVerifyName )
@@ -798,7 +803,8 @@ void FDisplayedSocketInfo::OnCommitSocketName( const FText& InText, ETextCommit:
 	FText NewText = FText::TrimPrecedingAndTrailing(InText);
 
 	// Notify skeleton tree of socket rename
-	GetEditableSkeleton()->RenameSocket(SocketData->SocketName, FName(*NewText.ToString()));
+	USkeletalMesh* SkeletalMesh = GetSkeletonTree()->GetPreviewScene().IsValid() ? GetSkeletonTree()->GetPreviewScene()->GetPreviewMeshComponent()->SkeletalMesh : nullptr;
+	GetEditableSkeleton()->RenameSocket(SocketData->SocketName, FName(*NewText.ToString()), SkeletalMesh);
 }
 
 FReply FDisplayedSocketInfo::OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
@@ -1467,10 +1473,11 @@ void SSkeletonTree::CreateFromSkeleton(USkeletalMeshSocket* SocketToRename /*= n
 		AddSocketsFromData( Skeleton.Sockets, ESocketParentType::Skeleton, SocketToRename );
 	}
 	
+	USkeletalMesh* SkeletalMesh = GetPreviewScene().IsValid() ? GetPreviewScene()->GetPreviewMeshComponent()->SkeletalMesh : nullptr;
 	if ( SocketFilter == ESocketFilter::Active || SocketFilter == ESocketFilter::All || SocketFilter == ESocketFilter::Mesh )
 	{
 		// Add the sockets for the mesh
-		if ( USkeletalMesh* const SkeletalMesh = GetEditableSkeletonInternal()->GetSkeletalMesh() )
+		if (SkeletalMesh)
 		{
 			AddSocketsFromData( SkeletalMesh->GetMeshOnlySocketList(), ESocketParentType::Mesh, SocketToRename );
 		}
@@ -1479,7 +1486,7 @@ void SSkeletonTree::CreateFromSkeleton(USkeletalMeshSocket* SocketToRename /*= n
 	//Add the attached mesh items last, these are the most child like of all the items that can go in the skeleton tree
 
 	// Mesh attached items...
-	if ( USkeletalMesh* const SkeletalMesh = GetEditableSkeletonInternal()->GetSkeletalMesh() )
+	if (SkeletalMesh)
 	{
 		AddAttachedAssets( SkeletalMesh->PreviewAttachedAssetContainer );
 	}
@@ -1510,15 +1517,16 @@ void SSkeletonTree::AddSocketsFromData(const TArray< USkeletalMeshSocket* >& Soc
 
 		bool bIsCustomized = false;
 
+		USkeletalMesh* SkeletalMesh = GetPreviewScene().IsValid() ? GetPreviewScene()->GetPreviewMeshComponent()->SkeletalMesh : nullptr;
 		if (ParentType == ESocketParentType::Mesh)
 		{
-			bIsCustomized = GetEditableSkeletonInternal()->DoesSocketAlreadyExist(NULL, FText::FromName(Socket->SocketName), ESocketParentType::Skeleton);
+			bIsCustomized = GetEditableSkeletonInternal()->DoesSocketAlreadyExist(NULL, FText::FromName(Socket->SocketName), ESocketParentType::Skeleton, SkeletalMesh);
 		}
 		else
 		{
-			if (USkeletalMesh* const Mesh = GetEditableSkeletonInternal()->GetSkeletalMesh())
+			if (SkeletalMesh)
 			{
-				bIsCustomized = GetEditableSkeletonInternal()->DoesSocketAlreadyExist(NULL, FText::FromName(Socket->SocketName), ESocketParentType::Mesh);
+				bIsCustomized = GetEditableSkeletonInternal()->DoesSocketAlreadyExist(NULL, FText::FromName(Socket->SocketName), ESocketParentType::Mesh, SkeletalMesh);
 
 				if (SocketFilter == ESocketFilter::Active && bIsCustomized)
 				{
@@ -2086,7 +2094,8 @@ void SSkeletonTree::OnPasteSockets(bool bPasteToSelectedBone)
 	if ( TreeSelection.IsSingleOfTypeSelected(ESkeletonTreeRowType::Bone) )
 	{
 		FName DestBoneName = bPasteToSelectedBone ? *static_cast<FName*>( TreeSelection.GetSingleSelectedItem()->GetData() ) : NAME_None;
-		GetEditableSkeletonInternal()->HandlePasteSockets(DestBoneName);
+		USkeletalMesh* SkeletalMesh = GetPreviewScene().IsValid() ? GetPreviewScene()->GetPreviewMeshComponent()->SkeletalMesh : nullptr;
+		GetEditableSkeletonInternal()->HandlePasteSockets(DestBoneName, SkeletalMesh);
 
 		CreateFromSkeleton();
 	}
@@ -2117,7 +2126,8 @@ void SSkeletonTree::OnCustomizeSocket()
 	if(TreeSelection.IsSingleOfTypeSelected(ESkeletonTreeRowType::Socket))
 	{
 		USkeletalMeshSocket* SocketToCustomize = static_cast<USkeletalMeshSocket*>( TreeSelection.GetSingleSelectedItem()->GetData() );
-		GetEditableSkeletonInternal()->HandleCustomizeSocket(SocketToCustomize);
+		USkeletalMesh* SkeletalMesh = GetPreviewScene().IsValid() ? GetPreviewScene()->GetPreviewMeshComponent()->SkeletalMesh : nullptr;
+		GetEditableSkeletonInternal()->HandleCustomizeSocket(SocketToCustomize, SkeletalMesh);
 		CreateFromSkeleton();
 	}
 }
@@ -2185,7 +2195,7 @@ void  SSkeletonTree::OnRemoveAllAssets()
 
 bool SSkeletonTree::CanRemoveAllAssets() const
 {
-	USkeletalMesh* const SkeletalMesh = GetEditableSkeletonInternal()->GetSkeletalMesh();
+	USkeletalMesh* SkeletalMesh = GetPreviewScene().IsValid() ? GetPreviewScene()->GetPreviewMeshComponent()->SkeletalMesh : nullptr;
 
 	const bool bHasPreviewAttachedObjects = GetEditableSkeletonInternal()->GetSkeleton().PreviewAttachedAssetContainer.Num() > 0;
 	const bool bHasMeshPreviewAttachedObjects = ( SkeletalMesh && SkeletalMesh->PreviewAttachedAssetContainer.Num() );
@@ -2865,7 +2875,8 @@ void SSkeletonTree::OnLODSwitched()
 
 void SSkeletonTree::DuplicateAndSelectSocket(const FSelectedSocketInfo& SocketInfoToDuplicate, const FName& NewParentBoneName /*= FName()*/)
 {
-	USkeletalMeshSocket* NewSocket = GetEditableSkeleton()->DuplicateSocket(SocketInfoToDuplicate, NewParentBoneName);
+	USkeletalMesh* SkeletalMesh = GetPreviewScene().IsValid() ? GetPreviewScene()->GetPreviewMeshComponent()->SkeletalMesh : nullptr;
+	USkeletalMeshSocket* NewSocket = GetEditableSkeleton()->DuplicateSocket(SocketInfoToDuplicate, NewParentBoneName, SkeletalMesh);
 
 	if (GetPreviewScene().IsValid())
 	{

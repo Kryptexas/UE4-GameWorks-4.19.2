@@ -110,9 +110,9 @@ void FSkeletalMeshSocketDetails::OnParentBoneNameCommitted(const FText& InSearch
 {
 	UObject* Outer = TargetSocket->GetOuter();
 	USkeleton* Skeleton = Cast<USkeleton>(Outer);
+	USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(Outer);
 	if( Skeleton == NULL )
 	{
-		USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(Outer);
 		if( SkeletalMesh )
 		{
 			Skeleton = SkeletalMesh->Skeleton;
@@ -125,7 +125,7 @@ void FSkeletalMeshSocketDetails::OnParentBoneNameCommitted(const FText& InSearch
 			ISkeletonEditorModule& SkeletonEditorModule = FModuleManager::LoadModuleChecked<ISkeletonEditorModule>("SkeletonEditor");
 			TSharedRef<IEditableSkeleton> EditableSkeleton = SkeletonEditorModule.CreateEditableSkeleton(Skeleton);
 
-			EditableSkeleton->SetSocketParent( TargetSocket->SocketName, *InSearchText.ToString() );
+			EditableSkeleton->SetSocketParent( TargetSocket->SocketName, *InSearchText.ToString(), SkeletalMesh );
 
 			ParentBoneProperty->SetValue( InSearchText.ToString() );
 		}
@@ -134,13 +134,23 @@ void FSkeletalMeshSocketDetails::OnParentBoneNameCommitted(const FText& InSearch
 
 void FSkeletalMeshSocketDetails::OnSocketNameChanged(const FText& InSearchText)
 {
-	if(USkeleton* Skeleton = Cast<USkeleton>(TargetSocket->GetOuter()))
+	UObject* Outer = TargetSocket->GetOuter();
+	USkeleton* Skeleton = Cast<USkeleton>(Outer);
+	USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(Outer);
+	if (Skeleton == NULL)
+	{
+		if (SkeletalMesh)
+		{
+			Skeleton = SkeletalMesh->Skeleton;
+		}
+	}
+	if (Skeleton)
 	{
 		ISkeletonEditorModule& SkeletonEditorModule = FModuleManager::LoadModuleChecked<ISkeletonEditorModule>("SkeletonEditor");
 		TSharedRef<IEditableSkeleton> EditableSkeleton = SkeletonEditorModule.CreateEditableSkeleton(Skeleton);
 
 		FText OutErrorMessage;
-		if( VerifySocketName(EditableSkeleton, TargetSocket, InSearchText, OutErrorMessage) )
+		if( VerifySocketName(EditableSkeleton, TargetSocket, InSearchText, SkeletalMesh, OutErrorMessage) )
 		{
 			SocketNameTextBox->SetError( FText::GetEmpty() );
 		}
@@ -153,7 +163,17 @@ void FSkeletalMeshSocketDetails::OnSocketNameChanged(const FText& InSearchText)
 
 void FSkeletalMeshSocketDetails::OnSocketNameCommitted(const FText& InSearchText, ETextCommit::Type CommitInfo)
 {
-	if (USkeleton* Skeleton = Cast<USkeleton>(TargetSocket->GetOuter()))
+	UObject* Outer = TargetSocket->GetOuter();
+	USkeleton* Skeleton = Cast<USkeleton>(Outer);
+	USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(Outer);
+	if (Skeleton == NULL)
+	{
+		if (SkeletalMesh)
+		{
+			Skeleton = SkeletalMesh->Skeleton;
+		}
+	}
+	if (Skeleton)
 	{
 		ISkeletonEditorModule& SkeletonEditorModule = FModuleManager::LoadModuleChecked<ISkeletonEditorModule>("SkeletonEditor");
 		TSharedRef<IEditableSkeleton> EditableSkeleton = SkeletonEditorModule.CreateEditableSkeleton(Skeleton);
@@ -161,10 +181,10 @@ void FSkeletalMeshSocketDetails::OnSocketNameCommitted(const FText& InSearchText
 		FText NewText = FText::TrimPrecedingAndTrailing(InSearchText);
 
 		FText OutErrorMessage;
-		if (VerifySocketName(EditableSkeleton, TargetSocket, NewText, OutErrorMessage))
+		if (VerifySocketName(EditableSkeleton, TargetSocket, NewText, SkeletalMesh, OutErrorMessage))
 		{
 			// tell rename the socket.
-			EditableSkeleton->RenameSocket(TargetSocket->SocketName, FName(*NewText.ToString()));
+			EditableSkeleton->RenameSocket(TargetSocket->SocketName, FName(*NewText.ToString()), SkeletalMesh);
 				
 			// update the pre-edit socket name and the property
 			PreEditSocketName = NewText;
@@ -183,7 +203,7 @@ void FSkeletalMeshSocketDetails::OnSocketNameCommitted(const FText& InSearchText
 	}
 }
 
-bool FSkeletalMeshSocketDetails::VerifySocketName(TSharedRef<IEditableSkeleton> EditableSkeleton, const USkeletalMeshSocket* Socket, const FText& InText, FText& OutErrorMessage ) const
+bool FSkeletalMeshSocketDetails::VerifySocketName(TSharedRef<IEditableSkeleton> EditableSkeleton, const USkeletalMeshSocket* Socket, const FText& InText, USkeletalMesh* InSkeletalMesh, FText& OutErrorMessage ) const
 {
 	// You can't have two sockets with the same name on the mesh, nor on the skeleton,
 	// but you can have a socket with the same name on the mesh *and* the skeleton.
@@ -198,12 +218,12 @@ bool FSkeletalMeshSocketDetails::VerifySocketName(TSharedRef<IEditableSkeleton> 
 	}
 	else
 	{
-		if (EditableSkeleton->DoesSocketAlreadyExist(Socket, NewText, ESocketParentType::Skeleton))
+		if (EditableSkeleton->DoesSocketAlreadyExist(Socket, NewText, ESocketParentType::Skeleton, InSkeletalMesh))
 		{
 			bVerifyName = false;
 		}
 
-		if (bVerifyName && EditableSkeleton->DoesSocketAlreadyExist(Socket, NewText, ESocketParentType::Mesh))
+		if (bVerifyName && EditableSkeleton->DoesSocketAlreadyExist(Socket, NewText, ESocketParentType::Mesh, InSkeletalMesh))
 		{
 			bVerifyName = false;
 		}

@@ -11,9 +11,9 @@ FSkeletonTreeManager& FSkeletonTreeManager::Get()
 	return TheManager;
 }
 
-TSharedRef<ISkeletonTree> FSkeletonTreeManager::CreateSkeletonTree(class USkeleton* InSkeleton, class USkeletalMesh* InSkeletalMesh, const FSkeletonTreeArgs& InSkeletonTreeArgs)
+TSharedRef<ISkeletonTree> FSkeletonTreeManager::CreateSkeletonTree(class USkeleton* InSkeleton, const FSkeletonTreeArgs& InSkeletonTreeArgs)
 {
-	TSharedPtr<FEditableSkeleton> EditableSkeleton = CreateEditableSkeleton(InSkeleton, InSkeletalMesh);
+	TSharedPtr<FEditableSkeleton> EditableSkeleton = CreateEditableSkeleton(InSkeleton);
 	TSharedPtr<ISkeletonTree> SkeletonTree = EditableSkeleton->CreateSkeletonTree(InSkeletonTreeArgs);
 
 	// compact skeletons that are no longer being edited
@@ -37,12 +37,12 @@ TSharedRef<ISkeletonTree> FSkeletonTreeManager::CreateSkeletonTree(class USkelet
 	return SkeletonTree.ToSharedRef();
 }
 
-TSharedRef<FEditableSkeleton> FSkeletonTreeManager::CreateEditableSkeleton(class USkeleton* InSkeleton, class USkeletalMesh* InSkeletalMesh /*= nullptr*/)
+TSharedRef<FEditableSkeleton> FSkeletonTreeManager::CreateEditableSkeleton(class USkeleton* InSkeleton)
 {
 	TWeakPtr<FEditableSkeleton>* EditableSkeletonPtr = EditableSkeletons.Find(InSkeleton);
 	if (EditableSkeletonPtr == nullptr || !(*EditableSkeletonPtr).IsValid())
 	{
-		TSharedRef<FEditableSkeleton> NewEditableSkeleton = MakeShareable(new FEditableSkeleton(InSkeleton, InSkeletalMesh));
+		TSharedRef<FEditableSkeleton> NewEditableSkeleton = MakeShareable(new FEditableSkeleton(InSkeleton));
 		EditableSkeletons.Add(InSkeleton, NewEditableSkeleton);
 		return NewEditableSkeleton;
 	}
