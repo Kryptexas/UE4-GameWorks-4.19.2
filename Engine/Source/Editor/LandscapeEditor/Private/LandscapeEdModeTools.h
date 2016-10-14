@@ -1315,10 +1315,13 @@ public:
 			InteractorPositions.Empty(1);
 		}
 
-		bToolActive = true;
-		ToolStroke.Emplace(EdMode, ViewportClient, InTarget);
+		if( !bToolActive )
+		{
+			ToolStroke.Emplace( EdMode, ViewportClient, InTarget );
+			EdMode->CurrentBrush->BeginStroke( InHitLocation.X, InHitLocation.Y, this );
+		}
 
-		EdMode->CurrentBrush->BeginStroke(InHitLocation.X, InHitLocation.Y, this);
+		bToolActive = true;
 
 		// Save the mouse position
 		LastInteractorPosition = FVector2D(InHitLocation);

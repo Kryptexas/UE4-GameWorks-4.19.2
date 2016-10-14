@@ -470,5 +470,9 @@ private:
 	FDelegateHandle OnWorldChangeDelegateHandle;
 	FDelegateHandle OnMaterialCompilationFinishedDelegateHandle;
 
-	bool bIsPainting;
+	/** Check if we are painting using the VREditor */
+	bool bIsPaintingInVR;
+
+	/** The interactor that is currently painting, prevents multiple interactors from sculpting when one actually is */
+	class UViewportInteractor* InteractorPainting;
 };
