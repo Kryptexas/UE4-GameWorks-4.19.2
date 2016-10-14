@@ -437,6 +437,10 @@ struct FClothingAssetData
 	UPROPERTY(EditAnywhere, Transient, Category = ClothingAssetData)
 	FClothPhysicsProperties PhysicsProperties;
 
+	UPROPERTY(Transient)
+	/** Apex stores only the bones that cloth needs. We need a mapping from apex bone index to UE bone index. */
+	TArray<int32> ApexToUnrealBoneMapping;
+
 #if WITH_APEX_CLOTHING
 	nvidia::apex::ClothingAsset* ApexClothingAsset;
 
@@ -452,9 +456,6 @@ struct FClothingAssetData
 	 * Num of this array means LOD number of clothing physical meshes 
 	 */
 	TArray<FClothVisualizationInfo> ClothVisualizationInfos;
-
-	/** Apex stores only the bones that cloth needs. We need a mapping from apex bone index to UE bone index. */
-	TArray<int32> ApexToUnrealBoneMapping;
 
 	/** currently mapped morph target name */
 	FName PreparedMorphTargetName;
