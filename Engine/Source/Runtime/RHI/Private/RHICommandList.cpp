@@ -1364,7 +1364,9 @@ void FRHICommandList::EndDrawingViewport(FViewportRHIParamRef Viewport, bool bPr
 	{
 		// Wait on the previous frame's RHI thread fence (we never want the rendering thread to get more than a frame ahead)
 		uint32 PreviousFrameFenceIndex = 1 - GRHIThreadEndDrawingViewportFenceIndex;
-		FRHICommandListExecutor::WaitOnRHIThreadFence( GRHIThreadEndDrawingViewportFences[PreviousFrameFenceIndex] );
+		FGraphEventRef& LastFrameFence = GRHIThreadEndDrawingViewportFences[PreviousFrameFenceIndex];
+		ensureMsgf(!LastFrameFence.GetReference() || LastFrameFence->IsComplete(), TEXT("The renderthread had to wait for the RHI thread to catch up. We are likely missing a call to FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources)"));
+		FRHICommandListExecutor::WaitOnRHIThreadFence(LastFrameFence);
 		GRHIThreadEndDrawingViewportFences[PreviousFrameFenceIndex] = nullptr;
 		GRHIThreadEndDrawingViewportFenceIndex = PreviousFrameFenceIndex;
 	}

@@ -36,6 +36,7 @@
 #include "MovieSceneCaptureSettings.h"
 #include "ActorEditorUtils.h"
 #include "ComponentRecreateRenderStateContext.h"
+#include "RenderingThread.h"
 
 #define LOCTEXT_NAMESPACE "GameViewport"
 
@@ -1121,6 +1122,14 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	if (!bDisableWorldRendering && !bUIDisableWorldRendering && PlayerViewMap.Num() > 0) //-V560
 	{
 		GetRendererModule().BeginRenderingViewFamily(SceneCanvas,&ViewFamily);
+	}
+	else
+	{
+		// Make sure RHI resources get flushed if we're not using a renderer
+		ENQUEUE_UNIQUE_RENDER_COMMAND( UGameViewportClient_FlushRHIResources,
+		{ 
+			FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThreadFlushResources);
+		});
 	}
 
 	// Clear areas of the rendertarget (backbuffer) that aren't drawn over by the views.
