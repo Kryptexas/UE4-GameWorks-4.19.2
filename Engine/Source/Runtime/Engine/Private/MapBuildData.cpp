@@ -96,6 +96,11 @@ void ULevel::HandleLegacyMapBuildData()
 
 		for (int32 ActorIndex = 0; ActorIndex < Actors.Num(); ActorIndex++)
 		{
+			if (!Actors[ActorIndex])
+			{
+				continue;
+			}
+
 			TInlineComponentArray<UActorComponent*> Components;
 			Actors[ActorIndex]->GetComponents(Components);
 
