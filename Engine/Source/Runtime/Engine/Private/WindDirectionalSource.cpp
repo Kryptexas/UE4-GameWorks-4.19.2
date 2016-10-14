@@ -147,6 +147,24 @@ UWindDirectionalSourceComponent::UWindDirectionalSourceComponent(const FObjectIn
 	bAutoActivate = true;
 }
 
+void UWindDirectionalSourceComponent::Activate(bool bReset)
+{
+	Super::Activate(bReset);
+	if (bRenderStateCreated)
+	{
+		GetWorld()->Scene->AddWindSource(this);
+	}
+}
+
+void UWindDirectionalSourceComponent::Deactivate()
+{
+	Super::Deactivate();
+	if (SceneProxy)
+	{
+		GetWorld()->Scene->RemoveWindSource(this);
+	}
+}
+
 void UWindDirectionalSourceComponent::CreateRenderState_Concurrent()
 {
 	Super::CreateRenderState_Concurrent();
