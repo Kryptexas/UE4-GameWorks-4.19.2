@@ -520,6 +520,37 @@ UObject* UBlueprintGeneratedClass::FindArchetype(UClass* ArchetypeClass, const F
 	// and since preloading the SCS of a script in a world package is bad news, we need to filter them out
 	if (SimpleConstructionScript && !IsChildOf<ALevelScriptActor>())
 	{
+#if WITH_EDITORONLY_DATA
+		// On load, we may fix up AddComponent node templates to conform to the newer archetype naming convention. In that case, we use a map to find
+		// the new template name in order to redirect to the appropriate archetype.
+		const UBlueprint* Blueprint = Cast<const UBlueprint>(ClassGeneratedBy);
+		const FName NewArchetypeName = Blueprint ? Blueprint->OldToNewComponentTemplateNames.FindRef(ArchetypeName) : NAME_None;
+#endif
+		// Component templates (archetypes) differ from the component class default object, and they are considered to be "default subobjects" owned
+		// by the Blueprint Class instance. Also, unlike "default subobjects" on the native C++ side, component templates are not currently owned by the
+		// Blueprint Class default object. Instead, they are owned by the Blueprint Class itself. And, just as native C++ default subobjects serve as the
+		// "archetype" object for components instanced and outered to a native Actor class instance at construction time, Blueprint Component templates
+		// also serve as the "archetype" object for components instanced and outered to a Blueprint Class instance at construction time. However, since
+		// Blueprint Component templates are not owned by the Blueprint Class default object, we must search for them by name within the Blueprint Class.
+		//
+		// Native component subobjects are instanced using the same name as the default subobject (archetype). Thus, it's easy to find the archetype -
+		// we just look for an object with the same name that's owned by (i.e. outered to) the Actor class default object. This is the default logic
+		// that we're overriding here.
+		//
+		// Blueprint (non-native) component templates are split between SCS (SimpleConstructionScript) and AddComponent nodes in Blueprint function
+		// graphs (e.g. ConstructionScript). Both templates use a unique naming convention within the scope of the Blueprint Class, but at construction
+		// time, we choose a unique name that differs from the archetype name for each component instance. We do this partially to support nativization,
+		// in which we need to explicitly guard against recycling objects at allocation time. For SCS component instances, the name we choose matches the
+		// "variable" name that's also user-facing. Thus, when we search for archetypes, we do so using the SCS variable name, and not the archetype name.
+		// Conversely, for AddComponent node-spawned instances, we do not have a user-facing variable name, so instead we choose a unique name that
+		// incorporates the archetype name, but we append an index as well. The index is needed to support multiple invocations of the same AddComponent
+		// node in a function graph, which can occur when the AddComponent node is wired to a flow-control node such as a ForEach loop, for example. Thus,
+		// we still look for the archetype by name, but we must first ensure that the instance name is converted to its "base" name by removing the index.
+#if WITH_EDITORONLY_DATA
+		const FName ArchetypeBaseName = NewArchetypeName != NAME_None ? NewArchetypeName : FName(ArchetypeName, 0);
+#else
+		const FName ArchetypeBaseName = FName(ArchetypeName, 0);
+#endif
 		UBlueprintGeneratedClass* Class = const_cast<UBlueprintGeneratedClass*>(this);
 		while (Class)
 		{
@@ -532,7 +563,7 @@ UObject* UBlueprintGeneratedClass::FindArchetype(UClass* ArchetypeClass, const F
 					ClassSCS->PreloadChain();
 				}
 
-				SCSNode = ClassSCS->FindSCSNode(ArchetypeName);
+				SCSNode = ClassSCS->FindSCSNode(ArchetypeBaseName);
 			}
 
 			if (SCSNode)
@@ -547,14 +578,25 @@ UObject* UBlueprintGeneratedClass::FindArchetype(UClass* ArchetypeClass, const F
 					Archetype = SCSNode->ComponentTemplate;
 				}
 			}
-			else if (UInheritableComponentHandler* ICH = Class->GetInheritableComponentHandler())
+			else if(UInheritableComponentHandler* ICH = Class->GetInheritableComponentHandler())
 			{
-				Archetype = ICH->GetOverridenComponentTemplate(ICH->FindKey(ArchetypeName));
+				// Component template overrides should always match the archetype's base name (i.e. - not the instance name).
+				// This is because when we create new override objects within the ICH, we match the original template's name.
+				Archetype = ICH->GetOverridenComponentTemplate(ICH->FindKey(ArchetypeBaseName));
 			}
 
 			if (Archetype == nullptr)
 			{
-				Archetype = static_cast<UObject*>(FindObjectWithOuter(Class, ArchetypeClass, ArchetypeName));
+				// We'll get here if we failed to find the archetype in either the SCS or the ICH. In that case,
+				// we first check the base name case. If that fails, then we may be looking for something other
+				// than an AddComponent template. In that case, we check for an object that shares the instance name.
+				Archetype = static_cast<UObject*>(FindObjectWithOuter(Class, ArchetypeClass, ArchetypeBaseName));
+				if (Archetype == nullptr && ArchetypeName != ArchetypeBaseName)
+				{
+					Archetype = static_cast<UObject*>(FindObjectWithOuter(Class, ArchetypeClass, ArchetypeName));
+				}
+
+				// Walk up the class hierarchy until we either find a match or hit a native class.
 				Class = (Archetype ? nullptr : Cast<UBlueprintGeneratedClass>(Class->GetSuperClass()));
 			}
 			else

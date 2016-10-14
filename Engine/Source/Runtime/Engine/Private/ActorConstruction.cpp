@@ -866,12 +866,12 @@ UActorComponent* AActor::CreateComponentFromTemplate(UActorComponent* Template, 
 #if !UE_BUILD_SHIPPING
 		const double StartTime = FPlatformTime::Seconds();
 #endif
-		// Resolve any name conflicts.
-		CheckComponentInstanceName(InName);
-
-		//Make sure, that the name of the instance is different than the name of the template. Otherwise, the template could be handled as an archetype of the instance.
+		// Make sure, that the name of the instance is different than the name of the template. This ensures that archetypes will not be recycled as instances in the nativized case.
 		const FName NewComponentName = (InName != NAME_None) ? InName : MakeUniqueObjectName(this, Template->GetClass(), Template->GetFName());
 		ensure(NewComponentName != Template->GetFName());
+
+		// Resolve any name conflicts.
+		CheckComponentInstanceName(NewComponentName);
 
 		// Note we aren't copying the the RF_ArchetypeObject flag. Also note the result is non-transactional by default.
 		NewActorComp = (UActorComponent*)StaticDuplicateObject(Template, this, NewComponentName, RF_AllFlags & ~(RF_ArchetypeObject | RF_Transactional | RF_WasLoaded | RF_Public | RF_InheritableComponentTemplate));
@@ -918,12 +918,12 @@ UActorComponent* AActor::CreateComponentFromTemplateData(const FBlueprintCookedC
 #if !UE_BUILD_SHIPPING
 		const double StartTime = FPlatformTime::Seconds();
 #endif
-		// Resolve any name conflicts.
-		CheckComponentInstanceName(InName);
-
-		//Make sure, that the name of the instance is different than the name of the template. Otherwise, the template could be handled as an archetype of the instance.
+		// Make sure, that the name of the instance is different than the name of the template. This ensures that archetypes will not be recycled as instances in the nativized case.
 		const FName NewComponentName = (InName != NAME_None) ? InName : MakeUniqueObjectName(this, TemplateData->ComponentTemplateClass, TemplateData->ComponentTemplateName);
 		ensure(NewComponentName != TemplateData->ComponentTemplateName);
+
+		// Resolve any name conflicts.
+		CheckComponentInstanceName(NewComponentName);
 
 		// Note we aren't copying the the RF_ArchetypeObject flag. Also note the result is non-transactional by default.
 		NewActorComp = NewObject<UActorComponent>(
