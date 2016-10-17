@@ -1304,7 +1304,14 @@ bool FTextStringHelper::ReadFromString_ComplexText(const TCHAR* Buffer, FText& O
 #if USE_STABLE_LOCALIZATION_KEYS
 			if (GIsEditor && PackageNamespace && *PackageNamespace)
 			{
-				NamespaceString = TextNamespaceUtil::BuildFullNamespace(NamespaceString, PackageNamespace);
+				const FString FullNamespace = TextNamespaceUtil::BuildFullNamespace(NamespaceString, PackageNamespace);
+				if (!NamespaceString.Equals(FullNamespace, ESearchCase::CaseSensitive))
+				{
+					// We may assign a new key when importing if we don't have the correct package namespace in order to avoid identity conflicts when instancing (which duplicates without any special flags)
+					// This can happen if an asset was duplicated (and keeps the same keys) but later both assets are instanced into the same world (causing them to both take the worlds package id, and conflict with each other)
+					NamespaceString = FullNamespace;
+					KeyString = FGuid::NewGuid().ToString();
+				}
 			}
 #endif // USE_STABLE_LOCALIZATION_KEYS
 			OutValue = FInternationalization::ForUseOnlyByLocMacroAndGraphNodeTextLiterals_CreateText(*SourceString, *NamespaceString, *KeyString);
@@ -1349,7 +1356,17 @@ bool FTextStringHelper::ReadFromString_ComplexText(const TCHAR* Buffer, FText& O
 #if USE_STABLE_LOCALIZATION_KEYS
 			if (GIsEditor && PackageNamespace && *PackageNamespace)
 			{
-				const FString NamespaceString = TextNamespaceUtil::BuildFullNamespace((TextNamespace) ? TextNamespace : TEXT(""), PackageNamespace);
+				FString NamespaceString = (TextNamespace) ? TextNamespace : TEXT("");
+
+				const FString FullNamespace = TextNamespaceUtil::BuildFullNamespace(NamespaceString, PackageNamespace);
+				if (!NamespaceString.Equals(FullNamespace, ESearchCase::CaseSensitive))
+				{
+					// We may assign a new key when importing if we don't have the correct package namespace in order to avoid identity conflicts when instancing (which duplicates without any special flags)
+					// This can happen if an asset was duplicated (and keeps the same keys) but later both assets are instanced into the same world (causing them to both take the worlds package id, and conflict with each other)
+					NamespaceString = FullNamespace;
+					KeyString = FGuid::NewGuid().ToString();
+				}
+
 				OutValue = FInternationalization::ForUseOnlyByLocMacroAndGraphNodeTextLiterals_CreateText(*SourceString, *NamespaceString, *KeyString);
 			}
 			else
