@@ -88,6 +88,11 @@ struct FCrashReportClientConfig
 		return bIsAllowedToCloseWithoutSending;
 	}
 
+	int GetUserCommentSizeLimit() const
+	{
+		return UserCommentSizeLimit;
+	}
+
 	void SetAllowToBeContacted( bool bNewValue );
 	void SetSendLogFile( bool bNewValue );
 
@@ -139,4 +144,7 @@ protected:
 
 	/** Whether the user is allowed to close the crash reporter without sending a report */
 	bool bIsAllowedToCloseWithoutSending;
+
+	/** Size limit for the description of multi-line text */
+	int UserCommentSizeLimit;
 };

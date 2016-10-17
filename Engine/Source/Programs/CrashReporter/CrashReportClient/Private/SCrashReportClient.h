@@ -36,13 +36,21 @@ private:
 	 */
 	FReply OnUnhandledKeyDown(const FKeyEvent& InKeyEvent);
 
+	/** Called if the multi line widget text changes */
+	void OnUserCommentTextChanged(const FText& NewText);
+
 	/** Whether the hint text should be visible. */
 	EVisibility IsHintTextVisible() const;
+
+	/** Whether the send buttons are enabled. */
+	bool IsSendEnabled() const;
 
 	/** Crash report client implementation object */
 	TSharedPtr<FCrashReportClient> CrashReportClient;
 
 	TSharedPtr<SMultiLineEditableTextBox> CrashDetailsInformation;
+
+	bool bHasUserCommentErrors;
 };
 
 #endif // !CRASH_REPORT_UNATTENDED_ONLY

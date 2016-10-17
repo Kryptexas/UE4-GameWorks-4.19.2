@@ -66,6 +66,11 @@ FCrashReportClientConfig::FCrashReportClientConfig()
 		}
 	}
 
+	if (!GConfig->GetInt(TEXT("CrashReportClient"), TEXT("UserCommentSizeLimit"), UserCommentSizeLimit, GEngineIni))
+	{
+		UserCommentSizeLimit = 4000;
+	}
+
 	FConfigFile EmptyConfigFile;
 	SetProjectConfigOverrides(EmptyConfigFile);
 
