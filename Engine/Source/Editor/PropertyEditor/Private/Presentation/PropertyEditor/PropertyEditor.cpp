@@ -429,11 +429,14 @@ void FPropertyEditor::SetEditConditionState( bool bShouldEnable )
 					{
 						// Only propagate if the current value on the instance matches the previous value on the template.
 						uint8* BaseOffset = ParentNode->GetValueAddress((uint8*)ArchetypeInstances[InstanceIndex]);
-						ValueAddr = EditConditionProperty->ContainerPtrToValuePtr<uint8>(BaseOffset);
-						const bool CurValue = EditConditionProperty->GetPropertyValue(ValueAddr);
-						if (OldValue == CurValue)
+						if(BaseOffset)
 						{
-							EditConditionProperty->SetPropertyValue(ValueAddr, NewValue);
+							ValueAddr = EditConditionProperty->ContainerPtrToValuePtr<uint8>(BaseOffset);
+							const bool CurValue = EditConditionProperty->GetPropertyValue(ValueAddr);
+							if(OldValue == CurValue)
+							{
+								EditConditionProperty->SetPropertyValue(ValueAddr, NewValue);
+							}
 						}
 					}
 				}
