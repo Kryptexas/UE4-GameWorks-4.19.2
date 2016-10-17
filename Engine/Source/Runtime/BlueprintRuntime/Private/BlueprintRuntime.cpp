@@ -12,6 +12,7 @@ class FBlueprintRuntime : public IBlueprintRuntime
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 	virtual void PropagateWarningSettings() override;
+	virtual UBlueprintRuntimeSettings* GetMutableBlueprintRuntimeSettings() override;
 };
 IMPLEMENT_MODULE(FBlueprintRuntime, BlueprintRuntime)
 
@@ -45,6 +46,11 @@ void FBlueprintRuntime::PropagateWarningSettings()
 		}
 	}
 	FBlueprintSupport::UpdateWarningBehavior(WarningsToTreatAsErrors, WarningsToSuppress);
+}
+
+UBlueprintRuntimeSettings* FBlueprintRuntime::GetMutableBlueprintRuntimeSettings()
+{
+	return GetMutableDefault<UBlueprintRuntimeSettings>();
 }
 
 
