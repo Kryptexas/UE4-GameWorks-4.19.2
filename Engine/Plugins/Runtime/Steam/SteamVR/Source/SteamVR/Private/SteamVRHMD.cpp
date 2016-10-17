@@ -565,6 +565,7 @@ float FSteamVRHMD::GetWorldToMetersScale() const
 
 ESteamVRTrackedDeviceType FSteamVRHMD::GetTrackedDeviceType(uint32 DeviceId) const
 {
+	check(VRSystem != nullptr);
 	vr::TrackedDeviceClass DeviceClass = VRSystem->GetTrackedDeviceClass(DeviceId);
 
 	switch (DeviceClass)
@@ -584,6 +585,10 @@ ESteamVRTrackedDeviceType FSteamVRHMD::GetTrackedDeviceType(uint32 DeviceId) con
 void FSteamVRHMD::GetTrackedDeviceIds(ESteamVRTrackedDeviceType DeviceType, TArray<int32>& TrackedIds) const
 {
 	TrackedIds.Empty();
+	if (VRSystem == nullptr)
+	{
+		return;
+	}
 
 	const FTrackingFrame& TrackingFrame = GetTrackingFrame();
 	for (uint32 i = 0; i < vr::k_unMaxTrackedDeviceCount; ++i)
