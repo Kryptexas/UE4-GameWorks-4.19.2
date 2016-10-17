@@ -543,15 +543,15 @@ namespace UnrealBuildTool
 			}
 
 			// If there's no specific compiler set, try to pick the matching compiler for the selected IDE
-			if(ProjectFileGenerator.Type == ProjectFileType.VisualStudio2017)
+			if(VCProjectFileGenerator.Version == VCProjectFileFormat.VisualStudio2017)
 			{
 				return WindowsCompiler.VisualStudio2017;
 			}
-			else if(ProjectFileGenerator.Type == ProjectFileType.VisualStudio2015)
+			else if(VCProjectFileGenerator.Version == VCProjectFileFormat.VisualStudio2015)
 			{
 				return WindowsCompiler.VisualStudio2015;
 			}
-			else if(ProjectFileGenerator.Type == ProjectFileType.VisualStudio2013)
+			else if(VCProjectFileGenerator.Version == VCProjectFileFormat.VisualStudio2013)
 			{
 				return WindowsCompiler.VisualStudio2013;
 			}

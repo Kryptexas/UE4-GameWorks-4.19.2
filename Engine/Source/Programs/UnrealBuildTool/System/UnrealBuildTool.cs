@@ -1044,6 +1044,7 @@ namespace UnrealBuildTool
 						bIsGatheringBuild_Unsafe = false;
 					}
 
+					List<ProjectFileType> ProjectFileTypes = new List<ProjectFileType>();
 					foreach (string Arg in Arguments)
 					{
 						string LowercaseArg = Arg.ToLowerInvariant();
@@ -1074,57 +1075,47 @@ namespace UnrealBuildTool
 						}
 						else if (LowercaseArg.StartsWith("-makefile"))
 						{
-							ProjectFileGenerator.Type = ProjectFileType.Make;
-							ProjectFileGenerator.bGenerateProjectFiles = true;
+							ProjectFileTypes.Add(ProjectFileType.Make);
 						}
 						else if (LowercaseArg.StartsWith("-cmakefile"))
 						{
-							ProjectFileGenerator.Type = ProjectFileType.CMake;
-							ProjectFileGenerator.bGenerateProjectFiles = true;
+							ProjectFileTypes.Add(ProjectFileType.CMake);
 						}
 						else if (LowercaseArg.StartsWith("-qmakefile"))
 						{
-							ProjectFileGenerator.Type = ProjectFileType.QMake;
-							ProjectFileGenerator.bGenerateProjectFiles = true;
+							ProjectFileTypes.Add(ProjectFileType.QMake);
 						}
 						else if (LowercaseArg.StartsWith("-kdevelopfile"))
 						{
-							ProjectFileGenerator.Type = ProjectFileType.KDevelop;
-							ProjectFileGenerator.bGenerateProjectFiles = true;
+							ProjectFileTypes.Add(ProjectFileType.KDevelop);
 						}
 						else if (LowercaseArg.StartsWith("-codelitefile"))
 						{
-							ProjectFileGenerator.Type = ProjectFileType.CodeLite;
-							ProjectFileGenerator.bGenerateProjectFiles = true;
+							ProjectFileTypes.Add(ProjectFileType.CodeLite);
 						}
 						else if (LowercaseArg.StartsWith("-projectfile"))
 						{
 							if(Arguments.Contains("-2012unsupported", StringComparer.InvariantCultureIgnoreCase))
 							{
-								ProjectFileGenerator.Type = ProjectFileType.VisualStudio2012;
+								VCProjectFileGenerator.Version = VCProjectFileFormat.VisualStudio2012;
 							}
 							else if (Arguments.Contains("-2013"))
 							{
-								ProjectFileGenerator.Type = ProjectFileType.VisualStudio2013;
+								VCProjectFileGenerator.Version = VCProjectFileFormat.VisualStudio2013;
 							}
 							else if(Arguments.Contains("-2015"))
 							{
-								ProjectFileGenerator.Type = ProjectFileType.VisualStudio2015;
+								VCProjectFileGenerator.Version = VCProjectFileFormat.VisualStudio2015;
 							}
 							else if(Arguments.Contains("-2017"))
 							{
-								ProjectFileGenerator.Type = ProjectFileType.VisualStudio2017;
+								VCProjectFileGenerator.Version = VCProjectFileFormat.VisualStudio2017;
 							}
-							else if(ProjectFileGenerator.Type == ProjectFileType.Default)
-							{
-								ProjectFileGenerator.Type = ProjectFileType.VisualStudio;
-							}
-							ProjectFileGenerator.bGenerateProjectFiles = true;
+							ProjectFileTypes.Add(ProjectFileType.VisualStudio);
 						}
 						else if (LowercaseArg.StartsWith("-xcodeprojectfile"))
 						{
-							ProjectFileGenerator.Type = ProjectFileType.XCode;
-							ProjectFileGenerator.bGenerateProjectFiles = true;
+							ProjectFileTypes.Add(ProjectFileType.XCode);
 						}
 						else if (LowercaseArg == "development" || LowercaseArg == "debug" || LowercaseArg == "shipping" || LowercaseArg == "test" || LowercaseArg == "debuggame")
 						{
@@ -1241,7 +1232,7 @@ namespace UnrealBuildTool
 						"User", Environment.UserName,
 						"Domain", Environment.UserDomainName,
 						"CommandLine", string.Join("|", Arguments),
-						"UBT Action", (ProjectFileGenerator.bGenerateProjectFiles? String.Format("GenerateProjectsFor{0}", ProjectFileGenerator.Type) : "Build"),
+						"UBT Action", (ProjectFileTypes.Count > 0)? String.Join("+", ProjectFileTypes.Select(x => String.Format("GenerateProjectFilesFor{0}", x))) : "Build",
 						"Platform", CheckPlatform.ToString(),
 						"Configuration", CheckConfiguration.ToString(),
 						"EngineVersion", (Version == null) ? "0" : Version.Changelist.ToString(),
@@ -1263,50 +1254,42 @@ namespace UnrealBuildTool
 						JunkDeleter.DeleteJunk();
 					}
 
-					if (ProjectFileGenerator.bGenerateProjectFiles)
+					if (ProjectFileTypes.Count > 0)
 					{
-						ProjectFileGenerator Generator;
-						switch (ProjectFileGenerator.Type)
+						ProjectFileGenerator.bGenerateProjectFiles = true;
+						foreach(ProjectFileType ProjectFileType in ProjectFileTypes)
 						{
-							case ProjectFileType.Make:
-								Generator = new MakefileGenerator(ProjectFile);
-								break;
-							case ProjectFileType.CMake:
-								Generator = new CMakefileGenerator(ProjectFile);
-								break;
-							case ProjectFileType.QMake:
-								Generator = new QMakefileGenerator(ProjectFile);
-								break;
-							case ProjectFileType.KDevelop:
-								Generator = new KDevelopGenerator(ProjectFile);
-								break;
-							case ProjectFileType.CodeLite:
-								Generator = new CodeLiteGenerator(ProjectFile);
-								break;
-							case ProjectFileType.VisualStudio:
-								Generator = new VCProjectFileGenerator(ProjectFile, VCProjectFileFormat.Default);
-								break;
-							case ProjectFileType.VisualStudio2012:
-								Generator = new VCProjectFileGenerator(ProjectFile, VCProjectFileFormat.VisualStudio2012);
-								break;
-							case ProjectFileType.VisualStudio2013:
-								Generator = new VCProjectFileGenerator(ProjectFile, VCProjectFileFormat.VisualStudio2013);
-								break;
-							case ProjectFileType.VisualStudio2015:
-								Generator = new VCProjectFileGenerator(ProjectFile, VCProjectFileFormat.VisualStudio2015);
-								break;
-							case ProjectFileType.VisualStudio2017:
-								Generator = new VCProjectFileGenerator(ProjectFile, VCProjectFileFormat.VisualStudio2017);
-								break;
-							case ProjectFileType.XCode:
-								Generator = new XcodeProjectFileGenerator(ProjectFile);
-								break;
-							default:
-								throw new BuildException("Unhandled project file type '{0}", ProjectFileGenerator.Type);
-						}
-						if(!Generator.GenerateProjectFiles(Arguments))
-						{
-							Result = ECompilationResult.OtherCompilationError;
+							ProjectFileGenerator Generator;
+							switch (ProjectFileType)
+							{
+								case ProjectFileType.Make:
+									Generator = new MakefileGenerator(ProjectFile);
+									break;
+								case ProjectFileType.CMake:
+									Generator = new CMakefileGenerator(ProjectFile);
+									break;
+								case ProjectFileType.QMake:
+									Generator = new QMakefileGenerator(ProjectFile);
+									break;
+								case ProjectFileType.KDevelop:
+									Generator = new KDevelopGenerator(ProjectFile);
+									break;
+								case ProjectFileType.CodeLite:
+									Generator = new CodeLiteGenerator(ProjectFile);
+									break;
+								case ProjectFileType.VisualStudio:
+									Generator = new VCProjectFileGenerator(ProjectFile, VCProjectFileGenerator.Version);
+									break;
+								case ProjectFileType.XCode:
+									Generator = new XcodeProjectFileGenerator(ProjectFile);
+									break;
+								default:
+									throw new BuildException("Unhandled project file type '{0}", ProjectFileType);
+							}
+							if(!Generator.GenerateProjectFiles(Arguments))
+							{
+								Result = ECompilationResult.OtherCompilationError;
+							}
 						}
 					}
 					else if (bAutoSDKOnly)

@@ -118,17 +118,12 @@ namespace UnrealBuildTool
 	/// </summary>
 	public enum ProjectFileType
 	{
-		Default,
 		Make,
 		CMake,
 		QMake,
 		KDevelop,
 		CodeLite,
 		VisualStudio,
-		VisualStudio2012,
-		VisualStudio2013,
-		VisualStudio2015,
-		VisualStudio2017,
 		XCode,
 	}
 
@@ -137,12 +132,6 @@ namespace UnrealBuildTool
 	/// </summary>
 	public abstract class ProjectFileGenerator
 	{
-		/// <summary>
-		/// Global setting for the type of project files to create. This may be specified on the command line, 
-		/// </summary>
-		[XmlConfig]
-		public static ProjectFileType Type = ProjectFileType.Default;
-
 		/// Global static that enables generation of project files.  Doesn't actually compile anything.
 		/// This is enabled only via UnrealBuildTool command-line.
 		public static bool bGenerateProjectFiles = false;

@@ -49,6 +49,12 @@ namespace UnrealBuildTool
 	/// </summary>
 	public class VCProjectFileGenerator : ProjectFileGenerator
 	{
+		/// <summary>
+		/// Do not access this variable directly; it is used to read the default for config files only, and may be overridden by the actual project setting.
+		/// </summary>
+		[XmlConfig]
+		public static VCProjectFileFormat Version = VCProjectFileFormat.Default;
+
 		/// Default constructor
 		public VCProjectFileGenerator(FileReference InOnlyGameProject, VCProjectFileFormat InFormat)
 			: base(InOnlyGameProject)
