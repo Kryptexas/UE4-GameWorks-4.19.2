@@ -92,6 +92,10 @@ void UStrProperty::ExportTextItem( FString& ValueStr, const void* PropertyValue,
 	{
 		ValueStr += FString::Printf( TEXT("\"%s\""), *(StringValue.ReplaceCharWithEscapedChar()) );
 	}
+	else
+	{
+		ValueStr += TEXT("\"\"");
+	}
 }
 const TCHAR* UStrProperty::ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText ) const
 {

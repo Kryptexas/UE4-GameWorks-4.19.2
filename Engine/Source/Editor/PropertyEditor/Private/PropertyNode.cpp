@@ -2825,13 +2825,23 @@ void FPropertyNode::PropagatePropertyChange( UObject* ModifiedObject, const TCHA
 	FPropertyNode*  Parent          = GetParentNode();
 	UProperty*      ParentProp      = Parent->GetProperty();
 	UArrayProperty* ParentArrayProp = Cast<UArrayProperty>(ParentProp);
+	UMapProperty*   ParentMapProp   = Cast<UMapProperty>(ParentProp);
+	USetProperty*	ParentSetProp	= Cast<USetProperty>(ParentProp);
 	UProperty*      Prop            = GetProperty();
-	UMapProperty*   MapProp         = Cast<UMapProperty>(Prop);
-	USetProperty*	SetProp			= Cast<USetProperty>(Prop);
 
-	if (ParentArrayProp != nullptr && ParentArrayProp->Inner != Prop)
+	if (ParentArrayProp && ParentArrayProp->Inner != Prop)
 	{
 		ParentArrayProp = nullptr;
+	}
+
+	if (ParentMapProp && ParentMapProp->KeyProp != Prop && ParentMapProp->ValueProp != Prop)
+	{
+		ParentMapProp = nullptr;
+	}
+
+	if (ParentSetProp && ParentSetProp->ElementProp != Prop)
+	{
+		ParentSetProp = nullptr;
 	}
 
 	ObjectsToChange.Push(Object);
@@ -2858,176 +2868,48 @@ void FPropertyNode::PropagatePropertyChange( UObject* ModifiedObject, const TCHA
 
 		if (ActualObjToChange != ModifiedObject)
 		{
-			FString OrgValue;
-
-			uint8* Addr = GetValueBaseAddress( (uint8*)ActualObjToChange );
-			if (Addr != nullptr)
+			uint8* DestSimplePropAddr = GetValueBaseAddress( (uint8*)ActualObjToChange );
+			if (DestSimplePropAddr != nullptr)
 			{
-				class FMemoryWriterWithObjects : public FArchive
+				UProperty* ComplexProperty = Prop;
+				FPropertyNode* ComplexPropertyNode = this;
+				if (ParentArrayProp || ParentMapProp || ParentSetProp)
 				{
-				public:
-					explicit FMemoryWriterWithObjects(TArray<uint8>& InArray)
-						: Array(InArray)
-						, Offset(0)
-					{
-						ArIsSaving = true;
-					}
-
-					virtual FArchive& operator<<(FName&                 Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
-					virtual FArchive& operator<<(UObject*&              Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
-					virtual FArchive& operator<<(FLazyObjectPtr&        Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
-					virtual FArchive& operator<<(FAssetPtr&             Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
-					virtual FArchive& operator<<(FStringAssetReference& Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
-					virtual FArchive& operator<<(FWeakObjectPtr&		Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
-
-					void Serialize(void* Data, int64 Num)
-					{
-						const int64 NumBytesToAdd = Offset + Num - Array.Num();
-						if( NumBytesToAdd > 0 )
-						{
-							const int64 NewArrayCount = Array.Num() + NumBytesToAdd;
-							if( NewArrayCount >= MAX_int32 )
-							{
-								UE_LOG( LogSerialization, Fatal, TEXT( "FMemoryWriterWithObjects does not support data larger than 2GB." ));
-							}
-
-							Array.AddUninitialized( (int32)NumBytesToAdd );
-						}
-
-						check((Offset + Num) <= Array.Num());
-
-						if( Num )
-						{
-							FMemory::Memcpy( &Array[Offset], Data, Num );
-							Offset+=Num;
-						}
-					}
-
-				protected:
-					TArray<uint8>& Array;
-					int64 Offset;
-				};
-
-				class FMemoryReaderWithObjects : public FArchive
-				{
-				public:
-					explicit FMemoryReaderWithObjects(const TArray<uint8>& InArray)
-						: Array(InArray)
-						, Offset(0)
-					{
-						ArIsLoading = true;
-					}
-
-					virtual FArchive& operator<<(FName&                 Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
-					virtual FArchive& operator<<(UObject*&              Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
-					virtual FArchive& operator<<(FLazyObjectPtr&        Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
-					virtual FArchive& operator<<(FAssetPtr&             Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
-					virtual FArchive& operator<<(FStringAssetReference& Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
-					virtual FArchive& operator<<(FWeakObjectPtr&		Val) override { this->Serialize(&Val, sizeof(Val)); return *this; }
-
-					void Serialize(void* Data, int64 Num)
-					{
-						if (Num && !ArIsError)
-						{
-							// Only serialize if we have the requested amount of data
-							if (Offset + Num <= TotalSize())
-							{
-								FMemory::Memcpy( Data, &Array[Offset], Num );
-								Offset += Num;
-							}
-							else
-							{
-								ArIsError = true;
-							}
-						}
-					}
-
-				protected:
-					const TArray<uint8>& Array;
-					int64 Offset;
-				};
-
-				if (MapProp != nullptr)
-				{
-					// Read previous value back into object
-					uint8* PreviousMap = (uint8*)FMemory::Malloc(MapProp->GetSize(), MapProp->GetMinAlignment());
-					ON_SCOPE_EXIT
-					{
-						FMemory::Free(PreviousMap);
-					};
-
-					MapProp->InitializeValue(PreviousMap);
-					ON_SCOPE_EXIT
-					{
-						MapProp->DestroyValue(PreviousMap);
-					};
-
-					MapProp->ImportText(*PreviousValue, PreviousMap, PPF_Localized, ModifiedObject);
-
-					uint8* ModifiedObjectAddr = GetValueBaseAddress( (uint8*)ModifiedObject );
-
-					// Serialize differences from the 'default' (the old object)
-					TArray<uint8> Data;
-					{
-						FMemoryWriterWithObjects Ar(Data);
-						MapProp->SerializeItem(Ar, Addr, PreviousMap);
-					}
-
-					// Deserialize differences back over the new object
-					{
-						FMemoryReaderWithObjects Ar(Data);
-						MapProp->SerializeItem(Ar, Addr, ModifiedObjectAddr);
-					}
+					ComplexProperty = ParentProp;
+					ComplexPropertyNode = ParentNode;
 				}
-				else if (SetProp != nullptr)
+				
+				uint8* DestComplexPropAddr = ComplexPropertyNode->GetValueBaseAddress((uint8*)ActualObjToChange);
+				uint8* ModifiedComplexPropAddr = ComplexPropertyNode->GetValueBaseAddress((uint8*)ModifiedObject);
+
+				bool bShouldImport = false;
 				{
-					// Read previous value back into object
-					uint8* PreviousSet = (uint8*)FMemory::Malloc(SetProp->GetSize(), SetProp->GetMinAlignment());
+					uint8* TempComplexPropAddr = (uint8*)FMemory::Malloc(ComplexProperty->GetSize(), ComplexProperty->GetMinAlignment());
 					ON_SCOPE_EXIT
 					{
-						FMemory::Free(PreviousSet);
+						FMemory::Free(TempComplexPropAddr);
 					};
 
-					SetProp->InitializeValue(PreviousSet);
+					ComplexProperty->InitializeValue(TempComplexPropAddr);
 					ON_SCOPE_EXIT
 					{
-						SetProp->DestroyValue(PreviousSet);
+						ComplexProperty->DestroyValue(TempComplexPropAddr);
 					};
 
-					SetProp->ImportText(*PreviousValue, PreviousSet, PPF_Localized, ModifiedObject);
-
-					uint8* ModifiedObjectAddr = GetValueBaseAddress( (uint8*)ModifiedObject );
-
-					// Serialize differences from the 'default' (the old object)
-					TArray<uint8> Data;
-					{
-						FMemoryWriterWithObjects Ar(Data);
-						SetProp->SerializeItem(Ar, Addr, PreviousSet);
-					}
-
-					// Deserialize differences back over the new object
-					{
-						FMemoryReaderWithObjects Ar(Data);
-						SetProp->SerializeItem(Ar, Addr, ModifiedObjectAddr);
-					}
+					// Importing the previous value into the temporary property can potentially affect shared state (such as FText display string values), so we back-up the current value 
+					// before we do this, so that we can restore it once we've checked whether the two properties are identical
+					// This ensures that shared state keeps the correct value, even if the destination property itself isn't imported (or only partly imported, as is the case with arrays/maps/sets)
+					FString CurrentValue;
+					ComplexProperty->ExportText_Direct(CurrentValue, ModifiedComplexPropAddr, nullptr, ModifiedObject, PPF_None);
+					ComplexProperty->ImportText(*PreviousValue, TempComplexPropAddr, PPF_None, ModifiedObject);
+					bShouldImport = ComplexProperty->Identical(DestComplexPropAddr, TempComplexPropAddr, PPF_None);
+					ComplexProperty->ImportText(*CurrentValue, TempComplexPropAddr, PPF_None, ModifiedObject);
 				}
-				else
-				{
-					if (ParentArrayProp != nullptr)
-					{
-						uint8* ArrayAddr = ParentNode->GetValueBaseAddress( (uint8*)ActualObjToChange );
-						ParentArrayProp->ExportText_Direct(OrgValue, ArrayAddr, ArrayAddr, nullptr, PPF_Localized );
-					}
-					else
-					{
-						Prop->ExportText_Direct(OrgValue, Addr, Addr, nullptr, PPF_Localized );
-					}
 
-					// Check if the original value was the default value and change it only then
-					if (OrgValue == PreviousValue)
-					{
-						Prop->ImportText( NewValue, Addr, PPF_Localized, ActualObjToChange );
-					}
+				// Only import if the value matches the previous value of the property that changed
+				if (bShouldImport)
+				{
+					Prop->ImportText(NewValue, DestSimplePropAddr, PPF_None, ActualObjToChange);
 				}
 			}
 		}
