@@ -228,6 +228,9 @@ struct FMeshSectionInfoMap
 	/** Clears all entries in the map resetting everything to default. */
 	ENGINE_API void Clear();
 
+	/** Get the number of section for a LOD. */
+	ENGINE_API int32 GetSectionNumber(int32 LODIndex) const;
+
 	/** Gets per-section settings for the specified LOD + section. */
 	ENGINE_API FMeshSectionInfo Get(int32 LODIndex, int32 SectionIndex) const;
 
@@ -343,6 +346,40 @@ struct FStaticMaterial
 };
 
 
+enum EImportStaticMeshVersion
+{
+	// Before any version changes were made
+	BeforeImportStaticMeshVersionWasAdded,
+	// Remove the material re-order workflow
+	RemoveStaticMeshSkinxxWorkflow,
+	VersionPlusOne,
+	LastVersion = VersionPlusOne - 1
+};
+
+USTRUCT()
+struct FMaterialRemapIndex
+{
+	GENERATED_USTRUCT_BODY()
+
+	FMaterialRemapIndex()
+	{
+		ImportVersionKey = 0;
+	}
+
+	FMaterialRemapIndex(uint32 VersionKey, TArray<int32> RemapArray)
+	: ImportVersionKey(VersionKey)
+	, MaterialRemap(RemapArray)
+	{
+	}
+
+	UPROPERTY()
+	uint32 ImportVersionKey;
+
+	UPROPERTY()
+	TArray<int32> MaterialRemap;
+};
+
+
 /**
  * A StaticMesh is a piece of geometry that consists of a static set of polygons.
  * Static Meshes can be translated, rotated, and scaled, but they cannot have their vertices animated in any way. As such, they are more efficient
@@ -377,11 +414,20 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	UPROPERTY()
 	uint32 bAutoComputeLODScreenSize:1;
 
+	/* The last import version */
+	UPROPERTY()
+	int32 ImportVersion;
+
+	UPROPERTY()
+	TArray<FMaterialRemapIndex> MaterialRemapIndexPerImportVersion;
+	
 	/**
 	* If true on post load we need to calculate Display Factors from the
 	* loaded LOD distances.
 	*/
 	bool bRequiresLODDistanceConversion : 1;
+
+
 
 #endif // #if WITH_EDITORONLY_DATA
 

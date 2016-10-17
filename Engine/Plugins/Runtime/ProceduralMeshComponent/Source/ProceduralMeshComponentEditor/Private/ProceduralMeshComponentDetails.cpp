@@ -186,6 +186,9 @@ FReply FProceduralMeshComponentDetails::ClickedOnConvertToStaticMesh()
 					StaticMesh->StaticMaterials.Add(FStaticMaterial(Material));
 				}
 
+				//Set the Imported version before calling the build
+				StaticMesh->ImportVersion = EImportStaticMeshVersion::LastVersion;
+
 				// Build mesh from source
 				StaticMesh->Build(false);
 				StaticMesh->PostEditChange();

@@ -176,6 +176,7 @@ UStaticMeshComponent::UStaticMeshComponent(const FObjectInitializer& ObjectIniti
 #if WITH_EDITORONLY_DATA
 	SelectedEditorSection = INDEX_NONE;
 	SectionIndexPreview = INDEX_NONE;
+	StaticMeshImportVersion = BeforeImportStaticMeshVersionWasAdded;
 #endif
 }
 
@@ -551,6 +552,44 @@ void UStaticMeshComponent::OnRegister()
 	{
 		AddSpeedTreeWind();
 	}
+
+#if WITH_EDITORONLY_DATA
+	//Remap the override materials if the import version is different
+	//We do the remap here because if the UStaticMeshComponent is already load when
+	//a static mesh get re-imported the postload will not be call.
+	if (GetStaticMesh() && StaticMeshImportVersion != GetStaticMesh()->ImportVersion)
+	{
+		if (OverrideMaterials.Num())
+		{
+			uint32 MaterialMapKey = ( (uint32)((StaticMeshImportVersion & 0xffff) << 16) | (uint32)(GetStaticMesh()->ImportVersion & 0xffff));
+			for (const FMaterialRemapIndex &MaterialRemapIndex : GetStaticMesh()->MaterialRemapIndexPerImportVersion)
+			{
+				if (MaterialRemapIndex.ImportVersionKey == MaterialMapKey)
+				{
+					const TArray<int32> &RemapMaterials = MaterialRemapIndex.MaterialRemap;
+					TArray<UMaterialInterface*> OldOverrideMaterials = OverrideMaterials;
+					OverrideMaterials.Empty();
+					for (int32 MaterialIndex = 0; MaterialIndex < OldOverrideMaterials.Num(); ++MaterialIndex)
+					{
+						if (!RemapMaterials.IsValidIndex(MaterialIndex))
+						{
+							continue; //TODO is it allow check() instead
+						}
+						int32 RemapIndex = RemapMaterials[MaterialIndex];
+						if (RemapIndex >= OverrideMaterials.Num())
+						{
+							//Allocate space
+							OverrideMaterials.AddZeroed((RemapIndex - OverrideMaterials.Num()) + 1);
+						}
+						OverrideMaterials[RemapIndex] = OldOverrideMaterials[MaterialIndex];
+					}
+					break;
+				}
+			}
+		}
+		StaticMeshImportVersion = GetStaticMesh()->ImportVersion;
+	}
+#endif //WITH_EDITORONLY_DATA
 
 	Super::OnRegister();
 }
@@ -1633,6 +1672,7 @@ void UStaticMeshComponent::PostLoad()
 			OverrideMaterials.RemoveAt(GetStaticMesh()->StaticMaterials.Num(), OverrideMaterials.Num() - GetStaticMesh()->StaticMaterials.Num());
 		}
 	}
+
 #endif // #if WITH_EDITORONLY_DATA
 
 	// Legacy content may contain a lightmap resolution of 0, which was valid when vertex lightmaps were supported, but not anymore with only texture lightmaps
@@ -1696,6 +1736,12 @@ bool UStaticMeshComponent::SetStaticMesh(UStaticMesh* NewMesh)
 	OnStaticMeshChangedEvent.Broadcast(this);
 #endif
 
+#if WITH_EDITORONLY_DATA
+	if (GetStaticMesh())
+	{
+		StaticMeshImportVersion = GetStaticMesh()->ImportVersion;
+	}
+#endif
 	return true;
 }
 

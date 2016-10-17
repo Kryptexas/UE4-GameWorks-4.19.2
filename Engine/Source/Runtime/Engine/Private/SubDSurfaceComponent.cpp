@@ -941,6 +941,9 @@ void USubDSurfaceComponent::RecreateMeshData()
 	// Store the raw mesh within the RawMeshBulkData
 	SrcModel.RawMeshBulkData->SaveRawMesh(RawMesh);
 	
+	//Set the Imported version before calling the build
+	GeneratedMesh->ImportVersion = EImportStaticMeshVersion::LastVersion;
+
 	// Build the static mesh (using the build setting etc.) this generates correct tangents using the extracting smoothing group along with the imported Normals data
 	GeneratedMesh->Build(false);
 	GeneratedMesh->MarkPackageDirty();

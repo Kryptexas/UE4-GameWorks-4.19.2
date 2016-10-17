@@ -144,25 +144,8 @@ namespace FbxMeshUtils
 			}
 			else
 			{
-				// Import mesh
-				TArray<FName> OrderedMaterialNames;
-				{
-					int32 NoneNameCount = 0;
-					for (const FStaticMaterial &Material : BaseStaticMesh->StaticMaterials)
-					{
-						if (Material.ImportedMaterialSlotName == NAME_None)
-							NoneNameCount++;
-
-						OrderedMaterialNames.Add(Material.ImportedMaterialSlotName);
-					}
-					if (NoneNameCount >= OrderedMaterialNames.Num())
-					{
-						OrderedMaterialNames.Empty();
-					}
-				}
-
 				UStaticMesh* TempStaticMesh = NULL;
-				TempStaticMesh = (UStaticMesh*)FFbxImporter->ImportStaticMeshAsSingle(BaseStaticMesh->GetOutermost(), *(LODNodeList[bUseLODs? LODLevel: 0]), NAME_None, RF_NoFlags, ImportData, BaseStaticMesh, LODLevel, nullptr, OrderedMaterialNames.Num() > 0 ? &OrderedMaterialNames : nullptr);
+				TempStaticMesh = (UStaticMesh*)FFbxImporter->ImportStaticMeshAsSingle(BaseStaticMesh->GetOutermost(), *(LODNodeList[bUseLODs? LODLevel: 0]), NAME_None, RF_NoFlags, ImportData, BaseStaticMesh, LODLevel, nullptr);
 
 				// Add imported mesh to existing model
 				if( TempStaticMesh )

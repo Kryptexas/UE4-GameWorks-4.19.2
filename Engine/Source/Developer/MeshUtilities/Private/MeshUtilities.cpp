@@ -125,7 +125,8 @@ private:
 	virtual bool BuildStaticMesh(
 		FStaticMeshRenderData& OutRenderData,
 		TArray<FStaticMeshSourceModel>& SourceModels,
-		const FStaticMeshLODGroup& LODGroup
+		const FStaticMeshLODGroup& LODGroup,
+		int32 ImportVersion = EImportStaticMeshVersion::LastVersion
 		) override;
 
 	virtual void BuildStaticMeshVertexAndIndexBuffers(
@@ -502,6 +503,9 @@ protected:
 
 		//Assign the proxy material to the static mesh
 		StaticMesh->StaticMaterials.Add(FStaticMaterial(ProxyMaterial));
+
+		//Set the Imported version before calling the build
+		StaticMesh->ImportVersion = EImportStaticMeshVersion::LastVersion;
 
 		StaticMesh->Build();
 		StaticMesh->PostEditChange();
@@ -1719,6 +1723,9 @@ UStaticMesh* FMeshUtilities::ConvertMeshesToStaticMesh(const TArray<UMeshCompone
 				StaticMesh->StaticMaterials.Add(FStaticMaterial(Material));
 			}
 			
+			//Set the Imported version before calling the build
+			StaticMesh->ImportVersion = EImportStaticMeshVersion::LastVersion;
+
 			// Build mesh from source
 			StaticMesh->Build(false);
 			StaticMesh->PostEditChange();
@@ -3696,7 +3703,7 @@ public:
 		return true;
 	}
 
-	bool GenerateRenderingMeshes(FMeshUtilities& MeshUtilities, FStaticMeshRenderData& OutRenderData, TArray<FStaticMeshSourceModel>& InOutModels)
+	bool GenerateRenderingMeshes(FMeshUtilities& MeshUtilities, FStaticMeshRenderData& OutRenderData, TArray<FStaticMeshSourceModel>& InOutModels, int32 ImportVersion)
 	{
 		check(Stage == EStage::Reduce);
 		// Generate per-LOD rendering data.
@@ -3727,7 +3734,14 @@ public:
 				const int32 MaterialIndex = MaterialIndices[Index];
 				FStaticMeshSection* Section = new(LODModel.Sections) FStaticMeshSection();
 				Section->MaterialIndex = MaterialIndex;
-				MaterialToSectionMapping.Add(MaterialIndex, Index);
+				if (ImportVersion < RemoveStaticMeshSkinxxWorkflow)
+				{
+					MaterialToSectionMapping.Add(MaterialIndex, MaterialIndex);
+				}
+				else
+				{
+					MaterialToSectionMapping.Add(MaterialIndex, Index);
+				}
 				new(PerSectionIndices)TArray<uint32>;
 			}
 
@@ -3947,7 +3961,7 @@ private:
 	bool HasRawMesh[MAX_STATIC_MESH_LODS];
 };
 
-bool FMeshUtilities::BuildStaticMesh(FStaticMeshRenderData& OutRenderData, TArray<FStaticMeshSourceModel>& SourceModels, const FStaticMeshLODGroup& LODGroup)
+bool FMeshUtilities::BuildStaticMesh(FStaticMeshRenderData& OutRenderData, TArray<FStaticMeshSourceModel>& SourceModels, const FStaticMeshLODGroup& LODGroup, int32 ImportVersion)
 {
 	FStaticMeshUtilityBuilder Builder;
 	if (!Builder.GatherSourceMeshesPerLOD(SourceModels, StaticMeshReduction))
@@ -3961,7 +3975,7 @@ bool FMeshUtilities::BuildStaticMesh(FStaticMeshRenderData& OutRenderData, TArra
 		return false;
 	}
 
-	return Builder.GenerateRenderingMeshes(*this, OutRenderData, SourceModels);
+	return Builder.GenerateRenderingMeshes(*this, OutRenderData, SourceModels, ImportVersion);
 }
 
 bool FMeshUtilities::GenerateStaticMeshLODs(TArray<FStaticMeshSourceModel>& Models, const FStaticMeshLODGroup& LODGroup)
@@ -8033,6 +8047,9 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 		}
 
 		StaticMesh->SectionInfoMap.CopyFrom(SectionInfoMap);
+
+		//Set the Imported version before calling the build
+		StaticMesh->ImportVersion = EImportStaticMeshVersion::LastVersion;
 
 		StaticMesh->Build(bSilent);
 		StaticMesh->PostEditChange();

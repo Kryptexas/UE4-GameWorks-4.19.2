@@ -134,7 +134,8 @@ public:
 	virtual bool BuildStaticMesh(
 		class FStaticMeshRenderData& OutRenderData,
 		TArray<struct FStaticMeshSourceModel>& SourceModels,
-		const class FStaticMeshLODGroup& LODGroup
+		const class FStaticMeshLODGroup& LODGroup,
+		int32 ImportVersion
 		) = 0;
 
 	virtual void BuildStaticMeshVertexAndIndexBuffers(
