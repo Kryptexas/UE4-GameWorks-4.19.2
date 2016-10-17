@@ -1840,7 +1840,8 @@ void FSequencer::PossessPIEViewports(UObject* CameraObject, UObject* UnlockIfCam
 		// skip unlocking if the current view target differs
 		AActor* UnlockIfCameraActor = Cast<AActor>(UnlockIfCameraObject);
 
-		if ((CameraObject == nullptr) && (UnlockIfCameraActor != ViewTarget))
+		// if unlockIfCameraActor is valid, release lock if currently locked to object
+		if (CameraObject == nullptr && UnlockIfCameraActor != nullptr && UnlockIfCameraActor != ViewTarget)
 		{
 			return;
 		}
