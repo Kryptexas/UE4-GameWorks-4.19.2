@@ -1813,72 +1813,67 @@ namespace UnrealBuildTool
 					}
 				}
 
-				// Add all the include paths etc. for external modules
-				UEBuildExternalModule ExternalModule = Module as UEBuildExternalModule;
-				if (ExternalModule != null)
+				// Add the rules file itself
+				Files.Add(ModuleRulesFileName);
+
+				// Get a list of all the library paths
+				List<string> LibraryPaths = new List<string>();
+				LibraryPaths.Add(Directory.GetCurrentDirectory());
+				LibraryPaths.AddRange(Rules.PublicLibraryPaths.Where(x => !x.StartsWith("$(")).Select(x => Path.GetFullPath(x.Replace('/', '\\'))));
+
+				// Get all the extensions to look for
+				List<string> LibraryExtensions = new List<string>();
+				LibraryExtensions.Add(BuildPlatform.GetBinaryExtension(UEBuildBinaryType.StaticLibrary));
+				LibraryExtensions.Add(BuildPlatform.GetBinaryExtension(UEBuildBinaryType.DynamicLinkLibrary));
+
+				// Add all the libraries
+				foreach (string LibraryExtension in LibraryExtensions)
 				{
-					// Add the rules file itself
-					Files.Add(ModuleRulesFileName);
-
-					// Get a list of all the library paths
-					List<string> LibraryPaths = new List<string>();
-					LibraryPaths.Add(Directory.GetCurrentDirectory());
-					LibraryPaths.AddRange(Rules.PublicLibraryPaths.Where(x => !x.StartsWith("$(")).Select(x => Path.GetFullPath(x.Replace('/', '\\'))));
-
-					// Get all the extensions to look for
-					List<string> LibraryExtensions = new List<string>();
-					LibraryExtensions.Add(BuildPlatform.GetBinaryExtension(UEBuildBinaryType.StaticLibrary));
-					LibraryExtensions.Add(BuildPlatform.GetBinaryExtension(UEBuildBinaryType.DynamicLinkLibrary));
-
-					// Add all the libraries
-					foreach (string LibraryExtension in LibraryExtensions)
+					foreach (string LibraryName in Rules.PublicAdditionalLibraries)
 					{
-						foreach (string LibraryName in Rules.PublicAdditionalLibraries)
+						foreach (string LibraryPath in LibraryPaths)
 						{
-							foreach (string LibraryPath in LibraryPaths)
+							string LibraryFileName = Path.Combine(LibraryPath, LibraryName);
+							if (File.Exists(LibraryFileName))
 							{
-								string LibraryFileName = Path.Combine(LibraryPath, LibraryName);
-								if (File.Exists(LibraryFileName))
-								{
-									Files.Add(new FileReference(LibraryFileName));
-								}
+								Files.Add(new FileReference(LibraryFileName));
+							}
 
-								string UnixLibraryFileName = Path.Combine(LibraryPath, "lib" + LibraryName + LibraryExtension);
-								if (File.Exists(UnixLibraryFileName))
-								{
-									Files.Add(new FileReference(UnixLibraryFileName));
-								}
+							string UnixLibraryFileName = Path.Combine(LibraryPath, "lib" + LibraryName + LibraryExtension);
+							if (File.Exists(UnixLibraryFileName))
+							{
+								Files.Add(new FileReference(UnixLibraryFileName));
 							}
 						}
 					}
+				}
 
-					// Add all the additional shadow files
-					foreach (string AdditionalShadowFile in Rules.PublicAdditionalShadowFiles)
+				// Add all the additional shadow files
+				foreach (string AdditionalShadowFile in Rules.PublicAdditionalShadowFiles)
+				{
+					string ShadowFileName = Path.GetFullPath(AdditionalShadowFile);
+					if (File.Exists(ShadowFileName))
 					{
-						string ShadowFileName = Path.GetFullPath(AdditionalShadowFile);
-						if (File.Exists(ShadowFileName))
-						{
-							Files.Add(new FileReference(ShadowFileName));
-						}
+						Files.Add(new FileReference(ShadowFileName));
 					}
+				}
 
-					// Find all the include paths
-					List<string> AllIncludePaths = new List<string>();
-					AllIncludePaths.AddRange(Rules.PublicIncludePaths);
-					AllIncludePaths.AddRange(Rules.PublicSystemIncludePaths);
+				// Find all the include paths
+				List<string> AllIncludePaths = new List<string>();
+				AllIncludePaths.AddRange(Rules.PublicIncludePaths);
+				AllIncludePaths.AddRange(Rules.PublicSystemIncludePaths);
 
-					// Add all the include paths
-					foreach (string IncludePath in AllIncludePaths.Where(x => !x.StartsWith("$(")))
+				// Add all the include paths
+				foreach (string IncludePath in AllIncludePaths.Where(x => !x.StartsWith("$(")))
+				{
+					if (Directory.Exists(IncludePath))
 					{
-						if (Directory.Exists(IncludePath))
+						foreach (string IncludeFileName in Directory.EnumerateFiles(IncludePath, "*", SearchOption.AllDirectories))
 						{
-							foreach (string IncludeFileName in Directory.EnumerateFiles(IncludePath, "*", SearchOption.AllDirectories))
+							string Extension = Path.GetExtension(IncludeFileName).ToLower();
+							if (Extension == ".h" || Extension == ".inl")
 							{
-								string Extension = Path.GetExtension(IncludeFileName).ToLower();
-								if (Extension == ".h" || Extension == ".inl")
-								{
-									Files.Add(new FileReference(IncludeFileName));
-								}
+								Files.Add(new FileReference(IncludeFileName));
 							}
 						}
 					}
