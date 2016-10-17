@@ -981,6 +981,7 @@ void RestoreExistingMeshData(ExistingStaticMeshData* ExistingMeshDataPtr, UStati
 {
 	if ( ExistingMeshDataPtr && NewMesh )
 	{
+		int32 OriginalMaterialCount = ExistingMeshDataPtr->ExistingMaterials.Num();
 		//Restore the material array
 		if (ExistingMeshDataPtr->ExistingMaterials.Num() > NewMesh->StaticMaterials.Num())
 		{
@@ -1019,7 +1020,15 @@ void RestoreExistingMeshData(ExistingStaticMeshData* ExistingMeshDataPtr, UStati
 					ExistingMeshDataPtr->ExistingMaterials[MaterialIndex].MaterialSlotName = NewMesh->StaticMaterials[MaterialIndex].MaterialSlotName;
 				}
 			}
-			NewMesh->StaticMaterials[MaterialIndex] = ExistingMeshDataPtr->ExistingMaterials[MaterialIndex];
+			
+			if (OriginalMaterialCount > MaterialIndex)
+			{
+				NewMesh->StaticMaterials[MaterialIndex] = ExistingMeshDataPtr->ExistingMaterials[MaterialIndex];
+			}
+			else
+			{
+				ExistingMeshDataPtr->ExistingMaterials[MaterialIndex] = NewMesh->StaticMaterials[MaterialIndex];
+			}
 		}
 
 		int32 NumCommonLODs = FMath::Min<int32>(ExistingMeshDataPtr->ExistingLODData.Num(), NewMesh->SourceModels.Num());
