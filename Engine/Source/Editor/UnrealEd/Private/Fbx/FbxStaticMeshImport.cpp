@@ -920,9 +920,8 @@ UStaticMesh* UnFbx::FFbxImporter::ReimportStaticMesh(UStaticMesh* Mesh, UFbxStat
 		}
 	}
 	
-	UFbxAssetImportData* ImportData = Cast<UFbxAssetImportData>(Mesh->AssetImportData);
-	ImportOptions->bImportMaterials = ImportData->bImportMaterials;
-	ImportOptions->bImportTextures = ImportData->bImportMaterials;
+	ImportOptions->bImportMaterials = false;
+	ImportOptions->bImportTextures = false;
 
 	struct ExistingStaticMeshData* ExistMeshDataPtr = SaveExistingStaticMeshData(Mesh, !ImportOptions->bImportMaterials);
 

@@ -91,8 +91,8 @@ namespace FbxMeshUtils
 			ReimportUI->StaticMeshImportData = ImportData;
 			ApplyImportUIToImportOptions(ReimportUI, *ImportOptions);
 
-			ImportOptions->bImportMaterials = ImportData->bImportMaterials;
-			ImportOptions->bImportTextures = ImportData->bImportMaterials;
+			ImportOptions->bImportMaterials = false;
+			ImportOptions->bImportTextures = false;
 		}
 
 		if ( !FFbxImporter->ImportFromFile( *Filename, FPaths::GetExtension( Filename ) ) )
@@ -235,8 +235,8 @@ namespace FbxMeshUtils
 					ReimportUI->SkeletalMeshImportData->bTransformVertexToAbsolute = true;
 					ApplyImportUIToImportOptions(ReimportUI, *ImportOptions);
 				}
-				ImportOptions->bImportMaterials = FbxAssetImportData->bImportMaterials;
-				ImportOptions->bImportTextures = FbxAssetImportData->bImportMaterials;
+				ImportOptions->bImportMaterials = false;
+				ImportOptions->bImportTextures = false;
 			}
 			ImportOptions->bImportAnimations = false;
 

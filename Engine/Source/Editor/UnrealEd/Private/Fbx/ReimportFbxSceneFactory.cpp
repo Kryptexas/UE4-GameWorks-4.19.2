@@ -464,10 +464,8 @@ EReimportResult::Type UReimportFbxSceneFactory::Reimport(UObject* Obj)
 	}
 
 	StaticMeshImportData->bImportAsScene = true;
-	StaticMeshImportData->bImportMaterials = GlobalImportSettingsReference->bImportMaterials;
 	StaticMeshImportData->FbxSceneImportDataReference = ReimportData;
 	SkeletalMeshImportData->bImportAsScene = true;
-	SkeletalMeshImportData->bImportMaterials = GlobalImportSettingsReference->bImportMaterials;
 	SkeletalMeshImportData->FbxSceneImportDataReference = ReimportData;
 
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");

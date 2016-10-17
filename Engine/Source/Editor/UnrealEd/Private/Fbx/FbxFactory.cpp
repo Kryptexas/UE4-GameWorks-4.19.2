@@ -213,11 +213,6 @@ UObject* UFbxFactory::FactoryCreateBinary
 
 	if (ImportOptions)
 	{
-		//Set the global option so the reimport know if we must reimport the materails and textures
-		//By default we dont reimport material, because we dont want to override the change made by
-		//the user in the static or skeletal mesh editor. Thos option can be change in those editor.
-		ImportUI->StaticMeshImportData->bImportMaterials = false;
-		ImportUI->SkeletalMeshImportData->bImportMaterials = false;
 
 		Warn->BeginSlowTask( NSLOCTEXT("FbxFactory", "BeginImportingFbxMeshTask", "Importing FBX mesh"), true );
 		if ( !FbxImporter->ImportFromFile( *UFactory::CurrentFilename, Type ) )

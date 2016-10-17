@@ -206,7 +206,6 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 					ImportData->ImportRotation = TestPlan->ImportUI->StaticMeshImportData->ImportRotation;
 					ImportData->ImportUniformScale = TestPlan->ImportUI->StaticMeshImportData->ImportUniformScale;
 					ImportData->bImportAsScene = TestPlan->ImportUI->StaticMeshImportData->bImportAsScene;
-					ImportData->bImportMaterials = TestPlan->ImportUI->StaticMeshImportData->bImportMaterials;
 
 					if (!FReimportManager::Instance()->Reimport(GlobalImportedObjects[0], false, false, CurFileToImport[0], FbxStaticMeshReimportFactory))
 					{
@@ -242,7 +241,6 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 					ImportData->ImportRotation = TestPlan->ImportUI->SkeletalMeshImportData->ImportRotation;
 					ImportData->ImportUniformScale = TestPlan->ImportUI->SkeletalMeshImportData->ImportUniformScale;
 					ImportData->bImportAsScene = TestPlan->ImportUI->SkeletalMeshImportData->bImportAsScene;
-					ImportData->bImportMaterials = TestPlan->ImportUI->SkeletalMeshImportData->bImportMaterials;
 
 					if (!FReimportManager::Instance()->Reimport(GlobalImportedObjects[0], false, false, CurFileToImport[0], FbxSkeletalMeshReimportFactory))
 					{
@@ -309,7 +307,6 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 					ImportData->ImportRotation = TestPlan->ImportUI->StaticMeshImportData->ImportRotation;
 					ImportData->ImportUniformScale = TestPlan->ImportUI->StaticMeshImportData->ImportUniformScale;
 					ImportData->bImportAsScene = TestPlan->ImportUI->StaticMeshImportData->bImportAsScene;
-					ImportData->bImportMaterials = TestPlan->ImportUI->StaticMeshImportData->bImportMaterials;
 
 					
 					FbxMeshUtils::ImportStaticMeshLOD(ExistingStaticMesh, LodFile, TestPlan->LodIndex);
@@ -337,7 +334,6 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 					ImportData->ImportRotation = TestPlan->ImportUI->SkeletalMeshImportData->ImportRotation;
 					ImportData->ImportUniformScale = TestPlan->ImportUI->SkeletalMeshImportData->ImportUniformScale;
 					ImportData->bImportAsScene = TestPlan->ImportUI->SkeletalMeshImportData->bImportAsScene;
-					ImportData->bImportMaterials = TestPlan->ImportUI->SkeletalMeshImportData->bImportMaterials;
 
 					FbxMeshUtils::ImportSkeletalMeshLOD(ExistingSkeletalMesh, LodFile, TestPlan->LodIndex);
 				}
