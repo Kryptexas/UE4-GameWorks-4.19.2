@@ -61,7 +61,7 @@ MeshUtilities module.
 // causes meshes to be rebuilt you MUST generate a new GUID and replace this
 // string with it.
 
-#define MESH_UTILITIES_VER TEXT("8C68575CEF434CA8A9E1DA4AED8A47BB")
+#define MESH_UTILITIES_VER TEXT("228332BAE0224DD294E232B87D83948F")
 
 DEFINE_LOG_CATEGORY_STATIC(LogMeshUtilities, Verbose, All);
 
