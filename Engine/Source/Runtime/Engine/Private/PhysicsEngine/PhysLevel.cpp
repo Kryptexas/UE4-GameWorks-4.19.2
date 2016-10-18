@@ -469,17 +469,20 @@ void TermGamePhys()
 #endif	// #if WITH_APEX
 
 	//Remove all scenes still registered
-	if (int32 NumScenes = GPhysXSDK->getNbScenes())
+	if (GPhysXSDK != NULL)
 	{
-		TArray<PxScene*> PScenes;
-		PScenes.AddUninitialized(NumScenes);
-		GPhysXSDK->getScenes(PScenes.GetData(), sizeof(PxScene*)* NumScenes);
-
-		for (PxScene* PScene : PScenes)
+		if (int32 NumScenes = GPhysXSDK->getNbScenes())
 		{
-			if (PScene)
+			TArray<PxScene*> PScenes;
+			PScenes.AddUninitialized(NumScenes);
+			GPhysXSDK->getScenes(PScenes.GetData(), sizeof(PxScene*)* NumScenes);
+
+			for (PxScene* PScene : PScenes)
 			{
-				PScene->release();
+				if (PScene)
+				{
+					PScene->release();
+				}
 			}
 		}
 	}
@@ -494,8 +497,11 @@ void TermGamePhys()
 	}
 #endif
 
-	PxCloseExtensions();
-	PxCloseVehicleSDK();
+	if (GPhysXSDK != NULL)
+	{
+		PxCloseExtensions();
+		PxCloseVehicleSDK();
+	}
 
 	if(GPhysXSDK != NULL)
 	{
