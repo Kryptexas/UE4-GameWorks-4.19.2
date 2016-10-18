@@ -1072,7 +1072,7 @@ void RestoreExistingMeshData(ExistingStaticMeshData* ExistingMeshDataPtr, UStati
 				{
 					Material.MaterialInterface = ExistMaterial.MaterialInterface;
 					Material.MaterialSlotName = ExistMaterial.MaterialSlotName;
-					//Material.UVChannelData = ExistMaterial.UVChannelData;
+					Material.UVChannelData = ExistMaterial.UVChannelData;
 					MatchIndex.Add(ExistMaterialIndex);
 					RemapMaterial[MaterialIndex] = ExistMaterialIndex;
 					bFoundMatchingMaterial = true;
@@ -1089,19 +1089,27 @@ void RestoreExistingMeshData(ExistingStaticMeshData* ExistingMeshDataPtr, UStati
 						continue;
 					}
 
-					const FStaticMaterial &ExistMaterial = ExistingMeshDataPtr->ExistingMaterials[MaterialIndex];
+					const FStaticMaterial &ExistMaterial = ExistingMeshDataPtr->ExistingMaterials[ExistMaterialIndex];
 					if (ExistMaterial.ImportedMaterialSlotName == NAME_None && Material.MaterialInterface == ExistMaterial.MaterialInterface)
 					{
 						if (ExistMaterial.MaterialSlotName != NAME_None)
 						{
 							Material.MaterialSlotName = ExistMaterial.MaterialSlotName;
 						}
-						//Material.UVChannelData = ExistMaterial.UVChannelData;
+						Material.UVChannelData = ExistMaterial.UVChannelData;
 						MatchIndex.Add(ExistMaterialIndex);
 						RemapMaterial[MaterialIndex] = ExistMaterialIndex;
+						bFoundMatchingMaterial = true;
 						break;
 					}
 				}
+			}
+			if (!bFoundMatchingMaterial && ExistingMeshDataPtr->ExistingMaterials.IsValidIndex(MaterialIndex))
+			{
+				const FStaticMaterial &ExistMaterial = ExistingMeshDataPtr->ExistingMaterials[MaterialIndex];
+				Material.MaterialInterface = ExistMaterial.MaterialInterface;
+				Material.MaterialSlotName = ExistMaterial.MaterialSlotName;
+				Material.UVChannelData = ExistMaterial.UVChannelData;
 			}
 		}
 
