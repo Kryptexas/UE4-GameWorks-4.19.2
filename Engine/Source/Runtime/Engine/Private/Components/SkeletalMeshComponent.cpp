@@ -1929,22 +1929,29 @@ void USkeletalMeshComponent::HideBone( int32 BoneIndex, EPhysBodyOp PhysBodyOpti
 		return;
 	}
 
-	BoneSpaceTransforms[ BoneIndex ].SetScale3D(FVector::ZeroVector);
-	bRequiredBonesUpToDate = false;
-
-	if( PhysBodyOption!=PBO_None )
+	if (BoneSpaceTransforms.IsValidIndex(BoneIndex))
 	{
-		FName HideBoneName = SkeletalMesh->RefSkeleton.GetBoneName(BoneIndex);
-		if ( PhysBodyOption == PBO_Term )
+		BoneSpaceTransforms[BoneIndex].SetScale3D(FVector::ZeroVector);
+		bRequiredBonesUpToDate = false;
+
+		if (PhysBodyOption != PBO_None)
 		{
-			TermBodiesBelow(HideBoneName);
+			FName HideBoneName = SkeletalMesh->RefSkeleton.GetBoneName(BoneIndex);
+			if (PhysBodyOption == PBO_Term)
+			{
+				TermBodiesBelow(HideBoneName);
+			}
+			else if (PhysBodyOption == PBO_Disable)
+			{
+				// Disable collision
+				// @JTODO
+				//SetCollisionBelow(false, HideBoneName);
+			}
 		}
-		else if ( PhysBodyOption == PBO_Disable )
-		{
-			// Disable collision
-			// @JTODO
-			//SetCollisionBelow(false, HideBoneName);
-		}
+	}
+	else
+	{
+		UE_LOG(LogSkeletalMesh, Warning, TEXT("HideBone: Invalid Body Index has entered. This component doesn't contain buffer for the given body."));
 	}
 }
 
@@ -1957,15 +1964,21 @@ void USkeletalMeshComponent::UnHideBone( int32 BoneIndex )
 		return;
 	}
 
-	BoneSpaceTransforms[ BoneIndex ].SetScale3D(FVector(1.0f));
-	bRequiredBonesUpToDate = false;
+	if (BoneSpaceTransforms.IsValidIndex(BoneIndex))
+	{
+		BoneSpaceTransforms[BoneIndex].SetScale3D(FVector(1.0f));
+		bRequiredBonesUpToDate = false;
 
-	FName HideBoneName = SkeletalMesh->RefSkeleton.GetBoneName(BoneIndex);
-	// It's okay to turn this on for terminated bodies
-	// It won't do any if BodyData isn't found
-	// @JTODO
-	//SetCollisionBelow(true, HideBoneName);
-
+		//FName HideBoneName = SkeletalMesh->RefSkeleton.GetBoneName(BoneIndex);
+		// It's okay to turn this on for terminated bodies
+		// It won't do any if BodyData isn't found
+		// @JTODO
+		//SetCollisionBelow(true, HideBoneName);
+	}
+	else
+	{
+		UE_LOG(LogSkeletalMesh, Warning, TEXT("UnHideBone: Invalid Body Index has entered. This component doesn't contain buffer for the given body."));
+	}
 }
 
 
