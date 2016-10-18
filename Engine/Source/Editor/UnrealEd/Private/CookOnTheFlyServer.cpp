@@ -2932,6 +2932,13 @@ ESavePackageResult UCookOnTheFlyServer::SaveCookedPackage(UPackage* Package, uin
 					Package->ClearPackageFlags(PKG_FilterEditorOnly);
 				}
 
+				if (World)
+				{	
+					// Fixup legacy lightmaps before saving
+					// This should be done after loading, but FRedirectCollector::ResolveStringAssetReference in Core loads UWorlds with LoadObject so there's no opportunity to handle this fixup on load
+					World->PersistentLevel->HandleLegacyMapBuildData();
+				}
+
 				// need to subtract 32 because the SavePackage code creates temporary files with longer file names then the one we provide
 				// projects may ignore this restriction if desired
 				static bool bConsiderCompressedPackageFileLengthRequirements = ShouldConsiderCompressedPackageFileLengthRequirements();

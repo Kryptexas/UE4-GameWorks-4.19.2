@@ -728,6 +728,10 @@ bool UCookCommandlet::SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bo
 				if (World)
 				{
 					World->PersistentLevel->OwningWorld = World;
+
+					// Fixup legacy lightmaps before saving
+					// This should be done after loading, but FRedirectCollector::ResolveStringAssetReference in Core loads UWorlds with LoadObject so there's no opportunity to handle this fixup on load
+					World->PersistentLevel->HandleLegacyMapBuildData();
 				}
 
 				const FString FullFilename = FPaths::ConvertRelativePathToFull( PlatFilename );
