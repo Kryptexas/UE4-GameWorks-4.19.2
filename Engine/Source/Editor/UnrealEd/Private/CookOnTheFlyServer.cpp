@@ -1612,9 +1612,13 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 					CookByTheBookOptions->ManifestGenerator->PrepareToLoadNewPackage(BuildFilename);
 				}*/
 
+				GIsCookerLoadingPackage = true;
+
 				SCOPE_TIMER(LoadPackage);
 				Package = LoadPackage( NULL, *BuildFilename, LOAD_None );
 				INC_INT_STAT(LoadPackage, 1);
+
+				GIsCookerLoadingPackage = false;
 			}
 #if DEBUG_COOKONTHEFLY
 			else
@@ -2286,10 +2290,14 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 		// make sure we resolve all string asset references and nothing is loaded
 		if (GRedirectCollector.HasAnyStringAssetReferencesToResolve())
 		{
+			GIsCookerLoadingPackage = true;
+
 			// resolve redirectors first
 			GRedirectCollector.ResolveStringAssetReference();
 			check(GRedirectCollector.HasAnyStringAssetReferencesToResolve() == false);
 			bHasRunStringAssetReferenceResolve = true;
+
+			GIsCookerLoadingPackage = false;
 		}
 	}
 
@@ -2790,11 +2798,15 @@ ESavePackageResult UCookOnTheFlyServer::SaveCookedPackage(UPackage* Package, uin
 
 	if (IsCookByTheBookMode())
 	{
+		GIsCookerLoadingPackage = true;
+
 		SCOPE_TIMER(ResolveRedirectors);
 		COOK_STAT(FScopedDurationTimer ResolveRedirectorsTimer(DetailedCookStats::TickCookOnTheSideResolveRedirectorsTimeSec));
 		FString RelativeFilename = Filename;
 		FPaths::MakeStandardFilename(RelativeFilename);
 		GRedirectCollector.ResolveStringAssetReference(RelativeFilename);
+
+		GIsCookerLoadingPackage = false;
 	}
 
 	if (Filename.Len())
@@ -2934,7 +2946,9 @@ ESavePackageResult UCookOnTheFlyServer::SaveCookedPackage(UPackage* Package, uin
 				else
 				{
 					SCOPE_TIMER(GEditorSavePackage);
+					GIsCookerLoadingPackage = true;
 					Result = GEditor->Save(Package, World, Flags, *PlatFilename, GError, NULL, bSwap, false, SaveFlags, Target, FDateTime::MinValue(), false);
+					GIsCookerLoadingPackage = false;
 					IBlueprintNativeCodeGenModule::Get().Convert(Package, Result, *(Target->PlatformName()));
 					INC_INT_STAT(SavedPackage, 1);
 				}

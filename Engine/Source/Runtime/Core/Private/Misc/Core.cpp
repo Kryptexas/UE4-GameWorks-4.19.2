@@ -204,6 +204,8 @@ bool (*IsAsyncLoadingMultithreaded)() = &IsAsyncLoadingCoreInternal;
 
 /** Whether the editor is currently loading a package or not												*/
 bool					GIsEditorLoadingPackage				= false;
+/** Whether the cooker is currently loading a package or not												*/
+bool					GIsCookerLoadingPackage = false;
 /** Whether GWorld points to the play in editor world														*/
 bool					GIsPlayInEditorWorld			= false;
 /** Unique ID for multiple PIE instances running in one process */

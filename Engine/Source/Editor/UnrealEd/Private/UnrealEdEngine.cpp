@@ -495,6 +495,7 @@ void UUnrealEdEngine::OnPackageDirtyStateUpdated( UPackage* Pkg)
 
 		if( !bIsAutoSaving && 
 			!GIsEditorLoadingPackage && // Don't ask if the package was modified as a result of a load
+			!GIsCookerLoadingPackage && // don't ask if the package was modified as a result of a cooker load
 			!bAlreadyAsked && // Don't ask if we already asked once!
 			(Settings->bPromptForCheckoutOnAssetModification || Settings->bAutomaticallyCheckoutOnAssetModification) )
 		{
