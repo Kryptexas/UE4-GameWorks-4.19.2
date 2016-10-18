@@ -146,7 +146,8 @@ public:
 		const TMultiMap<int32, int32>& OverlappingCorners,
 		const TMap<uint32, uint32>& MaterialToSectionMapping,
 		float ComparisonThreshold,
-		FVector BuildScale
+		FVector BuildScale,
+		int32 ImportVersion
 		) = 0;
 
 	/**

@@ -137,7 +137,8 @@ private:
 		const TMultiMap<int32, int32>& OverlappingCorners,
 		const TMap<uint32, uint32>& MaterialToSectionMapping,
 		float ComparisonThreshold,
-		FVector BuildScale
+		FVector BuildScale,
+		int32 ImportVersion
 		) override;
 
 	virtual bool GenerateStaticMeshLODs(TArray<FStaticMeshSourceModel>& Models, const FStaticMeshLODGroup& LODGroup) override;
@@ -273,7 +274,7 @@ private:
 		TArray<int32>& OutGlobalMaterialIndices
 		) const;
 
-	virtual void ExtractMeshDataForGeometryCache(FRawMesh& RawMesh, const FMeshBuildSettings& BuildSettings, TArray<FStaticMeshBuildVertex>& OutVertices, TArray<TArray<uint32> >& OutPerSectionIndices);
+	virtual void ExtractMeshDataForGeometryCache(FRawMesh& RawMesh, const FMeshBuildSettings& BuildSettings, TArray<FStaticMeshBuildVertex>& OutVertices, TArray<TArray<uint32> >& OutPerSectionIndices, int32 ImportVersion);
 
 	virtual bool PropagatePaintedColorsToRawMesh(const UStaticMeshComponent* StaticMeshComponent, int32 LODIndex, FRawMesh& RawMesh) const override;
 
@@ -3382,7 +3383,8 @@ void FMeshUtilities::BuildStaticMeshVertexAndIndexBuffers(
 	const TMultiMap<int32, int32>& OverlappingCorners,
 	const TMap<uint32, uint32>& MaterialToSectionMapping,
 	float ComparisonThreshold,
-	FVector BuildScale
+	FVector BuildScale,
+	int32 ImportVersion
 	)
 {
 	TMap<int32, int32> FinalVerts;
@@ -3459,7 +3461,15 @@ void FMeshUtilities::BuildStaticMeshVertexAndIndexBuffers(
 		}
 
 		// Put the indices in the material index buffer.
-		const uint32 SectionIndex = MaterialToSectionMapping.FindChecked(RawMesh.FaceMaterialIndices[FaceIndex]);
+		uint32 SectionIndex = 0;
+		if (ImportVersion < RemoveStaticMeshSkinxxWorkflow)
+		{
+			SectionIndex = FMath::Clamp(RawMesh.FaceMaterialIndices[FaceIndex], 0, OutPerSectionIndices.Num() - 1);
+		}
+		else
+		{
+			SectionIndex = MaterialToSectionMapping.FindChecked(RawMesh.FaceMaterialIndices[FaceIndex]);
+		}
 		TArray<uint32>& SectionIndices = OutPerSectionIndices[SectionIndex];
 		for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
 		{
@@ -3752,7 +3762,7 @@ public:
 				TArray<int32> TempWedgeMap;
 				TArray<int32>& WedgeMap = (LODIndex == 0 && InOutModels[0].ReductionSettings.PercentTriangles >= 1.0f) ? OutRenderData.WedgeMap : TempWedgeMap;
 				float ComparisonThreshold = GetComparisonThreshold(LODBuildSettings[LODIndex]);
-				MeshUtilities.BuildStaticMeshVertexAndIndexBuffers(Vertices, PerSectionIndices, WedgeMap, RawMesh, LODOverlappingCorners[LODIndex], MaterialToSectionMapping, ComparisonThreshold, LODBuildSettings[LODIndex].BuildScale3D);
+				MeshUtilities.BuildStaticMeshVertexAndIndexBuffers(Vertices, PerSectionIndices, WedgeMap, RawMesh, LODOverlappingCorners[LODIndex], MaterialToSectionMapping, ComparisonThreshold, LODBuildSettings[LODIndex].BuildScale3D, ImportVersion);
 				check(WedgeMap.Num() == RawMesh.WedgeIndices.Num());
 
 				if (RawMesh.WedgeIndices.Num() < 100000 * 3)
@@ -6846,7 +6856,7 @@ bool FMeshUtilities::ConstructRawMesh(
 	return true;
 }
 
-void FMeshUtilities::ExtractMeshDataForGeometryCache(FRawMesh& RawMesh, const FMeshBuildSettings& BuildSettings, TArray<FStaticMeshBuildVertex>& OutVertices, TArray<TArray<uint32> >& OutPerSectionIndices)
+void FMeshUtilities::ExtractMeshDataForGeometryCache(FRawMesh& RawMesh, const FMeshBuildSettings& BuildSettings, TArray<FStaticMeshBuildVertex>& OutVertices, TArray<TArray<uint32> >& OutPerSectionIndices, int32 ImportVersion)
 {
 	int32 NumWedges = RawMesh.WedgeIndices.Num();
 
@@ -6913,7 +6923,7 @@ void FMeshUtilities::ExtractMeshDataForGeometryCache(FRawMesh& RawMesh, const FM
 		MaterialToSectionMapping.Add(i, i);
 	}
 
-	BuildStaticMeshVertexAndIndexBuffers(OutVertices, OutPerSectionIndices, OutWedgeMap, RawMesh, OverlappingCorners, MaterialToSectionMapping, KINDA_SMALL_NUMBER, BuildSettings.BuildScale3D);
+	BuildStaticMeshVertexAndIndexBuffers(OutVertices, OutPerSectionIndices, OutWedgeMap, RawMesh, OverlappingCorners, MaterialToSectionMapping, KINDA_SMALL_NUMBER, BuildSettings.BuildScale3D, ImportVersion);
 
 	if (RawMesh.WedgeIndices.Num() < 100000 * 3)
 	{
