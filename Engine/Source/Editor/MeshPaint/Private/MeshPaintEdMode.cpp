@@ -2704,7 +2704,7 @@ void FEdModeMeshPaint::Render( const FSceneView* View, FViewport* Viewport, FPri
 		bool bIsInVRMode = false;
 		if ( IVREditorModule::IsAvailable() )
 		{
-			if ( VREditorMode != nullptr && VREditorMode->IsFullyInitialized() )
+			if ( VREditorMode != nullptr && VREditorMode->IsFullyInitialized() && VREditorMode->IsActive())
 			{
 				bIsInVRMode = true;
 				for ( UViewportInteractor* Interactor : VREditorMode->GetWorldInteraction().GetInteractors() )
