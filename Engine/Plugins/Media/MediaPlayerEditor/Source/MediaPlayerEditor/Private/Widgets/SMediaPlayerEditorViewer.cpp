@@ -541,7 +541,7 @@ void SMediaPlayerEditorViewer::HandleMediaPlayerMediaEvent(EMediaEvent Event)
 
 		FSlateNotificationManager::Get().AddNotification(NotificationInfo)->SetCompletionState(SNotificationItem::CS_Fail);
 	}
-	else if (Event == EMediaEvent::MediaClosed)
+	else if ((Event == EMediaEvent::MediaClosed) || (Event == EMediaEvent::MediaOpened))
 	{
 		UrlTextBox->SetBorderBackgroundColor(FLinearColor::White);
 	}
