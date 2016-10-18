@@ -1224,11 +1224,14 @@ void FSequencer::ResetViewRange()
 	const float OutputViewSize = OutRange - InRange;
 	const float OutputChange = OutputViewSize * 0.1f;
 
-	InRange -= OutputChange;
-	OutRange += OutputChange;
+	if (OutputChange > 0)
+	{
+		InRange -= OutputChange;
+		OutRange += OutputChange;
 
-	SetClampRange(TRange<float>(InRange, OutRange));	
-	SetViewRange(TRange<float>(InRange, OutRange), EViewRangeInterpolation::Animated);
+		SetClampRange(TRange<float>(InRange, OutRange));	
+		SetViewRange(TRange<float>(InRange, OutRange), EViewRangeInterpolation::Animated);
+	}
 }
 
 
