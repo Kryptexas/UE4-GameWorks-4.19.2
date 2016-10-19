@@ -375,6 +375,13 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 	{
 		return false;
 	}
+
+	// Can not load new level now either, we're still processing visibility for this one
+    if (PersistentWorld->IsVisibilityRequestPending() && PersistentWorld->CurrentLevelPendingVisibility == LoadedLevel)
+    {
+		UE_LOG(LogLevelStreaming, Verbose, TEXT("Delaying load of new level %s, because %s still processing visibility request."), *DesiredPackageName.ToString(), *CachedLoadedLevelPackageName.ToString());
+		return false;
+	}
 		
 	// Try to find the [to be] loaded package.
 	UPackage* LevelPackage = (UPackage*)StaticFindObjectFast(UPackage::StaticClass(), NULL, DesiredPackageName, 0, 0, RF_NoFlags, EInternalObjectFlags::PendingKill);
@@ -386,17 +393,25 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 		UWorld* World = UWorld::FindWorldInPackage(LevelPackage);
 
 		// Check for a redirector. Follow it, if found.
-		if ( !World )
+		if (!World)
 		{
 			World = UWorld::FollowWorldRedirectorInPackage(LevelPackage);
-			if ( World )
+			if (World)
 			{
 				LevelPackage = World->GetOutermost();
 			}
 		}
 
-		if (World != NULL)
+		if (World != nullptr)
 		{
+			if (World->IsPendingKill())
+			{
+				// We're trying to reload a level that has very recently been marked for garbage collection, it might not have been cleaned up yet
+				// So continue attempting to reload the package if possible
+				UE_LOG(LogLevelStreaming, Verbose, TEXT("RequestLevel: World is pending kill %s"), *DesiredPackageName.ToString());
+				return false;
+			}
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			if (World->PersistentLevel == NULL)
 			{
@@ -511,25 +526,37 @@ void ULevelStreaming::AsyncLevelLoadComplete(const FName& InPackageName, UPackag
 {
 	bHasLoadRequestPending = false;
 
-	if( InLoadedPackage )
+	if (InLoadedPackage)
 	{
 		UPackage* LevelPackage = InLoadedPackage;
 		
 		// Try to find a UWorld object in the level package.
 		UWorld* World = UWorld::FindWorldInPackage(LevelPackage);
 
-		if ( World )
+		if (World)
 		{
 			ULevel* Level = World->PersistentLevel;
-			if( Level )
+			if (Level)
 			{
-				check(PendingUnloadLevel == NULL);
-				SetLoadedLevel(Level);
+				UWorld* LevelOwningWorld = Level->OwningWorld;
+
+				if (LevelOwningWorld && 
+					LevelOwningWorld->IsVisibilityRequestPending() && 
+					LevelOwningWorld->CurrentLevelPendingVisibility == LoadedLevel)
+ 				{
+ 					// We can't change current loaded level if it's still processing visibility request
+					// On next UpdateLevelStreaming call this loaded package will be found in memory by RequestLevel function in case visibility request has finished
+ 					UE_LOG(LogLevelStreaming, Verbose, TEXT("Delaying setting result of async load new level %s, because current loaded level still processing visibility request"), *LevelPackage->GetName());
+ 				}
+				else
+				{
+					check(PendingUnloadLevel == NULL);
+					SetLoadedLevel(Level);
+					// Broadcast level loaded event to blueprints
+					OnLevelLoaded.Broadcast();
+				}
 
 				Level->HandleLegacyMapBuildData();
-
-				// Broadcast level loaded event to blueprints
-				OnLevelLoaded.Broadcast();
 
 				// Make sure this level will start to render only when it will be fully added to the world
 				if (LODPackageNames.Num() > 0)
@@ -540,9 +567,9 @@ void ULevelStreaming::AsyncLevelLoadComplete(const FName& InPackageName, UPackag
 				}
 			
 				// In the editor levels must be in the levels array regardless of whether they are visible or not
-				if (ensure(Level->OwningWorld) && Level->OwningWorld->WorldType == EWorldType::Editor)
+				if (ensure(LevelOwningWorld) && LevelOwningWorld->WorldType == EWorldType::Editor)
 				{
-					Level->OwningWorld->AddLevel(Level);
+					LevelOwningWorld->AddLevel(Level);
 #if WITH_EDITOR
 					// We should also at this point, apply the level's editor transform
 					if (!Level->bAlreadyMovedActors)
