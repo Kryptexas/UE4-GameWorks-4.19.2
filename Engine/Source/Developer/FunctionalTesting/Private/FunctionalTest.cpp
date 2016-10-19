@@ -138,15 +138,17 @@ AFunctionalTest::AFunctionalTest( const FObjectInitializer& ObjectInitializer )
 #endif // WITH_EDITOR
 
 #if WITH_EDITORONLY_DATA
-	TestName = CreateDefaultSubobject<UTextRenderComponent>(TEXT("TestName"));
-
-	TestName->bHiddenInGame = true;
-	TestName->SetHorizontalAlignment(EHTA_Center);
-	TestName->SetTextRenderColor(FColor(11, 255, 0));
-	TestName->SetRelativeLocation(FVector(0, 0, 80));
-	TestName->SetRelativeRotation(FRotator(0, 0, 0));
-	TestName->PostPhysicsComponentTick.bCanEverTick = false;
-	TestName->SetupAttachment(RootComponent);
+	TestName = CreateEditorOnlyDefaultSubobject<UTextRenderComponent>(TEXT("TestName"));
+	if ( TestName )
+	{
+		TestName->bHiddenInGame = true;
+		TestName->SetHorizontalAlignment(EHTA_Center);
+		TestName->SetTextRenderColor(FColor(11, 255, 0));
+		TestName->SetRelativeLocation(FVector(0, 0, 80));
+		TestName->SetRelativeRotation(FRotator(0, 0, 0));
+		TestName->PostPhysicsComponentTick.bCanEverTick = false;
+		TestName->SetupAttachment(RootComponent);
+	}
 #endif
 }
 
@@ -155,13 +157,20 @@ void AFunctionalTest::OnConstruction(const FTransform& Transform)
 	Super::OnConstruction(Transform);
 
 #if WITH_EDITOR
-	TestName->SetText(FText::FromString(GetActorLabel()));
+	if ( TestName )
+	{
+		TestName->SetText(FText::FromString(GetActorLabel()));
+	}
 #endif
 }
 
 bool AFunctionalTest::RunTest(const TArray<FString>& Params)
 {
 	FAutomationTestFramework::Get().SetTreatWarningsAsErrors(bWarningsAsErrors);
+
+	//Scalability::FQualityLevels Quality;
+	//Quality.SetDefaults();
+	//Scalability::SetQualityLevels(Quality);
 
 	FailureMessage = TEXT("");
 	

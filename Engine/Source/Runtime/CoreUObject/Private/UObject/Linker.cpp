@@ -524,16 +524,23 @@ FLinkerLoad* GetPackageLinker
 		}
 	
 		// Allow delegates to resolve this package
-		FString PackageName = InOuter->GetName();
+		FString PackageNameToCreate = InOuter->GetName();
 
 		// Do not resolve packages that are in memory
 		if (!InOuter->HasAnyPackageFlags(PKG_InMemoryOnly))
 		{
-			PackageName = FPackageName::GetDelegateResolvedPackagePath(InOuter->GetName());
+			PackageNameToCreate = FPackageName::GetDelegateResolvedPackagePath(PackageNameToCreate);
+		}
+
+		// The editor must not redirect packages for localization. We also shouldn't redirect script or in-memory packages.
+		FString PackageNameToLoad = PackageNameToCreate;
+		if (!(GIsEditor || InOuter->HasAnyPackageFlags(PKG_InMemoryOnly) || FPackageName::IsScriptPackage(PackageNameToLoad)))
+		{
+			PackageNameToLoad = FPackageName::GetLocalizedPackagePath(PackageNameToLoad);
 		}
 
 		// Verify that the file exists.
-		const bool DoesPackageExist = DoesPackageExistForGetPackageLinker(PackageName, CompatibleGuid, NewFilename);
+		const bool DoesPackageExist = DoesPackageExistForGetPackageLinker(PackageNameToLoad, CompatibleGuid, NewFilename);
 		if ( !DoesPackageExist )
 		{
 			// In memory-only packages have no linker and this is ok.
@@ -541,7 +548,7 @@ FLinkerLoad* GetPackageLinker
 			{
 				FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
 				FFormatNamedArguments Arguments;
-				Arguments.Add(TEXT("AssetName"), FText::FromString(PackageName));
+				Arguments.Add(TEXT("AssetName"), FText::FromString(PackageNameToLoad));
 				Arguments.Add(TEXT("PackageName"), FText::FromString(ThreadContext.SerializedPackageLinker ? *(ThreadContext.SerializedPackageLinker->Filename) : TEXT("NULL")));
 				LogGetPackageLinkerError(Result, ThreadContext.SerializedPackageLinker ? *ThreadContext.SerializedPackageLinker->Filename : nullptr,
 											FText::Format(LOCTEXT("PackageNotFound", "Can't find file for asset '{AssetName}' while loading {PackageName}."), Arguments),
@@ -555,8 +562,8 @@ FLinkerLoad* GetPackageLinker
 	}
 	else
 	{
-		FString PackageName = InLongPackageName;
-		if (!FPackageName::TryConvertFilenameToLongPackageName(InLongPackageName, PackageName))
+		FString PackageNameToCreate;
+		if (!FPackageName::TryConvertFilenameToLongPackageName(InLongPackageName, PackageNameToCreate))
 		{
 			// try to recover from this instead of throwing, it seems recoverable just by doing this
 			FText ErrorText(LOCTEXT("PackageResolveFailed", "Can't resolve asset name"));
@@ -565,9 +572,16 @@ FLinkerLoad* GetPackageLinker
 		}
 
 		// Allow delegates to resolve this path
-		PackageName = FPackageName::GetDelegateResolvedPackagePath(PackageName);
+		PackageNameToCreate = FPackageName::GetDelegateResolvedPackagePath(PackageNameToCreate);
 
-		UPackage* ExistingPackage = FindObject<UPackage>(nullptr, *PackageName);
+		// The editor must not redirect packages for localization. We also shouldn't redirect script packages.
+		FString PackageNameToLoad = PackageNameToCreate;
+		if (!(GIsEditor || FPackageName::IsScriptPackage(PackageNameToLoad)))
+		{
+			PackageNameToLoad = FPackageName::GetLocalizedPackagePath(PackageNameToLoad);
+		}
+
+		UPackage* ExistingPackage = FindObject<UPackage>(nullptr, *PackageNameToCreate);
 		if (ExistingPackage)
 		{
 			if (!ExistingPackage->GetOuter() && ExistingPackage->HasAnyPackageFlags(PKG_InMemoryOnly))
@@ -578,7 +592,7 @@ FLinkerLoad* GetPackageLinker
 		}
 
 		// Verify that the file exists.
-		const bool DoesPackageExist = DoesPackageExistForGetPackageLinker(PackageName, CompatibleGuid, NewFilename);
+		const bool DoesPackageExist = DoesPackageExistForGetPackageLinker(PackageNameToLoad, CompatibleGuid, NewFilename);
 		if( !DoesPackageExist )
 		{
 			if (!FLinkerLoad::IsKnownMissingPackage(InLongPackageName))
@@ -593,7 +607,7 @@ FLinkerLoad* GetPackageLinker
 		}
 
 		// Create the package with the provided long package name.
-		UPackage* FilenamePkg = (ExistingPackage ? ExistingPackage : CreatePackage(nullptr, *PackageName));
+		UPackage* FilenamePkg = (ExistingPackage ? ExistingPackage : CreatePackage(nullptr, *PackageNameToCreate));
 		if (FilenamePkg != ExistingPackage && (LoadFlags & LOAD_PackageForPIE))
 		{
 			FilenamePkg->SetPackageFlags(PKG_PlayInEditor);

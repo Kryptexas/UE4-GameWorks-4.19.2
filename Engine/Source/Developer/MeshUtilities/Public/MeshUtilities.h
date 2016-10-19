@@ -134,7 +134,8 @@ public:
 	virtual bool BuildStaticMesh(
 		class FStaticMeshRenderData& OutRenderData,
 		TArray<struct FStaticMeshSourceModel>& SourceModels,
-		const class FStaticMeshLODGroup& LODGroup
+		const class FStaticMeshLODGroup& LODGroup,
+		int32 ImportVersion
 		) = 0;
 
 	virtual void BuildStaticMeshVertexAndIndexBuffers(
@@ -145,7 +146,8 @@ public:
 		const TMultiMap<int32, int32>& OverlappingCorners,
 		const TMap<uint32, uint32>& MaterialToSectionMapping,
 		float ComparisonThreshold,
-		FVector BuildScale
+		FVector BuildScale,
+		int32 ImportVersion
 		) = 0;
 
 	/**

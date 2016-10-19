@@ -49,6 +49,10 @@ public:
 	/** Whether to convert scene from FBX scene. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=Miscellaneous, meta=(OBJRestrict="true", ToolTip="Convert the scene from FBX coordinate system to UE4 coordinate system"))
 	uint32 bConvertScene:1;
+	
+	/** Whether to force the front axis to be align with X instead of -Y. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category = Miscellaneous, meta = (editcondition = "bConvertScene", OBJRestrict = "true", ToolTip = "Convert the scene from FBX coordinate system to UE4 coordinate system with front X axis instead of -Y"))
+	uint32 bForceFrontXAxis : 1;
 
 	/** Whether to convert the scene from FBX unit to UE4 unit (centimeter). */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category = Miscellaneous, meta = (OBJRestrict = "true", ToolTip = "Convert the scene from FBX unit to UE4 unit (centimeter)."))

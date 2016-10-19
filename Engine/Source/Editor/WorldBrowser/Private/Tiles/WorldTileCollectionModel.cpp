@@ -2103,6 +2103,9 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 				//Assign the proxy material to the static mesh
 				StaticMesh->StaticMaterials.Add(FStaticMaterial(StaticLandscapeMaterial));
 
+				//Set the Imported version before calling the build
+				StaticMesh->ImportVersion = EImportStaticMeshVersion::LastVersion;
+
 				StaticMesh->Build();
 				StaticMesh->PostEditChange();
 			}

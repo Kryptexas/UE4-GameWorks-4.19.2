@@ -663,6 +663,9 @@ UStaticMesh* FAbcImporter::CreateStaticMeshFromRawMesh(UObject* InParent, const 
 
 		// Store the raw mesh within the RawMeshBulkData
 		SrcModel.RawMeshBulkData->SaveRawMesh(RawMesh);
+		
+		//Set the Imported version before calling the build
+		StaticMesh->ImportVersion = EImportStaticMeshVersion::LastVersion;
 
 		// Build the static mesh (using the build setting etc.) this generates correct tangents using the extracting smoothing group along with the imported Normals data
 		StaticMesh->Build(false);

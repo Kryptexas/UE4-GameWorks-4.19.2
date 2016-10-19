@@ -51,7 +51,7 @@ public:
 	virtual UObject* DuplicateAssetWithDialog(const FString& AssetName, const FString& PackagePath, UObject* OriginalObject) override;
 	virtual void RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames) const override;
 	virtual TArray<UObject*> ImportAssets(const FString& DestinationPath) override;
-	virtual TArray<UObject*> ImportAssets(const TArray<FString>& Files, const FString& DestinationPath, UFactory* ChosenFactory, bool bSyncToBrowser = true) const override;
+	virtual TArray<UObject*> ImportAssets(const TArray<FString>& Files, const FString& DestinationPath, UFactory* ChosenFactory, bool bSyncToBrowser = true, TArray<TPair<FString, FString>> *FilesAndDestinations = nullptr) const override;
 	virtual TArray<UObject*> ImportAssetsAutomated(const UAutomatedAssetImportData& ImportData) const override;
 	virtual void CreateUniqueAssetName(const FString& InBasePackageName, const FString& InSuffix, FString& OutPackageName, FString& OutAssetName) const override;
 	virtual bool AssetUsesGenericThumbnail( const FAssetData& AssetData ) const override;
@@ -94,7 +94,7 @@ private:
 	static void OnNewCreateRecord(UClass* AssetType, bool bDuplicated);
 
 	/** Internal method that performs the actual asset importing */
-	TArray<UObject*> ImportAssetsInternal(const TArray<FString>& Files, const FString& RootDestinationPath, const FAssetImportParams& ImportParams) const;
+	TArray<UObject*> ImportAssetsInternal(const TArray<FString>& Files, const FString& RootDestinationPath, TArray<TPair<FString, FString>> *FilesAndDestinationsPtr, const FAssetImportParams& ImportParams) const;
 
 private:
 	/** The manager to handle renaming assets */

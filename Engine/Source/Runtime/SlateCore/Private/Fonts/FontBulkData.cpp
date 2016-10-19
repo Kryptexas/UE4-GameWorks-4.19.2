@@ -85,29 +85,6 @@ void UFontBulkData::Unlock() const
 	CriticalSection.Unlock();
 }
 
-void UFontBulkData::ForceLoadBulkData()
-{
-	FScopeLock Lock(&CriticalSection);
-
-	// Keep the bulk data resident once it's been loaded
-	BulkData.ClearBulkDataFlags(BULKDATA_SingleUse);
-
-#if STATS
-	const bool bWasLoaded = BulkData.IsBulkDataLoaded();
-#endif
-
-	// Trigger the load (if needed)
-	BulkData.LockReadOnly();
-	BulkData.Unlock();
-
-#if STATS
-	if (!bWasLoaded && BulkData.IsBulkDataLoaded())
-	{
-		INC_DWORD_STAT_BY(STAT_SlateBulkFontDataMemory, BulkData.GetBulkDataSize());
-	}
-#endif
-}
-
 int32 UFontBulkData::GetBulkDataSize() const
 {
 	return BulkData.GetBulkDataSize();

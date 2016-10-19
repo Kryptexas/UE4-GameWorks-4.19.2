@@ -1594,10 +1594,6 @@ void UEngine::InitializeObjectReferences()
 			{
 				FontPtr = LoadObject<UFont>(nullptr, *FontName, nullptr, LOAD_None, nullptr);
 			}
-			if (FontPtr)
-			{
-				FontPtr->ForceLoadFontData();
-			}
 		};
 
 		// Standard fonts.

@@ -2,6 +2,12 @@
 
 #include "SlateCorePrivatePCH.h"
 
+FReply& FReply::SetMousePos(const FIntPoint& NewMousePos)
+{
+	this->RequestedMousePos = NewMousePos;
+	return Me();
+}
+
 FReply& FReply::SetUserFocus(TSharedRef<SWidget> GiveMeFocus, EFocusCause ReasonFocusIsChanging, bool bInAllUsers)
 {
 	this->bSetUserFocus = true;

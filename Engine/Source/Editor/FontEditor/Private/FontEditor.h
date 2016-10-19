@@ -89,6 +89,7 @@ private:
 	void OnForegroundColor();
 	bool OnForegroundColorEnabled() const;
 	void OnPostReimport(UObject* InObject, bool bSuccess);
+	void OnObjectPropertyChanged(UObject* InObject, struct FPropertyChangedEvent& InPropertyChangedEvent);
 
 	/** Common method for replacing a font page with a new texture */
 	bool ImportPage(int32 PageNum, const TCHAR* FileName);

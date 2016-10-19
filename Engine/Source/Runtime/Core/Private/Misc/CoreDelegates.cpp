@@ -3,8 +3,6 @@
 // Core includes.
 #include "CorePrivatePCH.h"
 
-const FVector DefaultRefVector(0);
-
 
 //////////////////////////////////////////////////////////////////////////
 // FCoreDelegates

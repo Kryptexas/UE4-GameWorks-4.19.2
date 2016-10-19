@@ -92,6 +92,7 @@ bool GetFbxSceneImportOptions(UnFbx::FFbxImporter* FbxImporter
 	GlobalImportSettings->ImportUniformScale = 1.0f;
 
 	GlobalImportSettings->bConvertScene = true;
+	GlobalImportSettings->bForceFrontXAxis = false;
 	GlobalImportSettings->bConvertSceneUnit = true;
 
 	GlobalImportSettings->bBakePivotInVertex = SceneImportOptions->bBakePivotInVertex;
@@ -851,6 +852,7 @@ FFeedbackContext*	Warn
 	
 	//Always convert the scene
 	GlobalImportSettings->bConvertScene = true;
+	GlobalImportSettings->bForceFrontXAxis = false;
 	GlobalImportSettings->bConvertSceneUnit = true;
 
 	//Set the import option in importscene mode
@@ -942,15 +944,12 @@ FFeedbackContext*	Warn
 
 	//We are a scene import set the flag for the reimport factory for both static mesh and skeletal mesh
 	StaticMeshImportData->bImportAsScene = true;
-	StaticMeshImportData->bImportMaterials = GlobalImportSettings->bImportMaterials;
 	StaticMeshImportData->FbxSceneImportDataReference = ReimportData;
 
 	SkeletalMeshImportData->bImportAsScene = true;
-	SkeletalMeshImportData->bImportMaterials = GlobalImportSettings->bImportMaterials;
 	SkeletalMeshImportData->FbxSceneImportDataReference = ReimportData;
 
 	AnimSequenceImportData->bImportAsScene = true;
-	AnimSequenceImportData->bImportMaterials = GlobalImportSettings->bImportMaterials;
 	AnimSequenceImportData->FbxSceneImportDataReference = ReimportData;
 
 	//Get the scene root node

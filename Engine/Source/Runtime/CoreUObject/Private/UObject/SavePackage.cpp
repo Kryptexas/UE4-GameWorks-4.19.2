@@ -5085,6 +5085,13 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 								FScopedDurationTimer SerializeTimer(TimingInfo.Key);
 #endif
 								Export.Object->Serialize( *Linker );
+
+#if WITH_EDITOR
+								if (Linker->IsCooking())
+								{
+									Export.Object->CookAdditionalFiles(Filename, Linker->CookingTarget());
+								}
+#endif
 							}
 							Linker->CurrentlySavingExport = FPackageIndex();
 							Export.SerialSize = Linker->Tell() - Export.SerialOffset;

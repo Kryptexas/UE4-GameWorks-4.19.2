@@ -773,6 +773,15 @@ public:
 	 * @param	TargetPlatform	target platform to cache platform specific data for
 	 */
 	virtual void ClearAllCachedCookedPlatformData() { }
+
+	/**
+	 * Called during cook to allow objects to generate additional cooked files alongside their cooked package.
+	 * @note These should typically match the name of the package, but with a different extension.
+	 *
+	 * @param	PackageFilename full path to the package that this object is being saved to on disk
+	 * @param	TargetPlatform	target platform to cook additional files for
+	 */
+	virtual void CookAdditionalFiles( const TCHAR* PackageFilename, const ITargetPlatform* TargetPlatform ) { }
 #endif
 	/**
 	 * Determine if this object has SomeObject in its archetype chain.

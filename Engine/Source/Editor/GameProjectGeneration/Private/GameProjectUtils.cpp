@@ -1214,7 +1214,7 @@ bool GameProjectUtils::GenerateProjectFromScratch(const FProjectInformation& InP
 	return true;
 }
 
-bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InProjectInfo, FText& OutFailReason, FText& OutFailLog,TArray<FString>* OutCreatedFiles)
+bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InProjectInfo, FText& OutFailReason, FText& OutFailLog, TArray<FString>* OutCreatedFiles)
 {
 	FScopedSlowTask SlowTask(10);
 
@@ -1563,12 +1563,12 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 	}
 
 	// Insert any required feature packs (EG starter content) into ini file. These will be imported automatically when the editor is first run
-	if(!InsertFeaturePacksIntoINIFile(InProjectInfo, OutFailReason))
+	if ( !InsertFeaturePacksIntoINIFile(InProjectInfo, OutFailReason) )
 	{
 		return false;
 	}
 
-	if( AddSharedContentToProject(InProjectInfo, CreatedFiles, OutFailReason ) == false )
+	if ( !AddSharedContentToProject(InProjectInfo, CreatedFiles, OutFailReason) )
 	{
 		return false;
 	}
@@ -1580,7 +1580,7 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 	{
 		// Load the source project
 		FProjectDescriptor Project;
-		if(!Project.Load(InProjectInfo.TemplateFile, OutFailReason))
+		if ( !Project.Load(InProjectInfo.TemplateFile, OutFailReason) )
 		{
 			return false;
 		}
@@ -2054,7 +2054,7 @@ bool GameProjectUtils::GenerateCodeProjectFiles(const FString& ProjectFilename, 
 	bool bHaveProjectFiles = FDesktopPlatformModule::Get()->GenerateProjectFiles(FPaths::RootDir(), ProjectFilename, GWarn);
 	GLog->RemoveOutputDevice(&OutputLog);
 
-	if(!bHaveProjectFiles)
+	if ( !bHaveProjectFiles )
 	{
 		OutFailReason = LOCTEXT("ErrorWhileGeneratingProjectFiles", "An error occurred while trying to generate project files.");
 		OutFailLog = FText::FromString(OutputLog);

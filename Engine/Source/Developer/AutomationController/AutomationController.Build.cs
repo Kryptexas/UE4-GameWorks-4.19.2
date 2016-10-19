@@ -21,7 +21,8 @@ namespace UnrealBuildTool.Rules
 					"UnrealEdMessages",
                     "MessageLog",
                     "Json",
-                    "JsonUtilities"
+                    "JsonUtilities",
+					"ScreenShotComparisonTools"
                 }
 			);
 

@@ -983,7 +983,9 @@ bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshI
 			
 			GlobalsPerLink[LinkIndex] = T0Matrix;
 		}
-	
+
+		//Add the join orientation
+		GlobalsPerLink[LinkIndex] = GlobalsPerLink[LinkIndex] * FFbxDataConverter::GetJointPostConversionMatrix();
 		if (LinkIndex)
 		{
 			FbxAMatrix	Matrix;
@@ -1782,9 +1784,8 @@ USkeletalMesh* UnFbx::FFbxImporter::ReimportSkeletalMesh(USkeletalMesh* Mesh, UF
 		// set import options, how about others?
 		if (!ImportOptions->bImportScene)
 		{
-			UFbxAssetImportData* ImportData = Cast<UFbxAssetImportData>(Mesh->AssetImportData);
-			ImportOptions->bImportMaterials = ImportData->bImportMaterials;
-			ImportOptions->bImportTextures = ImportData->bImportMaterials;
+			ImportOptions->bImportMaterials = false;
+			ImportOptions->bImportTextures = false;
 		}
 		//In case of a scene reimport animations are reimport later so its ok to hardcode animation to false here
 		ImportOptions->bImportAnimations = false;

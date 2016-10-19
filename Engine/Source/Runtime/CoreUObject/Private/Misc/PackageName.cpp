@@ -856,6 +856,12 @@ FString FPackageName::GetDelegateResolvedPackagePath(const FString& InSourcePack
 	return InSourcePackagePath;
 }
 
+FString FPackageName::GetLocalizedPackagePath(const FString& InSourcePackagePath)
+{
+	const FName LocalizedPackageName = FPackageLocalizationManager::Get().FindLocalizedPackageName(*InSourcePackagePath);
+	return (LocalizedPackageName.IsNone()) ? InSourcePackagePath : LocalizedPackageName.ToString();
+}
+
 FString FPackageName::GetLocalizedPackagePath(const FString& InSourcePackagePath, const FString& InCultureName)
 {
 	const FName LocalizedPackageName = FPackageLocalizationManager::Get().FindLocalizedPackageNameForCulture(*InSourcePackagePath, InCultureName);

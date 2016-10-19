@@ -3825,7 +3825,7 @@ void FSlateApplication::OnLogSlateEvent(EEventLog::Type Event, const FString& Ad
 #if LOG_SLATE_EVENTS
 	if (EventLogger.IsValid())
 	{
-		LOG_EVENT_CONTENT(Event, AdditionalContent, nullptr);
+		LOG_EVENT_CONTENT(Event, AdditionalContent, TSharedPtr<SWidget>());
 	}
 #endif
 }
@@ -3835,7 +3835,7 @@ void FSlateApplication::OnLogSlateEvent(EEventLog::Type Event, const FText& Addi
 #if LOG_SLATE_EVENTS
 	if (EventLogger.IsValid())
 	{
-		LOG_EVENT_CONTENT(Event, AdditionalContent.ToString(), nullptr);
+		LOG_EVENT_CONTENT(Event, AdditionalContent.ToString(), TSharedPtr<SWidget>());
 	}
 #endif
 };
@@ -4628,7 +4628,7 @@ bool FSlateApplication::ProcessKeyDownEvent( FKeyEvent& InKeyEvent )
 				});
 			}
 
-			LOG_EVENT_CONTENT(EEventLog::KeyDown, GetKeyName(InKeyEvent.GetKey()).ToString(), Reply);
+			LOG_EVENT_CONTENT(EEventLog::KeyDown, InKeyEvent.GetKey().ToString(), Reply);
 
 			// If the key event was not processed by any widget...
 			if ( !Reply.IsEventHandled() && UnhandledKeyDownEventHandler.IsBound() )
@@ -4682,7 +4682,7 @@ bool FSlateApplication::ProcessKeyUpEvent( FKeyEvent& InKeyEvent )
 				: FReply::Unhandled();
 		});
 
-		LOG_EVENT_CONTENT(EEventLog::KeyUp, GetKeyName(InKeyEvent.GetKey()).ToString(), Reply);
+		LOG_EVENT_CONTENT(EEventLog::KeyUp, InKeyEvent.GetKey().ToString(), Reply);
 	}
 
 	return Reply.IsEventHandled();
@@ -4722,7 +4722,7 @@ bool FSlateApplication::ProcessAnalogInputEvent(FAnalogInputEvent& InAnalogInput
 				: FReply::Unhandled();
 		});
 
-		LOG_EVENT_CONTENT(EEventLog::AnalogInput, GetKeyName(InAnalogInputEvent.GetKey()).ToString(), Reply);
+		LOG_EVENT_CONTENT(EEventLog::AnalogInput, InAnalogInputEvent.GetKey().ToString(), Reply);
 
 		QueueSynthesizedMouseMove();
 	}
@@ -5549,7 +5549,7 @@ FReply FSlateApplication::RouteMouseWheelOrGestureEvent(const FWidgetPath& Widge
 		return TempReply;
 	});
 
-	LOG_EVENT(bIsGestureEvent ? EEventLog::TouchGesture : EEventLog::MouseWheel, Reply);
+	LOG_EVENT(InGestureEvent ? EEventLog::TouchGesture : EEventLog::MouseWheel, Reply);
 
 	return Reply;
 }

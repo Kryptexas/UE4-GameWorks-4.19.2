@@ -516,8 +516,11 @@ protected:
 		{ }
 	};
 
+	typedef TSharedPtr<FModuleInfo, ESPMode::ThreadSafe> ModuleInfoPtr;
+	typedef TSharedRef<FModuleInfo, ESPMode::ThreadSafe> ModuleInfoRef;
+
 	/** Type definition for maps of module names to module infos. */
-	typedef TMap<FName, TSharedRef<FModuleInfo>> FModuleMap;
+	typedef TMap<FName, ModuleInfoRef> FModuleMap;
 
 public:
 	/**
@@ -525,22 +528,22 @@ public:
 	 */
 	void MakeUniqueModuleFilename( const FName InModuleName, FString& UniqueSuffix, FString& UniqueModuleFileName ) const;
 
-	void AddModuleToModulesList(const FName InModuleName, TSharedRef<FModuleInfo>& ModuleInfo);
+	void AddModuleToModulesList(const FName InModuleName, FModuleManager::ModuleInfoRef& ModuleInfo);
 
 	/** Clears module path cache */
 	void ResetModulePathsCache();
 
 private:
 	/** Thread safe module finding routine. */
-	TSharedPtr<FModuleInfo> FindModule(FName InModuleName);
-	TSharedRef<FModuleInfo> FindModuleChecked(FName InModuleName);
+	ModuleInfoPtr FindModule(FName InModuleName);
+	ModuleInfoRef FindModuleChecked(FName InModuleName);
 
-	FORCEINLINE TSharedPtr<const FModuleInfo> FindModule(FName InModuleName) const
+	FORCEINLINE TSharedPtr<const FModuleInfo, ESPMode::ThreadSafe> FindModule(FName InModuleName) const
 	{
 		return const_cast<FModuleManager*>(this)->FindModule(InModuleName);
 	}
 
-	FORCEINLINE TSharedRef<const FModuleInfo> FindModuleChecked(FName InModuleName) const
+	FORCEINLINE TSharedRef<const FModuleInfo, ESPMode::ThreadSafe> FindModuleChecked(FName InModuleName) const
 	{
 		return const_cast<FModuleManager*>(this)->FindModuleChecked(InModuleName);
 	}
@@ -559,7 +562,7 @@ private:
 
 private:
 	/** Gets module with given name from Modules or creates a new one. Doesn't modify Modules. */
-	TSharedRef<FModuleInfo> GetOrCreateModule(FName InModuleName);
+	ModuleInfoRef GetOrCreateModule(FName InModuleName);
 
 	/** Map of all modules.  Maps the case-insensitive module name to information about that module, loaded or not. */
 	FModuleMap Modules;

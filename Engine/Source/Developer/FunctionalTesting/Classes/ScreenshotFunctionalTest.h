@@ -28,7 +28,7 @@ protected:
 	virtual bool IsReady_Implementation() override;
 	virtual void StartTest() override;
 
-	void OnScreenshotTaken(int32 InSizeX, int32 InSizeY, const TArray<FColor>& InImageData);
+	void OnScreenshotTakenAndCompared();
 	void SetupVisualizeBuffer();
 
 protected:

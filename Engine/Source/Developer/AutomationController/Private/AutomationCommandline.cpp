@@ -33,6 +33,11 @@ namespace EAutomationCommand
 class FAutomationExecCmd : private FSelfRegisteringExec
 {
 public:
+	FAutomationExecCmd()
+	{
+		DelayTimer = 5.0f;
+	}
+
 	void Init()
 	{
 		SessionID = FApp::GetSessionId();

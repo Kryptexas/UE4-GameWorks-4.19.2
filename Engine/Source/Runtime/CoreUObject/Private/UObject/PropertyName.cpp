@@ -22,7 +22,7 @@ void UNameProperty::ExportTextItem( FString& ValueStr, const void* PropertyValue
 	}
 	else if ( Temp != NAME_None )
 	{
-		ValueStr += FString::Printf( TEXT("\"%s\""), *Temp.ToString() );
+		ValueStr += FString::Printf( TEXT("\"%s\""), *Temp.ToString().ReplaceCharWithEscapedChar() );
 	}
 }
 const TCHAR* UNameProperty::ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText ) const

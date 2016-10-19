@@ -338,7 +338,7 @@ FReply SSettingsSectionHeader::HandleSetAsDefaultButtonClicked()
 				}
 				else
 				{
-					if (FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("SaveAsDefaultsIsReadOnlyMessage", "The default configuration file for these settings is not currently writeable. Would you like to make it writable?")) == EAppReturnType::Yes)
+					if (FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("SaveAsDefaultsIsReadOnlyMessage", "The default configuration file for these settings is not currently writable. Would you like to make it writable?")) == EAppReturnType::Yes)
 					{
 						MakeDefaultConfigFileWritable();
 					}

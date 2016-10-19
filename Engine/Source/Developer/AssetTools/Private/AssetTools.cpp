@@ -67,6 +67,7 @@ FAssetTools::FAssetTools()
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Struct) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SceneImportData));
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Font) );
+	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_FontFace) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_ForceFeedbackEffect) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SubsurfaceProfile));
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_InstancedFoliageSettings) );
@@ -575,7 +576,7 @@ TArray<UObject*> FAssetTools::ImportAssetsAutomated(const UAutomatedAssetImportD
 	Params.SpecifiedFactory = ImportData.Factory;
 	Params.ImportData = &ImportData;
 
-	return ImportAssetsInternal(ImportData.Filenames, ImportData.DestinationPath, Params);
+	return ImportAssetsInternal(ImportData.Filenames, ImportData.DestinationPath, nullptr, Params);
 }
 
 void FAssetTools::ExpandDirectories(const TArray<FString>& Files, const FString& DestinationPath, TArray<TPair<FString, FString>>& FilesAndDestinations) const
@@ -614,7 +615,7 @@ void FAssetTools::ExpandDirectories(const TArray<FString>& Files, const FString&
 	}
 }
 
-TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const FString& RootDestinationPath, UFactory* SpecifiedFactory, bool bSyncToBrowser) const
+TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const FString& RootDestinationPath, UFactory* SpecifiedFactory, bool bSyncToBrowser, TArray<TPair<FString, FString>> *FilesAndDestinations) const
 {
 	const bool bForceOverrideExisting = false;
 
@@ -625,7 +626,7 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 	Params.bSyncToBrowser = bSyncToBrowser;
 	Params.SpecifiedFactory = SpecifiedFactory;
 
-	return ImportAssetsInternal(Files, RootDestinationPath, Params);
+	return ImportAssetsInternal(Files, RootDestinationPath, FilesAndDestinations, Params);
 }
 
 void FAssetTools::CreateUniqueAssetName(const FString& InBasePackageName, const FString& InSuffix, FString& OutPackageName, FString& OutAssetName) const
@@ -1002,7 +1003,7 @@ void FAssetTools::OnNewCreateRecord(UClass* AssetType, bool bDuplicated)
 	}
 }
 
-TArray<UObject*> FAssetTools::ImportAssetsInternal(const TArray<FString>& Files, const FString& RootDestinationPath, const FAssetImportParams& Params) const
+TArray<UObject*> FAssetTools::ImportAssetsInternal(const TArray<FString>& Files, const FString& RootDestinationPath, TArray<TPair<FString, FString>> *FilesAndDestinationsPtr, const FAssetImportParams& Params) const
 {
 	UFactory* SpecifiedFactory = Params.SpecifiedFactory;
 	const bool bForceOverrideExisting = Params.bForceOverrideExisting;
@@ -1017,9 +1018,15 @@ TArray<UObject*> FAssetTools::ImportAssetsInternal(const TArray<FString>& Files,
 
 
 	SlowTask.EnterProgressFrame();
-
 	TArray<TPair<FString, FString>> FilesAndDestinations;
-	ExpandDirectories(Files, RootDestinationPath, FilesAndDestinations);
+	if (FilesAndDestinationsPtr == nullptr)
+	{
+		ExpandDirectories(Files, RootDestinationPath, FilesAndDestinations);
+	}
+	else
+	{
+		FilesAndDestinations = (*FilesAndDestinationsPtr);
+	}
 
 	SlowTask.EnterProgressFrame(1, LOCTEXT("Import_DeterminingImportTypes", "Determining asset types"));
 

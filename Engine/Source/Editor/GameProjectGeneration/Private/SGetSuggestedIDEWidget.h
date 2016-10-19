@@ -32,11 +32,11 @@ private:
 	FReply OnInstallIDEClicked();
 
 	/** Handler for when the suggested IDE installer has finished downloading */
-	void OnIDEInstallerDownloadComplete(bool bWasSuccessful);
+	static void OnIDEInstallerDownloadComplete(bool bWasSuccessful);
 
 private:
 
 	/** Handle to the notification displayed when downloading an IDE installer */
-	TSharedPtr<class SNotificationItem> IDEDownloadNotification;
+	static TSharedPtr<class SNotificationItem> IDEDownloadNotification;
 
 };

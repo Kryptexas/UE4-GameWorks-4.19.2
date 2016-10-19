@@ -69,6 +69,12 @@ FAutomationTestFramework& FAutomationTestFramework::Get()
 	return Framework;
 }
 
+FString FAutomationTestFramework::GetUserAutomationDirectory() const
+{
+	const FString DefaultAutomationSubFolder = TEXT("Unreal Automation");
+	return FString(FPlatformProcess::UserDir()) + DefaultAutomationSubFolder;
+}
+
 bool FAutomationTestFramework::RegisterAutomationTest( const FString& InTestNameToRegister, class FAutomationTestBase* InTestToRegister )
 {
 	const bool bAlreadyRegistered = AutomationTestClassNameToInstanceMap.Contains( InTestNameToRegister );
@@ -646,6 +652,16 @@ bool FAutomationTestFramework::GetTreatWarningsAsErrors() const
 void FAutomationTestFramework::SetTreatWarningsAsErrors(TOptional<bool> bTreatWarningsAsErrors)
 {
 	AutomationTestFeedbackContext.TreatWarningsAsErrors = bTreatWarningsAsErrors.IsSet() ? bTreatWarningsAsErrors.GetValue() : GWarn->TreatWarningsAsErrors;
+}
+
+void FAutomationTestFramework::NotifyScreenshotComparisonComplete(bool bWasNew, bool bWasSimilar)
+{
+	OnScreenshotCompared.Broadcast(bWasNew, bWasSimilar);
+}
+
+void FAutomationTestFramework::NotifyScreenshotTakenAndCompared()
+{
+	OnScreenshotTakenAndCompared.Broadcast();
 }
 
 FAutomationTestFramework::FAutomationTestFramework()

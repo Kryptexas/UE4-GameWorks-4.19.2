@@ -2129,6 +2129,14 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 
 	FString Filename( InFilename );
 
+	FString LongMapPackageName;
+	if ( FPackageName::IsValidLongPackageName(InFilename) )
+	{
+		LongMapPackageName = InFilename;
+		FPackageName::TryConvertLongPackageNameToFilename(InFilename, Filename);
+	}
+	else
+	{
 #if PLATFORM_WINDOWS
 	{
 		// Check if the Filename is actually from network drive and if so attempt to
@@ -2142,11 +2150,11 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 	}
 #endif
 
-	FString LongMapPackageName;
-	if ( !FPackageName::TryConvertFilenameToLongPackageName(Filename, LongMapPackageName) )
-	{
-		FMessageDialog::Open( EAppMsgType::Ok, FText::Format( NSLOCTEXT("Editor", "MapLoad_FriendlyBadFilename", "Map load failed. The filename '{0}' is not within the game or engine content folders found in '{1}'."), FText::FromString( Filename ), FText::FromString( FPaths::RootDir() ) ) );
-		return;
+		if ( !FPackageName::TryConvertFilenameToLongPackageName(Filename, LongMapPackageName) )
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, FText::Format(NSLOCTEXT("Editor", "MapLoad_FriendlyBadFilename", "Map load failed. The filename '{0}' is not within the game or engine content folders found in '{1}'."), FText::FromString(Filename), FText::FromString(FPaths::RootDir())));
+			return;
+		}
 	}
 
 	// If a PIE world exists, warn the user that the PIE session will be terminated.
@@ -2195,7 +2203,7 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 	if( !LoadAsTemplate )
 	{
 		// Don't set the last directory when loading the simple map or template as it is confusing to users
-			FEditorDirectories::Get().SetLastDirectory(ELastDirectory::UNR, FPaths::GetPath(Filename)); // Save path as default for next time.
+		FEditorDirectories::Get().SetLastDirectory(ELastDirectory::UNR, FPaths::GetPath(Filename)); // Save path as default for next time.
 	}
 
 	//ensure the name wasn't mangled during load before adding to the Recent File list

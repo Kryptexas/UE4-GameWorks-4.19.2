@@ -173,5 +173,5 @@ private:
 	TMap<const FCompositeFont*, TSharedPtr<FCachedCompositeFontData>> CompositeFontToCachedDataMap;
 
 	/** Mapping of font data to FreeType faces */
-	TMap<const FFontData*, TSharedPtr<FFreeTypeFace>> FontFaceMap;
+	TMap<FFontData, TSharedPtr<FFreeTypeFace>> FontFaceMap;
 };

@@ -2,6 +2,9 @@
 
 #pragma once
 
+/** Called when filtering content with a container class */
+DECLARE_DELEGATE_RetVal_ThreeParams(bool, FOnContainerContentValid, const UClass* /*SearchingClass*/, const UObject* /*Container*/, const FAssetData* /*DiskAssetData*/);
+
 /** A struct to serve as a filter for Asset Registry queries. Each component element is processed as an 'OR' operation while all the components are processed together as an 'AND' operation. */
 struct FARFilter
 {
@@ -13,6 +16,10 @@ struct FARFilter
 	TArray<FName> ObjectPaths;
 	/** The filter component for class names */
 	TArray<FName> ClassNames;
+	/** Container filter to search for ClassNames (example, UBlueprint parent class can be contained in ClassNames) */
+	TArray<FName> ContainerClassNames;
+	/** This will be called for each container to know if the container root is what we seek */
+	FOnContainerContentValid OnContainerContentValid;
 	/** The filter component for properties marked with the AssetRegistrySearchable flag */
 	TMultiMap<FName, FString> TagsAndValues;
 	/** If bRecursiveClasses is true, this results will exclude classes (including subclasses) in this list */

@@ -527,6 +527,15 @@ private:
 	/** Returns true if any surfaces relevant to this component are selected (or hovered). */
 	bool HasSelectedSurfaces() const
 	{
+#if WITH_EDITOR
+		if (!ensureMsgf(ABrush::GGeometryRebuildCause == nullptr, TEXT("Attempting to render brushes while they are being updated. Cause: %s"), ABrush::GGeometryRebuildCause))
+		{
+			return false;
+		}
+#endif
+
+		UModel* Model = Component->GetModel();
+
 		for (int32 ElementIndex = 0; ElementIndex < Elements.Num(); ElementIndex++)
 		{
 			const FModelElement& ModelElement = Component->GetElements()[ElementIndex];
@@ -534,12 +543,21 @@ private:
 			{
 				for(int32 NodeIndex = 0;NodeIndex < ModelElement.Nodes.Num();NodeIndex++)
 				{
-					FBspNode& Node = Component->GetModel()->Nodes[ModelElement.Nodes[NodeIndex]];
-					FBspSurf& Surf = Component->GetModel()->Surfs[Node.iSurf];
-
-					if (ShouldDrawSurface(Surf) && (Surf.PolyFlags & (PF_Selected | PF_Hovered)) != 0)
+					uint16 ModelNodeIndex = ModelElement.Nodes[NodeIndex];
+					// Ensures for debug purposes only; an attempt to catch the cause of UE-36265.
+					// Please remove again ASAP as these extra checks can't be fast
+					if (ensureMsgf(Model->Nodes.IsValidIndex(ModelNodeIndex), TEXT( "Invalid Node Index, Idx:%d, Num:%d" ), ModelNodeIndex, Model->Nodes.Num() ) )
 					{
-						return true;
+						FBspNode& Node = Model->Nodes[ModelNodeIndex];
+						if (ensureMsgf(Model->Surfs.IsValidIndex(Node.iSurf), TEXT( "Invalid Surf Index, Idx:%d, Num:%d" ), Node.iSurf, Model->Surfs.Num() ) )
+						{
+							FBspSurf& Surf = Model->Surfs[Node.iSurf];
+
+							if (ShouldDrawSurface(Surf) && (Surf.PolyFlags & (PF_Selected | PF_Hovered)) != 0)
+							{
+								return true;
+							}
+						}
 					}
 				}
 			}

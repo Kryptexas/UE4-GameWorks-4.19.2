@@ -35,15 +35,12 @@ void AScreenshotFunctionalTest::StartTest()
 
 	UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(GetName(), ScreenshotOptions);
 
-	GEngine->GameViewport->OnScreenshotCaptured().AddUObject(this, &AScreenshotFunctionalTest::OnScreenshotTaken);
-
-	//TSharedRef<IAutomationLatentCommand> CommandPtr = MakeShareable(NewCommand);
-	//FAutomationTestFramework::Get().EnqueueLatentCommand(CommandPtr);
+	FAutomationTestFramework::Get().OnScreenshotTakenAndCompared.AddUObject(this, &AScreenshotFunctionalTest::OnScreenshotTakenAndCompared);
 }
 
-void AScreenshotFunctionalTest::OnScreenshotTaken(int32 InSizeX, int32 InSizeY, const TArray<FColor>& InImageData)
+void AScreenshotFunctionalTest::OnScreenshotTakenAndCompared()
 {
-	GEngine->GameViewport->OnScreenshotCaptured().RemoveAll(this);
+	FAutomationTestFramework::Get().OnScreenshotTakenAndCompared.RemoveAll(this);
 
 	FinishTest(EFunctionalTestResult::Succeeded, TEXT(""));
 }

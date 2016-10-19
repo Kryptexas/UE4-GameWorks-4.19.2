@@ -113,12 +113,22 @@ public:
 	FComparisonToleranceAmount ToleranceAmount;
 
 	/**
+	 * After you've accounted for color tolerance changes, you now need to control for local acceptable error.
+	 * Which depending on how pixels were colored on triangle edges may be a few percent of the image being
+	 * outside the tolerance levels.  Unlike the MaximumGlobalError, the MaximumLocalError works by focusing
+	 * on a smaller subset of the image.  These chunks will have be compared to the local error, in an attempt
+	 * to locate hot spots of change that are important, that would be ignored by the global error.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Comparison", meta=( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ))
+	float MaximumLocalError;
+
+	/**
 	 * After you've accounted for color tolerance changes, you now need to control for total acceptable error.
 	 * Which depending on how pixels were colored on triangle edges may be a few percent of the image being
 	 * outside the tolerance levels.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Comparison", meta=( ClampMin = 0, ClampMax = 1, UIMin = 0, UIMax = 1 ))
-	float MaximumAllowedError;
+	float MaximumGlobalError;
 
 	/**
 	 * If this is true, we search neighboring pixels looking for the expected pixel as what may have happened, is

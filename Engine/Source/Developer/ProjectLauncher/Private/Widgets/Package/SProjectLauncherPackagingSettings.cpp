@@ -62,6 +62,7 @@ void SProjectLauncherPackagingSettings::Construct( const FArguments& InArgs, con
 										.IsEnabled(this, &SProjectLauncherPackagingSettings::IsEditable)
 										.OnTextCommitted(this, &SProjectLauncherPackagingSettings::OnTextCommitted)
 										.OnTextChanged(this, &SProjectLauncherPackagingSettings::OnTextChanged)
+										.HintText(this, &SProjectLauncherPackagingSettings::HandleHintPathText)
 									]
 
 								+ SHorizontalBox::Slot()
@@ -170,6 +171,19 @@ FText SProjectLauncherPackagingSettings::HandleDirectoryPathText() const
 		}
 	}
 
+	return FText::GetEmpty();
+}
+
+FText SProjectLauncherPackagingSettings::HandleHintPathText() const
+{
+	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
+
+	if (SelectedProfile.IsValid() && SelectedProfile->GetPackagingMode() == ELauncherProfilePackagingModes::Locally && !SelectedProfile->GetProjectBasePath().IsEmpty())
+	{
+		const FString ProjectPathWithoutExtension = FPaths::GetPath(SelectedProfile->GetProjectPath());
+		return FText::FromString(ProjectPathWithoutExtension / "Saved" / "StagedBuilds");
+	}
+	
 	return FText::GetEmpty();
 }
 

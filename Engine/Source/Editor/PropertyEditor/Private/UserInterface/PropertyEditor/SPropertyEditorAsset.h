@@ -21,6 +21,8 @@ public:
 		, _DisplayUseSelected(true)
 		, _DisplayBrowse(true)
 		, _EnableContentPicker(true)
+		, _AllowActorPicker(true)
+		, _SearchInBlueprint(false)
 		, _ThumbnailPool(NULL)
 		, _ThumbnailSize( FIntPoint(64, 64) )
 		, _ObjectPath()
@@ -35,7 +37,9 @@ public:
 		SLATE_ARGUMENT( bool, DisplayUseSelected )
 		SLATE_ARGUMENT( bool, DisplayBrowse )
 		SLATE_ARGUMENT( bool, EnableContentPicker)
-		SLATE_ARGUMENT( TSharedPtr<FAssetThumbnailPool>, ThumbnailPool )
+		SLATE_ARGUMENT( bool, AllowActorPicker)
+		SLATE_ARGUMENT( bool, SearchInBlueprint)			
+		SLATE_ARGUMENT( TSharedPtr<FAssetThumbnailPool>, ThumbnailPool)
 		SLATE_ARGUMENT( FIntPoint, ThumbnailSize )
 		SLATE_ATTRIBUTE( FString, ObjectPath )
 		SLATE_ARGUMENT( UClass*, Class )
@@ -297,6 +301,12 @@ private:
 
 	/** Whether the object we are editing is an Actor (i.e. requires a Scene Outliner to be displayed) */
 	bool bIsActor;
+
+	/** Tell us if we can allow the actor picker to be used instead of the asset picker */
+	bool bAllowActorPicker;
+
+	/** Indicates whether we should filter using the blueprint parent class or ignore blueprint */
+	bool bSearchInBlueprint;
 
 	/** Delegate to call when our object value is set */
 	FOnSetObject OnSetObject;

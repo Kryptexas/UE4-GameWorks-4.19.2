@@ -53,6 +53,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogAssetTools, Log, All);
 #include "AssetTypeActions/AssetTypeActions_Class.h"
 #include "AssetTypeActions/AssetTypeActions_Struct.h"
 #include "AssetTypeActions/AssetTypeActions_Font.h"
+#include "AssetTypeActions/AssetTypeActions_FontFace.h"
 #include "AssetTypeActions/AssetTypeActions_ForceFeedbackEffect.h"
 #include "AssetTypeActions/AssetTypeActions_SubsurfaceProfile.h"
 #include "AssetTypeActions/AssetTypeActions_SubDSurface.h"

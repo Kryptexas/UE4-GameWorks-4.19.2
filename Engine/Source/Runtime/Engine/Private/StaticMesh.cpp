@@ -1363,7 +1363,7 @@ void FStaticMeshRenderData::Cache(UStaticMesh* Owner, const FStaticMeshLODSettin
 			FStaticMeshStatusMessageContext StatusContext( FText::Format( NSLOCTEXT("Engine", "BuildingStaticMeshStatus", "Building static mesh {StaticMeshName}..."), Args ) );
 
 			IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>(TEXT("MeshUtilities"));
-			MeshUtilities.BuildStaticMesh(*this, Owner->SourceModels, LODGroup);
+			MeshUtilities.BuildStaticMesh(*this, Owner->SourceModels, LODGroup, Owner->ImportVersion);
 			ComputeUVDensities();
 			bLODsShareStaticLighting = Owner->CanLODsShareStaticLighting();
 			FMemoryWriter Ar(DerivedData, /*bIsPersistent=*/ true);
@@ -1466,6 +1466,7 @@ UStaticMesh::UStaticMesh(const FObjectInitializer& ObjectInitializer)
 	bHasNavigationData=true;
 #if WITH_EDITORONLY_DATA
 	bAutoComputeLODScreenSize=true;
+	ImportVersion = EImportStaticMeshVersion::BeforeImportStaticMeshVersionWasAdded;
 #endif // #if WITH_EDITORONLY_DATA
 	LightMapResolution = 4;
 	LpvBiasMultiplier = 1.0f;
@@ -2076,6 +2077,19 @@ static uint32 GetMeshMaterialKey(int32 LODIndex, int32 SectionIndex)
 void FMeshSectionInfoMap::Clear()
 {
 	Map.Empty();
+}
+
+int32 FMeshSectionInfoMap::GetSectionNumber(int32 LODIndex) const
+{
+	int SectionCount = 0;
+	for (auto kvp : Map)
+	{
+		if (((kvp.Key & 0xffff) >> 16) == LODIndex)
+		{
+			SectionCount++;
+		}
+	}
+	return SectionCount;
 }
 
 FMeshSectionInfo FMeshSectionInfoMap::Get(int32 LODIndex, int32 SectionIndex) const

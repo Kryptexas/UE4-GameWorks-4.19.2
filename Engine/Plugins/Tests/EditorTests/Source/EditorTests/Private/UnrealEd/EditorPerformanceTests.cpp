@@ -230,61 +230,16 @@ void FMapPerformanceInEditor::GetTests(TArray<FString>& OutBeautifiedNames, TArr
 	UAutomationTestSettings const* AutomationTestSettings = GetDefault<UAutomationTestSettings>();
 	check(AutomationTestSettings);
 
-	TArray<FString> PerformanceMapName;
-	for (auto Iter = AutomationTestSettings->EditorPerformanceTestMaps.CreateConstIterator(); Iter; ++Iter)
+	for ( const FEditorMapPerformanceTestDefinition& PerfDefinition : AutomationTestSettings->EditorPerformanceTestMaps )
 	{
-		if (Iter->PerformanceTestmap.FilePath.Len() > 0)
-		{
-			PerformanceMapName.AddUnique(Iter->PerformanceTestmap.FilePath);
-		}
-		
-		for (int32 indexloop = 0; indexloop < PerformanceMapName.Num(); ++indexloop)
-		{
+		const FStringAssetReference& PerfMap = PerfDefinition.PerformanceTestmap;
 
-			if (PerformanceMapName[indexloop].Equals(TEXT("CurrentLevel")))
-			{
-				OutBeautifiedNames.Add(TEXT("CurrentLevel"));
-				OutTestCommands.Add(TEXT("CurrentLevel"));
-				continue;
-			}
-		
-			//Get the location of the map being used.
-			FString Filename = FPaths::ConvertRelativePathToFull(PerformanceMapName[indexloop]);
+		if ( PerfMap.IsValid() )
+		{
+			FString ShortName = FPackageName::GetShortName(PerfMap.GetLongPackageName());
 
-			if (Filename.Contains(TEXT("/Engine/"), ESearchCase::IgnoreCase, ESearchDir::FromStart))
-			{
-				//If true it will proceed to add the asset to the test list.
-				//This will be false if the map is on a different drive.
-				if (FPaths::MakePathRelativeTo(Filename, *FPaths::EngineContentDir()))
-				{
-					FString ShortName = FPaths::GetBaseFilename(Filename);
-					FString PathName = FPaths::GetPath(Filename);
-					FString AssetName = FString::Printf(TEXT("/Engine/%s/%s.%s"), *PathName, *ShortName, *ShortName);
-					OutBeautifiedNames.Add(ShortName);
-					OutTestCommands.Add(AssetName);
-				}
-				else
-				{
-					UE_LOG(LogEditorAutomationTests, Error, TEXT("Invalid asset path: %s."), *Filename);
-				}
-			}
-			else
-			{
-				//If true it will proceed to add the asset to the test list.
-				//This will be false if the map is on a different drive.
-				if (FPaths::MakePathRelativeTo(Filename, *FPaths::GameContentDir()))
-				{
-					FString ShortName = FPaths::GetBaseFilename(Filename);
-					FString PathName = FPaths::GetPath(Filename);
-					FString AssetName = FString::Printf(TEXT("/Game/%s/%s.%s"), *PathName, *ShortName, *ShortName);
-					OutBeautifiedNames.Add(ShortName);
-					OutTestCommands.Add(AssetName);
-				}
-				else
-				{
-					UE_LOG(LogEditorAutomationTests, Error, TEXT("Invalid asset path: %s."), *Filename);
-				}
-			}
+			OutBeautifiedNames.Add(ShortName);
+			OutTestCommands.Add(PerfMap.GetLongPackageName());
 		}
 	}
 }
@@ -304,14 +259,11 @@ bool FMapPerformanceInEditor::RunTest(const FString& Parameters)
 	//Duration variable will be used to indicate how long the test will run for.  Defaults to a minute.
 	EditorPerformanceData.TestDuration = 60;
 
-	if (!MapName.Equals(TEXT("CurrentLevel"), ESearchCase::IgnoreCase))
-	{
-		//Get the base filename for the map that will be used.
-		EditorPerformanceData.MapName = FPaths::GetBaseFilename(MapName);
+	//Get the base filename for the map that will be used.
+	EditorPerformanceData.MapName = MapName;
 
-		//Load Map and get the time it took to take to load the map.
-		ADD_LATENT_AUTOMATION_COMMAND(FEditorLoadMap(MapName));
-	}
+	//Load Map and get the time it took to take to load the map.
+	ADD_LATENT_AUTOMATION_COMMAND(FEditorLoadMap(MapName));
 
 	//This gets the info we need from the automation test settings in the engine.ini.
 	UAutomationTestSettings const* AutomationTestSettings = GetDefault<UAutomationTestSettings>();
@@ -320,8 +272,7 @@ bool FMapPerformanceInEditor::RunTest(const FString& Parameters)
 	//Now we find the test timer(aka duration) for our test.
 	for (auto Iter = AutomationTestSettings->EditorPerformanceTestMaps.CreateConstIterator(); Iter; ++Iter)
 	{
-		FString IterMapName = FPaths::GetBaseFilename(Iter->PerformanceTestmap.FilePath);
-		if ((IterMapName == EditorPerformanceData.MapName || (IterMapName == TEXT("CurrentLevel"))))
+		if ( Iter->PerformanceTestmap.GetLongPackageName() == EditorPerformanceData.MapName )
 		{
 			EditorPerformanceData.TestDuration = ((Iter->TestTimer));
 			//If the duration is equal to 0 then we simply warn the user that they need to set the test timer option for the performance test.

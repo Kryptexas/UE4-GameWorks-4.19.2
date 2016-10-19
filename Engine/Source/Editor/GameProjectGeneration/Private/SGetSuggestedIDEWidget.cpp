@@ -11,6 +11,8 @@
 
 #define LOCTEXT_NAMESPACE "GameProjectGeneration"
 
+TSharedPtr<SNotificationItem> SGetSuggestedIDEWidget::IDEDownloadNotification;
+
 void SGetSuggestedIDEWidget::Construct(const FArguments& InArgs)
 {
 	Visibility = TAttribute<EVisibility>(this, &SGetSuggestedIDEWidget::GetVisibility);
@@ -79,7 +81,7 @@ FReply SGetSuggestedIDEWidget::OnInstallIDEClicked()
 		}
 		IDEDownloadNotification->SetCompletionState(SNotificationItem::ECompletionState::CS_Pending);
 
-		FSourceCodeNavigation::DownloadAndInstallSuggestedIDE(FOnIDEInstallerDownloadComplete::CreateSP(this, &SGetSuggestedIDEWidget::OnIDEInstallerDownloadComplete));
+		FSourceCodeNavigation::DownloadAndInstallSuggestedIDE(FOnIDEInstallerDownloadComplete::CreateStatic(&SGetSuggestedIDEWidget::OnIDEInstallerDownloadComplete));
 
 		if (FEngineAnalytics::IsAvailable())
 		{
@@ -106,6 +108,7 @@ void SGetSuggestedIDEWidget::OnIDEInstallerDownloadComplete(bool bWasSuccessful)
 		}
 
 		IDEDownloadNotification->ExpireAndFadeout();
+		IDEDownloadNotification = nullptr;
 	}
 }
 

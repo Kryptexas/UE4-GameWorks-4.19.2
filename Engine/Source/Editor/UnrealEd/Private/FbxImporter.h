@@ -86,6 +86,7 @@ struct FBXImportOptions
 	bool bImportLOD;
 	bool bUsedAsFullName;
 	bool bConvertScene;
+	bool bForceFrontXAxis;
 	bool bConvertSceneUnit;
 	bool bRemoveNameSpace;
 	FVector ImportTranslation;
@@ -377,6 +378,9 @@ struct FbxSceneInfo
 class FFbxDataConverter
 {
 public:
+	static void SetJointPostConversionMatrix(FbxAMatrix ConversionMatrix) { JointPostConversionMatrix = ConversionMatrix; }
+	static const FbxAMatrix &GetJointPostConversionMatrix() { return JointPostConversionMatrix; }
+
 	static FVector ConvertPos(FbxVector4 Vector);
 	static FVector ConvertDir(FbxVector4 Vector);
 	static FRotator ConvertEuler(FbxDouble3 Euler);
@@ -405,6 +409,8 @@ public:
 	static FbxDouble3   ConvertToFbxColor(FColor Color);
 	static FbxString	ConvertToFbxString(FName Name);
 	static FbxString	ConvertToFbxString(const FString& String);
+private:
+	static FbxAMatrix JointPostConversionMatrix;
 };
 
 FBXImportOptions* GetImportOptions( class FFbxImporter* FbxImporter, UFbxImportUI* ImportUI, bool bShowOptionDialog, bool bIsAutomated, const FString& FullPath, bool& OutOperationCanceled, bool& OutImportAll, bool bIsObjFormat, bool bForceImportType = false, EFBXImportType ImportType = FBXIT_StaticMesh );
@@ -549,7 +555,7 @@ public:
 	*
 	* @returns UObject*	the UStaticMesh object.
 	*/
-	UNREALED_API UStaticMesh* ImportStaticMeshAsSingle(UObject* InParent, TArray<FbxNode*>& MeshNodeArray, const FName InName, EObjectFlags Flags, UFbxStaticMeshImportData* TemplateImportData, UStaticMesh* InStaticMesh, int LODIndex = 0, void *ExistMeshDataPtr = nullptr, TArray<FName> *OrderedMaterialNames = nullptr);
+	UNREALED_API UStaticMesh* ImportStaticMeshAsSingle(UObject* InParent, TArray<FbxNode*>& MeshNodeArray, const FName InName, EObjectFlags Flags, UFbxStaticMeshImportData* TemplateImportData, UStaticMesh* InStaticMesh, int LODIndex = 0, void *ExistMeshDataPtr = nullptr);
 
 	/**
 	* Creates a SubDSurface mesh from all the meshes in FBX scene with the given name and flags.

@@ -474,7 +474,9 @@ public:
 	UPROPERTY(EditAnywhere, Category="Message")
 	uint8 ToleranceMaxBrightness;
 	UPROPERTY(EditAnywhere, Category="Message")
-	float MaximumAllowedError;
+	float MaximumLocalError;
+	UPROPERTY(EditAnywhere, Category="Message")
+	float MaximumGlobalError;
 	UPROPERTY(EditAnywhere, Category="Message")
 	bool bIgnoreAntiAliasing;
 	UPROPERTY(EditAnywhere, Category="Message")
@@ -524,7 +526,10 @@ public:
 		ToleranceAlpha = Data.ToleranceAlpha;
 		ToleranceMinBrightness = Data.ToleranceMinBrightness;
 		ToleranceMaxBrightness = Data.ToleranceMaxBrightness;
-		MaximumAllowedError = Data.MaximumAllowedError;
+		
+		MaximumLocalError = Data.MaximumLocalError;
+		MaximumGlobalError = Data.MaximumGlobalError;
+
 		bIgnoreAntiAliasing = Data.bIgnoreAntiAliasing;
 		bIgnoreColors = Data.bIgnoreColors;
 	}
@@ -549,4 +554,36 @@ struct FAutomationWorkerScreenImage
 
 	UPROPERTY(EditAnywhere, Category="Message")
 	FAutomationScreenshotMetadata Metadata;
+};
+
+
+
+/**
+ * Implements a message that is sent in containing a screen shot run during performance test.
+ */
+USTRUCT()
+struct FAutomationWorkerImageComparisonResults
+{
+	GENERATED_USTRUCT_BODY()
+
+public:
+	FAutomationWorkerImageComparisonResults()
+		: bNew(false)
+		, bSimilar(false)
+	{
+	}
+
+	FAutomationWorkerImageComparisonResults(bool InIsNew, bool InAreSimilar)
+		: bNew(InIsNew)
+		, bSimilar(InAreSimilar)
+	{
+	}
+
+	/** Was this a new image we've never seen before and have no ground truth for? */
+	UPROPERTY(EditAnywhere, Category="Message")
+	bool bNew;
+
+	/** Were the images similar?  If they're not you should log an error. */
+	UPROPERTY(EditAnywhere, Category="Message")
+	bool bSimilar;
 };

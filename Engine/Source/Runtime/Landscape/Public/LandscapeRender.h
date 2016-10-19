@@ -523,8 +523,9 @@ protected:
 	FVector4 WeightmapScaleBias;
 	float WeightmapSubsectionOffset;
 	TArray<UTexture2D*> WeightmapTextures;
-	TArray<FName> LayerNames;
+#if WITH_EDITOR
 	TArray<FLinearColor> LayerColors;
+#endif
 	int8 NumWeightmapLayerAllocations;
 	UTexture2D* NormalmapTexture; // PC : Heightmap, Mobile : Weightmap
 	UTexture2D* BaseColorForGITexture;

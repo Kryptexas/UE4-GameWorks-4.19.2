@@ -195,7 +195,7 @@ UObject* UTrueTypeFontFactory::FactoryCreateNew(
 bool UTrueTypeFontFactory::CanReimport( UObject* Obj, TArray<FString>& OutFilenames )
 {	
 	UFont* FontToReimport = Cast<UFont>(Obj);
-	if(FontToReimport)
+	if(FontToReimport && FontToReimport->FontCacheType == EFontCacheType::Offline)
 	{
 		OutFilenames.Add(TEXT("None"));
 		return true;
@@ -1391,7 +1391,7 @@ bool UTrueTypeFontFactory::CreateFontTexture(
 
 				TextOut( DCHandle, X, Y, Tmp, 1 );
 				
-				UE_LOG(LogTTFontImport, Warning,TEXT("OutPutGlyph X=%d Y=%d FontHeight=%d FontWidth=%d Char=%04x U=%d V=%d =Usize=%d VSIze=%d"), 
+				UE_LOG(LogTTFontImport, Log, TEXT("OutPutGlyph X=%d Y=%d FontHeight=%d FontWidth=%d Char=%04x U=%d V=%d =Usize=%d VSIze=%d"), 
 					X,Y,FontHeight,FontWidth,Char,
 					NewCharacterRef.StartU ,
 					NewCharacterRef.StartV ,
@@ -2301,7 +2301,7 @@ bool UTrueTypeFontFactory::ImportTrueTypeFont(
 	bool bResult = CreateFontTexture( Font, Warn, NumResolutions, CharsPerPage, InverseMap, ResHeights );
 
 	double EndTime = FPlatformTime::Seconds();
-	UE_LOG(LogTTFontImport, Warning,TEXT("ImportTrueTypeFont: Total Time %0.2f"), EndTime - StartTime);
+	UE_LOG(LogTTFontImport, Log,TEXT("ImportTrueTypeFont: Total Time %0.2f"), EndTime - StartTime);
 
 	return bResult;
 }

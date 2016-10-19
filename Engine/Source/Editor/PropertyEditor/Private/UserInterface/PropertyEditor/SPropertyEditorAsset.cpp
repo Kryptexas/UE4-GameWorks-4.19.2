@@ -82,6 +82,8 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 	PropertyHandle = InArgs._PropertyHandle;
 	OnSetObject = InArgs._OnSetObject;
 	OnShouldFilterAsset = InArgs._OnShouldFilterAsset;
+	bAllowActorPicker = InArgs._AllowActorPicker && PropertyEditor.IsValid();
+	bSearchInBlueprint = InArgs._SearchInBlueprint;
 
 	UProperty* Property = nullptr;
 	if(PropertyEditor.IsValid())
@@ -166,6 +168,24 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 				}
 			}
 		}
+
+		// Make sure we're not trying to allow an actor picker on a property of an archetype object
+		if (bAllowActorPicker)
+		{
+			FObjectPropertyNode* RootObjectNode = PropertyEditor->GetPropertyNode()->FindRootObjectItemParent();
+			
+			check(RootObjectNode);
+			
+			// One of the object is an archetype, we can't allow actor picker
+			for (int32 i = 0; i < RootObjectNode->GetNumObjects(); ++i)
+			{
+				if (RootObjectNode->GetUObject(i)->HasAnyFlags(RF_ArchetypeObject))
+				{
+					bAllowActorPicker = false;
+					break;
+				}
+			}
+		}
 	}
 
 	if (InArgs._NewAssetFactories.IsSet())
@@ -246,6 +266,7 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 		IsEnabledAttribute.Set(true);
 	}
 
+	TSharedPtr<SWidget> ButtonBoxWrapper;
 	TSharedRef<SHorizontalBox> ButtonBox = SNew( SHorizontalBox );
 	
 	TSharedPtr<SVerticalBox> CustomContentBox;
@@ -290,9 +311,12 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 				]
 				+ SVerticalBox::Slot()
 				.AutoHeight()
-				.Padding( 0.0f, 2.0f, 4.0f, 2.0f )
 				[
-					ButtonBox
+					SAssignNew(ButtonBoxWrapper, SBox)
+					.Padding( FMargin( 0.0f, 2.0f, 4.0f, 2.0f ) )
+					[
+						ButtonBox
+					]
 				]
 			]
 		];
@@ -312,9 +336,12 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
-				.Padding( 4.f, 0.f )
 				[
-					ButtonBox
+					SAssignNew(ButtonBoxWrapper, SBox)
+					.Padding( FMargin( 4.f, 0.f ) )
+					[
+						ButtonBox
+					]
 				]
 			]
 		];
@@ -355,7 +382,7 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 		];
 	}
 
-	if( bIsActor )
+	if( bIsActor && bAllowActorPicker)
 	{
 		TSharedRef<SWidget> ActorPicker = PropertyCustomizationHelpers::MakeInteractiveActorPicker( FOnGetAllowedClasses::CreateSP(this, &SPropertyEditorAsset::OnGetAllowedClasses), FOnShouldFilterActor(), FOnActorSelected::CreateSP( this, &SPropertyEditorAsset::OnActorSelected ) );
 		ActorPicker->SetEnabled( IsEnabledAttribute );
@@ -381,6 +408,11 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 		[
 			ResetToDefaultWidget
 		];
+	}
+
+	if (ButtonBoxWrapper.IsValid())
+	{
+		ButtonBoxWrapper->SetVisibility(ButtonBox->NumSlots() > 0 ? EVisibility::Visible : EVisibility::Collapsed);
 	}
 }
 
@@ -450,7 +482,7 @@ TSharedRef<SWidget> SPropertyEditorAsset::OnGetMenuContent()
 	FObjectOrAssetData Value;
 	GetValue(Value);
 
-	if(bIsActor)
+	if(bIsActor && bAllowActorPicker)
 	{
 		return PropertyCustomizationHelpers::MakeActorPickerWithMenu(Cast<AActor>(Value.Object),
 																	 bAllowClear,
@@ -463,6 +495,7 @@ TSharedRef<SWidget> SPropertyEditorAsset::OnGetMenuContent()
 	{
 		return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(Value.AssetData,
 																	 bAllowClear,
+																	 bSearchInBlueprint,
 																	 CustomClassFilters,
 																	 NewAssetFactories,
 																	 OnShouldFilterAsset,
@@ -935,10 +968,18 @@ bool SPropertyEditorAsset::CanSetBasedOnCustomClasses( const FAssetData& InAsset
 	{
 		bAllowedToSetBasedOnFilter = false;
 		UClass* AssetClass = InAssetData.GetClass();
+		UClass* ParentClass	= nullptr;
+		FString ParentClassPath = InAssetData.GetTagValueRef<FString>(FName("ParentClass"));
+
+		if (!ParentClassPath.IsEmpty())
+		{
+			ParentClass = FindObject<UClass>(nullptr, *ParentClassPath);
+		}
+
 		for( const UClass* AllowedClass : CustomClassFilters )
 		{
 			const bool bAllowedClassIsInterface = AllowedClass->HasAnyClassFlags(CLASS_Interface);
-			if( AssetClass->IsChildOf( AllowedClass ) || (bAllowedClassIsInterface && AssetClass->ImplementsInterface(AllowedClass)) )
+			if( AssetClass->IsChildOf( AllowedClass ) || (bAllowedClassIsInterface && AssetClass->ImplementsInterface(AllowedClass)) || (ParentClass == AllowedClass))
 			{
 				bAllowedToSetBasedOnFilter = true;
 				break;

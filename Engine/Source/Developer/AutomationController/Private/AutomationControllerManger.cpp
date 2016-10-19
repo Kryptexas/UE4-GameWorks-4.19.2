@@ -35,6 +35,9 @@ void FAutomationControllerManager::RequestAvailableWorkers(const FGuid& SessionI
 	// Reset the check test timers
 	LastTimeUpdateTicked = FPlatformTime::Seconds();
 	CheckTestTimer = 0.f;
+
+	IScreenShotToolsModule& ScreenShotModule = FModuleManager::LoadModuleChecked<IScreenShotToolsModule>("ScreenShotComparisonTools");
+	ScreenshotManager = ScreenShotModule.GetScreenShotManager();
 }
 
 void FAutomationControllerManager::RequestTests()
@@ -159,8 +162,29 @@ void FAutomationControllerManager::RequestLoadAsset( const FString& InAssetName 
 void FAutomationControllerManager::Tick()
 {
 	ProcessAvailableTasks();
+	ProcessComparisonQueue();
 }
 
+void FAutomationControllerManager::ProcessComparisonQueue()
+{
+	TSharedPtr<FComparisonEntry> Entry;
+	if ( ComparisonQueue.Peek(Entry) )
+	{
+		if ( Entry->PendingComparison.IsReady() )
+		{
+			const bool Dequeued = ComparisonQueue.Dequeue(Entry);
+			check(Dequeued);
+
+			FImageComparisonResult Result = Entry->PendingComparison.Get();
+
+			const bool bIsNew = Result.IsNew();
+			const bool bAreSimilar = Result.AreSimilar();
+
+			// Issue tests on appropriate platforms
+			MessageEndpoint->Send(new FAutomationWorkerImageComparisonResults(bIsNew, bAreSimilar), Entry->Sender);
+		}
+	}
+}
 
 void FAutomationControllerManager::ProcessAvailableTasks()
 {
@@ -315,7 +339,7 @@ void FAutomationControllerManager::ExecuteNextTask( int32 ClusterIndex, OUT bool
 						{
 							FAutomationTestResults TestResults;
 
-							GLog->Logf(ELogVerbosity::Display, TEXT("Running Automation: '%s' (Class Name: '%s')"), *TestsRunThisPass[AddressIndex]->GetDisplayName(), *TestsRunThisPass[AddressIndex]->GetCommand());
+							GLog->Logf(ELogVerbosity::Display, TEXT("Running Automation: '%s' (Class Name: '%s')"), *TestsRunThisPass[AddressIndex]->GetFullTestPath(), *TestsRunThisPass[AddressIndex]->GetCommand());
 							TestResults.State = EAutomationState::InProcess;
 
 							TestResults.GameInstance = DeviceClusterManager.GetClusterDeviceName( ClusterIndex, DeviceIndex );
@@ -694,36 +718,28 @@ void FAutomationControllerManager::HandlePongMessage( const FAutomationWorkerPon
 
 void FAutomationControllerManager::HandleReceivedScreenShot( const FAutomationWorkerScreenImage& Message, const IMessageContextRef& Context )
 {
-	// Forward the screen shot on to listeners
-	FAutomationWorkerScreenImage* ImageMessage = new FAutomationWorkerScreenImage(Message);
-	MessageEndpoint->Publish(ImageMessage, EMessageScope::Network);
+	FString ScreenshotIncomingFolder = FPaths::GameSavedDir() / TEXT("Automation/Incoming/");
 
-	//// TODO Automation Why are we doing this????  It's not actually storing them, that's handled by the ScreenShotManager.cpp
-	//{
-	//	// Save the screen shot locally (assuming that the controller manager is running on PC/Mac)
-	//	const bool bTree = true;
-	//	IFileManager::Get().MakeDirectory(*FPaths::GetPath(Message.ScreenShotName), bTree);
-	//	FFileHelper::SaveArrayToFile(Message.ScreenImage, *Message.ScreenShotName);
+	bool bTree = true;
+	FString FileName = ScreenshotIncomingFolder / Message.ScreenShotName;
+	IFileManager::Get().MakeDirectory(*FPaths::GetPath(FileName), bTree);
+	FFileHelper::SaveArrayToFile(Message.ScreenImage, *FileName);
 
-	//	// TODO Automation There is identical code in, Engine\Source\Runtime\AutomationWorker\Private\AutomationWorkerModule.cpp,
-	//	// need to move this code into common area.
+	// TODO Automation There is identical code in, Engine\Source\Runtime\AutomationWorker\Private\AutomationWorkerModule.cpp,
+	// need to move this code into common area.
 
-	//	TSharedPtr<FJsonObject> MetadataJson = FJsonObjectConverter::UStructToJsonObject(Message.Metadata);
+	FString Json;
+	if ( FJsonObjectConverter::UStructToJsonObjectString(Message.Metadata, Json) )
+	{
+		FString MetadataPath = FPaths::ChangeExtension(FileName, TEXT("json"));
+		FFileHelper::SaveStringToFile(Json, *MetadataPath, FFileHelper::EEncodingOptions::ForceUTF8);
+	}
 
-	//	if ( MetadataJson.IsValid() )
-	//	{
-	//		FString MetadataPath = FPaths::ChangeExtension(Message.ScreenShotName, TEXT("json"));
-	//		FArchive* MetadataWriter = IFileManager::Get().CreateFileWriter(*MetadataPath);
+	TSharedRef<FComparisonEntry> Comparison = MakeShareable(new FComparisonEntry());
+	Comparison->Sender = Context->GetSender();
+	Comparison->PendingComparison = ScreenshotManager->CompareScreensotAsync(Message.ScreenShotName);
 
-	//		if ( MetadataWriter != nullptr )
-	//		{
-	//			TSharedRef<TJsonWriter<> > JsonWriter = TJsonWriterFactory<>::Create(MetadataWriter, 0);
-	//			FJsonSerializer::Serialize(MetadataJson.ToSharedRef(), JsonWriter);
-
-	//			delete MetadataWriter;
-	//		}
-	//	}
-	//}
+	ComparisonQueue.Enqueue(Comparison);
 }
 
 void FAutomationControllerManager::HandleRequestNextNetworkCommandMessage( const FAutomationWorkerRequestNextNetworkCommand& Message, const IMessageContextRef& Context )

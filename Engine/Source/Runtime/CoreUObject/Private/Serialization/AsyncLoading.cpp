@@ -4639,6 +4639,12 @@ EAsyncPackageState::Type FAsyncPackage::CreateLinker()
 			// Allow delegates to resolve this path
 			FString NameToLoad = FPackageName::GetDelegateResolvedPackagePath(Desc.NameToLoad.ToString());
 
+			// The editor must not redirect packages for localization.
+			if (!GIsEditor)
+			{
+				NameToLoad = FPackageName::GetLocalizedPackagePath(NameToLoad);
+			}
+
 			const FGuid* const Guid = Desc.Guid.IsValid() ? &Desc.Guid : nullptr;
 
 			FString PackageFileName;

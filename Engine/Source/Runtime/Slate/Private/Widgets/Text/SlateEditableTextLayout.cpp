@@ -327,8 +327,6 @@ bool FSlateEditableTextLayout::SetEditableText(const FText& TextToSet, const boo
 	{
 		const FString& TextToSetString = TextToSet.ToString();
 
-		Marshaller->ClearDirty();
-
 		ClearSelection();
 		TextLayout->ClearLines();
 
@@ -336,6 +334,8 @@ bool FSlateEditableTextLayout::SetEditableText(const FText& TextToSet, const boo
 		TextLayout->ClearRunRenderers();
 
 		Marshaller->SetText(TextToSetString, *TextLayout);
+
+		Marshaller->ClearDirty();
 
 		const TArray< FTextLayout::FLineModel >& Lines = TextLayout->GetLineModels();
 		if (Lines.Num() == 0)

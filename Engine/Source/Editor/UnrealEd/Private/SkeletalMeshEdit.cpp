@@ -564,6 +564,9 @@ UAnimSequence * UnFbx::FFbxImporter::ImportAnimations(USkeleton* Skeleton, UObje
 
 int32 GetAnimationCurveRate(FbxAnimCurve* CurrentCurve)
 {
+	if (CurrentCurve == nullptr)
+		return 0;
+
 	int32 KeyCount = CurrentCurve->KeyGetCount();
 
 	FbxTimeSpan TimeInterval(FBXSDK_TIME_INFINITE, FBXSDK_TIME_MINUS_INFINITE);
@@ -653,10 +656,13 @@ int32 UnFbx::FFbxImporter::GetMaxSampleRate(TArray<FbxNode*>& SortedLinks, TArra
 							if (Channel)
 							{
 								FbxAnimCurve* CurrentCurve = Geometry->GetShapeChannel(BlendShapeIndex, ChannelIndex, AnimLayer);
-								int32 NewRate = GetAnimationCurveRate(CurrentCurve);
-								if (NewRate > 0)
+								if (CurrentCurve)
 								{
-									MaxStackResampleRate = FMath::Max(NewRate, MaxStackResampleRate);
+									int32 NewRate = GetAnimationCurveRate(CurrentCurve);
+									if (NewRate > 0)
+									{
+										MaxStackResampleRate = FMath::Max(NewRate, MaxStackResampleRate);
+									}
 								}
 							}
 						}
@@ -1325,7 +1331,7 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 				for(FbxTime CurTime = AnimTimeSpan.GetStart(); CurTime <= AnimTimeSpan.GetStop(); CurTime += TimeIncrement)
 				{
 					// save global trasnform
-					FbxAMatrix GlobalMatrix = Link->EvaluateGlobalTransform(CurTime);
+					FbxAMatrix GlobalMatrix = Link->EvaluateGlobalTransform(CurTime) * FFbxDataConverter::GetJointPostConversionMatrix();
 					// we'd like to verify this before going to Transform. 
 					// currently transform has tons of NaN check, so it will crash there
 					FMatrix GlobalUEMatrix = Converter.ConvertMatrix(GlobalMatrix);
@@ -1355,6 +1361,10 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 					{
 						// I can't rely on LocalMatrix. I need to recalculate quaternion/scale based on global transform if Parent exists
 						FbxAMatrix ParentGlobalMatrix = Link->GetParent()->EvaluateGlobalTransform(CurTime);
+						if (BoneTreeIndex != 0)
+						{
+							ParentGlobalMatrix = ParentGlobalMatrix * FFbxDataConverter::GetJointPostConversionMatrix();
+						}
 						FTransform ParentGlobalTransform =  Converter.ConvertTransform(ParentGlobalMatrix);
 						//In case we do a scene import we need to add the skeletal mesh root node matrix to the parent link.
 						if (ImportOptions->bImportScene && !ImportOptions->bTransformVertexToAbsolute && BoneTreeIndex == 0 && SkeletalMeshRootNode != nullptr)

@@ -44,13 +44,6 @@ public:
 	virtual void GenerateLists( ) = 0;
 
 	/**
-	 * Get the screen shot list
-	 *
-	 * @return the array of screen shot data
-	 */
-	virtual TArray<IScreenShotDataPtr>& GetLists( ) = 0;
-
-	/**
 	 */
 	virtual TArray< TSharedPtr<FScreenShotDataItem> >& GetScreenshotResults() = 0;
 
@@ -76,24 +69,26 @@ public:
 	virtual void SetFilter(TSharedPtr<ScreenShotFilterCollection> InFilter ) = 0;
 
 	/**
-	 * Only display every Nth screen shot
-	 *
-	 * @param NewNth - The new N.
-	 */
-	virtual void SetDisplayEveryNthScreenshot(int32 NewNth) = 0;
-
-	/**
 	 * Compares screenshots.
 	 */
-	virtual TFuture< void > CompareScreensotsAsync() = 0;
+	virtual TFuture<void> CompareScreensotsAsync() = 0;
+
+	/**
+	 * Compares a specific screenshot, the shot path must be relative from the incoming unapproved directory.
+	 */
+	virtual TFuture<FImageComparisonResult> CompareScreensotAsync(FString RelativeImagePath) = 0;
 
 	/**
 	 * Exports the screenshots to the export location specified
 	 */
-	virtual TFuture< void > ExportScreensotsAsync(FString ExportPath) = 0;
+	virtual TFuture<void> ExportScreensotsAsync(FString ExportPath = TEXT("")) = 0;
 
 	/**
 	 * Imports screenshot comparison data from a given path.
 	 */
 	virtual TSharedPtr<FComparisonResults> ImportScreensots(FString ImportPath) = 0;
+
+	virtual FString GetLocalUnapprovedFolder() const = 0;
+
+	virtual FString GetLocalApprovedFolder() const = 0;
 };

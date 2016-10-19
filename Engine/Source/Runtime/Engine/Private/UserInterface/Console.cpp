@@ -1482,6 +1482,7 @@ void UConsole::FakeGotoState(FName NextStateName)
 		// We need to force the console state name change now otherwise inside the call 
 		// to SetKeyboardFocus the console is still considered active
 		ConsoleState = NAME_None;
+		bCtrl = false;
 
 		TSharedPtr<SWidget> WidgetToFocus;
 		if (PreviousFocusedWidget.IsValid())

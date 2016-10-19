@@ -80,6 +80,7 @@
 #include "Engine/TextureRenderTargetCube.h"
 #include "Engine/TextureCube.h"
 #include "Engine/Font.h"
+#include "Engine/FontFace.h"
 #include "Components/AudioComponent.h"
 #include "Sound/DialogueWave.h"
 #include "Engine/StaticMesh.h"
@@ -5180,33 +5181,155 @@ UObject* UFontFactory::FactoryCreateNew(UClass* InClass, UObject* InParent, FNam
 UFontFileImportFactory::UFontFileImportFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	SupportedClass = UFont::StaticClass();
+	SupportedClass = UFontFace::StaticClass();
 
 	bEditorImport = true;
 
 	Formats.Add(TEXT("ttf;TrueType font"));
 	Formats.Add(TEXT("otf;OpenType font"));
+
+	BatchCreateFontAsset = EBatchCreateFontAsset::Unknown;
+}
+
+bool UFontFileImportFactory::ConfigureProperties()
+{
+	BatchCreateFontAsset = EBatchCreateFontAsset::Unknown;
+	return true;
 }
 
 UObject* UFontFileImportFactory::FactoryCreateBinary(UClass* InClass, UObject* InParent, FName InName, EObjectFlags InFlags, UObject* InContext, const TCHAR* InType, const uint8*& InBuffer, const uint8* InBufferEnd, FFeedbackContext* InWarn)
 {
-	FEditorDelegates::OnAssetPreImport.Broadcast(this, InClass, InParent, InName, InType);
-
-	UFont* const Font = NewObject<UFont>(InParent, InClass, InName, InFlags);
-	if(Font)
+	// Should we create a font asset alongside our font face?
+	bool bCreateFontAsset = false;
 	{
-		Font->FontCacheType = EFontCacheType::Runtime;
-
-		// We need to allocate the bulk data with the font as its outer
-		UFontBulkData* const BulkData = NewObject<UFontBulkData>(Font);
-		BulkData->Initialize(InBuffer, InBufferEnd - InBuffer);
-
-		Font->CompositeFont.DefaultTypeface.Fonts.Add(FTypefaceEntry("Default", GetCurrentFilename(), BulkData, EFontHinting::Auto));
+		const bool bIsAutomated = IsAutomatedImport();
+		const bool bShowImportDialog = BatchCreateFontAsset == EBatchCreateFontAsset::Unknown && !bIsAutomated;
+		if (bShowImportDialog)
+		{
+			const FText DlgTitle = LOCTEXT("ImportFont_OptionsDlgTitle", "Font Face Import Options");
+			const FText DlgMsg = LOCTEXT("ImportFont_OptionsDlgMsg", "Would you like to create a new Font asset using the imported Font Face as its default font?");
+			switch (FMessageDialog::Open(EAppMsgType::YesNoYesAllNoAllCancel, DlgMsg, &DlgTitle))
+			{
+			case EAppReturnType::Yes:
+				bCreateFontAsset = true;
+				break;
+			case EAppReturnType::YesAll:
+				bCreateFontAsset = true;
+				BatchCreateFontAsset = EBatchCreateFontAsset::Yes;
+				break;
+			case EAppReturnType::No:
+				break;
+			case EAppReturnType::NoAll:
+				BatchCreateFontAsset = EBatchCreateFontAsset::No;
+				break;
+			default:
+				BatchCreateFontAsset = EBatchCreateFontAsset::Cancel;
+				break;
+			}
+		}
+		else
+		{
+			bCreateFontAsset = BatchCreateFontAsset == EBatchCreateFontAsset::Yes;
+		}
 	}
 
-	FEditorDelegates::OnAssetPostImport.Broadcast(this, Font);
+	if (BatchCreateFontAsset == EBatchCreateFontAsset::Cancel)
+	{
+		return nullptr;
+	}
+
+	FEditorDelegates::OnAssetPreImport.Broadcast(this, InClass, InParent, InName, InType);
+
+	// Create the font face
+	UFontFace* const FontFace = NewObject<UFontFace>(InParent, InClass, InName, InFlags);
+	if (FontFace)
+	{
+		FontFace->SourceFilename = GetCurrentFilename();
+		FontFace->FontFaceData.Append(InBuffer, InBufferEnd - InBuffer);
+	}
+
+	FEditorDelegates::OnAssetPostImport.Broadcast(this, FontFace);
 	
-	return Font;
+	// Create the font (if requested)
+	if (FontFace && bCreateFontAsset)
+	{
+		FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
+
+		FString FontPackageName;
+		FString FontAssetName;
+		AssetToolsModule.Get().CreateUniqueAssetName(FString::Printf(TEXT("%s/%s_Font"), *FPackageName::GetLongPackagePath(InParent->GetOutermost()->GetName()), *InName.ToString()), FString(), FontPackageName, FontAssetName);
+
+		UFontFactory* FontFactory = NewObject<UFontFactory>();
+		FontFactory->bEditAfterNew = false;
+
+		UPackage* FontPackage = CreatePackage(nullptr, *FontPackageName);
+		UFont* Font = Cast<UFont>(FontFactory->FactoryCreateNew(UFont::StaticClass(), FontPackage, *FontAssetName, InFlags, InContext, InWarn));
+		if (Font)
+		{
+			Font->FontCacheType = EFontCacheType::Runtime;
+
+			// Add a default typeface referencing the newly created font face
+			FTypefaceEntry& DefaultTypefaceEntry = Font->CompositeFont.DefaultTypeface.Fonts[Font->CompositeFont.DefaultTypeface.Fonts.AddDefaulted()];
+			DefaultTypefaceEntry.Name = "Default";
+			DefaultTypefaceEntry.Font = FFontData(FontFace);
+
+			FAssetRegistryModule::AssetCreated(Font);
+			FontPackage->MarkPackageDirty();
+		}
+	}
+
+	return FontFace;
+}
+
+bool UFontFileImportFactory::CanReimport(UObject* Obj, TArray<FString>& OutFilenames)
+{
+	UFontFace* FontFaceToReimport = Cast<UFontFace>(Obj);
+	if (FontFaceToReimport)
+	{
+		OutFilenames.Add(FontFaceToReimport->SourceFilename);
+		return true;
+	}
+	return false;
+}
+
+void UFontFileImportFactory::SetReimportPaths(UObject* Obj, const TArray<FString>& NewReimportPaths)
+{
+	UFontFace* FontFaceToReimport = Cast<UFontFace>(Obj);
+	if (FontFaceToReimport && ensure(NewReimportPaths.Num() == 1))
+	{
+		FontFaceToReimport->SourceFilename = NewReimportPaths[0];
+	}
+}
+
+EReimportResult::Type UFontFileImportFactory::Reimport(UObject* InObject)
+{
+	UFontFace* FontFaceToReimport = Cast<UFontFace>(InObject);
+
+	if (!FontFaceToReimport)
+	{
+		return EReimportResult::Failed;
+	}
+
+	if (FontFaceToReimport->SourceFilename.IsEmpty() || !FPaths::FileExists(FontFaceToReimport->SourceFilename))
+	{
+		return EReimportResult::Failed;
+	}
+
+	// Never create font assets when reimporting
+	BatchCreateFontAsset = EBatchCreateFontAsset::No;
+
+	bool OutCanceled = false;
+	if (ImportObject(InObject->GetClass(), InObject->GetOuter(), *InObject->GetName(), RF_Public | RF_Standalone, FontFaceToReimport->SourceFilename, nullptr, OutCanceled))
+	{
+		return EReimportResult::Succeeded;
+	}
+
+	return EReimportResult::Failed;
+}
+
+int32 UFontFileImportFactory::GetPriority() const
+{
+	return ImportPriority;
 }
 
 /*------------------------------------------------------------------------------
@@ -5675,6 +5798,7 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 	{
 		//Set misc options
 		ReimportUI->bConvertScene = ImportUI->bConvertScene;
+		ReimportUI->bForceFrontXAxis = ImportUI->bForceFrontXAxis;
 		ReimportUI->bConvertSceneUnit = ImportUI->bConvertSceneUnit;
 	}
 
@@ -5912,6 +6036,7 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 	{
 		//Set misc options
 		ReimportUI->bConvertScene = ImportUI->bConvertScene;
+		ReimportUI->bForceFrontXAxis = ImportUI->bForceFrontXAxis;
 		ReimportUI->bConvertSceneUnit = ImportUI->bConvertSceneUnit;
 	}
 

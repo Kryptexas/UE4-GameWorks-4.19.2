@@ -291,6 +291,11 @@ public:
 
 public:
 
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Rendering")
+	//FQualityLevels
+
+public:
+
 	/** Called when the test is started */
 	UPROPERTY(BlueprintAssignable)
 	FFunctionalTestEventSignature OnTestStart;

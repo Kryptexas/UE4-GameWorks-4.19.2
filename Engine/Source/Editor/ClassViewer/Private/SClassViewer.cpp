@@ -2159,7 +2159,7 @@ void SClassViewer::OnGetChildrenForClassViewerTree( TSharedPtr<FClassViewerNode>
 void SClassViewer::OnClassViewerSelectionChanged( TSharedPtr<FClassViewerNode> Item, ESelectInfo::Type SelectInfo )
 {
 	// Do not act on selection change when it is for navigation
-	if(SelectInfo == ESelectInfo::OnNavigation)
+	if(SelectInfo == ESelectInfo::OnNavigation && InitOptions.DisplayMode == EClassViewerDisplayMode::ListView)
 	{
 		return;
 	}

@@ -212,6 +212,7 @@ bool GetFbxSceneReImportOptions(UnFbx::FFbxImporter* FbxImporter
 	GlobalImportSettings->ImportUniformScale = 1.0f;
 
 	GlobalImportSettings->bConvertScene = true;
+	GlobalImportSettings->bForceFrontXAxis = false;
 	GlobalImportSettings->bConvertSceneUnit = true;
 
 
@@ -353,6 +354,7 @@ EReimportResult::Type UReimportFbxSceneFactory::Reimport(UObject* Obj)
 
 	//Always convert the scene
 	GlobalImportSettings->bConvertScene = true;
+	GlobalImportSettings->bForceFrontXAxis = false;
 	GlobalImportSettings->bConvertSceneUnit = true;
 	GlobalImportSettings->bImportScene = ReimportData->bImportScene;
 	if (ReimportData->NameOptionsMap.Contains(DefaultOptionName))
@@ -464,10 +466,8 @@ EReimportResult::Type UReimportFbxSceneFactory::Reimport(UObject* Obj)
 	}
 
 	StaticMeshImportData->bImportAsScene = true;
-	StaticMeshImportData->bImportMaterials = GlobalImportSettingsReference->bImportMaterials;
 	StaticMeshImportData->FbxSceneImportDataReference = ReimportData;
 	SkeletalMeshImportData->bImportAsScene = true;
-	SkeletalMeshImportData->bImportMaterials = GlobalImportSettingsReference->bImportMaterials;
 	SkeletalMeshImportData->FbxSceneImportDataReference = ReimportData;
 
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");

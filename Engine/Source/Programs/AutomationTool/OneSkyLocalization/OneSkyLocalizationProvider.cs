@@ -52,14 +52,7 @@ public class OneSkyLocalizationProvider : LocalizationProvider
 		var OneSkyProject = GetOneSkyProject(ProjectName);
 		var OneSkyFile = OneSkyProject.UploadedFiles.FirstOrDefault(f => f.Filename == OneSkyFileName);
 
-		// Create changelist for backed up POs from OneSky.
-		int OneSkyDownloadedPOChangeList = 0;
-		if (CommandUtils.P4Enabled)
-		{
-			OneSkyDownloadedPOChangeList = CommandUtils.P4.CreateChange(CommandUtils.P4Env.Client, "OneSky downloaded PO backup.");
-		}
-
-		//Export
+		// Export
 		if (OneSkyFile != null)
 		{
 			var CulturesToExport = new List<string>();
@@ -78,14 +71,7 @@ public class OneSkyLocalizationProvider : LocalizationProvider
 				}
 			}
 
-			ExportOneSkyFileToDirectory(OneSkyFile, new DirectoryInfo(CommandUtils.CombinePaths(RootWorkingDirectory, ProjectImportInfo.DestinationPath)), ProjectImportInfo.PortableObjectName, CulturesToExport, ProjectImportInfo.bUseCultureDirectory, OneSkyDownloadedPOChangeList);
-		}
-
-		// Submit changelist for backed up POs from OneSky.
-		if (CommandUtils.P4Enabled)
-		{
-			int SubmittedChangeList;
-			CommandUtils.P4.Submit(OneSkyDownloadedPOChangeList, out SubmittedChangeList);
+			ExportOneSkyFileToDirectory(OneSkyFile, new DirectoryInfo(CommandUtils.CombinePaths(RootWorkingDirectory, ProjectImportInfo.DestinationPath)), ProjectImportInfo.PortableObjectName, CulturesToExport, ProjectImportInfo.bUseCultureDirectory);
 		}
 	}
 
@@ -118,7 +104,7 @@ public class OneSkyLocalizationProvider : LocalizationProvider
 		return UploadedFile.ExportTranslationState.Failure;
 	}
 
-	private void ExportOneSkyFileToDirectory(UploadedFile OneSkyFile, DirectoryInfo DestinationDirectory, string DestinationFilename, IEnumerable<string> Cultures, bool bUseCultureDirectory, int OneSkyDownloadedPOChangeList)
+	private void ExportOneSkyFileToDirectory(UploadedFile OneSkyFile, DirectoryInfo DestinationDirectory, string DestinationFilename, IEnumerable<string> Cultures, bool bUseCultureDirectory)
 	{
 		foreach (var Culture in Cultures)
 		{
@@ -180,7 +166,7 @@ public class OneSkyLocalizationProvider : LocalizationProvider
 						// Add/check out backed up POs from OneSky.
 						if (CommandUtils.P4Enabled)
 						{
-							UE4Build.AddBuildProductsToChangelist(OneSkyDownloadedPOChangeList, new List<string>() { ExportFileCopy.FullName });
+							UE4Build.AddBuildProductsToChangelist(PendingChangeList, new List<string>() { ExportFileCopy.FullName });
 						}
 					}
 				}

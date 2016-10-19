@@ -210,6 +210,7 @@ TSharedRef<SWidget> SDialogueVoicePropertyEditor::OnGetMenuContent()
 	return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(
 		DialogueVoice,
 		false,
+		false,
 		AllowedClasses,
 		PropertyCustomizationHelpers::GetNewAssetFactoriesForClasses(AllowedClasses),
 		OnShouldFilterAsset,

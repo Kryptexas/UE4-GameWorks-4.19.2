@@ -187,6 +187,7 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 	InOutImportOptions.bImportTextures = ImportUI->bImportTextures;
 	InOutImportOptions.bUsedAsFullName = ImportUI->bOverrideFullName;
 	InOutImportOptions.bConvertScene = ImportUI->bConvertScene;
+	InOutImportOptions.bForceFrontXAxis = ImportUI->bForceFrontXAxis;
 	InOutImportOptions.bConvertSceneUnit = ImportUI->bConvertSceneUnit;
 	InOutImportOptions.bImportAnimations = ImportUI->bImportAnimations;
 	InOutImportOptions.SkeletonForAnimation = ImportUI->Skeleton;
@@ -978,18 +979,30 @@ bool FFbxImporter::ImportFromFile(const FString& Filename, const FString& Type, 
 					// when you import that mesh, you want +X facing in engine. 
 					// only thing that doesn't work is hand flipping because Max/Maya is RHS but UE is LHS
 					// On the positive note, we now have import transform set up you can do to rotate mesh if you don't like default setting
+					FbxAxisSystem::ECoordSystem CoordSystem = FbxAxisSystem::eRightHanded;
+					FbxAxisSystem::EUpVector UpVector = FbxAxisSystem::eZAxis;
 					FbxAxisSystem::EFrontVector FrontVector = (FbxAxisSystem::EFrontVector) - FbxAxisSystem::eParityOdd;
-					const FbxAxisSystem UnrealZUp(FbxAxisSystem::eZAxis, FrontVector, FbxAxisSystem::eRightHanded);
-					const FbxAxisSystem SourceSetup = Scene->GetGlobalSettings().GetAxisSystem();
-
-					if(SourceSetup != UnrealZUp)
+					if (GetImportOptions()->bForceFrontXAxis)
 					{
-						// Converts the FBX data to Z-up, X-forward, Y-left.  Unreal is the same except with Y-right, 
-						// but the conversion to left-handed coordinates is not working properly
+						FrontVector = FbxAxisSystem::eParityEven;
+					}
+					
+					
+					FbxAxisSystem UnrealImportAxis(UpVector, FrontVector, CoordSystem);
+					
+					FbxAxisSystem SourceSetup = Scene->GetGlobalSettings().GetAxisSystem();
 
-						// convert axis to Z-up
+					if (SourceSetup != UnrealImportAxis)
+					{
 						FbxRootNodeUtility::RemoveAllFbxRoots(Scene);
-						UnrealZUp.ConvertScene(Scene);
+						UnrealImportAxis.ConvertScene(Scene);
+						FbxAMatrix JointOrientationMatrix;
+						JointOrientationMatrix.SetIdentity();
+						if (GetImportOptions()->bForceFrontXAxis)
+						{
+							JointOrientationMatrix.SetR(FbxVector4(-90.0, -90.0, 0.0));
+						}
+						FFbxDataConverter::SetJointPostConversionMatrix(JointOrientationMatrix);
 					}
 				}
 

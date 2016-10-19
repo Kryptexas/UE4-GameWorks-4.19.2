@@ -14,6 +14,7 @@
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
 #include "SDockTab.h"
 #include "Engine/Font.h"
+#include "Engine/FontFace.h"
 #include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "FontEditor"
@@ -146,6 +147,8 @@ void FFontEditor::InitFontEditor(const EToolkitMode::Type Mode, const TSharedPtr
 
 	// Register to be notified when an object is reimported.
 	GEditor->OnObjectReimported().AddSP(this, &FFontEditor::OnObjectReimported);
+
+	FCoreUObjectDelegates::OnObjectPropertyChanged.AddSP(this, &FFontEditor::OnObjectPropertyChanged);
 
 	Font = CastChecked<UFont>(ObjectToEdit);
 
@@ -929,6 +932,15 @@ void FFontEditor::OnPostReimport(UObject* InObject, bool bSuccess)
 	{
 		FontViewport->RefreshViewport();
 		FontPreviewWidget->RefreshViewport();
+	}
+}
+
+void FFontEditor::OnObjectPropertyChanged(UObject* InObject, struct FPropertyChangedEvent& InPropertyChangedEvent)
+{
+	if (Cast<UFontFace>(InObject))
+	{
+		// Refresh the composite font editor when a font face is changed as it may affect our preview
+		CompositeFontEditor->Refresh();
 	}
 }
 

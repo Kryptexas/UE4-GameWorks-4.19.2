@@ -1586,6 +1586,9 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary( UClass* InClass, UObject*
 					StaticMesh->StaticMaterials = OldMaterials;
 				}
 
+				//Set the Imported version before calling the build
+				StaticMesh->ImportVersion = EImportStaticMeshVersion::LastVersion;
+
 				StaticMesh->Build();
 
 				if (Options->IncludeCollision->IsChecked())

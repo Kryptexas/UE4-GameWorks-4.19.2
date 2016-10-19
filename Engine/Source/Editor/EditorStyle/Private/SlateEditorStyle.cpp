@@ -5746,6 +5746,7 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 			TEXT("ExponentialHeightFog"),
 			TEXT("FileMediaSource"),
 			TEXT("Font"),
+			TEXT("FontFace"),
 			TEXT("ForceFeedbackEffect"),
 			TEXT("GameModeBase"),
 			TEXT("GameStateBase"),

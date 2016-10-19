@@ -8,10 +8,10 @@
 
 #define LOCTEXT_NAMESPACE "ImageComparer"
 
-const FImageTolerance FImageTolerance::DefaultIgnoreNothing(0, 0, 0, 0, 0, 255, false, false);
-const FImageTolerance FImageTolerance::DefaultIgnoreLess(16, 16, 16, 16, 16, 240, false, false);
-const FImageTolerance FImageTolerance::DefaultIgnoreAntiAliasing(32, 32, 32, 32, 64, 96, true, false);
-const FImageTolerance FImageTolerance::DefaultIgnoreColors(16, 16, 16, 16, 16, 240, false, true);
+const FImageTolerance FImageTolerance::DefaultIgnoreNothing(0, 0, 0, 0, 0, 255, false, false, 0.00f, 0.00f);
+const FImageTolerance FImageTolerance::DefaultIgnoreLess(16, 16, 16, 16, 16, 240, false, false, 0.02f, 0.02f);
+const FImageTolerance FImageTolerance::DefaultIgnoreAntiAliasing(32, 32, 32, 32, 64, 96, true, false, 0.02f, 0.02f);
+const FImageTolerance FImageTolerance::DefaultIgnoreColors(16, 16, 16, 16, 16, 240, false, true, 0.02f, 0.02f);
 
 class FImageDelta
 {
@@ -53,7 +53,18 @@ public:
 		Image[Offset + 3] = Color.A;
 	}
 
-	FORCEINLINE void SetErrorPixel(int32 X, int32 Y, FColor ErrorColor = FColor(255, 0, 255, 255))
+	FORCEINLINE void SetClearPixel(int32 X, int32 Y)
+	{
+		int32 Offset = ( Y * Width + X ) * 4;
+		check(Offset < ( Width * Height * 4 ));
+
+		Image[Offset] = 0;
+		Image[Offset + 1] = 0;
+		Image[Offset + 2] = 0;
+		Image[Offset + 3] = 255;
+	}
+
+	FORCEINLINE void SetErrorPixel(int32 X, int32 Y, FColor ErrorColor = FColor(255, 255, 255, 255))
 	{
 		int32 Offset = ( Y * Width + X ) * 4;
 		check(Offset < ( Width * Height * 4 ));
@@ -314,6 +325,12 @@ FImageComparisonResult FImageComparer::Compare(const FString& ImagePathA, const 
 
 	volatile int32 MismatchCount = 0;
 
+	// We create 100 blocks of local mismatch area, then bucket the pixel based on a spacial hash.
+	int32 BlockSizeX = FMath::RoundFromZero(CompareWidth / 10.0);
+	int32 BlockSizeY = FMath::RoundFromZero(CompareHeight / 10.0);
+	volatile int32 LocalMismatches[100];
+	FPlatformMemory::Memzero((void*)&LocalMismatches, 100 * sizeof(int32));
+
 	ParallelFor(CompareWidth,
 		[&] (int32 ColumnIndex)
 	{
@@ -326,12 +343,14 @@ FImageComparisonResult FImageComparer::Compare(const FString& ImagePathA, const 
 			{
 				if ( FPixelOperations::IsBrightnessSimilar(PixelA, PixelB, Tolerance) )
 				{
-					ImageDelta.SetPixelGrayScale(ColumnIndex, Y, PixelA);
+					ImageDelta.SetClearPixel(ColumnIndex, Y);
 				}
 				else
 				{
-					// errorPixel(targetPix, offset, pixel1, pixel2);
+					ImageDelta.SetErrorPixel(ColumnIndex, Y);
 					FPlatformAtomics::InterlockedIncrement(&MismatchCount);
+					int32 SpacialHash = ( (Y / BlockSizeY) * 10 + ( ColumnIndex / BlockSizeX ) );
+					FPlatformAtomics::InterlockedIncrement(&LocalMismatches[SpacialHash]);
 				}
 
 				// Next Pixel
@@ -340,7 +359,7 @@ FImageComparisonResult FImageComparer::Compare(const FString& ImagePathA, const 
 
 			if ( FPixelOperations::IsRGBSimilar(PixelA, PixelB, Tolerance) )
 			{
-				ImageDelta.SetPixel(ColumnIndex, Y, PixelA);
+				ImageDelta.SetClearPixel(ColumnIndex, Y);
 			}
 			else if ( Tolerance.IgnoreAntiAliasing && (
 				FPixelOperations::IsAntialiased(PixelA, ImageA.Get(), ColumnIndex, Y, Tolerance) ||
@@ -349,25 +368,37 @@ FImageComparisonResult FImageComparer::Compare(const FString& ImagePathA, const 
 			{
 				if ( FPixelOperations::IsBrightnessSimilar(PixelA, PixelB, Tolerance) )
 				{
-					ImageDelta.SetPixelGrayScale(ColumnIndex, Y, PixelA);
+					ImageDelta.SetClearPixel(ColumnIndex, Y);
 				}
 				else
 				{
 					ImageDelta.SetErrorPixel(ColumnIndex, Y);
 					FPlatformAtomics::InterlockedIncrement(&MismatchCount);
+					int32 SpacialHash = ( ( Y / BlockSizeY ) * 10 + ( ColumnIndex / BlockSizeX ) );
+					FPlatformAtomics::InterlockedIncrement(&LocalMismatches[SpacialHash]);
 				}
 			}
 			else
 			{
 				ImageDelta.SetErrorPixel(ColumnIndex, Y);
 				FPlatformAtomics::InterlockedIncrement(&MismatchCount);
+				int32 SpacialHash = ( ( Y / BlockSizeY ) * 10 + ( ColumnIndex / BlockSizeX ) );
+				FPlatformAtomics::InterlockedIncrement(&LocalMismatches[SpacialHash]);
 			}
 		}
 	});
 
 	ImageDelta.Save(DeltaDirectory);
 
-	Results.Difference = ( MismatchCount / (double)( CompareHeight * CompareWidth ) * 100.0 );
+	int32 MaximumLocalMismatches = 0;
+	for ( int32 SpacialIndex = 0; SpacialIndex < 100; SpacialIndex++ )
+	{
+		MaximumLocalMismatches = FMath::Max(MaximumLocalMismatches, LocalMismatches[SpacialIndex]);
+	}
+
+	Results.Tolerance = Tolerance;
+	Results.MaxLocalDifference = MaximumLocalMismatches / (double)( BlockSizeX * BlockSizeY );
+	Results.GlobalDifference = MismatchCount / (double)( CompareHeight * CompareWidth );
 	Results.ComparisonFile = ImageDelta.ComparisonFile;
 
 	return Results;

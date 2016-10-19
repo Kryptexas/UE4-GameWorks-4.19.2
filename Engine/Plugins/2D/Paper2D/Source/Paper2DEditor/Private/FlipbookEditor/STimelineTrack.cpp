@@ -273,6 +273,7 @@ void SFlipbookKeyframeWidget::OpenSpritePickerMenu(FMenuBuilder& MenuBuilder)
 
 	TSharedRef<SWidget> AssetPickerWidget = PropertyCustomizationHelpers::MakeAssetPickerWithMenu(CurrentAssetData,
 		bAllowClear,
+		false,
 		AllowedClasses,
 		PropertyCustomizationHelpers::GetNewAssetFactoriesForClasses(AllowedClasses),
 		FOnShouldFilterAsset(),

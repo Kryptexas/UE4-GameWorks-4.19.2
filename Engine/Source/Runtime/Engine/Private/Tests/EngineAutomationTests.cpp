@@ -111,64 +111,16 @@ bool FStatsVerificationMapTest::RunTest(const FString& Parameters)
 {
 	UAutomationTestSettings const* AutomationTestSettings = GetDefault<UAutomationTestSettings>();
 	check(AutomationTestSettings);
-	FString MapName = AutomationTestSettings->AutomationTestmap.FilePath;
 
-	//Get the location of the map being used.
-	FString Filename = FPaths::ConvertRelativePathToFull(MapName);
-
-	//If the filename doesn't exist then we'll make the filename path relative to the engine instead of the game and the retry.
-	if (!FPaths::FileExists(Filename))
+	if ( AutomationTestSettings->AutomationTestmap.IsValid() )
 	{
-		FString EngDirectory = FPaths::ConvertRelativePathToFull(FPaths::EngineContentDir());
+		FString MapName = AutomationTestSettings->AutomationTestmap.GetLongPackageName();
 
-		Filename = EngDirectory / MapName;
-
-		Filename.ReplaceInline(TEXT("/Content/../../"), TEXT("/"),ESearchCase::CaseSensitive);
-	}
-
-	if (FPaths::FileExists(Filename))
-	{
-		//If the map is located in the engine folder then we'll make the path relative to that.  Otherwise it will be relative to the game content folder.
-		if (Filename.Contains(TEXT("Engine"), ESearchCase::IgnoreCase, ESearchDir::FromStart))
-		{
-			//This will be false if the map is on a different drive.
-			if (FPaths::MakePathRelativeTo(Filename, *FPaths::EngineContentDir()))
-			{
-				FString ShortName = FPaths::GetBaseFilename(Filename);
-				FString PathName = FPaths::GetPath(Filename);
-				MapName = FString::Printf(TEXT("/Engine/%s/%s.%s"), *PathName, *ShortName, *ShortName);
-
-				UE_LOG(LogEngineAutomationTests, Log, TEXT("Opening '%s'"), *MapName);
-
-				GEngine->Exec(GetSimpleEngineAutomationTestGameWorld(GetTestFlags()), *FString::Printf(TEXT("Open %s"), *MapName));
-			}
-			else
-			{
-				UE_LOG(LogEngineAutomationTests, Error, TEXT("Invalid asset path: %s."), *Filename);
-			}
-		}
-		else
-		{
-			//This will be false if the map is on a different drive.
-			if (FPaths::MakePathRelativeTo(Filename, *FPaths::GameContentDir()))
-			{
-				FString ShortName = FPaths::GetBaseFilename(Filename);
-				FString PathName = FPaths::GetPath(Filename);
-				MapName = FString::Printf(TEXT("/Game/%s/%s.%s"), *PathName, *ShortName, *ShortName);
-
-				UE_LOG(LogEngineAutomationTests, Log, TEXT("Opening '%s'"), *MapName);
-
-				GEngine->Exec(GetSimpleEngineAutomationTestGameWorld(GetTestFlags()), *FString::Printf(TEXT("Open %s"), *MapName));
-			}
-			else
-			{
-				UE_LOG(LogEngineAutomationTests, Error, TEXT("Invalid asset path: %s."), *MapName);
-			}
-		}
+		GEngine->Exec(GetSimpleEngineAutomationTestGameWorld(GetTestFlags()), *FString::Printf(TEXT("Open %s"), *MapName));
 	}
 	else
 	{
-		UE_LOG(LogEngineAutomationTests, Log, TEXT("Automation test map doesn't exist or is not set: %s.  \nUsing the currently loaded map."), *Filename);
+		UE_LOG(LogEngineAutomationTests, Log, TEXT("Automation test map doesn't exist or is not set: %s.  \nUsing the currently loaded map."), *AutomationTestSettings->AutomationTestmap.GetLongPackageName());
 	}
 
 	ADD_LATENT_AUTOMATION_COMMAND(FExecStringLatentCommand(TEXT("stat game")));
@@ -206,7 +158,7 @@ bool FPerformanceCaptureTest::RunTest(const FString& Parameters)
 {
 	UAutomationTestSettings const* AutomationTestSettings = GetDefault<UAutomationTestSettings>();
 	check(AutomationTestSettings);
-	FString MapName = AutomationTestSettings->AutomationTestmap.FilePath;
+	FString MapName = AutomationTestSettings->AutomationTestmap.GetLongPackageName();
 
 	GEngine->Exec(GetSimpleEngineAutomationTestGameWorld(GetTestFlags()), *FString::Printf(TEXT("Open %s"), *MapName));
 	ADD_LATENT_AUTOMATION_COMMAND(FEnqueuePerformanceCaptureCommands());

@@ -78,6 +78,7 @@ void SAssetView::Construct( const FArguments& InArgs )
 	MaxSecondsPerFrame = 0.015;
 
 	bFillEmptySpaceInTileView = InArgs._FillEmptySpaceInTileView;
+	bSearchInBlueprint = InArgs._SearchInBlueprint;
 	FillScale = 1.0f;
 
 	ThumbnailHintFadeInSequence.JumpToStart();
@@ -1250,6 +1251,7 @@ FReply SAssetView::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& Dr
 				const TArray<FString>& DragFiles = ExternalDragDropOp->GetFiles();
 				AssetToolsModule.Get().ExpandDirectories(DragFiles, RootDestinationPath, FilesAndDestinations);
 
+				TArray<int32> ReImportIndexes;
 				for (int32 FileIdx = 0; FileIdx < FilesAndDestinations.Num(); ++FileIdx)
 				{
 					const FString& Filename = FilesAndDestinations[FileIdx].Key;
@@ -1292,6 +1294,7 @@ FReply SAssetView::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& Dr
 					if (ExistingObject != nullptr)
 					{
 						ReimportFiles.Add(Filename, ExistingObject);
+						ReImportIndexes.Add(FileIdx);
 					}
 					else
 					{
@@ -1306,7 +1309,12 @@ FReply SAssetView::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& Dr
 				//Import
 				if (ImportFiles.Num() > 0)
 				{
-					AssetToolsModule.Get().ImportAssets(ImportFiles, SourcesData.PackagePaths[0].ToString());
+					//Remove it in reverse so the smaller index are still valid
+					for (int32 IndexToRemove = ReImportIndexes.Num() - 1; IndexToRemove >= 0; --IndexToRemove)
+					{
+						FilesAndDestinations.RemoveAt(ReImportIndexes[IndexToRemove]);
+					}
+					AssetToolsModule.Get().ImportAssets(ImportFiles, SourcesData.PackagePaths[0].ToString(), nullptr, true, &FilesAndDestinations);
 				}
 			}
 
@@ -1583,6 +1591,38 @@ bool SAssetView::IsValidSearchToken(const FString& Token) const
 	return true;
 }
 
+bool SAssetView::FilterOnContainerContentValid(const UClass* SearchingClass, const UObject* Container, const FAssetData* AssetData)
+{
+	check(SearchingClass != nullptr);
+	check(Container == nullptr && AssetData != nullptr || Container != nullptr && AssetData == nullptr);
+
+	if (AssetData != nullptr)
+	{
+		FString ParentClassPath = AssetData->GetTagValueRef<FString>(FName("ParentClass"));
+
+		if (!ParentClassPath.IsEmpty())
+		{
+			UClass* ParentClass = FindObject<UClass>(nullptr, *ParentClassPath);
+
+			if (ParentClass == SearchingClass)
+			{
+				return true;
+			}
+		}
+	}
+	else
+	{
+		const UBlueprint* Blueprint = Cast<UBlueprint>(Container);
+
+		if (Blueprint != nullptr && Blueprint->GetParentClass() == SearchingClass)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void SAssetView::RefreshSourceItems()
 {
 	// Load the asset registry module
@@ -1635,6 +1675,12 @@ void SAssetView::RefreshSourceItems()
 			}
 			return false;
 		});
+
+		if (bSearchInBlueprint && Filter.ClassNames.Num() > 0)
+		{
+			Filter.ContainerClassNames.Add(UBlueprint::StaticClass()->GetFName());
+			Filter.OnContainerContentValid = FOnContainerContentValid::CreateSP(this, &SAssetView::FilterOnContainerContentValid);
+		}
 
 		// Only show classes if we have class paths, and the filter allows classes to be shown
 		const bool bFilterAllowsClasses = Filter.ClassNames.Num() == 0 || Filter.ClassNames.Contains(NAME_Class);

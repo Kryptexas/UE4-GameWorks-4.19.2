@@ -1029,9 +1029,19 @@ void SAssetViewItem::CacheToolTipTags()
 
 					const bool bImportant = (Metadata != nullptr && !Metadata->ImportantValue.IsEmpty() && Metadata->ImportantValue == KeyValue.Value);
 
+					// The string value might be localizable text, so we need to stringify it for display
+					FString ValueString = KeyValue.Value;
+					if (FTextStringHelper::IsComplexText(*ValueString))
+					{
+						FText TmpText;
+						if (FTextStringHelper::ReadFromString(*ValueString, TmpText))
+						{
+							ValueString = TmpText.ToString();
+						}
+					}
+
 					// Since all we have at this point is a string, we can't be very smart here.
 					// We need to strip some noise off class paths in some cases, but can't load the asset to inspect its UPROPERTYs manually due to performance concerns.
-					FString ValueString = KeyValue.Value;
 					const TCHAR StringToRemove[] = TEXT("Class'/Script/");
 					if (ValueString.StartsWith(StringToRemove) && ValueString.EndsWith(TEXT("'")))
 					{

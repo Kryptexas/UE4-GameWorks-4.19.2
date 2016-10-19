@@ -1116,9 +1116,9 @@ FText SFiltersAndPresets::GroupAndStatTableRow_GetHighlightText() const
 	return GroupAndStatSearchBox->GetText();
 }
 
-bool SFiltersAndPresets::GroupAndStatTableRow_ShouldBeEnabled( const uint32 StatID ) const
+bool SFiltersAndPresets::GroupAndStatTableRow_ShouldBeEnabled( const uint32 InStatID ) const
 {
-	return ProfilerSession->GetAggregatedStat( StatID ) != nullptr;
+	return ProfilerSession->GetAggregatedStat( InStatID ) != nullptr;
 }
 
 /*-----------------------------------------------------------------------------

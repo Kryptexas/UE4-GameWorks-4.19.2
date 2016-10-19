@@ -733,7 +733,10 @@ bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 
 				InWorld->GetModel()->Modify();
 				NewBrush->Modify();
+				FlushRenderingCommands();
+				ABrush::GGeometryRebuildCause = TEXT("Add Brush");
 				bspBrushCSG( NewBrush, InWorld->GetModel(), DWord1, Brush_Add, CSG_None, true, true, true );
+				ABrush::GGeometryRebuildCause = nullptr;
 			}
 			InWorld->InvalidateModelGeometry( InWorld->GetCurrentLevel() );
 		}
@@ -817,7 +820,10 @@ bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 			{
 				NewBrush->Modify();
 				InWorld->GetModel()->Modify();
+				FlushRenderingCommands();
+				ABrush::GGeometryRebuildCause = TEXT("Subtract Brush");
 				bspBrushCSG( NewBrush, InWorld->GetModel(), 0, Brush_Subtract, CSG_None, true, true, true );
+				ABrush::GGeometryRebuildCause = nullptr;
 			}
 			InWorld->InvalidateModelGeometry( InWorld->GetCurrentLevel() );
 		}
@@ -1654,6 +1660,9 @@ void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushes
 	const int32 NumVectors = Model->Vectors.Num();
 	const int32 NumSurfs = Model->Surfs.Num();
 
+	// Debug purposes only; an attempt to catch the cause of UE-36265
+	ABrush::GGeometryRebuildCause = TEXT("RebuildModelFromBrushes");
+
 	Model->Modify();
 	Model->EmptyModel(1, 1);
 
@@ -1743,6 +1752,9 @@ void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushes
 
 		FBSPOps::csgPrepMovingBrush(DynamicBrush);
 	}
+
+	// Debug purposes only; an attempt to catch the cause of UE-36265
+	ABrush::GGeometryRebuildCause = nullptr;
 
 	FBspPointsGrid::GBspPoints = nullptr;
 	FBspPointsGrid::GBspVectors = nullptr;
@@ -1846,7 +1858,9 @@ void UEditorEngine::BSPIntersectionHelper(UWorld* InWorld, ECsgOper Operation)
 		DefaultBrush->Modify();
 		InWorld->GetModel()->Modify();
 		FinishAllSnaps();
+		ABrush::GGeometryRebuildCause = TEXT("BSPIntersectionHelper");
 		bspBrushCSG(DefaultBrush, InWorld->GetModel(), 0, Brush_MAX, Operation, false, true, true);
+		ABrush::GGeometryRebuildCause = nullptr;
 	}
 }
 

@@ -173,6 +173,15 @@ void UUMGSequencePlayer::PlayInternal(double StartAtTime, double EndAtTime, doub
 	NumLoopsCompleted = 0;
 	bIsPlayingForward = InPlayMode != EUMGSequencePlayMode::Reverse;
 
+	// Immediately evaluate the first frame of the animation so that if tick has already occurred, the widget is setup correctly and ready to be
+	// rendered using the first frames data, otherwise you may see a *pop* due to a widget being constructed with a default different than the
+	// first frame of the animation.
+	if ( RootMovieSceneInstance.IsValid() )
+	{
+		EMovieSceneUpdateData UpdateData(TimeCursorPosition, TimeCursorPosition);
+		RootMovieSceneInstance->Update(UpdateData, *this);
+	}
+
 	PlayerStatus = EMovieScenePlayerStatus::Playing;
 	Animation->OnAnimationStarted.Broadcast();
 }

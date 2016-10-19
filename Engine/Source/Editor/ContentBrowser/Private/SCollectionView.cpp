@@ -818,13 +818,17 @@ void SCollectionView::MakeSaveDynamicCollectionMenu(FText InQueryString)
 
 	CollectionContextMenu->MakeSaveDynamicCollectionSubMenu(MenuBuilder, InQueryString);
 
-	FSlateApplication::Get().PushMenu(
-		AsShared(),
-		FWidgetPath(),
-		MenuBuilder.MakeWidget(),
-		FSlateApplication::Get().GetCursorPos(),
-		FPopupTransitionEffect( FPopupTransitionEffect::TopMenu )
+	FWidgetPath WidgetPath;
+	if (FSlateApplication::Get().GeneratePathToWidgetUnchecked(AsShared(), WidgetPath, EVisibility::All)) // since the collection window can be hidden, we need to manually search the path with a EVisibility::All instead of the default EVisibility::Visible
+	{
+		FSlateApplication::Get().PushMenu(
+			AsShared(),
+			WidgetPath,
+			MenuBuilder.MakeWidget(),
+			FSlateApplication::Get().GetCursorPos(),
+			FPopupTransitionEffect(FPopupTransitionEffect::TopMenu)
 		);
+	}
 }
 
 bool SCollectionView::ShouldAllowSelectionChangedDelegate() const

@@ -991,12 +991,6 @@ ETextJustify::Type FTextLayout::CalculateLineViewVisualJustification(const FLine
 
 void FTextLayout::CreateWrappingCache()
 {
-	const bool IsWrapping = WrappingWidth > 0.0f;
-	if (!IsWrapping)
-	{
-		return;
-	}
-
 	for (FLineModel& LineModel : LineModels)
 	{
 		CreateLineWrappingCache(LineModel);
@@ -1010,18 +1004,24 @@ void FTextLayout::CreateLineWrappingCache(FLineModel& LineModel)
 		return;
 	}
 
-	// If we've not yet been provided with a custom line break iterator, then just use the default one
-	if (!LineBreakIterator.IsValid())
-	{
-		LineBreakIterator = FBreakIterator::CreateLineBreakIterator();
-	}
-
 	LineModel.BreakCandidates.Empty();
 	LineModel.DirtyFlags &= ~ELineModelDirtyState::WrappingInformation;
 
 	for (int32 RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
 	{
-		LineModel.Runs[ RunIndex ].ClearCache();
+		LineModel.Runs[RunIndex].ClearCache();
+	}
+
+	const bool IsWrapping = WrappingWidth > 0.0f;
+	if (!IsWrapping)
+	{
+		return;
+	}
+
+	// If we've not yet been provided with a custom line break iterator, then just use the default one
+	if (!LineBreakIterator.IsValid())
+	{
+		LineBreakIterator = FBreakIterator::CreateLineBreakIterator();
 	}
 
 	LineBreakIterator->SetString( **LineModel.Text );
@@ -2380,7 +2380,7 @@ void FTextLayout::SetLineBreakIterator( TSharedPtr<IBreakIterator> InLineBreakIt
 
 	// Changing the line break iterator will affect the wrapping information for *all lines*
 	// Clear out the entire cache so it gets regenerated on the text call to FlowLayout
-	DirtyAllLineModels(ELineModelDirtyState::WrappingInformation | ELineModelDirtyState::ShapingCache);
+	DirtyAllLineModels(ELineModelDirtyState::WrappingInformation);
 }
 
 void FTextLayout::SetMargin( const FMargin& InMargin )
@@ -2463,10 +2463,20 @@ void FTextLayout::SetLineHeightPercentage( float Value )
 
 void FTextLayout::SetWrappingWidth( float Value )
 {
+	const bool WasWrapping = WrappingWidth > 0.0f;
+	const bool IsWrapping = Value > 0.0f;
+
 	if ( WrappingWidth != Value )
 	{
 		WrappingWidth = Value; 
 		DirtyFlags |= ETextLayoutDirtyState::Layout;
+
+		if ( WasWrapping != IsWrapping )
+		{
+			// Changing from wrapping/not-wrapping will affect the wrapping information for *all lines*
+			// Clear out the entire cache so it gets regenerated on the text call to FlowLayout
+			DirtyAllLineModels(ELineModelDirtyState::WrappingInformation);
+		}
 	}
 }
 

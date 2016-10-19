@@ -183,12 +183,14 @@ FText UField::GetDisplayNameText() const
 	FText LocalizedDisplayName;
 
 	static const FString Namespace = TEXT("UObjectDisplayNames");
+	static const FName NAME_DisplayName(TEXT("DisplayName"));
+
 	const FString Key = GetFullGroupName(false);
 
 	FString NativeDisplayName;
-	if( HasMetaData( TEXT("DisplayName") ) )
+	if( HasMetaData(NAME_DisplayName) )
 	{
-		NativeDisplayName = GetMetaData( TEXT("DisplayName") );
+		NativeDisplayName = GetMetaData(NAME_DisplayName);
 	}
 	else
 	{

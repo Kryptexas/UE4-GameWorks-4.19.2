@@ -214,7 +214,7 @@ bool FPIETest::RunTest(const FString& Parameters)
 	UAutomationTestSettings const* AutomationTestSettings = GetDefault<UAutomationTestSettings>();
 	check(AutomationTestSettings);
 
-	FString MapName = AutomationTestSettings->AutomationTestmap.FilePath;
+	FString MapName = AutomationTestSettings->AutomationTestmap.GetLongPackageName();
 	if (!MapName.IsEmpty())
 	{
 		FAutomationEditorCommonUtils::LoadMap(MapName);

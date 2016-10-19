@@ -68,12 +68,12 @@ public:
 
 	void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const
 	{
-		CumulativeResourceSize += CachedResourceSize;
+		CumulativeResourceSize.AddUnknownMemoryBytes(CachedResourceSizeBytes);
 	}
 
 	SIZE_T GetResourceSizeBytes() const
 	{
-		return CachedResourceSize.GetTotalMemoryBytes();
+		return CachedResourceSizeBytes;
 	}
 
 	/**
@@ -220,7 +220,7 @@ private:
 	FResource BufferResources[3];
 
 	/** Total size of this resource.*/
-	FResourceSizeEx CachedResourceSize;
+	SIZE_T CachedResourceSizeBytes;
 
 	/** Width and height of the output resource (in pixels). */
 	FIntPoint OutputDimensions;

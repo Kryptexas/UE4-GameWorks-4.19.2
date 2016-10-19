@@ -23,6 +23,7 @@ public:
 
 	// SWidget interface
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+	virtual FCursorReply OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const override;
 	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
@@ -106,6 +107,12 @@ protected:
 
 	/** Offset in the panel the user started the LMB+RMB zoom from */
 	FVector2D ZoomStartOffset;
+
+	/**  */
+	FVector2D ViewOffsetStart;
+
+	/**  */
+	FVector2D MouseDownPositionAbsolute;
 
 	/** Cumulative magnify delta from trackpad gesture */
 	float TotalGestureMagnify;

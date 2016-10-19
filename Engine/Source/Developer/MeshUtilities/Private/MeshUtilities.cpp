@@ -61,7 +61,7 @@ MeshUtilities module.
 // causes meshes to be rebuilt you MUST generate a new GUID and replace this
 // string with it.
 
-#define MESH_UTILITIES_VER TEXT("8C68575CEF434CA8A9E1DA4AED8A47BB")
+#define MESH_UTILITIES_VER TEXT("228332BAE0224DD294E232B87D83948F")
 
 DEFINE_LOG_CATEGORY_STATIC(LogMeshUtilities, Verbose, All);
 
@@ -125,7 +125,8 @@ private:
 	virtual bool BuildStaticMesh(
 		FStaticMeshRenderData& OutRenderData,
 		TArray<FStaticMeshSourceModel>& SourceModels,
-		const FStaticMeshLODGroup& LODGroup
+		const FStaticMeshLODGroup& LODGroup,
+		int32 ImportVersion = EImportStaticMeshVersion::LastVersion
 		) override;
 
 	virtual void BuildStaticMeshVertexAndIndexBuffers(
@@ -136,7 +137,8 @@ private:
 		const TMultiMap<int32, int32>& OverlappingCorners,
 		const TMap<uint32, uint32>& MaterialToSectionMapping,
 		float ComparisonThreshold,
-		FVector BuildScale
+		FVector BuildScale,
+		int32 ImportVersion
 		) override;
 
 	virtual bool GenerateStaticMeshLODs(TArray<FStaticMeshSourceModel>& Models, const FStaticMeshLODGroup& LODGroup) override;
@@ -272,7 +274,7 @@ private:
 		TArray<int32>& OutGlobalMaterialIndices
 		) const;
 
-	virtual void ExtractMeshDataForGeometryCache(FRawMesh& RawMesh, const FMeshBuildSettings& BuildSettings, TArray<FStaticMeshBuildVertex>& OutVertices, TArray<TArray<uint32> >& OutPerSectionIndices);
+	virtual void ExtractMeshDataForGeometryCache(FRawMesh& RawMesh, const FMeshBuildSettings& BuildSettings, TArray<FStaticMeshBuildVertex>& OutVertices, TArray<TArray<uint32> >& OutPerSectionIndices, int32 ImportVersion);
 
 	virtual bool PropagatePaintedColorsToRawMesh(const UStaticMeshComponent* StaticMeshComponent, int32 LODIndex, FRawMesh& RawMesh) const override;
 
@@ -502,6 +504,9 @@ protected:
 
 		//Assign the proxy material to the static mesh
 		StaticMesh->StaticMaterials.Add(FStaticMaterial(ProxyMaterial));
+
+		//Set the Imported version before calling the build
+		StaticMesh->ImportVersion = EImportStaticMeshVersion::LastVersion;
 
 		StaticMesh->Build();
 		StaticMesh->PostEditChange();
@@ -1719,6 +1724,9 @@ UStaticMesh* FMeshUtilities::ConvertMeshesToStaticMesh(const TArray<UMeshCompone
 				StaticMesh->StaticMaterials.Add(FStaticMaterial(Material));
 			}
 			
+			//Set the Imported version before calling the build
+			StaticMesh->ImportVersion = EImportStaticMeshVersion::LastVersion;
+
 			// Build mesh from source
 			StaticMesh->Build(false);
 			StaticMesh->PostEditChange();
@@ -3375,7 +3383,8 @@ void FMeshUtilities::BuildStaticMeshVertexAndIndexBuffers(
 	const TMultiMap<int32, int32>& OverlappingCorners,
 	const TMap<uint32, uint32>& MaterialToSectionMapping,
 	float ComparisonThreshold,
-	FVector BuildScale
+	FVector BuildScale,
+	int32 ImportVersion
 	)
 {
 	TMap<int32, int32> FinalVerts;
@@ -3452,7 +3461,15 @@ void FMeshUtilities::BuildStaticMeshVertexAndIndexBuffers(
 		}
 
 		// Put the indices in the material index buffer.
-		const uint32 SectionIndex = MaterialToSectionMapping.FindChecked(RawMesh.FaceMaterialIndices[FaceIndex]);
+		uint32 SectionIndex = 0;
+		if (ImportVersion < RemoveStaticMeshSkinxxWorkflow)
+		{
+			SectionIndex = FMath::Clamp(RawMesh.FaceMaterialIndices[FaceIndex], 0, OutPerSectionIndices.Num() - 1);
+		}
+		else
+		{
+			SectionIndex = MaterialToSectionMapping.FindChecked(RawMesh.FaceMaterialIndices[FaceIndex]);
+		}
 		TArray<uint32>& SectionIndices = OutPerSectionIndices[SectionIndex];
 		for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
 		{
@@ -3696,7 +3713,7 @@ public:
 		return true;
 	}
 
-	bool GenerateRenderingMeshes(FMeshUtilities& MeshUtilities, FStaticMeshRenderData& OutRenderData, TArray<FStaticMeshSourceModel>& InOutModels)
+	bool GenerateRenderingMeshes(FMeshUtilities& MeshUtilities, FStaticMeshRenderData& OutRenderData, TArray<FStaticMeshSourceModel>& InOutModels, int32 ImportVersion)
 	{
 		check(Stage == EStage::Reduce);
 		// Generate per-LOD rendering data.
@@ -3727,7 +3744,14 @@ public:
 				const int32 MaterialIndex = MaterialIndices[Index];
 				FStaticMeshSection* Section = new(LODModel.Sections) FStaticMeshSection();
 				Section->MaterialIndex = MaterialIndex;
-				MaterialToSectionMapping.Add(MaterialIndex, Index);
+				if (ImportVersion < RemoveStaticMeshSkinxxWorkflow)
+				{
+					MaterialToSectionMapping.Add(MaterialIndex, MaterialIndex);
+				}
+				else
+				{
+					MaterialToSectionMapping.Add(MaterialIndex, Index);
+				}
 				new(PerSectionIndices)TArray<uint32>;
 			}
 
@@ -3738,7 +3762,7 @@ public:
 				TArray<int32> TempWedgeMap;
 				TArray<int32>& WedgeMap = (LODIndex == 0 && InOutModels[0].ReductionSettings.PercentTriangles >= 1.0f) ? OutRenderData.WedgeMap : TempWedgeMap;
 				float ComparisonThreshold = GetComparisonThreshold(LODBuildSettings[LODIndex]);
-				MeshUtilities.BuildStaticMeshVertexAndIndexBuffers(Vertices, PerSectionIndices, WedgeMap, RawMesh, LODOverlappingCorners[LODIndex], MaterialToSectionMapping, ComparisonThreshold, LODBuildSettings[LODIndex].BuildScale3D);
+				MeshUtilities.BuildStaticMeshVertexAndIndexBuffers(Vertices, PerSectionIndices, WedgeMap, RawMesh, LODOverlappingCorners[LODIndex], MaterialToSectionMapping, ComparisonThreshold, LODBuildSettings[LODIndex].BuildScale3D, ImportVersion);
 				check(WedgeMap.Num() == RawMesh.WedgeIndices.Num());
 
 				if (RawMesh.WedgeIndices.Num() < 100000 * 3)
@@ -3947,7 +3971,7 @@ private:
 	bool HasRawMesh[MAX_STATIC_MESH_LODS];
 };
 
-bool FMeshUtilities::BuildStaticMesh(FStaticMeshRenderData& OutRenderData, TArray<FStaticMeshSourceModel>& SourceModels, const FStaticMeshLODGroup& LODGroup)
+bool FMeshUtilities::BuildStaticMesh(FStaticMeshRenderData& OutRenderData, TArray<FStaticMeshSourceModel>& SourceModels, const FStaticMeshLODGroup& LODGroup, int32 ImportVersion)
 {
 	FStaticMeshUtilityBuilder Builder;
 	if (!Builder.GatherSourceMeshesPerLOD(SourceModels, StaticMeshReduction))
@@ -3961,7 +3985,7 @@ bool FMeshUtilities::BuildStaticMesh(FStaticMeshRenderData& OutRenderData, TArra
 		return false;
 	}
 
-	return Builder.GenerateRenderingMeshes(*this, OutRenderData, SourceModels);
+	return Builder.GenerateRenderingMeshes(*this, OutRenderData, SourceModels, ImportVersion);
 }
 
 bool FMeshUtilities::GenerateStaticMeshLODs(TArray<FStaticMeshSourceModel>& Models, const FStaticMeshLODGroup& LODGroup)
@@ -6832,7 +6856,7 @@ bool FMeshUtilities::ConstructRawMesh(
 	return true;
 }
 
-void FMeshUtilities::ExtractMeshDataForGeometryCache(FRawMesh& RawMesh, const FMeshBuildSettings& BuildSettings, TArray<FStaticMeshBuildVertex>& OutVertices, TArray<TArray<uint32> >& OutPerSectionIndices)
+void FMeshUtilities::ExtractMeshDataForGeometryCache(FRawMesh& RawMesh, const FMeshBuildSettings& BuildSettings, TArray<FStaticMeshBuildVertex>& OutVertices, TArray<TArray<uint32> >& OutPerSectionIndices, int32 ImportVersion)
 {
 	int32 NumWedges = RawMesh.WedgeIndices.Num();
 
@@ -6899,7 +6923,7 @@ void FMeshUtilities::ExtractMeshDataForGeometryCache(FRawMesh& RawMesh, const FM
 		MaterialToSectionMapping.Add(i, i);
 	}
 
-	BuildStaticMeshVertexAndIndexBuffers(OutVertices, OutPerSectionIndices, OutWedgeMap, RawMesh, OverlappingCorners, MaterialToSectionMapping, KINDA_SMALL_NUMBER, BuildSettings.BuildScale3D);
+	BuildStaticMeshVertexAndIndexBuffers(OutVertices, OutPerSectionIndices, OutWedgeMap, RawMesh, OverlappingCorners, MaterialToSectionMapping, KINDA_SMALL_NUMBER, BuildSettings.BuildScale3D, ImportVersion);
 
 	if (RawMesh.WedgeIndices.Num() < 100000 * 3)
 	{
@@ -8030,6 +8054,9 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 		}
 
 		StaticMesh->SectionInfoMap.CopyFrom(SectionInfoMap);
+
+		//Set the Imported version before calling the build
+		StaticMesh->ImportVersion = EImportStaticMeshVersion::LastVersion;
 
 		StaticMesh->Build(bSilent);
 		StaticMesh->PostEditChange();

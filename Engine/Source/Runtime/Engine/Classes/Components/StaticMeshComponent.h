@@ -182,6 +182,19 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	/** Index of the section to preview. If set to INDEX_NONE, all section will be rendered. Used for isolating in Static Mesh Tool **/
 	UPROPERTY(transient)
 	int32 SectionIndexPreview;
+
+	/*
+	 * The import version of the static mesh when it was assign this is update when:
+	 * - The user assign a new staticmesh to the component
+	 * - The component is serialize (IsSaving)
+	 * - Default value is BeforeImportStaticMeshVersionWasAdded
+	 *
+	 * If when the component get load (PostLoad) the version of the attach staticmesh is newer
+	 * then this value, we will remap the material override because the order of the materials list
+	 * in the staticmesh can be changed. Hopefully there is a remap table save in the staticmesh.
+	 */
+	UPROPERTY()
+	int32 StaticMeshImportVersion;
 #endif
 
 	/** If true, bForceNavigationObstacle flag will take priority over navigation data stored in StaticMesh */

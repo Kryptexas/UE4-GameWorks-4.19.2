@@ -133,7 +133,7 @@ void UEditorEngine::csgRebuild( UWorld* InWorld )
 {
 	GWarn->BeginSlowTask( NSLOCTEXT("UnrealEd", "RebuildingGeometry", "Rebuilding geometry"), false );
 	FBSPOps::GFastRebuild = 1;
-
+	ABrush::GGeometryRebuildCause = TEXT("csgRebuild");
 	FinishAllSnaps();
 
 	// Empty the model out.
@@ -307,6 +307,7 @@ void UEditorEngine::csgRebuild( UWorld* InWorld )
 	InWorld->GetModel()->Polys->Element.Empty();
 
 	// Done.
+	ABrush::GGeometryRebuildCause = nullptr;
 	FBSPOps::GFastRebuild = 0;
 	InWorld->GetCurrentLevel()->MarkPackageDirty();
 	GWarn->EndSlowTask();

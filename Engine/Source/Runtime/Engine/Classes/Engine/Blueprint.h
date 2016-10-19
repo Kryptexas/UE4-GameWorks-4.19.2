@@ -481,6 +481,9 @@ public:
 	/** Whether or not this blueprint can be considered for a bytecode only compile */
 	virtual bool IsValidForBytecodeOnlyRecompile() const { return true; }
 
+	/** Return the root class of this blueprint */
+	TSubclassOf<class UObject> GetParentClass() const { return ParentClass; }
+
 #if WITH_EDITORONLY_DATA
 protected:
 	/** Current object being debugged for this blueprint */

@@ -91,8 +91,8 @@ namespace FbxMeshUtils
 			ReimportUI->StaticMeshImportData = ImportData;
 			ApplyImportUIToImportOptions(ReimportUI, *ImportOptions);
 
-			ImportOptions->bImportMaterials = ImportData->bImportMaterials;
-			ImportOptions->bImportTextures = ImportData->bImportMaterials;
+			ImportOptions->bImportMaterials = false;
+			ImportOptions->bImportTextures = false;
 		}
 
 		if ( !FFbxImporter->ImportFromFile( *Filename, FPaths::GetExtension( Filename ) ) )
@@ -144,25 +144,8 @@ namespace FbxMeshUtils
 			}
 			else
 			{
-				// Import mesh
-				TArray<FName> OrderedMaterialNames;
-				{
-					int32 NoneNameCount = 0;
-					for (const FStaticMaterial &Material : BaseStaticMesh->StaticMaterials)
-					{
-						if (Material.ImportedMaterialSlotName == NAME_None)
-							NoneNameCount++;
-
-						OrderedMaterialNames.Add(Material.ImportedMaterialSlotName);
-					}
-					if (NoneNameCount >= OrderedMaterialNames.Num())
-					{
-						OrderedMaterialNames.Empty();
-					}
-				}
-
 				UStaticMesh* TempStaticMesh = NULL;
-				TempStaticMesh = (UStaticMesh*)FFbxImporter->ImportStaticMeshAsSingle(BaseStaticMesh->GetOutermost(), *(LODNodeList[bUseLODs? LODLevel: 0]), NAME_None, RF_NoFlags, ImportData, BaseStaticMesh, LODLevel, nullptr, OrderedMaterialNames.Num() > 0 ? &OrderedMaterialNames : nullptr);
+				TempStaticMesh = (UStaticMesh*)FFbxImporter->ImportStaticMeshAsSingle(BaseStaticMesh->GetOutermost(), *(LODNodeList[bUseLODs? LODLevel: 0]), NAME_None, RF_NoFlags, ImportData, BaseStaticMesh, LODLevel, nullptr);
 
 				// Add imported mesh to existing model
 				if( TempStaticMesh )
@@ -215,6 +198,9 @@ namespace FbxMeshUtils
 			UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
 			// don't import material and animation
 			UnFbx::FBXImportOptions* ImportOptions = FFbxImporter->GetImportOptions();
+			
+			//Set the skeletal mesh import data from the base mesh, this make sure the import rotation transform is use when importing a LOD
+			UFbxSkeletalMeshImportData* TempAssetImportData = NULL;
 
 			UFbxAssetImportData *FbxAssetImportData = Cast<UFbxAssetImportData>(SelectedSkelMesh->AssetImportData);
 			if (FbxAssetImportData != nullptr)
@@ -222,6 +208,7 @@ namespace FbxMeshUtils
 				UFbxSkeletalMeshImportData* ImportData = Cast<UFbxSkeletalMeshImportData>(FbxAssetImportData);
 				if (ImportData)
 				{
+					TempAssetImportData = ImportData;
 					UnFbx::FBXImportOptions::ResetOptions(ImportOptions);
 					// Prepare the import options
 					UFbxImportUI* ReimportUI = NewObject<UFbxImportUI>();
@@ -235,8 +222,8 @@ namespace FbxMeshUtils
 					ReimportUI->SkeletalMeshImportData->bTransformVertexToAbsolute = true;
 					ApplyImportUIToImportOptions(ReimportUI, *ImportOptions);
 				}
-				ImportOptions->bImportMaterials = FbxAssetImportData->bImportMaterials;
-				ImportOptions->bImportTextures = FbxAssetImportData->bImportMaterials;
+				ImportOptions->bImportMaterials = false;
+				ImportOptions->bImportTextures = false;
 			}
 			ImportOptions->bImportAnimations = false;
 
@@ -337,8 +324,6 @@ namespace FbxMeshUtils
 
 					// Import mesh
 					USkeletalMesh* TempSkelMesh = NULL;
-					// @todo AssetImportData does this temp skeletal mesh need import data?
-					UFbxSkeletalMeshImportData* TempAssetImportData = NULL;
 					TArray<FName> OrderedMaterialNames;
 					{
 						int32 NoneNameCount = 0;

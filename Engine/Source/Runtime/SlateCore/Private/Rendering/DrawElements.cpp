@@ -4,6 +4,7 @@
 #include "ReflectionMetadata.h"
 
 DECLARE_CYCLE_STAT(TEXT("FSlateDrawElement::Make Time"), STAT_SlateDrawElementMakeTime, STATGROUP_SlateVerbose);
+DECLARE_CYCLE_STAT(TEXT("FSlateDrawElement::MakeCustomVerts Time"), STAT_SlateDrawElementMakeCustomVertsTime, STATGROUP_Slate);
 
 DEFINE_STAT(STAT_SlateBufferPoolMemory);
 
@@ -204,16 +205,18 @@ void FSlateDrawElement::MakeDrawSpaceSpline( FSlateWindowElementList& ElementLis
 	MakeSpline( ElementList, InLayer, FPaintGeometry(), InStart, InStartDir, InEnd, InEndDir, InClippingRect, InThickness, InDrawEffects, InTint );
 }
 
-void FSlateDrawElement::MakeDrawSpaceGradientSpline( FSlateWindowElementList& ElementList, uint32 InLayer, const FVector2D& InStart, const FVector2D& InStartDir, const FVector2D& InEnd, const FVector2D& InEndDir, const FSlateRect InClippingRect, const TArray<FSlateGradientStop>& InGradientStops, float InThickness, ESlateDrawEffect::Type InDrawEffects )
+
+void FSlateDrawElement::MakeDrawSpaceGradientSpline(FSlateWindowElementList& ElementList, uint32 InLayer, const FVector2D& InStart, const FVector2D& InStartDir, const FVector2D& InEnd, const FVector2D& InEndDir, const FSlateRect InClippingRect, const TArray<FSlateGradientStop>& InGradientStops, float InThickness, ESlateDrawEffect::Type InDrawEffects)
 {
-	SCOPE_CYCLE_COUNTER( STAT_SlateDrawElementMakeTime )
+	SCOPE_CYCLE_COUNTER(STAT_SlateDrawElementMakeTime)
 	const FPaintGeometry PaintGeometry;
 	PaintGeometry.CommitTransformsIfUsingLegacyConstructor();
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
 	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, InDrawEffects);
 	DrawElt.ElementType = ET_Spline;
-	DrawElt.DataPayload.SetGradientSplinePayloadProperties( InStart, InStartDir, InEnd, InEndDir, InThickness, InGradientStops );
+	DrawElt.DataPayload.SetGradientSplinePayloadProperties(InStart, InStartDir, InEnd, InEndDir, InThickness, InGradientStops);
 }
+
 
 void FSlateDrawElement::MakeLines(FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const TArray<FVector2D>& Points, const FSlateRect InClippingRect, ESlateDrawEffect::Type InDrawEffects, const FLinearColor& InTint, bool bAntialias, float Thickness)
 {
@@ -251,6 +254,7 @@ void FSlateDrawElement::MakeCustom( FSlateWindowElementList& ElementList, uint32
 void FSlateDrawElement::MakeCustomVerts(FSlateWindowElementList& ElementList, uint32 InLayer, const FSlateResourceHandle& InRenderResourceHandle, const TArray<FSlateVertex>& InVerts, const TArray<SlateIndex>& InIndexes, ISlateUpdatableInstanceBuffer* InInstanceData, uint32 InInstanceOffset, uint32 InNumInstances)
 {
 	SCOPE_CYCLE_COUNTER(STAT_SlateDrawElementMakeTime)
+	SCOPE_CYCLE_COUNTER(STAT_SlateDrawElementMakeCustomVertsTime)
 
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
 	DrawElt.Init(InLayer, FPaintGeometry(),/*Clip rect is ignored*/ FSlateRect(1,1,1,1), ESlateDrawEffect::None);
@@ -522,7 +526,7 @@ void FSlateBatchData::Merge(FElementBatchMap& InLayerToElementBatches, uint32& V
 					FSlateIndexArray& BatchIndices = GetBatchIndexList(ElementBatch);
 
 					// We should have at least some vertices and indices in the batch or none at all
-					check((BatchVertices.Num() > 0 && BatchIndices.Num() > 0) || (BatchVertices.Num() == 0 && BatchIndices.Num() == 0));
+					check(BatchVertices.Num() > 0 && BatchIndices.Num() > 0 || BatchVertices.Num() == 0 && BatchIndices.Num() == 0);
 
 					if ( BatchVertices.Num() > 0 && BatchIndices.Num() > 0 )
 					{

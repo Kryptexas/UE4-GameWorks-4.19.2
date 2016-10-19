@@ -421,10 +421,12 @@ bool FAssetRegistry::GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutA
 	TSet<FName> FilterPackageNames;
 	TSet<FName> FilterPackagePaths;
 	TSet<FName> FilterClassNames;
+	TSet<FName> FilterContainerClassNames;
 	TSet<FName> FilterObjectPaths;
 	const int32 NumFilterPackageNames = Filter.PackageNames.Num();
 	const int32 NumFilterPackagePaths = Filter.PackagePaths.Num();
 	const int32 NumFilterClasses = Filter.ClassNames.Num();
+	const int32 NumFilterContainerClasses = Filter.ContainerClassNames.Num();
 	const int32 NumFilterObjectPaths = Filter.ObjectPaths.Num();
 
 	for ( int32 NameIdx = 0; NameIdx < NumFilterPackageNames; ++NameIdx )
@@ -457,6 +459,11 @@ bool FAssetRegistry::GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutA
 		{
 			FilterClassNames.Add(Filter.ClassNames[ClassIdx]);
 		}
+	}
+
+	for (int32 ClassIdx = 0; ClassIdx < NumFilterContainerClasses; ++ClassIdx)
+	{
+		FilterContainerClassNames.Add(Filter.ContainerClassNames[ClassIdx]);
 	}
 
 	if ( !Filter.bIncludeOnlyOnDiskAssets )
@@ -571,6 +578,28 @@ bool FAssetRegistry::GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutA
 				if(Class != nullptr)
 				{
 					GetObjectsOfClass(Class, InMemoryObjects, false, RF_NoFlags);
+
+					if (Filter.OnContainerContentValid.IsBound())
+					{
+						for (const auto& ContainerClassName : FilterContainerClassNames)
+						{
+							UClass* ContainerClass = FindObjectFast<UClass>(nullptr, *ContainerClassName.ToString(), false, true, RF_NoFlags);
+							
+							if (ContainerClass != nullptr)
+							{
+								TArray<UObject*> ContainerList;
+								GetObjectsOfClass(ContainerClass, ContainerList, false, RF_NoFlags);
+
+								for (UObject* Object : ContainerList)
+								{
+									if (Filter.OnContainerContentValid.Execute(Class, Object, nullptr))
+									{
+										InMemoryObjects.Add(Object);
+									}
+								}
+							}
+						}
+					}
 				}
 			}
 
@@ -636,6 +665,30 @@ bool FAssetRegistry::GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutA
 			if (ClassAssets != nullptr)
 			{
 				ClassFilter->Append(*ClassAssets);
+			}
+
+			if (Filter.OnContainerContentValid.IsBound())
+			{
+				UClass* AssetClass = FindObjectFast<UClass>(nullptr, *ClassNameIt, false, true, RF_NoFlags);
+
+				if (AssetClass != nullptr)
+				{
+					for (const auto& ContainerClassName : FilterContainerClassNames)
+					{
+						auto ContainerAssets = CachedAssetsByClass.Find(ContainerClassName);
+
+						if (ContainerAssets != nullptr)
+						{
+							for (auto ContainerAssetsIt = ContainerAssets->CreateConstIterator(); ContainerAssetsIt; ++ContainerAssetsIt)
+							{
+								if (Filter.OnContainerContentValid.Execute(AssetClass, nullptr, *ContainerAssetsIt))
+								{
+									ClassFilter->Add(*ContainerAssetsIt);
+								}
+							}
+						}
+					}
+				}
 			}
 		}
 	}
