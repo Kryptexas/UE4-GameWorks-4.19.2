@@ -62,7 +62,7 @@ struct FTextIterator
 		return (CurrentPosition[0] != '\0');
 	}
 
-	bool NextCharacterInLine(int32& Ch)
+	bool NextCharacterInLine(TCHAR& Ch)
 	{	
 		bool bRet = false;
 		check(CurrentPosition);
@@ -89,7 +89,7 @@ struct FTextIterator
 		return bRet;
 	}
 
-	bool Peek(int32& Ch)
+	bool Peek(TCHAR& Ch)
 	{
 		check(CurrentPosition);
 		if ( CurrentPosition[0] =='\0' || (CurrentPosition[0] == '<' && CurrentPosition[1] == 'b' && CurrentPosition[2] == 'r' && CurrentPosition[3] == '>') || (CurrentPosition[0] == '\n') )
@@ -186,10 +186,10 @@ FVector2D ComputeTextSize(FTextIterator It, class UFont* Font,
 
 	float LineX = 0.f;
 
-	int32 Ch;
+	TCHAR Ch = 0;
 	while (It.NextCharacterInLine(Ch))
 	{
-		Ch = (int32)Font->RemapChar(Ch);
+		Ch = Font->RemapChar(Ch);
 
 		if(!Font->Characters.IsValidIndex(Ch))
 		{
@@ -226,7 +226,7 @@ FVector2D ComputeTextSize(FTextIterator It, class UFont* Font,
 			Ret.Y = FMath::Max(Ret.Y, Bottom);
 
 			// if we have another non-whitespace character to render, add the font's kerning.
-			int32 NextCh;
+			TCHAR NextCh = 0;
 			if( It.Peek(NextCh) && !FChar::IsWhitespace(NextCh) )
 			{
 				SizeX += CharIncrement;
@@ -336,12 +336,9 @@ float CalculateVerticalAlignmentOffset(
 			FirstLineHeight = LineSize.Y;
 		}
 
-		int32 Ch;
-
 		// Iterate to end of line
-		while (It.NextCharacterInLine(Ch))
-		{
-		}
+		TCHAR Ch = 0;
+		while (It.NextCharacterInLine(Ch)) {}
 
 		// Move Y position down to next line. If the current line is empty, move by max char height in font
 		StartY += LineSize.Y > 0.f ? LineSize.Y : Font->GetMaxCharHeight();
@@ -373,15 +370,28 @@ public:
 
 				if (FontParameterNames.Num() > 0)
 				{
-					MIDs.Reserve(NumFontPages);
-					for (int32 FontPageIndex = 0; FontPageIndex < NumFontPages; ++FontPageIndex)
+					if (InMaterial->IsA<UMaterialInstanceDynamic>())
 					{
-						UMaterialInstanceDynamic* MID = InMaterial->IsA<UMaterialInstanceDynamic>() ? Cast<UMaterialInstanceDynamic>(InMaterial) : UMaterialInstanceDynamic::Create(InMaterial, nullptr);
+						// If the user provided a custom MID, we can't do anything but use that single MID for page 0
+						UMaterialInstanceDynamic* MID = Cast<UMaterialInstanceDynamic>(InMaterial);
 						for (const FName FontParameterName : FontParameterNames)
 						{
-							MID->SetFontParameterValue(FontParameterName, InFont, FontPageIndex);
+							MID->SetFontParameterValue(FontParameterName, InFont, 0);
 						}
 						MIDs.Add(MID);
+					}
+					else
+					{
+						MIDs.Reserve(NumFontPages);
+						for (int32 FontPageIndex = 0; FontPageIndex < NumFontPages; ++FontPageIndex)
+						{
+							UMaterialInstanceDynamic* MID = UMaterialInstanceDynamic::Create(InMaterial, nullptr);
+							for (const FName FontParameterName : FontParameterNames)
+							{
+								MID->SetFontParameterValue(FontParameterName, InFont, FontPageIndex);
+							}
+							MIDs.Add(MID);
+						}
 					}
 				}
 			}
@@ -822,11 +832,11 @@ bool FTextRenderSceneProxy::BuildStringMesh( TArray<FDynamicMeshVertex>& OutVert
 		}
 
 		LineX = 0.f;
-		int32 Ch;
 
+		TCHAR Ch = 0;
 		while (It.NextCharacterInLine(Ch))
 		{
-			Ch = (int32)Font->RemapChar(Ch);
+			Ch = Font->RemapChar(Ch);
 
 			if(!Font->Characters.IsValidIndex(Ch))
 			{
@@ -903,7 +913,7 @@ bool FTextRenderSceneProxy::BuildStringMesh( TArray<FDynamicMeshVertex>& OutVert
 				LineX += SizeX;
 
 				// if we have another non-whitespace character to render, add the font's kerning.
-				int32 NextChar;
+				TCHAR NextChar = 0;
 				if( It.Peek(NextChar) && !FChar::IsWhitespace(NextChar) )
 				{
 					LineX += CharIncrement;
@@ -1074,8 +1084,8 @@ FBoxSphereBounds UTextRenderComponent::CalcBounds(const FTransform& LocalToWorld
 				FirstLineHeight = LineSize.Y;
 			}
 
-			int32 Ch;
-			while (It.NextCharacterInLine(Ch));
+			TCHAR Ch = 0;
+			while (It.NextCharacterInLine(Ch)) {}
 		}
 
 		LeftTop.Y = ComputeVerticalAlignmentOffset(Size.Y, VerticalAlignment, FirstLineHeight);
@@ -1115,8 +1125,8 @@ FMatrix UTextRenderComponent::GetRenderMatrix() const
 				FirstLineHeight = LineSize.Y;
 			}
 
-			int32 Ch;
-			while (It.NextCharacterInLine(Ch));
+			TCHAR Ch = 0;
+			while (It.NextCharacterInLine(Ch)) {}
 		}
 
 		// Calculate a vertical translation to create the correct vertical alignment
