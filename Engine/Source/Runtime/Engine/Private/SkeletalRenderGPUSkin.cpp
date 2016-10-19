@@ -25,7 +25,6 @@
 #include "SkeletalRenderGPUSkin.h"
 #include "SkeletalRenderCPUSkin.h"
 #include "GPUSkinCache.h"
-#include "ShaderCompiler.h"
 #include "Animation/MorphTarget.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "LocalVertexFactory.h"
@@ -253,16 +252,6 @@ void FSkeletalMeshObjectGPUSkin::Update(int32 LODIndex,USkinnedMeshComponent* In
 	// this data is only deleted when another update is sent
 	FDynamicSkelMeshObjectDataGPUSkin* NewDynamicData = FDynamicSkelMeshObjectDataGPUSkin::AllocDynamicSkelMeshObjectDataGPUSkin();		
 	NewDynamicData->InitDynamicSkelMeshObjectDataGPUSkin(InMeshComponent,SkeletalMeshResource,LODIndex,ActiveMorphTargets, MorphTargetWeights);
-
-	{
-		// Handle the case of skin caching shaders not done compiling before updates are finished/editor is loading
-		static bool bNeedToWait = GEnableGPUSkinCache != 0;
-		if (bNeedToWait && GShaderCompilingManager)
-		{
-			GShaderCompilingManager->ProcessAsyncResults(false, true);
-			bNeedToWait = false;
-		}
-	}
 
 	// We prepare the next frame but still have the value from the last one
 	uint32 FrameNumberToPrepare = GFrameNumber + 1;

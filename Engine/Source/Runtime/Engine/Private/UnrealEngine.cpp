@@ -10041,6 +10041,13 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 		}
 	}
 
+	// Process global shader results before we try to render anything
+	// Do this before we register components, as USkinnedMeshComponents require the GPU skin cache global shaders when creating render state.
+	if (GShaderCompilingManager)
+	{
+		GShaderCompilingManager->ProcessAsyncResults(false, true);
+	}
+
 	{
 		DECLARE_SCOPE_CYCLE_COUNTER(TEXT("UEngine::LoadMap.LoadPackagesFully"), STAT_LoadMap_LoadPackagesFully, STATGROUP_LoadTime);
 
@@ -10089,12 +10096,6 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 				UE_LOG(LogEngine, Fatal, TEXT("Couldn't spawn player: %s"), *Error2);
 			}
 		}
-	}
-
-	// Process global shader results before we try to render anything
-	if (GShaderCompilingManager)
-	{
-		GShaderCompilingManager->ProcessAsyncResults(false, true);
 	}
 
 	// Prime texture streaming.
