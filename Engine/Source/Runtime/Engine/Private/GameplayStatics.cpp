@@ -446,7 +446,7 @@ class AActor* UGameplayStatics::BeginDeferredActorSpawnFromClass(UObject* WorldC
 		// Otherwise if the WorldContextObject is an Actor we will share its instigator.
 		// If the value is set via the exposed parameter on SpawnNode it will be overwritten anyways, so this is safe to specify here
 		APawn* AutoInstigator = Cast<APawn>(WorldContextObject);
-		if (AutoInstigator)
+		if (AutoInstigator == nullptr)
 		{
 			if (AActor* ContextActor = Cast<AActor>(WorldContextObject))
 			{
