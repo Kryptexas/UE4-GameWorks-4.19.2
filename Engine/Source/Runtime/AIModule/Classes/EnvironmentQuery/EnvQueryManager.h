@@ -84,6 +84,9 @@ struct FEnvQueryInstanceCache
 
 	/** instance to duplicate */
 	FEnvQueryInstance Instance;
+
+	/** the name of the source query */
+	FName AssetName;
 };
 
 #if USE_EQS_DEBUGGER

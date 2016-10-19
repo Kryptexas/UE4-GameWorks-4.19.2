@@ -626,7 +626,7 @@ TSharedPtr<FEnvQueryInstance> UEnvQueryManager::CreateQueryInstance(const UEnvQu
 	FEnvQueryInstance* InstanceTemplate = NULL;
 	for (int32 InstanceIndex = 0; InstanceIndex < InstanceCache.Num(); InstanceIndex++)
 	{
-		if (InstanceCache[InstanceIndex].Template->GetFName() == Template->GetFName() &&
+		if (InstanceCache[InstanceIndex].AssetName == Template->GetFName() &&
 			InstanceCache[InstanceIndex].Instance.Mode == RunMode)
 		{
 			InstanceTemplate = &InstanceCache[InstanceIndex].Instance;
@@ -638,13 +638,18 @@ TSharedPtr<FEnvQueryInstance> UEnvQueryManager::CreateQueryInstance(const UEnvQu
 	if (InstanceTemplate == NULL)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_AI_EQS_LoadTime);
-		
+		static const UEnum* RunModeEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EEnvQueryRunMode"));
+
 		// duplicate template in manager's world for BP based nodes
-		UEnvQuery* LocalTemplate = (UEnvQuery*)StaticDuplicateObject(Template, this, TEXT("None"));
+		const FString NewInstanceName = RunModeEnum
+			? FString::Printf(TEXT("%s_%s"), *Template->GetFName().ToString(), *RunModeEnum->GetEnumName(RunMode))
+			: FString::Printf(TEXT("%s_%d"), *Template->GetFName().ToString(), uint8(RunMode));
+		UEnvQuery* LocalTemplate = (UEnvQuery*)StaticDuplicateObject(Template, this, *NewInstanceName);
 
 		{
 			// memory stat tracking: temporary variable will exist only inside this section
 			FEnvQueryInstanceCache NewCacheEntry;
+			NewCacheEntry.AssetName = Template->GetFName();
 			NewCacheEntry.Template = LocalTemplate;
 			NewCacheEntry.Instance.UniqueName = LocalTemplate->GetFName();
 			NewCacheEntry.Instance.QueryName = LocalTemplate->GetQueryName().ToString();
@@ -724,7 +729,6 @@ TSharedPtr<FEnvQueryInstance> UEnvQueryManager::CreateQueryInstance(const UEnvQu
 
 				default:
 					{
-						UEnum* RunModeEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EEnvQueryRunMode"));
 						UE_LOG(LogEQS, Warning, TEXT("Query [%s] can't be sorted for RunMode: %d [%s]"),
 							*GetNameSafe(LocalTemplate), (int32)RunMode, RunModeEnum ? *RunModeEnum->GetEnumName(RunMode) : TEXT("??"));
 					}
