@@ -126,6 +126,11 @@ FVulkanCommandBufferManager::FVulkanCommandBufferManager(FVulkanDevice* InDevice
 
 	ActiveCmdBuffer = Create();
 	ActiveCmdBuffer->Begin();
+
+	// Flush the cmd buffer immediately to ensure a valid
+	// 'Last submitted' cmd buffer exists at frame 0.
+	SubmitActiveCmdBuffer(false);
+	PrepareForNewActiveCommandBuffer();
 }
 
 FVulkanCommandBufferManager::~FVulkanCommandBufferManager()

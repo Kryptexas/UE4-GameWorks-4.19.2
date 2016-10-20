@@ -1363,7 +1363,7 @@ namespace VulkanRHI
 		check(Entries.Num() == 0);
 	}
 
-	void FDeferredDeletionQueue::EnqueueGenericResource(EType Type, void* Handle)
+	void FDeferredDeletionQueue::EnqueueGenericResource(EType Type, uint64 Handle)
 	{
 		FVulkanQueue* Queue = Device->GetQueue();
 

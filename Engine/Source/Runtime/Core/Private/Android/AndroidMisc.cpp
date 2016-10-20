@@ -390,12 +390,6 @@ bool FAndroidMisc::AllowRenderThread()
 		return false;
 	}
 
-	if (FAndroidMisc::ShouldUseVulkan())
-	{
-		// @todo vulkan: stop forcing no RT!
-		return false;
-	}
-
 	// there is a crash with the nvidia tegra dual core processors namely the optimus 2x and xoom 
 	// when running multithreaded it can't handle multiple threads using opengl (bug)
 	// tested with lg optimus 2x and motorola xoom 
