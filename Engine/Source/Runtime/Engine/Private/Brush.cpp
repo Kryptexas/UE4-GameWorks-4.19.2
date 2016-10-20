@@ -23,6 +23,9 @@ TArray< TWeakObjectPtr< ULevel > > ABrush::LevelsToRebuild;
 
 /** Whether BSP regeneration should be suppressed or not */
 bool ABrush::bSuppressBSPRegeneration = false;
+
+// Debug purposes only; an attempt to catch the cause of UE-36265
+const TCHAR* ABrush::GGeometryRebuildCause = nullptr;
 #endif
 
 DEFINE_LOG_CATEGORY_STATIC(LogBrush, Log, All);
@@ -90,8 +93,13 @@ void ABrush::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 
 	if (!bSuppressBSPRegeneration && IsStaticBrush() && PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive && GUndo)
 	{
-		// BSP can only be rebuilt during a transaction
-		GEditor->RebuildAlteredBSP();
+		// Don't rebuild BSP if only the actor label has changed
+		static const FName ActorLabelName("ActorLabel");
+		if (PropertyChangedEvent.Property->GetFName() != ActorLabelName)
+		{
+			// BSP can only be rebuilt during a transaction
+			GEditor->RebuildAlteredBSP();
+		}
 	}
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);

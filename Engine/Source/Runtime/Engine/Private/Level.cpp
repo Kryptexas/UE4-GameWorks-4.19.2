@@ -1287,6 +1287,7 @@ void ULevel::PreEditUndo()
 	// Wait for the components to be detached.
 	FlushRenderingCommands();
 
+	ABrush::GGeometryRebuildCause = TEXT("Undo");
 }
 
 
@@ -1297,6 +1298,8 @@ void ULevel::PostEditUndo()
 	Model->UpdateVertices();
 	// Update model components that were detached earlier
 	UpdateModelComponents();
+
+	ABrush::GGeometryRebuildCause = nullptr;
 
 	// If it's a streaming level and was not visible, don't init rendering resources
 	if (OwningWorld)
