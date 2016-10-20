@@ -2221,6 +2221,10 @@ uint32 FMaterialShaderMap::GetMaxTextureSamplers() const
 const FMeshMaterialShaderMap* FMaterialShaderMap::GetMeshShaderMap(FVertexFactoryType* VertexFactoryType) const
 {
 	checkSlow(bCompilationFinalized);
+#if WITH_EDITOR 
+	// Attempt to get some more info for a rare crash (UE-35937)
+	checkf(OrderedMeshShaderMaps.Num() > 0 && bCompilationFinalized, TEXT("OrderedMeshShaderMaps.Num() is %d. bCompilationFinalized is %d. This may relate to bug UE-35937"), OrderedMeshShaderMaps.Num(), (int)bCompilationFinalized);
+#endif
 	const FMeshMaterialShaderMap* MeshShaderMap = OrderedMeshShaderMaps[VertexFactoryType->GetId()];
 	checkSlow(!MeshShaderMap || MeshShaderMap->GetVertexFactoryType() == VertexFactoryType);
 	return MeshShaderMap;
