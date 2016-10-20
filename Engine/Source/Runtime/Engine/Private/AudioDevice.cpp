@@ -3105,6 +3105,7 @@ void FAudioDevice::SendUpdateResultsToGameThread(const int32 FirstActiveIndex)
 				WaveInstanceInfo.Description = Source ? Source->Describe((RequestedAudioStats & ERequestedAudioStats::LongSoundNames) != 0) : FString(TEXT("No source"));
 				WaveInstanceInfo.ActualVolume = WaveInstance->GetVolume();
 				WaveInstanceInfo.InstanceIndex = InstanceIndex;
+				WaveInstanceInfo.WaveInstanceName = *WaveInstance->GetName();
 				StatSoundInfos[*SoundInfoIndex].WaveInstanceInfos.Add(MoveTemp(WaveInstanceInfo));
 			}
 		}

@@ -12516,40 +12516,36 @@ void FAudioDevice::ResolveDesiredStats(FViewportClient* ViewportClient)
 
 void FAudioDevice::UpdateRequestedStat(const uint8 RequestedStat)
 {
-	check(IsInGameThread());
+	check(IsInAudioThread());
 
 	DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.UpdateRequestedStat"), STAT_AudioUpdateRequestedStat, STATGROUP_TaskGraphTasks);
 
-	FAudioDevice* AudioDevice = this;
-	FAudioThread::RunCommandOnAudioThread([AudioDevice, RequestedStat]()
-	{
-		AudioDevice->RequestedAudioStats ^= RequestedStat;
-	}, GET_STATID(STAT_AudioUpdateRequestedStat));
+	RequestedAudioStats ^= RequestedStat;
 }
 
 bool UEngine::ToggleStatSoundWaves(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream)
 {
-	if (FAudioDevice* AudioDevice = World->GetAudioDevice())
+	if (AudioDeviceManager)
 	{
-		AudioDevice->UpdateRequestedStat(ERequestedAudioStats::SoundWaves);
+		AudioDeviceManager->ToggleDebugStat(ERequestedAudioStats::SoundWaves);
 	}
 	return true;
 }
 
 bool UEngine::ToggleStatSoundCues(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream)
 {
-	if (FAudioDevice* AudioDevice = World->GetAudioDevice())
+	if (AudioDeviceManager)
 	{
-		AudioDevice->UpdateRequestedStat(ERequestedAudioStats::SoundCues);
+		AudioDeviceManager->ToggleDebugStat(ERequestedAudioStats::SoundCues);
 	}
 	return true;
 }
 
 bool UEngine::ToggleStatSoundMixes(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream)
 {
-	if (FAudioDevice* AudioDevice = World->GetAudioDevice())
+	if (AudioDeviceManager)
 	{
-		AudioDevice->UpdateRequestedStat(ERequestedAudioStats::SoundMixes);
+		AudioDeviceManager->ToggleDebugStat(ERequestedAudioStats::SoundMixes);
 	}
 	return true;
 }
