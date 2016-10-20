@@ -728,13 +728,13 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 		else
 		{
 			// Strip out multi-view for devices that don't support it.
-			AppendCString(GlslCode, "#define gl_ViewID_OVR 0u\n");
+			AppendCString(GlslCode, "#define gl_ViewID_OVR 0\n");
 		}
 	}
 	else
 	{
 		MoveHashLines(GlslCode, GlslCodeOriginal);
-		AppendCString(GlslCode, "#define gl_ViewID_OVR 0u\n");
+		AppendCString(GlslCode, "#define gl_ViewID_OVR 0\n");
 	}
 
 	// Only desktop with separable shader platform can use GL_ARB_separate_shader_objects for reduced shader compile/link hitches
