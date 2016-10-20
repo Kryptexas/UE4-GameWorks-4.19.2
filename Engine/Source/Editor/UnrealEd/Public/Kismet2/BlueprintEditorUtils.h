@@ -7,6 +7,7 @@
 #include "EdGraphSchema_K2.h"
 #include "K2Node_EditablePinBase.h"
 #include "Engine/LevelScriptBlueprint.h"
+#include "BlueprintSupport.h" // for FLegacyEditorOnlyBlueprintOptions
 
 class  USCS_Node;
 struct FComponentKey;
@@ -1471,4 +1472,25 @@ struct UNREALED_API FMakeClassSpawnableOnScope
 			}
 		}
 	}
+};
+
+/** 
+ * Temporary util struct that deals with the now deprecated [EditoronlyBP] 
+ * settings. Inherited from FLegacyEditorOnlyBlueprintOptions (in CoreUObject), 
+ * which consolidates these settings, but is extended here to deal with UnrealEd 
+ * specific types.
+ */
+struct FLegacyEditorOnlyBlueprintUtils : public FLegacyEditorOnlyBlueprintOptions
+{
+	UNREALED_API static bool DoPinsMatch(const FEdGraphPinType& Input, const FEdGraphPinType& Output);
+	static bool FixupBlueprint(UBlueprint* Blueprint);
+
+private:
+	static bool HasLegacyBlueprintReferences(UBlueprint* Blueprint);
+	static bool IsUnwantedType(const FEdGraphPinType& Type);
+	static bool IsUnwantedDefaultObject(const UObject* Obj);
+	static void ChangePinType(FEdGraphPinType& Type);
+	static void HandleEditablePinNode(class UK2Node_EditablePinBase* Node);
+	static void HandleTemporaryVariableNode(class UK2Node_TemporaryVariable* Node);
+	static void HandleDefaultObjects(UK2Node* Node);
 };

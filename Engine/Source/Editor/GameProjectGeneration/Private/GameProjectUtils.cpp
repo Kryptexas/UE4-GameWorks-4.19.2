@@ -35,6 +35,7 @@
 #include "Sound/SoundEffectSource.h"
 
 #include "PlatformInfo.h"
+#include "BlueprintSupport.h" // for FLegacyEditorOnlyBlueprintOptions::GetDefaultEditorConfig()
 
 #define LOCTEXT_NAMESPACE "GameProjectUtils"
 
@@ -1826,12 +1827,7 @@ bool GameProjectUtils::GenerateConfigFiles(const FProjectInformation& InProjectI
 	// DefaultEditor.ini
 	{
 		const FString DefaultEditorIniFilename = ProjectConfigPath / TEXT("DefaultEditor.ini");
-		FString FileContents;
-		FileContents += TEXT("[EditoronlyBP]") LINE_TERMINATOR;
-		FileContents += TEXT("bAllowClassAndBlueprintPinMatching=true") LINE_TERMINATOR;
-		FileContents += TEXT("bReplaceBlueprintWithClass=true") LINE_TERMINATOR;
-		FileContents += TEXT("bDontLoadBlueprintOutsideEditor=true") LINE_TERMINATOR;
-		FileContents += TEXT("bBlueprintIsNotBlueprintType=true") LINE_TERMINATOR;
+		FString FileContents = FLegacyEditorOnlyBlueprintOptions::GetDefaultEditorConfig();
 
 		if (WriteOutputFile(DefaultEditorIniFilename, FileContents, OutFailReason))
 		{
