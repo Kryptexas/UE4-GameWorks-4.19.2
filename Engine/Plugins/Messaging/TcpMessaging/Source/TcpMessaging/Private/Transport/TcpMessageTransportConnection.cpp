@@ -197,18 +197,19 @@ void FTcpMessageTransportConnection::Exit()
 
 void FTcpMessageTransportConnection::Close()
 {
-	// We let the orderly shutdown proceed, so we get disconnect notifications
-	if (Socket)
-	{
-		Socket->Close();
-	}
-
+	// let the thread shutdown on its own
 	if (Thread != nullptr)
 	{
 		bRun = false;
 		Thread->WaitForCompletion();
 		delete Thread;
 		Thread = nullptr;
+	}
+
+	// if there a socket, close it so our peer will get a quick disconnect notification
+	if (Socket)
+	{
+		Socket->Close();
 	}
 }
 
