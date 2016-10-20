@@ -91,7 +91,7 @@
 		<!-- need this if plugin enabled and supported architecture, even if not packaged for LibOVRPlatform -->
 		<if condition="bSupported">
 			<true>
-				<loadLibrary name="libovrplatformloader" failmsg="LibOVRPlatform library not loaded and required!" />
+				<loadLibrary name="ovrplatformloader" failmsg="LibOVRPlatform library not loaded and required!" />
 			</true>
 		</if>
 	</soLoadLibrary>
