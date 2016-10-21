@@ -96,6 +96,11 @@ private:	uint32      AllocSize;      // Number of bytes allocated
  public:	FPoolInfo*  Next;           // Pointer to next pool
  public:	FPoolInfo** PtrToPrevNext;  // Pointer to whichever pointer points to this pool
 
+#if PLATFORM_32BITS
+/** Explicit padding for 32 bit builds */
+private: uint8 Padding[12]; // 32
+#endif
+
 public:
 	FPoolInfo()
 		: Taken(0)
