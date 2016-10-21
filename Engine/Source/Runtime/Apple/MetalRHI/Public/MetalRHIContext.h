@@ -344,7 +344,7 @@ protected:
 	/** Profiling implementation details. */
 	struct FMetalGPUProfiler* Profiler;
 	
-	/** Some local variables to track the pending primitive information uised in RHIEnd*UP functions */
+	/** Some local variables to track the pending primitive information used in RHIEnd*UP functions */
 	uint32 PendingVertexBufferOffset;
 	uint32 PendingVertexDataStride;
 	

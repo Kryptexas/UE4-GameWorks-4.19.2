@@ -64,7 +64,11 @@ public:
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPackageSaved, const FString&, UObject*);					
 	/** delegate type for when a package is marked as dirty via UObjectBaseUtilty::MarkPackageDirty ( Params: UPackage* ModifiedPackage, bool bWasDirty ) */
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPackageMarkedDirty, class UPackage*, bool);
+	/** delegate type for when a package is about to be saved */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FPreSavePackage, class UPackage*);
 
+	/** Delegate to notify subscribers when a package is about to be saved. */
+	static FPreSavePackage PreSavePackageEvent;
 	/** Delegate to notify subscribers when a package has been saved. This is triggered when the package saving
 	 *  has completed and was successful. */
 	static FOnPackageSaved PackageSavedEvent;

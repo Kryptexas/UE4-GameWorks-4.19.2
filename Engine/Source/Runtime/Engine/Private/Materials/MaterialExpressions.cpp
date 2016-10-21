@@ -10,6 +10,14 @@
 #include "Materials/MaterialExpressionActorPositionWS.h"
 #include "Materials/MaterialExpressionAdd.h"
 #include "Materials/MaterialExpressionAppendVector.h"
+#include "Materials/MaterialExpressionArccosine.h"
+#include "Materials/MaterialExpressionArccosineFast.h"
+#include "Materials/MaterialExpressionArcsine.h"
+#include "Materials/MaterialExpressionArcsineFast.h"
+#include "Materials/MaterialExpressionArctangent.h"
+#include "Materials/MaterialExpressionArctangentFast.h"
+#include "Materials/MaterialExpressionArctangent2.h"
+#include "Materials/MaterialExpressionArctangent2Fast.h"
 #include "Materials/MaterialExpressionAtmosphericFogColor.h"
 #include "Materials/MaterialExpressionBlackBody.h"
 #include "Materials/MaterialExpressionBlendMaterialAttributes.h"
@@ -100,11 +108,14 @@
 #include "Materials/MaterialExpressionPixelDepth.h"
 #include "Materials/MaterialExpressionPixelNormalWS.h"
 #include "Materials/MaterialExpressionPower.h"
+#include "Materials/MaterialExpressionPreSkinnedNormal.h"
 #include "Materials/MaterialExpressionPreSkinnedPosition.h"
 #include "Materials/MaterialExpressionQualitySwitch.h"
 #include "Materials/MaterialExpressionReflectionVectorWS.h"
 #include "Materials/MaterialExpressionRotateAboutAxis.h"
 #include "Materials/MaterialExpressionRotator.h"
+#include "Materials/MaterialExpressionRound.h"
+#include "Materials/MaterialExpressionSaturate.h"
 #include "Materials/MaterialExpressionSceneColor.h"
 #include "Materials/MaterialExpressionSceneDepth.h"
 #include "Materials/MaterialExpressionSceneTexelSize.h"
@@ -118,6 +129,7 @@
 #include "Materials/MaterialExpressionStaticBool.h"
 #include "Materials/MaterialExpressionStaticSwitch.h"
 #include "Materials/MaterialExpressionSubtract.h"
+#include "Materials/MaterialExpressionTangent.h"
 #include "Materials/MaterialExpressionTangentOutput.h"
 #include "Materials/MaterialExpressionTextureBase.h"
 #include "Materials/MaterialExpressionTextureObject.h"
@@ -134,6 +146,7 @@
 #include "Materials/MaterialExpressionTime.h"
 #include "Materials/MaterialExpressionTransform.h"
 #include "Materials/MaterialExpressionTransformPosition.h"
+#include "Materials/MaterialExpressionTruncate.h"
 #include "Materials/MaterialExpressionTwoSidedSign.h"
 #include "Materials/MaterialExpressionVectorNoise.h"
 #include "Materials/MaterialExpressionVertexColor.h"
@@ -2639,6 +2652,45 @@ void UMaterialExpressionClamp::GetCaption(TArray<FString>& OutCaptions) const
 #endif // WITH_EDITOR
 
 //
+//	UMaterialExpressionSaturate
+//
+UMaterialExpressionSaturate::UMaterialExpressionSaturate(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Math;
+		FConstructorStatics()
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionSaturate::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if(!Input.Expression)
+	{
+		return Compiler->Errorf(TEXT("Missing Saturate input"));
+	}
+	
+	return Compiler->Saturate(Input.Compile(Compiler));
+}
+
+void UMaterialExpressionSaturate::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("Saturate"));
+}
+#endif // WITH_EDITOR
+
+//
 //	UMaterialExpressionMin
 //
 
@@ -3352,6 +3404,9 @@ void UMaterialExpressionSine::GetCaption(TArray<FString>& OutCaptions) const
 }
 #endif // WITH_EDITOR
 
+//
+//	UMaterialExpressionCosine
+//
 UMaterialExpressionCosine::UMaterialExpressionCosine(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -3387,6 +3442,363 @@ int32 UMaterialExpressionCosine::Compile(class FMaterialCompiler* Compiler, int3
 void UMaterialExpressionCosine::GetCaption(TArray<FString>& OutCaptions) const
 {
 	OutCaptions.Add(TEXT("Cosine"));
+}
+#endif // WITH_EDITOR
+
+//
+//	UMaterialExpressionTangent
+//
+UMaterialExpressionTangent::UMaterialExpressionTangent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Math;
+		FConstructorStatics()
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	Period = 1.0f;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionTangent::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if(!Input.Expression)
+	{
+		return Compiler->Errorf(TEXT("Missing Tangent input"));
+	}
+
+	return Compiler->Tangent(Compiler->Mul(Input.Compile(Compiler),Period > 0.0f ? Compiler->Constant(2.0f * (float)PI / Period) : 0));
+}
+
+void UMaterialExpressionTangent::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("Tangent"));
+}
+#endif // WITH_EDITOR
+
+//
+//	UMaterialExpressionArcsine
+//
+UMaterialExpressionArcsine::UMaterialExpressionArcsine(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Math;
+		FConstructorStatics()
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionArcsine::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if(!Input.Expression)
+	{
+		return Compiler->Errorf(TEXT("Missing Arcsine input"));
+	}
+
+	return Compiler->Arcsine(Input.Compile(Compiler));
+}
+
+void UMaterialExpressionArcsine::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("Arcsine"));
+}
+#endif // WITH_EDITOR
+
+//
+//	UMaterialExpressionArcsineFast
+//
+UMaterialExpressionArcsineFast::UMaterialExpressionArcsineFast(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Math;
+		FConstructorStatics()
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionArcsineFast::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if(!Input.Expression)
+	{
+		return Compiler->Errorf(TEXT("Missing ArcsineFast input"));
+	}
+
+	return Compiler->ArcsineFast(Input.Compile(Compiler));
+}
+
+void UMaterialExpressionArcsineFast::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("ArcsineFast"));
+}
+#endif // WITH_EDITOR
+
+//
+//	UMaterialExpressionArccosine
+//
+UMaterialExpressionArccosine::UMaterialExpressionArccosine(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Math;
+		FConstructorStatics()
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionArccosine::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if(!Input.Expression)
+	{
+		return Compiler->Errorf(TEXT("Missing Arccosine input"));
+	}
+
+	return Compiler->Arccosine(Input.Compile(Compiler));
+}
+
+void UMaterialExpressionArccosine::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("Arccosine"));
+}
+#endif // WITH_EDITOR
+
+//
+//	UMaterialExpressionArccosineFast
+//
+UMaterialExpressionArccosineFast::UMaterialExpressionArccosineFast(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Math;
+		FConstructorStatics()
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionArccosineFast::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if(!Input.Expression)
+	{
+		return Compiler->Errorf(TEXT("Missing ArccosineFast input"));
+	}
+
+	return Compiler->ArccosineFast(Input.Compile(Compiler));
+}
+
+void UMaterialExpressionArccosineFast::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("ArccosineFast"));
+}
+#endif // WITH_EDITOR
+
+//
+//	UMaterialExpressionArctangent
+//
+UMaterialExpressionArctangent::UMaterialExpressionArctangent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Math;
+		FConstructorStatics()
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionArctangent::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if(!Input.Expression)
+	{
+		return Compiler->Errorf(TEXT("Missing Arctangent input"));
+	}
+
+	return Compiler->Arctangent(Input.Compile(Compiler));
+}
+
+void UMaterialExpressionArctangent::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("Arctangent"));
+}
+#endif // WITH_EDITOR
+
+//
+//	UMaterialExpressionArctangentFast
+//
+UMaterialExpressionArctangentFast::UMaterialExpressionArctangentFast(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Math;
+		FConstructorStatics()
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionArctangentFast::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if(!Input.Expression)
+	{
+		return Compiler->Errorf(TEXT("Missing ArctangentFast input"));
+	}
+
+	return Compiler->ArctangentFast(Input.Compile(Compiler));
+}
+
+void UMaterialExpressionArctangentFast::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("ArctangentFast"));
+}
+#endif // WITH_EDITOR
+
+//
+//	UMaterialExpressionArctangent2
+//
+UMaterialExpressionArctangent2::UMaterialExpressionArctangent2(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Math;
+		FConstructorStatics()
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionArctangent2::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if(!Y.Expression || !X.Expression)
+	{
+		return Compiler->Errorf(TEXT("Missing Arctangent2 input"));
+	}
+
+	int32 YResult = Y.Compile(Compiler);
+	int32 XResult = X.Compile(Compiler);
+	return Compiler->Arctangent2(YResult, XResult);
+}
+
+void UMaterialExpressionArctangent2::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("Arctangent2"));
+}
+#endif // WITH_EDITOR
+
+//
+//	UMaterialExpressionArctangent2Fast
+//
+UMaterialExpressionArctangent2Fast::UMaterialExpressionArctangent2Fast(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Math;
+		FConstructorStatics()
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionArctangent2Fast::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if(!Y.Expression || !X.Expression)
+	{
+		return Compiler->Errorf(TEXT("Missing Arctangent2Fast input"));
+	}
+
+	int32 YResult = Y.Compile(Compiler);
+	int32 XResult = X.Compile(Compiler);
+	return Compiler->Arctangent2Fast(YResult, XResult);
+}
+
+void UMaterialExpressionArctangent2Fast::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("Arctangent2Fast"));
 }
 #endif // WITH_EDITOR
 
@@ -4279,6 +4691,82 @@ void UMaterialExpressionCeil::GetCaption(TArray<FString>& OutCaptions) const
 #endif // WITH_EDITOR
 
 //
+//	UMaterialExpressionRound
+//
+UMaterialExpressionRound::UMaterialExpressionRound(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Math;
+		FConstructorStatics()
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionRound::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if(!Input.Expression)
+	{
+		return Compiler->Errorf(TEXT("Missing Round input"));
+	}
+	return Compiler->Round(Input.Compile(Compiler));
+}
+
+void UMaterialExpressionRound::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("Round"));
+}
+#endif // WITH_EDITOR
+
+//
+//	UMaterialExpressionTruncate
+//
+UMaterialExpressionTruncate::UMaterialExpressionTruncate(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Math;
+		FConstructorStatics()
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Math);
+#endif
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionTruncate::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	if(!Input.Expression)
+	{
+		return Compiler->Errorf(TEXT("Missing Truncate input"));
+	}
+	return Compiler->Truncate(Input.Compile(Compiler));
+}
+
+void UMaterialExpressionTruncate::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("Truncate"));
+}
+#endif // WITH_EDITOR
+
+//
 //	UMaterialExpressionFmod
 //
 
@@ -4387,7 +4875,7 @@ int32 UMaterialExpressionDesaturation::Compile(class FMaterialCompiler* Compiler
 	if(!Input.Expression)
 		return Compiler->Errorf(TEXT("Missing Desaturation input"));
 
-	int32	Color = Compiler->ForceCast(Input.Compile(Compiler), MCT_Float3,true,true),
+	int32 Color = Compiler->ForceCast(Input.Compile(Compiler), MCT_Float3, MFCF_ExactMatch|MFCF_ReplicateValue),
 		Grey = Compiler->Dot(Color,Compiler->Constant3(LuminanceFactors.R,LuminanceFactors.G,LuminanceFactors.B));
 
 	if(Fraction.Expression)
@@ -11031,12 +11519,14 @@ UMaterialExpressionTangentOutput::UMaterialExpressionTangentOutput(const FObject
 	struct FConstructorStatics
 	{
 		FText NAME_Custom;
-		FConstructorStatics()
+		FConstructorStatics(const FString& DisplayName, const FString& FunctionName)
 			: NAME_Custom(LOCTEXT( "Custom", "Custom" ))
 		{
+			// Register with attribute map to allow use with material attribute nodes and blending	
+			FMaterialAttributeDefinitionMap::AddCustomAttribute(FGuid(0x8EAB2CB2, 0x73634A24, 0x8CD14F47, 0x3F9C8E55), DisplayName, FunctionName, MCT_Float3, FVector4(0,0,0,0));
 		}
 	};
-	static FConstructorStatics ConstructorStatics;
+	static FConstructorStatics ConstructorStatics(GetDisplayName(), GetFunctionName());
 
 #if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Custom);
@@ -11078,14 +11568,14 @@ UMaterialExpressionClearCoatNormalCustomOutput::UMaterialExpressionClearCoatNorm
 	struct FConstructorStatics
 	{
 		FText NAME_Utility;
-		FConstructorStatics(FString Name)
+		FConstructorStatics(const FString& DisplayName, const FString& FunctionName)
 			: NAME_Utility(LOCTEXT("Utility", "Utility"))
 		{
 			// Register with attribute map to allow use with material attribute nodes and blending
-			FMaterialAttributeDefinitionMap::AddCustomAttribute(FGuid(0xAA3D5C04, 0x16294716, 0xBBDEC869, 0x6A27DD72), Name, MCT_Float3, FVector4(0,0,1,0));
+			FMaterialAttributeDefinitionMap::AddCustomAttribute(FGuid(0xAA3D5C04, 0x16294716, 0xBBDEC869, 0x6A27DD72), DisplayName, FunctionName, MCT_Float3, FVector4(0,0,1,0));
 		}
 	};
-	static FConstructorStatics ConstructorStatics(GetFunctionName());
+	static FConstructorStatics ConstructorStatics(GetDisplayName(), GetFunctionName());
 
 #if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Utility);
@@ -11204,7 +11694,7 @@ UMaterialExpressionPreSkinnedPosition::UMaterialExpressionPreSkinnedPosition(con
 	{
 		FText NAME_Constants;
 		FConstructorStatics()
-			: NAME_Constants(LOCTEXT( "Constants", "Constants" ))
+			: NAME_Constants(LOCTEXT( "Vectors", "Vectors" ))
 		{
 		}
 	};
@@ -11222,11 +11712,6 @@ UMaterialExpressionPreSkinnedPosition::UMaterialExpressionPreSkinnedPosition(con
 #if WITH_EDITOR
 int32 UMaterialExpressionPreSkinnedPosition::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	if (Compiler->GetCurrentShaderFrequency() != SF_Vertex)
-	{
-		return Compiler->Errorf(TEXT("Pre-skinned position is only available in the vertex shader, pass through custom interpolators if needed."));
-	}
-			
 	return Compiler->PreSkinnedPosition();
 }
 
@@ -11239,6 +11724,50 @@ void UMaterialExpressionPreSkinnedPosition::GetExpressionToolTip(TArray<FString>
 {
 	ConvertToMultilineToolTip(TEXT("Returns pre-skinned local position for skeletal meshes, usable in vertex shader only."
 		"Returns the local position for non-skeletal meshes. Incompatible with GPU skin cache feature."), 40, OutToolTip);
+}
+#endif // WITH_EDITOR
+
+///////////////////////////////////////////////////////////////////////////////
+// UMaterialExpressionPreSkinnedNormal
+///////////////////////////////////////////////////////////////////////////////
+UMaterialExpressionPreSkinnedNormal::UMaterialExpressionPreSkinnedNormal(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Constants;
+		FConstructorStatics()
+			: NAME_Constants(LOCTEXT( "Vectors", "Vectors" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Constants);
+#endif
+
+	Outputs.Reset();
+	Outputs.Add(FExpressionOutput(TEXT(""), 1, 1, 1, 1, 0));
+	bShaderInputData = true;
+}
+
+#if WITH_EDITOR
+int32 UMaterialExpressionPreSkinnedNormal::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	return Compiler->PreSkinnedNormal();
+}
+
+void UMaterialExpressionPreSkinnedNormal::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("Pre-Skinned Local Normal"));
+}
+
+void UMaterialExpressionPreSkinnedNormal::GetExpressionToolTip(TArray<FString>& OutToolTip) 
+{
+	ConvertToMultilineToolTip(TEXT("Returns pre-skinned local normal for skeletal meshes, usable in vertex shader only."
+		"Returns the local normal for non-skeletal meshes. Incompatible with GPU skin cache feature."), 40, OutToolTip);
 }
 #endif // WITH_EDITOR
 

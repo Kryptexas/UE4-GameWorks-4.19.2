@@ -3,6 +3,7 @@
 
 #include "UnrealEd.h"
 #include "EditorViewportCommands.h"
+#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 
 #define LOCTEXT_NAMESPACE "EditorViewportCommands"
 
@@ -124,6 +125,74 @@ void FEditorViewportCommands::RegisterCommands()
 
 #define LOCTEXT_NAMESPACE "EditorViewModeOptionsMenu"
 
+FText GetViewModeOptionsMenuLabel(EViewModeIndex ViewModeIndex)
+{
+	if (ViewModeIndex == VMI_MeshUVDensityAccuracy)
+	{
+		return LOCTEXT("ViewParamMenuTitle_UVChannels", "UV Channels");
+	}
+	else if (ViewModeIndex == VMI_MaterialTextureScaleAccuracy)
+	{
+		// Get form the content browser
+		{
+			FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+			TArray<FAssetData> SelectedAssetData;
+			ContentBrowserModule.Get().GetSelectedAssets(SelectedAssetData);
+
+			for ( auto AssetIt = SelectedAssetData.CreateConstIterator(); AssetIt; ++AssetIt )
+			{
+				// Grab the object if it is loaded
+				if (AssetIt->IsAssetLoaded())
+				{
+					const UMaterialInterface* MaterialInterface = Cast<UMaterialInterface>(AssetIt->GetAsset());
+					if (MaterialInterface)
+					{
+						return LOCTEXT("ViewParamMenuTitle_TexturesFromContentBrowser", "Textures (Content Browser)");
+					}
+				}
+			}
+		}
+
+		// Get form the selection
+		{
+			TArray<UPrimitiveComponent*> SelectedComponents;
+			GEditor->GetSelectedComponents()->GetSelectedObjects(SelectedComponents);
+
+			TArray<AActor*> SelectedActors;
+			GEditor->GetSelectedActors()->GetSelectedObjects(SelectedActors);
+			for (AActor* Actor : SelectedActors)
+			{
+				TArray<UPrimitiveComponent*> ActorComponents;
+				Actor->GetComponents(ActorComponents);
+				SelectedComponents.Append(ActorComponents);
+			}
+
+			for (const UPrimitiveComponent* SelectedComponent : SelectedComponents)
+			{
+				if (SelectedComponent)
+				{
+					const int32 NumMaterials = SelectedComponent->GetNumMaterials();
+					for (int32 MaterialIndex = 0; MaterialIndex < NumMaterials; ++MaterialIndex)
+					{
+						const UMaterialInterface* MaterialInterface = SelectedComponent->GetMaterial(MaterialIndex);
+						if (MaterialInterface)
+						{
+							return LOCTEXT("ViewParamMenuTitle_TexturesFromSceneSelection", "Textures (Scene Selection)");
+						}
+					}
+				}
+			}
+		}
+		
+		return LOCTEXT("ViewParamMenuTitle_Textures", "Textures");
+	}
+	else
+	{
+
+	}
+	return LOCTEXT("ViewParamMenuTitle", "View Mode Options");
+}
+
 TSharedRef<SWidget> BuildViewModeOptionsMenu(TSharedPtr<FUICommandList> CommandList, EViewModeIndex ViewModeIndex)
 {
 	const FEditorViewportCommands& Commands = FEditorViewportCommands::Get();
@@ -141,71 +210,108 @@ TSharedRef<SWidget> BuildViewModeOptionsMenu(TSharedPtr<FUICommandList> CommandL
 	}
 	else if (ViewModeIndex == VMI_MaterialTextureScaleAccuracy)
 	{
-		TArray<UMaterialInterface*> SelectedMaterials;
+		MenuBuilder.AddMenuEntry(Commands.TexStreamAccMaterialTextureScaleAll, NAME_None, LOCTEXT("TexStreamAccMaterialTextureScaleAllDisplayName", "All Textures"));
+		const FString MenuName = LOCTEXT("TexStreamAccMaterialTextureScaleSingleDisplayName", "Texture").ToString();
 
-		/*
-		FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-		TArray<FAssetData> SelectedAssetData;
-		ContentBrowserModule.Get().GetSelectedAssets(SelectedAssetData);
+		TArray<const UMaterialInterface*> SelectedMaterials;
 
-		for ( auto AssetIt = SelectedAssetData.CreateConstIterator(); AssetIt; ++AssetIt )
+		// Get selected materials form the content browser
 		{
-			// Grab the object if it is loaded
-			if (AssetIt->IsAssetLoaded())
+			FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+			TArray<FAssetData> SelectedAssetData;
+			ContentBrowserModule.Get().GetSelectedAssets(SelectedAssetData);
+
+			for ( auto AssetIt = SelectedAssetData.CreateConstIterator(); AssetIt; ++AssetIt )
 			{
-				UMaterialInterface* Material = Cast<UMaterialInterface>(AssetIt->GetAsset());
-				if (Material)
+				// Grab the object if it is loaded
+				if (AssetIt->IsAssetLoaded())
 				{
-					SelectedMaterials.Add(Material);
+					const UMaterialInterface* MaterialInterface = Cast<UMaterialInterface>(AssetIt->GetAsset());
+					if (MaterialInterface)
+					{
+						SelectedMaterials.AddUnique(MaterialInterface);
+					}
 				}
 			}
 		}
-		*/
-		TArray<UPrimitiveComponent*> SelectedComponents;
-		GEditor->GetSelectedComponents()->GetSelectedObjects(SelectedComponents);
 
-		if (!SelectedComponents.Num())
+		// Get selected materials from component selection and actors
+		if (!SelectedMaterials.Num())
 		{
+			TArray<UPrimitiveComponent*> SelectedComponents;
+			GEditor->GetSelectedComponents()->GetSelectedObjects(SelectedComponents);
+
 			TArray<AActor*> SelectedActors;
 			GEditor->GetSelectedActors()->GetSelectedObjects(SelectedActors);
 			for (AActor* Actor : SelectedActors)
 			{
-				Actor->GetComponents(SelectedComponents);
+				TArray<UPrimitiveComponent*> ActorComponents;
+				Actor->GetComponents(ActorComponents);
+				SelectedComponents.Append(ActorComponents);
+			}
+
+			for (const UPrimitiveComponent* SelectedComponent : SelectedComponents)
+			{
+				if (SelectedComponent)
+				{
+					const int32 NumMaterials = SelectedComponent->GetNumMaterials();
+					for (int32 MaterialIndex = 0; MaterialIndex < NumMaterials; ++MaterialIndex)
+					{
+						const UMaterialInterface* MaterialInterface = SelectedComponent->GetMaterial(MaterialIndex);
+						if (MaterialInterface)
+						{
+							SelectedMaterials.AddUnique(MaterialInterface);
+						}
+					}
+				}
 			}
 		}
 
-		MenuBuilder.AddMenuEntry(Commands.TexStreamAccMaterialTextureScaleAll, NAME_None, LOCTEXT("TexStreamAccMaterialTextureScaleAllDisplayName", "All Textures"));
+		TArray<FString> TextureDataAtIndex[TEXSTREAM_MAX_NUM_TEXTURES_PER_MATERIAL];
+		for (const UMaterialInterface* MaterialInterface : SelectedMaterials)
+		{
+			if (MaterialInterface)
+			{
+				for (const FMaterialTextureInfo& TextureData : MaterialInterface->GetTextureStreamingData())
+				{
+					if (TextureData.IsValid(true))
+					{
+						if (SelectedMaterials.Num() == 1)
+						{
+							TextureDataAtIndex[TextureData.TextureIndex].AddUnique(FString::Printf(TEXT("%.2f X UV%d : %s"), TextureData.SamplingScale, TextureData.UVChannelIndex, *TextureData.TextureName.ToString()));
+						}
+						else
+						{
+							TextureDataAtIndex[TextureData.TextureIndex].AddUnique(FString::Printf(TEXT("%.2f X UV%d : %s.%s"), TextureData.SamplingScale, TextureData.UVChannelIndex, *MaterialInterface->GetName(), *TextureData.TextureName.ToString()));
+						}
+					}
+				}
+			}
+		}
 
-		const FString MenuName = LOCTEXT("TexStreamAccMaterialTextureScaleSingleDisplayName", "Texture").ToString();
 		for (int32 TextureIndex = 0; TextureIndex < TEXSTREAM_MAX_NUM_TEXTURES_PER_MATERIAL; ++TextureIndex)
 		{
-			if (!SelectedComponents.Num())
+			if (!SelectedMaterials.Num())
 			{
 				MenuBuilder.AddMenuEntry(Commands.TexStreamAccMaterialTextureScaleSingle[TextureIndex], NAME_None, FText::FromString(FString::Printf(TEXT("%s %d"), *MenuName, TextureIndex)));
 			}
-			else
+			else if (TextureDataAtIndex[TextureIndex].Num())
 			{
-				FMaterialTextureInfo TextureData;
-				for (const UPrimitiveComponent* SelectedComponent : SelectedComponents)
+				if (TextureDataAtIndex[TextureIndex].Num() == 1)
 				{
-					SelectedComponent->HasTextureStreamingMaterialData(true, TextureIndex, &TextureData);
-					if (TextureData.TextureName == NAME_All)
-					{
-						break;
-					}
-				}
+					const FString NameOverride = FString::Printf(TEXT("%s %d (%s)"), *MenuName, TextureIndex, *TextureDataAtIndex[TextureIndex][0]);
+					MenuBuilder.AddMenuEntry(Commands.TexStreamAccMaterialTextureScaleSingle[TextureIndex], NAME_None, FText::FromString(NameOverride));
 
-				if (TextureData.TextureName == NAME_All)
-				{
-					MenuBuilder.AddMenuEntry(Commands.TexStreamAccMaterialTextureScaleSingle[TextureIndex], NAME_None, FText::FromString(FString::Printf(TEXT("%s %d (...)"), *MenuName, TextureIndex)));
 				}
-				else if (TextureData.TextureName != NAME_None && TextureData.UVChannelIndex != INDEX_NONE)
+				else
 				{
-					MenuBuilder.AddMenuEntry(Commands.TexStreamAccMaterialTextureScaleSingle[TextureIndex], NAME_None, FText::FromString(FString::Printf(TEXT("%s %d (%s, %.2f, UV%d)"), *MenuName, TextureIndex, *TextureData.TextureName.ToString(), TextureData.SamplingScale, TextureData.UVChannelIndex)));
-				}
-				else if (TextureData.TextureName != NAME_None)
-				{
-					MenuBuilder.AddMenuEntry(Commands.TexStreamAccMaterialTextureScaleSingle[TextureIndex], NAME_None, FText::FromString(FString::Printf(TEXT("%s %d (%s, %.2f)"), *MenuName, TextureIndex, *TextureData.TextureName.ToString(), TextureData.SamplingScale)));
+					const FString NameOverride = FString::Printf(TEXT("%s %d (%s) ..."), *MenuName, TextureIndex, *TextureDataAtIndex[TextureIndex][0]);
+					FString ToolTipOverride = TextureDataAtIndex[TextureIndex][0];
+					for (int32 Index = 1; Index < TextureDataAtIndex[TextureIndex].Num(); ++Index)
+					{
+						ToolTipOverride = FString::Printf(TEXT("%s\n%s"), *ToolTipOverride, *TextureDataAtIndex[TextureIndex][Index]);
+					}
+					MenuBuilder.AddMenuEntry(Commands.TexStreamAccMaterialTextureScaleSingle[TextureIndex], NAME_None, FText::FromString(NameOverride), FText::FromString(ToolTipOverride));
 				}
 			}
 		}

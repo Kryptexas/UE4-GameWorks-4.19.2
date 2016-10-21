@@ -227,7 +227,7 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	uint32 bOverrideLightMapRes:1;
 
 	/** Light map resolution to use on this component, used if bOverrideLightMapRes is true */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lighting, meta=(editcondition="bOverrideLightMapRes") )
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lighting, meta=(ClampMax = 4096, editcondition="bOverrideLightMapRes") )
 	int32 OverriddenLightMapRes;
 
 	/**
@@ -263,19 +263,13 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	bool bUseDefaultCollision;
 
 #if WITH_EDITORONLY_DATA
-	/** 
-	 * Temporary section data used in the texture streaming build. 
-	 * Stays persistent to allow texture streaming accuracy view mode to inspect it.
-	 * The shared ptr is used to allow a safe way for the proxy to access it without duplicating it.
-	 */
-	TSharedPtr<TArray<FPrimitiveMaterialInfo>, ESPMode::NotThreadSafe> TexStreamMaterialData;
-
 	/** Derived data key of the static mesh, used to determine if an update from the source static mesh is required. */
 	UPROPERTY()
 	FString StaticMeshDerivedDataKey;
 
-	UPROPERTY()
-	bool bStreamingTextureDataValid;
+	/** Material Bounds used for texture streaming. */
+	UPROPERTY(NonTransactional)
+	TArray<FBox> MaterialStreamingBounds;
 #endif
 
 	/** The Lightmass settings for this object. */
@@ -368,54 +362,13 @@ public:
 	virtual ELightMapInteractionType GetStaticLightingType() const override;
 	virtual bool IsPrecomputedLightingValid() const override;
 
-	/**
-	* Return whether this primitive should have data for texture streaming. Used to optimize the texture streaming build.
-	*
-	* @return	true if a rebuild is required.
-	*/
-	virtual bool RequiresStreamingTextureData() const override;
-
-
-	/**
-	* Return whether this primitive has (good) material texcoord size for texture streaming. Used in the texture streaming build and accuracy viewmodes.
-	*
-	* @param bCheckForScales - If true, section data must contains texcoord scales to be valid.
-	* @param TextureIndex - Specific texture index to check. INDEX_NONE if to check for any texture.
-	* @param OutTextureData - Information about how the texture was sampled.
-	*
-	* @return - true if streaming section data is valid.
-	*/
-	virtual bool HasTextureStreamingMaterialData(bool bCheckForScales, int32 TextureIndex = INDEX_NONE, FMaterialTextureInfo* OutTextureData = nullptr) const override;
-
-	/**
-	* Return whether this primitive has (good) built data for texture streaming. Used for the "Texture Streaming Needs Rebuilt" check.
-	*
-	* @return	true if all texture streaming data is valid.
-	*/
-	virtual bool HasStreamingTextureData() const override;
-
-	/**
-	* Update material texcoord scales for texture streaming. Note that this data is expected to be transient.
-	* Only useful within the texture streaming build, or streaming accuracy viewmodes.
-	*
-	* @param	TexCoordScales - The texcoord scales for each texture register of each relevant materials.
-	*/
-	virtual void UpdateTextureStreamingMaterialData(const FTexCoordScaleMap& TexCoordScales) override;
-
-	/**
-	 *	Update the precomputed streaming data of this component.
-	 *
-	 *	@param	LevelTextures	[in,out]	The list of textures referred by all component of a level. The array index maps to UTexture2D::LevelIndex.
-	 *	@param	TexCoordScales	[in]		The texcoord scales for each texture register of each relevant materials.
-	 *	@param	QualityLevel	[in]		The quality level being used in the texture streaming build.
-	 *	@param	FeatureLevel	[in]		The feature level being used in the texture streaming build.
-	 */
-	virtual void UpdateStreamingTextureData(TArray<UTexture2D*>& LevelTextures, const FTexCoordScaleMap& TexCoordScales, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel) override;
-
-	/** Get the texture streaming box related to the given material. Used to support instanced meshes */
-	virtual FBox GetTextureStreamingBox(int32 MaterialIndex) const;
-	/** Get the scale to apply to the UV densities that come from the component and transform type.	Used to support instanced meshes */
+	/** Get the scale comming form the component, when computing StreamingTexture data. Used to support instanced meshes. */
 	virtual float GetTextureStreamingTransformScale() const;
+	/** Get material, UV density and bounds for a given material index. */
+	virtual bool GetMaterialStreamingData(int32 MaterialIndex, FPrimitiveMaterialInfo& MaterialData) const override;
+	/** Build the data to compute accuracte StreaminTexture data. */
+	virtual bool BuildTextureStreamingData(ETextureStreamingBuildType BuildType, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, TSet<FGuid>& DependentResources) override;
+	/** Get the StreaminTexture data. */
 	virtual void GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const override;
 
 	virtual class UBodySetup* GetBodySetup() override;

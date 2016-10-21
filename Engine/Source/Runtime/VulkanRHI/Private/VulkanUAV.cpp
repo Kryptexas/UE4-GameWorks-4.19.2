@@ -197,10 +197,15 @@ FShaderResourceViewRHIRef FVulkanDynamicRHI::RHICreateShaderResourceView(FIndexB
 void FVulkanCommandListContext::RHIClearUAV(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const uint32* Values)
 {
 	FVulkanUnorderedAccessView* UnorderedAccessView = ResourceCast(UnorderedAccessViewRHI);
-#if VULKAN_USE_NEW_RENDERPASSES
-	ensure(0);
-#else
-	VULKAN_SIGNAL_UNIMPLEMENTED();
-#endif
+	FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+	ensure(CmdBuffer->IsOutsideRenderPass());
+	if (UnorderedAccessView->SourceVertexBuffer)
+	{
+		FVulkanVertexBuffer* VertexBuffer = UnorderedAccessView->SourceVertexBuffer;
+		VulkanRHI::vkCmdFillBuffer(CmdBuffer->GetHandle(), VertexBuffer->GetHandle(), 0, VertexBuffer->GetSize(), Values[0]);
+	}
+	else
+	{
+		ensure(0);
+	}
 }
-

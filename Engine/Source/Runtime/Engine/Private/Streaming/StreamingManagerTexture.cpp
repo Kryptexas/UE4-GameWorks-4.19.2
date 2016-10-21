@@ -366,16 +366,30 @@ void FStreamingManagerTexture::ConditionalUpdateStaticData()
 			StreamingTexture.UpdateStaticData(Settings);
 		}
 
-#if 0
-		// Reinsert all levels to update static instance data. Only for testing perfs.
-		TArray<ULevel*> Levels;
-		for (FLevelTextureManager& LevelManager : LevelTextureManagers)
+#if !UE_BUILD_SHIPPING
+		// Don't put anything here that could normally change in game.
+		// This is used to test regression / improvements, and insertion perfs.
+		if (PreviousSettings.bUseMaterialData != Settings.bUseMaterialData ||
+			PreviousSettings.bUseNewMetrics != Settings.bUseNewMetrics ||
+			PreviousSettings.bUsePerTextureBias != Settings.bUsePerTextureBias)
 		{
-			Levels.Push(LevelManager.GetLevel());
-		}
-		for (ULevel* Level : Levels)
-		{
-			AddLevel(Level);
+			TArray<ULevel*> Levels;
+			for (FLevelTextureManager& LevelManager : LevelTextureManagers)
+			{
+				Levels.Push(LevelManager.GetLevel());
+			}
+			for (ULevel* Level : Levels)
+			{
+				AddLevel(Level);
+			}
+
+			// Reinsert dynamic components
+			TArray<const UPrimitiveComponent*> DynamicComponents;
+			DynamicComponentManager.GetAllComponents(DynamicComponents);
+			for (const UPrimitiveComponent* Primitive : DynamicComponents)
+			{
+				NotifyPrimitiveUpdated(Primitive);
+			}
 		}
 #endif
 
@@ -646,7 +660,7 @@ void FStreamingManagerTexture::NotifyTimedPrimitiveAttached( const UPrimitiveCom
 	const double CurrentTime = FApp::GetCurrentTime();
 	if ( Primitive  && Primitive->IsRegistered() )
 	{
-		FStreamingTextureLevelContext LevelContext;
+		FStreamingTextureLevelContext LevelContext( EMaterialQualityLevel::Num, Primitive );
 		TArray<FStreamingTexturePrimitiveInfo> TextureInstanceInfos;
 		Primitive->GetStreamingTextureInfoWithNULLRemoval( LevelContext, TextureInstanceInfos );
 
@@ -675,7 +689,7 @@ void FStreamingManagerTexture::NotifyTimedPrimitiveDetached( const UPrimitiveCom
 	const double CurrentTime = FApp::GetCurrentTime();
 	if ( Primitive )
 	{
-		FStreamingTextureLevelContext LevelContext;
+		FStreamingTextureLevelContext LevelContext( EMaterialQualityLevel::Num, Primitive );
 		TArray<FStreamingTexturePrimitiveInfo> TextureInstanceInfos;
 		Primitive->GetStreamingTextureInfoWithNULLRemoval( LevelContext, TextureInstanceInfos );
 
@@ -1531,6 +1545,22 @@ bool FStreamingManagerTexture::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputD
 	else if (FParse::Command(&Cmd,TEXT("InvestigateTexture")))
 	{
 		return HandleInvestigateTextureCommand( Cmd, Ar, InWorld );
+	}
+	else if (FParse::Command(&Cmd,TEXT("ListMaterialsWithMissingTextureStreamingData")))
+	{
+		Ar.Logf(TEXT("Listing all materials with not texture streaming data."));
+		Ar.Logf(TEXT("Run \"BuildMaterialTextureStreamingData\" in the editor to fix the issue"));
+		Ar.Logf(TEXT("Note that some materials might have no that even after rebuild."));
+		for( TObjectIterator<UMaterialInterface> It; It; ++It )
+		{
+			UMaterialInterface* Material = *It;
+			if (Material && Material->GetOutermost() != GetTransientPackage() && Material->HasAnyFlags(RF_Public) && Material->UseAnyStreamingTexture() && !Material->HasTextureStreamingData()) 
+			{
+				FString TextureName = Material->GetFullName();
+				Ar.Logf(TEXT("%s"), *TextureName);
+			}
+		}
+		return true;
 	}
 #endif // !UE_BUILD_SHIPPING
 

@@ -36,6 +36,12 @@ namespace VulkanRHI
 	class FOldResourceAllocation;
 }
 
+enum
+{
+	NUM_QUERIES_PER_POOL = 128,
+};
+
+
 /** This represents a vertex declaration that hasn't been combined with a specific shader to create a bound shader. */
 class FVulkanVertexDeclaration : public FRHIVertexDeclaration
 {
@@ -488,18 +494,137 @@ inline FVulkanTextureBase* GetVulkanTextureFromRHITexture(FRHITexture* Texture)
 	}
 }
 
-class FVulkanQueryPool
+class FVulkanQueryPool : public VulkanRHI::FDeviceChild
 {
 public:
 	FVulkanQueryPool(FVulkanDevice* InDevice, uint32 InNumQueries, VkQueryType InQueryType);
-	virtual ~FVulkanQueryPool() {}
+	virtual ~FVulkanQueryPool();
+
 	virtual void Destroy();
 
+	void Reset(FVulkanCmdBuffer* CmdBuffer);
+
+	inline VkQueryPool GetHandle() const
+	{
+		return QueryPool;
+	}
+
+protected:
 	VkQueryPool QueryPool;
 	const uint32 NumQueries;
 	const VkQueryType QueryType;
 
-	FVulkanDevice* Device;
+	friend class FVulkanDynamicRHI;
+};
+
+class FVulkanOcclusionQueryPool : public FVulkanQueryPool
+{
+public:
+	FVulkanOcclusionQueryPool(FVulkanDevice* InDevice, uint32 InNumQueries)
+		: FVulkanQueryPool(InDevice, InNumQueries, VK_QUERY_TYPE_OCCLUSION)
+		, CurrentBatchIndex(0)
+		, NextIndexForBatch(0)
+		, LastFrameResultsRead(0)
+		, LastFrameResultsEnded(0)
+	{
+		QueryOutput.SetNum(InNumQueries);
+		Batches.Add(FBatch());
+	}
+
+	inline bool CanFitOneQuery() const
+	{
+		return Batches[CurrentBatchIndex].StartIndex + Batches[CurrentBatchIndex].NumIndices < NumQueries;
+	}
+
+	inline void StartBatch()
+	{
+		ensure(NextIndexForBatch < NumQueries);
+		Batches[CurrentBatchIndex].Begin(NextIndexForBatch);
+	}
+
+	void EndBatch(FVulkanCmdBuffer* InCmdBuffer, uint32 InFrameNumber)
+	{
+		Batches[CurrentBatchIndex].End(InCmdBuffer);
+		NextIndexForBatch += Batches[CurrentBatchIndex].NumIndices;
+		if (NextIndexForBatch < NumQueries)
+		{
+			++CurrentBatchIndex;
+			if (CurrentBatchIndex == Batches.Num())
+			{
+				Batches.Add(FBatch());
+			}
+		}
+		LastFrameResultsEnded = InFrameNumber;
+	}
+
+	bool GetResults(class FVulkanCommandListContext& Context, class FVulkanRenderQuery* Query, bool bWait, uint64& OutNumPixels);
+
+	void Compact();
+
+	inline bool HasBatches() const
+	{
+		return Batches.Num() > 0;
+	}
+
+	inline uint32 GetLastFrameResultsRead() const
+	{
+		return LastFrameResultsRead;
+	}
+
+	inline uint32 GetLastFrameResultsEnded() const
+	{
+		return LastFrameResultsEnded;
+	}
+
+protected:
+	struct FBatch
+	{
+		FVulkanCmdBuffer* CmdBuffer;
+		uint64 Fence;
+
+		uint32 StartIndex;
+		uint32 NumIndices;
+
+		enum EState
+		{
+			EAvailable,
+			EBatchBegun,
+			EBatchEnded,
+			ESubmittedWithoutWait,
+			ERead,
+		};
+
+		EState State;
+
+		FBatch()
+			: CmdBuffer(nullptr)
+			, Fence(0)
+			, StartIndex(0)
+			, NumIndices(0)
+			, State(EAvailable)
+		{
+		}
+
+		bool HasFenceBeenSignaled() const;
+		void Begin(int32 InStartIndex)
+		{
+			ensure(State == EAvailable);
+			StartIndex = InStartIndex;
+			State = EBatchBegun;
+		}
+		
+		void End(FVulkanCmdBuffer* InCmdBuffer);
+	};
+
+	int32 CurrentBatchIndex;
+	TArray<FBatch> Batches;
+	uint32 NextIndexForBatch;
+	TArray<uint64> QueryOutput;
+
+	uint32 LastFrameResultsRead;
+	uint32 LastFrameResultsEnded;
+
+	friend class FVulkanCommandListContext;
 };
 
 class FVulkanTimestampQueryPool : public FVulkanQueryPool
@@ -554,26 +679,25 @@ protected:
 	uint64 LastFenceSignaledCounter;
 };
 
-/** Vulkan occlusion query */
 class FVulkanRenderQuery : public FRHIRenderQuery
 {
 public:
+	FVulkanRenderQuery(FVulkanDevice* Device, ERenderQueryType InQueryType);
+	virtual ~FVulkanRenderQuery() {}
 
-	/** Initialization constructor. */
-	FVulkanRenderQuery(ERenderQueryType InQueryType);
+private:
+	// Actual index and pool filled in after RHIBeginOcclusionQueryBatch
+	int32 QueryIndex;
+	ERenderQueryType QueryType;
+	FVulkanQueryPool* QueryPool;
+	FVulkanCmdBuffer* CurrentCmdBuffer;
+	int32 CurrentBatch;
+	friend class FVulkanDynamicRHI;
+	friend class FVulkanCommandListContext;
+	friend class FVulkanOcclusionQueryPool;
 
-	~FVulkanRenderQuery();
-
-	/**
-	 * Kick off an occlusion test 
-	 */
-	void Begin();
-
-	/**
-	 * Finish up an occlusion test 
-	 */
-	void End();
-
+	void Begin(FVulkanCmdBuffer* CmdBuffer);
+	void End(FVulkanCmdBuffer* CmdBuffer);
 };
 
 struct FVulkanBufferView : public FRHIResource, public VulkanRHI::FDeviceChild
@@ -872,7 +996,6 @@ public:
 
 	inline const FVulkanDescriptorSetsLayout& GetDescriptorSetsLayout() const
 	{
-		check(Layout);
 		return *Layout;
 	}
 
@@ -962,6 +1085,7 @@ public:
 	void SetUniformBuffer(uint32 BindPoint, const FVulkanUniformBuffer* UniformBuffer);
 
 	void SetSRV(uint32 TextureIndex, FVulkanShaderResourceView* SRV);
+	void SetUAV(uint32 UAVIndex, FVulkanUnorderedAccessView* UAV);
 
 	class FVulkanComputePipeline* PrepareForDispatch(const struct FVulkanComputePipelineState& State);
 
@@ -1001,6 +1125,8 @@ protected:
 	void GetDescriptorInfoCounts(uint32& OutCombinedSamplerCount, uint32& OutSamplerBufferCount, uint32& OutUniformBufferCount);
 
 	void CreateDescriptorWriteInfo(uint32 UniformCombinedSamplerCount, uint32 UniformSamplerBufferCount, uint32 UniformBufferCount);
+
+	friend class FVulkanComputePipeline;
 };
 
 /**
@@ -1025,11 +1151,7 @@ public:
 	// After the shader is set, it is expected that all require states are provided/set by the engine
 	void ResetState();
 
-#if VULKAN_USE_NEW_RENDERPASSES
 	class FVulkanGfxPipeline* PrepareForDraw(class FVulkanRenderPass* RenderPass, const struct FVulkanPipelineGraphicsKey& PipelineKey, uint32 VertexInputKey, const struct FVulkanGfxPipelineState& State);
-#else
-	class FVulkanGfxPipeline* PrepareForDraw(const struct FVulkanPipelineGraphicsKey& PipelineKey, uint32 VertexInputKey, const struct FVulkanGfxPipelineState& State);
-#endif
 
 	bool UpdateDescriptorSets(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* CmdBuffer, FVulkanGlobalUniformPool* GlobalUniformPool);
 

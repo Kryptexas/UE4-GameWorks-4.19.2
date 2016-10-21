@@ -241,15 +241,17 @@ static uint32 GetTypeComponents(const FString& Type)
 static void GenerateBindingTable(const FVulkanShaderSerializedBindings& SerializedBindings, FVulkanShaderBindingTable& OutBindingTable)
 {
 	int32 NumCombinedSamplers = 0;
-	int32 NumSamplerBuffers = 0;
+	int32 NumUniformTexelBuffers = 0;
+	int32 NumStorageTexelBuffers = 0;
 	int32 NumUniformBuffers = 0;
 
 	auto& Layouts = SerializedBindings.Bindings;
 
 	//#todo-rco: FIX! SamplerBuffers share numbering with Samplers
-	NumCombinedSamplers = Layouts[EVulkanBindingType::CombinedImageSampler].Num() + Layouts[EVulkanBindingType::SamplerBuffer].Num();
-	NumSamplerBuffers = Layouts[EVulkanBindingType::CombinedImageSampler].Num() + Layouts[EVulkanBindingType::SamplerBuffer].Num();
+	NumCombinedSamplers = Layouts[EVulkanBindingType::CombinedImageSampler].Num() + Layouts[EVulkanBindingType::UniformTexelBuffer].Num();
+	NumUniformTexelBuffers = Layouts[EVulkanBindingType::CombinedImageSampler].Num() + Layouts[EVulkanBindingType::UniformTexelBuffer].Num();
 	NumUniformBuffers = Layouts[EVulkanBindingType::PackedUniformBuffer].Num() + Layouts[EVulkanBindingType::UniformBuffer].Num();
+	NumStorageTexelBuffers = Layouts[EVulkanBindingType::StorageTexelBuffer].Num();
 
 	for (int32 Index = 0; Index < CrossCompiler::PACKED_TYPEINDEX_MAX; ++Index)
 	{
@@ -258,7 +260,8 @@ static void GenerateBindingTable(const FVulkanShaderSerializedBindings& Serializ
 
 	OutBindingTable.CombinedSamplerBindingIndices.AddUninitialized(NumCombinedSamplers);
 	//#todo-rco: FIX! SamplerBuffers share numbering with Samplers
-	OutBindingTable.SamplerBufferBindingIndices.AddUninitialized(NumSamplerBuffers);
+	OutBindingTable.UniformTexelBufferBindingIndices.AddUninitialized(NumUniformTexelBuffers);
+	OutBindingTable.StorageTexelBufferBindingIndices.AddUninitialized(NumStorageTexelBuffers);
 	OutBindingTable.UniformBufferBindingIndices.AddUninitialized(NumUniformBuffers);
 
 	for (int32 Index = 0; Index < Layouts[EVulkanBindingType::CombinedImageSampler].Num(); ++Index)
@@ -266,15 +269,21 @@ static void GenerateBindingTable(const FVulkanShaderSerializedBindings& Serializ
 		auto& Mapping = Layouts[EVulkanBindingType::CombinedImageSampler][Index];
 		OutBindingTable.CombinedSamplerBindingIndices[Mapping.EngineBindingIndex] = Mapping.VulkanBindingIndex;
 		//#todo-rco: FIX! SamplerBuffers share numbering with Samplers
-		OutBindingTable.SamplerBufferBindingIndices[Mapping.EngineBindingIndex] = Mapping.VulkanBindingIndex;
+		OutBindingTable.UniformTexelBufferBindingIndices[Mapping.EngineBindingIndex] = Mapping.VulkanBindingIndex;
 	}
 
-	for (int32 Index = 0; Index < Layouts[EVulkanBindingType::SamplerBuffer].Num(); ++Index)
+	for (int32 Index = 0; Index < Layouts[EVulkanBindingType::UniformTexelBuffer].Num(); ++Index)
 	{
-		auto& Mapping = Layouts[EVulkanBindingType::SamplerBuffer][Index];
+		auto& Mapping = Layouts[EVulkanBindingType::UniformTexelBuffer][Index];
 		OutBindingTable.CombinedSamplerBindingIndices[Mapping.EngineBindingIndex] = Mapping.VulkanBindingIndex;
 		//#todo-rco: FIX! SamplerBuffers share numbering with Samplers
-		OutBindingTable.SamplerBufferBindingIndices[Mapping.EngineBindingIndex] = Mapping.VulkanBindingIndex;
+		OutBindingTable.UniformTexelBufferBindingIndices[Mapping.EngineBindingIndex] = Mapping.VulkanBindingIndex;
+	}
+
+	for (int32 Index = 0; Index < Layouts[EVulkanBindingType::StorageTexelBuffer].Num(); ++Index)
+	{
+		auto& Mapping = Layouts[EVulkanBindingType::StorageTexelBuffer][Index];
+		OutBindingTable.StorageTexelBufferBindingIndices[Mapping.EngineBindingIndex] = Mapping.VulkanBindingIndex;
 	}
 
 	for (int32 Index = 0; Index < Layouts[EVulkanBindingType::UniformBuffer].Num(); ++Index)
@@ -293,7 +302,7 @@ static void GenerateBindingTable(const FVulkanShaderSerializedBindings& Serializ
 	}
 
 	// Do not share numbers here
-	OutBindingTable.NumDescriptorsWithoutPackedUniformBuffers = Layouts[EVulkanBindingType::CombinedImageSampler].Num() + Layouts[EVulkanBindingType::SamplerBuffer].Num() + Layouts[EVulkanBindingType::UniformBuffer].Num();
+	OutBindingTable.NumDescriptorsWithoutPackedUniformBuffers = Layouts[EVulkanBindingType::CombinedImageSampler].Num() + Layouts[EVulkanBindingType::UniformTexelBuffer].Num() + Layouts[EVulkanBindingType::UniformBuffer].Num() + Layouts[EVulkanBindingType::StorageTexelBuffer].Num();
 	OutBindingTable.NumDescriptors = OutBindingTable.NumDescriptorsWithoutPackedUniformBuffers + Layouts[EVulkanBindingType::PackedUniformBuffer].Num();
 }
 
@@ -420,8 +429,9 @@ static void BuildShaderOutput(
 		//	Type = EVulkanBindingType::SAMPLER;
 		//	break;
 		case EVulkanBindingType::CombinedImageSampler:
-		case EVulkanBindingType::SamplerBuffer:
+		case EVulkanBindingType::UniformTexelBuffer:
 		case EVulkanBindingType::UniformBuffer:
+		case EVulkanBindingType::StorageTexelBuffer:
 			break;
 		case EVulkanBindingType::PackedUniformBuffer:
 			check(Header.SerializedBindings.Bindings[Type].Num() < CrossCompiler::PACKED_TYPEINDEX_MAX);

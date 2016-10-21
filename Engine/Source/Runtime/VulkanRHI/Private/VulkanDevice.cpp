@@ -24,7 +24,6 @@ FVulkanDevice::FVulkanDevice(VkPhysicalDevice InGpu)
 	, CmdDbgMarkerEnd(nullptr)
 	, DebugMarkerSetObjectName(nullptr)
 #endif
-	, FrameCounter(0)
 #if VULKAN_ENABLE_PIPELINE_CACHE
 	, PipelineStateCache(nullptr)
 #endif
@@ -508,6 +507,13 @@ void FVulkanDevice::Destroy()
 		}
 	}
 
+	for (FVulkanQueryPool* QueryPool : OcclusionQueryPools)
+	{
+		QueryPool->Destroy();
+		delete QueryPool;
+	}
+	OcclusionQueryPools.SetNum(0, false);
+
 	delete UBRingBuffer;
 
 #if VULKAN_ENABLE_PIPELINE_CACHE
@@ -585,4 +591,13 @@ void FVulkanDevice::PrepareForCPURead()
 {
 	//#todo-rco: Process other contexts first!
 	ImmediateContext->PrepareForCPURead();
+}
+
+void FVulkanDevice::SubmitCommandsAndFlushGPU()
+{
+	//#todo-rco: Process other contexts first!
+
+	FVulkanCommandBufferManager* CmdMgr = ImmediateContext->GetCommandBufferManager();
+	CmdMgr->SubmitActiveCmdBuffer(true);
+	CmdMgr->PrepareForNewActiveCommandBuffer();
 }

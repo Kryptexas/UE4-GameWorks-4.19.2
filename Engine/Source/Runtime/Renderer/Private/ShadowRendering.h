@@ -660,7 +660,7 @@ public:
 	typedef TArray<const FPrimitiveSceneInfo*,SceneRenderingAllocator> PrimitiveArrayType;
 
 	/** The view to be used when rendering this shadow's depths. */
-	const FViewInfo* ShadowDepthView;
+	FViewInfo* ShadowDepthView;
 
 	/** The depth or color targets this shadow was rendered to. */
 	FShadowMapRenderTargets RenderTargets;

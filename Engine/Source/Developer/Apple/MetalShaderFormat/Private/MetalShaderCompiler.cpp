@@ -17,6 +17,7 @@
 	#include "Windows/MinWindows.h"
 #include "HideWindowsPlatformTypes.h"
 #endif
+
 #include "ShaderPreprocessor.h"
 #include "hlslcc.h"
 #include "MetalBackend.h"
@@ -624,12 +625,6 @@ static void BuildMetalShaderOutput(
 		FString OutputFilename = InputFilename + TEXT(".lib");
 		InputFilename = InputFilename + TEXT(".metal");
 		
-		if (ShaderInput.Environment.CompilerFlags.Contains(CFLAG_KeepDebugInfo))
-		{
-			Header.ShaderCode = MetalCode;
-			Header.ShaderPath = InputFilename;
-		}
-		
 		// write out shader source
 		FFileHelper::SaveStringToFile(MetalCode, *InputFilename);
 		
@@ -729,6 +724,12 @@ static void BuildMetalShaderOutput(
 							// store data we can pickup later with ShaderCode.FindOptionalData('n'), could be removed for shipping
 							ShaderOutput.ShaderCode.AddOptionalData('n', TCHAR_TO_UTF8(*ShaderInput.GenerateShaderName()));
 
+							if (ShaderInput.Environment.CompilerFlags.Contains(CFLAG_KeepDebugInfo))
+							{
+								ShaderOutput.ShaderCode.AddOptionalData('c', TCHAR_TO_UTF8(*MetalCode));
+								ShaderOutput.ShaderCode.AddOptionalData('p', TCHAR_TO_UTF8(*InputFilename));
+							}
+							
 							ShaderOutput.NumInstructions = 0;
 							ShaderOutput.NumTextureSamplers = Header.Bindings.NumSamplers;
 							ShaderOutput.bSucceeded = true;

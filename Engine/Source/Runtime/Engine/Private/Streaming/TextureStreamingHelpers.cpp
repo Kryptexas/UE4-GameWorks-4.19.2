@@ -172,6 +172,11 @@ TAutoConsoleVariable<int32> CVarScaleTexturesByGlobalMyBias(
 	TEXT("If non-zero, streaming textures wanted resolution will be scaled down by the global mip bias"),
 	ECVF_Default);
 
+TAutoConsoleVariable<int32> CVarStreamingUseMaterialData(
+	TEXT("r.Streaming.UseMaterialData"),
+	1,
+	TEXT("If non-zero, material texture scales and coord will be used"),
+	ECVF_Default);
 
 void FTextureStreamingSettings::Update()
 {
@@ -183,6 +188,7 @@ void FTextureStreamingSettings::Update()
 	MipBias = FMath::Max<float>(0.f, CVarStreamingMipBias.GetValueOnAnyThread());
 	PoolSize = CVarStreamingPoolSize.GetValueOnAnyThread();
 	bUsePerTextureBias = !GIsEditor && CVarStreamingUsePerTextureBias.GetValueOnAnyThread() != 0;
+	bUseMaterialData = CVarStreamingUseMaterialData.GetValueOnAnyThread() != 0;
 	bUseNewMetrics = CVarStreamingUseNewMetrics.GetValueOnAnyThread() != 0;
 	bLimitPoolSizeToVRAM = !GIsEditor && CVarStreamingLimitPoolSizeToVRAM.GetValueOnAnyThread() != 0;
 	bFullyLoadUsedTextures = CVarStreamingFullyLoadUsedTextures.GetValueOnAnyThread() != 0;

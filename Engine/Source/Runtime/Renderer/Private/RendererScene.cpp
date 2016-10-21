@@ -1463,7 +1463,7 @@ void FScene::AddPrecomputedLightVolume(const FPrecomputedLightVolume* Volume)
 		FScene*,Scene,this,
 	{
 		Scene->PrecomputedLightVolumes.Add(Volume);
-		Scene->IndirectLightingCache.SetLightingCacheDirty();
+		Scene->IndirectLightingCache.SetLightingCacheDirty(Scene, Volume);
 	});
 }
 
@@ -1475,7 +1475,7 @@ void FScene::RemovePrecomputedLightVolume(const FPrecomputedLightVolume* Volume)
 		FScene*,Scene,this,
 	{
 		Scene->PrecomputedLightVolumes.Remove(Volume);
-		Scene->IndirectLightingCache.SetLightingCacheDirty();
+		Scene->IndirectLightingCache.SetLightingCacheDirty(Scene, Volume);
 	});
 }
 
@@ -2467,7 +2467,7 @@ void FScene::ApplyWorldOffset_RenderThread(FVector InOffset)
 	}
 	
 	// Invalidate indirect lighting cache
-	IndirectLightingCache.SetLightingCacheDirty();
+	IndirectLightingCache.SetLightingCacheDirty(this, NULL);
 
 	// Primitives octree
 	PrimitiveOctree.ApplyOffset(InOffset, /*bGlobalOctee*/ true);

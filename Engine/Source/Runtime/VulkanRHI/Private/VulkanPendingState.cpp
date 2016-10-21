@@ -263,10 +263,6 @@ FVulkanPendingState::~FVulkanPendingState()
 
 FVulkanPendingGfxState::FVulkanPendingGfxState(FVulkanDevice* InDevice)
 	: FVulkanPendingState(InDevice)
-#if !VULKAN_USE_NEW_RENDERPASSES
-	, bBeginRenderPass(false)
-	, bChangeRenderTarget(false)
-#endif
 	, bScissorEnable(false)
 {
 	Reset();
@@ -277,154 +273,13 @@ FVulkanPendingGfxState::FVulkanPendingGfxState(FVulkanDevice* InDevice)
 
 FVulkanPendingGfxState::~FVulkanPendingGfxState()
 {
-#if !VULKAN_USE_NEW_RENDERPASSES
-	DestroyFrameBuffers(false);
-
-	for (auto& Pair : RenderPassMap)
-	{
-		delete Pair.Value;
-	}
-	RenderPassMap.Empty(0);
-#endif
 }
 
-#if !VULKAN_USE_NEW_RENDERPASSES
-void FVulkanPendingGfxState::DestroyFrameBuffers(bool bResetMap)
-{
-	for (auto& Pair : FrameBufferMap)
-	{
-		TArray<FVulkanFramebuffer*>& Entries = Pair.Value;
-		for (FVulkanFramebuffer* Entry : Entries)
-		{
-			Entry->Destroy(*Device);
-			delete Entry;
-		}
-	}
-
-	if (bResetMap)
-	{
-		FrameBufferMap.Reset();
-	}
-	else
-	{
-		FrameBufferMap.Empty(0);
-	}
-}
-#endif
-
-#if !VULKAN_USE_NEW_RENDERPASSES
-bool FVulkanPendingGfxState::RenderPassBegin(FVulkanCmdBuffer* CmdBuffer)
-{
-	check(!bBeginRenderPass);
-
-	if (RTInfo.NumColorRenderTargets == 0 && !RTInfo.DepthStencilRenderTarget.Texture)
-	{
-		return false;
-	}
-
-	FVulkanRenderTargetLayout DesiredLayout(RTInfo);
-	FVulkanRenderPass* NewRenderPass = GetOrCreateRenderPass(DesiredLayout);
-
-	// use the first attachment's number of samples to check for msaa
-	SetKeyBits(CurrentKey, OFFSET_MSAA_ENABLED, NUMBITS_MSAA_ENABLED, (DesiredLayout.GetAttachmentDescriptions()[0].samples > 1) ? 1 : 0);
-	SetKeyBits(CurrentKey, OFFSET_NUM_COLOR_BLENDS, NUMBITS_NUM_COLOR_BLENDS, DesiredLayout.GetNumColorAttachments());
-
-	CurrentState.RenderPass = NewRenderPass;
-	check(CurrentState.RenderPass);
-
-	CurrentState.FrameBuffer = GetOrCreateFramebuffer(RTInfo, DesiredLayout, *CurrentState.RenderPass);
-	check(CurrentState.FrameBuffer);
-
-	VkClearValue ClearValues[MaxSimultaneousRenderTargets + 1];
-	FMemory::Memzero(ClearValues);
-	uint32 Index = 0;
-
-	// First attachments are always color
-	const uint32 NumColorTargets = GetFrameBuffer()->GetNumColorAttachments();
-	for (; Index < NumColorTargets; Index++)
-	{
-		// default to invalid format (no attachment)
-		uint8 FormatKey = 0;
-
-		const FRHIRenderTargetView& rtv = RTInfo.ColorRenderTarget[Index];
-		if (rtv.Texture)
-		{
-			// get the format key out of the texture's surface
-			FormatKey = GetVulkanTextureFromRHITexture(rtv.Texture)->Surface.FormatKey;
-
-			if (rtv.Texture->HasClearValue())
-			{
-				VkClearValue& DstColor = ClearValues[Index];
-				FClearValueBinding UEClearVal = RTInfo.ColorRenderTarget[Index].Texture->GetClearBinding();
-
-				// Set color
-				FLinearColor ClearColor = UEClearVal.GetClearColor();
-				DstColor.color.float32[0] = ClearColor.R;
-				DstColor.color.float32[1] = ClearColor.G;
-				DstColor.color.float32[2] = ClearColor.B;
-				DstColor.color.float32[3] = ClearColor.A;
-			}
-		}
-		
-		// track the per-RT info
-		SetKeyBits(CurrentKey, RTFormatBitOffsets[Index], NUMBITS_RENDER_TARGET_FORMAT, FormatKey);
-		SetKeyBits(CurrentKey, RTLoadBitOffsets[Index], NUMBITS_LOAD_OP, (uint64)rtv.LoadAction);
-		SetKeyBits(CurrentKey, RTStoreBitOffsets[Index], NUMBITS_STORE_OP, (uint64)rtv.StoreAction);
-	}
-
-	// Clear MRT key info to avoid different pipeline keys
-	for (int32 RemainingRTsIndex = NumColorTargets; RemainingRTsIndex < MaxSimultaneousRenderTargets; ++RemainingRTsIndex)
-	{
-		SetKeyBits(CurrentKey, RTFormatBitOffsets[RemainingRTsIndex], NUMBITS_RENDER_TARGET_FORMAT, 0);
-		SetKeyBits(CurrentKey, RTLoadBitOffsets[RemainingRTsIndex], NUMBITS_LOAD_OP, 0);
-		SetKeyBits(CurrentKey, RTStoreBitOffsets[RemainingRTsIndex], NUMBITS_STORE_OP, 0);
-	}
-
-	// Last attachment if available is depth-stencil
-	if (RTInfo.DepthStencilRenderTarget.Texture)
-	{
-		VkClearValue& DstColor = ClearValues[Index];
-		const FClearValueBinding& ClearBinding = RTInfo.DepthStencilRenderTarget.Texture->GetClearBinding();
-		if (ClearBinding.ColorBinding == EClearBinding::EDepthStencilBound)
-		{
-			ClearBinding.GetDepthStencil(DstColor.depthStencil.depth, DstColor.depthStencil.stencil);
-		}
-		else
-		{
-			ensure(!RTInfo.bClearDepth && !RTInfo.bClearStencil);
-			DstColor.depthStencil.depth = 1.0f;
-			DstColor.depthStencil.stencil = 0;
-		}
-		// @todo vulkan - we don't track the format of the depth buffer in the key, only if depth is enabled (write/test) - should be enough, but worth checking that
-		// if either bit is set that we have a depth buffer attached
-	}
-
-	{
-		const VkExtent2D& LayoutExtents = CurrentState.RenderPass->GetLayout().GetExtent2D();
-		ensure(LayoutExtents.width == CurrentState.FrameBuffer->GetWidth() && LayoutExtents.height == CurrentState.FrameBuffer->GetHeight());
-	}
-	CmdBuffer->BeginRenderPass(CurrentState.RenderPass->GetLayout(), CurrentState.RenderPass->GetHandle(), CurrentState.FrameBuffer->GetHandle(), ClearValues);
-
-	bBeginRenderPass = true;
-
-	return true;
-}
-
-void FVulkanPendingGfxState::RenderPassEnd(FVulkanCmdBuffer* CmdBuffer)
-{
-	check(bBeginRenderPass);
-	CmdBuffer->EndRenderPass();
-	bBeginRenderPass = false;
-}
-#endif
 
 // Expected to be called after render pass has been ended
 // and only from "FVulkanDynamicRHI::RHIEndDrawingViewport()"
 void FVulkanPendingGfxState::Reset()
 {
-#if !VULKAN_USE_NEW_RENDERPASSES
-	check(!bBeginRenderPass);
-#endif
 	CurrentState.Reset();
 
 	FMemory::Memzero(PendingStreams);
@@ -541,7 +396,6 @@ inline void FVulkanBoundShaderState::BindDescriptorSets(FVulkanCmdBuffer* Cmd)
 
 void FVulkanPendingComputeState::PrepareDispatch(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* Cmd)
 {
-#if VULKAN_USE_NEW_RENDERPASSES
 	SCOPE_CYCLE_COUNTER(STAT_VulkanDispatchCallPrepareTime);
 
 	check(CurrentState.CSS);
@@ -558,7 +412,6 @@ void FVulkanPendingComputeState::PrepareDispatch(FVulkanCommandListContext* CmdL
 			CurrentState.CSS->BindDescriptorSets(Cmd);
 		}
 	}
-#endif
 }
 
 void FVulkanPendingGfxState::PrepareDraw(FVulkanCommandListContext* CmdListContext, FVulkanCmdBuffer* Cmd, VkPrimitiveTopology Topology)
@@ -568,21 +421,12 @@ void FVulkanPendingGfxState::PrepareDraw(FVulkanCommandListContext* CmdListConte
 	checkf(Topology < (1 << NUMBITS_POLYTYPE), TEXT("PolygonMode was too high a value for the PSO key [%d]"), Topology);
 	SetKeyBits(CurrentKey, OFFSET_POLYTYPE, NUMBITS_POLYTYPE, Topology);
 
-#if !VULKAN_USE_NEW_RENDERPASSES
-	//@TODO: let's try not to do this per draw call?
-	UpdateRenderPass(Cmd);
-#endif
-
 	check(CurrentState.BSS);
     bool bHasDescriptorSets = CurrentState.BSS->UpdateDescriptorSets(CmdListContext, Cmd, GlobalUniformPool);
 
 	// let the BoundShaderState return a pipeline object for the full current state of things
 	CurrentState.InputAssembly.topology = Topology;
-#if VULKAN_USE_NEW_RENDERPASSES
 	FVulkanGfxPipeline* Pipeline = CurrentState.BSS->PrepareForDraw(CmdListContext->GetCurrentRenderPass() ? CmdListContext->GetCurrentRenderPass() : CmdListContext->GetPreviousRenderPass(), CurrentKey, CurrentState.BSS->GetVertexInputStateInfo().GetHash(), CurrentState);
-#else
-	FVulkanGfxPipeline* Pipeline = CurrentState.BSS->PrepareForDraw(CurrentKey, CurrentState.BSS->GetVertexInputStateInfo().GetHash(), CurrentState);
-#endif
 
 	check(Pipeline);
 
@@ -599,150 +443,9 @@ void FVulkanPendingGfxState::PrepareDraw(FVulkanCommandListContext* CmdListConte
 	}
 }
 
-#if !VULKAN_USE_NEW_RENDERPASSES
-void FVulkanPendingGfxState::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& InRTInfo)
-{
-	//#todo-rco: Check perf
-#if 0//!VULKAN_USE_NEW_COMMAND_BUFFERS
-	if (NeedsToSetRenderTarget(InRTInfo) == false)
-	{
-		return;
-	}
-#endif
-
-#if 1
-	// Back this up for the next SetRenderTarget
-	RTInfo = InRTInfo;
-	if (RTInfo.NumColorRenderTargets == 1 && !RTInfo.ColorRenderTarget[0].Texture)
-	{
-		RTInfo.ColorRenderTarget[0].LoadAction = ERenderTargetLoadAction::ENoAction;
-		RTInfo.ColorRenderTarget[0].StoreAction = ERenderTargetStoreAction::ENoAction;
-		check(!RTInfo.bClearColor);
-		--RTInfo.NumColorRenderTargets;
-	}
-	bChangeRenderTarget = true;
-#else
-	//@NOTE: this is only needed for the work-around below
-	FRHISetRenderTargetsInfo PrevRTInfo = RTInfo;
-
-	// back this up for the next SetRenderTarget
-	PrevRenderTargetsInfo = InRTInfo;
-	RTInfo = InRTInfo; // probably don't need both of these
-	bChangeRenderTarget = true;
-
-	//#todo-rco: FIX THIS!!!
-	//@NOTE: this is an awkward work-around for not supporting a null color attachment properly
-	for (int32 Index = 0; Index < RTInfo.NumColorRenderTargets; Index++)
-	{
-		FRHIRenderTargetView& rtv = RTInfo.ColorRenderTarget[Index];
-		if (rtv.Texture == nullptr)
-		{
-			rtv.Texture = PrevRTInfo.ColorRenderTarget[Index].Texture;
-			check(rtv.Texture);
-		}
-	}
-#endif
-}
-
-bool FVulkanPendingGfxState::NeedsToSetRenderTarget(const FRHISetRenderTargetsInfo& InRTInfo)
-{
-	bool bAllChecksPassed = InRTInfo.NumColorRenderTargets == PrevRenderTargetsInfo.NumColorRenderTargets &&
-		// handle the case where going from backbuffer + depth -> backbuffer + null, no need to reset RT and do a store/load
-		(InRTInfo.DepthStencilRenderTarget.Texture == PrevRenderTargetsInfo.DepthStencilRenderTarget.Texture || InRTInfo.DepthStencilRenderTarget.Texture == nullptr);
-
-	if (bAllChecksPassed)
-	{
-		for (int32 RenderTargetIndex = 0; RenderTargetIndex < InRTInfo.NumColorRenderTargets; RenderTargetIndex++)
-		{
-			const FRHIRenderTargetView& RenderTargetView = InRTInfo.ColorRenderTarget[RenderTargetIndex];
-			const FRHIRenderTargetView& PrevRenderTargetView = PrevRenderTargetsInfo.ColorRenderTarget[RenderTargetIndex];
-
-			// handle simple case of switching textures or mip/slice
-			if (RenderTargetView.Texture != PrevRenderTargetView.Texture ||
-				RenderTargetView.MipIndex != PrevRenderTargetView.MipIndex ||
-				RenderTargetView.ArraySliceIndex != PrevRenderTargetView.ArraySliceIndex)
-			{
-				bAllChecksPassed = false;
-				break;
-			}
-
-			// it's non-trivial when we need to switch based on load/store action:
-			// LoadAction - it only matters what we are switching to in the new one
-			//    If we switch to Load, no need to switch as we can re-use what we already have
-			//    If we switch to Clear, we have to always switch to a new RT to force the clear
-			//    If we switch to DontCare, there's definitely no need to switch
-			if (RenderTargetView.LoadAction == ERenderTargetLoadAction::EClear)
-			{
-				bAllChecksPassed = false;
-				break;
-			}
-			// StoreAction - this matters what the previous one was **In Spirit**
-			//    If we come from Store, we need to switch to a new RT to force the store
-			//    If we come from DontCare, then there's no need to switch
-			//    @todo metal: However, we basically only use Store now, and don't
-			//        care about intermediate results, only final, so we don't currently check the value
-			//			if (PreviousRenderTargetView.StoreAction == ERenderTTargetStoreAction::EStore)
-			//			{
-			//				bAllChecksPassed = false;
-			//				break;
-			//			}
-		}
-	}
-
-	// if we are setting them to nothing, then this is probably end of frame, and we can't make a framebuffer
-	// with nothng, so just abort this (only need to check on single MRT case)
-	if (InRTInfo.NumColorRenderTargets == 1 && InRTInfo.ColorRenderTarget[0].Texture == nullptr &&
-		InRTInfo.DepthStencilRenderTarget.Texture == nullptr)
-	{
-		bAllChecksPassed = true;
-	}
-
-	return bAllChecksPassed == false;
-}
-#endif
-
 void FVulkanPendingGfxState::InitFrame()
 {
-	// make sure the first SetRenderTarget goes through
-#if !VULKAN_USE_NEW_RENDERPASSES
-	PrevRenderTargetsInfo.NumColorRenderTargets = -1;
-#endif
 }
-
-#if !VULKAN_USE_NEW_RENDERPASSES
-FVulkanRenderPass* FVulkanPendingGfxState::GetOrCreateRenderPass(const FVulkanRenderTargetLayout& RTLayout)
-{
-	uint32 Hash = RTLayout.GetHash();
-	FVulkanRenderPass** RenderPassFound = RenderPassMap.Find(Hash);
-	if (RenderPassFound)
-	{
-		return *RenderPassFound;
-	}
-
-	check(Device);
-	FVulkanRenderPass* OutRenderPass = new FVulkanRenderPass(*Device, RTLayout);
-	RenderPassMap.Add(Hash, OutRenderPass);
-	return OutRenderPass;
-}
-
-FVulkanFramebuffer* FVulkanPendingGfxState::GetOrCreateFramebuffer(const FRHISetRenderTargetsInfo& RHIRTInfo, const FVulkanRenderTargetLayout& InRTInfo, const FVulkanRenderPass& inRenderPass)
-{
-	uint32 Hash = InRTInfo.GetHash();
-	TArray<FVulkanFramebuffer*>& FramebufferList = FrameBufferMap.FindOrAdd(Hash);
-	for (FVulkanFramebuffer* Framebuffer : FramebufferList)
-	{
-		if (Framebuffer->Matches(RHIRTInfo))
-		{
-			return Framebuffer;
-		}
-	}
-
-	check(Device);
-	FVulkanFramebuffer* OutFramebuffer = new FVulkanFramebuffer(*Device, RHIRTInfo, InRTInfo, inRenderPass);
-	FramebufferList.Add(OutFramebuffer);
-	return OutFramebuffer;
-}
-#endif
 
 void FVulkanPendingGfxState::SetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ)
 {
@@ -857,30 +560,3 @@ void FVulkanPendingGfxState::SetRasterizerState(FVulkanRasterizerState* NewState
 	SetKeyBits(CurrentKey, OFFSET_DEPTH_BIAS_ENABLED, NUMBITS_DEPTH_BIAS_ENABLED, NewState->RasterizerState.depthBiasEnable);
 	SetKeyBits(CurrentKey, OFFSET_POLYFILL, NUMBITS_POLYFILL, NewState->RasterizerState.polygonMode == VK_POLYGON_MODE_FILL);
 }
-
-#if !VULKAN_USE_NEW_RENDERPASSES
-void FVulkanPendingGfxState::NotifyDeletedRenderTarget(const FVulkanTextureBase* Texture)
-{
-	check(IsInRenderingThread());
-	//TArray<VkFramebuffer> FramebuffersToDelete;
-	for (auto& Pair : FrameBufferMap)
-	{
-		TArray<FVulkanFramebuffer*>& FrameBuffers = Pair.Value;
-		for (int32 Index = FrameBuffers.Num() - 1; Index >= 0; --Index)
-		{
-			FVulkanFramebuffer* FB = FrameBuffers[Index];
-			if (FB->ContainsRenderTarget(Texture->Surface.Image))
-			{
-				//FramebuffersToDelete.Add(FB->GetHandle());
-				FrameBuffers.RemoveAtSwap(Index, 1, false);
-				FB->Destroy(*Device);
-				if (FB == CurrentState.FrameBuffer)
-				{
-					CurrentState.FrameBuffer = nullptr;
-				}
-				delete FB;
-			}
-		}
-	}
-}
-#endif

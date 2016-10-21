@@ -942,11 +942,20 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 		}
 	}
 
-		// Append the possibly edited shader to the one we will compile.
-		// This is to make it easier to debug as we can see the whole
-		// shader source.
-		AppendCString(GlslCode, "\n\n");
-		AppendCString(GlslCode, GlslCodeOriginal.GetData());
+	if (FOpenGL::SupportsClipControl())
+	{
+		AppendCString(GlslCode, "#define HLSLCC_DX11ClipSpace 0 \n");
+	}
+	else
+	{
+		AppendCString(GlslCode, "#define HLSLCC_DX11ClipSpace 1 \n");
+	}
+
+	// Append the possibly edited shader to the one we will compile.
+	// This is to make it easier to debug as we can see the whole
+	// shader source.
+	AppendCString(GlslCode, "\n\n");
+	AppendCString(GlslCode, GlslCodeOriginal.GetData());
 }
 
 /**

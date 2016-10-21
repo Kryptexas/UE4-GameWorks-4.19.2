@@ -1594,6 +1594,8 @@ void FMaterialEditor::UpdateOriginalMaterial()
 		}
 
 		RebuildMaterialInstanceEditors(NULL);
+
+		FMaterialEditorUtilities::BuildTextureStreamingData(OriginalMaterial);
 	}
 
 	GWarn->EndSlowTask();

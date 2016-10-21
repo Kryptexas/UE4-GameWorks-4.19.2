@@ -17,7 +17,7 @@
 	FCustomDepthPrimSet
 -----------------------------------------------------------------------------*/
 
-bool FCustomDepthPrimSet::DrawPrims(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, bool bWriteCustomStencilValues)
+bool FCustomDepthPrimSet::DrawPrims(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, const TUniformBufferRef<FViewUniformShaderParameters>& ViewUniformBuffer, bool bWriteCustomStencilValues)
 {
 	bool bDirty=false;
 
@@ -34,7 +34,7 @@ bool FCustomDepthPrimSet::DrawPrims(FRHICommandListImmediate& RHICmdList, const 
 			{
 				const FPrimitiveViewRelevance& ViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveSceneInfo->GetIndex()];
 
-				FDepthDrawingPolicyFactory::ContextType Context(DDM_AllOpaque, false);
+				FDepthDrawingPolicyFactory::ContextType Context(ViewUniformBuffer, DDM_AllOpaque, false);
 
 				if (bWriteCustomStencilValues)
 				{

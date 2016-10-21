@@ -3012,10 +3012,10 @@ void FLightmassProcessor::ImportVolumeSamples()
 		const int32 Channel = Swarm.OpenChannel( *ChannelName, LM_VOLUMESAMPLES_CHANNEL_FLAGS );
 		if (Channel >= 0)
 		{
-			FVector4 VolumeCenter;
-			Swarm.ReadChannel(Channel, &VolumeCenter, sizeof(VolumeCenter));
-			FVector4 VolumeExtent;
-			Swarm.ReadChannel(Channel, &VolumeExtent, sizeof(VolumeExtent));
+			FVector4 UnusedVolumeCenter;
+			Swarm.ReadChannel(Channel, &UnusedVolumeCenter, sizeof(UnusedVolumeCenter));
+			FVector4 UnusedVolumeExtent;
+			Swarm.ReadChannel(Channel, &UnusedVolumeExtent, sizeof(UnusedVolumeExtent));
 
 			int32 NumStreamLevels = System.GetWorld()->StreamingLevels.Num();
 			int32 NumVolumeSampleArrays;
@@ -3028,52 +3028,59 @@ void FLightmassProcessor::ImportVolumeSamples()
 				ReadArray(Channel, VolumeSamples);
 				ULevel* CurrentLevel = FindLevel(LevelGuid);
 
-				if (CurrentLevel)
+				// Only build precomputed light for visible streamed levels
+				if (CurrentLevel && CurrentLevel->bIsVisible)
 				{
 					ULevel* CurrentStorageLevel = System.LightingScenario ? System.LightingScenario : CurrentLevel;
 					UMapBuildDataRegistry* CurrentRegistry = CurrentStorageLevel->GetOrCreateMapBuildData();
 					FPrecomputedLightVolumeData& CurrentLevelData = CurrentRegistry->AllocateLevelBuildData(CurrentLevel->LevelBuildDataId);
 
-					CurrentLevelData.Initialize(FBox(VolumeCenter - VolumeExtent, VolumeCenter + VolumeExtent));
+					FBox LevelVolumeBounds(0);
 
-					// Only build precomputed light for visible streamed levels
-					if (CurrentLevel->bIsVisible)
+					for (int32 SampleIndex = 0; SampleIndex < VolumeSamples.Num(); SampleIndex++)
 					{
-						for (int32 SampleIndex = 0; SampleIndex < VolumeSamples.Num(); SampleIndex++)
-						{
-							const Lightmass::FVolumeLightingSampleData& CurrentSample = VolumeSamples[SampleIndex];
-							FVolumeLightingSample NewHighQualitySample;
-							NewHighQualitySample.Position = CurrentSample.PositionAndRadius;
-							NewHighQualitySample.Radius = CurrentSample.PositionAndRadius.W;
-							NewHighQualitySample.SetPackedSkyBentNormal(CurrentSample.SkyBentNormal); 
-							NewHighQualitySample.DirectionalLightShadowing = CurrentSample.DirectionalLightShadowing;
-
-							for (int32 CoefficientIndex = 0; CoefficientIndex < NUM_INDIRECT_LIGHTING_SH_COEFFICIENTS; CoefficientIndex++)
-							{
-								NewHighQualitySample.Lighting.R.V[CoefficientIndex] = CurrentSample.HighQualityCoefficients[CoefficientIndex][0];
-								NewHighQualitySample.Lighting.G.V[CoefficientIndex] = CurrentSample.HighQualityCoefficients[CoefficientIndex][1];
-								NewHighQualitySample.Lighting.B.V[CoefficientIndex] = CurrentSample.HighQualityCoefficients[CoefficientIndex][2];
-							}							
-
-							FVolumeLightingSample NewLowQualitySample;
-							NewLowQualitySample.Position = CurrentSample.PositionAndRadius;
-							NewLowQualitySample.Radius = CurrentSample.PositionAndRadius.W;
-							NewLowQualitySample.DirectionalLightShadowing = CurrentSample.DirectionalLightShadowing;
-							NewLowQualitySample.SetPackedSkyBentNormal(CurrentSample.SkyBentNormal); 
-
-							for (int32 CoefficientIndex = 0; CoefficientIndex < NUM_INDIRECT_LIGHTING_SH_COEFFICIENTS; CoefficientIndex++)
-							{
-								NewLowQualitySample.Lighting.R.V[CoefficientIndex] = CurrentSample.LowQualityCoefficients[CoefficientIndex][0];
-								NewLowQualitySample.Lighting.G.V[CoefficientIndex] = CurrentSample.LowQualityCoefficients[CoefficientIndex][1];
-								NewLowQualitySample.Lighting.B.V[CoefficientIndex] = CurrentSample.LowQualityCoefficients[CoefficientIndex][2];
-							}							
-
-							CurrentLevelData.AddHighQualityLightingSample(NewHighQualitySample);
-							CurrentLevelData.AddLowQualityLightingSample(NewLowQualitySample);
-						}
-
-						CurrentLevelData.FinalizeSamples();
+						const Lightmass::FVolumeLightingSampleData& CurrentSample = VolumeSamples[SampleIndex];
+						FVector SampleMin = CurrentSample.PositionAndRadius - FVector(CurrentSample.PositionAndRadius.W);
+						FVector SampleMax = CurrentSample.PositionAndRadius + FVector(CurrentSample.PositionAndRadius.W);
+						LevelVolumeBounds += FBox(SampleMin, SampleMax);
 					}
+
+					CurrentLevelData.Initialize(LevelVolumeBounds);
+
+					for (int32 SampleIndex = 0; SampleIndex < VolumeSamples.Num(); SampleIndex++)
+					{
+						const Lightmass::FVolumeLightingSampleData& CurrentSample = VolumeSamples[SampleIndex];
+						FVolumeLightingSample NewHighQualitySample;
+						NewHighQualitySample.Position = CurrentSample.PositionAndRadius;
+						NewHighQualitySample.Radius = CurrentSample.PositionAndRadius.W;
+						NewHighQualitySample.SetPackedSkyBentNormal(CurrentSample.SkyBentNormal); 
+						NewHighQualitySample.DirectionalLightShadowing = CurrentSample.DirectionalLightShadowing;
+
+						for (int32 CoefficientIndex = 0; CoefficientIndex < NUM_INDIRECT_LIGHTING_SH_COEFFICIENTS; CoefficientIndex++)
+						{
+							NewHighQualitySample.Lighting.R.V[CoefficientIndex] = CurrentSample.HighQualityCoefficients[CoefficientIndex][0];
+							NewHighQualitySample.Lighting.G.V[CoefficientIndex] = CurrentSample.HighQualityCoefficients[CoefficientIndex][1];
+							NewHighQualitySample.Lighting.B.V[CoefficientIndex] = CurrentSample.HighQualityCoefficients[CoefficientIndex][2];
+						}							
+
+						FVolumeLightingSample NewLowQualitySample;
+						NewLowQualitySample.Position = CurrentSample.PositionAndRadius;
+						NewLowQualitySample.Radius = CurrentSample.PositionAndRadius.W;
+						NewLowQualitySample.DirectionalLightShadowing = CurrentSample.DirectionalLightShadowing;
+						NewLowQualitySample.SetPackedSkyBentNormal(CurrentSample.SkyBentNormal); 
+
+						for (int32 CoefficientIndex = 0; CoefficientIndex < NUM_INDIRECT_LIGHTING_SH_COEFFICIENTS; CoefficientIndex++)
+						{
+							NewLowQualitySample.Lighting.R.V[CoefficientIndex] = CurrentSample.LowQualityCoefficients[CoefficientIndex][0];
+							NewLowQualitySample.Lighting.G.V[CoefficientIndex] = CurrentSample.LowQualityCoefficients[CoefficientIndex][1];
+							NewLowQualitySample.Lighting.B.V[CoefficientIndex] = CurrentSample.LowQualityCoefficients[CoefficientIndex][2];
+						}							
+
+						CurrentLevelData.AddHighQualityLightingSample(NewHighQualitySample);
+						CurrentLevelData.AddLowQualityLightingSample(NewLowQualitySample);
+					}
+
+					CurrentLevelData.FinalizeSamples();
 				}
 			}
 

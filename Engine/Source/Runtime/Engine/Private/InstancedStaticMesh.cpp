@@ -1656,21 +1656,10 @@ bool UInstancedStaticMeshComponent::ShouldCreatePhysicsState() const
 	return IsRegistered() && !IsBeingDestroyed() && (bAlwaysCreatePhysicsState || IsCollisionEnabled());
 }
 
-FBox UInstancedStaticMeshComponent::GetTextureStreamingBox(int32 MaterialIndex) const
-{
-	// With instanced meshes, use the sum of component bounds instead of the sum of material bounds as a simplification.
-	return Bounds.GetBox();
-}
-
-bool UInstancedStaticMeshComponent::RequiresStreamingTextureData() const 
-{
-	return Super::RequiresStreamingTextureData() && GetInstanceCount() > 0;
-}
-
 float UInstancedStaticMeshComponent::GetTextureStreamingTransformScale() const
 {
 	float TransformScale = Super::GetTextureStreamingTransformScale();
-	if (GetStaticMesh() && PerInstanceSMData.Num() > 0)
+	if (PerInstanceSMData.Num() > 0)
 	{
 		float WeightedAxisScaleSum = 0;
 		float WeightSum = 0;
@@ -1689,6 +1678,37 @@ float UInstancedStaticMeshComponent::GetTextureStreamingTransformScale() const
 		}
 	}
 	return TransformScale;
+}
+
+bool UInstancedStaticMeshComponent::GetMaterialStreamingData(int32 MaterialIndex, FPrimitiveMaterialInfo& MaterialData) const
+{
+	// Same thing as StaticMesh but we take the full bounds to cover the instances.
+	if (GetStaticMesh())
+	{
+		MaterialData.Material = GetMaterial(MaterialIndex);
+		MaterialData.UVChannelData = GetStaticMesh()->GetUVChannelData(MaterialIndex);
+		MaterialData.Bounds = Bounds.GetBox();
+	}
+	return MaterialData.IsValid();
+}
+
+bool UInstancedStaticMeshComponent::BuildTextureStreamingData(ETextureStreamingBuildType BuildType, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, TSet<FGuid>& DependentResources)
+{
+#if WITH_EDITORONLY_DATA // Only rebuild the data in editor 
+	if (GetInstanceCount() > 0)
+	{
+		return Super::BuildTextureStreamingData(BuildType, QualityLevel, FeatureLevel, DependentResources);
+	}
+#endif
+	return true;
+}
+
+void UInstancedStaticMeshComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
+{
+	if (GetInstanceCount() > 0)
+	{
+		return Super::GetStreamingTextureInfo(LevelContext, OutStreamingTextures);
+	}
 }
 
 void UInstancedStaticMeshComponent::ClearInstances()

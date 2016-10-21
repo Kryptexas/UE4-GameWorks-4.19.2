@@ -268,7 +268,7 @@ public:
 	float PositiveZBoundsExtension;
 
 	/** StaticLightingResolution overriding per component, default value 0 means no overriding */
-	UPROPERTY(EditAnywhere, Category=LandscapeComponent)
+	UPROPERTY(EditAnywhere, Category=LandscapeComponent, meta=(ClampMax = 4096))
 	float StaticLightingResolution;
 
 	/** Forced LOD level to use when rendering */

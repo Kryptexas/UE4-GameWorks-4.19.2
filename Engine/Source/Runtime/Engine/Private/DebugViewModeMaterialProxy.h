@@ -111,7 +111,7 @@ public:
 	static const FMaterial* GetShader(EDebugViewShaderMode DebugViewShaderMode, const FMaterial* Material);
 	static void ClearAllShaders();
 	static bool HasAnyShaders() { return DebugMaterialShaderMap.Num() > 0; }
-	static void ValidateAllShaders(OUT FTexCoordScaleMap& TexCoordScales);
+	static void ValidateAllShaders(TSet<UMaterialInterface*>& Materials);
 
 private:
 

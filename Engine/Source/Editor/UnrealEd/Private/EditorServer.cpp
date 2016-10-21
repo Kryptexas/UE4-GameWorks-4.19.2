@@ -75,6 +75,8 @@
 #include "AnalyticsEventAttribute.h"
 #include "Developer/SlateReflector/Public/ISlateReflectorModule.h"
 #include "Editor/PropertyEditorTestObject.h"
+#include "Engine/TextureStreamingTypes.h"
+#include "MaterialUtilities.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorServer, Log, All);
 
@@ -3791,8 +3793,7 @@ bool UEditorEngine::Map_Check( UWorld* InWorld, const TCHAR* Str, FOutputDevice&
 
 	Game_Map_Check(InWorld, Str, Ar, bCheckDeprecatedOnly);
 
-
-	CheckTextureStreamingBuild(InWorld);
+	CheckTextureStreamingBuildValidity(InWorld);
 	if (InWorld->NumTextureStreamingUnbuiltComponents > 0 || InWorld->NumTextureStreamingDirtyResources > 0)
 	{
 		FMessageLog("MapCheck").Warning()->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_TextureStreamingNeedsRebuild", "Texture streaming needs to be rebuilt, run 'Build Texture Streaming'.")));
@@ -5823,6 +5824,10 @@ bool UEditorEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice& A
 	{
 		bProcessed = HandleStartMovieCaptureCommand( Str, Ar );
 	}
+	else if( FParse::Command(&Str,TEXT("BUILDMATERIALTEXTURESTREAMINGDATA")) )
+	{
+		bProcessed = HandleBuildMaterialTextureStreamingData( Str, Ar );
+	}
 	else
 	{
 		bProcessed = FBlueprintEditorUtils::KismetDiagnosticExec(Stream, Ar);
@@ -6616,6 +6621,45 @@ bool UEditorEngine::HandleStartMovieCaptureCommand( const TCHAR* Cmd, FOutputDev
 
 	return false;
 }
+
+bool UEditorEngine::HandleBuildMaterialTextureStreamingData( const TCHAR* Cmd, FOutputDevice& Ar )
+{
+	const EMaterialQualityLevel::Type QualityLevel = EMaterialQualityLevel::High;
+	const ERHIFeatureLevel::Type FeatureLevel = GMaxRHIFeatureLevel;
+
+	CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
+
+	TSet<UMaterialInterface*> Materials;
+	for (TObjectIterator<UMaterialInterface> MaterialIt; MaterialIt; ++MaterialIt)
+	{
+		UMaterialInterface* Material = *MaterialIt;
+		if (Material && Material->GetOutermost() != GetTransientPackage() && Material->HasAnyFlags(RF_Public) && Material->UseAnyStreamingTexture() && !Material->HasTextureStreamingData()) 
+		{
+			Materials.Add(Material);
+		}
+	}
+
+	FScopedSlowTask SlowTask(3.f); // { Sync Pending Shader, Wait for Compilation, Export }
+	CompileTextureStreamingShaders(QualityLevel, FeatureLevel, true, true, Materials, SlowTask);
+	FMaterialUtilities::FExportErrorManager ExportErrors(FeatureLevel);
+	for (UMaterialInterface* MaterialInterface : Materials)
+	{
+		if (MaterialInterface && FMaterialUtilities::ExportMaterialUVDensities(MaterialInterface, QualityLevel, FeatureLevel, ExportErrors))
+		{
+			// Only mark dirty if there is now data, when there wasn't before.
+			if (MaterialInterface->HasTextureStreamingData())
+			{
+				MaterialInterface->MarkPackageDirty();
+			}
+		}
+	}
+	ExportErrors.OutputToLog();
+
+	CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
+	return true;
+}
+
+
 
 /**
  * @return true if the given component's StaticMesh can be merged with other StaticMeshes

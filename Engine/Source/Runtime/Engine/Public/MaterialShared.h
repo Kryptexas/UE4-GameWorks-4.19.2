@@ -1829,6 +1829,24 @@ public:
 };
 
 /**
+ * Attribute data describing a material property used for a custom output
+ */
+class FMaterialCustomOutputAttributeDefintion : public FMaterialAttributeDefintion
+{
+public:
+	FMaterialCustomOutputAttributeDefintion(const FGuid& InGUID, const FString& InDisplayName, const FString& InFunctionName, EMaterialProperty InProperty,
+		EMaterialValueType InValueType, const FVector4& InDefaultValue, EShaderFrequency InShaderFrequency, MaterialAttributeBlendFunction InBlendFunction = nullptr);
+
+	bool operator==(const FMaterialCustomOutputAttributeDefintion& Other) const
+	{
+		return (AttributeID == Other.AttributeID);
+	}
+
+	// Name of function used to access attribute in shader code
+	FString							FunctionName;
+};
+
+/**
  * Material property to attribute data mappings
  */
 class FMaterialAttributeDefinitionMap
@@ -1932,10 +1950,10 @@ public:
 	ENGINE_API static void AppendDDCKeyString(FString& String);
 
 	/** Appends a new attribute definition to the custom output list */
-	ENGINE_API static void AddCustomAttribute(const FGuid& AttributeID, const FString& DisplayName, EMaterialValueType ValueType, const FVector4& DefaultValue, MaterialAttributeBlendFunction BlendFunction = nullptr);
+	ENGINE_API static void AddCustomAttribute(const FGuid& AttributeID, const FString& DisplayName, const FString& FunctionName, EMaterialValueType ValueType, const FVector4& DefaultValue, MaterialAttributeBlendFunction BlendFunction = nullptr);
 
 	/** Returns a list of registered custom attributes */
-	ENGINE_API static void GetCustomAttributeList(TArray<FMaterialAttributeDefintion>& CustomAttributeList);
+	ENGINE_API static void GetCustomAttributeList(TArray<FMaterialCustomOutputAttributeDefintion>& CustomAttributeList);
 
 private:
 	// Customization class for displaying data in the material editor
@@ -1957,7 +1975,7 @@ private:
 	ENGINE_API static FMaterialAttributeDefinitionMap GMaterialPropertyAttributesMap;
 
 	TMap<EMaterialProperty, FMaterialAttributeDefintion>	AttributeMap; // Fixed map of compile-time definitions
-	TArray<FMaterialAttributeDefintion>						CustomAttributes; // Array of custom output definitions
+	TArray<FMaterialCustomOutputAttributeDefintion>			CustomAttributes; // Array of custom output definitions
 
 	FString													AttributeDDCString;
 	bool bIsInitialized;

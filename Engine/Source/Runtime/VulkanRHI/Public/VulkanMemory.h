@@ -70,7 +70,7 @@ namespace VulkanRHI
 		{
 		}
 
-		inline FVulkanDevice* GetParent() const
+		inline FVulkanDevice* GetParent()
 		{
 			// Has to have one if we are asking for it...
 			check(Device);

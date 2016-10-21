@@ -4683,7 +4683,7 @@ void FEditorViewportClient::SetViewMode(EViewModeIndex InViewModeIndex)
 	{
 		if (InViewModeIndex == VMI_PrimitiveDistanceAccuracy || InViewModeIndex == VMI_MeshUVDensityAccuracy || InViewModeIndex == VMI_MaterialTextureScaleAccuracy)
 		{
-			FEditorBuildUtils::EditorBuildTextureStreaming(GetWorld(), InViewModeIndex == VMI_MaterialTextureScaleAccuracy, true);
+			FEditorBuildUtils::EditorBuildTextureStreaming(GetWorld(), InViewModeIndex);
 		}
 		PerspViewModeIndex = InViewModeIndex;
 		ApplyViewMode(PerspViewModeIndex, true, EngineShowFlags);

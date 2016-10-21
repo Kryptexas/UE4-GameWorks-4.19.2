@@ -14,6 +14,13 @@
 #include "Materials/MaterialExpressionTextureProperty.h"
 #include "Materials/MaterialExpressionViewProperty.h"
 
+enum EMaterialForceCastFlags
+{
+	MFCF_ForceCast		= 1<<0,	// Used by caller functions as a helper
+	MFCF_ExactMatch		= 1<<2, // If flag set skips the cast on an exact match, else skips on a compatible match
+	MFCF_ReplicateValue	= 1<<3	// Replicates a Float1 value when up-casting, else appends zero
+};
+
 /** 
  * The interface used to translate material expressions into executable code. 
  * Note: Most member functions should be pure virtual to force a FProxyMaterialCompiler override!
@@ -55,7 +62,7 @@ public:
 	 * This will truncate a type (float4 -> float3) but not add components (float2 -> float3), however a float1 can be cast to any float type by replication. 
 	 */
 	virtual int32 ValidCast(int32 Code,EMaterialValueType DestType) = 0;
-	virtual int32 ForceCast(int32 Code,EMaterialValueType DestType,bool bExactMatch=false,bool bReplicateValue=false) = 0;
+	virtual int32 ForceCast(int32 Code,EMaterialValueType DestType,uint32 ForceCastFlags = 0) = 0;
 
 	/** Pushes a function onto the compiler's function stack, which indicates that compilation is entering a function. */
 	virtual void PushFunction(const FMaterialFunctionCompileState& FunctionState) = 0;
@@ -80,9 +87,20 @@ public:
 
 	virtual int32 Sine(int32 X) = 0;
 	virtual int32 Cosine(int32 X) = 0;
+	virtual int32 Tangent(int32 X) = 0;
+	virtual int32 Arcsine(int32 X) = 0;
+	virtual int32 ArcsineFast(int32 X) = 0;
+	virtual int32 Arccosine(int32 X) = 0;
+	virtual int32 ArccosineFast(int32 X) = 0;
+	virtual int32 Arctangent(int32 X) = 0;
+	virtual int32 ArctangentFast(int32 X) = 0;
+	virtual int32 Arctangent2(int32 Y, int32 X) = 0;
+	virtual int32 Arctangent2Fast(int32 Y, int32 X) = 0;
 
 	virtual int32 Floor(int32 X) = 0;
 	virtual int32 Ceil(int32 X) = 0;
+	virtual int32 Round(int32 X) = 0;
+	virtual int32 Truncate(int32 X) = 0;
 	virtual int32 Frac(int32 X) = 0;
 	virtual int32 Fmod(int32 A, int32 B) = 0;
 	virtual int32 Abs(int32 X) = 0;
@@ -160,6 +178,7 @@ public:
 	virtual int32 VertexColor() = 0;
 
 	virtual int32 PreSkinnedPosition() = 0;
+	virtual int32 PreSkinnedNormal() = 0;
 
 #if WITH_EDITOR
 	virtual int32 MaterialBakingWorldPosition() = 0;
@@ -261,8 +280,8 @@ public:
 	virtual EMaterialQualityLevel::Type GetQualityLevel() override { return Compiler->GetQualityLevel(); }
 	virtual ERHIFeatureLevel::Type GetFeatureLevel() override { return Compiler->GetFeatureLevel(); }
 	virtual int32 ValidCast(int32 Code,EMaterialValueType DestType) override { return Compiler->ValidCast(Code, DestType); }
-	virtual int32 ForceCast(int32 Code,EMaterialValueType DestType,bool bExactMatch=false,bool bReplicateValue=false) override
-	{ return Compiler->ForceCast(Code,DestType,bExactMatch,bReplicateValue); }
+	virtual int32 ForceCast(int32 Code,EMaterialValueType DestType,uint32 ForceCastFlags = 0) override
+	{ return Compiler->ForceCast(Code,DestType,ForceCastFlags); }
 
 	virtual int32 AccessCollectionParameter(UMaterialParameterCollection* ParameterCollection, int32 ParameterIndex, int32 ComponentIndex) override { return Compiler->AccessCollectionParameter(ParameterCollection, ParameterIndex, ComponentIndex); }
 	virtual int32 VectorParameter(FName ParameterName,const FLinearColor& DefaultValue) override { return Compiler->VectorParameter(ParameterName,DefaultValue); }
@@ -282,9 +301,20 @@ public:
 
 	virtual int32 Sine(int32 X) override { return Compiler->Sine(X); }
 	virtual int32 Cosine(int32 X) override { return Compiler->Cosine(X); }
+	virtual int32 Tangent(int32 X) override { return Compiler->Tangent(X); }
+	virtual int32 Arcsine(int32 X) override { return Compiler->Arcsine(X); }
+	virtual int32 ArcsineFast(int32 X) override { return Compiler->ArcsineFast(X); }
+	virtual int32 Arccosine(int32 X) override { return Compiler->Arccosine(X); }
+	virtual int32 ArccosineFast(int32 X) override { return Compiler->ArccosineFast(X); }
+	virtual int32 Arctangent(int32 X) override { return Compiler->Arctangent(X); }
+	virtual int32 ArctangentFast(int32 X) override { return Compiler->ArctangentFast(X); }
+	virtual int32 Arctangent2(int32 Y, int32 X) override { return Compiler->Arctangent2(Y, X); }
+	virtual int32 Arctangent2Fast(int32 Y, int32 X) override { return Compiler->Arctangent2Fast(Y, X); }
 
 	virtual int32 Floor(int32 X) override { return Compiler->Floor(X); }
 	virtual int32 Ceil(int32 X) override { return Compiler->Ceil(X); }
+	virtual int32 Round(int32 X) override { return Compiler->Round(X); }
+	virtual int32 Truncate(int32 X) override { return Compiler->Truncate(X); }
 	virtual int32 Frac(int32 X) override { return Compiler->Frac(X); }
 	virtual int32 Fmod(int32 A, int32 B) override { return Compiler->Fmod(A,B); }
 	virtual int32 Abs(int32 X) override { return Compiler->Abs(X); }
@@ -340,6 +370,7 @@ public:
 	virtual int32 VertexColor() override { return Compiler->VertexColor(); }
 	
 	virtual int32 PreSkinnedPosition() override { return Compiler->PreSkinnedPosition(); }
+	virtual int32 PreSkinnedNormal() override { return Compiler->PreSkinnedNormal(); }
 
 	virtual int32 Add(int32 A,int32 B) override { return Compiler->Add(A,B); }
 	virtual int32 Sub(int32 A,int32 B) override { return Compiler->Sub(A,B); }

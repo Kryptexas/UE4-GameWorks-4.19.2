@@ -209,6 +209,15 @@ public:
 };
 
 /**
+ * Get the viewmode otions menu label.
+ * 
+ * @param	ViewModeIndex	The current viewmode, as the options change  per viewmode.
+
+ * @return	The label.
+ */
+UNREALED_API FText GetViewModeOptionsMenuLabel(EViewModeIndex ViewModeIndex);
+
+/**
  * Build the viewmode otions menu.
  * 
  * @param	CommandList		The command list to be used with the menu builder.

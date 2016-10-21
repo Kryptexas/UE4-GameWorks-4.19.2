@@ -172,7 +172,8 @@ class FVulkanShaderBindingTable
 public:
 	TArray<uint32> CombinedSamplerBindingIndices;
 	//#todo-rco: FIX! SamplerBuffers share numbering with Samplers
-	TArray<uint32> SamplerBufferBindingIndices;
+	TArray<uint32> UniformTexelBufferBindingIndices;
+	TArray<uint32> StorageTexelBufferBindingIndices;
 	TArray<uint32> UniformBufferBindingIndices;
 
 	int32 PackedGlobalUBsIndices[CrossCompiler::PACKED_TYPEINDEX_MAX];
@@ -190,7 +191,8 @@ public:
 inline FArchive& operator<<(FArchive& Ar, FVulkanShaderBindingTable& BindingTable)
 {
 	Ar << BindingTable.CombinedSamplerBindingIndices;
-	Ar << BindingTable.SamplerBufferBindingIndices;
+	Ar << BindingTable.UniformTexelBufferBindingIndices;
+	Ar << BindingTable.StorageTexelBufferBindingIndices;
 	Ar << BindingTable.UniformBufferBindingIndices;
 	for (int32 Index = 0; Index < CrossCompiler::PACKED_TYPEINDEX_MAX; ++Index)
 	{

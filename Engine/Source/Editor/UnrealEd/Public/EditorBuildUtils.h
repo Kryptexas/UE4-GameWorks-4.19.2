@@ -124,13 +124,12 @@ public:
 	 * Perform an editor build for texture streaming
 	 *
 	 * @param	InWorld					WorldContext
-	 * @param	bWithTexCoordScales		true if the build should compute material texcoord scales.
+	 * @param	SelectedViewMode		The viewmode to build the data for. Unkown when running the full build.
 	 * @param	bDebugDataOnly			true if the build should only update data useful for accuracy viewmodes.
 	 *
 	 * @return	true if the build completed successfully; false if it did not (or was manually canceled)
 	 */
-	static UNREALED_API bool EditorBuildTextureStreaming( UWorld* InWorld, bool bWithTexCoordScales = true, bool bDebugDataOnly = false);
-
+	static UNREALED_API bool EditorBuildTextureStreaming( UWorld* InWorld, EViewModeIndex SelectedViewMode = VMI_Unknown);
 
 	/** 
 	* check if navigation build was was triggered from editor as user request

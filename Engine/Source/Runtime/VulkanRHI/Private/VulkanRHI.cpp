@@ -12,6 +12,7 @@
 #include "VulkanPendingState.h"
 #include "VulkanContext.h"
 #include "VulkanManager.h"
+#include "GenericPlatformDriver.h"
 
 #ifdef VK_API_VERSION
 // Check the SDK is least the API version we want to use
@@ -281,8 +282,10 @@ FVulkanCommandListContext::FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, F
 	, PendingIndexDataStride(0)
 	, TempFrameAllocationBuffer(InDevice, VULKAN_TEMP_FRAME_ALLOCATOR_SIZE)
 	, CommandBufferManager(nullptr)
+	, CurrentOcclusionQueryPool(nullptr)
 	, PendingGfxState(nullptr)
 	, PendingComputeState(nullptr)
+	, FrameCounter(0)
 {
 	// Create CommandBufferManager, contain all active buffers
 	CommandBufferManager = new FVulkanCommandBufferManager(InDevice);
@@ -302,9 +305,7 @@ FVulkanCommandListContext::~FVulkanCommandListContext()
 	delete CommandBufferManager;
 	CommandBufferManager = nullptr;
 
-#if VULKAN_USE_NEW_RENDERPASSES
 	RenderPassState.Destroy(*Device);
-#endif
 
 	delete PendingGfxState;
 	delete PendingComputeState;
@@ -572,10 +573,41 @@ void FVulkanDynamicRHI::InitInstance()
 		// Initialize the RHI capabilities.
 		GRHIVendorId = Device->GetDeviceProperties().vendorID;
 		GRHIAdapterName = ANSI_TO_TCHAR(Props.deviceName);
-		GRHIAdapterInternalDriverVersion = FString::Printf(TEXT("%d.%d.%d"), VK_VERSION_MAJOR(Props.apiVersion), VK_VERSION_MINOR(Props.apiVersion), VK_VERSION_PATCH(Props.apiVersion));
+		if (IsRHIDeviceNVIDIA())
+		{
+			union UNvidiaDriverVersion
+			{
+				struct
+				{
+#if PLATFORM_LITTLE_ENDIAN
+					uint32 Tertiary		: 6;
+					uint32 Secondary	: 8;
+					uint32 Minor		: 8;
+					uint32 Major		: 10;
+#else
+					uint32 Major		: 10;
+					uint32 Minor		: 8;
+					uint32 Secondary	: 8;
+					uint32 Tertiary		: 6;
+#endif
+				};
+				uint32 Packed;
+			};
+			UNvidiaDriverVersion NvidiaVersion;
+			static_assert(sizeof(NvidiaVersion) == sizeof(Props.driverVersion), "Mismatched Nvidia pack driver version!");
+			NvidiaVersion.Packed = Props.driverVersion;
+			GRHIAdapterUserDriverVersion = FString::Printf(TEXT("%d.%d"), NvidiaVersion.Major, NvidiaVersion.Minor);
+
+			// Ignore GRHIAdapterInternalDriverVersion for now as the device name doesn't match
+		}
+		else if (PLATFORM_ANDROID)
+		{
+			GRHIAdapterInternalDriverVersion = FString::Printf(TEXT("%d.%d.%d"), VK_VERSION_MAJOR(Props.apiVersion), VK_VERSION_MINOR(Props.apiVersion), VK_VERSION_PATCH(Props.apiVersion));
+		}
+		GRHISupportsFirstInstance = true;
 		GSupportsRenderTargetFormat_PF_G8 = false;	// #todo-rco
 		GSupportsQuads = false;	// Not supported in Vulkan
-		GRHISupportsTextureStreaming = false;	// #todo-rco
+		GRHISupportsTextureStreaming = true;
 		GSupportsTimestampRenderQueries = false;	// #todo-rco
 		GRHIRequiresEarlyBackBufferRenderTarget = false;
 #if VULKAN_ENABLE_DUMP_LAYER
@@ -585,9 +617,8 @@ void FVulkanDynamicRHI::InitInstance()
 		GRHISupportsRHIThread = GRHIThreadCvar->GetInt() != 0;
 #endif
 
-#if VULKAN_USE_NEW_RENDERPASSES
 		GSupportsVolumeTextureRendering = true;
-#endif
+
 		// Indicate that the RHI needs to use the engine's deferred deletion queue.
 		GRHINeedsExtraDeletionLatency = true;
 
@@ -673,13 +704,6 @@ void FVulkanCommandListContext::RHIBeginScene()
 void FVulkanCommandListContext::RHIEndScene()
 {
 	//FRCLog::Printf(FString::Printf(TEXT("FVulkanCommandListContext::RHIEndScene()")));
-#if !VULKAN_USE_NEW_RENDERPASSES
-	FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
-	if (PendingGfxState->IsRenderPassActive())
-	{
-		PendingGfxState->RenderPassEnd(CmdBuffer);
-	}
-#endif
 }
 
 void FVulkanCommandListContext::RHIBeginDrawingViewport(FViewportRHIParamRef ViewportRHI, FTextureRHIParamRef RenderTargetRHI)
@@ -707,12 +731,7 @@ void FVulkanCommandListContext::RHIEndDrawingViewport(FViewportRHIParamRef Viewp
 	check(!CmdBuffer->HasEnded());
 	if (CmdBuffer->IsInsideRenderPass())
 	{
-#if VULKAN_USE_NEW_RENDERPASSES
 		RenderPassState.EndRenderPass(CmdBuffer);
-#else
-		checkf(bPresent, TEXT("An open render pass when not presenting is not allowed..."));
-		PendingGfxState->RenderPassEnd(CmdBuffer);
-#endif
 	}
 
 	bool bNativePresent = Viewport->Present(CmdBuffer, Device->GetQueue(), bLockToVsync);
@@ -730,7 +749,7 @@ void FVulkanCommandListContext::RHIEndFrame()
 	Device->GetStagingManager().ProcessPendingFree();
 	Device->GetResourceHeapManager().ReleaseFreedPages();
 
-	Device->FrameCounter++;
+	++FrameCounter;
 }
 
 void FVulkanCommandListContext::RHIPushEvent(const TCHAR* Name, FColor Color)
@@ -821,6 +840,11 @@ IRHICommandContext* FVulkanDynamicRHI::RHIGetDefaultContext()
 IRHICommandContextContainer* FVulkanDynamicRHI::RHIGetCommandContextContainer()
 {
 	return nullptr;
+}
+
+void FVulkanDynamicRHI::RHISubmitCommandsAndFlushGPU()
+{
+	Device->SubmitCommandsAndFlushGPU();
 }
 
 
@@ -1156,50 +1180,9 @@ void VulkanSetImageLayout(
 	ImageBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	ImageBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
-#if VULKAN_USE_NEW_RENDERPASSES
 	ImageBarrier.srcAccessMask = VulkanRHI::GetAccessMask(OldLayout);
 	ImageBarrier.dstAccessMask = VulkanRHI::GetAccessMask(NewLayout);
-#else
-	switch (NewLayout)
-	{
-	case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-		ImageBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-		break;
-	case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
-		if (OldLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
-		{
-			ImageBarrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-		}
-		ImageBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		break;
-	case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-		ImageBarrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-		break;
-	case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-		if (OldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
-		{
-			ImageBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-		}
-		ImageBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
-		break;
-	case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
-		if (OldLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
-		{
-			ImageBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		}
-		ImageBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-		break;
-	case VK_IMAGE_LAYOUT_GENERAL:
-		if (OldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
-		{
-			ImageBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-		}
-		break;
-	default:
-		check(0);
-		break;
-	}
-#endif
+
 	VkImageMemoryBarrier BarrierList[] ={ImageBarrier};
 
 	VkPipelineStageFlags SourceStages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
@@ -1277,7 +1260,7 @@ uint64 FVulkanRingBuffer::AllocateMemory(uint64 Size, uint32 Alignment)
 	// wrap around if needed
 	if (AllocOffset + Size >= BufferSize)
 	{
-		UE_LOG(LogVulkanRHI, Display, TEXT("Wrapped around the ring buffer. Frame = %lld, size = %lld"), Device->FrameCounter, BufferSize);
+		//UE_LOG(LogVulkanRHI, Display, TEXT("Wrapped around the ring buffer. Frame = %lld, size = %lld"), Device->FrameCounter, BufferSize);
 		AllocOffset = 0;
 	}
 

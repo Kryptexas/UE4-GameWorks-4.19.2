@@ -134,10 +134,12 @@ TMetalBaseShader<BaseResourceType, ShaderType>::TMetalBaseShader(const TArray<ui
 
 	static NSString* const Offline = @"OFFLINE";
 	bool bOfflineCompile = (OfflineCompiledFlag > 0);
-	if (bOfflineCompile && (Header.ShaderCode.Len() > 0))
+	
+	const ANSICHAR* ShaderSource = ShaderCode.FindOptionalData('c');
+	bool const bHasShaderSource = (ShaderSource && FCStringAnsi::Strlen(ShaderSource) > 0);
+	if (bOfflineCompile && bHasShaderSource)
 	{
-		NSString* ShaderSource = Header.ShaderCode.GetNSString();
-		GlslCodeNSString = ShaderSource;
+		GlslCodeNSString = [NSString stringWithUTF8String:ShaderSource];
 		[GlslCodeNSString retain];
 	}
 	else
@@ -150,20 +152,25 @@ TMetalBaseShader<BaseResourceType, ShaderType>::TMetalBaseShader(const TArray<ui
 	if (!Function)
 	{
 		id<MTLLibrary> Library;
-		if (bOfflineCompile && (Header.ShaderCode.Len() > 0))
+		if (bOfflineCompile && bHasShaderSource)
 		{
 			// For debug/dev/test builds we can use the stored code for debugging - but shipping builds shouldn't have this as it is inappropriate.
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 			// For iOS/tvOS we must use runtime compilation to make the shaders debuggable, but
 			bool bSavedSource = false;
 			
 #if PLATFORM_MAC
+			const ANSICHAR* ShaderPath = ShaderCode.FindOptionalData('p');
+			bool const bHasShaderPath = (ShaderPath && FCStringAnsi::Strlen(ShaderPath) > 0);
+			
 			// on Mac if we have a path for the shader we can access the shader code
-			if (Header.ShaderPath.Len() > 0)
+			if (bHasShaderPath)
 			{
-				if (IFileManager::Get().MakeDirectory(*FPaths::GetPath(Header.ShaderPath), true))
+				FString ShaderPathString(ShaderPath);
+				
+				if (IFileManager::Get().MakeDirectory(*FPaths::GetPath(ShaderPathString), true))
 				{
-					bSavedSource = FFileHelper::SaveStringToFile(FString(GlslCodeNSString), *Header.ShaderPath);
+					bSavedSource = FFileHelper::SaveStringToFile(FString(GlslCodeNSString), *ShaderPathString);
 				}
 				
 				static bool bAttemptedAuth = false;
@@ -171,9 +178,9 @@ TMetalBaseShader<BaseResourceType, ShaderType>::TMetalBaseShader(const TArray<ui
 				{
 					bAttemptedAuth = true;
 					
-					if (IFileManager::Get().MakeDirectory(*FPaths::GetPath(Header.ShaderPath), true))
+					if (IFileManager::Get().MakeDirectory(*FPaths::GetPath(ShaderPathString), true))
 					{
-						bSavedSource = FFileHelper::SaveStringToFile(FString(GlslCodeNSString), *Header.ShaderPath);
+						bSavedSource = FFileHelper::SaveStringToFile(FString(GlslCodeNSString), *ShaderPathString);
 					}
 					
 					if (!bSavedSource)
@@ -216,11 +223,11 @@ TMetalBaseShader<BaseResourceType, ShaderType>::TMetalBaseShader(const TArray<ui
 		else
 		{
 			NSError* Error;
-			NSString* ShaderSource = ((OfflineCompiledFlag == 0) ? [NSString stringWithUTF8String:SourceCode] : GlslCodeNSString);
+			NSString* ShaderString = ((OfflineCompiledFlag == 0) ? [NSString stringWithUTF8String:SourceCode] : GlslCodeNSString);
 
-			if(Header.ShaderName.Len() && (OfflineCompiledFlag == 0))
+			if(Header.ShaderName.Len())
 			{
-				ShaderSource = [NSString stringWithFormat:@"// %@\n%@", Header.ShaderName.GetNSString(), ShaderSource];
+				ShaderString = [NSString stringWithFormat:@"// %@\n%@", Header.ShaderName.GetNSString(), ShaderString];
 			}
 			
 			MTLCompileOptions *CompileOptions = [[MTLCompileOptions alloc] init];
@@ -232,22 +239,22 @@ TMetalBaseShader<BaseResourceType, ShaderType>::TMetalBaseShader(const TArray<ui
 			NSDictionary *PreprocessorMacros = @{ @"MTLSL_ENABLE_DEBUG_INFO" : @(1)};
 			[CompileOptions setPreprocessorMacros : PreprocessorMacros];
 #endif
-			Library = [GetMetalDeviceContext().GetDevice() newLibraryWithSource:ShaderSource options : CompileOptions error : &Error];
+			Library = [GetMetalDeviceContext().GetDevice() newLibraryWithSource:ShaderString options : CompileOptions error : &Error];
 			[CompileOptions release];
 
 			if (Library == nil)
 			{
 				NSLog(@"Failed to create library: %@", Error);
-				NSLog(@"*********** Error\n%@", ShaderSource);
+				NSLog(@"*********** Error\n%@", ShaderString);
 			}
 			else if (Error != nil)
 			{
 				// Warning...
                 NSLog(@"%@\n", Error);
-                NSLog(@"*********** Error\n%@", ShaderSource);
+                NSLog(@"*********** Error\n%@", ShaderString);
 			}
 
-			GlslCodeNSString = ShaderSource;
+			GlslCodeNSString = ShaderString;
 			[GlslCodeNSString retain];
 		}
 
@@ -483,7 +490,7 @@ void FMetalBoundShaderState::PrepareToDraw(FMetalContext* Context, FMetalHashedV
 		else
 		{
 			PipelineState = ExistingPipeline;
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 			if(Reflection)
 			{
 				*Reflection = RenderPipelineDesc.GetReflectionData(this, VertexDesc);
@@ -499,7 +506,7 @@ void FMetalBoundShaderState::PrepareToDraw(FMetalContext* Context, FMetalHashedV
 			checkf(Err == 0, TEXT("pthread_rwlock_unlock failed with errno: %d"), errno);
 		}
 		
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 		if (GFrameCounter > 3)
 		{
 #if PLATFORM_MAC
@@ -510,7 +517,7 @@ void FMetalBoundShaderState::PrepareToDraw(FMetalContext* Context, FMetalHashedV
 		}
 #endif
 	}
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 	else if(Reflection)
 	{
 		*Reflection = RenderPipelineDesc.GetReflectionData(this, VertexDesc);
@@ -668,67 +675,36 @@ void FMetalShaderParameterCache::CommitPackedGlobals(FMetalContext* Context, int
 		int32 UniformBufferIndex = Bindings.PackedGlobalArrays[Index].TypeIndex;
  
 		// is there any data that needs to be copied?
-		if (PackedGlobalUniformDirty[UniformBufferIndex].HighVector > 0)//PackedGlobalUniformDirty[UniformBufferIndex].LowVector)
+		if (PackedGlobalUniformDirty[UniformBufferIndex].HighVector > 0)
 		{
-			//@todo rco safe to remove this forever?
-			//check(UniformBufferIndex == 0 || UniformBufferIndex == 1 || UniformBufferIndex == 3);
 			uint32 TotalSize = Bindings.PackedGlobalArrays[Index].Size;
 			uint32 SizeToUpload = PackedGlobalUniformDirty[UniformBufferIndex].HighVector * SizeOfFloat4;
-//@todo-rco: Temp workaround
-			//check(SizeToUpload <= TotalSize);
+			
+			//@todo-rco: Temp workaround
 			SizeToUpload = TotalSize;
- /*
-			if (UniformBufferIndex == CrossCompiler::PACKED_TYPEINDEX_MEDIUMP)
-			{
-				// Float4 -> Half4
-				SizeToUpload /= 2;
-			}
-*/
+			
 			// allocate memory in the ring buffer
 			uint32 Offset = Context->AllocateFromRingBuffer(TotalSize);
 			id<MTLBuffer> RingBuffer = Context->GetRingBuffer();
-/*
-			// copy into the middle of the ring buffer
-			if (UniformBufferIndex == CrossCompiler::PACKED_TYPEINDEX_MEDIUMP)
-			{
-				// Convert to half
-				const int NumVectors = PackedGlobalUniformDirty[UniformBufferIndex].HighVector;
-				const auto* RESTRICT SourceF4 = (FVector4* )PackedGlobalUniforms[UniformBufferIndex];
-				auto* RESTRICT Dest = (FFloat16*)((uint8*)[RingBuffer contents]) + Offset;
-				for (int Vector = 0; Vector < NumVectors; ++Vector, ++SourceF4, Dest += 4)
-				{
-					Dest[0].Set(SourceF4->X);
-					Dest[1].Set(SourceF4->Y);
-					Dest[2].Set(SourceF4->Z);
-					Dest[3].Set(SourceF4->W);
-				}
-			}
-			else
- */
-			{
-				//check(UniformBufferIndex != CrossCompiler::PACKED_TYPEINDEX_LOWP);
-//@todo-rco: Temp workaround
-				FMemory::Memcpy(((uint8*)[RingBuffer contents]) + Offset, PackedGlobalUniforms[UniformBufferIndex], FMath::Min(TotalSize, SizeToUpload));
-			}
+			
+			//@todo-rco: Temp workaround
+			FMemory::Memcpy(((uint8*)[RingBuffer contents]) + Offset, PackedGlobalUniforms[UniformBufferIndex], FMath::Min(TotalSize, SizeToUpload));
 			
 			switch (Stage)
 			{
 				case CrossCompiler::SHADER_STAGE_VERTEX:
-//					NSLog(@"Uploading %d bytes to vertex", SizeToUpload);
 					Context->GetCommandEncoder().SetShaderBuffer(SF_Vertex, RingBuffer, Offset, UniformBufferIndex);
 					break;
-
+					
 				case CrossCompiler::SHADER_STAGE_PIXEL:
-//					NSLog(@"Uploading %d bytes to pixel", SizeToUpload);
 					Context->GetCommandEncoder().SetShaderBuffer(SF_Pixel, RingBuffer, Offset, UniformBufferIndex);
 					break;
 					
 				case CrossCompiler::SHADER_STAGE_COMPUTE:
-//					NSLog(@"Uploading %d bytes to compute", SizeToUpload);
 					Context->GetCommandEncoder().SetShaderBuffer(SF_Compute, RingBuffer, Offset, UniformBufferIndex);
 					break;
 					
-				
+					
 				default:check(0);
 			}
 

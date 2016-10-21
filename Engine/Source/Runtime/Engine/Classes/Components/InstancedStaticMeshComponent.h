@@ -107,9 +107,14 @@ class ENGINE_API UInstancedStaticMeshComponent : public UStaticMeshComponent
 
 	virtual void OnUpdateTransform(EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport) override;
 
-	virtual bool RequiresStreamingTextureData() const override;
-	virtual FBox GetTextureStreamingBox(int32 MaterialIndex) const override;
+	/** Get the scale comming form the component, when computing StreamingTexture data. Used to support instanced meshes. */
 	virtual float GetTextureStreamingTransformScale() const override;
+	/** Get material, UV density and bounds for a given material index. */
+	virtual bool GetMaterialStreamingData(int32 MaterialIndex, FPrimitiveMaterialInfo& MaterialData) const override;
+	/** Build the data to compute accuracte StreaminTexture data. */
+	virtual bool BuildTextureStreamingData(ETextureStreamingBuildType BuildType, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, TSet<FGuid>& DependentResources) override;
+	/** Get the StreaminTexture data. */
+	virtual void GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const override;
 
 	/**
 	* Update the transform for the instance specified.

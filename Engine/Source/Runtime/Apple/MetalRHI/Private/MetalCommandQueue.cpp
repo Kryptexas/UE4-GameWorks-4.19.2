@@ -22,7 +22,7 @@ FMetalCommandQueue::FMetalCommandQueue(id<MTLDevice> Device, uint32 const MaxNum
 #if METAL_STATISTICS
 , Statistics(nullptr)
 #endif
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 , RuntimeDebuggingLevel(EMetalDebugLevelOff)
 #endif
 , Features(0)
@@ -58,7 +58,7 @@ FMetalCommandQueue::FMetalCommandQueue(id<MTLDevice> Device, uint32 const MaxNum
 		Features = EMetalFeaturesSeparateStencil | EMetalFeaturesSetBufferOffset | EMetalFeaturesResourceOptions | EMetalFeaturesDepthStencilBlitOptions;
 
 #if PLATFORM_TVOS
-		if(FParse::Param(FCommandLine::Get(),TEXT("metalv2")) || [Device supportsFeatureSet:MTLFeatureSet_tvOS_GPUFamily1_v2])
+		if(!FParse::Param(FCommandLine::Get(),TEXT("nometalv2")) && [Device supportsFeatureSet:MTLFeatureSet_tvOS_GPUFamily1_v2])
 		{
 			Features |= EMetalFeaturesStencilView;
 		}
@@ -68,7 +68,7 @@ FMetalCommandQueue::FMetalCommandQueue(id<MTLDevice> Device, uint32 const MaxNum
 			Features |= EMetalFeaturesCountingQueries | EMetalFeaturesBaseVertexInstance | EMetalFeaturesIndirectBuffer;
 		}
 		
-		if(FParse::Param(FCommandLine::Get(),TEXT("metalv2")) || [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v2] || [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily2_v3] || [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily1_v3])
+		if(!FParse::Param(FCommandLine::Get(),TEXT("nometalv2")) && ([Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v2] || [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily2_v3] || [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily1_v3]))
 		{
 			Features |= EMetalFeaturesStencilView;
 		}
@@ -111,7 +111,7 @@ id<MTLCommandBuffer> FMetalCommandQueue::CreateRetainedCommandBuffer(void)
 	@autoreleasepool
 	{
 		id<MTLCommandBuffer> CmdBuffer = [[CommandQueue commandBuffer] retain];
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 		if (RuntimeDebuggingLevel >= EMetalDebugLevelLogDebugGroups)
 		{
 			CmdBuffer = [[FMetalDebugCommandBuffer alloc] initWithCommandBuffer:CmdBuffer];
@@ -130,7 +130,7 @@ id<MTLCommandBuffer> FMetalCommandQueue::CreateUnretainedCommandBuffer(void)
 	@autoreleasepool
 	{
 		CmdBuffer = bUnretainedRefs ? [[CommandQueue commandBufferWithUnretainedReferences] retain] : [[CommandQueue commandBuffer] retain];
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 		if (RuntimeDebuggingLevel >= EMetalDebugLevelLogDebugGroups)
 		{
 			CmdBuffer = [[FMetalDebugCommandBuffer alloc] initWithCommandBuffer:CmdBuffer];
@@ -152,7 +152,7 @@ void FMetalCommandQueue::CommitCommandBuffer(id<MTLCommandBuffer> const CommandB
 	[CommandBuffer commit];
 	
 	// Wait for completion when debugging command-buffers.
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 	if (RuntimeDebuggingLevel >= EMetalDebugLevelWaitForComplete)
 	{
 		[CommandBuffer waitUntilCompleted];
@@ -205,7 +205,7 @@ void FMetalCommandQueue::InsertDebugCaptureBoundary(void)
 	[CommandQueue insertDebugCaptureBoundary];
 }
 
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 void FMetalCommandQueue::SetRuntimeDebuggingLevel(int32 const Level)
 {
 	RuntimeDebuggingLevel = Level;

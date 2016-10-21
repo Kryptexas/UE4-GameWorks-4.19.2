@@ -546,6 +546,17 @@ void FPrecomputedLightVolume::DebugDrawSamples(FPrimitiveDrawInterface* PDI, boo
 	}
 }
 
+bool FPrecomputedLightVolume::IntersectBounds(const FBoxSphereBounds& InBounds) const
+{
+	if (OctreeForRendering)
+	{
+		FBox VolumeBounds = OctreeForRendering->GetRootBounds().GetBox();
+		return InBounds.GetBox().Intersect(VolumeBounds);
+	}
+
+	return false;
+}
+
 void FPrecomputedLightVolume::ApplyWorldOffset(const FVector& InOffset)
 {
 	/*

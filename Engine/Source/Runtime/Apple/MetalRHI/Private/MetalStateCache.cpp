@@ -756,7 +756,7 @@ void FMetalStateCache::SetVertexStream(uint32 const Index, id<MTLBuffer> Buffer,
 
 uint32 FMetalStateCache::GetVertexBufferSize(uint32 const Index)
 {
-	check(Index < MaxMetalStreams);
+	check(Index < MaxVertexElementCount);
 	uint32 Size = 0;
 	
 	if (VertexBuffers[Index])

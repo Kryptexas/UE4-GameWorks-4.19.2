@@ -48,14 +48,15 @@ void FMaterialTexCoordScalePS::SetMesh(
 	FVector4 OneOverCPUTexCoordScales[TEXSTREAM_MAX_NUM_TEXTURES_PER_MATERIAL / 4];
 	FIntVector4 TexCoordIndices[TEXSTREAM_MAX_NUM_TEXTURES_PER_MATERIAL / 4];
 
-#if WITH_EDITORONLY_DATA
-	if (!Proxy || !Proxy->GetMaterialTextureScales(VisualizeLODIndex, BatchElement.VisualizeElementIndex, nullptr, OneOverCPUTexCoordScales, TexCoordIndices))
-#endif
-	{
-		FMemory::Memzero(OneOverCPUTexCoordScales); // 0 remap to irrelevant data.
-		FMemory::Memzero(TexCoordIndices);
-	}
+	FMemory::Memzero(OneOverCPUTexCoordScales); // 0 remap to irrelevant data.
+	FMemory::Memzero(TexCoordIndices);
 
+#if WITH_EDITORONLY_DATA
+	if (Proxy)
+	{
+		Proxy->GetMaterialTextureScales(VisualizeLODIndex, BatchElement.VisualizeElementIndex, nullptr, OneOverCPUTexCoordScales, TexCoordIndices);
+	}
+#endif
 	const bool bOutputScales = View.Family->GetDebugViewShaderMode() == DVSM_OutputMaterialTextureScales;
 
 	SetShaderValueArray(RHICmdList, FMeshMaterialShader::GetPixelShader(), OneOverCPUTexCoordScalesParameter, OneOverCPUTexCoordScales, ARRAY_COUNT(OneOverCPUTexCoordScales));

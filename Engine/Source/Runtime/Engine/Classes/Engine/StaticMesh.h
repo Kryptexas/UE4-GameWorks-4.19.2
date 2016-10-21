@@ -445,7 +445,7 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	UPROPERTY()
 	float LightmapUVDensity;
 
-	UPROPERTY(EditAnywhere, Category=StaticMesh, meta=(ToolTip="The light map resolution", FixedIncrement="4.0"))
+	UPROPERTY(EditAnywhere, Category=StaticMesh, meta=(ClampMax = 4096, ToolTip="The light map resolution", FixedIncrement="4.0"))
 	int32 LightMapResolution;
 
 	/** The light map coordinate index */

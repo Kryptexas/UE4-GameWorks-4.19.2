@@ -486,7 +486,7 @@ private:
 
 				FMeshDecalsDrawingPolicy DrawingPolicy(Mesh.VertexFactory, MaterialRenderProxy, *Material, View.GetFeatureLevel());
 				RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
-				DrawingPolicy.SetSharedState(RHICmdList, &View, FDepthDrawingPolicy::ContextDataType(bIsInstancedStereo, bNeedsInstancedStereoBias));
+				DrawingPolicy.SetSharedState(RHICmdList, &View, FDepthDrawingPolicy::ContextDataType(View.ViewUniformBuffer, bIsInstancedStereo, bNeedsInstancedStereoBias));
 
 				int32 BatchElementIndex = 0;
 				uint64 Mask = BatchElementMask;
@@ -497,7 +497,7 @@ private:
 						TDrawEvent<FRHICommandList> MeshEvent;
 						BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent);
 					
-						DrawingPolicy.SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,DrawRenderState,FMeshDrawingPolicy::ElementDataType(),FDepthDrawingPolicy::ContextDataType());
+						DrawingPolicy.SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,DrawRenderState,FMeshDrawingPolicy::ElementDataType(),FDepthDrawingPolicy::ContextDataType(View.ViewUniformBuffer));
 						DrawingPolicy.DrawMesh(RHICmdList, Mesh, BatchElementIndex, bIsInstancedStereo);
 					}
 					Mask >>= 1;

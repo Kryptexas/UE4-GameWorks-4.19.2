@@ -115,7 +115,7 @@ uint64 FVulkanGPUTiming::GetTiming(bool bGetCurrentResultsAndBlock)
 		{
 			if (bGetCurrentResultsAndBlock)
 			{
-				GTimestampQueryPool->Device->WaitUntilIdle();
+				GTimestampQueryPool->GetParent()->WaitUntilIdle();
 
 				// Block until the GPU has finished the last query
 				while (!IsComplete())

@@ -147,6 +147,28 @@ public:
 
 	void PrepareForCPURead();
 
+	void SubmitCommandsAndFlushGPU();
+
+	// Should be ptr but static analysis complains...
+	inline FVulkanOcclusionQueryPool& GetAvailableOcclusionQueryPool()
+	{
+		for (int32 Index = 0; Index < OcclusionQueryPools.Num(); ++Index)
+		{
+			FVulkanOcclusionQueryPool* Pool = OcclusionQueryPools[Index];
+			if (Pool->CanFitOneQuery())
+			{
+				return *Pool;
+			}
+		}
+
+		// Allocate new Pool
+		FVulkanOcclusionQueryPool* Pool = new FVulkanOcclusionQueryPool(this, NUM_QUERIES_PER_POOL);
+		OcclusionQueryPools.Add(Pool);
+		return *Pool;
+	}
+
+	void CompactOcclusionQueryPools();
+
 private:
 	void MapFormatSupport(EPixelFormat UEFormat, VkFormat VulkanFormat);
 	void MapFormatSupport(EPixelFormat UEFormat, VkFormat VulkanFormat, int32 BlockBytes);
@@ -178,6 +200,8 @@ private:
 	// Nullptr if not supported
 	FVulkanTimestampQueryPool* TimestampQueryPool[NumTimestampPools];
 
+	TArray<FVulkanOcclusionQueryPool*> OcclusionQueryPools;
+
 	FVulkanQueue* Queue;
 
 	VkComponentMapping PixelFormatComponentMapping[PF_MAX];
@@ -196,10 +220,9 @@ private:
 	friend class FVulkanCommandListContext;
 #endif
 
-public:
-	uint64 FrameCounter;
-
 #if VULKAN_ENABLE_PIPELINE_CACHE
 	class FVulkanPipelineStateCache* PipelineStateCache;
+	friend class FVulkanDynamicRHI;
+	friend class FVulkanBoundShaderState;
 #endif
 };

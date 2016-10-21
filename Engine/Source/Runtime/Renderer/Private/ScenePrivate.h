@@ -1405,7 +1405,7 @@ public:
 	void FinalizeCacheUpdates(FScene* Scene, FSceneRenderer& Renderer, FILCUpdatePrimTaskData& TaskData);
 
 	/** Force all primitive allocations to be re-interpolated. */
-	void SetLightingCacheDirty();
+	void SetLightingCacheDirty(FScene* Scene, const FPrecomputedLightVolume* Volume);
 
 	// Accessors
 	FSceneRenderTargetItem& GetTexture0() { return Texture0->GetRenderTargetItem(); }

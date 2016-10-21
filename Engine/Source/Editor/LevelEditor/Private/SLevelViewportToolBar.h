@@ -140,6 +140,9 @@ private:
 	 */
 	EVisibility GetViewModeOptionsVisibility() const;
 
+	/** Get the name of the viewmode options menu */
+	FText GetViewModeOptionsMenuLabel() const;
+
 	/**
 	 * Generates the toolbar view param menu content 
 	 *

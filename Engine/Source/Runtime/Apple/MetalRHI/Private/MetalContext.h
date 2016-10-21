@@ -27,7 +27,9 @@ enum EMetalSubmitFlags
 	/** Create the next command buffer. */
 	EMetalSubmitFlagsCreateCommandBuffer = 1 << 0,
 	/** Wait on the submitted command buffer. */
-	EMetalSubmitFlagsWaitOnCommandBuffer = 1 << 1
+	EMetalSubmitFlagsWaitOnCommandBuffer = 1 << 1,
+	/** Break a single logical command-buffer into parts to keep the GPU active. */
+	EMetalSubmitFlagsBreakCommandBuffer = 1 << 2,
 };
 
 class FMetalRHICommandContext;
@@ -260,6 +262,9 @@ private:
 		dispatch_semaphore_t Signal;
 		TSet<id> FreeList;
 		NSMutableSet<id<MTLBuffer>>* FreeBuffers;
+#if METAL_DEBUG_OPTIONS
+		int32 DeferCount;
+#endif
 	};
 	TArray<FMetalDelayedFreeList*> DelayedFreeLists;
 	

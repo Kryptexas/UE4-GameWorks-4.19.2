@@ -357,6 +357,7 @@ FMaterialVertexParameters GetMaterialVertexParameters(FVertexFactoryInput Input,
 #endif	// USE_INSTANCING
 
 	Result.PreSkinnedPosition = Input.Position.xyz;
+	Result.PreSkinnedNormal = Input.TangentZ.xyz * 2.f - 1.f;
 
 #if NUM_MATERIAL_TEXCOORDS_VERTEX
 	#if NUM_MATERIAL_TEXCOORDS_VERTEX > 1

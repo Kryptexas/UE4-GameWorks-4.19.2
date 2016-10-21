@@ -537,7 +537,7 @@ void ULevel::PreSave(const class ITargetPlatform* TargetPlatform)
 			}
 		}
 
-		CheckTextureStreamingBuild(this);
+		// CheckTextureStreamingBuild(this);
 	}
 #endif // WITH_EDITOR
 }

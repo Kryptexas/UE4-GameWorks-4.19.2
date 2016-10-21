@@ -1099,9 +1099,12 @@ void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListIm
 
 				// Update the parts of DownsampledTranslucencyParameters which are dependent on the buffer size and view rect
 				View.SetupViewRectUniformBufferParameters(
+					DownsampledTranslucencyParameters,
 					ScaledSize,
 					FIntRect(View.ViewRect.Min.X * Scale, View.ViewRect.Min.Y * Scale, View.ViewRect.Max.X * Scale, View.ViewRect.Max.Y * Scale),
-					DownsampledTranslucencyParameters);
+					View.ViewMatrices,
+					View.PrevViewMatrices
+				);
 
 				View.DownsampledTranslucencyViewUniformBuffer = TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(DownsampledTranslucencyParameters, UniformBuffer_SingleFrame);
 			}
@@ -1251,9 +1254,12 @@ void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate&
 
 						// Update the parts of DownsampledTranslucencyParameters which are dependent on the buffer size and view rect
 						View.SetupViewRectUniformBufferParameters(
+							DownsampledTranslucencyParameters,
 							ScaledSize,
 							FIntRect(View.ViewRect.Min.X * Scale, View.ViewRect.Min.Y * Scale, View.ViewRect.Max.X * Scale, View.ViewRect.Max.Y * Scale),
-							DownsampledTranslucencyParameters);
+							View.ViewMatrices,
+							View.PrevViewMatrices
+						);
 
 						View.DownsampledTranslucencyViewUniformBuffer = TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(DownsampledTranslucencyParameters, UniformBuffer_SingleFrame);
 					}

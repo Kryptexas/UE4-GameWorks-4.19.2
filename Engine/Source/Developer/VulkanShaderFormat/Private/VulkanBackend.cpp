@@ -1064,7 +1064,7 @@ class FGenerateVulkanVisitor : public ir_visitor
 						GetDescriptorSetForStage(ShaderTarget),
 						comp_str,
 						type_str[var->type->inner_type->base_type],
-						var->location
+						BindingTable.RegisterBinding(var->name, "u", EVulkanBindingType::StorageTexelBuffer)
 						);
 				}
 				else
@@ -1094,7 +1094,7 @@ class FGenerateVulkanVisitor : public ir_visitor
 					layout = ralloc_asprintf(nullptr,
 						"layout(set=%d, binding=%d) ",
 						GetDescriptorSetForStage(ShaderTarget),
-						BindingTable.RegisterBinding(var->name, "s", var->type->sampler_buffer ? EVulkanBindingType::SamplerBuffer : EVulkanBindingType::CombinedImageSampler));
+						BindingTable.RegisterBinding(var->name, "s", var->type->sampler_buffer ? EVulkanBindingType::UniformTexelBuffer : EVulkanBindingType::CombinedImageSampler));
 				}
 				else if (bGenerateLayoutLocations && var->explicit_location)
 				{
@@ -5507,7 +5507,7 @@ FVulkanBindingTable::FBinding::FBinding(const char* InName, int32 InIndex, EVulk
 	FMemory::Memcpy(Name, InName, NewNameLength);
 
 	// Validate Sampler type, s == PACKED_TYPENAME_SAMPLER
-	check((Type == EVulkanBindingType::CombinedImageSampler || Type == EVulkanBindingType::SamplerBuffer) ? SubType == 's' : true);
+	check((Type == EVulkanBindingType::CombinedImageSampler || Type == EVulkanBindingType::UniformTexelBuffer) ? SubType == 's' : true);
 
 	check(Type == EVulkanBindingType::PackedUniformBuffer ?
 		( SubType == 'h' || SubType == 'm' || SubType == 'l' || SubType == 'i' || SubType == 'u' ) : true);

@@ -966,7 +966,23 @@ namespace VulkanRHI
 
 	void DumpMappedMemoryRanges(uint32 memoryRangeCount, const VkMappedMemoryRange* MemoryRanges)
 	{
-		ensure(0);
+		if (CVarVulkanDumpLayer.GetValueOnAnyThread())
+		{
+			for (uint32 Index = 0; Index < memoryRangeCount; ++Index)
+			{
+				const VkMappedMemoryRange& Range = MemoryRanges[Index];
+				typedef struct VkMappedMemoryRange {
+					VkStructureType    sType;
+					const void*        pNext;
+					VkDeviceMemory     memory;
+					VkDeviceSize       offset;
+					VkDeviceSize       size;
+				} VkMappedMemoryRange;
+
+				DebugLog += FString::Printf(TEXT("%s%d Memory=%p Offset=%d Size=%d\n"), Tabs, Index,
+					(void*)Range.memory, (uint64)Range.offset, (uint64)Range.size);
+			}
+		}
 	}
 
 	void DumpResolveImage(VkCommandBuffer CommandBuffer, VkImage SrcImage, VkImageLayout SrcImageLayout, VkImage DstImage, VkImageLayout DstImageLayout, uint32 RegionCount, const VkImageResolve* Regions)
@@ -1323,11 +1339,11 @@ namespace VulkanRHI
 	{
 		if (CVarVulkanDumpLayer.GetValueOnAnyThread())
 		{
-			DevicePrintfBeginResult(Device, FString::Printf(TEXT("vkCreatePipelineLayout(CreateInfo=%p, OutPipelineLayout=%p)[...]"), CreateInfo, PipelineLayout));
-			DebugLog += FString::Printf(TEXT("VkPipelineLayoutCreateInfo: NumLayouts=%d "), CreateInfo->setLayoutCount);
+			DevicePrintfBegin(Device, FString::Printf(TEXT("vkCreatePipelineLayout(CreateInfo=%p, OutPipelineLayout=%p) NumLayouts=%d"), CreateInfo, PipelineLayout, CreateInfo->setLayoutCount));
+			DebugLog += FString::Printf(TEXT("%sLayouts: "), Tabs);
 			for (uint32 Index = 0; Index < CreateInfo->setLayoutCount; ++Index)
 			{
-				DebugLog += FString::Printf(TEXT("Layout[%d]=%p "), Index, CreateInfo->pSetLayouts[Index]);
+				DebugLog += FString::Printf(TEXT("%d=%p "), Index, CreateInfo->pSetLayouts[Index]);
 			}
 			DebugLog += '\n';
 		}
@@ -1548,6 +1564,38 @@ namespace VulkanRHI
 			}
 		}
 	}
+
+	void DumpCreateGraphicsPipelines(VkDevice Device, VkPipelineCache PipelineCache, uint32 CreateInfoCount, const VkGraphicsPipelineCreateInfo* CreateInfos, VkPipeline* Pipelines)
+	{
+		if (CVarVulkanDumpLayer.GetValueOnAnyThread())
+		{
+			DevicePrintfBegin(Device, FString::Printf(TEXT("vkCreateGraphicsPipelines(PipelineCache=%p, CreateInfoCount=%d, CreateInfos=%p, OutPipelines=%p)[...]"), PipelineCache, CreateInfoCount, CreateInfos, Pipelines));
+			for (uint32 Index = 0; Index < CreateInfoCount; ++Index)
+			{
+				const VkGraphicsPipelineCreateInfo& CreateInfo = CreateInfos[Index];
+				DebugLog += FString::Printf(TEXT("%s%d: Flags=%d Stages=%d Layout=%p RenderPass=%p Subpass=%d\n"), Tabs, Index,
+					CreateInfo.flags, CreateInfo.stageCount, (void*)CreateInfo.layout, (void*)CreateInfo.renderPass, CreateInfo.subpass);
+/*
+				DebugLog += FString::Printf(TEXT(""));
+				typedef struct VkGraphicsPipelineCreateInfo {
+					const VkPipelineShaderStageCreateInfo*           pStages;
+					const VkPipelineVertexInputStateCreateInfo*      pVertexInputState;
+					const VkPipelineInputAssemblyStateCreateInfo*    pInputAssemblyState;
+					const VkPipelineTessellationStateCreateInfo*     pTessellationState;
+					const VkPipelineViewportStateCreateInfo*         pViewportState;
+					const VkPipelineRasterizationStateCreateInfo*    pRasterizationState;
+					const VkPipelineMultisampleStateCreateInfo*      pMultisampleState;
+					const VkPipelineDepthStencilStateCreateInfo*     pDepthStencilState;
+					const VkPipelineColorBlendStateCreateInfo*       pColorBlendState;
+					const VkPipelineDynamicStateCreateInfo*          pDynamicState;
+					VkPipeline                                       basePipelineHandle;
+					int32_t                                          basePipelineIndex;
+				} VkGraphicsPipelineCreateInfo;
+*/
+			}
+		}
+	}
+
 
 	static struct FGlobalDumpLog
 	{

@@ -127,6 +127,16 @@ public:
 		return ActiveCmdBuffer;
 	}
 
+	inline bool HasPendingUploadCmdBuffer() const
+	{
+		return UploadCmdBuffer != nullptr;
+	}
+
+	inline bool HasPendingActiveCmdBuffer() const
+	{
+		return ActiveCmdBuffer != nullptr;
+	}
+
 	FVulkanCmdBuffer* GetUploadCmdBuffer();
 
 	void SubmitUploadCmdBuffer(bool bWaitForFence);

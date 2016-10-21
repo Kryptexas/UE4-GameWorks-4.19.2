@@ -167,6 +167,11 @@ struct FExportMaterialCompiler : public FProxyMaterialCompiler
 		return Compiler->PreSkinnedPosition();
 	}
 
+	virtual int32 PreSkinnedNormal() override
+	{
+		return Compiler->PreSkinnedNormal();
+	}
+
 	virtual int32 LightVector() override
 	{
 		return Compiler->LightVector();
@@ -370,13 +375,6 @@ public:
 	/** helper for CompilePropertyAndSetMaterialProperty() */
 	int32 CompilePropertyAndSetMaterialPropertyWithoutCast(EMaterialProperty Property, FMaterialCompiler* Compiler) const
 	{
-		/*TScopedPointer<FMaterialCompiler> CompilerProxyHolder;
-		if (CompilerReplacer != nullptr)
-		{
-			CompilerProxyHolder = CompilerReplacer(Compiler);
-			Compiler = CompilerProxyHolder;
-		}*/
-
 		if (Property == MP_EmissiveColor)
 		{
 			UMaterial* ProxyMaterial = MaterialInterface->GetMaterial();
@@ -384,17 +382,18 @@ public:
 			EBlendMode BlendMode = MaterialInterface->GetBlendMode();
 			EMaterialShadingModel ShadingModel = MaterialInterface->GetShadingModel();
 			FExportMaterialCompiler ProxyCompiler(Compiler);
+			const uint32 ForceCast_Exact_Replicate = MFCF_ForceCast | MFCF_ExactMatch | MFCF_ReplicateValue;
 									
 			switch (PropertyToCompile)
 			{
 			case MP_EmissiveColor:
 				// Emissive is ALWAYS returned...
-				return Compiler->ForceCast(MaterialInterface->CompileProperty(&ProxyCompiler,MP_EmissiveColor),MCT_Float3,true,true);
+				return MaterialInterface->CompileProperty(&ProxyCompiler, MP_EmissiveColor, ForceCast_Exact_Replicate);
 			case MP_BaseColor:
 				// Only return for Opaque and Masked...
 				if (BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked)
 				{
-					return Compiler->ForceCast(MaterialInterface->CompileProperty(&ProxyCompiler, MP_BaseColor),MCT_Float3,true,true);
+					return MaterialInterface->CompileProperty(&ProxyCompiler, MP_BaseColor, ForceCast_Exact_Replicate);
 				}
 				break;
 			case MP_Specular: 
@@ -404,18 +403,16 @@ public:
 				// Only return for Opaque and Masked...
 				if (BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked)
 				{
-					return Compiler->ForceCast(MaterialInterface->CompileProperty(&ProxyCompiler, PropertyToCompile),MCT_Float,true,true);
+					return MaterialInterface->CompileProperty(&ProxyCompiler, PropertyToCompile, ForceCast_Exact_Replicate);
 				}
 				break;
 			case MP_Normal:
 				// Only return for Opaque and Masked...
 				if (BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked)
 				{
-					return Compiler->ForceCast( 
-						Compiler->Add( 
-							Compiler->Mul(MaterialInterface->CompileProperty(&ProxyCompiler, MP_Normal), Compiler->Constant(0.5f)), // [-1,1] * 0.5
-							Compiler->Constant(0.5f)), // [-0.5,0.5] + 0.5
-						MCT_Float3, true, true );
+					return Compiler->Add( 
+							Compiler->Mul(MaterialInterface->CompileProperty(&ProxyCompiler, MP_Normal, ForceCast_Exact_Replicate), Compiler->Constant(0.5f)), // [-1,1] * 0.5
+							Compiler->Constant(0.5f)); // [-0.5,0.5] + 0.5
 				}
 				break;
 			default:
@@ -1754,7 +1751,7 @@ void FMaterialUtilities::ResizeFlattenMaterial(FFlattenMaterial& InFlattenMateri
 }
 
 /** Computes the uniform scale from the input scales,  if one exists. */
-static bool GetUniformScale(const TArray<float> Scales, float& UniformScale)
+static float GetUniformScale(const TArray<float> Scales)
 {
 	if (Scales.Num())
 	{
@@ -1775,8 +1772,7 @@ static bool GetUniformScale(const TArray<float> Scales, float& UniformScale)
 
 		if (Mean * 15.f < Average) // If they are almost all the same
 		{
-			UniformScale = Average;
-			return true;
+			return Average;
 		}
 		else // Otherwise do a much more expensive test by counting the number of similar values
 		{
@@ -1814,13 +1810,12 @@ static bool GetUniformScale(const TArray<float> Scales, float& UniformScale)
 
 				if (TryMatches >= TryThreshold)
 				{
-					UniformScale = TryMinV;
-					return true;
+					return TryMinV;
 				}
 			}
 		}
 	}
-	return false;
+	return 0;
 }
 
 uint32 GetTypeHash(const FMaterialUtilities::FExportErrorManager::FError& Error)
@@ -1914,8 +1909,14 @@ void FMaterialUtilities::FExportErrorManager::OutputToLog()
 	}
 }
 
-bool FMaterialUtilities::ExportMaterialTexCoordScales(UMaterialInterface* InMaterial, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, TArray<FMaterialTextureInfo>& OutScales, FExportErrorManager& OutErrors)
+bool FMaterialUtilities::ExportMaterialUVDensities(UMaterialInterface* InMaterial, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, FExportErrorManager& OutErrors)
 {
+	check(InMaterial);
+
+	// Clear the build data.
+	TArray<FMaterialTextureInfo> TextureStreamingData;
+	InMaterial->SetTextureStreamingData(TextureStreamingData);
+
 	TArray<FFloat16Color> RenderedVectors;
 
 	TArray<UTexture*> Textures;
@@ -1924,21 +1925,9 @@ bool FMaterialUtilities::ExportMaterialTexCoordScales(UMaterialInterface* InMate
 
 	check(Textures.Num() >= Indices.Num()); // Can't have indices if no texture.
 
-	// Clear any entry not related to UTexture2D
-	for (int32 Index = 0; Index < Textures.Num(); ++Index)
-	{
-		if (!Cast<UTexture2D>(Textures[Index]))
-		{
-			Indices[Index].Empty(); 
-		}
-	}
-
 	const int32 SCALE_PRECISION = 64.f;
 
-	const bool bUseMetrics = CVarStreamingUseNewMetrics.GetValueOnGameThread() != 0;
-
 	int32 MaxRegisterIndex = INDEX_NONE;
-
 	for (const TArray<int32>& TextureIndices : Indices)
 	{
 		for (int32 RegisterIndex : TextureIndices)
@@ -1952,14 +1941,18 @@ bool FMaterialUtilities::ExportMaterialTexCoordScales(UMaterialInterface* InMate
 		return false;
 	}
 
-	TBitArray<> RegisterInUse(false, MaxRegisterIndex + 1);
-
-	// Set the validity flag.
-	for (const TArray<int32>& TextureIndices : Indices)
+	// Find the streaming texture for each material texture register index.
+	TArray<UTexture2D*> RegisterIndexToTextures;
+	RegisterIndexToTextures.AddZeroed(MaxRegisterIndex + 1);
+	for (int32 TextureIndex = 0; TextureIndex < Textures.Num(); ++TextureIndex)
 	{
-		for (int32 RegisterIndex : TextureIndices)
+		UTexture2D* Texture2D = Cast<UTexture2D>(Textures[TextureIndex]);
+		if (Texture2D) // Don't check IsStreamingTexture() yet as this could change before cooking.
 		{
-			RegisterInUse[RegisterIndex] = true;
+			for (int32 RegisterIndex : Indices[TextureIndex])
+			{
+				RegisterIndexToTextures[RegisterIndex] = Texture2D;
+			}
 		}
 	}
 
@@ -1995,43 +1988,22 @@ bool FMaterialUtilities::ExportMaterialTexCoordScales(UMaterialInterface* InMate
 		}
 	}
 
-	OutScales.AddDefaulted(MaxRegisterIndex + 1);
-
-	// Set the texture names
-	for (int32 Index = 0; Index < Textures.Num(); ++Index)
-	{
-		if (!Textures[Index] || !Indices.IsValidIndex(Index)) continue;
-		
-		for (int32 RegisterIndex : Indices[Index])
-		{
-			if (OutScales.IsValidIndex(RegisterIndex))
-			{
-				OutScales[RegisterIndex].TextureName = Textures[Index]->GetFName();
-			}
-		}
-	}
-
-	TArray<float> TextureIndexScales;
-
-	// Now compute the scale for each
+	// Now compute the scale for each texture index (several indices could map to the same texture)
 	for (int32 RegisterIndex = 0; RegisterIndex <= MaxRegisterIndex; ++RegisterIndex)
 	{
-		if (!RegisterInUse[RegisterIndex]) continue;
-
-		FMaterialTextureInfo& TextureInfo = OutScales[RegisterIndex];
-		// If nothing works, this will fallback to 1.f
-		TextureInfo.SamplingScale = 1.f;
-		TextureInfo.UVChannelIndex = 0;
-
-		if (!bUseMetrics) continue; // Old metrics would always use 1.f
+		UTexture2D* Texture2D = RegisterIndexToTextures[RegisterIndex];
+		if (!Texture2D) continue; // Only handle streaming textures
 
 		int32 TextureTile = RegisterIndex / 4;
 		int32 ComponentIndex = RegisterIndex % 4;
 
 		bool bSuccess = false;
+		bool bHadAnyValues = false;
+
 		for (int32 CoordIndex = 0; CoordIndex < TEXSTREAM_MAX_NUM_UVCHANNELS && !bSuccess; ++CoordIndex)
 		{
-			TextureIndexScales.Empty(TEXSTREAM_TILE_RESOLUTION * TEXSTREAM_TILE_RESOLUTION);
+			TArray<float> TextureScales;
+			TextureScales.Empty(TEXSTREAM_TILE_RESOLUTION * TEXSTREAM_TILE_RESOLUTION);
 			for (int32 TexelX = 0; TexelX < TEXSTREAM_TILE_RESOLUTION; ++TexelX)
 			{
 				for (int32 TexelY = 0; TexelY < TEXSTREAM_TILE_RESOLUTION; ++TexelY)
@@ -2050,24 +2022,37 @@ bool FMaterialUtilities::ExportMaterialTexCoordScales(UMaterialInterface* InMate
 
 					if (TexelScale > 0 && TexelScale < TEXSTREAM_INITIAL_GPU_SCALE)
 					{
-						TextureIndexScales.Push(TexelScale);
+						TextureScales.Push(TexelScale);
 					}
 				}
 			}
 
-			if (GetUniformScale(TextureIndexScales, TextureInfo.SamplingScale))
+			const float SamplingScale = GetUniformScale(TextureScales);
+			if (SamplingScale > 0)
 			{
+				FMaterialTextureInfo TextureInfo;
+				TextureInfo.SamplingScale = SamplingScale;
 				TextureInfo.UVChannelIndex = CoordIndex;
+				TextureInfo.TextureReference = FStringAssetReference(Texture2D);
+				TextureInfo.TextureIndex = RegisterIndex;
+				TextureStreamingData.Add(TextureInfo);
 				bSuccess = true;
+			}
+			else if (TextureScales.Num())
+			{
+				bHadAnyValues = true;
 			}
 		}
 
 		// If we couldn't find the scale, then output a warning detailing which index, texture, material is having an issue.
 		if (!bSuccess)
 		{
-			OutErrors.Register(InMaterial, TextureInfo.TextureName, RegisterIndex, TextureIndexScales.Num() ? FExportErrorManager::EErrorType::EET_IncohorentValues : FExportErrorManager::EErrorType::EET_NoValues);
+			OutErrors.Register(InMaterial, Texture2D->GetFName(), RegisterIndex, bHadAnyValues ? FExportErrorManager::EErrorType::EET_IncohorentValues : FExportErrorManager::EErrorType::EET_NoValues);
 		}
 	}
+
+	// Update to the final data.
+	InMaterial->SetTextureStreamingData(TextureStreamingData);
 
 	return true;
 }

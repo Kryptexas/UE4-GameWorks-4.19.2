@@ -187,7 +187,7 @@ void RunBenchmarkShader(FRHICommandList& RHICmdList, FVertexBufferRHIParamRef Ve
 	TShaderMapRef<FPostProcessBenchmarkVS<VsMethod>> VertexShader(ShaderMap);
 	TShaderMapRef<FPostProcessBenchmarkPS<PsMethod>> PixelShader(ShaderMap);
 
-	bool bVertexTest = VsMethod == 1;
+	bool bVertexTest = VsMethod != 0;
 	FVertexDeclarationRHIParamRef VertexDeclaration = bVertexTest
 		? GVertexThroughputDeclaration.DeclRHI
 		: GFilterVertexDeclaration.VertexDeclarationRHI;
@@ -210,7 +210,8 @@ void RunBenchmarkShader(FRHICommandList& RHICmdList, FVertexBufferRHIParamRef Ve
 			uint32 VerticesThisPass = FMath::Min(TotalNumVertices, GBenchmarkVertices);
 			uint32 PrimitivesThisPass = VerticesThisPass / 3;
 
-			RHICmdList.SetStreamSource(0, VertexThroughputBuffer, sizeof(FBenchmarkVertex), 0);
+			RHICmdList.SetStreamSource(0, VertexThroughputBuffer, VertexThroughputBuffer ? sizeof(FBenchmarkVertex) : 0, 0);
+
 			RHICmdList.DrawPrimitive(PT_TriangleList, 0, PrimitivesThisPass, 1);
 
 			TotalNumVertices -= VerticesThisPass;
@@ -258,7 +259,7 @@ void RunBenchmarkShader(FRHICommandListImmediate& RHICmdList, FVertexBufferRHIPa
 		case 3: RunBenchmarkShader<0, 3>(RHICmdList, VertexThroughputBuffer, View, Src, WorkScale); return;
 		case 4: RunBenchmarkShader<0, 4>(RHICmdList, VertexThroughputBuffer, View, Src, WorkScale); return;
 		case 5: RunBenchmarkShader<1, 5>(RHICmdList, VertexThroughputBuffer, View, Src, WorkScale); return;
-		case 6: RunBenchmarkShader<1, 5>(RHICmdList,                nullptr, View, Src, WorkScale); return;
+		case 6: RunBenchmarkShader<2, 5>(RHICmdList,                nullptr, View, Src, WorkScale); return;
 		default:
 			check(0);
 	}

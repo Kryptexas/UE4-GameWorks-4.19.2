@@ -3282,7 +3282,7 @@ void UWorld::InitializeActorsForPlay(const FURL& InURL, bool bResetTime)
 		IStreamingManager::Get().AddLevel(Level);
 	}
 
-	CheckTextureStreamingBuild(this);
+	CheckTextureStreamingBuildValidity(this);
 
 	if(IsPreviewWorld())
 	{

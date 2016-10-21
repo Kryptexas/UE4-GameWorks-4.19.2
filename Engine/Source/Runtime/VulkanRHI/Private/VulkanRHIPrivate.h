@@ -227,14 +227,8 @@ public:
 	}
 
 	TArray<VkImageView> AttachmentViews;
-#if VULKAN_USE_NEW_RENDERPASSES
 	TArray<VkImageView> AttachmentViewsToDelete;
-#endif
 	TArray<VkImageSubresourceRange> SubresourceRanges;
-
-#if !VULKAN_USE_NEW_RENDERPASSES
-	void InsertWriteBarriers(FVulkanCmdBuffer* CmdBuffer);
-#endif
 
 	inline bool ContainsRenderTarget(FRHITexture* Texture) const
 	{
@@ -261,25 +255,28 @@ public:
 		for (int32 Index = 0; Index < FMath::Min((int32)NumColorAttachments, RTInfo.NumColorRenderTargets); ++Index)
 		{
 			FRHITexture* RHITexture = RTInfo.ColorRenderTarget[Index].Texture;
-			if (auto* Texture2D = RHITexture->GetTexture2D())
+			if (RHITexture)
 			{
-				if (Image == ((FVulkanTexture2D*)Texture2D)->Surface.Image)
+				if (auto* Texture2D = RHITexture->GetTexture2D())
 				{
-					return true;
+					if (Image == ((FVulkanTexture2D*)Texture2D)->Surface.Image)
+					{
+						return true;
+					}
 				}
-			}
-			else if (auto* TextureCube = RHITexture->GetTextureCube())
-			{
-				if (Image == ((FVulkanTextureCube*)TextureCube)->Surface.Image)
+				else if (auto* TextureCube = RHITexture->GetTextureCube())
 				{
-					return true;
+					if (Image == ((FVulkanTextureCube*)TextureCube)->Surface.Image)
+					{
+						return true;
+					}
 				}
-			}
-			else if (auto* Texture3D = RHITexture->GetTexture3D())
-			{
-				if (Image == ((FVulkanTexture3D*)Texture3D)->Surface.Image)
+				else if (auto* Texture3D = RHITexture->GetTexture3D())
 				{
-					return true;
+					if (Image == ((FVulkanTexture3D*)Texture3D)->Surface.Image)
+					{
+						return true;
+					}
 				}
 			}
 		}
@@ -621,6 +618,8 @@ namespace VulkanRHI
 			Flags = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
 			break;
 		case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+			Flags = VK_ACCESS_MEMORY_READ_BIT;
+			break;
 		case VK_IMAGE_LAYOUT_GENERAL:
 		case VK_IMAGE_LAYOUT_UNDEFINED:
 			Flags = 0;

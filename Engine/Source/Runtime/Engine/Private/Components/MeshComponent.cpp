@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Streaming/TextureStreamingHelpers.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMaterialParameter, Warning, All);
 
@@ -338,6 +339,21 @@ void UMeshComponent::CacheMaterialParameterNameIndices()
 	}
 
 	bCachedMaterialParameterIndicesAreDirty = false;
+}
+
+void UMeshComponent::GetStreamingTextureInfoInner(FStreamingTextureLevelContext& LevelContext, const TArray<FStreamingTextureBuildInfo>* PreBuiltData, float ComponentScaling, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
+{
+	LevelContext.BindBuildData(PreBuiltData);
+
+	const int32 NumMaterials = GetNumMaterials();
+	for (int32 MaterialIndex = 0; MaterialIndex < NumMaterials; ++MaterialIndex)
+	{
+		FPrimitiveMaterialInfo MaterialData;
+		if (GetMaterialStreamingData(MaterialIndex, MaterialData))
+		{
+			LevelContext.ProcessMaterial(MaterialData, ComponentScaling, OutStreamingTextures);
+		}
+	}
 }
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)

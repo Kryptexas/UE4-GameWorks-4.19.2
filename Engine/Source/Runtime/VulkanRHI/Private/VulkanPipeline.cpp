@@ -60,6 +60,21 @@ FVulkanPipeline::~FVulkanPipeline()
 #endif
 }
 
+FVulkanComputePipeline::FVulkanComputePipeline(FVulkanDevice* InDevice, FVulkanComputeShaderState* CSS)
+	: FVulkanPipeline(InDevice)
+{
+	//#todo-rco: Move to shader pipeline
+	VkComputePipelineCreateInfo PipelineInfo;
+	FMemory::Memzero(PipelineInfo);
+	PipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+	PipelineInfo.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	PipelineInfo.stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+	PipelineInfo.stage.module = CSS->ComputeShader->GetHandle();
+	PipelineInfo.stage.pName = "main";
+	PipelineInfo.layout = CSS->GetPipelineLayout();
+	VERIFYVULKANRESULT(VulkanRHI::vkCreateComputePipelines(Device->GetInstanceHandle(), VK_NULL_HANDLE, 1, &PipelineInfo, nullptr, &Pipeline));
+}
+
 #if !VULKAN_ENABLE_PIPELINE_CACHE
 void FVulkanGfxPipeline::Create(const FVulkanGfxPipelineState& State)
 {
@@ -75,18 +90,13 @@ void FVulkanGfxPipeline::Create(const FVulkanGfxPipelineState& State)
 	VkPipelineColorBlendStateCreateInfo CBInfo;
 	FMemory::Memzero(CBInfo);
 	CBInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-#if VULKAN_USE_NEW_RENDERPASSES
 	CBInfo.attachmentCount = State.RenderPass->GetLayout().GetNumColorAttachments();
-#else
-	CBInfo.attachmentCount = State.FrameBuffer->GetNumColorAttachments();
-#endif
 	CBInfo.pAttachments = State.BlendState->BlendStates;
-#if VULKAN_USE_NEW_RENDERPASSES
 	CBInfo.blendConstants[0] = 1.0f;
 	CBInfo.blendConstants[1] = 1.0f;
 	CBInfo.blendConstants[2] = 1.0f;
 	CBInfo.blendConstants[3] = 1.0f;
-#endif
+
 	// Viewport
 	VkPipelineViewportStateCreateInfo VPInfo;
 	FMemory::Memzero(VPInfo);
@@ -363,11 +373,7 @@ void FVulkanPipelineStateCache::Save(FString& CacheFilename)
 	}
 }
 
-#if VULKAN_USE_NEW_RENDERPASSES
 void FVulkanPipelineStateCache::CreateAndAdd(FVulkanRenderPass* RenderPass, const FVulkanGfxPipelineStateKey& CreateInfo, FVulkanGfxPipeline* Pipeline, const FVulkanGfxPipelineState& State, const FVulkanBoundShaderState& BSS)
-#else
-void FVulkanPipelineStateCache::CreateAndAdd(const FVulkanGfxPipelineStateKey& CreateInfo, FVulkanGfxPipeline* Pipeline, const FVulkanGfxPipelineState& State, const FVulkanBoundShaderState& BSS)
-#endif
 {
 	//if (EnablePipelineCacheCvar.GetValueOnRenderThread() == 1)
 	//SCOPE_CYCLE_COUNTER(STAT_VulkanCreatePipeline);
@@ -375,11 +381,7 @@ void FVulkanPipelineStateCache::CreateAndAdd(const FVulkanGfxPipelineStateKey& C
 	FGfxPipelineEntry* GfxEntry = new FGfxPipelineEntry();
 	GfxEntry->GraphicsKey = CreateInfo.PipelineKey;
 	GfxEntry->VertexInputKey = CreateInfo.VertexInputKey;
-#if VULKAN_USE_NEW_RENDERPASSES
 	PopulateGfxEntry(State, RenderPass, GfxEntry);
-#else
-	PopulateGfxEntry(State, State.RenderPass, GfxEntry);
-#endif
 
 	// Create the pipeline
 	CreateGfxPipelineFromEntry(GfxEntry, Pipeline);
@@ -812,12 +814,11 @@ void FVulkanPipelineStateCache::CreateGfxPipelineFromEntry(const FGfxPipelineEnt
 		GfxEntry->ColorAttachmentStates[Index].WriteInto(BlendStates[Index]);
 	}
 	CBInfo.pAttachments = BlendStates;
-#if VULKAN_USE_NEW_RENDERPASSES
 	CBInfo.blendConstants[0] = 1.0f;
 	CBInfo.blendConstants[1] = 1.0f;
 	CBInfo.blendConstants[2] = 1.0f;
 	CBInfo.blendConstants[3] = 1.0f;
-#endif
+
 	// Viewport
 	VkPipelineViewportStateCreateInfo VPInfo;
 	FMemory::Memzero(VPInfo);
@@ -919,18 +920,10 @@ void FVulkanPipelineStateCache::CreateGfxPipelineFromEntry(const FGfxPipelineEnt
 
 void FVulkanPipelineStateCache::PopulateGfxEntry(const FVulkanGfxPipelineState& State, const FVulkanRenderPass* RenderPass, FVulkanPipelineStateCache::FGfxPipelineEntry* OutGfxEntry)
 {
-#if VULKAN_USE_NEW_RENDERPASSES
 	OutGfxEntry->RasterizationSamples = RenderPass->GetLayout().GetAttachmentDescriptions()[0].samples;
-#else
-	OutGfxEntry->RasterizationSamples = State.RenderPass->GetLayout().GetAttachmentDescriptions()[0].samples;
-#endif
 	OutGfxEntry->Topology = (uint32)State.InputAssembly.topology;
 
-#if VULKAN_USE_NEW_RENDERPASSES
 	OutGfxEntry->ColorAttachmentStates.AddUninitialized(RenderPass->GetLayout().GetNumColorAttachments());
-#else
-	OutGfxEntry->ColorAttachmentStates.AddUninitialized(State.FrameBuffer->GetNumColorAttachments());
-#endif
 	for (int32 Index = 0; Index < OutGfxEntry->ColorAttachmentStates.Num(); ++Index)
 	{
 		OutGfxEntry->ColorAttachmentStates[Index].ReadFrom(State.BlendState->BlendStates[Index]);

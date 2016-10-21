@@ -627,30 +627,20 @@ bool USkinnedMeshComponent::ShouldCPUSkin()
 	return bCPUSkinning;
 }
 
+bool USkinnedMeshComponent::GetMaterialStreamingData(int32 MaterialIndex, FPrimitiveMaterialInfo& MaterialData) const
+{
+	if (SkeletalMesh)
+	{
+		MaterialData.Material = GetMaterial(MaterialIndex);
+		MaterialData.UVChannelData = SkeletalMesh->GetUVChannelData(MaterialIndex);
+		MaterialData.Bounds = Bounds.GetBox();
+	}
+	return MaterialData.IsValid();
+}
+
 void USkinnedMeshComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
 {
-	if( SkeletalMesh )
-	{
-		const ERHIFeatureLevel::Type FeatureLevel = GetWorld() ? GetWorld()->FeatureLevel : GMaxRHIFeatureLevel;
-		const int32 NumMaterials = GetNumMaterials();
-
-		const float TransformScale = ComponentToWorld.GetMaximumAxisScale();
-		LevelContext.BindComponent(nullptr, Bounds, TransformScale * StreamingDistanceMultiplier);
-
-		// Process the material entries.
-		for (int32 MaterialIndex = 0; MaterialIndex < NumMaterials; ++MaterialIndex)
-		{
-			UMaterialInterface* Material = GetMaterial(MaterialIndex);
-			if (!Material) continue;
-
-			// Enumerate the textures used by the material.
-			TArray<UTexture*> Textures;
-			Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, FeatureLevel, false);
-
-			const FMeshUVChannelInfo* UVChannelData = SkeletalMesh->GetUVChannelData(MaterialIndex);
-			LevelContext.Process(Textures, UVChannelData ? UVChannelData->LocalUVDensities[0] : 1.f, OutStreamingTextures);
-		}
-	}
+	GetStreamingTextureInfoInner(LevelContext, nullptr, ComponentToWorld.GetMaximumAxisScale(), OutStreamingTextures);
 }
 
 bool USkinnedMeshComponent::ShouldUpdateBoneVisibility() const

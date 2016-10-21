@@ -302,7 +302,7 @@ struct FMeshMergingSettings
 	bool bGenerateLightMapUV;
 
 	/** Target lightmap resolution */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = MeshSettings)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = MeshSettings, meta=(ClampMax = 4096))
 	int32 TargetLightMapResolution;
 
 	/** Whether we should import vertex colors into merged mesh */

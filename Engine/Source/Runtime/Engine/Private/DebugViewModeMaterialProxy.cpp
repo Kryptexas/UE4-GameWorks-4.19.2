@@ -71,7 +71,7 @@ void FDebugViewModeMaterialProxy::ClearAllShaders()
 	bReentrantCall = false;
 }
 
-void FDebugViewModeMaterialProxy::ValidateAllShaders(OUT FTexCoordScaleMap& TexCoordScales)
+void FDebugViewModeMaterialProxy::ValidateAllShaders(TSet<UMaterialInterface*>& Materials)
 {
 	FlushRenderingCommands();
 
@@ -92,7 +92,7 @@ void FDebugViewModeMaterialProxy::ValidateAllShaders(OUT FTexCoordScaleMap& TexC
 
 				// Here we can't destroy the invalid material because it would trigger ClearAllShaders.
 				DebugMaterial->MarkAsInvalid();
-				TexCoordScales.Remove(DebugMaterial->GetMaterialInterface());
+				Materials.Remove(const_cast<UMaterialInterface*>(DebugMaterial->GetMaterialInterface()));
 			}
 		}
 		else if (DebugMaterial)
@@ -101,7 +101,7 @@ void FDebugViewModeMaterialProxy::ValidateAllShaders(OUT FTexCoordScaleMap& TexC
 
 			// Here we can't destroy the invalid material because it would trigger ClearAllShaders.
 			DebugMaterial->MarkAsInvalid();
-			TexCoordScales.Remove(DebugMaterial->GetMaterialInterface());
+			Materials.Remove(const_cast<UMaterialInterface*>(DebugMaterial->GetMaterialInterface()));
 		}
 	}
 }

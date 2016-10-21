@@ -421,7 +421,7 @@ void FRCPassPostProcessScreenSpaceReflections::Process(FRenderingCompositePassCo
 		}
 
 		// clear DestRenderTarget only outside of the view's rectangle
-		RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black, View.ViewRect);
+		DrawClearQuad(RHICmdList, SceneContext.GetCurrentFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, View.ViewRect);
 
 		// set the state
 		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());

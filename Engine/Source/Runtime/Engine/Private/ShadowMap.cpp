@@ -198,7 +198,7 @@ struct FShadowMapPendingTexture : FTextureLayout
 	 * Minimal initialization constructor.
 	 */
 	FShadowMapPendingTexture(uint32 InSizeX,uint32 InSizeY)
-		: FTextureLayout(4, 4, InSizeX, InSizeY, /* PowerOfTwo */ true, /* AlignByFour */ true) // Min size is 4x4 in case of block compression.
+		: FTextureLayout(4, 4, InSizeX, InSizeY, /* PowerOfTwo */ true, /* Force2To1Aspect */ true, /* AlignByFour */ true) // Min size is 4x4 in case of block compression.
 		, Bounds(FBox(0))
 		, ShadowmapFlags(SMF_None)
 		, UnallocatedTexels(InSizeX * InSizeY)
@@ -445,7 +445,7 @@ TRefCountPtr<FShadowMap2D> FShadowMap2D::AllocateShadowMap(
 	check(ShadowMapData.Num() > 0);
 
 	FShadowMapAllocationGroup AllocationGroup;
-	AllocationGroup.TextureOuter = LightMapOuter->GetOutermost();
+	AllocationGroup.TextureOuter = LightMapOuter;
 	AllocationGroup.ShadowmapFlags = InShadowmapFlags;
 	AllocationGroup.Bounds = Bounds;
 	if (!GAllowStreamingLightmaps)
@@ -656,7 +656,7 @@ TRefCountPtr<FShadowMap2D> FShadowMap2D::AllocateInstancedShadowMap(UObject* Lig
 	}
 
 	FShadowMapAllocationGroup AllocationGroup;
-	AllocationGroup.TextureOuter = LightMapOuter->GetOutermost();
+	AllocationGroup.TextureOuter = LightMapOuter;
 	AllocationGroup.ShadowmapFlags = InShadowmapFlags;
 	AllocationGroup.Bounds = Bounds;
 	if (!GAllowStreamingLightmaps)

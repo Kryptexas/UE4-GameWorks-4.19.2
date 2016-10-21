@@ -87,6 +87,12 @@ TArray<FPooledUniformBuffer> SafeUniformBufferPools[NUM_SAFE_FRAMES][NUM_POOL_BU
 
 static FCriticalSection GMutex;
 
+#if METAL_DEBUG_OPTIONS
+extern int32 GMetalBufferScribble;
+extern int32 GMetalBufferZeroFill;
+extern void ScribbleBuffer(id<MTLBuffer> Buffer);
+#endif
+
 // Does per-frame global updating for the uniform buffer pool.
 void InitFrame_UniformBufferPoolCleanup()
 {
@@ -105,6 +111,16 @@ void InitFrame_UniformBufferPoolCleanup()
 	// Merge the bucket into the free pool array
 	for (int32 BucketIndex = 0; BucketIndex < NUM_POOL_BUCKETS; BucketIndex++)
 	{
+#if METAL_DEBUG_OPTIONS
+		if (GMetalBufferScribble)
+		{
+			for (FPooledUniformBuffer UB : SafeUniformBufferPools[SafeFrameIndex][BucketIndex])
+			{
+				ScribbleBuffer(UB.Buffer);
+			}
+		}
+#endif
+		
 		UniformBufferPool[BucketIndex].Append(SafeUniformBufferPools[SafeFrameIndex][BucketIndex]);
 		SafeUniformBufferPools[SafeFrameIndex][BucketIndex].Reset();
 	}
@@ -213,6 +229,13 @@ FMetalUniformBuffer::FMetalUniformBuffer(const void* Contents, const FRHIUniform
 						uint32 BufferSize = UniformBufferSizeBuckets[BucketIndex];
 						Buffer = SuballocateUB(BufferSize, Offset);
 					}
+					
+#if METAL_DEBUG_OPTIONS
+					if (GMetalBufferZeroFill)
+					{
+						FMemory::Memset([Buffer contents], 0x0, Buffer.length);
+					}
+#endif
 					
 					if(GUseRHIThread)
 					{

@@ -593,12 +593,15 @@ public:
 		int32 LocalOptionalDataSize = GetOptionalDataSize();
 
 		const uint8* Start = End - LocalOptionalDataSize;
+		// while searching don't include the optional data size
+		End = End - sizeof(LocalOptionalDataSize);
 		const uint8* Current = Start;
 
 		while(Current < End)
 		{
 			uint8 Key = *Current++;
-			uint8 Size = *Current++;
+			uint32 Size = *((const uint32*)Current);
+			Current += sizeof(Size);
 
 			if(Key == InKey && Size == ValueSize)
 			{
@@ -620,12 +623,15 @@ public:
 		int32 LocalOptionalDataSize = GetOptionalDataSize();
 
 		const uint8* Start = End - LocalOptionalDataSize;
+		// while searching don't include the optional data size
+		End = End - sizeof(LocalOptionalDataSize);
 		const uint8* Current = Start;
 
 		while(Current < End)
 		{
 			uint8 Key = *Current++;
-			uint8 Size = *Current++;
+			uint32 Size = *((const uint32*)Current);
+			Current += sizeof(Size);
 
 			if(Key == InKey)
 			{
@@ -648,12 +654,15 @@ public:
 		int32 LocalOptionalDataSize = GetOptionalDataSize();
 
 		const uint8* Start = End - LocalOptionalDataSize;
+		// while searching don't include the optional data size
+		End = End - sizeof(LocalOptionalDataSize);
 		const uint8* Current = Start;
 
 		while (Current < End)
 		{
 			uint8 Key = *Current++;
-			uint8 Size = *Current++;
+			uint32 Size = *((const uint32*)Current);
+			Current += sizeof(Size);
 
 			if (Key == InKey)
 			{
@@ -670,15 +679,15 @@ public:
 
 	int32 GetOptionalDataSize() const
 	{
-		if(ShaderCode.Num() < 2)
+		if(ShaderCode.Num() < sizeof(int32))
 		{
 			return 0;
 		}
 
 		const uint8* End = &ShaderCode[0] + ShaderCode.Num();
-
-		int32 LocalOptionalDataSize = (((uint32)End[-2]) << 8 ) + ((uint32)End[-1]);
-
+		
+		int32 LocalOptionalDataSize = ((const uint32*)End)[-1];
+		
 		check(LocalOptionalDataSize >= 0);
 		check(ShaderCode.Num() >= LocalOptionalDataSize);
 
@@ -710,12 +719,8 @@ public:
 	{
 		if(OptionalDataSize != -1)
 		{
-			OptionalDataSize += sizeof(uint8) + sizeof(uint8);
-
-			check(OptionalDataSize <= 0xffff);
-
-			ShaderCodeWithOptionalData.Add(OptionalDataSize >> 8);
-			ShaderCodeWithOptionalData.Add(OptionalDataSize);
+			OptionalDataSize += sizeof(OptionalDataSize);
+			ShaderCodeWithOptionalData.Append((const uint8*)&OptionalDataSize, sizeof(OptionalDataSize));
 			OptionalDataSize = -1;
 		}
 	}
@@ -762,19 +767,18 @@ public:
 	// Note: we don't hash the optional attachments in GenerateOutputHash() as they would prevent sharing (e.g. many material share the save VS)
 	// can be called after the non optional data was stored in ShaderData
 	// @param Key uint8 to save memory so max 255, e.g. FShaderCodePackedResourceCounts::Key
-	// @param Size max 255, >0, check if too large
+	// @param Size >0, only restriction is that sum of all optional data values must be < 4GB
 	void AddOptionalData(uint8 Key, const uint8* ValuePtr, uint32 ValueSize)
 	{
-		check(ValueSize <= 255);
 		check(ValuePtr);
 
 		// don't add after Finalize happened
 		check(OptionalDataSize >= 0);
-
+		
 		ShaderCodeWithOptionalData.Add(Key);
-		ShaderCodeWithOptionalData.Add(ValueSize);
+		ShaderCodeWithOptionalData.Append((const uint8*)&ValueSize, sizeof(ValueSize));
 		ShaderCodeWithOptionalData.Append(ValuePtr, ValueSize);
-		OptionalDataSize += sizeof(uint8) + sizeof(uint8) + (uint32)ValueSize;
+		OptionalDataSize += sizeof(uint8) + sizeof(ValueSize) + (uint32)ValueSize;
 	}
 
 	// Note: we don't hash the optional attachments in GenerateOutputHash() as they would prevent sharing (e.g. many material share the save VS)
@@ -783,11 +787,7 @@ public:
 	void AddOptionalData(uint8 Key, const ANSICHAR* InString)
 	{
 		uint32 Size = FCStringAnsi::Strlen(InString) + 1;
-
-		if(Size < 255)
-		{
-			AddOptionalData(Key, (uint8*)InString, Size);
-		}
+		AddOptionalData(Key, (uint8*)InString, Size);
 	}
 
 	friend FArchive& operator<<(FArchive& Ar, FShaderCode& Output)

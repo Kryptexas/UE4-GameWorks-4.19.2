@@ -15,6 +15,7 @@
 #include "Public/LightPropagationVolumeBlendable.h"
 #include "Engine/EngineTypes.h"
 #include "WideCustomResolveShaders.h"
+#include "ClearQuad.h"
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FGBufferResourceStruct,TEXT("GBuffers"));
 
@@ -1253,7 +1254,8 @@ void FSceneRenderTargets::BeginRenderingTranslucency(FRHICommandList& RHICmdList
 	if (bFirstTimeThisFrame)
 	{
 		// Clear the stencil buffer for ResponsiveAA
-		RHICmdList.ClearDepthStencilTexture(GetSceneDepthSurface(), EClearDepthStencil::Stencil, (float)ERHIZBuffer::FarPlane, 0, View.ViewRect);
+		const FTexture2DRHIRef& DepthSurface = GetSceneDepthSurface();
+		DrawClearQuad(RHICmdList, CurrentFeatureLevel, false, FLinearColor(), false, 0, true, 0, FIntPoint(DepthSurface->GetSizeX(), DepthSurface->GetSizeY()), View.ViewRect);
 	}
 		
 	// viewport to match view size

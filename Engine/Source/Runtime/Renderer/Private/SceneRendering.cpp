@@ -32,6 +32,14 @@ extern ENGINE_API UPrimitiveComponent* GDebugSelectedComponent;
 
 DECLARE_FLOAT_COUNTER_STAT(TEXT("Custom Depth"), Stat_GPU_CustomDepth, STATGROUP_GPU);
 
+static TAutoConsoleVariable<int32> CVarCustomDepthTemporalAAJitter(
+	TEXT("r.CustomDepthTemporalAAJitter"),
+	1,
+	TEXT("If disabled the Engine will remove the TemporalAA Jitter from the Custom Depth Pass. Only has effect when TemporalAA is used."),
+	ECVF_RenderThreadSafe
+);
+
+
 /**
  * Console variable controlling whether or not occlusion queries are allowed.
  */
@@ -380,8 +388,6 @@ void FViewInfo::Init()
 	bSceneHasDecals = 0;
 
 	bIsViewInfo = true;
-	PrevViewProjMatrix.SetIdentity();
-	PrevViewRotationProjMatrix.SetIdentity();
 	
 	bUsesGlobalDistanceField = false;
 	bUsesLightingChannels = false;
@@ -528,8 +534,8 @@ void UpdateNoiseTextureParameters(FViewUniformShaderParameters& ViewUniformShade
 /** Creates the view's uniform buffers given a set of view transforms. */
 void FViewInfo::SetupUniformBufferParameters(
 	FSceneRenderTargets& SceneContext,
-	const FMatrix& EffectiveTranslatedViewMatrix, 
-	const FMatrix& EffectiveViewToTranslatedWorld, 
+	const FViewMatrices& InViewMatrices,
+	const FViewMatrices& InPrevViewMatrices,
 	FBox* OutTranslucentCascadeBoundsArray, 
 	int32 NumTranslucentCascades,
 	FViewUniformShaderParameters& ViewUniformShaderParameters) const
@@ -546,11 +552,9 @@ void FViewInfo::SetupUniformBufferParameters(
 		ViewUniformShaderParameters, 
 		SceneContext.GetBufferSizeXY(),
 		EffectiveViewRect,
-		EffectiveTranslatedViewMatrix, 
-		EffectiveViewToTranslatedWorld, 
-		PrevViewMatrices, 
-		PrevViewProjMatrix, 
-		PrevViewRotationProjMatrix);
+		InViewMatrices,
+		InPrevViewMatrices
+	);
 
 
 	const bool bCheckerboardSubsurfaceRendering = FRCPassPostProcessSubsurface::RequiresCheckerboardSubsurfaceRendering( SceneContext.GetSceneColorFormat() );
@@ -643,7 +647,7 @@ void FViewInfo::SetupUniformBufferParameters(
 	ViewUniformShaderParameters.AtmosphereIrradianceTextureSampler_UB = TStaticSamplerState<SF_Bilinear>::GetRHI();
 	ViewUniformShaderParameters.AtmosphereInscatterTextureSampler_UB = TStaticSamplerState<SF_Bilinear>::GetRHI();
 
-	// This should probably be in SetupCommonViewUniformBufferParameters, but drags in too many dependancies
+	// This should probably be in SetupCommonViewUniformBufferParameters, but drags in too many dependencies
 	UpdateNoiseTextureParameters(ViewUniformShaderParameters);
 
 	SetupDefaultGlobalDistanceFieldUniformBufferParameters(ViewUniformShaderParameters);
@@ -818,9 +822,6 @@ void FViewInfo::InitRHIResources()
 {
 	FBox VolumeBounds[TVC_MAX];
 
-	/** The view transform, starting from world-space points translated by -ViewOrigin. */
-	FMatrix TranslatedViewMatrix = FTranslationMatrix(-ViewMatrices.GetPreViewTranslation()) * ViewMatrices.GetViewMatrix();
-
 	check(IsInRenderingThread());
 
 	CachedViewUniformShaderParameters = new FViewUniformShaderParameters();
@@ -829,8 +830,6 @@ void FViewInfo::InitRHIResources()
 
 	SetupUniformBufferParameters(
 		SceneContext,
-		TranslatedViewMatrix,
-		ViewMatrices.GetInvViewMatrix() * FTranslationMatrix(ViewMatrices.GetPreViewTranslation()),
 		VolumeBounds,
 		TVC_MAX,
 		*CachedViewUniformShaderParameters);
@@ -875,6 +874,10 @@ FViewInfo* FViewInfo::CreateSnapshot() const
 	// we want these to start null without a reference count, since we clear a ref later
 	TUniformBufferRef<FViewUniformShaderParameters> NullViewUniformBuffer;
 	FMemory::Memcpy(Result->ViewUniformBuffer, NullViewUniformBuffer); 
+	FMemory::Memcpy(Result->DownsampledTranslucencyViewUniformBuffer, NullViewUniformBuffer);
+	TUniformBufferRef<FMobileDirectionalLightShaderParameters> NullMobileDirectionalLightUniformBuffer;
+	for (size_t i = 0; i < ARRAY_COUNT(Result->MobileDirectionalLightUniformBuffers); i++)
+		FMemory::Memcpy(Result->MobileDirectionalLightUniformBuffers[i], NullMobileDirectionalLightUniformBuffer);
 
 	TScopedPointer<FViewUniformShaderParameters> NullViewParameters;
 	FMemory::Memcpy(Result->CachedViewUniformShaderParameters, NullViewParameters); 
@@ -1447,7 +1450,27 @@ void FSceneRenderer::RenderCustomDepthPass(FRHICommandListImmediate& RHICmdList)
 				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI());
 			}
 
-			View.CustomDepthSet.DrawPrims(RHICmdList, View, bWriteCustomStencilValues);
+			if ((CVarCustomDepthTemporalAAJitter.GetValueOnRenderThread() == 0) && (View.AntiAliasingMethod == AAM_TemporalAA))
+			{
+				FBox VolumeBounds[TVC_MAX];
+
+				FViewMatrices ModifiedViewMatricies = View.ViewMatrices;
+				ModifiedViewMatricies.HackRemoveTemporalAAProjectionJitter();
+				FViewUniformShaderParameters OverriddenViewUniformShaderParameters;
+				View.SetupUniformBufferParameters(
+					SceneContext,
+					ModifiedViewMatricies,
+					ModifiedViewMatricies,
+					VolumeBounds,
+					TVC_MAX,
+					OverriddenViewUniformShaderParameters);
+				TUniformBufferRef<FViewUniformShaderParameters> OverriddenViewUniformBuffer = TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(OverriddenViewUniformShaderParameters, UniformBuffer_SingleFrame);
+				View.CustomDepthSet.DrawPrims(RHICmdList, View, OverriddenViewUniformBuffer, bWriteCustomStencilValues);
+			}
+			else
+			{
+				View.CustomDepthSet.DrawPrims(RHICmdList, View, View.ViewUniformBuffer, bWriteCustomStencilValues);
+			}
 		}
 
 		// resolve using the current ResolveParams 

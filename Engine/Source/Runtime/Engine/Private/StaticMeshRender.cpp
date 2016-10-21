@@ -97,9 +97,9 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 	, MaterialRelevance(InComponent->GetMaterialRelevance(GetScene().GetFeatureLevel()))
 	, CollisionResponse(InComponent->GetCollisionResponseToChannels())
 #if WITH_EDITORONLY_DATA
-	, TexStreamMaterialData(InComponent->TexStreamMaterialData)
 	, StreamingDistanceMultiplier(FMath::Max(0.0f, InComponent->StreamingDistanceMultiplier))
 	, StreamingTransformScale(InComponent->GetTextureStreamingTransformScale())
+	, MaterialStreamingBounds(InComponent->MaterialStreamingBounds)
 	, SectionIndexPreview(InComponent->SectionIndexPreview)
 #endif
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -435,9 +435,9 @@ bool FStaticMeshSceneProxy::GetPrimitiveDistance(int32 LODIndex, int32 SectionIn
 		// The LOD-section data is stored per material index as it is only used for texture streaming currently.
 		const int32 MaterialIndex = LODs[LODIndex].Sections[SectionIndex].MaterialIndex;
 
-		if (TexStreamMaterialData.IsValid() && TexStreamMaterialData->IsValidIndex(MaterialIndex))
+		if (MaterialStreamingBounds.IsValidIndex(MaterialIndex))
 		{
-			const FBox& MaterialBox = (*TexStreamMaterialData)[MaterialIndex].Box;
+			const FBox& MaterialBox = MaterialStreamingBounds[MaterialIndex];
 
 			FVector ViewToObject = (MaterialBox.GetCenter() - ViewOrigin).GetAbs();
 			FVector BoxViewToObject = ViewToObject.ComponentMin(MaterialBox.GetExtent());
@@ -483,30 +483,23 @@ bool FStaticMeshSceneProxy::GetMaterialTextureScales(int32 LODIndex, int32 Secti
 {
 	if (LODs.IsValidIndex(LODIndex) && LODs[LODIndex].Sections.IsValidIndex(SectionIndex))
 	{
-		// The LOD-section data is stored per material index as it is only used for texture streaming currently.
-		const int32 MaterialIndex = LODs[LODIndex].Sections[SectionIndex].MaterialIndex;
-
-		if (TexStreamMaterialData.IsValid() && TexStreamMaterialData->IsValidIndex(MaterialIndex))
+		const UMaterialInterface* Material = LODs[LODIndex].Sections[SectionIndex].Material;
+		if (Material)
 		{
-			const TArray<FMaterialTextureInfo>& TextureData = (*TexStreamMaterialData)[MaterialIndex].TextureData;
-			for (int32 TextureIndex = 0; TextureIndex < TEXSTREAM_MAX_NUM_TEXTURES_PER_MATERIAL; ++TextureIndex)
+			// This is thread safe because material texture data is only updated while the renderthread is idle.
+			for (const FMaterialTextureInfo TextureData : Material->GetTextureStreamingData())
 			{
-				const float Scale = TextureData.IsValidIndex(TextureIndex) ? TextureData[TextureIndex].SamplingScale : 0;
-				if (Scale > 0)
+				const int32 TextureIndex = TextureData.TextureIndex;
+				if (TextureData.IsValid(true))
 				{
-					OneOverScales[TextureIndex / 4][TextureIndex % 4] = 1.f / Scale;
-					UVChannelIndices[TextureIndex / 4][TextureIndex % 4] = TextureData[TextureIndex].UVChannelIndex;
-				}
-				else
-				{
-					OneOverScales[TextureIndex / 4][TextureIndex % 4] = 0.f;
-					UVChannelIndices[TextureIndex / 4][TextureIndex % 4] = 0;
+					OneOverScales[TextureIndex / 4][TextureIndex % 4] = 1.f / TextureData.SamplingScale;
+					UVChannelIndices[TextureIndex / 4][TextureIndex % 4] = TextureData.UVChannelIndex;
 				}
 			}
 			return true;
 		}
 	}
-	return FPrimitiveSceneProxy::GetMaterialTextureScales(LODIndex, SectionIndex, MaterialRenderProxy, OneOverScales, UVChannelIndices);
+	return false;
 }
 #endif
 

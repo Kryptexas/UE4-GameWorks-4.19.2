@@ -6,11 +6,70 @@
 
 #include "VulkanRHIPrivate.h"
 
+namespace VulkanRHI
+{
+	namespace BlendState
+	{
+		// this tracks blend settings (in a bit flag) into a unique key that uses few bits, for PipelineState MRT setup
+		TMap<uint32, uint8> SettingsToUniqueKeyMap;
+		uint8 NextKey = 0;
+		FCriticalSection Lock;
 
-TMap<uint32, uint8> FVulkanBlendState::BlendSettingsToUniqueKeyMap;
-uint8 FVulkanBlendState::NextKey = 0;
-TMap<uint64, uint8> FVulkanDepthStencilState::StencilSettingsToUniqueKeyMap;
-uint8 FVulkanDepthStencilState::NextKey = 0;
+		void BlendStateToKeys(const uint32* BlendBitMasks, uint8* OutBlendStateKeys)
+		{
+			FScopeLock ScopeLock(&Lock);
+
+			for (uint32 Index = 0; Index < MaxSimultaneousRenderTargets; ++Index)
+			{
+				uint8* Key = SettingsToUniqueKeyMap.Find(BlendBitMasks[Index]);
+				if (Key == NULL)
+				{
+					Key = &SettingsToUniqueKeyMap.Add(BlendBitMasks[Index], NextKey++);
+
+					// only giving 4 bits to the key, since we need to pack a bunch of them into 64 bits
+					checkf(NextKey < 16, TEXT("Too many unique blend states to fit into the PipelineStateHash"));
+				}
+
+				// set the key
+				OutBlendStateKeys[Index] = *Key;
+			}
+		}
+	}
+
+	namespace StencilState
+	{
+		// this tracks blend settings (in a bit flag) into a unique key that uses few bits, for PipelineState MRT setup
+		TMap<uint64, uint8> SettingsToUniqueKeyMap;
+		uint8 NextKey = 0;
+		FCriticalSection Lock;
+
+		inline uint8 StencilStateToKey(const VkStencilOpState& State)
+		{
+			// get the unique key
+			uint64 StencilBitMask =
+				(State.failOp << 0) | (State.passOp << 3) | (State.depthFailOp << 6) |
+				(State.compareOp << 9) | (State.compareMask << 12) | (State.writeMask << 20);
+
+			uint8* Key = SettingsToUniqueKeyMap.Find(StencilBitMask);
+			if (Key == NULL)
+			{
+				Key = &SettingsToUniqueKeyMap.Add(StencilBitMask, NextKey++);
+
+				checkf(NextKey < 16, TEXT("Too many unique stencil states to fit into the PipelineStateHash"));
+			}
+
+			return *Key;
+		}
+
+		inline void StencilStatesToKeys(const VkPipelineDepthStencilStateCreateInfo& DepthStencilState, uint8& OutFrontStencilKey, uint8& OutBackStencilKey)
+		{
+			FScopeLock ScopeLock(&Lock);
+
+			OutFrontStencilKey = StencilStateToKey(DepthStencilState.front);
+			OutBackStencilKey = StencilStateToKey(DepthStencilState.back);
+		}
+	}
+}
 
 inline VkSamplerMipmapMode TranslateMipFilterMode(ESamplerFilter Filter)
 {
@@ -232,13 +291,6 @@ static inline VkCullModeFlags RasterizerCullModeToVulkan(ERasterizerCullMode InC
 }
 
 
-
-
-
-
-
-
-
 FVulkanSamplerState::FVulkanSamplerState(const FSamplerStateInitializerRHI& Initializer, FVulkanDevice& InDevice) :
 	Sampler(VK_NULL_HANDLE),
 	Device(InDevice)
@@ -312,7 +364,6 @@ FVulkanDepthStencilState::FVulkanDepthStencilState(const FDepthStencilStateIniti
 
 	DepthStencilState.stencilTestEnable = (Initializer.bEnableFrontFaceStencil || Initializer.bEnableBackFaceStencil) ? VK_TRUE : VK_FALSE;
 
-#if VULKAN_USE_NEW_RENDERPASSES
 	// Front
 	DepthStencilState.back.failOp = StencilOpToVulkan(Initializer.FrontFaceStencilFailStencilOp);
 	DepthStencilState.back.passOp = StencilOpToVulkan(Initializer.FrontFacePassStencilOp);
@@ -337,58 +388,14 @@ FVulkanDepthStencilState::FVulkanDepthStencilState(const FDepthStencilStateIniti
 	{
 		DepthStencilState.front = DepthStencilState.back;
 	}
-#else
-	// Front
-	DepthStencilState.front.failOp = StencilOpToVulkan(Initializer.FrontFaceStencilFailStencilOp);
-	DepthStencilState.front.passOp = StencilOpToVulkan(Initializer.FrontFacePassStencilOp);
-	DepthStencilState.front.depthFailOp = StencilOpToVulkan(Initializer.FrontFaceDepthFailStencilOp);
-	DepthStencilState.front.compareOp = CompareOpToVulkan(Initializer.FrontFaceStencilTest);
-	DepthStencilState.front.compareMask = Initializer.StencilReadMask;
-	DepthStencilState.front.writeMask = Initializer.StencilWriteMask;
-	DepthStencilState.front.reference = 0;
-
-	if (Initializer.bEnableBackFaceStencil)
-	{
-		// Back
-		DepthStencilState.back.failOp = StencilOpToVulkan(Initializer.BackFaceStencilFailStencilOp);
-		DepthStencilState.back.passOp = StencilOpToVulkan(Initializer.BackFacePassStencilOp);
-		DepthStencilState.back.depthFailOp = StencilOpToVulkan(Initializer.BackFaceDepthFailStencilOp);
-		DepthStencilState.back.compareOp = CompareOpToVulkan(Initializer.BackFaceStencilTest);
-		DepthStencilState.back.compareMask = Initializer.StencilReadMask;
-		DepthStencilState.back.writeMask = Initializer.StencilWriteMask;
-		DepthStencilState.back.reference = 0;
-	}
-	else
-	{
-		DepthStencilState.back = DepthStencilState.front;
-	}
-#endif
 
 	// set the keys
-	FrontStencilKey = StencilStateToKey(DepthStencilState.front);
-	BackStencilKey = StencilStateToKey(DepthStencilState.back);
-}
-
-uint8 FVulkanDepthStencilState::StencilStateToKey(const VkStencilOpState& State)
-{
-	// get the unique key
-	uint64 StencilBitMask =
-		(State.failOp << 0) | (State.passOp << 3) | (State.depthFailOp << 6) |
-		(State.compareOp << 9) | (State.compareMask << 12) | (State.writeMask << 20);
-
-	uint8* Key = StencilSettingsToUniqueKeyMap.Find(StencilBitMask);
-	if (Key == NULL)
-	{
-		Key = &StencilSettingsToUniqueKeyMap.Add(StencilBitMask, NextKey++);
-
-		checkf(NextKey < 16, TEXT("Too many unique stencil states to fit into the PipelineStateHash"));
-	}
-
-	return *Key;
+	VulkanRHI::StencilState::StencilStatesToKeys(DepthStencilState, FrontStencilKey, BackStencilKey);
 }
 
 FVulkanBlendState::FVulkanBlendState(const FBlendStateInitializerRHI& Initializer)
 {
+	uint32 BlendBitMasks[MaxSimultaneousRenderTargets];
 	for (uint32 Index = 0; Index < MaxSimultaneousRenderTargets; ++Index)
 	{
 		const FBlendStateInitializerRHI::FRenderTarget& ColorTarget = Initializer.RenderTargets[Index];
@@ -415,22 +422,13 @@ FVulkanBlendState::FVulkanBlendState(const FBlendStateInitializerRHI& Initialize
 
 
 		// get the unique key
-		uint32 BlendBitMask =
+		BlendBitMasks[Index] =
 			(BlendState.srcColorBlendFactor << 0) | (BlendState.dstColorBlendFactor << 4) | (BlendState.colorBlendOp << 8) |
 			(BlendState.srcAlphaBlendFactor << 11) | (BlendState.dstAlphaBlendFactor << 15) | (BlendState.alphaBlendOp << 19) |
 			(BlendState.colorWriteMask << 22);
-		uint8* Key = BlendSettingsToUniqueKeyMap.Find(BlendBitMask);
-		if (Key == NULL)
-		{
-			Key = &BlendSettingsToUniqueKeyMap.Add(BlendBitMask, NextKey++);
-
-			// only giving 4 bits to the key, since we need to pack a bunch of them into 64 bits
-			checkf(NextKey < 16, TEXT("Too many unique blend states to fit into the PipelineStateHash"));
-		}
-
-		// set the key
-		BlendStateKeys[Index] = *Key;
 	}
+
+	VulkanRHI::BlendState::BlendStateToKeys(BlendBitMasks, BlendStateKeys);
 }
 
 FSamplerStateRHIRef FVulkanDynamicRHI::RHICreateSamplerState(const FSamplerStateInitializerRHI& Initializer)

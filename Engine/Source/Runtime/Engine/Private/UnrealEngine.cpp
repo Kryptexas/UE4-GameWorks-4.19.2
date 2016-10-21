@@ -3690,7 +3690,7 @@ bool UEngine::HandleListTexturesCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		// Use the existing texture streaming functionality to gather referenced textures. Worth noting
 		// that GetStreamingTextureInfo doesn't check whether a texture is actually streamable or not
 		// and is also implemented for skeletal meshes and such.
-		FStreamingTextureLevelContext LevelContext;
+		FStreamingTextureLevelContext LevelContext(EMaterialQualityLevel::Num, PrimitiveComponent);
 		TArray<FStreamingTexturePrimitiveInfo> StreamingTextures;
 		PrimitiveComponent->GetStreamingTextureInfo( LevelContext, StreamingTextures );
 

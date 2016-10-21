@@ -431,10 +431,10 @@ public:
 	* @param InMaterial			Target material
 	* @param QualityLevel		Quality level used for the shader profiling.
 	* @param FeatureLevel		Feature level used for the shader profiling.
-	* @param OutScales			TheOutput array of rendered samples	
+	* @param OutErrors			Manager to log errors (removes duplicates and similar errors)	
 	* @return					Whether operation was successful
 	*/
-	static bool ExportMaterialTexCoordScales(UMaterialInterface* InMaterial, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, TArray<FMaterialTextureInfo>& OutScales, FExportErrorManager& OutErrors);
+	static bool ExportMaterialUVDensities(UMaterialInterface* InMaterial, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, FExportErrorManager& OutErrors);
 
 	// QQQ COMMENTS
 	static void DetermineMaterialImportance(const TArray<UMaterialInterface*>& InMaterials, TArray<float>& OutImportance);

@@ -21,4 +21,5 @@ class UMaterialExpressionTangentOutput : public UMaterialExpressionCustomOutput
 
 	virtual int32 GetNumOutputs() const override { return 1; }
 	virtual FString GetFunctionName() const override { return TEXT("GetTangentOutput"); }
+	virtual FString GetDisplayName() const override { return TEXT("CustomEyeTangent"); }
 };

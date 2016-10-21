@@ -142,6 +142,8 @@ public:
 	static FORCEINLINE bool SupportsShaderTextureCubeLod()				{ return true; }
 	static FORCEINLINE bool SupportsSeparateAlphaBlend()				{ return bSupportsDrawBuffersBlend; }
 	static FORCEINLINE bool SupportsTessellation()						{ return false; }
+	static FORCEINLINE void EnableSupportsClipControl()					{ bSupportsClipControl = true; }
+	static FORCEINLINE bool SupportsClipControl()						{ return bSupportsClipControl; }
 	static FORCEINLINE bool SupportsComputeShaders()					{ return false; }
 	static FORCEINLINE bool SupportsTextureView()						{ return false; }
 	static FORCEINLINE bool SupportsSeamlessCubeMap()					{ return false; }
@@ -381,6 +383,9 @@ protected:
 	static GLint MaxHullUniformComponents;
 	static GLint MaxDomainUniformComponents;
 	static GLint MaxVaryingVectors;
+
+	/** GL_ARB_clip_control */
+	static bool bSupportsClipControl;
 
 	/** GL_KHR_texture_compression_astc_ldr */
 	static bool bSupportsASTC;

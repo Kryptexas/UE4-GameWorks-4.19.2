@@ -2817,6 +2817,25 @@ void UMaterialInstance::GetLightingGuidChain(bool bIncludeTextures, TArray<FGuid
 #endif
 }
 
+void UMaterialInstance::PreSave(const class ITargetPlatform* TargetPlatform)
+{
+	// @TODO : Remove any duplicate data from parent? Aims at improving change propagation (if controlled by parent)
+	Super::PreSave(TargetPlatform);
+}
+
+float UMaterialInstance::GetTextureDensity(FName TextureName, const struct FMeshUVChannelInfo& UVChannelData) const
+{
+	ensure(UVChannelData.bInitialized);
+
+	const float Density = Super::GetTextureDensity(TextureName, UVChannelData);
+	
+	// If it is not handled by this instance, try the parent
+	if (!Density && Parent)
+	{
+		return Parent->GetTextureDensity(TextureName, UVChannelData);
+	}
+	return Density;
+}
 
 UMaterialInstance::FCustomStaticParametersGetterDelegate UMaterialInstance::CustomStaticParametersGetters;
 TArray<UMaterialInstance::FCustomParameterSetUpdaterDelegate> UMaterialInstance::CustomParameterSetUpdaters;

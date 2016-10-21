@@ -12,6 +12,10 @@
 
 const uint32 EncoderRingBufferSize = 64 * 1024;
 
+#if METAL_DEBUG_OPTIONS
+extern int32 GMetalBufferScribble;
+#endif
+
 #pragma mark - Public C++ Boilerplate -
 
 FMetalCommandEncoder::FMetalCommandEncoder(FMetalCommandList& CmdList)
@@ -188,6 +192,8 @@ void FMetalCommandEncoder::CommitCommandBuffer(bool const bWait)
 	if (!CommandList.GetCommandQueue().SupportsFeature(EMetalFeaturesSetBytes))
 	{
 		uint32 RingBufferOffset = RingBuffer->GetOffset();
+		uint32 StartOffset = RingBuffer->LastWritten;
+		RingBuffer->LastWritten = RingBufferOffset;
 		id<MTLBuffer> CurrentRingBuffer = RingBuffer->Buffer;
 		TWeakPtr<FRingBuffer, ESPMode::ThreadSafe>* WeakRingBufferRef = new TWeakPtr<FRingBuffer, ESPMode::ThreadSafe>(RingBuffer.ToSharedRef());
 		[CommandBuffer addCompletedHandler : ^ (id <MTLCommandBuffer> Buffer)
@@ -195,6 +201,21 @@ void FMetalCommandEncoder::CommitCommandBuffer(bool const bWait)
 			TSharedPtr<FRingBuffer, ESPMode::ThreadSafe> CmdBufferRingBuffer = WeakRingBufferRef->Pin();
 			if(CmdBufferRingBuffer.IsValid() && CmdBufferRingBuffer->Buffer == CurrentRingBuffer)
 			{
+#if METAL_DEBUG_OPTIONS
+				if (GMetalBufferScribble && StartOffset != RingBufferOffset)
+				{
+					 if (StartOffset < RingBufferOffset)
+					 {
+						FMemory::Memset(((uint8*)CmdBufferRingBuffer->Buffer.contents) + StartOffset, 0xCD, RingBufferOffset - StartOffset);
+					 }
+					 else
+					 {
+						uint32 TrailLen = CmdBufferRingBuffer->Buffer.length - StartOffset;
+						FMemory::Memset(((uint8*)CmdBufferRingBuffer->Buffer.contents) + StartOffset, 0xCD, TrailLen);
+						FMemory::Memset(((uint8*)CmdBufferRingBuffer->Buffer.contents), 0xCD, RingBufferOffset);
+					 }
+				}
+#endif
 				CmdBufferRingBuffer->SetLastRead(RingBufferOffset);
 			}
 			delete WeakRingBufferRef;
@@ -264,7 +285,7 @@ void FMetalCommandEncoder::BeginRenderCommandEncoding(void)
 	{
 		NSString* Label = [DebugGroups count] > 0 ? [DebugGroups lastObject] : (NSString*)CFSTR("InitialPass");
 		[RenderCommandEncoder setLabel:Label];
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 		if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelLogOperations)
 		{
 			FMetalDebugCommandBuffer* Buf = (FMetalDebugCommandBuffer*)CommandBuffer;
@@ -277,7 +298,7 @@ void FMetalCommandEncoder::BeginRenderCommandEncoding(void)
 			for (NSString* Group in DebugGroups)
 			{
 				[RenderCommandEncoder pushDebugGroup:Group];
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 				if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelLogDebugGroups)
 				{
 					FMetalDebugCommandBuffer* Buf = (FMetalDebugCommandBuffer*)CommandBuffer;
@@ -488,7 +509,7 @@ void FMetalCommandEncoder::BeginComputeCommandEncoding(void)
 	{
 		NSString* Label = [DebugGroups count] > 0 ? [DebugGroups lastObject] : (NSString*)CFSTR("InitialPass");
 		[ComputeCommandEncoder setLabel:Label];
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 		if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelLogOperations)
 		{
 			FMetalDebugCommandBuffer* Buf = (FMetalDebugCommandBuffer*)CommandBuffer;
@@ -501,7 +522,7 @@ void FMetalCommandEncoder::BeginComputeCommandEncoding(void)
 			for (NSString* Group in DebugGroups)
 			{
 				[ComputeCommandEncoder pushDebugGroup:Group];
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 				if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelLogDebugGroups)
 				{
 					FMetalDebugCommandBuffer* Buf = (FMetalDebugCommandBuffer*)CommandBuffer;
@@ -591,7 +612,7 @@ void FMetalCommandEncoder::BeginBlitCommandEncoding(void)
 	{
 		NSString* Label = [DebugGroups count] > 0 ? [DebugGroups lastObject] : (NSString*)CFSTR("InitialPass");
 		[BlitCommandEncoder setLabel:Label];
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 		if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelLogOperations)
 		{
 			FMetalDebugCommandBuffer* Buf = (FMetalDebugCommandBuffer*)CommandBuffer;
@@ -604,7 +625,7 @@ void FMetalCommandEncoder::BeginBlitCommandEncoding(void)
 			for (NSString* Group in DebugGroups)
 			{
 				[BlitCommandEncoder pushDebugGroup:Group];
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 				if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelLogDebugGroups)
 				{
 					FMetalDebugCommandBuffer* Buf = (FMetalDebugCommandBuffer*)CommandBuffer;
@@ -618,7 +639,7 @@ void FMetalCommandEncoder::BeginBlitCommandEncoding(void)
 
 void FMetalCommandEncoder::EndEncoding(void)
 {
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 	if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelLogOperations)
 	{
 		FMetalDebugCommandBuffer* Buf = (FMetalDebugCommandBuffer*)CommandBuffer;
@@ -649,7 +670,7 @@ void FMetalCommandEncoder::EndEncoding(void)
 
 void FMetalCommandEncoder::InsertDebugSignpost(NSString* const String)
 {
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 	if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelLogDebugGroups)
 	{
 		FMetalDebugCommandBuffer* Buf = (FMetalDebugCommandBuffer*)CommandBuffer;
@@ -673,7 +694,7 @@ void FMetalCommandEncoder::InsertDebugSignpost(NSString* const String)
 
 void FMetalCommandEncoder::PushDebugGroup(NSString* const String)
 {
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 	if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelLogDebugGroups)
 	{
 		FMetalDebugCommandBuffer* Buf = (FMetalDebugCommandBuffer*)CommandBuffer;
@@ -698,7 +719,7 @@ void FMetalCommandEncoder::PushDebugGroup(NSString* const String)
 
 void FMetalCommandEncoder::PopDebugGroup(void)
 {
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 	if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelLogDebugGroups)
 	{
 		FMetalDebugCommandBuffer* Buf = (FMetalDebugCommandBuffer*)CommandBuffer;
@@ -918,7 +939,7 @@ void FMetalCommandEncoder::SetShaderBuffer(EShaderFrequency Frequency, id<MTLBuf
 		{
 			ShaderBuffers[Frequency].Bound &= ~(1 << index);
 		}
-        ShaderBuffers[Frequency].Buffers[index] = Buffer;
+		ShaderBuffers[Frequency].Buffers[index] = Buffer;
 		ShaderBuffers[Frequency].Bytes[index] = nil;
         ShaderBuffers[Frequency].Offsets[index] = Offset;
         switch (Frequency)
@@ -1357,7 +1378,7 @@ bool FMetalCommandEncoder::ValidateArgumentBindings(EShaderFrequency const Frequ
 			case MTLArgumentTypeBuffer:
 			{
 				checkf(Arg.index < ML_MaxBuffers, TEXT("Metal buffer index exceeded!"));
-				if (ShaderBuffers[Frequency].Buffers[Arg.index] == nil || !(ShaderBuffers[Frequency].Bound & (1 << Arg.index)))
+				if ((ShaderBuffers[Frequency].Buffers[Arg.index] == nil && ShaderBuffers[Frequency].Bytes[Arg.index] == nil) || !(ShaderBuffers[Frequency].Bound & (1 << Arg.index)))
 				{
                     bOK = false;
 					UE_LOG(LogMetal, Warning, TEXT("Unbound buffer at Metal index: %u which will crash the driver."), (uint32)Arg.index);

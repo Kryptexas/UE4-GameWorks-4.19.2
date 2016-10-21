@@ -10,14 +10,11 @@ FMetalQueryBuffer::FMetalQueryBuffer(FMetalContext* InContext, id<MTLBuffer> InB
 : Pool(InContext->GetQueryBufferPool())
 , Buffer(InBuffer)
 , WriteOffset(0)
-, bCompleted(false)
-, CommandBuffer(nil)
 {
 }
 
 FMetalQueryBuffer::~FMetalQueryBuffer()
 {
-	[CommandBuffer release];
 	if(Buffer && GIsRHIInitialized)
     {
 		TSharedPtr<FMetalQueryBufferPool, ESPMode::ThreadSafe> BufferPool = Pool.Pin();
@@ -32,36 +29,6 @@ FMetalQueryBuffer::~FMetalQueryBuffer()
     }
 }
 
-bool FMetalQueryBuffer::Wait(uint64 Millis)
-{
-	if(!bCompleted)
-	{
-		bool bOK = false;
-		
-		if(CommandBuffer)
-		{
-			if(CommandBuffer.status < MTLCommandBufferStatusCompleted)
-			{
-				check(CommandBuffer.status >= MTLCommandBufferStatusCommitted && CommandBuffer.status <= MTLCommandBufferStatusError);
-				[CommandBuffer waitUntilCompleted];
-				check(CommandBuffer.status >= MTLCommandBufferStatusCommitted && CommandBuffer.status <= MTLCommandBufferStatusError);
-			}
-			if(CommandBuffer.status == MTLCommandBufferStatusError)
-			{
-				FMetalCommandList::HandleMetalCommandBufferFailure(CommandBuffer);
-			}
-
-			bCompleted = CommandBuffer.status >= MTLCommandBufferStatusCompleted;
-			bOK = bCompleted;
-			[CommandBuffer release];
-			CommandBuffer = nil;
-		}
-		
-		return bOK;
-	}
-	return true;
-}
-
 void const* FMetalQueryBuffer::GetResult(uint32 Offset)
 {
     check(Buffer);
@@ -73,7 +40,32 @@ bool FMetalQueryResult::Wait(uint64 Millis)
 {
 	if(IsValidRef(SourceBuffer))
 	{
-		return SourceBuffer->Wait(Millis);
+		if(!bCompleted)
+		{
+			bool bOK = false;
+			
+			if(CommandBuffer)
+			{
+				if(CommandBuffer.status < MTLCommandBufferStatusCompleted)
+				{
+					check(CommandBuffer.status >= MTLCommandBufferStatusCommitted && CommandBuffer.status <= MTLCommandBufferStatusError);
+					[CommandBuffer waitUntilCompleted];
+					check(CommandBuffer.status >= MTLCommandBufferStatusCommitted && CommandBuffer.status <= MTLCommandBufferStatusError);
+				}
+				if(CommandBuffer.status == MTLCommandBufferStatusError)
+				{
+					FMetalCommandList::HandleMetalCommandBufferFailure(CommandBuffer);
+				}
+				
+				bCompleted = CommandBuffer.status >= MTLCommandBufferStatusCompleted;
+				bOK = bCompleted;
+				[CommandBuffer release];
+				CommandBuffer = nil;
+			}
+			
+			return bOK;
+		}
+		return true;
 	}
 	return false;
 }
@@ -91,10 +83,13 @@ FMetalRenderQuery::FMetalRenderQuery(ERenderQueryType InQueryType)
 : Type(InQueryType)
 {
 	Buffer.Offset = 0;
+	Buffer.CommandBuffer = nil;
+	Buffer.bCompleted = false;
 }
 
 FMetalRenderQuery::~FMetalRenderQuery()
 {
+	[Buffer.CommandBuffer release];
 	Buffer.SourceBuffer.SafeRelease();
 	Buffer.Offset = 0;
 }
@@ -106,6 +101,8 @@ void FMetalRenderQuery::Begin(FMetalContext* Context)
 		// these only need to be 8 byte aligned (of course, a normal allocation oafter this will be 256 bytes, making large holes if we don't do all
 		// query allocations at once)
 		Context->GetQueryBufferPool()->Allocate(Buffer);
+		Buffer.bCompleted = false;
+		Buffer.CommandBuffer = nil;
 		
 		Result = 0;
 		bAvailable = false;
@@ -127,6 +124,8 @@ void FMetalRenderQuery::End(FMetalContext* Context)
 	{
 		// switch back to non-occlusion rendering
 		Context->GetCommandEncoder().SetVisibilityResultMode(MTLVisibilityResultModeDisabled, 0);
+		Buffer.CommandBuffer = [Context->GetCurrentCommandBuffer() retain];
+		check(Buffer.CommandBuffer);
 	}
 }
 

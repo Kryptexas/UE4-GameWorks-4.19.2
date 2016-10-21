@@ -18,7 +18,7 @@ public:
 	* @param ViewInfo - current view used to draw items
 	* @return true if anything was drawn
 	*/
-	bool DrawPrims(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, bool bWriteCustomStencilValues);
+	bool DrawPrims(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, const class TUniformBufferRef<FViewUniformShaderParameters>& ViewUniformBuffer, bool bWriteCustomStencilValues);
 
 	/**
 	* Adds a new primitives to the list of distortion prims

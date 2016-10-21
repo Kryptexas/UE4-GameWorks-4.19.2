@@ -339,16 +339,30 @@ void FProjectedShadowInfo::SetBlendStateForProjection(
 
 	if (bProjectingForForwardShading)
 	{
+		FBlendStateRHIParamRef BlendState = NULL;
+
 		if (bUseFadePlane)
 		{
-			// alpha is used to fade between cascades
-			check(ShadowMapChannel == 0);
-			RHICmdList.SetBlendState(TStaticBlendState<CW_RED, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha>::GetRHI());
+			if (ShadowMapChannel == 0)
+			{
+				// alpha is used to fade between cascades
+				BlendState = TStaticBlendState<CW_RED, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha>::GetRHI();
+			}
+			else if (ShadowMapChannel == 1)
+			{
+				BlendState = TStaticBlendState<CW_GREEN, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha>::GetRHI();
+			}
+			else if (ShadowMapChannel == 2)
+			{
+				BlendState = TStaticBlendState<CW_BLUE, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha>::GetRHI();
+			}
+			else if (ShadowMapChannel == 3)
+			{
+				BlendState = TStaticBlendState<CW_ALPHA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha>::GetRHI();
+			}
 		}
 		else
 		{
-			FBlendStateRHIParamRef BlendState = NULL;
-
 			if (ShadowMapChannel == 0)
 			{
 				BlendState = TStaticBlendState<CW_RED, BO_Min, BF_One, BF_One, BO_Min, BF_One, BF_One>::GetRHI();
@@ -365,10 +379,10 @@ void FProjectedShadowInfo::SetBlendStateForProjection(
 			{
 				BlendState = TStaticBlendState<CW_ALPHA, BO_Min, BF_One, BF_One, BO_Min, BF_One, BF_One>::GetRHI();
 			}
-
-			checkf(BlendState, TEXT("Only shadows whose stationary lights have a valid ShadowMapChannel can be projected with forward shading"));
-			RHICmdList.SetBlendState(BlendState);
 		}
+
+		checkf(BlendState, TEXT("Only shadows whose stationary lights have a valid ShadowMapChannel can be projected with forward shading"));
+		RHICmdList.SetBlendState(BlendState);
 	}
 	else
 	{
@@ -560,7 +574,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 		// Note that self-shadow pre-shadows still mask by receiver elements.
 		const TArray<FMeshBatchAndRelevance, SceneRenderingAllocator>& DynamicMeshElements = bPreShadow ? DynamicReceiverMeshElements : DynamicSubjectMeshElements;
 
-		FDepthDrawingPolicyFactory::ContextType Context(DDM_AllOccluders, false);
+		FDepthDrawingPolicyFactory::ContextType Context(View->ViewUniformBuffer, DDM_AllOccluders, false);
 
 		for (int32 MeshBatchIndex = 0; MeshBatchIndex < DynamicMeshElements.Num(); MeshBatchIndex++)
 		{
@@ -593,7 +607,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 							FDepthDrawingPolicyFactory::DrawStaticMesh(
 								RHICmdList, 
 								*View,
-								FDepthDrawingPolicyFactory::ContextType(DDM_AllOccluders, false),
+								FDepthDrawingPolicyFactory::ContextType(View->ViewUniformBuffer, DDM_AllOccluders, false),
 								StaticMesh,
 								StaticMesh.bRequiresPerElementVisibility ? View->StaticMeshBatchVisibility[StaticMesh.Id] : ((1ull << StaticMesh.Elements.Num() )- 1),
 								true,
@@ -618,7 +632,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 				FDepthDrawingPolicyFactory::DrawStaticMesh(
 					RHICmdList, 
 					*View,
-					FDepthDrawingPolicyFactory::ContextType(DDM_AllOccluders, false),
+					FDepthDrawingPolicyFactory::ContextType(View->ViewUniformBuffer, DDM_AllOccluders, false),
 					StaticMesh,
 					StaticMesh.bRequiresPerElementVisibility ? View->StaticMeshBatchVisibility[StaticMesh.Id] : ((1ull << StaticMesh.Elements.Num() )- 1),
 					true,
@@ -763,7 +777,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 				0xff, 0xff
 			>::GetRHI(), 0);
 
-			FDepthDrawingPolicyFactory::ContextType Context(DDM_AllOccluders, false);
+			FDepthDrawingPolicyFactory::ContextType Context(View->ViewUniformBuffer, DDM_AllOccluders, false);
 			for (int32 MeshBatchIndex = 0; MeshBatchIndex < DynamicSubjectMeshElements.Num(); MeshBatchIndex++)
 			{
 				const FMeshBatchAndRelevance& MeshBatchAndRelevance = DynamicSubjectMeshElements[MeshBatchIndex];

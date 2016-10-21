@@ -446,6 +446,7 @@ GLint FOpenGLBase::MaxPixelUniformComponents = -1;
 GLint FOpenGLBase::MaxGeometryUniformComponents = -1;
 GLint FOpenGLBase::MaxHullUniformComponents = -1;
 GLint FOpenGLBase::MaxDomainUniformComponents = -1;
+bool  FOpenGLBase::bSupportsClipControl = false;
 bool  FOpenGLBase::bSupportsASTC = false;
 bool  FOpenGLBase::bSupportsCopyImage = false;
 bool  FOpenGLBase::bSupportsSeamlessCubemap = false;
@@ -574,6 +575,21 @@ void GetExtensionsString( FString& ExtensionsString)
 	}
 }
 
+namespace OpenGLConsoleVariables
+{
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
+	int32 bUseGlClipControlIfAvailable = 1;
+#else
+	int32 bUseGlClipControlIfAvailable = 0;
+#endif
+	static FAutoConsoleVariableRef CVarUseGlClipControlIfAvailable(
+		TEXT("OpenGL.UseGlClipControlIfAvailable"),
+		bUseGlClipControlIfAvailable,
+		TEXT("If true, the engine trys to use glClipControl if the driver supports it."),
+		ECVF_RenderThreadSafe | ECVF_ReadOnly
+	);
+}
+
 void InitDefaultGLContextState(void)
 {
 	// NOTE: This function can be called before capabilities setup, so extensions need to be checked directly
@@ -595,4 +611,12 @@ void InitDefaultGLContextState(void)
 	{
 		glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 	}
+
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
+	if (OpenGLConsoleVariables::bUseGlClipControlIfAvailable && ExtensionsString.Contains(TEXT("GL_ARB_clip_control")))
+	{
+		FOpenGL::EnableSupportsClipControl();
+		glClipControl(GL_UPPER_LEFT, GL_ZERO_TO_ONE);
+	}
+#endif
 }

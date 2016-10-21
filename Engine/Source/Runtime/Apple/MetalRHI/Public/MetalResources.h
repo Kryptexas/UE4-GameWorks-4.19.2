@@ -434,14 +434,11 @@ struct FMetalQueryBuffer : public FRHIResource
     
     virtual ~FMetalQueryBuffer();
     
-    bool Wait(uint64 Millis);
     void const* GetResult(uint32 Offset);
 	
 	TWeakPtr<struct FMetalQueryBufferPool, ESPMode::ThreadSafe> Pool;
     id<MTLBuffer> Buffer;
 	uint32 WriteOffset;
-	bool bCompleted;
-	id<MTLCommandBuffer> CommandBuffer;
 };
 typedef TRefCountPtr<FMetalQueryBuffer> FMetalQueryBufferRef;
 
@@ -449,9 +446,11 @@ struct FMetalQueryResult
 {
     bool Wait(uint64 Millis);
     void const* GetResult();
-    
+	
     FMetalQueryBufferRef SourceBuffer;
+	id<MTLCommandBuffer> CommandBuffer;
     uint32 Offset;
+	bool bCompleted;
 };
 
 /** Metal occlusion query */

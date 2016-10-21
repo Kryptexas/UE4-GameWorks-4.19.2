@@ -171,6 +171,8 @@ public:
 
 	ENGINE_API void DebugDrawSamples(class FPrimitiveDrawInterface* PDI, bool bDrawDirectionalShadowing) const;
 
+	ENGINE_API bool IntersectBounds(const FBoxSphereBounds& InBounds) const;
+
 	SIZE_T GetAllocatedBytes() const;
 
 	bool IsAddedToScene() const

@@ -95,7 +95,7 @@ struct FMetalDebugCommand
 NS_ASSUME_NONNULL_END
 
 // Debug command-buffer logging macros that simplify the calling code
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 #define METAL_DEBUG_COMMAND_BUFFER_DRAW_LOG(Context, LabelFormat, ...)	\
 			if (Context->GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelLogOperations)	\
 			{	\

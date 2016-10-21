@@ -180,7 +180,7 @@ void SLevelViewportToolBar::Construct( const FArguments& InArgs )
 				[
 
 					SNew( SEditorViewportToolbarMenu )
-					.Label( LOCTEXT("ViewParamMenuTitle", "View Mode Options") )
+					.Label( this, &SLevelViewportToolBar::GetViewModeOptionsMenuLabel )
 					.Cursor( EMouseCursor::Default )
 					.ParentToolBar( SharedThis( this ) )
 					.Visibility( this, &SLevelViewportToolBar::GetViewModeOptionsVisibility )
@@ -1033,6 +1033,14 @@ EVisibility SLevelViewportToolBar::GetViewModeOptionsVisibility() const
 		return EVisibility::Collapsed;
 	}
 }
+
+FText SLevelViewportToolBar::GetViewModeOptionsMenuLabel() const
+{
+	Viewport.Pin()->OnFloatingButtonClicked();
+	const FLevelEditorViewportClient& ViewClient = Viewport.Pin()->GetLevelViewportClient();
+	return ::GetViewModeOptionsMenuLabel(ViewClient.GetViewMode());
+}
+
 
 TSharedRef<SWidget> SLevelViewportToolBar::GenerateViewModeOptionsMenu() const
 {

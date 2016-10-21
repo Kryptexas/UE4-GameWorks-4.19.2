@@ -3173,9 +3173,38 @@ public:
 		}
 		buffer = 0;
 
+		const char* func_clipControlAdjustments =
+R"RawStrDelimiter(
+void compiler__internal__AdjustInputSemantic(inout vec4 TempVariable)
+{
+#if HLSLCC_DX11ClipSpace
+	TempVariable.y = -TempVariable.y;
+	TempVariable.z = ( TempVariable.z + TempVariable.w ) / 2.0;
+#endif
+}
+
+void compiler__internal__AdjustOutputSemantic(inout vec4 Src)
+{
+#if HLSLCC_DX11ClipSpace
+	Src.y = -Src.y;
+	Src.z = ( 2.0 * Src.z ) - Src.w;
+#endif
+}
+
+bool compiler__internal__AdjustIsFrontFacing(bool isFrontFacing)
+{
+#if HLSLCC_DX11ClipSpace
+	return !isFrontFacing;
+#else
+	return isFrontFacing;
+#endif
+}
+)RawStrDelimiter";
+
+
 		char* full_buffer = ralloc_asprintf(
 			state,
-			"// Compiled by HLSLCC %d.%d\n%s#version %u %s\n%s%s%s%s%s\n",
+			"// Compiled by HLSLCC %d.%d\n%s#version %u %s\n%s%s%s%s%s%s\n",
 			HLSLCC_VersionMajor, HLSLCC_VersionMinor,
 			signature,
 			state->language_version,
@@ -3184,6 +3213,7 @@ public:
 			geometry_layouts,
 			layout,
 			decl_buffer,
+			func_clipControlAdjustments,
 			code_buffer
 			);
 		ralloc_free(mem_ctx);
@@ -3630,7 +3660,8 @@ static ir_rvalue* GenShaderInputSemantic(
 	exec_list* DeclInstructions,
 	int SemanticArraySize,
 	int SemanticArrayIndex,
-	bool& ApplyClipSpaceAdjustment
+	bool& ApplyClipSpaceAdjustment,
+	bool& ApplyFlipFrontFacingAdjustment
 	)
 {
 	if (Semantic && FCStringAnsi::Strnicmp(Semantic, "SV_", 3) == 0)
@@ -3714,7 +3745,8 @@ static ir_rvalue* GenShaderInputSemantic(
 						else if (ParseState->adjust_clip_space_dx11_to_opengl && SystemValues[i].bApplyClipSpaceAdjustment)
 						{
 							// incoming gl_FrontFacing. Make it (!gl_FrontFacing), due to vertical flip in OpenGL
-							return new(ParseState)ir_expression(ir_unop_logic_not, glsl_type::bool_type, VariableDeref, NULL);
+							ApplyFlipFrontFacingAdjustment = true;
+							return VariableDeref;
 						}
 						else
 						{
@@ -4271,10 +4303,11 @@ static void GenShaderInputForVariable(
 	}
 	else
 	{
+		bool ApplyFlipFrontFacingAdjustment = false;
 		bool ApplyClipSpaceAdjustment = false;
 		ir_rvalue* SrcValue = GenShaderInputSemantic(Frequency, ParseState, InputSemantic,
 			InputQualifier, InputType, DeclInstructions, SemanticArraySize,
-			SemanticArrayIndex, ApplyClipSpaceAdjustment);
+			SemanticArrayIndex, ApplyClipSpaceAdjustment, ApplyFlipFrontFacingAdjustment);
 
 		if (SrcValue)
 		{
@@ -4297,32 +4330,37 @@ static void GenShaderInputForVariable(
 					)
 					);
 
-				// TempVariable.y = -TempVariable.y;
-				PreCallInstructions->push_tail(
-					new(ParseState)ir_assignment(
-					new(ParseState)ir_swizzle(TempVariableDeref->clone(ParseState, NULL), 1, 0, 0, 0, 1),
-					new(ParseState)ir_expression(ir_unop_neg,
-					glsl_type::float_type,
-					new(ParseState)ir_swizzle(TempVariableDeref->clone(ParseState, NULL), 1, 0, 0, 0, 1),
-					NULL)
-					)
-					);
-
-				// TempVariable.z = ( TempVariable.z + TempVariable.w ) / 2.0;
-				PreCallInstructions->push_tail(
-					new(ParseState)ir_assignment(
-					new(ParseState)ir_swizzle(TempVariableDeref->clone(ParseState, NULL), 2, 0, 0, 0, 1),
-					new(ParseState)ir_expression(ir_binop_div,
-					new(ParseState)ir_expression(ir_binop_add,
-					new(ParseState)ir_swizzle(TempVariableDeref->clone(ParseState, NULL), 2, 0, 0, 0, 1),
-					new(ParseState)ir_swizzle(TempVariableDeref->clone(ParseState, NULL), 3, 0, 0, 0, 1)
-					),
-					new(ParseState)ir_constant(2.0f)
-					)
-					)
-					);
+				ir_function *adjustFunc = ParseState->symbols->get_function("compiler__internal__AdjustInputSemantic");
+				check(adjustFunc);
+				check(adjustFunc->signatures.get_head() == adjustFunc->signatures.get_tail());
+				ir_function_signature *adjustFuncSig = (ir_function_signature *)adjustFunc->signatures.get_head();
+				exec_list actual_parameter;
+				actual_parameter.push_tail(TempVariableDeref->clone(ParseState, NULL));
+				ir_call* adjustFuncCall = new(ParseState) ir_call(adjustFuncSig, NULL, &actual_parameter);
+				PreCallInstructions->push_tail(adjustFuncCall);
 
 				SrcValue = TempVariableDeref->clone(ParseState, NULL);
+			}
+			else if (ParseState->adjust_clip_space_dx11_to_opengl && ApplyFlipFrontFacingAdjustment)
+			{
+				// Generate a local variable to do the conversion in, keeping source type.
+				ir_variable* TempVariable = new(ParseState)ir_variable(SrcValue->type, NULL, ir_var_temporary);
+				PreCallInstructions->push_tail(TempVariable);
+
+				ir_dereference_variable* TempVariableDeref = new(ParseState)ir_dereference_variable(TempVariable);
+
+				// incoming gl_FrontFacing. Make it (!gl_FrontFacing), due to vertical flip in OpenGL
+				ir_function *adjustFunc = ParseState->symbols->get_function("compiler__internal__AdjustIsFrontFacing");
+				check(adjustFunc);
+				check(adjustFunc->signatures.get_head() == adjustFunc->signatures.get_tail());
+				ir_function_signature *adjustFuncSig = (ir_function_signature *)adjustFunc->signatures.get_head();
+				exec_list actual_parameter;
+				actual_parameter.push_tail(SrcValue);
+				ir_call* adjustFuncCall = new(ParseState) ir_call(adjustFuncSig, TempVariableDeref, &actual_parameter);
+				PreCallInstructions->push_tail(adjustFuncCall);
+
+				check(adjustFuncCall->return_deref);
+				SrcValue = adjustFuncCall->return_deref->clone(ParseState, NULL);
 			}
 
 			apply_type_conversion(InputType, SrcValue, PreCallInstructions, ParseState, true, &loc);
@@ -4598,30 +4636,14 @@ void GenShaderOutputForVariable(
 
 			if (ParseState->adjust_clip_space_dx11_to_opengl && ApplyClipSpaceAdjustment)
 			{
-				// Src.y = -Src.y;
-				PostCallInstructions->push_tail(
-					new(ParseState)ir_assignment(
-					new(ParseState)ir_swizzle(Src->clone(ParseState, NULL), 1, 0, 0, 0, 1),
-					new(ParseState)ir_expression(ir_unop_neg,
-					glsl_type::float_type,
-					new(ParseState)ir_swizzle(Src->clone(ParseState, NULL), 1, 0, 0, 0, 1),
-					NULL)
-					)
-					);
-
-				// Src.z = ( 2.0 * Src.z ) - Src.w;
-				PostCallInstructions->push_tail(
-					new(ParseState)ir_assignment(
-					new(ParseState)ir_swizzle(Src->clone(ParseState, NULL), 2, 0, 0, 0, 1),
-					new(ParseState)ir_expression(ir_binop_sub,
-					new(ParseState)ir_expression(ir_binop_mul,
-					new(ParseState)ir_constant(2.0f),
-					new(ParseState)ir_swizzle(Src->clone(ParseState, NULL), 2, 0, 0, 0, 1)
-					),
-					new(ParseState)ir_swizzle(Src->clone(ParseState, NULL), 3, 0, 0, 0, 1)
-					)
-					)
-					);
+				ir_function *adjustFunc = ParseState->symbols->get_function("compiler__internal__AdjustOutputSemantic");
+				check(adjustFunc);
+				check(adjustFunc->signatures.get_head() == adjustFunc->signatures.get_tail());
+				ir_function_signature *adjustFuncSig = (ir_function_signature *)adjustFunc->signatures.get_head();
+				exec_list actual_parameter;
+				actual_parameter.push_tail(Src->clone(ParseState, NULL));
+				ir_call* adjustFuncCall = new(ParseState) ir_call(adjustFuncSig, NULL, &actual_parameter);
+				PostCallInstructions->push_tail(adjustFuncCall);
 			}
 
 			// GLSL doesn't support pow2 partitioning, so we treate pow2 as integer partitioning and
@@ -4824,7 +4846,7 @@ bool FGlslCodeBackend::GenerateMain(
 		{
 			if (FCStringAnsi::Stricmp(SystemValues[i].GlslName, "gl_FragCoord") == 0)
 			{
-				SystemValues[i].bOriginUpperLeft = !ParseState->adjust_clip_space_dx11_to_opengl;
+				SystemValues[i].bOriginUpperLeft = false;
 				break;
 			}
 		}
@@ -5371,6 +5393,57 @@ void FGlslLanguageSpec::SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, e
 		make_intrinsic_genType(ir, State, FRAMEBUFFER_FETCH_ES2, ir_invalid_opcode, IR_INTRINSIC_FLOAT, 0, 4, 4);
 		make_intrinsic_genType(ir, State, DEPTHBUFFER_FETCH_ES2, ir_invalid_opcode, IR_INTRINSIC_ALL_FLOATING, 3, 1, 1);
 		make_intrinsic_genType(ir, State, GET_HDR_32BPP_HDR_ENCODE_MODE_ES2, ir_invalid_opcode, IR_INTRINSIC_ALL_FLOATING, 0);
+	}
+
+	{
+		ir_function* func = new(State)ir_function("compiler__internal__AdjustInputSemantic");
+		ir_variable* param = new (State) ir_variable(glsl_type::vec4_type, "TempVariable", ir_variable_mode::ir_var_inout);
+
+		exec_list* params = new(State) exec_list();
+		params->push_tail(param);
+
+		ir_function_signature* sig = new(State)ir_function_signature(glsl_type::void_type);
+		sig->replace_parameters(params);
+		sig->is_builtin = true;
+		sig->is_defined = false;
+		sig->has_output_parameters = true;
+
+		func->add_signature(sig);
+		State->symbols->add_global_function(func);
+	}
+
+	{
+		ir_function* func = new(State)ir_function("compiler__internal__AdjustOutputSemantic");
+		ir_variable* param = new (State) ir_variable(glsl_type::vec4_type, "Src", ir_variable_mode::ir_var_inout);
+
+		exec_list* params = new(State) exec_list();
+		params->push_tail(param);
+
+		ir_function_signature* sig = new(State)ir_function_signature(glsl_type::void_type);
+		sig->replace_parameters(params);
+		sig->is_builtin = true;
+		sig->is_defined = false;
+		sig->has_output_parameters = true;
+
+		func->add_signature(sig);
+		State->symbols->add_global_function(func);
+	}
+
+	{
+		ir_function* func = new(State)ir_function("compiler__internal__AdjustIsFrontFacing");
+		ir_variable* param = new (State) ir_variable(glsl_type::bool_type, "isFrontFacing", ir_variable_mode::ir_var_in);
+
+		exec_list* params = new(State) exec_list();
+		params->push_tail(param);
+
+		ir_function_signature* sig = new(State)ir_function_signature(glsl_type::bool_type);
+		sig->replace_parameters(params);
+		sig->is_builtin = true;
+		sig->is_defined = false;
+		sig->has_output_parameters = false;
+
+		func->add_signature(sig);
+		State->symbols->add_global_function(func);
 	}
 
 	if (State->language_version >= 310)

@@ -170,7 +170,7 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 	#if VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS
 		if (Texture->MSAASurface)
 		{
-#if VULKAN_USE_NEW_RENDERPASSES
+#if 1//VULKAN_USE_NEW_RENDERPASSES
 			ensure(0);
 #else
 #if 1//VULKAN_USE_NEW_COMMAND_BUFFERS
@@ -199,8 +199,7 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 		}
 	#endif
 		MipIndex = InRTInfo.ColorRenderTarget[Index].MipIndex;
-		//#todo-rco
-#if VULKAN_USE_NEW_RENDERPASSES
+
 		VkImageView RTView = VK_NULL_HANDLE;
 		if (Texture->Surface.GetViewType() == VK_IMAGE_VIEW_TYPE_2D)
 		{
@@ -221,26 +220,7 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 		}
 		AttachmentViews.Add(RTView);
 		AttachmentViewsToDelete.Add(RTView);
-#else
-		VkImageView RTView = Texture->CreateRenderTargetView(MipIndex, 1, FMath::Max(0, (int32)InRTInfo.ColorRenderTarget[Index].ArraySliceIndex), 1);
-		AttachmentViews.Add(RTView);
 
-		// Create a write-barrier
-		WriteBarriers.AddZeroed();
-		VkImageMemoryBarrier& Barrier = WriteBarriers.Last();
-		Barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		//Barrier.pNext = NULL;
-		Barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		Barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-		Barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-		Barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-		Barrier.image = Texture->Surface.Image;
-		Barrier.subresourceRange.aspectMask = Texture->Surface.GetFullAspectMask();
-		//Barrier.subresourceRange.baseMipLevel = 0;
-		Barrier.subresourceRange.levelCount = 1;
-		//Barrier.subresourceRange.baseArrayLayer = 0;
-		Barrier.subresourceRange.layerCount = 1;
-#endif
 		NumColorAttachments++;
 	}
 
@@ -249,31 +229,9 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 		FVulkanTextureBase* Texture = FVulkanTextureBase::Cast(InRTInfo.DepthStencilRenderTarget.Texture);
 
 		bool bHasStencil = (Texture->Surface.PixelFormat == PF_DepthStencil || Texture->Surface.PixelFormat == PF_X24_G8);
-#if VULKAN_USE_NEW_RENDERPASSES
-		ensure(Texture->Surface.GetViewType() == VK_IMAGE_VIEW_TYPE_2D);
-		AttachmentViews.Add(Texture->DefaultView.View);
-#else
-		// Create a write-barrier
-		WriteBarriers.AddZeroed();
-		VkImageMemoryBarrier& Barrier = WriteBarriers.Last();
-		Barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		//Barrier.pNext = NULL;
-		Barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-		Barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-		Barrier.oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-		Barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-		Barrier.image = Texture->Surface.Image;
 
-		Barrier.subresourceRange.aspectMask = Texture->Surface.GetFullAspectMask();
-		//Barrier.subresourceRange.baseMipLevel = 0;
-		Barrier.subresourceRange.levelCount = 1;
-		//#todo-rco: Cube depth face?
-		//Barrier.subresourceRange.baseArrayLayer = 0;
-		Barrier.subresourceRange.layerCount = 1;
-		//#todo-rco
-		VkImageView RTView = Texture->CreateRenderTargetView(0, 1, 0, 1);
-		AttachmentViews.Add(RTView);
-#endif
+		ensure(Texture->Surface.GetViewType() == VK_IMAGE_VIEW_TYPE_2D || Texture->Surface.GetViewType() == VK_IMAGE_VIEW_TYPE_CUBE);
+		AttachmentViews.Add(Texture->DefaultView.View);
 	}
 
 #if !VULKAN_KEEP_CREATE_INFO
@@ -299,11 +257,7 @@ void FVulkanFramebuffer::Destroy(FVulkanDevice& Device)
 {
 	VulkanRHI::FDeferredDeletionQueue& Queue = Device.GetDeferredDeletionQueue();
 
-#if VULKAN_USE_NEW_RENDERPASSES
 	for (int32 Index = 0; Index < AttachmentViewsToDelete.Num(); ++Index)
-#else
-	for (int32 Index = 0; Index < AttachmentViews.Num(); ++Index)
-#endif
 	{
 		Queue.EnqueueResource(VulkanRHI::FDeferredDeletionQueue::EType::ImageView, AttachmentViews[Index]);
 	}
@@ -517,22 +471,6 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 
 	return bResult;
 }
-
-#if !VULKAN_USE_NEW_RENDERPASSES
-void FVulkanFramebuffer::InsertWriteBarriers(FVulkanCmdBuffer* CmdBuffer)
-{
-	if (WriteBarriers.Num() == 0)
-	{
-		return;
-	}
-
-	const VkPipelineStageFlags SrcStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	const VkPipelineStageFlags DestStages = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-
-	check(CmdBuffer->IsOutsideRenderPass());
-	VulkanRHI::vkCmdPipelineBarrier(CmdBuffer->GetHandle(), SrcStages, DestStages, 0, 0, nullptr, 0, nullptr, WriteBarriers.Num(), WriteBarriers.GetData());
-}
-#endif
 
 /*=============================================================================
  *	The following RHI functions must be called from the main thread.

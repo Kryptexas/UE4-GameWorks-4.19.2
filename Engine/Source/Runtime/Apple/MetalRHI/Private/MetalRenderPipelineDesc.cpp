@@ -7,7 +7,7 @@
 static_assert(Offset_End <= sizeof(FMetalRenderPipelineHash) * 8, "Too many bits used for the Hash");
 
 TMap<FMetalRenderPipelineDesc::FMetalRenderPipelineKey, id<MTLRenderPipelineState>> FMetalRenderPipelineDesc::MetalPipelineCache;
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 TMap<FMetalRenderPipelineDesc::FMetalRenderPipelineKey, MTLRenderPipelineReflection*> FMetalRenderPipelineDesc::MetalReflectionCache;
 #endif
 pthread_rwlock_t FMetalRenderPipelineDesc::MetalPipelineMutex;
@@ -92,7 +92,7 @@ id<MTLRenderPipelineState> FMetalRenderPipelineDesc::CreatePipelineStateForBound
 		}
 	
 		id<MTLDevice> Device = GetMetalDeviceContext().GetDevice();
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 		if (Reflection)
 		{
 			PipelineState = [Device newRenderPipelineStateWithDescriptor:PipelineDescriptor options:MTLPipelineOptionArgumentInfo reflection:Reflection error:&Error];
@@ -117,7 +117,7 @@ id<MTLRenderPipelineState> FMetalRenderPipelineDesc::CreatePipelineStateForBound
 			if (!ExistingPipeline)
 			{
 				MetalPipelineCache.Add(ComparableDesc, PipelineState);			
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 				if (Reflection)
 				{
 					check(*Reflection);				
@@ -129,7 +129,7 @@ id<MTLRenderPipelineState> FMetalRenderPipelineDesc::CreatePipelineStateForBound
 			{
 				[PipelineState release];
 				PipelineState = ExistingPipeline;
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 				if (Reflection)
 				{
 					*Reflection = MetalReflectionCache.FindChecked(ComparableDesc);
@@ -145,7 +145,7 @@ id<MTLRenderPipelineState> FMetalRenderPipelineDesc::CreatePipelineStateForBound
 			}
 		}		
 	}
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 	else if (Reflection)
 	{
 		*Reflection = MetalReflectionCache.FindChecked(ComparableDesc);
@@ -180,7 +180,7 @@ id<MTLRenderPipelineState> FMetalRenderPipelineDesc::CreatePipelineStateForBound
 	return PipelineState;
 }
 
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 MTLRenderPipelineReflection* FMetalRenderPipelineDesc::GetReflectionData(FMetalBoundShaderState* BSS, FMetalHashedVertexDescriptor const& VertexDesc) const
 {
 	if(GUseRHIThread)

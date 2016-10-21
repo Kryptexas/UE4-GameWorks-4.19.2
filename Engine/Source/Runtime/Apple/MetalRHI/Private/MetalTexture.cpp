@@ -1221,7 +1221,9 @@ void FMetalSurface::Unlock(uint32 MipIndex, uint32 ArrayIndex)
 {
     if(WriteLock & (1 << MipIndex))
 	{
-		SCOPE_CYCLE_COUNTER(STAT_MetalTexturePageOnTime);
+#if STATS
+		uint64 Start = FPlatformTime::Cycles64();
+#endif
 		
 		// Whether the device supports resource options, so we don't access invalid properties on older versions of iOS
 		bool const bSupportsResourceOptions = GetMetalDeviceContext().SupportsFeature(EMetalFeaturesResourceOptions);
@@ -1303,11 +1305,11 @@ void FMetalSurface::Unlock(uint32 MipIndex, uint32 ArrayIndex)
 			{
 				if (CompletedBuffer == CommandBuffer)
 				{
-				FPlatformAtomics::InterlockedDecrement(&ActiveUploads);
+					FPlatformAtomics::InterlockedDecrement(&ActiveUploads);
 #if STATS
 					uint64 Taken = FPlatformTime::Cycles64() - *Cycles;
 					delete Cycles;
-					SET_CYCLE_COUNTER(STAT_MetalTexturePageOnTime, Taken);
+					GMetalTexturePageOnTime += Taken;
 #endif
 				}
 			}];
@@ -1340,6 +1342,10 @@ void FMetalSurface::Unlock(uint32 MipIndex, uint32 ArrayIndex)
 		LockedMemory[MipIndex] = nullptr;
 		
 		bWritten = true;
+		
+#if STATS
+		GMetalTexturePageOnTime += (FPlatformTime::Cycles64() - Start);
+#endif
     }
 }
 

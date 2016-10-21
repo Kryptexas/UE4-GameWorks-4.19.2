@@ -8,6 +8,8 @@
 	UPackage.
 -----------------------------------------------------------------------------*/
 
+/** Delegate to notify subscribers when a package is about to be saved. */
+UPackage::FPreSavePackage UPackage::PreSavePackageEvent;
 /** Delegate to notify subscribers when a package has been saved. This is triggered when the package saving
  *  has completed and was successful. */
 UPackage::FOnPackageSaved UPackage::PackageSavedEvent;

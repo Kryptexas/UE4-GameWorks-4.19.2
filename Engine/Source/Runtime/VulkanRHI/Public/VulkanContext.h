@@ -110,7 +110,10 @@ public:
 	virtual void RHIUpdateTextureReference(FTextureReferenceRHIParamRef TextureRef, FTextureRHIParamRef NewTexture) final override;
 	virtual void RHIBeginOcclusionQueryBatch() final override;
 	virtual void RHIEndOcclusionQueryBatch() final override;
-	virtual void RHISubmitCommandsHint() final override;
+	virtual void RHISubmitCommandsHint() final override
+	{
+		RequestSubmitCurrentCommands();
+	}
 
 	virtual void RHIBeginDrawingViewport(FViewportRHIParamRef Viewport, FTextureRHIParamRef RenderTargetRHI) final override;
 	virtual void RHIEndDrawingViewport(FViewportRHIParamRef Viewport, bool bPresent, bool bLockToVsync) final override;
@@ -146,7 +149,6 @@ public:
 
 	void NotifyDeletedRenderTarget(const FVulkanTextureBase* Texture);
 
-#if VULKAN_USE_NEW_RENDERPASSES
 	inline FVulkanRenderPass* GetCurrentRenderPass()
 	{
 		return RenderPassState.CurrentRenderPass;
@@ -156,7 +158,12 @@ public:
 	{
 		return RenderPassState.PreviousRenderPass;
 	}
-#endif
+
+	inline uint64 GetFrameCounter() const
+	{
+		return FrameCounter;
+	}
+
 protected:
 	FVulkanDynamicRHI* RHI;
 	FVulkanDevice* Device;
@@ -185,7 +192,6 @@ protected:
 
 	TArray<FVulkanDescriptorPool*> DescriptorPools;
 
-#if VULKAN_USE_NEW_RENDERPASSES
 	struct FRenderPassState
 	{
 		FRenderPassState()
@@ -218,13 +224,15 @@ protected:
 		void NotifyDeletedRenderTarget(FVulkanDevice& InDevice, const FVulkanTextureBase* Texture);
 	};
 	FRenderPassState RenderPassState;
-#endif
+
+	FVulkanOcclusionQueryPool* CurrentOcclusionQueryPool;
+
 	//#todo-rco: Temp!
 	FVulkanPendingGfxState* PendingGfxState;
 	FVulkanPendingComputeState* PendingComputeState;
 
 	void PrepareForCPURead();
-	void SubmitCurrentCommands();
+	void RequestSubmitCurrentCommands();
 
 	void InternalClearMRT(FVulkanCmdBuffer* CmdBuffer, bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect);
 
@@ -232,5 +240,22 @@ private:
 	void RHIClear(bool bClearColor, const FLinearColor& Color, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect);
 	void RHIClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect);
 
+	inline bool SafePointSubmit()
+	{
+		if (bSubmitAtNextSafePoint)
+		{
+			InternalSubmitActiveCmdBuffer();
+			bSubmitAtNextSafePoint = false;
+			return true;
+		}
+
+		return false;
+	}
+
+	void InternalSubmitActiveCmdBuffer();
+
 	friend class FVulkanDevice;
+
+	// Number of times EndFrame() has been called on this context
+	uint64 FrameCounter;
 };

@@ -3954,6 +3954,7 @@ ESavePackageResult UEditorEngine::Save( UPackage* InOuter, UObject* InBase, EObj
 
 	SlowTask.EnterProgressFrame(70);
 
+	UPackage::PreSavePackageEvent.Broadcast(InOuter);
 	const ESavePackageResult Result = UPackage::Save(InOuter, Base, TopLevelFlags, Filename, Error, Conform, bForceByteSwapping, bWarnOfLongFilename, SaveFlags, TargetPlatform, FinalTimeStamp, bSlowTask);
 
 	SlowTask.EnterProgressFrame(10);

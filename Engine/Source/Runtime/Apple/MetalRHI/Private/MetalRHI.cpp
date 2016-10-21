@@ -335,7 +335,7 @@ FMetalDynamicRHI::FMetalDynamicRHI(ERHIFeatureLevel::Type RequestedFeatureLevel)
 	GMaxTextureArrayLayers = 2048;
 	GMaxShadowDepthBufferSizeX = 16384;
 	GMaxShadowDepthBufferSizeY = 16384;
-    bSupportsD16 = FParse::Param(FCommandLine::Get(),TEXT("metalv2")) || [Device supportsFeatureSet:MTLFeatureSet_OSX_GPUFamily1_v2];
+    bSupportsD16 = !FParse::Param(FCommandLine::Get(),TEXT("nometalv2")) && [Device supportsFeatureSet:MTLFeatureSet_OSX_GPUFamily1_v2];
 #else
 #if PLATFORM_TVOS
 	GRHISupportsBaseVertexIndex = false;

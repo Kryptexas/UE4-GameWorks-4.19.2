@@ -437,6 +437,96 @@ private:
 
 /**
  */
+enum ETrigMathOperation
+{
+	TMO_Sin,
+	TMO_Cos,
+	TMO_Tan,
+	TMO_Asin,
+	TMO_Acos,
+	TMO_Atan,
+	TMO_Atan2
+};
+
+/**
+ */
+class FMaterialUniformExpressionTrigMath: public FMaterialUniformExpression
+{
+	DECLARE_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionTrigMath);
+public:
+
+	FMaterialUniformExpressionTrigMath() {}
+	FMaterialUniformExpressionTrigMath(FMaterialUniformExpression* InX, ETrigMathOperation InOp):
+		X(InX),
+		Y(InX),
+		Op(InOp)
+	{}
+
+	FMaterialUniformExpressionTrigMath(FMaterialUniformExpression* InX, FMaterialUniformExpression* InY, ETrigMathOperation InOp):
+		X(InX),
+		Y(InY),
+		Op(InOp)
+	{}
+
+	// FMaterialUniformExpression interface.
+	virtual void Serialize(FArchive& Ar)
+	{
+		Ar << X << Y << Op;
+	}
+	virtual void GetNumberValue(const FMaterialRenderContext& Context,FLinearColor& OutValue) const
+	{
+		FLinearColor ValueX = FLinearColor::Black;
+		FLinearColor ValueY = FLinearColor::Black;
+		X->GetNumberValue(Context,ValueX);
+		Y->GetNumberValue(Context,ValueY);
+
+		switch (Op)
+		{
+		case TMO_Sin: OutValue.R = FMath::Sin(ValueX.R); OutValue.G = FMath::Sin(ValueX.G); OutValue.B = FMath::Sin(ValueX.B); OutValue.A = FMath::Sin(ValueX.A); break;
+		case TMO_Cos: OutValue.R = FMath::Cos(ValueX.R); OutValue.G = FMath::Cos(ValueX.G); OutValue.B = FMath::Cos(ValueX.B); OutValue.A = FMath::Cos(ValueX.A); break;
+		case TMO_Tan: OutValue.R = FMath::Tan(ValueX.R); OutValue.G = FMath::Tan(ValueX.G); OutValue.B = FMath::Tan(ValueX.B); OutValue.A = FMath::Tan(ValueX.A); break;
+
+		case TMO_Asin: OutValue.R = FMath::Asin(ValueX.R); OutValue.G = FMath::Asin(ValueX.G); OutValue.B = FMath::Asin(ValueX.B); OutValue.A = FMath::Asin(ValueX.A); break;
+		case TMO_Acos: OutValue.R = FMath::Acos(ValueX.R); OutValue.G = FMath::Acos(ValueX.G); OutValue.B = FMath::Acos(ValueX.B); OutValue.A = FMath::Acos(ValueX.A); break;
+		case TMO_Atan: OutValue.R = FMath::Atan(ValueX.R); OutValue.G = FMath::Atan(ValueX.G); OutValue.B = FMath::Atan(ValueX.B); OutValue.A = FMath::Atan(ValueX.A); break;
+
+		case TMO_Atan2:
+			// Note: Param names are reversed here for a trade-off of order consistency vs sharing code
+			OutValue.R = FMath::Atan2(ValueX.R, ValueY.R); OutValue.G = FMath::Atan2(ValueX.G, ValueY.G);
+			OutValue.B = FMath::Atan2(ValueX.B, ValueY.B); OutValue.A = FMath::Atan2(ValueX.A, ValueY.A);
+			break;
+
+		default:
+			checkf(0, TEXT("Invalid trigonometry math operation in uniform expression."));
+		}
+		
+	}
+	virtual bool IsConstant() const
+	{
+		return X->IsConstant() && Y->IsConstant();
+	}
+	virtual bool IsChangingPerFrame() const
+	{
+		return X->IsChangingPerFrame() && Y->IsChangingPerFrame();
+	}
+	virtual bool IsIdentical(const FMaterialUniformExpression* OtherExpression) const
+	{
+		if (GetType() != OtherExpression->GetType())
+		{
+			return false;
+		}
+		FMaterialUniformExpressionTrigMath* OtherTrig = (FMaterialUniformExpressionTrigMath*)OtherExpression;
+		return X->IsIdentical(OtherTrig->X) && Y->IsIdentical(OtherTrig->Y) && Op == OtherTrig->Op;
+	}
+
+private:
+	TRefCountPtr<FMaterialUniformExpression> X;
+	TRefCountPtr<FMaterialUniformExpression> Y;
+	uint8 Op;
+};
+
+/**
+ */
 class FMaterialUniformExpressionSquareRoot: public FMaterialUniformExpression
 {
 	DECLARE_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionSquareRoot);
@@ -1231,6 +1321,102 @@ public:
 		}
 		FMaterialUniformExpressionCeil* OtherCeil = (FMaterialUniformExpressionCeil*)OtherExpression;
 		return X->IsIdentical(OtherCeil->X);
+	}
+
+private:
+	TRefCountPtr<FMaterialUniformExpression> X;
+};
+
+/**
+ */
+class FMaterialUniformExpressionRound: public FMaterialUniformExpression
+{
+	DECLARE_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionRound);
+public:
+
+	FMaterialUniformExpressionRound() {}
+	FMaterialUniformExpressionRound(FMaterialUniformExpression* InX):
+		X(InX)
+	{}
+
+	// FMaterialUniformExpression interface.
+	virtual void Serialize(FArchive& Ar)
+	{
+		Ar << X;
+	}
+	virtual void GetNumberValue(const FMaterialRenderContext& Context,FLinearColor& OutValue) const
+	{
+		X->GetNumberValue(Context, OutValue);
+
+		OutValue.R = FMath::RoundToFloat(OutValue.R);
+		OutValue.G = FMath::RoundToFloat(OutValue.G);
+		OutValue.B = FMath::RoundToFloat(OutValue.B);
+		OutValue.A = FMath::RoundToFloat(OutValue.A);
+	}
+	virtual bool IsConstant() const
+	{
+		return X->IsConstant();
+	}
+	virtual bool IsChangingPerFrame() const
+	{
+		return X->IsChangingPerFrame();
+	}
+	virtual bool IsIdentical(const FMaterialUniformExpression* OtherExpression) const
+	{
+		if (GetType() != OtherExpression->GetType())
+		{
+			return false;
+		}
+		FMaterialUniformExpressionRound* OtherRound = (FMaterialUniformExpressionRound*)OtherExpression;
+		return X->IsIdentical(OtherRound->X);
+	}
+
+private:
+	TRefCountPtr<FMaterialUniformExpression> X;
+};
+
+/**
+ */
+class FMaterialUniformExpressionTruncate: public FMaterialUniformExpression
+{
+	DECLARE_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionTruncate);
+public:
+
+	FMaterialUniformExpressionTruncate() {}
+	FMaterialUniformExpressionTruncate(FMaterialUniformExpression* InX):
+		X(InX)
+	{}
+
+	// FMaterialUniformExpression interface.
+	virtual void Serialize(FArchive& Ar)
+	{
+		Ar << X;
+	}
+	virtual void GetNumberValue(const FMaterialRenderContext& Context,FLinearColor& OutValue) const
+	{
+		X->GetNumberValue(Context, OutValue);
+
+		OutValue.R = FMath::TruncToFloat(OutValue.R);
+		OutValue.G = FMath::TruncToFloat(OutValue.G);
+		OutValue.B = FMath::TruncToFloat(OutValue.B);
+		OutValue.A = FMath::TruncToFloat(OutValue.A);
+	}
+	virtual bool IsConstant() const
+	{
+		return X->IsConstant();
+	}
+	virtual bool IsChangingPerFrame() const
+	{
+		return X->IsChangingPerFrame();
+	}
+	virtual bool IsIdentical(const FMaterialUniformExpression* OtherExpression) const
+	{
+		if (GetType() != OtherExpression->GetType())
+		{
+			return false;
+		}
+		FMaterialUniformExpressionTruncate* OtherTrunc = (FMaterialUniformExpressionTruncate*)OtherExpression;
+		return X->IsIdentical(OtherTrunc->X);
 	}
 
 private:

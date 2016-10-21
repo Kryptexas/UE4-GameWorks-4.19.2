@@ -490,7 +490,7 @@ void UStaticMeshComponent::PropagateLightingScenarioChange()
 {
 	FComponentRecreateRenderStateContext Context(this);
 }
-	
+
 const FMeshMapBuildData* UStaticMeshComponent::GetMeshMapBuildData(const FStaticMeshComponentLODInfo& LODInfo) const
 {
 	if (!GetStaticMesh() || !GetStaticMesh()->RenderData)
@@ -547,7 +547,7 @@ const FMeshMapBuildData* UStaticMeshComponent::GetMeshMapBuildData(const FStatic
 void UStaticMeshComponent::OnRegister()
 {
 	UpdateCollisionFromStaticMesh();
-
+	
 	if (GetStaticMesh() != NULL && GetStaticMesh()->RenderData)
 	{
 		AddSpeedTreeWind();
@@ -615,14 +615,14 @@ static int32 GetNumberOfElements(const TIndirectArray<FStaticMeshLODResources>& 
 }
 
 /**
- *	Set this struct to match the unpacked params.
+ *	Pack the texture into data ready for saving. Also ensures a single entry per texture.
  *
  *	@param	LevelTextures			[in,out]	The list of textures referred by all component of a level. The array index maps to UTexture2D::LevelIndex.
  *	@param	UnpackedData			[in,out]	The unpacked data, emptied after the function executes.
  *	@param	StreamingTextureData	[out]		The resulting packed data.
  *	@param	RefBounds				[in]		The reference bounds used to packed the relative bounds.
  */
-static void PackStreamingTextureData(TArray<UTexture2D*>& LevelTextures, TArray<FStreamingTexturePrimitiveInfo>& UnpackedData, TArray<FStreamingTextureBuildInfo>& StreamingTextureData, const FBoxSphereBounds& RefBounds)
+static void PackStreamingTextureData(ULevel* Level, TArray<FStreamingTexturePrimitiveInfo>& UnpackedData, TArray<FStreamingTextureBuildInfo>& StreamingTextureData, const FBoxSphereBounds& RefBounds)
 {
 	StreamingTextureData.Empty();
 
@@ -648,277 +648,178 @@ static void PackStreamingTextureData(TArray<UTexture2D*>& LevelTextures, TArray<
 		}
 
 		FStreamingTextureBuildInfo PackedInfo;
-		PackedInfo.PackFrom(LevelTextures, RefBounds, Info);
+		PackedInfo.PackFrom(Level, RefBounds, Info);
 		StreamingTextureData.Push(PackedInfo);
 	}
 }
 
 #endif
 
-void UStaticMeshComponent::UpdateStreamingTextureData(TArray<UTexture2D*>& LevelTextures, const FTexCoordScaleMap& TexCoordScales, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel)
+bool UStaticMeshComponent::GetMaterialStreamingData(int32 MaterialIndex, FPrimitiveMaterialInfo& MaterialData) const
+{ 
+	if (GetStaticMesh())
+	{
+		MaterialData.Material = GetMaterial(MaterialIndex);
+		MaterialData.UVChannelData = GetStaticMesh()->GetUVChannelData(MaterialIndex);
+#if WITH_EDITORONLY_DATA
+		MaterialData.Bounds = MaterialStreamingBounds.IsValidIndex(MaterialIndex) ?  MaterialStreamingBounds[MaterialIndex] : Bounds.GetBox();
+#else
+		MaterialData.Bounds = Bounds.GetBox();
+#endif
+	}
+	return MaterialData.IsValid();
+}
+
+bool UStaticMeshComponent::BuildTextureStreamingData(ETextureStreamingBuildType BuildType, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, TSet<FGuid>& DependentResources)
 {
+	bool bBuildDataValid = true;
+
 #if WITH_EDITORONLY_DATA // Only rebuild the data in editor 
 	if (FPlatformProperties::HasEditorOnlyData())
 	{
-		UpdateTextureStreamingMaterialData(TexCoordScales);
+		AActor* ComponentActor = GetOwner();
 
-	if (RequiresStreamingTextureData())
-	{
-		TArray<FStreamingTexturePrimitiveInfo> UnpackedData;
-
-		TArray<UTexture*> Textures;
-		TArray< TArray<int32> > Indices;
-
+		if (!bIgnoreInstanceForTextureStreaming && Mobility == EComponentMobility::Static && GetStaticMesh() && GetStaticMesh()->RenderData)
+		{
+			// First generate the bounds. Will be used in the texture streaming build and also in the debug viewmode.
 			const int32 NumMaterials = GetNumMaterials();
 
-			for (int32 MaterialIndex = 0; MaterialIndex < NumMaterials; ++MaterialIndex)
-		{
-				FPrimitiveMaterialInfo& MaterialData = (*TexStreamMaterialData)[MaterialIndex];
-				UMaterialInterface* Material = GetMaterial(MaterialIndex);
-				if (!Material) continue;
-
-				const FMeshUVChannelInfo* ChannelData = GetStaticMesh()->GetUVChannelData(MaterialIndex);
-				if (!ChannelData) continue;
-
-			Textures.Empty();
-			Indices.Empty();
-
-			// Get the texture register indices used by each textures. 
-			// Must be using the same quality and feature level as the one used to compute scales
-			// in order to remap to the correct texture register index.
-			Material->GetUsedTexturesAndIndices(Textures, Indices, QualityLevel, FeatureLevel);
-
-			for (int32 TextureIndex = 0; TextureIndex < Textures.Num(); ++TextureIndex)
+			// Build the material bounds if in full rebuild or if the data is incomplete.
+			if (BuildType == TSB_MapBuild || (BuildType == TSB_ViewMode && MaterialStreamingBounds.Num() != NumMaterials))
 			{
-				UTexture2D* Texture = Cast<UTexture2D>(Textures[TextureIndex]);
-				if (!Texture) continue;
-
-				bool bMaxValid = false;
-				float MaxTexelFactor = 0;
-
-				if (Indices.IsValidIndex(TextureIndex))
+				// Build the material bounds.
+				MaterialStreamingBounds.Empty(NumMaterials);
+				for (int32 MaterialIndex = 0; MaterialIndex < NumMaterials; ++MaterialIndex)
 				{
-						for (int32 SubIndex : Indices[TextureIndex])
-					{
-							if (MaterialData.TextureData.IsValidIndex(SubIndex))
-						{
-								const FMaterialTextureInfo& TextureData = MaterialData.TextureData[SubIndex];
+					MaterialStreamingBounds.Add(GetStaticMesh()->GetMaterialBox(MaterialIndex, ComponentToWorld));
+				}
 
-								// A scale of 0 would indicate that this register index is irrelevant (not used). Also could cause divide by 0
-								if (TextureData.SamplingScale > 0 && TextureData.UVChannelIndex >= 0 && TextureData.UVChannelIndex < ARRAY_COUNT(ChannelData->LocalUVDensities))
-							{
-									MaxTexelFactor = FMath::Max<float>(MaxTexelFactor, ChannelData->LocalUVDensities[TextureData.UVChannelIndex] / TextureData.SamplingScale);
-								bMaxValid = true;
-							}
+				// Update since proxy has a copy of the material bounds.
+				MarkRenderStateDirty();
+			}
+			else if (MaterialStreamingBounds.Num() != NumMaterials)
+			{
+				bBuildDataValid = false; 
+			}
+
+			// The texture build data can only be recomputed on a map build because of how the the level StreamingTextureGuids are handled.
+			if (BuildType == TSB_MapBuild)
+			{
+				ULevel* Level = ComponentActor ? ComponentActor->GetLevel() : nullptr;
+				if (Level)
+				{
+					// Get the data without any component scaling as the built data does not include scale.
+					FStreamingTextureLevelContext LevelContext(QualityLevel, FeatureLevel);
+					TArray<FStreamingTexturePrimitiveInfo> UnpackedData;
+					GetStreamingTextureInfoInner(LevelContext, nullptr, 1.f, UnpackedData);
+					PackStreamingTextureData(Level, UnpackedData, StreamingTextureData, Bounds);
+				}
+			}
+			else if (StreamingTextureData.Num() == 0)
+			{
+				// In that case, check if the component refers a streaming texture. If so, the build data is missing.
+				TArray<UMaterialInterface*> UsedMaterials;
+				GetUsedMaterials(UsedMaterials);
+
+				for (int32 MaterialIndex = 0; MaterialIndex < NumMaterials; ++MaterialIndex)
+				{
+					FPrimitiveMaterialInfo MaterialData;
+					if (GetMaterialStreamingData(MaterialIndex, MaterialData) && UsedMaterials.Contains(MaterialData.Material))
+					{
+						check(MaterialData.Material);
+
+						// Sometimes there is missing data because the fallback density is 0
+						if (MaterialData.Material->UseAnyStreamingTexture() && MaterialData.UVChannelData->LocalUVDensities[0] > 0)
+						{
+							bBuildDataValid = false; 
+							break;
 						}
 					}
 				}
-
-				FStreamingTexturePrimitiveInfo& Info = *new(UnpackedData) FStreamingTexturePrimitiveInfo();
-				Info.Texture = Texture;
-					Info.TexelFactor = bMaxValid ? MaxTexelFactor : ChannelData->LocalUVDensities[0]; // Otherwise fallback on texcoord 0.
-					Info.Bounds = MaterialData.Box;
 			}
-		}
 
-		PackStreamingTextureData(LevelTextures, UnpackedData, StreamingTextureData, Bounds);
-		bStreamingTextureDataValid = true;
-		MarkPackageDirty();
-			MarkRenderStateDirty();
-	}
-	else if (StreamingTextureData.Num() > 0)
-	{
-		StreamingTextureData.Empty();
-		bStreamingTextureDataValid = false; // Only meaningful if required (prevents having to set it for dynamic primitives)
-		MarkPackageDirty();
-			MarkRenderStateDirty();
-		}
-	}
-#endif
-}
-
-bool UStaticMeshComponent::RequiresStreamingTextureData() const
-{
-	const bool bUseMetrics = CVarStreamingUseNewMetrics.GetValueOnGameThread() != 0;
-	const bool bNeedsPrecomputedData = !bIgnoreInstanceForTextureStreaming && Mobility == EComponentMobility::Static && GetStaticMesh() && GetStaticMesh()->RenderData;
-	return bUseMetrics && bNeedsPrecomputedData;
-}
-
-bool UStaticMeshComponent::HasTextureStreamingMaterialData(bool bCheckForScales, int32 TextureIndex, FMaterialTextureInfo* OutTextureData) const
-{
-#if WITH_EDITORONLY_DATA
-	if (RequiresStreamingTextureData())
-	{
-		if (!TexStreamMaterialData.IsValid())
-		{
-			return false;
-		}
-		else if (bCheckForScales)
-		{
-			for (const FPrimitiveMaterialInfo& MaterialData : *TexStreamMaterialData)
+			// Generate the build reference guids
+			if (StreamingTextureData.Num())
 			{
-				if (TextureIndex == INDEX_NONE && MaterialData.TextureData.Num())
-				{
-					return true;
-				}
-				else if (MaterialData.TextureData.IsValidIndex(TextureIndex))
-				{
-					const FMaterialTextureInfo& TextureData = MaterialData.TextureData[TextureIndex];
+				DependentResources.Add(GetStaticMesh()->GetLightingGuid());
 
-					if (OutTextureData && TextureData.SamplingScale > 0) // Don't stack too as it is for debugging only.
+				TArray<UMaterialInterface*> UsedMaterials;
+				GetUsedMaterials(UsedMaterials);
+				for (UMaterialInterface* UsedMaterial : UsedMaterials)
+				{
+					// Materials not having the RF_Public are instances created dynamically.
+					if (UsedMaterial && UsedMaterial->UseAnyStreamingTexture() && UsedMaterial->GetOutermost() != GetTransientPackage() && UsedMaterial->HasAnyFlags(RF_Public))
 					{
-						OutTextureData->SamplingScale = FMath::Max<float>(OutTextureData->SamplingScale, TextureData.SamplingScale);
-
-						if (OutTextureData->TextureName == NAME_None)
-						{
-							OutTextureData->TextureName = TextureData.TextureName;
-							OutTextureData->UVChannelIndex = TextureData.UVChannelIndex;
-						}
-						else // If more than one, we can't track it.
-						{
-							if (OutTextureData->TextureName != TextureData.TextureName)
-							{
-								OutTextureData->TextureName = NAME_All;
-							}
-							if (OutTextureData->UVChannelIndex != TextureData.UVChannelIndex)
-							{
-								OutTextureData->UVChannelIndex = INDEX_NONE;
-							}
-			}
-		}
-		else
-		{
-						return true;
+						TArray<FGuid> MaterialGuids;
+						UsedMaterial->GetLightingGuidChain(false, MaterialGuids);
+						DependentResources.Append(MaterialGuids);
 					}
 				}
 			}
-			return TextureIndex != INDEX_NONE && OutTextureData->TextureName != NAME_None;
 		}
-		else
+		else // Otherwise clear any data.
 		{
-			return TexStreamMaterialData->Num() > 0;
+			StreamingTextureData.Empty();
+
+			if (MaterialStreamingBounds.Num())
+			{
+				MaterialStreamingBounds.Empty();
+				MarkRenderStateDirty(); // Update since proxy has a copy of the material bounds.
+			}
 		}
 	}
 #endif
-	return false;
-}
-
-bool UStaticMeshComponent::HasStreamingTextureData() const
-{
-#if WITH_EDITORONLY_DATA
-	return RequiresStreamingTextureData() && bStreamingTextureDataValid;
-#else
-	return RequiresStreamingTextureData() && StreamingTextureData.Num() > 0;
-#endif
-}
-
-void UStaticMeshComponent::UpdateTextureStreamingMaterialData(const FTexCoordScaleMap& TexCoordScales)
-{
-#if WITH_EDITORONLY_DATA
-	if (FPlatformProperties::HasEditorOnlyData())
-	{
-	if (RequiresStreamingTextureData())
-	{
-			TexStreamMaterialData = TSharedPtr<TArray<FPrimitiveMaterialInfo>, ESPMode::NotThreadSafe>(new TArray<FPrimitiveMaterialInfo>());
-
-			const int32 NumMaterials = GetNumMaterials();
-			TexStreamMaterialData->AddDefaulted(NumMaterials);
-
-			// Note that the texcoord sizes are not stored here to allow viewmode to respond to user edits.
-			for (int32 MaterialIndex = 0; MaterialIndex < NumMaterials; ++MaterialIndex)
-		{
-				FPrimitiveMaterialInfo& MaterialData = (*TexStreamMaterialData)[MaterialIndex];
-
-				UMaterialInterface* Material = GetMaterial(MaterialIndex);
-				if (!Material) continue;
-
-				MaterialData.Box = GetTextureStreamingBox(MaterialIndex);
-
-				const TArray<FMaterialTextureInfo>* TextureData = TexCoordScales.Find(Material);
-				if (TextureData)
-				{
-					MaterialData.TextureData = *TextureData;
-				}
-					}
-			MarkRenderStateDirty();
-				}
-		else if (TexStreamMaterialData.IsValid())
-				{
-			TexStreamMaterialData.Reset();
-			MarkRenderStateDirty();
-		}
-	}
-#endif
-}
-
-FBox UStaticMeshComponent::GetTextureStreamingBox(int32 MaterialIndex) const
-{
-	return GetStaticMesh()->GetMaterialBox(MaterialIndex, ComponentToWorld);
+	return bBuildDataValid;
 }
 
 float UStaticMeshComponent::GetTextureStreamingTransformScale() const
-	{
+{
 	return ComponentToWorld.GetMaximumAxisScale();
 }
 
 void UStaticMeshComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
 {
-	if (bIgnoreInstanceForTextureStreaming || !GetStaticMesh() || !GetStaticMesh()->HasValidRenderData()) return;
-
-		const ERHIFeatureLevel::Type FeatureLevel = GetWorld() ? GetWorld()->FeatureLevel : GMaxRHIFeatureLevel;
-	const int32 NumMaterials = GetNumMaterials();
+	if (bIgnoreInstanceForTextureStreaming || !GetStaticMesh() || !GetStaticMesh()->HasValidRenderData())
+	{
+		return;
+	}
 
 	const float TransformScale = GetTextureStreamingTransformScale();
-	LevelContext.BindComponent(&StreamingTextureData, Bounds, TransformScale * StreamingDistanceMultiplier);
-
-	// Process the material entries.
-	for (int32 MaterialIndex = 0; MaterialIndex < NumMaterials; ++MaterialIndex)
-		{
-		UMaterialInterface* Material = GetMaterial(MaterialIndex);
-		if (!Material) continue;
-
-				// Enumerate the textures used by the material.
-				TArray<UTexture*> Textures;
-				Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, FeatureLevel, false);
-
-
-		const FMeshUVChannelInfo* UVChannelData = GetStaticMesh()->GetUVChannelData(MaterialIndex);
-		LevelContext.Process(Textures, UVChannelData ? UVChannelData->LocalUVDensities[0] : 1.f, OutStreamingTextures);
-			}
+	GetStreamingTextureInfoInner(LevelContext, Mobility == EComponentMobility::Static ? &StreamingTextureData : nullptr, TransformScale * StreamingDistanceMultiplier, OutStreamingTextures);
 
 	// Process the lightmaps and shadowmaps entries.
 	for (int32 LODIndex = 0; LODIndex < LODData.Num(); ++LODIndex)
-			{
-				const FStaticMeshComponentLODInfo& LODInfo = LODData[LODIndex];
+	{
+		const FStaticMeshComponentLODInfo& LODInfo = LODData[LODIndex];
 		const FMeshMapBuildData* MeshMapBuildData = GetMeshMapBuildData(LODInfo);
 		FLightMap2D* Lightmap = MeshMapBuildData && MeshMapBuildData->LightMap ? MeshMapBuildData->LightMap->GetLightMap2D() : NULL;
-				uint32 LightmapIndex = AllowHighQualityLightmaps(FeatureLevel) ? 0 : 1;
+		uint32 LightmapIndex = AllowHighQualityLightmaps(LevelContext.GetFeatureLevel()) ? 0 : 1;
 		if (Lightmap && Lightmap->IsValid(LightmapIndex))
-				{
-					const FVector2D& Scale = Lightmap->GetCoordinateScale();
+		{
+			const FVector2D& Scale = Lightmap->GetCoordinateScale();
 			if (Scale.X > SMALL_NUMBER && Scale.Y > SMALL_NUMBER)
-					{
-						FStreamingTexturePrimitiveInfo& StreamingTexture = *new(OutStreamingTextures) FStreamingTexturePrimitiveInfo;
-						StreamingTexture.Bounds		 = Bounds;
+			{
+				FStreamingTexturePrimitiveInfo& StreamingTexture = *new(OutStreamingTextures) FStreamingTexturePrimitiveInfo;
+				StreamingTexture.Bounds		 = Bounds;
 				StreamingTexture.TexelFactor = GetStaticMesh()->LightmapUVDensity * TransformScale / FMath::Min(Scale.X, Scale.Y);
-						StreamingTexture.Texture	 = Lightmap->GetTexture(LightmapIndex);
-					}
-				}
+				StreamingTexture.Texture	 = Lightmap->GetTexture(LightmapIndex);
+			}
+		}
 
 		FShadowMap2D* Shadowmap = MeshMapBuildData && MeshMapBuildData->ShadowMap ? MeshMapBuildData->ShadowMap->GetShadowMap2D() : NULL;
 		if (Shadowmap != NULL && Shadowmap->IsValid())
-				{
-					const FVector2D& Scale = Shadowmap->GetCoordinateScale();
+		{
+			const FVector2D& Scale = Shadowmap->GetCoordinateScale();
 			if (Scale.X > SMALL_NUMBER && Scale.Y > SMALL_NUMBER)
-					{
-						FStreamingTexturePrimitiveInfo& StreamingTexture = *new(OutStreamingTextures) FStreamingTexturePrimitiveInfo;
-						StreamingTexture.Bounds		 = Bounds;
+			{
+				FStreamingTexturePrimitiveInfo& StreamingTexture = *new(OutStreamingTextures) FStreamingTexturePrimitiveInfo;
+				StreamingTexture.Bounds		 = Bounds;
 				StreamingTexture.TexelFactor = GetStaticMesh()->LightmapUVDensity * TransformScale / FMath::Min(Scale.X, Scale.Y);
-						StreamingTexture.Texture	 = Shadowmap->GetTexture();
-					}
-				}
+				StreamingTexture.Texture	 = Shadowmap->GetTexture();
 			}
 		}
+	}
+}
 
 UBodySetup* UStaticMeshComponent::GetBodySetup()
 {
@@ -1553,6 +1454,9 @@ void UStaticMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& Propert
 
 			// Broadcast that the static mesh has changed
 			OnStaticMeshChangedEvent.Broadcast(this);
+
+			// If the staticmesh changed, then the component needs a texture streaming rebuild.
+			StreamingTextureData.Empty();
 		}
 
 		if (PropertyThatChanged->GetName() == TEXT("overridematerials"))
@@ -1561,11 +1465,10 @@ void UStaticMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& Propert
 			IHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<IHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");
 			IHierarchicalLODUtilities* Utilities = Module.GetUtilities();
 			Utilities->HandleActorModified(GetOwner());
-		}
 
-#if WITH_EDITORONLY_DATA
-		bStreamingTextureDataValid = false;
-#endif
+			// If the materials changed, then the component needs a texture streaming rebuild.
+			StreamingTextureData.Empty();
+		}
 	}
 
 	FBodyInstanceEditorHelpers::EnsureConsistentMobilitySimulationSettingsOnPostEditChange(this, PropertyChangedEvent);

@@ -236,7 +236,7 @@ FSkeletalMeshVertexBuffer::~FSkeletalMeshVertexBuffer()
 */
 FSkeletalMeshVertexBuffer& FSkeletalMeshVertexBuffer::operator=(const FSkeletalMeshVertexBuffer& Other)
 {
-	VertexData = NULL;
+	CleanUp();
 	bUseFullPrecisionUVs = Other.bUseFullPrecisionUVs;
 	bNeedsCPUAccess = Other.bNeedsCPUAccess;
 	bExtraBoneInfluences = Other.bExtraBoneInfluences;
@@ -251,8 +251,8 @@ FSkeletalMeshVertexBuffer::FSkeletalMeshVertexBuffer(const FSkeletalMeshVertexBu
 ,	bUseFullPrecisionUVs(Other.bUseFullPrecisionUVs)
 ,	bNeedsCPUAccess(Other.bNeedsCPUAccess)
 ,	bExtraBoneInfluences(Other.bExtraBoneInfluences)
-,	VertexData(NULL)
-,	Data(NULL)
+,	VertexData(nullptr)
+,	Data(nullptr)
 ,	Stride(0)
 ,	NumVertices(0)
 ,	MeshOrigin(Other.MeshOrigin)
@@ -274,7 +274,7 @@ FString FSkeletalMeshVertexBuffer::GetFriendlyName() const
 void FSkeletalMeshVertexBuffer::CleanUp()
 {
 	delete VertexData;
-	VertexData = NULL;
+	VertexData = nullptr;
 }
 
 void FSkeletalMeshVertexBuffer::InitRHI()
@@ -503,8 +503,8 @@ FSkeletalMeshVertexColorBuffer
  * Constructor
  */
 FSkeletalMeshVertexColorBuffer::FSkeletalMeshVertexColorBuffer() 
-:	VertexData(NULL),
-	Data(NULL),
+:	VertexData(nullptr),
+	Data(nullptr),
 	Stride(0),
 	NumVertices(0)
 {
@@ -526,7 +526,7 @@ FSkeletalMeshVertexColorBuffer::~FSkeletalMeshVertexColorBuffer()
 
 FSkeletalMeshVertexColorBuffer& FSkeletalMeshVertexColorBuffer::operator=(const FSkeletalMeshVertexColorBuffer& Other)
 {
-	VertexData = NULL;
+	CleanUp();
 	return *this;
 }
 
@@ -534,8 +534,8 @@ FSkeletalMeshVertexColorBuffer& FSkeletalMeshVertexColorBuffer::operator=(const 
  * Copy Constructor
  */
 FSkeletalMeshVertexColorBuffer::FSkeletalMeshVertexColorBuffer(const FSkeletalMeshVertexColorBuffer& Other)
-:	VertexData(NULL),
-	Data(NULL),
+:	VertexData(nullptr),
+	Data(nullptr),
 	Stride(0),
 	NumVertices(0)
 {
@@ -556,7 +556,7 @@ FString FSkeletalMeshVertexColorBuffer::GetFriendlyName() const
 void FSkeletalMeshVertexColorBuffer::CleanUp()
 {
 	delete VertexData;
-	VertexData = NULL;
+	VertexData = nullptr;
 }
 
 /**
@@ -673,8 +673,8 @@ FSkeletalMeshVertexAPEXClothBuffer
  * Constructor
  */
 FSkeletalMeshVertexAPEXClothBuffer::FSkeletalMeshVertexAPEXClothBuffer() 
-:	VertexData(NULL),
-	Data(NULL),
+:	VertexData(nullptr),
+	Data(nullptr),
 	Stride(0),
 	NumVertices(0)
 {
@@ -696,7 +696,7 @@ FSkeletalMeshVertexAPEXClothBuffer::~FSkeletalMeshVertexAPEXClothBuffer()
 
 FSkeletalMeshVertexAPEXClothBuffer& FSkeletalMeshVertexAPEXClothBuffer::operator=(const FSkeletalMeshVertexAPEXClothBuffer& Other)
 {
-	VertexData = NULL;
+	CleanUp();
 	return *this;
 }
 
@@ -704,8 +704,8 @@ FSkeletalMeshVertexAPEXClothBuffer& FSkeletalMeshVertexAPEXClothBuffer::operator
  * Copy Constructor
  */
 FSkeletalMeshVertexAPEXClothBuffer::FSkeletalMeshVertexAPEXClothBuffer(const FSkeletalMeshVertexAPEXClothBuffer& Other)
-:	VertexData(NULL),
-	Data(NULL),
+:	VertexData(nullptr),
+	Data(nullptr),
 	Stride(0),
 	NumVertices(0)
 {
@@ -726,7 +726,7 @@ FString FSkeletalMeshVertexAPEXClothBuffer::GetFriendlyName() const
 void FSkeletalMeshVertexAPEXClothBuffer::CleanUp()
 {
 	delete VertexData;
-	VertexData = NULL;
+	VertexData = nullptr;
 }
 
 /**
@@ -1121,10 +1121,10 @@ void FMultiSizeIndexContainer::GetIndexBufferData( FMultiSizeIndexContainerData&
 
 FMultiSizeIndexContainer::FMultiSizeIndexContainer(const FMultiSizeIndexContainer& Other)
 : DataTypeSize(sizeof(uint16))
-, IndexBuffer(NULL)
+, IndexBuffer(nullptr)
 {
 	// Cant copy this index buffer, assumes it will be rebuilt later
-	IndexBuffer = NULL;
+	IndexBuffer = nullptr;
 }
 
 FMultiSizeIndexContainer& FMultiSizeIndexContainer::operator=(const FMultiSizeIndexContainer& Buffer)
@@ -1134,7 +1134,7 @@ FMultiSizeIndexContainer& FMultiSizeIndexContainer::operator=(const FMultiSizeIn
 	if( IndexBuffer )
 	{
 		delete IndexBuffer;
-		IndexBuffer = NULL;
+		IndexBuffer = nullptr;
 	}
 
 	return *this;
@@ -2092,14 +2092,14 @@ private:
 };
 
 
-FSkeletalMeshSourceData::FSkeletalMeshSourceData() : LODModel( NULL )
+FSkeletalMeshSourceData::FSkeletalMeshSourceData() : LODModel(nullptr)
 {
 }
 
 FSkeletalMeshSourceData::~FSkeletalMeshSourceData()
 {
 	delete LODModel;
-	LODModel = NULL;
+	LODModel = nullptr;
 }
 
 #if WITH_EDITOR
@@ -2139,7 +2139,7 @@ void FSkeletalMeshSourceData::Init( const USkeletalMesh* SkeletalMesh, FStaticLO
 void FSkeletalMeshSourceData::Clear()
 {
 	delete LODModel;
-	LODModel = NULL;
+	LODModel = nullptr;
 }
 
 #endif // #if WITH_EDITORONLY_DATA
@@ -2155,10 +2155,10 @@ void FSkeletalMeshSourceData::Serialize( FArchive& Ar, USkeletalMesh* SkeletalMe
 		Ar << bHaveSourceData;
 		if ( bHaveSourceData )
 		{
-			if ( LODModel != NULL )
+			if (LODModel != nullptr)
 			{
 				delete LODModel;
-				LODModel = NULL;
+				LODModel = nullptr;
 			}
 			LODModel = new FStaticLODModel();
 			LODModel->Serialize( Ar, SkeletalMesh, INDEX_NONE );
@@ -2893,7 +2893,7 @@ void USkeletalMesh::BeginDestroy()
 		if (Data.ApexClothingAsset)
 		{
 			GPhysCommandHandler->DeferredRelease(Data.ApexClothingAsset);
-			Data.ApexClothingAsset = NULL;
+			Data.ApexClothingAsset = nullptr;
 		}
 	}
 #endif // #if WITH_APEX_CLOTHING
@@ -3659,7 +3659,7 @@ USkeletalMeshSocket* USkeletalMesh::FindSocketAndIndex(FName InSocketName, int32
 	OutIndex = INDEX_NONE;
 	if (InSocketName == NAME_None)
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	for (int32 i = 0; i < Sockets.Num(); i++)
@@ -3683,7 +3683,7 @@ USkeletalMeshSocket* USkeletalMesh::FindSocketAndIndex(FName InSocketName, int32
 		return SkeletonSocket;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 int32 USkeletalMesh::NumSockets() const
@@ -3716,7 +3716,7 @@ USkeletalMeshSocket* USkeletalMesh::GetSocketByIndex(int32 Index) const
  */
 FString USkeletalMesh::GetDetailedInfoInternal() const
 {
-	return GetPathName( NULL );
+	return GetPathName(nullptr);
 }
 
 
@@ -5368,7 +5368,7 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 
 			FMeshBatch& Mesh = Collector.AllocateMesh();
 			FMeshBatchElement& BatchElement = Mesh.Elements[0];
-			Mesh.DynamicVertexData = NULL;
+			Mesh.DynamicVertexData = nullptr;
 			Mesh.UseDynamicData = false;
 			Mesh.LCI = NULL;
 			Mesh.bWireframe |= bForceWireframe;
@@ -5716,11 +5716,34 @@ bool FSkeletalMeshSceneProxy::GetMeshUVDensities(int32 LODIndex, int32 SectionIn
 	}
 	return FPrimitiveSceneProxy::GetMeshUVDensities(LODIndex, SectionIndex, WorldUVDensities);
 }
+
+bool FSkeletalMeshSceneProxy::GetMaterialTextureScales(int32 LODIndex, int32 SectionIndex, const FMaterialRenderProxy* MaterialRenderProxy, FVector4* OneOverScales, FIntVector4* UVChannelIndices) const
+{
+	if (LODSections.IsValidIndex(LODIndex) && LODSections[LODIndex].SectionElements.IsValidIndex(SectionIndex))
+	{
+		const UMaterialInterface* Material = LODSections[LODIndex].SectionElements[SectionIndex].Material;
+		if (Material)
+		{
+			// This is thread safe because material texture data is only updated while the renderthread is idle.
+			for (const FMaterialTextureInfo TextureData : Material->GetTextureStreamingData())
+			{
+				const int32 TextureIndex = TextureData.TextureIndex;
+				if (TextureData.IsValid(true))
+				{
+					OneOverScales[TextureIndex / 4][TextureIndex % 4] = 1.f / TextureData.SamplingScale;
+					UVChannelIndices[TextureIndex / 4][TextureIndex % 4] = TextureData.UVChannelIndex;
+				}
+			}
+			return true;
+		}
+	}
+	return false;
+}
 #endif
 
 USkinnedMeshComponent::USkinnedMeshComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-	, AnimUpdateRateParams(NULL)
+	, AnimUpdateRateParams(nullptr)
 {
 	bAutoActivate = true;
 	PrimaryComponentTick.bCanEverTick = true;
@@ -5858,7 +5881,7 @@ void USkinnedMeshComponent::GetResourceSizeEx(FResourceSizeEx& CumulativeResourc
 FPrimitiveSceneProxy* USkinnedMeshComponent::CreateSceneProxy()
 {
 	ERHIFeatureLevel::Type SceneFeatureLevel = GetWorld()->FeatureLevel;
-	FSkeletalMeshSceneProxy* Result = NULL;
+	FSkeletalMeshSceneProxy* Result = nullptr;
 	FSkeletalMeshResource* SkelMeshResource = GetSkeletalMeshResource();
 
 	// Only create a scene proxy for rendering if properly initialized
@@ -5882,6 +5905,3 @@ FPrimitiveSceneProxy* USkinnedMeshComponent::CreateSceneProxy()
 
 /** Returns SkeletalMeshComponent subobject **/
 USkeletalMeshComponent* ASkeletalMeshActor::GetSkeletalMeshComponent() { return SkeletalMeshComponent; }
-
-
-

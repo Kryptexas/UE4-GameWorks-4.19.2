@@ -2543,16 +2543,25 @@ int32 UMaterialInterface::CompilePropertyEx( class FMaterialCompiler* Compiler, 
 	return INDEX_NONE;
 }
 
-int32 UMaterialInterface::CompileProperty(FMaterialCompiler* Compiler, EMaterialProperty Property)
+int32 UMaterialInterface::CompileProperty(FMaterialCompiler* Compiler, EMaterialProperty Property, uint32 ForceCastFlags)
 {
+	int32 Result = INDEX_NONE;
+
 	if (IsPropertyActive(Property))
 	{
-		return CompilePropertyEx(Compiler, FMaterialAttributeDefinitionMap::GetID(Property));
+		Result = CompilePropertyEx(Compiler, FMaterialAttributeDefinitionMap::GetID(Property));
 	}
 	else
 	{
-		return FMaterialAttributeDefinitionMap::CompileDefaultExpression(Compiler, Property);
+		Result = FMaterialAttributeDefinitionMap::CompileDefaultExpression(Compiler, Property);
 	}
+
+	if (ForceCastFlags & MFCF_ForceCast)
+	{
+		Result = Compiler->ForceCast(Result, FMaterialAttributeDefinitionMap::GetValueType(Property), ForceCastFlags);
+	}
+
+	return Result;
 }
 #endif // WITH_EDITOR
 
@@ -2716,9 +2725,9 @@ bool FMaterialShaderMapId::ContainsVertexFactoryType(const FVertexFactoryType* V
 //////////////////////////////////////////////////////////////////////////
 
 FMaterialAttributeDefintion::FMaterialAttributeDefintion(
-	const FGuid& InAttributeID, const FString& InDisplayName, EMaterialProperty InProperty,
-	EMaterialValueType InValueType, const FVector4& InDefaultValue, EShaderFrequency InShaderFrequency,
-	int32 InTexCoordIndex /*= INDEX_NONE*/, bool bInIsHidden /*= false*/, MaterialAttributeBlendFunction InBlendFunction /*= nullptr*/)
+		const FGuid& InAttributeID, const FString& InDisplayName, EMaterialProperty InProperty,
+		EMaterialValueType InValueType, const FVector4& InDefaultValue, EShaderFrequency InShaderFrequency,
+		int32 InTexCoordIndex /*= INDEX_NONE*/, bool bInIsHidden /*= false*/, MaterialAttributeBlendFunction InBlendFunction /*= nullptr*/)
 	: AttributeID(InAttributeID)
 	, DisplayName(InDisplayName)
 	, Property(InProperty)
@@ -2761,6 +2770,16 @@ int32 FMaterialAttributeDefintion::CompileDefaultValue(FMaterialCompiler* Compil
 	}
 
 	return Ret;
+}
+
+//////////////////////////////////////////////////////////////////////////
+
+FMaterialCustomOutputAttributeDefintion::FMaterialCustomOutputAttributeDefintion(
+		const FGuid& InAttributeID, const FString& InDisplayName, const FString& InFunctionName, EMaterialProperty InProperty,
+		EMaterialValueType InValueType, const FVector4& InDefaultValue, EShaderFrequency InShaderFrequency, MaterialAttributeBlendFunction InBlendFunction /*= nullptr*/)
+	: FMaterialAttributeDefintion(InAttributeID, InDisplayName, InProperty, InValueType, InDefaultValue, InShaderFrequency, INDEX_NONE, false, InBlendFunction)
+	, FunctionName(InDisplayName)
+{
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2891,16 +2910,14 @@ void FMaterialAttributeDefinitionMap::AppendDDCKeyString(FString& String)
 	String.Append(DDCString);
 }
 
-void FMaterialAttributeDefinitionMap::AddCustomAttribute(const FGuid& AttributeID, const FString& DisplayName, EMaterialValueType ValueType, const FVector4& DefaultValue, MaterialAttributeBlendFunction BlendFunction /*= nullptr*/)
+void FMaterialAttributeDefinitionMap::AddCustomAttribute(const FGuid& AttributeID, const FString& DisplayName, const FString& FunctionName, EMaterialValueType ValueType, const FVector4& DefaultValue, MaterialAttributeBlendFunction BlendFunction /*= nullptr*/)
 {
-	FMaterialAttributeDefintion UserAttribute(AttributeID, DisplayName, MP_CustomOutput, ValueType, DefaultValue, SF_Pixel);
-	UserAttribute.BlendFunction = BlendFunction;
-
-	checkf(!GMaterialPropertyAttributesMap.CustomAttributes.Contains(UserAttribute), TEXT("Tried to add duplicate material property."));
+	FMaterialCustomOutputAttributeDefintion UserAttribute(AttributeID, DisplayName, FunctionName, MP_CustomOutput, ValueType, DefaultValue, SF_Pixel, BlendFunction);
+	checkf(!GMaterialPropertyAttributesMap.CustomAttributes.Contains(UserAttribute), TEXT("Tried to add duplicate custom output attribute."));
 	GMaterialPropertyAttributesMap.CustomAttributes.Add(UserAttribute);
 }
 
-void FMaterialAttributeDefinitionMap::GetCustomAttributeList(TArray<FMaterialAttributeDefintion>& CustomAttributeList)
+void FMaterialAttributeDefinitionMap::GetCustomAttributeList(TArray<FMaterialCustomOutputAttributeDefintion>& CustomAttributeList)
 {
 	CustomAttributeList.Empty(GMaterialPropertyAttributesMap.CustomAttributes.Num());
 	for (auto& Attribute : GMaterialPropertyAttributesMap.CustomAttributes)

@@ -10,14 +10,33 @@ TextureStreamingBuild.cpp : Contains definitions to build texture streaming data
 #include "TextureStreamingHelpers.h"
 
 DEFINE_LOG_CATEGORY(TextureStreamingBuild);
+#define LOCTEXT_NAMESPACE "TextureStreamingBuild"
+
+static int32 GetNumActorsInWorld(UWorld* InWorld)
+{
+	int32 ActorCount = 0;
+	for (int32 LevelIndex = 0; LevelIndex < InWorld->GetNumLevels(); LevelIndex++)
+	{
+		ULevel* Level = InWorld->GetLevel(LevelIndex);
+		if (!Level)
+		{
+			continue;
+		}
+
+		ActorCount += Level->Actors.Num();
+	}
+	return ActorCount;
+}
 
 bool WaitForShaderCompilation(const FText& Message, FSlowTask& BuildTextureStreamingTask)
 {
+	FlushRenderingCommands();
+
 	const int32 NumShadersToBeCompiled = GShaderCompilingManager->GetNumRemainingJobs();
 	int32 RemainingShaders = NumShadersToBeCompiled;
 	if (NumShadersToBeCompiled > 0)
 	{
-		FScopedSlowTask SlowTask((float)NumShadersToBeCompiled, Message);
+		FScopedSlowTask SlowTask(1.f, Message);
 
 		while (RemainingShaders > 0)
 		{
@@ -25,296 +44,318 @@ bool WaitForShaderCompilation(const FText& Message, FSlowTask& BuildTextureStrea
 			GShaderCompilingManager->ProcessAsyncResults(false, true);
 
 			const int32 RemainingShadersThisFrame = GShaderCompilingManager->GetNumRemainingJobs();
-			const int32 NumberOfShadersCompiledThisFrame = RemainingShaders - RemainingShadersThisFrame;
+			if (RemainingShadersThisFrame > 0)
+			{
+				const int32 NumberOfShadersCompiledThisFrame = RemainingShaders - RemainingShadersThisFrame;
 
-			SlowTask.EnterProgressFrame((float)NumberOfShadersCompiledThisFrame);
-			BuildTextureStreamingTask.EnterProgressFrame((float)NumberOfShadersCompiledThisFrame / (float)NumShadersToBeCompiled);
-			if (GWarn->ReceivedUserCancel()) return false;
-
+				const float FrameProgress = (float)NumberOfShadersCompiledThisFrame / (float)NumShadersToBeCompiled;
+				BuildTextureStreamingTask.EnterProgressFrame(FrameProgress);
+				SlowTask.EnterProgressFrame(FrameProgress);
+				if (GWarn->ReceivedUserCancel())
+				{
+					return false;
+				}
+			}
 			RemainingShaders = RemainingShadersThisFrame;
 		}
 	}
 	else
 	{
 		BuildTextureStreamingTask.EnterProgressFrame();
-		if (GWarn->ReceivedUserCancel()) return false;
+		if (GWarn->ReceivedUserCancel())
+		{
+			return false;
+		}
 	}
 
 	// Extra safety to make sure every shader map is updated
 	GShaderCompilingManager->FinishAllCompilation();
+	FlushRenderingCommands();
+
 	return true;
 }
 
-void GetTextureStreamingPrimitives(ULevel* InLevel, TArray<UPrimitiveComponent*>& OutComponents, bool bOnlyThoseRequiringStreamingData = true)
-{
-	if (InLevel)
-	{
-		for (AActor* Actor : InLevel->Actors)
-		{
-			if (!Actor) continue;
-
-			TInlineComponentArray<UPrimitiveComponent*> Primitives;
-			Actor->GetComponents<UPrimitiveComponent>(Primitives);
-
-			for (UPrimitiveComponent* Primitive : Primitives)
-			{
-				if (!bOnlyThoseRequiringStreamingData || Primitive->RequiresStreamingTextureData())
-				{
-					OutComponents.Push(Primitive);
-				}
-			}
-		}
-}
-}
-
-void GetTextureStreamingPrimitives(UWorld* InWorld, TArray<UPrimitiveComponent*>& OutComponents)
-{
-	for (int32 LevelIndex = 0; LevelIndex < InWorld->GetNumLevels(); LevelIndex++)
-	{
-		GetTextureStreamingPrimitives(InWorld->GetLevel(LevelIndex), OutComponents);
-	}
-}
-
-int32 GetNumTextureStreamingPrimitives(UWorld* InWorld)
-{
-	int32 Count = 0;
-	for (int32 LevelIndex = 0; LevelIndex < InWorld->GetNumLevels(); LevelIndex++)
-	{
-		ULevel* Level = InWorld->GetLevel(LevelIndex);
-		if (!Level) continue;
-		for (AActor* Actor : Level->Actors)
-		{
-			if (!Actor) continue;
-			TInlineComponentArray<UPrimitiveComponent*> Primitives;
-			Actor->GetComponents<UPrimitiveComponent>(Primitives);
-
-			for (UPrimitiveComponent* Primitive : Primitives)
-			{
-				if (Primitive->RequiresStreamingTextureData())
-				{
-					++Count;
-				}
-			}
-		}
-	}
-	return Count;
-}
-
-
-#define LOCTEXT_NAMESPACE "TextureStreamingBuild"
-
-/**
- * Build Shaders to compute tex coord scale per texture.
+/** Get the list of all material used in a world 
  *
- * @param InWorld			The world to build streaming for.
- * @param QualityLevel		The quality level for the shaders.
- * @param FeatureLevel		The feature level for the shaders.
- * @param TexCoordScales	The map to store material interfaces used by the current primitive world.
- * @param MaterialToLevels	The map to bind a material to all levels where primitives are refering it.
- * @param bIncremental		true if the build should only update components that have no data.
  * @return true if the operation is a success, false if it was canceled.
  */
-ENGINE_API bool BuildTextureStreamingShaders(UWorld* InWorld, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, OUT FTexCoordScaleMap& TexCoordScales, OUT FMaterialToLevelsMap& MaterialToLevels, bool bIncremental, FSlowTask& BuildTextureStreamingTask)
+ENGINE_API bool GetTextureStreamingBuildMaterials(UWorld* InWorld, OUT TSet<UMaterialInterface*>& OutMaterials, FSlowTask& BuildTextureStreamingTask)
 {
 #if WITH_EDITORONLY_DATA
-
-	if (!InWorld || !GShaderCompilingManager) return false;
-
-	const bool bUseNewMetrics = CVarStreamingUseNewMetrics.GetValueOnGameThread() != 0;
-	const double StartTime = FPlatformTime::Seconds();
-
-	FlushRenderingCommands();
-
-	if (!WaitForShaderCompilation(LOCTEXT("TextureStreamingBuild_FinishPendingShadersCompilation", "Waiting For Pending Shaders Compilation"), BuildTextureStreamingTask))
+	if (!InWorld)
 	{
 		return false;
 	}
 
-	if (!bIncremental)
+	const bool bUseNewMetrics = CVarStreamingUseNewMetrics.GetValueOnGameThread() != 0;
+	if (!bUseNewMetrics)
 	{
-		FDebugViewModeMaterialProxy::ClearAllShaders();
-	}
-	else // Otherwise, if there are no shaders, then we need to rebuild them all.
-	{
-		bIncremental = FDebugViewModeMaterialProxy::HasAnyShaders();
+		return true; // Old path use no texture scale.
 	}
 
-	// Without the new metrics, the shaders will are not compiled, making the texcoord scale viewmode non functional.
-	if (bUseNewMetrics && AllowDebugViewPS(DVSM_OutputMaterialTextureScales, GetFeatureLevelShaderPlatform(FeatureLevel)))
+	const int32 NumActorsInWorld = GetNumActorsInWorld(InWorld);
+	if (!NumActorsInWorld)
 	{
-		const float NumPrimitiveComponents = (float)GetNumTextureStreamingPrimitives(InWorld);
+		BuildTextureStreamingTask.EnterProgressFrame();
+		return true;
+	}
 
+	const float OneOverNumActorsInWorld = 1.f / (float)NumActorsInWorld;
+
+	FScopedSlowTask SlowTask(1.f, (LOCTEXT("TextureStreamingBuild_GetTextureStreamingBuildMaterials", "Getting materials to rebuild")));
+
+	for (int32 LevelIndex = 0; LevelIndex < InWorld->GetNumLevels(); LevelIndex++)
+	{
+		ULevel* Level = InWorld->GetLevel(LevelIndex);
+		if (!Level)
 		{
-			FScopedSlowTask SlowTask(NumPrimitiveComponents, (LOCTEXT("TextureStreamingBuild_ParsingPrimitiveMaterials ", "Parsing Primitive Materials")));
-			for (int32 LevelIndex = 0; LevelIndex < InWorld->GetNumLevels(); LevelIndex++)
+			continue;
+		}
+
+		for (AActor* Actor : Level->Actors)
+		{
+			BuildTextureStreamingTask.EnterProgressFrame(OneOverNumActorsInWorld);
+			SlowTask.EnterProgressFrame(OneOverNumActorsInWorld);
+			if (GWarn->ReceivedUserCancel())
 			{
-				ULevel* Level = InWorld->GetLevel(LevelIndex);
+				return false;
+			}
 
-				TArray<UPrimitiveComponent*> Components;
-				GetTextureStreamingPrimitives(Level, Components);
-				for (UPrimitiveComponent* Primitive : Components)
+			// Check the actor after incrementing the progress.
+			if (!Actor)
+			{
+				continue;
+			}
+
+			TInlineComponentArray<UPrimitiveComponent*> Primitives;
+			Actor->GetComponents<UPrimitiveComponent>(Primitives);
+
+			for (UPrimitiveComponent* Primitive : Primitives)
+			{
+				if (!Primitive)
 				{
-					SlowTask.EnterProgressFrame();
-					BuildTextureStreamingTask.EnterProgressFrame(1.f / NumPrimitiveComponents);
-					if (GWarn->ReceivedUserCancel())
+					continue;
+				}
+
+				TArray<UMaterialInterface*> Materials;
+				Primitive->GetUsedMaterials(Materials);
+
+				for (UMaterialInterface* Material : Materials)
+				{
+					if (Material)
 					{
-						FDebugViewModeMaterialProxy::ClearAllShaders();
-						return false;
-					}
-
-					// When only updating (viewmode path), skip primitives that already have data.
-					if (bIncremental && Primitive->HasTextureStreamingMaterialData(true))
-						continue;
-
-					TArray<UMaterialInterface*> Materials;
-					Primitive->GetUsedMaterials(Materials);
-
-					for (UMaterialInterface* MaterialInterface : Materials)
-					{
-						if (!MaterialInterface) continue;
-
-						// Landscape material resources can not be used. See logic in FLandscapeMaterialResource::ShouldCache().
-						const FMaterial* Material = MaterialInterface->GetMaterialResource(FeatureLevel);
-						if (!Material || Material->IsUsedWithLandscape())
-						{
-						UE_LOG(TextureStreamingBuild, Verbose, TEXT("Landscape material %s not supported, skipping shader"), *MaterialInterface->GetName());
-							continue;
-						}
-
-						if (!TexCoordScales.Contains(MaterialInterface))
-						{
-							TexCoordScales.Add(MaterialInterface);
-							FDebugViewModeMaterialProxy::AddShader(MaterialInterface, QualityLevel, FeatureLevel, EMaterialShaderMapUsage::DebugViewModeTexCoordScale);
-						}
-						MaterialToLevels.FindOrAdd(MaterialInterface).AddUnique(Level);
+						OutMaterials.Add(Material);
 					}
 				}
 			}
 		}
-
-		if (WaitForShaderCompilation(LOCTEXT("TextureStreamingBuild_CompTexCoordScaleShaders", "Compiling Shaders For TexCoord Scale Analysis "), BuildTextureStreamingTask))
-		{
-			// Check The validity of all shaders, removing invalid entries
-			FDebugViewModeMaterialProxy::ValidateAllShaders(TexCoordScales);
-			return true;
-		}
-		else
-		{
-			FDebugViewModeMaterialProxy::ClearAllShaders();
-			return false;
-		}
 	}
-	else
-	{
-		return true; // Nothing to build but this is not an error.
-	}
-
-#else
-	UE_LOG(TextureStreamingBuild, Fatal,TEXT("Build Texture Streaming Shaders should not be called on a console"));
-	return false;
-#endif
-}
-
-ENGINE_API bool UpdateComponentStreamingSectionData(UWorld* InWorld, const FTexCoordScaleMap& InTexCoordScales, bool bIncremental, FSlowTask& BuildTextureStreamingTask)
-{
-#if WITH_EDITORONLY_DATA
-	if (!InWorld) return false;
-	const double StartTime = FPlatformTime::Seconds();
-
-	// ====================================================
-	// Build per primitive data
-	// ====================================================
-	const float NumPrimitiveComponents = (float)GetNumTextureStreamingPrimitives(InWorld);
-	FScopedSlowTask SlowTask(NumPrimitiveComponents, (LOCTEXT("TextureStreamingBuild_ComponentDataUpdate", "Updating Component Data")));
-
-	for (int32 LevelIndex = 0; LevelIndex < InWorld->GetNumLevels(); LevelIndex++)
-	{
-		TArray<UPrimitiveComponent*> Components;
-		GetTextureStreamingPrimitives(InWorld->GetLevel(LevelIndex), Components);
-		for (UPrimitiveComponent* Primitive : Components)
-		{
-			SlowTask.EnterProgressFrame();
-			BuildTextureStreamingTask.EnterProgressFrame(1.f / NumPrimitiveComponents);
-			if (GWarn->ReceivedUserCancel()) return false;
-
-			if (bIncremental && Primitive->HasTextureStreamingMaterialData(InTexCoordScales.Num() > 0))
-				continue;
-
-			Primitive->UpdateTextureStreamingMaterialData(InTexCoordScales);
-		}
-	}
-	UE_LOG(TextureStreamingBuild, Display, TEXT("Update Texture Streaming Data took %.3f seconds."), FPlatformTime::Seconds() - StartTime);
 	return true;
 #else
 	return false;
 #endif
 }
 
-ENGINE_API bool BuildTextureStreamingData(UWorld* InWorld, const FTexCoordScaleMap& InTexCoordScales, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, FSlowTask& BuildTextureStreamingTask)
+/**
+ * Build Shaders to compute scales per texture.
+ *
+ * @param QualityLevel		The quality level for the shaders.
+ * @param FeatureLevel		The feature level for the shaders.
+ * @param bFullRebuild		Clear all debug shaders before generating the new ones..
+ * @param bWaitForPreviousShaders Whether to wait for previous shaders to complete.
+ * @param Materials			The materials to update, the one that failed compilation will be removed (IN OUT).
+ * @return true if the operation is a success, false if it was canceled.
+ */
+ENGINE_API bool CompileTextureStreamingShaders(EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, bool bFullRebuild, bool bWaitForPreviousShaders, TSet<UMaterialInterface*>& Materials, FSlowTask& BuildTextureStreamingTask)
 {
 #if WITH_EDITORONLY_DATA
-	if (!InWorld) return false;
+	if (!GShaderCompilingManager)
+	{
+		return false;
+	}
+
+	check(Materials.Num())
+
+	// Finish compiling pending shaders first.
+	if (!bWaitForPreviousShaders)
+	{
+		FlushRenderingCommands();
+	}
+	else if (!WaitForShaderCompilation(LOCTEXT("TextureStreamingBuild_FinishPendingShadersCompilation", "Waiting For Pending Shaders Compilation"), BuildTextureStreamingTask))
+	{
+		return false;
+	}
+
 	const double StartTime = FPlatformTime::Seconds();
+	const float OneOverNumMaterials = 1.f / (float)Materials.Num();
 
-	// ====================================================
-	// Build per primitive data
-	// ====================================================
-	const float NumPrimitiveComponents = (float)GetNumTextureStreamingPrimitives(InWorld);
-	FScopedSlowTask SlowTask(NumPrimitiveComponents, (LOCTEXT("TextureStreamingBuild_ComponentDataUpdate", "Updating Component Data")));
+	if (bFullRebuild)
+	{
+		FDebugViewModeMaterialProxy::ClearAllShaders();
+	}
 
+	TArray<UMaterialInterface*> MaterialsToRemove;
+	
+	for (UMaterialInterface* MaterialInterface : Materials)
+	{
+		check(MaterialInterface); // checked for null in GetTextureStreamingBuildMaterials
+
+		const FMaterial* Material = MaterialInterface->GetMaterialResource(FeatureLevel);
+		if (!Material)
+		{
+			continue;
+		}
+
+		if (Material->IsUsedWithLandscape())
+		{
+			UE_LOG(TextureStreamingBuild, Verbose, TEXT("Landscape material %s not supported, skipping shader"), *MaterialInterface->GetName());
+			MaterialsToRemove.Add(MaterialInterface);
+			continue;
+		}
+
+		FDebugViewModeMaterialProxy::AddShader(MaterialInterface, QualityLevel, FeatureLevel, EMaterialShaderMapUsage::DebugViewModeTexCoordScale);
+	}
+
+	for (UMaterialInterface* RemovedMaterial : MaterialsToRemove)
+	{
+		Materials.Remove(RemovedMaterial);
+	}
+
+	if (WaitForShaderCompilation(LOCTEXT("TextureStreamingBuild_CompileTextureStreamingShaders", "Compiling Shaders For Material Analysis "), BuildTextureStreamingTask))
+	{
+		// Check The validity of all shaders, removing invalid entries
+		FDebugViewModeMaterialProxy::ValidateAllShaders(Materials);
+
+		UE_LOG(LogLevel, Display, TEXT("Compiling texture streaming analysis materials took %.3f seconds."), FPlatformTime::Seconds() - StartTime);
+		return true;
+	}
+	else
+	{
+		FDebugViewModeMaterialProxy::ClearAllShaders();
+		return false;
+	}
+#else
+	return false;
+#endif
+}
+
+ENGINE_API bool BuildTextureStreamingComponentData(UWorld* InWorld, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, bool bFullRebuild, FSlowTask& BuildTextureStreamingTask)
+{
+#if WITH_EDITORONLY_DATA
+	if (!InWorld)
+	{
+		return false;
+	}
+
+	const int32 NumActorsInWorld = GetNumActorsInWorld(InWorld);
+	if (!NumActorsInWorld)
+	{
+		BuildTextureStreamingTask.EnterProgressFrame();
+		// Can't early exit here as Level might need reset.
+		// return true;
+	}
+
+	const double StartTime = FPlatformTime::Seconds();
+	const float OneOverNumActorsInWorld = 1.f / (float)FMath::Max<int32>(NumActorsInWorld, 1); // Prevent div by 0
+
+	// Used to reset per level index for textures.
+	TArray<UTexture2D*> AllTextures;
+	for (FObjectIterator Iter(UTexture2D::StaticClass()); Iter && bFullRebuild; ++Iter)
+	{
+		UTexture2D* Texture2D = Cast<UTexture2D>(*Iter);
+		if (Texture2D)
+		{
+			AllTextures.Add(Texture2D);
+		}
+	}
+
+	FScopedSlowTask SlowTask(1.f, (LOCTEXT("TextureStreamingBuild_ComponentDataUpdate", "Updating Component Data")));
+	
 	for (int32 LevelIndex = 0; LevelIndex < InWorld->GetNumLevels(); LevelIndex++)
 	{
 		ULevel* Level = InWorld->GetLevel(LevelIndex);
-		if (!Level) continue;
-
-		TArray<UTexture2D*> LevelTextures;
-
-		TArray<UPrimitiveComponent*> Components;
-		GetTextureStreamingPrimitives(Level, Components, false);
-		for (UPrimitiveComponent* Primitive : Components)
+		if (!Level)
 		{
-			// Update all primitives as this could clear unwanted data.
-			Primitive->UpdateStreamingTextureData(LevelTextures, InTexCoordScales, QualityLevel, FeatureLevel);
+			continue;
+		}
 
-			if (Primitive->RequiresStreamingTextureData())
+		const bool bHadBuildData = Level->StreamingTextureGuids.Num() > 0 || Level->TextureStreamingResourceGuids.Num() > 0;
+
+		Level->NumTextureStreamingUnbuiltComponents = 0;
+
+		// When not rebuilding everything, we can't update those as we don't know how the current build data was computed.
+		// Consequently, partial rebuilds are not allowed to recompute everything. What something is missing and can not be built,
+		// the BuildStreamingData will return false in which case we increment NumTextureStreamingUnbuiltComponents.
+		// This allows to keep track of full rebuild requirements.
+		if (bFullRebuild)
+		{
+			Level->bTextureStreamingRotationChanged = false;
+			Level->StreamingTextureGuids.Empty();
+			Level->TextureStreamingResourceGuids.Empty();
+			Level->NumTextureStreamingDirtyResources = 0; // This is persistent in order to be able to notify if a rebuild is required when running a cooked build.
+		}
+
+		TSet<FGuid> ResourceGuids;
+
+		for (AActor* Actor : Level->Actors)
+		{
+			BuildTextureStreamingTask.EnterProgressFrame(OneOverNumActorsInWorld);
+			SlowTask.EnterProgressFrame(OneOverNumActorsInWorld);
+			if (GWarn->ReceivedUserCancel())
 			{
-				// Slow task only accounts for primitive having streaming data.
-				SlowTask.EnterProgressFrame();
-				BuildTextureStreamingTask.EnterProgressFrame(1.f / NumPrimitiveComponents);
+				return false;
+			}
 
-				if (GWarn->ReceivedUserCancel()) 
-					return false;
+			// Check the actor after incrementing the progress.
+			if (!Actor)
+			{
+				continue; 
+			}
 
-				UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(Primitive);
-				if (StaticMeshComponent && StaticMeshComponent->GetStaticMesh() && StaticMeshComponent->GetStaticMesh()->GetLightingGuid().IsValid())
+			TInlineComponentArray<UPrimitiveComponent*> Primitives;
+			Actor->GetComponents<UPrimitiveComponent>(Primitives);
+
+			for (UPrimitiveComponent* Primitive : Primitives)
+			{
+				//@TODO : Non transactional primitives, like the one created from blueprints, fail to save/load their built data.
+				if (!Primitive || !Primitive->HasAnyFlags(RF_Transactional))
 				{
-					// Add to the build Guids all used static meshes.
-					Level->TextureStreamingBuildGuids.Add(StaticMeshComponent->GetStaticMesh()->GetLightingGuid());
+					continue;
+				}
+
+				if (!Primitive->BuildTextureStreamingData(bFullRebuild ? TSB_MapBuild : TSB_ViewMode, QualityLevel, FeatureLevel, ResourceGuids))
+				{
+					++Level->NumTextureStreamingUnbuiltComponents;
 				}
 			}
 		}
 
-		// If a component was updated, or  the level data needs reset.
-		if (Level->bTextureStreamingRotationChanged || Level->StreamingTextureGuids.Num() || LevelTextures.Num())
+		if (bFullRebuild)
 		{
-			Level->bTextureStreamingRotationChanged = false;
-			Level->StreamingTextureGuids.Empty(LevelTextures.Num());
-			Level->MarkPackageDirty();
-
 			// Reset LevelIndex to default for next use and build the level Guid array.
-			for (int32 TextureIndex = 0; TextureIndex < LevelTextures.Num(); ++TextureIndex)
+			for (UTexture2D* Texture2D : AllTextures)
 			{
-				UTexture2D* Texture2D = LevelTextures[TextureIndex];
-				Level->StreamingTextureGuids.Push(Texture2D->GetLightingGuid());
+				checkSlow(Texture2D);
 				Texture2D->LevelIndex = INDEX_NONE;
+			}
+
+			// Cleanup the asset references.
+			ResourceGuids.Remove(FGuid()); // Remove the invalid guid.
+			for (const FGuid& ResourceGuid : ResourceGuids)
+			{
+				Level->TextureStreamingResourceGuids.Add(ResourceGuid);
+			}
+
+			// Mark for resave if and only if rebuilding everything and also if data was updated.
+			const bool bHasBuildData = Level->StreamingTextureGuids.Num() > 0 || Level->TextureStreamingResourceGuids.Num() > 0;
+			if (bHadBuildData || bHasBuildData)
+			{
+				Level->MarkPackageDirty();
 			}
 		}
 	}
 
-	// ====================================================
-	// Update texture streaming data
-	// ====================================================
-
+	// Update TextureStreamer
 	ULevel::BuildStreamingData(InWorld);
 
 	UE_LOG(TextureStreamingBuild, Display, TEXT("Build Texture Streaming took %.3f seconds."), FPlatformTime::Seconds() - StartTime);
@@ -389,229 +430,274 @@ void FStreamingTexturePrimitiveInfo::UnPackFrom(UTexture2D* InTexture, float Ext
 	TexelFactor = Info.TexelFactor * ExtraScale;
 }
 
-void FStreamingTextureBuildInfo::PackFrom(TArray<UTexture2D*>& LevelTextures, const FBoxSphereBounds& RefBounds, const FStreamingTexturePrimitiveInfo& Info)
+void FStreamingTextureBuildInfo::PackFrom(ULevel* Level, const FBoxSphereBounds& RefBounds, const FStreamingTexturePrimitiveInfo& Info)
 {
+	check(Level);
+
 	PackedRelativeBox = PackRelativeBox(RefBounds.Origin, RefBounds.BoxExtent, Info.Bounds.Origin, Info.Bounds.BoxExtent);
 
 	UTexture2D* Texture2D = CastChecked<UTexture2D>(Info.Texture);
 	if (Texture2D->LevelIndex == INDEX_NONE)
 	{
 		// If this is the first time this texture gets processed in the packing process, encode it.
-		Texture2D->LevelIndex = LevelTextures.Add(Texture2D);
+		Texture2D->LevelIndex = Level->StreamingTextureGuids.Add(Texture2D->GetLightingGuid());
 	}
 	TextureLevelIndex = (uint16)Texture2D->LevelIndex;
 
 	TexelFactor = Info.TexelFactor;
 }
 
-
-FStreamingTextureLevelContext::FStreamingTextureLevelContext(const ULevel* InLevel) 
-: bUseRelativeBoxes(InLevel ? !InLevel->bTextureStreamingRotationChanged : false)
-, ComponentTimestamp(0)
-, ComponentBounds(ForceInitToZero)
-, ComponentScale(1.f)
+void FStreamingTextureLevelContext::InitFromLevel(const ULevel* InLevel)
 {
 	if (InLevel)
 	{
+		// Build the map to convert from a guid to the level index. 
+		// The level index of an array is also the level index.
+		// @TODO : we could save a indirect array of sorted texture GUID instead of rebuilding it everytime.
+		TextureGuidToLevelIndex.Reserve(InLevel->StreamingTextureGuids.Num());
 		for (int32 TextureIndex = 0; TextureIndex < InLevel->StreamingTextureGuids.Num(); ++TextureIndex)
 		{
 			TextureGuidToLevelIndex.Add(InLevel->StreamingTextureGuids[TextureIndex], TextureIndex);
 		}
+
+		// Extra transient data for each texture.
 		BoundStates.AddZeroed(InLevel->StreamingTextureGuids.Num());
 	}
+}
+
+FStreamingTextureLevelContext::FStreamingTextureLevelContext(EMaterialQualityLevel::Type InQualityLevel, const UPrimitiveComponent* Primitive)
+: bUseRelativeBoxes(false)
+, BuildDataTimestamp(0)
+, ComponentBuildData(nullptr)
+, QualityLevel(InQualityLevel)
+, FeatureLevel(GMaxRHIFeatureLevel)
+{
+	if (Primitive)
+	{
+		const UWorld* World = Primitive->GetWorld();
+		if (World)
+		{
+			FeatureLevel = World->FeatureLevel;
+		}
+	}
+}
+
+FStreamingTextureLevelContext::FStreamingTextureLevelContext(EMaterialQualityLevel::Type InQualityLevel, const ULevel* InLevel) 
+: bUseRelativeBoxes(InLevel ? !InLevel->bTextureStreamingRotationChanged : false)
+, BuildDataTimestamp(0)
+, ComponentBuildData(nullptr)
+, QualityLevel(InQualityLevel)
+, FeatureLevel(GMaxRHIFeatureLevel)
+{
+	if (InLevel)
+	{
+		const UWorld* World = InLevel->GetWorld();
+		if (World)
+		{
+			FeatureLevel = World->FeatureLevel;
+		}
+	}
+
+	InitFromLevel(InLevel);
+}
+
+
+FStreamingTextureLevelContext::FStreamingTextureLevelContext(EMaterialQualityLevel::Type InQualityLevel, ERHIFeatureLevel::Type InFeatureLevel, const ULevel* InLevel) 
+: bUseRelativeBoxes(InLevel ? !InLevel->bTextureStreamingRotationChanged : false)
+, BuildDataTimestamp(0)
+, ComponentBuildData(nullptr)
+, QualityLevel(InQualityLevel)
+, FeatureLevel(GMaxRHIFeatureLevel)
+{
+	InitFromLevel(InLevel);
 }
 
 FStreamingTextureLevelContext::~FStreamingTextureLevelContext()
 {
 	// Reset the level indices for the next use.
-	for (UTexture2D* Texture : ProcessedTextures)
+	for (const FTextureBoundState& BoundState : BoundStates)
 	{
-		Texture->LevelIndex = INDEX_NONE;
-	}
-}
-
-void FStreamingTextureLevelContext::BindComponent(const TArray<FStreamingTextureBuildInfo>* BuildData, const FBoxSphereBounds& Bounds, float Scale)
-{
-	// First processed component must use a timestamp > 0  so that default value of 0 is invalid.
-	++ComponentTimestamp;
-
-	ComponentBounds = Bounds;
-	ComponentScale = Scale;
-	ComponentBuildData = BuildData;
-
-	if (BuildData)
-	{
-		for (int32 Index = 0; Index < BuildData->Num(); ++Index)
+		if (BoundState.Texture)
 		{
-			int32 TextureLevelIndex = (*BuildData)[Index].TextureLevelIndex;
-			if (BoundStates.IsValidIndex(TextureLevelIndex))
-			{
-				FTextureBoundState& BoundState = BoundStates[TextureLevelIndex];
-				BoundState.BuildDataIndex = Index;
-				BoundState.BuildDataTimestamp = ComponentTimestamp;
-			}
+			BoundState.Texture->LevelIndex = INDEX_NONE;
 		}
 	}
 }
 
-void FStreamingTextureLevelContext::Process(const TArray<UTexture*>& InTextures, float FallbackUVDensity, TArray<FStreamingTexturePrimitiveInfo>& OutInfos)
+void FStreamingTextureLevelContext::BindBuildData(const TArray<FStreamingTextureBuildInfo>* BuildData)
 {
-	for (int32 TextureIndex = 0; TextureIndex < InTextures.Num(); ++TextureIndex)
-	{
-		UTexture2D* Texture2D = Cast<UTexture2D>(InTextures[TextureIndex]);
-		if (!Texture2D) continue; // Only interested in 2d texture for streaming
+	// Increment the component timestamp, used to know when a texture is processed by a component for the first time.
+	// Using a timestamp allows to not reset state in between components.
+	++BuildDataTimestamp;
 
+	if (TextureGuidToLevelIndex.Num() > 0) // No point in binding data if there is no possible remapping.
+	{
+		// Process the build data in order to be able to map a texture object to the build data entry.
+		ComponentBuildData = BuildData;
+		if (BuildData && BoundStates.Num() > 0)
+		{
+			for (int32 Index = 0; Index < BuildData->Num(); ++Index)
+			{
+				int32 TextureLevelIndex = (*BuildData)[Index].TextureLevelIndex;
+				if (BoundStates.IsValidIndex(TextureLevelIndex))
+				{
+					FTextureBoundState& BoundState = BoundStates[TextureLevelIndex];
+					BoundState.BuildDataIndex = Index; // The index of this texture in the component build data.
+					BoundState.BuildDataTimestamp = BuildDataTimestamp; // The component timestamp will indicate that the index is valid to be used.
+				}
+			}
+		}
+	}
+	else
+	{
+		ComponentBuildData = nullptr;
+	}
+}
+
+int32* FStreamingTextureLevelContext::GetBuildDataIndexRef(UTexture2D* Texture2D)
+{
+	if (ComponentBuildData) // If there is some build data to map to.
+	{
 		if (Texture2D->LevelIndex == INDEX_NONE)
 		{
-			int32* LevelIndex = TextureGuidToLevelIndex.Find(Texture2D->GetLightingGuid());
-			if (LevelIndex)
+			const int32* LevelIndex = TextureGuidToLevelIndex.Find(Texture2D->GetLightingGuid());
+			if (LevelIndex) // If the index is found in the map, the index is valid in BoundStates
 			{
 				Texture2D->LevelIndex = *LevelIndex;
+				BoundStates[*LevelIndex].Texture = Texture2D; // Update the mapping now!
 			}
-			else // If it is not in build data, add an entry so that we can process it in a uniform way.
+			else // Otherwise add a dummy entry to prevent having to search in the map multiple times.
 			{
-				Texture2D->LevelIndex = BoundStates.AddZeroed();
+				Texture2D->LevelIndex = BoundStates.Add(FTextureBoundState(Texture2D));
 			}
-			ProcessedTextures.Push(Texture2D);
 		}
 
 		FTextureBoundState& BoundState = BoundStates[Texture2D->LevelIndex];
-		const bool bHasBuildData = BoundState.BuildDataTimestamp == ComponentTimestamp && ComponentBuildData;
-
-		// Ignore this texture if it has already been handled for the current component.
-		if (BoundState.Timestamp != ComponentTimestamp)
+		if (BoundState.BuildDataTimestamp == BuildDataTimestamp)
 		{
-			FStreamingTexturePrimitiveInfo& StreamingTexture = *new(OutInfos) FStreamingTexturePrimitiveInfo;
-
-			// Check if there is any precomputed data
-			if (bHasBuildData)
-			{
-				// The ExtraScale is only applied to the precomputed data as we assume it was already 
-				StreamingTexture.UnPackFrom(Texture2D, ComponentScale, ComponentBounds, (*ComponentBuildData)[BoundState.BuildDataIndex], bUseRelativeBoxes);
-			}
-			else // Otherwise add default entry.
-			{
-				StreamingTexture.Texture = Texture2D;
-				StreamingTexture.Bounds = ComponentBounds;
-				StreamingTexture.TexelFactor = ComponentScale * FallbackUVDensity; // Material scale is otherwise included in the build data.
-			}
-
-			// Mark this texture as processed for this component.
-			BoundState.Timestamp = ComponentTimestamp;
+			return &BoundState.BuildDataIndex; // Only return the bound static if it has data relative to this component.
 		}
-		else if (!bHasBuildData) // When there are no build data, the texture can be processed several times (one per material). Take the max.
+	}
+	return nullptr;
+}
+
+void FStreamingTextureLevelContext::ProcessMaterial(const FPrimitiveMaterialInfo& MaterialData, float ComponentScaling, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures)
+{
+	ensure(MaterialData.IsValid());
+
+	TArray<UTexture*> Textures;
+	MaterialData.Material->GetUsedTextures(Textures, QualityLevel, false, FeatureLevel, false);
+
+	for (UTexture* Texture : Textures)
+	{
+		UTexture2D* Texture2D = Cast<UTexture2D>(Texture);
+		if (!IsStreamingTexture(Texture2D))
 		{
-			// If it does not have build data but was processed, find the entry reference in process the texture.
-			for (FStreamingTexturePrimitiveInfo& StreamingTexture : OutInfos)
+			continue;
+		}
+
+		int32* BuildDataIndex = GetBuildDataIndexRef(Texture2D);
+		if (BuildDataIndex)
+		{
+			if (*BuildDataIndex != INDEX_NONE)
 			{
-				if (StreamingTexture.Texture == Texture2D)
-				{
-					 // Take the biggest size amongts all material referencing this texture.
-					StreamingTexture.TexelFactor = FMath::Max<float>(StreamingTexture.TexelFactor, ComponentScale * FallbackUVDensity);
-				}
+				FStreamingTexturePrimitiveInfo& Info = *new(OutStreamingTextures) FStreamingTexturePrimitiveInfo();
+				Info.UnPackFrom(Texture2D, ComponentScaling, MaterialData.Bounds, (*ComponentBuildData)[*BuildDataIndex], bUseRelativeBoxes);
+
+				// Indicate that this texture build data has already been processed.
+				// The build data use the merged results of all material so it only needs to be processed once.
+				*BuildDataIndex = INDEX_NONE;
+			}
+		}
+		else // Otherwise create an entry using the available data.
+		{
+			float TextureDensity = MaterialData.Material->GetTextureDensity(Texture->GetFName(), *MaterialData.UVChannelData);
+
+			if (!TextureDensity)
+			{
+				// Fallback assuming a sampling scale of 1 using the UV channel 0;
+				TextureDensity = MaterialData.UVChannelData->LocalUVDensities[0];
+			}
+
+			if (TextureDensity)
+			{
+				FStreamingTexturePrimitiveInfo& Info = *new(OutStreamingTextures) FStreamingTexturePrimitiveInfo();
+				Info.Texture = Texture2D;
+				Info.TexelFactor = TextureDensity * ComponentScaling;
+				Info.Bounds = MaterialData.Bounds;
 			}
 		}
 	}
 }
 
-void CheckTextureStreamingBuild(ULevel* InLevel)
+void CheckTextureStreamingBuildValidity(UWorld* InWorld)
 {
-#if WITH_EDITORONLY_DATA
-	if (!InLevel) return;
-
-	int32 NumTextureStreamingUnbuiltComponents = 0;
-
-	TSet<FGuid> BuildGuilds;
-	for (const FGuid& Guid : InLevel->TextureStreamingBuildGuids)
+	if (!InWorld)
 	{
-		BuildGuilds.Add(Guid);
+		return;
 	}
-
-	TArray<UPrimitiveComponent*> Components;
-	GetTextureStreamingPrimitives(InLevel, Components);
-	for (UPrimitiveComponent* Primitive : Components)
-	{
-		//@todo : Non transactional primitives, like the one created from blueprints, fail to save/load their built data.
-		const bool bHasMissingData = !!(Primitive->GetFlags() & RF_Transactional) && !Primitive->HasStreamingTextureData();
-		TArray<UTexture*> Textures;
-
-		TArray<UMaterialInterface*> Materials;
-		Primitive->GetUsedMaterials(Materials);
-
-		for (const UMaterialInterface* MaterialInterface : Materials)
-		{
-			if (MaterialInterface)
-			{
-				TArray<FGuid> MaterialGuids;
-				MaterialInterface->GetLightingGuidChain(false, MaterialGuids);
-
-				for (const FGuid& MaterialGuid : MaterialGuids)
-				{
-					BuildGuilds.Remove(MaterialGuid);
-				}
-
-				// If there is no data, then we will have to parse the texture to check whether there are streaming textures there.
-				if (bHasMissingData)
-				{
-					MaterialInterface->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, GMaxRHIFeatureLevel, false);
-				} 
-			}
-		}
-
-		// If there is no data, check that the material actually uses streaming textures before marking the Texture Streaming Build invalid.
-		if (bHasMissingData && Textures.Num() > 0)
-		{
-			for (UTexture* Texture : Textures)
-			{
-				if (IsStreamingTexture(Cast<UTexture2D>(Texture)))
-				{
-					++NumTextureStreamingUnbuiltComponents;
-					break;
-				}
-			}
-		}
-
-		const UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(Primitive);
-		if (StaticMeshComponent && StaticMeshComponent->GetStaticMesh())
-		{
-			BuildGuilds.Remove(StaticMeshComponent->GetStaticMesh()->GetLightingGuid());
-		}
-	}
-
-	// All guids must have been found, otherwise, it means the resource changed.
-	if (NumTextureStreamingUnbuiltComponents != InLevel->NumTextureStreamingUnbuiltComponents || BuildGuilds.Num() != InLevel->NumTextureStreamingDirtyResources)
-	{
-		InLevel->NumTextureStreamingUnbuiltComponents = NumTextureStreamingUnbuiltComponents;
-		InLevel->NumTextureStreamingDirtyResources = BuildGuilds.Num();
-
-		// Don't mark package dirty as we avoid marking package dirty unless user changes something.
-		// InLevel->MarkPackageDirty();
-	}
-
-#endif
-}
-
-void CheckTextureStreamingBuild(UWorld* InWorld)
-{
-#if WITH_EDITORONLY_DATA
-	if (!InWorld) return;
 
 	InWorld->NumTextureStreamingUnbuiltComponents = 0;
 	InWorld->NumTextureStreamingDirtyResources = 0;
 
 	if (CVarStreamingCheckBuildStatus.GetValueOnAnyThread() > 0)
 	{
-	for (int32 LevelIndex = 0; LevelIndex < InWorld->GetNumLevels(); LevelIndex++)
-	{
-		ULevel* Level = InWorld->GetLevel(LevelIndex);
-		if (!Level) continue;
+		for (int32 LevelIndex = 0; LevelIndex < InWorld->GetNumLevels(); LevelIndex++)
+		{
+			ULevel* Level = InWorld->GetLevel(LevelIndex);
+			if (!Level)
+			{
+				continue;
+			}
 
-		CheckTextureStreamingBuild(Level);
+#if WITH_EDITORONLY_DATA // Only rebuild the data in editor 
+			if (FPlatformProperties::HasEditorOnlyData())
+			{
+				TSet<FGuid> ResourceGuids;
+				Level->NumTextureStreamingUnbuiltComponents = 0;
 
-		InWorld->NumTextureStreamingUnbuiltComponents += Level->NumTextureStreamingUnbuiltComponents;
-		InWorld->NumTextureStreamingDirtyResources += Level->NumTextureStreamingDirtyResources;
-	}
-	}
+				for (AActor* Actor : Level->Actors)
+				{
+					// Check the actor after incrementing the progress.
+					if (!Actor)
+					{
+						continue;
+					}
 
+					TInlineComponentArray<UPrimitiveComponent*> Primitives;
+					Actor->GetComponents<UPrimitiveComponent>(Primitives);
+
+					for (UPrimitiveComponent* Primitive : Primitives)
+					{
+						//@TODO : Non transactional primitives, like the one created from blueprints, fail to save/load their built data.
+						if (!Primitive || !Primitive->HasAnyFlags(RF_Transactional))
+						{
+							continue;
+						}
+
+						// Quality and feature level irrelevant in validation.
+						if (!Primitive->BuildTextureStreamingData(TSB_ValidationOnly, EMaterialQualityLevel::Num, ERHIFeatureLevel::Num, ResourceGuids))
+						{
+							++Level->NumTextureStreamingUnbuiltComponents;
+						}
+					}
+				}
+
+				for (const FGuid& Guid : Level->TextureStreamingResourceGuids)
+				{
+					// If some Guid does not exists anymore, that means the resource changed.
+					if (!ResourceGuids.Contains(Guid))
+					{
+						Level->NumTextureStreamingDirtyResources += 1;
+					}
+					ResourceGuids.Add(Guid);
+				}
+
+				// Don't mark package dirty as we avoid marking package dirty unless user changes something.
+			}
 #endif
+			InWorld->NumTextureStreamingUnbuiltComponents += Level->NumTextureStreamingUnbuiltComponents;
+			InWorld->NumTextureStreamingDirtyResources += Level->NumTextureStreamingDirtyResources;
+		}
+	}
 }

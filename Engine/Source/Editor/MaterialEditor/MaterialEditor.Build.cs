@@ -30,7 +30,8 @@ public class MaterialEditor : ModuleRules
 				"RenderCore",
 				"RHI",
 				"UnrealEd",
-				"PropertyEditor",
+                "MaterialUtilities",
+                "PropertyEditor",
 				"GraphEditor",
 			}
 		);

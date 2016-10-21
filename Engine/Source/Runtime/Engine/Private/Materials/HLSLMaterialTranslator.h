@@ -377,7 +377,8 @@ public:
 				// Note we don't test for the blend mode as you can have a translucent material using the subsurface shading model
 
 				// another ForceCast as CompilePropertyAndSetMaterialProperty() can return MCT_Float which we don't want here
-				int32 SubsurfaceColor = ForceCast(Material->CompilePropertyAndSetMaterialProperty(MP_SubsurfaceColor, this), MCT_Float3, true, true);
+				int32 SubsurfaceColor = Material->CompilePropertyAndSetMaterialProperty(MP_SubsurfaceColor, this);
+				SubsurfaceColor = ForceCast(SubsurfaceColor, FMaterialAttributeDefinitionMap::GetValueType(MP_SubsurfaceColor), MFCF_ExactMatch | MFCF_ReplicateValue);
 
 				static FName NameSubsurfaceProfile(TEXT("__SubsurfaceProfile"));
 
@@ -530,7 +531,7 @@ public:
 			// Handle custom outputs when using material attribute output
 			if (Material->HasMaterialAttributesConnected())
 			{
-				TArray<FMaterialAttributeDefintion> CustomAttributeList;
+				TArray<FMaterialCustomOutputAttributeDefintion> CustomAttributeList;
 				FMaterialAttributeDefinitionMap::GetCustomAttributeList(CustomAttributeList);
 				TArray<FShaderCodeChunk> CustomExpressionChunks;
 				
@@ -576,7 +577,7 @@ public:
 							// Valid, non-default value so generate shader code
 							if (bValueNonDefault)
 							{
-								GenerateCustomAttributeCode(OutputIndex, Result, Attribute.ValueType, Attribute.DisplayName);
+								GenerateCustomAttributeCode(OutputIndex, Result, Attribute.ValueType, Attribute.FunctionName);
 								bValidResultCompiled = true;
 							}
 						}
@@ -585,12 +586,12 @@ public:
 					// If used, add compile data
 					if (bValidResultCompiled)
 					{
-						ResourcesString += FString::Printf(TEXT("#define NUM_MATERIAL_OUTPUTS_%s %d\r\n"), *Attribute.DisplayName.ToUpper(), NumOutputs);
+						ResourcesString += FString::Printf(TEXT("#define NUM_MATERIAL_OUTPUTS_%s %d\r\n"), *Attribute.FunctionName.ToUpper(), NumOutputs);
 					}
 				}
 			}
 			else
-#endif // #if 0
+#endif // #if HANDLE_CUSTOM_OUTPUTS_AS_MATERIAL_ATTRIBUTES
 			{
 				// Gather the implementation for any custom output expressions
 				TArray<UMaterialExpressionCustomOutput*> CustomOutputExpressions;
@@ -1823,7 +1824,7 @@ protected:
 		return CompiledResult;
 	}
 
-	virtual int32 ForceCast(int32 Code,EMaterialValueType DestType,bool bExactMatch=false,bool bReplicateValue=false) override
+	virtual int32 ForceCast(int32 Code,EMaterialValueType DestType,uint32 ForceCastFlags = 0) override
 	{
 		if(Code == INDEX_NONE)
 		{
@@ -1832,10 +1833,13 @@ protected:
 
 		if(GetParameterUniformExpression(Code) && !GetParameterUniformExpression(Code)->IsConstant())
 		{
-			return ForceCast(AccessUniformExpression(Code),DestType,bExactMatch,bReplicateValue);
+			return ForceCast(AccessUniformExpression(Code),DestType,ForceCastFlags);
 		}
 
 		EMaterialValueType	SourceType = GetParameterType(Code);
+
+		bool bExactMatch = (ForceCastFlags & MFCF_ExactMatch) ? true : false;
+		bool bReplicateValue = (ForceCastFlags & MFCF_ReplicateValue) ? true : false;
 
 		if (bExactMatch ? (SourceType == DestType) : (SourceType & DestType))
 		{
@@ -2087,7 +2091,7 @@ protected:
 
 		if(GetParameterUniformExpression(X))
 		{
-			return AddUniformExpression(new FMaterialUniformExpressionSine(GetParameterUniformExpression(X),0),MCT_Float,TEXT("sin(%s)"),*CoerceParameter(X,MCT_Float));
+			return AddUniformExpression(new FMaterialUniformExpressionTrigMath(GetParameterUniformExpression(X),TMO_Sin),MCT_Float,TEXT("sin(%s)"),*CoerceParameter(X,MCT_Float));
 		}
 		else
 		{
@@ -2104,11 +2108,164 @@ protected:
 
 		if(GetParameterUniformExpression(X))
 		{
-			return AddUniformExpression(new FMaterialUniformExpressionSine(GetParameterUniformExpression(X),1),MCT_Float,TEXT("cos(%s)"),*CoerceParameter(X,MCT_Float));
+			return AddUniformExpression(new FMaterialUniformExpressionTrigMath(GetParameterUniformExpression(X),TMO_Cos),MCT_Float,TEXT("cos(%s)"),*CoerceParameter(X,MCT_Float));
 		}
 		else
 		{
 			return AddCodeChunk(GetParameterType(X),TEXT("cos(%s)"),*GetParameterCode(X));
+		}
+	}
+
+	virtual int32 Tangent(int32 X) override
+	{
+		if(X == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		if(GetParameterUniformExpression(X))
+		{
+			return AddUniformExpression(new FMaterialUniformExpressionTrigMath(GetParameterUniformExpression(X),TMO_Tan),MCT_Float,TEXT("tan(%s)"),*CoerceParameter(X,MCT_Float));
+		}
+		else
+		{
+			return AddCodeChunk(GetParameterType(X),TEXT("tan(%s)"),*GetParameterCode(X));
+		}
+	}
+
+	virtual int32 Arcsine(int32 X) override
+	{
+		if(X == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		if(GetParameterUniformExpression(X))
+		{
+			return AddUniformExpression(new FMaterialUniformExpressionTrigMath(GetParameterUniformExpression(X),TMO_Asin),MCT_Float,TEXT("asin(%s)"),*CoerceParameter(X,MCT_Float));
+		}
+		else
+		{
+			return AddCodeChunk(GetParameterType(X),TEXT("asin(%s)"),*GetParameterCode(X));
+		}
+	}
+
+	virtual int32 ArcsineFast(int32 X) override
+	{
+		if(X == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		if(GetParameterUniformExpression(X))
+		{
+			return AddUniformExpression(new FMaterialUniformExpressionTrigMath(GetParameterUniformExpression(X),TMO_Asin),MCT_Float,TEXT("asinFast(%s)"),*CoerceParameter(X,MCT_Float));
+		}
+		else
+		{
+			return AddCodeChunk(GetParameterType(X),TEXT("asinFast(%s)"),*GetParameterCode(X));
+		}
+	}
+
+	virtual int32 Arccosine(int32 X) override
+	{
+		if(X == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		if(GetParameterUniformExpression(X))
+		{
+			return AddUniformExpression(new FMaterialUniformExpressionTrigMath(GetParameterUniformExpression(X),TMO_Acos),MCT_Float,TEXT("acos(%s)"),*CoerceParameter(X,MCT_Float));
+		}
+		else
+		{
+			return AddCodeChunk(GetParameterType(X),TEXT("acos(%s)"),*GetParameterCode(X));
+		}
+	}
+
+	virtual int32 ArccosineFast(int32 X) override
+	{
+		if(X == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		if(GetParameterUniformExpression(X))
+		{
+			return AddUniformExpression(new FMaterialUniformExpressionTrigMath(GetParameterUniformExpression(X),TMO_Acos),MCT_Float,TEXT("acosFast(%s)"),*CoerceParameter(X,MCT_Float));
+		}
+		else
+		{
+			return AddCodeChunk(GetParameterType(X),TEXT("acosFast(%s)"),*GetParameterCode(X));
+		}
+	}
+
+	virtual int32 Arctangent(int32 X) override
+	{
+		if(X == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		if(GetParameterUniformExpression(X))
+		{
+			return AddUniformExpression(new FMaterialUniformExpressionTrigMath(GetParameterUniformExpression(X),TMO_Atan),MCT_Float,TEXT("atan(%s)"),*CoerceParameter(X,MCT_Float));
+		}
+		else
+		{
+			return AddCodeChunk(GetParameterType(X),TEXT("atan(%s)"),*GetParameterCode(X));
+		}
+	}
+
+	virtual int32 ArctangentFast(int32 X) override
+	{
+		if(X == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		if(GetParameterUniformExpression(X))
+		{
+			return AddUniformExpression(new FMaterialUniformExpressionTrigMath(GetParameterUniformExpression(X),TMO_Atan),MCT_Float,TEXT("atanFast(%s)"),*CoerceParameter(X,MCT_Float));
+		}
+		else
+		{
+			return AddCodeChunk(GetParameterType(X),TEXT("atanFast(%s)"),*GetParameterCode(X));
+		}
+	}
+
+	virtual int32 Arctangent2(int32 Y, int32 X) override
+	{
+		if(Y == INDEX_NONE || X == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		if(GetParameterUniformExpression(Y) && GetParameterUniformExpression(X))
+		{
+			return AddUniformExpression(new FMaterialUniformExpressionTrigMath(GetParameterUniformExpression(Y),GetParameterUniformExpression(X),TMO_Atan2),MCT_Float,TEXT("atan2(%s, %s)"),*CoerceParameter(Y,MCT_Float),*CoerceParameter(X,MCT_Float));
+		}
+		else
+		{
+			return AddCodeChunk(GetParameterType(Y),TEXT("atan2(%s, %s)"),*GetParameterCode(Y),*GetParameterCode(X));
+		}
+	}
+
+	virtual int32 Arctangent2Fast(int32 Y, int32 X) override
+	{
+		if(Y == INDEX_NONE || X == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		if(GetParameterUniformExpression(Y) && GetParameterUniformExpression(X))
+		{
+			return AddUniformExpression(new FMaterialUniformExpressionTrigMath(GetParameterUniformExpression(Y),GetParameterUniformExpression(X),TMO_Atan2),MCT_Float,TEXT("atan2Fast(%s, %s)"),*CoerceParameter(Y,MCT_Float),*CoerceParameter(X,MCT_Float));
+		}
+		else
+		{
+			return AddCodeChunk(GetParameterType(Y),TEXT("atan2Fast(%s, %s)"),*GetParameterCode(Y),*GetParameterCode(X));
 		}
 	}
 
@@ -2143,6 +2300,40 @@ protected:
 		else
 		{
 			return AddCodeChunk(GetParameterType(X),TEXT("ceil(%s)"),*GetParameterCode(X));
+		}
+	}
+
+	virtual int32 Round(int32 X) override
+	{
+		if(X == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		if(GetParameterUniformExpression(X))
+		{
+			return AddUniformExpression(new FMaterialUniformExpressionRound(GetParameterUniformExpression(X)),GetParameterType(X),TEXT("round(%s)"),*GetParameterCode(X));
+		}
+		else
+		{
+			return AddCodeChunk(GetParameterType(X),TEXT("round(%s)"),*GetParameterCode(X));
+		}
+	}
+
+	virtual int32 Truncate(int32 X) override
+	{
+		if(X == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		if(GetParameterUniformExpression(X))
+		{
+			return AddUniformExpression(new FMaterialUniformExpressionTruncate(GetParameterUniformExpression(X)),GetParameterType(X),TEXT("trunc(%s)"),*GetParameterCode(X));
+		}
+		else
+		{
+			return AddCodeChunk(GetParameterType(X),TEXT("trunc(%s)"),*GetParameterCode(X));
 		}
 	}
 
@@ -3389,7 +3580,22 @@ protected:
 
 	virtual int32 PreSkinnedPosition() override
 	{
+		if (ShaderFrequency != SF_Vertex)
+		{
+			return Errorf(TEXT("Pre-skinned position is only available in the vertex shader, pass through custom interpolators if needed."));
+		}
+
 		return AddInlinedCodeChunk(MCT_Float3,TEXT("Parameters.PreSkinnedPosition"));
+	}
+
+	virtual int32 PreSkinnedNormal() override
+	{
+		if (ShaderFrequency != SF_Vertex)
+		{
+			return Errorf(TEXT("Pre-skinned normal is only available in the vertex shader, pass through custom interpolators if needed."));
+		}
+
+		return AddInlinedCodeChunk(MCT_Float3,TEXT("Parameters.PreSkinnedNormal"));
 	}
 
 	virtual int32 Add(int32 A,int32 B) override

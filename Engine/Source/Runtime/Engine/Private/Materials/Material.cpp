@@ -100,19 +100,19 @@ int32 FMaterialResource::CompilePropertyAndSetMaterialProperty(EMaterialProperty
 		case MP_EmissiveColor:
 			if (SelectionColorIndex != INDEX_NONE)
 			{
-				Ret = Compiler->Add(Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_EmissiveColor), MCT_Float3), SelectionColorIndex);
+				Ret = Compiler->Add(MaterialInterface->CompileProperty(Compiler, MP_EmissiveColor, MFCF_ForceCast), SelectionColorIndex);
 			}
 			else
 			{
-				Ret = Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_EmissiveColor), MCT_Float3);
+				Ret = MaterialInterface->CompileProperty(Compiler, MP_EmissiveColor);
 			}
 			break;
 
 		case MP_DiffuseColor: 
-			Ret = Compiler->Mul(Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_DiffuseColor), MCT_Float3), Compiler->Sub(Compiler->Constant(1.0f), SelectionColorIndex));
+			Ret = Compiler->Mul(MaterialInterface->CompileProperty(Compiler, MP_DiffuseColor, MFCF_ForceCast), Compiler->Sub(Compiler->Constant(1.0f), SelectionColorIndex));
 			break;
 		case MP_BaseColor: 
-			Ret = Compiler->Mul(Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_BaseColor),MCT_Float3),Compiler->Sub(Compiler->Constant(1.0f),SelectionColorIndex));
+			Ret = Compiler->Mul(MaterialInterface->CompileProperty(Compiler, MP_BaseColor, MFCF_ForceCast), Compiler->Sub(Compiler->Constant(1.0f), SelectionColorIndex));
 			break;
 		case MP_MaterialAttributes:
 			Ret = INDEX_NONE;

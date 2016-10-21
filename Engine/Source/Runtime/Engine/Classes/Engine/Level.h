@@ -376,8 +376,7 @@ public:
 
 	/** The Guid list of all materials and meshes Guid used in the last texture streaming build. Used to know if the streaming data needs rebuild. Only used for the persistent level. */
 	UPROPERTY(NonTransactional)
-	TArray<FGuid> TextureStreamingBuildGuids;
-
+	TArray<FGuid> TextureStreamingResourceGuids;
 #endif //WITH_EDITORONLY_DATA
 
 	/** Num of components missing valid texture streaming data. Updated in map check. */

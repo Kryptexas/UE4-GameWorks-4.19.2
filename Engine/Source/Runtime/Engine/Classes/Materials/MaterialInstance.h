@@ -217,6 +217,9 @@ class UMaterialInstance : public UMaterialInterface
 	 */
 	class FMaterialInstanceResource* Resources[3];
 
+	ENGINE_API virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
+	ENGINE_API virtual float GetTextureDensity(FName TextureName, const struct FMeshUVChannelInfo& UVChannelData) const override;
+
 private:
 
 #if WITH_EDITORONLY_DATA

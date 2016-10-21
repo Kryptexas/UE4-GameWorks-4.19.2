@@ -36,9 +36,6 @@ struct FVulkanGfxPipelineState
 {
 	FVulkanGfxPipelineState()
 		: RenderPass(nullptr)
-#if !VULKAN_USE_NEW_RENDERPASSES
-		, FrameBuffer(nullptr)
-#endif
 	{
 		Reset();
 	}
@@ -51,9 +48,6 @@ struct FVulkanGfxPipelineState
 
 	TRefCountPtr<FVulkanBoundShaderState> BSS;
 	FVulkanRenderPass* RenderPass;
-#if !VULKAN_USE_NEW_RENDERPASSES
-	FVulkanFramebuffer* FrameBuffer;
-#endif
 
 	VkPipelineDynamicStateCreateInfo DynamicState;
 	VkPipelineInputAssemblyStateCreateInfo InputAssembly;
@@ -131,10 +125,7 @@ protected:
 class FVulkanComputePipeline : public FVulkanPipeline
 {
 public:
-	FVulkanComputePipeline(FVulkanDevice* InDevice)
-		: FVulkanPipeline(InDevice)
-	{
-	}
+	FVulkanComputePipeline(FVulkanDevice* InDevice, FVulkanComputeShaderState* CSS);
 };
 
 class FVulkanGfxPipeline : public FVulkanPipeline
@@ -199,11 +190,7 @@ public:
 	FVulkanPipelineStateCache(FVulkanDevice* InParent);
 	~FVulkanPipelineStateCache();
 
-#if VULKAN_USE_NEW_RENDERPASSES
 	void CreateAndAdd(FVulkanRenderPass* RenderPass, const FVulkanGfxPipelineStateKey& CreateInfo, FVulkanGfxPipeline* Pipeline, const FVulkanGfxPipelineState& State, const FVulkanBoundShaderState& BSS);
-#else
-	void CreateAndAdd(const FVulkanGfxPipelineStateKey& CreateInfo, FVulkanGfxPipeline* Pipeline, const FVulkanGfxPipelineState& State, const FVulkanBoundShaderState& BSS);
-#endif
 	void RebuildCache();
 
 	static TLinkedList<FVulkanBoundShaderState*>*& GetBSSList();

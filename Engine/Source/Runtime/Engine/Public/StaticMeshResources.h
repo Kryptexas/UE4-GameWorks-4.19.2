@@ -1062,7 +1062,7 @@ protected:
 #endif
 
 #if WITH_EDITORONLY_DATA
-			// Used to index StreamingMaterialData in the texture streaming debug views.
+			// The material index from the component. Used by the texture streaming accuracy viewmodes.
 			int32 MaterialIndex;
 #endif
 
@@ -1126,12 +1126,12 @@ protected:
 	FCollisionResponseContainer CollisionResponse;
 
 #if WITH_EDITORONLY_DATA
-	/** Data shared with the component */
-	TSharedPtr<TArray<FPrimitiveMaterialInfo>, ESPMode::NotThreadSafe> TexStreamMaterialData;
 	/** The component streaming distance multiplier */
 	float StreamingDistanceMultiplier;
 	/** The cacheed GetTextureStreamingTransformScale */
 	float StreamingTransformScale;
+	/** Material bounds used for texture streaming. */
+	TArray<FBox> MaterialStreamingBounds;
 
 	/** Index of the section to preview. If set to INDEX_NONE, all section will be rendered */
 	int32 SectionIndexPreview;
