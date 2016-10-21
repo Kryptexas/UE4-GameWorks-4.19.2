@@ -125,6 +125,9 @@
 
 #include "PixelInspectorModule.h"
 
+#include "SourceCodeNavigation.h"
+#include "GameProjectUtils.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogEditor, Log, All);
 
 #define LOCTEXT_NAMESPACE "UnrealEd.Editor"
@@ -650,6 +653,13 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 	AssetRegistryModule.Get().OnInMemoryAssetCreated().AddUObject(this, &UEditorEngine::OnAssetCreated);
 	
+	// Initialize vanilla status before other systems that consume its status are started inside InitEditor()
+	UpdateIsVanillaProduct();
+	FSourceCodeNavigation::AccessOnNewModuleAdded().AddLambda([this](FName InModuleName)
+	{
+		UpdateIsVanillaProduct();
+	});
+
 	// Init editor.
 	SlowTask.EnterProgressFrame(40);
 	GEditor = this;
@@ -6475,6 +6485,43 @@ void UEditorEngine::VerifyLoadMapWorldCleanup()
 			}
 		}
 	}
+}
+
+void UEditorEngine::UpdateIsVanillaProduct()
+{
+	// Check that we're running a content-only project through an installed build of the engine
+	bool bResult = false;
+	if (FApp::IsEngineInstalled() && !GameProjectUtils::ProjectHasCodeFiles())
+	{
+		// Check the build was installed by the launcher
+		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+		FString Identifier = DesktopPlatform->GetCurrentEngineIdentifier();
+		if (Identifier.Len() > 0)
+		{
+			FEngineVersion Version;
+			if (DesktopPlatform->TryParseStockEngineVersion(Identifier, Version))
+			{
+				// Check if we have any marketplace plugins enabled
+				bool bHasMarketplacePlugin = false;
+				for (const TSharedRef<IPlugin>& Plugin : IPluginManager::Get().GetEnabledPlugins())
+				{
+					if (Plugin->GetDescriptor().MarketplaceURL.Len() > 0)
+					{
+						bHasMarketplacePlugin = true;
+						break;
+					}
+				}
+
+				// If not, we're running Epic-only code.
+				if (!bHasMarketplacePlugin)
+				{
+					bResult = true;
+				}
+			}
+		}
+	}
+
+	SetIsVanillaProduct(bResult);
 }
 
 void UEditorEngine::HandleBrowseToDefaultMapFailure(FWorldContext& Context, const FString& TextURL, const FString& Error)

@@ -268,7 +268,11 @@ public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnCrashOverrideParamsChanged, const FCrashOverrideParameters&);
 	static FOnCrashOverrideParamsChanged CrashOverrideParamsChanged;
 	
-		// Callback for platform specific very early init code.
+	/** Sent by engine code when the "vanilla" status of the engine changes */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnIsVanillaProductChanged, bool);
+	static FOnIsVanillaProductChanged IsVanillaProductChanged;
+
+	// Callback for platform specific very early init code.
 	DECLARE_MULTICAST_DELEGATE(FOnPreMainInit);
 	static FOnPreMainInit& GetPreMainInitDelegate();
 	

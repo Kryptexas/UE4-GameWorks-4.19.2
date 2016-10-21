@@ -519,6 +519,8 @@ UEngine::UEngine(const FObjectInitializer& ObjectInitializer)
 
 	bUseFixedFrameRate = false;
 	FixedFrameRate = 30.f;
+
+	bIsVanillaProduct = false;
 }
 
 void UGameEngine::Init(IEngineLoop* InEngineLoop)

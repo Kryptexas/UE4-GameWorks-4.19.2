@@ -10514,6 +10514,18 @@ bool UEngine::AreGameMTBFEventsEnabled() const
 	return GetDefault<UEndUserSettings>()->bSendMeanTimeBetweenFailureDataToEpic;
 }
 
+void UEngine::SetIsVanillaProduct(bool bInIsVanillaProduct)
+{
+	// set bIsVanillaProduct and if it changes broadcast the core delegate
+	static bool bFirstCall = true;
+	if (bFirstCall || bInIsVanillaProduct != bIsVanillaProduct)
+	{
+		bFirstCall = false;
+		bIsVanillaProduct = bInIsVanillaProduct;
+		FCoreDelegates::IsVanillaProductChanged.Broadcast(bIsVanillaProduct);
+	}
+}
+
 FWorldContext* UEngine::GetWorldContextFromGameViewport(const UGameViewportClient *InViewport)
 {
 	for (FWorldContext& WorldContext : WorldList)
