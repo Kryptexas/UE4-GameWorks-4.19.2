@@ -914,7 +914,11 @@ public:
 		{
 			return true;
 		}
-		else if (StereoPass != eSSP_RIGHT_EYE)
+		else if (bIsInstancedStereoEnabled && StereoPass != eSSP_RIGHT_EYE)
+		{
+			return true;
+		}
+		else if (bIsMobileMultiViewEnabled && StereoPass != eSSP_RIGHT_EYE && Family && Family->Views.Num() > 1)
 		{
 			return true;
 		}
