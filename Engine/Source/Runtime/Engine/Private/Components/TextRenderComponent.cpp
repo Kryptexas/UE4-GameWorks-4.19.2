@@ -397,8 +397,25 @@ public:
 			}
 		}
 
+		bool IsStale(UMaterialInterface* InMaterial, UFont* InFont) const
+		{
+			bool bIsStale = false;
+
+			if (!InMaterial->IsA<UMaterialInstanceDynamic>())
+			{
+				// We only test against the number of font pages when we created the MIDs
+				bIsStale = MIDs.Num() != InFont->Textures.Num();
+			}
+
+			return bIsStale;
+		}
+
 		TArray<UMaterialInstanceDynamic*> MIDs;
 	};
+
+	typedef TSharedRef<const FMIDData, ESPMode::ThreadSafe> FMIDDataRef;
+	typedef TSharedPtr<const FMIDData, ESPMode::ThreadSafe> FMIDDataPtr;
+	typedef TWeakPtr<const FMIDData, ESPMode::ThreadSafe>   FMIDDataWeakPtr;
 
 	static void Initialize()
 	{
@@ -418,11 +435,19 @@ public:
 		return *InstancePtr;
 	}
 
-	TSharedRef<const FMIDData> GetMIDData(UMaterialInterface* InMaterial, UFont* InFont)
+	FMIDDataRef GetMIDData(UMaterialInterface* InMaterial, UFont* InFont)
 	{
-		check(InMaterial && InFont);
+		checkfSlow(IsInGameThread(), TEXT("FTextRenderComponentMIDCache::GetMIDData is only expected to be called from the game thread!"));
 
-		TSharedPtr<const FMIDData> MIDData = CachedMIDs.FindRef(FKey(InMaterial, InFont));
+		check(InMaterial && InFont && InFont->FontCacheType == EFontCacheType::Offline);
+
+		FMIDDataPtr MIDData = CachedMIDs.FindRef(FKey(InMaterial, InFont));
+		if (MIDData.IsValid() && MIDData->IsStale(InMaterial, InFont))
+		{
+			StaleMIDs.Add(MIDData);
+			MIDData.Reset();
+		}
+
 		if (!MIDData.IsValid())
 		{
 			MIDData = CachedMIDs.Add(FKey(InMaterial, InFont), MakeShareable(new FMIDData(InMaterial, InFont)));
@@ -435,10 +460,22 @@ public:
 	{
 		for (auto& MIDDataPair : CachedMIDs)
 		{
-			TSharedPtr<FMIDData>& MIDData = MIDDataPair.Value;
-			for (UMaterialInstanceDynamic*& MID : MIDData->MIDs)
+			const FMIDDataPtr& MIDData = MIDDataPair.Value;
+			for (UMaterialInstanceDynamic*& MID : const_cast<FMIDData*>(MIDData.Get())->MIDs)
 			{
 				Collector.AddReferencedObject(MID);
+			}
+		}
+
+		for (const FMIDDataWeakPtr& StaleMID : StaleMIDs)
+		{
+			FMIDDataPtr PinnedMID = StaleMID.Pin();
+			if (PinnedMID.IsValid())
+			{
+				for (UMaterialInstanceDynamic*& MID : const_cast<FMIDData*>(PinnedMID.Get())->MIDs)
+				{
+					Collector.AddReferencedObject(MID);
+				}
 			}
 		}
 	}
@@ -492,12 +529,14 @@ private:
 
 	void PurgeUnreferencedMIDs()
 	{
+		checkfSlow(IsInGameThread(), TEXT("FTextRenderComponentMIDCache::PurgeUnreferencedMIDs is only expected to be called from the game thread!"));
+
 		TArray<FKey> MIDsToPurgeNow;
 		TSet<FKey> MIDsToPurgeLater;
 
 		for (const auto& MIDDataPair : CachedMIDs)
 		{
-			const TSharedPtr<const FMIDData>& MIDData = MIDDataPair.Value;
+			const FMIDDataPtr& MIDData = MIDDataPair.Value;
 			if (MIDData.IsUnique())
 			{
 				if (MIDsPendingPurge.Contains(MIDDataPair.Key))
@@ -516,12 +555,19 @@ private:
 			CachedMIDs.Remove(MIDKey);
 		}
 
+		StaleMIDs.RemoveAll([](const FMIDDataWeakPtr& InStaleMID)
+		{
+			return !InStaleMID.IsValid();
+		});
+
 		MIDsPendingPurge = MoveTemp(MIDsToPurgeLater);
 	}
 
 	FDelegateHandle TickerHandle;
 
-	TMap<FKey, TSharedPtr<FMIDData>> CachedMIDs;
+	TMap<FKey, FMIDDataPtr> CachedMIDs;
+
+	TArray<FMIDDataWeakPtr> StaleMIDs;
 
 	TSet<FKey> MIDsPendingPurge;
 
@@ -577,7 +623,7 @@ private:
 	const FColor TextRenderColor;
 	UMaterialInterface* TextMaterial;
 	UFont* Font;
-	TSharedPtr<const FTextRenderComponentMIDCache::FMIDData> FontMIDs;
+	FTextRenderComponentMIDCache::FMIDDataPtr FontMIDs;
 	FText Text;
 	float XScale;
 	float YScale;
@@ -809,10 +855,14 @@ bool FTextRenderSceneProxy::BuildStringMesh( TArray<FDynamicMeshVertex>& OutVert
 			TextBatch.VertexBufferOffset = FirstVertexIndexInTextBatch;
 			TextBatch.VertexBufferCount = OutVertices.Num() - FirstVertexIndexInTextBatch;
 
-			TextBatch.Material = TextMaterial;
+			TextBatch.Material = nullptr;
 			if (FontMIDs.IsValid() && FontMIDs->MIDs.IsValidIndex(PageIndex))
 			{
 				TextBatch.Material = FontMIDs->MIDs[PageIndex];
+			}
+			if (!TextBatch.Material)
+			{
+				TextBatch.Material = TextMaterial;
 			}
 		}
 
