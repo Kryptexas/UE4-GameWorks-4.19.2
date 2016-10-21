@@ -321,7 +321,6 @@ void FVulkanCommandListContext::RHIBeginRenderQuery(FRenderQueryRHIParamRef Quer
 
 	if (Query->QueryType == RQT_Occlusion)
 	{
-		ensure(CurrentOcclusionQueryPool);
 		FVulkanOcclusionQueryPool& PoolRef = Device->GetAvailableOcclusionQueryPool();
 		FVulkanOcclusionQueryPool* Pool = &PoolRef;
 		if (CurrentOcclusionQueryPool != Pool)
