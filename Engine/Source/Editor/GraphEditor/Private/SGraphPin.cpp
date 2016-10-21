@@ -10,64 +10,6 @@
 #include "ScopedTransaction.h"
 
 /////////////////////////////////////////////////////
-// FKnotNetCollector
-
-struct FKnotNetCollector
-{
-	TSet<UEdGraphNode*> VisitedNodes;
-	TSet<UEdGraphPin*> VisitedPins;
-
-	FKnotNetCollector(UEdGraphPin* StartingPin)
-	{
-		TraversePin(StartingPin);
-	}
-
-	void TraversePin(UEdGraphPin* Pin)
-	{
-		if (UK2Node_Knot* Knot = Cast<UK2Node_Knot>(Pin->GetOwningNodeUnchecked()))
-		{
-			TraverseNodes(Knot);
-		}
-		else
-		{
-			VisitedPins.Add(Pin);
-
-			for (UEdGraphPin* OtherPin : Pin->LinkedTo)
-			{
-				UEdGraphNode* OtherNode = OtherPin->GetOwningNodeUnchecked();
-				if (OtherNode && OtherNode->IsA(UK2Node_Knot::StaticClass()))
-				{
-					TraverseNodes(OtherNode);
-				}
-			}
-		}
-	}
-
-	void TraverseNodes(UEdGraphNode* Node)
-	{
-		if (VisitedNodes.Contains(Node))
-		{
-			return;
-		}
-		VisitedNodes.Add(Node);
-
-		for (UEdGraphPin* MyPin : Node->Pins)
-		{
-			VisitedPins.Add(MyPin);
-
-			for (UEdGraphPin* OtherPin : MyPin->LinkedTo)
-			{
-				UEdGraphNode* OtherNode = OtherPin->GetOwningNodeUnchecked();
-				if (OtherNode && OtherNode->IsA(UK2Node_Knot::StaticClass()))
-				{
-					TraverseNodes(OtherNode);
-				}
-			}
-		}
-	}
-};
-
-/////////////////////////////////////////////////////
 // FGraphPinHandle
 
 FGraphPinHandle::FGraphPinHandle(UEdGraphPin* InPin)
@@ -602,13 +544,61 @@ void SGraphPin::OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& 
 {
 	if (!bIsHovered)
 	{
-		FKnotNetCollector NetCollector(GetPinObj());
-
-		TSharedPtr<SGraphPanel> Panel = OwnerNodePtr.Pin()->GetOwnerPanel();
-		for (UEdGraphPin* PinInNet : NetCollector.VisitedPins)
+		UEdGraphPin* MyPin = GetPinObj();
+		if (MyPin && !MyPin->IsPendingKill() && MyPin->GetOuter() && MyPin->GetOuter()->IsA(UEdGraphNode::StaticClass()))
 		{
-			Panel->AddPinToHoverSet(PinInNet);
-			HoverPinSet.Add(PinInNet);
+			struct FHoverPinHelper
+			{
+				FHoverPinHelper(TSharedPtr<SGraphPanel> Panel, TSet<FEdGraphPinReference>& PinSet)
+					: PinSetOut(PinSet), TargetPanel(Panel)
+				{}
+
+				void SetHovered(UEdGraphPin* Pin)
+				{
+					bool bAlreadyAdded = false;
+					PinSetOut.Add(Pin, &bAlreadyAdded);
+					if (bAlreadyAdded)
+					{
+						return;
+					}
+					TargetPanel->AddPinToHoverSet(Pin);
+	
+					for (UEdGraphPin* LinkedPin : Pin->LinkedTo)
+					{
+						if (UK2Node_Knot* OwningNode = Cast<UK2Node_Knot>(LinkedPin->GetOwningNodeUnchecked()))
+						{
+							SetHovered(OwningNode);
+						}
+					}
+				}
+
+			private:
+				void SetHovered(UK2Node_Knot* KnotNode)
+				{
+					bool bAlreadyTraversed = false;
+					IntermediateNodes.Add(KnotNode, &bAlreadyTraversed);
+
+					if (!bAlreadyTraversed)
+					{
+						for (UEdGraphPin* KnotPin : KnotNode->Pins)
+						{
+							SetHovered(KnotPin);
+						}
+					}
+				}
+
+			private:
+				TSet<UK2Node_Knot*> IntermediateNodes;
+				TSet<FEdGraphPinReference>& PinSetOut;
+				TSharedPtr<SGraphPanel>   TargetPanel;
+			};
+
+
+			TSharedPtr<SGraphPanel> Panel = OwnerNodePtr.Pin()->GetOwnerPanel();
+			if (Panel.IsValid())
+			{
+				FHoverPinHelper(Panel, HoverPinSet).SetHovered(MyPin);
+			}
 		}
 	}
 
