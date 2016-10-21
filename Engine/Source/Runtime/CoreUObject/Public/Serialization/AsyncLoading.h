@@ -572,10 +572,8 @@ private:
 	int32 ReentryCount;
 	/** List of objects referenced by this package */
 	TSet<UObject*> ReferencedObjects;
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
 	/** Critical section for referenced objects list */
 	FCriticalSection ReferencedObjectsCritical;
-#endif
 	/** Cached async loading thread object this package was created by */
 	class FAsyncLoadingThread& AsyncLoadingThread;
 

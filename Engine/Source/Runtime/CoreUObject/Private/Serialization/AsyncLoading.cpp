@@ -300,13 +300,23 @@ void FAsyncLoadingThread::CancelAsyncLoadingInternal()
 	{
 		// Packages we started processing, need to be canceled.
 		// Accessed only in async thread, no need to protect region.
-		for (FAsyncPackage* AsyncPackage : AsyncPackages)
+		// Move first so that we remove the package from these lists BEFORE we delete it otherwise we will assert in the package dtor.
+		TArray<FAsyncPackage*> PackagesToDeleteCopy = MoveTemp(PackagesToDelete);
+
+		// This is accessed on the game thread but it should be blocked at this point
+		TArray<FAsyncPackage*> AsyncPackagesCopy = MoveTemp(AsyncPackages);
+
+		for (FAsyncPackage* Package : PackagesToDeleteCopy)
+		{
+			Package->Cancel();
+			delete Package;
+		}
+
+		for (FAsyncPackage* AsyncPackage : AsyncPackagesCopy)
 		{
 			AsyncPackage->Cancel();
 			delete AsyncPackage;
 		}
-
-		AsyncPackages.Reset();
 		AsyncPackageNameLookup.Reset();
 	}
 
@@ -4060,7 +4070,7 @@ void FAsyncLoadingThread::Stop()
 
 void FAsyncLoadingThread::CancelAsyncLoading()
 {
-	checkSlow(IsInGameThread());	
+	check(IsInGameThread());	
 
 	bShouldCancelLoading = true;
 	if (IsMultithreaded())
@@ -4268,9 +4278,7 @@ void FAsyncPackage::AddObjectReference(UObject* InObject)
 	{
 		UE_CLOG(!IsInGameThread() && !IsGarbageCollectionLocked(), LogStreaming, Fatal, TEXT("Trying to add an object %s to FAsyncPackage referenced objects list outside of a FGCScopeLock."), *InObject->GetFullName());
 		{
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
 			FScopeLock ReferencedObjectsLock(&ReferencedObjectsCritical);
-#endif
 			if (!ReferencedObjects.Contains(InObject))
 			{
 				ReferencedObjects.Add(InObject);
@@ -4282,11 +4290,8 @@ void FAsyncPackage::AddObjectReference(UObject* InObject)
 
 void FAsyncPackage::EmptyReferencedObjects()
 {
-	check(IsInGameThread());
 	const EInternalObjectFlags AsyncFlags = EInternalObjectFlags::Async | EInternalObjectFlags::AsyncLoading;
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
 	FScopeLock ReferencedObjectsLock(&ReferencedObjectsCritical);
-#endif
 	for (UObject* Obj : ReferencedObjects)
 	{
 		// Temporary fatal messages instead of checks to find the cause for a one-time crash in shipping config
@@ -5697,8 +5702,23 @@ void FAsyncPackage::Cancel()
 	const EAsyncLoadingResult::Type Result = EAsyncLoadingResult::Canceled;
 	for (int32 CallbackIndex = 0; CallbackIndex < CompletionCallbacks.Num(); CallbackIndex++)
 	{
-		CompletionCallbacks[CallbackIndex].Callback.ExecuteIfBound(Desc.Name, nullptr, Result);
+		if (!CompletionCallbacks[CallbackIndex].bCalled)
+		{
+			CompletionCallbacks[CallbackIndex].Callback.ExecuteIfBound(Desc.Name, nullptr, Result);
+		}
 	}
+	{
+		// Clear load flags from any referenced objects
+		FScopeLock RereferncedObjectsLock(&ReferencedObjectsCritical);
+		const EObjectFlags ObjectLoadFlags = EObjectFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects | RF_WasLoaded);
+		for (UObject* ObjRef : ReferencedObjects)
+		{			
+			ObjRef->AtomicallyClearFlags(ObjectLoadFlags);
+		}
+		// Release references
+		EmptyReferencedObjects();
+	}
+
 	bLoadHasFailed = true;
 	if (LinkerRoot)
 	{
