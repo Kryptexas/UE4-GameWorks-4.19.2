@@ -387,11 +387,6 @@ void AWorldSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChang
 
 	if (PropertyThatChanged != nullptr && GetWorld() != nullptr && GetWorld()->PersistentLevel->GetWorldSettings() == this)
 	{
-		if (GIsEditor)
-		{
-			GEngine->DeferredCommands.AddUnique(TEXT("UpdateLandscapeSetup"));
-		}
-
 		if (PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(FHierarchicalSimplification,TransitionScreenSize))
 		{
 			GEditor->BroadcastHLODTransitionScreenSizeChanged();
