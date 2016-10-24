@@ -1576,7 +1576,7 @@ bool FRHICommandListImmediate::StallRHIThread()
 
 void FRHICommandListImmediate::UnStallRHIThread()
 {
-	check(IsInRenderingThread() || GRHIThread && GRHIThreadStallTask.GetReference() && !GRHIThreadStallTask->IsComplete() && GRHIThreadStallEvent);
+	check(IsInRenderingThread() && GRHIThread && GRHIThreadStallTask.GetReference() && !GRHIThreadStallTask->IsComplete() && GRHIThreadStallEvent);
 	GRHIThreadStallEvent->Trigger();
 	SCOPE_CYCLE_COUNTER(STAT_SpinWaitRHIThreadUnstall);
 	while (!GRHIThreadStallTask->IsComplete())

@@ -58,7 +58,7 @@ void UDataTable::LoadStructData(FArchive& Ar)
 		Ar << RowName;
 
 		// Load row data
-		uint8* RowData = (uint8*)FMemory::Malloc(LoadUsingStruct->PropertiesSize);
+		uint8* RowData = (uint8*)FMemory::Malloc(LoadUsingStruct->GetStructureSize());
 
 		// And be sure to call DestroyScriptStruct later
 		LoadUsingStruct->InitializeStruct(RowData);
@@ -185,7 +185,7 @@ void UDataTable::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(RowMap.GetAllocatedSize());
 	if (RowStruct)
 	{
-		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(RowMap.Num() * RowStruct->PropertiesSize);
+		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(RowMap.Num() * RowStruct->GetStructureSize());
 	}
 }
 

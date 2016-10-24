@@ -1144,24 +1144,12 @@ UEnum* FindExistingEnumIfHotReloadOrDynamic(UObject* Outer, const TCHAR* EnumNam
 	return Result;
 }
 
-UClass::StaticClassFunctionType GetDynamicClassConstructFn(FName ClassPathName)
-{
-	FDynamicClassStaticData* ClassConstructFn = GetDynamicClassMap().Find(ClassPathName);
-	UE_CLOG(!ClassConstructFn, LogUObjectBase, Fatal, TEXT("Unable to find construct function pointer for dynamic class %s. Make sure dynamic class exists."), *ClassPathName.ToString());
-	if (ClassConstructFn)
-	{
-		return ClassConstructFn->ZConstructFn;
-	}
-	// We should never get here. We either find the class or assert.
-	return nullptr;
-}
-
 UObject* ConstructDynamicType(FName TypePathName)
 {
 	UObject* Result = nullptr;
 	if (FDynamicClassStaticData* ClassConstructFn = GetDynamicClassMap().Find(TypePathName))
 	{
-		UClass* DynamicClass = ClassConstructFn->StaticClassFn();
+		UClass* DynamicClass = ClassConstructFn->ZConstructFn();
 		check(DynamicClass);
 		DynamicClass->AssembleReferenceTokenStream();
 		Result = DynamicClass;
@@ -1201,7 +1189,9 @@ UPackage* FindOrConstructDynamicTypePackage(const TCHAR* PackageName)
 	if (!Package)
 	{
 		Package = CreatePackage(nullptr, PackageName);
+#if !USE_EVENT_DRIVEN_ASYNC_LOAD
 		Package->SetPackageFlags(PKG_CompiledIn);
+#endif
 	}
 	check(Package);
 	return Package;

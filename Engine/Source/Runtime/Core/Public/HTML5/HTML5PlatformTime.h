@@ -40,6 +40,13 @@ struct CORE_API FHTML5PlatformTime : public FGenericPlatformTime
 		return tb.time * 1000.0 + tb.millitm;
 	}
 
+	static FORCEINLINE uint64 Cycles64()
+	{
+		struct _timeb tb;
+		_ftime(&tb);
+		return static_cast<uint64>( tb.time * 1000.0 + tb.millitm );
+	}
+
 	static void SystemTime( int32& Year, int32& Month, int32& DayOfWeek, int32& Day, int32& Hour, int32& Min, int32& Sec, int32& MSec );
 
 	static void UtcTime( int32& Year, int32& Month, int32& DayOfWeek, int32& Day, int32& Hour, int32& Min, int32& Sec, int32& MSec );
@@ -63,6 +70,7 @@ struct CORE_API FHTML5PlatformTime : public FGenericPlatformTime
 	{
 		emscripten_t0 = emscripten_get_now(); 
 		SecondsPerCycle = 1.0f / 1000000.0f;
+		SecondsPerCycle64 = 1.0 / 1000000.0;
 		return FHTML5PlatformTime::Seconds();
 	}
 
@@ -76,6 +84,10 @@ struct CORE_API FHTML5PlatformTime : public FGenericPlatformTime
 	static FORCEINLINE uint32 Cycles()
 	{
 		return (uint32)(Seconds() * 1000000);
+	}
+	static FORCEINLINE uint64 Cycles64()
+	{
+		return (uint64)(Seconds() * 1000000);
 	}
 
 };

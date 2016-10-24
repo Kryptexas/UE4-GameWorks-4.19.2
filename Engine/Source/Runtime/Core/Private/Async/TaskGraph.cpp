@@ -2500,9 +2500,12 @@ static FLockFreePointerListFIFOIntrusive<FGraphEventAndSmallTaskStorage> TheGrap
 
 #endif
 
+#define USE_NIEVE_GRAPH_EVENT_ALLOCTOR (0) // this is useful for tracking leaked handles
+
 FGraphEventRef FGraphEvent::CreateGraphEvent()
 {
 	GraphEventsInUse.Increment();
+#if !USE_NIEVE_GRAPH_EVENT_ALLOCTOR
 	FGraphEvent* Used =  TheGraphEventAllocator.Pop();
 	if (Used)
 	{
@@ -2516,13 +2519,16 @@ FGraphEventRef FGraphEvent::CreateGraphEvent()
 //		Used->LockFreePointerQueueNext = nullptr; // temp
 		return FGraphEventRef(Used);
 	}
+#endif
 	return FGraphEventRef(new FGraphEvent(false));
 }
 
 FGraphEvent* FGraphEvent::CreateGraphEventWithInlineStorage()
 {
 	GraphEventsWithInlineStorageInUse.Increment();
-	FGraphEventAndSmallTaskStorage* Used =  TheGraphEventWithInlineStorageAllocator.Pop();
+	FGraphEventAndSmallTaskStorage* Used;
+#if !USE_NIEVE_GRAPH_EVENT_ALLOCTOR
+	Used = TheGraphEventWithInlineStorageAllocator.Pop();
 	if (Used)
 	{
 		FPlatformMisc::MemoryBarrier();
@@ -2533,6 +2539,7 @@ FGraphEvent* FGraphEvent::CreateGraphEventWithInlineStorage()
 		checkThreadGraph(Used->bInline);
 	}
 	else
+#endif
 	{
 		Used = new FGraphEventAndSmallTaskStorage();
 	}
@@ -2547,12 +2554,20 @@ void FGraphEvent::Recycle(FGraphEvent* ToRecycle)
 	if (ToRecycle->bInline)
 	{
 		GraphEventsWithInlineStorageInUse.Decrement();
+#if USE_NIEVE_GRAPH_EVENT_ALLOCTOR
+		delete ToRecycle;
+#else
 		TheGraphEventWithInlineStorageAllocator.Push((FGraphEventAndSmallTaskStorage*)ToRecycle);
+#endif
 	}
 	else
 	{
 		GraphEventsInUse.Decrement();
+#if USE_NIEVE_GRAPH_EVENT_ALLOCTOR
+		delete ToRecycle;
+#else
 		TheGraphEventAllocator.Push(ToRecycle);
+#endif
 	}
 }
 

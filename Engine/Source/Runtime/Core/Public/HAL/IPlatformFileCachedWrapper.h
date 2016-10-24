@@ -229,6 +229,9 @@ public:
 	}
 	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const override
 	{
+#if USE_EVENT_DRIVEN_ASYNC_LOAD
+		return false; // this stuff is awful for the EDL
+#else
 		// Default to false on platforms that already do platform file level caching
 		bool bResult = !PLATFORM_PS4 && !PLATFORM_WINDOWS && !PLATFORM_IOS && !PLATFORM_ANDROID && FPlatformProperties::RequiresCookedData();
 
@@ -249,6 +252,7 @@ public:
 		}
 #endif
 		return bResult;
+#endif
 	}
 	IPlatformFile* GetLowerLevel() override
 	{

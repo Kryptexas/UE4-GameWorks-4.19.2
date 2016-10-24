@@ -1149,7 +1149,7 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 						Ar << Tag;
 
 						// need to know how much data this call to SerializeTaggedProperty consumes, so mark where we are
-						int32 DataOffset = Ar.Tell();
+						int64 DataOffset = Ar.Tell();
 
 						// if using it, save the current custom property list and switch to its sub property list (in case of UStruct serialization)
 						const FCustomPropertyListNode* SavedCustomPropertyList = nullptr;
@@ -1225,7 +1225,7 @@ void UStruct::Serialize( FArchive& Ar )
 	else
 	{
 		int32 ScriptBytecodeSize = Script.Num();
-		int32 ScriptStorageSizeOffset = INDEX_NONE;
+		int64 ScriptStorageSizeOffset = INDEX_NONE;
 
 		if (Ar.IsSaving())
 		{
@@ -1245,7 +1245,7 @@ void UStruct::Serialize( FArchive& Ar )
 
 			// no bytecode patch for this struct - serialize normally [i.e. from disk]
 			int32 iCode = 0;
-			int32 const BytecodeStartOffset = Ar.Tell();
+			int64 const BytecodeStartOffset = Ar.Tell();
 
 			if (Ar.IsPersistent() && Ar.GetLinker())
 			{
@@ -1292,7 +1292,7 @@ void UStruct::Serialize( FArchive& Ar )
 			{
 				FArchive::FScopeSetDebugSerializationFlags S(Ar, DSF_IgnoreDiff);
 
-				int32 const BytecodeEndOffset = Ar.Tell();
+				int64 const BytecodeEndOffset = Ar.Tell();
 
 				// go back and write on-disk size
 				Ar.Seek(ScriptStorageSizeOffset);
@@ -4278,8 +4278,6 @@ IMPLEMENT_CORE_INTRINSIC_CLASS(UClass, UStruct,
 	}
 );
 
-UClass::StaticClassFunctionType GetDynamicClassConstructFn(FName ClassPathName);
-
 void GetPrivateStaticClassBody(
 	const TCHAR* PackageName,
 	const TCHAR* Name,
@@ -4388,14 +4386,6 @@ void GetPrivateStaticClassBody(
 
 	// Register the class's native functions.
 	RegisterNativeFunc();
-
-	if (bIsDynamic)
-	{
-		// Now call the UHT-generated Z_Construct* function for the dynamic class
-		UClass::StaticClassFunctionType ZConstructDynamicClassFn = GetDynamicClassConstructFn(*ReturnClass->GetPathName());
-		check(ZConstructDynamicClassFn);
-		ZConstructDynamicClassFn();
-	}
 }
 
 /*-----------------------------------------------------------------------------

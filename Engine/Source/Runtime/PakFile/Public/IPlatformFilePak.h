@@ -1139,11 +1139,11 @@ public:
 		if (IsNonPakFilenameAllowed(Filename))
 		{
 #if USE_NEW_ASYNC_IO
-			double StartTime(UE_LOG_ACTIVE(LogPakFile, Error) ? FPlatformTime::Seconds() : 0.0);
+			double StartTime(UE_LOG_ACTIVE(LogPakFile, Verbose) ? FPlatformTime::Seconds() : 0.0);
 #endif
 			Result = LowerLevel->GetTimeStamp(Filename);
 #if USE_NEW_ASYNC_IO
-			UE_LOG(LogPakFile, Error, TEXT("GetTimeStamp on disk (!!) for %s took %6.2fms."), Filename, float(FPlatformTime::Seconds() - StartTime) * 1000.0f);
+			UE_LOG(LogPakFile, Verbose, TEXT("GetTimeStamp on disk (!!) for %s took %6.2fms."), Filename, float(FPlatformTime::Seconds() - StartTime) * 1000.0f);
 #endif
 		}
 		return Result;

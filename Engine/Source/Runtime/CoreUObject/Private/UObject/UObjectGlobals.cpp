@@ -1543,17 +1543,17 @@ void EndLoad()
 			ThreadContext.ObjLoaded.Empty();
 
 			// Sort by Filename and Offset.
-			ObjLoaded.Sort( FCompareUObjectByLinkerAndOffset() );
+			ObjLoaded.Sort(FCompareUObjectByLinkerAndOffset());
 
 			// Finish loading everything.
-			for( int32 i=0; i<ObjLoaded.Num(); i++ )
+			for (int32 i = 0; i < ObjLoaded.Num(); i++)
 			{
 				// Preload.
 				UObject* Obj = ObjLoaded[i];
-				if( Obj->HasAnyFlags(RF_NeedLoad) )
+				if (Obj->HasAnyFlags(RF_NeedLoad))
 				{
 					check(Obj->GetLinker());
-					Obj->GetLinker()->Preload( Obj );
+					Obj->GetLinker()->Preload(Obj);
 				}
 			}
 
@@ -1570,12 +1570,12 @@ void EndLoad()
 			SlowTask.CurrentFrameScope = 0;
 #endif
 
-			if ( GIsEditor )
+			if (GIsEditor)
 			{
-				for( int32 i=0; i<ObjLoaded.Num(); i++ )
+				for (int32 i = 0; i < ObjLoaded.Num(); i++)
 				{
 					UObject* Obj = ObjLoaded[i];
-					if ( Obj->GetLinker() )
+					if (Obj->GetLinker())
 					{
 						LoadedLinkers.Add(Obj->GetLinker());
 					}
@@ -1587,9 +1587,9 @@ void EndLoad()
 				TGuardValue<bool> GuardIsRoutingPostLoad(FUObjectThreadContext::Get().IsRoutingPostLoad, true);
 
 				// Postload objects.
-				for(int32 i = 0; i < ObjLoaded.Num(); i++)
+				for (int32 i = 0; i < ObjLoaded.Num(); i++)
 				{
-				
+
 					UObject* Obj = ObjLoaded[i];
 					check(Obj);
 #if WITH_EDITOR
@@ -1599,16 +1599,34 @@ void EndLoad()
 				}
 			}
 
-			// Dynamic Class doesn't require/use pre-loading (or post-loading). 
-			// The CDO is created at this point, because now it's safe to solve cyclic dependencies.
-			for (UObject* Obj : ObjLoaded)
+#if USE_EVENT_DRIVEN_ASYNC_LOAD
+			if (!GIsInitialLoad)
 			{
-				if (UDynamicClass* DynamicClass = Cast<UDynamicClass>(Obj))
+#if DO_CHECK
+				for (UObject* Obj : ObjLoaded)
 				{
-					DynamicClass->GetDefaultObject(true);
+					if (UDynamicClass* DynamicClass = Cast<UDynamicClass>(Obj))
+					{
+						check((DynamicClass->ClassFlags & CLASS_Constructed) != 0);
+						check(DynamicClass->GetDefaultObject(false)); // this should have already been done
+					}
+				}
+#endif
+			}
+			else
+#endif
+			{
+				// Dynamic Class doesn't require/use pre-loading (or post-loading). 
+				// The CDO is created at this point, because now it's safe to solve cyclic dependencies.
+				for (UObject* Obj : ObjLoaded)
+				{
+					if (UDynamicClass* DynamicClass = Cast<UDynamicClass>(Obj))
+					{
+						check((DynamicClass->ClassFlags & CLASS_Constructed) != 0);
+						DynamicClass->GetDefaultObject(true);
+					}
 				}
 			}
-
 			// Create clusters after all objects have been loaded
 			extern int32 GCreateGCClusters;
 			if (FPlatformProperties::RequiresCookedData() && !GIsInitialLoad && GCreateGCClusters && !GUObjectArray.IsOpenForDisregardForGC())

@@ -1083,9 +1083,8 @@ bool FVariantDataConverter::ConvertScalarUPropertyToVariant(UProperty* Property,
 			FString StringValue = EnumDef->GetEnumName(NumericProperty->GetSignedIntPropertyValue(Value));
 			OutVariantData.SetValue(StringValue);
 		}
-
 		// We want to export numbers as numbers
-		if (NumericProperty->IsFloatingPoint())
+		else if (NumericProperty->IsFloatingPoint())
 		{
 			double DoubleValue = NumericProperty->GetFloatingPointPropertyValue(Value);
 			OutVariantData.SetValue(DoubleValue);

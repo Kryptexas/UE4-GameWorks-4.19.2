@@ -133,8 +133,8 @@ FBuildPatchDownloader::FBuildPatchDownloader(const FString& InSaveDirectory, con
 	, bWaitingForJobs(true)
 	, ChunkSuccessRate(1.0f)
 	, CyclesAtLastHealthState(0)
-	, DownloadHealth(EBuildPatchDownloadHealth::Excellent)
 	, CyclesAtLastData(0)
+	, DownloadHealth(EBuildPatchDownloadHealth::Excellent)
 	, DataToDownloadTotalBytes(0)
 	, BuildProgress(InBuildProgress)
 {

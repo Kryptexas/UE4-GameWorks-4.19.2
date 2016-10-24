@@ -117,7 +117,7 @@ bool FUdpDeserializedMessage::Deserialize(const FUdpReassembledMessageRef& Reass
 	}
 
 	// create message body
-	MessageData = FMemory::Malloc(TypeInfo->PropertiesSize);
+	MessageData = FMemory::Malloc(TypeInfo->GetStructureSize());
 	TypeInfo->InitializeStruct(MessageData);
 
 	// deserialize message body

@@ -218,6 +218,12 @@ struct COREUOBJECT_API FBlueprintDependencyData
 	FName ClassPackageName;
 	FName ClassName;
 
+	/* If we have more than one element in the fake export table, then this will need to be an array or otherwise we will need to know which export is needs which imports of which kind of dependency*/
+	bool bSerializationBeforeSerializationDependency;
+	bool bCreateBeforeSerializationDependency;
+	bool bSerializationBeforeCreateDependency;
+	bool bCreateBeforeCreateDependency;
+
 	FBlueprintDependencyData() {}
 
 	FORCENOINLINE FBlueprintDependencyData(const TCHAR* InPackageFolder

@@ -140,7 +140,10 @@ private:
 	float ChunkSuccessRate;
 
 	// Used to help time health states
-	volatile int64 CyclesAtLastHealthState;
+	MS_ALIGN(8) volatile int64 CyclesAtLastHealthState;
+
+	// The time in cycles since we received data
+	MS_ALIGN(8) volatile int64 CyclesAtLastData;
 
 	// Timers in seconds for how long we were in each health state
 	TArray<float> HealthStateTimes;
@@ -150,9 +153,6 @@ private:
 
 	// A critical section to protect the flags and rate
 	FCriticalSection FlagsLock;
-
-	// The time in cycles since we received data
-	volatile int64 CyclesAtLastData;
 
 	// Store a record of each download we made for info
 	TArray< FBuildPatchDownloadRecord > DownloadRecords;

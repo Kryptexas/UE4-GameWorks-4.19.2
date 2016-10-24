@@ -2765,8 +2765,7 @@ void UWorld::FlushLevelStreaming(EFlushLevelStreamingType FlushType)
 		}
 	}
 	
-	// Update level streaming one last time to make sure all RemoveFromWorld requests made it.
-	UpdateLevelStreaming();
+	check(!IsVisibilityRequestPending());
 
 	// we need this, or the traces will be abysmally slow
 	EnsureCollisionTreeIsBuilt();

@@ -218,7 +218,12 @@ private:
 						ObjectClass->AssembleReferenceTokenStream();
 					}
 				}
-				check(CurrentObject->GetClass()->HasAnyClassFlags(CLASS_TokenStreamAssembled));
+#if DO_CHECK
+				if (!CurrentObject->GetClass()->HasAnyClassFlags(CLASS_TokenStreamAssembled))
+				{
+					UE_LOG(LogGarbage, Fatal, TEXT("%s does not yet have a token stream assembled."), *GetFullNameSafe(CurrentObject->GetClass()));
+				}
+#endif
 
 				// Get pointer to token stream and jump to the start.
 				FGCReferenceTokenStream* RESTRICT TokenStream = &CurrentObject->GetClass()->ReferenceTokenStream;

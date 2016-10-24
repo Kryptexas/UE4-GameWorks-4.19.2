@@ -161,6 +161,12 @@ void UInheritableComponentHandler::ValidateTemplates()
 				}
 				else
 				{
+					// Set pending kill so this object does not get used as an archetype for subclasses
+					if (Record.ComponentTemplate)
+					{
+						Record.ComponentTemplate->MarkPendingKill();
+					}
+
 					UE_LOG(LogBlueprint, Log, TEXT("ValidateTemplates '%s': overridden template is unnecessary and will be removed - component '%s' from '%s'"),
 						*GetPathNameSafe(this), *VarName.ToString(), *GetPathNameSafe(ComponentKey.GetComponentOwner()));
 				}

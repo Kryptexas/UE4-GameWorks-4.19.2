@@ -262,6 +262,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
                 messageBuilder.AppendLine(payloadString);
 
                 FLogger.Global.WriteException(messageBuilder.ToString());
+                _slackWriter.Write(messageBuilder.ToString());
 
                 newCrashResult.Message = messageBuilder.ToString();
                 newCrashResult.bSuccess = false;
@@ -944,6 +945,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
                     }
                 }
                 FLogger.Global.WriteException(messageBuilder.ToString());
+                _slackWriter.Write("Create Crash Exception : " + messageBuilder.ToString());
                 throw;
             }
 	        catch (Exception ex)

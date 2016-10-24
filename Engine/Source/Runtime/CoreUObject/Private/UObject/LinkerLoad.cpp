@@ -598,7 +598,7 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::Tick( float InTimeLimit, bool bInUseTime
 		do
 		{
 #if USE_EVENT_DRIVEN_ASYNC_LOAD
-			check(Loader);
+			check(Loader || bDynamicClassLinker);
 			if (true)
 #else
 			// Create loader, aka FArchive used for serialization and also precache the package file summary.

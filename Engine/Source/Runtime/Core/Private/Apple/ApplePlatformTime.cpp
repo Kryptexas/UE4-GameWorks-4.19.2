@@ -20,6 +20,7 @@ double FApplePlatformTime::InitTiming(void)
 	mach_timebase_info_data_t Info;
 	verify( mach_timebase_info( &Info ) == 0 );
 	SecondsPerCycle = 1e-9 * (double)Info.numer / (double)Info.denom;
+	SecondsPerCycle64 = 1e-9 * (double)Info.numer / (double)Info.denom;
 	return FPlatformTime::Seconds();
 }
 

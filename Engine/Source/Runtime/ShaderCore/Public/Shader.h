@@ -200,7 +200,7 @@ public:
 	virtual void FinishCleanup();
 
 	/** Finds a matching shader resource in memory if possible. */
-	SHADERCORE_API static TRefCountPtr<FShaderResource> FindShaderResourceById(const FShaderResourceId& Id);
+	SHADERCORE_API static FShaderResource* FindShaderResourceById(const FShaderResourceId& Id);
 
 	/** 
 	 * Finds a matching shader resource in memory or creates a new one with the given compiler output.  
@@ -811,7 +811,7 @@ public:
 	 * Finds a shader of this type by ID.
 	 * @return NULL if no shader with the specified ID was found.
 	 */
-	TRefCountPtr<FShader> FindShaderById(const FShaderId& Id);
+	FShader* FindShaderById(const FShaderId& Id);
 
 	/** Constructs a new instance of the shader type for deserialization. */
 	FShader* ConstructForDeserialization() const;
@@ -1709,12 +1709,12 @@ public:
 			Shader->RegisterSerializedResource();
 
 			FShaderType* Type = Shader->GetType();
-			TRefCountPtr<FShader> ExistingShader = Type->FindShaderById(Shader->GetId());
+			FShader* ExistingShader = Type->FindShaderById(Shader->GetId());
 
-			if (ExistingShader.IsValid())
+			if (ExistingShader != nullptr)
 			{
 				delete Shader;
-				Shader = ExistingShader.GetReference();
+				Shader = ExistingShader;
 			}
 			else
 			{

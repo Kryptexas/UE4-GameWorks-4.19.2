@@ -287,10 +287,10 @@ FArchive& operator<<(FArchive& Ar,FShaderType*& Ref)
 }
 
 
-TRefCountPtr<FShader> FShaderType::FindShaderById(const FShaderId& Id)
+FShader* FShaderType::FindShaderById(const FShaderId& Id)
 {
 	check(IsInGameThread());
-	TRefCountPtr<FShader> Result = ShaderIdMap.FindRef(Id);
+	FShader* Result = ShaderIdMap.FindRef(Id);
 	return Result;
 }
 
@@ -495,10 +495,10 @@ void FShaderResource::Release()
 }
 
 
-TRefCountPtr<FShaderResource> FShaderResource::FindShaderResourceById(const FShaderResourceId& Id)
+FShaderResource* FShaderResource::FindShaderResourceById(const FShaderResourceId& Id)
 {
 	check(IsInGameThread());
-	TRefCountPtr<FShaderResource> Result = ShaderResourceIdMap.FindRef(Id);
+	FShaderResource* Result = ShaderResourceIdMap.FindRef(Id);
 	return Result;
 }
 
@@ -970,7 +970,7 @@ bool FShader::SerializeBase(FArchive& Ar, bool bShadersInline)
 			ResourceId.SpecificShaderTypeName = Type->LimitShaderResourceToThisType() ? Type->GetName() : NULL;
 
 			// use it to look up in the registered resource map
-			TRefCountPtr<FShaderResource> ExistingResource = FShaderResource::FindShaderResourceById(ResourceId);
+			FShaderResource* ExistingResource = FShaderResource::FindShaderResourceById(ResourceId);
 			SetResource(ExistingResource);
 		}
 	}
@@ -1037,7 +1037,7 @@ void FShader::RegisterSerializedResource()
 {
 	if (SerializedResource)
 	{
-		TRefCountPtr<FShaderResource> ExistingResource = FShaderResource::FindShaderResourceById(SerializedResource->GetId());
+		FShaderResource* ExistingResource = FShaderResource::FindShaderResourceById(SerializedResource->GetId());
 
 		// Reuse an existing shader resource if a matching one already exists in memory
 		if (ExistingResource)
