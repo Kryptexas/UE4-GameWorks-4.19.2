@@ -2558,6 +2558,11 @@ void UCookOnTheFlyServer::OnObjectUpdated( UObject *Object )
 
 void UCookOnTheFlyServer::MarkPackageDirtyForCooker( UPackage *Package )
 {
+	if ( Package->RootPackageHasAnyFlags(PKG_PlayInEditor) )
+	{
+		return;
+	}
+
 	if ( !bIsSavingPackage )
 	{
 		// could have just cooked a file which we might need to write
