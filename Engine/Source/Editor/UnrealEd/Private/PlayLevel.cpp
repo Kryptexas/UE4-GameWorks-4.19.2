@@ -1095,6 +1095,8 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 	const EPlayNetMode PlayNetMode = [&PlayInSettings]{ EPlayNetMode NetMode(PIE_Standalone); return (PlayInSettings->GetPlayNetMode(NetMode) ? NetMode : PIE_Standalone); }();
 	const bool CanRunUnderOneProcess = [&PlayInSettings]{ bool RunUnderOneProcess(false); return (PlayInSettings->GetRunUnderOneProcess(RunUnderOneProcess) && RunUnderOneProcess); }();
 
+	// World composition does not copy levels to a separate folder to reduce startup time, and instead uses same files as Editor
+	// This causes issues with network replication as server object names will collide with Editor loaded world
 	const bool bWorldCompositionActive = GetEditorWorldContext().World()->WorldComposition != nullptr;
 	if (bWorldCompositionActive && !(CanRunUnderOneProcess || PlayNetMode == PIE_Standalone))
 	{
