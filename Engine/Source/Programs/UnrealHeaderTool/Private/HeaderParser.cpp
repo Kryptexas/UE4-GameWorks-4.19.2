@@ -14,6 +14,7 @@
 #include "UnitConversion.h"
 #include "GeneratedCodeVersion.h"
 #include "FileLineException.h"
+#include "Containers/EnumAsByte.h"
 
 #include "Algo/FindSortedStringCaseInsensitive.h"
 
@@ -1206,25 +1207,29 @@ UEnum* FHeaderParser::CompileEnum()
 	// Read base for enum class
 	if (CppForm == UEnum::ECppForm::EnumClass)
 	{
-		if (!MatchSymbol(TEXT(":")))
+		if (MatchSymbol(TEXT(":")))
+		{
+			FToken BaseToken;
+			if (!GetIdentifier(BaseToken))
+			{
+				FError::Throwf(TEXT("Missing enum base") );
+			}
+
+			// We only support uint8 at the moment, until the properties get updated
+			if (FCString::Strcmp(BaseToken.Identifier, TEXT("uint8")))
+			{
+				FError::Throwf(TEXT("Only enum bases of type uint8 are currently supported"));
+			}
+
+			GEnumUnderlyingTypes.Add(Enum, CPT_Byte);
+			UHTMakefile.AddGEnumUnderlyingType(CurrentSrcFile, Enum, CPT_Byte);
+		}
+	#if DEPRECATE_ENUM_AS_BYTE_FOR_ENUM_CLASSES
+		else
 		{
 			FError::Throwf(TEXT("Missing base specifier for enum class '%s' - did you mean ': uint8'?"), EnumToken.Identifier);
 		}
-
-		FToken BaseToken;
-		if (!GetIdentifier(BaseToken))
-		{
-			FError::Throwf(TEXT("Missing enum base") );
-		}
-
-		// We only support uint8 at the moment, until the properties get updated
-		if (FCString::Strcmp(BaseToken.Identifier, TEXT("uint8")))
-		{
-			FError::Throwf(TEXT("Only enum bases of type uint8 are currently supported"));
-		}
-
-		GEnumUnderlyingTypes.Add(Enum, CPT_Byte);
-		UHTMakefile.AddGEnumUnderlyingType(CurrentSrcFile, Enum, CPT_Byte);
+	#endif
 	}
 
 	// Get opening brace.
