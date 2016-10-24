@@ -26,7 +26,12 @@ void UMeshSimplificationSettings::PostInitProperties()
 {
 	Super::PostInitProperties(); 
 
-	ImportConsoleVariableValues();
+#if WITH_EDITOR
+	if(IsTemplate())
+	{
+		ImportConsoleVariableValues();
+	}
+#endif
 }
 
 #if WITH_EDITOR
