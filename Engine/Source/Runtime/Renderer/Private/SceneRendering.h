@@ -790,6 +790,8 @@ public:
 	uint32 bUsesGlobalDistanceField : 1;
 	uint32 bUsesLightingChannels : 1;
 	uint32 bTranslucentSurfaceLighting : 1;
+	/** Whether the view has any materials that read from scene depth. */
+	uint32 bUsesSceneDepth : 1;
 	/** 
 	 * true if the scene has at least one decal. Used to disable stencil operations in the mobile base pass when the scene has no decals.
 	 * TODO: Right now decal visibility is computed right before rendering them. Ideally it should be done in InitViews and this flag should be replaced with list of visible decals  
@@ -1395,7 +1397,7 @@ protected:
 	void CopySceneAlpha(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
 
 	/** Resolves scene depth in case hardware does not support reading depth in the shader */
-	void ConditionalResolveSceneDepth(FRHICommandListImmediate& RHICmdList);
+	void ConditionalResolveSceneDepth(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
 
 	/** Renders decals. */
 	void RenderDecals(FRHICommandListImmediate& RHICmdList);

@@ -1108,7 +1108,8 @@ public:
 	ENGINE_API bool MaterialUsesPixelDepthOffset() const;
 
 	/** Does the material use a SceneDepth lookup. */
-	ENGINE_API bool MaterialUsesSceneDepthLookup() const;
+	ENGINE_API bool MaterialUsesSceneDepthLookup_RenderThread() const;
+	ENGINE_API bool MaterialUsesSceneDepthLookup_GameThread() const;
 
 	/** Note: This function is only intended for use in deciding whether or not shader permutations are required before material translation occurs. */
 	ENGINE_API bool MaterialMayModifyMeshPosition() const;

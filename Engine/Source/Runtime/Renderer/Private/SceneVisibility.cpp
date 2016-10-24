@@ -1401,6 +1401,7 @@ struct FRelevancePacket
 	bool bUsesGlobalDistanceField;
 	bool bUsesLightingChannels;
 	bool bTranslucentSurfaceLighting;
+	bool bUsesSceneDepth;
 
 	FRelevancePacket(
 		FRHICommandListImmediate& InRHICmdList,
@@ -1426,6 +1427,7 @@ struct FRelevancePacket
 		, bUsesGlobalDistanceField(false)
 		, bUsesLightingChannels(false)
 		, bTranslucentSurfaceLighting(false)
+		, bUsesSceneDepth(false)
 	{
 	}
 
@@ -1516,6 +1518,7 @@ struct FRelevancePacket
 			bUsesGlobalDistanceField |= ViewRelevance.bUsesGlobalDistanceField;
 			bUsesLightingChannels |= ViewRelevance.bUsesLightingChannels;
 			bTranslucentSurfaceLighting |= ViewRelevance.bTranslucentSurfaceLighting;
+			bUsesSceneDepth |= ViewRelevance.bUsesSceneDepth;
 
 			if (ViewRelevance.bRenderCustomDepth)
 			{
@@ -1710,6 +1713,7 @@ struct FRelevancePacket
 		WriteView.bUsesGlobalDistanceField |= bUsesGlobalDistanceField;
 		WriteView.bUsesLightingChannels |= bUsesLightingChannels;
 		WriteView.bTranslucentSurfaceLighting |= bTranslucentSurfaceLighting;
+		WriteView.bUsesSceneDepth |= bUsesSceneDepth;
 		VisibleEditorPrimitives.AppendTo(WriteView.VisibleEditorPrimitives);
 		VisibleDynamicPrimitives.AppendTo(WriteView.VisibleDynamicPrimitives);
 		WriteView.TranslucentPrimSet.AppendScenePrimitives(TranslucencyPrims.Prims, TranslucencyPrims.NumPrims, TranslucencyPrimCount);

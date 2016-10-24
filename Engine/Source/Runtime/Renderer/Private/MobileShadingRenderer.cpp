@@ -167,7 +167,7 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	RenderMobileBasePass(RHICmdList);
 
 	// Make a copy of the scene depth if the current hardware doesn't support reading and writing to the same depth buffer
-	ConditionalResolveSceneDepth(RHICmdList);
+	ConditionalResolveSceneDepth(RHICmdList, View);
 	
 	if (ViewFamily.EngineShowFlags.Decals)
 	{
@@ -334,7 +334,7 @@ void FMobileSceneRenderer::BasicPostProcess(FRHICommandListImmediate& RHICmdList
 	CompositeContext.Process(Context.FinalOutput.GetPass(), TEXT("ES2BasicPostProcess"));
 }
 
-void FMobileSceneRenderer::ConditionalResolveSceneDepth(FRHICommandListImmediate& RHICmdList)
+void FMobileSceneRenderer::ConditionalResolveSceneDepth(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
 {
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 	
@@ -358,7 +358,7 @@ void FMobileSceneRenderer::ConditionalResolveSceneDepth(FRHICommandListImmediate
 			bool bDecals = ViewFamily.EngineShowFlags.Decals && Scene->Decals.Num();
 			bool bModulatedShadows = ViewFamily.EngineShowFlags.DynamicShadows && bModulatedShadowsInUse;
 
-			if (bDecals || bModulatedShadows || bForceDepthResolve)
+			if (bDecals || bModulatedShadows || bForceDepthResolve || View.bUsesSceneDepth)
 			{
 				// Switch target to force hardware flush current depth to texture
 				FTextureRHIRef DummySceneColor = GSystemTextures.BlackDummy->GetRenderTargetItem().TargetableTexture;
@@ -534,7 +534,7 @@ void FMobileSceneRenderer::UpdatePostProcessUsageFlags()
 				const FMaterial* Material = Proxy->GetMaterial(Views[ViewIndex].GetFeatureLevel());
 				check(Material);
 
-				if (Material->MaterialUsesSceneDepthLookup())
+				if (Material->MaterialUsesSceneDepthLookup_RenderThread())
 				{
 					bPostProcessUsesDepthTexture = true;
 					break;
