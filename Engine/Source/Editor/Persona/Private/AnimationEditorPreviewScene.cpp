@@ -131,6 +131,7 @@ void FAnimationEditorPreviewScene::SetPreviewMeshInternal(USkeletalMesh* NewPrev
 			bPlaying = SkeletalMeshComponent->PreviewInstance->IsPlaying();
 		}
 
+		SkeletalMeshComponent->EmptyOverrideMaterials();
 		SkeletalMeshComponent->SetSkeletalMesh(NewPreviewMesh);
 
 		if (bNeedsToCopyAnimationData)
