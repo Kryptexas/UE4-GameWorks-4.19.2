@@ -1193,6 +1193,9 @@ void FStaticLightingSystem::ApplyNewLightingData(bool bLightingSuccessful)
 
 			ULevel* StorageLevel = LightingScenario ? LightingScenario : Level;
 			UMapBuildDataRegistry* Registry = StorageLevel->GetOrCreateMapBuildData();
+			
+			// Notify level about new lighting data
+			Level->OnApplyNewLightingData(bLightingSuccessful);
 
 			Level->InitializeRenderingResources();
 

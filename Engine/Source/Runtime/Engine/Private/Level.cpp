@@ -1737,6 +1737,19 @@ void ULevel::SetLightingScenario(bool bNewIsLightingScenario)
 	OwningWorld->PropagateLightingScenarioChange();
 }
 
+#if WITH_EDITOR
+void ULevel::OnApplyNewLightingData(bool bLightingSuccessful)
+{
+	// Store level offset that was used during static light data build
+	// This will be used to find correct world position of precomputed lighting samples during origin rebasing
+	LightBuildLevelOffset = FIntVector::ZeroValue;
+	if (bLightingSuccessful && OwningWorld && OwningWorld->WorldComposition)
+	{
+		LightBuildLevelOffset = OwningWorld->WorldComposition->GetLevelOffset(this);
+	}
+}
+#endif
+
 bool ULevel::HasAnyActorsOfType(UClass *SearchType)
 {
 	// just search the actors array
@@ -1903,27 +1916,27 @@ void ULevel::ApplyWorldOffset(const FVector& InWorldOffset, bool bWorldShift)
 	if (PrecomputedLightVolume && !InWorldOffset.IsZero())
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_ULevel_ApplyWorldOffset_PrecomputedLightVolume);
-		// Shift light volume only if it's going to be used
-		static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
-		const bool bAllowStaticLighting = (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnGameThread() != 0);
-		if (bAllowStaticLighting) 
+		
+		if (!PrecomputedLightVolume->IsAddedToScene())
 		{
-			if (!PrecomputedLightVolume->IsAddedToScene())
+			// When we add level to world, move precomputed lighting data taking into account position of level at time when lighting was built  
+			if (bIsAssociatingLevel)
 			{
-				PrecomputedLightVolume->ApplyWorldOffset(InWorldOffset);
+				FVector PrecomputedLightVolumeOffset = InWorldOffset - FVector(LightBuildLevelOffset);
+				PrecomputedLightVolume->ApplyWorldOffset(PrecomputedLightVolumeOffset);
 			}
-			// At world origin rebasing all registered volumes will be moved during FScene shifting
-			// Otherwise we need to send a command to move just this volume
-			else if (!bWorldShift) 
-			{
-				ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
- 					ApplyWorldOffset_PLV,
- 					FPrecomputedLightVolume*, InPrecomputedLightVolume, PrecomputedLightVolume,
- 					FVector, InWorldOffset, InWorldOffset,
- 				{
-					InPrecomputedLightVolume->ApplyWorldOffset(InWorldOffset);
- 				});
-			}
+		}
+		// At world origin rebasing all registered volumes will be moved during FScene shifting
+		// Otherwise we need to send a command to move just this volume
+		else if (!bWorldShift) 
+		{
+			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+ 				ApplyWorldOffset_PLV,
+ 				FPrecomputedLightVolume*, InPrecomputedLightVolume, PrecomputedLightVolume,
+ 				FVector, InWorldOffset, InWorldOffset,
+ 			{
+				InPrecomputedLightVolume->ApplyWorldOffset(InWorldOffset);
+ 			});
 		}
 	}
 

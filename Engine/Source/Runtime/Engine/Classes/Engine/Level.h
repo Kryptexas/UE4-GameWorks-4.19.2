@@ -459,6 +459,10 @@ public:
 	UPROPERTY()
 	UMapBuildDataRegistry* MapBuildData;
 
+	/** Level offset at time when lighting was built */
+	UPROPERTY()
+	FIntVector LightBuildLevelOffset;
+
 	/** Whether components are currently registered or not. */
 	uint8										bAreComponentsCurrentlyRegistered:1;
 
@@ -752,6 +756,12 @@ public:
 	ENGINE_API void HandleLegacyMapBuildData();
 
 #if WITH_EDITOR
+	/** 
+	*  Called after lighting was built and data gets propagated to this level
+	*  @param	bLightingSuccessful	 Whether lighting build was successful
+	*/
+	ENGINE_API void OnApplyNewLightingData(bool bLightingSuccessful);
+
 	/**
 	 *	Grabs a reference to the level scripting blueprint for this level.  If none exists, it creates a new blueprint
 	 *
