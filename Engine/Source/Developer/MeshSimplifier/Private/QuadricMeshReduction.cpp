@@ -402,6 +402,10 @@ public:
 						OutReducedMesh.WedgeTexCoords[ TexCoordIndex ][i] = Verts[ Indexes[i] ].TexCoords[ TexCoordIndex ];
 					}
 				}
+				else
+				{
+					OutReducedMesh.WedgeTexCoords[ TexCoordIndex ].Empty();
+				}
 			}
 
 			OutReducedMesh.FaceMaterialIndices.Empty( NumTris );
