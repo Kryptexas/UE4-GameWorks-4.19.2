@@ -43,6 +43,8 @@
 #include "NotificationManager.h"
 #include "Toolkits/AssetEditorManager.h"
 #include "StaticMeshResources.h"
+#include "PropertyEditing.h"
+#include "Engine/MeshSimplificationSettings.h"
 
 //@todo - implement required vector intrinsics for other implementations
 #if PLATFORM_ENABLE_VECTORINTRINSICS
@@ -52,6 +54,7 @@
 #if WITH_EDITOR
 #include "Editor.h"
 #endif
+
 
 /*------------------------------------------------------------------------------
 MeshUtilities module.
@@ -80,8 +83,8 @@ static TAutoConsoleVariable<int32> CVarTriangleOrderOptimization(
 static FAutoConsoleVariable CVarMeshReductionModule(
 	TEXT("r.MeshReductionModule"),
 	TEXT("QuadricMeshReduction"),
-	TEXT("Name of what mesh reduction module to choose. If blank it chooses any that exist.\n")
-	);
+	TEXT("Name of what mesh reduction module to choose. If blank it chooses any that exist.\n"),
+	ECVF_ReadOnly);
 
 class FMeshUtilities : public IMeshUtilities
 {
@@ -94,6 +97,51 @@ public:
 		, DistributedMeshMerging(NULL)
 		, Processor(NULL)
 	{
+	}
+
+	void UpdateMeshReductionModule()
+	{
+		TArray<FName> ModuleNames;
+		FModuleManager::Get().FindModules(TEXT("*MeshReduction"), ModuleNames);
+
+		for(int32 Index = 0; Index < ModuleNames.Num(); Index++)
+		{
+			FString String = CVarMeshReductionModule->GetString();
+			bool bIsChoosenModule = ModuleNames[Index].GetPlainNameString().Equals(String);
+
+			IMeshReductionModule& MeshReductionModule = FModuleManager::LoadModuleChecked<IMeshReductionModule>(ModuleNames[Index]);
+
+			// Look for MeshReduction interface
+			if(MeshReductionModule.GetStaticMeshReductionInterface())
+			{
+				if(bIsChoosenModule || StaticMeshReduction == NULL)
+				{
+					StaticMeshReduction = MeshReductionModule.GetStaticMeshReductionInterface();
+					UE_LOG(LogMeshUtilities, Log, TEXT("Using %s for automatic static mesh reduction"), *ModuleNames[Index].ToString());
+				}
+			}
+
+			// Look for MeshReduction interface
+			if(MeshReductionModule.GetSkeletalMeshReductionInterface())
+			{
+				if(bIsChoosenModule || SkeletalMeshReduction == NULL)
+				{
+					SkeletalMeshReduction = MeshReductionModule.GetSkeletalMeshReductionInterface();
+					UE_LOG(LogMeshUtilities, Log, TEXT("Using %s for automatic skeletal mesh reduction"), *ModuleNames[Index].ToString());
+				}
+			}
+
+			// Look for MeshMerging interface
+			if(MeshReductionModule.GetMeshMergingInterface())
+			{
+				if(bIsChoosenModule || MeshMerging == NULL)
+				{
+					MeshMerging = MeshReductionModule.GetMeshMergingInterface();
+					UE_LOG(LogMeshUtilities, Log, TEXT("Using %s for automatic mesh merging"), *ModuleNames[Index].ToString());
+				}
+			}
+		}
+
 	}
 
 private:
@@ -8096,7 +8144,7 @@ bool FMeshUtilities::RemoveBonesFromMesh(USkeletalMesh* SkeletalMesh, int32 LODI
 }
 
 /*------------------------------------------------------------------------------
-Mesh reduction.
+Mesh reduction .
 ------------------------------------------------------------------------------*/
 
 IMeshReduction* FMeshUtilities::GetStaticMeshReductionInterface()
@@ -8117,6 +8165,120 @@ IMeshMerging* FMeshUtilities::GetMeshMergingInterface()
 	return MeshMerging;
 }
 
+class FMeshSimplifcationSettingsCustomization : public IDetailCustomization
+{
+public:
+	static TSharedRef<IDetailCustomization> MakeInstance()
+	{
+		return MakeShareable( new FMeshSimplifcationSettingsCustomization );
+	}
+
+	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) override
+	{
+		MeshReductionModuleProperty = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UMeshSimplificationSettings, MeshReductionModuleName));
+
+		IDetailCategoryBuilder& Category = DetailBuilder.EditCategory(TEXT("General")); 
+
+		IDetailPropertyRow& PropertyRow = Category.AddProperty(MeshReductionModuleProperty);
+
+		FDetailWidgetRow& WidgetRow = PropertyRow.CustomWidget();
+		WidgetRow.NameContent()
+		[
+			MeshReductionModuleProperty->CreatePropertyNameWidget()
+		];
+
+		WidgetRow.ValueContent()
+		.MaxDesiredWidth(0)
+		[
+			SNew(SComboButton)
+			.OnGetMenuContent(this, &FMeshSimplifcationSettingsCustomization::GenerateMeshSimplifierMenu)
+			.ContentPadding(FMargin(2.0f, 2.0f))
+			.ButtonContent()
+			[
+				SNew(STextBlock)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				.Text(this, &FMeshSimplifcationSettingsCustomization::GetCurrentMeshSimplifierName)
+			]
+		];
+	}
+
+private:
+	FText GetCurrentMeshSimplifierName() const
+	{
+		if(MeshReductionModuleProperty->IsValidHandle())
+		{
+			FText Name;
+			MeshReductionModuleProperty->GetValueAsDisplayText(Name);
+
+			return Name;
+		}
+		else
+		{
+			return LOCTEXT("AutomaticMeshReductionPlugin", "Automatic");
+		}
+	}
+
+	TSharedRef<SWidget> GenerateMeshSimplifierMenu() const
+	{
+		FMenuBuilder MenuBuilder(true, nullptr);
+
+		TArray<FName> ModuleNames;
+		FModuleManager::Get().FindModules(TEXT("*MeshReduction"), ModuleNames);
+
+		MenuBuilder.BeginSection(NAME_None, LOCTEXT("AvailableReductionPluginsMenuSection", "Available Plugins"));
+		if(ModuleNames.Num() > 0)
+		{
+			for(FName ModuleName : ModuleNames)
+			{
+				FUIAction UIAction;
+				UIAction.ExecuteAction.BindSP(this, &FMeshSimplifcationSettingsCustomization::OnMeshSimplificationModuleChosen, ModuleName);
+				UIAction.GetActionCheckState.BindSP(this, &FMeshSimplifcationSettingsCustomization::IsMeshSimplificationModuleChosen, ModuleName);
+
+				MenuBuilder.AddMenuEntry( FText::FromName(ModuleName), FText::GetEmpty(), FSlateIcon(), UIAction, NAME_None, EUserInterfaceActionType::RadioButton );
+
+			}
+
+			MenuBuilder.AddMenuSeparator();
+		}
+
+		FUIAction OpenMarketplaceAction;
+		OpenMarketplaceAction.ExecuteAction.BindSP(this, &FMeshSimplifcationSettingsCustomization::OnFindReductionPluginsClicked);
+		FSlateIcon Icon = FSlateIcon(FEditorStyle::Get().GetStyleSetName(), "LevelEditor.OpenMarketplace.Menu");
+		MenuBuilder.AddMenuEntry( LOCTEXT("FindMoreReductionPluginsLink", "Search the Marketplace"), LOCTEXT("FindMoreReductionPluginsLink_Tooltip", "Opens the Marketplace to find more mesh reduction plugins"), Icon, OpenMarketplaceAction);
+		return MenuBuilder.MakeWidget();
+	}
+
+	void OnMeshSimplificationModuleChosen(FName ModuleName)
+	{
+		if(MeshReductionModuleProperty->IsValidHandle())
+		{
+			MeshReductionModuleProperty->SetValue(ModuleName);
+		}
+	}
+
+	ECheckBoxState IsMeshSimplificationModuleChosen(FName ModuleName)
+	{
+		if(MeshReductionModuleProperty->IsValidHandle())
+		{
+			FName CurrentModuleName;
+			MeshReductionModuleProperty->GetValue(CurrentModuleName);
+			return CurrentModuleName == ModuleName ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		}
+
+		return ECheckBoxState::Unchecked;
+	}
+
+	void OnFindReductionPluginsClicked()
+	{
+		FString URL;
+		FUnrealEdMisc::Get().GetURL(TEXT("MeshSimplificationPluginsURL"), URL);
+
+		FUnrealEdMisc::Get().OpenMarketplace(URL);
+	}
+private:
+	TSharedPtr<IPropertyHandle> MeshReductionModuleProperty;
+};
+
 /*------------------------------------------------------------------------------
 Module initialization / teardown.
 ------------------------------------------------------------------------------*/
@@ -8129,49 +8291,21 @@ void FMeshUtilities::StartupModule()
 
 	Processor = new FProxyGenerationProcessor();
 
-	// Look for a mesh reduction module.
+	FPropertyEditorModule& PropertyEditorModule = FModuleManager::Get().LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+
+	PropertyEditorModule.RegisterCustomClassLayout("MeshSimplificationSettings", FOnGetDetailCustomizationInstance::CreateStatic(&FMeshSimplifcationSettingsCustomization::MakeInstance));
+
+	// This module could be launched very early by static meshes loading before the settings class that stores this value has had a chance to load.  Have to read from the config file early in the startup process
+	FString MeshReductionModuleName;
+	GConfig->GetString(TEXT("/Script/Engine.MeshSimplificationSettings"), TEXT("r.MeshReductionModule"), MeshReductionModuleName, GEngineIni);
+	CVarMeshReductionModule->Set(*MeshReductionModuleName);
+
+	// Initially load the mesh reduction module that was previously saved in the settings
+	UpdateMeshReductionModule(); 
+
 	{
-		TArray<FName> ModuleNames;
-		FModuleManager::Get().FindModules(TEXT("*MeshReduction"), ModuleNames);
 		TArray<FName> SwarmModuleNames;
 		FModuleManager::Get().FindModules(TEXT("*SimplygonSwarm"), SwarmModuleNames);
-
-		for (int32 Index = 0; Index < ModuleNames.Num(); Index++)
-		{
-			bool bIsChoosenModule = ModuleNames[Index].GetPlainNameString().Equals( CVarMeshReductionModule->GetString() );
-			
-			IMeshReductionModule& MeshReductionModule = FModuleManager::LoadModuleChecked<IMeshReductionModule>(ModuleNames[Index]);
-
-			// Look for MeshReduction interface
-			if( MeshReductionModule.GetStaticMeshReductionInterface() )
-			{
-				if( bIsChoosenModule || StaticMeshReduction == NULL )
-			{
-					StaticMeshReduction = MeshReductionModule.GetStaticMeshReductionInterface();
-					UE_LOG(LogMeshUtilities, Log, TEXT("Using %s for automatic static mesh reduction"), *ModuleNames[Index].ToString());
-			}
-			}
-			
-			// Look for MeshReduction interface
-			if( MeshReductionModule.GetSkeletalMeshReductionInterface() )
-			{
-				if( bIsChoosenModule || SkeletalMeshReduction == NULL )
-				{
-					SkeletalMeshReduction = MeshReductionModule.GetSkeletalMeshReductionInterface();
-					UE_LOG(LogMeshUtilities, Log, TEXT("Using %s for automatic skeletal mesh reduction"), *ModuleNames[Index].ToString());
-				}
-			}
-
-			// Look for MeshMerging interface
-			if( MeshReductionModule.GetMeshMergingInterface() )
-			{
-				if( bIsChoosenModule || MeshMerging == NULL )
-			{
-				MeshMerging = MeshReductionModule.GetMeshMergingInterface();
-					UE_LOG(LogMeshUtilities, Log, TEXT("Using %s for automatic mesh merging"), *ModuleNames[Index].ToString());
-				}
-			}
-		}
 
 
 		for (int32 Index = 0; Index < SwarmModuleNames.Num(); Index++)
@@ -8264,6 +8398,14 @@ void FMeshUtilities::StartupModule()
 
 void FMeshUtilities::ShutdownModule()
 {
+	static const FName PropertyEditorModuleName("PropertyEditor");
+	if(FModuleManager::Get().IsModuleLoaded(PropertyEditorModuleName))
+	{
+		FPropertyEditorModule& PropertyEditorModule = FModuleManager::Get().GetModuleChecked<FPropertyEditorModule>(PropertyEditorModuleName);
+
+		PropertyEditorModule.UnregisterCustomClassLayout("MeshSimplificationSettings");
+	}
+
 	RemoveLevelViewportMenuExtender();
 	RemoveAnimationBlueprintEditorToolbarExtender();
 	RemoveAnimationEditorToolbarExtender();

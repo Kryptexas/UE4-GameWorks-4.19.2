@@ -2158,7 +2158,7 @@ FLevelOfDetailSettingsLayout::FLevelOfDetailSettingsLayout( FStaticMeshEditor& I
 /** Returns true if automatic mesh reduction is available. */
 static bool IsAutoMeshReductionAvailable()
 {
-	static bool bAutoMeshReductionAvailable = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities").GetStaticMeshReductionInterface() != NULL;
+	bool bAutoMeshReductionAvailable = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities").GetStaticMeshReductionInterface() != NULL;
 	return bAutoMeshReductionAvailable;
 }
 

@@ -145,6 +145,15 @@ void UDeveloperSettings::ExportValuesToConsoleVariables(UProperty* PropertyThatC
 			{
 				CVar->Set(FloatProperty->GetPropertyValue_InContainer(this), ECVF_SetByProjectSetting);
 			}
+			else if(UStrProperty* StringProperty = Cast<UStrProperty>(PropertyThatChanged))
+			{
+				CVar->Set(*StringProperty->GetPropertyValue_InContainer(this), ECVF_SetByProjectSetting);
+			}
+			else if(UNameProperty* NameProperty = Cast<UNameProperty>(PropertyThatChanged))
+			{
+				CVar->Set(*NameProperty->GetPropertyValue_InContainer(this).ToString(), ECVF_SetByProjectSetting);
+			}
+
 		}
 		else
 		{
