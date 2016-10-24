@@ -583,8 +583,7 @@ void ULevelSequencePlayer::Update(const float DeltaSeconds)
 	if (bIsPlaying)
 	{
 		float PlayRate = bReversePlayback ? -PlaybackSettings.PlayRate : PlaybackSettings.PlayRate;
-		float Dilation = World.IsValid() ? World.Get()->GetWorldSettings()->MatineeTimeDilation : 1.f;
-		UpdateTimeCursorPosition(TimeCursorPosition + DeltaSeconds * PlayRate * Dilation);
+		UpdateTimeCursorPosition(TimeCursorPosition + DeltaSeconds * PlayRate);
 		UpdateMovieSceneInstance(TimeCursorPosition, LastCursorPosition);
 	}
 	else if (!bHasCleanedUpSequence && ShouldStopOrLoop(TimeCursorPosition))
