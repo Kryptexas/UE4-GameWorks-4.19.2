@@ -64,7 +64,7 @@ void FEngineAnalytics::Initialize()
 	bIsGameRun = !IsRunningCommandlet() && !FPlatformProperties::IsProgram() && FPlatformProperties::RequiresCookedData();
 #endif
 
-#if UE_BUILD_DEBUG
+#if UE_BUILD_DEBUG || (PLATFORM_XBOXONE && UE_BUILD_SHIPPING) // Can't allow analytics on packaged XB1 games, as per XRs (titles can opt back in on a case-by-case basis with Microsoft)
 	const bool bShouldInitAnalytics = false;
 #else
 	// Outside of the editor, the only engine analytics usage is the hardware survey
