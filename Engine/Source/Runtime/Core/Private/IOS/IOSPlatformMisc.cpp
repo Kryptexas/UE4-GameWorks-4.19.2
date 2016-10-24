@@ -885,7 +885,7 @@ void FIOSPlatformMisc::RegisterForRemoteNotifications()
 {
 #if !PLATFORM_TVOS
 	UIApplication* application = [UIApplication sharedApplication];
-	if ([application respondsToSelector : @selector(registerUserNotifcationSettings:)])
+	if ([application respondsToSelector : @selector(registerUserNotificationSettings:)])
 	{
 #ifdef __IPHONE_8_0
 		UIUserNotificationSettings * settings = [UIUserNotificationSettings settingsForTypes : (UIUserNotificationTypeBadge | UIUserNotificationTypeSound | UIUserNotificationTypeAlert) categories:nil];
