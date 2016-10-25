@@ -385,7 +385,7 @@ EPropertyDataValidationResult FPropertyNode::EnsureDataIsValid()
 
 			bool bArrayHasNewItem = false;
 
-			UProperty* ContainerElementProperty = nullptr;
+			UProperty* ContainerElementProperty = MyProperty;
 
 			if (ArrayProperty)
 			{
@@ -401,10 +401,6 @@ EPropertyDataValidationResult FPropertyNode::EnsureDataIsValid()
 				bValidateChildrenKeyNodes = DoesChildPropertyRequireValidation(MapProperty->KeyProp);
 
 				ContainerElementProperty = MapProperty->ValueProp;
-			}
-			else if(StructProperty)
-			{
-				ContainerElementProperty = StructProperty;
 			}
 
 			bValidateChildren = DoesChildPropertyRequireValidation(ContainerElementProperty);
