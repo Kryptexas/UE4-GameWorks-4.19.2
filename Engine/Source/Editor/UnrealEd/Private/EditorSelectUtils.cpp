@@ -616,8 +616,6 @@ void UUnrealEdEngine::SelectActor(AActor* Actor, bool bInSelected, bool bNotify,
 				}
 			}
 
-			//A fast path to mark selection rather than reconnecting ALL components for ALL actors that have changed state
-			SetActorSelectionFlags (Actor);
 
 			if( bNotify )
 			{
@@ -638,6 +636,9 @@ void UUnrealEdEngine::SelectActor(AActor* Actor, bool bInSelected, bool bNotify,
 				UpdateFloatingPropertyWindows(bForceRefresh);
 			}
 		}
+
+		//A fast path to mark selection rather than reconnecting ALL components for ALL actors that have changed state
+		SetActorSelectionFlags(Actor);
 	}
 }
 
