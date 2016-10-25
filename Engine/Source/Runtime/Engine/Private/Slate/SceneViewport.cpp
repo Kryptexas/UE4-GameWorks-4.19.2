@@ -1158,12 +1158,30 @@ void FSceneViewport::ResizeFrame(uint32 NewWindowSizeX, uint32 NewWindowSizeY, E
 				FDisplayMetrics DisplayMetrics;
 				FSlateApplication::Get().GetInitialDisplayMetrics(DisplayMetrics);
 
-				// todo: this assumes that all your displays have the same resolution as your primary display
-				// we need a way to query the display size for a rect (the work area size isn't the same thing), but for now we force the window to be on the primary display
-				NewWindowPos = FVector2D(DisplayMetrics.PrimaryDisplayWorkAreaRect.Left, DisplayMetrics.PrimaryDisplayWorkAreaRect.Top);
+				if (DisplayMetrics.MonitorInfo.Num() > 0)
+				{
+					// Try to find the monitor that the viewport belongs to based on BestWorkArea.
+					// For widowed fullscreen mode it should be top left position of one of monitors.
+					FPlatformRect DisplayRect = DisplayMetrics.MonitorInfo[0].DisplayRect;
+					for (int32 Index = 1; Index < DisplayMetrics.MonitorInfo.Num(); ++Index)
+					{
+						const FMonitorInfo& MonitorInfo = DisplayMetrics.MonitorInfo[Index];
+						if (BestWorkArea.GetTopLeft() == FVector2D(MonitorInfo.WorkArea.Left, MonitorInfo.WorkArea.Top))
+						{
+							DisplayRect = DisplayMetrics.MonitorInfo[Index].DisplayRect;
+						}
+					}
 
-				NewWindowSize.X = DisplayMetrics.PrimaryDisplayWidth;
-				NewWindowSize.Y = DisplayMetrics.PrimaryDisplayHeight;
+					NewWindowPos = FVector2D(DisplayRect.Left, DisplayRect.Top);
+					NewWindowSize.X = DisplayRect.Right - DisplayRect.Left;
+					NewWindowSize.Y = DisplayRect.Bottom - DisplayRect.Top;
+				}
+				else
+				{
+					NewWindowPos = FVector2D(0.0f, 0.0f);
+					NewWindowSize.X = DisplayMetrics.PrimaryDisplayWidth;
+					NewWindowSize.Y = DisplayMetrics.PrimaryDisplayHeight;
+				}
 			}
 
 			IHeadMountedDisplay::MonitorInfo MonitorInfo;

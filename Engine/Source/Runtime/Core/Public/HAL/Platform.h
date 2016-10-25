@@ -161,6 +161,13 @@
 #ifndef PLATFORM_USE_SYSTEM_VSWPRINTF
 	#define PLATFORM_USE_SYSTEM_VSWPRINTF		1
 #endif
+#ifndef PLATFORM_COMPILER_CLANG
+	#if defined(__clang__)
+		#define PLATFORM_COMPILER_CLANG			1
+	#else
+		#define PLATFORM_COMPILER_CLANG			0
+	#endif // defined(__clang__)
+#endif
 #ifndef PLATFORM_COMPILER_DISTINGUISHES_INT_AND_LONG
 	#define PLATFORM_COMPILER_DISTINGUISHES_INT_AND_LONG			0
 #endif

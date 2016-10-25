@@ -594,24 +594,27 @@ namespace AutomationTool
 		{
 			Platform Plat = GetPlatform(Target);
 			string PlatformExeExtension = Plat.GetPlatformExeExtension();
-			if (string.IsNullOrEmpty(PlatformExeExtension))
+			if (!string.IsNullOrEmpty(PlatformExeExtension))
 			{
-				switch (Target)
-				{
-					case UnrealTargetPlatform.Win32:
-					case UnrealTargetPlatform.Win64:
-					case UnrealTargetPlatform.XboxOne:
-						return ".exe";
-					case UnrealTargetPlatform.PS4:
-						return ".self";
-					case UnrealTargetPlatform.IOS:
-						return ".stub";
-					case UnrealTargetPlatform.Linux:
-						return "";
-					case UnrealTargetPlatform.HTML5:
-						return ".js";
-				}
+				return PlatformExeExtension;
 			}
+
+			switch (Target)
+			{
+				case UnrealTargetPlatform.Win32:
+				case UnrealTargetPlatform.Win64:
+				case UnrealTargetPlatform.XboxOne:
+					return ".exe";
+				case UnrealTargetPlatform.PS4:
+					return ".self";
+				case UnrealTargetPlatform.IOS:
+					return ".stub";
+				case UnrealTargetPlatform.Linux:
+					return "";
+				case UnrealTargetPlatform.HTML5:
+					return ".js";
+			}
+
 			return String.Empty;
 		}
 

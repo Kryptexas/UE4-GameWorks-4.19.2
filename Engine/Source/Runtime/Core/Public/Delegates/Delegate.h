@@ -272,7 +272,7 @@ class DynamicMulticastDelegateName : public TBaseDynamicMulticastDelegate<TWeakP
 
 
 
-#define ENABLE_STATIC_FUNCTION_FNAMES (defined(__clang__) && (__clang_major__ > 3 || (__clang_major__ == 3 && __clang_minor__ >= 5)))
+#define ENABLE_STATIC_FUNCTION_FNAMES (PLATFORM_COMPILER_CLANG && (__clang_major__ > 3 || (__clang_major__ == 3 && __clang_minor__ >= 5)))
 
 #if ENABLE_STATIC_FUNCTION_FNAMES
 

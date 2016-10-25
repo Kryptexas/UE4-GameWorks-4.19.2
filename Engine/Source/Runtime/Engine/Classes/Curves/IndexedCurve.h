@@ -19,6 +19,8 @@ public:
 	/** Default constructor. */
 	FIndexedCurve() { }
 
+	virtual ~FIndexedCurve() { }
+
 public:
 
 	/** Gets the index of a handle, checks if the key handle is valid first. */

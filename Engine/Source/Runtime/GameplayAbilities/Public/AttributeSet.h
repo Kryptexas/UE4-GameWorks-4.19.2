@@ -23,6 +23,9 @@ struct GAMEPLAYABILITIES_API FGameplayAttributeData
 		, CurrentValue(DefaultValue)
 	{}
 
+	virtual ~FGameplayAttributeData()
+	{}
+
 	float GetCurrentValue() const;
 	virtual void SetCurrentValue(float NewValue);
 

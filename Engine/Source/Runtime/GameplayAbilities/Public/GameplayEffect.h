@@ -1412,7 +1412,7 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 	typedef FActiveGameplayEffectIterator<FActiveGameplayEffect, FActiveGameplayEffectsContainer> Iterator;
 
 	FActiveGameplayEffectsContainer();
-	~FActiveGameplayEffectsContainer();
+	virtual ~FActiveGameplayEffectsContainer();
 
 	UAbilitySystemComponent* Owner;
 	bool OwnerIsNetAuthority;
@@ -1428,6 +1428,7 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 		float Magnitude;
 		int32 StackCount;
 	};
+
 #if ENABLE_VISUAL_LOG
 	// Stores a record of gameplay effects that have executed and their results. Useful for debugging.
 	TArray<DebugExecutedGameplayEffectData> DebugExecutedGameplayEffects;

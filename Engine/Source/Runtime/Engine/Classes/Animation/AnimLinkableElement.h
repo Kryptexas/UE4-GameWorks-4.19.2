@@ -48,6 +48,10 @@ struct FAnimLinkableElement
 	{
 	}
 
+	virtual ~FAnimLinkableElement()
+	{
+	}
+
 	/** Update the timing information for this element. Will not search for a new segment unless this element does not have one */
 	ENGINE_API void Update();
 

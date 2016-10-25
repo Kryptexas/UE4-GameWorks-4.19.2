@@ -304,6 +304,9 @@ struct FPlatformRect
 	int32 Top;
 	int32 Right;
 	int32 Bottom;
+
+	FPlatformRect() {}
+	FPlatformRect(int32 InLeft, int32 InTop, int32 InRight, int32 InBottom) : Left(InLeft), Top(InTop), Right(InRight), Bottom(InBottom) {}
 };
 
 
@@ -316,6 +319,8 @@ struct FMonitorInfo
 	FString ID;
 	int32 NativeWidth;
 	int32 NativeHeight;
+	FPlatformRect DisplayRect;
+	FPlatformRect WorkArea;
 	bool bIsPrimary;
 };
 

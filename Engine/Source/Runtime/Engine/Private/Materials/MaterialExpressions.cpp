@@ -7593,6 +7593,11 @@ UMaterialExpressionActorPositionWS::UMaterialExpressionActorPositionWS(const FOb
 #if WITH_EDITOR
 int32 UMaterialExpressionActorPositionWS::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
+	if (Material != nullptr && (Material->MaterialDomain != MD_Surface) && (Material->MaterialDomain != MD_DeferredDecal))
+	{
+		return CompilerError(Compiler, TEXT("Expression only available in the Surface and Deferred Decal material domains."));
+	}
+
 	return Compiler->ActorWorldPosition();
 }
 

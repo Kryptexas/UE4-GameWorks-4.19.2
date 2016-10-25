@@ -46,7 +46,10 @@ class USubDSurface;
 
 #endif // PLATFORM_WINDOWS
 
+// FBX casts null pointer to a reference
+THIRD_PARTY_INCLUDES_START
 #include <fbxsdk.h>
+THIRD_PARTY_INCLUDES_END
 
 #pragma pack(pop)
 

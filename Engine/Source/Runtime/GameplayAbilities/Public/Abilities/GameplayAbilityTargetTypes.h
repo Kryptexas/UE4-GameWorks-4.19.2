@@ -273,6 +273,8 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetingLocationInfo
 	{
 	};
 
+	virtual ~FGameplayAbilityTargetingLocationInfo() {};
+
 	void operator=(const FGameplayAbilityTargetingLocationInfo& Other)
 	{
 		LocationType = Other.LocationType;

@@ -537,6 +537,10 @@ struct FGameplayEffectContextHandle
 	{
 	}
 
+	virtual ~FGameplayEffectContextHandle()
+	{
+	}
+
 	/** Constructs from an existing context, should be allocated by new */
 	explicit FGameplayEffectContextHandle(FGameplayEffectContext* DataPtr)
 	{

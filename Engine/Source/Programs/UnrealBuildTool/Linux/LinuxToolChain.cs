@@ -949,7 +949,8 @@ namespace UnrealBuildTool
 
 			PostLinkAction.CommandArguments += ShellBinary + ExecuteSwitch + " \"" + FixDepsScript.AbsolutePath + "\" && ";
 
-			string Touch = bUseCmdExe ? "echo \"\" >> \"{0}\" && copy /b \"{0}\" +,," : "touch \"{0}\"";
+			// output file should not be empty or it will be rebuilt next time
+			string Touch = bUseCmdExe ? "echo \"Dummy\" >> \"{0}\" && copy /b \"{0}\" +,," : "echo \"Dummy\" >> \"{0}\"";
 
 			PostLinkAction.CommandArguments += String.Format(Touch, OutputFile.AbsolutePath);
 			PostLinkAction.CommandArguments += bUseCmdExe ? "\"" : "'";

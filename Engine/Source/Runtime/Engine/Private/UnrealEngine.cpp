@@ -7923,6 +7923,35 @@ float DrawMapWarnings(UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanv
 	}
 #endif
 
+	// ask any delegates for extra messages
+	if (FCoreDelegates::OnGetOnScreenMessages.IsBound())
+	{
+		FCoreDelegates::FSeverityMessageMap ExtraMessages;
+		FCoreDelegates::OnGetOnScreenMessages.Broadcast(ExtraMessages);
+
+		// draw them all!
+		for (auto It = ExtraMessages.CreateConstIterator(); It; ++It)
+		{
+			SmallTextItem.Text = It.Value();
+			switch (It.Key())
+			{
+				case FCoreDelegates::EOnScreenMessageSeverity::Info:
+					SmallTextItem.SetColor(FLinearColor::White);
+					break;
+				case FCoreDelegates::EOnScreenMessageSeverity::Warning:
+					SmallTextItem.SetColor(FLinearColor::Yellow);
+					break;
+				case FCoreDelegates::EOnScreenMessageSeverity::Error:
+					SmallTextItem.SetColor(FLinearColor::Red);
+					break;
+			}
+
+			Canvas->DrawItem(SmallTextItem, FVector2D(MessageX, MessageY));
+			MessageY += FontSizeY;
+		}
+	}
+
+
 	return MessageY;
 }
 

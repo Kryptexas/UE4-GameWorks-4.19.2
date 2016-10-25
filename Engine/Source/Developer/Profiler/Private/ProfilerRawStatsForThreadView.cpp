@@ -423,7 +423,7 @@ void FRawProfilerSession::ProcessStatPacketArray( const FStatPacketArray& StatPa
 				NewThreadID,
 				MetaData->GetStatByID( NewThreadID ).OwningGroup().ID(),
 				NewThreadID,
-				-1.0f, 1,
+				-1, 1,
 				FrameRootSampleIndex
 				);
 

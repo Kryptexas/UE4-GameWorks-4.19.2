@@ -275,6 +275,10 @@ struct FAnimNotifyEvent : public FAnimLinkableElement
 	{
 	}
 
+	virtual ~FAnimNotifyEvent()
+	{
+	}
+
 	/** Updates trigger offset based on a combination of predicted offset and current offset */
 	ENGINE_API void RefreshTriggerOffset(EAnimEventTriggerOffsets::Type PredictedOffsetType);
 

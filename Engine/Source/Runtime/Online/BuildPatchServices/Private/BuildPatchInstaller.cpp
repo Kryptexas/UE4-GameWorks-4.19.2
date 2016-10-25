@@ -461,7 +461,7 @@ bool FBuildPatchInstaller::RunInstallation(TArray<FString>& CorruptFiles)
 	// Make sure all the files won't exceed the maximum path length
 	for (const auto& FileToConstruct : FilesToConstruct)
 	{
-		if ((InstallStagingDir / FileToConstruct).Len() >= MAX_PATH)
+		if ((InstallStagingDir / FileToConstruct).Len() >= PLATFORM_MAX_FILEPATH_LENGTH)
 		{
 			GWarn->Logf(TEXT("BuildPatchServices: ERROR: Could not create new file due to exceeding maximum path length %s"), *(InstallStagingDir / FileToConstruct));
 			FBuildPatchInstallError::SetFatalError(EBuildPatchInstallError::PathLengthExceeded, PathLengthErrorCodes::StagingDirectory);

@@ -1408,61 +1408,52 @@ void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 		}
 	}
 
-	// loop over all monitors to determine which one is the best
+	OutDisplayMetrics.MonitorInfo.Empty();
+
+	// exit early if no displays connected
 	if (NumDisplays <= 0)
 	{
-		OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Left = 0;
-		OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top = 0;
-		OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Right = 0;
-		OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom = 0;
+		OutDisplayMetrics.PrimaryDisplayWorkAreaRect = FPlatformRect(0, 0, 0, 0);
 		OutDisplayMetrics.VirtualDisplayRect = OutDisplayMetrics.PrimaryDisplayWorkAreaRect;
 		OutDisplayMetrics.PrimaryDisplayWidth = 0;
 		OutDisplayMetrics.PrimaryDisplayHeight = 0;
 
 		return;
 	}
-	
-	OutDisplayMetrics.MonitorInfo.Empty();
-	
-	FMonitorInfo Primary;
-	SDL_Rect PrimaryBounds, PrimaryUsableBounds;
-	SDL_GetDisplayBounds(0, &PrimaryBounds);
-	SDL_GetDisplayUsableBounds(0, &PrimaryUsableBounds);
 
-	Primary.Name = UTF8_TO_TCHAR(SDL_GetDisplayName(0));
-	Primary.ID = TEXT("display0");
-	Primary.NativeWidth = PrimaryBounds.w;
-	Primary.NativeHeight = PrimaryBounds.h;
-	Primary.bIsPrimary = true;
-	OutDisplayMetrics.MonitorInfo.Add(Primary);
-
-	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Left = PrimaryUsableBounds.x;
-	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top = PrimaryUsableBounds.y;
-	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Right = PrimaryUsableBounds.x + PrimaryUsableBounds.w;
-	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom = PrimaryUsableBounds.y + PrimaryUsableBounds.h;
-
-	OutDisplayMetrics.PrimaryDisplayWidth = PrimaryBounds.w;
-	OutDisplayMetrics.PrimaryDisplayHeight = PrimaryBounds.h;
-
-	// accumulate the total bound rect
-	OutDisplayMetrics.VirtualDisplayRect = OutDisplayMetrics.PrimaryDisplayWorkAreaRect;
-	for (int DisplayIdx = 1; DisplayIdx < NumDisplays; ++DisplayIdx)
+	for (int32 DisplayIdx = 0; DisplayIdx < NumDisplays; ++DisplayIdx)
 	{
-		SDL_Rect DisplayBounds;
+		SDL_Rect DisplayBounds, UsableBounds;
 		FMonitorInfo Display;
 		SDL_GetDisplayBounds(DisplayIdx, &DisplayBounds);
-		
+		SDL_GetDisplayUsableBounds(DisplayIdx, &UsableBounds);
+
 		Display.Name = UTF8_TO_TCHAR(SDL_GetDisplayName(DisplayIdx));
 		Display.ID = FString::Printf(TEXT("display%d"), DisplayIdx);
 		Display.NativeWidth = DisplayBounds.w;
 		Display.NativeHeight = DisplayBounds.h;
-		Display.bIsPrimary = false;
+		Display.DisplayRect = FPlatformRect(DisplayBounds.x, DisplayBounds.y, DisplayBounds.x + DisplayBounds.w, DisplayBounds.y + DisplayBounds.h);
+		Display.WorkArea = FPlatformRect(UsableBounds.x, UsableBounds.y, UsableBounds.x + UsableBounds.w, UsableBounds.y + UsableBounds.h);
+		Display.bIsPrimary = DisplayIdx == 0;
 		OutDisplayMetrics.MonitorInfo.Add(Display);
-		
-		OutDisplayMetrics.VirtualDisplayRect.Left = FMath::Min(DisplayBounds.x, OutDisplayMetrics.VirtualDisplayRect.Left);
-		OutDisplayMetrics.VirtualDisplayRect.Right = FMath::Max(OutDisplayMetrics.VirtualDisplayRect.Right, DisplayBounds.x + DisplayBounds.w);
-		OutDisplayMetrics.VirtualDisplayRect.Top = FMath::Min(DisplayBounds.y, OutDisplayMetrics.VirtualDisplayRect.Top);
-		OutDisplayMetrics.VirtualDisplayRect.Bottom = FMath::Max(OutDisplayMetrics.VirtualDisplayRect.Bottom, DisplayBounds.y + DisplayBounds.h);
+
+		if (Display.bIsPrimary)
+		{
+			OutDisplayMetrics.PrimaryDisplayWorkAreaRect = FPlatformRect(UsableBounds.x, UsableBounds.y, UsableBounds.x + UsableBounds.w, UsableBounds.y + UsableBounds.h);
+
+			OutDisplayMetrics.PrimaryDisplayWidth = DisplayBounds.w;
+			OutDisplayMetrics.PrimaryDisplayHeight = DisplayBounds.h;
+
+			OutDisplayMetrics.VirtualDisplayRect = OutDisplayMetrics.PrimaryDisplayWorkAreaRect;
+		}
+		else
+		{
+			// accumulate the total bound rect
+			OutDisplayMetrics.VirtualDisplayRect.Left = FMath::Min(DisplayBounds.x, OutDisplayMetrics.VirtualDisplayRect.Left);
+			OutDisplayMetrics.VirtualDisplayRect.Right = FMath::Max(OutDisplayMetrics.VirtualDisplayRect.Right, DisplayBounds.x + DisplayBounds.w);
+			OutDisplayMetrics.VirtualDisplayRect.Top = FMath::Min(DisplayBounds.y, OutDisplayMetrics.VirtualDisplayRect.Top);
+			OutDisplayMetrics.VirtualDisplayRect.Bottom = FMath::Max(OutDisplayMetrics.VirtualDisplayRect.Bottom, DisplayBounds.y + DisplayBounds.h);
+		}
 	}
 
 	// Apply the debug safe zones

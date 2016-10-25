@@ -312,7 +312,7 @@ namespace UnrealBuildTool
 			{
 				return CompilerPath.Directory;
 			}
-			throw new BuildException("No 32-bit compiler toolchain found in {0} or {1}", CompilerPath);
+			throw new BuildException("No 32-bit compiler toolchain found in {0}", CompilerPath);
 		}
 
 		/// <summary>

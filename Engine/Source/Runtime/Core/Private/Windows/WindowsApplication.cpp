@@ -542,11 +542,36 @@ inline bool GetSizeForDevID(const FString& TargetDevID, int32& Width, int32& Hei
 	return bRes;
 }
 
+static BOOL CALLBACK MonitorEnumProc(HMONITOR Monitor, HDC MonitorDC, LPRECT Rect, LPARAM UserData)
+{
+	MONITORINFOEX MonitorInfoEx;
+	MonitorInfoEx.cbSize = sizeof(MonitorInfoEx);
+	GetMonitorInfo(Monitor, &MonitorInfoEx);
+
+	FMonitorInfo* Info = (FMonitorInfo*)UserData;
+	if (Info->Name == MonitorInfoEx.szDevice)
+	{
+		Info->DisplayRect.Bottom = MonitorInfoEx.rcMonitor.bottom;
+		Info->DisplayRect.Left = MonitorInfoEx.rcMonitor.left;
+		Info->DisplayRect.Right = MonitorInfoEx.rcMonitor.right;
+		Info->DisplayRect.Top = MonitorInfoEx.rcMonitor.top;
+
+		Info->WorkArea.Bottom = MonitorInfoEx.rcWork.bottom;
+		Info->WorkArea.Left = MonitorInfoEx.rcWork.left;
+		Info->WorkArea.Right = MonitorInfoEx.rcWork.right;
+		Info->WorkArea.Top = MonitorInfoEx.rcWork.top;
+
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 /**
  * Extract hardware information about connect monitors
  * @param OutMonitorInfo - Reference to an array for holding records about each detected monitor
  **/
-void GetMonitorInfo(TArray<FMonitorInfo>& OutMonitorInfo)
+static void GetMonitorsInfo(TArray<FMonitorInfo>& OutMonitorInfo)
 {
 	DISPLAY_DEVICE DisplayDevice;
 	DisplayDevice.cb = sizeof(DisplayDevice);
@@ -571,6 +596,9 @@ void GetMonitorInfo(TArray<FMonitorInfo>& OutMonitorInfo)
 					!(Monitor.StateFlags & DISPLAY_DEVICE_MIRRORING_DRIVER))
 				{
 					FMonitorInfo Info;
+
+					Info.Name = DisplayDevice.DeviceName;
+					EnumDisplayMonitors(nullptr, nullptr, MonitorEnumProc, (LPARAM)&Info);
 
 					Info.ID = FString::Printf(TEXT("%s"), Monitor.DeviceID);
 					Info.Name = Info.ID.Mid (8, Info.ID.Find (TEXT("\\"), ESearchCase::CaseSensitive, ESearchDir::FromStart, 9) - 8);
@@ -625,7 +653,7 @@ void FDisplayMetrics::GetDisplayMetrics(struct FDisplayMetrics& OutDisplayMetric
 	OutDisplayMetrics.VirtualDisplayRect.Bottom = OutDisplayMetrics.VirtualDisplayRect.Top + ::GetSystemMetrics( SM_CYVIRTUALSCREEN );
 
 	// Get connected monitor information
-	GetMonitorInfo(OutDisplayMetrics.MonitorInfo);
+	GetMonitorsInfo(OutDisplayMetrics.MonitorInfo);
 
 	// Apply the debug safe zones
 	OutDisplayMetrics.ApplyDefaultSafeZones();

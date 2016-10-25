@@ -45,6 +45,11 @@ void FProjectDescriptor::UpdateSupportedTargetPlatforms(const FName& InPlatformN
 	}
 }
 
+static bool IsRootedPath(const FString& Path)
+{
+	return Path[0] == TEXT('\\') || Path[0] == TEXT('/') || Path[1] == TEXT(':');
+}
+
 bool FProjectDescriptor::Load(const FString& FileName, FText& OutFailReason)
 {
 	// Read the file to a string
@@ -64,14 +69,11 @@ bool FProjectDescriptor::Load(const FString& FileName, FText& OutFailReason)
 		return false;
 	}
 
-	// Store the path to this project descriptor for path relative paths
-	PathToProject = FPaths::GetPath(FileName);
-
 	// Parse it as a project descriptor
-	return Read(*Object.Get(), OutFailReason);
+	return Read(*Object.Get(), FPaths::GetPath(FileName), OutFailReason);
 }
 
-bool FProjectDescriptor::Read(const FJsonObject& Object, FText& OutFailReason)
+bool FProjectDescriptor::Read(const FJsonObject& Object, const FString& PathToProject, FText& OutFailReason)
 {
 	// Read the file version
 	int32 FileVersionInt32;
@@ -120,7 +122,15 @@ bool FProjectDescriptor::Read(const FJsonObject& Object, FText& OutFailReason)
 			FString AdditionalDir;
 			if ((*AdditionalPluginDirectoriesValue)[Idx]->TryGetString(AdditionalDir))
 			{
-				AddPluginDirectory(AdditionalDir);
+				if (IsRootedPath(AdditionalDir))
+				{
+					AddPluginDirectory(AdditionalDir);
+				}
+				else
+				{
+					// This is path relative to the project, so convert to absolute
+					AddPluginDirectory(IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*(PathToProject / AdditionalDir)));
+				}
 			}
 		}
 	}
@@ -154,7 +164,7 @@ bool FProjectDescriptor::Save(const FString& FileName, FText& OutFailReason)
 	// Write the contents of the descriptor to a string. Make sure the writer is destroyed so that the contents are flushed to the string.
 	FString Text;
 	TSharedRef< TJsonWriter<> > Writer = TJsonWriterFactory<>::Create(&Text);
-	Write(Writer.Get());
+	Write(Writer.Get(), FPaths::GetPath(FileName));
 	Writer->Close();
 
 	// Save it to a file
@@ -169,7 +179,7 @@ bool FProjectDescriptor::Save(const FString& FileName, FText& OutFailReason)
 	}
 }
 
-void FProjectDescriptor::Write(TJsonWriter<>& Writer) const
+void FProjectDescriptor::Write(TJsonWriter<>& Writer, const FString& PathToProject) const
 {
 	Writer.WriteObjectStart();
 
@@ -191,17 +201,8 @@ void FProjectDescriptor::Write(TJsonWriter<>& Writer) const
 		Writer.WriteArrayStart(TEXT("AdditionalPluginDirectories"));
 		for (const FString& Dir : AdditionalPluginDirectories)
 		{
-			// Strip off the project path so that it's back to being a relative path
-			if (Dir.StartsWith(PathToProject))
-			{
-				FString NewPath = Dir.Right(Dir.Len() - PathToProject.Len());
-				Writer.WriteValue(NewPath);
-			}
-			else
-			{
-				// Absolute path so write out with no changes
-				Writer.WriteValue(Dir);
-			}
+			// Convert to relative path if possible before writing it out
+			Writer.WriteValue(MakePathRelativeToProject(Dir, PathToProject));
 		}
 		Writer.WriteArrayEnd();
 	}
@@ -242,9 +243,14 @@ FString FProjectDescriptor::GetExtension()
 	return ProjectExtension;
 }
 
-static bool IsRootedPath(const FString& Path)
+/** @return the path relative to this project if possible */
+const FString FProjectDescriptor::MakePathRelativeToProject(const FString& Dir, const FString& PathToProject) const
 {
-	return Path[0] == TEXT('\\') || Path[0] == TEXT('/') || Path[1] == TEXT(':');
+	FString ProjectDir = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*(PathToProject / TEXT("")));
+	FPaths::MakePlatformFilename(ProjectDir);
+	FString ModifiedDir(Dir);
+	FPaths::MakePathRelativeTo(ModifiedDir, *ProjectDir);
+	return ModifiedDir;
 }
 
 void FProjectDescriptor::AddPluginDirectory(const FString& AdditionalDir)
@@ -252,55 +258,16 @@ void FProjectDescriptor::AddPluginDirectory(const FString& AdditionalDir)
 	check(!AdditionalDir.StartsWith(IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*FPaths::GamePluginsDir())));
 	check(!AdditionalDir.StartsWith(IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*FPaths::EnginePluginsDir())));
 
-	FString ModifiedDir(AdditionalDir);
-	if (IsRootedPath(ModifiedDir))
-	{
-		// Try to turn this into a relative path if possible
-		FString ProjectDir = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*PathToProject);
-		FPaths::MakePlatformFilename(ProjectDir);
-		FPaths::MakePathRelativeTo(ModifiedDir, *ProjectDir);
-	}
-	if (IsRootedPath(ModifiedDir))
-	{
-		// If this is still a rooted directory, just add to the list
-		AdditionalPluginDirectories.AddUnique(ModifiedDir);
-	}
-	else
-	{
-		// Make a directory that is relative to the project
-		AdditionalPluginDirectories.AddUnique(PathToProject / ModifiedDir);
-	}
+	// Detect calls where the path is not absolute
+	check(IsRootedPath(AdditionalDir));
+	AdditionalPluginDirectories.AddUnique(AdditionalDir);
 }
 
 void FProjectDescriptor::RemovePluginDirectory(const FString& Dir)
 {
-	if (IsRootedPath(Dir))
-	{
-		// If this is a rooted directory, just add to the list
-		AdditionalPluginDirectories.RemoveSingle(Dir);
-	}
-	else
-	{
-		// Make a directory that is relative to the project
-		AdditionalPluginDirectories.RemoveSingle(PathToProject / Dir);
-	}
-}
-
-const TArray<FString> FProjectDescriptor::GetRawAdditionalPluginDirectories() const
-{
-	TArray<FString> RawDirs;
-	for (const FString& Dir : AdditionalPluginDirectories)
-	{
-		if (Dir.StartsWith(PathToProject))
-		{
-			RawDirs.Add(Dir.Right(Dir.Len() - PathToProject.Len()));
-		}
-		else
-		{
-			RawDirs.Add(Dir);
-		}
-	}
-	return RawDirs;
+	// Detect calls where the path is not absolute
+	check(IsRootedPath(Dir));
+	AdditionalPluginDirectories.RemoveSingle(Dir);
 }
 
 #undef LOCTEXT_NAMESPACE

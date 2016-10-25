@@ -98,3 +98,4 @@ FCoreDelegates::FApplicationReceivedOnScreenOrientationChangedNotificationDelega
 FCoreDelegates::FConfigReadyForUse FCoreDelegates::ConfigReadyForUse;
 
 FSimpleMulticastDelegate FCoreDelegates::OnOutOfMemory;
+FCoreDelegates::FGetOnScreenMessagesDelegate FCoreDelegates::OnGetOnScreenMessages;

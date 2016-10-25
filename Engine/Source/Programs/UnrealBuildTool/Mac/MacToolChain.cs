@@ -40,7 +40,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Minimum version of Mac OS X to actually run on, running on earlier versions will display the system minimum version error dialog & exit.
 		/// </summary>
-		public static string MinMacOSVersion = "10.10.5";
+		public static string MinMacOSVersion = "10.11.6";
 
 		/// <summary>
 		/// Which developer directory to root from? If this is "xcode-select", UBT will query for the currently selected Xcode

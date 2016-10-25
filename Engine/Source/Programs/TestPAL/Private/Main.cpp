@@ -4,6 +4,7 @@
 
 #include "TestDirectoryWatcher.h"
 #include "RequiredProgramMainCPPInclude.h"
+#include "MallocPoisonProxy.h"
 
 DEFINE_LOG_CATEGORY(LogTestPAL);
 
@@ -20,6 +21,7 @@ IMPLEMENT_APPLICATION(TestPAL, "TestPAL");
 #define ARG_STRINGPRECISION_TEST			"stringprecision"
 #define ARG_DSO_TEST						"dso"
 #define ARG_OFFSCREEN_GL_TEST				"offscreen-gl"
+#define ARG_GET_ALLOCATION_SIZE_TEST		"getallocationsize"
 
 namespace TestPAL
 {
@@ -426,6 +428,112 @@ int32 OffscreenGLTest(const TCHAR* CommandLine)
 
 
 /**
+ * FMalloc::GetAllocationSize() test
+ */
+int32 GetAllocationSizeTest(const TCHAR* CommandLine)
+{
+	FPlatformMisc::SetCrashHandler(NULL);
+	FPlatformMisc::SetGracefulTerminationHandler();
+
+	GEngineLoop.PreInit(CommandLine);
+	UE_LOG(LogTestPAL, Display, TEXT("Running GMalloc->GetAllocationSize() test."));
+
+	struct Allocation
+	{
+		void *		Memory;
+		SIZE_T		RequestedSize;
+		SIZE_T		Alignment;
+		SIZE_T		ActualSize;
+	};
+
+	TArray<Allocation> Allocs;
+	SIZE_T TotalMemoryRequested = 0, TotalMemoryAllocated = 0;
+
+	// force proxy malloc
+	FMalloc* OldGMalloc = GMalloc;
+	GMalloc = new FMallocPoisonProxy(GMalloc);
+
+	// allocate all the memory and initialize with 0
+	for (uint32 Size = 16; Size < 4096; Size += 16)
+	{
+		for (SIZE_T AlignmentPower = 4; AlignmentPower <= 7; ++AlignmentPower)
+		{
+			SIZE_T Alignment = (1 << AlignmentPower);
+
+			Allocation New;
+			New.RequestedSize = Size;
+			New.Alignment = Alignment;
+			New.Memory = GMalloc->Malloc(New.RequestedSize, New.Alignment);
+			if (!GMalloc->GetAllocationSize(New.Memory, New.ActualSize))
+			{
+				UE_LOG(LogTestPAL, Fatal, TEXT("Could not get allocation size for %p"), New.Memory);
+			}
+			FMemory::Memzero(New.Memory, New.RequestedSize);
+
+			TotalMemoryRequested += New.RequestedSize;
+			TotalMemoryAllocated += New.ActualSize;
+
+			Allocs.Add(New);
+		}
+	}
+
+	UE_LOG(LogTestPAL, Log, TEXT("Allocated %llu memory (%llu requested) in %d chunks"), TotalMemoryAllocated, TotalMemoryRequested, Allocs.Num());
+
+	if (FParse::Param(CommandLine, TEXT("realloc")))
+	{
+		for (Allocation & Alloc : Allocs)
+		{
+			// resize
+			Alloc.RequestedSize += 16;
+			Alloc.Memory = GMalloc->Realloc(Alloc.Memory, Alloc.RequestedSize, Alloc.Alignment);
+			FMemory::Memzero(Alloc.Memory, Alloc.RequestedSize);
+		}
+	}
+	else
+	{
+		for (Allocation & Alloc : Allocs)
+		{
+			// only fill the difference, if any
+			if (Alloc.ActualSize > Alloc.RequestedSize)
+			{
+				SIZE_T Difference = Alloc.ActualSize - Alloc.RequestedSize;
+				FMemory::Memset((void *)((SIZE_T)Alloc.Memory + Alloc.RequestedSize), 0xAA, Difference);
+			}
+		}
+	}
+
+	// check if any alloc got stomped
+	for (Allocation & Alloc : Allocs)
+	{
+		for (SIZE_T Idx = 0; Idx < Alloc.RequestedSize; ++Idx)
+		{
+			if (((const uint8 *)Alloc.Memory)[Idx] != 0)
+			{
+				UE_LOG(LogTestPAL, Fatal, TEXT("Allocation at %p (offset %llu) got stomped with 0x%x"),
+					Alloc.Memory, Idx, ((const uint8 *)Alloc.Memory)[Idx]
+					);
+			}
+		}
+	}
+
+	UE_LOG(LogTestPAL, Log, TEXT("No memory stomping detected"));
+
+	for (Allocation & Alloc : Allocs)
+	{
+		GMalloc->Free(Alloc.Memory);
+	}
+	GMalloc = OldGMalloc;
+
+	Allocs.Empty();
+
+	FEngineLoop::AppPreExit();
+	FEngineLoop::AppExit();
+	return 0;
+}
+
+
+
+/**
  * Selects and runs one of test cases.
  *
  * @param ArgC Number of commandline arguments.
@@ -480,6 +588,10 @@ int32 MultiplexedMain(int32 ArgC, char* ArgV[])
 		{
 			return OffscreenGLTest(*TestPAL::CommandLine);
 		}
+		else if (!FCStringAnsi::Strcmp(ArgV[IdxArg], ARG_GET_ALLOCATION_SIZE_TEST))
+		{
+			return GetAllocationSizeTest(*TestPAL::CommandLine);
+		}
 	}
 
 	FPlatformMisc::SetCrashHandler(NULL);
@@ -500,6 +612,7 @@ int32 MultiplexedMain(int32 ArgC, char* ArgV[])
 	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test passing %%*s in a format string"), ANSI_TO_TCHAR( ARG_STRINGPRECISION_TEST ));
 	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test APIs for dealing with dynamic libraries"), ANSI_TO_TCHAR( ARG_DSO_TEST ));
 	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test rendering GL offscreen"), UTF8_TO_TCHAR(ARG_OFFSCREEN_GL_TEST));
+	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test GMalloc->GetAllocationSize()"), UTF8_TO_TCHAR(ARG_GET_ALLOCATION_SIZE_TEST));
 	UE_LOG(LogTestPAL, Warning, TEXT(""));
 	UE_LOG(LogTestPAL, Warning, TEXT("Pass one of those to run an appropriate test."));
 

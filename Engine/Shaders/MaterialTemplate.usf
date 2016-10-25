@@ -433,7 +433,7 @@ float4 GetScreenPosition(FMaterialPixelParameters Parameters)
 	{
 		return DecalToWorld[3].xyz;
 	}
-#else
+#elif HAS_PRIMITIVE_UNIFORM_BUFFER
 	float3 GetActorWorldPosition()
 	{
 		return Primitive.ActorWorldPosition;

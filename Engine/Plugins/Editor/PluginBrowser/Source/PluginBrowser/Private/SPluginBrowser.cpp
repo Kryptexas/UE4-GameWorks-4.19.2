@@ -9,7 +9,6 @@
 #include "PluginBrowserModule.h"
 #include "DirectoryWatcherModule.h"
 #include "IProjectManager.h"
-#include "GameProjectGenerationModule.h"
 
 #define LOCTEXT_NAMESPACE "PluginsEditor"
 
@@ -161,13 +160,7 @@ void SPluginBrowser::Construct( const FArguments& Args )
 		]
 	];
 
-	// Don't create new plugin button in content only projects as they won't compile
-	const FProjectDescriptor* CurrentProject = IProjectManager::Get().GetCurrentProject();
-	bool bIsContentOnlyProject = CurrentProject == nullptr || CurrentProject->Modules.Num() == 0 || !FGameProjectGenerationModule::Get().ProjectHasCodeFiles();
-
-	const FText NewPluginTooltip = bIsContentOnlyProject ?
-		LOCTEXT("NewPluginDisabled", "To be able to add a new plugin, first convert the project to a code project by adding at least one C++ class.") :
-		LOCTEXT("NewPluginEnabled", "Click here to open the Plugin Creator dialog.");
+	const FText NewPluginTooltip = LOCTEXT("NewPluginEnabled", "Click here to open the Plugin Creator dialog.");
 
 	MainContent->AddSlot()
 	.AutoHeight()
@@ -176,7 +169,7 @@ void SPluginBrowser::Construct( const FArguments& Args )
 	[
 		SNew(SButton)
 		.ContentPadding(5)
-		.IsEnabled(!bIsContentOnlyProject)
+		.IsEnabled(true)
 		.ToolTip(SNew(SToolTip).Text(NewPluginTooltip))
 		.TextStyle(FEditorStyle::Get(), "LargeText")
 		.ButtonStyle(FEditorStyle::Get(), "FlatButton.Success")

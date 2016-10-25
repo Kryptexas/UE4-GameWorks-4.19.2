@@ -95,6 +95,7 @@
     <Compile Include="DoubleBufferedPanel.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="ElfSymbolParser.cs" />
     <Compile Include="ExclusiveListViewParser.cs" />
     <Compile Include="FilterTagsDialog.cs">
       <SubType>Form</SubType>
@@ -177,6 +178,13 @@
     <When Condition="Exists('PS4\PS4SymbolParser.cs')">
       <ItemGroup>
         <Compile Include="PS4\PS4SymbolParser.cs" />
+      </ItemGroup>
+    </When>
+  </Choose>
+  <Choose>
+    <When Condition="Exists('WolfPlat\WolfSymbolParser.cs')">
+      <ItemGroup>
+        <Compile Include="WolfPlat\WolfSymbolParser.cs" />
       </ItemGroup>
     </When>
   </Choose>

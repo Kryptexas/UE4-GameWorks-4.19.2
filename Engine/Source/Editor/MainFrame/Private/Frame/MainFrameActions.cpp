@@ -302,7 +302,7 @@ FString GetCookingOptionalParams()
 	
 	if (PackagingSettings->bSkipEditorContent)
 	{
-		OptionalParams += TEXT(" -SKIPEDITORCONTENT");
+		OptionalParams += TEXT(" -SkipCookingEditorContent");
 	}
 	return OptionalParams;
 }

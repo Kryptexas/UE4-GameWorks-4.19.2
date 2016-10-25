@@ -2621,7 +2621,7 @@ void FOpenGLDynamicRHI::RHIDrawPrimitive(uint32 PrimitiveType,uint32 BaseVertexI
 	CommitNonComputeShaderConstants();
 	CachedBindElementArrayBuffer(ContextState,0);
 	uint32 VertexCount = GetVertexCountForPrimitiveCount(NumPrimitives,PrimitiveType);
-	SetupVertexArrays(ContextState, BaseVertexIndex, PendingState.Streams, VertexCount, NUM_OPENGL_VERTEX_STREAMS);
+	SetupVertexArrays(ContextState, BaseVertexIndex, PendingState.Streams, NUM_OPENGL_VERTEX_STREAMS, VertexCount);
 
 	GLenum DrawMode = GL_TRIANGLES;
 	GLsizei NumElements = 0;

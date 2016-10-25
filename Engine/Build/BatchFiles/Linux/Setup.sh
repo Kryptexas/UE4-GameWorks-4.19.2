@@ -74,6 +74,22 @@ if [ -e /etc/os-release ]; then
        mono-devel
        clang-3.8
        "
+    else # assume the latest, this is going to be a moving target
+     DEPS="mono-xbuild \
+       mono-dmcs \
+       libmono-microsoft-build-tasks-v4.0-4.0-cil \
+       libmono-system-data-datasetextensions4.0-cil
+       libmono-system-web-extensions4.0-cil
+       libmono-system-management4.0-cil
+       libmono-system-xml-linq4.0-cil
+       libmono-corlib4.5-cil
+       libmono-windowsbase4.0-cil
+       libmono-system-io-compression4.0-cil
+       libmono-system-io-compression-filesystem4.0-cil
+       libmono-system-runtime4.0-cil
+       mono-devel
+       clang-3.9
+       "
     fi
 
     # these tools are only needed to build third-party software which is prebuilt for Ubuntu.

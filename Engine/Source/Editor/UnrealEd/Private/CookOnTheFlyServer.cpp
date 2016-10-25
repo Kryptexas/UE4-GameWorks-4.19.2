@@ -531,19 +531,6 @@ const FString& GetAssetRegistryPath()
 	return AssetRegistryPath;
 }
 
-const FString GetStatsFilename(const FString& ResponseFilename)
-{
-	if (ResponseFilename.Len())
-	{
-		return ResponseFilename + TEXT("Stats.csv");
-	}
-	else
-	{
-		static FString StatsPath = FPaths::GameSavedDir() / FString::Printf(TEXT("Stats/%sStats.csv"), *FDateTime::Now().ToString());
-		return StatsPath;
-	}
-}
-
 FString GetChildCookerResultFilename(const FString& ResponseFilename)
 {
 	FString Result = ResponseFilename + TEXT("Result.txt");
@@ -1354,26 +1341,6 @@ void UCookOnTheFlyServer::CleanUpChildCookers()
 {
 	if (IsCookByTheBookMode())
 	{
-		check(!IsChildCooker());
-		const FString MasterCookerStatsFilename = GetStatsFilename(CookByTheBookOptions->ChildCookFilename);
-
-		FString AllStats;
-		if (FFileHelper::LoadFileToString(AllStats, *MasterCookerStatsFilename))
-		{
-			for (auto& ChildCooker : CookByTheBookOptions->ChildCookers)
-			{
-				check(ChildCooker.bFinished == true);
-				const FString ChildCookerStatsFilename = GetStatsFilename(ChildCooker.ResponseFileName);
-
-				FString ChildStats;
-				if (FFileHelper::LoadFileToString(ChildStats, *ChildCookerStatsFilename))
-				{
-					AllStats += ChildStats;
-				}
-			}
-			ensure(FFileHelper::SaveStringToFile(AllStats, *MasterCookerStatsFilename));
-		}
-
 		for (auto& ChildCooker : CookByTheBookOptions->ChildCookers)
 		{
 			check(ChildCooker.bFinished == true);
@@ -2211,22 +2178,26 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 						CookedPackages.Add(FileRequest);
 
 						if ((CurrentCookMode == ECookMode::CookOnTheFly) && (I >= FirstUnsolicitedPackage))
-					{
-						// this is an unsolicited package
-						if ((FPaths::FileExists(FileRequest.GetFilename().ToString()) == true) &&
-							(bWasUpToDate == false))
 						{
+							// this is an unsolicited package
+							if ((FPaths::FileExists(FileRequest.GetFilename().ToString()) == true) &&
+								(bWasUpToDate == false))
+							{
 							UnsolicitedCookedPackages.AddCookedPackage( FileRequest );
 #if DEBUG_COOKONTHEFLY
-							UE_LOG(LogCook, Display, TEXT("UnsolicitedCookedPackages: %s"), *FileRequest.GetFilename().ToString());
+								UE_LOG(LogCook, Display, TEXT("UnsolicitedCookedPackages: %s"), *FileRequest.GetFilename().ToString());
 #endif
+							}
 						}
 					}
-				}
 					else
 					{
 						UncookedEditorOnlyPackages.AddUnique(Package->GetFName());
 					}
+				}
+				else
+				{
+					check( bSucceededSavePackage == false );
 				}
 			}
 		}
@@ -3047,6 +3018,17 @@ void UCookOnTheFlyServer::Initialize( ECookMode::Type DesiredCookMode, ECookInit
 	GConfig->GetInt(TEXT("CookSettings"), TEXT("MinFreeMemory"), MinFreeMemoryInMB, GEditorIni);
 	MinFreeMemoryInMB = FMath::Max(MinFreeMemoryInMB, 0);
 	MinFreeMemory = MinFreeMemoryInMB * 1024LL * 1024LL;
+
+	// check the amount of OS memory and use that number minus the reserved memory nubmer
+	int32 MinReservedMemoryInMB = 0;
+	GConfig->GetInt(TEXT("CookSettings"), TEXT("MinReservedMemory"), MinReservedMemoryInMB, GEditorIni);
+	MinReservedMemoryInMB = FMath::Max(MinReservedMemoryInMB, 0);
+	int64 MinReservedMemory = MinReservedMemoryInMB * 1024LL * 1024LL;
+	if ( MinReservedMemory )
+	{
+		int64 TotalRam = FPlatformMemory::GetPhysicalGBRam() * 1024LL * 1024LL * 1024LL;
+		MaxMemoryAllowance = FMath::Min<int64>( MaxMemoryAllowance, TotalRam - MinReservedMemory );
+	}
 
 	MaxNumPackagesBeforePartialGC = 400;
 	GConfig->GetInt(TEXT("CookSettings"), TEXT("MaxNumPackagesBeforePartialGC"), MaxNumPackagesBeforePartialGC, GEditorIni);

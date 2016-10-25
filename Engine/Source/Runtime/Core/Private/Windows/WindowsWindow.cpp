@@ -311,9 +311,10 @@ HRGN FWindowsWindow::MakeWindowRegionObject() const
 	HRGN Region;
 	if ( RegionWidth != INDEX_NONE && RegionHeight != INDEX_NONE )
 	{
+		const bool bIsBorderlessGameWindow = GetDefinition().Type == EWindowType::GameWindow && !GetDefinition().HasOSWindowBorder;
 		if (IsMaximized())
 		{
-			if (GetDefinition().Type == EWindowType::GameWindow && !GetDefinition().HasOSWindowBorder)
+			if (bIsBorderlessGameWindow)
 			{
 				// Windows caches the cxWindowBorders size at window creation. Even if borders are removed or resized Windows will continue to use this value when evaluating regions
 				// and sizing windows. When maximized this means that our window position will be offset from the screen origin by (-cxWindowBorders,-cxWindowBorders). We want to
@@ -333,7 +334,7 @@ HRGN FWindowsWindow::MakeWindowRegionObject() const
 		}
 		else
 		{
-			const bool bUseCornerRadius  = WindowMode == EWindowMode::Windowed &&
+			const bool bUseCornerRadius  = WindowMode == EWindowMode::Windowed && !bIsBorderlessGameWindow &&
 #if ALPHA_BLENDED_WINDOWS
 				// Corner radii cause DWM window composition blending to fail, so we always set regions to full size rectangles
 				Definition->TransparencySupport != EWindowTransparency::PerPixel &&
@@ -342,8 +343,6 @@ HRGN FWindowsWindow::MakeWindowRegionObject() const
 
 			if( bUseCornerRadius )
 			{
-				// @todo mac: Corner radius not applied on Mac platform yet
-
 				// CreateRoundRectRgn gives you a duff region that's 1 pixel smaller than you ask for. CreateRectRgn behaves correctly.
 				// This can be verified by uncommenting the assert below
 				Region = CreateRoundRectRgn( 0, 0, RegionWidth+1, RegionHeight+1, Definition->CornerRadius, Definition->CornerRadius );

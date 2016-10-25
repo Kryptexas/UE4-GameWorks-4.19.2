@@ -23,4 +23,6 @@ struct FMovieSceneKeyStruct
 	 * @param ChangeEvent The property change event.
 	 */
 	virtual void PropagateChanges(const FPropertyChangedEvent& ChangeEvent) { };
+
+	virtual ~FMovieSceneKeyStruct() {};
 };

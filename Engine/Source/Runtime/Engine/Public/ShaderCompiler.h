@@ -13,7 +13,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogShaderCompilers, Log, All);
 class FShaderCompileJob;
 class FShaderPipelineCompileJob;
 
-#define DEBUG_INFINITESHADERCOMPILE 0
+#define DEBUG_INFINITESHADERCOMPILE 1
 
 
 /** Stores all of the common information used to compile a shader or pipeline. */
@@ -437,7 +437,7 @@ public:
 	 */
 	bool HasShaderJobs() const
 	{
-		return ShaderMapJobs.Num() > 0;
+		return ShaderMapJobs.Num() > 0 || PendingFinalizeShaderMaps.Num();
 	}
 
 	/** 

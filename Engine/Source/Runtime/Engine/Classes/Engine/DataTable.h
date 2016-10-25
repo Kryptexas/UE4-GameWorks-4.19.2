@@ -25,6 +25,7 @@ struct FTableRowBase
 	GENERATED_USTRUCT_BODY()
 
 	FTableRowBase() { }
+	virtual ~FTableRowBase() { }
 
 	/** 
 	 * Can be overridden by subclasses; Called whenever the owning data table is imported or re-imported.
