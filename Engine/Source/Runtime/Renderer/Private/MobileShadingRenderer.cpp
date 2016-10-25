@@ -16,6 +16,7 @@
 #include "PostProcessCompositeEditorPrimitives.h"
 #include "PostProcessHMD.h"
 #include "IHeadMountedDisplay.h"
+#include "SceneViewExtension.h"
 #include "ScreenRendering.h"
 
 uint32 GetShadowQuality();
@@ -107,6 +108,15 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	// Find the visible primitives.
 	InitViews(RHICmdList);
+
+	for (int32 ViewExt = 0; ViewExt < ViewFamily.ViewExtensions.Num(); ++ViewExt)
+	{
+		ViewFamily.ViewExtensions[ViewExt]->PostInitViewFamily_RenderThread(RHICmdList, ViewFamily);
+		for (int32 ViewIndex = 0; ViewIndex < ViewFamily.Views.Num(); ++ViewIndex)
+		{
+			ViewFamily.ViewExtensions[ViewExt]->PostInitView_RenderThread(RHICmdList, Views[ViewIndex]);
+		}
+	}
 
 	if (GRHIThread)
 	{

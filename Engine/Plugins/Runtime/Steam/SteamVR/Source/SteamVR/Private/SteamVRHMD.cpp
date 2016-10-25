@@ -1200,6 +1200,10 @@ void FSteamVRHMD::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHI
 	ApplyLateUpdate(ViewFamily.Scene, OldRelativeTransform, NewRelativeTransform);
 }
 
+void FSteamVRHMD::PostInitViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily) {}
+
+void FSteamVRHMD::PostInitView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) {}
+
 void FSteamVRHMD::UpdateViewport(bool bUseSeparateRenderTarget, const FViewport& InViewport, SViewport* ViewportWidget)
 {
 	check(IsInGameThread());
