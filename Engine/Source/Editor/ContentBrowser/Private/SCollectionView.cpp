@@ -1426,9 +1426,6 @@ bool SCollectionView::IsCollectionNameReadOnly() const
 
 bool SCollectionView::CollectionNameChangeCommit( const TSharedPtr< FCollectionItem >& CollectionItem, const FString& NewName, bool bChangeConfirmed, FText& OutWarningMessage )
 {
-	// There should only ever be one item selected when renaming
-	check(CollectionTreePtr->GetNumItemsSelected() == 1);
-
 	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 
 	// If new name is empty, set it back to the original name
