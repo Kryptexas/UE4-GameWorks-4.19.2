@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 #include "Engine/CoreSettings.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogCoreSettings, Log, All);
 
 int32 GUseBackgroundLevelStreaming = 1;
 float GAsyncLoadingTimeLimit = 5.0f;
@@ -89,8 +90,20 @@ void UStreamingSettings::PostInitProperties()
 #if WITH_EDITOR
 void UStreamingSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
+	static FName NAME_EventDrivenLoaderEnabled(TEXT("EventDrivenLoaderEnabled"));
+
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
+	if (Cast<UBoolProperty>(PropertyChangedEvent.Property) && PropertyChangedEvent.Property->GetFName() == NAME_EventDrivenLoaderEnabled)
+	{
+		if (FApp::IsEngineInstalled())
+		{
+			UBoolProperty* EventDrivenLoaderEnabledProperty = CastChecked<UBoolProperty>(PropertyChangedEvent.Property);
+			EventDrivenLoaderEnabledProperty->SetPropertyValue_InContainer(this, false);
+			UE_LOG(LogCoreSettings, Warning, TEXT("Event Driven Loader can only be enabled in source code distributions."))
+		}
+	}
+	
 	if (PropertyChangedEvent.Property)
 	{
 		ExportValuesToConsoleVariables(PropertyChangedEvent.Property);
