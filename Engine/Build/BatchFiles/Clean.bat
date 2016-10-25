@@ -23,6 +23,8 @@ rem ## Change the CWD to /Engine/Source.  We always need to run UnrealBuildTool 
 pushd "%~dp0..\..\Source"
 if not exist ..\Build\BatchFiles\Clean.bat goto Error_BatchFileInWrongLocation
 
+rem ## If this is an installed build, we don't need to rebuild UBT. Go straight to cleaning.
+if exist ..\Build\InstalledBuild.txt goto ReadyToClean
 
 rem ## Check to see if we're already running under a Visual Studio environment shell
 if not "%INCLUDE%" == "" if not "%LIB%" == "" goto ReadyToCompile
