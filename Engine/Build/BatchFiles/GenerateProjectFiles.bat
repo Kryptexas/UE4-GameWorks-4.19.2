@@ -47,9 +47,9 @@ call GetVSComnToolsPath 15
 popd
 
 if "%VsComnToolsPath%" == "" goto NoVisualStudio2017Environment
-rem ## Check if the C++ toolchain is not installed
-if not exist "%VsComnToolsPath%/../IDE/VC/bin/x86_amd64/vcvarsx86_amd64.bat" goto NoVisualStudio2017Environment
-call "%VsComnToolsPath%/../IDE/VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
+rem ## Check if MSBuild is installed as part of VS2017
+if not exist "%VsComnToolsPath%\..\..\MSBuild\15.0\bin\MSBuild.exe" goto NoVisualStudio2017Environment
+set MSBUILD_EXE="%VsComnToolsPath%\..\..\MSBuild\15.0\bin\MSBuild.exe"
 goto ReadyToCompile
 
 :NoVisualStudio2017Environment
