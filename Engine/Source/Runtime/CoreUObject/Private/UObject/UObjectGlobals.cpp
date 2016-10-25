@@ -1880,6 +1880,7 @@ FObjectDuplicationParameters::FObjectDuplicationParameters( UObject* InSourceObj
 , ApplyFlags(RF_NoFlags)
 , ApplyInternalFlags(EInternalObjectFlags::None)
 , PortFlags(PPF_None)
+, DuplicateMode(EDuplicateMode::Normal)
 , DestClass(NULL)
 , CreatedObjects(NULL)
 {
@@ -1891,7 +1892,7 @@ FObjectDuplicationParameters::FObjectDuplicationParameters( UObject* InSourceObj
 }
 
 
-UObject* StaticDuplicateObject(UObject const* SourceObject, UObject* DestOuter, const FName DestName, EObjectFlags FlagMask, UClass* DestClass, EDuplicateForPie DuplicateForPIE, EInternalObjectFlags InternalFlagsMask)
+UObject* StaticDuplicateObject(UObject const* SourceObject, UObject* DestOuter, const FName DestName, EObjectFlags FlagMask, UClass* DestClass, EDuplicateMode::Type DuplicateMode, EInternalObjectFlags InternalFlagsMask)
 {
 	if (!IsAsyncLoading() && !IsLoading() && SourceObject->HasAnyFlags(RF_ClassDefaultObject))
 	{
@@ -1924,7 +1925,9 @@ UObject* StaticDuplicateObject(UObject const* SourceObject, UObject* DestOuter, 
 	}
 	Parameters.FlagMask = FlagMask;
 	Parameters.InternalFlagMask = InternalFlagsMask;
-	if( DuplicateForPIE == SDO_DuplicateForPie)
+	Parameters.DuplicateMode = DuplicateMode;
+
+	if( DuplicateMode == EDuplicateMode::PIE)
 	{
 		Parameters.PortFlags = PPF_DuplicateForPIE;
 	}
@@ -2071,7 +2074,7 @@ UObject* StaticDuplicateObjectEx( FObjectDuplicationParameters& Parameters )
 			// Any PIE duplicated object that has the standalone flag is a potential garbage collection issue
 			ensure(!(bDuplicateForPIE && DupObjectInfo.DuplicatedObject->HasAnyFlags(RF_Standalone)));
 
-			DupObjectInfo.DuplicatedObject->PostDuplicate(bDuplicateForPIE);
+			DupObjectInfo.DuplicatedObject->PostDuplicate(Parameters.DuplicateMode);
 			if ( !DupObjectInfo.DuplicatedObject->IsTemplate() )
 			{
 				// Don't want to call PostLoad on class duplicated CDOs

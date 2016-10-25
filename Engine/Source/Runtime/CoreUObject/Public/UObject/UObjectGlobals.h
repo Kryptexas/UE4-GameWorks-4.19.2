@@ -46,6 +46,18 @@ typedef void (UObject::*Native)( FFrame& TheStack, RESULT_DECL );
 /** set while in SavePackage() to detect certain operations that are illegal while saving */
 extern COREUOBJECT_API bool					GIsSavingPackage;
 
+namespace EDuplicateMode
+{
+	enum Type
+	{
+		Normal,
+		// Object is being duplicated as part of a world duplication
+		World,
+		// Object is being duplicated as part of a world duplication for PIE
+		PIE
+	};
+};
+
 /*-----------------------------------------------------------------------------
 	FObjectDuplicationParameters.
 -----------------------------------------------------------------------------*/
@@ -99,6 +111,8 @@ struct FObjectDuplicationParameters
 	 * Any PortFlags to be applied when serializing.
 	 */
 	uint32			PortFlags;
+
+	EDuplicateMode::Type DuplicateMode;
 
 	/**
 	 * optional class to specify for the destination object.
@@ -261,12 +275,7 @@ COREUOBJECT_API UObject* StaticConstructObject( UClass* Class, UObject* InOuter=
  *
  * @note: this version is deprecated in favor of StaticDuplicateObjectEx
  */
-enum EDuplicateForPie
-{
-	SDO_No_DuplicateForPie,
-	SDO_DuplicateForPie,
-};
-COREUOBJECT_API UObject* StaticDuplicateObject(UObject const* SourceObject, UObject* DestOuter, const FName DestName = NAME_None, EObjectFlags FlagMask = RF_AllFlags, UClass* DestClass = nullptr, EDuplicateForPie DuplicateForPIE = SDO_No_DuplicateForPie, EInternalObjectFlags InternalFlagsMask = EInternalObjectFlags::AllFlags);
+COREUOBJECT_API UObject* StaticDuplicateObject(UObject const* SourceObject, UObject* DestOuter, const FName DestName = NAME_None, EObjectFlags FlagMask = RF_AllFlags, UClass* DestClass = nullptr, EDuplicateMode::Type DuplicateMode = EDuplicateMode::Normal, EInternalObjectFlags InternalFlagsMask = EInternalObjectFlags::AllFlags);
 COREUOBJECT_API UObject* StaticDuplicateObjectEx( struct FObjectDuplicationParameters& Parameters );
 
 /**

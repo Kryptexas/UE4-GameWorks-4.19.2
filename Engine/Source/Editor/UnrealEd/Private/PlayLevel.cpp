@@ -3770,7 +3770,7 @@ UWorld* UEditorEngine::CreatePIEWorldByDuplication(FWorldContext &WorldContext, 
 			InWorld->GetFName(),	// Name for new object
 			RF_AllFlags,			// FlagMask
 			NULL,					// DestClass
-			SDO_DuplicateForPie		// bDuplicateForPIE
+			EDuplicateMode::PIE
 			) );
 
 		FStringAssetReference::ClearPackageNamesBeingDuplicatedForPIE();
