@@ -201,6 +201,8 @@ public:
 
 	ENGINE_API void InvalidateStaticLighting(UWorld* World);
 
+	ENGINE_API bool IsLegacyBuildData() const;
+
 private:
 
 	ENGINE_API void EmptyData();

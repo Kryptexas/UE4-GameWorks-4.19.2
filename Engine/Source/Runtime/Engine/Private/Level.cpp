@@ -1697,24 +1697,20 @@ void ULevel::RouteActorInitialize()
 	}
 }
 
-UMapBuildDataRegistry* ULevel::CreateMapBuildDataRegistry() const
+UPackage* ULevel::CreateMapBuildDataPackage() const
 {
 	FString PackageName = GetOutermost()->GetName() + TEXT("_BuiltData");
 	UPackage* BuiltDataPackage = CreatePackage(NULL, *PackageName);
-
 	// PKG_ContainsMapData required so FEditorFileUtils::GetDirtyContentPackages can treat this as a map package
 	BuiltDataPackage->SetPackageFlags(PKG_ContainsMapData);
-	FName ShortPackageName = FPackageName::GetShortFName(*PackageName);
-	// Top level UObjects have to have both RF_Standalone and RF_Public to be saved into packages
-	UMapBuildDataRegistry* NewMapBuildData = NewObject<UMapBuildDataRegistry>(BuiltDataPackage, ShortPackageName, RF_Standalone | RF_Public);
-	return NewMapBuildData;
+	return BuiltDataPackage;
 }
 
 UMapBuildDataRegistry* ULevel::GetOrCreateMapBuildData()
 {
 	if (!MapBuildData 
 		// If MapBuildData is in the level package we need to create a new one, see CreateRegistryForLegacyMap
-		|| MapBuildData->GetOutermost() == GetOutermost()
+		|| MapBuildData->IsLegacyBuildData()
 		|| !MapBuildData->HasAllFlags(RF_Public | RF_Standalone))
 	{
 		if (MapBuildData)
@@ -1723,7 +1719,11 @@ UMapBuildDataRegistry* ULevel::GetOrCreateMapBuildData()
 			MapBuildData->ClearFlags(RF_Standalone);
 		}
 
-		MapBuildData = CreateMapBuildDataRegistry();
+		UPackage* BuiltDataPackage = CreateMapBuildDataPackage();
+
+		FName ShortPackageName = FPackageName::GetShortFName(BuiltDataPackage->GetFName());
+		// Top level UObjects have to have both RF_Standalone and RF_Public to be saved into packages
+		MapBuildData = NewObject<UMapBuildDataRegistry>(BuiltDataPackage, ShortPackageName, RF_Standalone | RF_Public);
 		MarkPackageDirty();
 	}
 

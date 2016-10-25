@@ -744,8 +744,7 @@ public:
 	 */
 	ENGINE_API void ResetNavList();
 
-	/** Creates a new UMapBuildDataRegistry and its package for use by this level. */
-	ENGINE_API UMapBuildDataRegistry* CreateMapBuildDataRegistry() const;
+	ENGINE_API UPackage* CreateMapBuildDataPackage() const;
 
 	ENGINE_API UMapBuildDataRegistry* GetOrCreateMapBuildData();
 

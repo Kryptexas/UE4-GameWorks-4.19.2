@@ -538,6 +538,12 @@ static bool SaveWorld(UWorld* World,
 			SaveErrors.Flush();
 		}
 
+		if (bSuccess)
+		{
+			// Also save MapBuildData packages when saving the current level
+			FEditorFileUtils::SaveMapDataPackages(DuplicatedWorld ? DuplicatedWorld : World, bCheckDirty);
+		}
+
 		SlowTask.EnterProgressFrame(25);
 
 		// If the package save was not successful. Trash the duplicated world or rename back if the duplicate failed.
@@ -2857,6 +2863,32 @@ static bool InternalSavePackages(TArray<UPackage*>& PackagesToSave, int32 NumPac
 	return bReturnCode;
 }
 
+void FEditorFileUtils::SaveMapDataPackages(UWorld* WorldToSave, bool bCheckDirty)
+{
+	TArray<UPackage*> PackagesToSave;
+	ULevel* Level = WorldToSave->PersistentLevel;
+	UPackage* WorldPackage = WorldToSave->GetOutermost();
+
+	if (!WorldPackage->HasAnyPackageFlags(PKG_PlayInEditor)
+		&& !WorldPackage->HasAnyFlags(RF_Transient))
+	{
+		if (Level->MapBuildData)
+		{
+			UPackage* BuiltDataPackage = Level->MapBuildData->GetOutermost();
+
+			if (BuiltDataPackage != WorldPackage)
+			{
+				PackagesToSave.Add(BuiltDataPackage);
+			}
+		}
+	}
+			
+	if (PackagesToSave.Num() > 0)
+	{
+		FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, bCheckDirty, false, nullptr, false, false);
+	}
+}
+
 /**
  * Saves the specified level.  SaveAs is performed as necessary.
  *
@@ -2912,29 +2944,6 @@ bool FEditorFileUtils::SaveLevel(ULevel* Level, const FString& DefaultFilename, 
 			if (bLevelWasSaved && OutSavedFilename)
 			{
 				*OutSavedFilename = FinalFilename;
-			}
-
-			// Also save MapBuildData packages when saving the current level
-			TArray<UPackage*> PackagesToSave;
-			UPackage* WorldPackage = WorldToSave->GetOutermost();
-
-			if (!WorldPackage->HasAnyPackageFlags(PKG_PlayInEditor)
-				&& !WorldPackage->HasAnyFlags(RF_Transient))
-			{
-				if (Level->MapBuildData)
-				{
-					UPackage* BuiltDataPackage = Level->MapBuildData->GetOutermost();
-
-					if (BuiltDataPackage != WorldPackage)
-					{
-						PackagesToSave.Add(BuiltDataPackage);
-					}
-				}
-			}
-			
-			if (PackagesToSave.Num() > 0)
-			{
-				InternalSavePackages(PackagesToSave, PackagesToSave.Num(), false, false, false, false, NULL);
 			}
 		}
 	}
