@@ -32,6 +32,7 @@ void SSessionBrowser::Construct( const FArguments& InArgs, ISessionManagerRef In
 {
 	IgnoreSessionManagerEvents = false;
 	updatingTreeExpansion = false;
+	bCanSetDefaultSelection = true;
 	SessionManager = InSessionManager;
 
 	ChildSlot
@@ -94,9 +95,9 @@ void SSessionBrowser::Construct( const FArguments& InArgs, ISessionManagerRef In
 	SessionManager->OnSelectedSessionChanged().AddSP(this, &SSessionBrowser::HandleSessionManagerSelectedSessionChanged);
 	SessionManager->OnSessionsUpdated().AddSP(this, &SSessionBrowser::HandleSessionManagerSessionsUpdated);
 
-	SessionTreeView->SetSingleExpandedItem(AppGroupItem);
-
 	ReloadSessions();
+
+	SessionTreeView->SetSingleExpandedItem(AppGroupItem);
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
@@ -198,8 +199,9 @@ void SSessionBrowser::FilterSessions()
 	// refresh tree view
 	SessionTreeView->RequestTreeRefresh();
 
-	if ( SessionTreeView->GetNumItemsSelected() == 0 && ThisAppInstance.IsValid() )
+	if ( bCanSetDefaultSelection && SessionTreeView->GetNumItemsSelected() == 0 && ThisAppInstance.IsValid() )
 	{
+		bCanSetDefaultSelection = false;
 		SessionTreeView->SetItemSelection(ThisAppInstance.Pin(), true, ESelectInfo::Direct);
 	}
 }

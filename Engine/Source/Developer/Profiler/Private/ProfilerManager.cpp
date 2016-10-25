@@ -478,6 +478,8 @@ void FProfilerManager::SessionManager_OnInstanceSelectionChanged(const TSharedPt
 				ProfilerWindowPtr->ManageEventGraphTab( ActiveInstanceID, true, ProfilerSession->GetName() );
 			}			
 		}
+
+		RequestFilterAndPresetsUpdateEvent.Broadcast();
 	}
 
 	SessionInstancesUpdatedEvent.Broadcast();
