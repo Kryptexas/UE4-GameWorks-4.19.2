@@ -5966,7 +5966,7 @@ bool IsEventDrivenLoaderEnabledInCookedBuilds()
 {
 #if WITH_EDITORONLY_DATA
 	check(GConfig); // Otherwise there's no way we have the correct value of GEventDrivenLoaderEnabled
-	return !!GEventDrivenLoaderEnabled;
+	return !!GEventDrivenLoaderEnabled && !FApp::IsEngineInstalled();
 #elif USE_EVENT_DRIVEN_ASYNC_LOAD
 	return true;
 #else

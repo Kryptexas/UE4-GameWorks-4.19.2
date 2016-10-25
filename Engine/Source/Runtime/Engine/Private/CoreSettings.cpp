@@ -83,6 +83,12 @@ void UStreamingSettings::PostInitProperties()
 	if (IsTemplate())
 	{
 		ImportConsoleVariableValues();
+
+		// EDL can only be enabled in source code builds
+		if (FApp::IsEngineInstalled())
+		{
+			EventDrivenLoaderEnabled = false;
+		}
 	}
 #endif // #if WITH_EDITOR
 }
