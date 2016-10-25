@@ -27,6 +27,14 @@ public class BootstrapPackagedGameTarget : TargetRules
 			);
 	}
 
+	public override bool GetSupportedConfigurations(ref List<UnrealTargetConfiguration> OutConfigurations, bool bIncludeTestAndShippingConfigs)
+	{
+		OutConfigurations.Add(UnrealTargetConfiguration.Debug);
+		OutConfigurations.Add(UnrealTargetConfiguration.Development);
+		OutConfigurations.Add(UnrealTargetConfiguration.Shipping);
+		return true;
+	}
+
 	public override bool ShouldCompileMonolithic(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
 	{
 		return true;
