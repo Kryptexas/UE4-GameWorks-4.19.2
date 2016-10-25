@@ -113,7 +113,10 @@ void PxClothSimpleTetherCookerImpl::createTetherData(const PxClothMeshDesc &desc
 			float sqrDist = (reinterpret_cast<const PxVec3&>(
 				particles[*aIt]) - position).magnitudeSquared();
 			if(minSqrDist > sqrDist)
-				minSqrDist = sqrDist, minIndex = *aIt;
+			{
+				minSqrDist = sqrDist;
+				minIndex = *aIt;
+			}
 		}
 
 		mTetherAnchors.pushBack(minIndex);

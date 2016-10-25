@@ -129,7 +129,10 @@ static PxU32 findAdjacent(const PxVec3* triVertices, const PxVec3* triNormals, c
 
 		PxReal c = plane.n.dot(triNormals[edgeTri.triId]);
 		if (c>bestCos)
-			bestCos = c, result = edgeTri.triId;
+		{
+			bestCos = c;
+			result = edgeTri.triId;
+		}
 
 	}
 

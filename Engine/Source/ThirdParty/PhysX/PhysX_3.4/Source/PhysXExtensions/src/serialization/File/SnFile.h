@@ -68,7 +68,12 @@ namespace sn
 PX_INLINE PxI32 fopen_s(FILE** file, const char* name, const char* mode)
 {
 	FILE* fp = ::fopen(name, mode);
-	return fp ? *file = fp, PxI32(0) : -1;
+	if(fp)
+	{
+		*file = fp;
+		return PxI32(0);
+	}
+	return -1;
 }
 } // namespace sn
 } // namespace physx

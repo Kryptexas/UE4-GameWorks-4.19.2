@@ -65,16 +65,20 @@ void radixSort(const uint32_t* first, const uint32_t* last, uint16_t* out)
 	for(uint32_t i = 0; i < 256; ++i)
 	{
 		uint16_t temp0 = uint16_t(histograms[0][i] + sums[0]);
-		histograms[0][i] = sums[0], sums[0] = temp0;
+		histograms[0][i] = sums[0];
+		sums[0] = temp0;
 
 		uint16_t temp1 = uint16_t(histograms[1][i] + sums[1]);
-		histograms[1][i] = sums[1], sums[1] = temp1;
+		histograms[1][i] = sums[1];
+		sums[1] = temp1;
 
 		uint16_t temp2 = uint16_t(histograms[2][i] + sums[2]);
-		histograms[2][i] = sums[2], sums[2] = temp2;
+		histograms[2][i] = sums[2];
+		sums[2] = temp2;
 
 		uint16_t temp3 = uint16_t(histograms[3][i] + sums[3]);
-		histograms[3][i] = sums[3], sums[3] = temp3;
+		histograms[3][i] = sums[3];
+		sums[3] = temp3;
 	}
 
 	PX_ASSERT(sums[0] == n && sums[1] == n && sums[2] == n && sums[3] == n);
@@ -90,14 +94,23 @@ void radixSort(const uint32_t* first, const uint32_t* last, uint16_t* out)
 	for(uint16_t i = 0; i != n; ++i)
 		indices[1][histograms[0][0xff & first[i]]++] = i;
 
-	for(uint16_t i = 0, index; index = indices[1][i], i != n; ++i)
+	for(uint16_t i = 0, index; i != n; ++i)
+	{
+		index = indices[1][i];
 		indices[0][histograms[1][0xff & (first[index] >> 8)]++] = index;
+	}
 
-	for(uint16_t i = 0, index; index = indices[0][i], i != n; ++i)
+	for(uint16_t i = 0, index; i != n; ++i)
+	{
+		index = indices[0][i];
 		indices[1][histograms[2][0xff & (first[index] >> 16)]++] = index;
+	}
 
-	for(uint16_t i = 0, index; index = indices[1][i], i != n; ++i)
+	for(uint16_t i = 0, index; i != n; ++i)
+	{
+		index = indices[1][i];
 		indices[0][histograms[3][first[index] >> 24]++] = index;
+	}
 }
 
 template <typename Simd4f>

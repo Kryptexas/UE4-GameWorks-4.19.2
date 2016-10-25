@@ -444,8 +444,14 @@ class Array : protected Alloc
 		}
 		else
 		{
-			for(T* it = mData + i; it->~T(), ++i < mSize; ++it)
+			T* it = mData + i++;
+			it->~T();
+			do
+			{								
 				new (it) T(mData[i]);
+				++it;
+				it->~T();
+			} while(++i < mSize);
 		}
 
 		--mSize;
