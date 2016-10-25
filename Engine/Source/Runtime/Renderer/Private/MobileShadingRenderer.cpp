@@ -311,7 +311,8 @@ void FMobileSceneRenderer::BasicPostProcess(FRHICommandListImmediate& RHICmdList
 		FRenderingCompositePass* Node = NULL;
 		const EHMDDeviceType::Type DeviceType = GEngine->HMDDevice->GetHMDDeviceType();
 		if (DeviceType == EHMDDeviceType::DT_ES2GenericStereoMesh ||
-			DeviceType == EHMDDeviceType::DT_OculusRift) // PC Preview
+			DeviceType == EHMDDeviceType::DT_OculusRift ||
+			DeviceType == EHMDDeviceType::DT_GoogleVR) // PC Preview
 		{
 			Node = Context.Graph.RegisterPass(new FRCPassPostProcessHMD());
 		}

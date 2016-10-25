@@ -32,17 +32,12 @@ void FAppEventManager::Tick()
 	
 	while (!Queue.IsEmpty())
 	{
-		bool bDestroyWindow = false;
-
 		FAppEventData Event = DequeueAppEvent();
 
 		switch (Event.State)
 		{
 		case APP_EVENT_STATE_WINDOW_CREATED:
-			check(FirstInitialized);
 			bCreateWindow = true;
-			PendingWindow = (ANativeWindow*)Event.Data;
-
 			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("APP_EVENT_STATE_WINDOW_CREATED, %d, %d, %d"), int(bRunning), int(bHaveWindow), int(bHaveGame));
 			break;
 		
@@ -59,18 +54,8 @@ void FAppEventManager::Tick()
 			bSaveState = true; //todo android: handle save state.
 			break;
 		case APP_EVENT_STATE_WINDOW_DESTROYED:
-			if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected())
-			{
-				// delay the destruction until after the renderer teardown on GearVR
-				bDestroyWindow = true;
-			}
-			else
-			{
-				FAndroidAppEntry::DestroyWindow();
-				FPlatformMisc::SetHardwareWindow(NULL);
-			}
-
 			bHaveWindow = false;
+			bCreateWindow = false;
 			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("APP_EVENT_STATE_WINDOW_DESTROYED, %d, %d, %d"), int(bRunning), int(bHaveWindow), int(bHaveGame));
 			break;
 		case APP_EVENT_STATE_ON_START:
@@ -86,7 +71,6 @@ void FAppEventManager::Tick()
 				FTaskGraphInterface::Get().WaitUntilTaskCompletes(WillTerminateTask);
 			}
 			GIsRequestingExit = true; //destroy immediately. Game will shutdown.
-			FirstInitialized = false;
 			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("APP_EVENT_STATE_ON_DESTROY"));
 			break;
 		case APP_EVENT_STATE_ON_STOP:
@@ -174,22 +158,13 @@ void FAppEventManager::Tick()
 			bRunning = false;
 			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Execution has been paused..."));
 		}
-
-		if (bDestroyWindow)
-		{
-			FAndroidAppEntry::DestroyWindow();
-			FPlatformMisc::SetHardwareWindow(NULL);
-			bDestroyWindow = false;
-
-			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FAndroidAppEntry::DestroyWindow() called"));
-		}
 	}
 
 	if (EmptyQueueHandlerEvent)
 	{
 		EmptyQueueHandlerEvent->Trigger();
 	}
-	if (!bRunning && FirstInitialized)
+	if (!bRunning && FPlatformMisc::GetHardwareWindow() != NULL)
 	{
 		EventHandlerEvent->Wait();
 	}
@@ -211,7 +186,6 @@ FAppEventManager::FAppEventManager():
 	,bWindowInFocus(true)
 	,bSaveState(false)
 	,bAudioPaused(false)
-	,PendingWindow(NULL)
 	,bHaveWindow(false)
 	,bHaveGame(false)
 	,bRunning(false)
@@ -223,9 +197,20 @@ FAppEventManager::FAppEventManager():
 
 void FAppEventManager::HandleWindowCreated(void* InWindow)
 {
+	// We must ALWAYS set the hardware window immediately,
+	// Otherwise we will temporarily end up with an abandoned Window
+	// when the application is pausing/resuming. This is likely
+	// to happen in a Gvr app due to the DON flow pushing an activity
+	// during initialization.
+
 	int rc = pthread_mutex_lock(&MainMutex);
 	check(rc == 0);
-	bool AlreadyInited = FirstInitialized;
+
+	// If we already have a window, destroy it
+	ExecDestroyWindow();
+
+	FPlatformMisc::SetHardwareWindow(InWindow);
+
 	rc = pthread_mutex_unlock(&MainMutex);
 	check(rc == 0);
 
@@ -233,26 +218,26 @@ void FAppEventManager::HandleWindowCreated(void* InWindow)
 	// Window could be deleted by OS while event queue stuck at game start-up phase
 	FAndroidWindow::AcquireWindowRef((ANativeWindow*)InWindow);
 
-	if(AlreadyInited)
-	{
-		EnqueueAppEvent(APP_EVENT_STATE_WINDOW_CREATED, InWindow );
-	}
-	else
-	{
-		//This cannot wait until first tick. 
+	EnqueueAppEvent(APP_EVENT_STATE_WINDOW_CREATED, InWindow);
+}
 
-		rc = pthread_mutex_lock(&MainMutex);
-		check(rc == 0);
-		
-		check(FPlatformMisc::GetHardwareWindow() == NULL);
-		FPlatformMisc::SetHardwareWindow(InWindow);
-		FirstInitialized = true;
+void FAppEventManager::HandleWindowClosed()
+{
+	// We must ALWAYS destroy the hardware window immediately,
+	// Otherwise we will temporarily end up with an abandoned Window
+	// when the application is pausing/resuming. This is likely
+	// to happen in a Gvr app due to the DON flow pushing an activity
+	// during initialization.
 
-		rc = pthread_mutex_unlock(&MainMutex);
-		check(rc == 0);
+	int rc = pthread_mutex_lock(&MainMutex);
+	check(rc == 0);
 
-		EnqueueAppEvent(APP_EVENT_STATE_WINDOW_CREATED, InWindow );
-	}
+	ExecDestroyWindow();
+
+	rc = pthread_mutex_unlock(&MainMutex);
+	check(rc == 0);
+
+	EnqueueAppEvent(APP_EVENT_STATE_WINDOW_DESTROYED, NULL);
 }
 
 
@@ -301,9 +286,6 @@ void FAppEventManager::ResumeRendering()
 void FAppEventManager::ExecWindowCreated()
 {
 	UE_LOG(LogAndroidEvents, Display, TEXT("ExecWindowCreated"));
-	check(PendingWindow)
-
-	FPlatformMisc::SetHardwareWindow(PendingWindow);
 	
 	// When application launched while device is in sleep mode SystemResolution could be set to opposite orientation values
 	// Force to update SystemResolution to current values whenever we create a new window
@@ -311,11 +293,6 @@ void FAppEventManager::ExecWindowCreated()
 	FSystemResolution::RequestResolutionChange(ScreenRect.Right, ScreenRect.Bottom, EWindowMode::Fullscreen);
 	
 	FAndroidAppEntry::ReInitWindow();
-	
-	// We hold this reference to ensure that window will not be deleted while game starting up
-	// release it when window is finally initialized
-	FAndroidWindow::ReleaseWindowRef(PendingWindow);
-	PendingWindow = nullptr;
 
 	FAndroidApplication::OnWindowSizeChanged();
 }
@@ -329,6 +306,17 @@ void FAppEventManager::ExecWindowResized()
 	FAndroidWindow::InvalidateCachedScreenRect();
 	FAndroidAppEntry::ReInitWindow();
 	FAndroidApplication::OnWindowSizeChanged();
+}
+
+void FAppEventManager::ExecDestroyWindow()
+{
+	if (FPlatformMisc::GetHardwareWindow() != NULL)
+	{
+		FAndroidWindow::ReleaseWindowRef((ANativeWindow*)FPlatformMisc::GetHardwareWindow());
+
+		FAndroidAppEntry::DestroyWindow();
+		FPlatformMisc::SetHardwareWindow(NULL);
+	}
 }
 
 void FAppEventManager::PauseAudio()

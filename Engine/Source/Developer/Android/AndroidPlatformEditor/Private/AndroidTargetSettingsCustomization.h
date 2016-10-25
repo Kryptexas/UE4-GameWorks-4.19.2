@@ -25,6 +25,7 @@ private:
 	void BuildAppManifestSection(IDetailLayoutBuilder& DetailLayout);
 	void BuildIconSection(IDetailLayoutBuilder& DetailLayout);
 	void BuildLaunchImageSection(IDetailLayoutBuilder& DetailLayout);
+	void BuildDaydreamAppTileImageSection(IDetailLayoutBuilder& DetailLayout);
 
 	// Navigates to the build files in the explorer or finder
 	FReply OpenBuildFolder();
@@ -55,6 +56,7 @@ private:
 
 	TArray<struct FPlatformIconInfo> IconNames;
 	TArray<struct FPlatformIconInfo> LaunchImageNames;
+	TArray<struct FPlatformIconInfo> DaydreamAppTileImageNames;
 
 	// Is the manifest writable?
 	TAttribute<bool> SetupForPlatformAttribute;

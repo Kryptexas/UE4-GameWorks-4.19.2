@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -304,12 +304,14 @@ public class AndroidPlatform : Platform
     private string[] GenerateInstallBatchFile(bool bPackageDataInsideApk, string PackageName, string ApkName, ProjectParams Params, string ObbName, string DeviceObbName, bool bNoObbInstall, bool bIsPC)
     {
         string[] BatchLines = null;
-        
+        string ReadPermissionGrantCommand = "shell pm grant " + PackageName + " android.permission.READ_EXTERNAL_STORAGE";
+        string WritePermissionGrantCommand = "shell pm grant " + PackageName + " android.permission.WRITE_EXTERNAL_STORAGE";
+
         if (!bIsPC)
         {
             string OBBInstallCommand = bNoObbInstall ? "shell 'rm -r $EXTERNAL_STORAGE/" + DeviceObbName + "'" : "push " + Path.GetFileName(ObbName) + " $STORAGE/" + DeviceObbName;
 
-			Log("Writing shell script for install with {0}", bPackageDataInsideApk ? "data in APK" : "separate obb");
+            Log("Writing shell script for install with {0}", bPackageDataInsideApk ? "data in APK" : "separate obb");
             BatchLines = new string[] {
 						"#!/bin/sh",
 						"cd \"`dirname \"$0\"`\"",
@@ -324,7 +326,11 @@ public class AndroidPlatform : Platform
 						"echo Installing existing application. Failures here indicate a problem with the device \\(connection or storage permissions\\) and are fatal.",
 						"$ADB $DEVICE install " + Path.GetFileName(ApkName),
 						"if [ $? -eq 0 ]; then",
-						"\techo",
+                        "\techo",
+                        bPackageDataInsideApk ? "" : "\techo Grant READ_EXTERNAL_STORAGE and WRITE_EXTERNAL_STORAGE to the apk for reading OBB file.",
+                        bPackageDataInsideApk ? "" : "\t$ADB $DEVICE " + ReadPermissionGrantCommand,
+                        bPackageDataInsideApk ? "" : "\t$ADB $DEVICE " + WritePermissionGrantCommand,
+                        "\techo",
 						"\techo Removing old data. Failures here are usually fine - indicating the files were not on the device.",
                         "\t$ADB $DEVICE shell 'rm -r $EXTERNAL_STORAGE/UE4Game/" + Params.ShortProjectName + "'",
 						"\t$ADB $DEVICE shell 'rm -r $EXTERNAL_STORAGE/UE4Game/UE4CommandLine.txt" + "'",
@@ -334,7 +340,7 @@ public class AndroidPlatform : Platform
 						bPackageDataInsideApk ? "" : "\tSTORAGE=$(echo \"`$ADB $DEVICE shell 'echo $EXTERNAL_STORAGE'`\" | cat -v | tr -d '^M')",
 						bPackageDataInsideApk ? "" : "\t$ADB $DEVICE " + OBBInstallCommand,
 						bPackageDataInsideApk ? "if [ 1 ]; then" : "\tif [ $? -eq 0 ]; then",
-						"\t\techo",
+                        "\t\techo",
 						"\t\techo Installation successful",
 						"\t\texit 0",
 						"\tfi",
@@ -377,7 +383,11 @@ public class AndroidPlatform : Platform
 						bPackageDataInsideApk ? "" : "%ADB% %DEVICE% " + OBBInstallCommand,
 						bPackageDataInsideApk ? "" : "if \"%ERRORLEVEL%\" NEQ \"0\" goto Error",
 						"@echo.",
-						"@echo Installation successful",
+                        bPackageDataInsideApk ? "" : "@echo Grant READ_EXTERNAL_STORAGE and WRITE_EXTERNAL_STORAGE to the apk for reading OBB file.",
+                        bPackageDataInsideApk ? "" : "%ADB% %DEVICE% " + ReadPermissionGrantCommand,
+                        bPackageDataInsideApk ? "" : "%ADB% %DEVICE% " + WritePermissionGrantCommand,
+                        "@echo.",
+                        "@echo Installation successful",
 						"goto:eof",
 						":Error",
 						"@echo.",
@@ -810,6 +820,15 @@ public class AndroidPlatform : Platform
                         LogError("minSdkVersion is higher than Android version installed on device, possibly due to NDK API Level");
                     }
                     throw new AutomationException(ExitCode.Error_AppInstallFailed, ErrorMessage);
+                }
+                else
+                {
+                    // giving EXTERNAL_STORAGE_WRITE permission to the apk for API23+
+                    // without this permission apk can't access to the assets put into the device
+                    string ReadPermissionCommandLine = "shell pm grant " + PackageName + " android.permission.READ_EXTERNAL_STORAGE";
+                    string WritePermissionCommandLine = "shell pm grant " + PackageName + " android.permission.WRITE_EXTERNAL_STORAGE";
+                    RunAndLogAdbCommand(Params, DeviceName, ReadPermissionCommandLine, out SuccessCode);
+                    RunAndLogAdbCommand(Params, DeviceName, WritePermissionCommandLine, out SuccessCode);
                 }
             }
 
