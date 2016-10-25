@@ -321,7 +321,7 @@ PX_FORCE_INLINE PxReal updateWakeCounter(PxsRigidBody* originalBody, PxReal dt, 
 		{
 			if (useAdaptiveForce)
 			{
-				if (hasStaticTouch && bodyCore.numCountedInteractions > 1)
+				if (hasStaticTouch && bodyCore.numBodyInteractions > 1)
 					originalBody->accelScale = 1.f / PxReal(bodyCore.numBodyInteractions);
 				else
 					originalBody->accelScale = 1.f;

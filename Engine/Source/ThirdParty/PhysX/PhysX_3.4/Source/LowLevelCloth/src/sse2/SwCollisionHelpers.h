@@ -30,7 +30,7 @@
 #pragma once
 
 #if PX_GCC_FAMILY
-#ifdef __EMSCRIPTEN__
+#if PX_EMSCRIPTEN
 #include <emmintrin.h>
 #endif
 #include <xmmintrin.h> // _BitScanForward

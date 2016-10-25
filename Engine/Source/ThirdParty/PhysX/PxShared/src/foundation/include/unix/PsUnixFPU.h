@@ -35,7 +35,7 @@
 #if PX_LINUX || PX_PS4 || PX_OSX
 
 #if PX_X86 || PX_X64
-#ifdef __EMSCRIPTEN__
+#if PX_EMSCRIPTEN
 #include <emmintrin.h>
 #endif
 #include <xmmintrin.h>
@@ -46,7 +46,7 @@
 
 PX_INLINE physx::shdfnd::SIMDGuard::SIMDGuard()
 {
-#if !defined(__EMSCRIPTEN__) && (PX_X86 || PX_X64)
+#if !PX_EMSCRIPTEN && (PX_X86 || PX_X64)
 	mControlWord = _mm_getcsr();
 	// set default (disable exceptions: _MM_MASK_MASK) and FTZ (_MM_FLUSH_ZERO_ON), DAZ (_MM_DENORMALS_ZERO_ON: (1<<6))
 	_mm_setcsr(_MM_MASK_MASK | _MM_FLUSH_ZERO_ON | (1 << 6));
@@ -55,7 +55,7 @@ PX_INLINE physx::shdfnd::SIMDGuard::SIMDGuard()
 
 PX_INLINE physx::shdfnd::SIMDGuard::~SIMDGuard()
 {
-#if !defined(__EMSCRIPTEN__) && (PX_X86 || PX_X64)
+#if !PX_EMSCRIPTEN && (PX_X86 || PX_X64)
 	// restore control word and clear exception flags
 	// (setting exception state flags cause exceptions on the first following fp operation)
 	_mm_setcsr(mControlWord & ~_MM_EXCEPT_MASK);
