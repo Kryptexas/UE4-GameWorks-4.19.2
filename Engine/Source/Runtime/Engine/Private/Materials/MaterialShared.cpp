@@ -594,9 +594,7 @@ bool FMaterial::MaterialUsesSceneDepthLookup_RenderThread() const
 
 bool FMaterial::MaterialUsesSceneDepthLookup_GameThread() const
 {
-	check(IsInGameThread());
-	FMaterialShaderMap* ShaderMap = GameThreadShaderMap.GetReference();
-	return ShaderMap ? ShaderMap->UsesSceneDepthLookup() : false;
+	return GameThreadShaderMap.GetReference() ? GameThreadShaderMap->UsesSceneDepthLookup() : false;
 }
 
 FMaterialShaderMap* FMaterial::GetRenderingThreadShaderMap() const 
