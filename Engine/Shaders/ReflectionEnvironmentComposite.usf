@@ -138,7 +138,7 @@ float3 CompositeReflectionCapturesAndSkylight(
 #else
 	float4 Sample = TextureCubeSampleLevel(ReflectionCubemap, ReflectionCubemapSampler, ProjectedCaptureVector, Mip);
 #endif
-	ImageBasedReflections = Sample;
+	ImageBasedReflections = float4(Sample.rgb, 1 - Sample.a);
 
 	float AverageBrightness = SingleCaptureOffsetAndAverageBrightness.w;
 	CompositedAverageBrightness.x += AverageBrightness * CompositedAverageBrightness.y;
