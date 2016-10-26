@@ -5737,7 +5737,7 @@ bool UWorld::ServerTravel(const FString& FURL, bool bAbsolute, bool bShouldSkipG
 {
 	AGameModeBase* GameMode = GetAuthGameMode();
 	
-	if (!GameMode->CanServerTravel(FURL, bAbsolute))
+	if (GameMode != nullptr && !GameMode->CanServerTravel(FURL, bAbsolute))
 	{
 		return false;
 	}
