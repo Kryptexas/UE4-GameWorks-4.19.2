@@ -21,11 +21,18 @@
 
 uint32 GetShadowQuality();
 
-static TAutoConsoleVariable<int32> CVarMobileForceDepthResolve(
-	TEXT("r.Mobile.ForceDepthResolve"),
+static TAutoConsoleVariable<int32> CVarMobileAlwaysResolveDepth(
+	TEXT("r.Mobile.AlwaysResolveDepth"),
 	0,
 	TEXT("0: Depth buffer is resolved after opaque pass only when decals or modulated shadows are in use. (Default)\n")
 	TEXT("1: Depth buffer is always resolved after opaque pass.\n"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarMobileForceDepthResolve(
+	TEXT("r.Mobile.ForceDepthResolve"),
+	0,
+	TEXT("0: Depth buffer is resolved by switching out render targets. (Default)\n")
+	TEXT("1: Depth buffer is resolved by switching out render targets and drawing with the depth texture.\n"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 FMobileSceneRenderer::FMobileSceneRenderer(const FSceneViewFamily* InViewFamily,FHitProxyConsumer* HitProxyConsumer)
@@ -240,7 +247,11 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		// Resolve the scene color for post processing.
 		SceneContext.ResolveSceneColor(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
 
-		const bool bKeepDepthContent = bPostProcessUsesDepthTexture || (View.bIsSceneCapture && (ViewFamily.SceneCaptureSource == ESceneCaptureSource::SCS_SceneColorHDR || ViewFamily.SceneCaptureSource == ESceneCaptureSource::SCS_SceneColorSceneDepth));
+		// On PowerVR we see flickering of shadows and depths not updating correctly if targets are discarded.
+		// See CVarMobileForceDepthResolve use in ConditionalResolveSceneDepth.
+		const bool bForceDepthResolve = CVarMobileForceDepthResolve.GetValueOnRenderThread() == 1;
+
+		const bool bKeepDepthContent = bForceDepthResolve || bPostProcessUsesDepthTexture || (View.bIsSceneCapture && (ViewFamily.SceneCaptureSource == ESceneCaptureSource::SCS_SceneColorHDR || ViewFamily.SceneCaptureSource == ESceneCaptureSource::SCS_SceneColorSceneDepth));
 		// Drop depth and stencil before post processing to avoid export.
 		if (!bKeepDepthContent)
 		{
@@ -356,25 +367,54 @@ void FMobileSceneRenderer::ConditionalResolveSceneDepth(FRHICommandListImmediate
 
 	if (IsMobileHDR() 
 		&& IsMobilePlatform(ShaderPlatform) 
-		&& !IsPCPlatform(ShaderPlatform)) // exclude mobile emulation on PC
+		&& !IsPCPlatform(ShaderPlatform) // exclude mobile emulation on PC
+		)
 	{
 		bool bSceneDepthInAlpha = (SceneContext.GetSceneColor()->GetDesc().Format == PF_FloatRGBA);
 		bool bOnChipDepthFetch = (GSupportsShaderDepthStencilFetch || (bSceneDepthInAlpha && GSupportsShaderFramebufferFetch));
 		
-		const bool bForceDepthResolve = CVarMobileForceDepthResolve.GetValueOnRenderThread() == 1;
+		const bool bAlwaysResolveDepth = CVarMobileAlwaysResolveDepth.GetValueOnRenderThread() == 1;
 
-		if (!bOnChipDepthFetch || bForceDepthResolve )
+		if (!bOnChipDepthFetch || bAlwaysResolveDepth )
 		{
 			// Only these features require depth texture
 			bool bDecals = ViewFamily.EngineShowFlags.Decals && Scene->Decals.Num();
 			bool bModulatedShadows = ViewFamily.EngineShowFlags.DynamicShadows && bModulatedShadowsInUse;
 
-			if (bDecals || bModulatedShadows || bForceDepthResolve || View.bUsesSceneDepth)
+			if (bDecals || bModulatedShadows || bAlwaysResolveDepth || View.bUsesSceneDepth)
 			{
+				SCOPED_DRAW_EVENT(RHICmdList, ConditionalResolveSceneDepth);
+
 				// Switch target to force hardware flush current depth to texture
 				FTextureRHIRef DummySceneColor = GSystemTextures.BlackDummy->GetRenderTargetItem().TargetableTexture;
 				FTextureRHIRef DummyDepthTarget = GSystemTextures.DepthDummy->GetRenderTargetItem().TargetableTexture;
 				SetRenderTarget(RHICmdList, DummySceneColor, DummyDepthTarget, ESimpleRenderTargetMode::EUninitializedColorClearDepth, FExclusiveDepthStencil::DepthWrite_StencilWrite);
+
+				if(CVarMobileForceDepthResolve.GetValueOnRenderThread() != 0)
+				{
+					// for devices that do not support framebuffer fetch we rely on undocumented behavior:
+					// Depth reading features will have the depth bound as an attachment AND as a sampler this means
+					// some driver implementations will ignore our attempts to resolve, here we draw with the depth texture to force a resolve.
+					// See UE-37809 for a description of the desired fix.
+					// The results of this draw are irrelevant.
+					TShaderMapRef<FScreenVS> ScreenVertexShader(View.ShaderMap);
+					TShaderMapRef<FScreenPS> PixelShader(View.ShaderMap);
+					static FGlobalBoundShaderState BoundShaderState;
+					SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
+
+					ScreenVertexShader->SetParameters(RHICmdList, View);
+					PixelShader->SetParameters(RHICmdList, TStaticSamplerState<SF_Point>::GetRHI(), SceneContext.GetSceneDepthTexture());
+					DrawRectangle(
+						RHICmdList,
+						0, 0,
+						0, 0,
+						0, 0,
+						1, 1,
+						FIntPoint(1, 1),
+						FIntPoint(1, 1),
+						*ScreenVertexShader,
+						EDRF_UseTriangleOptimization);
+				}
 			}
 		}
 	}
