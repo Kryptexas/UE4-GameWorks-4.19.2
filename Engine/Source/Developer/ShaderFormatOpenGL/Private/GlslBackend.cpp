@@ -1692,9 +1692,20 @@ class ir_gen_glsl_visitor : public ir_visitor
 
 			mask[0] = (j == 1) ? '\0' : '.';
 
+			// decide if we need to cast to float
+			const bool need_float_conv = (assign->lhs->type->is_float()
+				&& ((assign->rhs->as_constant() != nullptr)
+					&& assign->rhs->type->is_scalar()
+					&& !assign->rhs->type->is_float()));
+
 			assign->lhs->accept(this);
-			ralloc_asprintf_append(buffer, "%s = ", mask);
+			ralloc_asprintf_append(buffer, (need_float_conv ? "%s = float(" : "%s = "), mask);
 			assign->rhs->accept(this);
+
+			if (need_float_conv)
+			{
+				ralloc_asprintf_append(buffer, ")");
+			}
 		}
 
 		if (assign->condition)
@@ -2300,10 +2311,11 @@ class ir_gen_glsl_visitor : public ir_visitor
 			{
 				for (unsigned j = 0; j < s->length; j++)
 				{
-					ralloc_asprintf_append(buffer, "\t%s ", (state->language_version == 310 && bEmitPrecision) ? "highp" : "") ;
-					print_type_pre(s->fields.structure[j].type);
+					const glsl_type* field_type = s->fields.structure[j].type;
+					ralloc_asprintf_append(buffer, "\t%s ", (state->language_version == 310 && bEmitPrecision && field_type->base_type != GLSL_TYPE_STRUCT) ? "highp" : "");
+					print_type_pre(field_type);
 					ralloc_asprintf_append(buffer, " %s", s->fields.structure[j].name);
-					print_type_post(s->fields.structure[j].type);
+					print_type_post(field_type);
 					ralloc_asprintf_append(buffer, ";\n");
 				}
 			}
@@ -2341,10 +2353,11 @@ class ir_gen_glsl_visitor : public ir_visitor
 					{
 						for (unsigned j = 0; j < type->length; j++)
 						{
-							ralloc_asprintf_append(buffer, "\t%s",  (state->language_version == 310 && bEmitPrecision) ? "highp" : "");
-							print_type_pre(type->fields.structure[j].type);
+							const glsl_type* field_type = type->fields.structure[j].type;
+							ralloc_asprintf_append(buffer, "\t%s", (state->language_version == 310 && bEmitPrecision && field_type->base_type != GLSL_TYPE_STRUCT) ? "highp" : "");
+							print_type_pre(field_type);
 							ralloc_asprintf_append(buffer, " %s", type->fields.structure[j].name);
-							print_type_post(type->fields.structure[j].type);
+							print_type_post(field_type);
 							ralloc_asprintf_append(buffer, ";\n");
 						}
 						ralloc_asprintf_append(buffer, "} %s;\n\n", block->name);
@@ -2358,14 +2371,15 @@ class ir_gen_glsl_visitor : public ir_visitor
 					for (unsigned var_index = 0; var_index < block->num_vars; ++var_index)
 					{
 						ir_variable* var = block->vars[var_index];
+						const glsl_type* type = var->type;
 
 						//EHart - name-mangle variables to prevent colliding names
 						ralloc_asprintf_append(buffer, "#define %s %s%s\n", var->name, var->name, block_name);
 
-						ralloc_asprintf_append(buffer, "\t%s", (state->language_version == 310 && bEmitPrecision) ? "highp " : "");
-						print_type_pre(var->type);
+						ralloc_asprintf_append(buffer, "\t%s", (state->language_version == 310 && bEmitPrecision &&	type->base_type != GLSL_TYPE_STRUCT) ? "highp " : "");
+						print_type_pre(type);
 						ralloc_asprintf_append(buffer, " %s", var->name);
-						print_type_post(var->type);
+						print_type_post(type);
 						ralloc_asprintf_append(buffer, ";\n");
 					}
 					ralloc_asprintf_append(buffer, "};\n\n");
