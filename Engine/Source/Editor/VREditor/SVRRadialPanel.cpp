@@ -25,7 +25,46 @@ void SRadialBox::Construct( const SRadialBox::FArguments& InArgs )
 	CurrentlyHoveredButton = nullptr;
 }
 
+/**
+* Helper to ComputeDesiredSize().
+*
+* @param Orientation   Template parameters that controls the orientation in which the children are layed out
+* @param Children      The children whose size we want to assess in a horizontal or vertical arrangement.
+*
+* @return The size desired by the children given an orientation.
+*/
+static FVector2D ComputeDesiredSizeForMenu(const TPanelChildren<SRadialPanel::FSlot>& Children)
+{
+	// The desired size of this panel is the total size desired by its children plus any margins specified in this panel.
+	// The layout along the panel's axis is describe dy the SizeParam, while the perpendicular layout is described by the
+	// alignment property.
+	FVector2D MyDesiredSize(0, 0);
+	for (int32 ChildIndex = 0; ChildIndex < Children.Num(); ++ChildIndex)
+	{
+		const SRadialPanel::FSlot& CurChild = Children[ChildIndex];
+		const FVector2D& CurChildDesiredSize = CurChild.GetWidget()->GetDesiredSize();
+		if (CurChild.GetWidget()->GetVisibility() != EVisibility::Collapsed)
+		{
 
+			// For a vertical panel, we want to find the maximum desired width (including margin).
+			// That will be the desired width of the whole panel.
+			MyDesiredSize.X = FMath::Max(MyDesiredSize.X, (2.0f * CurChildDesiredSize.X + CurChild.SlotPadding.Get().GetTotalSpaceAlong<Orient_Horizontal>()));
+
+			// Clamp to the max size if it was specified
+			float FinalChildDesiredSize = CurChildDesiredSize.Y;
+			float MaxSize = CurChild.MaxSize.Get();
+			if (MaxSize > 0)
+			{
+				FinalChildDesiredSize = FMath::Min(MaxSize, FinalChildDesiredSize);
+			}
+
+			MyDesiredSize.Y += FinalChildDesiredSize + CurChild.SlotPadding.Get().GetTotalSpaceAlong<Orient_Vertical>();
+
+		}
+	}
+
+	return MyDesiredSize;
+}
 
 
 template<EOrientation Orientation>
@@ -158,46 +197,7 @@ void SRadialPanel::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrang
 	
 }
 
-/**
- * Helper to ComputeDesiredSize().
- *
- * @param Orientation   Template parameters that controls the orientation in which the children are layed out
- * @param Children      The children whose size we want to assess in a horizontal or vertical arrangement.
- *
- * @return The size desired by the children given an orientation.
- */
-static FVector2D ComputeDesiredSizeForMenu( const TPanelChildren<SRadialPanel::FSlot>& Children ) 
-{
-	// The desired size of this panel is the total size desired by its children plus any margins specified in this panel.
-	// The layout along the panel's axis is describe dy the SizeParam, while the perpendicular layout is described by the
-	// alignment property.
-	FVector2D MyDesiredSize(0,0);
-	for( int32 ChildIndex=0; ChildIndex < Children.Num(); ++ChildIndex )
-	{
-		const SRadialPanel::FSlot& CurChild = Children[ChildIndex];
-		const FVector2D& CurChildDesiredSize = CurChild.GetWidget()->GetDesiredSize();
-		if ( CurChild.GetWidget()->GetVisibility() != EVisibility::Collapsed )
-		{
-			
-			// For a vertical panel, we want to find the maximum desired width (including margin).
-			// That will be the desired width of the whole panel.
-			MyDesiredSize.X = FMath::Max(MyDesiredSize.X, (2.0f * CurChildDesiredSize.X + CurChild.SlotPadding.Get().GetTotalSpaceAlong<Orient_Horizontal>()));
 
-			// Clamp to the max size if it was specified
-			float FinalChildDesiredSize = CurChildDesiredSize.Y;
-			float MaxSize = CurChild.MaxSize.Get();
-			if( MaxSize > 0 )
-			{
-				FinalChildDesiredSize = FMath::Min( MaxSize, FinalChildDesiredSize );
-			}
-
-			MyDesiredSize.Y += FinalChildDesiredSize + CurChild.SlotPadding.Get().GetTotalSpaceAlong<Orient_Vertical>();				
-			
-		}
-	}
-
-	return MyDesiredSize;
-}
 
 /**
  * A Panel's desired size in the space required to arrange of its children on the screen while respecting all of
