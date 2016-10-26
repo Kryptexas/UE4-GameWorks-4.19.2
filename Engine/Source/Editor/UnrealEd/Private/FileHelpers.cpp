@@ -2317,12 +2317,12 @@ EAutosaveContentPackagesResult::Type FEditorFileUtils::AutosaveMapEx(const FStri
 	bool bResult  = false;
 	double TotalSaveTime = 0.0f;
 
-	FWorldContext &EditorContext = GEditor->GetEditorWorldContext();
-	
 	double SaveStartTime = FPlatformTime::Seconds();
 
 	// Clean up any old worlds.
 	CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
+
+	FWorldContext& EditorContext = GEditor->GetEditorWorldContext();
 
 	// Get the set of all reference worlds.
 	TArray<UWorld*> WorldsArray;
