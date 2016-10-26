@@ -418,6 +418,16 @@ void SButton::SetOnClicked(FOnClicked InOnClicked)
 	OnClicked = InOnClicked;
 }
 
+void SButton::SetOnHovered(FSimpleDelegate InOnHovered)
+{
+	OnHovered = InOnHovered;
+}
+
+void SButton::SetOnUnhovered(FSimpleDelegate InOnUnhovered)
+{
+	OnUnhovered = InOnUnhovered;
+}
+
 void SButton::SetButtonStyle(const FButtonStyle* ButtonStyle)
 {
 	/* Get pointer to the button style */

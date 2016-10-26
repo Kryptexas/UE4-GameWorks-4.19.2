@@ -3,11 +3,9 @@
 #include "VREditorModule.h"
 #include "VREditorUISystem.h"
 #include "VREditorMode.h"
+#include "VREditorBaseUserWidget.h"
 #include "VREditorFloatingUI.h"
 #include "VREditorDockableWindow.h"
-#include "VREditorQuickMenu.h"
-#include "VREditorRadialMenu.h"
-#include "VREditorRadialMenuItem.h"
 #include "IHeadMountedDisplay.h"
 #include "ViewportWorldInteraction.h"
 #include "ViewportInteractor.h"
@@ -17,6 +15,7 @@
 // UI
 #include "WidgetComponent.h"
 #include "VREditorWidgetComponent.h"
+#include "VREditorStyle.h"
 
 // Content Browser
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
@@ -38,6 +37,14 @@
 #include "SWidget.h"
 #include "SDockTab.h"
 #include "SColorPicker.h"
+#include "MultiBox.h"
+#include "LevelEditorActions.h"
+#include "VREditorActions.h"
+#include "GenericCommands.h"
+#include "SVRRadialPanel.h"
+
+
+#define LOCTEXT_NAMESPACE "VREditor"
 
 namespace VREd
 {
@@ -45,8 +52,8 @@ namespace VREd
 	static FAutoConsoleVariable ContentBrowserUIResolutionY( TEXT( "VREd.ContentBrowserUIResolutionY" ), 1200, TEXT( "Vertical resolution to use for content browser UI render targets" ) );
 	static FAutoConsoleVariable DefaultEditorUIResolutionX( TEXT( "VREd.DefaultEditorUIResolutionX" ), 1024, TEXT( "Horizontal resolution to use for VR editor UI render targets" ) );
 	static FAutoConsoleVariable DefaultEditorUIResolutionY( TEXT( "VREd.DefaultEditorUIResolutionY" ), 1024, TEXT( "Vertical resolution to use for VR editor UI render targets" ) );
-	static FAutoConsoleVariable QuickMenuUIResolutionX( TEXT( "VREd.QuickMenuUIResolutionX" ), 1024, TEXT( "Horizontal resolution to use for Quick Menu VR UI render targets" ) );
-	static FAutoConsoleVariable QuickMenuUIResolutionY( TEXT( "VREd.QuickMenuUIResolutionY" ), 900, TEXT( "Vertical resolution to use for Quick Menu VR UI render targets" ) );
+	static FAutoConsoleVariable QuickMenuUIResolutionX( TEXT( "VREd.QuickMenuUIResolutionX" ), 1440, TEXT( "Horizontal resolution to use for Quick Menu VR UI render targets" ) );
+	static FAutoConsoleVariable QuickMenuUIResolutionY( TEXT( "VREd.QuickMenuUIResolutionY" ), 1440, TEXT( "Vertical resolution to use for Quick Menu VR UI render targets" ) );
 	static FAutoConsoleVariable ContentBrowserUISize( TEXT( "VREd.ContentBrowserUISize" ), 60.0f, TEXT( "How big content browser UIs should be" ) );
 	static FAutoConsoleVariable EditorUISize( TEXT( "VREd.EditorUISize" ), 50.0f, TEXT( "How big editor UIs should be" ) );
 	static FAutoConsoleVariable ContentBrowserUIScale( TEXT( "VREd.ContentBrowserUIScale" ), 2.0f, TEXT( "How much to scale up (or down) the content browser for VR" ) );
@@ -95,8 +102,6 @@ UVREditorUISystem::UVREditorUISystem( const FObjectInitializer& Initializer ) :
 	QuickMenuUI( nullptr ),
 	QuickRadialMenu( nullptr ),
 	RadialMenuHideDelayTime( 0.0f ),
-	QuickMenuWidgetClass( nullptr ),
-	QuickRadialWidgetClass( nullptr ),
 	TutorialWidgetClass( nullptr ),
 	InteractorDraggingUI( nullptr ),
 	DraggingUIOffsetTransform( FTransform::Identity ),
@@ -126,12 +131,6 @@ void UVREditorUISystem::Init()
 	GetOwner().GetWorldInteraction().OnViewportInteractionInputAction().AddUObject( this, &UVREditorUISystem::OnVRAction );
 	GetOwner().GetWorldInteraction().OnViewportInteractionHoverUpdate().AddUObject( this, &UVREditorUISystem::OnVRHoverUpdate );
 
-	QuickMenuWidgetClass = LoadClass<UVREditorQuickMenu>( nullptr, TEXT( "/Engine/VREditor/UI/VRQuickMenu.VRQuickMenu_C" ) );
-	check( QuickMenuWidgetClass != nullptr );
-
-	QuickRadialWidgetClass = LoadClass<UVREditorRadialMenu>( nullptr, TEXT( "/Engine/VREditor/UI/VRRadialQuickMenu.VRRadialQuickMenu_C" ) );
-	check( QuickRadialWidgetClass != nullptr );
-
 	TutorialWidgetClass = LoadClass<UVREditorBaseUserWidget>( nullptr, TEXT( "/Engine/VREditor/Tutorial/UI_VR_Tutorial_00.UI_VR_Tutorial_00_C" ) );
 	check( TutorialWidgetClass != nullptr );
 
@@ -148,10 +147,8 @@ void UVREditorUISystem::Init()
 	ShowUISound = LoadObject<USoundCue>( nullptr, TEXT( "/Engine/VREditor/Sounds/VR_open_Cue" ) );
 	check( ShowUISound != nullptr );
 
-	
 	// Create all of our UI panels
 	CreateUIs();
-
 
 	// Bind the color picker creation & destruction overrides
 	SColorPicker::OnColorPickerNonModalCreateOverride.BindUObject(this, &UVREditorUISystem::CreateVRColorPicker);
@@ -175,8 +172,6 @@ void UVREditorUISystem::Shutdown()
 
 	DefaultWindowTransforms.Empty();
 
-	QuickMenuWidgetClass = nullptr;
-	QuickRadialWidgetClass = nullptr;
 	TutorialWidgetClass = nullptr;
 	StartDragUISound = nullptr;
 	StopDragUISound = nullptr;
@@ -200,122 +195,145 @@ void UVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, UView
 			if ( Action.ActionType == VRActionTypes::ConfirmRadialSelection )
 			{
 				const EViewportInteractionDraggingMode DraggingMode = Interactor->GetDraggingMode();
+				// Toggle the radial menu by pressing the touchpad or thumb stick
 				if ( Action.Event == IE_Pressed && 
 					 ( DraggingMode != EViewportInteractionDraggingMode::ActorsFreely && DraggingMode != EViewportInteractionDraggingMode::World && 
-					   ( DraggingMode != EViewportInteractionDraggingMode::AssistingDrag && Interactor->GetOtherInteractor() != nullptr && Interactor->GetOtherInteractor()->GetDraggingMode() != EViewportInteractionDraggingMode::World ) ) )
+					   ( DraggingMode != EViewportInteractionDraggingMode::AssistingDrag &&
+						 Interactor->GetOtherInteractor() != nullptr ) ) )
 				{
-					UVREditorRadialMenu* RadialMenu = QuickRadialMenu->GetUserWidget<UVREditorRadialMenu>();
-					if ( IsShowingRadialMenu( VREditorInteractor ) )
+					if ( !IsShowingRadialMenu(VREditorInteractor) )
 					{
-						RadialMenu->Update( VREditorInteractor );
+						TryToSpawnRadialMenu(VREditorInteractor);
 					}
-
-					RadialMenu->SelectCurrentItem();
+					else
+					{
+						HideRadialMenu(VREditorInteractor);
+					}
 					bWasHandled = true;
 				}
 			}
-			else if ( Action.ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed )
+			else 
+			if ( Action.ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed )
 			{
-				FVector LaserPointerStart, LaserPointerEnd;
-				if ( VREditorInteractor->GetLaserPointer( LaserPointerStart, LaserPointerEnd ) )
+				// If the radial menu is showing, select the currently highlighted button by pressing the trigger
+				if ( IsShowingRadialMenu( VREditorInteractor ) )
 				{
-					FHitResult HitResult = VREditorInteractor->GetHitResultFromLaserPointer();
-					if ( HitResult.Actor.IsValid() )
+					TSharedPtr<SRadialBox> RadialBox = StaticCastSharedPtr<SRadialBox>(RadialWidget);
+					if(Action.Event == IE_Pressed)
 					{
-						// Only allow clicks to our own widget components
-						UWidgetComponent* WidgetComponent = Cast<UWidgetComponent>( HitResult.GetComponent() );
-						if ( WidgetComponent != nullptr && IsWidgetAnEditorUIWidget( WidgetComponent ) )
+						RadialBox->SimulateLeftClickDown();
+					}
+					if (Action.Event == IE_Released)
+					{
+						RadialBox->SimulateLeftClickUp();
+						// Hide the radial menu after selection
+						HideRadialMenu(VREditorInteractor);
+					}
+					bWasHandled = true;
+				}
+
+				else
+				{
+					FVector LaserPointerStart, LaserPointerEnd;
+					if ( VREditorInteractor->GetLaserPointer( LaserPointerStart, LaserPointerEnd ) )
+					{
+						FHitResult HitResult = VREditorInteractor->GetHitResultFromLaserPointer();
+						if ( HitResult.Actor.IsValid() )
 						{
-							// Always mark the event as handled so that the editor doesn't try to select the widget component
-							bWasHandled = true;
-
-							if ( Action.Event != IE_Repeat )
+							// Only allow clicks to our own widget components
+							UWidgetComponent* WidgetComponent = Cast<UWidgetComponent>( HitResult.GetComponent() );
+							if ( WidgetComponent != nullptr && IsWidgetAnEditorUIWidget( WidgetComponent ) )
 							{
-								// If the Modifier button is held down, treat this like a right click instead of a left click
-								const bool bIsRightClicking =
-									( Action.Event == IE_Pressed && VREditorInteractor->IsModifierPressed() ) ||
-									( Action.Event == IE_Released && VREditorInteractor->IsRightClickingOnUI() );
+								// Always mark the event as handled so that the editor doesn't try to select the widget component
+								bWasHandled = true;
 
-								FVector2D LastLocalHitLocation = WidgetComponent->GetLastLocalHitLocation();
-
-								FVector2D LocalHitLocation;
-								WidgetComponent->GetLocalHitLocation( HitResult.ImpactPoint, LocalHitLocation );
-
-								// If we weren't already hovering over this widget, then we'll reset the last hit location
-								if ( WidgetComponent != VREditorInteractor->GetHoveringOverWidgetComponent() )
+								if ( Action.Event != IE_Repeat )
 								{
-									LastLocalHitLocation = LocalHitLocation;
+									// If the Modifier button is held down, treat this like a right click instead of a left click
+									const bool bIsRightClicking =
+										( Action.Event == IE_Pressed && VREditorInteractor->IsModifierPressed() ) ||
+										( Action.Event == IE_Released && VREditorInteractor->IsRightClickingOnUI() );
 
-									if ( UVREditorWidgetComponent* VRWidgetComponent = Cast<UVREditorWidgetComponent>( VREditorInteractor->GetHoveringOverWidgetComponent() ) )
+									FVector2D LastLocalHitLocation = WidgetComponent->GetLastLocalHitLocation();
+
+									FVector2D LocalHitLocation;
+									WidgetComponent->GetLocalHitLocation( HitResult.ImpactPoint, LocalHitLocation );
+
+									// If we weren't already hovering over this widget, then we'll reset the last hit location
+									if ( WidgetComponent != VREditorInteractor->GetHoveringOverWidgetComponent() )
 									{
-										VRWidgetComponent->SetIsHovering( false );
-									}
-								}
+										LastLocalHitLocation = LocalHitLocation;
 
-								FWidgetPath WidgetPathUnderFinger = FWidgetPath( WidgetComponent->GetHitWidgetPath( HitResult.ImpactPoint, /*bIgnoreEnabledStatus*/ false ) );
-								if ( WidgetPathUnderFinger.IsValid() )
-								{
-									TSet<FKey> PressedButtons;
-									if ( Action.Event == IE_Pressed )
-									{
-										PressedButtons.Add( bIsRightClicking ? EKeys::RightMouseButton : EKeys::LeftMouseButton );
-									}
-
-									FPointerEvent PointerEvent(
-										1 + (uint8)VREditorInteractor->GetControllerSide(),
-										LocalHitLocation,
-										LastLocalHitLocation,
-										PressedButtons,
-										bIsRightClicking ? EKeys::RightMouseButton : EKeys::LeftMouseButton,
-										0.0f,	// Wheel delta
-										FModifierKeysState() );
-
-									VREditorInteractor->SetHoveringOverWidgetComponent( WidgetComponent );
-
-									if ( UVREditorWidgetComponent* VRWidgetComponent = Cast<UVREditorWidgetComponent>( VREditorInteractor->GetHoveringOverWidgetComponent() ) )
-									{
-										VRWidgetComponent->SetIsHovering( true );
+										if ( UVREditorWidgetComponent* VRWidgetComponent = Cast<UVREditorWidgetComponent>( VREditorInteractor->GetHoveringOverWidgetComponent() ) )
+										{
+											VRWidgetComponent->SetIsHovering( false );
+										}
 									}
 
-									FReply Reply = FReply::Unhandled();
-									if ( Action.Event == IE_Pressed )
+									FWidgetPath WidgetPathUnderFinger = FWidgetPath( WidgetComponent->GetHitWidgetPath( HitResult.ImpactPoint, /*bIgnoreEnabledStatus*/ false ) );
+									if ( WidgetPathUnderFinger.IsValid() )
 									{
-										const double CurrentTime = FPlatformTime::Seconds();
-										if (CurrentTime - VREditorInteractor->GetLastClickReleaseTime() <= VREd::DoubleClickTime->GetFloat())
+										TSet<FKey> PressedButtons;
+										if ( Action.Event == IE_Pressed )
 										{
-											// Trigger a double click event!
-											Reply = FSlateApplication::Get().RoutePointerDoubleClickEvent(WidgetPathUnderFinger, PointerEvent);
-										}
-										else
-										{
-											Reply = FSlateApplication::Get().RoutePointerDownEvent(WidgetPathUnderFinger, PointerEvent);
+											PressedButtons.Add( bIsRightClicking ? EKeys::RightMouseButton : EKeys::LeftMouseButton );
 										}
 
-										// In case of selecting a level in the content browser the VREditormode is closed, this makes sure nothing happens after that.
-										if( !IVREditorModule::Get().IsVREditorModeActive() )
+										FPointerEvent PointerEvent(
+											1 + (uint8)VREditorInteractor->GetControllerSide(),
+											LocalHitLocation,
+											LastLocalHitLocation,
+											PressedButtons,
+											bIsRightClicking ? EKeys::RightMouseButton : EKeys::LeftMouseButton,
+											0.0f,	// Wheel delta
+											FModifierKeysState() );
+
+										VREditorInteractor->SetHoveringOverWidgetComponent( WidgetComponent );
+
+										if ( UVREditorWidgetComponent* VRWidgetComponent = Cast<UVREditorWidgetComponent>( VREditorInteractor->GetHoveringOverWidgetComponent() ) )
 										{
-											bWasHandled = true;
-											return;
+											VRWidgetComponent->SetIsHovering( true );
 										}
+
+										FReply Reply = FReply::Unhandled();
+										if ( Action.Event == IE_Pressed )
+										{
+											const double CurrentTime = FPlatformTime::Seconds();
+											if (CurrentTime - VREditorInteractor->GetLastClickReleaseTime() <= VREd::DoubleClickTime->GetFloat())
+											{
+												// Trigger a double click event!
+												Reply = FSlateApplication::Get().RoutePointerDoubleClickEvent(WidgetPathUnderFinger, PointerEvent);
+											}
+											else
+											{
+												Reply = FSlateApplication::Get().RoutePointerDownEvent(WidgetPathUnderFinger, PointerEvent);
+											}
+
+											// In case of selecting a level in the content browser the VREditormode is closed, this makes sure nothing happens after that.
+											if( !IVREditorModule::Get().IsVREditorModeActive() )
+											{
+												bWasHandled = true;
+												return;
+											}
 										
-										VREditorInteractor->SetIsClickingOnUI( true );
-										VREditorInteractor->SetIsRightClickingOnUI( bIsRightClicking );
-										VREditorInteractor->SetLastClickReleaseTime( CurrentTime );
-										bOutIsInputCaptured = true;
+											VREditorInteractor->SetIsClickingOnUI( true );
+											VREditorInteractor->SetIsRightClickingOnUI( bIsRightClicking );
+											VREditorInteractor->SetLastClickReleaseTime( CurrentTime );
+											bOutIsInputCaptured = true;
 
-										// Play a haptic effect on press
-										VREditorInteractor->PlayHapticEffect( VREd::UIPressHapticFeedbackStrength->GetFloat() );
-									}
-									else if ( Action.Event == IE_Released )
-									{
-										Reply = FSlateApplication::Get().RoutePointerUpEvent( WidgetPathUnderFinger, PointerEvent );
+											// Play a haptic effect on press
+											VREditorInteractor->PlayHapticEffect( VREd::UIPressHapticFeedbackStrength->GetFloat() );
+										}
+										else if ( Action.Event == IE_Released )
+										{
+											Reply = FSlateApplication::Get().RoutePointerUpEvent( WidgetPathUnderFinger, PointerEvent );
+										}
 									}
 								}
 							}
 						}
 					}
 				}
-
 				if ( Action.Event == IE_Released )
 				{
 					bool bWasRightClicking = false;
@@ -368,6 +386,16 @@ void UVREditorUISystem::OnVRHoverUpdate( FEditorViewportClient& ViewportClient, 
 				FHitResult HitResult = Interactor->GetHitResultFromLaserPointer();
 				if( HitResult.Actor.IsValid() )
 				{
+					// If a button is currently highlighted on the radial menu, don't highlight another button with the laser
+					if ((HitResult.Actor == QuickRadialMenu) && (RadialWidget.Get() != nullptr))
+					{
+						const TSharedPtr<SRadialBox>& RadialBox = StaticCastSharedPtr<SRadialBox>(RadialWidget);
+						if (RadialBox->GetCurrentlyHoveredButton().Get() != nullptr)
+						{
+							return;
+						}
+					}
+
 					// Only allow clicks to our own widget components
 					UWidgetComponent* WidgetComponent = Cast<UWidgetComponent>( HitResult.GetComponent() );
 					if( WidgetComponent != nullptr && IsWidgetAnEditorUIWidget( WidgetComponent ) )
@@ -558,14 +586,14 @@ void UVREditorUISystem::Tick( FEditorViewportClient* ViewportClient, const float
 			{
 				// @todo vreditor tweak: Weird to hard code this here. Probably should be an accessor on the hand itself, and based on the actual device type
 				const FTransform UICapsuleTransform = OtherInteractor->GetTransform();
-				const FVector UICapsuleStart = FVector( -9.0f, 0.0f, 0.0f ) * WorldScaleFactor;
+				const FVector UICapsuleStart = FVector( -3.0f, 0.0f, 0.0f ) * WorldScaleFactor;
 				const FVector UICapsuleEnd = FVector( -18.0f, 0.0f, 0.0f ) * WorldScaleFactor;
-				const float UICapsuleLocalRadius = 6.0f * WorldScaleFactor;
+				const float UICapsuleLocalRadius = 8.0f * WorldScaleFactor;
 				const float MinDistanceToUICapsule = 8.0f * WorldScaleFactor; // @todo vreditor tweak
 				const FVector UIForwardVector = FVector::UpVector;
 				const float MinDotForAimingAtOtherHand = 0.25f;	// @todo vreditor tweak
 
-				if( GetOwner().IsHandAimingTowardsCapsule( Interactor, UICapsuleTransform, UICapsuleStart, UICapsuleEnd, UICapsuleLocalRadius, MinDistanceToUICapsule, UIForwardVector, MinDotForAimingAtOtherHand ) )
+				if (GetOwner().IsHandAimingTowardsCapsule(Interactor, UICapsuleTransform, UICapsuleStart, UICapsuleEnd, UICapsuleLocalRadius, MinDistanceToUICapsule, UIForwardVector, MinDotForAimingAtOtherHand) && (QuickRadialMenu->bHidden))
 				{
 					bShowQuickMenuOnArm = true;
 				}
@@ -583,8 +611,25 @@ void UVREditorUISystem::Tick( FEditorViewportClient* ViewportClient, const float
 		{
 			// Despawn
 			HandInteractorWithQuickMenu->SetHasUIOnForearm( false );
+			HandInteractorWithQuickMenu->SetHasUIInFront( false );
 			QuickMenuUI->ShowUI( false );
+			// Reset all the currently animating buttons to their minimum scale and stop animating them
+			for (FVRButton& VRButton : VRButtons)
+			{
+				if(VRButton.AnimationDirection != EVREditorAnimationState::None)
+				{
+					
+					TSharedRef<SWidget> PlaceholderWidget = (VRButton.BaseSlot->DetachWidget()).ToSharedRef();
+					TSharedRef<SWidget> WidgetToTransfer = (VRButton.HoverSlot->DetachWidget()).ToSharedRef();
+					VRButton.BaseSlot->AttachWidget(WidgetToTransfer);
+					VRButton.HoverSlot->AttachWidget(PlaceholderWidget);
+					VRButton.CurrentScale = VRButton.MinScale;
+					VRButton.ButtonBorder->SetRenderTransform(FSlateRenderTransform::FTransform2D(VRButton.CurrentScale));
+					VRButton.AnimationDirection = EVREditorAnimationState::None;
 		}
+			}
+		}
+
 
 		if( HandInteractorThatNeedsQuickMenu != nullptr && !QuickMenuUI->IsUIVisible() )
 		{
@@ -594,17 +639,49 @@ void UVREditorUISystem::Tick( FEditorViewportClient* ViewportClient, const float
 				const AVREditorFloatingUI::EDockedTo DockTo = ( MotionControllerHandInteractorThatNeedsQuickMenu->GetControllerSide() == EControllerHand::Left ) ? AVREditorFloatingUI::EDockedTo::LeftArm : AVREditorFloatingUI::EDockedTo::RightArm;
 				QuickMenuUI->SetDockedTo( DockTo );
 				QuickMenuUI->ShowUI( true );
+				MotionControllerHandInteractorThatNeedsQuickMenu->SetHasUIInFront( true );
 				MotionControllerHandInteractorThatNeedsQuickMenu->SetHasUIOnForearm( true );
 			}
 		}
 	}
-
-	// Close the radial menu if it was not updated for a while
-	RadialMenuHideDelayTime += DeltaTime;
-	if( RadialMenuHideDelayTime >= VREd::RadialMenuFadeDelay->GetFloat() )
+	
+	// Iterate through all quick menu and radial menu buttons and animate any that need it
+	for (FVRButton& VRButton : VRButtons)
 	{
-		UVREditorInteractor* Interactor = GetOwner().GetHandInteractor( QuickRadialMenu->GetDockedTo() == AVREditorFloatingUI::EDockedTo::LeftHand ? EControllerHand::Left : EControllerHand::Right );
-		HideRadialMenu( Interactor );
+		switch (VRButton.AnimationDirection)
+		{
+			case EVREditorAnimationState::Forward:
+			{
+				if (VRButton.CurrentScale < VRButton.MaxScale)
+				{
+					VRButton.CurrentScale += DeltaTime*VRButton.ScaleRate;
+				}
+				else
+				{
+					VRButton.CurrentScale = VRButton.MaxScale;
+					VRButton.AnimationDirection = EVREditorAnimationState::None;
+				}
+				break;
+			}
+			case EVREditorAnimationState::Backward:
+			{
+				if (VRButton.CurrentScale > VRButton.MinScale)
+				{
+					VRButton.CurrentScale -= DeltaTime*VRButton.ScaleRate;
+				}
+				else
+				{
+					VRButton.CurrentScale = VRButton.MinScale;
+					VRButton.AnimationDirection = EVREditorAnimationState::None;	
+				}
+				break;
+			}
+			case EVREditorAnimationState::None:
+			{
+				break;
+			}
+		}
+		VRButton.ButtonBorder->SetRenderTransform(FSlateRenderTransform::FTransform2D(VRButton.CurrentScale));	
 	}
 	
 	// Tick all of our floating UIs
@@ -627,37 +704,38 @@ void UVREditorUISystem::CreateUIs()
 	const FIntPoint DefaultResolution( VREd::DefaultEditorUIResolutionX->GetInt(), VREd::DefaultEditorUIResolutionY->GetInt() );
 
 	const bool bIsVREditorDemo = FParse::Param( FCommandLine::Get(), TEXT( "VREditorDemo" ) );	// @todo vreditor: Remove this when no longer needed
-																								
-	// @todo vreditor: Tweak
-	if ( QuickMenuWidgetClass != nullptr )
 	{
-		const FIntPoint Resolution( VREd::QuickMenuUIResolutionX->GetInt(), VREd::QuickMenuUIResolutionY->GetInt() );
-
+		const FIntPoint Resolution(VREd::QuickMenuUIResolutionX->GetInt(), VREd::QuickMenuUIResolutionY->GetInt());
 		const bool bWithSceneComponent = false;
-		QuickMenuUI = GetOwner().SpawnTransientSceneActor< AVREditorFloatingUI >(TEXT("QuickMenu"), bWithSceneComponent);
-		QuickMenuUI->SetUMGWidget( *this, QuickMenuWidgetClass, Resolution, 30.0f, AVREditorFloatingUI::EDockedTo::Nothing );
-		QuickMenuUI->ShowUI( false );
-		QuickMenuUI->SetRelativeOffset( FVector( -11.0f, 0.0f, 3.0f ) );
-		FloatingUIs.Add( QuickMenuUI );
-	}
+		// @todo vreditor: Tweak
+		{
+			QuickMenuUI = GetOwner().SpawnTransientSceneActor< AVREditorFloatingUI >(TEXT("QuickMenu"), bWithSceneComponent);
+			QuickMenuUI->SetSlateWidget(*this, BuildQuickMenuWidget(), Resolution, 40.0f, AVREditorFloatingUI::EDockedTo::Nothing);
+			QuickMenuUI->ShowUI(false);
+			QuickMenuUI->SetRelativeOffset(FVector(-10.0f, 0.0f, 5.0f));
+			QuickMenuUI->GetWidgetComponent()->SetOpacityFromTexture(1.0f);
+			QuickMenuUI->GetWidgetComponent()->SetBackgroundColor(FLinearColor::Transparent);
+			QuickMenuUI->GetWidgetComponent()->SetBlendMode(EWidgetBlendMode::Masked);
+			FloatingUIs.Add(QuickMenuUI);
 
-	// Create the radial UI
-	if ( QuickRadialWidgetClass != nullptr )
-	{
-		TSharedPtr<SWidget> WidgetToDraw;
-		QuickRadialMenu = GetOwner().SpawnTransientSceneActor< AVREditorFloatingUI >(TEXT("QuickRadialmenu"), false);
-		QuickRadialMenu->SetUMGWidget( *this, QuickRadialWidgetClass, DefaultResolution, 40.0f, AVREditorFloatingUI::EDockedTo::Nothing );
-		QuickRadialMenu->ShowUI( false );
-		QuickRadialMenu->SetActorEnableCollision( false );
-		QuickRadialMenu->SetRelativeOffset( FVector( 10.0f, 0.0f, 10.f ) );
-		QuickRadialMenu->SetCollisionOnShow( false );
-		FloatingUIs.Add(QuickRadialMenu);
+		}
+		// Create the radial UI
+		{
+			QuickRadialMenu = GetOwner().SpawnTransientSceneActor< AVREditorFloatingUI >(TEXT("QuickRadialmenu"), bWithSceneComponent);
+			QuickRadialMenu->SetSlateWidget(*this, BuildRadialMenuWidget(), DefaultResolution, 40.0f, AVREditorFloatingUI::EDockedTo::Nothing);
+			QuickRadialMenu->ShowUI(false);
+			QuickRadialMenu->SetActorEnableCollision(false);
+			QuickRadialMenu->SetRelativeOffset(FVector(0.0f, 0.0f, 5.0f));
+			QuickRadialMenu->GetWidgetComponent()->SetOpacityFromTexture(1.0f);
+			QuickRadialMenu->GetWidgetComponent()->SetBackgroundColor(FLinearColor::Transparent);
+			QuickRadialMenu->GetWidgetComponent()->SetBlendMode(EWidgetBlendMode::Masked);
+			FloatingUIs.Add(QuickRadialMenu);
+		}
 	}
-
 	// Make some editor UIs!
 	{
 		{
-			const FIntPoint Resolution( VREd::ContentBrowserUIResolutionX->GetInt(), VREd::ContentBrowserUIResolutionY->GetInt() );
+			const FIntPoint Resolution = FIntPoint( VREd::ContentBrowserUIResolutionX->GetInt(), VREd::ContentBrowserUIResolutionY->GetInt() );
 
 			IContentBrowserSingleton& ContentBrowserSingleton = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>( "ContentBrowser" ).Get();;
 
@@ -795,6 +873,7 @@ void UVREditorUISystem::CreateUIs()
 
 			AVREditorFloatingUI* TutorialUI = GetOwner().SpawnTransientSceneActor< AVREditorDockableWindow >( TEXT( "TutorialUI" ), false );
 			TutorialUI->SetUMGWidget( *this, TutorialWidgetClass, FIntPoint( VREd::TutorialUIResolutionX->GetFloat(), VREd::TutorialUIResolutionY->GetFloat() ), VREd::TutorialUISize->GetFloat(), bShowAtStart ? AVREditorFloatingUI::EDockedTo::Room : AVREditorFloatingUI::EDockedTo::Nothing );
+
 			if( bShowAtStart )
 			{
 				TutorialUI->SetRelativeOffset( FVector( VREd::TutorialUILocationX->GetFloat(), VREd::TutorialUILocationY->GetFloat(), VREd::TutorialUILocationZ->GetFloat() ) );
@@ -809,7 +888,7 @@ void UVREditorUISystem::CreateUIs()
 		}
 
 		{
-			const FIntPoint Resolution(VREd::AssetEditorUIResolutionX->GetInt(), VREd::AssetEditorUIResolutionY->GetInt());
+			const FIntPoint Resolution = FIntPoint(VREd::AssetEditorUIResolutionX->GetInt(), VREd::AssetEditorUIResolutionY->GetInt());
 
 			const bool bWithSceneComponent = false;
 			AVREditorDockableWindow* TabManagerUI = GetOwner().SpawnTransientSceneActor< AVREditorDockableWindow >( TEXT( "AssetEditor" ), bWithSceneComponent );
@@ -1009,10 +1088,6 @@ void UVREditorUISystem::ShowEditorUIPanel( AVREditorFloatingUI* Panel, UVREditor
 			UGameplayStatics::PlaySound2D( GetOwner().GetWorld(), bShouldShow ? ShowUISound : HideUISound );
 		}
 
-		if ( bRefreshQuickMenu && QuickMenuUI )
-		{
-			QuickMenuUI->GetUserWidget<UVREditorQuickMenu>()->RefreshUI();
-		}
 	}
 }
 
@@ -1025,19 +1100,7 @@ bool UVREditorUISystem::IsShowingRadialMenu( UVREditorInteractor* Interactor ) c
 }
 
 
-void UVREditorUISystem::UpdateRadialMenu( UVREditorInteractor* Interactor )
-{
-	if( QuickRadialMenu->bHidden )
-	{
-		QuickRadialMenu->ShowUI( true, false );
-	}
 
-	if( !QuickRadialMenu->bHidden )
-	{
-		RadialMenuHideDelayTime = 0.0f;
-		QuickRadialMenu->GetUserWidget<UVREditorRadialMenu>()->Update( Interactor );
-	}
-}
 
 
 void UVREditorUISystem::TryToSpawnRadialMenu( UVREditorInteractor* Interactor )
@@ -1066,19 +1129,11 @@ void UVREditorUISystem::TryToSpawnRadialMenu( UVREditorInteractor* Interactor )
 				( InteractorDraggingUI == nullptr || InteractorDraggingUI != Interactor ) &&
 				!Interactor->IsHoveringOverUI();	// Don't show radial menu when aiming at a UI  (too much clutter)
 
-			UVREditorRadialMenu* RadialMenu = QuickRadialMenu->GetUserWidget<UVREditorRadialMenu>();
-			// We need to update the trackpad position in the radialmenu before checking if it can be used
-			RadialMenu->Update( Interactor );
-			if( RadialMenu && RadialMenu->IsInMenuRadius() )
-			{
-				bNeedsSpawn = false;
-			}
-
-			if( bNeedsSpawn )
+			if (bNeedsSpawn)
 			{
 				const AVREditorFloatingUI::EDockedTo DockedTo = MotionControllerInteractor->GetControllerSide() == EControllerHand::Left ? AVREditorFloatingUI::EDockedTo::LeftHand : AVREditorFloatingUI::EDockedTo::RightHand;
-				QuickRadialMenu->SetDockedTo( DockedTo );
-				QuickRadialMenu->ShowUI( true );
+				QuickRadialMenu->SetDockedTo(DockedTo);
+				QuickRadialMenu->ShowUI(true);
 			}
 		}
 	}
@@ -1325,11 +1380,7 @@ void UVREditorUISystem::TogglePanelsVisibility()
 		VREditorInteractor->SetHasUIInFront( false );
 	}
 
-	if (QuickMenuUI)
-	{
-		QuickMenuUI->GetUserWidget<UVREditorQuickMenu>()->RefreshUI();
 	}
-}
 
 float UVREditorUISystem::GetMaxDockWindowSize() const
 {
@@ -1520,3 +1571,678 @@ void UVREditorUISystem::DestroyVRColorPicker()
 	const bool bRefreshQuickMenu = true;
 	ShowEditorUIPanel(EEditorUIPanel::ColorPicker, VREditorInteractor, bShouldShow, bShowOnHand, bRefreshQuickMenu);
 }
+
+void UVREditorUISystem::MakeUniformGridMenu(const TSharedRef<FMultiBox>& MultiBox, const TSharedRef<SMultiBoxWidget>& MultiBoxWidget, int32 Columns)
+{
+	// Grab the list of blocks, early out if there's nothing to fill the widget with
+	const TArray< TSharedRef<const FMultiBlock > >& Blocks = MultiBox->GetBlocks();
+	const uint32 NumItems = Blocks.Num();
+	if( NumItems == 0 )
+	{
+		return;
+	}
+
+	TSharedRef<SUniformGridPanel> GridPanel = SNew( SUniformGridPanel )
+		.SlotPadding(3.0f);
+	MultiBox.Get().SetStyle(&FVREditorStyle::Get(), FVREditorStyle::GetStyleSetName());
+	int32 Index = 0;
+	int32 Row = 0;
+	for( const TSharedRef<const FMultiBlock>& MultiBlock : Blocks )
+	{
+		const TSharedRef<const FMultiBlock>& Block = MultiBlock;
+		if(Block->GetType() == EMultiBlockType::MenuEntry)
+		{
+			TSharedRef<SWidget> BlockWidget = Block->MakeWidget(MultiBoxWidget, EMultiBlockLocation::Middle, true)->AsWidget();
+		
+			int32 Column = FMath::Fmod(Index, Columns);
+			Row = FMath::DivideAndRoundDown(Index, Columns);
+			TSharedRef<SOverlay> TestOverlay = SNew(SOverlay);
+			GridPanel->AddSlot(Column, Row)
+				.VAlign(VAlign_Fill)
+				.HAlign(HAlign_Fill)
+				[
+					SAssignNew(TestOverlay, SOverlay)
+				];
+
+			AddHoverableButton(BlockWidget, TEXT("SMenuEntryButton"), TestOverlay);
+			SetButtonTextWrap(BlockWidget, 75.0);
+			Index++;
+		}
+	}
+
+	MultiBoxWidget->SetContent(
+		SNew(SScrollBox)
+		+ SScrollBox::Slot()
+		.Padding(0, 0, 0, 0)
+		.VAlign(VAlign_Fill)
+		.HAlign(HAlign_Fill)
+		[
+			GridPanel
+		]
+	);
+}
+
+TSharedRef<SWidget> UVREditorUISystem::AddHoverableButton(TSharedRef<SWidget>& BlockWidget, FName ButtonType, TSharedRef<SOverlay>& TestOverlay)
+{
+	TSharedPtr<SBorder> ButtonBorder;
+	SOverlay::FOverlaySlot* BaseSlot;
+	SOverlay::FOverlaySlot* HoverSlot;
+	TestOverlay->AddSlot(0)
+	.Expose(BaseSlot)
+		[
+			SAssignNew(ButtonBorder, SBorder)
+			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+		[
+			BlockWidget
+		]
+		];
+	// Placeholder slot to put the button into when it is hovered
+	TestOverlay->AddSlot(1500)
+	.Expose(HoverSlot)
+		[
+			SNew(SOverlay)
+			.Visibility(EVisibility::SelfHitTestInvisible)
+		];
+
+	TSharedRef<SWidget> TestWidget = FindWidgetOfType(BlockWidget, ButtonType);
+	if (TestWidget != SNullWidget::NullWidget)
+	{
+		TSharedRef<SButton> Button = StaticCastSharedRef<SButton>(TestWidget);
+		Button->SetRenderTransformPivot(FVector2D(0.5, 0.5));
+		Button->SetOnHovered(FSimpleDelegate::CreateUObject(this, &UVREditorUISystem::OnHoverBeginEffect, Button));
+		Button->SetOnUnhovered(FSimpleDelegate::CreateUObject(this, &UVREditorUISystem::OnHoverEndEffect, Button));
+		ButtonBorder->SetRenderTransformPivot(FVector2D(0.5, 0.5));
+		FVRButton ButtonToAdd = FVRButton(Button, BaseSlot, HoverSlot, ButtonBorder);
+		VRButtons.Add(ButtonToAdd);
+	}
+	return BlockWidget;
+}
+
+TSharedRef<SWidget> UVREditorUISystem::SetButtonTextWrap(TSharedRef<SWidget>& BlockWidget, float WrapSize)
+{
+	TSharedRef<SWidget> TestWidget = FindWidgetOfType(BlockWidget, FName(TEXT("STextBlock")));
+	if (TestWidget != SNullWidget::NullWidget)
+	{
+		TSharedRef<STextBlock> TextBlock = StaticCastSharedRef<STextBlock>(TestWidget);
+		TextBlock->SetWrapTextAt(WrapSize);
+		TextBlock->SetJustification(ETextJustify::Center);
+	}			
+	return BlockWidget;
+}
+
+void UVREditorUISystem::MakeRadialBoxMenu(const TSharedRef<FMultiBox>& MultiBox, const TSharedRef<SMultiBoxWidget>& MultiBoxWidget)
+{
+	// Grab the list of blocks, early out if there's nothing to fill the widget with
+	const TArray< TSharedRef< const FMultiBlock > >& Blocks = MultiBox->GetBlocks();
+	const uint32 NumItems = Blocks.Num();
+	if (NumItems == 0)
+	{
+		return;
+	}
+	MultiBox.Get().SetStyle(&FVREditorStyle::Get(), FVREditorStyle::GetStyleSetName());
+	TSharedRef<SRadialBox> GridPanel = SNew(SRadialBox);
+	GridPanel->NumEntries = Blocks.Num();
+	for (const TSharedRef<const FMultiBlock>& MultiBlock : Blocks)
+	{
+		const TSharedRef<const FMultiBlock>& Block = MultiBlock;
+		TSharedRef<SWidget> BlockWidget = Block->MakeWidget(MultiBoxWidget, EMultiBlockLocation::Middle, true)->AsWidget();
+
+		
+		TSharedRef<SOverlay> TestOverlay = SNew(SOverlay);
+		
+		GridPanel->AddSlot()
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Center)
+		[
+			SAssignNew(TestOverlay, SOverlay)
+		];
+		
+		BlockWidget = AddHoverableButton(BlockWidget, TEXT("SButton"), TestOverlay);
+		BlockWidget = SetButtonTextWrap(BlockWidget, 75.0);
+
+	}
+	RadialWidget = GridPanel;
+	StaticCastSharedPtr<SRadialBox>(RadialWidget)->NumEntries = Blocks.Num();
+	MultiBoxWidget->SetContent(
+			SNew(SDPIScaler)
+			.DPIScale(3)
+			[
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
+				.Padding(10, 10, 10, 10)
+				.VAlign(VAlign_Fill)
+				.HAlign(HAlign_Fill)
+				[
+					GridPanel
+				]
+			]
+		);
+}
+
+
+TSharedRef<SWidget> UVREditorUISystem::BuildQuickMenuWidget()
+{
+	FVREditorActionCallbacks::UpdateGizmoCoordinateSystemText(VRMode);
+	FVREditorActionCallbacks::UpdateGizmoModeText(VRMode);
+
+	FMultiBox::FOnMakeMultiBoxBuilderOverride VREditorMenuBuilderOverride;
+	VREditorMenuBuilderOverride.BindUObject(this, &UVREditorUISystem::MakeUniformGridMenu, 3);
+	const TSharedRef<FExtender> MenuExtender = MakeShareable(new FExtender());
+	TSharedPtr<FUICommandList> CommandList = MakeShareable(new FUICommandList());
+	FMenuBuilder SnapMenuBuilder(false, CommandList, MenuExtender);
+
+	// Snap menu
+	SnapMenuBuilder.AddMenuEntry(
+		LOCTEXT("ToggleTranslationSnap", "Translate"),
+		LOCTEXT("ToggleTranslationSnapTooltip", "Toggle Translation Snap"),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "EditorViewport.TranslateMode.Small"),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::LocationGridSnap_Clicked),
+			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::DefaultCanExecuteAction),
+			FGetActionCheckState::CreateStatic(&FVREditorActionCallbacks::GetTranslationSnapState)
+		),
+		NAME_None,
+		EUserInterfaceActionType::Check
+		);
+	SnapMenuBuilder.AddMenuEntry(
+		LOCTEXT("ToggleRotationSnap", "Rotate"),
+		LOCTEXT("ToggleRotationSnapTooltip", "Toggle Rotation Snap"),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "EditorViewport.RotateMode.Small"),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::RotationGridSnap_Clicked),
+			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::DefaultCanExecuteAction),
+			FGetActionCheckState::CreateStatic(&FVREditorActionCallbacks::GetRotationSnapState)
+			),
+		NAME_None,
+		EUserInterfaceActionType::Check
+		);
+	SnapMenuBuilder.AddMenuEntry(
+		LOCTEXT("ToggleScaleSnap", "Scale"),
+		LOCTEXT("ToggleScaleSnapTooltip", "Toggle Scale Snap"),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "EditorViewport.ScaleMode.Small"),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::ScaleGridSnap_Clicked),
+			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::DefaultCanExecuteAction),
+			FGetActionCheckState::CreateStatic(&FVREditorActionCallbacks::GetScaleSnapState)
+			),
+		NAME_None,
+		EUserInterfaceActionType::Check
+		);
+	TAttribute<FText> DynamicTranslationSizeLabel;
+	DynamicTranslationSizeLabel.BindStatic(&FVREditorActionCallbacks::GetTranslationSnapSizeText);
+	SnapMenuBuilder.AddMenuEntry(
+		DynamicTranslationSizeLabel,
+		LOCTEXT("ToggleTranslationSnapSizeTooltip", "Toggle Translation Snap Size"),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::OnTranslationSnapSizeButtonClicked),
+			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::DefaultCanExecuteAction)
+			)
+		);
+	TAttribute<FText> DynamicRotationSizeLabel;
+	DynamicRotationSizeLabel.BindStatic(&FVREditorActionCallbacks::GetRotationSnapSizeText);
+	SnapMenuBuilder.AddMenuEntry(
+		DynamicRotationSizeLabel,
+		LOCTEXT("ToggleRotationSnapSizeTooltip", "Toggle Rotation Snap Size"),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::OnRotationSnapSizeButtonClicked),
+			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::DefaultCanExecuteAction)
+			)
+		);
+	TAttribute<FText> DynamicScaleSizeLabel;
+	DynamicScaleSizeLabel.BindStatic(&FVREditorActionCallbacks::GetScaleSnapSizeText);
+	SnapMenuBuilder.AddMenuEntry(
+		DynamicScaleSizeLabel,
+		LOCTEXT("ToggleScaleSnapSizeTooltip", "Toggle Scale Snap Size"),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::OnScaleSnapSizeButtonClicked),
+			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::DefaultCanExecuteAction)
+			)
+		);
+
+	TSharedRef<SWidget> SnapMenuWidget = SnapMenuBuilder.MakeWidget(&VREditorMenuBuilderOverride);
+
+	// Next Menu section: Interface
+	CommandList = MakeShareable(new FUICommandList());
+	FMenuBuilder InterfaceMenuBuilder(false, CommandList, MenuExtender);
+
+	InterfaceMenuBuilder.AddMenuEntry(
+		LOCTEXT("ActorDetails", "Details"),
+		LOCTEXT("ActorDetailsTooltip", "Details"),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Details"),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::OnUIToggleButtonClicked, VRMode, UVREditorUISystem::EEditorUIPanel::ActorDetails),
+			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::DefaultCanExecuteAction),
+			FGetActionCheckState::CreateStatic(&FVREditorActionCallbacks::GetUIToggledState, VRMode, UVREditorUISystem::EEditorUIPanel::ActorDetails)
+			),
+		NAME_None,
+		EUserInterfaceActionType::Check
+		);
+	InterfaceMenuBuilder.AddMenuEntry(
+		LOCTEXT("ContentBrowser", "Content Browser"),
+		LOCTEXT("ContentBrowserTooltip", "Content Browser"),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.ContentBrowser"),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::OnUIToggleButtonClicked, VRMode, UVREditorUISystem::EEditorUIPanel::ContentBrowser),
+			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::DefaultCanExecuteAction),
+			FGetActionCheckState::CreateStatic(&FVREditorActionCallbacks::GetUIToggledState, VRMode, UVREditorUISystem::EEditorUIPanel::ContentBrowser)
+			),
+		NAME_None,
+		EUserInterfaceActionType::Check
+		);
+	InterfaceMenuBuilder.AddMenuEntry(
+		LOCTEXT("Modes", "Modes"),
+		LOCTEXT("ModesTooltip", "Modes"),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Modes"),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::OnUIToggleButtonClicked, VRMode, UVREditorUISystem::EEditorUIPanel::Modes),
+			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::DefaultCanExecuteAction),
+			FGetActionCheckState::CreateStatic(&FVREditorActionCallbacks::GetUIToggledState, VRMode, UVREditorUISystem::EEditorUIPanel::Modes)
+			),
+		NAME_None,
+		EUserInterfaceActionType::Check
+		);
+	InterfaceMenuBuilder.AddMenuEntry(
+		LOCTEXT("WorldOutliner", "World Outliner"),
+		LOCTEXT("WorldOutlinerTooltip", "World Outliner"),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Outliner"),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::OnUIToggleButtonClicked, VRMode, UVREditorUISystem::EEditorUIPanel::WorldOutliner),
+			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::DefaultCanExecuteAction),
+			FGetActionCheckState::CreateStatic(&FVREditorActionCallbacks::GetUIToggledState, VRMode, UVREditorUISystem::EEditorUIPanel::WorldOutliner)
+			),
+		NAME_None,
+		EUserInterfaceActionType::Check
+		);
+	InterfaceMenuBuilder.AddMenuEntry(
+		LOCTEXT("AssetEditor", "Asset Editor"),
+		LOCTEXT("AssetEditorTooltip", "Asset Editor"),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::OnUIToggleButtonClicked, VRMode, UVREditorUISystem::EEditorUIPanel::AssetEditor),
+			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::DefaultCanExecuteAction),
+			FGetActionCheckState::CreateStatic(&FVREditorActionCallbacks::GetUIToggledState, VRMode, UVREditorUISystem::EEditorUIPanel::AssetEditor)
+			),
+		NAME_None,
+		EUserInterfaceActionType::Check
+		);
+	InterfaceMenuBuilder.AddMenuEntry(
+		LOCTEXT("Tutorial", "Tutorial"),
+		LOCTEXT("TutorialTooltip", "Tutorial"),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "Tutorials.Browser.DefaultTutorialIcon"),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::OnUIToggleButtonClicked, VRMode, UVREditorUISystem::EEditorUIPanel::Tutorial),
+			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::DefaultCanExecuteAction),
+			FGetActionCheckState::CreateStatic(&FVREditorActionCallbacks::GetUIToggledState, VRMode, UVREditorUISystem::EEditorUIPanel::Tutorial)
+			),
+		NAME_None,
+		EUserInterfaceActionType::Check
+		);
+	InterfaceMenuBuilder.AddMenuEntry(
+		LOCTEXT("WorldSettings", "World Settings"),
+		LOCTEXT("WorldSettingsTooltip", "World Settings"),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.WorldProperties.Tab"),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::OnUIToggleButtonClicked, VRMode, UVREditorUISystem::EEditorUIPanel::WorldSettings),
+			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::DefaultCanExecuteAction),
+			FGetActionCheckState::CreateStatic(&FVREditorActionCallbacks::GetUIToggledState, VRMode, UVREditorUISystem::EEditorUIPanel::WorldSettings)
+			),
+		NAME_None,
+		EUserInterfaceActionType::Check
+		);
+	InterfaceMenuBuilder.AddMenuEntry(
+		LOCTEXT("ToggleAllUI", "Toggle All UI"),
+		LOCTEXT("ToggleAllUITooltip", "ToggleAllUI"),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateUObject(this, &UVREditorUISystem::TogglePanelsVisibility),
+			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::DefaultCanExecuteAction)
+			)
+		);
+	
+
+	TSharedRef<SWidget> InterfaceMenuWidget = InterfaceMenuBuilder.MakeWidget(&VREditorMenuBuilderOverride);
+
+	// Next Menu section: Gizmo
+	CommandList = MakeShareable(new FUICommandList());
+	FMenuBuilder GizmoMenuBuilder(false, CommandList, MenuExtender);
+
+	TAttribute<FText> DynamicGizmoCoordinateSystemLabel;
+	DynamicGizmoCoordinateSystemLabel.BindStatic(&FVREditorActionCallbacks::GetGizmoCoordinateSystemText);
+	GizmoMenuBuilder.AddMenuEntry(
+		DynamicGizmoCoordinateSystemLabel,
+		LOCTEXT("GizmoCoordinateTooltip", "Toggle Gizmo Coordinates"),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::OnGizmoCoordinateSystemButtonClicked, VRMode),
+			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::DefaultCanExecuteAction)
+			)
+		);
+	TAttribute<FText> DynamicGizmoModeLabel;
+	DynamicGizmoModeLabel.BindStatic(&FVREditorActionCallbacks::GetGizmoModeText);
+	GizmoMenuBuilder.AddMenuEntry(
+		DynamicGizmoModeLabel,
+		LOCTEXT("GizmoModeTooltip", "Toggle Gizmo Mode"),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::OnGizmoModeButtonClicked, VRMode),
+			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::DefaultCanExecuteAction)
+			)
+		);
+	GizmoMenuBuilder.AddMenuEntry(
+		LOCTEXT("CycleGizmo", "Cycle Gizmo"),
+		LOCTEXT("CycleGizmoTooltip", "Cycle Gizmo"),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::OnGizmoCycle, VRMode),
+			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::DefaultCanExecuteAction)
+			)
+		);
+
+	TSharedRef<SWidget> GizmoMenuWidget = GizmoMenuBuilder.MakeWidget(&VREditorMenuBuilderOverride);
+
+	// Next Menu section: Extras
+	CommandList = MakeShareable(new FUICommandList());
+	FMenuBuilder ExtrasMenuBuilder(false, CommandList, MenuExtender);
+
+
+	ExtrasMenuBuilder.AddMenuEntry(
+		LOCTEXT("Screenshot", "Screenshot"),
+		LOCTEXT("ScreenshotTooltip", "Screenshot"),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::OnScreenshotButtonClicked, VRMode),
+			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::DefaultCanExecuteAction)
+			)
+		);
+	ExtrasMenuBuilder.AddMenuEntry(
+		LOCTEXT("Flashlight", "Flashlight"),
+		LOCTEXT("FlashlightTooltip", "Flashlight"),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::OnLightButtonClicked, VRMode),
+			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::DefaultCanExecuteAction),
+			FGetActionCheckState::CreateStatic(&FVREditorActionCallbacks::GetFlashlightState, VRMode)
+			),
+		NAME_None,
+		EUserInterfaceActionType::Check
+		);
+	ExtrasMenuBuilder.AddMenuEntry(
+		LOCTEXT("PlayInEditor", "Play"),
+		LOCTEXT("PlayTooltip", "Play"),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::OnPlayButtonClicked, VRMode),
+			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::DefaultCanExecuteAction)
+			)
+		);
+	TSharedRef<SWidget> ExtrasMenuWidget = ExtrasMenuBuilder.MakeWidget(&VREditorMenuBuilderOverride);
+	const FSlateBrush* NoBorderBrush = FStyleDefaults::GetNoBrush();
+	TSharedRef<SWidget> MenuWidget = SNew(SBox)
+		.VAlign(VAlign_Top)
+		.HAlign(HAlign_Center)
+		[
+			SNew(SDPIScaler)
+			.DPIScale(3)
+			[
+				SNew(SVerticalBox)
+				+SVerticalBox::Slot()
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Bottom)
+				[
+					SNew(STextBlock)
+					.Justification(ETextJustify::Center)
+					.Text(LOCTEXT("GridSnap", "Grid Snap"))
+					.TextStyle(FVREditorStyle::Get(),"VREditorStyle.Heading")
+				]
+				+ SVerticalBox::Slot()
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Top)
+				.AutoHeight()
+				[
+					SnapMenuWidget
+				]
+				+ SVerticalBox::Slot()
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Bottom)
+				[
+					SNew(STextBlock)
+					.Justification(ETextJustify::Center)
+					.Text(LOCTEXT("Interface", "Interface"))
+					.TextStyle(FVREditorStyle::Get(), "VREditorStyle.Heading")
+				]
+				+ SVerticalBox::Slot()
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Top)
+				.AutoHeight()
+				[
+					InterfaceMenuWidget
+				]
+				+ SVerticalBox::Slot()
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Bottom)
+				[
+					SNew(STextBlock)
+					.Justification(ETextJustify::Center)
+					.Text(LOCTEXT("VRTools", "Tools"))
+					.TextStyle(FVREditorStyle::Get(), "VREditorStyle.Heading")
+				]
+				+ SVerticalBox::Slot()
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Top)
+				.AutoHeight()
+				[
+					ExtrasMenuWidget
+				]
+				+ SVerticalBox::Slot()
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Bottom)
+				[
+					SNew(STextBlock)
+					.Justification(ETextJustify::Center)
+					.Text(LOCTEXT("Gizmo", "Gizmo"))
+					.TextStyle(FVREditorStyle::Get(), "VREditorStyle.Heading")
+				]
+				+ SVerticalBox::Slot()
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Top)
+				.AutoHeight()
+				[
+					GizmoMenuWidget
+				]
+			]
+		]
+	;
+
+
+	return MenuWidget;
+}
+
+
+
+TSharedRef<SWidget> UVREditorUISystem::BuildRadialMenuWidget()
+{
+
+	FMultiBox::FOnMakeMultiBoxBuilderOverride VREditorMenuBuilderOverride;
+	VREditorMenuBuilderOverride.BindUObject(this, &UVREditorUISystem::MakeRadialBoxMenu);
+	const TSharedRef<FExtender> MenuExtender = MakeShareable(new FExtender());
+	TSharedPtr<FUICommandList> CommandList = MakeShareable(new FUICommandList());
+	FMenuBarBuilder MenuBuilder(CommandList, MenuExtender);
+
+	FVREditorActionCallbacks::UpdateGizmoCoordinateSystemText(VRMode);
+	FVREditorActionCallbacks::UpdateGizmoModeText(VRMode);
+
+	// First menu entry is at 90 degrees 
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("Delete", "Delete"),
+		LOCTEXT("DeleteTooltip", "Delete"),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::ExecuteExecCommand, FString(TEXT("DELETE"))),
+			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::Delete_CanExecute)
+		)
+	);
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("Cut", "Cut"),
+		LOCTEXT("CutTooltip", "Cut"),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::ExecuteExecCommand, FString(TEXT("EDIT CUT"))),
+			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::Cut_CanExecute)
+		)
+		);
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("Copy", "Copy"),
+		LOCTEXT("CopyTooltip", "Copy"),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::ExecuteExecCommand, FString(TEXT("EDIT COPY"))),
+			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::Copy_CanExecute)
+		)
+	);
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("Duplicate", "Duplicate"),
+		LOCTEXT("DuplicateTooltip", "Duplicate"),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::ExecuteExecCommand, FString(TEXT("DUPLICATE"))),
+			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::Duplicate_CanExecute)
+		)
+	);
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("Paste", "Paste"),
+		LOCTEXT("PasteTooltip", "Paste"),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::ExecuteExecCommand, FString(TEXT("EDIT PASTE"))),
+			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::Paste_CanExecute)
+		)
+	);
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("Undo", "Undo"),
+		LOCTEXT("UndoTooltip", "Undo"),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::ExecuteExecCommand, FString(TEXT("TRANSACTION UNDO"))),
+			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::DefaultCanExecuteAction)
+			)
+		);
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("SnapActorsToGround", "Snap Actors To Ground"),
+		LOCTEXT("SnapActorsToGroundTooltip", "Snap Actors To Ground"),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::OnSnapActorsToGroundClicked, VRMode),
+			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::Copy_CanExecute)
+		)
+	);
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("Redo", "Redo"),
+		LOCTEXT("RedoTooltip", "Redo"),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::ExecuteExecCommand, FString(TEXT("TRANSACTION REDO"))),
+			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::DefaultCanExecuteAction)
+			)
+		);
+
+
+	// Create the menu widget
+	TSharedRef<SWidget> MenuWidget = MenuBuilder.MakeWidget(&VREditorMenuBuilderOverride);
+	return MenuWidget;
+}
+
+const TSharedRef<SWidget>& UVREditorUISystem::FindWidgetOfType(const TSharedRef<SWidget>& Content, FName WidgetType)
+{
+	if (Content->GetType() == WidgetType)
+	{
+		return Content;
+	}
+
+	FChildren* Children = Content->GetChildren();
+	int32 NumChildren = Children->Num();
+
+	for (int32 Index = 0; Index < NumChildren; ++Index)
+	{
+		const TSharedRef<SWidget>& Found = FindWidgetOfType((Children->GetChildAt(Index)), WidgetType);
+		if (Found != SNullWidget::NullWidget)
+		{
+			return Found;
+		}
+	}
+	return SNullWidget::NullWidget;
+}
+
+void UVREditorUISystem::OnHoverBeginEffect(TSharedRef<SButton> Button)
+{
+	FVRButton* ButtonToAnimate = VRButtons.FindByPredicate([&Button](const FVRButton& ButtonData)
+	{
+		return Button == ButtonData.Button;
+	});
+
+	check(ButtonToAnimate);
+
+	//Set the newly hovered button's animation state to Forward
+	ButtonToAnimate->AnimationDirection = EVREditorAnimationState::Forward;
+
+	// Put the button in the higher z-order overlay slot
+	const TSharedRef<SWidget>& PlaceholderWidget = ButtonToAnimate->HoverSlot->DetachWidget().ToSharedRef();
+	const TSharedRef<SWidget>& WidgetToTransfer = ButtonToAnimate->BaseSlot->DetachWidget().ToSharedRef();
+	ButtonToAnimate->HoverSlot->AttachWidget(WidgetToTransfer);
+	ButtonToAnimate->BaseSlot->AttachWidget(PlaceholderWidget);
+}
+
+void UVREditorUISystem::OnHoverEndEffect(TSharedRef<SButton> Button)
+{
+	FVRButton* ButtonToAnimate = VRButtons.FindByPredicate([&Button](const FVRButton& ButtonData)
+	{
+		return Button == ButtonData.Button;
+	});
+
+	check(ButtonToAnimate);
+
+	// Set the unhovered button's animation state to Backward
+	ButtonToAnimate->AnimationDirection = EVREditorAnimationState::Backward;
+	// Put the button back in the lower z-order slot
+	TSharedRef<SWidget> PlaceholderWidget = (ButtonToAnimate->BaseSlot->DetachWidget()).ToSharedRef();
+	TSharedRef<SWidget> WidgetToTransfer = (ButtonToAnimate->HoverSlot->DetachWidget()).ToSharedRef();
+	ButtonToAnimate->BaseSlot->AttachWidget(WidgetToTransfer);
+	ButtonToAnimate->HoverSlot->AttachWidget(PlaceholderWidget);
+}
+
+const TSharedPtr<SWidget>& UVREditorUISystem::GetRadialWidget()
+{
+	return RadialWidget;
+}
+
+#undef LOCTEXT_NAMESPACE

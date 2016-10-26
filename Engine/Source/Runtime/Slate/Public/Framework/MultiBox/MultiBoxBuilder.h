@@ -4,7 +4,7 @@
 
 #include "MultiBoxExtender.h"
 #include "SlateDelegates.h"
-
+#include "MultiBox.h"
 
 class FUICommandInfo;
 class FUICommandList;
@@ -53,7 +53,7 @@ public:
 	 *
 	 * @return  New widget object
 	 */
-	virtual TSharedRef< class SWidget > MakeWidget();
+	virtual TSharedRef< class SWidget > MakeWidget( FMultiBox::FOnMakeMultiBoxBuilderOverride* InMakeMultiBoxBuilderOverride = nullptr );
 	
 
 	/** 
@@ -210,7 +210,7 @@ public:
 	*
 	* @return  New widget object
 	*/
-	virtual TSharedRef< class SWidget > MakeWidget() override;
+	virtual TSharedRef< class SWidget > MakeWidget( FMultiBox::FOnMakeMultiBoxBuilderOverride* InMakeMultiBoxBuilderOverride = nullptr ) override;
 
 	/**
 	 * Adds a menu separator

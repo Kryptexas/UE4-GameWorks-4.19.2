@@ -14,6 +14,9 @@
 #include "MotionControllerComponent.h"
 #include "Features/IModularFeatures.h"
 
+#include "SVRRadialPanel.h"
+#include "VREditorWidgetComponent.h"
+
 namespace VREd
 {
 	//Laser
@@ -43,7 +46,6 @@ namespace VREd
 	static FAutoConsoleVariable InvertTrackpadVertical( TEXT( "VREd.InvertTrackpadVertical" ), 1, TEXT( "Toggles inverting the touch pad vertical axis" ) );
 	static FAutoConsoleVariable TriggerLightlyPressedLockTime( TEXT( "VREd.TriggerLightlyPressedLockTime" ), 0.15f, TEXT( "If the trigger remains lightly pressed for longer than this, we'll continue to treat it as a light press in some cases" ) );
 	static FAutoConsoleVariable MinVelocityForInertia( TEXT( "VREd.MinVelocityForMotionControllerInertia" ), 1.0f, TEXT( "Minimum velocity (in cm/frame in unscaled room space) before inertia will kick in when releasing objects (or the world)" ) );
-	static FAutoConsoleVariable MinJoystickOffsetBeforeRadialMenu( TEXT( "VREd.MinJoystickOffsetBeforeRadialMenu" ), 0.15f, TEXT( "Toggles inverting the touch pad vertical axis" ) );
 
 	static FAutoConsoleVariable HelpLabelFadeDuration( TEXT( "VREd.HelpLabelFadeDuration" ), 0.4f, TEXT( "Duration to fade controller help labels in and out" ) );
 	static FAutoConsoleVariable HelpLabelFadeDistance( TEXT( "VREd.HelpLabelFadeDistance" ), 30.0f, TEXT( "Distance at which controller help labels should appear (in cm)" ) );
@@ -121,8 +123,6 @@ void UVREditorMotionControllerInteractor::Init( class UVREditorMode* InVRMode )
 		AddKeyAction( EKeys::MotionController_Left_Grip1, FViewportActionKeyInput( ViewportWorldActionTypes::WorldMovement ) );
 		AddKeyAction( UVREditorMotionControllerInteractor::MotionController_Left_FullyPressedTriggerAxis, FViewportActionKeyInput( ViewportWorldActionTypes::SelectAndMove ) );
 		AddKeyAction( UVREditorMotionControllerInteractor::MotionController_Left_LightlyPressedTriggerAxis, FViewportActionKeyInput( ViewportWorldActionTypes::SelectAndMove_LightlyPressed ) );
-		AddKeyAction( EKeys::MotionController_Left_Thumbstick, FViewportActionKeyInput( VRActionTypes::ConfirmRadialSelection ) );
-
 		AddKeyAction( SteamVRControllerKeyNames::Touch0, FViewportActionKeyInput( VRActionTypes::Touch ) );
 		AddKeyAction( EKeys::MotionController_Left_TriggerAxis, FViewportActionKeyInput( UVREditorMotionControllerInteractor::TriggerAxis ) );
 		AddKeyAction( EKeys::MotionController_Left_Thumbstick_X, FViewportActionKeyInput( UVREditorMotionControllerInteractor::TrackpadPositionX ) );
@@ -324,7 +324,7 @@ void UVREditorMotionControllerInteractor::Tick( const float DeltaTime )
 		}
 	}
 
-	UpdateRadialMenuInput( DeltaTime );
+	UpdateRadialMenuInput(DeltaTime);
 
 	{
 		const float WorldScaleFactor = WorldInteraction->GetWorldScaleFactor();
@@ -1279,24 +1279,11 @@ void UVREditorMotionControllerInteractor::UpdateRadialMenuInput( const float Del
 		!UISystem.IsInteractorDraggingDockUI( this ) &&
 		!UISystem.IsShowingRadialMenu( Cast<UVREditorInteractor>( OtherInteractor ) ) )
 	{
-		const EHMDDeviceType::Type HMDDevice = GetHMDDeviceType();
-
-		// Spawn the radial menu if we are using the touchpad for steamvr or the analog stick for the oculus
-		if ( ( HMDDevice == EHMDDeviceType::DT_SteamVR && bIsTouchingTrackpad ) ||
-			( HMDDevice == EHMDDeviceType::DT_OculusRift && TrackpadPosition.Size() > VREd::MinJoystickOffsetBeforeRadialMenu->GetFloat() ) )
-		{
-			UISystem.TryToSpawnRadialMenu( this );
-		}
-		else
-		{
-			// Hide it if we are not using the touchpad or analog stick
-			UISystem.HideRadialMenu( this );
-		}
-
 		// Update the radial menu if we are already showing the radial menu
 		if ( UISystem.IsShowingRadialMenu( this ) )
 		{
-			UISystem.UpdateRadialMenu( this );
+			const TSharedPtr<SRadialBox>& RadialBox = StaticCastSharedPtr<SRadialBox>(UISystem.GetRadialWidget());
+			RadialBox->HighlightSlot(TrackpadPosition);
 		}
 	}
 }

@@ -80,9 +80,9 @@ FMultiBoxCustomization FMultiBoxBuilder::GetCustomization() const
 	return FMultiBoxCustomization( MultiBox->GetCustomizationName() ); 
 }
 
-TSharedRef< class SWidget > FMultiBoxBuilder::MakeWidget()
+TSharedRef< class SWidget > FMultiBoxBuilder::MakeWidget( FMultiBox::FOnMakeMultiBoxBuilderOverride* InMakeMultiBoxBuilderOverride /* = nullptr */ )
 {
-	return MultiBox->MakeWidget( false );
+	return MultiBox->MakeWidget( false, InMakeMultiBoxBuilderOverride );
 }
 
 TSharedRef< class FMultiBox > FMultiBoxBuilder::GetMultiBox()
@@ -163,10 +163,10 @@ void FBaseMenuBuilder::AddMenuEntry( const FUIAction& UIAction, const TSharedRef
 	ApplyHook(InExtensionHook, EExtensionHook::After);
 }
 
-TSharedRef< class SWidget > FMenuBuilder::MakeWidget()
+TSharedRef< class SWidget > FMenuBuilder::MakeWidget( FMultiBox::FOnMakeMultiBoxBuilderOverride* InMakeMultiBoxBuilderOverride /* = nullptr */ )
 {
 	// Make menu builders searchable
-	return MultiBox->MakeWidget( true );
+	return MultiBox->MakeWidget( true, InMakeMultiBoxBuilderOverride );
 }
 
 void FMenuBuilder::BeginSection( FName InExtensionHook, const TAttribute< FText >& InHeadingText )
