@@ -261,10 +261,14 @@ UBillboardComponent::UBillboardComponent(const FObjectInitializer& ObjectInitial
 		{
 		}
 	};
+
+
+#if WITH_EDITORONLY_DATA
 	static FConstructorStatics ConstructorStatics;
+	Sprite = ConstructorStatics.SpriteTexture.Object;
+#endif
 
 	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
-	Sprite = ConstructorStatics.SpriteTexture.Object;
 	bAbsoluteScale = true;
 
 	bIsScreenSizeScaled = false;

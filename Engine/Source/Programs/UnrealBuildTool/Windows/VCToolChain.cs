@@ -143,8 +143,8 @@ namespace UnrealBuildTool
 						break;
 
 					case WindowsCompiler.VisualStudio2017:
-						VersionString = "19.0";
-						FullVersionString = "1900";
+						VersionString = "19.1";
+						FullVersionString = "1910";
 						break;
 
 					default:

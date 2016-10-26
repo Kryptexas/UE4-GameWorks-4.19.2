@@ -971,6 +971,7 @@ void FUnrealEdMisc::CB_RedrawAllViewports()
 void FUnrealEdMisc::CB_LevelActorsAdded(AActor* InActor)
 {
 	if (!GIsEditorLoadingPackage &&
+		!GIsCookerLoadingPackage &&
 		FEngineAnalytics::IsAvailable() &&
 		InActor &&
 		InActor->GetWorld() == GUnrealEd->GetEditorWorldContext().World() &&

@@ -11,6 +11,9 @@ class UK2Node_AddComponent : public UK2Node_CallFunction
 {
 	GENERATED_UCLASS_BODY()
 
+	/** Prefix used for component template object name. */
+	BLUEPRINTGRAPH_API static const FString ComponentTemplateNamePrefix;
+
 	UPROPERTY()
 	uint32 bHasExposedVariable:1;
 
@@ -19,6 +22,7 @@ class UK2Node_AddComponent : public UK2Node_CallFunction
 	FString TemplateBlueprint;
 
 	//~ Begin UObject Interface
+	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 	//~ End UObject Interface
 
@@ -65,6 +69,10 @@ class UK2Node_AddComponent : public UK2Node_CallFunction
 
 	/** Static name of function to call */
 	static BLUEPRINTGRAPH_API FName GetAddComponentFunctionName();
+
+protected:
+	/** Helper method used to generate a new, unique component template name. */
+	static FName MakeNewComponentTemplateName(UObject* InOuter, UClass* InComponentClass);
 
 private: 
 	UEdGraphPin* GetTemplateNamePin() const

@@ -178,7 +178,8 @@ FEdModeLandscape::FEdModeLandscape()
 	, LandscapeRenderAddCollision(nullptr)
 	, CachedLandscapeMaterial(nullptr)
 	, ToolActiveViewport(nullptr)
-	, bIsPainting(false)
+	, bIsPaintingInVR(false)
+	, InteractorPainting( nullptr )
 {
 	GLayerDebugColorMaterial = LandscapeTool::CreateMaterialInstance(LoadObject<UMaterial>(nullptr, TEXT("/Engine/EditorLandscapeResources/LayerVisMaterial.LayerVisMaterial")));
 	GSelectionColorMaterial  = LandscapeTool::CreateMaterialInstance(LoadObject<UMaterialInstanceConstant>(nullptr, TEXT("/Engine/EditorLandscapeResources/SelectBrushMaterial_Selected.SelectBrushMaterial_Selected")));
@@ -246,6 +247,8 @@ FEdModeLandscape::~FEdModeLandscape()
 	GSelectionRegionMaterial = NULL;
 	GMaskRegionMaterial = NULL;
 	GLandscapeBlackTexture = NULL;
+
+	InteractorPainting = nullptr;
 }
 
 /** FGCObject interface */
@@ -564,32 +567,35 @@ void FEdModeLandscape::Exit()
 
 void FEdModeLandscape::OnVRHoverUpdate(FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, FVector& HoverImpactPoint, bool& bWasHandled)
 {
-	UVREditorMode* VREditorMode = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(ViewportClient.GetWorld())->GetVREditorMode();
-	if (VREditorMode != nullptr && VREditorMode->IsActive() && Interactor != nullptr)
+	if( InteractorPainting != nullptr && InteractorPainting == Interactor )
 	{
-		const UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>(Interactor);
-		const bool bIsHoveringOverUIVR = VRInteractor->IsHoveringOverUI();
-
-		if (!bIsHoveringOverUIVR && CurrentTool && (CurrentTool->GetSupportedTargetTypes() == ELandscapeToolTargetTypeMask::NA || CurrentToolTarget.TargetType != ELandscapeToolTargetType::Invalid))
+		UVREditorMode* VREditorMode = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper( ViewportClient.GetWorld() )->GetVREditorMode();
+		if( VREditorMode != nullptr && VREditorMode->IsActive() && Interactor != nullptr )
 		{
-			FVector HitLocation;
-			FVector LaserPointerStart, LaserPointerEnd;
-			if (Interactor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd))
-			{
-				if (LandscapeTrace(&ViewportClient, LaserPointerStart, LaserPointerEnd, HitLocation))
-				{
-					if (bIsPainting && !(CurrentToolTarget.TargetType == ELandscapeToolTargetType::Weightmap && CurrentToolTarget.LayerInfo == NULL))
-					{
-						if( CurrentTool->BeginTool(&ViewportClient, CurrentToolTarget, HitLocation, Interactor) )
-						{
-							ToolActiveViewport = ViewportClient.Viewport;
-						}
-					}
+			const UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>( Interactor );
+			const bool bIsHoveringOverUIVR = VRInteractor->IsHoveringOverUI();
 
-					if (CurrentBrush)
+			if( !bIsHoveringOverUIVR && CurrentTool && ( CurrentTool->GetSupportedTargetTypes() == ELandscapeToolTargetTypeMask::NA || CurrentToolTarget.TargetType != ELandscapeToolTargetType::Invalid ) )
+			{
+				FVector HitLocation;
+				FVector LaserPointerStart, LaserPointerEnd;
+				if( Interactor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd ) )
+				{
+					if( LandscapeTrace( &ViewportClient, LaserPointerStart, LaserPointerEnd, HitLocation ) )
 					{
-						// Inform the brush of the current location, to update the cursor
-						CurrentBrush->MouseMove(HitLocation.X, HitLocation.Y);
+						if( bIsPaintingInVR && !( CurrentToolTarget.TargetType == ELandscapeToolTargetType::Weightmap && CurrentToolTarget.LayerInfo == NULL ) )
+						{
+							if( CurrentTool->BeginTool( &ViewportClient, CurrentToolTarget, HitLocation, Interactor ) )
+							{
+								ToolActiveViewport = ViewportClient.Viewport;
+							}
+						}
+
+						if( CurrentBrush )
+						{
+							// Inform the brush of the current location, to update the cursor
+							CurrentBrush->MouseMove( HitLocation.X, HitLocation.Y );
+						}
 					}
 				}
 			}
@@ -634,9 +640,11 @@ void FEdModeLandscape::OnVRAction(FEditorViewportClient& ViewportClient, UViewpo
 								}
 							}
 
-							bIsPainting = true;
+							bIsPaintingInVR = true;
 							bWasHandled = true;
 							bOutIsInputCaptured = false;
+
+							InteractorPainting = Interactor;
 						}
 					}
 				}
@@ -650,7 +658,8 @@ void FEdModeLandscape::OnVRAction(FEditorViewportClient& ViewportClient, UViewpo
 					CurrentTool->EndTool(&ViewportClient);
 					ToolActiveViewport = nullptr;
 				}
-				bIsPainting = false;
+
+				bIsPaintingInVR = false;
 			}
 		}
 	}
@@ -669,7 +678,7 @@ void FEdModeLandscape::Tick(FEditorViewportClient* ViewportClient, float DeltaTi
 
 	FViewport* const Viewport = ViewportClient->Viewport;
 
-	if (ToolActiveViewport && ToolActiveViewport == Viewport && ensure(CurrentTool))
+	if (ToolActiveViewport && ToolActiveViewport == Viewport && ensure(CurrentTool) && !bIsPaintingInVR)
 	{
 		// Require Ctrl or not as per user preference
 		const ELandscapeFoliageEditorControlType LandscapeEditorControlType = GetDefault<ULevelEditorViewportSettings>()->LandscapeEditorControlType;
@@ -729,7 +738,7 @@ bool FEdModeLandscape::MouseMove(FEditorViewportClient* ViewportClient, FViewpor
 {
 	// due to mouse capture this should only ever be called on the active viewport
 	// if it ever gets called on another viewport the mouse has been released without us picking it up
-	if (ToolActiveViewport && ensure(CurrentTool))
+	if (ToolActiveViewport && ensure(CurrentTool) && !bIsPaintingInVR)
 	{
 		// Require Ctrl or not as per user preference
 		const ELandscapeFoliageEditorControlType LandscapeEditorControlType = GetDefault<ULevelEditorViewportSettings>()->LandscapeEditorControlType;

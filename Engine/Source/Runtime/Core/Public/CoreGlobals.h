@@ -269,6 +269,9 @@ extern CORE_API bool(*IsAsyncLoadingMultithreaded)();
 /** Whether the editor is currently loading a package or not */
 extern CORE_API bool GIsEditorLoadingPackage;
 
+/** Whether the cooker is currently loading a package or not */
+extern CORE_API bool GIsCookerLoadingPackage;
+
 /** Whether GWorld points to the play in editor world */
 extern CORE_API bool GIsPlayInEditorWorld;
 

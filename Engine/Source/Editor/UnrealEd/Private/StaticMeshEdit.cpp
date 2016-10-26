@@ -1151,10 +1151,6 @@ void RestoreExistingMeshData(ExistingStaticMeshData* ExistingMeshDataPtr, UStati
 		
 		for(int32 i=NumCommonLODs; i < ExistingMeshDataPtr->ExistingLODData.Num(); ++i)
 		{
-			//if (ExistingMeshDataPtr->ExistingLODData[i].ExistingMaterials.Num() > 0)
-			//{
-				//NewMesh->StaticMaterials.Append(ExistingMeshDataPtr->ExistingLODData[i].ExistingMaterials);
-			//}
 
 			FStaticMeshSourceModel* SrcModel = new(NewMesh->SourceModels) FStaticMeshSourceModel();
 

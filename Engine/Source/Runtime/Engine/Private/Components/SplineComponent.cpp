@@ -154,7 +154,8 @@ void USplineComponent::UpdateSpline()
 	// Ensure splines' looping status matches with that of the spline component
 	if (bClosedLoop)
 	{
-		const float LoopKey = bLoopPositionOverride ? LoopPosition : SplineCurves.Position.Points.Last().InVal + 1.0f;
+		const float LastKey = SplineCurves.Position.Points.Num() > 0 ? SplineCurves.Position.Points.Last().InVal : 0.0f;
+		const float LoopKey = bLoopPositionOverride ? LoopPosition : LastKey + 1.0f;
 		SplineCurves.Position.SetLoopKey(LoopKey);
 		SplineCurves.Rotation.SetLoopKey(LoopKey);
 		SplineCurves.Scale.SetLoopKey(LoopKey);

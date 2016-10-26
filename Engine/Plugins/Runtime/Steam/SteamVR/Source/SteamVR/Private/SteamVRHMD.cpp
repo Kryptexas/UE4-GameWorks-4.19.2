@@ -63,7 +63,7 @@ class FSteamVRPlugin : public ISteamVRPlugin
 	}
 
 public:
-	FSteamVRPlugin::FSteamVRPlugin()
+	FSteamVRPlugin()
 #if !STEAMVR_SUPPORTED_PLATFORMS
 	{
 	}
@@ -565,6 +565,7 @@ float FSteamVRHMD::GetWorldToMetersScale() const
 
 ESteamVRTrackedDeviceType FSteamVRHMD::GetTrackedDeviceType(uint32 DeviceId) const
 {
+	check(VRSystem != nullptr);
 	vr::TrackedDeviceClass DeviceClass = VRSystem->GetTrackedDeviceClass(DeviceId);
 
 	switch (DeviceClass)
@@ -584,6 +585,10 @@ ESteamVRTrackedDeviceType FSteamVRHMD::GetTrackedDeviceType(uint32 DeviceId) con
 void FSteamVRHMD::GetTrackedDeviceIds(ESteamVRTrackedDeviceType DeviceType, TArray<int32>& TrackedIds) const
 {
 	TrackedIds.Empty();
+	if (VRSystem == nullptr)
+	{
+		return;
+	}
 
 	const FTrackingFrame& TrackingFrame = GetTrackingFrame();
 	for (uint32 i = 0; i < vr::k_unMaxTrackedDeviceCount; ++i)
@@ -883,6 +888,23 @@ bool FSteamVRHMD::OnStartGameFrame(FWorldContext& WorldContext)
 	{
 		bShouldCheckHMDPosition = false;
 		Shutdown();
+
+#if WITH_EDITOR
+		if (GIsEditor)
+		{
+			FSceneViewport* SceneVP = FindSceneViewport();
+			if (SceneVP && SceneVP->IsStereoRenderingAllowed())
+			{
+				TSharedPtr<SWindow> Window = SceneVP->FindWindow();
+				Window->RequestDestroyWindow();
+			}
+		}
+		else
+#endif//WITH_EDITOR
+		{
+			// ApplicationWillTerminateDelegate will fire from inside of the RequestExit
+			FPlatformMisc::RequestExit(false);
+		}
 	}
 
 	// If the HMD is being interacted with, but we haven't decided the HMD is worn yet.  

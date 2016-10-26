@@ -1784,15 +1784,13 @@ void UHierarchicalInstancedStaticMeshComponent::FlushAsyncBuildInstanceBufferTas
 void UHierarchicalInstancedStaticMeshComponent::Serialize(FArchive& Ar)
 {
 	// On save, if we have a pending async build we should wait for it to complete rather than saving an incomplete tree
-/*
 	if (Ar.IsSaving())
 	{
-		if (bIsAsyncBuilding)
+		if (!IsTreeFullyBuilt())
 		{
 			BuildTree();
 		}
 	}
-*/
 
 	Super::Serialize(Ar);
 
@@ -2125,6 +2123,8 @@ void UHierarchicalInstancedStaticMeshComponent::PostBuildStats()
 
 void UHierarchicalInstancedStaticMeshComponent::BuildTree()
 {
+	checkSlow(IsInGameThread());
+
 	// If we try to build the tree with the static mesh not fully loaded, we can end up in an inconsistent state which ends in a crash later
 	checkSlow(!GetStaticMesh() || !GetStaticMesh()->HasAnyFlags(RF_NeedPostLoad));
 
@@ -2222,6 +2222,8 @@ void UHierarchicalInstancedStaticMeshComponent::BuildTreeAnyThread(
 
 void UHierarchicalInstancedStaticMeshComponent::AcceptPrebuiltTree(TArray<FClusterNode>& InClusterTree, int InOcclusionLayerNumNodes)
 {
+	checkSlow(IsInGameThread());
+
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_UHierarchicalInstancedStaticMeshComponent_AcceptPrebuiltTree);
 	// this is only for prebuild data, already in the correct order
 	check(!PerInstanceSMData.Num());
@@ -2269,6 +2271,8 @@ void UHierarchicalInstancedStaticMeshComponent::AcceptPrebuiltTree(TArray<FClust
 
 void UHierarchicalInstancedStaticMeshComponent::ApplyBuildTreeAsync(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent, TSharedRef<FClusterBuilder, ESPMode::ThreadSafe> Builder, double StartTime)
 {
+	checkSlow(IsInGameThread());
+
 	bIsAsyncBuilding = false;
 
 	if (bDiscardAsyncBuildResults)
@@ -2335,6 +2339,8 @@ void UHierarchicalInstancedStaticMeshComponent::ApplyBuildTreeAsync(ENamedThread
 
 void UHierarchicalInstancedStaticMeshComponent::BuildTreeAsync()
 {
+	checkSlow(IsInGameThread());
+
 	// If we try to build the tree with the static mesh not fully loaded, we can end up in an inconsistent state which ends in a crash later
 	checkSlow(!GetStaticMesh() || !GetStaticMesh()->HasAnyFlags(RF_NeedPostLoad));
 

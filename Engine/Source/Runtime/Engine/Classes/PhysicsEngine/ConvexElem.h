@@ -45,6 +45,23 @@ struct FKConvexElem : public FKShapeElem
 		, ConvexMeshNegX(NULL)
 	{}
 
+	FKConvexElem(const FKConvexElem& Other)
+		: ConvexMesh(nullptr)
+		, ConvexMeshNegX(nullptr)
+	{
+		CloneElem(Other);
+	}
+
+	const FKConvexElem& operator=(const FKConvexElem& Other)
+	{
+		ensureMsgf(ConvexMesh == nullptr, TEXT("We are leaking memory. Why are we calling the assignment operator on an element that has already allocated resources?"));
+		ensureMsgf(ConvexMeshNegX == nullptr, TEXT("We are leaking memory. Why are we calling the assignment operator on an element that has already allocated resources?"));
+		ConvexMesh = nullptr;
+		ConvexMeshNegX = nullptr;
+		CloneElem(Other);
+		return *this;
+	}
+
 	DEPRECATED(4.8, "Please call DrawElemWire which takes in a Scale parameter")
 	ENGINE_API void	DrawElemWire(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, const FColor Color) const;
 	
@@ -92,4 +109,14 @@ struct FKConvexElem : public FKShapeElem
 	ENGINE_API void ScaleElem(FVector DeltaSize, float MinSize);
 
 	ENGINE_API static EAggCollisionShape::Type StaticShapeType;
+
+private:
+	/** Helper function to safely copy instances of this shape*/
+	void CloneElem(const FKConvexElem& Other)
+	{
+		Super::CloneElem(Other);
+		VertexData = Other.VertexData;
+		ElemBox = Other.ElemBox;
+		Transform = Other.Transform;
+	}
 };

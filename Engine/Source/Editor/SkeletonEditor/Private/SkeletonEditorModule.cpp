@@ -37,9 +37,9 @@ public:
 		return SkeletonEditor;
 	}
 
-	virtual TSharedRef<ISkeletonTree> CreateSkeletonTree(USkeleton* InSkeleton, USkeletalMesh* InSkeletalMesh, const FSkeletonTreeArgs& InSkeletonTreeArgs) override
+	virtual TSharedRef<ISkeletonTree> CreateSkeletonTree(USkeleton* InSkeleton, const FSkeletonTreeArgs& InSkeletonTreeArgs) override
 	{
-		return FSkeletonTreeManager::Get().CreateSkeletonTree(InSkeleton, InSkeletalMesh, InSkeletonTreeArgs);
+		return FSkeletonTreeManager::Get().CreateSkeletonTree(InSkeleton, InSkeletonTreeArgs);
 	}
 
 	virtual TSharedRef<class FWorkflowTabFactory> CreateSkeletonTreeTabFactory(const TSharedRef<class FWorkflowCentricApplication>& InHostingApp, const TSharedRef<ISkeletonTree>& InSkeletonTree) override

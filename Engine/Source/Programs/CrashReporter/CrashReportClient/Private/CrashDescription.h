@@ -162,6 +162,12 @@ struct FPrimaryCrashProperties
 	FString GameName;
 
 	/**
+	* The name of the exe that crashed. (AppID)
+	* @GameName	varchar(64)
+	*/
+	FString ExecutableName;
+
+	/**
 	 * The mode the game was in e.g. editor.
 	 * @EngineMode	varchar(64)
 	 * 

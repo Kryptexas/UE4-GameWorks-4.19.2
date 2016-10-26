@@ -2400,13 +2400,14 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 		PlayInSettings->SetPlayNetMode(PlayNetMode);
 	}
 
-	// Can't allow realtime viewports whilst in PIE so disable it for ALL viewports here.
-	DisableRealtimeViewports();
 
 	bool bAnyBlueprintErrors = ErroredBlueprints.Num() ? true : false;
 	bool bStartInSpectatorMode = false;
 	bool bSupportsOnlinePIE = false;
 	const int32 PlayNumberOfClients = [&PlayInSettings]{ int32 NumberOfClients(0); return (PlayInSettings->GetPlayNumberOfClients(NumberOfClients) ? NumberOfClients : 0); }();
+
+	// Can't allow realtime viewports whilst in PIE so disable it for ALL viewports here.
+	DisableRealtimeViewports();
 
 	// Online PIE is disabled in SIE
 	if (SupportsOnlinePIE() && !bInSimulateInEditor)
@@ -2500,6 +2501,7 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 			}
 		}
 	}
+
 }
 
 void UEditorEngine::SpawnIntraProcessPIEWorlds(bool bAnyBlueprintErrors, bool bStartInSpectatorMode)
@@ -3329,11 +3331,9 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 	// Disable the screensaver when PIE is running.
 	EnableScreenSaver( false );
 
+
 	EditorWorld->TransferBlueprintDebugReferences(PlayWorld);
 
-	// This must have already been set with a call to DisableRealtimeViewports() outside of this method.
-	check(!IsAnyViewportRealtime());
-	
 	// By this point it is safe to remove the GameInstance from the root and allow it to garbage collected as per usual
 	GameInstance->RemoveFromRoot();
 

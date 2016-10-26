@@ -437,7 +437,7 @@ public:
 	 */
 	bool HasShaderJobs() const
 	{
-		return ShaderMapJobs.Num() > 0 || PendingFinalizeShaderMaps.Num();
+		return ShaderMapJobs.Num() > 0 || PendingFinalizeShaderMaps.Num() > 0;
 	}
 
 	/** 

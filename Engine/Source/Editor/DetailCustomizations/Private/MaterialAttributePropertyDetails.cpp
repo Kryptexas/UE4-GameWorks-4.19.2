@@ -89,7 +89,7 @@ void FMaterialAttributePropertyDetails::OnBuildChild(TSharedRef<IPropertyHandle>
 			[
 				SNew(STextBlock)
 				.Font(IDetailLayoutBuilder::GetDetailFont())
-				.Text_Lambda( [=]
+				.Text_Lambda( [=]() -> FText
 				{ 
 					if (ChildHandle->IsValidHandle())
 					{

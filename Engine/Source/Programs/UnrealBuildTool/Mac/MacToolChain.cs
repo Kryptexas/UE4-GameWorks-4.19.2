@@ -535,24 +535,39 @@ namespace UnrealBuildTool
 			if ((Library.EndsWith("dylib") || Library.EndsWith(".framework")) && !LibraryFullPath.Contains("/Engine/Binaries/Mac/")
 			    && !LibraryFullPath.Contains("/Engine/Source/ThirdParty/") && LibraryDir != ExeDir && !RPaths.Contains(LibraryDir))
 			{
+				// macOS gatekeeper erroneously complains about not seeing the CEF3 framework in the codesigned Launcher because it's only present in one of the folders specified in RPATHs.
+				// To work around this we will only add a single RPATH entry for it, for the framework stored in .app/Contents/UE4/ subfolder of the packaged app bundle
+				bool bCanUseMultipleRPATHs = !ExeAbsolutePath.Contains("EpicGamesLauncher-Mac-Shipping") || !Library.Contains("CEF3");
+
 				// First, add a path relative to the executable.
-				// We skip this for CEF3 for the Shipping Launcher. In this case we only want the RPATH to the framework inside the app bundle (added in the if (bIsBuildingAppBundle) block),
-				// otherwise OS X gatekeeper erroneously complains about not seeing the framework
 				string RelativePath = Utils.MakePathRelativeTo(LibraryDir, ExeDir).Replace("\\", "/");
-				if (!ExeAbsolutePath.Contains("EpicGamesLauncher-Mac-Shipping") || !Library.Contains("CEF3"))
+				if (bCanUseMultipleRPATHs)
 				{
 					LinkCommand += " -rpath \"@loader_path/" + RelativePath + "\"";
 				}
 
-				// If building an app bundle, we also need an RPATH for use in packaged game. In that case dylibs are stored in Contents/UE4/Engine/ subfolders, for example in
-				// GameName.app/Contents/UE4/Engine/Binaries/ThirdParty/PhysX/Mac/
+				// If building an app bundle, we also need an RPATH for use in packaged game and a separate one for staged builds
 				if (bIsBuildingAppBundle)
 				{
 					string EngineDir = UnrealBuildTool.RootDirectory.ToString();
+
+					// In packaged games dylibs are stored in Contents/UE4 subfolders, for example in GameName.app/Contents/UE4/Engine/Binaries/ThirdParty/PhysX/Mac
 					string BundleUE4Dir = Path.GetFullPath(ExeDir + "/../../Contents/UE4");
 					string BundleLibraryDir = LibraryDir.Replace(EngineDir, BundleUE4Dir);
 					string BundleRelativeDir = Utils.MakePathRelativeTo(BundleLibraryDir, ExeDir).Replace("\\", "/");
 					LinkCommand += " -rpath \"@loader_path/" + BundleRelativeDir + "\"";
+
+					// For staged code-based games we need additional entry if the game is not stored directly in the engine's root directory
+					if (bCanUseMultipleRPATHs)
+					{
+						string StagedUE4Dir = Path.GetFullPath(ExeDir + "/../../../../../..");
+						string StagedLibraryDir = LibraryDir.Replace(EngineDir, StagedUE4Dir);
+						string StagedRelativeDir = Utils.MakePathRelativeTo(StagedLibraryDir, ExeDir).Replace("\\", "/");
+						if (StagedRelativeDir != RelativePath)
+						{
+							LinkCommand += " -rpath \"@loader_path/" + StagedRelativeDir + "\"";
+						}
+					}
 				}
 
 				RPaths.Add(LibraryDir);

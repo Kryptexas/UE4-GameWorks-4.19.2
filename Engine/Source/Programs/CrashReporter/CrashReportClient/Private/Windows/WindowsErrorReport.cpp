@@ -4,6 +4,7 @@
 #include "WindowsErrorReport.h"
 #include "CrashDebugHelperModule.h"
 #include "CrashReportUtil.h"
+#include "CrashDescription.h"
 
 #include "AllowWindowsPlatformTypes.h"
 #include <ShlObj.h>
@@ -67,7 +68,9 @@ void FWindowsErrorReport::ShutDown()
 
 FString FWindowsErrorReport::FindCrashedAppPath() const
 {
-	return FWindowsReportParser::Find(ReportDirectory, TEXT("AppPath="));
+	FString AppPath = FPaths::Combine(FPrimaryCrashProperties::Get()->BaseDir, FPrimaryCrashProperties::Get()->ExecutableName);
+	AppPath += TEXT(".exe");
+	return AppPath;
 }
 
 FText FWindowsErrorReport::DiagnoseReport() const

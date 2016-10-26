@@ -36,7 +36,7 @@ FMovieSceneCaptureSettings::FMovieSceneCaptureSettings()
 
 	bCreateTemporaryCopiesOfLevels = false;
 	bUseRelativeFrameNumbers = false;
-	HandleFrames = 8;
+	HandleFrames = 0;
 	GameModeOverride = nullptr;
 	OutputFormat = TEXT("{world}");
 	FrameRate = 24;

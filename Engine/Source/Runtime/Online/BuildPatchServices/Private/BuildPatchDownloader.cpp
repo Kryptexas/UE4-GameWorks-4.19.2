@@ -133,8 +133,8 @@ FBuildPatchDownloader::FBuildPatchDownloader(const FString& InSaveDirectory, con
 	, bWaitingForJobs(true)
 	, ChunkSuccessRate(1.0f)
 	, CyclesAtLastHealthState(0)
-	, CyclesAtLastData(0)
 	, DownloadHealth(EBuildPatchDownloadHealth::Excellent)
+	, CyclesAtLastData(0)
 	, DataToDownloadTotalBytes(0)
 	, BuildProgress(InBuildProgress)
 {
@@ -426,7 +426,7 @@ uint32 FBuildPatchDownloader::Run()
 		// Pause
 		if (BuildProgress->GetPauseState())
 		{
-			uint64 PausedForCycles = FStatsCollector::SecondsToCycles(BuildProgress->WaitWhilePaused());
+			FStatsCollector::FAtomicValue PausedForCycles = FStatsCollector::FAtomicValue(FStatsCollector::SecondsToCycles(BuildProgress->WaitWhilePaused()));
 			// Skew timers
 			FPlatformAtomics::InterlockedAdd(&CyclesAtLastHealthState, PausedForCycles);
 		}
@@ -452,7 +452,7 @@ uint32 FBuildPatchDownloader::Run()
 		{
 			bDownloadsStarted = true;
 			// Set timer
-			FPlatformAtomics::InterlockedExchange(&CyclesAtLastHealthState, FStatsCollector::GetCycles());
+			FPlatformAtomics::InterlockedExchange(&CyclesAtLastHealthState, FStatsCollector::FAtomicValue(FStatsCollector::GetCycles()));
 			UpdateDownloadHealth();
 		}
 
@@ -696,7 +696,7 @@ void FBuildPatchDownloader::IncrementByteDownloadCount(const int32& NumBytes)
 	ByteDownloadCount.Add( NumBytes );
 	if (NumBytes > 0)
 	{
-		FPlatformAtomics::InterlockedExchange(&CyclesAtLastData, FStatsCollector::GetCycles());
+		FPlatformAtomics::InterlockedExchange(&CyclesAtLastData, FStatsCollector::FAtomicValue(FStatsCollector::GetCycles()));
 	}
 }
 
@@ -765,7 +765,7 @@ void FBuildPatchDownloader::UpdateDownloadHealth(bool bFlushTimer)
 	if (PreviousHealth != DownloadHealth || bFlushTimer)
 	{
 		// Update time in state
-		uint64 CyclesNow = FStatsCollector::GetCycles();
+		FStatsCollector::FAtomicValue CyclesNow = FStatsCollector::GetCycles();
 		HealthStateTimes[(int32)PreviousHealth] += FStatsCollector::CyclesToSeconds(CyclesNow - CyclesAtLastHealthState);
 		FPlatformAtomics::InterlockedExchange(&CyclesAtLastHealthState, CyclesNow);
 	}

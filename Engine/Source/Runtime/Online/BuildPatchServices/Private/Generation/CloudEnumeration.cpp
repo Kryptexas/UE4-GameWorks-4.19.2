@@ -32,11 +32,11 @@ namespace BuildPatchServices
 		TMap<FSHAHash, TSet<FGuid>> FileInventory;
 		FStatsCollectorRef StatsCollector;
 		TFuture<void> Future;
-		volatile int64* StatManifestsLoaded;
-		volatile int64* StatManifestsRejected;
-		volatile int64* StatChunksEnumerated;
-		volatile int64* StatChunksRejected;
-		volatile int64* StatTotalTime;
+		volatile FStatsCollector::FAtomicValue* StatManifestsLoaded;
+		volatile FStatsCollector::FAtomicValue* StatManifestsRejected;
+		volatile FStatsCollector::FAtomicValue* StatChunksEnumerated;
+		volatile FStatsCollector::FAtomicValue* StatChunksRejected;
+		volatile FStatsCollector::FAtomicValue* StatTotalTime;
 	};
 
 	FCloudEnumeration::FCloudEnumeration(const FString& InCloudDirectory, const FDateTime& InManifestAgeThreshold, const FStatsCollectorRef& InStatsCollector)

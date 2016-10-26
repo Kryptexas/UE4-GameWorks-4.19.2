@@ -669,10 +669,10 @@ struct FScopeCycleCounterUObject : public FCycleCounter
 	{
 		if (Object)
 		{
-			TStatId StatId = Object->GetStatID();
-			if (FThreadStats::IsCollectingData(StatId))
+			TStatId ObjectStatId = Object->GetStatID();
+			if (FThreadStats::IsCollectingData(ObjectStatId))
 			{
-				Start(StatId);
+				Start(ObjectStatId);
 			}
 		}
 
@@ -690,10 +690,10 @@ struct FScopeCycleCounterUObject : public FCycleCounter
 	{
 		if (FThreadStats::IsCollectingData(OtherStat) && Object)
 		{
-			TStatId StatId = Object->GetStatID();
-			if (!StatId.IsNone())
+			TStatId ObjectStatId = Object->GetStatID();
+			if (!ObjectStatId.IsNone())
 			{
-				Start(StatId);
+				Start(ObjectStatId);
 			}
 		}
 

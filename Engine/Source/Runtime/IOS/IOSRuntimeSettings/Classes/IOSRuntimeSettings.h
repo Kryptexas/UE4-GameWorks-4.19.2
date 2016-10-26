@@ -25,16 +25,20 @@ UENUM()
 	enum class EIOSVersion : uint8
 {
 	/** iOS 6.1 */
-	IOS_61 = 6 UMETA(DisplayName="6.1"),
+	IOS_61_DEPRECATED = 6 UMETA(DisplayName="6.1 Deprecated", DeprecationMessage="This is no longer supported as of 4.10"),
 
 	/** iOS 7 */
-	IOS_7 = 7 UMETA(DisplayName="7.0"),
+	IOS_7_DEPRECATED = 7 UMETA(DisplayName="7.0 Deprecated", DeprecationMessage="This is no longer supported as of 4.14"),
 
 	/** iOS 8 */
 	IOS_8 = 8 UMETA(DisplayName="8.0"),
 
 	/** iOS 9 */
 	IOS_9 = 9 UMETA(DisplayName = "9.0"),
+
+	/** iOS 10 */
+	IOS_10 = 10 UMETA(DisplayName = "10.0"),
+
 };
 
 

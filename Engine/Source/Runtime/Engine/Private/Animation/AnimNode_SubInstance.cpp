@@ -114,6 +114,11 @@ bool FAnimNode_SubInstance::HasPreUpdate() const
 
 void FAnimNode_SubInstance::PreUpdate(const UAnimInstance* InAnimInstance)
 {
+	AllocateBoneTransforms(InAnimInstance);
+}
+
+void FAnimNode_SubInstance::AllocateBoneTransforms(const UAnimInstance* InAnimInstance)
+{
 	if(USkeletalMeshComponent* SkelComp = InAnimInstance->GetSkelMeshComponent())
 	{
 		USkeletalMesh* SkelMesh = SkelComp->SkeletalMesh;
@@ -141,6 +146,11 @@ void FAnimNode_SubInstance::RootInitialize(const FAnimInstanceProxy* InProxy)
 
 		// Need an instance to run
 		InstanceToRun = NewObject<UAnimInstance>(MeshComp, InstanceClass);
+
+		// Set up bone transform array
+		AllocateBoneTransforms(InstanceToRun);
+
+		// Initialize the new instance
 		InstanceToRun->InitializeAnimation();
 
 		MeshComp->SubInstances.Add(InstanceToRun);

@@ -1696,9 +1696,12 @@ const TSet<FNavigationBounds>& UNavigationSystem::GetNavigationBounds() const
 
 void UNavigationSystem::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)
 {
-	for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
+	for (ANavigationData* NavData : NavDataSet)
 	{
-		NavDataSet[NavDataIndex]->ApplyWorldOffset(InOffset, bWorldShift);
+		if (NavData)
+		{
+			NavData->ApplyWorldOffset(InOffset, bWorldShift);
+		}
 	}
 }
 
@@ -3887,14 +3890,17 @@ bool UNavigationSystem::CanRebuildDirtyNavigation() const
 {
 	const bool bIsInGame = GetWorld()->IsGameWorld();
 
-	for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
+	for (const ANavigationData* NavData : NavDataSet)
 	{
-		const bool bIsDirty = NavDataSet[NavDataIndex]->NeedsRebuild();
-		const bool bCanRebuild = !bIsInGame || NavDataSet[NavDataIndex]->SupportsRuntimeGeneration();
-
-		if (bIsDirty && !bCanRebuild)
+		if (NavData)
 		{
-			return false;
+			const bool bIsDirty = NavData->NeedsRebuild();
+			const bool bCanRebuild = !bIsInGame || NavData->SupportsRuntimeGeneration();
+
+			if (bIsDirty && !bCanRebuild)
+			{
+				return false;
+			}
 		}
 	}
 

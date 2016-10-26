@@ -10,10 +10,10 @@ public:
 	static FSkeletonTreeManager& Get();
 
 	/** Create a skeleton tree for the requested skeleton */
-	TSharedRef<class ISkeletonTree> CreateSkeletonTree(class USkeleton* InSkeleton, class USkeletalMesh* InSkeletalMesh, const struct FSkeletonTreeArgs& InSkeletonTreeArgs);
+	TSharedRef<class ISkeletonTree> CreateSkeletonTree(class USkeleton* InSkeleton, const struct FSkeletonTreeArgs& InSkeletonTreeArgs);
 
 	/** Edit a USkeleton via FEditableSkeleton */
-	TSharedRef<class FEditableSkeleton> CreateEditableSkeleton(class USkeleton* InSkeleton, class USkeletalMesh* InSkeletalMesh = nullptr);
+	TSharedRef<class FEditableSkeleton> CreateEditableSkeleton(class USkeleton* InSkeleton);
 
 private:
 	/** Hidden constructor */

@@ -563,12 +563,7 @@ void UMediaPlayer::PreEditChange(UProperty* PropertyAboutToChange)
 
 TSharedPtr<IMediaPlayer> UMediaPlayer::FindPlayerForUrl(const FString& Url, const IMediaOptions& Options)
 {
-	FName PlayerName = Options.GetDesiredPlayerName();
-
-	if (PlayerName == NAME_None)
-	{
-		PlayerName = DesiredPlayerName;
-	}
+	const FName PlayerName = (DesiredPlayerName != NAME_None) ? DesiredPlayerName : Options.GetDesiredPlayerName();
 
 	// reuse existing player if desired
 	if (Player.IsValid() && (PlayerName == Player->GetName()))

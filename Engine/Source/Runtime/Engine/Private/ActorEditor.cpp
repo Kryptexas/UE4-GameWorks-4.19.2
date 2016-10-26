@@ -420,7 +420,6 @@ void AActor::PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionAn
 		return;
 	}
 
-
 	// Notify LevelBounds actor that level bounding box might be changed
 	if (!IsTemplate())
 	{
@@ -431,6 +430,10 @@ void AActor::PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionAn
 	if (!IsPendingKill())
 	{
 		ResetOwnedComponents();
+
+		// BP created components are not serialized, so this should be cleared and will be filled in as the construction scripts are run
+		BlueprintCreatedComponents.Reset();
+
 		// notify navigation system
 		UNavigationSystem::UpdateActorAndComponentsInNavOctree(*this);
 	}

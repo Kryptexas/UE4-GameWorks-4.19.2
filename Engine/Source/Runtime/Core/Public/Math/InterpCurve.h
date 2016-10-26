@@ -155,7 +155,7 @@ public:
  *****************************************************************************/
 
 template< class T > 
-FORCEINLINE int32 FInterpCurve<T>::AddPoint( const float InVal, const T &OutVal )
+int32 FInterpCurve<T>::AddPoint( const float InVal, const T &OutVal )
 {
 	int32 i=0; for( i=0; i<Points.Num() && Points[i].InVal < InVal; i++);
 	Points.InsertUninitialized(i);
@@ -165,7 +165,7 @@ FORCEINLINE int32 FInterpCurve<T>::AddPoint( const float InVal, const T &OutVal 
 
 
 template< class T > 
-FORCEINLINE int32 FInterpCurve<T>::MovePoint( int32 PointIndex, float NewInVal )
+int32 FInterpCurve<T>::MovePoint( int32 PointIndex, float NewInVal )
 {
 	if( PointIndex < 0 || PointIndex >= Points.Num() )
 		return PointIndex;
@@ -187,15 +187,22 @@ FORCEINLINE int32 FInterpCurve<T>::MovePoint( int32 PointIndex, float NewInVal )
 
 
 template< class T > 
-FORCEINLINE void FInterpCurve<T>::Reset()
+void FInterpCurve<T>::Reset()
 {
 	Points.Empty();
 }
 
 
 template <class T>
-FORCEINLINE void FInterpCurve<T>::SetLoopKey(float InLoopKey)
+void FInterpCurve<T>::SetLoopKey(float InLoopKey)
 {
+	// Can't set a loop key if there are no points
+	if (Points.Num() == 0)
+	{
+		bIsLooped = false;
+		return;
+	}
+
 	const float LastInKey = Points.Last().InVal;
 	if (InLoopKey > LastInKey)
 	{
@@ -212,7 +219,7 @@ FORCEINLINE void FInterpCurve<T>::SetLoopKey(float InLoopKey)
 
 
 template <class T>
-FORCEINLINE void FInterpCurve<T>::ClearLoopKey()
+void FInterpCurve<T>::ClearLoopKey()
 {
 	bIsLooped = false;
 }

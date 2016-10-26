@@ -861,6 +861,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 
 	BeginDrawDelegate.Broadcast();
 
+	const bool bStereoRendering = GEngine->IsStereoscopic3D(InViewport);
 	FCanvas* DebugCanvas = InViewport->GetDebugCanvas();
 
 	// Create a temporary canvas if there isn't already one.
@@ -869,12 +870,12 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	CanvasObject->Canvas = SceneCanvas;		
 
 	// Create temp debug canvas object
+	FIntPoint DebugCanvasSize = InViewport->GetSizeXY();
 	static FName DebugCanvasObjectName(TEXT("DebugCanvasObject"));
 	UCanvas* DebugCanvasObject = GetCanvasByName(DebugCanvasObjectName);
 	DebugCanvasObject->Canvas = DebugCanvas;	
-	DebugCanvasObject->Init(InViewport->GetSizeXY().X, InViewport->GetSizeXY().Y, NULL);
+	DebugCanvasObject->Init(DebugCanvasSize.X, DebugCanvasSize.Y, NULL);
 
-	const bool bStereoRendering = GEngine->IsStereoscopic3D(InViewport);
 	if (DebugCanvas)
 	{
 		DebugCanvas->SetScaledToRenderTarget(bStereoRendering);
@@ -962,8 +963,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 		{
 			APlayerController* PlayerController = LocalPlayer->PlayerController;
 
-			const bool bEnableStereo = GEngine->IsStereoscopic3D(InViewport);
-			int32 NumViews = bEnableStereo ? 2 : 1;
+			int32 NumViews = bStereoRendering ? 2 : 1;
 
 			for (int32 i = 0; i < NumViews; ++i)
 			{
@@ -971,7 +971,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 				FVector		ViewLocation;
 				FRotator	ViewRotation;
 
-				EStereoscopicPass PassType = !bEnableStereo ? eSSP_FULL : ((i == 0) ? eSSP_LEFT_EYE : eSSP_RIGHT_EYE);
+				EStereoscopicPass PassType = !bStereoRendering ? eSSP_FULL : ((i == 0) ? eSSP_LEFT_EYE : eSSP_RIGHT_EYE);
 
 				FSceneView* View = LocalPlayer->CalcSceneView(&ViewFamily, ViewLocation, ViewRotation, InViewport, &GameViewDrawer, PassType);
 
@@ -1063,6 +1063,12 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 								AudioDevice->SetListener(MyWorld, ViewportIndex, ListenerTransform, (View->bCameraCut ? 0.f : MyWorld->GetDeltaSeconds()));
 							}
 						}
+						if (PassType == eSSP_LEFT_EYE)
+						{
+							// Save the size of the left eye view, so we can use it to reinitialize the DebugCanvasObject when rendering the console at the end of this method
+							DebugCanvasSize = View->UnscaledViewRect.Size();
+						}
+
 					}
 
 					// Add view information for resource streaming.
@@ -1197,6 +1203,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 						CanvasObject->Init(View->UnscaledViewRect.Width(), View->UnscaledViewRect.Height(), View);
 
 						// Set the canvas transform for the player's view rectangle.
+						check(SceneCanvas);
 						SceneCanvas->PushAbsoluteTransform(FTranslationMatrix(CanvasOrigin));
 						CanvasObject->ApplySafeZoneTransform();						
 
@@ -1267,7 +1274,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 		{
 			// Reset the debug canvas to be full-screen before drawing the console
 			// (the debug draw service above has messed with the viewport size to fit it to a single player's subregion)
-			DebugCanvasObject->Init(InViewport->GetSizeXY().X, InViewport->GetSizeXY().Y, NULL);
+			DebugCanvasObject->Init(DebugCanvasSize.X, DebugCanvasSize.Y, NULL);
 
 			ViewportConsole->PostRender_Console(DebugCanvasObject);
 		}

@@ -435,7 +435,7 @@ void UEdGraphNode::ImportCustomProperties(const TCHAR* SourceText, FFeedbackCont
 	if (FParse::Command(&SourceText, TEXT("Pin")))
 	{
 		UEdGraphPin* NewPin = UEdGraphPin::CreatePin(this);
-		const bool bParseSuccess = NewPin->ImportTextItem(SourceText, PPF_Delimited, nullptr, GWarn);
+		const bool bParseSuccess = NewPin->ImportTextItem(SourceText, PPF_Delimited, this, GWarn);
 		if (bParseSuccess)
 		{
 			Pins.Add(NewPin);

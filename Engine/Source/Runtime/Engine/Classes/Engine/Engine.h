@@ -1382,6 +1382,10 @@ public:
 	UPROPERTY(transient)
 	float SelectionHighlightIntensity;
 
+	/** Used to alter the intensity level of the selection highlight on selected mesh sections in mesh editors */
+	UPROPERTY(transient)
+	float SelectionMeshSectionHighlightIntensity;
+
 	/** Used to alter the intensity level of the selection highlight on selected BSP surfaces */
 	UPROPERTY(transient)
 	float BSPSelectionHighlightIntensity;

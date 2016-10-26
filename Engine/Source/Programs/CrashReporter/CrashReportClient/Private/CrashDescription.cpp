@@ -299,11 +299,12 @@ FCrashContext::FCrashContext( const FString& CrashContextFilepath )
 		RestartCommandLine = CommandLine.AsString();
 
 		// Setup properties required for the analytics.
-		GetCrashProperty( CrashVersion, FGenericCrashContext::RuntimePropertiesTag, TEXT( "CrashVersion" ) );
-		GetCrashProperty( CrashGUID, FGenericCrashContext::RuntimePropertiesTag, TEXT( "CrashGUID" ) );
-		GetCrashProperty( CrashDumpMode, FGenericCrashContext::RuntimePropertiesTag, TEXT( "CrashDumpMode" ) );
-		GetCrashProperty( GameName, FGenericCrashContext::RuntimePropertiesTag, TEXT( "GameName" ) );
-		GetCrashProperty( EngineVersion, FGenericCrashContext::RuntimePropertiesTag, TEXT( "EngineVersion" ) );
+		GetCrashProperty(CrashVersion, FGenericCrashContext::RuntimePropertiesTag, TEXT("CrashVersion"));
+		GetCrashProperty(CrashGUID, FGenericCrashContext::RuntimePropertiesTag, TEXT("CrashGUID"));
+		GetCrashProperty(CrashDumpMode, FGenericCrashContext::RuntimePropertiesTag, TEXT("CrashDumpMode"));
+		GetCrashProperty(GameName, FGenericCrashContext::RuntimePropertiesTag, TEXT("GameName"));
+		GetCrashProperty(ExecutableName, FGenericCrashContext::RuntimePropertiesTag, TEXT("ExecutableName"));
+		GetCrashProperty(EngineVersion, FGenericCrashContext::RuntimePropertiesTag, TEXT("EngineVersion"));
 
 		GetCrashProperty( BaseDir, FGenericCrashContext::RuntimePropertiesTag, TEXT( "BaseDir" ) );
 		FString Misc_OSVersionMajor;

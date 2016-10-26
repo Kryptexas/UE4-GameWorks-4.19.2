@@ -57,6 +57,7 @@ void FViewExtension::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& 
 		const int ViewportSizeY = (ViewFamily.RenderTarget->GetRenderTargetTexture()) ? 
 			ViewFamily.RenderTarget->GetRenderTargetTexture()->GetSizeY() : ViewFamily.RenderTarget->GetSizeXY().Y;
 		RHICmdList.SetViewport(GapMinX, 0, 0, GapMaxX, ViewportSizeY, 1.0f);
+		SetRenderTarget(RHICmdList, ViewFamily.RenderTarget->GetRenderTargetTexture(), nullptr);		
 		RHICmdList.ClearColorTexture(ViewFamily.RenderTarget->GetRenderTargetTexture(), FLinearColor::Black, FIntRect());
 	}
 

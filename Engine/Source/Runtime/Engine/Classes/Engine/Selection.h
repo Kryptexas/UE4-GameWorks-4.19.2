@@ -328,9 +328,6 @@ public:
 	//~ Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
 	virtual bool Modify( bool bAlwaysMarkDirty=true) override;
-#if WITH_EDITOR
-	virtual void PostEditUndo() override;
-#endif
 	//~ End UObject Interface
 
 

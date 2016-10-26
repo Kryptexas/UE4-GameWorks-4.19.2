@@ -126,6 +126,10 @@ void UMeshComponent::CleanUpOverrideMaterials()
 		break;
 	}
 }
+void UMeshComponent::EmptyOverrideMaterials()
+{
+	OverrideMaterials.Reset();
+}
 #endif
 
 int32 UMeshComponent::GetNumMaterials() const

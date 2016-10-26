@@ -80,8 +80,15 @@
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Source/Editor/..."/>
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Source/ThirdParty/.../*.Build.cs"/>
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Source/ThirdParty/Licenses/..."/>
+	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Source/Programs/AutomationTool/..."/>
+	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Source/Programs/AutomationToolLauncher/..."/>
+	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Source/DotNETCommon/..."/>
+	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Source/Programs/UnrealBuildTool/..."/>
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Source/Programs/UnrealHeaderTool/..."/>
 	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Engine/Source/Runtime/SQLiteSupport/..."/>
+
+	<!-- Third Party Software description files -->
+	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/.../*.tps"/>
 
 	<!-- Shaders -->
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Shaders/..."/>

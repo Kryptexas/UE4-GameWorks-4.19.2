@@ -996,8 +996,14 @@ void APlayerController::AddCheats(bool bForce)
 	UWorld* World = GetWorld();
 	check(World);
 
-	// Assuming that this never gets called for NM_Client without bForce=true
-	if ( ((CheatManager == NULL) && (World->GetAuthGameMode() != NULL) && World->GetAuthGameMode()->AllowCheats(this)) || bForce)
+	// Abort if cheat manager exists or there is no cheat class
+	if (CheatManager || !CheatClass)
+	{
+		return;
+	}
+
+	// Spawn if game mode says we are allowed, or if bForce
+	if ( (World->GetAuthGameMode() && World->GetAuthGameMode()->AllowCheats(this)) || bForce)
 	{
 		CheatManager = NewObject<UCheatManager>(this, CheatClass);
 		CheatManager->InitCheatManager();

@@ -171,6 +171,7 @@ TSharedRef< SWidget > SDetailNameArea::BuildObjectNameArea( const TArray< TWeakO
 			[
 				SNew( STextBlock )
 				.Text( LOCTEXT("NoObjectsSelected", "Select an object to view details.") )
+				.ShadowOffset( FVector2D(1,1) )
 			];
 		}
 		else

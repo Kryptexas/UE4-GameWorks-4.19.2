@@ -1224,11 +1224,14 @@ void FSequencer::ResetViewRange()
 	const float OutputViewSize = OutRange - InRange;
 	const float OutputChange = OutputViewSize * 0.1f;
 
-	InRange -= OutputChange;
-	OutRange += OutputChange;
+	if (OutputChange > 0)
+	{
+		InRange -= OutputChange;
+		OutRange += OutputChange;
 
-	SetClampRange(TRange<float>(InRange, OutRange));	
-	SetViewRange(TRange<float>(InRange, OutRange), EViewRangeInterpolation::Animated);
+		SetClampRange(TRange<float>(InRange, OutRange));	
+		SetViewRange(TRange<float>(InRange, OutRange), EViewRangeInterpolation::Animated);
+	}
 }
 
 
@@ -1840,7 +1843,8 @@ void FSequencer::PossessPIEViewports(UObject* CameraObject, UObject* UnlockIfCam
 		// skip unlocking if the current view target differs
 		AActor* UnlockIfCameraActor = Cast<AActor>(UnlockIfCameraObject);
 
-		if ((CameraObject == nullptr) && (UnlockIfCameraActor != ViewTarget))
+		// if unlockIfCameraActor is valid, release lock if currently locked to object
+		if (CameraObject == nullptr && UnlockIfCameraActor != nullptr && UnlockIfCameraActor != ViewTarget)
 		{
 			return;
 		}

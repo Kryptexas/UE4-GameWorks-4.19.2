@@ -545,6 +545,7 @@ UObject* UFactory::CreateOrOverwriteAsset(UClass* InClass, UObject* InParent, FN
 	// otherwise delete and replace
 	if (!ObjectTools::DeleteSingleObject(ExistingAsset))
 	{
+		UE_LOG(LogFactory, Warning, TEXT("Could not delete existing asset %s"), *ExistingAsset->GetFullName());
 		return nullptr;
 	}
 

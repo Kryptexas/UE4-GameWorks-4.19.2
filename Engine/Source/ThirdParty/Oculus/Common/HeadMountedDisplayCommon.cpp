@@ -6,6 +6,7 @@
 #include "ScenePrivate.h"
 #include "PostProcess/PostProcessHMD.h"
 #include "ScreenRendering.h"
+#include "AsyncLoadingSplash.h"
 
 #if OCULUS_STRESS_TESTS_ENABLED
 #include "OculusStressTests.h"
@@ -1730,6 +1731,8 @@ void FHeadMountedDisplay::UpdateSplashScreen()
 			FAsyncLoadingSplash::FSplashDesc CurrentDesc;
 			Splash->GetSplash(0, CurrentDesc);
 			CurrentDesc.LoadedTexture = Texture;
+			CurrentDesc.TextureOffset = SplashOffset;
+			CurrentDesc.TextureScale = SplashScale;
 		}
 		else
 		{
@@ -1738,8 +1741,19 @@ void FHeadMountedDisplay::UpdateSplashScreen()
 			FAsyncLoadingSplash::FSplashDesc NewDesc;
 			NewDesc.LoadedTexture = Texture;
 			NewDesc.QuadSizeInMeters = FVector2D(8.0f, 4.5f);
-			NewDesc.TransformInMeters = FTransform(FVector(5.0f, 0.0f, 0.0f));
-			NewDesc.DeltaRotation = FQuat::Identity;
+
+			FTransform Translation(FVector(5.0f, 0.0f, 0.0f));
+
+			FHMDGameFrame* CurrentFrame = GetCurrentFrame();
+			FRotator Rotation(CurrentFrame->LastHmdOrientation);
+			Rotation.Pitch = 0.0f;
+			Rotation.Roll = 0.0f;
+
+			NewDesc.TransformInMeters = Translation * FTransform(Rotation.Quaternion());
+
+			NewDesc.TextureOffset = SplashOffset;
+			NewDesc.TextureScale = SplashScale;
+			NewDesc.bNoAlphaChannel = true;
 			Splash->AddSplash(NewDesc);
 
 			Splash->Show(FAsyncLoadingSplash::EShowType::ShowManually);
