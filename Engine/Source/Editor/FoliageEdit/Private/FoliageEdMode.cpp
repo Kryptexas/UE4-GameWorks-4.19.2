@@ -447,8 +447,7 @@ void FEdModeFoliage::OnVRHoverUpdate(FEditorViewportClient& ViewportClient, UVie
 			{
 				// Check if we're hovering over UI. If so, stop painting so we don't display the preview brush sphere
 				const UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>(ViewportInteractor);
-				const bool bIsHoveringOverUIVR = VRInteractor->IsHoveringOverUI();
-				if (bIsHoveringOverUIVR)
+				if (VRInteractor->IsHoveringOverPriorityType())
 				{
 					EndFoliageBrushTrace();
 				}
@@ -481,7 +480,7 @@ void FEdModeFoliage::OnVRAction(class FEditorViewportClient& ViewportClient, UVi
 		// Consume both full press and light press
 		if (Action.ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed || Action.ActionType == ViewportWorldActionTypes::SelectAndMove)
 		{
-			if (Action.Event == IE_Pressed && !VRInteractor->IsHoveringOverUI())
+			if (Action.Event == IE_Pressed && !VRInteractor->IsHoveringOverPriorityType())
 			{
 				// Go ahead and paint immediately
 				FVector LaserPointerStart, LaserPointerEnd;
@@ -746,8 +745,7 @@ void FEdModeFoliage::Tick(FEditorViewportClient* ViewportClient, float DeltaTime
 				{
 					// Check if we're hovering over UI. If so, stop painting so we don't display the preview brush sphere
 					const UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>(Interactor);
-					const bool bIsHoveringOverUIVR = VRInteractor->IsHoveringOverUI();
-					if (bIsHoveringOverUIVR)
+					if (VRInteractor->IsHoveringOverPriorityType())
 					{
 						EndFoliageBrushTrace();
 					}

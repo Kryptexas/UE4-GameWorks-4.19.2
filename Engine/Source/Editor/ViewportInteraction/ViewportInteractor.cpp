@@ -514,7 +514,7 @@ FHitResult UViewportInteractor::GetHitResultFromLaserPointer( TArray<AActor*>* O
 				
 				if ( bHit )
 				{
-					bool bHitResultIsPriorityType = false;
+					InteractorData.bHitResultIsPriorityType = false;
 					if ( !bOnlyEditorGizmos && ObjectsInFrontOfGizmo )
 					{
 						for ( UClass* CurrentClass : *ObjectsInFrontOfGizmo )
@@ -526,7 +526,7 @@ FHitResult UViewportInteractor::GetHitResultFromLaserPointer( TArray<AActor*>* O
 
 							if ( bClassHasPriority )
 							{
-								bHitResultIsPriorityType = bClassHasPriority;
+								InteractorData.bHitResultIsPriorityType = bClassHasPriority;
 								break;
 							}
 						}
@@ -534,7 +534,7 @@ FHitResult UViewportInteractor::GetHitResultFromLaserPointer( TArray<AActor*>* O
 
 					const bool bHitResultIsGizmo = HitResult.GetActor() != nullptr && HitResult.GetActor() == WorldInteraction->GetTransformGizmoActor();
 					if ( BestHitResult.GetActor() == nullptr ||
-						 bHitResultIsPriorityType ||
+						 InteractorData.bHitResultIsPriorityType ||
 						 bHitResultIsGizmo )
 					{
 						BestHitResult = HitResult;
@@ -612,4 +612,9 @@ void UViewportInteractor::SetAllowTriggerFullPress( const bool bInAllow )
 bool UViewportInteractor::AllowTriggerFullPress() const
 {
 	return InteractorData.bAllowTriggerFullPress;
+}
+
+bool UViewportInteractor::IsHoveringOverPriorityType() const
+{
+	return InteractorData.bHitResultIsPriorityType;
 }

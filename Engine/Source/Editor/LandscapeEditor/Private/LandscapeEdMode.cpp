@@ -573,9 +573,8 @@ void FEdModeLandscape::OnVRHoverUpdate(FEditorViewportClient& ViewportClient, UV
 		if( VREditorMode != nullptr && VREditorMode->IsActive() && Interactor != nullptr )
 		{
 			const UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>( Interactor );
-			const bool bIsHoveringOverUIVR = VRInteractor->IsHoveringOverUI();
 
-			if( !bIsHoveringOverUIVR && CurrentTool && ( CurrentTool->GetSupportedTargetTypes() == ELandscapeToolTargetTypeMask::NA || CurrentToolTarget.TargetType != ELandscapeToolTargetType::Invalid ) )
+			if( !VRInteractor->IsHoveringOverPriorityType() && CurrentTool && ( CurrentTool->GetSupportedTargetTypes() == ELandscapeToolTargetTypeMask::NA || CurrentToolTarget.TargetType != ELandscapeToolTargetType::Invalid ) )
 			{
 				FVector HitLocation;
 				FVector LaserPointerStart, LaserPointerEnd;
@@ -616,7 +615,7 @@ void FEdModeLandscape::OnVRAction(FEditorViewportClient& ViewportClient, UViewpo
 			const UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>(Interactor);
 
 			// Begin landscape brush
-			if (Action.Event == IE_Pressed && !VRInteractor->IsHoveringOverUI())
+			if (Action.Event == IE_Pressed && !VRInteractor->IsHoveringOverUI() && !VRInteractor->IsHoveringOverPriorityType() )
 			{
 				if (ViewportClient.Viewport != nullptr && ViewportClient.Viewport == ToolActiveViewport)
 				{
@@ -2493,6 +2492,7 @@ void FEdModeLandscape::PostUndo()
 
 /** Forces all level editor viewports to realtime mode */
 void FEdModeLandscape::ForceRealTimeViewports(const bool bEnable, const bool bStoreCurrentState)
+
 {
 	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>("LevelEditor");
 	TSharedPtr<ILevelEditor> LevelEditor = LevelEditorModule.GetFirstLevelEditor();
@@ -2510,7 +2510,7 @@ void FEdModeLandscape::ForceRealTimeViewports(const bool bEnable, const bool bSt
 
 					// @todo vreditor: Force game view to true in VREditor since we can't use hitproxies and debug objects yet
 					UVREditorMode* VREditorMode = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(Viewport.GetWorld())->GetVREditorMode();
-					if (VREditorMode != nullptr && !VREditorMode->IsActive())
+					if (VREditorMode != nullptr && VREditorMode->IsActive())
 					{
 						Viewport.SetGameView(true);
 					} 
