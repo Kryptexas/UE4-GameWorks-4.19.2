@@ -451,7 +451,7 @@ namespace ObjectTools
 		// Any existing objects should be deleted and garbage collected by now
 		if ( ensure(ExistingObject == NULL) )
 		{
-			EDuplicateMode::Type DuplicateMode = Object->IsA(UWorld::StaticClass()) ? EDuplicateMode::World : EDuplicateMode::PIE;
+			EDuplicateMode::Type DuplicateMode = Object->IsA(UWorld::StaticClass()) ? EDuplicateMode::World : EDuplicateMode::Normal;
 			DupObject = StaticDuplicateObject( Object, CreatePackage(NULL,*PkgName), *ObjName, RF_AllFlags, nullptr, DuplicateMode );
 		}
 
