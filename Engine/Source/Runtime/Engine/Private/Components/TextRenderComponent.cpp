@@ -364,17 +364,16 @@ public:
 			const int32 NumFontPages = InFont->Textures.Num();
 			if (NumFontPages > 0)
 			{
-				TArray<FName> FontParameterNames;
 				TArray<FGuid> FontParameterIds;
-				InMaterial->GetMaterial()->GetAllFontParameterNames(FontParameterNames, FontParameterIds);
+				InMaterial->GetMaterial()->GetAllFontParameterNames(FontParameters, FontParameterIds);
 
-				if (FontParameterNames.Num() > 0)
+				if (FontParameters.Num() > 0)
 				{
 					if (InMaterial->IsA<UMaterialInstanceDynamic>())
 					{
 						// If the user provided a custom MID, we can't do anything but use that single MID for page 0
 						UMaterialInstanceDynamic* MID = Cast<UMaterialInstanceDynamic>(InMaterial);
-						for (const FName FontParameterName : FontParameterNames)
+						for (const FName FontParameterName : FontParameters)
 						{
 							MID->SetFontParameterValue(FontParameterName, InFont, 0);
 						}
@@ -386,7 +385,7 @@ public:
 						for (int32 FontPageIndex = 0; FontPageIndex < NumFontPages; ++FontPageIndex)
 						{
 							UMaterialInstanceDynamic* MID = UMaterialInstanceDynamic::Create(InMaterial, nullptr);
-							for (const FName FontParameterName : FontParameterNames)
+							for (const FName FontParameterName : FontParameters)
 							{
 								MID->SetFontParameterValue(FontParameterName, InFont, FontPageIndex);
 							}
@@ -401,16 +400,30 @@ public:
 		{
 			bool bIsStale = false;
 
-			if (!InMaterial->IsA<UMaterialInstanceDynamic>())
+			// We can only test for stale MIDs when we created the MIDs ourselves (which we don't do if the outer MID was itself a MID)
+			if (GIsEditor && !InMaterial->IsA<UMaterialInstanceDynamic>())
 			{
-				// We only test against the number of font pages when we created the MIDs
 				bIsStale = MIDs.Num() != InFont->Textures.Num();
+
+				if (!bIsStale)
+				{
+					TArray<FName> FontParameterNames;
+					TArray<FGuid> FontParameterIds;
+					InMaterial->GetMaterial()->GetAllFontParameterNames(FontParameterNames, FontParameterIds);
+
+					bIsStale = FontParameters.Num() != FontParameterNames.Num();
+					for (int32 FontParamIndex = 0; !bIsStale && FontParamIndex < FontParameters.Num(); ++FontParamIndex)
+					{
+						bIsStale = FontParameters[FontParamIndex] != FontParameterNames[FontParamIndex];
+					}
+				}
 			}
 
 			return bIsStale;
 		}
 
 		TArray<UMaterialInstanceDynamic*> MIDs;
+		TArray<FName> FontParameters;
 	};
 
 	typedef TSharedRef<const FMIDData, ESPMode::ThreadSafe> FMIDDataRef;
