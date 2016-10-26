@@ -765,8 +765,11 @@ void FAnimationRuntime::FillWithRetargetBaseRefPose(FCompactPose& OutPose, const
 	{
 		for (FCompactPoseBoneIndex BoneIndex : OutPose.ForEachBoneIndex())
 		{
-			FMeshPoseBoneIndex PoseIndex = OutPose.GetBoneContainer().MakeMeshPoseIndex(BoneIndex);
-			OutPose[BoneIndex] = Mesh->RetargetBasePose[PoseIndex.GetInt()];
+			int32 PoseIndex = OutPose.GetBoneContainer().MakeMeshPoseIndex(BoneIndex).GetInt();
+			if (Mesh->RetargetBasePose.IsValidIndex(PoseIndex))
+			{
+				OutPose[BoneIndex] = Mesh->RetargetBasePose[PoseIndex];
+			}
 		}
 	}
 }
@@ -1341,8 +1344,8 @@ bool FAnimationRuntime::ContainsNaN(TArray<FBoneIndexType>& RequiredBoneIndices,
 #if WITH_EDITOR
 void FAnimationRuntime::FillUpComponentSpaceTransforms(const FReferenceSkeleton& RefSkeleton, const TArray<FTransform> &BoneSpaceTransforms, TArray<FTransform> &ComponentSpaceTransforms)
 {
-	ComponentSpaceTransforms.Empty(RefSkeleton.GetNum());
-	ComponentSpaceTransforms.AddUninitialized(RefSkeleton.GetNum());
+	ComponentSpaceTransforms.Empty(BoneSpaceTransforms.Num());
+	ComponentSpaceTransforms.AddUninitialized(BoneSpaceTransforms.Num());
 
 	// initialize to identity since some of them don't have tracks
 	for (int Index = 0; Index < ComponentSpaceTransforms.Num(); ++Index)
