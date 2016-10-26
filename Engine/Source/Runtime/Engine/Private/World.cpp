@@ -3484,7 +3484,10 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* Ne
 		}
 	}
 
-	LevelCollections.Empty();
+	if (bCleanupResources)
+	{
+		LevelCollections.Empty();
+	}
 }
 
 UGameViewportClient* UWorld::GetGameViewport() const
