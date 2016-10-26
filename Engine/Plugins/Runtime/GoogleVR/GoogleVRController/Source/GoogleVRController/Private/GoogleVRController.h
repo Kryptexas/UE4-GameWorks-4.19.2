@@ -138,8 +138,10 @@ public: // IMotionController
 	*/
 	virtual ETrackingStatus GetControllerTrackingStatus(const int32 ControllerIndex, const EControllerHand DeviceHand) const;
 
+#if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
 	/** Cached controller info */
 	gvr::ControllerState CachedControllerState;
+#endif
 
 private:
 

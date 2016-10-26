@@ -68,8 +68,10 @@ FVector UGoogleVRControllerFunctionLibrary::GetGoogleVRControllerRawAccel()
 	FGoogleVRController* GVRController = GetGoogleVRController();
 	if(GVRController != nullptr)
 	{
+#if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
 		gvr_vec3f ControllerAccel = GVRController->CachedControllerState.GetAccel();
 		return FVector(ControllerAccel.x, ControllerAccel.y, ControllerAccel.z);
+#endif
 	}
 	return FVector::ZeroVector;
 }
@@ -79,8 +81,10 @@ FVector UGoogleVRControllerFunctionLibrary::GetGoogleVRControllerRawGyro()
 	FGoogleVRController* GVRController = GetGoogleVRController();
 	if(GVRController != nullptr)
 	{
+#if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
 		gvr_vec3f ControllerGyro = GVRController->CachedControllerState.GetGyro();
 		return FVector(ControllerGyro.x, ControllerGyro.y, ControllerGyro.z);
+#endif
 	}
 	return FVector::ZeroVector;
 }
