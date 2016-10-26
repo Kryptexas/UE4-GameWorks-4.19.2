@@ -1668,8 +1668,6 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 		}
 		else
 		{
-			check(!FSceneRenderTargets::Get(RHICmdList).SeparateTranslucencyRT);
-
 			if (SeparateTranslucency.IsValid())
 			{
 				// separate translucency is done here or in AddPostProcessDepthOfFieldBokeh()
