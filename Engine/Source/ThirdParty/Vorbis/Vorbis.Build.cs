@@ -83,6 +83,17 @@ public class Vorbis : ModuleRules
 		{
             PublicAdditionalLibraries.Add(VorbisPath + "lib/Linux/" + Target.Architecture + "/libvorbis.a");
 		}
+		else if (Target.Platform == UnrealTargetPlatform.XboxOne)
+		{
+			// Use reflection to allow type not to exist if console code is not present
+			System.Type XboxOnePlatformType = System.Type.GetType("UnrealBuildTool.XboxOnePlatform,UnrealBuildTool");
+			if (XboxOnePlatformType != null)
+			{
+				System.Object VersionName = XboxOnePlatformType.GetMethod("GetVisualStudioCompilerVersionName").Invoke(null, null);
+				PublicLibraryPaths.Add(VorbisPath + "lib/XboxOne/VS" + VersionName.ToString());
+				PublicAdditionalLibraries.Add("libvorbis_static.lib");
+			}
+		}
 	}
 }
 

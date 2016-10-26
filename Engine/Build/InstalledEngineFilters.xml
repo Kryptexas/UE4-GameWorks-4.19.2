@@ -315,13 +315,16 @@
 	<Property Name="CopyPS4Exceptions" Value=""/>
 
 	<!-- Build Files -->
-	<Property Name="CopyPS4Filter" Value="$(CopyHTML5Filter);Engine/Build/PS4/..."/>
+	<Property Name="CopyPS4Filter" Value="$(CopyPS4Filter);Engine/Build/PS4/..."/>
 
 	<!-- XboxOne -->
 	<Property Name="CopyXboxOneFilter" Value=""/>
 	<Property Name="CopyXboxOneExceptions" Value=""/>
 
 	<!-- Build Files -->
-	<Property Name="CopyXboxOneFilter" Value="$(CopyHTML5Filter);Engine/Build/XboxOne/..."/>
+	<Property Name="CopyXboxOneFilter" Value="$(CopyXboxOneFilter);Engine/Build/XboxOne/..."/>
+	
+	<!-- Additional Binaries -->
+	<Property Name="CopyXboxOneFilter" Value="$(CopyXboxOneFilter);Engine/Binaries/Win64/XboxOne/XboxOnePackageNameUtil.exe"/>
 
 </BuildGraph>
