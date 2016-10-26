@@ -339,16 +339,30 @@ void FProjectedShadowInfo::SetBlendStateForProjection(
 
 	if (bProjectingForForwardShading)
 	{
+		FBlendStateRHIParamRef BlendState = NULL;
+
 		if (bUseFadePlane)
 		{
-			// alpha is used to fade between cascades
-			check(ShadowMapChannel == 0);
-			RHICmdList.SetBlendState(TStaticBlendState<CW_RED, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha>::GetRHI());
+			if (ShadowMapChannel == 0)
+			{
+				// alpha is used to fade between cascades
+				BlendState = TStaticBlendState<CW_RED, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha>::GetRHI();
+			}
+			else if (ShadowMapChannel == 1)
+			{
+				BlendState = TStaticBlendState<CW_GREEN, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha>::GetRHI();
+			}
+			else if (ShadowMapChannel == 2)
+			{
+				BlendState = TStaticBlendState<CW_BLUE, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha>::GetRHI();
+			}
+			else if (ShadowMapChannel == 3)
+			{
+				BlendState = TStaticBlendState<CW_ALPHA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha>::GetRHI();
+			}
 		}
 		else
 		{
-			FBlendStateRHIParamRef BlendState = NULL;
-
 			if (ShadowMapChannel == 0)
 			{
 				BlendState = TStaticBlendState<CW_RED, BO_Min, BF_One, BF_One, BO_Min, BF_One, BF_One>::GetRHI();
@@ -365,10 +379,10 @@ void FProjectedShadowInfo::SetBlendStateForProjection(
 			{
 				BlendState = TStaticBlendState<CW_ALPHA, BO_Min, BF_One, BF_One, BO_Min, BF_One, BF_One>::GetRHI();
 			}
-
-			checkf(BlendState, TEXT("Only shadows whose stationary lights have a valid ShadowMapChannel can be projected with forward shading"));
-			RHICmdList.SetBlendState(BlendState);
 		}
+
+		checkf(BlendState, TEXT("Only shadows whose stationary lights have a valid ShadowMapChannel can be projected with forward shading"));
+		RHICmdList.SetBlendState(BlendState);
 	}
 	else
 	{
