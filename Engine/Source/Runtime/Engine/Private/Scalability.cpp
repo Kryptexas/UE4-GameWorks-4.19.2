@@ -564,22 +564,20 @@ void FQualityLevels::SetBenchmarkFallback()
 
 void FQualityLevels::SetDefaults()
 {
-	// Default to highest settings in each category (Using max int as each individual
-	// setting will be clamped against the maximum value for the category)
-	SetFromSingleQualityLevel(MAX_int32);
+	// Clamp to Epic (Max-1) settings, we don't allow Cinematic (Max) quality by default
+	SetFromSingleQualityLevelRelativeToMax(1);
 }
 
 void FQualityLevels::SetFromSingleQualityLevel(int32 Value)
 {
-	// Clamp to Epic (Max-1) settings, we don't allow Cinematic (Max) quality by default
 	ResolutionQuality = GetRenderScaleLevelFromQualityLevel(Value, EQualityLevelBehavior::EAbsolute);
-	ViewDistanceQuality = FMath::Clamp(Value, 0, CVarViewDistanceQuality_NumLevels->GetInt() - 2);
-	AntiAliasingQuality = FMath::Clamp(Value, 0, CVarAntiAliasingQuality_NumLevels->GetInt() - 2);
-	ShadowQuality = FMath::Clamp(Value, 0, CVarShadowQuality_NumLevels->GetInt() - 2);
-	PostProcessQuality = FMath::Clamp(Value, 0, CVarPostProcessQuality_NumLevels->GetInt() - 2);
-	TextureQuality = FMath::Clamp(Value, 0, CVarTextureQuality_NumLevels->GetInt() - 2);
-	EffectsQuality = FMath::Clamp(Value, 0, CVarEffectsQuality_NumLevels->GetInt() - 2);
-	FoliageQuality = FMath::Clamp(Value, 0, CVarFoliageQuality_NumLevels->GetInt() - 2);
+	ViewDistanceQuality = FMath::Clamp(Value, 0, CVarViewDistanceQuality_NumLevels->GetInt() - 1);
+	AntiAliasingQuality = FMath::Clamp(Value, 0, CVarAntiAliasingQuality_NumLevels->GetInt() - 1);
+	ShadowQuality = FMath::Clamp(Value, 0, CVarShadowQuality_NumLevels->GetInt() - 1);
+	PostProcessQuality = FMath::Clamp(Value, 0, CVarPostProcessQuality_NumLevels->GetInt() - 1);
+	TextureQuality = FMath::Clamp(Value, 0, CVarTextureQuality_NumLevels->GetInt() - 1);
+	EffectsQuality = FMath::Clamp(Value, 0, CVarEffectsQuality_NumLevels->GetInt() - 1);
+	FoliageQuality = FMath::Clamp(Value, 0, CVarFoliageQuality_NumLevels->GetInt() - 1);
 }
 
 void FQualityLevels::SetFromSingleQualityLevelRelativeToMax(int32 Value)
