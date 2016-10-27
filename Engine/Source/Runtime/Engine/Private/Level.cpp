@@ -678,6 +678,9 @@ void ULevel::BeginDestroy()
 		OwningWorld->Scene->SetPrecomputedVisibility(NULL);
 		OwningWorld->Scene->SetPrecomputedVolumeDistanceField(NULL);
 	}
+
+	ReleaseRenderingResources();
+
 	RemoveFromSceneFence.BeginFence();
 }
 
@@ -689,8 +692,6 @@ bool ULevel::IsReadyForFinishDestroy()
 
 void ULevel::FinishDestroy()
 {
-	ReleaseRenderingResources();
-
 	delete PrecomputedLightVolume;
 	PrecomputedLightVolume = NULL;
 

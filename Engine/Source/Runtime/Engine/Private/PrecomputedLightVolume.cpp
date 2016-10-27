@@ -408,7 +408,7 @@ void FPrecomputedLightVolume::RemoveFromScene(FSceneInterface* Scene)
 	{
 		bAddedToScene = false;
 
-		if (Data->bInitialized && Scene)
+		if (Scene)
 		{
 			Scene->RemovePrecomputedLightVolume(this);
 		}
