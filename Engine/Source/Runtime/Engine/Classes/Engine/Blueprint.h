@@ -463,6 +463,10 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 	UPROPERTY()
 	TArray<class UEdGraphPin_Deprecated*> DeprecatedPinWatches;
 
+	/** Index map for component template names */
+	UPROPERTY()
+	TMap<FName, int32> ComponentTemplateNameIndex;
+
 	/** Maps old to new component template names */
 	UPROPERTY(transient)
 	TMap<FName, FName> OldToNewComponentTemplateNames;

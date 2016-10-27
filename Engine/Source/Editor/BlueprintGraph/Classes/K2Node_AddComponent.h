@@ -65,7 +65,7 @@ class UK2Node_AddComponent : public UK2Node_CallFunction
 	}
 
 	/** Helper method used to generate a new, unique component template name. */
-	static FName MakeNewComponentTemplateName(UObject* InOuter, UClass* InComponentClass);
+	FName MakeNewComponentTemplateName(UObject* InOuter, UClass* InComponentClass);
 
 	/** Helper method used to instantiate a new component template after duplication. */
 	BLUEPRINTGRAPH_API void MakeNewComponentTemplate();
