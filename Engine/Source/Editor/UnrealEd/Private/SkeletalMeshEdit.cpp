@@ -564,6 +564,9 @@ UAnimSequence * UnFbx::FFbxImporter::ImportAnimations(USkeleton* Skeleton, UObje
 
 int32 GetAnimationCurveRate(FbxAnimCurve* CurrentCurve)
 {
+	if (CurrentCurve == nullptr)
+		return 0;
+
 	int32 KeyCount = CurrentCurve->KeyGetCount();
 
 	FbxTimeSpan TimeInterval(FBXSDK_TIME_INFINITE, FBXSDK_TIME_MINUS_INFINITE);
@@ -653,10 +656,13 @@ int32 UnFbx::FFbxImporter::GetMaxSampleRate(TArray<FbxNode*>& SortedLinks, TArra
 							if (Channel)
 							{
 								FbxAnimCurve* CurrentCurve = Geometry->GetShapeChannel(BlendShapeIndex, ChannelIndex, AnimLayer);
-								int32 NewRate = GetAnimationCurveRate(CurrentCurve);
-								if (NewRate > 0)
+								if (CurrentCurve)
 								{
-									MaxStackResampleRate = FMath::Max(NewRate, MaxStackResampleRate);
+									int32 NewRate = GetAnimationCurveRate(CurrentCurve);
+									if (NewRate > 0)
+									{
+										MaxStackResampleRate = FMath::Max(NewRate, MaxStackResampleRate);
+									}
 								}
 							}
 						}
