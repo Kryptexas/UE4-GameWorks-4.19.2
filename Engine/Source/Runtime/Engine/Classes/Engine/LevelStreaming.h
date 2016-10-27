@@ -123,7 +123,7 @@ public:
 	uint32 bShouldBeLoaded:1;
 
 	/** Whether the level should be visible if it is loaded																		*/
-	UPROPERTY(EditAnywhere, Category=LevelStreaming, BlueprintReadWrite)
+	UPROPERTY(Category=LevelStreaming, BlueprintReadWrite)
 	uint32 bShouldBeVisible:1;
 
 	/**
