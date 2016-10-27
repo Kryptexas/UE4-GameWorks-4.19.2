@@ -563,7 +563,10 @@ UObject* UBlueprintGeneratedClass::FindArchetype(UClass* ArchetypeClass, const F
 					ClassSCS->PreloadChain();
 				}
 
-				SCSNode = ClassSCS->FindSCSNode(ArchetypeBaseName);
+				// We keep the index name here rather than the base name, in order to avoid potential
+				// collisions between an SCS variable name and an existing AddComponent node template.
+				// This is because old AddComponent node templates were based on the class display name.
+				SCSNode = ClassSCS->FindSCSNode(ArchetypeName);
 			}
 
 			if (SCSNode)
@@ -580,9 +583,31 @@ UObject* UBlueprintGeneratedClass::FindArchetype(UClass* ArchetypeClass, const F
 			}
 			else if(UInheritableComponentHandler* ICH = Class->GetInheritableComponentHandler())
 			{
-				// Component template overrides should always match the archetype's base name (i.e. - not the instance name).
-				// This is because when we create new override objects within the ICH, we match the original template's name.
-				Archetype = ICH->GetOverridenComponentTemplate(ICH->FindKey(ArchetypeBaseName));
+				// This would find either an SCS component template override (for which the archetype
+				// name will match the SCS variable name), or an old AddComponent node template override
+				// (for which the archetype name will match the override record's component template name).
+				FComponentKey ComponentKey = ICH->FindKey(ArchetypeName);
+				if (!ComponentKey.IsValid() && ArchetypeName != ArchetypeBaseName)
+				{
+					// We didn't find either an SCS override or an old AddComponent template override,
+					// so now we look for a match with the base name; this would apply to new AddComponent
+					// node template overrides, which use the base name (non-index form).
+					ComponentKey = ICH->FindKey(ArchetypeBaseName);
+
+					// If we found a match with an SCS key instead, treat this as a collision and throw it
+					// out, because it should have already been found in the first search. This could happen
+					// if an old AddComponent node template's base name collides with an SCS variable name.
+					if (ComponentKey.IsValid() && ComponentKey.IsSCSKey())
+					{
+						ComponentKey = FComponentKey();
+					}
+				}
+
+				// Avoid searching for an invalid key.
+				if (ComponentKey.IsValid())
+				{
+					Archetype = ICH->GetOverridenComponentTemplate(ComponentKey);
+				}
 			}
 
 			if (Archetype == nullptr)
