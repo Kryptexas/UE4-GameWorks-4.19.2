@@ -16,6 +16,8 @@
 #include "HideWindowsPlatformTypes.h"
 #endif
 
+#include "UniquePtr.h"
+
 void FSslCertificateManager::AddCertificatesToSslContext(SSL_CTX* SslContextPtr)
 {
 	X509_STORE* CertStore = SSL_CTX_get_cert_store((SSL_CTX *)SslContextPtr);
@@ -54,44 +56,38 @@ void FSslCertificateManager::BuildRootCertificateArray()
 		}
 	}
 
-	int64 CertificateBundleBufferSize = 0;
-	char* CertificateBundleBuffer = nullptr;
-
-	FArchive* CertificateBundleArchive = IFileManager::Get().CreateFileReader(*(CertificateBundlePath), 0);
-	if (CertificateBundleArchive != nullptr)
 	{
-		CertificateBundleBufferSize = CertificateBundleArchive->TotalSize();
-		CertificateBundleBuffer = new char[CertificateBundleBufferSize];
-		CertificateBundleArchive->Serialize(CertificateBundleBuffer, CertificateBundleBufferSize);
-	}
+		int64 CertificateBundleBufferSize = 0;
+		TUniquePtr<char[]> CertificateBundleBuffer;
 
-	delete CertificateBundleArchive;
-
-	if (CertificateBundleBufferSize > 0 && CertificateBundleBuffer != nullptr)
-	{
-		static const char BeginCertificateString[] = "-----BEGIN CERTIFICATE-----";
-		static const char EndCertificateString[] = "-----END CERTIFICATE-----";
-
-		const char* FoundString = CertificateBundleBuffer;
-		while (nullptr != (FoundString = FPlatformString::Strstr(FoundString, BeginCertificateString)))
+		if (TUniquePtr<FArchive> CertificateBundleArchive = TUniquePtr<FArchive>(IFileManager::Get().CreateFileReader(*CertificateBundlePath, 0)))
 		{
-			const char* EndString = FPlatformString::Strstr(FoundString, EndCertificateString);
-			if (EndString != nullptr)
-			{
-				size_t LengthOfCertificateData = EndString - FoundString + sizeof(EndCertificateString);
-				BIO* CertificateBio = BIO_new_mem_buf(FoundString, LengthOfCertificateData);
-				X509* Certificate = PEM_read_bio_X509(CertificateBio, NULL, 0, NULL);
-				RootCertificateArray.Add(Certificate);
-				BIO_free(CertificateBio);
-			}
-			FoundString = EndString;
+			CertificateBundleBufferSize = CertificateBundleArchive->TotalSize();
+			CertificateBundleBuffer.Reset(new char[CertificateBundleBufferSize + 1]);
+			CertificateBundleArchive->Serialize(CertificateBundleBuffer.Get(), CertificateBundleBufferSize);
+			CertificateBundleBuffer[CertificateBundleBufferSize] = '\0';
 		}
-	}
 
-	if (CertificateBundleBuffer != nullptr)
-	{
-		delete[] CertificateBundleBuffer;
-		CertificateBundleBuffer = nullptr;
+		if (CertificateBundleBufferSize > 0 && CertificateBundleBuffer != nullptr)
+		{
+			static const char BeginCertificateString[] = "-----BEGIN CERTIFICATE-----";
+			static const char EndCertificateString[] = "-----END CERTIFICATE-----";
+
+			const char* FoundString = CertificateBundleBuffer.Get();
+			while (nullptr != (FoundString = FPlatformString::Strstr(FoundString, BeginCertificateString)))
+			{
+				const char* EndString = FPlatformString::Strstr(FoundString, EndCertificateString);
+				if (EndString != nullptr)
+				{
+					size_t LengthOfCertificateData = EndString - FoundString + sizeof(EndCertificateString);
+					BIO* CertificateBio = BIO_new_mem_buf(FoundString, LengthOfCertificateData);
+					X509* Certificate = PEM_read_bio_X509(CertificateBio, NULL, 0, NULL);
+					RootCertificateArray.Add(Certificate);
+					BIO_free(CertificateBio);
+				}
+				FoundString = EndString;
+			}
+		}
 	}
 
 	FString DebuggingCertificatePath;
