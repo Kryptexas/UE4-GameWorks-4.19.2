@@ -177,7 +177,11 @@ void UAnimationAsset::PostLoad()
 	// skeleton is ready
 	if (Skeleton)
 	{
-		Skeleton ->ConditionalPostLoad();
+		if (FLinkerLoad* SkeletonLinker = Skeleton->GetLinker())
+		{
+			SkeletonLinker->Preload(Skeleton);
+		}
+		Skeleton->ConditionalPostLoad();
 	}
 
 	ValidateSkeleton();
