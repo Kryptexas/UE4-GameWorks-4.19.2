@@ -174,6 +174,14 @@ private:
 	static bool IsMediaExtension(const TCHAR* Ext);
 
 	/**
+	 * Returns whether the passed in extension is a an additional (but non asset) cooked file.
+	 *
+	 * @param	Extension to test.
+	 * @return	True if Ext is a additional cooked file.  e.g. .ubulk, .ufont
+	 */
+	static bool IsAdditionalCookedFileExtension(const TCHAR* Ext);
+
+	/**
 	 * @return true if the path exists in a directory that should always use the local filesystem
 	 * This version does not worry about initialization or thread safety, do not call directly
 	 */
@@ -236,6 +244,7 @@ private:
 
 	static FString MP4Extension;
 	static FString BulkFileExtension;
+	static FString ExpFileExtension;
 };
 
 class SOCKETS_API FNetworkFileHandle : public IFileHandle

@@ -21,6 +21,7 @@ DEFINE_LOG_CATEGORY(LogNetworkPlatformFile);
 
 FString FNetworkPlatformFile::MP4Extension = TEXT(".mp4");
 FString FNetworkPlatformFile::BulkFileExtension = TEXT(".ubulk");
+FString FNetworkPlatformFile::ExpFileExtension = TEXT(".uexp");
 
 FNetworkPlatformFile::FNetworkPlatformFile()
 	: bHasLoadedDDCDirectories(false)
@@ -940,7 +941,7 @@ public:
 			FDateTime CheckTime = InnerPlatformFile.GetTimeStamp(*Filename);
 			if (CheckTime < ServerTimeStamp)
 			{
-				UE_LOG(LogNetworkPlatformFile, Fatal, TEXT("Could Not Set Timestamp '%s'."), *Filename);
+				UE_LOG(LogNetworkPlatformFile, Fatal, TEXT("Could Not Set Timestamp '%s'  %s < %s."), *Filename, *CheckTime.ToString(), *ServerTimeStamp.ToString());
 			}
 		}
 		if (Event)
@@ -1047,6 +1048,18 @@ bool FNetworkPlatformFile::IsMediaExtension(const TCHAR* Ext)
 	}
 }
 
+bool FNetworkPlatformFile::IsAdditionalCookedFileExtension(const TCHAR* Ext)
+{
+	if (*Ext != TEXT('.'))
+	{
+		return BulkFileExtension.EndsWith(Ext) || ExpFileExtension.EndsWith(Ext);
+	}
+	else
+	{
+		return BulkFileExtension == Ext || ExpFileExtension == Ext;
+	}
+}
+
 /**
  * Given a filename, make sure the file exists on the local filesystem
  */
@@ -1107,11 +1120,11 @@ void FNetworkPlatformFile::EnsureFileIsLocal(const FString& Filename)
 
 	// this is a bit of a waste if we aren't doing cook on the fly, but we assume missing asset files are relatively rare
 	FString Extension = FPaths::GetExtension(Filename, true);
-	bool bIsCookable = GConfig && GConfig->IsReadyForUse() && (FPackageName::IsPackageExtension(*Extension) || IsMediaExtension(*Extension));
+	bool bIsCookable = GConfig && GConfig->IsReadyForUse() && (FPackageName::IsPackageExtension(*Extension) || IsMediaExtension(*Extension) || IsAdditionalCookedFileExtension(*Extension));
 
 	// we only copy files that actually exist on the server, can greatly reduce network traffic for, say,
 	// the INT file each package tries to load
-	if (!bIsCookable && (ServerFiles.FindFile(Filename) == NULL) && (Extension != BulkFileExtension))
+	if (!bIsCookable && (ServerFiles.FindFile(Filename) == NULL))
 	{
 		// Uncomment this to have the server file list dumped
 		// the first time a file requested is not found.
