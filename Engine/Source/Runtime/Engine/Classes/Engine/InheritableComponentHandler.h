@@ -90,6 +90,9 @@ class ENGINE_API UInheritableComponentHandler : public UObject
 
 #if WITH_EDITOR
 private:
+	/* Template name prefix for SCS DefaultSceneRootNode overrides */
+	static const FString SCSDefaultSceneRootOverrideNamePrefix;
+
 	bool IsRecordValid(const FComponentOverrideRecord& Record) const;
 	bool IsRecordNecessary(const FComponentOverrideRecord& Record) const;
 
