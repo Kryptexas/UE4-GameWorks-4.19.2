@@ -1206,7 +1206,7 @@ void FMaterialShaderMap::Compile(
 			NewCorrespondingMaterials.Add(Material);
 			ShaderMapsBeingCompiled.Add(this, NewCorrespondingMaterials);
 #if DEBUG_INFINITESHADERCOMPILE
-			UE_LOG(LogTemp, Warning, TEXT("Added material ShaderMap 0x%08X%08X with Material 0x%08X%08X to ShaderMapsBeingCompiled"), (int)((int64)(this) >> 32), (int)((int64)(this)), (int)((int64)(Material) >> 32), (int)((int64)(Material)));
+			UE_LOG(LogTemp, Display, TEXT("Added material ShaderMap 0x%08X%08X with Material 0x%08X%08X to ShaderMapsBeingCompiled"), (int)((int64)(this) >> 32), (int)((int64)(this)), (int)((int64)(Material) >> 32), (int)((int64)(Material)));
 #endif  
 			// Setup the material compilation environment.
 			Material->SetupMaterialEnvironment(InPlatform, InMaterialCompilationOutput.UniformExpressionSet, *MaterialEnvironment);
@@ -1650,7 +1650,7 @@ bool FMaterialShaderMap::TryToAddToExistingCompilationTask(FMaterial* Material)
 	{
 		CorrespondingMaterials->AddUnique(Material);
 #if DEBUG_INFINITESHADERCOMPILE
-		UE_LOG(LogTemp, Warning, TEXT("Added shader map 0x%08X%08X from material 0x%08X%08X"), (int)((int64)(this) >> 32), (int)((int64)(this)), (int)((int64)(Material) >> 32), (int)((int64)(Material)));
+		UE_LOG(LogTemp, Display, TEXT("Added shader map 0x%08X%08X from material 0x%08X%08X"), (int)((int64)(this) >> 32), (int)((int64)(this)), (int)((int64)(Material) >> 32), (int)((int64)(Material)));
 #endif
 		return true;
 	}
@@ -2181,7 +2181,7 @@ void FMaterialShaderMap::RemovePendingMaterial(FMaterial* Material)
 #if DEBUG_INFINITESHADERCOMPILE
 		if ( Result )
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Removed shader map 0x%08X%08X from material 0x%08X%08X"), (int)((int64)(It.Key().GetReference()) >> 32), (int)((int64)(It.Key().GetReference())), (int)((int64)(Material) >> 32), (int)((int64)(Material)));
+			UE_LOG(LogTemp, Display, TEXT("Removed shader map 0x%08X%08X from material 0x%08X%08X"), (int)((int64)(It.Key().GetReference()) >> 32), (int)((int64)(It.Key().GetReference())), (int)((int64)(Material) >> 32), (int)((int64)(Material)));
 		}
 #endif
 	}
