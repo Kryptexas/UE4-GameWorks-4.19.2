@@ -369,7 +369,7 @@ void FMacWindow::Show()
 		MainThreadCall(^{
 			SCOPED_AUTORELEASE_POOL;
 			[WindowHandle orderFrontAndMakeMain:bMakeMainAndKey andKey:bMakeMainAndKey];
-		}, UE4ShowEventMode, true);
+		}, UE4ShowEventMode, false);
 		
 		bIsVisible = true;
 	}
