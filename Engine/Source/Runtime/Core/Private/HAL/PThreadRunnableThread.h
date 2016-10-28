@@ -194,13 +194,16 @@ protected:
 	 */
 	uint32 Run();
 
-public:
-	FRunnableThreadPThread()
-		: bThreadStartedAndNotCleanedUp(false)
-	{
-	}
-
-	~FRunnableThreadPThread()
+	/**
+	 * Internal helper, needs to be called by subclasses that override virtual functions.
+	 * Should be idempotent since it will be called multiple times.
+	 *
+	 * Why it is needed:
+	 *  if the thread is still running, Kill() will Stop() it, resulting in _ThreadProc() calling PostRun(). However,
+	 * PostRun() is a virtual function and if the FRunnable subclass overrides it, wrong one will be called if we are doing that
+	 * in the destructor of the base class.
+	 */
+	void FRunnableThreadPThread_DestructorBody()
 	{
 		// Clean up our thread if it is still active
 		if (bThreadStartedAndNotCleanedUp)
@@ -209,6 +212,17 @@ public:
 		}
 		checkf(!bThreadStartedAndNotCleanedUp, TEXT("Thread still not cleaned up after Kill(true)!"));
 		ThreadID = 0;
+	}
+
+public:
+	FRunnableThreadPThread()
+		: bThreadStartedAndNotCleanedUp(false)
+	{
+	}
+
+	~FRunnableThreadPThread()
+	{
+		FRunnableThreadPThread_DestructorBody();
 	}
 
 	virtual void SetThreadPriority(EThreadPriority NewPriority) override
