@@ -7140,6 +7140,15 @@ FNetworkPredictionData_Server_Character* UCharacterMovementComponent::GetPredict
 	return static_cast<class FNetworkPredictionData_Server_Character*>(GetPredictionData_Server());
 }
 
+bool UCharacterMovementComponent::HasPredictionData_Client() const
+{
+	return (ClientPredictionData != nullptr) && HasValidData();
+}
+
+bool UCharacterMovementComponent::HasPredictionData_Server() const
+{
+	return (ServerPredictionData != nullptr) && HasValidData();
+}
 
 void UCharacterMovementComponent::ResetPredictionData_Client()
 {

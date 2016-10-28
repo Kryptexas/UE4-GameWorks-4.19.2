@@ -1881,8 +1881,8 @@ public:
 	/** Get prediction data for a server game. Should not be used if not running as a server. Allocates the data on demand and can be overridden to allocate a custom override if desired. */
 	virtual class FNetworkPredictionData_Server* GetPredictionData_Server() const override;
 
-	virtual bool HasPredictionData_Client() const override { return ClientPredictionData != NULL; }
-	virtual bool HasPredictionData_Server() const override { return ServerPredictionData != NULL; }
+	virtual bool HasPredictionData_Client() const override;
+	virtual bool HasPredictionData_Server() const override;
 
 	virtual void ResetPredictionData_Client() override;
 	virtual void ResetPredictionData_Server() override;
