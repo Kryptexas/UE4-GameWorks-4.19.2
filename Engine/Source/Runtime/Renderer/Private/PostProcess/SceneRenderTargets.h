@@ -131,6 +131,14 @@ END_UNIFORM_BUFFER_STRUCT( FGBufferResourceStruct )
 
 #define STENCIL_LIGHTING_CHANNELS_MASK(Value) uint8((Value & 0x7) << STENCIL_LIGHTING_CHANNELS_BIT_ID)
 
+enum class ESceneColorFormatType
+{
+	Mobile,
+	HighEnd,
+	HighEndWithAlpha,
+	Num,
+};
+
 /**
  * Encapsulates the render targets used for scene rendering.
  */
@@ -186,6 +194,7 @@ protected:
 		bCurrentLightPropagationVolume(false),
 		CurrentFeatureLevel(ERHIFeatureLevel::Num),
 		CurrentShadingPath(EShadingPath::Num),
+		bRequireSceneColorAlpha(false),
 		bAllocateVelocityGBuffer(false),
 		bSnapshot(false),
 		QuadOverdrawIndex(INDEX_NONE)
@@ -253,7 +262,7 @@ public:
 		}
 	}
 
-	void ResolveSceneDepthTexture(FRHICommandList& RHICmdList);
+	void ResolveSceneDepthTexture(FRHICommandList& RHICmdList, const FResolveRect& ResolveRect);
 	void ResolveSceneDepthToAuxiliaryTexture(FRHICommandList& RHICmdList);
 
 	void BeginRenderingPrePass(FRHICommandList& RHICmdList, bool bPerformClear);
@@ -492,7 +501,7 @@ private: // Get...() methods instead of direct access
 
 	// 0 before BeginRenderingSceneColor and after tone mapping in deferred shading
 	// Permanently allocated for forward shading
-	TRefCountPtr<IPooledRenderTarget> SceneColor[(int32)EShadingPath::Num];
+	TRefCountPtr<IPooledRenderTarget> SceneColor[(int32)ESceneColorFormatType::Num];
 	// Light Attenuation is a low precision scratch pad matching the size of the scene color buffer used by many passes.
 	TRefCountPtr<IPooledRenderTarget> LightAttenuation;
 public:
@@ -628,21 +637,41 @@ private:
 	void ReleaseAllTargets();
 
 	/** Get the current scene color target based on our current shading path. Will return a null ptr if there is no valid scene color target  */
-	const TRefCountPtr<IPooledRenderTarget>& GetSceneColorForCurrentShadingPath() const { check(CurrentShadingPath < EShadingPath::Num); return SceneColor[(int32)CurrentShadingPath]; }
-	TRefCountPtr<IPooledRenderTarget>& GetSceneColorForCurrentShadingPath() { check(CurrentShadingPath < EShadingPath::Num); return SceneColor[(int32)CurrentShadingPath]; }
+	const TRefCountPtr<IPooledRenderTarget>& GetSceneColorForCurrentShadingPath() const { check(CurrentShadingPath < EShadingPath::Num); return SceneColor[(int32)GetSceneColorFormatType()]; }
+	TRefCountPtr<IPooledRenderTarget>& GetSceneColorForCurrentShadingPath() { check(CurrentShadingPath < EShadingPath::Num); return SceneColor[(int32)GetSceneColorFormatType()]; }
 
 	/** Determine whether the render targets for a particular shading path have been allocated */
-	bool AreShadingPathRenderTargetsAllocated(EShadingPath InShadingPath) const;
+	bool AreShadingPathRenderTargetsAllocated(ESceneColorFormatType InSceneColorFormatType) const;
 
 	/** Determine whether the render targets for any shading path have been allocated */
 	bool AreAnyShadingPathRenderTargetsAllocated() const 
 	{ 
-		return AreShadingPathRenderTargetsAllocated(EShadingPath::Deferred) 
-			|| AreShadingPathRenderTargetsAllocated(EShadingPath::Mobile); 
+		return AreShadingPathRenderTargetsAllocated(ESceneColorFormatType::HighEnd) 
+			|| AreShadingPathRenderTargetsAllocated(ESceneColorFormatType::HighEndWithAlpha) 
+			|| AreShadingPathRenderTargetsAllocated(ESceneColorFormatType::Mobile); 
 	}
 
 	/** Gets all GBuffers to use.  Returns the number actually used. */
 	int32 GetGBufferRenderTargets(ERenderTargetLoadAction ColorLoadAction, FRHIRenderTargetView OutRenderTargets[MaxSimultaneousRenderTargets], int32& OutVelocityRTIndex);
+
+	ESceneColorFormatType GetSceneColorFormatType() const
+	{
+		if (CurrentShadingPath == EShadingPath::Mobile)
+		{
+			return ESceneColorFormatType::Mobile;
+		}
+		else if (CurrentShadingPath == EShadingPath::Deferred && (bRequireSceneColorAlpha || CurrentSceneColorFormat == 4))
+		{
+			return ESceneColorFormatType::HighEndWithAlpha;
+		}
+		else if (CurrentShadingPath == EShadingPath::Deferred && !bRequireSceneColorAlpha)
+		{
+			return ESceneColorFormatType::HighEnd;
+		}
+
+		check(0);
+		return ESceneColorFormatType::Num;
+	}
 
 	/** Uniform buffer containing GBuffer resources. */
 	FUniformBufferRHIRef GBufferResourcesUniformBuffer;
@@ -680,6 +709,8 @@ private:
 	ERHIFeatureLevel::Type CurrentFeatureLevel;
 	/** Shading path that we are currently drawing through. Set when calling Allocate at the start of a scene render. */
 	EShadingPath CurrentShadingPath;
+
+	bool bRequireSceneColorAlpha;
 
 	// Set this per frame since there might be cases where we don't need an extra GBuffer
 	bool bAllocateVelocityGBuffer;
