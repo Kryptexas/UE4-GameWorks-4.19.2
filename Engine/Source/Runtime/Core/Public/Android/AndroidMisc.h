@@ -34,6 +34,7 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 	static bool ControlScreensaver(EScreenSaverAction Action);
 	static bool AllowRenderThread();
 	static bool HasPlatformFeature(const TCHAR* FeatureName);
+	static bool ShouldDisablePluginAtRuntime(const FString& PluginName);
 
 	static bool AllowThreadHeartBeat()
 	{

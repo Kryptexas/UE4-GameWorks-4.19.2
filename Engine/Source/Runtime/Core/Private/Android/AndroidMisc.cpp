@@ -1068,6 +1068,17 @@ int32 FAndroidMisc::GetAndroidBuildVersion()
 	return AndroidBuildVersion;
 }
 
+bool FAndroidMisc::ShouldDisablePluginAtRuntime(const FString& PluginName)
+{
+#if PLATFORM_ANDROID_ARM64 || PLATFORM_ANDROID_X64
+	// disable OnlineSubsystemGooglePlay for unsupported Android architectures
+	if (PluginName.Equals(TEXT("OnlineSubsystemGooglePlay")))
+	{
+		return true;
+	}
+#endif
+	return false;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 //

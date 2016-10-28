@@ -1012,6 +1012,16 @@ public:
 		return 1.0f;
 	}
 
+	/**
+	 * Allows platform at runtime to disable unsupported plugins
+	 *  @param	PluginName	Name of enabled plugin to consider
+	 *	@return	bool		true if plugin should be disabled
+	 */
+	static bool ShouldDisablePluginAtRuntime(const FString& PluginName)
+	{
+		return false;
+	}
+
 #if !UE_BUILD_SHIPPING
 protected:
 	/** Whether the user should be prompted to allow for a remote debugger to be attached */
