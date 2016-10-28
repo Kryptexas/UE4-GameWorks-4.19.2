@@ -1151,7 +1151,7 @@ class UAudioComponent* UGameplayStatics::SpawnSoundAttached(class USoundBase* So
 		}
 	}
 
-	FAudioDevice::FCreateComponentParams Params(AttachToComponent->GetOwner());
+	FAudioDevice::FCreateComponentParams Params(AttachToComponent->GetWorld(), AttachToComponent->GetOwner());
 	Params.SetLocation(TestLocation);
 	Params.bStopWhenOwnerDestroyed = bStopWhenAttachedToDestroyed;
 	Params.AttenuationSettings = AttenuationSettings;
