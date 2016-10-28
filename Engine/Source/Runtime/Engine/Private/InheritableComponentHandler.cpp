@@ -10,7 +10,9 @@
 
 // UInheritableComponentHandler
 
+#if WITH_EDITOR
 const FString UInheritableComponentHandler::SCSDefaultSceneRootOverrideNamePrefix(TEXT("ICH-"));
+#endif // WITH_EDITOR
 
 void UInheritableComponentHandler::PostLoad()
 {
