@@ -8,6 +8,7 @@
 #include "SceneViewExtension.h"
 #include "JsonObjectConverter.h"
 #include "RemoteConfigIni.h"
+#include "Scalability.h"
 #include "SceneViewport.h"
 
 #if WITH_EDITOR
@@ -42,6 +43,7 @@ FMovieSceneCaptureSettings::FMovieSceneCaptureSettings()
 	FrameRate = 24;
 	ZeroPadFrameNumbers = 4;
 	bEnableTextureStreaming = false;
+	bCinematicEngineScalability = true;
 	bCinematicMode = true;
 	bAllowMovement = false;
 	bAllowTurning = false;
@@ -134,6 +136,12 @@ void UMovieSceneCapture::Initialize(TSharedPtr<FSceneViewport> InSceneViewport, 
 			Settings.HandleFrames = HandleFramesOverride;
 		}
 
+		bool bOverrideCinematicEngineScalabilityMode;
+		if( FParse::Bool( FCommandLine::Get(), TEXT( "-MovieEngineScalabilityMode=" ), bOverrideCinematicEngineScalabilityMode ) )
+		{
+			Settings.bCinematicEngineScalability = bOverrideCinematicEngineScalabilityMode;
+		}
+
 		bool bOverrideCinematicMode;
 		if( FParse::Bool( FCommandLine::Get(), TEXT( "-MovieCinematicMode=" ), bOverrideCinematicMode ) )
 		{
@@ -178,6 +186,14 @@ void UMovieSceneCapture::Initialize(TSharedPtr<FSceneViewport> InSceneViewport, 
 
 void UMovieSceneCapture::StartWarmup()
 {
+	if (Settings.bCinematicEngineScalability)
+	{
+		CachedQualityLevels = Scalability::GetQualityLevels();
+		Scalability::FQualityLevels QualityLevels = CachedQualityLevels;
+		QualityLevels.SetFromSingleQualityLevelRelativeToMax(0);
+		Scalability::SetQualityLevels(QualityLevels);
+	}
+
 	check( !bCapturing );
 	if( !CaptureStrategy.IsValid() )
 	{
@@ -244,6 +260,11 @@ void UMovieSceneCapture::FinalizeWhenReady()
 
 void UMovieSceneCapture::Finalize()
 {
+	if (Settings.bCinematicEngineScalability)
+	{
+		Scalability::SetQualityLevels(CachedQualityLevels);
+	}
+
 	FActiveMovieSceneCaptures::Get().Remove(this);
 
 	if (bCapturing)

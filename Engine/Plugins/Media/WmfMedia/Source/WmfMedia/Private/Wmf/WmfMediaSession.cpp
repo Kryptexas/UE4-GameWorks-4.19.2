@@ -12,20 +12,22 @@
 /* FWmfMediaSession structors
  *****************************************************************************/
 
-FWmfMediaSession::FWmfMediaSession()
+FWmfMediaSession::FWmfMediaSession(EMediaState InState)
 	: Buffering(false)
 	, CanScrub(false)
 	, Capabilities(0)
 	, ChangeRequested(false)
 	, CurrentRate(0.0f)
-	, CurrentState(EMediaState::Closed)
+	, CurrentState(InState)
 	, Duration(FTimespan::Zero())
 	, Looping(false)
 	, RefCount(0)
 	, RequestedRate(0.0f)
 	, RequestedTime(FTimespan::MinValue())
 	, StateChangePending(false)
-{ }
+{
+	check((InState == EMediaState::Closed) || (InState == EMediaState::Preparing));
+}
 
 
 FWmfMediaSession::FWmfMediaSession(const FTimespan& InDuration)
@@ -441,8 +443,8 @@ STDMETHODIMP FWmfMediaSession::Invoke(IMFAsyncResult* AsyncResult)
 
 
 #if _MSC_VER == 1900
-#pragma warning(push)
-#pragma warning(disable:4838)
+	#pragma warning(push)
+	#pragma warning(disable:4838)
 #endif // _MSC_VER == 1900
 
 STDMETHODIMP FWmfMediaSession::QueryInterface(REFIID RefID, void** Object)
@@ -455,8 +457,9 @@ STDMETHODIMP FWmfMediaSession::QueryInterface(REFIID RefID, void** Object)
 
 	return QISearch(this, QITab, RefID, Object);
 }
+
 #if _MSC_VER == 1900
-#pragma warning(pop)
+	#pragma warning(pop)
 #endif // _MSC_VER == 1900
 
 

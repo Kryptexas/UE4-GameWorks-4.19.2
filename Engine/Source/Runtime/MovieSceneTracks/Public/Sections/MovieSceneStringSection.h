@@ -37,6 +37,10 @@ public:
 	{
 		return StringCurve;
 	}
+	const FStringCurve& GetStringCurve() const
+	{
+		return StringCurve;
+	}
 
 public:
 

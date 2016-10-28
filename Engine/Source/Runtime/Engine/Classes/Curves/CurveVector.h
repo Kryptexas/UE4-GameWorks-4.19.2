@@ -1,9 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-
 #pragma once
+
 #include "CurveBase.h"
 #include "CurveVector.generated.h"
+
 
 UCLASS(BlueprintType, MinimalAPI)
 class UCurveVector : public UCurveBase
@@ -27,4 +28,3 @@ class UCurveVector : public UCurveBase
 
 	virtual bool IsValidCurve( FRichCurveEditInfo CurveInfo ) override;
 };
-

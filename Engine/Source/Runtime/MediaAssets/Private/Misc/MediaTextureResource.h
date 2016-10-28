@@ -86,11 +86,12 @@ public:
 	/**
 	 * Initialize the render target buffer(s).
 	 *
-	 * @param Dimensions Width and height of the texture (in pixels).
+	 * @param OutputDim Width and height of the video output (in pixels).
+	 * @param BufferDim Width and height of the sink buffer(s) (in pixels).
 	 * @param Format The pixel format of the sink's render target texture.
 	 * @param Mode The mode to operate the sink in (buffered vs. unbuffered).
 	 */
-	void InitializeBuffer(FIntPoint Dimensions, EMediaTextureSinkFormat Format, EMediaTextureSinkMode Mode);
+	void InitializeBuffer(FIntPoint OutputDim, FIntPoint BufferDim, EMediaTextureSinkFormat Format, EMediaTextureSinkMode Mode);
 
 	/** Release a previously acquired texture buffer. */
 	void ReleaseBuffer();
@@ -160,11 +161,12 @@ protected:
 	/**
 	 * Initialize this resource.
 	 *
-	 * @param Dimensions The new texture dimensions.
+	 * @param OutputDim Width and height of the output texture (in pixels).
+	 * @param BufferDim Width and height of the buffer texture(s) (in pixels).
 	 * @param Format The new texture format.
 	 * @param Mode The new sink mode.
 	 */
-	void InitializeResource(FIntPoint Dimensions, EMediaTextureSinkFormat Format, EMediaTextureSinkMode Mode);
+	void InitializeResource(FIntPoint OutputDim, FIntPoint BufferDim, EMediaTextureSinkFormat Format, EMediaTextureSinkMode Mode);
 
 	/** Process any queued up tasks on the render thread. */
 	void ProcessRenderThreadTasks();
@@ -191,9 +193,6 @@ private:
 
 	//~ The following fields are owned by the render thread
 
-	/** Number of bytes per pixel in buffer resources. */
-	uint8 BufferBytesPerPixel;
-
 	/** The clear color to use. */
 	FLinearColor BufferClearColor;
 
@@ -204,6 +203,9 @@ private:
 	 * have formats with multiple pixels packed into a single RGBA tuple.
 	 */
 	FIntPoint BufferDimensions;
+
+	/** Number of bytes per row in buffer resources. */
+	SIZE_T BufferPitch;
 
 	/**
 	 * Texture resources for buffered mode or pixel conversions.

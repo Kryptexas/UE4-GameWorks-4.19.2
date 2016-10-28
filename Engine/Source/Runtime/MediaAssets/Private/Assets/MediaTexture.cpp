@@ -13,11 +13,45 @@ UMediaTexture::UMediaTexture(const FObjectInitializer& ObjectInitializer)
 	, AddressX(TA_Clamp)
 	, AddressY(TA_Clamp)
 	, ClearColor(FLinearColor::Black)
-	, SinkDimensions(FIntPoint(1, 1))
+	, SinkBufferDim(FIntPoint(1, 1))
+	, SinkOutputDim(FIntPoint(1, 1))
 	, SinkFormat(EMediaTextureSinkFormat::CharBGRA)
 	, SinkMode(EMediaTextureSinkMode::Unbuffered)
 {
 	NeverStream = true;
+}
+
+
+/* IMediaTextureSink interface
+ *****************************************************************************/
+
+float UMediaTexture::GetAspectRatio() const
+{
+	if (Resource == nullptr)
+	{
+		return 0.0f;
+	}
+
+	const FIntPoint Dimensions = ((FMediaTextureResource*)Resource)->GetSizeXY();
+
+	if (Dimensions.Y == 0)
+	{
+		return 0.0f;
+	}
+
+	return Dimensions.X / Dimensions.Y;
+}
+
+
+int32 UMediaTexture::GetHeight() const
+{
+	return (Resource != nullptr) ? (int32)Resource->GetSizeY() : 0;
+}
+
+
+int32 UMediaTexture::GetWidth() const
+{
+	return (Resource != nullptr) ? (int32)Resource->GetSizeX() : 0;
 }
 
 
@@ -71,11 +105,12 @@ FRHITexture* UMediaTexture::GetTextureSinkTexture()
 }
 
 
-bool UMediaTexture::InitializeTextureSink(FIntPoint Dimensions, EMediaTextureSinkFormat Format, EMediaTextureSinkMode Mode)
+bool UMediaTexture::InitializeTextureSink(FIntPoint OutputDim, FIntPoint BufferDim, EMediaTextureSinkFormat Format, EMediaTextureSinkMode Mode)
 {
-	UE_LOG(LogMediaAssets, Verbose, TEXT("MediaTexture initializing sink with %i x %i pixels %s."), Dimensions.X, Dimensions.Y, (Mode == EMediaTextureSinkMode::Buffered) ? TEXT("Buffered") : TEXT("Unbuffered"));
+	UE_LOG(LogMediaAssets, Verbose, TEXT("MediaTexture initializing sink with %ix%i output and %ix%i buffer as %s."), OutputDim.X, OutputDim.Y, BufferDim.X, BufferDim.Y, (Mode == EMediaTextureSinkMode::Buffered) ? TEXT("Buffered") : TEXT("Unbuffered"));
 
-	SinkDimensions = Dimensions;
+	SinkBufferDim = BufferDim;
+	SinkOutputDim = OutputDim;
 	SinkFormat = Format;
 	SinkMode = Mode;
 
@@ -86,7 +121,7 @@ bool UMediaTexture::InitializeTextureSink(FIntPoint Dimensions, EMediaTextureSin
 		return false;
 	}
 
-	((FMediaTextureResource*)Resource)->InitializeBuffer(Dimensions, Format, Mode);
+	((FMediaTextureResource*)Resource)->InitializeBuffer(OutputDim, BufferDim, Format, Mode);
 
 	return true;
 }
@@ -113,7 +148,8 @@ void UMediaTexture::ShutdownTextureSink()
 	}
 
 	// reset to 1x1 clear color
-	SinkDimensions = FIntPoint(1, 1);
+	SinkBufferDim = FIntPoint(1, 1);
+	SinkOutputDim = FIntPoint(1, 1);
 	SinkFormat = EMediaTextureSinkFormat::CharBGRA;
 	SinkMode = EMediaTextureSinkMode::Unbuffered;
 
@@ -121,7 +157,7 @@ void UMediaTexture::ShutdownTextureSink()
 
 	if (Resource != nullptr)
 	{
-		((FMediaTextureResource*)Resource)->InitializeBuffer(SinkDimensions, SinkFormat, SinkMode);
+		((FMediaTextureResource*)Resource)->InitializeBuffer(SinkOutputDim, SinkBufferDim, SinkFormat, SinkMode);
 	}
 }
 
@@ -159,7 +195,7 @@ void UMediaTexture::UpdateTextureSinkResource(FRHITexture* RenderTarget, FRHITex
 
 FTextureResource* UMediaTexture::CreateResource()
 {
-	return new FMediaTextureResource(*this, ClearColor, SinkDimensions, SinkFormat, SinkMode);
+	return new FMediaTextureResource(*this, ClearColor, SinkOutputDim, SinkFormat, SinkMode);
 }
 
 

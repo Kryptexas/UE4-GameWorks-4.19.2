@@ -9,7 +9,6 @@
 #include "Sound/SoundCue.h"
 #include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
 #include "Runtime/Engine/Public/AudioDecompress.h"
-#include "MovieSceneAudioTrackInstance.h"
 
 
 #define LOCTEXT_NAMESPACE "MovieSceneAudioTrack"
@@ -21,12 +20,6 @@ UMovieSceneAudioTrack::UMovieSceneAudioTrack( const FObjectInitializer& ObjectIn
 #if WITH_EDITORONLY_DATA
 	TrackTint = FColor(93, 95, 136);
 #endif
-}
-
-
-TSharedPtr<IMovieSceneTrackInstance> UMovieSceneAudioTrack::CreateInstance()
-{
-	return MakeShareable( new FMovieSceneAudioTrackInstance( *this ) ); 
 }
 
 

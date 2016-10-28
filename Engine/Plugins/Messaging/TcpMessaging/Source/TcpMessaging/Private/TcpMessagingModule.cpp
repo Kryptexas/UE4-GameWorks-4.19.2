@@ -6,7 +6,7 @@
 #include "ISettingsSection.h"
 #endif
 #include "ModuleManager.h"
-#include "IConnectionBasedMessagingModule.h"
+#include "ITcpMessagingModule.h"
 
 
 DEFINE_LOG_CATEGORY(LogTcpMessaging);
@@ -19,7 +19,7 @@ DEFINE_LOG_CATEGORY(LogTcpMessaging);
  */
 class FTcpMessagingModule
 	: public FSelfRegisteringExec
-	, public IConnectionBasedMessagingModule
+	, public ITcpMessagingModule
 {
 public:
 
@@ -311,7 +311,7 @@ private:
 private:
 
 	/** Holds the message bridge if present. */
-	IMessageBridgePtr MessageBridge;
+	TSharedPtr<IMessageBridge, ESPMode::ThreadSafe> MessageBridge;
 	
 	/** Message transport pointer, if valid */
 	TWeakPtr<FTcpMessageTransport, ESPMode::ThreadSafe> MessageTransportPtr;

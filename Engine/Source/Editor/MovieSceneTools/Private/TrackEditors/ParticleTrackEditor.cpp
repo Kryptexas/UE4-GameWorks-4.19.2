@@ -113,20 +113,22 @@ int32 FParticleSection::OnPaintSection( FSequencerSectionPainter& InPainter ) co
 
 			if ( ObjectHandle.IsValid() )
 			{
-				UObject* BoundObject = OwningSequencer->GetFocusedMovieSceneSequenceInstance()->FindObject( ObjectHandle, *OwningSequencer );
-				UParticleSystemComponent* ParticleSystemComponent = Cast<UParticleSystemComponent>(BoundObject);
-				if(AEmitter* ParticleSystemActor = Cast<AEmitter>(BoundObject))
+				for (TWeakObjectPtr<> Object : OwningSequencer->FindObjectsInCurrentSequence(ObjectHandle))
 				{
-					ParticleSystemComponent = ParticleSystemActor->GetParticleSystemComponent();
-				}
-
-				if ( ParticleSystemComponent != nullptr && ParticleSystemComponent->Template != nullptr )
-				{
-					for ( UParticleEmitter* Emitter : ParticleSystemComponent->Template->Emitters )
+					UParticleSystemComponent* ParticleSystemComponent = Cast<UParticleSystemComponent>(Object.Get());
+					if(AEmitter* ParticleSystemActor = Cast<AEmitter>(Object.Get()))
 					{
-						UParticleModuleRequired* RequiredModule = Emitter->GetLODLevel( 0 )->RequiredModule;
-						bIsLooping |= RequiredModule->EmitterLoops == 0;
-						LastEmitterEndTime = FMath::Max( LastEmitterEndTime, RequiredModule->EmitterDelay + RequiredModule->EmitterDuration );
+						ParticleSystemComponent = ParticleSystemActor->GetParticleSystemComponent();
+					}
+
+					if ( ParticleSystemComponent != nullptr && ParticleSystemComponent->Template != nullptr )
+					{
+						for ( UParticleEmitter* Emitter : ParticleSystemComponent->Template->Emitters )
+						{
+							UParticleModuleRequired* RequiredModule = Emitter->GetLODLevel( 0 )->RequiredModule;
+							bIsLooping |= RequiredModule->EmitterLoops == 0;
+							LastEmitterEndTime = FMath::Max( LastEmitterEndTime, RequiredModule->EmitterDelay + RequiredModule->EmitterDuration );
+						}
 					}
 				}
 			}

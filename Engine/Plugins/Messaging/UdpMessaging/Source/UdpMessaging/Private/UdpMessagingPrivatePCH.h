@@ -3,19 +3,24 @@
 #pragma once
 
 
-/* Private dependencies
- *****************************************************************************/
+#include "Runtime/Core/Public/Core.h"
+#include "Runtime/Core/Public/Misc/AutomationTest.h"
+#include "Runtime/Core/Public/Modules/ModuleManager.h"
+#include "Runtime/CoreUObject/Public/CoreUObject.h"
+#include "Runtime/Messaging/Public/Deprecated/Messaging.h"
+#include "Runtime/Networking/Public/Networking.h"
+#include "Runtime/Serialization/Public/StructDeserializer.h"
+#include "Runtime/Serialization/Public/StructSerializer.h"
+#include "Runtime/Serialization/Public/Backends/JsonStructDeserializerBackend.h"
+#include "Runtime/Serialization/Public/Backends/JsonStructSerializerBackend.h"
+#include "Runtime/Sockets/Public/Sockets.h"
+#include "Runtime/Sockets/Public/SocketSubsystem.h"
 
-#include "Core.h"
-#include "CoreUObject.h"
-#include "Messaging.h"
-#include "Networking.h"
-#include "Sockets.h"
-#include "SocketSubsystem.h"
+#if WITH_EDITOR
+	#include "Developer/Settings/Public/ISettingsModule.h"
+	#include "Developer/Settings/Public/ISettingsSection.h"
+#endif
 
-
-/* Private constants
- *****************************************************************************/
 
 /** Declares a log category for this module. */
 DECLARE_LOG_CATEGORY_EXTERN(LogUdpMessaging, Log, All);
@@ -35,30 +40,3 @@ DECLARE_LOG_CATEGORY_EXTERN(LogUdpMessaging, Log, All);
 
 /** Defines the protocol version of the UDP message transport. */
 #define UDP_MESSAGING_TRANSPORT_PROTOCOL_VERSION 10
-
-
-/* Private includes
- *****************************************************************************/
-
-// shared
-#include "UdpMessageSegment.h"
-#include "UdpMessagingSettings.h"
-
-// transport
-#include "UdpMessageBeacon.h"
-#include "UdpReassembledMessage.h"
-#include "UdpMessageResequencer.h"
-#include "UdpDeserializedMessage.h"
-#include "UdpSerializedMessage.h"
-#include "UdpMessageSegmenter.h"
-#include "UdpMessageProcessor.h"
-#include "UdpSerializeMessageTask.h"
-#include "UdpMessageTransport.h"
-
-#if PLATFORM_DESKTOP
-
-// tunnel
-#include "UdpMessageTunnelConnection.h"
-#include "UdpMessageTunnel.h"
-
-#endif

@@ -1,9 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "ProfilerPrivatePCH.h"
-#include "SSearchBox.h"
+#include "ProfilerManager.h"
+#include "ProfilerSession.h"
+#include "SFiltersAndPresets.h"
+#include "StatDragDropOp.h"
+
 
 #define LOCTEXT_NAMESPACE "SFiltersAndPresets"
+
 
 struct SFiltersAndPresetsHelper
 {
@@ -38,7 +43,8 @@ struct SFiltersAndPresetsHelper
 class SFiltersAndPresetsTooltip
 {
 	const uint32 StatID;
-	FProfilerSessionPtr ProfilerSession;
+	TSharedPtr<FProfilerSession> ProfilerSession;
+
 public:
 	SFiltersAndPresetsTooltip( const uint32 InStatID )
 		: StatID( InStatID )
@@ -758,11 +764,11 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 void SFiltersAndPresets::ProfilerManager_OnRequestFilterAndPresetsUpdate()
 {
-	FProfilerSessionPtr ProfilerSessionLocal = FProfilerManager::Get()->GetProfilerSession();
+	TSharedPtr<FProfilerSession> ProfilerSessionLocal = FProfilerManager::Get()->GetProfilerSession();
 	UpdateGroupAndStatTree( ProfilerSessionLocal );
 }
 
-void SFiltersAndPresets::UpdateGroupAndStatTree( const FProfilerSessionPtr InProfilerSession )
+void SFiltersAndPresets::UpdateGroupAndStatTree( const TSharedPtr<FProfilerSession> InProfilerSession )
 {
 	const bool bRebuild = InProfilerSession != ProfilerSession;
 	if( bRebuild )
@@ -772,7 +778,7 @@ void SFiltersAndPresets::UpdateGroupAndStatTree( const FProfilerSessionPtr InPro
 
 	ProfilerSession = InProfilerSession;
 
-	const FProfilerStatMetaDataRef StatMetaData = ProfilerSession->GetMetaData();
+	const TSharedRef<FProfilerStatMetaData> StatMetaData = ProfilerSession->GetMetaData();
 
 	// Create all stat nodes.
 	for( auto It = StatMetaData->GetStatIterator(); It; ++It )

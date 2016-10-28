@@ -1,15 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MessagingDebuggerPrivatePCH.h"
-#include "Json.h"
-#include "JsonStructSerializerBackend.h"
-#include "StructSerializer.h"
-
-#if WITH_EDITOR
-	#include "IDetailsView.h"
-	#include "IStructureDetailsView.h"
-	#include "PropertyEditorModule.h"
-#endif
+#include "MessagingDebuggerPCH.h"
+#include "MessagingDebuggerModel.h"
+#include "SMessagingMessageData.h"
 
 
 #define LOCTEXT_NAMESPACE "SMessagingMessageData"
@@ -30,7 +23,7 @@ SMessagingMessageData::~SMessagingMessageData()
 /* SMessagingMessageData interface
  *****************************************************************************/
 
-void SMessagingMessageData::Construct( const FArguments& InArgs, const FMessagingDebuggerModelRef& InModel, const TSharedRef<ISlateStyle>& InStyle )
+void SMessagingMessageData::Construct(const FArguments& InArgs, const TSharedRef<FMessagingDebuggerModel>& InModel, const TSharedRef<ISlateStyle>& InStyle)
 {
 	Model = InModel;
 	Style = InStyle;
@@ -88,7 +81,7 @@ void SMessagingMessageData::Construct( const FArguments& InArgs, const FMessagin
 /* FNotifyHook interface
  *****************************************************************************/
 
-void SMessagingMessageData::NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, class FEditPropertyChain* PropertyThatChanged )
+void SMessagingMessageData::NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, class FEditPropertyChain* PropertyThatChanged)
 {
 }
 
@@ -98,7 +91,7 @@ void SMessagingMessageData::NotifyPostChange( const FPropertyChangedEvent& Prope
 
 bool SMessagingMessageData::HandleDetailsViewIsPropertyEditable() const
 {
-	FMessageTracerMessageInfoPtr SelectedMessage = Model->GetSelectedMessage();
+	TSharedPtr<FMessageTracerMessageInfo> SelectedMessage = Model->GetSelectedMessage();
 
 	if (!SelectedMessage.IsValid() || !SelectedMessage->Context.IsValid())
 	{
@@ -122,7 +115,7 @@ EVisibility SMessagingMessageData::HandleDetailsViewVisibility() const
 
 void SMessagingMessageData::HandleModelSelectedMessageChanged()
 {
-	FMessageTracerMessageInfoPtr SelectedMessage = Model->GetSelectedMessage();
+	TSharedPtr<FMessageTracerMessageInfo> SelectedMessage = Model->GetSelectedMessage();
 
 	if (SelectedMessage.IsValid() && SelectedMessage->Context.IsValid())
 	{

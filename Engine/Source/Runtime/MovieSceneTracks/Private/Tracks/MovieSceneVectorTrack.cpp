@@ -4,7 +4,7 @@
 #include "MovieSceneVectorSection.h"
 #include "MovieSceneVectorTrack.h"
 #include "IMovieScenePlayer.h"
-#include "MovieSceneVectorTrackInstance.h"
+#include "Evaluation/MovieScenePropertyTemplates.h"
 
 
 UMovieSceneVectorTrack::UMovieSceneVectorTrack( const FObjectInitializer& ObjectInitializer )
@@ -22,26 +22,7 @@ UMovieSceneSection* UMovieSceneVectorTrack::CreateNewSection()
 }
 
 
-TSharedPtr<IMovieSceneTrackInstance> UMovieSceneVectorTrack::CreateInstance()
+FMovieSceneEvalTemplatePtr UMovieSceneVectorTrack::CreateTemplateForSection(const UMovieSceneSection& InSection) const
 {
-	return MakeShareable( new FMovieSceneVectorTrackInstance( *this ) );
+	return FMovieSceneVectorPropertySectionTemplate(*CastChecked<UMovieSceneVectorSection>(&InSection), *this);
 }
-
-
-bool UMovieSceneVectorTrack::Eval( float Position, float LastPosition, FVector4& InOutVector ) const
-{
-	const UMovieSceneSection* Section = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Position );
-
-	if( Section )
-	{
-		if (!Section->IsInfinite())
-		{
-			Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
-		}
-
-		InOutVector = CastChecked<UMovieSceneVectorSection>( Section )->Eval( Position, InOutVector );
-	}
-
-	return Section != nullptr;
-}
-

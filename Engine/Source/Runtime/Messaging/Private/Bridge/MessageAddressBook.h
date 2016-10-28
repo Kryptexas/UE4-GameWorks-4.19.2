@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "IMessageContext.h"
+
 
 /**
  * Implements an address book that maps message addresses to remote nodes.

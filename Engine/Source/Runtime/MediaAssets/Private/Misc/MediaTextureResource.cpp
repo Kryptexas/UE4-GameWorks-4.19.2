@@ -11,9 +11,9 @@
 FMediaTextureResource::FMediaTextureResource(UMediaTexture& InOwner, const FLinearColor& InClearColor, const FIntPoint& InOutputDimensions, EMediaTextureSinkFormat InSinkFormat, EMediaTextureSinkMode InSinkMode)
 	: Owner(InOwner)
 	, TripleBuffer(BufferResources)
-	, BufferBytesPerPixel(0)
 	, BufferClearColor(InClearColor)
-	, BufferDimensions(FIntPoint::ZeroValue)
+	, BufferDimensions(InOutputDimensions)
+	, BufferPitch(0)
 	, CachedResourceSizeBytes(0)
 	, OutputDimensions(InOutputDimensions)
 	, RequiresConversion(false)
@@ -89,18 +89,18 @@ FRHITexture* FMediaTextureResource::GetTexture()
 }
 
 
-void FMediaTextureResource::InitializeBuffer(FIntPoint Dimensions, EMediaTextureSinkFormat Format, EMediaTextureSinkMode Mode)
+void FMediaTextureResource::InitializeBuffer(FIntPoint OutputDim, FIntPoint BufferDim, EMediaTextureSinkFormat Format, EMediaTextureSinkMode Mode)
 {
 	State = EState::Initializing;
 
 	if (IsInActualRenderingThread())
 	{
-		InitializeResource(Dimensions, Format, Mode);
+		InitializeResource(OutputDim, BufferDim, Format, Mode);
 	}
 	else
 	{
 		RenderThreadTasks.Enqueue([=]() {
-			InitializeResource(Dimensions, Format, Mode);
+			InitializeResource(OutputDim, BufferDim, Format, Mode);
 		});
 	}
 }
@@ -152,19 +152,11 @@ void FMediaTextureResource::ShutdownBuffer()
 }
 
 
-void FMediaTextureResource::UpdateBuffer(const uint8* Data, uint32 Pitch)
+void FMediaTextureResource::UpdateBuffer(const uint8* Data, uint32 /*Pitch*/)
 {
 	if (State != EState::Initialized)
 	{
 		return;
-	}
-
-	// calculate pitch
-	const SIZE_T BytesPerRow = OutputDimensions.X * BufferBytesPerPixel;
-
-	if (Pitch == 0)
-	{
-		Pitch = BytesPerRow;
 	}
 
 	// update sink
@@ -174,21 +166,7 @@ void FMediaTextureResource::UpdateBuffer(const uint8* Data, uint32 Pitch)
 
 		if (Dest != nullptr)
 		{
-			if (Pitch != BytesPerRow)
-			{
-				const uint8* Row = Data;
-
-				for (int32 RowIndex = 0; RowIndex < BufferDimensions.Y; ++RowIndex)
-				{
-					FMemory::Memcpy(Dest, Row, BytesPerRow);
-					Dest += BytesPerRow;
-					Row += Pitch;
-				}
-			}
-			else
-			{
-				FMemory::Memcpy(Dest, Data, BufferDimensions.Y * BytesPerRow);
-			}
+			FMemory::Memcpy(Dest, Data, BufferPitch * BufferDimensions.Y);
 
 			if (TripleBuffer.IsDirty())
 			{
@@ -203,13 +181,13 @@ void FMediaTextureResource::UpdateBuffer(const uint8* Data, uint32 Pitch)
 		if (RequiresConversion)
 		{
 			FUpdateTextureRegion2D Region(0, 0, 0, 0, BufferDimensions.X, BufferDimensions.Y);
-			RHIUpdateTexture2D(BufferResources[2].RenderTarget.GetReference(), 0, Region, Pitch, Data);
+			RHIUpdateTexture2D(BufferResources[2].RenderTarget.GetReference(), 0, Region, BufferPitch, Data);
 			ConvertResource(BufferResources[2]);
 		}
 		else
 		{
 			FUpdateTextureRegion2D Region(0, 0, 0, 0, OutputDimensions.X, OutputDimensions.Y);
-			RHIUpdateTexture2D(RenderTargetTextureRHI.GetReference(), 0, Region, Pitch, Data);
+			RHIUpdateTexture2D(RenderTargetTextureRHI.GetReference(), 0, Region, BufferPitch, Data);
 		}
 	}
 	else
@@ -289,63 +267,68 @@ void FMediaTextureResource::InitDynamicRHI()
 
 	SamplerStateRHI = RHICreateSamplerState(SamplerStateInitializer);
 
-	if (OutputDimensions.GetMin() <= 0)
+	if ((OutputDimensions.GetMin() <= 0) || (BufferDimensions.GetMin() <= 0))
 	{
 		return;
 	}
 
 	// determine buffer resource pixel format
 	EPixelFormat BufferFormat;
+	bool SrgbBuffer = false;
+
+	switch (SinkFormat)
 	{
-		switch (SinkFormat)
-		{
-		case EMediaTextureSinkFormat::CharNV12:
-		case EMediaTextureSinkFormat::CharNV21:
-			BufferBytesPerPixel = 1;
-			BufferDimensions = FIntPoint(OutputDimensions.X, OutputDimensions.Y * 1.5f);
-			BufferFormat = PF_G8;
-			RequiresConversion = true;
-			break;
+	case EMediaTextureSinkFormat::CharNV12:
+	case EMediaTextureSinkFormat::CharNV21:
+		BufferFormat = PF_G8;
+		BufferPitch = BufferDimensions.X;
+		RequiresConversion = true;
+		break;
 
-		case EMediaTextureSinkFormat::CharUYVY:
-		case EMediaTextureSinkFormat::CharYUY2:
-		case EMediaTextureSinkFormat::CharYVYU:
-			if ((OutputDimensions.X & 0x1) != 0)
-			{
-				return;
-			}
+	case EMediaTextureSinkFormat::CharUYVY:
+	case EMediaTextureSinkFormat::CharYUY2:
+	case EMediaTextureSinkFormat::CharYVYU:
+		BufferFormat = PF_B8G8R8A8;
+		BufferPitch = BufferDimensions.X * 4;
+		RequiresConversion = true;
+		break;
 
-			BufferBytesPerPixel = 2;
-			BufferDimensions = FIntPoint(OutputDimensions.X / 2, OutputDimensions.Y);
-			BufferFormat = PF_B8G8R8A8;
-			RequiresConversion = true;
-			break;
+	case EMediaTextureSinkFormat::CharAYUV:
+		BufferFormat = PF_B8G8R8A8;
+		BufferPitch = BufferDimensions.X * 4;
+		RequiresConversion = true;
+		break;
 
-		case EMediaTextureSinkFormat::CharAYUV:
-		case EMediaTextureSinkFormat::CharBGRA:
-			BufferBytesPerPixel = 4;
-			BufferDimensions = OutputDimensions;
-			BufferFormat = PF_B8G8R8A8;
-			RequiresConversion = false;
-			break;
+	case EMediaTextureSinkFormat::CharBGRA:
+		BufferFormat = PF_B8G8R8A8;
+		BufferPitch = BufferDimensions.X * 4;
+		RequiresConversion = (BufferDimensions != OutputDimensions);
+		SrgbBuffer = true;
+		break;
 
-		case EMediaTextureSinkFormat::FloatRGB:
-			BufferBytesPerPixel = 12;
-			BufferDimensions = OutputDimensions;
-			BufferFormat = PF_FloatRGB;
-			RequiresConversion = false;
-			break;
+	case EMediaTextureSinkFormat::CharBMP:
+		BufferFormat = PF_B8G8R8A8;
+		BufferPitch = BufferDimensions.X * 4;
+		RequiresConversion = true;
+		SrgbBuffer = true;
+		break;
 
-		case EMediaTextureSinkFormat::FloatRGBA:
-			BufferBytesPerPixel = 16;
-			BufferDimensions = OutputDimensions;
-			BufferFormat = PF_FloatRGBA;
-			RequiresConversion = false;
-			break;
+	case EMediaTextureSinkFormat::FloatRGB:
+		BufferFormat = PF_FloatRGB;
+		BufferPitch = BufferDimensions.X * 12;
+		RequiresConversion = (BufferDimensions != OutputDimensions);
+		SrgbBuffer = true;
+		break;
 
-		default:
-			return;
-		}
+	case EMediaTextureSinkFormat::FloatRGBA:
+		BufferFormat = PF_FloatRGBA;
+		BufferPitch = BufferDimensions.X * 16;
+		RequiresConversion = (BufferDimensions != OutputDimensions);
+		SrgbBuffer = true;
+		break;
+
+	default:
+		return;
 	}
 
 	// determine how many buffer resources we need
@@ -382,7 +365,7 @@ void FMediaTextureResource::InitDynamicRHI()
 				BufferDimensions.Y,
 				BufferFormat,
 				1,
-				TexCreate_Dynamic | TexCreate_NoTiling,
+				TexCreate_Dynamic | TexCreate_NoTiling | (SrgbBuffer ? TexCreate_SRGB : 0),
 				TexCreate_RenderTargetable,
 				false,
 				CreateInfo,
@@ -534,7 +517,7 @@ void FMediaTextureResource::CacheResourceSize()
 
 	if (OutputDimensions.GetMin() > 0)
 	{
-		const SIZE_T BufferSize = BufferDimensions.X * BufferDimensions.Y * BufferBytesPerPixel;
+		const SIZE_T BufferSize = BufferPitch * BufferDimensions.Y;
 
 		if (SinkMode == EMediaTextureSinkMode::Buffered)
 		{
@@ -583,7 +566,7 @@ void FMediaTextureResource::ConvertResource(const FResource& Resource)
 			static FGlobalBoundShaderState BoundShaderState;
 
 			SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, BoundShaderState, GMediaVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ConvertShader);
-			ConvertShader->SetParameters(RHICmdList, Resource.ShaderResource);
+			ConvertShader->SetParameters(RHICmdList, Resource.ShaderResource, OutputDimensions);
 		}
 		break;
 
@@ -593,7 +576,7 @@ void FMediaTextureResource::ConvertResource(const FResource& Resource)
 			static FGlobalBoundShaderState BoundShaderState;
 
 			SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, BoundShaderState, GMediaVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ConvertShader);
-			ConvertShader->SetParameters(RHICmdList, Resource.ShaderResource);
+			ConvertShader->SetParameters(RHICmdList, Resource.ShaderResource, OutputDimensions);
 		}
 		break;
 
@@ -613,7 +596,7 @@ void FMediaTextureResource::ConvertResource(const FResource& Resource)
 			static FGlobalBoundShaderState BoundShaderState;
 
 			SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, BoundShaderState, GMediaVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ConvertShader);
-			ConvertShader->SetParameters(RHICmdList, Resource.ShaderResource);
+			ConvertShader->SetParameters(RHICmdList, Resource.ShaderResource, OutputDimensions);
 		}
 		break;
 
@@ -624,6 +607,28 @@ void FMediaTextureResource::ConvertResource(const FResource& Resource)
 
 			SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, BoundShaderState, GMediaVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ConvertShader);
 			ConvertShader->SetParameters(RHICmdList, Resource.ShaderResource);
+		}
+		break;
+
+	case EMediaTextureSinkFormat::CharBGRA:
+	case EMediaTextureSinkFormat::FloatRGB:
+	case EMediaTextureSinkFormat::FloatRGBA:
+		{
+			TShaderMapRef<FRGBConvertPS> ConvertShader(ShaderMap);
+			static FGlobalBoundShaderState BoundShaderState;
+
+			SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, BoundShaderState, GMediaVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ConvertShader);
+			ConvertShader->SetParameters(RHICmdList, Resource.ShaderResource, OutputDimensions);
+		}
+		break;
+
+	case EMediaTextureSinkFormat::CharBMP:
+		{
+			TShaderMapRef<FBMPConvertPS> ConvertShader(ShaderMap);
+			static FGlobalBoundShaderState BoundShaderState;
+
+			SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, BoundShaderState, GMediaVertexDeclaration.VertexDeclarationRHI, *VertexShader, *ConvertShader);
+			ConvertShader->SetParameters(RHICmdList, Resource.ShaderResource, OutputDimensions);
 		}
 		break;
 
@@ -668,11 +673,11 @@ void FMediaTextureResource::DisplayResource(const FResource& Resource)
 }
 
 
-void FMediaTextureResource::InitializeResource(FIntPoint Dimensions, EMediaTextureSinkFormat Format, EMediaTextureSinkMode Mode)
+void FMediaTextureResource::InitializeResource(FIntPoint OutputDim, FIntPoint BufferDim, EMediaTextureSinkFormat Format, EMediaTextureSinkMode Mode)
 {
 	check(IsInRenderingThread());
 
-	if ((Dimensions == OutputDimensions) && (Format == SinkFormat) && (Mode == SinkMode))
+	if ((OutputDim == OutputDimensions) && (BufferDim == BufferDimensions) && (Format == SinkFormat) && (Mode == SinkMode))
 	{
 		// reuse existing resources
 		State = (OutputDimensions.GetMin() > 0) ? EState::Initialized : EState::ShutDown;
@@ -682,7 +687,8 @@ void FMediaTextureResource::InitializeResource(FIntPoint Dimensions, EMediaTextu
 	{
 		// reinitialize resources
 		ReleaseDynamicRHI();
-		OutputDimensions = Dimensions;
+		BufferDimensions = BufferDim;
+		OutputDimensions = OutputDim;
 		SinkFormat = Format;
 		SinkMode = Mode;
 		InitDynamicRHI();

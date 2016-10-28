@@ -8,7 +8,7 @@
 
 FTargetDeviceServiceManager::FTargetDeviceServiceManager()
 {
-	IMessageBusPtr MessageBus = IMessagingModule::Get().GetDefaultBus();
+	TSharedPtr<IMessageBus, ESPMode::ThreadSafe> MessageBus = IMessagingModule::Get().GetDefaultBus();
 
 	if (MessageBus.IsValid())
 	{
@@ -30,7 +30,7 @@ FTargetDeviceServiceManager::~FTargetDeviceServiceManager()
 		SaveSettings();
 	}
 
-	IMessageBusPtr MessageBus = MessageBusPtr.Pin();
+	auto MessageBus = MessageBusPtr.Pin();
 
 	if (MessageBus.IsValid())
 	{
@@ -81,7 +81,7 @@ void FTargetDeviceServiceManager::RemoveStartupService(const FString& DeviceName
 
 ITargetDeviceServicePtr FTargetDeviceServiceManager::AddService(const FString& DeviceName)
 {
-	IMessageBusPtr MessageBus = MessageBusPtr.Pin();
+	auto MessageBus = MessageBusPtr.Pin();
 
 	if (!MessageBus.IsValid())
 	{
@@ -113,14 +113,15 @@ ITargetDeviceServicePtr FTargetDeviceServiceManager::AddService(const FString& D
 bool FTargetDeviceServiceManager::AddTargetDevice(ITargetDevicePtr InDevice)
 {
 	FScopeLock Lock(&CriticalSection);
-	IMessageBusPtr MessageBus = MessageBusPtr.Pin();
+	
+	auto MessageBus = MessageBusPtr.Pin();
+	
 	if (!MessageBus.IsValid())
 	{
 		return false;
 	}
 
 	const FString& DeviceName = InDevice->GetName();
-
 	ITargetDeviceServicePtr DeviceService = AddService(DeviceName);
 
 	if (DeviceService.IsValid())

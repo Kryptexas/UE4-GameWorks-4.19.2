@@ -494,6 +494,19 @@ namespace UnrealBuildTool
                     "	</PropertyGroup>" + ProjectFileGenerator.NewLine);
 			}
 
+			// look for additional import lines for all platforms for non stub projects
+			if (!IsStubProject)
+			{
+				foreach (UnrealTargetPlatform Platform in ProjectPlatforms)
+				{
+					UEPlatformProjectGenerator ProjGenerator = UEPlatformProjectGenerator.GetPlatformProjectGenerator(Platform, true);
+					if (ProjGenerator != null && ProjGenerator.HasVisualStudioSupport(Platform, UnrealTargetConfiguration.Development, ProjectFileFormat))
+					{
+						VCProjectFileContent.Append(ProjGenerator.GetVisualStudioGlobalProperties(Platform));
+					}
+				}
+			}
+
 			// Write each project configuration PreDefaultProps section
 			foreach (Tuple<string, UnrealTargetConfiguration> ConfigurationTuple in ProjectConfigurationNameAndConfigurations)
 			{
@@ -688,7 +701,7 @@ namespace UnrealBuildTool
 			}
 
 			// look for additional import lines for all platforms for non stub projects
-			StringBuilder AdditionalImportSettings = new StringBuilder();
+			StringBuilder AdditionalTargetSettings = new StringBuilder();
 			if (!IsStubProject)
 			{
 				foreach (UnrealTargetPlatform Platform in ProjectPlatforms)
@@ -696,7 +709,7 @@ namespace UnrealBuildTool
 					UEPlatformProjectGenerator ProjGenerator = UEPlatformProjectGenerator.GetPlatformProjectGenerator(Platform, true);
 					if (ProjGenerator != null && ProjGenerator.HasVisualStudioSupport(Platform, UnrealTargetConfiguration.Development, ProjectFileFormat))
 					{
-						AdditionalImportSettings.Append(ProjGenerator.GetAdditionalVisualStudioImportSettings(Platform, ProjectFileFormat));
+						AdditionalTargetSettings.Append(ProjGenerator.GetVisualStudioTargetOverrides(Platform, ProjectFileFormat));
 					}
 				}
 			}
@@ -738,7 +751,7 @@ namespace UnrealBuildTool
 					"	<ItemDefinitionGroup>" + ProjectFileGenerator.NewLine +
 					"	</ItemDefinitionGroup>" + ProjectFileGenerator.NewLine +
 					"	<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.targets\" />" + ProjectFileGenerator.NewLine +
-					AdditionalImportSettings.ToString() +
+					AdditionalTargetSettings.ToString() +
 					"	<ImportGroup Label=\"ExtensionTargets\">" + ProjectFileGenerator.NewLine +
 					"	</ImportGroup>" + ProjectFileGenerator.NewLine +
 					"</Project>" + ProjectFileGenerator.NewLine);

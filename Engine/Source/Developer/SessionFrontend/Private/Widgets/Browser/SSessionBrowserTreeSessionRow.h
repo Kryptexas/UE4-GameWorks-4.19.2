@@ -73,7 +73,7 @@ public:
 
 protected:
 
-	FText SanitizeSessionName(const ISessionInfoPtr& SessionInfo) const
+	FText SanitizeSessionName(const TSharedPtr<ISessionInfo>& SessionInfo) const
 	{
 		const FString& SessionName = SessionInfo->GetSessionName();
 		const FString& SessionOwner = SessionInfo->GetSessionOwner();
@@ -90,12 +90,12 @@ protected:
 		}
 
 		// generate name for a standalone session
-		TArray<ISessionInstanceInfoPtr> Instances;
+		TArray<TSharedPtr<ISessionInstanceInfo>> Instances;
 		SessionInfo->GetInstances(Instances);
 
 		if (Instances.Num() > 0)
 		{
-			const ISessionInstanceInfoPtr& FirstInstance = Instances[0];
+			const TSharedPtr<ISessionInstanceInfo>& FirstInstance = Instances[0];
 
 			if ((Instances.Num() == 1) && FApp::IsThisInstance(FirstInstance->GetInstanceId()))
 			{
@@ -153,7 +153,7 @@ private:
 	{
 		FTextBuilder ToolTipTextBuilder;
 
-		ISessionInfoPtr SessionInfo = Item->GetSessionInfo();
+		TSharedPtr<ISessionInfo> SessionInfo = Item->GetSessionInfo();
 
 		if (SessionInfo.IsValid())
 		{

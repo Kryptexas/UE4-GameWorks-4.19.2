@@ -435,7 +435,7 @@ void SCinematicLevelViewport::SetTime(float Value)
 	ISequencer* Sequencer = GetSequencer();
 	if (Sequencer)
 	{
-		Sequencer->SetGlobalTime(Value);
+		Sequencer->SetLocalTime(Value);
 	}
 }
 
@@ -444,7 +444,7 @@ float SCinematicLevelViewport::GetTime() const
 	ISequencer* Sequencer = GetSequencer();
 	if (Sequencer)
 	{
-		return Sequencer->GetGlobalTime();
+		return Sequencer->GetLocalTime();
 	}
 	return 0.f;
 }
@@ -589,7 +589,7 @@ void SCinematicLevelViewport::Tick(const FGeometry& AllottedGeometry, const doub
 	UMovieSceneSubSection* SubSection = nullptr;
 	if (SubTrack)
 	{
-		const float CurrentTime = Sequencer->GetGlobalTime();
+		const float CurrentTime = Sequencer->GetLocalTime();
 
 		for (UMovieSceneSection* Section : SubTrack->GetAllSections())
 		{
@@ -600,7 +600,7 @@ void SCinematicLevelViewport::Tick(const FGeometry& AllottedGeometry, const doub
 		}
 	}
 
-	const float AbsoluteTime = Sequencer->GetGlobalTime();
+	const float AbsoluteTime = Sequencer->GetLocalTime();
 
 	FText TimeFormat = LOCTEXT("TimeFormat", "{0}");
 
@@ -615,8 +615,9 @@ void SCinematicLevelViewport::Tick(const FGeometry& AllottedGeometry, const doub
 			PlaybackRangeStart = ShotMovieScene->GetPlaybackRange().GetLowerBoundValue();
 		}
 
-		const float ShotOffset = SubSection->StartOffset + PlaybackRangeStart - SubSection->PrerollTime;
-		const float AbsoluteShotPosition = ShotOffset + (AbsoluteTime - (SubSection->GetStartTime() - SubSection->PrerollTime)) / SubSection->TimeScale;
+		const float InnerOffset = (AbsoluteTime - SubSection->GetStartTime()) * SubSection->Parameters.TimeScale;
+		const float AbsoluteShotPosition = PlaybackRangeStart + SubSection->Parameters.StartOffset + InnerOffset;
+
 		UIData.Frame = FText::Format(
 			TimeFormat,
 			FText::FromString(ZeroPadTypeInterface->ToString(AbsoluteShotPosition))

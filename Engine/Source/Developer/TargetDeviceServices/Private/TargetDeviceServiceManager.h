@@ -120,7 +120,7 @@ private:
 	TMap<FString, ITargetDeviceServicePtr> DeviceServices;
 
 	/** Holds a weak pointer to the message bus. */
-	IMessageBusWeakPtr MessageBusPtr;
+	TWeakPtr<IMessageBus, ESPMode::ThreadSafe> MessageBusPtr;
 
 	/** Holds the collection of identifiers for devices that start automatically (shared/unshared). */
 	TMap<FString, bool> StartupServices;

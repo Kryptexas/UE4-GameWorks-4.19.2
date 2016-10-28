@@ -38,7 +38,7 @@ private:
 	TLazyObjectPtr<class UObject> ObjectToRecord;
 
 	/** Section to record to */
-	TWeakObjectPtr<class UMovieSceneVisibilitySection> MovieSceneSection;
+	TWeakObjectPtr<class UMovieSceneBoolSection> MovieSceneSection;
 
 	/** Flag used to track visibility state and add keys when this changes */
 	bool bWasVisible;

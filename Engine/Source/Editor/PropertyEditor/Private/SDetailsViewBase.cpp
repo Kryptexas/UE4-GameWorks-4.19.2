@@ -980,14 +980,10 @@ void SDetailsViewBase::QueryCustomDetailLayout(FDetailLayoutData& LayoutData)
 		}
 	}
 
-	// Query extra base classes
+	// Query extra base classes and structs
 	for (auto ParentIt = ParentClassesToQuery.CreateConstIterator(); ParentIt; ++ParentIt)
 	{
-		UClass* ParentClass = Cast<UClass>(*ParentIt);
-		if (ParentClass)
-		{
-			QueryLayoutForClass(LayoutData, ParentClass);
-		}
+		QueryLayoutForClass(LayoutData, *ParentIt);
 	}
 }
 

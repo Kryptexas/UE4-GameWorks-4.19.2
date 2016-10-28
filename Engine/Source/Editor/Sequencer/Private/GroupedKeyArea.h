@@ -159,7 +159,7 @@ public:
 	// IKeyArea interface
 
 	virtual TArray<FKeyHandle> GetUnsortedKeyHandles() const override;
-	virtual void SetKeyTime(FKeyHandle KeyHandle, float NewKeyTime) const override;
+	virtual void SetKeyTime(FKeyHandle KeyHandle, float NewKeyTime) override;
 	virtual float GetKeyTime(FKeyHandle KeyHandle) const override;
 	virtual FKeyHandle MoveKey(FKeyHandle KeyHandle, float DeltaPosition) override;
 	virtual void DeleteKey(FKeyHandle KeyHandle) override;

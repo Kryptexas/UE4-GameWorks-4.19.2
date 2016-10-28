@@ -4,6 +4,7 @@
 
 #include "Factories.h"
 #include "MatineeExporter.h"
+#include "MovieSceneFwd.h"
 #include "FbxImporter.h"
 
 class ALandscapeProxy;
@@ -82,7 +83,7 @@ public:
 	*
 	* @return	true, if successful
 	*/
-	bool ExportLevelSequence( UMovieScene* MovieScene, const TArray<FGuid>& InBindings, IMovieScenePlayer* MovieScenePlayer );
+	bool ExportLevelSequence( UMovieScene* MovieScene, const TArray<FGuid>& InBindings, IMovieScenePlayer* MovieScenePlayer, FMovieSceneSequenceIDRef SequenceID );
 
 	/**
 	 * Exports all the animation sequences part of a single Group in a Matinee sequence
@@ -158,11 +159,12 @@ public:
 	class UNREALED_API FLevelSequenceNodeNameAdapter : public INodeNameAdapter
 	{
 	public:
-		FLevelSequenceNodeNameAdapter( UMovieScene* InMovieScene, IMovieScenePlayer* InMovieScenePlayer );
+		FLevelSequenceNodeNameAdapter( UMovieScene* InMovieScene, IMovieScenePlayer* InMovieScenePlayer, FMovieSceneSequenceIDRef InSequenceID);
 		virtual FString GetActorNodeName(const AActor* InActor) override;
 	private:
 		UMovieScene* MovieScene;
 		IMovieScenePlayer* MovieScenePlayer;
+		FMovieSceneSequenceID SequenceID;
 	};
 
 	/* Get a valid unique name from a name */

@@ -33,7 +33,7 @@ public:
 	 * @param LogMessage The log message to filter.
 	 * @return true if the log message passed the filter, false otherwise.
 	 */
-	bool FilterLogMessage(const FSessionLogMessageRef& LogMessage);
+	bool FilterLogMessage(const TSharedRef<FSessionLogMessage>& LogMessage);
 
 	/**
 	 * Gets the current filter string.

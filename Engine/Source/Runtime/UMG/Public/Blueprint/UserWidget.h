@@ -710,7 +710,7 @@ public:
 	 * @param PlayMode Specifies the playback mode
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "User Interface|Animation")
-	void PlayAnimation(const UWidgetAnimation* InAnimation, float StartAtTime = 0.0f, int32 NumLoopsToPlay = 1, EUMGSequencePlayMode::Type PlayMode = EUMGSequencePlayMode::Forward, float PlaybackSpeed = 1.0f);
+	void PlayAnimation(UWidgetAnimation* InAnimation, float StartAtTime = 0.0f, int32 NumLoopsToPlay = 1, EUMGSequencePlayMode::Type PlayMode = EUMGSequencePlayMode::Forward, float PlaybackSpeed = 1.0f);
 
 	/**
 	 * Plays an animation in this widget a specified number of times stoping at a specified time
@@ -723,7 +723,7 @@ public:
 	 * @param PlayMode Specifies the playback mode
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="User Interface|Animation")
-	void PlayAnimationTo(const UWidgetAnimation* InAnimation, float StartAtTime = 0.0f, float EndAtTime = 0.0f, int32 NumLoopsToPlay = 1, EUMGSequencePlayMode::Type PlayMode = EUMGSequencePlayMode::Forward, float PlaybackSpeed = 1.0f);
+	void PlayAnimationTo(UWidgetAnimation* InAnimation, float StartAtTime = 0.0f, float EndAtTime = 0.0f, int32 NumLoopsToPlay = 1, EUMGSequencePlayMode::Type PlayMode = EUMGSequencePlayMode::Forward, float PlaybackSpeed = 1.0f);
 
 	/**
 	 * Stops an already running animation in this widget
@@ -989,7 +989,7 @@ protected:
 
 	void RemoveObsoleteBindings(const TArray<FName>& NamedSlots);
 
-	UUMGSequencePlayer* GetOrAddPlayer(const UWidgetAnimation* InAnimation);
+	UUMGSequencePlayer* GetOrAddPlayer(UWidgetAnimation* InAnimation);
 	void Invalidate();
 	
 	/**

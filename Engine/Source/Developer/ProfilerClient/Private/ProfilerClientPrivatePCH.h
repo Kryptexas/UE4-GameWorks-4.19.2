@@ -2,20 +2,15 @@
 
 #pragma once
 
-#include "ProfilerClient.h"
+#include "Runtime/Core/Public/Core.h"
+#include "Runtime/Core/Public/Containers/Ticker.h"
+#include "Runtime/Core/Public/Misc/SecureHash.h"
+#include "Runtime/Core/Public/Stats/StatsData.h"
+#include "Runtime/Core/Public/Stats/StatsFile.h"
+#include "Runtime/Messaging/Public/IMessageBus.h"
+#include "Runtime/Messaging/Public/IMessageContext.h"
+#include "Runtime/Messaging/Public/Helpers/MessageEndpointBuilder.h"
+#include "Runtime/SessionServices/Public/ISessionInstanceInfo.h"
 
 
-/* Private dependencies
- *****************************************************************************/
-
-#include "Messaging.h"
-#include "ProfilerMessages.h"
-#include "Ticker.h"
-#include "StatsData.h"
-#include "StatsFile.h"
-
-
-/* Private includes
- *****************************************************************************/
-
-#include "ProfilerClientManager.h"
+#include "Developer/ProfilerMessages/Public/ProfilerServiceMessages.h"

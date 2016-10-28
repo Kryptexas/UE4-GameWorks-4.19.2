@@ -30,7 +30,7 @@ public:
 	 * @param InArgs The declaration data for this widget.
 	 * @param InSessionManager The session manager to use.
 	 */
-	void Construct(const FArguments& InArgs, ISessionManagerRef InSessionManager);
+	void Construct(const FArguments& InArgs, TSharedRef<ISessionManager> InSessionManager);
 
 protected:
 
@@ -109,16 +109,16 @@ private:
 	void HandleFilterChanged();
 
 	/** Callback for scrolling a log item into view. */
-	void HandleLogListItemScrolledIntoView(FSessionLogMessagePtr Item, const TSharedPtr<ITableRow>& TableRow);
+	void HandleLogListItemScrolledIntoView(TSharedPtr<FSessionLogMessage> Item, const TSharedPtr<ITableRow>& TableRow);
 
 	/** Callback for generating a row widget for the log list view. */
-	TSharedRef<ITableRow> HandleLogListGenerateRow(FSessionLogMessagePtr Message, const TSharedRef<STableViewBase>& OwnerTable);
+	TSharedRef<ITableRow> HandleLogListGenerateRow(TSharedPtr<FSessionLogMessage> Message, const TSharedRef<STableViewBase>& OwnerTable);
 
 	/** Callback for getting the highlight string for log messages. */
 	FText HandleLogListGetHighlightText() const;
 
 	/** Callback for selecting log messages. */
-	void HandleLogListSelectionChanged(FSessionLogMessagePtr InItem, ESelectInfo::Type SelectInfo);
+	void HandleLogListSelectionChanged(TSharedPtr<FSessionLogMessage> InItem, ESelectInfo::Type SelectInfo);
 
 	/** Callback for getting the enabled state of the console box. */
 	bool HandleMainContentIsEnabled() const;
@@ -130,15 +130,15 @@ private:
 	void HandleSessionManagerInstanceSelectionChanged(const TSharedPtr<ISessionInstanceInfo>& Instance, bool Selected);
 
 	/** Callback for received log entries. */
-	void HandleSessionManagerLogReceived(const ISessionInfoRef& Session, const ISessionInstanceInfoRef& Instance, const FSessionLogMessageRef& Message);
+	void HandleSessionManagerLogReceived(const TSharedRef<ISessionInfo>& Session, const TSharedRef<ISessionInstanceInfo>& Instance, const TSharedRef<FSessionLogMessage>& Message);
 
 	/** Callback for changing the selected session. */
-	void HandleSessionManagerSelectedSessionChanged(const ISessionInfoPtr& SelectedSession);
+	void HandleSessionManagerSelectedSessionChanged(const TSharedPtr<ISessionInfo>& SelectedSession);
 
 private:
 
 	/** Holds an unfiltered list of available log messages. */
-	TArray<FSessionLogMessagePtr> AvailableLogs;
+	TArray<TSharedPtr<FSessionLogMessage>> AvailableLogs;
 
 	/** Holds the command bar. */
 	TSharedPtr<SSessionConsoleCommandBar> CommandBar;
@@ -156,13 +156,13 @@ private:
 	FString LastLogFileSaveDirectory;
 
 	/** Holds the log list view. */
- 	TSharedPtr<SListView<FSessionLogMessagePtr>> LogListView;
+ 	TSharedPtr<SListView<TSharedPtr<FSessionLogMessage>>> LogListView;
 
  	/** Holds the filtered list of log messages. */
- 	TArray<FSessionLogMessagePtr> LogMessages;
+ 	TArray<TSharedPtr<FSessionLogMessage>> LogMessages;
 
 	/** Holds the session manager. */
-	ISessionManagerPtr SessionManager;
+	TSharedPtr<ISessionManager> SessionManager;
 
 	/** Holds the shortcut window. */
 	TSharedPtr<SSessionConsoleShortcutWindow> ShortcutWindow;

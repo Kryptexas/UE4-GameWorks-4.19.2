@@ -13,7 +13,7 @@ void SStringCurveKeyEditor::Construct(const FArguments& InArgs)
 	Curve = InArgs._Curve;
 	ExternalValue = InArgs._ExternalValue;
 
-	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
+	float CurrentTime = Sequencer->GetLocalTime();
 	ChildSlot
 	[
 		SNew(SEditableText)
@@ -29,7 +29,7 @@ FText SStringCurveKeyEditor::GetText() const
 	{
 		return FText::FromString(ExternalValue.Get().GetValue());
 	}
-	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
+	float CurrentTime = Sequencer->GetLocalTime();
 	FString DefaultValue;
 	FString CurrentValue = Curve->Eval(CurrentTime, DefaultValue);
 	
@@ -42,7 +42,7 @@ void SStringCurveKeyEditor::OnTextCommitted(const FText& InText, ETextCommit::Ty
 	OwningSection->SetFlags(RF_Transactional);
 	if (OwningSection->TryModify())
 	{
-		float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
+		float CurrentTime = Sequencer->GetLocalTime();
 		bool bAutoSetTrackDefaults = Sequencer->GetAutoSetTrackDefaults();
 
 		FKeyHandle CurrentKeyHandle = Curve->FindKey(CurrentTime);

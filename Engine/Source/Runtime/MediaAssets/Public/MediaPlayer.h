@@ -462,12 +462,12 @@ public:
 	/**
 	 * Seeks to the specified playback time.
 	 *
-	 * @param InTime The playback time to set.
+	 * @param Time The playback time to set.
 	 * @return true on success, false otherwise.
 	 * @see GetTime, Rewind
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
-	bool Seek(const FTimespan& InTime);
+	bool Seek(const FTimespan& Time);
 
 	/**
 	 * Select the active track of the given type.
@@ -490,7 +490,7 @@ public:
 	 * @see IsLooping
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
-	bool SetLooping(bool InLooping);
+	bool SetLooping(bool Looping);
 
 	/**
 	 * Changes the media's playback rate.

@@ -122,8 +122,15 @@ bool UMovieSceneActorReferenceSection::HasKeys( const FGuid& Value ) const
 
 void UMovieSceneActorReferenceSection::SetDefault( const FGuid& Value )
 {
-	int32 DefaultIndex = ActorGuids.Add( Value );
-	ActorGuidIndexCurve.SetDefaultValue( DefaultIndex );
+	int32 CurrentDefault = ActorGuidIndexCurve.GetDefaultValue();
+	if (!ActorGuids.IsValidIndex(CurrentDefault) || ActorGuids[CurrentDefault] != Value)
+	{
+		if (TryModify())
+		{
+			int32 DefaultIndex = ActorGuids.Add( Value );
+			ActorGuidIndexCurve.SetDefaultValue( DefaultIndex );
+		}
+	}
 }
 
 

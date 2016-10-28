@@ -8,11 +8,10 @@
 /* FTcpDeserializedMessage structors
 *****************************************************************************/
 
-FTcpDeserializedMessage::FTcpDeserializedMessage(const IMessageAttachmentPtr& InAttachment)
+FTcpDeserializedMessage::FTcpDeserializedMessage(const TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe>& InAttachment)
 	: Attachment(InAttachment)
 	, MessageData(nullptr)
-{
-}
+{ }
 
 
 FTcpDeserializedMessage::~FTcpDeserializedMessage()
@@ -136,7 +135,7 @@ const TMap<FName, FString>& FTcpDeserializedMessage::GetAnnotations() const
 }
 
 
-IMessageAttachmentPtr FTcpDeserializedMessage::GetAttachment() const
+TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe> FTcpDeserializedMessage::GetAttachment() const
 {
 	return Attachment;
 }

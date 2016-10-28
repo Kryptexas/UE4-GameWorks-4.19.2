@@ -22,21 +22,9 @@ void UNiagaraSequence::BindPossessableObject(const FGuid& ObjectId, UObject& Pos
 }
 
 
-bool UNiagaraSequence::CanPossessObject(UObject& Object) const
+bool UNiagaraSequence::CanPossessObject(UObject& Object, UObject* InPlaybackContext) const
 {
 	return false;
-}
-
-
-UObject* UNiagaraSequence::FindPossessableObject(const FGuid& ObjectId, UObject* Context) const
-{
-	return nullptr;
-}
-
-
-FGuid UNiagaraSequence::FindPossessableObjectId(UObject& Object) const
-{
-	return FGuid();
 }
 
 UMovieScene* UNiagaraSequence::GetMovieScene() const

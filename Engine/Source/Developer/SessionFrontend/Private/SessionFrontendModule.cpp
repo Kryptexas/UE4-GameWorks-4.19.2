@@ -19,12 +19,12 @@ public:
 
 	// ISessionFrontendModule interface
 	
-	virtual TSharedRef<class SWidget> CreateSessionBrowser( const ISessionManagerRef& SessionManager ) override
+	virtual TSharedRef<class SWidget> CreateSessionBrowser( const TSharedRef<ISessionManager>& SessionManager ) override
 	{
 		return SNew(SSessionBrowser, SessionManager);
 	}
 	
-	virtual TSharedRef<class SWidget> CreateSessionConsole( const ISessionManagerRef& SessionManager ) override
+	virtual TSharedRef<class SWidget> CreateSessionConsole( const TSharedRef<ISessionManager>& SessionManager ) override
 	{
 		return SNew(SSessionConsole, SessionManager);
 	}

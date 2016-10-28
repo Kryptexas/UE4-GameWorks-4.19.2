@@ -28,7 +28,14 @@ UMediaPlayer::UMediaPlayer(const FObjectInitializer& ObjectInitializer)
 
 bool UMediaPlayer::CanPause() const
 {
-	return Player.IsValid() && (Player->GetControls().GetState() == EMediaState::Playing);
+	if (!Player.IsValid())
+	{
+		return false;
+	}
+	
+	EMediaState State = Player->GetControls().GetState();
+
+	return ((State== EMediaState::Playing) || (State== EMediaState::Preparing));
 }
 
 
@@ -201,7 +208,7 @@ bool UMediaPlayer::Next()
 
 	int32 RemainingAttempts = Playlist->Num();
 
-	while (--RemainingAttempts >= 0)
+	while (RemainingAttempts-- > 0)
 	{
 		UMediaSource* NextSource = Shuffle
 			? Playlist->GetRandom(PlaylistIndex)
@@ -355,9 +362,9 @@ bool UMediaPlayer::Rewind()
 }
 
 
-bool UMediaPlayer::Seek(const FTimespan& InTime)
+bool UMediaPlayer::Seek(const FTimespan& Time)
 {
-	return Player.IsValid() && Player->GetControls().Seek(InTime);
+	return Player.IsValid() && Player->GetControls().Seek(Time);
 }
 
 
@@ -367,11 +374,11 @@ bool UMediaPlayer::SelectTrack(EMediaPlayerTrack TrackType, int32 TrackIndex)
 }
 
 
-bool UMediaPlayer::SetLooping(bool InLooping)
+bool UMediaPlayer::SetLooping(bool Looping)
 {
-	Loop = InLooping;
+	Loop = Looping;
 
-	return Player.IsValid() && Player->GetControls().SetLooping(InLooping);
+	return Player.IsValid() && Player->GetControls().SetLooping(Looping);
 }
 
 

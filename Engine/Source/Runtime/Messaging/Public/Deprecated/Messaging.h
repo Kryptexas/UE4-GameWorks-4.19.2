@@ -3,21 +3,14 @@
 #pragma once
 
 
-/* Public Dependencies
- *****************************************************************************/
-
 #include "CoreUObject.h"
-
-
-/* Public Includes
- *****************************************************************************/
 
 #include "IMessageAttachment.h"
 #include "IMessageContext.h"
 #include "IMessageInterceptor.h"
 #include "IMessageHandler.h"
-#include "IReceiveMessages.h"
-#include "ISendMessages.h"
+#include "IMessageReceiver.h"
+#include "IMessageSender.h"
 #include "IMessageSubscription.h"
 #include "IAuthorizeMessageRecipients.h"
 #include "IMessageTracerBreakpoint.h"
@@ -27,10 +20,6 @@
 #include "IMessageTransport.h"
 #include "IMessageBridge.h"
 #include "IMessagingModule.h"
-
-
-/* Common helpers
- *****************************************************************************/
 
 #include "FileMessageAttachment.h"
 #include "MessageBridgeBuilder.h"

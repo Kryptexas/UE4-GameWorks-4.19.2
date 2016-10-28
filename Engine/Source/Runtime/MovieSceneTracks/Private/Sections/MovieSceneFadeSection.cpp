@@ -13,4 +13,6 @@ UMovieSceneFadeSection::UMovieSceneFadeSection()
 	, bFadeAudio(false)
 {
 	SetIsInfinite(true);
+
+	EvalOptions.EnableAndSetCompletionMode(EMovieSceneCompletionMode::RestoreState);
 }

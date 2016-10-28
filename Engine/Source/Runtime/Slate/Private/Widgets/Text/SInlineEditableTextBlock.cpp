@@ -141,6 +141,11 @@ bool SInlineEditableTextBlock::IsInEditMode() const
 	return TextBlock->GetVisibility() == EVisibility::Collapsed;
 }
 
+void SInlineEditableTextBlock::SetReadOnly(bool bInIsReadOnly)
+{
+	bIsReadOnly = bInIsReadOnly;
+}
+
 void SInlineEditableTextBlock::SetText( const TAttribute< FText >& InText )
 {
 	Text = InText;

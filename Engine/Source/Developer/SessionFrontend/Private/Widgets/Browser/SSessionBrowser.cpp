@@ -28,7 +28,7 @@ SSessionBrowser::~SSessionBrowser()
  *****************************************************************************/
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void SSessionBrowser::Construct( const FArguments& InArgs, ISessionManagerRef InSessionManager )
+void SSessionBrowser::Construct( const FArguments& InArgs, TSharedRef<ISessionManager> InSessionManager )
 {
 	IgnoreSessionManagerEvents = false;
 	updatingTreeExpansion = false;
@@ -155,7 +155,7 @@ void SSessionBrowser::FilterSessions()
 		NewItemMap.Add(SessionInfo->GetSessionId(), SessionItem);
 
 		// add session to group
-		TArray<ISessionInstanceInfoPtr> Instances;
+		TArray<TSharedPtr<ISessionInstanceInfo>> Instances;
 		SessionInfo->GetInstances(Instances);
 
 		if (LocalOwner)
@@ -258,7 +258,7 @@ void SSessionBrowser::HandleSessionManagerInstanceSelectionChanged(const TShared
 }
 
 
-void SSessionBrowser::HandleSessionManagerSelectedSessionChanged(const ISessionInfoPtr& SelectedSession)
+void SSessionBrowser::HandleSessionManagerSelectedSessionChanged(const TSharedPtr<ISessionInfo>& SelectedSession)
 {
 	if (IgnoreSessionManagerEvents)
 	{
@@ -310,7 +310,7 @@ FText SSessionBrowser::HandleSessionTreeRowGetToolTipText(TSharedPtr<FSessionBro
 
 	if (Item->GetType() == ESessionBrowserTreeNodeType::Instance)
 	{
-		ISessionInstanceInfoPtr InstanceInfo = StaticCastSharedPtr<FSessionBrowserInstanceTreeItem>(Item)->GetInstanceInfo();
+		TSharedPtr<ISessionInstanceInfo> InstanceInfo = StaticCastSharedPtr<FSessionBrowserInstanceTreeItem>(Item)->GetInstanceInfo();
 
 		if (InstanceInfo.IsValid())
 		{
@@ -428,7 +428,7 @@ void SSessionBrowser::HandleSessionTreeViewSelectionChanged(const TSharedPtr<FSe
 
 		{
 			// check if any instances are no longer selected
-			TArray<ISessionInstanceInfoPtr> UnselectedSessions;
+			TArray<TSharedPtr<ISessionInstanceInfo>> UnselectedSessions;
 			for (const auto& InstanceInfo : SessionManager->GetSelectedInstances())
 			{
 				const TSharedPtr<FSessionBrowserTreeItem>& InstanceItem = ItemMap.FindRef(InstanceInfo->GetInstanceId());
@@ -455,7 +455,7 @@ FReply SSessionBrowser::HandleTerminateSessionButtonClicked()
 
 	if (DialogResult == EAppReturnType::Yes)
 	{
-		const ISessionInfoPtr& SelectedSession = SessionManager->GetSelectedSession();
+		const TSharedPtr<ISessionInfo>& SelectedSession = SessionManager->GetSelectedSession();
 
 		if (SelectedSession.IsValid())
 		{

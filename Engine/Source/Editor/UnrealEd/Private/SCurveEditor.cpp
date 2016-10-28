@@ -3010,7 +3010,11 @@ void SCurveEditor::OnFlattenOrStraightenTangents(bool bFlattenTangents)
 
 			Key.Curve->GetKey(Key.KeyHandle).LeaveTangent = LeaveTangent;
 			Key.Curve->GetKey(Key.KeyHandle).ArriveTangent = ArriveTangent;
-			Key.Curve->GetKey(Key.KeyHandle).TangentMode = RCTM_User;
+			if (Key.Curve->GetKey(Key.KeyHandle).InterpMode == RCIM_Cubic &&
+				Key.Curve->GetKey(Key.KeyHandle).TangentMode == RCTM_Auto)
+			{
+				Key.Curve->GetKey(Key.KeyHandle).TangentMode = RCTM_User;
+			}
 		}
 				
 		for(auto It = SelectedTangents.CreateIterator();It;++It)
@@ -3034,7 +3038,11 @@ void SCurveEditor::OnFlattenOrStraightenTangents(bool bFlattenTangents)
 
 			Tangent.Key.Curve->GetKey(Tangent.Key.KeyHandle).LeaveTangent = LeaveTangent;
 			Tangent.Key.Curve->GetKey(Tangent.Key.KeyHandle).ArriveTangent = ArriveTangent;
-			Tangent.Key.Curve->GetKey(Tangent.Key.KeyHandle).TangentMode = RCTM_User;
+			if (Tangent.Key.Curve->GetKey(Tangent.Key.KeyHandle).InterpMode == RCIM_Cubic &&
+				Tangent.Key.Curve->GetKey(Tangent.Key.KeyHandle).TangentMode == RCTM_Auto)
+			{
+				Tangent.Key.Curve->GetKey(Tangent.Key.KeyHandle).TangentMode = RCTM_User;
+			}
 		}
 
 		TArray<FRichCurveEditInfo> ChangedCurveEditInfos;

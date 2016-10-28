@@ -115,6 +115,8 @@ class SLATE_API SInlineEditableTextBlock: public SCompoundWidget
 	/** Checks if the widget is in edit mode */
 	bool IsInEditMode() const;
 
+	void SetReadOnly(bool bInIsReadOnly);
+
 	void SetText( const TAttribute< FText >& InText );
 	void SetText( const FString& InText );
 

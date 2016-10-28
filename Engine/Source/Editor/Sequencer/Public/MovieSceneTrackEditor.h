@@ -54,15 +54,12 @@ public:
 	}
 
 	/**
-	 * Gets the movie scene that should be used for adding new keys/sections to and the time where new keys should be added
-	 *
-	 * @param InMovieScene	The movie scene to be used for keying
-	 * @param OutTime		The current time of the sequencer which should be used for adding keys during auto-key
-	 * @return true	if we can auto-key
+	 * @return The current local time at which we should add a key
 	 */
-	float GetTimeForKey( UMovieSceneSequence* InMovieSceneSequence )
+	float GetTimeForKey()
 	{ 
-		return Sequencer.Pin()->GetCurrentLocalTime( *InMovieSceneSequence );
+		TSharedPtr<ISequencer> SequencerPin = Sequencer.Pin();
+		return SequencerPin.IsValid() ? SequencerPin->GetLocalTime() : 0.f;
 	}
 
 	void UpdatePlaybackRange()
@@ -82,7 +79,7 @@ public:
 		UMovieSceneSequence* MovieSceneSequence = GetMovieSceneSequence();
 		if (MovieSceneSequence)
 		{
-			float KeyTime = GetTimeForKey( MovieSceneSequence );
+			float KeyTime = GetTimeForKey();
 
 			if( !Sequencer.Pin()->IsRecordingLive() )
 			{

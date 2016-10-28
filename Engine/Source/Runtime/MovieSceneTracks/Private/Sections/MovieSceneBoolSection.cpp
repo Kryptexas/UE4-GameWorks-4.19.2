@@ -90,9 +90,10 @@ void UMovieSceneBoolSection::AddKey( float Time, const bool& Value, EMovieSceneK
 
 void UMovieSceneBoolSection::SetDefault( const bool& Value )
 {
-	if (TryModify())
+	uint8 NewValue = Value ? 1 : 0;
+	if (BoolCurve.GetDefaultValue() != NewValue && TryModify())
 	{
-		BoolCurve.SetDefaultValue(Value ? 1 : 0);
+		BoolCurve.SetDefaultValue(NewValue);
 	}
 }
 

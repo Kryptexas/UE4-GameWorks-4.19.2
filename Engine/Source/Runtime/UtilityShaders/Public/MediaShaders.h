@@ -122,9 +122,42 @@ public:
 
 
 /**
+ * Pixel shader to convert a Windows Bitmap texture.
+ *
+ * This shader expects a BMP frame packed into a single texture in PF_B8G8R8A8 format.
+ */
+class FBMPConvertPS
+	: public FGlobalShader
+{
+	DECLARE_EXPORTED_SHADER_TYPE(FBMPConvertPS, Global, UTILITYSHADERS_API);
+
+public:
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::ES2);
+	}
+
+	FBMPConvertPS() { }
+
+	FBMPConvertPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{ }
+
+	virtual bool Serialize(FArchive& Ar) override
+	{
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		return bShaderHasOutdatedParameters;
+	}
+
+	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> BMPTexture, const FIntPoint& OutputDimensions);
+};
+
+
+/**
  * Pixel shader to convert a NV12 frame to RGBA.
  *
- * This shader expects an NV12 frame packed into single texture in PF_G8 format.
+ * This shader expects an NV12 frame packed into a single texture in PF_G8 format.
  *
  * @see http://www.fourcc.org/yuv.php#NV12
  */
@@ -152,14 +185,14 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> NV12Texture);
+	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> NV12Texture, const FIntPoint& OutputDimensions);
 };
 
 
 /**
  * Pixel shader to convert a NV21 frame to RGBA.
  *
- * This shader expects an NV21 frame packed into single texture in PF_G8 format.
+ * This shader expects an NV21 frame packed into a single texture in PF_G8 format.
  *
  * @see http://www.fourcc.org/yuv.php#NV21
  */
@@ -187,7 +220,41 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> NV21Texture);
+	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> NV21Texture, const FIntPoint& OutputDimensions);
+};
+
+
+/**
+ * Pixel shader to resize an RGB texture.
+ *
+ * This shader expects an RGB or RGBA frame packed into a single texture
+ * in PF_B8G8R8A8 or PF_FloatRGB format.
+ */
+class FRGBConvertPS
+	: public FGlobalShader
+{
+	DECLARE_EXPORTED_SHADER_TYPE(FRGBConvertPS, Global, UTILITYSHADERS_API);
+
+public:
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::ES2);
+	}
+
+	FRGBConvertPS() { }
+
+	FRGBConvertPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{ }
+
+	virtual bool Serialize(FArchive& Ar) override
+	{
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		return bShaderHasOutdatedParameters;
+	}
+
+	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> RGBTexture, const FIntPoint& OutputDimensions);
 };
 
 
@@ -301,7 +368,7 @@ public:
 /**
  * Pixel shader to convert a YUY2 frame to RGBA.
  *
- * This shader expects an YUY2 frame packed into single texture in PF_B8G8R8A8
+ * This shader expects an YUY2 frame packed into a single texture in PF_B8G8R8A8
  * format with the following memory layout: [Y0, U0, Y1, V0][Y2, U1, Y3, V1]...
  *
  * @see http://www.fourcc.org/yuv.php#YUY2
@@ -330,7 +397,7 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> YUY2Texture);
+	UTILITYSHADERS_API void SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> YUY2Texture, const FIntPoint& OutputDimensions);
 };
 
 

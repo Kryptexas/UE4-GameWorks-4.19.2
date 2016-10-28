@@ -229,12 +229,22 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Return any custom property import lines
+		/// Return any custom property settings. These will be included right after Global properties to make values available to all other imports.
+		/// </summary>
+		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
+		/// <returns>string    The custom property import lines for the project file; Empty string if it doesn't require one</returns>
+		public virtual string GetVisualStudioGlobalProperties(UnrealTargetPlatform InPlatform)
+		{
+			return "";
+		}
+
+		/// <summary>
+		/// Return any custom target overrides. These will be included last in the project file so they have the opportunity to override any existing settings.
 		/// </summary>
 		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
 		/// <param name="InProjectFileFormat">The visual studio project file format being generated</param>
 		/// <returns>string    The custom property import lines for the project file; Empty string if it doesn't require one</returns>
-		public virtual string GetAdditionalVisualStudioImportSettings(UnrealTargetPlatform InPlatform, VCProjectFileFormat InProjectFileFormat)
+		public virtual string GetVisualStudioTargetOverrides(UnrealTargetPlatform InPlatform, VCProjectFileFormat InProjectFileFormat)
 		{
 			return "";
 		}

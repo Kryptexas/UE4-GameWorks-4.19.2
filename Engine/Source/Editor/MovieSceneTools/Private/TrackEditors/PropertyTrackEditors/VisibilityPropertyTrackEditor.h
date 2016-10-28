@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "MovieSceneVisibilitySection.h"
+#include "MovieSceneBoolSection.h"
 #include "MovieSceneVisibilityTrack.h"
 #include "PropertyTrackEditor.h"
 
@@ -15,14 +15,14 @@ class ISequencer;
  * to use a UMovieSceneVisibilityTrack through metadata.
  */
 class FVisibilityPropertyTrackEditor
-	: public FPropertyTrackEditor<UMovieSceneVisibilityTrack, UMovieSceneVisibilitySection, bool>
+	: public FPropertyTrackEditor<UMovieSceneVisibilityTrack, UMovieSceneBoolSection, bool>
 {
 public:
 
 	/** Constructor. */
 	FVisibilityPropertyTrackEditor(TSharedRef<ISequencer> InSequencer)
 		// Don't supply any property type names to watch since the FBoolPropertyTrackEditor is already watching for bool property changes.
-		: FPropertyTrackEditor<UMovieSceneVisibilityTrack, UMovieSceneVisibilitySection, bool>(InSequencer, NAME_BoolProperty)
+		: FPropertyTrackEditor<UMovieSceneVisibilityTrack, UMovieSceneBoolSection, bool>(InSequencer, NAME_BoolProperty)
 	{ }
 
 	/**

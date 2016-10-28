@@ -1,9 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UdpMessagingPrivatePCH.h"
-#include "AutomationTest.h"
 #include "UdpMessagingTestTypes.h"
-
+#include "UdpSerializeMessageTask.h"
+#include "UdpSerializedMessage.h"
 
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUdpSerializeMessageTaskTest, "System.Core.Messaging.Transports.Udp.UdpSerializedMessage", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::EngineFilter)
@@ -16,11 +16,11 @@ namespace UdpSerializeMessageTaskTest
 
 	int32 CompletedMessages = 0;
 	int32 FailedMessages = 0;
-	FUdpSerializedMessagePtr ReferenceMessage;
+	TSharedPtr<FUdpSerializedMessage, ESPMode::ThreadSafe> ReferenceMessage;
 }
 
 
-void HandleSerializedMessageStateChanged(FUdpSerializedMessageRef SerializedMessage)
+void HandleSerializedMessageStateChanged(TSharedRef<FUdpSerializedMessage, ESPMode::ThreadSafe> SerializedMessage)
 {
 	using namespace UdpSerializeMessageTaskTest;
 
@@ -54,7 +54,7 @@ bool FUdpSerializeMessageTaskTest::RunTest(const FString& Parameters)
 	FailedMessages = 0;
 	ReferenceMessage = MakeShareable(new FUdpSerializedMessage);
 
-	IMessageContextRef Context = MakeShareable(new FUdpMockMessageContext(new FUdpMockMessage));
+	TSharedRef<IMessageContext, ESPMode::ThreadSafe> Context = MakeShareable(new FUdpMockMessageContext(new FUdpMockMessage));
 
 	// synchronous reference serialization
 	FUdpSerializeMessageTask ReferenceTask(Context, ReferenceMessage.ToSharedRef());
@@ -65,7 +65,7 @@ bool FUdpSerializeMessageTaskTest::RunTest(const FString& Parameters)
 	// stress test
 	for (int32 TestIndex = 0; TestIndex < NumMessages; ++TestIndex)
 	{
-		FUdpSerializedMessageRef SerializedMessage = MakeShareable(new FUdpSerializedMessage);
+		TSharedRef<FUdpSerializedMessage, ESPMode::ThreadSafe> SerializedMessage = MakeShareable(new FUdpSerializedMessage);
 		{
 			SerializedMessage->OnStateChanged().BindStatic(&HandleSerializedMessageStateChanged, SerializedMessage);
 		}

@@ -54,11 +54,15 @@ public:
 	 *
 	 * @return The timing curve.
 	 */
-	MOVIESCENETRACKS_API FRichCurve& GetTimingCurve()
-	{
-		return TimingCurve;
-	}
+	MOVIESCENETRACKS_API FRichCurve& GetTimingCurve() { return TimingCurve; }
+	MOVIESCENETRACKS_API const FRichCurve& GetTimingCurve() const { return TimingCurve; }
 	
+	MOVIESCENETRACKS_API MovieScene3DPathSection_Axis GetFrontAxisEnum() const { return FrontAxisEnum; }
+	MOVIESCENETRACKS_API MovieScene3DPathSection_Axis GetUpAxisEnum() const { return UpAxisEnum; }
+	MOVIESCENETRACKS_API bool GetFollow() const { return bFollow; }
+	MOVIESCENETRACKS_API bool GetReverse() const { return bReverse; }
+	MOVIESCENETRACKS_API bool GetForceUpright() const { return bForceUpright; }
+
 public:
 
 	//~ MovieSceneSection interface

@@ -3,7 +3,7 @@
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieSceneStringSection.h"
 #include "MovieSceneStringTrack.h"
-#include "MovieSceneStringTrackInstance.h"
+#include "Evaluation/MovieScenePropertyTemplates.h"
 
 
 #define LOCTEXT_NAMESPACE "MovieSceneStringTrack"
@@ -65,17 +65,16 @@ void UMovieSceneStringTrack::AddSection(UMovieSceneSection& Section)
 }
 
 
-TSharedPtr<IMovieSceneTrackInstance> UMovieSceneStringTrack::CreateInstance()
-{
-	return MakeShareable(new FMovieSceneStringTrackInstance(*this));
-}
-
-
 UMovieSceneSection* UMovieSceneStringTrack::CreateNewSection()
 {
 	return NewObject<UMovieSceneSection>(this, UMovieSceneStringSection::StaticClass(), NAME_None, RF_Transactional);
 }
 
+
+FMovieSceneEvalTemplatePtr UMovieSceneStringTrack::CreateTemplateForSection(const UMovieSceneSection& InSection) const
+{
+	return FMovieSceneStringPropertySectionTemplate(*CastChecked<UMovieSceneStringSection>(&InSection), *this);
+}
 
 const TArray<UMovieSceneSection*>& UMovieSceneStringTrack::GetAllSections() const
 {

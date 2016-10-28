@@ -40,7 +40,10 @@ void UMovieSceneStringSection::AddKey( float Time, const FString& Key, EMovieSce
 
 void UMovieSceneStringSection::SetDefault(const FString& Value)
 {
-	StringCurve.SetDefaultValue(Value);
+	if (StringCurve.DefaultValue.Compare(Value) != 0 && TryModify())
+	{
+		StringCurve.SetDefaultValue(Value);
+	}
 }
 
 void UMovieSceneStringSection::ClearDefaults()

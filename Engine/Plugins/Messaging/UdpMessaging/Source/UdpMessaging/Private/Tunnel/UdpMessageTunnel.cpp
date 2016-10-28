@@ -4,6 +4,11 @@
 
 #if PLATFORM_DESKTOP
 
+#include "UdpMessageSegment.h"
+#include "UdpMessageTunnelConnection.h"
+#include "UdpMessageTunnel.h"
+
+
 /* FUdpMessageTunnel structors
  *****************************************************************************/
 
@@ -134,7 +139,7 @@ bool FUdpMessageTunnel::Connect(const FIPv4Endpoint& RemoteEndpoint)
 }
 
 
-int32 FUdpMessageTunnel::GetConnections(TArray<IUdpMessageTunnelConnectionPtr>& OutConnections)
+int32 FUdpMessageTunnel::GetConnections(TArray<TSharedPtr<IUdpMessageTunnelConnection>>& OutConnections)
 {
 	FScopeLock Lock(&CriticalSection);
 

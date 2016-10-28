@@ -50,8 +50,7 @@ void FMovieSceneMultiPropertyRecorder::CreateSection(UObject* InObjectToRecord, 
 	for (const FName& PropertyName : PropertiesToRecord)
 	{
 		FTrackInstancePropertyBindings Binding(PropertyName, PropertyName.ToString());
-		Binding.UpdateBinding(InObjectToRecord);
-		UProperty* Property = Binding.GetProperty(InObjectToRecord);
+		UProperty* Property = Binding.GetProperty(*InObjectToRecord);
 		if (Property != nullptr)
 		{
 			if (Property->IsA<UBoolProperty>())

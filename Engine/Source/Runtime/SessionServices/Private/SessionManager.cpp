@@ -1,12 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SessionServicesPrivatePCH.h"
+#include "SessionInfo.h"
+#include "SessionManager.h"
 
 
 /* FSessionManager structors
  *****************************************************************************/
 
-FSessionManager::FSessionManager(const IMessageBusRef& InMessageBus)
+FSessionManager::FSessionManager(const TSharedRef<IMessageBus, ESPMode::ThreadSafe>& InMessageBus)
 	: MessageBusPtr(InMessageBus)
 {
 	// fill in the owner array
@@ -55,19 +57,19 @@ void FSessionManager::AddOwner(const FString& InOwner)
 }
 
 
-const TArray<ISessionInstanceInfoPtr>& FSessionManager::GetSelectedInstances() const
+const TArray<TSharedPtr<ISessionInstanceInfo>>& FSessionManager::GetSelectedInstances() const
 {
 	return SelectedInstances;
 }
 
 
-const ISessionInfoPtr& FSessionManager::GetSelectedSession() const
+const TSharedPtr<ISessionInfo>& FSessionManager::GetSelectedSession() const
 {
 	return SelectedSession;
 }
 
 
-void FSessionManager::GetSessions(TArray<ISessionInfoPtr>& OutSessions) const
+void FSessionManager::GetSessions(TArray<TSharedPtr<ISessionInfo>>& OutSessions) const
 {
 	OutSessions.Empty(Sessions.Num());
 
@@ -103,7 +105,7 @@ void FSessionManager::RemoveOwner(const FString& InOwner)
 }
 
 
-bool FSessionManager::SelectSession(const ISessionInfoPtr& Session)
+bool FSessionManager::SelectSession(const TSharedPtr<ISessionInfo>& Session)
 {
 	// already selected?
 	if (Session == SelectedSession)
@@ -135,7 +137,7 @@ bool FSessionManager::SelectSession(const ISessionInfoPtr& Session)
 }
 
 
-bool FSessionManager::SetInstanceSelected(const ISessionInstanceInfoRef& Instance, bool Selected)
+bool FSessionManager::SetInstanceSelected(const TSharedRef<ISessionInstanceInfo>& Instance, bool Selected)
 {
 	if (Instance->GetOwnerSession() != SelectedSession)
 	{
@@ -257,7 +259,7 @@ void FSessionManager::HandleEnginePongMessage(const FEngineServicePong& Message,
 }
 
 
-void FSessionManager::HandleLogReceived(const ISessionInfoRef& Session, const ISessionInstanceInfoRef& Instance, const FSessionLogMessageRef& Message)
+void FSessionManager::HandleLogReceived(const TSharedRef<ISessionInfo>& Session, const TSharedRef<ISessionInstanceInfo>& Instance, const TSharedRef<FSessionLogMessage>& Message)
 {
 	if (Session == SelectedSession)
 	{
@@ -278,7 +280,7 @@ void FSessionManager::HandleSessionPongMessage(const FSessionServicePong& Messag
 		return;
 	}
 
-	IMessageBusPtr MessageBus = MessageBusPtr.Pin();
+	auto MessageBus = MessageBusPtr.Pin();
 
 	if (!MessageBus.IsValid())
 	{

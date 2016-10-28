@@ -4,7 +4,8 @@
 #include "MovieScene3DPathSection.h"
 #include "MovieScene3DPathTrack.h"
 #include "IMovieScenePlayer.h"
-#include "MovieScene3DPathTrackInstance.h"
+#include "Evaluation/MovieScene3DPathTemplate.h"
+#include "Evaluation/MovieSceneEvaluationTrack.h"
 
 
 #define LOCTEXT_NAMESPACE "MovieScene3DPathTrack"
@@ -15,9 +16,9 @@ UMovieScene3DPathTrack::UMovieScene3DPathTrack( const FObjectInitializer& Object
 { }
 
 
-TSharedPtr<IMovieSceneTrackInstance> UMovieScene3DPathTrack::CreateInstance()
+FMovieSceneEvalTemplatePtr UMovieScene3DPathTrack::CreateTemplateForSection(const UMovieSceneSection& InSection) const
 {
-	return MakeShareable( new FMovieScene3DPathTrackInstance( *this ) ); 
+	return FMovieScene3DPathSectionTemplate(*CastChecked<UMovieScene3DPathSection>(&InSection));
 }
 
 

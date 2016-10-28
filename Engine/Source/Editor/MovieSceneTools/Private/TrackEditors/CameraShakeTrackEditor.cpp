@@ -40,7 +40,7 @@ public:
 	virtual FText GetSectionTitle() const override
 	{
 		UMovieSceneCameraShakeSection const* const ShakeSection = Cast<UMovieSceneCameraShakeSection>(&Section);
-		UClass const* const Shake = ShakeSection ? ShakeSection->GetCameraShakeClass() : nullptr;
+		UClass const* const Shake = ShakeSection ? ShakeSection->ShakeData.ShakeClass : nullptr;
 		if (Shake)
 		{
 			return FText::FromString(Shake->GetName());
@@ -125,8 +125,11 @@ bool FCameraShakeTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid& Targ
 		{
 			TSubclassOf<UCameraShake> const ShakeClass = *(SelectedObject->GeneratedClass);
 
-			TArray<TWeakObjectPtr<UObject>> OutObjects;
-			GetSequencer()->GetRuntimeObjects(GetSequencer()->GetFocusedMovieSceneSequenceInstance(), TargetObjectGuid, OutObjects);
+			TArray<TWeakObjectPtr<>> OutObjects;
+			for (TWeakObjectPtr<> Object : GetSequencer()->FindObjectsInCurrentSequence(TargetObjectGuid))
+			{
+				OutObjects.Add(Object);
+			}
 			AnimatablePropertyChanged(FOnKeyProperty::CreateRaw(this, &FCameraShakeTrackEditor::AddKeyInternal, OutObjects, ShakeClass));
 
 			return true;
@@ -227,9 +230,11 @@ void FCameraShakeTrackEditor::OnCameraShakeAssetSelected(const FAssetData& Asset
 	{
 		TSubclassOf<UCameraShake> const ShakeClass = *(SelectedObject->GeneratedClass);
 
-		TArray<TWeakObjectPtr<UObject>> OutObjects;
-
-		GetSequencer()->GetRuntimeObjects(GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectBinding, OutObjects);
+		TArray<TWeakObjectPtr<>> OutObjects;
+		for (TWeakObjectPtr<> Object : GetSequencer()->FindObjectsInCurrentSequence(ObjectBinding))
+		{
+			OutObjects.Add(Object);
+		}
 		AnimatablePropertyChanged(FOnKeyProperty::CreateRaw(this, &FCameraShakeTrackEditor::AddKeyInternal, OutObjects, ShakeClass));
 	}
 }
@@ -267,13 +272,10 @@ bool FCameraShakeTrackEditor::AddKeyInternal(float KeyTime, const TArray<TWeakOb
 
 UCameraComponent* FCameraShakeTrackEditor::AcquireCameraComponentFromObjectGuid(const FGuid& Guid)
 {
-	TArray<TWeakObjectPtr<UObject>> OutObjects;
-	GetSequencer()->GetRuntimeObjects(GetSequencer()->GetFocusedMovieSceneSequenceInstance(), Guid, OutObjects);
-
 	USkeleton* Skeleton = nullptr;
-	for (int32 i = 0; i < OutObjects.Num(); ++i)
+	for (TWeakObjectPtr<> WeakObject : GetSequencer()->FindObjectsInCurrentSequence(Guid))
 	{
-		UObject* const Obj = OutObjects[i].Get();
+		UObject* const Obj = WeakObject.Get();
 		if (AActor* const Actor = Cast<AActor>(Obj))
 		{
 			UCameraComponent* const CameraComp = MovieSceneHelpers::CameraComponentFromActor(Actor);

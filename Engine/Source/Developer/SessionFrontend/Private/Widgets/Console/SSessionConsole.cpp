@@ -25,7 +25,7 @@ SSessionConsole::~SSessionConsole()
  *****************************************************************************/
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void SSessionConsole::Construct(const FArguments& InArgs, ISessionManagerRef InSessionManager)
+void SSessionConsole::Construct(const FArguments& InArgs, TSharedRef<ISessionManager> InSessionManager)
 {
 	SessionManager = InSessionManager;
 	ShouldScrollToLast = true;
@@ -81,7 +81,7 @@ void SSessionConsole::Construct(const FArguments& InArgs, ISessionManagerRef InS
 									.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 									.Padding(0.0f)
 									[
-										SAssignNew(LogListView, SListView<FSessionLogMessagePtr>)
+										SAssignNew(LogListView, SListView<TSharedPtr<FSessionLogMessage>>)
 											.ItemHeight(24.0f)
 											.ListItemsSource(&LogMessages)
 											.SelectionMode(ESelectionMode::Multi)
@@ -194,7 +194,7 @@ void SSessionConsole::ClearLog()
 
 void SSessionConsole::CopyLog()
 {
-	TArray<FSessionLogMessagePtr> SelectedItems = LogListView->GetSelectedItems();
+	TArray<TSharedPtr<FSessionLogMessage>> SelectedItems = LogListView->GetSelectedItems();
 
 	if (SelectedItems.Num() == 0)
 	{
@@ -224,7 +224,7 @@ void SSessionConsole::ReloadLog(bool FullyReload)
 
 		for (const auto& Instance : SelectedInstances)
 		{
-			const TArray<FSessionLogMessagePtr>& InstanceLog = Instance->GetLog();
+			const TArray<TSharedPtr<FSessionLogMessage>>& InstanceLog = Instance->GetLog();
 
 			for (const auto& LogMessage : InstanceLog)
 			{
@@ -418,7 +418,7 @@ void SSessionConsole::HandleFilterChanged()
 }
 
 
-void SSessionConsole::HandleLogListItemScrolledIntoView(FSessionLogMessagePtr Item, const TSharedPtr<ITableRow>& TableRow)
+void SSessionConsole::HandleLogListItemScrolledIntoView(TSharedPtr<FSessionLogMessage> Item, const TSharedPtr<ITableRow>& TableRow)
 {
 	if (LogMessages.Num() > 0)
 	{
@@ -431,7 +431,7 @@ void SSessionConsole::HandleLogListItemScrolledIntoView(FSessionLogMessagePtr It
 }
 
 
-TSharedRef<ITableRow> SSessionConsole::HandleLogListGenerateRow(FSessionLogMessagePtr Message, const TSharedRef<STableViewBase>& OwnerTable)
+TSharedRef<ITableRow> SSessionConsole::HandleLogListGenerateRow(TSharedPtr<FSessionLogMessage> Message, const TSharedRef<STableViewBase>& OwnerTable)
 {
 	return SNew(SSessionConsoleLogTableRow, OwnerTable)
 		.HighlightText(this, &SSessionConsole::HandleLogListGetHighlightText)
@@ -481,7 +481,7 @@ void SSessionConsole::HandleSessionManagerInstanceSelectionChanged(const TShared
 }
 
 
-void SSessionConsole::HandleSessionManagerLogReceived(const ISessionInfoRef& Session, const ISessionInstanceInfoRef& Instance, const FSessionLogMessageRef& Message)
+void SSessionConsole::HandleSessionManagerLogReceived(const TSharedRef<ISessionInfo>& Session, const TSharedRef<ISessionInstanceInfo>& Instance, const TSharedRef<FSessionLogMessage>& Message)
 {
 	if (!SessionManager->IsInstanceSelected(Instance) || !FilterBar->FilterLogMessage(Message))
 	{
@@ -500,7 +500,7 @@ void SSessionConsole::HandleSessionManagerLogReceived(const ISessionInfoRef& Ses
 }
 
 
-void SSessionConsole::HandleSessionManagerSelectedSessionChanged(const ISessionInfoPtr& SelectedSession)
+void SSessionConsole::HandleSessionManagerSelectedSessionChanged(const TSharedPtr<ISessionInfo>& SelectedSession)
 {
 	ReloadLog(true);
 }

@@ -212,7 +212,7 @@ bool FTargetDeviceProxy::DeployApp(FName InVariant, const TMap<FString, FString>
 {
 	for (TMap<FString, FString>::TConstIterator It(Files); It; ++It)
 	{
-		IMessageAttachmentRef FileAttachment = MakeShareable(new FFileMessageAttachment(It.Key()));
+		TSharedRef<IMessageAttachment, ESPMode::ThreadSafe> FileAttachment = MakeShareable(new FFileMessageAttachment(It.Key()));
 		FString SourcePath = It.Key();
 
 		MessageEndpoint->Send(new FTargetDeviceServiceDeployFile(It.Value(), TransactionId), FileAttachment, MessageAddress);

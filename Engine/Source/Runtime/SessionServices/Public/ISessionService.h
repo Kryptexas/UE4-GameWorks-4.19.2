@@ -38,10 +38,3 @@ public:
 	/** Virtual destructor. */
 	virtual ~ISessionService() { }
 };
-
-
-/** Type definition for shared pointers to instances of ISessionService. */
-typedef TSharedPtr<ISessionService> ISessionServicePtr;
-
-/** Type definition for shared references to instances of ISessionService. */
-typedef TSharedRef<ISessionService> ISessionServiceRef;

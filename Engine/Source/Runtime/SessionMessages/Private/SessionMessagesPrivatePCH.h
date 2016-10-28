@@ -2,10 +2,4 @@
 
 #pragma once
 
-#include "SessionMessages.h"
-
-
-/* Dependencies
- *****************************************************************************/
-
-#include "ModuleManager.h"
+#include "Runtime/Core/Public/Modules/ModuleManager.h"

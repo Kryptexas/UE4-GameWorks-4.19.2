@@ -4,6 +4,7 @@
 #include "WidgetMaterialTrackEditor.h"
 #include "MovieSceneWidgetMaterialTrack.h"
 #include "WidgetMaterialTrackUtilities.h"
+#include "MovieSceneSequenceInstance.h"
 
 
 FWidgetMaterialTrackEditor::FWidgetMaterialTrackEditor( TSharedRef<ISequencer> InSequencer )
@@ -26,15 +27,17 @@ bool FWidgetMaterialTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Typ
 
 UMaterialInterface* FWidgetMaterialTrackEditor::GetMaterialInterfaceForTrack( FGuid ObjectBinding, UMovieSceneMaterialTrack* MaterialTrack )
 {
-	UObject* WidgetObject = GetSequencer()->GetFocusedMovieSceneSequenceInstance()->FindObject( ObjectBinding, *GetSequencer() );
-	UWidget* Widget = Cast<UWidget>( WidgetObject );
-	UMovieSceneWidgetMaterialTrack* WidgetMaterialTrack = Cast<UMovieSceneWidgetMaterialTrack>( MaterialTrack );
-	if ( Widget != nullptr && WidgetMaterialTrack != nullptr )
+	for (TWeakObjectPtr<> WeakObjectPtr : GetSequencer()->FindObjectsInCurrentSequence(ObjectBinding))
 	{
-		FWidgetMaterialHandle Handle = WidgetMaterialTrackUtilities::GetMaterialHandle( Widget, WidgetMaterialTrack->GetBrushPropertyNamePath() );
-		if (Handle.IsValid() )
+		UWidget* Widget = Cast<UWidget>( WeakObjectPtr.Get() );
+		UMovieSceneWidgetMaterialTrack* WidgetMaterialTrack = Cast<UMovieSceneWidgetMaterialTrack>( MaterialTrack );
+		if ( Widget != nullptr && WidgetMaterialTrack != nullptr )
 		{
-			return Handle.GetMaterial();
+			FWidgetMaterialHandle Handle = WidgetMaterialTrackUtilities::GetMaterialHandle( Widget, WidgetMaterialTrack->GetBrushPropertyNamePath() );
+			if (Handle.IsValid() )
+			{
+				return Handle.GetMaterial();
+			}
 		}
 	}
 	return nullptr;

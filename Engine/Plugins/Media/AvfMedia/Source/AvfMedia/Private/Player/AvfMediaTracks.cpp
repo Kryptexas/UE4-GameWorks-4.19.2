@@ -1075,24 +1075,24 @@ void FAvfMediaTracks::InitializeVideoSink()
 
 	[PlayerItem addOutput:(AVPlayerItemOutput*)VideoTracks[SelectedVideoTrack].Output];
 
+	const FIntPoint Dimensions = GetVideoTrackDimensions(SelectedVideoTrack);
+
+	VideoSink->InitializeTextureSink(
+		Dimensions,
+		Dimensions,
+		EMediaTextureSinkFormat::CharBGRA,
 #if WITH_ENGINE
-	VideoSink->InitializeTextureSink(
-		GetVideoTrackDimensions(SelectedVideoTrack),
-		EMediaTextureSinkFormat::CharBGRA,
 		EMediaTextureSinkMode::Unbuffered
-	);
 #else
-	VideoSink->InitializeTextureSink(
-		GetVideoTrackDimensions(SelectedVideoTrack),
-		EMediaTextureSinkFormat::CharBGRA,
 		EMediaTextureSinkMode::Buffered
-	);
 #endif
+	);
 	
-	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(InitialiseAvfVideoSampler,
-												 FAvfMediaTracks*, This, this,
-												 IMediaTextureSink*, VideoSink, VideoSink,
-												 AVPlayerItemVideoOutput*, Output, (AVPlayerItemVideoOutput*)VideoTracks[SelectedVideoTrack].Output,
+	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+		InitialiseAvfVideoSampler,
+		FAvfMediaTracks*, This, this,
+		IMediaTextureSink*, VideoSink, VideoSink,
+		AVPlayerItemVideoOutput*, Output, (AVPlayerItemVideoOutput*)VideoTracks[SelectedVideoTrack].Output,
     {
 		This->VideoSampler->SetTrack(VideoSink, Output);
     });

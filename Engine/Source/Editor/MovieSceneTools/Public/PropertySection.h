@@ -61,34 +61,26 @@ protected:
 	template<typename ValueType>
 	TOptional<ValueType> GetPropertyValue() const
 	{
-		UObject* RuntimeObject = GetRuntimeObjectAndUpdatePropertyBindings();
-
-		if (RuntimeObject == nullptr)
+		if (!PropertyBindings.IsValid())
 		{
 			return TOptional<ValueType>();
 		}
 
-		// Bool property values are stored in a bit field so using a straight cast of the pointer to get their value does not
-		// work.  Instead use the actual property to get the correct value.
-		const UBoolProperty* BoolProperty = Cast<const UBoolProperty>(GetProperty());
-		if (BoolProperty)
 		{
-			uint32* ValuePtr = BoolProperty->ContainerPtrToValuePtr<uint32>(RuntimeObject);
-			bool BoolPropertyValue = BoolProperty->GetPropertyValue(ValuePtr);
-			void *PropertyValue = &BoolPropertyValue;
-			return TOptional<ValueType>(*((ValueType*)PropertyValue));
+			for (const TWeakObjectPtr<UObject>& WeakObject : Sequencer->FindBoundObjects(ObjectBinding, Sequencer->GetFocusedTemplateID()))
+			{
+				if (UObject* Object = WeakObject.Get())
+				{
+					return PropertyBindings->GetCurrentValue<ValueType>(*Object);
+				}
+			}
 		}
 
-		return TOptional<ValueType>(PropertyBindings->GetCurrentValue<ValueType>(RuntimeObject));
+		return TOptional<ValueType>();
 	}
 
 	/** Returns true when this section was constructed with the data necessary to query for the current property value. */
 	bool CanGetPropertyValue() const;
-
-private:
-	/** Gets the current runtime object for the object binding which was used to construct this section.  Returns nullptr
-		if no valid object can be found, or if an object binding was not supplied. */
-	UObject* GetRuntimeObjectAndUpdatePropertyBindings() const;
 
 protected:
 
@@ -108,9 +100,5 @@ private:
 
 	/** An object which is used to retrieve the value of a property based on it's name and path. */
 	mutable TSharedPtr<FTrackInstancePropertyBindings> PropertyBindings;
-
-	/** Caches a weak pointer to the most recent runtime object retrieved by this section.  This cache
-		is maintained so that the property bindings can be updated any time this object changes. */
-	mutable TWeakObjectPtr<UObject> RuntimeObjectCache;
 };
 

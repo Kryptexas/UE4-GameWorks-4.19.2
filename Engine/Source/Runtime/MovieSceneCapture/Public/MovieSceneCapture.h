@@ -10,6 +10,7 @@
 #include "IMovieSceneCaptureProtocol.h"
 #include "MovieSceneCaptureProtocolRegistry.h"
 #include "MovieSceneCaptureProtocolSettings.h"
+#include "Scalability.h"
 #include "MovieSceneCapture.generated.h"
 
 class FJsonObject;
@@ -183,6 +184,8 @@ protected:
 	FOnCaptureFinished OnCaptureFinishedDelegate;
 	/** Format string used for frame numbers */
 	FString FrameNumberFormat;
+	/** Cached quality levels */
+	Scalability::FQualityLevels CachedQualityLevels;
 };
 
 /** A strategy that employs a fixed frame time-step, and as such never drops a frame. Potentially accelerated. */

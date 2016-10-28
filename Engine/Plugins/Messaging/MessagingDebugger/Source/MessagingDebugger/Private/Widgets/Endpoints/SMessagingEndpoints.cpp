@@ -1,7 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MessagingDebuggerPrivatePCH.h"
-#include "SExpandableArea.h"
+#include "MessagingDebuggerPCH.h"
+#include "MessagingDebuggerModel.h"
+#include "MessagingDebuggerEndpointFilter.h"
+#include "SMessagingEndpoints.h"
+#include "SMessagingEndpointsFilterBar.h"
+#include "SMessagingEndpointsTableRow.h"
 
 
 #define LOCTEXT_NAMESPACE "SMessagingEndpoints"
@@ -23,7 +27,7 @@ SMessagingEndpoints::~SMessagingEndpoints()
  *****************************************************************************/
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void SMessagingEndpoints::Construct( const FArguments& InArgs, const FMessagingDebuggerModelRef& InModel, const TSharedRef<ISlateStyle>& InStyle, const IMessageTracerRef& InTracer )
+void SMessagingEndpoints::Construct(const FArguments& InArgs, const TSharedRef<FMessagingDebuggerModel>& InModel, const TSharedRef<ISlateStyle>& InStyle, const TSharedRef<IMessageTracer, ESPMode::ThreadSafe>& InTracer)
 {
 	Filter = MakeShareable(new FMessagingDebuggerEndpointFilter());
 	Model = InModel;
@@ -57,7 +61,7 @@ void SMessagingEndpoints::Construct( const FArguments& InArgs, const FMessagingD
 					.Padding(0.0f)
 					[
 						// message list
-						SAssignNew(EndpointListView, SListView<FMessageTracerEndpointInfoPtr>)
+						SAssignNew(EndpointListView, SListView<TSharedPtr<FMessageTracerEndpointInfo>>)
 							.ItemHeight(24.0f)
 							.ListItemsSource(&EndpointList)
 							.SelectionMode(ESelectionMode::Multi)
@@ -115,7 +119,7 @@ void SMessagingEndpoints::Construct( const FArguments& InArgs, const FMessagingD
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-void SMessagingEndpoints::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+void SMessagingEndpoints::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
 	// @todo gmp: fix this
 	ReloadEndpointList();
@@ -129,12 +133,12 @@ void SMessagingEndpoints::ReloadEndpointList()
 {
 	EndpointList.Reset();
 
-	TArray<FMessageTracerEndpointInfoPtr> OutEndpoints;
+	TArray<TSharedPtr<FMessageTracerEndpointInfo>> OutEndpoints;
 	Tracer->GetEndpoints(OutEndpoints);
 
 	for (int32 EndpointIndex = 0; EndpointIndex < OutEndpoints.Num(); ++EndpointIndex)
 	{
-		const FMessageTracerEndpointInfoPtr& Endpoint = OutEndpoints[EndpointIndex];
+		const TSharedPtr<FMessageTracerEndpointInfo>& Endpoint = OutEndpoints[EndpointIndex];
 
 		if (Filter->FilterEndpoint(Endpoint))
 		{
@@ -149,7 +153,7 @@ void SMessagingEndpoints::ReloadEndpointList()
 /* SMessagingEndpoints callbacks
  *****************************************************************************/
 
-TSharedRef<ITableRow> SMessagingEndpoints::HandleEndpointListGenerateRow( FMessageTracerEndpointInfoPtr EndpointInfo, const TSharedRef<STableViewBase>& OwnerTable )
+TSharedRef<ITableRow> SMessagingEndpoints::HandleEndpointListGenerateRow(TSharedPtr<FMessageTracerEndpointInfo> EndpointInfo, const TSharedRef<STableViewBase>& OwnerTable)
 {
 	return SNew(SMessagingEndpointsTableRow, OwnerTable, Model.ToSharedRef())
 		.EndpointInfo(EndpointInfo)
@@ -166,7 +170,7 @@ FText SMessagingEndpoints::HandleEndpointListGetHighlightText() const
 }
 
 
-void SMessagingEndpoints::HandleEndpointListSelectionChanged( FMessageTracerEndpointInfoPtr InItem, ESelectInfo::Type SelectInfo )
+void SMessagingEndpoints::HandleEndpointListSelectionChanged(TSharedPtr<FMessageTracerEndpointInfo> InItem, ESelectInfo::Type SelectInfo)
 {
 	if (EndpointListView->GetSelectedItems().Num() == 1)
 	{
@@ -187,7 +191,7 @@ void SMessagingEndpoints::HandleFilterChanged()
 
 void SMessagingEndpoints::HandleModelSelectedMessageChanged()
 {
-	FMessageTracerMessageInfoPtr SelectedMessage = Model->GetSelectedMessage();
+	TSharedPtr<FMessageTracerMessageInfo> SelectedMessage = Model->GetSelectedMessage();
 
 	if (SelectedMessage.IsValid())
 	{

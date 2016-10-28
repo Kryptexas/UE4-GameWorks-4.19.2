@@ -1,7 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MessagingDebuggerPrivatePCH.h"
-#include "SDockTab.h"
+#include "MessagingDebuggerPCH.h"
+#include "MessagingDebuggerCommands.h"
+#include "MessagingDebuggerModel.h"
+#include "SMessagingBreakpoints.h"
+#include "SMessagingDebugger.h"
+#include "SMessagingEndpointDetails.h"
+#include "SMessagingEndpoints.h"
+#include "SMessagingGraph.h"
+#include "SMessagingInterceptors.h"
+#include "SMessagingMessageData.h"
+#include "SMessagingMessageDetails.h"
+#include "SMessagingHistory.h"
+#include "SMessagingTypes.h"
+#include "SMessagingDebuggerToolbar.h"
 
 
 #define LOCTEXT_NAMESPACE "SMessagingDebugger"
@@ -35,7 +47,13 @@ SMessagingDebugger::SMessagingDebugger()
 /* SMessagingDebugger interface
  *****************************************************************************/
 
-void SMessagingDebugger::Construct(const FArguments& InArgs, const TSharedRef<SDockTab>& ConstructUnderMajorTab, const TSharedPtr<SWindow>& ConstructUnderWindow, const IMessageTracerRef& InMessageTracer, const TSharedRef<ISlateStyle>& InStyle)
+void SMessagingDebugger::Construct(
+	const FArguments& InArgs,
+	const TSharedRef<SDockTab>& ConstructUnderMajorTab,
+	const TSharedPtr<SWindow>& ConstructUnderWindow,
+	const TSharedRef<IMessageTracer, ESPMode::ThreadSafe>& InMessageTracer,
+	const TSharedRef<ISlateStyle>& InStyle
+)
 {
 	MessageTracer = InMessageTracer;
 	Style = InStyle;

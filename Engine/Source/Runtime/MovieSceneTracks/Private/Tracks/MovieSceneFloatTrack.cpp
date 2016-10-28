@@ -4,7 +4,7 @@
 #include "MovieSceneFloatSection.h"
 #include "MovieSceneFloatTrack.h"
 #include "IMovieScenePlayer.h"
-#include "MovieSceneFloatTrackInstance.h"
+#include "Evaluation/MovieScenePropertyTemplates.h"
 
 
 UMovieSceneFloatTrack::UMovieSceneFloatTrack( const FObjectInitializer& ObjectInitializer )
@@ -17,12 +17,10 @@ UMovieSceneSection* UMovieSceneFloatTrack::CreateNewSection()
 	return NewObject<UMovieSceneSection>(this, UMovieSceneFloatSection::StaticClass(), NAME_None, RF_Transactional);
 }
 
-
-TSharedPtr<IMovieSceneTrackInstance> UMovieSceneFloatTrack::CreateInstance()
+FMovieSceneEvalTemplatePtr UMovieSceneFloatTrack::CreateTemplateForSection(const UMovieSceneSection& InSection) const
 {
-	return MakeShareable( new FMovieSceneFloatTrackInstance( *this ) ); 
+	return FMovieSceneFloatPropertySectionTemplate(*CastChecked<const UMovieSceneFloatSection>(&InSection), *this);
 }
-
 
 bool UMovieSceneFloatTrack::Eval( float Position, float LastPosition, float& InOutFloat ) const
 {
@@ -40,4 +38,3 @@ bool UMovieSceneFloatTrack::Eval( float Position, float LastPosition, float& InO
 
 	return Section != nullptr;
 }
-

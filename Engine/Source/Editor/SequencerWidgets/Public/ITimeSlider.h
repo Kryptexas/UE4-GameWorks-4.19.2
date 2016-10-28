@@ -93,6 +93,9 @@ struct FTimeSliderArgs
 	/** Called when the clamp range changes */
 	FOnRangeChanged OnClampRangeChanged;
 
+	/** Attribute defining the active sub-sequence range for this controller */
+	TAttribute<TOptional<TRange<float>>> SubSequenceRange;
+
 	/** Attribute defining the playback range for this controller */
 	TAttribute<TRange<float>> PlaybackRange;
 

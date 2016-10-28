@@ -1,9 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "ProfilerPrivatePCH.h"
+#include "ProfilerManager.h"
 #include "SProfilerSettings.h"
 
+
 #define LOCTEXT_NAMESPACE "SProfilerSettings"
+
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SProfilerSettings::Construct( const FArguments& InArgs )

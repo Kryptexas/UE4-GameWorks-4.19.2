@@ -10,7 +10,7 @@
 
 #include "Messaging.h"
 #include "ModuleManager.h"
-#include "SessionMessages.h"
+#include "Runtime/SessionMessages/Public/SessionServiceMessages.h"
 #include "TargetDeviceServices.h"
 #include "TargetPlatform.h"
 #include "Ticker.h"

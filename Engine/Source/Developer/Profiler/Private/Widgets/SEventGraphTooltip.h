@@ -2,17 +2,19 @@
 
 #pragma once
 
-/** An advanced tooltip used to show various informations in the event graph widget. */
+class FEventGraphSample;
+
+
+/**
+ * An advanced tooltip used to show various informations in the event graph widget.
+ */
 class SEventGraphTooltip
 {
-protected:
-	static EVisibility GetHotPathIconVisibility( const FEventGraphSamplePtr EventSample )
-	{
-		const bool bIsHotPathIconVisible = EventSample->_bIsHotPath;
-		return bIsHotPathIconVisible ? EVisibility::Visible : EVisibility::Collapsed;
-	}
-
 public:
-	static TSharedPtr<SToolTip> GetTableCellTooltip( const FEventGraphSamplePtr EventSample );
 
+	static TSharedPtr<SToolTip> GetTableCellTooltip( const TSharedPtr<FEventGraphSample> EventSample );
+
+protected:
+
+	static EVisibility GetHotPathIconVisibility(const TSharedPtr<FEventGraphSample> EventSample);
 };

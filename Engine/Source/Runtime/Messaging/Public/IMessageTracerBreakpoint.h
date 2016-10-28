@@ -28,17 +28,10 @@ public:
 	 * @param Context The context of the message to break on.
 	 * @return true if the tracer should break, false otherwise.
 	 */
-	virtual bool ShouldBreak( const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context ) const = 0;
+	virtual bool ShouldBreak(const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context) const = 0;
 
 protected:
 
 	/** Hidden destructor. */
 	virtual ~IMessageTracerBreakpoint() { }
 };
-
-
-/** Type definition for shared pointers to instances of IMessageTracerBreakpoint. */
-typedef TSharedPtr<IMessageTracerBreakpoint, ESPMode::ThreadSafe> IMessageTracerBreakpointPtr;
-
-/** Type definition for shared references to instances of IMessageTracerBreakpoint. */
-typedef TSharedRef<IMessageTracerBreakpoint, ESPMode::ThreadSafe> IMessageTracerBreakpointRef;

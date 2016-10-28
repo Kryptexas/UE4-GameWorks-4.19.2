@@ -60,7 +60,7 @@ private:
 	TSharedPtr<SButton> NewSessionButton;
 
 	/** Holds a pointer to the session manager. */
-	ISessionManagerPtr SessionManager;
+	TSharedPtr<ISessionManager> SessionManager;
 
 	/** Holds a pointer to the session manager. */
 	IScreenShotManagerPtr ScreenShotManager;

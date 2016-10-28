@@ -557,7 +557,7 @@ FText SMediaPlayerEditorViewer::HandleOverlayPlayerNameText() const
 
 	FName PlayerName = MediaPlayer->GetPlayerName();
 
-	if (PlayerName == NAME_None)
+	if ((PlayerName == NAME_None) || MediaPlayer->GetUrl().IsEmpty())
 	{
 		if (MediaPlayer->DesiredPlayerName == NAME_None)
 		{

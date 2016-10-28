@@ -52,7 +52,8 @@ void SStructureDetailsView::Construct(const FArguments& InArgs)
 
 	TSharedRef<SScrollBar> ExternalScrollbar = 
 		SNew(SScrollBar)
-		.AlwaysShowScrollbar( true );
+		.AlwaysShowScrollbar( DetailsViewArgs.bShowScrollBar )
+		.Visibility(DetailsViewArgs.bShowScrollBar ? EVisibility::Visible : EVisibility::Collapsed);
 
 		FMenuBuilder DetailViewOptions( true, NULL );
 

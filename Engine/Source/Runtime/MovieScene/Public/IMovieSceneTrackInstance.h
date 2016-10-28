@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "MovieSceneAnimTypeID.h"
 
 class IMovieScenePlayer;
 class FMovieSceneSequenceInstance;
@@ -56,6 +57,8 @@ class IMovieSceneTrackInstance
 {
 public:
 
+	MOVIESCENE_API IMovieSceneTrackInstance();
+	
 	/** Virtual destructor. */
 	virtual ~IMovieSceneTrackInstance() { }
 
@@ -106,4 +109,6 @@ public:
 	* Evaluation order
 	*/
 	virtual float EvalOrder() { return 0.f; }
+
+	const FMovieSceneAnimTypeID AnimTypeID;
 };

@@ -2,8 +2,8 @@
 
 #include "UMGPrivatePCH.h"
 #include "MovieSceneWidgetMaterialTrack.h"
-#include "MovieSceneWidgetMaterialTrackInstance.h"
 #include "WidgetMaterialTrackUtilities.h"
+#include "MovieSceneWidgetMaterialTemplate.h"
 
 
 UMovieSceneWidgetMaterialTrack::UMovieSceneWidgetMaterialTrack( const FObjectInitializer& ObjectInitializer )
@@ -12,9 +12,9 @@ UMovieSceneWidgetMaterialTrack::UMovieSceneWidgetMaterialTrack( const FObjectIni
 }
 
 
-TSharedPtr<IMovieSceneTrackInstance> UMovieSceneWidgetMaterialTrack::CreateInstance()
+FMovieSceneEvalTemplatePtr UMovieSceneWidgetMaterialTrack::CreateTemplateForSection(const UMovieSceneSection& InSection) const
 {
-	return MakeShareable(new FMovieSceneWidgetMaterialTrackInstance(*this));
+	return FMovieSceneWidgetMaterialSectionTemplate(*CastChecked<UMovieSceneParameterSection>(&InSection), *this);
 }
 
 

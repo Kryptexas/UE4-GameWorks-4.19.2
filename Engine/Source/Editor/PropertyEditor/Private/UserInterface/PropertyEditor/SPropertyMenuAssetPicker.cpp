@@ -22,7 +22,10 @@ void SPropertyMenuAssetPicker::Construct( const FArguments& InArgs )
 	OnSet = InArgs._OnSet;
 	OnClose = InArgs._OnClose;
 
-	FMenuBuilder MenuBuilder(true, NULL);
+	const bool bInShouldCloseWindowAfterMenuSelection = true;
+	const bool bCloseSelfOnly = true;
+	
+	FMenuBuilder MenuBuilder(bInShouldCloseWindowAfterMenuSelection, nullptr, nullptr, bCloseSelfOnly);
 
 	if (NewAssetFactories.Num() > 0)
 	{

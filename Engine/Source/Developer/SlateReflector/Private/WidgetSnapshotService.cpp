@@ -10,7 +10,7 @@ FWidgetSnapshotService::FWidgetSnapshotService()
 {
 	if (FPlatformMisc::SupportsMessaging() && FPlatformProcess::SupportsMultithreading())
 	{
-		IMessageBusPtr MessageBusPtr = IMessagingModule::Get().GetDefaultBus();
+		TSharedPtr<IMessageBus, ESPMode::ThreadSafe> MessageBusPtr = IMessagingModule::Get().GetDefaultBus();
 
 		MessageEndpoint = FMessageEndpoint::Builder("FWidgetSnapshotService", MessageBusPtr.ToSharedRef())
 			.ReceivingOnThread(ENamedThreads::GameThread)

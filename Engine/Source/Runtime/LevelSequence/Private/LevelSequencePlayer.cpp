@@ -74,11 +74,11 @@ ULevelSequencePlayer::ULevelSequencePlayer(const FObjectInitializer& ObjectIniti
 	, bIsPlaying(false)
 	, bReversePlayback(false)
 	, TimeCursorPosition(0.0f)
-	, LastCursorPosition(0.0f)
 	, StartTime(0.f)
 	, EndTime(0.f)
 	, CurrentNumLoops(0)
 	, bHasCleanedUpSequence(false)
+	, bIsEvaluating(false)
 {
 	SpawnRegister = MakeShareable(new FLevelSequenceSpawnRegister);
 }
@@ -119,7 +119,28 @@ void ULevelSequencePlayer::Pause()
 {
 	if (bIsPlaying)
 	{
+		if (bIsEvaluating)
+		{
+			LatentActions.Add(ELatentAction::Pause);
+			return;
+		}
+
 		bIsPlaying = false;
+
+		// Evaluate the sequence at its current time, with a status of 'stopped' to ensure that animated state pauses correctly
+		{
+			TGuardValue<bool> Guard(bIsEvaluating, true);
+
+			UMovieSceneSequence* MovieSceneSequence = RootTemplateInstance.GetSequence(MovieSceneSequenceID::Root);
+			TOptional<float> FixedFrameInterval = MovieSceneSequence->GetMovieScene() ? MovieSceneSequence->GetMovieScene()->GetOptionalFixedFrameInterval() : TOptional<float>();
+
+			FMovieSceneEvaluationRange Range = PlayPosition.JumpTo(GetSequencePosition(), FixedFrameInterval);
+
+			const FMovieSceneContext Context(Range, EMovieScenePlayerStatus::Stopped);
+			RootTemplateInstance.Evaluate(Context, *this);
+		}
+
+		ApplyLatentActions();
 
 		if (OnPause.IsBound())
 		{
@@ -132,14 +153,17 @@ void ULevelSequencePlayer::Stop()
 {
 	if (bIsPlaying)
 	{
+		if (bIsEvaluating)
+		{
+			LatentActions.Add(ELatentAction::Stop);
+			return;
+		}
+
 		bIsPlaying = false;
 		TimeCursorPosition = PlaybackSettings.PlayRate < 0.f ? GetLength() : 0.f;
 		CurrentNumLoops = 0;
 
-		if (RootMovieSceneInstance.IsValid())
-		{
-			RootMovieSceneInstance->RestoreState(*this);
-		}
+		RootTemplateInstance.Finish(*this);
 
 		SetTickPrerequisites(false);
 
@@ -190,28 +214,25 @@ void ULevelSequencePlayer::SetTickPrerequisites(bool bAddTickPrerequisites)
 		return;
 	}
 
-	TArray<UMovieSceneSequence*> AllSequences;
-	GetDescendantSequences(LevelSequence, AllSequences);
-
-	for (auto Sequence : AllSequences)
+	// @todo: this should happen procedurally, rather than up front. The current approach will not scale well.
+	for (auto& Pair : RootTemplateInstance.GetHierarchy().AllSubSequenceData())
 	{
-		UMovieScene* MovieScene = Sequence->GetMovieScene();
-		if (MovieScene == nullptr)
+		UMovieScene* MovieScene = Pair.Value.Sequence ? Pair.Value.Sequence->GetMovieScene() : nullptr;
+		if (!MovieScene)
 		{
 			continue;
 		}
 
 		TArray<AActor*> ControlledActors;
+		FMovieSceneSequenceID SequenceID = Pair.Key;
 
 		for (int32 PossessableCount = 0; PossessableCount < MovieScene->GetPossessableCount(); ++PossessableCount)
 		{
 			FMovieScenePossessable& Possessable = MovieScene->GetPossessable(PossessableCount);
-				
-			UObject* PossessableObject = Sequence->FindPossessableObject(Possessable.GetGuid(), this);
-			if (PossessableObject != nullptr)
-			{
-				AActor* PossessableActor = Cast<AActor>(PossessableObject);
 
+			for (TWeakObjectPtr<> PossessableObject : FindBoundObjects(Possessable.GetGuid(), SequenceID))
+			{
+				AActor* PossessableActor = Cast<AActor>(PossessableObject.Get());
 				if (PossessableActor != nullptr)
 				{
 					ControlledActors.Add(PossessableActor);
@@ -219,6 +240,8 @@ void ULevelSequencePlayer::SetTickPrerequisites(bool bAddTickPrerequisites)
 			}
 		}
 
+		// @todo: should this happen on spawn, not here?
+		// @todo: does setting tick prerequisites on spawnable *templates* actually propagate to spawned instances?
 		for (int32 SpawnableCount = 0; SpawnableCount < MovieScene->GetSpawnableCount(); ++ SpawnableCount)
 		{
 			FMovieSceneSpawnable& Spawnable = MovieScene->GetSpawnable(SpawnableCount);
@@ -292,7 +315,12 @@ void ULevelSequencePlayer::PlayInternal()
 
 		// Update now
 		bPendingFirstUpdate = false;
-		UpdateMovieSceneInstance(TimeCursorPosition, TimeCursorPosition);
+
+		UMovieSceneSequence* MovieSceneSequence = RootTemplateInstance.GetSequence(MovieSceneSequenceID::Root);
+		TOptional<float> FixedFrameInterval = MovieSceneSequence->GetMovieScene() ? MovieSceneSequence->GetMovieScene()->GetOptionalFixedFrameInterval() : TOptional<float>();
+
+		FMovieSceneEvaluationRange Range = PlayPosition.JumpTo(GetSequencePosition(), FixedFrameInterval);
+		UpdateMovieSceneInstance(Range);
 
 		if (OnPlay.IsBound())
 		{
@@ -316,10 +344,10 @@ void ULevelSequencePlayer::StartPlayingNextTick()
 
 	// @todo Sequencer playback: Should we recreate the instance every time?
 	// We must not recreate the instance since it holds stateful information (such as which objects it has spawned). Recreating the instance would break any 
-	if (!RootMovieSceneInstance.IsValid())
+	// @todo: Is this still the case now that eval state is stored (correctly) in the player?
+	if (!RootTemplateInstance.IsValid())
 	{
-		RootMovieSceneInstance = MakeShareable(new FMovieSceneSequenceInstance(*LevelSequence));
-		RootMovieSceneInstance->RefreshInstance(*this);
+		RootTemplateInstance.Initialize(*LevelSequence, *this);
 	}
 
 	SetTickPrerequisites(true);
@@ -337,7 +365,6 @@ float ULevelSequencePlayer::GetPlaybackPosition() const
 void ULevelSequencePlayer::SetPlaybackPosition(float NewPlaybackPosition)
 {
 	UpdateTimeCursorPosition(NewPlaybackPosition);
-	UpdateMovieSceneInstance(TimeCursorPosition, LastCursorPosition);
 }
 
 float ULevelSequencePlayer::GetLength() const
@@ -367,6 +394,9 @@ void ULevelSequencePlayer::UpdateTimeCursorPosition(float NewPosition)
 {
 	float Length = GetLength();
 
+	UMovieSceneSequence* MovieSceneSequence = RootTemplateInstance.GetSequence(MovieSceneSequenceID::Root);
+	TOptional<float> FixedFrameInterval = MovieSceneSequence->GetMovieScene() ? MovieSceneSequence->GetMovieScene()->GetOptionalFixedFrameInterval() : TOptional<float>();
+
 	if (bPendingFirstUpdate)
 	{
 		NewPosition = TimeCursorPosition;
@@ -381,19 +411,25 @@ void ULevelSequencePlayer::UpdateTimeCursorPosition(float NewPosition)
 			++CurrentNumLoops;
 			const float Overplay = FMath::Fmod(NewPosition, Length);
 			TimeCursorPosition = Overplay < 0 ? Length + Overplay : Overplay;
-			LastCursorPosition = TimeCursorPosition;
+			
+			PlayPosition.Reset(Overplay < 0 ? Length : 0.f);
+			FMovieSceneEvaluationRange Range = PlayPosition.PlayTo(GetSequencePosition(), FixedFrameInterval);
 
-			SpawnRegister->ForgetExternallyOwnedSpawnedObjects(*this);
+			SpawnRegister->ForgetExternallyOwnedSpawnedObjects(State, *this);
 
+			UpdateMovieSceneInstance(Range);
 			return;
 		}
 
 		// stop playback
 		Stop();
+		return;
 	}
 
-	LastCursorPosition = TimeCursorPosition;
 	TimeCursorPosition = NewPosition;
+
+	FMovieSceneEvaluationRange Range = PlayPosition.PlayTo(NewPosition + StartTime, FixedFrameInterval);
+	UpdateMovieSceneInstance(Range);
 }
 
 bool ULevelSequencePlayer::ShouldStopOrLoop(float NewPosition)
@@ -419,6 +455,8 @@ void ULevelSequencePlayer::Initialize(ULevelSequence* InLevelSequence, UWorld* I
 	CurrentPlayer = this;
 	LevelSequence = InLevelSequence;
 
+	RootTemplateInstance.Initialize(*LevelSequence, *this);
+
 	World = InWorld;
 	PlaybackSettings = Settings;
 
@@ -435,15 +473,6 @@ void ULevelSequencePlayer::Initialize(ULevelSequence* InLevelSequence, UWorld* I
 
 /* IMovieScenePlayer interface
  *****************************************************************************/
-
-void ULevelSequencePlayer::GetRuntimeObjects(TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance, const FGuid& ObjectId, TArray<TWeakObjectPtr<UObject>>& OutObjects) const
-{
-	UObject* FoundObject = MovieSceneInstance->FindObject(ObjectId, *this);
-	if (FoundObject)
-	{
-		OutObjects.Add(FoundObject);
-	}
-}
 
 
 void ULevelSequencePlayer::UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject, bool bJumpCut)
@@ -466,6 +495,8 @@ void ULevelSequencePlayer::UpdateCameraCut(UObject* CameraObject, UObject* Unloc
 	}
 
 	UCameraComponent* CameraComponent = MovieSceneHelpers::CameraComponentFromRuntimeObject(CameraObject);
+	
+	CachedCameraComponent = CameraComponent;
 
 	if (CameraObject == ViewTarget)
 	{
@@ -534,19 +565,6 @@ void ULevelSequencePlayer::SetPlaybackStatus(EMovieScenePlayerStatus::Type InPla
 {
 }
 
-void ULevelSequencePlayer::AddOrUpdateMovieSceneInstance(UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToAdd)
-{
-}
-
-void ULevelSequencePlayer::RemoveMovieSceneInstance(UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToRemove)
-{
-}
-
-TSharedRef<FMovieSceneSequenceInstance> ULevelSequencePlayer::GetRootMovieSceneSequenceInstance() const
-{
-	return RootMovieSceneInstance.ToSharedRef();
-}
-
 UObject* ULevelSequencePlayer::GetPlaybackContext() const
 {
 	return World.Get();
@@ -584,45 +602,62 @@ void ULevelSequencePlayer::Update(const float DeltaSeconds)
 	{
 		float PlayRate = bReversePlayback ? -PlaybackSettings.PlayRate : PlaybackSettings.PlayRate;
 		UpdateTimeCursorPosition(TimeCursorPosition + DeltaSeconds * PlayRate);
-		UpdateMovieSceneInstance(TimeCursorPosition, LastCursorPosition);
 	}
 	else if (!bHasCleanedUpSequence && ShouldStopOrLoop(TimeCursorPosition))
 	{
-		UpdateMovieSceneInstance(TimeCursorPosition, LastCursorPosition);
+		// Update the sequence one last time
+		UMovieSceneSequence* MovieSceneSequence = RootTemplateInstance.GetSequence(MovieSceneSequenceID::Root);
+		TOptional<float> FixedFrameInterval = MovieSceneSequence->GetMovieScene() ? MovieSceneSequence->GetMovieScene()->GetOptionalFixedFrameInterval() : TOptional<float>();
+		
+		FMovieSceneEvaluationRange Range = PlayPosition.PlayTo(GetSequencePosition(), FixedFrameInterval);
+		UpdateMovieSceneInstance(Range);
 
 		bHasCleanedUpSequence = true;
 		
-		SpawnRegister->ForgetExternallyOwnedSpawnedObjects(*this);
+		SpawnRegister->ForgetExternallyOwnedSpawnedObjects(State, *this);
 		SpawnRegister->CleanUp(*this);
 	}
 }
 
-void ULevelSequencePlayer::UpdateMovieSceneInstance(float CurrentPosition, float PreviousPosition)
+void ULevelSequencePlayer::UpdateMovieSceneInstance(FMovieSceneEvaluationRange InRange)
 {
-	if(RootMovieSceneInstance.IsValid())
 	{
-		float Position = CurrentPosition + StartTime;
-		float LastPosition = PreviousPosition + StartTime;
-		UMovieSceneSequence* MovieSceneSequence = RootMovieSceneInstance->GetSequence();
-		if (MovieSceneSequence != nullptr && 
-			MovieSceneSequence->GetMovieScene()->GetForceFixedFrameIntervalPlayback() &&
-			MovieSceneSequence->GetMovieScene()->GetFixedFrameInterval() > 0 )
-		{
-			float FixedFrameInterval = MovieSceneSequence->GetMovieScene()->GetFixedFrameInterval();
-			Position = UMovieScene::CalculateFixedFrameTime( Position, FixedFrameInterval );
-			LastPosition = UMovieScene::CalculateFixedFrameTime( LastPosition, FixedFrameInterval );
-		}
-		EMovieSceneUpdateData UpdateData(Position, LastPosition);
-		RootMovieSceneInstance->Update(UpdateData, *this);
+		TGuardValue<bool> Guard(bIsEvaluating, true);
 
-#if WITH_EDITOR
-		OnLevelSequencePlayerUpdate.Broadcast(*this, CurrentPosition, PreviousPosition);
-#endif
+		const FMovieSceneContext Context(InRange, GetPlaybackStatus());
+		RootTemplateInstance.Evaluate(Context, *this);
+
+	#if WITH_EDITOR
+		OnLevelSequencePlayerUpdate.Broadcast(*this, Context.GetTime(), Context.GetPreviousTime());
+	#endif
+	}
+
+	ApplyLatentActions();
+}
+
+void ULevelSequencePlayer::ApplyLatentActions()
+{
+	// Swap to a stack array to ensure no reentrancy if we evaluate during a pause, for instance
+	TArray<ELatentAction> TheseActions;
+	Swap(TheseActions, LatentActions);
+
+	for (ELatentAction LatentAction : TheseActions)
+	{
+		switch(LatentAction)
+		{
+		case ELatentAction::Stop:	Stop(); break;
+		case ELatentAction::Pause:	Pause(); break;
+		}
 	}
 }
 
 void ULevelSequencePlayer::TakeFrameSnapshot(FLevelSequencePlayerSnapshot& OutSnapshot) const
 {
+	if (!ensure(LevelSequence))
+	{
+		return;
+	}
+	
 	const float CurrentTime = StartTime + TimeCursorPosition;
 
 	OutSnapshot.Settings = SnapshotSettings;
@@ -632,6 +667,7 @@ void ULevelSequencePlayer::TakeFrameSnapshot(FLevelSequencePlayerSnapshot& OutSn
 
 	OutSnapshot.CurrentShotName = OutSnapshot.MasterName;
 	OutSnapshot.CurrentShotLocalTime = CurrentTime;
+	OutSnapshot.CameraComponent = CachedCameraComponent.IsValid() ? CachedCameraComponent.Get() : nullptr;
 
 	UMovieSceneCinematicShotTrack* ShotTrack = LevelSequence->GetMovieScene()->FindMasterTrack<UMovieSceneCinematicShotTrack>();
 	if (ShotTrack)
@@ -640,6 +676,11 @@ void ULevelSequencePlayer::TakeFrameSnapshot(FLevelSequencePlayerSnapshot& OutSn
 		UMovieSceneCinematicShotSection* ActiveShot = nullptr;
 		for (UMovieSceneSection* Section : ShotTrack->GetAllSections())
 		{
+			if (!ensure(Section))
+			{
+				continue;
+			}
+
 			if (Section->IsActive() && Section->GetRange().Contains(CurrentTime) && (!ActiveShot || Section->GetRowIndex() < ActiveShot->GetRowIndex()))
 			{
 				ActiveShot = Cast<UMovieSceneCinematicShotSection>(Section);
@@ -652,8 +693,8 @@ void ULevelSequencePlayer::TakeFrameSnapshot(FLevelSequencePlayerSnapshot& OutSn
 			const float ShotLowerBound = ActiveShot->GetSequence() 
 				? ActiveShot->GetSequence()->GetMovieScene()->GetPlaybackRange().GetLowerBoundValue() 
 				: 0;
-			const float ShotOffset = ActiveShot->StartOffset + ShotLowerBound - ActiveShot->PrerollTime;
-			const float ShotPosition = ShotOffset + (CurrentTime - (ActiveShot->GetStartTime() - ActiveShot->PrerollTime)) / ActiveShot->TimeScale;
+			const float ShotOffset = ActiveShot->Parameters.StartOffset + ShotLowerBound - ActiveShot->Parameters.PrerollTime;
+			const float ShotPosition = ShotOffset + (CurrentTime - (ActiveShot->GetStartTime() - ActiveShot->Parameters.PrerollTime)) / ActiveShot->Parameters.TimeScale;
 
 			OutSnapshot.CurrentShotName = ActiveShot->GetShotDisplayName();
 			OutSnapshot.CurrentShotLocalTime = ShotPosition;
@@ -661,7 +702,7 @@ void ULevelSequencePlayer::TakeFrameSnapshot(FLevelSequencePlayerSnapshot& OutSn
 	}
 }
 
-IMovieSceneSpawnRegister& ULevelSequencePlayer::GetSpawnRegister()
+FMovieSceneSpawnRegister& ULevelSequencePlayer::GetSpawnRegister()
 {
 	return *SpawnRegister;
 }

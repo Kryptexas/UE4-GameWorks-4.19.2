@@ -2,10 +2,5 @@
 
 #pragma once
 
-#include "ProfilerMessages.h"
-
-
-/* Private dependencies
- *****************************************************************************/
-
-#include "ModuleManager.h"
+#include "Runtime/Core/Public/Core.h"
+#include "Runtime/Core/Public/Modules/ModuleManager.h"

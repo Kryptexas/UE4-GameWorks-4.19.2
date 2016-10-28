@@ -2,9 +2,13 @@
 
 #pragma once
 
-/*-----------------------------------------------------------------------------
-	Type definitions
------------------------------------------------------------------------------*/
+#include "ProfilerSample.h"
+#include "FilterCollection.h"
+#include "TextFilter.h"
+
+
+class FProfilerSession;
+
 
 /** Type definition for shared pointers to instances of FGroupOrStatNode. */
 typedef TSharedPtr<class FGroupOrStatNode> FGroupOrStatNodePtr;
@@ -18,9 +22,6 @@ typedef TSharedRef<const class FGroupOrStatNode> FGroupOrStatNodeRefConst;
 /** Type definition for weak references to instances of FGroupOrStatNode. */
 typedef TWeakPtr<class FGroupOrStatNode> FGroupOrStatNodeWeak;
 
-/*-----------------------------------------------------------------------------
-	Enumerators
------------------------------------------------------------------------------*/
 
 /** Enumerates types of grouping or sorting for the group and stat nodes. */
 struct EStatGroupingOrSortingMode
@@ -62,9 +63,6 @@ struct EStatGroupingOrSortingMode
 	static FName ToBrushName( const Type StatGroupingOrSortingMode );
 };
 
-/*-----------------------------------------------------------------------------
-	Declarations
------------------------------------------------------------------------------*/
 
 /** The group and stat filter collection - used for updating the list of groups and stats. */
 typedef TFilterCollection< const FGroupOrStatNodePtr& > FGroupAndStatFilterCollection;
@@ -72,10 +70,12 @@ typedef TFilterCollection< const FGroupOrStatNodePtr& > FGroupAndStatFilterColle
 /** The group and stat text based filter - used for updating the list of groups and stats. */
 typedef TTextFilter< const FGroupOrStatNodePtr& > FGroupAndStatTextFilter;
 
-// type, value, filtering, etc
 
-/** Class used to store information about stat and group metadata. */
-class FGroupOrStatNode : public TSharedFromThis<FGroupOrStatNode>
+/**
+ * Class used to store information about stat and group metadata.
+ */
+class FGroupOrStatNode
+	: public TSharedFromThis<FGroupOrStatNode>
 {
 public:
 	/** Initialization constructor for the stat node. */
@@ -223,6 +223,7 @@ public:
 	bool bForceExpandGroupNode;
 };
 
+
 /** Helper struct that contains sorting classes. */
 struct FGroupAndStatSorting
 {
@@ -265,8 +266,10 @@ struct FGroupAndStatSorting
 	};
 };
 
+
 /** Configurable window with advanced options for filtering and creating presets. */
-class SFiltersAndPresets : public SCompoundWidget
+class SFiltersAndPresets
+	: public SCompoundWidget
 {
 public:
 	/** Default constructor. */
@@ -288,7 +291,7 @@ protected:
 	/** Called when the filter and presets widget should be updated with the latest data. */
 	void ProfilerManager_OnRequestFilterAndPresetsUpdate();
 
-	void UpdateGroupAndStatTree( const FProfilerSessionPtr InProfilerSession );
+	void UpdateGroupAndStatTree( const TSharedPtr<FProfilerSession> InProfilerSession );
 	void CreateGroups();
 	void SortStats();
 
@@ -398,7 +401,7 @@ protected:
 	TSharedPtr< FGroupAndStatFilterCollection > GroupAndStatFilters;
 	
 	/** A weak pointer to the profiler session used to populate this widget. */
-	FProfilerSessionPtr/*Weak*/ ProfilerSession;
+	TSharedPtr<FProfilerSession>/*Weak*/ ProfilerSession;
 
 	/** How we group the metadata?. */
 	EStatGroupingOrSortingMode::Type GroupingMode;

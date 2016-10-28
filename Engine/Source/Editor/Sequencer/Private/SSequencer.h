@@ -12,7 +12,6 @@ class FActorDragDropGraphEdOp;
 class FAssetDragDropOp;
 class FClassDragDropOp;
 class FEditPropertyChain;
-class FMovieSceneSequenceInstance;
 class FSequencer;
 class FSequencerNodeTree;
 class FUnloadedClassDragDropOp;
@@ -23,6 +22,7 @@ class SSequencerGotoBox;
 class SSequencerLabelBrowser;
 class SSequencerTrackArea;
 class SSequencerTrackOutliner;
+class SSequencerTransformBox;
 class SSequencerTreeView;
 class FSequencerTimeSliderController;
 
@@ -67,11 +67,11 @@ struct FSequencerBreadcrumb
 	FSequencerBreadcrumb::Type BreadcrumbType;
 
 	/** The movie scene this may point to */
-	TWeakPtr<FMovieSceneSequenceInstance> MovieSceneInstance;
+	FMovieSceneSequenceID SequenceID;
 
-	FSequencerBreadcrumb(TSharedRef<FMovieSceneSequenceInstance> InMovieSceneInstance)
+	FSequencerBreadcrumb(FMovieSceneSequenceIDRef InSequenceID)
 		: BreadcrumbType(FSequencerBreadcrumb::MovieSceneType)
-		, MovieSceneInstance(InMovieSceneInstance)
+		, SequenceID(InSequenceID)
 	{ }
 
 	FSequencerBreadcrumb()
@@ -103,8 +103,11 @@ public:
 		/** The playback range */
 		SLATE_ATTRIBUTE( TRange<float>, PlaybackRange )
 
-		/** The selection selection range */
+		/** The selection range */
 		SLATE_ATTRIBUTE(TRange<float>, SelectionRange)
+
+		/** The current sub sequence range */
+		SLATE_ATTRIBUTE(TOptional<TRange<float>>, SubSequenceRange)
 
 		/** The playback status */
 		SLATE_ATTRIBUTE( EMovieScenePlayerStatus::Type, PlaybackStatus )
@@ -386,8 +389,10 @@ private:
 	FPaintPlaybackRangeArgs GetSectionPlaybackRangeArgs() const;
 
 	/** Called whenever the active sequence instance changes on the FSequencer */
-	void OnSequenceInstanceActivated( FMovieSceneSequenceInstance& ActiveInstance );
+	void OnSequenceInstanceActivated( FMovieSceneSequenceIDRef ActiveInstanceID );
 
+	EVisibility GetDebugVisualizerVisibility() const;
+	
 public:
 	/** On Paste Command */
 	void OnPaste();
@@ -409,6 +414,9 @@ private:
 
 	/** Goto box widget. */
 	TSharedPtr<SSequencerGotoBox> GotoBox;
+
+	/** Transform box widget. */
+	TSharedPtr<SSequencerTransformBox> TransformBox;
 
 	/** Section area widget */
 	TSharedPtr<SSequencerTrackArea> TrackArea;

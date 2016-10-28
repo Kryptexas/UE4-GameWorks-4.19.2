@@ -3,6 +3,9 @@
 #pragma once
 
 
+class FMessagingDebuggerMessageFilter;
+
+
 #define LOCTEXT_NAMESPACE "SMessagingHistoryFilterBar"
 
 
@@ -25,7 +28,7 @@ public:
 	 * @param InArgs The declaration data for this widget.
 	 * @param InFilter The filter model.
 	 */
-	void Construct( const FArguments& InArgs, FMessagingDebuggerMessageFilterRef InFilter )
+	void Construct(const FArguments& InArgs, TSharedRef<FMessagingDebuggerMessageFilter> InFilter)
 	{
 		ChildSlot
 		[
@@ -36,8 +39,7 @@ public:
 private:
 
 	/** Holds the filter model. */
-	FMessagingDebuggerMessageFilterPtr Filter;
-
+	TSharedPtr<FMessagingDebuggerMessageFilter> Filter;
 };
 
 

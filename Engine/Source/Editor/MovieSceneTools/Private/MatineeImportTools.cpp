@@ -40,7 +40,6 @@
 #include "MovieSceneFadeSection.h"
 #include "MovieSceneCameraCutSection.h"
 #include "MovieSceneEventSection.h"
-#include "MovieSceneVisibilitySection.h"
 
 #include "MovieSceneSequence.h"
 
@@ -499,11 +498,11 @@ bool FMatineeImportTools::CopyInterpAnimControlTrack( UInterpTrackAnimControl* M
 		UMovieSceneSkeletalAnimationSection* NewSection = Cast<UMovieSceneSkeletalAnimationSection>( SkeletalAnimationTrack->CreateNewSection() );
 		NewSection->SetStartTime( AnimSeq.StartTime );
 		NewSection->SetEndTime( EndTime );
-		NewSection->SetStartOffset( AnimSeq.AnimStartOffset );
-		NewSection->SetEndOffset( AnimSeq.AnimEndOffset );
-		NewSection->SetPlayRate( AnimSeq.AnimPlayRate );
-		NewSection->SetAnimSequence( AnimSeq.AnimSeq );
-		NewSection->SetSlotName( MatineeAnimControlTrack->SlotName );
+		NewSection->Params.StartOffset = AnimSeq.AnimStartOffset;
+		NewSection->Params.EndOffset = AnimSeq.AnimEndOffset;
+		NewSection->Params.PlayRate = AnimSeq.AnimPlayRate;
+		NewSection->Params.Animation = AnimSeq.AnimSeq;
+		NewSection->Params.SlotName = MatineeAnimControlTrack->SlotName;
 
 		SkeletalAnimationTrack->AddSection( *NewSection );
 		bSectionCreated = true;
@@ -580,7 +579,7 @@ bool FMatineeImportTools::CopyInterpFadeTrack( UInterpTrackFade* MatineeFadeTrac
 	return bSectionCreated;
 }
 
-bool FMatineeImportTools::CopyInterpDirectorTrack( UInterpTrackDirector* DirectorTrack, UMovieSceneCameraCutTrack* CameraCutTrack, AMatineeActor* MatineeActor, UMovieSceneSequence* MovieSceneSequence )
+bool FMatineeImportTools::CopyInterpDirectorTrack( UInterpTrackDirector* DirectorTrack, UMovieSceneCameraCutTrack* CameraCutTrack, AMatineeActor* MatineeActor, IMovieScenePlayer& Player )
 {
 	const FScopedTransaction Transaction( NSLOCTEXT( "Sequencer", "PasteMatineeDirectorTrack", "Paste Matinee Director Track" ) );
 	bool bCutsAdded = false;
@@ -600,7 +599,7 @@ bool FMatineeImportTools::CopyInterpDirectorTrack( UInterpTrackDirector* Directo
 			{
 				AActor* CameraActor = ViewGroupInst->GetGroupActor();
 		
-				FGuid CameraHandle = MovieSceneSequence->FindPossessableObjectId(*CameraActor);
+				FGuid CameraHandle = Player.FindObjectId(*CameraActor, MovieSceneSequenceID::Root);
 				if (CameraHandle.IsValid())
 				{
 					CameraCutTrack->AddNewCameraCut(CameraHandle, TrackCut.Time);
@@ -634,11 +633,11 @@ bool FMatineeImportTools::CopyInterpEventTrack( UInterpTrackEvent* MatineeEventT
 		{
 			float SectionMin = Section->GetStartTime();
 			float SectionMax = Section->GetEndTime();
-			
-			FNameCurve& EventCurve = Section->GetEventCurve();
+
+			TCurveInterface<FEventPayload, float> CurveInterface = Section->GetCurveInterface();
 			for (FEventTrackKey EventTrackKey : MatineeEventTrack->EventTrack)
 			{
-				EventCurve.UpdateOrAddKey(EventTrackKey.Time, EventTrackKey.EventName);
+				CurveInterface.UpdateOrAddKey(EventTrackKey.Time, FEventPayload(EventTrackKey.EventName), KINDA_SMALL_NUMBER);
 				SectionMin = FMath::Min( SectionMin, EventTrackKey.Time );
 				SectionMax = FMath::Max( SectionMax, EventTrackKey.Time );
 			}
@@ -661,10 +660,10 @@ bool FMatineeImportTools::CopyInterpVisibilityTrack( UInterpTrackVisibility* Mat
 	if (MatineeVisibilityTrack->VisibilityTrack.Num())
 	{
 		float KeyTime = MatineeVisibilityTrack->VisibilityTrack[0].Time;
-		UMovieSceneVisibilitySection* Section = Cast<UMovieSceneVisibilitySection>( MovieSceneHelpers::FindSectionAtTime( VisibilityTrack->GetAllSections(), KeyTime ) );
+		UMovieSceneBoolSection* Section = Cast<UMovieSceneBoolSection>( MovieSceneHelpers::FindSectionAtTime( VisibilityTrack->GetAllSections(), KeyTime ) );
 		if ( Section == nullptr )
 		{
-			Section = Cast<UMovieSceneVisibilitySection>( VisibilityTrack->CreateNewSection() );
+			Section = Cast<UMovieSceneBoolSection>( VisibilityTrack->CreateNewSection() );
 			VisibilityTrack->AddSection( *Section );
 			bSectionCreated = true;
 		}

@@ -3,6 +3,12 @@
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieSceneCameraCutSection.h"
 
+#include "Evaluation/MovieSceneCameraCutTemplate.h"
 
 /* UMovieSceneCameraCutSection interface
  *****************************************************************************/
+
+FMovieSceneEvalTemplatePtr UMovieSceneCameraCutSection::GenerateTemplate() const
+{
+	return FMovieSceneCameraCutSectionTemplate(*this);
+}

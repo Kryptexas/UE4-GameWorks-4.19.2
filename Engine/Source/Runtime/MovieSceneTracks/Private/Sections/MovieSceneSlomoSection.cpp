@@ -12,4 +12,6 @@ UMovieSceneSlomoSection::UMovieSceneSlomoSection()
 {
 	SetIsInfinite(true);
 	GetFloatCurve().SetDefaultValue(1.0f);
+
+	EvalOptions.EnableAndSetCompletionMode(EMovieSceneCompletionMode::RestoreState);
 }

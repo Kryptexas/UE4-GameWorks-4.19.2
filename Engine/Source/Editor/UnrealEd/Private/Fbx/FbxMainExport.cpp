@@ -48,6 +48,7 @@
 #include "UnitConversion.h"
 
 #include "MovieScene.h"
+#include "MovieSceneFwd.h"
 #include "MovieSceneBinding.h"
 #include "IMovieScenePlayer.h"
 #include "Tracks/MovieScene3DTransformTrack.h"
@@ -55,6 +56,8 @@
 #include "Tracks/MovieSceneSkeletalAnimationTrack.h"
 #include "Sections/MovieScene3DTransformSection.h"
 #include "Sections/MovieSceneFloatSection.h"
+#include "MovieSceneEvaluationTemplateInstance.h"
+#include "MovieSceneSequence.h"
 
 #if WITH_PHYSX
 #include "PhysicsEngine/AggregateGeom.h"
@@ -1299,10 +1302,11 @@ bool FFbxExporter::ExportMatinee(AMatineeActor* InMatineeActor)
 }
 
 
-FFbxExporter::FLevelSequenceNodeNameAdapter::FLevelSequenceNodeNameAdapter( UMovieScene* InMovieScene, IMovieScenePlayer* InMovieScenePlayer )
+FFbxExporter::FLevelSequenceNodeNameAdapter::FLevelSequenceNodeNameAdapter( UMovieScene* InMovieScene, IMovieScenePlayer* InMovieScenePlayer, FMovieSceneSequenceIDRef InSequenceID )
 {
 	MovieScene = InMovieScene;
 	MovieScenePlayer = InMovieScenePlayer;
+	SequenceID = InSequenceID;
 }
 
 FString FFbxExporter::FLevelSequenceNodeNameAdapter::GetActorNodeName(const AActor* Actor)
@@ -1311,10 +1315,7 @@ FString FFbxExporter::FLevelSequenceNodeNameAdapter::GetActorNodeName(const AAct
 
 	for ( const FMovieSceneBinding& MovieSceneBinding : MovieScene->GetBindings() )
 	{
-		TArray<TWeakObjectPtr<UObject>> RuntimeObjects;
-		MovieScenePlayer->GetRuntimeObjects( MovieScenePlayer->GetRootMovieSceneSequenceInstance(), MovieSceneBinding.GetObjectGuid(), RuntimeObjects );
-
-		for ( TWeakObjectPtr<UObject> RuntimeObject : RuntimeObjects )
+		for ( TWeakObjectPtr<UObject> RuntimeObject : MovieScenePlayer->FindBoundObjects(MovieSceneBinding.GetObjectGuid(), SequenceID) )
 		{
 			if (RuntimeObject.Get() == Actor)
 			{
@@ -1352,12 +1353,12 @@ float FFbxExporter::FLevelSequenceAnimTrackAdapter::GetAnimationLength() const
 
 void FFbxExporter::FLevelSequenceAnimTrackAdapter::UpdateAnimation( float Time )
 {
-	EMovieSceneUpdateData UpdateData( Time, Time );
-	return MovieScenePlayer->GetRootMovieSceneSequenceInstance()->Update( UpdateData, *MovieScenePlayer );
+	FMovieSceneContext Context = FMovieSceneContext(FMovieSceneEvaluationRange(Time), MovieScenePlayer->GetPlaybackStatus()).SetHasJumped(true);
+	return MovieScenePlayer->GetEvaluationTemplate().Evaluate( Context, *MovieScenePlayer );
 }
 
 
-bool FFbxExporter::ExportLevelSequence( UMovieScene* MovieScene, const TArray<FGuid>& Bindings, IMovieScenePlayer* MovieScenePlayer )
+bool FFbxExporter::ExportLevelSequence( UMovieScene* MovieScene, const TArray<FGuid>& Bindings, IMovieScenePlayer* MovieScenePlayer, FMovieSceneSequenceIDRef SequenceID )
 {
 	if ( MovieScene == nullptr || MovieScenePlayer == nullptr )
 	{
@@ -1372,10 +1373,7 @@ bool FFbxExporter::ExportLevelSequence( UMovieScene* MovieScene, const TArray<FG
 			continue;
 		}
 
-		TArray<TWeakObjectPtr<UObject>> RuntimeObjects;
-		MovieScenePlayer->GetRuntimeObjects( MovieScenePlayer->GetRootMovieSceneSequenceInstance(), MovieSceneBinding.GetObjectGuid(), RuntimeObjects );
-
-		for ( TWeakObjectPtr<UObject> RuntimeObject : RuntimeObjects )
+		for ( TWeakObjectPtr<UObject> RuntimeObject : MovieScenePlayer->FindBoundObjects(MovieSceneBinding.GetObjectGuid(), SequenceID) )
 		{
 			if ( RuntimeObject.IsValid() )
 			{

@@ -1,18 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UdpMessagingPrivatePCH.h"
-#include "JsonStructDeserializerBackend.h"
-#include "StructDeserializer.h"
+#include "UdpDeserializedMessage.h"
+#include "UdpReassembledMessage.h"
 
 
 /* FUdpDeserializedMessage structors
 *****************************************************************************/
 
-FUdpDeserializedMessage::FUdpDeserializedMessage(const IMessageAttachmentPtr& InAttachment)
+FUdpDeserializedMessage::FUdpDeserializedMessage(const TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe>& InAttachment)
 	: Attachment(InAttachment)
 	, MessageData(nullptr)
-{
-}
+{ }
 
 
 FUdpDeserializedMessage::~FUdpDeserializedMessage()
@@ -33,12 +32,12 @@ FUdpDeserializedMessage::~FUdpDeserializedMessage()
 /* FUdpDeserializedMessage interface
  *****************************************************************************/
 
-bool FUdpDeserializedMessage::Deserialize(const FUdpReassembledMessageRef& ReassembledMessage)
+bool FUdpDeserializedMessage::Deserialize(const FReassembledUdpMessage& ReassembledMessage)
 {
 	// Note that some complex values are deserialized manually here, so that we
 	// can sanity check their values. @see FUdpSerializeMessageTask::DoTask()
 
-	FMemoryReader MessageReader(ReassembledMessage->GetData());
+	FMemoryReader MessageReader(ReassembledMessage.GetData());
 	MessageReader.ArMaxSerializeSize = NAME_SIZE;
 
 	// message type info
@@ -136,7 +135,7 @@ const TMap<FName, FString>& FUdpDeserializedMessage::GetAnnotations() const
 }
 
 
-IMessageAttachmentPtr FUdpDeserializedMessage::GetAttachment() const
+TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe> FUdpDeserializedMessage::GetAttachment() const
 {
 	return Attachment;
 }

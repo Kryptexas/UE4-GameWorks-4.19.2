@@ -1,11 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "ProfilerPrivatePCH.h"
+#include "ProfilerSession.h"
+#include "SProfilerMiniView.h"
 
-#define LOCTEXT_NAMESPACE "SProfilerMiniView"
-
-// SProfilerMiniView
-#undef LOCTEXT_NAMESPACE
 
 SProfilerMiniView::SProfilerMiniView()
 	: bIsActiveTimerRegistered( false )
@@ -579,7 +577,7 @@ void SProfilerMiniView::BindCommands()
 
 
 
-void SProfilerMiniView::AddThreadTime( int32 InFrameIndex, const TMap<uint32, float>& InThreadMS, const FProfilerStatMetaDataRef& InStatMetaData )
+void SProfilerMiniView::AddThreadTime( int32 InFrameIndex, const TMap<uint32, float>& InThreadMS, const TSharedRef<FProfilerStatMetaData>& InStatMetaData )
 {
 	FFrameThreadTimes FrameThreadTimes;
 	FrameThreadTimes.FrameNumber = InFrameIndex;

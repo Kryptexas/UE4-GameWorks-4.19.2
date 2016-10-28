@@ -43,6 +43,10 @@ public:
 		return ActorGuidIndexCurve;
 	}
 
+	const FIntegralCurve& GetActorReferenceCurve() const { return ActorGuidIndexCurve; }
+
+	const TArray<FGuid>& GetActorGuids() const { return ActorGuids; }
+
 public:
 
 	MOVIESCENETRACKS_API FKeyHandle AddKey(float Time, const FGuid& Value);

@@ -8,6 +8,7 @@
 
 class IMovieSceneTrackInstance;
 class UMovieSceneSection;
+class UMovieSceneCameraCutSection;
 
 
 /**
@@ -35,7 +36,6 @@ public:
 	// UMovieSceneTrack interface
 
 	virtual void AddSection(UMovieSceneSection& Section) override;
-	virtual TSharedPtr<IMovieSceneTrackInstance> CreateInstance() override;
 	virtual UMovieSceneSection* CreateNewSection() override;
 	virtual const TArray<UMovieSceneSection*>& GetAllSections() const override;
 	virtual void RemoveSection(UMovieSceneSection& Section) override;

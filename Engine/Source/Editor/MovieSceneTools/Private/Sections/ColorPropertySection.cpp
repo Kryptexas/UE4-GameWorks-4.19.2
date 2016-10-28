@@ -179,7 +179,15 @@ void FColorPropertySection::ConsolidateColorCurves( TArray< TKeyValuePair<float,
 	// @todo Sequencer Optimize - This another O(n^2) loop, since Eval is O(n)!
 	for ( int32 i = 0; i < TimesWithKeys.Num(); ++i )
 	{
-		OutColorKeys.Add( TKeyValuePair<float, FLinearColor>( TimesWithKeys[i], Section->Eval( TimesWithKeys[i], DefaultColor ) ) );
+		float Time = TimesWithKeys[i];
+
+		FLinearColor Color(
+			Section->GetRedCurve().Eval(Time, DefaultColor.R),
+			Section->GetGreenCurve().Eval(Time, DefaultColor.G),
+			Section->GetBlueCurve().Eval(Time, DefaultColor.B),
+			Section->GetAlphaCurve().Eval(Time, DefaultColor.A)
+			);
+		OutColorKeys.Add( TKeyValuePair<float, FLinearColor>( TimesWithKeys[i], Color ) );
 	}
 }
 

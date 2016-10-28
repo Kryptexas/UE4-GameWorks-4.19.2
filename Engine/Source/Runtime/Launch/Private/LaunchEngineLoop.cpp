@@ -29,7 +29,6 @@
 
 #if WITH_EDITOR
 	#include "EditorStyle.h"
-	#include "ProfilerClient.h"
 	#include "RemoteConfigIni.h"
 	#include "EditorCommandLineUtils.h"
 
@@ -75,7 +74,7 @@
 
 #if !UE_BUILD_SHIPPING
 	#include "STaskGraph.h"
-	#include "ProfilerService.h"
+	#include "IProfilerServiceModule.h"
 #endif
 
 #if WITH_AUTOMATION_WORKER

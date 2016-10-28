@@ -36,20 +36,6 @@ UMovieSceneVectorSection::UMovieSceneVectorSection(const FObjectInitializer& Obj
 	ChannelsUsed = 0;
 }
 
-
-/* UMovieSceneVectorSection interface
- *****************************************************************************/
-
-FVector4 UMovieSceneVectorSection::Eval(float Position, const FVector4& DefaultVector) const
-{
-	return FVector4(
-		Curves[0].Eval(Position, DefaultVector.X),
-		Curves[1].Eval(Position, DefaultVector.Y),
-		Curves[2].Eval(Position, DefaultVector.Z),
-		Curves[3].Eval(Position, DefaultVector.W));
-}
-
-
 /* UMovieSceneSection interface
  *****************************************************************************/
 
@@ -220,7 +206,7 @@ bool UMovieSceneVectorSection::HasKeys(const FVectorKey& Key) const
 void UMovieSceneVectorSection::SetDefault(const FVectorKey& Key)
 {
 	FRichCurve* ChannelCurve = GetCurveForChannel(Key.Channel, Curves, ChannelsUsed);
-	ChannelCurve->SetDefaultValue(Key.Value);
+	SetCurveDefault( *ChannelCurve, Key.Value );
 }
 
 

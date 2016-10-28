@@ -35,23 +35,25 @@ FAnimationTabSummoner::FAnimationTabSummoner(TSharedPtr<class FWidgetBlueprintEd
 }
 
 
-bool VerifyAnimationRename( UWidgetBlueprint* Blueprint, UWidgetAnimation* Animation, FString NewAnimationName, FText& OutErrorMessage )
+bool VerifyAnimationRename( FWidgetBlueprintEditor& BlueprintEditor, UWidgetAnimation* Animation, FString NewAnimationName, FText& OutErrorMessage )
 {
-	if ( FindObject<UWidgetAnimation>( Blueprint, *NewAnimationName, true ) )
+	UWidgetBlueprint* Blueprint = BlueprintEditor.GetWidgetBlueprintObj();
+	if (Blueprint && FindObject<UWidgetAnimation>( Blueprint, *NewAnimationName, true ) )
 	{
 		OutErrorMessage = LOCTEXT( "NameInUseByAnimation", "An animation with this name already exists" );
 		return false;
 	}
 
 	FName NewAnimationNameAsName( *NewAnimationName );
-	if ( Blueprint->WidgetTree->FindWidget<UWidget>( NewAnimationNameAsName ) != nullptr )
+	if ( Blueprint && Blueprint->WidgetTree->FindWidget<UWidget>( NewAnimationNameAsName ) != nullptr )
 	{
 		OutErrorMessage = LOCTEXT( "NameInUseByWidget", "A widget with this name already exists" );
 		return false;
 	}
 
+	UUserWidget* PreviewWidget = BlueprintEditor.GetPreview();
 	FName FunctionName(*NewAnimationName);
-	if (Animation->GetPreviewWidget().IsValid() && Animation->GetPreviewWidget().Get()->FindFunction(FunctionName))
+	if (PreviewWidget && PreviewWidget->FindFunction(FunctionName))
 	{
 		OutErrorMessage = LOCTEXT("NameInUseByFunction", "A function with this name already exists");
 		return false;
@@ -138,8 +140,8 @@ private:
 
 		if ( Animation->GetName() != NewName )
 		{
-			UWidgetBlueprint* Blueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
-			return VerifyAnimationRename( Blueprint, Animation, NewName, OutErrorMessage );
+			TSharedPtr<FWidgetBlueprintEditor> Editor = BlueprintEditor.Pin();
+			return Editor.IsValid() && VerifyAnimationRename( *Editor, Animation, NewName, OutErrorMessage );
 		}
 
 		return true;
@@ -367,7 +369,13 @@ private:
 		const float InTime = 0.f;
 		const float OutTime = 5.0f;
 
-		UWidgetBlueprint* WidgetBlueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
+		TSharedPtr<FWidgetBlueprintEditor> Editor = BlueprintEditor.Pin();
+		if (!Editor.IsValid())
+		{
+			return FReply::Handled();
+		}
+
+		UWidgetBlueprint* WidgetBlueprint = Editor->GetWidgetBlueprintObj();
 
 		FString BaseName = "NewAnimation";
 		UWidgetAnimation* NewAnimation = NewObject<UWidgetAnimation>(WidgetBlueprint, *BaseName, RF_Transactional);
@@ -375,7 +383,7 @@ private:
 		FString UniqueName = BaseName;
 		int32 NameIndex = 1;
 		FText Unused;
-		while ( VerifyAnimationRename( WidgetBlueprint, NewAnimation, UniqueName, Unused ) == false )
+		while ( VerifyAnimationRename( *Editor, NewAnimation, UniqueName, Unused ) == false )
 		{
 			UniqueName = FString::Printf( TEXT( "%s_%i" ), *BaseName, NameIndex );
 			NameIndex++;

@@ -1,12 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "SessionServicesPrivatePCH.h"
+#include "SessionInstanceInfo.h"
 
 
 /* FSessionInstanceInfo structors
  *****************************************************************************/
 
-FSessionInstanceInfo::FSessionInstanceInfo(const FGuid& InInstanceId, const TSharedRef<ISessionInfo>& InOwner, const IMessageBusRef& InMessageBus)
+FSessionInstanceInfo::FSessionInstanceInfo(const FGuid& InInstanceId, const TSharedRef<ISessionInfo>& InOwner, const TSharedRef<IMessageBus, ESPMode::ThreadSafe>& InMessageBus)
 	: Authorized(false)
 	, EngineVersion(0)
 	, InstanceId(InInstanceId)
@@ -86,7 +87,7 @@ void FSessionInstanceInfo::Terminate()
 
 void FSessionInstanceInfo::HandleSessionLogMessage(const FSessionServiceLog& Message, const IMessageContextRef& Context)
 {
-	FSessionLogMessageRef LogMessage = MakeShareable(
+	TSharedRef<FSessionLogMessage> LogMessage = MakeShareable(
 		new FSessionLogMessage(
 			InstanceId,
 			InstanceName,

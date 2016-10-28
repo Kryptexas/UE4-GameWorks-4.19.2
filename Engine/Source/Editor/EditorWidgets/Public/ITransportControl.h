@@ -67,6 +67,7 @@ struct FTransportControlArgs
 		, OnGetPlaybackMode()
 		, OnTickPlayback()
 		, OnGetRecording()
+		, bAreButtonsFocusable(true)
 	{}
 
 	FOnClicked OnForwardPlay;
@@ -81,6 +82,7 @@ struct FTransportControlArgs
 	FOnGetPlaybackMode OnGetPlaybackMode;
 	FOnTickPlayback OnTickPlayback;
 	FOnGetRecording OnGetRecording;
+	bool bAreButtonsFocusable;
 
 	/** 
 	 * Array of custom widgets to create - if this array is used the default widget ordering will be

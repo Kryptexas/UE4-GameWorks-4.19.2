@@ -136,7 +136,7 @@ void FIntegralCurveKeyAreaBase::SetKeyTangentMode(FKeyHandle KeyHandle, ERichCur
 }
 
 
-void FIntegralCurveKeyAreaBase::SetKeyTime(FKeyHandle KeyHandle, float NewKeyTime) const
+void FIntegralCurveKeyAreaBase::SetKeyTime(FKeyHandle KeyHandle, float NewKeyTime)
 {
 	Curve.SetKeyTime(KeyHandle, NewKeyTime);
 }

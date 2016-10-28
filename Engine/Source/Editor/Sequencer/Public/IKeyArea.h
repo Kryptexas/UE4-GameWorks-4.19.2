@@ -5,7 +5,7 @@
 #include "Curves/CurveBase.h"
 #include "KeyParams.h"
 
-
+class ISequencer;
 class UMovieSceneSection;
 class FMovieSceneClipboardBuilder;
 class FMovieSceneClipboardKeyTrack;
@@ -49,7 +49,7 @@ public:
 	 * @param KeyHandle Handle of the key
 	 * @param The new time of the key
 	 */
-	virtual void SetKeyTime(FKeyHandle KeyHandle, float NewKeyTime) const = 0;
+	virtual void SetKeyTime(FKeyHandle KeyHandle, float NewKeyTime) = 0;
 
 	/**
 	 * Gets the time of a key given a handle

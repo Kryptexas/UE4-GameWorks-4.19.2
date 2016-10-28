@@ -34,10 +34,6 @@ public:
 		, SectionObject(*CastChecked<UMovieSceneSubSection>(&InSection))
 		, Sequencer(InSequencer)
 	{
-		if (InSequencer->HasSequenceInstanceForSection(InSection))
-		{
-			SequenceInstance = InSequencer->GetSequenceInstanceForSection(InSection);
-		}
 	}
 
 public:
@@ -135,9 +131,9 @@ public:
 		}
 
 		// add box for the working size
-		const float StartOffset = SectionObject.TimeScale * SectionObject.StartOffset;
-		const float WorkingStart = -SectionObject.TimeScale * PlaybackRange.GetLowerBoundValue() - StartOffset;
-		const float WorkingSize = SectionObject.TimeScale * (MovieScene != nullptr ? MovieScene->GetEditorData().WorkingRange.Size<float>() : 1.0f);
+		const float StartOffset = SectionObject.Parameters.TimeScale * SectionObject.Parameters.StartOffset;
+		const float WorkingStart = -SectionObject.Parameters.TimeScale * PlaybackRange.GetLowerBoundValue() - StartOffset;
+		const float WorkingSize = SectionObject.Parameters.TimeScale * (MovieScene != nullptr ? MovieScene->GetEditorData().WorkingRange.Size<float>() : 1.0f);
 		
 		if(UMovieSceneSubSection::GetRecordingSection() == &SectionObject)
 		{
@@ -181,7 +177,7 @@ public:
 		}
 
 		// add green line for playback start
-		if (StartOffset <= 0)
+		if (StartOffset < 0)
 		{
 			FSlateDrawElement::MakeBox(
 				InPainter.DrawElements,
@@ -197,8 +193,8 @@ public:
 			);
 		}
 
-		// add dark tint for left out-of-bounds & working range
-		const float PlaybackEnd = SectionObject.TimeScale * PlaybackRange.Size<float>() - StartOffset;
+		// add dark tint for right out-of-bounds & working range
+		const float PlaybackEnd = SectionObject.Parameters.TimeScale * PlaybackRange.Size<float>() - StartOffset;
 
 		if (PlaybackEnd < SectionSize)
 		{
@@ -289,9 +285,6 @@ private:
 
 	/** The section we are visualizing */
 	UMovieSceneSubSection& SectionObject;
-
-	/** The instance that this section is part of */
-	TWeakPtr<FMovieSceneSequenceInstance> SequenceInstance;
 
 	/** Sequencer interface */
 	TWeakPtr<ISequencer> Sequencer;

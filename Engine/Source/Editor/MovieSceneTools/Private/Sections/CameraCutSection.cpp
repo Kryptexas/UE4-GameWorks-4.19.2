@@ -123,20 +123,18 @@ const AActor* FCameraCutSection::GetCameraForFrame(float Time) const
 
 	if (CameraCutSection && Sequencer.IsValid())
 	{
-		TSharedRef<FMovieSceneSequenceInstance> SequenceInstance = Sequencer->GetFocusedMovieSceneSequenceInstance();
-
-		AActor* Actor = Cast<AActor>(SequenceInstance->FindObject(CameraCutSection->GetCameraGuid(), *Sequencer));
-		if (Actor)
+		for (TWeakObjectPtr<>& Object : Sequencer->FindBoundObjects(CameraCutSection->GetCameraGuid(), Sequencer->GetFocusedTemplateID()))
 		{
-			return Actor;
-		}
-		else
-		{
-			FMovieSceneSpawnable* Spawnable = SequenceInstance->GetSequence()->GetMovieScene()->FindSpawnable(CameraCutSection->GetCameraGuid());
-			if (Spawnable)
+			if (AActor* Actor = Cast<AActor>(Object.Get()))
 			{
-				return Cast<AActor>(Spawnable->GetObjectTemplate());
+				return Actor;
 			}
+		}
+
+		FMovieSceneSpawnable* Spawnable = Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->FindSpawnable(CameraCutSection->GetCameraGuid());
+		if (Spawnable)
+		{
+			return Cast<AActor>(Spawnable->GetObjectTemplate());
 		}
 	}
 

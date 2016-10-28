@@ -181,7 +181,7 @@ void FCinematicShotTrackEditor::Tick(float DeltaTime)
 
 		if (DeltaTime > 0.f && ThumbnailPool->DrawThumbnails())
 		{
-			SequencerPin->SetGlobalTimeDirectly(SavedTime);
+			SequencerPin->SetGlobalTime(SavedTime);
 		}
 
 		SequencerPin->ExitSilentMode();
@@ -276,7 +276,7 @@ void FCinematicShotTrackEditor::InsertShotAtCurrentTime()
 {
 	const FScopedTransaction Transaction(LOCTEXT("InsertShot_Transaction", "Insert Shot"));
 
-	float NewShotStartTime = GetSequencer()->GetGlobalTime();
+	float NewShotStartTime = GetSequencer()->GetLocalTime();
 
 	UMovieSceneCinematicShotTrack* CinematicShotTrack = FindOrCreateCinematicShotTrack();
 	FString NewShotName = MovieSceneToolHelpers::GenerateNewShotName(CinematicShotTrack->GetAllSections(), NewShotStartTime);
@@ -309,7 +309,7 @@ void FCinematicShotTrackEditor::InsertFillerAtCurrentTime()
 
 	const FScopedTransaction Transaction(LOCTEXT("InsertFiller_Transaction", "Insert Filler"));
 
-	float NewShotStartTime = GetSequencer()->GetGlobalTime();
+	float NewShotStartTime = GetSequencer()->GetLocalTime();
 
 	UMovieSceneCinematicShotTrack* CinematicShotTrack = FindOrCreateCinematicShotTrack();
 
@@ -342,9 +342,9 @@ void FCinematicShotTrackEditor::DuplicateShot(UMovieSceneCinematicShotSection* S
 	if (NewShot)
 	{
 		NewShot->SetEndTime(NewShot->GetStartTime() + Section->GetEndTime() - Section->GetStartTime());
-		NewShot->StartOffset = Section->StartOffset;
-		NewShot->TimeScale = Section->TimeScale;
-		NewShot->PrerollTime = Section->PrerollTime;
+		NewShot->Parameters.StartOffset = Section->Parameters.StartOffset;
+		NewShot->Parameters.TimeScale = Section->Parameters.TimeScale;
+		NewShot->Parameters.PrerollTime = Section->Parameters.PrerollTime;
 
 		GetSequencer()->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
 	}
@@ -386,9 +386,9 @@ void FCinematicShotTrackEditor::NewTake(UMovieSceneCinematicShotSection* Section
 
 		float NewShotStartTime = Section->GetStartTime();
 		float NewShotEndTime = Section->GetEndTime();
-		float NewShotStartOffset = Section->StartOffset;
-		float NewShotTimeScale = Section->TimeScale;
-		float NewShotPrerollTime = Section->PrerollTime;
+		float NewShotStartOffset = Section->Parameters.StartOffset;
+		float NewShotTimeScale = Section->Parameters.TimeScale;
+		float NewShotPrerollTime = Section->Parameters.PrerollTime;
 
 		const bool bInsertShot = false;
 		UMovieSceneSubSection* NewShot = CreateShotInternal(NewShotName, NewShotStartTime, Section, bInsertShot);
@@ -398,11 +398,14 @@ void FCinematicShotTrackEditor::NewTake(UMovieSceneCinematicShotSection* Section
 			UMovieSceneCinematicShotTrack* CinematicShotTrack = FindOrCreateCinematicShotTrack();
 			CinematicShotTrack->RemoveSection(*Section);
 
-			NewShot->SetStartTime(NewShotStartTime);
-			NewShot->SetEndTime(NewShotEndTime);
-			NewShot->StartOffset = NewShotStartOffset;
-			NewShot->TimeScale = NewShotTimeScale;
-			NewShot->PrerollTime = NewShotPrerollTime;
+			if (NewShot != nullptr)
+			{
+				NewShot->SetStartTime(NewShotStartTime);
+				NewShot->SetEndTime(NewShotEndTime);
+				NewShot->Parameters.StartOffset = NewShotStartOffset;
+				NewShot->Parameters.TimeScale = NewShotTimeScale;
+				NewShot->Parameters.PrerollTime = NewShotPrerollTime;
+			}
 
 			GetSequencer()->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemsChanged );
 		}
@@ -424,9 +427,9 @@ void FCinematicShotTrackEditor::SwitchTake(UMovieSceneCinematicShotSection* Sect
 		
 		float NewShotStartTime = Section->GetStartTime();
 		float NewShotEndTime = Section->GetEndTime();
-		float NewShotStartOffset = Section->StartOffset;
-		float NewShotTimeScale = Section->TimeScale;
-		float NewShotPrerollTime = Section->PrerollTime;
+		float NewShotStartOffset = Section->Parameters.StartOffset;
+		float NewShotTimeScale = Section->Parameters.TimeScale;
+		float NewShotPrerollTime = Section->Parameters.PrerollTime;
 
 		const bool bInsertSequence = false;
 		const float Duration = NewShotEndTime - NewShotStartTime;
@@ -438,12 +441,12 @@ void FCinematicShotTrackEditor::SwitchTake(UMovieSceneCinematicShotSection* Sect
 
 			NewShot->SetStartTime(NewShotStartTime);
 			NewShot->SetEndTime(NewShotEndTime);
-			NewShot->StartOffset = NewShotStartOffset;
-			NewShot->TimeScale = NewShotTimeScale;
-			NewShot->PrerollTime = NewShotPrerollTime;
-
-			GetSequencer()->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemsChanged );
+			NewShot->Parameters.StartOffset = NewShotStartOffset;
+			NewShot->Parameters.TimeScale = NewShotTimeScale;
+			NewShot->Parameters.PrerollTime = NewShotPrerollTime;
 		}
+
+		GetSequencer()->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemsChanged );
 	}
 
 }
@@ -600,7 +603,7 @@ void FCinematicShotTrackEditor::OnLockShotsClicked(ECheckBoxState CheckBoxState)
 		GetSequencer()->SetPerspectiveViewportCameraCutEnabled(false);
 	}
 
-	GetSequencer()->SetGlobalTime(GetSequencer()->GetGlobalTime());
+	GetSequencer()->ForceEvaluate();
 }
 
 

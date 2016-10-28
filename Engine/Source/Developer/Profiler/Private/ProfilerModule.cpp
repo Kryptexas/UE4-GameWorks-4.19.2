@@ -1,7 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "ProfilerPrivatePCH.h"
-#include "SDockTab.h"
+#include "ProfilerManager.h"
+#include "ProfilerRawStatsForMemory.h"
+#include "SProfilerWindow.h"
+
 
 /**
  * Implements the FProfilerModule module.
@@ -10,11 +13,10 @@ class FProfilerModule
 	: public IProfilerModule
 {
 public:
-	virtual TSharedRef<SWidget> CreateProfilerWindow( const ISessionManagerRef& InSessionManager, const TSharedRef<SDockTab>& ConstructUnderMajorTab ) override;
 
-	virtual void StartupModule() override
-	{}
+	virtual TSharedRef<SWidget> CreateProfilerWindow( const TSharedRef<ISessionManager>& InSessionManager, const TSharedRef<SDockTab>& ConstructUnderMajorTab ) override;
 
+	virtual void StartupModule() override { }
 	virtual void ShutdownModule() override;
 
 	virtual bool SupportsDynamicReloading() override
@@ -27,18 +29,20 @@ public:
 	FRawStatsMemoryProfiler* OpenRawStatsForMemoryProfiling( const TCHAR* Filename );
 
 protected:
+
 	/** Shutdowns the profiler manager. */
 	void Shutdown( TSharedRef<SDockTab> TabBeingClosed );
 };
 
+
 IMPLEMENT_MODULE( FProfilerModule, Profiler );
+
 
 /*-----------------------------------------------------------------------------
 	FProfilerModule
 -----------------------------------------------------------------------------*/
 
-
-TSharedRef<SWidget> FProfilerModule::CreateProfilerWindow( const ISessionManagerRef& InSessionManager, const TSharedRef<SDockTab>& ConstructUnderMajorTab )
+TSharedRef<SWidget> FProfilerModule::CreateProfilerWindow( const TSharedRef<ISessionManager>& InSessionManager, const TSharedRef<SDockTab>& ConstructUnderMajorTab )
 {
 	FProfilerManager::Initialize( InSessionManager );
 	TSharedRef<SProfilerWindow> ProfilerWindow = SNew( SProfilerWindow );
@@ -133,6 +137,7 @@ void FProfilerModule::StatsMemoryDumpCommand( const TCHAR* Filename )
 		}
 	}
 }
+
 
 /*-----------------------------------------------------------------------------
 	FRawStatsMemoryProfiler

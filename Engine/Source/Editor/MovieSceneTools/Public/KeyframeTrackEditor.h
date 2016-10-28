@@ -268,21 +268,26 @@ private:
 	bool SetDefault( TrackType* Track, float Time, const KeyDataType& KeyData, bool bInfiniteKeyAreas )
 	{
 		bool bSectionAdded = false;
-		Track->Modify();
 		const TArray<UMovieSceneSection*>& Sections = Track->GetAllSections();
 		if ( Sections.Num() > 0)
 		{
 			for ( UMovieSceneSection* Section : Sections )
 			{
 				IKeyframeSection<KeyDataType>* KeyframeSection = CastChecked<SectionType>( Section );
-				KeyframeSection->SetDefault( KeyData );
+				if (!KeyframeSection->HasKeys(KeyData))
+				{
+					KeyframeSection->SetDefault( KeyData );
+				}
 			}
 		}
 		else
 		{
 			UMovieSceneSection* NewSection = Track->FindOrAddSection( Time, bSectionAdded );
 			IKeyframeSection<KeyDataType>* KeyframeSection = CastChecked<SectionType>( NewSection );
-			KeyframeSection->SetDefault( KeyData );
+			if (!KeyframeSection->HasKeys(KeyData))
+			{
+				KeyframeSection->SetDefault( KeyData );
+			}
 
 			if (bSectionAdded)
 			{

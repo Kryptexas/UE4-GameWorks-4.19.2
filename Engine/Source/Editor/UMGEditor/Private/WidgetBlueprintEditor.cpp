@@ -117,12 +117,6 @@ void FWidgetBlueprintEditor::InitWidgetBlueprintEditor(const EToolkitMode::Type 
 
 	UpdatePreview(GetWidgetBlueprintObj(), true);
 
-	// If the user has close the sequencer tab, this will not be initialized.
-	if (CurrentAnimation.IsValid())
-	{
-		CurrentAnimation->Initialize(PreviewWidgetPtr.Get());
-	}
-
 	DesignerCommandList = MakeShareable(new FUICommandList);
 
 	DesignerCommandList->MapAction(FGenericCommands::Get().Delete,
@@ -673,6 +667,8 @@ TSharedPtr<ISequencer>& FWidgetBlueprintEditor::GetSequencer()
 			SequencerInitParams.RootSequence = NullAnimation;
 			SequencerInitParams.bEditWithinLevelEditor = false;
 			SequencerInitParams.ToolkitHost = GetToolkitHost();
+			SequencerInitParams.PlaybackContext = TAttribute<UObject*>(this, &FWidgetBlueprintEditor::GetAnimationPlaybackContext);
+			SequencerInitParams.EventContexts = TAttribute<TArray<UObject*>>(this, &FWidgetBlueprintEditor::GetAnimationEventContexts);
 		};
 
 		Sequencer = FModuleManager::LoadModuleChecked<ISequencerModule>("Sequencer").CreateSequencer(SequencerInitParams);
@@ -685,16 +681,7 @@ TSharedPtr<ISequencer>& FWidgetBlueprintEditor::GetSequencer()
 
 void FWidgetBlueprintEditor::ChangeViewedAnimation( UWidgetAnimation& InAnimationToView )
 {
-	if (CurrentAnimation.IsValid())
-	{
-		CurrentAnimation->Initialize(nullptr);
-	}
-
 	CurrentAnimation = &InAnimationToView;
-	if (CurrentAnimation.IsValid())
-	{
-		CurrentAnimation->Initialize(PreviewWidgetPtr.Get());
-	}
 
 	if (Sequencer.IsValid())
 	{
@@ -863,13 +850,15 @@ void FWidgetBlueprintEditor::UpdatePreview(UBlueprint* InBlueprint, bool bInForc
 		PreviewWidgetPtr = PreviewActor;
 	}
 
-	if (CurrentAnimation.IsValid())
-	{
-		CurrentAnimation->Initialize(PreviewActor);
-	}
-
 	OnWidgetPreviewUpdated.Broadcast();
-	GetSequencer()->UpdateRuntimeInstances();
+
+	// We've changed the binding context so drastically that we should just clear all knowledge of our previous cached bindings
+
+	if (Sequencer.IsValid())
+	{
+		Sequencer->State.ClearObjectCaches();
+		Sequencer->ForceEvaluate();
+	}
 }
 
 FGraphAppearanceInfo FWidgetBlueprintEditor::GetGraphAppearance(UEdGraph* InGraph) const
@@ -1013,7 +1002,7 @@ void FWidgetBlueprintEditor::OnGetAnimationAddMenuContent(FMenuBuilder& MenuBuil
 	{
 		for (FObjectAndDisplayName& BindableObject : BindableObjects)
 		{
-			FGuid BoundObjectGuid = Sequencer->GetFocusedMovieSceneSequenceInstance()->FindObjectId(*BindableObject.Object);
+			FGuid BoundObjectGuid = Sequencer->FindObjectId(*BindableObject.Object, Sequencer->GetFocusedTemplateID());
 			if (BoundObjectGuid.IsValid() == false)
 			{
 				FUIAction AddMenuAction(FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::AddObjectToAnimation, BindableObject.Object));
@@ -1105,14 +1094,14 @@ void FWidgetBlueprintEditor::ReplaceTrackWithSelectedWidget(FWidgetReference Sel
 {
 	const FScopedTransaction Transaction( LOCTEXT( "ReplaceTrackWithSelectedWidget", "Replace Track with Selected Widget" ) );
 
-	UWidgetAnimation* WidgetAnimation = Cast<UWidgetAnimation> (GetSequencer().Get()->GetFocusedMovieSceneSequence());
+	UWidgetAnimation* WidgetAnimation = Cast<UWidgetAnimation>(Sequencer->GetFocusedMovieSceneSequence());
 	UMovieScene* MovieScene = WidgetAnimation->GetMovieScene();
 	UWidget* PreviewWidget = SelectedWidget.GetPreview();
 	UWidget* TemplateWidget = SelectedWidget.GetTemplate();
-	FGuid ObjectId = WidgetAnimation->FindPossessableObjectId(*BoundWidget);
+	FGuid ObjectId = BoundWidget ? Sequencer->FindObjectId(*BoundWidget, MovieSceneSequenceID::Root) : FGuid();
 
 	// Try find if the SelectedWidget is already bound, if so return
-	FGuid SelectedWidgetId = WidgetAnimation->FindPossessableObjectId(*PreviewWidget);
+	FGuid SelectedWidgetId = Sequencer->FindObjectId(*PreviewWidget, MovieSceneSequenceID::Root);
 	if (SelectedWidgetId.IsValid())
 	{
 		FNotificationInfo Info(LOCTEXT("SelectedWidgetalreadybound", "Selected Widget already bound"));
@@ -1126,7 +1115,7 @@ void FWidgetBlueprintEditor::ReplaceTrackWithSelectedWidget(FWidgetReference Sel
 		return;
 	}
 
-	if (TemplateWidget->GetClass() != BoundWidget->GetClass())
+	if (!BoundWidget || TemplateWidget->GetClass() != BoundWidget->GetClass())
 	{
 		TArray<FMovieSceneBinding> MovieSceneBindings = MovieScene->GetBindings();
 		for (FMovieSceneBinding Binding : MovieSceneBindings)
@@ -1162,53 +1151,41 @@ void FWidgetBlueprintEditor::ReplaceTrackWithSelectedWidget(FWidgetReference Sel
 		}
 	}
 
+	if (BoundWidget)
+	{
+		Sequencer->PreAnimatedState.RestorePreAnimatedState(*Sequencer, *BoundWidget);
+	}
+
 	// else it's safe to modify
 	MovieScene->Modify();
 	MovieScene->SetObjectDisplayName(ObjectId, FText::FromString(PreviewWidget->GetName()));
-	
-	FMovieScenePossessable NewPossessable(PreviewWidget->GetName(), PreviewWidget->GetClass());
-	FGuid PossessableGuid = NewPossessable.GetGuid();
-
-	MovieScene->ReplacePossessable(ObjectId, PossessableGuid, PreviewWidget->GetName());
-
-	UObject* BindingContext = GetSequencer().Get()->GetPlaybackContext();
 
 	// Replace bindings in WidgetAnimation
 	WidgetAnimation->Modify();
 	{
-		TArray<FWidgetAnimationBinding> NewBindings;
-		for (FWidgetAnimationBinding Binding : WidgetAnimation->AnimationBindings)
-		{
-			if (Binding.WidgetName == BoundWidget->GetFName())
+		FWidgetAnimationBinding* SourceBinding = WidgetAnimation->AnimationBindings.FindByPredicate(
+			[&](FWidgetAnimationBinding& In)
 			{
-				FWidgetAnimationBinding NewBinding;
-				{
-					if (Binding.SlotWidgetName == NAME_None)
-					{
-						NewBinding.AnimationGuid = PossessableGuid;
-					}
-					else
-					{
-						NewBinding.AnimationGuid = Binding.AnimationGuid;
-					}
-					NewBinding.WidgetName = PreviewWidget->GetFName();
-					NewBinding.SlotWidgetName = Binding.SlotWidgetName;
-					NewBinding.bIsRootWidget = Binding.bIsRootWidget;
-				}
-				NewBindings.Add(NewBinding);
+				return In.AnimationGuid == ObjectId;
 			}
-		}
-		WidgetAnimation->AnimationBindings.RemoveAll([&](const FWidgetAnimationBinding& Binding) {
-			return Binding.WidgetName == BoundWidget->GetFName();
-		});
-		for (FWidgetAnimationBinding Binding : NewBindings)
+		);
+
+		check(SourceBinding);
+
+		// Set binding names used for lookup
+		FName PredicateName = SourceBinding->WidgetName;
+		for (FWidgetAnimationBinding& Binding : WidgetAnimation->AnimationBindings)
 		{
-			WidgetAnimation->AnimationBindings.Add(Binding);
+			if (Binding.WidgetName != PredicateName)
+			{
+				continue;
+			}
+		
+			Binding.WidgetName = PreviewWidget->GetFName();
 		}
 	}
-	WidgetAnimation->ReplacePossessableObject(ObjectId, PossessableGuid, *BoundWidget, *PreviewWidget);
 
-	GetSequencer().Get()->NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::MovieSceneStructureItemsChanged);
+	Sequencer->NotifyMovieSceneDataChanged(EMovieSceneDataChangeType::MovieSceneStructureItemsChanged);
 }
 
 void FWidgetBlueprintEditor::ExtendSequencerObjectBindingMenu(FMenuBuilder& ObjectBindingMenuBuilder, const TArray<UObject*> ContextObjects)
@@ -1276,23 +1253,23 @@ void FWidgetBlueprintEditor::OnMovieSceneDataChanged()
 
 void FWidgetBlueprintEditor::SyncSelectedWidgetsWithSequencerSelection(TArray<FGuid> ObjectGuids)
 {
-	UWidgetAnimation* WidgetAnimation = Cast<UWidgetAnimation>(GetSequencer().Get()->GetFocusedMovieSceneSequence());
-	UObject* BindingContext = GetSequencer().Get()->GetPlaybackContext();
+	UMovieSceneSequence* AnimationSequence = GetSequencer().Get()->GetFocusedMovieSceneSequence();
+	UObject* BindingContext = GetAnimationPlaybackContext();
 	TSet<FWidgetReference> SequencerSelectedWidgets;
 	for (FGuid Guid : ObjectGuids)
 	{
-		UObject* BoundObject = WidgetAnimation->FindPossessableObject(Guid, BindingContext);
-		if (!BoundObject)
+		TArray<UObject*, TInlineAllocator<1>> BoundObjects = AnimationSequence->LocateBoundObjects(Guid, BindingContext);
+		if (BoundObjects.Num() == 0)
 		{
 			continue;
 		}
-		else if (Cast<UPanelSlot>(BoundObject))
+		else if (Cast<UPanelSlot>(BoundObjects[0]))
 		{
-			SequencerSelectedWidgets.Add(GetReferenceFromPreview(Cast<UPanelSlot>(BoundObject)->Content));
+			SequencerSelectedWidgets.Add(GetReferenceFromPreview(Cast<UPanelSlot>(BoundObjects[0])->Content));
 		}
 		else
 		{
-			UWidget* BoundWidget = Cast<UWidget>(BoundObject);
+			UWidget* BoundWidget = Cast<UWidget>(BoundObjects[0]);
 			SequencerSelectedWidgets.Add(GetReferenceFromPreview(BoundWidget));
 		}
 	}

@@ -11,6 +11,10 @@
 #include "SequencerUtilities.h"
 #include "SlateIconFinder.h"
 #include "SequencerCommands.h"
+#include "ScopedTransaction.h"
+
+#include "MovieSceneSpawnTrack.h"
+#include "MovieSceneSpawnSection.h"
 
 #define LOCTEXT_NAMESPACE "FObjectBindingNode"
 
@@ -113,6 +117,8 @@ void FSequencerObjectBindingNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 				FNewMenuDelegate::CreateSP(this, &FSequencerObjectBindingNode::AddSpawnOwnershipMenu)
 			);
 
+			MenuBuilder.AddMenuEntry( FSequencerCommands::Get().SaveCurrentSpawnableState );
+
 			MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ConvertToPossessable );
 		}
 		else
@@ -164,18 +170,39 @@ void FSequencerObjectBindingNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 
 void FSequencerObjectBindingNode::AddSpawnOwnershipMenu(FMenuBuilder& MenuBuilder)
 {
-	FMovieSceneSpawnable* Spawnable = GetSequencer().GetFocusedMovieSceneSequence()->GetMovieScene()->FindSpawnable(ObjectBinding);
+	UMovieScene* MovieScene = GetSequencer().GetFocusedMovieSceneSequence()->GetMovieScene();
+	FMovieSceneSpawnable* Spawnable = MovieScene->FindSpawnable(ObjectBinding);
 	if (!Spawnable)
 	{
 		return;
 	}
+	auto Callback = [=](ESpawnOwnership NewOwnership){
+
+		FScopedTransaction Transaction(LOCTEXT("SetSpawnOwnership", "Set Spawnable Ownership"));
+
+		Spawnable->SetSpawnOwnership(NewOwnership);
+
+		// Overwrite the completion state for all spawn sections to ensure the expected behaviour.
+		EMovieSceneCompletionMode NewCompletionMode = NewOwnership == ESpawnOwnership::InnerSequence ? EMovieSceneCompletionMode::RestoreState : EMovieSceneCompletionMode::KeepState;
+
+		// Make all spawn sections retain state
+		UMovieSceneSpawnTrack* SpawnTrack = MovieScene->FindTrack<UMovieSceneSpawnTrack>(ObjectBinding);
+		if (SpawnTrack)
+		{
+			for (UMovieSceneSection* Section : SpawnTrack->GetAllSections())
+			{
+				Section->Modify();
+				Section->EvalOptions.CompletionMode = NewCompletionMode;
+			}
+		}
+	};
 
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("ThisSequence_Label", "This Sequence"),
 		LOCTEXT("ThisSequence_Tooltip", "Indicates that this sequence will own the spawned object. The object will be destroyed at the end of the sequence."),
 		FSlateIcon(),
 		FUIAction(
-			FExecuteAction::CreateLambda([=]{ Spawnable->SetSpawnOwnership(ESpawnOwnership::InnerSequence); }),
+			FExecuteAction::CreateLambda(Callback, ESpawnOwnership::InnerSequence),
 			FCanExecuteAction(),
 			FIsActionChecked::CreateLambda([=]{ return Spawnable->GetSpawnOwnership() == ESpawnOwnership::InnerSequence; })
 		),
@@ -188,7 +215,7 @@ void FSequencerObjectBindingNode::AddSpawnOwnershipMenu(FMenuBuilder& MenuBuilde
 		LOCTEXT("MasterSequence_Tooltip", "Indicates that the outermost sequence will own the spawned object. The object will be destroyed when the outermost sequence stops playing."),
 		FSlateIcon(),
 		FUIAction(
-			FExecuteAction::CreateLambda([=]{ Spawnable->SetSpawnOwnership(ESpawnOwnership::MasterSequence); }),
+			FExecuteAction::CreateLambda(Callback, ESpawnOwnership::MasterSequence),
 			FCanExecuteAction(),
 			FIsActionChecked::CreateLambda([=]{ return Spawnable->GetSpawnOwnership() == ESpawnOwnership::MasterSequence; })
 		),
@@ -201,26 +228,9 @@ void FSequencerObjectBindingNode::AddSpawnOwnershipMenu(FMenuBuilder& MenuBuilde
 		LOCTEXT("External_Tooltip", "Indicates this object's lifetime is managed externally once spawned. It will not be destroyed by sequencer."),
 		FSlateIcon(),
 		FUIAction(
-			FExecuteAction::CreateLambda([=]{ Spawnable->SetSpawnOwnership(ESpawnOwnership::External); }),
+			FExecuteAction::CreateLambda(Callback, ESpawnOwnership::External),
 			FCanExecuteAction(),
 			FIsActionChecked::CreateLambda([=]{ return Spawnable->GetSpawnOwnership() == ESpawnOwnership::External; })
-		),
-		NAME_None,
-		EUserInterfaceActionType::ToggleButton
-	);
-
-	MenuBuilder.AddMenuSeparator();
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("IgnoreOwnership_Label", "Keep Alive Outside Playback Range (In Sequencer)"),
-		LOCTEXT("IgnoreOwnership_Tooltip", "Keeps the spawned object alive when viewing this specific sequence outside of its playback range. Does not apply to runtime evaluation."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateLambda([=]{
-				Spawnable->SetIgnoreOwnershipInEditor(!Spawnable->ShouldIgnoreOwnershipInEditor());
-				GetSequencer().SetGlobalTimeDirectly(GetSequencer().GetGlobalTime());
-			}),
-			FCanExecuteAction(),
-			FIsActionChecked::CreateLambda([=]{ return Spawnable->ShouldIgnoreOwnershipInEditor(); })
 		),
 		NAME_None,
 		EUserInterfaceActionType::ToggleButton
@@ -273,24 +283,15 @@ FText FSequencerObjectBindingNode::GetDisplayName() const
 FLinearColor FSequencerObjectBindingNode::GetDisplayNameColor() const
 {
 	FSequencer& Sequencer = ParentTree.GetSequencer();
-	TArray<TWeakObjectPtr<UObject>> RuntimeObjects;
-	Sequencer.GetRuntimeObjects( Sequencer.GetFocusedMovieSceneSequenceInstance(), ObjectBinding, RuntimeObjects );
-	if ( RuntimeObjects.Num() == 0 )
-	{
-		return FLinearColor::Red;
-	}
-	else
-	{
-		return FSequencerDisplayNode::GetDisplayNameColor();
-	}
+	
+	const bool bHasObjects = Sequencer.FindBoundObjects(ObjectBinding, Sequencer.GetFocusedTemplateID()).Num() != 0;
+	return bHasObjects ? FSequencerDisplayNode::GetDisplayNameColor() : FLinearColor::Red;
 }
 
 FText FSequencerObjectBindingNode::GetDisplayNameToolTipText() const
 {
 	FSequencer& Sequencer = ParentTree.GetSequencer();
-	TArray<TWeakObjectPtr<UObject>> RuntimeObjects;
-	Sequencer.GetRuntimeObjects( Sequencer.GetFocusedMovieSceneSequenceInstance(), ObjectBinding, RuntimeObjects );
-	if ( RuntimeObjects.Num() == 0 )
+	if ( Sequencer.FindObjectsInCurrentSequence(ObjectBinding).Num() == 0 )
 	{
 		return LOCTEXT("InvalidBoundObjectToolTip", "The object bound to this track is missing.");
 	}

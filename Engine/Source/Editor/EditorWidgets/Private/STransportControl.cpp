@@ -6,7 +6,7 @@
 #define LOCTEXT_NAMESPACE "STransportControl"
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-TSharedPtr<SWidget> STransportControl::MakeTransportControlWidget(ETransportControlWidgetType WidgetType, const FOnMakeTransportWidget& MakeCustomWidgetDelegate)
+TSharedPtr<SWidget> STransportControl::MakeTransportControlWidget(ETransportControlWidgetType WidgetType, bool bAreButtonsFocusable, const FOnMakeTransportWidget& MakeCustomWidgetDelegate)
 {
 	switch(WidgetType)
 	{
@@ -16,14 +16,16 @@ TSharedPtr<SWidget> STransportControl::MakeTransportControlWidget(ETransportCont
 			. OnClicked(TransportControlArgs.OnBackwardEnd)
 			. Visibility(TransportControlArgs.OnBackwardEnd.IsBound() ? EVisibility::Visible : EVisibility::Collapsed)
 			. ToolTipText( LOCTEXT("ToFront", "To Front") )
-			. ContentPadding(2.0f);
+			. ContentPadding(2.0f)
+			. IsFocusable(bAreButtonsFocusable);
 	case ETransportControlWidgetType::BackwardStep:
 		return SNew(SButton)
 			. ButtonStyle(&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Animation.Backward_Step"))
 			. OnClicked(TransportControlArgs.OnBackwardStep)
 			. Visibility(TransportControlArgs.OnBackwardStep.IsBound() ? EVisibility::Visible : EVisibility::Collapsed)
 			. ToolTipText( LOCTEXT("ToPrevious", "To Previous") )
-			. ContentPadding(2.0f);
+			. ContentPadding(2.0f)
+			. IsFocusable(bAreButtonsFocusable);
 	case ETransportControlWidgetType::BackwardPlay:
 		return SAssignNew(BackwardPlayButton, SButton)
 			. OnClicked(TransportControlArgs.OnBackwardPlay)
@@ -31,6 +33,7 @@ TSharedPtr<SWidget> STransportControl::MakeTransportControlWidget(ETransportCont
 			. ToolTipText( LOCTEXT("Reverse", "Reverse") )
 			. ButtonStyle( FEditorStyle::Get(), "NoBorder" )
 			. ContentPadding(2.0f)
+			. IsFocusable(bAreButtonsFocusable)
 			[
 				SNew(SImage)
 				. Image( this, &STransportControl::GetBackwardStatusIcon )
@@ -42,6 +45,7 @@ TSharedPtr<SWidget> STransportControl::MakeTransportControlWidget(ETransportCont
 			. Visibility(TransportControlArgs.OnRecord.IsBound() ? EVisibility::Visible : EVisibility::Collapsed)
 			. ToolTipText( this, &STransportControl::GetRecordStatusTooltip )
 			. ContentPadding(2.0f)
+			. IsFocusable(bAreButtonsFocusable)
 			[
 				SNew(SImage)
 				.Image(this, &STransportControl::GetRecordStatusIcon )
@@ -53,6 +57,7 @@ TSharedPtr<SWidget> STransportControl::MakeTransportControlWidget(ETransportCont
 			. ToolTipText( this, &STransportControl::GetForwardStatusTooltip )
 			. ButtonStyle( FEditorStyle::Get(), "NoBorder" )
 			. ContentPadding(2.0f)
+			. IsFocusable(bAreButtonsFocusable)
 			[
 				SNew(SImage)
 				. Image( this, &STransportControl::GetForwardStatusIcon )
@@ -63,14 +68,16 @@ TSharedPtr<SWidget> STransportControl::MakeTransportControlWidget(ETransportCont
 			. OnClicked(TransportControlArgs.OnForwardStep)
 			. Visibility(TransportControlArgs.OnForwardStep.IsBound() ? EVisibility::Visible : EVisibility::Collapsed)
 			. ToolTipText( LOCTEXT("ToNext", "To Next") )
-			. ContentPadding(2.0f);
+			. ContentPadding(2.0f)
+			. IsFocusable(bAreButtonsFocusable);
 	case ETransportControlWidgetType::ForwardEnd:
 		return SNew(SButton)
 			. ButtonStyle(&FEditorStyle::Get().GetWidgetStyle<FButtonStyle>("Animation.Forward_End"))
 			. OnClicked(TransportControlArgs.OnForwardEnd)
 			. Visibility(TransportControlArgs.OnForwardEnd.IsBound() ? EVisibility::Visible : EVisibility::Collapsed)
 			. ToolTipText( LOCTEXT("ToEnd", "To End") )
-			. ContentPadding(2.0f);
+			. ContentPadding(2.0f)
+			. IsFocusable(bAreButtonsFocusable);
 	case ETransportControlWidgetType::Loop:
 		return SNew(SButton)
 			. OnClicked(TransportControlArgs.OnToggleLooping)
@@ -78,6 +85,7 @@ TSharedPtr<SWidget> STransportControl::MakeTransportControlWidget(ETransportCont
 			. ToolTipText( LOCTEXT("Loop", "Loop") )
 			. ButtonStyle( FEditorStyle::Get(), "NoBorder" )
 			. ContentPadding(2.0f)
+			. IsFocusable(bAreButtonsFocusable)
 			[
 				SNew(SImage)
 				. Image( this, &STransportControl::GetLoopStatusIcon )
@@ -102,7 +110,7 @@ void STransportControl::Construct( const STransportControl::FArguments& InArgs )
 	{
 		for(FTransportControlWidget WidgetDesc : TransportControlArgs.WidgetsToCreate)
 		{
-			TSharedPtr<SWidget> Widget = MakeTransportControlWidget(WidgetDesc.WidgetType, WidgetDesc.MakeCustomWidgetDelegate);
+			TSharedPtr<SWidget> Widget = MakeTransportControlWidget(WidgetDesc.WidgetType, InArgs._TransportArgs.bAreButtonsFocusable, WidgetDesc.MakeCustomWidgetDelegate);
 			if(Widget.IsValid())
 			{
 				HorizontalBox->AddSlot()
@@ -119,7 +127,7 @@ void STransportControl::Construct( const STransportControl::FArguments& InArgs )
 	{
 		for(ETransportControlWidgetType WidgetType : TEnumRange<ETransportControlWidgetType>())
 		{
-			TSharedPtr<SWidget> Widget = MakeTransportControlWidget(WidgetType);
+			TSharedPtr<SWidget> Widget = MakeTransportControlWidget(WidgetType, InArgs._TransportArgs.bAreButtonsFocusable);
 			if(Widget.IsValid())
 			{
 				HorizontalBox->AddSlot()

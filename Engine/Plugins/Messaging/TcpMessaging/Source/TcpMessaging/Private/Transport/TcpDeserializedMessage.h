@@ -16,7 +16,7 @@ public:
 	 *
 	 * @param InAttachment An optional message attachment.
 	 */
-	FTcpDeserializedMessage(const IMessageAttachmentPtr& InAttachment);
+	FTcpDeserializedMessage(const TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe>& InAttachment);
 
 	/** Virtual destructor. */
 	virtual ~FTcpDeserializedMessage() override;
@@ -36,7 +36,7 @@ public:
 	// IMessageContext interface
 
 	virtual const TMap<FName, FString>& GetAnnotations() const override;
-	virtual IMessageAttachmentPtr GetAttachment() const override;
+	virtual TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe> GetAttachment() const override;
 	virtual const FDateTime& GetExpiration() const override;
 	virtual const void* GetMessage() const override;
 	virtual const TWeakObjectPtr<UScriptStruct>& GetMessageTypeInfo() const override;
@@ -54,7 +54,7 @@ private:
 	TMap<FName, FString> Annotations;
 
 	/** Holds a pointer to attached binary data. */
-	IMessageAttachmentPtr Attachment;
+	TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe> Attachment;
 
 	/** Holds the expiration time. */
 	FDateTime Expiration;

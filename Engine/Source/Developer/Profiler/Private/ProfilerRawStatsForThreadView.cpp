@@ -1,6 +1,9 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ProfilerPrivatePCH.h"
+#include "ProfilerDataProvider.h"
+#include "ProfilerRawStatsForThreadView.h"
+
 
 // Only copied from ProfilerSession, still not working.
 
@@ -9,8 +12,8 @@
 -----------------------------------------------------------------------------*/
 
 FRawProfilerSession::FRawProfilerSession( const FString& InRawStatsFileFileath )
-: FProfilerSession( EProfilerSessionTypes::StatsFileRaw, nullptr, FGuid::NewGuid(), InRawStatsFileFileath.Replace( *FStatConstants::StatsFileRawExtension, TEXT( "" ) ) )
-, CurrentMiniViewFrame( 0 )
+	: FProfilerSession( EProfilerSessionTypes::StatsFileRaw, nullptr, FGuid::NewGuid(), InRawStatsFileFileath.Replace( *FStatConstants::StatsFileRawExtension, TEXT( "" ) ) )
+	, CurrentMiniViewFrame( 0 )
 {
 	OnTick = FTickerDelegate::CreateRaw( this, &FRawProfilerSession::HandleTicker );
 }
@@ -377,7 +380,7 @@ void FRawProfilerSession::ProcessStatPacketArray( const FStatPacketArray& StatPa
 	// Raw stats callstack for this stat packet array.
 	TMap<FName, FProfilerStackNode*> ThreadNodes;
 
-	const FProfilerStatMetaDataRef MetaData = GetMetaData();
+	const TSharedRef<FProfilerStatMetaData> MetaData = GetMetaData();
 
 	FProfilerSampleArray& MutableCollection = const_cast<FProfilerSampleArray&>(DataProvider->GetCollection());
 

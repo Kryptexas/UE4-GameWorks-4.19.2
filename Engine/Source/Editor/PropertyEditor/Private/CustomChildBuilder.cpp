@@ -55,6 +55,11 @@ IDetailPropertyRow& FCustomChildrenBuilder::AddChildProperty( TSharedRef<IProper
 	return *NewCustomization.PropertyRow;
 }
 
+TArray<TSharedPtr<IPropertyHandle>> FCustomChildrenBuilder::AddChildStructure( TSharedRef<FStructOnScope> ChildStructure )
+{
+	return ParentCategory.Pin()->AddExternalProperties(ChildStructure);
+}
+
 class SStandaloneCustomStructValue : public SCompoundWidget, public IPropertyTypeCustomizationUtils
 {
 public:

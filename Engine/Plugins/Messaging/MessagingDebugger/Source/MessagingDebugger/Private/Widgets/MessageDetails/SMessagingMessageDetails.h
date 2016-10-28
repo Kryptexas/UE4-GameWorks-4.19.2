@@ -3,6 +3,9 @@
 #pragma once
 
 
+class FMessagingDebuggerModel;
+
+
 /**
  * Implements the message details panel.
  */
@@ -28,7 +31,7 @@ public:
 	 * @param InModel The view model to use.
 	 * @param InStyle The visual style to use for this widget.
 	 */
-	void Construct( const FArguments& InArgs, const FMessagingDebuggerModelRef& InModel, const TSharedRef<ISlateStyle>& InStyle );
+	void Construct(const FArguments& InArgs, const TSharedRef<FMessagingDebuggerModel>& InModel, const TSharedRef<ISlateStyle>& InStyle);
 
 protected:
 
@@ -38,7 +41,7 @@ protected:
 private:
 
 	/** Callback for generating a row widget for the dispatch state list view. */
-	TSharedRef<ITableRow> HandleDispatchStateListGenerateRow( FMessageTracerDispatchStatePtr DispatchState, const TSharedRef<STableViewBase>& OwnerTable );
+	TSharedRef<ITableRow> HandleDispatchStateListGenerateRow(TSharedPtr<FMessageTracerDispatchState> DispatchState, const TSharedRef<STableViewBase>& OwnerTable);
 
 	/** Callback for getting the text of the 'Expiration' field. */
 	FText HandleExpirationText() const;
@@ -55,13 +58,13 @@ private:
 private:
 
 	/** Holds the list of dispatch states. */
-	TArray<FMessageTracerDispatchStatePtr> DispatchStateList;
+	TArray<TSharedPtr<FMessageTracerDispatchState>> DispatchStateList;
 
 	/** Holds the dispatch state list view. */
-	TSharedPtr<SListView<FMessageTracerDispatchStatePtr> > DispatchStateListView;
+	TSharedPtr<SListView<TSharedPtr<FMessageTracerDispatchState>> > DispatchStateListView;
 
 	/** Holds a pointer to the view model. */
-	FMessagingDebuggerModelPtr Model;
+	TSharedPtr<FMessagingDebuggerModel> Model;
 
 	/** Holds the widget's visual style. */
 	TSharedPtr<ISlateStyle> Style;

@@ -192,6 +192,7 @@ void FKeyContextMenu::AddPropertiesMenu(FMenuBuilder& MenuBuilder)
 		DetailsViewArgs.bUpdatesFromSelection = false;
 		DetailsViewArgs.bShowOptions = false;
 		DetailsViewArgs.bShowModifiedPropertiesOption = false;
+		DetailsViewArgs.bShowScrollBar = false;
 	}
 
 	FStructureDetailsViewArgs StructureViewArgs;
@@ -233,6 +234,7 @@ void FKeyContextMenu::AddPropertiesMenu(FMenuBuilder& MenuBuilder)
 			StructureDetailsView->GetOnFinishedChangingPropertiesDelegate().AddLambda(
 				[=](const FPropertyChangedEvent& ChangeEvent) {
 					
+					Key.Value.Section->Modify();
 					if (Key.Key->GetStruct()->IsChildOf(FMovieSceneKeyStruct::StaticStruct()))
 					{
 						((FMovieSceneKeyStruct*)Key.Key->GetStructMemory())->PropagateChanges(ChangeEvent);
@@ -686,7 +688,7 @@ void FSectionContextMenu::TrimSection(bool bTrimLeft)
 {
 	FScopedTransaction TrimSectionTransaction(LOCTEXT("TrimSection_Transaction", "Trim Section"));
 
-	MovieSceneToolHelpers::TrimSection(Sequencer->GetSelection().GetSelectedSections(), Sequencer->GetGlobalTime(), bTrimLeft);
+	MovieSceneToolHelpers::TrimSection(Sequencer->GetSelection().GetSelectedSections(), Sequencer->GetLocalTime(), bTrimLeft);
 	Sequencer->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::TrackValueChanged );
 }
 
@@ -695,7 +697,7 @@ void FSectionContextMenu::SplitSection()
 {
 	FScopedTransaction SplitSectionTransaction(LOCTEXT("SplitSection_Transaction", "Split Section"));
 
-	MovieSceneToolHelpers::SplitSection(Sequencer->GetSelection().GetSelectedSections(), Sequencer->GetGlobalTime());
+	MovieSceneToolHelpers::SplitSection(Sequencer->GetSelection().GetSelectedSections(), Sequencer->GetLocalTime());
 	Sequencer->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
 }
 
@@ -704,7 +706,7 @@ bool FSectionContextMenu::IsTrimmable() const
 {
 	for (auto Section : Sequencer->GetSelection().GetSelectedSections())
 	{
-		if (Section.IsValid() && Section->IsTimeWithinSection(Sequencer->GetGlobalTime()))
+		if (Section.IsValid() && Section->IsTimeWithinSection(Sequencer->GetLocalTime()))
 		{
 			return true;
 		}
@@ -1002,7 +1004,7 @@ void FSectionContextMenu::BringToFront()
 		}
 	}
 
-	Sequencer->SetGlobalTime(Sequencer->GetGlobalTime());
+	Sequencer->SetLocalTimeDirectly(Sequencer->GetLocalTime());
 }
 
 
@@ -1050,7 +1052,7 @@ void FSectionContextMenu::SendToBack()
 		}
 	}
 
-	Sequencer->SetGlobalTime(Sequencer->GetGlobalTime());
+	Sequencer->SetLocalTimeDirectly(Sequencer->GetLocalTime());
 }
 
 
@@ -1095,7 +1097,7 @@ void FSectionContextMenu::BringForward()
 		}
 	}
 
-	Sequencer->SetGlobalTime(Sequencer->GetGlobalTime());
+	Sequencer->SetLocalTimeDirectly(Sequencer->GetLocalTime());
 }
 
 
@@ -1140,7 +1142,7 @@ void FSectionContextMenu::SendBackward()
 		}
 	}
 
-	Sequencer->SetGlobalTime(Sequencer->GetGlobalTime());
+	Sequencer->SetLocalTimeDirectly(Sequencer->GetLocalTime());
 }
 
 

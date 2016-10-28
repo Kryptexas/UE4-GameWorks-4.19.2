@@ -104,7 +104,7 @@ SAutomationWindow::~SAutomationWindow()
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void SAutomationWindow::Construct( const FArguments& InArgs, const IAutomationControllerManagerRef& InAutomationController, const ISessionManagerRef& InSessionManager )
+void SAutomationWindow::Construct( const FArguments& InArgs, const IAutomationControllerManagerRef& InAutomationController, const TSharedRef<ISessionManager>& InSessionManager )
 {
 	FAutomationWindowCommands::Register();
 	CreateCommands();
@@ -1959,7 +1959,7 @@ void SAutomationWindow::HandleSessionManagerInstanceChanged()
 
 void SAutomationWindow::UpdateTestListBackgroundStyle()
 {
-	TArray<ISessionInstanceInfoPtr> OutInstances;
+	TArray<TSharedPtr<ISessionInstanceInfo>> OutInstances;
 
 	if( ActiveSession.IsValid() )
 	{
@@ -2208,7 +2208,7 @@ EVisibility SAutomationWindow::HandleSelectSessionOverlayVisibility( ) const
 }
 
 
-void SAutomationWindow::HandleSessionManagerCanSelectSession( const ISessionInfoPtr& Session, bool& CanSelect )
+void SAutomationWindow::HandleSessionManagerCanSelectSession( const TSharedPtr<ISessionInfo>& Session, bool& CanSelect )
 {
 	if (ActiveSession.IsValid() && AutomationController->CheckTestResultsAvailable())
 	{
@@ -2218,7 +2218,7 @@ void SAutomationWindow::HandleSessionManagerCanSelectSession( const ISessionInfo
 }
 
 
-void SAutomationWindow::HandleSessionManagerSelectionChanged( const ISessionInfoPtr& SelectedSession )
+void SAutomationWindow::HandleSessionManagerSelectionChanged( const TSharedPtr<ISessionInfo>& SelectedSession )
 {
 	FindWorkers();
 }

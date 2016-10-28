@@ -1,7 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UdpMessagingPrivatePCH.h"
+#include "UdpDeserializedMessage.h"
+#include "UdpMessageProcessor.h"
+#include "UdpMessageTransport.h"
 #include "UdpSerializeMessageTask.h"
+#include "UdpSerializedMessage.h"
 
 
 /* FUdpMessageTransport structors
@@ -141,7 +145,7 @@ void FUdpMessageTransport::StopTransport()
 }
 
 
-bool FUdpMessageTransport::TransportMessage(const IMessageContextRef& Context, const TArray<FGuid>& Recipients)
+bool FUdpMessageTransport::TransportMessage(const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context, const TArray<FGuid>& Recipients)
 {
 	if (MessageProcessor == nullptr)
 	{
@@ -153,7 +157,7 @@ bool FUdpMessageTransport::TransportMessage(const IMessageContextRef& Context, c
 		return false;
 	}
 
-	FUdpSerializedMessageRef SerializedMessage = MakeShareable(new FUdpSerializedMessage());
+	TSharedRef<FUdpSerializedMessage, ESPMode::ThreadSafe> SerializedMessage = MakeShareable(new FUdpSerializedMessage());
 
 	if (Recipients.Num() == 0)
 	{
@@ -178,10 +182,10 @@ bool FUdpMessageTransport::TransportMessage(const IMessageContextRef& Context, c
 /* FUdpMessageTransport event handlers
  *****************************************************************************/
 
-void FUdpMessageTransport::HandleProcessorMessageReassembled(const FUdpReassembledMessageRef& ReassembledMessage, const IMessageAttachmentPtr& Attachment, const FGuid& NodeId)
+void FUdpMessageTransport::HandleProcessorMessageReassembled(const FReassembledUdpMessage& ReassembledMessage, const TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe>& Attachment, const FGuid& NodeId)
 {
 	// @todo gmp: move message deserialization into an async task
-	FUdpDeserializedMessageRef DeserializedMessage = MakeShareable(new FUdpDeserializedMessage(Attachment));
+	TSharedRef<FUdpDeserializedMessage, ESPMode::ThreadSafe> DeserializedMessage = MakeShareable(new FUdpDeserializedMessage(Attachment));
 
 	if (DeserializedMessage->Deserialize(ReassembledMessage))
 	{

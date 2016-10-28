@@ -1,10 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "ProfilerPrivatePCH.h"
+#include "ProfilerFPSAnalyzer.h"
+#include "ProfilerManager.h"
+#include "ProfilerSession.h"
+#include "SHistogram.h"
+#include "SProfilerFPSChartPanel.h"
+
 
 #define LOCTEXT_NAMESPACE "SProfilerFPSChartPanel"
 
-class SProfilerFPSStatisticsPanel : public SCompoundWidget
+
+class SProfilerFPSStatisticsPanel
+	: public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS( SProfilerFPSStatisticsPanel )
@@ -218,12 +226,12 @@ void SProfilerFPSChartPanel::Construct( const FArguments& InArgs )
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-void SProfilerFPSChartPanel::ProfilerManager_OnViewModeChanged(EProfilerViewMode::Type NewViewMode)
+void SProfilerFPSChartPanel::ProfilerManager_OnViewModeChanged(EProfilerViewMode NewViewMode)
 {
 	auto ProfilerManager = FProfilerManager::Get();
 	if (ProfilerManager.IsValid())
 	{
-		const FProfilerSessionPtr ProfilerSession = ProfilerManager->GetProfilerSession();
+		const TSharedPtr<FProfilerSession> ProfilerSession = ProfilerManager->GetProfilerSession();
 
 		Histogram->SetFPSAnalyzer(ProfilerSession->FPSAnalyzer);
 		StatisticsPanel->SetFPSAnalyzer(ProfilerSession->FPSAnalyzer);

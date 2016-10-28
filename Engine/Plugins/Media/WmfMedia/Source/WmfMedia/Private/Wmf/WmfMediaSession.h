@@ -15,12 +15,14 @@ enum class EMediaPlaybackDirections;
  *
  * Many of the media playback features are asynchronous and do not take place
  * immediately, such as seeking and playback rate changes. A media session may
- * generate events during playback that are handled in this class.
+ * generate events during playback that are then handled by this class.
  *
  * Windows Media Foundation also queues up most playback commands, which may have
  * undesired side effects, such as unresponsive or sluggish user interfaces. For
  * this reason, this helper class also implements a mechanism to manage pending
  * operations efficiently.
+ *
+ * @todo gmp: implement better command queuing.
  */
 class FWmfMediaSession
 	: public IMFAsyncCallback
@@ -28,8 +30,15 @@ class FWmfMediaSession
 {
 public:
 
-	/** Default constructor. */
-	FWmfMediaSession();
+	/**
+	 * Create a placeholder instance.
+	 *
+	 * This constructor is used by WmfMediaPlayer when no media
+	 * is open or when a media URL is currently being resolved.
+	 *
+	 * @param InState Must be either Closed or Preparing.
+	 */
+	FWmfMediaSession(EMediaState InState);
 
 	/**
 	 * Creates and initializes a new instance.

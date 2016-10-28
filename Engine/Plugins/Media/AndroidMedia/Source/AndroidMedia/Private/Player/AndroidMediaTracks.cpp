@@ -431,7 +431,7 @@ void FAndroidMediaTracks::InitializeVideoSink()
 	}
 
 	const auto& VideoTrack = VideoTracks[SelectedVideoTrack];
-	VideoSink->InitializeTextureSink(VideoTrack.Dimensions, EMediaTextureSinkFormat::CharBGRA, EMediaTextureSinkMode::Unbuffered);
+	VideoSink->InitializeTextureSink(VideoTrack.Dimensions, VideoTrack.Dimensions, EMediaTextureSinkFormat::CharBGRA, EMediaTextureSinkMode::Unbuffered);
 }
 
 
@@ -473,7 +473,7 @@ void FAndroidMediaTracks::UpdateVideoSink()
 			// The video track dimensions need updating
 			VideoTracks[SelectedVideoTrack].Dimensions = Dimensions;
 		}
-		VideoSink->InitializeTextureSink(Dimensions, EMediaTextureSinkFormat::CharBGRA, EMediaTextureSinkMode::Unbuffered);
+		VideoSink->InitializeTextureSink(Dimensions, Dimensions, EMediaTextureSinkFormat::CharBGRA, EMediaTextureSinkMode::Unbuffered);
 	}
 
 	// update sink

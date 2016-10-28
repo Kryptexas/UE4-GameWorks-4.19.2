@@ -115,15 +115,6 @@ void UMovieSceneMarginSection::SetKeyTime( FKeyHandle KeyHandle, float Time )
 }
 
 
-FMargin UMovieSceneMarginSection::Eval( float Position, const FMargin& DefaultValue ) const
-{
-	return FMargin(	LeftCurve.Eval(Position, DefaultValue.Left),
-					TopCurve.Eval(Position, DefaultValue.Top),
-					RightCurve.Eval(Position, DefaultValue.Right),
-					BottomCurve.Eval(Position, DefaultValue.Bottom));
-}
-
-
 template<typename CurveType>
 CurveType* GetCurveForChannel( EKeyMarginChannel Channel, CurveType* LeftCurve, CurveType* TopCurve, CurveType* RightCurve, CurveType* BottomCurve )
 {

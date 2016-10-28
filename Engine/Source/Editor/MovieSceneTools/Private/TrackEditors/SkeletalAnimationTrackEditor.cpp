@@ -55,9 +55,9 @@ FText FSkeletalAnimationSection::GetDisplayName() const
 
 FText FSkeletalAnimationSection::GetSectionTitle() const
 {
-	if (Section.GetAnimSequence() != nullptr)
+	if (Section.Params.Animation != nullptr)
 	{
-		return FText::FromString( Section.GetAnimSequence()->GetName() );
+		return FText::FromString( Section.Params.Animation->GetName() );
 	}
 	return LOCTEXT("NoAnimationSection", "No Animation");
 }
@@ -79,9 +79,9 @@ int32 FSkeletalAnimationSection::OnPaintSection( FSequencerSectionPainter& Paint
 
 	// Add lines where the animation starts and ends/loops
 	float CurrentTime = Section.GetStartTime();
-	float AnimPlayRate = FMath::IsNearlyZero(Section.GetPlayRate()) ? 1.0f : Section.GetPlayRate();
-	float SeqLength = (Section.GetSequenceLength() - (Section.GetStartOffset() + Section.GetEndOffset())) / AnimPlayRate;
-	while (CurrentTime < Section.GetEndTime() && !FMath::IsNearlyZero(Section.GetDuration()) && SeqLength > 0)
+	float AnimPlayRate = FMath::IsNearlyZero(Section.Params.PlayRate) ? 1.0f : Section.Params.PlayRate;
+	float SeqLength = (Section.Params.GetSequenceLength() - (Section.Params.StartOffset + Section.Params.EndOffset)) / AnimPlayRate;
+	while (CurrentTime < Section.GetEndTime() && !FMath::IsNearlyZero(Section.Params.GetDuration()) && SeqLength > 0)
 	{
 		if (CurrentTime > Section.GetStartTime())
 		{
@@ -108,7 +108,7 @@ int32 FSkeletalAnimationSection::OnPaintSection( FSequencerSectionPainter& Paint
 
 void FSkeletalAnimationSection::BeginResizeSection()
 {
-	InitialStartOffsetDuringResize = Section.GetStartOffset();
+	InitialStartOffsetDuringResize = Section.Params.StartOffset;
 	InitialStartTimeDuringResize = Section.GetStartTime();
 }
 
@@ -117,18 +117,18 @@ void FSkeletalAnimationSection::ResizeSection(ESequencerSectionResizeMode Resize
 	// Adjust the start offset when resizing from the beginning
 	if (ResizeMode == SSRM_LeadingEdge)
 	{
-		float StartOffset = (ResizeTime - InitialStartTimeDuringResize) * Section.GetPlayRate();
+		float StartOffset = (ResizeTime - InitialStartTimeDuringResize) * Section.Params.PlayRate;
 		StartOffset += InitialStartOffsetDuringResize;
 
 		// Ensure start offset is not less than 0 and adjust ResizeTime
 		if (StartOffset < 0)
 		{
-			ResizeTime = ResizeTime - (StartOffset / Section.GetPlayRate());
+			ResizeTime = ResizeTime - (StartOffset / Section.Params.PlayRate);
 
 			StartOffset = 0.f;
 		}
 
-		Section.SetStartOffset(StartOffset);
+		Section.Params.StartOffset = StartOffset;
 	}
 
 	ISequencerSection::ResizeSection(ResizeMode, ResizeTime);

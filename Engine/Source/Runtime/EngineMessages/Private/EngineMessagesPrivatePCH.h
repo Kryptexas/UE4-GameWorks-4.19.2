@@ -2,10 +2,4 @@
 
 #pragma once
 
-#include "EngineMessages.h"
-
-
-/* Private dependencies
- *****************************************************************************/
-
-#include "ModuleManager.h"
+#include "Runtime/Core/Public/Modules/ModuleManager.h"

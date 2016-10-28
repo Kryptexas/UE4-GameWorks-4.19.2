@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MessagingPrivatePCH.h"
+#include "MessageContext.h"
 
 
 /* FMessageContext structors
@@ -34,7 +35,7 @@ const TMap<FName, FString>& FMessageContext::GetAnnotations() const
 }
 
 
-IMessageAttachmentPtr FMessageContext::GetAttachment() const
+TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe> FMessageContext::GetAttachment() const
 {
 	if (OriginalContext.IsValid())
 	{

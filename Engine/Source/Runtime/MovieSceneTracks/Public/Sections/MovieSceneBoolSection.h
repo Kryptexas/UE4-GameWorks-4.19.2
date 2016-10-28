@@ -34,11 +34,9 @@ public:
 	virtual bool Eval(float Position, bool DefaultValue) const;
 
 	/** Gets all the keys of this boolean section. */
-	FIntegralCurve& GetCurve()
-	{
-		return BoolCurve;
-	}
-
+	FIntegralCurve& GetCurve() { return BoolCurve; }
+	const FIntegralCurve& GetCurve() const { return BoolCurve; }
+	
 public:
 
 	//~ IKeyframeSection interface

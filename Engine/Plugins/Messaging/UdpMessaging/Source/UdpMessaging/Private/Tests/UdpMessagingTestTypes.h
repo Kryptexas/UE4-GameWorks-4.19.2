@@ -74,7 +74,7 @@ public:
 private:
 
 	TMap<FName, FString> Annotations;
-	IMessageAttachmentPtr Attachment;
+	TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe> Attachment;
 	FDateTime Expiration;
 	void* Message;
 	IMessageContextPtr OriginalContext;

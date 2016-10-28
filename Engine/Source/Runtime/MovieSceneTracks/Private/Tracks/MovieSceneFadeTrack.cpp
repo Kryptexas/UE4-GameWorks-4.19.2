@@ -3,7 +3,8 @@
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieSceneFadeSection.h"
 #include "MovieSceneFadeTrack.h"
-#include "MovieSceneFadeTrackInstance.h"
+#include "Evaluation/MovieSceneFadeTemplate.h"
+#include "Evaluation/MovieSceneEvaluationTrack.h"
 
 
 #define LOCTEXT_NAMESPACE "MovieSceneFadeTrack"
@@ -11,18 +12,22 @@
 
 /* UMovieSceneFadeTrack interface
  *****************************************************************************/
-
-TSharedPtr<IMovieSceneTrackInstance> UMovieSceneFadeTrack::CreateInstance()
+UMovieSceneFadeTrack::UMovieSceneFadeTrack(const FObjectInitializer& Init)
+	: Super(Init)
 {
-	return MakeShareable(new FMovieSceneFadeTrackInstance(*this)); 
+	EvalOptions.bCanEvaluateNearestSection = true;
+	EvalOptions.bEvaluateNearestSection = false;
 }
-
 
 UMovieSceneSection* UMovieSceneFadeTrack::CreateNewSection()
 {
 	return NewObject<UMovieSceneSection>(this, UMovieSceneFadeSection::StaticClass(), NAME_None, RF_Transactional);
 }
 
+FMovieSceneEvalTemplatePtr UMovieSceneFadeTrack::CreateTemplateForSection(const UMovieSceneSection& InSection) const
+{
+	return FMovieSceneFadeSectionTemplate(*CastChecked<UMovieSceneFadeSection>(&InSection));
+}
 
 #if WITH_EDITORONLY_DATA
 FText UMovieSceneFadeTrack::GetDefaultDisplayName() const

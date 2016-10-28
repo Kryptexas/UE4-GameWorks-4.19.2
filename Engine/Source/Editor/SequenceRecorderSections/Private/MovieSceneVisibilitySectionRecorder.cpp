@@ -2,12 +2,12 @@
 
 #include "SequenceRecorderSectionsPrivatePCH.h"
 #include "MovieSceneVisibilitySectionRecorder.h"
-#include "MovieSceneVisibilitySection.h"
+#include "MovieSceneBoolSection.h"
 #include "MovieSceneVisibilityTrack.h"
 #include "MovieScene.h"
 #include "ActorRecordingSettings.h"
 
-static const FName VisibilityTrackName = TEXT("Visibility");
+static const FName VisibilityTrackName = TEXT("bHidden");
 
 TSharedPtr<IMovieSceneSectionRecorder> FMovieSceneVisibilitySectionRecorderFactory::CreateSectionRecorder(const struct FActorRecordingSettings& InActorRecordingSettings) const
 {
@@ -35,7 +35,7 @@ void FMovieSceneVisibilitySectionRecorder::CreateSection(UObject* InObjectToReco
 	{
 		VisibilityTrack->SetPropertyNameAndPath(VisibilityTrackName, VisibilityTrackName.ToString());
 
-		MovieSceneSection = Cast<UMovieSceneVisibilitySection>(VisibilityTrack->CreateNewSection());
+		MovieSceneSection = Cast<UMovieSceneBoolSection>(VisibilityTrack->CreateNewSection());
 
 		VisibilityTrack->AddSection(*MovieSceneSection);
 

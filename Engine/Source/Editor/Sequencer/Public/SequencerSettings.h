@@ -66,6 +66,7 @@ public:
 	GENERATED_UCLASS_BODY()
 
 	DECLARE_MULTICAST_DELEGATE( FOnTimeSnapIntervalChanged );
+	DECLARE_MULTICAST_DELEGATE( FOnEvaluateSubSequencesInIsolationChanged );
 	DECLARE_MULTICAST_DELEGATE_OneParam( FOnLockPlaybackToAudioClockChanged, bool );
 
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
@@ -245,6 +246,18 @@ public:
 	/** Sets whether or not track defaults will be automatically set when modifying tracks. */
 	void SetAutoSetTrackDefaults(bool bInAutoSetTrackDefaults);
 
+	/** @return Whether to show debug vis */
+	bool ShouldShowDebugVisualization() const;
+	/** Toggle whether to show debug vis */
+	void SetShowDebugVisualization(bool bInShowDebugVisualization);
+
+	/** @return Whether to evaluate sub sequences in isolation */
+	bool ShouldEvaluateSubSequencesInIsolation() const;
+	/** Set whether to evaluate sub sequences in isolation */
+	void SetEvaluateSubSequencesInIsolation(bool bInEvaluateSubSequencesInIsolation);
+	/** Gets the multicast delegate which is run whenever the time snap interval is changed. */
+	FOnEvaluateSubSequencesInIsolationChanged& GetOnEvaluateSubSequencesInIsolationChanged() { return OnEvaluateSubSequencesInIsolationChangedEvent; }
+
 	/** Snaps a time value in seconds to the currently selected interval. */
 	float SnapTimeToInterval(float InTimeValue) const;
 
@@ -404,7 +417,16 @@ protected:
 	UPROPERTY(config, EditAnywhere, Category=General)
 	bool bAllowPossessionOfPIEViewports;
 
+	/** When enabled, entering a sub sequence will evaluate that sub sequence in isolation, rather than from the master sequence */
+	UPROPERTY(config, EditAnywhere, Category=Playback)
+	bool bEvaluateSubSequencesInIsolation;
+
 	FOnLockPlaybackToAudioClockChanged OnLockPlaybackToAudioClockChanged;
 
+	/** Enable or disable showing of debug visualization. */
+	UPROPERTY( config, EditAnywhere, Category=General )
+	bool bShowDebugVisualization;
+
 	FOnTimeSnapIntervalChanged OnTimeSnapIntervalChanged;
+	FOnEvaluateSubSequencesInIsolationChanged OnEvaluateSubSequencesInIsolationChangedEvent;
 };

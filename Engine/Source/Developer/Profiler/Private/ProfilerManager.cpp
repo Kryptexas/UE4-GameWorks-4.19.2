@@ -1,20 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "ProfilerPrivatePCH.h"
-#include "RenderingThread.h"
+#include "ProfilerCommands.h"
+#include "ProfilerDataProvider.h"
+#include "ProfilerDataSource.h"
+#include "ProfilerManager.h"
+#include "ProfilerSession.h"
+#include "SProfilerMiniView.h"
+#include "SProfilerWindow.h"
+
 
 #define LOCTEXT_NAMESPACE "FProfilerCommands"
 
-/*-----------------------------------------------------------------------------
-	Globals and statics
------------------------------------------------------------------------------*/
 DEFINE_LOG_CATEGORY(Profiler);
+
 FProfilerSettings FProfilerSettings::Defaults( true );
-
-/*-----------------------------------------------------------------------------
-	Stat declarations.
------------------------------------------------------------------------------*/
-
 
 
 DEFINE_STAT(STAT_DG_OnPaint);
@@ -22,9 +22,6 @@ DEFINE_STAT(STAT_PM_HandleProfilerData);
 DEFINE_STAT(STAT_PM_Tick);
 DEFINE_STAT(STAT_PM_MemoryUsage);
 
-/*-----------------------------------------------------------------------------
-	Profiler manager implementation
------------------------------------------------------------------------------*/
 
 TSharedPtr<FProfilerManager> FProfilerManager::Instance = nullptr;
 
@@ -36,7 +33,8 @@ struct FEventGraphSampleLess
 	}
 };
 
-FProfilerManager::FProfilerManager( const ISessionManagerRef& InSessionManager )
+
+FProfilerManager::FProfilerManager( const TSharedRef<ISessionManager>& InSessionManager )
 	: SessionManager( InSessionManager )
 	, CommandList( new FUICommandList() )
 	, ProfilerActionManager( this )
@@ -167,6 +165,43 @@ FProfilerManager::~FProfilerManager()
 
 	ClearStatsAndInstances();
 }
+
+
+TSharedPtr<FProfilerManager> FProfilerManager::Get()
+{
+	return FProfilerManager::Instance;
+}
+
+
+FProfilerActionManager& FProfilerManager::GetActionManager()
+{
+	return FProfilerManager::Instance->ProfilerActionManager;
+}
+
+
+FProfilerSettings& FProfilerManager::GetSettings()
+{
+	return FProfilerManager::Instance->Settings;
+}
+
+
+const TSharedRef< FUICommandList > FProfilerManager::GetCommandList() const
+{
+	return CommandList;
+}
+
+
+const FProfilerCommands& FProfilerManager::GetCommands()
+{
+	return FProfilerCommands::Get();
+}
+
+
+TSharedPtr<FProfilerSession> FProfilerManager::GetProfilerSession()
+{
+	return ProfilerSession;
+}
+
 
 class FStatsHeaderReader : public FStatsReadFile
 {
@@ -405,7 +440,8 @@ void FProfilerManager::ProfilerClient_OnProfilerFileTransfer( const FString& Fil
 
 	const float Progress = (double)FileProgress/(double)FileSize;
 
-	ELoadingProgressStates::Type ProgressState = ELoadingProgressStates::InvalidOrMax;
+	ELoadingProgressStates ProgressState = ELoadingProgressStates::InvalidOrMax;
+
 	if( FileProgress == 0 )
 	{
 		ProgressState = ELoadingProgressStates::Started;
@@ -443,7 +479,7 @@ void FProfilerManager::ProfilerClient_OnClientDisconnected( const FGuid& Session
 
 void FProfilerManager::SessionManager_OnInstanceSelectionChanged(const TSharedPtr<ISessionInstanceInfo>& InInstance, bool Selected)
 {
-	const ISessionInfoPtr& SelectedSession = SessionManager->GetSelectedSession();
+	const TSharedPtr<ISessionInfo>& SelectedSession = SessionManager->GetSelectedSession();
 	const bool SessionIsValid = SelectedSession.IsValid()
 		&& (SelectedSession->GetSessionOwner() == FPlatformProcess::UserName(false))
 		&& (SessionManager->GetSelectedInstances().Num() > 0);
@@ -495,7 +531,7 @@ bool FProfilerManager::TrackStat( const uint32 StatID )
 	const bool bStatIsReady = ProfilerSession->GetAggregatedStat( StatID ) != nullptr;
 	if( StatID != 0 && bStatIsReady )
 	{
-		FTrackedStatPtr TrackedStat = TrackedStats.FindRef( StatID );
+		TSharedPtr<FTrackedStat> TrackedStat = TrackedStats.FindRef( StatID );
 		if (!TrackedStat.IsValid())
 		{
 			// R = H, G = S, B = V
@@ -530,7 +566,7 @@ bool FProfilerManager::UntrackStat( const uint32 StatID )
 	const uint32 GameThreadStatID = ProfilerSession->GetMetaData()->GetGameThreadStatID();
 	if (StatID != GameThreadStatID)
 	{
-		FTrackedStatPtr TrackedStat = TrackedStats.FindRef( StatID );
+		TSharedPtr<FTrackedStat> TrackedStat = TrackedStats.FindRef( StatID );
 		if (TrackedStat.IsValid())
 		{
 			TrackedStatChangedEvent.Broadcast( TrackedStat, false );
@@ -556,7 +592,7 @@ void FProfilerManager::ClearStatsAndInstances()
 
 	for( auto It = TrackedStats.CreateConstIterator(); It; ++It )
 	{
-		const FTrackedStatPtr& TrackedStat = It.Value();
+		const TSharedPtr<FTrackedStat>& TrackedStat = It.Value();
 		TrackedStatChangedEvent.Broadcast( TrackedStat, false );
 	}
 	TrackedStats.Empty();
@@ -628,7 +664,7 @@ void FProfilerManager::DataGraph_OnSelectionChangedForIndex( uint32 FrameStartIn
 	}
 }
 
-void FProfilerManager::ProfilerSession_OnAddThreadTime( int32 FrameIndex, const TMap<uint32, float>& ThreadMS, const FProfilerStatMetaDataRef& StatMetaData )
+void FProfilerManager::ProfilerSession_OnAddThreadTime( int32 FrameIndex, const TMap<uint32, float>& ThreadMS, const TSharedRef<FProfilerStatMetaData>& StatMetaData )
 {
 	TSharedPtr<SProfilerWindow> ProfilerWindowPtr = GetProfilerWindow();
 	if( ProfilerWindowPtr.IsValid() )
@@ -641,7 +677,7 @@ void FProfilerManager::ProfilerSession_OnAddThreadTime( int32 FrameIndex, const 
 	}
 }
 
-void FProfilerManager::SetViewMode( EProfilerViewMode::Type NewViewMode )
+void FProfilerManager::SetViewMode( EProfilerViewMode NewViewMode )
 {
 	if( NewViewMode != ViewMode )
 	{

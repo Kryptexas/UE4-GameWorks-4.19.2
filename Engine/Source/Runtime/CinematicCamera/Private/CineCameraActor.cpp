@@ -17,23 +17,19 @@ ACineCameraActor::ACineCameraActor(const FObjectInitializer& ObjectInitializer)
 	CineCameraComponent = Cast<UCineCameraComponent>(GetCameraComponent());
 
 	PrimaryActorTick.bCanEverTick = true;
-	SetActorTickEnabled(ShouldTickForTracking());
+	SetActorTickEnabled(true);
 }
 
 #if WITH_EDITOR
 void ACineCameraActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
-
-	SetActorTickEnabled(ShouldTickForTracking());
 }
 #endif
 
 void ACineCameraActor::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
-	SetActorTickEnabled(ShouldTickForTracking());
-
 	LookatTrackingSettings.LastLookatTrackingRotation = GetActorRotation();
 }
 
@@ -122,11 +118,6 @@ void ACineCameraActor::Tick(float DeltaTime)
 			CineCameraComponent->UpdateDebugFocusPlane();
 		}
 #endif // WITH_EDITORONLY_DATA
-	}
-	else
-	{
-		// no tracking, no ticking
-		SetActorTickEnabled(false);
 	}
 
 	bResetInterplation = false;

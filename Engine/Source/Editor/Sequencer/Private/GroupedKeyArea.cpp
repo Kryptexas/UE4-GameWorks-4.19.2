@@ -347,7 +347,7 @@ TArray<FKeyHandle> FGroupedKeyArea::GetUnsortedKeyHandles() const
 	return Array;
 }
 
-void FGroupedKeyArea::SetKeyTime(FKeyHandle KeyHandle, float NewKeyTime) const
+void FGroupedKeyArea::SetKeyTime(FKeyHandle KeyHandle, float NewKeyTime)
 {
 	auto* Group = FindGroup(KeyHandle);
 

@@ -247,6 +247,12 @@ private:
 	/** Fire off when sequencer selection changed */
 	void SyncSelectedWidgetsWithSequencerSelection(TArray<FGuid> ObjectGuids);
 
+	/** Get the animation playback context */
+	UObject* GetAnimationPlaybackContext() const { return GetPreview(); }
+
+	/** Get the animation playback event contexts */
+	TArray<UObject*> GetAnimationEventContexts() const { TArray<UObject*> EventContexts; EventContexts.Add(GetPreview()); return EventContexts; }
+	
 private:
 	/** The preview scene that owns the preview GUI */
 	FPreviewScene PreviewScene;

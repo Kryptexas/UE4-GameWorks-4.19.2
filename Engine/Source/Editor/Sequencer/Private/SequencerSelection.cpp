@@ -106,8 +106,6 @@ void FSequencerSelection::AddToSelection(FSequencerSelectedKey Key)
 	{
 		EmptySelectedOutlinerNodesWithoutSection(Key.KeyArea->GetOwningSection());
 	}
-
-	EmptySelectedSections();
 }
 
 void FSequencerSelection::AddToSelection(UMovieSceneSection* Section)
@@ -124,8 +122,6 @@ void FSequencerSelection::AddToSelection(UMovieSceneSection* Section)
 	{
 		EmptySelectedOutlinerNodesWithoutSection(Section);
 	}
-
-	EmptySelectedKeys();
 }
 
 void FSequencerSelection::AddToSelection(TSharedRef<FSequencerDisplayNode> OutlinerNode)

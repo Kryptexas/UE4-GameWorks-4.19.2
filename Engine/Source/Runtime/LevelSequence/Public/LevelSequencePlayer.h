@@ -4,10 +4,10 @@
 
 #include "IMovieScenePlayer.h"
 #include "LevelSequence.h"
+#include "MovieSceneEvaluationTemplateInstance.h"
 #include "LevelSequencePlayer.generated.h"
 
 class FLevelSequenceSpawnRegister;
-class FMovieSceneSequenceInstance;
 class ULevel;
 class UMovieSceneBindings;
 
@@ -54,6 +54,9 @@ struct FLevelSequencePlayerSnapshot
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="General")
 	float CurrentShotLocalTime;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="General")
+	UCameraComponent* CameraComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="General")
 	FLevelSequenceSnapshotSettings Settings;
@@ -211,16 +214,13 @@ public:
 protected:
 
 	// IMovieScenePlayer interface
-	virtual void GetRuntimeObjects(TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray<TWeakObjectPtr<UObject>>& OutObjects) const override;
+	virtual FMovieSceneRootEvaluationTemplateInstance& GetEvaluationTemplate() override { return RootTemplateInstance; }
 	virtual void UpdateCameraCut(UObject* CameraObject, UObject* UnlockIfCameraObject, bool bJumpCut) override;
 	virtual void SetViewportSettings(const TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap) override;
 	virtual void GetViewportSettings(TMap<FViewportClient*, EMovieSceneViewportParams>& ViewportParamsMap) const override;
 	virtual EMovieScenePlayerStatus::Type GetPlaybackStatus() const override;
 	virtual void SetPlaybackStatus(EMovieScenePlayerStatus::Type InPlaybackStatus) override;
-	virtual void AddOrUpdateMovieSceneInstance(UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToAdd) override;
-	virtual void RemoveMovieSceneInstance(UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToRemove) override;
-	virtual TSharedRef<FMovieSceneSequenceInstance> GetRootMovieSceneSequenceInstance() const override;
-	virtual IMovieSceneSpawnRegister& GetSpawnRegister() override;
+	virtual FMovieSceneSpawnRegister& GetSpawnRegister() override;
 	virtual UObject* GetPlaybackContext() const override;
 	virtual TArray<UObject*> GetEventContexts() const override;
 
@@ -240,7 +240,7 @@ private:
 	void PlayInternal();
 
 	/** Update the movie scene instance from the specified previous position, to the specified time position. */
-	void UpdateMovieSceneInstance(float CurrentPosition, float PreviousPosition);
+	void UpdateMovieSceneInstance(FMovieSceneEvaluationRange InRange);
 
 	/** Update the time cursor position and handle stopping & looping. */
 	void UpdateTimeCursorPosition(float NewPosition);
@@ -251,7 +251,17 @@ private:
 	/** Returns whether playback should be stopped or looped because it has gone out of the playback bounds. */
 	bool ShouldStopOrLoop(float NewPosition);
 
+	/** Get the position of the cursor in the root sequence */
+	FORCEINLINE float GetSequencePosition() const { return TimeCursorPosition + StartTime; }
+
+	/** Apply any latent actions which may have accumulated while the sequence was being evaluated */
+	void ApplyLatentActions();
+
 private:
+	enum class ELatentAction
+	{
+		Stop, Pause
+	};
 
 	/** The level sequence to play. */
 	UPROPERTY(transient)
@@ -276,9 +286,6 @@ private:
 	UPROPERTY()
 	float TimeCursorPosition;
 
-	/** The time cursor position in the previous update. */
-	float LastCursorPosition;
-
 	/** Time time at which to start playing the sequence (defaults to the lower bound of the sequence's play range) */
 	float StartTime;
 
@@ -295,10 +302,13 @@ private:
 	/** Whether this player has cleaned up the level sequence after it has stopped playing or not */
 	bool bHasCleanedUpSequence;
 
-private:
+	/** Set to true while evaluating to prevent reentrancy */
+	bool bIsEvaluating;
 
-	/** The root movie scene instance to update when playing. */
-	TSharedPtr<FMovieSceneSequenceInstance> RootMovieSceneInstance;
+	/** Set of latent actions that are to be performed when the sequence has finished evaluating this frame */
+	TArray<ELatentAction> LatentActions;
+
+private:
 
 	/** The world this player will spawn actors in, if needed */
 	TWeakObjectPtr<UWorld> World;
@@ -308,6 +318,11 @@ private:
 
 	/** The last view target to reset to when updating camera cuts to null */
 	TWeakObjectPtr<AActor> LastViewTarget;
+
+	UPROPERTY(transient)
+	FMovieSceneRootEvaluationTemplateInstance RootTemplateInstance;
+
+	FMovieScenePlaybackPosition PlayPosition;
 
 protected:
 
@@ -336,4 +351,6 @@ private:
 
 	/** The event that will be broadcast every time the sequence is updated */
 	mutable FOnLevelSequencePlayerUpdated OnLevelSequencePlayerUpdate;
+
+	TWeakObjectPtr<UCameraComponent> CachedCameraComponent;
 };

@@ -3,20 +3,23 @@
 #include "MovieSceneToolsPrivatePCH.h"
 #include "BoolKeyArea.h"
 #include "VisibilityPropertySection.h"
-#include "MovieSceneVisibilitySection.h"
+#include "MovieSceneBoolSection.h"
 
 
 void FVisibilityPropertySection::GenerateSectionLayout(class ISectionLayoutBuilder& LayoutBuilder) const
 {
-	UMovieSceneVisibilitySection* VisibilitySection = Cast<UMovieSceneVisibilitySection>(&SectionObject);
+	UMovieSceneBoolSection* BoolSection = Cast<UMovieSceneBoolSection>( &SectionObject );
 	TAttribute<TOptional<bool>> ExternalValue;
-	ExternalValue.Bind(TAttribute<TOptional<bool>>::FGetter::CreateLambda([&]
+	if (CanGetPropertyValue())
 	{
-		TOptional<bool> BoolValue = GetPropertyValue<bool>();
-		return BoolValue.IsSet()
-			? TOptional<bool>(!BoolValue.GetValue())
-			: TOptional<bool>();
-	}));
-	TSharedRef<FBoolKeyArea> KeyArea = MakeShareable(new FBoolKeyArea(VisibilitySection->GetCurve(), ExternalValue, VisibilitySection));
-	LayoutBuilder.SetSectionAsKeyArea(KeyArea);
+		ExternalValue.Bind(TAttribute<TOptional<bool>>::FGetter::CreateLambda([&]
+		{
+			TOptional<bool> BoolValue = GetPropertyValue<bool>();
+			return BoolValue.IsSet()
+				? TOptional<bool>(!BoolValue.GetValue())
+				: TOptional<bool>();
+		}));
+	}
+	TSharedRef<FBoolKeyArea> KeyArea = MakeShareable( new FBoolKeyArea( BoolSection->GetCurve(), ExternalValue, BoolSection ) );
+	LayoutBuilder.SetSectionAsKeyArea( KeyArea );
 }

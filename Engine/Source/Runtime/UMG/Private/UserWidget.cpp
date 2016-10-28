@@ -251,7 +251,7 @@ UWorld* UUserWidget::GetWorld() const
 	return nullptr;
 }
 
-UUMGSequencePlayer* UUserWidget::GetOrAddPlayer(const UWidgetAnimation* InAnimation)
+UUMGSequencePlayer* UUserWidget::GetOrAddPlayer(UWidgetAnimation* InAnimation)
 {
 	if (InAnimation)
 	{
@@ -291,7 +291,7 @@ void UUserWidget::Invalidate()
 	}
 }
 
-void UUserWidget::PlayAnimation( const UWidgetAnimation* InAnimation, float StartAtTime, int32 NumberOfLoops, EUMGSequencePlayMode::Type PlayMode, float PlaybackSpeed)
+void UUserWidget::PlayAnimation( UWidgetAnimation* InAnimation, float StartAtTime, int32 NumberOfLoops, EUMGSequencePlayMode::Type PlayMode, float PlaybackSpeed)
 {
 	FScopedNamedEvent NamedEvent(FColor::Emerald, "Widget::PlayAnimation");
 
@@ -306,7 +306,7 @@ void UUserWidget::PlayAnimation( const UWidgetAnimation* InAnimation, float Star
 	}
 }
 
-void UUserWidget::PlayAnimationTo(const UWidgetAnimation* InAnimation, float StartAtTime, float EndAtTime, int32 NumberOfLoops, EUMGSequencePlayMode::Type PlayMode, float PlaybackSpeed)
+void UUserWidget::PlayAnimationTo(UWidgetAnimation* InAnimation, float StartAtTime, float EndAtTime, int32 NumberOfLoops, EUMGSequencePlayMode::Type PlayMode, float PlaybackSpeed)
 {
 	FScopedNamedEvent NamedEvent(FColor::Emerald, "Widget::PlayAnimationTo");
 

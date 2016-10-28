@@ -3,8 +3,7 @@
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieSceneColorSection.h"
 #include "MovieSceneColorTrack.h"
-#include "IMovieScenePlayer.h"
-#include "MovieSceneColorTrackInstance.h"
+#include "Evaluation/MovieSceneColorTemplate.h"
 
 
 UMovieSceneColorTrack::UMovieSceneColorTrack( const FObjectInitializer& ObjectInitializer )
@@ -17,27 +16,7 @@ UMovieSceneSection* UMovieSceneColorTrack::CreateNewSection()
 	return NewObject<UMovieSceneSection>(this, UMovieSceneColorSection::StaticClass(), NAME_None, RF_Transactional);
 }
 
-
-TSharedPtr<IMovieSceneTrackInstance> UMovieSceneColorTrack::CreateInstance()
+FMovieSceneEvalTemplatePtr UMovieSceneColorTrack::CreateTemplateForSection(const UMovieSceneSection& Section) const
 {
-	return MakeShareable( new FMovieSceneColorTrackInstance( *this ) ); 
+	return FMovieSceneColorSectionTemplate(*CastChecked<const UMovieSceneColorSection>(&Section), *this);
 }
-
-
-bool UMovieSceneColorTrack::Eval( float Position, float LastPosition, FLinearColor& InOutColor ) const
-{
-	const UMovieSceneSection* Section = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Position );
-
-	if( Section )
-	{
-		if (!Section->IsInfinite())
-		{
-			Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
-		}
-
-		InOutColor = CastChecked<UMovieSceneColorSection>( Section )->Eval( Position, InOutColor );
-	}
-
-	return Section != nullptr;
-}
-

@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MessagingDebuggerPrivatePCH.h"
+#include "MessagingDebuggerPCH.h"
+#include "SMessagingGraph.h"
 
 
 #define LOCTEXT_NAMESPACE "SMessagingGraph"
@@ -9,12 +10,12 @@
 /* SMessagingGraph interface
  *****************************************************************************/
 
-void SMessagingGraph::Construct( const FArguments& InArgs, const TSharedRef<ISlateStyle>& InStyle )
+void SMessagingGraph::Construct(const FArguments& InArgs, const TSharedRef<ISlateStyle>& InStyle)
 {
 	ChildSlot
 	[
 		SNullWidget::NullWidget
-		//SAssignNew(GraphEditor, SGraphEditor)
+//		SAssignNew(GraphEditor, SGraphEditor)
 	];
 }
 

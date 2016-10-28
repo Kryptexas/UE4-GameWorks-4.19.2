@@ -1,20 +1,22 @@
 ﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "ProfilerPrivatePCH.h"
+#include "ProfilerManager.h"
+#include "SDataGraph.h"
+#include "SEventGraph.h"
+#include "SFiltersAndPresets.h"
+#include "SMultiDumpBrowser.h"
+#include "SProfilerGraphPanel.h"
+#include "SProfilerMiniView.h"
 #include "SProfilerSettings.h"
-#include "DesktopPlatformModule.h"
-
-#if WITH_EDITOR
-	#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
-	#include "Runtime/Engine/Public/EngineAnalytics.h"
-#endif // WITH_EDITOR
-#include "SNotificationList.h"
+#include "SProfilerToolbar.h"
+#include "SProfilerWindow.h"
 
 
 #define LOCTEXT_NAMESPACE "SProfilerWindow"
 
 
-static FText GetTextForNotification( const EProfilerNotificationTypes::Type NotificatonType, const ELoadingProgressStates::Type ProgressState, const FString& Filename, const float ProgressPercent = 0.0f )
+static FText GetTextForNotification( const EProfilerNotificationTypes NotificatonType, const ELoadingProgressStates ProgressState, const FString& Filename, const float ProgressPercent = 0.0f )
 {
 	FText Result;
 
@@ -398,7 +400,8 @@ bool SProfilerWindow::IsProfilerEnabled() const
 	return bIsActive;
 }
 
-void SProfilerWindow::ManageLoadingProgressNotificationState( const FString& Filename, const EProfilerNotificationTypes::Type NotificatonType, const ELoadingProgressStates::Type ProgressState, const float DataLoadingProgress )
+
+void SProfilerWindow::ManageLoadingProgressNotificationState( const FString& Filename, const EProfilerNotificationTypes NotificatonType, const ELoadingProgressStates ProgressState, const float DataLoadingProgress )
 {
 	const FString BaseFilename = FPaths::GetBaseFilename( Filename );
 
@@ -629,7 +632,7 @@ void SProfilerWindow::CloseProfilerSettings()
 	MainContentPanel->SetEnabled( true );
 }
 
-void SProfilerWindow::ProfilerManager_OnViewModeChanged( EProfilerViewMode::Type NewViewMode )
+void SProfilerWindow::ProfilerManager_OnViewModeChanged( EProfilerViewMode NewViewMode )
 {
 	if( NewViewMode == EProfilerViewMode::LineIndexBased )
 	{

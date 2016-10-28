@@ -46,6 +46,10 @@ private:
 
 	bool CanRemoveRecording() const;
 
+	void HandleRemoveAllRecordings();
+
+	bool CanRemoveAllRecordings() const;
+
 	EActiveTimerReturnType HandleRefreshItems(double InCurrentTime, float InDeltaTime);
 
 	TOptional<float> GetDelayPercent() const;

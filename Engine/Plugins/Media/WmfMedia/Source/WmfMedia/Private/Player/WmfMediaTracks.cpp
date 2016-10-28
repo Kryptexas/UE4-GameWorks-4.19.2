@@ -410,7 +410,7 @@ uint32 FWmfMediaTracks::GetVideoTrackBitRate(int32 TrackIndex) const
 
 FIntPoint FWmfMediaTracks::GetVideoTrackDimensions(int32 TrackIndex) const
 {
-	return VideoTracks.IsValidIndex(TrackIndex) ? VideoTracks[TrackIndex].Dimensions : FIntPoint::ZeroValue;
+	return VideoTracks.IsValidIndex(TrackIndex) ? VideoTracks[TrackIndex].OutputDim : FIntPoint::ZeroValue;
 }
 
 
@@ -873,14 +873,15 @@ void FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, IMFMediaSource& InMe
 				return;
 			}
 
-			const bool OutputRgba =
-				(SubType != MFVideoFormat_H264) &&		// H.264 to RGB is broken
-				(SubType != MFVideoFormat_H264_ES) &&	// H.264 to RGB is broken
-				(SubType != MFVideoFormat_M4S2) &&		// YUV to RGB has incorrect brightness
-				(SubType != MFVideoFormat_WMV2) &&		// YUV to RGB has incorrect brightness
-				(SubType != MFVideoFormat_WMV3);		// brightness issues (UE-35162)
+			const bool Uncompressed =
+				(SubType == MFVideoFormat_RGB555) ||
+				(SubType == MFVideoFormat_RGB565) ||
+				(SubType == MFVideoFormat_RGB565) ||
+				(SubType == MFVideoFormat_RGB24) ||
+				(SubType == MFVideoFormat_RGB32) ||
+				(SubType == MFVideoFormat_ARGB32);
 
-			Result = OutputType->SetGUID(MF_MT_SUBTYPE, OutputRgba ? MFVideoFormat_RGB32 : MFVideoFormat_YUY2);
+			Result = OutputType->SetGUID(MF_MT_SUBTYPE, Uncompressed ? MFVideoFormat_RGB32 : MFVideoFormat_YUY2);
 
 			if (FAILED(Result))
 			{
@@ -961,13 +962,13 @@ void FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, IMFMediaSource& InMe
 			VideoTrack.BitRate = ::MFGetAttributeUINT32(MediaType, MF_MT_AVG_BITRATE, 0);
 			
 			// dimensions
-			if (SUCCEEDED(::MFGetAttributeSize(MediaType, MF_MT_FRAME_SIZE, (UINT32*)&VideoTrack.Dimensions.X, (UINT32*)&VideoTrack.Dimensions.Y)))
+			if (SUCCEEDED(::MFGetAttributeSize(MediaType, MF_MT_FRAME_SIZE, (UINT32*)&VideoTrack.OutputDim.X, (UINT32*)&VideoTrack.OutputDim.Y)))
 			{
-				OutInfo += FString::Printf(TEXT("    Dimensions: %i x %i\n"), VideoTrack.Dimensions.X, VideoTrack.Dimensions.Y);
+				OutInfo += FString::Printf(TEXT("    Dimensions: %i x %i\n"), VideoTrack.OutputDim.X, VideoTrack.OutputDim.Y);
 			}
 			else
 			{
-				VideoTrack.Dimensions = FIntPoint::ZeroValue;
+				VideoTrack.OutputDim = FIntPoint::ZeroValue;
 				OutInfo += FString::Printf(TEXT("    Dimensions: n/a\n"));
 			}
 
@@ -986,18 +987,43 @@ void FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, IMFMediaSource& InMe
 				OutInfo += FString::Printf(TEXT("    Frame Rate: n/a\n"));
 			}
 
-			// sink format
-
-
-			if (OutputSubType == MFVideoFormat_YUY2)
+			// sample stride
+			long SampleStride = 0;
+			
+			if (OutputSubType == MFVideoFormat_RGB32)
 			{
-				VideoTrack.Pitch = VideoTrack.Dimensions.X * 2;
-				VideoTrack.SinkFormat = EMediaTextureSinkFormat::CharYUY2;
+				::MFGetAttributeUINT32(MediaType, MF_MT_DEFAULT_STRIDE, 0);
+
+				if (SampleStride == 0)
+				{
+					::MFGetStrideForBitmapInfoHeader(SubType.Data1, VideoTrack.OutputDim.X, &SampleStride);
+				}
+			}
+
+			if (SampleStride == 0)
+			{
+				SampleStride = VideoTrack.OutputDim.X * 4;
+			}
+			else if (SampleStride < 0)
+			{
+				SampleStride = -SampleStride;
+			}
+
+			// sink format
+			if (OutputSubType == MFVideoFormat_RGB32)
+			{
+				VideoTrack.BufferDim = FIntPoint(SampleStride / 4, VideoTrack.OutputDim.Y);
+				VideoTrack.SinkFormat = EMediaTextureSinkFormat::CharBMP;
 			}
 			else
 			{
-				VideoTrack.Pitch = VideoTrack.Dimensions.X * 4;
-				VideoTrack.SinkFormat = EMediaTextureSinkFormat::CharBGRA;
+				if (SubType != MFVideoFormat_MJPG)
+				{
+					SampleStride = Align(SampleStride, 64);
+				}
+
+				VideoTrack.BufferDim = FIntPoint(SampleStride / 8, VideoTrack.OutputDim.Y);
+				VideoTrack.SinkFormat = EMediaTextureSinkFormat::CharYUY2;
 			}
 		}
 
@@ -1018,13 +1044,13 @@ void FWmfMediaTracks::AddStreamToTracks(uint32 StreamIndex, IMFMediaSource& InMe
 		if (SUCCEEDED(StreamDescriptor->GetAllocatedString(MF_SD_LANGUAGE, &OutString, &OutLength)))
 		{
 			StreamInfo->Language = OutString;
-			CoTaskMemFree(OutString);
+			::CoTaskMemFree(OutString);
 		}
 
 		if (SUCCEEDED(StreamDescriptor->GetAllocatedString(MF_SD_STREAM_NAME, &OutString, &OutLength)))
 		{
 			StreamInfo->Name = OutString;
-			CoTaskMemFree(OutString);
+			::CoTaskMemFree(OutString);
 		}
 
 		StreamInfo->DisplayName = (StreamInfo->Name.IsEmpty())
@@ -1071,7 +1097,7 @@ void FWmfMediaTracks::InitializeVideoSink()
 	}
 
 	const FVideoTrack& VideoTrack = VideoTracks[SelectedVideoTrack];
-	VideoSink->InitializeTextureSink(VideoTrack.Dimensions, VideoTrack.SinkFormat, EMediaTextureSinkMode::Buffered);
+	VideoSink->InitializeTextureSink(VideoTrack.OutputDim, VideoTrack.BufferDim, VideoTrack.SinkFormat, EMediaTextureSinkMode::Buffered);
 }
 
 
@@ -1114,7 +1140,7 @@ void FWmfMediaTracks::HandleMediaSamplerSample(const uint8* Buffer, uint32 Size,
 	case EMediaTrackType::Video:
 		if ((VideoSink != nullptr) && VideoTracks.IsValidIndex(SelectedVideoTrack))
 		{
-			VideoSink->UpdateTextureSinkBuffer(Buffer, VideoTracks[SelectedVideoTrack].Pitch);
+			VideoSink->UpdateTextureSinkBuffer(Buffer);
 			VideoSink->DisplayTextureSinkBuffer(Time);
 		}
 		break;

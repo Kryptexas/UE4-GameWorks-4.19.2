@@ -34,6 +34,11 @@ public:
 		return StructData.IsValid() && StructData->IsValid();
 	}
 
+	TSharedPtr<FStructOnScope> GetStructData() const
+	{
+		return StructData;
+	}
+
 	bool GetReadAddressUncached(FPropertyNode& InPropertyNode, FReadAddressListData& OutAddresses) const override
 	{
 		if (!HasValidStructData())

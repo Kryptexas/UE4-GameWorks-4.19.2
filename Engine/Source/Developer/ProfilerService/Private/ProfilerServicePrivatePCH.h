@@ -3,19 +3,12 @@
 #pragma once
 
 
-/* Dependencies
- *****************************************************************************/
+#include "Runtime/Engine/Public/Engine.h"
+#include "Runtime/Core/Public/Containers/Ticker.h"
+#include "Runtime/Core/Public/Misc/SecureHash.h"
+#include "Runtime/Core/Public/Stats/StatsData.h"
+#include "Runtime/Core/Public/Stats/StatsFile.h"
+#include "Runtime/Messaging/Public/Helpers/MessageEndpoint.h"
+#include "Runtime/Messaging/Public/Helpers/MessageEndpointBuilder.h"
 
-#include "Engine.h"
-#include "Messaging.h"
-#include "ProfilerMessages.h"
-#include "Ticker.h"
-#include "StatsData.h"
-#include "StatsFile.h"
-
-
-/* Private includes
- *****************************************************************************/
-
-#include "ProfilerService.h"
-#include "ProfilerServiceManager.h"
+#include "Developer/ProfilerMessages/Public/ProfilerServiceMessages.h"

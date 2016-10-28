@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UdpMessagingPrivatePCH.h"
-#include "AutomationTest.h"
+#include "UdpMessageTransport.h"
 #include "UdpMessagingTestTypes.h"
 
 
@@ -41,7 +41,7 @@ public:
 		return NumReceivedMessages;
 	}
 
-	bool Publish(const IMessageContextRef& Context)
+	bool Publish(const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 	{
 		return Transport->TransportMessage(Context, TArray<FGuid>());
 	}
@@ -58,7 +58,7 @@ public:
 
 private:
 
-	void HandleTransportMessageReceived(const IMessageContextRef& MessageContext, const FGuid& NodeId)
+	void HandleTransportMessageReceived(const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& MessageContext, const FGuid& NodeId)
 	{
 		FPlatformAtomics::InterlockedIncrement(&NumReceivedMessages);
 	}
@@ -79,7 +79,7 @@ private:
 	TArray<FGuid> LostNodes;
 	int32 NumReceivedMessages;
 	FAutomationTestBase& Test;
-	IMessageTransportPtr Transport;
+	TSharedPtr<IMessageTransport, ESPMode::ThreadSafe> Transport;
 };
 
 
@@ -137,7 +137,7 @@ bool FUdpMessageTransportTest::RunTest(const FString& Parameters)
 	for (int32 Count = 0; Count < NumTestMessages; ++Count)
 	{
 		FUdpMockMessage* Message = new FUdpMockMessage(MessageSize);
-		IMessageContextRef Context = MakeShareable(new FUdpMockMessageContext(Message));
+		TSharedRef<IMessageContext, ESPMode::ThreadSafe> Context = MakeShareable(new FUdpMockMessageContext(Message));
 
 		Transport1.Publish(Context);
 	}

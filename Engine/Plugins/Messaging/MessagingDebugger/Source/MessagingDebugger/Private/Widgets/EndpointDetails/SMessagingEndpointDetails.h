@@ -3,6 +3,10 @@
 #pragma once
 
 
+class FMessagingDebuggerModel;
+struct FMessageTracerAddressInfo;
+
+
 /**
 * Implements the message types panel.
 */
@@ -23,13 +27,13 @@ public:
 	 * @param InModel The view model to use.
 	 * @param InStyle The visual style to use for this widget.
 	 */
-	void Construct( const FArguments& InArgs, const FMessagingDebuggerModelRef& InModel, const TSharedRef<ISlateStyle>& InStyle );
+	void Construct(const FArguments& InArgs, const TSharedRef<FMessagingDebuggerModel>& InModel, const TSharedRef<ISlateStyle>& InStyle);
 
 public:
 
-	// SCompoundWidget overrides
+	//~ SCompoundWidget overrides
 
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 
 protected:
 
@@ -39,7 +43,7 @@ protected:
 private:
 
 	/** Callback for generating a row widget for the address list view. */
-	TSharedRef<ITableRow> HandleAddressListGenerateRow( FMessageTracerAddressInfoPtr AddressInfo, const TSharedRef<STableViewBase>& OwnerTable );
+	TSharedRef<ITableRow> HandleAddressListGenerateRow(TSharedPtr<FMessageTracerAddressInfo> AddressInfo, const TSharedRef<STableViewBase>& OwnerTable);
 
 	/** Callback for getting the number of received messages. */
 	FText HandleEndpointDetailsReceivedMessagesText() const;
@@ -50,13 +54,13 @@ private:
 private:
 
 	/** Holds the list of address information. */
-	TArray<FMessageTracerAddressInfoPtr> AddressList;
+	TArray<TSharedPtr<FMessageTracerAddressInfo>> AddressList;
 
 	/** Holds the address information list view. */
-	TSharedPtr<SListView<FMessageTracerAddressInfoPtr> > AddressListView;
+	TSharedPtr<SListView<TSharedPtr<FMessageTracerAddressInfo>> > AddressListView;
 
 	/** Holds a pointer to the view model. */
-	FMessagingDebuggerModelPtr Model;
+	TSharedPtr<FMessagingDebuggerModel> Model;
 
 	/** Holds the widget's visual style. */
 	TSharedPtr<ISlateStyle> Style;

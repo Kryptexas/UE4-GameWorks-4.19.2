@@ -18,7 +18,7 @@ UUMGSequencePlayer::UUMGSequencePlayer(const FObjectInitializer& ObjectInitializ
 	Animation = nullptr;
 }
 
-void UUMGSequencePlayer::InitSequencePlayer( const UWidgetAnimation& InAnimation, UUserWidget& InUserWidget )
+void UUMGSequencePlayer::InitSequencePlayer( UWidgetAnimation& InAnimation, UUserWidget& InUserWidget )
 {
 	Animation = &InAnimation;
 
@@ -29,24 +29,7 @@ void UUMGSequencePlayer::InitSequencePlayer( const UWidgetAnimation& InAnimation
 	AnimationStartOffset = TimeRange.GetLowerBoundValue();
 
 	UserWidget = &InUserWidget;
-	UWidgetTree* WidgetTree = InUserWidget.WidgetTree;
-
-	// Bind to Runtime Objects
-	for (const FWidgetAnimationBinding& Binding : InAnimation.GetBindings())
-	{
-		UObject* FoundObject = Binding.FindRuntimeObject( *WidgetTree , InUserWidget);
-
-		if( FoundObject )
-		{
-			TArray<UObject*>& Objects = GuidToRuntimeObjectMap.FindOrAdd(Binding.AnimationGuid);
-			Objects.Add(FoundObject);
 		}
-		else
-		{
-			UE_LOG(LogUMG, Warning, TEXT("Failed to find runtime objects for %s animation, WidgetName: %s, SlotName: %s"), *InAnimation.GetPathName(), *Binding.WidgetName.ToString(), *Binding.SlotWidgetName.ToString() );
-		}
-	}
-}
 
 void UUMGSequencePlayer::Tick(float DeltaTime)
 {
@@ -127,18 +110,19 @@ void UUMGSequencePlayer::Tick(float DeltaTime)
 			Animation->OnAnimationFinished.Broadcast();
 		}
 
-		if (RootMovieSceneInstance.IsValid())
+		if (RootTemplateInstance.IsValid())
 		{			
-			EMovieSceneUpdateData UpdateData(TimeCursorPosition + AnimationStartOffset, LastTimePosition + AnimationStartOffset);
-			RootMovieSceneInstance->Update(UpdateData, *this);
+			const FMovieSceneContext Context(
+				FMovieSceneEvaluationRange(TimeCursorPosition + AnimationStartOffset, (TimeCursorPosition - LastTimePosition) + AnimationStartOffset),
+				PlayerStatus);
+			RootTemplateInstance.Evaluate(Context, *this);
 		}
 	}
 }
 
 void UUMGSequencePlayer::PlayInternal(double StartAtTime, double EndAtTime, double SubAnimStartTime, double SubAnimEndTime, int32 InNumLoopsToPlay, EUMGSequencePlayMode::Type InPlayMode, float InPlaybackSpeed)
 {
-	RootMovieSceneInstance = MakeShareable( new FMovieSceneSequenceInstance( *Animation ) );
-	RootMovieSceneInstance->RefreshInstance( *this );
+	RootTemplateInstance.Initialize(*Animation, *this);
 
 	PlaybackSpeed = FMath::Abs(InPlaybackSpeed);
 	PlayMode = InPlayMode;
@@ -176,10 +160,10 @@ void UUMGSequencePlayer::PlayInternal(double StartAtTime, double EndAtTime, doub
 	// Immediately evaluate the first frame of the animation so that if tick has already occurred, the widget is setup correctly and ready to be
 	// rendered using the first frames data, otherwise you may see a *pop* due to a widget being constructed with a default different than the
 	// first frame of the animation.
-	if ( RootMovieSceneInstance.IsValid() )
-	{
-		EMovieSceneUpdateData UpdateData(TimeCursorPosition, TimeCursorPosition);
-		RootMovieSceneInstance->Update(UpdateData, *this);
+	if (RootTemplateInstance.IsValid())
+	{			
+		const FMovieSceneContext Context(FMovieSceneEvaluationRange(TimeCursorPosition, TimeCursorPosition), PlayerStatus);
+		RootTemplateInstance.Evaluate(Context, *this);
 	}
 
 	PlayerStatus = EMovieScenePlayerStatus::Playing;
@@ -206,6 +190,8 @@ void UUMGSequencePlayer::Pause()
 {
 	// Purposely don't trigger any OnFinished events
 	PlayerStatus = EMovieScenePlayerStatus::Stopped;
+
+	RootTemplateInstance.Finish(*this);
 }
 
 void UUMGSequencePlayer::Reverse()
@@ -219,6 +205,8 @@ void UUMGSequencePlayer::Reverse()
 void UUMGSequencePlayer::Stop()
 {
 	PlayerStatus = EMovieScenePlayerStatus::Stopped;
+
+	RootTemplateInstance.Finish(*this);
 
 	OnSequenceFinishedPlayingEvent.Broadcast(*this);
 	Animation->OnAnimationFinished.Broadcast();
@@ -243,16 +231,6 @@ void UUMGSequencePlayer::SetPlaybackSpeed(float InPlaybackSpeed)
 	PlaybackSpeed = InPlaybackSpeed;
 }
 
-void UUMGSequencePlayer::GetRuntimeObjects(TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray<TWeakObjectPtr<UObject>>& OutObjects) const
-{
-	const TArray<UObject*>* FoundObjects = GuidToRuntimeObjectMap.Find( ObjectHandle );
-
-	if( FoundObjects )
-	{
-		OutObjects.Append(*FoundObjects);
-	}
-}
-
 EMovieScenePlayerStatus::Type UUMGSequencePlayer::GetPlaybackStatus() const
 {
 	return PlayerStatus;
@@ -260,14 +238,7 @@ EMovieScenePlayerStatus::Type UUMGSequencePlayer::GetPlaybackStatus() const
 
 UObject* UUMGSequencePlayer::GetPlaybackContext() const
 {
-	if (UserWidget.IsValid())
-	{
-		return UserWidget->GetWorld();
-	}
-	else
-	{
-		return nullptr;
-	}
+	return UserWidget.Get();
 }
 
 TArray<UObject*> UUMGSequencePlayer::GetEventContexts() const

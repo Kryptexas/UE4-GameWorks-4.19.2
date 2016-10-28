@@ -16,7 +16,7 @@ public:
 	 * @param MessageInfo The message to filter.
 	 * @return true if the message passed the filter, false otherwise.
 	 */
-	bool FilterEndpoint( const FMessageTracerMessageInfoPtr& MessageInfo ) const
+	bool FilterEndpoint(const TSharedPtr<FMessageTracerMessageInfo>& MessageInfo) const
 	{
 		if (!MessageInfo.IsValid())
 		{
@@ -46,10 +46,3 @@ private:
 	/** Holds an event delegate that is invoked when the filter settings changed. */
 	FOnMessagingMessageFilterChanged ChangedEvent;
 };
-
-
-/** Type definition for shared pointers to instances of FMessagingDebuggerMessageFilter. */
-typedef TSharedPtr<FMessagingDebuggerMessageFilter> FMessagingDebuggerMessageFilterPtr;
-
-/** Type definition for shared references to instances of FMessagingDebuggerMessageFilter. */
-typedef TSharedRef<FMessagingDebuggerMessageFilter> FMessagingDebuggerMessageFilterRef;

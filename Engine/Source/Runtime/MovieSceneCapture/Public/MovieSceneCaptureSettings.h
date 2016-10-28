@@ -82,6 +82,10 @@ struct MOVIESCENECAPTURE_API FMovieSceneCaptureSettings
 	UPROPERTY(config, EditAnywhere, Category=CaptureSettings, AdvancedDisplay)
 	bool bEnableTextureStreaming;
 
+	/** Whether to enable cinematic engine scalability settings */
+	UPROPERTY(config, EditAnywhere, Category=Cinematic)
+	bool bCinematicEngineScalability;
+
 	/** Whether to enable cinematic mode whilst capturing */
 	UPROPERTY(config, EditAnywhere, Category=Cinematic)
 	bool bCinematicMode;
