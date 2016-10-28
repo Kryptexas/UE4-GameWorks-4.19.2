@@ -1288,6 +1288,7 @@ void USkeletalMeshComponent::EvaluateAnimation(const USkeletalMesh* InSkeletalMe
 	else
 	{
 		OutBoneSpaceTransforms = InSkeletalMesh->RefSkeleton.GetRefBonePose();
+		OutCurve.InitFrom(&InSkeletalMesh->Skeleton->GetDefaultCurveUIDList());
 	}
 
 	// Remember the root bone's translation so we can move the bounds.
