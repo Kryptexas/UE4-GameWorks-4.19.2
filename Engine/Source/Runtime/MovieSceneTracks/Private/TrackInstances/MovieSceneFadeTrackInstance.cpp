@@ -67,7 +67,7 @@ void FMovieSceneFadeTrackInstance::Update(EMovieSceneUpdateData& UpdateData, con
 
 		// Set runtime fade
 		UWorld* World = Cast<UWorld>(Player.GetPlaybackContext());
-		if (World && World->WorldType == EWorldType::Game || World->WorldType == EWorldType::PIE)
+		if (World && (World->WorldType == EWorldType::Game || World->WorldType == EWorldType::PIE))
 		{
 			APlayerController* PlayerController = World->GetGameInstance()->GetFirstLocalPlayerController();
 			if (PlayerController != nullptr && PlayerController->PlayerCameraManager && !PlayerController->PlayerCameraManager->IsPendingKill())
