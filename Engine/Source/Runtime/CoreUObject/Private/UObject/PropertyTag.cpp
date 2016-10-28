@@ -2,6 +2,7 @@
 
 #include "CoreUObjectPrivate.h"
 #include "PropertyTag.h"
+#include "UObject/BlueprintsObjectVersion.h"
 
 /*-----------------------------------------------------------------------------
 FPropertyTag
@@ -15,6 +16,7 @@ FPropertyTag::FPropertyTag()
 	, StructName(NAME_None)
 	, EnumName  (NAME_None)
 	, InnerType (NAME_None)
+	, ValueType	(NAME_None)
 	, Size      (0)
 	, ArrayIndex(INDEX_NONE)
 	, SizeOffset(INDEX_NONE)
@@ -26,9 +28,10 @@ FPropertyTag::FPropertyTag( FArchive& InSaveAr, UProperty* Property, int32 InInd
 	, BoolVal   (0)
 	, Name      (Property->GetFName())
 	, StructName(NAME_None)
-	, EnumName  (NAME_None)
-	, InnerType (NAME_None)
-	, Size      (0)
+	, EnumName	(NAME_None)
+	, InnerType	(NAME_None)
+	, ValueType	(NAME_None)
+	, Size		(0)
 	, ArrayIndex(InIndex)
 	, SizeOffset(INDEX_NONE)
 	, HasPropertyGuid(0)
@@ -51,6 +54,15 @@ FPropertyTag::FPropertyTag( FArchive& InSaveAr, UProperty* Property, int32 InInd
 		else if (UArrayProperty* ArrayProp = Cast<UArrayProperty>(Property))
 		{
 			InnerType = ArrayProp->Inner->GetID();
+		}
+		else if (USetProperty* SetProp = Cast<USetProperty>(Property))
+		{
+			InnerType = SetProp->ElementProp->GetID();
+		}
+		else if (UMapProperty* MapProp = Cast<UMapProperty>(Property))
+		{
+			InnerType = MapProp->KeyProp->GetID();
+			ValueType = MapProp->ValueProp->GetID();
 		}
 		else if (UBoolProperty* Bool = Cast<UBoolProperty>(Property))
 		{
@@ -117,6 +129,20 @@ FArchive& operator<<( FArchive& Ar, FPropertyTag& Tag )
 			Ar << Tag.InnerType;
 		}
 	}
+
+	if (Ar.UE4Ver() >= VER_UE4_PROPERTY_TAG_SET_MAP_SUPPORT)
+	{
+		if (Tag.Type == NAME_SetProperty)
+		{
+			Ar << Tag.InnerType;
+		}
+		else if (Tag.Type == NAME_MapProperty)
+		{
+			Ar << Tag.InnerType;
+			Ar << Tag.ValueType;
+		}
+	}
+
 	// Property tags to handle renamed blueprint properties effectively.
 	if (Ar.UE4Ver() >= VER_UE4_PROPERTY_GUID_IN_PROPERTY_TAG)
 	{

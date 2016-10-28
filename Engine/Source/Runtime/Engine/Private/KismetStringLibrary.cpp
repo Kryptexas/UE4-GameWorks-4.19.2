@@ -72,6 +72,11 @@ FString UKismetStringLibrary::Conv_VectorToString(FVector InVec)
 	return InVec.ToString();	
 }
 
+FString UKismetStringLibrary::Conv_IntVectorToString(FIntVector InIntVec)
+{
+	return InIntVec.ToString();
+}
+
 FString UKismetStringLibrary::Conv_Vector2dToString(FVector2D InVec)
 {
 	return InVec.ToString();	
@@ -189,6 +194,21 @@ FString UKismetStringLibrary::BuildString_Vector(const FString& AppendTo, const 
 
 	FString StringResult;
 	StringResult.Empty(AppendTo.Len()+Prefix.Len()+VecStr.Len()+Suffix.Len()+1); // adding one for the string terminator
+	StringResult += AppendTo;
+	StringResult += Prefix;
+	StringResult += VecStr;
+	StringResult += Suffix;
+
+	return StringResult;
+}
+
+FString UKismetStringLibrary::BuildString_IntVector(const FString& AppendTo, const FString& Prefix, FIntVector InIntVector, const FString& Suffix)
+{
+	// faster, preallocating method
+	FString const VecStr = InIntVector.ToString();
+
+	FString StringResult;
+	StringResult.Empty(AppendTo.Len() + Prefix.Len() + VecStr.Len() + Suffix.Len() + 1); // adding one for the string terminator
 	StringResult += AppendTo;
 	StringResult += Prefix;
 	StringResult += VecStr;

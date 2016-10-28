@@ -4883,6 +4883,19 @@ UObject* UDynamicClass::FindArchetype(UClass* ArchetypeClass, const FName Archet
 {
 	UDynamicClass* ThisClass = const_cast<UDynamicClass*>(this);
 	UObject* Archetype = static_cast<UObject*>(FindObjectWithOuter(ThisClass, ArchetypeClass, ArchetypeName));
+	if (!Archetype)
+	{
+		// See UBlueprintGeneratedClass::FindArchetype, UE-35259, UE-37480
+		const FName ArchetypeBaseName = FName(ArchetypeName, 0);
+		if (ArchetypeBaseName != ArchetypeName)
+		{
+			UObject* const* FountComponentTemplate = ComponentTemplates.FindByPredicate([&](UObject* InObj) -> bool
+			{ 
+				return InObj && (InObj->GetFName() == ArchetypeBaseName) && InObj->IsA(ArchetypeClass);
+			});
+			Archetype = FountComponentTemplate ? *FountComponentTemplate : nullptr;
+		}
+	}
 	const UClass* SuperClass = GetSuperClass();
 	return Archetype ? Archetype :
 		(SuperClass ? SuperClass->FindArchetype(ArchetypeClass, ArchetypeName) : nullptr);

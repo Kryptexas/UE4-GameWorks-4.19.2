@@ -148,6 +148,14 @@ TSharedRef<SWidget> SPinTypeSelector::ConstructPinTypeImage(const FSlateBrush* P
 		.ColorAndOpacity(PrimaryColor);
 }
 
+TSharedRef<SWidget> SPinTypeSelector::ConstructPinTypeImage(TAttribute<const FSlateBrush*> PrimaryIcon, TAttribute<FSlateColor> PrimaryColor, TAttribute<const FSlateBrush*> SecondaryIcon, TAttribute<FSlateColor> SecondaryColor )
+{
+	return
+		SNew(SDoubleImage, SecondaryIcon, SecondaryColor)
+		.Image(PrimaryIcon)
+		.ColorAndOpacity(PrimaryColor);
+}
+
 void SPinTypeSelector::Construct(const FArguments& InArgs, FGetPinTypeTree GetPinTypeTreeFunc)
 {
 	// SComboBox is a bit restrictive:
@@ -775,13 +783,19 @@ void SPinTypeSelector::OnSelectPinType(FPinTypeTreeItem InItem, FString InPinCat
 
 	if ((NewTargetPinType.bIsMap || NewTargetPinType.bIsSet) && !FBlueprintEditorUtils::HasGetTypeHash(NewTargetPinType))
 	{
+		FEdGraphPinType HashedType = NewTargetPinType;
+		// clear the container-ness for messaging, we want to explain that the contained type is not hashable,
+		// not message about the container type (e.g. "Container type cleared because 'bool' does not have a GetTypeHash..."
+		// instead of "Container Type cleared because 'map of bool to float'..."). We also need to clear this because
+		// the type cannot be a container:
+		NewTargetPinType.bIsMap = false;
+		NewTargetPinType.bIsSet = false;
+
 		// inform user via toast why the type change was exceptional and clear IsMap/IsSetness because this type cannot be hashed:
-		const FText NotificationText = FText::Format(LOCTEXT("TypeCannotBeHashed", "Container type cleared because '{0}' does not have a GetTypeHash function. Maps and Sets require a hash function to insert and find elements"), GetTypeDescription());
+		const FText NotificationText = FText::Format(LOCTEXT("TypeCannotBeHashed", "Container type cleared because '{0}' does not have a GetTypeHash function. Maps and Sets require a hash function to insert and find elements"), UEdGraphSchema_K2::TypeToText(NewTargetPinType));
 		FNotificationInfo Info(NotificationText);
 		Info.ExpireDuration = 8.0f;
 		FSlateNotificationManager::Get().AddNotification(Info);
-		NewTargetPinType.bIsMap = false;
-		NewTargetPinType.bIsSet = false;
 	}
 
 	OnTypeChanged.ExecuteIfBound(NewTargetPinType);

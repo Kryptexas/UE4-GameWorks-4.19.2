@@ -23,6 +23,10 @@ struct FNativizationSummary
 	};
 
 	TMap<FStringAssetReference, FAnimBlueprintDetails> AnimBlueprintStat;
+
+	int32 MemberVariablesFromGraph;
+
+	FNativizationSummary() : MemberVariablesFromGraph(0) {}
 };
 
 /**

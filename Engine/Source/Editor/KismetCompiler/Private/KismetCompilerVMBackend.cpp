@@ -16,6 +16,7 @@
 #include "Engine/UserDefinedStruct.h"
 
 #include "TextPackageNamespaceUtil.h"
+#include "BlueprintEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "KismetCompilerVMBackend"
 //////////////////////////////////////////////////////////////////////////
@@ -297,9 +298,7 @@ protected:
 				}
 			}
 
-			// Function contexts must always be objects, so if we have a literal, give it the default object property so the compiler knows how to handle it
-			UProperty* CoerceProperty = Term->bIsLiteral ? ((UProperty*)(GetDefault<UObjectProperty>())) : NULL;
-			ScriptBuilder.EmitTerm(Term, CoerceProperty);
+			ScriptBuilder.EmitTerm(Term);
 
 			// Skip offset if the expression evaluates to null (counting from later on)
 			FSkipOffsetEmitter Skipper(ScriptBuilder.Writer.ScriptBuffer);
@@ -497,6 +496,7 @@ public:
 			return Type && (Type->PinCategory == UEdGraphSchema_K2::PC_Asset);
 		}
 
+		// Will handle Class properties as well
 		static bool IsObject(const FEdGraphPinType* Type, const UProperty* Property)
 		{
 			if (Property)
@@ -504,6 +504,15 @@ public:
 				return Property->IsA<UObjectPropertyBase>();
 			}
 			return Type && (Type->PinCategory == UEdGraphSchema_K2::PC_Object);
+		}
+
+		static bool IsClass(const FEdGraphPinType* Type, const UProperty* Property)
+		{
+			if (Property)
+			{
+				return Property->IsA<UClassProperty>();
+			}
+			return Type && (Type->PinCategory == UEdGraphSchema_K2::PC_Class);
 		}
 
 		static bool IsInterface(const FEdGraphPinType* Type, const UProperty* Property)
@@ -521,6 +530,43 @@ public:
 		if (Term->bIsLiteral)
 		{
 			check(!Term->Type.bIsArray || CoerceProperty);
+
+			// Additional Validation, since we cannot trust custom k2nodes
+			const bool bSecialCaseSelf = (Term->Type.PinSubCategory == Schema->PN_Self);
+			if (CoerceProperty && ensure(Schema) && ensure(CurrentCompilerContext) && !bSecialCaseSelf)
+			{
+				FEdGraphPinType TrueType;
+				const bool bValidProperty = Schema->ConvertPropertyToPinType(CoerceProperty, TrueType);
+
+				auto AreTypesBinaryCompatible = [](const FEdGraphPinType& TypeA, const FEdGraphPinType& TypeB) -> bool
+				{
+					if (TypeA.PinCategory != TypeB.PinCategory)
+					{
+						return false;
+					}
+					if ((TypeA.bIsMap != TypeB.bIsMap)
+						|| (TypeA.bIsSet != TypeB.bIsSet)
+						|| (TypeA.bIsArray != TypeB.bIsArray)
+						|| (TypeA.bIsWeakPointer != TypeB.bIsWeakPointer))
+					{
+						return false;
+					}
+					if (TypeA.PinCategory == UEdGraphSchema_K2::PC_Struct)
+					{
+						if (TypeA.PinSubCategoryObject != TypeB.PinSubCategoryObject)
+						{
+							return false;
+						}
+					}
+					return true;
+				};
+
+				if (!bValidProperty || !AreTypesBinaryCompatible(Term->Type, TrueType))
+				{
+					const FString ErrorMessage = FString::Printf(TEXT("ICE: The type of property %s doesn't match a term. @@"), *CoerceProperty->GetPathName());
+					CurrentCompilerContext->MessageLog.Error(*ErrorMessage, Term->SourcePin);
+				}
+			}
 
 			if (FLiteralTypeHelper::IsString(&Term->Type, CoerceProperty))
 			{
@@ -656,10 +702,6 @@ public:
 				Writer << EX_NameConst;
 				Writer << LiteralName;
 			}
-			//else if (UClassProperty* ClassProperty = Cast<UClassProperty>(CoerceProperty))
-			//{
-			//	ensureMsgf(false, TEXT("Class property literals are not supported yet!"));
-			//}
 			else if (FLiteralTypeHelper::IsStruct(&Term->Type, CoerceProperty))
 			{
 				UStructProperty* StructProperty = Cast<UStructProperty>(CoerceProperty);
@@ -721,12 +763,14 @@ public:
 					Writer << Struct;
 					Writer << StructSize;
 
+					checkSlow(Schema);
 					for( UProperty* Prop = Struct->PropertyLink; Prop; Prop = Prop->PropertyLinkNext )
 					{
 						for (int32 ArrayIter = 0; ArrayIter < Prop->ArrayDim; ++ArrayIter)
 						{
 							// Create a new term for each property, and serialize it out
 							FBPTerminal NewTerm;
+							Schema->ConvertPropertyToPinType(Prop, NewTerm.Type);
 							NewTerm.bIsLiteral = true;
 							NewTerm.Source = Term->Source;
 							Prop->ExportText_InContainer(ArrayIter, NewTerm.Name, StructData, StructData, NULL, PPF_None);
@@ -763,6 +807,7 @@ public:
 				for (int32 ElemIdx = 0; ElemIdx < ElementNum; ++ElemIdx)
 				{
 					FBPTerminal NewTerm;
+					Schema->ConvertPropertyToPinType(InnerProp, NewTerm.Type);
 					NewTerm.bIsLiteral = true;
 					NewTerm.Source = Term->Source;
 					uint8* RawElemData = ScriptArrayHelper.GetRawPtr(ElemIdx);
@@ -800,7 +845,7 @@ public:
 				FAssetPtr AssetPtr(Term->ObjectLiteral);
 				EmitStringLiteral(AssetPtr.GetUniqueID().ToString());
 			}
-			else if (FLiteralTypeHelper::IsObject(&Term->Type, CoerceProperty))
+			else if (FLiteralTypeHelper::IsObject(&Term->Type, CoerceProperty) || FLiteralTypeHelper::IsClass(&Term->Type, CoerceProperty))
 			{
 				// Note: This case handles both UObjectProperty and UClassProperty
 				if (Term->Type.PinSubCategory == Schema->PN_Self)
@@ -831,6 +876,10 @@ public:
 				{
 					ensureMsgf(false, TEXT("It is not possible to express this interface property as a literal value! (%s)"), *CoerceProperty->GetFullName());
 				}
+			}
+			else if (!CoerceProperty && Term->Type.PinCategory.IsEmpty() && (Term->Type.PinSubCategory == Schema->PN_Self))
+			{
+				Writer << EX_Self;
 			}
 			// else if (CoerceProperty->IsA(UMulticastDelegateProperty::StaticClass()))
 			// Cannot assign a literal to a multicast delegate; it should be added instead of assigned
@@ -881,6 +930,7 @@ public:
 		Writer << LatentInfoStruct;
 		Writer << StructSize;
 
+		checkSlow(Schema);
 		for (UProperty* Prop = LatentInfoStruct->PropertyLink; Prop; Prop = Prop->PropertyLinkNext)
 		{
 			if (TargetLabel && Prop->GetBoolMetaData(FBlueprintMetadata::MD_NeedsLatentFixup))
@@ -901,6 +951,7 @@ public:
 			{
 				// Create a new term for each property, and serialize it out
 				FBPTerminal NewTerm;
+				Schema->ConvertPropertyToPinType(Prop, NewTerm.Type);
 				NewTerm.bIsLiteral = true;
 				Prop->ExportText_InContainer(0, NewTerm.Name, StructData, StructData, NULL, PPF_None);
 
@@ -1612,7 +1663,8 @@ public:
 			{
 				// If this is a debug site for an expanded macro instruction, there should also be a macro source node associated with it
 				UEdGraphNode* MacroSourceNode = CompilerContext.MessageLog.GetSourceTunnelNode(SourceNode);
-				if (MacroSourceNode == TrueSourceNode)
+				// We need to ensure that macro/composite instances also record the tunnels present at any script location ( including themselves )
+				if (MacroSourceNode == TrueSourceNode && !FBlueprintEditorUtils::IsTunnelInstanceNode(MacroSourceNode))
 				{
 					// The function above will return the given node if not found in the map. In that case there is no associated source macro node, so we clear it.
 					MacroSourceNode = NULL;

@@ -414,6 +414,11 @@ UObject* UObjectPropertyBase::FindImportedObject( const UProperty* Property, UOb
 		{
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 			FLinkerLoad* Linker = (OwnerObject != nullptr) ? OwnerObject->GetClass()->GetLinker() : nullptr;
+			if (Linker == nullptr)
+			{
+				// Fall back on the Properties owner. That is probably the thing that has triggered this load:
+				Linker = Property->GetLinker();
+			}
 			const bool bDeferAssetImports = (Linker != nullptr) && (Linker->LoadFlags & LOAD_DeferDependencyLoads);
 
 			if (bDeferAssetImports)

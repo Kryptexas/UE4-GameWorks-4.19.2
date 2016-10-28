@@ -204,6 +204,7 @@ UEdGraph* FEdGraphUtilities::CloneGraph(UEdGraph* InSource, UObject* NewOuter, F
 	if (bCloningForCompile || (NewOuter == NULL))
 	{
 		Parameters.ApplyFlags |= RF_Transient;
+		Parameters.FlagMask &= ~RF_Transactional;
 	}
 
 	UEdGraph* ClonedGraph = CastChecked<UEdGraph>(StaticDuplicateObjectEx(Parameters));
@@ -481,6 +482,37 @@ bool FEdGraphUtilities::IsSetParam(const UFunction* Function, const FString& Par
 	}
 
 	return false;
+}
+
+bool FEdGraphUtilities::IsMapParam(const UFunction* Function, const FString& ParameterName)
+{
+	if (Function == nullptr)
+	{
+		return false;
+	}
+
+	const FString& MapParamMetaData = Function->GetMetaData(FBlueprintMetadata::MD_MapParam);
+	const FString& MapValueParamMetaData = Function->GetMetaData(FBlueprintMetadata::MD_MapValueParam);
+	const FString& MapKeyParamMetaData = Function->GetMetaData(FBlueprintMetadata::MD_MapKeyParam);
+	if (MapParamMetaData.IsEmpty() && MapValueParamMetaData.IsEmpty() && MapKeyParamMetaData.IsEmpty() )
+	{
+		return false;
+	}
+
+	const auto PipeSeparatedStringContains = [ParameterName](const FString& List)
+	{
+		TArray<FString> GroupEntries;
+		List.ParseIntoArray(GroupEntries, TEXT("|"), true);
+		if (GroupEntries.Contains(ParameterName))
+		{
+			return true;
+		}
+		return false;
+	};
+
+	return PipeSeparatedStringContains(MapParamMetaData)
+		|| PipeSeparatedStringContains(MapValueParamMetaData) 
+		|| PipeSeparatedStringContains(MapKeyParamMetaData);
 }
 
 void FEdGraphUtilities::RegisterVisualNodeFactory(TSharedPtr<FGraphPanelNodeFactory> NewFactory)

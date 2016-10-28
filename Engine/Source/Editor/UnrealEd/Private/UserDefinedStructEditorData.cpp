@@ -4,6 +4,7 @@
 #include "StructureEditorUtils.h"
 #include "Engine/UserDefinedStruct.h"
 #include "BlueprintEditorUtils.h"
+#include "Blueprint/BlueprintSupport.h"
 
 #define LOCTEXT_NAMESPACE "UserDefinedStructEditorData"
 
@@ -114,6 +115,11 @@ void UUserDefinedStructEditorData::RecreateDefaultInstance(FString* OutLog)
 	ensure(DefaultStructInstance.IsValid() && DefaultStructInstance.GetStruct() == ScriptStruct);
 	if (DefaultStructInstance.IsValid() && StructData && ScriptStruct)
 	{
+		// When loading, the property's default value may end up being filled with a placeholder. 
+		// This tracker object allows the linker to track the actual object that is being filled in 
+		// so it can calculate an offset to the property and write in the placeholder value:
+		FScopedPlaceholderRawContainerTracker TrackDefaultObject(StructData);
+
 		DefaultStructInstance.SetPackage(ScriptStruct->GetOutermost());
 
 		for (TFieldIterator<UProperty> It(ScriptStruct); It; ++It)

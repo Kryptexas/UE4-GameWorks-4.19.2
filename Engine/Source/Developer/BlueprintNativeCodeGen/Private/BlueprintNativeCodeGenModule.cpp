@@ -69,9 +69,15 @@ private:
 
 	TMap< FString, TUniquePtr<FBlueprintNativeCodeGenManifest> > Manifests;
 
+	// Children of these classes won't be nativized
 	TArray<FString> ExcludedAssetTypes;
+	// Eg: +ExcludedBlueprintTypes=/Script/Engine.AnimBlueprint
 	TArray<TAssetSubclassOf<UBlueprint>> ExcludedBlueprintTypes;
+	// Individually excluded assets
 	TSet<FStringAssetReference> ExcludedAssets;
+	// Excluded folders. It excludes only BPGCs, enums and structures are still converted.
+	TArray<FString> ExcludedFolderPaths;
+
 	TArray<FString> TargetPlatformNames;
 
 	// A stub-wrapper must be generated only if the BP is really accessed/required by some other generated code.
@@ -104,6 +110,8 @@ void FBlueprintNativeCodeGenModule::ReadConfig()
 	{
 		ExcludedAssets.Add(FStringAssetReference(Path));
 	}
+
+	GConfig->GetArray(TEXT("BlueprintNativizationSettings"), TEXT("ExcludedFolderPaths"), ExcludedFolderPaths, GEditorIni);
 }
 
 void FBlueprintNativeCodeGenModule::MarkUnconvertedBlueprintAsNecessary(TAssetPtr<UBlueprint> BPPtr)
@@ -333,6 +341,7 @@ void FBlueprintNativeCodeGenModule::GenerateFullyConvertedClasses()
 				, Iter.Value.VariableUsage);
 		}
 	}
+	UE_LOG(LogBlueprintCodeGen, Display, TEXT("Nativization Summary - Shared Variables From Graph: %d"), NativizationSummary->MemberVariablesFromGraph);
 }
 
 FBlueprintNativeCodeGenManifest& FBlueprintNativeCodeGenModule::GetManifest(const TCHAR* PlatformName)
@@ -652,72 +661,150 @@ EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const
 
 EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const UObject* Object) const
 {
-	if (Object == nullptr)
-	{
-		return EReplacementResult::DontReplace;
-	}
+	const UStruct* const Struct = Cast<UStruct>(Object);
+	const UEnum* const Enum = Cast<UEnum>(Object);
+	const UClass* const BlueprintClass = Cast<UClass>(Struct);
+	const UBlueprint* const Blueprint = BlueprintClass ? Cast<UBlueprint>(BlueprintClass->ClassGeneratedBy) : nullptr;
 
-	const UStruct* Struct = Cast<UStruct>(Object);
-	const UEnum* Enum = Cast<UEnum>(Object);
-
-	if (Struct == nullptr && Enum == nullptr)
+	auto ObjectIsNotReplacedAtAll = [&]() -> bool
 	{
-		return EReplacementResult::DontReplace;
-	}
-
-	EReplacementResult Result = EReplacementResult::ReplaceCompletely;
-	if (const UClass* BlueprintClass = Cast<UClass>(Struct))
-	{
-		if (UBlueprint* Blueprint = Cast<UBlueprint>(BlueprintClass->ClassGeneratedBy))
+		if (Object == nullptr)
 		{
-			static const FBoolConfigValueHelper NativizeAnimBPOnlyWhenNonReducibleFuncitons(TEXT("BlueprintNativizationSettings"), TEXT("bNativizeAnimBPOnlyWhenNonReducibleFuncitons"));
-			if (NativizeAnimBPOnlyWhenNonReducibleFuncitons)
+			return true;
+		}
+
+		if (Struct == nullptr && Enum == nullptr)
+		{
+			return true;
+		}
+
+		// EDITOR ON DEVELOPMENT OBJECT
+		{
+			auto IsDeveloperObject = [&](const UObject* Obj) -> bool
 			{
-				if (UAnimBlueprint* AnimBlueprint = Cast<UAnimBlueprint>(Blueprint))
+				auto IsObjectFromDeveloperPackage = [](const UObject* InObj) -> bool
 				{
-					ensure(AnimBlueprint->bHasBeenRegenerated);
-					if (AnimBlueprint->bHasAnyNonReducibleFunction == UBlueprint::EIsBPNonReducible::No)
+					return InObj && InObj->GetOutermost()->HasAllPackagesFlags(PKG_Developer);
+				};
+
+				if (Obj)
+				{
+					if (IsObjectFromDeveloperPackage(Obj))
 					{
-						UE_LOG(LogBlueprintCodeGen, Log, TEXT("AnimBP %s without non-reducible functions is excluded from nativization"), *GetPathNameSafe(Blueprint));
-						Result = EReplacementResult::GenerateStub;
+						return true;
+					}
+					const UStruct* StructToTest = Obj->IsA<UStruct>() ? CastChecked<const UStruct>(Obj) : Obj->GetClass();
+					for (; StructToTest; StructToTest = StructToTest->GetSuperStruct())
+					{
+						if (IsObjectFromDeveloperPackage(StructToTest))
+						{
+							return true;
+						}
+					}
+				}
+				return false;
+			};
+			if (Object && (IsEditorOnlyObject(Object) || IsDeveloperObject(Object)))
+			{
+				UE_LOG(LogBlueprintCodeGen, Warning, TEXT("Object %s depends on Editor or Development stuff. It shouldn't be cooked."), *GetPathNameSafe(Object));
+				return true;
+			}
+		}
+		// DATA ONLY BP
+		{
+			static const FBoolConfigValueHelper DontNativizeDataOnlyBP(TEXT("BlueprintNativizationSettings"), TEXT("bDontNativizeDataOnlyBP"));
+			if (DontNativizeDataOnlyBP && Blueprint && FBlueprintEditorUtils::IsDataOnlyBlueprint(Blueprint))
+			{
+				return true;
+			}
+		}
+		return false;
+	};
+	if (ObjectIsNotReplacedAtAll())
+	{
+		return EReplacementResult::DontReplace;
+	}
+
+	auto ObjectGenratesOnlyStub = [&]() -> bool
+	{
+		// ExcludedFolderPaths
+		if (BlueprintClass)
+		{
+			const FString ObjPathName = Object->GetPathName();
+			for (const FString& ExcludedPath : ExcludedFolderPaths)
+			{
+				if (ObjPathName.StartsWith(ExcludedPath))
+				{
+					return true;
+				}
+			}
+		}
+
+		// ExcludedAssetTypes
+		{
+			// we can't use FindObject, because we may be converting a type while saving
+			if (Enum && ExcludedAssetTypes.Find(Enum->GetPathName()) != INDEX_NONE)
+			{
+				return true;
+			}
+
+			const UStruct* LocStruct = Struct;
+			while (LocStruct)
+			{
+				if (ExcludedAssetTypes.Find(LocStruct->GetPathName()) != INDEX_NONE)
+				{
+					return true;
+				}
+				LocStruct = LocStruct->GetSuperStruct();
+			}
+		}
+
+		// ExcludedAssets
+		{
+			if (ExcludedAssets.Contains(Object->GetOutermost()))
+			{
+				return true;
+			}
+		}
+
+
+		if (Blueprint && BlueprintClass)
+		{
+			// Reducible AnimBP
+			{
+				static const FBoolConfigValueHelper NativizeAnimBPOnlyWhenNonReducibleFuncitons(TEXT("BlueprintNativizationSettings"), TEXT("bNativizeAnimBPOnlyWhenNonReducibleFuncitons"));
+				if (NativizeAnimBPOnlyWhenNonReducibleFuncitons)
+				{
+					if (const UAnimBlueprint* AnimBlueprint = Cast<UAnimBlueprint>(Blueprint))
+					{
+						ensure(AnimBlueprint->bHasBeenRegenerated);
+						if (AnimBlueprint->bHasAnyNonReducibleFunction == UBlueprint::EIsBPNonReducible::No)
+						{
+							UE_LOG(LogBlueprintCodeGen, Log, TEXT("AnimBP %s without non-reducible functions is excluded from nativization"), *GetPathNameSafe(Blueprint));
+							return true;
+						}
 					}
 				}
 			}
 
-			const EBlueprintType UnconvertableBlueprintTypes[] = {
-				//BPTYPE_Const,		// WTF is a "const" Blueprint?
-				BPTYPE_MacroLibrary,
-				BPTYPE_LevelScript,
-			};
-
-			EBlueprintType BlueprintType = Blueprint->BlueprintType;
-			for (int32 TypeIndex = 0; TypeIndex < ARRAY_COUNT(UnconvertableBlueprintTypes); ++TypeIndex)
+			// Unconvertable Blueprint
 			{
-				if (BlueprintType == UnconvertableBlueprintTypes[TypeIndex])
+				const EBlueprintType UnconvertableBlueprintTypes[] = {
+					//BPTYPE_Const,		// What is a "const" Blueprint?
+					BPTYPE_MacroLibrary,
+					BPTYPE_LevelScript,
+				};
+				const EBlueprintType BlueprintType = Blueprint->BlueprintType;
+				for (int32 TypeIndex = 0; TypeIndex < ARRAY_COUNT(UnconvertableBlueprintTypes); ++TypeIndex)
 				{
-					Result = EReplacementResult::GenerateStub;
+					if (BlueprintType == UnconvertableBlueprintTypes[TypeIndex])
+					{
+						return true;
+					}
 				}
 			}
 
-			static const FBoolConfigValueHelper DontNativizeDataOnlyBP(TEXT("BlueprintNativizationSettings"), TEXT("bDontNativizeDataOnlyBP"));
-			if (DontNativizeDataOnlyBP)
-			{
-				if (FBlueprintEditorUtils::IsDataOnlyBlueprint(Blueprint))
-				{
-					return EReplacementResult::DontReplace;
-				}
-			}
-
-			for (UBlueprintGeneratedClass* ParentClassIt = Cast<UBlueprintGeneratedClass>(BlueprintClass->GetSuperClass())
-				; ParentClassIt; ParentClassIt = Cast<UBlueprintGeneratedClass>(ParentClassIt->GetSuperClass()))
-			{
-				EReplacementResult ParentResult = IsTargetedForReplacement(ParentClassIt);
-				if (ParentResult != EReplacementResult::ReplaceCompletely)
-				{
-					Result = EReplacementResult::GenerateStub;
-				}
-			}
-
+			// ExcludedBlueprintTypes
 			for (TAssetSubclassOf<UBlueprint> ExcludedBlueprintTypeAsset : ExcludedBlueprintTypes)
 			{
 				UClass* ExcludedBPClass = ExcludedBlueprintTypeAsset.Get();
@@ -727,65 +814,42 @@ EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const
 				}
 				if (ExcludedBPClass && Blueprint->IsA(ExcludedBPClass))
 				{
-					Result = EReplacementResult::GenerateStub;
+					return true;
 				}
 			}
-		}
-	}
 
-	auto IsObjectFromDeveloperPackage = [](const UObject* Obj) -> bool
-	{
-		return Obj && Obj->GetOutermost()->HasAllPackagesFlags(PKG_Developer);
-	};
+			const UProjectPackagingSettings* const PackagingSettings = GetDefault<UProjectPackagingSettings>();
+			const bool bNativizeOnlySelectedBPs = PackagingSettings && PackagingSettings->bNativizeOnlySelectedBlueprints;
 
-	auto IsDeveloperObject = [&](const UObject* Obj) -> bool
-	{
-		if (Obj)
-		{
-			if (IsObjectFromDeveloperPackage(Obj))
+			// Blueprint is not selected
+			if (bNativizeOnlySelectedBPs && !Blueprint->bNativize)
 			{
 				return true;
 			}
-			const UStruct* StructToTest = Obj->IsA<UStruct>() ? CastChecked<const UStruct>(Obj) : Obj->GetClass();
-			for (; StructToTest; StructToTest = StructToTest->GetSuperStruct())
+
+			// Parent Class in not converted
+			for (const UBlueprintGeneratedClass* ParentClassIt = Cast<UBlueprintGeneratedClass>(BlueprintClass->GetSuperClass())
+				; ParentClassIt; ParentClassIt = Cast<UBlueprintGeneratedClass>(ParentClassIt->GetSuperClass()))
 			{
-				if (IsObjectFromDeveloperPackage(StructToTest))
+				const EReplacementResult ParentResult = IsTargetedForReplacement(ParentClassIt);
+				if (ParentResult != EReplacementResult::ReplaceCompletely)
 				{
+					if (bNativizeOnlySelectedBPs)
+					{
+						UE_LOG(LogBlueprintCodeGen, Error, TEXT("BP %s is selected for nativization, but its parent class %s is not nativized."), *GetPathNameSafe(Blueprint), *GetPathNameSafe(ParentClassIt));
+					}
 					return true;
 				}
 			}
 		}
 		return false;
 	};
-
-	if (Object && (IsEditorOnlyObject(Object) || IsDeveloperObject(Object)))
+	if (ObjectGenratesOnlyStub())
 	{
-		UE_LOG(LogBlueprintCodeGen, Warning, TEXT("Object %s depends on Editor or Development stuff. It shouldn't be cooked."), *GetPathNameSafe(Object));
-		return EReplacementResult::DontReplace;
+		return EReplacementResult::GenerateStub;
 	}
 
-	// check blacklists:
-	// we can't use FindObject, because we may be converting a type while saving
-	if (Enum && ExcludedAssetTypes.Find(Enum->GetPathName()) != INDEX_NONE)
-	{
-		Result = EReplacementResult::GenerateStub;
-	}
-
-	while (Struct)
-	{
-		if (ExcludedAssetTypes.Find(Struct->GetPathName()) != INDEX_NONE)
-		{
-			Result = EReplacementResult::GenerateStub;
-		}
-		Struct = Struct->GetSuperStruct();
-	}
-
-	if (ExcludedAssets.Contains(Object->GetOutermost()))
-	{
-		Result = EReplacementResult::GenerateStub;
-	}
-
-	return Result;
+	return EReplacementResult::ReplaceCompletely;
 }
 
 IMPLEMENT_MODULE(FBlueprintNativeCodeGenModule, BlueprintNativeCodeGen);

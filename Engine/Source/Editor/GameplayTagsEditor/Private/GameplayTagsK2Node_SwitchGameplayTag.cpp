@@ -111,6 +111,14 @@ FEdGraphPinType UGameplayTagsK2Node_SwitchGameplayTag::GetPinType() const
 	return PinType;
 }
 
+FEdGraphPinType UGameplayTagsK2Node_SwitchGameplayTag::GetInnerCaseType() const
+{
+	// This type should match the second argument of UBlueprintGameplayTagLibrary::NotEqual_TagTag !
+	FEdGraphPinType PinType;
+	PinType.PinCategory = UEdGraphSchema_K2::PC_String;
+	return PinType;
+}
+
 FString UGameplayTagsK2Node_SwitchGameplayTag::GetPinNameGivenIndex(int32 Index)
 {
 	check(Index);

@@ -2195,6 +2195,15 @@ void FKismetCompilerContext::CreatePinEventNodeForTimelineFunction(UK2Node_Timel
 	{
 		MovePinLinksToIntermediate(*UpdatePin, *UpdateOutput);
 	}
+
+	if (CompileOptions.bAddInstrumentation)
+	{
+		// Register the timeline event nodes to any composite instances the timeline is located in.
+		if (UEdGraphNode* TunnelInstance = MessageLog.GetIntermediateTunnelInstance(TimelineNode))
+		{
+			MessageLog.RegisterIntermediateTunnelNode(TimelineEventNode, TunnelInstance);
+		}
+	}
 }
 
 UK2Node_CallFunction* FKismetCompilerContext::CreateCallTimelineFunction(UK2Node_Timeline* TimelineNode, UEdGraph* SourceGraph, FName FunctionName, UEdGraphPin* TimelineVarPin, UEdGraphPin* TimelineFunctionPin)
@@ -2694,11 +2703,14 @@ void FKismetCompilerContext::ExpansionStep(UEdGraph* Graph, bool bAllowUbergraph
 					// Keep track of new expansion nodes
 					if (ExpansionNodeIdx < Graph->Nodes.Num())
 					{
+						bool bImpureExpansionNodeAdded = false;
 						TArray<UEdGraphNode*> ExpansionNodes;
 						for (; ExpansionNodeIdx < Graph->Nodes.Num(); ++ExpansionNodeIdx)
 						{
 							ExpansionNodes.Add(Graph->Nodes[ExpansionNodeIdx]);
 							MessageLog.RegisterExpansionNode(Graph->Nodes[ExpansionNodeIdx]);
+							// We don't want to create boundary nodes around a set of pure only expansion nodes.
+							bImpureExpansionNodeAdded |= !IsNodePure(Graph->Nodes[ExpansionNodeIdx]);
 							// Add the relevent pins to the trace suppression filter
 							for (auto ExpansionPin : Graph->Nodes[ExpansionNodeIdx]->Pins)
 							{
@@ -2709,8 +2721,11 @@ void FKismetCompilerContext::ExpansionStep(UEdGraph* Graph, bool bAllowUbergraph
 							}
 						}
 						// Create boundaries around expsnion nodes so we can simulate pin traces correctly
-						UK2Node_TunnelBoundary::CreateBoundariesForExpansionNodes(Node, ExpansionNodes, SourceNodeLinks, MessageLog);
-						ExpansionNodeIdx = Graph->Nodes.Num();
+						if (bImpureExpansionNodeAdded)
+						{
+							UK2Node_TunnelBoundary::CreateBoundariesForExpansionNodes(Node, ExpansionNodes, SourceNodeLinks, MessageLog);
+							ExpansionNodeIdx = Graph->Nodes.Num();
+						}
 					}
 				}
 			}
@@ -3852,9 +3867,9 @@ void FKismetCompilerContext::Compile()
 			GConfig->GetBool(TEXT("Kismet"), TEXT("CompileDisplaysBinaryBackend"), /*out*/ bDisplayBytecode, GEngineIni);
 		}
 
-		const bool bGenerateStubsOnly = !bIsFullCompile || (0 != MessageLog.NumErrors);
 		// Always run the VM backend, it's needed for more than just debug printing
 		{
+			const bool bGenerateStubsOnly = !bIsFullCompile || (0 != MessageLog.NumErrors);
 			BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CodeGenerationTime);
 			Backend_VM.GenerateCodeFromClass(NewClass, FunctionList, bGenerateStubsOnly);
 			if (!bGenerateStubsOnly)
@@ -3863,7 +3878,8 @@ void FKismetCompilerContext::Compile()
 			}
 		}
 
-		if (!bGenerateStubsOnly)
+		// Fill ScriptObjectReferences arrays in functions
+		if (bIsFullCompile && (0 == MessageLog.NumErrors)) // Backend_VM can generate errors, so bGenerateStubsOnly cannot be reused
 		{
 			for (FKismetFunctionContext& FunctionContext : FunctionList)
 			{

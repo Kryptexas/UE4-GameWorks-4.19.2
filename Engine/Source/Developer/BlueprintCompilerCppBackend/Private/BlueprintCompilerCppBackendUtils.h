@@ -162,7 +162,14 @@ public:
 	FString FindGloballyMappedObject(const UObject* Object, const UClass* ExpectedClass = nullptr, bool bLoadIfNotFound = false, bool bTryUsedAssetsList = true);
 
 	// Functions needed for Unconverted classes
-	FString ExportCppDeclaration(const UProperty* Property, EExportedDeclaration::Type DeclarationType, uint32 AdditionalExportCPPFlags, bool bSkipParameterName = false, const FString& NamePostfix = FString(), const FString& TypePrefix = FString()) const;
+	enum class EPropertyNameInDeclaration
+	{
+		Regular,
+		Skip,
+		ForceConverted,
+	};
+
+	FString ExportCppDeclaration(const UProperty* Property, EExportedDeclaration::Type DeclarationType, uint32 AdditionalExportCPPFlags, EPropertyNameInDeclaration ParameterName = EPropertyNameInDeclaration::Regular, const FString& NamePostfix = FString(), const FString& TypePrefix = FString()) const;
 	FString ExportTextItem(const UProperty* Property, const void* PropertyValue) const;
 
 	// AS FCodeText
@@ -188,7 +195,7 @@ private:
 struct FEmitHelper
 {
 	// bUInterface - use interface with "U" prefix, by default there is "I" prefix
-	static FString GetCppName(const UField* Field, bool bUInterface = false);
+	static FString GetCppName(const UField* Field, bool bUInterface = false, bool bForceParameterNameModification = false);
 
 	// returns an unique number for a structure in structures hierarchy
 	static int32 GetInheritenceLevel(const UStruct* Struct);

@@ -6,18 +6,14 @@
 #include "Kismet/KismetArrayLibrary.h"
 #include "Templates/HasGetTypeHash.h"
 
-UBlueprintSetLibrary::UBlueprintSetLibrary(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
-{
-}
-
-void UBlueprintSetLibrary::GenericSet_Add(const void* TargetSet, const USetProperty* SetProperty, const void* ItemPtr)
+bool UBlueprintSetLibrary::GenericSet_Add(const void* TargetSet, const USetProperty* SetProperty, const void* ItemPtr)
 {
 	if (TargetSet)
 	{
 		FScriptSetHelper SetHelper(SetProperty, TargetSet);
-		SetHelper.AddElement(ItemPtr);
+		return SetHelper.AddElement(ItemPtr);
 	}
+	return false;
 }
 
 void UBlueprintSetLibrary::GenericSet_AddItems(const void* TargetSet, const USetProperty* SetProperty, const void* TargetArray, const UArrayProperty* ArrayProperty)
@@ -34,13 +30,14 @@ void UBlueprintSetLibrary::GenericSet_AddItems(const void* TargetSet, const USet
 	}
 }
 
-void UBlueprintSetLibrary::GenericSet_Remove(const void* TargetSet, const USetProperty* SetProperty, const void* ItemPtr)
+bool UBlueprintSetLibrary::GenericSet_Remove(const void* TargetSet, const USetProperty* SetProperty, const void* ItemPtr)
 {
 	if (TargetSet)
 	{
 		FScriptSetHelper SetHelper(SetProperty, TargetSet);
-		SetHelper.RemoveElement(ItemPtr);
+		return SetHelper.RemoveElement(ItemPtr);
 	}
+	return false;
 }
 
 void UBlueprintSetLibrary::GenericSet_RemoveItems(const void* TargetSet, const USetProperty* SetProperty, const void* TargetArray, const UArrayProperty* ArrayProperty)

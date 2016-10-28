@@ -494,12 +494,9 @@ void UMetaData::InitializeRedirectMap()
 	}
 }
 
-#if HACK_HEADER_GENERATOR
-
 FName UMetaData::GetRemappedKeyName(FName OldKey)
 {
 	InitializeRedirectMap();
 	return KeyRedirectMap.FindRef(OldKey);
 }
 
-#endif

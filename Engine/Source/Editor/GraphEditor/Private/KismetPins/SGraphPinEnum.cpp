@@ -136,9 +136,18 @@ void SGraphPinEnum::ComboBoxSelectionChanged( TSharedPtr<int32> NewSelection, ES
 {
 	UEnum* EnumPtr = Cast<UEnum>(GraphPinObj->PinType.PinSubCategoryObject.Get());
 	check(EnumPtr);
-	check(*NewSelection < EnumPtr->NumEnums() - 1);
 
-	FString EnumSelectionString = EnumPtr->GetEnumName(*NewSelection);
+	FString EnumSelectionString;
+	if (NewSelection.IsValid())
+	{
+		check(*NewSelection < EnumPtr->NumEnums() - 1);
+		EnumSelectionString  = EnumPtr->GetEnumName(*NewSelection);
+	}
+	else
+	{
+		EnumSelectionString = FName(NAME_None).ToString();
+	}
+	
 
 	if(GraphPinObj->GetDefaultAsString() != EnumSelectionString)
 	{

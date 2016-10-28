@@ -1064,7 +1064,10 @@ void FScriptExecutionBlueprint::RefreshStats(const FTracePath& TracePath)
 	{
 		// This crawls through and updates all instance stats and pools the results into the blueprint node stats
 		// as an overall blueprint performance representation.
-		BlueprintEventIter->RefreshStats(TracePath);
+		if (BlueprintEventIter->HasFlags(EScriptExecutionNodeFlags::RequiresRefresh))
+		{
+			BlueprintEventIter->RefreshStats(TracePath);
+		}
 	}
 	// Update instance stats
 	for (auto InstanceIter : Instances)
@@ -1094,6 +1097,14 @@ void FScriptExecutionBlueprint::RefreshStats(const FTracePath& TracePath)
 	}
 	// Update the node stats
 	UpdatePerfDataForNode();
+	// Mark all the stats as updated
+	for (auto BlueprintEventIter : ChildNodes)
+	{
+		if (BlueprintEventIter->HasFlags(EScriptExecutionNodeFlags::RequiresRefresh))
+		{
+			BlueprintEventIter->RemoveFlags(EScriptExecutionNodeFlags::RequiresRefresh);
+		}
+	}
 }
 
 void FScriptExecutionBlueprint::GetAllExecNodes(TMap<FName, TSharedPtr<FScriptExecutionNode>>& ExecNodesOut)
@@ -1238,12 +1249,15 @@ void FScriptExecutionBlueprint::UpdateHeatLevels()
 		FTracePath RootTracePath;
 		for (auto EventNode : ChildNodes)
 		{
-			// Grab the instance perf data
-			TSharedPtr<FScriptPerfData> InstancePerfData = EventNode->GetOrAddPerfDataByInstanceAndTracePath(CurrentInstanceName, RootTracePath);
-			// Create the heat update data
-			FScriptExecutionHottestPathParams HotPathParams(CurrentInstanceName, InstancePerfData->GetAverageTiming(), InstancePerfData->GetSampleCount(), HeatLevelMetrics);
-			// Walk through the event linked nodes and update heat display stats.
-			EventNode->UpdateHeatDisplayStats(HotPathParams);
+			if (EventNode->HasFlags(EScriptExecutionNodeFlags::RequiresRefresh))
+			{
+				// Grab the instance perf data
+				TSharedPtr<FScriptPerfData> InstancePerfData = EventNode->GetOrAddPerfDataByInstanceAndTracePath(CurrentInstanceName, RootTracePath);
+				// Create the heat update data
+				FScriptExecutionHottestPathParams HotPathParams(CurrentInstanceName, InstancePerfData->GetAverageTiming(), InstancePerfData->GetSampleCount(), HeatLevelMetrics);
+				// Walk through the event linked nodes and update heat display stats.
+				EventNode->UpdateHeatDisplayStats(HotPathParams);
+			}
 		}
 	}
 }

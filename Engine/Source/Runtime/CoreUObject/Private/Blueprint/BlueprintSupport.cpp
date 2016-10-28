@@ -1737,7 +1737,6 @@ void FLinkerLoad::CreateDynamicTypeLoader()
 		OuterImport->ClassPackage = GLongCoreUObjectPackageName;
 		OuterImport->ObjectName = Import.PackageName;
 
-#if !USE_EVENT_DRIVEN_ASYNC_LOAD
 		if((Import.ClassName == DynamicClassName) && (Import.ClassPackageName == DynamicClassPackageName))
 		{
 			const FString DynamicClassPath = Import.PackageName.ToString() + TEXT(".") + Import.ObjectName.ToString();
@@ -1750,7 +1749,6 @@ void FLinkerLoad::CreateDynamicTypeLoader()
 				ClassConstructFn->StaticClassFn();
 			}
 		}
-#endif
 	}
 
 	// Create Export
@@ -2229,3 +2227,178 @@ void IBlueprintNativeCodeGenCore::Register(const IBlueprintNativeCodeGenCore* Co
 }
 
 #endif // WITH_EDITOR
+
+
+/*******************************************************************************
+ * FLegacyEditorOnlyBlueprintManager
+ ******************************************************************************/
+
+struct FLegacyEditorOnlyBlueprintOptions_Impl
+{
+	static void Init();
+	static const UClass* GetUBlueprintObjType();
+
+	static bool bExcludeBlueprintObjectsFromCookedBuilds;
+	static bool bFixupLegacyBlueprintProperties;
+	static bool bProhibitLegacyBlueprintVarType;
+	static bool bForceAllowLegacyBlueprintPinConnections;
+};
+
+bool FLegacyEditorOnlyBlueprintOptions_Impl::bExcludeBlueprintObjectsFromCookedBuilds = false;
+bool FLegacyEditorOnlyBlueprintOptions_Impl::bFixupLegacyBlueprintProperties = false;
+bool FLegacyEditorOnlyBlueprintOptions_Impl::bProhibitLegacyBlueprintVarType = false;
+bool FLegacyEditorOnlyBlueprintOptions_Impl::bForceAllowLegacyBlueprintPinConnections = false;
+
+void FLegacyEditorOnlyBlueprintOptions_Impl::Init()
+{
+	static bool bInited = false;
+	if (!bInited)
+	{
+		const TCHAR* SectionId = TEXT("EditoronlyBP");
+
+		bool bHasSettings = GConfig->GetBool(SectionId, TEXT("bDontLoadBlueprintOutsideEditor"), bExcludeBlueprintObjectsFromCookedBuilds, GEditorIni);
+		bHasSettings |= GConfig->GetBool(SectionId, TEXT("bReplaceBlueprintWithClass"),   bFixupLegacyBlueprintProperties, GEditorIni);
+		bHasSettings |= GConfig->GetBool(SectionId, TEXT("bBlueprintIsNotBlueprintType"), bProhibitLegacyBlueprintVarType, GEditorIni);
+		bHasSettings |= GConfig->GetBool(SectionId, TEXT("bAllowClassAndBlueprintPinMatching"), bForceAllowLegacyBlueprintPinConnections, GEditorIni);
+
+		// we expect all these settings to be enabled
+		const bool bOptionsDisabled = !bExcludeBlueprintObjectsFromCookedBuilds || !bFixupLegacyBlueprintProperties ||
+			!bProhibitLegacyBlueprintVarType || !bForceAllowLegacyBlueprintPinConnections;
+		if (bOptionsDisabled)
+		{
+			if (bHasSettings)
+			{
+				UE_LOG(LogBlueprintSupport, Warning, TEXT("Editor config [EditoronlyBP] settings are DEPRECATED. You're explicitly disabling some. If you're relying on this functionality, then please fix it up so your Blueprints don't break in a future release."));
+			}
+			else
+			{
+				UE_LOG(LogBlueprintSupport, Warning, TEXT("Editor config [EditoronlyBP] settings are DEPRECATED. You're not explicitly setting any, but they've been defaulting to off. If you are relying on this functionality, then please fix it up so your Blueprints don't break in a future release."));
+			}
+		}
+
+		bInited = true;
+	}
+}
+
+const UClass* FLegacyEditorOnlyBlueprintOptions_Impl::GetUBlueprintObjType()
+{
+	static const UClass* BlueprintClass = FindObject<UClass>(nullptr, TEXT("/Script/Engine.Blueprint"));
+	return BlueprintClass;
+}
+
+FString FLegacyEditorOnlyBlueprintOptions::GetDefaultEditorConfig()
+{
+	FString ConfigStr;
+	ConfigStr += TEXT("[EditoronlyBP]") LINE_TERMINATOR;
+	ConfigStr += TEXT("bAllowClassAndBlueprintPinMatching=true") LINE_TERMINATOR;
+	ConfigStr += TEXT("bReplaceBlueprintWithClass=true") LINE_TERMINATOR;
+	ConfigStr += TEXT("bDontLoadBlueprintOutsideEditor=true") LINE_TERMINATOR;
+	ConfigStr += TEXT("bBlueprintIsNotBlueprintType=true") LINE_TERMINATOR;
+	return ConfigStr;
+}
+
+bool FLegacyEditorOnlyBlueprintOptions::IncludeUBlueprintObjsInCookedBuilds()
+{
+	FLegacyEditorOnlyBlueprintOptions_Impl::Init();
+	return !FLegacyEditorOnlyBlueprintOptions_Impl::bExcludeBlueprintObjectsFromCookedBuilds;
+}
+
+bool FLegacyEditorOnlyBlueprintOptions::AllowLegacyBlueprintPinMatchesWithClass()
+{
+	FLegacyEditorOnlyBlueprintOptions_Impl::Init();
+	return FLegacyEditorOnlyBlueprintOptions_Impl::bForceAllowLegacyBlueprintPinConnections;
+}
+
+bool FLegacyEditorOnlyBlueprintOptions::FixupLegacyBlueprintReferences()
+{
+	FLegacyEditorOnlyBlueprintOptions_Impl::Init();
+	return FLegacyEditorOnlyBlueprintOptions_Impl::bFixupLegacyBlueprintProperties;
+}
+
+bool FLegacyEditorOnlyBlueprintOptions::DetectInvalidBlueprintExport(const FLinkerSave* Linker, const int32 ExportIndex)
+{
+	const UObject* ExportObj = Linker->ExportMap[ExportIndex].Object;
+	if (Linker->IsCooking() && ExportObj && IncludeUBlueprintObjsInCookedBuilds())
+	{
+		const UClass* BlueprintClass = FLegacyEditorOnlyBlueprintOptions_Impl::GetUBlueprintObjType();
+		if (BlueprintClass && ExportObj->IsA(BlueprintClass))
+		{
+			const bool bIsFatal = IsEventDrivenLoaderEnabledInCookedBuilds();
+			if (bIsFatal)
+			{
+				UE_LOG(LogBlueprintSupport, Fatal,
+					TEXT("You're exporting a UBlueprint ('%s') editor object with your cook. This is now DEPRECATED (the Blueprint's class & CDO should be all that's needed). This is incompatible with the new event-driven loader. Please add the following to your editor ini file to strip UBluprints from cooked packages (these settings will become the default):\n%s"),
+					*ExportObj->GetName(),
+					*GetDefaultEditorConfig());
+			}
+			else
+			{
+				UE_LOG(LogBlueprintSupport, Warning,
+					TEXT("You're exporting a UBlueprint ('%s') editor object with your cook. This is now DEPRECATED (the Blueprint's class & CDO should be all that's needed). Please fix up any relience you have on it, and add the following to your editor ini file (these settings will become the default):\n%s"),
+					*ExportObj->GetName(),
+					*GetDefaultEditorConfig());
+			}
+			return true;
+		}
+	}
+	return false;
+}
+
+bool FLegacyEditorOnlyBlueprintOptions::FixupClassProperty(const UClassProperty* Property, void* Value)
+{
+	const UObject* ObjValue = Property->GetObjectPropertyValue(Value);
+	if (ObjValue && (Property->MetaClass == UObject::StaticClass()))
+	{
+		// since we're in core, we don't have access to UBlueprint::StaticClass()
+		const UClass* BlueprintClass = FLegacyEditorOnlyBlueprintOptions_Impl::GetUBlueprintObjType();
+		if (BlueprintClass && ObjValue->IsA(BlueprintClass))
+		{
+			FLegacyEditorOnlyBlueprintOptions_Impl::Init();
+			if (FLegacyEditorOnlyBlueprintOptions_Impl::bFixupLegacyBlueprintProperties)
+			{
+				UE_LOG(LogBlueprintSupport, Warning,
+					TEXT("Attempting to fix up an old Blueprint property (%s), which is referencing a UBlueprint (%s) instead of its class - this fixup is DEPRECATED; please fix manually (possibly just a resave)"),
+					*Property->GetFullName(),
+					*ObjValue->GetFullName());
+
+				// again, no access to UBlueprint, so we have to sift through reflection data to get what we want
+				if (UClassProperty* BPGeneratedClassProp = FindField<UClassProperty>(BlueprintClass, TEXT("GeneratedClass")))
+				{
+					UObject* ClassObject = BPGeneratedClassProp->GetPropertyValue_InContainer(ObjValue);
+					Property->SetObjectPropertyValue(Value, ClassObject);
+					return true;
+				}
+			}
+			else
+			{
+				UE_LOG(LogBlueprintSupport, Warning,
+					TEXT("An old Blueprint property (%s), references a UBlueprint (%s) instead of its class - this is DEPRECATED in packaged builds; please fix (possibly by enabling bReplaceBlueprintWithClass and resaving)"),
+					*Property->GetFullName(),
+					*ObjValue->GetFullName());
+			}
+		}
+	}
+
+	return false;
+}
+
+bool FLegacyEditorOnlyBlueprintOptions::IsTypeProhibited(const UClass* VarType)
+{
+	// since we're in core, we don't have access to UBlueprint::StaticClass()
+	const UClass* BlueprintClass = FLegacyEditorOnlyBlueprintOptions_Impl::GetUBlueprintObjType();
+	if (BlueprintClass && VarType->IsChildOf(BlueprintClass))
+	{
+		FLegacyEditorOnlyBlueprintOptions_Impl::Init();
+		if (FLegacyEditorOnlyBlueprintOptions_Impl::bForceAllowLegacyBlueprintPinConnections)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+
+
+
+
+

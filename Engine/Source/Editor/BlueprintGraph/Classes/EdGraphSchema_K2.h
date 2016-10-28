@@ -175,7 +175,13 @@ public:
 	static const FName MD_ArrayParam;
 	static const FName MD_ArrayDependentParam;
 
+	/** Metadata that flags TSet parameters that will have their type determined at blueprint compile time */
 	static const FName MD_SetParam;
+
+	/** Metadata that flags TMap function parameters that will have their type determined at blueprint compile time */
+	static const FName MD_MapParam;
+	static const FName MD_MapKeyParam;
+	static const FName MD_MapValueParam;
 
 	/** Metadata that identifies an integral property as a bitmask. */
 	static const FName MD_Bitmask;

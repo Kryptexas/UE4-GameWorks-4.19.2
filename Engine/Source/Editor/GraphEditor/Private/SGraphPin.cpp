@@ -6,66 +6,9 @@
 #include "Editor/UnrealEd/Public/Kismet2/KismetDebugUtilities.h"
 #include "Editor/UnrealEd/Public/DragAndDrop/AssetDragDropOp.h"
 #include "BlueprintUtilities.h"
-#include "SLevelOfDetailBranchNode.h"
 #include "ScopedTransaction.h"
-
-/////////////////////////////////////////////////////
-// FKnotNetCollector
-
-struct FKnotNetCollector
-{
-	TSet<UEdGraphNode*> VisitedNodes;
-	TSet<UEdGraphPin*> VisitedPins;
-
-	FKnotNetCollector(UEdGraphPin* StartingPin)
-	{
-		TraversePin(StartingPin);
-	}
-
-	void TraversePin(UEdGraphPin* Pin)
-	{
-		if (UK2Node_Knot* Knot = Cast<UK2Node_Knot>(Pin->GetOwningNodeUnchecked()))
-		{
-			TraverseNodes(Knot);
-		}
-		else
-		{
-			VisitedPins.Add(Pin);
-
-			for (UEdGraphPin* OtherPin : Pin->LinkedTo)
-			{
-				UEdGraphNode* OtherNode = OtherPin->GetOwningNodeUnchecked();
-				if (OtherNode && OtherNode->IsA(UK2Node_Knot::StaticClass()))
-				{
-					TraverseNodes(OtherNode);
-				}
-			}
-		}
-	}
-
-	void TraverseNodes(UEdGraphNode* Node)
-	{
-		if (VisitedNodes.Contains(Node))
-		{
-			return;
-		}
-		VisitedNodes.Add(Node);
-
-		for (UEdGraphPin* MyPin : Node->Pins)
-		{
-			VisitedPins.Add(MyPin);
-
-			for (UEdGraphPin* OtherPin : MyPin->LinkedTo)
-			{
-				UEdGraphNode* OtherNode = OtherPin->GetOwningNodeUnchecked();
-				if (OtherNode && OtherNode->IsA(UK2Node_Knot::StaticClass()))
-				{
-					TraverseNodes(OtherNode);
-				}
-			}
-		}
-	}
-};
+#include "SLevelOfDetailBranchNode.h"
+#include "SPinTypeSelector.h"
 
 /////////////////////////////////////////////////////
 // FGraphPinHandle
@@ -124,31 +67,25 @@ SGraphPin::SGraphPin()
 	// Make these names const so they're not created for every pin
 
 	/** Original Pin Styles */
-	static const FName NAME_Pin_ConnectedHovered("Graph.Pin.ConnectedHovered");
 	static const FName NAME_Pin_Connected("Graph.Pin.Connected");
-	static const FName NAME_Pin_DisconnectedHovered("Graph.Pin.DisconnectedHovered");
 	static const FName NAME_Pin_Disconnected("Graph.Pin.Disconnected");
 
 	/** Variant A Pin Styles */
-	static const FName NAME_Pin_ConnectedHovered_VarA("Graph.Pin.ConnectedHovered_VarA");
 	static const FName NAME_Pin_Connected_VarA("Graph.Pin.Connected_VarA");
-	static const FName NAME_Pin_DisconnectedHovered_VarA("Graph.Pin.DisconnectedHovered_VarA");
 	static const FName NAME_Pin_Disconnected_VarA("Graph.Pin.Disconnected_VarA");
 
-	static const FName NAME_ArrayPin_ConnectedHovered("Graph.ArrayPin.ConnectedHovered");
 	static const FName NAME_ArrayPin_Connected("Graph.ArrayPin.Connected");
-	static const FName NAME_ArrayPin_DisconnectedHovered("Graph.ArrayPin.DisconnectedHovered");
 	static const FName NAME_ArrayPin_Disconnected("Graph.ArrayPin.Disconnected");
 
-	static const FName NAME_RefPin_ConnectedHovered("Graph.RefPin.ConnectedHovered");
 	static const FName NAME_RefPin_Connected("Graph.RefPin.Connected");
-	static const FName NAME_RefPin_DisconnectedHovered("Graph.RefPin.DisconnectedHovered");
 	static const FName NAME_RefPin_Disconnected("Graph.RefPin.Disconnected");
 
-	static const FName NAME_DelegatePin_ConnectedHovered("Graph.DelegatePin.ConnectedHovered");
 	static const FName NAME_DelegatePin_Connected("Graph.DelegatePin.Connected");
-	static const FName NAME_DelegatePin_DisconnectedHovered("Graph.DelegatePin.DisconnectedHovered");
 	static const FName NAME_DelegatePin_Disconnected("Graph.DelegatePin.Disconnected");
+
+	static const FName NAME_SetPin("Kismet.VariableList.SetTypeIcon");
+	static const FName NAME_MapPinKey("Kismet.VariableList.MapKeyTypeIcon");
+	static const FName NAME_MapPinValue("Kismet.VariableList.MapValueTypeIcon");
 
 	static const FName NAME_Pin_Background("Graph.Pin.Background");
 	static const FName NAME_Pin_BackgroundHovered("Graph.Pin.BackgroundHovered");
@@ -158,34 +95,28 @@ SGraphPin::SGraphPin()
 	switch(StyleType)
 	{
 	case BPST_VariantA:
-		CachedImg_Pin_ConnectedHovered = FEditorStyle::GetBrush( NAME_Pin_ConnectedHovered_VarA );
 		CachedImg_Pin_Connected = FEditorStyle::GetBrush( NAME_Pin_Connected_VarA );
-		CachedImg_Pin_DisconnectedHovered = FEditorStyle::GetBrush( NAME_Pin_DisconnectedHovered_VarA );
 		CachedImg_Pin_Disconnected = FEditorStyle::GetBrush( NAME_Pin_Disconnected_VarA );
 		break;
 	case BPST_Original:
 	default:
-		CachedImg_Pin_ConnectedHovered = FEditorStyle::GetBrush( NAME_Pin_ConnectedHovered );
 		CachedImg_Pin_Connected = FEditorStyle::GetBrush( NAME_Pin_Connected );
-		CachedImg_Pin_DisconnectedHovered = FEditorStyle::GetBrush( NAME_Pin_DisconnectedHovered );
 		CachedImg_Pin_Disconnected = FEditorStyle::GetBrush( NAME_Pin_Disconnected );
 		break;
 	}
 
-	CachedImg_RefPin_ConnectedHovered = FEditorStyle::GetBrush( NAME_RefPin_ConnectedHovered );
 	CachedImg_RefPin_Connected = FEditorStyle::GetBrush( NAME_RefPin_Connected );
-	CachedImg_RefPin_DisconnectedHovered = FEditorStyle::GetBrush( NAME_RefPin_DisconnectedHovered );
 	CachedImg_RefPin_Disconnected = FEditorStyle::GetBrush( NAME_RefPin_Disconnected );
 
-	CachedImg_ArrayPin_ConnectedHovered = FEditorStyle::GetBrush( NAME_ArrayPin_ConnectedHovered );
 	CachedImg_ArrayPin_Connected = FEditorStyle::GetBrush( NAME_ArrayPin_Connected );
-	CachedImg_ArrayPin_DisconnectedHovered = FEditorStyle::GetBrush( NAME_ArrayPin_DisconnectedHovered );
 	CachedImg_ArrayPin_Disconnected = FEditorStyle::GetBrush( NAME_ArrayPin_Disconnected );
 
-	CachedImg_DelegatePin_ConnectedHovered = FEditorStyle::GetBrush( NAME_DelegatePin_ConnectedHovered );
 	CachedImg_DelegatePin_Connected = FEditorStyle::GetBrush( NAME_DelegatePin_Connected );
-	CachedImg_DelegatePin_DisconnectedHovered = FEditorStyle::GetBrush( NAME_DelegatePin_DisconnectedHovered );
 	CachedImg_DelegatePin_Disconnected = FEditorStyle::GetBrush( NAME_DelegatePin_Disconnected );
+
+	CachedImg_SetPin = FEditorStyle::GetBrush(NAME_SetPin);
+	CachedImg_MapPinKey = FEditorStyle::GetBrush(NAME_MapPinKey);
+	CachedImg_MapPinValue = FEditorStyle::GetBrush(NAME_MapPinValue);
 
 	CachedImg_Pin_Background = FEditorStyle::GetBrush( NAME_Pin_Background );
 	CachedImg_Pin_BackgroundHovered = FEditorStyle::GetBrush( NAME_Pin_BackgroundHovered );
@@ -213,13 +144,11 @@ void SGraphPin::Construct(const FArguments& InArgs, UEdGraphPin* InPin)
 	const bool bIsInput = (GetDirection() == EGPD_Input);
 
 	// Create the pin icon widget
-	TSharedRef<SWidget> ActualPinWidget =
-		SAssignNew(PinImage, SImage)
-		.Image(this, &SGraphPin::GetPinIcon)
-		.IsEnabled(this, &SGraphPin::GetIsConnectable)
-		.ColorAndOpacity(this, &SGraphPin::GetPinColor)
-		.OnMouseButtonDown(this, &SGraphPin::OnPinMouseDown)
-		.Cursor(this, &SGraphPin::GetPinCursor);
+	TSharedRef<SWidget> ActualPinWidget = SPinTypeSelector::ConstructPinTypeImage(
+		TAttribute<const FSlateBrush*>::Create( TAttribute<const FSlateBrush*>::FGetter::CreateRaw(this, &SGraphPin::GetPinIcon ) ),
+		TAttribute<FSlateColor>::Create( TAttribute<FSlateColor>::FGetter::CreateRaw(this, &SGraphPin::GetPinColor) ),
+		TAttribute<const FSlateBrush*>::Create( TAttribute<const FSlateBrush*>::FGetter::CreateRaw(this, &SGraphPin::GetSecondaryPinIcon ) ),
+		TAttribute<FSlateColor>::Create( TAttribute<FSlateColor>::FGetter::CreateRaw(this, &SGraphPin::GetSecondaryPinColor) ));
 
 	// Create the pin indicator widget (used for watched values)
 	static const FName NAME_NoBorder("NoBorder");
@@ -602,13 +531,61 @@ void SGraphPin::OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& 
 {
 	if (!bIsHovered)
 	{
-		FKnotNetCollector NetCollector(GetPinObj());
-
-		TSharedPtr<SGraphPanel> Panel = OwnerNodePtr.Pin()->GetOwnerPanel();
-		for (UEdGraphPin* PinInNet : NetCollector.VisitedPins)
+		UEdGraphPin* MyPin = GetPinObj();
+		if (MyPin && !MyPin->IsPendingKill() && MyPin->GetOuter() && MyPin->GetOuter()->IsA(UEdGraphNode::StaticClass()))
 		{
-			Panel->AddPinToHoverSet(PinInNet);
-			HoverPinSet.Add(PinInNet);
+			struct FHoverPinHelper
+			{
+				FHoverPinHelper(TSharedPtr<SGraphPanel> Panel, TSet<FEdGraphPinReference>& PinSet)
+					: PinSetOut(PinSet), TargetPanel(Panel)
+				{}
+
+				void SetHovered(UEdGraphPin* Pin)
+				{
+					bool bAlreadyAdded = false;
+					PinSetOut.Add(Pin, &bAlreadyAdded);
+					if (bAlreadyAdded)
+					{
+						return;
+					}
+					TargetPanel->AddPinToHoverSet(Pin);
+	
+					for (UEdGraphPin* LinkedPin : Pin->LinkedTo)
+					{
+						if (UK2Node_Knot* OwningNode = Cast<UK2Node_Knot>(LinkedPin->GetOwningNodeUnchecked()))
+						{
+							SetHovered(OwningNode);
+						}
+					}
+				}
+
+			private:
+				void SetHovered(UK2Node_Knot* KnotNode)
+				{
+					bool bAlreadyTraversed = false;
+					IntermediateNodes.Add(KnotNode, &bAlreadyTraversed);
+
+					if (!bAlreadyTraversed)
+					{
+						for (UEdGraphPin* KnotPin : KnotNode->Pins)
+						{
+							SetHovered(KnotPin);
+						}
+					}
+				}
+
+			private:
+				TSet<UK2Node_Knot*> IntermediateNodes;
+				TSet<FEdGraphPinReference>& PinSetOut;
+				TSharedPtr<SGraphPanel>   TargetPanel;
+			};
+
+
+			TSharedPtr<SGraphPanel> Panel = OwnerNodePtr.Pin()->GetOwnerPanel();
+			if (Panel.IsValid())
+			{
+				FHoverPinHelper(Panel, HoverPinSet).SetHovered(MyPin);
+			}
 		}
 	}
 
@@ -827,10 +804,19 @@ EEdGraphPinDirection SGraphPin::GetDirection() const
 	return static_cast<EEdGraphPinDirection>(GraphPinObj->Direction);
 }
 
-/** @return whether this pin is an array value */
 bool SGraphPin::IsArray() const
 {
 	return GraphPinObj->PinType.bIsArray;
+}
+
+bool SGraphPin::IsSet() const
+{
+	return GraphPinObj->PinType.bIsSet;
+}
+
+bool SGraphPin::IsMap() const
+{
+	return GraphPinObj->PinType.bIsMap;
 }
 
 bool SGraphPin::IsByRef() const
@@ -867,47 +853,64 @@ const FSlateBrush* SGraphPin::GetPinIcon() const
 	{
 		if (IsConnected())
 		{
-			return IsHovered() ? CachedImg_ArrayPin_ConnectedHovered : CachedImg_ArrayPin_Connected;
+			return CachedImg_ArrayPin_Connected;
 		}
 		else
 		{
-			return IsHovered() ? CachedImg_ArrayPin_DisconnectedHovered : CachedImg_ArrayPin_Disconnected;
+			return CachedImg_ArrayPin_Disconnected;
 		}
 	}
 	else if(IsDelegate())
 	{
 		if (IsConnected())
 		{
-			return IsHovered() ? CachedImg_DelegatePin_ConnectedHovered : CachedImg_DelegatePin_Connected;		
+			return CachedImg_DelegatePin_Connected;		
 		}
 		else
 		{
-			return IsHovered() ? CachedImg_DelegatePin_DisconnectedHovered : CachedImg_DelegatePin_Disconnected;
+			return CachedImg_DelegatePin_Disconnected;
 		}
 	}
 	else if (GraphPinObj->bDisplayAsMutableRef || IsByMutableRef())
 	{
 		if (IsConnected())
 		{
-			return IsHovered() ? CachedImg_RefPin_ConnectedHovered : CachedImg_RefPin_Connected;		
+			return CachedImg_RefPin_Connected;		
 		}
 		else
 		{
-			return IsHovered() ? CachedImg_RefPin_DisconnectedHovered : CachedImg_RefPin_Disconnected;
+			return CachedImg_RefPin_Disconnected;
 		}
 
+	}
+	else if (IsSet())
+	{
+		return CachedImg_SetPin;
+	}
+	else if (IsMap())
+	{
+		return CachedImg_MapPinKey;
 	}
 	else
 	{
 		if (IsConnected())
 		{
-			return IsHovered() ? CachedImg_Pin_ConnectedHovered : CachedImg_Pin_Connected;
+			return CachedImg_Pin_Connected;
 		}
 		else
 		{
-			return IsHovered() ? CachedImg_Pin_DisconnectedHovered : CachedImg_Pin_Disconnected;
+			return CachedImg_Pin_Disconnected;
 		}
 	}
+}
+
+const FSlateBrush* SGraphPin::GetSecondaryPinIcon() const
+{
+	if( !GraphPinObj->IsPendingKill() && GraphPinObj->PinType.bIsMap )
+	{
+		return CachedImg_MapPinValue;
+	}
+	return nullptr;
 }
 
 const FSlateBrush* SGraphPin::GetPinBorder() const
@@ -944,6 +947,12 @@ FSlateColor SGraphPin::GetPinColor() const
 	}
 
 	return FLinearColor::White;
+}
+
+FSlateColor SGraphPin::GetSecondaryPinColor() const
+{
+	const UEdGraphSchema_K2* Schema = Cast<UEdGraphSchema_K2>(!GraphPinObj->IsPendingKill() ? GraphPinObj->GetSchema() : nullptr);
+	return Schema ? Schema->GetSecondaryPinTypeColor(GraphPinObj->PinType) : FLinearColor::White;
 }
 
 FSlateColor SGraphPin::GetPinTextColor() const

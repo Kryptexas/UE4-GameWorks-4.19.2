@@ -344,6 +344,10 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 	/** Additional HideCategories. These are added to HideCategories from parent. */
 	UPROPERTY(EditAnywhere, Category=BlueprintOptions)
 	TArray<FString> HideCategories;
+	 
+	/** When nativization is enabled, and "NativizeOnlySelectedBlueprints" is set true, then this asset will be nativized. All super classes must be also nativized. */
+	UPROPERTY(EditAnywhere, Category=Experimental)
+	bool bNativize;
 
 	/** TRUE to show a warning when attempting to start in PIE and there is a compiler error on this Blueprint */
 	UPROPERTY(transient)
@@ -462,6 +466,10 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 
 	UPROPERTY()
 	TArray<class UEdGraphPin_Deprecated*> DeprecatedPinWatches;
+
+	/** Index map for component template names */
+	UPROPERTY()
+	TMap<FName, int32> ComponentTemplateNameIndex;
 
 	/** Maps old to new component template names */
 	UPROPERTY(transient)
@@ -659,6 +667,9 @@ public:
 	virtual bool NeedsLoadForClient() const override;
 	virtual bool NeedsLoadForServer() const override;
 	virtual bool NeedsLoadForEditorGame() const override;
+#if WITH_EDITOR
+	virtual bool CanEditChange(const UProperty* InProperty) const override;
+#endif // WITH_EDITOR
 	//~ End UObject Interface
 
 	/** Get the Blueprint object that generated the supplied class */

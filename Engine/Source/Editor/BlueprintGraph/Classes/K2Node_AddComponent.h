@@ -64,15 +64,14 @@ class UK2Node_AddComponent : public UK2Node_CallFunction
 		return FindPinChecked(TEXT("bManualAttachment"));
 	}
 
+	/** Helper method used to generate a new, unique component template name. */
+	FName MakeNewComponentTemplateName(UObject* InOuter, UClass* InComponentClass);
+
 	/** Helper method used to instantiate a new component template after duplication. */
 	BLUEPRINTGRAPH_API void MakeNewComponentTemplate();
 
 	/** Static name of function to call */
 	static BLUEPRINTGRAPH_API FName GetAddComponentFunctionName();
-
-protected:
-	/** Helper method used to generate a new, unique component template name. */
-	static FName MakeNewComponentTemplateName(UObject* InOuter, UClass* InComponentClass);
 
 private: 
 	UEdGraphPin* GetTemplateNamePin() const

@@ -4,6 +4,7 @@
 
 #include "UObject/DevObjectVersion.h"
 #include "Engine/LevelScriptBlueprint.h"
+#include "Kismet/BlueprintSetLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/KismetArrayLibrary.h"
 #include "Kismet/KismetMathLibrary.h"
@@ -35,6 +36,7 @@
 #include "K2Node_SetFieldsInStruct.h"
 #include "K2Node_ConvertAsset.h"
 #include "GenericCommands.h"
+#include "BlueprintSupport.h" // for FLegacyEditorOnlyBlueprintOptions::IsTypeProhibited()
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -106,6 +108,11 @@ const FName FBlueprintMetadata::MD_ArrayParam(TEXT("ArrayParm"));
 const FName FBlueprintMetadata::MD_ArrayDependentParam(TEXT("ArrayTypeDependentParams"));
 
 const FName FBlueprintMetadata::MD_SetParam(TEXT("SetParam"));
+
+// Each of these is a | separated list of param names:
+const FName FBlueprintMetadata::MD_MapParam(TEXT("MapParam"));
+const FName FBlueprintMetadata::MD_MapKeyParam(TEXT("MapKeyParam"));
+const FName FBlueprintMetadata::MD_MapValueParam(TEXT("MapValueParam"));
 
 const FName FBlueprintMetadata::MD_Bitmask(TEXT("Bitmask"));
 const FName FBlueprintMetadata::MD_BitmaskEnum(TEXT("BitmaskEnum"));
@@ -1113,8 +1120,7 @@ bool UEdGraphSchema_K2::IsAllowableBlueprintVariableType(const class UClass* InC
 			return true;
 		}
 
-		static const FBoolConfigValueHelper NotBlueprintType(TEXT("EditoronlyBP"), TEXT("bBlueprintIsNotBlueprintType"));
-		if (NotBlueprintType && InClass->IsChildOf(UBlueprint::StaticClass()))
+		if (FLegacyEditorOnlyBlueprintOptions::IsTypeProhibited(InClass))
 		{
 			return false;
 		}
@@ -2402,6 +2408,13 @@ bool UEdGraphSchema_K2::SearchForAutocastFunction(const UEdGraphPin* OutputPin, 
 		OutputPin->PinType.bIsMap != InputPin->PinType.bIsMap ||
 		OutputPin->PinType.bIsSet != InputPin->PinType.bIsSet)
 	{
+		if (OutputPin->PinType.bIsSet && InputPin->PinType.bIsArray)
+		{
+			UFunction* Function = UBlueprintSetLibrary::StaticClass()->FindFunctionByName(GET_MEMBER_NAME_CHECKED(UBlueprintSetLibrary, Set_ToArray));
+			TargetFunction = Function->GetFName();
+			FunctionOwner = Function->GetOwnerClass();
+			return true;
+		}
 		return false;
 	}
 
@@ -2474,7 +2487,7 @@ bool UEdGraphSchema_K2::FindSpecializedConversionNode(const UEdGraphPin* OutputP
 	TargetNode = NULL;
 
 	// Conversion for scalar -> array
-	if( (!OutputPin->PinType.bIsArray && InputPin->PinType.bIsArray) && ArePinTypesCompatible(OutputPin->PinType, InputPin->PinType, NULL, true) )
+	if( (!OutputPin->PinType.IsContainer() && InputPin->PinType.bIsArray) && ArePinTypesCompatible(OutputPin->PinType, InputPin->PinType, NULL, true))
 	{
 		bCanConvert = true;
 		if(bCreateNode)
@@ -3313,6 +3326,10 @@ bool UEdGraphSchema_K2::ConvertPropertyToPinType(const UProperty* Property, /*ou
 		|| UK2Node_CallFunction::IsWildcardProperty(Function, Property))
 	{
 		TypeOut.PinCategory = PC_Wildcard;
+		if(MapProperty)
+		{
+			TypeOut.PinValueType.TerminalCategory = PC_Wildcard;
+		}
 	}
 	else if (const UMulticastDelegateProperty* MulticastDelegateProperty = Cast<const UMulticastDelegateProperty>(TestProperty))
 	{
@@ -3410,6 +3427,25 @@ FText UEdGraphSchema_K2::TypeToText(UProperty* const Property)
 			FFormatNamedArguments Args;
 			Args.Add(TEXT("ArrayType"), TypeToText(Array->Inner));
 			return FText::Format(LOCTEXT("ArrayPropertyText", "Array of {ArrayType}"), Args); 
+		}
+	}
+	else if (USetProperty* Set = Cast<USetProperty>(Property))
+	{
+		if (Set->ElementProp)
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("SetType"), TypeToText(Set->ElementProp));
+			return FText::Format(LOCTEXT("ArrayPropertyText", "Set of {SetType}"), Args);
+		}
+	}
+	else if (UMapProperty* Map = Cast<UMapProperty>(Property))
+	{
+		if (Map->KeyProp && Map->ValueProp)
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("MapKeyType"), TypeToText(Map->KeyProp));
+			Args.Add(TEXT("MapValueType"), TypeToText(Map->ValueProp));
+			return FText::Format(LOCTEXT("ArrayPropertyText", "Map of {MapKeyType} to {MapValueType}"), Args);
 		}
 	}
 	
@@ -3539,7 +3575,7 @@ FText UEdGraphSchema_K2::TypeToText(const FEdGraphPinType& Type)
 		Args.Add(TEXT("KeyTitle"), PropertyText);
 		FText ValueText = TerminalTypeToText(Type.PinValueType.TerminalCategory, Type.PinValueType.TerminalSubCategory, Type.PinValueType.TerminalSubCategoryObject.Get(), Type.PinValueType.bTerminalIsWeakPointer);
 		Args.Add(TEXT("ValueTitle"), ValueText);
-		PropertyText = FText::Format(LOCTEXT("MapAsText", "Map of {PropertyTitle}s to {ValueTitle}s"), Args);
+		PropertyText = FText::Format(LOCTEXT("MapAsText", "Map of {KeyTitle}s to {ValueTitle}s"), Args);
 	}
 	else if ( Type.bIsSet )
 	{
@@ -4170,37 +4206,8 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 	}
 
 	// Pins representing BLueprint objects and subclass of UObject can match when EditoronlyBP.bAllowClassAndBlueprintPinMatching=true (BaseEngine.ini)
-	// It's required for converting all UBlueprint references into UClass.
-	struct FObjClassAndBlueprintHelper
-	{
-	private:
-		bool bAllow;
-	public:
-		FObjClassAndBlueprintHelper() : bAllow(false)
-		{
-			GConfig->GetBool(TEXT("EditoronlyBP"), TEXT("bAllowClassAndBlueprintPinMatching"), bAllow, GEditorIni);
-		}
-
-		bool Match(const FEdGraphPinType& A, const FEdGraphPinType& B, const UEdGraphSchema_K2& Schema) const
-		{
-			if (bAllow && (B.PinCategory == Schema.PC_Object) && (A.PinCategory == Schema.PC_Class))
-			{
-				const bool bAIsObjectClass = (UObject::StaticClass() == A.PinSubCategoryObject.Get());
-				const UClass* BClass = Cast<UClass>(B.PinSubCategoryObject.Get());
-				const bool bBIsBlueprintObj = BClass && BClass->IsChildOf(UBlueprint::StaticClass());
-				return bAIsObjectClass && bBIsBlueprintObj;
-			}
-			return false;
-		}
-	};
-
-	static FObjClassAndBlueprintHelper MatchHelper;
-	if (MatchHelper.Match(Input, Output, *this) || MatchHelper.Match(Output, Input, *this))
-	{
-		return true;
-	}
-
-	return false;
+	// It's required for converting all UBlueprint references into UClass.	
+	return FLegacyEditorOnlyBlueprintUtils::DoPinsMatch(Input, Output);
 }
 
 void UEdGraphSchema_K2::BreakNodeLinks(UEdGraphNode& TargetNode) const

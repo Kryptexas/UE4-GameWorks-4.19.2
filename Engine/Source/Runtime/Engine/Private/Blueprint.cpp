@@ -25,6 +25,7 @@
 #endif
 #include "Components/TimelineComponent.h"
 #include "Engine/InheritableComponentHandler.h"
+#include "BlueprintSupport.h" // for FLegacyEditorOnlyBlueprintOptions::IncludeUBlueprintObjsInCookedBuilds()
 
 DEFINE_LOG_CATEGORY(LogBlueprint);
 
@@ -470,7 +471,7 @@ bool UBlueprint::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Fl
 	bool bSuccess = Super::Rename( InName, NewOuter, Flags );
 
 	// Finally, do a compile, but only if the new name differs from before
-	if(bSuccess && !(Flags & REN_Test) && !(Flags & REN_DoNotDirty) && InName != OldName)
+	if(bSuccess && !(Flags & REN_Test) && !(Flags & REN_DoNotDirty) && InName && InName != OldName)
 	{
 		// Gather all blueprints that currently depend on this one.
 		TArray<UBlueprint*> Dependents;
@@ -713,7 +714,7 @@ void UBlueprint::SetObjectBeingDebugged(UObject* NewObject)
 				NewObject->IsA(this->GeneratedClass), 
 				TEXT("Type mismatch: Expected %s, Found %s"), 
 				this->GeneratedClass ? *(this->GeneratedClass->GetName()) : TEXT("NULL"), 
-				NewObject->GetClass() ? *(this->GetClass()->GetName()) : TEXT("NULL")))
+				NewObject->GetClass() ? *(NewObject->GetClass()->GetName()) : TEXT("NULL")))
 		{
 			NewObject = NULL;
 		}
@@ -1229,32 +1230,36 @@ FString UBlueprint::GetDesc(void)
 	return ResultString;
 }
 
-struct FDontLoadBlueprintOutsideEditorHelper
-{
-	bool bDontLoad;
-
-	FDontLoadBlueprintOutsideEditorHelper() : bDontLoad(false)
-	{
-		GConfig->GetBool(TEXT("EditoronlyBP"), TEXT("bDontLoadBlueprintOutsideEditor"), bDontLoad, GEditorIni);
-	}
-};
-
 bool UBlueprint::NeedsLoadForClient() const
 {
-	static const FDontLoadBlueprintOutsideEditorHelper Helper;
-	return !Helper.bDontLoad;
+	return FLegacyEditorOnlyBlueprintOptions::IncludeUBlueprintObjsInCookedBuilds();
 }
 
 bool UBlueprint::NeedsLoadForServer() const
 {
-	static const FDontLoadBlueprintOutsideEditorHelper Helper;
-	return !Helper.bDontLoad;
+	return FLegacyEditorOnlyBlueprintOptions::IncludeUBlueprintObjsInCookedBuilds();
 }
 
 bool UBlueprint::NeedsLoadForEditorGame() const
 {
 	return true;
 }
+
+#if WITH_EDITOR
+bool UBlueprint::CanEditChange(const UProperty* InProperty) const
+{
+	bool bIsEditable = Super::CanEditChange(InProperty);
+	if (bIsEditable && InProperty)
+	{
+		const FName PropertyName = InProperty->GetFName();
+		if (PropertyName == GET_MEMBER_NAME_CHECKED(UBlueprint, bNativize))
+		{
+			return (BlueprintType != BPTYPE_LevelScript) && (BlueprintType != BPTYPE_MacroLibrary);
+		}
+	}
+	return bIsEditable;
+}
+#endif // WITH_EDITOR
 
 void UBlueprint::TagSubobjects(EObjectFlags NewFlags)
 {

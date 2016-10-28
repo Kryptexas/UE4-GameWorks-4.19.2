@@ -597,6 +597,13 @@ int32 UKismetMathLibrary::FTrunc(float A)
 	return FMath::TruncToInt(A);
 }	
 
+FIntVector UKismetMathLibrary::FTruncVector(const FVector& InVector)
+{
+	return FIntVector(FMath::TruncToInt(InVector.X),
+		              FMath::TruncToInt(InVector.Y),
+		              FMath::TruncToInt(InVector.Z));
+}
+
 int32 UKismetMathLibrary::FCeil(float A)
 {
 	return FMath::CeilToInt(A);
@@ -1897,6 +1904,11 @@ uint8 UKismetMathLibrary::Conv_IntToByte(int32 InInt)
 	return (uint8)InInt;
 }
 
+FIntVector UKismetMathLibrary::Conv_IntToIntVector(int32 InInt)
+{
+	return FIntVector(InInt, InInt, InInt);
+}
+
 bool UKismetMathLibrary::Conv_IntToBool(int32 InInt)
 {
 	return InInt == 0 ? false : true;
@@ -1940,6 +1952,11 @@ FLinearColor UKismetMathLibrary::Conv_VectorToLinearColor(FVector InVec)
 FVector2D UKismetMathLibrary::Conv_VectorToVector2D(FVector InVec)
 {
 	return FVector2D(InVec);
+}
+
+FVector UKismetMathLibrary::Conv_IntVectorToVector(const FIntVector& InIntVector)
+{
+	return FVector(InIntVector);
 }
 
 FVector UKismetMathLibrary::Conv_Vector2DToVector(FVector2D InVec2D, float Z)

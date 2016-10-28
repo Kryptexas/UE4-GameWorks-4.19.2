@@ -86,6 +86,10 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=Experimental)
 	bool bNativizeBlueprintAssets;
 
+	/** WHen nativization is enabled, only Blueprints with "Nativize" set true will be converted to C++. */
+	UPROPERTY(config, EditAnywhere, Category = Experimental)
+	bool bNativizeOnlySelectedBlueprints;
+
 	/** If enabled, all content will be put into a single .pak file instead of many individual files (default = enabled). */
 	UPROPERTY(config, EditAnywhere, Category=Packaging)
 	bool UsePakFile;

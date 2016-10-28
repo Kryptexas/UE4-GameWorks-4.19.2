@@ -440,7 +440,7 @@ FName UK2Node_AddComponent::MakeNewComponentTemplateName(UObject* InOuter, UClas
 {
 	FName TemplateName = NAME_None;
 
-	int32 Counter = 1;
+	int32& Counter = GetBlueprint()->ComponentTemplateNameIndex.FindOrAdd(InComponentClass->GetFName());
 	FString ComponentClassNameAsString = InComponentClass->GetName();
 	if (InComponentClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint))
 	{

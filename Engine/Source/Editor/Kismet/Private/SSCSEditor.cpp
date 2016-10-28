@@ -4725,14 +4725,31 @@ UActorComponent* SSCSEditor::AddNewNode(USCS_Node* NewNode, UObject* Asset, bool
 	UBlueprint* Blueprint = GetBlueprint();
 	check(Blueprint != nullptr && Blueprint->SimpleConstructionScript != nullptr);
 
-	// Reset the scene root node if it's set to the default one that's managed by the SCS
-	//if(SceneRootNodePtr.IsValid() && SceneRootNodePtr->GetSCSNode() == Blueprint->SimpleConstructionScript->GetDefaultSceneRootNode())
-	//{
-	//	SceneRootNodePtr.Reset();
-	//}
+	bool AttachToSceneRootNode = true;
+	if (USceneComponent* NewSceneComponent = Cast<USceneComponent>(NewNode->ComponentTemplate))
+	{
+		// get currently selected component
+		TArray<FSCSEditorTreeNodePtrType> SelectedTreeNodes;
+		if (SCSTreeWidget.IsValid() && SCSTreeWidget->GetSelectedItems(SelectedTreeNodes) > 0)
+		{
+			FSCSEditorTreeNodePtrType FirstTreeNode = SelectedTreeNodes[0];
+			if (FirstTreeNode.IsValid() && FirstTreeNode->GetComponentTemplate())
+			{
+				USceneComponent* CastFirstTreeNode = Cast<USceneComponent>(FirstTreeNode->GetComponentTemplate());
+				if (CastFirstTreeNode && NewSceneComponent->CanAttachAsChild(CastFirstTreeNode, NAME_None))
+				{
+					NewNodePtr = AddTreeNode(NewNode, FirstTreeNode, false);
+					AttachToSceneRootNode = false;
+				}
+			}
+		}
+	}
 
-	// Add the new node to the editor tree
-	NewNodePtr = AddTreeNode(NewNode, SceneRootNodePtr, false);
+	if (AttachToSceneRootNode)
+	{
+		// Add the new node to the editor tree
+		NewNodePtr = AddTreeNode(NewNode, SceneRootNodePtr, false);
+	}
 
 	// Potentially adjust variable names for any child blueprints
 	const FName VariableName = NewNode->GetVariableName();

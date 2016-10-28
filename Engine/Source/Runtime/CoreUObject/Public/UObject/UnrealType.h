@@ -201,7 +201,9 @@ public:
 	* @param	DefaultsStruct 
 	* @param	bOutAdvanceProperty whether the property should be advanced and continue to next property or not
 	*
-	* @return	true if the function has handled the tag
+	* @return	true if the function has handled the tag. Returning true but assigning bOutAdvanceProperty false 
+	*			indicates to calling code that it needs to manually advance the property. bOutAdvanceProperty true
+	*			indicates that ConvertFromType itself has handled this property tag.
 	*/
 	virtual bool ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty);
 
@@ -2490,6 +2492,7 @@ public:
 	// UProperty interface
 	virtual FString GetCPPMacroType(FString& ExtendedTypeText) const  override;
 	virtual FString GetCPPType(FString* ExtendedTypeText, uint32 CPPExportFlags) const override;
+	virtual FString GetCPPTypeForwardDeclaration() const override;
 	virtual void LinkInternal(FArchive& Ar) override;
 	virtual bool Identical(const void* A, const void* B, uint32 PortFlags) const override;
 	virtual void SerializeItem(FArchive& Ar, void* Value, void const* Defaults) const override;
@@ -2505,6 +2508,7 @@ public:
 	virtual bool ContainsWeakObjectReference() const override;
 	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset, TArray<const UStructProperty*>& EncounteredStructProps) override;
 	virtual bool SameType(const UProperty* Other) const override;
+	virtual bool ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty) override;
 	// End of UProperty interface
 
 	bool HasKey(void* InMap, void* InBaseAddress, const FString& InValue) const;
@@ -2556,6 +2560,7 @@ public:
 	virtual bool ContainsWeakObjectReference() const override;
 	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset, TArray<const UStructProperty*>& EncounteredStructProps) override;
 	virtual bool SameType(const UProperty* Other) const override;
+	virtual bool ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty) override;
 	// End of UProperty interface
 
 	bool HasElement(void* InSet, void* InBaseAddress, const FString& InValue) const;
@@ -3576,15 +3581,16 @@ public:
 		);
 	}
 
-	/** Remoes the elemnt from the set */
-	void RemoveElement(const void* ElementToRemove)
+	/** Removes the element from the set */
+	bool RemoveElement(const void* ElementToRemove)
 	{
 		UProperty* LocalElementPropForCapture = ElementProp;
-		Set->Remove(
+		return Set->Remove(
 			ElementToRemove, 
 			SetLayout, 
 			[LocalElementPropForCapture](const void* Element) { return LocalElementPropForCapture->GetValueTypeHash(Element); },
-			[LocalElementPropForCapture](const void* A, const void* B) { return LocalElementPropForCapture->Identical(A, B); }
+			[LocalElementPropForCapture](const void* A, const void* B) { return LocalElementPropForCapture->Identical(A, B); },
+			[LocalElementPropForCapture](void* ElementToDestroy ) {LocalElementPropForCapture->DestroyValue(ElementToDestroy); }
 		);
 	}
 

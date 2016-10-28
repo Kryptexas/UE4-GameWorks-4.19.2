@@ -4,7 +4,7 @@
 #include "SGraphNodeK2Base.h"
 #include "SGraphNodeK2CreateDelegate.h"
 
-FString SGraphNodeK2CreateDelegate::FunctionDescription(const UFunction* Function)
+FString SGraphNodeK2CreateDelegate::FunctionDescription(const UFunction* Function, const bool bOnlyDescribeSignature, const int32 CharacterLimit)
 {
 	if(!Function || !Function->GetOuter())
 	{
@@ -16,7 +16,7 @@ FString SGraphNodeK2CreateDelegate::FunctionDescription(const UFunction* Functio
 	//FString Result = Function->GetOuter()->GetName() + TEXT("::") + Function->GetName();
 	//Result += TEXT("(");
 
-	FString Result = Function->GetName() + TEXT("(");
+	FString Result = (bOnlyDescribeSignature ? TEXT("") : Function->GetName()) + TEXT("(");
 	bool bFirst = true;
 	for (TFieldIterator<UProperty> PropIt(Function); PropIt && (PropIt->PropertyFlags & CPF_Parm); ++PropIt)
 	{
@@ -28,12 +28,12 @@ FString SGraphNodeK2CreateDelegate::FunctionDescription(const UFunction* Functio
 			{
 				Result += TEXT(", ");
 			}
-			if(Result.Len() > 32)
+			if(CharacterLimit > INDEX_NONE && Result.Len() > CharacterLimit)
 			{
 				Result += TEXT("...");
 				break;
 			}
-			Result += Param->GetName();
+			Result += bOnlyDescribeSignature ? UEdGraphSchema_K2::TypeToText(Param).ToString() : Param->GetName();
 			bFirst = false;
 		}
 	}
@@ -99,7 +99,7 @@ void SGraphNodeK2CreateDelegate::OnFunctionSelected(TSharedPtr<FFunctionItemData
 	}
 }
 
-void SGraphNodeK2CreateDelegate::CreateBelowWidgetControls(TSharedPtr<SVerticalBox> MainBox)
+void SGraphNodeK2CreateDelegate::CreateBelowPinControls(TSharedPtr<SVerticalBox> MainBox)
 {
 	if(UK2Node_CreateDelegate* Node = Cast<UK2Node_CreateDelegate>(GraphNode))
 	{
@@ -108,6 +108,23 @@ void SGraphNodeK2CreateDelegate::CreateBelowWidgetControls(TSharedPtr<SVerticalB
 
 		if(FunctionSignature && ScopeClass)
 		{
+			FText FunctionSignaturePrompt;
+			{
+				FFormatNamedArguments FormatArguments;
+				FormatArguments.Add(TEXT("FunctionSignature"), FText::FromString(FunctionDescription(FunctionSignature, true)));
+				FunctionSignaturePrompt = FText::Format(NSLOCTEXT("GraphNodeK2Create", "FunctionSignaturePrompt", "Signature: {FunctionSignature}"), FormatArguments);
+			}
+
+			MainBox->AddSlot()
+				.AutoHeight()
+				.VAlign(VAlign_Fill)
+				.Padding(4.0f)
+				[
+					SNew(STextBlock)
+					.Text(FunctionSignaturePrompt)
+					.ToolTipText(FText::FromString(FunctionDescription(FunctionSignature, true, INDEX_NONE)))
+				];
+
 			FunctionDataItems.Empty();
 
 			for(TFieldIterator<UFunction> It(ScopeClass); It; ++It)
@@ -149,6 +166,7 @@ void SGraphNodeK2CreateDelegate::CreateBelowWidgetControls(TSharedPtr<SVerticalB
 			MainBox->AddSlot()
 				.AutoHeight()
 				.VAlign(VAlign_Fill)
+				.Padding(4.0f)
 				[
 					SelectFunctionWidgetRef
 				];

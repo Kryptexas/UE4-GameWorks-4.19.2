@@ -341,8 +341,8 @@ void FBlueprintProfiler::ProcessEventProfilingData()
 						{
 							EventToProcess = (MakeShareable(new FScriptEventPlayback(EventRangeToProcess.BlueprintContext, EventRangeToProcess.InstanceName)));
 						}
-						check(EventToProcess.IsValid());
-						if (EventToProcess->Process(InstrumentationEventQueue, EventRangeToProcess.StartIdx, EventRangeToProcess.StopIdx))
+						// Checking the event to process so we can continue problem discovery while we look into the latent id issue.
+						if (EventToProcess.IsValid() && EventToProcess->Process(InstrumentationEventQueue, EventRangeToProcess.StartIdx, EventRangeToProcess.StopIdx))
 						{
 							const int32 NumEventsToRemove = (EventRangeToProcess.StopIdx - EventRangeToProcess.StartIdx) + 1;
 							InstrumentationEventQueue.RemoveAt(EventRangeToProcess.StartIdx, NumEventsToRemove, false);
@@ -363,10 +363,8 @@ void FBlueprintProfiler::ProcessEventProfilingData()
 			}
 		}
 	}
-	// For the time being, we should have processed all events in the queue.
-	// In the future we will potentially only process a few events at a time, and this check should be removed.
-	// Removed this check after finding an issue with it switching out maps.
-//	check(InstrumentationEventQueue.Num() == 0);
+	// We need to ensure this doesn't happen. but for now kill anything remaining in the queue.
+	InstrumentationEventQueue.SetNum(0);
 	// Update all active contexts if the display settings changed.
 	UBlueprintProfilerSettings* Settings = GetMutableDefault<UBlueprintProfilerSettings>();
 	if (Settings->GetPerformanceThresholdsModified())

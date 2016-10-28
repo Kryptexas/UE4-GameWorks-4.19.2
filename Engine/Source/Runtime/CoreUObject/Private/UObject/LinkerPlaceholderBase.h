@@ -20,7 +20,7 @@ class UObjectProperty;
 struct FScopedPlaceholderContainerTracker
 {
 public:
-	 FScopedPlaceholderContainerTracker(UObject* PerspectivePlaceholderReferencer);
+	FScopedPlaceholderContainerTracker(UObject* PerspectivePlaceholderReferencer);
 	~FScopedPlaceholderContainerTracker();
 
 private:
@@ -167,6 +167,7 @@ private:
 		 * @return The number of values successfully replaced (could be multiple for array properties).
 		 */
 		int32 Resolve(FLinkerPlaceholderBase* Placeholder, UObject* Replacement, UObject* Container) const;
+		int32 ResolveRaw(FLinkerPlaceholderBase* Placeholder, UObject* Replacement, void* Container) const;
 
 	private:
 		/** Denotes the property hierarchy used to reach this leaf property that is referencing a placeholder*/
@@ -206,6 +207,7 @@ private:
 
 	/** Tracks container objects that have property values set to reference this placeholder (references that need to be replaced later) */
 	TMap< TWeakObjectPtr<UObject>, FReferencingPropertySet > ReferencingContainers;
+	TMap< void*, FReferencingPropertySet > ReferencingRawContainers;
 };
 
 /*******************************************************************************

@@ -7,7 +7,7 @@
 struct FObjectInstancingGraph;
 
 /**
- * UObject Memory Reader Archive.
+ * UObject Memory Reader Archive. Reads from InBytes, writes to Obj.
  */
 class FObjectReader : public FMemoryArchive
 {

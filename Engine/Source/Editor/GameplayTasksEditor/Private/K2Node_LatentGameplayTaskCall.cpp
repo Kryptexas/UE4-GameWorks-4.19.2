@@ -123,6 +123,7 @@ void UK2Node_LatentGameplayTaskCall::ReallocatePinsDuringReconstruction(TArray<U
 	{
 		CreatePinsForClass(UseSpawnClass);
 	}
+	RestoreSplitPins(OldPins);
 }
 
 UEdGraphPin* UK2Node_LatentGameplayTaskCall::GetClassPin(const TArray<UEdGraphPin*>* InPinsToSearch /*= NULL*/) const

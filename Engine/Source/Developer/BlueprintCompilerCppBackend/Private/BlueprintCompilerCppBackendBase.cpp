@@ -283,6 +283,22 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceCl
 
 	EmitStructProperties(EmitterContext, SourceClass);
 
+	{
+		IBlueprintCompilerCppBackendModule& BackEndModule = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
+		TSharedPtr<FNativizationSummary> NativizationSummary = BackEndModule.NativizationSummary();
+		if (NativizationSummary.IsValid())
+		{
+			for (TFieldIterator<UProperty> It(SourceClass, EFieldIteratorFlags::ExcludeSuper); It; ++It)
+			{
+				UProperty* Property = *It;
+				if (Property && Property->HasAllPropertyFlags(CPF_Transient | CPF_DuplicateTransient))
+				{
+					NativizationSummary->MemberVariablesFromGraph++;
+				}
+			}
+		}
+	}
+
 	TSharedPtr<FGatherConvertedClassDependencies> ParentDependencies;
 	// Emit function declarations and definitions (writes to header and body simultaneously)
 	if (!bIsInterface)
@@ -493,7 +509,7 @@ void FBlueprintCompilerCppBackendBase::ConstructFunction(FKismetFunctionContext&
 				if (FEmitHelper::PropertyForConstCast(Property))
 				{
 					const uint32 ExportFlags = EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend | EPropertyExportCPPFlags::CPPF_NoConst | EPropertyExportCPPFlags::CPPF_NoRef;
-					const FString NoConstNoRefType = EmitterContext.ExportCppDeclaration(Property, EExportedDeclaration::Parameter, ExportFlags, true);
+					const FString NoConstNoRefType = EmitterContext.ExportCppDeclaration(Property, EExportedDeclaration::Parameter, ExportFlags, FEmitterLocalContext::EPropertyNameInDeclaration::Skip);
 					const FString TypeDefName = FString(TEXT("T")) + EmitterContext.GenerateUniqueLocalName();
 					EmitterContext.AddLine(FString::Printf(TEXT("typedef %s %s;"), *NoConstNoRefType, *TypeDefName));
 
@@ -699,7 +715,7 @@ FString FBlueprintCompilerCppBackendBase::GenerateArgList(const FEmitterLocalCon
 			ArgListStr += EmitterContext.ExportCppDeclaration(ArgProperty
 				, EExportedDeclaration::Parameter
 				, EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend | EPropertyExportCPPFlags::CPPF_ArgumentOrReturnValue
-				, false
+				, FEmitterLocalContext::EPropertyNameInDeclaration::Regular
 				, NamePostFix);
 		}
 	}
@@ -718,7 +734,7 @@ FString FBlueprintCompilerCppBackendBase::GenerateReturnType(const FEmitterLocal
 			| EPropertyExportCPPFlags::CPPF_NoStaticArray
 			| EPropertyExportCPPFlags::CPPF_BlueprintCppBackend
 			| EPropertyExportCPPFlags::CPPF_ArgumentOrReturnValue;
-		return EmitterContext.ExportCppDeclaration(ReturnValue, EExportedDeclaration::Parameter, LocalExportCPPFlags, true);
+		return EmitterContext.ExportCppDeclaration(ReturnValue, EExportedDeclaration::Parameter, LocalExportCPPFlags, FEmitterLocalContext::EPropertyNameInDeclaration::Skip);
 	}
 	return TEXT("void");
 }
@@ -1001,7 +1017,10 @@ FString FBlueprintCompilerCppBackendBase::GenerateWrapperForClass(UClass* Source
 		//TODO: check if the property is really used?
 		const FString TypeDeclaration = Property->IsA<UMulticastDelegateProperty>()
 			? FString::Printf(TEXT("%s::%s"), *DelegatesClassName, *GenerateMulticastDelegateTypeName(CastChecked<UMulticastDelegateProperty>(Property)))
-			: EmitterContext.ExportCppDeclaration(Property, EExportedDeclaration::Parameter, EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend | EPropertyExportCPPFlags::CPPF_NoRef, true);
+			: EmitterContext.ExportCppDeclaration(Property
+				, EExportedDeclaration::Parameter
+				, EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend | EPropertyExportCPPFlags::CPPF_NoRef
+				, FEmitterLocalContext::EPropertyNameInDeclaration::Skip);
 		EmitterContext.Header.AddLine(FString::Printf(TEXT("FORCENOINLINE %s& GetRef__%s()"), *TypeDeclaration, *UnicodeToCPPIdentifier(Property->GetName(), false, nullptr)));
 		EmitterContext.Header.AddLine(TEXT("{"));
 		EmitterContext.Header.IncreaseIndent();
@@ -1077,7 +1096,11 @@ FString FBlueprintCompilerCppBackendBase::GenerateWrapperForClass(UClass* Source
 						ParamAsStructMember = TEXT("const ");
 					}
 				}
-				ParamAsStructMember += EmitterContext.ExportCppDeclaration(Property, EExportedDeclaration::Local, EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend, false, ParamNameInStructPostfix);
+				ParamAsStructMember += EmitterContext.ExportCppDeclaration(Property
+					, EExportedDeclaration::Local
+					, EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend
+					, FEmitterLocalContext::EPropertyNameInDeclaration::Regular
+					, ParamNameInStructPostfix);
 				FuncParameters.Emplace(ParamAsStructMember);
 				RawParameterList += UnicodeToCPPIdentifier(Property->GetName(), Property->HasAnyPropertyFlags(CPF_Deprecated), TEXT("bpp__"));
 			}
@@ -1170,7 +1193,7 @@ void FBlueprintCompilerCppBackendBase::EmitFileBeginning(const FString& CleanNam
 			{
 				// @TODO: Need to query if this asset will actually be converted
 
-				const FString Name = Field->GetName();
+				const FString Name = Field->GetPathName();
 				bool bAlreadyIncluded = false;
 				AlreadyIncluded.Add(Name, &bAlreadyIncluded);
 				if (!bAlreadyIncluded)

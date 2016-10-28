@@ -1492,7 +1492,7 @@ public:
 		return !bIsAlreadyInSet;
 	}
 
-	void Remove(const void* Element, const FScriptSetLayout& Layout, TFunctionRef<uint32(const void*)> GetKeyHash, TFunctionRef<bool(const void*, const void*)> EqualityFn)
+	bool Remove(const void* Element, const FScriptSetLayout& Layout, TFunctionRef<uint32(const void*)> GetKeyHash, TFunctionRef<bool(const void*, const void*)> EqualityFn, TFunctionRef<void(void*)> DestroyFn )
 	{
 		if (Elements.Num())
 		{
@@ -1507,11 +1507,13 @@ public:
 				CurrentElement = (uint8*)Elements.GetData(ElementId, Layout.SparseArrayLayout);
 				if(EqualityFn(Element, CurrentElement))
 				{
+					DestroyFn(CurrentElement);
 					RemoveAt(ElementId, Layout);
-					return;
+					return true;
 				}
 			}
 		}
+		return false;
 	}
 
 private:

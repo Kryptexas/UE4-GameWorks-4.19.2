@@ -127,6 +127,9 @@ public:
 	/** returns true if the ParameterName is marked as a SetParam in the relevant Function */
 	static bool IsSetParam(const UFunction* Function, const FString& ParameterName);
 
+	/** returns true if the ParameterName is marked as a MapParam, MapKeyParam, or MapValueParam in the relevant Function */
+	static bool IsMapParam(const UFunction* Function, const FString& ParameterName);
+
 private:
 	static TArray< TSharedPtr<FGraphPanelNodeFactory> > VisualNodeFactories;
 	static TArray< TSharedPtr<FGraphPanelPinFactory> > VisualPinFactories;

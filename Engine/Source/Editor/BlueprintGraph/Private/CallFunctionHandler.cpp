@@ -90,23 +90,6 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 			CompilerContext.MessageLog.Error(*LOCTEXT("ContainsLatentCall_Error", "@@ contains a latent call, which cannot exist outside of the event graph").ToString(), Node);
 		}
 
-		// Check access specifier
-		const uint32 AccessSpecifier = Function->FunctionFlags & FUNC_AccessSpecifiers;
-		if(FUNC_Private == AccessSpecifier)
-		{
-			if(Function->GetOuter() != Context.NewClass)
-			{
-				CompilerContext.MessageLog.Warning(*LOCTEXT("PrivateFunctionCall_Error", "Function @@ is private and cannot be called outside its class").ToString(), Node);
-			}
-		}
-		else if(FUNC_Protected == AccessSpecifier)
-		{
-			if( !Context.NewClass->IsChildOf( Cast<UStruct>( Function->GetOuter() ) ) )
-			{
-				CompilerContext.MessageLog.Warning(*LOCTEXT("ProtectedFunctionCall_Error", "Function @@ is protected and can be called only from its class or subclasses").ToString(), Node);
-			}
-		}
-
 		UEdGraphPin* LatentInfoPin = NULL;
 
 		TMap<FName, FString>* MetaData = UMetaData::GetMapForObject(Function);

@@ -921,23 +921,12 @@ void FSCSEditorViewportClient::BeginTransaction(const FText& Description)
 						}
 					}
 
-					// Modify both the component template and the instance in the preview actor (provided there is one)
+					// Modify template, any instances will be reconstructed as part of PostUndo:
 					UActorComponent* ComponentTemplate = Node->GetEditableComponentTemplate(PreviewBlueprint);
 					if (ComponentTemplate != nullptr)
 					{
 						ComponentTemplate->SetFlags(RF_Transactional);
 						ComponentTemplate->Modify();
-					}
-
-					AActor* PreviewActor = GetPreviewActor();
-					if (PreviewActor)
-					{
-						UActorComponent* ComponentPreviewInstance = Node->FindComponentInstanceInActor(PreviewActor);
-						if (ComponentPreviewInstance != nullptr)
-						{
-							ComponentPreviewInstance->SetFlags(RF_Transactional);
-							ComponentPreviewInstance->Modify();
-						}
 					}
 				}
 			}

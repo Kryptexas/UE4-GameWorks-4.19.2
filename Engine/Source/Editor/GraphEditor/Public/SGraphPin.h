@@ -118,6 +118,12 @@ public:
 	/** @return whether this pin is an array value */
 	bool IsArray() const;
 
+	/** @return whether this pin is a set value */
+	bool IsSet() const;
+
+	/** @return whether this pin is a map value */
+	bool IsMap() const;
+
 	/** @return whether this pin is passed by ref */
 	bool IsByRef() const;
 
@@ -174,8 +180,11 @@ protected:
 	/** Get the widget we should put into the 'default value' space, shown when nothing connected */
 	virtual TSharedRef<SWidget>	GetDefaultValueWidget();
 
-	/** @return The brush with which to pain this graph pin's incoming/outgoing bullet point */
+	/** @return The brush with which to paint this graph pin's incoming/outgoing bullet point */
 	virtual const FSlateBrush* GetPinIcon() const;
+
+	/** @return the brush which is to paint the 'secondary icon' for this pin, (e.g. value type for Map pins */
+	const FSlateBrush* GetSecondaryPinIcon() const;
 
 	const FSlateBrush* GetPinBorder() const;
 	
@@ -190,6 +199,9 @@ protected:
 
 	/** @return The color that we should use to draw this pin */
 	virtual FSlateColor GetPinColor() const;
+
+	/** @return The secondary color that we should use to draw this pin (e.g. value color for Map pins) */
+	FSlateColor GetSecondaryPinColor() const;
 
 	/** @return The color that we should use to draw this pin's text */
 	virtual FSlateColor GetPinTextColor() const;
@@ -245,23 +257,18 @@ protected:
 	bool bUsePinColorForText;
 
 	//@TODO: Want to cache these once for all SGraphPins, but still handle slate style updates
-	mutable const FSlateBrush* CachedImg_ArrayPin_ConnectedHovered;
-	mutable const FSlateBrush* CachedImg_ArrayPin_Connected;
-	mutable const FSlateBrush* CachedImg_ArrayPin_DisconnectedHovered;
-	mutable const FSlateBrush* CachedImg_ArrayPin_Disconnected;
-	mutable const FSlateBrush* CachedImg_RefPin_ConnectedHovered;
-	mutable const FSlateBrush* CachedImg_RefPin_Connected;
-	mutable const FSlateBrush* CachedImg_RefPin_DisconnectedHovered;
-	mutable const FSlateBrush* CachedImg_RefPin_Disconnected;
-	mutable const FSlateBrush* CachedImg_Pin_ConnectedHovered;
-	mutable const FSlateBrush* CachedImg_Pin_Connected;
-	mutable const FSlateBrush* CachedImg_Pin_DisconnectedHovered;
-	mutable const FSlateBrush* CachedImg_Pin_Disconnected;
-	mutable const FSlateBrush* CachedImg_DelegatePin_ConnectedHovered;
-	mutable const FSlateBrush* CachedImg_DelegatePin_Connected;
-	mutable const FSlateBrush* CachedImg_DelegatePin_DisconnectedHovered;
-	mutable const FSlateBrush* CachedImg_DelegatePin_Disconnected;
+	const FSlateBrush* CachedImg_ArrayPin_Connected;
+	const FSlateBrush* CachedImg_ArrayPin_Disconnected;
+	const FSlateBrush* CachedImg_RefPin_Connected;
+	const FSlateBrush* CachedImg_RefPin_Disconnected;
+	const FSlateBrush* CachedImg_Pin_Connected;
+	const FSlateBrush* CachedImg_Pin_Disconnected;
+	const FSlateBrush* CachedImg_DelegatePin_Connected;
+	const FSlateBrush* CachedImg_DelegatePin_Disconnected;
+	const FSlateBrush* CachedImg_SetPin;
+	const FSlateBrush* CachedImg_MapPinKey;
+	const FSlateBrush* CachedImg_MapPinValue;
 
-	mutable const FSlateBrush* CachedImg_Pin_Background;
-	mutable const FSlateBrush* CachedImg_Pin_BackgroundHovered;
+	const FSlateBrush* CachedImg_Pin_Background;
+	const FSlateBrush* CachedImg_Pin_BackgroundHovered;
 };
