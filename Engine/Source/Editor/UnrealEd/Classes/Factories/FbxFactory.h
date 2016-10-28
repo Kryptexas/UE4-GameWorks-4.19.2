@@ -40,6 +40,8 @@ class UNREALED_API UFbxFactory : public UFactory
 	 */
 	bool DetectImportType(const FString& InFilename);
 
+	void SetDetectImportTypeOnImport(bool bDetectState) { bDetectImportTypeOnImport = bDetectState; }
+
 protected:
 	// @todo document
 	UObject* RecursiveImportNode(void* FFbxImporter, void* Node, UObject* InParent, FName InName, EObjectFlags Flags, int32& Index, int32 Total, TArray<UObject*>& OutNewAssets);

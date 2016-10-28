@@ -149,6 +149,8 @@ bool FFbxImportAssetsAutomationTest::RunTest(const FString& Parameters)
 				UFbxFactory* FbxFactory = NewObject<UFbxFactory>(UFbxFactory::StaticClass());
 				FbxFactory->AddToRoot();
 				FbxFactory->ImportUI = TestPlan->ImportUI;
+				//Skip the auto detect type on import, the test set a specific value
+				FbxFactory->SetDetectImportTypeOnImport(false);
 
 				if (FbxFactory->ImportUI->bImportAsSkeletal)
 				{
