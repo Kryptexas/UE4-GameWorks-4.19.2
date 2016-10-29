@@ -518,18 +518,21 @@ void AndroidEGL::InitSurface(bool bUseSmallSurface, bool bCreateWndSurface)
 {
 	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("AndroidEGL::InitSurface %d, %d"), int(bUseSmallSurface), int(bCreateWndSurface));
 
-	// Sleep if the hardware window isn't currently available.
-	// The Window may not exist if the activity is pausing/resuming, in which case we make this thread wait
-	// This case will come up frequently as a result of the DON flow in Gvr.
-	// Until the app is fully resumed. It would be nicer if this code respected the lifecycle events
-	// of an android app instead, but all of those events are handled on a separate thread and it would require
-	// significant re-architecturing to do.
 	ANativeWindow* window = (ANativeWindow*)FPlatformMisc::GetHardwareWindow();
-	while(window == NULL)
+	if (window == NULL)
 	{
-		FPlatformMisc::LowLevelOutputDebugString(TEXT("Waiting for Native window in  AndroidEGL::InitSurface"));
-		FPlatformProcess::Sleep(0.001f);
-		window = (ANativeWindow*)FPlatformMisc::GetHardwareWindow();
+		// Sleep if the hardware window isn't currently available.
+		// The Window may not exist if the activity is pausing/resuming, in which case we make this thread wait
+		// This case will come up frequently as a result of the DON flow in Gvr.
+		// Until the app is fully resumed. It would be nicer if this code respected the lifecycle events
+		// of an android app instead, but all of those events are handled on a separate thread and it would require
+		// significant re-architecturing to do.
+		FPlatformMisc::LowLevelOutputDebugString(TEXT("Waiting for Native window in AndroidEGL::InitSurface"));
+		while (window == NULL)
+		{
+			FPlatformProcess::Sleep(0.001f);
+			window = (ANativeWindow*)FPlatformMisc::GetHardwareWindow();
+		}
 	}
 
 	PImplData->Window = (ANativeWindow*)window;

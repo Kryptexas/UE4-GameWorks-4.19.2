@@ -103,6 +103,11 @@
 	<androidManifestUpdates>
 		<if condition="bPackageForDaydream">
 			<true>
+				<!-- Signal application packaged for Daydream -->
+				<addElements tag="application">
+					<meta-data android:name="com.epicgames.ue4.GameActivity.bDaydream" android:value="true"/>
+				</addElements>
+
 				<!-- Add features -->
 				<addFeature android:name="android.hardware.sensor.accelerometer" android:required="true" />
 				<addFeature android:name="android.hardware.sensor.gyroscope" android:required="true" />

@@ -1506,6 +1506,14 @@ FString FAndroidMisc::GetVulkanVersion()
 	return VulkanVersionString;
 }
 
+extern bool AndroidThunkCpp_HasMetaDataKey(const FString& Key);
+
+bool FAndroidMisc::IsDaydreamApplication()
+{
+	static const bool bIsDaydreamApplication = AndroidThunkCpp_HasMetaDataKey(TEXT("com.epicgames.ue4.GameActivity.bDaydream"));
+	return bIsDaydreamApplication;
+}
+
 #if !UE_BUILD_SHIPPING
 bool FAndroidMisc::IsDebuggerPresent()
 {

@@ -125,6 +125,7 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 	static int GetAndroidBuildVersion();
 	static bool ShouldUseVulkan();
 	static FString GetVulkanVersion();
+	static bool IsDaydreamApplication();
 
 #if !UE_BUILD_SHIPPING
 	static bool IsDebuggerPresent();

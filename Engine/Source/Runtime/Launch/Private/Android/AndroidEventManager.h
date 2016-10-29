@@ -79,6 +79,7 @@ private:
 	//states
 	bool FirstInitialized;
 	bool bCreateWindow;
+	ANativeWindow* PendingWindow;
 
 	bool bWindowInFocus;
 	bool bSaveState;
