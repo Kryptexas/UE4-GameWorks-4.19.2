@@ -8,6 +8,7 @@
 #include "DetailCategoryBuilder.h"
 #include "DetailWidgetRow.h"
 #include "Curves/CurveInterface.h"
+#include "MovieSceneSection.h"
 
 #include "GenericKeyArea.generated.h"
 
