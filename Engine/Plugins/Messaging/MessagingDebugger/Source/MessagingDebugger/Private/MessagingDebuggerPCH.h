@@ -9,6 +9,7 @@
 #include "Runtime/Messaging/Public/IMessageBus.h"
 #include "Runtime/Messaging/Public/IMessageTracer.h"
 #include "Runtime/Messaging/Public/IMessageTracerBreakpoint.h"
+#include "Runtime/Messaging/Public/IMessagingModule.h"
 #include "Runtime/Serialization/Public/StructSerializer.h"
 #include "Runtime/Serialization/Public/Backends/JsonStructSerializerBackend.h"
 #include "Runtime/Slate/Public/SlateBasics.h"
