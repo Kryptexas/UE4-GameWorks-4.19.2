@@ -78,6 +78,7 @@ PFNGLBINDBUFFERRANGEPROC				glBindBufferRange = NULL;
 PFNGLBINDBUFFERBASEPROC					glBindBufferBase = NULL;
 PFNGLGETUNIFORMBLOCKINDEXPROC			glGetUniformBlockIndex = NULL;
 PFNGLUNIFORMBLOCKBINDINGPROC			glUniformBlockBinding = NULL;
+PFNGLVERTEXATTRIBIPOINTERPROC			glVertexAttribIPointer = NULL;
 
 PFNGLFRAMEBUFFERTEXTUREMULTIVIEWOVRPROC glFramebufferTextureMultiviewOVR = NULL;
 PFNGLFRAMEBUFFERTEXTUREMULTISAMPLEMULTIVIEWOVRPROC glFramebufferTextureMultisampleMultiviewOVR = NULL;
@@ -507,6 +508,7 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 		glBindBufferBase = (PFNGLBINDBUFFERBASEPROC)((void*)eglGetProcAddress("glBindBufferBase"));
 		glGetUniformBlockIndex = (PFNGLGETUNIFORMBLOCKINDEXPROC)((void*)eglGetProcAddress("glGetUniformBlockIndex"));
 		glUniformBlockBinding = (PFNGLUNIFORMBLOCKBINDINGPROC)((void*)eglGetProcAddress("glUniformBlockBinding"));
+		glVertexAttribIPointer = (PFNGLVERTEXATTRIBIPOINTERPROC)((void*)eglGetProcAddress("glVertexAttribIPointer"));
 
 
 		// Required by the ES3 spec
