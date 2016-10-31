@@ -628,7 +628,6 @@ namespace EditorLevelUtils
 			return;
 		}
 
-
 		// Handle the case of the p-level
 		// The p-level can't be unloaded, so its actors/BSP should just be temporarily hidden/unhidden
 		// Also, intentionally do not force layers visible for the p-level
@@ -682,6 +681,7 @@ namespace EditorLevelUtils
 				}
 			}
 
+			Level->GetWorld()->OnLevelsChanged().Broadcast();
 			FEditorSupportDelegates::RedrawAllViewports.Broadcast();
 		}
 		else

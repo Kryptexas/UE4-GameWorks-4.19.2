@@ -346,7 +346,8 @@ void FEdModeLandscape::Enter()
 	UpdateLandscapeList();
 	UpdateTargetList();
 
-	OnWorldChangeDelegateHandle                 = FEditorSupportDelegates::WorldChange.AddRaw(this, &FEdModeLandscape::OnWorldChange);
+	OnWorldChangeDelegateHandle                 = FEditorSupportDelegates::WorldChange.AddRaw(this, &FEdModeLandscape::HandleLevelsChanged);
+	OnLevelsChangedDelegateHandle				= GetWorld()->OnLevelsChanged().AddRaw(this, &FEdModeLandscape::HandleLevelsChanged);
 	OnMaterialCompilationFinishedDelegateHandle = UMaterial::OnMaterialCompilationFinished().AddRaw(this, &FEdModeLandscape::OnMaterialCompilationFinished);
 
 	if (CurrentGizmoActor.IsValid())
@@ -498,6 +499,7 @@ void FEdModeLandscape::Exit()
 	}
 	
 	FEditorSupportDelegates::WorldChange.Remove(OnWorldChangeDelegateHandle);
+	GetWorld()->OnLevelsChanged().Remove(OnLevelsChangedDelegateHandle);
 	UMaterial::OnMaterialCompilationFinished().Remove(OnMaterialCompilationFinishedDelegateHandle);
 
 	// Restore real-time viewport state if we changed it
@@ -2025,7 +2027,7 @@ void FEdModeLandscape::UpdateTargetList()
 
 FEdModeLandscape::FTargetsListUpdated FEdModeLandscape::TargetsListUpdated;
 
-void FEdModeLandscape::OnWorldChange()
+void FEdModeLandscape::HandleLevelsChanged()
 {
 	bool bHadLandscape = (NewLandscapePreviewMode == ENewLandscapePreviewMode::None);
 
@@ -2041,6 +2043,7 @@ void FEdModeLandscape::OnWorldChange()
 	// if a landscape is added somehow then switch to sculpt
 	if (!bHadLandscape && CurrentToolTarget.LandscapeInfo != nullptr)
 	{
+		SetCurrentTool("Select");
 		SetCurrentTool("Sculpt");
 	}
 }
@@ -2487,7 +2490,7 @@ void FEdModeLandscape::ActorMoveNotify()
 
 void FEdModeLandscape::PostUndo()
 {
-	OnWorldChange();
+	HandleLevelsChanged();
 }
 
 /** Forces all level editor viewports to realtime mode */

@@ -3020,7 +3020,6 @@ FVector ULandscapeInfo::GetLandscapeCenterPos(float& LengthZ, int32 MinX /*= MAX
 	LengthZ = (MaxZ - MinZ + 2 * MarginZ) * ScaleZ;
 
 	const FVector LocalPosition(((float)(MinX + MaxX)) / 2.0f, ((float)(MinY + MaxY)) / 2.0f, MinZ - MarginZ);
-	//return GetLandscapeProxy()->TransformLandscapeLocationToWorld(LocalPosition);
 	return GetLandscapeProxy()->LandscapeActorToWorld().TransformPosition(LocalPosition);
 }
 
