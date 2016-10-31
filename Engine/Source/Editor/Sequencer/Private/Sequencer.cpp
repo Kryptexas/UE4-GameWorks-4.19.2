@@ -718,12 +718,19 @@ FGuid FSequencer::CreateBinding(UObject& InObject, const FString& InName)
 	const FGuid PossessableGuid = OwnerMovieScene->AddPossessable(InName, InObject.GetClass());
 
 	// Attempt to use the parent as a context if necessary
-	UObject* BindingContext = OwnerSequence->AreParentContextsSignificant() ? OwnerSequence->GetParentObject(&InObject) : nullptr;
-	if (BindingContext)
+	UObject* ParentObject = OwnerSequence->GetParentObject(&InObject);
+	UObject* BindingContext = GetPlaybackContext();
+
+	if (ParentObject)
 	{
 		// Ensure we have possessed the outer object, if necessary
-		FGuid ParentGuid = GetHandleToObject(BindingContext);
+		FGuid ParentGuid = GetHandleToObject(ParentObject);
 		
+		if (OwnerSequence->AreParentContextsSignificant())
+		{
+			BindingContext = ParentObject;
+		}
+
 		// Set up parent/child guids for possessables within spawnables
 		if (ParentGuid.IsValid())
 		{
@@ -739,10 +746,6 @@ FGuid FSequencer::CreateBinding(UObject& InObject, const FString& InName)
 				ParentSpawnable->AddChildPossessable(PossessableGuid);
 			}
 		}
-	}
-	else
-	{
-		BindingContext = GetPlaybackContext();
 	}
 
 	OwnerSequence->BindPossessableObject(PossessableGuid, InObject, BindingContext);
@@ -4807,7 +4810,7 @@ void FSequencer::PasteCopiedTracks(TArray<TSharedPtr<FSequencerObjectBindingNode
 	for (TSharedPtr<FSequencerObjectBindingNode> ObjectNode : ObjectNodes)
 	{
 		FGuid ObjectGuid = ObjectNode->GetObjectBinding();
-		UObject* Context = nullptr;
+		UObject* Context = GetPlaybackContext();
 		TArray<UObject*, TInlineAllocator<1>> PossessableObjects = GetFocusedMovieSceneSequence()->LocateBoundObjects(ObjectGuid, Context);
 
 		if (PossessableObjects.Num() == 0)
