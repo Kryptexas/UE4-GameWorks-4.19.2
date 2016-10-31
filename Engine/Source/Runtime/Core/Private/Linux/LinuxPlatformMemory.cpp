@@ -83,7 +83,7 @@ class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 					break;
 				}
 
-				if (FCStringAnsi::Stricmp(Arg, "-binnedmalloc1") == 0)
+				if (FCStringAnsi::Stricmp(Arg, "-binnedmalloc") == 0)
 				{
 					AllocatorToUse = EMemoryAllocatorToUse::Binned;
 					break;
