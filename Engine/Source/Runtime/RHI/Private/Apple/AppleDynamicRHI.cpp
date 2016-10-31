@@ -18,6 +18,8 @@ static FAutoConsoleVariableRef CVarMacOpenGLDisabled(
 
 FDynamicRHI* PlatformCreateDynamicRHI()
 {
+	SCOPED_AUTORELEASE_POOL;
+
 	FDynamicRHI* DynamicRHI = NULL;
 	IDynamicRHIModule* DynamicRHIModule = NULL;
 
