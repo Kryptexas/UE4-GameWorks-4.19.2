@@ -619,6 +619,8 @@ SamplerState ShadowFactorsSampler;
 
 float FadePlaneOffset;
 float InvFadePlaneLength;
+float NearFadePlaneOffset;
+float InvNearFadePlaneLength;
 
 void DistanceFieldShadowingUpsamplePS(
 	in float4 UVAndScreenPos : TEXCOORD0,
@@ -666,7 +668,11 @@ void DistanceFieldShadowingUpsamplePS(
 	float Output = Texture2DSampleLevel(ShadowFactorsTexture, ShadowFactorsSampler, DistanceFieldUVs, 0).x;
 #endif
 
-	float BlendFactor = 1.0f - saturate((SceneDepth - FadePlaneOffset) * InvFadePlaneLength);
-	Output = lerp(1, Output, BlendFactor);
-	OutColor = EncodeLightAttenuation(half4(Output, Output, Output, BlendFactor));
+	float FarBlendFactor = 1.0f - saturate((SceneDepth - FadePlaneOffset) * InvFadePlaneLength);
+	Output = lerp(1, Output, FarBlendFactor);
+
+	float NearBlendFactor = saturate((SceneDepth - NearFadePlaneOffset) * InvNearFadePlaneLength);
+	Output = lerp(1, Output, NearBlendFactor);
+
+	OutColor = EncodeLightAttenuation(half4(Output, Output, Output, Output));
 }

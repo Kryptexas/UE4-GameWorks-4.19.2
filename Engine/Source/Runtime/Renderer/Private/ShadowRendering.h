@@ -1843,6 +1843,7 @@ struct FCompareFProjectedShadowInfoByResolution
 // Then sort CSMs by descending split index, and other shadows by resolution.
 // Used to render shadow cascades in far to near order, whilst preserving the
 // descending resolution sort behavior for other shadow types.
+// Note: the ordering must match the requirements of blend modes set in SetBlendStateForProjection (blend modes that overwrite must come first)
 struct FCompareFProjectedShadowInfoBySplitIndex
 {
 	FORCEINLINE bool operator()( const FProjectedShadowInfo& A, const FProjectedShadowInfo& B ) const
@@ -1851,6 +1852,20 @@ struct FCompareFProjectedShadowInfoBySplitIndex
 		{
 			if (B.IsWholeSceneDirectionalShadow())
 			{
+				if (A.bRayTracedDistanceField != B.bRayTracedDistanceField)
+				{
+					// RTDF shadows need to be rendered after all CSM, because they overlap in depth range with Far Cascades, which will use an overwrite blend mode for the fade plane.
+					if (!A.bRayTracedDistanceField && B.bRayTracedDistanceField)
+					{
+						return true;
+					}
+
+					if (A.bRayTracedDistanceField && !B.bRayTracedDistanceField)
+					{
+						return false;
+					}
+				}
+
 				// Both A and B are CSMs
 				// Compare Split Indexes, to order them far to near.
 				return (B.CascadeSettings.ShadowSplitIndex < A.CascadeSettings.ShadowSplitIndex);
@@ -1864,7 +1879,7 @@ struct FCompareFProjectedShadowInfoBySplitIndex
 		{
 			if (B.IsWholeSceneDirectionalShadow())
 			{
-				// B should be rendered after A.
+				// B should be rendered before A.
 				return false;
 			}
 			

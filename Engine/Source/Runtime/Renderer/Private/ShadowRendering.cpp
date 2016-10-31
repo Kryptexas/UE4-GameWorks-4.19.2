@@ -399,6 +399,7 @@ void FProjectedShadowInfo::SetBlendStateForProjection(
 
 		if (bIsWholeSceneDirectionalShadow)
 		{
+			// Note: blend logic has to match ordering in FCompareFProjectedShadowInfoBySplitIndex.  For example the fade plane blend mode requires that shadow to be rendered first.
 			// use R and G in Light Attenuation
 			if (bUseFadePlane)
 			{
