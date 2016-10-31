@@ -24,7 +24,7 @@ void FGoogleVRHMD::GenerateDistortionCorrectionIndexBuffer()
 	DistortionMeshIndices = nullptr;
 
 	// Allocate new indices
-	DistortionMeshIndices = new uint16[NumIndices];
+	DistortionMeshIndices = new uint16[6 * DistortionPointsX * DistortionPointsY];
 
 	uint32 InsertIndex = 0;
 	for(uint32 y = 0; y < DistortionPointsY - 1; ++y)
