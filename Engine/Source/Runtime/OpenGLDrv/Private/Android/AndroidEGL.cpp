@@ -827,13 +827,18 @@ void AndroidEGL::UnBind()
 	DestroySurface();
 }
 
-void FAndroidAppEntry::ReInitWindow()
+void FAndroidAppEntry::ReInitWindow(void* NewNativeWindowHandle)
 {
 	FPlatformMisc::LowLevelOutputDebugString(TEXT("AndroidEGL::ReInitWindow()"));
-	// @todo vulkan: Clean this up, and does vulkan need any code here?
 	if (!FAndroidMisc::ShouldUseVulkan())
 	{
 		AndroidEGL::GetInstance()->ReInit();
+	}
+
+	const auto& OnReinitWindowCallback = FAndroidMisc::GetOnReInitWindowCallback();
+	if (OnReinitWindowCallback)
+	{
+		OnReinitWindowCallback(NewNativeWindowHandle);
 	}
 }
 

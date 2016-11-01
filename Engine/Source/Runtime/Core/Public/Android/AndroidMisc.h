@@ -10,6 +10,9 @@
 #include "GenericPlatform/GenericPlatformMisc.h"
 //@todo android: this entire file
 
+template <typename FuncType>
+class TFunction;
+
 /**
  * Android implementation of the misc OS functions
  */
@@ -126,6 +129,9 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 	static bool ShouldUseVulkan();
 	static FString GetVulkanVersion();
 	static bool IsDaydreamApplication();
+	typedef TFunction<void(void* NewNativeHandle)> ReInitWindowCallbackType;
+	static ReInitWindowCallbackType GetOnReInitWindowCallback();
+	static void SetOnReInitWindowCallback(ReInitWindowCallbackType InOnReInitWindowCallback);
 
 #if !UE_BUILD_SHIPPING
 	static bool IsDebuggerPresent();

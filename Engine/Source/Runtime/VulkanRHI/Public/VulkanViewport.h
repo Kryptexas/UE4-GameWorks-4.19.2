@@ -79,6 +79,8 @@ protected:
 	void CreateSwapchain();
 	void AcquireBackBuffer(FRHICommandListBase& CmdList, FVulkanBackBuffer* NewBackBuffer);
 
+	void RecreateSwapchain(void* NewNativeWindow);
+
 	friend class FVulkanDynamicRHI;
 	friend class FVulkanCommandListContext;
 	friend struct FRHICommandAcquireBackBuffer;

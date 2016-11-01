@@ -7,13 +7,14 @@
 #include "VulkanRHIPrivate.h"
 #include "VulkanSwapChain.h"
 
-FVulkanSwapChain::FVulkanSwapChain(VkInstance Instance, FVulkanDevice& InDevice, void* WindowHandle, EPixelFormat& InOutPixelFormat, uint32 Width, uint32 Height, 
+FVulkanSwapChain::FVulkanSwapChain(VkInstance InInstance, FVulkanDevice& InDevice, void* WindowHandle, EPixelFormat& InOutPixelFormat, uint32 Width, uint32 Height,
 	uint32* InOutDesiredNumBackBuffers, TArray<VkImage>& OutImages)
 	: SwapChain(VK_NULL_HANDLE)
 	, Device(InDevice)
 	, Surface(VK_NULL_HANDLE)
 	, CurrentImageIndex(-1)
 	, SemaphoreIndex(0)
+	, Instance(InInstance)
 {
 #if PLATFORM_WINDOWS
 	VkWin32SurfaceCreateInfoKHR SurfaceCreateInfo;
@@ -181,6 +182,9 @@ void FVulkanSwapChain::Destroy()
 	{
 		delete ImageAcquiredSemaphore[BufferIndex];
 	}
+
+	VulkanRHI::vkDestroySurfaceKHR(Instance, Surface, nullptr);
+	Surface = VK_NULL_HANDLE;
 }
 
 int32 FVulkanSwapChain::AcquireImageIndex(FVulkanSemaphore** OutSemaphore)

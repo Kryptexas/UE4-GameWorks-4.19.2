@@ -16,6 +16,7 @@
 #include "GenericPlatformChunkInstall.h"
 
 #include <android_native_app_glue.h>
+#include "Function.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogEngine, Log, All);
 
@@ -1577,3 +1578,14 @@ bool FAndroidMisc::HasActiveWiFiConnection()
 	return AndroidThunkCpp_HasActiveWiFiConnection();
 }
 
+static FAndroidMisc::ReInitWindowCallbackType OnReInitWindowCallback;
+
+FAndroidMisc::ReInitWindowCallbackType FAndroidMisc::GetOnReInitWindowCallback()
+{
+	return OnReInitWindowCallback;
+}
+
+void FAndroidMisc::SetOnReInitWindowCallback(FAndroidMisc::ReInitWindowCallbackType InOnReInitWindowCallback)
+{
+	OnReInitWindowCallback = InOnReInitWindowCallback;
+}

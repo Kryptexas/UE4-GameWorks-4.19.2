@@ -355,6 +355,36 @@ bool FVulkanFramebuffer::Matches(const FRHISetRenderTargetsInfo& InRTInfo) const
 	return true;
 }
 
+// Tear down and recreate swapchain and related resources.
+void FVulkanViewport::RecreateSwapchain(void* NewNativeWindow)
+{
+	if (WindowHandle == NewNativeWindow)
+	{
+		// No action is required if handle has not changed.
+		return;
+	}
+
+	RenderingBackBuffer = nullptr;
+	RHIBackBuffer = nullptr;
+
+	for (int32 Index = 0; Index < NUM_BUFFERS; ++Index)
+	{
+		TextureViews[Index].Destroy(*Device);
+	}
+
+	SwapChain->Destroy();
+	delete SwapChain;
+	SwapChain = nullptr;
+
+	for (VkImage& BackBufferImage : BackBufferImages)
+	{
+		BackBufferImage = 0;
+	}
+
+	WindowHandle = NewNativeWindow;
+	CreateSwapchain();
+}
+
 void FVulkanViewport::CreateSwapchain()
 {
 	uint32 DesiredNumBackBuffers = NUM_BUFFERS;

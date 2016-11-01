@@ -373,7 +373,7 @@ void FAppEventManager::ExecWindowCreated()
 	static bool bIsDaydreamApp = FAndroidMisc::IsDaydreamApplication();
 	if (!bIsDaydreamApp)
 	{
-		check(PendingWindow)
+		check(PendingWindow);
 		FPlatformMisc::SetHardwareWindow(PendingWindow);
 	}
 
@@ -381,8 +381,9 @@ void FAppEventManager::ExecWindowCreated()
 	// Force to update SystemResolution to current values whenever we create a new window
 	FPlatformRect ScreenRect = FAndroidWindow::GetScreenRect();
 	FSystemResolution::RequestResolutionChange(ScreenRect.Right, ScreenRect.Bottom, EWindowMode::Fullscreen);
-	
-	FAndroidAppEntry::ReInitWindow();
+
+	// ReInit with the new window handle, null for daydream case.
+	FAndroidAppEntry::ReInitWindow(!bIsDaydreamApp ? PendingWindow : nullptr);
 
 	if (!bIsDaydreamApp)
 	{

@@ -1333,7 +1333,12 @@ namespace VulkanRHI
 		return Result;
 	}
 #endif
-	
+
+	static FORCEINLINE_DEBUGGABLE void vkDestroySurfaceKHR(VkInstance Instance, VkSurfaceKHR Surface, const VkAllocationCallbacks* pAllocator)
+	{
+		PrintfBeginResult(FString::Printf(TEXT("vkDestroySurfaceKHR(PhysicalDevice=%llu, Surface=%llu, pAllocator=%p)"), (uint64)Instance, (uint64)Surface, pAllocator));
+		VULKANAPINAMESPACE::vkDestroySurfaceKHR(Instance, Surface, pAllocator);
+	}
 
 #if VULKAN_ENABLE_DUMP_LAYER
 	void FlushDebugWrapperLog();

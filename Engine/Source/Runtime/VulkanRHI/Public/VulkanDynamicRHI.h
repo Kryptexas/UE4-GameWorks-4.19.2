@@ -143,6 +143,8 @@ public:
 		return InstanceLayers;
 	}
 
+	static void RecreateSwapChain(void* NewNativeWindow);
+
 private:
 	void PooledUniformBuffersBeginFrame();
 	void ReleasePooledUniformBuffers();

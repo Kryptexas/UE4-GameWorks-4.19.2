@@ -526,9 +526,10 @@ void FVulkanDynamicRHI::InitInstance()
 	{
 		check(!GIsRHIInitialized);
 
-#ifdef PLATFORM_ANDROID
+#if PLATFORM_ANDROID
 		// Want to see the actual crash report on Android so unregister signal handlers
 		FPlatformMisc::SetCrashHandler((void(*)(const FGenericCrashContext& Context)) -1);
+		FPlatformMisc::SetOnReInitWindowCallback(FVulkanDynamicRHI::RecreateSwapChain);
 #endif
 
 		GRHISupportsAsyncTextureCreation = false;
@@ -1312,3 +1313,24 @@ void FVulkanDynamicRHI::DumpMemory()
 	RHI->Device->GetStagingManager().DumpMemory();
 }
 #endif
+
+void FVulkanDynamicRHI::RecreateSwapChain(void* NewNativeWindow)
+{
+	if(NewNativeWindow)
+	{
+		FlushRenderingCommands();
+		FVulkanDynamicRHI* RHI = (FVulkanDynamicRHI*)GDynamicRHI;
+
+		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+			FVulkanRecreateSwapChain,
+			TArray<FVulkanViewport*>, Viewports, RHI->Viewports,
+			void*, InNewNativeWindow, NewNativeWindow,
+			{
+				for (auto& Viewport : Viewports)
+				{
+					Viewport->RecreateSwapchain(InNewNativeWindow);
+				}
+			});
+		FlushRenderingCommands();
+	}
+}
