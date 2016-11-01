@@ -594,6 +594,16 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 		bSupportsInstancing = false;
 	}
 
+	// PowerVR Rogue doesn't like glVertexAttribIPointer so disable it
+	if (bIsPoverVRBased && bES30Support)
+	{
+		if (RendererString.Contains(TEXT("Rogue")))
+		{
+			glVertexAttribIPointer = nullptr;
+			UE_LOG(LogRHI, Warning, TEXT("Disabling glVertexAttribIPointer on PowerVR Rogue"));
+		}
+	}
+
 	if (bSupportsBGRA8888)
 	{
 		// Check whether device supports BGRA as color attachment
