@@ -628,7 +628,7 @@ static void DrawVisible(
 		}
 		else
 		{
-			Scene->MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Default].DrawVisible(RHICmdList, View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility);
+			Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawListType].DrawVisible(RHICmdList, View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility);
 		}
 	}
 }
