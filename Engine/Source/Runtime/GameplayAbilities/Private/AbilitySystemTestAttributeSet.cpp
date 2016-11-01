@@ -2,7 +2,6 @@
 
 #include "AbilitySystemPrivatePCH.h"
 #include "AbilitySystemTestAttributeSet.h"
-#include "GameplayTagsModule.h"
 #include "GameplayEffectExtension.h"
 #include "AbilitySystemComponent.h"
 
@@ -45,7 +44,7 @@ bool UAbilitySystemTestAttributeSet::PreGameplayEffectExecute(struct FGameplayEf
 			{
 				// Dodge!
 				Data.EvaluatedData.Magnitude = 0.f;
-				Data.EvaluatedData.Tags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Dodged"))));
+				Data.EvaluatedData.Tags.AddTag(FGameplayTag::RequestGameplayTag(FName(TEXT("Dodged"))));
 
 				// How dodge is handled will be game dependant. There are a few options I think of:
 				// -We still apply 0 damage, but tag it as Dodged. The GameplayCue system could pick up on this and play a visual effect. The combat log could pick up in and print it out too.
@@ -64,17 +63,17 @@ bool UAbilitySystemTestAttributeSet::PreGameplayEffectExecute(struct FGameplayEf
 				{
 					// Crit!
 					Data.EvaluatedData.Magnitude *= SourceAttributes->CritMultiplier;
-					Data.EvaluatedData.Tags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Crit"))));
+					Data.EvaluatedData.Tags.AddTag(FGameplayTag::RequestGameplayTag(FName(TEXT("Damage.Crit"))));
 				}
 			}
 
 			// Now apply armor reduction
-			if (Data.EvaluatedData.Tags.HasTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Physical"))), EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
+			if (Data.EvaluatedData.Tags.HasTag(FGameplayTag::RequestGameplayTag(FName(TEXT("Damage.Physical")))))
 			{
 				// This is a trivial/naive implementation of armor. It assumes the rmorDamageReduction is an actual % to reduce physics damage by.
 				// Real games would probably use armor rating as an attribute and calculate a % here based on the damage source's level, etc.
 				Data.EvaluatedData.Magnitude *= (1.f - ArmorDamageReduction);
-				Data.EvaluatedData.Tags.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Damage.Mitigated.Armor"))));
+				Data.EvaluatedData.Tags.AddTag(FGameplayTag::RequestGameplayTag(FName(TEXT("Damage.Mitigated.Armor"))));
 			}
 		}
 
@@ -97,7 +96,7 @@ void UAbilitySystemTestAttributeSet::PostGameplayEffectExecute(const struct FGam
 	if (DamageProperty == ModifiedProperty)
 	{
 		// Anytime Damage is applied with 'Damage.Fire' tag, there is a chance to apply a burning DOT
-		if (Data.EffectSpec.CapturedSourceTags.GetAggregatedTags()->HasTag( IGameplayTagsModule::RequestGameplayTag(FName(TEXT("FireDamage"))), EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
+		if (Data.EffectSpec.CapturedSourceTags.GetAggregatedTags()->HasTag( FGameplayTag::RequestGameplayTag(FName(TEXT("FireDamage")))))
 		{
 			// Logic to rand() a burning DOT, if successful, apply DOT GameplayEffect to the target
 		}

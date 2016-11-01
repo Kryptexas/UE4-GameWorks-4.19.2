@@ -2,7 +2,6 @@
 
 #include "AbilitySystemPrivatePCH.h"
 #include "GameplayCueNotify_Actor.h"
-#include "GameplayTagsModule.h"
 #include "GameplayCueManager.h"
 #include "AbilitySystemComponent.h"
 

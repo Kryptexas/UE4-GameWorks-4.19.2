@@ -27,15 +27,13 @@ static void GetCandidateSystems(USkeletalMeshComponent& MeshComp, ParticleSystem
 	else
 	{
 		// No actor owner in some editor windows. Get PSCs spawned by the MeshComp.
-		TArray<UObject*> Children;
-		GetObjectsWithOuter(&MeshComp, Children, false, RF_NoFlags, EInternalObjectFlags::PendingKill);
-		for (UObject* Child : Children)
+		ForEachObjectWithOuter(&MeshComp, [&Components](UObject* Child)
 		{
 			if (UParticleSystemComponent* ChildPSC = Cast<UParticleSystemComponent>(Child))
 			{
 				Components.Add(ChildPSC);
 			}
-		}
+		}, false, RF_NoFlags, EInternalObjectFlags::PendingKill);
 	}
 }
 

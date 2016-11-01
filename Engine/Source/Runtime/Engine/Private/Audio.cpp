@@ -41,7 +41,7 @@ DEFINE_STAT(STAT_VorbisDecompressTime);
 DEFINE_STAT(STAT_VorbisPrepareDecompressionTime);
 DEFINE_STAT(STAT_AudioDecompressTime);
 DEFINE_STAT(STAT_AudioPrepareDecompressionTime);
-DEFINE_STAT(STAT_OpusDecompressTime);
+DEFINE_STAT(STAT_AudioStreamedDecompressTime);
 
 DEFINE_STAT(STAT_AudioUpdateEffects);
 DEFINE_STAT(STAT_AudioEvaluateConcurrency);
@@ -780,7 +780,7 @@ FString FWaveInstance::GetName() const
 #endif
 
 // Main Riff-Wave header.
-struct FRiffWaveHeader
+struct FRiffWaveHeaderChunk
 {
 	uint32	rID;			// Contains 'RIFF'
 	uint32	ChunkLen;		// Remaining length of the entire riff chunk (= file).
@@ -795,7 +795,7 @@ struct FRiffChunkOld
 };
 
 // ChunkID: 'fmt ' ("WaveFormatEx" structure )
-struct FFormatChunk
+struct FRiffFormatChunk
 {
 	uint16   wFormatTag;        // Format type: 1 = PCM
 	uint16   nChannels;         // Number of channels (i.e. mono, stereo...).
@@ -832,7 +832,7 @@ struct FSubformatGUID
 // ChunkID: 'fmt ' ("WaveFormatExtensible" structure)
 struct FExtendedFormatChunk
 {
-	FFormatChunk Format;			// Standard WaveFormatEx ('fmt ') chunk, with
+	FRiffFormatChunk Format;			// Standard WaveFormatEx ('fmt ') chunk, with
 									// wFormatTag == WAVE_FORMAT_EXTENSIBLE and cbSize == 22
 	union
 	{
@@ -844,20 +844,6 @@ struct FExtendedFormatChunk
 	FSubformatGUID SubFormat;		// Subformat identifier.
 };
 
-// ChunkID: 'smpl'
-struct FSampleChunk
-{
-	uint32   dwManufacturer;
-	uint32   dwProduct;
-	uint32   dwSamplePeriod;
-	uint32   dwMIDIUnityNote;
-	uint32   dwMIDIPitchFraction;
-	uint32	dwSMPTEFormat;
-	uint32   dwSMPTEOffset;		//
-	uint32   cSampleLoops;		// Number of tSampleLoop structures following this chunk
-	uint32   cbSamplerData;		//
-};
-
 #if PLATFORM_SUPPORTS_PRAGMA_PACK
 #pragma pack(pop)
 #endif
@@ -867,9 +853,9 @@ struct FSampleChunk
 //
 bool FWaveModInfo::ReadWaveInfo( uint8* WaveData, int32 WaveDataSize, FString* ErrorReason )
 {
-	FFormatChunk* FmtChunk;
+	FRiffFormatChunk* FmtChunk;
 	FExtendedFormatChunk* FmtChunkEx = nullptr;
-	FRiffWaveHeader* RiffHdr = ( FRiffWaveHeader* )WaveData;
+	FRiffWaveHeaderChunk* RiffHdr = (FRiffWaveHeaderChunk* )WaveData;
 	WaveDataEnd = WaveData + WaveDataSize;
 
 	if( WaveDataSize == 0 )
@@ -924,7 +910,7 @@ bool FWaveModInfo::ReadWaveInfo( uint8* WaveData, int32 WaveDataSize, FString* E
 		return( false );
 	}
 
-	FmtChunk = ( FFormatChunk* )( ( uint8* )RiffChunk + 8 );
+	FmtChunk = ( FRiffFormatChunk* )( ( uint8* )RiffChunk + 8 );
 #if !PLATFORM_LITTLE_ENDIAN
 	if( !AlreadySwapped )
 	{

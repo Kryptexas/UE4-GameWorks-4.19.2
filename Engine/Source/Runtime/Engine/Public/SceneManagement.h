@@ -2292,13 +2292,46 @@ extern ENGINE_API void ApplyViewModeOverrides(
 extern ENGINE_API void DrawUVs(FViewport* InViewport, FCanvas* InCanvas, int32 InTextYPos, const int32 LODLevel, int32 UVChannel, TArray<FVector2D> SelectedEdgeTexCoords, class FStaticMeshRenderData* StaticMeshRenderData, class FStaticLODModel* SkeletalMeshRenderData );
 
 /**
- * Computes the screen size of a given sphere bounds in the given view
+ * Computes the screen size of a given sphere bounds in the given view.
+ * The screen size is the projected diameter of the bounding sphere of the model.
+ * i.e. 0.5 means half the screen's maximum dimension.
  * @param Origin - Origin of the bounds in world space
  * @param SphereRadius - Radius of the sphere to use to calculate screen coverage
  * @param View - The view to calculate the display factor for
  * @return float - The screen size calculated
  */
 float ENGINE_API ComputeBoundsScreenSize(const FVector4& Origin, const float SphereRadius, const FSceneView& View);
+
+/**
+ * Computes the screen size of a given sphere bounds in the given view.
+ * The screen size is the projected diameter of the bounding sphere of the model. 
+ * i.e. 0.5 means half the screen's maximum dimension.
+ * @param BoundsOrigin - Origin of the bounds in world space
+ * @param SphereRadius - Radius of the sphere to use to calculate screen coverage
+ * @param ViewOrigin - The origin of the view to calculate the display factor for
+ * @param ProjMatrix - The projection matrix used to scale screen size bounds
+ * @return float - The screen size calculated
+ */
+float ENGINE_API ComputeBoundsScreenSize(const FVector4& BoundsOrigin, const float SphereRadius, const FVector4& ViewOrigin, const FMatrix& ProjMatrix);
+
+/**
+ * Computes the screen radius squared of a given sphere bounds in the given view. This is used at
+ * runtime instead of ComputeBoundsScreenSize to avoid a square root.
+ * @param Origin - Origin of the bounds in world space
+ * @param SphereRadius - Radius of the sphere to use to calculate screen coverage
+ * @param View - The view to calculate the display factor for
+ * @return float - The screen size calculated
+ */
+float ENGINE_API ComputeBoundsScreenRadiusSquared(const FVector4& Origin, const float SphereRadius, const FSceneView& View);
+
+/**
+ * Computes the draw distance of a given sphere bounds in the given view with the specified screen size.
+ * @param ScreenSize - The screen size (as computed by ComputeBoundsScreenSize)
+ * @param SphereRadius - Radius of the sphere to use to calculate screen coverage
+ * @param ProjMatrix - The projection matrix used to scale screen size bounds
+ * @return float - The draw distance calculated
+ */
+float ENGINE_API ComputeBoundsDrawDistance(const float ScreenSize, const float SphereRadius, const FMatrix& ProjMatrix);
 
 /**
  * Computes the LOD level for the given static meshes render data in the given view.

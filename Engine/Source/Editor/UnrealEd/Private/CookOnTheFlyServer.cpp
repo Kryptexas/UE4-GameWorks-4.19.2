@@ -2620,7 +2620,7 @@ const TArray<FName>& UCookOnTheFlyServer::GetFullPackageDependencies(const FName
 		CachedFullPackageDependencies.Add(PackageName);
 
 		TArray<FName> ChildDependencies;
-		check( AssetRegistry.GetDependencies(PackageName, ChildDependencies, EAssetRegistryDependencyType::All) );
+		check( AssetRegistry.GetDependencies(PackageName, ChildDependencies, EAssetRegistryDependencyType::Packages) );
 
 		TArray<FName> Dependencies = ChildDependencies;
 		Dependencies.AddUnique(PackageName);

@@ -5,7 +5,6 @@
 #include "GameplayCueInterface.h"
 #include "GameplayCueManager.h"
 #include "GameplayCueSet.h"
-#include "GameplayTagsModule.h"
 #include "GameplayCueNotify_Static.h"
 #include "AbilitySystemComponent.h"
 #include "Net/DataReplication.h"
@@ -458,7 +457,7 @@ static void SearchDynamicClassCues(const FName PropertyName, const TArray<FStrin
 {
 	// Iterate over all Dynamic Classes (nativized Blueprints). Search for ones with GameplayCueName tag.
 
-	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
+	UGameplayTagsManager& Manager = UGameplayTagsManager::Get();
 	TMap<FName, FDynamicClassStaticData>& DynamicClassMap = GetDynamicClassMap();
 	for (auto PairIter : DynamicClassMap)
 	{
@@ -479,7 +478,7 @@ static void SearchDynamicClassCues(const FName PropertyName, const TArray<FStrin
 
 			ABILITY_LOG(Log, TEXT("GameplayCueManager Found a Dynamic Class: %s / %s"), *FoundGameplayTag->ToString(), *ClassPath);
 
-			FGameplayTag  GameplayCueTag = GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTag(*FoundGameplayTag, false);
+			FGameplayTag GameplayCueTag = Manager.RequestGameplayTag(*FoundGameplayTag, false);
 			if (GameplayCueTag.IsValid())
 			{
 				FStringAssetReference StringRef(ClassPath); // TODO: is there any translation needed?
@@ -588,7 +587,7 @@ static FAutoConsoleVariable CVarGameplyCueAddToGlobalSetDebug(TEXT("GameplayCue.
 
 void UGameplayCueManager::BuildCuesToAddToGlobalSet(const TArray<FAssetData>& AssetDataList, FName TagPropertyName, TArray<FGameplayCueReferencePair>& OutCuesToAdd, TArray<FStringAssetReference>& OutAssetsToLoad, FShouldLoadGCNotifyDelegate ShouldLoad)
 {
-	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
+	UGameplayTagsManager& Manager = UGameplayTagsManager::Get();
 
 	OutAssetsToLoad.Reserve(OutAssetsToLoad.Num() + AssetDataList.Num());
 
@@ -624,7 +623,7 @@ void UGameplayCueManager::BuildCuesToAddToGlobalSet(const TArray<FAssetData>& As
 
 			ABILITY_LOG(Log, TEXT("GameplayCueManager Found: %s / %s"), *FoundGameplayTag.ToString(), **GeneratedClassTag);
 
-			FGameplayTag  GameplayCueTag = GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTag(FoundGameplayTag, false);
+			FGameplayTag  GameplayCueTag = Manager.RequestGameplayTag(FoundGameplayTag, false);
 			if (GameplayCueTag.IsValid())
 			{
 				// Add a new NotifyData entry to our flat list for this one

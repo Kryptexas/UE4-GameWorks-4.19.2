@@ -328,6 +328,7 @@ public:
 	// you'll have to call REfreshCAchedAnimationCurveData to apply
 	ENGINE_API FCurveMetaData* GetCurveMetaData(const FName& CurveName);
 	ENGINE_API const FCurveMetaData* GetCurveMetaData(const FName& CurveName) const;
+	ENGINE_API const FCurveMetaData* GetCurveMetaData(const SmartName::UID_Type CurveUID) const;
 	ENGINE_API FCurveMetaData* GetCurveMetaData(const FSmartName& CurveName);
 	ENGINE_API const FCurveMetaData* GetCurveMetaData(const FSmartName& CurveName) const;
 	// this is called when you know both flags - called by post serialize

@@ -705,7 +705,6 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			TEXT("Blutility"),
 			TEXT("XmlParser"),
 			TEXT("UserFeedback"),
-			TEXT("GameplayTagsEditor"),
 			TEXT("UndoHistory"),
 			TEXT("DeviceProfileEditor"),
 			TEXT("SourceCodeAccess"),

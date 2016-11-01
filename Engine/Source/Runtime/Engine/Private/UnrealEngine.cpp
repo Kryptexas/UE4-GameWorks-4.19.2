@@ -6499,6 +6499,22 @@ bool UEngine::PerformError(const TCHAR* Cmd, FOutputDevice& Ar)
 		FPlatformProcess::Sleep(3600);
 		return true;
 	}
+	else if (FParse::Command(&Cmd, TEXT("AUDIOGPF")))
+	{
+		FAudioThread::RunCommandOnAudioThread([]()
+		{
+			*(int32 *)3 = 123;
+		}, TStatId());
+		return true;
+	}
+	else if (FParse::Command(&Cmd, TEXT("AUDIOCHECK")))
+	{
+		FAudioThread::RunCommandOnAudioThread([]()
+		{
+			check(!"Crashing the audio thread via check(0) at your request");
+		}, TStatId());
+		return true;
+	}
 #endif // !UE_BUILD_SHIPPING
 	return false;
 }
@@ -11429,15 +11445,13 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 	FFindInstancedReferenceSubobjectHelper::Duplicate(OldObject, NewObject, ReferenceReplacementMap, ComponentsOnNewObject);
 
 	// Replace anything with an outer of the old object with NULL, unless it already has a replacement
-	TArray<UObject*> ObjectsInOuter;
-	GetObjectsWithOuter(OldObject, ObjectsInOuter, true);
-	for (int32 ObjectIndex = 0; ObjectIndex < ObjectsInOuter.Num(); ObjectIndex++)
+	ForEachObjectWithOuter(OldObject, [&ReferenceReplacementMap](UObject* ObjectInOuter)
 	{
-		if (!ReferenceReplacementMap.Contains(ObjectsInOuter[ObjectIndex]))
+		if (!ReferenceReplacementMap.Contains(ObjectInOuter))
 		{
-			ReferenceReplacementMap.Add(ObjectsInOuter[ObjectIndex], NULL);
+			ReferenceReplacementMap.Add(ObjectInOuter, nullptr);
 		}
-	}
+	});
 
 	// Replace references to old classes and instances on this object with the corresponding new ones
 	UPackage* NewPackage = Cast<UPackage>(NewObject->GetOutermost());
@@ -12540,40 +12554,44 @@ void FAudioDevice::ResolveDesiredStats(FViewportClient* ViewportClient)
 
 void FAudioDevice::UpdateRequestedStat(const uint8 RequestedStat)
 {
-	check(IsInGameThread());
-
-	DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.UpdateRequestedStat"), STAT_AudioUpdateRequestedStat, STATGROUP_TaskGraphTasks);
-
-	FAudioDevice* AudioDevice = this;
-	FAudioThread::RunCommandOnAudioThread([AudioDevice, RequestedStat]()
+	if (!IsInAudioThread())
 	{
-		AudioDevice->RequestedAudioStats ^= RequestedStat;
-	}, GET_STATID(STAT_AudioUpdateRequestedStat));
+		DECLARE_CYCLE_STAT(TEXT("FAudioThreadTask.UpdateRequestedStat"), STAT_AudioUpdateRequestedStat, STATGROUP_TaskGraphTasks);
+
+		FAudioDevice* AudioDevice = this;
+		FAudioThread::RunCommandOnAudioThread([AudioDevice, RequestedStat]()
+		{
+			AudioDevice->UpdateRequestedStat(RequestedStat);
+		}, GET_STATID(STAT_AudioUpdateRequestedStat));
+		return;
+	}
+
+	RequestedAudioStats ^= RequestedStat;
 }
 
 bool UEngine::ToggleStatSoundWaves(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream)
 {
-	if (FAudioDevice* AudioDevice = World->GetAudioDevice())
+	if (AudioDeviceManager)
 	{
-		AudioDevice->UpdateRequestedStat(ERequestedAudioStats::SoundWaves);
+		AudioDeviceManager->ToggleDebugStat(ERequestedAudioStats::SoundWaves);
 	}
 	return true;
 }
 
 bool UEngine::ToggleStatSoundCues(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream)
 {
-	if (FAudioDevice* AudioDevice = World->GetAudioDevice())
+	if (AudioDeviceManager)
 	{
-		AudioDevice->UpdateRequestedStat(ERequestedAudioStats::SoundCues);
+		AudioDeviceManager->ToggleDebugStat(ERequestedAudioStats::SoundCues);
 	}
 	return true;
 }
 
 bool UEngine::ToggleStatSoundMixes(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream)
 {
-	if (FAudioDevice* AudioDevice = World->GetAudioDevice())
+	if (AudioDeviceManager)
 	{
-		AudioDevice->UpdateRequestedStat(ERequestedAudioStats::SoundMixes);
+		AudioDeviceManager->ToggleDebugStat(ERequestedAudioStats::SoundMixes);
 	}
 	return true;
 }
@@ -12615,7 +12633,7 @@ int32 UEngine::RenderStatSoundWaves(UWorld* World, FViewport* Viewport, FCanvas*
 				FString TheString = *FString::Printf(TEXT("%4i.    %6.2f  %s   Owner: %s   SoundClass: %s"),
 					WaveInstanceInfo.Key->InstanceIndex,
 					WaveInstanceInfo.Key->ActualVolume,
-					*WaveInstanceInfo.Value->SoundName,
+					*WaveInstanceInfo.Key->WaveInstanceName.ToString(),
 					SoundOwner ? *SoundOwner->GetName() : TEXT("None"),
 					*WaveInstanceInfo.Value->SoundClassName.ToString());
 
@@ -13045,7 +13063,5 @@ int32 UEngine::RenderStatSlateBatches(UWorld* World, FViewport* Viewport, FCanva
 	return Y;
 }
 #endif
-
-ENGINE_API UGameplayTagsManager* GGameplayTagsManager = nullptr;
 
 #undef LOCTEXT_NAMESPACE

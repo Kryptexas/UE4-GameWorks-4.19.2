@@ -165,8 +165,17 @@ struct ENGINE_API FCurveTableRowHandle
 
 	bool operator==(const FCurveTableRowHandle& Other) const;
 	bool operator!=(const FCurveTableRowHandle& Other) const;
+	void PostSerialize(const FArchive& Ar);
 };
 
+template<>
+struct TStructOpsTypeTraits< FCurveTableRowHandle > : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithPostSerialize = true,
+	};
+};
 
 /** Macro to call GetCurve with a correct error info. Assumed to be called within a UObject */
 #define GETCURVE_REPORTERROR(Handle) Handle.GetCurve(FString::Printf(TEXT("%s.%s"), *GetPathName(), TEXT(#Handle)))

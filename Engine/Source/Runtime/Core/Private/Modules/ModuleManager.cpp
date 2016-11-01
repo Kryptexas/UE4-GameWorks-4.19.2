@@ -391,6 +391,8 @@ TSharedPtr<IModuleInterface> FModuleManager::LoadModuleWithFailureReason(const F
 			{
 				// Startup the module
 				ModuleInfo->Module->StartupModule();
+				// The module might try to load other dependent modules in StartupModule. In this case, we want those modules shut down AFTER this one because we may still depend on the module at shutdown.
+				ModuleInfo->LoadOrder = FModuleInfo::CurrentLoadOrder++;
 
 				// Module was started successfully!  Fire callbacks.
 				ModulesChangedEvent.Broadcast(InModuleName, EModuleChangeReason::ModuleLoaded);
@@ -480,6 +482,8 @@ TSharedPtr<IModuleInterface> FModuleManager::LoadModuleWithFailureReason(const F
 								{
 									// Startup the module
 									ModuleInfo->Module->StartupModule();
+									// The module might try to load other dependent modules in StartupModule. In this case, we want those modules shut down AFTER this one because we may still depend on the module at shutdown.
+									ModuleInfo->LoadOrder = FModuleInfo::CurrentLoadOrder++;
 
 									// Module was started successfully!  Fire callbacks.
 									ModulesChangedEvent.Broadcast(InModuleName, EModuleChangeReason::ModuleLoaded);

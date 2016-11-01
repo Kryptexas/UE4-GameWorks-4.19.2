@@ -2201,9 +2201,6 @@ bool FEngineLoop::LoadStartupCoreModules()
 		FModuleManager::Get().LoadModule(TEXT("Blutility"));
 	}
 
-	// Needed for extra Blueprint nodes that can be used in standalone.
-	FModuleManager::Get().LoadModule(TEXT("GameplayTagsEditor"));
-
 #endif //(WITH_EDITOR && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
 
 #if WITH_ENGINE
@@ -3247,26 +3244,11 @@ bool FEngineLoop::AppInit( )
 	}
 #endif
 
-#if WITH_ENGINE
-	if (!IsRunningCommandlet())
-	{
-		// Earliest place to init the online subsystems (via plugins)
-		// Code needs GConfigFile to be valid
-		// Must be after FThreadStats::StartThread();
-		// Must be before Render/RHI subsystem D3DCreate()
-		// For platform services that need D3D hooks like Steam
-		// --
-		// Why load HTTP?
-		// Because most, if not all online subsystems will load HTTP themselves. This can cause problems though, as HTTP will be loaded *after* OSS, 
-		// and if OSS holds on to resources allocated by it, this will cause crash (modules are being unloaded in LIFO order with no dependency tracking).
-		// Loading HTTP before OSS works around this problem by making ModuleManager unload HTTP after OSS, at the cost of extra module for the few OSS (like Null) that don't use it.
-
-		// These should not be LoadModuleChecked because these modules might not exist
-		FModuleManager::Get().LoadModule(TEXT("XMPP"));
-		FModuleManager::Get().LoadModule(TEXT("HTTP"));
-		// OSS Default/Console are loaded in plugins immediately following
-	}
-#endif
+	// NOTE: This is the earliest place to init the online subsystems (via plugins)
+	// Code needs GConfigFile to be valid
+	// Must be after FThreadStats::StartThread();
+	// Must be before Render/RHI subsystem D3DCreate()
+	// For platform services that need D3D hooks like Steam
 
 	// Load "pre-init" plugin modules
 	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PostConfigInit) || !IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PostConfigInit))

@@ -491,6 +491,21 @@ void UChildActorComponent::CreateChildActor()
 					ChildActor->AttachToComponent(this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 
 					SetIsReplicated(ChildActor->GetIsReplicated());
+
+					if (CachedInstanceData)
+					{
+						for (const FChildActorComponentInstanceData::FAttachedActorInfo& AttachedActorInfo : CachedInstanceData->AttachedActors)
+						{
+							AActor* AttachedActor = AttachedActorInfo.Actor.Get();
+
+							if (AttachedActor && AttachedActor->GetAttachParentActor() == nullptr)
+							{
+								AttachedActor->AttachToActor(ChildActor, FAttachmentTransformRules::KeepWorldTransform, AttachedActorInfo.SocketName);
+								AttachedActor->SetActorRelativeTransform(AttachedActorInfo.RelativeTransform);
+							}
+						}
+					}
+
 				}
 			}
 		}

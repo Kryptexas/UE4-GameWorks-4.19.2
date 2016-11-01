@@ -1221,6 +1221,10 @@ FRotator UKismetMathLibrary::RotatorFromAxisAndAngle(FVector Axis, float Angle)
 	return FQuat(SafeAxis, FMath::DegreesToRadians(Angle)).Rotator();
 }
 
+void UKismetMathLibrary::RotatorToAxisAndAngle(const FRotator& Rotation, FVector& Axis, float& Angle)
+{
+	Rotation.Quaternion().ToAxisAndAngle(Axis, Angle);
+}
 
 float UKismetMathLibrary::ClampAxis(float Angle)
 {

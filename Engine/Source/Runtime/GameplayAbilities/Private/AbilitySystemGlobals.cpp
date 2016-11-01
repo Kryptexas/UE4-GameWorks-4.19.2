@@ -5,7 +5,6 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
 #include "Abilities/GameplayAbilityTypes.h"
-#include "GameplayTagsModule.h"
 #include "GameplayCueInterface.h"
 #include "GameplayCueManager.h"
 #include "GameplayTagResponseTable.h"
@@ -88,8 +87,7 @@ bool UAbilitySystemGlobals::DeriveGameplayCueTagFromAssetName(FString AssetName,
 				AssetName = FString(TEXT("GameplayCue.")) + AssetName;
 			}
 
-			IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
-			GameplayCueTag = GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTag(FName(*AssetName), false);
+			GameplayCueTag = UGameplayTagsManager::Get().RequestGameplayTag(FName(*AssetName), false);
 		}
 		GameplayCueName = GameplayCueTag.GetTagName();
 	}
@@ -189,8 +187,7 @@ UFunction* UAbilitySystemGlobals::GetGameplayCueFunction(const FGameplayTag& Chi
 	// and will be regenerated all the time in the editor. Just doing a single pass at startup won't be enough,
 	// we'll need a mechanism for registering classes when they are loaded on demand.
 	
-	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
-	FGameplayTagContainer TagAndParentsContainer = GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTagParents(ChildTag);
+	FGameplayTagContainer TagAndParentsContainer = ChildTag.GetGameplayTagParents();
 
 	for (auto InnerTagIt = TagAndParentsContainer.CreateConstIterator(); InnerTagIt; ++InnerTagIt)
 	{

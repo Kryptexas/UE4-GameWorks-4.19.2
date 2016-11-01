@@ -52,11 +52,11 @@ public:
 		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(ReferenceViewerTabId);
 	}
 
-	virtual void InvokeReferenceViewerTab(const TArray<FName>& GraphRootPackageNames) override
+	virtual void InvokeReferenceViewerTab(const TArray<FAssetIdentifier>& GraphRootIdentifiers) override
 	{
 		TSharedRef<SDockTab> NewTab = FGlobalTabmanager::Get()->InvokeTab( ReferenceViewerTabId );
 		TSharedRef<SReferenceViewer> ReferenceViewer = StaticCastSharedRef<SReferenceViewer>( NewTab->GetContent() );
-		ReferenceViewer->SetGraphRootPackageNames(GraphRootPackageNames);
+		ReferenceViewer->SetGraphRootPackageNames(GraphRootIdentifiers);
 	}
 
 private:

@@ -3076,6 +3076,9 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 	}
 #endif
 
+#if WITH_EDITOR
+	bRequiresLODScreenSizeConversion = Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::LODsUseResolutionIndependentScreenSize;
+#endif
 }
 
 void USkeletalMesh::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
@@ -3435,6 +3438,14 @@ void USkeletalMesh::PostLoad()
 			}
 		}
 	}
+
+#if WITH_EDITOR
+	if (bRequiresLODScreenSizeConversion)
+	{
+		// Convert screen area to screen size
+		ConvertLegacyLODScreenSize();
+	}
+#endif
 }
 
 void USkeletalMesh::RebuildRefSkeletonNameToIndexMap()
@@ -4441,7 +4452,46 @@ void USkeletalMesh::AddBoneToReductionSetting(int32 LODIndex, FName BoneName)
 	}
 }
 
+void USkeletalMesh::ConvertLegacyLODScreenSize()
+{
+	if (LODInfo.Num() == 1)
+	{
+		// Only one LOD
+		LODInfo[0].ScreenSize = 1.0f;
+	}
+	else
+	{
+		// Use 1080p, 90 degree FOV as a default, as this should not cause runtime regressions in the common case.
+		// LODs will appear different in Persona, however.
+		const float HalfFOV = PI * 0.25f;
+		const float ScreenWidth = 1920.0f;
+		const float ScreenHeight = 1080.0f;
+		const FPerspectiveMatrix ProjMatrix(HalfFOV, ScreenWidth, ScreenHeight, 1.0f);
+		FBoxSphereBounds Bounds = GetBounds();
+
+		// Multiple models, we should have LOD screen area data.
+		for (int32 LODIndex = 0; LODIndex < LODInfo.Num(); ++LODIndex)
+		{
+			FSkeletalMeshLODInfo& LODInfoEntry = LODInfo[LODIndex];
+
+			if (LODInfoEntry.ScreenSize == 0.0f)
+			{
+				LODInfoEntry.ScreenSize = 1.0f;
+			}
+			else
+			{
+				// legacy screen size was scaled by a fixed constant of 320.0f, so its kinda arbitrary. Convert back to distance based metric first.
+				const float ScreenDepth = FMath::Max(ScreenWidth / 2.0f * ProjMatrix.M[0][0], ScreenHeight / 2.0f * ProjMatrix.M[1][1]) * Bounds.SphereRadius / (LODInfoEntry.ScreenSize * 320.0f);
+
+				// Now convert using the query function
+				LODInfoEntry.ScreenSize = ComputeBoundsScreenSize(FVector::ZeroVector, Bounds.SphereRadius, FVector(0.0f, 0.0f, ScreenDepth), ProjMatrix);
+			}
+		}
+	}
+}
+
 #endif // WITH_EDITOR
+
 /*-----------------------------------------------------------------------------
 USkeletalMeshSocket
 -----------------------------------------------------------------------------*/

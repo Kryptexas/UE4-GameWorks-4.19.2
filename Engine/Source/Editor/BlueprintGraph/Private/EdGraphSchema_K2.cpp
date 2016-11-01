@@ -5337,7 +5337,7 @@ struct FBackwardCompatibilityConversionHelper
 				if (ClassPin != Pin)
 				{
 					const auto OldPin = OldNode->FindPin(Pin->PinName);
-						if(NULL != OldPin)
+					if (NULL != OldPin)
 					{
 						OldPins.Add(OldPin);
 						if (!Schema.MovePinLinks(*OldPin, *Pin).CanSafeConnect())
@@ -5358,7 +5358,7 @@ struct FBackwardCompatibilityConversionHelper
 			OldNode->BreakAllNodeLinks();
 			for (auto PinIter = OldNode->Pins.CreateIterator(); PinIter; ++PinIter)
 			{
-					if(!OldPins.Contains(*PinIter))
+				if (!OldPins.Contains(*PinIter))
 				{
 					UEdGraphPin* Pin = *PinIter;
 					UE_LOG(LogBlueprint, Warning, TEXT("BackwardCompatibilityNodeConversion Error 'missing new pin' in blueprint: %s"),
@@ -5402,24 +5402,90 @@ struct FBackwardCompatibilityConversionHelper
 	{
 		if (ConversionParams.FuncScope)
 		{
-		const UFunction* OldFunc = ConversionParams.FuncScope->FindFunctionByName(ConversionParams.OldFuncName);
-		check(OldFunc);
-		const UFunction* NewFunc = ConversionParams.FuncScope->FindFunctionByName(ConversionParams.NewFuncName);
-		check(NewFunc);
+			const UFunction* OldFunc = ConversionParams.FuncScope->FindFunctionByName(ConversionParams.OldFuncName);
+			check(OldFunc);
+			const UFunction* NewFunc = ConversionParams.FuncScope->FindFunctionByName(ConversionParams.NewFuncName);
+			check(NewFunc);
 
-		for (auto It = Nodes.CreateIterator(); It; ++It)
-		{
-			if (OldFunc == (*It)->GetTargetFunction())
+			for (auto It = Nodes.CreateIterator(); It; ++It)
 			{
-				auto NewNode = NewObject<UK2Node_CallFunction>(Graph);
-				NewNode->SetFromFunction(NewFunc);
-				ConvertNode(*It, ConversionParams.BlueprintPinName, NewNode, 
-					ConversionParams.ClassPinName, Schema, bOnlyWithDefaultBlueprint);
+				if (OldFunc == (*It)->GetTargetFunction())
+				{
+					auto NewNode = NewObject<UK2Node_CallFunction>(Graph);
+					NewNode->SetFromFunction(NewFunc);
+					ConvertNode(*It, ConversionParams.BlueprintPinName, NewNode,
+						ConversionParams.ClassPinName, Schema, bOnlyWithDefaultBlueprint);
+				}
 			}
 		}
 	}
-	}
 };
+
+UK2Node* UEdGraphSchema_K2::ConvertDeprecatedNodeToFunctionCall(UK2Node* OldNode, UFunction* NewFunction, TMap<FString, FString>& OldPinToNewPinMap, UEdGraph* Graph) const
+{
+	const UBlueprint* Blueprint = OldNode->GetBlueprint();
+
+	UK2Node_CallFunction* CallFunctionNode = NewObject<UK2Node_CallFunction>(Graph);
+	check(CallFunctionNode);
+	CallFunctionNode->SetFlags(RF_Transactional);
+	Graph->AddNode(CallFunctionNode, false, false);
+	CallFunctionNode->SetFromFunction(NewFunction);
+	CallFunctionNode->CreateNewGuid();
+	CallFunctionNode->PostPlacedNewNode();
+	CallFunctionNode->AllocateDefaultPins();
+	CallFunctionNode->NodePosX = OldNode->NodePosX;
+	CallFunctionNode->NodePosY = OldNode->NodePosY;
+	bool bFailedToFindPin = false;
+	TArray<UEdGraphPin*> NewPinArray;
+
+	for (int32 PinIdx = 0; PinIdx < OldNode->Pins.Num(); ++PinIdx)
+	{
+		UEdGraphPin* OldPin = OldNode->Pins[PinIdx];
+
+		// Check to see if the pin name is mapped to a new one, if it is use it, otherwise just search for the pin under the old name
+		FString* NewPinNamePtr = OldPinToNewPinMap.Find(OldPin->PinName);
+		FString NewPinName = NewPinNamePtr ? *NewPinNamePtr : OldPin->PinName;
+
+		UEdGraphPin* NewPin = CallFunctionNode->FindPin(*NewPinName);
+
+		if (!NewPin)
+		{
+			bFailedToFindPin = true;
+
+			UE_LOG(LogBlueprint, Warning, TEXT("BackwardCompatibilityNodeConversion Error 'cannot find pin %s in native function %s' in blueprint: %s"),
+				*NewPinName,
+				*NewFunction->GetName(),
+				Blueprint ? *Blueprint->GetName() : TEXT("Unknown"));
+
+			break;
+		}
+
+		NewPinArray.Add(NewPin);
+	}
+
+	if (bFailedToFindPin)
+	{
+		// Failed, destroy node
+		CallFunctionNode->DestroyNode();
+		return nullptr;
+	}
+	
+	for (int32 PinIdx = 0; PinIdx < OldNode->Pins.Num(); ++PinIdx)
+	{
+		UEdGraphPin* OldPin = OldNode->Pins[PinIdx];
+		UEdGraphPin* NewPin = NewPinArray[PinIdx];
+
+		if (!Graph->GetSchema()->MovePinLinks(*OldPin, *NewPin).CanSafeConnect())
+		{
+			UE_LOG(LogBlueprint, Warning, TEXT("BackwardCompatibilityNodeConversion Error 'cannot safely move pin %s to %s' in blueprint: %s"),
+				*OldPin->PinName,
+				*NewPin->PinName,
+				Blueprint ? *Blueprint->GetName() : TEXT("Unknown"));
+		}
+	}
+	OldNode->DestroyNode();
+	return CallFunctionNode;
+}
 
 void UEdGraphSchema_K2::BackwardCompatibilityNodeConversion(UEdGraph* Graph, bool bOnlySafeChanges) const 
 {
@@ -5458,173 +5524,13 @@ void UEdGraphSchema_K2::BackwardCompatibilityNodeConversion(UEdGraph* Graph, boo
 			}
 		}
 
-		/** Fix the old Make/Break Vector, Make/Break Vector 2D, and Make/Break Rotator nodes to use the native function call versions */
+		// Call per-node deprecation functions
+		TArray<UK2Node*> PossiblyDeprecatedNodes;
+		Graph->GetNodesOfClass<UK2Node>(PossiblyDeprecatedNodes);
 
-		TArray<UK2Node_MakeStruct*> MakeStructNodes;
-		Graph->GetNodesOfClass<UK2Node_MakeStruct>(MakeStructNodes);
-		for(auto It = MakeStructNodes.CreateIterator(); It; ++It)
+		for (UK2Node* Node : PossiblyDeprecatedNodes)
 		{
-			UK2Node_MakeStruct* OldMakeStructNode = *It;
-			check(NULL != OldMakeStructNode);
-
-			// user may have since deleted the struct type
-			if (OldMakeStructNode->StructType == NULL)
-			{
-				continue;
-			}
-
-			// Check to see if the struct has a native make/break that we should try to convert to.
-			if (OldMakeStructNode->StructType && OldMakeStructNode->StructType->HasMetaData(TEXT("HasNativeMake")))
-			{
-				UFunction* MakeNodeFunction = NULL;
-
-				// If any pins need to change their names during the conversion, add them to the map.
-				TMap<FString, FString> OldPinToNewPinMap;
-
-				if(OldMakeStructNode->StructType->GetName() == TEXT("Rotator"))
-				{
-					MakeNodeFunction = UKismetMathLibrary::StaticClass()->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UKismetMathLibrary, MakeRotator));
-					OldPinToNewPinMap.Add(TEXT("Rotator"), TEXT("ReturnValue"));
-				}
-				else if(OldMakeStructNode->StructType->GetName() == TEXT("Vector"))
-				{
-					MakeNodeFunction = UKismetMathLibrary::StaticClass()->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UKismetMathLibrary, MakeVector));
-					OldPinToNewPinMap.Add(TEXT("Vector"), TEXT("ReturnValue"));
-				}
-				else if(OldMakeStructNode->StructType->GetName() == TEXT("Vector2D"))
-				{
-					MakeNodeFunction = UKismetMathLibrary::StaticClass()->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UKismetMathLibrary, MakeVector2D));
-					OldPinToNewPinMap.Add(TEXT("Vector2D"), TEXT("ReturnValue"));
-				}
-
-				if(MakeNodeFunction)
-				{
-					UK2Node_CallFunction* CallFunctionNode = NewObject<UK2Node_CallFunction>(Graph);
-					check(CallFunctionNode);
-					CallFunctionNode->SetFlags(RF_Transactional);
-					Graph->AddNode(CallFunctionNode, false, false);
-					CallFunctionNode->SetFromFunction(MakeNodeFunction);
-					CallFunctionNode->CreateNewGuid();
-					CallFunctionNode->PostPlacedNewNode();
-					CallFunctionNode->AllocateDefaultPins();
-					CallFunctionNode->NodePosX = OldMakeStructNode->NodePosX;
-					CallFunctionNode->NodePosY = OldMakeStructNode->NodePosY;
-
-					for(int32 PinIdx = 0; PinIdx < OldMakeStructNode->Pins.Num(); ++PinIdx)
-					{
-						UEdGraphPin* OldPin = OldMakeStructNode->Pins[PinIdx];
-						UEdGraphPin* NewPin = NULL;
-
-						// Check to see if the pin name is mapped to a new one, if it is use it, otherwise just search for the pin under the old name
-						FString* NewPinNamePtr = OldPinToNewPinMap.Find(OldPin->PinName);
-						if(NewPinNamePtr)
-						{
-							NewPin = CallFunctionNode->FindPin(*NewPinNamePtr);
-						}
-						else
-						{
-							NewPin = CallFunctionNode->FindPin(OldPin->PinName);
-						}
-						check(NewPin);
-
-						if(!Graph->GetSchema()->MovePinLinks(*OldPin, *NewPin).CanSafeConnect())
-						{
-							const UBlueprint* Blueprint = OldMakeStructNode->GetBlueprint();
-							UE_LOG(LogBlueprint, Warning, TEXT("BackwardCompatibilityNodeConversion Error 'cannot safetly move pin %s to %s' in blueprint: %s"), 
-								*OldPin->PinName, 
-								*NewPin->PinName,
-								Blueprint ? *Blueprint->GetName() : TEXT("Unknown"));
-						}
-					}
-					OldMakeStructNode->DestroyNode();
-				}
-			}
-		}
-
-		TArray<UK2Node_BreakStruct*> BreakStructNodes;
-		Graph->GetNodesOfClass<UK2Node_BreakStruct>(BreakStructNodes);
-		for(auto It = BreakStructNodes.CreateIterator(); It; ++It)
-		{
-			UK2Node_BreakStruct* OldBreakStructNode = *It;
-			check(NULL != OldBreakStructNode);
-
-			// user may have since deleted the struct type
-			if (OldBreakStructNode->StructType == NULL)
-			{
-				continue;
-			}
-
-			// Check to see if the struct has a native make/break that we should try to convert to.
-			if (OldBreakStructNode->StructType && OldBreakStructNode->StructType->HasMetaData(TEXT("HasNativeBreak")))
-			{
-				UFunction* BreakNodeFunction = NULL;
-
-				// If any pins need to change their names during the conversion, add them to the map.
-				TMap<FString, FString> OldPinToNewPinMap;
-
-				if(OldBreakStructNode->StructType->GetName() == TEXT("Rotator"))
-				{
-					BreakNodeFunction = UKismetMathLibrary::StaticClass()->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UKismetMathLibrary, BreakRotator));
-					OldPinToNewPinMap.Add(TEXT("Rotator"), TEXT("InRot"));
-				}
-				else if(OldBreakStructNode->StructType->GetName() == TEXT("Vector"))
-				{
-					BreakNodeFunction = UKismetMathLibrary::StaticClass()->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UKismetMathLibrary, BreakVector));
-					OldPinToNewPinMap.Add(TEXT("Vector"), TEXT("InVec"));
-				}
-				else if(OldBreakStructNode->StructType->GetName() == TEXT("Vector2D"))
-				{
-					BreakNodeFunction = UKismetMathLibrary::StaticClass()->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UKismetMathLibrary, BreakVector2D));
-					OldPinToNewPinMap.Add(TEXT("Vector2D"), TEXT("InVec"));
-				}
-
-				if(BreakNodeFunction)
-				{
-					UK2Node_CallFunction* CallFunctionNode = NewObject<UK2Node_CallFunction>(Graph);
-					check(CallFunctionNode);
-					CallFunctionNode->SetFlags(RF_Transactional);
-					Graph->AddNode(CallFunctionNode, false, false);
-					CallFunctionNode->SetFromFunction(BreakNodeFunction);
-					CallFunctionNode->CreateNewGuid();
-					CallFunctionNode->PostPlacedNewNode();
-					CallFunctionNode->AllocateDefaultPins();
-					CallFunctionNode->NodePosX = OldBreakStructNode->NodePosX;
-					CallFunctionNode->NodePosY = OldBreakStructNode->NodePosY;
-
-					for(int32 PinIdx = 0; PinIdx < OldBreakStructNode->Pins.Num(); ++PinIdx)
-					{
-						UEdGraphPin* OldPin = OldBreakStructNode->Pins[PinIdx];
-						UEdGraphPin* NewPin = NULL;
-
-						// Check to see if the pin name is mapped to a new one, if it is use it, otherwise just search for the pin under the old name
-						FString* NewPinNamePtr = OldPinToNewPinMap.Find(OldPin->PinName);
-						if(NewPinNamePtr)
-						{
-							NewPin = CallFunctionNode->FindPin(*NewPinNamePtr);
-						}
-						else
-						{
-							NewPin = CallFunctionNode->FindPin(OldPin->PinName);
-						}
-						check(NewPin);
-
-						if(!Graph->GetSchema()->MovePinLinks(*OldPin, *NewPin).CanSafeConnect())
-						{
-							const UBlueprint* Blueprint = OldBreakStructNode->GetBlueprint();
-							UE_LOG(LogBlueprint, Warning, TEXT("BackwardCompatibilityNodeConversion Error 'cannot safetly move pin %s to %s' in blueprint: %s"), 
-								*OldPin->PinName, 
-								*NewPin->PinName,
-								Blueprint ? *Blueprint->GetName() : TEXT("Unknown"));
-						}
-					}
-					OldBreakStructNode->DestroyNode();
-				}
-			}
-		}
-
-		if (Graph->GetLinker() == nullptr)
-		{
-			return;
+			Node->ConvertDeprecatedNode(Graph, bOnlySafeChanges);
 		}
 	}
 }

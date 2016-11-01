@@ -2,7 +2,6 @@
 
 #include "AbilitySystemPrivatePCH.h"
 #include "AbilitySystemInterface.h"
-#include "GameplayTagsModule.h"
 #include "GameplayEffectTypes.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
@@ -363,7 +362,7 @@ void FGameplayTagCountContainer::Notify_StackCountChange(const FGameplayTag& Tag
 	// The purpose of this function is to let anyone listening on the EGameplayTagEventType::AnyCountChange event know that the 
 	// stack count of a GE that was backing this GE has changed. We do not update our internal map/count with this info, since that
 	// map only counts the number of GE/sources that are giving that tag.
-	FGameplayTagContainer TagAndParentsContainer = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTagParents(Tag);
+	FGameplayTagContainer TagAndParentsContainer = Tag.GetGameplayTagParents();
 	for (auto CompleteTagIt = TagAndParentsContainer.CreateConstIterator(); CompleteTagIt; ++CompleteTagIt)
 	{
 		const FGameplayTag& CurTag = *CompleteTagIt;
@@ -399,7 +398,7 @@ void FGameplayTagCountContainer::Reset()
 
 bool FGameplayTagCountContainer::UpdateTagMap_Internal(const FGameplayTag& Tag, int32 CountDelta)
 {
-	const bool bTagAlreadyExplicitlyExists = ExplicitTags.HasTag(Tag, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::Explicit);
+	const bool bTagAlreadyExplicitlyExists = ExplicitTags.HasTagExact(Tag);
 
 	// Need special case handling to maintain the explicit tag list correctly, adding the tag to the list if it didn't previously exist and a
 	// positive delta comes in, and removing it from the list if it did exist and a negative delta comes in.
@@ -414,7 +413,7 @@ bool FGameplayTagCountContainer::UpdateTagMap_Internal(const FGameplayTag& Tag, 
 		else
 		{
 			// only warn about tags that are in the container but will not be removed because they aren't explicitly in the container
-			if (ExplicitTags.HasTag(Tag, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
+			if (ExplicitTags.HasTag(Tag))
 			{
 				ABILITY_LOG(Warning, TEXT("Attempted to remove tag: %s from tag count container, but it is not explicitly in the container!"), *Tag.ToString());
 			}
@@ -435,7 +434,7 @@ bool FGameplayTagCountContainer::UpdateTagMap_Internal(const FGameplayTag& Tag, 
 	}
 
 	// Check if change delegates are required to fire for the tag or any of its parents based on the count change
-	FGameplayTagContainer TagAndParentsContainer = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTagParents(Tag);
+	FGameplayTagContainer TagAndParentsContainer = Tag.GetGameplayTagParents();
 	bool CreatedSignificantChange = false;
 	for (auto CompleteTagIt = TagAndParentsContainer.CreateConstIterator(); CompleteTagIt; ++CompleteTagIt)
 	{
@@ -478,8 +477,8 @@ bool FGameplayTagCountContainer::UpdateTagMap_Internal(const FGameplayTag& Tag, 
 
 bool FGameplayTagRequirements::RequirementsMet(const FGameplayTagContainer& Container) const
 {
-	bool HasRequired = Container.MatchesAll(RequireTags, true);
-	bool HasIgnored = Container.MatchesAny(IgnoreTags, false);
+	bool HasRequired = Container.HasAll(RequireTags);
+	bool HasIgnored = Container.HasAny(IgnoreTags);
 
 	return HasRequired && !HasIgnored;
 }
@@ -538,7 +537,7 @@ const FGameplayTagContainer* FTagContainerAggregator::GetAggregatedTags() const
 	if (CacheIsValid == false)
 	{
 		CacheIsValid = true;
-		CachedAggregator.RemoveAllTags(CapturedActorTags.Num() + CapturedSpecTags.Num() + ScopedTags.Num());
+		CachedAggregator.Reset(CapturedActorTags.Num() + CapturedSpecTags.Num() + ScopedTags.Num());
 		CachedAggregator.AppendTags(CapturedActorTags);
 		CachedAggregator.AppendTags(CapturedSpecTags);
 		CachedAggregator.AppendTags(ScopedTags);

@@ -189,7 +189,40 @@ void FBoneContainer::CacheRequiredAnimCurveUids()
 		if (Mapping != nullptr)
 		{
 			AnimCurveNameUids.Reset();
+			// fill name array
+			TArray<FName> CurveNames;
+			Mapping->FillNameArray(CurveNames);
 			Mapping->FillUidArray(AnimCurveNameUids);
+
+			// if the linked joints don't exists in RequiredBones, remove itself
+			if (CurveNames.Num() > 0)
+			{
+				for (int32 CurveNameIndex = CurveNames.Num() - 1; CurveNameIndex >=0 ; --CurveNameIndex)
+				{
+					const FCurveMetaData* CurveMetaData = Mapping->GetCurveMetaData(CurveNames[CurveNameIndex]);
+					if (CurveMetaData && CurveMetaData->LinkedBones.Num() > 0)
+					{
+						bool bRemove = true;
+						for (int32 LinkedBoneIndex = 0; LinkedBoneIndex < CurveMetaData->LinkedBones.Num(); ++LinkedBoneIndex)
+						{
+							const FBoneReference& BoneReference = CurveMetaData->LinkedBones[LinkedBoneIndex];
+							// we want to make sure all the joints are removed from RequiredBones before removing this UID
+							if (BoneReference.GetCompactPoseIndex(*this) != INDEX_NONE)
+							{
+								// still has some joint that matters, do not remove
+								bRemove = false;
+								break;
+							}
+						}
+
+						if (bRemove)
+						{
+							//remove the UID
+							AnimCurveNameUids.RemoveAt(CurveNameIndex);
+						}
+					}
+				}
+			}
 		}
 	}
 }

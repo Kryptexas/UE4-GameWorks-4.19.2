@@ -1798,8 +1798,11 @@ void UWheeledVehicleMovementComponent::SetAvoidanceEnabled(bool bEnable)
 	{
 		bUseRVOAvoidance = bEnable;
 		
+		// reset id, RegisterMovementComponent call is required to initialize update timers in avoidance manager
+		AvoidanceUID = 0;
+
 		UAvoidanceManager* AvoidanceManager = GetWorld()->GetAvoidanceManager();
-		if (AvoidanceManager && bEnable && AvoidanceUID == 0)
+		if (AvoidanceManager && bEnable)
 		{
 			AvoidanceManager->RegisterMovementComponent(this, AvoidanceWeight);
 		}

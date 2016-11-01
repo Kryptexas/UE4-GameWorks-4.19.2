@@ -61,6 +61,39 @@ void UK2Node::PostLoad()
 	FixupPinDefaultValues();
 }
 
+void UK2Node::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	if (Ar.IsObjectReferenceCollector() && Ar.IsSaving())
+	{
+		// If looking for references during save, expand any default values on the pins
+		
+		for (const UEdGraphPin* Pin : Pins)
+		{
+			if (!Pin->bDefaultValueIsIgnored && !Pin->DefaultValue.IsEmpty() && Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Struct && Pin->PinType.PinSubCategoryObject.IsValid())
+			{
+				UScriptStruct* Struct = Cast<UScriptStruct>(Pin->PinType.PinSubCategoryObject.Get());
+
+				if (Struct)
+				{
+					int32 StructSize = Struct->GetStructureSize();
+					uint8* StructData = (uint8*)FMemory::Malloc(StructSize);
+					
+					// Import the literal text to a dummy struct and then serialize that
+					FOutputDeviceNull NullOutput;
+					Struct->InitializeStruct(StructData);
+					Struct->ImportText(*Pin->DefaultValue, StructData, nullptr, PPF_None, &NullOutput, Pin->PinName);
+					Struct->SerializeItem(Ar, StructData, nullptr);
+					Struct->DestroyStruct(StructData);
+
+					FMemory::Free(StructData);
+				}
+			}
+		}
+	}
+}
+
 void UK2Node::FixupPinDefaultValues()
 {
 	const int32 LinkerUE4Version = GetLinkerUE4Version();

@@ -3376,15 +3376,13 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* Ne
 		TArray<UObject*> WorldObjects;
 
 		// Iterate over all objects to find ones that reside in the same package as the world.
-		GetObjectsWithOuter(GetOutermost(), WorldObjects);
-		for( int32 ObjectIndex=0; ObjectIndex < WorldObjects.Num(); ++ObjectIndex )
+		ForEachObjectWithOuter(GetOutermost(), [this](UObject* CurrentObject)
 		{
-			UObject* CurrentObject = WorldObjects[ObjectIndex];
 			if ( CurrentObject != this )
 			{
 				CurrentObject->ClearFlags( RF_Standalone );
 			}
-		}
+		});
 
 		if (bCleanupResources && WorldType != EWorldType::PIE)
 		{

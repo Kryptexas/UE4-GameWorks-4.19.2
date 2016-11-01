@@ -79,6 +79,27 @@ void FGenerationInfo::Serialize(FArchive& Ar, const struct FPackageFileSummary& 
 extern int32 GLinkerAllowDynamicClasses;
 #endif
 
+void FLinkerTables::SerializeSearchableNamesMap(FArchive& Ar)
+{
+#if WITH_EDITOR
+	FArchive::FScopeSetDebugSerializationFlags S(Ar, DSF_IgnoreDiff, true);
+#endif
+
+	if (Ar.IsSaving())
+	{
+		// Sort before saving to keep order consistent
+		SearchableNamesMap.KeySort(TLess<FPackageIndex>());
+
+		for (TPair<FPackageIndex, TArray<FName> >& Pair : SearchableNamesMap)
+		{
+			Pair.Value.Sort();
+		}
+	}
+
+	// Default Map serialize works fine
+	Ar << SearchableNamesMap;
+}
+
 FName FLinker::GetExportClassName( int32 i )
 {
 	if (ExportMap.IsValidIndex(i))
@@ -130,41 +151,17 @@ FLinker::FLinker(ELinkerType::Type InType, UPackage* InRoot, const TCHAR* InFile
 
 void FLinker::Serialize( FArchive& Ar )
 {
+	// This function is only used for counting memory, actual serialization uses a different path
 	if( Ar.IsCountingMemory() )
 	{
 		// Can't use CountBytes as ExportMap is array of structs of arrays.
 		Ar << ImportMap;
 		Ar << ExportMap;
 		Ar << DependsMap;
-
-		if (Ar.IsSaving() || Ar.UE4Ver() >= VER_UE4_ADD_STRING_ASSET_REFERENCES_MAP)
-		{
-			Ar << StringAssetReferencesMap;
-		}
-	}
-
-	if (Ar.IsSaving() || Ar.UE4Ver() >= VER_UE4_SERIALIZE_TEXT_IN_PACKAGES)
-	{
+		Ar << StringAssetReferencesMap;
 		Ar << GatherableTextDataMap;
+		Ar << SearchableNamesMap;
 	}
-
-	// Prevent garbage collecting of linker's names and package.
-	Ar << NameMap << LinkerRoot;
-	{
-		for (auto& E : ExportMap)
-		{
-			Ar << E.ObjectName;
-		}
-	}
-	{
-		for (auto& I : ImportMap)
-		{
-			UObject* LegacyLinkerObject = nullptr;
-			Ar << LegacyLinkerObject;
-			Ar << I.ClassPackage << I.ClassName;
-		}
-	}
-
 }
 
 void FLinker::AddReferencedObjects(FReferenceCollector& Collector)

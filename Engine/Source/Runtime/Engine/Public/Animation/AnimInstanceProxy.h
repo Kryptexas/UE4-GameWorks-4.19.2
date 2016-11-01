@@ -127,6 +127,17 @@ public:
 	{ 
 		return bShouldExtractRootMotion;
 	}
+	
+	void SavePoseSnapshot(USkeletalMeshComponent* InSkeletalMeshComponent, FName SnapshotName);
+
+	struct FPoseSnapshot
+	{
+		TArray<FTransform> LocalTransforms;
+		FName SnapshotName;
+	};
+
+	/** Get a pose snapshot by name */
+	const FPoseSnapshot* GetPoseSnapshot(FName SnapshotName) const;
 
 	/** Access various counters */
 	const FGraphTraversalCounter& GetInitializationCounter() const { return InitializationCounter; }
@@ -612,4 +623,6 @@ private:
 	/** Native state exit bindings */
 	TArray<FNativeStateBinding> NativeStateExitBindings;
 
+	/** Array of snapshots. Each entry contains a name for finding specific pose snapshots */
+	TArray <FPoseSnapshot> PoseSnapshots;
 };

@@ -78,8 +78,9 @@ public:
 
 	void HandleObjectSelected(UObject* InObject);
 
-private:
 	void HandleObjectsSelected(const TArray<UObject*>& InObjects);
+
+private:
 
 	void HandleAnimNotifiesChanged();
 

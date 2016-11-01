@@ -290,9 +290,7 @@ bool EngineUtils::FindOrLoadAssetsByPath(const FString& Path, TArray<UObject*>& 
 
 		if (Package)
 		{
-			TArray<UObject*> ObjectsInPackage;
-			GetObjectsWithOuter(Package, ObjectsInPackage);
-			for (UObject* Object : ObjectsInPackage)
+			ForEachObjectWithOuter(Package, [Type, &OutAssets](UObject* Object)
 			{
 				const bool bWantedType = 
 					((EAssetToLoad::ATL_Regular == Type) && Object->IsAsset()) ||
@@ -301,7 +299,7 @@ bool EngineUtils::FindOrLoadAssetsByPath(const FString& Path, TArray<UObject*>& 
 				{
 					OutAssets.Add(Object);
 				}
-			}
+			});
 		}
 	}
 	return true;

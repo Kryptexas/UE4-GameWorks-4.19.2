@@ -1331,18 +1331,15 @@ void ULevel::PostEditUndo()
 
 	// Non-transactional actors may disappear from the actors list but still exist, so we need to re-add them
 	// Likewise they won't get recreated if we undo to before they were deleted, so we'll have nulls in the actors list to remove
-	//Actors.Remove(nullptr); // removed because TTransArray exploded (undo followed by redo ends up with a different ArrayNum to originally)
 	TSet<AActor*> ActorsSet(Actors);
-	TArray<UObject *> InnerObjects;
-	GetObjectsWithOuter(this, InnerObjects, /*bIncludeNestedObjects*/ false, /*ExclusionFlags*/ RF_NoFlags, /* InternalExclusionFlags */ EInternalObjectFlags::PendingKill);
-	for (UObject* InnerObject : InnerObjects)
+	ForEachObjectWithOuter(this, [&ActorsSet, this](UObject* InnerObject)
 	{
 		AActor* InnerActor = Cast<AActor>(InnerObject);
 		if (InnerActor && !ActorsSet.Contains(InnerActor))
 		{
 			Actors.Add(InnerActor);
 		}
-	}
+	}, /*bIncludeNestedObjects*/ false, /*ExclusionFlags*/ RF_NoFlags, /* InternalExclusionFlags */ EInternalObjectFlags::PendingKill);
 
 	MarkLevelBoundsDirty();
 }
@@ -1760,17 +1757,15 @@ bool ULevel::HasAnyActorsOfType(UClass *SearchType)
 TArray<UBlueprint*> ULevel::GetLevelBlueprints() const
 {
 	TArray<UBlueprint*> LevelBlueprints;
-	TArray<UObject*> LevelChildren;
-	GetObjectsWithOuter(this, LevelChildren, false, RF_NoFlags, EInternalObjectFlags::PendingKill);
 
-	for (UObject* LevelChild : LevelChildren)
+	ForEachObjectWithOuter(this, [&LevelBlueprints](UObject* LevelChild)
 	{
 		UBlueprint* LevelChildBP = Cast<UBlueprint>(LevelChild);
 		if (LevelChildBP)
 		{
 			LevelBlueprints.Add(LevelChildBP);
 		}
-	}
+	}, false, RF_NoFlags, EInternalObjectFlags::PendingKill);
 
 	return LevelBlueprints;
 }

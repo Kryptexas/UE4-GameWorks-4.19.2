@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Animation/AnimInstance.h"
+#include "EditorObjectsTracker.h"
 
 class SAnimCurveViewer;
 
@@ -18,21 +19,23 @@ public:
 	TWeakPtr<class IEditableSkeleton> EditableSkeleton;		// The skeleton we're associated with
 	TSharedPtr<SInlineEditableTextBlock> EditableText;	// The editable text box in the list, used to focus from the context menu
 	FName ContainerName;	// The container in the skeleton this name resides in
+	class UEditorAnimCurveBoneLinks* EditorMirrorObject;
 
 	/** Static function for creating a new item, but ensures that you can only have a TSharedRef to one */
-	static TSharedRef<FDisplayedAnimCurveInfo> Make(TWeakPtr<class IEditableSkeleton> InEditableSkeleton, const FName& InContainerName, const FSmartName& InSmartName)
+	static TSharedRef<FDisplayedAnimCurveInfo> Make(TWeakPtr<class IEditableSkeleton> InEditableSkeleton, const FName& InContainerName, const FSmartName& InSmartName, class UEditorAnimCurveBoneLinks* InEditorMirrorObject)
 	{
-		return MakeShareable(new FDisplayedAnimCurveInfo(InEditableSkeleton, InContainerName, InSmartName));
+		return MakeShareable(new FDisplayedAnimCurveInfo(InEditableSkeleton, InContainerName, InSmartName, InEditorMirrorObject));
 	}
 
 protected:
 	/** Hidden constructor, always use Make above */
-	FDisplayedAnimCurveInfo(TWeakPtr<class IEditableSkeleton> InEditableSkeleton, const FName& InContainerName, const FSmartName& InSmartName)
+	FDisplayedAnimCurveInfo(TWeakPtr<class IEditableSkeleton> InEditableSkeleton, const FName& InContainerName, const FSmartName& InSmartName, class UEditorAnimCurveBoneLinks* InEditorMirrorObject)
 		: SmartName(InSmartName)
 		, Weight( 0 )
 		, bAutoFillData(true)
 		, EditableSkeleton(InEditableSkeleton)
 		, ContainerName(InContainerName)
+		, EditorMirrorObject(InEditorMirrorObject)
 	{}
 };
 
@@ -107,6 +110,9 @@ private:
 	TWeakPtr<IPersonaPreviewScene> PreviewScenePtr;
 	/** Returns curve type widget constructed */
 	TSharedRef<SWidget> GetCurveTypeWidget();
+
+	/** returns display text for number of connected joint setting */
+	FText GetNumConntectedBones() const;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -117,7 +123,7 @@ class SAnimCurveViewer : public SCompoundWidget
 public:
 	SLATE_BEGIN_ARGS( SAnimCurveViewer )
 	{}
-		
+	
 	SLATE_END_ARGS()
 
 	/**
@@ -126,7 +132,7 @@ public:
 	* @param InArgs - Arguments passed from Slate
 	*
 	*/
-	void Construct( const FArguments& InArgs, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnCurvesChanged, FSimpleMulticastDelegate& InOnPostUndo );
+	void Construct( const FArguments& InArgs, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnCurvesChanged, FSimpleMulticastDelegate& InOnPostUndo, FOnObjectsSelected InOnObjectsSelected);
 
 	/**
 	* Destructor - resets the animation curve
@@ -231,6 +237,7 @@ private:
 
 	/** Handler for context menus */
 	TSharedPtr<SWidget> OnGetContextMenuContent() const;
+	void OnSelectionChanged(TSharedPtr<FDisplayedAnimCurveInfo> InItem, ESelectInfo::Type SelectInfo);
 
 	/**
 	* Clears and rebuilds the table, according to an optional search string
@@ -290,6 +297,8 @@ private:
 
 	int32 CurrentCurveFlag;
 
+	bool bShowAllCurves;
+
 	TMap<FName, float> OverrideCurves;
 
 	/** Commands that are bound to delegates*/
@@ -300,4 +309,13 @@ private:
 
 	friend class SAnimCurveListRow;
 	friend class SAnimCurveTypeList;
+
+	/** Tracks objects created for the details panel */
+	FEditorObjectTracker EditorObjectTracker;
+
+	/** Delegate called to select objects */
+	FOnObjectsSelected OnObjectsSelected;
+
+	/** apply curve bone links from editor mirror object to skeleton */
+	void ApplyCurveBoneLinks(class UEditorAnimCurveBoneLinks* EditorObj);
 };

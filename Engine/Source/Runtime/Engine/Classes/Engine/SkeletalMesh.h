@@ -236,7 +236,11 @@ struct FSkeletalMeshLODInfo
 {
 	GENERATED_USTRUCT_BODY()
 
-	/**	Indicates when to use this LOD. A smaller number means use this LOD when further away. */
+	/** 
+	 * ScreenSize to display this LOD.
+	 * The screen size is based around the projected diameter of the bounding
+	 * sphere of the model. i.e. 0.5 means half the screen's maximum dimension.
+	 */
 	UPROPERTY(EditAnywhere, Category=SkeletalMeshLODInfo)
 	float ScreenSize;
 
@@ -266,6 +270,10 @@ struct FSkeletalMeshLODInfo
 	/** This has been removed in editor. We could re-apply this in import time or by mesh reduction utilities*/
 	UPROPERTY(EditAnywhere, Category = ReductionSettings)
 	TArray<FName> RemovedBones;
+
+	/** The filename of the file tha was used to import this LOD if it was not auto generated. */
+	UPROPERTY(VisibleAnywhere, Category= SkeletalMeshLODInfo, AdvancedDisplay)
+	FString SourceImportFilename;
 
 	FSkeletalMeshLODInfo()
 		: ScreenSize(0)
@@ -652,6 +660,12 @@ public:
 	UPROPERTY(EditAnywhere, Category = Physics)
 	uint32 bEnablePerPolyCollision : 1;
 
+	/**
+	 * If true on post load we need to calculate resolution independent Display Factors from the
+	 * loaded LOD screen sizes.
+	 */
+	uint32 bRequiresLODScreenSizeConversion : 1;
+
 	// Physics data for the per poly collision case. In 99% of cases you will not need this and are better off using simple ragdoll collision (physics asset)
 	UPROPERTY(transient)
 	class UBodySetup* BodySetup;
@@ -973,6 +987,9 @@ public:
 	ENGINE_API void BuildPhysicsData();
 	ENGINE_API void AddBoneToReductionSetting(int32 LODIndex, const TArray<FName>& BoneNames);
 	ENGINE_API void AddBoneToReductionSetting(int32 LODIndex, FName BoneName);
+
+	/** Convert legacy screen size (based on fixed resolution) into screen size (diameter in screen units) */
+	void ConvertLegacyLODScreenSize();
 #endif
 	
 

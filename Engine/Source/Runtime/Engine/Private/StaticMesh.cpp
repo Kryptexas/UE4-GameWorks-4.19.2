@@ -843,7 +843,20 @@ void FStaticMeshRenderData::ResolveSectionInfo(UStaticMesh* Owner)
 			else
 			{
 				const float ViewDistance = CalculateViewDistance(LOD.MaxDeviation, Owner->SourceModels[LODIndex].ReductionSettings.PixelError);
-				ScreenSize[LODIndex] = PI * FMath::Square( 0.5f * Bounds.SphereRadius / ( Bounds.SphereRadius + ViewDistance ) );
+
+				// Generate a projection matrix.
+				// ComputeBoundsScreenSize only uses (0, 0) and (1, 1) of this matrix.
+				const float HalfFOV = PI * 0.25f;
+				const float ScreenWidth = 1920.0f;
+				const float ScreenHeight = 1080.0f;
+				const FPerspectiveMatrix ProjMatrix(HalfFOV, ScreenWidth, ScreenHeight, 1.0f);
+
+				// Note we offset ViewDistance by SphereRadius here because the MaxDeviation is known to be somewhere in the bounds of the mesh. 
+				// It won't necessarily be at the origin. Before adding this factor for very high poly meshes it would calculate a very small deviation 
+				// for LOD1 which translates to a very small ViewDistance and a large (larger than 1) ScreenSize. This meant you could clip the camera 
+				// into the mesh but unless you were near its origin it wouldn't switch to LOD0. Adding SphereRadius to ViewDistance makes it so that 
+				// the distance is to the bounds which corrects the problem.
+				ScreenSize[LODIndex] = ComputeBoundsScreenSize(FVector::ZeroVector, Bounds.SphereRadius, FVector(0.0f, 0.0f, ViewDistance + Bounds.SphereRadius), ProjMatrix);
 			}
 		}
 		else if (Owner->SourceModels.IsValidIndex(LODIndex))
@@ -1159,8 +1172,8 @@ FArchive& operator<<(FArchive& Ar, FMeshBuildSettings& BuildSettings)
 // If static mesh derived data needs to be rebuilt (new format, serialization
 // differences, etc.) replace the version GUID below with a new one.
 // In case of merge conflicts with DDC versions, you MUST generate a new GUID
-// and set this new GUID as the version.        
-#define STATICMESH_DERIVEDDATA_VER TEXT("9028D97FC1F34C33B2F24FA81D5F45F3")
+// and set this new GUID as the version.                                       
+#define STATICMESH_DERIVEDDATA_VER TEXT("A1C08472697A4FC2B1E0A31E4B382B6E")
 
 static const FString& GetStaticMeshDerivedDataVersion()
 {
@@ -2375,6 +2388,7 @@ void UStaticMesh::Serialize(FArchive& Ar)
 		// Need to set a flag rather than do conversion in place as RenderData is not
 		// created until postload and it is needed for bounding information
 		bRequiresLODDistanceConversion = Ar.UE4Ver() < VER_UE4_STATIC_MESH_SCREEN_SIZE_LODS;
+		bRequiresLODScreenSizeConversion = Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::LODsUseResolutionIndependentScreenSize;
 	}
 #endif // #if WITH_EDITOR
 
@@ -2512,6 +2526,12 @@ void UStaticMesh::PostLoad()
 		{
 			// Convert distances to Display Factors
 			ConvertLegacyLODDistance();
+		}
+
+		if (bRequiresLODScreenSizeConversion)
+		{
+			// Convert screen area to screen size
+			ConvertLegacyLODScreenArea();
 		}
 
 		if (RenderData && GStaticMeshesThatNeedMaterialFixup.Get(this))
@@ -3253,6 +3273,50 @@ void UStaticMesh::ConvertLegacyLODDistance()
 				const float ScreenArea = ScreenWidth * ScreenHeight;
 				const float BoundsArea = PI * ScreenRadius * ScreenRadius;
 				SrcModel.ScreenSize = FMath::Clamp(BoundsArea / ScreenArea, 0.0f, 1.0f);
+				RenderData->ScreenSize[ModelIndex] = SrcModel.ScreenSize;
+			}
+		}
+	}
+}
+
+void UStaticMesh::ConvertLegacyLODScreenArea()
+{
+	check(SourceModels.Num() > 0);
+	check(SourceModels.Num() <= MAX_STATIC_MESH_LODS);
+
+	if (SourceModels.Num() == 1)
+	{
+		// Only one model, 
+		SourceModels[0].ScreenSize = 1.0f;
+	}
+	else
+	{
+		// Use 1080p, 90 degree FOV as a default, as this should not cause runtime regressions in the common case.
+		const float HalfFOV = PI * 0.25f;
+		const float ScreenWidth = 1920.0f;
+		const float ScreenHeight = 1080.0f;
+		const FPerspectiveMatrix ProjMatrix(HalfFOV, ScreenWidth, ScreenHeight, 1.0f);
+		FBoxSphereBounds Bounds = GetBounds();
+
+		// Multiple models, we should have LOD screen area data.
+		for (int32 ModelIndex = 0; ModelIndex < SourceModels.Num(); ++ModelIndex)
+		{
+			FStaticMeshSourceModel& SrcModel = SourceModels[ModelIndex];
+
+			if (SrcModel.ScreenSize == 0.0f)
+			{
+				SrcModel.ScreenSize = 1.0f;
+				RenderData->ScreenSize[ModelIndex] = SrcModel.ScreenSize;
+			}
+			else
+			{
+				// legacy transition screen size was previously a screen AREA fraction using resolution-scaled values, so we need to convert to distance first to correctly calculate the threshold
+				const float ScreenArea = SrcModel.ScreenSize * (ScreenWidth * ScreenHeight);
+				const float ScreenRadius = FMath::Sqrt(ScreenArea / PI);
+				const float ScreenDistance = FMath::Max(ScreenWidth / 2.0f * ProjMatrix.M[0][0], ScreenHeight / 2.0f * ProjMatrix.M[1][1]) * Bounds.SphereRadius / ScreenRadius;
+
+				// Now convert using the query function
+				SrcModel.ScreenSize = ComputeBoundsScreenSize(FVector::ZeroVector, Bounds.SphereRadius, FVector(0.0f, 0.0f, ScreenDistance), ProjMatrix);
 				RenderData->ScreenSize[ModelIndex] = SrcModel.ScreenSize;
 			}
 		}

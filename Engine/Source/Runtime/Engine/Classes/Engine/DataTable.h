@@ -302,6 +302,16 @@ struct ENGINE_API FDataTableRowHandle
 
 	bool operator==(FDataTableRowHandle const& Other) const;
 	bool operator!=(FDataTableRowHandle const& Other) const;
+	void PostSerialize(const FArchive& Ar);
+};
+
+template<>
+struct TStructOpsTypeTraits< FDataTableRowHandle > : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithPostSerialize = true,
+	};
 };
 
 /** Handle to a particular row in a table*/

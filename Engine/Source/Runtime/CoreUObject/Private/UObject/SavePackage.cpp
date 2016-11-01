@@ -1028,20 +1028,19 @@ class FArchiveSaveTagImports : public FArchiveUObject
 public:
 	FLinkerSave* Linker;
 	TArray<UObject*> Dependencies;
-	TArray<FString>& StringAssetReferencesMap;
 
-	FArchiveSaveTagImports(FLinkerSave* InLinker, TArray<FString>& InStringAssetReferencesMap)
-		: Linker(InLinker), StringAssetReferencesMap(InStringAssetReferencesMap)
+	FArchiveSaveTagImports(FLinkerSave* InLinker)
+		: Linker(InLinker)
 	{
+		check(Linker);
+
 		ArIsSaving				= true;
 		ArIsPersistent			= true;
 		ArIsObjectReferenceCollector = true;
 		ArShouldSkipBulkData	= true;
-		if ( Linker != NULL )
-		{
-			ArPortFlags = Linker->GetPortFlags();
-			SetCookingTarget(Linker->CookingTarget());
-		}
+
+		ArPortFlags = Linker->GetPortFlags();
+		SetCookingTarget(Linker->CookingTarget());
 	}
 	FArchive& operator<<(UObject*& Obj) override;
 	FArchive& operator<<(FLazyObjectPtr& LazyObjectPtr) override;
@@ -1059,14 +1058,14 @@ public:
 
 			if (GetIniFilenameFromObjectsReference(Path) != nullptr)
 			{
-				StringAssetReferencesMap.AddUnique(Path);
+				Linker->StringAssetReferencesMap.AddUnique(Path);
 			}
 			else
 			{
 				FString NormalizedPath = FPackageName::GetNormalizedObjectPath(Path);
 				if (!NormalizedPath.IsEmpty())
 				{
-					StringAssetReferencesMap.AddUnique(FPackageName::ObjectPathToPackageName(NormalizedPath));
+					Linker->StringAssetReferencesMap.AddUnique(FPackageName::ObjectPathToPackageName(NormalizedPath));
 					Value.SetPath(MoveTemp(NormalizedPath));
 				}
 			}
@@ -1077,6 +1076,24 @@ public:
 	{
 		SavePackageState->MarkNameAsReferenced(Name);
 		return *this;
+	}
+	virtual void MarkSearchableName(const UObject* TypeObject, const FName& ValueName) const override
+	{
+		if (!TypeObject)
+		{
+			return;
+		}
+
+		if (!Dependencies.Contains(TypeObject))
+		{
+			// Serialize object to make sure it ends up in import table
+			// This is doing a const cast to avoid backward compatibility issues
+			FArchiveSaveTagImports* MutableArchive = const_cast<FArchiveSaveTagImports*>(this);
+			UObject* TempObject = const_cast<UObject*>(TypeObject);
+			(*MutableArchive) << TempObject;
+		}
+
+		Linker->SearchableNamesObjectMap.FindOrAdd(TypeObject).AddUnique(ValueName);
 	}
 
 	virtual FArchive& operator<< (struct FWeakObjectPtr& Value) override;
@@ -1089,7 +1106,6 @@ public:
 	 **/
 	virtual FString GetArchiveName() const override;
 };
-
 
 /**
  * Returns the name of the Archive.  Useful for getting the name of the package a struct or object
@@ -3973,7 +3989,6 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 				}
 
 				// Import objects & names.
-				TArray<FString> StringAssetReferencesMap;
 				{
 					const EObjectMark ObjectMarks = UPackage::GetObjectMarksForTargetPlatform(TargetPlatform, Linker->IsCooking());
 					TArray<UObject*> TagExpObjects;
@@ -3983,7 +3998,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 						UObject* Obj = TagExpObjects[Index];
 						check(Obj->HasAnyMarks(OBJECTMARK_TagExp));
 						// Build list.
-						FArchiveSaveTagImports ImportTagger(Linker, StringAssetReferencesMap);
+						FArchiveSaveTagImports ImportTagger(Linker);
 						ImportTagger.SetPortFlags(ComparisonFlags);
 						ImportTagger.SetFilterEditorOnly(FilterEditorOnly);
 
@@ -4699,6 +4714,19 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 					}
 				}
 
+				// Convert the searchable names map from UObject to packageindex
+				for (const TPair<const UObject *, TArray<FName>>& SearchableNamePair : Linker->SearchableNamesObjectMap)
+				{
+					const FPackageIndex PackageIndex = Linker->MapObject(SearchableNamePair.Key);
+
+					// This should always be in the imports already
+					if (ensure(!PackageIndex.IsNull()))
+					{
+						Linker->SearchableNamesMap.FindOrAdd(PackageIndex) = SearchableNamePair.Value;
+					}
+				}
+				// Clear temporary map
+				Linker->SearchableNamesObjectMap.Empty();
 
 				SlowTask.EnterProgressFrame();
 
@@ -4770,23 +4798,36 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 				}
 				SlowTask.EnterProgressFrame();
 
-				// Save string asset reference map
-				Linker->Summary.StringAssetReferencesOffset = Linker->Tell();
-				Linker->Summary.StringAssetReferencesCount = StringAssetReferencesMap.Num();
+				// Only save string asset and searchable name map if saving for editor
+				if (!(Linker->Summary.PackageFlags & PKG_FilterEditorOnly))
 				{
-#if WITH_EDITOR
-					FArchive::FScopeSetDebugSerializationFlags S(*Linker, DSF_IgnoreDiff, true);
-#endif
-					for (int32 i = 0; i < StringAssetReferencesMap.Num(); i++)
+					// Save string asset reference map
+					Linker->Summary.StringAssetReferencesOffset = Linker->Tell();
+					Linker->Summary.StringAssetReferencesCount = Linker->StringAssetReferencesMap.Num();
 					{
-
-						*Linker << StringAssetReferencesMap[i];
+#if WITH_EDITOR
+						FArchive::FScopeSetDebugSerializationFlags S(*Linker, DSF_IgnoreDiff, true);
+#endif
+						for (FString& StringAssetReference : Linker->StringAssetReferencesMap)
+						{
+							*Linker << StringAssetReference;
+						}
 					}
+
+					// Save searchable names map
+					Linker->Summary.SearchableNamesOffset = Linker->Tell();
+					Linker->SerializeSearchableNamesMap(*Linker);
 				}
+				else
+				{
+					Linker->Summary.StringAssetReferencesCount = 0;
+					Linker->Summary.StringAssetReferencesOffset = 0;
+					Linker->Summary.SearchableNamesOffset = 0;
+				}
+
 				// Save thumbnails
 				UPackage::SaveThumbnails( InOuter, Linker );
 
-				
 				// Save asset registry data so the editor can search for information about assets in this package
 				UPackage::SaveAssetRegistryData( InOuter, Linker );
 

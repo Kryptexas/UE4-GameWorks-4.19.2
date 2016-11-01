@@ -237,6 +237,42 @@ void FAnimInstanceProxy::PreUpdate(UAnimInstance* InAnimInstance, float DeltaSec
 	}
 }
 
+void FAnimInstanceProxy::SavePoseSnapshot(USkeletalMeshComponent* InSkeletalMeshComponent, FName SnapshotName)
+{
+	FPoseSnapshot* PoseSnapshot = PoseSnapshots.FindByPredicate([SnapshotName](const FPoseSnapshot& PoseData) { return PoseData.SnapshotName == SnapshotName; });
+	if (PoseSnapshot == nullptr)
+	{
+		PoseSnapshot = new (PoseSnapshots) FPoseSnapshot();
+		PoseSnapshot->SnapshotName = SnapshotName;
+	}
+
+	const TArray<FTransform>& ComponentSpaceTMs = InSkeletalMeshComponent->GetComponentSpaceTransforms();
+	const FReferenceSkeleton& RefSkeleton = InSkeletalMeshComponent->SkeletalMesh->RefSkeleton;
+	const TArray<FTransform>& RefPoseSpaceBaseTMs = RefSkeleton.GetRefBonePose();
+
+	const int32 NumSpaceBases = ComponentSpaceTMs.Num();
+	PoseSnapshot->LocalTransforms.Reset(NumSpaceBases);
+	PoseSnapshot->LocalTransforms.AddUninitialized(NumSpaceBases);
+	PoseSnapshot->LocalTransforms[0] = ComponentSpaceTMs[0];	//Set root bone which is always evaluated.
+
+	int32 CurrentRequiredBone = 1;
+	for(int32 ComponentSpaceIdx = 1; ComponentSpaceIdx < NumSpaceBases; ++ComponentSpaceIdx)
+	{
+		const bool bBoneHasEvaluated = InSkeletalMeshComponent->FillComponentSpaceTransformsRequiredBones.IsValidIndex(CurrentRequiredBone) && ComponentSpaceIdx == InSkeletalMeshComponent->FillComponentSpaceTransformsRequiredBones[CurrentRequiredBone];
+		const int32 ParentIndex = RefSkeleton.GetParentIndex(ComponentSpaceIdx);
+		ensureMsgf(ParentIndex != INDEX_NONE, TEXT("Getting an invalid parent bone for bone %d, but this should not be possible since this is not the root bone!"), ComponentSpaceIdx);
+
+		const FTransform& ParentTransform = ComponentSpaceTMs[ParentIndex];
+		const FTransform& ChildTransform =  ComponentSpaceTMs[ComponentSpaceIdx];
+		PoseSnapshot->LocalTransforms[ComponentSpaceIdx] = bBoneHasEvaluated ? ChildTransform.GetRelativeTransform(ParentTransform) :  RefPoseSpaceBaseTMs[ComponentSpaceIdx];
+
+		if (bBoneHasEvaluated)
+		{
+			CurrentRequiredBone++;
+		}
+	}
+}
+
 void FAnimInstanceProxy::PostUpdate(UAnimInstance* InAnimInstance) const
 {
 #if WITH_EDITORONLY_DATA
@@ -1700,5 +1736,10 @@ void FAnimInstanceProxy::RegisterWatchedPose(const FCSPose<FCompactPose>& Pose, 
 	}
 }
 #endif
+
+const FAnimInstanceProxy::FPoseSnapshot* FAnimInstanceProxy::GetPoseSnapshot(FName SnapshotName) const
+{
+	return PoseSnapshots.FindByPredicate([SnapshotName](const FPoseSnapshot& PoseData) { return PoseData.SnapshotName == SnapshotName; });
+}
 
 #undef LOCTEXT_NAMESPACE

@@ -12,6 +12,7 @@
 #include "UObjectToken.h"
 
 #include "StaticMeshResources.h"
+#include "FrameworkObjectVersion.h"
 
 #if WITH_EDITOR
 #include "Editor.h"
@@ -185,6 +186,32 @@ void ALODActor::PostLoad()
 {
 	Super::PostLoad();
 	UpdateRegistrationToMatchMaximumLODLevel();
+
+#if WITH_EDITOR
+	if (bRequiresLODScreenSizeConversion)
+	{
+		if (TransitionScreenSize == 0.0f)
+		{
+			TransitionScreenSize = 1.0f;
+		}
+		else
+		{
+			const float HalfFOV = PI * 0.25f;
+			const float ScreenWidth = 1920.0f;
+			const float ScreenHeight = 1080.0f;
+			const FPerspectiveMatrix ProjMatrix(HalfFOV, ScreenWidth, ScreenHeight, 1.0f);
+			FBoxSphereBounds Bounds = GetStaticMeshComponent()->CalcBounds(FTransform());
+
+			// legacy transition screen size was previously a screen AREA fraction using resolution-scaled values, so we need to convert to distance first to correctly calculate the threshold
+			const float ScreenArea = TransitionScreenSize * (ScreenWidth * ScreenHeight);
+			const float ScreenRadius = FMath::Sqrt(ScreenArea / PI);
+			const float ScreenDistance = FMath::Max(ScreenWidth / 2.0f * ProjMatrix.M[0][0], ScreenHeight / 2.0f * ProjMatrix.M[1][1]) * Bounds.SphereRadius / ScreenRadius;
+
+			// Now convert using the query function
+			TransitionScreenSize = ComputeBoundsScreenSize(FVector::ZeroVector, Bounds.SphereRadius, FVector(0.0f, 0.0f, ScreenDistance), ProjMatrix);
+		}
+	}
+#endif
 }
 
 void ALODActor::UpdateRegistrationToMatchMaximumLODLevel()
@@ -642,7 +669,7 @@ void ALODActor::CleanSubObjectsArray()
 
 void ALODActor::RecalculateDrawingDistance(const float InTransitionScreenSize)
 {
-	// At the moment this assumes a fixed field of view of 90 degrees (horizontal and vertical axi)
+	// At the moment this assumes a fixed field of view of 90 degrees (horizontal and vertical axes)
 	static const float FOVRad = 90.0f * (float)PI / 360.0f;
 	static const FMatrix ProjectionMatrix = FPerspectiveMatrix(FOVRad, 1920, 1080, 0.01f);
 	FBoxSphereBounds Bounds = GetStaticMeshComponent()->CalcBounds(FTransform());
@@ -650,8 +677,12 @@ void ALODActor::RecalculateDrawingDistance(const float InTransitionScreenSize)
 	// Get projection multiple accounting for view scaling.
 	const float ScreenMultiple = FMath::Max(1920.0f / 2.0f * ProjectionMatrix.M[0][0],
 		1080.0f / 2.0f * ProjectionMatrix.M[1][1]);
-	// (ScreenMultiple * SphereRadius) / Sqrt(Screensize * 1920 * 1080.0f * PI) = Distance
-	LODDrawDistance = (ScreenMultiple * Bounds.SphereRadius) / FMath::Sqrt((InTransitionScreenSize * 1920.0f * 1080.0f) / PI);
+
+	// ScreenSize is the projected diameter, so halve it
+	const float ScreenRadius = FMath::Max(SMALL_NUMBER, InTransitionScreenSize * 0.5f);
+
+	// Invert the calcs in ComputeBoundsScreenSize
+	LODDrawDistance = FMath::Sqrt(FMath::Abs((FMath::Square((ScreenMultiple * Bounds.SphereRadius) / ScreenRadius)) + FMath::Square(Bounds.SphereRadius)));
 
 	UpdateSubActorLODParents();
 }
@@ -708,6 +739,17 @@ void ALODActor::OnCVarsChanged()
 		}
 	}
 }
+
+#if WITH_EDITOR
+void ALODActor::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
+
+	bRequiresLODScreenSizeConversion = Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::LODsUseResolutionIndependentScreenSize;
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 // AHLODMeshCullingVolume

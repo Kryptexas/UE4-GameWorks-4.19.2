@@ -267,21 +267,6 @@ FGameplayEffectSpecHandle UAbilitySystemComponent::MakeOutgoingSpec(TSubclassOf<
 	return FGameplayEffectSpecHandle(nullptr);
 }
 
-FGameplayEffectSpecHandle UAbilitySystemComponent::GetOutgoingSpec(const UGameplayEffect* GameplayEffect, float Level, FGameplayEffectContextHandle Contex) const
-{
-	if (GameplayEffect)
-	{
-		return MakeOutgoingSpec(GameplayEffect->GetClass(), Level, MakeEffectContext());
-	}
-
-	return FGameplayEffectSpecHandle(nullptr);
-}
-
-FGameplayEffectSpecHandle UAbilitySystemComponent::GetOutgoingSpec(const UGameplayEffect* GameplayEffect, float Level) const
-{
-	return GetOutgoingSpec(GameplayEffect, Level, MakeEffectContext());
-}
-
 FGameplayEffectContextHandle UAbilitySystemComponent::MakeEffectContext() const
 {
 	FGameplayEffectContextHandle Context = FGameplayEffectContextHandle(UAbilitySystemGlobals::Get().AllocGameplayEffectContext());
@@ -290,11 +275,6 @@ FGameplayEffectContextHandle UAbilitySystemComponent::MakeEffectContext() const
 	
 	Context.AddInstigator(AbilityActorInfo->OwnerActor.Get(), AbilityActorInfo->AvatarActor.Get());
 	return Context;
-}
-
-FGameplayEffectContextHandle UAbilitySystemComponent::GetEffectContext() const
-{
-	return MakeEffectContext();
 }
 
 int32 UAbilitySystemComponent::GetGameplayEffectCount(TSubclassOf<UGameplayEffect> SourceGameplayEffect, UAbilitySystemComponent* OptionalInstigatorFilterComponent, bool bEnforceOnGoingCheck)
@@ -331,13 +311,6 @@ int32 UAbilitySystemComponent::GetGameplayEffectCount(TSubclassOf<UGameplayEffec
 	return Count;
 }
 
-int32 UAbilitySystemComponent::GetAggregatedStackCount(const FActiveGameplayEffectQuery& Query)
-{
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	return ActiveGameplayEffects.GetActiveEffectCount(Query);
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS
-}
-
 int32 UAbilitySystemComponent::GetAggregatedStackCount(const FGameplayEffectQuery& Query)
 {
 	return ActiveGameplayEffects.GetActiveEffectCount(Query);
@@ -359,11 +332,6 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::BP_ApplyGameplayEffectToTar
 
 	UGameplayEffect* GameplayEffect = GameplayEffectClass->GetDefaultObject<UGameplayEffect>();
 	return ApplyGameplayEffectToTarget(GameplayEffect, Target, Level, Context);	
-}
-
-FActiveGameplayEffectHandle UAbilitySystemComponent::K2_ApplyGameplayEffectToTarget(UGameplayEffect *GameplayEffect, UAbilitySystemComponent *Target, float Level, FGameplayEffectContextHandle Context)
-{
-	return ApplyGameplayEffectToTarget(GameplayEffect, Target, Level, Context);
 }
 
 /** This is a helper function used in automated testing, I'm not sure how useful it will be to gamecode or blueprints */
@@ -391,16 +359,6 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::BP_ApplyGameplayEffectToSel
 	{
 		UGameplayEffect* GameplayEffect = GameplayEffectClass->GetDefaultObject<UGameplayEffect>();
 		return ApplyGameplayEffectToSelf(GameplayEffect, Level, EffectContext);
-	}
-
-	return FActiveGameplayEffectHandle();
-}
-
-FActiveGameplayEffectHandle UAbilitySystemComponent::K2_ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, FGameplayEffectContextHandle EffectContext)
-{
-	if ( GameplayEffect )
-	{
-		return BP_ApplyGameplayEffectToSelf(GameplayEffect->GetClass(), Level, EffectContext);
 	}
 
 	return FActiveGameplayEffectHandle();
@@ -1221,14 +1179,6 @@ void UAbilitySystemComponent::NetMulticast_InvokeGameplayCuesAddedAndWhileActive
 
 // ----------------------------------------------------------------------------------------
 
-
-// #deprecated, use FGameplayEffectQuery version
-TArray<float> UAbilitySystemComponent::GetActiveEffectsTimeRemaining(const FActiveGameplayEffectQuery Query) const
-{
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	return ActiveGameplayEffects.GetActiveEffectsTimeRemaining(Query);
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS
-}
 TArray<float> UAbilitySystemComponent::GetActiveEffectsTimeRemaining(const FGameplayEffectQuery& Query) const
 {
 	return ActiveGameplayEffects.GetActiveEffectsTimeRemaining(Query);
@@ -1239,25 +1189,11 @@ TArray<TPair<float,float>> UAbilitySystemComponent::GetActiveEffectsTimeRemainin
 	return ActiveGameplayEffects.GetActiveEffectsTimeRemainingAndDuration(Query);
 }
 
-// #deprecated, use FGameplayEffectQuery version
-TArray<float> UAbilitySystemComponent::GetActiveEffectsDuration(const FActiveGameplayEffectQuery Query) const
-{
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	return ActiveGameplayEffects.GetActiveEffectsDuration(Query);
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS
-}
 TArray<float> UAbilitySystemComponent::GetActiveEffectsDuration(const FGameplayEffectQuery& Query) const
 {
 	return ActiveGameplayEffects.GetActiveEffectsDuration(Query);
 }
 
-// #deprecated, use FGameplayEffectQuery version
-TArray<FActiveGameplayEffectHandle> UAbilitySystemComponent::GetActiveEffects(const FActiveGameplayEffectQuery Query) const
-{
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	return ActiveGameplayEffects.GetActiveEffects(Query);
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS
-}
 TArray<FActiveGameplayEffectHandle> UAbilitySystemComponent::GetActiveEffects(const FGameplayEffectQuery& Query) const
 {
 	return ActiveGameplayEffects.GetActiveEffects(Query);
@@ -1299,18 +1235,6 @@ int32 UAbilitySystemComponent::RemoveActiveEffectsWithGrantedTags(const FGamepla
 	return 0;
 }
 
-// #deprecated, use FGameplayEffectQuery version
-int32 UAbilitySystemComponent::RemoveActiveEffects(const FActiveGameplayEffectQuery Query, int32 StacksToRemove)
-{
-	if (IsOwnerActorAuthoritative())
-	{
-		PRAGMA_DISABLE_DEPRECATION_WARNINGS
-		return ActiveGameplayEffects.RemoveActiveEffects(Query, StacksToRemove);
-		PRAGMA_ENABLE_DEPRECATION_WARNINGS
-	}
-
-	return 0;
-}
 int32 UAbilitySystemComponent::RemoveActiveEffects(const FGameplayEffectQuery& Query, int32 StacksToRemove)
 {
 	if (IsOwnerActorAuthoritative())
@@ -2105,7 +2029,7 @@ void UAbilitySystemComponent::Debug_Internal(FAbilitySystemComponentDebugInfo& I
 				StatusText = TEXT(" (InputBlocked)");
 				AbilityTextColor = FColor::Red;
 			}
-			else if (AbilitySpec.Ability->AbilityTags.MatchesAny(BlockedAbilityTags.GetExplicitGameplayTags(), false))
+			else if (AbilitySpec.Ability->AbilityTags.HasAny(BlockedAbilityTags.GetExplicitGameplayTags()))
 			{
 				StatusText = TEXT(" (TagBlocked)");
 				AbilityTextColor = FColor::Red;

@@ -19,6 +19,7 @@ public class InputBindingEditor : ModuleRules
 				"Engine",
 				"UnrealEd",
 				"PropertyEditor",
+				"Settings"
 			}
 		);
 

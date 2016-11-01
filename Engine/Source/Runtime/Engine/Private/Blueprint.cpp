@@ -638,19 +638,7 @@ void UBlueprint::PostLoad()
 	FBlueprintEditorUtils::UpdateStalePinWatches(this);
 #endif // WITH_EDITORONLY_DATA
 
-	{
-		TArray<UEdGraph*> Graphs;
-		GetAllGraphs(Graphs);
-		for (auto It = Graphs.CreateIterator(); It; ++It)
-		{
-			UEdGraph* const Graph = *It;
-			const UEdGraphSchema* Schema = Graph->GetSchema();
-			Schema->BackwardCompatibilityNodeConversion(Graph, true);
-		}
-	}
-
 	FStructureEditorUtils::RemoveInvalidStructureMemberVariableFromBlueprint(this);
-
 
 #if WITH_EDITOR
 	// Do not want to run this code without the editor present nor when running commandlets.

@@ -5,7 +5,6 @@
 #include "AbilitySystemTestAttributeSet.h"
 #include "GameplayEffect.h"
 #include "AttributeSet.h"
-#include "GameplayTagsModule.h"
 #include "AbilitySystemComponent.h"
 #include "GameplayEffectExtension_LifestealTest.h"
 #include "GameplayEffectExtension_ShieldTest.h"
@@ -322,7 +321,7 @@ protected:
 		// setup required GameplayTags
 		UDataTable* TagTable = CreateGameplayDataTable();
 
-		IGameplayTagsModule::Get().GetGameplayTagsManager().PopulateTreeFromDataTable(TagTable);
+		UGameplayTagsManager::Get().PopulateTreeFromDataTable(TagTable);
 
 		UWorld *World = UWorld::CreateWorld(EWorldType::Game, false);
 		FWorldContext &WorldContext = GEngine->CreateNewWorldContext(EWorldType::Game);

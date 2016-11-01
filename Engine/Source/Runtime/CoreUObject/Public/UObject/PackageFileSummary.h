@@ -124,6 +124,11 @@ public:
 	int32		StringAssetReferencesOffset;
 
 	/**
+	* Location into the file on disk for the SearchableNamesMap data
+	*/
+	int32		SearchableNamesOffset;
+
+	/**
 	* Thumbnail table offset
 	*/
 	int32		ThumbnailTableOffset;

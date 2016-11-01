@@ -3,7 +3,6 @@
 #include "AbilitySystemEditorPrivatePCH.h"
 #include "SGameplayAttributeGraphPin.h"
 #include "SGameplayAttributeWidget.h"
-#include "GameplayTagsModule.h"
 #include "GameplayTags.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"

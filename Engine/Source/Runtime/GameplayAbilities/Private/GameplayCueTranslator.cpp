@@ -186,7 +186,7 @@ void FGameplayCueTranslationManager::BuildTagTranslationTable()
 	SCOPE_LOG_TIME_IN_SECONDS(*FString::Printf(TEXT("FGameplayCueTranslatorManager::BuildTagTranslationTables")), nullptr)
 #endif
 
-	TagManager = &IGameplayTagsModule::Get().GetGameplayTagsManager();
+	TagManager = &UGameplayTagsManager::Get();
 	check(TagManager);
 	
 	FGameplayTagContainer AllGameplayCueTags = TagManager->RequestGameplayTagChildren(UGameplayCueSet::BaseGameplayCueTag());

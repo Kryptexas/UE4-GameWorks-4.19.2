@@ -9,15 +9,20 @@ class UEdGraphNode_Reference : public UEdGraphNode
 {
 	GENERATED_UCLASS_BODY()
 
-	virtual void SetupReferenceNode(const FIntPoint& NodeLoc, const TArray<FName>& NewPackageNames, const FAssetData& InAssetData);
+	virtual void SetupReferenceNode(const FIntPoint& NodeLoc, const TArray<FAssetIdentifier>& NewIdentifiers, const FAssetData& InAssetData);
 	virtual void SetReferenceNodeCollapsed(const FIntPoint& NodeLoc, int32 InNumReferencesExceedingMax);
 	virtual void AddReferencer(class UEdGraphNode_Reference* ReferencerNode);
-	virtual FName GetPackageName() const;
+	// Returns first asset identifier
+	virtual FAssetIdentifier GetIdentifier() const;
+	virtual void GetAllIdentifiers(TArray<FAssetIdentifier>& OutIdentifiers) const;
+	// Returns only the packages in this node, skips searchable names
 	virtual void GetAllPackageNames(TArray<FName>& OutPackageNames) const;
 	class UEdGraph_ReferenceViewer* GetReferenceViewerGraph() const;
 
 	// UEdGraphNode implementation
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	FLinearColor GetNodeTitleColor() const override;
+	virtual FText GetTooltipText() const override;
 	virtual void AllocateDefaultPins() override;
 	virtual UObject* GetJumpTargetForDoubleClick() const override;
 	// End UEdGraphNode implementation
@@ -25,6 +30,8 @@ class UEdGraphNode_Reference : public UEdGraphNode
 	void CacheAssetData(const FAssetData& AssetData);
 
 	bool UsesThumbnail() const;
+	bool IsPackage() const;
+	bool IsCollapsed() const;
 	FAssetData GetAssetData() const;
 
 	virtual UEdGraphPin* GetDependencyPin();
@@ -36,10 +43,12 @@ protected:
 	}
 
 private:
-	TArray<FName> PackageNames;
+	TArray<FAssetIdentifier> Identifiers;
 	FText NodeTitle;
 
 	bool bUsesThumbnail;
+	bool bIsPackage;
+	bool bIsCollapsed;
 	FAssetData CachedAssetData;
 
 	UEdGraphPin* DependencyPin;

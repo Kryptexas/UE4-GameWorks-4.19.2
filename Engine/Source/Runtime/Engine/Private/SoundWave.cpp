@@ -741,13 +741,18 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		}
 
 		// Only append to the wave instances list if we're virtual (always append) or we're audible (non-zero volume)
+		bool bAddedWaveInstance = false;
 		if (WaveInstance->GetVolume() > KINDA_SMALL_NUMBER || (bVirtualizeWhenSilent && AudioDevice->VirtualSoundsEnabled()))
 		{
+			bAddedWaveInstance = true;
 			WaveInstances.Add(WaveInstance);
 		}
 
 		// We're still alive.
-		ActiveSound.bFinished = false;
+		if (bAddedWaveInstance || WaveInstance->LoopingMode == LOOP_Forever)
+		{
+			ActiveSound.bFinished = false;
+		}
 
 		// Sanity check
 		if( NumChannels > 2 && WaveInstance->bUseSpatialization && !WaveInstance->bReportedSpatializationWarning)

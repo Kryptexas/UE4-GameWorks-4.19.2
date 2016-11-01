@@ -137,4 +137,71 @@ bool FAssetTypeActions_SoundBase::IsSoundPlaying(TArray<TWeakObjectPtr<USoundBas
 	return false;
 }
 
+TSharedPtr<SWidget> FAssetTypeActions_SoundBase::GetThumbnailOverlay(const FAssetData& AssetData) const
+{
+	TArray<TWeakObjectPtr<USoundBase>> SoundList;
+	SoundList.Add(TWeakObjectPtr<USoundBase>((USoundBase*)AssetData.GetAsset()));
+
+	auto OnGetDisplayBrushLambda = [this, SoundList]() -> const FSlateBrush*
+	{
+		if (IsSoundPlaying(SoundList))
+		{
+			return FEditorStyle::GetBrush("MediaAsset.AssetActions.Stop");
+		}
+
+	return FEditorStyle::GetBrush("MediaAsset.AssetActions.Play");
+	};
+
+	auto IsEnabledLambda = [this, SoundList]() -> bool
+	{
+		return CanExecutePlayCommand(SoundList);
+	};
+
+	auto OnClickedLambda = [this, SoundList]() -> FReply
+	{
+		if (IsSoundPlaying(SoundList))
+		{
+			ExecuteStopSound(SoundList);
+		}
+		else
+		{
+			ExecutePlaySound(SoundList);
+		}
+		return FReply::Handled();
+	};
+
+	auto OnToolTipTextLambda = [this, SoundList]() -> FText
+	{
+		if (IsSoundPlaying(SoundList))
+		{
+			return LOCTEXT("Thumbnail_StopSoundToolTip", "Stop selected sound");
+		}
+
+		return LOCTEXT("Thumbnail_PlaySoundToolTip", "Play selected sound");
+	};
+
+	return SNew(SBox)
+		.HAlign(HAlign_Center)
+		.VAlign(VAlign_Center)
+		.Padding(FMargin(2))
+		[
+			SNew(SButton)
+			.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+			.ToolTipText_Lambda(OnToolTipTextLambda)
+			.Cursor(EMouseCursor::Default) // The outer widget can specify a DragHand cursor, so we need to override that here
+			.ForegroundColor(FSlateColor::UseForeground())		
+			.IsEnabled_Lambda(IsEnabledLambda)
+			.OnClicked_Lambda(OnClickedLambda)
+			[
+				SNew(SBox)
+				.MinDesiredWidth(16)
+				.MinDesiredHeight(16)
+				[
+					SNew(SImage)
+					.Image_Lambda(OnGetDisplayBrushLambda)
+				]
+			]
+		];
+}
+
 #undef LOCTEXT_NAMESPACE

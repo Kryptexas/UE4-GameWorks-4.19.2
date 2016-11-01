@@ -47,7 +47,6 @@ class UEdGraphSchema_BehaviorTreeDecorator : public UEdGraphSchema
 	UPROPERTY()
 	FString PC_Boolean;
 
-	void GetBreakLinkToSubMenuActions(class FMenuBuilder& MenuBuilder, class UEdGraphPin* InGraphPin);
 	void AddPin(class UEdGraphNode* InGraphNode);
 	void RemovePin(class UEdGraphPin* InGraphPin);
 

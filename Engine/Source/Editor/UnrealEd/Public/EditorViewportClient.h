@@ -1317,6 +1317,8 @@ public:
 	/** True if the orbit camera is currently being used */
 	bool bUsingOrbitCamera;
 	
+	/** If true, numpad keys will be used to move camera in perspective viewport */
+	bool bUseNumpadCameraControl;
 
 	/**
 	 * true if all input is rejected from this viewport

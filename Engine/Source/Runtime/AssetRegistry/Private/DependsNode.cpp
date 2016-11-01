@@ -2,14 +2,9 @@
 
 #include "AssetRegistryPCH.h"
 
-FDependsNode::FDependsNode(FName InPackageName)
-{
-	PackageName = InPackageName;
-}
-
 void FDependsNode::PrintNode() const
 {
-	UE_LOG(LogAssetRegistry, Log, TEXT("*** Printing DependsNode: %s ***"), *PackageName.ToString());
+	UE_LOG(LogAssetRegistry, Log, TEXT("*** Printing DependsNode: %s ***"), *Identifier.ToString());
 	UE_LOG(LogAssetRegistry, Log, TEXT("*** Dependencies:"));
 	PrintDependencies();
 	UE_LOG(LogAssetRegistry, Log, TEXT("*** Referencers:"));
@@ -39,11 +34,11 @@ void FDependsNode::GetDependencies(TArray<FDependsNode*>& OutDependencies, EAsse
 	InDependencyType);
 }
 
-void FDependsNode::GetDependencies(TArray<FName>& OutDependencies, EAssetRegistryDependencyType::Type InDependencyType) const
+void FDependsNode::GetDependencies(TArray<FAssetIdentifier>& OutDependencies, EAssetRegistryDependencyType::Type InDependencyType) const
 {
 	IterateOverDependencies([&](FDependsNode* InDependency, EAssetRegistryDependencyType::Type /*InDependencyType*/)
 	{
-		OutDependencies.Add(InDependency->GetPackageName());
+		OutDependencies.Add(InDependency->GetIdentifier());
 	},
 	InDependencyType);
 }
@@ -64,11 +59,11 @@ void FDependsNode::PrintDependenciesRecursive(const FString& Indent, TSet<const 
 	}
 	else if ( VisitedNodes.Contains(this) )
 	{
-		UE_LOG(LogAssetRegistry, Log, TEXT("%s[CircularReferenceTo]%s"), *Indent, *PackageName.ToString());
+		UE_LOG(LogAssetRegistry, Log, TEXT("%s[CircularReferenceTo]%s"), *Indent, *Identifier.ToString());
 	}
 	else
 	{
-		UE_LOG(LogAssetRegistry, Log, TEXT("%s%s"), *Indent, *PackageName.ToString());
+		UE_LOG(LogAssetRegistry, Log, TEXT("%s%s"), *Indent, *Identifier.ToString());
 		VisitedNodes.Add(this);
 
 		IterateOverDependencies([&](FDependsNode* InDependency, EAssetRegistryDependencyType::Type /*InDependencyType*/)
@@ -88,11 +83,11 @@ void FDependsNode::PrintReferencersRecursive(const FString& Indent, TSet<const F
 	}
 	else if ( VisitedNodes.Contains(this) )
 	{
-		UE_LOG(LogAssetRegistry, Log, TEXT("%s[CircularReferenceTo]%s"), *Indent, *PackageName.ToString());
+		UE_LOG(LogAssetRegistry, Log, TEXT("%s[CircularReferenceTo]%s"), *Indent, *Identifier.ToString());
 	}
 	else
 	{
-		UE_LOG(LogAssetRegistry, Log, TEXT("%s%s"), *Indent, *PackageName.ToString());
+		UE_LOG(LogAssetRegistry, Log, TEXT("%s%s"), *Indent, *Identifier.ToString());
 		VisitedNodes.Add(this);
 
 		for (auto ReferencerIt = Referencers.CreateConstIterator(); ReferencerIt; ++ReferencerIt)

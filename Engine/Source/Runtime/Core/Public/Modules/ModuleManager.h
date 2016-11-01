@@ -198,6 +198,8 @@ public:
 
 	/**
 	 * Unloads a specific module
+	 * NOTE: You can manually unload a module before the normal shutdown occurs with this, but be careful as you may be unloading another
+	 * module's dependency too early!
 	 *
 	 * @param InModuleName The name of the module to unload.  Should not include path, extension or platform/configuration info.  This is just the "module name" part of the module file name.
 	 * @param bIsShutdown Is this unload module call occurring at shutdown (default = false).
@@ -337,7 +339,11 @@ public:
 	int32 GetModuleCount( ) const;
 
 	/**
-	 * Unloads modules during the shutdown process.
+	 * Unloads modules during the shutdown process. Modules are unloaded in reverse order to when their StartupModule() FINISHES.
+	 * The practical implication of this is that if module A depends on another module B, and A loads B during A's StartupModule, 
+	 * that B will actually get Unloaded after A during shutdown. This allows A's ShutdownModule() call to still reference module B.
+	 * You can manually unload a module yourself which will change this ordering, but be careful as you may be unloading another 
+	 * module's dependency!
 	 *
 	 * This method is Usually called at various points while exiting an application.
 	 */

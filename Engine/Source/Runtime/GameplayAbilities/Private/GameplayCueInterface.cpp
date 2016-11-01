@@ -3,7 +3,6 @@
 #include "AbilitySystemPrivatePCH.h"
 #include "AbilitySystemComponent.h"
 #include "GameplayCueInterface.h"
-#include "GameplayTagsModule.h"
 #include "GameplayCueSet.h"
 
 
@@ -57,8 +56,7 @@ void IGameplayCueInterface::HandleGameplayCue(AActor *Self, FGameplayTag Gamepla
 
 	// Look up a custom function for this gameplay tag. 
 	UClass* Class = Self->GetClass();
-	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
-	FGameplayTagContainer TagAndParentsContainer = GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTagParents(GameplayCueTag);
+	FGameplayTagContainer TagAndParentsContainer = GameplayCueTag.GetGameplayTagParents();
 
 	Parameters.OriginalTag = GameplayCueTag;
 

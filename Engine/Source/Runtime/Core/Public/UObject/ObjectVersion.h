@@ -614,7 +614,9 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_TemplateIndex_IN_COOKED_EXPORTS,
 	// FPropertyTag includes contained type(s) for Set and Map properties:
 	VER_UE4_PROPERTY_TAG_SET_MAP_SUPPORT,
-	
+	// Added SearchableNames to the package summary and asset registry
+	VER_UE4_ADDED_SEARCHABLE_NAMES,
+
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,

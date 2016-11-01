@@ -136,7 +136,7 @@ void UGameplayCueSet::Empty()
 
 void UGameplayCueSet::PrintCues() const
 {
-	FGameplayTagContainer AllGameplayCueTags = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTagChildren(BaseGameplayCueTag());
+	FGameplayTagContainer AllGameplayCueTags = UGameplayTagsManager::Get().RequestGameplayTagChildren(BaseGameplayCueTag());
 
 	for (FGameplayTag ThisGameplayCueTag : AllGameplayCueTags)
 	{
@@ -254,7 +254,7 @@ void UGameplayCueSet::BuildAccelerationMap_Internal()
 		GameplayCueDataMap.FindOrAdd(GameplayCueData[idx].GameplayCueTag) = idx;
 	}
 
-	FGameplayTagContainer AllGameplayCueTags = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTagChildren(BaseGameplayCueTag());
+	FGameplayTagContainer AllGameplayCueTags = UGameplayTagsManager::Get().RequestGameplayTagChildren(BaseGameplayCueTag());
 
 
 	// Create entries for children.
@@ -299,5 +299,5 @@ void UGameplayCueSet::BuildAccelerationMap_Internal()
 FGameplayTag UGameplayCueSet::BaseGameplayCueTag()
 {
 	// Note we should not cache this off as a static variable, since for new projects the GameplayCue tag will not be found until one is created.
-	return IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTag(TEXT("GameplayCue"), false);
+	return FGameplayTag::RequestGameplayTag(TEXT("GameplayCue"), false);
 }

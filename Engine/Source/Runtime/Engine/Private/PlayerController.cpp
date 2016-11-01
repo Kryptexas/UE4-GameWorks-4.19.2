@@ -2806,7 +2806,7 @@ void APlayerController::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayI
 {
 	Super::DisplayDebug(Canvas, DebugDisplay, YL, YPos);
 
-	FDisplayDebugManager DisplayDebugManager = Canvas->DisplayDebugManager;
+	FDisplayDebugManager& DisplayDebugManager = Canvas->DisplayDebugManager;
 	DisplayDebugManager.SetDrawColor(FColor(255, 255, 0));
 	DisplayDebugManager.DrawString(FString::Printf(TEXT("STATE %s"), *GetStateName().ToString()));
 
@@ -3989,21 +3989,25 @@ void APlayerController::TickActor( float DeltaSeconds, ELevelTick TickType, FAct
 		// skip updates if pawn lost autonomous proxy role (e.g. TurnOff() call)
 		if (GetPawn() && !GetPawn()->IsPendingKill() && GetPawn()->GetRemoteRole() == ROLE_AutonomousProxy && GetPawn()->bReplicateMovement)
 		{
-			INetworkPredictionInterface* NetworkPredictionInterface = Cast<INetworkPredictionInterface>(GetPawn()->GetMovementComponent());
-			if (NetworkPredictionInterface)
+			UMovementComponent* PawnMovement = GetPawn()->GetMovementComponent();
+			INetworkPredictionInterface* NetworkPredictionInterface = Cast<INetworkPredictionInterface>(PawnMovement);
+			if (NetworkPredictionInterface && IsValid(PawnMovement->UpdatedComponent))
 			{
-				FNetworkPredictionData_Server* ServerData = NetworkPredictionInterface->GetPredictionData_Server();
-				const float TimeSinceUpdate = ServerData ? GetWorld()->GetTimeSeconds() - ServerData->ServerTimeStamp : 0.f;
-				const float PawnTimeSinceUpdate = TimeSinceUpdate * GetPawn()->CustomTimeDilation;
-				if (PawnTimeSinceUpdate > FMath::Max<float>(DeltaSeconds+0.06f,AGameNetworkManager::StaticClass()->GetDefaultObject<AGameNetworkManager>()->MAXCLIENTUPDATEINTERVAL * GetPawn()->GetActorTimeDilation()))
+				FNetworkPredictionData_Server* ServerData = NetworkPredictionInterface->HasPredictionData_Server() ? NetworkPredictionInterface->GetPredictionData_Server() : nullptr;
+				if (ServerData)
 				{
-					//UE_LOG(LogPlayerController, Warning, TEXT("ForcedMovementTick. PawnTimeSinceUpdate: %f, DeltaSeconds: %f, DeltaSeconds+: %f"), PawnTimeSinceUpdate, DeltaSeconds, DeltaSeconds+0.06f);
-					const USkeletalMeshComponent* PawnMesh = GetPawn()->FindComponentByClass<USkeletalMeshComponent>();
-					if (!PawnMesh || !PawnMesh->IsSimulatingPhysics())
+					const float TimeSinceUpdate = GetWorld()->GetTimeSeconds() - ServerData->ServerTimeStamp;
+					const float PawnTimeSinceUpdate = TimeSinceUpdate * GetPawn()->CustomTimeDilation;
+					if (PawnTimeSinceUpdate > FMath::Max<float>(DeltaSeconds+0.06f, AGameNetworkManager::StaticClass()->GetDefaultObject<AGameNetworkManager>()->MAXCLIENTUPDATEINTERVAL * GetPawn()->GetActorTimeDilation()))
 					{
-						NetworkPredictionInterface->ForcePositionUpdate(PawnTimeSinceUpdate);
-						ServerData->ServerTimeStamp = GetWorld()->GetTimeSeconds();
-					}					
+						//UE_LOG(LogPlayerController, Warning, TEXT("ForcedMovementTick. PawnTimeSinceUpdate: %f, DeltaSeconds: %f, DeltaSeconds+: %f"), PawnTimeSinceUpdate, DeltaSeconds, DeltaSeconds+0.06f);
+						const USkeletalMeshComponent* PawnMesh = GetPawn()->FindComponentByClass<USkeletalMeshComponent>();
+						if (!PawnMesh || !PawnMesh->IsSimulatingPhysics())
+						{
+							NetworkPredictionInterface->ForcePositionUpdate(PawnTimeSinceUpdate);
+							ServerData->ServerTimeStamp = GetWorld()->GetTimeSeconds();
+						}
+					}
 				}
 			}
 		}

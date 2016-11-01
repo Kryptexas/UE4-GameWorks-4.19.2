@@ -4,21 +4,21 @@ namespace UnrealBuildTool.Rules
 {
 	public class GameplayAbilitiesEditor : ModuleRules
 	{
-        public GameplayAbilitiesEditor(TargetInfo Target)
+		public GameplayAbilitiesEditor(TargetInfo Target)
 		{
-            PrivateIncludePaths.AddRange(
-                new string[] {
-                    "Editor/GraphEditor/Private",
-				    "Editor/Kismet/Private",
+			PrivateIncludePaths.AddRange(
+				new string[] {
+					"Editor/GraphEditor/Private",
+					"Editor/Kismet/Private",
 					"Editor/GameplayAbilitiesEditor/Private",
-                    "Developer/AssetTools/Private",
+					"Developer/AssetTools/Private",
 				}
 			);
 
-            PublicDependencyModuleNames.Add("GameplayTasks");
+			PublicDependencyModuleNames.Add("GameplayTasks");
 
-            PrivateDependencyModuleNames.AddRange(
-                new string[]
+			PrivateDependencyModuleNames.AddRange(
+				new string[]
 				{
 					// ... add private dependencies that you statically link with here ...
 					"Core",
@@ -26,26 +26,34 @@ namespace UnrealBuildTool.Rules
 					"Engine",
 					"AssetTools",
 					"ClassViewer",
-                    "GameplayTags",
+					"GameplayTags",
+					"GameplayTagsEditor",
 					"GameplayAbilities",
-                    "GameplayTasksEditor",
-                    "InputCore",
-                    "PropertyEditor",
+					"GameplayTasksEditor",
+					"InputCore",
+					"PropertyEditor",
 					"Slate",
 					"SlateCore",
-                    "EditorStyle",
+					"EditorStyle",
 					"BlueprintGraph",
-                    "Kismet",
+					"Kismet",
 					"KismetCompiler",
 					"GraphEditor",
 					"MainFrame",
 					"UnrealEd",
-                    "WorkspaceMenuStructure",
-                    "ContentBrowser",
-                    "EditorWidgets",
-                    "SourceControl",
+					"WorkspaceMenuStructure",
+					"ContentBrowser",
+					"EditorWidgets",
+					"SourceControl",
 				}
 			);
+
+			CircularlyReferencedDependentModules.AddRange(
+			new string[]
+			{
+                "GameplayTagsEditor",
+			}
+		);
 		}
 	}
 }

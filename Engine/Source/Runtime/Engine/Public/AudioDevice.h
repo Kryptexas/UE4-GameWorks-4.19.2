@@ -294,6 +294,7 @@ struct FAudioStats
 		FString Description;
 		float ActualVolume;
 		int32 InstanceIndex;
+		FName WaveInstanceName;
 	};
 
 	struct FStatSoundInfo

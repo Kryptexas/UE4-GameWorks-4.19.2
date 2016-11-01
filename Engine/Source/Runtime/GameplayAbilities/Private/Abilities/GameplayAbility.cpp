@@ -3,7 +3,6 @@
 #include "AbilitySystemPrivatePCH.h"
 #include "Abilities/GameplayAbility.h"
 #include "GameplayEffect.h"
-#include "GameplayTagsModule.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilityTask.h"
@@ -183,12 +182,12 @@ bool UGameplayAbility::DoesAbilitySatisfyTagRequirements(const UAbilitySystemCom
 
 		AbilitySystemComponent.GetOwnedGameplayTags(AbilitySystemComponentTags);
 
-		if (AbilitySystemComponentTags.MatchesAny(ActivationBlockedTags, false))
+		if (AbilitySystemComponentTags.HasAny(ActivationBlockedTags))
 		{
 			bBlocked = true;
 		}
 
-		if (!AbilitySystemComponentTags.MatchesAll(ActivationRequiredTags, true))
+		if (!AbilitySystemComponentTags.HasAll(ActivationRequiredTags))
 		{
 			bMissing = true;
 		}
@@ -198,12 +197,12 @@ bool UGameplayAbility::DoesAbilitySatisfyTagRequirements(const UAbilitySystemCom
 	{
 		if (SourceBlockedTags.Num() || SourceRequiredTags.Num())
 		{
-			if (SourceTags->MatchesAny(SourceBlockedTags, false))
+			if (SourceTags->HasAny(SourceBlockedTags))
 			{
 				bBlocked = true;
 			}
 
-			if (!SourceTags->MatchesAll(SourceRequiredTags, true))
+			if (!SourceTags->HasAll(SourceRequiredTags))
 			{
 				bMissing = true;
 			}
@@ -214,12 +213,12 @@ bool UGameplayAbility::DoesAbilitySatisfyTagRequirements(const UAbilitySystemCom
 	{
 		if (TargetBlockedTags.Num() || TargetRequiredTags.Num())
 		{
-			if (TargetTags->MatchesAny(TargetBlockedTags, false))
+			if (TargetTags->HasAny(TargetBlockedTags))
 			{
 				bBlocked = true;
 			}
 
-			if (!TargetTags->MatchesAll(TargetRequiredTags, true))
+			if (!TargetTags->HasAll(TargetRequiredTags))
 			{
 				bMissing = true;
 			}
@@ -712,7 +711,7 @@ UGameplayEffect* UGameplayAbility::GetCooldownGameplayEffect() const
 	}
 	else
 	{
-		return CooldownGameplayEffect;
+		return nullptr;
 	}
 }
 
@@ -724,7 +723,7 @@ UGameplayEffect* UGameplayAbility::GetCostGameplayEffect() const
 	}
 	else
 	{
-		return CostGameplayEffect;
+		return nullptr;
 	}
 }
 
@@ -907,16 +906,6 @@ FGameplayEffectSpecHandle UGameplayAbility::MakeOutgoingGameplayEffectSpec(TSubc
 {
 	check(CurrentActorInfo && CurrentActorInfo->AbilitySystemComponent.IsValid());
 	return MakeOutgoingGameplayEffectSpec(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, GameplayEffectClass, Level);
-}
-
-FGameplayEffectSpecHandle UGameplayAbility::GetOutgoingGameplayEffectSpec(const UGameplayEffect* GameplayEffect, float Level) const
-{
-	if ( GameplayEffect )
-	{
-		return MakeOutgoingGameplayEffectSpec(GameplayEffect->GetClass(), Level);
-	}
-	
-	return FGameplayEffectSpecHandle(nullptr);
 }
 
 int32 AbilitySystemShowMakeOutgoingGameplayEffectSpecs = 0;
@@ -1399,11 +1388,6 @@ FGameplayEffectContextHandle UGameplayAbility::MakeEffectContext(const FGameplay
 	return Context;
 }
 
-FGameplayEffectContextHandle UGameplayAbility::GetEffectContext(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo *ActorInfo) const
-{
-	return MakeEffectContext(Handle, ActorInfo);
-}
-
 bool UGameplayAbility::IsTriggered() const
 {
 	// Assume that if there is triggered data, then we are triggered. 
@@ -1497,17 +1481,6 @@ FActiveGameplayEffectHandle UGameplayAbility::BP_ApplyGameplayEffectToOwner(TSub
 	return FActiveGameplayEffectHandle();
 }
 
-FActiveGameplayEffectHandle UGameplayAbility::K2_ApplyGameplayEffectToOwner(const UGameplayEffect* GameplayEffect, int32 GameplayEffectLevel, int32 Stacks)
-{
-	if ( GameplayEffect )
-	{
-		return BP_ApplyGameplayEffectToOwner(GameplayEffect->GetClass(), GameplayEffectLevel, Stacks);
-	}
-
-	ABILITY_LOG(Error, TEXT("K2_ApplyGameplayEffectToOwner called on ability %s with no GameplayEffect."), *GetName());
-	return FActiveGameplayEffectHandle();
-}
-
 FActiveGameplayEffectHandle UGameplayAbility::ApplyGameplayEffectToOwner(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const UGameplayEffect* GameplayEffect, float GameplayEffectLevel, int32 Stacks) const
 {
 	if (GameplayEffect && (HasAuthorityOrPredictionKey(ActorInfo, &ActivationInfo)))
@@ -1547,11 +1520,6 @@ FActiveGameplayEffectHandle UGameplayAbility::ApplyGameplayEffectSpecToOwner(con
 TArray<FActiveGameplayEffectHandle> UGameplayAbility::BP_ApplyGameplayEffectToTarget(FGameplayAbilityTargetDataHandle Target, TSubclassOf<UGameplayEffect> GameplayEffectClass, int32 GameplayEffectLevel, int32 Stacks)
 {
 	return ApplyGameplayEffectToTarget(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, Target, GameplayEffectClass, GameplayEffectLevel, Stacks);
-}
-
-TArray<FActiveGameplayEffectHandle> UGameplayAbility::K2_ApplyGameplayEffectToTarget(FGameplayAbilityTargetDataHandle Target, const UGameplayEffect* GameplayEffect, int32 GameplayEffectLevel, int32 Stacks)
-{
-	return BP_ApplyGameplayEffectToTarget(Target, GameplayEffect->GetClass(), GameplayEffectLevel, Stacks);
 }
 
 TArray<FActiveGameplayEffectHandle> UGameplayAbility::ApplyGameplayEffectToTarget(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayAbilityTargetDataHandle& Target, TSubclassOf<UGameplayEffect> GameplayEffectClass, float GameplayEffectLevel, int32 Stacks) const
@@ -1642,39 +1610,6 @@ void UGameplayAbility::BP_RemoveGameplayEffectFromOwnerWithGrantedTags(FGameplay
 
 	FGameplayEffectQuery const Query = FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(WithGrantedTags);
 	CurrentActorInfo->AbilitySystemComponent->RemoveActiveEffects(Query, StacksToRemove);
-}
-
-void UGameplayAbility::ConvertDeprecatedGameplayEffectReferencesToBlueprintReferences(UGameplayEffect* OldGE, TSubclassOf<UGameplayEffect> NewGEClass)
-{
-	bool bChangedSomething = false;
-	if ( CooldownGameplayEffect && CooldownGameplayEffect == OldGE )
-	{
-		if ( !CooldownGameplayEffectClass )
-		{
-			CooldownGameplayEffectClass = NewGEClass;
-		}
-
-		CooldownGameplayEffect = nullptr;
-
-		bChangedSomething = true;
-	}
-
-	if ( CostGameplayEffect && CostGameplayEffect == OldGE )
-	{
-		if ( !CostGameplayEffectClass )
-		{
-			CostGameplayEffectClass = NewGEClass;
-		}
-
-		CostGameplayEffect = nullptr;
-
-		bChangedSomething = true;
-	}
-
-	if ( bChangedSomething )
-	{
-		MarkPackageDirty();
-	}
 }
 
 float UGameplayAbility::GetCooldownTimeRemaining() const

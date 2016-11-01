@@ -15,9 +15,12 @@ UGameplayTagReponseTable::UGameplayTagReponseTable(const FObjectInitializer& Obj
 	: Super(ObjectInitializer)
 {
 	// Make an empty tag query. We will actually fill the tag out prior to evaluating the query with ::MakeQuery
-	FGameplayTagContainer Container;
-	Container.AddTagFast(FGameplayTag());
-	Query = FGameplayEffectQuery::MakeQuery_MatchAllOwningTags(Container);
+
+	Query.OwningTagQuery = FGameplayTagQuery::BuildQuery(
+		FGameplayTagQueryExpression()
+		.AllTagsMatch()
+		.AddTag(FGameplayTag())
+	);
 }
 
 void UGameplayTagReponseTable::PostLoad()

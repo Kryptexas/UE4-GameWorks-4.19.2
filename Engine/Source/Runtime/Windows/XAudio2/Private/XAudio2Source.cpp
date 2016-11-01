@@ -69,7 +69,7 @@ FXAudio2SoundSource::FXAudio2SoundSource(FAudioDevice* InAudioDevice)
 	if (!InAudioDevice->bIsAudioDeviceHardwareInitialized)
 	{
 		bIsVirtual = true;
-}
+	}
 }
 
 /**
@@ -120,7 +120,8 @@ void FXAudio2SoundSource::FreeResources( void )
 
 	if (bResourcesNeedFreeing && Buffer)
 	{
-		check(Buffer->ResourceID == 0);
+		// If we failed to initialize, then we will have a non-zero resource ID, but still need to delete the buffer
+		check(!bInitialized || Buffer->ResourceID == 0);
 		delete Buffer;
 	}
 
@@ -457,6 +458,12 @@ bool FXAudio2SoundSource::CreateSource( void )
 
 bool FXAudio2SoundSource::PrepareForInitialization(FWaveInstance* InWaveInstance)
 {
+	// If the headphones have been unplugged, set this voice to be virtual
+	if (!AudioDevice->DeviceProperties->bAllowNewVoices)
+	{
+		bIsVirtual = true;
+	}
+
 	// If virtual only need wave instance data and no need to load source data
 	if (bIsVirtual)
 	{
@@ -523,13 +530,13 @@ bool FXAudio2SoundSource::IsPreparedToInit()
 
 bool FXAudio2SoundSource::Init(FWaveInstance* InWaveInstance)
 {
+	// Setup our virtual duration/playback data regardless of it's currently virtual since it can flip while playing
+	VirtualDuration = InWaveInstance->WaveData->GetDuration();
+	VirtualPlaybackTime = 0.0f;
+
 	if (bIsVirtual)
 	{
 		bInitialized = true;
-
-		// Setup our virtual duration/playback data
-		VirtualDuration = InWaveInstance->WaveData->GetDuration();
-		VirtualPlaybackTime = 0.0f;
 		return true;
 	}
 
@@ -597,9 +604,18 @@ bool FXAudio2SoundSource::Init(FWaveInstance* InWaveInstance)
 			// Initialization succeeded.
 			return true;
 		}
-		else
+		else if (AudioDevice->DeviceProperties->bAllowNewVoices)
 		{
 			UE_LOG(LogXAudio2, Warning, TEXT("Failed to init sound source for wave instance '%s' due to being unable to create an IXAudio2SourceVoice."), *InWaveInstance->GetName());
+		}
+		else
+		{
+			// The audio device was unplugged after init was declared, we're actually virtual now
+			bIsVirtual = true;
+
+			// Set that we've actually successfully initialized
+			bInitialized = true;
+			return true;
 		}
 	}
 	else
@@ -1312,15 +1328,21 @@ void FXAudio2SoundSource::Update()
 
 	Pitch = FMath::Clamp<float>(Pitch, MIN_PITCH, MAX_PITCH);
 
+	// If the headphones have been unplugged after playing, set this voice to be virtual
+	if (!AudioDevice->DeviceProperties->bAllowNewVoices)
+	{
+		bIsVirtual = true;
+	}
+
+	// Track virtual playback time even if the voice is not virtual, it can flip to being virtual while playing.
+	const float DeviceDeltaTime = AudioDevice->GetUpdateDeltaTime();
+
+	// Scale the virtual playback time based on the pitch of the sound
+	VirtualPlaybackTime += DeviceDeltaTime * Pitch;
+
 	// If this is a virtual source, then update it's duration and do any notification on completion based on duration
 	if (bIsVirtual)
 	{
-		// Get the game-thread update delta time
-		float DeviceDeltaTime = AudioDevice->GetUpdateDeltaTime();
-
-		// Scale the virtual playback time based on the pitch of the sound
-		VirtualPlaybackTime += DeviceDeltaTime * Pitch;
-
 		if (VirtualPlaybackTime >= VirtualDuration)
 		{
 			if (WaveInstance->LoopingMode == LOOP_Never)

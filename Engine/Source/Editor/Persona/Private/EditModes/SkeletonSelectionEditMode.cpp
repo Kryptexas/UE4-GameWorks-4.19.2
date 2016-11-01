@@ -227,7 +227,7 @@ bool FSkeletonSelectionEditMode::InputDelta(FEditorViewportClient* InViewportCli
 				float RotAngle;
 				InRot.Quaternion().ToAxisAndAngle( RotAxis, RotAngle );
 
-				FVector4 BoneSpaceAxis = BaseTM.TransformVector( RotAxis );
+				FVector4 BoneSpaceAxis = BaseTM.TransformVectorNoScale( RotAxis );
 
 				//Calculate the new delta rotation
 				FQuat DeltaQuat( BoneSpaceAxis, RotAngle );

@@ -456,6 +456,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Animation")
 	virtual APawn* TryGetPawnOwner() const;
 
+	/** Takes a snapshot of the current skeletal mesh component pose. This snapshot can then be retrieved in the animation blueprint for blending. The snapshot is taken at the current LOD, so if for example you took the snapshot at LOD1 and then used it at LOD0 any bones not in LOD1 will use the reference pose */
+	UFUNCTION(BlueprintCallable, Category = "Animation")
+	virtual void SavePoseSnapshot(FName SnapshotName);
+
 	// Are we being evaluated on a worker thread
 	bool IsRunningParallelEvaluation() const;
 

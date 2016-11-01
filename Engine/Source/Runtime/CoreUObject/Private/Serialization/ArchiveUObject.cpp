@@ -115,7 +115,7 @@ FArchive& FObjectAndNameAsStringProxyArchive::operator<<(class UObject*& Obj)
 		// look up the object by fully qualified pathname
 		Obj = FindObject<UObject>(nullptr, *LoadedString, false);
 		// If we couldn't find it, and we want to load it, do that
-		if(Obj && bLoadIfFindFails)
+		if(!Obj && bLoadIfFindFails)
 		{
 			Obj = LoadObject<UObject>(nullptr, *LoadedString);
 		}

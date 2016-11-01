@@ -655,6 +655,11 @@ public:
 	virtual void MarkScriptSerializationEnd(const UObject* Obj) { }
 
 	/**
+	 * Called to register a reference to a specific name value, of type TypeObject (UEnum or UStruct normally). Const so it can be called from PostSerialize
+	 */
+	virtual void MarkSearchableName(const UObject* TypeObject, const FName& ValueName) const { }
+
+	/**
 	* Called to retrieve the archetype from the event driven loader. If this returns null, then call GetArchetype yourself.
 	*/
 	virtual UObject* GetArchetypeFromLoader(const UObject* Obj)

@@ -579,7 +579,7 @@ void FAssetTypeActions_SkeletalMesh::GetLODMenu(class FMenuBuilder& MenuBuilder,
 
 		MenuBuilder.AddMenuEntry(	Description, 
 									ToolTip, FSlateIcon(),
-									FUIAction(FExecuteAction::CreateStatic( &FbxMeshUtils::ImportMeshLODDialog, Cast<UObject>(SkeletalMesh), LOD) )) ;
+									FUIAction(FExecuteAction::CreateStatic( &FAssetTypeActions_SkeletalMesh::ExecuteImportMeshLOD, Cast<UObject>(SkeletalMesh), LOD) )) ;
 	}
 }
 
@@ -700,6 +700,11 @@ void FAssetTypeActions_SkeletalMesh::ExecuteFindSkeleton(TArray<TWeakObjectPtr<U
 	}
 }
 
+
+void FAssetTypeActions_SkeletalMesh::ExecuteImportMeshLOD(UObject* Mesh, int32 LOD)
+{
+	FbxMeshUtils::ImportMeshLODDialog(Mesh, LOD);
+}
 
 void FAssetTypeActions_SkeletalMesh::FillSkeletonMenu(FMenuBuilder& MenuBuilder, const TArray<TWeakObjectPtr<USkeletalMesh>> Meshes) const
 {

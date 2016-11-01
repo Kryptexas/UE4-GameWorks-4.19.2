@@ -133,7 +133,7 @@ bool FBehaviorTreeInstance::HasActiveNode(uint16 TestExecutionIndex) const
 {
 	if (ActiveNode && ActiveNode->GetExecutionIndex() == TestExecutionIndex)
 	{
-		return true;
+		return (ActiveNodeType == EBTActiveNode::ActiveTask);
 	}
 
 	for (int32 Idx = 0; Idx < ParallelTasks.Num(); Idx++)

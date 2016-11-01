@@ -41,13 +41,13 @@ AWindDirectionalSource::AWindDirectionalSource(const FObjectInitializer& ObjectI
 			ArrowComponent->bUseInEditorScaling = true;
 		}
 
-		if (GetSpriteComponent())
+		if (UBillboardComponent* SpriteComp = GetSpriteComponent())
 		{
-			GetSpriteComponent()->Sprite = ConstructorStatics.SpriteTexture.Get();
-			GetSpriteComponent()->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
-			GetSpriteComponent()->SpriteInfo.Category = ConstructorStatics.ID_Wind;
-			GetSpriteComponent()->SpriteInfo.DisplayName = ConstructorStatics.NAME_Wind;
-			GetSpriteComponent()->SetupAttachment(Component);
+			SpriteComp->Sprite = ConstructorStatics.SpriteTexture.Get();
+			SpriteComp->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
+			SpriteComp->SpriteInfo.Category = ConstructorStatics.ID_Wind;
+			SpriteComp->SpriteInfo.DisplayName = ConstructorStatics.NAME_Wind;
+			SpriteComp->SetupAttachment(Component);
 		}
 	}
 #endif // WITH_EDITORONLY_DATA
@@ -165,6 +165,54 @@ void UWindDirectionalSourceComponent::Deactivate()
 	}
 }
 
+void UWindDirectionalSourceComponent::SetStrength(float InNewStrength)
+{
+	Strength = InNewStrength;
+
+	// Need to update render thread proxy with new data
+	MarkRenderDynamicDataDirty();
+}
+
+void UWindDirectionalSourceComponent::SetSpeed(float InNewSpeed)
+{
+	Speed = InNewSpeed;
+
+	// Need to update render thread proxy with new data
+	MarkRenderDynamicDataDirty();
+}
+
+void UWindDirectionalSourceComponent::SetMinimumGustAmount(float InNewMinGust)
+{
+	MinGustAmount = InNewMinGust;
+
+	// Need to update render thread proxy with new data
+	MarkRenderDynamicDataDirty();
+}
+
+void UWindDirectionalSourceComponent::SetMaximumGustAmount(float InNewMaxGust)
+{
+	MaxGustAmount = InNewMaxGust;
+
+	// Need to update render thread proxy with new data
+	MarkRenderDynamicDataDirty();
+}
+
+void UWindDirectionalSourceComponent::SetRadius(float InNewRadius)
+{
+	Radius = InNewRadius;
+
+	// Need to update render thread proxy with new data
+	MarkRenderDynamicDataDirty();
+}
+
+void UWindDirectionalSourceComponent::SetWindType(EWindSourceType InNewType)
+{
+	bPointWind = InNewType == EWindSourceType::Point;
+
+	// Need to update render thread proxy with new data
+	MarkRenderDynamicDataDirty();
+}
+
 void UWindDirectionalSourceComponent::CreateRenderState_Concurrent()
 {
 	Super::CreateRenderState_Concurrent();
@@ -174,8 +222,20 @@ void UWindDirectionalSourceComponent::CreateRenderState_Concurrent()
 void UWindDirectionalSourceComponent::SendRenderTransform_Concurrent()
 {
 	Super::SendRenderTransform_Concurrent();
-	GetWorld()->Scene->RemoveWindSource(this);
-	GetWorld()->Scene->AddWindSource(this);
+	UpdateSceneData_Concurrent();
+}
+
+void UWindDirectionalSourceComponent::SendRenderDynamicData_Concurrent()
+{
+	Super::SendRenderDynamicData_Concurrent();
+	UpdateSceneData_Concurrent();
+}
+
+void UWindDirectionalSourceComponent::UpdateSceneData_Concurrent()
+{
+	FSceneInterface* Scene = GetWorld()->Scene;
+	Scene->RemoveWindSource(this);
+	Scene->AddWindSource(this);
 }
 
 void UWindDirectionalSourceComponent::DestroyRenderState_Concurrent()

@@ -3,7 +3,6 @@
 #include "AbilitySystemPrivatePCH.h"
 #include "GameplayEffectExtension_LifestealTest.h"
 #include "AbilitySystemTestAttributeSet.h"
-#include "GameplayTagsModule.h"
 #include "AbilitySystemComponent.h"
 
 UGameplayEffectExtension_LifestealTest::UGameplayEffectExtension_LifestealTest(const FObjectInitializer& ObjectInitializer)
@@ -20,8 +19,6 @@ void UGameplayEffectExtension_LifestealTest::PreGameplayEffectExecute(const FGam
 
 void UGameplayEffectExtension_LifestealTest::PostGameplayEffectExecute(const FGameplayModifierEvaluatedData &SelfData, const FGameplayEffectModCallbackData &Data) const
 {
-	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
-
 	float DamageDone = Data.EvaluatedData.Magnitude;
 	float LifestealPCT = SelfData.Magnitude;
 

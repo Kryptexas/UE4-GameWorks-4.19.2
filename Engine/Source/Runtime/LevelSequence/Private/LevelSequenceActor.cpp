@@ -81,6 +81,8 @@ bool ALevelSequenceActor::GetReferencedContentObjects(TArray<UObject*>& Objects)
 
 void ALevelSequenceActor::Tick(float DeltaSeconds)
 {
+	Super::Tick(DeltaSeconds);
+
 	if (SequencePlayer)
 	{
 		SequencePlayer->Update(DeltaSeconds);

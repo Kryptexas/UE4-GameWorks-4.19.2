@@ -146,6 +146,7 @@ class UK2Node : public UEdGraphNode
 
 	// UObject interface
 	BLUEPRINTGRAPH_API virtual void PostLoad() override;
+	BLUEPRINTGRAPH_API virtual void Serialize(FArchive& Ar) override;
 	// End of UObject interface
 
 	// UEdGraphNode interface
@@ -231,7 +232,12 @@ class UK2Node : public UEdGraphNode
 	 */
 	bool CreatePinsForFunctionEntryExit(const UFunction* Function, bool bForFunctionEntry);
 
+	/** Expands a node while compiling, which may add additional nodes or delete this node */
 	BLUEPRINTGRAPH_API virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph);
+
+	/** Performs a node-specific deprecation fixup, which may delete this node and replace it with another one */
+	BLUEPRINTGRAPH_API virtual void ConvertDeprecatedNode(UEdGraph* Graph, bool bOnlySafeChanges) {}
+
 	BLUEPRINTGRAPH_API virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const { return NULL; }
 
 	BLUEPRINTGRAPH_API void ExpandSplitPin(class FKismetCompilerContext* CompilerContext, UEdGraph* SourceGraph, UEdGraphPin* Pin);

@@ -38,7 +38,10 @@ class AGameplayDebuggerPlayerManager : public AActor
 
 	AGameplayDebuggerCategoryReplicator* GetReplicator(const APlayerController& OwnerPC) const;
 	UInputComponent* GetInputComponent(const APlayerController& OwnerPC) const;
+	UGameplayDebuggerLocalController* GetLocalController(const APlayerController& OwnerPC) const;
 	
+	const FGameplayDebuggerPlayerData* GetPlayerData(const APlayerController& OwnerPC) const;
+
 	static AGameplayDebuggerPlayerManager& GetCurrent(UWorld* World);
 
 protected:

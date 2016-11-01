@@ -57,11 +57,14 @@ struct CORE_API FFrameworkObjectVersion
 		// major flag - i.e. material types - moves to skeleton and handle in one place
 		MoveCurveTypesToSkeleton,
 		
-	        // Cache destructible overlaps on save
+		// Cache destructible overlaps on save
 		CacheDestructibleOverlaps,
 
-	        // Added serialization of materials applied to geometry cache objects
+		// Added serialization of materials applied to geometry cache objects
 		GeometryCacheMissingMaterials,
+
+		// Switch static & skeletal meshes to calculate LODs based on resolution-independent screen size
+		LODsUseResolutionIndependentScreenSize,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

@@ -336,7 +336,7 @@ UObject* UObjectPropertyBase::FindImportedObject( const UProperty* Property, UOb
 			UObject* ScopedSearchRoot = SearchStart;
 			while (Result == NULL && ScopedSearchRoot != NULL)
 			{
-				Result = StaticFindObject(ObjectClass, ScopedSearchRoot, Text);
+				Result = StaticFindObjectSafe(ObjectClass, ScopedSearchRoot, Text);
 				// don't think it's possible to get a non-subobject here, but it doesn't hurt to check
 				if (Result != NULL && !Result->IsTemplate(RF_ClassDefaultObject))
 				{
@@ -359,7 +359,7 @@ UObject* UObjectPropertyBase::FindImportedObject( const UProperty* Property, UOb
 	UObject* ScopedSearchRoot = OwnerObject;
 	while (Result == NULL && ScopedSearchRoot != NULL)
 	{
-		Result = StaticFindObject(ObjectClass, ScopedSearchRoot, Text);
+		Result = StaticFindObjectSafe(ObjectClass, ScopedSearchRoot, Text);
 		// disallow class default subobjects here while importing defaults
 		// this prevents the use of a subobject name that doesn't exist in the scope of the default object being imported
 		// from grabbing some other subobject with the same name and class in some other arbitrary default object
@@ -374,12 +374,12 @@ UObject* UObjectPropertyBase::FindImportedObject( const UProperty* Property, UOb
 	if (Result == NULL)
 	{
 		// attempt to find a fully qualified object
-		Result = StaticFindObject(ObjectClass, NULL, Text);
+		Result = StaticFindObjectSafe(ObjectClass, NULL, Text);
 
 		if (Result == NULL)
 		{
 			// match any object of the correct class whose path contains the specified path
-			Result = StaticFindObject(ObjectClass, ANY_PACKAGE, Text);
+			Result = StaticFindObjectSafe(ObjectClass, ANY_PACKAGE, Text);
 			// disallow class default subobjects here while importing defaults
 			if (Result != NULL && (PortFlags & PPF_ParsingDefaultProperties) && Result->IsTemplate(RF_ClassDefaultObject))
 			{
@@ -410,7 +410,7 @@ UObject* UObjectPropertyBase::FindImportedObject( const UProperty* Property, UOb
 			}
 		}
 		// If we still can't find it, try to load it. (Only try to load fully qualified names)
-		if(!Result && Dot)
+		if(!Result && Dot && !GIsSavingPackage)
 		{
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 			FLinkerLoad* Linker = (OwnerObject != nullptr) ? OwnerObject->GetClass()->GetLinker() : nullptr;

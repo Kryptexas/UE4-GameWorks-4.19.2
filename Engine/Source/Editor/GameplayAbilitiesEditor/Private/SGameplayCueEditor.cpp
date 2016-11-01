@@ -16,10 +16,11 @@
 #include "NotificationManager.h"
 #include "SHyperlink.h"
 #include "SSearchBox.h"
-#include "GameplayTagsModule.h"
+#include "GameplayTags.h"
 #include "AssetEditorManager.h"
 #include "AbilitySystemGlobals.h"
 #include "AssetToolsModule.h"
+#include "GameplayTagsEditorModule.h"
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 
 #define LOCTEXT_NAMESPACE "SGameplayCueEditor"
@@ -147,7 +148,7 @@ public:
 	virtual void OnNewGameplayCueTagCommited(const FText& InText, ETextCommit::Type InCommitType) override
 	{
 		// Only support adding tags via ini file
-		if (UGameplayTagsManager::ShouldImportTagsFromINI() == false)
+		if (UGameplayTagsManager::Get().ShouldImportTagsFromINI() == false)
 		{
 			return;
 		}
@@ -199,7 +200,7 @@ public:
 		SelectedTag = FName(*str);
 		SelectedUniqueID = 0;
 
-		UGameplayTagsManager::AddNewGameplayTagToINI(str);
+		IGameplayTagsEditorModule::Get().AddNewGameplayTagToINI(str);
 
 		UpdateGameplayCueListItems();
 
@@ -435,7 +436,7 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 					TGuardValue<bool> SupressUpdate(SGameplayCueEditorImpl::bSuppressCueViewUpdate, true);
 					
-					UGameplayTagsManager::AddNewGameplayTagToINI(Item->GameplayCueTagName.ToString());
+					IGameplayTagsEditorModule::Get().AddNewGameplayTagToINI(Item->GameplayCueTagName.ToString());
 				}
 
 				UClass* ParentClass=nullptr;
@@ -692,7 +693,7 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 		GameplayCueListItems.Reset();
 		SelectedItem.Reset();
 
-		IGameplayTagsModule& GameplayTagModule = IGameplayTagsModule::Get();
+		UGameplayTagsManager& Manager = UGameplayTagsManager::Get();
 		FString FullSearchString = SearchText.ToString();
 		TArray<FString> SearchStrings;
 		FullSearchString.ParseIntoArrayWS(SearchStrings);
@@ -722,7 +723,15 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 		{
 			FString RequestGameplayTagChildrenPerfMessage = FString::Printf(TEXT(" RequestGameplayTagChildren"));
 			SCOPE_LOG_TIME_IN_SECONDS(*RequestGameplayTagChildrenPerfMessage, nullptr)
-			AllGameplayCueTags = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTagChildren(UGameplayCueSet::BaseGameplayCueTag(), bShowOnlyLeafTags);
+
+			if (bShowOnlyLeafTags)
+			{
+				AllGameplayCueTags = Manager.RequestGameplayTagChildrenInDictionary(UGameplayCueSet::BaseGameplayCueTag());
+			}
+			else
+			{
+				AllGameplayCueTags = Manager.RequestGameplayTagChildren(UGameplayCueSet::BaseGameplayCueTag());
+			}
 		}
 
 		// Create data structs for widgets
@@ -910,7 +919,7 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 		EventMap.Empty();
 
-		IGameplayTagsModule& GameplayTagModule = IGameplayTagsModule::Get();
+		UGameplayTagsManager& Manager = UGameplayTagsManager::Get();
 
 		auto del = IGameplayAbilitiesEditorModule::Get().GetGameplayCueInterfaceClassesDelegate();
 		if (del.IsBound())
@@ -952,7 +961,7 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 								if (FuncName.Contains("GameplayCue"))
 								{
 									FuncName.ReplaceInline(TEXT("_"), TEXT("."));
-									FGameplayTag FoundTag = GameplayTagModule.RequestGameplayTag(FName(*FuncName), false);
+									FGameplayTag FoundTag = Manager.RequestGameplayTag(FName(*FuncName), false);
 									if (FoundTag.IsValid())
 									{
 										EventMap.AddUnique(FoundTag, *FuncIt);
@@ -1020,7 +1029,7 @@ void SGameplayCueEditorImpl::Construct(const FArguments& InArgs)
 	bHasLoadedAllGameplayCues = false;
 	bFilterIDsDirty = false;
 
-	bool CanAddFromINI = UGameplayTagsManager::ShouldImportTagsFromINI(); // We only support adding new tags to the ini files.
+	bool CanAddFromINI = UGameplayTagsManager::Get().ShouldImportTagsFromINI(); // We only support adding new tags to the ini files.
 	
 	ChildSlot
 	[

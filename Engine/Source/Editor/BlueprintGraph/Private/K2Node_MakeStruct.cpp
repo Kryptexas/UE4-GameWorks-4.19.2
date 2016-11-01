@@ -9,6 +9,7 @@
 #include "BlueprintActionDatabaseRegistrar.h"
 #include "BlueprintActionFilter.h"	// for FBlueprintActionContext
 #include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
+#include "Kismet/KismetMathLibrary.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_MakeStruct"
 
@@ -459,5 +460,57 @@ void UK2Node_MakeStruct::Serialize(FArchive& Ar)
 		}
 	}
 }
+
+void UK2Node_MakeStruct::ConvertDeprecatedNode(UEdGraph* Graph, bool bOnlySafeChanges)
+{
+	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+
+	// User may have since deleted the struct type
+	if (StructType == nullptr)
+	{
+		return;
+	}
+
+	// Check to see if the struct has a native make/break that we should try to convert to.
+	if (StructType->HasMetaData(FBlueprintMetadata::MD_NativeMakeFunction))
+	{
+		UFunction* MakeNodeFunction = nullptr;
+
+		// If any pins need to change their names during the conversion, add them to the map.
+		TMap<FString, FString> OldPinToNewPinMap;
+
+		if (StructType == TBaseStructure<FRotator>::Get())
+		{
+			MakeNodeFunction = UKismetMathLibrary::StaticClass()->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UKismetMathLibrary, MakeRotator));
+			OldPinToNewPinMap.Add(TEXT("Rotator"), TEXT("ReturnValue"));
+		}
+		else if (StructType == TBaseStructure<FVector>::Get())
+		{
+			MakeNodeFunction = UKismetMathLibrary::StaticClass()->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UKismetMathLibrary, MakeVector));
+			OldPinToNewPinMap.Add(TEXT("Vector"), TEXT("ReturnValue"));
+		}
+		else if (StructType == TBaseStructure<FVector2D>::Get())
+		{
+			MakeNodeFunction = UKismetMathLibrary::StaticClass()->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UKismetMathLibrary, MakeVector2D));
+			OldPinToNewPinMap.Add(TEXT("Vector2D"), TEXT("ReturnValue"));
+		}
+		else
+		{
+			const FString& MetaData = StructType->GetMetaData(FBlueprintMetadata::MD_NativeMakeFunction);
+			MakeNodeFunction = FindObject<UFunction>(nullptr, *MetaData, true);
+
+			if (MakeNodeFunction)
+			{
+				OldPinToNewPinMap.Add(*StructType->GetName(), TEXT("ReturnValue"));
+			}
+		}
+
+		if (MakeNodeFunction)
+		{
+			Schema->ConvertDeprecatedNodeToFunctionCall(this, MakeNodeFunction, OldPinToNewPinMap, Graph);
+		}
+	}
+}
+
 
 #undef LOCTEXT_NAMESPACE

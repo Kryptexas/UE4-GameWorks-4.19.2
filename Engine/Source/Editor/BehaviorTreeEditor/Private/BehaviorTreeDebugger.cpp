@@ -69,6 +69,7 @@ void FBehaviorTreeDebugger::Setup(UBehaviorTree* InTreeAsset, TSharedRef<FBehavi
 	TreeAsset = InTreeAsset;
 	DebuggerInstanceIndex = INDEX_NONE;
 	ActiveStepIndex = 0;
+	LastValidStepId = INDEX_NONE;
 	ActiveBreakpoints.Reset();
 	KnownInstances.Reset();
 
@@ -135,13 +136,26 @@ void FBehaviorTreeDebugger::Tick(float DeltaTime)
 #if USE_BEHAVIORTREE_DEBUGGER
 	TArray<uint16> EmptyPath;
 
+	int32 TestStepIndex = 0;
+	for (int32 Idx = TreeInstance->DebuggerSteps.Num() - 1; Idx >= 0; Idx--)
+	{
+		const FBehaviorTreeExecutionStep& Step = TreeInstance->DebuggerSteps[Idx];
+		if (Step.StepIndex == LastValidStepId)
+		{
+			TestStepIndex = Idx;
+			break;
+		}
+	}
+
 	// find index of previously displayed state and notify about all changes in between to give breakpoints a chance to trigger
-	for (int32 i = FMath::Max(0, ActiveStepIndex); i < TreeInstance->DebuggerSteps.Num(); i++)
+	for (int32 i = TestStepIndex; i < TreeInstance->DebuggerSteps.Num(); i++)
 	{
 		const FBehaviorTreeExecutionStep& Step = TreeInstance->DebuggerSteps[i];
 		if (Step.StepIndex > DisplayedStepIndex)
 		{
 			ActiveStepIndex = i;
+			LastValidStepId = Step.StepIndex;
+
 			UpdateDebuggerInstance();
 			UpdateAvailableActions();
 
@@ -294,8 +308,10 @@ void FBehaviorTreeDebugger::OnTreeStarted(const UBehaviorTreeComponent& OwnerCom
 	KnownInstances.AddUnique(KnownComp);
 }
 
-void FBehaviorTreeDebugger::ClearDebuggerState()
+void FBehaviorTreeDebugger::ClearDebuggerState(bool bKeepSubtree)
 {
+	LastValidStepId = bKeepSubtree ? LastValidStepId : INDEX_NONE;
+
 	DebuggerInstanceIndex = INDEX_NONE;
 	ActiveStepIndex = 0;
 	DisplayedStepIndex = INDEX_NONE;
@@ -1044,7 +1060,7 @@ void FBehaviorTreeDebugger::UpdateDebuggerViewOnInstanceChange()
 	}
 	else
 	{
-		ClearDebuggerState();
+		ClearDebuggerState(/*bKeepSubtreeData=*/true);
 	}
 #endif
 }

@@ -341,11 +341,11 @@ void ACharacter::SetReplicateMovement(bool bInReplicateMovement)
 {
 	Super::SetReplicateMovement(bInReplicateMovement);
 
-	if (CharacterMovement != nullptr)
+	if (CharacterMovement != nullptr && Role == ROLE_Authority)
 	{
 		// Set prediction data time stamp to current time to stop extrapolating
 		// from time bReplicateMovement was turned off to when it was turned on again
-		FNetworkPredictionData_Server* NetworkPrediction = CharacterMovement->GetPredictionData_Server();
+		FNetworkPredictionData_Server* NetworkPrediction = CharacterMovement->HasPredictionData_Server() ? CharacterMovement->GetPredictionData_Server() : nullptr;
 
 		if (NetworkPrediction != nullptr)
 		{

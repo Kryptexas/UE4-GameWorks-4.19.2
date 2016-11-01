@@ -607,6 +607,15 @@ bool FDataTableRowHandle::operator != (FDataTableRowHandle const& Other) const
 	return DataTable != Other.DataTable || RowName != Other.RowName;
 }
 
+void FDataTableRowHandle::PostSerialize(const FArchive& Ar)
+{
+	if (Ar.IsSaving() && !IsNull() && DataTable)
+	{
+		// Note which row we are pointing to for later searching
+		Ar.MarkSearchableName(DataTable, RowName);
+	}
+}
+
 bool FDataTableCategoryHandle::operator==(FDataTableCategoryHandle const& Other) const
 {
 	return DataTable == Other.DataTable && ColumnName == Other.ColumnName && RowContents == Other.RowContents;

@@ -153,6 +153,15 @@ APawn* UAnimInstance::TryGetPawnOwner() const
 	return NULL;
 }
 
+void UAnimInstance::SavePoseSnapshot(FName SnapshotName)
+{
+	FAnimInstanceProxy& Proxy = GetProxyOnGameThread<FAnimInstanceProxy>();
+	if(USkeletalMeshComponent* SkeletalMeshComponent = GetSkelMeshComponent())
+	{
+		Proxy.SavePoseSnapshot(SkeletalMeshComponent, SnapshotName);	
+	}
+}
+
 USkeletalMeshComponent* UAnimInstance::GetOwningComponent() const
 {
 	return GetSkelMeshComponent();
@@ -1663,7 +1672,7 @@ float UAnimInstance::PlaySlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeN
 	if (!bValidAsset)
 	{
 		// user warning
-		UE_LOG(LogAnimMontage, Warning, TEXT("Invalid Asset. If Montage, use Montage_Play"));
+		UE_LOG(LogAnimMontage, Warning, TEXT("PlaySlotAnimation: Invalid input asset(%s). If Montage, please use Montage_Play"), *GetNameSafe(Asset));
 		return 0.f;
 	}
 
@@ -1724,7 +1733,7 @@ UAnimMontage* UAnimInstance::PlaySlotAnimationAsDynamicMontage(UAnimSequenceBase
 	if (!bValidAsset)
 	{
 		// user warning
-		UE_LOG(LogAnimMontage, Warning, TEXT("Invalid Asset. If Montage, use Montage_Play"));
+		UE_LOG(LogAnimMontage, Warning, TEXT("PlaySlotAnimationAsDynamicMontage: Invalid input asset(%s). If Montage, please use Montage_Play"), *GetNameSafe(Asset));
 		return nullptr;
 	}
 

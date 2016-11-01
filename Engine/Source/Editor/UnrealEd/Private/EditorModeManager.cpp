@@ -110,6 +110,11 @@ TSharedPtr<class IToolkitHost> FEditorModeTools::GetToolkitHost() const
 	return Result;
 }
 
+bool FEditorModeTools::HasToolkitHost() const
+{
+	return ToolkitHost.Pin().IsValid();
+}
+
 void FEditorModeTools::SetToolkitHost(TSharedRef<class IToolkitHost> InHost)
 {
 	checkf(!ToolkitHost.IsValid(), TEXT("SetToolkitHost can only be called once"));

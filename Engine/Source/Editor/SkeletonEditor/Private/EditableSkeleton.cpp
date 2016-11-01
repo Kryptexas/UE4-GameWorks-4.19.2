@@ -357,11 +357,29 @@ void FEditableSkeleton::RemoveSmartnamesAndFixupAnimations(const FName& InContai
 
 void FEditableSkeleton::SetCurveMetaDataMaterial(const FSmartName& CurveName, bool bOverrideMaterial)
 {
+	Skeleton->Modify();
 	FCurveMetaData* CurveMetaData = Skeleton->GetCurveMetaData(CurveName);
 	if (CurveMetaData)
 	{
 		// override curve data
 		CurveMetaData->Type.bMaterial = !!bOverrideMaterial;
+	}
+}
+
+void FEditableSkeleton::SetCurveMetaBoneLinks(const FSmartName& CurveName, TArray<FBoneReference>& BoneLinks)
+{
+	Skeleton->Modify();
+	FCurveMetaData* CurveMetaData = Skeleton->GetCurveMetaData(CurveName);
+	if (CurveMetaData)
+	{
+		// override curve data
+		CurveMetaData->LinkedBones = BoneLinks;
+		
+		//  initialize to this skeleton
+		for (FBoneReference& BoneReference : CurveMetaData->LinkedBones)
+		{
+			BoneReference.Initialize(Skeleton);
+		}
 	}
 }
 

@@ -88,6 +88,9 @@ void USkeleton::PostLoad()
 
 	const bool bRebuildNameMap = false;
 	ReferenceSkeleton.RebuildRefSkeleton(this, bRebuildNameMap);
+
+	// refresh linked bone indices
+	SmartNames.InitializeCurveMetaData(this);
 }
 
 void USkeleton::PostDuplicate(bool bDuplicateForPIE)
@@ -1424,6 +1427,21 @@ const FCurveMetaData* USkeleton::GetCurveMetaData(const FName& CurveName) const
 	if (ensureAlways(Mapping))
 	{
 		return Mapping->GetCurveMetaData(CurveName);
+	}
+
+	return nullptr;
+}
+
+const FCurveMetaData* USkeleton::GetCurveMetaData(const SmartName::UID_Type CurveUID) const
+{
+	const FSmartNameMapping* Mapping = SmartNames.GetContainerInternal(USkeleton::AnimCurveMappingName);
+	if (ensureAlways(Mapping))
+	{
+		FSmartName SmartName;
+		if (Mapping->FindSmartNameByUID(CurveUID, SmartName))
+		{
+			return Mapping->GetCurveMetaData(SmartName.DisplayName);
+		}
 	}
 
 	return nullptr;

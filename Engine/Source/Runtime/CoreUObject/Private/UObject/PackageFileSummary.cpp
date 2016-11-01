@@ -186,6 +186,11 @@ FArchive& operator<<( FArchive& Ar, FPackageFileSummary& Sum )
 			Ar << Sum.StringAssetReferencesCount << Sum.StringAssetReferencesOffset;
 		}
 
+		if (Ar.IsSaving() || Sum.FileVersionUE4 >= VER_UE4_ADDED_SEARCHABLE_NAMES)
+		{
+			Ar << Sum.SearchableNamesOffset;
+		}
+
 		Ar << Sum.ThumbnailTableOffset;
 
 		int32 GenerationCount = Sum.Generations.Num();

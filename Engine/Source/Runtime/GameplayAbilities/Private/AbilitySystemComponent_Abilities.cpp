@@ -693,8 +693,8 @@ void UAbilitySystemComponent::CancelAbilities(const FGameplayTagContainer* WithT
 			continue;
 		}
 
-		bool WithTagPass = (!WithTags || Spec.Ability->AbilityTags.MatchesAny(*WithTags, false));
-		bool WithoutTagPass = (!WithoutTags || !Spec.Ability->AbilityTags.MatchesAny(*WithoutTags, false));
+		bool WithTagPass = (!WithTags || Spec.Ability->AbilityTags.HasAny(*WithTags));
+		bool WithoutTagPass = (!WithoutTags || !Spec.Ability->AbilityTags.HasAny(*WithoutTags));
 
 		if (WithTagPass && WithoutTagPass)
 		{
@@ -793,7 +793,7 @@ void UAbilitySystemComponent::ApplyAbilityBlockAndCancelTags(const FGameplayTagC
 bool UAbilitySystemComponent::AreAbilityTagsBlocked(const FGameplayTagContainer& Tags) const
 {
 	// Expand the passed in tags to get parents, not the blocked tags
-	return Tags.MatchesAny(BlockedAbilityTags.GetExplicitGameplayTags(), false);
+	return Tags.HasAny(BlockedAbilityTags.GetExplicitGameplayTags());
 }
 
 void UAbilitySystemComponent::BlockAbilitiesWithTags(const FGameplayTagContainer& Tags)
@@ -866,9 +866,14 @@ void UAbilitySystemComponent::OnRep_ActivateAbilities()
 
 void UAbilitySystemComponent::GetActivatableGameplayAbilitySpecsByAllMatchingTags(const FGameplayTagContainer& GameplayTagContainer, TArray < struct FGameplayAbilitySpec* >& MatchingGameplayAbilities, bool bOnlyAbilitiesThatSatisfyTagRequirements) const
 {
+	if (!GameplayTagContainer.IsValid())
+	{
+		return;
+	}
+
 	for (const FGameplayAbilitySpec& Spec : ActivatableAbilities.Items)
 	{		
-		if (Spec.Ability && Spec.Ability->AbilityTags.MatchesAll(GameplayTagContainer, false))
+		if (Spec.Ability && Spec.Ability->AbilityTags.HasAll(GameplayTagContainer))
 		{
 			// Consider abilities that are blocked by tags currently if we're supposed to (default behavior).  
 			// That way, we can use the blocking to find an appropriate ability based on tags when we have more than 
@@ -2337,51 +2342,58 @@ void UAbilitySystemComponent::OnRep_ReplicatedAnimMontage()
 				AnimInstance->Montage_SetPlayRate(LocalAnimMontageInfo.AnimMontage, RepAnimMontageInfo.PlayRate);
 			}
 
-			int32 RepSectionID = LocalAnimMontageInfo.AnimMontage->GetSectionIndexFromPosition(RepAnimMontageInfo.Position);
-			int32 RepNextSectionID = int32(RepAnimMontageInfo.NextSectionID) - 1;
-		
-			// And NextSectionID for the replicated SectionID.
-			if( RepSectionID != INDEX_NONE )
-			{
-				int32 NextSectionID = AnimInstance->Montage_GetNextSectionID(LocalAnimMontageInfo.AnimMontage, RepSectionID);
-
-				// If NextSectionID is different than the replicated one, then set it.
-				if( NextSectionID != RepNextSectionID )
-				{
-					AnimInstance->Montage_SetNextSection(LocalAnimMontageInfo.AnimMontage->GetSectionName(RepSectionID), LocalAnimMontageInfo.AnimMontage->GetSectionName(RepNextSectionID), LocalAnimMontageInfo.AnimMontage);
-				}
-
-				// Make sure we haven't received that update too late and the client hasn't already jumped to another section. 
-				int32 CurrentSectionID = LocalAnimMontageInfo.AnimMontage->GetSectionIndexFromPosition(AnimInstance->Montage_GetPosition(LocalAnimMontageInfo.AnimMontage));
-				if ((CurrentSectionID != RepSectionID) && (CurrentSectionID != RepNextSectionID))
-				{
-					// Client is in a wrong section, teleport him into the begining of the right section
-					const float SectionStartTime = LocalAnimMontageInfo.AnimMontage->GetAnimCompositeSection(RepSectionID).GetTime();
-					AnimInstance->Montage_SetPosition(LocalAnimMontageInfo.AnimMontage, SectionStartTime);
-				}
-			}
-
-			// Update Position. If error is too great, jump to replicated position.
-			float CurrentPosition = AnimInstance->Montage_GetPosition(LocalAnimMontageInfo.AnimMontage);
-			int32 CurrentSectionID = LocalAnimMontageInfo.AnimMontage->GetSectionIndexFromPosition(CurrentPosition);
-			// Only check threshold if we are located in the same section. Different sections require a bit more work as we could be jumping around the timeline.
-			if ((CurrentSectionID == RepSectionID) && (FMath::Abs(CurrentPosition - RepAnimMontageInfo.Position) > MONTAGE_REP_POS_ERR_THRESH) && RepAnimMontageInfo.IsStopped == 0)
-			{
-				// fast forward to server position and trigger notifies
-				if (FAnimMontageInstance* MontageInstance = AnimInstance->GetActiveInstanceForMontage(RepAnimMontageInfo.AnimMontage))
-				{
-					MontageInstance->HandleEvents(CurrentPosition, RepAnimMontageInfo.Position, nullptr);
-					AnimInstance->TriggerAnimNotifies(0.f);
-				}
-				AnimInstance->Montage_SetPosition(LocalAnimMontageInfo.AnimMontage, RepAnimMontageInfo.Position);
-			}
-
 			// Compressed Flags
-			bool bIsStopped = AnimInstance->Montage_GetIsStopped(LocalAnimMontageInfo.AnimMontage);
-			bool ReplicatedIsStopped = bool(RepAnimMontageInfo.IsStopped);
-			if( ReplicatedIsStopped && !bIsStopped )
+			const bool bIsStopped = AnimInstance->Montage_GetIsStopped(LocalAnimMontageInfo.AnimMontage);
+			const bool bReplicatedIsStopped = bool(RepAnimMontageInfo.IsStopped);
+
+			// Process stopping first, so we don't change sections and cause blending to pop.
+			if (bReplicatedIsStopped)
 			{
-				CurrentMontageStop(RepAnimMontageInfo.BlendTime);
+				if (!bIsStopped)
+				{
+					CurrentMontageStop(RepAnimMontageInfo.BlendTime);
+				}
+			}
+			else
+			{
+				int32 RepSectionID = LocalAnimMontageInfo.AnimMontage->GetSectionIndexFromPosition(RepAnimMontageInfo.Position);
+				int32 RepNextSectionID = int32(RepAnimMontageInfo.NextSectionID) - 1;
+		
+				// And NextSectionID for the replicated SectionID.
+				if( RepSectionID != INDEX_NONE )
+				{
+					int32 NextSectionID = AnimInstance->Montage_GetNextSectionID(LocalAnimMontageInfo.AnimMontage, RepSectionID);
+
+					// If NextSectionID is different than the replicated one, then set it.
+					if( NextSectionID != RepNextSectionID )
+					{
+						AnimInstance->Montage_SetNextSection(LocalAnimMontageInfo.AnimMontage->GetSectionName(RepSectionID), LocalAnimMontageInfo.AnimMontage->GetSectionName(RepNextSectionID), LocalAnimMontageInfo.AnimMontage);
+					}
+
+					// Make sure we haven't received that update too late and the client hasn't already jumped to another section. 
+					int32 CurrentSectionID = LocalAnimMontageInfo.AnimMontage->GetSectionIndexFromPosition(AnimInstance->Montage_GetPosition(LocalAnimMontageInfo.AnimMontage));
+					if ((CurrentSectionID != RepSectionID) && (CurrentSectionID != RepNextSectionID))
+					{
+						// Client is in a wrong section, teleport him into the begining of the right section
+						const float SectionStartTime = LocalAnimMontageInfo.AnimMontage->GetAnimCompositeSection(RepSectionID).GetTime();
+						AnimInstance->Montage_SetPosition(LocalAnimMontageInfo.AnimMontage, SectionStartTime);
+					}
+				}
+
+				// Update Position. If error is too great, jump to replicated position.
+				float CurrentPosition = AnimInstance->Montage_GetPosition(LocalAnimMontageInfo.AnimMontage);
+				int32 CurrentSectionID = LocalAnimMontageInfo.AnimMontage->GetSectionIndexFromPosition(CurrentPosition);
+				// Only check threshold if we are located in the same section. Different sections require a bit more work as we could be jumping around the timeline.
+				if ((CurrentSectionID == RepSectionID) && (FMath::Abs(CurrentPosition - RepAnimMontageInfo.Position) > MONTAGE_REP_POS_ERR_THRESH) && RepAnimMontageInfo.IsStopped == 0)
+				{
+					// fast forward to server position and trigger notifies
+					if (FAnimMontageInstance* MontageInstance = AnimInstance->GetActiveInstanceForMontage(RepAnimMontageInfo.AnimMontage))
+					{
+						MontageInstance->HandleEvents(CurrentPosition, RepAnimMontageInfo.Position, nullptr);
+						AnimInstance->TriggerAnimNotifies(0.f);
+					}
+					AnimInstance->Montage_SetPosition(LocalAnimMontageInfo.AnimMontage, RepAnimMontageInfo.Position);
+				}
 			}
 		}
 	}

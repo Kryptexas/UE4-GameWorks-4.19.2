@@ -384,6 +384,9 @@ public:
 	/** Returns the host for toolkits created via modes from this mode manager */
 	TSharedPtr<IToolkitHost> GetToolkitHost() const;
 
+	/** Check if toolkit host exists */
+	bool HasToolkitHost() const;
+
 	/**
 	 * Returns the set of selected actors.
 	 */

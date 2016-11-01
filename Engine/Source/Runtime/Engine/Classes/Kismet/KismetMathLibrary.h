@@ -994,6 +994,10 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="make construct build rotate rotation"))
 	static FRotator RotatorFromAxisAndAngle(FVector Axis, float Angle);
 
+	/** Get an axis and angle from a given rotation */
+	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="rotate rotation axis angle"))
+	static void RotatorToAxisAndAngle(const FRotator& Rotation, FVector& Axis, float& Angle);
+
 	/**
 	* Clamps an angle to the range of [0, 360].
 	*

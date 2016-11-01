@@ -69,6 +69,7 @@ public class Engine : ModuleRules
 				"EngineMessages",
 				"EngineSettings",
 				"SynthBenchmark",
+                "GameplayTags",
                 "AIModule",
 				"DatabaseSupport",
                 "PacketHandler",
@@ -148,6 +149,7 @@ public class Engine : ModuleRules
         }
         }
 
+        CircularlyReferencedDependentModules.Add("GameplayTags");
         CircularlyReferencedDependentModules.Add("AIModule");
 		CircularlyReferencedDependentModules.Add("Landscape");
         CircularlyReferencedDependentModules.Add("UMG");

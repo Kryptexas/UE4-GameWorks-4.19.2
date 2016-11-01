@@ -16,12 +16,10 @@
 #include "IAssetTypeActions.h"
 #include "AssetToolsModule.h"
 #include "AssetTypeActions_GameplayAbilitiesBlueprint.h"
-#include "AssetTypeActions_GameplayEffect.h"
 #include "GameplayAbilitiesGraphPanelPinFactory.h"
-#include "GameplayAbilitiesGraphPanelNodeFactory.h"
 #include "GameplayCueTagDetails.h"
 
-#include "Runtime/GameplayTags/Public/GameplayTagsModule.h"
+#include "GameplayTagsModule.h"
 #include "Editor/BlueprintGraph/Public/BlueprintActionDatabase.h"
 #include "K2Node_GameplayCueEvent.h"
 
@@ -80,9 +78,6 @@ private:
 	/** Pin factory for abilities graph; Cached so it can be unregistered */
 	TSharedPtr<FGameplayAbilitiesGraphPanelPinFactory> GameplayAbilitiesGraphPanelPinFactory;
 
-	/** Node factory for abilities graph; Cached so it can be unregistered */
-	TSharedPtr<FGameplayAbilitiesGraphPanelNodeFactory> GameplayAbilitiesGraphPanelNodeFactory;
-
 	/** Handle to the registered GameplayTagTreeChanged delegate */
 	FDelegateHandle GameplayTagTreeChangedDelegateHandle;
 
@@ -128,20 +123,15 @@ void FGameplayAbilitiesEditorModule::StartupModule()
 	// Register asset types
 	IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
 	TSharedRef<IAssetTypeActions> GABAction = MakeShareable(new FAssetTypeActions_GameplayAbilitiesBlueprint());
-	TSharedRef<IAssetTypeActions> GEAction = MakeShareable(new FAssetTypeActions_GameplayEffect());
 	RegisterAssetTypeAction(AssetTools, GABAction);
-	RegisterAssetTypeAction(AssetTools, GEAction);
 
 	// Register factories for pins and nodes
 	GameplayAbilitiesGraphPanelPinFactory = MakeShareable(new FGameplayAbilitiesGraphPanelPinFactory());
 	FEdGraphUtilities::RegisterVisualPinFactory(GameplayAbilitiesGraphPanelPinFactory);
 
-	GameplayAbilitiesGraphPanelNodeFactory = MakeShareable(new FGameplayAbilitiesGraphPanelNodeFactory());
-	FEdGraphUtilities::RegisterVisualNodeFactory(GameplayAbilitiesGraphPanelNodeFactory);
-
 	// Listen for changes to the gameplay tag tree so we can refresh blueprint actions for the GameplayCueEvent node
-	UGameplayTagsManager& GameplayTagsManager = IGameplayTagsModule::GetGameplayTagsManager();
-	GameplayTagTreeChangedDelegateHandle = GameplayTagsManager.OnGameplayTagTreeChanged().AddStatic(&FGameplayAbilitiesEditorModule::GameplayTagTreeChanged);
+	UGameplayTagsManager& GameplayTagsManager = UGameplayTagsManager::Get();
+	GameplayTagTreeChangedDelegateHandle = IGameplayTagsModule::OnGameplayTagTreeChanged.AddStatic(&FGameplayAbilitiesEditorModule::GameplayTagTreeChanged);
 
 	// GameplayCue editor
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner( FName(TEXT("GameplayCueApp")), FOnSpawnTab::CreateRaw(this, &FGameplayAbilitiesEditorModule::SpawnGameplayCueEditorTab))
@@ -280,16 +270,9 @@ void FGameplayAbilitiesEditorModule::ShutdownModule()
 		GameplayAbilitiesGraphPanelPinFactory.Reset();
 	}
 
-	if (GameplayAbilitiesGraphPanelNodeFactory.IsValid())
-	{
-		FEdGraphUtilities::UnregisterVisualNodeFactory(GameplayAbilitiesGraphPanelNodeFactory);
-		GameplayAbilitiesGraphPanelNodeFactory.Reset();
-	}
-
 	if ( UObjectInitialized() && IGameplayTagsModule::IsAvailable() )
 	{
-		UGameplayTagsManager& GameplayTagsManager = IGameplayTagsModule::GetGameplayTagsManager();
-		GameplayTagsManager.OnGameplayTagTreeChanged().Remove(GameplayTagTreeChangedDelegateHandle);
+		IGameplayTagsModule::OnGameplayTagTreeChanged.Remove(GameplayTagTreeChangedDelegateHandle);
 	}
 }
 

@@ -80,27 +80,3 @@ void UGameplayAbility_Montage::GetGameplayEffectsWhileAnimating(TArray<const UGa
 		}
 	}
 }
-
-void UGameplayAbility_Montage::ConvertDeprecatedGameplayEffectReferencesToBlueprintReferences(UGameplayEffect* OldGE, TSubclassOf<UGameplayEffect> NewGEClass)
-{
-	Super::ConvertDeprecatedGameplayEffectReferencesToBlueprintReferences(OldGE, NewGEClass);
-
-	bool bChangedSomething = false;
-
-	for ( int32 GEIdx = GameplayEffectsWhileAnimating.Num() - 1; GEIdx >= 0; --GEIdx )
-	{
-		const UGameplayEffect* Effect = GameplayEffectsWhileAnimating[GEIdx];
-		if ( Effect && Effect == OldGE )
-		{
-			GameplayEffectClassesWhileAnimating.Add(NewGEClass);
-			GameplayEffectsWhileAnimating.RemoveAt(GEIdx);
-
-			bChangedSomething = true;
-		}
-	}
-
-	if (bChangedSomething)
-	{
-		MarkPackageDirty();
-	}
-}

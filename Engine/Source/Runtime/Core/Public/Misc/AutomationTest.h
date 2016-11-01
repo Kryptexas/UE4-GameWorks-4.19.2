@@ -1128,6 +1128,9 @@ public:
 		}
 	}
 
+	/** Macro version of above, uses the passed in expression as the description as well */
+	#define TestTrueExpr(Expression) TestTrue(TEXT(#Expression), Expression)
+
 	/**
 	 * Logs an error if the given shared pointer is not valid.
 	 *

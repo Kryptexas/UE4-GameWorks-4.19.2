@@ -713,13 +713,7 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 
 			// Draw stats about the mesh
 			const FBoxSphereBounds& SkelBounds = PreviewMeshComponent->Bounds;
-			const FPlane ScreenPosition = View->Project(SkelBounds.Origin);
-
-			const int32 HalfX = Viewport->GetSizeXY().X / 2;
-			const int32 HalfY = Viewport->GetSizeXY().Y / 2;
-
-			const float ScreenRadius = FMath::Max((float)HalfX * View->ViewMatrices.GetProjectionMatrix().M[0][0], (float)HalfY * View->ViewMatrices.GetProjectionMatrix().M[1][1]) * SkelBounds.SphereRadius / FMath::Max(ScreenPosition.W, 1.0f);
-			const float LODFactor = ScreenRadius / 320.0f;
+			const float ScreenSize = ComputeBoundsScreenSize(SkelBounds.Origin, SkelBounds.SphereRadius, *View);
 
 			int32 NumBonesInUse;
 			int32 NumBonesMappedToVerts;
@@ -749,7 +743,7 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 
 			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
 
-			InfoString = FString::Printf(TEXT("Current Screen Size: %3.2f, FOV:%3.0f"), LODFactor, ViewFOV);
+			InfoString = FString::Printf(TEXT("Current Screen Size: %3.2f, FOV:%3.0f"), ScreenSize, ViewFOV);
 			CurYOffset += YL + 2;
 			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
 
@@ -838,16 +832,9 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 
 			// current screen size
 			const FBoxSphereBounds& SkelBounds = PreviewMeshComponent->Bounds;
-			const FPlane ScreenPosition = View->Project(SkelBounds.Origin);
+			const float ScreenSize = ComputeBoundsScreenSize(SkelBounds.Origin, SkelBounds.SphereRadius, *View);
 
-			const int32 HalfX = Viewport->GetSizeXY().X / 2;
-			const int32 HalfY = Viewport->GetSizeXY().Y / 2;
-			const float ScreenRadius = FMath::Max((float)HalfX * View->ViewMatrices.GetProjectionMatrix().M[0][0], (float)HalfY * View->ViewMatrices.GetProjectionMatrix().M[1][1]) * SkelBounds.SphereRadius / FMath::Max(ScreenPosition.W, 1.0f);
-			const float LODFactor = ScreenRadius / 320.0f;
-
-			float ScreenSize = ComputeBoundsScreenSize(ScreenPosition, SkelBounds.SphereRadius, *View);
-
-			InfoString = FString::Printf(TEXT("Current Screen Size: %3.2f"), LODFactor);
+			InfoString = FString::Printf(TEXT("Current Screen Size: %3.2f"), ScreenSize);
 			CurYOffset += YL + 2;
 			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
 

@@ -4377,6 +4377,7 @@ void UCharacterMovementComponent::PhysWalking(float deltaTime, int32 Iterations)
 				Hit.TraceEnd = Hit.TraceStart + FVector(0.f, 0.f, MAX_FLOOR_DIST);
 				const FVector RequestedAdjustment = GetPenetrationAdjustment(Hit);
 				ResolvePenetration(RequestedAdjustment, Hit, UpdatedComponent->GetComponentQuat());
+				bForceNextFloorCheck = true;
 			}
 
 			// check if just entered water
@@ -4977,7 +4978,7 @@ void UCharacterMovementComponent::OnTeleported()
 	{
 		return;
 	}
-	bool bWasFalling = (MovementMode == MOVE_Falling);
+
 	bJustTeleported = true;
 
 	// Find floor at current location
@@ -4997,19 +4998,33 @@ void UCharacterMovementComponent::OnTeleported()
 		CurrentFloor.Clear();
 	}
 
-	// If we were walking but no longer have a valid base or floor, start falling.
-	const float SavedVelocityZ = Velocity.Z;
-	SetDefaultMovementMode();
-	if ((MovementMode == MOVE_Walking) && (!CurrentFloor.IsWalkableFloor() || (OldBase && !NewBase)))
-	{
-		// If we are walking but no longer have a valid base or floor, start falling.
-		Velocity.Z = SavedVelocityZ;
-		SetMovementMode(MOVE_Falling);
-	}
+	const bool bWasFalling = (MovementMode == MOVE_Falling);
+	const bool bWasSwimming = (MovementMode == DefaultWaterMovementMode) || (MovementMode == MOVE_Swimming);
 
-	if (bWasFalling && IsMovingOnGround())
+	if (CanEverSwim() && IsInWater())
 	{
-		ProcessLanded(CurrentFloor.HitResult, 0.f, 0);
+		if (!bWasSwimming)
+		{
+			SetMovementMode(DefaultWaterMovementMode);
+		}
+	}
+	else if (!CurrentFloor.IsWalkableFloor() || (OldBase && !NewBase))
+	{
+		if (!bWasFalling && MovementMode != MOVE_Flying && MovementMode != MOVE_Custom)
+		{
+			SetMovementMode(MOVE_Falling);
+		}
+	}
+	else if (NewBase)
+	{
+		if (bWasSwimming)
+		{
+			SetMovementMode(DefaultLandMovementMode);
+		}
+		else if (bWasFalling)
+		{
+			ProcessLanded(CurrentFloor.HitResult, 0.f, 0);
+		}
 	}
 
 	MaybeSaveBaseLocation();
@@ -6105,20 +6120,16 @@ void UCharacterMovementComponent::HandleImpact(const FHitResult& Impact, float T
 
 void UCharacterMovementComponent::ApplyImpactPhysicsForces(const FHitResult& Impact, const FVector& ImpactAcceleration, const FVector& ImpactVelocity)
 {
-	if (bEnablePhysicsInteraction && Impact.bBlockingHit)
+	if (bEnablePhysicsInteraction && Impact.bBlockingHit )
 	{
-		UPrimitiveComponent* ImpactComponent = Impact.GetComponent();
-		if (ImpactComponent != NULL && ImpactComponent->IsAnySimulatingPhysics())
+		if (UPrimitiveComponent* ImpactComponent = Impact.GetComponent())
 		{
-			FVector ForcePoint = Impact.ImpactPoint;
-
 			FBodyInstance* BI = ImpactComponent->GetBodyInstance(Impact.BoneName);
-
-			float BodyMass = 1.0f;
-
-			if (BI != NULL)
+			if(BI != nullptr && BI->IsInstanceSimulatingPhysics())
 			{
-				BodyMass = FMath::Max(BI->GetBodyMass(), 1.0f);
+				FVector ForcePoint = Impact.ImpactPoint;
+
+				const float BodyMass = FMath::Max(BI->GetBodyMass(), 1.0f);
 
 				if(bPushForceUsingZOffset)
 				{
@@ -6132,43 +6143,43 @@ void UCharacterMovementComponent::ApplyImpactPhysicsForces(const FHitResult& Imp
 						ForcePoint.Z = Center.Z + Extents.Z * PushForcePointZOffsetFactor;
 					}
 				}
-			}
 
-			FVector Force = Impact.ImpactNormal * -1.0f;
+				FVector Force = Impact.ImpactNormal * -1.0f;
 
-			float PushForceModificator = 1.0f;
+				float PushForceModificator = 1.0f;
 
-			const FVector ComponentVelocity = ImpactComponent->GetPhysicsLinearVelocity();
-			const FVector VirtualVelocity = ImpactAcceleration.IsZero() ? ImpactVelocity : ImpactAcceleration.GetSafeNormal() * GetMaxSpeed();
+				const FVector ComponentVelocity = ImpactComponent->GetPhysicsLinearVelocity();
+				const FVector VirtualVelocity = ImpactAcceleration.IsZero() ? ImpactVelocity : ImpactAcceleration.GetSafeNormal() * GetMaxSpeed();
 
-			float Dot = 0.0f;
+				float Dot = 0.0f;
 
-			if (bScalePushForceToVelocity && !ComponentVelocity.IsNearlyZero())
-			{			
-				Dot = ComponentVelocity | VirtualVelocity;
+				if (bScalePushForceToVelocity && !ComponentVelocity.IsNearlyZero())
+				{			
+					Dot = ComponentVelocity | VirtualVelocity;
 
-				if (Dot > 0.0f && Dot < 1.0f)
-				{
-					PushForceModificator *= Dot;
+					if (Dot > 0.0f && Dot < 1.0f)
+					{
+						PushForceModificator *= Dot;
+					}
 				}
-			}
 
-			if (bPushForceScaledToMass)
-			{
-				PushForceModificator *= BodyMass;
-			}
+				if (bPushForceScaledToMass)
+				{
+					PushForceModificator *= BodyMass;
+				}
 
-			Force *= PushForceModificator;
+				Force *= PushForceModificator;
 
-			if (ComponentVelocity.IsNearlyZero())
-			{
-				Force *= InitialPushForceFactor;
-				ImpactComponent->AddImpulseAtLocation(Force, ForcePoint, Impact.BoneName);
-			}
-			else
-			{
-				Force *= PushForceFactor;
-				ImpactComponent->AddForceAtLocation(Force, ForcePoint, Impact.BoneName);
+				if (ComponentVelocity.IsNearlyZero())
+				{
+					Force *= InitialPushForceFactor;
+					ImpactComponent->AddImpulseAtLocation(Force, ForcePoint, Impact.BoneName);
+				}
+				else
+				{
+					Force *= PushForceFactor;
+					ImpactComponent->AddForceAtLocation(Force, ForcePoint, Impact.BoneName);
+				}
 			}
 		}
 	}
@@ -7140,6 +7151,15 @@ FNetworkPredictionData_Server_Character* UCharacterMovementComponent::GetPredict
 	return static_cast<class FNetworkPredictionData_Server_Character*>(GetPredictionData_Server());
 }
 
+bool UCharacterMovementComponent::HasPredictionData_Client() const
+{
+	return (ClientPredictionData != nullptr) && HasValidData();
+}
+
+bool UCharacterMovementComponent::HasPredictionData_Server() const
+{
+	return (ServerPredictionData != nullptr) && HasValidData();
+}
 
 void UCharacterMovementComponent::ResetPredictionData_Client()
 {
@@ -8623,13 +8643,16 @@ void UCharacterMovementComponent::SetAvoidanceEnabled(bool bEnable)
 	{
 		bUseRVOAvoidance = bEnable;
 
+		// reset id, RegisterMovementComponent call is required to initialize update timers in avoidance manager
+		AvoidanceUID = 0;
+
 		// this is a safety check - it's possible to not have CharacterOwner at this point if this function gets
 		// called too early
 		ensure(GetCharacterOwner());
 		if (GetCharacterOwner() != nullptr)
 		{
 			UAvoidanceManager* AvoidanceManager = GetWorld()->GetAvoidanceManager();
-			if (AvoidanceManager && bEnable && AvoidanceUID == 0)
+			if (AvoidanceManager && bEnable)
 			{
 				AvoidanceManager->RegisterMovementComponent(this, AvoidanceWeight);
 			}

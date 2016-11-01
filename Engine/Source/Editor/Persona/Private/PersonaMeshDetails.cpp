@@ -79,6 +79,143 @@ static void FillEnumOptions(TArray<TSharedPtr<FString> >& OutStrings, UEnum& InE
 	}
 }
 
+// Container widget for LOD buttons
+class SSkeletalLODActions : public SCompoundWidget
+{
+public:
+	SLATE_BEGIN_ARGS(SSkeletalLODActions)
+		: _LODIndex(INDEX_NONE)
+		, _PersonaToolkit(nullptr)
+	{}
+	SLATE_ARGUMENT(int32, LODIndex)
+	SLATE_ARGUMENT(TWeakPtr<IPersonaToolkit>, PersonaToolkit)
+	SLATE_EVENT(FOnClicked, OnRemoveLODClicked)
+	SLATE_EVENT(FOnClicked, OnReimportClicked)
+	SLATE_EVENT(FOnClicked, OnReimportNewFileClicked)
+
+	SLATE_END_ARGS()
+
+	void Construct(const FArguments& InArgs);
+
+private:
+
+	EActiveTimerReturnType RefreshExistFlag(double InCurrentTime, float InDeltaSeconds)
+	{
+		bDoesSourceFileExist_Cached = false;
+
+		TSharedPtr<IPersonaToolkit> SharedToolkit = PersonaToolkit.Pin();
+		if(SharedToolkit.IsValid())
+		{
+			USkeletalMesh* SkelMesh = SharedToolkit->GetMesh();
+
+			if(!SkelMesh)
+			{
+				return EActiveTimerReturnType::Continue;
+			}
+
+			if(SkelMesh->LODInfo.IsValidIndex(LODIndex))
+			{
+				FSkeletalMeshLODInfo& LODInfo = SkelMesh->LODInfo[LODIndex];
+
+				bDoesSourceFileExist_Cached = !LODInfo.SourceImportFilename.IsEmpty() && FPaths::FileExists(LODInfo.SourceImportFilename);
+			}
+		}
+		return EActiveTimerReturnType::Continue;
+	}
+
+	FText GetReimportButtonToolTipText() const
+	{
+		TSharedPtr<IPersonaToolkit> SharedToolkit = PersonaToolkit.Pin();
+
+		if(!CanReimportFromSource() || !SharedToolkit.IsValid())
+		{
+			return LOCTEXT("ReimportButton_NewFile_NoSource_ToolTip", "No source file available for reimport");
+		}
+
+		USkeletalMesh* SkelMesh = SharedToolkit->GetMesh();
+		check(SkelMesh);
+		check(SkelMesh->LODInfo.IsValidIndex(LODIndex)); // Should be true for the button to exist
+
+		FSkeletalMeshLODInfo& LODInfo = SkelMesh->LODInfo[LODIndex];
+
+		FString Filename = FPaths::GetCleanFilename(LODInfo.SourceImportFilename);
+
+		return FText::Format(LOCTEXT("ReimportButton_NewFile_ToolTip", "Reimport LOD{0} using the current source file ({1})"), FText::AsNumber(LODIndex), FText::FromString(Filename));
+	}
+
+	FText GetReimportButtonNewFileToolTipText() const
+	{
+		return FText::Format(LOCTEXT("ReimportButton_ToolTip", "Choose a new file to reimport over this LOD (LOD{0})"), FText::AsNumber(LODIndex));
+	}
+
+	bool CanReimportFromSource() const
+	{
+		return bDoesSourceFileExist_Cached;
+	}
+
+	// Incoming arg data
+	int32 LODIndex;
+	TWeakPtr<IPersonaToolkit> PersonaToolkit;
+	FOnClicked OnRemoveLODClicked;
+	FOnClicked OnReimportClicked;
+	FOnClicked OnReimportNewFileClicked;
+
+	// Cached exists flag so we don't constantly hit the file system
+	bool bDoesSourceFileExist_Cached;
+};
+
+void SSkeletalLODActions::Construct(const FArguments& InArgs)
+{
+	LODIndex = InArgs._LODIndex;
+	PersonaToolkit = InArgs._PersonaToolkit;
+	OnRemoveLODClicked = InArgs._OnRemoveLODClicked;
+	OnReimportClicked = InArgs._OnReimportClicked;
+	OnReimportNewFileClicked = InArgs._OnReimportNewFileClicked;
+
+	this->ChildSlot
+
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(SButton)
+				.OnClicked(OnRemoveLODClicked)
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("RemoveLOD", "Remove this LOD"))
+				]
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(SButton)
+				.ToolTipText(this, &SSkeletalLODActions::GetReimportButtonToolTipText)
+				.IsEnabled(this, &SSkeletalLODActions::CanReimportFromSource)
+				.OnClicked(OnReimportClicked)
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("ReimportLOD", "Reimport"))
+				]
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(SButton)
+				.ToolTipText(this, &SSkeletalLODActions::GetReimportButtonNewFileToolTipText)
+				.OnClicked(OnReimportNewFileClicked)
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("ReimportLOD_NewFile", "Reimport (New File)"))
+				]
+			]
+		];
+
+	// Register timer to refresh out exists flag periodically, with a bit added per LOD so we're not doing everything on the same frame
+	const float LODTimeOffset = 1.0f / 30.0f;
+	RegisterActiveTimer(1.0f + LODTimeOffset * LODIndex, FWidgetActiveTimerDelegate::CreateSP(this, &SSkeletalLODActions::RefreshExistFlag));
+}
+
 FSkelMeshReductionSettingsLayout::FSkelMeshReductionSettingsLayout(int32 InLODIndex, TSharedRef<FPersonaMeshDetails> InParentLODSettings, TSharedPtr<IPropertyHandle> InBoneToRemoveProperty)
 : LODIndex(InLODIndex)
 , ParentLODSettings(InParentLODSettings)
@@ -643,15 +780,14 @@ void FPersonaMeshDetails::AddLODLevelCategories(IDetailLayoutBuilder& DetailLayo
 			{
 				LODCategory.AddCustomRow(LOCTEXT("RemoveLODRow", "Remove LOD"))
 				.ValueContent()
-				.HAlign(HAlign_Left)
+				.HAlign(HAlign_Fill)
 				[
-					SNew(SButton)
-					.OnClicked(this, &FPersonaMeshDetails::RemoveOneLOD, LODIndex)
-					[
-						SNew(STextBlock)
-						.Text(LOCTEXT("RemoveLOD", "Remove this LOD"))
-						.Font(DetailLayout.GetDetailFont())
-					]
+					SNew(SSkeletalLODActions)
+					.LODIndex(LODIndex)
+					.PersonaToolkit(GetPersonaToolkit())
+					.OnRemoveLODClicked(this, &FPersonaMeshDetails::RemoveOneLOD, LODIndex)
+					.OnReimportClicked(this, &FPersonaMeshDetails::OnReimportLodClicked, &DetailLayout, EReimportButtonType::Reimport, LODIndex)
+					.OnReimportNewFileClicked(this, &FPersonaMeshDetails::OnReimportLodClicked, &DetailLayout, EReimportButtonType::ReimportWithNewFile, LODIndex)
 				];
 			}
 		}
@@ -667,10 +803,12 @@ void FPersonaMeshDetails::CustomizeLODSettingsCategories(IDetailLayoutBuilder& D
 
 	IDetailCategoryBuilder& LODSettingsCategory = DetailLayout.EditCategory("LodSettings", LOCTEXT("LodSettingsCategory", "LOD Settings"), ECategoryPriority::TypeSpecific);
 
+	TSharedPtr<SWidget> LodTextPtr;
+
 	LODSettingsCategory.AddCustomRow(LOCTEXT("LODImport", "LOD Import"))
 		.NameContent()
 		[
-			SNew(STextBlock)
+			SAssignNew(LodTextPtr, STextBlock)
 			.Font(IDetailLayoutBuilder::GetDetailFont())
 			.Text(LOCTEXT("LODImport", "LOD Import"))
 		]
@@ -1144,6 +1282,42 @@ void FPersonaMeshDetails::OnSetPostProcessBlueprint(const FAssetData& AssetData,
 	{
 		BlueprintProperty->SetValue(SelectedBlueprint->GetAnimBlueprintGeneratedClass());
 	}
+}
+
+FReply FPersonaMeshDetails::OnReimportLodClicked(IDetailLayoutBuilder* DetailLayout, EReimportButtonType InReimportType, int32 InLODIndex)
+{
+	if(USkeletalMesh* SkelMesh = GetPersonaToolkit()->GetMesh())
+	{
+		if(!SkelMesh->LODInfo.IsValidIndex(InLODIndex))
+		{
+			return FReply::Unhandled();
+		}
+
+		FString SourceFilenameBackup("");
+		if(InReimportType == EReimportButtonType::ReimportWithNewFile)
+		{
+			// Back up current source filename and empty it so the importer asks for a new one.
+			SourceFilenameBackup = SkelMesh->LODInfo[InLODIndex].SourceImportFilename;
+			SkelMesh->LODInfo[InLODIndex].SourceImportFilename.Empty();
+		}
+
+		bool bImportSucceeded = FbxMeshUtils::ImportMeshLODDialog(SkelMesh, InLODIndex);
+
+		if(InReimportType == EReimportButtonType::ReimportWithNewFile && !bImportSucceeded)
+		{
+			// Copy old source file back, as this one failed
+			SkelMesh->LODInfo[InLODIndex].SourceImportFilename = SourceFilenameBackup;
+		}
+
+		if(DetailLayout)
+		{
+			DetailLayout->ForceRefreshDetails();
+		}
+
+		return FReply::Handled();
+	}
+
+	return FReply::Unhandled();
 }
 
 void FPersonaMeshDetails::OnGetMaterialsForArray(class IMaterialListBuilder& OutMaterials, int32 LODIndex)

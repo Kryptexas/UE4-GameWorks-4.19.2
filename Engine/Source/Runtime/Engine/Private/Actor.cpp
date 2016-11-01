@@ -231,12 +231,10 @@ void AActor::ResetOwnedComponents()
 	}
 #endif
 
-	TArray<UObject*> ActorChildren;
 	OwnedComponents.Reset();
 	ReplicatedComponents.Reset();
-	GetObjectsWithOuter(this, ActorChildren, true, RF_NoFlags, EInternalObjectFlags::PendingKill);
 
-	for (UObject* Child : ActorChildren)
+	ForEachObjectWithOuter(this, [this](UObject* Child)
 	{
 		UActorComponent* Component = Cast<UActorComponent>(Child);
 		if (Component && Component->GetOwner() == this)
@@ -248,7 +246,7 @@ void AActor::ResetOwnedComponents()
 				ReplicatedComponents.Add(Component);
 			}
 		}
-	}
+	}, true, RF_NoFlags, EInternalObjectFlags::PendingKill);
 }
 
 void AActor::PostInitProperties()

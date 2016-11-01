@@ -999,17 +999,16 @@ struct GAMEPLAYABILITIES_API FGameplayTagCountContainer
 	/**
 	 * Check if the count container has gameplay tags that matches against all of the specified tags (expands to include parents of asset tags)
 	 * 
-	 * @param TagContainer			Tag container to check for a match
-	 * @param bCountEmptyAsMatch	If true, the parameter tag container will count as matching, even if it's empty
+	 * @param TagContainer			Tag container to check for a match. If empty will return true
 	 * 
 	 * @return True if the count container matches all of the gameplay tags
 	 */
-	FORCEINLINE bool HasAllMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch = true) const
+	FORCEINLINE bool HasAllMatchingGameplayTags(const FGameplayTagContainer& TagContainer) const
 	{
 		// if the TagContainer count is 0 return bCountEmptyAsMatch;
 		if (TagContainer.Num() == 0)
 		{
-			return bCountEmptyAsMatch;
+			return true;
 		}
 
 		bool AllMatch = true;
@@ -1027,14 +1026,18 @@ struct GAMEPLAYABILITIES_API FGameplayTagCountContainer
 	/**
 	 * Check if the count container has gameplay tags that matches against any of the specified tags (expands to include parents of asset tags)
 	 * 
-	 * @param TagContainer			Tag container to check for a match
-	 * @param bCountEmptyAsMatch	If true, the parameter tag container will count as matching, even if it's empty
+	 * @param TagContainer			Tag container to check for a match. If empty will return false
 	 * 
 	 * @return True if the count container matches any of the gameplay tags
 	 */
-	FORCEINLINE bool HasAnyMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch = true) const
+	FORCEINLINE bool HasAnyMatchingGameplayTags(const FGameplayTagContainer& TagContainer) const
 	{
-		bool AnyMatch = (bCountEmptyAsMatch && TagContainer.Num() == 0);
+		if (TagContainer.Num() == 0)
+		{
+			return false;
+		}
+
+		bool AnyMatch = false;
 		for (const FGameplayTag& Tag : TagContainer)
 		{
 			if (GameplayTagCountMap.FindRef(Tag) > 0)

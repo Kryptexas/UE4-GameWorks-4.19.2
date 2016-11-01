@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "GameplayTagsModule.h"
+#include "GameplayTags.h"
 #include "GameplayAbilitiesModule.h"
 #include "GameplayEffectTypes.h"
 #include "AbilitySystemGlobals.generated.h"
@@ -184,27 +184,27 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 	{
 		if (ActivateFailCooldownName != NAME_None)
 		{
-			ActivateFailCooldownTag = IGameplayTagsModule::RequestGameplayTag(ActivateFailCooldownName);
+			ActivateFailCooldownTag = FGameplayTag::RequestGameplayTag(ActivateFailCooldownName);
 		}
 
 		if (ActivateFailCostName != NAME_None)
 		{
-			ActivateFailCostTag = IGameplayTagsModule::RequestGameplayTag(ActivateFailCostName);
+			ActivateFailCostTag = FGameplayTag::RequestGameplayTag(ActivateFailCostName);
 		}
 
 		if (ActivateFailTagsBlockedName != NAME_None)
 		{
-			ActivateFailTagsBlockedTag = IGameplayTagsModule::RequestGameplayTag(ActivateFailTagsBlockedName);
+			ActivateFailTagsBlockedTag = FGameplayTag::RequestGameplayTag(ActivateFailTagsBlockedName);
 		}
 
 		if (ActivateFailTagsMissingName != NAME_None)
 		{
-			ActivateFailTagsMissingTag = IGameplayTagsModule::RequestGameplayTag(ActivateFailTagsMissingName);
+			ActivateFailTagsMissingTag = FGameplayTag::RequestGameplayTag(ActivateFailTagsMissingName);
 		}
 
 		if (ActivateFailNetworkingName != NAME_None)
 		{
-			ActivateFailNetworkingTag = IGameplayTagsModule::RequestGameplayTag(ActivateFailNetworkingName);
+			ActivateFailNetworkingTag = FGameplayTag::RequestGameplayTag(ActivateFailNetworkingName);
 		}
 	}
 

@@ -345,7 +345,7 @@ bool FXAudio2SoundBuffer::ReadCompressedData( uint8* Destination, bool bLooping 
 
 void FXAudio2SoundBuffer::Seek( const float SeekTime )
 {
-	if (ensure(DecompressionState))
+	if (DecompressionState)
 	{
 		DecompressionState->SeekToTime(SeekTime);
 	}

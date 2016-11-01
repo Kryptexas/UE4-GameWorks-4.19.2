@@ -4,7 +4,6 @@
 #include "GameplayEffect.h"
 #include "GameplayEffectExtension.h"
 #include "GameplayEffectTypes.h"
-#include "GameplayTagsModule.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
 #include "GameplayModMagnitudeCalculation.h"
@@ -61,8 +60,6 @@ void UGameplayEffect::GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) 
 
 void UGameplayEffect::GetTargetEffects(TArray<const UGameplayEffect*, TInlineAllocator<4> >& OutEffects) const
 {
-	OutEffects.Append(TargetEffects);
-
 	for ( TSubclassOf<UGameplayEffect> EffectClass : TargetEffectClasses )
 	{
 		if ( EffectClass )
@@ -94,15 +91,6 @@ void UGameplayEffect::PostLoad()
 
 	// We need to update when we first load to override values coming in from the superclass
 	// We also copy the tags from the old tag containers into the inheritable tag containers
-
-	InheritableGameplayEffectTags.Added.AppendTags(GameplayEffectTags);
-	GameplayEffectTags.RemoveAllTags();
-
-	InheritableOwnedTagsContainer.Added.AppendTags(OwnedTagsContainer);
-	OwnedTagsContainer.RemoveAllTags();
-
-	RemoveGameplayEffectsWithTags.Added.AppendTags(ClearTagsContainer);
-	ClearTagsContainer.RemoveAllTags();
 
 	UpdateInheritedTagProperties();
 
@@ -252,12 +240,12 @@ bool FAttributeBasedFloat::operator==(const FAttributeBasedFloat& Other) const
 		return false;
 	}
 	if (SourceTagFilter.Num() != Other.SourceTagFilter.Num() ||
-		!SourceTagFilter.MatchesAll(Other.SourceTagFilter, true))
+		!SourceTagFilter.HasAll(Other.SourceTagFilter))
 	{
 		return false;
 	}
 	if (TargetTagFilter.Num() != Other.TargetTagFilter.Num() ||
-		!TargetTagFilter.MatchesAll(Other.TargetTagFilter, true))
+		!TargetTagFilter.HasAll(Other.TargetTagFilter))
 	{
 		return false;
 	}
@@ -1672,7 +1660,7 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSp
 	// Capture our own tags.
 	// TODO: We should only capture them if we need to. We may have snapshotted target tags (?) (in the case of dots with exotic setups?)
 
-	SpecToUse.CapturedTargetTags.GetActorTags().RemoveAllTags();
+	SpecToUse.CapturedTargetTags.GetActorTags().Reset();
 	Owner->GetOwnedGameplayTags(SpecToUse.CapturedTargetTags.GetActorTags());
 
 	SpecToUse.CalculateModifierMagnitudes();
@@ -2564,7 +2552,7 @@ FActiveGameplayEffect* FActiveGameplayEffectsContainer::ApplyGameplayEffectSpec(
 	UAbilitySystemGlobals::Get().GlobalPreGameplayEffectSpecApply(AppliedEffectSpec, Owner);
 
 	// Make sure our target's tags are collected, so we can properly filter infinite effects
-	AppliedEffectSpec.CapturedTargetTags.GetActorTags().RemoveAllTags();
+	AppliedEffectSpec.CapturedTargetTags.GetActorTags().Reset();
 	Owner->GetOwnedGameplayTags(AppliedEffectSpec.CapturedTargetTags.GetActorTags());
 
 	// Calc all of our modifier magnitudes now. Some may need to update later based on attributes changing, etc, but those should
@@ -3020,7 +3008,6 @@ void FActiveGameplayEffectsContainer::RemoveActiveGameplayEffectGrantedTagsAndMo
 	}
 
 	// Update gameplaytag count and broadcast delegate if we are at 0
-	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
 	Owner->UpdateTagMap(Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags, -1);
 	Owner->UpdateTagMap(Effect.Spec.DynamicGrantedTags, -1);
 
@@ -3334,7 +3321,7 @@ bool FActiveGameplayEffectsContainer::HasApplicationImmunityToSpec(const FGamepl
 	}
 
 	// Quick map test
-	if (!AggregatedSourceTags->MatchesAny(ApplicationImmunityGameplayTagCountContainer.GetExplicitGameplayTags(), false))
+	if (!AggregatedSourceTags->HasAny(ApplicationImmunityGameplayTagCountContainer.GetExplicitGameplayTags()))
 	{
 		return false;
 	}
@@ -3579,31 +3566,6 @@ bool FActiveGameplayEffectsContainer::CanApplyAttributeModifiers(const UGameplay
 	return true;
 }
 
-// #deprecated
-TArray<float> FActiveGameplayEffectsContainer::GetActiveEffectsTimeRemaining(const FActiveGameplayEffectQuery Query) const
-{
-	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsGetActiveEffectsTimeRemaining);
-
-	float CurrentTime = GetWorldTime();
-
-	TArray<float>	ReturnList;
-
-	for (const FActiveGameplayEffect& Effect : this)
-	{
-		if (!Query.Matches(Effect))
-		{
-			continue;
-		}
-
-		float Elapsed = CurrentTime - Effect.StartWorldTime;
-		float Duration = Effect.GetDuration();
-
-		ReturnList.Add(Duration - Elapsed);
-	}
-
-	// Note: keep one return location to avoid copy operation.
-	return ReturnList;
-}
 TArray<float> FActiveGameplayEffectsContainer::GetActiveEffectsTimeRemaining(const FGameplayEffectQuery& Query) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsGetActiveEffectsTimeRemaining);
@@ -3623,28 +3585,6 @@ TArray<float> FActiveGameplayEffectsContainer::GetActiveEffectsTimeRemaining(con
 		float Duration = Effect.GetDuration();
 
 		ReturnList.Add(Duration - Elapsed);
-	}
-
-	// Note: keep one return location to avoid copy operation.
-	return ReturnList;
-}
-
-
-// #deprecated
-TArray<float> FActiveGameplayEffectsContainer::GetActiveEffectsDuration(const FActiveGameplayEffectQuery Query) const
-{
-	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsGetActiveEffectsDuration);
-
-	TArray<float>	ReturnList;
-
-	for (const FActiveGameplayEffect& Effect : this)
-	{
-		if (!Query.Matches(Effect))
-		{
-			continue;
-		}
-
-		ReturnList.Add(Effect.GetDuration());
 	}
 
 	// Note: keep one return location to avoid copy operation.
@@ -3693,26 +3633,6 @@ TArray<TPair<float,float>> FActiveGameplayEffectsContainer::GetActiveEffectsTime
 	}
 
 	// Note: keep one return location to avoid copy operation.
-	return ReturnList;
-}
-
-// #deprecated
-TArray<FActiveGameplayEffectHandle> FActiveGameplayEffectsContainer::GetActiveEffects(const FActiveGameplayEffectQuery Query) const
-{
-	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsGetActiveEffects);
-
-	TArray<FActiveGameplayEffectHandle> ReturnList;
-
-	for (const FActiveGameplayEffect& Effect : this)
-	{
-		if (!Query.Matches(Effect))
-		{
-			continue;
-		}
-
-		ReturnList.Add(Effect.Handle);
-	}
-
 	return ReturnList;
 }
 
@@ -3809,26 +3729,6 @@ void FActiveGameplayEffectsContainer::ModifyActiveEffectStartTime(FActiveGamepla
 	}
 }
 
-// #deprecated, use FGameplayEffectQuery version
-int32 FActiveGameplayEffectsContainer::RemoveActiveEffects(const FActiveGameplayEffectQuery Query, int32 StacksToRemove)
-{
-	// Force a lock because the removals could cause other removals earlier in the array, so iterating backwards is not safe all by itself
-	GAMEPLAYEFFECT_SCOPE_LOCK();
-	int32 NumRemoved = 0;
-
-	// Manually iterating through in reverse because this is a removal operation
-	for (int32 idx=GetNumGameplayEffects()-1; idx >= 0; --idx)
-	{
-		const FActiveGameplayEffect& Effect = *GetActiveGameplayEffect(idx);
-		if (Effect.IsPendingRemove==false && Query.Matches(Effect))
-		{
-			InternalRemoveActiveGameplayEffect(idx, StacksToRemove, true);		
-			++NumRemoved;
-		}
-	}
-	return NumRemoved;
-}
-
 int32 FActiveGameplayEffectsContainer::RemoveActiveEffects(const FGameplayEffectQuery& Query, int32 StacksToRemove)
 {
 	// Force a lock because the removals could cause other removals earlier in the array, so iterating backwards is not safe all by itself
@@ -3846,24 +3746,6 @@ int32 FActiveGameplayEffectsContainer::RemoveActiveEffects(const FGameplayEffect
 		}
 	}
 	return NumRemoved;
-}
-
-int32 FActiveGameplayEffectsContainer::GetActiveEffectCount(const FActiveGameplayEffectQuery Query, bool bEnforceOnGoingCheck) const
-{
-	int32 Count = 0;
-
-	for (const FActiveGameplayEffect& Effect : this)
-	{
-		if (!Effect.bIsInhibited || !bEnforceOnGoingCheck)
-		{
-			if (Query.Matches(Effect))
-			{
-				Count += Effect.Spec.StackCount;
-			}
-		}
-	}
-
-	return Count;
 }
 
 int32 FActiveGameplayEffectsContainer::GetActiveEffectCount(const FGameplayEffectQuery& Query, bool bEnforceOnGoingCheck) const
@@ -4259,7 +4141,7 @@ bool FGameplayEffectQuery::Matches(const FGameplayEffectSpec& Spec) const
 		// static to avoid memory allocations every time we do a query
 		check(IsInGameThread());
 		static FGameplayTagContainer TargetTags;
-		TargetTags.RemoveAllTags();
+		TargetTags.Reset();
 		if (Spec.Def->InheritableGameplayEffectTags.CombinedTags.Num() > 0)
 		{
 			TargetTags.AppendTags(Spec.Def->InheritableGameplayEffectTags.CombinedTags);
@@ -4285,7 +4167,7 @@ bool FGameplayEffectQuery::Matches(const FGameplayEffectSpec& Spec) const
 		// static to avoid memory allocations every time we do a query
 		check(IsInGameThread());
 		static FGameplayTagContainer GETags;
-		GETags.RemoveAllTags();
+		GETags.Reset();
 		if (Spec.Def->InheritableGameplayEffectTags.CombinedTags.Num() > 0)
 		{
 			GETags.AppendTags(Spec.Def->InheritableGameplayEffectTags.CombinedTags);
@@ -4448,100 +4330,6 @@ FGameplayEffectQuery FGameplayEffectQuery::MakeQuery_MatchNoSourceTags(const FGa
 	return OutQuery;
 }
 
-
-bool FActiveGameplayEffectQuery::Matches(const FActiveGameplayEffect& Effect) const
-{
-	// Anything in the ignore handle list is an immediate non-match
-	if (IgnoreHandles.Contains(Effect.Handle))
-	{
-		return false;
-	}
-
-	if (CustomMatch.IsBound())
-	{
-		return CustomMatch.Execute(Effect);
-	}
-
- 	// if we are looking for owning tags check them on the Granted Tags and Owned Tags Container
- 	if (OwningTagContainer)
- 	{
- 		if (!Effect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags.MatchesAny(*OwningTagContainer, true) &&
- 			!Effect.Spec.DynamicGrantedTags.MatchesAny(*OwningTagContainer, false))
- 		{
- 			// if the GameplayEffect didn't match check the spec for tags that were added when this effect was created
- 			if (!Effect.Spec.CapturedSourceTags.GetSpecTags().MatchesAny(*OwningTagContainer, false))
- 			{
- 				return false;
- 			}
- 		}
- 	}	
- 	
- 	// if we are just looking for Tags on the Effect then look at the Gameplay Effect Tags
- 	if (EffectTagContainer)
- 	{
- 		if (!Effect.Spec.Def->InheritableGameplayEffectTags.CombinedTags.MatchesAny(*EffectTagContainer, true) &&
- 			!Effect.Spec.DynamicAssetTags.MatchesAny(*EffectTagContainer, false))
- 		{
- 			// this doesn't match our Tags so bail
- 			return false;
- 		}
- 	}
-
-	// if we are just looking for Tags on the Effect then look at the Gameplay Effect Tags
-	if (EffectTagContainer_Rejection)
-	{
-		if (Effect.Spec.Def->InheritableGameplayEffectTags.CombinedTags.MatchesAny(*EffectTagContainer_Rejection, true) ||
-			Effect.Spec.DynamicAssetTags.MatchesAny(*EffectTagContainer_Rejection, false))
-		{
-			// this matches our Rejection Tags so bail
-			return false;
-		}
-	}
-
-	// if we are looking for ModifyingAttribute go over each of the Spec Modifiers and check the Attributes
-	if (ModifyingAttribute.IsValid())
-	{
-		bool FailedModifyingAttributeCheck = true;
-
-		for(int32 ModIdx = 0; ModIdx < Effect.Spec.Modifiers.Num(); ++ModIdx)
-		{
-			const FGameplayModifierInfo& ModDef = Effect.Spec.Def->Modifiers[ModIdx];
-			const FModifierSpec& ModSpec = Effect.Spec.Modifiers[ModIdx];
-
-			if (ModDef.Attribute == ModifyingAttribute)
-			{
-				FailedModifyingAttributeCheck = false;
-				break;
-			}
-		}
-		if (FailedModifyingAttributeCheck)
-		{
-			return false;
-		}
-	}
-
-	// check source object
-	if (EffectSource)
-	{
-		if (Effect.Spec.GetEffectContext().GetSourceObject() != EffectSource)
-		{
-			return false;
-		}
-	}
-
-	// check definition
-	if (EffectDef)
-	{
-		if (Effect.Spec.Def != EffectDef)
-		{
-			return false;
-		}
-	}
-
-	// passed all the checks
-	return true;
-}
-
 bool FGameplayModifierInfo::operator==(const FGameplayModifierInfo& Other) const
 {
 	if (Attribute != Other.Attribute)
@@ -4559,20 +4347,20 @@ bool FGameplayModifierInfo::operator==(const FGameplayModifierInfo& Other) const
 		return false;
 	}
 
-	if (SourceTags.RequireTags.Num() != Other.SourceTags.RequireTags.Num() || !SourceTags.RequireTags.MatchesAll(Other.SourceTags.RequireTags, true))
+	if (SourceTags.RequireTags.Num() != Other.SourceTags.RequireTags.Num() || !SourceTags.RequireTags.HasAll(Other.SourceTags.RequireTags))
 	{
 		return false;
 	}
-	if (SourceTags.IgnoreTags.Num() != Other.SourceTags.IgnoreTags.Num() || !SourceTags.IgnoreTags.MatchesAll(Other.SourceTags.IgnoreTags, true))
+	if (SourceTags.IgnoreTags.Num() != Other.SourceTags.IgnoreTags.Num() || !SourceTags.IgnoreTags.HasAll(Other.SourceTags.IgnoreTags))
 	{
 		return false;
 	}
 
-	if (TargetTags.RequireTags.Num() != Other.TargetTags.RequireTags.Num() || !TargetTags.RequireTags.MatchesAll(Other.TargetTags.RequireTags, true))
+	if (TargetTags.RequireTags.Num() != Other.TargetTags.RequireTags.Num() || !TargetTags.RequireTags.HasAll(Other.TargetTags.RequireTags))
 	{
 		return false;
 	}
-	if (TargetTags.IgnoreTags.Num() != Other.TargetTags.IgnoreTags.Num() || !TargetTags.IgnoreTags.MatchesAll(Other.TargetTags.IgnoreTags, true))
+	if (TargetTags.IgnoreTags.Num() != Other.TargetTags.IgnoreTags.Num() || !TargetTags.IgnoreTags.HasAll(Other.TargetTags.IgnoreTags))
 	{
 		return false;
 	}
@@ -4588,14 +4376,14 @@ bool FGameplayModifierInfo::operator!=(const FGameplayModifierInfo& Other) const
 void FInheritedTagContainer::UpdateInheritedTagProperties(const FInheritedTagContainer* Parent)
 {
 	// Make sure we've got a fresh start
-	CombinedTags.RemoveAllTags();
+	CombinedTags.Reset();
 
 	// Re-add the Parent's tags except the one's we have removed
 	if (Parent)
 	{
 		for (auto Itr = Parent->CombinedTags.CreateConstIterator(); Itr; ++Itr)
 		{
-			if (!Removed.HasTag(*Itr, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::IncludeParentTags))
+			if (!Itr->MatchesAny(Removed))
 			{
 				CombinedTags.AddTag(*Itr);
 			}
@@ -4607,7 +4395,7 @@ void FInheritedTagContainer::UpdateInheritedTagProperties(const FInheritedTagCon
 	{
 		// Remove trumps add for explicit matches but not for parent tags.
 		// This lets us remove all inherited tags starting with Foo but still add Foo.Bar
-		if (!Removed.HasTag(*Itr, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::Explicit))
+		if (!Removed.HasTagExact(*Itr))
 		{
 			CombinedTags.AddTag(*Itr);
 		}
@@ -4618,8 +4406,8 @@ void FInheritedTagContainer::PostInitProperties()
 {
 	// we shouldn't inherit the added and removed tags from our parents
 	// make sure that these fields are clear
-	Added.RemoveAllTags();
-	Removed.RemoveAllTags();
+	Added.Reset();
+	Removed.Reset();
 }
 
 void FInheritedTagContainer::AddTag(const FGameplayTag& TagToAdd)

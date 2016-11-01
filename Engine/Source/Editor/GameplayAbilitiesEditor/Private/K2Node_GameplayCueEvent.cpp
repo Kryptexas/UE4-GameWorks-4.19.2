@@ -4,7 +4,7 @@
 #include "AbilitySystemEditorPrivatePCH.h"
 #include "K2Node_GameplayCueEvent.h"
 #include "CompilerResultsLog.h"
-#include "GameplayTagsModule.h"
+#include "GameplayTags.h"
 #include "GameplayCueInterface.h"
 #include "BlueprintEventNodeSpawner.h"
 #include "BlueprintEditorUtils.h"
@@ -75,11 +75,11 @@ void UK2Node_GameplayCueEvent::GetMenuActions(FBlueprintActionDatabaseRegistrar&
 		EventNode->CustomFunctionName = TagName;
 	};
 	
-	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
-	FGameplayTag RootTag = GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTag(FName(TEXT("GameplayCue")), false);
+	UGameplayTagsManager& Manager = UGameplayTagsManager::Get();
+	FGameplayTag RootTag = Manager.RequestGameplayTag(FName(TEXT("GameplayCue")), false);
 	if (RootTag.IsValid())
 	{
-		FGameplayTagContainer CueTags = GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTagChildren(RootTag);
+		FGameplayTagContainer CueTags = Manager.RequestGameplayTagChildren(RootTag);
 		// Add a root GameplayCue function as a default
 		CueTags.AddTag(RootTag);
 		for (auto TagIt = CueTags.CreateConstIterator(); TagIt; ++TagIt)

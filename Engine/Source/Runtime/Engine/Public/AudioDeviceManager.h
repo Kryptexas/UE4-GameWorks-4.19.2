@@ -148,6 +148,9 @@ public:
 	/** Toggles 3d visualization of 3d sounds on/off */
 	void ToggleVisualize3dDebug();
 
+	/** Toggles the given debug stat bitmask for all current audio devices. */
+	void ToggleDebugStat(const uint8 StatBitMask);
+
 	/** Debug solos the given sound class name. Sounds that play with this sound class will be solo'd */
 	void SetDebugSoloSoundClass(const TCHAR* SoundClassName);
 

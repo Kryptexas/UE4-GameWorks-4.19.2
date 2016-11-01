@@ -42,9 +42,6 @@ void UBlueprintGeneratedClass::PostLoad()
 	UObject* ClassCDO = GetDefaultObject();
 
 	// Go through the CDO of the class, and make sure we don't have any legacy components that aren't instanced hanging on.
-	TArray<UObject*> SubObjects;
-	GetObjectsWithOuter(ClassCDO, SubObjects);
-
 	struct FCheckIfComponentChildHelper
 	{
 		static bool IsComponentChild(UObject* CurrObj, const UObject* CDO)
@@ -55,14 +52,14 @@ void UBlueprintGeneratedClass::PostLoad()
 		};
 	};
 
-	for (UObject* CurrObj :	SubObjects)
+	ForEachObjectWithOuter(ClassCDO, [ClassCDO](UObject* CurrObj)
 	{
 		const bool bComponentChild = FCheckIfComponentChildHelper::IsComponentChild(CurrObj, ClassCDO);
 		if (!CurrObj->IsDefaultSubobject() && !CurrObj->IsRooted() && !bComponentChild)
 		{
 			CurrObj->MarkPendingKill();
 		}
-	}
+	});
 
 #if WITH_EDITORONLY_DATA
 	if (GetLinkerUE4Version() < VER_UE4_CLASS_NOTPLACEABLE_ADDED)
@@ -1046,13 +1043,11 @@ void UBlueprintGeneratedClass::GetPreloadDependencies(TArray<UObject*>& OutDeps)
 	UObject *CDO = GetDefaultObject();
 	if (CDO)
 	{
-		TArray<UObject*> Subobjects;
-		GetObjectsWithOuter(CDO, Subobjects);
-		for (UObject* SubObj : Subobjects)
+		ForEachObjectWithOuter(CDO, [&OutDeps](UObject* SubObj)
 		{
 			OutDeps.Add(SubObj->GetClass());
 			OutDeps.Add(SubObj->GetArchetype());
-		}
+		});
 	}
 }
 

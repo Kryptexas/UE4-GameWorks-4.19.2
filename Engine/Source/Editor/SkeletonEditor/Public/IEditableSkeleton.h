@@ -62,6 +62,10 @@ public:
 
 	/** Sets Material Meta Data for the curve */
 	virtual void SetCurveMetaDataMaterial(const FSmartName& CurveName, bool bOverrideMaterial) = 0;
+
+	/** Sets Bone Links per curve */
+	virtual void SetCurveMetaBoneLinks(const FSmartName& CurveName, TArray<FBoneReference>& BoneLinks) = 0;
+
 	/**
 	 * Makes sure all attached objects are valid and removes any that aren't.
 	 *

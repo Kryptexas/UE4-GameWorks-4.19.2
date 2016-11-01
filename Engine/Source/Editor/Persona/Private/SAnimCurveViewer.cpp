@@ -17,6 +17,7 @@
 
 #include "GenericCommands.h"
 #include "CurveViewerCommands.h"
+#include "Animation/EditorAnimCurveBoneLinks.h"
 
 #define LOCTEXT_NAMESPACE "SAnimCurveViewer"
 
@@ -24,9 +25,9 @@ static const FName ColumnId_AnimCurveNameLabel( "Curve Name" );
 static const FName ColumnID_AnimCurveTypeLabel("Type");
 static const FName ColumnID_AnimCurveWeightLabel( "Weight" );
 static const FName ColumnID_AnimCurveEditLabel( "Edit" );
+static const FName ColumnID_AnimCurveNumBoneLabel("Num Bones");
 
 const float MaxMorphWeight = 5.f;
-
 //////////////////////////////////////////////////////////////////////////
 // SAnimCurveListRow
 
@@ -123,7 +124,7 @@ TSharedRef< SWidget > SAnimCurveListRow::GenerateWidgetForColumn( const FName& C
 				.OnValueCommitted( this, &SAnimCurveListRow::OnAnimCurveWeightValueCommitted )
 			];
 	}
-	else 
+	else if ( ColumnName == ColumnID_AnimCurveEditLabel)
 	{
 		return
 			SNew(SVerticalBox)
@@ -139,6 +140,32 @@ TSharedRef< SWidget > SAnimCurveListRow::GenerateWidgetForColumn( const FName& C
 				.IsChecked(this, &SAnimCurveListRow::IsAnimCurveAutoFillChangedChecked)
 			];
 	}
+	else
+	{
+		return
+			SNew(SVerticalBox)
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(0.0f, 1.0f)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			[
+				SNew(STextBlock)
+				.Text(this, &SAnimCurveListRow::GetNumConntectedBones)
+			];
+	}
+}
+
+FText SAnimCurveListRow::GetNumConntectedBones() const
+{
+	const FCurveMetaData* CurveMetaData = Item->EditableSkeleton.Pin()->GetSkeleton().GetCurveMetaData(Item->SmartName);
+	if (CurveMetaData)
+	{
+		return FText::AsNumber(CurveMetaData->LinkedBones.Num());
+	}
+
+	return FText::AsNumber(0);
 }
 
 TSharedRef< SWidget > SAnimCurveListRow::GetCurveTypeWidget()
@@ -490,8 +517,14 @@ FText SAnimCurveTypeList::GetAnimCurveType() const
 //////////////////////////////////////////////////////////////////////////
 // SAnimCurveViewer
 
-void SAnimCurveViewer::Construct(const FArguments& InArgs, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnCurvesChanged, FSimpleMulticastDelegate& InOnPostUndo)
+void SAnimCurveViewer::Construct(const FArguments& InArgs, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnCurvesChanged, FSimpleMulticastDelegate& InOnPostUndo, FOnObjectsSelected InOnObjectsSelected)
 {
+	OnObjectsSelected = InOnObjectsSelected;
+
+	bShowAllCurves = true;
+
+	EditorObjectTracker.SetAllowOnePerClass(false);
+
 	ContainerName = USkeleton::AnimCurveMappingName;
 
 	CachedPreviewInstance = nullptr;
@@ -555,6 +588,7 @@ void SAnimCurveViewer::Construct(const FArguments& InArgs, const TSharedRef<clas
 			.OnContextMenuOpening( this, &SAnimCurveViewer::OnGetContextMenuContent )
 			.ItemHeight( 22.0f )
 			.SelectionMode(ESelectionMode::Multi)
+			.OnSelectionChanged( this, &SAnimCurveViewer::OnSelectionChanged )
 			.HeaderRow
 			(
 				SNew( SHeaderRow )
@@ -563,7 +597,7 @@ void SAnimCurveViewer::Construct(const FArguments& InArgs, const TSharedRef<clas
 				.DefaultLabel( LOCTEXT( "AnimCurveNameLabel", "Curve Name" ) )
 
 				+ SHeaderRow::Column(ColumnID_AnimCurveTypeLabel)
-				.FillWidth(1.f)
+				.FillWidth(0.5f)
 				.DefaultLabel(LOCTEXT("AnimCurveTypeLabel", "Type"))
 
 				+ SHeaderRow::Column( ColumnID_AnimCurveWeightLabel )
@@ -573,6 +607,10 @@ void SAnimCurveViewer::Construct(const FArguments& InArgs, const TSharedRef<clas
 				+ SHeaderRow::Column(ColumnID_AnimCurveEditLabel)
 				.FillWidth(0.25f)
 				.DefaultLabel(LOCTEXT("AnimCurveEditLabel", "Auto"))
+
+				+ SHeaderRow::Column(ColumnID_AnimCurveNumBoneLabel)
+				.FillWidth(0.5f)
+				.DefaultLabel(LOCTEXT("AnimCurveNumBoneLabel", "Bones"))
 			)
 		]
 	];
@@ -595,6 +633,22 @@ SAnimCurveViewer::~SAnimCurveViewer()
 	}
 }
 
+bool SAnimCurveViewer::IsCurveFilterEnabled() const
+{
+	return !bShowAllCurves;
+}
+
+ECheckBoxState SAnimCurveViewer::IsShowingAllCurves() const
+{
+	return bShowAllCurves ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
+void SAnimCurveViewer::OnToggleShowingAllCurves(ECheckBoxState NewState)
+{
+	bShowAllCurves = (NewState == ECheckBoxState::Checked);
+
+	RefreshCurveList();
+}
 FReply SAnimCurveViewer::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
 	if (UICommandList.IsValid() && UICommandList->ProcessCommandBindings(InKeyEvent))
@@ -632,12 +686,6 @@ void SAnimCurveViewer::BindCommands()
 		MenuActions.AddCurve,
 		FExecuteAction::CreateSP(this, &SAnimCurveViewer::OnAddClicked),
 		FCanExecuteAction());
-}
-
-
-bool SAnimCurveViewer::IsCurveFilterEnabled() const
-{
-	return true;
 }
 
 void SAnimCurveViewer::RefreshCachePreviewInstance()
@@ -798,7 +846,7 @@ void SAnimCurveViewer::CreateAnimCurveList( const FString& SearchText )
 		TMap<FName, float> ActiveCurves;
 		UDebugSkelMeshComponent* MeshComponent = PreviewScenePtr.Pin()->GetPreviewMeshComponent();
 		UAnimInstance* AnimInstance = MeshComponent->GetAnimInstance();
-		if (AnimInstance)
+		if (!bShowAllCurves && AnimInstance)
 		{
 			// attribute curve should contain everything
 			// so only search other container if attribute is off
@@ -837,7 +885,7 @@ void SAnimCurveViewer::CreateAnimCurveList( const FString& SearchText )
 			}
 
 			// If we passed that, see if we are filtering to only active
-			if (bAddToList)
+			if (bAddToList && !bShowAllCurves)
 			{
 				bAddToList = ActiveCurves.Contains(SmartName.DisplayName);
 			}
@@ -848,7 +896,9 @@ void SAnimCurveViewer::CreateAnimCurveList( const FString& SearchText )
 				// If not already in list, add it
 				if (FindIndexOfAnimCurveInfo(AnimCurveList, SmartName.DisplayName) == INDEX_NONE)
 				{
-					TSharedRef<FDisplayedAnimCurveInfo> NewInfo = FDisplayedAnimCurveInfo::Make(EditableSkeletonPtr, ContainerName, SmartName);
+					UEditorAnimCurveBoneLinks* EditorMirrorObj = Cast<UEditorAnimCurveBoneLinks> (EditorObjectTracker.GetEditorObjectForClass(UEditorAnimCurveBoneLinks::StaticClass()));
+					EditorMirrorObj->Initialize(EditableSkeletonPtr, SmartName, FOnAnimCurveBonesChange::CreateSP(this, &SAnimCurveViewer::ApplyCurveBoneLinks));
+					TSharedRef<FDisplayedAnimCurveInfo> NewInfo = FDisplayedAnimCurveInfo::Make(EditableSkeletonPtr, ContainerName, SmartName, EditorMirrorObj);
 
 					// See if we have an override set, and if so, grab info
 					float Weight = 0.f;
@@ -888,6 +938,25 @@ void SAnimCurveViewer::CreateAnimCurveList( const FString& SearchText )
 
 void SAnimCurveViewer::CreateAnimCurveTypeList(TSharedRef<SHorizontalBox> HorizontalBox)
 {
+	// Add toggle button for 'all curves'
+	HorizontalBox->AddSlot()
+	.AutoWidth()
+	.Padding(3, 1)
+	[
+		SNew(SCheckBox)
+		.Style(FEditorStyle::Get(), "ToggleButtonCheckbox")
+		.ToolTipText(LOCTEXT("ShowAllCurvesTooltip", "Show all curves, or only active curves."))
+		.Type(ESlateCheckBoxType::ToggleButton)
+		.IsChecked(this, &SAnimCurveViewer::IsShowingAllCurves)
+		.OnCheckStateChanged(this, &SAnimCurveViewer::OnToggleShowingAllCurves)
+		.Padding(4)
+		.Content()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("ShowAllCurves", "All Curves"))
+		]
+	];
+
 	// Add check box for each curve type flag
 	TArray<int32> CurveFlagsToList;
 	CurveFlagsToList.Add(ACEF_DriveMorphTarget);
@@ -1025,6 +1094,44 @@ void SAnimCurveViewer::OnDeleteNameClicked()
 bool SAnimCurveViewer::CanDelete()
 {
 	return AnimCurveListView->GetNumItemsSelected() > 0;
+}
+
+void SAnimCurveViewer::OnSelectionChanged(TSharedPtr<FDisplayedAnimCurveInfo> InItem, ESelectInfo::Type SelectInfo)
+{
+	// make sure the currently selected ones are refreshed if it's first time
+	TArray<UObject*> SelectedObjects;
+
+	TArray< TSharedPtr< FDisplayedAnimCurveInfo > > SelectedRows = AnimCurveListView->GetSelectedItems();
+	for (auto ItemIt = SelectedRows.CreateIterator(); ItemIt; ++ItemIt)
+	{
+		TSharedPtr< FDisplayedAnimCurveInfo > RowItem = (*ItemIt);
+		UEditorAnimCurveBoneLinks* EditorMirrorObj = RowItem->EditorMirrorObject;
+		if (RowItem == InItem)
+		{
+			// first time selected, refresh
+			TArray<FBoneReference> BoneLinks;
+			FSmartName CurrentName = RowItem->SmartName;
+			const FCurveMetaData* CurveMetaData = EditableSkeletonPtr.Pin()->GetSkeleton().GetCurveMetaData(CurrentName);
+			if (CurveMetaData)
+			{
+				BoneLinks = CurveMetaData->LinkedBones;
+			}
+
+			EditorMirrorObj->Refresh(CurrentName, BoneLinks);
+		}
+
+		SelectedObjects.Add(EditorMirrorObj);
+	}
+
+	OnObjectsSelected.ExecuteIfBound(SelectedObjects);
+}
+
+void SAnimCurveViewer::ApplyCurveBoneLinks(class UEditorAnimCurveBoneLinks* EditorObj)
+{
+	if (EditorObj)
+	{
+		EditableSkeletonPtr.Pin()->SetCurveMetaBoneLinks(EditorObj->CurveName, EditorObj->ConnectedBones);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -349,7 +349,7 @@ FText SAnimEditorBase::GetCurrentFrame() const
 	
 	if (UAnimSequenceBase* AnimSeqBase = Cast<UAnimSequenceBase>(GetEditorObject()))
 	{
-		LastFrame = AnimSeqBase->GetNumberOfFrames() - 1;
+		LastFrame = FMath::Max(AnimSeqBase->GetNumberOfFrames() - 1, 0);
 	}
 
 	static const FNumberFormattingOptions FractionNumberFormat = FNumberFormattingOptions()

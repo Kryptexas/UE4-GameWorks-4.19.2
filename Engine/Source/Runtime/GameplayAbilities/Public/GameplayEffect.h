@@ -1523,18 +1523,12 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 
 	bool CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, const FGameplayEffectContextHandle& EffectContext);
 	
-	DEPRECATED(4.9, "FActiveGameplayEffectQuery is deprecated, use FGameplayEffectQuery instead")
-	TArray<float> GetActiveEffectsTimeRemaining(const FActiveGameplayEffectQuery Query) const;
 	TArray<float> GetActiveEffectsTimeRemaining(const FGameplayEffectQuery& Query) const;
 
-	DEPRECATED(4.9, "FActiveGameplayEffectQuery is deprecated, use FGameplayEffectQuery instead")
-	TArray<float> GetActiveEffectsDuration(const FActiveGameplayEffectQuery Query) const;
 	TArray<float> GetActiveEffectsDuration(const FGameplayEffectQuery& Query) const;
 
 	TArray<TPair<float,float>> GetActiveEffectsTimeRemainingAndDuration(const FGameplayEffectQuery& Query) const;
 
-	DEPRECATED(4.9, "FActiveGameplayEffectQuery is deprecated, use FGameplayEffectQuery instead")
-	TArray<FActiveGameplayEffectHandle> GetActiveEffects(const FActiveGameplayEffectQuery Query) const;
 	TArray<FActiveGameplayEffectHandle> GetActiveEffects(const FGameplayEffectQuery& Query) const;
 
 	float GetActiveEffectsEndTime(const FGameplayEffectQuery& Query) const;
@@ -1545,8 +1539,6 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 
 	void ModifyActiveEffectStartTime(FActiveGameplayEffectHandle Handle, float StartTimeDiff);
 
-	DEPRECATED(4.9, "FActiveGameplayEffectQuery is deprecated, use FGameplayEffectQuery instead")
-	int32 RemoveActiveEffects(const FActiveGameplayEffectQuery Query, int32 StacksToRemove);
 	int32 RemoveActiveEffects(const FGameplayEffectQuery& Query, int32 StacksToRemove);
 
 	/**
@@ -1554,8 +1546,6 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 	 * 
 	 * @return Count of the effects matching the specified query
 	 */
-	DEPRECATED(4.9, "FActiveGameplayEffectQuery is deprecated, use FGameplayEffectQuery instead")
-	int32 GetActiveEffectCount(const FActiveGameplayEffectQuery Query, bool bEnforceOnGoingCheck = true) const;
 	int32 GetActiveEffectCount(const FGameplayEffectQuery& Query, bool bEnforceOnGoingCheck = true) const;
 
 	float GetServerWorldTime() const;
@@ -1837,10 +1827,6 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = GameplayEffect,meta = (DisplayName = "Linked Gameplay Effects"))
 	TArray<TSubclassOf<UGameplayEffect>> TargetEffectClasses;
 
-	/** Deprecated. Use TargetEffectClasses instead */
-	UPROPERTY(VisibleDefaultsOnly, Category = Deprecated)
-	TArray<UGameplayEffect*> TargetEffects;
-
 	/** Effects to apply when a stacking effect "overflows" its stack count through another attempted application. Added whether the overflow application succeeds or not. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Overflow)
 	TArray<TSubclassOf<UGameplayEffect>> OverflowEffects;
@@ -1901,18 +1887,10 @@ public:
 	/** The GameplayEffect's Tags: tags the the GE *has* and DOES NOT give to the actor. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Tags, meta = (DisplayName = "GameplayEffectAssetTag"))
 	FInheritedTagContainer InheritableGameplayEffectTags;
-
-	/** The GameplayEffect's Tags: tags the the GE *has* and DOES NOT give to the actor. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Deprecated, meta=(DisplayName="GameplayEffectAssetTag"))
-	FGameplayTagContainer GameplayEffectTags;
 	
 	/** "These tags are applied to the actor I am applied to" */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Tags, meta=(DisplayName="GrantedTags"))
 	FInheritedTagContainer InheritableOwnedTagsContainer;
-
-	/** "These tags are applied to the actor I am applied to" */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Deprecated)
-	FGameplayTagContainer OwnedTagsContainer;
 	
 	/** Once Applied, these tags requirements are used to determined if the GameplayEffect is "on" or "off". A GameplayEffect can be off and do nothing, but still applied. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Tags)
@@ -1925,10 +1903,6 @@ public:
 	/** GameplayEffects that *have* tags in this container will be cleared upon effect application. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Tags)
 	FInheritedTagContainer RemoveGameplayEffectsWithTags;
-
-	/** Deprecated. Use RemoveGameplayEffectsWithTags instead */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Deprecated)
-	FGameplayTagContainer ClearTagsContainer;
 
 	/** Grants the owner immunity from these source tags.  */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Immunity, meta = (DisplayName = "GrantedApplicationImmunityTags"))

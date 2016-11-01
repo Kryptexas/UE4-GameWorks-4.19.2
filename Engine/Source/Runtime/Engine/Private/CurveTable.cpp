@@ -531,3 +531,12 @@ bool FCurveTableRowHandle::operator!=(const FCurveTableRowHandle& Other) const
 {
 	return ((Other.CurveTable != CurveTable) || (Other.RowName != RowName));
 }
+
+void FCurveTableRowHandle::PostSerialize(const FArchive& Ar)
+{
+	if (Ar.IsSaving() && !IsNull() && CurveTable)
+	{
+		// Note which row we are pointing to for later searching
+		Ar.MarkSearchableName(CurveTable, RowName);
+	}
+}

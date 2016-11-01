@@ -1008,14 +1008,12 @@ void USimpleConstructionScript::GenerateListOfExistingNames(TArray<FName>& Curre
 	// <<< End Backwards Compatibility
 	check(Blueprint);
 
-	TArray<UObject*> NativeCDOChildren;
 	UClass* FirstNativeClass = FBlueprintEditorUtils::FindFirstNativeClass(Blueprint->ParentClass);
-	GetObjectsWithOuter(FirstNativeClass->GetDefaultObject(), NativeCDOChildren, false);
 
-	for (UObject* NativeCDOChild : NativeCDOChildren)
+	ForEachObjectWithOuter(FirstNativeClass->GetDefaultObject(), [&CurrentNames](UObject* NativeCDOChild)
 	{
 		CurrentNames.Add(NativeCDOChild->GetFName());
-	}
+	});
 
 	if (Blueprint->SkeletonGeneratedClass)
 	{

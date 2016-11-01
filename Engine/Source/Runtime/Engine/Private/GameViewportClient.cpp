@@ -312,7 +312,7 @@ void UGameViewportClient::Init(struct FWorldContext& WorldContext, UGameInstance
 #if !UE_BUILD_SHIPPING
 				if (NewDeviceResults.bNewDevice)
 				{
-					NewDeviceResults.AudioDevice->UpdateSoundShowFlags(0, GetSoundShowFlags());
+					NewDeviceResults.AudioDevice->ResolveDesiredStats(this);
 				}
 #endif // UE_BUILD_SHIPPING
 

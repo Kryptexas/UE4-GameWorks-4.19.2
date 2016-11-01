@@ -44,7 +44,7 @@ void FAnimNode_CopyBoneDelta::EvaluateBoneTransforms(USkeletalMeshComponent* Ske
 	FAnimationRuntime::ConvertCSTransformToBoneSpace(SkelComp, MeshBases, TargetTM, TargetBoneIndex, BCS_ParentBoneSpace);
 
 	// Ref pose transform
-	FTransform RefLSTransform = SkelComp->SkeletalMesh->RefSkeleton.GetRefBonePose()[SourceBone.GetMeshPoseIndex().GetInt()];
+	FTransform RefLSTransform = SkelComp->SkeletalMesh->RefSkeleton.GetRefBonePose()[SourceBone.GetMeshPoseIndex(BoneContainer).GetInt()];
 
 	// Get transform relative to ref pose
 	SourceTM.SetToRelativeTransform(RefLSTransform);

@@ -68,6 +68,10 @@ void FHttpModule::PostLoadCallback()
 
 void FHttpModule::PreUnloadCallback()
 {
+}
+
+void FHttpModule::ShutdownModule()
+{
 	if (HttpManager != nullptr)
 	{
 		// block on any http requests that have already been queued up
@@ -97,10 +101,6 @@ void FHttpModule::PreUnloadCallback()
 
 	HttpManager = nullptr;
 	Singleton = nullptr;
-}
-
-void FHttpModule::ShutdownModule()
-{
 }
 
 bool FHttpModule::HandleHTTPCommand(const TCHAR* Cmd, FOutputDevice& Ar)

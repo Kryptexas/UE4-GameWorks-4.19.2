@@ -360,6 +360,16 @@ private:
 
 	SVerticalBox::FSlot& GetUVDensitySlot(int32 MaterialIndex, int32 UVChannelIndex) const;
 
+	// Used to control the type of reimport to do with a named parameter
+	enum class EReimportButtonType : uint8
+	{
+		Reimport,
+		ReimportWithNewFile
+	};
+
+	// Handler for reimport buttons in LOD details
+	FReply OnReimportLodClicked(IDetailLayoutBuilder* DetailLayout, EReimportButtonType InReimportType, int32 InLODIndex);
+
 public:
 
 	bool IsApplyNeeded() const;

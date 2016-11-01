@@ -96,22 +96,40 @@ public:
 	virtual bool GetAllAssets(TArray<FAssetData>& OutAssetData, bool bIncludeOnlyOnDiskAssets = false) const = 0;
 
 	/**
+	 * Gets a list of packages and searchable names that are referenced by the supplied package or name. (On disk references ONLY)
+	 *
+	 * @param AssetIdentifier	the name of the package/name for which to gather dependencies
+	 * @param OutDependencies	a list of things that are referenced by AssetIdentifier
+	 * @param InDependencyType	which kinds of dependency to include in the output list
+	 */
+	virtual bool GetDependencies(const FAssetIdentifier& AssetIdentifier, TArray<FAssetIdentifier>& OutDependencies, EAssetRegistryDependencyType::Type InDependencyType = EAssetRegistryDependencyType::All) const = 0;
+
+	/**
 	 * Gets a list of paths to objects that are referenced by the supplied package. (On disk references ONLY)
 	 *
 	 * @param PackageName		the name of the package for which to gather dependencies
-	 * @param OutDependencies	a list of paths to objects that are referenced by the package whose path is PackageName
+	 * @param OutDependencies	a list of packages that are referenced by the package whose path is PackageName
 	 * @param InDependencyType	which kinds of dependency to include in the output list
-	 * @param bResolveIniStringReferences Tells if the method should also resolve INI references.
 	 */
-	virtual bool GetDependencies(FName PackageName, TArray<FName>& OutDependencies, EAssetRegistryDependencyType::Type InDependencyType = EAssetRegistryDependencyType::All, bool bResolveIniStringReferences = false) const = 0;
+	virtual bool GetDependencies(FName PackageName, TArray<FName>& OutDependencies, EAssetRegistryDependencyType::Type InDependencyType = EAssetRegistryDependencyType::Packages) const = 0;
 
 	/**
-	 * Gets a list of paths to objects that reference the supplied package. (On disk references ONLY)
+	 * Gets a list of packages and searchable names that reference the supplied package or name. (On disk references ONLY)
+	 *
+	 * @param AssetIdentifier	the name of the package/name for which to gather dependencies
+	 * @param OutReferencers	a list of things that reference AssetIdentifier
+	 * @param InReferenceType	which kinds of reference to include in the output list
+	 */
+	virtual bool GetReferencers(const FAssetIdentifier& AssetIdentifier, TArray<FAssetIdentifier>& OutReferencers, EAssetRegistryDependencyType::Type InReferenceType = EAssetRegistryDependencyType::All) const = 0;
+
+	/**
+	 * Gets a list of packages that reference the supplied package. (On disk references ONLY)
 	 *
 	 * @param PackageName		the name of the package for which to gather dependencies
-	 * @param OutReferencers	a list of paths to objects that reference the package whose path is PackageName
+	 * @param OutReferencers	a list of packages that reference the package whose path is PackageName
+	 * @param InReferenceType	which kinds of reference to include in the output list
 	 */
-	virtual bool GetReferencers(FName PackageName, TArray<FName>& OutReferencers, EAssetRegistryDependencyType::Type InReferenceType = EAssetRegistryDependencyType::All) const = 0;
+	virtual bool GetReferencers(FName PackageName, TArray<FName>& OutReferencers, EAssetRegistryDependencyType::Type InReferenceType = EAssetRegistryDependencyType::Packages) const = 0;
 
 	/** Returns true if the specified ClassName's ancestors could be found. If so, OutAncestorClassNames is a list of all its ancestors */
 	virtual bool GetAncestorClassNames(FName ClassName, TArray<FName>& OutAncestorClassNames) const = 0;
@@ -238,6 +256,13 @@ public:
 	/** Event to update the progress of the background file load */
 	DECLARE_EVENT_OneParam( IAssetRegistry, FFileLoadProgressUpdatedEvent, const FFileLoadProgressUpdateData& /*ProgressUpdateData*/ );
 	virtual FFileLoadProgressUpdatedEvent& OnFileLoadProgressUpdated() = 0;
+
+	/** Register callback for when someone tries to edit a searchable name */
+	DECLARE_DELEGATE_RetVal_OneParam(bool, FAssetEditSearchableNameDelegate, const FAssetIdentifier&);
+	virtual FAssetEditSearchableNameDelegate& OnEditSearchableName(FName PackageName, FName ObjectName) = 0;
+
+	/** Tries to edit a searchablename, returns true if any of the callbacks handled it */
+	virtual bool EditSearchableName(const FAssetIdentifier& SearchableName) = 0;
 
 	/** Returns true if the asset registry is currently loading files and does not yet know about all assets */
 	virtual bool IsLoadingAssets() const = 0;

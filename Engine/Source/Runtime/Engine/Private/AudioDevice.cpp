@@ -1661,7 +1661,9 @@ bool FAudioDevice::TryClearingSoundMix(USoundMix* SoundMix, FSoundMixState* Soun
 {
 	if (SoundMix && SoundMixState)
 	{
-		if (SoundMixState->ActiveRefCount == 0 && SoundMixState->PassiveRefCount == 0 && SoundMixState->IsBaseSoundMix == false)
+		// Only manually clear the sound mix if it's no longer referenced and if the duration was not set.
+		// If the duration was set by sound designer, let the sound mix clear itself up automatically.
+		if (SoundMix->Duration < 0.0f && SoundMixState->ActiveRefCount == 0 && SoundMixState->PassiveRefCount == 0 && SoundMixState->IsBaseSoundMix == false)
 		{
 			// do whatever is needed to remove influence of this SoundMix
 			if (SoundMix->FadeOutTime > 0.f)
@@ -2450,15 +2452,6 @@ void FAudioDevice::PopSoundMixModifier(USoundMix* SoundMix, bool bIsPassive)
 			if (bIsPassive && SoundMixState->PassiveRefCount > 0)
 			{
 				SoundMixState->PassiveRefCount--;
-				if (SoundMixState->PassiveRefCount == 0)
-				{
-					// Check whether Fade out time was previously set and reset it to current time
-					if (SoundMixState->FadeOutStartTime >= 0.f && FApp::GetCurrentTime() > SoundMixState->FadeOutStartTime)
-					{
-						SoundMixState->FadeOutStartTime = FApp::GetCurrentTime();
-						SoundMixState->EndTime = SoundMixState->FadeOutStartTime + SoundMix->FadeOutTime;
-					}
-				}
 			}
 			else if (!bIsPassive && SoundMixState->ActiveRefCount > 0)
 			{
@@ -3105,6 +3098,7 @@ void FAudioDevice::SendUpdateResultsToGameThread(const int32 FirstActiveIndex)
 				WaveInstanceInfo.Description = Source ? Source->Describe((RequestedAudioStats & ERequestedAudioStats::LongSoundNames) != 0) : FString(TEXT("No source"));
 				WaveInstanceInfo.ActualVolume = WaveInstance->GetVolume();
 				WaveInstanceInfo.InstanceIndex = InstanceIndex;
+				WaveInstanceInfo.WaveInstanceName = *WaveInstance->GetName();
 				StatSoundInfos[*SoundInfoIndex].WaveInstanceInfos.Add(MoveTemp(WaveInstanceInfo));
 			}
 		}

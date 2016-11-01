@@ -40,6 +40,7 @@ public:
 	void SerializeImportMap(TArray<FObjectImport>& OutImportMap);
 	void SerializeExportMap(TArray<FObjectExport>& OutExportMap);
 	void SerializeStringAssetReferencesMap(TArray<FString>& OutStringAssetReferencesMap);
+	void SerializeSearchableNamesMap(FPackageDependencyData& OutDependencyData);
 
 	/** Returns flags the asset package was saved with */
 	uint32 GetPackageFlags() const;

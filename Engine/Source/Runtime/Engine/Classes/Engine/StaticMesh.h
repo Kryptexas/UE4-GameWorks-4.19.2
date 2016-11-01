@@ -154,7 +154,11 @@ struct FStaticMeshSourceModel
 	UPROPERTY()
 	float LODDistance_DEPRECATED;
 
-	/** ScreenSize to display this LOD */
+	/** 
+	 * ScreenSize to display this LOD.
+	 * The screen size is based around the projected diameter of the bounding
+	 * sphere of the model. i.e. 0.5 means half the screen's maximum dimension.
+	 */
 	UPROPERTY(EditAnywhere, Category=ReductionSettings)
 	float ScreenSize;
 
@@ -427,7 +431,11 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	*/
 	bool bRequiresLODDistanceConversion : 1;
 
-
+	/**
+	 * If true on post load we need to calculate resolution independent Display Factors from the
+	 * loaded LOD screen sizes.
+	 */
+	bool bRequiresLODScreenSizeConversion : 1;
 
 #endif // #if WITH_EDITORONLY_DATA
 
@@ -796,6 +804,11 @@ private:
 	 * Converts legacy LODDistance in the source models to Display Factor
 	 */
 	void ConvertLegacyLODDistance();
+
+	/**
+	 * Converts legacy LOD screen area in the source models to resolution-independent screen size
+	 */
+	void ConvertLegacyLODScreenArea();
 
 	/**
 	 * Fixes up static meshes that were imported with sections that had zero triangles.

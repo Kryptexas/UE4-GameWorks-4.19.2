@@ -138,6 +138,11 @@ public:
 	static void RefreshGraphNodes(const UEdGraph* Graph);
 
 	/**
+	 * Replaces any deprecated nodes with new ones
+	 */
+	static void ReplaceDeprecatedNodes(UBlueprint* Blueprint);
+
+	/**
 	 * Preloads the object and all the members it owns (nodes, pins, etc)
 	 */
 	static void PreloadMembers(UObject* InObject);

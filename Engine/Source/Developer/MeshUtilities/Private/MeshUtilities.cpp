@@ -228,7 +228,7 @@ private:
 		int32 UseLOD, // does not build all LODs but only use this LOD to create base mesh
 		TArray<UObject*>& OutAssetsToSync,
 		FVector& OutMergedActorLocation,
-		const float ScreenAreaSize,
+		const float ScreenSize,
 		bool bSilent = false) const override;
 
 	virtual void MergeStaticMeshComponents(
@@ -239,7 +239,7 @@ private:
 		const FString& InBasePackageName,
 		TArray<UObject*>& OutAssetsToSync,
 		FVector& OutMergedActorLocation,
-		const float ScreenAreaSize,
+		const float ScreenSize,
 		bool bSilent = false) const override;
 
 	virtual void CreateProxyMesh(const TArray<AActor*>& InActors, const struct FMeshProxySettings& InMeshProxySettings, UPackage* InOuter, const FString& InProxyBasePackageName, const FGuid InGuid, FCreateProxyDelegate InProxyCreatedDelegate, const bool bAllowAsync,
@@ -5885,7 +5885,7 @@ void FMeshUtilities::CreateProxyMesh(const TArray<AActor*>& InActors, const stru
 		FRawMesh* RawMesh = new FRawMesh();
 		FMemory::Memzero(RawMesh, sizeof(FRawMesh));
 		
-		const int32 ProxyMeshSourceLODLevel = InMeshProxySettings.bCalculateCorrectLODModel ? Utilities->GetLODLevelForScreenAreaSize(StaticMeshComponent, Utilities->CalculateScreenSizeFromDrawDistance(StaticMeshComponent->Bounds.SphereRadius, ProjectionMatrix, EstimatedDistance)) : 0;
+		const int32 ProxyMeshSourceLODLevel = InMeshProxySettings.bCalculateCorrectLODModel ? Utilities->GetLODLevelForScreenSize(StaticMeshComponent, Utilities->CalculateScreenSizeFromDrawDistance(StaticMeshComponent->Bounds.SphereRadius, ProjectionMatrix, EstimatedDistance)) : 0;
 		// Proxy meshes should always propagate vertex colours for material baking
 		static const bool bPropagateVertexColours = true;
 
@@ -7448,11 +7448,11 @@ void FMeshUtilities::MergeActors(
 
 	UWorld* World = SourceActors[0]->GetWorld();
 	checkf(World != nullptr, TEXT("Invalid world retrieved from Actor"));
-	const float ScreenAreaSize = TNumericLimits<float>::Max();
-	MergeStaticMeshComponents(ComponentsToMerge, World, InSettings, InOuter, InBasePackageName, OutAssetsToSync, OutMergedActorLocation, ScreenAreaSize, bSilent);
+	const float ScreenSize = TNumericLimits<float>::Max();
+	MergeStaticMeshComponents(ComponentsToMerge, World, InSettings, InOuter, InBasePackageName, OutAssetsToSync, OutMergedActorLocation, ScreenSize, bSilent);
 }
 
-void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent*>& ComponentsToMerge, UWorld* World, const FMeshMergingSettings& InSettings, UPackage* InOuter, const FString& InBasePackageName, TArray<UObject*>& OutAssetsToSync, FVector& OutMergedActorLocation, const float ScreenAreaSize, bool bSilent /*= false*/) const
+void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent*>& ComponentsToMerge, UWorld* World, const FMeshMergingSettings& InSettings, UPackage* InOuter, const FString& InBasePackageName, TArray<UObject*>& OutAssetsToSync, FVector& OutMergedActorLocation, const float ScreenSize, bool bSilent /*= false*/) const
 			{
 	FScopedSlowTask SlowTask(100.f, (LOCTEXT("MergeStaticMeshComponents_BuildingMesh", "Merging Static Mesh Components")));
 	SlowTask.MakeDialog();
@@ -7510,11 +7510,11 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 
 		// LOD index will be overridden if the user has chosen to pick it according to the viewing distance
 		int32 CalculatedLODIndex = -1;
-		if (InSettings.LODSelectionType == EMeshLODSelectionType::CalculateLOD && ScreenAreaSize > 0.0f && ScreenAreaSize < 1.0f)
+		if (InSettings.LODSelectionType == EMeshLODSelectionType::CalculateLOD && ScreenSize > 0.0f && ScreenSize < 1.0f)
 		{
 			FHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<FHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");
 			IHierarchicalLODUtilities* Utilities = Module.GetUtilities();
-			CalculatedLODIndex = Utilities->GetLODLevelForScreenAreaSize(StaticMeshComponent, ScreenAreaSize);
+			CalculatedLODIndex = Utilities->GetLODLevelForScreenSize(StaticMeshComponent, ScreenSize);
 		}
 		SourceMeshes[MeshId].SourceStaticMesh = StaticMeshComponent->GetStaticMesh();
 

@@ -528,6 +528,18 @@ void FBlueprintEditorUtils::ReconstructAllNodes(UBlueprint* Blueprint)
 	}
 }
 
+void FBlueprintEditorUtils::ReplaceDeprecatedNodes(UBlueprint* Blueprint)
+{
+	TArray<UEdGraph*> Graphs;
+	Blueprint->GetAllGraphs(Graphs);
+	for (auto It = Graphs.CreateIterator(); It; ++It)
+	{
+		UEdGraph* const Graph = *It;
+		const UEdGraphSchema* Schema = Graph->GetSchema();
+		Schema->BackwardCompatibilityNodeConversion(Graph, true);
+	}
+}
+
 void FBlueprintEditorUtils::RefreshExternalBlueprintDependencyNodes(UBlueprint* Blueprint, UStruct* RefreshOnlyChild)
 {
 	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_RefreshExternalDependencyNodes);
@@ -1577,6 +1589,8 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 			// and it's companion function UK2Node_BaseAsyncTask::ExpandNode.
 			FBlueprintEditorUtils::ReconstructAllNodes(Blueprint);
 
+			FBlueprintEditorUtils::ReplaceDeprecatedNodes(Blueprint);
+
 			// Compile the actual blueprint
 			FKismetEditorUtilities::CompileBlueprint(Blueprint, true, false, false, nullptr, bSkeletonUpToDate);
 		}
@@ -1584,6 +1598,8 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 		{
 			// Just refresh all nodes in macro blueprints, but don't recompile
 			FBlueprintEditorUtils::RefreshAllNodes(Blueprint);
+
+			FBlueprintEditorUtils::ReplaceDeprecatedNodes(Blueprint);
 
 			if (ClassToRegenerate != nullptr)
 			{
@@ -1893,17 +1909,14 @@ void FBlueprintEditorUtils::PatchCDOSubobjectsIntoExport(UObject* PreviousCDO, U
 		{
 			static void PatchSubObjects(UObject* OldObj, UObject* NewObj)
 			{
-				TArray<UObject*> NewSubObjects;
-				GetObjectsWithOuter(NewObj, NewSubObjects, /*bIncludeNestedSubObjects =*/false);
-
 				TMap<FName, UObject*> SubObjLookupTable;
-				for (UObject* NewSubObj : NewSubObjects)
+				ForEachObjectWithOuter(NewObj, [&SubObjLookupTable](UObject* NewSubObj)
 				{
 					if (NewSubObj != nullptr)
 					{
 						SubObjLookupTable.Add(NewSubObj->GetFName(), NewSubObj);
 					}
-				}
+				}, /*bIncludeNestedSubObjects =*/false);
 
 				TArray<UObject*> OldSubObjects;
 				GetObjectsWithOuter(OldObj, OldSubObjects, /*bIncludeNestedSubObjects =*/false);

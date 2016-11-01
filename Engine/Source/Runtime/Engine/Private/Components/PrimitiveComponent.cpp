@@ -1127,15 +1127,28 @@ void UPrimitiveComponent::PushHoveredToProxy(const bool bInHovered)
 	}
 }
 
-void UPrimitiveComponent::SetCullDistance(float NewCullDistance)
+void UPrimitiveComponent::SetCullDistance(const float NewCullDistance)
 {
-	if (NewCullDistance >= 0)
+	if (NewCullDistance >= 0.f && NewCullDistance != LDMaxDrawDistance)
 	{
+		const float OldLDMaxDrawDistance = LDMaxDrawDistance;
+
 		LDMaxDrawDistance = NewCullDistance;
 	
-		if (LDMaxDrawDistance < CachedMaxDrawDistance)
+		if (CachedMaxDrawDistance == 0.f || LDMaxDrawDistance < CachedMaxDrawDistance)
 		{
 			SetCachedMaxDrawDistance(LDMaxDrawDistance);
+		}
+		else if (OldLDMaxDrawDistance == CachedMaxDrawDistance)
+		{
+			if (UWorld* World = GetWorld())
+			{
+				World->UpdateCullDistanceVolumes(nullptr, this);
+			}
+			else
+			{
+				SetCachedMaxDrawDistance(LDMaxDrawDistance);
+			}
 		}
 	}
 }
@@ -2531,7 +2544,7 @@ void UPrimitiveComponent::UpdateOverlaps(const TArray<FOverlapInfo>* NewPendingO
 					Params.bIgnoreBlocks = true;	//We don't care about blockers since we only route overlap events to real overlaps
 					FCollisionResponseParams ResponseParam;
 					InitSweepCollisionParams(Params, ResponseParam);
-					MyWorld->ComponentOverlapMulti(Overlaps, this, GetComponentLocation(), GetComponentQuat(), Params);
+					ComponentOverlapMulti(Overlaps, MyWorld, GetComponentLocation(), GetComponentQuat(), GetCollisionObjectType(), Params);
 
 					for( int32 ResultIdx=0; ResultIdx<Overlaps.Num(); ResultIdx++ )
 					{

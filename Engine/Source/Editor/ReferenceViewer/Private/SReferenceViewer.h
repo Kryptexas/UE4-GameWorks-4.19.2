@@ -20,7 +20,7 @@ public:
 	void Construct( const FArguments& InArgs );
 
 	/** Sets a new root package name */
-	void SetGraphRootPackageNames(const TArray<FName>& NewGraphRootPackageNames);
+	void SetGraphRootPackageNames(const TArray<FAssetIdentifier>& NewGraphRootIdentifiers);
 
 private:
 
@@ -77,13 +77,13 @@ private:
 
 	void OnShowSoftReferencesChanged( ECheckBoxState NewState );
 	ECheckBoxState IsShowSoftReferencesChecked() const;
-	void OnShowSoftDependenciesChanged(ECheckBoxState NewState);
-	ECheckBoxState IsShowSoftDependenciesChecked() const;
-
 	void OnShowHardReferencesChanged(ECheckBoxState NewState);
 	ECheckBoxState IsShowHardReferencesChecked() const;
-	void OnShowHardDependenciesChanged(ECheckBoxState NewState);
-	ECheckBoxState IsShowHardDependenciesChecked() const;
+
+	void OnShowSearchableNamesChanged(ECheckBoxState NewState);
+	ECheckBoxState IsShowSearchableNamesChecked() const;
+	void OnShowNativePackagesChanged(ECheckBoxState NewState);
+	ECheckBoxState IsShowNativePackagesChecked() const;
 
 	int32 GetSearchBreadthCount() const;
 	void OnSearchBreadthCommitted(int32 NewValue);
@@ -94,7 +94,7 @@ private:
 	void ReCenterGraph();
 	void ListReferencedObjects();
 	void ListObjectsThatReference();
-	void MakeCollectionWithReferenersOrDependencies(ECollectionShareType::Type ShareType, bool bReferencers);
+	void MakeCollectionWithReferencersOrDependencies(ECollectionShareType::Type ShareType, bool bReferencers);
 	void ShowSizeMap();
 	void ShowReferenceTree();
 
@@ -103,7 +103,8 @@ private:
 	UObject* GetObjectFromSingleSelectedNode() const;
 	void GetPackageNamesFromSelectedNodes(TSet<FName>& OutNames) const;
 	bool HasExactlyOneNodeSelected() const;
-	bool HasAtLeastOneNodeSelected() const;
+	bool HasExactlyOnePackageNodeSelected() const;
+	bool HasAtLeastOnePackageNodeSelected() const;
 
 	void OnInitialAssetRegistrySearchComplete();
 private:
