@@ -98,31 +98,35 @@ FReply FCrashReportClient::SubmitAndRestart()
 	bool bLauncherRestarted = false;
 	if (bRunFromLauncher)
 	{
-		// We'll restart Launcher-run processes by having the installed Launcher handle it
-		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
-
-		if (DesktopPlatform != nullptr)
+		// Hacky check to see if this is the editor. Not attempting to relaunch the editor using the Launcher because there is no way to pass the project via OpenLauncher()
+		if (!FPaths::GetCleanFilename(CrashedAppPath).StartsWith(TEXT("UE4Editor")))
 		{
-			// Split the path so we can format it as a URI
-			TArray<FString> PathArray;
-			CrashedAppPath.Replace(TEXT("//"), TEXT("/")).ParseIntoArray(PathArray, TEXT("/"), false);	// WER saves this out on Windows with double slashes as the separator for some reason.
-			FString CrashedAppPathUri;
+			// We'll restart Launcher-run processes by having the installed Launcher handle it
+			IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 
-			// Exclude the last item (the filename). The Launcher currently expects an installed application folder.
-			for (int32 ItemIndex = 0; ItemIndex < PathArray.Num() - 1; ItemIndex++)
+			if (DesktopPlatform != nullptr)
 			{
-				FString& PathItem = PathArray[ItemIndex];
-				CrashedAppPathUri += FPlatformHttp::UrlEncode(PathItem);
-				CrashedAppPathUri += TEXT("/");
-			}
-			CrashedAppPathUri.RemoveAt(CrashedAppPathUri.Len() - 1);
+				// Split the path so we can format it as a URI
+				TArray<FString> PathArray;
+				CrashedAppPath.Replace(TEXT("//"), TEXT("/")).ParseIntoArray(PathArray, TEXT("/"), false);	// WER saves this out on Windows with double slashes as the separator for some reason.
+				FString CrashedAppPathUri;
 
-			// Re-run the application via the Launcher
-			FOpenLauncherOptions OpenOptions(FString::Printf(TEXT("apps/%s"), *CrashedAppPathUri));
-			OpenOptions.bSilent = true;
-			if (DesktopPlatform->OpenLauncher(OpenOptions))
-			{
-				bLauncherRestarted = true;
+				// Exclude the last item (the filename). The Launcher currently expects an installed application folder.
+				for (int32 ItemIndex = 0; ItemIndex < PathArray.Num() - 1; ItemIndex++)
+				{
+					FString& PathItem = PathArray[ItemIndex];
+					CrashedAppPathUri += FPlatformHttp::UrlEncode(PathItem);
+					CrashedAppPathUri += TEXT("/");
+				}
+				CrashedAppPathUri.RemoveAt(CrashedAppPathUri.Len() - 1);
+
+				// Re-run the application via the Launcher
+				FOpenLauncherOptions OpenOptions(FString::Printf(TEXT("apps/%s"), *CrashedAppPathUri));
+				OpenOptions.bSilent = true;
+				if (DesktopPlatform->OpenLauncher(OpenOptions))
+				{
+					bLauncherRestarted = true;
+				}
 			}
 		}
 	}
