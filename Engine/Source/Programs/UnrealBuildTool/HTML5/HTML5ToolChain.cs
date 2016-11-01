@@ -22,11 +22,6 @@ namespace UnrealBuildTool
 			{
 				throw new BuildException("HTML5 SDK is not installed; cannot use toolchain.");
 			}
-
-			// set some environment variable we'll need
-//			Environment.SetEnvironmentVariable("EMCC_DEBUG", "1");
-			Environment.SetEnvironmentVariable("EMCC_CORES", "8");
-			Environment.SetEnvironmentVariable("EMCC_OPTIMIZE_NORMALLY", "1");
 		}
 
 		public override void PreBuildSync()
@@ -34,10 +29,13 @@ namespace UnrealBuildTool
 			Log.TraceInformation("Setting Emscripten SDK ");
 			HTML5SDKInfo.SetupEmscriptenTemp();
 			HTML5SDKInfo.SetUpEmscriptenConfigFile();
-			// set some environment variable we'll need.
-			// Forces emcc to use our generated .emscripten config, not the one in the users home directory.
-			Environment.SetEnvironmentVariable("EM_CONFIG", HTML5SDKInfo.DOT_EMSCRIPTEN);
-			Environment.SetEnvironmentVariable("EM_CACHE", HTML5SDKInfo.EMSCRIPTEN_CACHE);
+
+			if (Environment.GetEnvironmentVariable("EMSDK") == null) // If env. var EMSDK is present, Emscripten is already configured by the developer
+			{
+				// If not using preset emsdk, configure our generated .emscripten config, instead of autogenerating one in the user's home directory.
+				Environment.SetEnvironmentVariable("EM_CONFIG", HTML5SDKInfo.DOT_EMSCRIPTEN);
+				Environment.SetEnvironmentVariable("EM_CACHE", HTML5SDKInfo.EMSCRIPTEN_CACHE);
+			}
 		}
 
 		static string GetSharedArguments_Global(CPPTargetConfiguration TargetConfiguration, string Architecture, bool bEnableShadowVariableWarning)
@@ -92,13 +90,15 @@ namespace UnrealBuildTool
 			// enable hardware accelerated and advanced instructions/functions
 //			Result += " -s USE_WEBGL2=1 -s FULL_ES3=1";
 			Result += " -s FULL_ES2=1";
-			Result += " -msse";
-			Result += " -msse2";
-			Result += " -s SIMD=1";
-			Result += " -s USE_PTHREADS=1"; // 2:polyfill -- SharedInt\d+Array available by ES7
+//			Result += " -msse";
+//			Result += " -msse2";
+//			Result += " -s SIMD=1";
+//			Result += " -s USE_PTHREADS=1"; // 2:polyfill -- SharedInt\d+Array available by ES7
 
-			// for DEBUGGING: http://stackoverflow.com/questions/42308/tool-to-track-include-dependencies
-//			Result += " -H";
+			// THESE ARE TEST/DEBUGGING
+//			Environment.SetEnvironmentVariable("EMCC_DEBUG", "1");
+//			Environment.SetEnvironmentVariable("EMCC_CORES", "8");
+//			Environment.SetEnvironmentVariable("EMCC_OPTIMIZE_NORMALLY", "1");
 
 			// export console command handler. Export main func too because default exports ( e.g Main ) are overridden if we use custom exported functions.
 			Result += " -s EXPORTED_FUNCTIONS=\"['_main', '_on_fatal']\"";
@@ -122,10 +122,13 @@ namespace UnrealBuildTool
 			if (CompileEnvironment.Config.Target.Architecture != "-win32")  // ! simulator
 			{
 				// do we want debug info?
-				/*			if (CompileEnvironment.Config.bCreateDebugInfo)
-							{
-								 Result += " -g";
-							}*/
+//				if (CompileEnvironment.Config.bCreateDebugInfo)
+//				{
+//					Result += " -g";
+//
+//					// dump headers: http://stackoverflow.com/questions/42308/tool-to-track-include-dependencies
+//					Result += " -H";
+//				}
 
 //				Result += " -Wno-warn-absolute-paths "; // as of emscripten 1.35.0 complains that this is unknown
 				Result += " -Wno-reorder"; // we disable constructor order warnings.
@@ -237,6 +240,7 @@ namespace UnrealBuildTool
 				}
 
 				Result += " -s CASE_INSENSITIVE_FS=1";
+//				Result += " -s EVAL_CTORS=1";
 			}
 
 			return Result;

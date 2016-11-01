@@ -51,7 +51,7 @@ typedef FHTML5PlatformTime FPlatformTime;
 // PLATFORM_HTML5.
 
 #include <time.h>
-#include <emscripten.h> 
+#include <emscripten/emscripten.h>
 
 
 

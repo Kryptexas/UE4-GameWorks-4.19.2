@@ -4,7 +4,7 @@
 #include "HTML5Window.h"
 
 #if !PLATFORM_HTML5_WIN32 
-#include <emscripten.h>
+#include <emscripten/emscripten.h>
 #endif
 #include <SDL.h>
 

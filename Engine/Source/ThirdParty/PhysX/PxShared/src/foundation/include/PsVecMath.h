@@ -47,7 +47,7 @@
 // all unknown/experimental cases should better default to NO SIMD.
 
 // enable/disable SIMD
-#if PX_INTEL_FAMILY
+#if PX_INTEL_FAMILY && (!defined(__EMSCRIPTEN__) || defined(__SSE2__))
 #define COMPILE_VECTOR_INTRINSICS 1
 #elif PX_ANDROID&& PX_NEON
 #define COMPILE_VECTOR_INTRINSICS 1

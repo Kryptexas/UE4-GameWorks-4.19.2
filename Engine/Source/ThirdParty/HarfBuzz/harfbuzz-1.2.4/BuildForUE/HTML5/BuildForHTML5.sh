@@ -1,45 +1,77 @@
 #!/bin/sh
 # Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+HARFBUZZ_HTML5=$(pwd)
 
 cd ../../../../HTML5/
 	. ./Build_All_HTML5_libs.rc
-cd -
+cd "$HARFBUZZ_HTML5"
 
+
+build_via_cmake()
+{
+	SUFFIX=_O$OLEVEL
+	OPTIMIZATION=-O$OLEVEL
+	# ----------------------------------------
+	rm -rf BUILD$SUFFIX
+	mkdir BUILD$SUFFIX
+	cd BUILD$SUFFIX
+	# ----------------------------------------
+	TYPE=${type^^}
+	if [ $TYPE == "DEBUG" ]; then
+		DBGFLAG=_DEBUG
+	else
+		DBGFLAG=NDEBUG
+	fi
 # ----------------------------------------
-# using save files so i can run this script over and over again
-
-if [ ! -e ../CMakeLists.txt.save ]; then
-	mv ../CMakeLists.txt ../CMakeLists.txt.save
+	emcmake cmake -G "Unix Makefiles" \
+		-DCMAKE_TOOLCHAIN_FILE=$EMSCRIPTEN/cmake/Modules/Platform/Emscripten.cmake \
+		-DUSE_INTEL_ATOMIC_PRIMITIVES=ON \
+		-DEMSCRIPTEN_GENERATE_BITCODE_STATIC_LIBRARIES=ON \
+		-DCMAKE_BUILD_TYPE=$type \
+		-DCMAKE_C_FLAGS_$TYPE="$OPTIMIZATION -D$DBGFLAG" \
+		../..
+	cmake --build . -- harfbuzz -j VERBOSE=1
+	# ----------------------------------------
+	if [ $OLEVEL == 0 ]; then
+		SUFFIX=
 fi
+	cp ../libharfbuzz.bc ../../../HTML5/libharfbuzz${SUFFIX}.bc
+	cd ..
+}
+type=Debug;       OLEVEL=0;  build_via_cmake
+type=Release;     OLEVEL=2;  build_via_cmake
+type=Release;     OLEVEL=3;  build_via_cmake
+type=MinSizeRel;  OLEVEL=z;  build_via_cmake
+ls -l ../../HTML5
 
 
-# ----------------------------------------
-# MAKE
-
+# NOT USED: LEFT HERE FOR REFERENCE
 build_all()
 {
 	echo
 	echo BUILDING $OPTIMIZATION
 	echo
 
-	if [ ! -d $MAKE_PATH$OPTIMIZATION ]; then
-		mkdir -p $MAKE_PATH$OPTIMIZATION
+	if [ -d $MAKE_PATH$OPTIMIZATION ]; then
+		rm -rf $MAKE_PATH$OPTIMIZATION
 	fi
+		mkdir -p $MAKE_PATH$OPTIMIZATION
 
 	# modify (custom) CMakeLists.txt
 	# output library with optimization level appended
 	sed -e "s/\(add_library(harfbuzz\)/\1$LIB_SUFFIX/" ../CMakeLists.txt.save > ../CMakeLists.txt
-	# and, until pthreads for browsers is functional -- do not use MT for HTML5
-	echo "add_definitions( -DHB_NO_MT )" >> ../CMakeLists.txt
 
 	# modify CMAKE_TOOLCHAIN_FILE
-	sed -e "s/\(FLAGS_RELEASE \)\".*-O2\"/\1\"$OPTIMIZATION\"/" "$EMSCRIPTEN/cmake/Modules/Platform/Emscripten.cmake" > $MAKE_PATH$OPTIMIZATION/Emscripten.cmake
+	sed -e "s/\(EPIC_BUILD_FLAGS\} \).*-O2\"/\1$OPTIMIZATION\"/" "$EMSCRIPTEN/cmake/Modules/Platform/Emscripten.cmake" > $MAKE_PATH$OPTIMIZATION/Emscripten.cmake
 	
+	#note: this has been merged into Emscripten.cmake (above)
+	#EMFLAGS="-msse -msse2 -s FULL_ES2=1 -s USE_PTHREADS=1"
 
 	cd $MAKE_PATH$OPTIMIZATION
 		# ./configure
 		echo "Generating HarfBuzz makefile..."
-		cmake -DCMAKE_TOOLCHAIN_FILE="Emscripten.cmake" -DCMAKE_BUILD_TYPE="Release" -G "Unix Makefiles" ../../BuildForUE
+		cmake -DCMAKE_TOOLCHAIN_FILE="Emscripten.cmake" -DEMSCRIPTEN_GENERATE_BITCODE_STATIC_LIBRARIES=ON \
+			-DCMAKE_BUILD_TYPE="Release" -G "Unix Makefiles" ../../BuildForUE
 
 		# make
 		echo "Building HarfBuzz..."
@@ -49,9 +81,24 @@ build_all()
 		# make install
 #		cp -vp libXXX ../.
 	cd -
-#	rm -rf cd $MAKE_PATH$OPTIMIZATION
 }
 
+build_via_makefile()
+{
+	# ----------------------------------------
+	# using save files so i can run this script over and over again
+	
+	if [ ! -e ../CMakeLists.txt.save ]; then
+		mv ../CMakeLists.txt ../CMakeLists.txt.save
+	
+		mv ../CMakeLists.txt ../CMakeLists.txt.save
+		echo "SET(CMAKE_RELEASE_POSTFIX $LIB_SUFFIX)" >> ../CMakeLists.txt
+	fi
+	
+	
+	# ----------------------------------------
+	# MAKE
+	
 MAKE_PATH=../../HTML5/Build
 
 OPTIMIZATION=-O3; LIB_SUFFIX=_O3; build_all
@@ -70,4 +117,5 @@ build_all
 if [ -e ../CMakeLists.txt.save ]; then
 	mv ../CMakeLists.txt.save ../CMakeLists.txt
 fi
+}
 

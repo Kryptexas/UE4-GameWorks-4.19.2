@@ -3,7 +3,7 @@
 #include "LaunchPrivatePCH.h"
 #include <SDL.h>
 #if PLATFORM_HTML5_BROWSER
-	#include <emscripten.h>
+	#include <emscripten/emscripten.h>
 #else
 	// SDL defines main to be SDL_main and expects you to use SDLmain.  We don't.
 	#undef main

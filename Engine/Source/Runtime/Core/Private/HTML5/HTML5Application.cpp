@@ -10,8 +10,8 @@
 DEFINE_LOG_CATEGORY_STATIC(LogHTML5Application, Log, All);
 
 #if PLATFORM_HTML5_BROWSER
-#include "emscripten.h"
-#include "html5.h"
+#include <emscripten/emscripten.h>
+#include <emscripten/html5.h>
 
 EM_BOOL mouse_callback(int eventType, const EmscriptenMouseEvent *e, void *userData)
 {

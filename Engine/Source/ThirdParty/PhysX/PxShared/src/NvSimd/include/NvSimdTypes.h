@@ -73,16 +73,8 @@ void foo(const float* ptr)
 * Define Simd4f and Simd4i, which map to four 32bit float or integer tuples.
 * */
 // note: ps4 compiler defines _M_X64 without value
-#if defined (_M_IX86) || defined (_M_X64) || defined (__i386__) || defined (__x86_64__) || PX_EMSCRIPTEN
-#define NV_SIMD_SSE2 1
-#else
-#define NV_SIMD_SSE2 0
-#endif
-#if defined (_M_ARM) || defined (__ARM_NEON__)
-#define NV_SIMD_NEON 1
-#else
-#define NV_SIMD_NEON 0
-#endif
+#define NV_SIMD_SSE2 (defined _M_IX86 || defined _M_X64 || defined __i386__ || defined __x86_64__) || (defined(__EMSCRIPTEN__) && defined(__SSE2__))
+#define NV_SIMD_NEON (defined _M_ARM || defined __ARM_NEON__)
 #define NV_SIMD_SIMD (NV_SIMD_SSE2 || NV_SIMD_NEON)
 
 /*! \def NV_SIMD_SCALAR

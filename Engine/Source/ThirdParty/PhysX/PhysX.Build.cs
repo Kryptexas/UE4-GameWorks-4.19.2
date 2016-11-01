@@ -442,11 +442,16 @@ public class PhysX : ModuleRules
 			string[] PhysXLibs = new string[]
 				{
 					"LowLevel",
+					"LowLevelAABB",
 					"LowLevelCloth",
+					"LowLevelDynamics",
+					"LowLevelParticles",
 					"PhysX3",
+					"PhysX3CharacterKinematic",
 					"PhysX3Common",
 					"PhysX3Cooking",
 					"PhysX3Extensions",
+					"PhysX3Vehicle",
 					//"PhysXVisualDebuggerSDK",
 					"SceneQuery",
 					"SimulationController",

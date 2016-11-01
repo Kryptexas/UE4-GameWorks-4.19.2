@@ -3,7 +3,7 @@
 
 #include "MapPakDownloaderModulePrivatePCH.h"
 #include "MapPakDownloader.h"
-#include "emscripten.h"
+#include <emscripten/emscripten.h>
 #include "Misc/Guid.h"
 #include "SlateExtras.h"
 

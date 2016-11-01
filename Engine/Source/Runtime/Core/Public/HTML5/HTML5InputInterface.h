@@ -4,7 +4,7 @@
 #include <SDL.h>
 
 #if PLATFORM_HTML5_BROWSER
-#include <html5.h>
+#include <emscripten/html5.h>
 #endif 
 
 

@@ -3,8 +3,8 @@
 #include "OpenGLDrvPrivate.h"
 #include <SDL.h>
 #if !PLATFORM_HTML5_WIN32
-#include <emscripten.h>
-#include <html5.h>
+#include <emscripten/emscripten.h>
+#include <emscripten/html5.h>
 #endif
 #if PLATFORM_HTML5_BROWSER
 #include "HTML5JavascriptFX.h"

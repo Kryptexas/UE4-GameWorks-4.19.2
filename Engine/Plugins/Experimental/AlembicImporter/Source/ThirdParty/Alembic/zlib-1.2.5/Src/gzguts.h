@@ -20,7 +20,7 @@
 
 #include <stdio.h>
 // EPIC MOD, allow zlib to be compiled with emscripten sdk 1.14 for html5 target. 
-#if EMSCRIPTEN
+#if __EMSCRIPTEN__
 #include <sys/types.h>
 #include <unistd.h>
 #endif 
