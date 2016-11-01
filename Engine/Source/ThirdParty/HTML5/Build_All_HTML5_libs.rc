@@ -76,10 +76,10 @@ if [ "X$EMSCRIPTEN" == "X" ]; then
 	# ALSO: if these change - remember to change:
 	#       .../Engine/Source/Programs/UnrealBuildTool/HTML5/HTML5SDKInfo.cs
 	#       NOTE: requires UBT rebuild !!!
-	export EMSCRIPTEN="$EMSDK/emscripten/tag-1.36.11"
+	export EMSCRIPTEN="$EMSDK/emscripten/incoming"
 	export NODEPATH="$EMSDK/$HOST/node/4.1.1_64bit/bin"
 	export NODE="$NODEPATH/node"
-	export LLVM="$EMSDK/$HOST/clang/tag-1.36.11"
+	export LLVM="$EMSDK/$HOST/clang/incoming"
 	export PATH=$EMSCRIPTEN:$NODEPATH:$LLVM:$PYTHON:$CMAKEPATH:$PATH
 	
 	# run emscripten at least once to warm up the .emscripten rc file
@@ -108,28 +108,13 @@ fi
 # - edit Engine/Extras/ThirdPartyNotUE/emsdk/emscripten/<version>/tools/file_packager.py
 #   + scan for "data_target" -> ensure these are "escape_for_js_string(data_target)" where needed
 #
-# - edit Engine/Extras/ThirdPartyNotUE/emsdk/emscripten/<version>/cmake/Modules/Platform/Emscripten.cmake
-#   + uncomment:
-#     SET(CMAKE_STATIC_LIBRARY_SUFFIX ".bc")
-#     SET(CMAKE_SHARED_LIBRARY_SUFFIX ".bc")
-#   + add:
-#     SET(EPIC_BUILD_FLAGS "-msse -msse2 -s FULL_ES2=1 -s SIMD=1 -s USE_PTHREADS=1")
-#
-# - path: Engine/Extras/ThirdPartyNotUE/emsdk/emscripten/<version>/system/include/emscripten
-#   + copy: vector.h to em_vector.h
-#   + edit: xmmintrin.h and change:
-#     -- from: #include <vector.h>
-#     -- to:   #include <em_vector.h>
-#
-#     this is because on case-insensitive filesystems (i.e. windows)
-#     it is getting lost with:
-#     -- Engine/Source/Runtime/Core/Public/Math/Vector.h
-#
 # - path: Engine/Extras/ThirdPartyNotUE/emsdk/emscripten/<version>/tools/shared.py
 #   + scan for "logging.warning" -> ensure these are "logging.info" where needed
 #     -- i.e. java & closure
 #     -- "source tree above" can also be marked as info = these have not been checked into perforce
 #     CIS marks these and will SPAM developers -- doing this will reduce the noise
+
+
 
 
 # CMakefile projects - the following will prove to be useful:
@@ -157,4 +142,28 @@ fi
 # - but, Emscripten.cmake always uses -O2 -- which needs to be modified on the fly:
 #	sed -e "s/\(EPIC_BUILD_FLAGS\} \).*-O2\"/\1$OPTIMIZATION\"/" "$EMSCRIPTEN/cmake/Modules/Platform/Emscripten.cmake" > $MAKE_PATH$OPTIMIZATION/Emscripten.cmake
 
+
+
+
+# ================================================================================
+# hacks no longer needed
+# left here for reference
+# ================================================================================
+
+# - edit Engine/Extras/ThirdPartyNotUE/emsdk/emscripten/<version>/cmake/Modules/Platform/Emscripten.cmake
+#   + uncomment:
+#     SET(CMAKE_STATIC_LIBRARY_SUFFIX ".bc")
+#     SET(CMAKE_SHARED_LIBRARY_SUFFIX ".bc")
+#   + add:
+#     SET(EPIC_BUILD_FLAGS "-msse -msse2 -s FULL_ES2=1 -s SIMD=1 -s USE_PTHREADS=1")
+#
+# - path: Engine/Extras/ThirdPartyNotUE/emsdk/emscripten/<version>/system/include/emscripten
+#   + copy: vector.h to em_vector.h
+#   + edit: xmmintrin.h and change:
+#     -- from: #include <vector.h>
+#     -- to:   #include <em_vector.h>
+#
+#     this is because on case-insensitive filesystems (i.e. windows)
+#     it is getting lost with:
+#     -- Engine/Source/Runtime/Core/Public/Math/Vector.h
 

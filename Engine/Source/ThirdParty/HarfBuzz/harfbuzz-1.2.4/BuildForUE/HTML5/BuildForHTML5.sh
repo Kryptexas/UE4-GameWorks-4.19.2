@@ -6,20 +6,46 @@ cd ../../../../HTML5/
 	. ./Build_All_HTML5_libs.rc
 cd "$HARFBUZZ_HTML5"
 
-# ----------------------------------------
-# using save files so i can run this script over and over again
 
-if [ ! -e ../CMakeLists.txt.save ]; then
-	mv ../CMakeLists.txt ../CMakeLists.txt.save
+build_via_cmake()
+{
+	SUFFIX=_O$OLEVEL
+	OPTIMIZATION=-O$OLEVEL
+	# ----------------------------------------
+	rm -rf BUILD$SUFFIX
+	mkdir BUILD$SUFFIX
+	cd BUILD$SUFFIX
+	# ----------------------------------------
+	TYPE=${type^^}
+	if [ $TYPE == "DEBUG" ]; then
+		DBGFLAG=_DEBUG
+	else
+		DBGFLAG=NDEBUG
+	fi
+	# ----------------------------------------
+	emcmake cmake -G "Unix Makefiles" \
+		-DCMAKE_TOOLCHAIN_FILE=$EMSCRIPTEN/cmake/Modules/Platform/Emscripten.cmake \
+		-DUSE_INTEL_ATOMIC_PRIMITIVES=ON \
+		-DEMSCRIPTEN_GENERATE_BITCODE_STATIC_LIBRARIES=ON \
+		-DCMAKE_BUILD_TYPE=$type \
+		-DCMAKE_C_FLAGS_$TYPE="$OPTIMIZATION -D$DBGFLAG" \
+		../..
+	cmake --build . -- harfbuzz -j VERBOSE=1
+	# ----------------------------------------
+	if [ $OLEVEL == 0 ]; then
+		SUFFIX=
+	fi
+	cp ../libharfbuzz.bc ../../../HTML5/libharfbuzz${SUFFIX}.bc
+	cd ..
+}
+type=Debug;       OLEVEL=0;  build_via_cmake
+type=Release;     OLEVEL=2;  build_via_cmake
+type=Release;     OLEVEL=3;  build_via_cmake
+type=MinSizeRel;  OLEVEL=z;  build_via_cmake
+ls -l ../../HTML5
 
-	mv ../CMakeLists.txt ../CMakeLists.txt.save
-	echo "SET(CMAKE_RELEASE_POSTFIX $LIB_SUFFIX)" >> ../CMakeLists.txt
-fi
 
-
-# ----------------------------------------
-# MAKE
-
+# NOT USED: LEFT HERE FOR REFERENCE
 build_all()
 {
 	echo
@@ -35,7 +61,6 @@ build_all()
 	# output library with optimization level appended
 	sed -e "s/\(add_library(harfbuzz\)/\1$LIB_SUFFIX/" ../CMakeLists.txt.save > ../CMakeLists.txt
 
-
 	# modify CMAKE_TOOLCHAIN_FILE
 	sed -e "s/\(EPIC_BUILD_FLAGS\} \).*-O2\"/\1$OPTIMIZATION\"/" "$EMSCRIPTEN/cmake/Modules/Platform/Emscripten.cmake" > $MAKE_PATH$OPTIMIZATION/Emscripten.cmake
 
@@ -45,7 +70,8 @@ build_all()
 	cd $MAKE_PATH$OPTIMIZATION
 		# ./configure
 		echo "Generating HarfBuzz makefile..."
-		cmake -DCMAKE_TOOLCHAIN_FILE="Emscripten.cmake" -DCMAKE_BUILD_TYPE="Release" -G "Unix Makefiles" ../../BuildForUE
+		cmake -DCMAKE_TOOLCHAIN_FILE="Emscripten.cmake" -DEMSCRIPTEN_GENERATE_BITCODE_STATIC_LIBRARIES=ON \
+			-DCMAKE_BUILD_TYPE="Release" -G "Unix Makefiles" ../../BuildForUE
 
 		# make
 		echo "Building HarfBuzz..."
@@ -56,23 +82,40 @@ build_all()
 #		cp -vp libXXX ../.
 	cd -
 }
-
-MAKE_PATH=../../HTML5/Build
-
-OPTIMIZATION=-O3; LIB_SUFFIX=_O3; build_all
-
-OPTIMIZATION=-O2; LIB_SUFFIX=_O2; build_all
-
-OPTIMIZATION=-Oz; LIB_SUFFIX=_Oz; build_all
-
-OPTIMIZATION=-O0; LIB_SUFFIX=
-build_all
-
-
-# ----------------------------------------
-# restore
-
-if [ -e ../CMakeLists.txt.save ]; then
-	mv ../CMakeLists.txt.save ../CMakeLists.txt
-fi
+	
+build_via_makefile()
+{
+	# ----------------------------------------
+	# using save files so i can run this script over and over again
+	
+	if [ ! -e ../CMakeLists.txt.save ]; then
+		mv ../CMakeLists.txt ../CMakeLists.txt.save
+	
+		mv ../CMakeLists.txt ../CMakeLists.txt.save
+		echo "SET(CMAKE_RELEASE_POSTFIX $LIB_SUFFIX)" >> ../CMakeLists.txt
+	fi
+	
+	
+	# ----------------------------------------
+	# MAKE
+	
+	MAKE_PATH=../../HTML5/Build
+	
+	OPTIMIZATION=-O3; LIB_SUFFIX=_O3; build_all
+	
+	OPTIMIZATION=-O2; LIB_SUFFIX=_O2; build_all
+	
+	OPTIMIZATION=-Oz; LIB_SUFFIX=_Oz; build_all
+	
+	OPTIMIZATION=-O0; LIB_SUFFIX=
+	build_all
+	
+	
+	# ----------------------------------------
+	# restore
+	
+	if [ -e ../CMakeLists.txt.save ]; then
+		mv ../CMakeLists.txt.save ../CMakeLists.txt
+	fi
+}
 

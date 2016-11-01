@@ -17,8 +17,69 @@ cd ../HTML5/
 	. ./Build_All_HTML5_libs.rc
 cd "$GW_DEPS_ROOT"
 
+
 # ----------------------------------------
 # MAKE
+
+export CMAKE_MODULE_PATH="$GW_DEPS_ROOT/Externals/CMakeModules"
+
+PHX_FLAGS="-msse2 -Wno-double-promotion -Wno-comma -Wno-expansion-to-defined -Wno-undefined-func-template -Wno-disabled-macro-expansion -Wno-missing-noreturn"
+
+build_via_cmake()
+{
+	SUFFIX=_O$OLEVEL
+	OPTIMIZATION=-O$OLEVEL
+	# ----------------------------------------
+	rm -rf BUILD$SUFFIX
+	mkdir BUILD$SUFFIX
+	cd BUILD$SUFFIX
+	# ----------------------------------------
+	TYPE=${type^^}
+	if [ $TYPE == "DEBUG" ]; then
+		DBGFLAG=_DEBUG
+	else
+		DBGFLAG=NDEBUG
+	fi
+	# ----------------------------------------
+	if [ $OLEVEL == 0 ]; then
+		SUFFIX=
+	fi
+	export LIB_SUFFIX=$SUFFIX
+	emcmake cmake -G "Unix Makefiles" \
+		-DCMAKE_TOOLCHAIN_FILE=$EMSCRIPTEN/cmake/Modules/Platform/Emscripten.cmake \
+		-DAPEX_ENABLE_UE4=1 \
+		-DTARGET_BUILD_PLATFORM=HTML5 \
+		-DPHYSX_ROOT_DIR=$GW_DEPS_ROOT/PhysX_3.4 \
+		-DPXSHARED_ROOT_DIR=$GW_DEPS_ROOT/PxShared \
+		-DNVSIMD_INCLUDE_DIR=$GW_DEPS_ROOT/PxShared/src/NvSimd \
+		-DNVTOOLSEXT_INCLUDE_DIRS=$GW_DEPS_ROOT/PhysX_3.4/externals/nvToolsExt/include \
+		-DEMSCRIPTEN_GENERATE_BITCODE_STATIC_LIBRARIES=ON \
+		-DCMAKE_BUILD_TYPE=$type \
+		-DCMAKE_C_FLAGS_$TYPE="$OPTIMIZATION -D$DBGFLAG $PHX_FLAGS" \
+		-DCMAKE_CXX_FLAGS_$TYPE="$OPTIMIZATION -D$DBGFLAG $PHX_FLAGS" \
+		$GW_DEPS_ROOT/APEX_1.4/compiler/cmake/HTML5
+	cmake --build . -- -j VERBOSE=1
+	# ----------------------------------------
+	if [ $OLEVEL == "z" ]; then
+		# for some reason: _Oz is not getting done here...
+		find . -type f -name "*.bc" -print | while read i; do b=`basename $i .bc`; cp $i $GW_DEPS_ROOT/Lib/HTML5/${b}_Oz.bc; done
+	else
+		find . -type f -name "*.bc" -exec cp {} $GW_DEPS_ROOT/Lib/HTML5 \;
+	fi
+	cd ..
+}
+type=Debug;       OLEVEL=0;  build_via_cmake
+type=Release;     OLEVEL=2;  build_via_cmake
+type=Release;     OLEVEL=3;  build_via_cmake
+type=MinSizeRel;  OLEVEL=z;  build_via_cmake
+ls -l $GW_DEPS_ROOT/Lib/HTML5
+
+
+exit
+
+# NOT USED: LEFT HERE FOR REFERENCE
+# NOT USED: LEFT HERE FOR REFERENCE
+# NOT USED: LEFT HERE FOR REFERENCE
 
 build_all()
 {
@@ -37,7 +98,9 @@ build_all()
 	cd $MAKE_PATH$OPTIMIZATION
 		echo "Generating $MAKETARGET makefile..."
 		export CMAKE_MODULE_PATH="$GW_DEPS_ROOT/Externals/CMakeModules"
-		cmake -DCMAKE_TOOLCHAIN_FILE="Emscripten.cmake" -DCMAKE_BUILD_TYPE="Release" -DTARGET_BUILD_PLATFORM="HTML5" \
+		cmake -DCMAKE_TOOLCHAIN_FILE="Emscripten.cmake" -DTARGET_BUILD_PLATFORM="HTML5" \
+			-DEMSCRIPTEN_GENERATE_BITCODE_STATIC_LIBRARIES=ON \
+			-DCMAKE_BUILD_TYPE="Release" \
 			-DPHYSX_ROOT_DIR="$GW_DEPS_ROOT/PhysX_3.4" \
 			-DPXSHARED_ROOT_DIR="$GW_DEPS_ROOT/PxShared" \
 			-DNVSIMD_INCLUDE_DIR="$GW_DEPS_ROOT/PxShared/src/NvSimd" \

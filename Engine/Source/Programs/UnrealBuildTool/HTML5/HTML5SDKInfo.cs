@@ -11,13 +11,35 @@ namespace UnrealBuildTool
 {
 	public class HTML5SDKInfo
 	{
-		static string SDKVersion = "tag-1.36.11";
+		static string SDKVersion = "incoming";
 		static string NODE_VER = "4.1.1_64bit";
-		static string LLVM_VER = "tag-1.36.11";
+		static string LLVM_VER = "incoming";
 		static string PYTHON_VER = "2.7.5.3_64bit";
 
 		// --------------------------------------------------
 		// --------------------------------------------------
+//		static string SDKBase
+//		{
+//			get
+//			{
+//				// If user has configured a custom Emscripten toolchain, use that automatically.
+//				if (Environment.GetEnvironmentVariable("EMSDK") != null) return Environment.GetEnvironmentVariable("EMSDK");
+//
+//				// Otherwise, use the one embedded in this repository.
+//				return Path.GetFullPath(Path.Combine(BuildConfiguration.RelativeEnginePath, "Extras", "ThirdPartyNotUE", "emsdk"));
+//			}
+//		}
+//		static public string EMSCRIPTEN_ROOT
+//		{
+//			get
+//			{
+//				// If user has configured a custom Emscripten toolchain, use that automatically.
+//				if (Environment.GetEnvironmentVariable("EMSCRIPTEN") != null) return Environment.GetEnvironmentVariable("EMSCRIPTEN");
+//
+//				// Otherwise, use the one embedded in this repository.		
+//				return Path.Combine(SDKBase, "emscripten", SDKVersion);
+//			}
+//		}
 		static string SDKBase { get { return Path.GetFullPath(Path.Combine(BuildConfiguration.RelativeEnginePath, "Extras", "ThirdPartyNotUE", "emsdk")); } }
 		static public string EMSCRIPTEN_ROOT { get { return Path.Combine(SDKBase, "emscripten", SDKVersion); } }
 		static public string EmscriptenCMakeToolChainFile { get { return Path.Combine(EMSCRIPTEN_ROOT,  "cmake", "Modules", "Platform", "Emscripten.cmake"); } }
@@ -53,6 +75,81 @@ namespace UnrealBuildTool
 				}
 			}
 		}
+
+//		// Reads the contents of the ".emscripten" config file.
+//		static string ReadEmscriptenConfigFile()
+//		{
+//			string config = Environment.GetEnvironmentVariable("EM_CONFIG"); // This is either a string containing the config directly, or points to a file
+//			if (File.Exists(config))
+//			{
+//                config = File.ReadAllText(config);
+//			}
+//			return config;
+//		}
+//
+//		// Pulls the value of the given option key in .emscripten config file.
+//		static string GetEmscriptenConfigVar(string variable)
+//		{
+//			string config = ReadEmscriptenConfigFile();
+//            if (config == null) return "";
+//			string[] tokens = config.Split('\n');
+//
+//			// Parse lines of type "KEY='value'"
+//			Regex regex = new Regex(variable + "\\s*=\\s*['\\\"](.*)['\\\"]");
+//			foreach(string line in tokens)
+//			{
+//				Match m = regex.Match(line);
+//				if (m.Success)
+//				{
+//					return m.Groups[1].ToString();
+//				}
+//			}
+//			return "";
+//		}
+//
+//		static string NODE_JS
+//		{
+//			get
+//			{
+//				// If user has configured a custom Emscripten toolchain, use that automatically.
+//				string node_js = GetEmscriptenConfigVar("NODE_JS");
+//				if (node_js != null) return node_js;
+//
+//				// Otherwise, use the one embedded in this repository.
+//				return Path.Combine(SDKBase, CURRENT_PLATFORM, "node", NODE_VER, "bin", "node" + PLATFORM_EXE);
+//			}
+//		}
+//		static string LLVM_ROOT
+//		{
+//			get
+//			{
+//				// If user has configured a custom Emscripten toolchain, use that automatically.
+//				string llvm_root = GetEmscriptenConfigVar("LLVM_ROOT");
+//				if (llvm_root != null) return llvm_root;
+//
+//				// Otherwise, use the one embedded in this repository.
+//                return Path.Combine(SDKBase, CURRENT_PLATFORM, "clang", LLVM_VER);
+//			}
+//		}
+//		static string PYTHON
+//		{
+//			get
+//			{
+//				// If user has configured a custom Emscripten toolchain, use that automatically.
+//				string python = GetEmscriptenConfigVar("PYTHON");
+//				if (python != null) return python;
+//
+//                switch (BuildHostPlatform.Current.Platform)
+//				{
+//					case UnrealTargetPlatform.Win64:
+//						return Path.Combine(SDKBase, "Win64", "python", PYTHON_VER, "python.exe");
+//					case UnrealTargetPlatform.Mac: // python is default installed on mac.
+//						return "/usr/bin/python";
+//					default:
+//						return "error_unknown_platform";
+//				}
+//			}
+//		}
 		static string NODE_JS { get { return Path.Combine(SDKBase, CURRENT_PLATFORM, "node", NODE_VER, "bin", "node" + PLATFORM_EXE); } }
 		static string LLVM_ROOT { get { return Path.Combine(SDKBase, CURRENT_PLATFORM, "clang", LLVM_VER); } }
 		static string PYTHON
@@ -84,11 +181,34 @@ namespace UnrealBuildTool
 				return HTML5IntermediatoryPath;
 			}
 		}
+//		static public string DOT_EMSCRIPTEN
+//        {
+//            get
+//            {
+//				// If user has configured a custom Emscripten toolchain, use that automatically.
+//                if (Environment.GetEnvironmentVariable("EMSDK") != null && Environment.GetEnvironmentVariable("EM_CONFIG") != null && File.Exists(Environment.GetEnvironmentVariable("EM_CONFIG")))
+//                {
+//                    return Environment.GetEnvironmentVariable("EM_CONFIG");
+//                }
+//
+//				// Otherwise, use the one embedded in this repository.
+//                return Path.Combine(HTML5Intermediatory, ".emscripten");
+//            }
+//        }
+//		static public string EMSCRIPTEN_CACHE { get { return Path.Combine(HTML5Intermediatory, "EmscriptenCache"); ; } }
 		static public string DOT_EMSCRIPTEN { get { return Path.Combine(HTML5Intermediatory, ".emscripten"); } }
 		static public string EMSCRIPTEN_CACHE { get { return Path.Combine(HTML5Intermediatory, "EmscriptenCache"); ; } }
 
 		public static string SetupEmscriptenTemp()
 		{
+//			// If user has configured a custom Emscripten toolchain, use that automatically.
+//			if (Environment.GetEnvironmentVariable("EMSDK") != null)
+//			{
+//				string emscripten_temp = GetEmscriptenConfigVar("TEMP_DIR");
+//				if (emscripten_temp != null) return emscripten_temp;
+//			}
+
+			// Otherwise, use the one embedded in this repository.
 			string TempPath = Path.Combine(HTML5Intermediatory, "EmscriptenTemp");
 			try
 			{
@@ -125,6 +245,14 @@ namespace UnrealBuildTool
 
 		public static string SetUpEmscriptenConfigFile()
 		{
+//			// If user has configured a custom Emscripten toolchain, use that automatically.
+//			if (Environment.GetEnvironmentVariable("EMSDK") != null && Environment.GetEnvironmentVariable("EM_CONFIG") != null && File.Exists(Environment.GetEnvironmentVariable("EM_CONFIG")))
+//			{
+//				return Environment.GetEnvironmentVariable("EM_CONFIG");
+//			}
+
+			// Otherwise, use the one embedded in this repository.
+
 			// the following are for diff checks for file timestamps
 			string SaveDotEmscripten = DOT_EMSCRIPTEN + ".save";
 			if (File.Exists(SaveDotEmscripten))
