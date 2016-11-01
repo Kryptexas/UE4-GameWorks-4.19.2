@@ -51,16 +51,16 @@ void FMovieSceneRootEvaluationTemplateInstance::Reset()
 {
 	if (TemplateStore->AreTemplatesVolatile())
 	{
-		if (RootInstance.Sequence)
+		if (UMovieSceneSequence* Sequence = RootInstance.Sequence.Get())
 		{
-			RootInstance.Sequence->OnSignatureChanged().RemoveAll(this);
+			Sequence->OnSignatureChanged().RemoveAll(this);
 		}
 
 		for (auto& Pair : SubInstances)
 		{
-			if (Pair.Value.Sequence)
+			if (UMovieSceneSequence* Sequence = Pair.Value.Sequence.Get())
 			{
-				Pair.Value.Sequence->OnSignatureChanged().RemoveAll(this);
+				Sequence->OnSignatureChanged().RemoveAll(this);
 			}
 		}
 	}
@@ -137,9 +137,9 @@ void FMovieSceneRootEvaluationTemplateInstance::Finish(IMovieScenePlayer& Player
 
 void FMovieSceneRootEvaluationTemplateInstance::Evaluate(FMovieSceneContext Context, IMovieScenePlayer& Player, FMovieSceneSequenceID OverrideRootID)
 {
-	if (bIsDirty && RootSequence)
+	if (bIsDirty && RootSequence.IsValid())
 	{
-		Initialize(*RootSequence, Player);
+		Initialize(*RootSequence.Get(), Player);
 	}
 
 	SCOPE_CYCLE_COUNTER(MovieSceneEval_EntireEvaluationCost);

@@ -2112,8 +2112,10 @@ void FSequencer::AddReferencedObjects( FReferenceCollector& Collector )
 		// Sequencer references all sub movie scene sequences contained within the root
 		for (auto& Pair : RootTemplateInstance.GetSubInstances())
 		{
-			UMovieSceneSequence* Sequence = Pair.Value.Sequence;
-			Collector.AddReferencedObject(Sequence);
+			if (UMovieSceneSequence* Sequence = Pair.Value.Sequence.Get())
+			{
+				Collector.AddReferencedObject(Sequence);
+			}
 		}
 	}
 }

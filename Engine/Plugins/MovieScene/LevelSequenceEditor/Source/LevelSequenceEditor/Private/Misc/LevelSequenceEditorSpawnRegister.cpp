@@ -113,7 +113,7 @@ void FLevelSequenceEditorSpawnRegister::PreDestroyObject(UObject& Object, const 
 void FLevelSequenceEditorSpawnRegister::SaveDefaultSpawnableState(FMovieSceneSpawnable& Spawnable, FMovieSceneSequenceIDRef TemplateID, IMovieScenePlayer& Player)
 {
 	const FMovieSceneEvaluationTemplateInstance* Template = Player.GetEvaluationTemplate().GetInstance(TemplateID);
-	UMovieSceneSequence* Sequence = Template ? Template->Sequence : nullptr;
+	UMovieSceneSequence* Sequence = Template ? Template->Sequence.Get() : nullptr;
 
 	UObject* Object = FindSpawnedObject(Spawnable.GetGuid(), TemplateID);
 	if (!Object || !Sequence)

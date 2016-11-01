@@ -4,7 +4,6 @@
 
 #include "MovieSceneFwd.h"
 #include "MovieSceneEvaluationTemplate.h"
-#include "MovieSceneEvaluationTemplateInstance.generated.h"
 
 class FMovieSceneSequenceInstance;
 
@@ -13,7 +12,7 @@ class FMovieSceneSequenceInstance;
  */
 struct FMovieSceneEvaluationTemplateInstance
 {
-	FMovieSceneEvaluationTemplateInstance() : Sequence(nullptr), Template(nullptr), SequenceID(MovieSceneSequenceID::Invalid) {}
+	FMovieSceneEvaluationTemplateInstance() : Template(nullptr), SequenceID(MovieSceneSequenceID::Invalid) {}
 
 	/**
 	 * Constructor for root instances
@@ -57,7 +56,7 @@ struct FMovieSceneEvaluationTemplateInstance
 public:
 
 	/** The sequence that the sub section references */
-	UMovieSceneSequence* Sequence;
+	TWeakObjectPtr<UMovieSceneSequence> Sequence;
 
 	/** Transform that transforms a given time from the sequences outer space, to its authored space. */
 	FMovieSceneSequenceTransform RootToSequenceTransform;
@@ -75,12 +74,9 @@ public:
 /**
  * Root evaluation template instance used to play back any sequence
  */
-USTRUCT()
 struct FMovieSceneRootEvaluationTemplateInstance
 {
 public:
-	GENERATED_BODY()
-
 	MOVIESCENE_API FMovieSceneRootEvaluationTemplateInstance();
 	MOVIESCENE_API ~FMovieSceneRootEvaluationTemplateInstance();
 
@@ -95,7 +91,7 @@ public:
 	 */
 	bool IsValid() const
 	{
-		return RootSequence && RootInstance.Template;
+		return RootSequence.Get() && RootInstance.Template;
 	}
 
 	/**
@@ -174,7 +170,7 @@ public:
 	{
 		if (const FMovieSceneEvaluationTemplateInstance* Instance = GetInstance(SequenceID))
 		{
-			return Instance->Sequence;
+			return Instance->Sequence.Get();
 		}
 		return nullptr;
 	}
@@ -257,8 +253,7 @@ private:
 
 private:
 
-	UPROPERTY()
-	UMovieSceneSequence* RootSequence;
+	TWeakObjectPtr<UMovieSceneSequence> RootSequence;
 
 	FMovieSceneEvaluationTemplateInstance RootInstance;
 
@@ -283,4 +278,3 @@ private:
 	/** Event that is triggered on update */
 	FOnUpdated OnUpdatedEvent;
 };
-template<> struct TStructOpsTypeTraits<FMovieSceneRootEvaluationTemplateInstance> : public TStructOpsTypeTraitsBase { enum { WithCopy = false }; };
