@@ -32,7 +32,7 @@
 #include <cmath>
 
 // ps4 compiler defines _M_X64 without value
-#if((defined _M_IX86) || (defined _M_X64) || (defined __i386__) || (defined __x86_64__) || (defined __EMSCRIPTEN__))
+#if((defined _M_IX86) || (defined _M_X64) || (defined __i386__) || (defined __x86_64__) || (defined __EMSCRIPTEN__ && defined __SSE2__))
 #define NVMATH_SSE2 1
 #else
 #define NVMATH_SSE2 0

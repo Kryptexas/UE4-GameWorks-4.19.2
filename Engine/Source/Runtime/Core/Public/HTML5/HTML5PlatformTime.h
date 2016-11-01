@@ -13,7 +13,7 @@
 #include <time.h>
 #include <sys/timeb.h>
 
-// PLATFORM_HTML5_WIN32 
+// PLATFORM_HTML5_WIN32
 
 /**
 * Windows implementation of the Time OS functions
@@ -53,28 +53,28 @@ struct CORE_API FHTML5PlatformTime : public FGenericPlatformTime
 };
 
 typedef FHTML5PlatformTime FPlatformTime;
-#else 
+#else
 
 // PLATFORM_HTML5.
 
 #include <time.h>
-#include <emscripten.h> 
+#include <emscripten/emscripten.h>
 
 
 
 struct CORE_API FHTML5PlatformTime : public FGenericPlatformTime
 {
-	static double emscripten_t0; 
+	static double emscripten_t0;
 
 	static double InitTiming()
 	{
-		emscripten_t0 = emscripten_get_now(); 
+		emscripten_t0 = emscripten_get_now();
 		SecondsPerCycle = 1.0f / 1000000.0f;
 		SecondsPerCycle64 = 1.0 / 1000000.0;
 		return FHTML5PlatformTime::Seconds();
 	}
 
-	// for HTML5 - this returns the time since startup. 
+	// for HTML5 - this returns the time since startup.
 	static FORCEINLINE double Seconds()
 	{
 		double t = emscripten_get_now();

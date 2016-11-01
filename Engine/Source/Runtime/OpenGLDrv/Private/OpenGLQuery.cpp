@@ -107,7 +107,7 @@ bool FOpenGLDynamicRHI::RHIGetRenderQueryResult(FRenderQueryRHIParamRef QueryRHI
 		OutResult = 0;
 		return false;
 	}
-	
+
 	bool bSuccess = true;
 
 	if (!Query->bInvalidResource && !PlatformContextIsCurrent(Query->ResourceContext))
@@ -138,7 +138,7 @@ bool FOpenGLDynamicRHI::RHIGetRenderQueryResult(FRenderQueryRHIParamRef QueryRHI
 				SCOPE_CYCLE_COUNTER( STAT_RenderQueryResultTime );
 				uint32 IdleStart = FPlatformTime::Cycles();
 				double StartTime = FPlatformTime::Seconds();
-				do 
+				do
 				{
 					VERIFY_GL_SCOPE();
 					FPlatformProcess::Sleep(0);	// yield to other threads - some of them may be OpenGL driver's and we'd be starving them
@@ -245,7 +245,7 @@ FOpenGLRenderQuery& FOpenGLRenderQuery::operator=(FOpenGLRenderQuery const& Othe
 	}
 	return *this;
 }
-	
+
 
 void FOpenGLEventQuery::IssueEvent()
 {
@@ -256,10 +256,10 @@ void FOpenGLEventQuery::IssueEvent()
 		Sync = UGLsync();
 	}
 	Sync = FOpenGL::FenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-#ifndef EMSCRIPTEN // https://answers.unrealengine.com/questions/409649/html5-opengl-backend-doesnt-need-to-flush-gl-comma.html
+#ifndef __EMSCRIPTEN__ // https://answers.unrealengine.com/questions/409649/html5-opengl-backend-doesnt-need-to-flush-gl-comma.html
 	FOpenGL::Flush();
 #endif
-	
+
 	checkSlow(FOpenGL::IsSync(Sync));
 
 }
@@ -292,7 +292,7 @@ void FOpenGLEventQuery::WaitForCompletion()
 			check(0);
 		}
 	}
-	
+
 }
 
 void FOpenGLEventQuery::InitDynamicRHI()
@@ -360,7 +360,7 @@ void FOpenGLBufferedGPUTiming::InitDynamicRHI()
 	{
 		StartTimestamps.Reserve(BufferSize);
 		EndTimestamps.Reserve(BufferSize);
-		
+
 		for(int32 BufferIndex = 0; BufferIndex < BufferSize; ++BufferIndex)
 		{
 			StartTimestamps.Add(new FOpenGLRenderQuery(RQT_AbsoluteTime));
@@ -380,15 +380,15 @@ void FOpenGLBufferedGPUTiming::ReleaseDynamicRHI()
 	{
 		delete Query;
 	}
-	
+
 	for(FOpenGLRenderQuery* Query : EndTimestamps)
 	{
 		delete Query;
 	}
-	
+
 	StartTimestamps.Reset();
 	EndTimestamps.Reset();
-	
+
 }
 
 /**
@@ -433,7 +433,7 @@ void FOpenGLBufferedGPUTiming::EndTiming()
 	if ( GIsSupported && bIsTiming )
 	{
 		checkSlow( CurrentTimestamp >= 0 && CurrentTimestamp < BufferSize );
-		
+
 		FOpenGLRenderQuery* TimerQuery = EndTimestamps[CurrentTimestamp];
 		{
 			if (!TimerQuery->bInvalidResource && !PlatformContextIsCurrent(TimerQuery->ResourceContext))
@@ -447,7 +447,7 @@ void FOpenGLBufferedGPUTiming::EndTiming()
 				PlatformGetNewRenderQuery(&TimerQuery->Resource, &TimerQuery->ResourceContext);
 				TimerQuery->bInvalidResource = false;
 			}
-		} 
+		}
 
 		FOpenGL::QueryTimestampCounter(EndTimestamps[CurrentTimestamp]->Resource);
 		NumIssuedTimestamps = FMath::Min<int32>(NumIssuedTimestamps + 1, BufferSize);
@@ -530,7 +530,7 @@ uint64 FOpenGLBufferedGPUTiming::GetTiming(bool bGetCurrentResultsAndBlock)
 			// so check the oldest measurement more thoroughly.
 			// This really only happens if occlusion and frame sync event queries are disabled, otherwise those will block until the GPU catches up to 1 frame behind
 			const bool bBlocking = ( NumIssuedTimestamps == BufferSize ) || bGetCurrentResultsAndBlock;
-			
+
 			uint32 IdleStart = FPlatformTime::Cycles();
 			double StartTimeoutTime = FPlatformTime::Seconds();
 
@@ -538,7 +538,7 @@ uint64 FOpenGLBufferedGPUTiming::GetTiming(bool bGetCurrentResultsAndBlock)
 
 			SCOPE_CYCLE_COUNTER( STAT_RenderQueryResultTime );
 			// If we are blocking, retry until the GPU processes the time stamp command
-			do 
+			do
 			{
 				FOpenGL::GetQueryObject(EndTimestamps[TimestampIndex]->Resource, FOpenGL::QM_ResultAvailable, &EndAvailable);
 
@@ -548,7 +548,7 @@ uint64 FOpenGLBufferedGPUTiming::GetTiming(bool bGetCurrentResultsAndBlock)
 					return 0;
 				}
 			} while ( EndAvailable == GL_FALSE && bBlocking );
-	
+
 			GRenderThreadIdle[ERenderThreadIdleTypes::WaitingForGPUQuery] += FPlatformTime::Cycles() - IdleStart;
 			GRenderThreadNumIdle[ERenderThreadIdleTypes::WaitingForGPUQuery]++;
 
@@ -559,7 +559,7 @@ uint64 FOpenGLBufferedGPUTiming::GetTiming(bool bGetCurrentResultsAndBlock)
 
 				GLuint StartAvailable = GL_FALSE;
 
-				do 
+				do
 				{
 					FOpenGL::GetQueryObject(StartTimestamps[TimestampIndex]->Resource, FOpenGL::QM_ResultAvailable, &StartAvailable);
 
@@ -636,7 +636,7 @@ bool FOpenGLDisjointTimeStampQuery::IsResultValid()
 bool FOpenGLDisjointTimeStampQuery::GetResult( uint64* OutResult/*=NULL*/ )
 {
 	VERIFY_GL_SCOPE();
-	
+
 	if (IsSupported())
 	{
 		GLuint Result = 0;
