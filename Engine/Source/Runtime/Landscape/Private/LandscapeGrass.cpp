@@ -1451,16 +1451,19 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 
 		const FMeshMapBuildData* MeshMapBuildData = Component->GetMeshMapBuildData();
 
-		if (MeshMapBuildData->LightMap.IsValid())
+		if (MeshMapBuildData != nullptr)
 		{
-			LightmapBaseBias = MeshMapBuildData->LightMap->GetLightMap2D()->GetCoordinateBias();
-			LightmapBaseScale = MeshMapBuildData->LightMap->GetLightMap2D()->GetCoordinateScale();
-		}
+			if (MeshMapBuildData->LightMap.IsValid())
+			{
+				LightmapBaseBias = MeshMapBuildData->LightMap->GetLightMap2D()->GetCoordinateBias();
+				LightmapBaseScale = MeshMapBuildData->LightMap->GetLightMap2D()->GetCoordinateScale();
+			}
 
-		if (MeshMapBuildData->ShadowMap.IsValid())
-		{
-			ShadowmapBaseBias = MeshMapBuildData->ShadowMap->GetShadowMap2D()->GetCoordinateBias();
-			ShadowmapBaseScale = MeshMapBuildData->ShadowMap->GetShadowMap2D()->GetCoordinateScale();
+			if (MeshMapBuildData->ShadowMap.IsValid())
+			{
+				ShadowmapBaseBias = MeshMapBuildData->ShadowMap->GetShadowMap2D()->GetCoordinateBias();
+				ShadowmapBaseScale = MeshMapBuildData->ShadowMap->GetShadowMap2D()->GetCoordinateScale();
+			}
 		}
 	}
 
