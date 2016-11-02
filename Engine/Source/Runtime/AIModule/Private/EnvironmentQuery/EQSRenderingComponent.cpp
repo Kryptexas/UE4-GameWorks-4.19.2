@@ -318,19 +318,27 @@ UEQSRenderingComponent::UEQSRenderingComponent(const FObjectInitializer& ObjectI
 
 FPrimitiveSceneProxy* UEQSRenderingComponent::CreateSceneProxy()
 {
+	FEQSSceneProxy* NewSceneProxy = nullptr;
 #if  USE_EQS_DEBUGGER || ENABLE_VISUAL_LOG
-	FEQSSceneProxy* SceneProxy2;
 	if (DebugData.SolidSpheres.Num() > 0 || DebugData.Texts.Num() > 0)
 	{
-		SceneProxy2 = new FEQSSceneProxy(this, DrawFlagName, DebugData.SolidSpheres, DebugData.Texts);
-#if  USE_EQS_DEBUGGER
-		EQSRenderingDebugDrawDelegateHelper.InitDelegateHelper(SceneProxy2);
-		EQSRenderingDebugDrawDelegateHelper.ReregisterDebugDrawDelgate();
+		NewSceneProxy = new FEQSSceneProxy(this, DrawFlagName, DebugData.SolidSpheres, DebugData.Texts);
+	}
+	else
 #endif
-		return SceneProxy2;
+	{
+		NewSceneProxy = new FEQSSceneProxy(this, DrawFlagName);
+	}
+
+#if  USE_EQS_DEBUGGER
+	if (NewSceneProxy && NewSceneProxy->Texts.Num() > 0)
+	{
+		EQSRenderingDebugDrawDelegateHelper.InitDelegateHelper(NewSceneProxy);
+		EQSRenderingDebugDrawDelegateHelper.ReregisterDebugDrawDelgate();
 	}
 #endif
-	return new FEQSSceneProxy(this, DrawFlagName);
+
+	return NewSceneProxy;
 }
 
 FBoxSphereBounds UEQSRenderingComponent::CalcBounds(const FTransform& LocalToWorld) const
