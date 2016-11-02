@@ -487,6 +487,12 @@ void SKismetInspector::UpdateFromObjects(const TArray<UObject*>& PropertyObjects
 		{
 			for (UObject* PropertyObject : PropertyObjects)
 			{
+				if (!PropertyObject->IsValidLowLevel())
+				{
+					ensureMsgf(false, TEXT("Object in KismetInspector is invalid, see TTP 281915"));
+					continue;
+				}
+
 				if (PropertyObject->IsA<UActorComponent>())
 				{
 					bEnableComponentCustomization = true;
@@ -509,6 +515,12 @@ void SKismetInspector::UpdateFromObjects(const TArray<UObject*>& PropertyObjects
 			{
 				if (PropertyObjects[i] != SelectedObjects[i].Get())
 				{
+					if (!PropertyObjects[i]->IsValidLowLevel())
+					{
+						ensureMsgf(false, TEXT("Object in KismetInspector is invalid, see TTP 281915"));
+						continue;
+					}
+
 					bEquivalentSets = false;
 					break;
 				}
