@@ -52,7 +52,7 @@ if [ "X$EMSCRIPTEN" == "X" ]; then
 			exit
 		fi
 
-		if [ ! -d $(which cmake) ]; then
+		if [ ! -e $(which cmake) ]; then
 			echo ERROR: cmake not found
 			exit
 		fi
@@ -76,10 +76,10 @@ if [ "X$EMSCRIPTEN" == "X" ]; then
 	# ALSO: if these change - remember to change:
 	#       .../Engine/Source/Programs/UnrealBuildTool/HTML5/HTML5SDKInfo.cs
 	#       NOTE: requires UBT rebuild !!!
-	export EMSCRIPTEN="$EMSDK/emscripten/tag-1.36.11"
+	export EMSCRIPTEN="$EMSDK/emscripten/incoming"
 	export NODEPATH="$EMSDK/$HOST/node/4.1.1_64bit/bin"
 	export NODE="$NODEPATH/node"
-	export LLVM="$EMSDK/$HOST/clang/tag-1.36.11"
+	export LLVM="$EMSDK/$HOST/clang/incoming"
 	export PATH=$EMSCRIPTEN:$NODEPATH:$LLVM:$PYTHON:$CMAKEPATH:$PATH
 	
 	# run emscripten at least once to warm up the .emscripten rc file
