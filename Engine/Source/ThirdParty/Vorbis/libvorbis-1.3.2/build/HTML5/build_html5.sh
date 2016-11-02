@@ -19,7 +19,8 @@ build_via_cmake()
 	mkdir BUILD$SUFFIX
 	cd BUILD$SUFFIX
 	# ----------------------------------------
-	TYPE=${type^^}
+#	TYPE=${type^^} # OSX-bash doesn't like this
+	TYPE=`echo $type | tr "[:lower:]" "[:upper:]"`
 	if [ $TYPE == "DEBUG" ]; then
 		DBGFLAG=_DEBUG
 	else

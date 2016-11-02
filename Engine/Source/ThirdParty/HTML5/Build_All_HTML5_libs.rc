@@ -52,7 +52,7 @@ if [ "X$EMSCRIPTEN" == "X" ]; then
 			exit
 		fi
 
-		if [ ! -d $(which cmake) ]; then
+		if [ ! -e $(which cmake) ]; then
 			echo ERROR: cmake not found
 			exit
 		fi
