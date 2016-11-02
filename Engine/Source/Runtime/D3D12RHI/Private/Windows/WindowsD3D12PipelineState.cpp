@@ -109,8 +109,10 @@ void FD3D12PipelineStateCache::RebuildFromDiskCache(ID3D12RootSignature* Graphic
 		if (!DiskCaches[PSO_CACHE_GRAPHICS].IsInErrorState())
 		{
 			Desc->CombinedHash = FD3D12PipelineStateCache::HashPSODesc(*Desc);
-			FD3D12PipelineState& PSOOut = LowLevelGraphicsPipelineStateCache.Add(*Desc, FD3D12PipelineState(Adapter));
-			PSOOut.CreateAsync(GraphicsPipelineCreationArgs(Desc, PipelineLibrary));
+
+			FD3D12PipelineState* const NewPipelineState = new FD3D12PipelineState(Adapter);
+			LowLevelGraphicsPipelineStateCache.Add(*Desc, NewPipelineState);
+			NewPipelineState->CreateAsync(GraphicsPipelineCreationArgs(Desc, PipelineLibrary));
 		}
 		else
 		{
@@ -152,8 +154,10 @@ void FD3D12PipelineStateCache::RebuildFromDiskCache(ID3D12RootSignature* Graphic
 		if (!DiskCaches[PSO_CACHE_COMPUTE].IsInErrorState())
 		{
 			Desc->CombinedHash = FD3D12PipelineStateCache::HashPSODesc(*Desc);
-			FD3D12PipelineState& PSOOut = ComputePipelineStateCache.Add(*Desc, FD3D12PipelineState(Adapter));
-			PSOOut.CreateAsync(ComputePipelineCreationArgs(Desc, PipelineLibrary));
+
+			FD3D12PipelineState* const NewPipelineState = new FD3D12PipelineState(Adapter);
+			ComputePipelineStateCache.Add(*Desc, NewPipelineState);
+			NewPipelineState->CreateAsync(ComputePipelineCreationArgs(Desc, PipelineLibrary));
 		}
 		else
 		{
@@ -175,14 +179,14 @@ FD3D12PipelineState* FD3D12PipelineStateCache::FindGraphics(FD3D12HighLevelGraph
 
 	Desc->CombinedHash = FD3D12PipelineStateCache::HashPSODesc(*Desc);
 
-	uint64 BSSUniqueID = Desc->BoundShaderState ? Desc->BoundShaderState->UniqueID : 0;
-	TPair<FD3D12PipelineState, uint64>* HighLevelCacheEntry = HighLevelGraphicsPipelineStateCache.Find(*Desc);
+	const uint64 BSSUniqueID = Desc->BoundShaderState ? Desc->BoundShaderState->UniqueID : 0;
+	TPair<FD3D12PipelineState*, uint64>* HighLevelCacheEntry = HighLevelGraphicsPipelineStateCache.Find(*Desc);
 	if (HighLevelCacheEntry && HighLevelCacheEntry->Value == BSSUniqueID)
 	{
 #if UE_BUILD_DEBUG
 		++HighLevelCacheFulfillCount; // No low-level cache hit
 #endif
-		return &HighLevelCacheEntry->Key;
+		return HighLevelCacheEntry->Key;
 	}
 
 	FD3D12LowLevelGraphicsPipelineStateDesc LowLevelDesc;
@@ -191,14 +195,14 @@ FD3D12PipelineState* FD3D12PipelineStateCache::FindGraphics(FD3D12HighLevelGraph
 	//TODO: for now PSOs will be created on every node of the LDA chain
 	LowLevelDesc.Desc.NodeMask = GetParentAdapter()->ActiveGPUMask();
 
-	FD3D12PipelineState* PSO = FindGraphicsLowLevel(&LowLevelDesc);
+	FD3D12PipelineState* const PSO = FindGraphicsLowLevel(&LowLevelDesc);
 
 	if (HighLevelCacheEntry)
 	{
 #if UE_BUILD_DEBUG
 		++HighLevelCacheStaleCount; // High-level cache hit, but was stale due to BSS memory re-use
 #endif
-		HighLevelCacheEntry->Key = *PSO;
+		HighLevelCacheEntry->Key = PSO;
 		HighLevelCacheEntry->Value = BSSUniqueID;
 	}
 	else
@@ -208,11 +212,11 @@ FD3D12PipelineState* FD3D12PipelineStateCache::FindGraphics(FD3D12HighLevelGraph
 #endif
 		HighLevelCacheEntry = &HighLevelGraphicsPipelineStateCache.Add(
 			*Desc,
-			TPairInitializer<FD3D12PipelineState, uint64>(*PSO, BSSUniqueID)
+			TPairInitializer<FD3D12PipelineState*, uint64>(PSO, BSSUniqueID)
 			);
 	}
 
-	return &HighLevelCacheEntry->Key;
+	return HighLevelCacheEntry->Key;
 }
 
 FD3D12PipelineState* FD3D12PipelineStateCache::FindGraphicsLowLevel(FD3D12LowLevelGraphicsPipelineStateDesc* Desc)
@@ -220,15 +224,13 @@ FD3D12PipelineState* FD3D12PipelineStateCache::FindGraphicsLowLevel(FD3D12LowLev
 	// Lock already taken by high level find
 	Desc->CombinedHash = FD3D12PipelineStateCache::HashPSODesc(*Desc);
 
-	FD3D12PipelineState* PSO = LowLevelGraphicsPipelineStateCache.Find(*Desc);
-
+	FD3D12PipelineState** const PSO = LowLevelGraphicsPipelineStateCache.Find(*Desc);
 	if (PSO)
 	{
-		ID3D12PipelineState* APIPso = PSO->GetPipelineState();
-
+		ID3D12PipelineState* APIPso = (*PSO)->GetPipelineState();
 		if (APIPso)
 		{
-			return PSO;
+			return *PSO;
 		}
 		else
 		{
@@ -254,15 +256,13 @@ FD3D12PipelineState* FD3D12PipelineStateCache::FindCompute(FD3D12ComputePipeline
 
 	Desc->CombinedHash = FD3D12PipelineStateCache::HashPSODesc(*Desc);
 
-	FD3D12PipelineState* PSO = ComputePipelineStateCache.Find(*Desc);
-
+	FD3D12PipelineState** const PSO = ComputePipelineStateCache.Find(*Desc);
 	if (PSO)
 	{
-		ID3D12PipelineState* APIPso = PSO->GetPipelineState();
-
+		ID3D12PipelineState* APIPso = (*PSO)->GetPipelineState();
 		if (APIPso)
 		{
-			return PSO;
+			return *PSO;
 		}
 		else
 		{
@@ -285,10 +285,11 @@ FD3D12PipelineState* FD3D12PipelineStateCache::Add(const GraphicsPipelineCreatio
 	check(LowLevelGraphicsPipelineStateCache.Find(*Args.Args.Desc) == nullptr);
 #endif
 
-	FD3D12PipelineState& PSOOut = LowLevelGraphicsPipelineStateCache.Add(*Args.Args.Desc, FD3D12PipelineState(GetParentAdapter()));
-	PSOOut.Create(Args);
+	FD3D12PipelineState* const NewPipelineState = new FD3D12PipelineState(GetParentAdapter());
+	LowLevelGraphicsPipelineStateCache.Add(*Args.Args.Desc, NewPipelineState);
+	NewPipelineState->Create(Args);
 
-	ID3D12PipelineState* APIPso = PSOOut.GetPipelineState();
+	ID3D12PipelineState* APIPso = NewPipelineState->GetPipelineState();
 	if (APIPso == nullptr)
 	{
 		UE_LOG(LogD3D12RHI, Warning, TEXT("Runtime PSO creation failed."));
@@ -366,17 +367,18 @@ FD3D12PipelineState* FD3D12PipelineStateCache::Add(const GraphicsPipelineCreatio
 		DiskCaches[PSO_CACHE_GRAPHICS].Flush(LowLevelGraphicsPipelineStateCache.Num());
 	}
 
-	return &PSOOut;
+	return NewPipelineState;
 }
 
 FD3D12PipelineState* FD3D12PipelineStateCache::Add(const ComputePipelineCreationArgs& Args)
 {
 	FScopeLock Lock(&CS);
 
-	FD3D12PipelineState& PSOOut = ComputePipelineStateCache.Add(*Args.Args.Desc, FD3D12PipelineState(GetParentAdapter()));
-	PSOOut.Create(Args);
+	FD3D12PipelineState* const NewPipelineState = new FD3D12PipelineState(GetParentAdapter());
+	ComputePipelineStateCache.Add(*Args.Args.Desc, NewPipelineState);
+	NewPipelineState->Create(Args);
 
-	ID3D12PipelineState* APIPso = PSOOut.GetPipelineState();
+	ID3D12PipelineState* APIPso = NewPipelineState->GetPipelineState();
 	if (APIPso == nullptr)
 	{
 		UE_LOG(LogD3D12RHI, Warning, TEXT("Runtime PSO creation failed."));
@@ -409,7 +411,7 @@ FD3D12PipelineState* FD3D12PipelineStateCache::Add(const ComputePipelineCreation
 		DiskCaches[PSO_CACHE_COMPUTE].Flush(ComputePipelineStateCache.Num());
 	}
 
-	return &PSOOut;
+	return NewPipelineState;
 }
 
 void FD3D12PipelineStateCache::WriteOutShaderBlob(PSO_CACHE_TYPE Cache, ID3D12PipelineState* APIPso)
@@ -484,9 +486,7 @@ void FD3D12PipelineStateCache::Close()
 
 	DiskBinaryCache.Close(DriverShaderBlobs);
 
-	HighLevelGraphicsPipelineStateCache.Empty();
-	LowLevelGraphicsPipelineStateCache.Empty();
-	ComputePipelineStateCache.Empty();
+	CleanupPipelineStateCaches();
 }
 
 void FD3D12PipelineStateCache::Init(FString &GraphicsCacheFilename, FString &ComputeCacheFilename, FString &DriverBlobFilename)
@@ -609,11 +609,13 @@ ID3D12PipelineState* CreatePipelineState(ID3D12Device* Device, const TDesc* Desc
 
 void FD3D12PipelineState::Create(const ComputePipelineCreationArgs& InCreationArgs)
 {
+	check(PipelineState.GetReference() == nullptr);
 	PipelineState = CreatePipelineState(GetParentAdapter()->GetD3DDevice(), &InCreationArgs.Args.Desc->Desc, InCreationArgs.Args.Library, InCreationArgs.Args.Desc->GetName().GetCharArray().GetData());
 }
 
 void FD3D12PipelineState::CreateAsync(const ComputePipelineCreationArgs& InCreationArgs)
 {
+	check(PipelineState.GetReference() == nullptr && Worker == nullptr);
 	Worker = new FAsyncTask<FD3D12PipelineStateWorker>(GetParentAdapter(), InCreationArgs);
 	if (Worker)
 	{
@@ -623,11 +625,13 @@ void FD3D12PipelineState::CreateAsync(const ComputePipelineCreationArgs& InCreat
 
 void FD3D12PipelineState::Create(const GraphicsPipelineCreationArgs& InCreationArgs)
 {
+	check(PipelineState.GetReference() == nullptr);
 	PipelineState = CreatePipelineState(GetParentAdapter()->GetD3DDevice(), &InCreationArgs.Args.Desc->Desc, InCreationArgs.Args.Library, InCreationArgs.Args.Desc->GetName().GetCharArray().GetData());
 }
 
 void FD3D12PipelineState::CreateAsync(const GraphicsPipelineCreationArgs& InCreationArgs)
 {
+	check(PipelineState.GetReference() == nullptr && Worker == nullptr);
 	Worker = new FAsyncTask<FD3D12PipelineStateWorker>(GetParentAdapter(), InCreationArgs);
 	if (Worker)
 	{

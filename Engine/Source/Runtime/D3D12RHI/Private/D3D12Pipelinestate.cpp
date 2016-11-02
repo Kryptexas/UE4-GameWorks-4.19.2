@@ -166,6 +166,7 @@ FD3D12PipelineStateCacheBase::FD3D12PipelineStateCacheBase(FD3D12Adapter* InPare
 
 FD3D12PipelineStateCacheBase::~FD3D12PipelineStateCacheBase()
 {
+	CleanupPipelineStateCaches();
 }
 
 
@@ -173,16 +174,20 @@ FD3D12PipelineState::FD3D12PipelineState(FD3D12Adapter* Parent)
 	: Worker(nullptr)
 	, FD3D12AdapterChild(Parent)
 	, FD3D12MultiNodeGPUObject(Parent->ActiveGPUMask(), Parent->ActiveGPUMask()) //Create on all, visible on all
-{}
+{
+	INC_DWORD_STAT(STAT_D3D12NumPSOs);
+}
 
 FD3D12PipelineState::~FD3D12PipelineState()
 {
 	if (Worker)
 	{
 		Worker->EnsureCompletion(true);
-		delete(Worker);
+		delete Worker;
 		Worker = nullptr;
 	}
+
+	DEC_DWORD_STAT(STAT_D3D12NumPSOs);
 }
 
 ID3D12PipelineState* FD3D12PipelineState::GetPipelineState()
@@ -191,9 +196,10 @@ ID3D12PipelineState* FD3D12PipelineState::GetPipelineState()
 	{
 		Worker->EnsureCompletion(true);
 
+		check(Worker->IsWorkDone());
 		PipelineState = Worker->GetTask().PSO;
 
-		delete(Worker);
+		delete Worker;
 		Worker = nullptr;
 	}
 

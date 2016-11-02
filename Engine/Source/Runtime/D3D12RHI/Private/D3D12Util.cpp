@@ -720,6 +720,7 @@ bool AssertResourceState(ID3D12CommandList* pCommandList, FD3D12Resource* pResou
 //
 
 DEFINE_STAT(STAT_D3D12PresentTime);
+DEFINE_STAT(STAT_D3D12NumPSOs);
 DEFINE_STAT(STAT_D3D12TexturesAllocated);
 DEFINE_STAT(STAT_D3D12TexturesReleased);
 DEFINE_STAT(STAT_D3D12ClearShaderResourceTime);
