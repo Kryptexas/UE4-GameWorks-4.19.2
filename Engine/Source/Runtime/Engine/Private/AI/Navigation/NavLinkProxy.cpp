@@ -82,6 +82,12 @@ void ANavLinkProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 	if (CategoryName == TEXT("SimpleLink") || MemberCategoryName == TEXT("SimpleLink"))
 	{
 		bUpdateInNavOctree = true;
+		// @hack fix for changes to AreaClass in the editor not taking effect
+		// proper fix already in at CL#3183123
+		for (FNavigationLink& Link : PointLinks)
+		{
+			Link.InitializeAreaClass();
+		}
 	}
 
 	if (bUpdateInNavOctree)
