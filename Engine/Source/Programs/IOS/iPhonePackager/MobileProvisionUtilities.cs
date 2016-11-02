@@ -116,6 +116,12 @@ namespace iPhonePackager
 			{
 				MobileProvision p = MobileProvisionParser.ParseFile(Provision);
 				ProvisionLibrary.Add(Provision, p);
+                if (p.FileName.Contains(p.UUID) && !File.Exists(Path.Combine(Config.ProvisionDirectory, "UE4_"+p.UUID+".mobileprovision")))
+                {
+                    File.Copy(Provision, Path.Combine(Config.ProvisionDirectory, "UE4_" + p.UUID + ".mobileprovision"));
+                    p = MobileProvisionParser.ParseFile(Path.Combine(Config.ProvisionDirectory, "UE4_" + p.UUID + ".mobileprovision"));
+                    ProvisionLibrary.Add(Path.Combine(Config.ProvisionDirectory, "UE4_" + p.UUID + ".mobileprovision"), p);
+                }
 			}
 
 			Program.Log("Searching for mobile provisions that match the game '{0}' with CFBundleIdentifier='{1}' in '{2}'", GameName, CFBundleIdentifier, Config.ProvisionDirectory);
