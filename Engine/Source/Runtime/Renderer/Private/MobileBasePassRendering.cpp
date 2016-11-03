@@ -421,6 +421,9 @@ void FMobileBasePassOpaqueDrawingPolicyFactory::DrawDynamicMeshTempl(
 	FHitProxyId HitProxyId
 	)
 {
+	FMeshDrawingRenderState DrawRenderState;
+	DrawRenderState.DitheredLODTransitionAlpha = Mesh.DitheredLODTransitionAlpha;
+
 	ProcessMobileBasePassMesh<FDrawMobileBasePassDynamicMeshAction, NumDynamicPointLights>(
 		RHICmdList, 
 		FProcessBasePassMeshParameters(
@@ -431,11 +434,11 @@ void FMobileBasePassOpaqueDrawingPolicyFactory::DrawDynamicMeshTempl(
 			DrawingContext.bEditorCompositeDepthTest, 
 			DrawingContext.TextureMode, 
 			View.GetFeatureLevel()
-		), 
+		),
 		FDrawMobileBasePassDynamicMeshAction(
 			View, 
 			bBackFace, 
-			FMeshDrawingRenderState(Mesh.DitheredLODTransitionAlpha), 
+			DrawRenderState, 
 			HitProxyId														
 		)																
 	);

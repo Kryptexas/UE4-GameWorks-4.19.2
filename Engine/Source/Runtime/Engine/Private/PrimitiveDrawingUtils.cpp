@@ -1027,7 +1027,7 @@ void DrawWireCapsule(FPrimitiveDrawInterface* PDI, const FVector& Base, const FV
 	}
 }
 
-void DrawWireCone(FPrimitiveDrawInterface* PDI, TArray<FVector>& Verts, const FTransform& Transform, float ConeRadius, float ConeAngle, int32 ConeSides, const FLinearColor& Color, uint8 DepthPriority, float Thickness, float DepthBias, bool bScreenSpace)
+void DrawWireCone(FPrimitiveDrawInterface* PDI, TArray<FVector>& Verts, const FTransform& Transform, float ConeLength, float ConeAngle, int32 ConeSides, const FLinearColor& Color, uint8 DepthPriority, float Thickness, float DepthBias, bool bScreenSpace)
 {
 	static const float TwoPI = 2.0f * PI;
 	static const float ToRads = PI / 180.0f;
@@ -1044,9 +1044,9 @@ void DrawWireCone(FPrimitiveDrawInterface* PDI, TArray<FVector>& Verts, const FT
 	for ( int32 i = 0 ; i < Verts.Num() ; ++i )
 	{
 		const float Theta = static_cast<float>( (TwoPI * i) / Verts.Num() );
-		Verts[i] = (ConeDirection * (ConeRadius * CosClampedConeAngle)) +
-			((SinClampedConeAngle * ConeRadius * FMath::Cos( Theta )) * ConeUpVector) +
-			((SinClampedConeAngle * ConeRadius * FMath::Sin( Theta )) * ConeLeftVector);
+		Verts[i] = (ConeDirection * (ConeLength * CosClampedConeAngle)) +
+			((SinClampedConeAngle * ConeLength * FMath::Cos( Theta )) * ConeUpVector) +
+			((SinClampedConeAngle * ConeLength * FMath::Sin( Theta )) * ConeLeftVector);
 	}
 
 	// Transform to world space.
@@ -1069,12 +1069,12 @@ void DrawWireCone(FPrimitiveDrawInterface* PDI, TArray<FVector>& Verts, const FT
 	PDI->DrawLine(Verts[Verts.Num() - 1], Verts[0], Color, DepthPriority, Thickness, DepthBias, bScreenSpace);
 }
 
-void DrawWireCone(FPrimitiveDrawInterface* PDI, TArray<FVector>& Verts, const FMatrix& Transform, float ConeRadius, float ConeAngle, int32 ConeSides, const FLinearColor& Color, uint8 DepthPriority, float Thickness, float DepthBias, bool bScreenSpace)
+void DrawWireCone(FPrimitiveDrawInterface* PDI, TArray<FVector>& Verts, const FMatrix& Transform, float ConeLength, float ConeAngle, int32 ConeSides, const FLinearColor& Color, uint8 DepthPriority, float Thickness, float DepthBias, bool bScreenSpace)
 {
-	DrawWireCone(PDI, Verts, FTransform(Transform), ConeRadius, ConeAngle, ConeSides, Color, DepthPriority, Thickness, DepthBias, bScreenSpace);
+	DrawWireCone(PDI, Verts, FTransform(Transform), ConeLength, ConeAngle, ConeSides, Color, DepthPriority, Thickness, DepthBias, bScreenSpace);
 }
 
-void DrawWireSphereCappedCone(FPrimitiveDrawInterface* PDI, const FTransform& Transform, float ConeRadius, float ConeAngle, int32 ConeSides, int32 ArcFrequency, int32 CapSegments, const FLinearColor& Color, uint8 DepthPriority)
+void DrawWireSphereCappedCone(FPrimitiveDrawInterface* PDI, const FTransform& Transform, float ConeLength, float ConeAngle, int32 ConeSides, int32 ArcFrequency, int32 CapSegments, const FLinearColor& Color, uint8 DepthPriority)
 {
 	// The cap only works if there are an even number of verts generated so add another if needed 
 	if ((ConeSides & 0x1) != 0)
@@ -1083,7 +1083,7 @@ void DrawWireSphereCappedCone(FPrimitiveDrawInterface* PDI, const FTransform& Tr
 	}
 
 	TArray<FVector> Verts;
-	DrawWireCone(PDI, Verts, Transform, ConeRadius, ConeAngle, ConeSides, Color, DepthPriority, 0);
+	DrawWireCone(PDI, Verts, Transform, ConeLength, ConeAngle, ConeSides, Color, DepthPriority, 0);
 
 	// Draw arcs
 	int32 ArcCount = (int32)(Verts.Num() / 2);
@@ -1092,7 +1092,7 @@ void DrawWireSphereCappedCone(FPrimitiveDrawInterface* PDI, const FTransform& Tr
 		const FVector X = Transform.GetUnitAxis( EAxis::X );
 		FVector Y = Verts[i] - Verts[ArcCount + i]; Y.Normalize();
 
-		DrawArc(PDI, Transform.GetTranslation(), X, Y, -ConeAngle, ConeAngle, ConeRadius, CapSegments, Color, DepthPriority);
+		DrawArc(PDI, Transform.GetTranslation(), X, Y, -ConeAngle, ConeAngle, ConeLength, CapSegments, Color, DepthPriority);
 	}
 }
 

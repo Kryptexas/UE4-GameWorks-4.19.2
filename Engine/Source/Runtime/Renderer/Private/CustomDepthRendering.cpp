@@ -66,7 +66,7 @@ bool FCustomDepthPrimSet::DrawPrims(FRHICommandListImmediate& RHICmdList, const 
 
 						if (View.StaticMeshVisibilityMap[StaticMesh.Id])
 						{
-							const FMeshDrawingRenderState DrawRenderState(View.GetDitheredLODTransitionState(StaticMesh));
+							const FMeshDrawingRenderState DrawRenderState(FDepthDrawingPolicy::GetDitheredLODTransitionState(View, StaticMesh));
 							bDirty |= FDepthDrawingPolicyFactory::DrawStaticMesh(
 								RHICmdList, 
 								View,

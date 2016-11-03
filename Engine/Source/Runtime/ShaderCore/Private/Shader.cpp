@@ -507,10 +507,13 @@ FShaderResource* FShaderResource::FindOrCreateShaderResource(const FShaderCompil
 {
 	const FShaderResourceId ResourceId(Output, SpecificType ? SpecificType->GetName() : NULL);
 	FShaderResource* Resource = FindShaderResourceById(ResourceId);
-
 	if (!Resource)
 	{
 		Resource = new FShaderResource(Output, SpecificType);
+	}
+	else
+	{
+		check(Resource->Canary == FShader::ShaderMagic_Initialized);
 	}
 
 	return Resource;

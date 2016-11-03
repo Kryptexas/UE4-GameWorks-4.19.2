@@ -3047,6 +3047,38 @@ public:
 			ralloc_asprintf_append(buffer, "precision %s int;\n", "highp");
 		}
 
+		// HLSLCC_DX11ClipSpace adjustment
+		{
+			const char* func_clipControlAdjustments =
+R"RawStrDelimiter(
+void compiler_internal_AdjustInputSemantic(inout vec4 TempVariable)
+{
+#if HLSLCC_DX11ClipSpace
+	TempVariable.y = -TempVariable.y;
+	TempVariable.z = ( TempVariable.z + TempVariable.w ) / 2.0;
+#endif
+}
+
+void compiler_internal_AdjustOutputSemantic(inout vec4 Src)
+{
+#if HLSLCC_DX11ClipSpace
+	Src.y = -Src.y;
+	Src.z = ( 2.0 * Src.z ) - Src.w;
+#endif
+}
+
+bool compiler_internal_AdjustIsFrontFacing(bool isFrontFacing)
+{
+#if HLSLCC_DX11ClipSpace
+	return !isFrontFacing;
+#else
+	return isFrontFacing;
+#endif
+}
+)RawStrDelimiter";
+			ralloc_asprintf_append(buffer, func_clipControlAdjustments);
+		}
+
 		// FramebufferFetchES2 'intrinsic'
 		bool bUsesFramebufferFetchES2 = UsesUEIntrinsic(ir, FRAMEBUFFER_FETCH_ES2);
 		if (bUsesFramebufferFetchES2)
@@ -3173,38 +3205,9 @@ public:
 		}
 		buffer = 0;
 
-		const char* func_clipControlAdjustments =
-R"RawStrDelimiter(
-void compiler__internal__AdjustInputSemantic(inout vec4 TempVariable)
-{
-#if HLSLCC_DX11ClipSpace
-	TempVariable.y = -TempVariable.y;
-	TempVariable.z = ( TempVariable.z + TempVariable.w ) / 2.0;
-#endif
-}
-
-void compiler__internal__AdjustOutputSemantic(inout vec4 Src)
-{
-#if HLSLCC_DX11ClipSpace
-	Src.y = -Src.y;
-	Src.z = ( 2.0 * Src.z ) - Src.w;
-#endif
-}
-
-bool compiler__internal__AdjustIsFrontFacing(bool isFrontFacing)
-{
-#if HLSLCC_DX11ClipSpace
-	return !isFrontFacing;
-#else
-	return isFrontFacing;
-#endif
-}
-)RawStrDelimiter";
-
-
 		char* full_buffer = ralloc_asprintf(
 			state,
-			"// Compiled by HLSLCC %d.%d\n%s#version %u %s\n%s%s%s%s%s%s\n",
+			"// Compiled by HLSLCC %d.%d\n%s#version %u %s\n%s%s%s%s%s\n",
 			HLSLCC_VersionMajor, HLSLCC_VersionMinor,
 			signature,
 			state->language_version,
@@ -3213,7 +3216,6 @@ bool compiler__internal__AdjustIsFrontFacing(bool isFrontFacing)
 			geometry_layouts,
 			layout,
 			decl_buffer,
-			func_clipControlAdjustments,
 			code_buffer
 			);
 		ralloc_free(mem_ctx);
@@ -4330,7 +4332,7 @@ static void GenShaderInputForVariable(
 					)
 					);
 
-				ir_function *adjustFunc = ParseState->symbols->get_function("compiler__internal__AdjustInputSemantic");
+				ir_function *adjustFunc = ParseState->symbols->get_function("compiler_internal_AdjustInputSemantic");
 				check(adjustFunc);
 				check(adjustFunc->signatures.get_head() == adjustFunc->signatures.get_tail());
 				ir_function_signature *adjustFuncSig = (ir_function_signature *)adjustFunc->signatures.get_head();
@@ -4350,7 +4352,7 @@ static void GenShaderInputForVariable(
 				ir_dereference_variable* TempVariableDeref = new(ParseState)ir_dereference_variable(TempVariable);
 
 				// incoming gl_FrontFacing. Make it (!gl_FrontFacing), due to vertical flip in OpenGL
-				ir_function *adjustFunc = ParseState->symbols->get_function("compiler__internal__AdjustIsFrontFacing");
+				ir_function *adjustFunc = ParseState->symbols->get_function("compiler_internal_AdjustIsFrontFacing");
 				check(adjustFunc);
 				check(adjustFunc->signatures.get_head() == adjustFunc->signatures.get_tail());
 				ir_function_signature *adjustFuncSig = (ir_function_signature *)adjustFunc->signatures.get_head();
@@ -4636,7 +4638,7 @@ void GenShaderOutputForVariable(
 
 			if (ParseState->adjust_clip_space_dx11_to_opengl && ApplyClipSpaceAdjustment)
 			{
-				ir_function *adjustFunc = ParseState->symbols->get_function("compiler__internal__AdjustOutputSemantic");
+				ir_function *adjustFunc = ParseState->symbols->get_function("compiler_internal_AdjustOutputSemantic");
 				check(adjustFunc);
 				check(adjustFunc->signatures.get_head() == adjustFunc->signatures.get_tail());
 				ir_function_signature *adjustFuncSig = (ir_function_signature *)adjustFunc->signatures.get_head();
@@ -5396,7 +5398,7 @@ void FGlslLanguageSpec::SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, e
 	}
 
 	{
-		ir_function* func = new(State)ir_function("compiler__internal__AdjustInputSemantic");
+		ir_function* func = new(State)ir_function("compiler_internal_AdjustInputSemantic");
 		ir_variable* param = new (State) ir_variable(glsl_type::vec4_type, "TempVariable", ir_variable_mode::ir_var_inout);
 
 		exec_list* params = new(State) exec_list();
@@ -5413,7 +5415,7 @@ void FGlslLanguageSpec::SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, e
 	}
 
 	{
-		ir_function* func = new(State)ir_function("compiler__internal__AdjustOutputSemantic");
+		ir_function* func = new(State)ir_function("compiler_internal_AdjustOutputSemantic");
 		ir_variable* param = new (State) ir_variable(glsl_type::vec4_type, "Src", ir_variable_mode::ir_var_inout);
 
 		exec_list* params = new(State) exec_list();
@@ -5430,7 +5432,7 @@ void FGlslLanguageSpec::SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, e
 	}
 
 	{
-		ir_function* func = new(State)ir_function("compiler__internal__AdjustIsFrontFacing");
+		ir_function* func = new(State)ir_function("compiler_internal_AdjustIsFrontFacing");
 		ir_variable* param = new (State) ir_variable(glsl_type::bool_type, "isFrontFacing", ir_variable_mode::ir_var_in);
 
 		exec_list* params = new(State) exec_list();

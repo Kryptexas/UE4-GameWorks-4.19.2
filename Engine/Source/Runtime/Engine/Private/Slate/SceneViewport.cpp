@@ -151,7 +151,7 @@ void FSceneViewport::Destroy()
 {
 	ViewportClient = NULL;
 	
-	UpdateViewportRHI( true, 0, 0, EWindowMode::Windowed );	
+	UpdateViewportRHI( true, 0, 0, EWindowMode::Windowed, PF_Unknown );	
 }
 
 int32 FSceneViewport::GetMouseX() const
@@ -1271,7 +1271,7 @@ void FSceneViewport::ResizeViewport(uint32 NewSizeX, uint32 NewSizeY, EWindowMod
 	{
 		bIsResizing = true;
 
-		UpdateViewportRHI(false, NewSizeX, NewSizeY, NewWindowMode);
+		UpdateViewportRHI(false, NewSizeX, NewSizeY, NewWindowMode, PF_Unknown);
 
 		if (ViewportClient)
 		{
@@ -1349,7 +1349,7 @@ void FSceneViewport::SetRenderTargetTextureRenderThread(FTexture2DRHIRef& RT)
 	}
 }
 
-void FSceneViewport::UpdateViewportRHI(bool bDestroyed, uint32 NewSizeX, uint32 NewSizeY, EWindowMode::Type NewWindowMode)
+void FSceneViewport::UpdateViewportRHI(bool bDestroyed, uint32 NewSizeX, uint32 NewSizeY, EWindowMode::Type NewWindowMode, EPixelFormat PreferredPixelFormat)
 {
 	{
 		SCOPED_SUSPEND_RENDERING_THREAD(true);
@@ -1421,7 +1421,7 @@ void FSceneViewport::EnqueueBeginRenderFrame()
 		{
 			// This will cause RT to be allocated (or freed)
 			bForceSeparateRenderTarget = bHMDWantsSeparateRenderTarget;
-			UpdateViewportRHI(false, SizeX, SizeY, WindowMode);
+			UpdateViewportRHI(false, SizeX, SizeY, WindowMode, PF_Unknown);
 		}
 	}
 
@@ -1526,7 +1526,7 @@ void FSceneViewport::OnPlayWorldViewportSwapped( const FSceneViewport& OtherView
 		// Switch to the viewport clients world before processing input
 		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
 
-		UpdateViewportRHI( false, OtherViewport.GetSizeXY().X, OtherViewport.GetSizeXY().Y, EWindowMode::Windowed );
+		UpdateViewportRHI( false, OtherViewport.GetSizeXY().X, OtherViewport.GetSizeXY().Y, EWindowMode::Windowed, PF_Unknown );
 
 		// Invalidate, then redraw immediately so the user isn't left looking at an empty black viewport
 		// as they continue to resize the window.

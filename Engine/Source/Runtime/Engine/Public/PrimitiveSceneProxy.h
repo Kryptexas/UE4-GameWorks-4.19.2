@@ -411,8 +411,8 @@ public:
 	inline EIndirectLightingCacheQuality GetIndirectLightingCacheQuality() const { return IndirectLightingCacheQuality; }
 	inline bool CastsVolumetricTranslucentShadow() const { return bCastVolumetricTranslucentShadow; }
 	inline bool CastsCapsuleDirectShadow() const { return bCastCapsuleDirectShadow; }
-	inline bool CastsCapsuleIndirectShadow() const { return bCastCapsuleIndirectShadow; }
-	inline float GetCapsuleIndirectShadowMinVisibility() const { return CapsuleIndirectShadowMinVisibility; }
+	inline bool CastsDynamicIndirectShadow() const { return bCastsDynamicIndirectShadow; }
+	inline float GetDynamicIndirectShadowMinVisibility() const { return DynamicIndirectShadowMinVisibility; }
 	inline bool CastsHiddenShadow() const { return bCastHiddenShadow; }
 	inline bool CastsShadowAsTwoSided() const { return bCastShadowAsTwoSided; }
 	inline bool CastsSelfShadowOnly() const { return bSelfShadowOnly; }
@@ -484,6 +484,11 @@ public:
 	}
 
 	virtual bool HasDistanceFieldRepresentation() const
+	{
+		return false;
+	}
+
+	virtual bool HasDynamicIndirectShadowCasterRepresentation() const
 	{
 		return false;
 	}
@@ -666,8 +671,8 @@ protected:
 	/** Whether the primitive should use capsules for direct shadowing, if present.  Forces inset shadows. */
 	uint32 bCastCapsuleDirectShadow : 1;
 
-	/** Whether the primitive should use capsules for indirect shadowing. */
-	uint32 bCastCapsuleIndirectShadow : 1;
+	/** Whether the primitive should use an inset indirect shadow from capsules or mesh distance fields. */
+	uint32 bCastsDynamicIndirectShadow : 1;
 
 	/** True if the primitive casts shadows even when hidden. */
 	uint32 bCastHiddenShadow : 1;
@@ -770,7 +775,7 @@ protected:
 	EIndirectLightingCacheQuality IndirectLightingCacheQuality;
 
 	/** Min visibility for capsule shadows. */
-	float CapsuleIndirectShadowMinVisibility;
+	float DynamicIndirectShadowMinVisibility;
 
 private:
 	/** The primitive's local to world transform. */

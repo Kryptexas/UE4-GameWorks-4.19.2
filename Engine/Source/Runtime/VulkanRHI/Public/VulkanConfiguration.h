@@ -89,11 +89,9 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 #if PLATFORM_WINDOWS
 	#define VULKAN_DISABLE_DEBUG_CALLBACK						0	/* Disable the DebugReportFunction() callback in VulkanDebug.cpp */
 	#define VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS					0	/* 1 = use resolve attachments, 0 = Use a command buffer vkResolveImage for MSAA resolve */
-	#define VULKAN_USE_RING_BUFFER_FOR_GLOBAL_UBS				1
 #else
 	#define VULKAN_DISABLE_DEBUG_CALLBACK						1	/* Disable the DebugReportFunction() callback in VulkanDebug.cpp */
 	#define VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS					1
-	#define VULKAN_USE_RING_BUFFER_FOR_GLOBAL_UBS				1
 #endif
 
 #define VULKAN_ENABLE_AGGRESSIVE_STATS							1
@@ -101,8 +99,6 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 #define VULKAN_ENABLE_PIPELINE_CACHE							1
 
 #define VULKAN_ENABLE_RHI_DEBUGGING								1
-
-#define VULKAN_USE_NEW_RENDERPASSES								1
 
 //#todo-rco: While validation is not fixed...
 #define VULKAN_REUSE_FENCES										(VK_HEADER_VERSION < 17)

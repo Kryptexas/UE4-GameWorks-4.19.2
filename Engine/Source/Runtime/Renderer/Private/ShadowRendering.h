@@ -1021,6 +1021,15 @@ private:
 		TArray<FMeshBatchAndRelevance,SceneRenderingAllocator>& OutDynamicMeshElements, 
 		TArray<const FSceneView*>& ReusedViewsArray);
 
+	void SetupFrustumForProjection(const FViewInfo* View, TArray<FVector4, TInlineAllocator<8>>& OutFrustumVertices, bool& bOutCameraInsideShadowFrustum) const;
+
+	void SetupProjectionStencilMask(
+		FRHICommandListImmediate& RHICmdList,
+		const FViewInfo* View,
+		const TArray<FVector4, TInlineAllocator<8>>& FrustumVertices,
+		bool bMobileModulatedProjections,
+		bool bCameraInsideShadowFrustum) const;
+
 	friend class FShadowDepthVS;
 	template <bool bRenderingReflectiveShadowMaps> friend class TShadowDepthBasePS;
 	friend class FShadowProjectionVS;

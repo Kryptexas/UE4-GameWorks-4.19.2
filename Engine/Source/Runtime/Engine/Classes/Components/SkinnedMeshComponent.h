@@ -373,7 +373,7 @@ public:
 	/** 
 	 * Controls how dark the capsule indirect shadow can be.
 	 */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting, meta=(UIMin = "0", UIMax = "1", EditCondition="CastShadow", DisplayName = "Capsule Indirect Shadow Min Visibility"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting, meta=(UIMin = "0", UIMax = "1", EditCondition="bCastCapsuleIndirectShadow", DisplayName = "Capsule Indirect Shadow Min Visibility"))
 	float CapsuleIndirectShadowMinVisibility;
 
 	/** CPU skinning rendering - only for previewing in Persona and conversion tools */
@@ -475,6 +475,7 @@ public:
 	virtual FString GetDetailedInfoInternal() const override;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual bool CanEditChange(const UProperty* InProperty) const override;
 #endif // WITH_EDITOR
 	//~ End UObject Interface
 

@@ -809,11 +809,10 @@ void FViewInfo::SetupUniformBufferParameters(
 	extern int32 GDistanceFieldAOSpecularOcclusionMode;
 	ViewUniformShaderParameters.DistanceFieldAOSpecularOcclusionMode = GDistanceFieldAOSpecularOcclusionMode;
 
-	extern float GCapsuleIndirectShadowSelfShadowIntensity;
-	ViewUniformShaderParameters.IndirectCapsuleSelfShadowingIntensity = GCapsuleIndirectShadowSelfShadowIntensity;
+	ViewUniformShaderParameters.IndirectCapsuleSelfShadowingIntensity = Scene ? Scene->DynamicIndirectShadowsSelfShadowingIntensity : 1.0f;
 
-	extern FVector2D GetReflectionEnvironmentRoughnessMixingScaleBias();
-	ViewUniformShaderParameters.ReflectionEnvironmentRoughnessMixingScaleBias = GetReflectionEnvironmentRoughnessMixingScaleBias();
+	extern FVector GetReflectionEnvironmentRoughnessMixingScaleBiasAndLargestWeight();
+	ViewUniformShaderParameters.ReflectionEnvironmentRoughnessMixingScaleBiasAndLargestWeight = GetReflectionEnvironmentRoughnessMixingScaleBiasAndLargestWeight();
 
 	ViewUniformShaderParameters.StereoPassIndex = (StereoPass != eSSP_RIGHT_EYE) ? 0 : 1;
 }

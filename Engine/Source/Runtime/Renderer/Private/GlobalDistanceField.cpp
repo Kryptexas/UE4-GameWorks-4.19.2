@@ -92,6 +92,14 @@ FAutoConsoleVariableRef CVarAOGlobalDFStartDistance(
 	ECVF_RenderThreadSafe
 	);
 
+int32 GAOGlobalDistanceFieldRepresentHeightfields = 1;
+FAutoConsoleVariableRef CVarAOGlobalDistanceFieldRepresentHeightfields(
+	TEXT("r.AOGlobalDistanceFieldRepresentHeightfields"),
+	GAOGlobalDistanceFieldRepresentHeightfields,
+	TEXT("Whether to put landscape in the global distance field.  Changing this won't propagate until the global distance field gets recached (fly away and back)."),
+	ECVF_RenderThreadSafe
+	);
+
 void FGlobalDistanceFieldInfo::UpdateParameterData(float MaxOcclusionDistance)
 {
 	if (Clipmaps.Num() > 0)
@@ -597,7 +605,6 @@ private:
 
 IMPLEMENT_SHADER_TYPE(, FCompositeHeightfieldsIntoGlobalDistanceFieldCS, TEXT("GlobalDistanceField"), TEXT("CompositeHeightfieldsIntoGlobalDistanceFieldCS"), SF_Compute);
 
-extern int32 GAOHeightfieldOcclusion;
 extern void UploadHeightfieldDescriptions(const TArray<FHeightfieldComponentDescription>& HeightfieldDescriptions, FVector2D InvLightingAtlasSize, float InvDownsampleFactor);
 
 void FHeightfieldLightingViewInfo::CompositeHeightfieldsIntoGlobalDistanceField(
@@ -611,7 +618,7 @@ void FHeightfieldLightingViewInfo::CompositeHeightfieldsIntoGlobalDistanceField(
 {
 	const int32 NumPrimitives = Scene->DistanceFieldSceneData.HeightfieldPrimitives.Num();
 
-	if (GAOHeightfieldOcclusion
+	if (GAOGlobalDistanceFieldRepresentHeightfields
 		&& NumPrimitives > 0
 		&& SupportsDistanceFieldAO(Scene->GetFeatureLevel(), Scene->GetShaderPlatform())
 		&& !IsMetalPlatform(Scene->GetShaderPlatform()))
@@ -775,26 +782,42 @@ void AllocateClipmapTexture(FRHICommandListImmediate& RHICmdList, int32 ClipmapI
 	);
 }
 
-/** Staggers clipmap updates so there are only 2 per frame */
-bool ShouldUpdateClipmapThisFrame(int32 ClipmapIndex, int32 GlobalDistanceFieldUpdateIndex)
+void GetUpdateFrequencyForClipmap(int32 ClipmapIndex, int32& OutFrequency, int32& OutPhase)
 {
+	OutFrequency = 1;
+	OutPhase = 0;
+
 	if (ClipmapIndex == 0 || !GAOGlobalDistanceFieldStaggeredUpdates)
 	{
-		return true;
+		OutFrequency = 1;
+		OutPhase = 0;
 	}
 	else if (ClipmapIndex == 1)
 	{
-		return GlobalDistanceFieldUpdateIndex % 2 == 0;
+		OutFrequency = 2;
+		OutPhase = 0;
 	}
 	else if (ClipmapIndex == 2)
 	{
-		return GlobalDistanceFieldUpdateIndex % 4 == 1;
+		OutFrequency = 4;
+		OutPhase = 1;
 	}
 	else
 	{
 		check(ClipmapIndex == 3);
-		return GlobalDistanceFieldUpdateIndex % 4 == 3;
+		OutFrequency = 4;
+		OutPhase = 3;
 	}
+}
+
+/** Staggers clipmap updates so there are only 2 per frame */
+bool ShouldUpdateClipmapThisFrame(int32 ClipmapIndex, int32 GlobalDistanceFieldUpdateIndex)
+{
+	int32 Frequency;
+	int32 Phase;
+	GetUpdateFrequencyForClipmap(ClipmapIndex, Frequency, Phase);
+
+	return GlobalDistanceFieldUpdateIndex % Frequency == Phase;
 }
 
 float ComputeClipmapExtent(int32 ClipmapIndex, const FScene* Scene)
@@ -934,11 +957,46 @@ void ComputeUpdateRegionsAndUpdateViewState(
 					FVolumeUpdateRegion UpdateRegion;
 					UpdateRegion.Bounds = ClipmapBounds;
 					UpdateRegion.CellsSize = FIntVector(GAOGlobalDFResolution);
+					UpdateRegion.UpdateType = VUT_MeshDistanceFields;
 					Clipmap.UpdateRegions.Add(UpdateRegion);
+
+					// We're building a cached version of the scene, but landscape relies on texture streaming which is constantly changing.  
+					// Ideally we would update the cache when texture streaming of heightfields completes, but the texture streamer does not support that notification atm.
+					// As a workaround, defer heightfield updates for an arbitrary amount of time so that hopefully the heightfields will have streamed in.
+					FDeferredGlobalDistanceFieldUpdateInfo DeferredUpdateInfo;
+					DeferredUpdateInfo.ClipmapIndex = ClipmapIndex;
+					DeferredUpdateInfo.FramesLeft = 30;
+					View.ViewState->DeferredGlobalDistanceFieldUpdates.Add(DeferredUpdateInfo);
 
 					// Store the location of the full update
 					ClipmapViewState.FullUpdateOrigin = GridCenter;
 					View.ViewState->bInitializedGlobalDistanceFieldOrigins = true;
+				}
+
+				for (int32 DeferredUpdateIndex = 0; DeferredUpdateIndex < View.ViewState->DeferredGlobalDistanceFieldUpdates.Num(); DeferredUpdateIndex++)
+				{
+					FDeferredGlobalDistanceFieldUpdateInfo& DeferredUpdate = View.ViewState->DeferredGlobalDistanceFieldUpdates[DeferredUpdateIndex];
+
+					if (DeferredUpdate.ClipmapIndex == ClipmapIndex)
+					{
+						int32 Frequency;
+						int32 Phase;
+						GetUpdateFrequencyForClipmap(ClipmapIndex, Frequency, Phase);
+
+						DeferredUpdate.FramesLeft -= Frequency;
+
+						if (DeferredUpdate.FramesLeft <= 0)
+						{
+							View.ViewState->DeferredGlobalDistanceFieldUpdates.RemoveAt(DeferredUpdateIndex);
+							DeferredUpdateIndex--;
+
+							FVolumeUpdateRegion UpdateRegion;
+							UpdateRegion.Bounds = ClipmapBounds;
+							UpdateRegion.CellsSize = FIntVector(GAOGlobalDFResolution);
+							UpdateRegion.UpdateType = VUT_Heightfields;
+							Clipmap.UpdateRegions.Add(UpdateRegion);
+						}
+					}
 				}
 
 				ClipmapViewState.PrimitiveModifiedBounds.Reset();
@@ -1092,55 +1150,61 @@ void UpdateGlobalDistanceFieldVolume(
 				{
 					const FVolumeUpdateRegion& UpdateRegion = Clipmap.UpdateRegions[UpdateRegionIndex];
 
+					if (UpdateRegion.UpdateType & VUT_MeshDistanceFields)
 					{
-						SCOPED_DRAW_EVENT(RHICmdList, GridCull);
-
-						// Cull the global objects to the volume being updated
 						{
-							uint32 ClearValues[4] = { 0 };
-							RHICmdList.ClearUAV(GGlobalDistanceFieldCulledObjectBuffers.Buffers.ObjectIndirectArguments.UAV, ClearValues);
+							SCOPED_DRAW_EVENT(RHICmdList, GridCull);
 
-							TShaderMapRef<FCullObjectsForVolumeCS> ComputeShader(View.ShaderMap);
-							RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-							const FVector4 VolumeBounds(UpdateRegion.Bounds.GetCenter(), UpdateRegion.Bounds.GetExtent().Size());
-							ComputeShader->SetParameters(RHICmdList, Scene, View, MaxOcclusionDistance, VolumeBounds);
+							// Cull the global objects to the volume being updated
+							{
+								uint32 ClearValues[4] = { 0 };
+								RHICmdList.ClearUAV(GGlobalDistanceFieldCulledObjectBuffers.Buffers.ObjectIndirectArguments.UAV, ClearValues);
 
-							DispatchComputeShader(RHICmdList, *ComputeShader, FMath::DivideAndRoundUp<uint32>(Scene->DistanceFieldSceneData.NumObjectsInBuffer, CullObjectsGroupSize), 1, 1);
-							ComputeShader->UnsetParameters(RHICmdList, Scene);
+								TShaderMapRef<FCullObjectsForVolumeCS> ComputeShader(View.ShaderMap);
+								RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+								const FVector4 VolumeBounds(UpdateRegion.Bounds.GetCenter(), UpdateRegion.Bounds.GetExtent().Size());
+								ComputeShader->SetParameters(RHICmdList, Scene, View, MaxOcclusionDistance, VolumeBounds);
+
+								DispatchComputeShader(RHICmdList, *ComputeShader, FMath::DivideAndRoundUp<uint32>(Scene->DistanceFieldSceneData.NumObjectsInBuffer, CullObjectsGroupSize), 1, 1);
+								ComputeShader->UnsetParameters(RHICmdList, Scene);
+							}
+
+							// Further cull the objects into a low resolution grid
+							{
+								TShaderMapRef<FCullObjectsToGridCS> ComputeShader(View.ShaderMap);
+								RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+								ComputeShader->SetParameters(RHICmdList, Scene, View, MaxOcclusionDistance, GlobalDistanceFieldInfo, ClipmapIndex, UpdateRegion);
+
+								const uint32 NumGroupsX = FMath::DivideAndRoundUp<int32>(UpdateRegion.CellsSize.X, GCullGridTileSize);
+								const uint32 NumGroupsY = FMath::DivideAndRoundUp<int32>(UpdateRegion.CellsSize.Y, GCullGridTileSize);
+								const uint32 NumGroupsZ = FMath::DivideAndRoundUp<int32>(UpdateRegion.CellsSize.Z, GCullGridTileSize); 
+
+								DispatchComputeShader(RHICmdList, *ComputeShader, NumGroupsX, NumGroupsY, NumGroupsZ);
+								ComputeShader->UnsetParameters(RHICmdList);
+							}
 						}
 
-						// Further cull the objects into a low resolution grid
+						// Further cull the objects to the dispatch tile and composite the global distance field by computing the min distance from intersecting per-object distance fields
 						{
-							TShaderMapRef<FCullObjectsToGridCS> ComputeShader(View.ShaderMap);
+							SCOPED_DRAW_EVENT(RHICmdList, TileCullAndComposite);
+							TShaderMapRef<FCompositeObjectDistanceFieldsCS> ComputeShader(View.ShaderMap);
 							RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
 							ComputeShader->SetParameters(RHICmdList, Scene, View, MaxOcclusionDistance, GlobalDistanceFieldInfo, ClipmapIndex, UpdateRegion);
 
-							const uint32 NumGroupsX = FMath::DivideAndRoundUp<int32>(UpdateRegion.CellsSize.X, GCullGridTileSize);
-							const uint32 NumGroupsY = FMath::DivideAndRoundUp<int32>(UpdateRegion.CellsSize.Y, GCullGridTileSize);
-							const uint32 NumGroupsZ = FMath::DivideAndRoundUp<int32>(UpdateRegion.CellsSize.Z, GCullGridTileSize); 
+							//@todo - match typical update sizes.  Camera movement creates narrow slabs.
+							const uint32 NumGroupsX = FMath::DivideAndRoundUp<int32>(UpdateRegion.CellsSize.X, CompositeTileSize);
+							const uint32 NumGroupsY = FMath::DivideAndRoundUp<int32>(UpdateRegion.CellsSize.Y, CompositeTileSize);
+							const uint32 NumGroupsZ = FMath::DivideAndRoundUp<int32>(UpdateRegion.CellsSize.Z, CompositeTileSize);
 
 							DispatchComputeShader(RHICmdList, *ComputeShader, NumGroupsX, NumGroupsY, NumGroupsZ);
-							ComputeShader->UnsetParameters(RHICmdList);
+							ComputeShader->UnsetParameters(RHICmdList, GlobalDistanceFieldInfo, ClipmapIndex);
 						}
 					}
 
-					// Further cull the objects to the dispatch tile and composite the global distance field by computing the min distance from intersecting per-object distance fields
+					if (UpdateRegion.UpdateType & VUT_Heightfields)
 					{
-						SCOPED_DRAW_EVENT(RHICmdList, TileCullAndComposite);
-						TShaderMapRef<FCompositeObjectDistanceFieldsCS> ComputeShader(View.ShaderMap);
-						RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-						ComputeShader->SetParameters(RHICmdList, Scene, View, MaxOcclusionDistance, GlobalDistanceFieldInfo, ClipmapIndex, UpdateRegion);
-
-						//@todo - match typical update sizes.  Camera movement creates narrow slabs.
-						const uint32 NumGroupsX = FMath::DivideAndRoundUp<int32>(UpdateRegion.CellsSize.X, CompositeTileSize);
-						const uint32 NumGroupsY = FMath::DivideAndRoundUp<int32>(UpdateRegion.CellsSize.Y, CompositeTileSize);
-						const uint32 NumGroupsZ = FMath::DivideAndRoundUp<int32>(UpdateRegion.CellsSize.Z, CompositeTileSize);
-
-						DispatchComputeShader(RHICmdList, *ComputeShader, NumGroupsX, NumGroupsY, NumGroupsZ);
-						ComputeShader->UnsetParameters(RHICmdList, GlobalDistanceFieldInfo, ClipmapIndex);
+						View.HeightfieldLightingViewInfo.CompositeHeightfieldsIntoGlobalDistanceField(RHICmdList, Scene, View, MaxOcclusionDistance, GlobalDistanceFieldInfo, ClipmapIndex, UpdateRegion);
 					}
-
-					View.HeightfieldLightingViewInfo.CompositeHeightfieldsIntoGlobalDistanceField(RHICmdList, Scene, View, MaxOcclusionDistance, GlobalDistanceFieldInfo, ClipmapIndex, UpdateRegion);
 				}
 			}
 		}

@@ -3021,7 +3021,7 @@ void FParticleMeshEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 						check(LastOrbit);
 					
 						uint32 SpriteOrbitModuleOffset = *SpriteTemplate->ModuleOffsetMap.Find(LastOrbit);
-						if (OrbitModuleOffset != 0)
+						if (SpriteOrbitModuleOffset != 0)
 						{
 							const FOrbitChainModuleInstancePayload &OrbitPayload = *(FOrbitChainModuleInstancePayload*)((uint8*)&Particle + SpriteOrbitModuleOffset);
 

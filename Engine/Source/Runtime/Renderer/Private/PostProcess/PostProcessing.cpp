@@ -1233,8 +1233,11 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 			bAllowTonemapper = false;
 		}
 
+		static const auto CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
+		const bool bHDROutputEnabled = CVarHDROutputEnabled->GetValueOnRenderThread() != 0;
+
 		static const auto CVarDumpFramesAsHDR = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BufferVisualizationDumpFramesAsHDR"));
-		const bool bHDRTonemapperOutput = bAllowTonemapper && (GetHighResScreenshotConfig().bCaptureHDR || CVarDumpFramesAsHDR->GetValueOnRenderThread());
+		const bool bHDRTonemapperOutput = bAllowTonemapper && (GetHighResScreenshotConfig().bCaptureHDR || CVarDumpFramesAsHDR->GetValueOnRenderThread() || bHDROutputEnabled);
 
 		FRCPassPostProcessTonemap* Tonemapper = 0;
 
@@ -1928,7 +1931,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 				Desc.Extent = View.Family->RenderTarget->GetSizeXY();
 			}
 			// todo: this should come from View.Family->RenderTarget
-			Desc.Format = PF_B8G8R8A8;
+			Desc.Format = bHDROutputEnabled ? PF_FloatRGBA : PF_B8G8R8A8;
 			Desc.NumMips = 1;
 			Desc.DebugName = TEXT("FinalPostProcessColor");
 

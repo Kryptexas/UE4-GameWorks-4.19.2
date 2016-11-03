@@ -549,7 +549,7 @@ protected:
 	 * Updates the viewport RHI with the current viewport state.
 	 * @param bDestroyed - True if the viewport has been destroyed.
 	 */
-	ENGINE_API virtual void UpdateViewportRHI(bool bDestroyed,uint32 NewSizeX,uint32 NewSizeY,EWindowMode::Type NewWindowMode);
+	ENGINE_API virtual void UpdateViewportRHI(bool bDestroyed, uint32 NewSizeX, uint32 NewSizeY, EWindowMode::Type NewWindowMode, EPixelFormat PreferredPixelFormat);
 
 	/**
 	 * Take a high-resolution screenshot and save to disk.

@@ -566,7 +566,7 @@ void RenderPrimitive(FRenderingCompositePassContext& Context, FDecalDrawingPolic
 				if (View.StaticMeshVisibilityMap[StaticMesh.Id]
 					&& StaticMesh.IsDecal(View.FeatureLevel))
 				{
-					const FMeshDrawingRenderState DrawRenderState(View.GetDitheredLODTransitionState(StaticMesh));
+					const FMeshDrawingRenderState DrawRenderState(FMeshDrawingPolicy::GetDitheredLODTransitionState(View, StaticMesh));
 
 					FDecalDrawingPolicyFactory::DrawStaticMesh(
 						RHICmdList,

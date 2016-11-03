@@ -298,6 +298,49 @@ void FTranslucentLightingParameters::Set(FRHICommandList& RHICmdList, FPixelShad
 	}
 }
 
+FMeshDrawingRenderState FBasePassDrawingPolicy::GetDitheredLODTransitionState(const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither)
+{
+	FMeshDrawingRenderState DrawRenderState;
+
+	if (Mesh.bDitheredLODTransition)
+	{
+		if (ViewInfo.StaticMeshFadeOutDitheredLODMap[Mesh.Id])
+		{
+			if (InAllowStencilDither)
+			{
+				DrawRenderState.DepthStencilState = TStaticDepthStencilState<
+					false, CF_Equal,
+					true, CF_Always, SO_Keep, SO_Keep, SO_Replace,
+					false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
+					0xFF, GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1) | STENCIL_LIGHTING_CHANNELS_MASK(0x7)
+				>::GetRHI();
+			}
+			else
+			{
+				DrawRenderState.DitheredLODTransitionAlpha = ViewInfo.GetTemporalLODTransition();
+			}
+		}
+		else if (ViewInfo.StaticMeshFadeInDitheredLODMap[Mesh.Id])
+		{
+			if (InAllowStencilDither)
+			{
+				DrawRenderState.DepthStencilState = TStaticDepthStencilState<
+					false, CF_Equal,
+					true, CF_Always, SO_Keep, SO_Keep, SO_Replace,
+					false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
+					0xFF, GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1) | STENCIL_LIGHTING_CHANNELS_MASK(0x7)
+				>::GetRHI();
+			}
+			else
+			{
+				DrawRenderState.DitheredLODTransitionAlpha = ViewInfo.GetTemporalLODTransition() - 1.0f;
+			}
+		}
+	}
+
+	return DrawRenderState;
+}
+
 /** The action used to draw a base pass static mesh element. */
 class FDrawBasePassStaticMeshAction
 {
@@ -492,7 +535,9 @@ public:
 			);
 		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
 		DrawingPolicy.SetSharedState(RHICmdList, &View, typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType(Parameters.bIsInstancedStereo));
-		const FMeshDrawingRenderState DrawRenderState(DitheredLODTransitionAlpha);
+
+		FMeshDrawingRenderState DrawRenderState;
+		DrawRenderState.DitheredLODTransitionAlpha = DitheredLODTransitionAlpha;
 
 		for( int32 BatchElementIndex = 0, Num = Parameters.Mesh.Elements.Num(); BatchElementIndex < Num; BatchElementIndex++ )
 		{

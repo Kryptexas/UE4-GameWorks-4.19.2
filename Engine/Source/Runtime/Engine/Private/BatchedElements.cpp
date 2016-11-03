@@ -339,6 +339,30 @@ static void SetBlendState(FRHICommandList& RHICmdList, ESimpleElementBlendMode B
 		return;
 	}
 
+	// Override blending operations to accumulate alpha
+	static TConsoleVariableData<int32>* CVarCompositeMode = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.UI.CompositeMode"));
+	static TConsoleVariableData<int32>* CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
+
+	const bool bCompositeUI = CVarCompositeMode->GetValueOnRenderThread() != 0 && CVarHDROutputEnabled->GetValueOnRenderThread() != 0;
+
+	if (bCompositeUI)
+	{
+		// Compositing to offscreen buffer, so alpha needs to be accumulated in a sensible manner
+		switch (BlendMode)
+		{
+		case SE_BLEND_Translucent:
+		case SE_BLEND_TranslucentDistanceField:
+		case SE_BLEND_TranslucentDistanceFieldShadowed:
+		case SE_BLEND_TranslucentAlphaOnly:
+			BlendMode = SE_BLEND_AlphaBlend;
+			break;
+
+		default:
+			// Blend mode is reasonable as-is
+			break;
+		};
+	}
+
 	switch(BlendMode)
 	{
 	case SE_BLEND_Opaque:
@@ -363,7 +387,7 @@ static void SetBlendState(FRHICommandList& RHICmdList, ESimpleElementBlendMode B
 		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha>::GetRHI());
 		break;
 	case SE_BLEND_AlphaBlend:
-		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA,BO_Add,BF_SourceAlpha,BF_InverseSourceAlpha,BO_Add,BF_SourceAlpha,BF_InverseSourceAlpha>::GetRHI());
+		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_InverseDestAlpha, BF_One>::GetRHI());
 		break;
 	case SE_BLEND_RGBA_MASK_END:
 	case SE_BLEND_RGBA_MASK_START:

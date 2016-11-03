@@ -538,14 +538,28 @@ private:
 	void WaitForTasksInternal();
 };
 
+enum EVolumeUpdateType
+{
+	VUT_MeshDistanceFields = 1,
+	VUT_Heightfields = 2,
+	VUT_All = VUT_MeshDistanceFields | VUT_Heightfields
+};
+
 class FVolumeUpdateRegion
 {
 public:
+
+	FVolumeUpdateRegion() :
+		UpdateType(VUT_All)
+	{}
+
 	/** World space bounds. */
 	FBox Bounds;
 
 	/** Number of texels in each dimension to update. */
 	FIntVector CellsSize;
+
+	EVolumeUpdateType UpdateType;
 };
 
 class FGlobalDistanceFieldClipmap
@@ -930,39 +944,6 @@ public:
 		{
 			return false;
 		}
-	}
-
-	FORCEINLINE_DEBUGGABLE FMeshDrawingRenderState GetDitheredLODTransitionState(const FStaticMesh& Mesh, const bool bAllowStencil = false) const
-	{
-		FMeshDrawingRenderState DrawRenderState(EDitheredLODState::None, bAllowStencil);
-
-		if (Mesh.bDitheredLODTransition)
-		{
-			if (StaticMeshFadeOutDitheredLODMap[Mesh.Id])
-			{
-				if (bAllowStencil)
-				{
-					DrawRenderState.DitheredLODState = EDitheredLODState::FadeOut;
-				}
-				else
-				{
-					DrawRenderState.DitheredLODTransitionAlpha = GetTemporalLODTransition();
-				}
-			}
-			else if (StaticMeshFadeInDitheredLODMap[Mesh.Id])
-			{
-				if (bAllowStencil)
-				{
-					DrawRenderState.DitheredLODState = EDitheredLODState::FadeIn;
-			}
-				else
-				{
-					DrawRenderState.DitheredLODTransitionAlpha = GetTemporalLODTransition() - 1.0f;
-		}
-			}
-		}
-
-		return DrawRenderState;
 	}
 
 	inline FVector GetPrevViewDirection() const { return PrevViewMatrices.GetViewMatrix().GetColumn(2); }

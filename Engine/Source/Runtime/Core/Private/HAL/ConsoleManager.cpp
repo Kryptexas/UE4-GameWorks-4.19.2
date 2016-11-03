@@ -2207,30 +2207,6 @@ static TAutoConsoleVariable<int32> CVarTonemapperGrainQuantization(
 	TEXT("1: high (default, with high frequency pixel pattern to fight 8 bit color quantization)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
-static TAutoConsoleVariable<float> CVarTonemapperHDR(
-	TEXT("r.TonemapperHDR"),
-	1,
-	TEXT("Make tonemapper work with HDR display.\n")
-	TEXT("Requires 'r.TonemapperPhoto 1'.\n")
-	TEXT("1: standard dynamic range\n")
-	TEXT("#: high dynamic range (#=2 for 1 stop more, #=4 for 2 stops more, #=8 for 3 stops more and so on"),
-	ECVF_Scalability | ECVF_RenderThreadSafe);
-
-static TAutoConsoleVariable<float> CVarTonemapperGamma(
-	TEXT("r.TonemapperGamma"),
-	0,
-	TEXT("0: don't use\n")
-	TEXT("#: used fixed gamma # instead of sRGB or Rec709 transform"),
-	ECVF_Scalability | ECVF_RenderThreadSafe);
-
-static TAutoConsoleVariable<int32> CVarTonemapper709(
-	TEXT("r.Tonemapper709"),
-	0,
-	TEXT("0: use sRGB on PC monitor output\n")
-	TEXT("1: use Rec.709 for HDTV/projector output"),
-	ECVF_Scalability | ECVF_RenderThreadSafe);
-
-
 static TAutoConsoleVariable<int32> CVarDetailMode(
 	TEXT("r.DetailMode"),
 	2,

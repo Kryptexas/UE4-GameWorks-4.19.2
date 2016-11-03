@@ -1025,7 +1025,8 @@ bool FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(
 
 				RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(FeatureLevel));
 				DrawingPolicy.SetSharedState(RHICmdList, &View, PolicyContext);
-				const FMeshDrawingRenderState DrawRenderState(Mesh.DitheredLODTransitionAlpha);
+				FMeshDrawingRenderState DrawRenderState;
+				DrawRenderState.DitheredLODTransitionAlpha = Mesh.DitheredLODTransitionAlpha;
 				for (int32 BatchElementIndex = 0, Num = Mesh.Elements.Num(); BatchElementIndex < Num; BatchElementIndex++)
 				{
 					TDrawEvent<FRHICommandList> MeshEvent;
@@ -1051,7 +1052,8 @@ bool FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(
 
 				RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(FeatureLevel));
 				DrawingPolicy.SetSharedState(RHICmdList, &View, PolicyContext);
-				const FMeshDrawingRenderState DrawRenderState(Mesh.DitheredLODTransitionAlpha);
+				FMeshDrawingRenderState DrawRenderState;
+				DrawRenderState.DitheredLODTransitionAlpha = Mesh.DitheredLODTransitionAlpha;
 				for (int32 BatchElementIndex = 0; BatchElementIndex < Mesh.Elements.Num(); BatchElementIndex++)
 				{
 					TDrawEvent<FRHICommandList> MeshEvent;
@@ -1291,7 +1293,7 @@ void DrawMeshElements(FRHICommandList& RHICmdList, FShadowDepthDrawingPolicy<bRe
 	checkSlow(CompareDrawingPolicy(DebugPolicy, SharedDrawingPolicy) == 0);
 #endif
 
-	const FMeshDrawingRenderState DrawRenderState(View.GetDitheredLODTransitionState(*Mesh));
+	const FMeshDrawingRenderState DrawRenderState(FMeshDrawingPolicy::GetDitheredLODTransitionState(View, *Mesh));
 	// Render only those batch elements that match the current LOD
 	uint64 BatchElementMask = Mesh->bRequiresPerElementVisibility ? View.StaticMeshBatchVisibility[Mesh->Id] : ((1ull << Mesh->Elements.Num()) - 1);
 	int32 BatchElementIndex = 0;

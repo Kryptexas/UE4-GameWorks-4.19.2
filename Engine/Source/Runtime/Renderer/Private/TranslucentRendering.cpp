@@ -597,6 +597,9 @@ bool FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(
 	FHitProxyId HitProxyId
 	)
 {
+	FMeshDrawingRenderState DrawRenderState;
+	DrawRenderState.DitheredLODTransitionAlpha = Mesh.DitheredLODTransitionAlpha;
+
 	return DrawMesh(
 		RHICmdList,
 		View,
@@ -604,7 +607,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(
 		Mesh,
 		Mesh.Elements.Num() == 1 ? 1 : (1 << Mesh.Elements.Num()) - 1,	// 1 bit set for each mesh element
 		bBackFace,
-		FMeshDrawingRenderState(Mesh.DitheredLODTransitionAlpha),
+		DrawRenderState,
 		bPreFog,
 		PrimitiveSceneProxy,
 		HitProxyId
@@ -626,7 +629,7 @@ bool FTranslucencyDrawingPolicyFactory::DrawStaticMesh(
 	FHitProxyId HitProxyId
 	)
 {
-	const FMeshDrawingRenderState DrawRenderState(View.GetDitheredLODTransitionState(StaticMesh));
+	const FMeshDrawingRenderState DrawRenderState(FBasePassDrawingPolicy::GetDitheredLODTransitionState(View, StaticMesh));
 	return DrawMesh(
 		RHICmdList,
 		View,

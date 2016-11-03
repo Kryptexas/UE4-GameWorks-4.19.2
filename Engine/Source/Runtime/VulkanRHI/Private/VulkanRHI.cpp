@@ -11,7 +11,6 @@
 #include "VulkanResources.h"
 #include "VulkanPendingState.h"
 #include "VulkanContext.h"
-#include "VulkanManager.h"
 #include "GenericPlatformDriver.h"
 
 #ifdef VK_API_VERSION
@@ -273,6 +272,7 @@ FVulkanCommandListContext::FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, F
 	, Device(InDevice)
 	, bIsImmediate(bInIsImmediate)
 	, bSubmitAtNextSafePoint(false)
+	, UBRingBuffer(nullptr)
 	, PendingNumVertices(0)
 	, PendingVertexDataStride(0)
 	, PendingPrimitiveIndexType(VK_INDEX_TYPE_MAX_ENUM)
@@ -282,13 +282,12 @@ FVulkanCommandListContext::FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, F
 	, PendingIndexDataStride(0)
 	, TempFrameAllocationBuffer(InDevice, VULKAN_TEMP_FRAME_ALLOCATOR_SIZE)
 	, CommandBufferManager(nullptr)
-	, CurrentOcclusionQueryPool(nullptr)
 	, PendingGfxState(nullptr)
 	, PendingComputeState(nullptr)
 	, FrameCounter(0)
 {
 	// Create CommandBufferManager, contain all active buffers
-	CommandBufferManager = new FVulkanCommandBufferManager(InDevice);
+	CommandBufferManager = new FVulkanCommandBufferManager(InDevice, this);
 
 	// Create Pending state, contains pipeline states such as current shader and etc..
 	PendingGfxState = new FVulkanPendingGfxState(InDevice);
@@ -297,6 +296,8 @@ FVulkanCommandListContext::FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, F
 	// Add an initial pool
 	FVulkanDescriptorPool* Pool = new FVulkanDescriptorPool(Device);
 	DescriptorPools.Add(Pool);
+
+	UBRingBuffer = new FVulkanRingBuffer(InDevice, VULKAN_UB_RING_BUFFER_SIZE, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 }
 
 FVulkanCommandListContext::~FVulkanCommandListContext()
@@ -305,8 +306,9 @@ FVulkanCommandListContext::~FVulkanCommandListContext()
 	delete CommandBufferManager;
 	CommandBufferManager = nullptr;
 
-	RenderPassState.Destroy(*Device);
+	TransitionState.Destroy(*Device);
 
+	delete UBRingBuffer;
 	delete PendingGfxState;
 	delete PendingComputeState;
 
@@ -319,10 +321,6 @@ FVulkanCommandListContext::~FVulkanCommandListContext()
 	DescriptorPools.Reset(0);
 }
 
-namespace VulkanRHI
-{
-	FManager GManager;
-}
 
 FVulkanDynamicRHI::FVulkanDynamicRHI()
 	: Instance(VK_NULL_HANDLE)
@@ -630,7 +628,7 @@ void FVulkanDynamicRHI::InitInstance()
 		GMaxCubeTextureDimensions = Props.limits.maxImageDimensionCube;
 		GMaxTextureArrayLayers = Props.limits.maxImageArrayLayers;
 		GMaxVulkanTextureFilterAnisotropic = Props.limits.maxSamplerAnisotropy;
-		GRHISupportsBaseVertexIndex = false;
+		GRHISupportsBaseVertexIndex = true;
 
 		GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2 ? GMaxRHIShaderPlatform : SP_NumPlatforms;
 		GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES3_1] = GMaxRHIFeatureLevel == ERHIFeatureLevel::ES3_1 ? GMaxRHIShaderPlatform : SP_NumPlatforms;
@@ -688,11 +686,16 @@ void FVulkanDynamicRHI::InitInstance()
 
 void FVulkanCommandListContext::RHIBeginFrame()
 {
+	check(IsImmediate());
+	RHIPrivateBeginFrame();
+
 	//FRCLog::Printf(FString::Printf(TEXT("FVulkanCommandListContext::RHIBeginFrame()")));
 	PendingGfxState->GetGlobalUniformPool().BeginFrame();
 	PendingComputeState->GetGlobalUniformPool().BeginFrame();
 
-	VulkanRHI::GManager.GPUProfilingData.BeginFrame(this, Device->GetTimestampQueryPool(RHI->GetPresentCount() % FVulkanDevice::NumTimestampPools));
+#if 0
+	Device->GPUProfiler.BeginFrame(this);
+#endif
 }
 
 
@@ -731,8 +734,10 @@ void FVulkanCommandListContext::RHIEndDrawingViewport(FViewportRHIParamRef Viewp
 	check(!CmdBuffer->HasEnded());
 	if (CmdBuffer->IsInsideRenderPass())
 	{
-		RenderPassState.EndRenderPass(CmdBuffer);
+		TransitionState.EndRenderPass(CmdBuffer);
 	}
+
+	WriteEndTimestamp(CmdBuffer);
 
 	bool bNativePresent = Viewport->Present(CmdBuffer, Device->GetQueue(), bLockToVsync);
 	if (bNativePresent)
@@ -740,14 +745,21 @@ void FVulkanCommandListContext::RHIEndDrawingViewport(FViewportRHIParamRef Viewp
 		//#todo-rco: Check for r.FinishCurrentFrame
 	}
 	PendingGfxState->InitFrame();
+
+	WriteBeginTimestamp(CommandBufferManager->GetActiveCmdBuffer());
 }
 
 void FVulkanCommandListContext::RHIEndFrame()
 {
+	check(IsImmediate());
+
+	ReadAndCalculateGPUFrameTime();
+
 	//FRCLog::Printf(FString::Printf(TEXT("FVulkanCommandListContext::RHIEndFrame()")));
 
 	Device->GetStagingManager().ProcessPendingFree();
 	Device->GetResourceHeapManager().ReleaseFreedPages();
+
 
 	++FrameCounter;
 }
@@ -779,7 +791,9 @@ void FVulkanCommandListContext::RHIPushEvent(const TCHAR* Name, FColor Color)
 		}
 #endif
 
+#if 0
 		VulkanRHI::GManager.GPUProfilingData.PushEvent(Name, Color);
+#endif
 	}
 }
 
@@ -799,7 +813,9 @@ void FVulkanCommandListContext::RHIPopEvent()
 		}
 #endif
 
+#if 0
 		VulkanRHI::GManager.GPUProfilingData.PopEvent();
+#endif
 	}
 
 	check(EventStack.Num() > 0);

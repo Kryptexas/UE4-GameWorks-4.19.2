@@ -925,14 +925,14 @@ static void CompileUsingExternal(const struct FShaderCompilerInput& Input, struc
 	EHlslCompileTarget HlslCompilerTarget = HCT_FeatureLevelES3_1Ext;
 	EHlslCompileTarget HlslCompilerTargetES = HCT_FeatureLevelES3_1Ext;
 	AdditionalDefines.SetDefine(TEXT("COMPILER_HLSLCC"), 1);
-	if (Version == EVulkanShaderVersion::ES3_1 || Version == EVulkanShaderVersion::ES3_1_ANDROID || Version == EVulkanShaderVersion::ES3_1_UB)
+	if (Version == EVulkanShaderVersion::ES3_1 || Version == EVulkanShaderVersion::ES3_1_ANDROID)
 	{
 		HlslCompilerTarget = HCT_FeatureLevelES3_1Ext;
 		HlslCompilerTargetES = HCT_FeatureLevelES3_1Ext;
 		AdditionalDefines.SetDefine(TEXT("USE_LOWER_PRECISION"), 1);
 		AdditionalDefines.SetDefine(TEXT("ES2_PROFILE"), 1);
 	}
-	else if (Version == EVulkanShaderVersion::SM4)
+	else if (Version == EVulkanShaderVersion::SM4 || Version == EVulkanShaderVersion::SM4_UB)
 	{
 		HlslCompilerTarget = HCT_FeatureLevelSM4;
 		HlslCompilerTargetES = HCT_FeatureLevelSM4;
@@ -1359,7 +1359,7 @@ void CompileShader_Windows_Vulkan(const FShaderCompilerInput& Input, FShaderComp
 	//}
 
 	const bool bIsSM5 = (Version == EVulkanShaderVersion::SM5);
-	const bool bIsSM4 = (Version == EVulkanShaderVersion::SM4);
+	const bool bIsSM4 = (Version == EVulkanShaderVersion::SM4 || Version == EVulkanShaderVersion::SM4_UB);
 
 	const EHlslShaderFrequency FrequencyTable[] =
 	{
@@ -1387,7 +1387,7 @@ void CompileShader_Windows_Vulkan(const FShaderCompilerInput& Input, FShaderComp
 	EHlslCompileTarget HlslCompilerTarget = HCT_FeatureLevelES3_1Ext;
 	EHlslCompileTarget HlslCompilerTargetES = HCT_FeatureLevelES3_1Ext;
 	AdditionalDefines.SetDefine(TEXT("COMPILER_HLSLCC"), 1);
-	if (Version == EVulkanShaderVersion::ES3_1 || Version == EVulkanShaderVersion::ES3_1_ANDROID || Version == EVulkanShaderVersion::ES3_1_UB)
+	if (Version == EVulkanShaderVersion::ES3_1 || Version == EVulkanShaderVersion::ES3_1_ANDROID)
 	{
 		HlslCompilerTarget = HCT_FeatureLevelES3_1Ext;
 		HlslCompilerTargetES = HCT_FeatureLevelES3_1Ext;
@@ -1395,13 +1395,13 @@ void CompileShader_Windows_Vulkan(const FShaderCompilerInput& Input, FShaderComp
 		AdditionalDefines.SetDefine(TEXT("ES2_PROFILE"), 1);
 		AdditionalDefines.SetDefine(TEXT("VULKAN_PROFILE"), 1);
 	}
-	else if (Version == EVulkanShaderVersion::SM4)
+	else if (bIsSM4)
 	{
 		HlslCompilerTarget = HCT_FeatureLevelSM4;
 		HlslCompilerTargetES = HCT_FeatureLevelSM4;
 		AdditionalDefines.SetDefine(TEXT("VULKAN_PROFILE_SM4"), 1);
 	}
-	else if (Version == EVulkanShaderVersion::SM5)
+	else if (bIsSM5)
 	{
 		HlslCompilerTarget = HCT_FeatureLevelSM5;
 		HlslCompilerTargetES = HCT_FeatureLevelSM5;
@@ -1462,7 +1462,11 @@ void CompileShader_Windows_Vulkan(const FShaderCompilerInput& Input, FShaderComp
 	CompilerInfo.CCFlags |= HLSLCC_PackUniforms;
 	CompilerInfo.CCFlags |= HLSLCC_PackUniformsIntoUniformBuffers;
 	//#todo-rco: All version using packed currently
-	//if (Version == EVulkanShaderVersion::ES3_1 || Version == EVulkanShaderVersion::ES3_1_ANDROID)
+	if (Version == EVulkanShaderVersion::SM4_UB)
+	{
+		CompilerInfo.CCFlags |= HLSLCC_FlattenUniformBufferStructures;
+	}
+	else
 	{
 		CompilerInfo.CCFlags |= HLSLCC_FlattenUniformBuffers;
 	}

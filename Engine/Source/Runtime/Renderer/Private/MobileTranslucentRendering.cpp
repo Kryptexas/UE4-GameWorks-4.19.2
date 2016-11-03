@@ -211,6 +211,9 @@ bool FMobileTranslucencyDrawingPolicyFactory::DrawDynamicMesh(
 			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 		}
 
+		FMeshDrawingRenderState DrawRenderState;
+		DrawRenderState.DitheredLODTransitionAlpha = Mesh.DitheredLODTransitionAlpha;
+
 		ProcessMobileBasePassMesh<FDrawMobileTranslucentMeshAction, 0>(
 			RHICmdList,
 			FProcessBasePassMeshParameters(
@@ -227,7 +230,7 @@ bool FMobileTranslucencyDrawingPolicyFactory::DrawDynamicMesh(
 			FDrawMobileTranslucentMeshAction(
 				View,
 				bBackFace,
-				FMeshDrawingRenderState(Mesh.DitheredLODTransitionAlpha),
+				DrawRenderState,
 				HitProxyId
 				)
 			);

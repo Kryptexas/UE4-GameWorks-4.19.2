@@ -7,7 +7,6 @@
 #include "VulkanRHIPrivate.h"
 #include "VulkanPendingState.h"
 #include "VulkanContext.h"
-#include "VulkanManager.h"
 
 //#todo-rco: One of this per Context!
 static TGlobalResource< TBoundShaderStateHistory<10000, false> > GBoundShaderStateHistory;
@@ -61,7 +60,7 @@ void FVulkanCommandListContext::RHISetComputeShader(FComputeShaderRHIParamRef Co
 	FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
 	if (CmdBuffer->IsInsideRenderPass())
 	{
-		RenderPassState.EndRenderPass(CmdBuffer);
+		TransitionState.EndRenderPass(CmdBuffer);
 		ensure(0);
 	}
 	FVulkanComputeShader* ComputeShader = ResourceCast(ComputeShaderRHI);
@@ -80,7 +79,9 @@ void FVulkanCommandListContext::RHIDispatchComputeShader(uint32 ThreadGroupCount
 
 	if (IsImmediate())
 	{
+#if 0
 		VulkanRHI::GManager.GPUProfilingData.RegisterGPUWork(1);
+#endif
 	}
 }
 
@@ -93,7 +94,9 @@ void FVulkanCommandListContext::RHIDispatchIndirectComputeShader(FVertexBufferRH
 	VULKAN_SIGNAL_UNIMPLEMENTED();
 	//if (IsImmediate())
 	{
+#if 0
 		VulkanRHI::GManager.GPUProfilingData.RegisterGPUWork(1);
+#endif
 	}
 }
 
@@ -509,7 +512,9 @@ void FVulkanCommandListContext::RHIDrawPrimitive(uint32 PrimitiveType, uint32 Ba
 
 	//if (IsImmediate())
 	{
+#if 0
 		VulkanRHI::GManager.GPUProfilingData.RegisterGPUWork(NumPrimitives * NumInstances, NumVertices * NumInstances);
+#endif
 	}
 }
 
@@ -551,7 +556,9 @@ void FVulkanCommandListContext::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef 
 
 	if (IsImmediate())
 	{
+#if 0
 		VulkanRHI::GManager.GPUProfilingData.RegisterGPUWork(NumPrimitives * NumInstances, NumVertices * NumInstances);
+#endif
 	}
 }
 
@@ -573,7 +580,9 @@ void FVulkanCommandListContext::RHIDrawIndexedIndirect(FIndexBufferRHIParamRef I
 
 	if (IsImmediate())
 	{
+#if 0
 		VulkanRHI::GManager.GPUProfilingData.RegisterGPUWork(0);
+#endif
 	}
 }
 
@@ -594,7 +603,9 @@ void FVulkanCommandListContext::RHIDrawIndexedPrimitiveIndirect(uint32 Primitive
 
 	if (IsImmediate())
 	{
+#if 0
 		VulkanRHI::GManager.GPUProfilingData.RegisterGPUWork(0);
+#endif
 	}
 }
 
@@ -629,7 +640,9 @@ void FVulkanCommandListContext::RHIEndDrawPrimitiveUP()
 
 	if (IsImmediate())
 	{
+#if 0
 		VulkanRHI::GManager.GPUProfilingData.RegisterGPUWork(PendingNumPrimitives, PendingNumVertices);
+#endif
 	}
 }
 
@@ -674,7 +687,9 @@ void FVulkanCommandListContext::RHIEndDrawIndexedPrimitiveUP()
 
 	if (IsImmediate())
 	{
+#if 0
 		VulkanRHI::GManager.GPUProfilingData.RegisterGPUWork(PendingNumPrimitives, PendingNumVertices);
+#endif
 	}
 }
 
@@ -687,7 +702,7 @@ void FVulkanCommandListContext::RHIClear(bool bClearColor,const FLinearColor& Co
 	//FRCLog::Printf(TEXT("RHIClear"));
 	FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
 
-	const uint32 NumColorAttachments = bClearColor ? RenderPassState.CurrentFramebuffer->GetNumColorAttachments() : 0;
+	const uint32 NumColorAttachments = bClearColor ? TransitionState.CurrentFramebuffer->GetNumColorAttachments() : 0;
 
 	FVulkanCommandListContext::InternalClearMRT(CmdBuffer, bClearColor, NumColorAttachments, &Color, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
 }
@@ -704,14 +719,14 @@ void FVulkanCommandListContext::RHIClearMRT(bool bClearColor, int32 NumClearColo
 	FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
 	//FRCLog::Printf(TEXT("RHIClearMRT"));
 
-	const uint32 NumColorAttachments = RenderPassState.CurrentFramebuffer->GetNumColorAttachments();
+	const uint32 NumColorAttachments = TransitionState.CurrentFramebuffer->GetNumColorAttachments();
 	check(!bClearColor || (uint32)NumClearColors <= NumColorAttachments);
 	InternalClearMRT(CmdBuffer, bClearColor, bClearColor ? NumClearColors : 0, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
 }
 
 void FVulkanCommandListContext::InternalClearMRT(FVulkanCmdBuffer* CmdBuffer, bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect)
 {
-	const VkExtent2D& Extents = RenderPassState.CurrentRenderPass->GetLayout().GetExtent2D();
+	const VkExtent2D& Extents = TransitionState.CurrentRenderPass->GetLayout().GetExtent2D();
 	if (ExcludeRect.Min.X == 0 && ExcludeRect.Width() == Extents.width && ExcludeRect.Min.Y == 0 && Extents.height)
 	{
 		//if (ForceFullScreen == EForceFullScreenClear::EDoNotForce)
@@ -726,7 +741,7 @@ void FVulkanCommandListContext::InternalClearMRT(FVulkanCmdBuffer* CmdBuffer, bo
 
 	ensure(ExcludeRect.Area() == 0);
 
-	if (RenderPassState.CurrentRenderPass)
+	if (TransitionState.CurrentRenderPass)
 	{
 		VkClearRect Rect;
 		FMemory::Memzero(Rect);
@@ -834,4 +849,15 @@ void FVulkanCommandListContext::PrepareForCPURead()
 		ensure(CmdBuffer->IsOutsideRenderPass());
 		CommandBufferManager->SubmitActiveCmdBuffer(true);
 	}
+}
+
+void FVulkanCommandListContext::RHISubmitCommandsHint()
+{
+	RequestSubmitCurrentCommands();
+	FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+	if (CmdBuffer && CmdBuffer->HasBegun() && CmdBuffer->IsOutsideRenderPass())
+	{
+		SafePointSubmit();
+	}
+	CommandBufferManager->RefreshFenceStatus();
 }

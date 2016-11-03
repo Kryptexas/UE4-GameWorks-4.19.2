@@ -9,6 +9,7 @@
 #include "BoundShaderStateCache.h"
 #include "CrossCompilerCommon.h"
 
+#if 0
 class FVulkanShaderVarying
 {
 public:
@@ -51,15 +52,7 @@ inline FArchive& operator<<(FArchive& Ar, FVulkanShaderVarying& Var)
 	Ar << Var.Components;
 	return Ar;
 }
-
-static void ClearBindings(CrossCompiler::FShaderBindings& Bindings)
-{
-	Bindings.InOutMask = 0;
-	Bindings.NumSamplers = 0;
-	Bindings.NumUniformBuffers = 0;
-	Bindings.NumUAVs = 0;
-	Bindings.bHasRegularUniformBuffers = 0;
-}
+#endif
 
 class FVulkanShaderSerializedBindings : public CrossCompiler::FShaderBindings
 {
@@ -67,7 +60,11 @@ public:
 	FVulkanShaderSerializedBindings():
 		bFlattenUB(false)
 	{
-		ClearBindings(*this);
+		InOutMask = 0;
+		NumSamplers = 0;
+		NumUniformBuffers = 0;
+		NumUAVs = 0;
+		bHasRegularUniformBuffers = 0;
 		FMemory::Memzero(PackedUBTypeIndex);
 	}
 

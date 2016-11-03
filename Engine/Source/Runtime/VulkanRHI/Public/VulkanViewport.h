@@ -52,6 +52,11 @@ public:
 
 	bool Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, bool bLockToVsync);
 
+	inline uint32 GetPresentCount() const
+	{
+		return PresentCount;
+	}
+
 protected:
 	VkImage BackBufferImages[NUM_BUFFERS];
 	FVulkanSemaphore* RenderingDoneSemaphores[NUM_BUFFERS];

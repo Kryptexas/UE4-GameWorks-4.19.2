@@ -25,6 +25,8 @@ class TDepthOnlyVS;
 
 class FDepthOnlyPS;
 
+class FViewInfo;
+
 /**
  * Used to write out depth for opaque and masked materials during the depth-only pass.
  */
@@ -54,6 +56,9 @@ public:
 		);
 
 	// FMeshDrawingPolicy interface.
+
+	static FMeshDrawingRenderState GetDitheredLODTransitionState(const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither = false);
+
 	FDrawingPolicyMatchResult Matches(const FDepthDrawingPolicy& Other) const
 	{
 		DRAWING_POLICY_MATCH_BEGIN
@@ -125,6 +130,9 @@ public:
 		);
 
 	// FMeshDrawingPolicy interface.
+
+	static FMeshDrawingRenderState GetDitheredLODTransitionState(const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither = false);
+
 	FDrawingPolicyMatchResult Matches(const FPositionOnlyDepthDrawingPolicy& Other) const
 	{
 		DRAWING_POLICY_MATCH_BEGIN

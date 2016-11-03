@@ -9,148 +9,15 @@
 #include "VulkanPipeline.h"
 #include "VulkanContext.h"
 
-// RTs 0-3
-#define NUMBITS_BLEND_STATE				4 //(x4=16) = 16 ++
-#define NUMBITS_RENDER_TARGET_FORMAT	4 //(x4=16) = 32 ++
-#define NUMBITS_LOAD_OP					2 //(x4=8) = 40 ++
-#define NUMBITS_STORE_OP				2 //(x4=8) = 48 ++
-#define NUMBITS_CULL_MODE				2 //(x1=2) = 50 ++
-#define NUMBITS_POLYFILL				1 //(x1=1) = 51 ++
-#define NUMBITS_POLYTYPE				3 //(x3=3) = 54 ++
-#define NUMBITS_DEPTH_BIAS_ENABLED		1 //(x1=1) = 55 ++
-#define NUMBITS_DEPTH_TEST_ENABLED		1 //(x1=1) = 56 ++
-#define NUMBITS_DEPTH_WRITE_ENABLED		1 //(x1=1) = 57 ++
-#define NUMBITS_DEPTH_COMPARE_OP		3 //(x1=3) = 60 ++
-#define NUMBITS_FRONT_STENCIL_OP		4 //(x1=4) = 64 ++
-
-// RTs 4-7
-//#define NUMBITS_BLEND_STATE			4 //(x4=16) = 16 ++
-//#define NUMBITS_RENDER_TARGET_FORMAT	3 //(x4=16) = 32 ++
-//#define NUMBITS_LOAD_OP				2 //(x4=8) = 40 ++
-//#define NUMBITS_STORE_OP				2 //(x4=8) = 48 ++
-#define NUMBITS_BACK_STENCIL_OP			4 //(x1=4) = 52 ++
-#define NUMBITS_STENCIL_TEST_ENABLED	1 //(x1=1) = 53 ++
-#define NUMBITS_MSAA_ENABLED			1 //(x1=1) = 54 ++
-#define NUMBITS_NUM_COLOR_BLENDS		3 //(x1=3) = 57 ++
-
-
-
-#define OFFSET_BLEND_STATE0				(0)
-#define OFFSET_BLEND_STATE1				(OFFSET_BLEND_STATE0			+ NUMBITS_BLEND_STATE)
-#define OFFSET_BLEND_STATE2				(OFFSET_BLEND_STATE1			+ NUMBITS_BLEND_STATE)
-#define OFFSET_BLEND_STATE3				(OFFSET_BLEND_STATE2			+ NUMBITS_BLEND_STATE)
-#define OFFSET_RENDER_TARGET_FORMAT0	(OFFSET_BLEND_STATE3			+ NUMBITS_BLEND_STATE)
-#define OFFSET_RENDER_TARGET_FORMAT1	(OFFSET_RENDER_TARGET_FORMAT0	+ NUMBITS_RENDER_TARGET_FORMAT)
-#define OFFSET_RENDER_TARGET_FORMAT2	(OFFSET_RENDER_TARGET_FORMAT1	+ NUMBITS_RENDER_TARGET_FORMAT)
-#define OFFSET_RENDER_TARGET_FORMAT3	(OFFSET_RENDER_TARGET_FORMAT2	+ NUMBITS_RENDER_TARGET_FORMAT)
-#define OFFSET_RENDER_TARGET_LOAD0		(OFFSET_RENDER_TARGET_FORMAT3	+ NUMBITS_RENDER_TARGET_FORMAT)
-#define OFFSET_RENDER_TARGET_LOAD1		(OFFSET_RENDER_TARGET_LOAD0		+ NUMBITS_LOAD_OP)
-#define OFFSET_RENDER_TARGET_LOAD2		(OFFSET_RENDER_TARGET_LOAD1		+ NUMBITS_LOAD_OP)
-#define OFFSET_RENDER_TARGET_LOAD3		(OFFSET_RENDER_TARGET_LOAD2		+ NUMBITS_LOAD_OP)
-#define OFFSET_RENDER_TARGET_STORE0		(OFFSET_RENDER_TARGET_LOAD3		+ NUMBITS_LOAD_OP)
-#define OFFSET_RENDER_TARGET_STORE1		(OFFSET_RENDER_TARGET_STORE0	+ NUMBITS_STORE_OP)
-#define OFFSET_RENDER_TARGET_STORE2		(OFFSET_RENDER_TARGET_STORE1	+ NUMBITS_STORE_OP)
-#define OFFSET_RENDER_TARGET_STORE3		(OFFSET_RENDER_TARGET_STORE2	+ NUMBITS_STORE_OP)
-#define OFFSET_CULL_MODE				(OFFSET_RENDER_TARGET_STORE3	+ NUMBITS_STORE_OP)
-#define OFFSET_POLYFILL					(OFFSET_CULL_MODE				+ NUMBITS_CULL_MODE)
-#define OFFSET_POLYTYPE					(OFFSET_POLYFILL				+ NUMBITS_POLYFILL)
-#define OFFSET_DEPTH_BIAS_ENABLED		(OFFSET_POLYTYPE				+ NUMBITS_POLYTYPE)
-#define OFFSET_DEPTH_TEST_ENABLED		(OFFSET_DEPTH_BIAS_ENABLED		+ NUMBITS_DEPTH_BIAS_ENABLED)
-#define OFFSET_DEPTH_WRITE_ENABLED		(OFFSET_DEPTH_TEST_ENABLED		+ NUMBITS_DEPTH_TEST_ENABLED)
-#define OFFSET_DEPTH_COMPARE_OP			(OFFSET_DEPTH_WRITE_ENABLED		+ NUMBITS_DEPTH_WRITE_ENABLED)
-#define OFFSET_FRONT_STENCIL_OP			(OFFSET_DEPTH_COMPARE_OP		+ NUMBITS_DEPTH_COMPARE_OP)
-static_assert(OFFSET_FRONT_STENCIL_OP + NUMBITS_FRONT_STENCIL_OP <= 64, "Out of bits!");
-
-#define OFFSET_BLEND_STATE4				(0x8000)
-#define OFFSET_BLEND_STATE5				(OFFSET_BLEND_STATE4			+ NUMBITS_BLEND_STATE)
-#define OFFSET_BLEND_STATE6				(OFFSET_BLEND_STATE5			+ NUMBITS_BLEND_STATE)
-#define OFFSET_BLEND_STATE7				(OFFSET_BLEND_STATE6			+ NUMBITS_BLEND_STATE)
-#define OFFSET_RENDER_TARGET_FORMAT4	(OFFSET_BLEND_STATE7			+ NUMBITS_BLEND_STATE)
-#define OFFSET_RENDER_TARGET_FORMAT5	(OFFSET_RENDER_TARGET_FORMAT4	+ NUMBITS_RENDER_TARGET_FORMAT)
-#define OFFSET_RENDER_TARGET_FORMAT6	(OFFSET_RENDER_TARGET_FORMAT5	+ NUMBITS_RENDER_TARGET_FORMAT)
-#define OFFSET_RENDER_TARGET_FORMAT7	(OFFSET_RENDER_TARGET_FORMAT6	+ NUMBITS_RENDER_TARGET_FORMAT)
-#define OFFSET_RENDER_TARGET_LOAD4		(OFFSET_RENDER_TARGET_FORMAT7	+ NUMBITS_RENDER_TARGET_FORMAT)
-#define OFFSET_RENDER_TARGET_LOAD5		(OFFSET_RENDER_TARGET_LOAD4		+ NUMBITS_LOAD_OP)
-#define OFFSET_RENDER_TARGET_LOAD6		(OFFSET_RENDER_TARGET_LOAD5		+ NUMBITS_LOAD_OP)
-#define OFFSET_RENDER_TARGET_LOAD7		(OFFSET_RENDER_TARGET_LOAD6		+ NUMBITS_LOAD_OP)
-#define OFFSET_RENDER_TARGET_STORE4		(OFFSET_RENDER_TARGET_LOAD7		+ NUMBITS_STORE_OP)
-#define OFFSET_RENDER_TARGET_STORE5		(OFFSET_RENDER_TARGET_STORE4	+ NUMBITS_STORE_OP)
-#define OFFSET_RENDER_TARGET_STORE6		(OFFSET_RENDER_TARGET_STORE5	+ NUMBITS_STORE_OP)
-#define OFFSET_RENDER_TARGET_STORE7		(OFFSET_RENDER_TARGET_STORE6	+ NUMBITS_STORE_OP)
-#define OFFSET_BACK_STENCIL_OP			(OFFSET_RENDER_TARGET_STORE7	+ NUMBITS_STORE_OP)
-#define OFFSET_STENCIL_TEST_ENABLED		(OFFSET_BACK_STENCIL_OP			+ NUMBITS_BACK_STENCIL_OP)
-#define OFFSET_MSAA_ENABLED				(OFFSET_STENCIL_TEST_ENABLED	+ NUMBITS_STENCIL_TEST_ENABLED)
-#define OFFSET_NUM_COLOR_BLENDS			(OFFSET_MSAA_ENABLED	+ NUMBITS_MSAA_ENABLED)
-static_assert(((OFFSET_NUM_COLOR_BLENDS + NUMBITS_NUM_COLOR_BLENDS) & ~0x8000) <= 64, "Out of bits!");
-
-static const uint32 BlendBitOffsets[MaxSimultaneousRenderTargets] =
-{
-	OFFSET_BLEND_STATE0,
-	OFFSET_BLEND_STATE1,
-	OFFSET_BLEND_STATE2,
-	OFFSET_BLEND_STATE3,
-	OFFSET_BLEND_STATE4,
-	OFFSET_BLEND_STATE5,
-	OFFSET_BLEND_STATE6,
-	OFFSET_BLEND_STATE7
-};
-static const uint32 RTFormatBitOffsets[MaxSimultaneousRenderTargets] =
-{
-	OFFSET_RENDER_TARGET_FORMAT0,
-	OFFSET_RENDER_TARGET_FORMAT1,
-	OFFSET_RENDER_TARGET_FORMAT2,
-	OFFSET_RENDER_TARGET_FORMAT3,
-	OFFSET_RENDER_TARGET_FORMAT4,
-	OFFSET_RENDER_TARGET_FORMAT5,
-	OFFSET_RENDER_TARGET_FORMAT6,
-	OFFSET_RENDER_TARGET_FORMAT7
-};
-static const uint32 RTLoadBitOffsets[MaxSimultaneousRenderTargets] =
-{
-	OFFSET_RENDER_TARGET_LOAD0,
-	OFFSET_RENDER_TARGET_LOAD1,
-	OFFSET_RENDER_TARGET_LOAD2,
-	OFFSET_RENDER_TARGET_LOAD3,
-	OFFSET_RENDER_TARGET_LOAD4,
-	OFFSET_RENDER_TARGET_LOAD5,
-	OFFSET_RENDER_TARGET_LOAD6,
-	OFFSET_RENDER_TARGET_LOAD7
-};
-static const uint32 RTStoreBitOffsets[MaxSimultaneousRenderTargets] =
-{
-	OFFSET_RENDER_TARGET_STORE0,
-	OFFSET_RENDER_TARGET_STORE1,
-	OFFSET_RENDER_TARGET_STORE2,
-	OFFSET_RENDER_TARGET_STORE3,
-	OFFSET_RENDER_TARGET_STORE4,
-	OFFSET_RENDER_TARGET_STORE5,
-	OFFSET_RENDER_TARGET_STORE6,
-	OFFSET_RENDER_TARGET_STORE7
-};
-
-static FORCEINLINE uint64* GetKey(FVulkanPipelineGraphicsKey& Key, uint64 Offset)
-{
-	return Key.Key + (((Offset & 0x8000) != 0) ? 1 : 0);
-}
-
-static FORCEINLINE void SetKeyBits(FVulkanPipelineGraphicsKey& Key, uint64 Offset, uint64 NumBits, uint64 Value)
-{
-	uint64& CurrentKey = *GetKey(Key, Offset);
-	Offset = (Offset & ~0x8000);
-	const uint64 BitMask = ((1ULL << NumBits) - 1) << Offset;
-	CurrentKey = (CurrentKey & ~BitMask) | (((uint64)(Value) << Offset) & BitMask); \
-}
-
+#if UE_BUILD_DEBUG
 struct FDebugPipelineKey
 {
 	union
 	{
 		struct
 		{
-			uint64 BlendState0			: NUMBITS_BLEND_STATE;
-			uint64 BlendState1			: NUMBITS_BLEND_STATE;
-			uint64 BlendState2			: NUMBITS_BLEND_STATE;
-			uint64 BlendState3			: NUMBITS_BLEND_STATE;
+			uint64 BlendState			: NUMBITS_BLEND_STATE;
+
 			uint64 RenderTargetFormat0	: NUMBITS_RENDER_TARGET_FORMAT;
 			uint64 RenderTargetFormat1	: NUMBITS_RENDER_TARGET_FORMAT;
 			uint64 RenderTargetFormat2	: NUMBITS_RENDER_TARGET_FORMAT;
@@ -166,17 +33,16 @@ struct FDebugPipelineKey
 			uint64 CullMode				: NUMBITS_CULL_MODE;
 			uint64 PolyFill				: NUMBITS_POLYFILL;
 			uint64 PolyType				: NUMBITS_POLYTYPE;
-			uint64 DepthBiasEnabled		: NUMBITS_DEPTH_BIAS_ENABLED;
-			uint64 DepthTestEnabled		: NUMBITS_DEPTH_TEST_ENABLED;
-			uint64 DepthWriteEnabled	: NUMBITS_DEPTH_WRITE_ENABLED;
+			uint64 DepthBiasEnabled		: 1;
+			uint64 DepthTestEnabled		: 1;
+			uint64 DepthWriteEnabled	: 1;
 			uint64 DepthCompareOp		: NUMBITS_DEPTH_COMPARE_OP;
-			uint64 FrontStencilOp		: NUMBITS_FRONT_STENCIL_OP;
+			uint64 FrontStencilOp		: NUMBITS_STENCIL_STATE;
+			uint64 DepthStencilFormat	: NUMBITS_RENDER_TARGET_FORMAT;
+			uint64 DepthStencilLoad		: NUMBITS_LOAD_OP;
+			uint64 DepthStencilStore	: NUMBITS_STORE_OP;
 			uint64						: 0;
 
-			uint64 BlendState4			: NUMBITS_BLEND_STATE;
-			uint64 BlendState5			: NUMBITS_BLEND_STATE;
-			uint64 BlendState6			: NUMBITS_BLEND_STATE;
-			uint64 BlendState7			: NUMBITS_BLEND_STATE;
 			uint64 RenderTargetFormat4	: NUMBITS_RENDER_TARGET_FORMAT;
 			uint64 RenderTargetFormat5	: NUMBITS_RENDER_TARGET_FORMAT;
 			uint64 RenderTargetFormat6	: NUMBITS_RENDER_TARGET_FORMAT;
@@ -189,9 +55,9 @@ struct FDebugPipelineKey
 			uint64 RenderTargetStore5	: NUMBITS_STORE_OP;
 			uint64 RenderTargetStore6	: NUMBITS_STORE_OP;
 			uint64 RenderTargetStore7	: NUMBITS_STORE_OP;
-			uint64 BackStencilOp		: NUMBITS_BACK_STENCIL_OP;
-			uint64 StencilTestEnabled	: NUMBITS_STENCIL_TEST_ENABLED;
-			uint64 MSAAEnabled			: NUMBITS_MSAA_ENABLED;
+			uint64 BackStencilOp		: NUMBITS_STENCIL_STATE;
+			uint64 StencilTestEnabled	: 1;
+			uint64 MSAAEnabled			: 1;
 			uint64 NumColorBlends		: NUMBITS_NUM_COLOR_BLENDS;
 			uint64: 0;
 		};
@@ -202,50 +68,71 @@ struct FDebugPipelineKey
 	{
 		static_assert(sizeof(*this) == sizeof(FVulkanPipelineGraphicsKey), "size mismatch!");
 		{
-			// Sanity check that bits match
+			// Sanity check that bits match, runs at startup time only
 			FVulkanPipelineGraphicsKey CurrentKeys;
-			FMemory::Memzero(*this);
 
-			SetKeyBits(CurrentKeys, OFFSET_CULL_MODE, NUMBITS_CULL_MODE, 1);
-			CullMode = 1;
+#define TEST_KEY(Offset, NumBits, Member)	\
+{\
+	FMemory::Memzero(*this);\
+	FMemory::Memzero(CurrentKeys);\
+	uint32 Value = (1 << NumBits) - 1;\
+	/*SetKeyBits(CurrentKeys, Offset, NumBits, Value);*/\
+	Member = Value;\
+	/*check(CurrentKeys.Key[0] == Key[0] && CurrentKeys.Key[1] == Key[1] && Member == Member);*/\
+}
+			TEST_KEY(OFFSET_BLEND_STATE, NUMBITS_BLEND_STATE, BlendState);
 
-			SetKeyBits(CurrentKeys, OFFSET_BLEND_STATE0, NUMBITS_BLEND_STATE, 7);
-			BlendState0 = 7;
+			TEST_KEY(OFFSET_RENDER_TARGET_FORMAT0, NUMBITS_RENDER_TARGET_FORMAT, RenderTargetFormat0);
+			TEST_KEY(OFFSET_RENDER_TARGET_FORMAT1, NUMBITS_RENDER_TARGET_FORMAT, RenderTargetFormat1);
+			TEST_KEY(OFFSET_RENDER_TARGET_FORMAT2, NUMBITS_RENDER_TARGET_FORMAT, RenderTargetFormat2);
+			TEST_KEY(OFFSET_RENDER_TARGET_FORMAT3, NUMBITS_RENDER_TARGET_FORMAT, RenderTargetFormat3);
+			TEST_KEY(OFFSET_RENDER_TARGET_FORMAT4, NUMBITS_RENDER_TARGET_FORMAT, RenderTargetFormat4);
+			TEST_KEY(OFFSET_RENDER_TARGET_FORMAT5, NUMBITS_RENDER_TARGET_FORMAT, RenderTargetFormat5);
+			TEST_KEY(OFFSET_RENDER_TARGET_FORMAT6, NUMBITS_RENDER_TARGET_FORMAT, RenderTargetFormat6);
+			TEST_KEY(OFFSET_RENDER_TARGET_FORMAT7, NUMBITS_RENDER_TARGET_FORMAT, RenderTargetFormat7);
+			TEST_KEY(OFFSET_DEPTH_STENCIL_FORMAT, NUMBITS_RENDER_TARGET_FORMAT, DepthStencilFormat);
 
-			SetKeyBits(CurrentKeys, OFFSET_BLEND_STATE5, NUMBITS_BLEND_STATE, 3);
-			BlendState5 = 3;
+			TEST_KEY(OFFSET_RENDER_TARGET_LOAD0, NUMBITS_LOAD_OP, RenderTargetLoad0);
+			TEST_KEY(OFFSET_RENDER_TARGET_LOAD1, NUMBITS_LOAD_OP, RenderTargetLoad1);
+			TEST_KEY(OFFSET_RENDER_TARGET_LOAD2, NUMBITS_LOAD_OP, RenderTargetLoad2);
+			TEST_KEY(OFFSET_RENDER_TARGET_LOAD3, NUMBITS_LOAD_OP, RenderTargetLoad3);
+			TEST_KEY(OFFSET_RENDER_TARGET_LOAD4, NUMBITS_LOAD_OP, RenderTargetLoad4);
+			TEST_KEY(OFFSET_RENDER_TARGET_LOAD5, NUMBITS_LOAD_OP, RenderTargetLoad5);
+			TEST_KEY(OFFSET_RENDER_TARGET_LOAD6, NUMBITS_LOAD_OP, RenderTargetLoad6);
+			TEST_KEY(OFFSET_RENDER_TARGET_LOAD7, NUMBITS_LOAD_OP, RenderTargetLoad7);
+			TEST_KEY(OFFSET_DEPTH_STENCIL_LOAD, NUMBITS_LOAD_OP, DepthStencilLoad);
 
-			SetKeyBits(CurrentKeys, OFFSET_MSAA_ENABLED, NUMBITS_MSAA_ENABLED, 1);
-			MSAAEnabled = 1;
+			TEST_KEY(OFFSET_RENDER_TARGET_STORE0, NUMBITS_STORE_OP, RenderTargetStore0);
+			TEST_KEY(OFFSET_RENDER_TARGET_STORE1, NUMBITS_STORE_OP, RenderTargetStore1);
+			TEST_KEY(OFFSET_RENDER_TARGET_STORE2, NUMBITS_STORE_OP, RenderTargetStore2);
+			TEST_KEY(OFFSET_RENDER_TARGET_STORE3, NUMBITS_STORE_OP, RenderTargetStore3);
+			TEST_KEY(OFFSET_RENDER_TARGET_STORE4, NUMBITS_STORE_OP, RenderTargetStore4);
+			TEST_KEY(OFFSET_RENDER_TARGET_STORE5, NUMBITS_STORE_OP, RenderTargetStore5);
+			TEST_KEY(OFFSET_RENDER_TARGET_STORE6, NUMBITS_STORE_OP, RenderTargetStore6);
+			TEST_KEY(OFFSET_RENDER_TARGET_STORE7, NUMBITS_STORE_OP, RenderTargetStore7);
+			TEST_KEY(OFFSET_DEPTH_STENCIL_STORE, NUMBITS_STORE_OP, DepthStencilStore);
 
-			check(CurrentKeys.Key[0] == Key[0] && CurrentKeys.Key[1] == Key[1]);
-		}
+			TEST_KEY(OFFSET_CULL_MODE, NUMBITS_CULL_MODE, CullMode);
+			TEST_KEY(OFFSET_POLYFILL, NUMBITS_POLYFILL, PolyFill);
+			TEST_KEY(OFFSET_POLYTYPE, NUMBITS_POLYTYPE, PolyType);
 
-		{
-			FVulkanPipelineGraphicsKey CurrentKeys;
-			FMemory::Memzero(*this);
+			TEST_KEY(OFFSET_DEPTH_BIAS_ENABLED, 1, DepthBiasEnabled);
+			TEST_KEY(OFFSET_DEPTH_TEST_ENABLED, 1, DepthTestEnabled);
+			TEST_KEY(OFFSET_DEPTH_WRITE_ENABLED, 1, DepthWriteEnabled);
+			TEST_KEY(OFFSET_DEPTH_COMPARE_OP, NUMBITS_DEPTH_COMPARE_OP, DepthCompareOp);
 
-			SetKeyBits(CurrentKeys, OFFSET_POLYFILL, NUMBITS_POLYFILL, 1);
-			PolyFill = 1;
+			TEST_KEY(OFFSET_FRONT_STENCIL_STATE, NUMBITS_STENCIL_STATE, FrontStencilOp);
+			TEST_KEY(OFFSET_BACK_STENCIL_STATE, NUMBITS_STENCIL_STATE, BackStencilOp);
+			TEST_KEY(OFFSET_STENCIL_TEST_ENABLED, 1, StencilTestEnabled);
 
-			SetKeyBits(CurrentKeys, OFFSET_RENDER_TARGET_LOAD2, NUMBITS_LOAD_OP, 2);
-			RenderTargetLoad2 = 2;
-
-			SetKeyBits(CurrentKeys, OFFSET_BLEND_STATE5, NUMBITS_BLEND_STATE, 3);
-			BlendState5 = 3;
-
-			SetKeyBits(CurrentKeys, OFFSET_FRONT_STENCIL_OP, NUMBITS_FRONT_STENCIL_OP, 5);
-			FrontStencilOp = 5;
-
-			SetKeyBits(CurrentKeys, OFFSET_NUM_COLOR_BLENDS, NUMBITS_NUM_COLOR_BLENDS, 2);
-			NumColorBlends = 2;
-
-			check(CurrentKeys.Key[0] == Key[0] && CurrentKeys.Key[1] == Key[1]);
+			TEST_KEY(OFFSET_MSAA_ENABLED, 1, MSAAEnabled);
+			TEST_KEY(OFFSET_NUM_COLOR_BLENDS, NUMBITS_NUM_COLOR_BLENDS, NumColorBlends);
 		}
 	}
 };
 static FDebugPipelineKey GDebugPipelineKey;
 static_assert(sizeof(GDebugPipelineKey) == 2 * sizeof(uint64), "Debug struct not matching Hash/Sizes!");
+#endif
 
 FVulkanPendingState::FVulkanPendingState(FVulkanDevice* InDevice)
 	: Device(InDevice)
@@ -527,12 +414,8 @@ void FVulkanPendingGfxState::SetBlendState(FVulkanBlendState* NewState)
 	CurrentState.BlendState = NewState;
 
 	// set blend modes into the key
-	for (int32 Index = 0; Index < MaxSimultaneousRenderTargets; Index++)
-	{
-		SetKeyBits(CurrentKey, BlendBitOffsets[Index], NUMBITS_BLEND_STATE, NewState->BlendStateKeys[Index]);
-	}
+	SetKeyBits(CurrentKey, OFFSET_BLEND_STATE, NUMBITS_BLEND_STATE, NewState->BlendStateKey);
 }
-
 
 void FVulkanPendingGfxState::SetDepthStencilState(FVulkanDepthStencilState* NewState, uint32 StencilRef)
 {
@@ -541,12 +424,12 @@ void FVulkanPendingGfxState::SetDepthStencilState(FVulkanDepthStencilState* NewS
 	CurrentState.StencilRef = StencilRef;
 	CurrentState.bNeedsStencilRefUpdate = true;
 
-	SetKeyBits(CurrentKey, OFFSET_DEPTH_TEST_ENABLED, NUMBITS_DEPTH_TEST_ENABLED, NewState->DepthStencilState.depthTestEnable);
-	SetKeyBits(CurrentKey, OFFSET_DEPTH_WRITE_ENABLED, NUMBITS_DEPTH_WRITE_ENABLED, NewState->DepthStencilState.depthWriteEnable);
+	SetKeyBits(CurrentKey, OFFSET_DEPTH_TEST_ENABLED, 1, NewState->DepthStencilState.depthTestEnable);
+	SetKeyBits(CurrentKey, OFFSET_DEPTH_WRITE_ENABLED, 1, NewState->DepthStencilState.depthWriteEnable);
 	SetKeyBits(CurrentKey, OFFSET_DEPTH_COMPARE_OP, NUMBITS_DEPTH_COMPARE_OP, NewState->DepthStencilState.depthCompareOp);
-	SetKeyBits(CurrentKey, OFFSET_STENCIL_TEST_ENABLED, NUMBITS_STENCIL_TEST_ENABLED, NewState->DepthStencilState.stencilTestEnable);
-	SetKeyBits(CurrentKey, OFFSET_FRONT_STENCIL_OP, NUMBITS_FRONT_STENCIL_OP, NewState->FrontStencilKey);
-	SetKeyBits(CurrentKey, OFFSET_BACK_STENCIL_OP, NUMBITS_BACK_STENCIL_OP, NewState->BackStencilKey);
+	SetKeyBits(CurrentKey, OFFSET_STENCIL_TEST_ENABLED, 1, NewState->DepthStencilState.stencilTestEnable);
+	SetKeyBits(CurrentKey, OFFSET_FRONT_STENCIL_STATE, NUMBITS_STENCIL_STATE, NewState->FrontStencilKey);
+	SetKeyBits(CurrentKey, OFFSET_BACK_STENCIL_STATE, NUMBITS_STENCIL_STATE, NewState->BackStencilKey);
 }
 
 void FVulkanPendingGfxState::SetRasterizerState(FVulkanRasterizerState* NewState)
@@ -557,6 +440,6 @@ void FVulkanPendingGfxState::SetRasterizerState(FVulkanRasterizerState* NewState
 
 	// update running key
 	SetKeyBits(CurrentKey, OFFSET_CULL_MODE, NUMBITS_CULL_MODE, NewState->RasterizerState.cullMode);
-	SetKeyBits(CurrentKey, OFFSET_DEPTH_BIAS_ENABLED, NUMBITS_DEPTH_BIAS_ENABLED, NewState->RasterizerState.depthBiasEnable);
+	SetKeyBits(CurrentKey, OFFSET_DEPTH_BIAS_ENABLED, 1, NewState->RasterizerState.depthBiasEnable);
 	SetKeyBits(CurrentKey, OFFSET_POLYFILL, NUMBITS_POLYFILL, NewState->RasterizerState.polygonMode == VK_POLYGON_MODE_FILL);
 }

@@ -266,7 +266,7 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 /**
  * Actor containing all script accessible world properties.
  */
-UCLASS(config=game, hidecategories=(Actor, Advanced, Display, Events, Object, Attachment, Info, Input, Blueprint, Layers, Tags, Replication), showcategories=("Input|MouseInput", "Input|TouchInput"), notplaceable)
+UCLASS(config=game, hidecategories=(Actor, Advanced, Display, Events, Object, Attachment, Info, Input, Blueprint, Layers, Tags, Replication), showcategories=(Rendering, "Input|MouseInput", "Input|TouchInput"), notplaceable)
 class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 {
 	GENERATED_UCLASS_BODY()
@@ -370,12 +370,19 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	FVector DefaultColorScale;
 
 	/** Max occlusion distance used by mesh distance fields, overridden if there is a movable skylight. */
-	UPROPERTY(EditAnywhere, Category=World, meta=(UIMin = "500", UIMax = "5000", DisplayName = "Default Max DistanceField Occlusion Distance"))
+	UPROPERTY(EditAnywhere, Category=Rendering, meta=(UIMin = "500", UIMax = "5000", DisplayName = "Default Max DistanceField Occlusion Distance"))
 	float DefaultMaxDistanceFieldOcclusionDistance;
 
 	/** Distance from the camera that the global distance field should cover. */
-	UPROPERTY(EditAnywhere, Category=World, meta=(UIMin = "10000", UIMax = "100000", DisplayName = "Global DistanceField View Distance"))
+	UPROPERTY(EditAnywhere, Category=Rendering, meta=(UIMin = "10000", UIMax = "100000", DisplayName = "Global DistanceField View Distance"))
 	float GlobalDistanceFieldViewDistance;
+
+	/** 
+	 * Controls the intensity of self-shadowing from capsule indirect shadows. 
+	 * These types of shadows use approximate occluder representations, so reducing self-shadowing intensity can hide those artifacts.
+	 */
+	UPROPERTY(EditAnywhere, Category=Rendering, meta=(UIMin = "0", UIMax = "1"))
+	float DynamicIndirectShadowsSelfShadowingIntensity;
 
 	/************************************/
 	

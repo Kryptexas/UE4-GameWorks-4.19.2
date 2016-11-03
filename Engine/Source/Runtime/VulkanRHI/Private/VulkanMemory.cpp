@@ -1134,6 +1134,9 @@ namespace VulkanRHI
 		VkMemoryRequirements MemReqs;
 		VulkanRHI::vkGetBufferMemoryRequirements(VulkanDevice, StagingBuffer->Buffer, &MemReqs);
 
+		// Set minimum alignment to 16 bytes, as some buffers are used with CPU SIMD instructions
+		MemReqs.alignment = FMath::Max((VkDeviceSize)16, MemReqs.alignment);
+
 		StagingBuffer->ResourceAllocation = Device->GetResourceHeapManager().AllocateBufferMemory(MemReqs, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | (bCPURead ? VK_MEMORY_PROPERTY_HOST_CACHED_BIT : VK_MEMORY_PROPERTY_HOST_COHERENT_BIT), __FILE__, __LINE__);
 		StagingBuffer->bCPURead = bCPURead;
 		StagingBuffer->ResourceAllocation->BindBuffer(Device, StagingBuffer->Buffer);

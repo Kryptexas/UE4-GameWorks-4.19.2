@@ -10,7 +10,35 @@
 #include "VulkanPendingState.h"
 
 
+struct FPixelFormatKeyMap
+{
+	// This array ends up being used for ~10 entries, so no point in making it a TMap
+	TArray<VkFormat> Formats;
+	FCriticalSection Lock;
+
+	FPixelFormatKeyMap()
+	{
+		Formats.Add(VK_FORMAT_UNDEFINED);
+	}
+
+	inline uint8 GetFormatKey(VkFormat Format)
+	{
+		FScopeLock ScopeLock(&Lock);
+		int32 NextKey = -1;
+		if (!Formats.Find(Format, NextKey))
+		{
+			NextKey = Formats.Add(Format);
+			// only giving NUMBITS_RENDER_TARGET_FORMAT bits to the key
+			checkf(NextKey < (1 << VulkanRHI::NUMBITS_RENDER_TARGET_FORMAT), TEXT("Too many unique pixel formats to fit into the PipelineStateHash"));
+		}
+
+		return (uint8)(NextKey & 0xff);
+	}
+};
+static FPixelFormatKeyMap GPixelFormatsKeyMap;
+
 static FCriticalSection GTextureMapLock;
+
 struct FTextureLock
 {
 	FRHIResource* Texture;
@@ -272,8 +300,6 @@ VkImage FVulkanSurface::CreateImage(
 }
 
 
-static TArray<VkFormat> GVulkanPixelFormatKeys;
-
 FVulkanSurface::FVulkanSurface(FVulkanDevice& InDevice, VkImageViewType ResourceType, EPixelFormat InFormat,
 								uint32 SizeX, uint32 SizeY, uint32 SizeZ, bool bArray, uint32 ArraySize, uint32 InNumMips,
 								uint32 InNumSamples, uint32 InUEFlags, const FRHIResourceCreateInfo& CreateInfo)
@@ -286,7 +312,7 @@ FVulkanSurface::FVulkanSurface(FVulkanDevice& InDevice, VkImageViewType Resource
 	, Depth(SizeZ)
 	, PixelFormat(InFormat)
 	, UEFlags(InUEFlags)
-	, FormatKey(0)
+	, FormatKey(255)
 	, MemProps(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 	, Tiling(VK_IMAGE_TILING_MAX_ENUM)	// Can be expanded to a per-platform definition
 	, ViewType(ResourceType)
@@ -337,22 +363,9 @@ FVulkanSurface::FVulkanSurface(FVulkanDevice& InDevice, VkImageViewType Resource
 	check(Tiling == VK_IMAGE_TILING_LINEAR || Tiling == VK_IMAGE_TILING_OPTIMAL);
 
 	// get a unique key for this surface's format, only needed for RTs
-	if (UEFlags & (TexCreate_RenderTargetable /*| TexCreate_DepthStencilTargetable*/ | TexCreate_ResolveTargetable))
+	if (UEFlags & (TexCreate_RenderTargetable | TexCreate_DepthStencilTargetable | TexCreate_ResolveTargetable))
 	{
-		static TMap<VkFormat, uint8> PixelFormatKeyMap;
-		static uint8 NextKey = 0;
-		uint8* Key = PixelFormatKeyMap.Find(ViewFormat);
-		if (Key == NULL)
-		{
-			Key = &PixelFormatKeyMap.Add(ViewFormat, NextKey++);
-			GVulkanPixelFormatKeys.Add(ViewFormat);
-
-			// only giving NUMBITS_RENDER_TARGET_FORMAT bits to the key
-			checkf(NextKey < 16, TEXT("Too many unique pixel formats to fit into the PipelineStateHash"));
-		}
-
-		// set the key
-		FormatKey = *Key;
+		FormatKey = GPixelFormatsKeyMap.GetFormatKey(StorageFormat);
 	}
 
 	if ((ImageCreateInfo.usage & VK_IMAGE_USAGE_SAMPLED_BIT) && (UEFlags & (TexCreate_RenderTargetable | TexCreate_DepthStencilTargetable)))
@@ -375,7 +388,7 @@ FVulkanSurface::FVulkanSurface(FVulkanDevice& InDevice, VkImageViewType Resource
 	, Depth(SizeZ)
 	, PixelFormat(InFormat)
 	, UEFlags(InUEFlags)
-	, FormatKey(0)
+	, FormatKey(255)
 	, MemProps(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 	, Tiling(VK_IMAGE_TILING_MAX_ENUM)	// Can be expanded to a per-platform definition
 	, ViewType(ResourceType)
@@ -398,6 +411,12 @@ FVulkanSurface::FVulkanSurface(FVulkanDevice& InDevice, VkImageViewType Resource
 		Tiling = VK_IMAGE_TILING_OPTIMAL;
 	}
 	
+	// get a unique key for this surface's format, only needed for RTs
+	if (UEFlags & (TexCreate_RenderTargetable | TexCreate_DepthStencilTargetable | TexCreate_ResolveTargetable))
+	{
+		FormatKey = GPixelFormatsKeyMap.GetFormatKey(ViewFormat);
+	}
+
 	if (Image != VK_NULL_HANDLE)
 	{
 		if (UEFlags & (TexCreate_RenderTargetable | TexCreate_DepthStencilTargetable))

@@ -457,6 +457,27 @@ void USkinnedMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& Proper
 		}
 	}
 }
+
+bool USkinnedMeshComponent::CanEditChange(const UProperty* InProperty) const
+{
+	if (InProperty)
+	{
+		FString PropertyName = InProperty->GetName();
+
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(USkinnedMeshComponent, bCastCapsuleIndirectShadow))
+		{
+			return CastShadow && bCastDynamicShadow;
+		}
+
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(USkinnedMeshComponent, CapsuleIndirectShadowMinVisibility))
+		{
+			return bCastCapsuleIndirectShadow && CastShadow && bCastDynamicShadow;
+		}
+	}
+
+	return Super::CanEditChange(InProperty);
+}
+
 #endif // WITH_EDITOR
 
 void USkinnedMeshComponent::InitLODInfos()

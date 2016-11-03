@@ -252,7 +252,7 @@ FDistanceFieldSceneData::FDistanceFieldSceneData(EShaderPlatform ShaderPlatform)
 {
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GenerateMeshDistanceFields"));
 
-	bTrackPrimitives = (DoesPlatformSupportDistanceFieldAO(ShaderPlatform) || DoesPlatformSupportDistanceFieldShadowing(ShaderPlatform)) && CVar->GetValueOnGameThread() != 0;
+	bTrackAllPrimitives = (DoesPlatformSupportDistanceFieldAO(ShaderPlatform) || DoesPlatformSupportDistanceFieldShadowing(ShaderPlatform)) && CVar->GetValueOnGameThread() != 0;
 }
 
 FDistanceFieldSceneData::~FDistanceFieldSceneData() 
@@ -264,13 +264,15 @@ void FDistanceFieldSceneData::AddPrimitive(FPrimitiveSceneInfo* InPrimitive)
 {
 	const FPrimitiveSceneProxy* Proxy = InPrimitive->Proxy;
 
-	if (bTrackPrimitives 
+	if ((bTrackAllPrimitives || Proxy->CastsDynamicIndirectShadow())
 		&& Proxy->CastsDynamicShadow()
 		&& Proxy->AffectsDistanceFieldLighting())
 	{
 		if (Proxy->SupportsHeightfieldRepresentation())
 		{
 			HeightfieldPrimitives.Add(InPrimitive);
+			FBoxSphereBounds PrimitiveBounds = Proxy->GetBounds();
+			PrimitiveModifiedBounds.Add(FVector4(PrimitiveBounds.Origin, PrimitiveBounds.SphereRadius));
 		}
 
 		if (Proxy->SupportsDistanceFieldRepresentation())
@@ -286,7 +288,7 @@ void FDistanceFieldSceneData::UpdatePrimitive(FPrimitiveSceneInfo* InPrimitive)
 {
 	const FPrimitiveSceneProxy* Proxy = InPrimitive->Proxy;
 
-	if (bTrackPrimitives 
+	if ((bTrackAllPrimitives || Proxy->CastsDynamicIndirectShadow()) 
 		&& Proxy->CastsDynamicShadow() 
 		&& Proxy->AffectsDistanceFieldLighting()
 		&& Proxy->SupportsDistanceFieldRepresentation() 
@@ -304,7 +306,8 @@ void FDistanceFieldSceneData::RemovePrimitive(FPrimitiveSceneInfo* InPrimitive)
 {
 	const FPrimitiveSceneProxy* Proxy = InPrimitive->Proxy;
 
-	if (bTrackPrimitives && Proxy->AffectsDistanceFieldLighting())
+	if ((bTrackAllPrimitives || Proxy->CastsDynamicIndirectShadow()) 
+		&& Proxy->AffectsDistanceFieldLighting())
 	{
 		if (Proxy->SupportsDistanceFieldRepresentation())
 		{
@@ -322,6 +325,9 @@ void FDistanceFieldSceneData::RemovePrimitive(FPrimitiveSceneInfo* InPrimitive)
 		if (Proxy->SupportsHeightfieldRepresentation())
 		{
 			HeightfieldPrimitives.Remove(InPrimitive);
+
+			FBoxSphereBounds PrimitiveBounds = Proxy->GetBounds();
+			PrimitiveModifiedBounds.Add(FVector4(PrimitiveBounds.Origin, PrimitiveBounds.SphereRadius));
 		}
 	}
 }
@@ -352,14 +358,16 @@ void FDistanceFieldSceneData::VerifyIntegrity()
 
 void FScene::UpdateSceneSettings(AWorldSettings* WorldSettings)
 {
-	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+	ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
 		UpdateSceneSettings,
 		FScene*, Scene, this,
 		float, DefaultMaxDistanceFieldOcclusionDistance, WorldSettings->DefaultMaxDistanceFieldOcclusionDistance,
 		float, GlobalDistanceFieldViewDistance, WorldSettings->GlobalDistanceFieldViewDistance,
+		float, DynamicIndirectShadowsSelfShadowingIntensity, FMath::Clamp(WorldSettings->DynamicIndirectShadowsSelfShadowingIntensity, 0.0f, 1.0f),
 	{
 		Scene->DefaultMaxDistanceFieldOcclusionDistance = DefaultMaxDistanceFieldOcclusionDistance;
 		Scene->GlobalDistanceFieldViewDistance = GlobalDistanceFieldViewDistance;
+		Scene->DynamicIndirectShadowsSelfShadowingIntensity = DynamicIndirectShadowsSelfShadowingIntensity;
 	});
 }
 
@@ -546,6 +554,7 @@ FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScen
 ,	SceneLODHierarchy(this)
 ,	DefaultMaxDistanceFieldOcclusionDistance(InWorld->GetWorldSettings()->DefaultMaxDistanceFieldOcclusionDistance)
 ,	GlobalDistanceFieldViewDistance(InWorld->GetWorldSettings()->GlobalDistanceFieldViewDistance)
+,	DynamicIndirectShadowsSelfShadowingIntensity(FMath::Clamp(InWorld->GetWorldSettings()->DynamicIndirectShadowsSelfShadowingIntensity, 0.0f, 1.0f))
 ,	NumVisibleLights_GameThread(0)
 ,	NumEnabledSkylights_GameThread(0)
 {

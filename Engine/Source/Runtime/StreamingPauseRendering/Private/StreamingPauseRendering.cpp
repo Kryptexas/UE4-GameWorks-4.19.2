@@ -113,7 +113,7 @@ void FStreamingPauseRenderingModule::BeginStreamingPause( FViewport* GameViewpor
 
 		SceneViewport = MakeShareable(new FSceneViewport(ViewportClient, ViewportWidget));
 
-		SceneViewport->UpdateViewportRHI(false,SizeXY.X,SizeXY.Y, EWindowMode::Fullscreen);
+		SceneViewport->UpdateViewportRHI(false,SizeXY.X,SizeXY.Y, EWindowMode::Fullscreen, PF_Unknown);
 
 		SceneViewport->EnqueueBeginRenderFrame();
 

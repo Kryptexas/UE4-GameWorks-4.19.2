@@ -65,7 +65,7 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 ,	bCastStaticShadow(InComponent->CastShadow && InComponent->bCastStaticShadow)
 ,	bCastVolumetricTranslucentShadow(InComponent->bCastDynamicShadow && InComponent->CastShadow && InComponent->bCastVolumetricTranslucentShadow)
 ,	bCastCapsuleDirectShadow(false)
-,	bCastCapsuleIndirectShadow(false)
+,	bCastsDynamicIndirectShadow(false)
 ,	bCastHiddenShadow(InComponent->bCastHiddenShadow)
 ,	bCastShadowAsTwoSided(InComponent->bCastShadowAsTwoSided)
 ,	bSelfShadowOnly(InComponent->bSelfShadowOnly)
@@ -93,7 +93,7 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 ,	LightingChannelMask(GetLightingChannelMaskForStruct(InComponent->LightingChannels))
 ,	LpvBiasMultiplier(InComponent->LpvBiasMultiplier)
 ,	IndirectLightingCacheQuality(InComponent->IndirectLightingCacheQuality)
-,	CapsuleIndirectShadowMinVisibility(0)
+,	DynamicIndirectShadowMinVisibility(0)
 ,	Scene(InComponent->GetScene())
 ,	PrimitiveComponentId(InComponent->ComponentId)
 ,	PrimitiveSceneInfo(NULL)
@@ -239,7 +239,7 @@ void FPrimitiveSceneProxy::UpdateUniformBuffer()
 			LocalBounds, 
 			bReceivesDecals, 
 			HasDistanceFieldRepresentation(), 
-			SupportsHeightfieldRepresentation(), 
+			HasDynamicIndirectShadowCasterRepresentation(), 
 			UseSingleSampleShadowFromStationaryLights(),
 			UseEditorDepthTest(), 
 			GetLightingChannelMask(),

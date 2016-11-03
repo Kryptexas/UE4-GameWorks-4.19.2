@@ -7,7 +7,6 @@
 #include "VulkanRHIPrivate.h"
 #include "VulkanDevice.h"
 #include "VulkanPendingState.h"
-#include "VulkanManager.h"
 #include "VulkanContext.h"
 
 FVulkanDevice::FVulkanDevice(VkPhysicalDevice InGpu)
@@ -16,9 +15,9 @@ FVulkanDevice::FVulkanDevice(VkPhysicalDevice InGpu)
 	, ResourceHeapManager(this)
 	, DeferredDeletionQueue(this)
 	, DefaultSampler(VK_NULL_HANDLE)
+	, TimestampQueryPool(nullptr)
 	, Queue(nullptr)
 	, ImmediateContext(nullptr)
-	, UBRingBuffer(nullptr)
 #if VULKAN_ENABLE_DRAW_MARKERS
 	, CmdDbgMarkerBegin(nullptr)
 	, CmdDbgMarkerEnd(nullptr)
@@ -31,7 +30,6 @@ FVulkanDevice::FVulkanDevice(VkPhysicalDevice InGpu)
 	FMemory::Memzero(GpuProps);
 	FMemory::Memzero(Features);
 	FMemory::Memzero(FormatProperties);
-	FMemory::Memzero(TimestampQueryPool);
 	FMemory::Memzero(PixelFormatComponentMapping);
 }
 
@@ -448,9 +446,6 @@ void FVulkanDevice::InitGPU(int32 DeviceIndex)
 
 	StagingManager.Init(this, Queue);
 
-	// allocate ring buffer memory
-	UBRingBuffer = new FVulkanRingBuffer(this, VULKAN_UB_RING_BUFFER_SIZE, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
-
 #if VULKAN_ENABLE_PIPELINE_CACHE
 	PipelineStateCache = new FVulkanPipelineStateCache(this);
 
@@ -466,12 +461,8 @@ void FVulkanDevice::InitGPU(int32 DeviceIndex)
 	bool bSupportsTimestamps = (GpuProps.limits.timestampComputeAndGraphics == VK_TRUE);
 	if (bSupportsTimestamps)
 	{
-		check(!TimestampQueryPool[0]);
-
-		for (int32 Index = 0; Index < NumTimestampPools; ++Index)
-		{
-			TimestampQueryPool[Index] = new FVulkanTimestampQueryPool(this);
-		}
+		check(!TimestampQueryPool);
+		TimestampQueryPool = new FVulkanTimestampPool(this, NUM_TIMESTAMP_QUERIES_PER_POOL);
 	}
 	else
 	{
@@ -497,14 +488,10 @@ void FVulkanDevice::Destroy()
 	delete ImmediateContext;
 	ImmediateContext = nullptr;
 
-	if (TimestampQueryPool[0])
+	if (TimestampQueryPool)
 	{
-		for (int32 Index = 0; Index < NumTimestampPools; ++Index)
-		{
-			TimestampQueryPool[Index]->Destroy();
-			delete TimestampQueryPool[Index];
-			TimestampQueryPool[Index] = nullptr;
-		}
+		TimestampQueryPool->Destroy();
+		delete TimestampQueryPool;
 	}
 
 	for (FVulkanQueryPool* QueryPool : OcclusionQueryPools)
@@ -513,8 +500,6 @@ void FVulkanDevice::Destroy()
 		delete QueryPool;
 	}
 	OcclusionQueryPools.SetNum(0, false);
-
-	delete UBRingBuffer;
 
 #if VULKAN_ENABLE_PIPELINE_CACHE
 	delete PipelineStateCache;

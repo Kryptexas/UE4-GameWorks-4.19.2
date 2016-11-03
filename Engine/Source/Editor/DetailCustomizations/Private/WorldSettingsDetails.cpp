@@ -17,6 +17,8 @@ void FWorldSettingsDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilde
 	CustomizeGameInfoProperty("DefaultGameMode", DetailBuilder, Category);
 
 	AddLightmapCustomization(DetailBuilder);
+
+	DetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(AActor, bHidden), AActor::StaticClass());
 }
 
 

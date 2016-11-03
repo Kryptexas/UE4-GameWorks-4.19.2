@@ -18,7 +18,8 @@
 #include "DistanceFieldAtlas.h"
 #include "LightRendering.h"
 
-int32 GAOHeightfieldOcclusion = 1;
+// Currently disabled because the bHasHeightfieldRepresentation GBuffer bit has been reallocated, and self-shadowing artifacts are too severe without that bit
+int32 GAOHeightfieldOcclusion = 0;
 FAutoConsoleVariableRef CVarAOHeightfieldOcclusion(
 	TEXT("r.AOHeightfieldOcclusion"),
 	GAOHeightfieldOcclusion,

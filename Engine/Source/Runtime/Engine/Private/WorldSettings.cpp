@@ -70,6 +70,7 @@ AWorldSettings::AWorldSettings(const FObjectInitializer& ObjectInitializer)
 	DefaultColorScale = FVector(1.0f, 1.0f, 1.0f);
 	DefaultMaxDistanceFieldOcclusionDistance = 600;
 	GlobalDistanceFieldViewDistance = 20000;
+	DynamicIndirectShadowsSelfShadowingIntensity = .8f;
 	bPlaceCellsOnlyAlongCameraTracks = false;
 	VisibilityCellSize = 200;
 	VisibilityAggressiveness = VIS_LeastAggressive;

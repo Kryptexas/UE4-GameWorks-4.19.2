@@ -69,6 +69,14 @@ FAutoConsoleVariableRef CVarReflectionEnvironmentEndMixingRoughness(
 	ECVF_Scalability | ECVF_RenderThreadSafe
 	);
 
+int32 GReflectionEnvironmentLightmapMixLargestWeight = 10000;
+FAutoConsoleVariableRef CVarReflectionEnvironmentLightmapMixLargestWeight(
+	TEXT("r.ReflectionEnvironmentLightmapMixLargestWeight"),
+	GReflectionEnvironmentLightmapMixLargestWeight,
+	TEXT("When set to 1 can be used to clamp lightmap mixing such that only darkening from lightmaps are applied to reflection captures."),
+	ECVF_Scalability | ECVF_RenderThreadSafe
+	);
+
 static TAutoConsoleVariable<int32> CVarDoTiledReflections(
 	TEXT("r.DoTiledReflections"),
 	1,
@@ -99,27 +107,27 @@ static int GetReflectionEnvironmentCVar()
 	return RetVal;
 }
 
-FVector2D GetReflectionEnvironmentRoughnessMixingScaleBias()
+FVector GetReflectionEnvironmentRoughnessMixingScaleBiasAndLargestWeight()
 {
 	float RoughnessMixingRange = 1.0f / FMath::Max(GReflectionEnvironmentEndMixingRoughness - GReflectionEnvironmentBeginMixingRoughness, .001f);
 
 	if (GReflectionEnvironmentLightmapMixing == 0)
 	{
-		return FVector2D(0, 0);
+		return FVector(0, 0, GReflectionEnvironmentLightmapMixLargestWeight);
 	}
 
 	if (GReflectionEnvironmentEndMixingRoughness == 0.0f && GReflectionEnvironmentBeginMixingRoughness == 0.0f)
 	{
 		// Make sure a Roughness of 0 results in full mixing when disabling roughness-based mixing
-		return FVector2D(0, 1);
+		return FVector(0, 1, GReflectionEnvironmentLightmapMixLargestWeight);
 	}
 
 	if (!GReflectionEnvironmentLightmapMixBasedOnRoughness)
 	{
-		return FVector2D(0, 1);
+		return FVector(0, 1, GReflectionEnvironmentLightmapMixLargestWeight);
 	}
 
-	return FVector2D(RoughnessMixingRange, -GReflectionEnvironmentBeginMixingRoughness * RoughnessMixingRange);
+	return FVector(RoughnessMixingRange, -GReflectionEnvironmentBeginMixingRoughness * RoughnessMixingRange, GReflectionEnvironmentLightmapMixLargestWeight);
 }
 
 bool IsReflectionEnvironmentAvailable(ERHIFeatureLevel::Type InFeatureLevel)

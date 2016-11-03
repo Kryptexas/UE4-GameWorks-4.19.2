@@ -365,7 +365,7 @@ void FTrackEditorThumbnailCache::DrawViewportThumbnail(FTrackEditorThumbnail& Tr
 		FIntPoint Size = CalculateTextureSize();
 		if (InternalViewportScene->GetSize() != Size)
 		{
-			InternalViewportScene->UpdateViewportRHI(false, Size.X, Size.Y, EWindowMode::Windowed);
+			InternalViewportScene->UpdateViewportRHI(false, Size.X, Size.Y, EWindowMode::Windowed, PF_Unknown);
 		}
 
 		InternalViewportClient->DeltaWorldTime = TrackEditorThumbnail.GetEvalPosition() - InternalViewportClient->CurrentWorldTime;

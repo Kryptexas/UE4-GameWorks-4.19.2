@@ -5,7 +5,6 @@
 =============================================================================*/
 
 #include "VulkanRHIPrivate.h"
-#include "VulkanManager.h"
 #include "VulkanSwapchain.h"
 #include "VulkanPendingState.h"
 #include "VulkanContext.h"
@@ -367,6 +366,7 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 	//#todo-rco: Might need to NOT be undefined...
 	VulkanSetImageLayoutSimple(CmdBuffer->GetHandle(), BackBufferImages[AcquiredImageIndex], VK_IMAGE_LAYOUT_UNDEFINED/*VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL*/, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
+#if 0
 	{
 		FVulkanTimestampQueryPool* TimestampPool = Device->GetTimestampQueryPool(PresentCount % FVulkanDevice::NumTimestampPools);
 		if (TimestampPool)
@@ -383,7 +383,7 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 			}
 		}
 	}
-
+#endif
 	CmdBuffer->End();
 	Queue->Submit(CmdBuffer, nullptr, 0, RenderingDoneSemaphores[AcquiredImageIndex]);
 
@@ -432,8 +432,10 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 		GInputLatencyTimer.RenderThreadTrigger = false;
 	}
 
+#if 0
 	//#todo-rco: This needs to go on RHIEndFrame but the CmdBuffer index is not the correct one to read the stats out!
 	VulkanRHI::GManager.GPUProfilingData.EndFrame();
+#endif
 
 	FVulkanCommandBufferManager* ImmediateCmdBufMgr = Device->GetImmediateContext().GetCommandBufferManager();
 	ImmediateCmdBufMgr->PrepareForNewActiveCommandBuffer();
@@ -460,6 +462,7 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 	}
 #endif
 	++PresentCount;
+#if 0
 	{
 		FVulkanTimestampQueryPool* TimestampPool = Device->GetTimestampQueryPool(PresentCount % FVulkanDevice::NumTimestampPools);
 		if (TimestampPool)
@@ -468,7 +471,7 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 			TimestampPool->WriteStartFrame(ActiveCmdBuffer->GetHandle());
 		}
 	}
-
+#endif
 	return bResult;
 }
 

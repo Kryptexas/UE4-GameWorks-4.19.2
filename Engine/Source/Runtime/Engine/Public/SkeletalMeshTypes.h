@@ -1808,7 +1808,7 @@ public:
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override;
 	virtual bool CanBeOccluded() const override;
 	
-	virtual bool HasDistanceFieldRepresentation() const override;
+	virtual bool HasDynamicIndirectShadowCasterRepresentation() const override;
 	virtual void GetShadowShapes(TArray<FCapsuleShape>& CapsuleShapes) const override;
 
 	/** Returns a pre-sorted list of shadow capsules's bone indicies */

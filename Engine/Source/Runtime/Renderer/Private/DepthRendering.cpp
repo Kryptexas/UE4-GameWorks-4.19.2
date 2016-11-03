@@ -303,6 +303,66 @@ FDepthDrawingPolicy::FDepthDrawingPolicy(
 	}
 }
 
+FMeshDrawingRenderState GetDitheredLODTransitionStateInternal(const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither)
+{
+	FMeshDrawingRenderState DrawRenderState;
+
+	if (InAllowStencilDither)
+	{
+		DrawRenderState.DepthStencilState = TStaticDepthStencilState<>::GetRHI();
+		DrawRenderState.StencilRef = 0;
+	}
+
+	if (Mesh.bDitheredLODTransition)
+	{
+		if (ViewInfo.StaticMeshFadeOutDitheredLODMap[Mesh.Id])
+		{
+			if (InAllowStencilDither)
+			{
+				DrawRenderState.DepthStencilState = TStaticDepthStencilState<true, CF_DepthNearOrEqual,
+					true, CF_Equal, SO_Keep, SO_Keep, SO_Keep,
+					false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
+					STENCIL_SANDBOX_MASK, STENCIL_SANDBOX_MASK
+				>::GetRHI();
+				DrawRenderState.StencilRef = STENCIL_SANDBOX_MASK;
+			}
+			else
+			{
+				DrawRenderState.DitheredLODTransitionAlpha = ViewInfo.GetTemporalLODTransition();
+			}
+		}
+		else if (ViewInfo.StaticMeshFadeInDitheredLODMap[Mesh.Id])
+		{
+			if (InAllowStencilDither)
+			{
+				DrawRenderState.DepthStencilState = TStaticDepthStencilState<true, CF_DepthNearOrEqual,
+					true, CF_Equal, SO_Keep, SO_Keep, SO_Keep,
+					false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
+					STENCIL_SANDBOX_MASK, STENCIL_SANDBOX_MASK
+				>::GetRHI();
+				DrawRenderState.StencilRef = 0;
+			}
+			else
+			{
+				DrawRenderState.DitheredLODTransitionAlpha = ViewInfo.GetTemporalLODTransition() - 1.0f;
+			}
+		}
+	}
+
+	return DrawRenderState;
+}
+
+FMeshDrawingRenderState FDepthDrawingPolicy::GetDitheredLODTransitionState(const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither)
+{
+	return GetDitheredLODTransitionStateInternal(ViewInfo, Mesh, InAllowStencilDither);
+}
+
+FMeshDrawingRenderState FPositionOnlyDepthDrawingPolicy::GetDitheredLODTransitionState(const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither)
+{
+	return GetDitheredLODTransitionStateInternal(ViewInfo, Mesh, InAllowStencilDither);
+}
+
+
 void FDepthDrawingPolicy::SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) const
 {
 	VertexShader->SetInstancedEyeIndex(RHICmdList, EyeIndex);
@@ -333,25 +393,11 @@ void FDepthDrawingPolicy::SetSharedState(FRHICommandList& RHICmdList, const FSce
 */
 FORCEINLINE bool SetDitheredLODDepthStencilState(FRHICommandList& RHICmdList, const FMeshDrawingRenderState& DrawRenderState)
 {
-	if (DrawRenderState.bAllowStencilDither)
+	if (DrawRenderState.DepthStencilState)
 	{
-		if (DrawRenderState.DitheredLODState == EDitheredLODState::None)
-		{
-			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<>::GetRHI());
-		}
-		else
-		{
-			const uint32 StencilRef = (DrawRenderState.DitheredLODState == EDitheredLODState::FadeOut) ? STENCIL_SANDBOX_MASK : 0;
-
-			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_DepthNearOrEqual,
-				true, CF_Equal, SO_Keep, SO_Keep, SO_Keep,
-				false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
-				STENCIL_SANDBOX_MASK, STENCIL_SANDBOX_MASK>::GetRHI(), StencilRef);
-		}
-
+		RHICmdList.SetDepthStencilState(DrawRenderState.DepthStencilState, DrawRenderState.StencilRef);
 		return true;
 	}
-
 	return false;
 }
 

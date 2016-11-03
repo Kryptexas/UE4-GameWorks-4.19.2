@@ -2409,6 +2409,7 @@ class FGenerateVulkanVisitor : public ir_visitor
 						ir_variable* var = block->vars[var_index];
 
 						//EHart - name-mangle variables to prevent colliding names
+						//#todo-rco: Check if this is still is needed when creating PSOs
 						ralloc_asprintf_append(buffer, "#define %s %s%s\n", var->name, var->name, block_name);
 
 						ralloc_asprintf_append(buffer, "\t%s", (state->language_version == 310 && bEmitPrecision) ? "highp " : "");
@@ -3398,7 +3399,7 @@ void FGenerateVulkanVisitor::AddTypeToUsedStructs(const glsl_type* type)
 char* FVulkanCodeBackend::GenerateCode(exec_list* ir, _mesa_glsl_parse_state* state, EHlslShaderFrequency Frequency)
 {
 	FixRedundantCasts(ir);
-	//IRDump(ir);
+	//IRDump(ir, state);
 
 	FixIntrinsics(state, ir);
 

@@ -302,7 +302,7 @@ void FRCPassPostProcessUpscale::Process(FRenderingCompositePassContext& Context)
 	Context.SetViewportAndCallRHI(DestRect);
 	if (View.StereoPass == eSSP_FULL || View.StereoPass == eSSP_LEFT_EYE)
 	{
-		Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black, ExcludeRect);
+		DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, PassOutputs[0].RenderTargetDesc.Extent, ExcludeRect);
 	}
 
 	// set the state

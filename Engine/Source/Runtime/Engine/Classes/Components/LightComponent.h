@@ -61,6 +61,13 @@ class ENGINE_API ULightComponent : public ULightComponentBase
 	float MinRoughness;
 
 	/** 
+	 * Scales the resolution of shadowmaps used to shadow this light.  By default shadowmap resolution is chosen based on screen size of the caster. 
+	 * Note: shadowmap resolution is still clamped by 'r.Shadow.MaxResolution'
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, AdvancedDisplay, meta=(UIMin = ".125", UIMax = "8"))
+	float ShadowResolutionScale;
+
+	/** 
 	 * Controls how accurate self shadowing of whole scene shadows from this light are.  
 	 * At 0, shadows will start at the their caster surface, but there will be many self shadowing artifacts.
 	 * larger values, shadows will start further from their caster, and there won't be self shadowing artifacts but object might appear to fly.

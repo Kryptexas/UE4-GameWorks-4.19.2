@@ -660,7 +660,8 @@ bool TDistortionMeshDrawingPolicyFactory<DistortMeshPolicy>::DrawDynamicMesh(
 			);
 		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
 		DrawingPolicy.SetSharedState(RHICmdList, &View, typename TDistortionMeshDrawingPolicy<DistortMeshPolicy>::ContextDataType());
-		const FMeshDrawingRenderState DrawRenderState(Mesh.DitheredLODTransitionAlpha);
+		FMeshDrawingRenderState DrawRenderState;
+		DrawRenderState.DitheredLODTransitionAlpha = Mesh.DitheredLODTransitionAlpha;
 		for (int32 BatchElementIndex = 0; BatchElementIndex < Mesh.Elements.Num(); BatchElementIndex++)
 		{
 			TDrawEvent<FRHICommandList> MeshEvent;
@@ -710,7 +711,7 @@ bool TDistortionMeshDrawingPolicyFactory<DistortMeshPolicy>::DrawStaticMesh(
 			);
 		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View->GetFeatureLevel()));
 		DrawingPolicy.SetSharedState(RHICmdList, View, typename TDistortionMeshDrawingPolicy<DistortMeshPolicy>::ContextDataType());
-		const FMeshDrawingRenderState DrawRenderState(View->GetDitheredLODTransitionState(StaticMesh));
+		const FMeshDrawingRenderState DrawRenderState(FMeshDrawingPolicy::GetDitheredLODTransitionState(*View, StaticMesh));
 		int32 BatchElementIndex = 0;
 		do
 		{

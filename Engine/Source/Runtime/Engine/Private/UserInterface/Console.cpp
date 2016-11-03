@@ -1130,7 +1130,10 @@ void UConsole::PostRender_Console_Open(UCanvas* Canvas)
 	FLinearColor BackgroundColor = ConsoleDefs::AutocompleteBackgroundColor.ReinterpretAsLinear();
 	BackgroundColor.A = ConsoleSettings->BackgroundOpacityPercentage / 100.0f;
 	FCanvasTileItem ConsoleTile( FVector2D( LeftPos, 0.0f ), DefaultTexture_Black->Resource, FVector2D( ClipX, Height + TopPos - yl), FVector2D( 0.0f, 0.0f), FVector2D( 1.0f, 1.0f ), BackgroundColor );
-	ConsoleTile.BlendMode = SE_BLEND_Translucent;
+
+	// Preserve alpha to allow single-pass composite
+	ConsoleTile.BlendMode = SE_BLEND_AlphaBlend;
+
 	Canvas->DrawItem( ConsoleTile );
 
 	// figure out which element of the scrollback buffer to should appear first (at the top of the screen)
@@ -1271,7 +1274,10 @@ void UConsole::PostRender_InputLine(UCanvas* Canvas, FIntPoint UserInputLinePos)
 	FLinearColor BackgroundColor = ConsoleDefs::AutocompleteBackgroundColor.ReinterpretAsLinear();
 	BackgroundColor.A = ConsoleSettings->BackgroundOpacityPercentage / 100.0f;
 	FCanvasTileItem ConsoleTile( FVector2D( UserInputLinePos.X,UserInputLinePos.Y-6-yl ), DefaultTexture_Black->Resource, FVector2D( ClipX, yl+6 ), FVector2D( 0.0f, 0.0f), FVector2D( 1.0f, 1.0f ), BackgroundColor );
-	ConsoleTile.BlendMode = SE_BLEND_Translucent;
+	
+	// Preserve alpha to allow single-pass composite
+	ConsoleTile.BlendMode = SE_BLEND_AlphaBlend;
+
 	Canvas->DrawItem( ConsoleTile );
 
 	// Separator line
@@ -1355,7 +1361,10 @@ void UConsole::PostRender_InputLine(UCanvas* Canvas, FIntPoint UserInputLinePos)
 		// dark inner part
 		ConsoleTile.Size = FVector2D( MaxWidth + 2 * Border, Height + 2 * Border );
 		ConsoleTile.SetColor( AutoCompleteBackgroundColor );
-		ConsoleTile.BlendMode = SE_BLEND_Translucent;
+
+		// Preserve alpha to allow single-pass composite
+		ConsoleTile.BlendMode = SE_BLEND_AlphaBlend;
+
 		Canvas->DrawItem( ConsoleTile, UserInputLinePos.X + xl - Border, y + yl - Height - Border );
 
 		// white border

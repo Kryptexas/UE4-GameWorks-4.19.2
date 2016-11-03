@@ -198,6 +198,11 @@ public:
 		return Ar;
 	}
 
+	bool AnyBound() const
+	{
+		return ObjectBounds.IsBound() || ObjectData.IsBound() || NumSceneObjects.IsBound() || DistanceFieldTexture.IsBound() || DistanceFieldSampler.IsBound() || DistanceFieldAtlasTexelSize.IsBound();
+	}
+
 private:
 	FRWShaderParameter ObjectBounds;
 	FRWShaderParameter ObjectData;

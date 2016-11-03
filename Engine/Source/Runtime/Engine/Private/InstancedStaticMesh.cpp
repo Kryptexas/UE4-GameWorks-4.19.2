@@ -62,7 +62,7 @@ void FStaticMeshInstanceBuffer::SetupCPUAccess(UInstancedStaticMeshComponent* In
 
 	const bool bNeedsCPUAccess = InComponent->CastShadow && InComponent->bAffectDistanceFieldLighting 
 		// Distance field algorithms need access to instance data on the CPU
-		&& CVar->GetValueOnGameThread() != 0;
+		&& (CVar->GetValueOnGameThread() != 0 || (InComponent->GetStaticMesh() && InComponent->GetStaticMesh()->bGenerateMeshDistanceField));
 
 	InstanceData->SetAllowCPUAccess(InstanceData->GetAllowCPUAccess() || bNeedsCPUAccess);
 }

@@ -170,6 +170,7 @@ UStaticMeshComponent::UStaticMeshComponent(const FObjectInitializer& ObjectIniti
 	bOverrideNavigationExport = false;
 	bForceNavigationObstacle = true;
 	bDisallowMeshPaintPerInstance = false;
+	DistanceFieldIndirectShadowMinVisibility = .1f;
 
 	GetBodyInstance()->bAutoWeld = true;	//static mesh by default has auto welding
 
@@ -1481,6 +1482,27 @@ void UStaticMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& Propert
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
+
+bool UStaticMeshComponent::CanEditChange(const UProperty* InProperty) const
+{
+	if (InProperty)
+	{
+		FString PropertyName = InProperty->GetName();
+
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UStaticMeshComponent, bCastDistanceFieldIndirectShadow))
+		{
+			return Mobility != EComponentMobility::Static && CastShadow && bCastDynamicShadow;
+		}
+
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UStaticMeshComponent, DistanceFieldIndirectShadowMinVisibility))
+		{
+			return Mobility != EComponentMobility::Static && bCastDistanceFieldIndirectShadow && CastShadow && bCastDynamicShadow;
+		}
+	}
+
+	return Super::CanEditChange(InProperty);
+}
+
 #endif // WITH_EDITOR
 
 bool UStaticMeshComponent::SupportsDefaultCollision()

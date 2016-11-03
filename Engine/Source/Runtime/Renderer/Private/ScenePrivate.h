@@ -429,6 +429,13 @@ private:
 	FGraphEventRef QuerySubmittedFences[NumBufferedFrames];
 };
 
+class FDeferredGlobalDistanceFieldUpdateInfo
+{
+public:
+	int32 ClipmapIndex;
+	int32 FramesLeft;
+};
+
 /**
  * The scene manager's private implementation of persistent view state.
  * This class is associated with a particular camera across multiple frames by the game thread.
@@ -520,6 +527,8 @@ public:
 	FIndirectLightingCacheAllocation* TranslucencyLightingCacheAllocations[TVC_MAX];
 
 	TMap<int32, FIndividualOcclusionHistory> PlanarReflectionOcclusionHistories;
+
+	TArray<FDeferredGlobalDistanceFieldUpdateInfo> DeferredGlobalDistanceFieldUpdates;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	/** Are we currently in the state of freezing rendering? (1 frame where we gather what was rendered) */
@@ -661,6 +670,8 @@ public:
 
 	FVertexBufferRHIRef IndirectShadowCapsuleShapesVertexBuffer;
 	FShaderResourceViewRHIRef IndirectShadowCapsuleShapesSRV;
+	FVertexBufferRHIRef IndirectShadowMeshDistanceFieldCasterIndicesVertexBuffer;
+	FShaderResourceViewRHIRef IndirectShadowMeshDistanceFieldCasterIndicesSRV;
 	FVertexBufferRHIRef IndirectShadowLightDirectionVertexBuffer;
 	FShaderResourceViewRHIRef IndirectShadowLightDirectionSRV;
 	FRWBuffer CapsuleTileIntersectionCountsBuffer;
@@ -900,6 +911,8 @@ public:
 
 		IndirectShadowCapsuleShapesVertexBuffer.SafeRelease();
 		IndirectShadowCapsuleShapesSRV.SafeRelease();
+		IndirectShadowMeshDistanceFieldCasterIndicesVertexBuffer.SafeRelease();
+		IndirectShadowMeshDistanceFieldCasterIndicesSRV.SafeRelease();
 		IndirectShadowLightDirectionVertexBuffer.SafeRelease();
 		IndirectShadowLightDirectionSRV.SafeRelease();
 		CapsuleTileIntersectionCountsBuffer.Release();
@@ -1312,7 +1325,7 @@ public:
 	/** Used to detect atlas reallocations, since objects store UVs into the atlas and need to be updated when it changes. */
 	int32 AtlasGeneration;
 
-	bool bTrackPrimitives;
+	bool bTrackAllPrimitives;
 };
 
 /** Stores data for an allocation in the FIndirectLightingCache. */
@@ -1850,7 +1863,7 @@ public:
 	TSparseArray<FDeferredDecalProxy*> Decals;
 
 	/** Potential capsule shadow casters registered to the scene. */
-	TArray<FPrimitiveSceneInfo*> CapsuleIndirectCasterPrimitives; 
+	TArray<FPrimitiveSceneInfo*> DynamicIndirectCasterPrimitives; 
 
 	TArray<class FPlanarReflectionSceneProxy*> PlanarReflections;
 	TArray<class UPlanarReflectionComponent*> PlanarReflections_GameThread;
@@ -1932,6 +1945,8 @@ public:
 	float DefaultMaxDistanceFieldOcclusionDistance;
 
 	float GlobalDistanceFieldViewDistance;
+
+	float DynamicIndirectShadowsSelfShadowingIntensity;
 
 	FReadOnlyCVARCache ReadOnlyCVARCache;
 

@@ -212,7 +212,11 @@ public:
 	/////////
 	// SIM SETTINGS
 
-	/** If true, this body will use simulation. If false, will be 'fixed' (ie kinematic) and move where it is told. */
+	/** 
+	 * If true, this body will use simulation. If false, will be 'fixed' (ie kinematic) and move where it is told. 
+	 * For a Skeletal Mesh Component, simulating requires a physics asset setup and assigned on the SkeletalMesh asset.
+	 * For a Static Mesh Component, simulating requires simple collision to be setup on the StaticMesh asset.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Physics)
 	uint32 bSimulatePhysics : 1;
 

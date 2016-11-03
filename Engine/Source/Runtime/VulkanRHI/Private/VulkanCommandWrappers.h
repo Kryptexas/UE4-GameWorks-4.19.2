@@ -1203,17 +1203,15 @@ namespace VulkanRHI
 
 		VULKANAPINAMESPACE::vkCmdWriteTimestamp(CommandBuffer, PipelineStage, QueryPool, Query);
 	}
-#if 0
-	static FORCEINLINE_DEBUGGABLE void  vkCmdCopyQueryPoolResults(
-		VkCommandBuffer                             commandBuffer,
-		VkQueryPool                                 queryPool,
-		uint32                                    firstQuery,
-		uint32                                    queryCount,
-		VkBuffer                                    dstBuffer,
-		VkDeviceSize                                dstOffset,
-		VkDeviceSize                                stride,
-		VkQueryResultFlags                          flags);
 
+	static FORCEINLINE_DEBUGGABLE void  vkCmdCopyQueryPoolResults(VkCommandBuffer CommandBuffer, VkQueryPool QueryPool, uint32 FirstQuery, uint32 QueryCount,
+		VkBuffer DstBuffer, VkDeviceSize DstOffset, VkDeviceSize Stride, VkQueryResultFlags Flags)
+	{
+		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdCopyQueryPoolResults(QueryPool=%p, FirstQuery=%d, QueryCount=%d, DstBuffer=%p, DstOffset=%d, Stride=%d, Flags=0x%x)"), 
+			(void*)QueryPool, FirstQuery, QueryCount, (void*)DstBuffer, (uint32)DstOffset, (uint32)Stride, (uint32)Flags));
+		VULKANAPINAMESPACE::vkCmdCopyQueryPoolResults(CommandBuffer, QueryPool, FirstQuery, QueryCount, DstBuffer, DstOffset, Stride, Flags);
+	}
+#if 0
 	static FORCEINLINE_DEBUGGABLE void  vkCmdPushConstants(
 		VkCommandBuffer                             commandBuffer,
 		VkPipelineLayout                            layout,

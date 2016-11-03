@@ -372,7 +372,8 @@ bool FHitProxyDrawingPolicyFactory::DrawDynamicMesh(
 			    FHitProxyDrawingPolicy DrawingPolicy( Mesh.VertexFactory, MaterialRenderProxy, View.GetFeatureLevel() );
 			    RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
 			    DrawingPolicy.SetSharedState(RHICmdList, &View, FHitProxyDrawingPolicy::ContextDataType());
-			    const FMeshDrawingRenderState DrawRenderState(Mesh.DitheredLODTransitionAlpha);
+				FMeshDrawingRenderState DrawRenderState;
+				DrawRenderState.DitheredLODTransitionAlpha = Mesh.DitheredLODTransitionAlpha;
 			    for (int32 BatchElementIndex = 0; BatchElementIndex < Mesh.Elements.Num(); BatchElementIndex++)
 			    {
 				    DrawingPolicy.SetMeshRenderState(RHICmdList, View, PrimitiveSceneProxy, Mesh, BatchElementIndex, bBackFace, DrawRenderState, HitProxyId, FHitProxyDrawingPolicy::ContextDataType());

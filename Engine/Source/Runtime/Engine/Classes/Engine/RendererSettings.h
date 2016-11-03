@@ -178,14 +178,14 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ToolTip = "Whether to reduce lightmap mixing with reflection captures for very smooth surfaces.  This is useful to make sure reflection captures match SSR / planar reflections in brightness."))
 	uint32 ReflectionEnvironmentLightmapMixBasedOnRoughness : 1;
 
-	UPROPERTY(config, EditAnywhere, Category=ForwardShading, meta=(
+	UPROPERTY(config, EditAnywhere, Category=ForwardRenderer, meta=(
 		ConsoleVariable="r.ForwardShading",
 		DisplayName = "Forward Shading",
 		ToolTip="Whether to use forward shading on desktop platforms, requires Shader Model 5 hardware.  Forward shading supports MSAA and has lower default cost, but fewer features supported overall.  Materials have to opt-in to more expensive features like high quality reflections.  Changing this setting requires restarting the editor.",
 		ConfigRestartRequired=true))
 	uint32 bForwardShading:1;
 
-	UPROPERTY(config, EditAnywhere, Category=ForwardShading, meta=(
+	UPROPERTY(config, EditAnywhere, Category=ForwardRenderer, meta=(
 		ConsoleVariable="r.VertexFoggingForOpaque",
 		ToolTip="Causes opaque materials to use per-vertex fogging, which costs less and integrates properly with MSAA.  Only supported with forward shading. Changing this setting requires restarting the editor.",
 		ConfigRestartRequired=true))

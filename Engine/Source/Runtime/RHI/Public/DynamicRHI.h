@@ -1082,6 +1082,12 @@ public:
 	// FlushType: Thread safe
 	virtual void RHIResizeViewport(FViewportRHIParamRef Viewport, uint32 SizeX, uint32 SizeY, bool bIsFullscreen) = 0;
 
+	virtual void RHIResizeViewport(FViewportRHIParamRef Viewport, uint32 SizeX, uint32 SizeY, bool bIsFullscreen, EPixelFormat PreferredPixelFormat)
+	{
+		// Default implementation for RHIs that cannot change formats on the fly
+		RHIResizeViewport(Viewport, SizeX, SizeY, bIsFullscreen);
+	}
+
 	//  must be called from the main thread.
 	// FlushType: Thread safe
 	virtual void RHITick(float DeltaTime) = 0;
@@ -1328,9 +1334,9 @@ FORCEINLINE FViewportRHIRef RHICreateViewport(void* WindowHandle, uint32 SizeX, 
 	return GDynamicRHI->RHICreateViewport(WindowHandle, SizeX, SizeY, bIsFullscreen, PreferredPixelFormat);
 }
 
-FORCEINLINE void RHIResizeViewport(FViewportRHIParamRef Viewport, uint32 SizeX, uint32 SizeY, bool bIsFullscreen)
+FORCEINLINE void RHIResizeViewport(FViewportRHIParamRef Viewport, uint32 SizeX, uint32 SizeY, bool bIsFullscreen, EPixelFormat PreferredPixelFormat)
 {
-	GDynamicRHI->RHIResizeViewport(Viewport, SizeX, SizeY, bIsFullscreen);
+	GDynamicRHI->RHIResizeViewport(Viewport, SizeX, SizeY, bIsFullscreen, PreferredPixelFormat);
 }
 
 FORCEINLINE void RHITick(float DeltaTime)

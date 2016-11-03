@@ -230,6 +230,20 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lighting, meta=(ClampMax = 4096, editcondition="bOverrideLightMapRes") )
 	int32 OverriddenLightMapRes;
 
+	/** 
+	 * Whether to use the mesh distance field representation (when present) for shadowing indirect lighting (from lightmaps or skylight) on Movable components.
+	 * This works like capsule shadows on skeletal meshes, except using the mesh distance field so no physics asset is required.
+	 * The StaticMesh must have 'Generate Mesh Distance Field' enabled, or the project must have 'Generate Mesh Distance Fields' enabled for this feature to work.
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting, meta=(DisplayName = "Distance Field Indirect Shadow"))
+	uint32 bCastDistanceFieldIndirectShadow:1;
+
+	/** 
+	 * Controls how dark the dynamic indirect shadow can be.
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting, meta=(UIMin = "0", UIMax = "1", DisplayName = "Distance Field Indirect Shadow Min Visibility"))
+	float DistanceFieldIndirectShadowMinVisibility;
+
 	/**
 	 * Allows adjusting the desired streaming distance of streaming textures that uses UV 0.
 	 * 1.0 is the default, whereas a higher value makes the textures stream in sooner from far away.
@@ -313,6 +327,7 @@ public:
 	virtual void PostEditUndo() override;
 	virtual void PreEditUndo() override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual bool CanEditChange(const UProperty* InProperty) const override;
 #endif // WITH_EDITOR
 	virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
 	virtual void PostLoad() override;

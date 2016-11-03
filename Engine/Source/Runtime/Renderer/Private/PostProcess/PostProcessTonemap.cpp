@@ -24,31 +24,43 @@ static TAutoConsoleVariable<float> CVarTonemapperSharpen(
 	TEXT("   1: full strength"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
-static TAutoConsoleVariable<int32> CVarTonemapperGamut(
-	TEXT("r.TonemapperOutputGamut"),
+static TAutoConsoleVariable<int32> CVarDisplayColorGamut(
+	TEXT("r.HDR.Display.ColorGamut"),
 	0,
-	TEXT("0: use Rec.709/sRGB, D65\n")
-	TEXT("1: use P3, D65\n")
-	TEXT("2: use Rec.2020, D65\n")
-	TEXT("3: use ACES, D60\n")
-	TEXT("4: use ACEScg, D60"),
+	TEXT("Color gamut of the output display:\n")
+	TEXT("0: Rec709 / sRGB, D65 (default)\n")
+	TEXT("1: DCI-P3, D65\n")
+	TEXT("2: Rec2020 / BT2020, D65\n")
+	TEXT("3: ACES, D60\n")
+	TEXT("4: ACEScg, D60\n"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
-static TAutoConsoleVariable<int32> CVarTonemapper2084(
-	TEXT("r.Tonemapper2084"),
+static TAutoConsoleVariable<int32> CVarDisplayOutputDevice(
+	TEXT("r.HDR.Display.OutputDevice"),
 	0,
-	TEXT("0: use sRGB on PC monitor output\n")
-	TEXT("1: use ACES 1000 nit ST-2084 (Dolby PQ) for HDR monitor/projectors\n")
-	TEXT("2: use ACES 2000 nit ST-2084 (Dolby PQ) for HDR monitor/projectors\n")
-	TEXT("3: use Unreal Filmic Tonemapping with for ST-2084 (Dolby PQ) for HDR displays"),
+	TEXT("Device format of the output display:\n")
+	TEXT("0: sRGB\n")
+	TEXT("1: Rec709\n")
+	TEXT("2: Explicit gamma mapping\n")
+	TEXT("3: ACES 1000 nit ST-2084 (Dolby PQ) for HDR displays\n")
+	TEXT("4: ACES 2000 nit ST-2084 (Dolby PQ) for HDR displays\n"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
+	
+static TAutoConsoleVariable<int32> CVarHDROutputEnabled(
+	TEXT("r.HDR.EnableHDROutput"),
+	0,
+	TEXT("Creates an HDR compatible swap-chain and enables HDR display output.")
+	TEXT("0: Disabled (default)\n")
+	TEXT("1: Enable hardware-specific implementation\n"),
+	ECVF_RenderThreadSafe
+	);
 
-static TAutoConsoleVariable<int32> CVarTonemapperACESInversion(
-	TEXT("r.TonemapperACESInversion"),
-	0,
-	TEXT("0: use an approximation of the invese ACES sRGB D65 Output Transform\n")
-	TEXT("1: use an exact implementation of the invese ACES sRGB D65 Output Transform"),
-	ECVF_Scalability | ECVF_RenderThreadSafe);
+static TAutoConsoleVariable<float> CVarTonemapperGamma(
+	TEXT("r.TonemapperGamma"),
+	0.0f,
+	TEXT("0: Default behavior\n")
+	TEXT("#: Use fixed gamma # instead of sRGB or Rec709 transform"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);	
 
 //
 // TONEMAPPER PERMUTATION CONTROL
@@ -968,8 +980,7 @@ public:
 
 	FShaderParameter OutputDevice;
 	FShaderParameter OutputGamut;
-	FShaderParameter InvertTonemapping;
-	FShaderParameter ACESInversion;
+	FShaderParameter EncodeHDROutput;
 
 	/** Initialization constructor. */
 	FPostProcessTonemapPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -1000,8 +1011,7 @@ public:
 
 		OutputDevice.Bind(Initializer.ParameterMap, TEXT("OutputDevice"));
 		OutputGamut.Bind(Initializer.ParameterMap, TEXT("OutputGamut"));
-		InvertTonemapping.Bind(Initializer.ParameterMap, TEXT("InvertTonemapping"));
-		ACESInversion.Bind(Initializer.ParameterMap, TEXT("ACESInversion"));
+		EncodeHDROutput.Bind(Initializer.ParameterMap, TEXT("EncodeHDROutput"));
 	}
 	
 	// FShader interface.
@@ -1013,7 +1023,7 @@ public:
 			<< ColorGradingLUT << ColorGradingLUTSampler
 			<< ColorMatrixR_ColorCurveCd1 << ColorMatrixG_ColorCurveCd3Cm3 << ColorMatrixB_ColorCurveCm2 << ColorCurve_Cm0Cd0_Cd2_Ch0Cm1_Ch3 << ColorCurve_Ch1_Ch2 << ColorShadow_Luma << ColorShadow_Tint1 << ColorShadow_Tint2
 			<< OverlayColor
-			<< OutputDevice << OutputGamut << InvertTonemapping << ACESInversion;
+			<< OutputDevice << OutputGamut << EncodeHDROutput;
 
 		return bShaderHasOutdatedParameters;
 	}
@@ -1039,21 +1049,13 @@ public:
 
 			PostprocessParameter.SetPS(ShaderRHI, Context, 0, eFC_0000, Filters);
 		}
-			
-		// Invert tonemapping to produce linear output-referred imagery
-		static TConsoleVariableData<int32>* CVarDumpFramesAsHDR = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BufferVisualizationDumpFramesAsHDR"));
-		int32 DumpFramesAsHDRValue = CVarDumpFramesAsHDR->GetValueOnRenderThread();
-		SetShaderValue(Context.RHICmdList, ShaderRHI, InvertTonemapping, DumpFramesAsHDRValue);
-
-		// The approach to use when applying the inverse ACES Output Transform
-		static TConsoleVariableData<int32>* CVarACESInversion = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TonemapperACESInversion"));
-		int32 ACESInversionValue = CVarACESInversion->GetValueOnRenderThread();
-		SetShaderValue(Context.RHICmdList, ShaderRHI, ACESInversion, ACESInversionValue);
-
-		// The gamut for output
-		static TConsoleVariableData<int32>* CVarOutputGamut = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TonemapperOutputGamut"));
-		int32 OutputGamutValue = CVarOutputGamut->GetValueOnRenderThread();
+		
+		// Display format
+		int32 OutputGamutValue = CVarDisplayColorGamut.GetValueOnRenderThread();
 		SetShaderValue(Context.RHICmdList, ShaderRHI, OutputGamut, OutputGamutValue);
+
+		int32 HDROutputEnabledValue = CVarHDROutputEnabled.GetValueOnRenderThread();
+		SetShaderValue(Context.RHICmdList, ShaderRHI, EncodeHDROutput, HDROutputEnabledValue);
 
 		SetShaderValue(Context.RHICmdList, ShaderRHI, OverlayColor, Context.View.OverlayColor);
 
@@ -1093,25 +1095,25 @@ public:
 			SetShaderValue(Context.RHICmdList, ShaderRHI, TonemapperParams, Value);
 		}
 
-		{
-			static TConsoleVariableData<int32>* CVar709 = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Tonemapper709"));
-			static TConsoleVariableData<float>* CVarTonemapperGamma = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.TonemapperGamma"));
-			static TConsoleVariableData<int32>* CVar2084 = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Tonemapper2084"));
+		{		
+			static TConsoleVariableData<int32>* CVarOutputDevice = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.Display.OutputDevice"));
+			static TConsoleVariableData<float>* CVarOutputGamma = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.TonemapperGamma"));
 
-			int32 Rec709 = CVar709->GetValueOnRenderThread();
-			int32 ST2084 = CVar2084->GetValueOnRenderThread();
-			float Gamma = CVarTonemapperGamma->GetValueOnRenderThread();
+			int32 OutputDeviceValue = CVarOutputDevice->GetValueOnRenderThread();
+			float Gamma = CVarOutputGamma->GetValueOnRenderThread();
 
 			if (PLATFORM_APPLE && Gamma == 0.0f)
 			{
 				Gamma = 2.2f;
 			}
 
-			int32 Value = 0;						// sRGB
-			Value = Rec709 ? 1 : Value;	// Rec709
-			Value = Gamma != 0.0f ? 2 : Value;	// Explicit gamma
-			Value = ST2084 ? 3 : Value;	// ST-2084 (Dolby PQ)
-			SetShaderValue(Context.RHICmdList, ShaderRHI, OutputDevice, Value);
+			if (Gamma > 0.0f)
+			{
+				// Enforce user-controlled ramp over sRGB or Rec709
+				OutputDeviceValue = FMath::Max(OutputDeviceValue, 2);
+			}
+
+			SetShaderValue(Context.RHICmdList, ShaderRHI, OutputDevice, OutputDeviceValue);
 		}
 
 		FVector GrainValue;

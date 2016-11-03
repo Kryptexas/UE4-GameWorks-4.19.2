@@ -8,6 +8,7 @@
 
 #include "RHICommandList.h"
 
+class FViewInfo;
 
 /**
  * A macro to compare members of two drawing policies(A and B), and return based on the result.
@@ -17,35 +18,22 @@
 	if(A.MemberName < B.MemberName) { return -1; } \
 	else if(A.MemberName > B.MemberName) { return +1; }
 
-/**
- * Helper structure used to store mesh drawing state
- */
-enum class EDitheredLODState
-{
-	None,
-	FadeIn,
-	FadeOut,
-};
-
 struct FMeshDrawingRenderState
 {
-	FMeshDrawingRenderState(float DitherAlpha = 0.0f)
-	: DitheredLODTransitionAlpha(DitherAlpha)
-	, DitheredLODState(EDitheredLODState::None)
-	, bAllowStencilDither(false)
-	{
-	}
+	FMeshDrawingRenderState() 
+		: BlendState(nullptr)
+		, RasterizerState(nullptr)
+		, DepthStencilState(nullptr)
+		, StencilRef(0)
+		, DitheredLODTransitionAlpha(0.0f)
+	{}
 
-	FMeshDrawingRenderState(EDitheredLODState DitherState, bool InAllowStencilDither = false)
-	: DitheredLODTransitionAlpha(0.0f)
-	, DitheredLODState(DitherState)
-	, bAllowStencilDither(InAllowStencilDither)
-	{
-	}
+	FBlendStateRHIParamRef			BlendState;
+	FRasterizerStateRHIParamRef		RasterizerState;
+	FDepthStencilStateRHIParamRef	DepthStencilState;
 
-	float				DitheredLODTransitionAlpha;
-	EDitheredLODState	DitheredLODState;
-	bool				bAllowStencilDither;
+	uint32							StencilRef;
+	float							DitheredLODTransitionAlpha;
 };
 
 class FDrawingPolicyMatchResult
@@ -160,6 +148,8 @@ public:
 	{
 		return PointerHash(VertexFactory,PointerHash(MaterialRenderProxy));
 	}
+
+	static FMeshDrawingRenderState GetDitheredLODTransitionState(const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither = false);
 
 	FDrawingPolicyMatchResult Matches(const FMeshDrawingPolicy& OtherDrawer) const
 	{

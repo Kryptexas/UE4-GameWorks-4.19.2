@@ -2459,7 +2459,7 @@ struct FMeshBuildSettings
 	 * Whether to generate the distance field treating every triangle hit as a front face.  
 	 * When enabled prevents the distance field from being discarded due to the mesh being open, but also lowers Distance Field AO quality.
 	 */
-	UPROPERTY(EditAnywhere, Category=BuildSettings)
+	UPROPERTY(EditAnywhere, Category=BuildSettings, meta=(DisplayName="Two-Sided Distance Field Generation"))
 	bool bGenerateDistanceFieldAsIfTwoSided;
 
 	/** 

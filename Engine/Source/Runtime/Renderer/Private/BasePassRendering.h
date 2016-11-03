@@ -12,6 +12,8 @@
 #include "EditorCompositeParams.h"
 #include "PlanarReflectionRendering.h"
 
+class FViewInfo;
+
 /** Whether to allow the indirect lighting cache to be applied to dynamic objects. */
 extern int32 GIndirectLightingCache;
 
@@ -862,11 +864,24 @@ void GetBasePassShaders<FUniformLightMapPolicy>(
 	TBasePassPixelShaderPolicyParamType<FUniformLightMapPolicyShaderParametersType>*& PixelShader
 	);
 
+class FBasePassDrawingPolicy : public FMeshDrawingPolicy
+{
+public:
+	FBasePassDrawingPolicy(
+		const FVertexFactory* InVertexFactory,
+		const FMaterialRenderProxy* InMaterialRenderProxy, 
+		const FMaterial& InMaterialResource, 
+		EDebugViewShaderMode InDebugViewShaderMode) : FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InDebugViewShaderMode, false, false, false)
+	{}
+
+	static FMeshDrawingRenderState GetDitheredLODTransitionState(const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither = false);
+};
+
 /**
  * Draws the emissive color and the light-map of a mesh.
  */
 template<typename LightMapPolicyType>
-class TBasePassDrawingPolicy : public FMeshDrawingPolicy
+class TBasePassDrawingPolicy : public FBasePassDrawingPolicy
 {
 public:
 
@@ -903,7 +918,7 @@ public:
 		bool bInEnableEditorPrimitiveDepthTest = false,
 		bool bInEnableReceiveDecalOutput = false
 		):
-		FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InDebugViewShaderMode, false, false, false),
+		FBasePassDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InDebugViewShaderMode),
 		LightMapPolicy(InLightMapPolicy),
 		BlendMode(InBlendMode), 
 		SceneTextureMode(InSceneTextureMode),
@@ -1131,15 +1146,9 @@ public:
 			const uint8 StencilValue = GET_STENCIL_BIT_MASK(RECEIVE_DECAL, PrimitiveSceneProxy ? !!PrimitiveSceneProxy->ReceivesDecals() : 0x00)
 				| STENCIL_LIGHTING_CHANNELS_MASK(PrimitiveSceneProxy ? PrimitiveSceneProxy->GetLightingChannelStencilValue() : 0x00);
 			
-			const bool bStencilDithered = DrawRenderState.bAllowStencilDither && DrawRenderState.DitheredLODState != EDitheredLODState::None;
-			if (bStencilDithered)
+			if (DrawRenderState.DepthStencilState)
 			{
-				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
-					false, CF_Equal,
-					true, CF_Always, SO_Keep, SO_Keep, SO_Replace,
-					false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
-					0xFF, GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1) | STENCIL_LIGHTING_CHANNELS_MASK(0x7)
-				>::GetRHI(), StencilValue);
+				RHICmdList.SetDepthStencilState(DrawRenderState.DepthStencilState, StencilValue);
 			}
 			else
 			{

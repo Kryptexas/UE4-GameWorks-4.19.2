@@ -793,7 +793,7 @@ namespace VulkanRHI
 			return ResourceAllocation->GetMappedPointer();
 		}
 
-		inline uint32 GetOffset() const
+		inline uint32 GetAllocationOffset() const
 		{
 			return ResourceAllocation->GetOffset();
 		}

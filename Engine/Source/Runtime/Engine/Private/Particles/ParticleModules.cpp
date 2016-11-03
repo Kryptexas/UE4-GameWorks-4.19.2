@@ -3134,7 +3134,7 @@ uint64 UParticleModuleLight::SpawnHQLight(const FLightParticlePayload& Payload, 
 		{
 			PointLightComponent->SetupAttachment(RootComponent);
 		}			
-		PointLightComponent->CreationMethod = EComponentCreationMethod::UserConstructionScript;
+		PointLightComponent->CreationMethod = ParticleSystem->CreationMethod;
 		PointLightComponent->RegisterComponent();
 		Owner->HighQualityLights.Add(PointLightComponent);
 			

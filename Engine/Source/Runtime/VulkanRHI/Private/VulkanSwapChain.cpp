@@ -164,6 +164,17 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance Instance, FVulkanDevice& InDevice,
 	OutImages.AddUninitialized(NumSwapChainImages);
 	VERIFYVULKANRESULT_EXPANDED(VulkanRHI::vkGetSwapchainImagesKHR(Device.GetInstanceHandle(), SwapChain, &NumSwapChainImages, OutImages.GetData()));
 
+	ImageAcquiredFences.AddUninitialized(NumSwapChainImages);
+	VulkanRHI::FFenceManager& FenceMgr = Device.GetFenceManager();
+	for (uint32 BufferIndex = 0; BufferIndex < NumSwapChainImages; ++BufferIndex)
+	{
+		VkFenceCreateInfo FenceInfo;
+		FMemory::Memzero(FenceInfo);
+		FenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+		FenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+		VERIFYVULKANRESULT(VulkanRHI::vkCreateFence(Device.GetInstanceHandle(), &FenceInfo, nullptr, &ImageAcquiredFences[BufferIndex]));
+	}
+
 	ImageAcquiredSemaphore.AddUninitialized(DesiredNumBuffers);
 	for (uint32 BufferIndex = 0; BufferIndex < DesiredNumBuffers; ++BufferIndex)
 	{
@@ -175,6 +186,12 @@ void FVulkanSwapChain::Destroy()
 {
 	VulkanRHI::vkDestroySwapchainKHR(Device.GetInstanceHandle(), SwapChain, nullptr);
 	SwapChain = VK_NULL_HANDLE;
+
+	VulkanRHI::FFenceManager& FenceMgr = Device.GetFenceManager();
+	for (int32 Index = 0; Index < ImageAcquiredFences.Num(); ++Index)
+	{
+		VulkanRHI::vkDestroyFence(Device.GetInstanceHandle(), ImageAcquiredFences[Index], nullptr);
+	}
 
 	//#todo-rco: Enqueue for deletion as we first need to destroy the cmd buffers and queues otherwise validation fails
 	for (int BufferIndex = 0; BufferIndex < ImageAcquiredSemaphore.Num(); ++BufferIndex)
@@ -190,14 +207,25 @@ int32 FVulkanSwapChain::AcquireImageIndex(FVulkanSemaphore** OutSemaphore)
 	// The ImageAcquiredSemaphore[ImageAcquiredSemaphoreIndex] will get signaled when the image is ready (upon function return).
 	uint32 ImageIndex = 0;
 	SemaphoreIndex = (SemaphoreIndex + 1) % ImageAcquiredSemaphore.Num();
-	*OutSemaphore = ImageAcquiredSemaphore[SemaphoreIndex];
+
+	//#todo-rco: Is this the right place?
+	// Make sure the CPU doesn't get too ahead of the GPU
+	{
+		SCOPE_CYCLE_COUNTER(STAT_VulkanWaitSwapchain);
+		VERIFYVULKANRESULT(VulkanRHI::vkWaitForFences(Device.GetInstanceHandle(), 1, &ImageAcquiredFences[SemaphoreIndex], VK_TRUE, UINT32_MAX));
+	}
+	VERIFYVULKANRESULT(VulkanRHI::vkResetFences(Device.GetInstanceHandle(), 1, &ImageAcquiredFences[SemaphoreIndex]));
+
 	VkResult Result = VulkanRHI::vkAcquireNextImageKHR(
 		Device.GetInstanceHandle(),
 		SwapChain,
 		UINT64_MAX,
 		ImageAcquiredSemaphore[SemaphoreIndex]->GetHandle(),
-		VK_NULL_HANDLE,	// Currently no fence needed
+		ImageAcquiredFences[SemaphoreIndex],	// Currently no fence needed
 		&ImageIndex);
+
+	*OutSemaphore = ImageAcquiredSemaphore[SemaphoreIndex];
+
 	checkf(Result == VK_SUCCESS || Result == VK_SUBOPTIMAL_KHR, TEXT("AcquireNextImageKHR failed Result = %d"), int32(Result));
 	CurrentImageIndex = (int32)ImageIndex;
 	check(CurrentImageIndex == ImageIndex);

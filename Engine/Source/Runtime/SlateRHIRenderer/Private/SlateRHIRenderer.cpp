@@ -21,6 +21,25 @@ DECLARE_FLOAT_COUNTER_STAT(TEXT("Slate UI"), Stat_GPU_SlateUI, STATGROUP_GPU);
 // Defines the maximum size that a slate viewport will create
 #define MAX_VIEWPORT_SIZE 16384
 
+static TAutoConsoleVariable<float> CVarUILevel(
+	TEXT("r.HDR.UI.Level"),
+	1.0f,
+	TEXT("Luminance level for UI elements when compositing into HDR framebuffer (default: 1.0)."),
+	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarUICompositeMode(
+	TEXT("r.HDR.UI.CompositeMode"),
+	1,
+	TEXT("Mode used when compositing the UI layer:\n")
+	TEXT("0: Standard compositing\n")
+	TEXT("1: Shader pass to improve HDR blending\n"),
+	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarUITonemapUnder(
+	TEXT("r.HDR.UI.TonemapUnder"),
+	1,
+	TEXT("Should pixels under the UI be re-tonemapped to improve blending."),
+	ECVF_RenderThreadSafe);
 
 void FSlateCrashReportResource::InitDynamicRHI()
 {
@@ -270,6 +289,16 @@ void FSlateRHIRenderer::CreateViewport( const TSharedRef<SWindow> Window )
 		}
 #endif
 
+		static TConsoleVariableData<int32>* CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
+
+		// SDR format holds the requested format in non HDR mode
+		NewInfo->SDRPixelFormat = NewInfo->PixelFormat;
+
+		if (CVarHDROutputEnabled->GetValueOnGameThread() != 0)
+		{
+			NewInfo->PixelFormat = PF_FloatRGBA;
+		}
+
 		// Sanity check dimensions
 		checkf(Width <= MAX_VIEWPORT_SIZE && Height <= MAX_VIEWPORT_SIZE, TEXT("Invalid window with Width=%u and Height=%u"), Width, Height);
 
@@ -287,7 +316,22 @@ void FSlateRHIRenderer::ConditionalResizeViewport( FViewportInfo* ViewInfo, uint
 {
 	checkSlow( IsThreadSafeForSlateRendering() );
 
-	if( IsInGameThread() && !IsInSlateThread() && ViewInfo && ( ViewInfo->Height != Height || ViewInfo->Width != Width ||  ViewInfo->bFullscreen != bFullscreen || !IsValidRef(ViewInfo->ViewportRHI) ) )
+	// Force update if HDR output state changes
+	static TConsoleVariableData<int32>* CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
+	static TConsoleVariableData<int32>* CVarHDRColorGamut = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.Display.ColorGamut"));
+	static TConsoleVariableData<int32>* CVarHDROutputDevice = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.Display.OutputDevice"));
+
+	bool bHDREnabled = CVarHDROutputEnabled->GetValueOnAnyThread() != 0;
+	int32 HDRColorGamut = CVarHDRColorGamut->GetValueOnAnyThread();
+	int32 HDROutputDevice = CVarHDROutputDevice->GetValueOnAnyThread();
+
+	bool bHDRStale = ViewInfo && (
+		((ViewInfo->PixelFormat == PF_FloatRGBA) != bHDREnabled) ||		// HDR toggled
+		(bHDREnabled && ViewInfo->HDRColorGamut != HDRColorGamut) ||	// HDR enabled and color gamut changed
+		(bHDREnabled && ViewInfo->HDROutputDevice != HDROutputDevice)	// HDR enabled and output device changed
+		);
+
+	if( IsInGameThread() && !IsInSlateThread() && ViewInfo && ( bHDRStale || ViewInfo->Height != Height || ViewInfo->Width != Width ||  ViewInfo->bFullscreen != bFullscreen || !IsValidRef(ViewInfo->ViewportRHI) ) )
 	{
 		// The viewport size we have doesn't match the requested size of the viewport.
 		// Resize it now.
@@ -321,10 +365,13 @@ void FSlateRHIRenderer::ConditionalResizeViewport( FViewportInfo* ViewInfo, uint
 		ViewInfo->ProjectionMatrix = CreateProjectionMatrix( NewWidth, NewHeight );
 		ViewInfo->bFullscreen = bFullscreen;
 
-		PreResizeBackBufferDelegate.Broadcast(&ViewInfo->ViewportRHI);
+		ViewInfo->PixelFormat = bHDREnabled ? PF_FloatRGBA : ViewInfo->SDRPixelFormat;
+		ViewInfo->HDRColorGamut = HDRColorGamut;
+		ViewInfo->HDROutputDevice = HDROutputDevice;
+
 		if( IsValidRef( ViewInfo->ViewportRHI ) )
 		{
-			RHIResizeViewport(ViewInfo->ViewportRHI, NewWidth, NewHeight, bFullscreen);
+			RHIResizeViewport(ViewInfo->ViewportRHI, NewWidth, NewHeight, bFullscreen, ViewInfo->PixelFormat);
 		}
 		else
 		{
@@ -397,13 +444,71 @@ void FSlateRHIRenderer::OnWindowDestroyed( const TSharedRef<SWindow>& InWindow )
 	WindowToViewportInfo.Remove( &InWindow.Get() );
 }
 
+//Pixel shader to composite UI over HDR buffer
+class FCompositePS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(FCompositePS, Global);
+public:
+
+	static bool ShouldCache(EShaderPlatform Platform) { return true; }
+
+	FCompositePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer) :
+		FGlobalShader(Initializer)
+	{
+		InUITexture.Bind(Initializer.ParameterMap, TEXT("InUITexture"));
+		InUISampler.Bind(Initializer.ParameterMap, TEXT("InUISampler"));
+		InSceneTexture.Bind(Initializer.ParameterMap, TEXT("InSceneTexture"));
+		InSceneSampler.Bind(Initializer.ParameterMap, TEXT("InSceneSampler"));
+		UILevel.Bind(Initializer.ParameterMap, TEXT("UILevel"));
+		TonemapUnder.Bind(Initializer.ParameterMap, TEXT("LDRTonemapUnder"));
+	}
+	FCompositePS() {}
+
+	void SetParameters(FRHICommandList& RHICmdList, FTextureRHIParamRef UITextureRHI, FTextureRHIParamRef SceneTextureRHI)
+	{
+
+		SetTextureParameter(RHICmdList, GetPixelShader(), InUITexture, InUISampler, TStaticSamplerState<SF_Point>::GetRHI(), UITextureRHI);
+		SetTextureParameter(RHICmdList, GetPixelShader(), InSceneTexture, InSceneSampler, TStaticSamplerState<SF_Point>::GetRHI(), SceneTextureRHI);
+
+		SetShaderValue(RHICmdList, GetPixelShader(), UILevel, CVarUILevel.GetValueOnRenderThread());
+		SetShaderValue(RHICmdList, GetPixelShader(), TonemapUnder, CVarUITonemapUnder.GetValueOnRenderThread());
+	}
+
+	virtual bool Serialize(FArchive& Ar) override
+	{
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		Ar << InUITexture;
+		Ar << InUISampler;
+		Ar << InSceneTexture;
+		Ar << InSceneSampler;
+		Ar << UILevel;
+		Ar << TonemapUnder;
+		return bShaderHasOutdatedParameters;
+	}
+
+private:
+	FShaderResourceParameter InUITexture;
+	FShaderResourceParameter InUISampler;
+	FShaderResourceParameter InSceneTexture;
+	FShaderResourceParameter InSceneSampler;
+	FShaderParameter UILevel;
+	FShaderParameter TonemapUnder;
+};
+
+IMPLEMENT_SHADER_TYPE(, FCompositePS, TEXT("CompositeUIPixelShader"), TEXT("Main"), SF_Pixel);
+
 /** Draws windows from a FSlateDrawBuffer on the render thread */
-void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmdList, const FViewportInfo& ViewportInfo, FSlateWindowElementList& WindowElementList, bool bLockToVsync, bool bClear)
+void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmdList, FViewportInfo& ViewportInfo, FSlateWindowElementList& WindowElementList, bool bLockToVsync, bool bClear)
 {
 	SCOPED_DRAW_EVENT(RHICmdList, SlateUI);
 
 	// Should only be called by the rendering thread
 	check(IsInRenderingThread());
+
+	// Optional off-screen UI composition during HDR rendering
+	static TConsoleVariableData<int32>* CVarCompositeMode = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.UI.CompositeMode"));
+	static TConsoleVariableData<int32>* CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
+	const bool bCompositeUI = CVarCompositeMode->GetValueOnRenderThread() != 0 && CVarHDROutputEnabled->GetValueOnRenderThread() != 0;
 	
 	{
 		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_SlateUI);
@@ -434,6 +539,35 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 		
 		const uint32 ViewportWidth = (ViewportRT) ? ViewportRT->GetSizeX() : ViewportInfo.Width;
 		const uint32 ViewportHeight = (ViewportRT) ? ViewportRT->GetSizeY() : ViewportInfo.Height;
+		
+		// Check to see that targets are up-to-date
+		if (bCompositeUI && ( !ViewportInfo.UITargetRT || ViewportInfo.UITargetRT->GetSizeX() != ViewportWidth || ViewportInfo.UITargetRT->GetSizeY() != ViewportHeight))
+		{
+			ViewportInfo.UITargetRT.SafeRelease();
+			ViewportInfo.HDRSourceRT.SafeRelease();
+			ViewportInfo.UITargetSRV.SafeRelease();
+			ViewportInfo.HDRSourceSRV.SafeRelease();
+
+			FRHIResourceCreateInfo CreateInfo;
+
+			RHICreateTargetableShaderResource2D(ViewportWidth, ViewportHeight, PF_B8G8R8A8, 1, TexCreate_None, TexCreate_RenderTargetable, false, CreateInfo, ViewportInfo.UITargetRT, ViewportInfo.UITargetSRV);
+			RHICreateTargetableShaderResource2D(ViewportWidth, ViewportHeight, PF_FloatRGBA, 1, TexCreate_None, TexCreate_RenderTargetable, false, CreateInfo, ViewportInfo.HDRSourceRT, ViewportInfo.HDRSourceSRV);
+
+		}
+
+		FTexture2DRHIRef FinalBuffer = BackBuffer;
+
+		if (bCompositeUI)
+		{
+			FResolveParams ResolveParams;
+			bClear = true; // Force a clear of the UI buffer to black
+
+			// Grab HDR backbuffer
+			RHICmdList.CopyToResolveTarget(FinalBuffer, ViewportInfo.HDRSourceRT, false, ResolveParams);
+
+			// UI backbuffer is temp target
+			BackBuffer = ViewportInfo.UITargetRT;
+		}
 
 		RHICmdList.BeginDrawingViewport( ViewportInfo.ViewportRHI, FTextureRHIRef() );
 		RHICmdList.SetViewport(0, 0, 0, ViewportWidth, ViewportHeight, 0.0f);
@@ -470,6 +604,40 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 				ViewMatrix*ViewportInfo.ProjectionMatrix,
 				BatchData.GetRenderBatches()
 			);
+		}
+
+		if (bCompositeUI)
+		{
+			FResolveParams ResolveParams;
+			RHICmdList.CopyToResolveTarget(ViewportInfo.UITargetRT, ViewportInfo.UITargetSRV, false, ResolveParams);
+
+			SetRenderTarget(RHICmdList, FinalBuffer, FTextureRHIRef());
+
+			static const FName RendererModuleName("Renderer");
+			IRendererModule& RendererModule = FModuleManager::GetModuleChecked<IRendererModule>(RendererModuleName);
+
+			const auto FeatureLevel = GMaxRHIFeatureLevel;
+			auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
+
+			TShaderMapRef<FScreenVS> VertexShader(ShaderMap);
+			TShaderMapRef<FCompositePS> PixelShader(ShaderMap);
+
+			static FGlobalBoundShaderState BoundShaderState;
+			SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, RendererModule.GetFilterVertexDeclaration().VertexDeclarationRHI, *VertexShader, *PixelShader);
+
+			PixelShader->SetParameters(RHICmdList, ViewportInfo.UITargetSRV, ViewportInfo.HDRSourceSRV);
+
+			RendererModule.DrawRectangle(
+				RHICmdList,
+				0, 0,
+				ViewportWidth, ViewportHeight,
+				0, 0,
+				ViewportWidth, ViewportHeight,
+				FIntPoint(ViewportWidth, ViewportHeight),
+				FIntPoint(ViewportWidth, ViewportHeight),
+				*VertexShader,
+				EDRF_UseTriangleOptimization);
+
 		}
 	}
 

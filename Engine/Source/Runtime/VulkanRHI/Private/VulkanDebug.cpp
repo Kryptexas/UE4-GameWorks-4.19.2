@@ -48,7 +48,7 @@ static VkBool32 VKAPI_PTR DebugReportFunction(
 #if VULKAN_ENABLE_DUMP_LAYER
 			VulkanRHI::FlushDebugWrapperLog();
 #endif
-			FString Message = FString::Printf(TEXT("VK ERROR: [%s] Code %d : %s"), ANSI_TO_TCHAR(LayerPrefix), MsgCode, ANSI_TO_TCHAR(Msg));
+			FString Message = FString::Printf(TEXT("ERROR[%s:%d] Object %p: %s"), ANSI_TO_TCHAR(LayerPrefix), MsgCode, (void*)SrcObject, ANSI_TO_TCHAR(Msg));
 			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("VulkanRHI: %s\n"), *Message);
 			UE_LOG(LogVulkanRHI, Error, TEXT("%s"), *Message);
     
@@ -75,7 +75,7 @@ static VkBool32 VKAPI_PTR DebugReportFunction(
 #if VULKAN_ENABLE_DUMP_LAYER
 		VulkanRHI::FlushDebugWrapperLog();
 #endif
-		FString Message = FString::Printf(TEXT("VK WARNING: [%s] Code %d : %s\n"), ANSI_TO_TCHAR(LayerPrefix), MsgCode, ANSI_TO_TCHAR(Msg));
+		FString Message = FString::Printf(TEXT("WARNING[%s:%d] Object %p: %s\n"), ANSI_TO_TCHAR(LayerPrefix), MsgCode, SrcObject, ANSI_TO_TCHAR(Msg));
 		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("VulkanRHI: %s\n"), *Message);
 		UE_LOG(LogVulkanRHI, Warning, TEXT("%s"), *Message);
 		return VK_FALSE;
@@ -91,7 +91,7 @@ static VkBool32 VKAPI_PTR DebugReportFunction(
 		else
 #endif
 		{
-			FString Message = FString::Printf(TEXT("VK INFO: [%s] Code %d : %s\n"), ANSI_TO_TCHAR(LayerPrefix), MsgCode, ANSI_TO_TCHAR(Msg));
+			FString Message = FString::Printf(TEXT("INFO[%s:%d] Object %p: %s\n"), ANSI_TO_TCHAR(LayerPrefix), MsgCode, SrcObject, ANSI_TO_TCHAR(Msg));
 			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("VulkanRHI: %s\n"), *Message);
 			UE_LOG(LogVulkanRHI, Display, TEXT("%s"), *Message);
 		}
@@ -101,7 +101,7 @@ static VkBool32 VKAPI_PTR DebugReportFunction(
 #if VULKAN_ENABLE_API_DUMP_DETAILED
 	else if (MsgFlags & VK_DEBUG_REPORT_DEBUG_BIT_EXT)
 	{
-		FString Message = FString::Printf(TEXT("VK DEBUG: [%s] Code %d : %s\n"), ANSI_TO_TCHAR(LayerPrefix), MsgCode, ANSI_TO_TCHAR(Msg));
+		FString Message = FString::Printf(TEXT("DEBUG[%s:%d] Object %p: %s\n"), ANSI_TO_TCHAR(LayerPrefix), MsgCode, SrcObject, ANSI_TO_TCHAR(Msg));
 		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("VulkanRHI: %s\n"), *Message);
 		UE_LOG(LogVulkanRHI, Display, TEXT("%s"), *Message);
 		return VK_FALSE;

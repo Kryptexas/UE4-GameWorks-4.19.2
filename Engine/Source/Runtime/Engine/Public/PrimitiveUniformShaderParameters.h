@@ -36,7 +36,7 @@ inline FPrimitiveUniformShaderParameters GetPrimitiveUniformShaderParameters(
 	const FBoxSphereBounds& LocalBounds,
 	bool bReceivesDecals,
 	bool bHasDistanceFieldRepresentation,
-	bool bHasHeightfieldRepresentation,
+	bool bHasCapsuleRepresentation,
 	bool bUseSingleSampleShadowFromStationaryLights,
 	bool bUseEditorDepthTest,
 	uint32 LightingChannelMask,
@@ -74,7 +74,7 @@ inline FPrimitiveUniformShaderParameters GetPrimitiveUniformShaderParameters(
 
 	Result.LocalToWorldDeterminantSign = FMath::FloatSelect(LocalToWorld.RotDeterminant(),1,-1);
 	Result.DecalReceiverMask = bReceivesDecals ? 1 : 0;
-	Result.PerObjectGBufferData = (2 * (int32)bHasHeightfieldRepresentation + (int32)bHasDistanceFieldRepresentation) / 3.0f;
+	Result.PerObjectGBufferData = (2 * (int32)bHasCapsuleRepresentation + (int32)bHasDistanceFieldRepresentation) / 3.0f;
 	Result.UseSingleSampleShadowFromStationaryLights = bUseSingleSampleShadowFromStationaryLights ? 1.0f : 0.0f;
 	Result.UseEditorDepthTest = bUseEditorDepthTest ? 1 : 0;
 	return Result;

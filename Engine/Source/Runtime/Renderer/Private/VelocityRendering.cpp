@@ -541,7 +541,8 @@ bool FVelocityDrawingPolicyFactory::DrawDynamicMesh(
 		{			
 			RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(FeatureLevel));
 			DrawingPolicy.SetSharedState(RHICmdList, &View, FVelocityDrawingPolicy::ContextDataType(bIsInstancedStereo));
-			const FMeshDrawingRenderState DrawRenderState(Mesh.DitheredLODTransitionAlpha);
+			FMeshDrawingRenderState DrawRenderState;
+			DrawRenderState.DitheredLODTransitionAlpha = Mesh.DitheredLODTransitionAlpha;
 			for (int32 BatchElementIndex = 0, BatchElementCount = Mesh.Elements.Num(); BatchElementIndex < BatchElementCount; ++BatchElementIndex)
 			{
 				// We draw instanced static meshes twice when rendering with instanced stereo. Once for each eye.

@@ -283,9 +283,10 @@ struct FMaterialParameterCollectionInfo
 };
 
 /**
- * A Material is an asset which can be applied to a mesh to control the visual look of the scene. In general,
- * when light from the scene hits the surface, the shading model of the material is used to calculate how
- * that light interacts with the surface. 
+ * A Material is an asset which can be applied to a mesh to control the visual look of the scene. 
+ * When light from the scene hits the surface, the shading model of the material is used to calculate how that light interacts with the surface. 
+ *
+ * Warning: Creating new materials directly increases shader compile times!  Consider creating a Material Instance off of an existing material instead.
  */
 UCLASS(hidecategories=Object, MinimalAPI, BlueprintType)
 class UMaterial : public UMaterialInterface

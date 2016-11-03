@@ -220,7 +220,6 @@ float3 ColorGrade( float3 LinearColor )
 
 uint OutputDevice;
 uint OutputGamut;
-uint ACESInversion;
 
 uint GetOutputDevice()
 {
@@ -393,18 +392,6 @@ void MainPS(noperspective float4 InUV : TEXCOORD0, out float4 OutColor : SV_Targ
 
 		// Apply conversion to ST-2084 (Dolby PQ)
 		OutDeviceColor = LinearToST2084( ODTColor );
-	}
-
-	// r.Tonemapper2084 3 - Pseudo linearization of UE Tonemapped result with PQ/2084 encoding, user specified gamut 
-	else if( GetOutputDevice() == 5 )
-	{
-		float3 pseudoLinear = lerp( aces100nitFitInverse( FilmColorAP1 ), InverseACESOutputTransformsRGBD65( FilmColor ), ACESInversion);
-
-		// Convert from AP1 to specified output gamut
-		float3 OutputGamutColor = mul( AP1_2_Output, pseudoLinear );
-
-		// Apply conversion to ST-2084 (Dolby PQ)
-		OutDeviceColor = LinearToST2084( OutputGamutColor * 200. );
 	}
 
 	// OutputDevice == 2

@@ -43,10 +43,8 @@ half GrainFromUV(float2 GrainUV)
 	return Grain;
 }
 
-uint InvertTonemapping;
-uint ACESInversion;
-
 uint OutputDevice;
+uint EncodeHDROutput;
 
 uint GetOutputDevice()
 {
@@ -269,12 +267,12 @@ float3 InvertACESTonemapping( float3 OutColor )
 	// FIXME: Workaround for UE-29935, pushing all colors with a 0 component to black output
 	// Workaround in PostProcessCombineLUTs.usf mean that the output color is always in the
 	// sRGB gamut. Once that is resolved, the matrix multiply above should be re-enabled.
-	Approach1 = PseudoLinearColor;
+	//Approach1 = PseudoLinearColor;
 
-	Approach1 = InverseACESOutputTransformsRGBD65( Approach1 );
-	Approach1 = max(0, mul( sRGB_2_Output, Approach1 ));
+	//Approach1 = InverseACESOutputTransformsRGBD65( Approach1 );
+	//Approach1 = max(0, mul( sRGB_2_Output, Approach1 ));
 
-	return lerp(Approach0, Approach1, ACESInversion);
+	return Approach0;//lerp(Approach0, Approach1, ACESInversion);
 }
 
 float max4(float4 x)
@@ -520,6 +518,35 @@ void MainPS(
 			// Post-tonemap linearization. Used when writing out EXRs
 			OutColor.rgb = InvertACESTonemapping( OutColor.rgb );
 		#endif
+
+		BRANCH
+		if (EncodeHDROutput)
+		{
+			// Nvidia HDR encoding - Remove PQ, convert to linear scRGB
+			const float3x3 AP1_2_sRGB = mul(XYZ_2_sRGB_MAT, AP1_2_XYZ_MAT);
+			const float WhitePoint = 80.f;
+
+			OutColor.xyz = ST2084ToLinear(OutColor.xyz);
+
+			// 1000 nit display
+			float MaxODTNits = 1000.0f;
+			float MinODTNits = 0.0001f;
+
+			if (GetOutputDevice() == 4)
+			{
+				// 2000 nit display
+				MaxODTNits = 2000.0f;
+				MinODTNits = 0.005f;
+			}
+
+			OutColor.xyz = clamp(OutColor.xyz, MinODTNits, MaxODTNits);
+			OutColor.x = Y_2_linCV(OutColor.x, MaxODTNits, MinODTNits);
+			OutColor.y = Y_2_linCV(OutColor.y, MaxODTNits, MinODTNits);
+			OutColor.z = Y_2_linCV(OutColor.z, MaxODTNits, MinODTNits);
+
+			float scRGBScale = MaxODTNits / WhitePoint;
+			OutColor.xyz = mul(AP1_2_sRGB, OutColor.xyz) * scRGBScale;
+		}
 	#endif
 
 

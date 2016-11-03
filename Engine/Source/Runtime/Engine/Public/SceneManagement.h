@@ -986,6 +986,7 @@ public:
 	inline FVector4 GetPosition() const { return Position; }
 	inline const FLinearColor& GetColor() const { return Color; }
 	inline float GetIndirectLightingScale() const { return IndirectLightingScale; }
+	inline float GetShadowResolutionScale() const { return ShadowResolutionScale; }
 	inline FGuid GetLightGuid() const { return LightGuid; }
 	inline float GetShadowSharpen() const { return ShadowSharpen; }
 	inline float GetContactShadowLength() const { return ContactShadowLength; }
@@ -1058,6 +1059,8 @@ protected:
 
 	/** Scale for indirect lighting from this light.  When 0, indirect lighting is disabled. */
 	float IndirectLightingScale;
+
+	float ShadowResolutionScale;
 
 	/** User setting from light component, 0:no bias, 0.5:reasonable, larger object might appear to float */
 	float ShadowBias;
@@ -1998,7 +2001,7 @@ extern ENGINE_API void DrawCircle(class FPrimitiveDrawInterface* PDI, const FVec
  * @param	X				Normalized axis from one point to the center
  * @param	Y				Normalized axis from other point to the center
  * @param   MinAngle        The minimum angle
- * @param   MinAngle        The maximum angle
+ * @param   MaxAngle        The maximum angle
  * @param   Radius          Radius of the arc
  * @param	Sections		Numbers of sides that the circle has.
  * @param	Color			Color of the circle.
@@ -2089,31 +2092,31 @@ extern ENGINE_API void DrawWireChoppedCone(class FPrimitiveDrawInterface* PDI,co
  *
  * @param	PDI				Draw interface.
  * @param	Transform		Generic transform to apply (ex. a local-to-world transform).
- * @param	ConeRadius		Radius of the cone.
- * @param	ConeAngle		Angle of the cone.
+ * @param	ConeLength		Pre-transform distance from apex to the perimeter of the cone base.  The Radius of the base is ConeLength * sin(ConeAngle).
+ * @param	ConeAngle		Angle of the cone in degrees. This is 1/2 the cone aperture.
  * @param	ConeSides		Numbers of sides that the cone has.
  * @param	Color			Color of the cone.
  * @param	DepthPriority	Depth priority for the cone.
- * @param	Verts			Out param, the positions of the verts at the cone's base.
+ * @param	Verts			Out param, the positions of the verts at the cone base.
  * @param	Thickness		Thickness of the lines comprising the cone
  */
-extern ENGINE_API void DrawWireCone(class FPrimitiveDrawInterface* PDI, TArray<FVector>& Verts, const FMatrix& Transform, float ConeRadius, float ConeAngle, int32 ConeSides, const FLinearColor& Color, uint8 DepthPriority, float Thickness = 0.0f, float DepthBias = 0.0f, bool bScreenSpace = false);
-extern ENGINE_API void DrawWireCone(class FPrimitiveDrawInterface* PDI, TArray<FVector>& Verts, const FTransform& Transform, float ConeRadius, float ConeAngle, int32 ConeSides, const FLinearColor& Color, uint8 DepthPriority, float Thickness = 0.0f, float DepthBias = 0.0f, bool bScreenSpace = false);
+extern ENGINE_API void DrawWireCone(class FPrimitiveDrawInterface* PDI, TArray<FVector>& Verts, const FMatrix& Transform, float ConeLength, float ConeAngle, int32 ConeSides, const FLinearColor& Color, uint8 DepthPriority, float Thickness = 0.0f, float DepthBias = 0.0f, bool bScreenSpace = false);
+extern ENGINE_API void DrawWireCone(class FPrimitiveDrawInterface* PDI, TArray<FVector>& Verts, const FTransform& Transform, float ConeLength, float ConeAngle, int32 ConeSides, const FLinearColor& Color, uint8 DepthPriority, float Thickness = 0.0f, float DepthBias = 0.0f, bool bScreenSpace = false);
 
 /**
  * Draws a wireframe cone with a arcs on the cap
  *
  * @param	PDI				Draw interface.
  * @param	Transform		Generic transform to apply (ex. a local-to-world transform).
- * @param	ConeRadius		Radius of the cone.
- * @param	ConeAngle		Angle of the cone.
+ * @param	ConeLength		Pre-transform distance from apex to the perimeter of the cone base.  The Radius of the base is ConeLength * sin(ConeAngle).
+ * @param	ConeAngle		Angle of the cone in degrees. This is 1/2 the cone aperture.
  * @param	ConeSides		Numbers of sides that the cone has.
  * @param   ArcFrequency    How frequently to draw an arc (1 means every vertex, 2 every 2nd etc.)
  * @param	CapSegments		How many lines to use to make the arc
  * @param	Color			Color of the cone.
  * @param	DepthPriority	Depth priority for the cone.
  */
-extern ENGINE_API void DrawWireSphereCappedCone(FPrimitiveDrawInterface* PDI, const FTransform& Transform, float ConeRadius, float ConeAngle, int32 ConeSides, int32 ArcFrequency, int32 CapSegments, const FLinearColor& Color, uint8 DepthPriority);
+extern ENGINE_API void DrawWireSphereCappedCone(FPrimitiveDrawInterface* PDI, const FTransform& Transform, float ConeLength, float ConeAngle, int32 ConeSides, int32 ArcFrequency, int32 CapSegments, const FLinearColor& Color, uint8 DepthPriority);
 
 /**
  * Draws an oriented box.

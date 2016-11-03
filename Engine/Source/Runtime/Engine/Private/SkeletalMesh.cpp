@@ -5009,9 +5009,9 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 	bIsCPUSkinned = MeshObject->IsCPUSkinned();
 
 	bCastCapsuleDirectShadow = Component->bCastDynamicShadow && Component->CastShadow && Component->bCastCapsuleDirectShadow;
-	bCastCapsuleIndirectShadow = Component->bCastDynamicShadow && Component->CastShadow && Component->bCastCapsuleIndirectShadow;
+	bCastsDynamicIndirectShadow = Component->bCastDynamicShadow && Component->CastShadow && Component->bCastCapsuleIndirectShadow;
 
-	CapsuleIndirectShadowMinVisibility = FMath::Clamp(Component->CapsuleIndirectShadowMinVisibility, 0.0f, 1.0f);
+	DynamicIndirectShadowMinVisibility = FMath::Clamp(Component->CapsuleIndirectShadowMinVisibility, 0.0f, 1.0f);
 
 	// Force inset shadows if capsule shadows are requested, as they can't be supported with full scene shadows
 	bCastInsetShadow = bCastInsetShadow || bCastCapsuleDirectShadow;
@@ -5547,11 +5547,9 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 	}
 }
 
-bool FSkeletalMeshSceneProxy::HasDistanceFieldRepresentation() const
+bool FSkeletalMeshSceneProxy::HasDynamicIndirectShadowCasterRepresentation() const
 {
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GenerateMeshDistanceFields"));
-	// Self shadowing detection reuses the distance field GBuffer bit, so disable when distance field features are in use
-	return CastsDynamicShadow() && CastsCapsuleIndirectShadow() && CVar->GetValueOnRenderThread() == 0;
+	return CastsDynamicShadow() && CastsDynamicIndirectShadow();
 }
 
 void FSkeletalMeshSceneProxy::GetShadowShapes(TArray<FCapsuleShape>& CapsuleShapes) const 

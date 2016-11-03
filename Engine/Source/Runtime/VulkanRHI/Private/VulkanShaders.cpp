@@ -587,11 +587,9 @@ bool FVulkanComputeShaderState::UpdateDescriptorSets(FVulkanCommandListContext* 
 	int32 DescriptorSetIndex = 0;
 	do
 	{
-#if VULKAN_USE_RING_BUFFER_FOR_GLOBAL_UBS
 		// this is an optimization for the ring buffer to only truly lock once for all uniforms
-		FVulkanRingBuffer* RingBuffer = Device->GetUBRingBuffer();
+		FVulkanRingBuffer* RingBuffer = CmdListContext->GetUBRingBuffer();
 		uint8* RingBufferBase = (uint8*)RingBuffer->GetMappedPointer();
-#endif
 
 		FVulkanShader* StageShader = ComputeShader;
 		if (!StageShader)
@@ -1509,7 +1507,6 @@ FORCEINLINE_DEBUGGABLE void FVulkanShaderState::UpdateDescriptorSetsForStage(FVu
 				//Get a uniform buffer from the dynamic pool
 				int32 UBSize = PackedUniformBuffer->Num();
 
-#if VULKAN_USE_RING_BUFFER_FOR_GLOBAL_UBS
 				// get offset into the RingBufferBase pointer
 				uint64 RingBufferOffset = RingBuffer->AllocateMemory(UBSize, Device->GetLimits().minUniformBufferOffsetAlignment);
 
@@ -1522,22 +1519,6 @@ FORCEINLINE_DEBUGGABLE void FVulkanShaderState::UpdateDescriptorSetsForStage(FVu
 				BufferInfo->buffer = RingBuffer->GetHandle();
 				BufferInfo->offset = RingBufferOffset + RingBuffer->GetBufferOffset();
 				BufferInfo->range = UBSize;
-
-#else
-				FVulkanPooledUniformBuffer* GlobalUniformBuffer = GlobalUniformPool->GetGlobalUniformBufferFromPool(*Device, UBSize).GetReference();
-				FVulkanBuffer& CurrentBuffer = GlobalUniformBuffer->Buffer;
-
-				void* BufferPtr = CurrentBuffer.Lock(UBSize);
-				FMemory::Memcpy(BufferPtr, PackedUniformBuffer->GetData(), UBSize);
-				CurrentBuffer.Unlock();
-
-				// Here we can specify a more precise buffer update
-				// However, this need to complemented with the buffer map/unmap functionality.
-				//@NOTE: bufferView is for texel buffers
-				BufferInfo->buffer = CurrentBuffer.GetBufferHandle();
-				BufferInfo->range = UBSize;
-
-#endif
 
 				VkWriteDescriptorSet* WriteDesc = &DescriptorWrites[WriteIndex++];
 				WriteDesc->dstSet = DescriptorSet;
@@ -1573,11 +1554,9 @@ bool FVulkanBoundShaderState::UpdateDescriptorSets(FVulkanCommandListContext* Cm
 	const TArray<VkDescriptorSet>& DescriptorSetHandles = CurrDescriptorSets->GetHandles();
 	int32 DescriptorSetIndex = 0;
 
-#if VULKAN_USE_RING_BUFFER_FOR_GLOBAL_UBS
 	// this is an optimization for the ring buffer to only truly lock once for all uniforms
-	FVulkanRingBuffer* RingBuffer = Device->GetUBRingBuffer();
+	FVulkanRingBuffer* RingBuffer = CmdListContext->GetUBRingBuffer();
 	uint8* RingBufferBase = (uint8*)RingBuffer->GetMappedPointer();
-#endif
 
 	//#todo-rco: Compute!
 	static_assert(SF_Geometry + 1 == SF_Compute, "Loop assumes compute is after gfx stages!");

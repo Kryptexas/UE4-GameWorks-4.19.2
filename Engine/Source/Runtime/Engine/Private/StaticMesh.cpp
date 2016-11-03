@@ -1395,7 +1395,7 @@ void FStaticMeshRenderData::Cache(UStaticMesh* Owner, const FStaticMeshLODSettin
 
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GenerateMeshDistanceFields"));
 
-	if (CVar->GetValueOnGameThread() != 0)
+	if (CVar->GetValueOnGameThread() != 0 || Owner->bGenerateMeshDistanceField)
 	{
 		FString DistanceFieldKey = BuildDistanceFieldDerivedDataKey(DerivedDataKey);
 		if (LODResources.IsValidIndex(0))

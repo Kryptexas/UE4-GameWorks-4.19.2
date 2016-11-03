@@ -460,6 +460,13 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=StaticMesh, meta=(ToolTip="The light map coordinate index"))
 	int32 LightMapCoordinateIndex;
 
+	/** 
+	 * Whether to generate a distance field for this mesh, which can be used by DistanceField Indirect Shadows.
+	 * This is ignored if the project's 'Generate Mesh Distance Fields' setting is enabled.
+	 */
+	UPROPERTY(EditAnywhere, Category=StaticMesh)
+	uint32 bGenerateMeshDistanceField : 1;
+
 	// Physics data.
 	UPROPERTY(EditAnywhere, transient, duplicatetransient, Instanced, Category = StaticMesh)
 	class UBodySetup* BodySetup;

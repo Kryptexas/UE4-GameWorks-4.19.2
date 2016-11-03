@@ -38,7 +38,9 @@ namespace VulkanRHI
 
 enum
 {
-	NUM_QUERIES_PER_POOL = 128,
+	NUM_OCCLUSION_QUERIES_PER_POOL = 4096,
+
+	NUM_TIMESTAMP_QUERIES_PER_POOL = 1024,
 };
 
 
@@ -514,7 +516,46 @@ protected:
 	const uint32 NumQueries;
 	const VkQueryType QueryType;
 
+	TArray<uint64> QueryOutput;
+
 	friend class FVulkanDynamicRHI;
+};
+
+
+class FVulkanTimestampPool : public FVulkanQueryPool
+{
+public:
+	FVulkanTimestampPool(FVulkanDevice* InDevice, uint32 InNumQueries);
+
+	void Begin(FVulkanCmdBuffer* CmdBuffer);
+	void End(FVulkanCmdBuffer* CmdBuffer);
+	bool ReadResults(uint64* OutBeginEnd);
+
+	enum class EState : uint8
+	{
+		Undefined,
+		WrittenBegin,
+		WrittenEnd,
+		Read,
+	};
+
+	struct FInfo
+	{
+		FVulkanCmdBuffer* CmdBuffer;
+		uint64 FenceCounter;
+		EState State;
+
+		FInfo()
+			: CmdBuffer(nullptr)
+			, FenceCounter(0)
+			, State(EState::Undefined)
+		{
+		}
+	};
+	uint32 BeginCounter;
+	double SecondsPerTimestamp;
+	double TimeStampsPerSeconds;
+	FInfo Infos[NUM_RENDER_BUFFERS];
 };
 
 class FVulkanOcclusionQueryPool : public FVulkanQueryPool
@@ -522,176 +563,108 @@ class FVulkanOcclusionQueryPool : public FVulkanQueryPool
 public:
 	FVulkanOcclusionQueryPool(FVulkanDevice* InDevice, uint32 InNumQueries)
 		: FVulkanQueryPool(InDevice, InNumQueries, VK_QUERY_TYPE_OCCLUSION)
-		, CurrentBatchIndex(0)
-		, NextIndexForBatch(0)
-		, LastFrameResultsRead(0)
-		, LastFrameResultsEnded(0)
+		, LastBeginIndex(0)
 	{
 		QueryOutput.SetNum(InNumQueries);
-		Batches.Add(FBatch());
+		UsedQueryBits.AddZeroed((InNumQueries + 63) / 64);
+		ReadResultsBits.AddZeroed((InNumQueries + 63) / 64);
 	}
 
-	inline bool CanFitOneQuery() const
+	bool AcquireQuery(uint32& OutIndex)
 	{
-		return Batches[CurrentBatchIndex].StartIndex + Batches[CurrentBatchIndex].NumIndices < NumQueries;
-	}
-
-	inline void StartBatch()
-	{
-		ensure(NextIndexForBatch < NumQueries);
-		Batches[CurrentBatchIndex].Begin(NextIndexForBatch);
-	}
-
-	void EndBatch(FVulkanCmdBuffer* InCmdBuffer, uint32 InFrameNumber)
-	{
-		Batches[CurrentBatchIndex].End(InCmdBuffer);
-		NextIndexForBatch += Batches[CurrentBatchIndex].NumIndices;
-		if (NextIndexForBatch < NumQueries)
+		const uint64 AllUsedMask = (uint64)-1;
+		for (int32 WordIndex = LastBeginIndex / 64; WordIndex < UsedQueryBits.Num(); ++WordIndex)
 		{
-			++CurrentBatchIndex;
-			if (CurrentBatchIndex == Batches.Num())
+			uint64 BeginQueryWord = UsedQueryBits[WordIndex];
+			if (BeginQueryWord != AllUsedMask)
 			{
-				Batches.Add(FBatch());
+				OutIndex = 0;
+				while ((BeginQueryWord & 1) == 1)
+				{
+					++OutIndex;
+					BeginQueryWord >>= 1;
+				}
+				OutIndex += WordIndex * 64;
+				uint64 Bit = (uint64)1 << (uint64)OutIndex;
+				UsedQueryBits[WordIndex] = UsedQueryBits[WordIndex] | Bit;
+				ReadResultsBits[WordIndex] &= ~Bit;
+				LastBeginIndex = OutIndex + 1;
+				return true;
 			}
 		}
-		LastFrameResultsEnded = InFrameNumber;
+
+		// Full!
+		return false;
+	}
+
+	void ReleaseQuery(uint32 QueryIndex)
+	{
+		uint32 Word = QueryIndex / 64;
+		uint64 Bit = (uint64)1 << (QueryIndex % 64);
+		UsedQueryBits[Word] = UsedQueryBits[Word] & ~Bit;
+		ReadResultsBits[Word] = ReadResultsBits[Word] & ~Bit;
+		if (QueryIndex < LastBeginIndex)
+		{
+			// Use the lowest word available
+			const uint64 AllUsedMask = (uint64)-1;
+			if (UsedQueryBits[LastBeginIndex / 64] == AllUsedMask)
+			{
+				LastBeginIndex = QueryIndex;
+			}
+		}
+	}
+
+	void ResetIfRead(VkCommandBuffer CmdBuffer, uint32 QueryIndex)
+	{
+		uint32 Word = QueryIndex / 64;
+		uint64 Bit = (uint64)1 << (QueryIndex % 64);
+		if ((ReadResultsBits[Word] & Bit) == Bit)
+		{
+			VulkanRHI::vkCmdResetQueryPool(CmdBuffer, QueryPool, QueryIndex, 1);
+			ReadResultsBits[Word] = ReadResultsBits[Word] & ~Bit;
+		}
 	}
 
 	bool GetResults(class FVulkanCommandListContext& Context, class FVulkanRenderQuery* Query, bool bWait, uint64& OutNumPixels);
 
-	void Compact();
-
-	inline bool HasBatches() const
+	bool HasRoom() const
 	{
-		return Batches.Num() > 0;
+		const uint64 AllUsedMask = (uint64)-1;
+		if (LastBeginIndex < UsedQueryBits.Num() * 64)
+		{
+			check((UsedQueryBits[LastBeginIndex / 64] & AllUsedMask) != AllUsedMask);
+			return true;
+		}
+
+		return false;
 	}
 
-	inline uint32 GetLastFrameResultsRead() const
-	{
-		return LastFrameResultsRead;
-	}
-
-	inline uint32 GetLastFrameResultsEnded() const
-	{
-		return LastFrameResultsEnded;
-	}
+	bool HasExpired() const {return false;}
 
 protected:
-	struct FBatch
-	{
-		FVulkanCmdBuffer* CmdBuffer;
-		uint64 Fence;
+	TArray<uint64> UsedQueryBits;
+	TArray<uint64> ReadResultsBits;
 
-		uint32 StartIndex;
-		uint32 NumIndices;
-
-		enum EState
-		{
-			EAvailable,
-			EBatchBegun,
-			EBatchEnded,
-			ESubmittedWithoutWait,
-			ERead,
-		};
-
-		EState State;
-
-		FBatch()
-			: CmdBuffer(nullptr)
-			, Fence(0)
-			, StartIndex(0)
-			, NumIndices(0)
-			, State(EAvailable)
-		{
-		}
-
-		bool HasFenceBeenSignaled() const;
-		void Begin(int32 InStartIndex)
-		{
-			ensure(State == EAvailable);
-			StartIndex = InStartIndex;
-			State = EBatchBegun;
-		}
-		
-		void End(FVulkanCmdBuffer* InCmdBuffer);
-	};
-
-	int32 CurrentBatchIndex;
-	TArray<FBatch> Batches;
-	uint32 NextIndexForBatch;
-	TArray<uint64> QueryOutput;
-
-	uint32 LastFrameResultsRead;
-	uint32 LastFrameResultsEnded;
+	// Last potentially free index in the pool
+	uint64 LastBeginIndex;
 
 	friend class FVulkanCommandListContext;
-};
-
-class FVulkanTimestampQueryPool : public FVulkanQueryPool
-{
-public:
-	enum
-	{
-		StartFrame = 0,
-		EndFrame = 1,
-		StartUser = 2,
-
-		//#todo-rco: What is the limit?
-		MaxNumUser = 62,
-
-		TotalQueries = MaxNumUser + StartUser,
-	};
-
-	FVulkanTimestampQueryPool(FVulkanDevice* InDevice);
-	virtual ~FVulkanTimestampQueryPool(){}
-
-	void WriteStartFrame(VkCommandBuffer CmdBuffer);
-	void WriteEndFrame(FVulkanCmdBuffer* CmdBuffer);
-
-	void CalculateFrameTime();
-
-	inline double GetTimeStampsPerSecond() const
-	{
-		return TimeStampsPerSeconds;
-	}
-
-	inline double GetSecondsPerTimestamp() const
-	{
-		return SecondsPerTimestamp;
-	}
-
-	void ResetUserQueries();
-
-	// Returns -1 if there is no more room
-	int32 AllocateUserQuery();
-
-	void WriteTimestamp(VkCommandBuffer CmdBuffer, int32 UserQuery, VkPipelineStageFlagBits PipelineStageBits);
-
-	uint32 CalculateTimeFromUserQueries(int32 UserBegin, int32 UserEnd, bool bWait);
-
-protected:
-	double TimeStampsPerSeconds;
-	double SecondsPerTimestamp;
-	int32 UsedUserQueries;
-	bool bFirst;
-
-	FVulkanCmdBuffer* LastEndCmdBuffer;
-	uint64 LastFenceSignaledCounter;
 };
 
 class FVulkanRenderQuery : public FRHIRenderQuery
 {
 public:
 	FVulkanRenderQuery(FVulkanDevice* Device, ERenderQueryType InQueryType);
-	virtual ~FVulkanRenderQuery() {}
+	virtual ~FVulkanRenderQuery();
 
 private:
 	// Actual index and pool filled in after RHIBeginOcclusionQueryBatch
-	int32 QueryIndex;
-	ERenderQueryType QueryType;
 	FVulkanQueryPool* QueryPool;
+	int32 QueryIndex;
+
+	ERenderQueryType QueryType;
 	FVulkanCmdBuffer* CurrentCmdBuffer;
-	int32 CurrentBatch;
+
 	friend class FVulkanDynamicRHI;
 	friend class FVulkanCommandListContext;
 	friend class FVulkanOcclusionQueryPool;

@@ -119,6 +119,8 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 	LevelColor = FLinearColor(1,1,1);
 	PropertyColor = FLinearColor(1,1,1);
 	bSupportsDistanceFieldRepresentation = true;
+	bCastsDynamicIndirectShadow = InComponent->bCastDynamicShadow && InComponent->CastShadow && InComponent->bCastDistanceFieldIndirectShadow && InComponent->Mobility != EComponentMobility::Static;
+	DynamicIndirectShadowMinVisibility = FMath::Clamp(InComponent->DistanceFieldIndirectShadowMinVisibility, 0.0f, 1.0f);
 
 	const auto FeatureLevel = GetScene().GetFeatureLevel();
 
@@ -1332,6 +1334,11 @@ void FStaticMeshSceneProxy::GetDistanceFieldInstanceInfo(int32& NumInstances, fl
 bool FStaticMeshSceneProxy::HasDistanceFieldRepresentation() const
 {
 	return CastsDynamicShadow() && AffectsDistanceFieldLighting() && DistanceFieldData && DistanceFieldData->VolumeTexture.IsValidDistanceFieldVolume();
+}
+
+bool FStaticMeshSceneProxy::HasDynamicIndirectShadowCasterRepresentation() const
+{
+	return bCastsDynamicIndirectShadow && FStaticMeshSceneProxy::HasDistanceFieldRepresentation();
 }
 
 /** Initialization constructor. */

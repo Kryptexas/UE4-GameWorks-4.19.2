@@ -178,6 +178,7 @@ FBoxSphereBounds ULightComponentBase::GetPlacementExtent() const
 FLightSceneProxy::FLightSceneProxy(const ULightComponent* InLightComponent)
 	: LightComponent(InLightComponent)
 	, IndirectLightingScale(InLightComponent->IndirectLightingIntensity)
+	, ShadowResolutionScale(InLightComponent->ShadowResolutionScale)
 	, ShadowBias(InLightComponent->ShadowBias)
 	, ShadowSharpen(InLightComponent->ShadowSharpen)
 	, ContactShadowLength(InLightComponent->ContactShadowLength)
@@ -313,6 +314,7 @@ ULightComponent::ULightComponent(const FObjectInitializer& ObjectInitializer)
 	bUseTemperature = false;
 	PreviewShadowMapChannel = INDEX_NONE;
 	IndirectLightingIntensity = 1.0f;
+	ShadowResolutionScale = 1.0f;
 	ShadowBias = 0.5f;
 	ShadowSharpen = 0.0f;
 	ContactShadowLength = 0.0f;
@@ -540,6 +542,7 @@ void ULightComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, LightFunctionScale) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, LightFunctionFadeDistance) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, DisabledBrightness) &&
+		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, ShadowResolutionScale) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, ShadowBias) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, ShadowSharpen) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, ContactShadowLength) &&

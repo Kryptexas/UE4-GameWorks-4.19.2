@@ -5,34 +5,102 @@
 =============================================================================*/
 
 #include "VulkanRHIPrivate.h"
+#include "VulkanPendingState.h"
 
 namespace VulkanRHI
 {
 	namespace BlendState
 	{
+		enum
+		{
+			NUMBITS_BLENDFACTOR = 5,
+			NUMBITS_BLENDOP = 3,
+			NUMBITS_COLORCOMPONENTFLAGS = 4,
+		};
+		union FBlendKeyPerRT
+		{
+			struct
+			{
+				uint32 SrcColorBlendFactor	: NUMBITS_BLENDFACTOR;
+				uint32 DstColorBlendFactor	: NUMBITS_BLENDFACTOR;
+				uint32 ColorBlendOp			: NUMBITS_BLENDOP;
+				uint32 SrcAlphaBlendFactor	: NUMBITS_BLENDFACTOR;
+				uint32 DstAlphaBlendFactor	: NUMBITS_BLENDFACTOR;
+				uint32 AlphaBlendOp			: NUMBITS_BLENDOP;
+				uint32 ColorWriteMask		: NUMBITS_COLORCOMPONENTFLAGS;
+				uint32 : 0;
+			};
+
+			static_assert(VK_BLEND_FACTOR_END_RANGE < (1 << NUMBITS_BLENDFACTOR), "Out of bits!");
+			static_assert(VK_BLEND_OP_END_RANGE < (1 << NUMBITS_BLENDOP), "Out of bits!");
+
+			FBlendKeyPerRT(const VkPipelineColorBlendAttachmentState& In)
+			{
+				Combined = 0;
+				SrcColorBlendFactor = In.srcColorBlendFactor;
+				DstColorBlendFactor = In.dstColorBlendFactor;
+				ColorBlendOp = In.colorBlendOp;
+				SrcAlphaBlendFactor = In.srcAlphaBlendFactor;
+				DstAlphaBlendFactor = In.dstAlphaBlendFactor;
+				AlphaBlendOp = In.alphaBlendOp;
+				ColorWriteMask = In.colorWriteMask;
+			}
+			uint32 Combined;
+		};
+
+		static_assert(sizeof(FBlendKeyPerRT) == sizeof(uint32), "Out of bits!");
+
+		// Unique entry per state
+		TArray<uint32> BlendAttachmentStateList;
+
 		// this tracks blend settings (in a bit flag) into a unique key that uses few bits, for PipelineState MRT setup
-		TMap<uint32, uint8> SettingsToUniqueKeyMap;
+		TMap<uint64, uint8> SettingsToUniqueKeyMap;
 		uint8 NextKey = 0;
 		FCriticalSection Lock;
 
-		void BlendStateToKeys(const uint32* BlendBitMasks, uint8* OutBlendStateKeys)
+		uint64 BlendStateToKey(const VkPipelineColorBlendAttachmentState* BlendStates)
 		{
 			FScopeLock ScopeLock(&Lock);
-
-			for (uint32 Index = 0; Index < MaxSimultaneousRenderTargets; ++Index)
+			uint32 CombinedKey = 0;
+			// Process them backwards as usually the last ones are default and we want those first in the cache
+			for (int32 Index = MaxSimultaneousRenderTargets - 1; Index >= 0; --Index)
 			{
-				uint8* Key = SettingsToUniqueKeyMap.Find(BlendBitMasks[Index]);
-				if (Key == NULL)
+				int32 Found = -1;
+				FBlendKeyPerRT KeyPerRT(BlendStates[Index]);
+				for (int32 StateIndex = 0; StateIndex < BlendAttachmentStateList.Num(); ++StateIndex)
 				{
-					Key = &SettingsToUniqueKeyMap.Add(BlendBitMasks[Index], NextKey++);
-
-					// only giving 4 bits to the key, since we need to pack a bunch of them into 64 bits
-					checkf(NextKey < 16, TEXT("Too many unique blend states to fit into the PipelineStateHash"));
+					// sizeof VkPipelineColorBlendAttachmentState == 32, so probably would take longer to calculate a hash...
+					if (KeyPerRT.Combined == BlendAttachmentStateList[StateIndex])
+					{
+						Found = StateIndex;
+						break;
+					}
 				}
 
-				// set the key
-				OutBlendStateKeys[Index] = *Key;
+				if (Found == -1)
+				{
+					Found = BlendAttachmentStateList.Add(KeyPerRT.Combined);
+				}
+				static_assert(MaxSimultaneousRenderTargets <= 8, "This breaks the key for blend state!");
+				checkf(Found < 256, TEXT("(Assumed 8 bits per blendstate) * RT = 64 bits, and we have > 256 unique attachment blend states"));
+				CombinedKey = (CombinedKey << 8) | Found;
 			}
+
+			// Now find the global key combination
+			uint8* Found = SettingsToUniqueKeyMap.Find(CombinedKey);
+			uint64 Key = 0;
+			if (Found)
+			{
+				Key = *Found;
+			}
+			else
+			{
+				Key = NextKey;
+				SettingsToUniqueKeyMap.Add(CombinedKey, NextKey++);
+				check(NextKey < (1 << VulkanRHI::NUMBITS_BLEND_STATE));
+			}
+
+			return Key;
 		}
 	}
 
@@ -55,7 +123,7 @@ namespace VulkanRHI
 			{
 				Key = &SettingsToUniqueKeyMap.Add(StencilBitMask, NextKey++);
 
-				checkf(NextKey < 16, TEXT("Too many unique stencil states to fit into the PipelineStateHash"));
+				checkf(NextKey < (1 << NUMBITS_STENCIL_STATE), TEXT("Too many unique stencil states to fit into the PipelineStateHash"));
 			}
 
 			return *Key;
@@ -395,7 +463,6 @@ FVulkanDepthStencilState::FVulkanDepthStencilState(const FDepthStencilStateIniti
 
 FVulkanBlendState::FVulkanBlendState(const FBlendStateInitializerRHI& Initializer)
 {
-	uint32 BlendBitMasks[MaxSimultaneousRenderTargets];
 	for (uint32 Index = 0; Index < MaxSimultaneousRenderTargets; ++Index)
 	{
 		const FBlendStateInitializerRHI::FRenderTarget& ColorTarget = Initializer.RenderTargets[Index];
@@ -419,16 +486,9 @@ FVulkanBlendState::FVulkanBlendState(const FBlendStateInitializerRHI& Initialize
 		BlendState.colorWriteMask |= (ColorTarget.ColorWriteMask & CW_GREEN) ? VK_COLOR_COMPONENT_G_BIT : 0;
 		BlendState.colorWriteMask |= (ColorTarget.ColorWriteMask & CW_BLUE) ? VK_COLOR_COMPONENT_B_BIT : 0;
 		BlendState.colorWriteMask |= (ColorTarget.ColorWriteMask & CW_ALPHA) ? VK_COLOR_COMPONENT_A_BIT : 0;
-
-
-		// get the unique key
-		BlendBitMasks[Index] =
-			(BlendState.srcColorBlendFactor << 0) | (BlendState.dstColorBlendFactor << 4) | (BlendState.colorBlendOp << 8) |
-			(BlendState.srcAlphaBlendFactor << 11) | (BlendState.dstAlphaBlendFactor << 15) | (BlendState.alphaBlendOp << 19) |
-			(BlendState.colorWriteMask << 22);
 	}
 
-	VulkanRHI::BlendState::BlendStateToKeys(BlendBitMasks, BlendStateKeys);
+	BlendStateKey = VulkanRHI::BlendState::BlendStateToKey(BlendStates);
 }
 
 FSamplerStateRHIRef FVulkanDynamicRHI::RHICreateSamplerState(const FSamplerStateInitializerRHI& Initializer)

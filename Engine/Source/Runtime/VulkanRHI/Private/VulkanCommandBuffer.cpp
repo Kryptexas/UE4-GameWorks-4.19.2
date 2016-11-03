@@ -6,6 +6,7 @@
 
 #include "VulkanRHIPrivate.h"
 #include "VulkanCommandBuffer.h"
+#include "VulkanContext.h"
 
 FVulkanCmdBuffer::FVulkanCmdBuffer(FVulkanDevice* InDevice, FVulkanCommandBufferManager* InCommandBufferManager)
 	: bNeedsDynamicStateSet(true)
@@ -108,7 +109,7 @@ void FVulkanCmdBuffer::RefreshFenceStatus()
 }
 
 
-FVulkanCommandBufferManager::FVulkanCommandBufferManager(FVulkanDevice* InDevice)
+FVulkanCommandBufferManager::FVulkanCommandBufferManager(FVulkanDevice* InDevice, FVulkanCommandListContext* InContext)
 	: Device(InDevice)
 	, Handle(VK_NULL_HANDLE)
 	, ActiveCmdBuffer(nullptr)
@@ -126,6 +127,9 @@ FVulkanCommandBufferManager::FVulkanCommandBufferManager(FVulkanDevice* InDevice
 
 	ActiveCmdBuffer = Create();
 	ActiveCmdBuffer->Begin();
+
+	// Insert the Begin frame timestamp query. On EndDrawingViewport() we'll insert the End and immediately after a new Begin()
+	InContext->WriteBeginTimestamp(ActiveCmdBuffer);
 }
 
 FVulkanCommandBufferManager::~FVulkanCommandBufferManager()
@@ -139,19 +143,30 @@ FVulkanCommandBufferManager::~FVulkanCommandBufferManager()
 	VulkanRHI::vkDestroyCommandPool(Device->GetInstanceHandle(), Handle, nullptr);
 }
 
+void FVulkanCommandBufferManager::WaitForCmdBuffer(FVulkanCmdBuffer* CmdBuffer, float TimeInSecondsToWait)
+{
+	check(CmdBuffer->IsSubmitted());
+	bool bSuccess = Device->GetFenceManager().WaitForFence(CmdBuffer->Fence, (uint64)(TimeInSecondsToWait * 1e9));
+	check(bSuccess);
+	CmdBuffer->RefreshFenceStatus();
+}
+
+
 void FVulkanCommandBufferManager::SubmitUploadCmdBuffer(bool bWaitForFence)
 {
 	check(UploadCmdBuffer);
 	check(UploadCmdBuffer->IsOutsideRenderPass());
 	UploadCmdBuffer->End();
 	Device->GetQueue()->Submit(UploadCmdBuffer, nullptr, 0, nullptr);
-	UploadCmdBuffer = nullptr;
-
 	if (bWaitForFence)
 	{
-		Device->WaitUntilIdle();
-		RefreshFenceStatus();
+		if (UploadCmdBuffer->IsSubmitted())
+		{
+			WaitForCmdBuffer(UploadCmdBuffer);
+		}
 	}
+
+	UploadCmdBuffer = nullptr;
 }
 
 void FVulkanCommandBufferManager::SubmitActiveCmdBuffer(bool bWaitForFence)
@@ -161,13 +176,15 @@ void FVulkanCommandBufferManager::SubmitActiveCmdBuffer(bool bWaitForFence)
 	check(ActiveCmdBuffer->IsOutsideRenderPass());
 	ActiveCmdBuffer->End();
 	Device->GetQueue()->Submit(ActiveCmdBuffer, nullptr, 0, nullptr);
-	ActiveCmdBuffer = nullptr;
-
 	if (bWaitForFence)
 	{
-		Device->WaitUntilIdle();
-		RefreshFenceStatus();
+		if (ActiveCmdBuffer->IsSubmitted())
+		{
+			WaitForCmdBuffer(ActiveCmdBuffer);
+		}
 	}
+
+	ActiveCmdBuffer = nullptr;
 }
 
 FVulkanCmdBuffer* FVulkanCommandBufferManager::Create()

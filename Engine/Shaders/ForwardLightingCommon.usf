@@ -30,7 +30,7 @@ float GetIndirectOcclusion(float4 ScreenPosition, FGBufferData GBufferData)
 #endif
 
 	// Reduce self shadowing intensity on characters (reuse distance field bit, really should be HasCapsuleShadowRepresentation)
-	IndirectOcclusion = lerp(1, IndirectOcclusion, HasDistanceFieldRepresentation(GBufferData) ? View.IndirectCapsuleSelfShadowingIntensity : 1);
+	IndirectOcclusion = lerp(1, IndirectOcclusion, HasDynamicIndirectShadowCasterRepresentation(GBufferData) ? View.IndirectCapsuleSelfShadowingIntensity : 1);
 
 	return IndirectOcclusion;
 }

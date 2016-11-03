@@ -51,5 +51,6 @@ public:
 
 	// array the pipeline state can point right to
 	VkPipelineColorBlendAttachmentState BlendStates[MaxSimultaneousRenderTargets];
-	uint8 BlendStateKeys[MaxSimultaneousRenderTargets];
+
+	uint64 BlendStateKey;
 };

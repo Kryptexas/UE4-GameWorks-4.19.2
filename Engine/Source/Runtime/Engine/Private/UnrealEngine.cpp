@@ -334,12 +334,17 @@ void ScalabilityCVarsSinkCallback()
 	}
 }
 
+static bool GHDROutputEnabled = false;
+
 void SystemResolutionSinkCallback()
 {
 	auto ResString = CVarSystemResolution->GetString();
 	
 	uint32 ResX, ResY;
 	int32 WindowModeInt = GSystemResolution.WindowMode;
+
+	static TConsoleVariableData<int32>* CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
+	bool bHDROutputEnabled = CVarHDROutputEnabled->GetValueOnAnyThread() != 0;
 	
 	if (FParse::Resolution(*ResString, ResX, ResY, WindowModeInt))
 	{
@@ -348,12 +353,14 @@ void SystemResolutionSinkCallback()
 		if( GSystemResolution.ResX != ResX ||
 			GSystemResolution.ResY != ResY ||
 			GSystemResolution.WindowMode != WindowMode ||
+			GHDROutputEnabled != bHDROutputEnabled ||
 			GSystemResolution.bForceRefresh)
 		{
 			GSystemResolution.ResX = ResX;
 			GSystemResolution.ResY = ResY;
 			GSystemResolution.WindowMode = WindowMode;
 			GSystemResolution.bForceRefresh = false;
+			GHDROutputEnabled = bHDROutputEnabled;
 
 			if(GEngine && GEngine->GameViewport && GEngine->GameViewport->ViewportFrame)
 			{

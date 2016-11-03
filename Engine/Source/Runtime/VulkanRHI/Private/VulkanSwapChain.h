@@ -27,6 +27,7 @@ protected:
 	int32 CurrentImageIndex;
 	int32 SemaphoreIndex;
 	TArray<FVulkanSemaphore*> ImageAcquiredSemaphore;
+	TArray<VkFence> ImageAcquiredFences;
 
 	int32 AcquireImageIndex(FVulkanSemaphore** OutSemaphore);
 

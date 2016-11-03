@@ -2766,7 +2766,22 @@ bool FDeferredShadingSceneRenderer::ShouldPrepareForDistanceFieldAO() const
 			|| (GDistanceFieldAOApplyToStaticIndirect && ViewFamily.EngineShowFlags.DistanceFieldAO));
 }
 
-bool FDeferredShadingSceneRenderer::ShouldPrepareDistanceFields() const
+bool FDeferredShadingSceneRenderer::ShouldPrepareDistanceFieldScene() const
+{
+	if (!ensure(Scene != nullptr))
+	{
+		return false;
+	}
+
+	bool bShouldPrepareForAO = SupportsDistanceFieldAO(Scene->GetFeatureLevel(), Scene->GetShaderPlatform()) && ShouldPrepareForDistanceFieldAO();
+	bool bShouldPrepareGlobalDistanceField = ShouldPrepareGlobalDistanceField();
+	bool bShouldPrepareForDFInsetIndirectShadow = ShouldPrepareForDFInsetIndirectShadow();
+
+	// Prepare the distance field scene (object buffers and distance field atlas) if any feature needs it
+	return bShouldPrepareGlobalDistanceField || bShouldPrepareForAO || ShouldPrepareForDistanceFieldShadows() || bShouldPrepareForDFInsetIndirectShadow;
+}
+
+bool FDeferredShadingSceneRenderer::ShouldPrepareGlobalDistanceField() const
 {
 	if (!ensure(Scene != nullptr))
 	{
@@ -2778,7 +2793,7 @@ bool FDeferredShadingSceneRenderer::ShouldPrepareDistanceFields() const
 			|| ((Views.Num() > 0) && Views[0].bUsesGlobalDistanceField)
 			|| ((Scene->FXSystem != nullptr) && Scene->FXSystem->UsesGlobalDistanceField()));
 
-	return bShouldPrepareForAO || ShouldPrepareForDistanceFieldShadows();
+	return bShouldPrepareForAO && UseGlobalDistanceField();
 }
 
 void RenderDistanceFieldAOSurfaceCache(

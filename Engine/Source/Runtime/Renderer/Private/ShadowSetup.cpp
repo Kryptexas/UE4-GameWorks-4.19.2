@@ -1466,7 +1466,6 @@ void FSceneRenderer::CreatePerObjectProjectedShadow(
 	
 	// Compute the maximum resolution required for the shadow by any view. Also keep track of the unclamped resolution for fading.
 	uint32 MaxDesiredResolution = 0;
-	float MaxUnclampedResolution = 0;
 	float MaxScreenPercent = 0;
 	TArray<float, TInlineAllocator<2> > ResolutionFadeAlphas;
 	TArray<float, TInlineAllocator<2> > ResolutionPreShadowFadeAlphas;
@@ -1497,25 +1496,43 @@ void FSceneRenderer::CreatePerObjectProjectedShadow(
 
 		// Determine the amount of shadow buffer resolution needed for this view.
 		const float UnclampedResolution = ScreenRadius * CVarShadowTexelsPerPixel.GetValueOnRenderThread();
-		MaxUnclampedResolution = FMath::Max( MaxUnclampedResolution, UnclampedResolution );
-		MaxDesiredResolution = FMath::Max(
-			MaxDesiredResolution,
-			FMath::Clamp<uint32>(
-				UnclampedResolution,
-				FMath::Min<int32>(MinShadowResolution,ShadowBufferResolution.X - SHADOW_BORDER * 2),
-				MaxShadowResolution
-				)
-			);
 
 		// Calculate fading based on resolution
+		// Compute FadeAlpha before ShadowResolutionScale contribution (artists want to modify the softness of the shadow, not change the fade ranges)
 		const float ViewSpecificAlpha = CalculateShadowFadeAlpha( UnclampedResolution, ShadowFadeResolution, MinShadowResolution );
 		MaxResolutionFadeAlpha = FMath::Max(MaxResolutionFadeAlpha, ViewSpecificAlpha);
 		ResolutionFadeAlphas.Add(ViewSpecificAlpha);
 
-	
 		const float ViewSpecificPreShadowAlpha = CalculateShadowFadeAlpha(UnclampedResolution * CVarPreShadowResolutionFactor.GetValueOnRenderThread(), PreShadowFadeResolution, MinPreShadowResolution);
 		MaxResolutionPreShadowFadeAlpha = FMath::Max(MaxResolutionPreShadowFadeAlpha, ViewSpecificPreShadowAlpha);
 		ResolutionPreShadowFadeAlphas.Add(ViewSpecificPreShadowAlpha);
+
+		const float ShadowResolutionScale = LightSceneInfo->Proxy->GetShadowResolutionScale();
+
+		float ClampedResolution = UnclampedResolution;
+
+		if (ShadowResolutionScale > 1.0f)
+		{
+			// Apply ShadowResolutionScale before the MaxShadowResolution clamp if raising the resolution
+			ClampedResolution *= ShadowResolutionScale;
+		}
+
+		ClampedResolution = FMath::Min<float>(ClampedResolution, MaxShadowResolution);
+
+		if (ShadowResolutionScale <= 1.0f)
+		{
+			// Apply ShadowResolutionScale after the MaxShadowResolution clamp if lowering the resolution
+			// Artists want to modify the softness of the shadow with ShadowResolutionScale
+			ClampedResolution *= ShadowResolutionScale;
+		}
+
+		MaxDesiredResolution = FMath::Max(
+			MaxDesiredResolution,
+			FMath::Max<uint32>(
+				ClampedResolution,
+				FMath::Min<int32>(MinShadowResolution, ShadowBufferResolution.X - SHADOW_BORDER * 2)
+				)
+			);
 	}
 
 	FBoxSphereBounds Bounds = OriginalBounds;
@@ -1830,7 +1847,6 @@ void FSceneRenderer::CreateWholeSceneProjectedShadow(FLightSceneInfo* LightScene
 
 		// Compute the maximum resolution required for the shadow by any view. Also keep track of the unclamped resolution for fading.
 		float MaxDesiredResolution = 0;
-		float MaxUnclampedResolution = 0;
 		TArray<float, TInlineAllocator<2> > FadeAlphas;
 		float MaxFadeAlpha = 0;
 		bool bStaticSceneOnly = false;
@@ -1848,22 +1864,41 @@ void FSceneRenderer::CreateWholeSceneProjectedShadow(FLightSceneInfo* LightScene
 
 			// Determine the amount of shadow buffer resolution needed for this view.
 			const float UnclampedResolution = ScreenRadius * CVarShadowTexelsPerPixelSpotlight.GetValueOnRenderThread();
-			MaxUnclampedResolution = FMath::Max( MaxUnclampedResolution, UnclampedResolution );
+
+			// Compute FadeAlpha before ShadowResolutionScale contribution (artists want to modify the softness of the shadow, not change the fade ranges)
+			const float FadeAlpha = CalculateShadowFadeAlpha( UnclampedResolution, ShadowFadeResolution, MinShadowResolution );
+			MaxFadeAlpha = FMath::Max(MaxFadeAlpha, FadeAlpha);
+			FadeAlphas.Add(FadeAlpha);
+
+			const float ShadowResolutionScale = LightSceneInfo->Proxy->GetShadowResolutionScale();
+
+			float ClampedResolution = UnclampedResolution;
+
+			if (ShadowResolutionScale > 1.0f)
+			{
+				// Apply ShadowResolutionScale before the MaxShadowResolution clamp if raising the resolution
+				ClampedResolution *= ShadowResolutionScale;
+			}
+
+			ClampedResolution = FMath::Min<float>(ClampedResolution, MaxShadowResolution);
+
+			if (ShadowResolutionScale <= 1.0f)
+			{
+				// Apply ShadowResolutionScale after the MaxShadowResolution clamp if lowering the resolution
+				// Artists want to modify the softness of the shadow with ShadowResolutionScale
+				ClampedResolution *= ShadowResolutionScale;
+			}
+
 			MaxDesiredResolution = FMath::Max(
 				MaxDesiredResolution,
-				FMath::Clamp<float>(
-					UnclampedResolution,
-					FMath::Min<float>(MinShadowResolution,ShadowBufferResolution.X - EffectiveDoubleShadowBorder),
-					MaxShadowResolution
+				FMath::Max<float>(
+					ClampedResolution,
+					FMath::Min<float>(MinShadowResolution, ShadowBufferResolution.X - EffectiveDoubleShadowBorder)
 					)
 				);
 
 			bStaticSceneOnly = bStaticSceneOnly || View.bStaticSceneOnly;
 			bAnyViewIsSceneCapture = bAnyViewIsSceneCapture || View.bIsSceneCapture;
-
-			const float FadeAlpha = CalculateShadowFadeAlpha( MaxUnclampedResolution, ShadowFadeResolution, MinShadowResolution );
-			MaxFadeAlpha = FMath::Max(MaxFadeAlpha, FadeAlpha);
-			FadeAlphas.Add(FadeAlpha);
 		}
 
 		if (MaxFadeAlpha > 1.0f / 256.0f)

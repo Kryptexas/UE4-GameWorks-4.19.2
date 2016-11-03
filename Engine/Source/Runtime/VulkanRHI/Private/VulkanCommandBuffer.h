@@ -77,7 +77,7 @@ public:
 		State = EState::HasEnded;
 	}
 
-	inline uint64 GetFenceSignaledCounter() const
+	inline volatile uint64 GetFenceSignaledCounter() const
 	{
 		return FenceSignaledCounter;
 	}
@@ -103,17 +103,19 @@ private:
 	// Do not cache this pointer as it might change depending on VULKAN_REUSE_FENCES
 	VulkanRHI::FFence* Fence;
 
-	uint64 FenceSignaledCounter;
+	volatile uint64 FenceSignaledCounter;
 
 	void RefreshFenceStatus();
 
 	FVulkanCommandBufferManager* CommandBufferManager;
+
+	friend class FVulkanDynamicRHI;
 };
 
 class FVulkanCommandBufferManager
 {
 public:
-	FVulkanCommandBufferManager(FVulkanDevice* InDevice);
+	FVulkanCommandBufferManager(FVulkanDevice* InDevice, FVulkanCommandListContext* InContext);
 
 	~FVulkanCommandBufferManager();
 
@@ -141,6 +143,8 @@ public:
 
 	void SubmitUploadCmdBuffer(bool bWaitForFence);
 	void SubmitActiveCmdBuffer(bool bWaitForFence);
+
+	void WaitForCmdBuffer(FVulkanCmdBuffer* CmdBuffer, float TimeInSecondsToWait = 1.0f);
 
 	void RefreshFenceStatus();
 	void PrepareForNewActiveCommandBuffer();

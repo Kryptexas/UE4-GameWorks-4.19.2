@@ -443,7 +443,8 @@ public:
 				FTranslucencyShadowDepthDrawingPolicy DrawingPolicy(Mesh.VertexFactory, MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(FeatureLevel), DrawingContext.bDirectionalLight);
 				RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
 				DrawingPolicy.SetSharedState(RHICmdList, &View, FTranslucencyShadowDepthDrawingPolicy::ContextDataType(DrawingContext.ShadowInfo));
-				const FMeshDrawingRenderState DrawRenderState(Mesh.DitheredLODTransitionAlpha);
+				FMeshDrawingRenderState DrawRenderState;
+				DrawRenderState.DitheredLODTransitionAlpha = Mesh.DitheredLODTransitionAlpha;
 
 				for (int32 BatchElementIndex = 0; BatchElementIndex < Mesh.Elements.Num(); BatchElementIndex++)
 				{
