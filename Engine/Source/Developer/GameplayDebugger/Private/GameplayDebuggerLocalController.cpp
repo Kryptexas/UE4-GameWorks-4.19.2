@@ -15,6 +15,7 @@
 
 #if WITH_EDITOR
 #include "Editor/GameplayDebuggerEdMode.h"
+#include "EditorModeManager.h"
 #endif // WITH_EDITOR
 
 UGameplayDebuggerLocalController::UGameplayDebuggerLocalController(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)

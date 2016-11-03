@@ -9,6 +9,9 @@
 #include "GameplayDebuggerPlayerManager.h"
 #include "GameplayDebuggerLocalController.h"
 
+#include "EditorModeManager.h"
+#include "EditorViewportClient.h"
+
 const FName FGameplayDebuggerEdMode::EM_GameplayDebugger = TEXT("EM_GameplayDebugger");
 
 void FGameplayDebuggerEdMode::Enter()

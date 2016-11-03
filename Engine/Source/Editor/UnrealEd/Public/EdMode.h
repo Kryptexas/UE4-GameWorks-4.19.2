@@ -2,6 +2,28 @@
 
 #pragma once
 
+#include "Editor.h"
+#include "EditorComponents.h"
+#include "EditorModeRegistry.h"
+#include "UnrealWidget.h"
+
+class FEditorViewportClient;
+struct FViewportClick;
+
+/** Outcomes when determining whether it's possible to perform an action on the edit modes*/
+namespace EEditAction
+{
+	enum Type
+	{
+		/** Can't process this action */
+		Skip		= 0,
+		/** Can process this action */
+		Process,
+		/** Stop evaluating other modes (early out) */
+		Halt,
+	};
+};
+
 /**
  * Base class for all editor modes.
  */
@@ -154,7 +176,7 @@ public:
 	void SelectNone();
 	virtual void SelectionChanged() {}
 
-	virtual bool HandleClick(FEditorViewportClient* InViewportClient, HHitProxy *HitProxy, const FViewportClick &Click);
+	virtual bool HandleClick(FEditorViewportClient* InViewportClient, HHitProxy* HitProxy, const FViewportClick& Click);
 
 	/** Handling SelectActor */
 	virtual bool Select( AActor* InActor, bool bInSelected ) { return 0; }

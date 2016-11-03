@@ -4,6 +4,7 @@
 
 #if WITH_EDITOR
 #include "Toolkits/BaseToolkit.h"
+#include "Layout/Visibility.h"
 
 class FGameplayDebuggerToolkit : public FModeToolkit
 {
