@@ -1,7 +1,7 @@
 Build scripts for native Linux build
 ====================================
 
-This document describes how to build Unreal Engine 4.14 natively on a Linux host. 
+This document describes how to build Unreal Engine natively on a Linux host. 
 The steps are described here are applicable to the current build, but you may
 want to visit https://wiki.unrealengine.com/Building_On_Linux for the
 latest updates on the process.
@@ -47,7 +47,7 @@ How to set up the sources for building, step by step:
 
 1. Clone EpicGames/UnrealEngine repository
 
-    ``git clone https://github.com/EpicGames/UnrealEngine -b 4.14``
+    ``git clone https://github.com/EpicGames/UnrealEngine -b release``
     
 2. Run Setup.sh once.
 
