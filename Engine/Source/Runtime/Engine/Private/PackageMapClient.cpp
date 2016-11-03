@@ -1142,6 +1142,8 @@ void UPackageMapClient::SerializeNetFieldExportGroupMap( FArchive& Ar )
 			// Read in the export group
 			Ar << *NetFieldExportGroup.Get();
 
+			GEngine->NetworkRemapPath(Connection->Driver, NetFieldExportGroup->PathName, true);
+
 			// Assign index to path name
 			GuidCache->NetFieldExportGroupPathToIndex.Add( NetFieldExportGroup->PathName, NetFieldExportGroup->PathNameIndex );
 			GuidCache->NetFieldExportGroupIndexToPath.Add( NetFieldExportGroup->PathNameIndex, NetFieldExportGroup->PathName );
@@ -1284,6 +1286,8 @@ void UPackageMapClient::ReceiveNetFieldExports( FInBunch &InBunch )
 		{
 			FString PathName;
 			InBunch << PathName;
+
+			GEngine->NetworkRemapPath(Connection->Driver, PathName, true);
 
 			InBunch << MaxExports;
 
