@@ -443,10 +443,19 @@ void FEdModeFoliage::OnVRHoverUpdate(FEditorViewportClient& ViewportClient, UVie
 		if (VREditorMode != nullptr && VREditorMode->IsFullyInitialized())
 		{
 			// Check if we're hovering over UI. If so, stop painting so we don't display the preview brush sphere
-			const UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>(Interactor);
-			if (VRInteractor->IsHoveringOverPriorityType())
+			if (FoliageInteractor && FoliageInteractor->IsHoveringOverPriorityType())
 			{
 				EndFoliageBrushTrace();
+				FoliageInteractor = nullptr;
+			}
+			// If there isn't currently a foliage interactor and we are hovering over something valid
+			else if (FoliageInteractor == nullptr && Interactor->GetHitResultFromLaserPointer().GetActor() != nullptr)
+			{
+				FoliageInteractor = Interactor;
+			}
+			// If we aren't hovering over something valid and the tool isn't active
+			else if (Interactor->GetHitResultFromLaserPointer().GetActor() == nullptr && !bToolActive)
+			{
 				FoliageInteractor = nullptr;
 			}
 
@@ -455,7 +464,7 @@ void FEdModeFoliage::OnVRHoverUpdate(FEditorViewportClient& ViewportClient, UVie
 			{
 				// Go ahead and paint immediately
 				FVector LaserPointerStart, LaserPointerEnd;
-				if (Interactor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd))
+				if (FoliageInteractor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd))
 				{
 					const FVector LaserPointerDirection = (LaserPointerEnd - LaserPointerStart).GetSafeNormal();
 
