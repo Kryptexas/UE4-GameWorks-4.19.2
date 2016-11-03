@@ -109,6 +109,7 @@ Architecture defines, see http://sourceforge.net/p/predef/wiki/Architectures/
 /**
 SIMD defines
 */
+#if !defined(PX_SIMD_DISABLED)
 #if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) || defined(_M_X64) || (defined (__EMSCRIPTEN__) && defined(__SSE2__))
 #define PX_SSE2 1
 #endif
@@ -117,6 +118,7 @@ SIMD defines
 #endif
 #if defined(_M_PPC) || defined(__CELLOS_LV2__)
 #define PX_VMX 1
+#endif
 #endif
 
 /**
