@@ -353,7 +353,8 @@ void USkeletalMeshComponent::OnRegister()
 	// variables propogate to the anim instance.
 	// This is done only in this case to limit the surface area of when we force a re-init 
 	// (which is an expensive operation).
-	bForceReInit = GIsEditor && GetWorld() && GetWorld()->WorldType == EWorldType::Editor;
+	const UWorld* OwnWorld = GetWorld();
+	bForceReInit = GIsEditor &&  OwnWorld && (OwnWorld->WorldType == EWorldType::Editor || OwnWorld->WorldType == EWorldType::Inactive);
 #endif
 	InitAnim(bForceReInit);
 
