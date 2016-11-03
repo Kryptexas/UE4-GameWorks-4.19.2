@@ -23,12 +23,13 @@ FDynamicRHI* PlatformCreateDynamicRHI()
 	FDynamicRHI* DynamicRHI = NULL;
 	IDynamicRHIModule* DynamicRHIModule = NULL;
 
-	bool const bAllowMetal = (GAppleMetalEnabled && FPlatformMisc::HasPlatformFeature(TEXT("Metal")));
+	bool const bIsMetalSupported = FPlatformMisc::HasPlatformFeature(TEXT("Metal"));
+	bool const bAllowMetal = (GAppleMetalEnabled && bIsMetalSupported);
 	bool const bAllowOpenGL = !GAppleOpenGLDisabled;
 
 #if PLATFORM_MAC
 	bool bForceMetal = bAllowMetal && (FParse::Param(FCommandLine::Get(),TEXT("metal")) || FParse::Param(FCommandLine::Get(),TEXT("metalsm5")));
-	bool bForceOpenGL = bAllowOpenGL && FParse::Param(FCommandLine::Get(),TEXT("opengl"));
+	bool bForceOpenGL = bAllowOpenGL && (FParse::Param(FCommandLine::Get(),TEXT("opengl")) || (!GAppleOpenGLDisabled && !bIsMetalSupported)); // Force OpenGL if Metal is not supported on this Mac
 #else
 	bool bForceMetal = bAllowMetal && (FParse::Param(FCommandLine::Get(),TEXT("metal")) || FParse::Param(FCommandLine::Get(),TEXT("metalmrt")));
 	bool bForceOpenGL = bAllowOpenGL && FParse::Param(FCommandLine::Get(),TEXT("es2"));
