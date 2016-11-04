@@ -35,7 +35,7 @@ private:
 	void StartVREditorMode( const bool bForceWithoutHMD );
 
 	/** Closes the current VR Editor if any and sets the WorldToMeters to back to the one from before entering the VR mode */
-	void CloseVREditor();
+	void CloseVREditor(const bool bHMDShouldExitStereo);
 
 	/** Directly set the GWorld WorldToMeters */
 	void SetDirectWorldToMeters( const float NewWorldToMeters );

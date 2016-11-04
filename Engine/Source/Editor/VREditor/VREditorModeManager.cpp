@@ -59,7 +59,9 @@ void FVREditorModeManager::Tick( const float DeltaTime )
 		UVREditorMode* VREditorMode = CurrentVREditorMode;
 		if( VREditorMode->WantsToExitMode() )
 		{
-			CloseVREditor();
+			// For a standard exit, also take the HMD out of stereo mode
+			const bool bHMDShouldExitStereo = true;
+			CloseVREditor( bHMDShouldExitStereo );
 
 			// Start the session if that was the reason to stop the VR Editor mode
 			if( VREditorMode->GetExitType() == EVREditorExitType::PIE_VR  || 
@@ -120,13 +122,15 @@ void FVREditorModeManager::EnableVREditor( const bool bEnable, const bool bForce
 	// Don't do anything when the current VR Editor is already in the requested state
 	if( bEnable != IsVREditorActive() )
 	{
-		if( bEnable && ( IsVREditorAvailable() || bForceWithoutHMD ) )
+		if( bEnable && ( IsVREditorAvailable() || bForceWithoutHMD ))
 		{
 			StartVREditorMode( bForceWithoutHMD );
 		}
 		else if( !bEnable )
 		{
-			CloseVREditor();
+			// For a standard exit, take the HMD out of stereo mode
+			const bool bHMDShouldExitStereo = true;
+			CloseVREditor( bHMDShouldExitStereo );
 		}
 	}
 }
@@ -172,7 +176,7 @@ void FVREditorModeManager::StartVREditorMode( const bool bForceWithoutHMD )
 	CurrentVREditorMode->Enter();
 }
 
-void FVREditorModeManager::CloseVREditor()
+void FVREditorModeManager::CloseVREditor( const bool bHMDShouldExitStereo )
 {
 	//Store the current WorldToMeters before exiting the mode
 	LastWorldToMeters = GWorld->GetWorldSettings()->WorldToMeters;
@@ -185,7 +189,7 @@ void FVREditorModeManager::CloseVREditor()
 
 	if( CurrentVREditorMode != nullptr )
 	{
-		CurrentVREditorMode->Exit();
+		CurrentVREditorMode->Exit( bHMDShouldExitStereo );
 		PreviousVREditorMode = CurrentVREditorMode;
 		CurrentVREditorMode = nullptr;
 	}
@@ -202,7 +206,9 @@ void FVREditorModeManager::OnMapChanged( UWorld* World, EMapChangeType MapChange
 {
 	if( CurrentVREditorMode && CurrentVREditorMode->IsActive() )
 	{
-		CloseVREditor();
+		// When changing maps, we are going to close VR editor mode but then reopen it, so don't take the HMD out of stereo mode
+		const bool bHMDShouldExitStereo = false;
+		CloseVREditor( bHMDShouldExitStereo );
 		bEnableVRRequest = true;
 	}
 	CurrentVREditorMode = nullptr;

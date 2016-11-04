@@ -83,7 +83,7 @@ public:
 	void Enter();
 
 	/** When the user leaves the VR Editor mode */
-	void Exit();
+	void Exit(const bool bHMDShouldExitStereo);
 
 	/** Tick before the ViewportWorldInteraction is ticked */
 	void PreTick( const float DeltaTime );
