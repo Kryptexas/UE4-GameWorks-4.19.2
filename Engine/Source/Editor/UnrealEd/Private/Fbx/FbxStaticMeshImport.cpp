@@ -1256,10 +1256,33 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 				FFbxErrors::StaticMesh_TooManyMaterials);
 		}
 		
+		//The fix is required for blender file. The static mesh build have change and now required that
+		//the sections (face declaration) must be declare in the same order as the material index
 		TArray<uint32> SortedMaterialIndex;
+		TArray<int32> UsedMaterials;
+		for (int32 FaceMaterialIndex = 0; FaceMaterialIndex < NewRawMesh.FaceMaterialIndices.Num(); ++FaceMaterialIndex)
+		{
+			int32 MaterialIndex = NewRawMesh.FaceMaterialIndices[FaceMaterialIndex];
+			if (!UsedMaterials.Contains(MaterialIndex))
+			{
+				int32 NewIndex = UsedMaterials.Add(MaterialIndex);
+				if (NewIndex != MaterialIndex)
+				{
+					bDoRemap = true;
+				}
+			}
+		}
 		for (int32 MaterialIndex = 0; MaterialIndex < MeshMaterials.Num(); ++MaterialIndex)
 		{
 			int32 SkinIndex = 0xffff;
+			if (bDoRemap)
+			{
+				int32 UsedIndex = 0;
+				if (UsedMaterials.Find(MaterialIndex, UsedIndex))
+				{
+					SkinIndex = UsedIndex;
+				}
+			}
 			int32 RemappedIndex = MaterialMap[MaterialIndex];
 			if (!SortedMaterialIndex.IsValidIndex(RemappedIndex))
 			{
