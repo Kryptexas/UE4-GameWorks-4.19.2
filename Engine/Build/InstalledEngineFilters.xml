@@ -8,7 +8,7 @@
 
 	<!-- List of file types to be stripped and signed for different platforms -->
 	<Property Name="Win64StripFilter" Value="*.pdb"/>
-	<Property Name="Win64StripExceptions" Value="Engine\Binaries\Win64\UE4Editor*.pdb;Engine\Plugins\2D\Paper2D\Binaries\Win64\UE4Editor*.pdb"/>
+	<Property Name="Win64StripExceptions" Value="Engine\Binaries\Win64\UE4Editor*.pdb;Engine\Plugins\...\Binaries\Win64\UE4Editor*.pdb"/>
 	<Property Name="Win32StripFilter" Value="*.pdb"/>
 	<Property Name="MacStripFilter" Value="*.a;"/>
 	<Property Name="AndroidStripFilter" Value="*.a;*.so"/>
@@ -82,7 +82,7 @@
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Source/ThirdParty/Licenses/..."/>
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Source/Programs/AutomationTool/..."/>
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Source/Programs/AutomationToolLauncher/..."/>
-	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Source/DotNETCommon/..."/>
+	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Source/Programs/DotNETCommon/..."/>
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Source/Programs/UnrealBuildTool/..."/>
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Source/Programs/UnrealHeaderTool/..."/>
 	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Engine/Source/Runtime/SQLiteSupport/..."/>
