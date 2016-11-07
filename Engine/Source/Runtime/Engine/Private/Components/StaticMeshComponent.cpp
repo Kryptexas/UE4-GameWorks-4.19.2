@@ -2133,23 +2133,27 @@ void UStaticMeshComponent::ApplyComponentInstanceData(FStaticMeshComponentInstan
 		return;
 	}
 
-	// See if data matches current state
-	if (StaticMeshInstanceData->CachedStaticLighting.Transform.Equals(ComponentToWorld, 1.e-3f))
-	{
-		const int32 NumLODLightMaps = StaticMeshInstanceData->CachedStaticLighting.MapBuildDataIds.Num();
-		SetLODDataCount(NumLODLightMaps, NumLODLightMaps);
+	const int32 NumLODLightMaps = StaticMeshInstanceData->CachedStaticLighting.MapBuildDataIds.Num();
 
-		for (int32 i = 0; i < NumLODLightMaps; ++i)
-		{
-			LODData[i].MapBuildDataId = StaticMeshInstanceData->CachedStaticLighting.MapBuildDataIds[i];
-		}
-	}
-	else
+	if (HasStaticLighting() && NumLODLightMaps > 0)
 	{
-		UE_LOG(LogStaticMesh, Warning, TEXT("Cached component instance data transform did not match!  Discarding cached lighting data which will cause lighting to be unbuilt.\n%s\nCurrent: %s Cached: %s"), 
-			*GetPathName(),
-			*ComponentToWorld.ToString(),
-			*StaticMeshInstanceData->CachedStaticLighting.Transform.ToString());
+		// See if data matches current state
+		if (StaticMeshInstanceData->CachedStaticLighting.Transform.Equals(ComponentToWorld, 1.e-3f))
+		{
+			SetLODDataCount(NumLODLightMaps, NumLODLightMaps);
+
+			for (int32 i = 0; i < NumLODLightMaps; ++i)
+			{
+				LODData[i].MapBuildDataId = StaticMeshInstanceData->CachedStaticLighting.MapBuildDataIds[i];
+			}
+		}
+		else
+		{
+			UE_LOG(LogStaticMesh, Warning, TEXT("Cached component instance data transform did not match!  Discarding cached lighting data which will cause lighting to be unbuilt.\n%s\nCurrent: %s Cached: %s"), 
+				*GetPathName(),
+				*ComponentToWorld.ToString(),
+				*StaticMeshInstanceData->CachedStaticLighting.Transform.ToString());
+		}
 	}
 
 	if (!bDisallowMeshPaintPerInstance)

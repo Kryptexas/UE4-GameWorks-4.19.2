@@ -881,36 +881,36 @@ void UInstancedStaticMeshComponent::ApplyComponentInstanceData(FInstancedStaticM
 		return;
 	}
 
-		bool bMatch = false;
+	bool bMatch = false;
 
-		// Check for any instance having moved as that would invalidate static lighting
-		if (PerInstanceSMData.Num() == InstancedMeshData->PerInstanceSMData.Num() &&
-			InstancedMeshData->CachedStaticLighting.Transform.Equals(ComponentToWorld))
+	// Check for any instance having moved as that would invalidate static lighting
+	if (PerInstanceSMData.Num() == InstancedMeshData->PerInstanceSMData.Num() &&
+		InstancedMeshData->CachedStaticLighting.Transform.Equals(ComponentToWorld))
+	{
+		bMatch = true;
+
+		for (int32 InstanceIndex = 0; InstanceIndex < PerInstanceSMData.Num(); ++InstanceIndex)
 		{
-			bMatch = true;
-
-			for (int32 InstanceIndex = 0; InstanceIndex < PerInstanceSMData.Num(); ++InstanceIndex)
+			if (PerInstanceSMData[InstanceIndex].Transform != InstancedMeshData->PerInstanceSMData[InstanceIndex].Transform)
 			{
-				if (PerInstanceSMData[InstanceIndex].Transform != InstancedMeshData->PerInstanceSMData[InstanceIndex].Transform)
-				{
-					bMatch = false;
-					break;
-				}
+				bMatch = false;
+				break;
 			}
 		}
+	}
 
-		// Restore static lighting if appropriate
-		if (bMatch)
-		{
+	// Restore static lighting if appropriate
+	if (bMatch)
+	{
 		const int32 NumLODLightMaps = InstancedMeshData->CachedStaticLighting.MapBuildDataIds.Num();
-			SetLODDataCount(NumLODLightMaps, NumLODLightMaps);
+		SetLODDataCount(NumLODLightMaps, NumLODLightMaps);
 
-			for (int32 i = 0; i < NumLODLightMaps; ++i)
-			{
+		for (int32 i = 0; i < NumLODLightMaps; ++i)
+		{
 			LODData[i].MapBuildDataId = InstancedMeshData->CachedStaticLighting.MapBuildDataIds[i];
-			}
+		}
 
-			PerInstanceSMData = InstancedMeshData->PerInstanceSMData;
+		PerInstanceSMData = InstancedMeshData->PerInstanceSMData;
 	}
 
 	SelectedInstances = InstancedMeshData->SelectedInstances;
