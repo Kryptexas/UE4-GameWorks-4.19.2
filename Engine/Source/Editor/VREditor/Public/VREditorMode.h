@@ -274,6 +274,10 @@ public:
 	const FSavedEditorState& GetSavedEditorState() const;
 
 private:
+
+	/** Called when the editor is closed */
+	void OnEditorClosed();
+
 	//Handles closing the VR mode by escape key
 	void InputKey(const FEditorViewportClient& InViewportClient, const FKey InKey, const EInputEvent InEvent, bool& bOutWasHandled);
 

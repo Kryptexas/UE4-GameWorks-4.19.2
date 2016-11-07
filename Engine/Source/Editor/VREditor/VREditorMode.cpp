@@ -380,6 +380,9 @@ void UVREditorMode::Enter()
 		SpawnAvatarMeshActor();
 	}
 
+	/** This will make sure this is not ticking after the editor has been closed. */
+	GEditor->OnEditorClose().AddUObject( this, &UVREditorMode::OnEditorClosed );
+
 	bFirstTick = true;
 	bIsActive = true;
 }
@@ -537,9 +540,20 @@ void UVREditorMode::Exit(const bool bHMDShouldExitStereo)
 		WorldInteraction->Activate( false );
 	}
 
+	GEditor->OnEditorClose().RemoveAll( this );
+
 	bWantsToExitMode = false;
 	bIsActive = false;
 	bFirstTick = false;
+}
+
+void UVREditorMode::OnEditorClosed()
+{
+	if( bIsActive )
+	{
+		Exit( false );
+		Shutdown();
+	}
 }
 
 void UVREditorMode::StartExitingVRMode( const EVREditorExitType InExitType /*= EVREditorExitType::To_Editor */ )

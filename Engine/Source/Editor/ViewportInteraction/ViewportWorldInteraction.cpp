@@ -265,9 +265,6 @@ void UViewportWorldInteraction::Shutdown()
 {
 	AppTimeEntered = FTimespan::Zero();
 
-	OnHoverUpdateEvent.Clear();
-	OnInputActionEvent.Clear();
-
 	for ( UViewportInteractor* Interactor : Interactors )
 	{
 		Interactor->Shutdown();
@@ -278,9 +275,22 @@ void UViewportWorldInteraction::Shutdown()
 	Transformables.Empty();
 	Colors.Empty();
 
+	OnHoverUpdateEvent.Clear();
+	OnInputActionEvent.Clear();
+	OnKeyInputEvent.Clear();
+	OnAxisInputEvent.Clear();
+	OnStopDraggingEvent.Clear();
+
+	World = nullptr;
+	TransformGizmoActor = nullptr;
+	SnapGridActor = nullptr;
+	SnapGridMeshComponent = nullptr;
+	SnapGridMID = nullptr;
 	EditorViewportClient = nullptr;
 	DraggedInteractable = nullptr;
 
+	bActive = false;
+	USelection::SelectionChangedEvent.RemoveAll( this );
 }
 
 void UViewportWorldInteraction::Enter()
@@ -294,6 +304,9 @@ void UViewportWorldInteraction::Enter()
     //Spawn the transform gizmo at init so we do not hitch when selecting our first object
 	SpawnTransformGizmoIfNeeded();
 	TransformGizmoActor->SetIsTemporarilyHiddenInEditor( true );
+
+	/** This will make sure this is not ticking after the editor has been closed. */
+	GEditor->OnEditorClose().AddUObject( this, &UViewportWorldInteraction::Shutdown );
 }
 
 void UViewportWorldInteraction::Exit()
@@ -304,12 +317,23 @@ void UViewportWorldInteraction::Exit()
 	
 	IViewportWorldInteractionManager& WorldInteractionManager = IViewportInteractionModule::Get().GetWorldInteractionManager();
 	WorldInteractionManager.SetCurrentViewportWorldInteraction( nullptr );
+
+	GEditor->OnEditorClose().RemoveAll( this );
+}
+
+void UViewportWorldInteraction::OnEditorClosed()
+{
+	if( bActive )
+	{
+		Exit();
+		Shutdown();
+	}
 }
 
 void UViewportWorldInteraction::Tick( const float DeltaTime )
 {
 	// Only if this is our viewport. Remember, editor modes get a chance to tick and receive input for each active viewport.
-	if ( EditorViewportClient == nullptr && !bActive )
+	if ( EditorViewportClient == nullptr || !bActive )
 	{
 		return;
 	}
