@@ -25,6 +25,12 @@ public class UE4EditorServicesTarget : TargetRules
 			);
 	}
 
+	public override bool GetSupportedPlatforms(ref List<UnrealTargetPlatform> OutPlatforms)
+	{
+		OutPlatforms.Add( UnrealTargetPlatform.Mac );
+		return true;
+	}
+
 	public override bool ShouldCompileMonolithic(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
 	{
 		return true;

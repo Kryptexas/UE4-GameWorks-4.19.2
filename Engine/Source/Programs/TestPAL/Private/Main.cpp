@@ -458,7 +458,7 @@ int32 GetAllocationSizeTest(const TCHAR* CommandLine)
 	{
 		for (SIZE_T AlignmentPower = 4; AlignmentPower <= 7; ++AlignmentPower)
 		{
-			SIZE_T Alignment = (1 << AlignmentPower);
+			SIZE_T Alignment = ((SIZE_T)1 << AlignmentPower);
 
 			Allocation New;
 			New.RequestedSize = Size;
