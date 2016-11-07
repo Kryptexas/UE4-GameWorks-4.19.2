@@ -322,12 +322,11 @@ public:
 
 	void HackRemoveTemporalAAProjectionJitter()
 	{
-		TemporalAAProjectionJitter = FVector2D::ZeroVector;
-
-		ProjectionMatrix.M[2][0] = 0.0f;
-		ProjectionMatrix.M[2][1] = 0.0f;
+		ProjectionMatrix.M[2][0] -= TemporalAAProjectionJitter.X;
+		ProjectionMatrix.M[2][1] -= TemporalAAProjectionJitter.Y;
 		InvProjectionMatrix = InvertProjectionMatrix(ProjectionMatrix);
 
+		TemporalAAProjectionJitter = FVector2D::ZeroVector;
 		RecomputeDerivedMatrices();
 	}
 
