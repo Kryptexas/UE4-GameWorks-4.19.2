@@ -231,7 +231,7 @@ void UpdateRefToLocalMatrices( TArray<FMatrix>& ReferenceToLocal, const USkinned
 					const int32 MasterBoneIndex = MasterBoneMap[ThisBoneIndex];
 					if (MasterComp->GetComponentSpaceTransforms().IsValidIndex(MasterBoneIndex))
 					{
-						const int32 ParentIndex = MasterCompMesh->RefSkeleton.GetParentIndex(MasterBoneIndex);
+						const int32 ParentIndex = ThisMesh->RefSkeleton.GetParentIndex(ThisBoneIndex);
 						bool bNeedToHideBone = MasterComp->BoneVisibilityStates[MasterBoneIndex] != BVS_Visible;
 						if (bNeedToHideBone && ParentIndex != INDEX_NONE)
 						{
