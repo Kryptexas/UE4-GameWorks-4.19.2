@@ -227,7 +227,6 @@ void FAndroidTargetSettingsCustomization::BuildAppManifestSection(IDetailLayoutB
 	SETUP_ANDROIDARCH_PROP(TEXT("-x64"), bBuildForX8664, BuildCategory, LOCTEXT("BuildForX8664ToolTip", "Enable X86-64 CPU architecture support?"));
 	SETUP_ANDROIDARCH_PROP(TEXT("-es2"), bBuildForES2, BuildCategory, LOCTEXT("BuildForES2ToolTip", "Enable OpenGL ES2 rendering support? (this will be used if rendering types are unchecked)"));
 	SETUP_ANDROIDARCH_PROP(TEXT("-esdeferred"), bBuildForESDeferred, BuildCategory, LOCTEXT("BuildForESDeferredToolTip", "Enable OpenGL ES31 + AEP (Android Extension Pack) rendering support?"));
-	SETUP_SOURCEONLY_PROP(bSupportsVulkan, BuildCategory, LOCTEXT("SupportsVulkanToolTip", "Enable Vulkan rendering support?"));
 
 	// @todo android fat binary: Put back in when we expose those
 //	SETUP_SOURCEONLY_PROP(bSplitIntoSeparateApks, BuildCategory, LOCTEXT("SplitIntoSeparateAPKsToolTip", "If checked, CPU architectures and rendering types will be split into separate .apk files"));

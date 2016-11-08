@@ -1498,7 +1498,11 @@ bool FAndroidMisc::ShouldUseVulkan()
 {
 	check(VulkanSupport != EDeviceVulkanSupportStatus::Uninitialized);
 	static const auto CVarDisableVulkan = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Android.DisableVulkanSupport"));
-	return VulkanSupport == EDeviceVulkanSupportStatus::Supported && CVarDisableVulkan->GetValueOnAnyThread() == 0;
+
+	bool bSupportsVulkan = false;
+	GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bSupportsVulkan"), bSupportsVulkan, GEngineIni);
+
+	return bSupportsVulkan && VulkanSupport == EDeviceVulkanSupportStatus::Supported && CVarDisableVulkan->GetValueOnAnyThread() == 0;
 }
 
 FString FAndroidMisc::GetVulkanVersion()
