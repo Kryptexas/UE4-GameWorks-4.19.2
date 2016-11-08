@@ -44,6 +44,7 @@ public:
 	void EnqueueAppEvent(EAppEventState InState, void* InData = NULL);
 	void SetEventHandlerEvent(FEvent* InEventHandlerEvent);
 	void HandleWindowCreated(void* InWindow);
+	void HandleWindowClosed();
 	bool IsGamePaused();
 	bool WaitForEventInQueue(EAppEventState InState, double TimeoutSeconds);
 
@@ -63,6 +64,7 @@ private:
 
 	void ExecWindowCreated();
 	void ExecWindowResized();
+	void ExecDestroyWindow();
 	
 	static FAppEventManager* sInstance;
 

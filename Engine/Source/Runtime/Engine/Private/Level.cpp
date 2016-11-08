@@ -678,6 +678,9 @@ void ULevel::BeginDestroy()
 		OwningWorld->Scene->SetPrecomputedVisibility(NULL);
 		OwningWorld->Scene->SetPrecomputedVolumeDistanceField(NULL);
 	}
+
+	ReleaseRenderingResources();
+
 	RemoveFromSceneFence.BeginFence();
 }
 
@@ -689,8 +692,6 @@ bool ULevel::IsReadyForFinishDestroy()
 
 void ULevel::FinishDestroy()
 {
-	ReleaseRenderingResources();
-
 	delete PrecomputedLightVolume;
 	PrecomputedLightVolume = NULL;
 
@@ -1694,24 +1695,20 @@ void ULevel::RouteActorInitialize()
 	}
 }
 
-UMapBuildDataRegistry* ULevel::CreateMapBuildDataRegistry() const
+UPackage* ULevel::CreateMapBuildDataPackage() const
 {
 	FString PackageName = GetOutermost()->GetName() + TEXT("_BuiltData");
 	UPackage* BuiltDataPackage = CreatePackage(NULL, *PackageName);
-
 	// PKG_ContainsMapData required so FEditorFileUtils::GetDirtyContentPackages can treat this as a map package
 	BuiltDataPackage->SetPackageFlags(PKG_ContainsMapData);
-	FName ShortPackageName = FPackageName::GetShortFName(*PackageName);
-	// Top level UObjects have to have both RF_Standalone and RF_Public to be saved into packages
-	UMapBuildDataRegistry* NewMapBuildData = NewObject<UMapBuildDataRegistry>(BuiltDataPackage, ShortPackageName, RF_Standalone | RF_Public);
-	return NewMapBuildData;
+	return BuiltDataPackage;
 }
 
 UMapBuildDataRegistry* ULevel::GetOrCreateMapBuildData()
 {
 	if (!MapBuildData 
 		// If MapBuildData is in the level package we need to create a new one, see CreateRegistryForLegacyMap
-		|| MapBuildData->GetOutermost() == GetOutermost()
+		|| MapBuildData->IsLegacyBuildData()
 		|| !MapBuildData->HasAllFlags(RF_Public | RF_Standalone))
 	{
 		if (MapBuildData)
@@ -1720,7 +1717,11 @@ UMapBuildDataRegistry* ULevel::GetOrCreateMapBuildData()
 			MapBuildData->ClearFlags(RF_Standalone);
 		}
 
-		MapBuildData = CreateMapBuildDataRegistry();
+		UPackage* BuiltDataPackage = CreateMapBuildDataPackage();
+
+		FName ShortPackageName = FPackageName::GetShortFName(BuiltDataPackage->GetFName());
+		// Top level UObjects have to have both RF_Standalone and RF_Public to be saved into packages
+		MapBuildData = NewObject<UMapBuildDataRegistry>(BuiltDataPackage, ShortPackageName, RF_Standalone | RF_Public);
 		MarkPackageDirty();
 	}
 
@@ -1733,6 +1734,19 @@ void ULevel::SetLightingScenario(bool bNewIsLightingScenario)
 
 	OwningWorld->PropagateLightingScenarioChange();
 }
+
+#if WITH_EDITOR
+void ULevel::OnApplyNewLightingData(bool bLightingSuccessful)
+{
+	// Store level offset that was used during static light data build
+	// This will be used to find correct world position of precomputed lighting samples during origin rebasing
+	LightBuildLevelOffset = FIntVector::ZeroValue;
+	if (bLightingSuccessful && OwningWorld && OwningWorld->WorldComposition)
+	{
+		LightBuildLevelOffset = OwningWorld->WorldComposition->GetLevelOffset(this);
+	}
+}
+#endif
 
 bool ULevel::HasAnyActorsOfType(UClass *SearchType)
 {
@@ -1898,27 +1912,27 @@ void ULevel::ApplyWorldOffset(const FVector& InWorldOffset, bool bWorldShift)
 	if (PrecomputedLightVolume && !InWorldOffset.IsZero())
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_ULevel_ApplyWorldOffset_PrecomputedLightVolume);
-		// Shift light volume only if it's going to be used
-		static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
-		const bool bAllowStaticLighting = (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnGameThread() != 0);
-		if (bAllowStaticLighting) 
+		
+		if (!PrecomputedLightVolume->IsAddedToScene())
 		{
-			if (!PrecomputedLightVolume->IsAddedToScene())
+			// When we add level to world, move precomputed lighting data taking into account position of level at time when lighting was built  
+			if (bIsAssociatingLevel)
 			{
-				PrecomputedLightVolume->ApplyWorldOffset(InWorldOffset);
+				FVector PrecomputedLightVolumeOffset = InWorldOffset - FVector(LightBuildLevelOffset);
+				PrecomputedLightVolume->ApplyWorldOffset(PrecomputedLightVolumeOffset);
 			}
-			// At world origin rebasing all registered volumes will be moved during FScene shifting
-			// Otherwise we need to send a command to move just this volume
-			else if (!bWorldShift) 
-			{
-				ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
- 					ApplyWorldOffset_PLV,
- 					FPrecomputedLightVolume*, InPrecomputedLightVolume, PrecomputedLightVolume,
- 					FVector, InWorldOffset, InWorldOffset,
- 				{
-					InPrecomputedLightVolume->ApplyWorldOffset(InWorldOffset);
- 				});
-			}
+		}
+		// At world origin rebasing all registered volumes will be moved during FScene shifting
+		// Otherwise we need to send a command to move just this volume
+		else if (!bWorldShift) 
+		{
+			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+ 				ApplyWorldOffset_PLV,
+ 				FPrecomputedLightVolume*, InPrecomputedLightVolume, PrecomputedLightVolume,
+ 				FVector, InWorldOffset, InWorldOffset,
+ 			{
+				InPrecomputedLightVolume->ApplyWorldOffset(InWorldOffset);
+ 			});
 		}
 	}
 

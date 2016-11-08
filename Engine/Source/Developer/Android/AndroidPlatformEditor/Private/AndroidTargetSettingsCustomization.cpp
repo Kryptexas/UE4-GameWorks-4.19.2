@@ -53,6 +53,9 @@ FAndroidTargetSettingsCustomization::FAndroidTargetSettingsCustomization()
 	new (LaunchImageNames)FPlatformIconInfo(TEXT("res/drawable/downloadimageh.png"), LOCTEXT("SettingsIcon_DownloadImageH", "Download Background Horizontal Image"), FText::GetEmpty(), 1280, 720, FPlatformIconInfo::Required);
 	new (LaunchImageNames)FPlatformIconInfo(TEXT("res/drawable/splashscreen_portrait.png"), LOCTEXT("LaunchImage_Portrait", "Launch Portrait"), FText::GetEmpty(), 360, 640, FPlatformIconInfo::Required);
 	new (LaunchImageNames)FPlatformIconInfo(TEXT("res/drawable/splashscreen_landscape.png"), LOCTEXT("LaunchImage_Landscape", "Launch Landscape"), FText::GetEmpty(), 640, 360, FPlatformIconInfo::Required);
+
+	new (DaydreamAppTileImageNames) FPlatformIconInfo(TEXT("res/drawable-nodpi/vr_icon.png"), LOCTEXT("AppTile_Icon", "App Tile Icon"), FText::GetEmpty(), 512, 512, FPlatformIconInfo::Optional);
+	new (DaydreamAppTileImageNames) FPlatformIconInfo(TEXT("res/drawable-nodpi/vr_icon_background.png"), LOCTEXT("AppTile_Icon_Background", "App Tile Icon Background"), FText::GetEmpty(), 512, 512, FPlatformIconInfo::Optional);
 }
 
 void FAndroidTargetSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailLayout)
@@ -62,6 +65,7 @@ void FAndroidTargetSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder&
 	BuildAppManifestSection(DetailLayout);
 	BuildIconSection(DetailLayout);
 	BuildLaunchImageSection(DetailLayout);
+	BuildDaydreamAppTileImageSection(DetailLayout);
 }
 
 static void OnBrowserLinkClicked(const FSlateHyperlinkRun::FMetadata& Metadata)
@@ -345,6 +349,47 @@ void FAndroidTargetSettingsCustomization::BuildLaunchImageSection(IDetailLayoutB
 	}
 }
 
+void FAndroidTargetSettingsCustomization::BuildDaydreamAppTileImageSection(IDetailLayoutBuilder& DetailLayout)
+{
+	// Daydream App Tile Category
+	IDetailCategoryBuilder& DaydreamAppTileCategory = DetailLayout.EditCategory(TEXT("DaydreamAppTile"));
+
+	for (const FPlatformIconInfo& Info : DaydreamAppTileImageNames)
+	{
+		const FString AutomaticImagePath = EngineAndroidPath / Info.IconPath;
+		const FString TargetImagePath = GameAndroidPath / Info.IconPath;
+
+		DaydreamAppTileCategory.AddCustomRow(Info.IconName)
+		.NameContent()
+		[
+			SNew(SHorizontalBox)
+			+SHorizontalBox::Slot()
+			.Padding( FMargin( 0, 1, 0, 1 ) )
+			.FillWidth(1.0f)
+			[
+				SNew(STextBlock)
+				.Text(Info.IconName)
+				.Font(DetailLayout.GetDetailFont())
+			 ]
+		 ]
+		.ValueContent()
+		.MaxDesiredWidth(400.0f)
+		.MinDesiredWidth(100.0f)
+		[
+			SNew(SHorizontalBox)
+			+SHorizontalBox::Slot()
+			.FillWidth(1.0f)
+			.VAlign(VAlign_Center)
+			[
+				SNew(SExternalImageReference, AutomaticImagePath, TargetImagePath)
+				.FileDescription(Info.IconDescription)
+				.RequiredSize(Info.IconRequiredSize)
+				.MaxDisplaySize(FVector2D(FMath::Min(96, Info.IconRequiredSize.X), FMath::Min(96, Info.IconRequiredSize.Y)))
+			 ]
+		 ];
+	}
+}
+
 FReply FAndroidTargetSettingsCustomization::OpenBuildFolder()
 {
 	const FString BuildFolder = FPaths::ConvertRelativePathToFull(FPaths::GetPath(GameProjectPropertiesPath));
@@ -379,6 +424,18 @@ void FAndroidTargetSettingsCustomization::CopySetupFilesIntoProject()
 
 		// Now try to copy all of the launch images... (these can be ignored if the file already exists)
 		for (const FPlatformIconInfo& Info : LaunchImageNames)
+		{
+			const FString EngineImagePath = EngineAndroidPath / Info.IconPath;
+			const FString ProjectImagePath = GameAndroidPath / Info.IconPath;
+
+			if (!FPaths::FileExists(ProjectImagePath))
+			{
+				SourceControlHelpers::CopyFileUnderSourceControl(ProjectImagePath, EngineImagePath, Info.IconName, /*out*/ ErrorMessage);
+			}
+		}
+
+        // Now try to copy all of the launch images... (these can be ignored if the file already exists)
+		for (const FPlatformIconInfo& Info : DaydreamAppTileImageNames)
 		{
 			const FString EngineImagePath = EngineAndroidPath / Info.IconPath;
 			const FString ProjectImagePath = GameAndroidPath / Info.IconPath;

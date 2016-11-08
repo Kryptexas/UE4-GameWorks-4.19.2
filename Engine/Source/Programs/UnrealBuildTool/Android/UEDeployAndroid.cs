@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -1107,6 +1107,33 @@ namespace UnrealBuildTool
 				}
 			}
 		}
+		
+		private void PackageForDaydream(string UE4BuildPath)
+        {
+            ConfigCacheIni Ini = GetConfigCacheIni("Engine");
+            bool bPackageForDaydream;
+            Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bPackageForDaydream", out bPackageForDaydream);
+
+            if (!bPackageForDaydream)
+            {
+                // If this isn't a Daydream App, we need to make sure to remove
+                // Daydream specific assets.
+
+                // Remove the Daydream app  tile background.
+                string AppTileBackgroundPath = UE4BuildPath + "/res/drawable-nodpi/vr_icon_background.png";
+                if (File.Exists(AppTileBackgroundPath))
+                {
+                    File.Delete(AppTileBackgroundPath);
+                }
+
+                // Remove the Daydream app tile icon.
+                string AppTileIconPath = UE4BuildPath + "/res/drawable-nodpi/vr_icon.png";
+                if (File.Exists(AppTileIconPath))
+                {
+                    File.Delete(AppTileIconPath);
+                }
+            }
+        }
 
 		private void PickSplashScreenOrientation(string UE4BuildPath, bool bNeedPortrait, bool bNeedLandscape)
 		{
@@ -1115,9 +1142,11 @@ namespace UnrealBuildTool
 			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bShowLaunchImage", out bShowLaunchImage);
 			bool bPackageForGearVR;
 			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bPackageForGearVR", out bPackageForGearVR);
-
-			//override the parameters if we are not showing a launch image or are packaging for GearVR
-			if (bPackageForGearVR || !bShowLaunchImage)
+			bool bPackageForDaydream;
+            Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bPackageForDaydream", out bPackageForDaydream);
+			
+			//override the parameters if we are not showing a launch image or are packaging for GearVR and Daydream
+			if (bPackageForGearVR || bPackageForDaydream || !bShowLaunchImage)
 			{
 				bNeedPortrait = bNeedLandscape = false;
 			}
@@ -1248,6 +1277,8 @@ namespace UnrealBuildTool
 			Ini.GetArray("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "ExtraPermissions", out ExtraPermissions);
 			bool bPackageForGearVR;
 			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bPackageForGearVR", out bPackageForGearVR);
+			bool bPackageForDaydream;
+            Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bPackageForDaydream", out bPackageForDaydream);
 			bool bSupportsVulkan;
 			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bSupportsVulkan", out bSupportsVulkan);
 			if (bSupportsVulkan)
@@ -1300,6 +1331,16 @@ namespace UnrealBuildTool
 				if (bShowLaunchImage)
 				{
 					Log.TraceInformation("Disabling Show Launch Image for GearVR enabled application");
+					bShowLaunchImage = false;
+				}
+			}
+
+			// disable splash screen for daydream
+			if (bPackageForDaydream)
+			{
+				if (bShowLaunchImage)
+				{
+					Log.TraceInformation("Disabling Show Launch Image for Daydream enabled application");
 					bShowLaunchImage = false;
 				}
 			}
@@ -2034,7 +2075,10 @@ namespace UnrealBuildTool
 
 			//Now keep the splash screen images matching orientation requested
 			PickSplashScreenOrientation(UE4BuildPath, bNeedPortrait, bNeedLandscape);
-
+			
+			//Now package the app based on Daydream packaging settings 
+            PackageForDaydream(UE4BuildPath);
+			
 			//Similarly, keep only the downloader screen image matching the orientation requested
 			PickDownloaderScreenOrientation(UE4BuildPath, bNeedPortrait, bNeedLandscape);
 

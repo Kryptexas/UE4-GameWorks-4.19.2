@@ -1151,6 +1151,22 @@ void FCustomPresent::EnterVRMode_RenderThread()
 
 		UE_LOG(LogHMD, Log, TEXT("EnterVRMode: Display 0x%llX, Window 0x%llX, ShareCtx %llX"),
 			(unsigned long long)parms.Display, (unsigned long long)parms.WindowSurface, (unsigned long long)parms.ShareContext);
+
+#if PLATFORM_ANDROID
+		const FString GPUFamily = FAndroidMisc::GetGPUFamily();
+		const FString GLVersion = FAndroidMisc::GetGLVersion();
+		// TODO: Further narrow support based on gpu family and gl version
+		GSupportsMobileMultiView = vrapi_GetSystemPropertyInt(&JavaRT, VRAPI_SYS_PROP_MULTIVIEW_AVAILABLE) != 0;
+		if (GSupportsMobileMultiView)
+		{
+			UE_LOG(LogHMD, Log, TEXT("Mobile multi-view support enabled for device: %s"), *GPUFamily);
+		}
+		else
+		{
+			UE_LOG(LogHMD, Log, TEXT("Mobile multi-view support disabled for device: %s"), *GPUFamily);
+		}
+#endif
+
 		OvrMobile = vrapi_EnterVrMode(&parms);
 	}
 }

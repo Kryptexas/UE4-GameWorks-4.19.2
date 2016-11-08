@@ -2648,6 +2648,16 @@ public:
 	
 	/** @return true if the engine is autosaving a package */
 	virtual bool IsAutosaving() const { return false; }
+
+	/** @return true if this is a "vanilla" product running only Epic-built binaries, no third-party plugins, no game modules, etc. */
+	bool IsVanillaProduct() const { return bIsVanillaProduct; }
+
+protected:
+	void SetIsVanillaProduct(bool bInIsVanillaProduct);
+
+private:
+	bool bIsVanillaProduct;
+
 protected:
 
 	TIndirectArray<FWorldContext>	WorldList;

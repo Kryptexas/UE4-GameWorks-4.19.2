@@ -23,6 +23,21 @@ build_via_cmake()
 	else
 		DBGFLAG=NDEBUG
 	fi
+build_via_cmake()
+{
+	SUFFIX=_O$OLEVEL
+	OPTIMIZATION=-O$OLEVEL
+	# ----------------------------------------
+	rm -rf BUILD$SUFFIX
+	mkdir BUILD$SUFFIX
+	cd BUILD$SUFFIX
+	# ----------------------------------------
+	TYPE=${type^^}
+	if [ $TYPE == "DEBUG" ]; then
+		DBGFLAG=_DEBUG
+	else
+		DBGFLAG=NDEBUG
+	fi
 	# ----------------------------------------
 	emcmake cmake -G "Unix Makefiles" \
 		-DCMAKE_TOOLCHAIN_FILE=$EMSCRIPTEN/cmake/Modules/Platform/Emscripten.cmake \
@@ -84,6 +99,7 @@ build_all()
 	cd -
 }
 	
+
 build_via_makefile()
 {
 	# ----------------------------------------
@@ -100,23 +116,5 @@ build_via_makefile()
 	# ----------------------------------------
 	# MAKE
 	
-	MAKE_PATH=../../HTML5/Build
-	
-	OPTIMIZATION=-O3; LIB_SUFFIX=_O3; build_all
-	
-	OPTIMIZATION=-O2; LIB_SUFFIX=_O2; build_all
-	
-	OPTIMIZATION=-Oz; LIB_SUFFIX=_Oz; build_all
-	
-	OPTIMIZATION=-O0; LIB_SUFFIX=
-	build_all
-	
-	
-	# ----------------------------------------
-	# restore
-	
-	if [ -e ../CMakeLists.txt.save ]; then
-		mv ../CMakeLists.txt.save ../CMakeLists.txt
-	fi
 }
 

@@ -10,30 +10,33 @@ public class MeshUtilities : ModuleRules
 
         PublicDependencyModuleNames.AddRange(
             new string[] {
-                "MaterialUtilities"
-            }
+				"MaterialUtilities",
+
+			}
         );
 
 		PrivateDependencyModuleNames.AddRange(
-			new string [] {
+			new string[] {
 				"Core",
 				"CoreUObject",
 				"Engine",
 				"RawMesh",
 				"RenderCore", // For FPackedNormal
 				"SlateCore",
-                "Slate",
-                "MaterialUtilities",
-                "MeshBoneReduction",
-                "UnrealEd",
-                "RHI",
-                "HierarchicalLODUtilities",
-                "Landscape",
-                "LevelEditor",
-                "AnimationBlueprintEditor",
-                "AnimationEditor",
-                "SkeletalMeshEditor",
-                "SkeletonEditor",
+				"Slate",
+				"MaterialUtilities",
+				"MeshBoneReduction",
+				"UnrealEd",
+				"RHI",
+				"HierarchicalLODUtilities",
+				"Landscape",
+				"LevelEditor",
+				"AnimationBlueprintEditor",
+				"AnimationEditor",
+				"SkeletalMeshEditor",
+				"SkeletonEditor",
+				"PropertyEditor",
+				"EditorStyle",
             }
 		);
 

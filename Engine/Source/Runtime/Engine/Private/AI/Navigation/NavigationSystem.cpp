@@ -2358,7 +2358,7 @@ void UNavigationSystem::AddElementToNavOctree(const FNavigationDirtyElement& Dir
 	}
 
 	UObject* ElementOwner = DirtyElement.Owner.Get();
-	if (ElementOwner == NULL || ElementOwner->IsPendingKill())
+	if (ElementOwner == NULL || ElementOwner->IsPendingKill() || DirtyElement.NavInterface == NULL)
 	{
 		return;
 	}

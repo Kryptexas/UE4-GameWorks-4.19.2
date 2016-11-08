@@ -213,11 +213,6 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 
 void UStaticMeshComponent::SetLODDataCount( const uint32 MinSize, const uint32 MaxSize )
 {
-	if (IsTemplate() || HasAnyFlags(RF_ClassDefaultObject) || HasAnyFlags(RF_ArchetypeObject))
-	{
-		UE_LOG(LogTemp, Log, TEXT("asdf"));
-	}
-
 	check(MaxSize <= MAX_STATIC_MESH_LODS);
 	if (MaxSize < (uint32)LODData.Num())
 	{

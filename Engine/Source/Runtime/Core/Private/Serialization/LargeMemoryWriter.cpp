@@ -78,7 +78,7 @@ FLargeMemoryWriter::~FLargeMemoryWriter()
 
 void FLargeMemoryWriter::GrowBuffer(const int64 DesiredBytes)
 {
-	int64 NewBytes = 4; // Initial alloc size
+	int64 NewBytes = 64 * 1024; // Initial alloc size
 
 	if (MaxBytes || DesiredBytes > NewBytes)
 	{

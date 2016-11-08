@@ -298,13 +298,10 @@ void Main(
 	, in float4 SvPosition : SV_Position
 	OPTIONAL_IsFrontFace
 	, out half4 OutColor	: SV_Target0
-#if MOBILE_MULTI_VIEW
-	, in uint ViewId : SV_ViewID
-#endif
 	)
 {
 #if MOBILE_MULTI_VIEW
-	ResolvedView = ResolveView(ViewId);
+	ResolvedView = ResolveView(uint(BasePassInterpolants.MultiViewId));
 #else
 	ResolvedView = ResolveView();
 #endif
@@ -434,8 +431,6 @@ void Main(
 
 	#if !MATERIAL_SHADINGMODEL_UNLIT
 		half Shadow = GetPrimaryPrecomputedShadowMask(Interpolants).r;
-			
-		// TODO: This is broken with multi-view?
 		#if DIRECTIONAL_LIGHT_CSM && !MOBILE_MULTI_VIEW
 		// Cascaded Shadow Map
 		{

@@ -376,7 +376,8 @@ SIZE_T FPrecomputedLightVolumeData::GetAllocatedBytes() const
 FPrecomputedLightVolume::FPrecomputedLightVolume() :
 	Data(NULL),
 	bAddedToScene(false),
-	OctreeForRendering(NULL)
+	OctreeForRendering(NULL),
+	WorldOriginOffset(ForceInitToZero)
 {}
 
 FPrecomputedLightVolume::~FPrecomputedLightVolume()
@@ -407,15 +408,17 @@ void FPrecomputedLightVolume::RemoveFromScene(FSceneInterface* Scene)
 	{
 		bAddedToScene = false;
 
-		if (Data->bInitialized && Scene)
+		if (Scene)
 		{
 			Scene->RemovePrecomputedLightVolume(this);
 		}
 	}
+
+	WorldOriginOffset = FVector::ZeroVector;
 }
 
 void FPrecomputedLightVolume::InterpolateIncidentRadiancePoint(
-		const FVector& WorldPosition, 
+		const FVector& InWorldPosition, 
 		float& AccumulatedWeight,
 		float& AccumulatedDirectionalLightShadowing,
 		FSHVectorRGB3& AccumulatedIncidentRadiance,
@@ -427,6 +430,7 @@ void FPrecomputedLightVolume::InterpolateIncidentRadiancePoint(
 	// Handle being called on a volume that hasn't been initialized yet, which can happen if lighting hasn't been built yet.
 	if (Data->bInitialized)
 	{
+		FVector WorldPosition = InWorldPosition - WorldOriginOffset; // relocate from world to volume space
 		FBoxCenterAndExtent BoundingBox( WorldPosition, FVector::ZeroVector );
 		// Iterate over the octree nodes containing the query point.
 		for (FLightVolumeOctree::TConstElementBoxIterator<> OctreeIt(*OctreeForRendering, BoundingBox);
@@ -456,7 +460,7 @@ void FPrecomputedLightVolume::InterpolateIncidentRadiancePoint(
 
 /** Interpolates incident radiance to Position. */
 void FPrecomputedLightVolume::InterpolateIncidentRadianceBlock(
-	const FBoxCenterAndExtent& BoundingBox, 
+	const FBoxCenterAndExtent& InBoundingBox, 
 	const FIntVector& QueryCellDimensions,
 	const FIntVector& DestCellDimensions,
 	const FIntVector& DestCellPosition,
@@ -469,6 +473,9 @@ void FPrecomputedLightVolume::InterpolateIncidentRadianceBlock(
 	// Handle being called on a volume that hasn't been initialized yet, which can happen if lighting hasn't been built yet.
 	if (Data->bInitialized)
 	{
+		FBoxCenterAndExtent BoundingBox = InBoundingBox;
+		BoundingBox.Center = BoundingBox.Center - FVector4(WorldOriginOffset, 0.f); // relocate from world to volume space
+		
 		static TArray<const FVolumeLightingSample*> PotentiallyIntersectingSamples;
 		PotentiallyIntersectingSamples.Reset(100);
 
@@ -542,7 +549,9 @@ void FPrecomputedLightVolume::DebugDrawSamples(FPrimitiveDrawInterface* PDI, boo
 		const FLinearColor AverageColor = bDrawDirectionalShadowing
 			? FLinearColor(VolumeSample.DirectionalLightShadowing, VolumeSample.DirectionalLightShadowing, VolumeSample.DirectionalLightShadowing)
 			: VolumeSample.Lighting.CalcIntegral() / (FSHVector2::ConstantBasisIntegral * PI);
-		PDI->DrawPoint(VolumeSample.Position, AverageColor, 10, SDPG_World);
+		
+		FVector SamplePosition = VolumeSample.Position + WorldOriginOffset; //relocate from volume to world space
+		PDI->DrawPoint(SamplePosition, AverageColor, 10, SDPG_World);
 	}
 }
 
@@ -559,10 +568,5 @@ bool FPrecomputedLightVolume::IntersectBounds(const FBoxSphereBounds& InBounds) 
 
 void FPrecomputedLightVolume::ApplyWorldOffset(const FVector& InOffset)
 {
-	/*
-	Bounds.Min+= InOffset;
-	Bounds.Max+= InOffset;
-	HighQualityLightmapOctree.ApplyOffset(InOffset);
-	LowQualityLightmapOctree.ApplyOffset(InOffset);
-	*/
+	WorldOriginOffset+= InOffset;
 }

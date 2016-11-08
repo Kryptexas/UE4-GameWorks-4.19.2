@@ -74,9 +74,9 @@ void FOnlineLeaderboardOculus::OnReadLeaderboardsComplete(ovrMessageHandle Messa
 	{
 		OculusSubsystem.AddRequestDelegate(
 			ovr_Leaderboard_GetNextEntries(LeaderboardArray),
-			FOculusMessageOnCompleteDelegate::CreateLambda([this, ReadObject](ovrMessageHandle Message, bool bIsError)
+			FOculusMessageOnCompleteDelegate::CreateLambda([this, ReadObject](ovrMessageHandle InMessage, bool bInIsError)
 		{
-			OnReadLeaderboardsComplete(Message, bIsError, ReadObject);
+			OnReadLeaderboardsComplete(InMessage, bInIsError, ReadObject);
 		}));
 		return;
 	}

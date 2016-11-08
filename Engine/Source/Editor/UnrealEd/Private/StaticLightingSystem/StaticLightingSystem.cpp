@@ -111,7 +111,7 @@ TSharedPtr<FStaticLightingManager> FStaticLightingManager::Get()
 	return StaticLightingManager;
 }
 
-void FStaticLightingManager::ProcessLightingData(bool bDiscardResults)
+void FStaticLightingManager::ProcessLightingData()
 {
 	auto StaticLightingSystem = FStaticLightingManager::Get()->ActiveStaticLightingSystem;
 
@@ -119,16 +119,13 @@ void FStaticLightingManager::ProcessLightingData(bool bDiscardResults)
 
 	FNavigationLockContext NavUpdateLock(StaticLightingSystem->GetWorld(), ENavigationLockReason::LightingUpdate);
 
-	if (!bDiscardResults)
+	bool bSuccessful = StaticLightingSystem->FinishLightmassProcess();
+
+	FEditorDelegates::OnLightingBuildKept.Broadcast();
+
+	if (!bSuccessful)
 	{
-		bool bSuccessful = StaticLightingSystem->FinishLightmassProcess();
-
-		FEditorDelegates::OnLightingBuildKept.Broadcast();
-
-		if (!bSuccessful)
-		{
-			FStaticLightingManager::Get()->FailLightingBuild();
-		}
+		FStaticLightingManager::Get()->FailLightingBuild();
 	}
 
 	FStaticLightingManager::Get()->ClearCurrentNotification();
@@ -196,6 +193,7 @@ void FStaticLightingManager::DiscardRequested()
 	if (FStaticLightingManager::Get()->ActiveStaticLightingSystem)
 	{
 		FStaticLightingManager::Get()->ClearCurrentNotification();
+		FStaticLightingManager::Get()->ActiveStaticLightingSystem->CurrentBuildStage = FStaticLightingSystem::Finished;
 	}
 }
 
@@ -1193,6 +1191,9 @@ void FStaticLightingSystem::ApplyNewLightingData(bool bLightingSuccessful)
 
 			ULevel* StorageLevel = LightingScenario ? LightingScenario : Level;
 			UMapBuildDataRegistry* Registry = StorageLevel->GetOrCreateMapBuildData();
+			
+			// Notify level about new lighting data
+			Level->OnApplyNewLightingData(bLightingSuccessful);
 
 			Level->InitializeRenderingResources();
 
@@ -2218,7 +2219,7 @@ void FStaticLightingSystem::UpdateLightingBuild()
 			bool bAutoApplyFailed = false;
 			FStaticLightingManager::Get()->SendBuildDoneNotification(bAutoApplyFailed);
 
-			FStaticLightingManager::ProcessLightingData( false );
+			FStaticLightingManager::ProcessLightingData();
 			CurrentBuildStage = FStaticLightingSystem::Finished;
 		}
 		else
@@ -2231,7 +2232,7 @@ void FStaticLightingSystem::UpdateLightingBuild()
 	}
 	else if (CurrentBuildStage == FStaticLightingSystem::ImportRequested)
 	{
-		FStaticLightingManager::ProcessLightingData(false);
+		FStaticLightingManager::ProcessLightingData();
 		CurrentBuildStage = FStaticLightingSystem::Finished;
 	}
 }

@@ -228,6 +228,12 @@ void ULandscapeComponent::UpdateMaterialInstances_Internal(FMaterialUpdateContex
 
 	if (CombinationMaterialInstance != nullptr)
 	{
+		// If using tessellation, we need a second material instance for LOD 1+ with it disabled.
+		const bool bTessellationEnabled = (CombinationMaterialInstance->GetMaterial()->D3D11TessellationMode != EMaterialTessellationMode::MTM_NoTessellation);
+
+		// Size the MaterialInstances array appropriately
+		MaterialInstances.SetNumZeroed(bTessellationEnabled ? 2 : 1);
+
 		UMaterialInstanceConstant* MaterialInstance = MaterialInstances[0];
 
 		// Create the instance for this component, that will use the layer combination instance.
@@ -273,11 +279,9 @@ void ULandscapeComponent::UpdateMaterialInstances_Internal(FMaterialUpdateContex
 		}
 		MaterialInstance->PostEditChange();
 
-		// when using tessellation, we disable tessellation for LODs 1+
-		const bool bTessellationEnabled = (CombinationMaterialInstance->GetMaterial()->D3D11TessellationMode != EMaterialTessellationMode::MTM_NoTessellation);
+		// Setup material instance with disabled tessellation for LODs 1+
 		if (bTessellationEnabled)
 		{
-			MaterialInstances.SetNumZeroed(2);
 			ULandscapeMaterialInstanceConstant*& TessellationMaterialInstance = (ULandscapeMaterialInstanceConstant*&)MaterialInstances[1];
 			if (!TessellationMaterialInstance)
 			{
@@ -287,10 +291,6 @@ void ULandscapeComponent::UpdateMaterialInstances_Internal(FMaterialUpdateContex
 			Context.AddMaterialInstance(TessellationMaterialInstance); // must be done after SetParent
 			TessellationMaterialInstance->bDisableTessellation = true;
 			TessellationMaterialInstance->PostEditChange();
-		}
-		else
-		{
-			MaterialInstances.SetNum(1);
 		}
 	}
 	else
@@ -3020,7 +3020,6 @@ FVector ULandscapeInfo::GetLandscapeCenterPos(float& LengthZ, int32 MinX /*= MAX
 	LengthZ = (MaxZ - MinZ + 2 * MarginZ) * ScaleZ;
 
 	const FVector LocalPosition(((float)(MinX + MaxX)) / 2.0f, ((float)(MinY + MaxY)) / 2.0f, MinZ - MarginZ);
-	//return GetLandscapeProxy()->TransformLandscapeLocationToWorld(LocalPosition);
 	return GetLandscapeProxy()->LandscapeActorToWorld().TransformPosition(LocalPosition);
 }
 

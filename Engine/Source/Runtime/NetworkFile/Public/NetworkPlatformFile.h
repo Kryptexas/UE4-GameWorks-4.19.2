@@ -244,6 +244,7 @@ private:
 
 	static FString MP4Extension;
 	static FString BulkFileExtension;
+	static FString ExpFileExtension;
 	static FString FontFileExtension;
 };
 

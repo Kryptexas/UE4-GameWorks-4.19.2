@@ -68,11 +68,11 @@ void ULightComponentBase::Serialize(FArchive& Ar)
 /**
  * Called after duplication & serialization and before PostLoad. Used to e.g. make sure GUIDs remains globally unique.
  */
-void ULightComponentBase::PostDuplicate(bool bDuplicateForPIE)
+void ULightComponentBase::PostDuplicate(EDuplicateMode::Type DuplicateMode) 
 {
-	Super::PostDuplicate(bDuplicateForPIE);
+	Super::PostDuplicate(DuplicateMode);
 
-	if (!bDuplicateForPIE)
+	if (DuplicateMode == EDuplicateMode::Normal)
 	{
 		// Create new guids for light.
 		UpdateLightGUIDs();

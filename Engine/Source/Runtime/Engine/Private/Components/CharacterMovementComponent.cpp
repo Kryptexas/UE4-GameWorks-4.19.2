@@ -8862,7 +8862,7 @@ void UCharacterMovementComponent::ApplyWorldOffset(const FVector& InOffset, bool
 	OldBaseLocation += InOffset;
 	LastUpdateLocation += InOffset;
 
-	if (CharacterOwner != nullptr)
+	if (CharacterOwner != nullptr && CharacterOwner->Role == ROLE_AutonomousProxy)
 	{
 		FNetworkPredictionData_Client_Character* ClientData = GetPredictionData_Client_Character();
 		if (ClientData != nullptr)

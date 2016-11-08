@@ -340,6 +340,11 @@ void UMapBuildDataRegistry::InvalidateStaticLighting(UWorld* World)
 	MarkPackageDirty();
 }
 
+bool UMapBuildDataRegistry::IsLegacyBuildData() const
+{
+	return GetOutermost()->ContainsMap();
+}
+
 void UMapBuildDataRegistry::EmptyData()
 {
 	MeshBuildData.Empty();

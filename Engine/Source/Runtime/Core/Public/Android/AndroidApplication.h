@@ -8,7 +8,10 @@
 namespace FAndroidAppEntry
 {
 	void PlatformInit();
-	void ReInitWindow();
+
+	// if the native window handle has changed then the new handle is required.
+	void ReInitWindow(void* NewNativeWindowHandle = nullptr);
+
 	void DestroyWindow();
 	void ReleaseEGL();
 }

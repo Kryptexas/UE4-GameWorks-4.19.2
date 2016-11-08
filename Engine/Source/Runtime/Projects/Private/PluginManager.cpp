@@ -403,6 +403,12 @@ bool FPluginManager::ConfigureEnabledPlugins()
 #else
 				Plugin->bEnabled = true;
 #endif
+
+				if (Plugin->bEnabled && FPlatformMisc::ShouldDisablePluginAtRuntime(Plugin->Name))
+				{
+					Plugin->bEnabled = false;
+					AllEnabledPlugins.Remove(Plugin->Name);
+				}
 			}
 		}
 
@@ -518,7 +524,7 @@ bool FPluginManager::ConfigureEnabledPlugins()
 				}
 			}
 		}
-		
+
 		// Mount all the plugin content folders and pak files
 		TArray<FString>	FoundPaks;
 		FPakFileSearchVisitor PakVisitor(FoundPaks);

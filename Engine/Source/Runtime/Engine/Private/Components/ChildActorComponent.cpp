@@ -178,13 +178,6 @@ void UChildActorComponent::PostRepNotifies()
 	}
 }
 
-void UChildActorComponent::OnComponentCreated()
-{
-	Super::OnComponentCreated();
-
-	CreateChildActor();
-}
-
 void UChildActorComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 {
 	Super::OnComponentDestroyed(bDestroyingHierarchy);

@@ -414,14 +414,18 @@ void UPrimitiveComponent::OnRegister()
 
 void UPrimitiveComponent::OnUnregister()
 {
-	UWorld* World = GetWorld();
-	if (World)
+	// If this is being garbage collected we don't really need to worry about clearing this
+	if (!HasAnyFlags(RF_BeginDestroyed) && !IsUnreachable())
 	{
-		if (World->Scene)
+		UWorld* World = GetWorld();
+		if (World)
 		{
-			World->Scene->ReleasePrimitive(this);
+			if (World->Scene)
+			{
+				World->Scene->ReleasePrimitive(this);
+			}
+			World->ClearActorComponentEndOfFrameUpdate(this);
 		}
-		World->ClearActorComponentEndOfFrameUpdate(this);
 	}
 
 	Super::OnUnregister();

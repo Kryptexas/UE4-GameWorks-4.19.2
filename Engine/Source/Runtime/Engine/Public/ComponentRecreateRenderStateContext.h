@@ -30,7 +30,7 @@ public:
 
 	~FComponentRecreateRenderStateContext()
 	{
-		if (Component && !Component->IsRenderStateCreated())
+		if (Component && !Component->IsRenderStateCreated() && Component->IsRegistered())
 		{
 			Component->CreateRenderState_Concurrent();
 		}

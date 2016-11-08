@@ -2766,15 +2766,15 @@ void FEdModeMeshPaint::Render( const FSceneView* View, FViewport* Viewport, FPri
 			const bool bVisualCueOnly = !bIsPainting || (PaintingWithInteractorInVR == nullptr && !FMeshPaintSettings::Get().bEnableFlow);
 			float StrengthScale = (PaintingWithInteractorInVR == nullptr && FMeshPaintSettings::Get().bEnableFlow) ? FMeshPaintSettings::Get().FlowAmount : 1.0f;
 
-			bool bIsHoveringOverUIVR = false;
+			bool bIsHoveringOverPriorityTypeVR = false;
 			const UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>( PaintRay.ViewportInteractor );
 			if( VRInteractor != nullptr )
 			{
-				bIsHoveringOverUIVR = VRInteractor->IsHoveringOverUI();
+				bIsHoveringOverPriorityTypeVR = VRInteractor->IsHoveringOverPriorityType();
 			}
 
 			// Don't draw visual cue for paint brush when the interactor is hovering over UI
-			if( !bVisualCueOnly || PaintRay.ViewportInteractor == nullptr || !bIsHoveringOverUIVR )
+			if( !bVisualCueOnly || PaintRay.ViewportInteractor == nullptr || !bIsHoveringOverPriorityTypeVR )
 			{
 				// Don't draw visual cue if we're hovering over a viewport interactable, such as a dockable window selection bar
 				bool bIsHoveringOverViewportInteractable = false;
@@ -5179,7 +5179,7 @@ void FEdModeMeshPaint::OnVRAction( class FEditorViewportClient& ViewportClient, 
 	{
 		if( Action.ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed )
 		{
-			if( !bIsPainting && Action.Event == IE_Pressed && !VRInteractor->IsHoveringOverUI() )
+			if( !bIsPainting && Action.Event == IE_Pressed && !VRInteractor->IsHoveringOverPriorityType() )
 			{
 				// Check to see that we're clicking on a selected object.  You can only paint on selected things.  Otherwise,
 				// we'll fall through to the normal interaction code which might cause the object to become selected.

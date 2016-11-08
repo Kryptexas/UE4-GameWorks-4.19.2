@@ -1004,11 +1004,6 @@ void ULevelStreamingKismet::PostLoad()
 	}
 }
 
-bool ULevelStreamingKismet::ShouldBeVisible() const
-{
-	return bShouldBeVisible || (bShouldBeVisibleInEditor && !FApp::IsGame());
-}
-
 bool ULevelStreamingKismet::ShouldBeLoaded() const
 {
 	return bShouldBeLoaded;

@@ -1660,9 +1660,13 @@ FVulkanDescriptorPool* FVulkanCommandListContext::AllocateDescriptorSets(const V
 	VkDescriptorSetAllocateInfo DescriptorSetAllocateInfo = InDescriptorSetAllocateInfo;
 	VkResult Result = VK_ERROR_OUT_OF_DEVICE_MEMORY;
 
-	// Only try to find if it will fit in the pool if we're in validation mode
+	int32 ValidationLayerEnabled = 0;
+#if VULKAN_HAS_DEBUGGING_ENABLED
 	extern TAutoConsoleVariable<int32> GValidationCvar;
-	if (GValidationCvar->GetInt() == 0 || Pool->CanAllocate(Layout))
+	ValidationLayerEnabled = GValidationCvar->GetInt();
+#endif
+	// Only try to find if it will fit in the pool if we're in validation mode
+	if (ValidationLayerEnabled == 0 || Pool->CanAllocate(Layout))
 	{
 		DescriptorSetAllocateInfo.descriptorPool = Pool->GetHandle();
 		Result = VulkanRHI::vkAllocateDescriptorSets(Device->GetInstanceHandle(), &DescriptorSetAllocateInfo, OutSets);

@@ -991,12 +991,13 @@ void UInstancedStaticMeshComponent::CreateAllInstanceBodies()
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_UInstancedStaticMeshComponent_CreateAllInstanceBodies);
 
+	const int32 NumBodies = PerInstanceSMData.Num();
+	check(InstanceBodies.Num() == 0);
+
 	if (UBodySetup* BodySetup = GetBodySetup())
 	{
 		FPhysScene* PhysScene = GetWorld()->GetPhysicsScene();
 
-	    const int32 NumBodies = PerInstanceSMData.Num();
-		check(InstanceBodies.Num() == 0);
 		InstanceBodies.SetNumUninitialized(NumBodies);
 
 		// Sanitized array does not contain any nulls
@@ -1062,6 +1063,13 @@ void UInstancedStaticMeshComponent::CreateAllInstanceBodies()
 			// Serialize physics data for fast path cooking
 			PhysicsSerializer->SerializePhysics(InstanceBodiesSanitized, BodySetups, PhysicalMaterials);
 		}
+	}
+	else
+	{
+		// In case we get into some bad state where the BodySetup is invalid but bPhysicsStateCreated is true,
+		// issue a warning and add nullptrs to InstanceBodies.
+		UE_LOG(LogStaticMesh, Warning, TEXT("Instance Static Mesh Component unable to create InstanceBodies!"));
+		InstanceBodies.AddZeroed(NumBodies);
 	}
 }
 
@@ -1653,7 +1661,7 @@ TArray<int32> UInstancedStaticMeshComponent::GetInstancesOverlappingBox(const FB
 
 bool UInstancedStaticMeshComponent::ShouldCreatePhysicsState() const
 {
-	return IsRegistered() && !IsBeingDestroyed() && (bAlwaysCreatePhysicsState || IsCollisionEnabled());
+	return IsRegistered() && !IsBeingDestroyed() && GetStaticMesh() && (bAlwaysCreatePhysicsState || IsCollisionEnabled());
 }
 
 float UInstancedStaticMeshComponent::GetTextureStreamingTransformScale() const

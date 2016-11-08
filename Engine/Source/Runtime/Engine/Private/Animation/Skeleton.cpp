@@ -1408,6 +1408,14 @@ void USkeleton::IncreaseAnimCurveUidVersion()
 {
 	// this will be checked by skeletalmeshcomponent and if it's same, it won't care. If it's different, it will rebuild UID list
 	++AnimCurveUidVersion;
+
+	// update default uid list
+	const FSmartNameMapping* Mapping = GetSmartNameContainer(USkeleton::AnimCurveMappingName);
+	if (Mapping != nullptr)
+	{
+		DefaultCurveUIDList.Reset();
+		Mapping->FillUidArray(DefaultCurveUIDList);
+	}
 }
 
 FCurveMetaData* USkeleton::GetCurveMetaData(const FName& CurveName)

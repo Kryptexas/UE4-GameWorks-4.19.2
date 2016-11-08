@@ -2088,7 +2088,10 @@ FPropertyAccess::Result FPropertyHandleBase::SetPerObjectValues( const TArray<FS
 			TArray<FObjectBaseAddress> ObjectsToModify;
 			Implementation->GetObjectsToModify( ObjectsToModify, PropertyNode.Get() );
 
-			Implementation->ImportText( ObjectsToModify, InPerObjectValues, PropertyNode.Get(), Flags );
+			if(ObjectsToModify.Num() > 0)
+			{
+				Implementation->ImportText( ObjectsToModify, InPerObjectValues, PropertyNode.Get(), Flags );
+			}
 
 			return FPropertyAccess::Success;
 		}

@@ -1171,6 +1171,8 @@ bool UnFbx::FFbxImporter::FillSkeletalMeshImportData(TArray<FbxNode*>& NodeArray
 		}
 	}
 
+	CleanUpUnusedMaterials(*SkelMeshImportDataPtr);
+
 	if (LastImportedMaterialNames.Num() > 0)
 	{
 		SetMaterialOrderByName(*SkelMeshImportDataPtr, LastImportedMaterialNames);
@@ -2148,6 +2150,47 @@ void UnFbx::FFbxImporter::SetMaterialOrderByName(FSkeletalMeshImportData& Import
 					Triangle.MatIndex = MaterialIndexToNameIndex[Triangle.MatIndex];
 				}
 			}
+		}
+	}
+}
+
+void UnFbx::FFbxImporter::CleanUpUnusedMaterials(FSkeletalMeshImportData& ImportData)
+{
+	TArray< VMaterial > ExistingMatList = ImportData.Materials;
+
+	TArray<uint8> UsedMaterialIndex;
+	// Find all material that are use by the mesh faces
+	int32 FaceNum = ImportData.Faces.Num();
+	for (int32 TriangleIndex = 0; TriangleIndex < FaceNum; TriangleIndex++)
+	{
+		VTriangle& Triangle = ImportData.Faces[TriangleIndex];
+		UsedMaterialIndex.AddUnique(Triangle.MatIndex);
+	}
+	//Remove any unused material.
+	if (UsedMaterialIndex.Num() != ExistingMatList.Num())
+	{
+		TArray<int32> RemapIndex;
+		TArray< VMaterial > &NewMatList = ImportData.Materials;
+		NewMatList.Empty();
+		for (int32 ExistingMatIndex = 0; ExistingMatIndex < ExistingMatList.Num(); ++ExistingMatIndex)
+		{
+			if (UsedMaterialIndex.Contains((uint8)ExistingMatIndex))
+			{
+				RemapIndex.Add(NewMatList.Add(ExistingMatList[ExistingMatIndex]));
+			}
+			else
+			{
+				RemapIndex.Add(INDEX_NONE);
+			}
+		}
+		ImportData.MaxMaterialIndex = 0;
+		//Remap the face material index
+		for (int32 TriangleIndex = 0; TriangleIndex < FaceNum; TriangleIndex++)
+		{
+			VTriangle& Triangle = ImportData.Faces[TriangleIndex];
+			check(RemapIndex[Triangle.MatIndex] != INDEX_NONE);
+			Triangle.MatIndex = RemapIndex[Triangle.MatIndex];
+			ImportData.MaxMaterialIndex = FMath::Max<uint32>(ImportData.MaxMaterialIndex, Triangle.MatIndex);
 		}
 	}
 }

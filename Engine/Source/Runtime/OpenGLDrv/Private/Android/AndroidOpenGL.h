@@ -141,6 +141,7 @@ extern PFNGLUNIFORMBLOCKBINDINGPROC		glUniformBlockBinding;
 
 extern PFNGLFRAMEBUFFERTEXTUREMULTIVIEWOVRPROC glFramebufferTextureMultiviewOVR;
 extern PFNGLFRAMEBUFFERTEXTUREMULTISAMPLEMULTIVIEWOVRPROC glFramebufferTextureMultisampleMultiviewOVR;
+extern PFNGLVERTEXATTRIBIPOINTERPROC	glVertexAttribIPointer;
 
 #include "OpenGLES2.h"
 
@@ -418,6 +419,18 @@ struct FAndroidOpenGL : public FOpenGLES2
 		glBufferSubData(Target, Offset, Size, Data);
 	}
 
+	static FORCEINLINE void VertexAttribIPointer(GLuint Index, GLint Size, GLenum Type, GLsizei Stride, const GLvoid* Pointer)
+	{
+		if (bES30Support && glVertexAttribIPointer != nullptr)
+		{
+			glVertexAttribIPointer(Index, Size, Type, Stride, Pointer);
+		}
+		else
+		{
+			glVertexAttribPointer(Index, Size, Type, GL_FALSE, Stride, Pointer);
+		}
+	}
+
 	// Adreno doesn't support HALF_FLOAT
 	static FORCEINLINE int32 GetReadHalfFloatPixelsEnum()				{ return GL_FLOAT; }
 
@@ -446,6 +459,8 @@ struct FAndroidOpenGL : public FOpenGLES2
 	{
 		return bUseES30ShadingLanguage;
 	}
+	static FORCEINLINE bool SupportsTextureMaxLevel()					{ return bES31Support; }
+	static FORCEINLINE GLenum GetVertexHalfFloatFormat() { return bES31Support ? GL_HALF_FLOAT : GL_HALF_FLOAT_OES; }
 
 	static FORCEINLINE GLenum GetDepthFormat() { return GL_DEPTH_COMPONENT24; }
 

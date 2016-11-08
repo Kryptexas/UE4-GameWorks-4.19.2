@@ -1372,6 +1372,22 @@ void FMacApplication::UpdateScreensArray()
 			}
 		}
 	}
+
+	// The primary screen needs to be at (0,0), so we need to offset all screen origins by its position
+	TSharedRef<FMacScreen> PrimaryScreen = AllScreens[0];
+	const FVector2D FrameOffset(PrimaryScreen->Frame.origin.x, PrimaryScreen->Frame.origin.y);
+	const FVector2D FramePixelsOffset(PrimaryScreen->FramePixels.origin.x, PrimaryScreen->FramePixels.origin.y);
+	for (TSharedRef<FMacScreen> CurScreen : AllScreens)
+	{
+		CurScreen->Frame.origin.x -= FrameOffset.X;
+		CurScreen->Frame.origin.y -= FrameOffset.Y;
+		CurScreen->VisibleFrame.origin.x -= FrameOffset.X;
+		CurScreen->VisibleFrame.origin.y -= FrameOffset.Y;
+		CurScreen->FramePixels.origin.x -= FramePixelsOffset.X;
+		CurScreen->FramePixels.origin.y -= FramePixelsOffset.Y;
+		CurScreen->VisibleFramePixels.origin.x -= FramePixelsOffset.X;
+		CurScreen->VisibleFramePixels.origin.y -= FramePixelsOffset.Y;
+	}
 }
 
 FVector2D FMacApplication::CalculateScreenOrigin(NSScreen* Screen)
@@ -1438,14 +1454,14 @@ TSharedRef<FMacScreen> FMacApplication::FindScreenByCocoaPosition(float X, float
 FVector2D FMacApplication::ConvertSlatePositionToCocoa(float X, float Y)
 {
 	TSharedRef<FMacScreen> Screen = FindScreenBySlatePosition(X, Y);
-	const FVector2D OffsetOnScreen = FVector2D(X - Screen->FramePixels.origin.x, Screen->FramePixels.size.height - Y - Screen->FramePixels.origin.y) / Screen->Screen.backingScaleFactor;
+	const FVector2D OffsetOnScreen = FVector2D(X - Screen->FramePixels.origin.x, Screen->FramePixels.origin.y + Screen->FramePixels.size.height - Y) / Screen->Screen.backingScaleFactor;
 	return FVector2D(Screen->Screen.frame.origin.x + OffsetOnScreen.X, Screen->Screen.frame.origin.y + OffsetOnScreen.Y);
 }
 
 FVector2D FMacApplication::ConvertCocoaPositionToSlate(float X, float Y)
 {
 	TSharedRef<FMacScreen> Screen = FindScreenByCocoaPosition(X, Y);
-	const FVector2D OffsetOnScreen = FVector2D(X - Screen->Screen.frame.origin.x, Screen->Screen.frame.size.height - Y - Screen->Screen.frame.origin.y) * Screen->Screen.backingScaleFactor;
+	const FVector2D OffsetOnScreen = FVector2D(X - Screen->Screen.frame.origin.x, Screen->Screen.frame.origin.y + Screen->Screen.frame.size.height - Y) * Screen->Screen.backingScaleFactor;
 	return FVector2D(Screen->FramePixels.origin.x + OffsetOnScreen.X, Screen->FramePixels.origin.y + OffsetOnScreen.Y);
 }
 

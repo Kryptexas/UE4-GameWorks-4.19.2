@@ -44,6 +44,8 @@
 #include "FeaturePackContentSource.h"
 #include "TemplateProjectDefs.h"
 #include "GameProjectUtils.h"
+#include "IPortalApplicationWindow.h"
+#include "IPortalServiceLocator.h"
 
 #define LOCTEXT_NAMESPACE "UnrealEd"
 
@@ -1666,6 +1668,65 @@ FString FUnrealEdMisc::GetExecutableForCommandlets() const
 	}
 #endif
 	return ExecutableName;
+}
+
+void FUnrealEdMisc::OpenMarketplace(const FString& CustomLocation)
+{
+	TArray<FAnalyticsEventAttribute> EventAttributes;
+
+	FString Location = CustomLocation.IsEmpty() ? TEXT("/ue/marketplace") : CustomLocation;
+
+	EventAttributes.Add(FAnalyticsEventAttribute(TEXT("Location"), Location));
+	
+	auto Service = GEditor->GetServiceLocator()->GetServiceRef<IPortalApplicationWindow>();
+	if(Service->IsAvailable())
+	{
+		TAsyncResult<bool> Result = Service->NavigateTo(Location);
+		if(FEngineAnalytics::IsAvailable())
+		{
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OpenSucceeded"), TEXT("TRUE")));
+		}
+	}
+	else
+	{
+		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+
+		if(DesktopPlatform != nullptr)
+		{
+			FOpenLauncherOptions OpenOptions(Location);
+			if(DesktopPlatform->OpenLauncher(OpenOptions))
+			{
+				EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OpenSucceeded"), TEXT("TRUE")));
+			}
+			else
+			{
+				EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OpenSucceeded"), TEXT("FALSE")));
+
+				if(EAppReturnType::Yes == FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("InstallMarketplacePrompt", "The Marketplace requires the Epic Games Launcher, which does not seem to be installed on your computer. Would you like to install it now?")))
+				{
+					FOpenLauncherOptions InstallOptions(true, Location);
+					if(!DesktopPlatform->OpenLauncher(InstallOptions))
+					{
+						EventAttributes.Add(FAnalyticsEventAttribute(TEXT("InstallSucceeded"), TEXT("FALSE")));
+						FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(TEXT("Sorry, there was a problem installing the Launcher.\nPlease try to install it manually!")));
+					}
+					else
+					{
+						EventAttributes.Add(FAnalyticsEventAttribute(TEXT("InstallSucceeded"), TEXT("TRUE")));
+					}
+				}
+			}
+
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("Source"), TEXT("EditorToolbar")));
+
+		}
+	}
+
+
+	if(FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.OpenMarketplace"), EventAttributes);
+	}
 }
 
 void FUnrealEdMisc::OnUserDefinedChordChanged(const FUICommandInfo& CommandInfo)

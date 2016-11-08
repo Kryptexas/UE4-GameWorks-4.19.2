@@ -100,7 +100,8 @@ FPrimaryCrashProperties* FPrimaryCrashProperties::Singleton = nullptr;
 
 FPrimaryCrashProperties::FPrimaryCrashProperties()
 	// At this moment only these properties can be changed by the crash report client.
-	: PlatformFullName( FGenericCrashContext::RuntimePropertiesTag, TEXT( "PlatformFullName" ), this )
+	: EngineModeEx( FGenericCrashContext::RuntimePropertiesTag, TEXT("EngineModeEx"), this )
+	, PlatformFullName( FGenericCrashContext::RuntimePropertiesTag, TEXT( "PlatformFullName" ), this )
 	, CommandLine( FGenericCrashContext::RuntimePropertiesTag, TEXT( "CommandLine" ), this )
 	, UserName( FGenericCrashContext::RuntimePropertiesTag, TEXT("UserName"), this )
 	, MachineId( FGenericCrashContext::RuntimePropertiesTag, TEXT( "MachineId" ), this )
@@ -273,6 +274,7 @@ void FPrimaryCrashProperties::MakeCrashEventAttributes(TArray<FAnalyticsEventAtt
 	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("Platform"), PlatformFullName.AsString()));
 	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("TimeOfCrash"), TimeOfCrash.AsString()));
 	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("EngineMode"), EngineMode));
+	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("EngineModeEx"), EngineModeEx.AsString()));
 	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("AppDefaultLocale"), AppDefaultLocale));
 
 	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("UserActivityHint"), UserActivityHint.AsString()));
@@ -455,6 +457,10 @@ FCrashWERContext::FCrashWERContext( const FString& WERXMLFilepath )
 
 		GetCrashProperty(DeploymentName, TEXT("DynamicSignatures"), TEXT("DeploymentName"));
 		GetCrashProperty(bIsEnsure, TEXT("DynamicSignatures"), TEXT("IsEnsure"));
+
+		FString EngineModeExString;
+		GetCrashProperty(EngineModeExString, TEXT("DynamicSignatures"), TEXT("EngineModeEx"));
+		EngineModeEx = EngineModeExString;
 
 		bHasPrimaryData = true;
 	}

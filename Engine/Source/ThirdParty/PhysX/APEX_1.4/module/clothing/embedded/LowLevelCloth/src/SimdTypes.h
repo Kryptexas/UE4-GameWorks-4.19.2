@@ -37,7 +37,11 @@
 #else
 #define NVMATH_SSE2 0
 #endif
-#define NVMATH_NEON (defined _M_ARM || defined __ARM_NEON__)
+#if((defined _M_ARM) || (defined __ARM_NEON__))
+#define NVMATH_NEON 1
+#else
+#define NVMATH_NEON 0
+#endif
 
 // which simd types are implemented (one or both are all valid options)
 #define NVMATH_SIMD (NVMATH_SSE2 || NVMATH_NEON)
@@ -51,7 +55,11 @@
 // Simd4f and Simd4i map to different types
 #define NVMATH_DISTINCT_TYPES (NVMATH_SSE2 || NVMATH_NEON)
 // support inline assembler
-#define NVMATH_INLINE_ASSEMBLER !((defined _M_ARM) || (defined SN_TARGET_PSP2) || (defined __arm64__))
+#if !((defined _M_ARM) || (defined SN_TARGET_PSP2) || (defined __arm64__))
+#define NVMATH_INLINE_ASSEMBLER 1
+#else
+#define NVMATH_INLINE_ASSEMBLER 0
+#endif
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // expression template

@@ -45,7 +45,8 @@ public:
 
 		FPropertyEditorModule& PropertyEditor = FModuleManager::LoadModuleChecked<FPropertyEditorModule>(PropertyEditorModuleName);
 
-		PropertyEditor.RegisterCustomClassLayout(UEditorKeyboardShortcutSettings::StaticClass()->GetFName(), FOnGetDetailCustomizationInstance::CreateStatic(&FEditorKeyboardShortcutSettings::MakeInstance));
+		EditorKeyboardShortcutSettingsName = UEditorKeyboardShortcutSettings::StaticClass()->GetFName();
+		PropertyEditor.RegisterCustomClassLayout(EditorKeyboardShortcutSettingsName, FOnGetDetailCustomizationInstance::CreateStatic(&FEditorKeyboardShortcutSettings::MakeInstance));
 
 		// input bindings
 		ISettingsSectionPtr InputBindingSettingsSection = SettingsModule.RegisterSettings("Editor", "General", "InputBindings",
@@ -69,7 +70,7 @@ public:
 		{
 			FPropertyEditorModule& PropertyEditor = FModuleManager::GetModuleChecked<FPropertyEditorModule>(PropertyEditorModuleName);
 
-			PropertyEditor.UnregisterCustomClassLayout(UEditorKeyboardShortcutSettings::StaticClass()->GetFName());
+			PropertyEditor.UnregisterCustomClassLayout(EditorKeyboardShortcutSettingsName);
 		}
 
 	}
@@ -165,6 +166,9 @@ private:
 
 	/** Holds the collection of created binding editor panels. */
 	TArray<TSharedPtr<SWidget> > BindingEditorPanels;
+
+	/** Captured name of the UEditorKeyboardShortcutSettings class */
+	FName EditorKeyboardShortcutSettingsName;
 };
 
 #undef LOCTEXT_NAMESPACE

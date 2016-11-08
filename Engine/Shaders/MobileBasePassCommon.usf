@@ -45,6 +45,9 @@ struct FSharedMobileBasePassInterpolants
 	float OutClipDistance : OUTCLIPDIST;
 #endif
 
+#if MOBILE_MULTI_VIEW
+	float MultiViewId : VIEW_ID;
+#endif
 };
 
 #define FMobileBasePassInterpolantsVSToPS FSharedMobileBasePassInterpolants

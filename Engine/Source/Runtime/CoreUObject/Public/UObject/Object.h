@@ -321,6 +321,11 @@ public:
 	 */
 	virtual void PostDuplicate(bool bDuplicateForPIE) {}
 
+	virtual void PostDuplicate(EDuplicateMode::Type DuplicateMode) 
+	{
+		PostDuplicate(DuplicateMode == EDuplicateMode::PIE);
+	}
+
 	/**
 	 * Called during saving to determine the load flags to save with the object.
 	 * Upon reload, this object will be discarded on clients

@@ -432,7 +432,8 @@ public:
 
 	void OnVRHoverUpdate(FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, FVector& HoverImpactPoint, bool& bWasHandled);
 
-	void OnWorldChange();
+	/** Handle notification that visible levels may have changed and we should update the editable landscapes list */
+	void HandleLevelsChanged();
 
 	void OnMaterialCompilationFinished(UMaterialInterface* MaterialInterface);
 
@@ -468,6 +469,7 @@ private:
 	const FViewport* ToolActiveViewport;
 
 	FDelegateHandle OnWorldChangeDelegateHandle;
+	FDelegateHandle OnLevelsChangedDelegateHandle;
 	FDelegateHandle OnMaterialCompilationFinishedDelegateHandle;
 
 	/** Check if we are painting using the VREditor */

@@ -21,6 +21,7 @@ public:
 		CurrentSession.bCrashed = false;
 		CurrentSession.bIsDeactivated = false;
 		CurrentSession.bIsInBackground = false;
+		CurrentSession.bIsVanilla = false;
 	}
 
 	void Initialize();
@@ -42,6 +43,7 @@ private:
 		bool bIsDeactivated;
 		bool bIsInBackground;
 		FString CurrentUserActivity;
+		bool bIsVanilla;
 	};
 
 private:
@@ -58,6 +60,7 @@ private:
 	void OnAppForeground();
 	FString GetStoreSectionString(FString InSuffix);
 	void OnUserActivity(const FUserActivity& UserActivity);
+	void OnVanillaStateChanged(bool bIsVanilla);
 	FString GetUserActivityString() const;
 
 private:

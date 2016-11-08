@@ -402,6 +402,17 @@ void FSceneRenderTargets::Allocate(FRHICommandList& RHICmdList, const FSceneView
 	const auto NewFeatureLevel = ViewFamily.Scene->GetFeatureLevel();
 	CurrentShadingPath = ViewFamily.Scene->GetShadingPath();
 
+	bRequireSceneColorAlpha = false;
+
+	for (int32 ViewIndex = 0; ViewIndex < ViewFamily.Views.Num(); ViewIndex++)
+	{
+		// Planar reflections and scene captures use scene color alpha to keep track of where content has been rendered, for compositing into a different scene later
+		if (ViewFamily.Views[ViewIndex]->bIsPlanarReflection || ViewFamily.Views[ViewIndex]->bIsSceneCapture)
+		{
+			bRequireSceneColorAlpha = true;
+		}
+	}
+
 	FIntPoint DesiredBufferSize = ComputeDesiredSize(ViewFamily);
 	check(DesiredBufferSize.X > 0 && DesiredBufferSize.Y > 0);
 	QuantizeBufferSize(DesiredBufferSize.X, DesiredBufferSize.Y);
@@ -954,7 +965,7 @@ TRefCountPtr<IPooledRenderTarget>& FSceneRenderTargets::GetSceneColor()
 void FSceneRenderTargets::SetSceneColor(IPooledRenderTarget* In)
 {
 	check(CurrentShadingPath < EShadingPath::Num);
-	SceneColor[(int32)CurrentShadingPath] = In;
+	SceneColor[(int32)GetSceneColorFormatType()] = In;
 }
 
 void FSceneRenderTargets::SetLightAttenuation(IPooledRenderTarget* In)
@@ -1340,11 +1351,21 @@ void FSceneRenderTargets::FinishRenderingSeparateTranslucency(FRHICommandList& R
 	bSeparateTranslucencyPass = false;
 }
 
-void FSceneRenderTargets::ResolveSceneDepthTexture(FRHICommandList& RHICmdList)
+void FSceneRenderTargets::ResolveSceneDepthTexture(FRHICommandList& RHICmdList, const FResolveRect& ResolveRect)
 {
 	SCOPED_DRAW_EVENT(RHICmdList, ResolveSceneDepthTexture);
 
+	if (ResolveRect.IsValid())
+	{
+		RHICmdList.SetScissorRect(true, ResolveRect.X1, ResolveRect.Y1, ResolveRect.X2, ResolveRect.Y2);
+	}
+
 	RHICmdList.CopyToResolveTarget(GetSceneDepthSurface(), GetSceneDepthTexture(), true, FResolveParams());
+
+	if (ResolveRect.IsValid())
+	{
+		RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
+	}
 }
 
 void FSceneRenderTargets::ResolveSceneDepthToAuxiliaryTexture(FRHICommandList& RHICmdList)
@@ -1840,6 +1861,10 @@ EPixelFormat FSceneRenderTargets::GetSceneColorFormat() const
 		    SceneColorBufferFormat = PF_FloatRGBA;
 	    }
 
+		if (bRequireSceneColorAlpha)
+		{
+			SceneColorBufferFormat = PF_FloatRGBA;
+		}
 	}
 
 	return SceneColorBufferFormat;
@@ -1847,7 +1872,7 @@ EPixelFormat FSceneRenderTargets::GetSceneColorFormat() const
 
 void FSceneRenderTargets::AllocateRenderTargets(FRHICommandList& RHICmdList)
 {
-	if (BufferSize.X > 0 && BufferSize.Y > 0 && !AreShadingPathRenderTargetsAllocated(CurrentShadingPath))
+	if (BufferSize.X > 0 && BufferSize.Y > 0 && !AreShadingPathRenderTargetsAllocated(GetSceneColorFormatType()))
 	{
 		if ((EShadingPath)CurrentShadingPath == EShadingPath::Mobile)
 		{
@@ -1862,7 +1887,7 @@ void FSceneRenderTargets::AllocateRenderTargets(FRHICommandList& RHICmdList)
 
 void FSceneRenderTargets::ReleaseSceneColor()
 {
-	for (auto i = 0; i < (int32)EShadingPath::Num; ++i)
+	for (auto i = 0; i < (int32)ESceneColorFormatType::Num; ++i)
 	{
 		SceneColor[i].SafeRelease();
 	}
@@ -2118,17 +2143,21 @@ int32 FSceneRenderTargets::GetCubeShadowDepthZResolution(int32 ShadowIndex) cons
 	return SurfaceSizes[ShadowIndex];
 }
 
-bool FSceneRenderTargets::AreShadingPathRenderTargetsAllocated(EShadingPath InShadingPath) const
+bool FSceneRenderTargets::AreShadingPathRenderTargetsAllocated(ESceneColorFormatType InSceneColorFormatType) const
 {
-	switch (InShadingPath)
+	switch (InSceneColorFormatType)
 	{
-	case EShadingPath::Mobile:
+	case ESceneColorFormatType::Mobile:
 		{
-			return (SceneColor[(int32)EShadingPath::Mobile] != nullptr);
+			return (SceneColor[(int32)ESceneColorFormatType::Mobile] != nullptr);
 		}
-	case EShadingPath::Deferred:
+	case ESceneColorFormatType::HighEndWithAlpha:
 		{
-			return (ScreenSpaceAO != nullptr);
+			return (SceneColor[(int32)ESceneColorFormatType::HighEndWithAlpha] != nullptr);
+		}
+	case ESceneColorFormatType::HighEnd:
+		{
+			return (SceneColor[(int32)ESceneColorFormatType::HighEnd] != nullptr);
 		}
 	default:
 		{

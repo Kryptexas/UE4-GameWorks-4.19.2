@@ -64,6 +64,11 @@ bool SVirtualWindow::SupportsKeyboardFocus() const
 	return bIsFocusable;
 }
 
+FVector2D SVirtualWindow::ComputeDesiredSize(float LayoutScaleMultiplier) const
+{
+	return SCompoundWidget::ComputeDesiredSize(LayoutScaleMultiplier);
+}
+
 int32 SVirtualWindow::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	if ( bShouldResolveDeferred )

@@ -583,7 +583,7 @@ namespace physx
 	}
 
 
-	bool immediate::PxGenerateContacts(const PxGeometry** geom0, const PxGeometry** geom1, const PxTransform* pose0, const PxTransform* pose1, PxCache* contactCache, const PxU32 nbPairs, PxContactRecorder& contactRecorder,
+	bool immediate::PxGenerateContacts(const PxGeometry* const * geom0, const PxGeometry* const * geom1, const PxTransform* pose0, const PxTransform* pose1, PxCache* contactCache, const PxU32 nbPairs, PxContactRecorder& contactRecorder,
 		const PxReal contactDistance, const PxReal meshContactMargin, const PxReal toleranceLength, PxCacheAllocator& allocator)
 	{
 		Gu::ContactBuffer contactBuffer;

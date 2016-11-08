@@ -1062,7 +1062,7 @@ public:
 
 	FORCEINLINE ICppStructOps* GetCppStructOps() const
 	{
-		check(bPrepareCppStructOpsCompleted);
+		checkf(bPrepareCppStructOpsCompleted, TEXT("GetCppStructOps: PrepareCppStructOps() has not been called for class %s"), *GetName());
 		return CppStructOps;
 	}
 

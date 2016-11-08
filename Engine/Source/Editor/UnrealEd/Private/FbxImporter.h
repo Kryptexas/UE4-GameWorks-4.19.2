@@ -1148,6 +1148,13 @@ protected:
 	void SetMaterialOrderByName(FSkeletalMeshImportData& ImportData, TArray<FName> LastImportedMaterialNames);
 
 	/**
+	* Make sure there is no unused material in the raw data. Unused material are material refer by node but not refer by any geometry face
+	*
+	* @param FSkeletalMeshBinaryImport& The unreal skeletal mesh.
+	*/
+	void CleanUpUnusedMaterials(FSkeletalMeshImportData& ImportData);
+
+	/**
 	 * Create materials from Fbx node.
 	 * Only setup channels that connect to texture, and setup the UV coordinate of texture.
 	 * If diffuse channel has no texture, one default node will be created with constant.

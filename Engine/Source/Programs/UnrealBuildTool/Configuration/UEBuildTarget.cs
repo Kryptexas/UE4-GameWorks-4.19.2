@@ -1400,8 +1400,8 @@ namespace UnrealBuildTool
 						continue;
 					}
 
-					// if we're cleaning and in an installed binary and the build product path matches the engine install location, we don't want to delete them
-					if (UEBuildConfiguration.bCleanProject && UnrealBuildTool.IsEngineInstalled() && BuildProduct.Path.Contains(Path.GetFullPath(BuildConfiguration.RelativeEnginePath)))
+					// if we're cleaning and in an installed binary/hot reloading and the build product path matches the engine install location, we don't want to delete them
+					if (UEBuildConfiguration.bCleanProject && (UEBuildConfiguration.bHotReloadFromIDE || UnrealBuildTool.IsEngineInstalled()) && Path.GetFullPath(BuildProduct.Path).Contains(Path.GetFullPath(BuildConfiguration.RelativeEnginePath)))
 					{
 						continue;
 					}
@@ -1412,9 +1412,17 @@ namespace UnrealBuildTool
 						continue;
 					}
 
-					AllFilesToDelete.Add(BuildProduct.Path);
 					string FileExt = Path.GetExtension(BuildProduct.Path);
-					if (FileExt == ".dll" || FileExt == ".exe")
+					bool bIsExecutableOrDynamicLibrary = (FileExt == ".dll" || FileExt == ".exe");
+
+					// Don't delete exe's and dlls if they could currently be in use
+					if (UEBuildConfiguration.bHotReloadFromIDE && bIsExecutableOrDynamicLibrary)
+					{
+						continue;
+					}
+
+					AllFilesToDelete.Add(BuildProduct.Path);
+					if (bIsExecutableOrDynamicLibrary)
 					{
 						string ManifestFileWithoutExtension = Utils.GetPathWithoutExtension(BuildProduct.Path);
 						foreach (string AdditionalExt in AdditionalFileExtensions)
@@ -1516,7 +1524,7 @@ namespace UnrealBuildTool
 						CleanDirectory(ProjectIntermediateDirectory.FullName);
 					}
 				}
-				if (!UnrealBuildTool.IsEngineInstalled())
+				if (!UEBuildConfiguration.bHotReloadFromIDE && !UnrealBuildTool.IsEngineInstalled())
 				{
 					// This is always under Engine installation folder
 					if (GlobalLinkEnvironment.Config.IntermediateDirectory.Exists())
@@ -1575,6 +1583,7 @@ namespace UnrealBuildTool
 
 					// Hot reload makefile
 					{
+						bool bPrevHotReloadState = UEBuildConfiguration.bHotReloadFromIDE;
 						UEBuildConfiguration.bHotReloadFromIDE = true;
 						FileReference UBTMakefilePath = UnrealBuildTool.GetUBTMakefilePath(TargetDescs);
 						if (UBTMakefilePath.Exists())
@@ -1582,7 +1591,7 @@ namespace UnrealBuildTool
 							Log.TraceVerbose("\tDeleting " + UBTMakefilePath);
 							CleanFile(UBTMakefilePath.FullName);
 						}
-						UEBuildConfiguration.bHotReloadFromIDE = false;
+						UEBuildConfiguration.bHotReloadFromIDE = bPrevHotReloadState;
 					}
 				}
 
@@ -4185,7 +4194,7 @@ namespace UnrealBuildTool
 			SetUpConfigurationEnvironment();
 			SetUpProjectEnvironment(Configuration);
 
-			if (UEBuildConfiguration.bEventDrivenLoader)
+			if (UEBuildConfiguration.bEventDrivenLoader && !UnrealBuildTool.IsEngineInstalled())
 			{
 				GlobalCompileEnvironment.Config.Definitions.Add("USE_NEW_ASYNC_IO=1");
 			}

@@ -259,6 +259,11 @@
 		<Property Name="CopyAndroidFilter" Value="$(CopyAndroidFilter);Engine/Extras/AndroidWorks/Mac/*.dmg"/>
 	</Do>
 
+	<!-- Linux Specific -->
+	<Do If="'$(HostPlatform)' == 'Linux'">
+		<Property Name="CopyAndroidFilter" Value="$(CopyAndroidFilter);Engine/Extras/AndroidWorks/Linux/*.run"/>
+	</Do>
+
 	<!-- IOS -->
 	<Property Name="CopyIOSFilter" Value=""/>
 	<Property Name="CopyIOSExceptions" Value=""/>

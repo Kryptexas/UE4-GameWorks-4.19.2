@@ -62,6 +62,7 @@ public:
 
 	Gu::ContactPoint	contacts[MAX_CONTACTS];
 	PxU32				count;
+	PxU32				pad;
 
 	PX_FORCE_INLINE void reset()
 	{

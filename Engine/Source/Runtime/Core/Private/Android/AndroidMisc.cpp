@@ -16,6 +16,7 @@
 #include "GenericPlatformChunkInstall.h"
 
 #include <android_native_app_glue.h>
+#include "Function.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogEngine, Log, All);
 
@@ -387,12 +388,6 @@ bool FAndroidMisc::AllowRenderThread()
 	const IConsoleVariable *const CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.AndroidDisableThreadedRendering"));
 	if (CVar && CVar->GetInt() != 0)
 	{
-		return false;
-	}
-
-	if (FAndroidMisc::ShouldUseVulkan())
-	{
-		// @todo vulkan: stop forcing no RT!
 		return false;
 	}
 
@@ -1074,6 +1069,17 @@ int32 FAndroidMisc::GetAndroidBuildVersion()
 	return AndroidBuildVersion;
 }
 
+bool FAndroidMisc::ShouldDisablePluginAtRuntime(const FString& PluginName)
+{
+#if PLATFORM_ANDROID_ARM64 || PLATFORM_ANDROID_X64
+	// disable OnlineSubsystemGooglePlay for unsupported Android architectures
+	if (PluginName.Equals(TEXT("OnlineSubsystemGooglePlay")))
+	{
+		return true;
+	}
+#endif
+	return false;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -1501,6 +1507,14 @@ FString FAndroidMisc::GetVulkanVersion()
 	return VulkanVersionString;
 }
 
+extern bool AndroidThunkCpp_HasMetaDataKey(const FString& Key);
+
+bool FAndroidMisc::IsDaydreamApplication()
+{
+	static const bool bIsDaydreamApplication = AndroidThunkCpp_HasMetaDataKey(TEXT("com.epicgames.ue4.GameActivity.bDaydream"));
+	return bIsDaydreamApplication;
+}
+
 #if !UE_BUILD_SHIPPING
 bool FAndroidMisc::IsDebuggerPresent()
 {
@@ -1564,3 +1578,14 @@ bool FAndroidMisc::HasActiveWiFiConnection()
 	return AndroidThunkCpp_HasActiveWiFiConnection();
 }
 
+static FAndroidMisc::ReInitWindowCallbackType OnReInitWindowCallback;
+
+FAndroidMisc::ReInitWindowCallbackType FAndroidMisc::GetOnReInitWindowCallback()
+{
+	return OnReInitWindowCallback;
+}
+
+void FAndroidMisc::SetOnReInitWindowCallback(FAndroidMisc::ReInitWindowCallbackType InOnReInitWindowCallback)
+{
+	OnReInitWindowCallback = InOnReInitWindowCallback;
+}

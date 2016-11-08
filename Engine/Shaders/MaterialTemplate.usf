@@ -1097,15 +1097,28 @@ float4 GetPostProcessInputMinMax(uint Index)
 MaterialFloat4 MobileSceneTextureLookup(inout FMaterialPixelParameters Parameters, int SceneTextureId, float2 UV)
 {
 #if (FEATURE_LEVEL <= FEATURE_LEVEL_ES3_1)
+	
+	// For fetching SceneDepth and CustomDepth after tonemapper we need to switch OpenGL coordinates
+	// SceneColor will be transformed to OpenGL coordinates during tonemapping
+	#define NEEDTOSWITCHVERTICLEAXIS (COMPILER_GLSL_ES2 || COMPILER_GLSL_ES3_1) && (POST_PROCESS_MATERIAL && !POST_PROCESS_MATERIAL_BEFORE_TONEMAP)
+	
 	//PPI_SceneDepth
 	if (SceneTextureId == 1)
 	{
+		#if NEEDTOSWITCHVERTICLEAXIS
+		UV.y = 1.0 - UV.y; 
+		#endif
+		
 		MaterialFloat Depth = ConvertFromDeviceZ(Texture2DSample(SceneDepthTexture, SceneDepthTextureSampler, UV).r);
 		return MaterialFloat4(Depth.rrr, 0.f);
 	}
 	//PPI_CustomDepth
 	else if (SceneTextureId == 13)
 	{
+		#if NEEDTOSWITCHVERTICLEAXIS
+		UV.y = 1.0 - UV.y; 
+		#endif
+
 		MaterialFloat Depth = ConvertFromDeviceZ(Texture2DSample(CustomDepthTexture, CustomDepthTextureSampler, UV).r);
 		return MaterialFloat4(Depth.rrr, 0.f);
 	}

@@ -343,7 +343,7 @@ void UUnrealEdEngine::edactPasteSelected(UWorld* InWorld, bool bDuplicate, bool 
 			Actor->InvalidateLightingCache();
 			// Call PostEditMove to update components, etc.
 			Actor->PostEditMove(true);
-			Actor->PostDuplicate(false);
+			Actor->PostDuplicate(EDuplicateMode::Normal);
 			Actor->CheckDefaultSubobjects();
 
 			// Request saves/refreshes.

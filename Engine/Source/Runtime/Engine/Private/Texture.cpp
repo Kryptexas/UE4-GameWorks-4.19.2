@@ -161,7 +161,7 @@ void UTexture::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEven
 	else
 	{
 		FMaterialUpdateContext UpdateContext;
-		// Update any material that uses this texture
+		// Update any material that uses this texture and must force a recompile of cache ressource
 		TSet<UMaterial*> BaseMaterialsThatUseThisTexture;
 		for (TObjectIterator<UMaterialInterface> It; It; ++It)
 		{
@@ -173,16 +173,14 @@ void UTexture::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEven
 				BaseMaterialsThatUseThisTexture.Add(Material, &MaterialAlreadyCompute);
 				if (!MaterialAlreadyCompute)
 				{
-					UpdateContext.AddMaterial(Material);
 					if (Material->IsTextureForceRecompileCacheRessource(this))
 					{
+						UpdateContext.AddMaterial(Material);
 						Material->UpdateMaterialShaderCacheAndTextureReferences();
 					}
 				}
 			}
 		}
-		//If the DDC key was different the material is already recompile here
-		RequiresNotifyMaterials = false;
 	}
 
 	NumCinematicMipLevels = FMath::Max<int32>( NumCinematicMipLevels, 0 );

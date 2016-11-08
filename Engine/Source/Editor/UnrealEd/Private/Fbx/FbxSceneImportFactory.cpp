@@ -196,7 +196,7 @@ static void ExtractPropertyTextures(FbxSurfaceMaterial *FbxMaterial, TSharedPtr<
 		int32 LayeredTextureCount = FbxProperty.GetSrcObjectCount<FbxLayeredTexture>();
 		if (LayeredTextureCount == 0)
 		{
-			int32 TextureCount = FbxProperty.GetSrcObjectCount<FbxTexture>();
+			int32 TextureCount = FbxProperty.GetSrcObjectCount<FbxFileTexture>();
 			if (TextureCount > 0)
 			{
 				for (int32 TextureIndex = 0; TextureIndex < TextureCount; ++TextureIndex)

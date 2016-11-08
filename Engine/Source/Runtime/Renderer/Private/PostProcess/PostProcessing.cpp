@@ -1671,8 +1671,6 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 		}
 		else
 		{
-			check(!FSceneRenderTargets::Get(RHICmdList).SeparateTranslucencyRT);
-
 			if (SeparateTranslucency.IsValid())
 			{
 				// separate translucency is done here or in AddPostProcessDepthOfFieldBokeh()
@@ -1816,7 +1814,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 		{
 			FRenderingCompositePass* Node = NULL;
 			const EHMDDeviceType::Type DeviceType = GEngine->HMDDevice->GetHMDDeviceType();
-			if(DeviceType == EHMDDeviceType::DT_OculusRift)
+			if((DeviceType == EHMDDeviceType::DT_OculusRift) || (DeviceType == EHMDDeviceType::DT_GoogleVR))
 			{
 				Node = Context.Graph.RegisterPass(new FRCPassPostProcessHMD());
 			}

@@ -85,7 +85,11 @@ struct PxsCCDContactHeader
 	from an event of the previous pass.
 	*/
 	PxU16 isFromPreviousPass;			//8    //12
+
+	PxU8 pad[12 - sizeof(PxsCCDContactHeader*)];	//16
 };
+
+PX_COMPILE_TIME_ASSERT((sizeof(PxsCCDContactHeader) & 0xF) == 0);
 
 
 class PxsContactManager

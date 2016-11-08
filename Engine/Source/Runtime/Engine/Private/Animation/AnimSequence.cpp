@@ -258,7 +258,7 @@ void UAnimSequence::Serialize(FArchive& Ar)
 			if(GetSkeleton())
 			{
 				// Validate that we are cooking valid compressed data.
-				checkf(GetSkeletonVirtualBoneGuid() == GetSkeleton()->GetVirtualBoneGuid(), TEXT("Attempting to cook animation '%s' containing invalid virtual bone guid! Animation:%s Skeleton:%s"), *GetFullName(), *GetSkeletonVirtualBoneGuid().ToString(EGuidFormats::HexValuesInBraces), *GetSkeleton()->GetVirtualBoneGuid().ToString(EGuidFormats::HexValuesInBraces));
+				checkf(Ar.IsObjectReferenceCollector() || (GetSkeletonVirtualBoneGuid() == GetSkeleton()->GetVirtualBoneGuid()), TEXT("Attempting to cook animation '%s' containing invalid virtual bone guid! Animation:%s Skeleton:%s"), *GetFullName(), *GetSkeletonVirtualBoneGuid().ToString(EGuidFormats::HexValuesInBraces), *GetSkeleton()->GetVirtualBoneGuid().ToString(EGuidFormats::HexValuesInBraces));
 			}
 		}
 
@@ -2513,7 +2513,7 @@ bool UAnimSequence::CopyAnimSequenceProperties(UAnimSequence* SourceAnimSeq, UAn
 	DestAnimSeq->bDoNotOverrideCompression	= SourceAnimSeq->bDoNotOverrideCompression;
 
 	// Copy Compression Settings
-	DestAnimSeq->CompressionScheme = static_cast<UAnimCompress*>(StaticDuplicateObject(SourceAnimSeq->CompressionScheme, DestAnimSeq, NAME_None, RF_AllFlags, nullptr, SDO_No_DuplicateForPie, ~EInternalObjectFlags::RootSet));
+	DestAnimSeq->CompressionScheme = static_cast<UAnimCompress*>(StaticDuplicateObject(SourceAnimSeq->CompressionScheme, DestAnimSeq, NAME_None, RF_AllFlags, nullptr, EDuplicateMode::Normal, ~EInternalObjectFlags::RootSet));
 	DestAnimSeq->TranslationCompressionFormat	= SourceAnimSeq->TranslationCompressionFormat;
 	DestAnimSeq->RotationCompressionFormat		= SourceAnimSeq->RotationCompressionFormat;
 	DestAnimSeq->AdditiveAnimType				= SourceAnimSeq->AdditiveAnimType;
@@ -2622,7 +2622,7 @@ bool UAnimSequence::CopyNotifies(UAnimSequence* SourceAnimSeq, UAnimSequence* De
 		// Copy the notify itself, and point the new one at it.
 		if( SrcNotifyEvent.Notify )
 		{
-			DestAnimSeq->Notifies[NewNotifyIndex].Notify = static_cast<UAnimNotify*>(StaticDuplicateObject(SrcNotifyEvent.Notify, DestAnimSeq, NAME_None, RF_AllFlags, nullptr, SDO_No_DuplicateForPie, ~EInternalObjectFlags::RootSet));
+			DestAnimSeq->Notifies[NewNotifyIndex].Notify = static_cast<UAnimNotify*>(StaticDuplicateObject(SrcNotifyEvent.Notify, DestAnimSeq, NAME_None, RF_AllFlags, nullptr, EDuplicateMode::Normal, ~EInternalObjectFlags::RootSet));
 		}
 		else
 		{
@@ -2631,7 +2631,7 @@ bool UAnimSequence::CopyNotifies(UAnimSequence* SourceAnimSeq, UAnimSequence* De
 
 		if( SrcNotifyEvent.NotifyStateClass )
 		{
-			DestAnimSeq->Notifies[NewNotifyIndex].NotifyStateClass = static_cast<UAnimNotifyState*>(StaticDuplicateObject(SrcNotifyEvent.NotifyStateClass, DestAnimSeq, NAME_None, RF_AllFlags, nullptr, SDO_No_DuplicateForPie, ~EInternalObjectFlags::RootSet));
+			DestAnimSeq->Notifies[NewNotifyIndex].NotifyStateClass = static_cast<UAnimNotifyState*>(StaticDuplicateObject(SrcNotifyEvent.NotifyStateClass, DestAnimSeq, NAME_None, RF_AllFlags, nullptr, EDuplicateMode::Normal, ~EInternalObjectFlags::RootSet));
 		}
 		else
 		{

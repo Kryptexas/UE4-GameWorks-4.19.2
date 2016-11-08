@@ -95,7 +95,7 @@ void ABrush::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 	{
 		// Don't rebuild BSP if only the actor label has changed
 		static const FName ActorLabelName("ActorLabel");
-		if (PropertyChangedEvent.Property->GetFName() != ActorLabelName)
+		if (!PropertyChangedEvent.Property || PropertyChangedEvent.Property->GetFName() != ActorLabelName)
 		{
 			// BSP can only be rebuilt during a transaction
 			GEditor->RebuildAlteredBSP();

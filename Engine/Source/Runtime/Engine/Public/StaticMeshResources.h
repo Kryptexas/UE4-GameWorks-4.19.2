@@ -1191,7 +1191,7 @@ struct FInstanceStream
 		Me->InstanceTransform1[2] = Transform.M[0][2];
 		Me->InstanceTransform1[3] = FloatType();
 
-		Me->InstanceTransform2[0] = Transform.M[1][1];
+		Me->InstanceTransform2[0] = Transform.M[1][0];
 		Me->InstanceTransform2[1] = Transform.M[1][1];
 		Me->InstanceTransform2[2] = Transform.M[1][2];
 		Me->InstanceTransform2[3] = FloatType();

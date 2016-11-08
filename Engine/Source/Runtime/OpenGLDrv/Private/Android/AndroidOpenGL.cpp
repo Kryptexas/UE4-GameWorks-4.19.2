@@ -78,6 +78,7 @@ PFNGLBINDBUFFERRANGEPROC				glBindBufferRange = NULL;
 PFNGLBINDBUFFERBASEPROC					glBindBufferBase = NULL;
 PFNGLGETUNIFORMBLOCKINDEXPROC			glGetUniformBlockIndex = NULL;
 PFNGLUNIFORMBLOCKBINDINGPROC			glUniformBlockBinding = NULL;
+PFNGLVERTEXATTRIBIPOINTERPROC			glVertexAttribIPointer = NULL;
 
 PFNGLFRAMEBUFFERTEXTUREMULTIVIEWOVRPROC glFramebufferTextureMultiviewOVR = NULL;
 PFNGLFRAMEBUFFERTEXTUREMULTISAMPLEMULTIVIEWOVRPROC glFramebufferTextureMultisampleMultiviewOVR = NULL;
@@ -507,6 +508,7 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 		glBindBufferBase = (PFNGLBINDBUFFERBASEPROC)((void*)eglGetProcAddress("glBindBufferBase"));
 		glGetUniformBlockIndex = (PFNGLGETUNIFORMBLOCKINDEXPROC)((void*)eglGetProcAddress("glGetUniformBlockIndex"));
 		glUniformBlockBinding = (PFNGLUNIFORMBLOCKBINDINGPROC)((void*)eglGetProcAddress("glUniformBlockBinding"));
+		glVertexAttribIPointer = (PFNGLVERTEXATTRIBIPOINTERPROC)((void*)eglGetProcAddress("glVertexAttribIPointer"));
 
 
 		// Required by the ES3 spec
@@ -590,6 +592,16 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 	{
 		UE_LOG(LogRHI, Warning, TEXT("Disabling support for hardware instancing on Adreno 330 OpenGL ES 3.0 V@66.0 AU@  (CL@)"));
 		bSupportsInstancing = false;
+	}
+
+	// PowerVR Rogue doesn't like glVertexAttribIPointer so disable it
+	if (bIsPoverVRBased && bES30Support)
+	{
+		if (RendererString.Contains(TEXT("Rogue")))
+		{
+			glVertexAttribIPointer = nullptr;
+			UE_LOG(LogRHI, Warning, TEXT("Disabling glVertexAttribIPointer on PowerVR Rogue"));
+		}
 	}
 
 	if (bSupportsBGRA8888)

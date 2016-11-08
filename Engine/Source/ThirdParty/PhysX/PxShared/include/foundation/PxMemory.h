@@ -51,7 +51,7 @@ namespace physx
 
 \return Pointer to memory block (same as input)
 */
-PX_FORCE_INLINE void* PxMemZero(void* PX_RESTRICT dest, PxU32 count)
+PX_FORCE_INLINE void* PxMemZero(void* dest, PxU32 count)
 {
 	return physx::intrinsics::memZero(dest, count);
 }
@@ -65,7 +65,7 @@ PX_FORCE_INLINE void* PxMemZero(void* PX_RESTRICT dest, PxU32 count)
 
 \return Pointer to memory block (same as input)
 */
-PX_FORCE_INLINE void* PxMemSet(void* PX_RESTRICT dest, PxI32 c, PxU32 count)
+PX_FORCE_INLINE void* PxMemSet(void* dest, PxI32 c, PxU32 count)
 {
 	return physx::intrinsics::memSet(dest, c, count);
 }
@@ -81,7 +81,7 @@ PX_FORCE_INLINE void* PxMemSet(void* PX_RESTRICT dest, PxI32 c, PxU32 count)
 
 \return Pointer to destination memory block
 */
-PX_FORCE_INLINE void* PxMemCopy(void* PX_RESTRICT dest, const void* PX_RESTRICT src, PxU32 count)
+PX_FORCE_INLINE void* PxMemCopy(void* dest, const void* src, PxU32 count)
 {
 	return physx::intrinsics::memCopy(dest, src, count);
 }
@@ -97,7 +97,7 @@ PX_FORCE_INLINE void* PxMemCopy(void* PX_RESTRICT dest, const void* PX_RESTRICT 
 
 \return Pointer to destination memory block
 */
-PX_FORCE_INLINE void* PxMemMove(void* PX_RESTRICT dest, const void* PX_RESTRICT src, PxU32 count)
+PX_FORCE_INLINE void* PxMemMove(void* dest, const void* src, PxU32 count)
 {
 	return physx::intrinsics::memMove(dest, src, count);
 }

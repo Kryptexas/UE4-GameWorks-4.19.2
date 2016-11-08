@@ -124,4 +124,7 @@ private:
 
 	/** This app's instance session */
 	TWeakPtr<FSessionBrowserTreeItem> ThisAppInstance;
+
+	/** True if we should set the default selection the next time the tree view if refreshed. */
+	bool bCanSetDefaultSelection;
 };

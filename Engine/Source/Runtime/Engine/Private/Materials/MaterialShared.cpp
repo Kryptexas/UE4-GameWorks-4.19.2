@@ -586,10 +586,15 @@ bool FMaterial::MaterialUsesPixelDepthOffset() const
 	return RenderingThreadShaderMap ? RenderingThreadShaderMap->UsesPixelDepthOffset() : false;
 }
 
-bool FMaterial::MaterialUsesSceneDepthLookup() const
+bool FMaterial::MaterialUsesSceneDepthLookup_RenderThread() const
 {
 	check(IsInParallelRenderingThread());
 	return RenderingThreadShaderMap ? RenderingThreadShaderMap->UsesSceneDepthLookup() : false;
+}
+
+bool FMaterial::MaterialUsesSceneDepthLookup_GameThread() const
+{
+	return GameThreadShaderMap.GetReference() ? GameThreadShaderMap->UsesSceneDepthLookup() : false;
 }
 
 FMaterialShaderMap* FMaterial::GetRenderingThreadShaderMap() const 

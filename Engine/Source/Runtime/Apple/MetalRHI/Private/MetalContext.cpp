@@ -816,7 +816,10 @@ id<MTLCommandBuffer> FMetalContext::GetCurrentCommandBuffer()
 
 void FMetalContext::CreateAutoreleasePool()
 {
-	if (FPlatformTLS::GetTlsValue(AutoReleasePoolTLSSlot) == NULL)
+	// Create an autorelease pool. Not on the game thread, though. It's not needed there, as the game thread provides its own pools.
+	// Also, it'd cause problems as we sometimes call EndDrawingViewport on the game thread. That would drain the pool for Metal
+	// context while some other pool is active, which is illegal.
+	if (FPlatformTLS::GetTlsValue(AutoReleasePoolTLSSlot) == NULL && FPlatformTLS::GetCurrentThreadId() != GGameThreadId)
 	{
 		FPlatformTLS::SetTlsValue(AutoReleasePoolTLSSlot, LocalCreateAutoreleasePool());
 	}

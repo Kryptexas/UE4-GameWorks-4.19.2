@@ -557,6 +557,85 @@ EBasePassSort::Type GetSortMode()
 	}
 }
 
+/** Helper function for drawing sorted meshes */
+static void DrawVisibleFrontToBack(
+	FRHICommandListImmediate& RHICmdList,
+	FScene* const Scene,
+	const EBasePassDrawListType DrawListType, 
+	const FViewInfo& View, 
+	const FMobileCSMVisibilityInfo* const MobileCSMVisibilityInfo, 
+	const StereoPair& StereoView, 
+	const StereoPair& StereoViewCSM, 
+	const StereoPair& StereoViewNonCSM, 
+	int32& MaxDraws)
+{
+	SCOPE_CYCLE_COUNTER(STAT_StaticDrawListDrawTime);
+	const bool bIsCSM = MobileCSMVisibilityInfo != nullptr;
+	if (View.bIsMobileMultiViewEnabled)
+	{
+		if (bIsCSM)
+		{
+			MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawListType].DrawVisibleFrontToBackMobileMultiView(RHICmdList, StereoViewNonCSM, MaxDraws);
+			MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawListWithCSM[DrawListType].DrawVisibleFrontToBackMobileMultiView(RHICmdList, StereoViewCSM, MaxDraws);
+		}
+		else
+		{
+			MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawListType].DrawVisibleFrontToBackMobileMultiView(RHICmdList, StereoView, MaxDraws);
+		}
+	}
+	else
+	{
+		if (bIsCSM)
+		{
+			MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawListType].DrawVisibleFrontToBack(RHICmdList, View, MobileCSMVisibilityInfo->MobileNonCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileNonCSMStaticBatchVisibility, MaxDraws);
+			MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawListWithCSM[DrawListType].DrawVisibleFrontToBack(RHICmdList, View, MobileCSMVisibilityInfo->MobileCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileCSMStaticBatchVisibility, MaxDraws);
+		}
+		else
+		{
+			MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawListType].DrawVisibleFrontToBack(RHICmdList, View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility, MaxDraws);
+		}
+	}
+}
+
+/** Helper function for drawing unsorted meshes */
+static void DrawVisible(
+	FRHICommandListImmediate& RHICmdList,
+	FScene* const Scene,
+	const EBasePassDrawListType DrawListType,
+	const FViewInfo& View,
+	const FMobileCSMVisibilityInfo* const MobileCSMVisibilityInfo,
+	const StereoPair& StereoView,
+	const StereoPair& StereoViewCSM,
+	const StereoPair& StereoViewNonCSM)
+{
+	SCOPE_CYCLE_COUNTER(STAT_StaticDrawListDrawTime);
+	const bool bIsCSM = MobileCSMVisibilityInfo != nullptr;
+	if (View.bIsMobileMultiViewEnabled)
+	{
+		if (bIsCSM)
+		{
+			Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawListType].DrawVisibleMobileMultiView(RHICmdList, StereoViewNonCSM);
+			Scene->MobileBasePassUniformLightMapPolicyDrawListWithCSM[DrawListType].DrawVisibleMobileMultiView(RHICmdList, StereoViewCSM);
+		}
+		else
+		{
+			Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawListType].DrawVisibleMobileMultiView(RHICmdList, StereoView);
+		}
+	}
+	else
+	{
+		if (bIsCSM)
+		{
+			Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawListType].DrawVisible(RHICmdList, View, MobileCSMVisibilityInfo->MobileNonCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileNonCSMStaticBatchVisibility);
+			Scene->MobileBasePassUniformLightMapPolicyDrawListWithCSM[DrawListType].DrawVisible(RHICmdList, View, MobileCSMVisibilityInfo->MobileCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileCSMStaticBatchVisibility);
+		}
+		else
+		{
+			Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawListType].DrawVisible(RHICmdList, View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility);
+		}
+	}
+}
+
 void FMobileSceneRenderer::RenderMobileBasePass(FRHICommandListImmediate& RHICmdList)
 {
 	SCOPED_DRAW_EVENT(RHICmdList, BasePass);
@@ -607,95 +686,46 @@ void FMobileSceneRenderer::RenderMobileBasePass(FRHICommandListImmediate& RHICmd
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI());
 		RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1);
 
+		// Setup stereo views
+		StereoPair StereoView;
+		StereoPair StereoViewCSM;
+		StereoPair StereoViewNonCSM;
+
+		if (View.bIsMobileMultiViewEnabled)
 		{
-			// Render the base pass static data
-			if (SortMode == EBasePassSort::SortPerMesh)
+			StereoView.LeftView = &Views[0];
+			StereoView.RightView = &Views[1];
+			StereoView.LeftViewVisibilityMap = &Views[0].StaticMeshVisibilityMap;
+			StereoView.LeftViewBatchVisibilityArray = &Views[0].StaticMeshBatchVisibility;
+			StereoView.RightViewVisibilityMap = &Views[1].StaticMeshVisibilityMap;
+			StereoView.RightViewBatchVisibilityArray = &Views[1].StaticMeshBatchVisibility;
+
+			if (MobileCSMVisibilityInfo)
 			{
-				SCOPE_CYCLE_COUNTER(STAT_StaticDrawListDrawTime);
-				if(MobileCSMVisibilityInfo)
-				{
-					if (!View.bIsMobileMultiViewEnabled)
-					{
-						MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Default].DrawVisibleFrontToBack(RHICmdList, View, MobileCSMVisibilityInfo->MobileNonCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileNonCSMStaticBatchVisibility, MaxDraws);
-						MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawListWithCSM[EBasePass_Default].DrawVisibleFrontToBack(RHICmdList, View, MobileCSMVisibilityInfo->MobileCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileCSMStaticBatchVisibility, MaxDraws);
-					}
-					else
-					{
-						StereoPair StereoView(
-							Views[0],
-							Views[1],
-							MobileCSMVisibilityInfo->MobileNonCSMStaticMeshVisibilityMap,
-							MobileCSMVisibilityInfoStereo->MobileNonCSMStaticMeshVisibilityMap,
-							MobileCSMVisibilityInfo->MobileNonCSMStaticBatchVisibility,
-							MobileCSMVisibilityInfoStereo->MobileNonCSMStaticBatchVisibility);
+				StereoViewCSM.LeftView = &Views[0];
+				StereoViewCSM.RightView = &Views[1];
+				StereoViewCSM.LeftViewVisibilityMap = &MobileCSMVisibilityInfo->MobileCSMStaticMeshVisibilityMap;
+				StereoViewCSM.LeftViewBatchVisibilityArray = &MobileCSMVisibilityInfo->MobileCSMStaticBatchVisibility;
+				StereoViewCSM.RightViewVisibilityMap = &MobileCSMVisibilityInfoStereo->MobileCSMStaticMeshVisibilityMap;
+				StereoViewCSM.RightViewBatchVisibilityArray = &MobileCSMVisibilityInfoStereo->MobileCSMStaticBatchVisibility;
 
-						MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Default].DrawVisibleFrontToBackMobileMultiView(RHICmdList, StereoView, MaxDraws);
-
-						//StereoView.LeftViewVisibilityMap = &MobileCSMVisibilityInfo->MobileCSMStaticMeshVisibilityMap;
-						//StereoView.LeftViewBatchVisibilityArray = &MobileCSMVisibilityInfo->MobileCSMStaticBatchVisibility;
-						//StereoView.RightViewVisibilityMap = &MobileCSMVisibilityInfoStereo->MobileCSMStaticMeshVisibilityMap;
-						//StereoView.RightViewBatchVisibilityArray = &MobileCSMVisibilityInfoStereo->MobileCSMStaticBatchVisibility;
-
-						MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawListWithCSM[EBasePass_Default].DrawVisibleFrontToBackMobileMultiView(RHICmdList, StereoView, MaxDraws);
-					}
-				}
-				else
-				{
-					if (!View.bIsMobileMultiViewEnabled)
-					{
-						MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Default].DrawVisibleFrontToBack(RHICmdList, View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility, MaxDraws);
-					}
-					else
-					{
-						const StereoPair StereoView(Views[0], Views[1], Views[0].StaticMeshVisibilityMap, Views[1].StaticMeshVisibilityMap, Views[0].StaticMeshBatchVisibility, Views[1].StaticMeshBatchVisibility);
-						MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Default].DrawVisibleFrontToBackMobileMultiView(RHICmdList, StereoView, MaxDraws);
-					}
-				}
+				StereoViewNonCSM.LeftView = &Views[0];
+				StereoViewNonCSM.RightView = &Views[1];
+				StereoViewNonCSM.LeftViewVisibilityMap = &MobileCSMVisibilityInfo->MobileNonCSMStaticMeshVisibilityMap;
+				StereoViewNonCSM.LeftViewBatchVisibilityArray = &MobileCSMVisibilityInfo->MobileNonCSMStaticBatchVisibility;
+				StereoViewNonCSM.RightViewVisibilityMap = &MobileCSMVisibilityInfoStereo->MobileNonCSMStaticMeshVisibilityMap;
+				StereoViewNonCSM.RightViewBatchVisibilityArray = &MobileCSMVisibilityInfoStereo->MobileNonCSMStaticBatchVisibility;
 			}
-			else
-			{
-				SCOPE_CYCLE_COUNTER(STAT_StaticDrawListDrawTime);
-				if (MobileCSMVisibilityInfo)
-				{
-					if (!View.bIsMobileMultiViewEnabled)
-					{
-						Scene->MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Default].DrawVisible(RHICmdList, View, MobileCSMVisibilityInfo->MobileNonCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileNonCSMStaticBatchVisibility);
-						Scene->MobileBasePassUniformLightMapPolicyDrawListWithCSM[EBasePass_Default].DrawVisible(RHICmdList, View, MobileCSMVisibilityInfo->MobileCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileCSMStaticBatchVisibility);
-					}
-					else
-					{
-						StereoPair StereoView(
-							Views[0], 
-							Views[1], 
-							MobileCSMVisibilityInfo->MobileNonCSMStaticMeshVisibilityMap,
-							MobileCSMVisibilityInfoStereo->MobileNonCSMStaticMeshVisibilityMap,
-							MobileCSMVisibilityInfo->MobileNonCSMStaticBatchVisibility,
-							MobileCSMVisibilityInfoStereo->MobileNonCSMStaticBatchVisibility);
+		}
 
-						Scene->MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Default].DrawVisibleMobileMultiView(RHICmdList, StereoView);
-
-						StereoView.LeftViewVisibilityMap = &MobileCSMVisibilityInfo->MobileCSMStaticMeshVisibilityMap;
-						StereoView.LeftViewBatchVisibilityArray = &MobileCSMVisibilityInfo->MobileCSMStaticBatchVisibility;
-						StereoView.RightViewVisibilityMap = &MobileCSMVisibilityInfoStereo->MobileCSMStaticMeshVisibilityMap;
-						StereoView.RightViewBatchVisibilityArray = &MobileCSMVisibilityInfoStereo->MobileCSMStaticBatchVisibility;
-
-						Scene->MobileBasePassUniformLightMapPolicyDrawListWithCSM[EBasePass_Default].DrawVisibleMobileMultiView(RHICmdList, StereoView);
-					}
-				}
-				else
-				{
-					if (!View.bIsMobileMultiViewEnabled)
-					{
-						Scene->MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Default].DrawVisible(RHICmdList, View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility);
-					}
-					else
-					{
-						const StereoPair StereoView(Views[0], Views[1], Views[0].StaticMeshVisibilityMap, Views[1].StaticMeshVisibilityMap, Views[0].StaticMeshBatchVisibility, Views[1].StaticMeshBatchVisibility);
-						Scene->MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Default].DrawVisibleMobileMultiView(RHICmdList, StereoView);
-					}
-				}
-
-			}
+		// Render the base pass static data
+		if (SortMode == EBasePassSort::SortPerMesh)
+		{
+			DrawVisibleFrontToBack(RHICmdList, Scene, EBasePass_Default, View, MobileCSMVisibilityInfo, StereoView, StereoViewNonCSM, StereoViewCSM, MaxDraws);
+		}
+		else
+		{
+			DrawVisible(RHICmdList, Scene, EBasePass_Default, View, MobileCSMVisibilityInfo, StereoView, StereoViewNonCSM, StereoViewCSM);
 		}
 
 		{
@@ -703,7 +733,7 @@ void FMobileSceneRenderer::RenderMobileBasePass(FRHICommandListImmediate& RHICmd
 			SCOPED_DRAW_EVENT(RHICmdList, Dynamic);
 
 			FMobileBasePassOpaqueDrawingPolicyFactory::ContextType Context(false, ESceneRenderTargetsMode::DontSet);
-			
+
 			for (const FMeshBatchAndRelevance& MeshBatchAndRelevance : View.DynamicMeshElements)
 			{
 				if (MeshBatchAndRelevance.GetHasOpaqueOrMaskedMaterial() || ViewFamily.EngineShowFlags.Wireframe)
@@ -736,89 +766,11 @@ void FMobileSceneRenderer::RenderMobileBasePass(FRHICommandListImmediate& RHICmd
 		// Issue static draw list masked draw calls last, as PVR wants it
 		if (SortMode == EBasePassSort::SortPerMesh)
 		{
-			SCOPE_CYCLE_COUNTER(STAT_StaticDrawListDrawTime);
-			if (MobileCSMVisibilityInfo)
-			{
-				if (!View.bIsMobileMultiViewEnabled)
-				{
-					MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Masked].DrawVisibleFrontToBack(RHICmdList, View, MobileCSMVisibilityInfo->MobileNonCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileNonCSMStaticBatchVisibility, MaxDraws);
-					MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawListWithCSM[EBasePass_Masked].DrawVisibleFrontToBack(RHICmdList, View, MobileCSMVisibilityInfo->MobileCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileCSMStaticBatchVisibility, MaxDraws);
-				}
-				else
-				{
-					StereoPair StereoView(
-						Views[0],
-						Views[1],
-						MobileCSMVisibilityInfo->MobileNonCSMStaticMeshVisibilityMap,
-						MobileCSMVisibilityInfoStereo->MobileNonCSMStaticMeshVisibilityMap,
-						MobileCSMVisibilityInfo->MobileNonCSMStaticBatchVisibility,
-						MobileCSMVisibilityInfoStereo->MobileNonCSMStaticBatchVisibility);
-
-					MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Masked].DrawVisibleFrontToBackMobileMultiView(RHICmdList, StereoView, MaxDraws);
-
-					//StereoView.LeftViewVisibilityMap = &MobileCSMVisibilityInfo->MobileCSMStaticMeshVisibilityMap;
-					//StereoView.LeftViewBatchVisibilityArray = &MobileCSMVisibilityInfo->MobileCSMStaticBatchVisibility;
-					//StereoView.RightViewVisibilityMap = &MobileCSMVisibilityInfoStereo->MobileCSMStaticMeshVisibilityMap;
-					//StereoView.RightViewBatchVisibilityArray = &MobileCSMVisibilityInfoStereo->MobileCSMStaticBatchVisibility;
-
-					MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawListWithCSM[EBasePass_Masked].DrawVisibleFrontToBackMobileMultiView(RHICmdList, StereoView, MaxDraws);
-				}
-			}
-			else
-			{
-				if (!View.bIsMobileMultiViewEnabled)
-				{
-					MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Masked].DrawVisibleFrontToBack(RHICmdList, View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility, MaxDraws);
-				}
-				else
-				{
-					const StereoPair StereoView(Views[0], Views[1], Views[0].StaticMeshVisibilityMap, Views[1].StaticMeshVisibilityMap, Views[0].StaticMeshBatchVisibility, Views[1].StaticMeshBatchVisibility);
-					MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Masked].DrawVisibleFrontToBackMobileMultiView(RHICmdList, StereoView, MaxDraws);
-				}
-			}
+			DrawVisibleFrontToBack(RHICmdList, Scene, EBasePass_Masked, View, MobileCSMVisibilityInfo, StereoView, StereoViewNonCSM, StereoViewCSM, MaxDraws);
 		}
 		else
 		{
-			SCOPE_CYCLE_COUNTER(STAT_StaticDrawListDrawTime);
-			if (MobileCSMVisibilityInfo)
-			{
-				if (!View.bIsMobileMultiViewEnabled)
-				{
-					Scene->MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Masked].DrawVisible(RHICmdList, View, MobileCSMVisibilityInfo->MobileNonCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileNonCSMStaticBatchVisibility);
-					Scene->MobileBasePassUniformLightMapPolicyDrawListWithCSM[EBasePass_Masked].DrawVisible(RHICmdList, View, MobileCSMVisibilityInfo->MobileCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileCSMStaticBatchVisibility);
-				}
-				else
-				{
-					StereoPair StereoView(
-						Views[0],
-						Views[1],
-						MobileCSMVisibilityInfo->MobileNonCSMStaticMeshVisibilityMap,
-						MobileCSMVisibilityInfoStereo->MobileNonCSMStaticMeshVisibilityMap,
-						MobileCSMVisibilityInfo->MobileNonCSMStaticBatchVisibility,
-						MobileCSMVisibilityInfoStereo->MobileNonCSMStaticBatchVisibility);
-
-					Scene->MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Masked].DrawVisibleMobileMultiView(RHICmdList, StereoView);
-
-					StereoView.LeftViewVisibilityMap = &MobileCSMVisibilityInfo->MobileCSMStaticMeshVisibilityMap;
-					StereoView.LeftViewBatchVisibilityArray = &MobileCSMVisibilityInfo->MobileCSMStaticBatchVisibility;
-					StereoView.RightViewVisibilityMap = &MobileCSMVisibilityInfoStereo->MobileCSMStaticMeshVisibilityMap;
-					StereoView.RightViewBatchVisibilityArray = &MobileCSMVisibilityInfoStereo->MobileCSMStaticBatchVisibility;
-
-					Scene->MobileBasePassUniformLightMapPolicyDrawListWithCSM[EBasePass_Masked].DrawVisibleMobileMultiView(RHICmdList, StereoView);
-				}
-			}
-			else
-			{
-				if (!View.bIsMobileMultiViewEnabled)
-				{
-					Scene->MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Masked].DrawVisible(RHICmdList, View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility);
-				}
-				else
-				{
-					const StereoPair StereoView(Views[0], Views[1], Views[0].StaticMeshVisibilityMap, Views[1].StaticMeshVisibilityMap, Views[0].StaticMeshBatchVisibility, Views[1].StaticMeshBatchVisibility);
-					Scene->MobileBasePassUniformLightMapPolicyDrawList[EBasePass_Masked].DrawVisibleMobileMultiView(RHICmdList, StereoView);
-				}
-			}
+			DrawVisible(RHICmdList, Scene, EBasePass_Masked, View, MobileCSMVisibilityInfo, StereoView, StereoViewNonCSM, StereoViewCSM);
 		}
 	}
 }

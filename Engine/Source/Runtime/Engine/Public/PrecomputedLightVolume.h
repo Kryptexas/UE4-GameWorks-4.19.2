@@ -201,4 +201,7 @@ private:
 
 	/** Octree used to accelerate interpolation searches. */
 	const FLightVolumeOctree* OctreeForRendering;
+
+	/** Offset from world origin. Non-zero only when world origin was rebased */
+	FVector WorldOriginOffset;
 };

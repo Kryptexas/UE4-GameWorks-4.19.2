@@ -137,7 +137,7 @@ PX_CUDA_CALLABLE PX_FORCE_INLINE bool isFinite(double a)
 /*!
 Sets \c count bytes starting at \c dst to zero.
 */
-PX_FORCE_INLINE void* memZero(void* PX_RESTRICT dest, uint32_t count)
+PX_FORCE_INLINE void* memZero(void* dest, uint32_t count)
 {
 	return memset(dest, 0, count);
 }
@@ -145,7 +145,7 @@ PX_FORCE_INLINE void* memZero(void* PX_RESTRICT dest, uint32_t count)
 /*!
 Sets \c count bytes starting at \c dst to \c c.
 */
-PX_FORCE_INLINE void* memSet(void* PX_RESTRICT dest, int32_t c, uint32_t count)
+PX_FORCE_INLINE void* memSet(void* dest, int32_t c, uint32_t count)
 {
 	return memset(dest, c, count);
 }
@@ -153,7 +153,7 @@ PX_FORCE_INLINE void* memSet(void* PX_RESTRICT dest, int32_t c, uint32_t count)
 /*!
 Copies \c count bytes from \c src to \c dst. User memMove if regions overlap.
 */
-PX_FORCE_INLINE void* memCopy(void* PX_RESTRICT dest, const void* PX_RESTRICT src, uint32_t count)
+PX_FORCE_INLINE void* memCopy(void* dest, const void* src, uint32_t count)
 {
 	return memcpy(dest, src, count);
 }
@@ -169,10 +169,10 @@ PX_FORCE_INLINE void* memMove(void* dest, const void* src, uint32_t count)
 /*!
 Set 128B to zero starting at \c dst+offset. Must be aligned.
 */
-PX_FORCE_INLINE void memZero128(void* PX_RESTRICT dest, uint32_t offset = 0)
+PX_FORCE_INLINE void memZero128(void* dest, uint32_t offset = 0)
 {
 	PX_ASSERT(((size_t(dest) + offset) & 0x7f) == 0);
-	memSet(reinterpret_cast<char* PX_RESTRICT>(dest) + offset, 0, 128);
+	memSet(reinterpret_cast<char*>(dest) + offset, 0, 128);
 }
 
 } // namespace intrinsics

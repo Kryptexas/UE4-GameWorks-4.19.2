@@ -182,8 +182,16 @@ namespace UnrealBuildTool
 			if (!bInitializedProject)
 			{
 				TargetConfiguration = Configuration;
-				
-				ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(Platform, "Engine", DirectoryReference.FromFile(ProjectFile));
+
+				string EngineIniPath = ProjectFile != null ? ProjectFile.Directory.FullName : null;
+				if (String.IsNullOrEmpty(EngineIniPath))
+				{
+					// If the project file hasn't been specified, try to get the path from -remoteini command line param
+					EngineIniPath = UnrealBuildTool.GetRemoteIniPath();
+				}
+				DirectoryReference EngineIniDir = !String.IsNullOrEmpty(EngineIniPath) ? new DirectoryReference(EngineIniPath) : null;
+				ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(Platform, "Engine", EngineIniDir);
+
 				bool bValue = UEBuildConfiguration.bCompileAPEX;
 				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileApex", out bValue))
 				{

@@ -51,17 +51,18 @@ namespace immediate
 	*/
 	struct PxRigidBodyData
 	{
-		PxVec3 linearVelocity;				//!< Linear velocity
-		PxVec3 angularVelocity;				//!< Angular velocity
-		PxReal invMass;						//!< Inverse mass
-		PxVec3 invInertia;					//!< Mass-space inverse interia diagonal vector
-		PxTransform body2World;				//!< World space transform
-		PxReal maxDepenetrationVelocity;	//!< Maximum de-penetration velocity
-		PxReal maxContactImpulse;			//!< Maximum permissable contact impulse
-		PxReal linearDamping;				//!< Linear damping coefficient
-		PxReal angularDamping;				//!< Angular damping coefficient
-		PxReal maxLinearVelocitySq;			//!< Squared maximum linear velocity
-		PxReal maxAngularVelocitySq;		//!< Squared maximum angular velocity
+		PX_ALIGN(16, PxVec3 linearVelocity);				//!< 12 Linear velocity
+		PxReal invMass;										//!< 16 Inverse mass
+		PxVec3 angularVelocity;								//!< 28 Angular velocity
+		PxReal maxDepenetrationVelocity;					//!< 32 Maximum de-penetration velocity
+		PxVec3 invInertia;									//!< 44 Mass-space inverse interia diagonal vector
+		PxReal maxContactImpulse;							//!< 48 Maximum permissable contact impulse
+		PxTransform body2World;								//!< 76 World space transform
+		PxReal linearDamping;								//!< 80 Linear damping coefficient
+		PxReal angularDamping;								//!< 84 Angular damping coefficient
+		PxReal maxLinearVelocitySq;							//!< 88 Squared maximum linear velocity
+		PxReal maxAngularVelocitySq;						//!< 92 Squared maximum angular velocity
+		PxU32 pad;											//!< 96 Padding for 16-byte alignment
 	};
 
 	/**
@@ -210,7 +211,7 @@ namespace immediate
 
 	\return a boolean indicating if the function was successful or not.
 	*/
-	PX_C_EXPORT PX_PHYSX_CORE_API bool PxGenerateContacts(const PxGeometry** geom0, const PxGeometry** geom1, const PxTransform* pose0, const PxTransform* pose1, PxCache* contactCache, const PxU32 nbPairs, PxContactRecorder& contactRecorder,
+	PX_C_EXPORT PX_PHYSX_CORE_API bool PxGenerateContacts(const PxGeometry* const * geom0, const PxGeometry* const * geom1, const PxTransform* pose0, const PxTransform* pose1, PxCache* contactCache, const PxU32 nbPairs, PxContactRecorder& contactRecorder,
 		const PxReal contactDistance, const PxReal meshContactMargin, const PxReal toleranceLength, PxCacheAllocator& allocator);
 
 #if !PX_DOXYGEN

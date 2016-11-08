@@ -342,10 +342,16 @@ public:
 
 	// return version of AnimCurveUidVersion
 	uint16 GetAnimCurveUidVersion() const { return AnimCurveUidVersion;  }
+	const TArray<AnimCurveUID>& GetDefaultCurveUIDList() const { return DefaultCurveUIDList; }
 protected:
 	// Container for smart name mappings
 	UPROPERTY()
 	FSmartNameContainer SmartNames;
+
+	// this is default curve uid list used like ref pose, as default value
+	// don't use this unless you want all curves from the skeleton
+	// FBoneContainer contains only list that is used by current LOD
+	TArray<AnimCurveUID> DefaultCurveUIDList;
 
 private:
 	/** Increase the AnimCurveUidVersion so that instances can get the latest information */

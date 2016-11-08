@@ -256,10 +256,23 @@ TMap<FMetalTextureDesc, TSet<id<MTLTexture>>> MetalTextureCache;
 		Desc.mipmapLevelCount = Texture.mipmapLevelCount;
 		Desc.sampleCount = Texture.sampleCount;
 		Desc.arrayLength = Texture.arrayLength;
-		Desc.resourceOptions = (Texture.cpuCacheMode << MTLResourceCPUCacheModeShift) | (Texture.storageMode << MTLResourceStorageModeShift);
-		Desc.cpuCacheMode = Texture.cpuCacheMode;
-		Desc.storageMode = Texture.storageMode;
-		Desc.usage = Texture.usage;
+		
+		static bool bSupportsResourceOpts = GetMetalDeviceContext().SupportsFeature(EMetalFeaturesResourceOptions);
+		if (bSupportsResourceOpts)
+		{
+			Desc.resourceOptions = (Texture.cpuCacheMode << MTLResourceCPUCacheModeShift) | (Texture.storageMode << MTLResourceStorageModeShift);
+			Desc.cpuCacheMode = Texture.cpuCacheMode;
+			Desc.storageMode = Texture.storageMode;
+			Desc.usage = Texture.usage;
+		}
+		else
+		{
+			Desc.resourceOptions = MTLResourceCPUCacheModeDefaultCache;
+			Desc.cpuCacheMode = MTLCPUCacheModeDefaultCache;
+			Desc.storageMode = MTLStorageModeShared;
+			Desc.usage = MTLTextureUsageUnknown;
+		}
+		
 		Tex = Texture;
 		
 		// Only private textures are safe to cache and reuse within the same frame,
@@ -315,10 +328,22 @@ id<MTLTexture> CreateNewTexture(MTLTextureDescriptor* Descriptor)
 		Desc.mipmapLevelCount = Descriptor.mipmapLevelCount;
 		Desc.sampleCount = Descriptor.sampleCount;
 		Desc.arrayLength = Descriptor.arrayLength;
-		Desc.resourceOptions = Descriptor.resourceOptions;
-		Desc.cpuCacheMode = Descriptor.cpuCacheMode;
-		Desc.storageMode = Descriptor.storageMode;
-		Desc.usage = Descriptor.usage;
+		
+		static bool bSupportsResourceOpts = GetMetalDeviceContext().SupportsFeature(EMetalFeaturesResourceOptions);
+		if (bSupportsResourceOpts)
+		{
+			Desc.resourceOptions = Descriptor.resourceOptions;
+			Desc.cpuCacheMode = Descriptor.cpuCacheMode;
+			Desc.storageMode = Descriptor.storageMode;
+			Desc.usage = Descriptor.usage;
+		}
+		else
+		{
+			Desc.resourceOptions = MTLResourceCPUCacheModeDefaultCache;
+			Desc.cpuCacheMode = MTLCPUCacheModeDefaultCache;
+			Desc.storageMode = MTLStorageModeShared;
+			Desc.usage = MTLTextureUsageUnknown;
+		}
 		
 		FScopeLock Lock(&MetalTextureCacheMutex);
 		TSet<id<MTLTexture>>* Cache = MetalTextureCache.Find(Desc);

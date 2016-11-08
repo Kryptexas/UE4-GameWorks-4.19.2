@@ -186,7 +186,7 @@ public:
 	static TSharedPtr<FStaticLightingManager> Get();
 
 	/** Processes lighting data that is now pending from a finished lightmass pass */
-	static void ProcessLightingData(bool bDiscardResults);
+	static void ProcessLightingData();
 	/** Stops lightmass from working, and discards the data */
 	static void CancelLightingBuild();
 	

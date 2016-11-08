@@ -1288,6 +1288,9 @@ public:
 	// true, then InOutSyncInterval could be modified to switch between VSync/NoVSync for the normal Present.
 	virtual bool Present(int32& InOutSyncInterval) = 0;
 
+	// Called after a normal present has been called
+	virtual void PostPresent() {};
+
 	// Called when rendering thread is acquired
 	virtual void OnAcquireThreadOwnership() {}
 	// Called when rendering thread is released

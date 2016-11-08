@@ -10,6 +10,8 @@
 
 // UInheritableComponentHandler
 
+const FString UInheritableComponentHandler::SCSDefaultSceneRootOverrideNamePrefix(TEXT("ICH-"));
+
 void UInheritableComponentHandler::PostLoad()
 {
 	Super::PostLoad();
@@ -29,10 +31,22 @@ void UInheritableComponentHandler::PostLoad()
 
 				// Fix up component template name on load, if it doesn't match the original template name. Otherwise, archetype lookups will fail for this template.
 				// For example, this can occur after a component variable rename in a parent BP class, but before a child BP class with an override template is loaded.
-				UActorComponent* OriginalTemplate = Record.ComponentKey.GetOriginalTemplate();
-				if (OriginalTemplate && OriginalTemplate->GetFName() != Record.ComponentTemplate->GetFName())
+				if (UActorComponent* OriginalTemplate = Record.ComponentKey.GetOriginalTemplate())
 				{
-					Record.ComponentTemplate->Rename(*OriginalTemplate->GetName(), nullptr, REN_DontCreateRedirectors | REN_ForceNoResetLoaders);
+					FString ExpectedTemplateName = OriginalTemplate->GetName();
+					if (USCS_Node* SCSNode = Record.ComponentKey.FindSCSNode())
+					{
+						// We append a prefix onto SCS default scene root node overrides. This is done to ensure that the override template does not collide with our owner's own SCS default scene root node template.
+						if (SCSNode == SCSNode->GetSCS()->GetDefaultSceneRootNode())
+						{
+							ExpectedTemplateName = SCSDefaultSceneRootOverrideNamePrefix + ExpectedTemplateName;
+						}
+					}
+
+					if (ExpectedTemplateName != Record.ComponentTemplate->GetName())
+					{
+						Record.ComponentTemplate->Rename(*ExpectedTemplateName, nullptr, REN_DontCreateRedirectors | REN_ForceNoResetLoaders);
+					}
 				}
 
 				if (!CastChecked<UActorComponent>(Record.ComponentTemplate->GetArchetype())->IsEditableWhenInherited())
@@ -84,9 +98,21 @@ UActorComponent* UInheritableComponentHandler::CreateOverridenComponentTemplate(
 			*GetPathNameSafe(this), *Key.GetSCSVariableName().ToString(), *GetPathNameSafe(Key.GetComponentOwner()));
 		return NULL;
 	}
+	
+	FName NewComponentTemplateName = BestArchetype->GetFName();
+	if (USCS_Node* SCSNode = Key.FindSCSNode())
+	{
+		// If this template will override an inherited DefaultSceneRoot node from a parent class's SCS, adjust the template name so that we don't reallocate our owner class's SCS DefaultSceneRoot node template.
+		// Note: This is currently the only case where a child class can have both an SCS node template and an override template associated with the same variable name, that is not considered to be a collision.
+		if (SCSNode == SCSNode->GetSCS()->GetDefaultSceneRootNode())
+		{
+			NewComponentTemplateName = FName(*(SCSDefaultSceneRootOverrideNamePrefix + BestArchetype->GetName()));
+		}
+	}
+
 	ensure(Cast<UBlueprintGeneratedClass>(GetOuter()));
 	auto NewComponentTemplate = NewObject<UActorComponent>(
-		GetOuter(), BestArchetype->GetClass(), BestArchetype->GetFName(), RF_ArchetypeObject | RF_Public | RF_InheritableComponentTemplate, BestArchetype);
+		GetOuter(), BestArchetype->GetClass(), NewComponentTemplateName, RF_ArchetypeObject | RF_Public | RF_InheritableComponentTemplate, BestArchetype);
 
 	// HACK: NewObject can return a pre-existing object which will not have been initialized to the archetype.  When we remove the old handlers, we mark them pending
 	//       kill so we can identify that situation here (see UE-13987/UE-13990)

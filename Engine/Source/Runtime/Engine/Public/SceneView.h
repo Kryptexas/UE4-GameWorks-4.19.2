@@ -847,6 +847,9 @@ public:
 	/** True if mobile multi-view is enabled. */
 	bool bIsMobileMultiViewEnabled;
 
+	/** True if we need to bind the instanced view uniform buffer parameters. */
+	bool bShouldBindInstancedViewUB;
+
 	/** Global clipping plane being applied to the scene, or all 0's if disabled.  This is used when rendering the planar reflection pass. */
 	FPlane GlobalClippingPlane;
 

@@ -3597,20 +3597,20 @@ void FAsyncLoadingThread::AddToLoadedPackages(FAsyncPackage* Package)
 }
 
 #if USE_EVENT_DRIVEN_ASYNC_LOAD
-static FThreadSafeCounter RecusionNotAllowed;
+#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
+static FThreadSafeCounter RecursionNotAllowed;
 struct FScopedRecursionNotAllowed
 {
-#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 	FScopedRecursionNotAllowed()
 	{
-		verify(RecusionNotAllowed.Increment() == 1);
+		verify(RecursionNotAllowed.Increment() == 1);
 	}
 	~FScopedRecursionNotAllowed()
 	{
-		verify(RecusionNotAllowed.Decrement() == 0);
+		verify(RecursionNotAllowed.Decrement() == 0);
 	}
-#endif
 };
+#endif
 #endif
 
 EAsyncPackageState::Type FAsyncLoadingThread::ProcessAsyncLoading(int32& OutPackagesProcessed, bool bUseTimeLimit /*= false*/, bool bUseFullTimeLimit /*= false*/, float TimeLimit /*= 0.0f*/, FFlushTree* FlushTree)
@@ -3627,7 +3627,9 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessAsyncLoading(int32& OutPack
 	double TickStartTime = FPlatformTime::Seconds();
 
 #if USE_EVENT_DRIVEN_ASYNC_LOAD
+#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 	FScopedRecursionNotAllowed RecursionGuard;
+#endif
 	FAsyncLoadingTickScope InAsyncLoadingTick;
 	uint32 LoopIterations = 0;
 
@@ -6144,7 +6146,7 @@ bool IsEventDrivenLoaderEnabledInCookedBuilds()
 {
 #if WITH_EDITORONLY_DATA
 	check(GConfig); // Otherwise there's no way we have the correct value of GEventDrivenLoaderEnabled
-	return !!GEventDrivenLoaderEnabled;
+	return !!GEventDrivenLoaderEnabled && !FApp::IsEngineInstalled();
 #elif USE_EVENT_DRIVEN_ASYNC_LOAD
 	return true;
 #else

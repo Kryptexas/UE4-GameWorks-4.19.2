@@ -132,7 +132,9 @@ FPooledRenderTargetDesc FRCPassPostProcessSelectionOutlineColor::ComputeOutputDe
 
 	Ret.Format = PF_DepthStencil;
 	Ret.Flags = TexCreate_None;
-	Ret.TargetableFlags = TexCreate_DepthStencilTargetable;
+
+	//mark targetable as TexCreate_ShaderResource because we actually do want to sample from the unresolved MSAA target in this case.
+	Ret.TargetableFlags = TexCreate_DepthStencilTargetable | TexCreate_ShaderResource;
 	Ret.DebugName = TEXT("SelectionDepthStencil");
 	Ret.NumSamples = FSceneRenderTargets::Get_FrameConstantsOnly().GetEditorMSAACompositingSampleCount();
 

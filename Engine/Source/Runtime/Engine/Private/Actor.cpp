@@ -523,7 +523,7 @@ void AActor::Serialize(FArchive& Ar)
 			DuplicatingComponents.Reserve(OwnedComponents.Num());
 			for (UActorComponent* OwnedComponent : OwnedComponents)
 			{
-				if (!OwnedComponent->HasAnyFlags(RF_Transient))
+				if (OwnedComponent && !OwnedComponent->HasAnyFlags(RF_Transient))
 				{
 					DuplicatingComponents.Add(OwnedComponent);
 				}

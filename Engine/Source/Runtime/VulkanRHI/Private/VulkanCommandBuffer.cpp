@@ -130,6 +130,11 @@ FVulkanCommandBufferManager::FVulkanCommandBufferManager(FVulkanDevice* InDevice
 
 	// Insert the Begin frame timestamp query. On EndDrawingViewport() we'll insert the End and immediately after a new Begin()
 	InContext->WriteBeginTimestamp(ActiveCmdBuffer);
+
+	// Flush the cmd buffer immediately to ensure a valid
+	// 'Last submitted' cmd buffer exists at frame 0.
+	SubmitActiveCmdBuffer(false);
+	PrepareForNewActiveCommandBuffer();
 }
 
 FVulkanCommandBufferManager::~FVulkanCommandBufferManager()

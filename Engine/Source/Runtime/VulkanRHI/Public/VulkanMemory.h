@@ -976,7 +976,8 @@ namespace VulkanRHI
 		template <typename T>
 		inline void EnqueueResource(EType Type, T Handle)
 		{
-			EnqueueGenericResource(Type, (void*)Handle);
+			static_assert(sizeof(T) <= sizeof(uint64), "Vulkan resource handle type size too large.");
+			EnqueueGenericResource(Type, (uint64)Handle);
 		}
 
 		void ReleaseResources(bool bDeleteImmediately = false);
@@ -1000,13 +1001,13 @@ namespace VulkanRHI
 	private:
 		//TQueue<FAsyncTask<FVulkanAsyncDeletionWorker>*> DeleteTasks;
 
-		void EnqueueGenericResource(EType Type, void* Handle);
+		void EnqueueGenericResource(EType Type, uint64 Handle);
 
 		struct FEntry
 		{
 			uint64 FenceCounter;
 			FVulkanCmdBuffer* CmdBuffer;
-			void* Handle;
+			uint64 Handle;
 			EType StructureType;
 
 			//FRefCount* Resource;

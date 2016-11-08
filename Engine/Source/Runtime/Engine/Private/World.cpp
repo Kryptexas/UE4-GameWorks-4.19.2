@@ -446,32 +446,7 @@ bool UWorld::Rename(const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags)
 {
 	check(PersistentLevel);
 
-	// Rename LightMaps and ShadowMaps to the new location. Keep the old name, since they are not named after the world.
-	TArray<UTexture2D*> LightMapsAndShadowMaps;
-	GetLightMapsAndShadowMaps(PersistentLevel, LightMapsAndShadowMaps);
-
 	UPackage* OldPackage = GetOutermost();
-
-	for (auto* Tex : LightMapsAndShadowMaps)
-	{
-		if ( Tex && Tex->GetOutermost() == OldPackage)
-		{
-			if (!Tex->Rename(*Tex->GetName(), NewOuter, Flags))
-			{
-				return false;
-			}
-		}
-	}
-
-	if (PersistentLevel
-		&& PersistentLevel->MapBuildData 
-		&& PersistentLevel->MapBuildData->GetOutermost() == OldPackage)
-	{
-		if (!PersistentLevel->MapBuildData->Rename(*PersistentLevel->MapBuildData->GetName(), NewOuter, Flags))
-		{
-			return false;
-		}
-	}
 
 	bool bShouldFail = false;
 	FWorldDelegates::OnPreWorldRename.Broadcast(this, InName, NewOuter, Flags, bShouldFail);
@@ -488,6 +463,47 @@ bool UWorld::Rename(const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags)
 	}
 
 	const bool bTestRename = (Flags & REN_Test) != 0;
+
+	// We're moving the world to a new package, rename UObjects which are map data but don't have the UWorld in their Outer chain.  There are two cases:
+	// 1) legacy lightmap textures and MapBuildData object will be in the same package as the UWorld
+	// 2) MapBuildData will be in a separate package with lightmap textures underneath it
+	if (PersistentLevel && PersistentLevel->MapBuildData)
+	{
+		FName NewMapBuildDataName = PersistentLevel->MapBuildData->GetFName();
+
+		if (PersistentLevel->MapBuildData->IsLegacyBuildData())
+		{
+			TArray<UTexture2D*> LightMapsAndShadowMaps;
+			GetLightMapsAndShadowMaps(PersistentLevel, LightMapsAndShadowMaps);
+
+			for (auto* Tex : LightMapsAndShadowMaps)
+			{
+				if (Tex)
+				{
+					if (!Tex->Rename(*Tex->GetName(), NewOuter, Flags))
+					{
+						return false;
+					}
+				}
+			}
+		}
+		else
+		{
+			FString NewPackageName = GetOutermost()->GetName() + TEXT("_BuiltData");
+			NewMapBuildDataName = FPackageName::GetShortFName(*NewPackageName);
+			UPackage* BuildDataPackage = PersistentLevel->MapBuildData->GetOutermost();
+
+			if (!BuildDataPackage->Rename(*NewPackageName, NewOuter, Flags))
+			{
+				return false;
+			}
+		}
+
+		if (!PersistentLevel->MapBuildData->Rename(*NewMapBuildDataName.ToString(), NewOuter, Flags))
+		{
+			return false;
+		}
+	}
 
 	// Rename the level script blueprint now, unless we are in PostLoad. ULevel::PostLoad should handle renaming this at load time.
 	if (!FUObjectThreadContext::Get().IsRoutingPostLoad)
@@ -574,6 +590,45 @@ void UWorld::PostDuplicate(bool bDuplicateForPIE)
 #if WITH_EDITOR
 		// Add the world to the list of objects in which to fix up references.
 		ObjectsToFixReferences.Add(this);
+
+		// We're duplicating the world, also duplicate UObjects which are map data but don't have the UWorld in their Outer chain.  There are two cases:
+		// 1) legacy lightmap textures and MapBuildData object will be in the same package as the UWorld
+		// 2) MapBuildData will be in a separate package with lightmap textures underneath it
+		if (PersistentLevel && PersistentLevel->MapBuildData)
+		{
+			UPackage* BuildDataPackage = MyPackage;
+			FName NewMapBuildDataName = PersistentLevel->MapBuildData->GetFName();
+			
+			if (!PersistentLevel->MapBuildData->IsLegacyBuildData())
+			{
+				BuildDataPackage = PersistentLevel->CreateMapBuildDataPackage();
+				NewMapBuildDataName = FPackageName::GetShortFName(BuildDataPackage->GetFName());
+			}
+			
+			UObject* NewBuildData = StaticDuplicateObject(PersistentLevel->MapBuildData, BuildDataPackage, NewMapBuildDataName);
+			ReplacementMap.Add(PersistentLevel->MapBuildData, NewBuildData);
+			ObjectsToFixReferences.Add(NewBuildData);
+
+			UObject* NewTextureOuter = MyPackage;
+
+			if (!PersistentLevel->MapBuildData->IsLegacyBuildData())
+			{
+				NewTextureOuter = NewBuildData;
+			}
+
+			TArray<UTexture2D*> LightMapsAndShadowMaps;
+			GetLightMapsAndShadowMaps(PersistentLevel, LightMapsAndShadowMaps);
+
+			// Duplicate the textures, if any
+			for (auto* Tex : LightMapsAndShadowMaps)
+			{
+				if (Tex && Tex->GetOutermost() != NewTextureOuter)
+				{
+					UObject* NewTex = StaticDuplicateObject(Tex, NewTextureOuter, Tex->GetFName());
+					ReplacementMap.Add(Tex, NewTex);
+				}
+			}
+		}
 
 		// Duplicate the level script blueprint generated classes as well
 		const bool bDontCreate = true;
@@ -2522,7 +2577,7 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 	FStringAssetReference::SetPackageNamesBeingDuplicatedForPIE(PackageNamesBeingDuplicatedForPIE);
 
 	ULevel::StreamedLevelsOwningWorld.Add(PIELevelPackage->GetFName(), OwningWorld);
-	UWorld* PIELevelWorld = CastChecked<UWorld>(StaticDuplicateObject(EditorLevelWorld, PIELevelPackage, EditorLevelWorld->GetFName(), RF_AllFlags, nullptr, SDO_DuplicateForPie));
+	UWorld* PIELevelWorld = CastChecked<UWorld>(StaticDuplicateObject(EditorLevelWorld, PIELevelPackage, EditorLevelWorld->GetFName(), RF_AllFlags, nullptr, EDuplicateMode::PIE));
 
 	// Ensure the feature level matches the editor's, this is required as FeatureLevel is not a UPROPERTY and is not duplicated from EditorLevelWorld.
 	PIELevelWorld->FeatureLevel = EditorLevelWorld->FeatureLevel;
@@ -5679,7 +5734,7 @@ bool UWorld::ServerTravel(const FString& FURL, bool bAbsolute, bool bShouldSkipG
 {
 	AGameModeBase* GameMode = GetAuthGameMode();
 	
-	if (!GameMode->CanServerTravel(FURL, bAbsolute))
+	if (GameMode != nullptr && !GameMode->CanServerTravel(FURL, bAbsolute))
 	{
 		return false;
 	}
@@ -6071,6 +6126,7 @@ static ULevel* DuplicateLevelWithPrefix(ULevel* InLevel, int32 InstanceID )
 	Parameters.FlagMask			= RF_AllFlags;
 	Parameters.InternalFlagMask = EInternalObjectFlags::AllFlags;
 	Parameters.PortFlags		= PPF_DuplicateForPIE;
+	Parameters.DuplicateMode	= EDuplicateMode::PIE;
 
 	ULevel* NewLevel = CastChecked<ULevel>( StaticDuplicateObjectEx( Parameters ) );
 

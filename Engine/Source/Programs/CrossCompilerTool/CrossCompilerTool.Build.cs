@@ -34,7 +34,8 @@ public class CrossCompilerTool : ModuleRules
         if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Mac)
         {
             PrivateIncludePaths.Add("Developer/VulkanShaderFormat/Private");
-            PrivateDependencyModuleNames.Add("VulkanShaderFormat");
+			PrivateIncludePaths.Add("Runtime/VulkanRHI/Public");
+			PrivateDependencyModuleNames.Add("VulkanShaderFormat");
         }
 	}
 }

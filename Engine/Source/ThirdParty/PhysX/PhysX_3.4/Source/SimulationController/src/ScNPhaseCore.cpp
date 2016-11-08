@@ -98,9 +98,16 @@ public:
 	{
 		PxU32 index;
 		if(mFree == INVALID_FILTER_PAIR_INDEX)
-			index = mPairs.size(), mPairs.pushBack(FilterPair());
+		{
+			index = mPairs.size();
+			mPairs.pushBack(FilterPair());
+		}
 		else
-			index = PxU32(mFree), mFree = mPairs[index].ptrAndType, mPairs[index] = FilterPair();
+		{
+			index = PxU32(mFree);
+			mFree = mPairs[index].ptrAndType;
+			mPairs[index] = FilterPair();
+		}
 		return index;
 	}
 

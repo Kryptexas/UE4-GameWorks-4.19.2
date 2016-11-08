@@ -61,6 +61,7 @@
 #include "GeneralProjectSettings.h"
 #include "OnlineEngineInterface.h"
 #include "DebuggerCommands.h"
+#include "ScopeExit.h"
 
 #include "AudioThread.h"
 
@@ -1080,12 +1081,32 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 
 	EndPlayOnLocalPc();
 
+	ON_SCOPE_EXIT
+	{
+		// note that we no longer have a queued request
+		bIsPlayWorldQueued = false;
+		bIsSimulateInEditorQueued = false;
+	};
+
 	const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
 
 	// Launch multi-player instances if necessary
 	// (note that if you have 'RunUnderOneProcess' checked and do a bPlayOnLocalPcSession (standalone) - play standalone 'wins' - multiple instances will be launched for multiplayer)
 	const EPlayNetMode PlayNetMode = [&PlayInSettings]{ EPlayNetMode NetMode(PIE_Standalone); return (PlayInSettings->GetPlayNetMode(NetMode) ? NetMode : PIE_Standalone); }();
 	const bool CanRunUnderOneProcess = [&PlayInSettings]{ bool RunUnderOneProcess(false); return (PlayInSettings->GetRunUnderOneProcess(RunUnderOneProcess) && RunUnderOneProcess); }();
+
+	// World composition does not copy levels to a separate folder to reduce startup time, and instead uses same files as Editor
+	// This causes issues with network replication as server object names will collide with Editor loaded world
+	const bool bWorldCompositionActive = GetEditorWorldContext().World()->WorldComposition != nullptr;
+	if (bWorldCompositionActive && !(CanRunUnderOneProcess || PlayNetMode == PIE_Standalone))
+	{
+		FText ErrorMsg = LOCTEXT("WorldCompPIESingleProcessError", "World Composition does not support multiplayer Play in Editor using separate processes. Please set 'Use Single Process' in the 'Level Editor - Play' settings under Editor Preferences.");
+		UE_LOG(LogPlayLevel, Warning, TEXT("%s"), *ErrorMsg.ToString());
+		FMessageLog(NAME_CategoryPIE).Warning(ErrorMsg);
+		FMessageLog(NAME_CategoryPIE).Open();
+		return;
+	}
+
 	if (PlayNetMode != PIE_Standalone && (!CanRunUnderOneProcess || bPlayOnLocalPcSession) && !bPlayUsingLauncher)
 	{
 		int32 NumClients = 0;
@@ -1139,10 +1160,6 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 			PlayInEditor( GetEditorWorldContext().World(), bWantSimulateInEditor );
 		}
 	}
-
-	// note that we no longer have a queued request
-	bIsPlayWorldQueued = false;
-	bIsSimulateInEditorQueued = false;
 }
 
 /* Temporarily renames streaming levels for pie saving */
@@ -3753,7 +3770,7 @@ UWorld* UEditorEngine::CreatePIEWorldByDuplication(FWorldContext &WorldContext, 
 			InWorld->GetFName(),	// Name for new object
 			RF_AllFlags,			// FlagMask
 			NULL,					// DestClass
-			SDO_DuplicateForPie		// bDuplicateForPIE
+			EDuplicateMode::PIE
 			) );
 
 		FStringAssetReference::ClearPackageNamesBeingDuplicatedForPIE();

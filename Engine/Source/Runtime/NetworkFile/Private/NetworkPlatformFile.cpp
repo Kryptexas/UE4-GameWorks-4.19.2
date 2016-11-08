@@ -21,6 +21,7 @@ DEFINE_LOG_CATEGORY(LogNetworkPlatformFile);
 
 FString FNetworkPlatformFile::MP4Extension = TEXT(".mp4");
 FString FNetworkPlatformFile::BulkFileExtension = TEXT(".ubulk");
+FString FNetworkPlatformFile::ExpFileExtension = TEXT(".uexp");
 FString FNetworkPlatformFile::FontFileExtension = TEXT(".ufont");
 
 FNetworkPlatformFile::FNetworkPlatformFile()
@@ -941,7 +942,7 @@ public:
 			FDateTime CheckTime = InnerPlatformFile.GetTimeStamp(*Filename);
 			if (CheckTime < ServerTimeStamp)
 			{
-				UE_LOG(LogNetworkPlatformFile, Fatal, TEXT("Could Not Set Timestamp '%s'."), *Filename);
+				UE_LOG(LogNetworkPlatformFile, Fatal, TEXT("Could Not Set Timestamp '%s'  %s < %s."), *Filename, *CheckTime.ToString(), *ServerTimeStamp.ToString());
 			}
 		}
 		if (Event)
@@ -1052,11 +1053,11 @@ bool FNetworkPlatformFile::IsAdditionalCookedFileExtension(const TCHAR* Ext)
 {
 	if (*Ext != TEXT('.'))
 	{
-		return BulkFileExtension.EndsWith(Ext) || FontFileExtension.EndsWith(Ext);
+		return BulkFileExtension.EndsWith(Ext) || ExpFileExtension.EndsWith(Ext) || FontFileExtension.EndsWith(Ext);
 	}
 	else
 	{
-		return BulkFileExtension == Ext || FontFileExtension == Ext;
+		return BulkFileExtension == Ext || ExpFileExtension == Ext || FontFileExtension == Ext;
 	}
 }
 

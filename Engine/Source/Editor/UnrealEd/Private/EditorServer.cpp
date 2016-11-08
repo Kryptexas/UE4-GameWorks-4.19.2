@@ -2533,6 +2533,14 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 						Context.World()->GetModel()->Polys->SetFlags( RF_Transactional );
 					}
 
+					// Process any completed shader maps since we at a loading screen anyway
+					// Do this before we register components, as USkinnedMeshComponents require the GPU skin cache global shaders when creating render state.
+					if (GShaderCompilingManager)
+					{
+						// Process any asynchronous shader compile results that are ready, limit execution time
+						GShaderCompilingManager->ProcessAsyncResults(false, true);
+					}
+
 					// Register components in the persistent level (current)
 					Context.World()->UpdateWorldComponents(true, true);
 
@@ -2548,13 +2556,6 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 					// actors in the scene
 					FEditorDelegates::MapChange.Broadcast(MapChangeEventFlags::NewMap );
 					GEngine->BroadcastLevelActorListChanged();
-
-					// Process any completed shader maps since we at a loading screen anyway
-					if (GShaderCompilingManager)
-					{
-						// Process any asynchronous shader compile results that are ready, limit execution time
-						GShaderCompilingManager->ProcessAsyncResults(false, true);
-					}
 
 					NoteSelectionChange();
 

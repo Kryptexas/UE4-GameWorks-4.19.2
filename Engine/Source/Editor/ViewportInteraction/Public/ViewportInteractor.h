@@ -169,6 +169,8 @@ public:
 	/** @return Returns whether a full press is allowed to interrupt a light press. */
 	bool AllowTriggerFullPress() const;
 
+	/** If this interactor is hovering over a type that has priority from GetHitResultFromLaserPointer */
+	bool IsHoveringOverPriorityType() const;
 
 protected:
 

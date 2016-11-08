@@ -41,15 +41,17 @@ void Main(
 	)
 {
 #if MOBILE_MULTI_VIEW
+	const int MultiViewId = int(ViewId);
 	// Early out with a degenerate vertex to be clipped if the view is masked
 	BRANCH
-	if (ViewId == MobileMultiViewMask)
+	if (MultiViewId == MobileMultiViewMask)
 	{
 		Output.Position = vec4(0.0);	
 		return;
 	}
 
-	ResolvedView = ResolveView(ViewId);
+	ResolvedView = ResolveView(uint(MultiViewId));
+	Output.BasePassInterpolants.MultiViewId = float(MultiViewId);
 #else
 	ResolvedView = ResolveView();
 #endif

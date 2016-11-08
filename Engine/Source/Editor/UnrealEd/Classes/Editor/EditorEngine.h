@@ -789,6 +789,9 @@ private:
 	virtual bool AreEditorAnalyticsEnabled() const override;
 	virtual void CreateStartupAnalyticsAttributes(TArray<FAnalyticsEventAttribute>& StartSessionAttributes) const override;
 	virtual void VerifyLoadMapWorldCleanup() override;
+
+	/** Called during editor init and whenever the vanilla status might have changed, to set the flag on the base class */
+	void UpdateIsVanillaProduct();
 public:
 	//~ End UEngine Interface.
 	

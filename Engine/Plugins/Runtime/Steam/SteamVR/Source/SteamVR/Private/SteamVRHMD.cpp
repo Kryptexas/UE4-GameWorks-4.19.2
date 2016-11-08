@@ -1200,6 +1200,10 @@ void FSteamVRHMD::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHI
 	ApplyLateUpdate(ViewFamily.Scene, OldRelativeTransform, NewRelativeTransform);
 }
 
+void FSteamVRHMD::PostInitViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily) {}
+
+void FSteamVRHMD::PostInitView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) {}
+
 void FSteamVRHMD::UpdateViewport(bool bUseSeparateRenderTarget, const FViewport& InViewport, SViewport* ViewportWidget)
 {
 	check(IsInGameThread());
@@ -1325,7 +1329,7 @@ bool FSteamVRHMD::Startup()
 	vr::EVRInitError VRInitErr = vr::VRInitError_None;
 	// Attempt to initialize the VRSystem device
 	VRSystem = vr::VR_Init(&VRInitErr, vr::VRApplication_Scene);
-	if (!VRSystem || (VRInitErr != vr::VRInitError_None))
+	if ((VRSystem == nullptr) || (VRInitErr != vr::VRInitError_None))
 	{
 		UE_LOG(LogHMD, Log, TEXT("Failed to initialize OpenVR with code %d"), (int32)VRInitErr);
 		return false;
@@ -1333,21 +1337,40 @@ bool FSteamVRHMD::Startup()
 
 	// Make sure that the version of the HMD we're compiled against is correct.  This will fill out the proper vtable!
 	VRSystem = (vr::IVRSystem*)(*FSteamVRHMD::VRGetGenericInterfaceFn)(vr::IVRSystem_Version, &VRInitErr);
-	if (!VRSystem || (VRInitErr != vr::VRInitError_None))
+	if ((VRSystem == nullptr) || (VRInitErr != vr::VRInitError_None))
 	{
 		UE_LOG(LogHMD, Log, TEXT("Failed to initialize OpenVR (version mismatch) with code %d"), (int32)VRInitErr);
 		return false;
 	}
 
-	// attach to the compositor
-	if ((VRSystem != nullptr) && (VRInitErr == vr::VRInitError_None))
+	// attach to the compositor	
+	//VRCompositor = (vr::IVRCompositor*)vr::VR_GetGenericInterface(vr::IVRCompositor_Version, &HmdErr);
+	int CompositorConnectRetries = 10;
+	do
 	{
-		//VRCompositor = (vr::IVRCompositor*)vr::VR_GetGenericInterface(vr::IVRCompositor_Version, &HmdErr);
 		VRCompositor = (vr::IVRCompositor*)(*VRGetGenericInterfaceFn)(vr::IVRCompositor_Version, &VRInitErr);
+		
+		// If SteamVR was not running when VR_Init was called above, the system may take a few seconds to initialize.
+		// retry a few times before giving up if we get a Compositor connection error.
+		// This is a temporary workaround an issue that will be solved in a future version of SteamVR, where VR_Init will block until everything is ready,
+		// It's only triggered in cases where SteamVR is available, but was not running prior to calling VR_Init above.
+		if ((--CompositorConnectRetries > 0) && (VRInitErr == vr::VRInitError_IPC_CompositorConnectFailed || VRInitErr == vr::VRInitError_IPC_CompositorInvalidConnectResponse))
+		{
+			UE_LOG(LogHMD, Warning, TEXT("Failed to get Compositor connnection (%d) retrying... (%d attempt(s) left)"), (int32)VRInitErr, CompositorConnectRetries);
+			FPlatformProcess::Sleep(1);
+		}
+		else
+		{
+			break;
+		}
+	} while (true);
+	
+	if ((VRCompositor != nullptr) && (VRInitErr == vr::VRInitError_None))
+	{
 		VROverlay = (vr::IVROverlay*)(*VRGetGenericInterfaceFn)(vr::IVROverlay_Version, &VRInitErr);
 	}
 
-	if ((VRSystem != nullptr) && (VRInitErr == vr::VRInitError_None))
+	if ((VROverlay != nullptr) && (VRInitErr == vr::VRInitError_None))
 	{
 		// grab info about the attached display
 		char Buf[128];
@@ -1432,13 +1455,12 @@ bool FSteamVRHMD::Startup()
 		UE_LOG(LogHMD, Log, TEXT("SteamVR initialized.  Driver: %s  Display: %s"), *DriverId, *DisplayId);
 		return true;
 	}
-	else
-	{
-		UE_LOG(LogHMD, Log, TEXT("SteamVR failed to initialize.  Err: %d"), (int32)VRInitErr);
+	
+	UE_LOG(LogHMD, Log, TEXT("SteamVR failed to initialize.  Err: %d"), (int32)VRInitErr);
 
-		VRSystem = nullptr;
-		return false;
-	}
+	VRSystem = nullptr;
+	return false;
+
 }
 
 void FSteamVRHMD::LoadFromIni()

@@ -5165,7 +5165,8 @@ void SSCSEditor::RemoveComponentNode(FSCSEditorTreeNodePtrType InNodePtr)
 			// we can re-use the name without having to compile (we still have a 
 			// problem if they attempt to name it to what ever we choose here, 
 			// but that is unlikely)
-			if (SCS_Node->ComponentTemplate != nullptr)
+			// note: skip this for the default scene root; we don't actually destroy that node when it's removed, so we don't need the template to be renamed.
+			if (!InNodePtr->IsDefaultSceneRoot() && SCS_Node->ComponentTemplate != nullptr)
 			{
 				SCS_Node->ComponentTemplate->Modify();
 				const FString RemovedName = SCS_Node->GetVariableName().ToString() + TEXT("_REMOVED_") + FGuid::NewGuid().ToString();

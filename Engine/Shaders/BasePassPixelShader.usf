@@ -988,6 +988,12 @@ void FPixelShaderInOut_MainPS(
 			LightAccumulator_Add(LightAccumulator, Color, 0, 1.0f, false);
 #endif
 			Out.MRT[0] = RETURN_COLOR(LightAccumulator_GetResult(LightAccumulator));
+
+			#if !USES_GBUFFER
+				// Without deferred shading the SSS pass will not be run to reset scene color alpha for opaque / masked to 0
+				// Scene color alpha is used by scene captures and planar reflections
+				Out.MRT[0].a = 0;
+			#endif
 		}
 	#endif
 

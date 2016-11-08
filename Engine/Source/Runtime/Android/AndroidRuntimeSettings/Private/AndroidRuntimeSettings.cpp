@@ -78,30 +78,6 @@ void UAndroidRuntimeSettings::PostEditChangeProperty(struct FPropertyChangedEven
 			Module->NotifySelectedFormatsChanged();
 		}
 	}
-
-	// If choosing Daydream-only deployment, sustained performance is forced.
-	if(PropertyChangedEvent.Property != nullptr && PropertyChangedEvent.Property->GetName() == TEXT("GoogleVRMode"))
-	{
-		UpdateSinglePropertyInConfigFile(PropertyChangedEvent.Property, GetDefaultConfigFilename());
-
-		if((GoogleVRMode == EGoogleVRMode::Daydream || GoogleVRMode == EGoogleVRMode::DaydreamAndCardboard ) && !bGoogleVRSustainedPerformance)
-		{
-			bGoogleVRSustainedPerformance = true;
-			UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, bGoogleVRSustainedPerformance)), GetDefaultConfigFilename());
-		}
-	}
-
-	// If unchecking sustained performance, downgrade from Daydream-only deployment if it was selected
-	if(PropertyChangedEvent.Property != nullptr && PropertyChangedEvent.Property->GetName() == TEXT("bGoogleVRSustainedPerformance"))
-	{
-		UpdateSinglePropertyInConfigFile(PropertyChangedEvent.Property, GetDefaultConfigFilename());
-
-		if(!bGoogleVRSustainedPerformance && GoogleVRMode == EGoogleVRMode::Daydream)
-		{
-			GoogleVRMode = EGoogleVRMode::DaydreamAndCardboard;
-			UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, GoogleVRMode)), GetDefaultConfigFilename());
-		}
-	}
 }
 
 void UAndroidRuntimeSettings::PostInitProperties()
