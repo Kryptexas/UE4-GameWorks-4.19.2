@@ -201,7 +201,7 @@ struct FFBXUVs
 		}
 
 		// not found
-		return 0;
+		return INDEX_NONE;
 	}
 	
 	// @param FaceCornerIndex usually TriangleIndex * 3 + CornerIndex but more complicated for mixed n-gons
@@ -261,8 +261,11 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxNode* Node, UStaticMesh
 	}
 
 	FFBXUVs FBXUVs(Mesh);
-
-	StaticMesh->LightMapCoordinateIndex = FBXUVs.FindLightUVIndex();
+	int32 FBXNamedLightMapCoordinateIndex = FBXUVs.FindLightUVIndex();
+	if (FBXNamedLightMapCoordinateIndex != INDEX_NONE)
+	{
+		StaticMesh->LightMapCoordinateIndex = FBXNamedLightMapCoordinateIndex;
+	}
 	
 	//
 	// create materials
