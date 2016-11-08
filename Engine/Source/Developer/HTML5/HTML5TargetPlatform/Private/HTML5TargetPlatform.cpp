@@ -281,8 +281,8 @@ void FHTML5TargetPlatform::RefreshHTML5Setup()
 		{
 			FString DeviceName = "";
 			FString DevicePath = "";
-			if( FParse::Value( *It, TEXT( "DeviceName=" ), DeviceName ) &&
-				FParse::Value( *It, TEXT( "DevicePath=(FilePath=" ), DevicePath ) )
+			if( FParse::Value( *It, TEXT( "DeviceName=" ), DeviceName ) && !DeviceName.IsEmpty() &&
+				FParse::Value( *It, TEXT( "DevicePath=(FilePath=" ), DevicePath ) && !DevicePath.IsEmpty() )
 			{
 				if (FPlatformFileManager::Get().GetPlatformFile().FileExists(*DevicePath) ||
 				    FPlatformFileManager::Get().GetPlatformFile().DirectoryExists(*DevicePath))
