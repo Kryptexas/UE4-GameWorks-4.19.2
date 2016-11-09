@@ -152,6 +152,11 @@ namespace PerformanceSurveyDefs
 	const static FTimespan FrameRateSampleInterval(0, 0, 1);	// 1 second intervals
 }
 
+namespace UnrealEdMiscDefs
+{
+	const static int32 HeartbeatIntervalSeconds = 60;
+}
+
 FUnrealEdMisc::FUnrealEdMisc() :
 	AutosaveState( EAutosaveState::Inactive ), 
 	bCancelBuild( false ),
@@ -451,11 +456,10 @@ void FUnrealEdMisc::OnInit()
 	InitEngineAnalytics();
 	
 	// Setup a timer for a heartbeat event to track if users are actually using the editor or it is idle.
-	float Seconds = (float)FTimespan::FromMinutes(5.0).GetTotalSeconds();
 	FTimerDelegate Delegate;
 	Delegate.BindRaw( this, &FUnrealEdMisc::EditorAnalyticsHeartbeat );
 
-	GEditor->GetTimerManager()->SetTimer( EditorAnalyticsHeartbeatTimerHandle, Delegate, Seconds, true );
+	GEditor->GetTimerManager()->SetTimer( EditorAnalyticsHeartbeatTimerHandle, Delegate, (float)UnrealEdMiscDefs::HeartbeatIntervalSeconds, true );
 
 	// Give the settings editor a way to restart the editor when it needs to
 	ISettingsEditorModule& SettingsEditorModule = FModuleManager::GetModuleChecked<ISettingsEditorModule>("SettingsEditor");
@@ -573,6 +577,9 @@ void FUnrealEdMisc::EditorAnalyticsHeartbeat()
 		Attributes.Add(FAnalyticsEventAttribute(TEXT("AverageRenderThreadTime"), PerformanceAnalyticsStats->GetAverageRenderThreadTime()));
 		Attributes.Add(FAnalyticsEventAttribute(TEXT("AverageGPUFrameTime"), PerformanceAnalyticsStats->GetAverageGPUFrameTime()));
 	}
+	Attributes.Add(FAnalyticsEventAttribute(TEXT("IsVanilla"), (GEngine && GEngine->IsVanillaProduct())));
+	Attributes.Add(FAnalyticsEventAttribute(TEXT("IntervalSec"), UnrealEdMiscDefs::HeartbeatIntervalSeconds));
+	Attributes.Add(FAnalyticsEventAttribute(TEXT("IsDebugger"), FPlatformMisc::IsDebuggerPresent()));
 	FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Heartbeat"), Attributes);
 	
 	LastHeartbeatTime = FPlatformTime::Seconds();
