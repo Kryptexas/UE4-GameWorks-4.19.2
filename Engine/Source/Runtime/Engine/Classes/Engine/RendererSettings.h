@@ -396,10 +396,10 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		uint32 bSupportAtmosphericFog : 1;
 
 	/**
-	"Skincache shaders require special compute shader permutations of the vertex shaders. This setting will also enable the SkinCache globally! Optionally this setting will also allow to recompute tangents per skinned mesh instance. Disabling will reduce the number of shader permutations required per material. Changing this setting requires restarting the editor."
+	"Skincache allows a compute shader to skin once each vertex, save those results into a new buffer and reuse those calculations when later running the depth, base and velocity passes. This also allows opting into the 'recompute tangents' for skinned mesh instance feature. Disabling will reduce the number of shader permutations required per material. Changing this setting requires restarting the editor."
 	*/
-	UPROPERTY(config, EditAnywhere, Category = ShaderPermutationReduction, meta = (
-		ConsoleVariable = "r.SkinCache.CompileShaders", DisplayName = "Support Skincache Shaders",
+	UPROPERTY(config, EditAnywhere, Category = Optimizations, meta = (
+		ConsoleVariable = "r.SkinCache.CompileShaders", DisplayName = "Support Compute Skincache",
 		ConfigRestartRequired = true))
 		uint32 bSupportSkinCacheShaders : 1;
 
