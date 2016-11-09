@@ -1007,12 +1007,17 @@ void ULandscapeComponent::OnRegister()
 	Super::OnRegister();
 
 #if WITH_EDITOR
-	if (!GetWorld()->IsGameWorld())
+	if (GetLandscapeProxy())
 	{
-		ULandscapeInfo* Info = GetLandscapeInfo();
-		if (Info)
+		// AActor::GetWorld checks for Unreachable and BeginDestroyed
+		UWorld* World = GetLandscapeProxy()->GetWorld();
+		if (World && !World->IsGameWorld())
 		{
-			Info->RegisterActorComponent(this);
+			ULandscapeInfo* Info = GetLandscapeInfo();
+			if (Info)
+			{
+				Info->RegisterActorComponent(this);
+			}
 		}
 	}
 #endif
@@ -1023,15 +1028,19 @@ void ULandscapeComponent::OnUnregister()
 	Super::OnUnregister();
 
 #if WITH_EDITOR
-	// Game worlds don't have landscape infos
-	if (GetWorld() && !GetWorld()->IsGameWorld()
-		// On shutdown the world will be unreachable
-		&& !GetWorld()->IsPendingKillOrUnreachable())
+	if (GetLandscapeProxy())
 	{
-		ULandscapeInfo* Info = GetLandscapeInfo();
-		if (Info)
+		// AActor::GetWorld checks for Unreachable and BeginDestroyed
+		UWorld* World = GetLandscapeProxy()->GetWorld();
+
+		// Game worlds don't have landscape infos
+		if (World && !World->IsGameWorld())
 		{
-			Info->UnregisterActorComponent(this);
+			ULandscapeInfo* Info = GetLandscapeInfo();
+			if (Info)
+			{
+				Info->UnregisterActorComponent(this);
+			}
 		}
 	}
 #endif
