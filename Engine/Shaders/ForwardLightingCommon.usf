@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #define NON_DIRECTIONAL_DIRECT_LIGHTING (TRANSLUCENCY_LIGHTING_VOLUMETRIC_NONDIRECTIONAL || TRANSLUCENCY_LIGHTING_VOLUMETRIC_PERVERTEX_NONDIRECTIONAL)
+#define SUPPORT_CONTACT_SHADOWS 0
 
 #include "DeferredLightingCommon.usf"
 #include "LightGridCommon.usf"
