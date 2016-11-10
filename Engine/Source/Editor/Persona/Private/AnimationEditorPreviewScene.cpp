@@ -895,7 +895,10 @@ void FAnimationEditorPreviewScene::Tick(float InDeltaTime)
 void FAnimationEditorPreviewScene::PostUndo(bool bSuccess)
 {
 	// refresh skeletal mesh
-	SetPreviewMesh(GetEditableSkeleton()->GetSkeleton().GetPreviewMesh());
+	if (SkeletalMeshComponent)
+	{
+		SetPreviewMesh(SkeletalMeshComponent->SkeletalMesh);
+	}
 }
 
 void FAnimationEditorPreviewScene::PostRedo(bool bSuccess)
