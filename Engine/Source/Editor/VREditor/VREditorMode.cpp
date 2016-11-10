@@ -131,7 +131,7 @@ void UVREditorMode::Shutdown()
 	GEnableVREditorHacks = false;
 }
 
-void UVREditorMode::Enter()
+void UVREditorMode::Enter(const bool bReenteringVREditing)
 {
 	bWantsToExitMode = false;
 	ExitType = EVREditorExitType::Normal;
@@ -304,7 +304,7 @@ void UVREditorMode::Enter()
 
 		if( bActuallyUsingVR )
 		{
-			if( !( GEngine->HMDDevice->IsStereoEnabled() ) )
+			if( !( GEngine->HMDDevice->IsStereoEnabled() ) || bReenteringVREditing )
 			{
 				GEngine->HMDDevice->EnableStereo( true );
 			}

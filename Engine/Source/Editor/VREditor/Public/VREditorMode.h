@@ -80,7 +80,7 @@ public:
 	void Shutdown();
 
 	/** When the user actually enters the VR Editor mode */
-	void Enter();
+	void Enter(const bool bReenteringVREditing);
 
 	/** When the user leaves the VR Editor mode */
 	void Exit(const bool bHMDShouldExitStereo);

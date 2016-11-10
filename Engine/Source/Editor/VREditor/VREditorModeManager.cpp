@@ -155,10 +155,13 @@ void FVREditorModeManager::AddReferencedObjects( FReferenceCollector& Collector 
 
 void FVREditorModeManager::StartVREditorMode( const bool bForceWithoutHMD )
 {
+	bool bReenteringVREditing = false;
 	// Set the WorldToMeters scale when we stopped playing PIE that was started by the VR Editor to that VR Editor sessions latest WorldToMeters
 	if( bPlayStartedFromVREditor )
 	{
 		SetDirectWorldToMeters( LastWorldToMeters );
+		// If we are enabling VR after a Play session started from VR, then we are re-entering VR editor mode so we need to re-enable stereo
+		bReenteringVREditing = true;
 		bPlayStartedFromVREditor = false;
 	}
 
@@ -173,7 +176,7 @@ void FVREditorModeManager::StartVREditorMode( const bool bForceWithoutHMD )
 	
 	CurrentVREditorMode = ModeFromWorld;
 	CurrentVREditorMode->SetActuallyUsingVR( !bForceWithoutHMD );
-	CurrentVREditorMode->Enter();
+	CurrentVREditorMode->Enter(bReenteringVREditing);
 }
 
 void FVREditorModeManager::CloseVREditor( const bool bHMDShouldExitStereo )
