@@ -2284,9 +2284,6 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 				}
 
 				View.PrevViewMatrices = ViewState->PrevViewMatrices;
-
-				View.PrevViewProjMatrix = ViewState->PrevViewMatrices.GetViewProjectionMatrix();
-				View.PrevViewRotationProjMatrix = ViewState->PrevViewMatrices.ComputeViewRotationProjectionMatrix();
 			}
 
 			ViewState->PrevFrameNumber = ViewState->PendingPrevFrameNumber;

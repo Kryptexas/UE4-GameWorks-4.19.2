@@ -190,23 +190,18 @@ static FSceneView& CreateSceneView( FSceneViewFamilyContext& ViewFamilyContext, 
 	FSceneView* View = new FSceneView( ViewInitOptions );
 	ViewFamilyContext.Views.Add( View );
 
-	/** The view transform, starting from world-space points translated by -ViewOrigin. */
-	FMatrix EffectiveTranslatedViewMatrix = FTranslationMatrix(-View->ViewMatrices.GetPreViewTranslation()) * View->ViewMatrices.GetViewMatrix();
-
 	const FIntPoint BufferSize = BackBuffer.GetSizeXY();
 
 	// Create the view's uniform buffer.
 	FViewUniformShaderParameters ViewUniformShaderParameters;
 
 	View->SetupCommonViewUniformBufferParameters(
-		ViewUniformShaderParameters, 
+		ViewUniformShaderParameters,
 		BufferSize,
 		ViewRect,
-		EffectiveTranslatedViewMatrix, 
-		View->ViewMatrices.GetInvViewMatrix() * FTranslationMatrix(View->ViewMatrices.GetPreViewTranslation()),
-		FViewMatrices(), 
-		FMatrix::Identity,
-		FMatrix::Identity);
+		View->ViewMatrices,
+		FViewMatrices()
+	);
 
 	ViewUniformShaderParameters.WorldViewOrigin = View->ViewMatrices.GetViewOrigin();
 

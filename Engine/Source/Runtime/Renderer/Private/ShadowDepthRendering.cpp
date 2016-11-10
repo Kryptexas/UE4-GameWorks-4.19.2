@@ -1884,8 +1884,6 @@ void FProjectedShadowInfo::ModifyViewForShadow(FRHICommandList& RHICmdList, FVie
 	FBox VolumeBounds[TVC_MAX];
 	FoundView->SetupUniformBufferParameters(
 		SceneContext,
-		ShadowViewMatrix, 
-		ShadowViewMatrix.Inverse(),
 		VolumeBounds,
 		TVC_MAX,
 		*FoundView->CachedViewUniformShaderParameters);
@@ -1974,7 +1972,7 @@ void FProjectedShadowInfo::RenderDepth(FRHICommandList& RHICmdList, FSceneRender
 
 void FProjectedShadowInfo::SetupShadowDepthView(FRHICommandListImmediate& RHICmdList, FSceneRenderer* SceneRenderer)
 {
-	const FViewInfo* FoundView = FindViewForShadow(SceneRenderer);
+	FViewInfo* FoundView = FindViewForShadow(SceneRenderer);
 	check(FoundView && IsInRenderingThread());
 	FViewInfo* DepthPassView = FoundView->CreateSnapshot();
 	ModifyViewForShadow(RHICmdList, DepthPassView);
@@ -2196,20 +2194,23 @@ void FSceneRenderer::RenderShadowDepthMaps(FRHICommandListImmediate& RHICmdList)
 		{
 			FProjectedShadowInfo* ProjectedShadowInfo = SortedShadowsForShadowDepthPass.PreshadowCache.Shadows[ShadowIndex];
 
-			auto SetShadowRenderTargets = [this, ProjectedShadowInfo](FRHICommandList& InRHICmdList, bool bPerformClear)
+			if (!ProjectedShadowInfo->bDepthsCached)
 			{
-				FTextureRHIParamRef PreShadowCacheDepthZ = Scene->PreShadowCacheDepthZ->GetRenderTargetItem().TargetableTexture.GetReference();
-				InRHICmdList.TransitionResources(EResourceTransitionAccess::EWritable, &PreShadowCacheDepthZ, 1);
+				auto SetShadowRenderTargets = [this, ProjectedShadowInfo](FRHICommandList& InRHICmdList, bool bPerformClear)
+				{
+					FTextureRHIParamRef PreShadowCacheDepthZ = Scene->PreShadowCacheDepthZ->GetRenderTargetItem().TargetableTexture.GetReference();
+					InRHICmdList.TransitionResources(EResourceTransitionAccess::EWritable, &PreShadowCacheDepthZ, 1);
 
-				// Must preserve existing contents as the clear will be scissored
-				SetRenderTarget(InRHICmdList, FTextureRHIRef(), PreShadowCacheDepthZ, ESimpleRenderTargetMode::EExistingColorAndDepth);
-				ProjectedShadowInfo->ClearDepth(InRHICmdList, this, 0, nullptr, PreShadowCacheDepthZ, bPerformClear);
-			};				
+					// Must preserve existing contents as the clear will be scissored
+					SetRenderTarget(InRHICmdList, FTextureRHIRef(), PreShadowCacheDepthZ, ESimpleRenderTargetMode::EExistingColorAndDepth);
+					ProjectedShadowInfo->ClearDepth(InRHICmdList, this, 0, nullptr, PreShadowCacheDepthZ, bPerformClear);
+				};
 
-			SetShadowRenderTargets(RHICmdList, true);		
+				SetShadowRenderTargets(RHICmdList, true);
 
-			ProjectedShadowInfo->RenderDepth(RHICmdList, this, SetShadowRenderTargets, ShadowDepthRenderMode_Normal);
-			ProjectedShadowInfo->bDepthsCached = true;
+				ProjectedShadowInfo->RenderDepth(RHICmdList, this, SetShadowRenderTargets, ShadowDepthRenderMode_Normal);
+				ProjectedShadowInfo->bDepthsCached = true;
+			}
 		}
 
 		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, RenderTarget.TargetableTexture);

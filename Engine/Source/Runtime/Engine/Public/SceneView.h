@@ -192,6 +192,12 @@ private:
 	FMatrix		HMDViewMatrixNoRoll;
 	/** WorldToView with PreViewTranslation. */
 	FMatrix		TranslatedViewMatrix;
+	/** ViewToWorld with PreViewTranslation. */
+	FMatrix		InvTranslatedViewMatrix;
+	/** WorldToView with PreViewTranslation. */
+	FMatrix		OverriddenTranslatedViewMatrix;
+	/** ViewToWorld with PreViewTranslation. */
+	FMatrix		OverriddenInvTranslatedViewMatrix;
 	/** The view-projection transform, starting from world-space points translated by -ViewOrigin. */
 	FMatrix		TranslatedViewProjectionMatrix;
 	/** The inverse view-projection transform, ending with world-space points translated by -ViewOrigin. */
@@ -267,6 +273,21 @@ public:
 		return TranslatedViewMatrix;
 	}
 
+	inline const FMatrix& GetInvTranslatedViewMatrix() const
+	{
+		return InvTranslatedViewMatrix;
+	}
+
+	inline const FMatrix& GetOverriddenTranslatedViewMatrix() const
+	{
+		return OverriddenTranslatedViewMatrix;
+	}
+
+	inline const FMatrix& GetOverriddenInvTranslatedViewMatrix() const
+	{
+		return OverriddenInvTranslatedViewMatrix;
+	}
+
 	inline const FMatrix& GetTranslatedViewProjectionMatrix() const
 	{
 		return TranslatedViewProjectionMatrix;
@@ -305,7 +326,8 @@ public:
 
 	inline void HackOverrideViewMatrixForShadows(const FMatrix& InViewMatrix)
 	{
-		ViewMatrix = InViewMatrix;
+		OverriddenTranslatedViewMatrix = ViewMatrix = InViewMatrix;
+		OverriddenInvTranslatedViewMatrix = InViewMatrix.Inverse();
 	}
 
 	void HackAddTemporalAAProjectionJitter(const FVector2D& InTemporalAAProjectionJitter)
@@ -374,17 +396,8 @@ private:
 		InvViewProjectionMatrix = GetInvProjectionMatrix() * GetInvViewMatrix();
 
 		// Compute a transform from view origin centered world-space to clip space.
-		if (PreViewTranslation.IsNearlyZero())
-		{
-			TranslatedViewProjectionMatrix = GetViewProjectionMatrix();
-			InvTranslatedViewProjectionMatrix = GetInvViewProjectionMatrix();
-		}
-		else
-		{
-			ensure(TranslatedViewMatrix.GetOrigin().IsNearlyZero(0.01f));
-			TranslatedViewProjectionMatrix = GetTranslatedViewMatrix() * GetProjectionMatrix();
-			InvTranslatedViewProjectionMatrix = GetInvProjectionMatrix() * GetTranslatedViewMatrix().GetTransposed();
-		}
+		TranslatedViewProjectionMatrix = GetTranslatedViewMatrix() * GetProjectionMatrix();
+		InvTranslatedViewProjectionMatrix = GetInvProjectionMatrix() * GetInvTranslatedViewMatrix();
 	}
 
 	static const FMatrix InvertProjectionMatrix( const FMatrix& M )
@@ -1034,22 +1047,22 @@ public:
 	bool IsInstancedStereoPass() const { return bIsInstancedStereoEnabled && StereoPass == eSSP_LEFT_EYE; }
 
 	/** Sets up the view rect parameters in the view's uniform shader parameters */
-	void SetupViewRectUniformBufferParameters(const FIntPoint& BufferSize, const FIntRect& EffectiveViewRect, FViewUniformShaderParameters& ViewUniformShaderParameters) const;
+	void SetupViewRectUniformBufferParameters(FViewUniformShaderParameters& ViewUniformShaderParameters, 
+		const FIntPoint& InBufferSize,
+		const FIntRect& InEffectiveViewRect,
+		const FViewMatrices& InViewMatrices,
+		const FViewMatrices& InPrevViewMatrice) const;
 
 	/** 
 	 * Populates the uniform buffer prameters common to all scene view use cases
 	 * View parameters should be set up in this method if they are required for the view to render properly.
 	 * This is to avoid code duplication and uninitialized parameters in other places that create view uniform parameters (e.g Slate) 
 	 */
-	void SetupCommonViewUniformBufferParameters(
-		FViewUniformShaderParameters& ViewUniformShaderParameters,
-		const FIntPoint& BufferSize,
-		const FIntRect& EffectiveViewRect,
-		const FMatrix& EffectiveTranslatedViewMatrix,
-		const FMatrix& EffectiveViewToTranslatedWorld,
-		const FViewMatrices& PrevViewMatrices,
-		const FMatrix& PrevViewProjMatrix,
-		const FMatrix& PrevViewRotationProjMatrix) const;
+	void SetupCommonViewUniformBufferParameters(FViewUniformShaderParameters& ViewUniformShaderParameters,
+		const FIntPoint& InBufferSize,
+		const FIntRect& InEffectiveViewRect,
+		const FViewMatrices& InViewMatrices,
+		const FViewMatrices& InPrevViewMatrices) const;
 };
 
 //////////////////////////////////////////////////////////////////////////

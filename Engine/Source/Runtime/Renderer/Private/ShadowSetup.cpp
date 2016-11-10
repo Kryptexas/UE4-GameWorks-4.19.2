@@ -1042,89 +1042,49 @@ static TAutoConsoleVariable<int32> CVarDisableCullShadows(
 
 void FProjectedShadowInfo::GatherDynamicMeshElements(FSceneRenderer& Renderer, FVisibleLightInfo& VisibleLightInfo, TArray<const FSceneView*>& ReusedViewsArray)
 {
+	check(ShadowDepthView && IsInRenderingThread());
+
 	if (DynamicSubjectPrimitives.Num() > 0 || ReceiverPrimitives.Num() > 0 || SubjectTranslucentPrimitives.Num() > 0)
 	{
-		// Choose an arbitrary view where this shadow's subject is relevant.
-		FViewInfo* FoundView = NULL;
-		bool bVisibleInAnyView = false;
+		// Backup properties of the view that we will override
+		FMatrix OriginalViewMatrix = ShadowDepthView->ViewMatrices.GetViewMatrix();
 
-		for (int32 ViewIndex = 0, Count = Renderer.Views.Num(); ViewIndex < Count; ViewIndex++)
+		// Override the view matrix so that billboarding primitives will be aligned to the light
+		ShadowDepthView->ViewMatrices.HackOverrideViewMatrixForShadows(ShadowViewMatrix);
+
+		ReusedViewsArray[0] = ShadowDepthView;
+
+		int32 Disable = 0; //CVarDisableCullShadows.GetValueOnRenderThread();
+		FConvexVolume NoCull;
+
+		if (bPreShadow && GPreshadowsForceLowestLOD)
 		{
-			FViewInfo* CheckView = &Renderer.Views[ViewIndex];
-			const FVisibleLightViewInfo& VisibleLightViewInfo = CheckView->VisibleLightInfos[LightSceneInfo->Id];
-			FPrimitiveViewRelevance ViewRel = VisibleLightViewInfo.ProjectedShadowViewRelevanceMap[ShadowId];
-
-			// we need to iterate through all
-			bVisibleInAnyView |= VisibleLightViewInfo.ProjectedShadowVisibilityMap[ShadowId];
-
-			if (ViewRel.bShadowRelevance)
-			{
-				FoundView = CheckView;
-				// we could ealy out for this but it would break bVisibleInAnyView
-			}
+			ShadowDepthView->DrawDynamicFlags = EDrawDynamicFlags::ForceLowestLOD;
 		}
 
-		// Shadow must be visible in at least one view
-		if (bVisibleInAnyView)
-		{		
-			check(FoundView && IsInRenderingThread());
-			bool bMakeViewSnapshot = FRHICommandListImmediate::AnyRenderThreadTasksOutstanding(); // if there are task in flight, we need to clone
+		if (IsWholeSceneDirectionalShadow())
+		{
+			ShadowDepthView->SetPreShadowTranslation(FVector(0, 0, 0));
+			ShadowDepthView->SetDynamicMeshElementsShadowCullFrustum((Disable & 1) ? &NoCull : &CascadeSettings.ShadowBoundsAccurate);
+			GatherDynamicMeshElementsArray(ShadowDepthView, Renderer, DynamicSubjectPrimitives, DynamicSubjectMeshElements, ReusedViewsArray);
+			ShadowDepthView->SetPreShadowTranslation(PreShadowTranslation);
+		}
+		else
+		{
+			ShadowDepthView->SetPreShadowTranslation(PreShadowTranslation);
+			ShadowDepthView->SetDynamicMeshElementsShadowCullFrustum((Disable & 1) ? &NoCull : &CasterFrustum);
+			GatherDynamicMeshElementsArray(ShadowDepthView, Renderer, DynamicSubjectPrimitives, DynamicSubjectMeshElements, ReusedViewsArray);
+		}
 
-			if (bMakeViewSnapshot)
-			{
-				FoundView = FoundView->CreateSnapshot();
-			}
+		ShadowDepthView->DrawDynamicFlags = EDrawDynamicFlags::None;
 
+		ShadowDepthView->SetDynamicMeshElementsShadowCullFrustum((Disable & 2) ? &NoCull : &ReceiverFrustum);
+		GatherDynamicMeshElementsArray(ShadowDepthView, Renderer, ReceiverPrimitives, DynamicReceiverMeshElements, ReusedViewsArray);
 
-		    // Backup properties of the view that we will override
-		    FMatrix OriginalViewMatrix = FoundView->ViewMatrices.GetViewMatrix();
-    
-		    // Override the view matrix so that billboarding primitives will be aligned to the light
-		    FoundView->ViewMatrices.HackOverrideViewMatrixForShadows(ShadowViewMatrix);
-    
-		    ReusedViewsArray[0] = FoundView;
-    
-		    check(!FoundView->GetDynamicMeshElementsShadowCullFrustum());
-    
-		    int32 Disable = 0; //CVarDisableCullShadows.GetValueOnRenderThread();
-		    FConvexVolume NoCull;
-    
-			if (bPreShadow && GPreshadowsForceLowestLOD)
-			{
-				FoundView->DrawDynamicFlags = EDrawDynamicFlags::ForceLowestLOD;
-			}
+		ShadowDepthView->SetDynamicMeshElementsShadowCullFrustum((Disable & 4) ? &NoCull : &CasterFrustum);
+		GatherDynamicMeshElementsArray(ShadowDepthView, Renderer, SubjectTranslucentPrimitives, DynamicSubjectTranslucentMeshElements, ReusedViewsArray);
 
-		    if (IsWholeSceneDirectionalShadow())
-		    {
-			    FoundView->SetPreShadowTranslation(FVector(0,0,0));
-			    FoundView->SetDynamicMeshElementsShadowCullFrustum((Disable & 1) ? &NoCull : &CascadeSettings.ShadowBoundsAccurate);
-			    GatherDynamicMeshElementsArray(FoundView, Renderer, DynamicSubjectPrimitives, DynamicSubjectMeshElements, ReusedViewsArray);
-			    FoundView->SetPreShadowTranslation(PreShadowTranslation);
-		    }
-		    else
-		    {
-			    FoundView->SetPreShadowTranslation(PreShadowTranslation);
-			    FoundView->SetDynamicMeshElementsShadowCullFrustum((Disable & 1) ? &NoCull : &CasterFrustum);
-			    GatherDynamicMeshElementsArray(FoundView, Renderer, DynamicSubjectPrimitives, DynamicSubjectMeshElements, ReusedViewsArray);
-		    }
-
-			FoundView->DrawDynamicFlags = EDrawDynamicFlags::None;
-    
-		    FoundView->SetDynamicMeshElementsShadowCullFrustum((Disable & 2) ? &NoCull : &ReceiverFrustum);
-		    GatherDynamicMeshElementsArray(FoundView, Renderer, ReceiverPrimitives, DynamicReceiverMeshElements, ReusedViewsArray);
-    
-		    FoundView->SetDynamicMeshElementsShadowCullFrustum((Disable & 4) ? &NoCull : &CasterFrustum);
-		    GatherDynamicMeshElementsArray(FoundView, Renderer, SubjectTranslucentPrimitives, DynamicSubjectTranslucentMeshElements, ReusedViewsArray);
-    
-			if (!bMakeViewSnapshot)
-			{
-				FoundView->SetDynamicMeshElementsShadowCullFrustum(nullptr);
-
-				FoundView->ViewMatrices.HackOverrideViewMatrixForShadows(OriginalViewMatrix);
-			}
-
-			Renderer.MeshCollector.ProcessTasks();
-	    }
+		Renderer.MeshCollector.ProcessTasks();
     }
 }
 
@@ -2275,15 +2235,58 @@ void FSceneRenderer::GatherShadowDynamicMeshElements()
 	TArray<const FSceneView*> ReusedViewsArray;
 	ReusedViewsArray.AddZeroed(1);
 
-	for (TSparseArray<FLightSceneInfoCompact>::TConstIterator LightIt(Scene->Lights); LightIt; ++LightIt)
+	for (int32 AtlasIndex = 0; AtlasIndex < SortedShadowsForShadowDepthPass.ShadowMapAtlases.Num(); AtlasIndex++)
 	{
-		FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightIt.GetIndex()];
+		FSortedShadowMapAtlas& Atlas = SortedShadowsForShadowDepthPass.ShadowMapAtlases[AtlasIndex];
 
-		for (int32 ShadowIndex = 0; ShadowIndex<VisibleLightInfo.AllProjectedShadows.Num(); ShadowIndex++)
+		for (int32 ShadowIndex = 0; ShadowIndex < Atlas.Shadows.Num(); ShadowIndex++)
 		{
-			FProjectedShadowInfo& ProjectedShadowInfo = *VisibleLightInfo.AllProjectedShadows[ShadowIndex];
+			FProjectedShadowInfo* ProjectedShadowInfo = Atlas.Shadows[ShadowIndex];
+			FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[ProjectedShadowInfo->GetLightSceneInfo().Id];
+			ProjectedShadowInfo->GatherDynamicMeshElements(*this, VisibleLightInfo, ReusedViewsArray);
+		}
+	}
 
-			ProjectedShadowInfo.GatherDynamicMeshElements(*this, VisibleLightInfo, ReusedViewsArray);
+	for (int32 AtlasIndex = 0; AtlasIndex < SortedShadowsForShadowDepthPass.RSMAtlases.Num(); AtlasIndex++)
+	{
+		FSortedShadowMapAtlas& Atlas = SortedShadowsForShadowDepthPass.RSMAtlases[AtlasIndex];
+
+		for (int32 ShadowIndex = 0; ShadowIndex < Atlas.Shadows.Num(); ShadowIndex++)
+		{
+			FProjectedShadowInfo* ProjectedShadowInfo = Atlas.Shadows[ShadowIndex];
+			FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[ProjectedShadowInfo->GetLightSceneInfo().Id];
+			ProjectedShadowInfo->GatherDynamicMeshElements(*this, VisibleLightInfo, ReusedViewsArray);
+		}
+	}
+
+	for (int32 AtlasIndex = 0; AtlasIndex < SortedShadowsForShadowDepthPass.ShadowMapCubemaps.Num(); AtlasIndex++)
+	{
+		FSortedShadowMapAtlas& Atlas = SortedShadowsForShadowDepthPass.ShadowMapCubemaps[AtlasIndex];
+
+		for (int32 ShadowIndex = 0; ShadowIndex < Atlas.Shadows.Num(); ShadowIndex++)
+		{
+			FProjectedShadowInfo* ProjectedShadowInfo = Atlas.Shadows[ShadowIndex];
+			FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[ProjectedShadowInfo->GetLightSceneInfo().Id];
+			ProjectedShadowInfo->GatherDynamicMeshElements(*this, VisibleLightInfo, ReusedViewsArray);
+		}
+	}
+
+	for (int32 ShadowIndex = 0; ShadowIndex < SortedShadowsForShadowDepthPass.PreshadowCache.Shadows.Num(); ShadowIndex++)
+	{
+		FProjectedShadowInfo* ProjectedShadowInfo = SortedShadowsForShadowDepthPass.PreshadowCache.Shadows[ShadowIndex];
+		FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[ProjectedShadowInfo->GetLightSceneInfo().Id];
+		ProjectedShadowInfo->GatherDynamicMeshElements(*this, VisibleLightInfo, ReusedViewsArray);
+	}
+
+	for (int32 AtlasIndex = 0; AtlasIndex < SortedShadowsForShadowDepthPass.TranslucencyShadowMapAtlases.Num(); AtlasIndex++)
+	{
+		FSortedShadowMapAtlas& Atlas = SortedShadowsForShadowDepthPass.TranslucencyShadowMapAtlases[AtlasIndex];
+
+		for (int32 ShadowIndex = 0; ShadowIndex < Atlas.Shadows.Num(); ShadowIndex++)
+		{
+			FProjectedShadowInfo* ProjectedShadowInfo = Atlas.Shadows[ShadowIndex];
+			FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[ProjectedShadowInfo->GetLightSceneInfo().Id];
+			ProjectedShadowInfo->GatherDynamicMeshElements(*this, VisibleLightInfo, ReusedViewsArray);
 		}
 	}
 }
@@ -2827,11 +2830,8 @@ void FSceneRenderer::AllocateShadowDepthTargets(FRHICommandListImmediate& RHICmd
 			FProjectedShadowInfo* ProjectedShadowInfo = CachedPreShadows[ShadowIndex];
 			ProjectedShadowInfo->RenderTargets.DepthTarget = Scene->PreShadowCacheDepthZ.GetReference();
 
-			if (!ProjectedShadowInfo->bDepthsCached)
-			{
-				ProjectedShadowInfo->SetupShadowDepthView(RHICmdList, this);
-				SortedShadowsForShadowDepthPass.PreshadowCache.Shadows.Add(ProjectedShadowInfo);
-			}
+			ProjectedShadowInfo->SetupShadowDepthView(RHICmdList, this);
+			SortedShadowsForShadowDepthPass.PreshadowCache.Shadows.Add(ProjectedShadowInfo);
 		}
 	}
 
@@ -3405,8 +3405,8 @@ void FSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& RHICmdList)
 	// Gathers the list of primitives used to draw various shadow types
 	GatherShadowPrimitives(PreShadows, ViewDependentWholeSceneShadowsThatNeedCulling, bStaticSceneOnly);
 
+	AllocateShadowDepthTargets(RHICmdList);
+
 	// Generate mesh element arrays from shadow primitive arrays
 	GatherShadowDynamicMeshElements();
-
-	AllocateShadowDepthTargets(RHICmdList);
 }

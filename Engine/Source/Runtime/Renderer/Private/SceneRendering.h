@@ -802,12 +802,6 @@ public:
 
 	FViewMatrices PrevViewMatrices;
 
-	/** Last frame's view and projection matrices */
-	FMatrix	PrevViewProjMatrix;
-
-	/** Last frame's view rotation and projection matrices */
-	FMatrix	PrevViewRotationProjMatrix;
-
 	/** An intermediate number of visible static meshes.  Doesn't account for occlusion until after FinishOcclusionQueries is called. */
 	int32 NumVisibleStaticMeshElements;
 
@@ -874,12 +868,26 @@ public:
 	/** Creates ViewUniformShaderParameters given a set of view transforms. */
 	void SetupUniformBufferParameters(
 		FSceneRenderTargets& SceneContext,
-		const FMatrix& EffectiveTranslatedViewMatrix, 
-		const FMatrix& EffectiveViewToTranslatedWorld, 
+		const FViewMatrices& InViewMatrices,
+		const FViewMatrices& InPrevViewMatrices,
 		FBox* OutTranslucentCascadeBoundsArray, 
 		int32 NumTranslucentCascades,
 		FViewUniformShaderParameters& ViewUniformShaderParameters) const;
 
+	/** Recreates ViewUniformShaderParameters, taking the view transform from the View Matrices */
+	inline void SetupUniformBufferParameters(
+		FSceneRenderTargets& SceneContext,
+		FBox* OutTranslucentCascadeBoundsArray,
+		int32 NumTranslucentCascades,
+		FViewUniformShaderParameters& ViewUniformShaderParameters) const
+	{
+		SetupUniformBufferParameters(SceneContext,
+			ViewMatrices,
+			PrevViewMatrices,
+			OutTranslucentCascadeBoundsArray,
+			NumTranslucentCascades,
+			ViewUniformShaderParameters);
+	}
 
 	void SetupDefaultGlobalDistanceFieldUniformBufferParameters(FViewUniformShaderParameters& ViewUniformShaderParameters) const;
 	void SetupGlobalDistanceFieldUniformBufferParameters(FViewUniformShaderParameters& ViewUniformShaderParameters) const;
