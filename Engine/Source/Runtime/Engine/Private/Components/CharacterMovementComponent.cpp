@@ -8662,7 +8662,7 @@ void UCharacterMovementComponent::ApplyDownwardForce(float DeltaSeconds)
 
 void UCharacterMovementComponent::ApplyRepulsionForce(float DeltaSeconds)
 {
-	if (UpdatedPrimitive && RepulsionForce > 0.0f)
+	if (UpdatedPrimitive && RepulsionForce > 0.0f && CharacterOwner!=nullptr)
 	{
 		const TArray<FOverlapInfo>& Overlaps = UpdatedPrimitive->GetOverlapInfos();
 		if (Overlaps.Num() > 0)
