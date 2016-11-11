@@ -1144,15 +1144,23 @@ UEnum* FindExistingEnumIfHotReloadOrDynamic(UObject* Outer, const TCHAR* EnumNam
 	return Result;
 }
 
-UObject* ConstructDynamicType(FName TypePathName)
+UObject* ConstructDynamicType(FName TypePathName, EConstructDynamicType ConstructionSpecifier)
 {
 	UObject* Result = nullptr;
 	if (FDynamicClassStaticData* ClassConstructFn = GetDynamicClassMap().Find(TypePathName))
 	{
-		UClass* DynamicClass = ClassConstructFn->ZConstructFn();
-		check(DynamicClass);
-		DynamicClass->AssembleReferenceTokenStream();
-		Result = DynamicClass;
+		if (ConstructionSpecifier == EConstructDynamicType::CallZConstructor)
+		{
+			UClass* DynamicClass = ClassConstructFn->ZConstructFn();
+			check(DynamicClass);
+			DynamicClass->AssembleReferenceTokenStream();
+			Result = DynamicClass;
+		}
+		else if (ConstructionSpecifier == EConstructDynamicType::OnlyAllocateClassObject)
+		{
+			Result = ClassConstructFn->StaticClassFn();
+			check(Result);
+		}
 	}
 	else if (UScriptStruct *(**StaticStructFNPtr)() = GetDynamicStructMap().Find(TypePathName))
 	{

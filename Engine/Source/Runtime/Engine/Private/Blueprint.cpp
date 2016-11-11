@@ -25,7 +25,6 @@
 #endif
 #include "Components/TimelineComponent.h"
 #include "Engine/InheritableComponentHandler.h"
-#include "BlueprintSupport.h" // for FLegacyEditorOnlyBlueprintOptions::IncludeUBlueprintObjsInCookedBuilds()
 
 DEFINE_LOG_CATEGORY(LogBlueprint);
 
@@ -1220,12 +1219,12 @@ FString UBlueprint::GetDesc(void)
 
 bool UBlueprint::NeedsLoadForClient() const
 {
-	return FLegacyEditorOnlyBlueprintOptions::IncludeUBlueprintObjsInCookedBuilds();
+	return false;
 }
 
 bool UBlueprint::NeedsLoadForServer() const
 {
-	return FLegacyEditorOnlyBlueprintOptions::IncludeUBlueprintObjsInCookedBuilds();
+	return false;
 }
 
 bool UBlueprint::NeedsLoadForEditorGame() const

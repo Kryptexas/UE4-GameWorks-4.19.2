@@ -288,9 +288,16 @@ struct FObjectExport : public FObjectResource
 	bool			bExportLoadFailed;
 
 	/**
-	* Export is a dynamic class.
+	* Export is a dynamic type.
 	*/
-	bool			bDynamicClass;
+	enum class EDynamicType : uint8
+	{
+		NotDynamicExport,
+		DynamicType,
+		ClassDefaultObject,
+	};
+
+	EDynamicType	DynamicType;
 
 	/**
 	* Export was filtered out on load

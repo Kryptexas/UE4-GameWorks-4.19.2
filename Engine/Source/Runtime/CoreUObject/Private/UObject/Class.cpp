@@ -1070,9 +1070,8 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 
 			else if (Tag.Type != PropID)
 			{
-					UE_LOG(LogClass, Warning, TEXT("Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.Type.ToString(), *PropID.ToString(), *Ar.GetArchiveName() );
-				}
-
+				UE_LOG(LogClass, Warning, TEXT("Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.Type.ToString(), *PropID.ToString(), *Ar.GetArchiveName() );
+			}
 			else
 			{
 				uint8* DestAddress = Property->ContainerPtrToValuePtr<uint8>(Data, Tag.ArrayIndex);  
@@ -2281,6 +2280,22 @@ void UScriptStruct::CopyScriptStruct(void* InDest, void const* InSrc, int32 Arra
 			}
 		}
 	}
+}
+
+uint32 UScriptStruct::GetStructTypeHash(const void* Src) const
+{
+	// Calling GetStructTypeHash on struct types that doesn't provide a native 
+	// GetTypeHash implementation is an error that neither the C++ compiler nor the BP
+	// compiler permit. Still, old reflection data could be loaded that invalidly uses 
+	// unhashable types. 
+
+	// If any the ensure or check in this function fires the fix is to implement GetTypeHash 
+	// or erase the data. USetProperties and UMapProperties that are loaded from disk
+	// will clear themselves when they detect this error (see USetProperty and 
+	// UMapProperty::ConvertFromType).
+
+	UScriptStruct::ICppStructOps* TheCppStructOps = GetCppStructOps();
+	return TheCppStructOps->GetTypeHash(Src);
 }
 
 void UScriptStruct::InitializeStruct(void* InDest, int32 ArrayDim) const

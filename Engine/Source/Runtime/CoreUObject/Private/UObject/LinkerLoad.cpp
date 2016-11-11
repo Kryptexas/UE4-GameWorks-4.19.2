@@ -2131,7 +2131,7 @@ FName FLinkerLoad::GetExportClassPackage( int32 i )
 		return LinkerRoot->GetFName();
 	}
 #if WITH_EDITORONLY_DATA
-	else if (GLinkerAllowDynamicClasses && Export.bDynamicClass)
+	else if (GLinkerAllowDynamicClasses && (Export.DynamicType == FObjectExport::EDynamicType::DynamicType))
 	{
 		static FName NAME_EnginePackage(TEXT("/Script/Engine"));
 		return NAME_EnginePackage;
@@ -3613,10 +3613,10 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 		check(Export.ObjectName!=NAME_None || !(Export.ObjectFlags&RF_Public));
 		check(IsLoading());
 
-		if (Export.bDynamicClass)
+		if (Export.DynamicType == FObjectExport::EDynamicType::DynamicType)
 		{
 			// Export is a dynamic type, construct it using registered native functions
-			Export.Object = ConstructDynamicType(*GetExportPathName(Index));
+			Export.Object = ConstructDynamicType(*GetExportPathName(Index), EConstructDynamicType::CallZConstructor);
 			if (Export.Object)
 			{
 				Export.Object->SetLinker(this, Index);
@@ -3637,6 +3637,21 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 		if( !LoadClass && !Export.ClassIndex.IsNull() ) // Hack to load packages with classes which do not exist.
 		{
 			return NULL;
+		}
+
+		if (Export.DynamicType == FObjectExport::EDynamicType::ClassDefaultObject)
+		{
+			if (LoadClass)
+			{
+				ensure(Cast<UDynamicClass>(LoadClass));
+				Export.Object = LoadClass->GetDefaultObject(true);
+				return Export.Object;
+			}
+			else
+			{
+				UE_LOG(LogLinker, Warning, TEXT("CreateExport: Failed to create CDO %s because class is not found"), *Export.ObjectName.ToString());
+				return NULL;
+			}
 		}
 
 #if WITH_EDITOR
@@ -4385,15 +4400,22 @@ void FLinkerLoad::DetachExport( int32 i )
 	{
 		UE_LOG(LogLinker, Fatal, TEXT("Linker object %s %s.%s is invalid"), *GetExportClassName(i).ToString(), *LinkerRoot->GetName(), *E.ObjectName.ToString() );
 	}
-	if( E.Object->GetLinker()!=this )
 	{
-		UObject* Object = E.Object;
-		UE_LOG(LogLinker, Log, TEXT("Object            : %s"), *Object->GetFullName() );
-		//UE_LOG(LogLinker, Log, TEXT("Object Linker     : %s"), *Object->GetLinker()->GetFullName() );
-		UE_LOG(LogLinker, Log, TEXT("Linker LinkerRoot : %s"), Object->GetLinker() ? *Object->GetLinker()->LinkerRoot->GetFullName() : TEXT("None") );
-		//UE_LOG(LogLinker, Log, TEXT("Detach Linker     : %s"), *GetFullName() );
-		UE_LOG(LogLinker, Log, TEXT("Detach LinkerRoot : %s"), *LinkerRoot->GetFullName() );
-		UE_LOG(LogLinker, Fatal, TEXT("Linker object %s %s.%s mislinked!"), *GetExportClassName(i).ToString(), *LinkerRoot->GetName(), *E.ObjectName.ToString() );
+		const FLinkerLoad* ActualLinker = E.Object->GetLinker();
+		// TODO: verify the condition
+		const bool DynamicType = !ActualLinker && E.Object 
+			&& (E.Object->HasAnyFlags(RF_Dynamic)
+			|| (E.Object->GetClass()->HasAnyFlags(RF_Dynamic) && E.Object->HasAnyFlags(RF_ClassDefaultObject) ));
+		if ((ActualLinker != this) && !DynamicType)
+		{
+			UObject* Object = E.Object;
+			UE_LOG(LogLinker, Log, TEXT("Object            : %s"), *Object->GetFullName());
+			//UE_LOG(LogLinker, Log, TEXT("Object Linker     : %s"), *Object->GetLinker()->GetFullName() );
+			UE_LOG(LogLinker, Log, TEXT("Linker LinkerRoot : %s"), Object->GetLinker() ? *Object->GetLinker()->LinkerRoot->GetFullName() : TEXT("None"));
+			//UE_LOG(LogLinker, Log, TEXT("Detach Linker     : %s"), *GetFullName() );
+			UE_LOG(LogLinker, Log, TEXT("Detach LinkerRoot : %s"), *LinkerRoot->GetFullName());
+			UE_LOG(LogLinker, Fatal, TEXT("Linker object %s %s.%s mislinked!"), *GetExportClassName(i).ToString(), *LinkerRoot->GetName(), *E.ObjectName.ToString());
+		}
 	}
 	check(E.Object->GetLinkerIndex() == i);
 	ExportMap[i].Object->SetLinker( NULL, INDEX_NONE );

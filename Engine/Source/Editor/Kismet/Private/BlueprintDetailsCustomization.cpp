@@ -612,7 +612,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 	ReplicationOptions.Add(MakeShareable(new FString("Replicated")));
 	ReplicationOptions.Add(MakeShareable(new FString("RepNotify")));
 
-	TSharedPtr<SToolTip> ReplicationTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VariableReplicate_Tooltip", "Should this Variable be replicated over the network?"), NULL, DocLink, TEXT("Replication"));
+	TSharedPtr<SToolTip> ReplicationTooltip = IDocumentation::Get()->CreateToolTip( TAttribute<FText>::Create( TAttribute<FText>::FGetter::CreateRaw( this, &FBlueprintVarActionDetails::ReplicationTooltip ) ), NULL, DocLink, TEXT("Replication"));
 
 	Category.AddCustomRow( LOCTEXT("VariableReplicationLabel", "Replication") )
 	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::ReplicationVisibility))
@@ -629,7 +629,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		.OptionsSource( &ReplicationOptions )
 		.InitiallySelectedItem(GetVariableReplicationType())
 		.OnSelectionChanged( this, &FBlueprintVarActionDetails::OnChangeReplication )
-		.IsEnabled(IsVariableInBlueprint())
+		.IsEnabled(this, &FBlueprintVarActionDetails::ReplicationEnabled)
 		.ToolTip(ReplicationTooltip)
 	];
 
@@ -1756,6 +1756,32 @@ bool FBlueprintVarActionDetails::ReplicationConditionEnabled() const
 	}
 
 	return false;
+}
+
+bool FBlueprintVarActionDetails::ReplicationEnabled() const
+{
+	// Update FBlueprintVarActionDetails::ReplicationTooltip if you alter this function
+	// shat users can understand why replication settins are disabled!
+	bool bVariableCanBeReplicated = true;
+	const UProperty* const VariableProperty = CachedVariableProperty.Get();
+	if (VariableProperty)
+	{
+		// sets and maps cannot yet be replicated:
+		bVariableCanBeReplicated = Cast<USetProperty>(VariableProperty) == nullptr && Cast<UMapProperty>(VariableProperty) == nullptr;
+	}
+	return bVariableCanBeReplicated && IsVariableInBlueprint();
+}
+
+FText FBlueprintVarActionDetails::ReplicationTooltip() const
+{
+	if(ReplicationEnabled())
+	{
+		return LOCTEXT("VariableReplicate_Tooltip", "Should this Variable be replicated over the network?");
+	}
+	else
+	{
+		return LOCTEXT("VariableReplicateDisabled_Tooltip", "Set and Map properties cannot be replicated");
+	}
 }
 
 ECheckBoxState FBlueprintVarActionDetails::OnGetConfigVariableCheckboxState() const

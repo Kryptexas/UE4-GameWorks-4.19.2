@@ -3,7 +3,6 @@
 #include "CoreUObjectPrivate.h"
 #include "PropertyHelper.h"
 #include "LinkerPlaceholderClass.h"
-#include "BlueprintSupport.h" // for FLegacyEditorOnlyBlueprintManager::FixupClassProperty()
 
 /*-----------------------------------------------------------------------------
 	UClassProperty.
@@ -139,17 +138,6 @@ FString UClassProperty::GetCPPMacroType( FString& ExtendedTypeText ) const
 bool UClassProperty::SameType(const UProperty* Other) const
 {
 	return Super::SameType(Other) && (MetaClass == ((UClassProperty*)Other)->MetaClass);
-}
-
-void UClassProperty::CheckValidObject(void* Value) const
-{
-#if WITH_EDITOR
-	Super::CheckValidObject(Value);
-	// Ugly hack to replace Blueprint references with Class references.
-	FLegacyEditorOnlyBlueprintOptions::FixupClassProperty(this, Value);
-#else	// WITH_EDITOR
-	Super::CheckValidObject(Value);
-#endif	// WITH_EDITOR
 }
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UClassProperty, UObjectProperty,

@@ -1492,13 +1492,13 @@ void FPropertyValueImpl::DeleteChild( TSharedPtr<FPropertyNode> ChildNodeToDelet
 				else if (SetProperty)
 				{
 					FScriptSetHelper SetHelper(SetProperty, Address);
-					SetHelper.RemoveAt_NeedsRehash(ChildNodePtr->GetArrayIndex());
+					SetHelper.RemoveAt(ChildNodePtr->GetArrayIndex());
 					SetHelper.Rehash();
 				}
 				else if (MapProperty)
 				{
 					FScriptMapHelper MapHelper(MapProperty, Address);
-					MapHelper.RemoveAt_NeedsRehash(ChildNodePtr->GetArrayIndex());
+					MapHelper.RemoveAt(ChildNodePtr->GetArrayIndex());
 					MapHelper.Rehash();
 				}
 			}

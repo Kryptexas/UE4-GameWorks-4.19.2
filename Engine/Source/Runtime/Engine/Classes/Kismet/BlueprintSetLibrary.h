@@ -11,7 +11,8 @@ class ENGINE_API UBlueprintSetLibrary : public UBlueprintFunctionLibrary
 
 public:
 	/** 
-	 * Adds item to set
+	 * Adds item to set. Output value indicates whether the item was successfully added, meaning an 
+	 * output of False indicates the item was already in the Set.
 	 *
 	 * @param	TargetSet		The set to add item to
 	 * @param	NewItem			The item to add to the set
@@ -31,7 +32,8 @@ public:
 	static void Set_AddItems(const TSet<int32>& TargetSet, const TArray<int32>& NewItems);
 
 	/**
-	 * Remove item from set.
+	 * Remove item from set. Output value indicates if something was actually removed. False
+	 * indicates no equilalent item was found.
 	 *
 	 * @param	TargetSet		The set to remove from
 	 * @param	Item			The item to remove from the set
@@ -59,7 +61,7 @@ public:
 	static void Set_ToArray(const TSet<int32>& A, TArray<int32>& Result);
 
 	/**
-	 * Clear a set, removes all content
+	 * Clear a set, removes all content.
 	 *
 	 * @param	TargetSet		The set to clear
 	 */
@@ -67,7 +69,7 @@ public:
 	static void Set_Clear(const TSet<int32>& TargetSet);
 
 	/**
-	 * Get the number of items in a set
+	 * Get the number of items in a set.
 	 *
 	 * @param	TargetSet		The set to get the length of
 	 * @return	The length of the set
@@ -76,7 +78,7 @@ public:
 	static int32 Set_Length(const TSet<int32>& TargetSet);
 
 	/**
-	 * Returns true if the set contains the given item
+	 * Returns true if the set contains the given item.
 	 *
 	 * @param	TargetSet		The set to search for the item
 	 * @param	ItemToFind		The item to look for

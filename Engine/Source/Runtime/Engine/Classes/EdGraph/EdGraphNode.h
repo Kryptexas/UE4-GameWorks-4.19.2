@@ -10,6 +10,7 @@ class UEdGraphNode;
 class UEdGraphSchema;
 class UEdGraphPin;
 class SGraphNode;
+class SWidget;
 struct FEdGraphPinType;
 struct FSlateIcon;
 
@@ -529,6 +530,9 @@ public:
 
 	/** Create a visual widget to represent this node in a graph editor or graph panel.  If not implemented, the default node factory will be used. */
 	virtual TSharedPtr<SGraphNode> CreateVisualWidget() { return TSharedPtr<SGraphNode>(); }
+
+	/** Create the background image for the widget representing this node */
+	virtual TSharedPtr<SWidget> CreateNodeImage() const { return TSharedPtr<SWidget>(); }
 
 	/** Adds an upgrade note to this node */
 	void AddNodeUpgradeNote(FText InUpgradeNote);

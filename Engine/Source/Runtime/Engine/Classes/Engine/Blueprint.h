@@ -284,7 +284,7 @@ struct FEditedDocumentInfo
  * and script level events; giving designers and gameplay programmers the tools to quickly create and iterate gameplay from
  * within Unreal Editor without ever needing to write a line of code.
  */
-UCLASS(config=Engine, BlueprintType)
+UCLASS(config=Engine)
 class ENGINE_API UBlueprint : public UBlueprintCore
 {
 	GENERATED_UCLASS_BODY()

@@ -2722,7 +2722,7 @@ void FPropertyNode::PropagateContainerPropertyChange( UObject* ModifiedObject, c
 						check(false);	// Insert is not supported for sets
 						break;
 					case EPropertyArrayChangeType::Delete:
-						SetHelper.RemoveAt_NeedsRehash(ArrayIndex);
+						SetHelper.RemoveAt(ArrayIndex);
 						SetHelper.Rehash();
 						break;
 					case EPropertyArrayChangeType::Duplicate:
@@ -2757,7 +2757,7 @@ void FPropertyNode::PropagateContainerPropertyChange( UObject* ModifiedObject, c
 						check(false);	// Insert is not supported for maps
 						break;
 					case EPropertyArrayChangeType::Delete:
-						MapHelper.RemoveAt_NeedsRehash(ArrayIndex);
+						MapHelper.RemoveAt(ArrayIndex);
 						MapHelper.Rehash();
 						break;
 					case EPropertyArrayChangeType::Duplicate:

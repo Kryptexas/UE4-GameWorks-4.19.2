@@ -858,7 +858,7 @@ void FBlueprintFunctionContext::CreateDelegatePinEvents()
 							// Setup the basic exec node params.
 							FScriptExecNodeParams EventParams;
 							EventParams.SampleFrequency = 1;
-							EventParams.NodeName = FName(*FString::Printf(TEXT("%s::DummyEvent"), *NodeEvents.Key->GetName()));
+							EventParams.NodeName = FName(*NodeEvents.Key->GetName());
 							EventParams.ObservedObject = NodeEvents.Key;
 							EventParams.OwningGraphName = NAME_None;
 							EventParams.DisplayName = NodeEvents.Key->GetNodeTitle(ENodeTitleType::MenuTitle);
@@ -905,10 +905,6 @@ void FBlueprintFunctionContext::CreateDelegatePinEvents()
 						}
 
 						ParentBlueprintContext->RegisterEventContext(EventDesc.EventName, FunctionContext);
-
-						FNodeExecutionContext& NodeContext = GetNodeExecutionContext(EventDesc.ScriptOffset);
-						NodeContext.GraphNode = EventDesc.DelegatePin->GetOwningNode();
-						NodeContext.ProfilerNode = PinExecNode;
 					}
 				}
 			}
@@ -2792,6 +2788,8 @@ bool FScriptEventPlayback::Process(const TArray<FScriptInstrumentedEvent>& Signa
 		{
 			// Handle midstream context switches.
 			const FScriptInstrumentedEvent& CurrSignal = SignalData[SignalIdx];
+			const int ScriptCodeOffset = CurrSignal.GetScriptCodeOffset();
+			const UEdGraphPin* ValidPinTemp = FunctionContext->GetPinFromCodeLocation(ScriptCodeOffset);
 			if (CurrSignal.GetType() == EScriptInstrumentation::Class)
 			{
 				// Update the current mapped blueprint context.

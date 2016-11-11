@@ -80,6 +80,7 @@ public:
 	virtual bool CanPasteHere(const UEdGraph* TargetGraph) const override;
 	virtual void PinDefaultValueChanged(UEdGraphPin* Pin) override;
 	virtual void AddSearchMetaDataInfo(TArray<struct FSearchTagDataPair>& OutTaggedMetaData) const override;
+	virtual TSharedPtr<SWidget> CreateNodeImage() const override;
 	// End of UEdGraphNode interface
 
 	// UK2Node interface

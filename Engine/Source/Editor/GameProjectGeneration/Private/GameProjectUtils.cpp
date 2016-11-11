@@ -1827,7 +1827,7 @@ bool GameProjectUtils::GenerateConfigFiles(const FProjectInformation& InProjectI
 	// DefaultEditor.ini
 	{
 		const FString DefaultEditorIniFilename = ProjectConfigPath / TEXT("DefaultEditor.ini");
-		FString FileContents = FLegacyEditorOnlyBlueprintOptions::GetDefaultEditorConfig();
+		FString FileContents;
 
 		if (WriteOutputFile(DefaultEditorIniFilename, FileContents, OutFailReason))
 		{

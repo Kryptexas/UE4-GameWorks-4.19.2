@@ -110,13 +110,13 @@ FName FLinker::GetExportClassName( int32 i )
 			return ImpExp(Export.ClassIndex).ObjectName;
 		}
 #if WITH_EDITORONLY_DATA
-		else if (GLinkerAllowDynamicClasses && Export.bDynamicClass)
+		else if (GLinkerAllowDynamicClasses && (Export.DynamicType == FObjectExport::EDynamicType::DynamicType))
 		{
 			static FName NAME_BlueprintGeneratedClass(TEXT("BlueprintGeneratedClass"));
 			return NAME_BlueprintGeneratedClass;
 		}
 #else
-		else if (Export.bDynamicClass)
+		else if (Export.DynamicType == FObjectExport::EDynamicType::DynamicType)
 		{
 			return GetDynamicTypeClassName(*GetExportPathName(i));
 		}

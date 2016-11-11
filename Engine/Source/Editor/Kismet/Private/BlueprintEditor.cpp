@@ -6557,6 +6557,8 @@ void FBlueprintEditor::CollapseNodesIntoGraph(UEdGraphNode* InGatewayNode, UK2No
 			InDestinationGraph->SubGraphs.Add(Composite->BoundGraph);
 		}
 
+		TArray<UEdGraphPin*> OutputGatewayExecPins;
+
 		// Find cross-graph links
 		for (int32 PinIndex = 0; PinIndex < Node->Pins.Num(); ++PinIndex)
 		{
@@ -6576,13 +6578,20 @@ void FBlueprintEditor::CollapseNodesIntoGraph(UEdGraphNode* InGatewayNode, UK2No
 				}
 			}
 			// If the pin has no links but is an exec pin and this is a function graph, then it is a gateway pin
-			else if(InGatewayNode->GetClass() == UK2Node_CallFunction::StaticClass() && LocalPin->PinType.PinCategory == K2Schema->PC_Exec)
+			else if (InGatewayNode->GetClass() == UK2Node_CallFunction::StaticClass() && K2Schema->IsExecPin(*LocalPin))
 			{
-				// Connect the gateway pin to the node, there is no remote pin to hook up because the exec pin was not originally connected
-				LocalPin->Modify();
-				UK2Node_EditablePinBase* LocalPort = (LocalPin->Direction == EGPD_Input) ? InEntryNode : InResultNode;
-				UEdGraphPin* LocalPortPin = LocalPort->Pins[0];
-				LocalPin->MakeLinkTo(LocalPortPin);
+				if (LocalPin->Direction == EGPD_Input)
+				{
+					// Connect the gateway pin to the node, there is no remote pin to hook up because the exec pin was not originally connected
+					LocalPin->Modify();
+					UK2Node_EditablePinBase* LocalPort = InEntryNode;
+					UEdGraphPin* LocalPortPin = LocalPort->Pins[0];
+					LocalPin->MakeLinkTo(LocalPortPin);
+				}
+				else
+				{
+					OutputGatewayExecPins.Add(LocalPin);
+				}
 			}
 
 			// Thunk cross-graph links thru the gateway
@@ -6672,6 +6681,24 @@ void FBlueprintEditor::CollapseNodesIntoGraph(UEdGraphNode* InGatewayNode, UK2No
 			}
 		}
 
+		if (OutputGatewayExecPins.Num() > 0)
+		{
+			UEdGraphPin* LocalResultPortPin = K2Schema->FindExecutionPin(*InResultNode, EGPD_Input);
+
+			// If the Result Node already contains links, then we don't need to make these connections as the intended connections have already been
+			// transferred from original graph.
+			if (LocalResultPortPin != nullptr && LocalResultPortPin->LinkedTo.Num() == 0)
+			{
+				// TODO: Some of these pins may not necessarily be terminal pins. We should prompt the user to choose which of these connections should
+				// be made to the return node.
+				for (UEdGraphPin* LocalPin : OutputGatewayExecPins)
+				{
+					// Connect the gateway pin to the node, there is no remote pin to hook up because the exec pin was not originally connected
+					LocalPin->Modify();
+					LocalPin->MakeLinkTo(LocalResultPortPin);
+				}
+			}
+		}
 	}
 
 	// Reposition the newly created nodes

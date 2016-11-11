@@ -2180,9 +2180,6 @@ public:
 #else
 	FORCEINLINE void SetMetaClass(UClass* NewMetaClass) { MetaClass = NewMetaClass; }
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
-
-protected:
-	virtual void CheckValidObject(void* Value) const override;
 };
 
 /*-----------------------------------------------------------------------------
@@ -2997,6 +2994,46 @@ public:
 	}
 
 	/**
+	 * Returns a uint8 pointer to the Key (first element) in the map. Currently 
+	 * identical to GetPairPtr, but provides clarity of purpose and avoids exposing
+	 * implementation details of TMap.
+	 *
+	 * @param  Index  index of the item to return a pointer to.
+	 *
+	 * @return Pointer to the key, or nullptr if the map is empty.
+	 */
+	FORCEINLINE uint8* GetKeyPtr(int32 Index)
+	{
+		if (Num() == 0)
+		{
+			checkSlow(!Index);
+			return nullptr;
+		}
+		
+		checkSlow(IsValidIndex(Index));
+		return (uint8*)Map->GetData(Index, MapLayout) + MapLayout.KeyOffset;
+	}
+
+	/**
+	 * Returns a uint8 pointer to the Value (second element) in the map.
+	 *
+	 * @param  Index  index of the item to return a pointer to.
+	 *
+	 * @return Pointer to the value, or nullptr if the map is empty.
+	 */
+	FORCEINLINE uint8* GetValuePtr(int32 Index)
+	{
+		if (Num() == 0)
+		{
+			checkSlow(!Index);
+			return nullptr;
+		}
+		
+		checkSlow(IsValidIndex(Index));
+		return (uint8*)Map->GetData(Index, MapLayout) + MapLayout.ValueOffset;
+	}
+
+	/**
 	 * Returns a uint8 pointer to the pair in the map.
 	 *
 	 * @param  Index  index of the item to return a pointer to.
@@ -3077,11 +3114,10 @@ public:
 
 	/**
 	 * Removes an element at the specified index, destroying it.
-	 * The map will be invalid until the next Rehash() call.
 	 *
 	 * @param  Index  The index of the element to remove.
 	 */
-	void RemoveAt_NeedsRehash(int32 Index, int32 Count = 1)
+	void RemoveAt(int32 Index, int32 Count = 1)
 	{
 		check(IsValidIndex(Index));
 
@@ -3162,6 +3198,84 @@ public:
 		return Result;
 	}
 
+	/** Finds the associated value from hash, rather than linearly searching */
+	uint8* FindValueFromHash(const void* KeyPtr)
+	{
+		UProperty* LocalKeyPropForCapture = KeyProp;
+		return Map->FindValue(
+			KeyPtr, 
+			MapLayout,
+			[LocalKeyPropForCapture](const void* ElementKey) { return LocalKeyPropForCapture->GetValueTypeHash(ElementKey); },
+			[LocalKeyPropForCapture](const void* A, const void* B) { return LocalKeyPropForCapture->Identical(A, B); }
+			);
+	}
+
+	/** Adds the (key, value) pair to the map, returning true if the element was added, or false if the element was already present and has been overwritten */
+	bool AddPair(const void* KeyPtr, const void* ValuePtr)
+	{
+		UProperty* LocalKeyPropForCapture = KeyProp;
+		UProperty* LocalValuePropForCapture = ValueProp;
+		FScriptMapLayout& LocalMapLayoutForCapture = MapLayout;
+		return Map->Add(
+			KeyPtr, 
+			ValuePtr, 
+			MapLayout,
+			[LocalKeyPropForCapture](const void* ElementKey) { return LocalKeyPropForCapture->GetValueTypeHash(ElementKey); },
+			[LocalKeyPropForCapture](const void* A, const void* B) { return LocalKeyPropForCapture->Identical(A, B); },
+			[LocalKeyPropForCapture, KeyPtr, LocalMapLayoutForCapture](void* NewElementKey)
+			{
+				if (LocalKeyPropForCapture->PropertyFlags & CPF_ZeroConstructor)
+				{
+					FMemory::Memzero(NewElementKey, LocalKeyPropForCapture->GetSize());
+				}
+				else
+				{
+					LocalKeyPropForCapture->InitializeValue(NewElementKey);
+				}
+
+				LocalKeyPropForCapture->CopySingleValueToScriptVM(NewElementKey, KeyPtr);
+			},
+			[LocalValuePropForCapture, ValuePtr, LocalMapLayoutForCapture](void* NewElementValue)
+			{
+				if (LocalValuePropForCapture->PropertyFlags & CPF_ZeroConstructor)
+				{
+					FMemory::Memzero(NewElementValue, LocalValuePropForCapture->GetSize());
+				}
+				else
+				{
+					LocalValuePropForCapture->InitializeValue(NewElementValue);
+				}
+
+				LocalValuePropForCapture->CopySingleValueToScriptVM(NewElementValue, ValuePtr);
+			},
+			[LocalValuePropForCapture, ValuePtr](void* ExistingElementValue)
+			{
+				LocalValuePropForCapture->CopySingleValueToScriptVM(ExistingElementValue, ValuePtr);
+			}
+		);
+	}
+
+	/** Removes the key and its associated value from the map */
+	bool RemovePair(const void* KeyPtr)
+	{
+		UProperty* LocalKeyPropForCapture = KeyProp;
+		if(uint8* Entry =  Map->FindValue(
+			KeyPtr, 
+			MapLayout,
+			[LocalKeyPropForCapture](const void* ElementKey) { return LocalKeyPropForCapture->GetValueTypeHash(ElementKey); },
+			[LocalKeyPropForCapture](const void* A, const void* B) { return LocalKeyPropForCapture->Identical(A, B); }
+			))
+		{
+			int32 Idx = (Entry - (uint8*)Map->GetData(0, MapLayout)) / MapLayout.SetLayout.Size;
+			RemoveAt(Idx);
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
 private:
 	/**
 	 * Internal function to call into the property system to construct / initialize elements.
@@ -3214,7 +3328,7 @@ private:
 		if (bDestroyKeys || bDestroyValues)
 		{
 			uint32 Stride  = MapLayout.SetLayout.Size;
-			uint8* PairPtr = GetPairPtr(Index);
+			uint8* PairPtr = GetPairPtrWithoutCheck(Index);
 			if (bDestroyKeys)
 			{
 				if (bDestroyValues)
@@ -3458,11 +3572,10 @@ public:
 
 	/**
 	* Removes an element at the specified index, destroying it.
-	* The set will be invalid until the next Rehash() call.
 	*
 	* @param  Index  The index of the element to remove.
 	*/
-	void RemoveAt_NeedsRehash(int32 Index, int32 Count = 1)
+	void RemoveAt(int32 Index, int32 Count = 1)
 	{
 		check(IsValidIndex(Index));
 
@@ -3569,7 +3682,7 @@ public:
 			{
 				if (LocalElementPropForCapture->PropertyFlags & CPF_ZeroConstructor)
 				{
-					FMemory::Memzero(NewElement, LocalSetLayoutForCapture.Size);
+					FMemory::Memzero(NewElement, LocalElementPropForCapture->GetSize());
 				}
 				else
 				{
@@ -3578,20 +3691,28 @@ public:
 
 				LocalElementPropForCapture->CopySingleValueToScriptVM(NewElement, ElementToAdd);
 			}
-		);
+		) == nullptr;
 	}
 
 	/** Removes the element from the set */
 	bool RemoveElement(const void* ElementToRemove)
 	{
 		UProperty* LocalElementPropForCapture = ElementProp;
-		return Set->Remove(
-			ElementToRemove, 
-			SetLayout, 
-			[LocalElementPropForCapture](const void* Element) { return LocalElementPropForCapture->GetValueTypeHash(Element); },
-			[LocalElementPropForCapture](const void* A, const void* B) { return LocalElementPropForCapture->Identical(A, B); },
-			[LocalElementPropForCapture](void* ElementToDestroy ) {LocalElementPropForCapture->DestroyValue(ElementToDestroy); }
-		);
+		if( uint8_t* Entry = Set->Find(
+				ElementToRemove, 
+				SetLayout, 
+				[LocalElementPropForCapture](const void* Element) { return LocalElementPropForCapture->GetValueTypeHash(Element); },
+				[LocalElementPropForCapture](const void* A, const void* B) { return LocalElementPropForCapture->Identical(A, B); } )
+			)
+		{
+			int32 Idx = (Entry - (uint8*)Set->GetData(0, SetLayout)) / SetLayout.Size;
+			RemoveAt(Idx);
+			return true;
+		}
+		else
+		{
+			return false;
+		}
 	}
 
 private:
@@ -3638,7 +3759,7 @@ private:
 		if (bDestroyElements)
 		{
 			uint32 Stride = SetLayout.Size;
-			uint8* ElementPtr = GetElementPtr(Index);
+			uint8* ElementPtr = GetElementPtrWithoutCheck(Index);
 
 			for (; Count; ++Index)
 			{
@@ -3745,6 +3866,9 @@ public:
 	static void ExportTextItem_Static(class UScriptStruct* InStruct, FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope);
 
 	bool UseBinaryOrNativeSerialization(const FArchive& Ar) const;
+
+private:
+	virtual uint32 GetValueTypeHashInternal(const void* Src) const;
 
 public:
 

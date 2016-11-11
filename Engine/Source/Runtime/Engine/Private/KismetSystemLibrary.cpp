@@ -16,6 +16,7 @@
 #include "Net/OnlineEngineInterface.h"
 #include "UserActivityTracking.h"
 #include "PhysicsEngine/PhysicsSettings.h"
+#include "CommandLine.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UKismetSystemLibrary
@@ -3529,4 +3530,9 @@ void UKismetSystemLibrary::RegisterForRemoteNotifications()
 void UKismetSystemLibrary::SetUserActivity(const FUserActivity& UserActivity)
 {
 	FUserActivityTracking::SetActivity(UserActivity);
+}
+
+FString UKismetSystemLibrary::GetCommandLine()
+{
+	return FString(FCommandLine::Get());
 }

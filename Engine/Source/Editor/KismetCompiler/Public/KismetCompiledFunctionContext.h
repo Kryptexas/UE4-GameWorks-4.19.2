@@ -7,7 +7,8 @@
 #include "BPTerminal.h"
 #include "BlueprintCompiledStatement.h"
 
-class UBlueprintGeneratedClass;
+class  UBlueprintGeneratedClass;
+struct FMemberReference;
 
 namespace KismetCompilerDebugOptions
 {

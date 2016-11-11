@@ -1750,15 +1750,17 @@ static bool IsFullyLoadedObj(UObject* Obj)
 	}
 //native blueprint 
 	UDynamicClass* UD = Cast<UDynamicClass>(Obj);
-	if (!UD)
+	if (!UD || 0 != (UD->ClassFlags & CLASS_Constructed))
 	{
 		return true;
 	}
+	/*
 	if (UD->GetDefaultObject(false))
 	{
 		UE_CLOG(!UD->HasAnyClassFlags(CLASS_TokenStreamAssembled), LogStreaming, Fatal, TEXT("Class %s is fully loaded, but does not have its token stream assembled."), *UD->GetFullName());
 		return true;
 	}
+	*/
 	return false;
 }
 
@@ -2517,14 +2519,13 @@ void FAsyncPackage::EventDrivenCreateExport(int32 LocalExportIndex)
 			LastObjectWorkWasPerformedOn = nullptr;
 			check(Export.ObjectName != NAME_None || !(Export.ObjectFlags&RF_Public));
 			check(IsLoading());
-			if (Export.bDynamicClass)
+			if (Export.DynamicType == FObjectExport::EDynamicType::DynamicType)
 			{
 //native blueprint 
-
-				Export.Object = ConstructDynamicType(*Linker->GetExportPathName(LocalExportIndex));
+				Export.Object = ConstructDynamicType(*Linker->GetExportPathName(LocalExportIndex), EConstructDynamicType::OnlyAllocateClassObject);
 				check(Export.Object);
 				UDynamicClass* DC = Cast<UDynamicClass>(Export.Object);
-				UObject* DCD = DC ? DC->GetDefaultObject() : nullptr;
+				UObject* DCD = DC ? DC->GetDefaultObject(false) : nullptr;
 				if (GIsInitialLoad || GUObjectArray.IsOpenForDisregardForGC())
 				{
 					Export.Object->AddToRoot();
@@ -2538,6 +2539,25 @@ void FAsyncPackage::EventDrivenCreateExport(int32 LocalExportIndex)
 					AddObjectReference(DCD);
 				}
 				UE_LOG(LogStreaming, Verbose, TEXT("EventDrivenCreateExport: Created dynamic class %s"), *Export.Object->GetFullName());
+				if (Export.Object)
+				{
+					Export.Object->SetLinker(Linker, LocalExportIndex);
+				}
+			}
+			else if (Export.DynamicType == FObjectExport::EDynamicType::ClassDefaultObject)
+			{
+				UClass* LoadClass = nullptr;
+				if (!Export.ClassIndex.IsNull())
+				{
+					LoadClass = CastEventDrivenIndexToObject<UClass>(Export.ClassIndex, true, FPackageIndex::FromExport(LocalExportIndex));
+				}
+				if (!LoadClass)
+				{
+					UE_LOG(LogStreaming, Error, TEXT("Could not find class %s to create %s"), *Linker->ImpExp(Export.ClassIndex).ObjectName.ToString(), *Export.ObjectName.ToString());
+					Export.bExportLoadFailed = true;
+					return;
+				}
+				Export.Object = LoadClass->GetDefaultObject(true);
 				if (Export.Object)
 				{
 					Export.Object->SetLinker(Linker, LocalExportIndex);
@@ -2726,17 +2746,18 @@ void FAsyncPackage::EventDrivenCreateExport(int32 LocalExportIndex)
 					}
 
 					Export.Object = StaticConstructObject_Internal
-						(
-							LoadClass,
-							ThisParent,
-							NewName,
-							ObjectLoadFlags,
-							EInternalObjectFlags::None,
-							Template,
-							false,
-							nullptr,
-							true
-							);
+					(
+						LoadClass,
+						ThisParent,
+						NewName,
+						ObjectLoadFlags,
+						EInternalObjectFlags::None,
+						Template,
+						false,
+						nullptr,
+						true
+					);
+
 					if (GIsInitialLoad || GUObjectArray.IsOpenForDisregardForGC())
 					{
 						Export.Object->AddToRoot();
@@ -2780,11 +2801,12 @@ void FAsyncPackage::EventDrivenSerializeExport(int32 LocalExportIndex)
 	if (Object && Linker->bDynamicClassLinker)
 	{
 //native blueprint 
-
 		UDynamicClass* UD = Cast<UDynamicClass>(Object);
 		if (UD)
 		{
-			verify(UD->GetDefaultObject(true));
+			check(Export.DynamicType == FObjectExport::EDynamicType::DynamicType);
+			UObject* LocObj = ConstructDynamicType(*Linker->GetExportPathName(LocalExportIndex), EConstructDynamicType::CallZConstructor);
+			check(UD == LocObj);
 		}
 	}
 	else if (Object && Object->HasAnyFlags(RF_NeedLoad))

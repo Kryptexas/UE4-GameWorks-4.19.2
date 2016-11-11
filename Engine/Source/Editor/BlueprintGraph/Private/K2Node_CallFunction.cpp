@@ -12,6 +12,7 @@
 #include "GraphEditorSettings.h"
 #include "BlueprintActionFilter.h"
 #include "Editor/Kismet/Public/FindInBlueprintManager.h"
+#include "SPinTypeSelector.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -2659,6 +2660,25 @@ void UK2Node_CallFunction::AddSearchMetaDataInfo(TArray<struct FSearchTagDataPai
 	}
 }
 
+TSharedPtr<SWidget> UK2Node_CallFunction::CreateNodeImage() const
+{
+	// For set, map and array functions we have a cool icon. This helps users quickly
+	// identify container types:
+	if (UFunction* TargetFunction = GetTargetFunction())
+	{
+		UEdGraphPin* NodeImagePin = FEdGraphUtilities::FindArrayParamPin(TargetFunction, this);
+		NodeImagePin = NodeImagePin ? NodeImagePin : FEdGraphUtilities::FindSetParamPin(TargetFunction, this);
+		NodeImagePin = NodeImagePin ? NodeImagePin : FEdGraphUtilities::FindMapParamPin(TargetFunction, this);
+		if(NodeImagePin)
+		{
+			// Find the first array param pin and bind that to our array image:
+			return SPinTypeSelector::ConstructPinTypeImage(NodeImagePin);
+		}
+	}
+
+	return TSharedPtr<SWidget>();
+}
+
 bool UK2Node_CallFunction::IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const
 {
 	bool bIsDisallowed = Super::IsConnectionDisallowed(MyPin, OtherPin, OutReason);
@@ -2676,7 +2696,10 @@ bool UK2Node_CallFunction::IsConnectionDisallowed(const UEdGraphPin* MyPin, cons
 				(	(	FEdGraphUtilities::IsSetParam(TargetFunction, MyPin->PinName) &&
 					(OtherPin->PinType.IsContainer() && !MyPin->PinType.bIsSet) ) ||
 					(	FEdGraphUtilities::IsMapParam(TargetFunction, MyPin->PinName) &&
-					(OtherPin->PinType.IsContainer() && !MyPin->PinType.bIsMap) )  )
+					(OtherPin->PinType.IsContainer() && !MyPin->PinType.bIsMap) )  ||
+					(	FEdGraphUtilities::IsArrayDependentParam(TargetFunction, MyPin->PinName) &&
+					(OtherPin->PinType.IsContainer() && !MyPin->PinType.bIsArray) )
+					)
 				&& 
 				// make sure we don't allow connections of mismatched container types (e.g. maps to arrays)
 				( 

@@ -3730,9 +3730,7 @@ void FSlateEditorStyle::FStyle::SetupGraphEditorStyles()
 		Set( "Graph.Node.ShadowSelected", new BOX_BRUSH( "/Graph/RegularNode_shadow_selected", FMargin(18.0f/64.0f) ) );
 		Set( "Graph.Node.Shadow", new BOX_BRUSH( "/Graph/RegularNode_shadow", FMargin(18.0f/64.0f) ) );
 
-		Set( "Graph.CompactNode.Body", new BOX_BRUSH( "/Graph/MathNode_body", FMargin(4.0f/64.0f, 26.0f/64.0f, 4.0f/64.0f, 4.0f/64.0f) ) );
 		Set( "Graph.CompactNode.ShadowSelected", new BOX_BRUSH( "/Graph/MathNode_shadow_selected", FMargin(18.0f/64.0f) ) );
-		Set( "Graph.CompactNode.IndicatorOverlay", new IMAGE_BRUSH("/Graph/IndicatorOverlay_color_spill", FVector2D(64.f, 32.f)));
 
 		Set( "Graph.Node.CommentBubble", new BOX_BRUSH( "Old/Graph/CommentBubble", FMargin(8/32.0f) ) );
 		Set( "Graph.Node.CommentArrow", new IMAGE_BRUSH( "Old/Graph/CommentBubbleArrow", FVector2D(8,8) ) );
@@ -4051,7 +4049,7 @@ void FSlateEditorStyle::FStyle::SetupGraphEditorStyles()
 
 			Set( "Graph.CompactNode.Title", FTextBlockStyle(NormalText)
 				.SetFont( TTF_FONT( "Fonts/Roboto-BoldCondensed", 40 ) )
-				.SetColorAndOpacity( FLinearColor(218.0f/255.0f, 218.0f/255.0f, 218.0f/255.0f, 0.25f) )
+				.SetColorAndOpacity( FLinearColor(1.0f, 1.0f, 1.0f, 0.5f) )
 				.SetShadowOffset( FVector2D::ZeroVector )
 				.SetShadowColorAndOpacity( FLinearColor::White )
 			);
@@ -5370,6 +5368,7 @@ void FSlateEditorStyle::FStyle::SetupPersonaStyle()
 		Set( "Kismet.VariableList.TypeIcon", new IMAGE_BRUSH( "/Icons/pill_16x", Icon16x16 ) );
 		Set( "Kismet.VariableList.ArrayTypeIcon", new IMAGE_BRUSH( "/Icons/pillarray_16x", Icon16x16 ) );
 		Set( "Kismet.VariableList.SetTypeIcon", new IMAGE_BRUSH( "/Icons/pillset_16x", Icon16x16 ) );
+		Set( "Kismet.VariableList.SetTypeIconLarge", new IMAGE_BRUSH( "/Icons/pillset_40x", Icon40x40 ) );
 		Set( "Kismet.VariableList.MapValueTypeIcon", new IMAGE_BRUSH( "/Icons/pillmapvalue_16x", Icon16x16 ) );
 		Set( "Kismet.VariableList.MapKeyTypeIcon", new IMAGE_BRUSH( "/Icons/pillmapkey_16x", Icon16x16 ) );
 		Set( "Kismet.VariableList.ExposeForInstance", new IMAGE_BRUSH( "/Icons/icon_layer_visible", Icon16x16 ) );

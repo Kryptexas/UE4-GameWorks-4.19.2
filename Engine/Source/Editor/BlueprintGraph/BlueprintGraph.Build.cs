@@ -33,6 +33,7 @@ public class BlueprintGraph : ModuleRules
                 "GraphEditor",
 				"SlateCore",
                 "Kismet",
+                "KismetWidgets",
                 "PropertyEditor",
 			}
 		);

@@ -173,6 +173,8 @@ private:
 	TSharedPtr<FString> GetVariableReplicationCondition() const;
 	void OnChangeReplicationCondition(TSharedPtr<FString> ItemSelected, ESelectInfo::Type SelectInfo);
 	bool ReplicationConditionEnabled() const;
+	bool ReplicationEnabled() const;
+	FText ReplicationTooltip() const;
 
 	EVisibility GetTransientVisibility() const;
 	ECheckBoxState OnGetTransientCheckboxState() const;

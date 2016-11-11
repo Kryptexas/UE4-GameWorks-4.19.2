@@ -51,13 +51,14 @@ struct FEmitterLocalContext
 	// Nativized UDS doesn't reference its default value dependencies. When ::GetDefaultValue is used, then we need to reference the dependencies in the class.
 	TArray<UUserDefinedStruct*> StructsWithDefaultValuesUsed;
 
-private:
-	int32 LocalNameIndexMax;
-
 	//ConstructorOnly Local Names
 	TMap<UObject*, FString> ClassSubobjectsMap;
 	//ConstructorOnly Local Names
 	TMap<UObject*, FString> CommonSubobjectsMap;
+
+
+private:
+	int32 LocalNameIndexMax;
 
 	// Class subobjects
 	TArray<UObject*> MiscConvertedSubobjects;
@@ -279,8 +280,6 @@ struct FEmitDefaultValueHelper
 
 	static void GenerateConstructor(FEmitterLocalContext& Context);
 
-	static void FillCommonUsedAssets(FEmitterLocalContext& Context, TSharedPtr<FGatherConvertedClassDependencies> ParentDependencies);
-
 	static void GenerateCustomDynamicClassInitialization(FEmitterLocalContext& Context, TSharedPtr<FGatherConvertedClassDependencies> ParentDependencies);
 
 	enum class EPropertyAccessOperator
@@ -358,4 +357,25 @@ struct FNativizationSummaryHelper
 	static void RegisterClass(const UClass* OriginalClass);
 
 	static void ReducibleFunciton(const UClass* OriginalClass);
+};
+
+struct FDependenciesGlobalMapHelper
+{
+	static FString EmitHeaderCode();
+	static FString EmitBodyCode();
+
+	static FNativizationSummary::FDependencyRecord& FindDependencyRecord(const FStringAssetReference& Key);
+
+private:
+	static TMap<FStringAssetReference, FNativizationSummary::FDependencyRecord>& GetDependenciesGlobalMap();
+};
+
+struct FDisableUnwantedWarningOnScope
+{
+private:
+	FCodeText& CodeText;
+
+public:
+	FDisableUnwantedWarningOnScope(FCodeText& InCodeText);
+	~FDisableUnwantedWarningOnScope();
 };

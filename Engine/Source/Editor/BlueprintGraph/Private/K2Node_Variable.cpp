@@ -6,6 +6,7 @@
 #include "CompilerResultsLog.h"
 #include "SlateIconFinder.h"
 #include "MessageLog.h"
+#include "KismetCompilerMisc.h" // for IsMissingMemberPotentiallyLoading
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -433,10 +434,14 @@ void UK2Node_Variable::ValidateNodeDuringCompilation(class FCompilerResultsLog& 
 					OwnerName = VarOwnerClass->GetName();
 				}
 			}
-			FString const VarName = VariableReference.GetMemberName().ToString();
 
-			FText const WarningFormat = LOCTEXT("VariableNotFound", "Could not find a variable named \"%s\" in '%s'.\nMake sure '%s' has been compiled for @@");
-			MessageLog.Warning(*FString::Printf(*WarningFormat.ToString(), *VarName, *OwnerName, *OwnerName), this);
+			if (!FKismetCompilerUtilities::IsMissingMemberPotentiallyLoading(Blueprint, VariableReference.GetMemberParentClass()))
+			{
+				FString const VarName = VariableReference.GetMemberName().ToString();
+
+				FText const WarningFormat = LOCTEXT("VariableNotFound", "Could not find a variable named \"%s\" in '%s'.\nMake sure '%s' has been compiled for @@");
+				MessageLog.Warning(*FString::Printf(*WarningFormat.ToString(), *VarName, *OwnerName, *OwnerName), this);
+			}
 		}
 		else
 		{

@@ -26,6 +26,17 @@ struct FNativizationSummary
 
 	int32 MemberVariablesFromGraph;
 
+	// The NativeLine is stored and the key is String-Reference, so the object doesn't need to be loaded.
+	struct FDependencyRecord
+	{
+		FString NativeLine;
+		int32 Index;
+
+		FDependencyRecord() : Index(-1) {}
+	};
+
+	TMap<FStringAssetReference, FDependencyRecord> DependenciesGlobalMap;
+
 	FNativizationSummary() : MemberVariablesFromGraph(0) {}
 };
 
@@ -84,5 +95,8 @@ public:
 	BLUEPRINTCOMPILERCPPBACKEND_API static TArray<class UFunction*> CollectBoundFunctions(class UBlueprint* BP);
 
 	virtual TSharedPtr<FNativizationSummary>& NativizationSummary() = 0;
+
+	virtual FString DependenciesGlobalMapHeaderCode() = 0;
+	virtual FString DependenciesGlobalMapBodyCode() = 0;
 };
 

@@ -1937,9 +1937,13 @@ extern COREUOBJECT_API bool GShouldVerifyGCAssumptions;
 
 /** A struct used as stub for deleted ones. */
 COREUOBJECT_API UScriptStruct* GetFallbackStruct();
-
+enum class EConstructDynamicType : uint8
+{
+	OnlyAllocateClassObject,
+	CallZConstructor
+};
 /** Constructs dynamic type of a given class. */
-COREUOBJECT_API UObject* ConstructDynamicType(FName TypePathName);
+COREUOBJECT_API UObject* ConstructDynamicType(FName TypePathName, EConstructDynamicType ConstructionSpecifier);
 
 /** Given a dynamic type path name, returns that type's class name (can be either DynamicClass, ScriptStruct or Enum). */
 COREUOBJECT_API FName GetDynamicTypeClassName(FName TypePathName);

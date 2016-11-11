@@ -102,6 +102,12 @@ bool UStructProperty::UseBinaryOrNativeSerialization(const FArchive& Ar) const
 	return bUseBinarySerialization || bUseNativeSerialization;
 }
 
+uint32 UStructProperty::GetValueTypeHashInternal(const void* Src) const
+{
+	check(Struct);
+	return Struct->GetStructTypeHash(Src);
+}
+
 void UStructProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defaults ) const
 {
 	check(Struct);

@@ -9,6 +9,7 @@
 #include "ObjectMacros.h"
 #include "Object.h"
 #include "GarbageCollection.h"
+#include "Templates/HasGetTypeHash.h"
 
 /*-----------------------------------------------------------------------------
 	Mirrors of mirror structures in Object.h. These are used by generated code 
@@ -746,6 +747,22 @@ FORCEINLINE typename TEnableIf<TStructOpsTypeTraits<CPPSTRUCT>::WithSerializeFro
 
 
 /**
+ * Selection of GetTypeHash call.
+ */
+template<class CPPSTRUCT>
+FORCEINLINE typename TEnableIf<!THasGetTypeHash<CPPSTRUCT>::Value, uint32>::Type GetTypeHashOrNot(const CPPSTRUCT *Data)
+{
+	return 0;
+}
+
+template<class CPPSTRUCT>
+FORCEINLINE typename TEnableIf<THasGetTypeHash<CPPSTRUCT>::Value, uint32>::Type GetTypeHashOrNot(const CPPSTRUCT *Data)
+{
+	return GetTypeHash(*Data);
+}
+
+
+/**
  * Reflection data for a structure.
  */
 class UScriptStruct : public UStruct
@@ -867,6 +884,12 @@ public:
 		 * @return true if this succeeded, false will trigger a warning and not serialize at all
 		**/
 		virtual bool SerializeFromMismatchedTag(struct FPropertyTag const& Tag, FArchive& Ar, void *Data) = 0;
+
+		/** return true if this struct has a GetTypeHash */
+		virtual bool HasGetTypeHash() = 0;
+
+		/** Calls GetTypeHash if enabled */
+		virtual uint32 GetTypeHash(const void* Src) = 0;
 
 	private:
 		/** sizeof() of the structure **/
@@ -1002,6 +1025,15 @@ public:
 		{
 			check(TTraits::WithSerializeFromMismatchedTag); // don't call this if we have indicated it is not allowed
 			return SerializeFromMismatchedTagOrNot(Tag, Ar, (CPPSTRUCT*)Data);
+		}
+		virtual bool HasGetTypeHash() override
+		{
+			return THasGetTypeHash<CPPSTRUCT>::Value;
+		}
+		uint32 GetTypeHash(const void* Src) override
+		{
+			ensure(HasGetTypeHash());
+			return GetTypeHashOrNot((const CPPSTRUCT*)Src);
 		}
 	};
 
@@ -1178,6 +1210,14 @@ public:
 	 * @param	Stride		Stride of the array, only relevant if there more than one element. If this default (0), then we will pull the size from the struct
 	 */
 	COREUOBJECT_API void ClearScriptStruct(void* Dest, int32 ArrayDim = 1) const;
+
+	/**
+	 * Calls GetTypeHash for native structs, otherwise computes a hash of all struct members
+	 * 
+	 * @param Src		Pointer to instance to hash
+	 * @return hashed value of Src
+	 */
+	virtual COREUOBJECT_API uint32 GetStructTypeHash(const void* Src) const;
 
 	virtual COREUOBJECT_API void RecursivelyPreload();
 

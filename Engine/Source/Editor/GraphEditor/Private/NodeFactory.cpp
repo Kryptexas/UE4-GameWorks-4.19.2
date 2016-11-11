@@ -27,7 +27,6 @@
 #include "KismetNodes/SGraphNodeCallParameterCollectionFunction.h"
 #include "KismetNodes/SGraphNodeK2Event.h"
 #include "KismetNodes/SGraphNodeFormatText.h"
-#include "KismetNodes/SGraphNodeK2ArrayFunction.h"
 #include "KismetNodes/SGraphNodeMakeStruct.h"
 #include "KismetNodes/SGraphNodeK2Copy.h"
 
@@ -222,14 +221,6 @@ TSharedPtr<SGraphNode> FNodeFactory::CreateNodeWidget(UEdGraphNode* InNode)
 		else if (UK2Node_FormatText* FormatTextNode = Cast<UK2Node_FormatText>(InNode))
 		{
 			return SNew(SGraphNodeFormatText, FormatTextNode);
-		}
-		else if (UK2Node_CallArrayFunction* CallFunction = Cast<UK2Node_CallArrayFunction>(InNode))
-		{
-			return SNew(SGraphNodeK2ArrayFunction, CallFunction);
-		}
-		else if (UK2Node_GetArrayItem* GetArrayItemNode = Cast<UK2Node_GetArrayItem>(InNode))
-		{
-			return SNew(SGraphNodeK2ArrayFunction, GetArrayItemNode);
 		}
 		else if (UK2Node_Knot* Knot = Cast<UK2Node_Knot>(InNode))
 		{

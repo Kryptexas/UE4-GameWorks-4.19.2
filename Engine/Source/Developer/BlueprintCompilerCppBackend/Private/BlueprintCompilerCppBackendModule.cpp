@@ -21,6 +21,8 @@ public:
 	virtual FMarkUnconvertedBlueprintAsNecessary& OnIncludingUnconvertedBP() override;
 	virtual FIsFunctionUsedInADelegate& GetIsFunctionUsedInADelegateCallback() override;
 	virtual TSharedPtr<FNativizationSummary>& NativizationSummary() override;
+	virtual FString DependenciesGlobalMapHeaderCode() override;
+	virtual FString DependenciesGlobalMapBodyCode() override;
 	//~ End IBlueprintCompilerCppBackendModule interface
 
 private: 
@@ -71,6 +73,16 @@ TMap<TWeakObjectPtr<UClass>, TWeakObjectPtr<UClass> >& FBlueprintCompilerCppBack
 IBlueprintCompilerCppBackendModule::FIsFunctionUsedInADelegate& FBlueprintCompilerCppBackendModule::GetIsFunctionUsedInADelegateCallback()
 {
 	return IsFunctionUsedInADelegate;
+}
+
+FString FBlueprintCompilerCppBackendModule::DependenciesGlobalMapHeaderCode()
+{
+	return FDependenciesGlobalMapHelper::EmitHeaderCode();
+}
+
+FString FBlueprintCompilerCppBackendModule::DependenciesGlobalMapBodyCode()
+{
+	return FDependenciesGlobalMapHelper::EmitBodyCode();
 }
 
 IMPLEMENT_MODULE(FBlueprintCompilerCppBackendModule, BlueprintCompilerCppBackend)

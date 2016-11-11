@@ -515,6 +515,74 @@ bool FEdGraphUtilities::IsMapParam(const UFunction* Function, const FString& Par
 		|| PipeSeparatedStringContains(MapKeyParamMetaData);
 }
 
+bool FEdGraphUtilities::IsArrayDependentParam(const UFunction* Function, const FString& ParameterName)
+{
+	if (Function == nullptr)
+	{
+		return false;
+	}
+
+	const FString& DependentPinMetaData = Function->GetMetaData(FBlueprintMetadata::MD_ArrayDependentParam);
+	if( DependentPinMetaData.IsEmpty() )
+	{
+		return false;
+	}
+
+	TArray<FString> TypeDependentPinNames;
+	DependentPinMetaData.ParseIntoArray(TypeDependentPinNames, TEXT(","), true);
+
+	return TypeDependentPinNames.Contains(ParameterName);
+}
+
+UEdGraphPin* FEdGraphUtilities::FindArrayParamPin(const UFunction* Function, const UEdGraphNode* Node)
+{
+	return FEdGraphUtilities::FindPinFromMetaData(Function, Node, FBlueprintMetadata::MD_ArrayParam);
+}
+
+UEdGraphPin* FEdGraphUtilities::FindSetParamPin(const UFunction* Function, const UEdGraphNode* Node)
+{
+	return FEdGraphUtilities::FindPinFromMetaData(Function, Node, FBlueprintMetadata::MD_SetParam);
+}
+	
+UEdGraphPin* FEdGraphUtilities::FindMapParamPin(const UFunction* Function, const UEdGraphNode* Node)
+{
+	return FEdGraphUtilities::FindPinFromMetaData(Function, Node, FBlueprintMetadata::MD_MapParam);
+}
+
+UEdGraphPin* FEdGraphUtilities::FindPinFromMetaData(const UFunction* Function, const UEdGraphNode* Node, FName MetaData )
+{
+	if(!Function || !Node)
+	{
+		return nullptr;
+	}
+
+	if(!Function->HasMetaData(MetaData))
+	{
+		return nullptr;
+	}
+
+	const FString& PinMetaData = Function->GetMetaData(MetaData);
+	TArray<FString> ParamPinGroups;
+	PinMetaData.ParseIntoArray(ParamPinGroups, TEXT(","), true);
+
+	for (const FString& Entry : ParamPinGroups)
+	{
+		// split the group:
+		TArray<FString> GroupEntries;
+		Entry.ParseIntoArray(GroupEntries, TEXT("|"), true);
+		// resolve pins
+		for(const FString& PinName : GroupEntries)
+		{
+			if(UEdGraphPin* Pin = Node->FindPin(PinName))
+			{
+				return Pin;
+			}
+		}
+	}
+
+	return nullptr;
+}
+
 void FEdGraphUtilities::RegisterVisualNodeFactory(TSharedPtr<FGraphPanelNodeFactory> NewFactory)
 {
 	VisualNodeFactories.Add(NewFactory);

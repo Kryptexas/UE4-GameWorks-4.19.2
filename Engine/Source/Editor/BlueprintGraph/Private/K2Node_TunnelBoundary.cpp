@@ -209,23 +209,23 @@ void UK2Node_TunnelBoundary::CreateBoundariesForExpansionNodes(UEdGraphNode* Sou
 	{
 		if (EntryPins.Num() > 0)
 		{
-			// Create entry node and pins
-			UK2Node_TunnelBoundary* EntryBoundaryNode = TargetGraph->CreateBlankNode<UK2Node_TunnelBoundary>();
-			MessageLog.NotifyIntermediateObjectCreation(EntryBoundaryNode, SourceNode);
-			EntryBoundaryNode->CreateNewGuid();
 			for (auto PinEntry : EntryPins)
 			{
+				// Create entry node and pins
+				UK2Node_TunnelBoundary* EntryBoundaryNode = TargetGraph->CreateBlankNode<UK2Node_TunnelBoundary>();
+				MessageLog.NotifyIntermediateObjectCreation(EntryBoundaryNode, SourceNode);
+				EntryBoundaryNode->CreateNewGuid();
 				EntryBoundaryNode->WireUpEntry(SourceNode, PinEntry.Key, PinEntry.Value, MessageLog);
 			}
 		}
 		if (ExitPins.Num() > 0)
 		{
-			// Create exit node and pins
-			UK2Node_TunnelBoundary* ExitBoundaryNode = TargetGraph->CreateBlankNode<UK2Node_TunnelBoundary>();
-			MessageLog.NotifyIntermediateObjectCreation(ExitBoundaryNode, SourceNode);
-			ExitBoundaryNode->CreateNewGuid();
 			for (auto PinExit : ExitPins)
 			{
+				// Create exit node and pins
+				UK2Node_TunnelBoundary* ExitBoundaryNode = TargetGraph->CreateBlankNode<UK2Node_TunnelBoundary>();
+				MessageLog.NotifyIntermediateObjectCreation(ExitBoundaryNode, SourceNode);
+				ExitBoundaryNode->CreateNewGuid();
 				ExitBoundaryNode->WireUpExit(SourceNode, PinExit.Key, PinExit.Value, MessageLog);
 			}
 		}

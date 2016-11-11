@@ -102,7 +102,7 @@ static UClass* GetNativeClass(const TCHAR* TestFolder, const TCHAR* ClassName, F
 	check(NativePackage);
 
 	const FString FStringFullPathName = FString::Printf(TEXT("%s.%s_C"), *FullName, ClassName);
-	UClass* Ret = (UClass*)ConstructDynamicType(*FStringFullPathName); //FindObjectFast<UClass>(NativePackage, *(FString(ClassName) + TEXT("_C")));
+	UClass* Ret = (UClass*)ConstructDynamicType(*FStringFullPathName, EConstructDynamicType::CallZConstructor); //FindObjectFast<UClass>(NativePackage, *(FString(ClassName) + TEXT("_C")));
 
 	if (!Ret)
 	{

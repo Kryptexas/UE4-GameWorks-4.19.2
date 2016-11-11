@@ -24,6 +24,7 @@ class KISMETWIDGETS_API SPinTypeSelector : public SCompoundWidget
 public:
 	static TSharedRef<SWidget> ConstructPinTypeImage(const FSlateBrush* PrimaryIcon, const FSlateColor& PrimaryColor, const FSlateBrush* SecondaryIcon, const FSlateColor& SecondaryColor, TSharedPtr<SToolTip> InToolTip);
 	static TSharedRef<SWidget> ConstructPinTypeImage(TAttribute<const FSlateBrush*> PrimaryIcon, TAttribute<FSlateColor> PrimaryColor, TAttribute<const FSlateBrush*> SecondaryIcon, TAttribute<FSlateColor> SecondaryColor );
+	static TSharedRef<SWidget> ConstructPinTypeImage(UEdGraphPin* Pin);
 
 	SLATE_BEGIN_ARGS( SPinTypeSelector )
 		: _TargetPinType()

@@ -156,6 +156,73 @@ TSharedRef<SWidget> SPinTypeSelector::ConstructPinTypeImage(TAttribute<const FSl
 		.ColorAndOpacity(PrimaryColor);
 }
 
+TSharedRef<SWidget> SPinTypeSelector::ConstructPinTypeImage(UEdGraphPin* Pin)
+{
+	// Color and image bindings:
+	TAttribute<const FSlateBrush*> PrimaryIcon = TAttribute<const FSlateBrush*>::Create(
+		TAttribute<const FSlateBrush*>::FGetter::CreateLambda(
+			[Pin]() -> const FSlateBrush*
+			{
+				if(!Pin->IsPendingKill())
+				{
+					return FBlueprintEditorUtils::GetIconFromPin(Pin->PinType, /* bIsLarge = */true);
+				}
+				return nullptr;
+			}
+		)
+	);
+
+	TAttribute<FSlateColor> PrimaryColor = TAttribute<FSlateColor>::Create(
+		TAttribute<FSlateColor>::FGetter::CreateLambda(
+			[Pin]() -> FSlateColor
+			{
+				if(!Pin->IsPendingKill())
+				{
+					if(const UEdGraphSchema_K2* PCSchema = Cast<UEdGraphSchema_K2>(Pin->GetSchema()))
+					{
+						FLinearColor PrimaryLinearColor = PCSchema->GetPinTypeColor(Pin->PinType);
+						PrimaryLinearColor.A = .25f;
+						return PrimaryLinearColor;
+					}
+				}
+				return FSlateColor(FLinearColor::White);
+			}
+		)
+	);
+	TAttribute<const FSlateBrush*> SecondaryIcon = TAttribute<const FSlateBrush*>::Create(
+		TAttribute<const FSlateBrush*>::FGetter::CreateLambda(
+			[Pin]() -> const FSlateBrush*
+			{
+				if(!Pin->IsPendingKill())
+				{
+					return FBlueprintEditorUtils::GetSecondaryIconFromPin(Pin->PinType);
+				}
+				return nullptr;
+			}
+		)
+	);
+	
+	TAttribute<FSlateColor> SecondaryColor = TAttribute<FSlateColor>::Create(
+		TAttribute<FSlateColor>::FGetter::CreateLambda(
+			[Pin]() -> FSlateColor
+			{
+				if(!Pin->IsPendingKill())
+				{
+					if(const UEdGraphSchema_K2* SCSchema = Cast<UEdGraphSchema_K2>(Pin->GetSchema()))
+					{
+						FLinearColor SecondaryLinearColor = SCSchema->GetSecondaryPinTypeColor(Pin->PinType);
+						SecondaryLinearColor.A = .25f;
+						return SecondaryLinearColor;
+					}
+				}
+				return FSlateColor(FLinearColor::White);
+			}
+		)
+	);
+
+	return ConstructPinTypeImage(PrimaryIcon, PrimaryColor, SecondaryIcon, SecondaryColor);
+}
+
 void SPinTypeSelector::Construct(const FArguments& InArgs, FGetPinTypeTree GetPinTypeTreeFunc)
 {
 	// SComboBox is a bit restrictive:

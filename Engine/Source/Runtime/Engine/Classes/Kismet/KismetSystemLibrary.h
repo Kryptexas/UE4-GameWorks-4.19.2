@@ -1589,4 +1589,10 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Utilities")
 	static void SetUserActivity(const FUserActivity& UserActivity);
+
+	/**
+	 * Returns the command line that the process was launched with.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Utilities")
+	static FString GetCommandLine();
 };

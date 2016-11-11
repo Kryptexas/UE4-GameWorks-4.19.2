@@ -1170,258 +1170,6 @@ struct FRegenerationHelper
 	}
 };
 
-bool FLegacyEditorOnlyBlueprintUtils::DoPinsMatch(const FEdGraphPinType& Input, const FEdGraphPinType& Output)
-{
-	bool bHasBlueprintPin = false;
-	auto TestCompatibility = [&bHasBlueprintPin](const FEdGraphPinType& A, const FEdGraphPinType& B)
-	{
-		if ((B.PinCategory == UEdGraphSchema_K2::PC_Object) && (A.PinCategory == UEdGraphSchema_K2::PC_Class))
-		{
-			const bool bAIsObjectClass = (UObject::StaticClass() == A.PinSubCategoryObject.Get());
-
-			const UClass* BClass = Cast<UClass>(B.PinSubCategoryObject.Get());
-			const bool bBIsBlueprintObj = BClass && BClass->IsChildOf(UBlueprint::StaticClass());
-			bHasBlueprintPin |= bBIsBlueprintObj;
-
-			return bAIsObjectClass && bBIsBlueprintObj;
-		}
-		return false;
-	};
-
-	const bool bIsMatch = TestCompatibility(Input, Output) || TestCompatibility(Output, Input);
-	if (bHasBlueprintPin)
-	{
-		if (AllowLegacyBlueprintPinMatchesWithClass())
-		{
-			UE_LOG(LogBlueprint, Warning, TEXT("Editor config [EditoronlyBP] settings are DEPRECATED. You currently have old (now prohibited) UBlueprint pins that are being fixed up on load. Please update/resave the asset to keep it from breaking."));
-			return bIsMatch;
-		}
-		else
-		{
-			UE_LOG(LogBlueprint, Warning, TEXT("Editor config [EditoronlyBP] settings are DEPRECATED. You currently use old (now prohibited) UBlueprint pins. Please switch these over to use the Blueprint's class instead."));
-		}
-	}
-	return false;
-}
-
-bool FLegacyEditorOnlyBlueprintUtils::FixupBlueprint(UBlueprint* Blueprint)
-{
-	if (HasLegacyBlueprintReferences(Blueprint) && FixupLegacyBlueprintReferences())
-	{
-		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-
-		//any native function call with blueprint parameter
-		TArray<UEdGraph*> Graphs;
-		Blueprint->GetAllGraphs(Graphs);
-		for (UEdGraph* Graph : Graphs)
-		{
-			Schema->BackwardCompatibilityNodeConversion(Graph, false);
-		}
-
-		//any blueprint pin (function/event/macro parameter
-		for (const UEdGraph* Graph : Graphs)
-		{
-			{
-				TArray<UK2Node_EditablePinBase*> EditablePinNodes;
-				Graph->GetNodesOfClass(EditablePinNodes);
-				for (UK2Node_EditablePinBase* Node : EditablePinNodes)
-				{
-					HandleEditablePinNode(Node);
-				}
-			}
-
-			{
-				TArray<UK2Node_TemporaryVariable*> TempVariablesNodes;
-				Graph->GetNodesOfClass(TempVariablesNodes);
-				for (UK2Node_TemporaryVariable* Node : TempVariablesNodes)
-				{
-					HandleTemporaryVariableNode(Node);
-				}
-			}
-		}
-
-		// change variables
-		for (FBPVariableDescription& VarDesc : Blueprint->NewVariables)
-		{
-			if (IsUnwantedType(VarDesc.VarType))
-			{
-				ChangePinType(VarDesc.VarType);
-			}
-		}
-
-		for (const UEdGraph* Graph : Graphs)
-		{
-			TArray<UK2Node*> Nodes;
-			Graph->GetNodesOfClass(Nodes);
-			for (UK2Node* Node : Nodes)
-			{
-				HandleDefaultObjects(Node);
-			}
-		}
-
-		return true;
-	}
-	return false;
-}
-
-bool FLegacyEditorOnlyBlueprintUtils::HasLegacyBlueprintReferences(UBlueprint* Blueprint)
-{
-	check(Blueprint);
-	//any blueprint variable
-	for (const FBPVariableDescription& VarDesc : Blueprint->NewVariables)
-	{
-		if (IsUnwantedType(VarDesc.VarType))
-		{
-			const FString UnwantedType = GetNameSafe(VarDesc.VarType.PinSubCategoryObject.Get());
-			UE_LOG(LogBlueprint, Warning, TEXT("Editor config [EditoronlyBP] settings are DEPRECATED. A Blueprint ('%s') has a variable ('%s') that is now a deprecated type ('%s') - use the target's class instead (may just require a resave)."), *Blueprint->GetName(), *VarDesc.FriendlyName, *UnwantedType);
-			return true;
-		}
-	}
-
-	//anything on graph
-	TArray<UEdGraph*> Graphs;
-	Blueprint->GetAllGraphs(Graphs);
-	for (const UEdGraph* Graph : Graphs)
-	{
-		TArray<UK2Node*> Nodes;
-		Graph->GetNodesOfClass(Nodes);
-		for (const UK2Node* Node : Nodes)
-		{
-			for (const UEdGraphPin* Pin : Node->Pins)
-			{
-				if (Pin)
-				{
-					const bool bUnwantedType = IsUnwantedType(Pin->PinType);
-					const bool bUnwantedDefaultObject = IsUnwantedDefaultObject(Pin->DefaultObject);
-					if (bUnwantedType || bUnwantedDefaultObject)
-					{
-						const FString ReasonPrefix = FString::Printf(TEXT("Editor config [EditoronlyBP] settings are DEPRECATED. A Blueprint (%s) has a"), *Blueprint->GetName());
-						const FString PinName = Pin->GetDisplayName().ToString();
-						const FString PinNodeName = Pin->GetOwningNode()->GetNodeTitle(ENodeTitleType::ListView).ToString();
-						if (bUnwantedType)
-						{
-							const FString UnwantedType = GetNameSafe(Pin->PinType.PinSubCategoryObject.Get());
-							UE_LOG(LogBlueprint, Warning, TEXT("%s node ('%s') with a pin ('%s') that is now a deprecated type ('%s') - use the target's class instead (may just require a resave)."), *ReasonPrefix, *PinNodeName, *PinName, *UnwantedType);
-						}
-						else if (bUnwantedDefaultObject)
-						{
-							const FString UnwantedDefaultObject = GetNameSafe(Pin->DefaultObject);
-							UE_LOG(LogBlueprint, Warning, TEXT("%s node ('%s') with a pin ('%s') that has a default object ('%s') that is now deprecated - use the target's class instead (may just require a resave)."), *ReasonPrefix, *PinNodeName, *PinName, *UnwantedDefaultObject);
-						}
-						else
-						{
-							ensureMsgf(false, TEXT("Can not describe why the blueprint should be fixed."));
-							UE_LOG(LogBlueprint, Warning, TEXT("%s node ('%s') with a pin ('%s') that references a deprecated type - use the target's class instead (may just require a resave)."), *ReasonPrefix, *PinNodeName, *PinName);
-						}
-						return true;
-					}
-				}
-			}
-		}
-	}
-
-	return false;
-}
-
-bool FLegacyEditorOnlyBlueprintUtils::IsUnwantedType(const FEdGraphPinType& Type)
-{
-	if (const UClass* BPClass = Cast<const UClass>(Type.PinSubCategoryObject.Get()))
-	{
-		if (BPClass->IsChildOf(UBlueprint::StaticClass()))
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
-bool FLegacyEditorOnlyBlueprintUtils::IsUnwantedDefaultObject(const UObject* Obj)
-{
-	return Obj && Obj->IsA<UBlueprint>();
-}
-
-void FLegacyEditorOnlyBlueprintUtils::ChangePinType(FEdGraphPinType& Type)
-{
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-
-	Type.PinCategory = Schema->PC_Class;
-	Type.PinSubCategoryObject = UObject::StaticClass();
-}
-
-void FLegacyEditorOnlyBlueprintUtils::HandleEditablePinNode(UK2Node_EditablePinBase* Node)
-{
-	check(Node);
-
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-
-	for (const TSharedPtr<FUserPinInfo>& UserPinInfo : Node->UserDefinedPins)
-	{
-		if (UserPinInfo.IsValid() && IsUnwantedType(UserPinInfo->PinType))
-		{
-			UserPinInfo->PinType.PinCategory = Schema->PC_Class;
-			UserPinInfo->PinType.PinSubCategoryObject = UObject::StaticClass();
-
-			UserPinInfo->PinDefaultValue.Empty();
-		}
-	}
-
-	for (UEdGraphPin* Pin : Node->Pins)
-	{
-		if (IsUnwantedType(Pin->PinType))
-		{
-			ChangePinType(Pin->PinType);
-
-			if (Pin->DefaultObject)
-			{
-				UBlueprint* DefaultBlueprint = Cast<UBlueprint>(Pin->DefaultObject);
-				Pin->DefaultObject = DefaultBlueprint ? *DefaultBlueprint->GeneratedClass : nullptr;
-			}
-		}
-
-	}
-}
-
-void FLegacyEditorOnlyBlueprintUtils::HandleTemporaryVariableNode(UK2Node_TemporaryVariable* Node)
-{
-	check(Node);
-
-	UEdGraphPin* Pin = Node->GetVariablePin();
-	if (Pin && IsUnwantedType(Pin->PinType))
-	{
-		ChangePinType(Pin->PinType);
-			
-		if (Pin->DefaultObject)
-		{
-			UBlueprint* DefaultBlueprint = Cast<UBlueprint>(Pin->DefaultObject);
-			Pin->DefaultObject = DefaultBlueprint ? *DefaultBlueprint->GeneratedClass : nullptr;
-		}
-	}
-
-	if (IsUnwantedType(Node->VariableType))
-	{
-		ChangePinType(Node->VariableType);
-	}
-}
-
-void FLegacyEditorOnlyBlueprintUtils::HandleDefaultObjects(UK2Node* Node)
-{
-	if (Node)
-	{
-		for (UEdGraphPin* Pin : Node->Pins)
-		{
-			if (Pin && IsUnwantedDefaultObject(Pin->DefaultObject))
-			{
-				const UBlueprint* DefaultBlueprint = Cast<const UBlueprint>(Pin->DefaultObject);
-				if (DefaultBlueprint)
-				{
-					Pin->DefaultObject = *DefaultBlueprint->GeneratedClass;
-				}
-			}
-		}
-	}
-}
-
 /**
 	Procedure used to remove old function implementations and child properties from data only blueprints.
 	These blueprints have a 'fast path' compilation path but we need to make sure that any data regenerated 
@@ -1555,8 +1303,6 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 		FRegenerationHelper::LinkExternalDependencies(Blueprint, ObjLoaded);
 
 		bool bSkeletonUpToDate = FKismetEditorUtilities::GenerateBlueprintSkeleton(Blueprint);
-
-		FLegacyEditorOnlyBlueprintUtils::FixupBlueprint(Blueprint);
 
 		const bool bDataOnlyClassThatMustBeRecompiled = !bHasCode && !bIsMacro
 			&& (!ClassToRegenerate || (Blueprint->ParentClass != ClassToRegenerate->GetSuperClass()));
@@ -4691,6 +4437,30 @@ void FBlueprintEditorUtils::ChangeMemberVariableType(UBlueprint* Blueprint, cons
 				if(bChangeVariableType)
 				{
 					Variable.VarType = NewPinType;
+
+					if(Variable.VarType.bIsSet || Variable.VarType.bIsMap)
+					{
+						// Make sure that the variable is no longer tagged for replication, and warn the user if the variable is no
+						// longer goign to be replicated:
+						if(Variable.RepNotifyFunc != NAME_None || Variable.PropertyFlags & CPF_Net || Variable.PropertyFlags & CPF_RepNotify)
+						{
+							FNotificationInfo Warning( 
+								FText::Format(
+									LOCTEXT("InvalidReplicationSettings", "Maps and sets cannot be replicated - {0} has had its replication settings cleared"),
+									FText::FromName(Variable.VarName) 
+								) 
+							);
+							Warning.ExpireDuration = 5.0f;
+							Warning.bFireAndForget = true;
+							Warning.Image = FCoreStyle::Get().GetBrush(TEXT("MessageLog.Warning"));
+							FSlateNotificationManager::Get().AddNotification(Warning);
+
+							Variable.PropertyFlags &= ~CPF_Net;
+							Variable.PropertyFlags &= ~CPF_RepNotify;
+							Variable.RepNotifyFunc = NAME_None;
+							Variable.ReplicationCondition = COND_None;
+						}
+					}
 
 					UClass* ParentClass = nullptr;
 					FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
@@ -8393,7 +8163,7 @@ void FBlueprintEditorUtils::PostSetupObjectPinType(UBlueprint* InBlueprint, FBPV
 	}
 }
 
-const FSlateBrush* FBlueprintEditorUtils::GetIconFromPin( const FEdGraphPinType& PinType )
+const FSlateBrush* FBlueprintEditorUtils::GetIconFromPin( const FEdGraphPinType& PinType, bool bIsLarge )
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 	
@@ -8409,7 +8179,14 @@ const FSlateBrush* FBlueprintEditorUtils::GetIconFromPin( const FEdGraphPinType&
 	}
 	else if (PinType.bIsSet && PinType.PinCategory != K2Schema->PC_Exec)
 	{
-		IconBrush = FEditorStyle::GetBrush(TEXT("Kismet.VariableList.SetTypeIcon"));
+		if( bIsLarge )
+		{
+			IconBrush = FEditorStyle::GetBrush(TEXT("Kismet.VariableList.SetTypeIconLarge"));
+		}
+		else
+		{
+			IconBrush = FEditorStyle::GetBrush(TEXT("Kismet.VariableList.SetTypeIcon"));
+		}
 	}
 	else if( PinSubObject )
 	{
@@ -8435,16 +8212,57 @@ const FSlateBrush* FBlueprintEditorUtils::GetSecondaryIconFromPin(const FEdGraph
 bool FBlueprintEditorUtils::HasGetTypeHash(const FEdGraphPinType& PinType)
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+	if(PinType.PinCategory == K2Schema->PC_Boolean)
+	{
+		return false;
+	}
+
 	if (PinType.PinCategory != K2Schema->PC_Struct)
 	{
 		// even object or class types can be hashed, no reason to investigate further
 		return true;
 	}
 
-	// Disabling hasing of structs until work on data integrity is finished. Need to make
-	// sure that we can load sets and maps of sets that have been altered since the container
-	// was originally created:
-	return false;
+	const UScriptStruct* StructType = Cast<const UScriptStruct>(PinType.PinSubCategoryObject.Get());
+	return StructType && 
+		(	// we can always hash non-native structs (see UScriptStruct::GetStructTypeHash)
+			!StructType->IsNative() || 
+			// but native structs need to provide a GetTypeHash:
+			( StructType->GetCppStructOps() && StructType->GetCppStructOps()->HasGetTypeHash() )
+		); 
+}
+
+bool FBlueprintEditorUtils::PropertyHasGetTypeHash(const UProperty* PropertyType)
+{
+	return PropertyType->HasAllPropertyFlags(CPF_HasGetValueTypeHash);
+} 
+
+bool FBlueprintEditorUtils::StructHasGetTypeHash(const UScriptStruct* StructType)
+{
+	if (StructType->IsNative())
+	{
+		return StructType->GetCppStructOps() && StructType->GetCppStructOps()->HasGetTypeHash();
+	}
+	else
+	{
+		// if every member can be hashed (or is a UBoolProperty, which is specially 
+		// handled by UScriptStruct::GetStructTypeHash) then we can hash the struct:
+		for (TFieldIterator<UProperty> It(StructType); It; ++It)
+		{
+			if (Cast<UBoolProperty>(*It))
+			{
+				continue;
+			}
+			else
+			{
+				if (!FBlueprintEditorUtils::PropertyHasGetTypeHash(*It) )
+				{
+					return false;
+				}
+			}
+		}
+		return true;
+	}
 }
 
 FText FBlueprintEditorUtils::GetFriendlyClassDisplayName(const UClass* Class)

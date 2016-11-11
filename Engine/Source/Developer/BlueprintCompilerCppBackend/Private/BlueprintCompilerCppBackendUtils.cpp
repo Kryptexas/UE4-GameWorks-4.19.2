@@ -1818,3 +1818,91 @@ const TCHAR* FEmitHelper::EmptyDefaultConstructor(UScriptStruct* Struct)
 	const bool bUseForceInitConstructor = StructOps && StructOps->HasNoopConstructor();
 	return bUseForceInitConstructor ? TEXT("(EForceInit::ForceInit)") : TEXT("{}");
 }
+
+
+FString FDependenciesGlobalMapHelper::EmitHeaderCode()
+{
+	return TEXT("#pragma once\n#include \"Blueprint/BlueprintSupport.h\"\nstruct F__NativeDependencies { \n\tstatic const FBlueprintDependencyObjectRef& Get(int16 Index);\n };");
+}
+
+FString FDependenciesGlobalMapHelper::EmitBodyCode()
+{
+	FCodeText CodeText;
+	CodeText.AddLine("#include \"NativizedAssets.h\"");
+	{
+		FDisableUnwantedWarningOnScope DisableUnwantedWarningOnScope(CodeText);
+
+		CodeText.AddLine("namespace");
+		CodeText.AddLine("{");
+		CodeText.IncreaseIndent();
+		CodeText.AddLine("static const FBlueprintDependencyObjectRef NativizedCodeDependenties[] =");
+		CodeText.AddLine("{");
+
+		TArray<FNativizationSummary::FDependencyRecord> DependenciesArray;
+		{
+			auto& DependenciesGlobalMap = GetDependenciesGlobalMap();
+			DependenciesGlobalMap.GenerateValueArray(DependenciesArray);
+		}
+
+		DependenciesArray.Sort(
+			[](const FNativizationSummary::FDependencyRecord& A, const FNativizationSummary::FDependencyRecord& B) -> bool
+		{
+			return A.Index < B.Index;
+		});
+		int32 Index = 0;
+		for (FNativizationSummary::FDependencyRecord& Record : DependenciesArray)
+		{
+			ensure(!Record.NativeLine.IsEmpty());
+			ensure(Record.Index == Index);
+			Index++;
+			CodeText.AddLine(Record.NativeLine);
+		}
+
+		CodeText.AddLine(TEXT("};"));
+		CodeText.DecreaseIndent();
+		CodeText.AddLine(TEXT("}"));
+
+		CodeText.AddLine(TEXT("const FBlueprintDependencyObjectRef& F__NativeDependencies::Get(int16 Index)"));
+		CodeText.AddLine(TEXT("{"));
+		CodeText.AddLine(FString::Printf(TEXT("\tcheck((Index >= 0) && (Index < %d));"), DependenciesArray.Num()));
+		CodeText.AddLine(TEXT("\treturn ::NativizedCodeDependenties[Index];"));
+		CodeText.AddLine(TEXT("};"));
+	}
+	return CodeText.Result;
+}
+
+FNativizationSummary::FDependencyRecord& FDependenciesGlobalMapHelper::FindDependencyRecord(const FStringAssetReference& Key)
+{
+	auto& DependenciesGlobalMap = GetDependenciesGlobalMap();
+	FNativizationSummary::FDependencyRecord& DependencyRecord = DependenciesGlobalMap.FindOrAdd(Key);
+	if (DependencyRecord.Index == -1)
+	{
+		DependencyRecord.Index = DependenciesGlobalMap.Num() - 1;
+	}
+	return DependencyRecord;
+}
+
+TMap<FStringAssetReference, FNativizationSummary::FDependencyRecord>& FDependenciesGlobalMapHelper::GetDependenciesGlobalMap()
+{
+	IBlueprintCompilerCppBackendModule& BackEndModule = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
+	TSharedPtr<FNativizationSummary> NativizationSummary = BackEndModule.NativizationSummary();
+	check(NativizationSummary.IsValid());
+	return NativizationSummary->DependenciesGlobalMap;
+}
+
+FDisableUnwantedWarningOnScope::FDisableUnwantedWarningOnScope(FCodeText& InCodeText)
+	: CodeText(InCodeText)
+{
+	// C4883 is a strange error (for big functions), introduced in VS2015 update 2
+	CodeText.AddLine(TEXT("#ifdef _MSC_VER"));
+	CodeText.AddLine(TEXT("#pragma warning (push)"));
+	CodeText.AddLine(TEXT("#pragma warning (disable : 4883)"));
+	CodeText.AddLine(TEXT("#endif"));
+}
+
+FDisableUnwantedWarningOnScope::~FDisableUnwantedWarningOnScope()
+{
+	CodeText.AddLine(TEXT("#ifdef _MSC_VER"));
+	CodeText.AddLine(TEXT("#pragma warning (pop)"));
+	CodeText.AddLine(TEXT("#endif"));
+}

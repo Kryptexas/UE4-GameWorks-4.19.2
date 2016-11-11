@@ -1296,14 +1296,7 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 		// Call native function or UObject::ProcessInternal.
 		const bool bHasReturnParam = Function->ReturnValueOffset != MAX_uint16;
 		uint8* ReturnValueAdress = bHasReturnParam ? ((uint8*)Parms + Function->ReturnValueOffset) : nullptr;
-		if (Function->FunctionFlags & FUNC_Native)
-		{
-			Function->Invoke(this, NewStack, ReturnValueAdress);
-		}
-		else
-		{
-			Function->Invoke(this, NewStack, ReturnValueAdress);
-		}
+		Function->Invoke(this, NewStack, ReturnValueAdress);
 
 		if (!bUsePersistentFrame)
 		{

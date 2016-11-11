@@ -10,7 +10,6 @@
 #include "DebugSerializationFlags.h"
 #include "UObject/GCScopeLock.h"
 #include "CookStats.h"
-#include "BlueprintSupport.h" // for FLegacyEditorOnlyBlueprintOptions::DetectInvalidBlueprintExport()
 
 DEFINE_LOG_CATEGORY_STATIC(LogSavePackage, Log, All);
 
@@ -4901,15 +4900,6 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 							// this export's Outer is the LinkerRoot for this package
 							Export.OuterIndex = FPackageIndex();
 						}
-
-						// exporting UBlueprint (editor-only) objects in the cook is for some reason 
-						// incompatible with the EDL (but could occur thanks to legacy settings) - here 
-						// we catch that and warn that these settings are now deprecated (this'll 
-						// trigger a fatal error if currently using the EDL)
-						//
-						// NOTE: this is temporary, as these legacy settings are now deprecated, and
-						//       should be removed soon after
-						FLegacyEditorOnlyBlueprintOptions::DetectInvalidBlueprintExport(Linker, i);
 					}
 				}
 

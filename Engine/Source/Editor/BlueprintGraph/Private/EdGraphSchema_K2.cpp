@@ -36,7 +36,6 @@
 #include "K2Node_SetFieldsInStruct.h"
 #include "K2Node_ConvertAsset.h"
 #include "GenericCommands.h"
-#include "BlueprintSupport.h" // for FLegacyEditorOnlyBlueprintOptions::IsTypeProhibited()
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -1118,11 +1117,6 @@ bool UEdGraphSchema_K2::IsAllowableBlueprintVariableType(const class UClass* InC
 		if(InClass == UObject::StaticClass())
 		{
 			return true;
-		}
-
-		if (FLegacyEditorOnlyBlueprintOptions::IsTypeProhibited(InClass))
-		{
-			return false;
 		}
 		
 		// cannot have level script variables
@@ -4061,6 +4055,13 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 			&& (Output.PinSubCategoryObject == Input.PinSubCategoryObject)
 			&& (Output.PinSubCategoryMemberReference == Input.PinSubCategoryMemberReference))
 		{
+			if(Input.bIsMap)
+			{
+				return 
+					Input.PinValueType.TerminalCategory == PC_Wildcard ||
+					Output.PinValueType.TerminalCategory == PC_Wildcard ||
+					Input.PinValueType == Output.PinValueType;
+			}
 			return true;
 		}
 		else if (Output.PinCategory == PC_Interface)
@@ -4205,9 +4206,7 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 		return OutputClass && (ExtendedImplementsInterface(OutputClass, InterfaceClass) || ExtendedIsChildOf(OutputClass, InterfaceClass));
 	}
 
-	// Pins representing BLueprint objects and subclass of UObject can match when EditoronlyBP.bAllowClassAndBlueprintPinMatching=true (BaseEngine.ini)
-	// It's required for converting all UBlueprint references into UClass.	
-	return FLegacyEditorOnlyBlueprintUtils::DoPinsMatch(Input, Output);
+	return false;
 }
 
 void UEdGraphSchema_K2::BreakNodeLinks(UEdGraphNode& TargetNode) const

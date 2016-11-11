@@ -7,7 +7,6 @@
 #include "EdGraphSchema_K2.h"
 #include "K2Node_EditablePinBase.h"
 #include "Engine/LevelScriptBlueprint.h"
-#include "BlueprintSupport.h" // for FLegacyEditorOnlyBlueprintOptions
 
 class  USCS_Node;
 struct FComponentKey;
@@ -1306,7 +1305,7 @@ public:
 	 * @param PinType		The pin get the icon for.
 	 * @param returns a brush that best represents the icon (or Kismet.VariableList.TypeIcon if none is available )
 	 */
-	static const struct FSlateBrush* GetIconFromPin(const FEdGraphPinType& PinType);
+	static const struct FSlateBrush* GetIconFromPin(const FEdGraphPinType& PinType, bool bIsLarge = false);
 
 	/**
 	 * Determine the best secondary icon icon to represent the given pin.
@@ -1317,6 +1316,16 @@ public:
 	 * Returns true if this terminal type can be hashed (native types need GetTypeHash, script types are always hashable).
 	 */
 	static bool HasGetTypeHash(const FEdGraphPinType& PinType);
+
+	/**
+	 * Returns true if this type of UProperty can be hashed. Matches native constructors of UNumericProperty, etc.
+	 */
+	static bool PropertyHasGetTypeHash(const UProperty* PropertyType);
+
+	/**
+	 * Returns true if the StructType is native and has a GetTypeHash or is non-native and all of its member types are handled by UScriptStruct::GetStructTypeHash
+	 */
+	static bool StructHasGetTypeHash(const UScriptStruct* StructType);
 
 	/**
 	 * Generate component instancing data (for cooked builds).
@@ -1477,25 +1486,4 @@ struct UNREALED_API FMakeClassSpawnableOnScope
 			}
 		}
 	}
-};
-
-/** 
- * Temporary util struct that deals with the now deprecated [EditoronlyBP] 
- * settings. Inherited from FLegacyEditorOnlyBlueprintOptions (in CoreUObject), 
- * which consolidates these settings, but is extended here to deal with UnrealEd 
- * specific types.
- */
-struct FLegacyEditorOnlyBlueprintUtils : public FLegacyEditorOnlyBlueprintOptions
-{
-	UNREALED_API static bool DoPinsMatch(const FEdGraphPinType& Input, const FEdGraphPinType& Output);
-	static bool FixupBlueprint(UBlueprint* Blueprint);
-
-private:
-	static bool HasLegacyBlueprintReferences(UBlueprint* Blueprint);
-	static bool IsUnwantedType(const FEdGraphPinType& Type);
-	static bool IsUnwantedDefaultObject(const UObject* Obj);
-	static void ChangePinType(FEdGraphPinType& Type);
-	static void HandleEditablePinNode(class UK2Node_EditablePinBase* Node);
-	static void HandleTemporaryVariableNode(class UK2Node_TemporaryVariable* Node);
-	static void HandleDefaultObjects(UK2Node* Node);
 };

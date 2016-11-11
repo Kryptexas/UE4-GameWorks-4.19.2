@@ -62,6 +62,7 @@ public:
 	virtual FString PropertyNameToDisplayName(FName InName) const override;
 
 	// UScriptStruct interface.
+	virtual uint32 GetStructTypeHash(const void* Src) const override;
 	virtual void RecursivelyPreload() override;
 	virtual FGuid GetCustomGuid() const override;
 	// End of  UScriptStruct interface.

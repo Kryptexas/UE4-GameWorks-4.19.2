@@ -1459,12 +1459,12 @@ public:
 		return nullptr;
 	}
 
-	bool Add(const void* Element, const FScriptSetLayout& Layout, TFunctionRef<uint32(const void*)> GetKeyHash, TFunctionRef<bool(const void*, const void*)> EqualityFn, TFunctionRef<void(void*)> ConstructFn)
+	uint8* Add(const void* Element, const FScriptSetLayout& Layout, TFunctionRef<uint32(const void*)> GetKeyHash, TFunctionRef<bool(const void*, const void*)> EqualityFn, TFunctionRef<void(void*)> ConstructFn)
 	{
 		// Minor efficiency concern: we hash the element both here in the Find() call and below
 		// when we link the new element into the set
-		bool bIsAlreadyInSet = Find(Element, Layout, GetKeyHash, EqualityFn) != nullptr;
-		if (!bIsAlreadyInSet)
+		uint8* ExistingEntry = Find(Element, Layout, GetKeyHash, EqualityFn);
+		if (ExistingEntry == nullptr)
 		{
 			// add the set element
 			FSetElementId	ElementId(AddUninitialized(Layout));
@@ -1489,31 +1489,7 @@ public:
 				TypedHash = ElementId;
 			}
 		}
-		return !bIsAlreadyInSet;
-	}
-
-	bool Remove(const void* Element, const FScriptSetLayout& Layout, TFunctionRef<uint32(const void*)> GetKeyHash, TFunctionRef<bool(const void*, const void*)> EqualityFn, TFunctionRef<void(void*)> DestroyFn )
-	{
-		if (Elements.Num())
-		{
-			const uint32	ElementHash = GetKeyHash(Element);
-			const int32		HashIndex = ElementHash & (HashSize - 1);
-
-			void* CurrentElement = nullptr;
-			for(FSetElementId ElementId = GetTypedHash(HashIndex);
-				ElementId.IsValidId();
-				ElementId = GetHashNextIdRef(CurrentElement, Layout))
-			{
-				CurrentElement = (uint8*)Elements.GetData(ElementId, Layout.SparseArrayLayout);
-				if(EqualityFn(Element, CurrentElement))
-				{
-					DestroyFn(CurrentElement);
-					RemoveAt(ElementId, Layout);
-					return true;
-				}
-			}
-		}
-		return false;
+		return ExistingEntry;
 	}
 
 private:
