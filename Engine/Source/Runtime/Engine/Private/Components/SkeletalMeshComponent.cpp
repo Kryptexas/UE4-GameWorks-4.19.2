@@ -747,12 +747,21 @@ bool USkeletalMeshComponent::UpdateLODStatus()
 
 bool USkeletalMeshComponent::ShouldUpdateTransform(bool bLODHasChanged) const
 {
+
 #if WITH_EDITOR
+	
 	// If we're in an editor world (Non running, WorldType will be PIE when simulating or in PIE) then we only want transform updates on LOD changes as the
 	// animation isn't running so it would just waste CPU time
-	if(GetWorld()->WorldType == EWorldType::Editor && !bLODHasChanged)
+	if(GetWorld()->WorldType == EWorldType::Editor)
 	{
-		return false;
+		if( bUpdateAnimationInEditor )
+		{
+			return true;
+		}
+		if( !bLODHasChanged )
+		{
+			return false;
+		}
 	}
 #endif
 
@@ -768,6 +777,17 @@ bool USkeletalMeshComponent::ShouldTickPose() const
 	// When we stop root motion we go back to ticking after CharacterMovement. Unfortunately that means that we could tick twice that frame.
 	// So only enforce a single tick per frame.
 	const bool bAlreadyTickedThisFrame = PoseTickedThisFrame();
+
+#ifdef WITH_EDITOR
+	if (GetWorld()->WorldType == EWorldType::Editor)
+	{
+		if (bUpdateAnimationInEditor)
+		{
+			return true;
+		}
+	}
+#endif 
+
 	return (Super::ShouldTickPose() && IsRegistered() && (AnimScriptInstance || PostProcessAnimInstance) && !bAutonomousTickPose && !bPauseAnims && GetWorld()->AreActorsInitialized() && !bNoSkeletonUpdate && !bAlreadyTickedThisFrame);
 }
 
@@ -2745,5 +2765,17 @@ void USkeletalMeshComponent::AddSlavePoseComponent(USkinnedMeshComponent* Skinne
 
 	bRequiredBonesUpToDate = false;
 }
+
+
+void USkeletalMeshComponent::SetUpdateAnimationInEditor(const bool NewUpdateState)
+{
+	#if WITH_EDITOR
+	if (IsRegistered())
+	{
+		bUpdateAnimationInEditor = NewUpdateState;
+	}
+	#endif
+}
+
 
 #undef LOCTEXT_NAMESPACE
