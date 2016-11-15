@@ -110,18 +110,17 @@ public:
 	FUniformBufferRHIParamRef GetParameterCollectionBuffer(const FGuid& Id, const FSceneInterface* SceneInterface) const;
 
 	template<typename ShaderRHIParamRef>
-	FORCEINLINE_DEBUGGABLE void SetParameters(FRHICommandList& RHICmdList, const ShaderRHIParamRef ShaderRHI, const FSceneView& View)
+	FORCEINLINE_DEBUGGABLE void SetViewParameters(FRHICommandList& RHICmdList, const ShaderRHIParamRef ShaderRHI, const FSceneView& View, const TUniformBufferRef<FViewUniformShaderParameters>& ViewUniformBuffer)
 	{
 		const auto& ViewUniformBufferParameter = GetUniformBufferParameter<FViewUniformShaderParameters>();
 		const auto& BuiltinSamplersUBParameter = GetUniformBufferParameter<FBuiltinSamplersParameters>();
 		CheckShaderIsValid();
-		SetUniformBufferParameter(RHICmdList, ShaderRHI, ViewUniformBufferParameter, View.ViewUniformBuffer);
+		SetUniformBufferParameter(RHICmdList, ShaderRHI, ViewUniformBufferParameter, ViewUniformBuffer);
 #if USE_GBuiltinSamplersUniformBuffer
 		SetUniformBufferParameter(RHICmdList, ShaderRHI, BuiltinSamplersUBParameter, GBuiltinSamplersUniformBuffer.GetUniformBufferRHI());
 #endif
 
-		// Skip if instanced stereo is not enabled
-		if (View.bIsInstancedStereoEnabled && View.Family->Views.Num() > 0)
+		if (View.bShouldBindInstancedViewUB && View.Family->Views.Num() > 0)
 		{
 			// When drawing the left eye in a stereo scene, copy the right eye view values into the instanced view uniform buffer.
 			const EStereoscopicPass StereoPassIndex = (View.StereoPass != eSSP_FULL) ? eSSP_RIGHT_EYE : eSSP_FULL;
@@ -145,9 +144,9 @@ public:
 		const FMaterialRenderProxy* MaterialRenderProxy, 
 		const FMaterial& Material,
 		const FSceneView& View, 
+		const TUniformBufferRef<FViewUniformShaderParameters>& ViewUniformBuffer,
 		bool bDeferredPass, 
-		ESceneRenderTargetsMode::Type TextureMode, 
-		const bool bIsInstancedStereo = false);
+		ESceneRenderTargetsMode::Type TextureMode);
 
 	FTextureRHIRef& GetEyeAdaptation(FRHICommandList& RHICmdList, const FSceneView& View);
 
@@ -178,4 +177,8 @@ private:
 	static int32 bAllowCachedUniformExpressions;
 	/** Console variable ref to toggle cached uniform expressions. */
 	static FAutoConsoleVariableRef CVarAllowCachedUniformExpressions;
+
+#if !(UE_BUILD_TEST || UE_BUILD_SHIPPING || !WITH_EDITOR)
+	void VerifyExpressionAndShaderMaps(const FMaterialRenderProxy* MaterialRenderProxy, const FMaterial& Material, const FUniformExpressionCache* UniformExpressionCache);
+#endif
 };

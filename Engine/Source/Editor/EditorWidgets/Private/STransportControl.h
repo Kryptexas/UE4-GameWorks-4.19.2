@@ -31,6 +31,7 @@ public:
 private:
 	const FSlateBrush* GetForwardStatusIcon() const;
 	FText GetForwardStatusTooltip() const;
+	const FSlateBrush* GetRecordStatusIcon() const;
 	FText GetRecordStatusTooltip() const;
 	const FSlateBrush* GetBackwardStatusIcon() const;
 	const FSlateBrush* GetLoopStatusIcon() const;
@@ -54,4 +55,5 @@ private:
 
 	TSharedPtr<SButton> ForwardPlayButton;
 	TSharedPtr<SButton> BackwardPlayButton;
+	TSharedPtr<SButton> RecordButton;
 };

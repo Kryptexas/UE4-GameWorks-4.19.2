@@ -82,7 +82,7 @@ public:
 		}
 
 		// Only compile for the default material and masked materials
-		return (Material->IsSpecialEngineMaterial() || !Material->WritesEveryPixel() || Material->MaterialMayModifyMeshPosition());
+		return (Material->IsSpecialEngineMaterial() || !Material->WritesEveryPixel() || Material->MaterialMayModifyMeshPosition() || Material->IsTranslucencyWritingCustomDepth());
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -103,7 +103,7 @@ public:
 		const bool bIsInstancedStereoEmulated
 		)
 	{
-		FMeshMaterialShader::SetParameters(RHICmdList, GetVertexShader(),MaterialRenderProxy,MaterialResource,View,ESceneRenderTargetsMode::DontSet);
+		FMeshMaterialShader::SetParameters(RHICmdList, GetVertexShader(),MaterialRenderProxy,MaterialResource,View,View.ViewUniformBuffer,ESceneRenderTargetsMode::DontSet);
 		
 		if (IsInstancedStereoParameter.IsBound())
 		{
@@ -193,7 +193,7 @@ public:
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		// Compile for materials that are masked.
-		return (!Material->WritesEveryPixel() || Material->HasPixelDepthOffsetConnected());
+		return (!Material->WritesEveryPixel() || Material->HasPixelDepthOffsetConnected() || Material->IsTranslucencyWritingCustomDepth());
 	}
 
 	FDepthOnlyPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
@@ -206,7 +206,7 @@ public:
 
 	void SetParameters(FRHICommandList& RHICmdList, const FMaterialRenderProxy* MaterialRenderProxy,const FMaterial& MaterialResource,const FSceneView* View)
 	{
-		FMeshMaterialShader::SetParameters(RHICmdList, GetPixelShader(),MaterialRenderProxy,MaterialResource,*View,ESceneRenderTargetsMode::DontSet);
+		FMeshMaterialShader::SetParameters(RHICmdList, GetPixelShader(),MaterialRenderProxy,MaterialResource,*View,View->ViewUniformBuffer,ESceneRenderTargetsMode::DontSet);
 
 		// For debug view shaders, don't apply the depth offset as their base pass PS are using global shaders with depth equal.
 		SetShaderValue(RHICmdList, GetPixelShader(), ApplyDepthOffsetParameter, !View || !View->Family->UseDebugViewPS());
@@ -246,10 +246,10 @@ FDepthDrawingPolicy::FDepthDrawingPolicy(
 	const FMaterial& InMaterialResource,
 	bool bIsTwoSided,
 	ERHIFeatureLevel::Type InFeatureLevel
-	):
-	FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,InMaterialResource,DVSM_None,/*bInTwoSidedOverride=*/ bIsTwoSided)
+	) :
+	FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, DVSM_None,/*bInTwoSidedOverride=*/ bIsTwoSided)
 {
-	bNeedsPixelShader = (!InMaterialResource.WritesEveryPixel() || InMaterialResource.MaterialUsesPixelDepthOffset());
+	bNeedsPixelShader = (!InMaterialResource.WritesEveryPixel() || InMaterialResource.MaterialUsesPixelDepthOffset() || InMaterialResource.IsTranslucencyWritingCustomDepth());
 	if (!bNeedsPixelShader)
 	{
 		PixelShader = nullptr;
@@ -276,11 +276,11 @@ FDepthDrawingPolicy::FDepthDrawingPolicy(
 		bool bUseShaderPipelines = UseShaderPipelines();
 		if (bNeedsPixelShader)
 		{
-			ShaderPipeline = bUseShaderPipelines ? InMaterialResource.GetShaderPipeline(&DepthPipeline, InVertexFactory->GetType()) : nullptr;
+			ShaderPipeline = bUseShaderPipelines ? InMaterialResource.GetShaderPipeline(&DepthPipeline, InVertexFactory->GetType(), false) : nullptr;
 		}
 		else
 		{
-			ShaderPipeline = bUseShaderPipelines ? InMaterialResource.GetShaderPipeline(&DepthNoPixelPipeline, InVertexFactory->GetType()) : nullptr;
+			ShaderPipeline = bUseShaderPipelines ? InMaterialResource.GetShaderPipeline(&DepthNoPixelPipeline, InVertexFactory->GetType(), false) : nullptr;
 		}
 
 		if (ShaderPipeline)
@@ -618,9 +618,9 @@ bool FDepthDrawingPolicyFactory::DrawMesh(
 
 			bDirty = true;
 		}
-		else if (!IsTranslucentBlendMode(BlendMode))
+		else if (!IsTranslucentBlendMode(BlendMode) || Material->IsTranslucencyWritingCustomDepth())
 		{
-			const bool bMaterialMasked = !Material->WritesEveryPixel();
+			const bool bMaterialMasked = !Material->WritesEveryPixel() || Material->IsTranslucencyWritingCustomDepth();
 
 			bool bDraw = true;
 
@@ -764,7 +764,7 @@ bool FDeferredShadingSceneRenderer::RenderPrePassViewDynamic(FRHICommandList& RH
 			{
 				extern float GMinScreenRadiusForDepthPrepass;
 				//@todo - move these proxy properties into FMeshBatchAndRelevance so we don't have to dereference the proxy in order to reject a mesh
-				const float LODFactorDistanceSquared = (PrimitiveSceneProxy->GetBounds().Origin - View.ViewMatrices.ViewOrigin).SizeSquared() * FMath::Square(View.LODDistanceFactor);
+				const float LODFactorDistanceSquared = (PrimitiveSceneProxy->GetBounds().Origin - View.ViewMatrices.GetViewOrigin()).SizeSquared() * FMath::Square(View.LODDistanceFactor);
 
 				// Only render primitives marked as occluders
 				bShouldUseAsOccluder = PrimitiveSceneProxy->ShouldUseAsOccluder()
@@ -1168,7 +1168,7 @@ bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHIC
 			}
 			RHICmdList.SetViewport(FullViewRect.Min.X, FullViewRect.Min.Y, 0, FullViewRect.Max.X, FullViewRect.Max.Y, 1);
 		}
-		RHICmdList.Clear(false, FLinearColor::Black, false, 0.f, true, 0, FIntRect());
+		RHICmdList.ClearDepthStencilTexture(SceneContext.GetSceneDepthTexture(), EClearDepthStencil::Stencil, 0.f, 0, FIntRect());
 	}
 
 	SceneContext.FinishRenderingPrePass(RHICmdList);

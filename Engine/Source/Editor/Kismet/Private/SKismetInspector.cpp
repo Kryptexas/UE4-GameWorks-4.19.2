@@ -222,9 +222,10 @@ FText SKismetInspector::GetContextualEditingWidgetTitle() const
 			{
 				if (SCSNode->ComponentTemplate != NULL)
 				{
-					if (SCSNode->VariableName != NAME_None)
+					const FName VariableName = SCSNode->GetVariableName();
+					if (VariableName != NAME_None)
 					{
-						Title = FText::Format(LOCTEXT("TemplateForFmt", "Template for {0}"), FText::FromName(SCSNode->VariableName));
+						Title = FText::Format(LOCTEXT("TemplateForFmt", "Template for {0}"), FText::FromName(VariableName));
 					}
 					else 
 					{
@@ -248,7 +249,7 @@ FText SKismetInspector::GetContextualEditingWidgetTitle() const
 		}
 		else if (SelectedObjects.Num() > 1)
 		{
-			UClass* BaseClass = NULL;
+			UClass* BaseClass = nullptr;
 
 			for (auto ObjectWkPtrIt = SelectedObjects.CreateConstIterator(); ObjectWkPtrIt; ++ObjectWkPtrIt)
 			{
@@ -265,9 +266,10 @@ FText SKismetInspector::GetContextualEditingWidgetTitle() const
 					}
 
 					// Keep track of the class of objects selected
-					if (BaseClass == NULL)
+					if (BaseClass == nullptr)
 					{
 						BaseClass = ObjClass;
+						checkSlow(ObjClass);
 					}
 					while (!ObjClass->IsChildOf(BaseClass))
 					{
@@ -473,32 +475,35 @@ void SKismetInspector::AddPropertiesRecursive(UProperty* Property)
 
 void SKismetInspector::UpdateFromObjects(const TArray<UObject*>& PropertyObjects, struct FKismetSelectionInfo& SelectionInfo, const FShowDetailsOptions& Options)
 {
-	// If we're using the unified blueprint editor, there's not an explicit point where
+	// There's not an explicit point where
 	// we ender a kind of component editing mode, so instead, just look at what we're selecting.
 	// If we select a component, then enable the customization.
-	if ( GetDefault<UEditorExperimentalSettings>()->bUnifiedBlueprintEditor )
-	{
-		bool bEnableComponentCustomization = false;
+	bool bEnableComponentCustomization = false;
 
-		TSharedPtr<FBlueprintEditor> BlueprintEditor = BlueprintEditorPtr.Pin();
-		if ( BlueprintEditor.IsValid() )
+	TSharedPtr<FBlueprintEditor> BlueprintEditor = BlueprintEditorPtr.Pin();
+	if (BlueprintEditor.IsValid())
+	{
+		if (BlueprintEditor->CanAccessComponentsMode())
 		{
-			if ( BlueprintEditor->CanAccessComponentsMode() )
+			for (UObject* PropertyObject : PropertyObjects)
 			{
-				for ( UObject* PropertyObject : PropertyObjects )
+				if (!PropertyObject->IsValidLowLevel())
 				{
-					if ( PropertyObject->IsA<UActorComponent>() )
-					{
-						bEnableComponentCustomization = true;
-						break;
-					}
+					ensureMsgf(false, TEXT("Object in KismetInspector is invalid, see TTP 281915"));
+					continue;
+				}
+
+				if (PropertyObject->IsA<UActorComponent>())
+				{
+					bEnableComponentCustomization = true;
+					break;
 				}
 			}
 		}
-
-		EnableComponentDetailsCustomization(bEnableComponentCustomization);
 	}
 
+	EnableComponentDetailsCustomization(bEnableComponentCustomization);
+	
 	if (!Options.bForceRefresh)
 	{
 		// Early out if the PropertyObjects and the SelectedObjects are the same
@@ -510,6 +515,12 @@ void SKismetInspector::UpdateFromObjects(const TArray<UObject*>& PropertyObjects
 			{
 				if (PropertyObjects[i] != SelectedObjects[i].Get())
 				{
+					if (!PropertyObjects[i]->IsValidLowLevel())
+					{
+						ensureMsgf(false, TEXT("Object in KismetInspector is invalid, see TTP 281915"));
+						continue;
+					}
+
 					bEquivalentSets = false;
 					break;
 				}

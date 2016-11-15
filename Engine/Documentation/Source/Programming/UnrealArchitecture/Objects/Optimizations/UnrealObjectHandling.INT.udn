@@ -21,11 +21,11 @@ usually referenced by an Object that links back to the root set, such as the lev
 
 ## Automatic Updating of References
 
-When an Object is cleaned up via garbage collection, any UPROPERTY references to it are automatically updated to NULL. This is beneficial in that it prevents dangling pointers from persisting 
-and causing trouble down the road, but it also means that your pointers can sometimes unexpectedly go NULL if the Object they point to was explicitly marked for destruction. So be sure to test 
+When a UActorComponent or AActor is cleaned up via garbage collection due to level unload, any UPROPERTY references to it are automatically updated to NULL. This is beneficial in that it prevents dangling pointers from persisting 
+and causing trouble down the road, but it also means that your UActorComponent or AActor pointers can sometimes unexpectedly go NULL if the Object they point to was explicitly marked for destruction. So be sure to test 
 before dereferencing.
 
-It is important to realize that this feature applies only to Object references marked with UPROPERTY. An Object reference stored in a raw pointer will be unknown to Unreal, and will not be 
+It is important to realize that this feature applies only to UActorComponent or AActor references marked with UPROPERTY. An Object reference stored in a raw pointer will be unknown to Unreal, and will not be 
 automatically nulled or prevent garbage collection. Note this does not mean that all UObject* variables must be UProperties. If you want a non-UProperty Object pointer, consider using TWeakObjectPtr<>. 
 This is a weak pointer, so it will not prevent garbage collection, but it can be queried for validity before being accessed.
 

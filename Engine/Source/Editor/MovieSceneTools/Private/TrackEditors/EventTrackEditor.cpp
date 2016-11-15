@@ -59,7 +59,7 @@ void FEventTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, c
 }
 
 
-TSharedRef<ISequencerSection> FEventTrackEditor::MakeSectionInterface(UMovieSceneSection& SectionObject, UMovieSceneTrack& Track)
+TSharedRef<ISequencerSection> FEventTrackEditor::MakeSectionInterface(UMovieSceneSection& SectionObject, UMovieSceneTrack& Track, FGuid ObjectBinding)
 {
 	return MakeShareable(new FEventTrackSection(SectionObject, GetSequencer()));
 }
@@ -90,11 +90,11 @@ void FEventTrackEditor::HandleAddEventTrackMenuEntryExecute()
 	const FScopedTransaction Transaction(NSLOCTEXT("Sequencer", "AddEventTrack_Transaction", "Add Event Track"));
 	FocusedMovieScene->Modify();
 	
-	auto NewTrack = FocusedMovieScene->AddMasterTrack<UMovieSceneEventTrack>();
-	ensure(NewTrack);
+	UMovieSceneEventTrack* NewTrack = FocusedMovieScene->AddMasterTrack<UMovieSceneEventTrack>();
+	check(NewTrack);
 
 	UMovieSceneSection* NewSection = NewTrack->CreateNewSection();
-	ensure(NewSection);
+	check(NewSection);
 
 	NewTrack->AddSection(*NewSection);
 	NewTrack->SetDisplayName(LOCTEXT("TrackName", "Events"));

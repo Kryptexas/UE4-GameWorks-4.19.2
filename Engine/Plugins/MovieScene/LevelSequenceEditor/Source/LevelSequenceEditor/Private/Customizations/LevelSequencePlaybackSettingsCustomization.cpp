@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "LevelSequenceEditorPCH.h"
 #include "IDetailPropertyRow.h"
@@ -38,7 +38,8 @@ void FLevelSequencePlaybackSettingsCustomization::CustomizeChildren(TSharedRef<I
 		int32 CurrentValue = -1;
 		LoopCountProperty->GetValue(CurrentValue);
 
-		if (auto* FoundMode = LoopModes.FindByPredicate([&](const TSharedPtr<FLoopMode>& In){ return In->Value == CurrentValue; }) )
+		TSharedPtr<FLoopMode>* FoundMode = LoopModes.FindByPredicate([&](const TSharedPtr<FLoopMode>& In){ return In->Value == CurrentValue; });
+		if (FoundMode)
 		{
 			CurrentMode = *FoundMode;
 		}

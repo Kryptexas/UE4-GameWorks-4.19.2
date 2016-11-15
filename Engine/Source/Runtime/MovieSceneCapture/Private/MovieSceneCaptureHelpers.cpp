@@ -391,7 +391,7 @@ bool MovieSceneCaptureHelpers::ImportEDL(UMovieScene* InMovieScene, float InFram
 	return true;
 }
 
-bool MovieSceneCaptureHelpers::ExportEDL(const UMovieScene* InMovieScene, float InFrameRate, FString InSaveFilename)
+bool MovieSceneCaptureHelpers::ExportEDL(const UMovieScene* InMovieScene, float InFrameRate, FString InSaveFilename, const int32 InHandleFrames)
 {
 	FString SequenceName = InMovieScene->GetOuter()->GetName();
 	FString SaveBasename = FPaths::GetPath(InSaveFilename) / FPaths::GetBaseFilename(InSaveFilename);
@@ -404,6 +404,8 @@ bool MovieSceneCaptureHelpers::ExportEDL(const UMovieScene* InMovieScene, float 
 	}
 
 	TArray<FShotData> ShotDataArray;
+
+	float EditTime = 0.f;
 
 	for (auto MasterTrack : InMovieScene->GetMasterTracks())
 	{
@@ -426,11 +428,11 @@ bool MovieSceneCaptureHelpers::ExportEDL(const UMovieScene* InMovieScene, float 
 				FString ShotName = CinematicShotSection->GetShotDisplayName().ToString();
 				FString ShotPath = CinematicShotSection->GetSequence()->GetMovieScene()->GetOuter()->GetPathName();
 
-				//@todo until shot handles are rendered out, the source in time will always be 0
-				float SourceInTime = 0.f; //CinematicShotSection->StartOffset;
+				float HandleFrameTime = (float)InHandleFrames / (float)InFrameRate;
+				float SourceInTime = HandleFrameTime;
 				float SourceOutTime = SourceInTime + CinematicShotSection->GetTimeSize();
-				float EditInTime = CinematicShotSection->GetStartTime();
-				float EditOutTime = CinematicShotSection->GetEndTime();
+				float EditInTime = EditTime;
+				float EditOutTime = EditTime + CinematicShotSection->GetTimeSize();
 
 				EditInTime = FMath::Clamp(EditInTime, PlaybackRange.GetLowerBoundValue(), PlaybackRange.GetUpperBoundValue());
 				EditOutTime = FMath::Clamp(EditOutTime, PlaybackRange.GetLowerBoundValue(), PlaybackRange.GetUpperBoundValue());
@@ -442,6 +444,7 @@ bool MovieSceneCaptureHelpers::ExportEDL(const UMovieScene* InMovieScene, float 
 				ShotPath = ShotName;
 
 				ShotDataArray.Add(FShotData(ShotName, ShotPath, FShotData::ETrackType::TT_Video, FShotData::EEditType::ET_Cut, SourceInTime, SourceOutTime, EditInTime, EditOutTime));
+				EditTime = EditOutTime;
 			}
 		}
 		else if (MasterTrack->IsA(UMovieSceneAudioTrack::StaticClass()))

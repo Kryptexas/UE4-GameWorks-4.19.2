@@ -49,9 +49,6 @@ public:
 	TArray<FTransform> BoneTransforms;
 	FBlendedHeapCurve BlendedCurve;
 
-	// Validate the instance and create if invalid
-	void ValidateInstance();
-
 	// FAnimNode_Base interface
 	virtual void Initialize(const FAnimationInitializeContext& Context) override;
 	virtual void CacheBones(const FAnimationCacheBonesContext& Context) override;
@@ -67,4 +64,7 @@ protected:
 
 	// Shutdown the currently running instance
 	void TeardownInstance();
+
+	// Makes sure the bone transforms array can contain the pose information from the provided anim instance
+	void AllocateBoneTransforms(const UAnimInstance* InAnimInstance);
 };

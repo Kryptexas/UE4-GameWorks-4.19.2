@@ -25,6 +25,7 @@
 #endif
 #include "Components/TimelineComponent.h"
 #include "Engine/InheritableComponentHandler.h"
+#include "BlueprintSupport.h" // for FLegacyEditorOnlyBlueprintOptions::IncludeUBlueprintObjsInCookedBuilds()
 
 DEFINE_LOG_CATEGORY(LogBlueprint);
 
@@ -312,6 +313,7 @@ UBlueprint::UBlueprint(const FObjectInitializer& ObjectInitializer)
 #if WITH_EDITORONLY_DATA
 	, bDuplicatingReadOnly(false)
 	, bCachedDependenciesUpToDate(false)
+	, bHasAnyNonReducibleFunction(EIsBPNonReducible::Unkown)
 #endif
 {
 }
@@ -328,6 +330,18 @@ void UBlueprint::PreSave(const class ITargetPlatform* TargetPlatform)
 	FFindInBlueprintSearchManager::Get().AddOrUpdateBlueprintSearchMetadata(this);
 }
 #endif // WITH_EDITORONLY_DATA
+
+void UBlueprint::GetPreloadDependencies(TArray<UObject*>& OutDeps)
+{
+	Super::GetPreloadDependencies(OutDeps);
+	for (UClass* ClassIt = ParentClass; (ClassIt != NULL) && !(ClassIt->HasAnyClassFlags(CLASS_Native)); ClassIt = ClassIt->GetSuperClass())
+	{
+		if (ClassIt->ClassGeneratedBy)
+		{
+			OutDeps.Add(ClassIt->ClassGeneratedBy);
+		}
+	}
+}
 
 void UBlueprint::Serialize(FArchive& Ar)
 {
@@ -1216,26 +1230,14 @@ FString UBlueprint::GetDesc(void)
 	return ResultString;
 }
 
-struct FDontLoadBlueprintOutsideEditorHelper
-{
-	bool bDontLoad;
-
-	FDontLoadBlueprintOutsideEditorHelper() : bDontLoad(false)
-	{
-		GConfig->GetBool(TEXT("EditoronlyBP"), TEXT("bDontLoadBlueprintOutsideEditor"), bDontLoad, GEditorIni);
-	}
-};
-
 bool UBlueprint::NeedsLoadForClient() const
 {
-	static const FDontLoadBlueprintOutsideEditorHelper Helper;
-	return !Helper.bDontLoad;
+	return FLegacyEditorOnlyBlueprintOptions::IncludeUBlueprintObjsInCookedBuilds();
 }
 
 bool UBlueprint::NeedsLoadForServer() const
 {
-	static const FDontLoadBlueprintOutsideEditorHelper Helper;
-	return !Helper.bDontLoad;
+	return FLegacyEditorOnlyBlueprintOptions::IncludeUBlueprintObjsInCookedBuilds();
 }
 
 bool UBlueprint::NeedsLoadForEditorGame() const

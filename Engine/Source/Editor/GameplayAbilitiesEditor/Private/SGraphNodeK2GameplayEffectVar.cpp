@@ -30,6 +30,7 @@ FSlateColor SGraphNodeK2GameplayEffectVar::GetVariableColor() const
 	return GraphNode->GetNodeTitleColor();
 }
 
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SGraphNodeK2GameplayEffectVar::UpdateGraphNode()
 {
 	SGraphNodeK2Var::UpdateGraphNode();
@@ -194,6 +195,7 @@ TSharedRef<SWidget> SGraphNodeK2GameplayEffectVar::OpenGameplayEffectButtonConte
 
 	return OpenGameplayEffectButton;
 }
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 FReply SGraphNodeK2GameplayEffectVar::OnOpenGameplayEffect()
 {

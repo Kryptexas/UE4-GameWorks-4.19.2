@@ -19,7 +19,11 @@ struct FCollisionProfileName
 
 	FCollisionProfileName()
 		: Name(NAME_None)
-	{ }
+	{}
+
+	FCollisionProfileName(const FName InName)
+		: Name(InName)
+	{}
 
 	UPROPERTY(EditAnywhere, Category = Collision)
 	FName Name;

@@ -25,6 +25,7 @@ class UKismetRenderingLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
 	
+
 	/** 
 	 * Clears the specified render target with the given ClearColor.
 	 */
@@ -59,6 +60,7 @@ class UKismetRenderingLibrary : public UBlueprintFunctionLibrary
 
 	/** 
 	 * Returns a Canvas object that can be used to draw to the specified render target.
+	 * Canvas has functions like DrawMaterial with size parameters that can be used to draw to a specific area of a render target.
 	 * Be sure to call EndDrawCanvasToRenderTarget to complete the rendering!
 	 */
 	UFUNCTION(BlueprintCallable, Category="Rendering", meta=(Keywords="BeginDrawCanvasToRenderTarget", WorldContext="WorldContextObject", UnsafeDuringActorConstruction="true"))

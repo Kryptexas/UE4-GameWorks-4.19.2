@@ -157,6 +157,9 @@ public:
 		/** Called when a folder is entered */
 		SLATE_EVENT( FOnPathSelected, OnPathSelected )
 
+		/** Columns to hide by default */
+		SLATE_ARGUMENT( TArray<FString>, HiddenColumnNames )
+
 	SLATE_END_ARGS()
 
 	~SAssetView();
@@ -336,7 +339,7 @@ private:
 	void OnAssetLoaded(UObject* Asset);
 
 	/** Handler for when an asset's property has changed */
-	void OnObjectPropertyChanged(UObject* Asset, FPropertyChangedEvent& PropertyChangedEvent);
+	void OnObjectPropertyChanged(UObject* Object, FPropertyChangedEvent& PropertyChangedEvent);
 
 	/** Called when the class hierarchy is updated due to the available modules changing */
 	void OnClassHierarchyUpdated();
@@ -424,6 +427,12 @@ private:
 
 	/** @return true when we are showing collections */
 	bool IsShowingCollections() const;
+
+	/** Toggle whether C++ content folders should be shown or not */
+	void ToggleShowCppFolders();
+
+	/** @return true when we are showing c++ content folders */
+	bool IsShowingCppFolders() const;
 
 	/** Sets the view type and updates lists accordingly */
 	void SetCurrentViewType(EAssetViewType::Type NewType);
@@ -637,7 +646,26 @@ private:
 	 * @return True if the quick-jump found a valid match, false otherwise
 	 */
 	bool PerformQuickJump(const bool bWasJumping);
+	
+	/** Generates the column filtering menu */
+	void FillToggleColumnsMenu(FMenuBuilder& MenuBuilder);
 
+	/** Resets the column filtering state to make them all visible */
+	void ResetColumns();
+
+	/** Toggle the column at ColumnIndex */
+	void ToggleColumn(const FString ColumnName);
+	/** Sets the column visibility by removing/inserting the column*/
+	void SetColumnVisibility(const FString ColumnName, const bool bShow);
+
+	/** Whether or not a column can be toggled, has to be valid column and mandatory minimum number of columns = 1*/
+	bool CanToggleColumn(const FString ColumnName) const;
+
+	/** Whether or not a column is visible to show it's state in the filtering menu */
+	bool IsColumnVisible(const FString ColumnName) const;
+
+	/** Creates the row header context menu allowing for hiding individually clicked columns*/
+	TSharedRef<SWidget> CreateRowHeaderMenuContent(const FString ColumnName);
 private:
 
 	/** The asset items being displayed in the view and the filtered list */
@@ -863,6 +891,9 @@ private:
 
 	/** Flag set if the user is currently searching */
 	bool bUserSearching;
+	
+	/** Whether or not to notify about newly selected items on on the next asset sync */
+	bool bShouldNotifyNextAssetSync;
 
 	/** A struct to hold data for the deferred creation of assets */
 	struct FCreateDeferredAssetData
@@ -925,4 +956,11 @@ private:
 
 	/** Data for the asset quick-jump */
 	FQuickJumpData QuickJumpData;
+	
+	/** Column filtering state */
+	TArray<FString> DefaultHiddenColumnNames;
+	TArray<FString> HiddenColumnNames;
+	int32 NumVisibleColumns;
+public:
+	bool ShouldColumnGenerateWidget(const FString ColumnName) const;
 };

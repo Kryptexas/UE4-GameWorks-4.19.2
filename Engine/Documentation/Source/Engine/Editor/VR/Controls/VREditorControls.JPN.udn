@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2911160
+﻿INTSourceChangelist:3100206
 Title:VR エディタの制御
 Description:VR モードでのワールドの作成に使用する、様々な制御スキームとインタラクションを学習します。
 Crumbs:
@@ -7,7 +7,7 @@ parent:Engine/Editor/VR
 type: reference
 order:1
 tags:VR
-version:4.11
+version:4.13
 skilllevel: intermediate
 
 [VAR:Topic]
@@ -114,6 +114,26 @@ skilllevel: intermediate
 | ------- | ----------- |
 | ![Tap Track Pad](show_hide_windows.png)(convert:false) | トラックパッドを叩いて、開いているウィンドウを表示 / 非表示にします。 |
 | ![Aim Controller at Window Grip + Squeeze Trigger + Track Pad Towards or Away](scale_window.png)(convert:false) | コントローラの照準をウィンドウのグリップに合わせてトリガーを引くと、ウィンドウが選択されます。トラックパッド上で親指を上下に滑らすと、ウィンドウがスケーリングされます。 |
+[/REGION]
+
+##メッシュ ペイントの制御
+
+[REGION:raw]
+| 制御 | 説明 |
+| ------- | ----------- |
+| ![Aim Controller at Actor + Squeeze Trigger + Move Controller](MeshPaint_2_NoModifier.png)(convert:false) | ワールドのアクタにコントローラの照準を合わせてトリガーを引くと、アクタが選択されます。コントローラを動すと、メッシュと平行にブラシが移動します。 |
+| ![Modifier + Aim Controller at Actor + Squeeze Trigger + Move Controller](ModifierMeshPaint.png)(convert:false) | ペイントする代わりに消去するには、Modifier ボタンを押します。ワールドのアクタにコントローラの照準を合わせてトリガーを引くと、消去が開始されます。コントローラを動かすと、メッシュと平行に消しゴムが移動します。 |
+[/REGION]
+
+## フォリッジ ペイントの制御
+
+フォリッジをペイントする場合も消去する場合も、トリガーの圧力感受性がサポートされています。 
+
+[REGION:raw]
+| 制御 | 説明 |
+| ------- | ----------- |
+| ![Aim Controller at Actor + Squeeze Trigger + Move Controller](MeshPaint_2_NoModifier.png)(convert:false) | **[Modes]** パネルでフォリッジ タイプを選択します。ワールドのアクタにコントローラの照準を合わせてトリガーを引くと、フォリッジのペイントが開始されます。コントローラを動すと、ワールドの周りをブラシが移動します。 |
+| ![Modifier + Aim Controller at Actor + Squeeze Trigger + Move Controller](ModifierMeshPaint.png)(convert:false) | フォリッジを消去するには、Modifier ボタンを押します。ワールドのアクタにコントローラの照準を合わせてトリガーを引くと、消去が開始されます。コントローラを動すと、ワールドの周りが消去されます。 |
 [/REGION]
 
 <!--

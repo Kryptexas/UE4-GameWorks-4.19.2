@@ -29,7 +29,7 @@ public:
 	 * @param OutScale The evaluated scale component of the transform.
 	 * @return true if anything was evaluated. Note: if false is returned OutBool remains unchanged.
 	 */
-	virtual bool Eval(float Position, float LastPosition, FVector& OutTranslation, FRotator& OutRotation, FVector& OutScale) const;
+	virtual bool Eval(float Position, float LastPosition, FVector& InOutTranslation, FRotator& InOutRotation, FVector& InOutScale) const;
 
 public:
 

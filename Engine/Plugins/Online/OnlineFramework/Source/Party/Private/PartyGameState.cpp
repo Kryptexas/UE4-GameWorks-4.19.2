@@ -112,18 +112,21 @@ void UPartyGameState::ResetLocalPlayerState()
 {
 	UWorld* World = GetWorld();
 	check(World);
-	AGameState* GameState = World->GetGameState();
-	check(GameState);
 
-	for (const APlayerState* PlayerState : GameState->PlayerArray)
+	for (FLocalPlayerIterator It(GEngine, World); It; ++It)
 	{
-		if (PlayerState && PlayerState->UniqueId.IsValid())
+		ULocalPlayer* LP = *It;
+		if (LP)
 		{
-			UPartyMemberState** LocalPartyMemberStatePtr = PartyMembersState.Find(PlayerState->UniqueId);
-			UPartyMemberState* LocalPartyMemberState = LocalPartyMemberStatePtr ? *LocalPartyMemberStatePtr : nullptr;
-			if (LocalPartyMemberState)
+			FUniqueNetIdRepl UniqueId(LP->GetPreferredUniqueNetId());
+			if (UniqueId.IsValid())
 			{
-				LocalPartyMemberState->Reset();
+				UPartyMemberState** LocalPartyMemberStatePtr = PartyMembersState.Find(UniqueId);
+				UPartyMemberState* LocalPartyMemberState = LocalPartyMemberStatePtr ? *LocalPartyMemberStatePtr : nullptr;
+				if (LocalPartyMemberState)
+				{
+					LocalPartyMemberState->Reset();
+				}
 			}
 		}
 	}
@@ -1174,7 +1177,7 @@ void UPartyGameState::SendLocalPlayerPartyData()
 
 	for (FLocalPlayerIterator It(GEngine, World); It; ++It)
 	{
-		ULocalPlayer* LP = Cast<ULocalPlayer>(*It);
+		ULocalPlayer* LP = *It;
 		if (LP)
 		{
 			const UPartyMemberState* MemberStatePtr = InitPartyMemberStateFromLocalPlayer(LP);

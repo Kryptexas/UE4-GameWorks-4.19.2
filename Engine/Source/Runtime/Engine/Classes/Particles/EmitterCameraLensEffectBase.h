@@ -20,8 +20,8 @@ protected:
 	class UParticleSystem* PS_CameraEffect;
 
 	/** The effect to use for non extreme content */
-	UPROPERTY(EditDefaultsOnly, Category = EmitterCameraLensEffectBase)
-	class UParticleSystem* PS_CameraEffectNonExtremeContent;
+	UPROPERTY()
+	class UParticleSystem* PS_CameraEffectNonExtremeContent_DEPRECATED;
 
 	/** Camera this emitter is attached to, will be notified when emitter is destroyed */
 	UPROPERTY(transient)
@@ -71,6 +71,8 @@ public:
 	
 	/** Given updated camera information, adjust this effect to display appropriately. */
 	virtual void UpdateLocation(const FVector& CamLoc, const FRotator& CamRot, float CamFOVDeg);
+
+	static FTransform GetAttachedEmitterTransform(AEmitterCameraLensEffectBase const* Emitter, const FVector& CamLoc, const FRotator& CamRot, float CamFOVDeg);
 
 	/** Returns true if either particle system would loop forever when played */
 	bool IsLooping() const;

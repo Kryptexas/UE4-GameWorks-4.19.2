@@ -19,4 +19,6 @@
 #include "HTML5/HTML5PlatformOutputDevices.h"
 #elif PLATFORM_LINUX
 #include "Linux/LinuxPlatformOutputDevices.h"
+#elif PLATFORM_WOLF
+#include "WolfPlat/WolfPlatformOutputDevices.h"
 #endif

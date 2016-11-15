@@ -22,7 +22,7 @@ enum ENoiseFunction
 	 */
 	NOISEFUNCTION_GradientTex UMETA(DisplayName="Gradient - Texture Based"),
 
-	/** High quality for direct use, BAD for bumps
+	/** High quality for direct use, BAD for bumps; doesn't work on Mobile
 	 * ~16 instructions per level, 1 texture lookup
 	 * Always tiles with a repeat of 16, "Tiling" mode is not an option for Fast Gradient noise
 	 */
@@ -105,7 +105,7 @@ class UMaterialExpressionNoise : public UMaterialExpression
 	//~ Begin UMaterialExpression Interface
 #if WITH_EDITOR
 	virtual bool CanEditChange(const UProperty* InProperty) const override;
-	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
+	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex) override;
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
 #endif
 	//~ End UMaterialExpression Interface

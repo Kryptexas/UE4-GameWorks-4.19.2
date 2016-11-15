@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Misc/Exec.h"
+
 enum
 {
 	// Default allocator alignment. If the default is specified, the allocator applies to engine rules.

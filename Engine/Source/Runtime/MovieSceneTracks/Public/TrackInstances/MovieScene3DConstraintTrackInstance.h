@@ -23,10 +23,9 @@ public:
 	virtual void RefreshInstance( const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance ) override {}
 	virtual void ClearInstance( IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance ) override {}
 
-	// Evaluate after TransformTrackInstance so that parents can be evaluated first
-	virtual EMovieSceneUpdatePass HasUpdatePasses() override { return MSUP_PostUpdate; }
+	virtual EMovieSceneUpdatePass HasUpdatePasses() override { return MSUP_All; }
 
-	virtual void UpdateConstraint(float Position, const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, AActor* Actor, UMovieScene3DConstraintSection* ConstraintSection) = 0;
+	virtual void UpdateConstraint(EMovieSceneUpdatePass UpdatePass, float Position, const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, AActor* Actor, UMovieScene3DConstraintSection* ConstraintSection) = 0;
 
 protected:
 	/** Track that is being instanced */

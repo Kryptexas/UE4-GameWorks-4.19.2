@@ -33,10 +33,6 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="Editor Utility Blueprints (Blutility)"))
 	bool bEnableEditorUtilityBlueprints;
 
-	/** Enable Single Layout BP Editor. */
-	UPROPERTY(EditAnywhere, config, Category = Tools, meta = ( DisplayName = "Single Layout Blueprint Editor" ))
-	bool bUnifiedBlueprintEditor;
-
 	/** When enabled, all details panels will be able to have properties marked as favorite that show in a top most category.  
 	 * NOTE: Some customizations are not supported yet
 	 */
@@ -67,14 +63,6 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Blueprint Performance Analysis Tools"))
 	bool bBlueprintPerformanceAnalysisTools;
 
-	/** Enables the visual diff tool for widget blueprints. WARNING: changes to the widget hierarchy will not be detected */
-	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Use the Diff Tool for Widget Blueprints"))
-	bool bEnableWidgetVisualDiff;
-
-	/** Enables the visual diff tool for anim blueprints. WARNING: changes to the Target Skeleton and Groups will not be detected */
-	UPROPERTY(EditAnywhere, config, Category = Blueprints, meta = (DisplayName = "Use the Diff Tool for Animation Blueprints"))
-	bool bEnableAnimVisualDiff;
-
 	/** Enables "Find and Replace All" tool in the MyBlueprint window for variables */
 	UPROPERTY(EditAnywhere, config, Category = Blueprints, meta = (DisplayName = "Find and Replace All References Tool"))
 	bool bEnableFindAndReplaceReferences;
@@ -86,6 +74,10 @@ public:
 	/** Whether to show Audio Streaming options for SoundWaves (disabling will not stop all audio streaming) */
 	UPROPERTY(EditAnywhere, config, Category=Audio)
 	bool bShowAudioStreamingOptions;
+
+	/** Whether to show AudioMixer-dependent editor data. Only enable if also running with the -audiomixer. */
+	UPROPERTY(EditAnywhere, config, Category = Audio)
+	bool bShowAudioMixerData;
 
 	/** Allows ChunkIDs to be assigned to assets to via the content browser context menu. */
 	UPROPERTY(EditAnywhere,config,Category=UserInterface,meta=(DisplayName="Allow ChunkID Assignments"))
@@ -137,6 +129,10 @@ public:
 	/**If true, wearing a Vive or Oculus Rift headset will automatically enter VR Editing mode if Enable VR Editing is true. */
 	UPROPERTY(EditAnywhere, config, Category = VR, meta = (DisplayName = "Enable VR Mode Auto-Entry"))
 	bool bEnableAutoVREditMode;
+
+	/**If true, the tutorial window should always appear when the VR Editor is launched. */
+	UPROPERTY(EditAnywhere, config, Category = VR, meta = (DisplayName = "Always Show VR Tutorial at Start"))
+	bool bAlwaysShowVRTutorial;
 
 	/** Allows editing of potentially unsafe properties during PIE. Advanced use only - use with caution. */
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Allow editing of potentially unsafe properties."))

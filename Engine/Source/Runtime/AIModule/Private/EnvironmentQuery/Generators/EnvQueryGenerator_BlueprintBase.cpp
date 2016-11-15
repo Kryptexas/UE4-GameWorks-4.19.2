@@ -44,8 +44,7 @@ void UEnvQueryGenerator_BlueprintBase::AddGeneratedVector(FVector Vector) const
 	check(CachedQueryInstance);
 	if (ensure(ItemType->IsChildOf<UEnvQueryItemType_ActorBase>() == false))
 	{
-		FNavLocation NavLoc(Vector);
-		CachedQueryInstance->AddItemData<UEnvQueryItemType_Point>(NavLoc);
+		CachedQueryInstance->AddItemData<UEnvQueryItemType_Point>(Vector);
 	}
 	else
 	{
@@ -67,8 +66,7 @@ void UEnvQueryGenerator_BlueprintBase::AddGeneratedActor(AActor* Actor) const
 			, *GetName());
 		if (Actor)
 		{
-			FNavLocation NavLoc(Actor->GetActorLocation());
-			CachedQueryInstance->AddItemData<UEnvQueryItemType_Point>(NavLoc);
+			CachedQueryInstance->AddItemData<UEnvQueryItemType_Point>(Actor->GetActorLocation());
 		}
 	}
 }

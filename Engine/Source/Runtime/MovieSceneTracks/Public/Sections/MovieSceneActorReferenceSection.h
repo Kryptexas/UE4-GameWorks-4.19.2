@@ -25,14 +25,15 @@ public:
 	 *
 	 * @param Position	The position in time within the movie scene
 	 */
-	FGuid Eval(float Position) const;
+	MOVIESCENETRACKS_API FGuid Eval(float Position) const;
 
 	// IKeyframeSection interface.
 
-	void AddKey(float Time, const FGuid& Value, EMovieSceneKeyInterpolation KeyInterpolation);
-	bool NewKeyIsNewData(float Time, const FGuid& Value) const;
-	bool HasKeys(const FGuid& Value) const;
-	void SetDefault(const FGuid& Value);
+	virtual void AddKey(float Time, const FGuid& Value, EMovieSceneKeyInterpolation KeyInterpolation) override;
+	virtual bool NewKeyIsNewData(float Time, const FGuid& Value) const override;
+	virtual bool HasKeys(const FGuid& Value) const override;
+	virtual void SetDefault(const FGuid& Value) override;
+	virtual void ClearDefaults() override;
 
 	/**
 	 * @return The integral curve on this section
@@ -43,6 +44,8 @@ public:
 	}
 
 public:
+
+	MOVIESCENETRACKS_API FKeyHandle AddKey(float Time, const FGuid& Value);
 
 	//~ UMovieSceneSection interface
 

@@ -57,7 +57,7 @@ The reason the transition map exists, is that there must always be a world loade
 
 So now we can travel from the current map to the transition map, and then from there we can travel to the final map. Since the transition map is very small, it doesn't add much extra overhead while it overlaps the current and final map.
 
-Once you have the transition map setup, you set `AGameMode::bUseSeamlessTravel` to true, and from there seamless travel should work!
+Once you have the transition map setup, you set `AGameModeBase::bUseSeamlessTravel` to true, and from there seamless travel should work!
 
 ## Seamless Travel Flow
 
@@ -73,7 +73,7 @@ When using seamless travel, it's possible to carry over (persist) actors from th
 
 By default, these actors will persist automatically:
 * The `GameMode` actor (server only)
-	* Any actors further added via `AGameMode::GetSeamlessTravelActorList`
+	* Any actors further added via `AGameModeBase::GetSeamlessTravelActorList`
 * All Controllers that have a valid	`PlayerState` (server only)
 * All `PlayerControllers` (server only)
 * All local `PlayerControllers` (server and client)

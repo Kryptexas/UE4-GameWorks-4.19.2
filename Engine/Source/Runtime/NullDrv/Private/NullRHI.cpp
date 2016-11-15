@@ -10,6 +10,9 @@
 FNullDynamicRHI::FNullDynamicRHI()
 {
 	GMaxRHIShaderPlatform = ShaderFormatToLegacyShaderPlatform(FName(FPlatformMisc::GetNullRHIShaderFormat()));
+	GMaxTextureDimensions = 16384;
+	GMaxTextureMipCount = FPlatformMath::CeilLogTwo(GMaxTextureDimensions) + 1;
+	GMaxTextureMipCount = FPlatformMath::Min<int32>( MAX_TEXTURE_MIP_COUNT, GMaxTextureMipCount );
 }
 
 

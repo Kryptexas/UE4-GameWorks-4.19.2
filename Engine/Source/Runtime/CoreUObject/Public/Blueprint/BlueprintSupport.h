@@ -220,7 +220,8 @@ struct COREUOBJECT_API FBlueprintDependencyData
 
 	FBlueprintDependencyData() {}
 
-	FORCENOINLINE FBlueprintDependencyData(const TCHAR* InPackageName
+	FORCENOINLINE FBlueprintDependencyData(const TCHAR* InPackageFolder
+		, const TCHAR* InShortPackageName
 		, const TCHAR* InObjectName
 		, const TCHAR* InClassPackageName
 		, const TCHAR* InClassName);
@@ -246,4 +247,24 @@ public:
 	void GetAssets(FName PackageName, TArray<FBlueprintDependencyData>& OutDependencies) const;
 
 	static void FillUsedAssetsInDynamicClass(UDynamicClass* DynamicClass, GetDependenciesNamesFunc GetUsedAssets);
+};
+
+/** 
+ * Temporary util struct that consolidates the now deprecated [EditoronlyBP] 
+ * settings. Aimed at providing warnings for users who are mistakenly using or 
+ * relying on them (and centralizing their usage so it is easy to strip in later 
+ * versions).
+ *
+ * Here in the CoreUObject module because UClassProperty::CheckValidObject() and 
+ * UPackage::Save() use some of these settings.
+ */
+struct COREUOBJECT_API FLegacyEditorOnlyBlueprintOptions
+{
+	static FString GetDefaultEditorConfig();
+	static bool IncludeUBlueprintObjsInCookedBuilds();
+	static bool AllowLegacyBlueprintPinMatchesWithClass();
+	static bool FixupLegacyBlueprintReferences();
+	static bool DetectInvalidBlueprintExport(const FLinkerSave* Linker, const int32 ExportIndex);
+	static bool FixupClassProperty(const UClassProperty* Property, void* Value);
+	static bool IsTypeProhibited(const UClass* VarType);
 };

@@ -6,13 +6,146 @@
 #include "ISourceControlModule.h"
 #include "SWidgetSwitcher.h"
 #include "SThrobber.h"
-#include "SNotificationList.h"
 #include "NotificationManager.h"
-
+#include "SNotificationList.h"
 
 #define LOCTEXT_NAMESPACE "SSettingsEditorCheckoutNotice"
 
+namespace SettingsHelpers
+{
+	bool IsCheckedOut(const FString& InFileToCheckOut, bool bForceSourceControlUpdate)
+	{
+		if (ISourceControlModule::Get().IsEnabled())
+		{
+			ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
+			FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(InFileToCheckOut, bForceSourceControlUpdate ? EStateCacheUsage::ForceUpdate : EStateCacheUsage::Use);
 
+			if (SourceControlState->IsCheckedOut() || SourceControlState->IsAdded())
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	bool IsSourceControlled(const FString& InFileToCheckOut, bool bForceSourceControlUpdate)
+	{
+		if (ISourceControlModule::Get().IsEnabled())
+		{
+			ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
+			FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(InFileToCheckOut, bForceSourceControlUpdate ? EStateCacheUsage::ForceUpdate : EStateCacheUsage::Use);
+
+			if (SourceControlState->IsSourceControlled())
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	bool CheckOutOrAddFile(const FString& InFileToCheckOut, bool bForceSourceControlUpdate, bool ShowErrorInNotification, FText* OutErrorMessage)
+	{
+		FText ErrorMessage;
+		bool bSuccessfullyCheckedOutOrAddedFile = false;
+		if(ISourceControlModule::Get().IsEnabled())
+		{
+			ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
+			FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(InFileToCheckOut, bForceSourceControlUpdate ? EStateCacheUsage::ForceUpdate : EStateCacheUsage::Use);
+
+			TArray<FString> FilesToBeCheckedOut;
+			FilesToBeCheckedOut.Add(InFileToCheckOut);
+
+			if(SourceControlState.IsValid())
+			{
+				if (SourceControlState->IsSourceControlled())
+				{
+					if (SourceControlState->IsDeleted())
+					{
+						ErrorMessage = LOCTEXT("ConfigFileMarkedForDeleteError", "Error: The configuration file is marked for deletion.");
+					}
+					// Note: Here we attempt to check out files that are read only even if the internal state says they cannot be checked out.  This is to work around cases were the file is reverted or checked in and the internal state has not been updated yet
+					else if (SourceControlState->CanCheckout() || SourceControlState->IsCheckedOutOther() || FPlatformFileManager::Get().GetPlatformFile().IsReadOnly(*InFileToCheckOut))
+					{
+						ECommandResult::Type CommandResult = SourceControlProvider.Execute(ISourceControlOperation::Create<FCheckOut>(), FilesToBeCheckedOut);
+						if (CommandResult == ECommandResult::Failed)
+						{
+							ErrorMessage = LOCTEXT("FailedToCheckOutConfigFileError", "Error: Failed to check out the configuration file.");
+						}
+						else if (CommandResult == ECommandResult::Cancelled)
+						{
+							ErrorMessage = LOCTEXT("CancelledCheckOutConfigFile", "Checkout was cancelled.  File will be marked writable.");
+						}
+						else
+						{
+							bSuccessfullyCheckedOutOrAddedFile = true;
+						}
+					}
+				}
+				else if (!SourceControlState->IsUnknown()) // most likely not source controled, so we'll try add it.
+				{	
+					ECommandResult::Type CommandResult = SourceControlProvider.Execute(ISourceControlOperation::Create<FMarkForAdd>(), FilesToBeCheckedOut);
+
+					if (CommandResult == ECommandResult::Failed)
+					{
+						ErrorMessage = LOCTEXT("FailedToAddConfigFileError", "Error: Failed to add the configuration file.");
+					}
+					else if (CommandResult == ECommandResult::Cancelled)
+					{
+						ErrorMessage = LOCTEXT("CancelledAddConfigFile", "Add was cancelled.  File will be marked writable.");
+					}
+					else
+					{
+						bSuccessfullyCheckedOutOrAddedFile = true;
+					}
+				}				
+			}
+		}
+
+		if (!ErrorMessage.IsEmpty())
+		{
+			if (OutErrorMessage != nullptr)
+			{
+				*OutErrorMessage = ErrorMessage;
+			}
+
+			if (ShowErrorInNotification)
+			{
+				// Show a notification that the file could not be checked out
+				FNotificationInfo CheckOutError(ErrorMessage);
+				CheckOutError.ExpireDuration = 3.0f;
+				FSlateNotificationManager::Get().AddNotification(CheckOutError);
+			}
+		}
+
+		return bSuccessfullyCheckedOutOrAddedFile;
+	}
+
+	bool MakeWritable(const FString& InFileToMakeWritable, bool ShowErrorInNotification, FText* OutErrorMessage)
+	{
+		bool bSuccess = FPlatformFileManager::Get().GetPlatformFile().SetReadOnly(*InFileToMakeWritable, false);
+		if(!bSuccess)
+		{
+			FText ErrorMessage = FText::Format(LOCTEXT("FailedToMakeWritable", "Could not make {0} writable."), FText::FromString(InFileToMakeWritable));;
+
+			if (OutErrorMessage != nullptr)
+			{
+				*OutErrorMessage = ErrorMessage;
+			}
+
+			if (ShowErrorInNotification)
+			{
+				FNotificationInfo MakeWritiableNotification(ErrorMessage);
+				MakeWritiableNotification.ExpireDuration = 3.0f;
+
+				FSlateNotificationManager::Get().AddNotification(MakeWritiableNotification);
+			}
+		}
+
+		return bSuccess;
+	}
+}
 /* SSettingsEditorCheckoutNotice interface
  *****************************************************************************/
 
@@ -126,28 +259,15 @@ FReply SSettingsEditorCheckoutNotice::HandleCheckOutButtonClicked()
 {
 	FString TargetFilePath = ConfigFilePath.Get();
 
-	if (ISourceControlModule::Get().IsEnabled())
+	bool bSuccess = SettingsHelpers::CheckOutOrAddFile(TargetFilePath);
+	if (!bSuccess)
 	{
-		FText ErrorMessage;
-
-		if (!SourceControlHelpers::CheckoutOrMarkForAdd(TargetFilePath, FText::FromString(TargetFilePath), NULL, ErrorMessage))
-		{
-			FNotificationInfo Info(ErrorMessage);
-			Info.ExpireDuration = 3.0f;
-			FSlateNotificationManager::Get().AddNotification(Info);
-		}
+		bSuccess = SettingsHelpers::MakeWritable(TargetFilePath);
 	}
-	else
+		
+	if (bSuccess)
 	{
-		if (!FPlatformFileManager::Get().GetPlatformFile().SetReadOnly(*TargetFilePath, false))
-		{
-			FText NotificationErrorText = FText::Format(LOCTEXT("FailedToMakeWritable", "Could not make {0} writable."), FText::FromString(TargetFilePath));
-
-			FNotificationInfo Info(NotificationErrorText);
-			Info.ExpireDuration = 3.0f;
-
-			FSlateNotificationManager::Get().AddNotification(Info);
-		}
+		DefaultConfigCheckOutNeeded = false;
 	}
 
 	return FReply::Handled();
@@ -274,3 +394,5 @@ bool SSettingsEditorCheckoutNotice::IsUnlocked() const
 }
 
 #undef LOCTEXT_NAMESPACE
+
+

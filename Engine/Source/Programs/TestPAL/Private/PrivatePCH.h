@@ -7,3 +7,5 @@
 
 // this module headers
 #include "Parent.h"
+
+DECLARE_LOG_CATEGORY_EXTERN(LogTestPAL, Verbose, All);

@@ -11,9 +11,6 @@ class IPropertyHandle;
 class FPropertyChangedParams;
 
 
-DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSetIntermediateValueFromPropertyChange, UMovieSceneTrack*, FPropertyChangedParams)
-
-
 /**
 * Tools for animatable property types such as floats ands vectors
 */
@@ -110,18 +107,7 @@ public:
 		return Type == TrackType::StaticClass();
 	}
 
-	virtual TSharedRef<ISequencerSection> MakeSectionInterface( class UMovieSceneSection& SectionObject, UMovieSceneTrack& Track ) override
-	{
-		TSharedRef<FPropertySection> PropertySection = MakePropertySectionInterface( SectionObject, Track );
-		OnSetIntermediateValueFromPropertyChange.AddSP( PropertySection, &FPropertySection::SetIntermediateValueForTrack );
-		FMovieSceneTrackEditor::GetSequencer()->OnGlobalTimeChanged().AddSP( PropertySection, &FPropertySection::ClearIntermediateValue );
-		return PropertySection;
-	}
-
 protected:
-
-	/** Creates a property section for a section object. */
-	virtual TSharedRef<FPropertySection> MakePropertySectionInterface( class UMovieSceneSection& SectionObject, UMovieSceneTrack& Track ) = 0;
 
 	/**
 	* Generates keys based on the new value from the property property change parameters.
@@ -204,14 +190,6 @@ private:
 			TrackClass = TrackType::StaticClass();
 		}
 
-		if ( FMovieSceneTrackEditor::GetSequencer()->GetAutoKeyMode() == EAutoKeyMode::KeyAll )
-		{
-			// TODO: Setting these here is a bit sketchy but necessary right now without a larger refactor.
-			PropertyChangedParams.KeyParams.bCreateHandleIfMissing = true;
-			PropertyChangedParams.KeyParams.bCreateTrackIfMissing = true;
-			PropertyChangedParams.KeyParams.bCreateKeyIfEmpty = true;
-		}
-
 		// If the track class has been customized for this property then it's possible this track editor doesn't support it, 
 		// also check for track editors which should only be used for customization.
 		if ( SupportsType( TrackClass ) && ( ForCustomizedUseOnly() == false || *CustomizedClass != nullptr) )
@@ -221,11 +199,10 @@ private:
 				KeyTime,
 				NewKeysForPropertyChange,
 				DefaultKeysForPropertyChange,
-				PropertyChangedParams.KeyParams,
+				PropertyChangedParams.KeyMode,
 				TrackClass,
 				PropertyChangedParams.PropertyPath.Last()->GetFName(),
-				[&](TrackType* NewTrack) { InitializeNewTrack(NewTrack, PropertyChangedParams); },
-				[&](TrackType* NewTrack) { SetIntermediateValueFromPropertyChange(NewTrack, PropertyChangedParams); }
+				[&](TrackType* NewTrack) { InitializeNewTrack(NewTrack, PropertyChangedParams); }
 			);
 		}
 		else
@@ -236,15 +213,6 @@ private:
 
 private:
 
-	void SetIntermediateValueFromPropertyChange(TrackType* Track, FPropertyChangedParams PropertyChangedParams)
-	{
-		OnSetIntermediateValueFromPropertyChange.Broadcast( Track, PropertyChangedParams );
-	}
-
-private:
-
 	/** An array of property type names which are being watched for changes. */
 	TArray<FName> WatchedPropertyTypeNames;
-
-	FOnSetIntermediateValueFromPropertyChange OnSetIntermediateValueFromPropertyChange;
 };

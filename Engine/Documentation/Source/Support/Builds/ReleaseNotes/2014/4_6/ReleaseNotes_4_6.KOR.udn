@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2744667
+﻿INTSourceChangelist:3077981
 Title: 언리얼 엔진 4.6 릴리즈 노트
 Crumbs:%ROOT%, Support/Builds
 Description:
@@ -308,7 +308,6 @@ Alex Silkin (alexSilkin), alwei, Allegorithmic, Artem V. Navrotskiy (bozaro), Ce
 * 위 미리보기에서 확인 가능하듯이, 일본어 텍스트는 일본어 폰트 패밀리 글자 범위 안에 해당하므로, Roboto 가 아닌 Source Han Sans 폰트로 렌더링됩니다. 서브 폰트 패밀리의 폰트는 Regular, Bold, Light 의 경우처럼 이름 일치에 따라 선택되는데, Bold Italic 의 경우처럼 기본 폰트의 특성에 따라 일치하는 것으로 대체될 수도 있습니다 (폰트에 Bold 특성이 들어있고, 가장 잘 맞기에 Bold Japanese 폰트를 자동으로 선택했습니다).
 
 **언리얼 모션 그래픽(UMG)에서의 폰트**
-
 * UMG 의 구형 인터페이스에 있던, 디스크에서 TTF 또는 OTF 파일을 지정하는 기능이 제거되고, 컴포짓 폰트 애셋을 선택한 다음 기본 폰트 패밀리에서 폰트를 선택하는 애셋 선택기로 대체되었습니다.
 
 ![](FontsInUMG01.png)
@@ -385,9 +384,9 @@ Alex Silkin (alexSilkin), alwei, Allegorithmic, Artem V. Navrotskiy (bozaro), Ce
 
 #### Animation
 * New: Animation Preview Mesh
-	* You can use context menu in Persona's Asset Browser to select a specific mesh to preview the asset
+	* You can use context menu in Persona’s Asset Browser to select a specific mesh to preview the asset
 	* This is useful when you have many different meshes per skeleton, but you only want to preview a set of assets with a specific mesh
-* New: Improved Animation Record Feature.  Now you can click Record to capture animations up to ten minutes long.  Press stop when you're finished recording.
+* New: Improved Animation Record Feature.  Now you can click Record to capture animations up to ten minutes long.  Press stop when you’re finished recording.
 * New: Added the option to specify an import-time transform to apply to static meshes, skeletal meshes and animations.
 * New: Added new check box for toggling display of skeleton retargeting options in Persona
 * New: Persona now automatically selects recently newly added sockets in the viewport.
@@ -398,20 +397,18 @@ Alex Silkin (alexSilkin), alwei, Allegorithmic, Artem V. Navrotskiy (bozaro), Ce
 * Changed 'Create' menu names of Blendspaces to be consistent with other parts of the editor.
 * No longer leave extra space at the end of anim segments in open montages making the animation freeze after a reimport.
 * Fixed crash on "Reset All" in Rig Asset
-* Fixed crash when saving retarget base pose when cloth exists
-* Fixed retargeting crash when multiple meshes exists per skeleton
-* Fix for compression data in animations being missing if the skeleton GUID didn't match the cached GUID in the animation.
+* Fixed crash when saving retarget base pose when cloth exists.
+* Fixed retargeting crash when multiple meshes exists per skeleton.
+* Fix for compression data in animations being missing if the skeleton GUID did not match the cached GUID in the animation.
 * Fix for issue where skeleton would get dirtied on load when opening in Persona (was caused by the setting of the preview mesh).
 * Fix Montage root motion preview in Persona.
 * Fixed an issue with retargeting when bones are missing.
 * StateMachine : Fixed an issue with entry state is always active in the first frame. Now it should activate appropriate state.
 * Fixed AnimNotify State crash when Blueprint derived AnimNotify is being compiled.
-* Fixed AnimNotify State crash when Blueprint derived AnimNotify is being compiled.
 * Fixed display of slot name on a slot node (Would show none even when a slot name had been selected)
 * Fixed a crash when retargeting skeleton that has different order with target skeleton
-* Fixed a crash when retargeting skeleton that has different order with target skeleton
 * Fixed animation retargeting crash when preview mesh is missing.
-* Fixed a crash in AnimationBlueprints when a transform bone node in parent space was used on a root bone.(I had t
+* Fixed a crash in AnimationBlueprints when a transform bone node in parent space was used on a root bone.
 * Fixed potential quaternion normalization assert on long bone chains when using Mesh Space blend per weight.
 
 #### Audio
@@ -452,7 +449,7 @@ Alex Silkin (alexSilkin), alwei, Allegorithmic, Artem V. Navrotskiy (bozaro), Ce
 * New: Can right click on any get/set variable node to replace with another variable.
 * New: Object pin connections will now auto-generate a conversion node when going into a class input pin.
 * New: Can double click on Blueprint compiler error logs to jump to the offending node.
-* New: "AutoCreateRef" is handled in UK2Node_CallFunction::ExpandNode. The additional variable is created in local scope.
+* New: “AutoCreateRef” is handled in UK2Node_CallFunction::ExpandNode. The additional variable is created in local scope.
 * New: New Blueprint compiler option to jump to error-producing nodes (on compile).
 * New: Added new events that GameInstance Blueprints can handle: NetworkError and TravelError.
 	* You can use these events to gracefully handle these errors, for example, by displaying a custom message to the user.
@@ -609,9 +606,9 @@ Alex Silkin (alexSilkin), alwei, Allegorithmic, Artem V. Navrotskiy (bozaro), Ce
 #### Editor and Tools
 * New: Expand Action/Axis mappings when clicking + buttons to add a new one
 * New: Output Log window now saves what you typed in between sessions (like the in-game console did)
-* New: Added a new "2D Pixels" Texture Group, intended for non-scaled, non-mipmapped, non-filtered textures in 2D Games.
+* New: Added a new “2D Pixels” Texture Group, intended for non-scaled, non-mipmapped, non-filtered textures in 2D Games.
 * New: You can now create new assets right from the Asset Picker that appears when choosing an asset to use.  The menu combo box now contains "New asset" entries where appropriate.
-* New: The main "Window" menu has been reorganized for improved usability!
+* New: The main “Window” menu has been reorganized for improved usability!
 	* Sectioned and labeled based on the current editor
 	* Experimental tools have their own section
 	* Undo History has been moved to the Edit menu
@@ -623,7 +620,7 @@ Alex Silkin (alexSilkin), alwei, Allegorithmic, Artem V. Navrotskiy (bozaro), Ce
 * New: Mesh merging tool supports mirrored meshes
 * New: Component visualizers can now override DrawVisualizationHUD to do 2D visualizations as well.
 * New: Class Viewer (and Picker) will now display UMG, Blutility, and GameplayAbility Blueprints (both loaded and unloaded)
-* New: Experimental iterative cooking:  Including support for ini changes and DDC version changes invalidating cooked content. (Added "-iterate" command-line option for editor)
+* New: Experimental iterative cooking:  Including support for ini changes and DDC version changes invalidating cooked content. (Added “-iterate” command-line option for editor)
 * New: Packaged games on Windows now include an executable in the root directory which will install any missing prerequisites before running the game.
 	* Content-only games can now customize their application icon using the packaging settings dialog in the editor.
 * New: UE4 prerequisites installers now support Windows XP, Windows Vista, and 32bit Windows 7.
@@ -687,7 +684,7 @@ Alex Silkin (alexSilkin), alwei, Allegorithmic, Artem V. Navrotskiy (bozaro), Ce
 
 ###### Landscape
 * New: Landscape holes are now supported on mobile platforms (OpenGL ES2)
-* New: We now support importing height maps that don't match the landscape dimensions.  (It will be padded/clipped to fit automatically)
+* New: We now support importing height maps that don’t match the landscape dimensions.  (It will be padded/clipped to fit automatically)
 * Fixed missing Foliage and Landscape tooltips
 * Fixed foliage tool crashes when using the reapply tool with Z offset and fixed erase density and reapply density features.
 * Fixed cases where World Composition map doesn't work properly when traveled to from another map while in Play mode
@@ -697,7 +694,7 @@ Alex Silkin (alexSilkin), alwei, Allegorithmic, Artem V. Navrotskiy (bozaro), Ce
 * Fixed "Dragging 'New Landscape' Rotation Z slider does not update real-time"
 
 ###### Material Editor
-* New: The "Custom" material node now works with TextureObject (removed old "Custom Texture" node as it's no longer needed.)
+* New: The “Custom” material node now works with TextureObject (removed old “Custom Texture” node as it's no longer needed.)
 * Make sure materials created from textures don't end up with overlapping expressions
 * Prevent Const material parameter values from crashing
 
@@ -932,7 +929,7 @@ Alex Silkin (alexSilkin), alwei, Allegorithmic, Artem V. Navrotskiy (bozaro), Ce
 * Fixed a bug where LAN sessions created by OnlineSubsystemNull would not advertise as soon as they are created.
 
 #### Physics
-* New: Exposed the "GetCenterOfMass" function to Blueprints
+* New: Exposed the "GetCenterOfMass” function to Blueprints
 * New: Added center of mass visualization
 * New: Destructible components now use the async scene automatically (if the scene is enabled)
 * New: Added the option to turn sub-stepping off for async scene.
@@ -1026,7 +1023,7 @@ Alex Silkin (alexSilkin), alwei, Allegorithmic, Artem V. Navrotskiy (bozaro), Ce
 * Disable OpenGL workarounds no longer required on Yosemite, though they will still be used on Mavericks.
 	* Combined depth-stencil clears & depth-fetch-during-depth-test now work on AMD 7xx0 & Dxx0 GPUs.
 	* On Intel cards we no longer need to flush changes to the blend state, significantly improving performance on those GPUs.
-* Fix broken skeletal mesh rendering on Nvidia cards under Yosemite.
+* Fix broken skeletal mesh rendering on NVIDIA cards under Yosemite.
 	* This rebinds the SRV whenever the underlying buffer is modified which should not have a performance impact.
 * Fix crash reporting under Yosemite due to a bad interaction between our operator-new override & a system library.
 * Amend launching processes on OS X to report failures rather than crashing.
@@ -1089,12 +1086,12 @@ Alex Silkin (alexSilkin), alwei, Allegorithmic, Artem V. Navrotskiy (bozaro), Ce
 
 #### Rendering
 * New: Scene captures that update every frame now benefit from occlusion queries
-* New: Added "Self Shadow Only" setting to components (e.g. for 1st person self shadowing weapon without casting a shadow onto the world)
-* New: You can now configure Ambient Occlusion's static amount in your project settings for better performance when not using baked lighting
+* New: Added “Self Shadow Only” setting to components (e.g. for 1st person self shadowing weapon without casting a shadow onto the world)
+* New: You can now configure Ambient Occlusion’s static amount in your project settings for better performance when not using baked lighting
 * New: Improved visual quality of Subsurface Scattering (less artifacts on half res upsample, more crisp non subsurface)
 * New: Added 'r.ProfileGPU.Root', which can be used to filter the hierarchy to a specified root
 * New: RHI.MaximumFrameLatency for setting the number of frames that can be queued for render on DX11
-* New: "Visualize HDR" view mode now shows Histogram bucket as color
+* New: “Visualize HDR” view mode now shows Histogram bucket as color
 * New: New project setting that exposes D-Buffer requirements for your game
 * New: Added support for setting show flags for Scene Capture actors. Now it is possible to disable things like dynamic shadowing or translucency for Scene Captures, and this can be adjusted individually for different Scene Capture actors.
 * New: Added a new CVar in the scalability ini r.EmitterSpawnRateScale. This is applied as a global scale on the spawn rate of all emitters that have bApplyGlobalSpawnRateScale set to true in their spawn module. bApplyGlobalSpawnRateScale defaults to true.
@@ -1177,7 +1174,7 @@ Alex Silkin (alexSilkin), alwei, Allegorithmic, Artem V. Navrotskiy (bozaro), Ce
 * Removed r.UseDiffuseSpecularMaterialInput (not usually used, and prevented some GBuffer optimizations)
 * Fixed objects not rendering in the main pass still affect motion blur
 * Fixed the 1 pixel black border which can show up in screenshots when certain post process effects are enabled
-* Improved streaming strategy for textures using their component's mobility settings
+* Improved streaming strategy for textures using their component’s mobility settings
 * Persistent level is always registered for texture streaming in the Editor. Landscape correctly registers all dependent textures for streaming.
 * Fixed TexelFactor calculation for landscape heightmap texture. Improves heightmap texture streaming
 * Metal now supports Shader Resource View parameters
@@ -1194,7 +1191,7 @@ Alex Silkin (alexSilkin), alwei, Allegorithmic, Artem V. Navrotskiy (bozaro), Ce
 #### C++ API Changes
 
 * UMaterialExpressionTextureSample and UMaterialExpressionTextureSampleParameter's ConstMipValue value, and UMaterialExpressionIf's ConstAEqualsB value were previously used verbatim. Now they are processed by the compiler, so check these values first if you notice any oddities in a material.
-* After switching to using the new "GENERATED_BODY" macro there can be redefinition compiler errors. To fix that you have to either:
+* After switching to using the new “GENERATED_BODY” macro there can be redefinition compiler errors. To fix that you have to either:
 	* Declare the FObjectInitializer constructor in header file, or
 	* Delete definition of FObjectInitializer constructor from source file (if it does nothing more than default constructor).
 	* You may need also to change protection level as GENERATED_BODY() macro will preserve spotted protection level, while old macro was always setting to public.

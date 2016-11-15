@@ -11,6 +11,7 @@
 	Audio includes.
 ------------------------------------------------------------------------------------*/
 
+#include "XAudio2PrivatePCH.h"
 #include "XAudio2Device.h"
 #include "XAudio2Effects.h"
 #include "Engine.h"
@@ -39,7 +40,6 @@ FXAudio2SoundSource::FXAudio2SoundSource(FAudioDevice* InAudioDevice)
 	, Source(nullptr)
 	, MaxEffectChainChannels(0)
 	, RealtimeAsyncTask(nullptr)
-	, VoiceId(-1)
 	, CurrentBuffer(0)
 	, bLoopCallback(false)
 	, bIsFinished(false)
@@ -69,7 +69,7 @@ FXAudio2SoundSource::FXAudio2SoundSource(FAudioDevice* InAudioDevice)
 	if (!InAudioDevice->bIsAudioDeviceHardwareInitialized)
 	{
 		bIsVirtual = true;
-	}
+}
 }
 
 /**
@@ -378,6 +378,7 @@ bool FXAudio2SoundSource::CreateSource( void )
 	{
 		Destinations[NumSends].pOutputVoice = Effects->EQPremasterVoice;
 	}
+
 	NumSends++;
 
 	if( bReverbApplied )
@@ -581,6 +582,17 @@ bool FXAudio2SoundSource::Init(FWaveInstance* InWaveInstance)
 
 			Update();
 
+			// Initialize the total  number of frames of audio for this sound source
+			int32 NumBytes = InWaveInstance->WaveData->RawPCMDataSize;
+			NumTotalFrames = NumBytes / (Buffer->NumChannels * sizeof(int16));
+			StartFrame = 0;
+
+			if (InWaveInstance->StartTime > 0.0f)
+			{
+				const float StartFraction = InWaveInstance->StartTime / InWaveInstance->WaveData->GetDuration();
+				StartFrame = StartFraction * NumTotalFrames;
+			}
+
 			// Now set the source state to initialized so it can be played
 			// Initialization succeeded.
 			return true;
@@ -696,7 +708,7 @@ void FXAudio2SoundSource::GetMonoChannelVolumes(float ChannelVolumes[CHANNEL_MAT
 		}
 		check(AudioDevice->SpatializeProcessor != nullptr);
 
-		AudioDevice->SpatializeProcessor->SetSpatializationParameters(VoiceId, FAudioSpatializationParams(SpatializationParams.EmitterPosition, WaveInstance->Location));
+		AudioDevice->SpatializeProcessor->SetSpatializationParameters(VoiceId, SpatializationParams);
 		GetStereoChannelVolumes(ChannelVolumes, AttenuatedVolume);
 	}
 	else // Spatialize the mono stream using the normal 3d audio algorithm
@@ -866,7 +878,7 @@ void FXAudio2SoundSource::GetHexChannelVolumes(float ChannelVolumes[CHANNEL_MATR
 /** 
  * Maps a sound with a given number of channels to to expected speakers
  */
-void FXAudio2SoundSource::RouteDryToSpeakers(float ChannelVolumes[CHANNEL_MATRIX_COUNT])
+void FXAudio2SoundSource::RouteDryToSpeakers(float ChannelVolumes[CHANNEL_MATRIX_COUNT], const float InVolume)
 {
 	// Only need to account to the special cases that are not a simple match of channel to speaker
 	switch( Buffer->NumChannels )
@@ -888,6 +900,8 @@ void FXAudio2SoundSource::RouteDryToSpeakers(float ChannelVolumes[CHANNEL_MATRIX
 		break;
 
 		default:
+			// For all other channel counts, just apply the volume and let XAudio2 handle doing downmixing of the source
+			Source->SetVolume(InVolume);
 			break;
 	};
 }
@@ -1120,7 +1134,7 @@ void FXAudio2SoundSource::RouteToRadio(float ChannelVolumes[CHANNEL_MATRIX_COUNT
 
 			// Mono sounds map 1 channel to 6 speakers.
 			AudioDevice->ValidateAPICall( TEXT( "SetOutputMatrix (Mono radio)" ), 
-				Source->SetOutputMatrix( Destinations[Index].pOutputVoice, 1, SPEAKER_COUNT, OutputMatrix ) );
+				Source->SetOutputMatrix( Destinations[Index].pOutputVoice, 1, SPEAKER_COUNT, OutputMatrix) );
 		}
 		break;
 
@@ -1139,7 +1153,7 @@ void FXAudio2SoundSource::RouteToRadio(float ChannelVolumes[CHANNEL_MATRIX_COUNT
 
 			// Stereo sounds map 2 channels to 6 speakers.
 			AudioDevice->ValidateAPICall( TEXT( "SetOutputMatrix (Stereo radio)" ), 
-				Source->SetOutputMatrix( Destinations[Index].pOutputVoice, 2, SPEAKER_COUNT, OutputMatrix ) );
+				Source->SetOutputMatrix( Destinations[Index].pOutputVoice, 2, SPEAKER_COUNT, OutputMatrix) );
 		}
 		break;
 	}
@@ -1281,10 +1295,10 @@ FString FXAudio2SoundSource::Describe_Internal(bool bUseLongName, bool bIncludeC
 
 void FXAudio2SoundSource::Update()
 {
-	SCOPE_CYCLE_COUNTER( STAT_AudioUpdateSources );
+	SCOPE_CYCLE_COUNTER(STAT_AudioUpdateSources);
 
 	if (!WaveInstance || (!bIsVirtual && !Source) || Paused || !bInitialized)
-	{
+	{	
 		return;
 	}
 
@@ -1322,9 +1336,9 @@ void FXAudio2SoundSource::Update()
 	}
 	else
 	{
-
-		AudioDevice->ValidateAPICall(TEXT("SetFrequencyRatio"),
-			Source->SetFrequencyRatio(Pitch));
+			// Set the pitch on the xaudio2 source
+		AudioDevice->ValidateAPICall( TEXT( "SetFrequencyRatio" ), 
+			Source->SetFrequencyRatio( Pitch) );
 
 		// Set whether to bleed to the rear speakers
 		SetStereoBleed();
@@ -1347,35 +1361,68 @@ void FXAudio2SoundSource::Update()
 			LPFParameters.Frequency = FMath::Clamp(2.0f * LPFFrequency / AudioDevice->SampleRate, 0.0f, 1.0f);
 
 			AudioDevice->ValidateAPICall(TEXT("SetFilterParameters"),
-				Source->SetFilterParameters(&LPFParameters));
+										 Source->SetFilterParameters(&LPFParameters));
 
 			LastLPFFrequency = LPFFrequency;
 		}
 
+		// Get the current xaudio2 source voice state to determine the number of frames played
+		XAUDIO2_VOICE_STATE VoiceState;
+		Source->GetState(&VoiceState);
+
+		// XAudio2's "samples" appear to actually be frames (1 interleaved time-slice)
+		NumFramesPlayed = VoiceState.SamplesPlayed;
+
 		// Initialize channel volumes
 		float ChannelVolumes[CHANNEL_MATRIX_COUNT] = { 0.0f };
 
-		GetChannelVolumes(ChannelVolumes, WaveInstance->GetActualVolume());
+		const float Volume = FSoundSource::GetDebugVolume(WaveInstance->GetActualVolume());
+
+		GetChannelVolumes( ChannelVolumes, Volume );
 
 		// Send to the 5.1 channels
-		RouteDryToSpeakers(ChannelVolumes);
+		RouteDryToSpeakers(ChannelVolumes, Volume);
 
 		// Send to the reverb channel
-		if (bReverbApplied)
+		if( bReverbApplied )
 		{
-			RouteToReverb(ChannelVolumes);
+			RouteToReverb( ChannelVolumes );
 		}
 
 		// If this audio can have radio distortion applied, 
 		// send the volumes to the radio distortion voice. 
-		if (WaveInstance->bApplyRadioFilter)
+		if( WaveInstance->bApplyRadioFilter )
 		{
-			RouteToRadio(ChannelVolumes);
+			RouteToRadio( ChannelVolumes );
 		}
 	}
 
 	FSoundSource::DrawDebugInfo();
 
+}
+
+float FXAudio2SoundSource::GetPlaybackPercent() const
+{
+	// If we didn't compute NumTotalFrames then there's no playback percent
+	if (NumTotalFrames == 0)
+	{
+		return 0.0f;
+	}
+
+	const int32 CurrentFrame = (StartFrame + NumFramesPlayed) % NumTotalFrames;
+
+	// Compute the percent based on frames played and total frames
+	const float Percent = (float)CurrentFrame / NumTotalFrames;
+
+	if (WaveInstance->LoopingMode == LOOP_Never)
+	{
+		return FMath::Clamp(Percent, 0.0f, 1.0f);
+	}
+	else
+	{
+		// Wrap the playback percent for looping sounds
+		return FMath::Fmod(Percent, 1.0f);
+	}
 }
 
 void FXAudio2SoundSource::Play()
@@ -1405,15 +1452,6 @@ void FXAudio2SoundSource::Stop()
 	{	
 		Paused = false;
 		Playing = false;
-
-		if (Source && Playing)
-		{
-			AudioDevice->ValidateAPICall(TEXT("FlushSourceBuffers"),
-										 Source->FlushSourceBuffers());
-
-			AudioDevice->ValidateAPICall(TEXT("Stop"),
-										 Source->Stop(0));
-		}
 
 		// Free resources
 		FreeResources();
@@ -1549,7 +1587,7 @@ bool FXAudio2SoundSource::IsFinished()
 	// A paused source is not finished.
 	if (Paused || !bInitialized)
 	{
-		return(false);
+		return false;
 	}
 
 

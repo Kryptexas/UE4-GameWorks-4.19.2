@@ -379,6 +379,19 @@ void FD3D11DynamicRHI::SetupAfterDeviceCreation()
 		UE_LOG(LogD3D11RHI,Log,TEXT("Async texture creation disabled: %s"),
 			D3D11RHI_ShouldAllowAsyncResourceCreation() ? TEXT("no driver support") : TEXT("disabled by user"));
 	}
+
+#if PLATFORM_WINDOWS
+	IUnknown* RenderDoc;
+	IID RenderDocID;
+	if (SUCCEEDED(IIDFromString(L"{A7AA6116-9C8D-4BBA-9083-B4D816B71B78}", &RenderDocID)))
+	{
+		if (SUCCEEDED(Direct3DDevice->QueryInterface(__uuidof(ID3D11Debug), (void**)(&RenderDoc))))
+		{
+			// Running under RenderDoc, so enable capturing mode
+			GDynamicRHI->EnableIdealGPUCaptureOptions(true);
+		}
+	}
+#endif
 }
 
 void FD3D11DynamicRHI::UpdateMSAASettings()
@@ -479,6 +492,7 @@ void FD3D11DynamicRHI::CleanupD3DDevice()
 			}
 		}
 
+		// Perform a detailed live object report (with resource types)
 		Direct3DDeviceIMContext = nullptr;
 
 #if !PLATFORM_SEH_EXCEPTIONS_DISABLED

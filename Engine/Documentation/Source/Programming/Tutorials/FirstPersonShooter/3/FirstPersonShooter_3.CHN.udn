@@ -1,35 +1,36 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: 3 - Implementing Projectiles
+﻿INTSourceChangelist:3069483
+Availability:Public
+Title:3 - 实现发射物
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter
-Description: How to implement projectiles for your First Person Shooter game.
-prereq: Programming/Tutorials/FirstPersonShooter/2
-Related: Programming/Tutorials/FirstPersonShooter
-SkillLevel: Beginner
-Version: 4.9
+Description:如何实现第一人称射击游戏的发射物。
+prereq:Programming/Tutorials/FirstPersonShooter/2
+Related:Programming/Tutorials/FirstPersonShooter
+SkillLevel:Beginner
+Version:4.9
 
-<!--TODO: Insert Cover Image-->
+![](CrosshairsInGame.png)
+_上图是该部分完成后的效果。_
 
-## Goals
+## 目标
 
-The purpose of this section is to show you how to implement projectiles for your First Person Shooter game.
+此部分旨在说明如何实现第一人称射击游戏中的发射物。
 
-## Objectives
+## 目的
 
-By the end of this section of the tutorial you'll be able to:
+完成此部分教程后您将学会：
 
-* Add Projectiles to your Game
-* Implement Shooting
-* Set-up Projectile Collision and Lifetime
-* Get your Projectiles to Interact with the World
-* Add Crosshairs to your Viewport
+* 在游戏中添加发射物
+* 实现射击
+* 设置发射物碰撞和生命周期
+* 使发射物和世界场景形成交互
+* 在视口中添加准星
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		步骤
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

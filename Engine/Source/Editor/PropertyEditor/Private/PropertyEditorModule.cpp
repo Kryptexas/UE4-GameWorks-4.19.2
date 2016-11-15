@@ -682,7 +682,13 @@ TSharedRef<class IStructureDetailsView> FPropertyEditorModule::CreateStructureDe
 		static bool PassesFilter( const FPropertyAndParent& PropertyAndParent, const FStructureDetailsViewArgs InStructureDetailsViewArgs )
 		{
 			const auto ArrayProperty = Cast<UArrayProperty>(&PropertyAndParent.Property);
-			const auto PropertyToTest = ArrayProperty ? ArrayProperty->Inner : &PropertyAndParent.Property;
+			const auto SetProperty = Cast<USetProperty>(&PropertyAndParent.Property);
+			const auto MapProperty = Cast<UMapProperty>(&PropertyAndParent.Property);
+
+			// If the property is a container type, the filter should test against the type of the container's contents
+			const UProperty* PropertyToTest = ArrayProperty ? ArrayProperty->Inner : &PropertyAndParent.Property;
+			PropertyToTest = SetProperty ? SetProperty->ElementProp : PropertyToTest;
+			PropertyToTest = MapProperty ? MapProperty->ValueProp : PropertyToTest;
 
 			if( InStructureDetailsViewArgs.bShowClasses && (PropertyToTest->IsA<UClassProperty>() || PropertyToTest->IsA<UAssetClassProperty>()) )
 			{

@@ -4,21 +4,29 @@
 #include "K2Node.h"
 #include "K2Node_TunnelBoundary.generated.h"
 
+enum ETunnelBoundaryType
+{
+	TBT_Unknown = 0,
+	TBT_EntrySite,
+	TBT_ExitSite,
+	TBT_EndOfThread
+};
+
 UCLASS()
 class BLUEPRINTGRAPH_API UK2Node_TunnelBoundary : public UK2Node
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Tunnel Graph Name */
+	/** Base Name */
 	UPROPERTY()
-	FName TunnelGraphName;
+	FName BaseName;
 
 	/** Final exit site */
 	UPROPERTY()
 	FEdGraphPinReference FinalExitSite;
 
 	/** Wether or not this is an exit point */
-	bool bEntryNode;
+	ETunnelBoundaryType TunnelBoundaryType;
 
 public:
 
@@ -33,6 +41,9 @@ public:
 	/** Creates Boundary nodes for a tunnel instance */
 	static void CreateBoundaryNodesForTunnelInstance(UK2Node_Tunnel* TunnelInstance, UEdGraph* TunnelGraph, class FCompilerResultsLog& MessageLog);
 
+	/** Creates Boundaries for expansion nodes */
+	static void CreateBoundariesForExpansionNodes(UEdGraphNode* SourceNode, TArray<UEdGraphNode*>& ExpansionNodes, TMap<UEdGraphPin*, UEdGraphPin*>& LinkedPinMap, FCompilerResultsLog& MessageLog);
+
 	/** Checks if the tunnel node is a pure tunnel rather than a tunnel instance */
 	static bool IsPureTunnel(UK2Node_Tunnel* Tunnel);
 
@@ -44,12 +55,22 @@ protected:
 	/** Wires up the tunnel exit boundries */
 	void WireUpTunnelExit(UK2Node_Tunnel* TunnelInstance, UEdGraphPin* TunnelPin, FCompilerResultsLog& MessageLog);
 
-	/** Determines the tunnel graph name */
-	void DetermineTunnelGraphName(UK2Node_Tunnel* TunnelInstance);
+	/** Wires up the entry boundries */
+	void WireUpEntry(UEdGraphNode* SourceNode, UEdGraphPin* SourcePin, TArray<UEdGraphPin*>& EntryPins, FCompilerResultsLog& MessageLog);
+
+	/** Wires up the exit boundries */
+	void WireUpExit(UEdGraphNode* SourceNode, UEdGraphPin* SourcePin, TArray<UEdGraphPin*>& ExitPins, FCompilerResultsLog& MessageLog);
+
+	/** Create base node name */
+	void CreateBaseNodeName(UEdGraphNode* SourceNode);
 
 	/** Build a guid map for nodes from the original graph */
 	static void BuildSourceNodeMap(UEdGraphNode* Tunnel, TMap<FGuid, const UEdGraphNode*>& SourceNodeMap);
 
 	/** Determines the true source tunnel instance */
 	static UEdGraphNode* FindTrueSourceTunnelInstance(UEdGraphNode* Tunnel, UEdGraphNode* SourceTunnelInstance);
+
+	/** Tries to map and locate tunnel exit or termination sites */
+	static void FindTunnelExitSiteInstances(UEdGraphPin* NodeEntryPin, TArray<UEdGraphPin*>& ExitPins, TArray<UEdGraphPin*>& VisitedPins, const UEdGraphNode* TunnelExit = nullptr);
+
 };

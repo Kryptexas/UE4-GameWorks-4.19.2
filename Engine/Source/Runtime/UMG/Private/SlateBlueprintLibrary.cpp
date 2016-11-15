@@ -70,4 +70,36 @@ void USlateBlueprintLibrary::AbsoluteToViewport(UObject* WorldContextObject, FVe
 	ViewportPosition = FVector2D(0, 0);
 }
 
+void USlateBlueprintLibrary::ScreenToWidgetLocal(UObject* WorldContextObject, const FGeometry& Geometry, FVector2D ScreenPosition, FVector2D& LocalCoordinate)
+{
+	FVector2D AbsoluteCoordinate;
+	ScreenToWidgetAbsolute(WorldContextObject, ScreenPosition, AbsoluteCoordinate);
+
+	LocalCoordinate = Geometry.AbsoluteToLocal(AbsoluteCoordinate);
+}
+
+void USlateBlueprintLibrary::ScreenToWidgetAbsolute(UObject* WorldContextObject, FVector2D ScreenPosition, FVector2D& AbsoluteCoordinate)
+{
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if ( World && World->IsGameWorld() )
+	{
+		if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
+		{
+			if ( FViewport* Viewport = ViewportClient->Viewport )
+			{
+				FVector2D ViewportSize;
+				ViewportClient->GetViewportSize(ViewportSize);
+
+				const FVector2D NormalizedViewportCoordinates = ScreenPosition / ViewportSize;
+
+				const FIntPoint VirtualDesktopPoint = Viewport->ViewportToVirtualDesktopPixel(NormalizedViewportCoordinates);
+				AbsoluteCoordinate = FVector2D(VirtualDesktopPoint);
+				return;
+			}
+		}
+	}
+
+	AbsoluteCoordinate = FVector2D(0, 0);
+}
+
 #undef LOCTEXT_NAMESPACE

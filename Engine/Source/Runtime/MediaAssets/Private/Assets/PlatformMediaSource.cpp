@@ -10,7 +10,7 @@
 
 FString UPlatformMediaSource::GetUrl() const
 {
-	return (DefaultSource != nullptr) ? DefaultSource->GetUrl() : FString();
+	return (MediaSource != nullptr) ? MediaSource->GetUrl() : FString();
 }
 
 
@@ -18,13 +18,60 @@ void UPlatformMediaSource::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
+	Ar.UsingCustomVersion(FSequencerObjectVersion::GUID);
 
+#if WITH_EDITORONLY_DATA
+	if (Ar.IsCooking())
+	{
+		UMediaSource** PlatformMediaSource = PlatformMediaSources.Find(Ar.CookingTarget()->PlatformName());
+		MediaSource = (PlatformMediaSource != nullptr) ? *PlatformMediaSource : nullptr;
+	}
+#endif
+	
+	if (Ar.IsLoading() && (Ar.CustomVer(FSequencerObjectVersion::GUID) < FSequencerObjectVersion::RenameMediaSourcePlatformPlayers))
+	{
+		FString DummyDefaultSource;
+		Ar << DummyDefaultSource;
+
+#if WITH_EDITORONLY_DATA
+		Ar << PlatformMediaSources;
+#endif
+	}
+	else
+	{
+#if WITH_EDITORONLY_DATA
+		Ar << PlatformMediaSources;
+#else
+		Ar << MediaSource;
+#endif
+	}
 }
 
 
 bool UPlatformMediaSource::Validate() const
 {
-	return (DefaultSource != nullptr) ? DefaultSource->Validate() : false;
+	return (MediaSource != nullptr) ? MediaSource->Validate() : false;
+}
+
+
+/* UPlatformMediaSource implementation
+ *****************************************************************************/
+
+UMediaSource* UPlatformMediaSource::GetMediaSource() const
+{
+#if WITH_EDITORONLY_DATA
+	const FString RunningPlatformName(FPlatformProperties::IniPlatformName());
+	UMediaSource*const* PlatformMediaSource = PlatformMediaSources.Find(RunningPlatformName);
+
+	if (PlatformMediaSource == nullptr)
+	{
+		return nullptr;
+	}
+
+	return *PlatformMediaSource;
+#else
+	return MediaSource;
+#endif
 }
 
 
@@ -33,35 +80,41 @@ bool UPlatformMediaSource::Validate() const
 
 bool UPlatformMediaSource::GetMediaOption(const FName& Key, bool DefaultValue) const
 {
-	return (DefaultSource != nullptr) ? DefaultSource->GetMediaOption(Key, DefaultValue) : DefaultValue;
+	UMediaSource* PlatformMediaSource = GetMediaSource();
+	return (PlatformMediaSource != nullptr) ? PlatformMediaSource->GetMediaOption(Key, DefaultValue) : DefaultValue;
 }
 
 
 double UPlatformMediaSource::GetMediaOption(const FName& Key, double DefaultValue) const
 {
-	return (DefaultSource != nullptr) ? DefaultSource->GetMediaOption(Key, DefaultValue) : DefaultValue;
+	UMediaSource* PlatformMediaSource = GetMediaSource();
+	return (PlatformMediaSource != nullptr) ? PlatformMediaSource->GetMediaOption(Key, DefaultValue) : DefaultValue;
 }
 
 
 int64 UPlatformMediaSource::GetMediaOption(const FName& Key, int64 DefaultValue) const
 {
-	return (DefaultSource != nullptr) ? DefaultSource->GetMediaOption(Key, DefaultValue) : DefaultValue;
+	UMediaSource* PlatformMediaSource = GetMediaSource();
+	return (PlatformMediaSource != nullptr) ? PlatformMediaSource->GetMediaOption(Key, DefaultValue) : DefaultValue;
 }
 
 
 FString UPlatformMediaSource::GetMediaOption(const FName& Key, const FString& DefaultValue) const
 {
-	return (DefaultSource != nullptr) ? DefaultSource->GetMediaOption(Key, DefaultValue) : DefaultValue;
+	UMediaSource* PlatformMediaSource = GetMediaSource();
+	return (PlatformMediaSource != nullptr) ? PlatformMediaSource->GetMediaOption(Key, DefaultValue) : DefaultValue;
 }
 
 
 FText UPlatformMediaSource::GetMediaOption(const FName& Key, const FText& DefaultValue) const
 {
-	return (DefaultSource != nullptr) ? DefaultSource->GetMediaOption(Key, DefaultValue) : DefaultValue;
+	UMediaSource* PlatformMediaSource = GetMediaSource();
+	return (PlatformMediaSource != nullptr) ? PlatformMediaSource->GetMediaOption(Key, DefaultValue) : DefaultValue;
 }
 
 
 bool UPlatformMediaSource::HasMediaOption(const FName& Key) const
 {
-	return (DefaultSource != nullptr) ? DefaultSource->HasMediaOption(Key) : false;
+	UMediaSource* PlatformMediaSource = GetMediaSource();
+	return (PlatformMediaSource != nullptr) ? PlatformMediaSource->HasMediaOption(Key) : false;
 }

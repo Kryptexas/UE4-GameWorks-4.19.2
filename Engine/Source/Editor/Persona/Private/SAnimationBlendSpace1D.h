@@ -157,17 +157,15 @@ class SBlendSpaceEditor1D : public SBlendSpaceEditorBase
 {
 public:
 	SLATE_BEGIN_ARGS(SBlendSpaceEditor1D)
-		: _BlendSpace1D(NULL)			
-		, _Persona()
+		: _BlendSpace1D(NULL)
 		{}
 
 		SLATE_ARGUMENT(UBlendSpace1D*, BlendSpace1D)
-		SLATE_ARGUMENT(TSharedPtr<class FPersona>, Persona)
 	SLATE_END_ARGS()
 
 	~SBlendSpaceEditor1D();
 
-	void Construct(const FArguments& InArgs);
+	void Construct(const FArguments& InArgs, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& OnPostUndo);
 
 protected:
 

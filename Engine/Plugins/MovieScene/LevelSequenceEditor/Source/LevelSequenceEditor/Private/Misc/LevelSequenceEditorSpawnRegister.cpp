@@ -175,7 +175,19 @@ void FLevelSequenceEditorSpawnRegister::HandleActorSelectionChanged(const TArray
 {
 	if (bShouldClearSelectionCache)
 	{
-		SelectedSpawnedObjects.Reset();
+		TSharedPtr<ISequencer> Sequencer = WeakSequencer.Pin();
+		if (Sequencer.IsValid())
+		{
+			for (auto SpawnedObject : SpawnedObjects)
+			{
+				FMovieSceneSpawnRegisterKey SpawnRegisterKey(SpawnedObject.Key, Sequencer->GetFocusedMovieSceneSequenceInstance().Get());
+				if (SelectedSpawnedObjects.Contains(SpawnRegisterKey))
+				{
+					SelectedSpawnedObjects.Remove(SpawnRegisterKey);
+					break;
+				}
+			}
+		}
 	}
 }
 

@@ -15,6 +15,7 @@
 
 #include "GoogleVRController.h"
 #include "IHeadMountedDisplay.h"
+#include "Classes/GoogleVRControllerFunctionLibrary.h"
 
 #if GOOGLEVRCONTROLLER_SUPPORTED_ANDROID_PLATFORMS
 #include "Android/AndroidJNI.h"
@@ -31,6 +32,7 @@ static int EmulatorHandednessPreference = 0; // set to right handed by default;
 static bool bKeepConnectingControllerEmulator = false;
 static double LastTimeTryAdbForward = 0.0;
 static bool bIsLastTickInPlayMode = false;
+static FRotator BaseEmulatorOrientation= FRotator::ZeroRotator;
 static bool SetupAdbForward();
 static bool ExecuteAdbCommand( const FString& CommandLine, FString* OutStdOut, FString* OutStdErr);
 static void GetAdbPath(FString& OutADBPath);
@@ -112,12 +114,12 @@ IMPLEMENT_MODULE( FGoogleVRControllerPlugin, GoogleVRController)
 
 #if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
 FGoogleVRController::FGoogleVRController(gvr::ControllerApi* pControllerAPI, const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler)
-	:
-	pController(pControllerAPI),
+	: pController(pControllerAPI)
+	, MessageHandler(InMessageHandler)
 #else
-FGoogleVRController::FGoogleVRController(const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler) :
+FGoogleVRController::FGoogleVRController(const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler)
+	: MessageHandler(InMessageHandler)
 #endif
-	MessageHandler(InMessageHandler)
 {
 	UE_LOG(LogGoogleVRController, Log, TEXT("GoogleVR Controller Created"));
 
@@ -230,7 +232,7 @@ void FGoogleVRController::PollController()
 		double CurrentTime = FPlatformTime::Seconds();
 		if(CurrentTime - LastTimeTryAdbForward > ADB_FORWARD_RETRY_TIME)
 		{
-			//UE_LOG(LogGoogleVRController, Log, TEXT("Trying to connect to GoogleVR Controller"));
+			UE_LOG(LogGoogleVRController, Log, TEXT("Trying to connect to GoogleVR Controller"));
 			SetupAdbForward();
 			LastTimeTryAdbForward = CurrentTime;
 		}
@@ -357,6 +359,24 @@ void FGoogleVRController::ProcessControllerButtons()
 #endif // GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
 }
 
+void FGoogleVRController::ProcessControllerEvents()
+{
+#if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
+	if (CachedControllerState.GetRecentered())
+	{
+#if GOOGLEVRCONTROLLER_SUPPORTED_EMULATOR_PLATFORMS
+		// Perform recenter when using in editor controller emulation
+		if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->GetVersionString().Contains(TEXT("GoogleVR")) )
+		{
+			GEngine->HMDDevice.Get()->ResetOrientation();
+		}
+		BaseEmulatorOrientation.Yaw += LastOrientation.Yaw;
+#endif
+		UGoogleVRControllerFunctionLibrary::GetGoogleVRControllerEventManager()->OnControllerRecenteredDelegate.Broadcast();
+	}
+#endif
+}
+
 bool FGoogleVRController::IsAvailable() const
 {
 #if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
@@ -408,6 +428,7 @@ void FGoogleVRController::Tick(float DeltaTime)
 void FGoogleVRController::SendControllerEvents()
 {
 	ProcessControllerButtons();
+	ProcessControllerEvents();
 }
 
 void FGoogleVRController::SetMessageHandler(const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler)
@@ -438,6 +459,9 @@ bool FGoogleVRController::GetControllerOrientationAndPosition(const int32 Contro
 #if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS
 		gvr_quatf ControllerOrientation = CachedControllerState.GetOrientation();
 		OutOrientation = FQuat(ControllerOrientation.qz, -ControllerOrientation.qx, -ControllerOrientation.qy, ControllerOrientation.qw).Rotator();
+#if GOOGLEVRCONTROLLER_SUPPORTED_EMULATOR_PLATFORMS
+		OutOrientation.Yaw -= BaseEmulatorOrientation.Yaw;
+#endif
 #endif
 
 		LastOrientation = OutOrientation;

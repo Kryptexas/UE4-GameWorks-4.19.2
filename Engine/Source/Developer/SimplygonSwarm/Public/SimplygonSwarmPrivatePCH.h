@@ -8,7 +8,9 @@
 #include "MeshBoneReduction.h"
 #include "ComponentReregisterContext.h"
 #include "ImageUtils.h"
+THIRD_PARTY_INCLUDES_START
 #include "ssf.h"
+THIRD_PARTY_INCLUDES_END
 #include "ImageWrapper.h"
 #include "SimplygonRESTClient.h"
 #include "Engine.h"
@@ -17,7 +19,7 @@
 namespace SPL = Simplygon::SPL::v80;
 
 #ifndef SPL_VERSION
-	#define SPL_VERSION 7
+	#define SPL_VERSION 8
 #endif // !SPL_VERSION
 
 #define SPL_CURRENT_VERSION SPL_VERSION

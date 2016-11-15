@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:2953540
-Availability:Docs
+﻿INTSourceChangelist:3069483
+Availability: Public
 Title:4.2 - Event Graph のセットアップ
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4
 Description:FPS キャラクターの Event Graph をセットアップする方法を学びます。

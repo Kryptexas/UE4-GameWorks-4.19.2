@@ -1,6 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "Landscape.h"
+#include "LandscapePrivatePCH.h"
 #include "MaterialCompiler.h"
 #include "Materials/MaterialExpressionLandscapeVisibilityMask.h"
 #include "Engine/Engine.h"
@@ -30,7 +30,10 @@ UMaterialExpressionLandscapeVisibilityMask::UMaterialExpressionLandscapeVisibili
 	static FConstructorStatics ConstructorStatics;
 
 	bIsParameterExpression = true;
+
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Landscape);
+#endif
 }
 
 FGuid& UMaterialExpressionLandscapeVisibilityMask::GetParameterExpressionId()
@@ -39,7 +42,7 @@ FGuid& UMaterialExpressionLandscapeVisibilityMask::GetParameterExpressionId()
 }
 
 #if WITH_EDITOR
-int32 UMaterialExpressionLandscapeVisibilityMask::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
+int32 UMaterialExpressionLandscapeVisibilityMask::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
 	int32 MaskLayerCode = Compiler->StaticTerrainLayerWeight(ParameterName, Compiler->Constant(0.f));
 	return MaskLayerCode == INDEX_NONE ? Compiler->Constant(1.f) : Compiler->Sub(Compiler->Constant(1.f), MaskLayerCode);

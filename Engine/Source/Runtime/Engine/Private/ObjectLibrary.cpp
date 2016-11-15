@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 #include "AssetRegistryModule.h"
 #include "Engine/ObjectLibrary.h"
+#include "Engine/StreamableManager.h"
 
 UObjectLibrary::UObjectLibrary(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -45,6 +46,8 @@ void UObjectLibrary::PostEditChangeProperty(FPropertyChangedEvent& PropertyChang
 					{
 						UBlueprintCore* Blueprint = Cast<UBlueprintCore>(Objects[i]);
 						BlueprintClass = Blueprint ? Blueprint->GeneratedClass : nullptr;
+						// replace BP with BPGC
+						Objects[i] = BlueprintClass;
 					}
 
 					if (!BlueprintClass)
@@ -70,6 +73,27 @@ void UObjectLibrary::PostEditChangeProperty(FPropertyChangedEvent& PropertyChang
 	}
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
+}
+
+void UObjectLibrary::PostLoad()
+{
+	Super::PostLoad();
+
+	if (bHasBlueprintClasses)
+	{
+		// replace BP with BPGC
+		for (int32 i = 0; i < Objects.Num(); i++)
+		{
+			UBlueprintCore* Blueprint = Cast<UBlueprintCore>(Objects[i]);
+			if (Blueprint)
+			{
+				UClass* BlueprintClass = Blueprint->GeneratedClass;
+				Objects[i] = (BlueprintClass && BlueprintClass->IsChildOf(ObjectBaseClass))
+					? BlueprintClass
+					: nullptr;
+			}
+		}
+	}
 }
 #endif // WITH_EDITOR
 
@@ -162,6 +186,7 @@ bool UObjectLibrary::AddObject(UObject *NewObject)
 		if (WeakObjects.Add(NewObject) != INDEX_NONE)
 		{
 			Modify();
+			OnObjectAddedEvent.Broadcast(NewObject);
 			return true;
 		}
 	}
@@ -175,6 +200,7 @@ bool UObjectLibrary::AddObject(UObject *NewObject)
 		if (Objects.Add(NewObject) != INDEX_NONE)
 		{
 			Modify();
+			OnObjectAddedEvent.Broadcast(NewObject);
 			return true;
 		}
 	}
@@ -189,6 +215,7 @@ bool UObjectLibrary::RemoveObject(UObject *ObjectToRemove)
 		if (Objects.Remove(ObjectToRemove) != 0)
 		{
 			Modify();
+			OnObjectRemovedEvent.Broadcast(ObjectToRemove);
 			return true;
 		}
 	}
@@ -197,6 +224,7 @@ bool UObjectLibrary::RemoveObject(UObject *ObjectToRemove)
 		if (WeakObjects.Remove(ObjectToRemove) != 0)
 		{
 			Modify();
+			OnObjectRemovedEvent.Broadcast(ObjectToRemove);
 			return true;
 		}
 	}
@@ -444,6 +472,7 @@ int32 UObjectLibrary::LoadBlueprintAssetDataFromPaths(const TArray<FString>& Pat
 int32 UObjectLibrary::LoadAssetsFromAssetData()
 {
 	int32 Count = 0;
+	bool bPreloadObjects = !WITH_EDITOR;
 
 	if (bIsFullyLoaded)
 	{
@@ -453,17 +482,50 @@ int32 UObjectLibrary::LoadAssetsFromAssetData()
 
 	bIsFullyLoaded = true;
 
+	// Preload the packages with an async call, faster in cooked builds
+	if (bPreloadObjects)
+	{
+		TArray<FStringAssetReference> AssetsToStream;
+
+		for (int32 AssetIdx = 0; AssetIdx < AssetDataList.Num(); AssetIdx++)
+		{
+			FAssetData& Data = AssetDataList[AssetIdx];
+			AssetsToStream.AddUnique(Data.PackageName.ToString());
+		}
+
+		if (AssetsToStream.Num())
+		{
+			FStreamableManager Streamable;
+			bool bLoadFinished = false;
+
+			Streamable.RequestAsyncLoad(AssetsToStream,
+				FStreamableDelegate::CreateLambda([&bLoadFinished]()
+			{
+				bLoadFinished = true;
+			}));
+
+			FlushAsyncLoading();
+			check(bLoadFinished);
+		}
+
+	}
+
 	for(int32 AssetIdx=0; AssetIdx<AssetDataList.Num(); AssetIdx++)
 	{
 		FAssetData& Data = AssetDataList[AssetIdx];
 
 		UObject *LoadedObject = NULL;
-			
+		
 		if (!bHasBlueprintClasses)
 		{
 			LoadedObject = Data.GetAsset();
 
 			checkSlow(!LoadedObject || !ObjectBaseClass || LoadedObject->IsA(ObjectBaseClass));
+
+			if (!LoadedObject)
+			{
+				UE_LOG(LogEngine, Warning, TEXT("Failed to load %s referenced in %s"), *Data.PackageName.ToString(), ObjectBaseClass ? *ObjectBaseClass->GetName() : TEXT("Unnamed"));
+			}
 		}
 		else
 		{

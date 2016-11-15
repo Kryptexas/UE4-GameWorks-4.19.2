@@ -19,4 +19,6 @@
 #include "HTML5/HTML5PlatformMemory.h"
 #elif PLATFORM_LINUX
 #include "Linux/LinuxPlatformMemory.h"
+#elif PLATFORM_WOLF
+#include "WolfPlat/WolfPlatformMemory.h"
 #endif

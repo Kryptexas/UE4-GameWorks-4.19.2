@@ -8,6 +8,8 @@
 class SWindow;
 class FSlateViewportInterface;
 
+DECLARE_MEMORY_STAT_EXTERN(TEXT("Vertex/Index Buffer Pool Memory (CPU)"), STAT_SlateBufferPoolMemory, STATGROUP_SlateMemory, SLATECORE_API );
+
 
 struct FSlateGradientStop
 {
@@ -894,6 +896,60 @@ private:
 	uint32 MaxLayer;
 };
 
+#if STATS
+
+class FSlateStatTrackingMemoryAllocator : public FDefaultAllocator
+{
+public:
+	typedef FDefaultAllocator Super;
+
+	class ForAnyElementType : public FDefaultAllocator::ForAnyElementType
+	{
+	public:
+		typedef FDefaultAllocator::ForAnyElementType Super;
+
+		ForAnyElementType()
+			: AllocatedSize(0)
+		{
+
+		}
+
+		/** Destructor. */
+		~ForAnyElementType()
+		{
+			if(AllocatedSize)
+			{
+				DEC_DWORD_STAT_BY(STAT_SlateBufferPoolMemory, AllocatedSize);
+			}
+		}
+
+		void ResizeAllocation(int32 PreviousNumElements, int32 NumElements, int32 NumBytesPerElement)
+		{
+			const int32 NewSize = NumElements * NumBytesPerElement;
+			INC_DWORD_STAT_BY(STAT_SlateBufferPoolMemory, NewSize - AllocatedSize);
+			AllocatedSize = NewSize;
+
+			Super::ResizeAllocation(PreviousNumElements, NumElements, NumBytesPerElement);
+		}
+
+	private:
+		ForAnyElementType(const ForAnyElementType&);
+		ForAnyElementType& operator=(const ForAnyElementType&);
+	private:
+		int32 AllocatedSize;
+	};
+};
+
+typedef TArray<FSlateVertex, FSlateStatTrackingMemoryAllocator> FSlateVertexArray;
+typedef TArray<SlateIndex, FSlateStatTrackingMemoryAllocator> FSlateIndexArray;
+
+#else
+
+typedef TArray<FSlateVertex> FSlateVertexArray;
+typedef TArray<SlateIndex> FSlateIndexArray;
+
+#endif
+
 
 class FSlateBatchData
 {
@@ -923,10 +979,10 @@ public:
 	void AssignIndexArrayToBatch( FSlateElementBatch& Batch );
 
 	/** @return the list of vertices for a batch */
-	TArray<FSlateVertex>& GetBatchVertexList( FSlateElementBatch& Batch ) { return BatchVertexArrays[Batch.VertexArrayIndex]; }
+	FSlateVertexArray& GetBatchVertexList( FSlateElementBatch& Batch ) { return BatchVertexArrays[Batch.VertexArrayIndex]; }
 
 	/** @return the list of indices for a batch */
-	TArray<SlateIndex>& GetBatchIndexList( FSlateElementBatch& Batch ) { return BatchIndexArrays[Batch.IndexArrayIndex]; }
+	FSlateIndexArray& GetBatchIndexList( FSlateElementBatch& Batch ) { return BatchIndexArrays[Batch.IndexArrayIndex]; }
 
 	/** @return The total number of batched vertices */
 	int32 GetNumBatchedVertices() const { return NumBatchedVertices; }
@@ -958,6 +1014,18 @@ private:
 
 	void AddRenderBatch(uint32 InLayer, const FSlateElementBatch& InElementBatch, int32 InNumVertices, int32 InNumIndices, int32 InVertexOffset, int32 InIndexOffset);
 
+	/**
+	 * Resets an array from the pool of vertex arrays
+	 * This will empty the array and give it a reasonable starting memory amount for when it is reused
+	 */
+	void ResetVertexArray(FSlateVertexArray& InOutVertexArray);
+
+	/**
+	* Resets an array from the pool of index arrays
+	* This will empty the array and give it a reasonable starting memory amount for when it is reused
+	*/
+	void ResetIndexArray(FSlateIndexArray& InOutIndexArray);
+
 private:
 
 	// The associated render data handle if these render batches are not in the default vertex/index buffer
@@ -970,10 +1038,10 @@ private:
 	TArray<uint32> IndexArrayFreeList;
 
 	// Array of vertex lists for batching vertices. We use this method for quickly resetting the arrays without deleting memory.
-	TArray<TArray<FSlateVertex>> BatchVertexArrays;
+	TArray<FSlateVertexArray> BatchVertexArrays;
 
 	// Array of vertex lists for batching indices. We use this method for quickly resetting the arrays without deleting memory.
-	TArray<TArray<SlateIndex>> BatchIndexArrays;
+	TArray<FSlateIndexArray> BatchIndexArrays;
 
 	/** List of element batches sorted by later for use in rendering (for threaded renderers, can only be accessed from the render thread)*/
 	TArray<FSlateRenderBatch> RenderBatches;
@@ -999,13 +1067,8 @@ public:
 	// Element batch maps sorted by layer.
 	FElementBatchMap LayerToElementBatches;
 
-#if SLATE_POOL_DRAW_ELEMENTS
-	/** The elements drawn on this layer */
-	TArray<FSlateDrawElement*> DrawElements;
-#else
 	/** The elements drawn on this layer */
 	TArray<FSlateDrawElement> DrawElements;
-#endif
 };
 
 /**
@@ -1050,16 +1113,7 @@ public:
 	{
 		return TopLevelWindow.Pin();
 	}
-	
-#if SLATE_POOL_DRAW_ELEMENTS
-	
-	/** @return Get the draw elements that we want to render into this window */
-	FORCEINLINE const TArray<FSlateDrawElement*>& GetDrawElements() const
-	{
-		return RootDrawLayer.DrawElements;
-	}
 
-#else
 
 	/** @return Get the draw elements that we want to render into this window */
 	FORCEINLINE const TArray<FSlateDrawElement>& GetDrawElements() const
@@ -1077,44 +1131,25 @@ public:
 		TArray<FSlateDrawElement>& ActiveDrawElements = DrawStack.Last()->DrawElements;
 		ActiveDrawElements.Add(InDrawElement);
 	}
-#endif
 
 	/**
 	 * Creates an uninitialized draw element
 	 */
 	FORCEINLINE FSlateDrawElement& AddUninitialized()
 	{
-#if SLATE_POOL_DRAW_ELEMENTS
-		FSlateDrawElement* DrawElement = ( DrawElementFreePool.Num() > 0 ) ? DrawElementFreePool.Pop() : new FSlateDrawElement();
-		DrawStack.Last()->DrawElements.Push(DrawElement);
-
-		return *DrawElement;
-#else
 		TArray<FSlateDrawElement>& ActiveDrawElements = DrawStack.Last()->DrawElements;
 		const int32 InsertIdx = ActiveDrawElements.AddDefaulted();
 		return ActiveDrawElements[InsertIdx];
-#endif
 	}
 
-#if SLATE_POOL_DRAW_ELEMENTS
 	/**
 	 * Append draw elements to the list of draw elements
 	 */
-	FORCEINLINE void AppendDrawElements(const TArray<FSlateDrawElement*>& InDrawElements)
-	{
-		TArray<FSlateDrawElement*>& ActiveDrawElements = DrawStack.Last()->DrawElements;
-		ActiveDrawElements.Append(InDrawElements);
-	}
-#else
-	/**
-	* Append draw elements to the list of draw elements
-	*/
 	FORCEINLINE void AppendDrawElements(const TArray<FSlateDrawElement>& InDrawElements)
 	{
 		TArray<FSlateDrawElement>& ActiveDrawElements = DrawStack.Last()->DrawElements;
 		ActiveDrawElements.Append(InDrawElements);
 	}
-#endif
 
 	/**
 	 * Some widgets may want to paint their children after after another, loosely-related widget finished painting.
@@ -1258,11 +1293,6 @@ private:
 
 	/** */
 	TArray< FSlateDrawLayer* > DrawStack;
-
-#if SLATE_POOL_DRAW_ELEMENTS
-	/** List of draw elements for the window */
-	TArray<FSlateDrawElement*> DrawElementFreePool;
-#endif
 
 	TArray< TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> > CachedRenderHandlesInUse;
 

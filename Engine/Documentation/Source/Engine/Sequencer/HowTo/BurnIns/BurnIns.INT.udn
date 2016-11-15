@@ -1,4 +1,4 @@
-Availability: Docs
+Availability: Public
 Title:Applying Burn Ins
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
 Description:Shows how you can apply overlays from UMG to rendered Sequencer movies.  
@@ -10,9 +10,11 @@ checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine/Sequencer/ReferenceEditor
 
+[EXCERPT:intro]
 When creating and rendering out cinematic movies, you may want to include overlays with information about the scene you are viewing such as the name of the shot, the date, time or frame information. 
 These overlays are referred to as **Burn Ins** as they are burned into the movie when it is rendered out. 
 Often times you will see this process as part of real world movie making to provide directors, editors or anyone viewing the scene with contextual information about the scene (some will even be watermarked with copyright information). 
+[/EXCERPT:intro]
 
 **Sequencer** allows you to apply burn ins to your rendered out movies and provides a default burn in with general information about the shot. 
 In this guide we take a look at how to enable the default burn in options when rendering out your cinematics. 

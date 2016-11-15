@@ -228,6 +228,9 @@ struct FMeshSectionInfoMap
 	/** Clears all entries in the map resetting everything to default. */
 	ENGINE_API void Clear();
 
+	/** Get the number of section for a LOD. */
+	ENGINE_API int32 GetSectionNumber(int32 LODIndex) const;
+
 	/** Gets per-section settings for the specified LOD + section. */
 	ENGINE_API FMeshSectionInfo Get(int32 LODIndex, int32 SectionIndex) const;
 
@@ -286,6 +289,97 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnPreMeshBuild, class UStaticMesh*);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnPostMeshBuild, class UStaticMesh*);
 #endif
 
+//~ Begin Material Interface for UStaticMesh - contains a material and other stuff
+USTRUCT()
+struct FStaticMaterial
+{
+	GENERATED_USTRUCT_BODY()
+
+		FStaticMaterial()
+		: MaterialInterface(NULL)
+		, MaterialSlotName(NAME_None)
+#if WITH_EDITORONLY_DATA
+		, ImportedMaterialSlotName(NAME_None)
+#endif //WITH_EDITORONLY_DATA
+	{
+
+	}
+
+	FStaticMaterial(class UMaterialInterface* InMaterialInterface
+		, FName InMaterialSlotName = NAME_None
+#if WITH_EDITORONLY_DATA
+		, FName InImportedMaterialSlotName = NAME_None)
+#else
+		)
+#endif
+		: MaterialInterface(InMaterialInterface)
+		, MaterialSlotName(InMaterialSlotName)
+#if WITH_EDITORONLY_DATA
+		, ImportedMaterialSlotName(InImportedMaterialSlotName)
+#endif //WITH_EDITORONLY_DATA
+	{
+
+	}
+
+	friend FArchive& operator<<(FArchive& Ar, FStaticMaterial& Elem);
+
+	ENGINE_API friend bool operator==(const FStaticMaterial& LHS, const FStaticMaterial& RHS);
+	ENGINE_API friend bool operator==(const FStaticMaterial& LHS, const UMaterialInterface& RHS);
+	ENGINE_API friend bool operator==(const UMaterialInterface& LHS, const FStaticMaterial& RHS);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, transient, Category = StaticMesh)
+	class UMaterialInterface* MaterialInterface;
+
+	/*This name should be use by the gameplay to avoid error if the skeletal mesh Materials array topology change*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = StaticMesh)
+	FName MaterialSlotName;
+
+#if WITH_EDITORONLY_DATA
+	/*This name should be use when we re-import a skeletal mesh so we can order the Materials array like it should be*/
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = StaticMesh)
+	FName ImportedMaterialSlotName;
+#endif //WITH_EDITORONLY_DATA
+
+	/** Data used for texture streaming relative to each UV channels. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = StaticMesh)
+	FMeshUVChannelInfo			UVChannelData;
+};
+
+
+enum EImportStaticMeshVersion
+{
+	// Before any version changes were made
+	BeforeImportStaticMeshVersionWasAdded,
+	// Remove the material re-order workflow
+	RemoveStaticMeshSkinxxWorkflow,
+	VersionPlusOne,
+	LastVersion = VersionPlusOne - 1
+};
+
+USTRUCT()
+struct FMaterialRemapIndex
+{
+	GENERATED_USTRUCT_BODY()
+
+	FMaterialRemapIndex()
+	{
+		ImportVersionKey = 0;
+	}
+
+	FMaterialRemapIndex(uint32 VersionKey, TArray<int32> RemapArray)
+	: ImportVersionKey(VersionKey)
+	, MaterialRemap(RemapArray)
+	{
+	}
+
+	UPROPERTY()
+	uint32 ImportVersionKey;
+
+	UPROPERTY()
+	TArray<int32> MaterialRemap;
+};
+
+
 /**
  * A StaticMesh is a piece of geometry that consists of a static set of polygons.
  * Static Meshes can be translated, rotated, and scaled, but they cannot have their vertices animated in any way. As such, they are more efficient
@@ -303,16 +397,14 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	TScopedPointer<class FStaticMeshRenderData> RenderData;
 
 #if WITH_EDITORONLY_DATA
+	static const float MinimumAutoLODPixelError;
+
 	/** Imported raw mesh bulk data. */
 	UPROPERTY()
 	TArray<FStaticMeshSourceModel> SourceModels;
 
 	/** Map of LOD+Section index to per-section info. */
 	FMeshSectionInfoMap SectionInfoMap;
-
-	/** The pixel error allowed when computing auto LOD distances. */
-	UPROPERTY()
-	float AutoLODPixelError;
 
 	/** The LOD group to which this mesh belongs. */
 	UPROPERTY()
@@ -322,11 +414,21 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	UPROPERTY()
 	uint32 bAutoComputeLODScreenSize:1;
 
+	/* The last import version */
+	UPROPERTY()
+	int32 ImportVersion;
+
+	UPROPERTY()
+	TArray<FMaterialRemapIndex> MaterialRemapIndexPerImportVersion;
+	
 	/**
 	* If true on post load we need to calculate Display Factors from the
 	* loaded LOD distances.
 	*/
 	bool bRequiresLODDistanceConversion : 1;
+
+
+
 #endif // #if WITH_EDITORONLY_DATA
 
 	/** Minimum LOD to use for rendering.  This is the default setting for the mesh and can be overridden by component settings. */
@@ -335,7 +437,13 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 
 	/** Materials used by this static mesh. Individual sections index in to this array. */
 	UPROPERTY()
-	TArray<UMaterialInterface*> Materials;
+	TArray<UMaterialInterface*> Materials_DEPRECATED;
+
+	UPROPERTY()
+	TArray<FStaticMaterial> StaticMaterials;
+
+	UPROPERTY()
+	float LightmapUVDensity;
 
 	UPROPERTY(EditAnywhere, Category=StaticMesh, meta=(ToolTip="The light map resolution", FixedIncrement="4.0"))
 	int32 LightMapResolution;
@@ -356,11 +464,6 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	UPROPERTY(EditAnywhere, Category = StaticMesh, meta=(DisplayName="LOD For Collision"))
 	int32 LODForCollision;
 
-	/** True if mesh should use a less-conservative method of mip LOD texture factor computation.
-		requires mesh to be resaved to take effect as algorithm is applied on save. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=StaticMesh, meta=(ToolTip="If true, use a less-conservative method of mip LOD texture factor computation.  Requires mesh to be resaved to take effect as algorithm is applied on save"))
-	uint32 bUseMaximumStreamingTexelRatio:1;
-
 	/** If true, strips unwanted complex collision data aka kDOP tree when cooking for consoles.
 		On the Playstation 3 data of this mesh will be stored in video memory. */
 	UPROPERTY()
@@ -370,14 +473,6 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	    Set to false for distant meshes (always outside navigation bounds) to save memory on collision data. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Navigation)
 	uint32 bHasNavigationData:1;
-
-	/**
-	 * Allows artists to adjust the distance where textures using UV 0 are streamed in/out.
-	 * 1.0 is the default, whereas a higher value increases the streamed-in resolution.
-	 * Value can be < 0 (from legcay content, or code changes)
-	 */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=StaticMesh, meta=(ClampMin = 0))
-	float StreamingDistanceMultiplier;
 
 	/** Bias multiplier for Light Propagation Volume lighting */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=StaticMesh, meta=(UIMin = "0.0", UIMax = "3.0"))
@@ -479,6 +574,7 @@ public:
 	ENGINE_API virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	ENGINE_API virtual void GetAssetRegistryTagMetadata(TMap<FName, FAssetRegistryTagMetadata>& OutMetadata) const override;
+	ENGINE_API void SetLODGroup(FName NewGroup);
 #endif // WITH_EDITOR
 	ENGINE_API virtual void Serialize(FArchive& Ar) override;
 	ENGINE_API virtual void PostInitProperties() override;
@@ -487,7 +583,7 @@ public:
 	ENGINE_API virtual bool IsReadyForFinishDestroy() override;
 	ENGINE_API virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 	ENGINE_API virtual FString GetDesc() override;
-	ENGINE_API virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	ENGINE_API virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 	//~ End UObject Interface.
 
 	/**
@@ -507,25 +603,30 @@ public:
 	ENGINE_API virtual void ReleaseResources();
 
 	/**
-	 * Returns the scale dependent texture factor used by the texture streaming code.
+	 * Update missing material UV channel data used for texture streaming. 
 	 *
-	 * @param RequestedUVIndex UVIndex to look at
-	 * @return scale dependent texture factor
+	 * @param bRebuildAll		If true, rebuild everything and not only missing data.
 	 */
-	float GetStreamingTextureFactor( int32 RequestedUVIndex ) const;
+	ENGINE_API void UpdateUVChannelData(bool bRebuildAll);
 
 	/**
-	 * Returns the scale dependent texture factor and bound used by the texture streaming code.
+	 * Returns the material bounding box. Computed from all lod-section using the material index.
 	 *
-	 * @param OutTexelFactor		The requested texel factor
-	 * @param OutTexelFactor		The requested bound for this texel factor
-	 * @param CoordinateIndex		UV Index to look at
-	 * @param LODIndex				LOD index to look at
-	 * @param ElementIndex			Element index to look at
+	 * @param MaterialIndex			Material Index to look at
 	 * @param TransformMatrix		Matrix to be applied to the position before computing the bounds
+	 *
 	 * @return false if some parameters are invalid
 	 */
-	bool GetStreamingTextureFactor( float& OutTexelFactor, FBoxSphereBounds& OutBounds, int32 CoordinateIndex, int32 LODIndex, int32 ElementIndex, const FTransform& Transform ) const;
+	ENGINE_API FBox GetMaterialBox(int32 MaterialIndex, const FTransform& Transform) const;
+
+	/**
+	 * Returns the UV channel data for a given material index. Used by the texture streamer.
+	 * This data applies to all lod-section using the same material.
+	 *
+	 * @param MaterialIndex		the material index for which to get the data for.
+	 * @return the data, or null if none exists.
+	 */
+	ENGINE_API const FMeshUVChannelInfo* GetUVChannelData(int32 MaterialIndex) const;
 
 	/**
 	 * Returns the number of vertices for the specified LOD.
@@ -565,6 +666,13 @@ public:
 	 * @return Requested material
 	 */
 	ENGINE_API UMaterialInterface* GetMaterial(int32 MaterialIndex) const;
+
+	/**
+	* Gets a Material index given a slot name
+	*
+	* @return Requested material
+	*/
+	ENGINE_API int32 GetMaterialIndex(FName MaterialSlotName) const;
 
 	/**
 	 * Returns the render data to use for exporting the specified LOD. This method should always

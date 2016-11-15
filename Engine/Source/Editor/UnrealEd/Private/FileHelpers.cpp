@@ -99,19 +99,6 @@ private:
 
 namespace FileDialogHelpers
 {
-	static void* ChooseParentWindowHandle()
-	{
-		void* ParentWindowWindowHandle = NULL;
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-		if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
-		{
-			ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-		}
-
-		return ParentWindowWindowHandle;
-	}
-	
 	/**
 	 * @param Title                  The title of the dialog
 	 * @param FileTypes              Filter for which file types are accepted and should be shown
@@ -130,10 +117,8 @@ namespace FileDialogHelpers
 		TArray<FString> OutFilenames;
 		if (DesktopPlatform)
 		{
-			void* ParentWindowWindowHandle = ChooseParentWindowHandle();
-			
 			bFileChosen = DesktopPlatform->SaveFileDialog(
-				ParentWindowWindowHandle,
+				FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr),
 				Title,
 				InOutLastPath,
 				DefaultFile,
@@ -170,10 +155,8 @@ namespace FileDialogHelpers
 		bool bOpened = false;
 		if ( DesktopPlatform )
 		{
-			void* ParentWindowWindowHandle = ChooseParentWindowHandle();
-
 			bOpened = DesktopPlatform->OpenFileDialog(
-				ParentWindowWindowHandle,
+				FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr),
 				Title,
 				InOutLastPath,
 				TEXT(""),
@@ -249,7 +232,7 @@ void FEditorFileUtils::RegisterLevelFilename(UObject* Object, const FString& New
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static FString GetFilename(const FName& PackageName)
+FString FEditorFileUtils::GetFilename(const FName& PackageName)
 {
 	// First see if it is an in-memory package that already has an associated filename
 	const FString PackageNameString = PackageName.ToString();
@@ -281,7 +264,7 @@ static FString GetFilename(const FName& PackageName)
 	return *Result;
 }
 
-static FString GetFilename(UObject* LevelObject)
+FString FEditorFileUtils::GetFilename(UObject* LevelObject)
 {
 	return GetFilename( LevelObject->GetOutermost()->GetFName() );
 }
@@ -521,8 +504,9 @@ static bool SaveWorld(UWorld* World,
 					NewPGN.PackageName = NewPackageName;
 					NewPGN.ObjectName = NewWorldAssetName;
 
+					bool bPromptToOverwrite = false;
 					TSet<UPackage*> PackagesUserRefusedToFullyLoad;
-					DuplicatedWorld = Cast<UWorld>(ObjectTools::DuplicateSingleObject(World, NewPGN, PackagesUserRefusedToFullyLoad));
+					DuplicatedWorld = Cast<UWorld>(ObjectTools::DuplicateSingleObject(World, NewPGN, PackagesUserRefusedToFullyLoad, bPromptToOverwrite));
 					if (DuplicatedWorld)
 					{
 						Package = DuplicatedWorld->GetOutermost();
@@ -552,6 +536,12 @@ static bool SaveWorld(UWorld* World,
 
 			bSuccess = GUnrealEd->Exec( NULL, *FString::Printf( TEXT("OBJ SAVEPACKAGE PACKAGE=\"%s\" FILE=\"%s\" SILENT=true AUTOSAVING=%s KEEPDIRTY=%s"), *Package->GetName(), *FinalFilename, *AutoSavingString, *KeepDirtyString ), SaveErrors );
 			SaveErrors.Flush();
+		}
+
+		if (bSuccess)
+		{
+			// Also save MapBuildData packages when saving the current level
+			FEditorFileUtils::SaveMapDataPackages(DuplicatedWorld ? DuplicatedWorld : World, bCheckDirty);
 		}
 
 		SlowTask.EnterProgressFrame(25);
@@ -1087,68 +1077,6 @@ void FEditorFileUtils::Import(const FString& InFilename)
 	FEditorDirectories::Get().SetLastDirectory(ELastDirectory::UNR, FPaths::GetPath(InFilename)); // Save path as default for next time.
 
 	FEditorDelegates::RefreshAllBrowsers.Broadcast();
-}
-
-/**
- * Saves the specified level.  SaveAs is performed as necessary.
- *
- * @param	Level				The level to be saved.
- * @param	DefaultFilename		File name to use for this level if it doesn't have one yet (or empty string to prompt)
- *
- * @return				true if the level was saved.
- */
-bool FEditorFileUtils::SaveLevel(ULevel* Level, const FString& DefaultFilename, FString* OutSavedFilename )
-{
-	bool bLevelWasSaved = false;
-
-	// Disallow the save if in interpolation editing mode and the user doesn't want to exit interpolation mode.
-	if ( Level && !InInterpEditMode() )
-	{
-		// Check and see if this is a new map.
-		const bool bIsPersistentLevelCurrent = Level->IsPersistentLevel();
-
-		// If the user trying to save the persistent level?
-		if ( bIsPersistentLevelCurrent )
-		{
-			// Check to see if the persistent level is a new map (ie if it has been saved before).
-			FString Filename = GetFilename( Level->OwningWorld );
-			if( !Filename.Len() )
-			{
-				// No file name, provided, so use the default file name we were given if we have one
-				Filename = FString( DefaultFilename );
-			}
-
-			if( !Filename.Len() )
-			{
-				// Present the user with a SaveAs dialog.
-				const bool bAllowStreamingLevelRename = false;
-				bLevelWasSaved = SaveAsImplementation( Level->OwningWorld, Filename, bAllowStreamingLevelRename, OutSavedFilename );
-				return bLevelWasSaved;
-			}
-		}
-
-		////////////////////////////////
-		// At this point, we know the level we're saving has been saved before,
-		// so don't bother checking the filename.
-
-		UWorld* WorldToSave = Cast<UWorld>( Level->GetOuter() );
-		if ( WorldToSave )
-		{
-			FString FinalFilename;
-			bLevelWasSaved = SaveWorld( WorldToSave,
-										DefaultFilename.Len() > 0 ? &DefaultFilename : NULL,
-										NULL, NULL,
-										true, false,
-										FinalFilename,
-										false, false );
-			if (bLevelWasSaved && OutSavedFilename)
-			{
-				*OutSavedFilename = FinalFilename;
-			}
-		}
-	}
-
-	return bLevelWasSaved;
 }
 
 void FEditorFileUtils::Export(bool bExportSelectedActorsOnly)
@@ -1969,7 +1897,7 @@ bool FEditorFileUtils::AttemptUnloadInactiveWorldPackage(UPackage* PackageToUnlo
 
 				case EWorldType::Game:
 				case EWorldType::PIE:
-				case EWorldType::Preview:
+				case EWorldType::EditorPreview:
 				default:
 					OutErrorMessage = NSLOCTEXT("SaveAsImplementation", "ExistingWorldInvalid", "The level you are attempting to unload is invalid.");
 					bContinueUnloadingExistingWorld = false;
@@ -2389,12 +2317,12 @@ EAutosaveContentPackagesResult::Type FEditorFileUtils::AutosaveMapEx(const FStri
 	bool bResult  = false;
 	double TotalSaveTime = 0.0f;
 
-	FWorldContext &EditorContext = GEditor->GetEditorWorldContext();
-	
 	double SaveStartTime = FPlatformTime::Seconds();
 
 	// Clean up any old worlds.
 	CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
+
+	FWorldContext& EditorContext = GEditor->GetEditorWorldContext();
 
 	// Get the set of all reference worlds.
 	TArray<UWorld*> WorldsArray;
@@ -2933,6 +2861,94 @@ static bool InternalSavePackages(TArray<UPackage*>& PackagesToSave, int32 NumPac
 		FSlateNotificationManager::Get().AddNotification(NotificationInfo);
 	}
 	return bReturnCode;
+}
+
+void FEditorFileUtils::SaveMapDataPackages(UWorld* WorldToSave, bool bCheckDirty)
+{
+	TArray<UPackage*> PackagesToSave;
+	ULevel* Level = WorldToSave->PersistentLevel;
+	UPackage* WorldPackage = WorldToSave->GetOutermost();
+
+	if (!WorldPackage->HasAnyPackageFlags(PKG_PlayInEditor)
+		&& !WorldPackage->HasAnyFlags(RF_Transient))
+	{
+		if (Level->MapBuildData)
+		{
+			UPackage* BuiltDataPackage = Level->MapBuildData->GetOutermost();
+
+			if (BuiltDataPackage != WorldPackage)
+			{
+				PackagesToSave.Add(BuiltDataPackage);
+			}
+		}
+	}
+			
+	if (PackagesToSave.Num() > 0)
+	{
+		FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, bCheckDirty, false, nullptr, false, false);
+	}
+}
+
+/**
+ * Saves the specified level.  SaveAs is performed as necessary.
+ *
+ * @param	Level				The level to be saved.
+ * @param	DefaultFilename		File name to use for this level if it doesn't have one yet (or empty string to prompt)
+ *
+ * @return				true if the level was saved.
+ */
+bool FEditorFileUtils::SaveLevel(ULevel* Level, const FString& DefaultFilename, FString* OutSavedFilename )
+{
+	bool bLevelWasSaved = false;
+
+	// Disallow the save if in interpolation editing mode and the user doesn't want to exit interpolation mode.
+	if ( Level && !InInterpEditMode() )
+	{
+		// Check and see if this is a new map.
+		const bool bIsPersistentLevelCurrent = Level->IsPersistentLevel();
+
+		// If the user trying to save the persistent level?
+		if ( bIsPersistentLevelCurrent )
+		{
+			// Check to see if the persistent level is a new map (ie if it has been saved before).
+			FString Filename = GetFilename( Level->OwningWorld );
+			if( !Filename.Len() )
+			{
+				// No file name, provided, so use the default file name we were given if we have one
+				Filename = FString( DefaultFilename );
+			}
+
+			if( !Filename.Len() )
+			{
+				// Present the user with a SaveAs dialog.
+				const bool bAllowStreamingLevelRename = false;
+				bLevelWasSaved = SaveAsImplementation( Level->OwningWorld, Filename, bAllowStreamingLevelRename, OutSavedFilename );
+				return bLevelWasSaved;
+			}
+		}
+
+		////////////////////////////////
+		// At this point, we know the level we're saving has been saved before,
+		// so don't bother checking the filename.
+
+		UWorld* WorldToSave = Cast<UWorld>( Level->GetOuter() );
+		if ( WorldToSave )
+		{
+			FString FinalFilename;
+			bLevelWasSaved = SaveWorld( WorldToSave,
+										DefaultFilename.Len() > 0 ? &DefaultFilename : NULL,
+										NULL, NULL,
+										true, false,
+										FinalFilename,
+										false, false );
+			if (bLevelWasSaved && OutSavedFilename)
+			{
+				*OutSavedFilename = FinalFilename;
+			}
+		}
+	}
+
+	return bLevelWasSaved;
 }
 
 bool FEditorFileUtils::SaveDirtyPackages(const bool bPromptUserToSave, const bool bSaveMapPackages, const bool bSaveContentPackages, const bool bFastSave, const bool bNotifyNoPackagesSaved, const bool bCanBeDeclined, bool* bOutPackagesNeededSaving )
@@ -3523,6 +3539,16 @@ void FEditorFileUtils::FindAllSubmittablePackageFiles(TMap<FString, FSourceContr
 
 	TArray<FString> Packages;
 	FEditorFileUtils::FindAllPackageFiles(Packages);
+
+	// Handle the project file
+	FSourceControlStatePtr ProjectFileSourceControlState = SourceControlProvider.GetState(FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()), EStateCacheUsage::Use);
+
+	if (ProjectFileSourceControlState.IsValid() && ProjectFileSourceControlState->IsCurrent() &&
+		(ProjectFileSourceControlState->IsCheckedOut() || ProjectFileSourceControlState->IsAdded() || (!ProjectFileSourceControlState->IsSourceControlled() && ProjectFileSourceControlState->CanAdd())))
+	{
+		OutPackages.Add(FPaths::GetProjectFilePath(), MoveTemp(ProjectFileSourceControlState));
+	}
+
 	for (TArray<FString>::TConstIterator PackageIter(Packages); PackageIter; ++PackageIter)
 	{
 		const FString Filename = *PackageIter;
@@ -3637,11 +3663,29 @@ void FEditorFileUtils::GetDirtyWorldPackages(TArray<UPackage*>& OutDirtyPackages
 	for (TObjectIterator<UWorld> WorldIt; WorldIt; ++WorldIt)
 	{
 		UPackage* WorldPackage = WorldIt->GetOutermost();
-		if (WorldPackage->IsDirty() && (WorldPackage->HasAnyPackageFlags(PKG_PlayInEditor) == false)
+		if (!WorldPackage->HasAnyPackageFlags(PKG_PlayInEditor)
 			&& !WorldPackage->HasAnyFlags(RF_Transient))
 		{
-			// IF the package is dirty and its not a pie package, add the world package to the list of packages to save
-			OutDirtyPackages.Add(WorldPackage);
+			if (WorldPackage->IsDirty())
+			{
+				// IF the package is dirty and its not a pie package, add the world package to the list of packages to save
+				OutDirtyPackages.Add(WorldPackage);
+			}
+
+			TArray<ULevel*> Levels = WorldIt->GetLevels();
+
+			for (auto Level : Levels)
+			{
+				if (Level->MapBuildData)
+				{
+					UPackage* BuiltDataPackage = Level->MapBuildData->GetOutermost();
+
+					if (BuiltDataPackage->IsDirty() && BuiltDataPackage != WorldPackage)
+					{
+						OutDirtyPackages.Add(BuiltDataPackage);
+					}
+				}
+			}
 		}
 	}
 }
@@ -3658,10 +3702,10 @@ void FEditorFileUtils::GetDirtyContentPackages(TArray<UPackage*>& OutDirtyPackag
 		bShouldIgnorePackage |= Package->GetOuter() != NULL;
 		// Don't try to save "Transient" package.
 		bShouldIgnorePackage |= Package == GetTransientPackage();
-		// Don't try to save packages with the RF_Transient flag.
+		// Don't try to save packages with the RF_Transient flag
 		bShouldIgnorePackage |= Package->HasAnyFlags(RF_Transient);
-		// Ignore PIE packages.
-		bShouldIgnorePackage |= Package->HasAnyPackageFlags(PKG_PlayInEditor);
+		// Ignore PIE packages, or packages containing map data
+		bShouldIgnorePackage |= Package->HasAnyPackageFlags(PKG_PlayInEditor | PKG_ContainsMapData);
 		// Ignore packages that haven't been modified.
 		bShouldIgnorePackage |= !Package->IsDirty();
 

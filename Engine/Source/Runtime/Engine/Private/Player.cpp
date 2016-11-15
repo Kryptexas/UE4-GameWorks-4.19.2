@@ -17,8 +17,8 @@
 #include "SlateBasics.h"
 #include "GameFramework/CheatManager.h"
 #include "GameFramework/Pawn.h"
-#include "GameFramework/GameState.h"
-#include "GameFramework/GameMode.h"
+#include "GameFramework/GameStateBase.h"
+#include "GameFramework/GameModeBase.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UPlayer
@@ -129,7 +129,7 @@ bool UPlayer::Exec( UWorld* InWorld, const TCHAR* Cmd,FOutputDevice& Ar)
 		{
 			return true;
 		}
-		else if (World->GameState && World->GameState->ProcessConsoleExec(Cmd, Ar, PCPawn))
+		else if (World->GetGameState() && World->GetGameState()->ProcessConsoleExec(Cmd, Ar, PCPawn))
 		{
 			return true;
 		}

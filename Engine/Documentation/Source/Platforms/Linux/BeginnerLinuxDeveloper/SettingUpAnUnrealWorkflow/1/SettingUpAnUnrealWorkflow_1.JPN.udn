@@ -1,0 +1,12 @@
+﻿INTSourceChangelist:0
+Availability: Docs
+Title: 1 - Setting up Git
+Crumbs:%ROOT%, Platforms, Platforms/Linux, Platforms/Linux/BeginnerLinuxDeveloper, Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
+Description:Learn how to setup Git on Linux.
+Version: 4.11
+type:HowTo
+parent:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
+order: 1
+tags:Linux
+SkillLevel:Beginner
+

@@ -2,6 +2,8 @@
 #pragma once
 #include "Styling/StyleDefaults.h"
 
+class UTexture2D;
+
 struct FMargin;
 struct FSlateColor;
 struct FSlateDynamicImageBrush;

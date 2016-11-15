@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title:Work with Level Assets
+﻿INTSourceChangelist:3054319
+Availability:Public
+Title:使用关卡资源
 Crumbs: %ROOT%, Engine
-Description:How to create, save, and open Level assets in UE4
-SkillLevel: Beginner
-Version: 4.12
+Description:如何在 UE4 中创建、保存，并打开关卡资源
+SkillLevel:Beginner
+Version:4.12
 parent:Engine/Levels
 type:howto
 order:1
@@ -50,87 +50,83 @@ order:1
 
 [TOC]
 
-For the most part, Levels in Unreal Engine 4 can be handled much like other assets in the **Content Browser**. There are a few considerations to keep in mind while
-creating, saving, and opening Levels, and this guide will cover the basics. 
+就多数情况而言，可按照 **Content Browser** 中其他资源的相同方式来处理虚幻引擎 4 中的关卡。创建、保存和打开关卡时需留意几项注意事项，此指南将对此进行说明。 
 
-## Creating Levels
+## 创建关卡
 
-You can create a new Level in the **Content Browser** in the same way that you would [create other assets](Engine/Content/Browser/UserGuide/BrowserAssetCreation#addingassets) like Blueprint Classes, Materials, or Particle Systems. However, 
-because Levels are also how you lay out and organize your project, you can create them from the **File** menu as well. 
+在 **Content Browser** 中创建关卡的方法和 [创建其他资源](Engine/Content/Browser/UserGuide/BrowserAssetCreation#addingassets) 相同，如蓝图类、材质，或粒子系统。然而也可从 **File** 菜单创建关卡，因为它们是项目的布局和组织。 
 
-1. Open the **File** menu. 
+1. 打开 **File** 菜单。 
 
 	![](Level_File_New_Level.jpg)
 
-1. Select **New Level**.
+1. 选择 **New Level**。
 
 	![](Level_Create_New_Level.jpg)
 	[Region:tip]
-	You can also create new levels by using the keyboard shortcut  **Ctrl + N**. 
+	也可使用键盘热键 **Ctrl + N** 创建新关卡。 
 	[/region]
 
-	When **New Level** is selected, you will be presented with a pop-up box displaying the different templates you can base your new Level on.
+	选择 **New Level** 后将出现弹出框，显示作为新关卡基础的不同模板。
 
 	![](NewLevel.png)
 
-	* **Default:** This will give you a new level with a basic setup that includes a player start, a light, a sky dome, and other various Actors you need for a level to work correctly.
-	* **VR-Basic:**  This will give you a new level with Actors to interact with designed to guide you in learning the VR Editor controls. 
-	* **Blank:** This will give you a new level that is completely empty. 
+	* **Default：**创建一个带基础设置的新关卡，包括一个玩家出生点、一个穹顶，以及关卡正常使用所需的诸多 Actors。
+	* **VR-Basic：**创建一个新关卡，包含互动的 Actor，可指导您学习 VR 编辑器操作。 
+	* **Blank：**创建一个完全空白的新关卡。 
 
-1. Select the template that you want to start with left-clicking on it. 
+1. 左键点击选择使用的模板。 
 
 [region:tip]
-When connected to source control, new Levels that you create and save will be automatically added to source control.
+连接到源控制时，创建和保存的新关卡将被自动添加到源控制。
 [/region]
 
-You can also create new blank Levels or split a section of an existing Level off using the [Levels window](Engine/Levels/LevelsWindow).
+也可使用 [Levels 窗口](Engine/Levels/LevelsWindow) 新建空白关卡或分离现有关卡的一部分。
 
 
 
-## Saving Levels 
+## 保存关卡 
 
-Saving levels after the initial save is a fairly transparent process you can initiate from the **File** menu or the **Content Browser**, but there are some additional steps required on the 
-first save. In addition, changing Levels will prompt you to save your current Level(s) with the **Save Content** dialog. 
+最初保存后的关卡保存是一个极为透明的过程，可从 **File** 菜单或 **Content Browser** 开始，但首次保存需要执行几个额外的步骤。此外，修改关卡后将弹出 **Save Content** 对话，以便保存当前关卡。 
 
 ![](SaveContentLevels.png)
 
-You can also save your current persistent level and/or sublevels through the [Levels window](Engine/Levels/LevelsWindow).
+也可通过 [Levels 窗口](Engine/Levels/LevelsWindow) 保存当前固定关卡和/或关卡分段。
 
-**To save a level for the first time:**
+**首次保存关卡的步骤：**
 
-1. Open the **File** menu. 
+1. 打开 **File** 菜单。 
 
 	![](Level_File_New_Level.png)
 
-1. Select **Save**.
+1. 选择 **Save**。
 
 	![](Level_Save_Level.jpg)
 
-1. Pick a location and name for the new Level and click **Save** in the **Save Level As** window that appears. This is the same menu you would see if you selected **Save As...** from the 
-file menu or used the **Ctrl+Shift+S** keyboard shortcut. 
+1. 为新关卡选择保存路径和命名，然后在出现的 **Save Level As** 窗口中点击 **Save**。从 file 菜单选择 **Save As...** 或使用 **Ctrl+Shift+S** 键盘热键也将出现此菜单。 
 
 	![](SaveLevelAs.png)
 
 
 
-## Opening Levels 
+## 打开关卡 
 
-You can open Levels by double-clicking on the Level asset in the **Content Browser**, but much like creating Levels, you can also work with the **File** menu. 
+在 **Content Browser** 中双击关卡资源可打开关卡。和创建关卡一样，也可通过 **File** 菜单执行。 
 
-1. Open the **File** menu. 
+1. 打开 **File** 菜单。 
 
 	![](Level_File_New_Level.png)
 
-1. Select **Open Level**.
+1. 选择 **Open Level**。
 
 	![](Level_Open_New_Level.jpg)
 	
 	[Region:tip]
-	You can also open levels by using the keyboard shortcut  **Ctrl + O**. 
+	也可使用键盘热键 **Ctrl + O** 打开新关卡。 
 	[/region]
 
 
-1. Select a level from the **Open Level** window that appears, then click on **Open**.  
+1. 从出现的 **Open Level** 窗口选择一个关卡，然后点击 **Open**。  
 	![](AvailableLevels.png)
 
 

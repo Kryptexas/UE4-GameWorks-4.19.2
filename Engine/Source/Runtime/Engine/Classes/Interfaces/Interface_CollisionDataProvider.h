@@ -42,8 +42,16 @@ struct FTriMeshCollisionData
 	/** Does the mesh require its normals flipped (see PxMeshFlag) */
 	uint32 bFlipNormals:1;
 
+	/** If mesh is deformable, we don't clean it, so that vertex layout does not change and it can be updated */
+	uint32 bDeformableMesh:1;
+
+	/** Prioritize cooking speed over runtime speed */
+	uint32 bFastCook : 1;
+
 	FTriMeshCollisionData()
 	: bFlipNormals(false)
+	, bDeformableMesh(false)
+	, bFastCook(false)
 	{
 	}
 };

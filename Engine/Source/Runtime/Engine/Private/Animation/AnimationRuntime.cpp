@@ -765,8 +765,11 @@ void FAnimationRuntime::FillWithRetargetBaseRefPose(FCompactPose& OutPose, const
 	{
 		for (FCompactPoseBoneIndex BoneIndex : OutPose.ForEachBoneIndex())
 		{
-			FMeshPoseBoneIndex PoseIndex = OutPose.GetBoneContainer().MakeMeshPoseIndex(BoneIndex);
-			OutPose[BoneIndex] = Mesh->RetargetBasePose[PoseIndex.GetInt()];
+			int32 PoseIndex = OutPose.GetBoneContainer().MakeMeshPoseIndex(BoneIndex).GetInt();
+			if (Mesh->RetargetBasePose.IsValidIndex(PoseIndex))
+			{
+				OutPose[BoneIndex] = Mesh->RetargetBasePose[PoseIndex];
+			}
 		}
 	}
 }
@@ -1341,8 +1344,8 @@ bool FAnimationRuntime::ContainsNaN(TArray<FBoneIndexType>& RequiredBoneIndices,
 #if WITH_EDITOR
 void FAnimationRuntime::FillUpComponentSpaceTransforms(const FReferenceSkeleton& RefSkeleton, const TArray<FTransform> &BoneSpaceTransforms, TArray<FTransform> &ComponentSpaceTransforms)
 {
-	ComponentSpaceTransforms.Empty(RefSkeleton.GetNum());
-	ComponentSpaceTransforms.AddUninitialized(RefSkeleton.GetNum());
+	ComponentSpaceTransforms.Empty(BoneSpaceTransforms.Num());
+	ComponentSpaceTransforms.AddUninitialized(BoneSpaceTransforms.Num());
 
 	// initialize to identity since some of them don't have tracks
 	for (int Index = 0; Index < ComponentSpaceTransforms.Num(); ++Index)
@@ -1403,7 +1406,10 @@ static int32 FindMorphTarget(const TArray<FActiveMorphTarget>& ActiveMorphTarget
 
 void FAnimationRuntime::AppendActiveMorphTargets(const USkeletalMesh* InSkeletalMesh, const TMap<FName, float>& MorphCurveAnims, TArray<FActiveMorphTarget>& InOutActiveMorphTargets, TArray<float>& InOutMorphTargetWeights)
 {
-	checkSlow(InSkeletalMesh);
+	if (!InSkeletalMesh)
+	{
+		return;
+	}
 
 	// Then go over the CurveKeys finding morph targets by name
 	for(auto CurveIter=MorphCurveAnims.CreateConstIterator(); CurveIter; ++CurveIter)
@@ -1429,7 +1435,7 @@ void FAnimationRuntime::AppendActiveMorphTargets(const USkeletalMesh* InSkeletal
 		{
 			// Find morph reference
 			int32 SkeletalMorphIndex = INDEX_NONE;
-			UMorphTarget* Target = InSkeletalMesh ? InSkeletalMesh->FindMorphTargetAndIndex(CurveName, SkeletalMorphIndex) : nullptr;
+			UMorphTarget* Target = InSkeletalMesh->FindMorphTargetAndIndex(CurveName, SkeletalMorphIndex);
 			if (Target != nullptr)
 			{
 				// See if this morph target already has an entry
@@ -1512,9 +1518,7 @@ void FAnimationRuntime::RetargetBoneTransform(const USkeleton* MySkeleton, const
 {
 	if (MySkeleton)
 	{
-		const TArray<FBoneNode>& BoneTree = MySkeleton->GetBoneTree();
-
-		switch (BoneTree[SkeletonBoneIndex].TranslationRetargetingMode)
+		switch (MySkeleton->GetBoneTranslationRetargetingMode(SkeletonBoneIndex))
 		{
 		case EBoneTranslationRetargetingMode::AnimationScaled:
 		{

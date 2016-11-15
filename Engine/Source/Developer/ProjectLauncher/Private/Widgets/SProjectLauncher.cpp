@@ -315,7 +315,7 @@ FReply SProjectLauncher::OnAddCustomLaunchProfileClicked()
 
 EVisibility SProjectLauncher::GetProfileWizardsMenuVisibility() const
 {
-	return Model->GetProfileManager()->GetProfileWizards().Num() > 0 ? EVisibility::Visible : EVisibility::Hidden;
+	return (Model->GetProfileManager()->GetProfileWizards().Num() > 0) ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 TSharedRef<SWidget> SProjectLauncher::MakeProfileWizardsMenu()

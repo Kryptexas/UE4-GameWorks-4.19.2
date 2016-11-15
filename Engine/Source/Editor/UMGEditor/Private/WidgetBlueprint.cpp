@@ -650,9 +650,35 @@ void UWidgetBlueprint::GetReparentingRules(TSet< const UClass* >& AllowedChildre
 	AllowedChildrenOfClasses.Add( UUserWidget::StaticClass() );
 }
 
-bool UWidgetBlueprint::NeedsLoadForClient() const
+bool UWidgetBlueprint::IsWidgetFreeFromCircularReferences(UUserWidget* UserWidget) const
 {
-	return false;
+	if (UserWidget != nullptr)
+	{
+		if (UserWidget->GetClass() == GeneratedClass)
+		{
+			// If this user widget is the same as the blueprint's generated class, we should reject it because it
+			// will cause a circular reference within the blueprint.
+			return false;
+		}
+		else if (UserWidget->WidgetTree)
+		{
+			TArray<UWidget*> ChildWidgets;
+			UserWidget->WidgetTree->GetAllWidgets(ChildWidgets);
+
+			for (UWidget* Widget : ChildWidgets)
+			{
+				if (Cast<UUserWidget>(Widget) != nullptr)
+				{
+					if ( !IsWidgetFreeFromCircularReferences(Cast<UUserWidget>(Widget)) )
+					{
+						return false;
+					}
+				}
+			}
+		}
+	}
+
+	return true;
 }
 
 #undef LOCTEXT_NAMESPACE 

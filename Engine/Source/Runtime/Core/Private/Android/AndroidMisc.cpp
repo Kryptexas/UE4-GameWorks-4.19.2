@@ -16,6 +16,7 @@
 #include "GenericPlatformChunkInstall.h"
 
 #include <android_native_app_glue.h>
+#include "Function.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogEngine, Log, All);
 
@@ -390,12 +391,6 @@ bool FAndroidMisc::AllowRenderThread()
 		return false;
 	}
 
-	if (FAndroidMisc::ShouldUseVulkan())
-	{
-		// @todo vulkan: stop forcing no RT!
-		return false;
-	}
-
 	// there is a crash with the nvidia tegra dual core processors namely the optimus 2x and xoom 
 	// when running multithreaded it can't handle multiple threads using opengl (bug)
 	// tested with lg optimus 2x and motorola xoom 
@@ -724,7 +719,7 @@ class IPlatformChunkInstall* FAndroidMisc::GetPlatformChunkInstall()
 		else
 		{
 			// Placeholder instance
-			ChunkInstall = new FGenericPlatformChunkInstall();
+			ChunkInstall = FGenericPlatformMisc::GetPlatformChunkInstall();
 		}
 	}
 
@@ -1074,6 +1069,17 @@ int32 FAndroidMisc::GetAndroidBuildVersion()
 	return AndroidBuildVersion;
 }
 
+bool FAndroidMisc::ShouldDisablePluginAtRuntime(const FString& PluginName)
+{
+#if PLATFORM_ANDROID_ARM64 || PLATFORM_ANDROID_X64
+	// disable OnlineSubsystemGooglePlay for unsupported Android architectures
+	if (PluginName.Equals(TEXT("OnlineSubsystemGooglePlay")))
+	{
+		return true;
+	}
+#endif
+	return false;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -1364,7 +1370,7 @@ static EDeviceVulkanSupportStatus AttemptVulkanInit(void* VulkanLib)
 	{
 		return EDeviceVulkanSupportStatus::NotSupported;
 	}
-
+		
 	// try to create instance to verify driver available
 	VkApplicationInfo App;
 	FMemory::Memzero(App);
@@ -1492,13 +1498,25 @@ bool FAndroidMisc::ShouldUseVulkan()
 {
 	check(VulkanSupport != EDeviceVulkanSupportStatus::Uninitialized);
 	static const auto CVarDisableVulkan = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Android.DisableVulkanSupport"));
-	return VulkanSupport == EDeviceVulkanSupportStatus::Supported && CVarDisableVulkan->GetValueOnAnyThread() == 0;
+
+	bool bSupportsVulkan = false;
+	GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bSupportsVulkan"), bSupportsVulkan, GEngineIni);
+
+	return bSupportsVulkan && VulkanSupport == EDeviceVulkanSupportStatus::Supported && CVarDisableVulkan->GetValueOnAnyThread() == 0;
 }
 
-FString FAndroidMisc_GetVulkanVersion()
+FString FAndroidMisc::GetVulkanVersion()
 {
 	check(VulkanSupport != EDeviceVulkanSupportStatus::Uninitialized);
 	return VulkanVersionString;
+}
+
+extern bool AndroidThunkCpp_HasMetaDataKey(const FString& Key);
+
+bool FAndroidMisc::IsDaydreamApplication()
+{
+	static const bool bIsDaydreamApplication = AndroidThunkCpp_HasMetaDataKey(TEXT("com.epicgames.ue4.GameActivity.bDaydream"));
+	return bIsDaydreamApplication;
 }
 
 #if !UE_BUILD_SHIPPING
@@ -1538,6 +1556,12 @@ int FAndroidMisc::GetVolumeState(double* OutTimeOfChangeInSec)
 	return v;
 }
 
+const TCHAR* FAndroidMisc::GamePersistentDownloadDir()
+{
+	extern FString GExternalFilePath;
+	return *GExternalFilePath;
+}
+
 FAndroidMisc::FBatteryState FAndroidMisc::GetBatteryState()
 {
 	FBatteryState CurState;
@@ -1552,3 +1576,20 @@ bool FAndroidMisc::AreHeadPhonesPluggedIn()
 	return HeadPhonesArePluggedIn;
 }
 
+bool FAndroidMisc::HasActiveWiFiConnection()
+{
+	extern bool AndroidThunkCpp_HasActiveWiFiConnection();
+	return AndroidThunkCpp_HasActiveWiFiConnection();
+}
+
+static FAndroidMisc::ReInitWindowCallbackType OnReInitWindowCallback;
+
+FAndroidMisc::ReInitWindowCallbackType FAndroidMisc::GetOnReInitWindowCallback()
+{
+	return OnReInitWindowCallback;
+}
+
+void FAndroidMisc::SetOnReInitWindowCallback(FAndroidMisc::ReInitWindowCallbackType InOnReInitWindowCallback)
+{
+	OnReInitWindowCallback = InOnReInitWindowCallback;
+}

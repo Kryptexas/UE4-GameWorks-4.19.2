@@ -5,3 +5,4 @@
 #include "Engine.h"
 #include "MeshUtilities.h"
 #include "RawMesh.h"
+#include "SlateBasics.h"

@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include "LandscapeInfo.h"
-
 /**
 * Landscape module interface
 */
@@ -11,4 +9,3 @@ class ILandscapeModule : public IModuleInterface
 {
 public:
 };
-

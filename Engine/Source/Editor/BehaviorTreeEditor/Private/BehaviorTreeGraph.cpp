@@ -192,8 +192,9 @@ void UBehaviorTreeGraph::UpdatePinConnectionTypes()
 	for (int32 Index = 0; Index < Nodes.Num(); ++Index)
 	{
 		UEdGraphNode* Node = Nodes[Index];
+		check(Node);
 
-		const bool bIsCompositeNode = Node && Node->IsA(UBehaviorTreeGraphNode_Composite::StaticClass());
+		const bool bIsCompositeNode = Node->IsA(UBehaviorTreeGraphNode_Composite::StaticClass());
 
 		for (int32 iPin = 0; iPin < Node->Pins.Num(); iPin++)
 		{
@@ -213,6 +214,7 @@ void UBehaviorTreeGraph::ReplaceNodeConnections(UEdGraphNode* OldNode, UEdGraphN
 	for (int32 Index = 0; Index < Nodes.Num(); ++Index)
 	{
 		UEdGraphNode* Node = Nodes[Index];
+		check(Node);
 		for (int32 PinIndex = 0; PinIndex < Node->Pins.Num(); PinIndex++)
 		{
 			UEdGraphPin* Pin = Node->Pins[PinIndex];
@@ -223,8 +225,12 @@ void UBehaviorTreeGraph::ReplaceNodeConnections(UEdGraphNode* OldNode, UEdGraphN
 
 				if (LinkedNode == OldNode)
 				{
-					const int32 LinkedPinIndex = LinkedNode->Pins.IndexOfByKey(LinkedPin);
+					check(OldNode);
+					check(LinkedPin);
+
+					const int32 LinkedPinIndex = OldNode->Pins.IndexOfByKey(LinkedPin);
 					Pin->LinkedTo[LinkedIndex] = NewNode->Pins[LinkedPinIndex];
+					LinkedPin->LinkedTo.Remove(Pin);
 				}
 			}
 		}
@@ -246,6 +252,10 @@ void UBehaviorTreeGraph::UpdateDeprecatedNodes()
 
 				ReplaceNodeConnections(Node, NewNode);
 				Nodes[Index] = NewNode;
+
+				Node->Rename(nullptr, GetTransientPackage(), REN_ForceNoResetLoaders);
+				Node->SetFlags(RF_Transient);
+				Node->MarkPendingKill();
 			}
 		}
 	}
@@ -1218,6 +1228,11 @@ void UBehaviorTreeGraph::AutoArrange()
 		{
 			break;
 		}
+	}
+
+	if (!RootNode)
+	{
+		return;
 	}
 
 	BTAutoArrangeHelpers::FNodeBoundsInfo BBoxTree;

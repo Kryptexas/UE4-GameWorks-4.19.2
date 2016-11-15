@@ -106,9 +106,14 @@ public:
 	/** From FNotifyHook */
 	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged ) override;
 	
+	virtual void SaveAsset_Execute() override;
+
 	/** Get the names of the LOD for menus */
 	TArray< TSharedPtr< FString > >& GetLODLevels() { return LODLevels; }
 	const TArray< TSharedPtr< FString > >& GetLODLevels() const { return LODLevels; }
+
+	/** Get the active view mode */
+	virtual EViewModeIndex GetViewMode() const override;
 
 private:
 	TSharedRef<SDockTab> SpawnTab_Viewport(const FSpawnTabArgs& Args);

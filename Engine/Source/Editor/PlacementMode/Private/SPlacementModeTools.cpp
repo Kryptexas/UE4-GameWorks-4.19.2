@@ -108,7 +108,7 @@ private:
 	TSharedPtr< FAssetThumbnail > Thumbnail;
 };
 
-void SPlacementAssetEntry::Construct(const FArguments& InArgs, const TSharedPtr<FPlaceableItem>& InItem)
+void SPlacementAssetEntry::Construct(const FArguments& InArgs, const TSharedPtr<const FPlaceableItem>& InItem)
 {	
 	bIsPressed = false;
 
@@ -116,33 +116,25 @@ void SPlacementAssetEntry::Construct(const FArguments& InArgs, const TSharedPtr<
 
 	TSharedPtr< SHorizontalBox > ActorType = SNew( SHorizontalBox );
 
-	const bool IsClass = Item->AssetData.GetClass() == UClass::StaticClass();
-	const bool IsVolume = IsClass ? CastChecked<UClass>( Item->AssetData.GetAsset() )->IsChildOf( AVolume::StaticClass() ) : false;
+	const bool bIsClass = Item->AssetData.GetClass() == UClass::StaticClass();
+	const bool bIsActor = bIsClass ? CastChecked<UClass>(Item->AssetData.GetAsset())->IsChildOf(AActor::StaticClass()) : false;
 
-	FText ActorTypeDisplayName;
 	AActor* DefaultActor = nullptr;
-	if ( Item->Factory != nullptr )
+	if (Item->Factory != nullptr)
 	{
-		DefaultActor = Item->Factory->GetDefaultActor( Item->AssetData );
-		ActorTypeDisplayName = Item->Factory->GetDisplayName();
+		DefaultActor = Item->Factory->GetDefaultActor(Item->AssetData);
 	}
-	else if ( IsClass && CastChecked<UClass>( Item->AssetData.GetAsset() )->IsChildOf( AActor::StaticClass() ) )
+	else if (bIsActor)
 	{
-		DefaultActor = CastChecked<AActor>( CastChecked<UClass>( Item->AssetData.GetAsset() )->ClassDefaultObject );
-		ActorTypeDisplayName = FText::FromString( FName::NameToDisplayString( DefaultActor->GetClass()->GetName(), false ) );
+		DefaultActor = CastChecked<AActor>(CastChecked<UClass>(Item->AssetData.GetAsset())->ClassDefaultObject);
 	}
-	
+
 	UClass* DocClass = nullptr;
 	TSharedPtr<IToolTip> AssetEntryToolTip;
 	if(DefaultActor != nullptr)
 	{
 		DocClass = DefaultActor->GetClass();
 		AssetEntryToolTip = FEditorClassUtils::GetTooltip(DefaultActor->GetClass());
-	}
-
-	if (IsClass && !IsVolume && !ActorTypeDisplayName.IsEmpty())
-	{
-		Item->DisplayName = ActorTypeDisplayName;
 	}
 
 	if (!AssetEntryToolTip.IsValid())
@@ -333,6 +325,7 @@ void SPlacementModeTools::Construct( const FArguments& InArgs )
 			SAssignNew( SearchBoxPtr, SSearchBox )
 			.HintText(NSLOCTEXT("PlacementMode", "SearchPlaceables", "Search Classes"))
 			.OnTextChanged(this, &SPlacementModeTools::OnSearchChanged)
+			.OnTextCommitted(this, &SPlacementModeTools::OnSearchCommitted)
 		]
 
 		+ SVerticalBox::Slot()
@@ -619,6 +612,11 @@ void SPlacementModeTools::OnSearchChanged(const FText& InFilterText)
 
 	SearchTextFilter->SetRawFilterText( InFilterText );
 	SearchBoxPtr->SetError( SearchTextFilter->GetFilterErrorText() );
+}
+
+void SPlacementModeTools::OnSearchCommitted(const FText& InFilterText, ETextCommit::Type InCommitType)
+{
+	OnSearchChanged(InFilterText);
 }
 
 FText SPlacementModeTools::GetHighlightText() const

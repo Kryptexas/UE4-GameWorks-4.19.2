@@ -500,11 +500,13 @@ void USkinnedMeshComponent::TickUpdateRate(float DeltaTime, bool bNeedsValidRoot
 			// Tick Owner once per frame. All attached SkinnedMeshComponents will share the same settings.
 			FAnimUpdateRateManager::TickUpdateRateParameters(this, DeltaTime, bNeedsValidRootMotion);
 
+#if ENABLE_DRAW_DEBUG
 			if ((CVarDrawAnimRateOptimization.GetValueOnGameThread() > 0) || bDisplayDebugUpdateRateOptimizations)
 			{
 				FColor DrawColor = AnimUpdateRateParams->GetUpdateRateDebugColor();
 				DrawDebugBox(GetWorld(), Bounds.Origin, Bounds.BoxExtent, FQuat::Identity, DrawColor, false);
 			}
+#endif // ENABLE_DRAW_DEBUG
 		}
 	}
 }
@@ -591,39 +593,62 @@ UMaterialInterface* USkinnedMeshComponent::GetMaterial(int32 MaterialIndex) cons
 	return NULL;
 }
 
+int32 USkinnedMeshComponent::GetMaterialIndex(FName MaterialSlotName) const
+{
+	for (int32 MaterialIndex = 0; MaterialIndex < SkeletalMesh->Materials.Num(); ++MaterialIndex)
+	{
+		const FSkeletalMaterial &SkeletalMaterial = SkeletalMesh->Materials[MaterialIndex];
+		if (SkeletalMaterial.MaterialSlotName == MaterialSlotName)
+		{
+			return MaterialIndex;
+		}
+	}
+	return -1;
+}
+
+TArray<FName> USkinnedMeshComponent::GetMaterialSlotNames() const
+{
+	TArray<FName> MaterialNames;
+	for (int32 MaterialIndex = 0; MaterialIndex < SkeletalMesh->Materials.Num(); ++MaterialIndex)
+	{
+		const FSkeletalMaterial &SkeletalMaterial = SkeletalMesh->Materials[MaterialIndex];
+		MaterialNames.Add(SkeletalMaterial.MaterialSlotName);
+	}
+	return MaterialNames;
+}
+
+bool USkinnedMeshComponent::IsMaterialSlotNameValid(FName MaterialSlotName) const
+{
+	return GetMaterialIndex(MaterialSlotName) >= 0;
+}
 
 bool USkinnedMeshComponent::ShouldCPUSkin()
 {
-	return false;
+	return bCPUSkinning;
 }
 
 void USkinnedMeshComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
 {
 	if( SkeletalMesh )
 	{
-		const float LocalTexelFactor = SkeletalMesh->GetStreamingTextureFactor(0) * FMath::Max(0.0f, StreamingDistanceMultiplier);
-		const float WorldTexelFactor = LocalTexelFactor * ComponentToWorld.GetMaximumAxisScale();
-		const int32 NumMaterials = FMath::Max(SkeletalMesh->Materials.Num(), OverrideMaterials.Num());
-		for( int32 MatIndex = 0; MatIndex < NumMaterials; MatIndex++ )
-		{
-			UMaterialInterface* const MaterialInterface = GetMaterial(MatIndex);
-			if(MaterialInterface)
-			{
-				TArray<UTexture*> Textures;
-				
-				auto World = GetWorld();
-				MaterialInterface->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, World ? World->FeatureLevel : GMaxRHIFeatureLevel, false);
-				for(int32 TextureIndex = 0; TextureIndex < Textures.Num(); TextureIndex++ )
-				{
-					UTexture2D* Texture2D = Cast<UTexture2D>(Textures[TextureIndex]);
-					if (!Texture2D) continue;
+		const ERHIFeatureLevel::Type FeatureLevel = GetWorld() ? GetWorld()->FeatureLevel : GMaxRHIFeatureLevel;
+		const int32 NumMaterials = GetNumMaterials();
 
-					FStreamingTexturePrimitiveInfo& StreamingTexture = *new(OutStreamingTextures) FStreamingTexturePrimitiveInfo;
-					StreamingTexture.Bounds = Bounds.GetSphere();
-					StreamingTexture.TexelFactor = WorldTexelFactor;
-					StreamingTexture.Texture = Texture2D;
-				}
-			}
+		const float TransformScale = ComponentToWorld.GetMaximumAxisScale();
+		LevelContext.BindComponent(nullptr, Bounds, TransformScale * StreamingDistanceMultiplier);
+
+		// Process the material entries.
+		for (int32 MaterialIndex = 0; MaterialIndex < NumMaterials; ++MaterialIndex)
+		{
+			UMaterialInterface* Material = GetMaterial(MaterialIndex);
+			if (!Material) continue;
+
+			// Enumerate the textures used by the material.
+			TArray<UTexture*> Textures;
+			Material->GetUsedTextures(Textures, EMaterialQualityLevel::Num, false, FeatureLevel, false);
+
+			const FMeshUVChannelInfo* UVChannelData = SkeletalMesh->GetUVChannelData(MaterialIndex);
+			LevelContext.Process(Textures, UVChannelData ? UVChannelData->LocalUVDensities[0] : 1.f, OutStreamingTextures);
 		}
 	}
 }
@@ -1115,7 +1140,7 @@ void USkinnedMeshComponent::SetMasterPoseComponent(class USkinnedMeshComponent* 
 
 		if (bAddNew)
 		{
-			MasterPoseComponent->SlavePoseComponents.Add(this);
+			MasterPoseComponent->AddSlavePoseComponent(this);
 		}
 	}
 
@@ -1134,6 +1159,11 @@ void USkinnedMeshComponent::SetMasterPoseComponent(class USkinnedMeshComponent* 
 	AllocateTransformData();
 	RecreatePhysicsState();
 	UpdateMasterBoneMap();
+}
+
+void USkinnedMeshComponent::AddSlavePoseComponent(USkinnedMeshComponent* SkinnedMeshComponent)
+{
+	SlavePoseComponents.Add(SkinnedMeshComponent);
 }
 
 void USkinnedMeshComponent::InvalidateCachedBounds()
@@ -1969,6 +1999,16 @@ bool USkinnedMeshComponent::UpdateLODStatus()
 	{
 		MaxDistanceFactor = MeshObject->MaxDistanceFactor;
 	}
+	
+	// also update slave component LOD status, as we may need to recalc required bones if this changes
+	// independently of our LOD
+	for (TWeakObjectPtr<USkinnedMeshComponent> SlaveComponents : SlavePoseComponents)
+	{
+		if (SlaveComponents.IsValid())
+		{
+			bLODChanged |= SlaveComponents->UpdateLODStatus();
+		}
+	}
 
 	return bLODChanged;
 }
@@ -2009,12 +2049,46 @@ void USkinnedMeshComponent::SetComponentSpaceTransformsDoubleBuffering(bool bInD
 	}
 }
 
-void USkinnedMeshComponent::UpdateRecomputeTangent(int32 MaterialIndex)
+void USkinnedMeshComponent::UpdateRecomputeTangent(int32 MaterialIndex, int32 LodIndex, bool bRecomputeTangentValue)
 {
 	if (ensure(SkeletalMesh) && MeshObject)
 	{
-		MeshObject->UpdateRecomputeTangent(MaterialIndex, SkeletalMesh->Materials[MaterialIndex].bRecomputeTangent);
+		MeshObject->UpdateRecomputeTangent(MaterialIndex, LodIndex, bRecomputeTangentValue);
 	}
+}
+
+void USkinnedMeshComponent::GetCPUSkinnedVertices(TArray<FFinalSkinVertex>& OutVertices, int32 InLODIndex)
+{
+	// switch to CPU skinning
+	bool bCachedCPUSkinning = bCPUSkinning;
+	bCPUSkinning = true;
+
+	if (MasterPoseComponent.IsValid())
+	{
+		MasterPoseComponent->ForcedLodModel = InLODIndex + 1;
+		MasterPoseComponent->UpdateLODStatus();
+		MasterPoseComponent->RefreshBoneTransforms(nullptr);
+	}
+	else
+	{
+		ForcedLodModel = InLODIndex + 1;
+		UpdateLODStatus();
+		RefreshBoneTransforms(nullptr);
+	}
+
+	// Recreate render state and flush the renderer
+	RecreateRenderState_Concurrent();
+	FlushRenderingCommands();
+
+	check(MeshObject);
+
+	// Copy our vertices out. We know we are using CPU skinning now, so this cast is safe
+	OutVertices = static_cast<FSkeletalMeshObjectCPUSkin*>(MeshObject)->GetCachedFinalVertices();
+
+	// switch skinning mode, LOD etc. back
+	bCPUSkinning = bCachedCPUSkinning;
+	ForcedLodModel = 0;
+	RecreateRenderState_Concurrent();
 }
 
 void FAnimUpdateRateParameters::SetTrailMode(float DeltaTime, uint8 UpdateRateShift, int32 NewUpdateRate, int32 NewEvaluationRate, bool bNewInterpSkippedFrames)

@@ -4,7 +4,7 @@
 
 #include "Math/UnrealMathUtility.h"
 #include "Misc/Parse.h"
-#include "Serialization/ArchiveBase.h"
+#include "Serialization/Archive.h"
 
 
 struct FColor;

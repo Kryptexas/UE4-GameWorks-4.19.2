@@ -115,7 +115,8 @@ float AActor::GetReplayPriority(const FVector& ViewPos, const FVector& ViewDir, 
 		}
 	}
 
-	return Time;
+	// Use NetPriority here to be compatible with live networking.
+	return NetPriority * Time;
 }
 
 bool AActor::GetNetDormancy(const FVector& ViewPos, const FVector& ViewDir, AActor* Viewer, AActor* ViewTarget, UActorChannel* InChannel, float Time, bool bLowBandwidth)
@@ -203,9 +204,11 @@ void AActor::OnRep_ReplicatedMovement()
 
 void AActor::PostNetReceiveLocationAndRotation()
 {
-	if( RootComponent && RootComponent->IsRegistered() && (ReplicatedMovement.Location != GetActorLocation() || ReplicatedMovement.Rotation != GetActorRotation()) )
+	FVector NewLocation = FRepMovement::RebaseOntoLocalOrigin(ReplicatedMovement.Location, this);
+
+	if( RootComponent && RootComponent->IsRegistered() && (NewLocation != GetActorLocation() || ReplicatedMovement.Rotation != GetActorRotation()) )
 	{
-		SetActorLocationAndRotation(ReplicatedMovement.Location, ReplicatedMovement.Rotation, /*bSweep=*/ false);
+		SetActorLocationAndRotation(NewLocation, ReplicatedMovement.Rotation, /*bSweep=*/ false);
 	}
 }
 
@@ -219,7 +222,7 @@ void AActor::PostNetReceivePhysicState()
 	if (RootPrimComp)
 	{
 		FRigidBodyState NewState;
-		ReplicatedMovement.CopyTo(NewState);
+		ReplicatedMovement.CopyTo(NewState, this);
 
 		FVector DeltaPos(FVector::ZeroVector);
 		RootPrimComp->ConditionalApplyRigidBodyState(NewState, GEngine->PhysicErrorCorrection, DeltaPos);
@@ -289,7 +292,7 @@ void AActor::GatherCurrentMovement()
 		FRigidBodyState RBState;
 		RootPrimComp->GetRigidBodyState(RBState);
 
-		ReplicatedMovement.FillFrom(RBState);
+		ReplicatedMovement.FillFrom(RBState, this);
 		ReplicatedMovement.bRepPhysics = true;
 	}
 	else if (RootComponent != nullptr)
@@ -311,7 +314,7 @@ void AActor::GatherCurrentMovement()
 		}
 		else
 		{
-			ReplicatedMovement.Location = RootComponent->GetComponentLocation();
+			ReplicatedMovement.Location = FRepMovement::RebaseOntoZeroOrigin(RootComponent->GetComponentLocation(), this);
 			ReplicatedMovement.Rotation = RootComponent->GetComponentRotation();
 			ReplicatedMovement.LinearVelocity = GetVelocity();
 			ReplicatedMovement.AngularVelocity = FVector::ZeroVector;

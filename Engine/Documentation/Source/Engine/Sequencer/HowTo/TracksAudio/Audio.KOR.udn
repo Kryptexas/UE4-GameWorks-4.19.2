@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3011129
 Availability: Public
-Title:Adding Audio	
+Title:오디오 추가
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
-Description:Example of how to add audio to your scenes.
+Description:씬에 오디오를 추가하는 방법 예제입니다.
 Version: 4.12
 SkillLevel: Beginner
 parent:Engine/Sequencer/HowTo
@@ -11,87 +11,87 @@ checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
 
-Whether your are looking to score your cinematic with a musical track or want to add sound effects such as impact sounds, voice overs, or others, you'll need to do so with an **Audio Track** inside Sequencer. 
+시네마틱에 배경 음악을 곁들이거나, 음성 더빙 등의 음향 효과를 추가하고자 하는 경우, 시퀀서에서 **Audio Track** (오디오 트랙)을 사용하면 됩니다.
 
-In this how-to, we add a music track to a sample scene and show how you can fade in/out an audio track with a **Sound Cue**.
+여기서는 샘플 씬에 뮤직 트랙을 추가한 뒤 **사운드 큐** 를 통해 오디오 트랙에 페이드 인/아웃 을 적용시키는 법을 보여드리겠습니다.
 
 [REGION:warning]
-Currently **Audio Tracks** have limited editing capabilities. Additional support will come online in future engine updates. 
+현재 **오디오 트랙** 에는 편집 기능이 제한되어 있습니다. 추후 버전에서 지원되는 기능이 추가될 것입니다.
 [/REGION]
 
 
-## Steps
+## 단계
 
 [REGION:note]
-For this how-to, we are using the **Blueprint Third Person Template** with **Starter Content** enabled. 
+여기서는 **블루프린트 삼인칭 템플릿** 에 **시작용 콘텐츠** 를 포함시킨 것을 사용합니다.
 [/REGION]
 
-1.	From the Main Tool Bar click **Cinematics** and **Add Level Sequence**. 
+1.	메인 툴바에서 **시네마틱** - **레벨 시퀀스 추가** 를 선택합니다.
 
 	![](Audio01.png)
 
-1.	Inside the Level Sequence, click the **Add** button and select the **Audio Track**. 
+1.	레벨 시퀀스 안에서, **추가** 버튼을 클릭하고 **오디오 트랙** 을 선택합니다.
 
 	![](Audio02.png)
 
-1.	Click the **+ Audio** button then select the **Starter_Music_Cue** asset. 
+1.	**+ 오디오** 버튼을 클릭한 뒤 **Starter_Music_Cue** 애셋을 선택합니다.
 
 	![](Audio03.png)
 
-1.	Click the **+ Audio** button and select additional audio assets and arrange on the timeline as desired. 
+1.	**+ 오디오** 버튼을 클릭하고 추가 오디오 애셋을 선택한 뒤 타임라인에서 위치를 원하는 대로 배치합니다.
 
 	![](Audio04.png)
 
-	You can layer sounds by arranging the audio asset on top of one another. 
+	한 오디오 애셋 위에 다른 것을 겹치는 식의 레이어 작업도 가능합니다.
 
-1.	**Right-click** on the **Starter_Music_Cue** asset to reveal the **Properties**, then click the **Magnifying Glass** icon. 
+1.	**Starter_Music_Cue** 애셋에 우클릭하여 **프로퍼티** 를 표시한 뒤, 돋보기 아이콘을 클릭합니다. 
 
 	![](Audio05.png)
 
-	Along with the properties that you can change for the asset, you can browse to and find the asset in the **Content Browser** by clicking the **Browse To** button. 
+	애셋의 변경 가능한 프로퍼티와 함께, **Browse To** 버튼을 클릭하여 애셋을 탐색할 수 있습니다.
 
-1.	**Double-click** and open the **Starter_Music_Cue** Sound Cue asset. 
+1.	**Starter_Music_Cue** 사운드 큐 애셋을 **더블클릭** 하여 엽니다.
 
-1.	In the **Sound Cue Editor**, drag an **Enveloper** into the graph. 
+1.	**사운드 큐 에디터** 에서 **Enveloper** 를 끌어 그래프에 놓습니다.
 
 	![](Audio06.png)
 
-	Inside the Sound Cue Editor we can alter and mix sound assets. For this example we want to fade in the sound which we can do with the **Enveloper** node. 
+	사운드 큐 에디터에서는 사운드 애셋을 변경하거나 혼합할 수 있습니다. 이 예제에서는 사운드에 페이드 인 효과를 주고싶은데, **Enveloper** 노드에서 가능합니다.
 
 	[REGION:note]
-	In future engine releases, the ability to edit Audio Tracks within Sequencer will come online and this guide will be updated. 
+	앞으로 엔진 버전이 업데이트됨에 따라, 시퀀서 안에서 오디오 트랙을 편집할 수 있게 되면 이 안내서도 업데이트될 것입니다.
 	[/REGION]
 
-1.	**Left-click** and connect the nodes as show below. 
+1.	노드를 **좌클릭** 으로 아래와 같이 연결합니다.
 
 	![](Audio07.png)
 
-	The Starter_Music01 asset will get passed through the Enveloper before outputting the final sound. 
+	Starter_Music01 애셋이 Enveloper 를 통과한 뒤 최종 사운드가 출력됩니다.
 
-1.	In the **Details** panel of the **Enveloper**, click the key in the **Volume Curve** and change the **Value** to **0.0**. 
+1.	**Enveloper** 의 **디테일** 패널에서, **Volume Curve** 의 키를 선택한 뒤, **Value** 를 **0.0** 으로 변경합니다.
 
 	![](Audio08.png)
 
-	Here we are stating that at time 0.0 (the start), the value of Volume should be 0.0 (or off). 
+	이는 0.0 시간 (시작 위치)에 볼륨 값이 0.0 (또는 꺼짐) 이라는 뜻입니다.
 
-1.	Hold **Shift** and **Left-click** in the curve window to create a new key. 
+1.	커브 창에 **Shift** + **좌클릭** 하여 새 키를 만듭니다.
 
-1.	Select the key, then change the **Time** to **4.0** and **Value** to **1.0**. 
+1.	키를 선택하고, **Time** 을 **4.0** 으로, **Value** 를 **1.0** 으로 변경합니다.
 
 	![](Audio09.png)
 
-	Here we are stating that at 4 seconds, the value of the Volume should be 1.0 (or full volume) giving us a fade in. You can also click the two buttons next to the **Time** and **Value** properties to adjust the size of the curve window to display the curve. 
+	이는 4 초에 볼륨이 1.0 (최대 볼륨) 이라는 뜻으로, 페이드 인 효과가 납니다. **Time** 과 **Value** 프로퍼티 옆의 두 버튼을 클릭하여 커브를 표시할 커브 창 크기를 조정할 수 있습니다.
 
 	[REGION:tip]
-	If you wanted to fade out for example starting at 10 seconds, you would add a key and set the **Time** to **10.0** with **Value** being **1.0**. If you wanted the fade duration to last 5 seconds, you would add another key with the **Time** being **15.0** and the **Value** being **0.0**. 
+	예를 들면 10 초에 페이드 아웃을 시작하고자 한다면, 키를 추가하고 **Time** 을 **10.0** 으로, **Value** 는 **1.0** 으로 설정하면 됩니다. 페이드가 5 초에 걸쳐 일어나도록 하려면, 키를 하나 더 추가하고 **Time** 은 **15.0** 으로, **Value** 는 **0.0** 으로 설정하면 됩니다.
 	[/REGION]
 
-1.	Return to **Sequencer** and click the **Preview Play** button. 
+1.	**시퀀서** 로 돌아가 **프리뷰 재생** 버튼을 누릅니다.
 
 
-## End Result
+## 최종 결과
 
-You should now hear all your sounds that you've placed in the **Audio Track** and the music should fade in over time. 
+이제 **오디오 트랙** 에 배치한 모든 사운드와, 서서히 커지는 음악 소리가 들릴 것입니다.
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -106,8 +106,7 @@ You should now hear all your sounds that you've placed in the **Audio Track** an
 [/OBJECT]
 
 
-Audio Tracks support either **Sound Cue** or **Sound Wave** assets and can be added by dragging-and-dropping from the **Content Browser** into a Level Sequence or by adding through the **Add** option of an Audio Track. 
-
+오디오 트랙은 **사운드 큐** 나 **사운드 웨이브** 애셋을 지원하며, **콘텐츠 브라우저** 에서 레벨 시퀀스로 끌어 놓거나, 오디오 트랙의 **추가** 옵션을 통해 추가시킬 수 있습니다.
 
 
 

@@ -4,8 +4,7 @@
 	RendererInterface.h: Renderer interface definition.
 =============================================================================*/
 
-#ifndef __RendererInterface_H__
-#define __RendererInterface_H__
+#pragma once
 
 #include "ModuleInterface.h"
 #include "ModuleManager.h"
@@ -39,6 +38,7 @@ public:
 		, Depth(0)
 		, ArraySize(1)
 		, bIsArray(false)
+		, bIsCubemap(false)
 		, NumMips(0)
 		, NumSamples(1)
 		, Format(PF_Unknown)
@@ -76,6 +76,7 @@ public:
 		NewDesc.Depth = 0;
 		NewDesc.ArraySize = 1;
 		NewDesc.bIsArray = false;
+		NewDesc.bIsCubemap = false;
 		NewDesc.NumMips = InNumMips;
 		NewDesc.NumSamples = 1;
 		NewDesc.Format = InFormat;
@@ -114,6 +115,7 @@ public:
 		NewDesc.Depth = InSizeZ;
 		NewDesc.ArraySize = 1;
 		NewDesc.bIsArray = false;
+		NewDesc.bIsCubemap = false;
 		NewDesc.NumMips = InNumMips;
 		NewDesc.NumSamples = 1;
 		NewDesc.Format = InFormat;
@@ -145,11 +147,12 @@ public:
 
 		FPooledRenderTargetDesc NewDesc;
 		NewDesc.ClearValue = InClearValue;
-		NewDesc.Extent = FIntPoint(InExtent, 0);
+		NewDesc.Extent = FIntPoint(InExtent, InExtent);
 		NewDesc.Depth = 0;
 		NewDesc.ArraySize = InArraySize;
 		// Note: this doesn't allow an array of size 1
 		NewDesc.bIsArray = InArraySize > 1;
+		NewDesc.bIsCubemap = true;
 		NewDesc.NumMips = InNumMips;
 		NewDesc.NumSamples = 1;
 		NewDesc.Format = InFormat;
@@ -178,6 +181,7 @@ public:
 		return Extent == rhs.Extent
 			&& Depth == rhs.Depth
 			&& bIsArray == rhs.bIsArray
+			&& bIsCubemap == rhs.bIsCubemap
 			&& ArraySize == rhs.ArraySize
 			&& NumMips == rhs.NumMips
 			&& NumSamples == rhs.NumSamples
@@ -191,17 +195,17 @@ public:
 
 	bool IsCubemap() const
 	{
-		return Extent.X != 0 && Extent.Y == 0 && Depth == 0;
+		return bIsCubemap;
 	}
 
 	bool Is2DTexture() const
 	{
-		return Extent.X != 0 && Extent.Y != 0 && Depth == 0;
+		return Extent.X != 0 && Extent.Y != 0 && Depth == 0 && !bIsCubemap;
 	}
 
 	bool Is3DTexture() const
 	{
-		return Extent.X != 0 && Extent.Y != 0 && Depth != 0;
+		return Extent.X != 0 && Extent.Y != 0 && Depth != 0 && !bIsCubemap;
 	}
 
 	// @return true if this texture is a texture array
@@ -314,7 +318,8 @@ public:
 	uint32 ArraySize;
 	/** true if an array texture. Note that ArraySize still can be 1 */
 	bool bIsArray;
-
+	/** true if a cubemap texture */
+	bool bIsCubemap;
 	/** Number of mips */
 	uint16 NumMips;
 	/** Number of MSAA samples, default: 1  */
@@ -672,8 +677,14 @@ public:
 	virtual void RenderPostOpaqueExtensions(const FSceneView& View, FRHICommandListImmediate& RHICmdList, class FSceneRenderTargets& SceneContext) = 0;
 	virtual void RenderOverlayExtensions(const FSceneView& View, FRHICommandListImmediate& RHICmdList, FSceneRenderTargets& SceneContext) = 0;
 	virtual bool HasPostOpaqueExtentions() const = 0;
+
+	/** Delegate that is called upon resolving scene color. */
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnResolvedSceneColor, FRHICommandListImmediate& /*RHICmdList*/, class FSceneRenderTargets& /*SceneContext*/);
+
+	/** Accessor for post scene color resolve delegates */
+	virtual FOnResolvedSceneColor& GetResolvedSceneColorCallbacks() = 0;
+
+	/** Calls registered post resolve delegates, if any */
+	virtual void RenderPostResolvedSceneColorExtension(FRHICommandListImmediate& RHICmdList, class FSceneRenderTargets& SceneContext) = 0;
 };
 
-
-
-#endif

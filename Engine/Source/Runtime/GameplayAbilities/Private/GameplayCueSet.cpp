@@ -104,6 +104,14 @@ void UGameplayCueSet::RemoveLoadedClass(UClass* Class)
 	}
 }
 
+void UGameplayCueSet::GetFilenames(TArray<FString>& Filenames) const
+{
+	for (const FGameplayCueNotifyData& Data : GameplayCueData)
+	{
+		Filenames.Add(Data.GameplayCueNotifyObj.GetLongPackageName());
+	}
+}
+
 #if WITH_EDITOR
 void UGameplayCueSet::UpdateCueByStringRefs(const FStringAssetReference& CueToRemove, FString NewPath)
 {

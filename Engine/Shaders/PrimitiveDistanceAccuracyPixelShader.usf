@@ -25,7 +25,7 @@ void Main(
 	ResolvedView = ResolveView();
 #endif
 
-	float3 Result = float3(.1, .1, .1);
+	float3 Result = float3(UNDEFINED_ACCURACY, UNDEFINED_ACCURACY, UNDEFINED_ACCURACY);
 
 	if (CPULogDistance >= 0)
 	{

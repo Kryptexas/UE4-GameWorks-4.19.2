@@ -25,10 +25,10 @@ public:
 	 *
 	 * @param Position	The current playback position
 	 * @param LastPosition	The last plackback position
-	 * @param The color at the playback position
-	 * @return true if anything was evaluated. Note: if false is returned OutColor remains unchanged
+	 * @param InOutColor The color at the playback position
+	 * @return true if anything was evaluated. Note: if false is returned InOutColor remains unchanged
 	 */
-	virtual bool Eval( float Position, float LastPostion, FLinearColor& OutColor ) const;
+	virtual bool Eval( float Position, float LastPostion, FLinearColor& InOutColor ) const;
 
 private:
 	UPROPERTY()

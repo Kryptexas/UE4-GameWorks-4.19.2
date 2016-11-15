@@ -923,7 +923,10 @@ void UParty::OnCreatePesistentPartyCompletedCommon(const FUniqueNetId& LocalUser
 
 	ensure(PersistentPartyId.IsValid());
 	UPartyGameState* PersistentParty = GetPersistentParty();
-	ensure(PersistentParty != nullptr);
+	if (!ensure(PersistentParty != nullptr))
+	{
+		return;
+	}
 
 	EPartyType PartyType = EPartyType::Public;
 	bool bLeaderInvitesOnly = false;
@@ -1223,9 +1226,9 @@ void UParty::OnLeavePersistentPartyAndRestore(const FUniqueNetId& LocalUserId, c
 	RestorePersistentPartyState();
 }
 
-void UParty::AddPendingPartyJoin(const FUniqueNetId& LocalUserId, const FPartyDetails& PartyDetails, const UPartyDelegates::FOnJoinUPartyComplete& JoinCompleteDelegate)
+void UParty::AddPendingPartyJoin(const FUniqueNetId& LocalUserId, TSharedRef<const FPartyDetails> PartyDetails, const UPartyDelegates::FOnJoinUPartyComplete& JoinCompleteDelegate)
 {
-	if (LocalUserId.IsValid() && PartyDetails.IsValid())
+	if (LocalUserId.IsValid() && PartyDetails->IsValid())
 	{
 		if (!HasPendingPartyJoin())
 		{

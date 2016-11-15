@@ -169,6 +169,7 @@ public:
 	virtual bool NewKeyIsNewData(float Time, const FVectorKey& Key) const override;
 	virtual bool HasKeys(const FVectorKey& Key) const override;
 	virtual void SetDefault(const FVectorKey& Key) override;
+	virtual void ClearDefaults() override;
 
 private:
 

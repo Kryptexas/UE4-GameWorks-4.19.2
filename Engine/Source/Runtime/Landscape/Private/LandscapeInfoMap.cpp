@@ -1,6 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "Landscape.h"
+#include "LandscapePrivatePCH.h"
 #include "LandscapeInfoMap.h"
 
 ULandscapeInfoMap::ULandscapeInfoMap(const FObjectInitializer& ObjectInitializer)
@@ -28,6 +28,17 @@ void ULandscapeInfoMap::Serialize(FArchive& Ar)
 void ULandscapeInfoMap::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
 	ULandscapeInfoMap* This = CastChecked<ULandscapeInfoMap>(InThis);
-
 	Collector.AddReferencedObjects(This->Map, This);
 }
+
+#if WITH_EDITORONLY_DATA
+ULandscapeInfoMap& ULandscapeInfoMap::GetLandscapeInfoMap(UWorld* World)
+{
+	ULandscapeInfoMap *FoundObject = nullptr;
+	World->PerModuleDataObjects.FindItemByClass(&FoundObject);
+
+	checkf(FoundObject, TEXT("ULandscapInfoMap object was not created for this UWorld."));
+
+	return *FoundObject;
+}
+#endif // WITH_EDITORONLY_DATA

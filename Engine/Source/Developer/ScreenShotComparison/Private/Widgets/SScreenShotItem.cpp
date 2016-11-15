@@ -41,7 +41,7 @@ void SScreenShotItem::Construct( const FArguments& InArgs )
 				[
 					// The image to use. This needs to be a dynamic brush at some point.
 					SNew( SImage )
-					.Image( DynamicBrush.Get() )
+					.Image(UnapprovedBrush.Get() )
 					.OnMouseButtonDown(this,&SScreenShotItem::OnImageClicked)
 				]
 			]
@@ -55,7 +55,7 @@ FIntPoint SScreenShotItem::GetActualImageSize()
 	{
 		//Find the image size by reading in the image on disk.  
 		TArray<uint8> RawFileData;
-		if( FFileHelper::LoadFileToArray( RawFileData, *DynamicBrush->GetResourceName().ToString() ) )
+		if( FFileHelper::LoadFileToArray( RawFileData, *UnapprovedBrush->GetResourceName().ToString() ) )
 		{
 			IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>( FName("ImageWrapper") );
 			IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG );
@@ -117,5 +117,16 @@ void SScreenShotItem::LoadBrush()
 	FString AssetFilename = ScreenShotData->GetAssetName();
 
 	// Create the dynamic brush
-	DynamicBrush = MakeShareable( new FSlateDynamicImageBrush( *AssetFilename, FVector2D(256,128) ) );
+	UnapprovedBrush = MakeShareable( new FSlateDynamicImageBrush( *AssetFilename, FVector2D(256,128) ) );
+
+	//UnapprovedBrush = MakeShareable( new FSlateDynamicImageBrush( *AssetFilename, FVector2D(256,128) ) );
+
+
+	//TSharedPtr<FSlateDynamicImageBrush> UnapprovedBrush;
+
+	////Holds the dynamic brush.
+	//TSharedPtr<FSlateDynamicImageBrush> ApprovedBrush;
+
+	////Holds the dynamic brush.
+	//TSharedPtr<FSlateDynamicImageBrush> ComparisonBrush;
 }

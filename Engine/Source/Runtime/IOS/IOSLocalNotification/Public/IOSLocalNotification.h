@@ -45,6 +45,11 @@ public:
 	*/
 	virtual void SetLaunchNotification(FString const& ActivationEvent, int32 FireDate);
 
+	/** Cancel a local notification given the ActivationEvent
+	 * @param ActivationEvent The string passed into the Schedule call for the notification to be cancelled
+	*/
+	virtual void CancelLocalNotification(const FString& ActivationEvent);
+
 private:
 	bool	AppLaunchedWithNotification;
 	FString	LaunchNotificationActivationEvent;

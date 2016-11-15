@@ -222,7 +222,16 @@ void FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
 		PendingAllocations.Empty();
 	}	
 }
-	
+
+FDistanceFieldVolumeTexture::~FDistanceFieldVolumeTexture()
+{
+	if (FApp::CanEverRender())
+	{
+		// Make sure we have been properly removed from the atlas before deleting
+		check(!bReferencedByAtlas);
+	}
+}
+
 void FDistanceFieldVolumeTexture::Initialize()
 {
 	if (IsValidDistanceFieldVolume())
@@ -269,7 +278,7 @@ FDistanceFieldAsyncQueue* GDistanceFieldAsyncQueue = NULL;
 
 #if WITH_EDITORONLY_DATA
 
-void FDistanceFieldVolumeData::CacheDerivedData(const FString& InDDCKey, UStaticMesh* Mesh, UStaticMesh* GenerateSource, float DistanceFieldResolutionScale, bool bGenerateDistanceFieldAsIfTwoSided)
+void FDistanceFieldVolumeData::CacheDerivedData(const FString& InDDCKey, UStaticMesh* Mesh, UStaticMesh* GenerateSource, float DistanceFieldResolutionScale, float DistanceFieldBias, bool bGenerateDistanceFieldAsIfTwoSided)
 {
 	TArray<uint8> DerivedData;
 
@@ -289,17 +298,18 @@ void FDistanceFieldVolumeData::CacheDerivedData(const FString& InDDCKey, UStatic
 		NewTask->StaticMesh = Mesh;
 		NewTask->GenerateSource = GenerateSource;
 		NewTask->DistanceFieldResolutionScale = DistanceFieldResolutionScale;
+		NewTask->DistanceFieldBias = FMath::Max<float>(DistanceFieldBias, 0.0f);
 		NewTask->bGenerateDistanceFieldAsIfTwoSided = bGenerateDistanceFieldAsIfTwoSided;
 		NewTask->GeneratedVolumeData = new FDistanceFieldVolumeData();
 
-		for (int32 MaterialIndex = 0; MaterialIndex < Mesh->Materials.Num(); MaterialIndex++)
+		for (int32 MaterialIndex = 0; MaterialIndex < Mesh->StaticMaterials.Num(); MaterialIndex++)
 		{
 			// Default material blend mode
 			EBlendMode BlendMode = BLEND_Opaque;
 
-			if (Mesh->Materials[MaterialIndex])
+			if (Mesh->StaticMaterials[MaterialIndex].MaterialInterface)
 			{
-				BlendMode = Mesh->Materials[MaterialIndex]->GetBlendMode();
+				BlendMode = Mesh->StaticMaterials[MaterialIndex].MaterialInterface->GetBlendMode();
 			}
 
 			NewTask->MaterialBlendModes.Add(BlendMode);
@@ -525,6 +535,7 @@ void FDistanceFieldAsyncQueue::Build(FAsyncDistanceFieldTask* Task, FQueuedThrea
 		Task->MaterialBlendModes,
 		Task->GenerateSource->RenderData->Bounds,
 		Task->DistanceFieldResolutionScale,
+		Task->DistanceFieldBias,
 		Task->bGenerateDistanceFieldAsIfTwoSided,
 		*Task->GeneratedVolumeData);
 

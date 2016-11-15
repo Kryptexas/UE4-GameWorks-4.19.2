@@ -867,7 +867,7 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 	TSet<FString> InternalPins;
 	FBlueprintEditorUtils::GetHiddenPinsForFunction(Graph, Function, PinsToHide, &InternalPins);
 
-	const bool bShowWorldContextPin = ((PinsToHide.Num() > 0) && BP && BP->ParentClass && BP->ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowWorldContextPin));
+	const bool bShowWorldContextPin = ((PinsToHide.Num() > 0) && BP && BP->ParentClass && BP->ParentClass->HasMetaDataHierarchical(FBlueprintMetadata::MD_ShowWorldContextPin));
 
 	// Create the inputs and outputs
 	bool bAllPinsGood = true;
@@ -941,6 +941,9 @@ void UK2Node_CallFunction::PostReconstructNode()
 	Super::PostReconstructNode();
 	InvalidatePinTooltips();
 
+	// conform pins that are marked as SetParam:
+	ConformContainerPins();
+
 	FCustomStructureParamHelper::UpdateCustomStructurePins(GetTargetFunction(), this);
 
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
@@ -972,7 +975,7 @@ void UK2Node_CallFunction::PostReconstructNode()
 	UEdGraphPin* ReturnPin = GetReturnValuePin();
 	if(TemplateComp && ReturnPin)
 	{
-		ReturnPin->PinType.PinSubCategoryObject = TemplateComp->GetClass();
+		ReturnPin->PinType.PinSubCategoryObject = TemplateComp->GetClass()->GetAuthoritativeClass();
 	}
 
 	if (UEdGraphPin* TypePickerPin = FDynamicOutputHelper::GetTypePickerPin(this))
@@ -1011,15 +1014,20 @@ void UK2Node_CallFunction::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 {
 	Super::NotifyPinConnectionListChanged(Pin);
 
-	if (Pin)
-	{
-		FCustomStructureParamHelper::UpdateCustomStructurePins(GetTargetFunction(), this, Pin);
+	// conform pins that are marked as SetParam:
+	ConformContainerPins();
 
-		// Refresh the node to hide internal-only pins once the [invalid] connection has been broken
-		if (Pin->bHidden && Pin->bNotConnectable && Pin->LinkedTo.Num() == 0)
-		{
-			GetGraph()->NotifyGraphChanged();
-		}
+	if (!ensure(Pin))
+	{
+		return;
+	}
+
+	FCustomStructureParamHelper::UpdateCustomStructurePins(GetTargetFunction(), this, Pin);
+
+	// Refresh the node to hide internal-only pins once the [invalid] connection has been broken
+	if (Pin->bHidden && Pin->bNotConnectable && Pin->LinkedTo.Num() == 0)
+	{
+		GetGraph()->NotifyGraphChanged();
 	}
 
 	if (bIsBeadFunction)
@@ -1706,7 +1714,7 @@ void UK2Node_CallFunction::PostPasteNode()
 		TSet<FString> PinsToHide;
 		FBlueprintEditorUtils::GetHiddenPinsForFunction(GetGraph(), Function, PinsToHide);
 
-		const bool bShowWorldContextPin = ((PinsToHide.Num() > 0) && GetBlueprint()->ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowWorldContextPin));
+		const bool bShowWorldContextPin = ((PinsToHide.Num() > 0) && GetBlueprint()->ParentClass->HasMetaDataHierarchical(FBlueprintMetadata::MD_ShowWorldContextPin));
 
 		FString const DefaultToSelfMetaValue = Function->GetMetaData(FBlueprintMetadata::MD_DefaultToSelf);
 		FString const WorldContextMetaValue  = Function->GetMetaData(FBlueprintMetadata::MD_WorldContext);
@@ -1738,9 +1746,9 @@ void UK2Node_CallFunction::PostDuplicate(bool bDuplicateForPIE)
 	}
 }
 
-void UK2Node_CallFunction::ValidateNodeAfterPrune(class FCompilerResultsLog& MessageLog) const
+void UK2Node_CallFunction::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const
 {
-	Super::ValidateNodeAfterPrune(MessageLog);
+	Super::ValidateNodeDuringCompilation(MessageLog);
 
 	const UBlueprint* Blueprint = GetBlueprint();
 	UFunction *Function = GetTargetFunction();
@@ -1810,7 +1818,7 @@ void UK2Node_CallFunction::ValidateNodeAfterPrune(class FCompilerResultsLog& Mes
 			check(Blueprint);
 			UClass* ParentClass = Blueprint->ParentClass;
 			check(ParentClass);
-			if (ParentClass && !ParentClass->GetDefaultObject()->ImplementsGetWorld() && !ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowWorldContextPin))
+			if (ParentClass && !ParentClass->GetDefaultObject()->ImplementsGetWorld() && !ParentClass->HasMetaDataHierarchical(FBlueprintMetadata::MD_ShowWorldContextPin))
 			{
 				MessageLog.Warning(*LOCTEXT("FunctionUnsafeInContext", "Function '@@' is unsafe to call from blueprints of class '@@'.").ToString(), this, ParentClass);
 			}
@@ -1818,6 +1826,17 @@ void UK2Node_CallFunction::ValidateNodeAfterPrune(class FCompilerResultsLog& Mes
 	}
 
 	FDynamicOutputHelper::VerifyNode(this, MessageLog);
+
+	for (UEdGraphPin* Pin : Pins)
+	{
+		if (Pin && Pin->PinType.bIsWeakPointer && !Pin->PinType.IsContainer())
+		{
+			const FString ErrorString = FString::Printf(
+				*LOCTEXT("WeakPtrNotSupportedError", "Weak prointer is not supported as function parameter. Pin '%s' @@").ToString(),
+				*Pin->GetName());
+			MessageLog.Error(*ErrorString, this);
+		}
+	}
 }
 
 void UK2Node_CallFunction::Serialize(FArchive& Ar)
@@ -2292,6 +2311,87 @@ void UK2Node_CallFunction::InvalidatePinTooltips()
 	bPinTooltipsValid = false;
 }
 
+void UK2Node_CallFunction::ConformContainerPins()
+{
+	const UFunction* TargetFunction = GetTargetFunction();
+	if (TargetFunction == nullptr)
+	{
+		return;
+	}
+
+	// find any pins marked as SetParam
+	const FString& DependentPinMetaData = TargetFunction->GetMetaData(FBlueprintMetadata::MD_SetParam);
+	if (DependentPinMetaData.IsEmpty())
+	{
+		// early out, no SetParam metadata
+		return;
+	}
+
+	// useless copies/allocates in this code, could be an optimization target...
+	TArray<FString> SetParamPinGroups;
+	{
+		DependentPinMetaData.ParseIntoArray(SetParamPinGroups, TEXT(","), true);
+	}
+
+	for (FString& Entry : SetParamPinGroups)
+	{
+		// split the group:
+		TArray<FString> GroupEntries;
+		Entry.ParseIntoArray(GroupEntries, TEXT("|"), true);
+		// resolve pins
+		TArray<UEdGraphPin*> ResolvedPins;
+		for(UEdGraphPin* Pin : Pins)
+		{
+			if (GroupEntries.Contains(Pin->GetName()))
+			{
+				ResolvedPins.Add(Pin);
+			}
+		}
+
+		// if nothing is connected (or non-default), reset to wildcard
+		// else, find the first type and propagate to everyone else::
+		bool bAllPinsAreDefaultOrEmpty = true;
+		FEdGraphTerminalType TypeToPropagate;
+		for (UEdGraphPin* Pin : ResolvedPins)
+		{
+			if (Pin->LinkedTo.Num() != 0 || Pin->DefaultValue != Pin->AutogeneratedDefaultValue)
+			{
+				bAllPinsAreDefaultOrEmpty = false;
+				if (Pin->LinkedTo.Num() != 0)
+				{
+					TypeToPropagate = Pin->LinkedTo[0]->GetPrimaryTerminalType();
+				}
+				else
+				{
+					TypeToPropagate = Pin->GetPrimaryTerminalType();
+				}
+				break;
+			}
+		}
+
+		if (!bAllPinsAreDefaultOrEmpty)
+		{
+			for (UEdGraphPin* Pin : ResolvedPins)
+			{
+				Pin->PinType.PinCategory = TypeToPropagate.TerminalCategory;
+				Pin->PinType.PinSubCategory = TypeToPropagate.TerminalSubCategory;
+				Pin->PinType.PinSubCategoryObject = TypeToPropagate.TerminalSubCategoryObject;
+			}
+		}
+		else
+		{
+			// reset everyone to wildcard:
+			for (UEdGraphPin* Pin : ResolvedPins)
+			{
+				Pin->PinType.PinCategory = UEdGraphSchema_K2::PC_Wildcard;
+				Pin->PinType.PinSubCategory.Empty();
+				Pin->PinType.PinSubCategoryObject = nullptr;
+				Pin->DefaultValue = TEXT("");
+			}
+		}
+	}
+}
+
 FText UK2Node_CallFunction::GetToolTipHeading() const
 {
 	FText Heading = Super::GetToolTipHeading();
@@ -2409,6 +2509,7 @@ UEdGraph* UK2Node_CallFunction::GetFunctionGraph(const UEdGraphNode*& OutGraphNo
 				FName FunctionName = FunctionReference.GetMemberName();
 				for (UEdGraph* Graph : Blueprint->FunctionGraphs) 
 				{
+					CA_SUPPRESS(28182); // warning C28182: Dereferencing NULL pointer. 'Graph' contains the same NULL value as 'TargetGraph' did.
 					if (Graph->GetFName() == FunctionName)
 					{
 						TargetGraph = Graph;
@@ -2457,6 +2558,15 @@ bool UK2Node_CallFunction::IsStructureWildcardProperty(const UFunction* Function
 		{
 			return true;
 		}
+	}
+	return false;
+}
+
+bool UK2Node_CallFunction::IsWildcardProperty(const UFunction* InFunction, const UProperty* InProperty)
+{
+	if (InProperty)
+	{
+		return FEdGraphUtilities::IsSetParam(InFunction, InProperty->GetName());
 	}
 	return false;
 }

@@ -57,12 +57,15 @@ CORE_API const FText GNone	= LOCTEXT("None",	"None");
 		bool GIsGameAgnosticExe = true;
 	#endif
 #else
-	// Otherwise only modular editors are game agnostic.
-	#if IS_PROGRAM || IS_MONOLITHIC
-		bool GIsGameAgnosticExe = false;
-	#else
-		bool GIsGameAgnosticExe = true;
-	#endif
+	// In monolithic Editor builds, implemented by the IMPLEMENT_GAME_MODULE macro or by UE4Game module.
+	#if !IS_MONOLITHIC || !UE_EDITOR
+		// Otherwise only modular editors are game agnostic.
+		#if IS_PROGRAM || IS_MONOLITHIC
+			bool GIsGameAgnosticExe = false;
+		#else
+			bool GIsGameAgnosticExe = true;
+		#endif
+	#endif //!IS_MONOLITHIC || !UE_EDITOR
 #endif
 
 /** When saving out of the game, this override allows the game to load editor only properties **/
@@ -97,6 +100,7 @@ bool GIsReinstancing = false;
 #if WITH_ENGINE
 bool					PRIVATE_GIsRunningCommandlet			= false;				/* Whether this executable is running a commandlet (custom command-line processing code) */
 bool					PRIVATE_GAllowCommandletRendering	= false;				/** If true, initialise RHI and set up scene for rendering even when running a commandlet. */
+bool					PRIVATE_GAllowCommandletAudio 		= false;				/** If true, allow audio even when running a commandlet. */
 #endif	// WITH_ENGINE
 
 #if WITH_EDITORONLY_DATA
@@ -161,6 +165,8 @@ float					GNearClippingPlane				= 10.0f;				/* Near clipping plane */
 
 bool					GExitPurge						= false;
 
+FFixedUObjectArray* GCoreObjectArrayForDebugVisualizers = nullptr;
+
 /** Game name, used for base game directory and ini among other things										*/
 #if (!IS_MONOLITHIC && !IS_PROGRAM)
 // In modular game builds, the game name will be set when the application launches
@@ -198,6 +204,8 @@ bool (*IsAsyncLoadingMultithreaded)() = &IsAsyncLoadingCoreInternal;
 
 /** Whether the editor is currently loading a package or not												*/
 bool					GIsEditorLoadingPackage				= false;
+/** Whether the cooker is currently loading a package or not												*/
+bool					GIsCookerLoadingPackage = false;
 /** Whether GWorld points to the play in editor world														*/
 bool					GIsPlayInEditorWorld			= false;
 /** Unique ID for multiple PIE instances running in one process */
@@ -230,8 +238,6 @@ bool					GIsFirstInstance				= true;
 float GHitchThresholdMS = 60.0f;
 /** Size to break up data into when saving compressed data													*/
 int32					GSavingCompressionChunkSize		= SAVING_COMPRESSION_CHUNK_SIZE;
-/** Whether we are using the seekfree/ cooked loading codepath.												*/
-bool					GUseSeekFreeLoading				= false;
 /** Thread ID of the main/game thread																		*/
 uint32					GGameThreadId					= 0;
 uint32					GRenderThreadId					= 0;
@@ -266,6 +272,16 @@ bool					GPumpingMessagesOutsideOfMainLoop = false;
 /** Enables various editor and HMD hacks that allow the experimental VR editor feature to work, perhaps at the expense of other systems */
 bool					GEnableVREditorHacks = false;
 
+// Constrain bandwidth if wanted. Value is in MByte/ sec.
+float GAsyncIOBandwidthLimit = 0.0f;
+static FAutoConsoleVariableRef CVarAsyncIOBandwidthLimit(
+	TEXT("s.AsyncIOBandwidthLimit"),
+	GAsyncIOBandwidthLimit,
+	TEXT("Constrain bandwidth if wanted. Value is in MByte/ sec."),
+	ECVF_Default
+	);
+
+
 DEFINE_STAT(STAT_AudioMemory);
 DEFINE_STAT(STAT_TextureMemory);
 DEFINE_STAT(STAT_MemoryPhysXTotalAllocationSize);
@@ -273,7 +289,6 @@ DEFINE_STAT(STAT_MemoryICUTotalAllocationSize);
 DEFINE_STAT(STAT_MemoryICUDataFileAllocationSize);
 DEFINE_STAT(STAT_AnimationMemory);
 DEFINE_STAT(STAT_PrecomputedVisibilityMemory);
-DEFINE_STAT(STAT_PrecomputedShadowDepthMapMemory);
 DEFINE_STAT(STAT_PrecomputedLightVolumeMemory);
 DEFINE_STAT(STAT_SkeletalMeshVertexMemory);
 DEFINE_STAT(STAT_SkeletalMeshIndexMemory);
@@ -320,12 +335,14 @@ DEFINE_LOG_CATEGORY(LogLinux);
 DEFINE_LOG_CATEGORY(LogIOS);
 DEFINE_LOG_CATEGORY(LogAndroid);
 DEFINE_LOG_CATEGORY(LogWindows);
+DEFINE_LOG_CATEGORY(LogXboxOne);
 DEFINE_LOG_CATEGORY(LogSerialization);
 DEFINE_LOG_CATEGORY(LogContentComparisonCommandlet);
 DEFINE_LOG_CATEGORY(LogNetPackageMap);
 DEFINE_LOG_CATEGORY(LogNetSerialization);
 DEFINE_LOG_CATEGORY(LogMemory);
 DEFINE_LOG_CATEGORY(LogProfilingDebugging);
+DEFINE_LOG_CATEGORY(LogWolf);
 
 DEFINE_LOG_CATEGORY(LogTemp);
 

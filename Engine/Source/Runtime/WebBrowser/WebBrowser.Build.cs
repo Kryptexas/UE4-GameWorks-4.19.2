@@ -20,14 +20,20 @@ public class WebBrowser : ModuleRules
 				"Slate",
 				"SlateCore",
 				"Serialization",
-				"CEF3Utils",
 			}
 		);
+
+		if (Target.Platform == UnrealTargetPlatform.Android)
+		{
+			// We need this one on Android for URL decoding
+			PrivateDependencyModuleNames.Add("HTTP");
+		}
 
 		if (Target.Platform == UnrealTargetPlatform.Win64
 		||  Target.Platform == UnrealTargetPlatform.Win32
 		||  Target.Platform == UnrealTargetPlatform.Mac)
 		{
+			PrivateDependencyModuleNames.Add("CEF3Utils");
 			AddEngineThirdPartyPrivateStaticDependencies(Target,
 				"CEF3"
 				);

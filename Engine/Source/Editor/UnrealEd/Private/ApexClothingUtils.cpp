@@ -11,10 +11,10 @@ DEFINE_LOG_CATEGORY_STATIC(LogApexClothingUtils, Log, All);
 
 #include "EditorPhysXSupport.h"
 // Utilities
-#include "NxParamUtils.h"
+#include "NvParamUtils.h"
 
 #if WITH_APEX_CLOTHING
-	#include "NxClothingAssetAuthoring.h"
+	#include "ClothingAssetAuthoring.h"
 #endif // #if WITH_APEX_CLOTHING
 
 #include "Runtime/Engine/Private/PhysicsEngine/PhysXSupport.h"
@@ -159,22 +159,22 @@ uint32 GetMaxClothSimulVertices(ERHIFeatureLevel::Type InFeatureLevel)
 }
 
 #if WITH_APEX_CLOTHING
-NxClothingAsset* CreateApexClothingAssetFromPxStream(physx::PxFileBuf& Stream)
+apex::ClothingAsset* CreateApexClothingAssetFromPxStream(physx::PxFileBuf& Stream)
 {
 	// Peek into the buffer to see what kind of data it is (binary or xml)
-	NxParameterized::Serializer::SerializeType SerializeType = GApexSDK->getSerializeType(Stream);
-	// Create an NxParameterized serializer for the correct data type
-	NxParameterized::Serializer* Serializer = GApexSDK->createSerializer(SerializeType);
+	NvParameterized::Serializer::SerializeType SerializeType = GApexSDK->getSerializeType(Stream);
+	// Create an NvParameterized serializer for the correct data type
+	NvParameterized::Serializer* Serializer = GApexSDK->createSerializer(SerializeType);
 
 	if(!Serializer)
 	{
 		return NULL;
 	}
 	// Deserialize into a DeserializedData buffer
-	NxParameterized::Serializer::DeserializedData DeserializedData;
-	NxParameterized::Serializer::ErrorType Error = Serializer->deserialize(Stream, DeserializedData);
+	NvParameterized::Serializer::DeserializedData DeserializedData;
+	NvParameterized::Serializer::ErrorType Error = Serializer->deserialize(Stream, DeserializedData);
 
-	NxApexAsset* ApexAsset = NULL;
+	apex::Asset* ApexAsset = NULL;
 	if( DeserializedData.size() > 0 )
 	{
 		// The DeserializedData has something in it, so create an APEX asset from it
@@ -183,12 +183,12 @@ NxClothingAsset* CreateApexClothingAssetFromPxStream(physx::PxFileBuf& Stream)
 	// Release the serializer
 	Serializer->release();
 
-	return (NxClothingAsset*)ApexAsset;
+	return (apex::ClothingAsset*)ApexAsset;
 }
 
-NxClothingAsset* CreateApexClothingAssetFromFile(FString& Filename)
+apex::ClothingAsset* CreateApexClothingAssetFromFile(FString& Filename)
 {
-	NxClothingAsset* ApexClothingAsset = NULL;
+	apex::ClothingAsset* ApexClothingAsset = NULL;
 
 	TArray<uint8> FileBuffer;
 	if(FFileHelper::LoadFileToArray(FileBuffer, *Filename, FILEREAD_Silent))
@@ -210,9 +210,9 @@ NxClothingAsset* CreateApexClothingAssetFromFile(FString& Filename)
 	return ApexClothingAsset;
 }
 
-NxClothingAsset* CreateApexClothingAssetFromBuffer(const uint8* Buffer, int32 BufferSize)
+apex::ClothingAsset* CreateApexClothingAssetFromBuffer(const uint8* Buffer, int32 BufferSize)
 {
-	NxClothingAsset* ApexClothingAsset = NULL;
+	apex::ClothingAsset* ApexClothingAsset = NULL;
 
 	// Wrap Buffer with the APEX read stream class
 	physx::PxFileBuf* Stream = GApexSDK->createMemoryReadStream(Buffer, BufferSize);
@@ -229,7 +229,7 @@ NxClothingAsset* CreateApexClothingAssetFromBuffer(const uint8* Buffer, int32 Bu
 
 #endif// #if WITH_APEX_CLOTHING
 
-void LoadBonesFromClothingAsset(NxClothingAsset& ApexClothingAsset, TArray<FName>& BoneNames)
+void LoadBonesFromClothingAsset(apex::ClothingAsset& ApexClothingAsset, TArray<FName>& BoneNames)
 {
 	const uint32 NumBones = ApexClothingAsset.getNumUsedBones();
 
@@ -255,10 +255,12 @@ FVector4 P2U4BaryCoord(const PxVec3& PVec)
 
 }
 
-bool LoadPhysicalMeshFromClothingAsset(NxClothingAsset& ApexClothingAsset,
+bool LoadPhysicalMeshFromClothingAsset(apex::ClothingAsset& ApexClothingAsset,
 										TArray<FApexClothPhysToRenderVertData>& RenderToPhysicalMapping, 
 										TArray<FVector>& PhysicalMeshVertices, 
 										TArray<FVector>& PhysicalMeshNormals,
+										TArray<uint32>& PhysicalMeshIndices,
+										TArray<float>& PhysicalMeshMaxDistances,
 										int32 LODIndex, 
 										uint32 StartSimulIndex, 
 										uint32 NumRealSimulVertices,
@@ -311,44 +313,44 @@ bool LoadPhysicalMeshFromClothingAsset(NxClothingAsset& ApexClothingAsset,
 		Mapping.SimulMeshVertIndices[3] = (uint16)0xFFFF; // fixed vertices
 	}
 
-	// Load Parameters for PhysicalMesh via NxParameterized Interface
+	// Load Parameters for PhysicalMesh via NvParameterized Interface
 
-	const NxParameterized::Interface* AssetParams = ApexClothingAsset.getAssetNxParameterized();
+	const NvParameterized::Interface* AssetParams = ApexClothingAsset.getAssetNvParameterized();
 
 	physx::PxI32 PhysicalMeshCount;
-	NxParameterized::getParamArraySize(*AssetParams, "physicalMeshes", PhysicalMeshCount);
+	NvParameterized::getParamArraySize(*AssetParams, "physicalMeshes", PhysicalMeshCount);
 
 	check( PhysicalMeshCount > LODIndex );
 
 	char ParameterName[MAX_SPRINTF];
 	FCStringAnsi::Sprintf(ParameterName, "physicalMeshes[%d]", LODIndex);
 
-	NxParameterized::Interface* PhysicalMeshParams;
+	NvParameterized::Interface* PhysicalMeshParams;
 	PxU32 NumVertices = 0;
 	PxU32 NumIndices = 0;
 	int32 MaxSimulVertexCount = MaxSimulVertIndex + 1;
 
-	if (NxParameterized::getParamRef(*AssetParams, ParameterName, PhysicalMeshParams))
+	if (NvParameterized::getParamRef(*AssetParams, ParameterName, PhysicalMeshParams))
 	{
 		if(PhysicalMeshParams != NULL)
 		{
-			verify(NxParameterized::getParamU32(*PhysicalMeshParams, "physicalMesh.numVertices", NumVertices));
-			verify(NxParameterized::getParamU32(*PhysicalMeshParams, "physicalMesh.numIndices", NumIndices));
+			verify(NvParameterized::getParamU32(*PhysicalMeshParams, "physicalMesh.numVertices", NumVertices));
+			verify(NvParameterized::getParamU32(*PhysicalMeshParams, "physicalMesh.numIndices", NumIndices));
 
 			physx::PxI32 VertexCount = 0;
-			if (NxParameterized::getParamArraySize(*PhysicalMeshParams, "physicalMesh.vertices", VertexCount))
+			if (NvParameterized::getParamArraySize(*PhysicalMeshParams, "physicalMesh.vertices", VertexCount))
 			{
 				check(VertexCount == NumVertices);
 
 				check(MaxSimulVertexCount <= VertexCount);
 				
-				PhysicalMeshVertices.Empty(MaxSimulVertexCount);
+				PhysicalMeshVertices.Empty(VertexCount);
 
-				for (physx::PxI32 VertexIndex = 0; VertexIndex < MaxSimulVertexCount; ++VertexIndex)
+				for (physx::PxI32 VertexIndex = 0; VertexIndex < VertexCount; ++VertexIndex)
 				{
 					FCStringAnsi::Sprintf( ParameterName, "physicalMesh.vertices[%d]", VertexIndex );
-					NxParameterized::Handle MeshVertexHandle(*PhysicalMeshParams);
-					if (NxParameterized::findParam(*PhysicalMeshParams, ParameterName, MeshVertexHandle) != NULL)
+					NvParameterized::Handle MeshVertexHandle(*PhysicalMeshParams);
+					if (NvParameterized::findParam(*PhysicalMeshParams, ParameterName, MeshVertexHandle) != NULL)
 					{
 						physx::PxVec3  Vertex;
 						FVector			Position;
@@ -362,18 +364,18 @@ bool LoadPhysicalMeshFromClothingAsset(NxClothingAsset& ApexClothingAsset,
 			}
 
 			physx::PxI32 NormalCount = 0;
-			if (NxParameterized::getParamArraySize(*PhysicalMeshParams, "physicalMesh.normals", NormalCount))
+			if (NvParameterized::getParamArraySize(*PhysicalMeshParams, "physicalMesh.normals", NormalCount))
 			{
 				check(NormalCount == NumVertices);
 				check(MaxSimulVertexCount <= NormalCount);
 
-				PhysicalMeshNormals.Empty(MaxSimulVertexCount);
+				PhysicalMeshNormals.Empty(NormalCount);
 
-				for (physx::PxI32 NormalIndex = 0; NormalIndex < MaxSimulVertexCount; ++NormalIndex)
+				for (physx::PxI32 NormalIndex = 0; NormalIndex < NormalCount; ++NormalIndex)
 				{
 					FCStringAnsi::Sprintf( ParameterName, "physicalMesh.normals[%d]", NormalIndex );
-					NxParameterized::Handle MeshNormalHandle(*PhysicalMeshParams);
-					if (NxParameterized::findParam(*PhysicalMeshParams, ParameterName, MeshNormalHandle) != NULL)
+					NvParameterized::Handle MeshNormalHandle(*PhysicalMeshParams);
+					if (NvParameterized::findParam(*PhysicalMeshParams, ParameterName, MeshNormalHandle) != NULL)
 					{
 						physx::PxVec3  PxNormal;
 						FVector			UNormal;
@@ -386,14 +388,65 @@ bool LoadPhysicalMeshFromClothingAsset(NxClothingAsset& ApexClothingAsset,
 					}
 				}
 			}
+
+			physx::PxI32 IndexCount = 0;
+			if(NvParameterized::getParamArraySize(*PhysicalMeshParams, "physicalMesh.indices", IndexCount))
+			{
+				check(IndexCount == NumIndices);
+
+				PhysicalMeshIndices.Empty(IndexCount);
+
+				for(physx::PxI32 IndicesIndex = 0; IndicesIndex < IndexCount; ++IndicesIndex)
+				{
+					FCStringAnsi::Sprintf(ParameterName, "physicalMesh.indices[%d]", IndicesIndex);
+					NvParameterized::Handle MeshIndexHandle(*PhysicalMeshParams);
+					if(NvParameterized::findParam(*PhysicalMeshParams, ParameterName, MeshIndexHandle) != nullptr)
+					{
+						physx::PxU32 Index;
+						MeshIndexHandle.getParamU32(Index);
+						PhysicalMeshIndices.Add(Index);
+					}
+				}
+			}
+
+			physx::PxI32 CoeffCount = 0;
+			NvParameterized::Handle CoeffArrayHandle(PhysicalMeshParams);
+			NvParameterized::findParam(*PhysicalMeshParams, "physicalMesh.constrainCoefficients", CoeffArrayHandle);
+			
+			if(CoeffArrayHandle.isValid())
+			{
+				int32 NumCoeffs = 0;
+				CoeffArrayHandle.getArraySize(NumCoeffs);
+
+				// Should have one per vert
+				check(NumCoeffs == NumVertices);
+
+				// Initialise out array
+				PhysicalMeshMaxDistances.Empty(NumCoeffs);
+				PhysicalMeshMaxDistances.AddZeroed(NumCoeffs);
+
+				NvParameterized::Handle ChildHandle(PhysicalMeshParams);
+				for(int32 CoeffIdx = 0; CoeffIdx < NumCoeffs; ++CoeffIdx)
+				{
+					float& CurrMaxDistance = PhysicalMeshMaxDistances[CoeffIdx];
+
+					CoeffArrayHandle.set(CoeffIdx);
+
+					CoeffArrayHandle.getChildHandle(PhysicalMeshParams, "maxDistance", ChildHandle);
+					check(ChildHandle.isValid());
+					ChildHandle.getParamF32(CurrMaxDistance);
+
+					CoeffArrayHandle.popIndex();
+				}
+			}
 		}
 	}
 
 	return true;
 }
 
-bool LoadGraphicalMeshFromClothingAsset(NxClothingAsset& ApexClothingAsset, 
-	const NxRenderMeshAsset& ApexRenderMesh, 
+bool LoadGraphicalMeshFromClothingAsset(apex::ClothingAsset& ApexClothingAsset, 
+	const apex::RenderMeshAsset& ApexRenderMesh, 
 	FVertexImportData& OutImportData, 
 	TArray<uint32>& OutIndexBuffer, 
 	uint32 LODIndex, 
@@ -418,20 +471,20 @@ bool LoadGraphicalMeshFromClothingAsset(NxClothingAsset& ApexClothingAsset,
 		return false;
 	}
 
-	const NxParameterized::Interface* AssetParams = ApexClothingAsset.getAssetNxParameterized();
+	const NvParameterized::Interface* AssetParams = ApexClothingAsset.getAssetNvParameterized();
 	char ParameterName[MAX_SPRINTF];
 	FCStringAnsi::Sprintf(ParameterName, "graphicalLods[%d]", LODIndex);
 
-	NxParameterized::Interface* GraphicalMeshParams;
+	NvParameterized::Interface* GraphicalMeshParams;
 	int32 PhysicalSubmeshIndex = -1;
 
-	if (NxParameterized::getParamRef(*AssetParams, ParameterName, GraphicalMeshParams))
+	if (NvParameterized::getParamRef(*AssetParams, ParameterName, GraphicalMeshParams))
 	{
 		if(GraphicalMeshParams != NULL)
 		{
-			FCStringAnsi::Sprintf(ParameterName, "physicsSubmeshPartitioning[%d].numSimulatedVertices", SelectedSubmeshIndex);
+			FCStringAnsi::Sprintf(ParameterName, "physicsMeshPartitioning[%d].numSimulatedVertices", SelectedSubmeshIndex);
 			uint32 SimulVert = 0;
-			NxParameterized::getParamU32(*GraphicalMeshParams, ParameterName, SimulVert);
+			NvParameterized::getParamU32(*GraphicalMeshParams, ParameterName, SimulVert);
 
 			OutNumSimulVertices = SimulVert;
 		}
@@ -451,9 +504,9 @@ bool LoadGraphicalMeshFromClothingAsset(NxClothingAsset& ApexClothingAsset,
 
 	for(uint32 SubmeshIndex=0; SubmeshIndex < SubmeshCount; SubmeshIndex++)
 	{
-		const NxRenderSubmesh& Submesh = ApexRenderMesh.getSubmesh(SubmeshIndex);
+		const apex::RenderSubmesh& Submesh = ApexRenderMesh.getSubmesh(SubmeshIndex);
 
-		const NxVertexBuffer& VB = Submesh.getVertexBuffer();
+		const apex::VertexBuffer& VB = Submesh.getVertexBuffer();
 
 		// Count vertices
 		uint32 VBCount = VB.getVertexCount();
@@ -488,9 +541,9 @@ bool LoadGraphicalMeshFromClothingAsset(NxClothingAsset& ApexClothingAsset,
 	uint32 VertexIndexBase = 0;
 
 	// Submesh data
-	const NxRenderSubmesh& Submesh = ApexRenderMesh.getSubmesh(SelectedSubmeshIndex);
-	const NxVertexBuffer& VB = Submesh.getVertexBuffer();
-	const NxVertexFormat& VBFormat = VB.getFormat();
+	const apex::RenderSubmesh& Submesh = ApexRenderMesh.getSubmesh(SelectedSubmeshIndex);
+	const apex::VertexBuffer& VB = Submesh.getVertexBuffer();
+	const apex::VertexFormat& VBFormat = VB.getFormat();
 	const physx::PxU32 SubmeshVertexCount = VB.getVertexCount();
 
 	check(OutVertexCount > 0);
@@ -518,16 +571,16 @@ bool LoadGraphicalMeshFromClothingAsset(NxClothingAsset& ApexClothingAsset,
 	// Get VB data semantic indices:
 
 	// Positions
-	const PxI32 PositionBufferIndex = VBFormat.getBufferIndexFromID(VBFormat.getSemanticID(NxRenderVertexSemantic::POSITION));
-	if (!VB.getBufferData(&OutImportData.Positions[VertexIndexBase], physx::NxRenderDataFormat::FLOAT3, sizeof(FVector), PositionBufferIndex, 0, SubmeshVertexCount))
+	const PxI32 PositionBufferIndex = VBFormat.getBufferIndexFromID(VBFormat.getSemanticID(apex::RenderVertexSemantic::POSITION));
+	if (!VB.getBufferData(&OutImportData.Positions[VertexIndexBase], apex::RenderDataFormat::FLOAT3, sizeof(FVector), PositionBufferIndex, 0, SubmeshVertexCount))
 	{
 		UE_LOG(LogApexClothingUtils, Warning,TEXT("%s Need a position buffer"), ANSI_TO_TCHAR(ApexClothingAsset.getName()));	
 		return false;	// Need a position buffer!
 	}
 
 	// Normals
-	const PxI32 NormalBufferIndex = VBFormat.getBufferIndexFromID(VBFormat.getSemanticID(NxRenderVertexSemantic::NORMAL));
-	const bool bHaveNormals = VB.getBufferData(&OutImportData.Normals[VertexIndexBase], physx::NxRenderDataFormat::FLOAT3, sizeof(FVector), NormalBufferIndex, 0, SubmeshVertexCount);
+	const PxI32 NormalBufferIndex = VBFormat.getBufferIndexFromID(VBFormat.getSemanticID(apex::RenderVertexSemantic::NORMAL));
+	const bool bHaveNormals = VB.getBufferData(&OutImportData.Normals[VertexIndexBase], apex::RenderDataFormat::FLOAT3, sizeof(FVector), NormalBufferIndex, 0, SubmeshVertexCount);
 	if (!bHaveNormals)
 	{
 		UE_LOG(LogApexClothingUtils, Warning,TEXT("%s APEX clothing asset doesn't have Normals data! This can introduce rendering artifact!"), ANSI_TO_TCHAR(ApexClothingAsset.getName()));	
@@ -535,11 +588,11 @@ bool LoadGraphicalMeshFromClothingAsset(NxClothingAsset& ApexClothingAsset,
 	}
 
 	// Tangents
-	const PxI32 TangentBufferIndex = VBFormat.getBufferIndexFromID(VBFormat.getSemanticID(NxRenderVertexSemantic::TANGENT));
-	physx::apex::NxRenderDataFormat::Enum TangentFormatEnum = VBFormat.getBufferFormat(TangentBufferIndex);
+	const PxI32 TangentBufferIndex = VBFormat.getBufferIndexFromID(VBFormat.getSemanticID(apex::RenderVertexSemantic::TANGENT));
+	apex::RenderDataFormat::Enum TangentFormatEnum = VBFormat.getBufferFormat(TangentBufferIndex);
 	bool bHaveTangents = false;
 
-	if(TangentFormatEnum == NxRenderDataFormat::FLOAT4)
+	if(TangentFormatEnum == apex::RenderDataFormat::FLOAT4)
 	{
 		FVector4 *TangentsArray = (FVector4*)VB.getBufferAndFormat(TangentFormatEnum, TangentBufferIndex);
 
@@ -554,9 +607,9 @@ bool LoadGraphicalMeshFromClothingAsset(NxClothingAsset& ApexClothingAsset,
 		}
 	}
 	else
-	if(TangentFormatEnum == NxRenderDataFormat::FLOAT3)
+	if(TangentFormatEnum == apex::RenderDataFormat::FLOAT3)
 	{
-		bHaveTangents = VB.getBufferData(&OutImportData.Tangents[VertexIndexBase], physx::NxRenderDataFormat::FLOAT3, sizeof(FVector), TangentBufferIndex, 0, SubmeshVertexCount);
+		bHaveTangents = VB.getBufferData(&OutImportData.Tangents[VertexIndexBase], apex::RenderDataFormat::FLOAT3, sizeof(FVector), TangentBufferIndex, 0, SubmeshVertexCount);
 	}
 
 	OutImportData.bHasTangents = bHaveTangents;
@@ -583,8 +636,8 @@ bool LoadGraphicalMeshFromClothingAsset(NxClothingAsset& ApexClothingAsset,
 	}
 
 	// Binormals
-	const PxI32 BinormalBufferIndex = VBFormat.getBufferIndexFromID(VBFormat.getSemanticID(NxRenderVertexSemantic::BINORMAL));
-	bool bHaveBinormals = VB.getBufferData(&OutImportData.Binormals[VertexIndexBase], physx::NxRenderDataFormat::FLOAT3, sizeof(FVector), BinormalBufferIndex, 0, SubmeshVertexCount);
+	const PxI32 BinormalBufferIndex = VBFormat.getBufferIndexFromID(VBFormat.getSemanticID(apex::RenderVertexSemantic::BINORMAL));
+	bool bHaveBinormals = VB.getBufferData(&OutImportData.Binormals[VertexIndexBase], apex::RenderDataFormat::FLOAT3, sizeof(FVector), BinormalBufferIndex, 0, SubmeshVertexCount);
 	if (!bHaveBinormals)
 	{
 		bHaveBinormals = bHaveNormals && bHaveTangents;
@@ -597,8 +650,8 @@ bool LoadGraphicalMeshFromClothingAsset(NxClothingAsset& ApexClothingAsset,
 	}
 
 	// Colors
-	const PxI32 ColorBufferIndex = VBFormat.getBufferIndexFromID(VBFormat.getSemanticID(NxRenderVertexSemantic::COLOR));
-	const bool bHaveColors = VB.getBufferData(&OutImportData.Colors[VertexIndexBase], physx::NxRenderDataFormat::B8G8R8A8, sizeof(FColor), ColorBufferIndex, 0, SubmeshVertexCount);
+	const PxI32 ColorBufferIndex = VBFormat.getBufferIndexFromID(VBFormat.getSemanticID(apex::RenderVertexSemantic::COLOR));
+	const bool bHaveColors = VB.getBufferData(&OutImportData.Colors[VertexIndexBase], apex::RenderDataFormat::B8G8R8A8, sizeof(FColor), ColorBufferIndex, 0, SubmeshVertexCount);
 	OutImportData.bHasVertexColors = bHaveColors;
 
 	if (!bHaveColors)
@@ -609,9 +662,9 @@ bool LoadGraphicalMeshFromClothingAsset(NxClothingAsset& ApexClothingAsset,
 	// UVs
 	// Need to consider multiple UV ? 
 	// Assuming that this asset has one UV coordinate
-	const PxI32 UVBufferIndex = VBFormat.getBufferIndexFromID(VBFormat.getSemanticID(NxRenderVertexSemantic::TEXCOORD0));
+	const PxI32 UVBufferIndex = VBFormat.getBufferIndexFromID(VBFormat.getSemanticID(apex::RenderVertexSemantic::TEXCOORD0));
 	OutImportData.NumTexCoords = 1;
-	if (!VB.getBufferData(&OutImportData.UVs[VertexIndexBase], physx::NxRenderDataFormat::FLOAT2, sizeof(FVector2D), UVBufferIndex, 0, SubmeshVertexCount))
+	if (!VB.getBufferData(&OutImportData.UVs[VertexIndexBase], apex::RenderDataFormat::FLOAT2, sizeof(FVector2D), UVBufferIndex, 0, SubmeshVertexCount))
 	{
 		OutImportData.NumTexCoords = 0;
 		FMemory::Memset(&OutImportData.UVs[VertexIndexBase], 0, SubmeshVertexCount*sizeof(FVector2D));	// Fill with zeros
@@ -619,11 +672,11 @@ bool LoadGraphicalMeshFromClothingAsset(NxClothingAsset& ApexClothingAsset,
 
 	// Set Bone Indices
 
-	const PxI32 BoneIndexBufferIndex = VBFormat.getBufferIndexFromID(VBFormat.getSemanticID(NxRenderVertexSemantic::BONE_INDEX));
-	physx::apex::NxRenderDataFormat::Enum DataFormatEnum = VBFormat.getBufferFormat(BoneIndexBufferIndex);
+	const PxI32 BoneIndexBufferIndex = VBFormat.getBufferIndexFromID(VBFormat.getSemanticID(apex::RenderVertexSemantic::BONE_INDEX));
+	apex::RenderDataFormat::Enum DataFormatEnum = VBFormat.getBufferFormat(BoneIndexBufferIndex);
 	bool bHaveBoneIndices = false;
 
-	if(DataFormatEnum == NxRenderDataFormat::USHORT4)
+	if(DataFormatEnum == apex::RenderDataFormat::USHORT4)
 	{
 		// USkeletalMesh is using uint8 for Bone Index but APEX clothing is using uint16 for it
 		struct FApexBoneIndices
@@ -634,7 +687,7 @@ bool LoadGraphicalMeshFromClothingAsset(NxClothingAsset& ApexClothingAsset,
 		TArray<FApexBoneIndices> BoneIndices;
 		BoneIndices.AddUninitialized(SubmeshVertexCount);
 
-		bHaveBoneIndices = VB.getBufferData(BoneIndices.GetData(), physx::NxRenderDataFormat::USHORT4, sizeof(FApexBoneIndices), BoneIndexBufferIndex, 0, SubmeshVertexCount);
+		bHaveBoneIndices = VB.getBufferData(BoneIndices.GetData(), apex::RenderDataFormat::USHORT4, sizeof(FApexBoneIndices), BoneIndexBufferIndex, 0, SubmeshVertexCount);
 		// Converting uint16 to uint8 because APEX Clothing is using uint16 for Bone Index 
 		if (bHaveBoneIndices)
 		{
@@ -648,12 +701,12 @@ bool LoadGraphicalMeshFromClothingAsset(NxClothingAsset& ApexClothingAsset,
 		}
 	}
 	else
-	if(DataFormatEnum == NxRenderDataFormat::USHORT1)
+	if(DataFormatEnum == apex::RenderDataFormat::USHORT1)
 	{
 		TArray<uint16> BoneIndices;
 		BoneIndices.AddUninitialized(SubmeshVertexCount);
 
-		bHaveBoneIndices = VB.getBufferData(BoneIndices.GetData(), physx::NxRenderDataFormat::USHORT1, sizeof(uint16), BoneIndexBufferIndex, 0, SubmeshVertexCount);
+		bHaveBoneIndices = VB.getBufferData(BoneIndices.GetData(), apex::RenderDataFormat::USHORT1, sizeof(uint16), BoneIndexBufferIndex, 0, SubmeshVertexCount);
 
 		if(bHaveBoneIndices)
 		{
@@ -670,21 +723,21 @@ bool LoadGraphicalMeshFromClothingAsset(NxClothingAsset& ApexClothingAsset,
 	}
 
 	// Bone Weights
-	const PxI32 BoneWeightBufferIndex = VBFormat.getBufferIndexFromID(VBFormat.getSemanticID(NxRenderVertexSemantic::BONE_WEIGHT));
+	const PxI32 BoneWeightBufferIndex = VBFormat.getBufferIndexFromID(VBFormat.getSemanticID(apex::RenderVertexSemantic::BONE_WEIGHT));
 	DataFormatEnum = VBFormat.getBufferFormat(BoneWeightBufferIndex);
 	bool bHaveBoneWeights = false;
 
-	if(DataFormatEnum == NxRenderDataFormat::FLOAT4)
+	if(DataFormatEnum == apex::RenderDataFormat::FLOAT4)
 	{
-		bHaveBoneWeights = VB.getBufferData(&OutImportData.BoneWeights[VertexIndexBase], physx::NxRenderDataFormat::FLOAT4, sizeof(FVector4), BoneWeightBufferIndex, 0, SubmeshVertexCount);
+		bHaveBoneWeights = VB.getBufferData(&OutImportData.BoneWeights[VertexIndexBase], apex::RenderDataFormat::FLOAT4, sizeof(FVector4), BoneWeightBufferIndex, 0, SubmeshVertexCount);
 	}
 	else
-	if(DataFormatEnum == NxRenderDataFormat::FLOAT1)
+	if(DataFormatEnum == apex::RenderDataFormat::FLOAT1)
 	{
 		TArray<float> BoneWeights;
 		BoneWeights.AddUninitialized(SubmeshVertexCount);
 
-		bHaveBoneWeights = VB.getBufferData(BoneWeights.GetData(), physx::NxRenderDataFormat::FLOAT1, sizeof(float), BoneWeightBufferIndex, 0, SubmeshVertexCount);
+		bHaveBoneWeights = VB.getBufferData(BoneWeights.GetData(), apex::RenderDataFormat::FLOAT1, sizeof(float), BoneWeightBufferIndex, 0, SubmeshVertexCount);
 
 		if(bHaveBoneWeights)
 		{
@@ -750,7 +803,7 @@ void SetBoneIndex(FSoftSkinVertex& OutVertex, FBoneIndices& BoneIndices, FVector
 	}
 }
 
-bool AssociateClothingAssetWithSkeletalMesh(USkeletalMesh* SkelMesh, int32 LODIndex, uint32 SectionIndex, int32 AssetIndex, int32 AssetSubmeshIndex, FVertexImportData& ImportData, TArray<FApexClothPhysToRenderVertData>& RenderToPhysicalMapping, TArray<FVector>& PhysicalMeshVertices,TArray<FVector>& PhysicalMeshNormals, TArray<FName>& BoneNames, TArray<uint32>& IndexBuffer, uint32 TriangleCount)
+bool AssociateClothingAssetWithSkeletalMesh(USkeletalMesh* SkelMesh, int32 LODIndex, uint32 SectionIndex, int32 AssetIndex, int32 AssetSubmeshIndex, FVertexImportData& ImportData, TArray<FApexClothPhysToRenderVertData>& RenderToPhysicalMapping, TArray<FVector>& PhysicalMeshVertices,TArray<FVector>& PhysicalMeshNormals, TArray<uint32>& PhysicalMeshIndices, TArray<float>& PhysicalMeshMaxDistances, TArray<FName>& BoneNames, TArray<uint32>& IndexBuffer, uint32 TriangleCount)
 {
 	FSkeletalMeshResource* ImportedResource= SkelMesh->GetImportedResource();
 	if( LODIndex >= ImportedResource->LODModels.Num())
@@ -779,38 +832,57 @@ bool AssociateClothingAssetWithSkeletalMesh(USkeletalMesh* SkelMesh, int32 LODIn
 	TempSection.SoftVertices.Empty(NumImportedVertices);
 	TempSection.NumVertices = NumImportedVertices;
 
-	for( uint32 VertexIndex=0;VertexIndex<NumImportedVertices;VertexIndex++ )
+	FSkelMeshSection& TempOrigSection = LODModel.Sections[SectionIndex];
+	TArray<int32> VertMapping;
+	VertMapping.AddZeroed(TempOrigSection.SoftVertices.Num());
+	FMemory::Memset(VertMapping.GetData(), INDEX_NONE, sizeof(int32) * VertMapping.Num());
+
+	// APEX data doesn't map to ours correctly, resulting in rendering artefacts, we need to build
+	// Our own mesh skinning data to use with the simulation
+	TArray<FApexClothPhysToRenderVertData> MeshToMeshData;
+	TArray<FVector> RenderPositions;
+	TArray<FVector> RenderNormals;
+	TArray<FVector> RenderTangents;
+
+	RenderPositions.Reserve(TempOrigSection.SoftVertices.Num());
+	RenderNormals.Reserve(TempOrigSection.SoftVertices.Num());
+	RenderTangents.Reserve(TempOrigSection.SoftVertices.Num());
+
+	for(FSoftSkinVertex& UnrealVert : TempOrigSection.SoftVertices)
 	{
-		FSoftSkinVertex& OutVertex = TempSection.SoftVertices[TempSection.SoftVertices.AddZeroed()];
-
-		OutVertex.Position	= ImportData.Positions[VertexIndex];
-		OutVertex.TangentX	= ImportData.Tangents[VertexIndex];
-		OutVertex.TangentY	= ImportData.Binormals[VertexIndex];
-		OutVertex.TangentZ	= ImportData.Normals[VertexIndex];
-		OutVertex.UVs[0]	= ImportData.UVs[VertexIndex];
-		OutVertex.Color		= ImportData.Colors[VertexIndex];
-
-		//refresh used bones & map
-		SetBoneIndex(OutVertex, 
-			ImportData.BoneIndices[VertexIndex],
-			ImportData.BoneWeights[VertexIndex],
-			BoneNames, 
-			UsedBones, 
-			UsedBonesMap);
+		RenderPositions.Add(UnrealVert.Position);
+		RenderNormals.Add(UnrealVert.TangentZ);
+		RenderTangents.Add(UnrealVert.TangentX);
 	}
 
-	// Set the bone map
-	int32 NumUsedBones = UsedBones.Num();
-	TempSection.BoneMap.Empty(NumUsedBones);
+	ApexClothingUtils::GenerateMeshToMeshSkinningData(MeshToMeshData,
+													  RenderPositions,
+													  RenderNormals,
+													  RenderTangents,
+													  PhysicalMeshVertices,
+													  PhysicalMeshNormals,
+													  PhysicalMeshIndices);
 
-	for( int32 UsedBoneIndex=0; UsedBoneIndex<NumUsedBones; UsedBoneIndex++ )
+	// Need to set fixed verts based on the loaded max distance data
+	for(FApexClothPhysToRenderVertData& VertData : MeshToMeshData)
 	{
-		const int32 BoneIdx = SkelMesh->RefSkeleton.FindBoneIndex(UsedBones[UsedBoneIndex]);
-		if(BoneIdx != INDEX_NONE)
+		float TriangleMaxDistance = 0.0f;
+		TriangleMaxDistance += PhysicalMeshMaxDistances[VertData.SimulMeshVertIndices[0]];
+		TriangleMaxDistance += PhysicalMeshMaxDistances[VertData.SimulMeshVertIndices[1]];
+		TriangleMaxDistance += PhysicalMeshMaxDistances[VertData.SimulMeshVertIndices[2]];
+
+		if(TriangleMaxDistance == 0.0f)
 		{
-			TempSection.BoneMap.Add(BoneIdx);
+			// Triangle is fixed, lock the vert
+			VertData.SimulMeshVertIndices[3] = 0xFFFF;
 		}
 	}
+
+	RenderToPhysicalMapping = MeshToMeshData;
+
+	TempSection.SoftVertices = TempOrigSection.SoftVertices;
+	TempSection.BoneMap = TempOrigSection.BoneMap;
+	TempSection.MaxBoneInfluences = TempOrigSection.MaxBoneInfluences;
 
 	//if bone count is 0, then crash will occur while drawing
 	if(TempSection.BoneMap.Num() == 0)
@@ -867,28 +939,26 @@ bool AssociateClothingAssetWithSkeletalMesh(USkeletalMesh* SkelMesh, int32 LODIn
 
 	SkelMesh->PreEditChange(NULL);
 
-	// Add first so the Origin section doesn't get realloced away
+	// Add new section for clothing
 	int32 NewSectionIndex = LODModel.Sections.AddZeroed();
+
 	// Get original section
 	FSkelMeshSection& OriginMeshSection = LODModel.Sections[OriginSectionIndex];
-
-	// Add new section for clothing
 	FSkelMeshSection& ClothSection = LODModel.Sections[NewSectionIndex];
 
 	// Copy 'chunk' properties from TempSection
-	// int16 NewChunkIndex = LODModel.Chunks.Add(TempChunk);
 	ClothSection.SoftVertices = TempSection.SoftVertices;
+	ClothSection.NumVertices = ClothSection.SoftVertices.Num();
 	ClothSection.BoneMap = TempSection.BoneMap;
-	ClothSection.NumVertices = TempSection.NumVertices;
 	ClothSection.MaxBoneInfluences = TempSection.MaxBoneInfluences;
 	ClothSection.CorrespondClothAssetIndex = TempSection.CorrespondClothAssetIndex;
 	ClothSection.ClothAssetSubmeshIndex = TempSection.ClothAssetSubmeshIndex;
 
 	// copy 'material' properties from original section
-	// ClothSection = OriginMeshSection;
 	ClothSection.MaterialIndex = OriginMeshSection.MaterialIndex;
 	ClothSection.TriangleSorting = OriginMeshSection.TriangleSorting;
 	ClothSection.bSelected = OriginMeshSection.bSelected;
+	ClothSection.bCastShadow = OriginMeshSection.bCastShadow;
 	ClothSection.bRecomputeTangent = OriginMeshSection.bRecomputeTangent;
 	ClothSection.bEnableClothLOD_DEPRECATED = OriginMeshSection.bEnableClothLOD_DEPRECATED;
 
@@ -907,7 +977,7 @@ bool AssociateClothingAssetWithSkeletalMesh(USkeletalMesh* SkelMesh, int32 LODIn
 	LODModel.MultiSizeIndexContainer.GetIndexBuffer(OutIndexBuffer);
 
 	ClothSection.BaseIndex = OutIndexBuffer.Num();
-	ClothSection.NumTriangles = TriangleCount;
+	ClothSection.NumTriangles = TempOrigSection.NumTriangles;
 
 	uint32 NumVertices = 0;
 	for(int32 SectionIdx = 0; SectionIdx < NewSectionIndex; SectionIdx++)
@@ -915,22 +985,22 @@ bool AssociateClothingAssetWithSkeletalMesh(USkeletalMesh* SkelMesh, int32 LODIn
 		FSkelMeshSection& Section = LODModel.Sections[SectionIdx];
 		NumVertices += Section.GetNumVertices();
 	}
-
 	ClothSection.BaseVertexIndex = NumVertices;
 
-	// if Section Index is greater than 0, Vertex Index has to be adjusted
-	if(NewSectionIndex > 0)
+	// Data for copying the original section indices
+	const int32 BaseIndexToCopy = TempOrigSection.BaseIndex;
+	const int32 NumIndicesToCopy = TempOrigSection.NumTriangles * 3;
+
+	// Need to bump the index to the new verts, work out the vertex offset
+	const int32 BaseVertexOffset = ClothSection.BaseVertexIndex - TempOrigSection.BaseVertexIndex;
+	for(int32 CurrIdx = 0; CurrIdx < NumIndicesToCopy; ++CurrIdx)
 	{
-		for (int32 Index = 0; Index < IndexBuffer.Num(); Index++)
-		{
-			IndexBuffer[Index] += ClothSection.BaseVertexIndex;
-		}
+		int32 SourceIndex = OutIndexBuffer[BaseIndexToCopy + CurrIdx];
+		OutIndexBuffer.Add(SourceIndex + BaseVertexOffset);
 	}
 
-	OutIndexBuffer += IndexBuffer;
-
+	// Copy back to LOD
 	LODModel.MultiSizeIndexContainer.CopyIndexBuffer(OutIndexBuffer);
-
 	LODModel.NumVertices += ClothSection.GetNumVertices();
 
 	// build adjacency information for this clothing section
@@ -988,19 +1058,19 @@ bool AssociateClothingAssetWithSkeletalMesh(USkeletalMesh* SkelMesh, int32 LODIn
 	return true;
 }
 
-void FlipUV(::NxParameterized::Interface *ApexRenderMeshAssetAuthoring,bool bFlipU,bool bFlipV)
+void FlipUV(::NvParameterized::Interface *ApexRenderMeshAssetAuthoring,bool bFlipU,bool bFlipV)
 {
 	if ( !bFlipU && !bFlipV ) 
 	{
 		return;
 	}
 
-	::NxParameterized::Handle Handle(*ApexRenderMeshAssetAuthoring);
-	::NxParameterized::Interface *Param = NxParameterized::findParam(*ApexRenderMeshAssetAuthoring,"submeshes",Handle);
+	::NvParameterized::Handle Handle(*ApexRenderMeshAssetAuthoring);
+	::NvParameterized::Interface *Param = NvParameterized::findParam(*ApexRenderMeshAssetAuthoring,"submeshes",Handle);
 	if ( Param )
 	{
 		int NumSubmeshes=0;
-		if ( Handle.getArraySize(NumSubmeshes,0) == ::NxParameterized::ERROR_NONE )
+		if ( Handle.getArraySize(NumSubmeshes,0) == ::NvParameterized::ERROR_NONE )
 		{
 			// iterate each submesh
 			for (int32 i = 0; i < NumSubmeshes; i++)
@@ -1008,33 +1078,33 @@ void FlipUV(::NxParameterized::Interface *ApexRenderMeshAssetAuthoring,bool bFli
 				char Scratch[MAX_SPRINTF];
 
 				FCStringAnsi::Sprintf( Scratch, "submeshes[%d].vertexBuffer.vertexFormat.bufferFormats", i );
-				Param = NxParameterized::findParam(*ApexRenderMeshAssetAuthoring,Scratch,Handle);
+				Param = NvParameterized::findParam(*ApexRenderMeshAssetAuthoring,Scratch,Handle);
 				physx::PxI32 BufArraySize = 0;
-				::NxParameterized::ErrorType BufArrayErrorType = Handle.getArraySize(BufArraySize, 0);
-				PX_ASSERT(BufArrayErrorType ==::NxParameterized::ERROR_NONE);
+				::NvParameterized::ErrorType BufArrayErrorType = Handle.getArraySize(BufArraySize, 0);
+				PX_ASSERT(BufArrayErrorType ==::NvParameterized::ERROR_NONE);
 
 				// iterate each vertex buffer of this submesh
 				for (physx::PxI32 j = 0; j < BufArraySize; j++)
 				{
 					FCStringAnsi::Sprintf( Scratch, "submeshes[%d].vertexBuffer.vertexFormat.bufferFormats[%d].semantic", i, j );
-					Param = NxParameterized::findParam(*ApexRenderMeshAssetAuthoring, Scratch, Handle);
+					Param = NvParameterized::findParam(*ApexRenderMeshAssetAuthoring, Scratch, Handle);
 
 					if (Param)
 					{
 						physx::PxI32 bufSemantic;
-						::NxParameterized::ErrorType BufSemanticErrorType = Handle.getParamI32(bufSemantic);
-						PX_ASSERT(BufSemanticErrorType ==::NxParameterized::ERROR_NONE);
+						::NvParameterized::ErrorType BufSemanticErrorType = Handle.getParamI32(bufSemantic);
+						PX_ASSERT(BufSemanticErrorType ==::NvParameterized::ERROR_NONE);
 
 						// this vertex buffer is a texCoords one
-						if ( bufSemantic <= physx::NxRenderVertexSemantic::TEXCOORD3
-							&& bufSemantic >= physx::NxRenderVertexSemantic::TEXCOORD0 )
+						if ( bufSemantic <= apex::RenderVertexSemantic::TEXCOORD3
+							&& bufSemantic >= apex::RenderVertexSemantic::TEXCOORD0 )
 						{
 							// retrieve the data handle, It is not an F32x2 array it is an struct array
 							FCStringAnsi::Sprintf( Scratch, "submeshes[%d].vertexBuffer.buffers[%d].data", i, j );
-							Param = NxParameterized::findParam(*ApexRenderMeshAssetAuthoring, Scratch, Handle);
+							Param = NvParameterized::findParam(*ApexRenderMeshAssetAuthoring, Scratch, Handle);
 							physx::PxI32 DataElementSize = 0;
 
-							if (Handle.getArraySize(DataElementSize, 0) ==::NxParameterized::ERROR_NONE)
+							if (Handle.getArraySize(DataElementSize, 0) ==::NvParameterized::ERROR_NONE)
 							{
 								float MaxTexelU = -1e9;
 								float MaxTexelV = -1e9;
@@ -1099,32 +1169,32 @@ void FlipUV(::NxParameterized::Interface *ApexRenderMeshAssetAuthoring,bool bFli
 	}
 }
 
-physx::apex::NxApexAssetAuthoring* ApexAuthoringFromAsset(NxApexAsset* Asset, NxApexSDK* ApexSDK)
+apex::AssetAuthoring* ApexAuthoringFromAsset(apex::Asset* Asset, apex::ApexSDK* ApexSDK)
 {
-	const ::NxParameterized::Interface* OldInterface = Asset->getAssetNxParameterized();
+	const ::NvParameterized::Interface* OldInterface = Asset->getAssetNvParameterized();
 
 	// make the copy
-	::NxParameterized::Interface* NewInterface = ApexSDK->getParameterizedTraits()->createNxParameterized(OldInterface->className());
+	::NvParameterized::Interface* NewInterface = ApexSDK->getParameterizedTraits()->createNvParameterized(OldInterface->className());
 	NewInterface->copy(*OldInterface);
 
 	// pass NULL to use an auto-generated name
 	return ApexSDK->createAssetAuthoring(NewInterface, NULL);
 }
 
-NxClothingAsset* ApplyTransform(NxClothingAsset* ApexClothingAsset)
+apex::ClothingAsset* ApplyTransform(apex::ClothingAsset* ApexClothingAsset)
 {	
-	// create an NxClothingAssetAuthoring instance of the asset
-	NxClothingAssetAuthoring *ApexClothingAssetAuthoring 
-		= static_cast<NxClothingAssetAuthoring*>(ApexAuthoringFromAsset(ApexClothingAsset, GApexSDK));
+	// create an apex::ClothingAssetAuthoring instance of the asset
+	apex::ClothingAssetAuthoring *ApexClothingAssetAuthoring 
+		= static_cast<apex::ClothingAssetAuthoring*>(ApexAuthoringFromAsset(ApexClothingAsset, GApexSDK));
 
 	if(ensure(ApexClothingAssetAuthoring))
 	{
-		const NxParameterized::Interface* AssetParams = ApexClothingAsset->getAssetNxParameterized();
+		const NvParameterized::Interface* AssetParams = ApexClothingAsset->getAssetNvParameterized();
 
 		// load bone actors size and bone sphere size
 		physx::PxI32 NumBoneActors, NumBoneSpheres;
-		verify(NxParameterized::getParamArraySize(*AssetParams, "boneActors", NumBoneActors));
-		verify(NxParameterized::getParamArraySize(*AssetParams, "boneSpheres", NumBoneSpheres));
+		verify(NvParameterized::getParamArraySize(*AssetParams, "boneActors", NumBoneActors));
+		verify(NvParameterized::getParamArraySize(*AssetParams, "boneSpheres", NumBoneSpheres));
 
 		// clear bone spheres and connections if this asset have both bone actors and bone spheres because APEX Clothing doesn't support both
 		if (NumBoneActors > 0 && NumBoneSpheres > 0)
@@ -1133,13 +1203,13 @@ NxClothingAsset* ApplyTransform(NxClothingAsset* ApexClothingAsset)
 		}
 
 		// Invert Y-axis
-		physx::PxMat44 InvertYTransform = physx::PxMat44::createIdentity();
+		physx::PxMat44 InvertYTransform = physx::PxMat44(physx::PxIdentity);
 		InvertYTransform.column1.y = -1;
 		physx::PxMat44 MeshTransform;
 
 		// refer to gravity direction to find up-axis
 		physx::PxVec3 GravityDirection;
-		verify(NxParameterized::getParamVec3(*AssetParams, "simulation.gravityDirection", GravityDirection));
+		verify(NvParameterized::getParamVec3(*AssetParams, "simulation.gravityDirection", GravityDirection));
 
 		// check whether up-axis is Y-up or not
 		// if Y-up, then change up-axis into Z-up
@@ -1150,7 +1220,7 @@ NxClothingAsset* ApplyTransform(NxClothingAsset* ApexClothingAsset)
 			
 			// inverse Y and rotate 90 degrees with respect to x-axis
 			// InvertYTransform * Rotated 90 Degrees With X-Axis Matrix
-			MeshTransform = physx::PxMat44::createIdentity();
+			MeshTransform = physx::PxMat44(physx::PxIdentity);
 			MeshTransform.column1.y = 0.0f;
 			MeshTransform.column1.z = 1.0f;
 			MeshTransform.column2.y = 1.0f;
@@ -1179,37 +1249,37 @@ NxClothingAsset* ApplyTransform(NxClothingAsset* ApexClothingAsset)
 		// destroy and create a new asset based off the authoring version	
 		for (int32 i = 0; i<NumLODs; i++)
 		{
-			NxParameterized::Interface *ApexRenderMeshAssetAuthoring = ApexClothingAssetAuthoring->getRenderMeshAssetAuthoring(i);
+			NvParameterized::Interface *ApexRenderMeshAssetAuthoring = ApexClothingAssetAuthoring->getRenderMeshAssetAuthoring(i);
 			if ( ApexRenderMeshAssetAuthoring )
 			{
-				NxParameterized::Handle AuthorHandle(ApexRenderMeshAssetAuthoring);
+				NvParameterized::Handle AuthorHandle(ApexRenderMeshAssetAuthoring);
 				bool bFlipU = false;
 				bool bFlipV = false;
-				NxParameterized::Interface *AuthorParam = NxParameterized::findParam(*ApexRenderMeshAssetAuthoring,"textureUVOrigin",AuthorHandle);
+				NvParameterized::Interface *AuthorParam = NvParameterized::findParam(*ApexRenderMeshAssetAuthoring,"textureUVOrigin",AuthorHandle);
 				if ( AuthorParam )
 				{
 					uint32 TextureUVOrigin;
 					AuthorHandle.getParamU32(TextureUVOrigin);
 					switch ( TextureUVOrigin )
 					{
-					case NxTextureUVOrigin::ORIGIN_TOP_LEFT:
+					case apex::TextureUVOrigin::ORIGIN_TOP_LEFT:
 						bFlipU = false;
 						bFlipV = false;
 						break;
-					case NxTextureUVOrigin::ORIGIN_TOP_RIGHT:	
+					case apex::TextureUVOrigin::ORIGIN_TOP_RIGHT:
 						bFlipU = true;
 						bFlipV = false;
 						break;
-					case NxTextureUVOrigin::ORIGIN_BOTTOM_LEFT:
+					case apex::TextureUVOrigin::ORIGIN_BOTTOM_LEFT:
 						bFlipU = false;
 						bFlipV = true;
 						break;
-					case NxTextureUVOrigin::ORIGIN_BOTTOM_RIGHT:
+					case apex::TextureUVOrigin::ORIGIN_BOTTOM_RIGHT:
 						bFlipU = false;
 						bFlipV = false;
 						break;
 					}
-					AuthorHandle.setParamU32(NxTextureUVOrigin::ORIGIN_TOP_LEFT);
+					AuthorHandle.setParamU32(apex::TextureUVOrigin::ORIGIN_TOP_LEFT);
 				}
 				FlipUV(ApexRenderMeshAssetAuthoring,bFlipU,bFlipV);
 			}
@@ -1229,13 +1299,13 @@ NxClothingAsset* ApplyTransform(NxClothingAsset* ApexClothingAsset)
 		ApexClothingAsset = NULL;
 
 		// create new asset from the authoring
-		NxClothingAsset* NewAsset = (NxClothingAsset*)GApexSDK->createAsset( *ApexClothingAssetAuthoring, ApexAssetName );
+		apex::ClothingAsset* NewAsset = (apex::ClothingAsset*)GApexSDK->createAsset( *ApexClothingAssetAuthoring, ApexAssetName );
 		
 		// ApexSDK returns NULL when asset name collides with another name
 		if(!NewAsset)
 		{
 			// if name is NULL, ApexSDK will auto-generate one that won't collide with other names
-			NewAsset = (NxClothingAsset*)GApexSDK->createAsset( *ApexClothingAssetAuthoring, NULL );
+			NewAsset = (apex::ClothingAsset*)GApexSDK->createAsset( *ApexClothingAssetAuthoring, NULL );
 		}
 
 		check(NewAsset);
@@ -1282,7 +1352,7 @@ void RemoveAssetFromSkeletalMesh(USkeletalMesh* SkelMesh, uint32 AssetIndex, boo
 	}
 
 
-	NxClothingAsset* ApexClothingAsset = SkelMesh->ClothingAssets[AssetIndex].ApexClothingAsset;	//Can't delete apex asset until after apex actors so we save this for now and reregister component (which will trigger the actor delete)
+	apex::ClothingAsset* ApexClothingAsset = SkelMesh->ClothingAssets[AssetIndex].ApexClothingAsset;	//Can't delete apex asset until after apex actors so we save this for now and reregister component (which will trigger the actor delete)
 	SkelMesh->ClothingAssets.RemoveAt(AssetIndex);	//have to remove the asset from the array so that new actors are not created for asset pending deleting
 	ReregisterSkelMeshComponents(SkelMesh);
 
@@ -1428,7 +1498,7 @@ bool ImportClothingSectionFromClothingAsset( USkeletalMesh* SkelMesh, uint32 LOD
 
 	FClothingAssetData& AssetData = SkelMesh->ClothingAssets[AssetIndex];
 
-	NxClothingAsset* ApexClothingAsset = AssetData.ApexClothingAsset;
+	apex::ClothingAsset* ApexClothingAsset = AssetData.ApexClothingAsset;
 
 	// The APEX Clothing Asset contains an APEX Render Mesh Asset, get a pointer to this
 	physx::PxU32 NumLODLevels = ApexClothingAsset->getNumGraphicalLodLevels();
@@ -1441,7 +1511,7 @@ bool ImportClothingSectionFromClothingAsset( USkeletalMesh* SkelMesh, uint32 LOD
 		return false;
 	}
 
-	const NxRenderMeshAsset* ApexRenderMesh = ApexClothingAsset->getRenderMeshAsset(LODIndex);
+	const apex::RenderMeshAsset* ApexRenderMesh = ApexClothingAsset->getRenderMeshAsset(LODIndex);
 
 	if (ApexRenderMesh == NULL)
 	{
@@ -1462,6 +1532,8 @@ bool ImportClothingSectionFromClothingAsset( USkeletalMesh* SkelMesh, uint32 LOD
 	TArray<FApexClothPhysToRenderVertData> RenderToPhysicalMapping;
 	TArray<FVector> PhysicalMeshVertices;
 	TArray<FVector> PhysicalMeshNormals;
+	TArray<uint32> PhysicalMeshIndices;
+	TArray<float> PhysicalMeshMaxDistances;
 	FVertexImportData ImportData;
 
 	// get values from LoadGraphicalMeshFromClothingAsset
@@ -1476,7 +1548,7 @@ bool ImportClothingSectionFromClothingAsset( USkeletalMesh* SkelMesh, uint32 LOD
 		return false;
 	}
 
-	LoadPhysicalMeshFromClothingAsset(*ApexClothingAsset, RenderToPhysicalMapping, PhysicalMeshVertices, PhysicalMeshNormals, LODIndex, StartSimulIndex, NumSimulVertices, SubmeshVertexCount);
+	LoadPhysicalMeshFromClothingAsset(*ApexClothingAsset, RenderToPhysicalMapping, PhysicalMeshVertices, PhysicalMeshNormals, PhysicalMeshIndices, PhysicalMeshMaxDistances, LODIndex, StartSimulIndex, NumSimulVertices, SubmeshVertexCount);
 
 	// Load bone names
 	TArray<FName> BoneNames;
@@ -1484,7 +1556,7 @@ bool ImportClothingSectionFromClothingAsset( USkeletalMesh* SkelMesh, uint32 LOD
 
 	return AssociateClothingAssetWithSkeletalMesh(SkelMesh, LODIndex, SectionIndex, 
 											AssetIndex, AssetSubmeshIndex, ImportData, 		
-											RenderToPhysicalMapping, PhysicalMeshVertices, PhysicalMeshNormals, 
+											RenderToPhysicalMapping, PhysicalMeshVertices, PhysicalMeshNormals, PhysicalMeshIndices, PhysicalMeshMaxDistances, 
 											BoneNames, IndexBuffer, SubmeshTriangleCount);
 }
 
@@ -1528,7 +1600,7 @@ void ReImportClothingSectionFromClothingAsset(USkeletalMesh* SkelMesh, int32 LOD
 	ImportClothingSectionFromClothingAsset(SkelMesh, LODIndex, SectionIndex, AssetIndex, SubmeshIdx);
 }
 
-static bool IsProperApexFile(NxClothingAsset& ApexClothingAsset, USkeletalMesh* SkelMesh)
+static bool IsProperApexFile(apex::ClothingAsset& ApexClothingAsset, USkeletalMesh* SkelMesh)
 {
 	TArray<FName> BoneNames;
 	LoadBonesFromClothingAsset(ApexClothingAsset, BoneNames);
@@ -1561,7 +1633,7 @@ static bool IsProperApexFile(NxClothingAsset& ApexClothingAsset, USkeletalMesh* 
 
 EClothUtilRetType ImportApexAssetFromApexFile(FString& ApexFile, USkeletalMesh* SkelMesh, int32 AssetIndex)
 {
-	NxClothingAsset* ApexClothingAsset = CreateApexClothingAssetFromFile(ApexFile);
+	apex::ClothingAsset* ApexClothingAsset = CreateApexClothingAssetFromFile(ApexFile);
 
 	if (ApexClothingAsset == NULL)
 	{
@@ -1583,7 +1655,7 @@ EClothUtilRetType ImportApexAssetFromApexFile(FString& ApexFile, USkeletalMesh* 
 	FName AssetName = FName(*FPaths::GetCleanFilename(ApexFile));
 	int32 NumAssets = SkelMesh->ClothingAssets.Num();
 
-	NxClothingAsset* ExistingAsset = nullptr;
+	apex::ClothingAsset* ExistingAsset = nullptr;
 
 	if(!bReimport)
 	{
@@ -1648,7 +1720,7 @@ EClothUtilRetType ImportApexAssetFromApexFile(FString& ApexFile, USkeletalMesh* 
 	return CURT_Ok;
 }
 
-bool GetSubmeshInfoFromApexAsset(NxClothingAsset *ApexClothingAsset, uint32 LODIndex, TArray<FSubmeshInfo>& OutSubmeshInfos)
+bool GetSubmeshInfoFromApexAsset(apex::ClothingAsset *ApexClothingAsset, uint32 LODIndex, TArray<FSubmeshInfo>& OutSubmeshInfos)
 {
 	if( ApexClothingAsset == NULL)
 	{
@@ -1664,7 +1736,7 @@ bool GetSubmeshInfoFromApexAsset(NxClothingAsset *ApexClothingAsset, uint32 LODI
 		return false;
 	}
 
-	const NxRenderMeshAsset* ApexRenderMesh = ApexClothingAsset->getRenderMeshAsset(LODIndex);
+	const apex::RenderMeshAsset* ApexRenderMesh = ApexClothingAsset->getRenderMeshAsset(LODIndex);
 
 	if (ApexRenderMesh == NULL)
 	{
@@ -1682,56 +1754,44 @@ bool GetSubmeshInfoFromApexAsset(NxClothingAsset *ApexClothingAsset, uint32 LODI
 
 	OutSubmeshInfos.Empty();
 
-	const NxParameterized::Interface* AssetParams = ApexClothingAsset->getAssetNxParameterized();
+	const NvParameterized::Interface* AssetParams = ApexClothingAsset->getAssetNvParameterized();
 	char ParameterName[MAX_SPRINTF];
 
 	// Extracts simulation mesh info
 	int32 PhysicalMeshCount;
-	NxParameterized::getParamArraySize(*AssetParams, "physicalMeshes", PhysicalMeshCount);
+	NvParameterized::getParamArraySize(*AssetParams, "physicalMeshes", PhysicalMeshCount);
 
 	check( PhysicalMeshCount > (int32)LODIndex );
 
 	FCStringAnsi::Sprintf(ParameterName, "physicalMeshes[%d]", LODIndex);
 
-	NxParameterized::Interface* PhysicalMeshParams;
+	NvParameterized::Interface* PhysicalMeshParams;
 	uint32 NumVertices = 0;
 	// num of physical mesh vertices but including not only dynamically simulated vertices but also fixed vertices
 	int32 NumPhysMeshVerts = 0;
 	// num of actual simulation vertices dynamically moving
-	int32 NumRealDynamicSimulVerts = 0;
+	uint32 NumRealDynamicSimulVerts = 0;
 
 	physx::PxI32 NumBoneSpheres = 0;
-	verify(NxParameterized::getParamArraySize(*AssetParams, "boneSpheres", NumBoneSpheres));
+	verify(NvParameterized::getParamArraySize(*AssetParams, "boneSpheres", NumBoneSpheres));
 
-	if (NxParameterized::getParamRef(*AssetParams, ParameterName, PhysicalMeshParams))
+	if (NvParameterized::getParamRef(*AssetParams, ParameterName, PhysicalMeshParams))
 	{
 		if(PhysicalMeshParams != NULL)
 		{
-			verify(NxParameterized::getParamU32(*PhysicalMeshParams, "physicalMesh.numVertices", NumVertices));
-			verify(NxParameterized::getParamArraySize(*PhysicalMeshParams, "physicalMesh.vertices", NumPhysMeshVerts));
-
-			// Extracts num of real dynamically simulated vertices because NumPhysMeshVerts includes fixed verts as well.
-			// "submeshes" in PhysicalMesh have dynmaically moving simulation vertices
-			int32 NumPhysMeshSubmeshes;
-			verify(NxParameterized::getParamArraySize(*PhysicalMeshParams, "submeshes", NumPhysMeshSubmeshes));
-
-			for(int32 Submesh=0; Submesh<NumPhysMeshSubmeshes; Submesh++)
-			{
-				FCStringAnsi::Sprintf(ParameterName, "submeshes[%d].numVertices", Submesh);
-				uint32 NumSubmeshVerts;
-				verify(NxParameterized::getParamU32(*PhysicalMeshParams, ParameterName, NumSubmeshVerts));
-				NumRealDynamicSimulVerts += NumSubmeshVerts;
-			}
+			verify(NvParameterized::getParamU32(*PhysicalMeshParams, "physicalMesh.numVertices", NumVertices));
+			verify(NvParameterized::getParamArraySize(*PhysicalMeshParams, "physicalMesh.vertices", NumPhysMeshVerts));
+			verify(NvParameterized::getParamU32(*PhysicalMeshParams, "physicalMesh.numSimulatedVertices", NumRealDynamicSimulVerts));
 		}
 	}
 
 	// Extracts rendering mesh info
 	FCStringAnsi::Sprintf(ParameterName, "graphicalLods[%d]", LODIndex);
 
-	NxParameterized::Interface* GraphicalMeshParams;
+	NvParameterized::Interface* GraphicalMeshParams;
 	int32 PhysicalSubmeshIndex = -1;
 
-	if (NxParameterized::getParamRef(*AssetParams, ParameterName, GraphicalMeshParams))
+	if (NvParameterized::getParamRef(*AssetParams, ParameterName, GraphicalMeshParams))
 	{
 		if(GraphicalMeshParams != NULL)
 		{
@@ -1739,17 +1799,17 @@ bool GetSubmeshInfoFromApexAsset(NxClothingAsset *ApexClothingAsset, uint32 LODI
 			{
 				uint32 NumRenderVertsAffectedBySimul = 0, NumSimulVertAdditional = 0;
 
-				FCStringAnsi::Sprintf(ParameterName, "physicsSubmeshPartitioning[%d].numSimulatedVertices", SubmeshIndex);
-				NxParameterized::getParamU32(*GraphicalMeshParams, ParameterName, NumRenderVertsAffectedBySimul);
+				FCStringAnsi::Sprintf(ParameterName, "physicsMeshPartitioning[%d].numSimulatedVertices", SubmeshIndex);
+				NvParameterized::getParamU32(*GraphicalMeshParams, ParameterName, NumRenderVertsAffectedBySimul);
 
 				if(NumRenderVertsAffectedBySimul == 0)
 				{
 					continue;
 				}
 
-				const NxRenderSubmesh& Submesh = ApexRenderMesh->getSubmesh(SubmeshIndex);
+				const apex::RenderSubmesh& Submesh = ApexRenderMesh->getSubmesh(SubmeshIndex);
 
-				const NxVertexBuffer& VB = Submesh.getVertexBuffer();
+				const apex::VertexBuffer& VB = Submesh.getVertexBuffer();
 
 				// Count vertices
 				uint32 VBCount = VB.getVertexCount();
@@ -1903,12 +1963,12 @@ void ReapplyClothingDataToSkeletalMesh( USkeletalMesh* SkelMesh, FClothingBackup
 	SkelMesh->BuildApexToUnrealBoneMapping();
 }
 
-int32 GetNumLODs(NxClothingAsset *InAsset)
+int32 GetNumLODs(apex::ClothingAsset *InAsset)
 {
 	return InAsset->getNumGraphicalLodLevels();
 }
 
-int32 GetNumRenderSubmeshes(NxClothingAsset *InAsset, int32 LODIndex)
+int32 GetNumRenderSubmeshes(apex::ClothingAsset *InAsset, int32 LODIndex)
 {
 	// The APEX Clothing Asset contains an APEX Render Mesh Asset, get a pointer to this
 	int32 NumLODLevels = InAsset->getNumGraphicalLodLevels();
@@ -1918,7 +1978,7 @@ int32 GetNumRenderSubmeshes(NxClothingAsset *InAsset, int32 LODIndex)
 		return -1;
 	}
 
-	const NxRenderMeshAsset* ApexRenderMesh = InAsset->getRenderMeshAsset(LODIndex);
+	const apex::RenderMeshAsset* ApexRenderMesh = InAsset->getRenderMeshAsset(LODIndex);
 
 	check(ApexRenderMesh);
 
@@ -1936,22 +1996,22 @@ static const char* ApexFiberGroupNames[] =
 };
 
 
-void GetPhysicsPropertiesFromApexAsset(NxClothingAsset *InAsset, FClothPhysicsProperties& PropertyInfo)
+void GetPhysicsPropertiesFromApexAsset(apex::ClothingAsset *InAsset, FClothPhysicsProperties& PropertyInfo)
 {
-	const NxParameterized::Interface* AssetParams = InAsset->getAssetNxParameterized();
+	const NvParameterized::Interface* AssetParams = InAsset->getAssetNvParameterized();
 
 	uint32 MaterialIndex;
 	// uses default material index
-	verify(NxParameterized::getParamU32(*AssetParams, "materialIndex", MaterialIndex));
+	verify(NvParameterized::getParamU32(*AssetParams, "materialIndex", MaterialIndex));
 	
 	// ClothingMaterialLibraryParameters 
-	NxParameterized::Interface* MaterialLibraryParams;
-	NxParameterized::getParamRef(*AssetParams, "materialLibrary", MaterialLibraryParams);
+	NvParameterized::Interface* MaterialLibraryParams;
+	NvParameterized::getParamRef(*AssetParams, "materialLibrary", MaterialLibraryParams);
 
 	if (MaterialLibraryParams != NULL)
 	{
 		int32 NumMaterials;
-		verify(NxParameterized::getParamArraySize(*MaterialLibraryParams, "materials", NumMaterials));
+		verify(NvParameterized::getParamArraySize(*MaterialLibraryParams, "materials", NumMaterials));
 
 		check(MaterialIndex < (uint32)NumMaterials);
  
@@ -1959,66 +2019,66 @@ void GetPhysicsPropertiesFromApexAsset(NxClothingAsset *InAsset, FClothPhysicsPr
 
 		// stiffness properties
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].verticalStretchingStiffness", MaterialIndex);
-		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.VerticalResistance));
+		verify(NvParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.VerticalResistance));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].horizontalStretchingStiffness", MaterialIndex);
-		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.HorizontalResistance));
+		verify(NvParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.HorizontalResistance));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].bendingStiffness", MaterialIndex);
-		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.BendResistance));
+		verify(NvParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.BendResistance));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].shearingStiffness", MaterialIndex); 
-		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.ShearResistance));
+		verify(NvParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.ShearResistance));
 		//FCStringAnsi::Sprintf(ParameterName, "materials[%d].hardStretchLimitation", MaterialIndex);
-		//verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.HardStretchLimitation));
+		//verify(NvParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.HardStretchLimitation));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].tetherStiffness", MaterialIndex);
-		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.TetherStiffness));
+		verify(NvParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.TetherStiffness));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].tetherLimit", MaterialIndex);
-		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.TetherLimit));
+		verify(NvParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.TetherLimit));
 
 		// resistance properties
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].friction", MaterialIndex); 
-		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.Friction));
+		verify(NvParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.Friction));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].damping", MaterialIndex); 
-		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.Damping));
+		verify(NvParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.Damping));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].drag", MaterialIndex); 
-		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.Drag));
+		verify(NvParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.Drag));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].stiffnessFrequency", MaterialIndex);
-		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.StiffnessFrequency));
+		verify(NvParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.StiffnessFrequency));
 
 		// scale properties
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].massScale", MaterialIndex);
-		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.MassScale));
+		verify(NvParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.MassScale));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].gravityScale", MaterialIndex);
-		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.GravityScale));
+		verify(NvParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.GravityScale));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].inertiaScale", MaterialIndex);
-		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.InertiaBlend));
+		verify(NvParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.InertiaBlend));
 
 		// self-collision properties
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].selfcollisionThickness", MaterialIndex);
-		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.SelfCollisionThickness));
+		verify(NvParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.SelfCollisionThickness));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].selfCollisionStiffness", MaterialIndex);
-		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.SelfCollisionStiffness));
+		verify(NvParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.SelfCollisionStiffness));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].selfCollisionSquashScale", MaterialIndex);
-		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.SelfCollisionSquashScale));
+		verify(NvParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.SelfCollisionSquashScale));
 
 		// computation or solver properties
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].solverFrequency", MaterialIndex);
-		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.SolverFrequency));
+		verify(NvParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.SolverFrequency));
 
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].verticalStiffnessScaling.compressionRange",  MaterialIndex);
-		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.FiberCompression));
+		verify(NvParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.FiberCompression));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].verticalStiffnessScaling.stretchRange",  MaterialIndex);
-		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.FiberExpansion));
+		verify(NvParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.FiberExpansion));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].verticalStiffnessScaling.scale",  MaterialIndex);
-		verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.FiberResistance));
+		verify(NvParameterized::getParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.FiberResistance));
 		for (const char* FiberGroup : ApexFiberGroupNames)
 		{
 			// normal usage is for all sets to be the same.  set to -1 (disable gui) otherwise.  Advanced users can edit xml for now.
 			float FiberCompression, FiberExpansion, FiberResistance;
 			FCStringAnsi::Sprintf(ParameterName, "materials[%d].%s.compressionRange", MaterialIndex, FiberGroup);
-			verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, FiberCompression));
+			verify(NvParameterized::getParamF32(*MaterialLibraryParams, ParameterName, FiberCompression));
 			FCStringAnsi::Sprintf(ParameterName, "materials[%d].%s.stretchRange", MaterialIndex, FiberGroup);
-			verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, FiberExpansion));
+			verify(NvParameterized::getParamF32(*MaterialLibraryParams, ParameterName, FiberExpansion));
 			FCStringAnsi::Sprintf(ParameterName, "materials[%d].%s.scale", MaterialIndex, FiberGroup);
-			verify(NxParameterized::getParamF32(*MaterialLibraryParams, ParameterName, FiberResistance));
+			verify(NvParameterized::getParamF32(*MaterialLibraryParams, ParameterName, FiberResistance));
 			if (PropertyInfo.FiberCompression != FiberCompression) { PropertyInfo.FiberCompression = -1.0f ;}
 			if (PropertyInfo.FiberExpansion   != FiberExpansion  ) { PropertyInfo.FiberExpansion   = -1.0f ;}
 			if (PropertyInfo.FiberResistance  != FiberResistance ) { PropertyInfo.FiberResistance  = -1.0f ;}
@@ -2027,16 +2087,16 @@ void GetPhysicsPropertiesFromApexAsset(NxClothingAsset *InAsset, FClothPhysicsPr
 	}
 }
 
-void SetPhysicsPropertiesToApexAsset(NxClothingAsset *InAsset, FClothPhysicsProperties& PropertyInfo)
+void SetPhysicsPropertiesToApexAsset(apex::ClothingAsset *InAsset, FClothPhysicsProperties& PropertyInfo)
 {
-	const NxParameterized::Interface* AssetParams = InAsset->getAssetNxParameterized();
+	const NvParameterized::Interface* AssetParams = InAsset->getAssetNvParameterized();
 
 	uint32 MaterialIndex;
-	verify(NxParameterized::getParamU32(*AssetParams, "materialIndex", MaterialIndex));
+	verify(NvParameterized::getParamU32(*AssetParams, "materialIndex", MaterialIndex));
 
 	// ClothingMaterialLibraryParameters 
-	NxParameterized::Interface* MaterialLibraryParams;
-	NxParameterized::getParamRef(*AssetParams, "materialLibrary", MaterialLibraryParams);
+	NvParameterized::Interface* MaterialLibraryParams;
+	NvParameterized::getParamRef(*AssetParams, "materialLibrary", MaterialLibraryParams);
 
 	if (MaterialLibraryParams != NULL)
 	{
@@ -2044,64 +2104,160 @@ void SetPhysicsPropertiesToApexAsset(NxClothingAsset *InAsset, FClothPhysicsProp
 
 		// stiffness properties
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].verticalStretchingStiffness", MaterialIndex);
-		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.VerticalResistance));
+		verify(NvParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.VerticalResistance));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].horizontalStretchingStiffness", MaterialIndex);
-		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.HorizontalResistance));
+		verify(NvParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.HorizontalResistance));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].bendingStiffness", MaterialIndex);
-		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.BendResistance));
+		verify(NvParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.BendResistance));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].shearingStiffness", MaterialIndex);
-		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.ShearResistance));
+		verify(NvParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.ShearResistance));
 		//FCStringAnsi::Sprintf(ParameterName, "materials[%d].hardStretchLimitation", MaterialIndex);
-		//verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.HardStretchLimitation));
+		//verify(NvParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.HardStretchLimitation));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].tetherStiffness", MaterialIndex);
-		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.TetherStiffness));
+		verify(NvParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.TetherStiffness));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].tetherLimit", MaterialIndex);
-		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.TetherLimit));
+		verify(NvParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.TetherLimit));
 
 		// resistance properties
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].friction", MaterialIndex);
-		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.Friction));
+		verify(NvParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.Friction));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].damping", MaterialIndex);
-		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.Damping));
+		verify(NvParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.Damping));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].drag", MaterialIndex);
-		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.Drag));
+		verify(NvParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.Drag));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].stiffnessFrequency", MaterialIndex);
-		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.StiffnessFrequency));
+		verify(NvParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.StiffnessFrequency));
 
 		// scale properties
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].gravityScale", MaterialIndex);
-		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.GravityScale));
+		verify(NvParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.GravityScale));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].massScale", MaterialIndex);
-		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.MassScale));
+		verify(NvParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.MassScale));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].inertiaScale", MaterialIndex);
-		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.InertiaBlend));
+		verify(NvParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.InertiaBlend));
 
 		// self-collision properties
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].selfcollisionThickness", MaterialIndex);
-		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.SelfCollisionThickness));
+		verify(NvParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.SelfCollisionThickness));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].selfCollisionStiffness", MaterialIndex);
-		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.SelfCollisionStiffness));
+		verify(NvParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.SelfCollisionStiffness));
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].selfCollisionSquashScale", MaterialIndex);
-		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.SelfCollisionSquashScale));
+		verify(NvParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.SelfCollisionSquashScale));
 
 		// computation or solver properties
 		FCStringAnsi::Sprintf(ParameterName, "materials[%d].solverFrequency", MaterialIndex);
-		verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.SolverFrequency));
+		verify(NvParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.SolverFrequency));
 
 		if (PropertyInfo.FiberCompression >= 0.0f && PropertyInfo.FiberExpansion >= 0.0f && PropertyInfo.FiberResistance >= 0.0f)
 		{
 			for (const char* FiberGroup : ApexFiberGroupNames)
 			{
 				FCStringAnsi::Sprintf(ParameterName, "materials[%d].%s.compressionRange", MaterialIndex, FiberGroup);
-				verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.FiberCompression));
+				verify(NvParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.FiberCompression));
 				FCStringAnsi::Sprintf(ParameterName, "materials[%d].%s.stretchRange", MaterialIndex, FiberGroup);
-				verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.FiberExpansion));
+				verify(NvParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.FiberExpansion));
 				FCStringAnsi::Sprintf(ParameterName, "materials[%d].%s.scale", MaterialIndex, FiberGroup);
-				verify(NxParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.FiberResistance));
+				verify(NvParameterized::setParamF32(*MaterialLibraryParams, ParameterName, PropertyInfo.FiberResistance));
 			}
 		}
 
 	}
+}
+
+void GenerateMeshToMeshSkinningData(TArray<FApexClothPhysToRenderVertData>& OutSkinningData, const TArray<FVector>& Mesh0Verts, const TArray<FVector>& Mesh0Normals, const TArray<FVector>& Mesh0Tangents, const TArray<FVector>& Mesh1Verts, const TArray<FVector>& Mesh1Normals, const TArray<uint32>& Mesh1Indices)
+{
+	const int32 NumMesh0Verts = Mesh0Verts.Num();
+	const int32 NumMesh0Normals = Mesh0Normals.Num();
+	const int32 NumMesh0Tangents = Mesh0Tangents.Num();
+
+	const int32 NumMesh1Verts = Mesh1Verts.Num();
+	const int32 NumMesh1Normals = Mesh1Normals.Num();
+	const int32 NumMesh1Indices = Mesh1Indices.Num();
+
+	// Check we have properly formed triangles
+	check(NumMesh1Indices % 3 == 0);
+
+	const int32 NumMesh1Triangles = NumMesh1Indices / 3;
+
+	// Check mesh data to make sure we have the same number of each element
+	if((NumMesh0Verts + NumMesh0Normals) / NumMesh0Tangents != 2)
+	{
+		UE_LOG(LogApexClothingUtils, Warning, TEXT("Can't generate mesh to mesh skinning data, Mesh0 data is missing verts."));
+		return;
+	}
+
+	if(NumMesh1Verts != NumMesh1Normals)
+	{
+		UE_LOG(LogApexClothingUtils, Warning, TEXT("Can't generate mesh to mesh skinning data, Mesh1 data is missing verts."));
+		return;
+	}
+
+	OutSkinningData.Reserve(NumMesh0Verts);
+
+	// For all mesh0 verts
+	for(int32 VertIdx0 = 0; VertIdx0 < NumMesh0Verts; ++VertIdx0)
+	{
+		OutSkinningData.AddZeroed();
+		FApexClothPhysToRenderVertData& SkinningData = OutSkinningData.Last();
+
+		const FVector& VertPosition = Mesh0Verts[VertIdx0];
+		const FVector& VertNormal = Mesh0Normals[VertIdx0];
+		const FVector& VertTangent = Mesh0Tangents[VertIdx0];
+
+		float MinimumDistanceSq = MAX_flt;
+		int32 ClosestTriangleBaseIdx = INDEX_NONE;
+		// For all mesh1 triangles
+		for(int32 Mesh1TriangleIdx = 0; Mesh1TriangleIdx < NumMesh1Triangles; ++Mesh1TriangleIdx)
+		{
+			int32 TriangleBaseIdx = Mesh1TriangleIdx * 3;
+			const FVector& A = Mesh1Verts[Mesh1Indices[TriangleBaseIdx]];
+			const FVector& B = Mesh1Verts[Mesh1Indices[TriangleBaseIdx + 1]];
+			const FVector& C = Mesh1Verts[Mesh1Indices[TriangleBaseIdx + 2]];
+
+			FVector PointOnTri = FMath::ClosestPointOnTriangleToPoint(VertPosition, A, B, C);
+			float DistSq = (PointOnTri - VertPosition).SizeSquared();
+
+			if(DistSq < MinimumDistanceSq)
+			{
+				MinimumDistanceSq = DistSq;
+				ClosestTriangleBaseIdx = TriangleBaseIdx;
+			}
+		}
+
+		// Should have found at least one triangle
+		check(ClosestTriangleBaseIdx != INDEX_NONE);
+
+		const FVector& A = Mesh1Verts[Mesh1Indices[ClosestTriangleBaseIdx]];
+		const FVector& B = Mesh1Verts[Mesh1Indices[ClosestTriangleBaseIdx + 1]];
+		const FVector& C = Mesh1Verts[Mesh1Indices[ClosestTriangleBaseIdx + 2]];
+
+		const FVector& NA = Mesh1Normals[Mesh1Indices[ClosestTriangleBaseIdx]];
+		const FVector& NB = Mesh1Normals[Mesh1Indices[ClosestTriangleBaseIdx + 1]];
+		const FVector& NC = Mesh1Normals[Mesh1Indices[ClosestTriangleBaseIdx + 2]];
+
+		SkinningData.PositionBaryCoordsAndDist = GetPointBaryAndDist(A, B, C, NA, NB, NC, VertPosition);
+		SkinningData.NormalBaryCoordsAndDist = GetPointBaryAndDist(A, B, C, NA, NB, NC, VertPosition + VertNormal);
+		SkinningData.TangentBaryCoordsAndDist = GetPointBaryAndDist(A, B, C, NA, NB, NC, VertPosition + VertTangent);
+		SkinningData.SimulMeshVertIndices[0] = Mesh1Indices[ClosestTriangleBaseIdx];
+		SkinningData.SimulMeshVertIndices[1] = Mesh1Indices[ClosestTriangleBaseIdx + 1];
+		SkinningData.SimulMeshVertIndices[2] = Mesh1Indices[ClosestTriangleBaseIdx + 2];
+		SkinningData.SimulMeshVertIndices[3] = 0;
+	}
+}
+
+FVector4 GetPointBaryAndDist(const FVector& A, const FVector& B, const FVector& C, const FVector& NA, const FVector& NB, const FVector& NC, const FVector& Point)
+{
+	FPlane TrianglePlane(A, B, C);
+	const FVector PointOnTriPlane = FVector::PointPlaneProject(Point, TrianglePlane);
+	const FVector BaryCoords = FMath::ComputeBaryCentric2D(PointOnTriPlane, A, B, C);
+	const FVector NormalAtPoint = TrianglePlane; //NA * BaryCoords.X + NB * BaryCoords.Y + NC * BaryCoords.Z;
+	FVector TriPointToVert = Point - PointOnTriPlane;
+	TriPointToVert = TriPointToVert.ProjectOnTo(NormalAtPoint);
+	float Dist = TriPointToVert.Size();
+
+	float Sign = TrianglePlane.PlaneDot(Point) < 0.0f ? -1.0f : 1.0f;
+
+	return FVector4(BaryCoords, TrianglePlane.PlaneDot(Point));
 }
 
 #else

@@ -53,6 +53,7 @@ FName USceneComponent::GetDefaultSceneRootVariableName()
 
 USceneComponent::USceneComponent(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
 	: Super(ObjectInitializer)
+	, CachedLevelCollection(nullptr)
 {
 	Mobility = EComponentMobility::Movable;
 	RelativeScale3D = FVector(1.0f, 1.0f, 1.0f);
@@ -66,6 +67,17 @@ void USceneComponent::AddReferencedObjects(UObject* InThis, FReferenceCollector&
 {
 	USceneComponent* This = CastChecked<USceneComponent>(InThis);
 	Collector.AddReferencedObject(This->SpriteComponent);
+
+	if (GComponentsWithLegacyLightmaps.GetAnnotationMap().Num() > 0)
+	{
+		FMeshMapBuildLegacyData LegacyMeshData = GComponentsWithLegacyLightmaps.GetAnnotation(This);
+
+		for (int32 EntryIndex = 0; EntryIndex < LegacyMeshData.Data.Num(); EntryIndex++)
+		{
+			LegacyMeshData.Data[EntryIndex].Value->AddReferencedObjects(Collector);
+		}
+	}
+
 	Super::AddReferencedObjects(InThis, Collector);
 }
 #endif
@@ -94,7 +106,7 @@ DECLARE_DELEGATE_RetVal_OneParam(bool, FMobilityQueryDelegate, EComponentMobilit
  * @param  NewMobilityType			The Mobility type you want to switch sub-components over to
  * @param  ShouldOverrideMobility	A delegate used to determine if a sub-component's Mobility should be overridden
  *									(if left unset it will default to the AreMobilitiesDifferent() function)
- * @return The number of decedents that had their mobility altered.
+ * @return The number of descendants that had their mobility altered.
  */
 static int32 SetDescendantMobility(USceneComponent const* SceneComponentObject, EComponentMobility::Type NewMobilityType, FMobilityQueryDelegate ShouldOverrideMobility = FMobilityQueryDelegate())
 {
@@ -125,13 +137,15 @@ static int32 SetDescendantMobility(USceneComponent const* SceneComponentObject, 
 	}
 
 	int32 NumDescendantsChanged = 0;
-	// recursively alter the mobility for children and deeper decedents 
+	// recursively alter the mobility for children and deeper descendants 
 	for (USceneComponent* ChildSceneComponent : AttachedChildren)
 	{
 		if (ChildSceneComponent)
 		{
 			if (ShouldOverrideMobility.Execute(ChildSceneComponent->Mobility))
 			{
+				ChildSceneComponent->Modify();
+
 				// USceneComponents shouldn't be set Stationary 
 				if ((NewMobilityType == EComponentMobility::Stationary) && ChildSceneComponent->IsA(UStaticMeshComponent::StaticClass()))
 				{
@@ -182,20 +196,29 @@ static int32 SetAncestorMobility(USceneComponent const* SceneComponentObject, EC
 			switch(NewMobilityType)
 			{
 			case EComponentMobility::Stationary:
+
 				if (UStaticMeshComponent* StaticMeshParent = Cast<UStaticMeshComponent>(AttachedParent))
 				{
+					StaticMeshParent->Modify();
+
 					// make it Static (because it is acceptable for Stationary children to have Static parents)
 					StaticMeshParent->Mobility = EComponentMobility::Static;
 					StaticMeshParent->SetSimulatePhysics(false);
 				}
 				break;
+
 			case EComponentMobility::Static:
+
+				AttachedParent->Modify();
 				if (UPrimitiveComponent* PrimitiveComponentParent = Cast<UPrimitiveComponent>(AttachedParent))
 				{
 					PrimitiveComponentParent->SetSimulatePhysics(false);
 				}
-				//FALLTHROUGH: we still want to set mobility
+				AttachedParent->Mobility = NewMobilityType;
+				break;
+
 			default:
+				AttachedParent->Modify();
 				AttachedParent->Mobility = NewMobilityType;
 			}
 
@@ -208,20 +231,20 @@ static int32 SetAncestorMobility(USceneComponent const* SceneComponentObject, EC
 }
 
 /**
-* When a scene component's Mobility is altered, we need to make sure the scene hierarchy is
-* updated. Parents can't be more mobile than their children. This means that certain
-* mobility hierarchy structures are disallowed, like:
-*
-*   Movable
-*   |-Stationary   <-- NOT allowed
-*   Movable
-*   |-Static       <-- NOT allowed
-*   Stationary
-*   |-Static       <-- NOT allowed
-*
-* This method walks the hierarchy and alters parent/child component's Mobility as a result of
-* this property change.
-*/
+ * When a scene component's Mobility is altered, we need to make sure the scene hierarchy is
+ * updated. Parents can't be more mobile than their children. This means that certain
+ * mobility hierarchy structures are disallowed, like:
+ *
+ *    Movable
+ *   |-Stationary   <-- NOT allowed
+ *   Movable
+ *   |-Static       <-- NOT allowed
+ *   Stationary
+ *   |-Static       <-- NOT allowed
+ *
+ * This method walks the hierarchy and alters parent/child component's Mobility as a result of
+ * this property change.
+ */
 static void UpdateAttachedMobility(USceneComponent* ComponentThatChanged)
 {
 	// Attached parent components can't be more mobile than their children. This means that 
@@ -253,7 +276,7 @@ static void UpdateAttachedMobility(USceneComponent* ComponentThatChanged)
 		// a delegate for checking if components are Movable
 		FMobilityQueryDelegate IsMovableDelegate = FMobilityQueryDelegate::CreateRaw(&EquivalenceFunctor, &FMobilityEqualityFunctor::operator(), EComponentMobility::Movable);
 
-		// if any decedents are static, change them to stationary (or movable for static meshes)
+		// if any descendants are static, change them to stationary (or movable for static meshes)
 		NumMobilityChanges += SetDescendantMobility(ComponentThatChanged, EComponentMobility::Stationary, IsStaticDelegate);
 
 		// if any ancestors are movable, change them to stationary (or static for static meshes)
@@ -301,6 +324,81 @@ static void UpdateAttachedMobility(USceneComponent* ComponentThatChanged)
 	}
 }
 
+/**
+ * A static helper function that recursively alters the bIsEditorOnly property for all
+ * sub-components (descending from the specified USceneComponent)
+ *
+ * @param  SceneComponentObject		The component whose sub-components you want to alter
+ *
+ * @return The number of descendants that had their bIsEditorOnly flag altered.
+ */
+static int32 SetDescendantIsEditorOnly(USceneComponent const* SceneComponentObject)
+{
+	if (!ensure(SceneComponentObject != nullptr))
+	{
+		return 0;
+	}
+
+	TArray<USceneComponent*> AttachedChildren = SceneComponentObject->GetAttachChildren();
+
+	// Do we need the templates too?
+	// gather children for component templates
+	USCS_Node* SCSNode = ComponentUtils::FindCorrespondingSCSNode(SceneComponentObject);
+	if (SCSNode != nullptr)
+	{
+		// gather children from the SCSNode
+		for (USCS_Node* SCSChild : SCSNode->GetChildNodes())
+		{
+			USceneComponent* ChildSceneComponent = Cast<USceneComponent>(SCSChild->ComponentTemplate);
+			if (ChildSceneComponent != nullptr)
+			{
+				AttachedChildren.Add(ChildSceneComponent);
+			}
+		}
+	}
+
+	int32 NumDescendantsChanged = 0;
+	// recursively alter the bIsEditorOnly flag for children and deeper descendants 
+	for (USceneComponent* ChildSceneComponent : AttachedChildren)
+	{
+		if (!ChildSceneComponent->bIsEditorOnly)
+		{
+			ChildSceneComponent->Modify();
+			ChildSceneComponent->bIsEditorOnly = true;
+			++NumDescendantsChanged;
+		}
+		NumDescendantsChanged += SetDescendantIsEditorOnly(ChildSceneComponent);
+	}
+
+	return NumDescendantsChanged;
+}
+
+/**
+ * When a scene component's bIsEditorOnly behavior is altered, we need to make sure the scene hierarchy is
+ * updated. All children of an editor only component must be editor only too.
+ *
+ * This method walks the hierarchy and alters parent/child component's bIsEditorOnly flag as a result of
+ * this property change.
+ */
+static void UpdateAttachedIsEditorOnly(USceneComponent* ComponentThatChanged)
+{
+	const int32 NumComponentsChanged = SetDescendantIsEditorOnly(ComponentThatChanged);
+
+	// if we altered any components (other than the ones selected), then notify the user
+	if (NumComponentsChanged > 0 && !ComponentThatChanged->HasAllFlags(RF_ArchetypeObject))
+	{
+		FText NotificationText = LOCTEXT("IsEditorOnlyAlteredSingularNotification", "Caused 1 component to also change its IsEditorOnly behaviour");
+		if (NumComponentsChanged > 1)
+		{
+			NotificationText = FText::Format(LOCTEXT("IsEditorOnlyAlteredPluralNotification", "Caused {0} other components to also change their IsEditorOnly behaviour"), FText::AsNumber(NumComponentsChanged));
+		}
+		FNotificationInfo Info(NotificationText);
+		Info.bFireAndForget = true;
+		Info.bUseThrobber = true;
+		FSlateNotificationManager::Get().AddNotification(Info);
+	}
+}
+
 void USceneComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	const static FName LocationName("RelativeLocation");
@@ -313,6 +411,10 @@ void USceneComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 	if (PropertyName == SceneComponentStatics::MobilityName)
 	{
 		UpdateAttachedMobility(this);
+	}
+	if (bIsEditorOnly && PropertyName == GET_MEMBER_NAME_CHECKED(UActorComponent, bIsEditorOnly))
+	{
+		UpdateAttachedIsEditorOnly(this);
 	}
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
@@ -329,6 +431,10 @@ void USceneComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& Pr
 	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == SceneComponentStatics::MobilityName)
 	{
 		UpdateAttachedMobility(this);
+	}
+	if (bIsEditorOnly && PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UActorComponent, bIsEditorOnly))
+	{
+		UpdateAttachedIsEditorOnly(this);
 	}
 
 	Super::PostEditChangeChainProperty(PropertyChangedEvent);
@@ -450,19 +556,27 @@ void USceneComponent::OnRegister()
 		}
 	}
 	
+	// Cache the level collection that contains the level in which this component is registered for fast access in IsVisible().
+	const UWorld* const World = GetWorld();
+	if (World)
+	{
+		const ULevel* const CachedLevel = GetComponentLevel();
+		CachedLevelCollection = CachedLevel ? CachedLevel->GetCachedLevelCollection() : nullptr;
+	}
+
 	Super::OnRegister();
 
 #if WITH_EDITORONLY_DATA
 	if (bVisualizeComponent && SpriteComponent == nullptr && GetOwner() && !GetWorld()->IsGameWorld() )
 	{
 		// Create a new billboard component to serve as a visualization of the actor until there is another primitive component
-		SpriteComponent = NewObject<UBillboardComponent>(GetOwner(), NAME_None, RF_Transactional | RF_Transient);
+		SpriteComponent = NewObject<UBillboardComponent>(GetOwner(), NAME_None, RF_Transactional | RF_Transient | RF_TextExportTransient);
 
 		SpriteComponent->Sprite = LoadObject<UTexture2D>(nullptr, TEXT("/Engine/EditorResources/EmptyActor.EmptyActor"));
 		SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
 		SpriteComponent->Mobility = EComponentMobility::Movable;
 		SpriteComponent->AlwaysLoadOnClient = false;
-		SpriteComponent->AlwaysLoadOnServer = false;
+		SpriteComponent->bIsEditorOnly = true;
 		SpriteComponent->SpriteInfo.Category = TEXT("Misc");
 		SpriteComponent->SpriteInfo.DisplayName = NSLOCTEXT( "SpriteCategory", "Misc", "Misc" );
 		SpriteComponent->CreationMethod = CreationMethod;
@@ -473,6 +587,13 @@ void USceneComponent::OnRegister()
 		SpriteComponent->RegisterComponent();
 	}
 #endif
+}
+
+void USceneComponent::OnUnregister()
+{
+	CachedLevelCollection = nullptr;
+
+	Super::OnUnregister();
 }
 
 void USceneComponent::PropagateTransformUpdate(bool bTransformChanged, EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport)
@@ -982,8 +1103,8 @@ void USceneComponent::SetRelativeLocationAndRotation(FVector NewLocation, const 
 	ConditionalUpdateComponentToWorld();
 	
 #if ENABLE_NAN_DIAGNOSTIC
-	bool NaN = NewRotation.ContainsNaN();
-	if (NaN)
+	const bool bNaN = NewRotation.ContainsNaN();
+	if (bNaN)
 	{
 		logOrEnsureNanError(TEXT("USceneComponent::SetRelativeLocationAndRotation contains NaN is NewRotation. %s "), *GetNameSafe(GetOwner()));
 	}
@@ -996,10 +1117,10 @@ void USceneComponent::SetRelativeLocationAndRotation(FVector NewLocation, const 
 		}
 	}
 #else
-	bool NaN = false;
+	const bool bNaN = false;
 #endif
 
-	const FTransform DesiredRelTransform(NaN ? FQuat::Identity :NewRotation, NewLocation);
+	const FTransform DesiredRelTransform((bNaN ? FQuat::Identity : NewRotation), NewLocation);
 	const FTransform DesiredWorldTransform = CalcNewComponentToWorld(DesiredRelTransform);
 	const FVector DesiredDelta = FTransform::SubtractTranslations(DesiredWorldTransform, ComponentToWorld);
 
@@ -1629,11 +1750,6 @@ bool USceneComponent::AttachToComponent(USceneComponent* Parent, const FAttachme
 
 						return false;
 					}
-					else
-					{
-						//A simulated object needs to be detached at runtime. We are in the construction script so we can't do it here. However, we want to make sure it is done in BeginPlay.
-						bWantsBeginPlay = true;
-					}
 				}
 			}
 		}
@@ -1655,6 +1771,11 @@ bool USceneComponent::AttachToComponent(USceneComponent* Parent, const FAttachme
 		else
 		{
 			Parent->AttachChildren.Add(this);
+		}
+
+		if (Parent->IsNetSimulating() && !IsNetSimulating())
+		{
+			Parent->ClientAttachedChildren.Add(this);
 		}
 
 		// Now apply attachment rules
@@ -1820,6 +1941,7 @@ void USceneComponent::DetachFromComponent(const FDetachmentTransformRules& Detac
 		PrimaryComponentTick.RemovePrerequisite(GetAttachParent(), GetAttachParent()->PrimaryComponentTick); // no longer required to tick after the attachment
 
 		GetAttachParent()->AttachChildren.Remove(this);
+		GetAttachParent()->ClientAttachedChildren.Remove(this);
 		GetAttachParent()->OnChildDetached(this);
 
 #if WITH_EDITOR
@@ -2370,11 +2492,21 @@ bool USceneComponent::InternalSetWorldLocationAndRotation(FVector NewLocation, c
 		}
 	}
 
-	if (!NewLocation.Equals(RelativeLocation) || !NewRotationQuat.Equals(RelativeRotationCache.RotatorToQuat_ReadOnly(RelativeRotation), SCENECOMPONENT_QUAT_TOLERANCE))
+	const FRotator NewRelativeRotation = RelativeRotationCache.QuatToRotator_ReadOnly(NewRotationQuat);
+	if (!NewLocation.Equals(RelativeLocation) || !NewRelativeRotation.Equals(RelativeRotation))
 	{
 		RelativeLocation = NewLocation;
-		RelativeRotation = RelativeRotationCache.QuatToRotator(NewRotationQuat); // Normalizes quat, if this is a new rotation. Then we'll use it below.
-		
+
+		// Here it is important to compute the quaternion from the rotator and not the opposite.
+		// In some cases, similar quaternions generate the same rotator, which create issues.
+		// When the component is loaded, the rotator is used to generate the quaternion, which
+		// is then used to compute the ComponentToWorld matrix. When running a blueprint script,  
+		// it is required to generate that same ComponentToWorld otherwise the FComponentInstanceDataCache
+		// might fail to apply to the relevant component. In order to have the exact same transform
+		// we must enforce the quaternion to come from the rotator (as in load)
+		RelativeRotation = NewRelativeRotation;
+		RelativeRotationCache.RotatorToQuat(NewRelativeRotation);
+
 #if ENABLE_NAN_DIAGNOSTIC
 		if (RelativeRotation.ContainsNaN())
 		{
@@ -2433,16 +2565,17 @@ bool USceneComponent::CheckStaticMobilityAndWarn(const FText& ActionText) const
 	{
 		if (UWorld * World = GetWorld())
 		{
-			ULevel* Level = GetComponentLevel();
-
-			// It's only a problem if we're in gameplay, and the owning level is visible
-			if (World->HasBegunPlay() && IsRegistered() && Level && Level->bIsVisible)
+			if (World->IsGameWorld() && World->bIsWorldInitialized && !IsOwnerRunningUserConstructionScript())
 			{
+				AActor* MyOwner = GetOwner();
+				if (MyOwner && MyOwner->IsActorInitialized())
+				{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("InvalidMustBeMovable", "Mobility of {0} : {1} has to be 'Movable' if you'd like to {2}. "),
-					FText::FromString(GetNameSafe(GetOwner())), FText::FromString(GetName()), ActionText));
+					FMessageLog("PIE").Warning(FText::Format(LOCTEXT("InvalidMustBeMovable", "Mobility of {0} : {1} has to be 'Movable' if you'd like to {2}. "),
+						FText::FromString(GetNameSafe(GetOwner())), FText::FromString(GetName()), ActionText));
 #endif
-				return true;
+					return true;
+				}
 			}
 		}
 	}
@@ -2601,8 +2734,8 @@ bool USceneComponent::IsVisible() const
 	{
 		return false;
 	}
-
-	return ( bVisible ); 
+	
+	return ( bVisible && (!CachedLevelCollection || CachedLevelCollection->IsVisible()) ); 
 }
 
 void USceneComponent::ToggleVisibility(bool bPropagateToChildren)
@@ -2750,6 +2883,49 @@ void USceneComponent::OnRep_AttachSocketName()
 	bNetUpdateAttachment = true;
 }
 
+void USceneComponent::OnRep_AttachChildren()
+{
+	// Because replication of AttachChildren is not atomic with AttachParent of the corresponding component it is
+	// entirely possible to get duplicates in the AttachChildren array.  So we have to extract them and the later entry
+	// is always the duplicate
+	for (int32 SearchIndex = AttachChildren.Num()-1; SearchIndex >= 1; --SearchIndex)
+	{
+		if (USceneComponent* PossibleDuplicate = AttachChildren[SearchIndex])
+		{
+			for (int32 DuplicateCheckIndex = SearchIndex - 1; DuplicateCheckIndex >= 0; --DuplicateCheckIndex)
+			{
+				if (PossibleDuplicate == AttachChildren[DuplicateCheckIndex])
+				{
+					AttachChildren.RemoveAt(SearchIndex, 1, false);
+					break;
+				}
+			}
+		}
+	}
+
+	if (ClientAttachedChildren.Num())
+	{
+		for (USceneComponent* AttachChild : AttachChildren)
+		{
+			if (AttachChild)
+			{
+				// Clear out any initially attached components from the client attached list that end up becoming replicated
+				ClientAttachedChildren.Remove(AttachChild);
+			}
+		}
+
+		// When the server replicates the attach children array to the client it will wipe out any client only attachments
+		// so we need to fill back in the client attached children
+		for (USceneComponent* ClientAttachChild : ClientAttachedChildren)
+		{
+			if (ClientAttachChild)
+			{
+				AttachChildren.AddUnique(ClientAttachChild);
+			}
+		}
+	}
+}
+
 void USceneComponent::OnRep_Visibility(bool OldValue)
 {
 	bool ReppedValue = bVisible;
@@ -2830,6 +3006,20 @@ bool USceneComponent::CanEditChange( const UProperty* Property ) const
 			   Property->GetFName() == TEXT( "RelativeScale3D" ))
 			{
 				bIsEditable = !Owner->bLockLocation;
+			}
+		}
+
+		if (Property->GetFName() == GET_MEMBER_NAME_CHECKED(UActorComponent, bIsEditorOnly))
+		{
+			const USceneComponent* SceneComponentObject = this;
+			while (USceneComponent* AttachedParent = ComponentUtils::GetAttachedParent(SceneComponentObject))
+			{
+				if (AttachedParent->IsEditorOnly())
+				{
+					bIsEditable = false;
+					break;
+				}
+				SceneComponentObject = AttachedParent;
 			}
 		}
 	}

@@ -53,6 +53,7 @@ public:
 
 	/** ILevelEditor interface */
 	virtual void SummonLevelViewportContextMenu() override;
+	virtual void SummonLevelViewportViewOptionMenu(const ELevelViewportType ViewOption) override;
 	virtual const TArray< TSharedPtr< class IToolkit > >& GetHostedToolkits() const override;
 	virtual TArray< TSharedPtr< ILevelViewport > > GetViewports() const override;
 	virtual TSharedPtr<ILevelViewport> GetActiveViewportInterface() override;

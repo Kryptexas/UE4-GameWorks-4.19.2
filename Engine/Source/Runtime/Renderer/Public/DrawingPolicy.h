@@ -4,8 +4,7 @@
 	DrawingPolicy.h: Drawing policy definitions.
 =============================================================================*/
 
-#ifndef __DRAWINGPOLICY_H__
-#define __DRAWINGPOLICY_H__
+#pragma once
 
 #include "RHICommandList.h"
 
@@ -276,4 +275,3 @@ protected:
 
 uint32 GetTypeHash(const FBoundShaderStateRHIRef &Key);
 
-#endif

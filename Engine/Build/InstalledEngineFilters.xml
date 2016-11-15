@@ -8,7 +8,7 @@
 
 	<!-- List of file types to be stripped and signed for different platforms -->
 	<Property Name="Win64StripFilter" Value="*.pdb"/>
-	<Property Name="Win64StripExceptions" Value="Engine\Binaries\Win64\UE4Editor*.pdb;Engine\Plugins\2D\Paper2D\Binaries\Win64\UE4Editor*.pdb"/>
+	<Property Name="Win64StripExceptions" Value="Engine\Binaries\Win64\UE4Editor*.pdb;Engine\Plugins\...\Binaries\Win64\UE4Editor*.pdb"/>
 	<Property Name="Win32StripFilter" Value="*.pdb"/>
 	<Property Name="MacStripFilter" Value="*.a;"/>
 	<Property Name="AndroidStripFilter" Value="*.a;*.so"/>
@@ -80,8 +80,15 @@
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Source/Editor/..."/>
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Source/ThirdParty/.../*.Build.cs"/>
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Source/ThirdParty/Licenses/..."/>
+	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Source/Programs/AutomationTool/..."/>
+	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Source/Programs/AutomationToolLauncher/..."/>
+	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Source/Programs/DotNETCommon/..."/>
+	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Source/Programs/UnrealBuildTool/..."/>
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Source/Programs/UnrealHeaderTool/..."/>
 	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Engine/Source/Runtime/SQLiteSupport/..."/>
+
+	<!-- Third Party Software description files -->
+	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/.../*.tps"/>
 
 	<!-- Shaders -->
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Shaders/..."/>
@@ -89,8 +96,11 @@
 	<!-- Exclude all the intermediate files in the Engine/Saved folder -->
 	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Engine/Saved/..."/>
 	
-	<!-- Exclude generated config files from Engine/Programs folder -->
+	<!-- Exclude generated config files/intermediates from Engine/Programs folder -->
+	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Engine/Programs/AutomationTool/..."/>
 	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Engine/Programs/UnrealBuildTool/..."/>
+	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Engine/Programs/UnrealHeaderTool/Intermediate/..."/>
+	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Engine/Programs/UnrealHeaderTool/Saved/..."/>
 
 	<!-- Starter content -->
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Samples/StarterContent/Content/..."/>
@@ -248,6 +258,11 @@
 		<Property Name="CopyAndroidFilter" Value="$(CopyAndroidFilter);Engine/Extras/AndroidWorks/Mac/*.dmg"/>
 	</Do>
 
+	<!-- Linux Specific -->
+	<Do If="'$(HostPlatform)' == 'Linux'">
+		<Property Name="CopyAndroidFilter" Value="$(CopyAndroidFilter);Engine/Extras/AndroidWorks/Linux/*.run"/>
+	</Do>
+
 	<!-- IOS -->
 	<Property Name="CopyIOSFilter" Value=""/>
 	<Property Name="CopyIOSExceptions" Value=""/>
@@ -323,7 +338,7 @@
 
 	<!-- Build Files -->
 	<Property Name="CopyXboxOneFilter" Value="$(CopyXboxOneFilter);Engine/Build/XboxOne/..."/>
-	
+
 	<!-- Additional Binaries -->
 	<Property Name="CopyXboxOneFilter" Value="$(CopyXboxOneFilter);Engine/Binaries/Win64/XboxOne/XboxOnePackageNameUtil.exe"/>
 

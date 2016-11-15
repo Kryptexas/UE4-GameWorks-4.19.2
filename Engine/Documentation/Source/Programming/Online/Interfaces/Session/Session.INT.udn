@@ -44,7 +44,7 @@ interface will ever exist at a time - the session interface for the platform the
 While the session interface performs all of the session handling, the game doesn't generally interact directly with 
 it. Instead, the **Game Session**, `AGameSession`, acts as a game-specific wrapper around the session interface 
 and the game code makes calls to it when it needs to interact with the session. The game session is created and 
-owned by the game mode, `AGameMode`, and also only exists on the server when running an online game.
+owned by the game mode, `AGameModeBase`, and also only exists on the server when running an online game.
 
 Each game can potentially have multiple game session types, but only one will ever be used at a time. The most common 
 case for a game having more than one type of game session is to add a type of game session for when the game is 

@@ -19,7 +19,7 @@ UBoolProperty::UBoolProperty( const FObjectInitializer& ObjectInitializer )
 }
 
 UBoolProperty::UBoolProperty(ECppProperty, int32 InOffset, uint64 InFlags, uint32 InBitMask, uint32 InElementSize, bool bIsNativeBool)
-	: UProperty(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags)
+	: UProperty(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags | CPF_HasGetValueTypeHash)
 	, FieldSize(0)
 	, ByteOffset(0)
 	, ByteMask(1)
@@ -29,7 +29,7 @@ UBoolProperty::UBoolProperty(ECppProperty, int32 InOffset, uint64 InFlags, uint3
 }
 
 UBoolProperty::UBoolProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, uint32 InBitMask, uint32 InElementSize, bool bIsNativeBool )
-: UProperty( ObjectInitializer, EC_CppProperty, InOffset, InFlags )
+: UProperty( ObjectInitializer, EC_CppProperty, InOffset, InFlags | CPF_HasGetValueTypeHash)
 , FieldSize(0)
 , ByteOffset(0)
 , ByteMask(1)
@@ -128,7 +128,9 @@ FString UBoolProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uint32 CP
 {
 	check(FieldSize != 0);
 
-	if (IsNativeBool() || (CPPExportFlags & (CPPF_Implementation|CPPF_ArgumentOrReturnValue)) == (CPPF_Implementation|CPPF_ArgumentOrReturnValue))
+	if (IsNativeBool() 
+		|| ((CPPExportFlags & (CPPF_Implementation|CPPF_ArgumentOrReturnValue)) == (CPPF_Implementation|CPPF_ArgumentOrReturnValue))
+		|| ((CPPExportFlags & CPPF_BlueprintCppBackend) != 0))
 	{
 		// Export as bool if this is actually a bool or it's being exported as a return value of C++ function definition.
 		return TEXT("bool");
@@ -351,6 +353,11 @@ void UBoolProperty::InitializeValueInternal( void* Data ) const
 	check(FieldSize != 0);
 	uint8* ByteValue = (uint8*)Data + ByteOffset;
 	*ByteValue &= ~FieldMask;
+}
+
+uint32 UBoolProperty::GetValueTypeHashInternal(const void* Src) const
+{
+	return GetTypeHash(*(const bool*)Src);
 }
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UBoolProperty, UProperty,

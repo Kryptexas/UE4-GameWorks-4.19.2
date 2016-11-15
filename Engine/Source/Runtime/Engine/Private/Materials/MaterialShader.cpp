@@ -40,7 +40,7 @@ namespace MaterialShaderCookStats
 TMap<FMaterialShaderMapId,FMaterialShaderMap*> FMaterialShaderMap::GIdToMaterialShaderMap[SP_NumPlatforms];
 TArray<FMaterialShaderMap*> FMaterialShaderMap::AllMaterialShaderMaps;
 // The Id of 0 is reserved for global shaders
-uint32 FMaterialShaderMap::NextCompilingId = 1;
+uint32 FMaterialShaderMap::NextCompilingId = 2;
 /** 
  * Tracks material resources and their shader maps that are being compiled.
  * Uses a TRefCountPtr as this will be the only reference to a shader map while it is being compiled.
@@ -100,6 +100,7 @@ static FString GetMaterialShaderMapKeyString(const FMaterialShaderMapId& ShaderM
 	FString ShaderMapKeyString = Format.ToString() + TEXT("_") + FString(FString::FromInt(GetTargetPlatformManagerRef().ShaderFormatVersion(Format))) + TEXT("_");
 	ShaderMapAppendKeyString(Platform, ShaderMapKeyString);
 	ShaderMapId.AppendKeyString(ShaderMapKeyString);
+	FMaterialAttributeDefinitionMap::AppendDDCKeyString(ShaderMapKeyString);
 	return FDerivedDataCacheInterface::BuildCacheKey(TEXT("MATSM"), MATERIALSHADERMAP_DERIVEDDATA_VER, *ShaderMapKeyString);
 }
 
@@ -971,6 +972,19 @@ void FMaterialShaderMap::SaveForRemoteRecompile(FArchive& Ar, const TMap<FString
 				TMap<FShaderId, FShader*> ShaderList;
 				ShaderMap->GetShaderList(ShaderList);
 
+				// get shaders from shader pipelines
+				TArray<FShaderPipeline*> ShaderPipelineList;
+				ShaderMap->GetShaderPipelineList(ShaderPipelineList);
+
+				for (FShaderPipeline* ShaderPipeline : ShaderPipelineList)
+				{
+					for (FShader* Shader : ShaderPipeline->GetShaders())
+					{
+						FShaderId ShaderId = Shader->GetId();
+						ShaderList.Add(ShaderId, Shader);
+					}
+				}
+
 				// get the resources from the shaders
 				for (auto& KeyValue : ShaderList)
 				{
@@ -1126,6 +1140,7 @@ void FMaterialShaderMap::LoadForRemoteRecompile(FArchive& Ar, EShaderPlatform Sh
 							FMaterialResource* MaterialResource = MatchingMaterial->GetMaterialResource(GetMaxSupportedFeatureLevel(ShaderPlatform), (EMaterialQualityLevel::Type)QualityLevelIndex);
 
 							MaterialResource->SetGameThreadShaderMap(LoadedShaderMap);
+							MaterialResource->RegisterInlineShaderMap();
 
 							ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 								FSetShaderMapOnMaterialResources,
@@ -1190,7 +1205,9 @@ void FMaterialShaderMap::Compile(
 			TArray<FMaterial*> NewCorrespondingMaterials;
 			NewCorrespondingMaterials.Add(Material);
 			ShaderMapsBeingCompiled.Add(this, NewCorrespondingMaterials);
-  
+#if DEBUG_INFINITESHADERCOMPILE
+			UE_LOG(LogTemp, Warning, TEXT("Added material ShaderMap 0x%08X%08X with Material 0x%08X%08X to ShaderMapsBeingCompiled"), (int)((int64)(this) >> 32), (int)((int64)(this)), (int)((int64)(Material) >> 32), (int)((int64)(Material)));
+#endif  
 			// Setup the material compilation environment.
 			Material->SetupMaterialEnvironment(InPlatform, InMaterialCompilationOutput.UniformExpressionSet, *MaterialEnvironment);
   
@@ -1324,10 +1341,11 @@ void FMaterialShaderMap::Compile(
 				}
 			}
   
+			const bool bHasTessellation = Material->GetTessellationMode() != MTM_NoTessellation;
 			for (TLinkedList<FShaderPipelineType*>::TIterator ShaderPipelineIt(FShaderPipelineType::GetTypeList());ShaderPipelineIt;ShaderPipelineIt.Next())
 			{
 				const FShaderPipelineType* Pipeline = *ShaderPipelineIt;
-				if (Pipeline->IsMaterialTypePipeline())
+				if (Pipeline->IsMaterialTypePipeline() && Pipeline->HasTessellation() == bHasTessellation)
 				{
 					auto& StageTypes = Pipeline->GetStages();
 					TArray<FMaterialShaderType*> ShaderStagesToCompile;
@@ -1631,6 +1649,9 @@ bool FMaterialShaderMap::TryToAddToExistingCompilationTask(FMaterial* Material)
 	if (CorrespondingMaterials)
 	{
 		CorrespondingMaterials->AddUnique(Material);
+#if DEBUG_INFINITESHADERCOMPILE
+		UE_LOG(LogTemp, Warning, TEXT("Added shader map 0x%08X%08X from material 0x%08X%08X"), (int)((int64)(this) >> 32), (int)((int64)(this)), (int)((int64)(Material) >> 32), (int)((int64)(Material)));
+#endif
 		return true;
 	}
 
@@ -1705,10 +1726,11 @@ bool FMaterialShaderMap::IsComplete(const FMaterial* Material, bool bSilent)
 	}
 
 	// Iterate over all pipeline types
+	const bool bHasTessellation = Material->GetTessellationMode() != MTM_NoTessellation;
 	for (TLinkedList<FShaderPipelineType*>::TIterator ShaderPipelineIt(FShaderPipelineType::GetTypeList());ShaderPipelineIt;ShaderPipelineIt.Next())
 	{
 		const FShaderPipelineType* Pipeline = *ShaderPipelineIt;
-		if (Pipeline->IsMaterialTypePipeline())
+		if (Pipeline->IsMaterialTypePipeline() && Pipeline->HasTessellation() == bHasTessellation)
 		{
 			auto& StageTypes = Pipeline->GetStages();
 
@@ -1776,10 +1798,11 @@ void FMaterialShaderMap::LoadMissingShadersFromMemory(const FMaterial* Material)
 	}
 
 	// Try to find necessary FShaderPipelineTypes in memory
+	const bool bHasTessellation = Material->GetTessellationMode() != MTM_NoTessellation;
 	for (TLinkedList<FShaderPipelineType*>::TIterator ShaderPipelineIt(FShaderPipelineType::GetTypeList());ShaderPipelineIt;ShaderPipelineIt.Next())
 	{
 		const FShaderPipelineType* PipelineType = *ShaderPipelineIt;
-		if (PipelineType && PipelineType->IsMaterialTypePipeline() && !HasShaderPipeline(PipelineType))
+		if (PipelineType && PipelineType->IsMaterialTypePipeline() && !HasShaderPipeline(PipelineType) && PipelineType->HasTessellation() == bHasTessellation)
 		{
 			auto& Stages = PipelineType->GetStages();
 			int32 NumShaders = 0;
@@ -2154,7 +2177,13 @@ void FMaterialShaderMap::RemovePendingMaterial(FMaterial* Material)
 	for (TMap<TRefCountPtr<FMaterialShaderMap>, TArray<FMaterial*> >::TIterator It(ShaderMapsBeingCompiled); It; ++It)
 	{
 		TArray<FMaterial*>& Materials = It.Value();
-		Materials.Remove(Material);
+		int32 Result = Materials.Remove(Material);
+#if DEBUG_INFINITESHADERCOMPILE
+		if ( Result )
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Removed shader map 0x%08X%08X from material 0x%08X%08X"), (int)((int64)(It.Key().GetReference()) >> 32), (int)((int64)(It.Key().GetReference())), (int)((int64)(Material) >> 32), (int)((int64)(Material)));
+		}
+#endif
 	}
 }
 
@@ -2192,6 +2221,10 @@ uint32 FMaterialShaderMap::GetMaxTextureSamplers() const
 const FMeshMaterialShaderMap* FMaterialShaderMap::GetMeshShaderMap(FVertexFactoryType* VertexFactoryType) const
 {
 	checkSlow(bCompilationFinalized);
+#if WITH_EDITOR 
+	// Attempt to get some more info for a rare crash (UE-35937)
+	checkf(OrderedMeshShaderMaps.Num() > 0 && bCompilationFinalized, TEXT("OrderedMeshShaderMaps.Num() is %d. bCompilationFinalized is %d. This may relate to bug UE-35937"), OrderedMeshShaderMaps.Num(), (int)bCompilationFinalized);
+#endif
 	const FMeshMaterialShaderMap* MeshShaderMap = OrderedMeshShaderMaps[VertexFactoryType->GetId()];
 	checkSlow(!MeshShaderMap || MeshShaderMap->GetVertexFactoryType() == VertexFactoryType);
 	return MeshShaderMap;

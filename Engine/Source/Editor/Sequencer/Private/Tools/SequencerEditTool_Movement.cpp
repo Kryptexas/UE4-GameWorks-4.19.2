@@ -173,7 +173,7 @@ TSharedPtr<ISequencerEditToolDragOperation> FSequencerEditTool_Movement::CreateD
 			}
 
 			// @todo sequencer: Make this a customizable UI command modifier?
-			if (MouseEvent.IsAltDown())
+			if (MouseEvent.IsAltDown() || MouseEvent.GetEffectingButton() == EKeys::MiddleMouseButton)
 			{
 				return MakeShareable( new FDuplicateKeys( Sequencer, Selection.GetSelectedKeys() ) );
 			}
@@ -203,6 +203,11 @@ FReply FSequencerEditTool_Movement::OnMouseButtonUp(SWidget& OwnerWidget, const 
 	{
 		DragOperation->OnEndDrag(MouseEvent, MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition()), SequencerWidget.Pin()->GetVirtualTrackArea());
 		DragOperation = nullptr;
+
+		if (MouseEvent.GetEffectingButton() == EKeys::MiddleMouseButton)
+		{
+			GEditor->EndTransaction();
+		}
 
 		// Only return handled if we actually started a drag
 		return FReply::Handled().ReleaseMouseCapture();

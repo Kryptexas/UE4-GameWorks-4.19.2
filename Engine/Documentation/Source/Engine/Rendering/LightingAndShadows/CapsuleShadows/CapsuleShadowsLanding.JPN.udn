@@ -1,0 +1,28 @@
+﻿availability:docs
+title:カプセル シャドウ
+description:アンリアル エンジン 4 のカプセル シャドウのランディング ページです。
+crumbs:
+version:4.13
+
+**カプセル シャドウ** は、カスタム仕様の物理アセットを使ってキャラクターをカプセルで描写することで、スケルタル メッシュ用のソフトシャドウ キャスティングをサポートするために開発されました。 
+ソフトシャドウはキャラクターを間接ライトが当たるエリアに配置して、直接ライトが当たるエリアにソフト シャドウを作る役割をします。このシャドウイング機能は、4.11 以降のアンリアル エンジンで使用できます。 
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/tech_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		カプセル シャドウのトピックス
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine\Rendering\LightingAndShadows\CapsuleShadows\Overview "%Engine\Rendering\LightingAndShadows\CapsuleShadows\Overview:description%")
+	* [](Engine\Rendering\LightingAndShadows\CapsuleShadows\BestPractices "%Engine\Rendering\LightingAndShadows\CapsuleShadows\BestPractices:description%")
+	* [](Engine\Rendering\LightingAndShadows\CapsuleShadows\Reference "%Engine\Rendering\LightingAndShadows\CapsuleShadows\Reference:description%")
+	* [](Engine\Rendering\LightingAndShadows\CapsuleShadows\HowTo "%Engine\Rendering\LightingAndShadows\CapsuleShadows\HowTo:description%")
+	[/PARAM]
+[/OBJECT]
+
+

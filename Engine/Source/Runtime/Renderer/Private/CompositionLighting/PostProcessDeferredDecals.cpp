@@ -29,6 +29,10 @@ class FRTWriteMaskDecodeCS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FRTWriteMaskDecodeCS, Global);
 
+public:
+	static const uint32 ThreadGroupSizeX = 8;
+	static const uint32 ThreadGroupSizeY = 8;
+
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
@@ -36,6 +40,9 @@ class FRTWriteMaskDecodeCS : public FGlobalShader
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
+		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEX"), ThreadGroupSizeX);
+		OutEnvironment.SetDefine(TEXT("THREADGROUP_SIZEY"), ThreadGroupSizeY);
+
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
 	}
 
@@ -59,7 +66,7 @@ public:
 		UtilizeMask.Bind(Initializer.ParameterMap, TEXT("UtilizeMask"));
 	}
 
-	void SetCS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context, const FSceneView& View)
+	void SetCS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context, const FSceneView& View, FIntPoint WriteMaskDimensions)
 	{
 		const FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
 
@@ -67,10 +74,8 @@ public:
 		//PostprocessParameter.SetCS(ShaderRHI, Context, Context.RHICmdList, TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
 
 		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
-		FTextureRHIRef DBufferTex = SceneContext.DBufferA->GetRenderTargetItem().TargetableTexture;
-		FIntPoint Dims(FPlatformMath::CeilToInt(DBufferTex->GetTexture2D()->GetSizeX() / 8.0f), FPlatformMath::CeilToInt(DBufferTex->GetTexture2D()->GetSizeY() / 8.0f));
 
-		SetShaderValue(Context.RHICmdList, ShaderRHI, RTWriteMaskDimensions, Dims);
+		SetShaderValue(Context.RHICmdList, ShaderRHI, RTWriteMaskDimensions, WriteMaskDimensions);
 		SetSRVParameter(Context.RHICmdList, ShaderRHI, RTWriteMaskInput0, SceneContext.DBufferA->GetRenderTargetItem().RTWriteMaskBufferRHI_SRV);
 		SetSRVParameter(Context.RHICmdList, ShaderRHI, RTWriteMaskInput1, SceneContext.DBufferB->GetRenderTargetItem().RTWriteMaskBufferRHI_SRV);
 		SetSRVParameter(Context.RHICmdList, ShaderRHI, RTWriteMaskInput2, SceneContext.DBufferC->GetRenderTargetItem().RTWriteMaskBufferRHI_SRV);
@@ -332,7 +337,7 @@ bool RenderPreStencil(FRenderingCompositePassContext& Context, const FMatrix& Co
 {
 	const FViewInfo& View = Context.View;
 
-	float Distance = (View.ViewMatrices.ViewOrigin - ComponentToWorldMatrix.GetOrigin()).Size();
+	float Distance = (View.ViewMatrices.GetViewOrigin() - ComponentToWorldMatrix.GetOrigin()).Size();
 	float Radius = ComponentToWorldMatrix.GetMaximumAxisScale();
 
 	// if not inside
@@ -563,28 +568,29 @@ const TCHAR* GetStageName(EDecalRenderStage Stage)
 
 void FRCPassPostProcessDeferredDecals::DecodeRTWriteMask(FRenderingCompositePassContext& Context)
 {
-	
+	// @todo: get these values from the RHI?
+	const uint32 MaskTileSizeX = 8;
+	const uint32 MaskTileSizeY = 8;
+
+	check(GSupportsRenderTargetWriteMask);
+
 	FRHICommandListImmediate& RHICmdList = Context.RHICmdList;
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
-
-	{
-		int32 W = FPlatformMath::CeilToInt(SceneContext.GBufferA->GetDesc().Extent.X / 8.0f);
-		int32 H = FPlatformMath::CeilToInt(SceneContext.GBufferA->GetDesc().Extent.Y / 8.0f);
-		FIntPoint RTWriteMaskDims(W, H);
-		FPooledRenderTargetDesc MaskDesc(FPooledRenderTargetDesc::Create2DDesc(RTWriteMaskDims,
-			PF_R8_UINT,
-			FClearValueBinding::White,
-			TexCreate_None,
-			TexCreate_UAV | TexCreate_RenderTargetable,
-			false));
-
-		GRenderTargetPool.FindFreeElement(Context.RHICmdList, MaskDesc, SceneContext.DBufferMask, TEXT("DBufferMask"));
-	}
-
 	FTextureRHIRef DBufferTex = SceneContext.DBufferA->GetRenderTargetItem().TargetableTexture;
-		int32 W = FPlatformMath::CeilToInt(DBufferTex->GetTexture2D()->GetSizeX() / 16.0f);
-		int32 H = FPlatformMath::CeilToInt(DBufferTex->GetTexture2D()->GetSizeY() / 8.0f);
-		FIntPoint RTWriteMaskDims(W, H);
+
+	FIntPoint RTWriteMaskDims(
+		FMath::DivideAndRoundUp(DBufferTex->GetTexture2D()->GetSizeX(), MaskTileSizeX),
+		FMath::DivideAndRoundUp(DBufferTex->GetTexture2D()->GetSizeY(), MaskTileSizeY));
+
+	// allocate the DBufferMask from the render target pool.
+	FPooledRenderTargetDesc MaskDesc(FPooledRenderTargetDesc::Create2DDesc(RTWriteMaskDims,
+		PF_R8_UINT,
+		FClearValueBinding::White,
+		TexCreate_None,
+		TexCreate_UAV | TexCreate_RenderTargetable,
+		false));
+
+	GRenderTargetPool.FindFreeElement(Context.RHICmdList, MaskDesc, SceneContext.DBufferMask, TEXT("DBufferMask"));
 
 	FIntRect ViewRect(0, 0, DBufferTex->GetTexture2D()->GetSizeX(), DBufferTex->GetTexture2D()->GetSizeY());
 
@@ -596,12 +602,16 @@ void FRCPassPostProcessDeferredDecals::DecodeRTWriteMask(FRenderingCompositePass
 
 	// set destination
 	Context.RHICmdList.SetUAVParameter(ComputeShader->GetComputeShader(), ComputeShader->OutCombinedRTWriteMask.GetBaseIndex(), SceneContext.DBufferMask->GetRenderTargetItem().UAV);
-		ComputeShader->SetCS(Context.RHICmdList, Context, Context.View);
+	ComputeShader->SetCS(Context.RHICmdList, Context, Context.View, RTWriteMaskDims);
 
 	RHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, EResourceTransitionPipeline::EGfxToCompute, SceneContext.DBufferMask->GetRenderTargetItem().UAV);
 	{
 		SCOPED_DRAW_EVENTF(Context.RHICmdList, DeferredDecals, TEXT("Combine DBuffer RTWriteMasks"));
-			FIntPoint ThreadGroupCountValue(FPlatformMath::CeilToInt(RTWriteMaskDims.X / 8.0f), FPlatformMath::CeilToInt(RTWriteMaskDims.Y / 16.0f));
+
+		FIntPoint ThreadGroupCountValue(
+			FMath::DivideAndRoundUp((uint32)RTWriteMaskDims.X, FRTWriteMaskDecodeCS::ThreadGroupSizeX),
+			FMath::DivideAndRoundUp((uint32)RTWriteMaskDims.Y, FRTWriteMaskDecodeCS::ThreadGroupSizeY));
+
 		DispatchComputeShader(Context.RHICmdList, *ComputeShader, ThreadGroupCountValue.X, ThreadGroupCountValue.Y, 1);
 	}
 
@@ -615,7 +625,7 @@ void FRCPassPostProcessDeferredDecals::DecodeRTWriteMask(FRenderingCompositePass
 	RHICmdList.TransitionResource(EResourceTransitionAccess::EMetaData, SceneContext.DBufferC->GetRenderTargetItem().TargetableTexture);
 
 	// un-set destination
-	Context.RHICmdList.SetUAVParameter(ComputeShader->GetComputeShader(), ComputeShader->OutCombinedRTWriteMask.GetBaseIndex(), NULL);	
+	Context.RHICmdList.SetUAVParameter(ComputeShader->GetComputeShader(), ComputeShader->OutCombinedRTWriteMask.GetBaseIndex(), NULL);
 }
 
 
@@ -636,8 +646,11 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 
 		check(bDBuffer);
 
+		FPooledRenderTargetDesc GBufferADesc;
+		SceneContext.GetGBufferADesc(GBufferADesc);
+
 		// DBuffer: Decal buffer
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(SceneContext.GBufferA->GetDesc().Extent,
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(GBufferADesc.Extent,
 			PF_B8G8R8A8,
 			FClearValueBinding::None,
 			TexCreate_None,
@@ -680,7 +693,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 			RenderTargets[1] = FRHIRenderTargetView(SceneContext.DBufferB->GetRenderTargetItem().TargetableTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
 			RenderTargets[2] = FRHIRenderTargetView(SceneContext.DBufferC->GetRenderTargetItem().TargetableTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
 
-			FRHIDepthRenderTargetView DepthView(SceneContext.GetSceneDepthSurface(), ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::ENoAction, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::ENoAction, FExclusiveDepthStencil(FExclusiveDepthStencil::DepthRead_StencilWrite));
+			FRHIDepthRenderTargetView DepthView(SceneContext.GetSceneDepthTexture(), ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::ENoAction, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::ENoAction, FExclusiveDepthStencil(FExclusiveDepthStencil::DepthRead_StencilWrite));
 
 			FRHISetRenderTargetsInfo Info(3, RenderTargets, DepthView);
 			RHICmdList.SetRenderTargetsAndClear(Info);
@@ -705,7 +718,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		//don't early return.  Resolves must be run for fast clears to work.
 		if (Scene.Decals.Num())
 		{
-			FDecalRenderTargetManager RenderTargetManager(RHICmdList, CurrentStage);
+			FDecalRenderTargetManager RenderTargetManager(RHICmdList, Context.GetShaderPlatform(), CurrentStage);
 
 			// Build a list of decals that need to be rendered for this view
 			FTransientDecalRenderDataList SortedDecals;
@@ -793,7 +806,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 					// todo
 					const float ConservativeRadius = DecalData.ConservativeRadius;
 					//			const int32 IsInsideDecal = ((FVector)View.ViewMatrices.ViewOrigin - ComponentToWorldMatrix.GetOrigin()).SizeSquared() < FMath::Square(ConservativeRadius * 1.05f + View.NearClippingDistance * 2.0f) + ( bThisDecalUsesStencil ) ? 2 : 0;
-					const bool bInsideDecal = ((FVector)View.ViewMatrices.ViewOrigin - ComponentToWorldMatrix.GetOrigin()).SizeSquared() < FMath::Square(ConservativeRadius * 1.05f + View.NearClippingDistance * 2.0f);
+					const bool bInsideDecal = ((FVector)View.ViewMatrices.GetViewOrigin() - ComponentToWorldMatrix.GetOrigin()).SizeSquared() < FMath::Square(ConservativeRadius * 1.05f + View.NearClippingDistance * 2.0f);
 					//			const bool bInsideDecal =  !(IsInsideDecal & 1);
 
 					// update rasterizer state if needed
@@ -832,7 +845,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 
 				// we don't modify stencil but if out input was having stencil for us (after base pass - we need to clear)
 				// Clear stencil to 0, which is the assumed default by other passes
-				RHICmdList.Clear(false, FLinearColor::White, false, (float)ERHIZBuffer::FarPlane, true, 0, FIntRect());
+				RHICmdList.ClearDepthStencilTexture(SceneContext.GetSceneDepthSurface(), EClearDepthStencil::Stencil, 0, 0, FIntRect());
 			}
 
 			if (CurrentStage == DRS_BeforeBasePass)

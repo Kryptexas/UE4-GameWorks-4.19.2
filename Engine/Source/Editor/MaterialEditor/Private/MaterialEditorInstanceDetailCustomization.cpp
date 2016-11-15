@@ -113,6 +113,16 @@ void FMaterialInstanceParameterDetails::CustomizeDetails(IDetailLayoutBuilder& D
 
 	DetailLayout.HideProperty("BasePropertyOverrides");
 	CreateBasePropertyOverrideWidgets(DetailLayout);
+
+	// Add the preview mesh property directly from the material instance 
+	FName PreviewingCategoryName = TEXT("Previewing");
+	IDetailCategoryBuilder& PreviewingCategory = DetailLayout.EditCategory(PreviewingCategoryName, LOCTEXT("MICPreviewingCategoryTitle", "Previewing"));
+
+	TArray<UObject*> ExternalObjects;
+	ExternalObjects.Add(MaterialEditorInstance->SourceInstance);
+
+	PreviewingCategory.AddExternalProperty(ExternalObjects, TEXT("PreviewMesh"));
+
 }
 
 void FMaterialInstanceParameterDetails::CreateGroupsWidget(TSharedRef<IPropertyHandle> ParameterGroupsProperty, IDetailCategoryBuilder& GroupsCategory)

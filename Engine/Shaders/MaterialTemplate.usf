@@ -48,7 +48,7 @@
 #endif
 
 //Platforms that don't run the editor shouldn't need editor features in the shaders.
-#define PLATFORM_SUPPORTS_EDITOR_SHADERS (!PS4_PROFILE && !XBOXONE_PROFILE && !ESDEFERRED_PROFILE)
+#define PLATFORM_SUPPORTS_EDITOR_SHADERS (!PS4_PROFILE && !XBOXONE_PROFILE && !ESDEFERRED_PROFILE && !WOLF_PROFILE)
 
 //Tie Editor features to platform support and the COMPILE_SHADERS_FOR_DEVELOPMENT which is set via CVAR.
 #define USE_EDITOR_SHADERS (PLATFORM_SUPPORTS_EDITOR_SHADERS && USE_DEVELOPMENT_SHADERS)
@@ -141,6 +141,7 @@ struct FMaterialPixelParameters
 	/**
 	 * Like SV_Position (.xy is pixel position at pixel center, z:DeviceZ, .w:SceneDepth)
 	 * using shader generated value SV_POSITION
+	 * Warning: unlike SV_Position, this is not relative to the current viewport.  SV_Position = MaterialParameters.SvPosition.xy - View.ViewRectMin.xy;
 	 */
 	float4 SvPosition;
 		
@@ -215,55 +216,7 @@ struct FMaterialPixelParameters
 FMaterialPixelParameters MakeInitializedMaterialPixelParameters()
 {
 	FMaterialPixelParameters MPP;
-#if SM5_PROFILE || SM4_PROFILE || PS4_PROFILE || (ES2_PROFILE || ES3_1_PROFILE) || METAL_SM5_PROFILE || METAL_SM4_PROFILE || METAL_MRT_PROFILE
 	MPP = (FMaterialPixelParameters)0;
-#else
-	// @todo compat hack - put back to the 0 typecast (2 lines up)
-	#if NUM_MATERIAL_TEXCOORDS
-	for (int C = 0; C < NUM_MATERIAL_TEXCOORDS; C++)
-	{
-		MPP.TexCoords[C] = 0;
-	}
-	#endif
-	MPP.VertexColor = 0;
-	MPP.TangentNormal = 0;
-	MPP.WorldNormal = 0;
-	MPP.ReflectionVector = 0;
-	MPP.CameraVector = 0;
-	MPP.LightVector = 0;
-	MPP.ScreenPosition = 0;
-	MPP.UnMirrored = 0;
-	MPP.TwoSidedSign = 0;
-	MPP.AbsoluteWorldPosition = 0;
-	MPP.WorldPosition_NoOffsets = 0;
-	MPP.WorldPosition_CamRelative = 0;
-	MPP.WorldPosition_NoOffsets_CamRelative = 0;
-	MPP.Particle.RelativeTime = 0;
-	MPP.Particle.MotionBlurFade = 0;
-	MPP.Particle.Velocity = 0;
-	MPP.LightingPositionOffset = 0;
-	MPP.AOMaterialMask = 0;
-	MPP.Particle.Color = 0;
-	MPP.Particle.TranslatedWorldPositionAndSize = 0;
-	MPP.Particle.MacroUV = 0;
-	MPP.Particle.DynamicParameter = 0;
-	#if USE_PARTICLE_SUBUVS
-	MPP.Particle.SubUVCoords[0] = 0;
-	MPP.Particle.SubUVCoords[1] = 0;
-	MPP.Particle.SubUVLerp = 0;
-	#endif
-	MPP.Particle.Size = 0;
-	#if LIGHTMAP_UV_ACCESS
-	MPP.LightmapUVs = 0;
-	#endif
-	#if USE_INSTANCING
-	MPP.PerInstanceParams = 0;
-	#endif
-	MPP.SvPosition = 0;
-	#if POST_PROCESS_MATERIAL && (FEATURE_LEVEL <= FEATURE_LEVEL_ES3_1)
-	MPP.BackupSceneColorAlpha = 0;
-	#endif
-#endif
 	MPP.TangentToWorld = float3x3(1,0,0,0,1,0,0,0,1);
 	return MPP;
 }
@@ -309,6 +262,7 @@ struct FMaterialVertexParameters
 	/** Per-particle properties. */
 	float4x4 InstanceLocalToWorld;
 #endif
+	float3 PreSkinnedPosition;
 
 	half4 VertexColor;
 #if NUM_MATERIAL_TEXCOORDS_VERTEX
@@ -708,6 +662,24 @@ float4 MaterialExpressionAtmosphericFog(FMaterialPixelParameters Parameters, flo
 	return GetAtmosphericFog(ResolvedView.WorldCameraOrigin, ViewVector, SceneDepth, float3(0.f, 0.f, 0.f));
 #else
 	return float4(0.f, 0.f, 0.f, 0.f);
+#endif
+}
+
+float3 MaterialExpressionAtmosphericLightVector(FMaterialPixelParameters Parameters)
+{
+#if MATERIAL_ATMOSPHERIC_FOG
+	return View.AtmosphericFogSunDirection;
+#else
+	return float3(0.f, 0.f, 0.f);
+#endif
+}
+
+float3 MaterialExpressionAtmosphericLightColor(FMaterialPixelParameters Parameters)
+{
+#if MATERIAL_ATMOSPHERIC_FOG
+	return View.AtmosphericFogSunColor;
+#else
+	return float3(0.f, 0.f, 0.f);
 #endif
 }
 
@@ -1121,19 +1093,50 @@ float4 GetPostProcessInputMinMax(uint Index)
 	return 1.0f;
 }
 
-MaterialFloat4 MobileLookupPostProcessInput0(inout FMaterialPixelParameters Parameters, float2 UV)
+MaterialFloat4 MobileSceneTextureLookup(inout FMaterialPixelParameters Parameters, int SceneTextureId, float2 UV)
 {
-#if POST_PROCESS_MATERIAL && (FEATURE_LEVEL <= FEATURE_LEVEL_ES3_1)
-	MaterialFloat4 Input0 = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV);
-	#if POST_PROCESS_MATERIAL_BEFORE_TONEMAP
+#if (FEATURE_LEVEL <= FEATURE_LEVEL_ES3_1)
+	
+	// For fetching SceneDepth and CustomDepth after tonemapper we need to switch OpenGL coordinates
+	// SceneColor will be transformed to OpenGL coordinates during tonemapping
+	#define NEEDTOSWITCHVERTICLEAXIS (COMPILER_GLSL_ES2 || COMPILER_GLSL_ES3_1) && (POST_PROCESS_MATERIAL && !POST_PROCESS_MATERIAL_BEFORE_TONEMAP)
+	
+	//PPI_SceneDepth
+	if (SceneTextureId == 1)
+	{
+		#if NEEDTOSWITCHVERTICLEAXIS
+		UV.y = 1.0 - UV.y; 
+		#endif
+		
+		MaterialFloat Depth = ConvertFromDeviceZ(Texture2DSample(SceneDepthTexture, SceneDepthTextureSampler, UV).r);
+		return MaterialFloat4(Depth.rrr, 0.f);
+	}
+	//PPI_CustomDepth
+	else if (SceneTextureId == 13)
+	{
+		#if NEEDTOSWITCHVERTICLEAXIS
+		UV.y = 1.0 - UV.y; 
+		#endif
+
+		MaterialFloat Depth = ConvertFromDeviceZ(Texture2DSample(CustomDepthTexture, CustomDepthTextureSampler, UV).r);
+		return MaterialFloat4(Depth.rrr, 0.f);
+	}
+	// PPI_PostprocessInput
+	else if (SceneTextureId == 14)
+	{
+#if POST_PROCESS_MATERIAL	
+		MaterialFloat4 Input0 = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV);
+		#if POST_PROCESS_MATERIAL_BEFORE_TONEMAP
 		Input0 = Decode32BPPHDR(Input0);
-	#endif
-	// We need to preserve original SceneColor Alpha as it's used by tonemaper on mobile
-	Parameters.BackupSceneColorAlpha = Input0.a;
-	return Input0;
-#else
+		#endif
+		// We need to preserve original SceneColor Alpha as it's used by tonemaper on mobile
+		Parameters.BackupSceneColorAlpha = Input0.a;
+		return Input0;
+#endif// POST_PROCESS_MATERIAL	
+	}
+#endif// FEATURE_LEVEL
+
 	return MaterialFloat4(0.0f, 0.0f, 0.0f, 0.0f);
-#endif
 }
 
 /** Applies an offset to the scene texture lookup and decodes the HDR linear space color. */
@@ -1636,9 +1639,19 @@ void ClipLODTransition(float2 SvPosition)
 void GetMaterialClippingShadowDepth(FMaterialPixelParameters Parameters, FPixelMaterialInputs PixelMaterialInputs)
 {
 	ClipLODTransition(Parameters);
-	//#if MATERIALBLENDING_MASKED && MATERIAL_DITHER_OPACITY_MASK
-	//	clip(GetMaterialMaskInputRaw(PixelMaterialInputs) - 1.0f / 255.0f);
 	#if MATERIALBLENDING_MASKED
+		clip(GetMaterialMask(PixelMaterialInputs)); 
+	#elif MATERIALBLENDING_TRANSLUCENT
+		clip(GetMaterialOpacity(PixelMaterialInputs) - 1.0f / 255.0f);
+	#endif
+}
+
+void GetMaterialClippingVelocity(FMaterialPixelParameters Parameters, FPixelMaterialInputs PixelMaterialInputs)
+{
+	ClipLODTransition(Parameters);
+	#if MATERIALBLENDING_MASKED && MATERIAL_DITHER_OPACITY_MASK
+		clip(GetMaterialMaskInputRaw(PixelMaterialInputs) - 1.0f / 255.0f);
+	#elif MATERIALBLENDING_MASKED
 		clip(GetMaterialMask(PixelMaterialInputs)); 
 	#elif MATERIALBLENDING_TRANSLUCENT
 		clip(GetMaterialOpacity(PixelMaterialInputs) - 1.0f / 255.0f);
@@ -1772,7 +1785,7 @@ half3x3 AssembleTangentToWorld( half3 TangentToWorld0, half4 TangentToWorld2 )
 }
 
 // Whether the material shader should output pixel depth offset
-#define OUTPUT_PIXEL_DEPTH_OFFSET (WANT_PIXEL_DEPTH_OFFSET && (MATERIALBLENDING_SOLID || MATERIALBLENDING_MASKED))
+#define OUTPUT_PIXEL_DEPTH_OFFSET (WANT_PIXEL_DEPTH_OFFSET && (MATERIALBLENDING_SOLID || MATERIALBLENDING_MASKED) && !ES2_PROFILE)
 
 // Whether to use the hidden d3d11 feature that supports depth writes with ZCull by only pushing into the screen
 //@todo - use for other SM5 platforms

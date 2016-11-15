@@ -65,8 +65,12 @@ struct FPreviewSceneProfile
 	bool bShowFloor;
 
 	/** Sets environment cube map used for sky lighting and reflections */
-	UPROPERTY(EditAnywhere, Category = Environment)
-	UTextureCube* EnvironmentCubeMap;
+	UPROPERTY(EditAnywhere, transient, Category = Environment)
+	TAssetPtr<UTextureCube> EnvironmentCubeMap;
+
+	/** Storing path to environment cube to prevent it from getting cooked */
+	UPROPERTY(config)
+	FString EnvironmentCubeMapPath;
 
 	/** Manual set post processing settings */
 	UPROPERTY(EditAnywhere, config, Category = PostProcessing, AdvancedDisplay)
@@ -87,6 +91,23 @@ struct FPreviewSceneProfile
 	/** Rotation for directional light */
 	UPROPERTY(config)
 	FRotator DirectionalLightRotation;
+
+	/** Retrieve the environment map texture using the saved path */
+	void LoadEnvironmentMap()
+	{
+		if (EnvironmentCubeMap == nullptr)
+		{
+			// Load cube map from stored path
+			UObject* LoadedObject = nullptr;
+			LoadedObject = LoadObject<UObject>(nullptr, *EnvironmentCubeMapPath);
+			while (UObjectRedirector* Redirector = Cast<UObjectRedirector>(LoadedObject))
+			{
+				LoadedObject = Redirector->DestinationObject;
+			}
+
+			EnvironmentCubeMap = LoadedObject;
+		}		
+	}
 };
 
 /**

@@ -16,6 +16,8 @@ PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB = NULL;
 
 extern PFNWGLSWAPINTERVALEXTPROC wglSwapIntervalEXT_ProcAddress;	// set in OpenGLDevice.cpp
 
+bool GRunningUnderRenderDoc = false;
+
 /*------------------------------------------------------------------------------
 	OpenGL context management.
 ------------------------------------------------------------------------------*/
@@ -205,12 +207,26 @@ static bool PlatformOpenGL4()
 
 static void PlatformOpenGLVersionFromCommandLine(int& OutMajorVersion, int& OutMinorVersion)
 {
-	if(PlatformOpenGL3())
+	bool bGL3 = PlatformOpenGL3();
+	bool bGL4 = PlatformOpenGL4();
+	if (!bGL3 && !bGL4)
+	{
+		if (GRequestedFeatureLevel == ERHIFeatureLevel::SM5)
+		{
+			bGL4 = true;
+		}
+		else
+		{
+			bGL3 = true;
+		}
+	}
+
+	if (bGL3)
 	{
 		OutMajorVersion = 3;
 		OutMinorVersion = 2;
 	}
-	else if (PlatformOpenGL4())
+	else if (bGL4)
 	{
 		OutMajorVersion = 4;
 		OutMinorVersion = 3;
@@ -301,7 +317,8 @@ struct FPlatformOpenGLDevice
 		int MinorVersion = 0;
 		PlatformOpenGLVersionFromCommandLine(MajorVersion, MinorVersion);
 	
-
+		// Need to call this before we set the debug callback, otherwise if we're not running under RD, the debug extension will assert (invalid enum)
+		GRunningUnderRenderDoc = glIsEnabled(GL_DEBUG_TOOL_EXT) != GL_FALSE;
 
 		PlatformCreateDummyGLWindow(&SharedContext);
 		PlatformCreateOpenGLContextCore(&SharedContext, MajorVersion, MinorVersion, NULL);
@@ -347,6 +364,11 @@ struct FPlatformOpenGLDevice
 FPlatformOpenGLDevice* PlatformCreateOpenGLDevice()
 {
 	return new FPlatformOpenGLDevice;
+}
+
+bool PlatformCanEnableGPUCapture()
+{
+	return GRunningUnderRenderDoc;
 }
 
 void PlatformDestroyOpenGLDevice(FPlatformOpenGLDevice* Device)

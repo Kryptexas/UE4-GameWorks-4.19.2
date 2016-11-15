@@ -31,6 +31,9 @@ public:
 	/** Enables or disables snapping to a grid when rotating objects */
 	TSharedPtr< FUICommandInfo > RotationGridSnap;
 
+	/** Toggle Showing Outlines */
+	TSharedPtr< FUICommandInfo > ToggleOutlines;
+
 public:
 	/** Registers our commands with the binding system */
 	virtual void RegisterCommands() override;

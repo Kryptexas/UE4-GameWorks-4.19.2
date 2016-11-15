@@ -17,7 +17,7 @@ namespace BuildGraph.Tasks
 		/// <summary>
 		/// List of file specifications separated by semicolons (eg. *.cpp;Engine/.../*.bat), or the name of a tag set
 		/// </summary>
-		[TaskParameter]
+		[TaskParameter(ValidationType = TaskParameterValidationType.FileSpec)]
 		public string Files;
 
 		/// <summary>
@@ -28,7 +28,7 @@ namespace BuildGraph.Tasks
 	}
 
 	/// <summary>
-	/// Task which strips symbols from a set of files
+	/// Signs a set of executable files with an installed certificate.
 	/// </summary>
 	[TaskElement("Sign", typeof(SignTaskParameters))]
 	public class SignTask : CustomTask
@@ -41,7 +41,7 @@ namespace BuildGraph.Tasks
 		/// <summary>
 		/// Construct a spawn task
 		/// </summary>
-		/// <param name="Parameters">Parameters for the task</param>
+		/// <param name="InParameters">Parameters for the task</param>
 		public SignTask(SignTaskParameters InParameters)
 		{
 			Parameters = InParameters;

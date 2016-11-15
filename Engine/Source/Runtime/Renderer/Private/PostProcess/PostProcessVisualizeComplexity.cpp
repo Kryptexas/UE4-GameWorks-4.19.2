@@ -49,14 +49,18 @@ void FVisualizeComplexityApplyPS::SetParameters(
 
 	PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
 
-	//Make sure there are at least NumShaderComplexityColors colors specified in the ini.
-	//If there are more than NumShaderComplexityColors they will be ignored.
-	check(Colors.Num() >= 1 && Colors.Num() <= MaxNumShaderComplexityColors);
-
-	//pass the complexity -> color mapping into the pixel shader
-	for(int32 ColorIndex = 0; ColorIndex < Colors.Num(); ColorIndex ++)
+	int32 NumColors = FMath::Min<int32>(Colors.Num(), MaxNumShaderComplexityColors);
+	if (NumColors > 0)
+	{	//pass the complexity -> color mapping into the pixel shader
+		for (int32 ColorIndex = 0; ColorIndex < NumColors; ColorIndex++)
+		{
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ShaderComplexityColors, Colors[ColorIndex], ColorIndex);
+		}
+	}
+	else // Otherwise fallback to a safe value.
 	{
-		SetShaderValue(Context.RHICmdList, ShaderRHI, ShaderComplexityColors, Colors[ColorIndex], ColorIndex);
+		NumColors = 1;
+		SetShaderValue(Context.RHICmdList, ShaderRHI, ShaderComplexityColors, FLinearColor::Gray, 0);
 	}
 
 	SetTextureParameter(Context.RHICmdList, ShaderRHI, MiniFontTexture, GEngine->MiniFontTexture ? GEngine->MiniFontTexture->Resource->TextureRHI : GSystemTextures.WhiteDummy->GetRenderTargetItem().TargetableTexture);
@@ -142,27 +146,7 @@ void FRCPassPostProcessVisualizeComplexity::Process(FRenderingCompositePassConte
 
 	if(bLegend)
 	{
-		// this is a helper class for FCanvas to be able to get screen size
-		class FRenderTargetTemp : public FRenderTarget
-		{
-		public:
-			const FSceneView& View;
-			const FTexture2DRHIRef Texture;
-
-			FRenderTargetTemp(const FSceneView& InView, const FTexture2DRHIRef InTexture)
-				: View(InView), Texture(InTexture)
-			{
-			}
-			virtual FIntPoint GetSizeXY() const
-			{
-				return View.ViewRect.Size();
-			};
-			virtual const FTexture2DRHIRef& GetRenderTargetTexture() const
-			{
-				return Texture;
-			}
-		} TempRenderTarget(View, (const FTexture2DRHIRef&)DestRenderTarget.TargetableTexture);
-
+		FRenderTargetTemp TempRenderTarget(View, (const FTexture2DRHIRef&)DestRenderTarget.TargetableTexture);
 		FCanvas Canvas(&TempRenderTarget, NULL, ViewFamily.CurrentRealTime, ViewFamily.CurrentWorldTime, ViewFamily.DeltaWorldTime, Context.GetFeatureLevel());
 
 //later?		Canvas.DrawShadowedString(DestRect.Max.X - DestRect.Width() / 3 - 64 + 8, DestRect.Max.Y - 80, TEXT("Overdraw"), GetStatsFont(), FLinearColor(0.7f, 0.7f, 0.7f), FLinearColor(0,0,0,0));

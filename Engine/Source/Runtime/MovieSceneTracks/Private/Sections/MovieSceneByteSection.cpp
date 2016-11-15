@@ -9,9 +9,9 @@ UMovieSceneByteSection::UMovieSceneByteSection( const FObjectInitializer& Object
 { }
 
 
-uint8 UMovieSceneByteSection::Eval( float Position ) const
+uint8 UMovieSceneByteSection::Eval( float Position, uint8 DefaultValue) const
 {
-	return ByteCurve.Evaluate(Position);
+	return ByteCurve.Evaluate(Position, DefaultValue);
 }
 
 
@@ -79,7 +79,7 @@ void UMovieSceneByteSection::AddKey( float Time, const uint8& Value, EMovieScene
 
 bool UMovieSceneByteSection::NewKeyIsNewData( float Time, const uint8& Value ) const
 {
-	return Eval( Time ) != Value;
+	return Eval( Time, Value ) != Value;
 }
 
 
@@ -95,4 +95,10 @@ void UMovieSceneByteSection::SetDefault( const uint8& Value )
 	{
 		ByteCurve.SetDefaultValue(Value);
 	}
+}
+
+
+void UMovieSceneByteSection::ClearDefaults()
+{
+	ByteCurve.ClearDefaultValue();
 }

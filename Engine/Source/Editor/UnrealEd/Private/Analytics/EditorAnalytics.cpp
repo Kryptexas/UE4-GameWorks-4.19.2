@@ -48,6 +48,7 @@ void FEditorAnalytics::ReportEvent(FString EventName, FString PlatformName, bool
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectID"), ProjectSettings.ProjectID.ToString()));
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("Platform"), PlatformName));
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectType"), bHasCode ? TEXT("C++ Code") : TEXT("Content Only")));
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("VanillaEditor"), (GEngine && GEngine->IsVanillaProduct()) ? TEXT("Yes") : TEXT("No")));
 
 		FEngineAnalytics::GetProvider().RecordEvent( EventName, ParamArray );
 	}
@@ -62,6 +63,7 @@ void FEditorAnalytics::ReportEvent(FString EventName, FString PlatformName, bool
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectID"), ProjectSettings.ProjectID.ToString()));
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("Platform"), PlatformName));
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectType"), bHasCode ? TEXT("C++ Code") : TEXT("Content Only")));
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("VanillaEditor"), (GEngine && GEngine->IsVanillaProduct()) ? TEXT("Yes") : TEXT("No")));
 		ParamArray.Append(ExtraParams);
 
 		FEngineAnalytics::GetProvider().RecordEvent( EventName, ParamArray );
@@ -77,6 +79,7 @@ void FEditorAnalytics::ReportEvent(FString EventName, FString PlatformName, bool
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectID"), ProjectSettings.ProjectID.ToString()));
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("Platform"), PlatformName));
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectType"), bHasCode ? TEXT("C++ Code") : TEXT("Content Only")));
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("VanillaEditor"), (GEngine && GEngine->IsVanillaProduct()) ? TEXT("Yes") : TEXT("No")));
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("ErrorCode"), ErrorCode));
 		const FString ErrorMessage = TranslateErrorCode(ErrorCode);
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("ErrorName"), ErrorMessage));

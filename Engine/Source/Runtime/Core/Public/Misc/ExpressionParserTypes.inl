@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Templates/RemoveReference.h"
+
 #define LOCTEXT_NAMESPACE "ExpressionParser"
 
 namespace Impl

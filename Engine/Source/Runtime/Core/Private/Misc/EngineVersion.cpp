@@ -14,10 +14,10 @@ const int32 GEngineMinNetVersion		= 7038;
 const int32 GEngineNegotiationVersion	= 3077;
 
 // Global instance of the current engine version
-FEngineVersion FEngineVersion::CurrentVersion(ENGINE_MAJOR_VERSION, ENGINE_MINOR_VERSION, ENGINE_PATCH_VERSION, (BUILT_FROM_CHANGELIST | (ENGINE_IS_LICENSEE_VERSION << 31)), BRANCH_NAME);
+FEngineVersion FEngineVersion::CurrentVersion(ENGINE_MAJOR_VERSION, ENGINE_MINOR_VERSION, ENGINE_PATCH_VERSION, (ENGINE_CURRENT_CL_VERSION | (ENGINE_IS_LICENSEE_VERSION << 31)), BRANCH_NAME);
 
 // Version which this engine maintains strict API and package compatibility with. By default, we always maintain compatibility with the current major/minor version, unless we're built at a different changelist.
-FEngineVersion FEngineVersion::CompatibleWithVersion(ENGINE_MAJOR_VERSION, ENGINE_MINOR_VERSION, 0, (MODULE_API_VERSION | (ENGINE_IS_LICENSEE_VERSION << 31)), BRANCH_NAME);
+FEngineVersion FEngineVersion::CompatibleWithVersion(ENGINE_MAJOR_VERSION, ENGINE_MINOR_VERSION, 0, (ENGINE_COMPATIBLE_CL_VERSION | (ENGINE_IS_LICENSEE_VERSION << 31)), BRANCH_NAME);
 
 
 FEngineVersionBase::FEngineVersionBase()
@@ -207,23 +207,15 @@ const FEngineVersion& FEngineVersion::CompatibleWith()
 	return CompatibleWithVersion;
 }
 
-bool FEngineVersion::OverrideCurrentVersionChangelist(int32 NewChangelist)
+bool FEngineVersion::OverrideCurrentVersionChangelist(int32 NewChangelist, int32 NewCompatibleChangelist)
 {
-	if(CurrentVersion.GetChangelist() != 0)
+	if(CurrentVersion.GetChangelist() != 0 || CompatibleWithVersion.GetChangelist() != 0)
 	{
 		return false;
 	}
 
 	CurrentVersion.Set(CurrentVersion.Major, CurrentVersion.Minor, CurrentVersion.Patch, NewChangelist | (ENGINE_IS_LICENSEE_VERSION << 31), CurrentVersion.Branch);
-	if(CompatibleWithVersion.GetChangelist() == 0)
-	{
-		#if ENGINE_IS_LICENSEE_VERSION == 0 && MODULE_COMPATIBLE_API_VERSION != 0
-			int NewCompatibleChangelist = MODULE_COMPATIBLE_API_VERSION;
-		#else
-			int NewCompatibleChangelist = NewChangelist;
-		#endif
-		CompatibleWithVersion.Set(CompatibleWithVersion.Major, CompatibleWithVersion.Minor, CompatibleWithVersion.Patch, NewCompatibleChangelist | (ENGINE_IS_LICENSEE_VERSION << 31), CompatibleWithVersion.Branch);
-	}
+	CompatibleWithVersion.Set(CompatibleWithVersion.Major, CompatibleWithVersion.Minor, CompatibleWithVersion.Patch, NewCompatibleChangelist | (ENGINE_IS_LICENSEE_VERSION << 31), CompatibleWithVersion.Branch);
 	return true;
 }
 

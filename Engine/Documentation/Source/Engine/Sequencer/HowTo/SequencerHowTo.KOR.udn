@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2890438
+﻿INTSourceChangelist:3075953
 Availability: Public
 Title: 시퀀서 - 안내서
 Crumbs: %ROOT%, Engine, Engine\Sequencer
@@ -15,20 +15,25 @@ version: 4.11
 
 ## 초급
 [REGION:wrapper transparent]
-[](FANCY:Engine\Sequencer\HowTo\EnableSequencer "%Engine\Sequencer\HowTo\EnableSequencer:description%")
 [](FANCY:Engine\Sequencer\HowTo\ViewportOptions "%Engine\Sequencer\HowTo\ViewportOptions:description%")
+[](FANCY:Engine\Sequencer\HowTo\TracksAudio "%Engine\Sequencer\HowTo\TracksAudio:description%")
 [](FANCY:Engine\Sequencer\HowTo\TracksFade "%Engine\Sequencer\HowTo\TracksFade:description%")
 [](FANCY:Engine\Sequencer\HowTo\TracksPlayRate "%Engine\Sequencer\HowTo\TracksPlayRate:description%")
 [/REGION]
 
-
 ## 중급
 [REGION:wrapper transparent]
 [](FANCY:Engine\Sequencer\HowTo\CharacterAnimation "%Engine\Sequencer\HowTo\CharacterAnimation:description%")
-[](FANCY:Engine\Sequencer\HowTo\TracksCameraCut "%Engine\Sequencer\HowTo\TracksCameraCut:description%")
 [](FANCY:Engine\Sequencer\HowTo\TracksEvent "%Engine\Sequencer\HowTo\TracksEvent:description%")
 [](FANCY:Engine\Sequencer\HowTo\TracksShot "%Engine\Sequencer\HowTo\TracksShot:description%")
+[](FANCY:Engine\Sequencer\HowTo\TracksCameraCut "%Engine\Sequencer\HowTo\TracksCameraCut:description%")
+[](FANCY:Engine\Sequencer\HowTo\CameraRigCrane "%Engine\Sequencer\HowTo\CameraRigCrane:description%")
+[](FANCY:Engine\Sequencer\HowTo\CameraRigRail "%Engine\Sequencer\HowTo\CameraRigRail:description%")
+[](FANCY:Engine\Sequencer\HowTo\CineCameraActors "%Engine\Sequencer\HowTo\CineCameraActors:description%")
+[](FANCY:Engine\Sequencer\HowTo\TriggeringSequences "%Engine\Sequencer\HowTo\TriggeringSequences:description%")
+[](FANCY:Engine\Sequencer\HowTo\BurnIns "%Engine\Sequencer\HowTo\BurnIns:description%")
 [/REGION]
+
 
 
 ## 고급
@@ -37,6 +42,10 @@ version: 4.11
 [](FANCY:Engine\Sequencer\HowTo\Spawnables "%Engine\Sequencer\HowTo\Spawnables:description%")
 [](FANCY:Engine\Sequencer\HowTo\SequenceRecorder "%Engine\Sequencer\HowTo\SequenceRecorder:description%")
 [](FANCY:Engine\Sequencer\HowTo\TracksLevelVisibility "%Engine\Sequencer\HowTo\TracksLevelVisibility:description%")
+[](FANCY:Engine\Sequencer\HowTo\CustomBurnIns "%Engine\Sequencer\HowTo\CustomBurnIns:description%")
+[PUBLISH:docs]
+[](FANCY:Engine\Sequencer\HowTo\ImportExportEDLs "%Engine\Sequencer\HowTo\ImportExportEDLs:description%")
+[/PUBLISH:docs]
 [/REGION]
 
 

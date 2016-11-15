@@ -89,6 +89,13 @@ void URadialForceComponent::TickComponent(float DeltaTime, enum ELevelTick TickT
 	}
 }
 
+void URadialForceComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	UpdateCollisionObjectQueryParams();
+}
+
 void URadialForceComponent::PostLoad()
 {
 	Super::PostLoad();

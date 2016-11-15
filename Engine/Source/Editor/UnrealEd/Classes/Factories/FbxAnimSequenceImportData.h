@@ -30,7 +30,11 @@ UCLASS()
 class UNREALED_API UFbxAnimSequenceImportData : public UFbxAssetImportData
 {
 	GENERATED_UCLASS_BODY()
-
+	
+	/** If checked, meshes nested in bone hierarchies will be imported instead of being converted to bones. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = ImportSettings, meta = (ImportType = "Animation"))
+	bool bImportMeshesInBoneHierarchy;
+	
 	/** Which animation range to import. The one defined at Exported, at Animated time or define a range manually */
 	UPROPERTY(EditAnywhere, Category = ImportSettings, config, meta = (DisplayName = "Animation Length"))
 	TEnumAsByte<enum EFBXAnimationLengthImportType> AnimationLength;

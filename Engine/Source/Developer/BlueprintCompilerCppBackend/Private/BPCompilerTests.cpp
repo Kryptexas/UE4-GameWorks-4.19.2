@@ -72,9 +72,9 @@ private:
 // Helper functions introduced to load classes (generated or native:
 static UClass* GetGeneratedClass(const TCHAR* TestFolder, const TCHAR* ClassName, FAutomationTestBase* Context, FOwnedObjectsHelper &OwnedObjects)
 {
-	FString FullName = FString::Printf(TEXT("/Engine/NotForLicensees/Automation/CompilerTests/%s/%s.%s"), TestFolder, ClassName, ClassName);
-	UBlueprint* Blueprint = LoadObject<UBlueprint>(NULL, *FullName);
-
+	FString FullName = FString::Printf(TEXT("/RuntimeTests/CompilerTests/%s/%s.%s"), TestFolder, ClassName, ClassName);
+	UBlueprint* Blueprint = LoadObject<UBlueprint>(nullptr, *FullName);
+	
 	if (!Blueprint)
 	{
 		Context->AddWarning(FString::Printf(TEXT("Missing blueprint for test: '%s'"), *FullName));
@@ -97,8 +97,8 @@ static UClass* GetNativeClass(const TCHAR* TestFolder, const TCHAR* ClassName, F
 {
 	CollectGarbage(RF_NoFlags);
 
-	FString FullName = FString::Printf(TEXT("/Engine/NotForLicensees/Automation/CompilerTests/%s/%s"), TestFolder, ClassName);
-	UPackage* NativePackage = CreatePackage(NULL, *FullName);
+	FString FullName = FString::Printf(TEXT("/RuntimeTests/CompilerTests/%s/%s"), TestFolder, ClassName);
+	UPackage* NativePackage = CreatePackage(nullptr, *FullName);
 	check(NativePackage);
 
 	const FString FStringFullPathName = FString::Printf(TEXT("%s.%s_C"), *FullName, ClassName);
@@ -190,7 +190,7 @@ static void Call(UObject* Target, const TCHAR* FunctionName, void* Args = nullpt
 }
 
 // Remove EAutomationTestFlags::Disabled to enable these tests, note that these will need to be moved into the ClientContext because we can only test cooked content:
-static const uint32 CompilerTestFlags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
+static const uint32 CompilerTestFlags = EAutomationTestFlags::ClientContext | EAutomationTestFlags::EngineFilter;
 
 // Tests:
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBPCompilerArrayTest, "Project.Blueprints.NativeBackend.ArrayTest", CompilerTestFlags)

@@ -13,15 +13,15 @@
 #define LOCTEXT_NAMESPACE "SBehaviorTreeDiff"
 
 //////////////////////////////////////////////////////////////////////////
-// FDiffResultItem
+// FTreeDiffResultItem
 
-struct FDiffResultItem: public TSharedFromThis<FDiffResultItem>
+struct FTreeDiffResultItem : public TSharedFromThis<FTreeDiffResultItem>
 {
 	/**
 	 * Constructor
 	 * @param InResult A difference result 
 	 */
-	FDiffResultItem(const FDiffSingleResult& InResult): Result(InResult){}
+	FTreeDiffResultItem(const FDiffSingleResult& InResult): Result(InResult){}
 
 	/**
 	 * GenerateWidget for the diff item
@@ -257,7 +257,7 @@ void SBehaviorTreeDiff::BuildDiffSourceArray()
 	DiffListSource.Empty();
 	for (auto DiffIt(FoundDiffs.CreateConstIterator()); DiffIt; ++DiffIt)
 	{
-		DiffListSource.Add(FSharedDiffOnGraph(new FDiffResultItem(*DiffIt)));
+		DiffListSource.Add(FSharedDiffOnGraph(new FTreeDiffResultItem(*DiffIt)));
 	}
 }
 

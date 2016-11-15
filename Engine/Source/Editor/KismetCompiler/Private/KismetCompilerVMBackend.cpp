@@ -672,7 +672,7 @@ public:
 					const bool bParsedUsingCustomFormat = FDefaultValueHelper::ParseVector(Term->Name, /*out*/ V);
 					if (!bParsedUsingCustomFormat)
 					{
-						UStructProperty::ImportText_Static(Struct, GetPathNameSafe(StructProperty), *Term->Name, &V, PPF_None, nullptr, (FOutputDevice*)GWarn);
+						Struct->ImportText(*Term->Name, &V, nullptr, PPF_None, GWarn, GetPathNameSafe(StructProperty));
 					}
 					Writer << EX_VectorConst;
 					Writer << V;
@@ -683,7 +683,7 @@ public:
 					const bool bParsedUsingCustomFormat = FDefaultValueHelper::ParseRotator(Term->Name, /*out*/ R);
 					if (!bParsedUsingCustomFormat)
 					{
-						UStructProperty::ImportText_Static(Struct, GetPathNameSafe(StructProperty), *Term->Name, &R, PPF_None, nullptr, (FOutputDevice*)GWarn);
+						Struct->ImportText(*Term->Name, &R, nullptr, PPF_None, GWarn, GetPathNameSafe(StructProperty));
 					}
 					Writer << EX_RotationConst;
 					Writer << R;
@@ -694,7 +694,7 @@ public:
 					const bool bParsedUsingCustomFormat = T.InitFromString(Term->Name);
 					if (!bParsedUsingCustomFormat)
 					{
-						UStructProperty::ImportText_Static(Struct, GetPathNameSafe(StructProperty), *Term->Name, &T, PPF_None, nullptr, (FOutputDevice*)GWarn);
+						Struct->ImportText(*Term->Name, &T, nullptr, PPF_None, GWarn, GetPathNameSafe(StructProperty));
 					}
 					Writer << EX_TransformConst;
 					Writer << T;
@@ -715,7 +715,7 @@ public:
 					}
 
 					// Assume that any errors on the import of the name string have been caught in the function call generation
-					UStructProperty::ImportText_Static(Struct, GetPathNameSafe(StructProperty), Term->Name.IsEmpty() ? TEXT("()") : *Term->Name, StructData, 0, nullptr, GLog);
+					Struct->ImportText(Term->Name.IsEmpty() ? TEXT("()") : *Term->Name, StructData, nullptr, PPF_None, GLog, GetPathNameSafe(StructProperty));
 
  					Writer << EX_StructConst;
 					Writer << Struct;
@@ -1034,6 +1034,7 @@ public:
 		const bool bIsCustomThunk = FunctionToCall->HasMetaData(TEXT("CustomThunk"));
 		if (bIsCustomThunk)
 		{
+			// collect all parameters that (should) have wildcard type.
 			auto CollectWildcards = [&](FName MetaDataName)
 			{
 				const FString DependentPinMetaData = FunctionToCall->GetMetaData(MetaDataName);
@@ -1067,6 +1068,8 @@ public:
 				else
 				{
 					const bool bWildcard = WildcardParams.Contains(FuncParamProperty->GetFName());
+					// Native type of a wildcard parameter should be ignored.
+					// When no coerce property is passed, a type of literal will be retrieved from the term.
 					EmitTerm(Term, bWildcard ? nullptr : FuncParamProperty);
 				}
 				NumParams++;
@@ -1147,7 +1150,7 @@ public:
 				}
 
  				FContextEmitter CallContextWriter(*this);
-				UProperty* RValueProperty = RValueTerm ? RValueTerm->AssociatedVarProperty : nullptr;
+				UProperty* RValueProperty = RValueTerm->AssociatedVarProperty;
 				CallContextWriter.TryStartContext(Term->Context, /*@TODO: bUnsafeToSkip*/ true, /*bIsInterfaceContext*/ false, RValueProperty);
 
 				EmitTermExpr(Term, CoerceProperty);
@@ -1563,17 +1566,25 @@ public:
 			uint8 EventType = 0;
 			switch (Statement.Type)
 			{
-			case KCST_InstrumentedWireExit:			EventType = EScriptInstrumentation::NodeExit; break;
-			case KCST_InstrumentedWireEntry:		EventType = EScriptInstrumentation::NodeEntry; break;
-			case KCST_InstrumentedPureNodeEntry:	EventType = EScriptInstrumentation::PureNodeEntry; break;
-			case KCST_InstrumentedStatePush:		EventType = EScriptInstrumentation::PushState; break;
-			case KCST_InstrumentedStateRestore:		EventType = EScriptInstrumentation::RestoreState; break;
-			case KCST_InstrumentedStateReset:		EventType = EScriptInstrumentation::ResetState; break;
-			case KCST_InstrumentedStateSuspend:		EventType = EScriptInstrumentation::SuspendState; break;
-			case KCST_InstrumentedStatePop:			EventType = EScriptInstrumentation::PopState; break;
+			case KCST_InstrumentedEvent:				EventType = EScriptInstrumentation::InlineEvent; break;
+			case KCST_InstrumentedEventStop:			EventType = EScriptInstrumentation::Stop; break;
+			case KCST_InstrumentedWireExit:				EventType = EScriptInstrumentation::NodeExit; break;
+			case KCST_InstrumentedWireEntry:			EventType = EScriptInstrumentation::NodeEntry; break;
+			case KCST_InstrumentedPureNodeEntry:		EventType = EScriptInstrumentation::PureNodeEntry; break;
+			case KCST_InstrumentedStatePush:			EventType = EScriptInstrumentation::PushState; break;
+			case KCST_InstrumentedStateRestore:			EventType = EScriptInstrumentation::RestoreState; break;
+			case KCST_InstrumentedStateReset:			EventType = EScriptInstrumentation::ResetState; break;
+			case KCST_InstrumentedStateSuspend:			EventType = EScriptInstrumentation::SuspendState; break;
+			case KCST_InstrumentedStatePop:				EventType = EScriptInstrumentation::PopState; break;
+			case KCST_InstrumentedTunnelEndOfThread:	EventType = EScriptInstrumentation::TunnelEndOfThread; break;
 			}
 			Writer << EX_InstrumentationEvent;
 			Writer << EventType;
+			if (EventType == EScriptInstrumentation::InlineEvent)
+			{
+				FName EventName(*Statement.Comment);
+				Writer << EventName;
+			}
 		}
 
 		TArray<UEdGraphPin*> PinContextArray(Statement.PureOutputContextArray);
@@ -1596,12 +1607,12 @@ public:
 		if (SourceNode != NULL)
 		{
 			// Record where this NOP is
-			UEdGraphNode* TrueSourceNode = Cast<UEdGraphNode>(FunctionContext.MessageLog.FindSourceObject(SourceNode));
+			UEdGraphNode* TrueSourceNode = FunctionContext.MessageLog.GetSourceNode(SourceNode);
 			if (TrueSourceNode)
 			{
 				// If this is a debug site for an expanded macro instruction, there should also be a macro source node associated with it
-				UEdGraphNode* MacroSourceNode = Cast<UEdGraphNode>(CompilerContext.MessageLog.FinalNodeBackToMacroSourceMap.FindSourceObject(SourceNode));
-				if (MacroSourceNode == SourceNode)
+				UEdGraphNode* MacroSourceNode = CompilerContext.MessageLog.GetSourceTunnelNode(SourceNode);
+				if (MacroSourceNode == TrueSourceNode)
 				{
 					// The function above will return the given node if not found in the map. In that case there is no associated source macro node, so we clear it.
 					MacroSourceNode = NULL;
@@ -1626,36 +1637,15 @@ public:
 					}
 
 					// Gather up all the macro instance nodes that lead to this macro source node
-					CompilerContext.MessageLog.MacroSourceToMacroInstanceNodeMap.MultiFind(MacroSourceNode, MacroInstanceNodes);
-				}
-
-				// Register source tunnels for instrumentation.
-				if (FunctionContext.IsInstrumentationRequired())
-				{
-					// After blueprint profiler MVP these changes will be refactored and rolled back into normal compilation.
-
-					// Locate the source tunnel instance
-					if (TWeakObjectPtr<UEdGraphNode>* SourceTunnelInstance = CompilerContext.MessageLog.SourceNodeToTunnelInstanceNodeMap.Find(SourceNode))
+					UEdGraphNode* IntermediateMacroInstance = CompilerContext.MessageLog.GetIntermediateTunnelInstance(SourceNode);
+					CompilerContext.MessageLog.GetTunnelsActiveForNode(IntermediateMacroInstance, MacroInstanceNodes);
+					if (MacroInstanceNodes.Num())
 					{
-						if (SourceTunnelInstance->IsValid())
-						{
-							TrueSourceNode = SourceTunnelInstance->Get();
-						}
+						TrueSourceNode = MacroInstanceNodes[0].Get();
 					}
-					// Locate the real source node, as the code above fails with nested tunnels
-					if (TWeakObjectPtr<UEdGraphNode>* NewSourceNode = CompilerContext.MessageLog.IntermediateTunnelNodeToSourceNodeMap.Find(SourceNode))
-					{
-						if (NewSourceNode->IsValid())
-						{
-							MacroSourceNode = NewSourceNode->Get();
-						}
-					}
-					ClassBeingBuilt->GetDebugData().RegisterNodeToCodeAssociation(TrueSourceNode, MacroSourceNode, MacroInstanceNodes, FunctionContext.Function, Offset, bBreakpointSite);
 				}
-				else
-				{
-					ClassBeingBuilt->GetDebugData().RegisterNodeToCodeAssociation(TrueSourceNode, MacroSourceNode, MacroInstanceNodes, FunctionContext.Function, Offset, bBreakpointSite);
-				}
+				// Register the debug information for the node.
+				ClassBeingBuilt->GetDebugData().RegisterNodeToCodeAssociation(TrueSourceNode, MacroSourceNode, MacroInstanceNodes, FunctionContext.Function, Offset, bBreakpointSite);
 
 				// Track pure node script code range for the current impure (exec) node
 				if (Statement.Type == KCST_InstrumentedPureNodeEntry)
@@ -1794,6 +1784,8 @@ public:
 			break;
 		case KCST_DebugSite:
 		case KCST_WireTraceSite:
+		case KCST_InstrumentedEvent:
+		case KCST_InstrumentedEventStop:
 		case KCST_InstrumentedWireEntry:
 		case KCST_InstrumentedWireExit:
 		case KCST_InstrumentedStatePush:
@@ -1802,6 +1794,7 @@ public:
 		case KCST_InstrumentedStatePop:
 		case KCST_InstrumentedStateRestore:
 		case KCST_InstrumentedPureNodeEntry:
+		case KCST_InstrumentedTunnelEndOfThread:
 			EmitInstrumentation(CompilerContext, FunctionContext, Statement, SourceNode);
 			break;
 		case KCST_ArrayGetByRef:
@@ -1883,6 +1876,11 @@ void FKismetCompilerVMBackend::ConstructFunction(FKismetFunctionContext& Functio
 					FBlueprintCompiledStatement* Statement = (*StatementList)[StatementIndex];
 
 					ScriptWriter.GenerateCodeForStatement(CompilerContext, FunctionContext, *Statement, StatementNode);
+					
+					const bool bUberGraphFunctionCall = Statement->FunctionToCall && (Statement->FunctionToCall == Class->UberGraphFunction)
+						&& (EKismetCompiledStatementType::KCST_CallFunction == Statement->Type);
+					const bool bIsReducible = FKismetCompilerUtilities::IsStatementReducible(Statement->Type) || bUberGraphFunctionCall;
+					bAnyNonReducibleFunctionGenerated |= !bIsReducible;
 				}
 			}
 		}
@@ -1890,7 +1888,7 @@ void FKismetCompilerVMBackend::ConstructFunction(FKismetFunctionContext& Functio
 
 	// Handle the function return value
 	ScriptWriter.GenerateCodeForStatement(CompilerContext, FunctionContext, ReturnStatement, NULL);	
-	
+
 	// Fix up jump addresses
 	ScriptWriter.PerformFixups();
 

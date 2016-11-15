@@ -1594,8 +1594,18 @@ public:
 		ForceClose = Object.GetBoolField("ForceClose");
 		Timeout = (uint32)Object.GetNumberField("Timeout");
 		Compressed = Object.GetBoolField("Compressed");
-		EncryptIniFiles = Object.GetBoolField("EncryptIniFiles");
-		ForDistribution = Object.GetBoolField("ForDistribution");
+
+		if (Version >= LAUNCHERSERVICES_ADDEDENCRYPTINIFILES)
+		{
+			EncryptIniFiles = Object.GetBoolField("EncryptIniFiles");
+			ForDistribution = Object.GetBoolField("ForDistribution");
+		}
+		else
+		{
+			EncryptIniFiles = false;
+			ForDistribution = false;
+		}
+
 		DefaultDeployPlatform = *(Object.GetStringField("DeployPlatform"));
 		NumCookersToSpawn = (int32)Object.GetNumberField("NumCookersToSpawn");
 		bSkipCookingEditorContent = Object.GetBoolField("SkipCookingEditorContent");

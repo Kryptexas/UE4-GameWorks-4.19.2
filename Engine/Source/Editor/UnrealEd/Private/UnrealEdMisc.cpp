@@ -44,6 +44,8 @@
 #include "FeaturePackContentSource.h"
 #include "TemplateProjectDefs.h"
 #include "GameProjectUtils.h"
+#include "IPortalApplicationWindow.h"
+#include "IPortalServiceLocator.h"
 
 #define LOCTEXT_NAMESPACE "UnrealEd"
 
@@ -150,6 +152,11 @@ namespace PerformanceSurveyDefs
 	const static FTimespan FrameRateSampleInterval(0, 0, 1);	// 1 second intervals
 }
 
+namespace UnrealEdMiscDefs
+{
+	const static int32 HeartbeatIntervalSeconds = 60;
+}
+
 FUnrealEdMisc::FUnrealEdMisc() :
 	AutosaveState( EAutosaveState::Inactive ), 
 	bCancelBuild( false ),
@@ -196,8 +203,8 @@ void FUnrealEdMisc::OnInit()
 	FEditorDelegates::PreSaveWorld.AddRaw(this, &FUnrealEdMisc::OnWorldSaved);
 
 #if USE_UNIT_TESTS
-	FAutomationTestFramework::GetInstance().PreTestingEvent.AddRaw(this, &FUnrealEdMisc::CB_PreAutomationTesting);
-	FAutomationTestFramework::GetInstance().PostTestingEvent.AddRaw(this, &FUnrealEdMisc::CB_PostAutomationTesting);
+	FAutomationTestFramework::Get().PreTestingEvent.AddRaw(this, &FUnrealEdMisc::CB_PreAutomationTesting);
+	FAutomationTestFramework::Get().PostTestingEvent.AddRaw(this, &FUnrealEdMisc::CB_PostAutomationTesting);
 #endif // USE_UNIT_TESTS
 
 	/** Delegate that gets called when a script exception occurs */
@@ -449,11 +456,10 @@ void FUnrealEdMisc::OnInit()
 	InitEngineAnalytics();
 	
 	// Setup a timer for a heartbeat event to track if users are actually using the editor or it is idle.
-	float Seconds = (float)FTimespan::FromMinutes(5.0).GetTotalSeconds();
 	FTimerDelegate Delegate;
 	Delegate.BindRaw( this, &FUnrealEdMisc::EditorAnalyticsHeartbeat );
 
-	GEditor->GetTimerManager()->SetTimer( EditorAnalyticsHeartbeatTimerHandle, Delegate, Seconds, true );
+	GEditor->GetTimerManager()->SetTimer( EditorAnalyticsHeartbeatTimerHandle, Delegate, (float)UnrealEdMiscDefs::HeartbeatIntervalSeconds, true );
 
 	// Give the settings editor a way to restart the editor when it needs to
 	ISettingsEditorModule& SettingsEditorModule = FModuleManager::GetModuleChecked<ISettingsEditorModule>("SettingsEditor");
@@ -571,6 +577,9 @@ void FUnrealEdMisc::EditorAnalyticsHeartbeat()
 		Attributes.Add(FAnalyticsEventAttribute(TEXT("AverageRenderThreadTime"), PerformanceAnalyticsStats->GetAverageRenderThreadTime()));
 		Attributes.Add(FAnalyticsEventAttribute(TEXT("AverageGPUFrameTime"), PerformanceAnalyticsStats->GetAverageGPUFrameTime()));
 	}
+	Attributes.Add(FAnalyticsEventAttribute(TEXT("IsVanilla"), (GEngine && GEngine->IsVanillaProduct())));
+	Attributes.Add(FAnalyticsEventAttribute(TEXT("IntervalSec"), UnrealEdMiscDefs::HeartbeatIntervalSeconds));
+	Attributes.Add(FAnalyticsEventAttribute(TEXT("IsDebugger"), FPlatformMisc::IsDebuggerPresent()));
 	FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Heartbeat"), Attributes);
 	
 	LastHeartbeatTime = FPlatformTime::Seconds();
@@ -794,8 +803,8 @@ void FUnrealEdMisc::OnExit()
 	GEngine->OnLevelActorAdded().RemoveAll(this);
 
 #if USE_UNIT_TESTS
-	FAutomationTestFramework::GetInstance().PreTestingEvent.RemoveAll(this);
-	FAutomationTestFramework::GetInstance().PostTestingEvent.RemoveAll(this);
+	FAutomationTestFramework::Get().PreTestingEvent.RemoveAll(this);
+	FAutomationTestFramework::Get().PostTestingEvent.RemoveAll(this);
 #endif // USE_UNIT_TESTS
 
 	// FCoreDelegates::OnBreakpointTriggered.RemoveAll(this);
@@ -971,6 +980,7 @@ void FUnrealEdMisc::CB_RedrawAllViewports()
 void FUnrealEdMisc::CB_LevelActorsAdded(AActor* InActor)
 {
 	if (!GIsEditorLoadingPackage &&
+		!GIsCookerLoadingPackage &&
 		FEngineAnalytics::IsAvailable() &&
 		InActor &&
 		InActor->GetWorld() == GUnrealEd->GetEditorWorldContext().World() &&
@@ -1031,11 +1041,29 @@ void FUnrealEdMisc::OnMessageTokenActivated(const TSharedRef<IMessageToken>& Tok
 	}
 
 	const TSharedRef<FUObjectToken> UObjectToken = StaticCastSharedRef<FUObjectToken>(Token);
+	UObject* Object = nullptr;
 
-	if(UObjectToken->GetObject().IsValid())
+	// Due to blueprint reconstruction, we can't directly use the Object as it will get trashed during the blueprint reconstruction and the message token will no longer point to the right UObject.
+	// Instead we will retrieve the object from the name which should always be good.
+	if (UObjectToken->GetObject().IsValid())
 	{
-		UObject* Object = const_cast<UObject*>(UObjectToken->GetObject().Get());
+		if (!UObjectToken->ToText().ToString().Equals(UObjectToken->GetObject().Get()->GetName()))
+		{
+			Object = FindObject<UObject>(nullptr, *UObjectToken->GetOriginalObjectPathName());
+		}
+		else
+		{
+			Object = const_cast<UObject*>(UObjectToken->GetObject().Get());
+		}
+	}
+	else
+	{
+		// We have no object (probably because is now stale), try finding the original object linked to this message token to see if it still exist
+		Object = FindObject<UObject>(nullptr, *UObjectToken->GetOriginalObjectPathName());
+	}
 
+	if(Object != nullptr)
+	{
 		ULightmappedSurfaceCollection* SurfaceCollection = Cast<ULightmappedSurfaceCollection>(Object);
 		if (SurfaceCollection)
 		{
@@ -1078,7 +1106,7 @@ void FUnrealEdMisc::OnMessageTokenActivated(const TSharedRef<IMessageToken>& Tok
 				}		
 			}
 
-			if (Actor)
+			if (Actor && Actor->GetLevel() != nullptr)
 			{
 				// Select the actor
 				GEditor->SelectNone(false, true);
@@ -1093,7 +1121,37 @@ void FUnrealEdMisc::OnMessageTokenActivated(const TSharedRef<IMessageToken>& Tok
 			else
 			{
 				TArray<UObject*> ObjectArray;
-				ObjectArray.Add(Object);
+
+				if (Object->IsInBlueprint())
+				{
+					// Determine if we are the root of our blueprint
+					UBlueprint* Blueprint = UBlueprint::GetBlueprintFromClass(Object->GetClass());
+
+					if (Blueprint != nullptr)
+					{
+						ObjectArray.Add(Blueprint);
+					}
+					else // we are a sub object, so we need to find the root of our current blueprint(not the outermost as blueprint can contain other blueprint)
+					{
+						UObject* ParentObject = Object->GetOuter();
+
+						while (Blueprint == nullptr && ParentObject != nullptr)
+						{
+							Blueprint = UBlueprint::GetBlueprintFromClass(ParentObject->GetClass());
+							ParentObject = Object->GetOuter();
+						}
+
+						if (Blueprint != nullptr)
+						{
+							ObjectArray.Add(Blueprint);
+						}
+					}
+				}
+				else
+				{
+					ObjectArray.Add(Object);
+				}
+
 				GEditor->SyncBrowserToObjects(ObjectArray);
 			}
 		}
@@ -1617,6 +1675,65 @@ FString FUnrealEdMisc::GetExecutableForCommandlets() const
 	}
 #endif
 	return ExecutableName;
+}
+
+void FUnrealEdMisc::OpenMarketplace(const FString& CustomLocation)
+{
+	TArray<FAnalyticsEventAttribute> EventAttributes;
+
+	FString Location = CustomLocation.IsEmpty() ? TEXT("/ue/marketplace") : CustomLocation;
+
+	EventAttributes.Add(FAnalyticsEventAttribute(TEXT("Location"), Location));
+	
+	auto Service = GEditor->GetServiceLocator()->GetServiceRef<IPortalApplicationWindow>();
+	if(Service->IsAvailable())
+	{
+		TAsyncResult<bool> Result = Service->NavigateTo(Location);
+		if(FEngineAnalytics::IsAvailable())
+		{
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OpenSucceeded"), TEXT("TRUE")));
+		}
+	}
+	else
+	{
+		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+
+		if(DesktopPlatform != nullptr)
+		{
+			FOpenLauncherOptions OpenOptions(Location);
+			if(DesktopPlatform->OpenLauncher(OpenOptions))
+			{
+				EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OpenSucceeded"), TEXT("TRUE")));
+			}
+			else
+			{
+				EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OpenSucceeded"), TEXT("FALSE")));
+
+				if(EAppReturnType::Yes == FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("InstallMarketplacePrompt", "The Marketplace requires the Epic Games Launcher, which does not seem to be installed on your computer. Would you like to install it now?")))
+				{
+					FOpenLauncherOptions InstallOptions(true, Location);
+					if(!DesktopPlatform->OpenLauncher(InstallOptions))
+					{
+						EventAttributes.Add(FAnalyticsEventAttribute(TEXT("InstallSucceeded"), TEXT("FALSE")));
+						FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(TEXT("Sorry, there was a problem installing the Launcher.\nPlease try to install it manually!")));
+					}
+					else
+					{
+						EventAttributes.Add(FAnalyticsEventAttribute(TEXT("InstallSucceeded"), TEXT("TRUE")));
+					}
+				}
+			}
+
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("Source"), TEXT("EditorToolbar")));
+
+		}
+	}
+
+
+	if(FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.OpenMarketplace"), EventAttributes);
+	}
 }
 
 void FUnrealEdMisc::OnUserDefinedChordChanged(const FUICommandInfo& CommandInfo)

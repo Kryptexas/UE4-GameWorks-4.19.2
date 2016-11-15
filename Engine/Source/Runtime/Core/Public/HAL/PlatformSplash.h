@@ -19,4 +19,6 @@
 #include "HTML5/HTML5PlatformSplash.h"
 #elif PLATFORM_LINUX
 #include "Linux/LinuxPlatformSplash.h"
+#elif PLATFORM_WOLF
+#include "WolfPlat/WolfPlatformSplash.h"
 #endif

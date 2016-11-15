@@ -574,7 +574,7 @@ public:
 		// When we allow async tasks to execute we do so with BlockHeight lines of the image per task
 		// This isn't optimal for long thin textures, but works well with how ISPC works
 		MultithreadSettings.iScansPerTask = BlockHeight;
-		MultithreadSettings.iNumTasks = FMath::Max((InImage.SizeY / MultithreadSettings.iScansPerTask) - 1, 0);
+		MultithreadSettings.iNumTasks = FMath::Max((AlignedSizeY / MultithreadSettings.iScansPerTask) - 1, 0);
 	}
 
 	static void PadImageToBlockSize(FImage &InOutImage, int BlockWidth, int BlockHeight, int BytesPerPixel)

@@ -5,6 +5,7 @@
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "Runtime/Engine/Classes/Engine/TextureRenderTarget2D.h"
+#include "Runtime/Engine/Classes/Engine/CanvasRenderTarget2D.h"
 #include "ImageUtils.h"
 #include "FileManagerGeneric.h"
 #include "Paths.h"
@@ -34,7 +35,7 @@ void UKismetRenderingLibrary::ClearRenderTarget2D(UObject* WorldContextObject, U
 			FLinearColor,ClearColor,ClearColor,
 		{
 			SetRenderTarget(RHICmdList, RenderTargetResource->GetRenderTargetTexture(), FTextureRHIRef(), true);
-			RHICmdList.Clear(true, ClearColor, false, 0.0f, false, 0, FIntRect());
+			RHICmdList.ClearColorTexture(RenderTargetResource->GetRenderTargetTexture(), ClearColor, FIntRect());
 		});
 	}
 }
@@ -44,7 +45,7 @@ UTextureRenderTarget2D* UKismetRenderingLibrary::CreateRenderTarget2D(UObject* W
 	check(WorldContextObject);
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 
-	if (Width > 0 && Height > 0 && World)
+	if (Width > 0 && Height > 0 && World && FApp::CanEverRender())
 	{
 		UTextureRenderTarget2D* NewRenderTarget2D = NewObject<UTextureRenderTarget2D>(WorldContextObject);
 		check(NewRenderTarget2D);

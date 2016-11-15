@@ -232,6 +232,28 @@ int32 FEditorViewportClient::GetCameraSpeedSetting() const
 
 float const FEditorViewportClient::SafePadding = 0.075f;
 
+static int32 ViewOptionIndex = 0;
+static TArray<ELevelViewportType> ViewOptions;
+
+void InitViewOptionsArray()
+{
+	ViewOptions.Empty();
+
+	ELevelViewportType Front = ELevelViewportType::LVT_OrthoXZ;
+	ELevelViewportType Back = ELevelViewportType::LVT_OrthoNegativeXZ;
+	ELevelViewportType Top = ELevelViewportType::LVT_OrthoXY;
+	ELevelViewportType Bottom = ELevelViewportType::LVT_OrthoNegativeXY;
+	ELevelViewportType Left = ELevelViewportType::LVT_OrthoYZ;
+	ELevelViewportType Right = ELevelViewportType::LVT_OrthoNegativeYZ;
+
+	ViewOptions.Add(Front);
+	ViewOptions.Add(Back);
+	ViewOptions.Add(Top);
+	ViewOptions.Add(Bottom);
+	ViewOptions.Add(Left);
+	ViewOptions.Add(Right);
+}
+
 FEditorViewportClient::FEditorViewportClient(FEditorModeTools* InModeTools, FPreviewScene* InPreviewScene, const TWeakPtr<SEditorViewport>& InEditorViewportWidget)
 	: bAllowCinematicPreview(false)
 	, CameraSpeedSetting(4)
@@ -300,11 +322,13 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools* InModeTools, FPre
 	, MovingPreviewLightTimer(0.0f)
 	, PerspViewModeIndex(DefaultPerspectiveViewMode)
 	, OrthoViewModeIndex(DefaultOrthoViewMode)
+	, ViewModeParam(-1)
 	, NearPlane(-1.0f)
 	, FarPlane(0.0f)
 	, bInGameViewMode(false)
 	, bShouldInvalidateViewportWidget(false)
 {
+	InitViewOptionsArray();
 	if (ModeTools == nullptr)
 	{
 		ModeTools = new FAssetEditorModeManager();
@@ -564,7 +588,7 @@ void FEditorViewportClient::ToggleOrbitCamera( bool bEnableOrbitCamera )
 void FEditorViewportClient::FocusViewportOnBox( const FBox& BoundingBox, bool bInstant /* = false */ )
 {
 	const FVector Position = BoundingBox.GetCenter();
-	float Radius = BoundingBox.GetExtent().Size();
+	float Radius = FMath::Max(BoundingBox.GetExtent().Size(), 10.f);
 
 	float AspectToUse = AspectRatio;
 	FIntPoint ViewportSize = Viewport->GetSizeXY();
@@ -1427,6 +1451,33 @@ void FEditorViewportClient::SetViewportType( ELevelViewportType InViewportType )
 	Invalidate();
 }
 
+void FEditorViewportClient::RotateViewportType()
+{	
+	ViewportType = ViewOptions[ViewOptionIndex];
+
+	// Changing the type may also change the active view mode; re-apply that now
+	ApplyViewMode(GetViewMode(), IsPerspective(), EngineShowFlags);
+
+	// We might have changed to an orthographic viewport; if so, update any viewport links
+	UpdateLinkedOrthoViewports(true);
+
+	Invalidate();
+
+	if (ViewOptionIndex == 5)
+	{
+		ViewOptionIndex = 0;
+	}
+	else
+	{
+		ViewOptionIndex++;
+	}
+}
+
+bool FEditorViewportClient::IsActiveViewportTypeInRotation() const
+{
+	return GetViewportType() == ViewOptions[ViewOptionIndex];
+}
+
 bool FEditorViewportClient::IsActiveViewportType(ELevelViewportType InViewportType) const
 {
 	return GetViewportType() == InViewportType;
@@ -1590,7 +1641,6 @@ void FEditorViewportClient::UpdateCameraMovement( float DeltaTime )
 		// (considering there will be further hitching trying to get back to where you were)
 		EditorMovementDeltaUpperBound = .15f;
 #endif
-
 		// Check whether the camera is being moved by the mouse or keyboard
 		bool bHasMovement = bIsTracking;
 
@@ -1619,7 +1669,6 @@ void FEditorViewportClient::UpdateCameraMovement( float DeltaTime )
 			NewViewLocation,
 			NewViewEuler,
 			NewViewFOV );
-
 
 		// We'll zero out rotation velocity modifier after updating the simulation since these actions
 		// are always momentary -- that is, when the user mouse looks some number of pixels,
@@ -2352,13 +2401,6 @@ void FEditorViewportClient::StopTracking()
 {
 	if( bIsTracking )
 	{
-		//cache the axis of any widget we might be moving
-		EAxisList::Type DraggingAxis = EAxisList::None;
-		if( Widget != NULL )
-		{
-			DraggingAxis = Widget->GetCurrentAxis();
-		}
-
 		MouseDeltaTracker->EndTracking( this );
 
 		Widget->SetCurrentAxis( EAxisList::None );
@@ -3217,11 +3259,8 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 		DebugCanvas->SetScaledToRenderTarget(bStereoRendering);
 		DebugCanvas->SetStereoRendering(bStereoRendering);
 	}
-	if (Canvas)
-	{
-		Canvas->SetScaledToRenderTarget(bStereoRendering);
-		Canvas->SetStereoRendering(bStereoRendering);
-	}
+	Canvas->SetScaledToRenderTarget(bStereoRendering);
+	Canvas->SetStereoRendering(bStereoRendering);
 
 	// Setup a FSceneViewFamily/FSceneView for the viewport.
 	FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
@@ -3229,7 +3268,8 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 		GetScene(),
 		EngineShowFlags)
 		.SetWorldTimes( TimeSeconds, DeltaTimeSeconds, RealTimeSeconds )
-		.SetRealtimeUpdate( IsRealtime() ));
+		.SetRealtimeUpdate( IsRealtime() )
+		.SetViewModeParam( ViewModeParam ) );
 
 	ViewFamily.EngineShowFlags = EngineShowFlags;
 
@@ -4164,10 +4204,10 @@ void FEditorViewportClient::UpdateRequiredCursorVisibility()
 			return;
 		}
 
-		if (GetDefault<ULevelEditorViewportSettings>()->bPanMovesCanvas)
+		if (GetDefault<ULevelEditorViewportSettings>()->bPanMovesCanvas && RightMouseButtonDown)
 		{
-			bool bMovingCamera = RightMouseButtonDown && GetCurrentWidgetAxis() == EAxisList::None;
-			bool bIsZoomingCamera = bMovingCamera && ( LeftMouseButtonDown || bIsUsingTrackpad ) && RightMouseButtonDown;
+			bool bMovingCamera = GetCurrentWidgetAxis() == EAxisList::None;
+			bool bIsZoomingCamera = bMovingCamera && ( LeftMouseButtonDown || bIsUsingTrackpad );
 			//moving camera without  zooming
 			if ( bMovingCamera && !bIsZoomingCamera )
 			{
@@ -4489,7 +4529,7 @@ void FEditorViewportClient::MoveViewportPerspectiveCamera( const FVector& InDrag
 
 	// Update camera Location
 	ViewLocation += InDrag;
-	
+
 	if( !bDollyCamera )
 	{
 		const float DistanceToCurrentLookAt = FVector::Dist( GetViewLocation() , GetLookAtLocation() );
@@ -4500,8 +4540,16 @@ void FEditorViewportClient::MoveViewportPerspectiveCamera( const FVector& InDrag
 		SetLookAtLocation( ViewLocation + Direction * DistanceToCurrentLookAt );
 	}
 
-	SetViewLocation( ViewLocation );
-	SetViewRotation( ViewRotation );
+	SetViewLocation(ViewLocation);
+	SetViewRotation(ViewRotation);
+
+	if (bUsingOrbitCamera)
+	{
+		FVector LookAtPoint = GetLookAtLocation();
+		const float DistanceToLookAt = FVector::Dist( ViewLocation, LookAtPoint );
+
+		SetViewLocationForOrbiting( LookAtPoint, DistanceToLookAt );
+	}
 
 	PerspectiveCameraMoved();
 
@@ -4629,11 +4677,13 @@ void FEditorViewportClient::SetRealtimePreview()
 
 void FEditorViewportClient::SetViewMode(EViewModeIndex InViewModeIndex)
 {
+	ViewModeParam = -1; // Reset value when the viewmode changes
+
 	if (IsPerspective())
 	{
-		if (InViewModeIndex == VMI_PrimitiveDistanceAccuracy || InViewModeIndex == VMI_MeshTexCoordSizeAccuracy || InViewModeIndex == VMI_MaterialTexCoordScalesAccuracy)
+		if (InViewModeIndex == VMI_PrimitiveDistanceAccuracy || InViewModeIndex == VMI_MeshUVDensityAccuracy || InViewModeIndex == VMI_MaterialTextureScaleAccuracy)
 		{
-			FEditorBuildUtils::EditorBuildTextureStreaming(GetWorld(), InViewModeIndex == VMI_MaterialTexCoordScalesAccuracy, true);
+			FEditorBuildUtils::EditorBuildTextureStreaming(GetWorld(), InViewModeIndex == VMI_MaterialTextureScaleAccuracy, true);
 		}
 		PerspViewModeIndex = InViewModeIndex;
 		ApplyViewMode(PerspViewModeIndex, true, EngineShowFlags);
@@ -4664,6 +4714,12 @@ void FEditorViewportClient::SetViewModes(const EViewModeIndex InPerspViewModeInd
 	}
 
 	UpdateHiddenCollisionDrawing();
+	Invalidate();
+}
+
+void FEditorViewportClient::SetViewModeParam(int32 InViewModeParam)
+{
+	ViewModeParam = InViewModeParam;
 	Invalidate();
 }
 
@@ -4885,7 +4941,8 @@ void FEditorViewportClient::ProcessScreenShots(FViewport* InViewport)
 				InViewport,
 				GetScene(),
 				EngineShowFlags)
-				.SetRealtimeUpdate(IsRealtime()));
+				.SetRealtimeUpdate(IsRealtime())
+				.SetViewModeParam(ViewModeParam));
 			auto* ViewportBak = Viewport;
 			Viewport = InViewport;
 			FSceneView* View = CalcSceneView(&ViewFamily);

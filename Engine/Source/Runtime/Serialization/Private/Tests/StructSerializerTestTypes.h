@@ -216,7 +216,7 @@ struct FStructSerializerMapTestStruct
 
 	UPROPERTY()
 	TMap<FString, FString> StrToStr;
-	
+
 	UPROPERTY()
 	TMap<FString, FVector> StrToVec;
 
@@ -226,7 +226,7 @@ struct FStructSerializerMapTestStruct
 		IntToStr.Add(1, TEXT("One"));
 		IntToStr.Add(2, TEXT("Two"));
 		IntToStr.Add(3, TEXT("Three"));
-		
+
 		StrToStr.Add(TEXT("StrAll"), TEXT("All"));
 		StrToStr.Add(TEXT("StrYour"), TEXT("Your"));
 		StrToStr.Add(TEXT("StrBase"), TEXT("Base"));

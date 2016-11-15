@@ -1,0 +1,157 @@
+﻿INTSourceChangelist:0
+availability:docs
+title:Creating Textures using Blueprints and Render Targets
+description:A demonstration of how to use Blueprints and Render Targets to create Textures in UE4.
+crumbs:%ROOT%, Engine, Engine\Rendering\RenderTargets
+version:4.13
+Type:topic
+SkillLevel:Intermediate
+parent:Engine
+order:2
+Navigation:topic
+
+[TOC(start:2)]
+
+![](Creating_Textures_Header_00.png)
+
+When creating Textures for your Unreal Engine 4 (UE4) project, you will generally need to use an additional 2D painting program like Adobe Photoshop or GIMP. While authoring content in this manner can give you amazing results, there are some instances where having the ability to create content like this inside of UE4 would be faster and easier. In the following How To, we will take a look at how you can use Blueprints and Render Targets to create Textures for your UE4 projects.
+
+## Required Asset Creation & Setup
+[region:note]
+Please note that the following is not specific to any UE4 project type and can be accomplished in any project that uses UE4 version 4.13 or later. 
+[/region]
+
+Before we can create and use Textures, we need to set up the following three assets inside of the UE4 Content Browser:
+* **Render Target**
+* **Material**
+* **Blueprint** (Based on Actor)
+
+### Create a new Empty Level
+Creating a new **Empty Level** to place your Texture creation Blueprint in will make things easier to manage and also ensure that nothing else is affecting your Texture creation process. To create a new Empty Level inside of UE4, you will need to do the following:
+
+1. From the **Main Toolbar** go to **File** > **New Level**.
+
+	![](New_Level_01.png)
+
+1. From the New Level window that is displayed, click on the **Empty Level** option.
+
+	![](New_Level_02.png)
+
+1. After clicking on the Empty Level option, UE4 will load a new level that has nothing inside of it. Once that has happened, save the level by clicking on the **Save** button on the Main Toolbar and giving it a name of **BlueprintTextureCreation**.
+
+	![](New_Level_03.png)
+
+### Render Target Creation & Setup
+To create a **Render Target** inside of the UE4 Content Browser, you will need to do the following:
+
+1. Open up the UE4 Editor and then **right-click** Inside of the **Content Browser**. From the menu that is displayed, select the **Create Advanced Assets** section.
+
+	![](Create_RTT_01.png)
+
+1. From the Create Advanced Assets menu, move your mouse to the **Materials & Textures** section and select the **Render Target** option.
+
+	![](Create_RTT_02.png)
+
+1. Name the newly created Render Target, **RT_00**. Your Content Browser should look like the following image:
+
+	![](Create_RTT_03.png)
+	
+### Material Creation & Setup
+To create and set up a Material to use a Render Target, you will need to do the following inside of the UE4 Content Browser:
+
+1. Right-click in the Content Browser and from the **Create Basic Asset** section, select the **Material** option to create a new Material.  
+
+	![](Create_RTT_Material_01.png)
+
+1. Name the Material **RT_Material_00** and then **double-click** on it to open it up in the Material Editor.
+
+	![](Create_RTT_Material_02.png)
+
+1. With the RT_Material_00 open in the Material Editor, add the following Material Expression nodes to the Material Graph:
+
+	* **Texture Coordinate**
+	* **Constant**
+	* **Append**
+	* **Noise**
+
+	![](Create_RTT_Material_03.png)
+
+1. Once the required Material Expression nodes have been added to the Material Graph, connect the nodes so that they match the image below, then press the **Apply** button to compile the Material.
+
+	![](Create_RTT_Material_05.png)
+
+### Blueprint Creation & Setup
+To create and set up a Blueprint that will work with both Render Targets and Materials, you will need to do the following:
+
+1. Right-click in the Content Browser. From the menu that is displayed, under the **Create Basic Asset** section, select the **Blueprint** option to create a new Blueprint.  
+
+	![](Create_Blueprint_01.png)
+
+1. From the **Pick Parent Class** window, select the **Actor** class, and then name the Blueprint **BP_Texture_Creator**.
+
+	![](Create_Blueprint_02.png)
+
+1. Double-click on the BP_Texture_Creator Blueprint to open it up. Once it is opened, click on the **Event Graph** tab to open up the Event Graph.
+
+	![](Create_Blueprint_03.png)
+
+1. Add the following Blueprint nodes to the Event Graph:
+	* **Custom Event**
+	* **Draw Material to Render Target** 
+
+	![](Create_Blueprint_04.png)
+
+1. Select the Custom Event node and press **F2** so you can rename the Custom Event node to **Bake**. Then connect its output to the input of the Draw Material to Render Target node.
+
+	![](Create_Blueprint_05.png)
+
+1. Next, on the Draw Material to Render Target node, load the Render Target that was created previously into the **Texture Render Target** slot by clicking on the small white triangle next to the text **Select Asset** and then find the Render Target, RT_00, in the list and select it by clicking on it. Once that is completed, do the same for the **Material** section, selecting the **RT_Material_00**.
+
+	![](Create_Blueprint_06.png)
+
+1. Now, click on the **Construction Script** tab and drag off the Construction Script node to display the **Executable actions** menu. From this menu, locate the **Bake** event that was created in the Event Graph and click on it to add it. 
+
+	![](Create_Blueprint_07.png)
+
+1. Finally, press the **Compile** and **Save** buttons to compile and save your Blueprint.
+
+	![](Create_Blueprint_08.png)
+
+## Texture Creation
+Now that all of the required parts have been created and set up, we will take a look at how to create and save our Textures.
+
+1. Locate the **BP_Texture_Creator** Blueprint in the Content Browser and drag it into the level.
+
+	![](Create_Textures_01.png)
+
+1. Locate the **RT_Material_00** Material in the Content Browser and double-click on it to open it up. When opened, select the **Noise** Material Expression node.
+
+	![](Create_Textures_02.png)
+
+1. With the **Noise** Material Expression selected, go to the **Details** panel and input the following values into the following parameters. When this is complete, press the **Apply** button to compile the Material.
+
+	![](Create_Textures_03.png)
+
+	* **Scale:** 2.0 
+	* **Levels:** 8.0
+	* **Output Min:** -0.01
+	* **Level Scale:** 3.0
+
+1. Select the BP_Texture_Creator Blueprint that was placed in the level and move it slightly in any direction to update the RT_00 Render Target asset. When you do this, you should see RT_00 update and display exactly what was in RT_Material_00. 
+
+	![](Create_Textures_04.png)
+
+	[region:note]
+	Anytime you want to see or update the changes that were made in the Material, you will need to move the Blueprint in order for the changes to propagate. 
+	[/region]
+
+1. Inside of the Content Browser, right-click on the RT_00 Render Target. In the **Render Targets Actions** section of the menu, select the **Create Static Texture** option to create a new Texture asset that will display the output of RT_Material_00.
+
+	![](Create_Textures_05.png)
+
+1. When completed, you should have a new 2D Texture that will display the contents of RT_Material_00, and is ready for use in any other Material.
+
+	![](Create_Textures_06.png)
+
+## Conclusion
+Having the ability to create new Textures inside of UE4 opens up an entirely new world of content creation possibilities. Remember that, in order to see your changes, you will need to make sure that you compile your Material and slightly move your Blueprint so that your changes will be propagated to your Render Target.

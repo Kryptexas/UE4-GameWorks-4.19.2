@@ -1,39 +1,39 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2926677
 Availability:Public
-Title: Animation Fast Path Optimization
+Title:アニメーションのファストパスによる最適化
 Crumbs: %ROOT%, Engine, Engine/Animation
-Description:Optimizations that can be applied to the structure of animation graphs to gain performance
-version: 4.11
+Description:パフォーマンスを高めるためにアニメーション グラフの構造に適用できる最適化について説明します。
+version:4.11
 
 [EXCERPT:Intro]
-Animation Blueprints are very flexible ways of building animation systems. However the performance overheads 
-associated with running Blueprint-based logic can become quite high as your graph becomes more complex.
-To mitigate these overheads certain methods of structuring your animation graph can be used.
+Animation ブループリントはアニメーション システムを構築する非常にフレキシブルな方法です。ただし、ブループリント ベースのロジックの実行に伴うパフォーマンス オーバーヘッドは、 
+グラフが複雑になるにつれて、非常に高くなることがあります。
+こうしたオーバーヘッドを緩和するために、アニメーション グラフを構造化する方法があります。
 [/EXCERPT:Intro]
 
-## Access Member Variables Directly
+## メンバー変数に直接アクセスする
 
 ![](DirectMemberAccess.png)
 
-## Access Negated Boolean Member Variables
+## 無効化されたブール メンバー変数にアクセスする
 
 ![](NegatedBooleanAccess.png)
 
-## Access Members of a Nested Struct
+## ネスティングされた構造体のメンバーにアクセスする
 
 ![](NestedStructAccess.png)
 
-## Access Members Using "Break Struct" Nodes
+## "Break Struct" ノードを使用するメンバーにアクセスする
 
 ![](BreakStructAccess.png)
 
-Note that some "Break Struct" nodes, like "Break Transform" will not currently use the fast path as they perform
-conversions internally rather than simply copying data.
+"Break Transform" のような一部の "Break Struct" ノードでは、現在ファストパスを使用しません。
+単にデータをコピーするのではなく、内部で変換を行うからです。
 
-## Auditing and Maintaining Optimized Animation Blueprints
+## 最適化した Animation ブループリントを監査し、維持する
 
 ![](WarnAboutBlueprintUsage.png)
 
-Once an Animation Blueprint has been configured in an optimal way, subsequent iterations can potentially introduce
-new, non-performant constructs. To keep track of this you can enable the "Warn About Blueprint Usage" option in the 
-Animation Blueprint's Class Defaults. This is also useful when optimizing a particular Animation Blueprint.
+Animation ブループリントを最適な方法で設定後、その後のイタレーションで
+新しい効率の悪い construct になる可能性があります。これを追跡するために、Animation ブループリントのクラスのデフォルトにある 
+[Warn About Blueprint Usage] オプションを有効にすることができます。これは特定の Animation ブループリントを最適化する場合にも役立ちます。

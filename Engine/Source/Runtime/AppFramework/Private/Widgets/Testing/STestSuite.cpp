@@ -543,13 +543,16 @@ private:
 		const FText Text = LOCTEXT("TestText", "The quick brown fox jumps over the lazy dog 0123456789");
 		const FString FontName( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf" ) );
 		uint32 FontSize = 14;
+		FSlateFontInfo FontInfo(FontName, FontSize);
+		FontInfo.OutlineSettings.OutlineColor = FLinearColor::Blue;
+		FontInfo.OutlineSettings.OutlineSize = 2;
 
 		FSlateDrawElement::MakeText(
 			InParams.OutDrawElements,
 			InParams.Layer,
 			InParams.Geometry.ToPaintGeometry(FVector2D(0,0), InParams.Geometry.Size, FontScale),
 			Text.ToString(),
-			FSlateFontInfo( FontName,FontSize ),
+			FontInfo,
 			InParams.ClippingRect,
 			InParams.bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
 			FColor( 255, 255, 255 )
@@ -5834,15 +5837,17 @@ void RestoreSlateTestSuite()
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner("WidgetGalleryTab", FOnSpawnTab::CreateStatic(&SpawnWidgetGallery))
 		.SetDisplayName(LOCTEXT("WidgetGalleryTab", "Widget Gallery"))
 		.SetGroup(TestSuiteMenu::MenuRoot);
-	
+
+	const float DPIScaleFactor = FPlatformMisc::GetDPIScaleFactorAtPoint(10, 10);
+
 	TSharedRef<FTabManager::FLayout> Layout = FTabManager::NewLayout( "SlateTestSuite_Layout" )
 	->AddArea
 	(
-		FTabManager::NewArea(720,600)
+		FTabManager::NewArea(720 * DPIScaleFactor, 600 * DPIScaleFactor)
 #if PLATFORM_MAC
-		->SetWindow( FVector2D(420,32), false )
+		->SetWindow( FVector2D(420 * DPIScaleFactor, 32 * DPIScaleFactor), false )
 #else
-		->SetWindow( FVector2D(420,10), false )
+		->SetWindow( FVector2D(420 * DPIScaleFactor, 10 * DPIScaleFactor), false )
 #endif
 		->Split
 		(
@@ -5857,11 +5862,11 @@ void RestoreSlateTestSuite()
 	->AddArea
 	(
 		// This area will get a 400x600 window at 10,10
-		FTabManager::NewArea(400,600)
+		FTabManager::NewArea(400 * DPIScaleFactor, 600 * DPIScaleFactor)
 #if PLATFORM_MAC
-		->SetWindow( FVector2D(10,32), false )
+		->SetWindow( FVector2D(10 * DPIScaleFactor, 32 * DPIScaleFactor), false )
 #else
-		->SetWindow( FVector2D(10,10), false )
+		->SetWindow( FVector2D(10 * DPIScaleFactor, 10 * DPIScaleFactor), false )
 #endif
 		->Split
 		(

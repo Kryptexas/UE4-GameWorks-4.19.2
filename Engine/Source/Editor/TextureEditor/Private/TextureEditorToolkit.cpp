@@ -42,6 +42,7 @@ FTextureEditorToolkit::~FTextureEditorToolkit( )
 {
 	FReimportManager::Instance()->OnPreReimport().RemoveAll(this);
 	FReimportManager::Instance()->OnPostReimport().RemoveAll(this);
+	FEditorDelegates::OnAssetPostImport.RemoveAll(this);
 
 	GEditor->UnregisterForUndo(this);
 }
@@ -88,6 +89,7 @@ void FTextureEditorToolkit::InitTextureEditor( const EToolkitMode::Type Mode, co
 {
 	FReimportManager::Instance()->OnPreReimport().AddRaw(this, &FTextureEditorToolkit::HandleReimportManagerPreReimport);
 	FReimportManager::Instance()->OnPostReimport().AddRaw(this, &FTextureEditorToolkit::HandleReimportManagerPostReimport);
+	FEditorDelegates::OnAssetPostImport.AddRaw(this, &FTextureEditorToolkit::HandleAssetPostImport);
 
 	Texture = CastChecked<UTexture>(ObjectToEdit);
 
@@ -368,7 +370,7 @@ void FTextureEditorToolkit::PopulateQuickInfo( )
 	CalculateEffectiveTextureDimensions(MipLevel, PreviewEffectiveTextureWidth, PreviewEffectiveTextureHeight);
 
 	// Texture asset size
-	const uint32 Size = (Texture->GetResourceSize(EResourceSizeMode::Exclusive) + 512) / 1024;
+	const uint32 Size = (Texture->GetResourceSizeBytes(EResourceSizeMode::Exclusive) + 512) / 1024;
 
 	FNumberFormattingOptions SizeOptions;
 	SizeOptions.UseGrouping = false;
@@ -1130,6 +1132,14 @@ void FTextureEditorToolkit::HandleReimportManagerPreReimport( UObject* InObject 
 	TextureViewport->DisableRendering();
 }
 
+void FTextureEditorToolkit::HandleAssetPostImport(UFactory* InFactory, UObject* InObject)
+{
+	if (Cast<UTexture>(InObject) != nullptr && InObject == Texture)
+	{
+		// Refresh this object within the details panel
+		TexturePropertiesWidget->SetObject(InObject);
+	}
+}
 
 void FTextureEditorToolkit::HandleDesaturationChannelActionExecute( )
 {

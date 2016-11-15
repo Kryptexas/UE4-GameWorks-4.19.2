@@ -4,6 +4,7 @@
 #include "LinuxApplication.h"
 #include "FeedbackContextMarkup.h"
 #include "HAL/ThreadHeartBeat.h"
+#include "ModuleManager.h"
 
 //#include "LinuxNativeFeedbackContext.h"
 // custom dialogs

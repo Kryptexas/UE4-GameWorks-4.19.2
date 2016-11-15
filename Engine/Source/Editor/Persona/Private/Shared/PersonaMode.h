@@ -3,6 +3,10 @@
 #pragma once
 
 #include "IDocumentation.h"
+#include "AnimationEditorViewportClient.h"
+#include "IPersonaViewport.h"
+#include "PersonaModule.h"
+#include "SSingleObjectDetailsPanel.h"
 
 #define LOCTEXT_NAMESPACE "PersonaMode"
 
@@ -43,6 +47,8 @@ struct FPersonaTabs
 
 	// Advanced Preview Scene
 	static const FName AdvancedPreviewSceneSettingsID;
+
+	static const FName DetailsID;
 
 	// Blueprint Document
 
@@ -95,9 +101,12 @@ private:
 /////////////////////////////////////////////////////
 // FPersonaModeSharedData
 
-struct FPersonaModeSharedData 
+struct FPersonaModeSharedData : public IPersonaViewportState
 {
 	FPersonaModeSharedData();
+
+	void Save(const TSharedRef<FAnimationViewportClient>& InFromViewport);
+	void Restore(const TSharedRef<FAnimationViewportClient>& InToViewport);
 
 	// camera setup
 	FVector				ViewLocation;
@@ -119,11 +128,8 @@ struct FPersonaModeSharedData
 
 	// viewport setup
 	int32				ViewportType;
-	int32				PlaybackSpeedMode;
+	EAnimationPlaybackSpeeds::Type PlaybackSpeedMode;
 	int32				LocalAxesMode;
-
-	// Playback state
-	FSingleAnimationPlayData PlaybackData;
 };
 
 /////////////////////////////////////////////////////
@@ -170,7 +176,7 @@ public:
 struct FMorphTargetTabSummoner : public FWorkflowTabFactory
 {
 public:
-	FMorphTargetTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp);
+	FMorphTargetTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnPostUndo);
 
 	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override;
 
@@ -179,14 +185,19 @@ public:
 	{
 		return  IDocumentation::Get()->CreateToolTip(LOCTEXT("MorphTargetTooltip", "The Morph Target tab lets you preview any morph targets (aka blend shapes) available for the current mesh."), NULL, TEXT("Shared/Editors/Persona"), TEXT("MorphTarget_Window"));
 	}
+
+private:
+	TWeakPtr<class IPersonaPreviewScene> PreviewScene;
+	FSimpleMulticastDelegate& OnPostUndo;
 };
+
 /////////////////////////////////////////////////////
 // FAnimCurveViewerTabSummoner
 
 struct FAnimCurveViewerTabSummoner : public FWorkflowTabFactory
 {
 public:
-	FAnimCurveViewerTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp);
+	FAnimCurveViewerTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, const TSharedRef<IEditableSkeleton>& InEditableSkeleton, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnCurvesChanged, FSimpleMulticastDelegate& InOnPostUndo);
 
 	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override;
 
@@ -195,6 +206,12 @@ public:
 	{
 		return  IDocumentation::Get()->CreateToolTip(LOCTEXT("AnimCurveViewTooltip", "The Anim Curve Viewer tab lets you preview any animation curves available for the current mesh from preview asset."), NULL, TEXT("Shared/Editors/Persona"), TEXT("AnimCurveView_Window"));
 	}
+
+private:
+	TWeakPtr<class IEditableSkeleton> EditableSkeleton;
+	TWeakPtr<class IPersonaPreviewScene> PreviewScene;
+	FSimpleMulticastDelegate& OnCurvesChanged;
+	FSimpleMulticastDelegate& OnPostUndo;
 };
 
 
@@ -203,7 +220,7 @@ public:
 
 struct FAnimationAssetBrowserSummoner : public FWorkflowTabFactory
 {
-	FAnimationAssetBrowserSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp);
+	FAnimationAssetBrowserSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, const TSharedRef<IPersonaToolkit>& InPersonaToolkit, FOnOpenNewAsset InOnOpenNewAsset, FOnAnimationSequenceBrowserCreated InOnAnimationSequenceBrowserCreated, bool bInShowHistory);
 
 	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override;
 
@@ -212,6 +229,12 @@ struct FAnimationAssetBrowserSummoner : public FWorkflowTabFactory
 	{
 		return  IDocumentation::Get()->CreateToolTip(LOCTEXT("AnimAssetBrowserTooltip", "The Asset Browser lets you browse all animation-related assets (animations, blend spaces etc)."), NULL, TEXT("Shared/Editors/Persona"), TEXT("AssetBrowser_Window"));
 	}
+
+private:
+	TWeakPtr<class IPersonaToolkit> PersonaToolkit;
+	FOnOpenNewAsset OnOpenNewAsset;
+	FOnAnimationSequenceBrowserCreated OnAnimationSequenceBrowserCreated;
+	bool bShowHistory;
 };
 
 /////////////////////////////////////////////////////
@@ -219,9 +242,17 @@ struct FAnimationAssetBrowserSummoner : public FWorkflowTabFactory
 
 struct FPreviewViewportSummoner : public FWorkflowTabFactory
 {
-	FPreviewViewportSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp);
+	FPreviewViewportSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, const TSharedRef<ISkeletonTree>& InSkeletonTree, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnPostUndo, const TSharedPtr<FBlueprintEditor>& InBlueprintEditor, FOnViewportCreated InOnViewportCreated, bool bShowTimeline, bool bInShowStats);
 
 	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override;
+
+	TWeakPtr<ISkeletonTree> SkeletonTree;
+	TWeakPtr<IPersonaPreviewScene> PreviewScene;
+	FSimpleMulticastDelegate& OnPostUndo;
+	TWeakPtr<FBlueprintEditor> BlueprintEditor;
+	FOnViewportCreated OnViewportCreated;
+	bool bShowTimeline;
+	bool bShowStats;
 };
 
 /////////////////////////////////////////////////////
@@ -230,7 +261,7 @@ struct FPreviewViewportSummoner : public FWorkflowTabFactory
 struct FRetargetManagerTabSummoner : public FWorkflowTabFactory
 {
 public:
-	FRetargetManagerTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp);
+	FRetargetManagerTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, const TSharedRef<IEditableSkeleton>& InEditableSkeleton, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnPostUndo);
 
 	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override;
 
@@ -239,6 +270,40 @@ public:
 	{
 		return  IDocumentation::Get()->CreateToolTip(LOCTEXT("RetargetSourceTooltip", "In this panel, you can manage retarget sources for different body types"), NULL, TEXT("Shared/Editors/Persona"), TEXT("RetargetManager"));
 	}
+
+private:
+	TWeakPtr<class IEditableSkeleton> EditableSkeleton;
+	TWeakPtr<class IPersonaPreviewScene> PreviewScene;
+	FSimpleMulticastDelegate& OnPostUndo;
+};
+
+/////////////////////////////////////////////////////
+// SPersonaPreviewPropertyEditor
+
+class SPersonaPreviewPropertyEditor : public SSingleObjectDetailsPanel
+{
+public:
+	SLATE_BEGIN_ARGS(SPersonaPreviewPropertyEditor) {}
+	SLATE_END_ARGS()
+
+private:
+	// Pointer to preview scene
+	TWeakPtr<IPersonaPreviewScene> PreviewScene;
+
+public:
+	void Construct(const FArguments& InArgs, TSharedRef<IPersonaPreviewScene> InPreviewScene);
+
+	// SSingleObjectDetailsPanel interface
+	virtual UObject* GetObjectToObserve() const override;
+	virtual TSharedRef<SWidget> PopulateSlot(TSharedRef<SWidget> PropertyEditorWidget) override;
+	// End of SSingleObjectDetailsPanel interface
+
+private:
+	void HandlePropertyChanged(const FPropertyChangedEvent& InPropertyChangedEvent);
+	FReply HandleApplyChanges();
+
+private:
+	bool bPropertyEdited;
 };
 
 /////////////////////////////////////////////////////
@@ -256,7 +321,7 @@ namespace EAnimBlueprintEditorMode
 struct FAnimBlueprintPreviewEditorSummoner : public FWorkflowTabFactory
 {
 public:
-	FAnimBlueprintPreviewEditorSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp);
+	FAnimBlueprintPreviewEditorSummoner(TSharedPtr<class FBlueprintEditor> InBlueprintEditor, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene);
 
 	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override;
 
@@ -271,6 +336,9 @@ private:
 	/** Handle changing of editor mode */
 	void OnCheckedChanged(ECheckBoxState NewType, EAnimBlueprintEditorMode::Type Mode);
 	EAnimBlueprintEditorMode::Type CurrentMode;
+
+	TWeakPtr<class FBlueprintEditor> BlueprintEditor;
+	TWeakPtr<class IPersonaPreviewScene> PreviewScene;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -278,13 +346,14 @@ private:
 class FAnimBlueprintParentPlayerEditorSummoner : public FWorkflowTabFactory
 {
 public:
-	FAnimBlueprintParentPlayerEditorSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp);
+	FAnimBlueprintParentPlayerEditorSummoner(TSharedPtr<class FBlueprintEditor> InBlueprintEditor, FSimpleMulticastDelegate& InOnPostUndo);
 
 	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override;
 	virtual FText GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const override;
 
 private:
-
+	TWeakPtr<class FBlueprintEditor> BlueprintEditor;
+	FSimpleMulticastDelegate& OnPostUndo;
 };
 
 /////////////////////////////////////////////////////
@@ -293,9 +362,27 @@ private:
 struct FAdvancedPreviewSceneTabSummoner : public FWorkflowTabFactory
 {
 public:
- 	FAdvancedPreviewSceneTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp);
+ 	FAdvancedPreviewSceneTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene);
 	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override;
 	virtual FText GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const override;
+
+private:
+	TWeakPtr<class IPersonaPreviewScene> PreviewScene;
+};
+
+/////////////////////////////////////////////////////
+// FDetailsTabSummoner
+
+struct FDetailsTabSummoner : public FWorkflowTabFactory
+{
+public:
+	FDetailsTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, FOnDetailsCreated InOnDetailsCreated);
+	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override;
+	virtual FText GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const override;
+
+private:
+	FOnDetailsCreated OnDetailsCreated;
+	TSharedPtr<class SPersonaDetails> PersonaDetails;
 };
 
 #undef LOCTEXT_NAMESPACE

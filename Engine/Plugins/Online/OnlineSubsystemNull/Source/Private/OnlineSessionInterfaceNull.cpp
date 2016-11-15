@@ -23,7 +23,7 @@ void FOnlineSessionInfoNull::Init(const FOnlineSubsystemNull& Subsystem)
 {
 	// Read the IP from the system
 	bool bCanBindAll;
-	HostAddr = ISocketSubsystem::Get()->GetLocalHostAddr(*GLog, bCanBindAll);
+	HostAddr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->GetLocalHostAddr(*GLog, bCanBindAll);
 
 	// The below is a workaround for systems that set hostname to a distinct address from 127.0.0.1 on a loopback interface.
 	// See e.g. https://www.debian.org/doc/manuals/debian-reference/ch05.en.html#_the_hostname_resolution
@@ -676,7 +676,7 @@ uint32 FOnlineSessionNull::JoinLANSession(int32 PlayerNum, FNamedOnlineSession* 
 
 		uint32 IpAddr;
 		SearchSessionInfo->HostAddr->GetIp(IpAddr);
-		SessionInfo->HostAddr = ISocketSubsystem::Get()->CreateInternetAddr(IpAddr, SearchSessionInfo->HostAddr->GetPort());
+		SessionInfo->HostAddr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr(IpAddr, SearchSessionInfo->HostAddr->GetPort());
 		Result = ERROR_SUCCESS;
 	}
 
@@ -1059,7 +1059,7 @@ void FOnlineSessionNull::ReadSessionFromPacket(FNboSerializeFromBufferNull& Pack
 
 	// Allocate and read the connection data
 	FOnlineSessionInfoNull* NullSessionInfo = new FOnlineSessionInfoNull();
-	NullSessionInfo->HostAddr = ISocketSubsystem::Get()->CreateInternetAddr();
+	NullSessionInfo->HostAddr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();
 	Packet >> *NullSessionInfo;
 	Session->SessionInfo = MakeShareable(NullSessionInfo); 
 

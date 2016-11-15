@@ -102,7 +102,7 @@ struct FActiveGameplayCueContainer : public FFastArraySerializer
 	UPROPERTY()
 	class UAbilitySystemComponent*	Owner;
 
-	/** Should this container only rpelicate in minimal replication mode */
+	/** Should this container only replicate in minimal replication mode */
 	bool bMinimalReplication;
 
 	void AddCue(const FGameplayTag& Tag, const FPredictionKey& PredictionKey, const FGameplayCueParameters& Parameters);

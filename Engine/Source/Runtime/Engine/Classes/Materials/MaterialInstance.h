@@ -182,10 +182,6 @@ class UMaterialInstance : public UMaterialInterface
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = MaterialInstance)
 	uint32 bOverrideSubsurfaceProfile:1;
 
-	/** Unique ID for this material, used for caching during distributed lighting */
-	UPROPERTY()
-	FGuid ParentLightingGuid;
-
 	/** Font parameters. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=MaterialInstance)
 	TArray<struct FFontParameterValue> FontParameterValues;
@@ -302,12 +298,12 @@ public:
 	ENGINE_API virtual bool IsPropertyActive(EMaterialProperty InProperty) const override;
 #if WITH_EDITOR
 	/** Allows material properties to be compiled with the option of being overridden by the material attributes input. */
-	ENGINE_API virtual int32 CompilePropertyEx(class FMaterialCompiler* Compiler, EMaterialProperty Property) override;
+	ENGINE_API virtual int32 CompilePropertyEx(class FMaterialCompiler* Compiler, const FGuid& AttributeID) override;
 #endif // WITH_EDITOR
 	//~ End UMaterialInterface Interface.
 
 	//~ Begin UObject Interface.
-	virtual ENGINE_API SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	virtual ENGINE_API void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 	virtual ENGINE_API void PostInitProperties() override;	
 #if WITH_EDITOR
 	virtual ENGINE_API void BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPlatform) override;
@@ -391,6 +387,15 @@ public:
 	 */
 	ENGINE_API virtual void LogMaterialsAndTextures(FOutputDevice& Ar, int32 Indent) const override;
 #endif
+
+	/**
+	 *	Returns all the Guids related to this material. For material instances, this includes the parent hierarchy.
+	 *  Used for versioning as parent changes don't update the child instance Guids.
+	 *
+	 *	@param	bIncludeTextures	Whether to include the referenced texture Guids.
+	 *	@param	OutGuids			The list of all resource guids affecting the precomputed lighting system and texture streamer.
+	 */
+	ENGINE_API virtual void GetLightingGuidChain(bool bIncludeTextures, TArray<FGuid>& OutGuids) const override;
 
 protected:
 	/**

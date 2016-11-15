@@ -373,13 +373,12 @@ void FFindInBlueprintsPin::FinalizeSearchData()
 
 	if(!SchemaName.IsEmpty())
 	{
-		UEdGraphSchema* Schema = nullptr;
 		UClass* SchemaClass = FindObject<UClass>(ANY_PACKAGE, *SchemaName, true);
 		if(SchemaClass)
 		{
-			Schema = SchemaClass->GetDefaultObject<UEdGraphSchema>();
-		} 
-		IconColor = Schema->GetPinTypeColor(PinType);
+			UEdGraphSchema* Schema = SchemaClass->GetDefaultObject<UEdGraphSchema>();
+			IconColor = Schema->GetPinTypeColor(PinType);
+		}
 
 		SchemaName.Empty();
 	}
@@ -413,7 +412,7 @@ FReply FFindInBlueprintsProperty::OnClick()
 				const TArray<USCS_Node*>& Nodes = Blueprint->SimpleConstructionScript->GetAllNodes();
 				for (USCS_Node* Node : Nodes)
 				{
-					if (Node->VariableName.ToString() == DisplayText.ToString())
+					if (Node->GetVariableName().ToString() == DisplayText.ToString())
 					{
 						UBlueprintGeneratedClass* GeneratedClass = Cast<UBlueprintGeneratedClass>(Blueprint->GeneratedClass);
 						if (GeneratedClass)

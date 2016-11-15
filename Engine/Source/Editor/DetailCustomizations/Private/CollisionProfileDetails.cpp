@@ -1197,26 +1197,6 @@ void SProfileListItem::Construct(const FArguments& InArgs, const TSharedRef<STab
 	SMultiColumnTableRow< TSharedPtr<FProfileListItem> >::Construct(FSuperRowType::FArguments(), InOwnerTableView);
 }
 
-int32 UCollisionProfile::ReturnContainerIndexFromChannelName(FName& DisplayName)  const
-{
-	// if we don't find it in new name
-	// @note: I think we can search redirect first in case anybody would like to reuse the name
-	// but that seems overhead moving forward. However that is possibility. 
-	// this code is only one that has to support old redirects
-	// other code should only use new names
-	int32 NameIndex = ChannelDisplayNames.Find(DisplayName);
-	if(NameIndex == INDEX_NONE)
-	{
-		// search for redirects
-		const FName* NewName = CollisionChannelRedirectsMap.Find(DisplayName);
-		if(NewName)
-		{
-			return ChannelDisplayNames.Find(*NewName);
-		}
-	}
-
-	return NameIndex;
-}
 FText SProfileListItem::GetObjectType() const
 {
 	return FText::FromName(ProfileTemplate->ObjectTypeName);

@@ -176,6 +176,13 @@ void USoundNode::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 
 	MarkPackageDirty();
 }
+
+void USoundNode::PostLoad()
+{
+	Super::PostLoad();
+	// Make sure sound nodes are transactional (so they work with undo system)
+	SetFlags(RF_Transactional);
+}
 #endif // WITH_EDITOR
 
 #if WITH_EDITOR

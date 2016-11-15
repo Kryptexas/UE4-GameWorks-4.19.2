@@ -1,16 +1,16 @@
-﻿INTSourceChangelist:2940199
+﻿INTSourceChangelist:3081127
 Title:iOS でアプリ内課金を使用する
-Description:iOS ゲームのアプリ内課金を使ってゲームに有料コンテンツを追加する
+Description:iOS ゲームのアプリ内課金を使ってゲームに追加の有料コンテンツを提供する
 Crumbs:
 Availability:Public
 Parent:Platforms/iOS
 order:1
 type:howto
-
+Related:
 
 ## コンフィギュレーション
 
-1. iTunes Connect でアプリ内課金を設定するステップを説明します。
+1. iTunes Connect でアプリ内課金を設定するためのステップを説明します。
 
     [REGION:note]
 	Google Play の id はすべて小文字でなければなりません。さらに、iOS と Android の ID を一致させておくとブループリントの設定がとても楽になります。

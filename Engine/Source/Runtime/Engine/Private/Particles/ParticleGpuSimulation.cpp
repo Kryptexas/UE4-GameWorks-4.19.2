@@ -470,6 +470,8 @@ BEGIN_UNIFORM_BUFFER_STRUCT(FGPUSpriteEmitterUniformParameters,)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, SizeBySpeed)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, SubImageSize)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, TangentSelector)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, CameraFacingBlend)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, RemoveHMDRoll)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, RotationRateScale)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, RotationBias)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, CameraMotionBlurAmount)
@@ -631,7 +633,11 @@ public:
 
 	FGPUSpriteVertexFactory()
 		: FParticleVertexFactoryBase(PVFT_MAX, ERHIFeatureLevel::Num)
+		, ParticleIndicesBuffer(nullptr)
 		, ParticleIndicesOffset(0)
+		, PositionTextureRHI(nullptr)
+		, VelocityTextureRHI(nullptr)
+		, AttributesTextureRHI(nullptr)
 	{}
 
 	/**
@@ -2446,10 +2452,12 @@ public:
 	/** Initialize RHI resources. */
 	virtual void InitRHI() override
 	{
-		if ( ParticleCount > 0 && RHISupportsGPUParticles() )
+		if ( RHISupportsGPUParticles() )
 		{
+			// Metal *requires* that a buffer be bound - you cannot protect access with a branch in the shader.
+			int32 Count = FMath::Max(ParticleCount, 1);
 			const int32 BufferStride = sizeof(FParticleIndex);
-			const int32 BufferSize = ParticleCount * BufferStride;
+			const int32 BufferSize = Count * BufferStride;
 			uint32 Flags = BUF_Static | /*BUF_KeepCPUAccessible | */BUF_ShaderResource;
 			FRHIResourceCreateInfo CreateInfo;
 			VertexBufferRHI = RHICreateVertexBuffer(BufferSize, Flags, CreateInfo);
@@ -2537,31 +2545,35 @@ public:
 	 */
 	void InitResources(const TArray<uint32>& Tiles, const FParticleEmitterSimulationResources* InEmitterSimulationResources)
 	{
-		check(InEmitterSimulationResources);
+		ensure(InEmitterSimulationResources);
 
-		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
-			FInitParticleSimulationGPUCommand,
-			FParticleSimulationGPU*, Simulation, this,
-			TArray<uint32>, Tiles, Tiles,
-			const FParticleEmitterSimulationResources*, InEmitterSimulationResources, InEmitterSimulationResources,
+		if (InEmitterSimulationResources)
 		{
-			// Release vertex buffers.
-			Simulation->VertexBuffer.ReleaseResource();
-			Simulation->TileVertexBuffer.ReleaseResource();
+			ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+				FInitParticleSimulationGPUCommand,
+				FParticleSimulationGPU*, Simulation, this,
+				TArray<uint32>, Tiles, Tiles,
+				const FParticleEmitterSimulationResources*, InEmitterSimulationResources, InEmitterSimulationResources,
+				{
+					// Release vertex buffers.
+					Simulation->VertexBuffer.ReleaseResource();
+					Simulation->TileVertexBuffer.ReleaseResource();
 
-			// Initialize new buffers with list of tiles.
-			Simulation->VertexBuffer.Init(Tiles);
-			Simulation->TileVertexBuffer.Init(Tiles);
+					// Initialize new buffers with list of tiles.
+					Simulation->VertexBuffer.Init(Tiles);
+					Simulation->TileVertexBuffer.Init(Tiles);
 
-			// Store simulation resources for this emitter.
-			Simulation->EmitterSimulationResources = InEmitterSimulationResources;
+					// Store simulation resources for this emitter.
+					Simulation->EmitterSimulationResources = InEmitterSimulationResources;
 
-			// If a visualization vertex factory has been created, initialize it.
-			if (Simulation->VectorFieldVisualizationVertexFactory)
-			{
-				Simulation->VectorFieldVisualizationVertexFactory->InitResource();
-			}
-		});
+					// If a visualization vertex factory has been created, initialize it.
+					if (Simulation->VectorFieldVisualizationVertexFactory)
+					{
+						Simulation->VectorFieldVisualizationVertexFactory->InitResource();
+					}
+				});
+		}
+
 		bDirty_GameThread = false;
 		bReleased_GameThread = false;
 	}
@@ -2906,7 +2918,7 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 					// Extensibility TODO: This call to AddSortedGPUSimulation is very awkward. When rendering a frame we need to
 					// accumulate all GPU particle emitters that need to be sorted. That is so they can be sorted in one big radix
 					// sort for efficiency. Ideally that state is per-scene renderer but the renderer doesn't know anything about particles.
-					const int32 SortedBufferOffset = FXSystem->AddSortedGPUSimulation(Simulation, View->ViewMatrices.ViewOrigin);
+					const int32 SortedBufferOffset = FXSystem->AddSortedGPUSimulation(Simulation, View->ViewMatrices.GetViewOrigin());
 					check(SimulationResources->SortedVertexBuffer.IsInitialized());
 					VertexFactory.SetVertexBuffer(&SimulationResources->SortedVertexBuffer, SortedBufferOffset);
 				}
@@ -3187,7 +3199,8 @@ public:
 		FVector ComponentScale = Component->ComponentToWorld.GetScale3D();
 		// Figure out if we need to replicate the X channel of size to Y.
 		const bool bSquare = (EmitterInfo.ScreenAlignment == PSA_Square)
-			|| (EmitterInfo.ScreenAlignment == PSA_FacingCameraPosition);
+			|| (EmitterInfo.ScreenAlignment == PSA_FacingCameraPosition)
+			|| (EmitterInfo.ScreenAlignment == PSA_FacingCameraDistanceBlend);
 
 		DynamicData->EmitterDynamicParameters.LocalToWorldScale.X = ComponentScale.X;
 		DynamicData->EmitterDynamicParameters.LocalToWorldScale.Y = (bSquare) ? ComponentScale.X : ComponentScale.Y;
@@ -3998,7 +4011,8 @@ private:
 
 		// Figure out if we need to replicate the X channel of size to Y.
 		const bool bSquare = (EmitterInfo.ScreenAlignment == PSA_Square)
-			|| (EmitterInfo.ScreenAlignment == PSA_FacingCameraPosition);
+			|| (EmitterInfo.ScreenAlignment == PSA_FacingCameraPosition)
+			|| (EmitterInfo.ScreenAlignment == PSA_FacingCameraDistanceBlend);
 
 		// Compute the distance covered by the emitter during this time period.
 		const FVector EmitterLocation = (RequiredModule->bUseLocalSpace) ? FVector::ZeroVector : Location;
@@ -4398,6 +4412,13 @@ void FFXSystem::SortGPUParticles(FRHICommandListImmediate& RHICmdList)
 			GParticleSortBuffers.GetSortedVertexBufferRHI(BufferIndex);
 		ParticleSimulationResources->SortedVertexBuffer.VertexBufferSRV =
 			GParticleSortBuffers.GetSortedVertexBufferSRV(BufferIndex);
+	}
+	else
+	{
+		ParticleSimulationResources->SortedVertexBuffer.VertexBufferRHI =
+		GParticleSortBuffers.GetSortedVertexBufferRHI(0);
+		ParticleSimulationResources->SortedVertexBuffer.VertexBufferSRV =
+		GParticleSortBuffers.GetSortedVertexBufferSRV(0);
 	}
 }
 
@@ -4821,6 +4842,30 @@ static void SetGPUSpriteResourceData( FGPUSpriteResources* Resources, const FGPU
 
 		// For locked rotation about Z the particle should be rotated by 90 degrees.
 		Resources->UniformParameters.RotationBias = (LockAxisFlag == EPAL_ROTATE_Z) ? (0.5f * PI) : 0.0f;
+	}
+
+	// Alignment overrides
+	Resources->UniformParameters.RemoveHMDRoll = InResourceData.bRemoveHMDRoll ? 1.f : 0.f;
+
+	if (InResourceData.ScreenAlignment == PSA_FacingCameraDistanceBlend)
+	{
+		float DistanceBlendMinSq = InResourceData.MinFacingCameraBlendDistance * InResourceData.MinFacingCameraBlendDistance;
+		float DistanceBlendMaxSq = InResourceData.MaxFacingCameraBlendDistance * InResourceData.MaxFacingCameraBlendDistance;
+		float InvBlendRange = 1.f / FMath::Max(DistanceBlendMaxSq - DistanceBlendMinSq, 1.f);
+		float BlendScaledMinDistace = DistanceBlendMinSq * InvBlendRange;
+
+		Resources->UniformParameters.CameraFacingBlend.X = 1.f;
+		Resources->UniformParameters.CameraFacingBlend.Y = InvBlendRange;
+		Resources->UniformParameters.CameraFacingBlend.Z = BlendScaledMinDistace;
+
+		// Treat as camera facing if needed
+		Resources->UniformParameters.TangentSelector.W = 1.0f;
+	}
+	else
+	{
+		Resources->UniformParameters.CameraFacingBlend.X = 0.f;
+		Resources->UniformParameters.CameraFacingBlend.Y = 0.f;
+		Resources->UniformParameters.CameraFacingBlend.Z = 0.f;
 	}
 
 	Resources->UniformParameters.RotationRateScale = InResourceData.RotationRateScale;

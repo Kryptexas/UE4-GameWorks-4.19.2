@@ -946,6 +946,8 @@ namespace LocalizationConfigurationScript
 			ConfigSection.Add( TEXT("ArchiveName"), GetArchiveFileName(Target) );
 			ConfigSection.Add( TEXT("ResourceName"), GetLocResFileName(Target) );
 
+			ConfigSection.Add( TEXT("bSkipSourceCheck"), Target->Settings.CompileSettings.SkipSourceCheck ? TEXT("true") : TEXT("false") );
+
 			if (Target->Settings.SupportedCulturesStatistics.IsValidIndex(Target->Settings.NativeCultureIndex))
 			{
 				ConfigSection.Add( TEXT("NativeCulture"), Target->Settings.SupportedCulturesStatistics[Target->Settings.NativeCultureIndex].CultureName );
@@ -1021,7 +1023,7 @@ namespace LocalizationConfigurationScript
 			ConfigSection.Add(TEXT("DestinationPath"), DestinationPath);
 
 			ConfigSection.Add(TEXT("ManifestName"), GetManifestFileName(Target));
-
+			ConfigSection.Add(TEXT("ArchiveName"), GetArchiveFileName(Target));
 			ConfigSection.Add(TEXT("ResourceName"), GetLocResFileName(Target));
 
 		}

@@ -2,7 +2,7 @@ Availability:Public
 Title:GameState
 Crumbs:%ROOT%, Gameplay/Framework
 Description:The GameState is responsible for monitoring the state of the game on the client.
-Version: 4.9
+Version: 4.14
 
 
 The **GameState** is responsible for monitoring the state of the game on the client.
@@ -10,3 +10,13 @@ The **GameState** is responsible for monitoring the state of the game on the cli
 Conceptually, think of the GameState as the state of the game. It can keep track of properties like score, list of connected players, number of caps in a CTF game, where the pieces are in a chess game, 
 what missions you have completed in an open world game, etc. In general, the GameState should track properties that change during gameplay. The GameState exists on the server and all clients and can
  replicate freely to keep all machines up to date.
+
+`AGameStateBase` is the base implementation, and some of it's default functionality includes:
+
+$ GetServerWorldTimeSeconds : This is the server's version of World::GetTimeSeconds and will be synchronized on both the client and server, so it is a reliable time to use for replication
+
+$ PlayerArray : This is the array of all APlayerState objects, which is useful when doing something to all players in a game
+
+$ HasBegunPlay : Returns true if the BeginPlay function has been called on actors in the game
+
+`AGameState` is a subclass of `AGameStateBase` that handles the functionality of `AGameMode`. For more information read the [](Gameplay/Framework/GameMode) documentation.

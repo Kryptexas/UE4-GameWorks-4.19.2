@@ -8,7 +8,9 @@
 
 #include "Allocators/AnsiAllocator.h"
 
-#define MALLOC_LEAKDETECTION 0
+#ifndef MALLOC_LEAKDETECTION
+	#define MALLOC_LEAKDETECTION 0
+#endif
 
 #if MALLOC_LEAKDETECTION
 
@@ -25,7 +27,8 @@ class FMallocLeakDetection
 		}
 		static const int32 Depth = 32;
 		uint64 CallStack[Depth];
-		uint32 FrameNumber;
+		uint32 FirstFame;
+		uint32 LastFrame;
 		uint32 Size;
 		uint32 Count;
 
@@ -47,16 +50,18 @@ class FMallocLeakDetection
 		{
 			return !(*this == Other);
 		}
+
+		uint32 GetHash() const 
+		{
+			return FCrc::MemCrc32(CallStack, sizeof(CallStack), 0);
+		}
 	};
 
 	FMallocLeakDetection();
 	~FMallocLeakDetection();
 
-	
-
 	void AddCallstack(FCallstackTrack& Callstack);
 	void RemoveCallstack(FCallstackTrack& Callstack);
-	void HandleMallocLeakCommandInternal(const TArray< FString >& Args);
 
 	/** List of all currently allocated pointers */
 	TMap<void*, FCallstackTrack> OpenPointers;
@@ -64,19 +69,28 @@ class FMallocLeakDetection
 	/** List of all unique callstacks with allocated memory */
 	TMap<uint32, FCallstackTrack> UniqueCallstacks;
 
-	bool bRecursive;
-	bool bCaptureAllocs;
-	bool bDumpOustandingAllocs;	
+	/** Set of callstacks that are known to delete memory (never cleared) */
+	TSet<uint32>	KnownDeleters;
+
+	/** Contexts that are associated with allocations */
+	TMap<void*, FString>		PointerContexts;
+
+	/** Stack of contects */
+	TArray<FString>				Contexts;
+
+	bool	bRecursive;
+	bool	bCaptureAllocs;
+	int32	MinAllocationSize;
+	bool	bDumpOustandingAllocs;	
 		
 	FCriticalSection AllocatedPointersCritical;	
 
 public:	
 
 	static FMallocLeakDetection& Get();
-	static void HandleMallocLeakCommand(const TArray< FString >& Args);
 
-	void SetAllocationCollection(bool bEnabled);
-	void DumpOpenCallstacks(uint32 FilterSize = 0);
+	void SetAllocationCollection(bool bEnabled, int32 Size=0);
+	void DumpOpenCallstacks(uint32 FilterSize = 0, const TCHAR* FileName=nullptr);
 	void ClearData();
 
 	bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar);
@@ -89,6 +103,12 @@ public:
 
 	/** Removes allocated pointer from list */
 	void Free(void* Ptr);	
+
+	/** Push/Pop contects that will be associated with allocations. This is very rough.
+	 not thread-safe (let alone TLS), and should probably be removed. However if you really
+	 need to associate state with allocations it's very useful.... Cavet Emptor! */
+	void PushContext(const FString& Context);
+	void PopContext();
 };
 
 /**
@@ -147,7 +167,8 @@ public:
 
 	virtual void DumpAllocatorStats(FOutputDevice& Ar) override
 	{
-		Verify.DumpOpenCallstacks(1024 * 1024);
+		FScopeLock Lock(&AllocatedPointersCritical);
+		//Verify.DumpOpenCallstacks(1024 * 1024);
 		UsedMalloc->DumpAllocatorStats(Ar);
 	}
 
@@ -158,7 +179,11 @@ public:
 
 	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override
 	{
-		Verify.Exec(InWorld, Cmd, Ar);
+		FScopeLock Lock(&AllocatedPointersCritical);
+		if (Verify.Exec(InWorld, Cmd, Ar))
+		{
+			return true;
+		}
 		return UsedMalloc->Exec(InWorld, Cmd, Ar);
 	}
 

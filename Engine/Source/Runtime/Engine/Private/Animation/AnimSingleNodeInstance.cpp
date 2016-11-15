@@ -375,10 +375,10 @@ void UAnimSingleNodeInstance::StepForward()
 	if (UAnimSequence* Sequence = Cast<UAnimSequence>(CurrentAsset))
 	{
 		FAnimSingleNodeInstanceProxy& Proxy = GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>();
-
-		float KeyLength = Sequence->SequenceLength/Sequence->NumFrames+SMALL_NUMBER;
+		const FAnimKeyHelper Helper(Sequence->SequenceLength, Sequence->NumFrames);
+		float KeyLength = Helper.TimePerKey() + SMALL_NUMBER;
 		float Fraction = (Proxy.GetCurrentTime()+KeyLength)/Sequence->SequenceLength;
-		int32 Frames = FMath::Clamp<int32>((float)(Sequence->NumFrames*Fraction), 0, Sequence->NumFrames);
+		int32 Frames = FMath::Clamp<int32>((float)(Helper.LastKey()*Fraction), 0, Helper.LastKey());
 		SetPosition(Frames*KeyLength);
 	}	
 }
@@ -389,9 +389,10 @@ void UAnimSingleNodeInstance::StepBackward()
 	{
 		FAnimSingleNodeInstanceProxy& Proxy = GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>();
 
-		float KeyLength = Sequence->SequenceLength/Sequence->NumFrames+SMALL_NUMBER;
+		const FAnimKeyHelper Helper(Sequence->SequenceLength, Sequence->NumFrames);
+		float KeyLength = Helper.TimePerKey() + SMALL_NUMBER;
 		float Fraction = (Proxy.GetCurrentTime()-KeyLength)/Sequence->SequenceLength;
-		int32 Frames = FMath::Clamp<int32>((float)(Sequence->NumFrames*Fraction), 0, Sequence->NumFrames);
+		int32 Frames = FMath::Clamp<int32>((float)(Helper.LastKey()*Fraction), 0, Helper.LastKey());
 		SetPosition(Frames*KeyLength);
 	}
 }

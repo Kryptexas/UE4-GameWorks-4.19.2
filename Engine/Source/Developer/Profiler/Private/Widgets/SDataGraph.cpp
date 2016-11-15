@@ -1031,7 +1031,7 @@ FReply SDataGraph::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerE
 
 	if( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton  )
 	{
-		if( bIsLMB_Pressed )
+		if( bIsLMB_Pressed && HoveredFrameIndex != INDEX_NONE )
 		{
 			FrameIndices[1] = HoveredFrameIndex;
 			FrameTimesMS[1] = HoveredFrameStartTimeMS;

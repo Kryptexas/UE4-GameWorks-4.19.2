@@ -1,11 +1,12 @@
-﻿INTSourceChangelist:2994703
+﻿INTSourceChangelist:3038067
 Title:Sequencer Subway
 Crumbs:
 Description:シーケンサーのサンプルでは、アンリアル エンジン 4 のシーケンサー エディタを使った、映画のような品質のシネマティック シーケンスの作成方法を紹介します。
 Availability:Public
-Related: Engine/Sequencer
-Related: Engine/Sequencer/HowTo/TracksShot
-Related: Engine/Sequencer/HowTo/ViewportOptions
+Related:Engine/Sequencer
+Related:Engine/Sequencer/HowTo/TracksShot
+Related:Engine/Sequencer/HowTo/ViewportOptions
+tags:Sequencer
 
 [VAR:Topic]
 [OBJECT:Topic]

@@ -404,6 +404,19 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 			}
 		}
 	}
+	else
+	{
+		GameThreadCall(^{
+			if (MacApplication)
+			{
+				TSharedPtr<FMacWindow> Window = MacApplication->FindWindowByNSWindow(self);
+				if (Window.IsValid())
+				{
+					MacApplication->OnWindowDidResize(Window.ToSharedRef(), false);
+				}
+			}
+		}, @[ NSDefaultRunLoopMode ], false);
+	}
 }
 
 - (void)windowWillStartLiveResize:(NSNotification*)Notification

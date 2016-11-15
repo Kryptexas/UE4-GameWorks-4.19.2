@@ -14,6 +14,9 @@ const uint32 MaxMetalRenderTargets = 6;
 // Requirement for vertex buffer offset field
 const uint32 BufferOffsetAlignment = 256;
 
+// The buffer page size that can be uploaded in a set*Bytes call
+const uint32 MetalBufferPageSize = 4096;
+
 #define METAL_API_1_1 (__IPHONE_9_0 || __MAC_10_11)
 #define METAL_API_1_2 ((__IPHONE_10_0 && __IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_10_0) || (__MAC_10_12 && __MAC_OS_X_VERSION_MIN_REQUIRED >= __MAC_10_12))
 
@@ -46,6 +49,7 @@ const uint32 MaxMetalStreams = 30;
 #define SHOULD_TRACK_OBJECTS (UE_BUILD_DEBUG)
 
 #define UNREAL_TO_METAL_BUFFER_INDEX(Index) ((MaxMetalStreams - 1) - Index)
+#define METAL_TO_UNREAL_BUFFER_INDEX(Index) ((MaxMetalStreams - 1) - Index)
 
 // Dependencies
 #include "MetalRHI.h"

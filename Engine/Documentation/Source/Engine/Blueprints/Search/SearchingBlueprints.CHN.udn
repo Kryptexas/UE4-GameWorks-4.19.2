@@ -1,55 +1,47 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3011129
 Availability:Public
-Title: Blueprint Search
+Title:蓝图搜索
 Crumbs: %ROOT%, Engine, Engine/Blueprints
-Description:Getting the most out of searching in Blueprints, from indexing all Blueprints to advanced search syntax
-version: 4.11
+Description:从所有蓝图编入索引到高级搜索语法，充分利用蓝图中的搜索。
+version:4.11
 parent:Engine/Blueprints/Workflow
 order:2
 
 
-## Searching Blueprints
+## 搜索蓝图
 
-When in the Blueprint Editor, you can click on **Search** in the **Toolbar** or use **Ctrl+F** to bring up the [Find Results](Engine/Blueprints/Editor/UIComponents/FindResults) window.
-Here, you can search your Blueprints for nodes, pins, pin values, graphs, variables, and variable values that match your search query. You are also able to search animation graphs. 
+在蓝图编辑器中时，可点击 **工具栏** 中的 **Search** 或使用 **Ctrl+F** 呼出 [搜索结果（Find Results）](Engine/Blueprints/Editor/UIComponents/FindResults) 窗口。可在此处搜索蓝图中匹配搜寻条件的节点、引脚、引脚值、图表、变量和变量值。也可搜索动画图表。 
 
-Right-clicking on a node in a Blueprint or an element in the **My Blueprint** window and clicking on **Find References** will also open the **Find Results** window, with the search
-field populated with the name of the element as well as the MemberGuid of the element. This ensures that you are searching for that specific variable or function, even if you have multiple
-instances of that name in other parts of your project. 
+右键单击蓝图中的节点或 **My Blueprint** 窗口中的元素，然后点击 **Find References** 同样可以打开 **Find Results** 窗口，搜索栏填入元素名称和元素的 MemberGuid。即使项目其他部分拥有多个该名称，这也能确保您搜索的是特定变量或函数。 
 
-Searching is an asynchronous process, meaning it will not prevent you from using the editor as the search completes. You can also make multiple searches in different Blueprints at the same time. 
-It leverages the Asset Registry for the searchable data, so the most recently indexed data is always with the asset file.
+搜索为异步过程，意味这搜索完成后即可使用编辑器。也可同时在不同蓝图中进行多项搜索。它利用搜索数据的资源注册表，因此最近编入索引的数据固定和资源文件结合。
 
-By default, this tool searches your current Blueprint, but by unchecking the **Find in Current Blueprint Only** checkbox, you can search all Blueprints in the project. When Blueprints are not indexed in the system, it will inform you, as in the below image:
+此工具默认搜索当前蓝图，取消勾选 **Find in Current Blueprint Only** 复选框后即可搜索项目中的所有蓝图。蓝图未在系统中编入索引时将显示下图中的提示：
 
 [REGION:lightbox]
 [![](IndexingPrompt.png)](IndexingPrompt.png)
 [/REGION]
 
-Clicking **Index All** results in an extremely slow process that will stall the editor, as it loads all un-indexed Blueprints and re-saves them to cache searchable data. If you do not 
-wish to re-save the content, or the content is protected by source control and cannot be checked out, it will simply load all Blueprint assets to cache the latest searchable data in memory. 
-However, if you do not re-save the content, **Index All** will need to be done each time you open the editor.
+点击 **Index All** 后进程将变得极慢，使编辑器停滞。因为此项将加载所有未编入索引的蓝图，并将它们重新保存以缓存搜索数据。如不希望 
+重新保存内容，或内容受源控制保护无法签出，它将直接加载所有蓝图资源，缓存内存中最新的搜索数据。如未重新保存内容，每次打开编辑器时都需要执行 **Index All**。
 
 ![](IndexingWarning.png)
 
 
-## Advanced Search Syntax
+## 高级搜索语法
 
-Filters are an advanced search feature for targeting searches to specific subsets of data in Blueprints. 
-For example, you can isolate only Blueprints that have nodes named something specific or properties with certain names and flags set.
- These can be nested and combined to form advanced queries for very specific needs. Certain filters can only be used within other filters, but all filters can be used as a starting point. 
- Below is a non-exhaustive list of searchable tags and with what sort of data that are used for. All tags can be searched for without the use of filters.
+过滤器是一项高级搜索功能，可针对蓝图中特定的数据子集进行搜索。例如，可将拥有特定命名节点的蓝图或带特定名称和标记集的属性单独隔离出来。它们可被嵌套和组合，形成每个特定需求的高级查询。部分过滤器只能在其他过滤器中使用，但所有过滤器均可用作起始点。以下是搜索标记的非详尽列表，以及用作的数据类型。无需使用过滤器便可对所有标记进行搜索。
  
-Some items can only be searched using tags to help prevent clutter when doing searches without tags. These items are marked below using (Explicit). Currently, filtering is limited to user-added member variables.
+某些项目只能通过标记搜索，防止不使用标记进行搜索时出现混乱。这些项目以下标记为“(Explicit)”。当前仅可对用户添加的成员变量进行过滤。
 
-An example search string is `Nodes(Name=Coin)`, which will find all nodes in the Blueprint that contain "coin" in the name.
+以搜索字符串 `Nodes(Name=Coin)` 为例，它将找到蓝图中所有命名包含“coin”的节点。
 
 [REGION:plainlist]
-| Filter | Searchable Tags | Subfilters |
+| 过滤器 | 搜索标记 | 子过滤器 |
 | -------- | --------------| ------------|
-| Blueprint | [INCLUDE:#blueprinttags] | [INCLUDE:#blueprintsubfilters] |
+| 蓝图 | [INCLUDE:#blueprinttags] | [INCLUDE:#blueprintsubfilters] |
 | [INCLUDE:#functionfilter] | [INCLUDE:#functiontags] | [INCLUDE:#functionsubfilters]|
-| Nodes | [INCLUDE:#nodetags] | Pins |
+| 节点 | [INCLUDE:#nodetags] | 引脚 |
 | [INCLUDE:#pinfilter] | [INCLUDE:#pintags] | |
 [/REGION]
 
@@ -87,7 +79,7 @@ An example search string is `Nodes(Name=Coin)`, which will find all nodes in the
 [EXCERPT:FunctionSubFilters]
 * Nodes 
 * Pins
-* Variables/Properties (for local variables)
+* Variables/Properties（针对本地变量）
 [/EXCERPT]
 
 [EXCERPT:NodeTags]
@@ -114,13 +106,13 @@ An example search string is `Nodes(Name=Coin)`, which will find all nodes in the
 -->               
             	
 [REGION:tip]
- PinCategory is the type of pin, "bool", "string", "Actor", "MyBlueprint". ObjectClass is the struct or object represented by the pin/variable/component.
+ PinCategory 是引脚的类型，“布尔”、“字符串”、“Actor”、“MyBlueprint”。ObjectClass 是引脚/变量/组件所代表的结构体或对象。
 [/REGION]
 
-### The All Subfilter
+### All 子过滤器
 
-`All` is a special subfilter. When nested in another filter, it will allow any data contained within it to be tested against all children of any objects that pass the filter otherwise.
+`All` 是一个特殊的子过滤器。嵌套在另一个过滤器中时，它可使其中的数据对通过过滤器的对象的所有子类进行测试。
 
-Example: `Graphs(Name=MyFunction && All(Return))`
+范例：`Graphs(Name=MyFunction && All(Return))`
 
-Any graph that contains the name "MyFunction" will test all of its children (nodes, local variables, and pins) for the string "Return".
+包含名称“MyFunction”的所有图表将对其所有子类（节点、本地变量和引脚）测试字符串“Return”。

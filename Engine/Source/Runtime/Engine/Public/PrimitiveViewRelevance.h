@@ -48,6 +48,8 @@ struct FPrimitiveViewRelevance
 	uint32 bRenderInMainPass : 1;
 	/** The primitive is drawn only in the editor and composited onto the scene after post processing */
 	uint32 bEditorPrimitiveRelevance : 1;
+	/** The primitive's static elements are selected and rendered again in the selection outline pass*/
+	uint32 bEditorStaticSelectionRelevance : 1;
 	/** The primitive is drawn only in the editor and composited onto the scene after post processing using no depth testing */
 	uint32 bEditorNoDepthTestPrimitiveRelevance : 1;
 	/** The primitive should have GatherSimpleLights called on the proxy when gathering simple lights. */
@@ -60,6 +62,8 @@ struct FPrimitiveViewRelevance
 	uint32 bDecal : 1;
 	/** Whether the primitive has materals that use translucent surface lighting. */
 	uint32 bTranslucentSurfaceLighting : 1;
+	/** Whether the primitive has materials that read the scene depth. */
+	uint32 bUsesSceneDepth : 1;
 
 	/** 
 	 * Whether this primitive view relevance has been initialized this frame.  

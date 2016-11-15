@@ -709,6 +709,9 @@ public:
 		return (NavBuildingLockFlags & ~ENavigationBuildLock::InitialLock) != 0; 
 	}
 
+	/** check if navigation octree updates are currently ignored */
+	FORCEINLINE bool IsNavigationOctreeLocked() const { return bNavOctreeLock; }
+
 	// @todo document
 	UFUNCTION(BlueprintCallable, Category = "AI|Navigation")
 	void OnNavigationBoundsUpdated(ANavMeshBoundsVolume* NavVolume);
@@ -752,6 +755,8 @@ public:
 
 	FORCEINLINE void AddNavigationBuildLock(uint8 Flags) { NavBuildingLockFlags |= Flags; }
 	void RemoveNavigationBuildLock(uint8 Flags, bool bSkipRebuildInEditor = false);
+
+	void SetNavigationOctreeLock(bool bLock) { bNavOctreeLock = bLock; }
 
 #if WITH_EDITOR
 	/** allow editor to toggle whether seamless navigation building is enabled */
@@ -857,6 +862,9 @@ protected:
 
 	/** set of locking flags applied on startup of navigation system */
 	uint8 InitialNavBuildingLockFlags;
+
+	/** if set, navoctree updates are ignored, use with caution! */
+	uint8 bNavOctreeLock : 1;
 
 	uint8 bInitialSetupHasBeenPerformed : 1;
 	uint8 bInitialLevelsAdded : 1;

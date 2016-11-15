@@ -183,7 +183,7 @@ void FPerformanceMonitor::AutoApplyScalability()
 	Scalability::SaveState(GEditorSettingsIni);
 	GEditor->RedrawAllViewports();
 
-	const bool bAutoApplied = true;
+	const bool bAutoApplied = false;
 	Scalability::RecordQualityLevelsAnalytics(bAutoApplied);
 
 	GEditor->DisableRealtimeViewports();
@@ -321,14 +321,14 @@ void FPerformanceMonitor::Tick(float DeltaTime)
 		// Choose an appropriate message
 		enum MessagesEnum { Seconds, SecondsPercent, Minute, MinutePercent, Minutes, MinutesPercent };
 		const FText Messages[] = {
-			LOCTEXT("PerformanceWarningInProgress_Seconds",			"Your framerate has been under {Framerate} FPS for the past {SampleTime} seconds.\n\nApplying reduced quality settings in {TimeRemaining}s."),
-			LOCTEXT("PerformanceWarningInProgress_Seconds_Percent", "Your framerate has been under {Framerate} FPS for {Percentage}% of the past {SampleTime} seconds.\n\nApplying reduced quality settings in {TimeRemaining}s."),
+			LOCTEXT("PerformanceWarningInProgress_Seconds",			"Your framerate has been under {Framerate} FPS for the past {SampleTime} seconds.\n\nDo you want to apply reduced quality settings? {TimeRemaining}s"),
+			LOCTEXT("PerformanceWarningInProgress_Seconds_Percent", "Your framerate has been under {Framerate} FPS for {Percentage}% of the past {SampleTime} seconds.\n\nDo you want to apply reduced quality settings? {TimeRemaining}s"),
 
-			LOCTEXT("PerformanceWarningInProgress_Minute",			"Your framerate has been under {Framerate} FPS for the past minute.\n\nApplying reduced quality settings in {TimeRemaining}s."),
-			LOCTEXT("PerformanceWarningInProgress_Minute_Percent",	"Your framerate has been under {Framerate} FPS for {Percentage}% of the last minute.\n\nApplying reduced quality settings in {TimeRemaining}s."),
+			LOCTEXT("PerformanceWarningInProgress_Minute",			"Your framerate has been under {Framerate} FPS for the past minute.\n\nDo you want to apply reduced quality settings? {TimeRemaining}s"),
+			LOCTEXT("PerformanceWarningInProgress_Minute_Percent",	"Your framerate has been under {Framerate} FPS for {Percentage}% of the last minute.\n\nDo you want to apply reduced quality settings? {TimeRemaining}s"),
 
-			LOCTEXT("PerformanceWarningInProgress_Minutes",			"Your framerate has been below {Framerate} FPS for the past {SampleTime} minutes.\n\nApplying reduced quality settings in {TimeRemaining}s."),
-			LOCTEXT("PerformanceWarningInProgress_Minutes_Percent", "Your framerate has been below {Framerate} FPS for {Percentage}% of the past {SampleTime} minutes.\n\nApplying reduced quality settings in {TimeRemaining}s."),
+			LOCTEXT("PerformanceWarningInProgress_Minutes",			"Your framerate has been below {Framerate} FPS for the past {SampleTime} minutes.\n\nDo you want to apply reduced quality settings? {TimeRemaining}s"),
+			LOCTEXT("PerformanceWarningInProgress_Minutes_Percent", "Your framerate has been below {Framerate} FPS for {Percentage}% of the past {SampleTime} minutes.\n\nDo you want to apply reduced quality settings? {TimeRemaining}s"),
 		};
 
 		int32 Message;
@@ -363,8 +363,8 @@ void FPerformanceMonitor::Tick(float DeltaTime)
 			if (NotificationTimeout <= 0)
 			{
 				// Timed-out. Apply the settings.
-				AutoApplyScalability();
 				Reset();
+				bIsNotificationAllowed = false;
 			}
 			else
 			{

@@ -14,13 +14,14 @@ FString FNetworkVersion::ProjectVersion;
 
 enum EEngineNetworkVersionHistory
 {
-	HISTORY_INITIAL = 1,
+	HISTORY_INITIAL					= 1,
+	HISTORY_REPLAY_BACKWARDS_COMPAT	= 2,		// Bump version to get rid of older replays before backwards compat was turned on officially
 };
 
 bool FNetworkVersion::bHasCachedNetworkChecksum			= false;
 uint32 FNetworkVersion::CachedNetworkChecksum			= 0;
 
-uint32 FNetworkVersion::EngineNetworkProtocolVersion	= HISTORY_INITIAL;
+uint32 FNetworkVersion::EngineNetworkProtocolVersion	= HISTORY_REPLAY_BACKWARDS_COMPAT;
 uint32 FNetworkVersion::GameNetworkProtocolVersion		= 0;
 
 uint32 FNetworkVersion::GetNetworkCompatibleChangelist()
@@ -31,12 +32,7 @@ uint32 FNetworkVersion::GetNetworkCompatibleChangelist()
 
 uint32 FNetworkVersion::GetReplayCompatibleChangelist()
 {
-	// Temp until Version.h is unlocked :O)
-#ifndef ENGINE_REPLAY_VERSION
-#define ENGINE_REPLAY_VERSION BUILT_FROM_CHANGELIST
-#endif
-
-	return ENGINE_REPLAY_VERSION;
+	return BUILT_FROM_CHANGELIST;
 }
 
 uint32 FNetworkVersion::GetEngineNetworkProtocolVersion()

@@ -61,7 +61,10 @@ public class UnrealEd : ModuleRules
                 "PortalRpc",
                 "PortalServices",
                 "BlueprintNativeCodeGen",
-			}
+                "ViewportInteraction",
+                "VREditor",
+                "Persona",
+            }
 		);
 
 		PublicDependencyModuleNames.AddRange(
@@ -86,8 +89,10 @@ public class UnrealEd : ModuleRules
 				"BlueprintGraph",
                 "Http",
 				"UnrealAudio",
-                "FunctionalTesting"
-            }
+                "FunctionalTesting",
+				"AutomationController",
+				"Internationalization",
+			}
 		);
 
 		PrivateDependencyModuleNames.AddRange(
@@ -103,7 +108,6 @@ public class UnrealEd : ModuleRules
 				"EngineSettings",
 				"InputCore",
 				"InputBindingEditor",
-				"Internationalization",
 				"LauncherServices",
 				"MaterialEditor",
 				"MessageLog",
@@ -145,6 +149,8 @@ public class UnrealEd : ModuleRules
                 "PixelInspectorModule",
 				"MovieScene",
 				"MovieSceneTracks",
+                "ViewportInteraction",
+                "VREditor"
             }
 		);
 
@@ -215,12 +221,11 @@ public class UnrealEd : ModuleRules
                 "PortalProxies",
                 "PortalServices",
                 "GeometryCacheEd",
-                "BlueprintNativeCodeGen",
-				"VREditor"
+                "BlueprintNativeCodeGen"
 			}
 		);
 
-		if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Mac)
+		if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.Linux)
 		{
 			DynamicallyLoadedModuleNames.Add("AndroidPlatformEditor");
 		}
@@ -242,9 +247,6 @@ public class UnrealEd : ModuleRules
 				"UserFeedback",
              	"CollectionManager",
 				"BlueprintGraph",
-				"NiagaraEditor",
-                "Niagara",
-                "VectorVM",
 				"AddContentDialog",                
                 "MeshUtilities"
 			}
@@ -254,6 +256,7 @@ public class UnrealEd : ModuleRules
 			(Target.Platform == UnrealTargetPlatform.Win32))
 		{
 			PublicDependencyModuleNames.Add("XAudio2");
+			PublicDependencyModuleNames.Add("AudioMixerXAudio2");
 			PublicDependencyModuleNames.Add("UnrealAudioXAudio2");
 
 			AddEngineThirdPartyPrivateStaticDependencies(Target, 

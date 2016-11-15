@@ -17,7 +17,7 @@ public:
 };
 
 DEFINE_LOG_CATEGORY_STATIC(LogMeshBoneReduction, Log, All);
-IMPLEMENT_MODULE(FMeshBoneReductionModule, IMeshBoneReductionModule);
+IMPLEMENT_MODULE(FMeshBoneReductionModule, MeshBoneReduction);
 
 class FMeshBoneReduction : public IMeshBoneReduction
 {

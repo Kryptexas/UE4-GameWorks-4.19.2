@@ -52,6 +52,7 @@ bool FMetalQueryBuffer::Wait(uint64 Millis)
 			}
 
 			bCompleted = CommandBuffer.status >= MTLCommandBufferStatusCompleted;
+			bOK = bCompleted;
 			[CommandBuffer release];
 			CommandBuffer = nil;
 		}

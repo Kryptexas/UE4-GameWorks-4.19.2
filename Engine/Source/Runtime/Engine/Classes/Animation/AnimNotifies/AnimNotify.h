@@ -57,6 +57,7 @@ class ENGINE_API UAnimNotify : public UObject
 
 #if WITH_EDITOR
 	virtual void OnAnimNotifyCreatedInEditor(FAnimNotifyEvent& ContainingAnimNotifyEvent) {};
+	virtual bool CanBePlaced(UAnimSequenceBase* Animation) const { return true; }
 #endif
 
 	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation);

@@ -1,6 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-/** Factory which allows re-import of an NxApexDestructibleAsset */
+/** Factory which allows re-import of an ApexDestructibleAsset */
 
 #pragma once
 #include "ReimportDestructibleMeshFactory.generated.h"

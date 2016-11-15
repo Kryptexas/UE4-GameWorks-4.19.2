@@ -18,9 +18,21 @@ bool FLinkerManager::Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice
 	if (FParse::Command(&Cmd, TEXT("LinkerLoadList")))
 	{
 		UE_LOG(LogLinker, Display, TEXT("ObjectLoaders: %d"), ObjectLoaders.Num());
+#if !UE_BUILD_SHIPPING
+		for (auto Linker : ObjectLoaders)
+		{
+			UE_LOG(LogLinker, Display, TEXT("%s"), *Linker->Filename);
+		}
+#endif
 		UE_LOG(LogLinker, Display, TEXT("LoadersWithNewImports: %d"), LoadersWithNewImports.Num());
+#if !UE_BUILD_SHIPPING
+		for (auto Linker : LoadersWithNewImports)
+		{
+			UE_LOG(LogLinker, Display, TEXT("%s"), *Linker->Filename);
+		}
+#endif
 
-#if UE_BUILD_DEBUG
+#if !UE_BUILD_SHIPPING
 		UE_LOG(LogLinker, Display, TEXT("LiveLinkers: %d"), LiveLinkers.Num());
 		for (auto Linker : LiveLinkers)
 		{

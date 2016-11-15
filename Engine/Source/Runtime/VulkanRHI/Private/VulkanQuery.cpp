@@ -176,12 +176,10 @@ bool FVulkanDynamicRHI::RHIGetRenderQueryResult(FRenderQueryRHIParamRef QueryRHI
 
 void FVulkanCommandListContext::RHIBeginOcclusionQueryBatch()
 {
-	VULKAN_SIGNAL_UNIMPLEMENTED();
 }
 
 void FVulkanCommandListContext::RHIEndOcclusionQueryBatch()
 {
-	VULKAN_SIGNAL_UNIMPLEMENTED();
 }
 
 void FVulkanCommandListContext::RHISubmitCommandsHint()

@@ -37,10 +37,11 @@
 #include "Components/ReflectionCaptureComponent.h"
 #include "Engine/GameEngine.h"
 #include "GameFramework/GameUserSettings.h"
-#include "GameFramework/GameMode.h"
+#include "GameFramework/GameModeBase.h"
 #include "GameDelegates.h"
 #include "Engine/CoreSettings.h"
 #include "EngineAnalytics.h"
+#include "Engine/DemoNetDriver.h"
 
 #include "Tickable.h"
 
@@ -330,6 +331,11 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 	const FText WindowTitleVar = FText::Format(FText::FromString(TEXT("{0} {1}")), WindowTitleComponent, WindowDebugInfoComponent);
 	const FText WindowTitle = FText::Format(WindowTitleVar, Args);
 	const bool bShouldPreserveAspectRatio = GetDefault<UGeneralProjectSettings>()->bShouldWindowPreserveAspectRatio;
+	const bool bUseBorderlessWindow = GetDefault<UGeneralProjectSettings>()->bUseBorderlessWindow;
+	const bool bAllowWindowResize = GetDefault<UGeneralProjectSettings>()->bAllowWindowResize;
+	const bool bAllowClose = GetDefault<UGeneralProjectSettings>()->bAllowClose;
+	const bool bAllowMaximize = GetDefault<UGeneralProjectSettings>()->bAllowMaximize;
+	const bool bAllowMinimize = GetDefault<UGeneralProjectSettings>()->bAllowMinimize;
 
 	// Allow optional winX/winY parameters to set initial window position
 	EAutoCenter::Type AutoCenterType = EAutoCenter::PrimaryWorkArea;
@@ -362,8 +368,20 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 		MaxWindowHeight = FMath::Max(DisplayMetrics.VirtualDisplayRect.Bottom - DisplayMetrics.VirtualDisplayRect.Top, ResY);
 	}
 
+	static FWindowStyle BorderlessStyle = FWindowStyle::GetDefault();
+	BorderlessStyle
+		.SetActiveTitleBrush(FSlateNoResource())
+		.SetInactiveTitleBrush(FSlateNoResource())
+		.SetFlashTitleBrush(FSlateNoResource())
+		.SetOutlineBrush(FSlateNoResource())
+		.SetBorderBrush(FSlateNoResource())
+		.SetBackgroundBrush(FSlateNoResource())
+		.SetChildBackgroundBrush(FSlateNoResource());
+
 	TSharedRef<SWindow> Window = SNew(SWindow)
-	.ClientSize(FVector2D( ResX, ResY ))
+	.Type(EWindowType::GameWindow)
+	.Style(bUseBorderlessWindow ? &BorderlessStyle : &FCoreStyle::Get().GetWidgetStyle<FWindowStyle>("Window"))
+	.ClientSize(FVector2D(ResX, ResY))
 	.Title(WindowTitle)
 	.AutoCenter(AutoCenterType)
 	.ScreenPosition(FVector2D(WinX, WinY))
@@ -371,8 +389,14 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 	.MaxHeight(MaxWindowHeight)
 	.FocusWhenFirstShown(true)
 	.SaneWindowPlacement(AutoCenterType == EAutoCenter::None)
-	.UseOSWindowBorder(true)
-	.ShouldPreserveAspectRatio(bShouldPreserveAspectRatio);
+	.UseOSWindowBorder(!bUseBorderlessWindow)
+	.CreateTitleBar(!bUseBorderlessWindow)
+	.ShouldPreserveAspectRatio(bShouldPreserveAspectRatio)
+	.LayoutBorder(bUseBorderlessWindow ? FMargin(0) : FMargin(5, 5, 5, 5))
+	.SizingRule(bAllowWindowResize ? ESizingRule::UserSized : ESizingRule::FixedSize)
+	.HasCloseButton(bAllowClose)
+	.SupportsMinimize(bAllowMinimize)
+	.SupportsMaximize(bAllowMaximize);
 
 	const bool bShowImmediately = false;
 
@@ -474,6 +498,9 @@ UEngine::UEngine(const FObjectInitializer& ObjectInitializer)
 	C_BrushShape = FColor(128, 255, 128, 255);
 
 	SelectionHighlightIntensity = 0.0f;
+#if WITH_EDITOR
+	SelectionMeshSectionHighlightIntensity = 0.2f;
+#endif
 	BSPSelectionHighlightIntensity = 0.0f;
 	HoverHighlightIntensity = 10.f;
 
@@ -492,6 +519,8 @@ UEngine::UEngine(const FObjectInitializer& ObjectInitializer)
 
 	bUseFixedFrameRate = false;
 	FixedFrameRate = 30.f;
+
+	bIsVanillaProduct = false;
 }
 
 void UGameEngine::Init(IEngineLoop* InEngineLoop)
@@ -646,11 +675,42 @@ void UGameEngine::FinishDestroy()
 	Super::FinishDestroy();
 }
 
-bool UGameEngine::NetworkRemapPath(UWorld* InWorld, FString& Str, bool bReading /*= true*/)
+bool UGameEngine::NetworkRemapPath(UNetDriver* Driver, FString& Str, bool bReading /*= true*/)
 {
+	if (Driver == nullptr)
+	{
+		return false;
+	}
+
+	UWorld* const World = Driver->GetWorld();
+
+	// If the driver is using a duplicate level ID, find the level collection using the driver
+	// and see if any of its levels match the prefixed name. If so, remap Str to that level's
+	// prefixed name.
+	if (Driver->GetDuplicateLevelID() != INDEX_NONE && bReading)
+	{
+		const FName PrefixedName = *UWorld::ConvertToPIEPackageName(Str, Driver->GetDuplicateLevelID());
+
+		for (const FLevelCollection& Collection : World->GetLevelCollections())
+		{
+			if (Collection.GetNetDriver() == Driver || Collection.GetDemoNetDriver() == Driver)
+			{
+				for (const ULevel* Level : Collection.GetLevels())
+				{
+					const UPackage* const CachedOutermost = Level ? Level->GetOutermost() : nullptr;
+					if (CachedOutermost && CachedOutermost->GetFName() == PrefixedName)
+					{
+						Str = PrefixedName.ToString();
+						return true;
+					}
+				}
+			}
+		}
+	}
+
 	// If the game has created multiple worlds, some of them may have prefixed package names,
 	// so we need to remap the world package and streaming levels for replay playback to work correctly.
-	FWorldContext& Context = GetWorldContextFromWorldChecked(InWorld);
+	FWorldContext& Context = GetWorldContextFromWorldChecked(World);
 	if (Context.PIEInstance == INDEX_NONE || !bReading)
 	{
 		return false;
@@ -658,22 +718,26 @@ bool UGameEngine::NetworkRemapPath(UWorld* InWorld, FString& Str, bool bReading 
 
 	// If the prefixed path matches the world package name or the name of a streaming level,
 	// return the prefixed name.
-	const FString PrefixedName = UWorld::ConvertToPIEPackageName(Str, Context.PIEInstance);
-	const FString WorldPackageName = InWorld->GetOutermost()->GetName();
-	if (WorldPackageName == PrefixedName)
+	const FString PackageNameOnly = FPackageName::PackageFromPath(*Str);
+
+	const FString PrefixedFullName = UWorld::ConvertToPIEPackageName(Str, Context.PIEInstance);
+	const FString PrefixedPackageName = UWorld::ConvertToPIEPackageName(PackageNameOnly, Context.PIEInstance);
+	const FString WorldPackageName = World->GetOutermost()->GetName();
+
+	if (WorldPackageName == PrefixedPackageName)
 	{
-		Str = PrefixedName;
+		Str = PrefixedFullName;
 		return true;
 	}
 
-	for( ULevelStreaming* StreamingLevel : InWorld->StreamingLevels)
+	for( ULevelStreaming* StreamingLevel : World->StreamingLevels)
 	{
 		if (StreamingLevel != nullptr)
 		{
 			const FString StreamingLevelName = StreamingLevel->GetWorldAsset().GetLongPackageName();
-			if (StreamingLevelName == PrefixedName)
+			if (StreamingLevelName == PrefixedPackageName)
 			{
-				Str = PrefixedName;
+				Str = PrefixedFullName;
 				return true;
 			}
 		}
@@ -930,6 +994,8 @@ float UGameEngine::GetMaxTickRate(float DeltaTime, bool bAllowFrameRateSmoothing
 
 void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 {
+	SCOPE_TIME_GUARD(TEXT("UGameEngine::Tick"));
+
 	SCOPE_CYCLE_COUNTER(STAT_GameEngineTick);
 	NETWORK_PROFILER(GNetworkProfiler.TrackFrameBegin());
 
@@ -974,14 +1040,14 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 			LastTimeLogsFlushed = FPlatformTime::Seconds();
 		}
 	}
-	else if (!IsRunningCommandlet())
+	else if (!IsRunningCommandlet() && FApp::CanEverRender())	// skip in case of commandlets, dedicated servers and headless games
 	{
 		// Clean up the game viewports that have been closed.
 		CleanupGameViewport();
 	}
 
-	// If all viewports closed, time to exit.
-	if(GIsClient && GameViewport == NULL )
+	// If all viewports closed, time to exit - unless we're running headless
+	if (GIsClient && (GameViewport == nullptr) && FApp::CanEverRender())
 	{
 		UE_LOG(LogEngine, Log,  TEXT("All Windows Closed") );
 		FPlatformMisc::RequestExit( 0 );
@@ -1096,7 +1162,7 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_UGameEngine_Tick_ConditionalCommitMapChange);
 		ConditionalCommitMapChange(Context);
 
-		if (Context.WorldType != EWorldType::Preview && !Context.World()->IsPaused())
+		if (Context.WorldType != EWorldType::EditorPreview && !Context.World()->IsPaused())
 		{
 			bIsAnyNonPreviewWorldUnpaused = true;
 		}

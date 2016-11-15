@@ -342,7 +342,7 @@ bool FHierarchicalLODBuilder::ShouldGenerateCluster(AActor* Actor, const bool bP
 	ALODActor* LODActor = Cast<ALODActor>(Actor);
 	if (bPreviewBuild && LODActor)
 	{
-		if (LODActor->GetStaticMeshComponent()->StaticMesh)
+		if (LODActor->GetStaticMeshComponent()->GetStaticMesh())
 		{
 			return false;
 		}
@@ -530,7 +530,7 @@ void FHierarchicalLODBuilder::DeleteLODActors(ULevel* InLevel, const bool bPrevi
 	for (int32 ActorId = InLevel->Actors.Num() - 1; ActorId >= 0; --ActorId)
 	{
 		ALODActor* LodActor = Cast<ALODActor>(InLevel->Actors[ActorId]);
-		if (LodActor && ( ( LodActor->GetStaticMeshComponent()->StaticMesh == nullptr && bPreviewOnly) || !bPreviewOnly ))
+		if (LodActor && ( ( LodActor->GetStaticMeshComponent()->GetStaticMesh() == nullptr && bPreviewOnly) || !bPreviewOnly ))
 		{
 			for (auto& Asset : LodActor->SubObjects)
 			{

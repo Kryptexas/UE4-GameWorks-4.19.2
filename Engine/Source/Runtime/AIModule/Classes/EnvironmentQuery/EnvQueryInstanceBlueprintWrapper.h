@@ -8,7 +8,7 @@
 
 struct FEnvQueryRequest;
 
-UCLASS(BlueprintType, meta = (DisplayName = "EQS Query Instance"))
+UCLASS(Blueprintable, BlueprintType, meta = (DisplayName = "EQS Query Instance"))
 class AIMODULE_API UEnvQueryInstanceBlueprintWrapper : public UObject, public IEQSQueryResultSourceInterface
 {
 	GENERATED_BODY()

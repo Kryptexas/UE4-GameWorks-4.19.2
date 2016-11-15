@@ -1,38 +1,98 @@
-﻿INTSourceChangelist:2901521
-Availability:Docs
+﻿INTSourceChangelist:3042730
+Availability:Public
 Title: 시퀀서 퀵스타트
 Crumbs: %ROOT%, Engine
 Description:언리얼 엔진 4 의 시퀀서 에디터를 빠르게 준비하고 실행시키기 위한 안내입니다.
 Navigation:topic
 parent:Engine/Sequencer
 order:1
-Version: 4.11
-Related: Engine\Sequencer\Overview
-Related: Engine\Sequencer\ReferenceEditor
-Related: Engine\Sequencer\HowTo
+Version: 4.12
+type:quickstart
+checkpoint:sequencerqs
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](sequencerQS_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Sequencer/QuickStart:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Sequencer/QuickStart]
+	[/PARAM]
+	[PARAM:description]
+	%Engine/Sequencer/QuickStart:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](sequencerQS_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Sequencer/QuickStart:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Sequencer/QuickStart]
+	[/PARAM]
+	[PARAM:description]
+	%Engine/Sequencer/QuickStart:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+Z2E4lcodFww
+[/PARAMLITERAL]
+[/OBJECT]
+
+_이 가이드를 마칠 때 쯤이면 위와 같은 씬이 생겨 있을 것입니다._
+
+## 목표
+
+시퀀서 퀵 스타트 가이드는 언리얼 엔진 4 에서 시네마틱을 제작하는 방법 기초를 빠르게 익히도록 도와드리는 문서입니다.
+
+시퀀서가 완전 처음이신 분들을 대상으로 합니다!
+
+## 목적
+
+이 튜토리얼에서 다루는 내용은 다음과 같습니다:
+
+*	레벨 시퀀스 생성 방법.
+*	시네마틱 프리뷰 켜는 방법.
+*	샷에 카메라를 추가하고 이동시키는 방법.
+*	캐릭터에 애니메이션을 적용시키는 방법.
+*	카메라 포커스 세팅을 변경하는 방법.
+*	시네마틱의 샷과 테이크를 생성하여 사용하는 방법.
 
 
-[REGION:warning]
-이 기능은 현재 개발중으로 추후 버전에서는 예상대로 작동치 않거나 바뀔 수 있습니다.
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		단계
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	[DIR(output:"checkpoint" parent:"Engine/Sequencer/QuickStart" org:"hierarchy")]
+	[/PARAM]
+[/OBJECT]
+
+[REGION:call_to_action]
+	[클릭하면 시작합니다.](Engine/Sequencer/QuickStart/1 "%Engine/Sequencer/QuickStart/1:title%")
 [/REGION]
-
-Sequencer (시퀀서)는 [**마티네**](Engine\Matinee\) 차기 버전으로, 전문화된 멀티 트랙 에디터를 통해 인게임 시네마틱을 만들 수 있는 도구입니다.
-사용자는 **레벨 시퀀스** 를 만들고 **트랙** 을 추가, 시퀀스의 콘텐츠를 정의하는 각 트랙을 구성할 수 있습니다.
-트랙은 (캐릭터 애니메이션과 같은) 애니메이션이나 (카메라같은 씬의 사물을 옮기는) 트랜스폼, (음악이나 사운드 이펙트같은) 오디오 등으로 구성됩니다.
-
-여기서는 **언리얼 엔진 4** 안의 **시퀀서** 에디터의 기초에 대해 다룹니다.
-
-[REGION:note]
-시퀀서는 개발 초기 단계이므로 먼저 활성화시켜 줘야 작업을 시작할 수 있습니다. 자세한 정보는 [](Engine\Sequencer\HowTo\EnableSequencer) 문서를 참고하세요.
-[/REGION]
-
-##레벨 시퀀스
-
-**Level Sequence** (레벨 시퀀스) 애셋은 **Matinee Actor** (마티네 액터)와 비슷하게 먼저 생성을 해야 시퀀서 작업을 시작할 수 있습니다.
-
-아래와 같이 **콘텐츠 브라우저** 에서나 **툴바** 의 **시네마틱** 아래에서 만들 수 있습니다.
-
-
 
 
 

@@ -103,45 +103,69 @@ void FMovieSceneVectorTrackInstance::RestoreState(const TArray<TWeakObjectPtr<UO
 }
 
 
-void FMovieSceneVectorTrackInstance::Update( EMovieSceneUpdateData& UpdateData, const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance ) 
+void FMovieSceneVectorTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, class IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
-	FVector4 Vector;
-	if( VectorTrack->Eval( UpdateData.Position, UpdateData.LastPosition, Vector ) )
+	int32 NumChannelsUsed = VectorTrack->GetNumChannelsUsed();
+	switch (NumChannelsUsed)
 	{
-		int32 NumChannelsUsed = VectorTrack->GetNumChannelsUsed();
-		switch( NumChannelsUsed )
+	case 2:
+	{
+		for (auto ObjectPtr : RuntimeObjects)
 		{
-			case 2:
+			UObject* Object = ObjectPtr.Get();
+			if(Object != nullptr)
 			{
-				FVector2D Value(Vector.X, Vector.Y);
-				for(auto Object : RuntimeObjects)
+				FVector2D Vector2D = PropertyBindings->GetCurrentValue<FVector2D>(Object);
+				FVector4 Vector4(Vector2D.X, Vector2D.Y);
+				if (VectorTrack->Eval(UpdateData.Position, UpdateData.LastPosition, Vector4))
 				{
-					PropertyBindings->CallFunction<FVector2D>(Object.Get(), &Value);
+					Vector2D.X = Vector4.X;
+					Vector2D.Y = Vector4.Y;
+					PropertyBindings->CallFunction<FVector2D>(Object, &Vector2D);
 				}
-				break;
 			}
-			case 3:
-			{
-				FVector Value(Vector.X, Vector.Y, Vector.Z);
-				for(auto Object : RuntimeObjects)
-				{
-					PropertyBindings->CallFunction<FVector>(Object.Get(), &Value);
-				}
-				break;
-			}
-			case 4:
-			{
-				for(auto Object : RuntimeObjects)
-				{
-					PropertyBindings->CallFunction<FVector4>(Object.Get(), &Vector);
-				}
-				break;
-			}
-			default:
-				UE_LOG(LogMovieScene, Warning, TEXT("Invalid number of channels(%d) for vector track"), NumChannelsUsed );
-				break;
 		}
-		
+		break;
+	}
+	case 3:
+	{
+		for (auto ObjectPtr : RuntimeObjects)
+		{
+			UObject* Object = ObjectPtr.Get();
+			if (Object != nullptr)
+			{
+				FVector Vector = PropertyBindings->GetCurrentValue<FVector>(Object);
+				FVector4 Vector4(Vector.X, Vector.Y, Vector.Z);
+				if (VectorTrack->Eval(UpdateData.Position, UpdateData.LastPosition, Vector4))
+				{
+					Vector.X = Vector4.X;
+					Vector.Y = Vector4.Y;
+					Vector.Z = Vector4.Z;
+					PropertyBindings->CallFunction<FVector>(Object, &Vector);
+				}
+			}
+		}
+		break;
+	}
+	case 4:
+	{
+		for (auto ObjectPtr : RuntimeObjects)
+		{
+			UObject* Object = ObjectPtr.Get();
+			if (Object != nullptr)
+			{
+				FVector4 Vector4 = PropertyBindings->GetCurrentValue<FVector4>(Object);
+				if (VectorTrack->Eval(UpdateData.Position, UpdateData.LastPosition, Vector4))
+				{
+					PropertyBindings->CallFunction<FVector4>(Object, &Vector4);
+				}
+			}
+		}
+		break;
+	}
+	default:
+		UE_LOG(LogMovieScene, Warning, TEXT("Invalid number of channels(%d) for vector track"), NumChannelsUsed);
+		break;
 	}
 }
 

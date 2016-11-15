@@ -11,6 +11,7 @@
 
 #include "IDocumentation.h"
 #include "SInlineEditableTextBlock.h"
+#include "SPinTypeSelector.h"
 
 void SGraphPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetForActionData* const InCreateData)
 {
@@ -100,14 +101,14 @@ TSharedRef<SWidget> SGraphPaletteItem::CreateIconWidget(const FText& IconToolTip
 		.ColorAndOpacity(IconColor);
 }
 
-TSharedRef<SWidget> SGraphPaletteItem::CreateIconWidget(const FText& IconToolTip, const FSlateBrush* IconBrush, const FSlateColor& IconColor, const FString& DocLink, const FString& DocExcerpt)
+TSharedRef<SWidget> SGraphPaletteItem::CreateIconWidget(const FText& IconToolTip, const FSlateBrush* IconBrush, const FSlateColor& IconColor, const FString& DocLink, const FString& DocExcerpt, const FSlateBrush* SecondaryIconBrush, const FSlateColor& SecondaryColor)
 {
-	TSharedPtr<SToolTip> ToolTipWidget = IDocumentation::Get()->CreateToolTip(IconToolTip, NULL, DocLink, DocExcerpt);
-
-	return SNew(SImage)
-		.ToolTip(ToolTipWidget)
-		.Image( IconBrush )
-		.ColorAndOpacity(IconColor);
+	return SPinTypeSelector::ConstructPinTypeImage(
+		IconBrush, 
+		IconColor, 
+		SecondaryIconBrush, 
+		SecondaryColor, 
+		IDocumentation::Get()->CreateToolTip(IconToolTip, NULL, DocLink, DocExcerpt));
 }
 
 TSharedRef<SWidget> SGraphPaletteItem::CreateTextSlotWidget( const FSlateFontInfo& NameFont, FCreateWidgetForActionData* const InCreateData, bool bIsReadOnly )

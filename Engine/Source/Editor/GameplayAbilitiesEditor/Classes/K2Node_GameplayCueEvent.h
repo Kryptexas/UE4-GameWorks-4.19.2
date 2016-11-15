@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "K2Node_Event.h"
 #include "K2Node_GameplayCueEvent.generated.h"
 
 

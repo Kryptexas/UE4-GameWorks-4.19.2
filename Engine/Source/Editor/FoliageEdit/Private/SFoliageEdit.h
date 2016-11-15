@@ -93,6 +93,15 @@ private:	// BRUSH SETTINGS
 	/** Retrieves the tooltip text for the BSP filter */
 	FText GetTooltipText_BSP() const;
 
+	/** Sets the filter settings for if painting will occur on foliage meshes. */
+	void OnCheckStateChanged_Foliage(ECheckBoxState InState);
+
+	/** Retrieves the filter settings for painting on foliage meshes. */
+	ECheckBoxState GetCheckState_Foliage() const;
+
+	/** Retrieves the tooltip text for the foliage meshes filter */
+	FText GetTooltipText_Foliage() const;
+
 	/** Sets the filter settings for if painting will occur on translucent meshes. */
 	void OnCheckStateChanged_Translucent(ECheckBoxState InState);
 

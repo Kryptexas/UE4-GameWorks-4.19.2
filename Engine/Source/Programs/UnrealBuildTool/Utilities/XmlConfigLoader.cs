@@ -702,6 +702,17 @@ namespace UnrealBuildTool
 			{
 				return Text;
 			}
+			else if(FieldType.IsEnum)
+			{
+				try
+				{
+					return Enum.Parse(FieldType, Text);
+				}
+				catch
+				{
+					throw new BuildException("BuildConfiguration Loading: Value '{0}' is not a valid member of '{1}'", FieldType.Name);
+				}
+			}
 			else
 			{
 				// Declaring parameters array used by TryParse method.
@@ -938,6 +949,21 @@ namespace UnrealBuildTool
 		private static XElement CreateXSDElementForField(FieldInfo Field)
 		{
 			XNamespace NS = XNamespace.Get("http://www.w3.org/2001/XMLSchema");
+
+			if(Field.FieldType.IsEnum)
+			{
+				XElement Restriction = new XElement(NS + "restriction", new XAttribute("base", "string"));
+				foreach (string Name in Enum.GetNames(Field.FieldType))
+				{
+					Restriction.Add(new XElement(NS + "enumeration", new XAttribute("value", Name)));
+				}
+
+				return new XElement(NS + "element",
+					new XAttribute("name", Field.Name),
+					new XAttribute("minOccurs", "0"),
+					new XAttribute("maxOccurs", "1"),
+					new XElement(NS + "simpleType", Restriction));
+			}
 
 			if (Field.FieldType.IsArray)
 			{

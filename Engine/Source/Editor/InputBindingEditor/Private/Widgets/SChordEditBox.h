@@ -21,7 +21,7 @@ public:
 	 *
 	 * @param InArgs The Slate argument list.
 	 */
-	void Construct( const FArguments& InArgs, TSharedPtr<struct FChordTreeItem> InputCommand );
+	void Construct( const FArguments& InArgs, TSharedPtr<FUICommandInfo> InputCommand );
 
 private:
 

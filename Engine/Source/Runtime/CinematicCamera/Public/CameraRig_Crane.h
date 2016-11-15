@@ -9,7 +9,7 @@
 class USceneComponent;
 
 /** 
- * A simple rig for to simulate crane-like camera movements.
+ * A simple rig for simulating crane-like camera movements.
  */
 UCLASS(Blueprintable)
 class CINEMATICCAMERA_API ACameraRig_Crane : public AActor
@@ -24,7 +24,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual bool ShouldTickIfViewportsOnly() const override;
 
-	/** Controls the pitch of the crane arm (but does not affect the rotation of the mount). */
+	/** Controls the pitch of the crane arm. */
 	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category = "Crane Controls", meta = (UIMin = "-360", UIMax = "360", Units = deg))
 	float CranePitch;
 	
@@ -36,8 +36,17 @@ public:
 	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category = "Crane Controls", meta = (ClampMin=0, Units = cm))
 	float CraneArmLength;
 
+	/** Lock the mount pitch so that an attached camera is locked and pitched in the direction of the crane arm */
+	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category = "Crane Controls")
+	bool bLockMountPitch;
+
+	/** Lock the mount yaw so that an attached camera is locked and oriented in the direction of the crane arm */
+	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category = "Crane Controls")
+	bool bLockMountYaw;
+
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditUndo() override;
 	virtual class USceneComponent* GetDefaultAttachComponent() const override;
 #endif
 	

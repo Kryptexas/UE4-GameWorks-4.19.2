@@ -48,7 +48,7 @@ int string settings_button_content_description 0x1
 int string setup_button 0x1
 int string switch_viewer_action 0x1
 int string switch_viewer_prompt 0x1
-int style GvrDialogTheme 0x1
+int style CardboardDialogTheme 0x1
 int style NoSystemUI 0x1
 int style UiButton 0x1
 int style VrActivityTheme 0x1

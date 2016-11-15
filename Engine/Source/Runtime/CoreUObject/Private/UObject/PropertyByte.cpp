@@ -6,6 +6,13 @@
 /*-----------------------------------------------------------------------------
 	UByteProperty.
 -----------------------------------------------------------------------------*/
+
+void UByteProperty::GetPreloadDependencies(TArray<UObject*>& OutDeps)
+{
+	Super::GetPreloadDependencies(OutDeps);
+	OutDeps.Add(Enum);
+}
+
 void UByteProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defaults ) const
 {
 	if(Enum && Ar.UseToResolveEnumerators())
@@ -91,8 +98,8 @@ FString UByteProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uint32 CP
 		const bool bNonNativeEnum = Enum->GetClass() != UEnum::StaticClass(); // cannot use RF_Native flag, because in UHT the flag is not set
 		const bool bRawParam = (CPPExportFlags & CPPF_ArgumentOrReturnValue)
 			&& (((PropertyFlags & CPF_ReturnParm) || !(PropertyFlags & CPF_OutParm))
-				|| bEnumClassForm || bNonNativeEnum);
-		const bool bConvertedCode = (CPPExportFlags & CPPF_BlueprintCppBackend) && (bEnumClassForm || bNonNativeEnum);
+				|| bNonNativeEnum);
+		const bool bConvertedCode = (CPPExportFlags & CPPF_BlueprintCppBackend) && bNonNativeEnum;
 
 		FString FullyQualifiedEnumName;
 		if (!Enum->CppType.IsEmpty())
@@ -114,7 +121,7 @@ FString UByteProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uint32 CP
 			}
 		}
 		 
-		if (bRawParam || bConvertedCode)
+		if (bEnumClassForm || bRawParam || bConvertedCode)
 		{
 			return FullyQualifiedEnumName;
 		}
@@ -359,6 +366,11 @@ const TCHAR* UByteProperty::ImportText_Internal( const TCHAR* InBuffer, void* Da
 	}
 
 	return Super::ImportText_Internal( InBuffer, Data, PortFlags, Parent, ErrorText );
+}
+
+UEnum* UByteProperty::GetIntPropertyEnum() const
+{
+	return Enum;
 }
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UByteProperty, UNumericProperty,

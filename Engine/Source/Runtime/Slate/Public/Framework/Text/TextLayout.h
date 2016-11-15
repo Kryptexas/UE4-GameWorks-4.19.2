@@ -419,6 +419,11 @@ public:
 	void AddRunRenderer( const FTextRunRenderer& Renderer );
 
 	/**
+	* Removes a single run renderer to the existing set of renderers.
+	*/
+	void RemoveRunRenderer( const FTextRunRenderer& Renderer );
+
+	/**
 	* Clears all line highlights
 	*/
 	void ClearLineHighlights();
@@ -432,6 +437,11 @@ public:
 	* Adds a single line highlight to the existing set of highlights.
 	*/
 	void AddLineHighlight( const FTextLineHighlight& Highlight );
+
+	/**
+	* Removes a single line highlight to the existing set of highlights.
+	*/
+	void RemoveLineHighlight( const FTextLineHighlight& Highlight );
 
 	/**
 	* Updates the TextLayout's if any changes have occurred since the last update.

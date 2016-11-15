@@ -9,7 +9,7 @@ class FInternationalizationSettingsModule : public IInternationalizationSettings
 	virtual void ShutdownModule() override;
 };
 
-IMPLEMENT_MODULE( FInternationalizationSettingsModule, InternationalizationSettingsModule )
+IMPLEMENT_MODULE( FInternationalizationSettingsModule, InternationalizationSettings)
 
 void FInternationalizationSettingsModule::StartupModule()
 {

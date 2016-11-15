@@ -25,7 +25,7 @@ enum EProjectPackagingBuildConfigurations
  * Enumerates the the available internationalization data presets for project packaging.
  */
 UENUM()
-enum class EProjectPackagingInternationalizationPresets
+enum class EProjectPackagingInternationalizationPresets : uint8
 {
 	/** English only. */
 	English,
@@ -139,7 +139,7 @@ public:
 
 	/** Predefined sets of culture whose internationalization data should be packaged. */
 	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Internationalization Support"))
-	TEnumAsByte<EProjectPackagingInternationalizationPresets> InternationalizationPreset;
+	EProjectPackagingInternationalizationPresets InternationalizationPreset;
 
 	/** Cultures whose data should be cooked, staged, and packaged. */
 	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Localizations to Package"))

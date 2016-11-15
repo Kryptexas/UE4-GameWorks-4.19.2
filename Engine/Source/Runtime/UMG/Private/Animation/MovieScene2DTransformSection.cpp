@@ -253,3 +253,13 @@ void UMovieScene2DTransformSection::SetDefault( const struct F2DTransformKey& Tr
 	FRichCurve* KeyCurve = GetCurveForChannelAndAxis( TransformKey.Channel, TransformKey.Axis, Translation, Scale, Shear, &Rotation );
 	SetCurveDefault( *KeyCurve, TransformKey.Value );
 }
+
+
+void UMovieScene2DTransformSection::ClearDefaults()
+{
+	Rotation.ClearDefaultValue();
+	Translation[0].ClearDefaultValue();
+	Translation[1].ClearDefaultValue();
+	Scale[0].ClearDefaultValue();
+	Scale[1].ClearDefaultValue();
+}

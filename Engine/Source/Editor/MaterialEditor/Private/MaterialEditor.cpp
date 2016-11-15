@@ -144,7 +144,7 @@ int32 FMatExpressionPreview::CompilePropertyAndSetMaterialProperty(EMaterialProp
 		// Hardcoding output 0 as we don't have the UI to specify any other output
 		const int32 OutputIndex = 0;
 		// Get back into gamma corrected space, as DrawTile does not do this adjustment.
-		Ret = Compiler->Power(Compiler->Max(Expression->CompilePreview(Compiler, OutputIndex, -1), Compiler->Constant(0)), Compiler->Constant(1.f / 2.2f));
+		Ret = Compiler->Power(Compiler->Max(Expression->CompilePreview(Compiler, OutputIndex), Compiler->Constant(0)), Compiler->Constant(1.f / 2.2f));
 	}
 	else if (Property == MP_WorldPositionOffset)
 	{
@@ -162,7 +162,7 @@ int32 FMatExpressionPreview::CompilePropertyAndSetMaterialProperty(EMaterialProp
 	}
 
 	// output should always be the right type for this property
-	return Compiler->ForceCast(Ret, GetMaterialPropertyType(Property));
+	return Compiler->ForceCast(Ret, FMaterialAttributeDefinitionMap::GetValueType(Property));
 }
 
 void FMatExpressionPreview::NotifyCompilationFinished()
@@ -979,7 +979,7 @@ void FMaterialEditor::DrawMaterialInfoStrings(
 
 		if (SamplersUsed >= 0)
 		{
-			int32 MaxSamplers = GetFeatureLevelMaxTextureSamplers(MaterialResource->GetFeatureLevel());
+			int32 MaxSamplers = GetExpectedFeatureLevelMaxTextureSamplers(MaterialResource->GetFeatureLevel());
 
 			Canvas->DrawShadowedString(
 				5,
@@ -1003,7 +1003,7 @@ void FMaterialEditor::DrawMessages( FViewport* InViewport, FCanvas* Canvas )
 {
 	if( PreviewExpression != NULL )
 	{
-		Canvas->PushAbsoluteTransform( FMatrix::Identity );
+		Canvas->PushAbsoluteTransform( FTranslationMatrix(FVector(0.0f, 30.0f,0.0f) ) );
 
 		// The message to display in the viewport.
 		FString Name = FString::Printf( TEXT("Previewing: %s"), *PreviewExpression->GetName() );
@@ -1278,6 +1278,8 @@ void FMaterialEditor::UpdatePreviewMaterial( bool bForce )
 
 	if(PreviewExpression)
 	{
+		check(ExpressionPreviewMaterial);
+
 		// The preview material's expressions array must stay up to date before recompiling 
 		// So that RebuildMaterialFunctionInfo will see all the nested material functions that may need to be updated
 		ExpressionPreviewMaterial->Expressions = Material->Expressions;
@@ -1693,7 +1695,7 @@ void FMaterialEditor::UpdateMaterialInfoList(bool bForceDisplay)
 
 				if (SamplersUsed >= 0)
 				{
-					int32 MaxSamplers = GetFeatureLevelMaxTextureSamplers(MaterialResource->GetFeatureLevel());
+					int32 MaxSamplers = GetExpectedFeatureLevelMaxTextureSamplers(MaterialResource->GetFeatureLevel());
 					FString SamplersString = FString::Printf(TEXT("%s samplers: %u/%u"), FeatureLevel <= ERHIFeatureLevel::ES3_1 ? TEXT("Mobile texture") : TEXT("Texture"), SamplersUsed, MaxSamplers);
 					TempMaterialInfoList.Add(MakeShareable(new FMaterialInfo(SamplersString, FLinearColor::Yellow)));
 					TSharedRef<FTokenizedMessage> Line = FTokenizedMessage::Create( EMessageSeverity::Info );
@@ -1779,6 +1781,8 @@ void FMaterialEditor::UpdateGraphNodeStates()
 
 			if (MaterialNode->bIsErrorExpression && !MaterialNode->bHasCompilerMessage)
 			{
+				check(MaterialNode->MaterialExpression);
+
 				bUpdatedErrorState = true;
 				MaterialNode->bHasCompilerMessage = true;
 				MaterialNode->ErrorMsg = MaterialNode->MaterialExpression->LastErrorText;
@@ -2153,6 +2157,13 @@ void FMaterialEditor::OnConvertObjects()
 						NewGraphNode->ReplaceNode(GraphNode);
 
 						bool bNeedsRefresh = false;
+
+						// Copy over any common values
+						if (GraphNode->NodeComment.Len() > 0)
+						{
+							bNeedsRefresh = true; 
+							NewGraphNode->NodeComment = GraphNode->NodeComment;
+						}
 
 						// Copy over expression-specific values
 						if (Constant1Expression)
@@ -3380,7 +3391,7 @@ void FMaterialEditor::PasteNodesHere(const FVector2D& Location)
 
 			UMaterialExpression* NewExpression = GraphNode->MaterialExpression;
 			NewExpression->Material = Material;
-			NewExpression->Function = NULL;
+			NewExpression->Function = MaterialFunction;
 			Material->Expressions.Add(NewExpression);
 
 			// There can be only one default mesh paint texture.
@@ -3430,6 +3441,7 @@ void FMaterialEditor::PasteNodesHere(const FVector2D& Location)
 		{
 			CommentNode->MaterialDirtyDelegate = Material->MaterialGraph->MaterialDirtyDelegate;
 			CommentNode->MaterialExpressionComment->Material = Material;
+			CommentNode->MaterialExpressionComment->Function = MaterialFunction;
 			Material->EditorComments.Add(CommentNode->MaterialExpressionComment);
 		}
 

@@ -8,6 +8,7 @@
 #include "MallocAnsi.h"
 #include "MallocJemalloc.h"
 #include "MallocBinned.h"
+#include "MallocBinned2.h"
 #include <sys/sysinfo.h>
 #include <sys/file.h>
 #include <sys/mman.h>
@@ -25,6 +26,9 @@ void FLinuxPlatformMemory::Init()
 		MemoryConstants.TotalPhysical);
 }
 
+// Set rather to use BinnedMalloc2 for binned malloc, can be overridden below
+#define USE_MALLOC_BINNED2 (0)
+
 class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 {
 	// This function gets executed very early, way before main() (because global constructors will allocate memory).
@@ -37,23 +41,18 @@ class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 		return nullptr;
 	}
 
-	enum EAllocatorToUse
+	if (USE_MALLOC_BINNED2)
 	{
-		Ansi,
-		Jemalloc,
-		Binned
+		AllocatorToUse = EMemoryAllocatorToUse::Binned2;
 	}
-	AllocatorToUse = EAllocatorToUse::Binned;
-
-	// Prefer jemalloc as it consistently saves ~20% RES usage in my (RCL) tests (editor only)
-	if (PLATFORM_SUPPORTS_JEMALLOC && WITH_EDITOR)
+	else
 	{
-		AllocatorToUse = EAllocatorToUse::Jemalloc;
+		AllocatorToUse = EMemoryAllocatorToUse::Binned;
 	}
-
+	
 	if (FORCE_ANSI_ALLOCATOR)
 	{
-		AllocatorToUse = EAllocatorToUse::Ansi;
+		AllocatorToUse = EMemoryAllocatorToUse::Ansi;
 	}
 	else
 	{
@@ -68,21 +67,27 @@ class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 #if PLATFORM_SUPPORTS_JEMALLOC
 				if (FCStringAnsi::Stricmp(Arg, "-jemalloc") == 0)
 				{
-					AllocatorToUse = EAllocatorToUse::Jemalloc;
+					AllocatorToUse = EMemoryAllocatorToUse::Jemalloc;
 					break;
 				}
 #endif // PLATFORM_SUPPORTS_JEMALLOC
 				if (FCStringAnsi::Stricmp(Arg, "-ansimalloc") == 0)
 				{
-					AllocatorToUse = EAllocatorToUse::Ansi;
+					AllocatorToUse = EMemoryAllocatorToUse::Ansi;
 					break;
 				}
 
 				if (FCStringAnsi::Stricmp(Arg, "-binnedmalloc") == 0)
 				{
-					AllocatorToUse = EAllocatorToUse::Binned;
+					AllocatorToUse = EMemoryAllocatorToUse::Binned;
 					break;
-				}	
+				}
+
+				if (FCStringAnsi::Stricmp(Arg, "-binnedmalloc2") == 0)
+				{
+					AllocatorToUse = EMemoryAllocatorToUse::Binned2;
+					break;
+				}
 			}
 			free(Arg);
 			fclose(CmdLineFile);
@@ -93,20 +98,24 @@ class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 
 	switch (AllocatorToUse)
 	{
-		case Ansi:
-			Allocator = new FMallocAnsi();
-			break;
+	case EMemoryAllocatorToUse::Ansi:
+		Allocator = new FMallocAnsi();
+		break;
 
 #if PLATFORM_SUPPORTS_JEMALLOC
-		case Jemalloc:
-			Allocator = new FMallocJemalloc();
-			break;
+	case EMemoryAllocatorToUse::Jemalloc:
+		Allocator = new FMallocJemalloc();
+		break;
 #endif // PLATFORM_SUPPORTS_JEMALLOC
 
-		default:	// intentional fall-through
-		case Binned:
-			Allocator = new FMallocBinned(FPlatformMemory::GetConstants().PageSize & MAX_uint32, 0x100000000);
-			break;
+	case EMemoryAllocatorToUse::Binned2:
+		Allocator = new FMallocBinned2();
+		break;
+
+	default:	// intentional fall-through
+	case EMemoryAllocatorToUse::Binned:
+		Allocator = new FMallocBinned(FPlatformMemory::GetConstants().PageSize & MAX_uint32, 0x100000000);
+		break;
 	}
 
 	printf("Using %ls.\n", Allocator ? Allocator->GetDescriptiveName() : TEXT("NULL allocator! We will probably crash right away"));

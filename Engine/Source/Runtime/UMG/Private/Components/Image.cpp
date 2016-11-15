@@ -103,6 +103,11 @@ void UImage::SetBrushFromTexture(UTexture2D* Texture, bool bMatchSize)
 {
 	Brush.SetResourceObject(Texture);
 
+	if (Texture) // Since this texture is used as UI, don't allow it affected by budget.
+	{
+		Texture->bIgnoreStreamingMipBias = true;
+	}
+
 	if (bMatchSize && Texture)
 	{
 		Brush.ImageSize.X = Texture->GetSizeX();

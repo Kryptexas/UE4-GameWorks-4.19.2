@@ -28,4 +28,7 @@ typedef FHTML5PlatformProperties FPlatformProperties;
 #elif PLATFORM_LINUX
 #include "Linux/LinuxPlatformProperties.h"
 typedef FLinuxPlatformProperties<WITH_EDITORONLY_DATA, UE_SERVER, !WITH_SERVER_CODE> FPlatformProperties;
+#elif PLATFORM_WOLF
+#include "WolfPlat/WolfPlatformProperties.h"
+typedef FWolfPlatformProperties FPlatformProperties;
 #endif

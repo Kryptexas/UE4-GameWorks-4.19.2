@@ -123,7 +123,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLandscapeEditorTest, "System.Promotion.Editor.
 bool FLandscapeEditorTest::RunTest(const FString& Parameters)
 {
 	//New level
-	UWorld* NewMap = AutomationEditorCommonUtils::CreateNewMap();
+	UWorld* NewMap = FAutomationEditorCommonUtils::CreateNewMap();
 	if (NewMap)
 	{
 		UE_LOG(LogLandscapeAutomationTests, Display, TEXT("Created an empty level"));
@@ -145,7 +145,7 @@ bool FLandscapeEditorTest::RunTest(const FString& Parameters)
 	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(1.0f));
 
 	//Update the screenshot name, then take a screenshot.
-	if (FAutomationTestFramework::GetInstance().IsScreenshotAllowed())
+	if (FAutomationTestFramework::Get().IsScreenshotAllowed())
 	{
 		WindowScreenshotParameters ScreenshotParameters;
 

@@ -204,18 +204,6 @@ public:
 	virtual int32 GetNumPasses() = 0;
 
 	/**
-	 * Returns if we are using full size screen shots.
-	 *
-	 * @return true if using full size screenshots, false otherwise.
-	 */
-	virtual bool IsUsingFullSizeScreenshots() const = 0;
-
-	/**
-	 * Sets if we are using full size screen shots.
-	 */
-	virtual void SetUsingFullSizeScreenshots(const  bool bNewValue ) = 0;
-
-	/**
 	* Returns if analytics should be sent
 	*/
 	virtual bool IsSendAnalytics() const = 0;

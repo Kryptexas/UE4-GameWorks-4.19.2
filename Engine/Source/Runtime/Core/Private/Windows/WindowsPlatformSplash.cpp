@@ -692,7 +692,7 @@ void FWindowsPlatformSplash::Hide()
 		// Close the Z-Order guard window
 		if ( GSplashScreenGuard )
 		{
-			DestroyWindow(GSplashScreenGuard);
+			PostMessage(GSplashScreenGuard, WM_DESTROY, 0, 0);
 			GSplashScreenGuard = NULL;
 		}
 	}

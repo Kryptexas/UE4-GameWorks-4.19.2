@@ -7,24 +7,7 @@
 #include "AllowWindowsPlatformTypes.h"
 #endif
 
-#if PLATFORM_PS4
-
-PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
-
-#elif defined (__clang__)
-
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wshadow"
-
-#elif defined (_MSC_VER)
-
-#pragma warning(push)
-#pragma warning(disable: 4510)
-#pragma warning(disable: 4610)
-#pragma warning(disable: 4996)
-#pragma warning(disable: 6011)
-
-#endif
+THIRD_PARTY_INCLUDES_START
 
 #pragma push_macro("NO_LOGGING")
 #pragma push_macro("OVERRIDE")
@@ -56,19 +39,7 @@ PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 #pragma pop_macro("NO_LOGGING")
 #pragma pop_macro("OVERRIDE")
 
-#if PLATFORM_PS4
-
-PRAGMA_POP
-
-#elif defined (__clang__) 
-
-#pragma clang diagnostics pop
-
-#elif defined (_MSC_VER)
-
-#pragma warning(pop)
-
-#endif
+THIRD_PARTY_INCLUDES_END
 
 #if PLATFORM_WINDOWS
 #include "HideWindowsPlatformTypes.h"

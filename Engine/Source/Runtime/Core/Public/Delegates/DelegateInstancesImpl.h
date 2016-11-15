@@ -9,6 +9,7 @@
 #pragma once
 #include "Delegates/DelegateInstanceInterface.h"
 #include "UObject/NameTypes.h"
+#include "Templates/RemoveReference.h"
 
 class UFunction;
 

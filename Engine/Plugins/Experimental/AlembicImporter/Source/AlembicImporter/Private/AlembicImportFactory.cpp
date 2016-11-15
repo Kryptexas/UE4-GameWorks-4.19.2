@@ -54,14 +54,14 @@ UClass* UAlembicImportFactory::ResolveSupportedClass()
 	return UStaticMesh::StaticClass();
 }
 
-UObject* UAlembicImportFactory::FactoryCreateBinary(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const uint8*& Buffer, const uint8* BufferEnd, FFeedbackContext* Warn, bool& bOutOperationCanceled)
+UObject* UAlembicImportFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, const FString& Filename, const TCHAR* Parms, FFeedbackContext* Warn, bool& bOutOperationCanceled)
 {
-	FEditorDelegates::OnAssetPreImport.Broadcast(this, InClass, InParent, InName, Type);
+	FEditorDelegates::OnAssetPreImport.Broadcast(this, InClass, InParent, InName, TEXT("ABC"));
 
 	TSharedPtr<SAlembicImportOptions> Options;
 
 	FAbcImporter Importer;
-	EAbcImportError ErrorCode = Importer.OpenAbcFileForImport(UFactory::CurrentFilename);
+	EAbcImportError ErrorCode = Importer.OpenAbcFileForImport(Filename);
 	ImportSettings->bReimport = false;
 	
 	if (ErrorCode != AbcImportError_NoError)
@@ -71,7 +71,9 @@ UObject* UAlembicImportFactory::FactoryCreateBinary(UClass* InClass, UObject* In
 		return nullptr;
 	}
 
-	ImportSettings->SamplingSettings.FrameEnd = Importer.GetNumFrames();	
+	// Reset (possible) changed frame start value 
+	ImportSettings->SamplingSettings.FrameStart = 0;
+	ImportSettings->SamplingSettings.FrameEnd = Importer.GetEndFrameIndex();
 	ShowImportOptionsWindow(Options, UFactory::CurrentFilename, Importer);
 
 	// Set whether or not the user canceled
@@ -83,7 +85,7 @@ UObject* UAlembicImportFactory::FactoryCreateBinary(UClass* InClass, UObject* In
 	TArray<UObject*> ResultAssets;
 	if (!bOutOperationCanceled)
 	{
-		FEditorDelegates::OnAssetPreImport.Broadcast(this, InClass, InParent, InName, Type);
+		FEditorDelegates::OnAssetPreImport.Broadcast(this, InClass, InParent, InName, TEXT("ABC"));
 		
 		if (Options->ShouldImport())
 		{
@@ -393,7 +395,8 @@ EReimportResult::Type UAlembicImportFactory::ReimportGeometryCache(UGeometryCach
 
 	TSharedPtr<SAlembicImportOptions> Options;
 	ImportSettings->ImportType = EAlembicImportType::GeometryCache;
-	ImportSettings->SamplingSettings.FrameEnd = Importer.GetNumFrames();
+	ImportSettings->SamplingSettings.FrameStart = 0;
+	ImportSettings->SamplingSettings.FrameEnd = Importer.GetEndFrameIndex();
 	ShowImportOptionsWindow(Options, CurrentFilename, Importer);
 	
 	if (!Options->ShouldImport())
@@ -455,7 +458,8 @@ EReimportResult::Type UAlembicImportFactory::ReimportSkeletalMesh(USkeletalMesh*
 
 	TSharedPtr<SAlembicImportOptions> Options;
 	ImportSettings->ImportType = EAlembicImportType::Skeletal;
-	ImportSettings->SamplingSettings.FrameEnd = Importer.GetNumFrames();
+	ImportSettings->SamplingSettings.FrameStart = 0;
+	ImportSettings->SamplingSettings.FrameEnd = Importer.GetEndFrameIndex();
 	ShowImportOptionsWindow(Options, CurrentFilename, Importer);
 
 	if (!Options->ShouldImport())
@@ -517,7 +521,8 @@ EReimportResult::Type UAlembicImportFactory::ReimportStaticMesh(UStaticMesh* Mes
 
 	TSharedPtr<SAlembicImportOptions> Options;
 	ImportSettings->ImportType = EAlembicImportType::StaticMesh;
-	ImportSettings->SamplingSettings.FrameEnd = Importer.GetNumFrames();
+	ImportSettings->SamplingSettings.FrameStart = 0;
+	ImportSettings->SamplingSettings.FrameEnd = Importer.GetEndFrameIndex();
 	ShowImportOptionsWindow(Options, CurrentFilename, Importer);
 
 	if (!Options->ShouldImport())

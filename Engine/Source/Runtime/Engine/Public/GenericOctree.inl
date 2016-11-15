@@ -4,8 +4,7 @@
 	GenericOctree.inl: Generic octree implementation.
 =============================================================================*/
 
-#ifndef __GENERICOCTREE_INL__
-#define __GENERICOCTREE_INL__
+#pragma once
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogGenericOctree, Log, All);
 
@@ -403,5 +402,3 @@ void TOctree<ElementType,OctreeSemantics>::ApplyOffset(const FVector& InOffset, 
 	// Saved nodes will be deleted on scope exit
 }
 
-
-#endif

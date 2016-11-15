@@ -64,7 +64,11 @@ void FMainFrameModule::CreateDefaultMainFrame( const bool bStartImmersive, const
 			// Do not maximize the window initially. Keep a small dialog feel.
 			DefaultWindowLocation.InitiallyMaximized = false;
 
-			DefaultWindowLocation.WindowSize = GetProjectBrowserWindowSize();
+
+			FDisplayMetrics DisplayMetrics;
+			FSlateApplication::Get().GetDisplayMetrics(DisplayMetrics);
+			const float DPIScaleFactor = FPlatformMisc::GetDPIScaleFactorAtPoint(DisplayMetrics.PrimaryDisplayWorkAreaRect.Left, DisplayMetrics.PrimaryDisplayWorkAreaRect.Top);
+			DefaultWindowLocation.WindowSize = GetProjectBrowserWindowSize() * DPIScaleFactor;
 			DefaultWindowLocation.ScreenPosition = DefaultWindowLocation.GetCenteredScreenPosition();
 
 			bIsUserSizable = true;
@@ -859,7 +863,7 @@ void FMainFrameModule::HandleCodeAccessorLaunched( const bool WasSuccessful )
 }
 
 
-void FMainFrameModule::HandleCodeAccessorLaunching( )
+void FMainFrameModule::HandleCodeAccessorLaunching()
 {
 	if (CodeAccessorNotificationPtr.IsValid())
 	{
@@ -878,7 +882,7 @@ void FMainFrameModule::HandleCodeAccessorLaunching( )
 
 void FMainFrameModule::HandleCodeAccessorOpenFileFailed(const FString& Filename)
 {
-	auto* Info = new FNotificationInfo(FText::Format(LOCTEXT("FileNotFound", "Could not find code file ({Filename})"), FText::FromString(Filename)));
+	auto* Info = new FNotificationInfo(FText::Format(LOCTEXT("FileNotFound", "Could not find code file, {0}"), FText::FromString(Filename)));
 	Info->ExpireDuration = 3.0f;
 	FSlateNotificationManager::Get().QueueNotification(Info);
 }

@@ -70,20 +70,6 @@ namespace EEarlyZPass
 	};
 }
 
-
-/** used by FPostProcessSettings Anti-aliasing */
-UENUM()
-namespace EAntiAliasingMethodUI
-{
-	enum Type
-	{
-		AAM_None UMETA(DisplayName = "None"),
-		AAM_FXAA UMETA(DisplayName = "FXAA"),
-		AAM_TemporalAA UMETA(DisplayName = "TemporalAA"),
-		AAM_MAX,
-	};
-}
-
 /** used by FPostProcessSettings AutoExposure*/
 UENUM()
 namespace EAutoExposureMethodUI
@@ -128,6 +114,12 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ToolTip = "Allow primitives to receive both static and CSM shadows from a stationary light. Disabling will free a mobile texture sampler.",
 		ConfigRestartRequired = true))
 		uint32 bMobileEnableStaticAndCSMShadowReceivers : 1;
+
+	UPROPERTY(config, EditAnywhere, Category = Mobile, meta = (
+		ConsoleVariable = "r.Mobile.DisableVertexFog", DisplayName = "Disable vertex fogging in mobile shaders",
+		ToolTip = "If true, vertex fog will be omitted from all mobile shaders, this can increase shading performance.",
+		ConfigRestartRequired = true))
+		uint32 bMobileDisableVertexFog : 1;
 
 	UPROPERTY(config, EditAnywhere, Category = Materials, meta = (
 		ConsoleVariable = "r.DiscardUnusedQuality", DisplayName = "Game Discards Unused Material Quality Levels",
@@ -176,17 +168,28 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ToolTip = "Use a separate normal map for the bottom layer of a clear coat material. This is a higher quality feature that is expensive."))
 		uint32 bClearCoatEnableSecondNormal : 1;
 
-	UPROPERTY(config, EditAnywhere, Category = Textures, meta = (
+	UPROPERTY(config, EditAnywhere, Category = Reflections, meta = (
 		ConsoleVariable = "r.ReflectionCaptureResolution", DisplayName = "Reflection Capture Resolution",
 		ToolTip = "The cubemap resolution for all reflection capture probes. Must be power of 2. Note that for very high values the memory and performance impact may be severe."))
 	int32 ReflectionCaptureResolution;
 
+	UPROPERTY(config, EditAnywhere, Category = Reflections, meta = (
+		ConsoleVariable = "r.ReflectionEnvironmentLightmapMixBasedOnRoughness", DisplayName = "Reduce lightmap mixing on smooth surfaces",
+		ToolTip = "Whether to reduce lightmap mixing with reflection captures for very smooth surfaces.  This is useful to make sure reflection captures match SSR / planar reflections in brightness."))
+	uint32 ReflectionEnvironmentLightmapMixBasedOnRoughness : 1;
+
 	UPROPERTY(config, EditAnywhere, Category=ForwardShading, meta=(
 		ConsoleVariable="r.ForwardShading",
-		DisplayName = "Forward Shading (experimental)",
-		ToolTip="Whether to use forward shading on desktop platforms.  Requires Shader Model 5 hardware.  Forward shading has lower constant cost, but fewer features supported.  Changing this setting requires restarting the editor.",
+		DisplayName = "Forward Shading",
+		ToolTip="Whether to use forward shading on desktop platforms, requires Shader Model 5 hardware.  Forward shading supports MSAA and has lower default cost, but fewer features supported overall.  Materials have to opt-in to more expensive features like high quality reflections.  Changing this setting requires restarting the editor.",
 		ConfigRestartRequired=true))
 	uint32 bForwardShading:1;
+
+	UPROPERTY(config, EditAnywhere, Category=ForwardShading, meta=(
+		ConsoleVariable="r.VertexFoggingForOpaque",
+		ToolTip="Causes opaque materials to use per-vertex fogging, which costs less and integrates properly with MSAA.  Only supported with forward shading. Changing this setting requires restarting the editor.",
+		ConfigRestartRequired=true))
+	uint32 bVertexFoggingForOpaque:1;
 
 	UPROPERTY(config, EditAnywhere, Category=Lighting, meta=(
 		ConsoleVariable="r.AllowStaticLighting",
@@ -236,45 +239,45 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ToolTip="Whether the custom depth pass for tagging primitives for postprocessing passes is enabled. Enabling it on demand can save memory but may cause a hitch the first time the feature is used."))
 	TEnumAsByte<ECustomDepthStencil::Type> CustomDepthStencil;
 
-	UPROPERTY(config, EditAnywhere, Category = DefaultPostprocessingSettings, meta = (
+	UPROPERTY(config, EditAnywhere, Category = DefaultSettings, meta = (
 		ConsoleVariable = "r.DefaultFeature.Bloom", DisplayName = "Bloom",
 		ToolTip = "Whether the default for Bloom is enabled or not (postprocess volume/camera/game setting can still override and enable or disable it independently)"))
 	uint32 bDefaultFeatureBloom : 1;
 
-	UPROPERTY(config, EditAnywhere, Category = DefaultPostprocessingSettings, meta = (
+	UPROPERTY(config, EditAnywhere, Category = DefaultSettings, meta = (
 		ConsoleVariable = "r.DefaultFeature.AmbientOcclusion", DisplayName = "Ambient Occlusion",
 		ToolTip = "Whether the default for AmbientOcclusion is enabled or not (postprocess volume/camera/game setting can still override and enable or disable it independently)"))
 	uint32 bDefaultFeatureAmbientOcclusion : 1;
 
-	UPROPERTY(config, EditAnywhere, Category = DefaultPostprocessingSettings, meta = (
+	UPROPERTY(config, EditAnywhere, Category = DefaultSettings, meta = (
 		ConsoleVariable = "r.DefaultFeature.AmbientOcclusionStaticFraction", DisplayName = "Ambient Occlusion Static Fraction (AO for baked lighting)",
 		ToolTip = "Whether the default for AmbientOcclusionStaticFraction is enabled or not (only useful for baked lighting and if AO is on, allows to have SSAO affect baked lighting as well, costs performance, postprocess volume/camera/game setting can still override and enable or disable it independently)"))
 	uint32 bDefaultFeatureAmbientOcclusionStaticFraction : 1;
 
-	UPROPERTY(config, EditAnywhere, Category = DefaultPostprocessingSettings, meta = (
+	UPROPERTY(config, EditAnywhere, Category = DefaultSettings, meta = (
 		ConsoleVariable = "r.DefaultFeature.AutoExposure", DisplayName = "Auto Exposure",
 		ToolTip = "Whether the default for AutoExposure is enabled or not (postprocess volume/camera/game setting can still override and enable or disable it independently)"))
 	uint32 bDefaultFeatureAutoExposure : 1;
 	
-	UPROPERTY(config, EditAnywhere, Category = DefaultPostprocessingSettings, meta = (
+	UPROPERTY(config, EditAnywhere, Category = DefaultSettings, meta = (
 		ConsoleVariable = "r.DefaultFeature.AutoExposure.Method", DisplayName = "Auto Exposure",
 		ToolTip = "The default method for AutoExposure(postprocess volume/camera/game setting can still override and enable or disable it independently)"))
 	TEnumAsByte<EAutoExposureMethodUI::Type> DefaultFeatureAutoExposure; 
 
-	UPROPERTY(config, EditAnywhere, Category = DefaultPostprocessingSettings, meta = (
+	UPROPERTY(config, EditAnywhere, Category = DefaultSettings, meta = (
 		ConsoleVariable = "r.DefaultFeature.MotionBlur", DisplayName = "Motion Blur",
 		ToolTip = "Whether the default for MotionBlur is enabled or not (postprocess volume/camera/game setting can still override and enable or disable it independently)"))
 	uint32 bDefaultFeatureMotionBlur : 1;
 
-	UPROPERTY(config, EditAnywhere, Category = DefaultPostprocessingSettings, meta = (
+	UPROPERTY(config, EditAnywhere, Category = DefaultSettings, meta = (
 		ConsoleVariable = "r.DefaultFeature.LensFlare", DisplayName = "Lens Flares (Image based)",
 		ToolTip = "Whether the default for LensFlare is enabled or not (postprocess volume/camera/game setting can still override and enable or disable it independently)"))
 	uint32 bDefaultFeatureLensFlare : 1;
 
-	UPROPERTY(config, EditAnywhere, Category = DefaultPostprocessingSettings, meta = (
+	UPROPERTY(config, EditAnywhere, Category = DefaultSettings, meta = (
 		ConsoleVariable = "r.DefaultFeature.AntiAliasing", DisplayName = "Anti-Aliasing Method",
-		ToolTip = "What anti-aliasing mode is used by default (postprocess volume/camera/game setting can still override and enable or disable it independently)"))
-	TEnumAsByte<EAntiAliasingMethodUI::Type> DefaultFeatureAntiAliasing;
+		ToolTip = "What anti-aliasing mode is used by default"))
+	TEnumAsByte<EAntiAliasingMethod> DefaultFeatureAntiAliasing;
 
 	UPROPERTY(config, EditAnywhere, Category=Optimizations, meta=(
 		ConsoleVariable="r.StencilForLODDither",DisplayName="Use Stencil for LOD Dither Fading",
@@ -294,7 +297,8 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 
 	UPROPERTY(config, EditAnywhere, Category=Lighting, meta=(
 		ConsoleVariable="r.DBuffer",DisplayName="DBuffer Decals",
-		ToolTip="Experimental decal feature (see r.DBuffer, ideally combined with 'Movables in early Z-pass' and 'Early Z-pass')"))
+		ToolTip="Whether to accumulate decal properties to a buffer before the base pass.  DBuffer decals correctly affect lightmap and sky lighting, unlike regular deferred decals.  DBuffer enabled forces a full prepass.  Changing this setting requires restarting the editor.",
+		ConfigRestartRequired=true))
 	uint32 bDBuffer:1;
 
 	UPROPERTY(config, EditAnywhere, Category=Optimizations, meta=(
@@ -313,6 +317,11 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ToolTip="Enables not exporting to the GBuffer rendertargets that are not relevant. Changing this setting requires restarting the editor.",
 		ConfigRestartRequired=true))
 	uint32 bSelectiveBasePassOutputs:1;
+
+	UPROPERTY(config, EditAnywhere, Category = Optimizations, meta = (
+		DisplayName = "Enable Particle Cutouts by default",
+		ToolTip = "When enabled, after changing the material on a Required particle module a Particle Cutout texture will be chosen automatically from the Opacity Mask texture if it exists, if not the Opacity Texture will be used if it exists."))
+	uint32 bDefaultParticleCutouts : 1;
 
 	UPROPERTY(config, EditAnywhere, Category = Lighting, meta = (
 		ConsoleVariable = "r.AllowGlobalClipPlane", DisplayName = "Support global clip plane for Planar Reflections",
@@ -342,6 +351,12 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ToolTip = "Enable multi-view for instanced stereo rendering (only available on the PS4).",
 		ConfigRestartRequired = true))
 	uint32 bMultiView : 1;
+
+	UPROPERTY(config, EditAnywhere, Category = VR, meta = (
+		ConsoleVariable = "vr.MobileMultiView", DisplayName = "Mobile Multi-View (Experimental)",
+		ToolTip = "Enable mobile multi-view rendering (only available on some GearVR Android devices using OpenGL ES 3.1).",
+		ConfigRestartRequired = true))
+		uint32 bMobileMultiView : 1;
 
 	UPROPERTY(config, EditAnywhere, Category=Editor, meta=(
 		ConsoleVariable="r.WireframeCullThreshold",DisplayName="Wireframe Cull Threshold",
@@ -380,6 +395,14 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ConfigRestartRequired = true))
 		uint32 bSupportAtmosphericFog : 1;
 
+	/**
+	"Skincache allows a compute shader to skin once each vertex, save those results into a new buffer and reuse those calculations when later running the depth, base and velocity passes. This also allows opting into the 'recompute tangents' for skinned mesh instance feature. Disabling will reduce the number of shader permutations required per material. Changing this setting requires restarting the editor."
+	*/
+	UPROPERTY(config, EditAnywhere, Category = Optimizations, meta = (
+		ConsoleVariable = "r.SkinCache.CompileShaders", DisplayName = "Support Compute Skincache",
+		ConfigRestartRequired = true))
+		uint32 bSupportSkinCacheShaders : 1;
+
 public:
 
 	//~ Begin UObject Interface
@@ -394,12 +417,6 @@ public:
 
 private:
 	void SanatizeReflectionCaptureResolution();
-	
-	UPROPERTY(config)
-	TEnumAsByte<EUIScalingRule> UIScaleRule_DEPRECATED;
-
-	UPROPERTY(config)
-	FRuntimeFloatCurve UIScaleCurve_DEPRECATED;
 };
 
 UCLASS(config = Engine, globaluserconfig, meta = (DisplayName = "Rendering Overrides (Local)"))

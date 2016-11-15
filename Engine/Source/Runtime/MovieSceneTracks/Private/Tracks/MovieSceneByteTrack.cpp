@@ -24,7 +24,7 @@ TSharedPtr<IMovieSceneTrackInstance> UMovieSceneByteTrack::CreateInstance()
 }
 
 
-bool UMovieSceneByteTrack::Eval( float Position, float LastPostion, uint8& OutByte ) const
+bool UMovieSceneByteTrack::Eval( float Position, float LastPostion, uint8& InOutByte ) const
 {	
 	const UMovieSceneSection* Section = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Position );
 
@@ -35,7 +35,7 @@ bool UMovieSceneByteTrack::Eval( float Position, float LastPostion, uint8& OutBy
 			Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
 		}
 
-		OutByte = CastChecked<UMovieSceneByteSection>( Section )->Eval( Position );
+		InOutByte = CastChecked<UMovieSceneByteSection>( Section )->Eval( Position, InOutByte );
 	}
 
 	return Section != nullptr;

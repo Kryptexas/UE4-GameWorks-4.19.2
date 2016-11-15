@@ -134,7 +134,10 @@ TArray<UMovieSceneSection*> FMovieSceneSubTrackInstance::GetAllTraversedSections
 
 		if ((Section->GetStartTime()-PrerollTime == CurrentTime) || TraversedRange.Overlaps(TRange<float>(Section->GetRange().GetLowerBoundValue()-PrerollTime, Section->GetRange().GetUpperBoundValue())))
 		{
-			TraversedSections.Add(Section);
+			if (Section->IsActive())
+			{
+				TraversedSections.Add(Section);
+			}
 		}
 	}
 

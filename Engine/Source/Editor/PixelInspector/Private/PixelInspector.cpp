@@ -441,7 +441,7 @@ namespace PixelInspector
 		//0: false
 		//1: true
 		//default: true
-		const bool AllowStaticLighting = CVarAllowStaticLighting != nullptr ? CVarGBufferFormat->GetValueOnGameThread() == 1 : true;
+		const bool AllowStaticLighting = CVarAllowStaticLighting != nullptr ? CVarAllowStaticLighting->GetValueOnGameThread() == 1 : true;
 		
 		//Try to create the request buffer
 		int32 BufferIndex = CreateRequestBuffer(SceneInterface, GBufferFormat);

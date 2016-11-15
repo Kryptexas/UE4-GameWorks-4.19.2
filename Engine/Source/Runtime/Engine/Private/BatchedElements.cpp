@@ -63,6 +63,39 @@ void FBatchedElements::AddLine(const FVector& Start, const FVector& End, const F
 	}
 }
 
+void FBatchedElements::AddTranslucentLine(const FVector& Start, const FVector& End, const FLinearColor& Color, FHitProxyId HitProxyId, float Thickness, float DepthBias, bool bScreenSpace)
+{
+	if (Thickness == 0.0f)
+	{
+		if (DepthBias == 0.0f)
+		{
+			new(LineVertices) FSimpleElementVertex(Start, FVector2D::ZeroVector, Color, HitProxyId);
+			new(LineVertices) FSimpleElementVertex(End, FVector2D::ZeroVector, Color, HitProxyId);
+		}
+		else
+		{
+			// Draw degenerate triangles in wireframe mode to support depth bias (d3d11 and opengl3 don't support depth bias on line primitives, but do on wireframes)
+			FBatchedWireTris* WireTri = new(WireTris) FBatchedWireTris();
+			WireTri->DepthBias = DepthBias;
+			new(WireTriVerts) FSimpleElementVertex(Start, FVector2D::ZeroVector, Color, HitProxyId);
+			new(WireTriVerts) FSimpleElementVertex(End, FVector2D::ZeroVector, Color, HitProxyId);
+			new(WireTriVerts) FSimpleElementVertex(End, FVector2D::ZeroVector, Color, HitProxyId);
+		}
+	}
+	else
+	{
+		FBatchedThickLines* ThickLine = new(ThickLines) FBatchedThickLines;
+		ThickLine->Start = Start;
+		ThickLine->End = End;
+		ThickLine->Thickness = Thickness;
+		ThickLine->Color = Color;
+		ThickLine->HitProxyId = HitProxyId;
+		ThickLine->DepthBias = DepthBias;
+		ThickLine->bScreenSpace = bScreenSpace;
+
+	}
+}
+
 void FBatchedElements::AddPoint(const FVector& Position,float Size,const FLinearColor& Color,FHitProxyId HitProxyId)
 {
 	// Ensure the point isn't masked out.  Some legacy code relies on Color.A being ignored.
@@ -281,6 +314,8 @@ void FBatchedElements::AddSprite(
 	uint8 BlendMode
 	)
 {
+	check(Texture);
+
 	FBatchedSprite* Sprite = new(Sprites) FBatchedSprite;
 	Sprite->Position = Position;
 	Sprite->SizeX = SizeX;
@@ -472,7 +507,7 @@ void FBatchedElements::PrepareShaders(
 	FMatrix ColorWeights( FPlane(1, 0, 0, 0), FPlane(0, 1, 0, 0), FPlane(0, 0, 1, 0), FPlane(0, 0, 0, 0) );
 
 	// bEncodedHDR requires that blend states are disabled.
-	bool bEncodedHDR = Is32BppHDREncoded(View);
+	bool bEncodedHDR = bEnableHDREncoding && Is32BppHDREncoded(View);
 
 	float GammaToUse = Gamma;
 
@@ -761,9 +796,47 @@ void FBatchedElements::DrawPointElements(FRHICommandList& RHICmdList, const FMat
 	}
 }
 
+FSceneView FBatchedElements::CreateProxySceneView(const FMatrix& ProjectionMatrix, const FIntRect& ViewRect)
+{
+	FSceneViewInitOptions ProxyViewInitOptions;
+	ProxyViewInitOptions.SetViewRectangle(ViewRect);
+	ProxyViewInitOptions.ViewOrigin = FVector::ZeroVector;
+	ProxyViewInitOptions.ViewRotationMatrix = FMatrix::Identity;
+	ProxyViewInitOptions.ProjectionMatrix = ProjectionMatrix;
+
+	return FSceneView(ProxyViewInitOptions);
+}
 
 bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, bool bNeedToSwitchVerticalAxis, const FMatrix& Transform, uint32 ViewportSizeX, uint32 ViewportSizeY, bool bHitTesting, float Gamma, const FSceneView* View, FTexture2DRHIRef DepthTexture, EBlendModeFilter::Type Filter) const
 {
+	if ( View )
+	{
+		// Going to ignore these parameters in favor of just using the values directly from the scene view, so ensure that they're identical.
+		check(Transform == View->ViewMatrices.GetViewProjectionMatrix());
+		check(ViewportSizeX == View->ViewRect.Width());
+		check(ViewportSizeY == View->ViewRect.Height());
+
+		return Draw(RHICmdList, FeatureLevel, bNeedToSwitchVerticalAxis, *View, bHitTesting, Gamma, DepthTexture, Filter);
+	}
+	else
+	{
+		FIntRect ViewRect = FIntRect(0, 0, ViewportSizeX, ViewportSizeY);
+
+		return Draw(RHICmdList, FeatureLevel, bNeedToSwitchVerticalAxis, CreateProxySceneView(Transform, ViewRect), bHitTesting, Gamma, DepthTexture, Filter);
+	}
+}
+
+bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, bool bNeedToSwitchVerticalAxis, const FSceneView& View, bool bHitTesting, float Gamma /* = 1.0f */, FTexture2DRHIRef DepthTexture /* = FTexture2DRHIRef() */, EBlendModeFilter::Type Filter /* = EBlendModeFilter::All */) const
+{
+	const FMatrix& Transform = View.ViewMatrices.GetViewProjectionMatrix();
+	const uint32 ViewportSizeX = View.ViewRect.Width();
+	const uint32 ViewportSizeY = View.ViewRect.Height();
+
+	if (UNLIKELY(!FApp::CanEverRender()))
+	{
+		return false;
+	}
+
 	if( HasPrimsToDraw() )
 	{
 		FMatrix InvTransform = Transform.Inverse();
@@ -780,7 +853,7 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 			FBatchedElementParameters* BatchedElementParameters = NULL;
 
 			// Set the appropriate pixel shader parameters & shader state for the non-textured elements.
-			PrepareShaders(RHICmdList, FeatureLevel, SE_BLEND_Opaque, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, GWhiteTexture, bHitTesting, Gamma, NULL, View, DepthTexture);
+			PrepareShaders(RHICmdList, FeatureLevel, SE_BLEND_Opaque, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, GWhiteTexture, bHitTesting, Gamma, NULL, &View, DepthTexture);
 
 			// Draw the line elements.
 			if( LineVertices.Num() > 0 )
@@ -806,15 +879,13 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 
 			if ( ThickLines.Num() > 0 )
 			{
+				PrepareShaders(RHICmdList, FeatureLevel, SE_BLEND_Translucent, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, GWhiteTexture, bHitTesting, Gamma, NULL, &View, DepthTexture);
 				float OrthoZoomFactor = 1.0f;
 
-				if( View )
+				const bool bIsPerspective = View.ViewMatrices.GetProjectionMatrix().M[3][3] < 1.0f ? true : false;
+				if (!bIsPerspective)
 				{
-					const bool bIsPerspective = View->ViewMatrices.ProjMatrix.M[3][3] < 1.0f ? true : false;
-					if( !bIsPerspective )
-					{
-						OrthoZoomFactor = 1.0f / View->ViewMatrices.ProjMatrix.M[0][0];
-					}
+					OrthoZoomFactor = 1.0f / View.ViewMatrices.GetProjectionMatrix().M[0][0];
 				}
 
 				int32 LineIndex = 0;
@@ -996,7 +1067,7 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 						//New batch, draw previous and clear
 						const int32 VertexCount = SpriteList.Num();
 						const int32 PrimCount = VertexCount / 3;
-						PrepareShaders(RHICmdList, FeatureLevel, CurrentBlendMode, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, CurrentTexture, bHitTesting, Gamma, NULL, View, DepthTexture);
+						PrepareShaders(RHICmdList, FeatureLevel, CurrentBlendMode, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, CurrentTexture, bHitTesting, Gamma, NULL, &View, DepthTexture);
 						DrawPrimitiveUP(RHICmdList, PT_TriangleList, PrimCount, SpriteList.GetData(), sizeof(FSimpleElementVertex));
 
 						SpriteList.Empty(6);
@@ -1036,7 +1107,7 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 					//Draw last batch
 					const int32 VertexCount = SpriteList.Num();
 					const int32 PrimCount = VertexCount / 3;
-					PrepareShaders(RHICmdList, FeatureLevel, CurrentBlendMode, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, CurrentTexture, bHitTesting, Gamma, NULL, View, DepthTexture);
+					PrepareShaders(RHICmdList, FeatureLevel, CurrentBlendMode, Transform, bNeedToSwitchVerticalAxis, BatchedElementParameters, CurrentTexture, bHitTesting, Gamma, NULL, &View, DepthTexture);
 					DrawPrimitiveUP(RHICmdList, PT_TriangleList, PrimCount, SpriteList.GetData(), sizeof(FSimpleElementVertex));
 				}
 			}
@@ -1054,7 +1125,7 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 				if (Filter & MeshFilter)
 				{
 					// Set the appropriate pixel shader for the mesh.
-					PrepareShaders(RHICmdList, FeatureLevel, MeshElement.BlendMode, Transform, bNeedToSwitchVerticalAxis, MeshElement.BatchedElementParameters, MeshElement.Texture, bHitTesting, Gamma, &MeshElement.GlowInfo);
+					PrepareShaders(RHICmdList, FeatureLevel, MeshElement.BlendMode, Transform, bNeedToSwitchVerticalAxis, MeshElement.BatchedElementParameters, MeshElement.Texture, bHitTesting, Gamma, &MeshElement.GlowInfo, &View);
 
 					// Draw the mesh.
 					DrawIndexedPrimitiveUP(

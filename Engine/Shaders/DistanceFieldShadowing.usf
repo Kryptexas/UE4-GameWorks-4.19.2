@@ -619,6 +619,8 @@ SamplerState ShadowFactorsSampler;
 
 float FadePlaneOffset;
 float InvFadePlaneLength;
+float NearFadePlaneOffset;
+float InvNearFadePlaneLength;
 
 void DistanceFieldShadowingUpsamplePS(
 	in float4 UVAndScreenPos : TEXCOORD0,
@@ -631,7 +633,7 @@ void DistanceFieldShadowingUpsamplePS(
 
 #define BILATERAL_UPSAMPLE 1
 #if BILATERAL_UPSAMPLE && UPSAMPLE_REQUIRED
-	float2 LowResBufferSize = floor(View.RenderTargetSize / DOWNSAMPLE_FACTOR);
+	float2 LowResBufferSize = floor(View.BufferSizeAndInvSize.xy / DOWNSAMPLE_FACTOR);
 	float2 LowResTexelSize = 1.0f / LowResBufferSize;
 	float2 Corner00UV = floor(DistanceFieldUVs * LowResBufferSize - .5f) / LowResBufferSize + .5f * LowResTexelSize;
 	float2 BilinearWeights = (DistanceFieldUVs - Corner00UV) * LowResBufferSize;
@@ -666,7 +668,11 @@ void DistanceFieldShadowingUpsamplePS(
 	float Output = Texture2DSampleLevel(ShadowFactorsTexture, ShadowFactorsSampler, DistanceFieldUVs, 0).x;
 #endif
 
-	float BlendFactor = 1.0f - saturate((SceneDepth - FadePlaneOffset) * InvFadePlaneLength);
-	Output = lerp(1, Output, BlendFactor);
-	OutColor = EncodeLightAttenuation(half4(Output, Output, Output, BlendFactor));
+	float FarBlendFactor = 1.0f - saturate((SceneDepth - FadePlaneOffset) * InvFadePlaneLength);
+	Output = lerp(1, Output, FarBlendFactor);
+
+	float NearBlendFactor = saturate((SceneDepth - NearFadePlaneOffset) * InvNearFadePlaneLength);
+	Output = lerp(1, Output, NearBlendFactor);
+
+	OutColor = EncodeLightAttenuation(half4(Output, Output, Output, Output));
 }

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2744667
+﻿INTSourceChangelist:3067712
 Availability:Public
 Title:언리얼 엔진 설치하기
 Description:언리얼 엔진 설치법 단계별 안내입니다.
@@ -29,6 +29,10 @@ SkillLevel: Beginner
 [/REGION]
 
 (#Bookmark1)
+
+## 에픽 게임스 계정 생성
+
+에픽 게임스 런처 실행을 위해서는, 유효한 에픽 게임스 계정이 있어야 합니다.
 
 [INCLUDE:GettingStarted/AccountSetup#epicAccount]
 

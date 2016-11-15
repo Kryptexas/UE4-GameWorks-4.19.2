@@ -5,6 +5,9 @@
 =============================================================================*/
 
 #include "ScreenShotComparisonPrivatePCH.h"
+#include "SDirectoryPicker.h"
+
+#include "SScreenComparisonRow.h"
 
 /* SScreenShotBrowser interface
  *****************************************************************************/
@@ -12,6 +15,8 @@
 void SScreenShotBrowser::Construct( const FArguments& InArgs,  IScreenShotManagerRef InScreenShotManager  )
 {
 	ScreenShotManager = InScreenShotManager;
+	ComparisonRoot = FPaths::ConvertRelativePathToFull(FPaths::GameSavedDir() / TEXT("Exported"));
+
 
 	ChildSlot
 	[
@@ -19,53 +24,69 @@ void SScreenShotBrowser::Construct( const FArguments& InArgs,  IScreenShotManage
 		+SVerticalBox::Slot()
 		.AutoHeight()
 		[
-			// Create the search bar.
-			SNew( SScreenShotSearchBar, ScreenShotManager )
+			SNew(SHorizontalBox)
+
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(SDirectoryPicker)
+				.Directory(ComparisonRoot)
+				.OnDirectoryChanged(this, &SScreenShotBrowser::OnDirectoryChanged)
+			]
 		]
+
 		+SVerticalBox::Slot()
 		.FillHeight( 1.0f )
 		[
-			SAssignNew( TreeBoxHolder, SHorizontalBox )
+			SAssignNew(ComparisonView, SListView< TSharedPtr<FImageComparisonResult> >)
+			.ListItemsSource(&ComparisonList)
+			.OnGenerateRow(this, &SScreenShotBrowser::OnGenerateWidgetForScreenResults)
+			.SelectionMode(ESelectionMode::None)
 		]
 	];
-
-	// Create the delegate for view change callbacks
-	ScreenShotDelegate = FOnScreenFilterChanged::CreateSP(this, &SScreenShotBrowser::HandleScreenShotDataChanged);
 
 	// Register for callbacks
 	ScreenShotManager->RegisterScreenShotUpdate(ScreenShotDelegate);
 
-	ReGenerateTree();
+	RebuildTree();
 }
 
+void SScreenShotBrowser::OnDirectoryChanged(const FString& Directory)
+{
+	ComparisonRoot = Directory;
 
-TSharedRef<ITableRow> SScreenShotBrowser::OnGenerateWidgetForScreenView( TSharedPtr<IScreenShotData> InItem, const TSharedRef<STableViewBase>& OwnerTable )
+	RebuildTree();
+}
+
+TSharedRef<ITableRow> SScreenShotBrowser::OnGenerateWidgetForScreenResults(TSharedPtr<FImageComparisonResult> InItem, const TSharedRef<STableViewBase>& OwnerTable)
 {
 	// Create the row widget.
 	return
-		SNew( SScreenViewRow, OwnerTable )
-		. ScreenShotData( InItem );
+		SNew(SScreenComparisonRow, OwnerTable)
+		.ComparisonDirectory(ComparisonDirectory)
+		.Comparisons(CurrentComparisons)
+		.ComparisonResult(InItem);
 }
 
-void SScreenShotBrowser::HandleScreenShotDataChanged()
+void SScreenShotBrowser::RebuildTree()
 {
-	// Need to do this as request refresh doesn't regenerate children
-	ReGenerateTree();
-}
+	TArray<FString> Changelists;
+	FString SearchDirectory = ComparisonRoot / TEXT("*");
+	IFileManager::Get().FindFiles(Changelists, *SearchDirectory, false, true);
 
-void SScreenShotBrowser::ReGenerateTree()
-{
-	TreeBoxHolder->ClearChildren();
+	ComparisonDirectory = ComparisonRoot / TEXT("3120027");
+	CurrentComparisons = ScreenShotManager->ImportScreensots(ComparisonDirectory);
+	
+	ComparisonList.Reset();
 
-	TreeBoxHolder->AddSlot()
-	.FillWidth( 1.0f )
-	[
-		SNew(SBorder)
-		[
-			SNew( SListView< TSharedPtr<IScreenShotData> > )
-			.ListItemsSource( &ScreenShotManager->GetLists() )
-			.OnGenerateRow( this, &SScreenShotBrowser::OnGenerateWidgetForScreenView )
-			.SelectionMode( ESelectionMode::None )
-		]
-	];
+	if ( CurrentComparisons.IsValid() )
+	{
+		// Copy the comparisons to an array as shared pointers the list view can use.
+		for ( FImageComparisonResult& Result : CurrentComparisons->Comparisons )
+		{
+			ComparisonList.Add(MakeShareable(new FImageComparisonResult(Result)));
+		}
+	}
+
+	ComparisonView->RequestListRefresh();
 }

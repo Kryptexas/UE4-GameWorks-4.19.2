@@ -134,8 +134,8 @@ public:
 	virtual IDetailCategoryBuilder& OnExpansionChanged( FOnBooleanValueChanged InOnExpansionChanged ) override;
 	virtual IDetailCategoryBuilder& RestoreExpansionState( bool bRestore ) override;
 	virtual IDetailCategoryBuilder& HeaderContent( TSharedRef<SWidget> InHeaderContent ) override;
-	virtual IDetailPropertyRow& AddProperty( FName PropertyPath, UClass* ClassOuter = NULL, FName InstanceName = NAME_None,  EPropertyLocation::Type Location = EPropertyLocation::Default ) override;
-	virtual IDetailPropertyRow& AddProperty( TSharedPtr<IPropertyHandle> PropertyHandle,  EPropertyLocation::Type Location = EPropertyLocation::Default ) override;
+	virtual IDetailPropertyRow& AddProperty( FName PropertyPath, UClass* ClassOuter = nullptr, FName InstanceName = NAME_None,  EPropertyLocation::Type Location = EPropertyLocation::Default ) override;
+	virtual IDetailPropertyRow& AddProperty( TSharedPtr<IPropertyHandle> PropertyHandle, EPropertyLocation::Type Location = EPropertyLocation::Default ) override;
 	virtual IDetailPropertyRow* AddExternalProperty( const TArray<UObject*>& Objects, FName PropertyName, EPropertyLocation::Type Location = EPropertyLocation::Default ) override;
 	virtual IDetailPropertyRow* AddExternalProperty( TSharedPtr<FStructOnScope> StructData, FName PropertyName, EPropertyLocation::Type Location = EPropertyLocation::Default ) override;
 	virtual IDetailLayoutBuilder& GetParentLayout() const override { return *DetailLayoutBuilder.Pin(); }
@@ -151,7 +151,7 @@ public:
 	virtual TSharedRef< ITableRow > GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities, bool bAllowFavoriteSystem) override;
 	virtual void GetChildren( TArray< TSharedRef<IDetailTreeNode> >& OutChildren ) override;
 	virtual bool ShouldBeExpanded() const override;
-	virtual ENodeVisibility::Type GetVisibility() const override;
+	virtual ENodeVisibility GetVisibility() const override;
 	virtual void FilterNode( const FDetailFilter& DetailFilter ) override;
 	virtual void Tick( float DeltaTime ) override {}
 	virtual bool ShouldShowOnlyChildren() const override { return false; }
@@ -381,7 +381,6 @@ private:
 	bool bHasVisibleDetails:1;
 	/** true if the category is visible at all */
 	bool bIsCategoryVisible:1;
-
 	/*true if the category is the special favorite category, all property in the layout will be display when we generate the roottree */
 	bool bFavoriteCategory:1;
 };

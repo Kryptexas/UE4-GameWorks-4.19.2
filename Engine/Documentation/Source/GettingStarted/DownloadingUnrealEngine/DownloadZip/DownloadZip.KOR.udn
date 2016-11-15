@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2744667
+﻿INTSourceChangelist:3069476
 Availability:Public
 Title:Zip 파일로 언리얼 엔진 다운로드
 Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine
@@ -24,6 +24,8 @@ SkillLevel: Advanced
 	[/PARAMLITERAL]
 	[PARAM:content]
 	1.	GitHub 페이지로 이동합니다.
+	1.	**Clone or download** 버튼을 클릭합니다.
+		![](CloneorDownloadButton.png)
 	1.	**Download ZIP** 버튼을 클릭합니다.
 		![](DownloadZipButton.png)
 		[REGION:warning]
@@ -63,6 +65,8 @@ SkillLevel: Advanced
 	[/PARAMLITERAL]
 	[PARAM:content]
 	1.	GitHub 페이지로 이동합니다.
+	1.	**Clone or download** 버튼을 누릅니다.
+		![](CloneorDownloadButton.png)
 	1.	**Download ZIP** 버튼을 누릅니다.
 		![](DownloadZipButton.png)
 	1.	'UnrealEngine-(branch_name).zip' 파일 압축을 하드 디스크에 풉니다.
@@ -92,6 +96,8 @@ SkillLevel: Advanced
 	[/REGION]
 
 	1.	GitHub 페이지로 이동합니다.
+	1.	**Clone or download** 버튼을 누릅니다.
+		![](CloneorDownloadButton.png)
 	1.	**Download ZIP** 버튼을 누릅니다.
 		![](DownloadZipButton.png)
 	1.	'UnrealEngine-(branch_name).zip' 파일 압축을 하드 디스크에 풉니다.

@@ -146,11 +146,6 @@ FProfilerManager::~FProfilerManager()
 	// Remove ourselves from the session manager.
 	if (SessionManager.IsValid())
 	{
-		// clear the selected session
-		ISessionInfoPtr Ptr;
-		Ptr.Reset();
-		SessionManager->SelectSession( Ptr );
-
 		SessionManager->OnCanSelectSession().RemoveAll( this );
 		SessionManager->OnSelectedSessionChanged().RemoveAll( this );
 		SessionManager->OnInstanceSelectionChanged().RemoveAll( this );
@@ -483,6 +478,8 @@ void FProfilerManager::SessionManager_OnInstanceSelectionChanged(const TSharedPt
 				ProfilerWindowPtr->ManageEventGraphTab( ActiveInstanceID, true, ProfilerSession->GetName() );
 			}			
 		}
+
+		RequestFilterAndPresetsUpdateEvent.Broadcast();
 	}
 
 	SessionInstancesUpdatedEvent.Broadcast();

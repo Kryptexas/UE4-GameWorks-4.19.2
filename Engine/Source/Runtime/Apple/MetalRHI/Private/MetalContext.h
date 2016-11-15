@@ -18,36 +18,6 @@
 #define NUM_SAFE_FRAMES 4
 
 /**
- * Enumeration of features which are present only on some OS/device combinations.
- * These have to be checked at runtime as well as compile time to ensure backward compatibility.
- */
-enum EMetalFeatures
-{
-	/** Support for separate front & back stencil ref. values */
-	EMetalFeaturesSeparateStencil = 1 << 0,
-	/** Support for specifying an update to the buffer offset only */
-	EMetalFeaturesSetBufferOffset = 1 << 1,
-	/** Support for specifying the depth clip mode */
-	EMetalFeaturesDepthClipMode = 1 << 2,
-	/** Support for specifying resource usage & memory options */
-	EMetalFeaturesResourceOptions = 1 << 3,
-	/** Supports texture->buffer blit options for depth/stencil blitting */
-	EMetalFeaturesDepthStencilBlitOptions = 1 << 4,
-    /** Supports creating a native stencil texture view from a depth/stencil texture */
-    EMetalFeaturesStencilView = 1 << 5,
-    /** Supports a depth-16 pixel format */
-    EMetalFeaturesDepth16 = 1 << 6,
-	/** Supports NSUInteger counting visibility queries */
-	EMetalFeaturesCountingQueries = 1 << 7,
-	/** Supports base vertex/instance for draw calls */
-	EMetalFeaturesBaseVertexInstance = 1 << 8,
-	/** Supports indirect buffers for draw calls */
-	EMetalFeaturesIndirectBuffer = 1 << 9,
-	/** Supports layered rendering */
-	EMetalFeaturesLayeredRendering = 1 << 10
-};
-
-/**
  * Enumeration for submission hints to avoid unclear bool values.
  */
 enum EMetalSubmitFlags
@@ -236,7 +206,7 @@ public:
 	static FMetalDeviceContext* CreateDeviceContext();
 	virtual ~FMetalDeviceContext();
 	
-	bool SupportsFeature(EMetalFeatures InFeature) { return ((Features & InFeature) != 0); }
+	inline bool SupportsFeature(EMetalFeatures InFeature) { return CommandQueue.SupportsFeature(InFeature); }
 	
 	FMetalPooledBuffer CreatePooledBuffer(FMetalPooledBufferArgs const& Args);
 	void ReleasePooledBuffer(FMetalPooledBuffer Buf);

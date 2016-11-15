@@ -12,6 +12,7 @@
 #include "Engine/NetDriver.h"
 #include "GameFramework/OnlineReplStructs.h"
 #include "Runtime/PacketHandlers/PacketHandler/Public/PacketHandler.h"
+#include "ProfilingDebugging/Histogram.h"
 
 #include "NetConnection.generated.h"
 
@@ -661,7 +662,7 @@ public:
 	 */
 	ENGINE_API class UVoiceChannel* GetVoiceChannel();
 
-	void FlushDormancy(class AActor* Actor);
+	ENGINE_API virtual void FlushDormancy(class AActor* Actor);
 
 	/** Wrapper for validating an objects dormancy state, and to prepare the object for replication again */
 	void FlushDormancyForObject( UObject* Object );

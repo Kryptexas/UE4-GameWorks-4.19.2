@@ -19,6 +19,7 @@ IMPLEMENT_APPLICATION(TestPAL, "TestPAL");
 #define ARG_CRASH_TEST						"crash"
 #define ARG_STRINGPRECISION_TEST			"stringprecision"
 #define ARG_DSO_TEST						"dso"
+#define ARG_OFFSCREEN_GL_TEST				"offscreen-gl"
 
 namespace TestPAL
 {
@@ -401,6 +402,30 @@ int32 DynamicLibraryTest(const TCHAR* CommandLine)
 
 
 /**
+ * Offscreen GL
+ */
+int32 OffscreenGLTest(const TCHAR* CommandLine)
+{
+	FPlatformMisc::SetCrashHandler(NULL);
+	FPlatformMisc::SetGracefulTerminationHandler();
+
+	GEngineLoop.PreInit(CommandLine);
+	UE_LOG(LogTestPAL, Display, TEXT("Running offscreen GL test."));
+
+#if PLATFORM_LINUX
+	void DrawOffscreenGL();
+	DrawOffscreenGL();
+#else
+	UE_LOG(LogTestPAL, Fatal, TEXT("Test has not been implemented on this platform."));
+#endif // PLATFORM_LINUX
+
+	FEngineLoop::AppPreExit();
+	FEngineLoop::AppExit();
+	return 0;
+}
+
+
+/**
  * Selects and runs one of test cases.
  *
  * @param ArgC Number of commandline arguments.
@@ -451,6 +476,10 @@ int32 MultiplexedMain(int32 ArgC, char* ArgV[])
 		{
 			return DynamicLibraryTest(*TestPAL::CommandLine);
 		}
+		else if (!FCStringAnsi::Strcmp(ArgV[IdxArg], ARG_OFFSCREEN_GL_TEST))
+		{
+			return OffscreenGLTest(*TestPAL::CommandLine);
+		}
 	}
 
 	FPlatformMisc::SetCrashHandler(NULL);
@@ -470,6 +499,7 @@ int32 MultiplexedMain(int32 ArgC, char* ArgV[])
 	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test crash handling (pass '-logfatal' for testing Fatal logs)"), ANSI_TO_TCHAR( ARG_CRASH_TEST ));
 	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test passing %%*s in a format string"), ANSI_TO_TCHAR( ARG_STRINGPRECISION_TEST ));
 	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test APIs for dealing with dynamic libraries"), ANSI_TO_TCHAR( ARG_DSO_TEST ));
+	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test rendering GL offscreen"), UTF8_TO_TCHAR(ARG_OFFSCREEN_GL_TEST));
 	UE_LOG(LogTestPAL, Warning, TEXT(""));
 	UE_LOG(LogTestPAL, Warning, TEXT("Pass one of those to run an appropriate test."));
 

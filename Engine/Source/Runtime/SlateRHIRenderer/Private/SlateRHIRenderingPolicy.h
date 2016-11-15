@@ -3,9 +3,9 @@
 
 #pragma once
 
-class FSlateRHIResourceManager;
-
 #include "RenderingPolicy.h"
+
+class FSlateRHIResourceManager;
 
 class FSlateRHIRenderingPolicy : public FSlateRenderingPolicy
 {

@@ -390,6 +390,10 @@ void UPrimitiveComponent::SetAllPhysicsRotation(FRotator NewRot)
 	SetWorldRotation(NewRot, NAME_None);
 }
 
+void UPrimitiveComponent::SetAllPhysicsRotation(const FQuat& NewRot)
+{
+	SetWorldRotation(NewRot);
+}
 
 void UPrimitiveComponent::WakeRigidBody(FName BoneName)
 {
@@ -878,22 +882,7 @@ void UPrimitiveComponent::UnWeldChildren()
 
 FBodyInstance* UPrimitiveComponent::GetBodyInstance(FName BoneName, bool bGetWelded) const
 {
-	if (bGetWelded && BodyInstance.bWelded)
-	{
-		FName OutSocket;
-		if (UPrimitiveComponent * RootComponentWelded = GetRootWelded(this, GetAttachSocketName(), &OutSocket))
-		{
-			if (FBodyInstance* BI = RootComponentWelded->GetBodyInstance(OutSocket, bGetWelded))
-			{
-				if (BI->bSimulatePhysics)
-				{
-					return BI;
-				}
-			}
-		}
-	}
-
-	return const_cast<FBodyInstance*>(&BodyInstance);
+	return const_cast<FBodyInstance*>((bGetWelded && BodyInstance.WeldParent) ? BodyInstance.WeldParent : &BodyInstance);
 }
 
 bool UPrimitiveComponent::GetSquaredDistanceToCollision(const FVector& Point, float& OutSquaredDistance, FVector& OutClosestPointOnCollision) const

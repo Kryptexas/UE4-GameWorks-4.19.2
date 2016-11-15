@@ -93,7 +93,7 @@ public:
 		{
 			GenerateAssigments(Context, Node);
 
-			if (Context.IsDebuggingOrInstrumentationRequired() && Node)
+			if (Context.IsDebuggingOrInstrumentationRequired() && Node && !Context.IsExpansionNode(Node))
 			{
 				FBlueprintCompiledStatement& TraceStatement = Context.AppendStatementForNode(Node);
 				TraceStatement.Type = Context.GetWireTraceType();

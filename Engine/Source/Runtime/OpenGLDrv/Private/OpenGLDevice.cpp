@@ -554,7 +554,7 @@ static void InitRHICapabilitiesForGL()
 #endif
 
 	// GL vendor and version information.
-#if !defined(__GNUC__) && !defined(__clang__) && !(defined(_MSC_VER) && _MSC_VER >= 1900)
+#if !defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER) && !(defined(_MSC_VER) && _MSC_VER >= 1900)
 	#define LOG_GL_STRING(StringEnum) UE_LOG(LogRHI, Log, TEXT("  ") ## TEXT(#StringEnum) ## TEXT(": %s"), ANSI_TO_TCHAR((const ANSICHAR*)glGetString(StringEnum)))
 #else
 	#define LOG_GL_STRING(StringEnum) UE_LOG(LogRHI, Log, TEXT("  " #StringEnum ": %s"), ANSI_TO_TCHAR((const ANSICHAR*)glGetString(StringEnum)))
@@ -567,6 +567,7 @@ static void InitRHICapabilitiesForGL()
 	#undef LOG_GL_STRING
 
 	GRHIAdapterName = FOpenGL::GetAdapterName();
+	GRHIAdapterInternalDriverVersion = ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_VERSION));
 
 	// Log all supported extensions.
 #if PLATFORM_WINDOWS
@@ -625,7 +626,7 @@ static void InitRHICapabilitiesForGL()
 	FOpenGL::InitDebugContext();
 
 	// Log and get various limits.
-#if !defined(__GNUC__) && !defined(__clang__) && !(defined(_MSC_VER) && _MSC_VER >= 1900)
+#if !defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER) && !(defined(_MSC_VER) && _MSC_VER >= 1900)
 #define LOG_AND_GET_GL_INT_TEMP(IntEnum,Default) GLint Value_##IntEnum = Default; if (IntEnum) {glGetIntegerv(IntEnum, &Value_##IntEnum); glGetError();} else {Value_##IntEnum = Default;} UE_LOG(LogRHI, Log, TEXT("  ") ## TEXT(#IntEnum) ## TEXT(": %d"), Value_##IntEnum)
 #else
 #define LOG_AND_GET_GL_INT_TEMP(IntEnum,Default) GLint Value_##IntEnum = Default; if (IntEnum) {glGetIntegerv(IntEnum, &Value_##IntEnum); glGetError();} else {Value_##IntEnum = Default;} UE_LOG(LogRHI, Log, TEXT("  " #IntEnum ": %d"), Value_##IntEnum)
@@ -741,6 +742,7 @@ static void InitRHICapabilitiesForGL()
 	UE_LOG(LogRHI, Log, TEXT("PLATFORM_ANDROID"));
 #endif
 
+	GMaxTextureSamplers = Value_GL_MAX_TEXTURE_IMAGE_UNITS;
 	GMaxTextureMipCount = FMath::CeilLogTwo(Value_GL_MAX_TEXTURE_SIZE) + 1;
 	GMaxTextureMipCount = FMath::Min<int32>(MAX_TEXTURE_MIP_COUNT, GMaxTextureMipCount);
 	GMaxTextureDimensions = Value_GL_MAX_TEXTURE_SIZE;
@@ -760,6 +762,7 @@ static void InitRHICapabilitiesForGL()
 	GSupportsMultipleRenderTargets = FOpenGL::SupportsMultipleRenderTargets();
 	GSupportsWideMRT = FOpenGL::SupportsWideMRT();
 	GSupportsTexture3D = FOpenGL::SupportsTexture3D();
+	GSupportsMobileMultiView = FOpenGL::SupportsMobileMultiView();
 	GSupportsResourceView = FOpenGL::SupportsResourceView();
 		
 	GSupportsShaderFramebufferFetch = FOpenGL::SupportsShaderFramebufferFetch();
@@ -809,7 +812,7 @@ static void InitRHICapabilitiesForGL()
 	SetupTextureFormat( PF_A32B32G32R32F,		FOpenGLTextureFormat( GL_RGBA32F,				GL_NONE,				GL_RGBA,			GL_FLOAT,						false,			false));
 	SetupTextureFormat( PF_UYVY,				FOpenGLTextureFormat( ));
 	//@todo: ES2 requires GL_OES_depth_texture extension to support depth textures of any kind.
-	SetupTextureFormat( PF_ShadowDepth,			FOpenGLTextureFormat( ShadowDepthFormat,		GL_NONE,				GL_DEPTH_COMPONENT, GL_UNSIGNED_INT,				false,			false));
+	SetupTextureFormat( PF_ShadowDepth,			FOpenGLTextureFormat( ShadowDepthFormat,		GL_NONE,				GL_DEPTH_COMPONENT,	GL_UNSIGNED_INT,				false,			false));
 	SetupTextureFormat( PF_D24,					FOpenGLTextureFormat( DepthFormat,				GL_NONE,				GL_DEPTH_COMPONENT,	GL_UNSIGNED_INT,				false,			false));
 	SetupTextureFormat( PF_A16B16G16R16,		FOpenGLTextureFormat( GL_RGBA16,				GL_RGBA16,				GL_RGBA,			GL_UNSIGNED_SHORT,				false,			false));
 	SetupTextureFormat( PF_A1,					FOpenGLTextureFormat( ));
@@ -904,7 +907,9 @@ static void InitRHICapabilitiesForGL()
 		if (FOpenGL::SupportsColorBufferHalfFloat() && FOpenGL::SupportsTextureHalfFloat())
 		{
 #if PLATFORM_ANDROID
-			SetupTextureFormat(PF_FloatRGBA, FOpenGLTextureFormat(GL_RGBA, GL_RGBA, GL_RGBA16F_EXT, GL_RGBA16F_EXT, GL_RGBA, GL_HALF_FLOAT_OES, false, false));
+			GLenum InternalFormatRGBA16 = FOpenGL::GetTextureHalfFloatInternalFormat();
+			GLenum PixelTypeRGBA16 = FOpenGL::GetTextureHalfFloatPixelType();
+			SetupTextureFormat(PF_FloatRGBA, FOpenGLTextureFormat(InternalFormatRGBA16, InternalFormatRGBA16, GL_RGBA, PixelTypeRGBA16, false, false));
 #else
 			SetupTextureFormat(PF_FloatRGBA, FOpenGLTextureFormat(GL_RGBA, GL_RGBA, GL_RGBA, GL_HALF_FLOAT_OES, false, false));
 #endif
@@ -997,12 +1002,15 @@ static void InitRHICapabilitiesForGL()
 
 	// Temporary fix for nvidia driver issue with non-power-of-two shadowmaps (9/8/2016) UE-35312
 	// @TODO revisit this with newer drivers
-	IConsoleVariable* CSMAtlassingCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shadow.CSMAtlassing"));
-	if (CSMAtlassingCVar)
-	{
-		CSMAtlassingCVar->Set(0);
-	}
+	GRHINeedsUnatlasedCSMDepthsWorkaround = true;
 }
+
+FDynamicRHI* FOpenGLDynamicRHIModule::CreateRHI(ERHIFeatureLevel::Type InRequestedFeatureLevel)
+{
+	GRequestedFeatureLevel = InRequestedFeatureLevel;
+	return new FOpenGLDynamicRHI();
+}
+
 
 FOpenGLDynamicRHI::FOpenGLDynamicRHI()
 :	SceneFrameCounter(0)
@@ -1022,6 +1030,27 @@ FOpenGLDynamicRHI::FOpenGLDynamicRHI()
 	InitRHICapabilitiesForGL();
 
 	check(PlatformOpenGLCurrentContext(PlatformDevice) == CONTEXT_Shared);
+
+	if (PlatformCanEnableGPUCapture())
+	{
+		EnableIdealGPUCaptureOptions(true);
+
+		// Disable persistent mapping
+		{
+			auto* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("OpenGL.UBODirectWrite"));
+			if (CVar)
+			{
+				CVar->Set(false);
+			}
+		}
+		{
+			auto* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("OpenGL.UseStagingBuffer"));
+			if (CVar)
+			{
+				CVar->Set(false);
+			}
+		}
+	}
 
 	PrivateOpenGLDevicePtr = this;
 }

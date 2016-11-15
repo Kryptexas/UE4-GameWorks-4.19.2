@@ -105,7 +105,7 @@ bool FHTML5TargetDevice::GetUserCredentials( FString& OutUserName, FString& OutU
 	return false;
 }
 
-bool FHTML5TargetDevice::TerminateProcess( const int32 ProcessId )
+bool FHTML5TargetDevice::TerminateProcess( const int64 ProcessId )
 {
 	return false;
 }

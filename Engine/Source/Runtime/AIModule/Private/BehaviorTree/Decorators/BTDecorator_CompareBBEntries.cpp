@@ -39,16 +39,9 @@ bool UBTDecorator_CompareBBEntries::CalculateRawConditionValue(UBehaviorTreeComp
 	const UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
 	if (BlackboardComp)
 	{
-		//BlackboardComp->GetKeyType
-		const EBlackboardCompare::Type Result = BlackboardComp->CompareKeyValues(BlackboardKeyA.SelectedKeyType, 
-			BlackboardKeyA.GetSelectedKeyID(), BlackboardKeyB.GetSelectedKeyID());
+		const EBlackboardCompare::Type Result = BlackboardComp->CompareKeyValues(BlackboardKeyA.SelectedKeyType, BlackboardKeyA.GetSelectedKeyID(), BlackboardKeyB.GetSelectedKeyID());
 
-		static_assert(int32(EBlackboardCompare::Equal) == int32(EBlackBoardEntryComparison::Equal)
-			&& int32(EBlackboardCompare::NotEqual) == int32(EBlackBoardEntryComparison::NotEqual),
-			"These values need to be equal");
-
-		// note that this comparison relies on assumption asserted above
-		return int32(Operator) == int32(Result);
+		return ((Result == EBlackboardCompare::Equal) == (Operator == EBlackBoardEntryComparison::Equal));
 	}
 
 	return false;

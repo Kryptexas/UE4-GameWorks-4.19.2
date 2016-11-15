@@ -65,14 +65,16 @@ void FMovieSceneStringTrackInstance::SaveState(const TArray<TWeakObjectPtr<UObje
 
 void FMovieSceneStringTrackInstance::Update(EMovieSceneUpdateData& UpdateData, const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
 {
-	FString StringValue;
-
-	if (StringTrack->Eval(UpdateData.Position, UpdateData.LastPosition, StringValue))
+	for (auto ObjectPtr : RuntimeObjects)
 	{
-		for (auto ObjectPtr : RuntimeObjects)
+		UObject* Object = ObjectPtr.Get();
+		if (Object != nullptr)
 		{
-			UObject* Object = ObjectPtr.Get();
-			PropertyBindings->CallFunction<FString>(Object, &StringValue);
+			FString StringValue = PropertyBindings->GetCurrentValue<FString>(Object);
+			if (StringTrack->Eval(UpdateData.Position, UpdateData.LastPosition, StringValue))
+			{
+				PropertyBindings->CallFunction<FString>(Object, &StringValue);
+			}
 		}
 	}
 }

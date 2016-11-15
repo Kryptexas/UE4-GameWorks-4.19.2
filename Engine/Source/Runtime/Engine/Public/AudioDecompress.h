@@ -186,7 +186,7 @@ public:
 		, bLoopingMode(false)
 		, bLooped(false)
 	{
-		check(AudioBuffer && AudioBuffer->DecompressionState);
+		check(AudioBuffer);
 		check(WaveData);
 	}
 
@@ -198,7 +198,7 @@ public:
 		, bLoopingMode(bInLoopingMode)
 		, bLooped(false)
 	{
-		check(AudioBuffer && AudioBuffer->DecompressionState);
+		check(AudioBuffer);
 		check(AudioData);
 	}
 
@@ -288,7 +288,6 @@ public:
 	{
 		Task = new FAsyncTask<FAsyncRealtimeAudioTaskWorker<T>>(InAudioBuffer, InAudioData, bInLoopingMode, bInSkipFirstBuffer);
 	}
-
 	FAsyncRealtimeAudioTaskProxy(USoundWave* InWaveData, uint8* InAudioData, int32 InMaxSamples)
 	{
 		Task = new FAsyncTask<FAsyncRealtimeAudioTaskWorker<T>>(InWaveData, InAudioData, InMaxSamples);

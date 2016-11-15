@@ -96,4 +96,17 @@ void SViewportToolBar::OnMouseLeave( const FPointerEvent& MouseEvent )
 	}
 }
 
+bool SViewportToolBar::IsViewModeSupported(EViewModeIndex ViewModeIndex) const 
+{
+	switch (ViewModeIndex)
+	{
+	case VMI_PrimitiveDistanceAccuracy:
+	case VMI_MaterialTextureScaleAccuracy:
+		return false;
+	default:
+		return true;
+	}
+	return true; 
+}
+
 #undef LOCTEXT_NAMESPACE

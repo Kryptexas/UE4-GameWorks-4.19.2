@@ -579,7 +579,7 @@ static void EditorCommandLineUtilsImpl::RunAssetDiffCommand(TSharedPtr<SWindow> 
 	{
 		if (bWantsMerge)
 		{
-			// unlike with diff'ing, for merging we rely on asset editors for
+			// unlike with diffing, for merging we rely on asset editors for
 			// merging, and those windows get childed to the main window (so it
 			// needs to be visible)
 			//

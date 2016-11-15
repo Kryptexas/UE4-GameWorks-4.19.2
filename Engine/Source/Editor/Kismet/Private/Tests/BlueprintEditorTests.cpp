@@ -226,6 +226,8 @@ namespace BlueprintEditorPromotionUtils
 			}
 		}
 
+		check(OldParent);
+
 		//Remove the new root from its old parent and 
 		OldParent->ChildNodes.Remove(NewRoot);
 		NewRoot->Modify();
@@ -689,6 +691,8 @@ namespace BlueprintEditorPromotionTestHelper
 		FBlueprintEditorPromotionTestHelper(FAutomationTestExecutionInfo* InExecutionInfo) :
 			CurrentStage(0)
 		{
+			check(InExecutionInfo);
+
 			FMemory::Memzero(this, sizeof(FBlueprintEditorPromotionTestHelper));
 
 			TestExecutionInfo = InExecutionInfo;
@@ -743,11 +747,11 @@ namespace BlueprintEditorPromotionTestHelper
 		*/
 		void TagPreviousLogs(const FString& NewLogTag)
 		{
-			if (TestExecutionInfo && NewLogTag.Len() > 0)
+			if (NewLogTag.Len() > 0)
 			{
 				for (int32 ErrorIndex = LastErrorCount; ErrorIndex < TestExecutionInfo->Errors.Num(); ++ErrorIndex)
 				{
-					TestExecutionInfo->Errors[ErrorIndex] = FString::Printf(TEXT("%s: %s"), *NewLogTag, *TestExecutionInfo->Errors[ErrorIndex]);
+					TestExecutionInfo->Errors[ErrorIndex].Message = FString::Printf(TEXT("%s: %s"), *NewLogTag, *TestExecutionInfo->Errors[ErrorIndex].Message);
 				}
 				for (int32 WarningIndex = LastWarningCount; WarningIndex < TestExecutionInfo->Warnings.Num(); ++WarningIndex)
 				{
@@ -805,7 +809,7 @@ namespace BlueprintEditorPromotionTestHelper
 					if (!bSuccessful)
 					{
 						//Clear references to the object so we can delete it
-						AutomationEditorCommonUtils::NullReferencesToObject(LoadedAsset);
+						FAutomationEditorCommonUtils::NullReferencesToObject(LoadedAsset);
 
 						bSuccessful = ObjectTools::DeleteSingleObject(LoadedAsset, false);
 					}
@@ -835,21 +839,21 @@ namespace BlueprintEditorPromotionTestHelper
 			const FString FirstMeshPath = AutomationTestSettings->BlueprintEditorPromotionTest.FirstMeshPath.FilePath;
 			if (FirstMeshPath.Len() > 0)
 			{
-				AssetData = FEditorAutomationTestUtilities::GetAssetDataFromPackagePath(FirstMeshPath);
+				AssetData = FAutomationEditorCommonUtils::GetAssetDataFromPackagePath(FirstMeshPath);
 				FirstBlueprintMesh = Cast<UStaticMesh>(AssetData.GetAsset());
 			}
 
 			const FString SecondMeshPath = AutomationTestSettings->BlueprintEditorPromotionTest.SecondMeshPath.FilePath;
 			if (SecondMeshPath.Len() > 0)
 			{
-				AssetData = FEditorAutomationTestUtilities::GetAssetDataFromPackagePath(SecondMeshPath);
+				AssetData = FAutomationEditorCommonUtils::GetAssetDataFromPackagePath(SecondMeshPath);
 				SecondBlueprintMesh = Cast<UStaticMesh>(AssetData.GetAsset());
 			}
 
 			const FString ParticleSystemPath = AutomationTestSettings->BlueprintEditorPromotionTest.DefaultParticleAsset.FilePath;
 			if (ParticleSystemPath.Len() > 0)
 			{
-				AssetData = FEditorAutomationTestUtilities::GetAssetDataFromPackagePath(ParticleSystemPath);
+				AssetData = FAutomationEditorCommonUtils::GetAssetDataFromPackagePath(ParticleSystemPath);
 				LoadedParticleSystem = Cast<UParticleSystem>(AssetData.GetAsset());
 			}
 

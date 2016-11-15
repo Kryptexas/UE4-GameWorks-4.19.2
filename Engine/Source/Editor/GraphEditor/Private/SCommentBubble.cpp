@@ -97,8 +97,35 @@ void SCommentBubble::Tick( const FGeometry& AllottedGeometry, const double InCur
 		ForegroundColor = BubbleLuminance < 0.5f ? SCommentBubbleDefs::DarkForegroundClr : SCommentBubbleDefs::LightForegroundClr;
 	}
 
+	TickVisibility(InCurrentTime, InDeltaTime);
+
+	if( CachedComment != CommentAttribute.Get() )
+	{
+		CachedComment = CommentAttribute.Get();
+		CachedCommentText = FText::FromString( CachedComment );
+		// Call text commit delegate
+		OnTextCommittedDelegate.ExecuteIfBound( CachedCommentText, ETextCommit::Default );
+		// Reflect changes to the Textblock because it doesn't update itself.
+		if( TextBlock.IsValid() )
+		{
+			TextBlock->SetText( CachedCommentText );
+		}
+		// Toggle the comment on/off, provided it the parent isn't a comment node
+		if( !bInvertLODCulling )
+		{
+			OnCommentBubbleToggle( CachedComment.IsEmpty() ? ECheckBoxState::Unchecked : ECheckBoxState::Checked );
+		}
+	}
+}
+
+void SCommentBubble::TickVisibility(const double InCurrentTime, const float InDeltaTime)
+{
 	if( !GraphNode->bCommentBubbleVisible )
 	{
+		const bool bNodeEditable = !IsReadOnly();
+		const bool bEnableTitleHintBubble = bEnableTitleBarBubble && bNodeEditable;
+		const bool bTitleBarBubbleVisible = bEnableTitleHintBubble && IsGraphNodeHovered.IsBound();
+
 		if( bTitleBarBubbleVisible )
 		{
 			const bool bIsCommentHovered = IsHovered() || IsGraphNodeHovered.Execute();
@@ -121,25 +148,7 @@ void SCommentBubble::Tick( const FGeometry& AllottedGeometry, const double InCur
 			}
 		}
 	}
-	if( CachedComment != CommentAttribute.Get() )
-	{
-		CachedComment = CommentAttribute.Get();
-		CachedCommentText = FText::FromString( CachedComment );
-		// Call text commit delegate
-		OnTextCommittedDelegate.ExecuteIfBound( CachedCommentText, ETextCommit::Default );
-		// Reflect changes to the Textblock because it doesn't update itself.
-		if( TextBlock.IsValid() )
-		{
-			TextBlock->SetText( CachedCommentText );
-		}
-		// Toggle the comment on/off, provided it the parent isn't a comment node
-		if( !bInvertLODCulling )
-		{
-			OnCommentBubbleToggle( CachedComment.IsEmpty() ? ECheckBoxState::Unchecked : ECheckBoxState::Checked );
-		}
-	}
 }
-
 void SCommentBubble::UpdateBubble()
 {
 	if( GraphNode->bCommentBubbleVisible )
@@ -408,7 +417,7 @@ void SCommentBubble::OnCommentTextCommitted( const FText& NewText, ETextCommit::
 
 EVisibility SCommentBubble::GetToggleButtonVisibility() const
 {
-	EVisibility ButtonVisibility = EVisibility::Hidden;
+	EVisibility ButtonVisibility = EVisibility::Collapsed;
 
 	if( OpacityValue > 0.f && !GraphNode->bCommentBubbleVisible )
 	{

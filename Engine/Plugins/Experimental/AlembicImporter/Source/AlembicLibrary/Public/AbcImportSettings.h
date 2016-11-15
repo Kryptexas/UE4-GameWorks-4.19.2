@@ -113,6 +113,10 @@ struct FAbcSamplingSettings
 	/** Ending index to stop sampling the animation at*/
 	UPROPERTY(EditAnywhere, Category = Sampling)
 	uint32 FrameEnd;
+
+	/** Skip empty (pre-roll) frames and start importing at the frame which actually contains data */
+	UPROPERTY(EditAnywhere, Category = Sampling, meta=(DisplayName = "Skip Empty Frames at Start of Alembic Sequence"))
+	bool bSkipEmpty;
 };
 
 USTRUCT()
@@ -179,6 +183,51 @@ struct FAbcStaticMeshSettings
 	bool bPropagateMatrixTransformations;
 };
 
+/** Enum that describes type of asset to import */
+UENUM()
+enum class EAbcConversionPreset : uint8
+{
+	/** Imports only the first frame as one or multiple static meshes */
+	Maya UMETA(DisplayName = "Autodesk Maya"),
+	/** Imports the Alembic file as flipbook and matrix animated objects */
+	Max UMETA(DisplayName = "Autodesk 3ds Max"),
+	Custom UMETA(DisplayName = "Custom Settings")
+};
+
+USTRUCT()
+struct FAbcConversionSettings
+{
+	GENERATED_USTRUCT_BODY()
+
+	FAbcConversionSettings()
+		: Preset(EAbcConversionPreset::Maya)
+		, bFlipU(false)
+		, bFlipV(true)
+		, Scale(FVector(1.0f, -1.0f, 1.0f))
+		, Rotation(FVector::ZeroVector)
+	{}
+
+	/** Currently preset that should be applied */
+	UPROPERTY(EditAnywhere, Category = Conversion)
+	EAbcConversionPreset Preset;
+
+	/** Flag whether or not to flip the U channel in the Texture Coordinates */
+	UPROPERTY(EditAnywhere, Category = Conversion)
+	bool bFlipU;
+
+	/** Flag whether or not to flip the V channel in the Texture Coordinates */
+	UPROPERTY(EditAnywhere, Category = Conversion)
+	bool bFlipV;
+
+	/** Scale value that should be applied */
+	UPROPERTY(EditAnywhere, Category = Conversion)
+	FVector Scale;
+
+	/** Rotation in Euler angles that should be applied */
+	UPROPERTY(EditAnywhere, Category = Conversion)
+	FVector Rotation;
+};
+
 /** Class that contains all options for importing an alembic file */
 UCLASS()
 class ALEMBICLIBRARY_API UAbcImportSettings : public UObject
@@ -206,6 +255,9 @@ class ALEMBICLIBRARY_API UAbcImportSettings : public UObject
 
 	UPROPERTY(EditAnywhere, meta = (ShowOnlyInnerProperties), Category = StaticMesh)
 	FAbcStaticMeshSettings StaticMeshSettings;
+
+	UPROPERTY(EditAnywhere, meta = (ShowOnlyInnerProperties), Category = Conversion)
+	FAbcConversionSettings ConversionSettings;
 
 	bool bReimport;
 };

@@ -89,7 +89,7 @@ void FMovieScene3DConstraintTrackInstance::Update(EMovieSceneUpdateData& UpdateD
 					AActor* Actor = Cast<AActor>(ConstraintObjects[ConstraintObjectIndex].Get());
 					if (Actor)
 					{
-						UpdateConstraint(UpdateData.Position, RuntimeObjects, Actor, ConstraintSection);
+						UpdateConstraint(UpdateData.UpdatePass, UpdateData.Position, RuntimeObjects, Actor, ConstraintSection);
 					}	
 				}
 			}

@@ -11,7 +11,7 @@
 int32 CountManifestEntries( const FInternationalizationManifest& Manifest )
 {
 	int32 EntryCounter = 0;
-	for( auto Iter = Manifest.GetEntriesByContextIdIterator(); Iter; ++Iter, ++EntryCounter );
+	for( auto Iter = Manifest.GetEntriesByKeyIterator(); Iter; ++Iter, ++EntryCounter );
 	return EntryCounter;
 }
 
@@ -94,8 +94,7 @@ bool FLocContextTest::RunTest( const FString& Parameters )
 
 		// Test assignment operator
 		{
-			FManifestContext ContextAClone;
-			ContextAClone = ContextA;
+			FManifestContext ContextAClone = ContextA;
 
 			if( ContextAClone.InfoMetadataObj == ContextA.InfoMetadataObj )
 			{

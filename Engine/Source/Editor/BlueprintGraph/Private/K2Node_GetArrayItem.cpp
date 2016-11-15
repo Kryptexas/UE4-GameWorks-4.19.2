@@ -59,8 +59,9 @@ public:
 		FBPTerminal** ArrayTerm = Context.NetMap.Find(ArrayPinNet);
 
 		UEdGraphPin* IndexPin = ArrayNode->GetIndexPin();
-		UEdGraphPin* IndexPinNet = IndexPin ? FEdGraphUtilities::GetNetFromPin(IndexPin) : nullptr;
-		FBPTerminal** IndexTermPtr = IndexPinNet ? Context.NetMap.Find(IndexPinNet) : nullptr;
+		check(IndexPin);
+		UEdGraphPin* IndexPinNet = FEdGraphUtilities::GetNetFromPin(IndexPin);
+		FBPTerminal** IndexTermPtr = Context.NetMap.Find(IndexPinNet);
 
 		FBPTerminal** ReturnValue = Context.NetMap.Find(ReturnValueNet);
 		FBPTerminal** ReturnValueOrig = Context.NetMap.Find(Node->Pins[2]);

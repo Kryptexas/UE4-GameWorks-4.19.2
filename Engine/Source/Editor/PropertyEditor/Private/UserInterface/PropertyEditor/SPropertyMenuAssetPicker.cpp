@@ -170,7 +170,9 @@ void SPropertyMenuAssetPicker::OnPaste()
 			PassesAllowedClassesFilter = false;
 			for(int32 i = 0; i < AllowedClasses.Num(); ++i)
 			{
-				if( Object->IsA(AllowedClasses[i]) )
+				const bool bIsAllowedClassInterface = AllowedClasses[i]->HasAnyClassFlags(CLASS_Interface);
+
+				if( Object->IsA(AllowedClasses[i]) || (bIsAllowedClassInterface && Object->GetClass()->ImplementsInterface(AllowedClasses[i])) )
 				{
 					PassesAllowedClassesFilter = true;
 					break;

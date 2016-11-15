@@ -53,13 +53,14 @@ public:
 	:	StreamingManager( *InStreamingManager )
 	,	bAbort( false )
 	{
-		Reset(0, 0, 0, 0);
+		Reset(0, 0, 0, 0, 0);
 		MemoryBudget = 0;
 	}
 
 	/** Resets the state to start a new async job. */
-	void Reset(int64 InAllocatedMemory, int64 InPoolSize, int64 InTempMemoryBudget, int64 InMemoryMargin)
+	void Reset(int64 InTotalGraphicsMemory, int64 InAllocatedMemory, int64 InPoolSize, int64 InTempMemoryBudget, int64 InMemoryMargin)
 	{
+		TotalGraphicsMemory = InTotalGraphicsMemory;
 		AllocatedMemory = InAllocatedMemory;
 		PoolSize = InPoolSize;
 		TempMemoryBudget = InTempMemoryBudget;
@@ -137,6 +138,9 @@ private:
 
 	/** Whether the async work should abort its processing. */
 	volatile bool				bAbort;
+
+	/** How much VRAM the hardware has. */
+	int64 TotalGraphicsMemory;
 
 	/** How much gpu resources are currently allocated in the texture pool (all category). */
 	int64 AllocatedMemory; 

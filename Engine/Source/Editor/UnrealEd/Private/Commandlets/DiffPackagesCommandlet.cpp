@@ -902,6 +902,7 @@ bool UDiffPackagesCommandlet::ProcessDiff(FObjectComparison& Diff)
 							Diff.ObjectSets[2] ? Diff.ObjectSets[2]->GetRootObject() : NULL,
 							Diff);
 
+	check(NumPackages <= 3);
 	for (int32 PackageIndex = 0; PackageIndex < NumPackages; PackageIndex++)
 	{
 		// its possible we have a NULL object set if the root object isn't in the package

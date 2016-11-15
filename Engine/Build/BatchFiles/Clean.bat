@@ -1,6 +1,6 @@
 @echo off
 
-@echo off
+setlocal
 
 rem %1 is the game name
 rem %2 is the platform name
@@ -23,10 +23,25 @@ rem ## Change the CWD to /Engine/Source.  We always need to run UnrealBuildTool 
 pushd "%~dp0..\..\Source"
 if not exist ..\Build\BatchFiles\Clean.bat goto Error_BatchFileInWrongLocation
 
+rem ## If this is an installed build, we don't need to rebuild UBT. Go straight to cleaning.
+if exist ..\Build\InstalledBuild.txt goto ReadyToClean
 
 rem ## Check to see if we're already running under a Visual Studio environment shell
 if not "%INCLUDE%" == "" if not "%LIB%" == "" goto ReadyToCompile
 
+rem ## Check for Visual Studio 2017
+
+pushd %~dp0
+call GetVSComnToolsPath 15
+popd
+
+if "%VsComnToolsPath%" == "" goto NoVisualStudio2017Environment
+rem ## Check if MSBuild is installed as part of VS2017
+if not exist "%VsComnToolsPath%\..\..\MSBuild\15.0\bin\MSBuild.exe" goto NoVisualStudio2017Environment
+path=%VsComnToolsPath%\..\..\MSBuild\15.0\bin;%path%
+goto ReadyToCompile
+
+:NoVisualStudio2017Environment
 
 rem ## Check for Visual Studio 2015
 

@@ -3,6 +3,8 @@ Title:Localization System Overview
 Crumbs:%ROOT%, Gameplay, Gameplay/Localization
 Description:An overview of the elements involved in localizing your project. 
 version: 4.9
+Parent:Gameplay/Localization
+Order:1
 
 Localization of a project involves a few key concepts:
 

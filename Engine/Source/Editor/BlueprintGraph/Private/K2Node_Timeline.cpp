@@ -21,6 +21,7 @@ UK2Node_Timeline::UK2Node_Timeline(const FObjectInitializer& ObjectInitializer)
 	bAutoPlay = false;
 	bLoop = false;
 	bReplicated = false;
+	bIgnoreTimeDilation = false;
 }
 
 static FString PlayPinName(TEXT("Play"));
@@ -104,6 +105,7 @@ void UK2Node_Timeline::AllocateDefaultPins()
 		// cache play status
 		bAutoPlay = Timeline->bAutoPlay;
 		bLoop = Timeline->bLoop;
+		bIgnoreTimeDilation = Timeline->bIgnoreTimeDilation;
 	}
 
 	Super::AllocateDefaultPins();
@@ -154,6 +156,7 @@ void UK2Node_Timeline::PostPasteNode()
 		{
 			bAutoPlay = Template->bAutoPlay;
 			bLoop = Template->bLoop;
+			bIgnoreTimeDilation = Template->bIgnoreTimeDilation;
 		}
 	}
 	else
@@ -164,6 +167,7 @@ void UK2Node_Timeline::PostPasteNode()
 		UTimelineTemplate* Template = DuplicateObject<UTimelineTemplate>(OldTimeline, Blueprint->GeneratedClass, TimelineTemplateName);
 		bAutoPlay = Template->bAutoPlay;
 		bLoop = Template->bLoop;
+		bIgnoreTimeDilation = Template->bIgnoreTimeDilation;
 		Template->SetFlags(RF_Transactional);
 		Blueprint->Timelines.Add(Template);
 
@@ -474,6 +478,19 @@ void UK2Node_Timeline::FindDiffs( class UEdGraphNode* OtherNode, struct FDiffRes
 			Diff.ToolTip = FText::Format(LOCTEXT("DIF_TimelineLengthToolTip", "Length of Timeline '{NodeName}' has changed. Was {TimelineLength1}, but is now {TimelineLength2}"), Args);
 			Diff.DisplayColor = FLinearColor(0.25f,0.1f,0.15f);
 			Diff.DisplayString =  FText::Format(LOCTEXT("DIF_TimelineLength", "Timeline Length '{NodeName}' [{TimelineLength1} -> {TimelineLength2}]"), Args);
+			Results.Add(Diff);
+		}
+		if (Template1->bIgnoreTimeDilation != Template2->bIgnoreTimeDilation)
+		{
+			Diff.Diff = EDiffType::TIMELINE_IGNOREDILATION;
+			FText NodeName = GetNodeTitle(ENodeTitleType::ListView);
+
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("NodeName"), NodeName);
+
+			Diff.ToolTip = FText::Format(LOCTEXT("DIF_TimelineIgnoreDilationToolTip", "Timeline '{NodeName}' had its ignore time dilation state changed"), Args);
+			Diff.DisplayColor = FLinearColor(0.75f, 0.1f, 0.75f);
+			Diff.DisplayString = FText::Format(LOCTEXT("DIF_TimelineIgnoreDilation", "Timeline IgnoreTimeDilation Changed '{NodeName}'"), Args);
 			Results.Add(Diff);
 		}
 

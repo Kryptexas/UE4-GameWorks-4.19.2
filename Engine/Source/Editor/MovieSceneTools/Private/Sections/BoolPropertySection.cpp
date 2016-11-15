@@ -11,8 +11,16 @@
 void FBoolPropertySection::GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const
 {
 	UMovieSceneBoolSection* BoolSection = Cast<UMovieSceneBoolSection>( &SectionObject );
-	KeyArea = MakeShareable( new FBoolKeyArea( BoolSection->GetCurve(), BoolSection ) );
-	LayoutBuilder.SetSectionAsKeyArea( KeyArea.ToSharedRef() );
+	TAttribute<TOptional<bool>> ExternalValue;
+	if (CanGetPropertyValue())
+	{
+		ExternalValue.Bind(TAttribute<TOptional<bool>>::FGetter::CreateLambda([&]
+		{
+			return GetPropertyValue<bool>();
+		}));
+	}
+	TSharedRef<FBoolKeyArea> KeyArea = MakeShareable( new FBoolKeyArea( BoolSection->GetCurve(), ExternalValue, BoolSection ) );
+	LayoutBuilder.SetSectionAsKeyArea( KeyArea );
 }
 
 int32 FBoolPropertySection::OnPaintSection( FSequencerSectionPainter& Painter ) const
@@ -57,7 +65,7 @@ int32 FBoolPropertySection::OnPaintSection( FSequencerSectionPainter& Painter ) 
 	{
 		float ThisTime = SectionSwitchTimes[i];
 		
-		const FColor Color = BoolSection->Eval(ThisTime) ? FColor(0, 255, 0, 125) : FColor(255, 0, 0, 125);
+		const FColor Color = BoolSection->Eval(ThisTime, false) ? FColor(0, 255, 0, 125) : FColor(255, 0, 0, 125);
 		
 		FVector2D StartPos(TimeConverter.TimeToPixel(ThisTime), VerticalOffset);
 		FVector2D Size(TimeConverter.TimeToPixel(SectionSwitchTimes[i+1]) - StartPos.X, Height);
@@ -74,14 +82,4 @@ int32 FBoolPropertySection::OnPaintSection( FSequencerSectionPainter& Painter ) 
 	}
 
 	return LayerId + 1;
-}
-
-void FBoolPropertySection::SetIntermediateValue( FPropertyChangedParams PropertyChangedParams )
-{
-	KeyArea->SetIntermediateValue( PropertyChangedParams.GetPropertyValue<bool>() );
-}
-
-void FBoolPropertySection::ClearIntermediateValue()
-{
-	KeyArea->ClearIntermediateValue();
 }

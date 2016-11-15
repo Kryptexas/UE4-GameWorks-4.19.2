@@ -41,7 +41,7 @@ private:
 	static bool bIsInitialized;
 	static bool bIsEditorRun;
 	static bool bIsGameRun;
-	static TSharedPtr<IAnalyticsProviderET> Analytics;
+	static ENGINE_API TSharedPtr<IAnalyticsProviderET> Analytics;
 	static TSharedPtr<FEngineSessionManager> SessionManager;
 };
 

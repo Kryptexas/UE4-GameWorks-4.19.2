@@ -15,7 +15,7 @@ class FSimpleHMDPlugin : public ISimpleHMDPlugin
 	/** IHeadMountedDisplayModule implementation */
 	virtual TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > CreateHeadMountedDisplay() override;
 
-	FString GetModulePriorityKeyName() const override
+	FString GetModuleKeyName() const override
 	{
 		return FString(TEXT("SimpleHMD"));
 	}

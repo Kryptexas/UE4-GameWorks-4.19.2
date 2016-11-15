@@ -1,215 +1,217 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Material Editor UI
+﻿INTSourceChangelist:2744667
+Availability:Public
+Title:材质编辑器 UI
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/Editor
-Description:Guide to using the Material Editor UI.
+Description:材质编辑器 UI 的使用指南。
+Version:4.9
 
 
 [TOC(start:2)]
 
 
 
-The Material Editor UI consists of a menu bar, a toolbar, and, by default, four open panels.
+材质编辑器 UI 由菜单栏、工具栏和默认的四个开启面板组成。
 
-![materialEditorAlt.png](materialEditor.png)
+![](UpdatedUI.jpg)
 
-1. [Menu Bar](#MenuBar) - Lists the menu options for the current Material.
-1. [Toolbar](#Toolbar) - Contains tools that you can use to work with your Material.
-1. [Viewport Panel](#ViewportPanel) - Previews the Material on a mesh.
-1. [Details Panel](#DetailsPanel) - Lists the properties of the Material or the selected material expression or function nodes.
-1. [Graph Panel](#GraphPanel) - Displays the material expression and function nodes that create shader instructions for your Material.
-1. [Palette Panel](#PalettePanel) - Lists all the available material expression and function nodes.
+1. [菜单栏](#MenuBar) - 列出当前材质的菜单选项。
+1. [工具栏](#Toolbar) - 含材质使用工具。
+1. [视口面板（Viewport Panel）](#ViewportPanel) - 预览材质在网格体上的效果。
+1. [细节面板（Details Panel）](#DetailsPanel) - 列出材质、所选材质表现或函数节点的属性。
+1. [图表面板（Graph Panel）](#GraphPanel) - 显示创建材质着色器指令的材质表现和函数节点。
+1. [调色板面板（Palette Panel）](#PalettePanel) - 列出所有材质表现和函数节点。
 [REGION:note]
-There is also an HLSL Code panel, but by default, it is not visible. To display it, on the **Window** menu, click **HLSL Code**. For more information, see [HLSL Code](#hlslcodepanel).
+此外还有一个默认不显示的 HLSL 代码面板。在 **Window** 菜单中点击 **HLSL Code** 即可显示。如需了解更多内容，请查阅 [HLSL 代码](#hlslcodepanel)。
 [/REGION]
 
-[Include:Shared/Editors/Common/EditorMenuItems/#UITabTips]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems#UITabTips]
 
-## Menu Bar
+(#MenuBar)
+## 菜单栏
 
 ### File
 
-[Include:Shared/Editors/Common/EditorMenuItems/#MenuFileSave]
-[Include:Shared/Editors/Common/EditorMenuItems/#MenuFileSaveOptions]
+%Shared/Editors/Common/EditorMenuItems:MenuFileSave%
+%Shared/Editors/Common/EditorMenuItems:MenuFileSaveOptions%
 
 ### Edit
 
-[Include:Shared/Editors/Common/EditorMenuItems/#MenuEditUndo]
-[Include:Shared/Editors/Common/EditorMenuItems/#MenuEditSettings]
+%Shared/Editors/Common/EditorMenuItems:MenuEditUndo%
+%Shared/Editors/Common/EditorMenuItems:MenuEditSettings%
 
 ### Assets
 
-[Include:Shared/Editors/Common/EditorMenuItems/#MenuAssetContentBrowser]
+%Shared/Editors/Common/EditorMenuItems:MenuAssetContentBrowser%
 
 ### Window
 
-[Include:Shared/Editors/Common/EditorMenuItems/#MenuWindowToolbar]
-[Include:Shared/Editors/Common/EditorMenuItems/#MenuWindowViewport]
-* **Graph** - Toggles the display of the **Graph** panel.
-[Include:Shared/Editors/Common/EditorMenuItems/#MenuWindowDetails]
-* **Palette** - Toggles the display of the **Palette** panel.
-* **Stats** - Toggles the display of the **Stats** panel.
-* **HLSL Code** - Toggles the display of the **HLSL Code** panel (which is closed by default).
-[Include:Shared/Editors/Common/EditorMenuItems/#MenuWindow]
+%Shared/Editors/Common/EditorMenuItems:MenuWindowToolbar%
+%Shared/Editors/Common/EditorMenuItems:MenuWindowViewport%
+* **Graph** - 开关 **Graph** 面板的显示。
+%Shared/Editors/Common/EditorMenuItems:MenuWindowDetails%
+* **Palette** - 开关 **Palette** 面板的显示。
+* **Stats** - 开关 **Stats** 面板的显示。
+* **HLSL Code** - 开关 **HLSL Code** 面板的显示（默认为关闭）。
+%Shared/Editors/Common/EditorMenuItems:MenuWindow%
 
 ### Help
 
-[Include:Shared/Editors/Common/EditorMenuItems/#MenuHelp]
+%Shared/Editors/Common/EditorMenuItems:MenuHelp%
 
-
-## Toolbar
+(#Toolbar)
+## 工具栏
 
 ![Material Editor Toolbar](MaterialEditor_Toolbar.png)
 
-The following table lists the options in the Toolbar and what they do.
+下表列出了工具栏中的选项以及它们的功能。
 
-| **Icon** | **Description** | 
+| **图标** | **描述** | 
 | --- | --- |
 | [Include:Shared/Editors/Common/EditorToolbarItems/#ToolbarSaveIcon] | [Include:Shared/Editors/Common/EditorToolbarItems/#ToolbarSaveDescription] |
 | [Include:Shared/Editors/Common/EditorToolbarItems/#ToolbarCBIcon] | [Include:Shared/Editors/Common/EditorToolbarItems/#ToolbarCBDescription] |
-| ![toolbar_apply.png](toolbar_apply.png)| Applies any changes made in the Material Editor to the original Material and any uses of that Material in the world. |
-|![toolbar_search.png](Material_Toolbar_Button_Search.png) | Finds expressions and comments in the current Material. |
-| ![toolbar_home.png](toolbar_home.png)| Centers the base Material node in the **Graph** panel. |
-| ![toolbar_clean.png](toolbar_clean.png)| Deletes any material nodes that are not connected to the Material. |
-| ![toolbar_show.png](toolbar_show.png)| Shows or hides material nodes that are not connected to anything. |
-| ![toolbar_live_nodes.png](Engine/Rendering/Materials/Editor/toolbar_live_nodes.png)| If enabled, updates the Materials in each material node in real time.  Disable this option for faster Material Editor performance. See the [Live Nodes and Live Update](Engine/Rendering/Materials/Editor/#LiveNodesAndLiveUpdate) section.|
-| ![toolbar_live_update.png](Engine/Rendering/Materials/Editor/toolbar_live_update.png)|If enabled, compiles the shaders of all subexpressions every time nodes are added, deleted, connected, or disconnected, or have their property values changed.  Disable this option for faster Material Editor performance.  See the [Live Nodes and Live Update](Engine/Rendering/Materials/Editor/#LiveNodesAndLiveUpdate) section. |
-| ![toolbar_stats.png](Engine/Rendering/Materials/Editor/toolbar_stats.png)| Shows or hides Material statistics in the **Graph** panel. |
-| ![toobar_release_stats](Material_Toolbar_Button_Release_Stats.png)| Toggles use of release or development shaders in stats reporting. |
-| ![toolbar_built_in_stats](Material_Toolbar_Button_Built_In_Stats.png)| Toggles displaying of stats for an empty Material. Helps identify cost of changes in the graph.|
-| ![toolbar_mobile_stats](Material_Toolbar_Button_Mobile_Stats.png)| Toggles Material stats and compilation errors for mobile. |
+| ![toolbar_apply.png](toolbar_apply.png)| 应用材质编辑器中对原始材质进行的变更，以及该材质在世界场景中的使用。 |
+|![toolbar_search.png](Material_Toolbar_Button_Search.png) | 找到当前材质中的表现和注解。 |
+| ![toolbar_home.png](toolbar_home.png)| 在 **Graph** 面板中使基础材质节点居中。 |
+| ![toolbar_clean.png](toolbar_clean.png)| 删除未与材质连接的材质节点。 |
+| ![toolbar_show.png](toolbar_show.png)| 显示或隐藏未连接的材质节点。 |
+| ![toolbar_live_nodes.png](Engine/Rendering/Materials/Editor/toolbar_live_nodes.png)| 启用后将实时更新每个材质节点中的材质。禁用此项后材质编辑器性能更佳。请查阅 [实时节点和实时更新](Engine/Rendering/Materials/Editor/#LiveNodesAndLiveUpdate) 部分。|
+| ![toolbar_live_update.png](Engine/Rendering/Materials/Editor/toolbar_live_update.png)|启用后，在节点被添加、被删除、被连接、被断开连接，或其属性值发生改变时对所有子表现的着色器进行编译。禁用此项后材质编辑器性能更佳。请查阅 [实时节点和实时更新](Engine/Rendering/Materials/Editor/#LiveNodesAndLiveUpdate) 部分。 |
+| ![toolbar_stats.png](Engine/Rendering/Materials/Editor/toolbar_stats.png)| 隐藏或显示 **Graph** 面板中的材质统计。 |
+| ![toobar_release_stats](Material_Toolbar_Button_Release_Stats.png)| 在状态报告中切换使用发布着色器或开发着色器。 |
+| ![toolbar_built_in_stats](Material_Toolbar_Button_Built_In_Stats.png)| 切换空材质的状态显示。有助于确定图表中变更的开销。|
+| ![toolbar_mobile_stats](Material_Toolbar_Button_Mobile_Stats.png)| 切换移动平台材质状态和汇编错误。 |
 
-## Viewport Panel
+(#ViewportPanel)
+## 视口面板
 
 ![Material Editor Preview Panel](MaterialEditor_Preview.png)
 
-The **Viewport** panel displays the Material being edited applied to a mesh. 
+**视口** 面板显示应用到网格体的材质（正处于编辑中）。 
 
-You can navigate in the **Viewport** panel by using the options in the following table.
+可使用下表中的选项在 **视口** 面板中导航。
 
-| **Action** | **Description** |
+| **操作** | **描述** |
 | ----- | ----- |
-| Drag with the left mouse button |  Rotate the mesh  |
-| Drag with the middle mouse button | Pan |
-| Drag with the right mouse button | Zoom |
-| Hold down **L** and drag with the left mouse button | Rotate the light direction  |
+| 鼠标左键拖动 |  旋转网格体  |
+| 鼠标中键拖动 | 平移 |
+| 鼠标右键拖动 | 缩放 |
+| 长按 **L** 鼠标左键拖动 | 旋转光源方向  |
 
 
-The viewport mesh can be changed by using the associated toolbar controls (the shape buttons, **Select Preview Mesh** combo, and **Use Selected StaticMesh** button).  The viewport mesh is saved with the Material so that the 
-next time the Material is opened in a Material Editor, it will be previewed on the same mesh.
+使用相关工具栏功能按钮（形状按钮、**选择预览网格体（Select Preview Mesh）** 组合按钮、**使用所选静态网格体（Use Selected StaticMesh）** 按钮）可变更视口网格体。视口网格体和材质一同保存， 
+材质下次在材质编辑器中打开时即可在相同的网格体上进行预览。
 
-Several icons appear along the top of the **Preview** panel; the following table details their usage.
+**预览（Preview）** 面板顶部有数个图标，下表为它们的用法细节。
 
-| **Icon** | **Description** | 
+| **图标** | **描述** | 
 | --- | --- |
-| ![toolbar_cylinder.png](toolbar_cylinder.png)![toolbar_sphere.png](toolbar_sphere.png)![toolbar_plane.png](toolbar_plane.png)![toolbar_cube.png](toolbar_cube.png)| Shows the result of your current Material on the respective primitive shape in the **Preview** panel. |
-| ![toolbar_mesh.png](toolbar_mesh.png)| Makes the selected Static Mesh in the **Content Browser** the preview mesh. |
-| ![toolbar_grid.png](toolbar_grid.png)| Toggles the background grid in the **Preview** panel. |
-| ![toolbar_realtime_preview.png](toolbar_realtime_preview.png)| If enabled, updates the Material on the preview mesh in real time.  Disable this option for faster Material Editor performance. |
+| ![toolbar_cylinder.png](toolbar_cylinder.png)![toolbar_sphere.png](toolbar_sphere.png)![toolbar_plane.png](toolbar_plane.png)![toolbar_cube.png](toolbar_cube.png)| 在 **Preview** 面板中显示当前材质在各个原始形态上的效果。 |
+| ![toolbar_mesh.png](toolbar_mesh.png)| 将 **Content Browser** 中选中的静态网格体设为预览网格体。 |
+| ![toolbar_grid.png](toolbar_grid.png)| 开关 **Preview** 面板中的背景网格。 |
+| ![toolbar_realtime_preview.png](toolbar_realtime_preview.png)| 启用后将实时更新预览网格体上的材质。禁用此项后材质编辑器性能更佳。 |
 
-## Details Panel
+(#DetailsPanel)
+## Details 面板
 
 ![Material Editor Details Panel](MaterialEditor_Details.png)
 
-This panel contains a property window for all currently selected material expression and function nodes.  If no nodes are selected, the 
-properties of the Material being edited will be displayed.
+此面板包含所有当前选中材质表现和函数节点。如未选中节点，将显示 
+编辑中材质的属性。
 
-See [](Engine/Rendering/Materials/MaterialProperties) for descriptions of 
-all Material properties.
+可在 [](Engine/Rendering/Materials/MaterialProperties) 中查阅所有材质属性 
+的描述。
 
-## Graph Panel
+(#GraphPanel)
+## Graph 面板
 
-![Material Editor Graph Panel](MaterialEditor_Graph.png)
+![](MaterialGraph1.jpg)
 
-This panel contains a graph of all material expressions that belong to this Material.  The number of shader 
-instructions used in the Material as well as any [Compiler Errors](Engine/Rendering/Materials/Editor/#CompilerErrors) are displayed in the 
-upper left corner.  The fewer the number of instructions, the less costly the Material.  Material expression 
-nodes that are not connected to the base material node do not contribute to the instruction count (cost) of 
-the Material.
-
-By default, each Material contains a single base Material node. This node has a series of inputs, each associated with 
-a different aspect of the Material, that other material nodes can connect to.
+此面板包含属于此材质的所有材质表现的图表。每个材质默认包含一个单独基础材质节点。此节点拥有一系列输入，每个都和材质的一个不同方面 
+（其他材质节点可进行连接）相关。
 
 ![Material Editor Material Node](MaterialEditor_MaterialNode.png)
 
-See [](Engine/Rendering/Materials\MaterialInputs) for descriptions 
-of the various inputs of the base Material node.
+可在 [](Engine/Rendering/Materials\MaterialInputs) 中查阅基础材质节点 
+诸多输入的描述。
 
-## Palette Panel
+(#PalettePanel)
+## Palette 面板
 
-The **Palette** panel contains a list of material nodes that can be placed in a Material via "drag and drop".  To place 
-a new material node, drag it into the **Graph** panel.
+**Palette** 面板包含可通过“拖放”放置到材质中的材质节点列表。如需放置一个新的材质节点， 
+将其拖入 **Graph** 面板即可。
 
 [REGION:tip]
-You can filter the material nodes listed in the **Palette** panel by choosing either **Expressions** or **Functions** in the **Category** drop-down list.
+可在 **Category** 下拉列表中选择 **Expressions** 或 **Functions**，对 **Palette** 面板中列出的材质节点进行过滤。
 [/REGION]
 
-For more information about material functions, see [Material Functions](Engine/Rendering/Materials/Functions).
+如需了解材质函数的更多内容，请查阅 [材质函数](Engine/Rendering/Materials/Functions)。
 
 
-## HLSL Code Panel
+## Stats 面板
+
+![](StatsPanel.jpg)
+
+此面板显示材质中使用的着色器指令数量和 [编译器错误](Engine/Rendering/Materials/Editor/#CompilerErrors)。指令数越少，材质的开销越低。未和基础材质节点连接的材质表现节点不计算在材质的指令数（开销）以内。
+
+(#hlslcodepanel)
+## HLSL 代码面板
 
 ![](MaterialEditor_HLSLPanel.png)
 
-This panel shows the High Level Shader Language (HLSL) code that is generated by the current Material. Be 
-aware that this is not an editor; you will not be able to change the HLSL code. Rather, this is merely a viewer to 
-allow you to visualize the code defined by your material network.
+此面板显示当前材质生成的 **高级着色器语言（High Level Shader Language）**（HLSL） 代码。注意：这并非是一个编辑器；无法修改 HLSL 代码。这只是一个查看器，显示材质网络定义的代码。
 
 [REGION:note]
-The Code View panel is not visible by default. To display it, on the **Window** menu, click **HLSL Code**.
+Code View 面板默认不显示。在 **Window** 菜单中点击 **HLSL Code** 即可显示。
 [/REGION]
 
 
-## Graph Controls
+## 图表功能键
 
-Controls in the Material Editor generally match the controls of other tools in the Unreal Editor.  For example, the material 
-expression graph can be navigated as with other linked object editors, the material preview mesh can be oriented as 
-per other mesh tools, etc.
+材质编辑器中的功能键通常和虚幻编辑器中其他工具的功能键相匹配。例如以其他连接对象编辑器的方式在材质表现图表中导航，材质预览网格体可根据其他网格体进行导向，等等。
 
 
-### Mouse Controls
+### 鼠标功能键
 
-| **Control** | **Action** |
+| **功能键** | **操作** |
 | --- | --- |
-| **LMB or RMB drag on background**  | Pan material expression graph |
-| **Rotate Mouse Wheel**  | Zoom in and out  |
-| **LMB + RMB drag**  | Zoom in and out  |
-| **LMB on object**  | Select expression/comment |
-| **Ctrl + LMB on object**  | Toggle selection of expression/comment |
-| **Ctrl + LMB drag**  | Move current selection/comment  |
-| **Ctrl + Alt + LMB drag**  | Box select  |
-| **Ctrl + Alt + Shift + LMB drag**  | Box select (add to current selection)  |
-| **LMB drag on connector**  | Create connection (release on connector)  |
-| **LMB drag from connection**  | Move connection (release on same type connector)  |
-| **Shift + LMB on connector**  | Marks the connector. Performing the action again with a connector marked will create connection between the two connectors. This is a quick way of making connections over large distances.  |
-| **RMB on background**  | Bring up **New Expression** menu  |
-| **RMB on object**  | Bring up **Object** menu  |
-| **RMB on connector**  | Bring up **Object** menu |
-| **Alt + LMB on connector**  | Break all connections to connector  |
+| **在背景上拖动鼠标左键或右键**  | 平移材质表现图表 |
+| **旋转鼠标滚轮**  | 放大缩小  |
+| **鼠标左键加右键拖动**  | 放大缩小  |
+| **在对象上按下鼠标左键**  | 选择表现/注释 |
+| **在对象上按下 Ctrl + 鼠标左键**  | 切换选择表现/注释 |
+| **Ctrl + 鼠标左键拖动**  | 移动当前选择/注释  |
+| **Ctrl + Alt + 鼠标左键拖动**  | 框选  |
+| **Ctrl + Alt + Shift + 鼠标左键拖动**  | 框选（添加到当前选择）  |
+| **在接头上拖动鼠标左键**  | 创建连接（在接头上松开）  |
+| **从连接拖动鼠标左键**  | 移动连接（在同类接头上松开）  |
+| **在接头上 Shift + 鼠标左键双击**  | 标记接头。在已标记的接头上再次执行此操作将在两个接头之间建立连接。通过此法可快速创建长距离连接。|
+| **在背景上按下鼠标右键**  | 呼出 **New Expression** 菜单  |
+| **在对象上按下鼠标右键**  | 呼出 **Object** 菜单  |
+| **在接头上按下鼠标右键**  | 呼出 **Object** 菜单  |
+| **在接头上按下 Alt + 鼠标左键**  | 断开到接头的所有连接  |
 
 
-### Keyboard Controls
+### 键盘功能键
 
-| **Control** | **Action** |
+| **功能键** | **操作** |
 | --- | --- |
-| **Ctrl + B**  | Find in Content Browser |
-| **Ctrl + C**  | Copy selected expressions |
-| **Ctrl + S**  | Save all |
-| **Ctrl + V**  | Paste  |
-| **Ctrl + W**  | Duplicate selected objects  |
-| **Ctrl + Y**  | Redo  |
-| **Ctrl + Z**  | Undo  |
-| **Delete**  | Delete selected objects  |
-| **Spacebar**  | Force update all material expression previews |
-| **Enter**  | (same as clicking apply) |
+| **Ctrl + B**  | 在 Content Browser 中进行寻找 |
+| **Ctrl + C**  | 复制选中的表现 |
+| **Ctrl + S**  | 全部保存 |
+| **Ctrl + V**  | 粘贴  |
+| **Ctrl + W**  | 生成选中对象的副本  |
+| **Ctrl + Y**  | 重做  |
+| **Ctrl + Z**  | 撤销  |
+| **Delete**  | 删除选中的对象  |
+| **空格键**  | 强制更新所有材质表现预览 |
+| **Enter**  | （和点击应用相同） |
 
 
-### Hotkeys
+### 热键
 
-You can use hotkeys to place commonly used material expression types.  Hold down the hotkey and **left-click** to 
-drop in the node.  The hotkeys are as follows:
+可使用热键放置常用的材质表现类型。长按热键并 **单击左键** 在节点中进行放置。热键如下：
 
-| **Hotkey** | **Expression** |
+| **热键** | **表现** |
 | --- | --- |
 | **A** | Add |
 | **B** | BumpOffset |

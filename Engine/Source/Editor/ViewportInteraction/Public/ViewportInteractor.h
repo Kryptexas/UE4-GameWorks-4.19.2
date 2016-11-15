@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -169,6 +169,8 @@ public:
 	/** @return Returns whether a full press is allowed to interrupt a light press. */
 	bool AllowTriggerFullPress() const;
 
+	/** If this interactor is hovering over a type that has priority from GetHitResultFromLaserPointer */
+	bool IsHoveringOverPriorityType() const;
 
 protected:
 

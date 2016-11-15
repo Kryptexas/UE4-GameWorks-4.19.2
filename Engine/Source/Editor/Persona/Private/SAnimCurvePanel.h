@@ -10,7 +10,7 @@
 #include "SCurveEditor.h"
 #include "Animation/AnimSequenceBase.h"
 
-DECLARE_DELEGATE_OneParam( FOnSelectionChanged, const FGraphPanelSelectionSet& )
+DECLARE_DELEGATE_OneParam( FOnSelectionChanged, const TArray<UObject*>& )
 DECLARE_DELEGATE( FOnUpdatePanel )
 DECLARE_DELEGATE_RetVal( float, FOnGetScrubValue )
 
@@ -49,12 +49,9 @@ public:
 		, _InputMax()
 		, _OnSetInputViewRange()
 		, _OnGetScrubValue()
+		, _OnCurvesChanged()
 	{}
 
-	/**
-	 * Weak ptr to our Persona instance
-	 */
-	SLATE_ARGUMENT(TWeakPtr<FPersona>, Persona)
 	/**
 	 * AnimSequenceBase to be used for this panel
 	 */
@@ -75,9 +72,11 @@ public:
 	 * Get current value
 	 */
 	SLATE_EVENT( FOnGetScrubValue, OnGetScrubValue )
+
+	SLATE_EVENT( FSimpleDelegate, OnCurvesChanged )
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs);
+	void Construct(const FArguments& InArgs, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton);
 	/**
 	 * Set New Sequence
 	 */
@@ -125,12 +124,12 @@ public:
 	/**
 	 * Toggle all the curve modes of all the tracks
 	 */
-	void ToggleAllCurveModes(ECheckBoxState NewState, EAnimCurveFlags ModeToSet);
+	void ToggleAllCurveModes(ECheckBoxState NewState, EAnimAssetCurveFlags ModeToSet);
 
 	/**
 	 * Are all the curve modes of all the tracks set to the mode
 	 */
-	ECheckBoxState AreAllCurvesOfMode(EAnimCurveFlags ModeToTest) const;
+	ECheckBoxState AreAllCurvesOfMode(EAnimAssetCurveFlags ModeToTest) const;
 
 	/**
 	 * Visibility of the set-all-tracks button
@@ -145,7 +144,7 @@ public:
 	/**
 	 * Sets the specified flag value to State for the provided curve
 	 */
-	void SetCurveFlag(FFloatCurve* CurveInterface, bool State, EAnimCurveFlags FlagToSet);
+	void SetCurveFlag(FFloatCurve* CurveInterface, bool State, EAnimAssetCurveFlags FlagToSet);
 
 	/**
 	* Update Panel
@@ -160,12 +159,13 @@ public:
 	float GetLength() const { return Sequence->SequenceLength; }
 
 private:
-	TWeakPtr<FPersona> WeakPersona;
 	TSharedPtr<SSplitter> PanelSlot;
 	class UAnimSequenceBase* Sequence;
 	TAttribute<float> CurrentPosition;
 	FOnGetScrubValue OnGetScrubValue;
 	TArray<TWeakPtr<class SCurveEdTrack>> Tracks;
+
+	FSimpleDelegate OnCurvesChanged;
 
 	/**
 	 * This is to control visibility of the curves, so you can edit or not
@@ -221,18 +221,12 @@ private:
 	*/
 	void CreateNewCurveClicked();
 
-	/**
-	 * Convert the requested flag bool value into a checkbox state
-	 */
-	ECheckBoxState GetCurveFlagAsCheckboxState(FAnimCurveBaseInterface* Curve, EAnimCurveFlags InFlag) const;
-
-	/**
-	 * Convert a given checkbox state into a flag value in the provided curve
-	 */
-	void SetCurveFlagFromCheckboxState(ECheckBoxState CheckState, FAnimCurveBaseInterface* Curve, EAnimCurveFlags InFlag);
 
 	/**
 	 * Handler for converting a curve from metadata to variable curve or vice versa
 	 */
 	void ToggleCurveTypeMenuCallback(FAnimCurveBaseInterface* Curve);
+
+	/** Handle smart names getting removed (and regenerate widgets) */
+	void HandleSmartNameRemoved(const FName& InContainerName, const TArray<SmartName::UID_Type>& InNameUids);
 };

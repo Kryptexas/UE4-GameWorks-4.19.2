@@ -438,9 +438,6 @@ void FDeferredShadingSceneRenderer::RenderAtmosphere(FRHICommandListImmediate& R
 				sizeof(Vertices[0])
 				);
 		}
-
-		//no need to resolve since we used alpha blending
-		SceneContext.FinishRenderingSceneColor(RHICmdList, false);
 	}
 }
 

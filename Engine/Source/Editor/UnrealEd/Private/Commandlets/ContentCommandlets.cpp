@@ -643,6 +643,11 @@ int32 UResavePackagesCommandlet::Main( const FString& Params )
 	bShouldBuildLighting = Switches.Contains(TEXT("buildlighting"));
 	/** determine if we can skip the version changelist check */
 	bIgnoreChangelist = Switches.Contains(TEXT("IgnoreChangelist"));
+	if ( bShouldBuildLighting )
+	{
+		check( Switches.Contains(TEXT("AllowCommandletRendering")) );
+		GarbageCollectionFrequency = 1;
+	}
 
 	TArray<FString> PackageNames;
 	int32 ResultCode = InitializeResaveParameters(Tokens, PackageNames);
@@ -882,7 +887,7 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 			IVS.CreateNavigation(false);
 			IVS.CreateAISystem(false);
 			IVS.AllowAudioPlayback(false);
-			IVS.CreatePhysicsScene(false);
+			IVS.CreatePhysicsScene(true);
 
 			World->InitWorld(IVS);
 			World->PersistentLevel->UpdateModelComponents();
@@ -941,7 +946,7 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 			}
 		}
 
-
+	
 		// If nothing came up that stops us from continuing, then start building lightmass
 		if (bShouldProceedWithLightmapRebuild)
 		{
@@ -956,27 +961,35 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 			// Always build on production
 			LightingOptions.QualityLevel = Quality_Production;
 
+			auto BuildFailedDelegate = [&bShouldProceedWithLightmapRebuild,&World]() {
+				UE_LOG(LogContentCommandlet, Error, TEXT("[REPORT] Failed building lighting for %s"), *World->GetOutermost()->GetName());
+				bShouldProceedWithLightmapRebuild = false;
+			};
+
+			FDelegateHandle BuildFailedDelegateHandle = FEditorDelegates::OnLightingBuildFailed.AddLambda(BuildFailedDelegate);
+
 			GEditor->BuildLighting(LightingOptions);
 			while (GEditor->IsLightingBuildCurrentlyRunning())
 			{
 				GEditor->UpdateBuildLighting();
 			}
 
-			for (ULevelStreaming* NextStreamingLevel : World->StreamingLevels)
+			FEditorDelegates::OnLightingBuildFailed.Remove(BuildFailedDelegateHandle);
+
+			if( bShouldProceedWithLightmapRebuild )
 			{
-				FString StreamingLevelPackageFilename;
-				const FString StreamingLevelWorldAssetPackageName = NextStreamingLevel->GetWorldAssetPackageName();
-				if (FPackageName::DoesPackageExist(StreamingLevelWorldAssetPackageName, NULL, &StreamingLevelPackageFilename))
+				for (ULevelStreaming* NextStreamingLevel : World->StreamingLevels)
 				{
-					UPackage* SubLevelPackage = NextStreamingLevel->GetLoadedLevel()->GetOutermost();
-					if (!SavePackageHelper(SubLevelPackage, StreamingLevelPackageFilename))
+					FString StreamingLevelPackageFilename;
+					const FString StreamingLevelWorldAssetPackageName = NextStreamingLevel->GetWorldAssetPackageName();
+					if (FPackageName::DoesPackageExist(StreamingLevelWorldAssetPackageName, NULL, &StreamingLevelPackageFilename))
 					{
-						UE_LOG(LogContentCommandlet, Error, TEXT("[REPORT] Failed to save sub level: %s"), *StreamingLevelPackageFilename);
+						UPackage* SubLevelPackage = NextStreamingLevel->GetLoadedLevel()->GetOutermost();
+						if (!SavePackageHelper(SubLevelPackage, StreamingLevelPackageFilename))
+						{
+							UE_LOG(LogContentCommandlet, Error, TEXT("[REPORT] Failed to save sub level: %s"), *StreamingLevelPackageFilename);
+						}
 					}
-					/*if (GEditor->SavePackage(SubLevelPackage, NULL, , *StreamingLevelPackageFilename, GWarn))
-					{
-							
-					}*/
 				}
 			}
 		}
@@ -1007,7 +1020,12 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 			}
 		}
 
+		
 		World->RemoveFromRoot();
+
+		WorldContext.SetCurrentWorld(nullptr);
+		GWorld = nullptr;
+
 	}
 }
 
@@ -1948,11 +1966,11 @@ void UListMaterialsUsedWithMeshEmittersCommandlet::ProcessParticleSystem( UParti
 				{
 					if (MeshTypeData->Mesh)
 					{
-						for (int32 MaterialIdx = 0; MaterialIdx < MeshTypeData->Mesh->Materials.Num(); MaterialIdx++)
+						for (int32 MaterialIdx = 0; MaterialIdx < MeshTypeData->Mesh->StaticMaterials.Num(); MaterialIdx++)
 						{
-							if(MeshTypeData->Mesh->Materials[MaterialIdx])
+							if(MeshTypeData->Mesh->StaticMaterials[MaterialIdx].MaterialInterface)
 							{
-								UMaterial* Mat = MeshTypeData->Mesh->Materials[MaterialIdx]->GetMaterial();
+								UMaterial* Mat = MeshTypeData->Mesh->StaticMaterials[MaterialIdx].MaterialInterface->GetMaterial();
 								if(!Mat->bUsedWithMeshParticles)
 								{
 									OutMaterials.AddUnique(Mat->GetPathName());

@@ -4,8 +4,7 @@
 	LightRendering.h: Light rendering declarations.
 =============================================================================*/
 
-#ifndef __LIGHTRENDERING_H__
-#define __LIGHTRENDERING_H__
+#pragma once
 
 #include "UniformBuffer.h"
 
@@ -103,7 +102,7 @@ public:
 		FGlobalShader::SetParameters(RHICmdList, GetVertexShader(),View);
 
 		FVector4 StencilingSpherePosAndScale;
-		StencilingGeometry::GStencilSphereVertexBuffer.CalcTransform(StencilingSpherePosAndScale, LightBounds, View.ViewMatrices.PreViewTranslation);
+		StencilingGeometry::GStencilSphereVertexBuffer.CalcTransform(StencilingSpherePosAndScale, LightBounds, View.ViewMatrices.GetPreViewTranslation());
 		StencilingGeometryParameters.Set(RHICmdList, this, StencilingSpherePosAndScale);
 	}
 
@@ -121,4 +120,3 @@ private:
 
 extern void SetBoundingGeometryRasterizerAndDepthState(FRHICommandList& RHICmdList, const FViewInfo& View, const FSphere& LightBounds);
 
-#endif

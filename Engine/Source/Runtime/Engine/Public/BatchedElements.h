@@ -4,8 +4,7 @@
 	BatchedElements.h: Batched element rendering.
 =============================================================================*/
 
-#ifndef _INC_BATCHEDELEMENTS
-#define _INC_BATCHEDELEMENTS
+#pragma once
 
 #include "HitProxies.h"
 #include "StaticBoundShaderState.h"
@@ -101,11 +100,15 @@ public:
 		:	MaxMeshIndicesAllowed(GDrawUPIndexCheckCount / sizeof(int32))
 			// the index buffer is 2 bytes, so make sure we only address 0xFFFF vertices in the index buffer
 		,	MaxMeshVerticesAllowed(FMath::Min<uint32>(0xFFFF, GDrawUPVertexCheckCount / sizeof(FSimpleElementVertex)))
+		,	bEnableHDREncoding(true)
 	{
 	}
 
 	/** Adds a line to the batch. Note only SE_BLEND_Opaque will be used for batched line rendering. */
 	void AddLine(const FVector& Start,const FVector& End,const FLinearColor& Color,FHitProxyId HitProxyId, float Thickness = 0.0f, float DepthBias = 0.0f, bool bScreenSpace = false);
+
+	/** Adds a translucent line to the batch. */
+	void AddTranslucentLine(const FVector& Start, const FVector& End, const FLinearColor& Color, FHitProxyId HitProxyId, float Thickness = 0.0f, float DepthBias = 0.0f, bool bScreenSpace = false);
 
 	/** Adds a point to the batch. Note only SE_BLEND_Opaque will be used for batched point rendering. */
 	void AddPoint(const FVector& Position,float Size,const FLinearColor& Color,FHitProxyId HitProxyId);
@@ -193,8 +196,24 @@ public:
 	 * @param View			Optional FSceneView for shaders that need access to view constants
 	 * @param DepthTexture	DepthTexture for manual depth testing with editor compositing in the pixel shader
 	 */
+	DEPRECATED(4.14, "Deprecated. Use the FBatchedElements::Draw method that takes a non-optional FSceneView parameter instead")
 	bool Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, bool bNeedToSwitchVerticalAxis, const FMatrix& Transform, uint32 ViewportSizeX, uint32 ViewportSizeY, bool bHitTesting, float Gamma = 1.0f, const FSceneView* View = NULL, FTexture2DRHIRef DepthTexture = FTexture2DRHIRef(), EBlendModeFilter::Type Filter = EBlendModeFilter::All) const;
 	
+	/**
+	 * Draws the batch
+	 *
+	 * @param View			FSceneView for shaders that need access to view constants. Non-optional to also reference its ViewProjectionMatrix and size of the ViewRect
+	 * @param bHitTesting	Whether or not we are hit testing
+	 * @param Gamma			Optional gamma override
+	 * @param DepthTexture	DepthTexture for manual depth testing with editor compositing in the pixel shader
+	 */
+	bool Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, bool bNeedToSwitchVerticalAxis, const FSceneView& View, bool bHitTesting, float Gamma = 1.0f, FTexture2DRHIRef DepthTexture = FTexture2DRHIRef(), EBlendModeFilter::Type Filter = EBlendModeFilter::All) const;
+
+	/**
+	 * Creates a proxy FSceneView for operations that are not tied directly to a scene but still require batched elements to be drawn.
+	 */
+	static FSceneView CreateProxySceneView(const FMatrix& ProjectionMatrix, const FIntRect& ViewRect);
+
 	FORCEINLINE bool HasPrimsToDraw() const
 	{
 		return( LineVertices.Num() || Points.Num() || Sprites.Num() || MeshElements.Num() || ThickLines.Num() || WireTris.Num() > 0 );
@@ -216,6 +235,12 @@ public:
 		return sizeof(*this) + Points.GetAllocatedSize() + WireTris.GetAllocatedSize() + WireTriVerts.GetAllocatedSize() + ThickLines.GetAllocatedSize()
 			+ Sprites.GetAllocatedSize() + MeshElements.GetAllocatedSize() + MeshVertices.GetAllocatedSize();
 	}
+
+	void EnableMobileHDREncoding(bool bInEnableHDREncoding)
+	{
+		bEnableHDREncoding = bInEnableHDREncoding;
+	}
+
 private:
 
 	/**
@@ -358,6 +383,8 @@ private:
 		const FSceneView* View = NULL,
 		FTexture2DRHIRef DepthTexture = FTexture2DRHIRef()
 		) const;
+
+	/** if false then prevent the use of HDR encoded shaders. */
+	bool bEnableHDREncoding;
 };
 
-#endif

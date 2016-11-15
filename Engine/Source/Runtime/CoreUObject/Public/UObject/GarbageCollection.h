@@ -1,15 +1,23 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#pragma once
 /*=============================================================================
 	GarbageCollection.h: Unreal realtime garbage collection helpers
 =============================================================================*/
+
+#pragma once
+
+#include "ArchiveUObject.h"
 
 /** Context sensitive keep flags for garbage collection */
 #define GARBAGE_COLLECTION_KEEPFLAGS	(GIsEditor ? RF_Standalone : RF_NoFlags)
 
 COREUOBJECT_API DECLARE_LOG_CATEGORY_EXTERN(LogGarbage, Warning, All);
 DECLARE_STATS_GROUP(TEXT("Garbage Collection"), STATGROUP_GC, STATCAT_Advanced);
+
+/**
+ * Do extra checks on GC'd function references to catch uninitialized pointers?
+ */
+#define DO_POINTER_CHECKS_ON_GC WITH_EDITORONLY_DATA
 
 /*-----------------------------------------------------------------------------
 	Realtime garbage collection helper classes.

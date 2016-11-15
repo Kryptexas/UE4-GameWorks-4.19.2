@@ -144,33 +144,37 @@ static FVector FindBoxOpposingNormal(const PxLocationHit& PHit, const FVector& T
 	
 	// Find which faces were included in the contact normal, and for multiple faces, use the one most opposing the sweep direction.
 	const PxVec3 ContactNormalLocal = LocalToWorld.rotateInv(PHit.normal);
+	const float* ContactNormalLocalPtr = &ContactNormalLocal.x;
 	const PxVec3 TraceDirDenormWorld = U2PVector(TraceDirectionDenorm);
+	const float* TraceDirDenormWorldPtr = &TraceDirDenormWorld.x;
 	const PxVec3 TraceDirDenormLocal = LocalToWorld.rotateInv(TraceDirDenormWorld);
+	const float* TraceDirDenormLocalPtr = &TraceDirDenormLocal.x;
 
 	PxVec3 BestLocalNormal(ContactNormalLocal);
+	float* BestLocalNormalPtr = &BestLocalNormal.x;
 	float BestOpposingDot = FLT_MAX;
 
 	for (int32 i=0; i < 3; i++)
 	{
 		// Select axis of face to compare to, based on normal.
-		if (ContactNormalLocal[i] > KINDA_SMALL_NUMBER)
+		if (ContactNormalLocalPtr[i] > KINDA_SMALL_NUMBER)
 		{
-			const float TraceDotFaceNormal = TraceDirDenormLocal[i]; // TraceDirDenormLocal.dot(BoxFaceNormal)
+			const float TraceDotFaceNormal = TraceDirDenormLocalPtr[i]; // TraceDirDenormLocal.dot(BoxFaceNormal)
 			if (TraceDotFaceNormal < BestOpposingDot)
 			{
 				BestOpposingDot = TraceDotFaceNormal;
 				BestLocalNormal = PxVec3(0.f);
-				BestLocalNormal[i] = 1.f;
+				BestLocalNormalPtr[i] = 1.f;
 			}
 		}
-		else if (ContactNormalLocal[i] < -KINDA_SMALL_NUMBER)
+		else if (ContactNormalLocalPtr[i] < -KINDA_SMALL_NUMBER)
 		{
-			const float TraceDotFaceNormal = -TraceDirDenormLocal[i]; // TraceDirDenormLocal.dot(BoxFaceNormal)
+			const float TraceDotFaceNormal = -TraceDirDenormLocalPtr[i]; // TraceDirDenormLocal.dot(BoxFaceNormal)
 			if (TraceDotFaceNormal < BestOpposingDot)
 			{
 				BestOpposingDot = TraceDotFaceNormal;
 				BestLocalNormal = PxVec3(0.f);
-				BestLocalNormal[i] = -1.f;
+				BestLocalNormalPtr[i] = -1.f;
 			}
 		}
 	}
@@ -270,7 +274,7 @@ static FVector FindTriMeshOpposingNormal(const PxLocationHit& PHit, const FVecto
 		// Grab triangle indices that we hit
 		int32 I0, I1, I2;
 
-		if (PTriMeshGeom.triangleMesh->getTriangleMeshFlags() & PxTriangleMeshFlag::eHAS_16BIT_TRIANGLE_INDICES)
+		if (PTriMeshGeom.triangleMesh->getTriangleMeshFlags() & PxTriangleMeshFlag::e16_BIT_INDICES)
 		{
 			PxU16* P16BitIndices = (PxU16*)Triangles;
 			I0 = P16BitIndices[(TriIndex * 3) + 0];
@@ -455,8 +459,8 @@ EConvertQueryResult ConvertQueryImpactHit(const UWorld* World, const PxLocationH
 
 	// See if this is a 'blocking' hit
 	const PxFilterData PShapeFilter = PHit.shape->getQueryFilterData();
-	const PxSceneQueryHitType::Enum HitType = FPxQueryFilterCallback::CalcQueryHitType(QueryFilter, PShapeFilter);
-	OutResult.bBlockingHit = (HitType == PxSceneQueryHitType::eBLOCK); 
+	const PxQueryHitType::Enum HitType = FPxQueryFilterCallback::CalcQueryHitType(QueryFilter, PShapeFilter);
+	OutResult.bBlockingHit = (HitType == PxQueryHitType::eBLOCK); 
 	OutResult.bStartPenetrating = bInitialOverlap;
 
 	// calculate the hit time
@@ -563,6 +567,10 @@ EConvertQueryResult ConvertQueryImpactHit(const UWorld* World, const PxLocationH
 
 EConvertQueryResult ConvertRaycastResults(bool& OutHasValidBlockingHit, const UWorld* World, int32 NumHits, PxRaycastHit* Hits, float CheckLength, const PxFilterData& QueryFilter, TArray<FHitResult>& OutHits, const FVector& StartLoc, const FVector& EndLoc, bool bReturnFaceIndex, bool bReturnPhysMat)
 {
+#if PLATFORM_LINUX	// to narrow down OR-24947
+	_Pragma("clang optimize off");
+#endif // PLATFORM_LINUX
+
 	OutHits.Reserve(OutHits.Num() + NumHits);
 	EConvertQueryResult ConvertResult = EConvertQueryResult::Valid;
 	bool bHadBlockingHit = false;
@@ -570,7 +578,7 @@ EConvertQueryResult ConvertRaycastResults(bool& OutHasValidBlockingHit, const UW
 	PxTransform PStartTM(U2PVector(StartLoc));
 	for(int32 i=0; i<NumHits; i++)
 	{
-		FHitResult& NewResult = OutHits[OutHits.AddDefaulted()];
+		FHitResult& NewResult = OutHits[OutHits.Emplace()];
 		const PxRaycastHit& PHit = Hits[i];
 
 		if (ConvertQueryImpactHit(World, PHit, NewResult, CheckLength, QueryFilter, StartLoc, EndLoc, NULL, PStartTM, bReturnFaceIndex, bReturnPhysMat) == EConvertQueryResult::Valid)
@@ -589,20 +597,27 @@ EConvertQueryResult ConvertRaycastResults(bool& OutHasValidBlockingHit, const UW
 	OutHits.Sort( FCompareFHitResultTime() );
 	OutHasValidBlockingHit = bHadBlockingHit;
 	return ConvertResult;
+
+#if PLATFORM_LINUX	// to narrow down OR-24947
+	_Pragma("clang optimize on");
+#endif // PLATFORM_LINUX
 }
 
-EConvertQueryResult AddSweepResults(bool& OutHasValidBlockingHit, const UWorld* World, int32 NumHits, const PxSweepHit* Hits, float CheckLength, const PxFilterData& QueryFilter, TArray<FHitResult>& OutHits, const FVector& StartLoc, const FVector& EndLoc, const PxGeometry& Geom, const PxTransform& QueryTM, float MaxDistance, bool bReturnFaceIndex, bool bReturnPhysMat)
+EConvertQueryResult AddSweepResults(bool& OutHasValidBlockingHit, const UWorld* World, int32 NumHits, PxSweepHit* Hits, float CheckLength, const PxFilterData& QueryFilter, TArray<FHitResult>& OutHits, const FVector& StartLoc, const FVector& EndLoc, const PxGeometry& Geom, const PxTransform& QueryTM, float MaxDistance, bool bReturnFaceIndex, bool bReturnPhysMat)
 {
 	OutHits.Reserve(OutHits.Num() + NumHits);
 	EConvertQueryResult ConvertResult = EConvertQueryResult::Valid;
 	bool bHadBlockingHit = false;
+	const PxVec3 PDir = U2PVector((EndLoc - StartLoc).GetSafeNormal());
 
 	for(int32 i=0; i<NumHits; i++)
 	{
-		const PxSweepHit& PHit = Hits[i];
+		PxSweepHit& PHit = Hits[i];
 		checkSlow(PHit.flags & PxHitFlag::eDISTANCE);
 		if(PHit.distance <= MaxDistance)
 		{
+			PHit.faceIndex = FindFaceIndex(PHit, PDir);
+
 			FHitResult& NewResult = OutHits[OutHits.AddDefaulted()];
 			if (ConvertQueryImpactHit(World, PHit, NewResult, CheckLength, QueryFilter, StartLoc, EndLoc, &Geom, QueryTM, bReturnFaceIndex, bReturnPhysMat) == EConvertQueryResult::Valid)
 			{
@@ -769,7 +784,8 @@ static bool ComputeInflatedMTD(const float MtdInflation, const PxLocationHit& PH
 			for (int32 i=2; i >= 0; i--)
 			{
 				PxVec3 Jitter(0.f);
-				Jitter[i] = MtdInflation;
+				float* JitterPtr = &Jitter.x;
+				JitterPtr[i] = MtdInflation;
 
 				JitteredTM = PxTransform(QueryTM.p - Jitter, QueryTM.q);
 				if (ComputeInflatedMTD_Internal(MtdInflation, PHit, OutResult, JitteredTM, Geom, PShapeWorldPose))
@@ -903,8 +919,8 @@ static bool ConvertOverlappedShapeToImpactHit(const UWorld* World, const PxLocat
 
 	// See if this is a 'blocking' hit
 	PxFilterData PShapeFilter = PShape->getQueryFilterData();
-	PxSceneQueryHitType::Enum HitType = FPxQueryFilterCallback::CalcQueryHitType(QueryFilter, PShapeFilter);
-	const bool bBlockingHit = (HitType == PxSceneQueryHitType::eBLOCK); 
+	PxQueryHitType::Enum HitType = FPxQueryFilterCallback::CalcQueryHitType(QueryFilter, PShapeFilter);
+	const bool bBlockingHit = (HitType == PxQueryHitType::eBLOCK); 
 	OutResult.bBlockingHit = bBlockingHit;
 
 	// Time of zero because initially overlapping
@@ -1084,8 +1100,8 @@ bool IsBlocking(const PxShape* PShape, const PxFilterData& QueryFilter)
 {
 	// See if this is a 'blocking' hit
 	const PxFilterData PShapeFilter = PShape->getQueryFilterData();
-	const PxSceneQueryHitType::Enum HitType = FPxQueryFilterCallback::CalcQueryHitType(QueryFilter, PShapeFilter);
-	const bool bBlock = (HitType == PxSceneQueryHitType::eBLOCK);
+	const PxQueryHitType::Enum HitType = FPxQueryFilterCallback::CalcQueryHitType(QueryFilter, PShapeFilter);
+	const bool bBlock = (HitType == PxQueryHitType::eBLOCK);
 	return bBlock;
 }
 

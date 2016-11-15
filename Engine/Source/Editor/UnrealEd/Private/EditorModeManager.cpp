@@ -1167,3 +1167,16 @@ void FEditorModeTools::GetActiveModes( TArray<FEdMode*>& OutActiveModes )
 		OutActiveModes.Add(Mode.Get());
 	}
 }
+
+bool FEditorModeTools::CanCycleWidgetMode() const
+{
+	for (auto& Mode : Modes)
+	{
+		if (Mode->CanCycleWidgetMode())
+		{
+			return true;
+		}
+	}
+
+	return false;
+}

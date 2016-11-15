@@ -4,6 +4,7 @@
 
 #include "GameplayTagsModule.h"
 #include "GameplayAbilitiesModule.h"
+#include "GameplayEffectTypes.h"
 #include "AbilitySystemGlobals.generated.h"
 
 class AActor;
@@ -21,6 +22,11 @@ struct FGameplayEffectSpec;
 struct FGameplayEffectSpecForRPC;
 struct FGameplayCueParameters;
 struct FGameplayEffectContextHandle;
+
+/** Called when ability fails to activate, passes along the failed ability and a tag explaining why */
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnAbilitySystemAssetOpenedDelegate, FString , int );
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnAbilitySystemAssetFoundDelegate, FString, int);
+
 
 /** Holds global data for the ability system. Can be configured per project via config file */
 UCLASS(config=Game)
@@ -56,7 +62,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 	static UAbilitySystemComponent* GetAbilitySystemComponentFromActor(const AActor* Actor, bool LookForComponent=false);
 
 	/** Should allocate a project specific AbilityActorInfo struct. Caller is responsible for deallocation */
-	virtual FGameplayAbilityActorInfo * AllocAbilityActorInfo() const;
+	virtual FGameplayAbilityActorInfo* AllocAbilityActorInfo() const;
 
 	/** Should allocate a project specific GameplayEffectContext struct. Caller is responsible for deallocation */
 	virtual FGameplayEffectContext* AllocGameplayEffectContext() const;
@@ -79,19 +85,44 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 	/** Returns the gameplay tag response object, creating if necessary */
 	UGameplayTagReponseTable* GetGameplayTagResponseTable();
 
-	/** Sets a default gameplay cue tag using the asset's name */
-	static void DeriveGameplayCueTagFromAssetName(FString AssetName, FGameplayTag& GameplayCueTag, FName& GameplayCueName);
+	/** Sets a default gameplay cue tag using the asset's name. Returns true if it changed the tag. */
+	static bool DeriveGameplayCueTagFromAssetName(FString AssetName, FGameplayTag& GameplayCueTag, FName& GameplayCueName);
+
+	template<class T>
+	static void DeriveGameplayCueTagFromClass(T* CDO)
+	{
+#if WITH_EDITOR
+		UClass* ParentClass = CDO->GetClass()->GetSuperClass();
+		if (T* ParentCDO = Cast<T>(ParentClass->GetDefaultObject()))
+		{
+			if (ParentCDO->GameplayCueTag.IsValid() && (ParentCDO->GameplayCueTag == CDO->GameplayCueTag))
+			{
+				// Parente has a valid tag. But maybe there is a better one for this class to use.
+				// Reset our GameplayCueTag and see if we find one.
+				FGameplayTag ParentTag = ParentCDO->GameplayCueTag;
+				CDO->GameplayCueTag = FGameplayTag();
+				if (UAbilitySystemGlobals::DeriveGameplayCueTagFromAssetName(CDO->GetName(), CDO->GameplayCueTag, CDO->GameplayCueName) == false)
+				{
+					// We did not find one, so parent tag it is.
+					CDO->GameplayCueTag = ParentTag;
+				}
+				return;
+			}
+		}
+		UAbilitySystemGlobals::DeriveGameplayCueTagFromAssetName(CDO->GetName(), CDO->GameplayCueTag, CDO->GameplayCueName);
+#endif
+	}
 
 	/** The class to instantiate as the globals object. Defaults to this class but can be overridden */
 	UPROPERTY(config)
 	FStringClassReference AbilitySystemGlobalsClassName;
 
-	void AutomationTestOnly_SetGlobalCurveTable(class UCurveTable *InTable)
+	void AutomationTestOnly_SetGlobalCurveTable(UCurveTable *InTable)
 	{
 		GlobalCurveTable = InTable;
 	}
 
-	void AutomationTestOnly_SetGlobalAttributeDataTable(class UDataTable *InTable)
+	void AutomationTestOnly_SetGlobalAttributeDataTable(UDataTable *InTable)
 	{
 		GlobalAttributeMetaDataTable = InTable;
 	}
@@ -113,7 +144,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 	bool ShouldIgnoreCosts() const;
 
 	DECLARE_MULTICAST_DELEGATE(FOnClientServerDebugAvailable);
-	FOnClientServerDebugAvailable	OnClientServerDebugAvailable;
+	FOnClientServerDebugAvailable OnClientServerDebugAvailable;
 
 	/** Global place to accumulate debug strings for ability system component. Used when we fill up client side debug string immediately, and then wait for server to send server strings */
 	TArray<FString>	AbilitySystemDebugStrings;
@@ -183,9 +214,24 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 	virtual void InitGameplayCueParameters(FGameplayCueParameters& CueParameters, const FGameplayEffectContextHandle& EffectContext);
 
 	// Trigger async loading of the gameplay cue object libraries. By default, the manager will do this on creation,
-	// but that behaviour can be changed by a derived class overriding ShouldAsyncLoadObjectLibrariesAtStart and returning false.
+	// but that behavior can be changed by a derived class overriding ShouldAsyncLoadObjectLibrariesAtStart and returning false.
 	// In that case, this function must be called to begin the load
 	virtual void StartAsyncLoadingObjectLibraries();
+
+	/** Simple accessor to whether gameplay modifier evaluation channels should be allowed or not */
+	bool ShouldAllowGameplayModEvaluationChannels() const;
+
+	/**
+	 * Returns whether the specified gameplay mod evaluation channel is valid for use or not.
+	 * Considers whether channel usage is allowed at all, as well as if the specified channel has a valid alias for the game.
+	 */
+	bool IsGameplayModEvaluationChannelValid(EGameplayModEvaluationChannel Channel) const;
+
+	/** Simple channel-based accessor to the alias name for the specified gameplay mod evaluation channel, if any */
+	const FName& GetGameplayModEvaluationChannelAlias(EGameplayModEvaluationChannel Channel) const;
+
+	/** Simple index-based accessor to the alias name for the specified gameplay mod evaluation channel, if any */
+	const FName& GetGameplayModEvaluationChannelAlias(int32 Index) const;
 
 protected:
 
@@ -202,6 +248,18 @@ protected:
 	/** If we should ignore the costs when activating abilities in the ability system. Set with ToggleIgnoreAbilitySystemCosts() */
 	bool bIgnoreAbilitySystemCosts;
 #endif // #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
+	/** Whether the game should allow the usage of gameplay mod evaluation channels or not */
+	UPROPERTY(config)
+	bool bAllowGameplayModEvaluationChannels;
+
+	/** The default mod evaluation channel for the game */
+	UPROPERTY(config)
+	EGameplayModEvaluationChannel DefaultGameplayModEvaluationChannel;
+
+	/** Game-specified named aliases for gameplay mod evaluation channels; Only those with valid aliases are eligible to be used in a game (except Channel0, which is always valid) */
+	UPROPERTY(config)
+	FName GameplayModEvaluationChannelAliases[static_cast<int32>(EGameplayModEvaluationChannel::Channel_MAX)];
 
 	/** Name of global curve table to use as the default for scalable floats, etc. */
 	UPROPERTY(config)
@@ -240,7 +298,7 @@ protected:
 
 	/** Set to true if you want clients to try to predict gameplay effects done to targets. If false it will only predict self effects */
 	UPROPERTY(config)
-	bool	PredictTargetGameplayEffects;
+	bool PredictTargetGameplayEffects;
 
 	UPROPERTY()
 	UCurveTable* GlobalCurveTable;
@@ -270,4 +328,12 @@ protected:
 	bool RegisteredReimportCallback;
 #endif
 
+public:
+	//To add functionality for opening assets directly from the game.
+	void Notify_OpenAssetInEditor(FString AssetName, int AssetType);
+	FOnAbilitySystemAssetOpenedDelegate AbilityOpenAssetInEditorCallbacks;
+
+	//...for finding assets directly from the game.
+	void Notify_FindAssetInEditor(FString AssetName, int AssetType);
+	FOnAbilitySystemAssetFoundDelegate AbilityFindAssetInEditorCallbacks;
 };

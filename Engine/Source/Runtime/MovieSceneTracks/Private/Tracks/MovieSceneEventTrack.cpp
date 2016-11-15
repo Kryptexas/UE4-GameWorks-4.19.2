@@ -11,7 +11,7 @@
 /* UMovieSceneEventTrack interface
  *****************************************************************************/
 
-bool UMovieSceneEventTrack::AddKeyToSection(float Time, FName EventName, FKeyParams KeyParams)
+bool UMovieSceneEventTrack::AddKeyToSection(float Time, FName EventName)
 {
 	UMovieSceneSection* TargetSection = MovieSceneHelpers::FindNearestSectionAtTime(Sections, Time);
 
@@ -31,7 +31,7 @@ bool UMovieSceneEventTrack::AddKeyToSection(float Time, FName EventName, FKeyPar
 		return false;
 	}
 
-	EventSection->AddKey(Time, EventName, KeyParams);
+	EventSection->AddKey(Time, EventName);
 
 	return true;
 }

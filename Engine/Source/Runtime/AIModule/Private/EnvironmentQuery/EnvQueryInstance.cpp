@@ -382,7 +382,7 @@ void FEnvQueryInstance::Log(const FString Msg) const
 }
 #endif // !NO_LOGGING
 
-void FEnvQueryInstance::ReserveItemData(int32 NumAdditionalItems)
+void FEnvQueryInstance::ReserveItemData(const int32 NumAdditionalItems)
 {
 	DEC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, RawData.GetAllocatedSize());
 
@@ -390,7 +390,6 @@ void FEnvQueryInstance::ReserveItemData(int32 NumAdditionalItems)
 
 	INC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, RawData.GetAllocatedSize());
 }
-
 
 FEnvQueryInstance::ItemIterator::ItemIterator(const UEnvQueryTest* QueryTest, FEnvQueryInstance& QueryInstance, int32 StartingItemIndex)
 	: Instance(&QueryInstance)

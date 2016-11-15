@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3020369
-Availability:Docs
+﻿INTSourceChangelist:3069483
+Availability: Public
 Title:2.4 - マウスによるカメラ制御の実装
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
 Description:FPS キャラクターのマウスによるカメラ制御の実装方法を学びます。

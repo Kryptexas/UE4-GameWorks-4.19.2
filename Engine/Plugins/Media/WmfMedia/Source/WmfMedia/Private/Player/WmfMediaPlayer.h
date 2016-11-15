@@ -45,6 +45,7 @@ public:
 	virtual void Close() override;
 	virtual IMediaControls& GetControls() override;
 	virtual FString GetInfo() const override;
+	virtual FName GetName() const override;
 	virtual IMediaOutput& GetOutput() override;
 	virtual FString GetStats() const override;
 	virtual IMediaTracks& GetTracks() override;
@@ -66,16 +67,6 @@ protected:
 	virtual void ProcessResolveFailed(FString FailedUrl) override;
 
 protected:
-
-	/**
-	 * Adds the specified stream to the given topology.
-	 *
-	 * @param StreamIndex The index number of the stream in the presentation descriptor.
-	 * @param Topology The topology to add the stream to.
-	 * @param PresentationDescriptor The presentation descriptor object.
-	 * @param MediaSourceObject The media source object.
-	 */
-	void AddStreamToTopology(uint32 StreamIndex, IMFTopology* Topology, IMFPresentationDescriptor* PresentationDescriptor, IMFMediaSource* MediaSourceObject);
 
 	/**
 	 * Initializes the media session for the given media source.

@@ -26,15 +26,16 @@ TArray<FKeyHandle> FFloatCurveKeyArea::AddKeyUnique(float Time, EMovieSceneKeyIn
 			OwningSection->SetEndTime(Time);
 		}
 
-		float Value = Curve->Eval(Time);
-
-		if (TimeToCopyFrom != FLT_MAX)
+		float Value;
+		if (ExternalValue.IsSet() && ExternalValue.Get().IsSet() && TimeToCopyFrom == FLT_MAX)
 		{
-			Value = Curve->Eval(TimeToCopyFrom);
+			Value = ExternalValue.Get().GetValue();
 		}
-		else if ( IntermediateValue.IsSet() )
+		else
 		{
-			Value = IntermediateValue.GetValue();
+			float EvalTime = TimeToCopyFrom != FLT_MAX ? Time : TimeToCopyFrom;
+			float DefaultValue = 0;
+			Value = Curve->Eval(EvalTime, DefaultValue);
 		}
 
 		Curve->AddKey(Time, Value, false, CurrentKeyHandle);
@@ -58,10 +59,10 @@ TArray<FKeyHandle> FFloatCurveKeyArea::AddKeyUnique(float Time, EMovieSceneKeyIn
 			CurrentKey.LeaveTangentWeight = KeyToCopy.LeaveTangentWeight;
 		}
 	}
-	else if ( IntermediateValue.IsSet() )
+	else if (ExternalValue.IsSet() && ExternalValue.Get().IsSet())
 	{
-		float Value = IntermediateValue.GetValue();
-		Curve->UpdateOrAddKey(Time,Value);
+		float Value = ExternalValue.Get().GetValue();
+		Curve->UpdateOrAddKey(Time, Value);
 	}
 
 	return AddedKeyHandles;
@@ -95,10 +96,7 @@ TSharedRef<SWidget> FFloatCurveKeyArea::CreateKeyEditor(ISequencer* Sequencer)
 		.Sequencer(Sequencer)
 		.OwningSection(OwningSection)
 		.Curve(Curve)
-		.OnValueChanged(this, &FFloatCurveKeyArea::OnValueChanged)
-		.IntermediateValue_Lambda([this] {
-			return IntermediateValue;
-		});
+		.ExternalValue(ExternalValue);
 };
 
 
@@ -297,9 +295,4 @@ void FFloatCurveKeyArea::PasteKeys(const FMovieSceneClipboardKeyTrack& KeyTrack,
 
 		return true;
 	});
-}
-
-void FFloatCurveKeyArea::OnValueChanged(float InValue)
-{
-	ClearIntermediateValue();
 }

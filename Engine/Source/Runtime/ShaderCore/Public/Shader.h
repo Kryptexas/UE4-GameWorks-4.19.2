@@ -200,7 +200,7 @@ public:
 	virtual void FinishCleanup();
 
 	/** Finds a matching shader resource in memory if possible. */
-	SHADERCORE_API static TRefCountPtr<FShaderResource> FindShaderResourceById(const FShaderResourceId& Id);
+	SHADERCORE_API static FShaderResource* FindShaderResourceById(const FShaderResourceId& Id);
 
 	/** 
 	 * Finds a matching shader resource in memory or creates a new one with the given compiler output.  
@@ -215,6 +215,9 @@ public:
 	SHADERCORE_API static bool ArePlatformsCompatible(EShaderPlatform CurrentPlatform, EShaderPlatform TargetPlatform);
 	
 private:
+	// compression functions
+	void UncompressCode(TArray<uint8>& UncompressedCode) const;
+	void CompressCode(const TArray<uint8>& UncompressedCode);
 
 	/** Reference to the RHI shader.  Only one of these is ever valid, and it is the one corresponding to Target.Frequency. */
 	FVertexShaderRHIRef VertexShader;
@@ -229,6 +232,9 @@ private:
 
 	/** Compiled bytecode. */
 	TArray<uint8> Code;
+
+	/** Original bytecode size, before compression */
+	uint32 UncompressedCodeSize = 0;
 
 	/**
 	 * Hash of the compiled bytecode and the generated parameter map.
@@ -252,7 +258,7 @@ private:
 	uint32 Canary;
 
 	/** Initialize the shader RHI resources. */
-	void InitializeShaderRHI();
+	SHADERCORE_API void InitializeShaderRHI();
 
 	/** Tracks loaded shader resources by id. */
 	static TMap<FShaderResourceId, FShaderResource*> ShaderResourceIdMap;
@@ -805,7 +811,7 @@ public:
 	 * Finds a shader of this type by ID.
 	 * @return NULL if no shader with the specified ID was found.
 	 */
-	TRefCountPtr<FShader> FindShaderById(const FShaderId& Id);
+	FShader* FindShaderById(const FShaderId& Id);
 
 	/** Constructs a new instance of the shader type for deserialization. */
 	FShader* ConstructForDeserialization() const;
@@ -1703,12 +1709,12 @@ public:
 			Shader->RegisterSerializedResource();
 
 			FShaderType* Type = Shader->GetType();
-			TRefCountPtr<FShader> ExistingShader = Type->FindShaderById(Shader->GetId());
+			FShader* ExistingShader = Type->FindShaderById(Shader->GetId());
 
-			if (ExistingShader.IsValid())
+			if (ExistingShader != nullptr)
 			{
 				delete Shader;
-				Shader = ExistingShader.GetReference();
+				Shader = ExistingShader;
 			}
 			else
 			{

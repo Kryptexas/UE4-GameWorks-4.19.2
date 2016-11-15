@@ -52,10 +52,12 @@ FHitResult AGameplayAbilityTargetActor_SingleLineTrace::PerformTrace(AActor* InS
 		LocalReticleActor->SetIsTargetAnActor(bHitActor);
 	}
 
+#if ENABLE_DRAW_DEBUG
 	if (bDebug)
 	{
 		DrawDebugLine(GetWorld(), TraceStart, TraceEnd, FColor::Green);
 		DrawDebugSphere(GetWorld(), TraceEnd, 100.0f, 16, FColor::Green);
 	}
+#endif // ENABLE_DRAW_DEBUG
 	return ReturnHitResult;
 }

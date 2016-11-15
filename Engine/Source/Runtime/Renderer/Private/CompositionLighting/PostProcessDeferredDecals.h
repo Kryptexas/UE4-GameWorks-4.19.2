@@ -61,13 +61,13 @@ struct FDecalRenderTargetManager
 	bool bGufferADirty;
 
 	// constructor
-	FDecalRenderTargetManager(FRHICommandList& InRHICmdList, EDecalRenderStage CurrentStage)
+	FDecalRenderTargetManager(FRHICommandList& InRHICmdList, EShaderPlatform ShaderPlatform, EDecalRenderStage CurrentStage)
 		: RHICmdList(InRHICmdList)
-		, bGufferADirty(CurrentStage == DRS_AfterBasePass) // Normal buffer is already dirty at this point and needs resolve before being read from (irrelevant for DBuffer).
+		, bGufferADirty(false) 
 	{
 		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
-		for(uint32 i = 0; i < ResolveBufferMax; ++i)
+		for (uint32 i = 0; i < ResolveBufferMax; ++i)
 		{
 			TargetsToTransitionWritable[i] = true;
 			TargetsToResolve[i] = nullptr;
@@ -81,9 +81,16 @@ struct FDecalRenderTargetManager
 		{
 			TargetsToResolve[DBufferBIndex] = SceneContext.DBufferB->GetRenderTargetItem().TargetableTexture;
 		}
+
 		if(SceneContext.DBufferC)
 		{
 			TargetsToResolve[DBufferCIndex] = SceneContext.DBufferC->GetRenderTargetItem().TargetableTexture;
+		}
+
+		if (!IsAnyForwardShadingEnabled(ShaderPlatform))
+		{
+			// Normal buffer is already dirty at this point and needs resolve before being read from (irrelevant for DBuffer).
+			bGufferADirty = CurrentStage == DRS_AfterBasePass;
 		}
 	}
 

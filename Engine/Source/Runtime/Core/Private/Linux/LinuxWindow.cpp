@@ -8,6 +8,10 @@ DEFINE_LOG_CATEGORY( LogLinuxWindow );
 DEFINE_LOG_CATEGORY( LogLinuxWindowType );
 DEFINE_LOG_CATEGORY( LogLinuxWindowEvent );
 
+// SDL 2.0.4 as of 10374:dccf51aee79b will account for border width/height automatically (see SDL_x11window.c)
+// might need to be a function in case SDL gets overriden at runtime
+#define UE4_USING_BORDERS_AWARE_SDL					1
+
 FLinuxWindow::~FLinuxWindow()
 {
 	// NOTE: The HWnd is invalid here!
@@ -341,10 +345,17 @@ SDL_HitTestResult FLinuxWindow::HitTest( SDL_Window *SDLwin, const SDL_Point *po
 /** Native windows should implement MoveWindowTo by relocating the platform-specific window to (X,Y). */
 void FLinuxWindow::MoveWindowTo( int32 X, int32 Y )
 {
-	// we are passed coordinates of a client area, so account for decorations
-	checkf(bValidNativePropertiesCache, TEXT("Attempted to use border sizes too early, native properties aren't yet cached. Review the flow"));
+	if (UE4_USING_BORDERS_AWARE_SDL)
+	{
+		SDL_SetWindowPosition( HWnd, X, Y );
+	}
+	else
+	{
+		// we are passed coordinates of a client area, so account for decorations
+		checkf(bValidNativePropertiesCache, TEXT("Attempted to use border sizes too early, native properties aren't yet cached. Review the flow"));
 
-	SDL_SetWindowPosition( HWnd, X - LeftBorderWidth, Y - TopBorderHeight );
+		SDL_SetWindowPosition( HWnd, X - LeftBorderWidth, Y - TopBorderHeight );
+	}
 }
 
 /** Native windows should implement BringToFront by making this window the top-most window (i.e. focused).
@@ -469,7 +480,7 @@ void FLinuxWindow::ReshapeWindow( int32 NewX, int32 NewY, int32 NewWidth, int32 
 
 		case EWindowMode::Windowed:
 		{
-			if (Definition->HasOSWindowBorder)
+			if (UE4_USING_BORDERS_AWARE_SDL == 0 && Definition->HasOSWindowBorder)
 			{
 				// we are passed coordinates of a client area, so account for decorations
 				checkf(bValidNativePropertiesCache, TEXT("Attempted to use border sizes too early, native properties aren't yet cached. Review the flow"));

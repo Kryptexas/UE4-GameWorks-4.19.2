@@ -772,20 +772,23 @@ void SFiltersAndPresets::UpdateGroupAndStatTree( const FProfilerSessionPtr InPro
 
 	ProfilerSession = InProfilerSession;
 
-	const FProfilerStatMetaDataRef StatMetaData = ProfilerSession->GetMetaData();
-
-	// Create all stat nodes.
-	for( auto It = StatMetaData->GetStatIterator(); It; ++It )
+	if( ProfilerSession.IsValid() )
 	{
-		const FProfilerStat& ProfilerStat = *It.Value();
-		const FName StatName = ProfilerStat.Name();
+		const FProfilerStatMetaDataRef StatMetaData = ProfilerSession->GetMetaData();
 
-		FGroupOrStatNodePtr* StatPtr = StatNodesMap.Find( StatName );
-		if( !StatPtr )
+		// Create all stat nodes.
+		for( auto It = StatMetaData->GetStatIterator(); It; ++It )
 		{
-			StatPtr = &StatNodesMap.Add( StatName, MakeShareable( new FGroupOrStatNode( ProfilerStat.OwningGroup().Name(), StatName, ProfilerStat.ID(), ProfilerStat.Type() ) ) );
+			const FProfilerStat& ProfilerStat = *It.Value();
+			const FName StatName = ProfilerStat.Name();
+
+			FGroupOrStatNodePtr* StatPtr = StatNodesMap.Find( StatName );
+			if( !StatPtr )
+			{
+				StatPtr = &StatNodesMap.Add( StatName, MakeShareable( new FGroupOrStatNode( ProfilerStat.OwningGroup().Name(), StatName, ProfilerStat.ID(), ProfilerStat.Type() ) ) );
+			}
+			// Update stat value ?
 		}
-		// Update stat value ?
 	}
 
 	// Create groups, sort stats within the group and apply filtering.

@@ -157,7 +157,7 @@ void UGatherTextFromAssetsCommandlet::ProcessGatherableTextDataArray(const FStri
 
 				FLocItem Source(GatherableTextData.SourceData.SourceString);
 
-				ManifestInfo->AddEntry(TextSourceSiteContext.SiteDescription, GatherableTextData.NamespaceName, Source, Context);
+				GatherManifestHelper->AddSourceText(GatherableTextData.NamespaceName, Source, Context, &TextSourceSiteContext.SiteDescription);
 			}
 		}
 	}
@@ -306,10 +306,10 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 	AssetRegistryModule.Get().GetAssets(Filter, AssetDataArray);
 
 	FString UAssetPackageExtension = FPackageName::GetAssetPackageExtension();
-	TSet< FString > LongPackageNamesToExclude;
-	for (int Index = 0; Index < AssetDataArray.Num(); Index++)
+	TSet< FString > PackageFileNamesToExclude;
+	for (const FAssetData& AssetData : AssetDataArray)
 	{
-		LongPackageNamesToExclude.Add( FPackageName::LongPackageNameToFilename( AssetDataArray[Index].PackageName.ToString(), UAssetPackageExtension ) );
+		PackageFileNamesToExclude.Add( FPaths::ConvertRelativePathToFull( FPackageName::LongPackageNameToFilename( AssetData.PackageName.ToString(), UAssetPackageExtension ) ) );
 	}
 
 	//Get whether we should fix broken properties that we find.
@@ -328,10 +328,14 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 	TArray<FString> ManifestDependenciesList;
 	GetPathArrayFromConfig(*SectionName, TEXT("ManifestDependencies"), ManifestDependenciesList, GatherTextConfigPath);
 
-	if( !ManifestInfo->AddManifestDependencies( ManifestDependenciesList ) )
+	for (const FString& ManifestDependency : ManifestDependenciesList)
 	{
-		UE_LOG(LogGatherTextFromAssetsCommandlet, Error, TEXT("The GatherTextFromAssets commandlet couldn't find all the specified manifest dependencies."));
-		return -1;
+		FText OutError;
+		if (!GatherManifestHelper->AddDependency(ManifestDependency, &OutError))
+		{
+			UE_LOG(LogGatherTextFromAssetsCommandlet, Error, TEXT("The GatherTextFromAssets commandlet couldn't load the specified manifest dependency: '%'. %s"), *ManifestDependency, *OutError.ToString());
+			return -1;
+		}
 	}
 
 	//The main array of files to work from.
@@ -390,7 +394,7 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 			}
 
 			//Check that this is not on the list of packages that we don't care about e.g. textures.
-			if ( !bExclude && IsAssetPackage && LongPackageNamesToExclude.Contains( PackageFile ) )
+			if ( !bExclude && IsAssetPackage && PackageFileNamesToExclude.Contains( PackageFile ) )
 			{
 				bExclude = true;
 				PackageFilesExcludedByClass.Add(PackageFile);

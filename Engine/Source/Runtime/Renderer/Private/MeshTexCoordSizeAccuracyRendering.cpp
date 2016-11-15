@@ -44,17 +44,19 @@ void FMeshTexCoordSizeAccuracyPS::SetMesh(
 	const FMeshDrawingRenderState& DrawRenderState
 	)
 {
-	float CPUTexelFactor = -1.f;
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	float ComponentExtraScale = 1.f, MeshExtraScale = 1.f;
-	const FStreamingSectionBuildInfo* SectionData = Proxy ? Proxy->GetStreamingSectionData(ComponentExtraScale, MeshExtraScale, VisualizeLODIndex, BatchElement.VisualizeElementIndex) : nullptr;
-	if (SectionData)
-	{
-		CPUTexelFactor = MeshExtraScale * SectionData->TexelFactors[0];
-	}
+	const int32 AnalysisIndex = View.Family->GetViewModeParam() >= 0 ? FMath::Clamp<int32>(View.Family->GetViewModeParam(), 0, MAX_TEXCOORDS - 1) : -1;
+
+	FVector4 WorldUVDensities;
+#if WITH_EDITORONLY_DATA
+	if (!Proxy || !Proxy->GetMeshUVDensities(VisualizeLODIndex, BatchElement.VisualizeElementIndex, WorldUVDensities))
 #endif
-	SetShaderValue(RHICmdList, FGlobalShader::GetPixelShader(), CPUTexelFactorParameter, CPUTexelFactor);
+	{
+		FMemory::Memzero(WorldUVDensities);
+	}
+
+	SetShaderValue(RHICmdList, FGlobalShader::GetPixelShader(), CPUTexelFactorParameter, WorldUVDensities);
 	SetShaderValue(RHICmdList, FGlobalShader::GetPixelShader(), PrimitiveAlphaParameter, (!Proxy || Proxy->IsSelected()) ? 1.f : .2f);
+	SetShaderValue(RHICmdList, FGlobalShader::GetPixelShader(), TexCoordAnalysisIndexParameter, AnalysisIndex);
 }
 
 void FMeshTexCoordSizeAccuracyPS::SetMesh(FRHICommandList& RHICmdList, const FSceneView& View)

@@ -242,16 +242,28 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bCompileWithPluginSupport;
 
-		/// <summary>
-		/// Whether to turn on logging for test/shipping builds
-		/// </summary>
-		[XmlConfig]
-		public static bool bUseLoggingInShipping;
-
         /// <summary>
-        /// Whether to check that the process was launched through an external launcher
+        /// Whether to include PerfCounters support
         /// </summary>
         [XmlConfig]
+        public static bool bWithPerfCounters;
+
+        /// <summary>
+        /// Whether to turn on logging for test/shipping builds
+        /// </summary>
+        [XmlConfig]
+		public static bool bUseLoggingInShipping;
+
+		/// <summary>
+		/// Whether to turn on logging to memory for test/shipping builds
+		/// </summary>
+		[XmlConfig]
+		public static bool bLoggingToMemoryEnabled;
+
+		/// <summary>
+		/// Whether to check that the process was launched through an external launcher
+		/// </summary>
+		[XmlConfig]
         public static bool bUseLauncherChecks;
 
 		/// <summary>
@@ -334,6 +346,12 @@ namespace UnrealBuildTool
         public static bool bForceCompilePerformanceAutomationTests;
 
 		/// <summary>
+		/// If true, event driven loader will be used in cooked builds. @todoio This needs to be replaced by a runtime solution after async loading refactor
+		/// </summary>
+		[XmlConfig]
+		public static bool bEventDrivenLoader;
+
+		/// <summary>
 		/// Sets the configuration back to defaults.
 		/// </summary>
 		public static void LoadDefaults()
@@ -364,7 +382,8 @@ namespace UnrealBuildTool
 			bCompileSpeedTree = true;
 			bCompileWithStatsWithoutEngine = false;
 			bCompileWithPluginSupport = false;
-			bUseLoggingInShipping = false;
+            bWithPerfCounters = false;
+            bUseLoggingInShipping = false;
 			bUseChecksInShipping = false;
             bUseLauncherChecks = false;
 			bCompilePhysXVehicle = true;
@@ -380,6 +399,7 @@ namespace UnrealBuildTool
 			bEditorDependsOnShaderCompileWorker = true;
             bForceCompileDevelopmentAutomationTests = false;
             bForceCompilePerformanceAutomationTests = false;
+			bEventDrivenLoader = false;
 		}
 
 		/// <summary>

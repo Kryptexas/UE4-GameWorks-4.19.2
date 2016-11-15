@@ -243,6 +243,11 @@ bool FGitSourceControlState::CanEdit() const
 	return true; // With Git all files in the working copy are always editable (as opposed to Perforce)
 }
 
+bool FGitSourceControlState::CanDelete() const
+{
+	return IsSourceControlled() && IsCurrent();
+}
+
 bool FGitSourceControlState::IsUnknown() const
 {
 	return WorkingCopyState == EWorkingCopyState::Unknown;

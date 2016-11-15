@@ -62,6 +62,7 @@ protected:
 	{
 		VertexParametersType::Bind(Initializer.ParameterMap);
 		HeightFogParameters.Bind(Initializer.ParameterMap);
+		MobileMultiViewMaskParameter.Bind(Initializer.ParameterMap, TEXT("MobileMultiViewMask"));
 	}
 
 public:
@@ -78,11 +79,12 @@ public:
 		bool bShaderHasOutdatedParameters = FMeshMaterialShader::Serialize(Ar);
 		VertexParametersType::Serialize(Ar);
 		Ar << HeightFogParameters;
+		Ar << MobileMultiViewMaskParameter;
 		return bShaderHasOutdatedParameters;
 	}
 
 	void SetParameters(
-		FRHICommandList& RHICmdList, 
+		FRHICommandList& RHICmdList,
 		const FMaterialRenderProxy* MaterialRenderProxy,
 		const FVertexFactory* VertexFactory,
 		const FMaterial& InMaterialResource,
@@ -91,7 +93,21 @@ public:
 		)
 	{
 		HeightFogParameters.Set(RHICmdList, GetVertexShader(), &View);
-		FMeshMaterialShader::SetParameters(RHICmdList, GetVertexShader(),MaterialRenderProxy,InMaterialResource,View,TextureMode);
+		FMeshMaterialShader::SetParameters(RHICmdList, GetVertexShader(),MaterialRenderProxy,InMaterialResource,View,View.ViewUniformBuffer,TextureMode);
+
+		if (MobileMultiViewMaskParameter.IsBound())
+		{
+			// Default is no masking
+			SetShaderValue(RHICmdList, GetVertexShader(), MobileMultiViewMaskParameter, -1);
+		}
+	}
+
+	void SetMobileMultiViewMask(FRHICommandList& RHICmdList, const int32 EyeIndex)
+	{
+		if (EyeIndex >= 0 && MobileMultiViewMaskParameter.IsBound())
+		{
+			SetShaderValue(RHICmdList, GetVertexShader(), MobileMultiViewMaskParameter, EyeIndex);
+		}
 	}
 
 	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement,const FMeshDrawingRenderState& DrawRenderState)
@@ -101,6 +117,7 @@ public:
 
 private:
 	FHeightFogShaderParameters HeightFogParameters;
+	FShaderParameter MobileMultiViewMaskParameter;
 };
 
 template<typename LightMapPolicyType>
@@ -203,6 +220,7 @@ public:
 		PixelParametersType::Bind(Initializer.ParameterMap);
 		ReflectionCubemap.Bind(Initializer.ParameterMap, TEXT("ReflectionCubemap"));
 		ReflectionSampler.Bind(Initializer.ParameterMap, TEXT("ReflectionCubemapSampler"));
+		InvReflectionCubemapAverageBrightness.Bind(Initializer.ParameterMap, TEXT("InvReflectionCubemapAverageBrightness"));
 		EditorCompositeParams.Bind(Initializer.ParameterMap);
 		LightPositionAndInvRadiusParameter.Bind(Initializer.ParameterMap, TEXT("LightPositionAndInvRadius"));
 		LightColorAndFalloffExponentParameter.Bind(Initializer.ParameterMap, TEXT("LightColorAndFalloffExponent"));
@@ -223,7 +241,7 @@ public:
 
 	void SetParameters(FRHICommandList& RHICmdList, const FMaterialRenderProxy* MaterialRenderProxy, const FMaterial& MaterialResource, const FSceneView* View, ESceneRenderTargetsMode::Type TextureMode, bool bEnableEditorPrimitveDepthTest)
 	{
-		FMeshMaterialShader::SetParameters(RHICmdList, GetPixelShader(),MaterialRenderProxy,MaterialResource,*View,TextureMode);
+		FMeshMaterialShader::SetParameters(RHICmdList, GetPixelShader(),MaterialRenderProxy,MaterialResource,*View,View->ViewUniformBuffer,TextureMode);
 		EditorCompositeParams.SetParameters(RHICmdList, MaterialResource, View, bEnableEditorPrimitveDepthTest, GetPixelShader());
 	}
 
@@ -242,6 +260,7 @@ public:
 			const FShaderResourceParameter* ReflectionSamplerParameters[MaxNumReflections] = { &ReflectionSampler, &ReflectionSampler1, &ReflectionSampler2 };
 			FTexture* ReflectionCubemapTextures[MaxNumReflections] = { GBlackTextureCube, GBlackTextureCube, GBlackTextureCube };
 			FVector4 CapturePositions[MaxNumReflections] = { FVector4(0, 0, 0, 0), FVector4(0, 0, 0, 0), FVector4(0, 0, 0, 0) };
+			FVector AverageBrightness(1, 1, 1);
 
 			if (PrimitiveSceneInfo)
 			{
@@ -256,6 +275,7 @@ public:
 						{
 							ReflectionCubemapTextures[i] = PrimitiveSceneInfo->CachedReflectionCaptureProxies[i]->EncodedHDRCubemap;
 						}
+						AverageBrightness[i] = ReflectionProxy->AverageBrightness;
 					}
 				}
 			}
@@ -272,21 +292,26 @@ public:
 			{
 				SetShaderValueArray(RHICmdList, PixelShader, ReflectionPositionsAndRadii, CapturePositions, MaxNumReflections);
 			}
+
+			SetShaderValue(RHICmdList, PixelShader, InvReflectionCubemapAverageBrightness, FVector(1.0f / AverageBrightness.X, 1.0f / AverageBrightness.Y, 1.0f / AverageBrightness.Z));
 		}
 		else if (ReflectionCubemap.IsBound())
 		{
 			FTexture* ReflectionTexture = GBlackTextureCube;
+			float AverageBrightness = 1.0f;
 
 			if (PrimitiveSceneInfo 
 				&& PrimitiveSceneInfo->CachedReflectionCaptureProxy
 				&& PrimitiveSceneInfo->CachedReflectionCaptureProxy->EncodedHDRCubemap
 				&& PrimitiveSceneInfo->CachedReflectionCaptureProxy->EncodedHDRCubemap->IsInitialized())
 			{
+				AverageBrightness = PrimitiveSceneInfo->CachedReflectionCaptureProxy->AverageBrightness;
 				ReflectionTexture = PrimitiveSceneInfo->CachedReflectionCaptureProxy->EncodedHDRCubemap;
 			}
 
 			// Set the reflection cubemap
 			SetTextureParameter(RHICmdList, PixelShader, ReflectionCubemap, ReflectionSampler, ReflectionTexture);
+			SetShaderValue(RHICmdList, PixelShader, InvReflectionCubemapAverageBrightness, FVector(1.0f / AverageBrightness, 0, 0));
 		}
 
 		if (NumDynamicPointLights > 0)
@@ -315,6 +340,7 @@ public:
 		PixelParametersType::Serialize(Ar);
 		Ar << ReflectionCubemap;
 		Ar << ReflectionSampler;
+		Ar << InvReflectionCubemapAverageBrightness;
 		Ar << EditorCompositeParams;
 		Ar << LightPositionAndInvRadiusParameter;
 		Ar << LightColorAndFalloffExponentParameter;
@@ -339,6 +365,7 @@ private:
 
 	FShaderResourceParameter ReflectionCubemap;
 	FShaderResourceParameter ReflectionSampler;
+	FShaderParameter InvReflectionCubemapAverageBrightness;
 	FEditorCompositingParameters EditorCompositeParams;
 	FShaderParameter LightPositionAndInvRadiusParameter;
 	FShaderParameter LightColorAndFalloffExponentParameter;
@@ -661,6 +688,11 @@ public:
 			DRAWING_POLICY_MATCH(LightMapPolicy == Other.LightMapPolicy) &&
 			DRAWING_POLICY_MATCH(SceneTextureMode == Other.SceneTextureMode);
 		DRAWING_POLICY_MATCH_END
+	}
+
+	void SetMobileMultiViewMask(FRHICommandList& RHICmdList, const int32 EyeIndex)
+	{
+		VertexShader->SetMobileMultiViewMask(RHICmdList, EyeIndex);
 	}
 
 	void SetSharedState(FRHICommandList& RHICmdList, const FViewInfo* View, const ContextDataType PolicyContext) const

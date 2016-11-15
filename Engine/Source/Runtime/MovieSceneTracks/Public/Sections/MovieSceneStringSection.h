@@ -46,6 +46,7 @@ public:
 	virtual bool HasKeys( const FString& KeyData ) const;
 	virtual void AddKey( float Time, const FString& KeyData, EMovieSceneKeyInterpolation KeyInterpolation );
 	virtual void SetDefault( const FString& KeyData );
+	virtual void ClearDefaults() override;
 
 public:
 

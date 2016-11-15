@@ -1981,7 +1981,7 @@ Collision can now be generated for Spline meshes created at runtime.
 
 * New: Added an explicit, experimental option for using OpenCL to accelerate the convex decomposition tool on Mac rather than assuming that it is desirable (defaults to off).
 
-    * This may prevent a crash on Nvidia's OpenCL drivers while enabling AMD & Intel users to run it if desired.
+    * This may prevent a crash on the NVIDIA OpenCL drivers while enabling AMD & Intel users to run it if desired.
 
 * New: Added implementations of unpackHalf2x16, countbits, firstbitlow & firstbithigh for Metal.
 
@@ -2089,13 +2089,13 @@ Collision can now be generated for Spline meshes created at runtime.
 
 * Slightly improved Mac Metal performance on AMD by only creating texture-views when absolutely necessary.
 
-* Switch uniform buffers to managed memory on Mac as this is more appropriate for AMD & Nvidia GPUs.
+* Switch uniform buffers to managed memory on Mac as this is more appropriate for AMD & NVIDIA GPUs.
 
 * Used a dispatch_semaphore, not an FEvent, for Metal free-list synchronisation as the dispatch_worker threads can't be properly set up for FStats.
 
 * We now warn the user when trying to run on OpenGL 3.2 GPUs that they are running unsupported and there may be rendering errors and performance problems.
 
-* Added a workaround for a Metal shader compiler problem on Nvidia GPUs - sample_compare doesn't like taking level(0) as its LOD-option argument and may not currently support any LOD-option.
+* Added a workaround for a Metal shader compiler problem on NVIDIA GPUs - sample_compare doesn't like taking level(0) as its LOD-option argument and may not currently support any LOD-option.
 
 #### PlayStation 4
 

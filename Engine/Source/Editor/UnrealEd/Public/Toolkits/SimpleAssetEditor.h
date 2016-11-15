@@ -45,6 +45,9 @@ private:
 	/** Create the properties tab and its content */
 	TSharedRef<SDockTab> SpawnPropertiesTab( const FSpawnTabArgs& Args );
 
+	/** Handles when an asset is imported */
+	void HandleAssetPostImport(class UFactory* InFactory, UObject* InObject);
+
 	/** Dockable tab for properties */
 	TSharedPtr< SDockableTab > PropertiesTab;
 
@@ -56,6 +59,9 @@ private:
 
 	/**	The tab ids for all the tabs used */
 	static const FName PropertiesTabId;
+
+	/** The objects open within this editor */
+	TArray<UObject*> EditingObjects;
 
 public:
 	/** The name given to all instances of this type of editor */

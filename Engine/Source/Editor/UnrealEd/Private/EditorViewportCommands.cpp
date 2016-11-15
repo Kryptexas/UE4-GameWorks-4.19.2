@@ -15,6 +15,7 @@ void FEditorViewportCommands::RegisterCommands()
 	UI_COMMAND( Bottom, "Bottom", "Switches the viewport to bottom view", EUserInterfaceActionType::RadioButton, FInputChord( EModifierKey::Alt | EModifierKey::Shift, EKeys::J ) );
 	UI_COMMAND( Left, "Left", "Switches the viewport to left view", EUserInterfaceActionType::RadioButton, FInputChord( EModifierKey::Alt, EKeys::K ) );
 	UI_COMMAND( Right, "Right", "Switches the viewport to right view", EUserInterfaceActionType::RadioButton, FInputChord( EModifierKey::Alt | EModifierKey::Shift, EKeys::K ) );
+	UI_COMMAND( Next, "Next", "Rotate through each view options", EUserInterfaceActionType::RadioButton, FInputChord( EModifierKey::Control | EModifierKey::Shift, EKeys::SpaceBar ) );
 
 	UI_COMMAND( WireframeMode, "Brush Wireframe View Mode", "Renders the scene in brush wireframe", EUserInterfaceActionType::RadioButton, FInputChord( EModifierKey::Alt, EKeys::Two ) );
 	UI_COMMAND( UnlitMode, "Unlit View Mode", "Renders the scene with no lights", EUserInterfaceActionType::RadioButton, FInputChord( EModifierKey::Alt, EKeys::Three ) );
@@ -25,9 +26,36 @@ void FEditorViewportCommands::RegisterCommands()
 	UI_COMMAND( ShaderComplexityMode, "Shader Complexity View Mode", "Renders the scene with shader complexity visualization", EUserInterfaceActionType::RadioButton, FInputChord( EModifierKey::Alt, EKeys::Eight ) );
 	UI_COMMAND( QuadOverdrawMode, "Quad Complexity View Mode", "Renders the scene with quad complexity visualization", EUserInterfaceActionType::RadioButton, FInputChord() );
 	UI_COMMAND( ShaderComplexityWithQuadOverdrawMode, "Shader Complexity & Quads visualization", "Renders the scene with shader complexity and quad overdraw visualization", EUserInterfaceActionType::RadioButton, FInputChord() );
-	UI_COMMAND( TexStreamAccPrimitiveDistanceMode, "Primitive Distance Accuracy View Mode", "Visualize the accuracy of the CPU primitive distance when compared to the GPU value", EUserInterfaceActionType::RadioButton, FInputChord() );
-	UI_COMMAND( TexStreamAccMeshTexCoordSizeMode, "Mesh Texture Coordinate Size Accuracy View Mode", "Visualize the accuracy of the CPU mesh texture coordinate size when compared to the GPU value", EUserInterfaceActionType::RadioButton, FInputChord() );
-	UI_COMMAND( TexStreamAccMaterialTexCoordScalesMode, "Material Texture Coordinate Scales Accuracy View Mode", "Visualize the accuracy of CPU material texture coordinate scales when compared to the GPU values", EUserInterfaceActionType::RadioButton, FInputChord() );
+
+	UI_COMMAND( TexStreamAccPrimitiveDistanceMode, "Primitive Distance Accuracy View Mode", "Visualize the accuracy of the primitive distance computed for texture streaming", EUserInterfaceActionType::RadioButton, FInputChord() );
+	UI_COMMAND( TexStreamAccMeshUVDensityMode, "Mesh UV Densities Accuracy View Mode", "Visualize the accuracy of the mesh UV densities computed for texture streaming", EUserInterfaceActionType::RadioButton, FInputChord() );
+	UI_COMMAND( TexStreamAccMeshUVDensityAll, "All UV Channels", "Visualize the densities accuracy of all UV channels", EUserInterfaceActionType::RadioButton, FInputChord() );
+
+	for (int32 TexCoordIndex = 0; TexCoordIndex < TEXSTREAM_MAX_NUM_UVCHANNELS; ++TexCoordIndex)
+	{
+		const FName CommandName = *FString::Printf(TEXT("ShowUVChannel%d"), TexCoordIndex);
+		const FText LocalizedName = FText::Format(LOCTEXT("ShowTexCoordCommands", "UV Channel {0}"), TexCoordIndex);
+		const FText LocalizedTooltip = FText::Format(LOCTEXT("ShowTexCoordCommands_ToolTip","Visualize the size accuracy of UV density for channel {0}"), TexCoordIndex);
+
+		TexStreamAccMeshUVDensitySingle[TexCoordIndex]
+			= FUICommandInfoDecl(this->AsShared(), CommandName, LocalizedName, LocalizedTooltip)
+				.UserInterfaceType(EUserInterfaceActionType::RadioButton);
+	}
+
+	UI_COMMAND( TexStreamAccMaterialTextureScaleMode, "Material Texture Scales Accuracy View Mode", "Visualize the accuracy of the material texture scales used for texture streaming", EUserInterfaceActionType::RadioButton, FInputChord() );
+	UI_COMMAND( TexStreamAccMaterialTextureScaleAll, "All Textures", "Visualize the scales accuracy of all textures", EUserInterfaceActionType::RadioButton, FInputChord() );
+
+	for (int32 TextureIndex = 0; TextureIndex < TEXSTREAM_MAX_NUM_TEXTURES_PER_MATERIAL; ++TextureIndex)
+	{
+		const FName CommandName = *FString::Printf(TEXT("ShowTexture%d"), TextureIndex);
+		const FText LocalizedName = FText::Format(LOCTEXT("ShowTextureCommands", "Texture {0}"), TextureIndex);
+		const FText LocalizedTooltip = FText::Format(LOCTEXT("ShowTextureCommandss_ToolTip", "Visualize the scale accuracy of texture {0}"), TextureIndex);
+
+		TexStreamAccMaterialTextureScaleSingle[TextureIndex]
+			= FUICommandInfoDecl(this->AsShared(), CommandName, LocalizedName, LocalizedTooltip)
+				.UserInterfaceType(EUserInterfaceActionType::RadioButton);
+	}
+
 	UI_COMMAND( StationaryLightOverlapMode, "Stationary Light Overlap View Mode", "Visualizes overlap of stationary lights", EUserInterfaceActionType::RadioButton, FInputChord() );
 	UI_COMMAND( LightmapDensityMode, "Lightmap Density View Mode", "Renders the scene with lightmap density visualization", EUserInterfaceActionType::RadioButton, FInputChord( EModifierKey::Alt, EKeys::Zero ) );
 
@@ -90,6 +118,99 @@ void FEditorViewportCommands::RegisterCommands()
 	UI_COMMAND( FixedExposure2p, "Fixed Exposure: +2", "Set the fixed exposure to 2", EUserInterfaceActionType::RadioButton, FInputChord() );
 	UI_COMMAND( FixedExposure3p, "Fixed Exposure: +3", "Set the fixed exposure to 3", EUserInterfaceActionType::RadioButton, FInputChord() );
 	UI_COMMAND( FixedExposure4p, "Fixed Exposure: +4", "Set the fixed exposure to 4", EUserInterfaceActionType::RadioButton, FInputChord() );
+}
+
+#undef LOCTEXT_NAMESPACE
+
+#define LOCTEXT_NAMESPACE "EditorViewModeOptionsMenu"
+
+TSharedRef<SWidget> BuildViewModeOptionsMenu(TSharedPtr<FUICommandList> CommandList, EViewModeIndex ViewModeIndex)
+{
+	const FEditorViewportCommands& Commands = FEditorViewportCommands::Get();
+	FMenuBuilder MenuBuilder( true, CommandList );
+
+	if (ViewModeIndex == VMI_MeshUVDensityAccuracy)
+	{
+		MenuBuilder.AddMenuEntry(Commands.TexStreamAccMeshUVDensityAll, NAME_None, LOCTEXT("TexStreamAccMeshUVDensityAllDisplayName", "All UV Channels"));
+
+		const FString MenuName = LOCTEXT("TexStreamAccMeshUVDensitySingleDisplayName", "UV Channel ").ToString();
+		for (int32 TexCoordIndex = 0; TexCoordIndex < TEXSTREAM_MAX_NUM_UVCHANNELS; ++TexCoordIndex)
+		{
+			MenuBuilder.AddMenuEntry(Commands.TexStreamAccMeshUVDensitySingle[TexCoordIndex], NAME_None, FText::FromString(FString::Printf(TEXT("%s %d"), *MenuName, TexCoordIndex)));
+		}
+	}
+	else if (ViewModeIndex == VMI_MaterialTextureScaleAccuracy)
+	{
+		TArray<UMaterialInterface*> SelectedMaterials;
+
+		/*
+		FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+		TArray<FAssetData> SelectedAssetData;
+		ContentBrowserModule.Get().GetSelectedAssets(SelectedAssetData);
+
+		for ( auto AssetIt = SelectedAssetData.CreateConstIterator(); AssetIt; ++AssetIt )
+		{
+			// Grab the object if it is loaded
+			if (AssetIt->IsAssetLoaded())
+			{
+				UMaterialInterface* Material = Cast<UMaterialInterface>(AssetIt->GetAsset());
+				if (Material)
+				{
+					SelectedMaterials.Add(Material);
+				}
+			}
+		}
+		*/
+		TArray<UPrimitiveComponent*> SelectedComponents;
+		GEditor->GetSelectedComponents()->GetSelectedObjects(SelectedComponents);
+
+		if (!SelectedComponents.Num())
+		{
+			TArray<AActor*> SelectedActors;
+			GEditor->GetSelectedActors()->GetSelectedObjects(SelectedActors);
+			for (AActor* Actor : SelectedActors)
+			{
+				Actor->GetComponents(SelectedComponents);
+			}
+		}
+
+		MenuBuilder.AddMenuEntry(Commands.TexStreamAccMaterialTextureScaleAll, NAME_None, LOCTEXT("TexStreamAccMaterialTextureScaleAllDisplayName", "All Textures"));
+
+		const FString MenuName = LOCTEXT("TexStreamAccMaterialTextureScaleSingleDisplayName", "Texture").ToString();
+		for (int32 TextureIndex = 0; TextureIndex < TEXSTREAM_MAX_NUM_TEXTURES_PER_MATERIAL; ++TextureIndex)
+		{
+			if (!SelectedComponents.Num())
+			{
+				MenuBuilder.AddMenuEntry(Commands.TexStreamAccMaterialTextureScaleSingle[TextureIndex], NAME_None, FText::FromString(FString::Printf(TEXT("%s %d"), *MenuName, TextureIndex)));
+			}
+			else
+			{
+				FMaterialTextureInfo TextureData;
+				for (const UPrimitiveComponent* SelectedComponent : SelectedComponents)
+				{
+					SelectedComponent->HasTextureStreamingMaterialData(true, TextureIndex, &TextureData);
+					if (TextureData.TextureName == NAME_All)
+					{
+						break;
+					}
+				}
+
+				if (TextureData.TextureName == NAME_All)
+				{
+					MenuBuilder.AddMenuEntry(Commands.TexStreamAccMaterialTextureScaleSingle[TextureIndex], NAME_None, FText::FromString(FString::Printf(TEXT("%s %d (...)"), *MenuName, TextureIndex)));
+				}
+				else if (TextureData.TextureName != NAME_None && TextureData.UVChannelIndex != INDEX_NONE)
+				{
+					MenuBuilder.AddMenuEntry(Commands.TexStreamAccMaterialTextureScaleSingle[TextureIndex], NAME_None, FText::FromString(FString::Printf(TEXT("%s %d (%s, %.2f, UV%d)"), *MenuName, TextureIndex, *TextureData.TextureName.ToString(), TextureData.SamplingScale, TextureData.UVChannelIndex)));
+				}
+				else if (TextureData.TextureName != NAME_None)
+				{
+					MenuBuilder.AddMenuEntry(Commands.TexStreamAccMaterialTextureScaleSingle[TextureIndex], NAME_None, FText::FromString(FString::Printf(TEXT("%s %d (%s, %.2f)"), *MenuName, TextureIndex, *TextureData.TextureName.ToString(), TextureData.SamplingScale)));
+				}
+			}
+		}
+	}
+	return MenuBuilder.MakeWidget();
 }
 
 #undef LOCTEXT_NAMESPACE

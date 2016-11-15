@@ -755,11 +755,19 @@ TSharedPtr<struct FTreeItem> SPathView::AddRootItem( const FString& InFolderName
 		}
 	}
 
-	TSharedPtr<struct FTreeItem> NewItem = NULL;
+	TSharedPtr<struct FTreeItem> NewItem = nullptr;
 
 	// If this isn't an engine folder or we want to show them, add
 	const bool bDisplayEngine = GetDefault<UContentBrowserSettings>()->GetDisplayEngineFolder();
-		const bool bDisplayPlugins = GetDefault<UContentBrowserSettings>()->GetDisplayPluginFolders();
+	const bool bDisplayPlugins = GetDefault<UContentBrowserSettings>()->GetDisplayPluginFolders();
+	const bool bDisplayCpp = GetDefault<UContentBrowserSettings>()->GetDisplayCppFolders();
+
+	// Filter out classes folders if we're not showing them.
+	if ( !bDisplayCpp && ContentBrowserUtils::IsClassesFolder(InFolderName) )
+	{
+		return nullptr;
+	}
+
 	if ( (bDisplayEngine || !ContentBrowserUtils::IsEngineFolder(InFolderName)) && 
 		 (bDisplayPlugins || !ContentBrowserUtils::IsPluginFolder(InFolderName)) )
 		{

@@ -52,6 +52,7 @@ bool AGameplayAbilityTargetActor_GroundTrace::AdjustCollisionResultForShape(cons
 	FVector MovementDirection = Movement.GetSafeNormal();
 	float MovementMagnitude2D = Movement.Size2D();
 
+#if ENABLE_DRAW_DEBUG
 	if (bDebug)
 	{
 		if (CollisionShape.ShapeType == ECollisionShape::Capsule)
@@ -63,6 +64,7 @@ bool AGameplayAbilityTargetActor_GroundTrace::AdjustCollisionResultForShape(cons
 			DrawDebugSphere(ThisWorld, OriginalEndPoint, CollisionRadius, 8, FColor::Black);
 		}
 	}
+#endif // ENABLE_DRAW_DEBUG
 
 	if (MovementMagnitude2D <= (CollisionRadius * 2.0f))
 	{
@@ -87,6 +89,7 @@ bool AGameplayAbilityTargetActor_GroundTrace::AdjustCollisionResultForShape(cons
 			if (!LocalResult.bBlockingHit || (LocalResult.Actor.IsValid() && Cast<APawn>(LocalResult.Actor.Get())))
 			{
 				//Off the map, or hit an actor
+#if ENABLE_DRAW_DEBUG
 				if (bDebug)
 				{
 					if (CollisionShape.ShapeType == ECollisionShape::Capsule)
@@ -98,8 +101,10 @@ bool AGameplayAbilityTargetActor_GroundTrace::AdjustCollisionResultForShape(cons
 						DrawDebugSphere(ThisWorld, LocalResult.Location, CollisionRadius, 8, FColor::Yellow);
 					}
 				}
+#endif // ENABLE_DRAW_DEBUG
 				continue;
 			}
+#if ENABLE_DRAW_DEBUG
 			if (bDebug)
 			{
 				if (CollisionShape.ShapeType == ECollisionShape::Capsule)
@@ -111,12 +116,14 @@ bool AGameplayAbilityTargetActor_GroundTrace::AdjustCollisionResultForShape(cons
 					DrawDebugSphere(ThisWorld, LocalResult.Location, CollisionRadius, 8, FColor::Green);
 				}
 			}
+#endif // ENABLE_DRAW_DEBUG
 
 			//TODO: Test for flat ground. Concept: Test four corners and the center, make triangles out of the center and adjacent corner points. Check normal.Z of triangles against a minimum Z value.
 
 			OutHitResult = LocalResult;
 			return true;
 		}
+#if ENABLE_DRAW_DEBUG
 		if (bDebug)
 		{
 			if (CollisionShape.ShapeType == ECollisionShape::Capsule)
@@ -128,6 +135,7 @@ bool AGameplayAbilityTargetActor_GroundTrace::AdjustCollisionResultForShape(cons
 				DrawDebugSphere(ThisWorld, TraceStart, CollisionRadius, 8, FColor::Red);
 			}
 		}
+#endif // ENABLE_DRAW_DEBUG
 	}
 	return false;
 }

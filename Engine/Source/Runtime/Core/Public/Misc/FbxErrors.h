@@ -170,5 +170,5 @@ public:
 
 private:
 	/** Private constructor */
-	FFbxErrorToken( const FName& InErrorName );
+	CORE_API FFbxErrorToken( const FName& InErrorName );
 };

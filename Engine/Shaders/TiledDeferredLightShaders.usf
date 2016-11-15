@@ -4,8 +4,9 @@
 	TiledDeferredLightShaders.usf: Implementation of tiled deferred shading
 =============================================================================*/
 
-#include "Common.usf"
+#define SUPPORT_CONTACT_SHADOWS 0
 
+#include "Common.usf"
 #include "DeferredLightingCommon.usf"
 
 #define THREADGROUP_TOTALSIZE (THREADGROUP_SIZEX * THREADGROUP_SIZEY)
@@ -15,7 +16,7 @@ uint4 ViewDimensions;
 uint NumLights;
 
 // Workaround performance issue with shared memory bank collisions in GLSL
-#if GL4_PROFILE
+#if GL4_PROFILE || WOLF_PROFILE || WOLF_PROFILE_FORWARD
 #define ATOMIC_REDUCTION 0
 #else
 #define ATOMIC_REDUCTION 1
@@ -285,7 +286,7 @@ void TiledDeferredLightingMain(
 			LightData.bInverseSquared = LightData.LightColorAndFalloffExponent.w == 0;
 						
 			// todo: doesn't support ScreenSpaceSubsurfaceScattering yet (not using alpha)
-			CompositedLighting.rgb += GetSimpleDynamicLighting(WorldPosition, CameraVector, ScreenSpaceData, LightData);
+			CompositedLighting.rgb += GetSimpleDynamicLighting(WorldPosition, CameraVector, ScreenSpaceData.GBuffer.WorldNormal, ScreenSpaceData.AmbientOcclusion, ScreenSpaceData.GBuffer.DiffuseColor, ScreenSpaceData.GBuffer.SpecularColor, ScreenSpaceData.GBuffer.Roughness, LightData);
 		}
 	}
 		

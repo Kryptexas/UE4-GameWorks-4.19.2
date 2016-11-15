@@ -147,7 +147,7 @@ public:
 	void OnChanged(EConsoleVariableFlags SetBy)
 	{
 		// you have to specify a SetBy e.g. ECVF_SetByCommandline
-		check((uint32)SetBy & ECVF_SetByMask);
+		check(((uint32)SetBy & ECVF_SetByMask) || SetBy == ECVF_Default);
 
 		// double check, if this fires we miss a if(CanChange(SetBy))
 		check(CanChange(SetBy));
@@ -552,6 +552,8 @@ static TAutoConsoleVariable<int32> CVarDebugEarlyCheat(
 
 void FConsoleManager::CallAllConsoleVariableSinks()
 {
+	QUICK_SCOPE_CYCLE_COUNTER(ConsoleManager_CallAllConsoleVariableSinks);
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	check(IsInGameThread());
 
@@ -1663,10 +1665,9 @@ void CreateConsoleVariables()
 	IConsoleManager::Get().RegisterConsoleCommand(TEXT("VisualizeTexture"),	TEXT("To visualize internal textures"), ECVF_Cheat);
 	IConsoleManager::Get().RegisterConsoleCommand(TEXT("Vis"),	TEXT("short version of visualizetexture"), ECVF_Cheat);
 	IConsoleManager::Get().RegisterConsoleCommand(TEXT("VisRT"),	TEXT("GUI for visualizetexture"), ECVF_Cheat);
-	IConsoleManager::Get().RegisterConsoleCommand(TEXT("HighResShot"),	TEXT("High resolution screenshots [Magnification = 2..]"), ECVF_Cheat);
+	IConsoleManager::Get().RegisterConsoleCommand(TEXT("HighResShot"),	TEXT("High resolution screenshots ResolutionX(int32)xResolutionY(int32) Or Magnification(float) [CaptureRegionX(int32) CaptureRegionY(int32) CaptureRegionWidth(int32) CaptureRegionHeight(int32) MaskEnabled(int32) DumpBufferVisualizationTargets(int32) CaptureHDR(int32)]\nExample: HighResShot 500x500 50 50 120 500 1 1 1"), ECVF_Cheat);
 	IConsoleManager::Get().RegisterConsoleCommand(TEXT("DumpUnbuiltLightInteractions"),	TEXT("Logs all lights and primitives that have an unbuilt interaction."), ECVF_Cheat);
 	IConsoleManager::Get().RegisterConsoleCommand(TEXT("r.ResetViewState"), TEXT("Reset some state (e.g. TemporalAA index) to make rendering more deterministic (for automated screenshot verification)"), ECVF_Cheat);
-
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
 
@@ -2067,6 +2068,15 @@ static TAutoConsoleVariable<int32> CVarSetVSyncEnabled(
 	TEXT("0: VSync is disabled.(default)\n")
 	TEXT("1: VSync is enabled."),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+#if WITH_EDITOR
+static TAutoConsoleVariable<int32> CVarSetVSyncEditorEnabled(
+	TEXT("r.VSyncEditor"),
+	0,
+	TEXT("0: VSync is disabled in editor.(default)\n")
+	TEXT("1: VSync is enabled in editor."),
+	ECVF_RenderThreadSafe);
+#endif
 
 static TAutoConsoleVariable<int32> CVarFinishCurrentFrame(
 	TEXT("r.FinishCurrentFrame"),

@@ -7,7 +7,6 @@
 
 #include "GearVRSplash.h"
 
-typedef FCustomPresent FCustomPresent; // TEMP
 
 FGearVRSplash::FGearVRSplash(FGearVR* InPlugin) : 
 	LayerMgr(MakeShareable(new GearVR::FLayerManager(InPlugin->GetCustomPresent_Internal())))
@@ -311,7 +310,7 @@ void FGearVRSplash::PushFrame()
 			// keep units in meters rather than UU (because UU make not much sense).
 			CurrentFrame->Settings->WorldToMetersScale = 1.0f;
 			CurrentFrame->SetWorldToMetersScale(CurrentFrame->Settings->WorldToMetersScale);
-			CurrentFrame->GameThreadId = 0;//gettid();
+			CurrentFrame->GameThreadId = 0;//FPlatformTLS::GetCurrentThreadId();
 			
 			FSettings* CurrentSettings = static_cast<FSettings*>(CurrentFrame->Settings.Get());
 			CurrentSettings->GpuLevel = 1;

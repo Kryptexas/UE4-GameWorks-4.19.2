@@ -123,6 +123,9 @@ public:
 	 */
 	static UNREALED_API bool SaveLevel(ULevel* Level, const FString& DefaultFilename = TEXT( "" ), FString* OutSavedFilename = nullptr );
 
+	/** Saves packages which contain map data but are not map packages themselves. */
+	static UNREALED_API void SaveMapDataPackages(UWorld* World, bool bCheckDirty);
+
 	/**
 	 * Does a SaveAs for the specified assets.
 	 *
@@ -431,7 +434,14 @@ public:
 	 * @param	ObjectPath		The path to the package to test
 	 * @return					The package name from the string
 	 */
-	UNREALED_API static FString ExtractPackageName(const FString& ObjectPath);
+	UNREALED_API static FString ExtractPackageName(const FString& ObjectPath);\
+
+	////////////////////////////////////////////////////////////////////////////
+	// File
+
+	UNREALED_API static FString GetFilename(const FName& PackageName);
+
+	UNREALED_API static FString GetFilename(UObject* LevelObject);
 
 private:
 

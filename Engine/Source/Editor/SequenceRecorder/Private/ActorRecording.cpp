@@ -126,6 +126,7 @@ void UActorRecording::GetSceneComponents(TArray<USceneComponent*>& OutArray, boo
 		TInlineComponentArray<USceneComponent*> OwnedComponents(GetActorToRecord());
 		for(USceneComponent* OwnedComponent : OwnedComponents)
 		{
+			check(OwnedComponent);
 			if(OwnedComponent->GetAttachParent() == nullptr && OwnedComponent != RootComponent)
 			{
 				OutArray.Add(OwnedComponent);
@@ -289,6 +290,13 @@ void UActorRecording::StartRecordingActorProperties(ULevelSequence* CurrentSeque
 					SkeletalMeshComponent->bEnableUpdateRateOptimizations = false;
 					SkeletalMeshComponent->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 					SkeletalMeshComponent->ForcedLodModel = 1;
+				}
+
+				// Disable possession of pawns otherwise the recorded character will auto possess the player
+				if (ObjectTemplate->IsA(APawn::StaticClass()))
+				{
+					APawn* Pawn = CastChecked<APawn>(ObjectTemplate);
+					Pawn->AutoPossessPlayer = EAutoReceiveInput::Disabled;
 				}
 
 				Guid = MovieScene->AddSpawnable(TemplateName, *ObjectTemplate);
@@ -709,6 +717,7 @@ void UActorRecording::StartRecordingNewComponents(ULevelSequence* CurrentSequenc
 
 							for (USceneComponent* Child : AllChildren)
 							{
+								CA_SUPPRESS(28182); // Dereferencing NULL pointer. 'Child' contains the same NULL value as 'AttachToComponent' did.
 								if (Child->GetFName() == AttachName)
 								{
 									AttachToComponent = Child;

@@ -12,6 +12,7 @@
 #include "TutorialMetaData.h"
 #include "SGraphPanel.h"
 #include "SInlineEditableTextBlock.h"
+#include "BlueprintEditorSettings.h"
 
 /////////////////////////////////////////////////////
 // SNodeTitle
@@ -51,9 +52,16 @@ void SNodeTitle::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 
 FText SNodeTitle::GetNodeTitle() const
 {
-	return (GraphNode != NULL)
-		? GraphNode->GetNodeTitle(ENodeTitleType::FullTitle)
-		: NSLOCTEXT("GraphEditor", "NullNode", "Null Node");
+	if (GetDefault<UBlueprintEditorSettings>()->bBlueprintNodeUniqueNames && GraphNode)
+	{
+		return FText::FromName(GraphNode->GetFName());
+	}
+	else
+	{
+		return (GraphNode != NULL)
+			? GraphNode->GetNodeTitle(ENodeTitleType::FullTitle)
+			: NSLOCTEXT("GraphEditor", "NullNode", "Null Node");
+	}
 }
 
 FText SNodeTitle::GetHeadTitle() const
@@ -418,6 +426,18 @@ void SGraphNode::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 	CachedUnscaledPosition = AllottedGeometry.AbsolutePosition/AllottedGeometry.Scale;
 
 	SNodePanel::SNode::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+
+	if (IsHovered())
+	{
+		if (FNodeSlot* CommentSlot = GetSlot(ENodeZone::TopCenter))
+		{
+			TSharedPtr<SCommentBubble> CommentBubble = StaticCastSharedRef<SCommentBubble>(CommentSlot->GetWidget());
+			if (CommentBubble.IsValid())
+			{
+				CommentBubble->TickVisibility(InCurrentTime, InDeltaTime);
+			}
+		}
+	}
 }
 
 bool SGraphNode::IsSelectedExclusively() const
@@ -838,19 +858,7 @@ void SGraphNode::UpdateGraphNode()
 					.HAlign(HAlign_Fill)
 					.VAlign(VAlign_Top)
 					[
-						SNew(SOverlay)
-						+SOverlay::Slot()
-						.VAlign(VAlign_Fill)
-						[
-							SNew(SImage)
-							.Image(FEditorStyle::GetBrush("Graph.Node.IndicatorOverlay"))
-							.Visibility(this, &SGraphNode::GetNodeIndicatorOverlayVisibility)
-							.ColorAndOpacity(this, &SGraphNode::GetNodeIndicatorOverlayColor)
-						]
-						+SOverlay::Slot()
-						[
-							CreateNodeContentArea()
-						]
+						CreateNodeContentArea()
 					]
 
 					+SVerticalBox::Slot()

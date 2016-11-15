@@ -164,7 +164,7 @@ class FSoundConcurrencyManager
 {
 public:
 	FSoundConcurrencyManager(class FAudioDevice* InAudioDevice);
-	~FSoundConcurrencyManager();
+	ENGINE_API ~FSoundConcurrencyManager();
 
 	/** Returns a newly allocated active sound given the input active sound struct. Will return nullptr if the active sound concurrency evaluation doesn't allow for it. */
 	FActiveSound* CreateNewActiveSound(const FActiveSound& NewActiveSound);

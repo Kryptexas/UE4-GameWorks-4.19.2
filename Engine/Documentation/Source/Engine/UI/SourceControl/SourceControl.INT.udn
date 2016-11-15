@@ -46,7 +46,7 @@ You can activate source control via the editor's main Preferences window (**Edit
 | **Prompt for Checkout on Package Modification** | When checked, a prompt will appear when you make changes to a source controlled-package, asking if you would like to check out (lock) that package. |
 | **Add New Files when Modified** | This will add new files into source control when they are modified. |
 | **Use Global Settings** | Use global source control login settings, rather than per-project.  Changing this will require you to login again. |
-| **Tool for diff'ing text** | Specifies the file path to the tool to be used for diff'ing text files. |
+| **Tool for diffing text** | Specifies the file path to the tool to be used for diffing text files. |
 
 ### Activating Source Control via the Content Browser
 

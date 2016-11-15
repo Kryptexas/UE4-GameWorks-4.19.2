@@ -105,7 +105,8 @@ namespace UnrealBuildTool
 				case ModuleHostType.RuntimeNoCommandlet:
 				case ModuleHostType.RuntimeAndProgram:
 				case ModuleHostType.ServerOnly:
-					return UHTModuleType.EngineRuntime;
+                case ModuleHostType.ClientOnly:
+                    return UHTModuleType.EngineRuntime;
 				case ModuleHostType.Developer:
 					return UHTModuleType.EngineDeveloper;
 				case ModuleHostType.Editor:
@@ -123,7 +124,8 @@ namespace UnrealBuildTool
 				case ModuleHostType.RuntimeNoCommandlet:
 				case ModuleHostType.RuntimeAndProgram:
 				case ModuleHostType.ServerOnly:
-					return UHTModuleType.GameRuntime;
+                case ModuleHostType.ClientOnly:
+                    return UHTModuleType.GameRuntime;
 				case ModuleHostType.Developer:
 					return UHTModuleType.GameDeveloper;
 				case ModuleHostType.Editor:
@@ -350,39 +352,23 @@ namespace UnrealBuildTool
 
 		public static UHTModuleType GetEngineModuleTypeFromDescriptor(ModuleDescriptor Module)
 		{
-			switch (Module.Type)
-			{
-				case ModuleHostType.Developer:
-					return UHTModuleType.EngineDeveloper;
-				case ModuleHostType.Editor:
-				case ModuleHostType.EditorNoCommandlet:
-					return UHTModuleType.EngineEditor;
-				case ModuleHostType.Runtime:
-				case ModuleHostType.RuntimeNoCommandlet:
-				case ModuleHostType.RuntimeAndProgram:
-					return UHTModuleType.EngineRuntime;
-				default:
-					throw new BuildException("Unhandled engine module type {0}", Module.Type.ToString());
-			}
-		}
+            UHTModuleType? Type = UHTModuleTypeExtensions.EngineModuleTypeFromHostType(Module.Type);
+            if (Type == null)
+            {
+                throw new BuildException("Unhandled engine module type {0}", Module.Type.ToString());
+            }
+            return Type.GetValueOrDefault();
+        }
 
 		public static UHTModuleType GetGameModuleTypeFromDescriptor(ModuleDescriptor Module)
 		{
-			switch (Module.Type)
-			{
-				case ModuleHostType.Developer:
-					return UHTModuleType.GameDeveloper;
-				case ModuleHostType.Editor:
-				case ModuleHostType.EditorNoCommandlet:
-					return UHTModuleType.GameEditor;
-				case ModuleHostType.Runtime:
-				case ModuleHostType.RuntimeNoCommandlet:
-				case ModuleHostType.RuntimeAndProgram:
-					return UHTModuleType.GameRuntime;
-				default:
-					throw new BuildException("Unhandled game module type {0}", Module.Type.ToString());
-			}
-		}
+            UHTModuleType? Type = UHTModuleTypeExtensions.GameModuleTypeFromHostType(Module.Type);
+            if (Type == null)
+            {
+                throw new BuildException("Unhandled game module type {0}", Module.Type.ToString());
+            }
+            return Type.GetValueOrDefault();
+        }
 
 		public static UHTModuleType? GetEngineModuleTypeBasedOnLocation(FileReference ModuleFileName)
 		{
@@ -1013,7 +999,7 @@ namespace UnrealBuildTool
 								UEBuildModuleCPP DependencyModuleCPP = (UEBuildModuleCPP)Target.GetModuleByName(UHTModuleInfo.ModuleName);
 								CPPEnvironment ModuleCompileEnvironment = DependencyModuleCPP.CreateModuleCompileEnvironment(Target, GlobalCompileEnvironment);
 								DependencyModuleCPP.CachePCHUsageForModuleSourceFiles(Target, ModuleCompileEnvironment);
-								if (DependencyModuleCPP.ProcessedDependencies.UniquePCHHeaderFile != null)
+								if (DependencyModuleCPP.ProcessedDependencies != null && DependencyModuleCPP.ProcessedDependencies.UniquePCHHeaderFile != null)
 								{
 									UHTModuleInfo.PCH = DependencyModuleCPP.ProcessedDependencies.UniquePCHHeaderFile.AbsolutePath;
 								}
@@ -1055,6 +1041,10 @@ namespace UnrealBuildTool
 						}
 
 						// Propagate command-line options
+						if ( UnrealBuildTool.CommandLineContains( "-2017" ) )
+						{
+							UBTArguments.Append(" -2017");
+						}
 						if ( UnrealBuildTool.CommandLineContains( "-2015" ) )
 						{
 							UBTArguments.Append( " -2015" );
@@ -1143,11 +1133,7 @@ namespace UnrealBuildTool
 							BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win64) && 
 							(int)(UHTResult) < 0)
 						{
-							Log.TraceInformation("Error: Failed to generate code for {0} - Prerequests may not be installed", ActualTargetName);
-						}
-						else
-						{
-							Log.TraceInformation("Error: Failed to generate code for {0} - error code: {2} ({1})", ActualTargetName, (int)UHTResult, UHTResult.ToString());
+							Log.TraceInformation(String.Format("UnrealHeaderTool failed with exit code 0x{0:X} - check that UE4 prerequisites are installed.", (int)UHTResult));
 						}
 						return false;
 					}

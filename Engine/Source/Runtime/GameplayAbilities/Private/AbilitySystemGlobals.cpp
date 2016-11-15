@@ -19,6 +19,8 @@ UAbilitySystemGlobals::UAbilitySystemGlobals(const FObjectInitializer& ObjectIni
 
 	MinimalReplicationTagCountBits = 5;
 
+	bAllowGameplayModEvaluationChannels = false;
+
 #if WITH_EDITORONLY_DATA
 	RegisteredReimportCallback = false;
 #endif // #if WITH_EDITORONLY_DATA
@@ -63,8 +65,10 @@ UDataTable * UAbilitySystemGlobals::GetGlobalAttributeMetaDataTable()
 	return GlobalAttributeMetaDataTable;
 }
 
-void UAbilitySystemGlobals::DeriveGameplayCueTagFromAssetName(FString AssetName, FGameplayTag& GameplayCueTag, FName& GameplayCueName)
+bool UAbilitySystemGlobals::DeriveGameplayCueTagFromAssetName(FString AssetName, FGameplayTag& GameplayCueTag, FName& GameplayCueName)
 {
+	FGameplayTag OriginalTag = GameplayCueTag;
+	
 	// In the editor, attempt to infer GameplayCueTag from our asset name (if there is no valid GameplayCueTag already).
 #if WITH_EDITOR
 	if (GIsEditor)
@@ -72,6 +76,8 @@ void UAbilitySystemGlobals::DeriveGameplayCueTagFromAssetName(FString AssetName,
 		if (GameplayCueTag.IsValid() == false)
 		{
 			AssetName.RemoveFromStart(TEXT("Default__"));
+			AssetName.RemoveFromStart(TEXT("REINST_"));
+			AssetName.RemoveFromStart(TEXT("SKEL_"));
 			AssetName.RemoveFromStart(TEXT("GC_"));		// allow GC_ prefix in asset name
 			AssetName.RemoveFromEnd(TEXT("_c"));
 
@@ -88,8 +94,31 @@ void UAbilitySystemGlobals::DeriveGameplayCueTagFromAssetName(FString AssetName,
 		GameplayCueName = GameplayCueTag.GetTagName();
 	}
 #endif
+	return (OriginalTag != GameplayCueTag);
 }
 
+bool UAbilitySystemGlobals::ShouldAllowGameplayModEvaluationChannels() const
+{
+	return bAllowGameplayModEvaluationChannels;
+}
+
+bool UAbilitySystemGlobals::IsGameplayModEvaluationChannelValid(EGameplayModEvaluationChannel Channel) const
+{
+	// Only valid if channels are allowed and the channel has a game-specific alias specified or if not using channels and the channel is Channel0
+	const bool bAllowChannels = ShouldAllowGameplayModEvaluationChannels();
+	return bAllowChannels ? (!GetGameplayModEvaluationChannelAlias(Channel).IsNone()) : (Channel == EGameplayModEvaluationChannel::Channel0);
+}
+
+const FName& UAbilitySystemGlobals::GetGameplayModEvaluationChannelAlias(EGameplayModEvaluationChannel Channel) const
+{
+	return GetGameplayModEvaluationChannelAlias(static_cast<int32>(Channel));
+}
+
+const FName& UAbilitySystemGlobals::GetGameplayModEvaluationChannelAlias(int32 Index) const
+{
+	check(Index >= 0 && Index < ARRAY_COUNT(GameplayModEvaluationChannelAliases));
+	return GameplayModEvaluationChannelAliases[Index];
+}
 
 #if WITH_EDITOR
 
@@ -414,3 +443,14 @@ void UAbilitySystemGlobals::HandlePreLoadMap(const FString& MapName)
 	IGameplayCueInterface::ClearTagToFunctionMap();
 	FActiveGameplayEffectHandle::ResetGlobalHandleMap();
 }
+
+void UAbilitySystemGlobals::Notify_OpenAssetInEditor(FString AssetName, int AssetType)
+{
+	AbilityOpenAssetInEditorCallbacks.Broadcast(AssetName, AssetType);
+}
+
+void UAbilitySystemGlobals::Notify_FindAssetInEditor(FString AssetName, int AssetType)
+{
+	AbilityFindAssetInEditorCallbacks.Broadcast(AssetName, AssetType);
+}
+

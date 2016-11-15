@@ -16,6 +16,8 @@ class FLegacyInternationalization;
 
 class FInternationalization
 {
+	friend class FText;
+
 public:
 	static CORE_API FInternationalization& Get();
 

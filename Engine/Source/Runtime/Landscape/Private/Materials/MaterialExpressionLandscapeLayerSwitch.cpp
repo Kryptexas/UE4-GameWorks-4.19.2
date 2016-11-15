@@ -1,6 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "Landscape.h"
+#include "LandscapePrivatePCH.h"
 #include "MaterialCompiler.h"
 #include "Materials/MaterialExpressionLandscapeLayerSwitch.h"
 #include "Engine/Engine.h"
@@ -28,7 +28,11 @@ UMaterialExpressionLandscapeLayerSwitch::UMaterialExpressionLandscapeLayerSwitch
 	static FConstructorStatics ConstructorStatics;
 
 	bIsParameterExpression = true;
+
+#if WITH_EDITORONLY_DATA
 	MenuCategories.Add(ConstructorStatics.NAME_Landscape);
+#endif
+
 	PreviewUsed = true;
 	bCollapsed = false;
 }
@@ -46,7 +50,7 @@ bool UMaterialExpressionLandscapeLayerSwitch::IsResultMaterialAttributes(int32 O
 	return bLayerUsedIsMaterialAttributes || bLayerNotUsedIsMaterialAttributes;
 }
 
-int32 UMaterialExpressionLandscapeLayerSwitch::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
+int32 UMaterialExpressionLandscapeLayerSwitch::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
 	const int32 WeightCode = Compiler->StaticTerrainLayerWeight(
 		ParameterName,
@@ -56,11 +60,11 @@ int32 UMaterialExpressionLandscapeLayerSwitch::Compile(class FMaterialCompiler* 
 	int32 ReturnCode = INDEX_NONE;
 	if (WeightCode != INDEX_NONE)
 	{
-		ReturnCode = LayerUsed.Compile(Compiler, MultiplexIndex);
+		ReturnCode = LayerUsed.Compile(Compiler);
 	}
 	else
 	{
-		ReturnCode = LayerNotUsed.Compile(Compiler, MultiplexIndex);
+		ReturnCode = LayerNotUsed.Compile(Compiler);
 	}
 
 	if (ReturnCode != INDEX_NONE && //If we've already failed for some other reason don't bother with this check. It could have been the reentrant check causing this to loop infinitely!

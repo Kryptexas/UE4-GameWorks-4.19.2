@@ -23,7 +23,7 @@ class FMetalDynamicRHI : public FDynamicRHI, public FMetalRHICommandContext
 public:
 
 	/** Initialization constructor. */
-	FMetalDynamicRHI();
+	FMetalDynamicRHI(ERHIFeatureLevel::Type RequestedFeatureLevel);
 
 	/** Destructor */
 	~FMetalDynamicRHI();
@@ -182,12 +182,8 @@ private:
 class FMetalDynamicRHIModule : public IDynamicRHIModule
 {
 public:
-
-	// IModuleInterface
-	virtual bool SupportsShutdown() { return false; }
-
 	// IDynamicRHIModule
-	virtual bool IsSupported();
+	virtual bool IsSupported() override;
 
-	virtual FDynamicRHI* CreateRHI();
+	virtual FDynamicRHI* CreateRHI(ERHIFeatureLevel::Type RequestedFeatureLevel = ERHIFeatureLevel::Num) override;
 };

@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "ObjectBase.h"
+#include "ObjectMacros.h"
 #include "VisualLogger/VisualLoggerTypes.h"
 #include "VisualLogger/VisualLogger.h"
 #include "VisualLogger/VisualLoggerDebugSnapshotInterface.h"

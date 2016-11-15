@@ -158,6 +158,30 @@ void UTexture::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEven
 			SRGB = false;
 		}
 	}
+	else
+	{
+		FMaterialUpdateContext UpdateContext;
+		// Update any material that uses this texture and must force a recompile of cache ressource
+		TSet<UMaterial*> BaseMaterialsThatUseThisTexture;
+		for (TObjectIterator<UMaterialInterface> It; It; ++It)
+		{
+			UMaterialInterface* MaterialInterface = *It;
+			if (DoesMaterialUseTexture(MaterialInterface, this))
+			{
+				UMaterial *Material = MaterialInterface->GetMaterial();
+				bool MaterialAlreadyCompute = false;
+				BaseMaterialsThatUseThisTexture.Add(Material, &MaterialAlreadyCompute);
+				if (!MaterialAlreadyCompute)
+				{
+					if (Material->IsTextureForceRecompileCacheRessource(this))
+					{
+						UpdateContext.AddMaterial(Material);
+						Material->UpdateMaterialShaderCacheAndTextureReferences();
+					}
+				}
+			}
+		}
+	}
 
 	NumCinematicMipLevels = FMath::Max<int32>( NumCinematicMipLevels, 0 );
 

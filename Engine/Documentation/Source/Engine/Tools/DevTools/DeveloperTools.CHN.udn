@@ -1,48 +1,47 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title:Developer Tools
+﻿INTSourceChangelist:3075229
+Availability:Public
+Title:开发者工具
 Crumbs: %ROOT%, Engine
-Description:Descriptions of the options found under the Developer Tools file menu. 
-version: 4.12
+Description:开发者工具文件菜单中选项的描述。 
+version:4.12
 
 [REGION:raw]
 ![](DeveloperTools2.png)
 [/REGION]
 
-The **Developer Tools** provide you with several information gathering tools such as debuggers, analyzers, profilers, and more. 
-Using these tools can help in your optimization efforts or to diagnose aspects of your project, code or content that may not be performing as expected. 
+**开发者工具（Developer Tools）** 包含数个信息收集工具，如调试器、分析器、描述器等。使用这些工具有助于进行优化，或对非正常工作的项目、代码或内容的各方面进行诊断。 
 
-You can access the Developer Tools from the **File** Menu under **Window** and **Developer Tools**. 
+可从 **File** 菜单下的 **Window** - **Developer Tools** 菜单中访问开发者工具。 
 
 ![](OpenDevTools.png)
 
-The Developer Tools are broken up into three categories: 
+开发者工具分为以下三个类别： 
 
-* Debug - which houses debugging tools.
-* Log - which contains the Message and Output Log windows. 
-* Miscellaneous - which includes loggers, mangers, profiles and others. 
+* Debug - 包含调试工具。
+* Log - 包含消息和输出日志窗口。 
+* Miscellaneous - 包含记录器、管理器、描述等。 
 
 [REGION:note]
-See the table below for more information and links to additional pages. 
+请查阅下表中的更多内容和附加页面的链接。 
 [/REGION]
 
 
-## Tools Available
+## 可用工具
 
-| Option| Description |
+| 选项| 描述 |
 | --- | --- |
-| **Blueprint Debugger** | Opens the [**Blueprint Debugger**](Engine/Blueprints/UserGuide/Debugging). Allows you to step through any graph of a Blueprint or Level Blueprint through the use of Breakpoints. |
-| **Collision Analyzer** | Opens the Collision Analyzer tool. |
-| **Debug Tools**| Show the Debug Tools panel, that contains an assortment of functions for common debug tasks. |
-| **Message Log** | Opens the Message Log. This is where errors or warnings from the Editor will go. |
-| **Output Log** | Opens the Output Log. If you are debugging something using Print it will appear here. |
-| **Visual Logger** | Opens the [**Visual Logger**](Gameplay/Tools/VisualLogger). A tool to help you debug and fine-tune AI in your projects. |
-| **Class Viewer** | Opens the [**Class Viewer**](Engine/UI/ClassViewer). Displays a hierarchical list of classes used by the editor. |
-| **Device Manager** | Opens the Device Manager. |
-| **Device Profiles** | Opens the [**Device Profiles**](Platforms/DeviceProfiles) tool. Allows you to manage device-specific configurations inside your project. |
-| **Merge Actors** | Opens the Merge Actors tool. |
-| **Pixel Inspector** | Opens the [**Pixel Inspector**](Engine\Tools\DevTools\PixelInspector). Provides information about a specific Pixel from a viewport. |
-| **Session Frontend** | Opens the [**Session Frontend**](Engine/Deployment/UnrealFrontend) tool. Multipurpose tool used for daily game development (prepping builds, deployment, launching). |
-| **Widget Reflector** | Opens the Widget Reflector. |
+| **Blueprint Debugger** | 打开 [**蓝图调试器**](Engine/Blueprints/UserGuide/Debugging)。通过断点对蓝图或关卡蓝图的图表进行单步调试。|
+| **Collision Analyzer** | 打开碰撞分析器工具。|
+| **Debug Tools**| 显示含常规调试任务分类或函数的 Debug Tools 面板。|
+| **Message Log** | 打开消息日志。编辑器的错误或警告将显示于此。|
+| **Output Log** | 打开输出日志。如使用 Print 进行调试，结果将显示于此。|
+| **Visual Logger** | 打开 [**可视化日志**](Gameplay/Tools/VisualLogger).用于调试和微调项目 AI 的工具。|
+| **Class Viewer** | 打开[**类别查看器**](Engine/UI/ClassViewer).显示编辑器使用的层级列表。|
+| **Device Manager** | 打开设备管理器。|
+| **Device Profiles** | 打开 [**设备描述**](Platforms/DeviceProfiles) 工具。可管理项目中设备的特定配置。|
+| **Merge Actors** | 打开 Actor 合并工具。|
+| **Pixel Inspector** | 打开 [**像素检查器**](Engine/Tools/DevTools/PixelInspector)。可获得视口中特定像素的信息。|
+| **Session Frontend** | 打开 [**会话前端**](Engine/Deployment/UnrealFrontend) 工具。游戏开发的常用多用途工具（准备版本、部署、运行）。|
+| **Widget Reflector** | 打开控件反射器。|
 
 

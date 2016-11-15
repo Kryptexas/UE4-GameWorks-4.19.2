@@ -22,6 +22,7 @@
 #include "HeightfieldLighting.h"
 #include "GlobalDistanceField.h"
 #include "FXSystem.h"
+#include "PostProcessSubsurface.h"
 
 int32 GDistanceFieldAO = 1;
 FAutoConsoleVariableRef CVarDistanceFieldAO(
@@ -2406,8 +2407,8 @@ void SetupDepthStencil(
 {
 	SCOPED_DRAW_EVENT(RHICmdList, SetupDepthStencil);
 
-	SetRenderTarget(RHICmdList, NULL, SplatDepthStencilBuffer.TargetableTexture);
-	RHICmdList.Clear(false, FLinearColor(0, 0, 0, 0), true, 0, true, 0, FIntRect());
+	SetRenderTarget(RHICmdList, nullptr, SplatDepthStencilBuffer.TargetableTexture);
+	RHICmdList.ClearDepthStencilTexture(SplatDepthStencilBuffer.TargetableTexture, EClearDepthStencil::DepthStencil, 0, 0, FIntRect());
 
 	{		
 		RHICmdList.SetViewport(0, 0, 0.0f, View.ViewRect.Width() / GAODownsampleFactor, View.ViewRect.Height() / GAODownsampleFactor, 1.0f);
@@ -2458,7 +2459,7 @@ void SetupDepthStencil(
 		PixelShader->SetColors(RHICmdList, &FLinearColor::Black, 1);
 
 		FVector ViewSpaceMaxDistance(0.0f, 0.0f, GetMaxAOViewDistance());
-		FVector4 ClipSpaceMaxDistance = View.ViewMatrices.ProjMatrix.TransformPosition(ViewSpaceMaxDistance);
+		FVector4 ClipSpaceMaxDistance = View.ViewMatrices.GetProjectionMatrix().TransformPosition(ViewSpaceMaxDistance);
 		float ClipSpaceZ = ClipSpaceMaxDistance.Z / ClipSpaceMaxDistance.W;
 
 		// Place the quad's depth at the max AO view distance
@@ -3369,7 +3370,15 @@ void FDeferredShadingSceneRenderer::RenderDynamicSkyLighting(FRHICommandListImme
 			}
 			else
 			{
-				RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One>::GetRHI());
+				const bool bCheckerboardSubsurfaceRendering = FRCPassPostProcessSubsurface::RequiresCheckerboardSubsurfaceRendering(SceneContext.GetSceneColorFormat());
+				if (bCheckerboardSubsurfaceRendering)
+				{
+					RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One>::GetRHI());
+				}
+				else
+				{
+					RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::GetRHI());
+				}
 			}
 
 			const bool bUseDistanceFieldGI = IsDistanceFieldGIAllowed(View) && IsValidRef(DynamicIrradiance);

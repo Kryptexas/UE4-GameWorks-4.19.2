@@ -187,5 +187,5 @@ inline FArchive& operator<<(FArchive& Ar, FMetalCodeHeader& Header)
 	
 	Ar << Header.bFastMath;
 
-	return Ar;
+    return Ar;
 }

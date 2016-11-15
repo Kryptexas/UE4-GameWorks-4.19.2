@@ -14,8 +14,10 @@
 #include "OVR_CloudStorageMetadataArray.h"
 #include "OVR_CloudStorageUpdateResponse.h"
 #include "OVR_Error.h"
+#include "OVR_InstalledApplicationArray.h"
 #include "OVR_LeaderboardEntryArray.h"
 #include "OVR_LeaderboardUpdateStatus.h"
+#include "OVR_MatchmakingAdminSnapshot.h"
 #include "OVR_MatchmakingBrowseResult.h"
 #include "OVR_MatchmakingEnqueueResult.h"
 #include "OVR_MatchmakingEnqueueResultAndRoom.h"
@@ -50,8 +52,10 @@ OVRP_PUBLIC_FUNCTION(ovrCloudStorageMetadataHandle)            ovr_Message_GetCl
 OVRP_PUBLIC_FUNCTION(ovrCloudStorageMetadataArrayHandle)       ovr_Message_GetCloudStorageMetadataArray(const ovrMessageHandle obj);
 OVRP_PUBLIC_FUNCTION(ovrCloudStorageUpdateResponseHandle)      ovr_Message_GetCloudStorageUpdateResponse(const ovrMessageHandle obj);
 OVRP_PUBLIC_FUNCTION(ovrErrorHandle)                           ovr_Message_GetError(const ovrMessageHandle obj);
+OVRP_PUBLIC_FUNCTION(ovrInstalledApplicationArrayHandle)       ovr_Message_GetInstalledApplicationArray(const ovrMessageHandle obj);
 OVRP_PUBLIC_FUNCTION(ovrLeaderboardEntryArrayHandle)           ovr_Message_GetLeaderboardEntryArray(const ovrMessageHandle obj);
 OVRP_PUBLIC_FUNCTION(ovrLeaderboardUpdateStatusHandle)         ovr_Message_GetLeaderboardUpdateStatus(const ovrMessageHandle obj);
+OVRP_PUBLIC_FUNCTION(ovrMatchmakingAdminSnapshotHandle)        ovr_Message_GetMatchmakingAdminSnapshot(const ovrMessageHandle obj);
 OVRP_PUBLIC_FUNCTION(ovrMatchmakingBrowseResultHandle)         ovr_Message_GetMatchmakingBrowseResult(const ovrMessageHandle obj);
 OVRP_PUBLIC_FUNCTION(ovrMatchmakingEnqueueResultHandle)        ovr_Message_GetMatchmakingEnqueueResult(const ovrMessageHandle obj);
 OVRP_PUBLIC_FUNCTION(ovrMatchmakingEnqueueResultAndRoomHandle) ovr_Message_GetMatchmakingEnqueueResultAndRoom(const ovrMessageHandle obj);

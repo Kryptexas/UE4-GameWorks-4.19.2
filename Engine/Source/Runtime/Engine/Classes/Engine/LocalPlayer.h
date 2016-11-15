@@ -35,18 +35,18 @@ struct ENGINE_API FLocalPlayerContext
 		It tests against the APlayerController, APlayerState, and APawn. */
 	bool IsFromLocalPlayer(const AActor* ActorToTest) const;
 
-	/* Returns the world context. */
+	/** Returns the world context. */
 	UWorld* GetWorld() const;
 
-	/* Returns the local player. */
+	/** Returns the local player. */
 	class ULocalPlayer* GetLocalPlayer() const;
 
-	/* Returns the player controller. */
+	/** Returns the player controller. */
 	class APlayerController* GetPlayerController() const;
 
 	/** Templated version of GetPlayerController() */
 	template<class T>
-	FORCEINLINE T* GetPlayerController(bool bCastChecked = true) const
+	FORCEINLINE T* GetPlayerController(bool bCastChecked = false) const
 	{
 		if (bCastChecked)
 		{ 
@@ -58,12 +58,12 @@ struct ENGINE_API FLocalPlayerContext
 		}
 	}
 
-	/** Getter for the Game State */
-	class AGameState* GetGameState() const;
+	/** Getter for the Game State Base */
+	class AGameStateBase* GetGameState() const;
 
 	/** Templated Getter for the Game State */
 	template<class T>
-	FORCEINLINE T* GetGameState(bool bCastChecked = true) const
+	FORCEINLINE T* GetGameState(bool bCastChecked = false) const
 	{
 		if (bCastChecked)
 		{
@@ -80,7 +80,7 @@ struct ENGINE_API FLocalPlayerContext
 
 	/** Templated Getter for the Player State */
 	template<class T>
-	FORCEINLINE T* GetPlayerState(bool bCastChecked = true) const
+	FORCEINLINE T* GetPlayerState(bool bCastChecked = false) const
 	{
 		if (bCastChecked)
 		{
@@ -97,7 +97,7 @@ struct ENGINE_API FLocalPlayerContext
 
 	/** Templated Getter for the HUD */
 	template<class T>
-	FORCEINLINE T* GetHUD(bool bCastChecked = true) const
+	FORCEINLINE T* GetHUD(bool bCastChecked = false) const
 	{
 		if (bCastChecked)
 		{
@@ -114,7 +114,7 @@ struct ENGINE_API FLocalPlayerContext
 
 	/** Templated getter for the player's pawn */
 	template<class T>
-	FORCEINLINE T* GetPawn(bool bCastChecked = true) const
+	FORCEINLINE T* GetPawn(bool bCastChecked = false) const
 	{
 		if (bCastChecked)
 		{
@@ -244,7 +244,7 @@ public:
 	 *
 	 * @return  Returns the world of the LocalPlayer's PlayerController. NULL if the LocalPlayer does not have a PlayerController
 	 */
-	UWorld* GetWorld() const override;
+	virtual UWorld* GetWorld() const override;
 
 	/**
 	 * Get the game instance associated with this local player

@@ -1,0 +1,65 @@
+﻿INTSourceChangelist:0
+Availability:Docs
+Title:Blueprint Splines
+Crumbs: %ROOT%, Engine
+Description:Landing page for Blueprint Spline and Spline Mesh Components.
+Navigation:topic
+parent:Engine
+order:3
+social-image:Splines_social.png
+related: Engine/Landscape/Editing/Splines/
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Splines:title%](Engine/Splines/Splines_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Splines:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Splines:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Splines]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Splines:title%](Engine/Splines/Splines_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Splines:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Splines:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Splines]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+![](Engine/BlueprintSplines/Overview/BPSC_1.png)
+
+Below are links to the documentation pages that cover **Blueprint Spline Components** and **Blueprint Spline Mesh Components**.
+
+## Essentials
+
+[DIR(output:"listbutton" parent:"Engine/BlueprintSplines" org:"hierarchy" end:"1")]
+
+
+## Samples
+
+[DIR(output:"topiccompact" parent:"Resources/ContentExamples" tags:"Splines")]
+
+
+

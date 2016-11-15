@@ -7,6 +7,7 @@
 #include "EnvironmentQuery/EnvQueryTypes.h"
 #include "EnvironmentQuery/EnvQueryManager.h"
 #include "EnvironmentQuery/EQSRenderingComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 
 #if WITH_EDITORONLY_DATA
 #include "Components/ArrowComponent.h"
@@ -78,7 +79,7 @@ AEQSTestingPawn::AEQSTestingPawn(const FObjectInitializer& ObjectInitializer)
 #endif // WITH_EDITORONLY_DATA
 
 	// Default to no tick function, but if we set 'never ticks' to false (so there is a tick function) it is enabled by default
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 	PrimaryActorTick.bStartWithTickEnabled = true;
 
 	if (GetCharacterMovement())
@@ -160,9 +161,19 @@ void AEQSTestingPawn::PostLoad()
 	}
 
 	UWorld* World = GetWorld();
-	if (World && World->IsGameWorld() && bTickDuringGame)
+	PrimaryActorTick.bCanEverTick = World && ((World->IsGameWorld() == false) || bTickDuringGame);
+
+	if (PrimaryActorTick.bCanEverTick == false)
 	{
-		PrimaryActorTick.bCanEverTick = false;
+		// Also disable components that may tick
+		if (GetCharacterMovement())
+		{
+			GetCharacterMovement()->PrimaryComponentTick.bCanEverTick = false;
+		}
+		if (GetMesh())
+		{
+			GetMesh()->PrimaryComponentTick.bCanEverTick = false;
+		}
 	}
 }
 

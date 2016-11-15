@@ -3,7 +3,6 @@
 
 #include "PersonaPrivatePCH.h"
 #include "SAnimationBlendSpace.h"
-#include "SAnimationSequenceBrowser.h"
 #include "Persona.h"
 #include "AssetData.h"
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
@@ -260,7 +259,7 @@ FDelaunayTriangleGenerator::ECircumCircleState FDelaunayTriangleGenerator::GetCi
 
 	float Det = M00*M11*M22+M01*M12*M20+M02*M10*M21 - (M02*M11*M20+M01*M10*M22+M00*M12*M21);
 	
-	if( FMath::Abs(Det) <= KINDA_SMALL_NUMBER )
+	if( FMath::IsNearlyZero(FMath::Abs(Det)) )
 	{
 		return ECCS_On;
 	}
@@ -1187,9 +1186,9 @@ int32 SBlendSpaceGridWidget::OnPaint( const FPaintArgs& Args, const FGeometry& A
 		}
 	
 		// draw all triangles
-		for (int32 I=0; I<TriangleList.Num(); ++I)
+		for (FTriangle* Triangle : TriangleList)
 		{
-			FTriangle * Triangle = TriangleList[I];
+			check(Triangle);
 			bool bHighlighted = (HighlightTriangle == Triangle) ||  NewTriangles.Find(Triangle)!=INDEX_NONE;
 			// if currently highlighted, use highlight color
 			FColor ColorToDraw = (bHighlighted)?((bPreviewOn)? ImportantColor: HighlightColor): FColor(200,200,200);
@@ -1285,21 +1284,16 @@ void SBlendSpaceEditor::OnBlendSpaceParamtersChanged()
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void SBlendSpaceEditor::Construct(const FArguments& InArgs)
+void SBlendSpaceEditor::Construct(const FArguments& InArgs, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& OnPostUndo)
 {
 	SBlendSpaceEditorBase::Construct(SBlendSpaceEditorBase::FArguments()
-									 .Persona(InArgs._Persona)
-									 .BlendSpace(InArgs._BlendSpace)
+									 .BlendSpace(InArgs._BlendSpace),
+									InPreviewScene,
+									OnPostUndo
 									);
-	this->ChildSlot
+	NonScrollEditorPanels->AddSlot()
 	[
 		SNew(SVerticalBox)
-
-		+SVerticalBox::Slot()
-		.AutoHeight()
-		[
-			MakeEditorHeader()
-		]
 
 		+SVerticalBox::Slot()
 		.FillHeight(1.0f)

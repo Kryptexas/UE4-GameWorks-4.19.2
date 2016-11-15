@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3011129
 Availability:Public
-Title:Macro Library UI
+Title:宏库 UI
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
-Description:Overview of the Blueprint Class Editor interface.
-version: 4.9
+Description:使用蓝图宏库时蓝图编辑器的 UI 元素解析。
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -28,18 +28,18 @@ version: 4.9
 
 [INCLUDE:Engine/Blueprints/UserGuide/Types/MacroLibrary#intro]
 
-For more information on Macro Libraries and how to use them, please see the [](Engine/Blueprints/UserGuide\Types\MacroLibrary) documentation.
+如需了解宏库的更多内容和使用方法，请查阅 [](Engine/Blueprints/UserGuide\Types\MacroLibrary) 文档。
 
-## Interface
+## 界面
 
-Much like with Blueprint Interfaces, when you first open the Blueprint Editor for a Macro Library, you will see a simplified UI without a graph:
+和蓝图界面相同，打开宏库的蓝图编辑器后可看到一个不带图表的简化 UI：
 
 ![](MacroLibraryUIClean.png)
 
 
 
 
-|Default Visible UI Components| Available in the Window Menu|
+|默认可见 UI 组件| 窗口菜单中可选|
 |-----------------------------|-----------------------------|
 |[INCLUDE:#visible]			  |[INCLUDE:#invisible]			|
 

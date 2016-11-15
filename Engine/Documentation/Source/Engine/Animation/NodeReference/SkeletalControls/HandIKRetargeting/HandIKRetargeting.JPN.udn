@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3020428
+﻿INTSourceChangelist:3060419
 Availability:Public
 Title:Hand IK Retargeting （手の IK のリターゲット）
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
 Description:IK ボーンのリターゲットに使用できる Hand IK Retargeting 制御について説明します。 
-version: 4.12
+version:4.12
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -81,6 +81,9 @@ Two Bone IK ノードは、左右の手の位置を動かしますが、**Hand F
 | --- | ----------- |
 | [REGION:tablesection]**入力ピン**[/REGION] ||
 | **Hand FKWeight** | どちらの手を支持するか。0.5 は両方に対して等しいウェイト、 1 = 右手、 0 = 左手 |
-| **Component Pose** | 受け取るポーズ |
-| **Alpha** | 現在の制御の強さ |
+| **Component Pose** | 入力されるポーズです。 |
+| **Alpha** | 現在の制御の強さです。 |
 
+**Hand IK Retargeting** ノードも 4.11 で導入された **LOD Threshold** システムの影響を受けます。**Hand IK Retargeting** ノードの **[Details (詳細)]** パネルにこの設定が表示されます。
+
+[INCLUDE:Engine/Animation/NodeReference/SkeletalControls#lodthresh]

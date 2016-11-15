@@ -172,13 +172,16 @@ void SSingleProperty::SetObject( UObject* InObject )
 			SNew( SPropertyValueWidget, PropertyEditor, PropertyUtilities.ToSharedRef() )
 		];
 
-		HorizontalBox->AddSlot()
-		.Padding( 2.0f )
-		.AutoWidth()
-		.VAlign( VAlign_Center )
-		[
-			SNew( SResetToDefaultPropertyEditor,  PropertyEditor )
-		];
+		if (!PropertyEditor->GetPropertyHandle()->HasMetaData(TEXT("NoResetToDefault")))
+		{
+			HorizontalBox->AddSlot()
+			.Padding( 2.0f )
+			.AutoWidth()
+			.VAlign( VAlign_Center )
+			[
+				SNew( SResetToDefaultPropertyEditor,  PropertyEditor )
+			];
+		}
 	}
 	else
 	{

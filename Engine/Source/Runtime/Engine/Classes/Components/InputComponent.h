@@ -64,6 +64,18 @@ struct TInputUnifiedDelegate
 		FuncDynDelegate.Unbind();
 	}
 
+	/** Returns a const reference to the Function Delegate. */
+	inline const DelegateType& GetDelegate() const
+	{
+		return FuncDelegate;
+	}
+
+	/** Returns a const reference to the Dynamic Function Delegate. */
+	inline const DynamicDelegateType& GetDynamicDelegate() const
+	{
+		return FuncDynDelegate;
+	}
+
 protected:
 	/** Holds the delegate to call. */
 	DelegateType FuncDelegate;

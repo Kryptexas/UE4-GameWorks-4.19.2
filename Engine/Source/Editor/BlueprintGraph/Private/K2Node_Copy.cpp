@@ -192,9 +192,9 @@ bool UK2Node_Copy::IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGra
 			OutReason = FText::Format(LOCTEXT("ObjectConnectionDisallowed", "Cannot connect with {0} pin."), FText::FromString(OtherPin->PinType.PinCategory)).ToString();
 			return true;
 		}
-		else if (OtherPin->PinType.bIsArray)
+		else if (OtherPin->PinType.IsContainer())
 		{
-			OutReason = LOCTEXT("ArrayConnectionDisallowed", "Cannot connect with array pin.").ToString();
+			OutReason = LOCTEXT("ArrayConnectionDisallowed", "Cannot connect with container pin.").ToString();
 			return true;
 		}
 	}

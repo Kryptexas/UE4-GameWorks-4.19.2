@@ -28,6 +28,7 @@ struct FWindowsOSVersionHelper
 struct CORE_API FWindowsPlatformMisc
 	: public FGenericPlatformMisc
 {
+	static void SetHighDPIMode();
 	static void PlatformPreInit();
 	static void PlatformInit();
 	static class GenericApplication* CreateApplication();
@@ -263,6 +264,8 @@ struct CORE_API FWindowsPlatformMisc
 	static EConvertibleLaptopMode GetConvertibleLaptopMode();
 
 	static IPlatformChunkInstall* GetPlatformChunkInstall();
+
+	static float GetDPIScaleFactorAtPoint(float X, float Y);
 };
 
 

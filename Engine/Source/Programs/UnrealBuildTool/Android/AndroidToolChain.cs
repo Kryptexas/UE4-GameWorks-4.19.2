@@ -33,14 +33,14 @@ namespace UnrealBuildTool
 
 		static private Dictionary<string, string[]> LibrariesToSkip = new Dictionary<string, string[]> {
 			{ "-armv7", new string[] { } }, 
-			{ "-arm64", new string[] { "nvToolsExt", "nvToolsExtStub", "oculus", "vrapi", "ovrkernel", "systemutils", "openglloader", } },
+			{ "-arm64", new string[] { "nvToolsExt", "nvToolsExtStub", "oculus", "vrapi", "ovrkernel", "systemutils", "openglloader", "gpg", } },
 			{ "-x86",   new string[] { "nvToolsExt", "nvToolsExtStub", "oculus", "vrapi", "ovrkernel", "systemutils", "openglloader", } }, 
 			{ "-x64",   new string[] { "nvToolsExt", "nvToolsExtStub", "oculus", "vrapi", "ovrkernel", "systemutils", "openglloader", "gpg", } }, 
 		};
 
 		static private Dictionary<string, string[]> ModulesToSkip = new Dictionary<string, string[]> {
 			{ "-armv7", new string[] {  } }, 
-			{ "-arm64", new string[] {  } }, 
+			{ "-arm64", new string[] { "OnlineSubsystemGooglePlay", } }, 
 			{ "-x86",   new string[] {  } }, 
 			{ "-x64",   new string[] { "OnlineSubsystemGooglePlay", } }, 
 		};
@@ -67,6 +67,7 @@ namespace UnrealBuildTool
 			string ArchitecturePathWindows32 = @"prebuilt/windows";
 			string ArchitecturePathWindows64 = @"prebuilt/windows-x86_64";
 			string ArchitecturePathMac = @"prebuilt/darwin-x86_64";
+			string ArchitecturePathLinux = @"prebuilt/linux-x86_64";
 			string ExeExtension = ".exe";
 
 			if (Directory.Exists(Path.Combine(NDKPath, ArchitecturePathWindows64)))
@@ -83,6 +84,12 @@ namespace UnrealBuildTool
 			{
 				Log.TraceVerbose("        Found Mac versions of toolchain");
 				ArchitecturePath = ArchitecturePathMac;
+				ExeExtension = "";
+			}
+			else if (Directory.Exists(Path.Combine(NDKPath, ArchitecturePathLinux)))
+			{
+				Log.TraceVerbose("        Found Linux versions of toolchain");
+				ArchitecturePath = ArchitecturePathLinux;
 				ExeExtension = "";
 			}
 			else
@@ -1052,7 +1059,7 @@ namespace UnrealBuildTool
 						}
 
 						// Create the response file
-						FileReference ResponseFileName = CompileAction.ProducedItems[0].Reference + ".response";
+						FileReference ResponseFileName = CompileAction.ProducedItems[0].Reference + "_" + AllArguments.GetHashCode().ToString("X") + ".response";
 						string ResponseArgument = string.Format("@\"{0}\"", ResponseFile.Create(ResponseFileName, new List<string> { AllArguments }).FullName);
 
 						CompileAction.WorkingDirectory = UnrealBuildTool.EngineSourceDirectory.FullName;

@@ -722,26 +722,7 @@ void MainPS_ES2(
 
 		#if USE_32BPP_HDR
 		{
-			// TODO: Support odd frame inversion of mosaic pattern?
-			#if 0
-				half3 SceneColorE = PostprocessInput0.Sample(PostprocessInput0Sampler, InTexCoords[1].xy).rgb;
-				SceneColor.rgb = HdrDemosaic(SceneColor.rgb, SceneColorE, SvPosition.xy);
-			#endif
-			#if 1
-				// Higher quality path.
-				half3 SceneColorN = PostprocessInput0.Sample(PostprocessInput0Sampler, InTexCoords[0].xy).rgb;
-				half3 SceneColorE = PostprocessInput0.Sample(PostprocessInput0Sampler, InTexCoords[1].xy).rgb;
-				half3 SceneColorW = PostprocessInput0.Sample(PostprocessInput0Sampler, InTexCoords[2].xy).rgb;
-				half3 SceneColorS = PostprocessInput0.Sample(PostprocessInput0Sampler, InTexCoords[3].xy).rgb;
-				half3 SceneColorV = SceneColorN * 0.5 + SceneColorS * 0.5;
-				half3 SceneColorH = SceneColorW * 0.5 + SceneColorE * 0.5;
-				if(abs(SceneColorN.g - SceneColorS.g) < abs(SceneColorW.g - SceneColorE.g)) 
-				{
-					SceneColorH = SceneColorV;
-				}
-				SceneColor.rgb = Decode32BPPHDR(SceneColor, SceneColorH, SvPosition.xy).rgb;
-				SceneColor.a = 0.0;
-			#endif
+			SceneColor = Decode32BPPHDR(SceneColor, SvPosition, PostprocessInput0, PostprocessInput0Sampler, InTexCoords);
 		}
 		#endif
 

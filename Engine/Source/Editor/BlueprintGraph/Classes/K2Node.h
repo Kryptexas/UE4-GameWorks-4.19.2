@@ -60,6 +60,9 @@ struct FOptionalPinFromProperty
 	UPROPERTY(EditAnywhere, Category=OptionalPin)
 	bool bHasOverridePin;
 
+	UPROPERTY(EditAnywhere, Category=OptionalPin)
+	bool bIsMarkedForAdvancedDisplay;
+
 	/** TRUE if the override value is enabled for use */
 	UPROPERTY(EditAnywhere, Category = OptionalPin)
 	bool bIsOverrideEnabled;
@@ -73,7 +76,8 @@ struct FOptionalPinFromProperty
 	bool bIsOverridePinVisible;
 
 	FOptionalPinFromProperty()
-		: bIsOverrideEnabled(true)
+		: bIsMarkedForAdvancedDisplay(false)
+		, bIsOverrideEnabled(true)
 		, bIsSetValuePinVisible(true)
 		, bIsOverridePinVisible(true)
 	{
@@ -90,6 +94,7 @@ struct FOptionalPinFromProperty
 		, bPropertyIsCustomized(bInPropertyIsCustomized)
 		, CategoryName(InCategoryName)
 		, bHasOverridePin(bInHasOverridePin)
+		, bIsMarkedForAdvancedDisplay(false)
 		, bIsOverrideEnabled(true)
 		, bIsSetValuePinVisible(true)
 		, bIsOverridePinVisible(true)
@@ -152,7 +157,7 @@ class UK2Node : public UEdGraphNode
 	BLUEPRINTGRAPH_API virtual FString GetDocumentationLink() const override;
 	BLUEPRINTGRAPH_API virtual void GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const override;
 	BLUEPRINTGRAPH_API virtual bool ShowPaletteIconOnNode() const override { return true; }
-	BLUEPRINTGRAPH_API virtual bool AllowSplitPins() const override;
+	BLUEPRINTGRAPH_API virtual bool CanSplitPin(const UEdGraphPin* Pin) const override;
 	BLUEPRINTGRAPH_API virtual UEdGraphPin* GetPassThroughPin(const UEdGraphPin* FromPin) const override;
 	BLUEPRINTGRAPH_API virtual bool IsInDevelopmentMode() const override;
 	// End of UEdGraphNode interface
@@ -295,9 +300,6 @@ class UK2Node : public UEdGraphNode
 
 	/** This function if used for nodes that needs CDO for validation (Called before expansion)*/
 	BLUEPRINTGRAPH_API virtual void EarlyValidation(class FCompilerResultsLog& MessageLog) const {}
-
-	/** This function if used for nodes that should validate after expansion */
-	BLUEPRINTGRAPH_API virtual void ValidateNodeAfterPrune(class FCompilerResultsLog& MessageLog) const {}
 
 	/** This function returns an arbitrary number of attributes that describe this node for analytics events */
 	BLUEPRINTGRAPH_API virtual void GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const;

@@ -42,56 +42,56 @@ struct FGameplayTagNode
 	FGameplayTagNode(){};
 
 	/** Simple constructor */
-	FGameplayTagNode(FName InTag, TWeakPtr<FGameplayTagNode> InParentNode, FText InCategoryDescription = FText());
+	FGameplayTagNode(FName InTag, TWeakPtr<FGameplayTagNode> InParentNode, FText InCategoryDescription, bool InWasAddedDirectlyFromDictionary);
 
 	/**
 	 * Get the complete tag for the node, including all parent tags, delimited by periods
 	 * 
 	 * @return Complete tag for the node
 	 */
-	GAMEPLAYTAGS_API FName GetCompleteTag() const;
+	GAMEPLAYTAGS_API FName GetCompleteTag() const { return CompleteTag; }
 
 	/**
 	 * Get the simple tag for the node (doesn't include any parent tags)
 	 * 
 	 * @return Simple tag for the node
 	 */
-	GAMEPLAYTAGS_API FName GetSimpleTag() const;
+	GAMEPLAYTAGS_API FName GetSimpleTag() const { return Tag; }
 
 	/**
 	 * Get the category description for the node
 	 * 
 	 * @return Translatable text that describes this tag category
 	 */
-	GAMEPLAYTAGS_API FText GetCategoryDescription() const;
+	GAMEPLAYTAGS_API FText GetCategoryDescription() const { return CategoryDescription; }
 
 	/**
 	 * Get the children nodes of this node
 	 * 
 	 * @return Reference to the array of the children nodes of this node
 	 */
-	GAMEPLAYTAGS_API TArray< TSharedPtr<FGameplayTagNode> >& GetChildTagNodes();
+	GAMEPLAYTAGS_API TArray< TSharedPtr<FGameplayTagNode> >& GetChildTagNodes() { return ChildTags; }
 
 	/**
 	 * Get the children nodes of this node
 	 * 
 	 * @return Reference to the array of the children nodes of this node
 	 */
-	GAMEPLAYTAGS_API const TArray< TSharedPtr<FGameplayTagNode> >& GetChildTagNodes() const;
+	GAMEPLAYTAGS_API const TArray< TSharedPtr<FGameplayTagNode> >& GetChildTagNodes() const { return ChildTags; }
 
 	/**
 	 * Get the parent tag node of this node
 	 * 
 	 * @return The parent tag node of this node
 	 */
-	GAMEPLAYTAGS_API TWeakPtr<FGameplayTagNode> GetParentTagNode() const;
+	GAMEPLAYTAGS_API TWeakPtr<FGameplayTagNode> GetParentTagNode() const { return ParentNode; }
 
 	/**
 	* Get the net index of this node
 	*
 	* @return The net index of this node
 	*/
-	GAMEPLAYTAGS_API FGameplayTagNetIndex GetNetIndex() const;
+	GAMEPLAYTAGS_API FGameplayTagNetIndex GetNetIndex() const { return NetIndex; }
 
 	/** Reset the node of all of its values */
 	GAMEPLAYTAGS_API void ResetNode();
@@ -105,6 +105,9 @@ private:
 
 	/** Category description of the for the node */
 	FText CategoryDescription;
+
+	/** Flag to distinguish implicit vs explicit tags */
+	bool WasAddedDirectlyFromDictionary;
 
 	/** Child gameplay tag nodes */
 	TArray< TSharedPtr<FGameplayTagNode> > ChildTags;
@@ -139,7 +142,7 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	 * 
 	 * @return Index of the node of the tag
 	 */
-	int32 InsertTagIntoNodeArray(FName Tag, TWeakPtr<FGameplayTagNode> ParentNode, TArray< TSharedPtr<FGameplayTagNode> >& NodeArray, FText CategoryDescription = FText());
+	int32 InsertTagIntoNodeArray(FName Tag, TWeakPtr<FGameplayTagNode> ParentNode, TArray< TSharedPtr<FGameplayTagNode> >& NodeArray, FText CategoryDescription, bool InWasAddedDirectlyFromDictionary);
 
 	/**
 	 * Get the best tag category description
@@ -178,7 +181,22 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 
 	static void AddNewGameplayTagToINI(FString NewTag);
 
+	bool IsDictionaryTag(FName TagName) const;
+
 #endif //WITH_EDITOR
+
+	struct FDeveloperTags 
+	{
+		struct FDeveloperTagsItem
+		{
+			FString IniName;
+			TArray<FString> Tags;
+		};
+
+		TArray<FDeveloperTagsItem> Items;
+	};
+
+	FDeveloperTags DeveloperTags;
 
 	/** 
 	 * Loads the tag tables
@@ -224,9 +242,11 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	 */
 	FGameplayTagContainer RequestGameplayTagParents(const FGameplayTag& GameplayTag) const;
 
-	FGameplayTagContainer RequestGameplayTagChildren(const FGameplayTag& GameplayTag) const;
+	FGameplayTagContainer RequestGameplayTagChildren(const FGameplayTag& GameplayTag, bool OnlyIncludeDictionaryTags=false) const;
 
 	FGameplayTag RequestGameplayTagDirectParent(const FGameplayTag& GameplayTag) const;
+
+	void SplitGameplayTagFName(const FGameplayTag& Tag, TArray<FName>& OutNames);
 
 	/**
 	 * Checks if the tag is allowed to be created
@@ -351,6 +371,7 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	/** Cached runtime value for whether we are using fast replication or not. Initialized from config setting. */
 	bool bUseFastReplication;
 	
+	const TArray<TSharedPtr<FGameplayTagNode>>& GetNetworkGameplayTagNodeIndex() const { return NetworkGameplayTagNodeIndex; }
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	/** Mechanism for tracking what tags are frequently replicated */
@@ -381,7 +402,7 @@ private:
 	 */
 	void AddParentTags(FGameplayTagContainer& TagContainer, const FGameplayTag& GameplayTag) const;
 
-	void AddChildrenTags(FGameplayTagContainer& TagContainer, const FGameplayTag& GameplayTag, bool RecurseAll=true) const;
+	void AddChildrenTags(FGameplayTagContainer& TagContainer, const FGameplayTag& GameplayTag, bool RecurseAll=true, bool OnlyIncludeDictionaryTags=false) const;
 
 	/**
 	 * Helper function for GameplayTagsMatch to get all parents when doing a parent match,

@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3020428
+﻿INTSourceChangelist:3060419
 Availability:Public
 Title:Two Bone IK
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
 Description:Two Bone IK 制御を使って 3- ジョイント チェーンに IK を適用する方法について説明します。 
-version: 4.12
+version:4.12
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -84,6 +84,10 @@ JxzEo3wUSWw
 | [REGION:tablesection]**入力ピン**[/REGION] ||
 | **Effector Location** | Effector Location Space でエフェクタの位置を指定するベクター値です。 |
 | **Joint Target Location** | Joint Target Location Space でジョイント ターゲットの位置を指定するベクター値です。 |
+
+**Two Bone IK** ノードも 4.11 で導入された **LOD Threshold** システムの影響を受けます。**Two Bone IK** ノードの **[Details (詳細)]** パネルにこの設定があります。
+
+[INCLUDE:Engine/Animation/NodeReference/SkeletalControls#lodthresh]
 
 <!--
 [EXCERPT:LocationSpace]

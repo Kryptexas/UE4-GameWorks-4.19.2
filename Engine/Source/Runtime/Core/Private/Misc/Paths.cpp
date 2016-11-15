@@ -185,7 +185,7 @@ FString FPaths::GameSavedDir()
 
 FString FPaths::GameIntermediateDir()
 {
-	return FPaths::GameDir() + TEXT("Intermediate/");
+	return GameUserDir() + TEXT("Intermediate/");
 }
 
 FString FPaths::GamePluginsDir()

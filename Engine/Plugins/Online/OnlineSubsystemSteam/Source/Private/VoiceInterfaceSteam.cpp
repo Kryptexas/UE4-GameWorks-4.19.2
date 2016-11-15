@@ -74,7 +74,8 @@ bool FOnlineVoiceSteam::Init()
 
 		if (!bSuccess)
 		{
-			UE_LOG(LogVoice, Warning, TEXT("Failed to initialize Steam voice interface"));
+			// Not necessary to log here since VoiceEngine::Init() will report its own failure
+			//UE_LOG(LogVoice, Warning, TEXT("Failed to initialize Steam voice interface"));
 
 			LocalTalkers.Empty();
 			RemoteTalkers.Empty();
@@ -705,8 +706,7 @@ void FOnlineVoiceSteam::ProcessLocalVoicePackets()
 								VoiceData.LocalPackets[Index].Length += SpaceAvail;
 
 #if VOICE_LOOPBACK
-								static bool bUseLoopback = false;
-								if (bUseLoopback && SpaceAvail > 0)
+								if (OSSConsoleVariables::CVarVoiceLoopback.GetValueOnGameThread() && SpaceAvail > 0)
 								{
 									VoiceData.RemotePackets.Add(MakeShareable(new FVoicePacketSteam(VoiceData.LocalPackets[Index])));
 								}

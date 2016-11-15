@@ -15,11 +15,11 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_RotationMultiplier : public FAnimNode_Skel
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** Name of bone to control. This is the main bone chain to modify from. **/
+	/** Name of bone to control. This is the main bone chain to modify from. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Multiplier) 
 	FBoneReference	TargetBone;
 
-	/** Source to get transform from **/
+	/** Source to get transform from */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Multiplier)
 	FBoneReference	SourceBone;
 

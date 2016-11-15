@@ -14,7 +14,7 @@ AActor* UEnvQueryItemType_Actor::GetValue(const uint8* RawData)
 	return (AActor*)(WeakObjPtr.Get());
 }
 
-void UEnvQueryItemType_Actor::SetValue(uint8* RawData, const AActor* Value)
+void UEnvQueryItemType_Actor::SetValue(uint8* RawData, const FWeakObjectPtr& Value)
 {
 	FWeakObjectPtr WeakObjPtr(Value);
 	SetValueInMemory<FWeakObjectPtr>(RawData, WeakObjPtr);

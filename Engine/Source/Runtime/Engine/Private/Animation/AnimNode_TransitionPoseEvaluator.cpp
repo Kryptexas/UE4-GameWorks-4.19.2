@@ -33,8 +33,9 @@ void FAnimNode_TransitionPoseEvaluator::Initialize(const FAnimationInitializeCon
 
 void FAnimNode_TransitionPoseEvaluator::CacheBones(const FAnimationCacheBonesContext& Context) 
 {
-	CachedPose.SetBoneContainer(&Context.AnimInstanceProxy->GetRequiredBones());
-	CachedCurve.InitFrom(Context.AnimInstanceProxy->GetSkelMeshComponent()->GetCachedAnimCurveMappingNameUids());
+	const FBoneContainer& RequiredBone = Context.AnimInstanceProxy->GetRequiredBones();
+	CachedPose.SetBoneContainer(&RequiredBone);
+	CachedCurve.InitFrom(RequiredBone);
 }
 
 void FAnimNode_TransitionPoseEvaluator::Update(const FAnimationUpdateContext& Context)

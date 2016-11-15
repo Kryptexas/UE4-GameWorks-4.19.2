@@ -721,6 +721,12 @@ namespace UnrealBuildTool
 				return BinaryLinkEnvironment.InputFiles;
 			}
 
+			if (BuildConfiguration.bDisableLinking)
+			{
+				// We don't need linked binaries
+				return BinaryLinkEnvironment.InputFiles;
+			}
+
 			if (BuildConfiguration.bEnableCodeAnalysis)
 			{
 				// We're only analyzing code, so we won't actually link any executables.  Instead, our output

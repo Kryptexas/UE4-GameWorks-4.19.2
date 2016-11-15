@@ -423,8 +423,7 @@ void AAIController::UpdateControlRotation(float DeltaTime, bool bUpdatePawn)
 	APawn* const MyPawn = GetPawn();
 	if (MyPawn)
 	{
-		const FRotator InitialControlRotation = GetControlRotation();		
-		FRotator NewControlRotation = InitialControlRotation;
+		FRotator NewControlRotation = GetControlRotation();
 
 		// Look toward focus
 		const FVector FocalPoint = GetFocalPoint();
@@ -443,11 +442,13 @@ void AAIController::UpdateControlRotation(float DeltaTime, bool bUpdatePawn)
 			NewControlRotation.Pitch = 0.f;
 		}
 
-		if (InitialControlRotation.Equals(NewControlRotation, 1e-3f) == false)
-		{
-			SetControlRotation(NewControlRotation);
+		SetControlRotation(NewControlRotation);
 
-			if (bUpdatePawn)
+		if (bUpdatePawn)
+		{
+			const FRotator CurrentPawnRotation = MyPawn->GetActorRotation();
+
+			if (CurrentPawnRotation.Equals(NewControlRotation, 1e-3f) == false)
 			{
 				MyPawn->FaceRotation(NewControlRotation, DeltaTime);
 			}
@@ -1025,12 +1026,20 @@ bool AAIController::UseBlackboard(UBlackboardData* BlackboardAsset, UBlackboardC
 	return bSuccess;
 }
 
+bool AAIController::ShouldSyncBlackboardWith(const UBlackboardComponent& OtherBlackboardComponent) const 
+{ 
+	return Blackboard != nullptr
+		&& Blackboard->GetBlackboardAsset() != nullptr
+		&& OtherBlackboardComponent.GetBlackboardAsset() != nullptr
+		&& Blackboard->GetBlackboardAsset()->IsRelatedTo(*OtherBlackboardComponent.GetBlackboardAsset());
+}
+
 bool AAIController::SuggestTossVelocity(FVector& OutTossVelocity, FVector Start, FVector End, float TossSpeed, bool bPreferHighArc, float CollisionRadius, bool bOnlyTraceUp)
 {
 	// pawn's physics volume gets 2nd priority
 	APhysicsVolume const* const PhysicsVolume = GetPawn() ? GetPawn()->GetPawnPhysicsVolume() : NULL;
 	float const GravityOverride = PhysicsVolume ? PhysicsVolume->GetGravityZ() : 0.f;
-	ESuggestProjVelocityTraceOption::Type const TraceOption = bOnlyTraceUp ? ESuggestProjVelocityTraceOption::OnlyTraceWhileAsceding : ESuggestProjVelocityTraceOption::TraceFullPath;
+	ESuggestProjVelocityTraceOption::Type const TraceOption = bOnlyTraceUp ? ESuggestProjVelocityTraceOption::OnlyTraceWhileAscending : ESuggestProjVelocityTraceOption::TraceFullPath;
 
 	return UGameplayStatics::SuggestProjectileVelocity(this, OutTossVelocity, Start, End, TossSpeed, bPreferHighArc, CollisionRadius, GravityOverride, TraceOption);
 }

@@ -21,7 +21,7 @@ FSteamVRHMD* GetSteamVRHMD()
 }
 #endif // STEAMVR_SUPPORTED_PLATFORMS
 
-void USteamVRFunctionLibrary::GetValidTrackedDeviceIds(TEnumAsByte<ESteamVRTrackedDeviceType> DeviceType, TArray<int32>& OutTrackedDeviceIds)
+void USteamVRFunctionLibrary::GetValidTrackedDeviceIds(ESteamVRTrackedDeviceType DeviceType, TArray<int32>& OutTrackedDeviceIds)
 {
 #if STEAMVR_SUPPORTED_PLATFORMS
 	OutTrackedDeviceIds.Empty();

@@ -69,7 +69,7 @@ bool UK2Node_Knot::IsNodeSafeToIgnore() const
 	return true;
 }
 
-bool UK2Node_Knot::AllowSplitPins() const
+bool UK2Node_Knot::CanSplitPin(const UEdGraphPin* Pin) const
 {
 	return false;
 }

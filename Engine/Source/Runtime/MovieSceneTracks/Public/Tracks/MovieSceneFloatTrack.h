@@ -25,8 +25,8 @@ public:
 	 *
 	 * @param Position	The current playback position
 	 * @param LastPosition	The last plackback position
-	 * @param OutFloat 	The value at the playback position
-	 * @return true if anything was evaluated. Note: if false is returned OutFloat remains unchanged
+	 * @param InOutFloat 	The value at the playback position
+	 * @return true if anything was evaluated. Note: if false is returned InOutFloat remains unchanged
 	 */
-	virtual bool Eval( float Position, float LastPosition, float& OutFloat ) const;
+	virtual bool Eval( float Position, float LastPosition, float& InOutFloat ) const;
 };

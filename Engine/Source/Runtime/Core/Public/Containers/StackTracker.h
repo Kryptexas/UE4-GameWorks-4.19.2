@@ -5,30 +5,6 @@
 #include "UMemoryDefines.h"
 
 
-/** Whether array slack is being tracked. */
-#define TRACK_ARRAY_SLACK 0
-
-
-struct FSlackTrackData
-{
-	//// Because this code is used for a number of metric gathering tasks that are all not just
-	//// count the total number / avg per frame   We will just add in the specific data that we want to 
-	//// use elsewhere
-
-	uint64 NumElements;
-
-	/** NumSlackElements in DefaultCalculateSlack call */
-	uint64 NumSlackElements;
-
-	//uint64 Foo;
-
-	uint64 CurrentSlackNum;
-
-	// maybe store off policy also
-
-};
-
-
 /**
  * Stack tracker. Used to identify callstacks at any point in the codebase.
  */

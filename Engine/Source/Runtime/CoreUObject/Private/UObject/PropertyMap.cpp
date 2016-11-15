@@ -226,6 +226,13 @@ bool UMapProperty::Identical(const void* A, const void* B, uint32 PortFlags) con
 	return UE4MapProperty_Private::IsPermutation(MapHelperA, MapHelperB, PortFlags);
 }
 
+void UMapProperty::GetPreloadDependencies(TArray<UObject*>& OutDeps)
+{
+	Super::GetPreloadDependencies(OutDeps);
+	OutDeps.Add(KeyProp);
+	OutDeps.Add(ValueProp);
+}
+
 void UMapProperty::SerializeItem(FArchive& Ar, void* Value, const void* Defaults) const
 {
 	checkSlow(KeyProp);
@@ -785,6 +792,40 @@ bool UMapProperty::SameType(const UProperty* Other) const
 {
 	auto* MapProp = (UMapProperty*)Other;
 	return Super::SameType(Other) && KeyProp && ValueProp && KeyProp->SameType(MapProp->KeyProp) && ValueProp->SameType(MapProp->ValueProp);
+}
+
+/**
+ * Checks to see if this property already has the supplied value as a key
+ * @param	InMap			The address of the map
+ * @param	InBaseAddress	The base address of the map
+ * @param	InValue			The value to find in the map
+ * @return True if InValue is a key in the map, false otherwise
+ */
+bool UMapProperty::HasKey(void* InMap, void* InBaseAddress, const FString& InValue) const
+{
+	FScriptMapHelper MapHelper(this, InMap);
+
+	for (int32 Index = 0, ItemsLeft = MapHelper.Num(); ItemsLeft > 0; ++Index)
+	{
+		if (MapHelper.IsValidIndex(Index))
+		{
+			--ItemsLeft;
+
+			uint8* PairPtr = MapHelper.GetPairPtr(Index);
+			uint8* KeyPtr = KeyProp->ContainerPtrToValuePtr<uint8>(PairPtr);
+
+			FString KeyValue;
+			if ( KeyPtr != InBaseAddress && KeyProp->ExportText_Direct(KeyValue, KeyPtr, KeyPtr, nullptr, 0) )
+			{
+				if ( (Cast<UObjectProperty>(KeyProp) != nullptr && KeyValue.Contains(InValue)) || InValue == KeyValue )
+				{
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
 }
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UMapProperty, UProperty,

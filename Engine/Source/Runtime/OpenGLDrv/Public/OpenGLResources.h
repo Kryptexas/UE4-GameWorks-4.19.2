@@ -757,7 +757,7 @@ inline GLenum GetOpenGLTargetFromRHITexture(FRHITexture* Texture)
 }
 
 
-class FOpenGLTextureBase
+class OPENGLDRV_API FOpenGLTextureBase
 {
 protected:
 	class FOpenGLDynamicRHI* OpenGLRHI;
@@ -1279,8 +1279,13 @@ public:
 	}
 	  
 	GLuint	Resource;
-	GLuint	BufferResource;
+	GLuint  BufferResource;
 	GLenum	Format;
+
+	virtual uint32 GetBufferSize()
+	{
+		return 0;
+	}
 };
 
 class FOpenGLTextureUnorderedAccessView : public FOpenGLUnorderedAccessView
@@ -1306,6 +1311,8 @@ public:
 	FVertexBufferRHIRef VertexBufferRHI; // to keep the vertex buffer alive
 
 	FOpenGLDynamicRHI* OpenGLRHI;
+
+	virtual uint32 GetBufferSize() override;
 };
 
 class FOpenGLShaderResourceView : public FRHIShaderResourceView
@@ -1374,7 +1381,7 @@ protected:
 void OPENGLDRV_API OpenGLTextureDeleted(FRHITexture* Texture);
 void OPENGLDRV_API OpenGLTextureAllocated( FRHITexture* Texture , uint32 Flags);
 
-extern void ReleaseOpenGLFramebuffers(FOpenGLDynamicRHI* Device, FTextureRHIParamRef TextureRHI);
+void OPENGLDRV_API ReleaseOpenGLFramebuffers(FOpenGLDynamicRHI* Device, FTextureRHIParamRef TextureRHI);
 
 /** A OpenGL event query resource. */
 class FOpenGLEventQuery : public FRenderResource

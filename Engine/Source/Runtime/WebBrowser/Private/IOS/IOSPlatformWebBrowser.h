@@ -108,6 +108,15 @@ public:
 	virtual void GetSource(TFunction<void (const FString&)> Callback) const;
 	virtual int GetLoadError() override;
 	virtual void SetIsDisabled(bool bValue) override;
+	virtual TSharedPtr<SWindow> GetParentWindow() const override
+	{
+		return ParentWindow;
+	}
+
+	virtual void SetParentWindow(TSharedPtr<SWindow> Window) override
+	{
+		ParentWindow = Window;
+	}
 
 	// TODO: None of these events are actually called
 
@@ -249,6 +258,9 @@ private:
 
 	/** Delegate for dismissing all dialogs. */
 	FOnDismissAllDialogs DismissAllDialogsDelegate;
+
+	TSharedPtr<SWindow> ParentWindow;
+
 };
 
 #endif

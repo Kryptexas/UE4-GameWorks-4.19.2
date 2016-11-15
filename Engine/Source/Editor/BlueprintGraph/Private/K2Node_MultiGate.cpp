@@ -448,6 +448,8 @@ public:
 			PrevIfIndexMatchesStatement = &IfIndexMatchesStatement;
 		}
 
+		check(PrevIfIndexMatchesStatement);
+
 		// Should have jumped to proper index, print error (should never happen)
 		// Create a CallFunction statement for doing a print string of our error message
 		FBlueprintCompiledStatement& PrintStatement = Context.AppendStatementForNode(Node);

@@ -59,7 +59,7 @@ void FWindowsNativeFeedbackContext::Serialize( const TCHAR* V, ELogVerbosity::Ty
 		}
 	}
 
-	if( GLogConsole && IsRunningCommandlet() )
+	if( GLogConsole && IsRunningCommandlet() && !GLog->IsRedirectingTo(GLogConsole) )
 	{
 		GLogConsole->Serialize( V, Verbosity, Category );
 	}

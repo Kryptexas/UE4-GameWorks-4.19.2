@@ -23,16 +23,19 @@ public class HTTP : ModuleRules
         if (Target.Platform == UnrealTargetPlatform.Win32 ||
             Target.Platform == UnrealTargetPlatform.Win64)
         {
-            AddEngineThirdPartyPrivateStaticDependencies(Target, "WinInet");
-            AddEngineThirdPartyPrivateStaticDependencies(Target, "libcurl");
-        }
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "WinInet");
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "WinHttp");
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "libcurl");
+
+			PrivateDependencyModuleNames.Add("SSL");
+		}
 
         if (Target.Platform == UnrealTargetPlatform.Linux ||
             Target.Platform == UnrealTargetPlatform.Android)
         {
             AddEngineThirdPartyPrivateStaticDependencies(Target, "libcurl");
-        }
-        if (Target.Platform == UnrealTargetPlatform.HTML5)
+		}
+		if (Target.Platform == UnrealTargetPlatform.HTML5)
         {
             if (Target.Architecture == "-win32")
             {

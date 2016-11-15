@@ -75,38 +75,41 @@ private:
 		const FPropertyAccess::Result RowResult = RowNamePropertyHandle->GetValue( RowName );
 		RowNames.Empty();
 
-		/** Get the properties we wish to work with */
-		UCurveTable* CurveTable = NULL;
-		CurveTablePropertyHandle->GetValue( ( UObject*& )CurveTable );
-
-		if( CurveTable != NULL )
+		if ( RowResult != FPropertyAccess::Fail )
 		{
-			/** Extract all the row names from the RowMap */
-			for( TMap<FName, FRichCurve*>::TConstIterator Iterator( CurveTable->RowMap ); Iterator; ++Iterator )
-			{
-				/** Create a simple array of the row names */
-				TSharedRef<FString> RowNameItem = MakeShareable( new FString( Iterator.Key().ToString() ) );
-				RowNames.Add( RowNameItem );
+			/** Get the properties we wish to work with */
+			UCurveTable* CurveTable = NULL;
+			CurveTablePropertyHandle->GetValue((UObject*&)CurveTable);
 
-				/** Set the initial value to the currently selected item */
-				if( Iterator.Key() == RowName )
+			if ( CurveTable != NULL )
+			{
+				/** Extract all the row names from the RowMap */
+				for ( TMap<FName, FRichCurve*>::TConstIterator Iterator(CurveTable->RowMap); Iterator; ++Iterator )
 				{
-					InitialValue = RowNameItem;
+					/** Create a simple array of the row names */
+					TSharedRef<FString> RowNameItem = MakeShareable(new FString(Iterator.Key().ToString()));
+					RowNames.Add(RowNameItem);
+
+					/** Set the initial value to the currently selected item */
+					if ( Iterator.Key() == RowName )
+					{
+						InitialValue = RowNameItem;
+					}
 				}
 			}
-		}
 
-		/** Reset the initial value to ensure a valid entry is set */
-		if ( RowResult != FPropertyAccess::MultipleValues  )
-		{
-			TArray<void*> RawData;
-
-			// This raw data access is necessary to avoid setting the value during details customization setup which would cause infinite recursion repetedly reinitializing this customization
-			RowNamePropertyHandle->AccessRawData( RawData );
-			if( RawData.Num() == 1 )
+			/** Reset the initial value to ensure a valid entry is set */
+			if ( RowResult != FPropertyAccess::MultipleValues )
 			{
-				FName* RawFName = (FName*)RawData[0];
-				*RawFName = **InitialValue;
+				TArray<void*> RawData;
+
+				// This raw data access is necessary to avoid setting the value during details customization setup which would cause infinite recursion repetedly reinitializing this customization
+				RowNamePropertyHandle->AccessRawData(RawData);
+				if ( RawData.Num() == 1 )
+				{
+					FName* RawFName = (FName*)RawData[0];
+					*RawFName = **InitialValue;
+				}
 			}
 		}
 

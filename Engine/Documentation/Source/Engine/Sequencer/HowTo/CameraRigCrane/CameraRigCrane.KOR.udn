@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3041238
 Availability: Public
-Title:Shooting from a Camera Rig Crane
+Title:카메라 릭 크레인에서 찍기
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
-Description:Here we use a Camera Rig Crane to shoot a scene with sweeping movement. 
+Description:여기서는 카메라 릭 크레인을 사용하여 휩쓰는 동작의 스윕 샷을 찍어 봅니다.
 Version: 4.12
 SkillLevel: Intermediate
 parent:Engine/Sequencer/HowTo
@@ -11,107 +11,107 @@ checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
 
-One of the tools real-world filmmakers use to produce smooth sweeping shots is by attaching a camera to a crane and controlling the shot through the crane's movement.
-You can create similar shots in Sequencer with the use of the **Camera Rig Crane** Actor and an attached **Camera**. 
+실제 영화 제작시 부드럽게 휩쓰는 스윕 샷을 찍는 방법 중 하나는, 크레인에 카메라를 달아 크레인 이동을 통해 샷을 제어하는 것입니다.
+시퀀서에서 **Camera Rig Crane** (카메라 릭 크레인) 액터를 사용하여 **카메라** 를 붙이면 비슷한 샷을 찍을 수 있습니다.
 
-In this how-to we will add a Camera Rig Crane, attach a Camera and create a sample Crane Shot. 
+여기서는 카메라 릭 크레인을 추가하고 카메라를 붙인 뒤 샘플 크레인 샷을 만들어 보겠습니다.
 
 
-## Steps
+## 단계
 
 [REGION:note]
-For this how-to, we are using the **Blueprint Third Person Template** project with **Starter Content** enabled. 
+여기서는 **블루프린트 삼인칭 템플릿** 프로젝트에 **시작용 콘텐츠** 를 포함시켜 사용하고 있습니다.
 [/REGION]
 
-1.	In your project on the **Modes** panel under **Cinematic**, drag a **Camera Rig Crane** asset into the level. 
+1.	프로젝트의 **모드** 패널에서 **시네마틱** 아래 **카메라 릭 크레인** 애셋을 끌어 레벨에 놓습니다.
 
 	![](Crane01.png)
 
-1.	Also under **Cinematic**, drag a **Cine Camera Actor** into the level. 
+1.	또 **시네마틱** 아래 **시네 카메라 액터** 를 끌어 레벨에 놓습니다.
 
 	![](Crane02.png)
 
-1.	In the **World Outliner** window, drag-and-drop the **CineCameraActor** onto the **CameraRig_Crane**. 
+1.	**월드 아웃라이너** 창에서 **CineCameraActor** 를 끌어 **CameraRig_Crane** 에 놓습니다. 
 
 	![](Crane03.png)
 
-	This will attach the camera to the crane so that it will follow the crane's movement. 
+	그러면 카메라가 크레인에 붙어 크레인의 이동을 따라가게 됩니다.
 
-1.	Select the **CineCameraActor**, then in the **Details** panel under **Transform** enter **0's** for **Location** and **Rotation** values. 
+1.	**CineCameraActor** 를 선택한 뒤, **디테일** 패널에서 **트랜스폼** 아래 **위치** 와 **회전** 값에 **0** 을 입력합니다.
 
 	![](Crane04.png)
 
-	This will zero out the camera's transform and attach it correctly to the crane. 
+	카메라의 트랜스폼을 초기화시켜 크레인에 제대로 붙여줍니다.
 
-1.	From the Main Toolbar, click **Cinematics** then select **Add Level Sequence**. 
+1.	메인 툴바에서, **시네마틱** - **레벨 시퀀스 추가** 를 선택합니다.
 
 	![](Crane05.png)
 
-1.	Hold **Ctrl** and select both the **CameraRigCrane** and **CineCameraActor**, then add both to **Sequencer**. 
+1.	**Ctrl** 키를 누르고 **CameraRigCrane** 와 **CineCameraActor** 둘 다 선택한 뒤, 둘 다 **시퀀서** 에 추가합니다.
 
 	![](Crane06.png)
 
-1.	Click **Add** then select the **Camera Cut Track**. 
+1.	**추가** 를 선택한 뒤 **카메라 컷 트랙** 을 선택합니다.
 
 	![](Crane07.png)
 
-	This will allow us to define which camera to shoot this Level Sequence from. 
+	그러면 이 레벨 시퀀스 샷을 어느 카메라서 찍을 것인지 정의할 수 있습니다.
 
-1.	On the **Camera Cuts** track, click the **+ Camera** button then select the **CineCameraActor**. 
+1.	**카메라 컷** 트랙에서 **+ 카메라** 버튼을 클릭한 뒤 **CineCameraActor** 를 선택합니다. 
 
 	![](Crane08.png)
 
-	We are now ready to shoot our scene using our Camera Rig Crane and Cine Camera Actor. 
-	You can preview what the scene will look like through the perspective of the camera we added by clicking the **Lock Viewport to Camera** button on the **Camera Cuts Track**. 
+	이제 카메라 릭 크레인과 시네 카메라 액터를 사용하여 씬을 찍을 준비가 되었습니다.
+	이제 **카메라 컷 트랙** 의 **뷰포트를 카메라에 잠금** 을 클릭하여 추가한 카메라 시점을 통해 씬이 어떻게 보이는지 미리볼 수 있습니다.
 
 	![](Crane09.png)
 
-	Clicking the **Lock Viewport to Camera** again will unlock the camera. 	
+	**뷰포트를 카메라에 잠금** 을 다시 클릭하면 카메라 잠금이 해제됩니다.
 
-1.	Using the **Translate** tool (**W** key) and **Rotation** tool (**E** key), rotate the crane/camera as shown below. 
+1.	**이동** (**W** 키) 과 **회전** (**E** 키) 툴을 사용하여, 아래와 같이 크레인/카메라를 회전시킵니다.
 
 	![](Crane10.png)
 
-	We are going to raise the crane and push it out to focus and reveal the character standing in the level for this particular shot. 
+	크레인을 들어올리고 밀어내어 레벨에 서있는 캐릭터에 포커스를 잡고 드러내어 이 샷을 찍도록 하겠습니다.
 
-1.	Add a key for the **Transform** location of the **Cine Camera Actor** by clicking the **Add Key** button on the **Transform Track**. 
+1.	**시네 카메라 액터** 의 **트랜스폼** 위치에 대한 키를 추가합니다. **트랜스폼 트랙** 에서 **키 추가** 버튼을 클릭하면 됩니다.
 
 	![](Crane11.png)
 
-1.	Click the **+ Track** button on the **CameraRig_Crane** and add the **Crane Arm Length**, **Crane Pitch** and **Crane Yaw** tracks. 
+1.	**CameraRig_Crane** 에서 **+ 트랙** 버튼을 클릭하고 **Crane Arm Length** (크레인 팔 길이), **Crane Pitch** (크레인 핏치), **Crane Yaw** (크레인 요) 트랙을 추가합니다.
 
 	![](Crane12.png)
 
-1.	Scrub the Timeline Marker ahead to **50** then set **Crane Arm Length** to **1000** and **Crane Pitch** to **20** and add keys for both. 
+1.	타임라인 마커를 잡아 끌어 **50** 으로 이동한 뒤 **크레인 팔 길이** 를 **1000** 으로, **크레인 핏치** 를 **20** 으로 설정하고 둘 다에 대한 키를 추가합니다.
 
 	![](Crane13.png)
 
-	If you scrub back-and-forth between the start and frame 50 you should see the crane movement in the viewport.
+	타임라인 마커를 잡아 시작 프레임과 50 프레임 앞 뒤로 이동시켜 보면 뷰포트에서 크레인 이동을 확인할 수 있을 것입니다.
 
-1.	Scrub the Timeline Marker to the end of the Sequence (**150**).
+1.	타임라인 마커를 잡아 시퀀스 끝 (**150**) 으로 이동시킵니다.
 
-1.	In the **Details** panel for the **CameraRig_Crane**, set **Crane Yaw** to **-25** and add a key. 
+1.	**CameraRig_Crane** 에 대한 **디테일** 패널에서, **크레인 요** 를 **-25** 로 설정하고 키를 추가합니다.
 
 	![](Crane14.png)
 
-	You can set the **Crane Pitch**, **Crane Yaw** and **Crane Arm Length** from the **Details** panel by clicking the **Add Key** button next to each property. 
+	**크레인 핏치**, **크레인 요**, **크레인 팔 길이** 설정은 **디테일** 패널에서 각 프로퍼티 옆의 **키 추가** 버튼을 클릭해서도 가능합니다.
 
-1.	In the **Details** panel for the **CineCameraActor**, set the **XYZ** values for **Rotation** to **0, -25, -50**. 
+1.	**CineCameraActor** 에 대한 **디테일** 패널에서, **회전** 의 **XYZ** 값을 **0, -25, -50** 으로 설정합니다. 
 
 	![](Crane16.png)
 
-	The values may not be exact and might be auto adjusted which is fine. 
+	값이 정확하지 않고 자동 조절될 수 있지만, 괜찮습니다.
 
-1.	With the **Cine Camera Actor** still selected, press **Shift + E** to add a key for the rotational values. 
+1.	**시네 카메라 액터** 를 여전히 선택한 채, **Shift + E** 키를 눌러 회전 값에 대한 키를 추가합니다.
 
 	![](Crane17.png)
 
-1.	Lock the viewport to the **Camera Cuts** track then click the **Preview Play** button. 
+1.	뷰포트를 **카메라 컷** 트랙에 잠근 뒤 **프리뷰 재생** 버튼을 클릭합니다.
 
 	
-## End Result
+## 최종 결과
 
-You should have something similar to below where the camera pans up along with the crane and pushes in towards the character. 
+아래와 비슷하게 카메라가 크레인을 따라 상승한 뒤 캐릭터 쪽으로 밀고 들어가는 것이 보일 것입니다.
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -125,12 +125,11 @@ RAsfP5G0Shk
 [/PARAMLITERAL]
 [/OBJECT]
 
-You can adjust the keys by dragging them to new values in the keyframe window. Above we slowed the cranes upward movement by moving the **Crane Arm Length** and **Crane Pitch** keyframes we added at frame **50** and moved them to frame **100**. 
+키 조정은 트랙 영역에서 새로운 값으로 잡아 끄는 것으로도 가능합니다. 위에서는 **50** 프레임 위치에 추가한 **크레인 팔 길이** 와 **크레인 핏치** 키프레임을 **100** 프레임으로 이동시켜 카메라 상승 이동을 늦췄습니다.
 
 [REGION:tip]
-There is an advanced method you can use to work with the **Camera Rig Crane** asset in Sequencer that will automate several of the steps from this how-to. Please see the [**Workflow Shortcuts**](Engine\Sequencer\Workflow\CheatSheet) section for more information. 
+시퀀서의 **카메라 릭 크레인** 애셋 작업시 여기서 여러 단계에 걸쳐 한 작업을 자동화시킬 수 있는 고급 작업 방식이 있습니다. 자세한 정보는 [](Engine\Sequencer\Workflow\CheatSheet) 문서를 참고하세요.
 [/REGION]
-
 
 
 

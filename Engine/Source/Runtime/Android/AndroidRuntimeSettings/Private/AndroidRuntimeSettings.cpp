@@ -12,7 +12,7 @@
 UAndroidRuntimeSettings::UAndroidRuntimeSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, Orientation(EAndroidScreenOrientation::Landscape)
-	, GoogleVRMode(EGoogleVRMode::Cardboard)
+	, GoogleVRMode(EGoogleVRMode::DaydreamAndCardboard)
 	, bEnableGooglePlaySupport(false)
 	, bMultiTargetFormat_ETC1(true)
 	, bMultiTargetFormat_ETC2(true)

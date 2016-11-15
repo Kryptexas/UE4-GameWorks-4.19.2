@@ -31,7 +31,7 @@ TSharedPtr<IMovieSceneTrackInstance> UMovieScene3DTransformTrack::CreateInstance
 }
 
 
-bool UMovieScene3DTransformTrack::Eval( float Position, float LastPosition, FVector& OutTranslation, FRotator& OutRotation, FVector& OutScale ) const
+bool UMovieScene3DTransformTrack::Eval( float Position, float LastPosition, FVector& InOutTranslation, FRotator& InOutRotation, FVector& InOutScale ) const
 {
 	const UMovieSceneSection* Section = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Position );
 
@@ -45,9 +45,9 @@ bool UMovieScene3DTransformTrack::Eval( float Position, float LastPosition, FVec
 		}
 
 		// Evaluate translation,rotation, and scale curves.  If no keys were found on one of these, that component of the transform will remain unchained
-		TransformSection->EvalTranslation( Position, OutTranslation );
-		TransformSection->EvalRotation( Position, OutRotation );
-		TransformSection->EvalScale( Position, OutScale );
+		TransformSection->EvalTranslation( Position, InOutTranslation );
+		TransformSection->EvalRotation( Position, InOutRotation );
+		TransformSection->EvalScale( Position, InOutScale );
 	}
 
 	return Section != nullptr;

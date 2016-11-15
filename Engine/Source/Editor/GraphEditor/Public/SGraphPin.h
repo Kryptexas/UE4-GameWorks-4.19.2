@@ -4,8 +4,53 @@
 #include "SImage.h"
 
 class SGraphNode;
+class UEdGraphPin;
+class SGraphPanel;
 
 #define NAME_DefaultPinLabelStyle TEXT("Graph.Node.PinName")
+
+/////////////////////////////////////////////////////
+// FGraphPinHandle
+
+/** A handle to a pin, defined by its owning node's GUID, and the pin's name. Used to reference a pin without referring to its widget */
+struct GRAPHEDITOR_API FGraphPinHandle
+{
+	/** The GUID of the node to which this pin belongs */
+	FGuid NodeGuid;
+
+	/** The GUID of the pin we are referencing */
+	FGuid PinId;
+
+	/** Constructor */
+	FGraphPinHandle(UEdGraphPin* InPin);
+
+	/** */
+	UEdGraphPin* GetPinObj(const SGraphPanel& InPanel) const;
+
+	/** Find a pin widget in the specified panel from this handle */
+	TSharedPtr<class SGraphPin> FindInGraphPanel(const class SGraphPanel& InPanel) const;
+
+	/** */
+	bool IsValid() const
+	{
+		return PinId.IsValid() && NodeGuid.IsValid();
+	}
+
+	/** */
+	bool operator==(const FGraphPinHandle& Other) const
+	{
+		return PinId == Other.PinId && NodeGuid == Other.NodeGuid;
+	}
+
+	/** */
+	friend inline uint32 GetTypeHash(const FGraphPinHandle& Handle)
+	{
+		return HashCombine(GetTypeHash(Handle.PinId), GetTypeHash(Handle.NodeGuid));
+	}
+};
+
+/////////////////////////////////////////////////////
+// SGraphPin
 
 /**
  * Represents a pin on a node in the GraphEditor
@@ -155,7 +200,7 @@ protected:
 	TOptional<EMouseCursor::Type> GetPinCursor() const;
 
 	/** Spawns a FDragConnection or similar class for the pin drag event */
-	virtual TSharedRef<FDragDropOperation> SpawnPinDragEvent(const TSharedRef<class SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphPin> >& InStartingPins, bool bShiftOperation);
+	virtual TSharedRef<FDragDropOperation> SpawnPinDragEvent(const TSharedRef<class SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphPin> >& InStartingPins);
 	
 	/** True if pin can be edited */
 	bool IsEditingEnabled() const;

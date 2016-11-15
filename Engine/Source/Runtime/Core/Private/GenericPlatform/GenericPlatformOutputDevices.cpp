@@ -4,7 +4,7 @@
 #include "HAL/FeedbackContextAnsi.h"
 #include "Misc/App.h"
 #include "Misc/OutputDeviceConsole.h"
-#include "HAL/OutputDeviceMemory.h"
+#include "Misc/OutputDeviceMemory.h"
 
 void FGenericPlatformOutputDevices::SetupOutputDevices()
 {
@@ -39,27 +39,46 @@ FString FGenericPlatformOutputDevices::GetAbsoluteLogFilename()
 
 	if (!Filename[0])
 	{
-		// The Editor requires a fully qualified directory to not end up putting the log in various directories.
-		FCString::Strcpy(Filename, *FPaths::GameLogDir());
+		FCString::Strcpy(Filename, ARRAY_COUNT(Filename), *FPaths::GameLogDir());
+		FString LogFilename;
+		if (!FParse::Value(FCommandLine::Get(), TEXT("LOG="), LogFilename))
+		{
+			if (FParse::Value(FCommandLine::Get(), TEXT("ABSLOG="), LogFilename))
+			{
+				Filename[0] = 0;
+			}
+		}
 
-		if(	!FParse::Value(FCommandLine::Get(), TEXT("LOG="), Filename+FCString::Strlen(Filename), ARRAY_COUNT(Filename)-FCString::Strlen(Filename) )
-			&&	!FParse::Value(FCommandLine::Get(), TEXT("ABSLOG="), Filename, ARRAY_COUNT(Filename) ) )
+		FString Extension(FPaths::GetExtension(LogFilename));
+		if (Extension != TEXT("log") && Extension != TEXT("txt"))
+		{
+			// Ignoring the specified log filename because it doesn't have a .log extension			
+			LogFilename.Empty();
+		}
+
+		if (LogFilename.Len() == 0)
 		{
 			if (FCString::Strlen(FApp::GetGameName()) != 0)
 			{
-				FCString::Strcat(Filename, FApp::GetGameName());
+				LogFilename = FApp::GetGameName();
 			}
 			else
 			{
-				FCString::Strcat( Filename, TEXT("UE4") );
+				LogFilename = TEXT("UE4");
 			}
-			FCString::Strcat( Filename, TEXT(".log") );
+
+			LogFilename += TEXT(".log");
 		}
+
+		FCString::Strcat(Filename, ARRAY_COUNT(Filename) - FCString::Strlen(Filename), *LogFilename);
 	}
 
 	return Filename;
 }
 
+#ifndef WITH_LOGGING_TO_MEMORY
+	#define WITH_LOGGING_TO_MEMORY 0
+#endif
 
 class FOutputDevice* FGenericPlatformOutputDevices::GetLog()
 {
@@ -68,6 +87,7 @@ class FOutputDevice* FGenericPlatformOutputDevices::GetLog()
 		TAutoPtr<FOutputDevice> LogDevice;
 		FLogOutputDeviceInitializer()
 		{
+#if WITH_LOGGING_TO_MEMORY
 #if !IS_PROGRAM && !WITH_EDITORONLY_DATA
 			if (!LogDevice.IsValid() 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -79,7 +99,8 @@ class FOutputDevice* FGenericPlatformOutputDevices::GetLog()
 			{
 				LogDevice = new FOutputDeviceMemory();
 			}
-#endif
+#endif // !IS_PROGRAM && !WITH_EDITORONLY_DATA
+#endif // WITH_LOGGING_TO_MEMORY
 			if (!LogDevice.IsValid())
 			{
 				LogDevice = new FOutputDeviceFile();

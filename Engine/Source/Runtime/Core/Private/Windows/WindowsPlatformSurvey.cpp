@@ -15,14 +15,9 @@
 	#pragma comment( lib, "PowrProf.lib" )
 #endif
 
-#if defined(_MSC_VER) && USING_CODE_ANALYSIS
-	#pragma warning(push)
-	#pragma warning(disable:28251)
-#endif
-#include <subauth.h>
-#if defined(_MSC_VER) && USING_CODE_ANALYSIS
-	#pragma warning(pop)
-#endif
+THIRD_PARTY_INCLUDES_START
+	#include <subauth.h>
+THIRD_PARTY_INCLUDES_END
 
 #include "UnrealString.h"
 #include "SynthBenchmark.h"

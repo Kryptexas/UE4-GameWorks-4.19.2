@@ -3,10 +3,13 @@
 #pragma once
 
 #include "VisualStudioSourceCodeAccessor.h"
+#include "VisualStudioSourceCodeAccessorWrapper.h"
 
 class FVisualStudioSourceCodeAccessModule : public IModuleInterface
 {
 public:
+	FVisualStudioSourceCodeAccessModule();
+
 	/** IModuleInterface implementation */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
@@ -14,5 +17,8 @@ public:
 	FVisualStudioSourceCodeAccessor& GetAccessor();
 
 private:
-	FVisualStudioSourceCodeAccessor VisualStudioSourceCodeAccessor;
+	void RegisterWrapper(FName Name, FText NameText, FText DescriptionText);
+
+	TSharedRef<FVisualStudioSourceCodeAccessor> VisualStudioSourceCodeAccessor;
+	TArray<TSharedRef<FVisualStudioSourceCodeAccessorWrapper>> Wrappers;
 };

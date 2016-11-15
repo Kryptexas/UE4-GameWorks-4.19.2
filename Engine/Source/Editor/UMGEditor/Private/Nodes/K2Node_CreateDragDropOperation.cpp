@@ -71,6 +71,13 @@ void UK2Node_CreateDragDropOperation::ExpandNode(class FKismetCompilerContext& C
 	UEdGraphPin* SpawnNodeThen = CreateOpNode->GetThenPin();
 	UEdGraphPin* SpawnNodeResult = CreateOpNode->GetResultPin();
 
+	if (!SpawnNodeExec || !SpawnClassPin || !SpawnNodeThen || !SpawnNodeResult)
+	{
+		CompilerContext.MessageLog.Error(*LOCTEXT("CreateDragDropOperation_InternalError", "Invalid Drag/Drop node @@").ToString(), CreateOpNode);
+		CreateOpNode->BreakAllNodeLinks();
+		return;
+	}
+
 	UClass* SpawnClass = ( SpawnClassPin != NULL ) ? Cast<UClass>(SpawnClassPin->DefaultObject) : NULL;
 	//if ( ( 0 == SpawnClassPin->LinkedTo.Num() ) && ( NULL == SpawnClass ) )
 	//{

@@ -7,6 +7,8 @@
 #include "ComponentInstanceDataCache.h" // for FActorComponentInstanceData
 #include "SceneComponent.generated.h"
 
+struct FLevelCollection;
+
 /** Overlap info consisting of the primitive and the body that is overlapping */
 USTRUCT()
 struct ENGINE_API FOverlapInfo
@@ -113,8 +115,12 @@ private:
 	USceneComponent* AttachParent;
 
 	/** List of child SceneComponents that are attached to us. */
-	UPROPERTY(Replicated, transient)
+	UPROPERTY(ReplicatedUsing = OnRep_AttachChildren, Transient)
 	TArray<USceneComponent*> AttachChildren;
+
+	/** Set of attached SceneComponents that were attached by the client so we can fix up AttachChildren when it is replicated to us. */
+	UPROPERTY(Transient)
+	TSet<USceneComponent*> ClientAttachedChildren;
 
 	/** Optional socket name on AttachParent that we are attached to. */
 	UPROPERTY(ReplicatedUsing = OnRep_AttachSocketName)
@@ -241,11 +247,17 @@ private:
 	FName NetOldAttachSocketName;
 	USceneComponent *NetOldAttachParent;
 
+	/** Cached level collection that contains the level this component is registered in, for fast access in IsVisible(). */
+	const FLevelCollection* CachedLevelCollection;
+
 	UFUNCTION()
 	void OnRep_Transform();
 
 	UFUNCTION()
 	void OnRep_AttachParent();
+
+	UFUNCTION()
+	void OnRep_AttachChildren();
 
 	UFUNCTION()
 	void OnRep_AttachSocketName();
@@ -755,6 +767,7 @@ public:
 
 	//~ Begin ActorComponent Interface
 	virtual void OnRegister() override;
+	virtual void OnUnregister() override;
 	/** Return true if CreateRenderState() should be called */
 	virtual bool ShouldCreateRenderState() const override
 	{
@@ -1159,6 +1172,13 @@ protected:
 public:
 	/** Determines whether or not the component can have its mobility set to static */
 	virtual const bool CanHaveStaticMobility() const { return true; }
+
+	virtual void PropagateLightingScenarioChange() {}
+
+	virtual bool IsPrecomputedLightingValid() const
+	{
+		return false;
+	}
 
 private:
 

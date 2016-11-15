@@ -7,6 +7,7 @@
 
 USoundClass* USoundBase::DefaultSoundClassObject = nullptr;
 USoundConcurrency* USoundBase::DefaultSoundConcurrencyObject = nullptr;
+USoundSubmix* USoundBase::DefaultSoundSubmixObject = nullptr;
 
 USoundBase::USoundBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -29,6 +30,16 @@ void USoundBase::PostInitProperties()
 		}
 	}
 	SoundClassObject = USoundBase::DefaultSoundClassObject;
+
+	if (USoundBase::DefaultSoundSubmixObject == nullptr)
+	{
+		const FStringAssetReference DefaultSoundSubmixName = GetDefault<UAudioSettings>()->DefaultSoundSubmixName;
+		if (DefaultSoundSubmixName.IsValid())
+		{
+			USoundBase::DefaultSoundSubmixObject = LoadObject<USoundSubmix>(nullptr, *DefaultSoundSubmixName.ToString());
+		}
+	}
+	SoundSubmixObject = USoundBase::DefaultSoundSubmixObject;
 
 	if (USoundBase::DefaultSoundConcurrencyObject == nullptr)
 	{
@@ -89,6 +100,11 @@ bool USoundBase::ShouldApplyInteriorVolumes() const
 USoundClass* USoundBase::GetSoundClass() const
 {
 	return SoundClassObject;
+}
+
+USoundSubmix* USoundBase::GetSoundSubmix() const
+{
+	return SoundSubmixObject;
 }
 
 const FSoundConcurrencySettings* USoundBase::GetSoundConcurrencySettingsToApply()

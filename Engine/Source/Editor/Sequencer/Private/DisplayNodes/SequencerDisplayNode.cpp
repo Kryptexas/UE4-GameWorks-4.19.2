@@ -15,6 +15,7 @@
 #include "IKeyArea.h"
 #include "GroupedKeyArea.h"
 #include "ObjectEditorUtils.h"
+#include "GenericCommands.h"
 
 
 #define LOCTEXT_NAMESPACE "SequencerDisplayNode"
@@ -484,6 +485,14 @@ void FSequencerDisplayNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 			EUserInterfaceActionType::ToggleButton
 		);
 
+
+		// Add cut, copy and paste functions to the tracks
+		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Cut);
+
+		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Copy);
+		
+		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Paste);
+		
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("DeleteNode", "Delete"),
 			LOCTEXT("DeleteNodeTooltip", "Delete this or selected tracks"),

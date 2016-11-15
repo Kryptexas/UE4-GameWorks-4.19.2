@@ -44,6 +44,17 @@ void FLatentActionManager::RemoveActionsForObject(TWeakObjectPtr<UObject> InObje
 	}
 }
 
+int32 FLatentActionManager::GetNumActionsForObject(TWeakObjectPtr<UObject> InObject)
+{
+	auto ObjectActionList = GetActionListForObject(InObject);
+	if (ObjectActionList)
+	{
+		return ObjectActionList->Num();
+	}
+
+	return 0;
+}
+
 
 DECLARE_CYCLE_STAT(TEXT("Blueprint Latent Actions"), STAT_TickLatentActions, STATGROUP_Game);
 

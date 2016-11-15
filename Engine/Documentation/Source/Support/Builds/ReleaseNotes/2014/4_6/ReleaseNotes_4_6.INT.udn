@@ -1020,7 +1020,7 @@ Slate and UMG now support font families and composite fonts.  These allow you to
 * Disable OpenGL workarounds no longer required on Yosemite, though they will still be used on Mavericks.
 	* Combined depth-stencil clears & depth-fetch-during-depth-test now work on AMD 7xx0 & Dxx0 GPUs.
 	* On Intel cards we no longer need to flush changes to the blend state, significantly improving performance on those GPUs.
-* Fix broken skeletal mesh rendering on Nvidia cards under Yosemite.
+* Fix broken skeletal mesh rendering on NVIDIA cards under Yosemite.
 	* This rebinds the SRV whenever the underlying buffer is modified which should not have a performance impact.
 * Fix crash reporting under Yosemite due to a bad interaction between our operator-new override & a system library.
 * Amend launching processes on OS X to report failures rather than crashing.

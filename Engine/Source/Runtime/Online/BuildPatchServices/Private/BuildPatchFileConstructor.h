@@ -79,7 +79,7 @@ public:
 	 * @param InConstructList		The list of files to be constructed, filename paths should match those contained in manifest.
 	 * @param InBuildProgress		Pointer to the progress tracking class
 	 */
-	FBuildPatchFileConstructor( FBuildPatchAppManifestPtr InInstalledManifest, FBuildPatchAppManifestRef InBuildManifest, const FString& InInstallDirectory, const FString& InStageDirectory, const TArray< FString >& InConstructList, FBuildPatchProgress* InBuildProgress );
+	FBuildPatchFileConstructor(FBuildPatchAppManifestPtr InInstalledManifest, FBuildPatchAppManifestRef InBuildManifest, const FString& InInstallDirectory, const FString& InStageDirectory, const TSet<FString>& InConstructList, FBuildPatchProgress* InBuildProgress);
 
 	/**
 	 * Default Destructor, will delete the allocated Thread
@@ -101,12 +101,6 @@ public:
 	 * @return	true if the thread completed
 	 */
 	bool IsComplete();
-	
-	/**
-	 * Get list of constructed files - only valid when complete
-	 * @param		OUT		Populated with the list of files
-	 */
-	void GetFilesConstructed( TArray< FString >& ConstructedFiles );
 
 	/**
 	 * Static function for registering a file download that has been successfully acquired

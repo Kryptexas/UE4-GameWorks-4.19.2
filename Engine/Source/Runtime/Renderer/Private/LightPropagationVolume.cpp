@@ -964,7 +964,7 @@ void FLightPropagationVolume::InitSettings(FRHICommandListImmediate& RHICmdList,
 	// Update the grid offset based on the camera
 	{
 		mOldGridOffset = mGridOffset;
-		FVector CentrePos = View.ViewMatrices.ViewOrigin;
+		FVector CentrePos = View.ViewMatrices.GetViewOrigin();
 		FVector CameraAt = View.GetViewDirection();
 
 		float LpvScale = CubeSize / float(LPV_GRIDRES);
@@ -977,7 +977,7 @@ void FLightPropagationVolume::InitSettings(FRHICommandListImmediate& RHICmdList,
 
 		LpvWriteUniformBufferParams->mOldGridOffset		= mOldGridOffset;
 		LpvWriteUniformBufferParams->mLpvGridOffset		= mGridOffset;
-		LpvWriteUniformBufferParams->mEyePos			= View.ViewMatrices.ViewOrigin;
+		LpvWriteUniformBufferParams->mEyePos			= View.ViewMatrices.GetViewOrigin();
 		LpvWriteUniformBufferParams->ClearMultiplier	= ClearMultiplier;
 		LpvWriteUniformBufferParams->LpvScale			= LpvScale;
 		LpvWriteUniformBufferParams->OneOverLpvScale	= OneOverLpvScale;

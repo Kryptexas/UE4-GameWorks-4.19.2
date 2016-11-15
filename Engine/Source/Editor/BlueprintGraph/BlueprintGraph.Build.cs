@@ -22,7 +22,6 @@ public class BlueprintGraph : ModuleRules
                 "InputCore",
 				"Slate",
                 "EditorStyle",
-                "AIModule",
 			}
 		);
 

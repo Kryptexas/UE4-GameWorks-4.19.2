@@ -318,7 +318,7 @@ bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleInner(
 {
 	// We should have a single view's visibility data, or a stereo pair
 	check((StaticMeshVisibilityMap != nullptr && BatchVisibilityArray != nullptr) || StereoView != nullptr);
-	check((InstancedStereo == InstancedStereoPolicy::Enabled) == (StereoView != nullptr));
+	check((InstancedStereo != InstancedStereoPolicy::Disabled) == (StereoView != nullptr));
 
 	bool bDirty = false;
 	STAT(int32 StatInc = 0;)
@@ -363,12 +363,12 @@ bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleInner(
 
 				if (ResolvedVisiblityArray != nullptr)
 				{
-				    const FElement& Element = DrawingPolicyLink->Elements[ElementIndex];
-					    STAT(StatInc += Element.Mesh->GetNumPrimitives();)
-				    int32 SubCount = Element.Mesh->Elements.Num();
-				    // Avoid the cache miss looking up batch visibility if there is only one element.
+					const FElement& Element = DrawingPolicyLink->Elements[ElementIndex];
+					STAT(StatInc += Element.Mesh->GetNumPrimitives();)
+						int32 SubCount = Element.Mesh->Elements.Num();
+					// Avoid the cache miss looking up batch visibility if there is only one element.
 					uint64 BatchElementMask = Element.Mesh->bRequiresPerElementVisibility ? (*ResolvedVisiblityArray)[Element.Mesh->Id] : ((1ull << SubCount) - 1);
-					Count += DrawElement<InstancedStereoPolicy::Enabled>(RHICmdList, View, PolicyContext, Element, BatchElementMask, DrawingPolicyLink, bDrawnShared);
+					Count += DrawElement<InstancedStereo>(RHICmdList, View, PolicyContext, Element, BatchElementMask, DrawingPolicyLink, bDrawnShared);
 				}
 			}
 		}
@@ -766,19 +766,31 @@ void TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleParallelInternal(
 }
 
 template<typename DrawingPolicyType>
-int32 TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleFrontToBack(
+template<InstancedStereoPolicy InstancedStereo>
+int32 TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleFrontToBackInner(
 	FRHICommandList& RHICmdList,
 	const FViewInfo& View,
 	const typename DrawingPolicyType::ContextDataType PolicyContext,
-	const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap,
-	const TArray<uint64,SceneRenderingAllocator>& BatchVisibilityArray,
+	const TBitArray<SceneRenderingBitArrayAllocator>* const StaticMeshVisibilityMap,
+	const TArray<uint64, SceneRenderingAllocator>* const BatchVisibilityArray,
+	const StereoPair* const StereoView,
 	int32 MaxToDraw
 	)
 {
+	// We should have a single view's visibility data, or a stereo pair
+	check((StaticMeshVisibilityMap != nullptr && BatchVisibilityArray != nullptr) || StereoView != nullptr);
+	check((InstancedStereo != InstancedStereoPolicy::Disabled) == (StereoView != nullptr));
+
 	int32 NumDraws = 0;
 	TArray<FDrawListSortKey,SceneRenderingAllocator> SortKeys;
 	const FVector ViewLocation = View.ViewLocation;
 	SortKeys.Reserve(64);
+
+	TArray<const TArray<uint64, SceneRenderingAllocator>*, SceneRenderingAllocator> ElementVisibility;
+	if (InstancedStereo != InstancedStereoPolicy::Disabled)
+	{
+		ElementVisibility.Reserve(64);
+	}
 
 	for(typename TArray<FSetElementId>::TConstIterator PolicyIt(OrderedDrawingPolicies); PolicyIt; ++PolicyIt)
 	{
@@ -790,7 +802,28 @@ int32 TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleFrontToBack(
 		const FElementCompact* CompactElementPtr = DrawingPolicyLink->CompactElements.GetData();
 		for(int32 ElementIndex = 0; ElementIndex < NumElements; ElementIndex++, CompactElementPtr++)
 		{
-			if(StaticMeshVisibilityMap.AccessCorrespondingBit(FRelativeBitReference(CompactElementPtr->MeshId)))
+			bool bIsVisible = false;
+			if (InstancedStereo == InstancedStereoPolicy::Disabled)
+			{
+				// Single view
+				bIsVisible = StaticMeshVisibilityMap->AccessCorrespondingBit(FRelativeBitReference(CompactElementPtr->MeshId));
+			}
+			else
+			{
+				// Stereo pair, we need to test both eyes
+				if (StereoView->LeftViewVisibilityMap->AccessCorrespondingBit(FRelativeBitReference(CompactElementPtr->MeshId)))
+				{
+					bIsVisible = true;
+					ElementVisibility.Add(StereoView->LeftViewBatchVisibilityArray);
+				}
+				else if (StereoView->RightViewVisibilityMap->AccessCorrespondingBit(FRelativeBitReference(CompactElementPtr->MeshId)))
+				{
+					bIsVisible = true;
+					ElementVisibility.Add(StereoView->RightViewBatchVisibilityArray);
+				}
+			}
+
+			if (bIsVisible)
 			{
 				const FElement& Element = DrawingPolicyLink->Elements[ElementIndex];
 				const FBoxSphereBounds& Bounds = Element.Bounds;
@@ -821,8 +854,10 @@ int32 TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleFrontToBack(
 		CA_SUPPRESS(6011);
 		const FElement& Element = DrawingPolicyLink->Elements[ElementIndex];
 		STAT(StatInc +=  Element.Mesh->GetNumPrimitives();)
+		const TArray<uint64, SceneRenderingAllocator>* const ResolvedVisiblityArray = (InstancedStereo == InstancedStereoPolicy::Disabled) ? BatchVisibilityArray : ElementVisibility[SortedIndex];
+
 		// Avoid the cache miss looking up batch visibility if there is only one element.
-		uint64 BatchElementMask = Element.Mesh->bRequiresPerElementVisibility ? BatchVisibilityArray[Element.Mesh->Id] : ((1ull << Element.Mesh->Elements.Num()) - 1);
+		uint64 BatchElementMask = Element.Mesh->bRequiresPerElementVisibility ? (*ResolvedVisiblityArray)[Element.Mesh->Id] : ((1ull << Element.Mesh->Elements.Num()) - 1);
 		DrawElement<InstancedStereoPolicy::Disabled>(RHICmdList, View, PolicyContext, Element, BatchElementMask, DrawingPolicyLink, bDrawnShared);
 		NumDraws++;
 	}

@@ -77,7 +77,7 @@ UAnimSequence * UEditorEngine::ImportFbxAnimation( USkeleton* Skeleton, UObject*
 			{
 				// since to know full path, reimport will need to do same
 				UFbxAnimSequenceImportData* ImportData = UFbxAnimSequenceImportData::GetImportDataForAnimSequence(NewAnimation, TemplateImportData);
-				ImportData->Update(UFactory::GetCurrentFilename());
+				ImportData->Update(UFactory::GetCurrentFilename(), &(FFbxImporter->Md5Hash));
 			}
 		}
 	}
@@ -107,7 +107,8 @@ bool UEditorEngine::ReimportFbxAnimation( USkeleton* Skeleton, UAnimSequence* An
 		ReimportUI->MeshTypeToImport = FBXIT_Animation;
 		ReimportUI->bOverrideFullName = false;
 		ReimportUI->AnimSequenceImportData = ImportData;
-
+		ReimportUI->SkeletalMeshImportData->bImportMeshesInBoneHierarchy = ImportData->bImportMeshesInBoneHierarchy;
+		
 		ApplyImportUIToImportOptions(ReimportUI, *FbxImporter->ImportOptions);
 	}
 	else
@@ -166,6 +167,8 @@ bool UEditorEngine::ReimportFbxAnimation( USkeleton* Skeleton, UAnimSequence* An
 		}
 		else
 		{
+			check(ImportData);
+
 			// find the correct animation based on import data
 			FbxAnimStack* CurAnimStack = nullptr;
 			
@@ -351,7 +354,6 @@ void UnFbx::FFbxImporter::FillAndVerifyBoneNames(USkeleton* Skeleton, TArray<Fbx
 	}
 
 	const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
-	const USkeleton::FBoneTreeType& BoneTree = Skeleton->GetBoneTree();
 
 	// make sure at least root bone matches
 	if ( OutRawBoneNames[0] != RefSkeleton.GetBoneName(0) )
@@ -511,11 +513,11 @@ UAnimSequence * UnFbx::FFbxImporter::ImportAnimations(USkeleton* Skeleton, UObje
 		}
 		
 		FString SequenceName = Name;
-
+		FString SourceAnimationName = UTF8_TO_TCHAR(CurAnimStack->GetName());
 		if (ValidTakeCount > 1)
 		{
 			SequenceName += "_";
-			SequenceName += UTF8_TO_TCHAR(CurAnimStack->GetName());
+			SequenceName += SourceAnimationName;
 		}
 
 		// See if this sequence already exists.
@@ -523,7 +525,7 @@ UAnimSequence * UnFbx::FFbxImporter::ImportAnimations(USkeleton* Skeleton, UObje
 
 		FString 	ParentPath = FString::Printf(TEXT("%s/%s"), *FPackageName::GetLongPackagePath(*Outer->GetName()), *SequenceName);
 		UObject* 	ParentPackage = CreatePackage(NULL, *ParentPath);
-		UObject* Object = LoadObject<UObject>(ParentPackage, *SequenceName, NULL, LOAD_None, NULL);
+		UObject* Object = LoadObject<UObject>(ParentPackage, *SequenceName, NULL, (LOAD_Quiet | LOAD_NoWarn), NULL);
 		UAnimSequence * DestSeq = Cast<UAnimSequence>(Object);
 		// if object with same name exists, warn user
 		if (Object && !DestSeq)
@@ -549,7 +551,8 @@ UAnimSequence * UnFbx::FFbxImporter::ImportAnimations(USkeleton* Skeleton, UObje
 
 		// since to know full path, reimport will need to do same
 		UFbxAnimSequenceImportData* ImportData = UFbxAnimSequenceImportData::GetImportDataForAnimSequence(DestSeq, TemplateImportData);
-		ImportData->Update(UFactory::GetCurrentFilename());
+		ImportData->Update(UFactory::GetCurrentFilename(), &Md5Hash);
+		ImportData->SourceAnimationName = SourceAnimationName;
 
 		ImportAnimation(Skeleton, DestSeq, Name, SortedLinks, NodeArray, CurAnimStack, ResampleRate, AnimTimeSpan);
 
@@ -559,10 +562,33 @@ UAnimSequence * UnFbx::FFbxImporter::ImportAnimations(USkeleton* Skeleton, UObje
 	return LastCreatedAnim;
 }
 
+int32 GetAnimationCurveRate(FbxAnimCurve* CurrentCurve)
+{
+	if (CurrentCurve == nullptr)
+		return 0;
+
+	int32 KeyCount = CurrentCurve->KeyGetCount();
+
+	FbxTimeSpan TimeInterval(FBXSDK_TIME_INFINITE, FBXSDK_TIME_MINUS_INFINITE);
+	bool bValidTimeInterval = CurrentCurve->GetTimeInterval(TimeInterval);
+
+	if (KeyCount > 1 && bValidTimeInterval)
+	{
+		double KeyAnimLength = TimeInterval.GetDuration().GetSecondDouble();
+		if (KeyAnimLength != 0.0)
+		{
+			// 30 fps animation has 31 keys because it includes index 0 key for 0.0 second
+			return FPlatformMath::RoundToInt((KeyCount - 1) / KeyAnimLength);
+		}
+	}
+
+	return 0;
+}
+
 int32 UnFbx::FFbxImporter::GetMaxSampleRate(TArray<FbxNode*>& SortedLinks, TArray<FbxNode*>& NodeArray)
 {
 	int32 MaxStackResampleRate = 0;
-
+	const FBXImportOptions* ImportOption = GetImportOptions();
 	int32 AnimStackCount = Scene->GetSrcObjectCount<FbxAnimStack>();
 	for( int32 AnimStackIndex = 0; AnimStackIndex < AnimStackCount; AnimStackIndex++)
 	{
@@ -577,12 +603,12 @@ int32 UnFbx::FFbxImporter::GetMaxSampleRate(TArray<FbxNode*>& SortedLinks, TArra
 		double AnimStackStop = AnimStackTimeSpan.GetStop().GetSecondDouble();
 
 		FbxAnimLayer* AnimLayer = (FbxAnimLayer*)CurAnimStack->GetMember(0);
-
 		for(int32 LinkIndex = 0; LinkIndex < SortedLinks.Num(); ++LinkIndex)
 		{
 			FbxNode* CurrentLink = SortedLinks[LinkIndex];
 
-			FbxAnimCurve* Curves[6];
+			const int32 MaxElement = 9;
+			FbxAnimCurve* Curves[MaxElement];
 
 			Curves[0] = CurrentLink->LclTranslation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_X, false);
 			Curves[1] = CurrentLink->LclTranslation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Y, false);
@@ -590,28 +616,55 @@ int32 UnFbx::FFbxImporter::GetMaxSampleRate(TArray<FbxNode*>& SortedLinks, TArra
 			Curves[3] = CurrentLink->LclRotation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_X, false);
 			Curves[4] = CurrentLink->LclRotation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Y, false);
 			Curves[5] = CurrentLink->LclRotation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Z, false);
+			Curves[6] = CurrentLink->LclScaling.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_X, false);
+			Curves[7] = CurrentLink->LclScaling.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Y, false);
+			Curves[8] = CurrentLink->LclScaling.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Z, false);
 
-			for(int32 CurveIndex = 0; CurveIndex < 6; ++CurveIndex)
+			for(int32 CurveIndex = 0; CurveIndex < MaxElement; ++CurveIndex)
 			{
 				FbxAnimCurve* CurrentCurve = Curves[CurveIndex];
 				if(CurrentCurve)
 				{
-					int32 KeyCount = CurrentCurve->KeyGetCount();
-
-					FbxTimeSpan TimeInterval(FBXSDK_TIME_INFINITE,FBXSDK_TIME_MINUS_INFINITE);
-					bool bValidTimeInterval = CurrentCurve->GetTimeInterval(TimeInterval);
-
- 					if(KeyCount > 1 && bValidTimeInterval)
+					int32 NewRate = GetAnimationCurveRate(CurrentCurve);
+					if (NewRate > 0)
 					{
-						double KeyAnimLength = TimeInterval.GetDuration().GetSecondDouble();
-						double KeyAnimStart = TimeInterval.GetStart().GetSecondDouble();
-						double KeyAnimStop = TimeInterval.GetStop().GetSecondDouble();
+						MaxStackResampleRate = FMath::Max(NewRate, MaxStackResampleRate);
+					}
+				}
+			}
+		}
 
-						if(KeyAnimLength != 0.0)
+		// it doens't matter whether you choose to import morphtarget or not
+		// blendshape are always imported. Import morphtarget is only used for morphtarget for mesh
+		{
+			for (int32 NodeIndex = 0; NodeIndex < NodeArray.Num(); NodeIndex++)
+			{
+				// consider blendshape animation curve
+				FbxGeometry* Geometry = (FbxGeometry*)NodeArray[NodeIndex]->GetNodeAttribute();
+				if (Geometry)
+				{
+					int32 BlendShapeDeformerCount = Geometry->GetDeformerCount(FbxDeformer::eBlendShape);
+					for (int32 BlendShapeIndex = 0; BlendShapeIndex < BlendShapeDeformerCount; ++BlendShapeIndex)
+					{
+						FbxBlendShape* BlendShape = (FbxBlendShape*)Geometry->GetDeformer(BlendShapeIndex, FbxDeformer::eBlendShape);
+
+						int32 BlendShapeChannelCount = BlendShape->GetBlendShapeChannelCount();
+						for (int32 ChannelIndex = 0; ChannelIndex < BlendShapeChannelCount; ++ChannelIndex)
 						{
-							// 30 fps animation has 31 keys because it includes index 0 key for 0.0 second
-							int32 NewRate = FPlatformMath::RoundToInt((KeyCount-1) / KeyAnimLength);
-							MaxStackResampleRate = FMath::Max(NewRate, MaxStackResampleRate);
+							FbxBlendShapeChannel* Channel = BlendShape->GetBlendShapeChannel(ChannelIndex);
+
+							if (Channel)
+							{
+								FbxAnimCurve* CurrentCurve = Geometry->GetShapeChannel(BlendShapeIndex, ChannelIndex, AnimLayer);
+								if (CurrentCurve)
+								{
+									int32 NewRate = GetAnimationCurveRate(CurrentCurve);
+									if (NewRate > 0)
+									{
+										MaxStackResampleRate = FMath::Max(NewRate, MaxStackResampleRate);
+									}
+								}
+							}
 						}
 					}
 				}
@@ -980,7 +1033,7 @@ bool UnFbx::FFbxImporter::ImportCurveToAnimSequence(class UAnimSequence * Target
 		TargetSequence->RawCurveData.RefreshName(Mapping);
 
 		TargetSequence->MarkRawDataAsModified();
-		if (ImportCurve(FbxCurve, CurveToImport, AnimTimeSpan, ValueScale))
+		if (CurveToImport && ImportCurve(FbxCurve, CurveToImport, AnimTimeSpan, ValueScale))
 		{
 			if (ImportOptions->bRemoveRedundantKeys)
 			{
@@ -1036,12 +1089,16 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 		}
 	}
 
+	USkeleton* MySkeleton = DestSeq->GetSkeleton();
+	check(MySkeleton);
+
 	if (ImportOptions->bDeleteExistingMorphTargetCurves)
 	{
 		for (int32 CurveIdx=0; CurveIdx<DestSeq->RawCurveData.FloatCurves.Num(); ++CurveIdx)
 		{
 			auto& Curve = DestSeq->RawCurveData.FloatCurves[CurveIdx];
-			if (Curve.GetCurveTypeFlag(ACF_DriveMorphTarget))
+			const FCurveMetaData* MetaData = MySkeleton->GetCurveMetaData(Curve.Name);
+			if (MetaData && MetaData->Type.bMorphtarget)
 			{
 				DestSeq->RawCurveData.FloatCurves.RemoveAt(CurveIdx, 1, false);
 				--CurveIdx;
@@ -1094,7 +1151,13 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 								const FText StatusUpate = FText::Format(LOCTEXT("ImportingMorphTargetCurvesDetail", "Importing Morph Target Curves [{BlendShape}]"), Args);
 								GWarn->StatusUpdate(NodeIndex + 1, NodeArray.Num(), StatusUpate);
 								// now see if we have one already exists. If so, just overwrite that. if not, add new one. 
-								ImportCurveToAnimSequence(DestSeq, *ChannelName, Curve,  ACF_DriveMorphTarget | ACF_DriveAttribute, AnimTimeSpan, 0.01f /** for some reason blend shape values are coming as 100 scaled **/);
+
+								if (ImportCurveToAnimSequence(DestSeq, *ChannelName, Curve, 0, AnimTimeSpan, 0.01f /** for some reason blend shape values are coming as 100 scaled **/))
+								{
+									// this one doesn't reset Material curve to false, it just accumulate if true. 
+									MySkeleton->AccumulateCurveMetaData(*ChannelName, false, true);
+								}
+
 							}
 							else
 							{
@@ -1153,26 +1216,28 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 							GWarn->StatusUpdate(CurLinkIndex + 1, TotalLinks, StatusUpate);
 
 							int32 CurveFlags = ACF_DefaultCurve;
-							// first let them override material curve if required
-							if (ImportOptions->bSetMaterialDriveParameterOnCustomAttribute)
+							if (ImportCurveToAnimSequence(DestSeq, FinalCurveName, AnimCurve, CurveFlags, AnimTimeSpan))
 							{
-								CurveFlags |= ACF_DriveMaterial;
-							}
-							else
-							{
-								// if not material set by default, apply naming convention for material
-								for (const auto& Suffix : ImportOptions->MaterialCurveSuffixes)
+								// first let them override material curve if required
+								if (ImportOptions->bSetMaterialDriveParameterOnCustomAttribute)
 								{
-									int32 TotalSuffix = Suffix.Len();
-									if (CurveName.Right(TotalSuffix) == Suffix)
+									// now mark this curve as morphtarget
+									MySkeleton->AccumulateCurveMetaData(FName(*FinalCurveName), true, false);
+								}
+								else
+								{
+									// if not material set by default, apply naming convention for material
+									for (const auto& Suffix : ImportOptions->MaterialCurveSuffixes)
 									{
-										CurveFlags |= ACF_DriveMaterial;
-										break;
+										int32 TotalSuffix = Suffix.Len();
+										if (CurveName.Right(TotalSuffix) == Suffix)
+										{
+											MySkeleton->AccumulateCurveMetaData(FName(*FinalCurveName), true, false);
+											break;
+										}
 									}
 								}
 							}
-
-							ImportCurveToAnimSequence(DestSeq, FinalCurveName, AnimCurve, CurveFlags, AnimTimeSpan);
 						}
 						else
 						{
@@ -1192,7 +1257,7 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 
 	// importing custom attribute END
 
-	const bool bSourceDataExists = (DestSeq->SourceRawAnimationData.Num() > 0);
+	const bool bSourceDataExists = DestSeq->HasSourceRawData();
 	TArray<AnimationTransformDebug::FAnimationTransformDebugData> TransformDebugData;
 	int32 TotalNumKeys = 0;
 	const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
@@ -1201,10 +1266,7 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 	{
 		GWarn->BeginSlowTask( LOCTEXT("BeginImportAnimation", "Importing Animation"), true);
 
-		TArray<struct FRawAnimSequenceTrack>& RawAnimationData = bSourceDataExists? DestSeq->SourceRawAnimationData : DestSeq->RawAnimationData;
-		DestSeq->TrackToSkeletonMapTable.Empty();
-		DestSeq->AnimationTrackNames.Empty();
-		RawAnimationData.Empty();
+		DestSeq->RecycleAnimSequence();
 
 		TArray<FName> FbxRawBoneNames;
 		FillAndVerifyBoneNames(Skeleton, SortedLinks, FbxRawBoneNames, FileName);
@@ -1352,13 +1414,11 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 				if (bSuccess)
 				{
 					//add new track
-					int32 NewTrackIdx = RawAnimationData.Add(RawTrack);
-					DestSeq->AnimationTrackNames.Add(BoneName);
+					int32 NewTrackIdx = DestSeq->AddNewRawTrack(BoneName, &RawTrack);
 
 					NewDebugData.SetTrackData(NewTrackIdx, BoneTreeIndex, BoneName);
 
 					// add mapping to skeleton bone track
-					DestSeq->TrackToSkeletonMapTable.Add(FTrackToSkeletonMap(BoneTreeIndex));
 					TransformDebugData.Add(NewDebugData);
 				}
 			}

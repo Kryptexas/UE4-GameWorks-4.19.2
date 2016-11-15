@@ -24,6 +24,7 @@
 #include "ClassIconFinder.h"
 
 #include "Settings/WidgetDesignerSettings.h"
+#include "UMGEditorProjectSettings.h"
 #include "ISettingsModule.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
@@ -84,6 +85,13 @@ public:
 				LOCTEXT("WidgetDesignerSettingsDescription", "Configure options for the Widget Designer."),
 				GetMutableDefault<UWidgetDesignerSettings>()
 				);
+
+			// UMG Editor Settings
+			SettingsModule->RegisterSettings("Project", "Editor", "UMGEditor",
+				LOCTEXT("UMGEditorSettingsName", "UMG Editor"),
+				LOCTEXT("UMGEditorSettingsDescription", "Configure options for UMG Editor."),
+				GetMutableDefault<UUMGEditorProjectSettings>()
+				);
 		}
 	}
 
@@ -119,6 +127,7 @@ public:
 		if ( SettingsModule != nullptr )
 		{
 			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "WidgetDesigner");
+			SettingsModule->UnregisterSettings("Project", "Editor", "UMGEditor");
 		}
 	}
 

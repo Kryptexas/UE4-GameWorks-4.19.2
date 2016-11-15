@@ -19,7 +19,7 @@ TSharedPtr<IMovieSceneTrackInstance> UMovieSceneBoolTrack::CreateInstance()
 }
 
 
-bool UMovieSceneBoolTrack::Eval( float Position, float LastPostion, bool& OutBool ) const
+bool UMovieSceneBoolTrack::Eval( float Position, float LastPostion, bool& InOutBool ) const
 {	
 	const UMovieSceneSection* Section = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Position );
 
@@ -30,7 +30,7 @@ bool UMovieSceneBoolTrack::Eval( float Position, float LastPostion, bool& OutBoo
 			Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
 		}
 
-		OutBool = CastChecked<UMovieSceneBoolSection>( Section )->Eval( Position );
+		InOutBool = CastChecked<UMovieSceneBoolSection>( Section )->Eval( Position, InOutBool );
 	}
 
 	return (Section != nullptr);

@@ -5,7 +5,7 @@
 // Forward Declarations
 class FSlateRenderer;
 class IWebBrowserWindow;
-class FWebBrowserWindow;
+class FCEFWebBrowserWindow;
 struct FWebBrowserWindowInfo;
 
 class IWebBrowserWindowFactory
@@ -13,7 +13,7 @@ class IWebBrowserWindowFactory
 public:
 
 	virtual TSharedPtr<IWebBrowserWindow> Create(
-		TSharedPtr<FWebBrowserWindow>& BrowserWindowParent,
+		TSharedPtr<FCEFWebBrowserWindow>& BrowserWindowParent,
 		TSharedPtr<FWebBrowserWindowInfo>& BrowserWindowInfo) = 0;
 
 	virtual TSharedPtr<IWebBrowserWindow> Create(
@@ -93,7 +93,7 @@ public:
 	 * @return New Web Browser Window Interface (may be null if not supported)
 	 */
 	virtual TSharedPtr<IWebBrowserWindow> CreateBrowserWindow(
-		TSharedPtr<FWebBrowserWindow>& BrowserWindowParent,
+		TSharedPtr<FCEFWebBrowserWindow>& BrowserWindowParent,
 		TSharedPtr<FWebBrowserWindowInfo>& BrowserWindowInfo
 		) = 0;
 
@@ -111,11 +111,11 @@ public:
 	 */
 	DEPRECATED(4.11, "Please use the new overload that takes a settings struct.")
 	virtual TSharedPtr<IWebBrowserWindow> CreateBrowserWindow(
-		void* OSWindowHandle, 
-		FString InitialURL, 
+		void* OSWindowHandle,
+		FString InitialURL,
 		bool bUseTransparency,
 		bool bThumbMouseButtonNavigation,
-		TOptional<FString> ContentsToLoad = TOptional<FString>(), 
+		TOptional<FString> ContentsToLoad = TOptional<FString>(),
 		bool ShowErrorMessage = true,
 		FColor BackgroundColor = FColor(255, 255, 255, 255),
 		int BrowserFrameRate = 24 ) = 0;

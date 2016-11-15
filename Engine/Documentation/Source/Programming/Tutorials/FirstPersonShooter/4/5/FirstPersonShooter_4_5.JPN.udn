@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:2953540
-Availability:Docs
+﻿INTSourceChangelist:3069483
+Availability: Public
 Title:4.5- Animation ブループリントと Character ブループリントを関連付ける
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4
 Description:FPS プロジェクトでAnimation ブループリントと Character ブループリントを関連付ける方法を学びます。

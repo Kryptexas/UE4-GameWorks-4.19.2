@@ -59,6 +59,9 @@ static TAutoConsoleVariable<int32> CVarDriverDetectionMethod(
 	TEXT("  4: Use Windows functions, use the one names like the DirectX Device (newest, most promising)"),
 	ECVF_RenderThreadSafe);
 
+typedef HRESULT(STDAPICALLTYPE *GetDpiForMonitorProc)(HMONITOR Monitor, int32 DPIType, uint32 *DPIX, uint32 *DPIY);
+static GetDpiForMonitorProc GetDpiForMonitor;
+
 namespace
 {
 	/**
@@ -495,6 +498,63 @@ static void SetProcessMemoryLimit( SIZE_T ProcessMemoryLimitMB )
 	const BOOL bAssign = ::AssignProcessToJobObject(JobObject, GetCurrentProcess());
 }
 
+void FWindowsPlatformMisc::SetHighDPIMode()
+{
+	if (FParse::Param(FCommandLine::Get(), TEXT("enablehighdpi")))
+	{
+		if (void* ShCoreDll = FPlatformProcess::GetDllHandle(TEXT("shcore.dll")))
+		{
+			typedef HRESULT(STDAPICALLTYPE *SetProcessDpiAwarenessProc)(int32 Value);
+			SetProcessDpiAwarenessProc SetProcessDpiAwareness = (SetProcessDpiAwarenessProc)FPlatformProcess::GetDllExport(ShCoreDll, TEXT("SetProcessDpiAwareness"));
+			GetDpiForMonitor = (GetDpiForMonitorProc)FPlatformProcess::GetDllExport(ShCoreDll, TEXT("GetDpiForMonitor"));
+			FPlatformProcess::FreeDllHandle(ShCoreDll);
+
+			if (SetProcessDpiAwareness)
+			{
+				SetProcessDpiAwareness(2); // PROCESS_PER_MONITOR_DPI_AWARE_VALUE
+			}
+		}
+		else if (void* User32Dll = FPlatformProcess::GetDllHandle(TEXT("user32.dll")))
+		{
+			typedef BOOL(WINAPI *SetProcessDpiAwareProc)(void);
+			SetProcessDpiAwareProc SetProcessDpiAware = (SetProcessDpiAwareProc)FPlatformProcess::GetDllExport(User32Dll, TEXT("SetProcessDPIAware"));
+			FPlatformProcess::FreeDllHandle(User32Dll);
+
+			if (SetProcessDpiAware)
+			{
+				SetProcessDpiAware();
+			}
+		}
+	}
+
+}
+
+float FWindowsPlatformMisc::GetDPIScaleFactorAtPoint(float X, float Y)
+{
+	if (FParse::Param(FCommandLine::Get(), TEXT("enablehighdpi")))
+	{
+		if (GetDpiForMonitor)
+		{
+			POINT Position = { X, Y };
+			HMONITOR Monitor = MonitorFromPoint(Position, MONITOR_DEFAULTTONEAREST);
+			if (Monitor)
+			{
+				uint32 DPIX = 0;
+				uint32 DPIY = 0;
+				return SUCCEEDED(GetDpiForMonitor(Monitor, 0/*MDT_EFFECTIVE_DPI_VALUE*/, &DPIX, &DPIY)) ? DPIX / 96.0f : 1.0f;
+			}
+		}
+		else
+		{
+			HDC Context = GetDC(nullptr);
+			const float DPIScaleFactor = GetDeviceCaps(Context, LOGPIXELSX) / 96.0f;
+			ReleaseDC(nullptr, Context);
+			return DPIScaleFactor;
+		}
+	}
+	return 1.0f;
+}
+
 void FWindowsPlatformMisc::PlatformPreInit()
 {
 	//SetProcessMemoryLimit( 92 );
@@ -513,6 +573,8 @@ void FWindowsPlatformMisc::PlatformPreInit()
 
 	// initialize the file SHA hash mapping
 	InitSHAHashes();
+
+	SetHighDPIMode();
 }
 
 
@@ -808,25 +870,9 @@ void FWindowsPlatformMisc::SubmitErrorReport( const TCHAR* InErrorHist, EErrorRe
 
 				//get the paths that the files will actually have been saved to
 				FString UserIniDumpPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*IniDumpPath);
-				FString LogDirectory = FPaths::GameLogDir();
+				FString LogDirectory = FPlatformOutputDevices::GetAbsoluteLogFilename();
 				TCHAR CommandlineLogFile[MAX_SPRINTF]=TEXT("");
-
-				//use the log file specified on the commandline if there is one
-				if (FParse::Value(FCommandLine::Get(), TEXT("LOG="), CommandlineLogFile, ARRAY_COUNT(CommandlineLogFile)))
-				{
-					LogDirectory += CommandlineLogFile;
-				}
-				else if (!FApp::IsGameNameEmpty())
-				{
-					// If the app name is defined, use it as the log filename
-					LogDirectory += FString::Printf(TEXT("%s.Log"), FApp::GetGameName());
-				}
-				else
-				{
-					// Revert to hardcoded UE4.log
-					LogDirectory += TEXT("UE4.Log");
-				}
-
+				
 				FString UserLogFile = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*LogDirectory);
 				FString UserReportDumpPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*ReportDumpPath);
 				FString UserCrashVideoPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*CrashVideoPath);
@@ -2422,7 +2468,7 @@ FString FWindowsPlatformMisc::GetPrimaryGPUBrand()
 	}
 
 	return PrimaryGPUBrand;
-	}
+}
 
 static void GetVideoDriverDetails(const FString& Key, FGPUDriverInfo& Out)
 {
@@ -2778,34 +2824,27 @@ bool FWindowsPlatformMisc::QueryRegKey( const HKEY InKey, const TCHAR* InSubKey,
 
 bool FWindowsPlatformMisc::GetVSComnTools(int32 Version, FString& OutData)
 {
-	checkf(12 <= Version && Version <= 14, L"Not supported Visual Studio version.");
+	checkf(12 <= Version && Version <= 15, L"Not supported Visual Studio version.");
 
-	const TCHAR* PossibleRegPaths[] = {
-		L"Wow6432Node\\Microsoft\\VisualStudio",	// Non-express VS201x on 64-bit machine.
-		L"Microsoft\\VisualStudio",					// Non-express VS201x on 32-bit machine.
-		L"Wow6432Node\\Microsoft\\WDExpress",		// Express VS201x on 64-bit machine.
-		L"Microsoft\\WDExpress"						// Express VS201x on 32-bit machine.
-	};
+	FString ValueName = FString::Printf(TEXT("%d.0"), Version);
 
-	bool bResult = false;
 	FString IDEPath;
-
-	for (int32 Index = 0; Index < sizeof(PossibleRegPaths) / sizeof(const TCHAR *); ++Index)
+	if (!QueryRegKey(HKEY_CURRENT_USER, TEXT("SOFTWARE\\Microsoft\\VisualStudio\\SxS\\VS7"), *ValueName, IDEPath))
 	{
-		bResult = QueryRegKey(HKEY_LOCAL_MACHINE, *FString::Printf(L"SOFTWARE\\%s\\%d.0", PossibleRegPaths[Index], Version), L"InstallDir", IDEPath);
-
-		if (bResult)
+		if (!QueryRegKey(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\Microsoft\\VisualStudio\\SxS\\VS7"), *ValueName, IDEPath))
 		{
-			break;
+			if (!QueryRegKey(HKEY_CURRENT_USER, TEXT("SOFTWARE\\Wow6432Node\\Microsoft\\VisualStudio\\SxS\\VS7"), *ValueName, IDEPath))
+			{
+				if (!QueryRegKey(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\Wow6432Node\\Microsoft\\VisualStudio\\SxS\\VS7"), *ValueName, IDEPath))
+				{
+					return false;
+				}
+			}
 		}
 	}
-	
-	if(bResult)
-	{
-		OutData = FPaths::ConvertRelativePathToFull(FPaths::Combine(*IDEPath, L"..", L"Tools"));
-	}
 
-	return bResult;
+	OutData = FPaths::ConvertRelativePathToFull(FPaths::Combine(*IDEPath, L"Common7", L"Tools"));
+	return true;
 }
 
 const TCHAR* FWindowsPlatformMisc::GetDefaultPathSeparator()
@@ -2886,7 +2925,7 @@ IPlatformChunkInstall* FWindowsPlatformMisc::GetPlatformChunkInstall()
 #endif
 		{
 			// Placeholder instance
-			ChunkInstall = new FGenericPlatformChunkInstall();
+			ChunkInstall = FGenericPlatformMisc::GetPlatformChunkInstall();
 		}
 	}
 

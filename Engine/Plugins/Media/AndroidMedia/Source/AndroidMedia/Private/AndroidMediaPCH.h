@@ -9,7 +9,7 @@
 #include "Runtime/Core/Public/Misc/Paths.h"
 #include "Runtime/Core/Public/Modules/ModuleManager.h"
 #include "Runtime/Media/Public/IMediaAudioSink.h"
-#include "Runtime/Media/Public/IMediaStringSink.h"
+#include "Runtime/Media/Public/IMediaOverlaySink.h"
 #include "Runtime/Media/Public/IMediaTextureSink.h"
 #include "Runtime/RenderCore/Public/RenderingThread.h"
 #include "Runtime/RenderCore/Public/RenderResource.h"

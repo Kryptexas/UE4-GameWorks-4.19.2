@@ -49,6 +49,8 @@ public:
 		FString AppVersionET;
 		/** When true, sends events using the legacy ET protocol that passes all attributes as URL parameters. Defaults to false. */
 		bool UseLegacyProtocol = false;
+		/** When true (default), events are dropped if flush fails */
+		bool bDropEventsOnFlushFailure = true;
 		/** The AppEnvironment that the data router should use. Defaults to GetDefaultAppEnvironment. */
 		FString AppEnvironment;
 		/** The UploadType that the data router should use. Defaults to GetDefaultUploadType. */

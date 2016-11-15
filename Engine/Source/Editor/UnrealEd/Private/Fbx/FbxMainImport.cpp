@@ -28,7 +28,7 @@ TSharedPtr<FFbxImporter> FFbxImporter::StaticInstance;
 
 
 
-FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImportUI* ImportUI, bool bShowOptionDialog, const FString& FullPath, bool& OutOperationCanceled, bool& bOutImportAll, bool bIsObjFormat, bool bForceImportType, EFBXImportType ImportType )
+FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImportUI* ImportUI, bool bShowOptionDialog, bool bIsAutomated, const FString& FullPath, bool& OutOperationCanceled, bool& bOutImportAll, bool bIsObjFormat, bool bForceImportType, EFBXImportType ImportType )
 {
 	OutOperationCanceled = false;
 
@@ -67,6 +67,9 @@ FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImport
 		ImportUI->bImportMesh = ImportUI->MeshTypeToImport != FBXIT_Animation;
 		ImportUI->bIsObjImport = bIsObjFormat;
 
+		//This option must always be the same value has the skeletalmesh one.
+		ImportUI->AnimSequenceImportData->bImportMeshesInBoneHierarchy = ImportUI->SkeletalMeshImportData->bImportMeshesInBoneHierarchy;
+
 		TSharedPtr<SWindow> ParentWindow;
 
 		if( FModuleManager::Get().IsModuleLoaded( "MainFrame" ) )
@@ -100,6 +103,15 @@ FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImport
 			ImportOptions->bBakePivotInVertex = false;
 			ImportUI->SkeletalMeshImportData->bTransformVertexToAbsolute = true;
 			ImportOptions->bTransformVertexToAbsolute = true;
+			//when user import animation only we must get duplicate "bImportMeshesInBoneHierarchy" option from ImportUI anim sequence data
+			if (!ImportUI->bImportMesh && ImportUI->bImportAnimations)
+			{
+				ImportUI->SkeletalMeshImportData->bImportMeshesInBoneHierarchy = ImportUI->AnimSequenceImportData->bImportMeshesInBoneHierarchy;
+			}
+			else
+			{
+				ImportUI->AnimSequenceImportData->bImportMeshesInBoneHierarchy = ImportUI->SkeletalMeshImportData->bImportMeshesInBoneHierarchy;
+			}
 		}
 
 		ImportUI->SaveConfig();
@@ -139,7 +151,7 @@ FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImport
 			OutOperationCanceled = true;
 		}
 	}
-	else if (GIsAutomationTesting)
+	else if (bIsAutomated)
 	{
 		//Automation tests set ImportUI settings directly.  Just copy them over
 		UnFbx::FBXImportOptions* ImportOptions = FbxImporter->GetImportOptions();
@@ -162,9 +174,20 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 	check(ImportUI);
 	InOutImportOptions.bImportMaterials = ImportUI->bImportMaterials;
 	InOutImportOptions.bInvertNormalMap = ImportUI->TextureImportData->bInvertNormalMaps;
+	UMaterialInterface* BaseMaterialInterface = Cast<UMaterialInterface>(ImportUI->TextureImportData->BaseMaterialName.TryLoad());
+	if (BaseMaterialInterface) {
+		InOutImportOptions.BaseMaterial = BaseMaterialInterface;
+		InOutImportOptions.BaseColorName = ImportUI->TextureImportData->BaseColorName;
+		InOutImportOptions.BaseDiffuseTextureName = ImportUI->TextureImportData->BaseDiffuseTextureName;
+		InOutImportOptions.BaseNormalTextureName = ImportUI->TextureImportData->BaseNormalTextureName;
+		InOutImportOptions.BaseEmmisiveTextureName = ImportUI->TextureImportData->BaseEmmisiveTextureName;
+		InOutImportOptions.BaseSpecularTextureName = ImportUI->TextureImportData->BaseSpecularTextureName;
+		InOutImportOptions.BaseEmissiveColorName = ImportUI->TextureImportData->BaseEmissiveColorName;
+	}
 	InOutImportOptions.bImportTextures = ImportUI->bImportTextures;
 	InOutImportOptions.bUsedAsFullName = ImportUI->bOverrideFullName;
 	InOutImportOptions.bConvertScene = ImportUI->bConvertScene;
+	InOutImportOptions.bConvertSceneUnit = ImportUI->bConvertSceneUnit;
 	InOutImportOptions.bImportAnimations = ImportUI->bImportAnimations;
 	InOutImportOptions.SkeletonForAnimation = ImportUI->Skeleton;
 
@@ -811,6 +834,9 @@ bool FFbxImporter::OpenFile(FString Filename, bool bParseStatistics, bool bForSc
 		}
 	}
 
+	//Cache the current file hash
+	Md5Hash = FMD5Hash::HashFile(*Filename);
+
 	CurPhase = FILEOPENED;
 	// Destroy the importer
 	//Importer->Destroy();
@@ -967,6 +993,14 @@ bool FFbxImporter::ImportFromFile(const FString& Filename, const FString& Type, 
 					}
 				}
 
+				// Convert the scene's units to what is used in this program, if needed.
+				// The base unit used in both FBX and Unreal is centimeters.  So unless the units 
+				// are already in centimeters (ie: scalefactor 1.0) then it needs to be converted
+				if (GetImportOptions()->bConvertSceneUnit && Scene->GetGlobalSettings().GetSystemUnit() != FbxSystemUnit::cm)
+				{
+					FbxSystemUnit::cm.ConvertScene(Scene);
+				}
+
 				// do analytics on getting Fbx data
 				FbxDocumentInfo* DocInfo = Scene->GetSceneInfo();
 				if (DocInfo)
@@ -996,14 +1030,6 @@ bool FFbxImporter::ImportFromFile(const FString& Filename, const FString& Type, 
 					}
 				}
 			}
-
-			// Convert the scene's units to what is used in this program, if needed.
-			// The base unit used in both FBX and Unreal is centimeters.  So unless the units 
-			// are already in centimeters (ie: scalefactor 1.0) then it needs to be converted
-			//if( FbxScene->GetGlobalSettings().GetSystemUnit().GetScaleFactor() != 1.0 )
-			//{
-			//	KFbxSystemUnit::cm.ConvertScene( FbxScene );
-			//}
 
 			//Warn the user if there is some geometry that cannot be imported because they are not reference by any scene node attribute
 			ValidateAllMeshesAreReferenceByNodeAttribute();
@@ -1550,6 +1576,8 @@ void FFbxImporter::ApplyTransformSettingsToFbxNode(FbxNode* Node, UFbxAssetImpor
 	Node->LclTranslation.Set(NewTranslation);
 	Node->LclRotation.Set(NewRotation);
 	Node->LclScaling.Set(NewScaling);
+	//Reset all the transform evaluation cache since we change some node transform
+	Scene->GetAnimationEvaluator()->Reset();
 }
 
 
@@ -1578,6 +1606,8 @@ void FFbxImporter::RemoveTransformSettingsFromFbxNode(FbxNode* Node, UFbxAssetIm
 	Node->LclTranslation.Set(NewTranslation);
 	Node->LclRotation.Set(NewRotation);
 	Node->LclScaling.Set(NewScaling);
+	//Reset all the transform evaluation cache since we change some node transform
+	Scene->GetAnimationEvaluator()->Reset();
 }
 
 
@@ -2120,9 +2150,9 @@ void FFbxImporter::CheckSmoothingInfo(FbxMesh* FbxMesh)
 		bFirstMesh = false;	 // don't check again
 		
 		FbxLayer* LayerSmoothing = FbxMesh->GetLayer(0, FbxLayerElement::eSmoothing);
-		if (!LayerSmoothing)
+		if (!LayerSmoothing && !GIsAutomationTesting)
 		{
-			AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, LOCTEXT("Prompt_NoSmoothgroupForFBXScene", "Warning: No smoothing group information was found in this FBX scene.  Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter plug-in before exporting the file.  Even for tools that don't support smoothing groups, the FBX Exporter will generate appropriate smoothing data at export-time so that correct vertex normals can be inferred while importing.")), FFbxErrors::Generic_Mesh_NoSmoothingGroup);
+			AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, LOCTEXT("Prompt_NoSmoothgroupForFBXScene", "No smoothing group information was found in this FBX scene.  Please make sure to enable the 'Export Smoothing Groups' option in the FBX Exporter plug-in before exporting the file.  Even for tools that don't support smoothing groups, the FBX Exporter will generate appropriate smoothing data at export-time so that correct vertex normals can be inferred while importing.")), FFbxErrors::Generic_Mesh_NoSmoothingGroup);
 		}
 	}
 }

@@ -239,6 +239,7 @@ namespace AutomationTool
 			this.Cook = InParams.Cook;
 			this.IterativeCooking = InParams.IterativeCooking;
             this.CookAll = InParams.CookAll;
+			this.CookPartialGC = InParams.CookPartialGC;
             this.CookMapsOnly = InParams.CookMapsOnly;
 			this.SkipCook = InParams.SkipCook;
 			this.SkipCookOnTheFly = InParams.SkipCookOnTheFly;
@@ -276,7 +277,8 @@ namespace AutomationTool
 			this.StageCommandline = InParams.StageCommandline;
             this.BundleName = InParams.BundleName;
 			this.RunCommandline = InParams.RunCommandline;
-			this.Package = InParams.Package;
+			this.ServerCommandline = InParams.ServerCommandline;
+            this.Package = InParams.Package;
 			this.Deploy = InParams.Deploy;
 			this.IterativeDeploy = InParams.IterativeDeploy;
 			this.IgnoreCookErrors = InParams.IgnoreCookErrors;
@@ -305,7 +307,6 @@ namespace AutomationTool
             this.bUsesSteam = InParams.bUsesSteam;
 			this.bUsesCEF3 = InParams.bUsesCEF3;
 			this.bUsesSlate = InParams.bUsesSlate;
-			this.bUsesSlateEditorStyle = InParams.bUsesSlateEditorStyle;
             this.bDebugBuildsActuallyUseDebugCRT = InParams.bDebugBuildsActuallyUseDebugCRT;
 			this.Archive = InParams.Archive;
 			this.ArchiveDirectoryParam = InParams.ArchiveDirectoryParam;
@@ -319,7 +320,6 @@ namespace AutomationTool
             this.RunTimeoutSeconds = InParams.RunTimeoutSeconds;
 			this.bIsCodeBasedProject = InParams.bIsCodeBasedProject;
 			this.bCodeSign = InParams.bCodeSign;
-			this.UploadSymbols = InParams.UploadSymbols;
 			this.TitleID = InParams.TitleID;
 			this.bTreatNonShippingBinariesAsDebugFiles = InParams.bTreatNonShippingBinariesAsDebugFiles;
 			this.RunAssetNativization = InParams.RunAssetNativization;
@@ -366,6 +366,7 @@ namespace AutomationTool
             bool? UseDebugParamForEditorExe = null,
             bool? IterativeCooking = null,
             bool? CookAll = null,
+			bool? CookPartialGC = null,
             bool? CookMapsOnly = null,
             bool? CookOnTheFly = null,
             bool? CookOnTheFlyStreaming = null,
@@ -432,7 +433,6 @@ namespace AutomationTool
             bool? RunAssetNativization = null,
 			bool? CodeSign = null,
 			bool? TreatNonShippingBinariesAsDebugFiles = null,
-			bool? UploadSymbols = null,
 			string Provision = null,
 			string Certificate = null,
 			ParamList<string> InMapsToRebuildLightMaps = null,
@@ -558,7 +558,8 @@ namespace AutomationTool
             this.UseDebugParamForEditorExe = GetParamValueIfNotSpecified(Command, UseDebugParamForEditorExe, this.UseDebugParamForEditorExe, "UseDebugParamForEditorExe");
             this.IterativeCooking = GetParamValueIfNotSpecified(Command, IterativeCooking, this.IterativeCooking, new string[] { "iterativecooking", "iterate" } );
 			this.SkipCookOnTheFly = GetParamValueIfNotSpecified(Command, SkipCookOnTheFly, this.SkipCookOnTheFly, "skipcookonthefly");
-            this.CookAll = GetParamValueIfNotSpecified(Command, CookAll, this.CookAll, "CookAll");
+			this.CookAll = GetParamValueIfNotSpecified(Command, CookAll, this.CookAll, "CookAll");
+			this.CookPartialGC = GetParamValueIfNotSpecified(Command, CookPartialGC, this.CookPartialGC, "CookPartialGC");
             this.CookMapsOnly = GetParamValueIfNotSpecified(Command, CookMapsOnly, this.CookMapsOnly, "CookMapsOnly");
 			this.FileServer = GetParamValueIfNotSpecified(Command, FileServer, this.FileServer, "fileserver");
 			this.DedicatedServer = GetParamValueIfNotSpecified(Command, DedicatedServer, this.DedicatedServer, "dedicatedserver", "server");
@@ -615,13 +616,14 @@ namespace AutomationTool
 			this.BundleName = ParseParamValueIfNotSpecified(Command, BundleName, "bundlename");
 			this.RunCommandline = ParseParamValueIfNotSpecified(Command, RunCommandline, "addcmdline");
 			this.RunCommandline = this.RunCommandline.Replace('\'', '\"'); // replace any single quotes with double quotes
-			this.Package = GetParamValueIfNotSpecified(Command, Package, this.Package, "package");
+			this.ServerCommandline = ParseParamValueIfNotSpecified(Command, ServerCommandline, "servercmdline");
+			this.ServerCommandline = this.ServerCommandline.Replace('\'', '\"'); // replace any single quotes with double quotes
+            this.Package = GetParamValueIfNotSpecified(Command, Package, this.Package, "package");
 			this.Deploy = GetParamValueIfNotSpecified(Command, Deploy, this.Deploy, "deploy");
 			this.IterativeDeploy = GetParamValueIfNotSpecified(Command, IterativeDeploy, this.IterativeDeploy, new string[] {"iterativedeploy", "iterate" } );
 			this.FastCook = GetParamValueIfNotSpecified(Command, FastCook, this.FastCook, "FastCook");
 			this.IgnoreCookErrors = GetParamValueIfNotSpecified(Command, IgnoreCookErrors, this.IgnoreCookErrors, "IgnoreCookErrors");
             this.RunAssetNativization = GetParamValueIfNotSpecified(Command, RunAssetNativization, this.RunAssetNativization, "nativizeAssets");
-			this.UploadSymbols = GetParamValueIfNotSpecified(Command, UploadSymbols, this.UploadSymbols, "uploadsymbols");
 
             string DeviceString = ParseParamValueIfNotSpecified(Command, Device, "device", String.Empty).Trim(new char[] { '\"' });
             if(DeviceString == "")
@@ -1363,12 +1365,6 @@ namespace AutomationTool
 		/// </summary>
 		public bool bUsesSlate = true;
 
-		/// <summary>
-		/// Hack for legacy game styling isses.  No new project should ever set this to true
-		/// Whether the project uses the Slate editor style in game.  
-		/// </summary>
-		public bool bUsesSlateEditorStyle = false;
-
         /// <summary>
         /// By default we use the Release C++ Runtime (CRT), even when compiling Debug builds.  This is because the Debug C++
         /// Runtime isn't very useful when debugging Unreal Engine projects, and linking against the Debug CRT libraries forces
@@ -1430,6 +1426,13 @@ namespace AutomationTool
         /// </summary>
         [Help("Cookontheflystreaming", "run the client in streaming cook on the fly mode (don't cache files locally instead force reget from server each file load)")]
         public bool CookOnTheFlyStreaming { private set; get; }
+
+		/// <summary>
+		/// Run: The client should run in streaming mode when connecting to cook on the fly server
+		/// </summary>
+		[Help("CookPartialgc", "while cooking clean up packages as we are done with them rather then cleaning everything up when we run out of space")]
+		public bool CookPartialGC { private set; get; }
+
 
 		/// <summary>
 		/// Run: The client runs with cooked data provided by UnrealFileServer, command line: -fileserver
@@ -1508,6 +1511,12 @@ namespace AutomationTool
 		/// </summary>
 		[Help("addcmdline", "Additional command line arguments for the program")]
 		public string RunCommandline;
+
+        /// <summary>
+		/// Run: Additional command line arguments to pass to the server
+		/// </summary>
+		[Help("servercmdline", "Additional command line arguments for the program")]
+		public string ServerCommandline;
 
         /// <summary>
         /// Run:adds -nullrhi to the client commandline
@@ -1589,9 +1598,6 @@ namespace AutomationTool
 		[Help("SpecifiedArchitecture", "Determine a specific Minimum OS")]
 		public string SpecifiedArchitecture;
 
-		[Help("UploadSymbols", "upload symbols while packaging")]
-		public bool UploadSymbols { get; set; }
-
 		#endregion
 
 		#region Deploy
@@ -1635,7 +1641,6 @@ namespace AutomationTool
 			bUsesSteam = Properties.bUsesSteam;
 			bUsesCEF3 = Properties.bUsesCEF3;
 			bUsesSlate = Properties.bUsesSlate;
-			bUsesSlateEditorStyle = Properties.bUsesSlateEditorStyle;
             bDebugBuildsActuallyUseDebugCRT = Properties.bDebugBuildsActuallyUseDebugCRT;
 
 			bIsCodeBasedProject = Properties.bIsCodeBasedProject;			
@@ -1693,7 +1698,6 @@ namespace AutomationTool
 						GameTarget = TargetData.TargetName;
                         bDebugBuildsActuallyUseDebugCRT = TargetData.Rules.bDebugBuildsActuallyUseDebugCRT;
 						bUsesSlate = TargetData.Rules.bUsesSlate;
-						bUsesSlateEditorStyle = TargetData.Rules.bUsesSlateEditorStyle;
 						bUsesSteam = TargetData.Rules.bUsesSteam;
 						bUsesCEF3 = TargetData.Rules.bUsesCEF3;
 						ProjectType = ValidTarget;
@@ -1720,7 +1724,6 @@ namespace AutomationTool
 
 				bDebugBuildsActuallyUseDebugCRT = TargetData.Rules.bDebugBuildsActuallyUseDebugCRT;
 				bUsesSlate = TargetData.Rules.bUsesSlate;
-				bUsesSlateEditorStyle = TargetData.Rules.bUsesSlateEditorStyle;
 				bUsesSteam = TargetData.Rules.bUsesSteam;
 				bUsesCEF3 = TargetData.Rules.bUsesCEF3;
 				ProjectType = TargetRules.TargetType.Program;
@@ -1817,19 +1820,6 @@ namespace AutomationTool
 					var ProjectClientBinariesPath = ProjectUtils.GetClientProjectBinariesRootPath(RawProjectPath, ProjectType, Properties.bIsCodeBasedProject);
 					ProjectBinariesPath = ProjectUtils.GetProjectClientBinariesFolder(ProjectClientBinariesPath, ClientTargetPlatforms[0].Type);
 					ProjectGameExePath = CommandUtils.CombinePaths(ProjectBinariesPath, GameTarget + Platform.GetExeExtension(ClientTargetPlatforms[0].Type));
-				}
-			}
-
-			// for the moment, allow the commandline to override the ini if set.  This will keep us from breaking licensee packaging scripts until we have
-			// the full solution for per-platform packaging settings.
-			if (!Manifests)
-			{				
-				ConfigCacheIni GameIni = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.Unknown, "Game", RawProjectPath.Directory);
-				String IniPath = "/Script/UnrealEd.ProjectPackagingSettings";
-				bool bSetting = false;
-				if (!GameIni.GetBool(IniPath, "bGenerateChunks", out bSetting))
-				{
-					Manifests = bSetting;
 				}
 			}
 		}
@@ -1972,10 +1962,10 @@ namespace AutomationTool
 		/// <summary>
 		/// Get the path to the directory of the version we are basing a diff or a patch on.  
 		/// </summary>				
-		public String GetBasedOnReleaseVersionPath(DeploymentContext SC)
+		public String GetBasedOnReleaseVersionPath(DeploymentContext SC, bool bIsClientOnly)
 		{
 			String BasePath = BasedOnReleaseVersionBasePath;
-			String Platform = SC.StageTargetPlatform.GetCookPlatform(SC.DedicatedServer, false);
+			String Platform = SC.StageTargetPlatform.GetCookPlatform(SC.DedicatedServer, bIsClientOnly);
 			if (String.IsNullOrEmpty(BasePath))
 			{
                 BasePath = CommandUtils.CombinePaths(SC.ProjectRoot, "Releases", BasedOnReleaseVersion, Platform);
@@ -1998,10 +1988,10 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="SC"></param>
 		/// <returns></returns>
-		public String GetCreateReleaseVersionPath(DeploymentContext SC)
+		public String GetCreateReleaseVersionPath(DeploymentContext SC, bool bIsClientOnly)
 		{
 			String BasePath = CreateReleaseVersionBasePath;
-			String Platform = SC.StageTargetPlatform.GetCookPlatform(SC.DedicatedServer, false);
+			String Platform = SC.StageTargetPlatform.GetCookPlatform(SC.DedicatedServer, bIsClientOnly);
 			if (String.IsNullOrEmpty(BasePath))
 			{
 				BasePath = CommandUtils.CombinePaths(SC.ProjectRoot, "Releases", CreateReleaseVersion, Platform);
@@ -2294,6 +2284,7 @@ namespace AutomationTool
 				CommandUtils.LogLog("IsProgramTarget={0}", IsProgramTarget.ToString());
 				CommandUtils.LogLog("IterativeCooking={0}", IterativeCooking);
                 CommandUtils.LogLog("CookAll={0}", CookAll);
+				CommandUtils.LogLog("CookPartialGC={0}", CookPartialGC);
                 CommandUtils.LogLog("CookMapsOnly={0}", CookMapsOnly);
                 CommandUtils.LogLog("Deploy={0}", Deploy);
 				CommandUtils.LogLog("IterativeDeploy={0}", IterativeDeploy);
@@ -2344,7 +2335,6 @@ namespace AutomationTool
 				CommandUtils.LogLog("bUsesSlate={0}", bUsesSlate);
                 CommandUtils.LogLog("bDebugBuildsActuallyUseDebugCRT={0}", bDebugBuildsActuallyUseDebugCRT);
 				CommandUtils.LogLog("bTreatNonShippingBinariesAsDebugFiles={0}", bTreatNonShippingBinariesAsDebugFiles);
-				CommandUtils.LogLog("UploadSymbols={0}", UploadSymbols);
                 CommandUtils.LogLog("NativizeAssets={0}", RunAssetNativization);
 				CommandUtils.LogLog("Project Params **************");
 			}

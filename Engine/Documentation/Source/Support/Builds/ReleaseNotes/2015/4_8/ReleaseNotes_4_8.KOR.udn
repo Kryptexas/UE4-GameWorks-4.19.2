@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2744667
+﻿INTSourceChangelist:3077981
 Availability: Public
 Title: 언리얼 엔진 4.8 릴리즈 노트
 Crumbs: %ROOT%, Engine
@@ -3928,7 +3928,7 @@ World Position Offset 으로 애니메이팅되는 나무에서의 픽셀별 속
 
 * Makefile 생성기가 이제 엔진 디렉토리 외부의 프로젝트에 대한 타겟을 생성합니다.
 
-* 사소: NVidia 드라이버로 야기되는 퍼포먼스 경고 다수를 수정했습니다.
+* 사소: NVIDIA 드라이버로 야기되는 퍼포먼스 경고 다수를 수정했습니다.
 
 * 사소: 스팀 공유 오브젝트는 이제 동적으로 로드됩니다.
 

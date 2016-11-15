@@ -60,6 +60,40 @@ private:
 	class FHitProxyDS* DomainShader;
 };
 
+#if WITH_EDITOR
+class FEditorSelectionDrawingPolicy : public FHitProxyDrawingPolicy
+{
+public:
+	FEditorSelectionDrawingPolicy(const FVertexFactory* InVertexFactory, const FMaterialRenderProxy* InMaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel)
+		: FHitProxyDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InFeatureLevel)
+	{}
+
+	// FMeshDrawingPolicy interface.
+	void SetMeshRenderState( FRHICommandList& RHICmdList, const FSceneView& View, const FPrimitiveSceneProxy* PrimitiveSceneProxy, const FMeshBatch& Mesh, int32 BatchElementIndex, bool bBackFace, const FMeshDrawingRenderState& DrawRenderState, const FHitProxyId HitProxyId, const ContextDataType PolicyContext );
+
+	/**
+	 * Gets the value that should be written into the editor selection stencil buffer for a given primitive
+	 * There will be a unique stencil value for each primitive until the max stencil buffer value is written and then the values will repeat
+	 *
+	 * @param View					The view being rendered
+	 * @param PrimitiveSceneProxy	The scene proxy for the primitive being rendered
+	 * @return the stencil value that should be written
+	 */
+	static int32 GetStencilValue(const FSceneView& View, const FPrimitiveSceneProxy* PrimitiveSceneProxy);
+
+	/**
+	 * Resets all unique stencil values
+	 */
+	static void ResetStencilValues();
+
+private:
+	/** This map is needed to ensure that individually selected proxies rendered more than once a frame (if they have multiple sections) share a common outline */
+	static TMap<const FPrimitiveSceneProxy*, int32> ProxyToStencilIndex;
+	/** This map is needed to ensure that proxies rendered more than once a frame (if they have multiple sections) share a common outline */
+	static TMap<FName, int32> ActorNameToStencilIndex;
+};
+#endif
+
 /**
  * A drawing policy factory for the hit proxy drawing policy.
  */

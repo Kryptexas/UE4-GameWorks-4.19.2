@@ -224,6 +224,102 @@ void SReferenceViewer::Construct( const FArguments& InArgs )
 							]
 						]
 					]
+
+					+SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SNew(SHorizontalBox)
+
+						+SHorizontalBox::Slot()
+						.VAlign(VAlign_Center)
+						.Padding(2.f)
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("ShowHideSoftReferences", "Show Soft References"))
+						]
+
+						+SHorizontalBox::Slot()
+						.AutoWidth()
+						.VAlign(VAlign_Center)
+						.Padding(2.f)
+						[
+							SNew(SCheckBox)
+							.OnCheckStateChanged( this, &SReferenceViewer::OnShowSoftReferencesChanged )
+							.IsChecked( this, &SReferenceViewer::IsShowSoftReferencesChecked )
+						]
+					]
+
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SNew(SHorizontalBox)
+
+						+ SHorizontalBox::Slot()
+						.VAlign(VAlign_Center)
+						.Padding(2.f)
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("ShowHideSoftDependencies", "Show Soft Dependencies"))
+						]
+
+						+SHorizontalBox::Slot()
+						.AutoWidth()
+						.VAlign(VAlign_Center)
+						.Padding(2.f)
+						[
+							SNew(SCheckBox)
+							.OnCheckStateChanged(this, &SReferenceViewer::OnShowSoftDependenciesChanged)
+							.IsChecked(this, &SReferenceViewer::IsShowSoftDependenciesChecked)
+						]
+					]
+
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SNew(SHorizontalBox)
+
+						+ SHorizontalBox::Slot()
+						.VAlign(VAlign_Center)
+						.Padding(2.f)
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("ShowHideHardReferences", "Show Hard References"))
+						]
+
+						+SHorizontalBox::Slot()
+						.AutoWidth()
+						.VAlign(VAlign_Center)
+						.Padding(2.f)
+						[
+							SNew(SCheckBox)
+							.OnCheckStateChanged(this, &SReferenceViewer::OnShowHardReferencesChanged)
+							.IsChecked(this, &SReferenceViewer::IsShowHardReferencesChecked)
+						]
+					]
+
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SNew(SHorizontalBox)
+
+						+ SHorizontalBox::Slot()
+						.VAlign(VAlign_Center)
+						.Padding(2.f)
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("ShowHideHardDependencies", "Show Hard Dependencies"))
+						]
+
+						+SHorizontalBox::Slot()
+						.AutoWidth()
+						.VAlign(VAlign_Center)
+						.Padding(2.f)
+						[
+							SNew(SCheckBox)
+							.OnCheckStateChanged(this, &SReferenceViewer::OnShowHardDependenciesChanged)
+							.IsChecked(this, &SReferenceViewer::IsShowHardDependenciesChecked)
+						]
+					]
 				]
 			]
 
@@ -468,6 +564,91 @@ ECheckBoxState SReferenceViewer::IsSearchBreadthEnabledChecked() const
 	if ( GraphObj )
 	{
 		return GraphObj->IsSearchBreadthLimited() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	}
+	else
+	{
+		return ECheckBoxState::Unchecked;
+	}
+}
+
+void SReferenceViewer::OnShowSoftReferencesChanged(ECheckBoxState NewState)
+{
+	if (GraphObj)
+	{
+		GraphObj->SetShowSoftReferencesEnabled(NewState == ECheckBoxState::Checked);
+		GraphObj->RebuildGraph();
+	}
+}
+
+ECheckBoxState SReferenceViewer::IsShowSoftReferencesChecked() const
+{
+	if (GraphObj)
+	{
+		return GraphObj->IsShowSoftReferences()? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	}
+	else
+	{
+		return ECheckBoxState::Unchecked;
+	}
+}
+
+void SReferenceViewer::OnShowSoftDependenciesChanged(ECheckBoxState NewState)
+{
+	if (GraphObj)
+	{
+		GraphObj->SetShowSoftDependenciesEnabled(NewState == ECheckBoxState::Checked);
+		GraphObj->RebuildGraph();
+	}
+}
+
+ECheckBoxState SReferenceViewer::IsShowSoftDependenciesChecked() const
+{
+	if (GraphObj)
+	{
+		return GraphObj->IsShowSoftDependencies() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	}
+	else
+	{
+		return ECheckBoxState::Unchecked;
+	}
+}
+
+void SReferenceViewer::OnShowHardReferencesChanged(ECheckBoxState NewState)
+{
+	if (GraphObj)
+	{
+		GraphObj->SetShowHardReferencesEnabled(NewState == ECheckBoxState::Checked);
+		GraphObj->RebuildGraph();
+	}
+}
+
+
+ECheckBoxState SReferenceViewer::IsShowHardReferencesChecked() const
+{
+	if (GraphObj)
+	{
+		return GraphObj->IsShowHardReferences() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	}
+	else
+	{
+		return ECheckBoxState::Unchecked;
+	}
+}
+
+void SReferenceViewer::OnShowHardDependenciesChanged(ECheckBoxState NewState)
+{
+	if (GraphObj)
+	{
+		GraphObj->SetShowHardDependenciesEnabled(NewState == ECheckBoxState::Checked);
+		GraphObj->RebuildGraph();
+	}
+}
+
+ECheckBoxState SReferenceViewer::IsShowHardDependenciesChecked() const
+{
+	if (GraphObj)
+	{
+		return GraphObj->IsShowHardDependencies() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 	else
 	{

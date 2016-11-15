@@ -249,8 +249,11 @@ namespace AutomationTool
 
 		void XGEFinishBuildWithUBT(XGEItem Item)
 		{
-			// allow the platform to perform any actions after building a target (seems almost like this should be done in UBT)
-			Platform.GetPlatform(Item.Platform).PostBuildTarget(this, Item.UProjectPath, Item.TargetName, Item.Config);
+			if(!Item.CommandLine.Contains("-nolink"))
+			{
+				// allow the platform to perform any actions after building a target (seems almost like this should be done in UBT)
+				Platform.GetPlatform(Item.Platform).PostBuildTarget(this, Item.UProjectPath, Item.TargetName, Item.Config);
+			}
 
 			foreach (string ManifestItem in Item.Manifest.BuildProducts)
 			{
@@ -361,8 +364,12 @@ namespace AutomationTool
 			{
 				RunUBT(CmdEnv, UBTExecutable: UBTExecutable, Project: UprojectPath, Target: TargetName, Platform: TargetPlatform.ToString(), Config: Config, AdditionalArgs: AddArgs, EnvVars: EnvVars);
 			}
-            // allow the platform to perform any actions after building a target (seems almost like this should be done in UBT)
-            Platform.GetPlatform(TargetPlatform).PostBuildTarget(this, UprojectPath, TargetName, Config);
+
+			if(!AddArgs.Contains("-nolink"))
+			{
+				// allow the platform to perform any actions after building a target (seems almost like this should be done in UBT)
+				Platform.GetPlatform(TargetPlatform).PostBuildTarget(this, UprojectPath, TargetName, Config);
+			}
 
 			if (UseManifest)
 			{
@@ -459,7 +466,7 @@ namespace AutomationTool
 		/// <summary>
 		/// Updates the engine version files
 		/// </summary>
-		public List<string> UpdateVersionFiles(bool ActuallyUpdateVersionFiles = true, int? ChangelistNumberOverride = null, string Build = null)
+		public List<string> UpdateVersionFiles(bool ActuallyUpdateVersionFiles = true, int? ChangelistNumberOverride = null, int? CompatibleChangelistNumberOverride = null, string Build = null)
 		{
 			bool bIsLicenseeVersion = ParseParam("Licensee");
 			bool bDoUpdateVersionFiles = CommandUtils.P4Enabled && ActuallyUpdateVersionFiles;		
@@ -468,36 +475,45 @@ namespace AutomationTool
 			{
 				ChangelistNumber = ChangelistNumberOverride.HasValue? ChangelistNumberOverride.Value : P4Env.Changelist;
 			}
+			int CompatibleChangelistNumber = ChangelistNumber;
+			if(bDoUpdateVersionFiles && CompatibleChangelistNumberOverride.HasValue)
+			{
+				CompatibleChangelistNumber = CompatibleChangelistNumberOverride.Value;
+			}
 
 			string Branch = P4Enabled ? P4Env.BuildRootEscaped : "";
-			return StaticUpdateVersionFiles(ChangelistNumber, Branch, Build, bIsLicenseeVersion, bDoUpdateVersionFiles);
+			return StaticUpdateVersionFiles(ChangelistNumber, CompatibleChangelistNumber, Branch, Build, bIsLicenseeVersion, bDoUpdateVersionFiles);
 		}
 
-		public static List<string> StaticUpdateVersionFiles(int ChangelistNumber, string Branch, string Build, bool bIsLicenseeVersion, bool bDoUpdateVersionFiles)
+		public static List<string> StaticUpdateVersionFiles(int ChangelistNumber, int CompatibleChangelistNumber, string Branch, string Build, bool bIsLicenseeVersion, bool bDoUpdateVersionFiles)
 		{
 			string ChangelistString = (ChangelistNumber != 0 && bDoUpdateVersionFiles)? ChangelistNumber.ToString() : String.Empty;
 
 			var Result = new List<String>();
 			{
-				string VerFile = CombinePaths(CmdEnv.LocalRoot, "Engine", "Build", "Build.version");
+				string VerFile = BuildVersion.GetDefaultFileName();
 				if (bDoUpdateVersionFiles)
 				{
 					LogLog("Updating {0} with:", VerFile);
 					LogLog("  Changelist={0}", ChangelistNumber);
+					LogLog("  CompatibleChangelist={0}", CompatibleChangelistNumber);
 					LogLog("  IsLicenseeVersion={0}", bIsLicenseeVersion? 1 : 0);
 					LogLog("  BranchName={0}", Branch);
 
-					string VerText = CommandUtils.ReadAllText(VerFile);
+					BuildVersion Version;
+					if(!BuildVersion.TryRead(VerFile, out Version))
+					{
+						Version = new BuildVersion();
+					}
 
-					JavaScriptSerializer Serializer = new JavaScriptSerializer();
-					Dictionary<string, object> Pairs = Serializer.Deserialize<Dictionary<string, object>>(VerText);
-					Pairs["Changelist"] = ChangelistNumber;
-					Pairs["IsLicenseeVersion"] = bIsLicenseeVersion? 1 : 0;
-					Pairs["BranchName"] = Branch;
-					VerText = Serializer.Serialize(Pairs).Replace("{\"", "{\n\t\"").Replace(",\"", ",\n\t\"").Replace("\":", "\": ").Replace("\"}", "\"\n}");
+					Version.Changelist = ChangelistNumber;
+					Version.CompatibleChangelist = CompatibleChangelistNumber;
+					Version.IsLicenseeVersion = bIsLicenseeVersion? 1 : 0;
+					Version.BranchName = Branch;
 
-					CommandUtils.SetFileAttributes(VerFile, ReadOnly: false);
-					CommandUtils.WriteAllText(VerFile, VerText);
+					VersionFileUpdater.MakeFileWriteable(VerFile);
+
+					Version.Write(VerFile);
 				}
 				else
 				{
@@ -514,6 +530,10 @@ namespace AutomationTool
 					LogLog("Updating {0} with:", VerFile);
 					LogLog(" #define	BRANCH_NAME  {0}", Branch);
 					LogLog(" #define	BUILT_FROM_CHANGELIST  {0}", ChangelistString);
+					if(CompatibleChangelistNumber > 0)
+					{
+						LogLog(" #define	ENGINE_COMPATIBLE_CL_VERSION  {0}", CompatibleChangelistNumber);
+					}
 					if (Build != null)
 					{
 						LogLog(" #define	BUILD_VERSION  {0}", Build);
@@ -527,7 +547,11 @@ namespace AutomationTool
 					{
 						VersionH.ReplaceLine("#define BUILD_VERSION ", "L\"" + Build + "\"");
 					}
-					VersionH.ReplaceOrAddLine("#define ENGINE_IS_LICENSEE_VERSION ", bIsLicenseeVersion ? "1" : "0");
+					if(CompatibleChangelistNumber > 0)
+					{
+						VersionH.ReplaceLine("#define ENGINE_COMPATIBLE_CL_VERSION", CompatibleChangelistNumber.ToString(), bIsLicenseeVersion? 0 : 1);
+					}
+					VersionH.ReplaceLine("#define ENGINE_IS_LICENSEE_VERSION ", bIsLicenseeVersion ? "1" : "0");
 
                     VersionH.Commit();
                 }
@@ -755,7 +779,7 @@ namespace AutomationTool
 				{
 					try
 					{
-						string FullPath = Path.Combine(PathDir, "xgConsole.exe");
+						string FullPath = Path.Combine(PathDir, "xgConsole" + Platform.GetExeExtension(UnrealBuildTool.BuildHostPlatform.Current.Platform));
 						if (FileExists(FullPath))
 						{
 							XGEConsoleExePath = FullPath;
@@ -938,9 +962,17 @@ namespace AutomationTool
 					var TargetFile = TaskFilePath + "." + Path.GetFileName(XGEFile);
 					CopyFile(XGEFile, TargetFile);
 					CopyFile_NoExceptions(XGEFile, TaskFilePath);
+
+					XmlReaderSettings XmlSettings = new XmlReaderSettings();
+					XmlSettings.DtdProcessing = DtdProcessing.Ignore;
+					XmlSettings.XmlResolver = null;
+
 					XmlDocument UBTTask = new XmlDocument();
-					UBTTask.XmlResolver = null;
-					UBTTask.Load(XGEFile);
+                    using (XmlReader Reader = XmlReader.Create(XGEFile, XmlSettings))
+					{
+						UBTTask.Load(Reader);
+					}
+
 					DeleteFile(XGEFile);
 
 					var All = new List<string>();
@@ -1387,7 +1419,7 @@ namespace AutomationTool
 						// When building a target for Mac or iOS, use UBT's -flushmac option to clean up the remote builder
 						bool bForceFlushMac = DeleteBuildProducts && (Target.Platform == UnrealBuildTool.UnrealTargetPlatform.Mac || Target.Platform == UnrealBuildTool.UnrealTargetPlatform.IOS);
 						LogSetProgress(InShowProgress, "Building header tool...");
-						BuildManifest Manifest = BuildWithUBT(Target.TargetName, Target.Platform, Target.Config.ToString(), Target.UprojectPath, bForceMonolithic, bForceNonUnity, bForceDebugInfo, bForceFlushMac, !CanUseXGE(Target.Platform), Target.UBTArgs, bForceUnity);
+						BuildManifest Manifest = BuildWithUBT(Target.TargetName, Target.Platform, Target.Config.ToString(), Target.UprojectPath, bForceMonolithic, bForceNonUnity, bForceDebugInfo, bForceFlushMac, !bCanUseXGE || !CanUseXGE(Target.Platform), Target.UBTArgs, bForceUnity);
 						if(InTargetToManifest != null)
 						{
 							InTargetToManifest[Target] = Manifest;
@@ -1627,6 +1659,7 @@ namespace AutomationTool
 						"UnrealBuildTool.exe.config",
 						"AutomationUtils.Automation.dll",
 						"DotNETUtilities.dll",
+						"MobileDeviceInterface.dll"
 					});
 
 			foreach (var UATFile in UATFiles)

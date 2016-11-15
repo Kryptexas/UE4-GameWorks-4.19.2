@@ -12,10 +12,11 @@
 #include "Engine/NetworkObjectList.h"
 #include "DataChannel.h"
 #include "Engine/PackageMapClient.h"
-#include "GameFramework/GameMode.h"
+#include "GameFramework/GameModeBase.h"
 #include "Runtime/PacketHandlers/PacketHandler/Public/PacketHandler.h"
 
 #include "PerfCountersHelpers.h"
+#include "GameDelegates.h"
 #if WITH_EDITOR
 #include "UnrealEd.h"
 #endif
@@ -387,15 +388,7 @@ void UNetConnection::CleanUp()
 		}
 		else 
 		{
-			UWorld* World = Driver ? Driver->GetWorld() : NULL;
-			if (World)
-			{
-				AGameMode* const GameMode = World->GetAuthGameMode();
-				if (GameMode)
-				{
-					GameMode->NotifyPendingConnectionLost();
-				}
-			}
+			FGameDelegates::Get().GetPendingConnectionLostDelegate().Broadcast();
 		}
 	}
 
@@ -741,6 +734,11 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 		OutPacketId++;
 		++OutPackets;
 		Driver->OutPackets++;
+
+		//Record the packet time to the histogram
+		double LastPacketTimeDiffInMs = (Driver->Time - LastSendTime) * 1000.0;
+		NetConnectionHistogram.AddMeasurement(LastPacketTimeDiffInMs);
+
 		LastSendTime = Driver->Time;
 
 		const int32 PacketBytes = SendBuffer.GetNumBytes() + PacketOverhead;
@@ -1775,9 +1773,9 @@ void UNetConnection::HandleClientPlayer( APlayerController *PC, UNetConnection* 
 		break;
 	}
 
-	// Detach old player if same world.
+	// Detach old player if it's in the same level.
 	check(LocalPlayer);
-	if( LocalPlayer->PlayerController && LocalPlayer->PlayerController->GetWorld() == PC->GetWorld() )
+	if( LocalPlayer->PlayerController && LocalPlayer->PlayerController->GetLevel() == PC->GetLevel())
 	{
 		if (LocalPlayer->PlayerController->Role == ROLE_Authority)
 		{
@@ -1822,7 +1820,7 @@ void UNetConnection::HandleClientPlayer( APlayerController *PC, UNetConnection* 
 				// Remap packagename for PIE networking before sending out to server
 				FName PackageName = Level->GetOutermost()->GetFName();
 				FString PackageNameStr = PackageName.ToString();
-				if (GEngine->NetworkRemapPath(Driver->GetWorld(), PackageNameStr, false))
+				if (GEngine->NetworkRemapPath(Driver, PackageNameStr, false))
 				{
 					PackageName = FName(*PackageNameStr);
 				}

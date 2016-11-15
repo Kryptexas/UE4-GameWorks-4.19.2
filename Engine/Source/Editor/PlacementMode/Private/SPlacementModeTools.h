@@ -20,7 +20,7 @@ public:
 
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, const TSharedPtr<FPlaceableItem>& InItem);
+	void Construct(const FArguments& InArgs, const TSharedPtr<const FPlaceableItem>& InItem);
 
 	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
@@ -28,7 +28,7 @@ public:
 
 	bool IsPressed() const;
 
-	TSharedPtr<FPlaceableItem> Item;
+	TSharedPtr<const FPlaceableItem> Item;
 
 private:
 	const FSlateBrush* GetBorder() const;
@@ -109,6 +109,7 @@ private:
 
 	/** Called when the search text changes */
 	void OnSearchChanged(const FText& InFilterText);
+	void OnSearchCommitted(const FText& InFilterText, ETextCommit::Type InCommitType);
 
 	/** Get the text that should be highlighted on any items */
 	FText GetHighlightText() const;

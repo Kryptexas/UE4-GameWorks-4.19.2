@@ -30,7 +30,7 @@ TMap<void*, InternalProcessEventCallback> ActiveProcessEventCallbacks;
  */
 
 DEFINE_LOG_CATEGORY(LogUnitTest);
-DEFINE_LOG_CATEGORY(None);
+DEFINE_LOG_CATEGORY(NetCodeTestNone);
 
 
 /**

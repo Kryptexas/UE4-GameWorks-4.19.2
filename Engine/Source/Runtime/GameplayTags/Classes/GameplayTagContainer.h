@@ -414,12 +414,12 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 		return GameplayTags.CreateConstIterator();
 	}
 
-	bool IsValidIndex(int32 Index)
+	bool IsValidIndex(int32 Index) const
 	{
 		return GameplayTags.IsValidIndex(Index);
 	}
 
-	FGameplayTag GetByIndex(int32 Index)
+	FGameplayTag GetByIndex(int32 Index) const
 	{
 		if (IsValidIndex(Index))
 		{

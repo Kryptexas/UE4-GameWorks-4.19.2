@@ -1,0 +1,87 @@
+﻿Availability: Docs
+Title: How-To Enable Capsule Shadows for Skeletal Meshes
+Crumbs: %ROOT%, Engine, 
+Description: How to enable Capsule Shadows for Skeletal Meshes.
+Version: 4.13
+related:Engine\Rendering\LightingAndShadows\CapsuleShadows\HowTo\CreateShadowAsset
+related:Engine\Rendering\LightingAndShadows\CapsuleShadows\HowTo\AssignShadowAsset
+related: Engine\Rendering\LightingAndShadows\CapsuleShadows\Overview
+related: Engine\Rendering\LightingAndShadows\CapsuleShadows\BestPractices
+related: Engine\Rendering\LightingAndShadows\CapsuleShadows\Reference
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows/CapsuleShadows:title%]()
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/LightingAndShadows/CapsuleShadows:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/LightingAndShadows/CapsuleShadows:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/LightingAndShadows/CapsuleShadows]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows/CapsuleShadows:title%]()
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/LightingAndShadows/CapsuleShadows:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/LightingAndShadows/CapsuleShadows:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/LightingAndShadows/CapsuleShadows]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+The Capsule Shadows must be enabled on each Skeletal Mesh Actor in your level and requires a unique Shadow Physics Asset to have been created and assigned. Follow the steps below to enable
+Capsule Shadows for your character in your levels.
+
+## Steps
+
+1. Inside the **Content Browser**, find and select your Skeletal Mesh that has been assigned a Physics Asset for shadows.
+
+	![](CB.png)
+
+2. **Left-Click** on the Skeletal Mesh and drag-and-drop it into the Level **Viewport**.
+	[REGION:lightbox]
+	[![](AddSkelMeshToScene.png)(w:500)](AddSkelMeshToScene.png)
+	[/REGION]
+
+3. Inside the **Details** panel for your Skeletal Mesh, look under the **Lighting** section, locate and enable **Capsule Direct Shadows** and **Capsule Indirect Shadows**.
+	
+	![](EnableCapsuleShadows.png)(w:350)
+	
+4. Finish by creating a scene that has some shadowed and unshadowed areas, then use the **Build** button in the main toolbar to build lighting. After the lighting build has completed
+you should be able to see similar results as the ones below for your characters.  
+
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	YwQg9mj-cEE
+	[/PARAMLITERAL]
+	[/OBJECT]
+	 
+[REGION:caption]
+Capsule Indirect Shadows (Left), Capsule Direct Shadows (Right)
+[/REGION]

@@ -1,0 +1,113 @@
+﻿INTSourceChangelist:0
+availability:docs
+title: Blueprint & Render Targets
+description: Using Render Targets with Blueprints in Unreal Engine 4
+crumbs:
+version:4.13
+Type:landing
+SkillLevel:Intermediate
+parent:Engine
+order:1
+Navigation:topic
+
+![](Engine\Rendering\RenderTargets\BlueprintRenderTarget.png)
+
+Having the ability to use Blueprints to draw Materials into Render Targets and then use or save those results for later use can enable a huge variety of game-specific rendering effects. On the following page you will find several links to documentation pages that cover how to use Blueprints and Render Targets. 
+
+
+[REGION:topics third]
+[OBJECT:Topic]
+	[PARAM:image]
+		![Engine\Rendering\RenderTargets\BlueprintRenderTargets/Overview:title%](Engine/Rendering/RenderTargets/Render_Targets_Overview.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/RenderTargets/BlueprintRenderTargets/Overview:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/RenderTargets/BlueprintRenderTargets/Overview:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/RenderTargets/BlueprintRenderTargets/Overview]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:Topic]
+	[PARAM:image]
+		![Engine\Rendering\RenderTargets\BlueprintRenderTargets/Reference:title%](Engine/Rendering/RenderTargets/Render_Targets_Reference.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/RenderTargets/BlueprintRenderTargets/Reference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/RenderTargets/BlueprintRenderTargets/Reference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/RenderTargets/BlueprintRenderTargets/Reference]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:Topic]
+	[PARAM:image]
+		![Engine\Rendering\RenderTargets\BlueprintRenderTargets/BestPractices:title%](Engine/Rendering/RenderTargets/Render_Targets_Best_Practies.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/RenderTargets/BlueprintRenderTargets/BestPractices:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/RenderTargets/BlueprintRenderTargets/BestPractices:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/RenderTargets/BlueprintRenderTargets/BestPractices]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:Topic]
+	[PARAM:image]
+		![Engine\Rendering\RenderTargets\BlueprintRenderTargets/BestPractices:title%](Engine/Rendering/RenderTargets/Render_Targets_Best_Practies.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/RenderTargets/BlueprintRenderTargets/HowTo:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/RenderTargets/BlueprintRenderTargets/HowTo:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/RenderTargets/BlueprintRenderTargets/HowTo]
+	[/PARAM]
+[/OBJECT]
+
+[/REGION]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

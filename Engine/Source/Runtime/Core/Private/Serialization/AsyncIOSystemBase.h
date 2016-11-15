@@ -5,7 +5,9 @@
 =============================================================================*/
 
 #pragma once
+#if !USE_NEW_ASYNC_IO
 #include "HAL/IOBase.h"
+
 
 /**
  * Base implementation of an async IO system allowing most of the code to be shared across platforms.
@@ -438,3 +440,5 @@ protected:
 	/** Low level file system that we use for our requests.											*/
 	IPlatformFile&					LowLevel;
 };
+
+#endif

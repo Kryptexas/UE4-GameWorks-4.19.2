@@ -442,7 +442,7 @@ static void AddEdgeIfNotPresent(TArray<int32>& Edges, int32 Edge0, int32 Edge1)
 	Edges.Add(Edge1);
 }
 
-#define LOCAL_EPS (0.01f)
+#define LOCAL_EPS SMALL_NUMBER
 
 void FKConvexElem::UpdateElemBox()
 {
@@ -591,6 +591,61 @@ bool FKConvexElem::HullFromPlanes(const TArray<FPlane>& InPlanes, const TArray<F
 
 	// We can continue adding primitives (mesh is not horribly broken)
 	return true;
+}
+
+void FKConvexElem::ConvexFromBoxElem(const FKBoxElem& InBox)
+{
+	Reset();
+
+	FVector	B[2], P, Q, Radii;
+
+	// X,Y,Z member variables are LENGTH not RADIUS
+	Radii.X = 0.5f*InBox.X;
+	Radii.Y = 0.5f*InBox.Y;
+	Radii.Z = 0.5f*InBox.Z;
+
+	B[0] = Radii; // max
+	B[1] = -1.0f * Radii; // min
+
+	// copy transform
+	Transform = InBox.GetTransform();
+
+	for (int32 i = 0; i < 2; i++)
+	{
+		for (int32 j = 0; j < 2; j++)
+		{
+			P.X = B[i].X; Q.X = B[i].X;
+			P.Y = B[j].Y; Q.Y = B[j].Y;
+			P.Z = B[0].Z; Q.Z = B[1].Z;
+			VertexData.Add(P);
+			VertexData.Add(Q);
+
+			P.Y = B[i].Y; Q.Y = B[i].Y;
+			P.Z = B[j].Z; Q.Z = B[j].Z;
+			P.X = B[0].X; Q.X = B[1].X;
+			VertexData.Add(P);
+			VertexData.Add(Q);
+
+			P.Z = B[i].Z; Q.Z = B[i].Z;
+			P.X = B[j].X; Q.X = B[j].X;
+			P.Y = B[0].Y; Q.Y = B[1].Y;
+			VertexData.Add(P);
+			VertexData.Add(Q);
+		}
+	}
+
+	UpdateElemBox();
+}
+
+void FKConvexElem::BakeTransformToVerts()
+{
+	for (int32 VertIdx = 0; VertIdx < VertexData.Num(); VertIdx++)
+	{
+		VertexData[VertIdx] = Transform.TransformPosition(VertexData[VertIdx]);
+	}
+
+	Transform = FTransform::Identity;
+	UpdateElemBox();
 }
 
 FArchive& operator<<(FArchive& Ar,FKConvexElem& Elem)

@@ -6,7 +6,7 @@
 #include "UnrealTypeTraits.h"
 #include "Containers/ContainerAllocationPolicies.h"
 #include "UnrealTemplate.h"
-#include "ArchiveBase.h"
+#include "Archive.h"
 
 
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogUnion, Log, All);

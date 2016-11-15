@@ -3,6 +3,7 @@
 #pragma once
 
 #include <initializer_list>
+#include "Traits/IsContiguousContainer.h"
 
 namespace ArrayViewPrivate
 {
@@ -561,6 +562,12 @@ private:
 
 template <typename InElementType>
 struct TIsZeroConstructType<TArrayView<InElementType>>
+{
+	enum { Value = true };
+};
+
+template <typename T>
+struct TIsContiguousContainer<TArrayView<T>>
 {
 	enum { Value = true };
 };

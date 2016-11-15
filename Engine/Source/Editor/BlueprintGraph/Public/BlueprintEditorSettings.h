@@ -78,6 +78,10 @@ public:
 	/** If set will exclude components added in a Blueprint class Construction Script from the component details view */
 	UPROPERTY(EditAnywhere, config, Category=Workflow)
 	bool bHideConstructionScriptComponentsInDetailsView;
+
+	UPROPERTY(EditAnywhere, config, Category = Experimental, AdvancedDisplay, meta = (DisplayName = "Enable (incomplete, non-functional) support for TSet and TMap"))
+	bool bEnableAdvancedContainers;
+
 // Compiler Settings
 public:
 	/** Determines when to save Blueprints post-compile */
@@ -97,6 +101,10 @@ public:
 	/** If enabled, tooltips on action menu items will show the associated action's signature id (can be used to setup custom favorites menus).*/
 	UPROPERTY(EditAnywhere, config, Category=DeveloperTools)
 	bool bShowActionMenuItemSignatures;
+
+	/** If enabled, blueprint nodes in the event graph will display with unique names rather than their display name. */
+	UPROPERTY(EditAnywhere, config, Category = DeveloperTools, meta = (DisplayName = "Display Unique Names for Blueprint Nodes"))
+	bool bBlueprintNodeUniqueNames;
 
 // Perf Settings
 public:

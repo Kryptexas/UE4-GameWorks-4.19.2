@@ -202,11 +202,14 @@ int32 UGatherTextFromSourceCommandlet::Main( const FString& Params )
 	TArray<FString> ManifestDependenciesList;
 	GetPathArrayFromConfig(*SectionName, TEXT("ManifestDependencies"), ManifestDependenciesList, GatherTextConfigPath);
 	
-
-	if( !ManifestInfo->AddManifestDependencies( ManifestDependenciesList ) )
+	for (const FString& ManifestDependency : ManifestDependenciesList)
 	{
-		UE_LOG(LogGatherTextFromSourceCommandlet, Error, TEXT("The GatherTextFromSource commandlet couldn't find all the specified manifest dependencies."));
-		return -1;
+		FText OutError;
+		if (!GatherManifestHelper->AddDependency(ManifestDependency, &OutError))
+		{
+			UE_LOG(LogGatherTextFromSourceCommandlet, Error, TEXT("The GatherTextFromSource commandlet couldn't load the specified manifest dependency: '%'. %s"), *ManifestDependency, *OutError.ToString());
+			return -1;
+		}
 	}
 
 	// Get the loc macros and their syntax
@@ -243,7 +246,7 @@ int32 UGatherTextFromSourceCommandlet::Main( const FString& Params )
 
 	// Init a parse context to track the state of the file parsing 
 	FSourceFileParseContext ParseCtxt;
-	ParseCtxt.ManifestInfo = ManifestInfo;
+	ParseCtxt.GatherManifestHelper = GatherManifestHelper;
 
 	// Get whether we should gather editor-only data. Typically only useful for the localization of UE4 itself.
 	if (!GetBoolFromConfig(*SectionName, TEXT("ShouldGatherFromEditorOnlyData"), ParseCtxt.ShouldGatherFromEditorOnlyData, GatherTextConfigPath))
@@ -510,14 +513,14 @@ FString UGatherTextFromSourceCommandlet::RemoveStringFromTextMacro(const FString
 		int32 OpenQuoteIdx = TextMacro.Find(TEXT("\""), ESearchCase::CaseSensitive);
 		if (0 > OpenQuoteIdx || TextMacro.Len() - 1 == OpenQuoteIdx)
 		{
-			UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("Missing quotes in %s"), *MungeLogOutput(IdentForLogging));
+			UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("Missing quotes in %s"), *FLocTextHelper::SanitizeLogOutput(IdentForLogging));
 		}
 		else
 		{
 			int32 CloseQuoteIdx = TextMacro.Find(TEXT("\""), ESearchCase::CaseSensitive, ESearchDir::FromStart, OpenQuoteIdx+1);
 			if (0 > CloseQuoteIdx)
 			{
-				UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("Missing quotes in %s"), *MungeLogOutput(IdentForLogging));
+				UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("Missing quotes in %s"), *FLocTextHelper::SanitizeLogOutput(IdentForLogging));
 			}
 			else
 			{
@@ -663,10 +666,9 @@ bool UGatherTextFromSourceCommandlet::ParseSourceText(const FString& Text, const
 			// Check if we're starting comments or string literals. Begins *at* "//" or "/*".
 			if (!ParseCtxt.WithinLineComment && !ParseCtxt.WithinBlockComment && !ParseCtxt.WithinStringLiteral)
 			{
-				const TCHAR* ForwardCursor = Cursor;
-				if(*ForwardCursor == TEXT('/'))
+				if(*Cursor == TEXT('/'))
 				{
-					++ForwardCursor;
+					const TCHAR* const ForwardCursor = Cursor + 1;
 					switch(*ForwardCursor)
 					{
 					case TEXT('/'):
@@ -679,7 +681,7 @@ bool UGatherTextFromSourceCommandlet::ParseSourceText(const FString& Text, const
 						{
 							ParseCtxt.WithinBlockComment = true;
 							ParseCtxt.WithinStartingLine = ParseCtxt.LineText;
-					}
+						}
 						break;
 					}
 				}
@@ -687,40 +689,47 @@ bool UGatherTextFromSourceCommandlet::ParseSourceText(const FString& Text, const
 
 			if (!ParseCtxt.WithinLineComment && !ParseCtxt.WithinBlockComment && !ParseCtxt.WithinStringLiteral)
 			{
-				if (*Cursor == TEXT('\"') && Cursor >= *Line)
+				if (*Cursor == TEXT('\"'))
 				{
-					const TCHAR* ReverseCursor = Cursor;
-					--ReverseCursor;
-					if ((*ReverseCursor != TEXT('\\') && *ReverseCursor != TEXT('\'') && ReverseCursor >= *Line) || ReverseCursor < *Line)
+					if (Cursor == *Line)
 					{
 						ParseCtxt.WithinStringLiteral = true;
 						ParseCtxt.WithinStartingLine = ParseCtxt.LineText;
 					}
-					else 
+					else if (Cursor > *Line)
 					{
-						bool IsEscaped = false;
-						//if the backslash or single quote is itself escaped then the quote is good
-						while (*(--ReverseCursor) == TEXT('\\') && ReverseCursor >= *Line)
-						{
-							IsEscaped = !IsEscaped;
-						}
-
-						if (IsEscaped)
+						const TCHAR* const ReverseCursor = Cursor - 1;
+						if (*ReverseCursor != TEXT('\\') && *ReverseCursor != TEXT('\''))
 						{
 							ParseCtxt.WithinStringLiteral = true;
 							ParseCtxt.WithinStartingLine = ParseCtxt.LineText;
 						}
-						else
+						else 
 						{
-							//   check for '"'
-							ReverseCursor = Cursor;
-							--ReverseCursor;
-							const TCHAR* ForwardCursor = Cursor;
-							++ForwardCursor;
-							if (*ReverseCursor == TEXT('\'') && *ForwardCursor != TEXT('\'') && ReverseCursor >= *Line)
+							bool IsEscaped = false;
+							{
+								//if the backslash or single quote is itself escaped then the quote is good
+								const TCHAR* EscapeCursor = ReverseCursor;
+								while (EscapeCursor > *Line && *(--EscapeCursor) == TEXT('\\'))
+								{
+									IsEscaped = !IsEscaped;
+								}
+							}
+
+							if (IsEscaped)
 							{
 								ParseCtxt.WithinStringLiteral = true;
 								ParseCtxt.WithinStartingLine = ParseCtxt.LineText;
+							}
+							else
+							{
+								//   check for '"'
+								const TCHAR* const ForwardCursor = Cursor + 1;
+								if (*ReverseCursor == TEXT('\'') && *ForwardCursor != TEXT('\''))
+								{
+									ParseCtxt.WithinStringLiteral = true;
+									ParseCtxt.WithinStartingLine = ParseCtxt.LineText;
+								}
 							}
 						}
 					}
@@ -728,37 +737,43 @@ bool UGatherTextFromSourceCommandlet::ParseSourceText(const FString& Text, const
 			}
 			else if (ParseCtxt.WithinStringLiteral)
 			{
-				const TCHAR* ReverseCursor = Cursor;
-				if (*ReverseCursor == TEXT('\"') && ReverseCursor >= *Line)
+				if (*Cursor == TEXT('\"'))
 				{
-					--ReverseCursor;
-					if ((*ReverseCursor != TEXT('\\') && *ReverseCursor != TEXT('\'') && ReverseCursor >= *Line) || ReverseCursor < *Line)
+					if (Cursor == *Line)
 					{
 						ParseCtxt.WithinStringLiteral = false;
 					}
-					else
+					else if (Cursor > *Line)
 					{
-						bool IsEscaped = false;
-						//if the backslash or single quote is itself escaped then the quote is good
-						while (*(--ReverseCursor) == TEXT('\\') && ReverseCursor >= *Line)
-						{
-							IsEscaped = !IsEscaped;
-						}
-
-						if (IsEscaped)
+						const TCHAR* const ReverseCursor = Cursor - 1;
+						if (*ReverseCursor != TEXT('\\') && *ReverseCursor != TEXT('\''))
 						{
 							ParseCtxt.WithinStringLiteral = false;
 						}
 						else
 						{
-							//   check for '"'
-							ReverseCursor = Cursor;
-							--ReverseCursor;
-							const TCHAR* ForwardCursor = Cursor;
-							++ForwardCursor;
-							if (*ReverseCursor == TEXT('\'') && *ForwardCursor != TEXT('\'') && ReverseCursor >= *Line)
+							bool IsEscaped = false;
+							{
+								//if the backslash or single quote is itself escaped then the quote is good
+								const TCHAR* EscapeCursor = ReverseCursor;
+								while (EscapeCursor > *Line && *(--EscapeCursor) == TEXT('\\'))
+								{
+									IsEscaped = !IsEscaped;
+								}
+							}
+
+							if (IsEscaped)
 							{
 								ParseCtxt.WithinStringLiteral = false;
+							}
+							else
+							{
+								//   check for '"'
+								const TCHAR* const ForwardCursor = Cursor + 1;
+								if (*ReverseCursor == TEXT('\'') && *ForwardCursor != TEXT('\''))
+								{
+									ParseCtxt.WithinStringLiteral = false;
+								}
 							}
 						}
 					}
@@ -768,11 +783,10 @@ bool UGatherTextFromSourceCommandlet::ParseSourceText(const FString& Text, const
 			// Check if we're ending comments. Ends *after* "*/".
 			if(ParseCtxt.WithinBlockComment)
 			{
-				const TCHAR* ReverseCursor = Cursor;
-				if(*ReverseCursor == TEXT('/') && ReverseCursor >= *Line)
+				if(*Cursor == TEXT('/') && Cursor > *Line)
 				{
-					--ReverseCursor;
-					if(*ReverseCursor == TEXT('*')  && ReverseCursor >= *Line)
+					const TCHAR* const ReverseCursor = Cursor - 1;
+					if (*ReverseCursor == TEXT('*'))
 					{
 						ParseCtxt.WithinBlockComment = false;
 					}
@@ -860,7 +874,7 @@ bool UGatherTextFromSourceCommandlet::FSourceFileParseContext::AddManifestText( 
 			LineNumber, 
 			*LineText);
 		FLocItem Source( SourceText.ReplaceEscapedCharWithChar() );
-		return ManifestInfo->AddEntry(EntryDescription, InNamespace, Source, Context);
+		return GatherManifestHelper->AddSourceText(InNamespace, Source, Context, &EntryDescription);
 	}
 
 	return false;
@@ -1118,7 +1132,7 @@ bool UGatherTextFromSourceCommandlet::FMacroDescriptor::ParseArgsFromMacro(const
 	int32 OpenBracketIdx = RemainingText.Find(TEXT("("));
 	if (0 > OpenBracketIdx)
 	{
-		UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("Missing bracket '(' in %s macro in %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *MungeLogOutput(Context.LineText));
+		UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("Missing bracket '(' in %s macro in %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *FLocTextHelper::SanitizeLogOutput(Context.LineText));
 		//Dont assume this is an error. It's more likely trying to parse something it shouldn't be.
 		return false;
 	}
@@ -1175,7 +1189,7 @@ bool UGatherTextFromSourceCommandlet::FMacroDescriptor::ParseArgsFromMacro(const
 
 				if (0 > BracketStack)
 				{
-					UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("Unexpected bracket ')' in %s macro in %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *MungeLogOutput(Context.LineText));
+					UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("Unexpected bracket ')' in %s macro in %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *FLocTextHelper::SanitizeLogOutput(Context.LineText));
 					return false;
 				}
 			}
@@ -1230,7 +1244,7 @@ void UGatherTextFromSourceCommandlet::FCommandMacroDescriptor::TryParse(const FS
 		{
 			if (Arguments.Num() != 5)
 			{
-				UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("Too many arguments in command %s macro in %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *MungeLogOutput(Context.LineText));
+				UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("Too many arguments in command %s macro in %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *FLocTextHelper::SanitizeLogOutput(Context.LineText));
 			}
 			else
 			{
@@ -1297,7 +1311,7 @@ void UGatherTextFromSourceCommandlet::FStringMacroDescriptor::TryParse(const FSt
 
 			if (NumArgs != Arguments.Num())
 			{
-				UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("Too many arguments in %s macro in %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *MungeLogOutput(Context.LineText));
+				UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("Too many arguments in %s macro in %s(%d):%s"), *GetToken(), *Context.Filename, Context.LineNumber, *FLocTextHelper::SanitizeLogOutput(Context.LineText));
 			}
 			else
 			{
@@ -1313,7 +1327,7 @@ void UGatherTextFromSourceCommandlet::FStringMacroDescriptor::TryParse(const FSt
 					FString ArgText = ArgArray[ArgIdx].Trim();
 
 					bool HasQuotes;
-					FString MacroDesc = FString::Printf(TEXT("argument %d of %d in localization macro %s %s(%d):%s"), ArgIdx+1, Arguments.Num(), *GetToken(), *Context.Filename, Context.LineNumber, *MungeLogOutput(Context.LineText));
+					FString MacroDesc = FString::Printf(TEXT("argument %d of %d in localization macro %s %s(%d):%s"), ArgIdx+1, Arguments.Num(), *GetToken(), *Context.Filename, Context.LineNumber, *FLocTextHelper::SanitizeLogOutput(Context.LineText));
 					if (!PrepareArgument(ArgText, Arg.IsAutoText, MacroDesc, HasQuotes))
 					{
 						ArgParseError = true;

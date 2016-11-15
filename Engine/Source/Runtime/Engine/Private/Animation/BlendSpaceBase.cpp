@@ -320,7 +320,7 @@ void UBlendSpaceBase::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNot
 			}
 
 			float& NormalizedCurrentTime = *(Instance.TimeAccumulator);
-			const float NormalizedPreviousTime = NormalizedCurrentTime;
+			float NormalizedPreviousTime = NormalizedCurrentTime;
 
 			// @note for sync group vs non sync group
 			// in blendspace, it will still sync even if only one node in sync group
@@ -341,6 +341,8 @@ void UBlendSpaceBase::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNot
 				// advance current time - blend spaces hold normalized time as when dealing with changing anim length it would be possible to go backwards
 				UE_LOG(LogAnimation, Verbose, TEXT("BlendSpace(%s) - BlendInput(%s) : AnimLength(%0.5f) "), *GetName(), *BlendInput.ToString(), NewAnimLength);
 				
+				Context.SetPreviousAnimationPositionRatio(NormalizedCurrentTime);
+
 				const int32 HighestMarkerSyncWeightIndex = bCanDoMarkerSync ? GetHighestWeightMarkerSyncSample(SampleDataList, SampleData) : -1;
 
 				if (HighestMarkerSyncWeightIndex == -1)
@@ -413,7 +415,8 @@ void UBlendSpaceBase::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNot
 				}
 				else
 				{
-					NormalizedCurrentTime =  Context.GetAnimationPositionRatio();
+					NormalizedPreviousTime = Context.GetPreviousAnimationPositionRatio();
+					NormalizedCurrentTime = Context.GetAnimationPositionRatio();
 					UE_LOG(LogAnimMarkerSync, Log, TEXT("Leader (%s) (normal advance)  - PreviousTime (%0.2f), CurrentTime (%0.2f), MoveDelta (%0.2f) "), *GetName(), NormalizedPreviousTime, NormalizedCurrentTime, MoveDelta);
 				}
 			}
@@ -1304,21 +1307,23 @@ void UBlendSpaceBase::GetAnimationPose(TArray<FBlendSampleData>& BlendSampleData
 }
 
 #if WITH_EDITOR
-bool UBlendSpaceBase::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets)
+bool UBlendSpaceBase::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets, bool bRecursive /*= true*/)
 {
+	Super::GetAllAnimationSequencesReferred(AnimationAssets, bRecursive);
+
 	for (auto Iter = SampleData.CreateConstIterator(); Iter; ++Iter)
 	{
 		// saves all samples in the AnimSequences
 		UAnimSequence* Sequence = (*Iter).Animation;
 		if (Sequence)
 		{
-			Sequence->HandleAnimReferenceCollection(AnimationAssets);
+			Sequence->HandleAnimReferenceCollection(AnimationAssets, bRecursive);
 		}
 	}
 
 	if (PreviewBasePose)
 	{
-		PreviewBasePose->HandleAnimReferenceCollection(AnimationAssets);
+		PreviewBasePose->HandleAnimReferenceCollection(AnimationAssets, bRecursive);
 	}
  
 	return (AnimationAssets.Num() > 0);
@@ -1326,6 +1331,8 @@ bool UBlendSpaceBase::GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>&
 
 void UBlendSpaceBase::ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& ReplacementMap)
 {
+	Super::ReplaceReferredAnimations(ReplacementMap);
+
 	TArray<FBlendSample> NewSamples;
 	for (auto Iter = SampleData.CreateIterator(); Iter; ++Iter)
 	{

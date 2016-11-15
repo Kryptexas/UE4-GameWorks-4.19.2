@@ -10,6 +10,7 @@ DebugViewModeRendering.h: Contains definitions for rendering debug viewmodes.
 #include "ShaderParameterUtils.h"
 
 static const int32 NumStreamingAccuracyColors = 5;
+static const float UndefinedStreamingAccuracyIntensity = .02f;
 
 /**
  * Vertex shader for quad overdraw. Required because overdraw shaders need to have SV_Position as first PS interpolant.
@@ -36,7 +37,7 @@ public:
 
 	void SetParameters(FRHICommandList& RHICmdList, const FMaterialRenderProxy* MaterialRenderProxy,const FMaterial& Material,const FSceneView& View)
 	{
-		FMeshMaterialShader::SetParameters(RHICmdList, GetVertexShader(),MaterialRenderProxy,Material,View,ESceneRenderTargetsMode::DontSet);
+		FMeshMaterialShader::SetParameters(RHICmdList, GetVertexShader(),MaterialRenderProxy,Material,View,View.ViewUniformBuffer,ESceneRenderTargetsMode::DontSet);
 
 		if (IsInstancedStereoParameter.IsBound())
 		{
@@ -56,14 +57,15 @@ public:
 
 	static void SetCommonDefinitions(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
-		if (Material->IsDefaultMaterial())
+		// SM4 has less input interpolants. Also instanced meshes use more interpolants.
+		if (Material->IsDefaultMaterial() || (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !Material->IsUsedWithInstancedStaticMeshes()))
 		{	// Force the default material to pass enough texcoords to the pixel shaders (even though not using them).
 			// This is required to allow material shaders to have access to the sampled coords.
 			OutEnvironment.SetDefine(TEXT("MIN_MATERIAL_TEXCOORDS"), (uint32)4);
 		}
 		else // Otherwise still pass at minimum amount to have debug shader using a texcoord to work (material might not use any).
 		{
-			OutEnvironment.SetDefine(TEXT("MIN_MATERIAL_TEXCOORDS"), (uint32)1);
+			OutEnvironment.SetDefine(TEXT("MIN_MATERIAL_TEXCOORDS"), (uint32)2);
 		}
 
 	}

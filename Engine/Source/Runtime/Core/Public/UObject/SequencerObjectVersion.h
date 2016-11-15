@@ -9,6 +9,8 @@ struct CORE_API FSequencerObjectVersion
 		// Before any version changes were made
 		BeforeCustomVersionWasAdded = 0,
 
+		// Per-platform overrides player overrides for media sources changed name and type.
+		RenameMediaSourcePlatformPlayers,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

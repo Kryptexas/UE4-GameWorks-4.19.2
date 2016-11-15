@@ -132,6 +132,8 @@ void FGlobalDistanceFieldInfo::UpdateParameterData(float MaxOcclusionDistance)
 	{
 		FPlatformMemory::Memzero(&ParameterData, sizeof(ParameterData));
 	}
+
+	bInitialized = true;
 }
 
 TGlobalResource<FDistanceFieldObjectBufferResource> GGlobalDistanceFieldCulledObjectBuffers;
@@ -621,7 +623,7 @@ void FHeightfieldLightingViewInfo::CompositeHeightfieldsIntoGlobalDistanceField(
 		{
 			const FPrimitiveSceneInfo* HeightfieldPrimitive = Scene->DistanceFieldSceneData.HeightfieldPrimitives[HeightfieldPrimitiveIndex];
 			const FBoxSphereBounds& PrimitiveBounds = HeightfieldPrimitive->Proxy->GetBounds();
-			const float DistanceToPrimitiveSq = (PrimitiveBounds.Origin - View.ViewMatrices.ViewOrigin).SizeSquared();
+			const float DistanceToPrimitiveSq = (PrimitiveBounds.Origin - View.ViewMatrices.GetViewOrigin()).SizeSquared();
 
 			if (UpdateRegion.Bounds.Intersect(PrimitiveBounds.GetBox()))
 			{
@@ -851,7 +853,7 @@ void ComputeUpdateRegionsAndUpdateViewState(
 			if (ShouldUpdateClipmapThisFrame(ClipmapIndex, View.ViewState->GlobalDistanceFieldUpdateIndex)
 				|| bForceFullUpdate)
 			{
-				const FVector NewCenter = View.ViewMatrices.ViewOrigin;
+				const FVector NewCenter = View.ViewMatrices.GetViewOrigin();
 
 				FIntVector GridCenter;
 				GridCenter.X = FMath::FloorToInt(NewCenter.X / CellSize);
@@ -887,6 +889,7 @@ void ComputeUpdateRegionsAndUpdateViewState(
 					int32 TotalTexelsBeingUpdated = 0;
 
 					// Trim fully contained update regions
+					//@todo - trim overlapping regions, especially for update transforms which create update regions for previous and current bounds which are typically overlapping
 					for (int32 UpdateRegionIndex = 0; UpdateRegionIndex < Clipmap.UpdateRegions.Num(); UpdateRegionIndex++)
 					{
 						const FVolumeUpdateRegion& UpdateRegion = Clipmap.UpdateRegions[UpdateRegionIndex];
@@ -963,7 +966,7 @@ void ComputeUpdateRegionsAndUpdateViewState(
 			Clipmap.ScrollOffset = FVector::ZeroVector;
 
 			const float Extent = ComputeClipmapExtent(ClipmapIndex, Scene);
-			FVector Center = View.ViewMatrices.ViewOrigin;
+			FVector Center = View.ViewMatrices.GetViewOrigin();
 
 			const float CellSize = (Extent * 2) / GAOGlobalDFResolution;
 
@@ -987,6 +990,51 @@ void ComputeUpdateRegionsAndUpdateViewState(
 	GlobalDistanceFieldInfo.UpdateParameterData(MaxOcclusionDistance);
 }
 
+void FViewInfo::SetupDefaultGlobalDistanceFieldUniformBufferParameters(FViewUniformShaderParameters& ViewUniformShaderParameters) const
+{
+	// Initialize global distance field members to defaults, because View.GlobalDistanceFieldInfo is not valid yet
+	for (int32 Index = 0; Index < GMaxGlobalDistanceFieldClipmaps; Index++)
+	{
+		ViewUniformShaderParameters.GlobalVolumeCenterAndExtent_UB[Index] = FVector4(0);
+		ViewUniformShaderParameters.GlobalVolumeWorldToUVAddAndMul_UB[Index] = FVector4(0);
+	}
+	ViewUniformShaderParameters.GlobalVolumeDimension_UB = 0.0f;
+	ViewUniformShaderParameters.GlobalVolumeTexelSize_UB = 0.0f;
+	ViewUniformShaderParameters.MaxGlobalDistance_UB = 0.0f;
+
+	ViewUniformShaderParameters.GlobalDistanceFieldTexture0_UB = OrBlack3DIfNull(GBlackVolumeTexture->TextureRHI.GetReference());
+	ViewUniformShaderParameters.GlobalDistanceFieldSampler0_UB = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+	ViewUniformShaderParameters.GlobalDistanceFieldTexture1_UB = OrBlack3DIfNull(GBlackVolumeTexture->TextureRHI.GetReference());
+	ViewUniformShaderParameters.GlobalDistanceFieldSampler1_UB = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+	ViewUniformShaderParameters.GlobalDistanceFieldTexture2_UB = OrBlack3DIfNull(GBlackVolumeTexture->TextureRHI.GetReference());
+	ViewUniformShaderParameters.GlobalDistanceFieldSampler2_UB = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+	ViewUniformShaderParameters.GlobalDistanceFieldTexture3_UB = OrBlack3DIfNull(GBlackVolumeTexture->TextureRHI.GetReference());
+	ViewUniformShaderParameters.GlobalDistanceFieldSampler3_UB = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+}
+
+void FViewInfo::SetupGlobalDistanceFieldUniformBufferParameters(FViewUniformShaderParameters& ViewUniformShaderParameters) const
+{
+	check(GlobalDistanceFieldInfo.bInitialized);
+
+	for (int32 Index = 0; Index < GMaxGlobalDistanceFieldClipmaps; Index++)
+	{
+		ViewUniformShaderParameters.GlobalVolumeCenterAndExtent_UB[Index] = GlobalDistanceFieldInfo.ParameterData.CenterAndExtent[Index];
+		ViewUniformShaderParameters.GlobalVolumeWorldToUVAddAndMul_UB[Index] = GlobalDistanceFieldInfo.ParameterData.WorldToUVAddAndMul[Index];
+	}
+	ViewUniformShaderParameters.GlobalVolumeDimension_UB = GlobalDistanceFieldInfo.ParameterData.GlobalDFResolution;
+	ViewUniformShaderParameters.GlobalVolumeTexelSize_UB = 1.0f / GlobalDistanceFieldInfo.ParameterData.GlobalDFResolution;
+	ViewUniformShaderParameters.MaxGlobalDistance_UB = GlobalDistanceFieldInfo.ParameterData.MaxDistance;
+
+	ViewUniformShaderParameters.GlobalDistanceFieldTexture0_UB = OrBlack3DIfNull(GlobalDistanceFieldInfo.ParameterData.Textures[0]);
+	ViewUniformShaderParameters.GlobalDistanceFieldSampler0_UB = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+	ViewUniformShaderParameters.GlobalDistanceFieldTexture1_UB = OrBlack3DIfNull(GlobalDistanceFieldInfo.ParameterData.Textures[1]);
+	ViewUniformShaderParameters.GlobalDistanceFieldSampler1_UB = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+	ViewUniformShaderParameters.GlobalDistanceFieldTexture2_UB = OrBlack3DIfNull(GlobalDistanceFieldInfo.ParameterData.Textures[2]);
+	ViewUniformShaderParameters.GlobalDistanceFieldSampler2_UB = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+	ViewUniformShaderParameters.GlobalDistanceFieldTexture3_UB = OrBlack3DIfNull(GlobalDistanceFieldInfo.ParameterData.Textures[3]);
+	ViewUniformShaderParameters.GlobalDistanceFieldSampler3_UB = TStaticSamplerState<SF_Bilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
+}
+
 /** 
  * Updates the global distance field for a view.  
  * Typically issues updates for just the newly exposed regions of the volume due to camera movement.
@@ -1004,8 +1052,8 @@ void UpdateGlobalDistanceFieldVolume(
 		ComputeUpdateRegionsAndUpdateViewState(RHICmdList, View, Scene, GlobalDistanceFieldInfo, GMaxGlobalDistanceFieldClipmaps, Scene->DistanceFieldSceneData.PrimitiveModifiedBounds, MaxOcclusionDistance);
 
 		// Recreate the view uniform buffer now that we have updated GlobalDistanceFieldInfo
-		//@todo - minimal recreate
-		View.InitRHIResources();
+		View.SetupGlobalDistanceFieldUniformBufferParameters(*View.CachedViewUniformShaderParameters);
+		View.ViewUniformBuffer = TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(*View.CachedViewUniformShaderParameters, UniformBuffer_SingleFrame);
 
 		bool bHasUpdateRegions = false;
 

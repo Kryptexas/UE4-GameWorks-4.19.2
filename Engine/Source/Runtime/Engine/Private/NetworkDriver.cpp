@@ -18,7 +18,7 @@
 #include "DataChannel.h"
 #include "Engine/PackageMapClient.h"
 #include "GameFramework/PlayerState.h"
-#include "GameFramework/GameMode.h"
+#include "GameFramework/GameModeBase.h"
 #include "PerfCountersHelpers.h"
 
 
@@ -166,12 +166,14 @@ UNetDriver::UNetDriver(const FObjectInitializer& ObjectInitializer)
 ,	OutOutOfOrderPackets(0)
 ,	StatUpdateTime(0.0)
 ,	StatPeriod(1.f)
+,	bCollectNetStats(false)
 ,	LastCleanupTime(0.0)
 ,	NetTag(0)
 ,	DebugRelevantActors(false)
 ,	ProcessQueuedBunchesCurrentFrameMilliseconds(0.0f)
 ,	NetworkObjects(new FNetworkObjectList)
 ,	LagState(ENetworkLagState::NotLagging)
+,	DuplicateLevelID(INDEX_NONE)
 {
 }
 
@@ -286,6 +288,8 @@ void UNetDriver::CancelAdaptiveReplication(FNetworkObjectInfo& InNetworkActor)
 	}
 }
 
+static TAutoConsoleVariable<int32> CVarOptimizedRemapping( TEXT( "net.OptimizedRemapping" ), 1, TEXT( "Uses optimized path to remap unmapped network guids" ) );
+
 void UNetDriver::TickFlush(float DeltaSeconds)
 {
 #if USE_SERVER_PERF_COUNTERS
@@ -322,32 +326,38 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 
 	const double CurrentRealtimeSeconds = FPlatformTime::Seconds();
 
+	bool bCollectServerStats = false;
 #if USE_SERVER_PERF_COUNTERS || STATS
-	// Update network stats (only main game net driver for now) if stats or perf counters are used
-	if (NetDriverName == NAME_GameNetDriver && 
-		 CurrentRealtimeSeconds - StatUpdateTime > StatPeriod)
-	{
-		int32 ClientInBytesMax = 0;
-		int32 ClientInBytesMin = 0;
-		int32 ClientInBytesAvg = 0;
-		int32 ClientInPacketsMax = 0;
-		int32 ClientInPacketsMin = 0;
-		int32 ClientInPacketsAvg = 0;
-		int32 ClientOutBytesMax = 0;
-		int32 ClientOutBytesMin = 0;
-		int32 ClientOutBytesAvg = 0;
-		int32 ClientOutPacketsMax = 0;
-		int32 ClientOutPacketsMin = 0;
-		int32 ClientOutPacketsAvg = 0;
-		int NumClients = 0;
-		int32 MaxPacketOverhead = 0;
-		float RemoteSaturationMax = 0.0f;
+	bCollectServerStats = true;
+#endif
 
-		// these need to be updated even if we are not collecting stats, since they get reported to analytics/QoS
-		for (UNetConnection * Client : ClientConnections)
+	if (bCollectNetStats || bCollectServerStats)
+	{
+		// Update network stats (only main game net driver for now) if stats or perf counters are used
+		if (NetDriverName == NAME_GameNetDriver &&
+			CurrentRealtimeSeconds - StatUpdateTime > StatPeriod)
 		{
-			if (Client)
+			int32 ClientInBytesMax = 0;
+			int32 ClientInBytesMin = 0;
+			int32 ClientInBytesAvg = 0;
+			int32 ClientInPacketsMax = 0;
+			int32 ClientInPacketsMin = 0;
+			int32 ClientInPacketsAvg = 0;
+			int32 ClientOutBytesMax = 0;
+			int32 ClientOutBytesMin = 0;
+			int32 ClientOutBytesAvg = 0;
+			int32 ClientOutPacketsMax = 0;
+			int32 ClientOutPacketsMin = 0;
+			int32 ClientOutPacketsAvg = 0;
+			int NumClients = 0;
+			int32 MaxPacketOverhead = 0;
+			float RemoteSaturationMax = 0.0f;
+
+			// these need to be updated even if we are not collecting stats, since they get reported to analytics/QoS
+			for (UNetConnection * Client : ClientConnections)
 			{
+				if (Client)
+				{
 #define UpdatePerClientMinMaxAvg(VariableName) \
 				Client##VariableName##Max = FMath::Max(Client##VariableName##Max, Client->VariableName##PerSecond); \
 				if (Client##VariableName##Min == 0 || Client->VariableName##PerSecond < Client##VariableName##Min) \
@@ -356,283 +366,287 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 				} \
 				Client##VariableName##Avg += Client->VariableName##PerSecond; \
 
-				UpdatePerClientMinMaxAvg(InBytes);
-				UpdatePerClientMinMaxAvg(OutBytes);
-				UpdatePerClientMinMaxAvg(InPackets);
-				UpdatePerClientMinMaxAvg(OutPackets);
+					UpdatePerClientMinMaxAvg(InBytes);
+					UpdatePerClientMinMaxAvg(OutBytes);
+					UpdatePerClientMinMaxAvg(InPackets);
+					UpdatePerClientMinMaxAvg(OutPackets);
 
-				MaxPacketOverhead = FMath::Max(Client->PacketOverhead, MaxPacketOverhead);
+					MaxPacketOverhead = FMath::Max(Client->PacketOverhead, MaxPacketOverhead);
 
 #undef UpdatePerClientMinMaxAvg
 
-				++NumClients;
+					++NumClients;
+				}
 			}
-		}
 
-		if (NumClients > 1)
-		{
-			ClientInBytesAvg /= NumClients;
-			ClientInPacketsAvg /= NumClients;
-			ClientOutBytesAvg /= NumClients;
-			ClientOutPacketsAvg /= NumClients;
-		}
+			if (NumClients > 1)
+			{
+				ClientInBytesAvg /= NumClients;
+				ClientInPacketsAvg /= NumClients;
+				ClientOutBytesAvg /= NumClients;
+				ClientOutPacketsAvg /= NumClients;
+			}
 
+			int32 Ping = 0;
+			int32 NumOpenChannels = 0;
+			int32 NumActorChannels = 0;
+			int32 NumDormantActors = 0;
+			int32 NumActors = 0;
+			int32 AckCount = 0;
+			int32 UnAckCount = 0;
+			int32 PendingCount = 0;
+			int32 NetSaturated = 0;
+
+			if (
 #if STATS
-		int32 Ping = 0;
-		int32 NumOpenChannels = 0;
-		int32 NumActorChannels = 0;
-		int32 NumDormantActors = 0;
-		int32 NumActors = 0;
-		int32 AckCount = 0;
-		int32 UnAckCount = 0;
-		int32 PendingCount = 0;
-		int32 NetSaturated = 0;
-
-		if (FThreadStats::IsCollectingData())
-		{
-			const float RealTime = CurrentRealtimeSeconds - StatUpdateTime;
-
-			// Use the elapsed time to keep things scaled to one measured unit
-			InBytes = FMath::TruncToInt(InBytes / RealTime);
-			OutBytes = FMath::TruncToInt(OutBytes / RealTime);
-
-			NetGUIDOutBytes = FMath::TruncToInt(NetGUIDOutBytes / RealTime);
-			NetGUIDInBytes = FMath::TruncToInt(NetGUIDInBytes / RealTime);
-
-			// Save off for stats later
-
-			InBytesPerSecond = InBytes;
-			OutBytesPerSecond = OutBytes;
-
-			InPackets = FMath::TruncToInt(InPackets / RealTime);
-			OutPackets = FMath::TruncToInt(OutPackets / RealTime);
-			InBunches = FMath::TruncToInt(InBunches / RealTime);
-			OutBunches = FMath::TruncToInt(OutBunches / RealTime);
-			OutPacketsLost = FMath::TruncToInt(100.f * OutPacketsLost / FMath::Max((float)OutPackets,1.f));
-			InPacketsLost = FMath::TruncToInt(100.f * InPacketsLost / FMath::Max((float)InPackets + InPacketsLost,1.f));
-			
-			if (ServerConnection != NULL && ServerConnection->PlayerController != NULL && ServerConnection->PlayerController->PlayerState != NULL)
+				FThreadStats::IsCollectingData() ||
+#endif
+				bCollectNetStats)
 			{
-				Ping = FMath::TruncToInt(ServerConnection->PlayerController->PlayerState->ExactPing);
-			}
+				const float RealTime = CurrentRealtimeSeconds - StatUpdateTime;
 
-			if (ServerConnection != NULL)
-			{
-				NumOpenChannels = ServerConnection->OpenChannels.Num();
-				RemoteSaturationMax = FMath::Max( RemoteSaturationMax, ServerConnection->RemoteSaturation );
-			}
+				// Use the elapsed time to keep things scaled to one measured unit
+				InBytes = FMath::TruncToInt(InBytes / RealTime);
+				OutBytes = FMath::TruncToInt(OutBytes / RealTime);
 
-			for (int32 i = 0; i < ClientConnections.Num(); i++)
-			{
-				NumOpenChannels += ClientConnections[i]->OpenChannels.Num();
-				RemoteSaturationMax = FMath::Max( RemoteSaturationMax, ClientConnections[i]->RemoteSaturation );
-			}
+				NetGUIDOutBytes = FMath::TruncToInt(NetGUIDOutBytes / RealTime);
+				NetGUIDInBytes = FMath::TruncToInt(NetGUIDInBytes / RealTime);
 
-			// Use the elapsed time to keep things scaled to one measured unit
-			VoicePacketsSent = FMath::TruncToInt(VoicePacketsSent / RealTime);
-			VoicePacketsRecv = FMath::TruncToInt(VoicePacketsRecv / RealTime);
-			VoiceBytesSent = FMath::TruncToInt(VoiceBytesSent / RealTime);
-			VoiceBytesRecv = FMath::TruncToInt(VoiceBytesRecv / RealTime);
+				// Save off for stats later
 
-			// Determine voice percentages
-			VoiceInPercent = (InBytes > 0) ? FMath::TruncToInt(100.f * (float)VoiceBytesRecv / (float)InBytes) : 0;
-			VoiceOutPercent = (OutBytes > 0) ? FMath::TruncToInt(100.f * (float)VoiceBytesSent / (float)OutBytes) : 0;
+				InBytesPerSecond = InBytes;
+				OutBytesPerSecond = OutBytes;
 
-			UNetConnection * Connection = (ServerConnection ? ServerConnection : (ClientConnections.Num() > 0 ? ClientConnections[0] : NULL));
-			if (Connection)
-			{
-				NumActorChannels = Connection->ActorChannels.Num();
-				NumDormantActors = Connection->DormantActors.Num();
+				InPackets = FMath::TruncToInt(InPackets / RealTime);
+				OutPackets = FMath::TruncToInt(OutPackets / RealTime);
+				InBunches = FMath::TruncToInt(InBunches / RealTime);
+				OutBunches = FMath::TruncToInt(OutBunches / RealTime);
+				OutPacketsLost = FMath::TruncToInt(100.f * OutPacketsLost / FMath::Max((float)OutPackets, 1.f));
+				InPacketsLost = FMath::TruncToInt(100.f * InPacketsLost / FMath::Max((float)InPackets + InPacketsLost, 1.f));
 
-				if (World)
+				if (ServerConnection != NULL && ServerConnection->PlayerController != NULL && ServerConnection->PlayerController->PlayerState != NULL)
 				{
-					NumActors = World->GetActorCount();
+					Ping = FMath::TruncToInt(ServerConnection->PlayerController->PlayerState->ExactPing);
 				}
 
-				Connection->PackageMap->GetNetGUIDStats(AckCount, UnAckCount, PendingCount);
-
-				NetSaturated = Connection->IsNetReady(false) ? 0 : 1;
-			}
-		}
-
-		// Copy the net status values over
-		SET_DWORD_STAT(STAT_Ping, Ping);
-		SET_DWORD_STAT(STAT_Channels, NumOpenChannels);
-		SET_DWORD_STAT(STAT_MaxPacketOverhead, MaxPacketOverhead);
-
-		SET_DWORD_STAT(STAT_OutLoss, OutPacketsLost);
-		SET_DWORD_STAT(STAT_InLoss, InPacketsLost);
-		SET_DWORD_STAT(STAT_InRate, InBytes);
-		SET_DWORD_STAT(STAT_OutRate, OutBytes);
-		SET_DWORD_STAT(STAT_OutSaturation, RemoteSaturationMax);
-		SET_DWORD_STAT(STAT_InRateClientMax, ClientInBytesMax);
-		SET_DWORD_STAT(STAT_InRateClientMin, ClientInBytesMin);
-		SET_DWORD_STAT(STAT_InRateClientAvg, ClientInBytesAvg);
-		SET_DWORD_STAT(STAT_InPacketsClientMax, ClientInPacketsMax);
-		SET_DWORD_STAT(STAT_InPacketsClientMin, ClientInPacketsMin);
-		SET_DWORD_STAT(STAT_InPacketsClientAvg, ClientInPacketsAvg);
-		SET_DWORD_STAT(STAT_OutRateClientMax, ClientOutBytesMax);
-		SET_DWORD_STAT(STAT_OutRateClientMin, ClientOutBytesMin);
-		SET_DWORD_STAT(STAT_OutRateClientAvg, ClientOutBytesAvg);
-		SET_DWORD_STAT(STAT_OutPacketsClientMax, ClientOutPacketsMax);
-		SET_DWORD_STAT(STAT_OutPacketsClientMin, ClientOutPacketsMin);
-		SET_DWORD_STAT(STAT_OutPacketsClientAvg, ClientOutPacketsAvg);
-
-		SET_DWORD_STAT(STAT_NetNumClients, NumClients);
-		SET_DWORD_STAT(STAT_InPackets, InPackets);
-		SET_DWORD_STAT(STAT_OutPackets, OutPackets);
-		SET_DWORD_STAT(STAT_InBunches, InBunches);
-		SET_DWORD_STAT(STAT_OutBunches, OutBunches);
-
-		SET_DWORD_STAT(STAT_NetGUIDInRate, NetGUIDInBytes);
-		SET_DWORD_STAT(STAT_NetGUIDOutRate, NetGUIDOutBytes);
-
-		SET_DWORD_STAT(STAT_VoicePacketsSent, VoicePacketsSent);
-		SET_DWORD_STAT(STAT_VoicePacketsRecv, VoicePacketsRecv);
-		SET_DWORD_STAT(STAT_VoiceBytesSent, VoiceBytesSent);
-		SET_DWORD_STAT(STAT_VoiceBytesRecv, VoiceBytesRecv);
-
-		SET_DWORD_STAT(STAT_PercentInVoice, VoiceInPercent);
-		SET_DWORD_STAT(STAT_PercentOutVoice, VoiceOutPercent);
-
-		SET_DWORD_STAT(STAT_NumActorChannels, NumActorChannels);
-		SET_DWORD_STAT(STAT_NumDormantActors, NumDormantActors);
-		SET_DWORD_STAT(STAT_NumActors, NumActors);
-		SET_DWORD_STAT(STAT_NumNetActors, GetNetworkObjectList().GetObjects().Num());
-		SET_DWORD_STAT(STAT_NumNetGUIDsAckd, AckCount);
-		SET_DWORD_STAT(STAT_NumNetGUIDsPending, UnAckCount);
-		SET_DWORD_STAT(STAT_NumNetGUIDsUnAckd, PendingCount);
-		SET_DWORD_STAT(STAT_NetSaturated, NetSaturated);
-#endif // STATS
-
-#if USE_SERVER_PERF_COUNTERS
-		IPerfCounters* PerfCounters = IPerfCountersModule::Get().GetPerformanceCounters();
-		if (PerfCounters)
-		{
-			// Update total connections
-			PerfCounters->Set(TEXT("NumConnections"), ClientConnections.Num());
-
-			const int kNumBuckets = 8;	// evenly spaced with increment of 30 ms; last bucket collects all off-scale pings as well
-			if (ClientConnections.Num() > 0)
-			{
-				// Update per connection statistics
-				float MinPing = MAX_FLT;
-				float AvgPing = 0;
-				float MaxPing = -MAX_FLT;
-				float PingCount = 0;
-
-				int32 Buckets[kNumBuckets] = { 0 };
+				if (ServerConnection != NULL)
+				{
+					NumOpenChannels = ServerConnection->OpenChannels.Num();
+					RemoteSaturationMax = FMath::Max(RemoteSaturationMax, ServerConnection->RemoteSaturation);
+				}
 
 				for (int32 i = 0; i < ClientConnections.Num(); i++)
 				{
-					UNetConnection* Connection = ClientConnections[i];
+					NumOpenChannels += ClientConnections[i]->OpenChannels.Num();
+					RemoteSaturationMax = FMath::Max(RemoteSaturationMax, ClientConnections[i]->RemoteSaturation);
+				}
 
-					if (Connection != nullptr)
+				// Use the elapsed time to keep things scaled to one measured unit
+				VoicePacketsSent = FMath::TruncToInt(VoicePacketsSent / RealTime);
+				VoicePacketsRecv = FMath::TruncToInt(VoicePacketsRecv / RealTime);
+				VoiceBytesSent = FMath::TruncToInt(VoiceBytesSent / RealTime);
+				VoiceBytesRecv = FMath::TruncToInt(VoiceBytesRecv / RealTime);
+
+				// Determine voice percentages
+				VoiceInPercent = (InBytes > 0) ? FMath::TruncToInt(100.f * (float)VoiceBytesRecv / (float)InBytes) : 0;
+				VoiceOutPercent = (OutBytes > 0) ? FMath::TruncToInt(100.f * (float)VoiceBytesSent / (float)OutBytes) : 0;
+
+				UNetConnection * Connection = (ServerConnection ? ServerConnection : (ClientConnections.Num() > 0 ? ClientConnections[0] : NULL));
+				if (Connection)
+				{
+					NumActorChannels = Connection->ActorChannels.Num();
+					NumDormantActors = Connection->DormantActors.Num();
+
+					if (World)
 					{
-						if (Connection->PlayerController != nullptr && Connection->PlayerController->PlayerState != nullptr)
+						NumActors = World->GetActorCount();
+					}
+#if STATS
+					Connection->PackageMap->GetNetGUIDStats(AckCount, UnAckCount, PendingCount);
+#endif
+					NetSaturated = Connection->IsNetReady(false) ? 0 : 1;
+				}
+			}
+
+#if STATS
+			// Copy the net status values over
+			SET_DWORD_STAT(STAT_Ping, Ping);
+			SET_DWORD_STAT(STAT_Channels, NumOpenChannels);
+			SET_DWORD_STAT(STAT_MaxPacketOverhead, MaxPacketOverhead);
+
+			SET_DWORD_STAT(STAT_OutLoss, OutPacketsLost);
+			SET_DWORD_STAT(STAT_InLoss, InPacketsLost);
+			SET_DWORD_STAT(STAT_InRate, InBytes);
+			SET_DWORD_STAT(STAT_OutRate, OutBytes);
+			SET_DWORD_STAT(STAT_OutSaturation, RemoteSaturationMax);
+			SET_DWORD_STAT(STAT_InRateClientMax, ClientInBytesMax);
+			SET_DWORD_STAT(STAT_InRateClientMin, ClientInBytesMin);
+			SET_DWORD_STAT(STAT_InRateClientAvg, ClientInBytesAvg);
+			SET_DWORD_STAT(STAT_InPacketsClientMax, ClientInPacketsMax);
+			SET_DWORD_STAT(STAT_InPacketsClientMin, ClientInPacketsMin);
+			SET_DWORD_STAT(STAT_InPacketsClientAvg, ClientInPacketsAvg);
+			SET_DWORD_STAT(STAT_OutRateClientMax, ClientOutBytesMax);
+			SET_DWORD_STAT(STAT_OutRateClientMin, ClientOutBytesMin);
+			SET_DWORD_STAT(STAT_OutRateClientAvg, ClientOutBytesAvg);
+			SET_DWORD_STAT(STAT_OutPacketsClientMax, ClientOutPacketsMax);
+			SET_DWORD_STAT(STAT_OutPacketsClientMin, ClientOutPacketsMin);
+			SET_DWORD_STAT(STAT_OutPacketsClientAvg, ClientOutPacketsAvg);
+
+			SET_DWORD_STAT(STAT_NetNumClients, NumClients);
+			SET_DWORD_STAT(STAT_InPackets, InPackets);
+			SET_DWORD_STAT(STAT_OutPackets, OutPackets);
+			SET_DWORD_STAT(STAT_InBunches, InBunches);
+			SET_DWORD_STAT(STAT_OutBunches, OutBunches);
+
+			SET_DWORD_STAT(STAT_NetGUIDInRate, NetGUIDInBytes);
+			SET_DWORD_STAT(STAT_NetGUIDOutRate, NetGUIDOutBytes);
+
+			SET_DWORD_STAT(STAT_VoicePacketsSent, VoicePacketsSent);
+			SET_DWORD_STAT(STAT_VoicePacketsRecv, VoicePacketsRecv);
+			SET_DWORD_STAT(STAT_VoiceBytesSent, VoiceBytesSent);
+			SET_DWORD_STAT(STAT_VoiceBytesRecv, VoiceBytesRecv);
+
+			SET_DWORD_STAT(STAT_PercentInVoice, VoiceInPercent);
+			SET_DWORD_STAT(STAT_PercentOutVoice, VoiceOutPercent);
+
+			SET_DWORD_STAT(STAT_NumActorChannels, NumActorChannels);
+			SET_DWORD_STAT(STAT_NumDormantActors, NumDormantActors);
+			SET_DWORD_STAT(STAT_NumActors, NumActors);
+			SET_DWORD_STAT(STAT_NumNetActors, GetNetworkObjectList().GetObjects().Num());
+			SET_DWORD_STAT(STAT_NumNetGUIDsAckd, AckCount);
+			SET_DWORD_STAT(STAT_NumNetGUIDsPending, UnAckCount);
+			SET_DWORD_STAT(STAT_NumNetGUIDsUnAckd, PendingCount);
+			SET_DWORD_STAT(STAT_NetSaturated, NetSaturated);
+#endif // STATS
+
+#if USE_SERVER_PERF_COUNTERS
+			IPerfCounters* PerfCounters = IPerfCountersModule::Get().GetPerformanceCounters();
+			if (PerfCounters)
+			{
+				// Update total connections
+				PerfCounters->Set(TEXT("NumConnections"), ClientConnections.Num());
+
+				const int kNumBuckets = 8;	// evenly spaced with increment of 30 ms; last bucket collects all off-scale pings as well
+				if (ClientConnections.Num() > 0)
+				{
+					// Update per connection statistics
+					float MinPing = MAX_FLT;
+					float AvgPing = 0;
+					float MaxPing = -MAX_FLT;
+					float PingCount = 0;
+
+					int32 Buckets[kNumBuckets] = { 0 };
+
+					for (int32 i = 0; i < ClientConnections.Num(); i++)
+					{
+						UNetConnection* Connection = ClientConnections[i];
+
+						if (Connection != nullptr)
 						{
-							// Ping value calculated per client
-							float ConnPing = Connection->PlayerController->PlayerState->ExactPing;
-
-							int Bucket = FMath::Max(0, FMath::Min(kNumBuckets - 1, (static_cast<int>(ConnPing) / 30)));
-							++Buckets[Bucket];
-
-							if (ConnPing < MinPing)
+							if (Connection->PlayerController != nullptr && Connection->PlayerController->PlayerState != nullptr)
 							{
-								MinPing = ConnPing;
-							}
+								// Ping value calculated per client
+								float ConnPing = Connection->PlayerController->PlayerState->ExactPing;
 
-							if (ConnPing > MaxPing)
-							{
-								MaxPing = ConnPing;
-							}
+								int Bucket = FMath::Max(0, FMath::Min(kNumBuckets - 1, (static_cast<int>(ConnPing) / 30)));
+								++Buckets[Bucket];
 
-							AvgPing += ConnPing;
-							PingCount++;
+								if (ConnPing < MinPing)
+								{
+									MinPing = ConnPing;
+								}
+
+								if (ConnPing > MaxPing)
+								{
+									MaxPing = ConnPing;
+								}
+
+								AvgPing += ConnPing;
+								PingCount++;
+							}
 						}
+					}
+
+					if (PingCount > 0)
+					{
+						AvgPing /= static_cast<float>(PingCount);
+					}
+
+					PerfCounters->Set(TEXT("AvgPing"), AvgPing, IPerfCounters::Flags::Transient);
+					float CurrentMaxPing = PerfCounters->Get(TEXT("MaxPing"), MaxPing);
+					PerfCounters->Set(TEXT("MaxPing"), FMath::Max(MaxPing, CurrentMaxPing), IPerfCounters::Flags::Transient);
+					float CurrentMinPing = PerfCounters->Get(TEXT("MinPing"), MinPing);
+					PerfCounters->Set(TEXT("MinPing"), FMath::Min(MinPing, CurrentMinPing), IPerfCounters::Flags::Transient);
+
+					// update buckets
+					for (int BucketIdx = 0; BucketIdx < ARRAY_COUNT(Buckets); ++BucketIdx)
+					{
+						PerfCountersIncrement(FString::Printf(TEXT("PingBucketInt%d"), BucketIdx), Buckets[BucketIdx], 0, IPerfCounters::Flags::Transient);
+					}
+				}
+				else
+				{
+					PerfCounters->Set(TEXT("AvgPing"), 0.0f, IPerfCounters::Flags::Transient);
+					PerfCounters->Set(TEXT("MaxPing"), -FLT_MAX, IPerfCounters::Flags::Transient);
+					PerfCounters->Set(TEXT("MinPing"), FLT_MAX, IPerfCounters::Flags::Transient);
+
+					for (int BucketIdx = 0; BucketIdx < kNumBuckets; ++BucketIdx)
+					{
+						PerfCounters->Set(FString::Printf(TEXT("PingBucketInt%d"), BucketIdx), 0, IPerfCounters::Flags::Transient);
 					}
 				}
 
-				if (PingCount > 0)
-				{
-					AvgPing /= static_cast<float>(PingCount);
-				}
+				// set the per connection stats (these are calculated earlier).
+				// Note that NumClients may be != NumConnections. Also, if NumClients is 0, the rest of counters should be 0 as well
+				PerfCounters->Set(TEXT("NumClients"), NumClients);
+				PerfCounters->Set(TEXT("MaxPacketOverhead"), MaxPacketOverhead);
+				PerfCounters->Set(TEXT("InRateClientMax"), ClientInBytesMax);
+				PerfCounters->Set(TEXT("InRateClientMin"), ClientInBytesMin);
+				PerfCounters->Set(TEXT("InRateClientAvg"), ClientInBytesAvg);
+				PerfCounters->Set(TEXT("InPacketsClientMax"), ClientInPacketsMax);
+				PerfCounters->Set(TEXT("InPacketsClientMin"), ClientInPacketsMin);
+				PerfCounters->Set(TEXT("InPacketsClientAvg"), ClientInPacketsAvg);
+				PerfCounters->Set(TEXT("OutRateClientMax"), ClientOutBytesMax);
+				PerfCounters->Set(TEXT("OutRateClientMin"), ClientOutBytesMin);
+				PerfCounters->Set(TEXT("OutRateClientAvg"), ClientOutBytesAvg);
+				PerfCounters->Set(TEXT("OutPacketsClientMax"), ClientOutPacketsMax);
+				PerfCounters->Set(TEXT("OutPacketsClientMin"), ClientOutPacketsMin);
+				PerfCounters->Set(TEXT("OutPacketsClientAvg"), ClientOutPacketsAvg);
 
-				PerfCounters->Set(TEXT("AvgPing"), AvgPing, IPerfCounters::Flags::Transient);
-				float CurrentMaxPing = PerfCounters->Get(TEXT("MaxPing"), MaxPing);
-				PerfCounters->Set(TEXT("MaxPing"), FMath::Max(MaxPing, CurrentMaxPing), IPerfCounters::Flags::Transient);
-				float CurrentMinPing = PerfCounters->Get(TEXT("MinPing"), MinPing);
-				PerfCounters->Set(TEXT("MinPing"), FMath::Min(MinPing, CurrentMinPing), IPerfCounters::Flags::Transient);
+				PerfCounters->Set(TEXT("InRate"), InBytes);
+				PerfCounters->Set(TEXT("OutRate"), OutBytes);
+				PerfCounters->Set(TEXT("InPacketsLost"), InPacketsLost);
+				PerfCounters->Set(TEXT("OutPacketsLost"), OutPacketsLost);
+				PerfCounters->Set(TEXT("InPackets"), InPackets);
+				PerfCounters->Set(TEXT("OutPackets"), OutPackets);
+				PerfCounters->Set(TEXT("InBunches"), InBunches);
+				PerfCounters->Set(TEXT("OutBunches"), OutBunches);
 
-				// update buckets
-				for (int BucketIdx = 0; BucketIdx < ARRAY_COUNT(Buckets); ++BucketIdx)
-				{
-					PerfCountersIncrement(FString::Printf(TEXT("PingBucketInt%d"), BucketIdx), Buckets[BucketIdx], 0, IPerfCounters::Flags::Transient);
-				}
+				PerfCounters->Set(TEXT("ServerReplicateActorsTimeMs"), ServerReplicateActorsTimeMs);
+				PerfCounters->Set(TEXT("OutSaturationMax"), RemoteSaturationMax);
 			}
-			else
-			{
-				PerfCounters->Set(TEXT("AvgPing"), 0.0f, IPerfCounters::Flags::Transient);
-				PerfCounters->Set(TEXT("MaxPing"), -FLT_MAX, IPerfCounters::Flags::Transient);
-				PerfCounters->Set(TEXT("MinPing"), FLT_MAX, IPerfCounters::Flags::Transient);
-
-				for (int BucketIdx = 0; BucketIdx < kNumBuckets; ++BucketIdx)
-				{
-					PerfCounters->Set(FString::Printf(TEXT("PingBucketInt%d"), BucketIdx), 0, IPerfCounters::Flags::Transient);
-				}
-			}
-
-			// set the per connection stats (these are calculated earlier).
-			// Note that NumClients may be != NumConnections. Also, if NumClients is 0, the rest of counters should be 0 as well
-			PerfCounters->Set(TEXT("NumClients"), NumClients);
-			PerfCounters->Set(TEXT("MaxPacketOverhead"), MaxPacketOverhead);
-			PerfCounters->Set(TEXT("InRateClientMax"), ClientInBytesMax);
-			PerfCounters->Set(TEXT("InRateClientMin"), ClientInBytesMin);
-			PerfCounters->Set(TEXT("InRateClientAvg"), ClientInBytesAvg);
-			PerfCounters->Set(TEXT("InPacketsClientMax"), ClientInPacketsMax);
-			PerfCounters->Set(TEXT("InPacketsClientMin"), ClientInPacketsMin);
-			PerfCounters->Set(TEXT("InPacketsClientAvg"), ClientInPacketsAvg);
-			PerfCounters->Set(TEXT("OutRateClientMax"), ClientOutBytesMax);
-			PerfCounters->Set(TEXT("OutRateClientMin"), ClientOutBytesMin);
-			PerfCounters->Set(TEXT("OutRateClientAvg"), ClientOutBytesAvg);
-			PerfCounters->Set(TEXT("OutPacketsClientMax"), ClientOutPacketsMax);
-			PerfCounters->Set(TEXT("OutPacketsClientMin"), ClientOutPacketsMin);
-			PerfCounters->Set(TEXT("OutPacketsClientAvg"), ClientOutPacketsAvg);
-
-			PerfCounters->Set(TEXT("InRate"), InBytes);
-			PerfCounters->Set(TEXT("OutRate"), OutBytes);
-			PerfCounters->Set(TEXT("InPacketsLost"), InPacketsLost);
-			PerfCounters->Set(TEXT("OutPacketsLost"), OutPacketsLost);
-			PerfCounters->Set(TEXT("InPackets"), InPackets);
-			PerfCounters->Set(TEXT("OutPackets"), OutPackets);
-			PerfCounters->Set(TEXT("InBunches"), InBunches);
-			PerfCounters->Set(TEXT("OutBunches"), OutBunches);
-
-			PerfCounters->Set(TEXT("ServerReplicateActorsTimeMs"), ServerReplicateActorsTimeMs);
-			PerfCounters->Set(TEXT("OutSaturationMax"), RemoteSaturationMax);
-		}
 #endif // USE_SERVER_PERF_COUNTERS
 
-		// Reset everything
-		InBytes = 0;
-		OutBytes = 0;
-		NetGUIDOutBytes = 0;
-		NetGUIDInBytes = 0;
-		InPackets = 0;
-		OutPackets = 0;
-		InBunches = 0;
-		OutBunches = 0;
-		OutPacketsLost = 0;
-		InPacketsLost = 0;
-		VoicePacketsSent = 0;
-		VoiceBytesSent = 0;
-		VoicePacketsRecv = 0;
-		VoiceBytesRecv = 0;
-		VoiceInPercent = 0;
-		VoiceOutPercent = 0;
-		StatUpdateTime = CurrentRealtimeSeconds;
-	}
-#endif // (USE_SERVER_PERF_COUNTERS) || STATS
+			// Reset everything
+			InBytes = 0;
+			OutBytes = 0;
+			NetGUIDOutBytes = 0;
+			NetGUIDInBytes = 0;
+			InPackets = 0;
+			OutPackets = 0;
+			InBunches = 0;
+			OutBunches = 0;
+			OutPacketsLost = 0;
+			InPacketsLost = 0;
+			VoicePacketsSent = 0;
+			VoiceBytesSent = 0;
+			VoicePacketsRecv = 0;
+			VoiceBytesRecv = 0;
+			VoiceInPercent = 0;
+			VoiceOutPercent = 0;
+			StatUpdateTime = CurrentRealtimeSeconds;
+		}
+	} // bCollectNetStats ||(USE_SERVER_PERF_COUNTERS) || STATS
 
 	// Poll all sockets.
 	if( ServerConnection )
@@ -664,28 +678,85 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 		DrawNetDriverDebug();
 	}
 
-	// Update properties that are unmapped, try to hook up the object pointers if they exist now
-	for ( auto It = UnmappedReplicators.CreateIterator(); It; ++It )
+	if ( CVarOptimizedRemapping.GetValueOnGameThread() && GuidCache.IsValid() )
 	{
-		if ( !It->IsValid() )
+		SCOPE_CYCLE_COUNTER( STAT_NetUpdateUnmappedObjectsTime );
+
+		// Go over recently imported network guids, and see if there are any replicators that need to map them
+		TSet< FNetworkGUID >& ImportedNetGuids = GuidCache->ImportedNetGuids;
+
+		if ( ImportedNetGuids.Num() )
 		{
-			// These are weak references, so if the object has been freed, we can stop checking
-			It.RemoveCurrent();
-			continue;
+			TArray< FNetworkGUID > NewlyMappedGuids;
+
+			for ( auto It = ImportedNetGuids.CreateIterator(); It; ++It )
+			{
+				const FNetworkGUID NetworkGuid = *It;
+
+				if ( GuidCache->GetObjectFromNetGUID( NetworkGuid, false ) != nullptr )
+				{
+					NewlyMappedGuids.Add( NetworkGuid );
+					It.RemoveCurrent();
+				}
+
+				if ( GuidCache->IsGUIDBroken( NetworkGuid, false ) )
+				{
+					It.RemoveCurrent();
+				}
+			}
+
+			if ( NewlyMappedGuids.Num() )
+			{
+				TSet< FObjectReplicator* > AllReplicators;
+
+				for ( const FNetworkGUID& NetGuid : NewlyMappedGuids )
+				{
+					TSet< FObjectReplicator* >* Replicators = GuidToReplicatorMap.Find( NetGuid );
+
+					if ( Replicators )
+					{
+						AllReplicators.Append( *Replicators );
+					}
+				}
+
+				for ( FObjectReplicator* Replicator : AllReplicators )
+				{
+					if ( UnmappedReplicators.Contains( Replicator ) )
+					{
+						bool bHasMoreUnmapped = false;
+						Replicator->UpdateUnmappedObjects( bHasMoreUnmapped );
+
+						if ( !bHasMoreUnmapped )
+						{
+							UnmappedReplicators.Remove( Replicator );
+						}
+					}
+				}
+			}
 		}
+	}
+	else
+	{
+		SCOPE_CYCLE_COUNTER( STAT_NetUpdateUnmappedObjectsTime );
 
-		bool bHasMoreUnmapped = false;
-
-		It->Pin().Get()->UpdateUnmappedObjects( bHasMoreUnmapped );
-		
-		if ( !bHasMoreUnmapped )
+		// Update properties that are unmapped, try to hook up the object pointers if they exist now
+		for ( auto It = UnmappedReplicators.CreateIterator(); It; ++It )
 		{
-			// If there are no more unmapped objects, we can also stop checking
-			It.RemoveCurrent();
+			FObjectReplicator* Replicator = *It;
+
+			bool bHasMoreUnmapped = false;
+
+			Replicator->UpdateUnmappedObjects( bHasMoreUnmapped );
+
+			if ( !bHasMoreUnmapped )
+			{
+				// If there are no more unmapped objects, we can also stop checking
+				It.RemoveCurrent();
+			}
 		}
 	}
 
-	// Go over RepChangedPropertyTrackerMap periodicallly, and remove entries that no longer have valid objects
+	// Go over RepChangedPropertyTrackerMap periodically, and remove entries that no longer have valid objects
 	// Unfortunately if you mark an object as pending kill, it will no longer find itself in this map,
 	// so we do this as a fail safe to make sure we never leak memory from this map
 	const double CleanupTimeSeconds = 10.0;
@@ -693,6 +764,14 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 	if ( CurrentRealtimeSeconds - LastCleanupTime > CleanupTimeSeconds )
 	{
 		for ( auto It = RepChangedPropertyTrackerMap.CreateIterator(); It; ++It )
+		{
+			if ( !It.Key().IsValid() )
+			{
+				It.RemoveCurrent();
+			}
+		}
+
+		for ( auto It = ReplicationChangeListMap.CreateIterator(); It; ++It )
 		{
 			if ( !It.Key().IsValid() )
 			{
@@ -1296,7 +1375,7 @@ void UNetDriver::InternalProcessRemoteFunction
 	RepLayout->SendPropertiesForRPC( Actor, Function, Ch, TempWriter, Parms );
 
 	// Make sure net field export group is registered
-	FNetFieldExportGroup* NetFieldExportGroup = Ch->GetOrCreateNetFieldExportGroupForClassNetCache( TargetObj->GetClass() );
+	FNetFieldExportGroup* NetFieldExportGroup = Ch->GetOrCreateNetFieldExportGroupForClassNetCache( TargetObj );
 
 	int32 HeaderBits	= 0;
 	int32 ParameterBits	= 0;
@@ -1440,7 +1519,6 @@ void UNetDriver::UpdateStandbyCheatStatus(void)
 			
 			if (FoundWorld)
 			{
-				AGameMode* const GameMode = FoundWorld->GetAuthGameMode();
 				AGameNetworkManager* const NetworkManager = FoundWorld->NetworkManager;
 				if (NetworkManager)
 				{
@@ -1448,21 +1526,17 @@ void UNetDriver::UpdateStandbyCheatStatus(void)
 					if (float(CountBadRx) / float(ClientConnections.Num()) > PercentMissingForRxStandby)
 					{
 						bHasStandbyCheatTriggered = true;
-						// Send to the GameMode for processing
 						NetworkManager->StandbyCheatDetected(STDBY_Rx);
 					}
 					else if (float(CountBadPing) / float(ClientConnections.Num()) > PercentForBadPing)
 					{
 						bHasStandbyCheatTriggered = true;
-						// Send to the GameMode for processing
 						NetworkManager->StandbyCheatDetected(STDBY_BadPing);
 					}
-					// Check for the host not sending to the clients, but only during a match
-					else if ( GameMode && GameMode->IsMatchInProgress() &&
-						float(CountBadTx) / float(ClientConnections.Num()) > PercentMissingForTxStandby)
+					// Check for the host not sending to the clients
+					else if (float(CountBadTx) / float(ClientConnections.Num()) > PercentMissingForTxStandby)
 					{
 						bHasStandbyCheatTriggered = true;
-						// Send to the GameMode for processing
 						NetworkManager->StandbyCheatDetected(STDBY_Tx);
 					}
 				}
@@ -1518,6 +1592,12 @@ void UNetDriver::FinishDestroy()
 		check(ClientConnections.Num()==0);
 		check(!GuidCache.IsValid());
 	}
+
+	// Make sure we've properly shut down all of the FObjectReplicator's
+	check( GuidToReplicatorMap.Num() == 0 );
+	check( TotalTrackedGuidMemoryBytes == 0 );
+	check( UnmappedReplicators.Num() == 0 );
+
 	Super::FinishDestroy();
 }
 
@@ -2556,11 +2636,10 @@ int32 UNetDriver::ServerReplicateActors_PrioritizeActors( UNetConnection* Connec
 		OutPriorityList = new ( FMemStack::Get(), MaxSortedActors ) FActorPriority;
 		OutPriorityActors = new ( FMemStack::Get(), MaxSortedActors ) FActorPriority*;
 
-		// determine whether we should priority sort the list of relevant actors based on the saturation/bandwidth of the current connection
-		//@note - if the server is currently CPU saturated then do not sort until framerate improves
 		check( World == Connection->ViewTarget->GetWorld() );
-		AGameMode const* const GameMode = World->GetAuthGameMode();
-		const bool bLowNetBandwidth = !bCPUSaturated && ( Connection->CurrentNetSpeed / float( GameMode->NumPlayers + GameMode->NumBots ) < 500.f );
+
+		AGameNetworkManager* const NetworkManager = World->NetworkManager;
+		const bool bLowNetBandwidth = NetworkManager ? NetworkManager->IsInLowBandwidthMode() : false;
 
 		for ( FNetworkObjectInfo* ActorInfo : ConsiderList )
 		{
@@ -3007,6 +3086,8 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 				}
 			}
 			RelevantActorMark.Pop();
+
+			ConnectionViewers.Reset();
 		}
 	}
 
@@ -3116,6 +3197,7 @@ void UNetDriver::PrintDebugRelevantActors()
 
 void UNetDriver::DrawNetDriverDebug()
 {
+#if ENABLE_DRAW_DEBUG
 	UNetConnection *Connection = (ServerConnection ? ServerConnection : (ClientConnections.Num() >= 1 ? ClientConnections[0] : NULL));
 	if (!Connection)
 	{
@@ -3165,6 +3247,7 @@ void UNetDriver::DrawNetDriverDebug()
 		FBox Box = 	It->GetComponentsBoundingBox();
 		DrawDebugBox( LocalWorld, Box.GetCenter(), Box.GetExtent(), FQuat::Identity, DrawColor, false );
 	}
+#endif
 }
 
 bool UNetDriver::NetObjectIsDynamic(const UObject *Object) const
@@ -3332,6 +3415,18 @@ TSharedPtr<FRepLayout> UNetDriver::GetStructRepLayout( UStruct * Struct )
 	}
 
 	return *RepLayoutPtr;
+}
+
+TSharedPtr< FReplicationChangelistMgr > UNetDriver::GetReplicationChangeListMgr( UObject* Object )
+{
+	TSharedPtr< FReplicationChangelistMgr >* ReplicationChangeListMgrPtr = ReplicationChangeListMap.Find( Object );
+
+	if ( !ReplicationChangeListMgrPtr )
+	{
+		ReplicationChangeListMgrPtr = &ReplicationChangeListMap.Add( Object, TSharedPtr< FReplicationChangelistMgr >( new FReplicationChangelistMgr( this, Object ) ) );
+	}
+
+	return *ReplicationChangeListMgrPtr;
 }
 
 FAutoConsoleCommandWithWorld	DumpRelevantActorsCommand(

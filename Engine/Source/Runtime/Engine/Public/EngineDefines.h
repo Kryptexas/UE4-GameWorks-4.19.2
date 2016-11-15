@@ -41,7 +41,6 @@
 #ifndef WITH_APEX_LEGACY
 	#define WITH_APEX_LEGACY	1
 #endif // WITH_APEX_LEGACY
-
 #endif // WITH_APEX
 
 #if WITH_APEX_CLOTHING
@@ -53,10 +52,6 @@
 #ifndef ENABLE_VISUAL_LOG
 	#define ENABLE_VISUAL_LOG (PLATFORM_DESKTOP && !NO_LOGGING && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
 #endif
-
-#ifndef WITH_FIXED_AREA_ENTERING_COST
-	#define WITH_FIXED_AREA_ENTERING_COST 1
-#endif // WITH_FIXED_AREA_ENTERING_COST
 
 // If set, recast will use async workers for rebuilding tiles in runtime
 // All access to tile data must be guarded with critical sections

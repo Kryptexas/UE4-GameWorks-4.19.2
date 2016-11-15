@@ -53,12 +53,10 @@ void UWorldComposition::PostDuplicate(bool bDuplicateForPIE)
 {
 	Super::PostDuplicate(bDuplicateForPIE);
 
-#if WITH_EDITOR
 	if (bDuplicateForPIE)
 	{
 		FixupForPIE(GetOutermost()->PIEInstanceID);	
 	}
-#endif // WITH_EDITOR
 }
 
 void UWorldComposition::PostLoad()
@@ -272,9 +270,7 @@ void UWorldComposition::Rescan()
 void UWorldComposition::ReinitializeForPIE()
 {
 	Rescan();
-#if WITH_EDITOR
 	FixupForPIE(GetOutermost()->PIEInstanceID);
-#endif// WITH_EDITOR
 	GetWorld()->StreamingLevels.Empty();
 	GetWorld()->StreamingLevels.Append(TilesStreaming);
 }
@@ -382,6 +378,11 @@ FWorldCompositionTile* UWorldComposition::FindTileByName(const FName& InPackageN
 	}
 }
 
+UWorldComposition::FTilesList& UWorldComposition::GetTilesList()
+{
+	return Tiles;
+}
+
 #if WITH_EDITOR
 
 FWorldTileInfo UWorldComposition::GetTileInfo(const FName& InPackageName) const
@@ -438,11 +439,6 @@ void UWorldComposition::OnTileInfoUpdated(const FName& InPackageName, const FWor
 			LevelPackage->MarkPackageDirty();
 		}
 	}
-}
-
-UWorldComposition::FTilesList& UWorldComposition::GetTilesList()
-{
-	return Tiles;
 }
 
 void UWorldComposition::RestoreDirtyTilesInfo(const FTilesList& TilesPrevState)
@@ -693,7 +689,7 @@ void UWorldComposition::UpdateStreamingState()
 	if (Locations.Num())
 	{
 		CentroidLocation/= Locations.Num();
-		if (PlayWorld->GetWorldSettings()->bEnableWorldOriginRebasing)
+		if (PlayWorld->GetWorldSettings()->bEnableWorldOriginRebasing && !PlayWorld->bOriginOffsetThisFrame)
 		{
 			EvaluateWorldOriginLocation(CentroidLocation);
 		}

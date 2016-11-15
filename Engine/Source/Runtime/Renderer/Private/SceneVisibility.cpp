@@ -92,6 +92,13 @@ static TAutoConsoleVariable<float> CVarStaticMeshLODDistanceScale(
 	TEXT("(higher values make LODs transition earlier, e.g., 2 is twice as fast / half the distance)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<float> CVarHLODDistanceScale(
+	TEXT("r.HLOD.DistanceScale"),
+	1.0f,
+	TEXT("Scale factor for the distance used in computing discrete HLOD for transition for static meshes. (defaults to 1)\n")
+	TEXT("(higher values make HLODs transition farther away, e.g., 2 is twice the distance)"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
 static int32 GOcclusionCullParallelPrimFetch = 0;
 static FAutoConsoleVariableRef CVarOcclusionCullParallelPrimFetch(
 	TEXT("r.OcclusionCullParallelPrimFetch"),
@@ -287,7 +294,7 @@ static int32 FrustumCull(const FScene* Scene, FViewInfo& View)
 		{
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_FrustumCull_Loop);
 			const int32 BitArrayNumInner = View.PrimitiveVisibilityMap.Num();
-			FVector ViewOriginForDistanceCulling = View.ViewMatrices.ViewOrigin;
+			FVector ViewOriginForDistanceCulling = View.ViewMatrices.GetViewOrigin();
 			float FadeRadius = GDisableLODFade ? 0.0f : GDistanceFadeMaxTravel;
 			uint8 CustomVisibilityFlags = EOcclusionFlags::CanBeOccluded | EOcclusionFlags::HasPrecomputedVisibility;
 
@@ -320,7 +327,7 @@ static int32 FrustumCull(const FScene* Scene, FViewInfo& View)
 					}
 
 					if (DistanceSquared > FMath::Square(MaxDrawDistance + FadeRadius) ||
-						DistanceSquared < Bounds.MinDrawDistanceSq ||
+						(DistanceSquared < Bounds.MinDrawDistanceSq) ||
 						(UseCustomCulling && !View.CustomVisibilityQuery->IsVisible(VisibilityId, FBoxSphereBounds(Bounds.Origin, Bounds.BoxExtent, Bounds.SphereRadius))) ||
 						(bAlsoUseSphereTest && View.ViewFrustum.IntersectSphere(Bounds.Origin, Bounds.SphereRadius) == false) ||
 						View.ViewFrustum.IntersectBox(Bounds.Origin, Bounds.BoxExtent) == false)
@@ -786,7 +793,7 @@ static void FetchVisibilityForPrimitives_Range(FVisForPrimParams& Params)
 					{
 						// Transform parallel near plane
 						static_assert((int32)ERHIZBuffer::IsInverted != 0, "Check equation for culling!");
-						bAllowBoundsTest = View.WorldToScreen(OcclusionBounds.Origin).Z - View.ViewMatrices.ProjMatrix.M[2][2] * OcclusionBounds.SphereRadius < 1;
+						bAllowBoundsTest = View.WorldToScreen(OcclusionBounds.Origin).Z - View.ViewMatrices.GetProjectionMatrix().M[2][2] * OcclusionBounds.SphereRadius < 1;
 					}
 					else
 					{
@@ -844,7 +851,7 @@ static void FetchVisibilityForPrimitives_Range(FVisForPrimParams& Params)
 
 							if (bRunQuery)
 							{
-								const FVector BoundOrigin = OcclusionBounds.Origin + View.ViewMatrices.PreViewTranslation;
+								const FVector BoundOrigin = OcclusionBounds.Origin + View.ViewMatrices.GetPreViewTranslation();
 								const FVector BoundExtent = OcclusionBounds.BoxExtent;
 
 								if (bSingleThreaded)
@@ -1331,7 +1338,7 @@ struct FMarkRelevantStaticMeshesForViewData
 
 	FMarkRelevantStaticMeshesForViewData(FViewInfo& View)
 	{
-		ViewOrigin = View.ViewMatrices.ViewOrigin;
+		ViewOrigin = View.ViewMatrices.GetViewOrigin();
 
 		MaxDrawDistanceScaleSquared = GetCachedScalabilityCVars().ViewDistanceScaleSquared;
 
@@ -1359,6 +1366,7 @@ namespace EMarkMaskBits
 		StaticMeshOccluderMapMask = 0x8,
 		StaticMeshFadeOutDitheredLODMapMask = 0x10,
 		StaticMeshFadeInDitheredLODMapMask = 0x20,
+		StaticMeshEditorSelectedMask = 0x40,
 	};
 }
 
@@ -1393,6 +1401,7 @@ struct FRelevancePacket
 	bool bUsesGlobalDistanceField;
 	bool bUsesLightingChannels;
 	bool bTranslucentSurfaceLighting;
+	bool bUsesSceneDepth;
 
 	FRelevancePacket(
 		FRHICommandListImmediate& InRHICmdList,
@@ -1418,6 +1427,7 @@ struct FRelevancePacket
 		, bUsesGlobalDistanceField(false)
 		, bUsesLightingChannels(false)
 		, bTranslucentSurfaceLighting(false)
+		, bUsesSceneDepth(false)
 	{
 	}
 
@@ -1448,7 +1458,14 @@ struct FRelevancePacket
 			const bool bDynamicRelevance = ViewRelevance.bDynamicRelevance;
 			const bool bShadowRelevance = ViewRelevance.bShadowRelevance;
 			const bool bEditorRelevance = ViewRelevance.bEditorPrimitiveRelevance;
+			const bool bEditorSelectionRelevance = ViewRelevance.bEditorStaticSelectionRelevance;
 			const bool bTranslucentRelevance = ViewRelevance.HasTranslucency();
+
+			if (View.bIsReflectionCapture && !PrimitiveSceneInfo->Proxy->IsVisibleInReflectionCaptures())
+			{
+				NotDrawRelevant.AddPrim(BitIndex);
+				continue;
+			}
 
 			if (bStaticRelevance && (bDrawRelevance || bShadowRelevance))
 			{
@@ -1501,6 +1518,7 @@ struct FRelevancePacket
 			bUsesGlobalDistanceField |= ViewRelevance.bUsesGlobalDistanceField;
 			bUsesLightingChannels |= ViewRelevance.bUsesLightingChannels;
 			bTranslucentSurfaceLighting |= ViewRelevance.bTranslucentSurfaceLighting;
+			bUsesSceneDepth |= ViewRelevance.bUsesSceneDepth;
 
 			if (ViewRelevance.bRenderCustomDepth)
 			{
@@ -1658,6 +1676,13 @@ struct FRelevancePacket
 						}
 						bNeedsBatchVisibility = true;
 					}
+
+#if WITH_EDITOR
+					if(ViewRelevance.bDrawRelevance && ViewRelevance.bEditorStaticSelectionRelevance)
+					{
+						MarkMask |= EMarkMaskBits::StaticMeshEditorSelectedMask;
+					}
+#endif
 					if (MarkMask)
 					{
 						MarkMasks[StaticMesh.Id] = MarkMask;
@@ -1688,6 +1713,7 @@ struct FRelevancePacket
 		WriteView.bUsesGlobalDistanceField |= bUsesGlobalDistanceField;
 		WriteView.bUsesLightingChannels |= bUsesLightingChannels;
 		WriteView.bTranslucentSurfaceLighting |= bTranslucentSurfaceLighting;
+		WriteView.bUsesSceneDepth |= bUsesSceneDepth;
 		VisibleEditorPrimitives.AppendTo(WriteView.VisibleEditorPrimitives);
 		VisibleDynamicPrimitives.AppendTo(WriteView.VisibleDynamicPrimitives);
 		WriteView.TranslucentPrimSet.AppendScenePrimitives(TranslucencyPrims.Prims, TranslucencyPrims.NumPrims, TranslucencyPrimCount);
@@ -1800,6 +1826,9 @@ static void ComputeAndMarkRelevanceForViewParallel(
 	uint32* RESTRICT StaticMeshOccluderMap_Words = View.StaticMeshOccluderMap.GetData();
 	uint32* RESTRICT StaticMeshFadeOutDitheredLODMap_Words = View.StaticMeshFadeOutDitheredLODMap.GetData();
 	uint32* RESTRICT StaticMeshFadeInDitheredLODMap_Words = View.StaticMeshFadeInDitheredLODMap.GetData();
+#if WITH_EDITOR
+	uint32* RESTRICT StaticMeshEditorSelectionMap_Words = View.StaticMeshEditorSelectionMap.GetData();
+#endif
 	const uint64* RESTRICT MarkMasks64 = (const uint64* RESTRICT)MarkMasks;
 	const uint8* RESTRICT MarkMasks8 = MarkMasks;
 	for (int32 BaseIndex = 0; BaseIndex < NumMesh; BaseIndex += 32)
@@ -1810,6 +1839,7 @@ static void ComputeAndMarkRelevanceForViewParallel(
 		uint32 StaticMeshOccluderMap_Word = 0;
 		uint32 StaticMeshFadeOutDitheredLODMap_Word = 0;
 		uint32 StaticMeshFadeInDitheredLODMap_Word = 0;
+		uint32 StaticMeshEditorSelectionMap_Word = 0;
 		uint32 Mask = 1;
 		bool bAny = false;
 		for (int32 QWordIndex = 0; QWordIndex < 4; QWordIndex++)
@@ -1825,6 +1855,9 @@ static void ComputeAndMarkRelevanceForViewParallel(
 					StaticMeshOccluderMap_Word |= (MaskMask & EMarkMaskBits::StaticMeshOccluderMapMask) ? Mask : 0;
 					StaticMeshFadeOutDitheredLODMap_Word |= (MaskMask & EMarkMaskBits::StaticMeshFadeOutDitheredLODMapMask) ? Mask : 0;
 					StaticMeshFadeInDitheredLODMap_Word |= (MaskMask & EMarkMaskBits::StaticMeshFadeInDitheredLODMapMask) ? Mask : 0;
+#if WITH_EDITOR
+					StaticMeshEditorSelectionMap_Word |= (MaskMask & EMarkMaskBits::StaticMeshEditorSelectedMask) ? Mask : 0;
+#endif
 				}
 				bAny = true;
 			}
@@ -1843,6 +1876,9 @@ static void ComputeAndMarkRelevanceForViewParallel(
 			*StaticMeshOccluderMap_Words = StaticMeshOccluderMap_Word;
 			*StaticMeshFadeOutDitheredLODMap_Words = StaticMeshFadeOutDitheredLODMap_Word;
 			*StaticMeshFadeInDitheredLODMap_Words = StaticMeshFadeInDitheredLODMap_Word;
+#if WITH_EDITOR
+			*StaticMeshEditorSelectionMap_Words = StaticMeshEditorSelectionMap_Word;
+#endif
 		}
 		StaticMeshVisibilityMap_Words++;
 		StaticMeshVelocityMap_Words++;
@@ -1850,6 +1886,9 @@ static void ComputeAndMarkRelevanceForViewParallel(
 		StaticMeshOccluderMap_Words++;
 		StaticMeshFadeOutDitheredLODMap_Words++;
 		StaticMeshFadeInDitheredLODMap_Words++;
+#if WITH_EDITOR
+		StaticMeshEditorSelectionMap_Words++;
+#endif
 	}
 }
 
@@ -1875,7 +1914,7 @@ void FSceneRenderer::GatherDynamicMeshElements(
 			Collector.AddViewMeshArrays(&InViews[ViewIndex], &InViews[ViewIndex].DynamicMeshElements, &InViews[ViewIndex].SimpleElementCollector, InViewFamily.GetFeatureLevel());
 		}
 
-		const bool bIsInstancedStereo = (ViewCount > 0) ? InViews[0].IsInstancedStereoPass() : false;
+		const bool bIsInstancedStereo = (ViewCount > 0) ? (InViews[0].IsInstancedStereoPass() || InViews[0].bIsMobileMultiViewEnabled) : false;
 
 		for (int32 PrimitiveIndex = 0; PrimitiveIndex < NumPrimitives; ++PrimitiveIndex)
 		{
@@ -1946,11 +1985,11 @@ static void MarkAllPrimitivesForReflectionProxyUpdate(FScene* Scene)
 static bool IsLargeCameraMovement(FSceneView& View, const FMatrix& PrevViewMatrix, const FVector& PrevViewOrigin, float CameraRotationThreshold, float CameraTranslationThreshold)
 {
 	float RotationThreshold = FMath::Cos(CameraRotationThreshold * PI / 180.0f);
-	float ViewRightAngle = View.ViewMatrices.ViewMatrix.GetColumn(0) | PrevViewMatrix.GetColumn(0);
-	float ViewUpAngle = View.ViewMatrices.ViewMatrix.GetColumn(1) | PrevViewMatrix.GetColumn(1);
-	float ViewDirectionAngle = View.ViewMatrices.ViewMatrix.GetColumn(2) | PrevViewMatrix.GetColumn(2);
+	float ViewRightAngle = View.ViewMatrices.GetViewMatrix().GetColumn(0) | PrevViewMatrix.GetColumn(0);
+	float ViewUpAngle = View.ViewMatrices.GetViewMatrix().GetColumn(1) | PrevViewMatrix.GetColumn(1);
+	float ViewDirectionAngle = View.ViewMatrices.GetViewMatrix().GetColumn(2) | PrevViewMatrix.GetColumn(2);
 
-	FVector Distance = FVector(View.ViewMatrices.ViewOrigin) - PrevViewOrigin;
+	FVector Distance = FVector(View.ViewMatrices.GetViewOrigin()) - PrevViewOrigin;
 	return 
 		ViewRightAngle < RotationThreshold ||
 		ViewUpAngle < RotationThreshold ||
@@ -1978,7 +2017,7 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 	RHICmdList.BeginScene();
 
 	// Notify the FX system that the scene is about to perform visibility checks.
-	if (Scene->FXSystem)
+	if (Scene->FXSystem && !Views[0].bIsPlanarReflection)
 	{
 		Scene->FXSystem->PreInitViews();
 	}
@@ -2056,7 +2095,7 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 			ViewState->SetupDistanceFieldTemporalOffset(ViewFamily);
 		}
 
-		if( View.FinalPostProcessSettings.AntiAliasingMethod == AAM_TemporalAA && ViewState )
+		if( View.AntiAliasingMethod == AAM_TemporalAA && ViewState )
 		{
 			// Subpixel jitter for temporal AA
 			int32 TemporalAASamples = CVarTemporalAASamples.GetValueOnRenderThread();
@@ -2158,27 +2197,7 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 				View.TemporalJitterPixelsX = SampleX;
 				View.TemporalJitterPixelsY = SampleY;
 
-				View.ViewMatrices.TemporalAAProjJitter.X = SampleX * 2.0f / View.ViewRect.Width();
-				View.ViewMatrices.TemporalAAProjJitter.Y = SampleY * 2.0f / View.ViewRect.Height();
-				View.ViewMatrices.ProjMatrix.M[2][0] += View.ViewMatrices.TemporalAAProjJitter.X;
-				View.ViewMatrices.ProjMatrix.M[2][1] += View.ViewMatrices.TemporalAAProjJitter.Y;
-
-				// Compute the view projection matrix and its inverse.
-				View.ViewProjectionMatrix = View.ViewMatrices.ViewMatrix * View.ViewMatrices.ProjMatrix;
-				View.InvViewProjectionMatrix = View.ViewMatrices.GetInvProjMatrix() * View.InvViewMatrix;
-
-				// Compute a transform from view origin centered world-space to clip space.
-				if( View.ViewMatrices.PreViewTranslation.IsNearlyZero() )
-				{
-					View.ViewMatrices.TranslatedViewProjectionMatrix = View.ViewProjectionMatrix;
-					View.ViewMatrices.InvTranslatedViewProjectionMatrix = View.InvViewProjectionMatrix;
-				}
-				else
-				{
-					ensure( View.ViewMatrices.TranslatedViewMatrix.GetOrigin().IsNearlyZero() );
-					View.ViewMatrices.TranslatedViewProjectionMatrix = View.ViewMatrices.TranslatedViewMatrix * View.ViewMatrices.ProjMatrix;
-					View.ViewMatrices.InvTranslatedViewProjectionMatrix = View.ViewMatrices.GetInvProjMatrix() * View.ViewMatrices.TranslatedViewMatrix.GetTransposed();
-				}
+				View.ViewMatrices.HackAddTemporalAAProjectionJitter(FVector2D(SampleX * 2.0f / View.ViewRect.Width(), SampleY * 2.0f / View.ViewRect.Height()));
 			}
 		}
 		else if(ViewState)
@@ -2216,14 +2235,14 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 				View.bIgnoreExistingQueries = true;
 				View.bDisableDistanceBasedFadeTransitions = true;
 			}
-			ViewState->PrevViewMatrixForOcclusionQuery = View.ViewMatrices.ViewMatrix;
-			ViewState->PrevViewOriginForOcclusionQuery = View.ViewMatrices.ViewOrigin;
+			ViewState->PrevViewMatrixForOcclusionQuery = View.ViewMatrices.GetViewMatrix();
+			ViewState->PrevViewOriginForOcclusionQuery = View.ViewMatrices.GetViewOrigin();
 				
 			// store old view matrix and detect conditions where we should reset motion blur 
 			{
 				bool bResetCamera = bFirstFrameOrTimeWasReset
 					|| View.bCameraCut
-					|| IsLargeCameraMovement(View, ViewState->PrevViewMatrices.ViewMatrix, ViewState->PrevViewMatrices.ViewOrigin, 45.0f, 10000.0f);
+					|| IsLargeCameraMovement(View, ViewState->PrevViewMatrices.GetViewMatrix(), ViewState->PrevViewMatrices.GetViewOrigin(), 45.0f, 10000.0f);
 
 				if (bResetCamera)
 				{
@@ -2265,9 +2284,6 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 				}
 
 				View.PrevViewMatrices = ViewState->PrevViewMatrices;
-
-				View.PrevViewProjMatrix = ViewState->PrevViewMatrices.GetViewProjMatrix();
-				View.PrevViewRotationProjMatrix = ViewState->PrevViewMatrices.GetViewRotationProjMatrix();
 			}
 
 			ViewState->PrevFrameNumber = ViewState->PendingPrevFrameNumber;
@@ -2339,6 +2355,10 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 		View.StaticMeshBatchVisibility.AddZeroed(Scene->StaticMeshes.GetMaxIndex());
 
 		View.VisibleLightInfos.Empty(Scene->Lights.GetMaxIndex());
+
+#if WITH_EDITOR
+		View.StaticMeshEditorSelectionMap.Init(false, Scene->StaticMeshes.GetMaxIndex());
+#endif
 
 		// The dirty list allocation must take into account the max possible size because when GILCUpdatePrimTaskEnabled is true,
 		// the indirect lighting cache will be update on by threaded job, which can not do reallocs on the buffer (since it uses the SceneRenderingAllocator).
@@ -2492,7 +2512,7 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 		// This is important for performance in the editor because wireframe disables any kind of occlusion culling
 		if (View.Family->EngineShowFlags.Wireframe)
 		{
-			float ScreenSizeScale = FMath::Max(View.ViewMatrices.ProjMatrix.M[0][0] * View.ViewRect.Width(), View.ViewMatrices.ProjMatrix.M[1][1] * View.ViewRect.Height());
+			float ScreenSizeScale = FMath::Max(View.ViewMatrices.GetProjectionMatrix().M[0][0] * View.ViewRect.Width(), View.ViewMatrices.GetProjectionMatrix().M[1][1] * View.ViewRect.Height());
 			for (FSceneSetBitIterator BitIt(View.PrimitiveVisibilityMap); BitIt; ++BitIt)
 			{
 				if (ScreenSizeScale * Scene->PrimitiveBounds[BitIt.GetIndex()].SphereRadius <= GWireframeCullThreshold)
@@ -2639,7 +2659,7 @@ void FSceneRenderer::PostVisibilityFrameSetup(FILCUpdatePrimTaskData& OutILCTask
 					if (View.IsPerspectiveProjection())
 					{
 						FSphere Bounds = Proxy->GetBoundingSphere();
-						float DistanceSquared = (Bounds.Center - View.ViewMatrices.ViewOrigin).SizeSquared();
+						float DistanceSquared = (Bounds.Center - View.ViewMatrices.GetViewOrigin()).SizeSquared();
 						float MaxDistSquared = Proxy->GetMaxDrawDistance() * Proxy->GetMaxDrawDistance();
 						const bool bDrawLight = (FMath::Square(FMath::Min(0.0002f, GMinScreenRadiusForLights / Bounds.W) * View.LODDistanceFactor) * DistanceSquared < 1.0f)
 													&& (MaxDistSquared == 0 || DistanceSquared < MaxDistSquared);
@@ -2671,7 +2691,7 @@ void FSceneRenderer::PostVisibilityFrameSetup(FILCUpdatePrimTaskData& OutILCTask
 					// Transform into post projection space
 					FVector4 ProjectedBlurOrigin = View.WorldToScreen(WorldSpaceBlurOrigin);
 
-					const float DistanceToBlurOrigin = (View.ViewMatrices.ViewOrigin - WorldSpaceBlurOrigin).Size() + PointLightFadeDistanceIncrease;
+					const float DistanceToBlurOrigin = (View.ViewMatrices.GetViewOrigin() - WorldSpaceBlurOrigin).Size() + PointLightFadeDistanceIncrease;
 
 					// Don't render if the light's origin is behind the view
 					if(ProjectedBlurOrigin.W >= 0.0f
@@ -2694,10 +2714,15 @@ void FSceneRenderer::PostVisibilityFrameSetup(FILCUpdatePrimTaskData& OutILCTask
 			}
 
 			// Draw shapes for reflection captures
-			if( View.bIsReflectionCapture && VisibleLightViewInfo.bInViewFrustum && Proxy->HasStaticLighting() && Proxy->GetLightType() != LightType_Directional )
+			if( View.bIsReflectionCapture 
+				&& VisibleLightViewInfo.bInViewFrustum
+				&& Proxy->HasStaticLighting() 
+				&& Proxy->GetLightType() != LightType_Directional 
+				// Min roughness is used to hide the specular response of virtual area lights, so skip drawing the source shape when Min Roughness is 1
+				&& Proxy->GetMinRoughness() < 1.0f)
 			{
 				FVector Origin = Proxy->GetOrigin();
-				FVector ToLight = Origin - View.ViewMatrices.ViewOrigin;
+				FVector ToLight = Origin - View.ViewMatrices.GetViewOrigin();
 				float DistanceSqr = ToLight | ToLight;
 				float Radius = Proxy->GetRadius();
 
@@ -2727,17 +2752,20 @@ void FSceneRenderer::PostVisibilityFrameSetup(FILCUpdatePrimTaskData& OutILCTask
 						float Quantized = ( FMath::RoundToFloat( Projected * (0.5f * CubemapSize) - 0.5f ) + 0.5f ) / (0.5f * CubemapSize);
 						ToLight[ (MaxComponent + k) % 3 ] = Quantized * Scale[ MaxComponent ];
 					}
-					Origin = ToLight + View.ViewMatrices.ViewOrigin;
+					Origin = ToLight + View.ViewMatrices.GetViewOrigin();
 				
 					FLinearColor Color( ColorAndFalloffExponent );
 
+					// Scale by visible area
+					Color /= PI * FMath::Square( SourceRadius );
+
 					if( Proxy->IsInverseSquared() )
 					{
-						float LightRadiusMask = FMath::Square( 1.0f - FMath::Square( DistanceSqr * FMath::Square( PositionAndInvRadius.W ) ) );
-						Color *= LightRadiusMask;
-						
 						// Correction for lumen units
 						Color *= 16.0f;
+						
+						float LightRadiusMask = FMath::Square( 1.0f - FMath::Square( DistanceSqr * FMath::Square( PositionAndInvRadius.W ) ) );
+						Color.A = LightRadiusMask;
 					}
 					else
 					{
@@ -2745,22 +2773,16 @@ void FSceneRenderer::PostVisibilityFrameSetup(FILCUpdatePrimTaskData& OutILCTask
 						Color *= DistanceSqr + 1.0f;
 
 						// Apply falloff
-						Color *= FMath::Pow( 1.0f - DistanceSqr * FMath::Square( PositionAndInvRadius.W ), ColorAndFalloffExponent.W ); 
+						Color.A = FMath::Pow( 1.0f - DistanceSqr * FMath::Square( PositionAndInvRadius.W ), ColorAndFalloffExponent.W ); 
 					}
-
+					
 					// Spot falloff
 					FVector L = ToLight.GetSafeNormal();
-					Color *= FMath::Square( FMath::Clamp( ( (L | Direction) - SpotAngles.X ) * SpotAngles.Y, 0.0f, 1.0f ) );
-
-					// Scale by visible area
-					Color /= PI * FMath::Square( SourceRadius );
-				
-					// Always opaque
-					Color.A = 1.0f;
+					Color.A *= FMath::Square( FMath::Clamp( ( (L | Direction) - SpotAngles.X ) * SpotAngles.Y, 0.0f, 1.0f ) );
 				
 					FViewElementPDI LightPDI( &View, NULL );
 					FMaterialRenderProxy* const ColoredMeshInstance = new(FMemStack::Get()) FColoredMaterialRenderProxy( GEngine->DebugMeshMaterial->GetRenderProxy(false), Color );
-					DrawSphere( &LightPDI, Origin, FVector( SourceRadius, SourceRadius, SourceRadius ), 8, 6, ColoredMeshInstance, SDPG_World );
+					DrawSphere( &LightPDI, Origin, FVector( SourceRadius, SourceRadius, SourceRadius ), 36, 24, ColoredMeshInstance, SDPG_World );
 				}
 			}
 		}
@@ -2792,7 +2814,7 @@ bool FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLi
 		if (!bWillApplyTemporalAA)
 		{
 			// Disable anti-aliasing if we are not going to be able to apply final post process effects
-			View.FinalPostProcessSettings.AntiAliasingMethod = AAM_None;
+			View.AntiAliasingMethod = AAM_None;
 		}
 	}
 	PreVisibilityFrameSetup(RHICmdList);
@@ -2808,7 +2830,7 @@ bool FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLi
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{		
 		FViewInfo& View = Views[ViewIndex];
-		AverageViewPosition += View.ViewMatrices.ViewOrigin / Views.Num();
+		AverageViewPosition += View.ViewMatrices.GetViewOrigin() / Views.Num();
 	}
 
 	if (FApp::ShouldUseThreadingForPerformance() && CVarParallelInitViews.GetValueOnRenderThread() > 0)
@@ -2882,6 +2904,12 @@ void FDeferredShadingSceneRenderer::InitViewsPossiblyAfterPrepass(FRHICommandLis
 	}
 
 	UpdateTranslucencyTimersAndSeparateTranslucencyBufferSize(RHICmdList);
+
+	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+	{
+		FViewInfo& View = Views[ViewIndex];
+		SetupReflectionCaptureBuffers(View, RHICmdList);
+	}
 }
 
 /*------------------------------------------------------------------------------
@@ -2904,6 +2932,8 @@ void FLODSceneTree::AddChildNode(const FPrimitiveComponentId NodeId, FPrimitiveS
 			{
 				Node->SceneInfo = Scene->Primitives[ParentIndex];
 			}
+			//new nodes that will need distance scale, reset since we don't keep stateful data about this per node.
+			ResetHLODDistanceScaleApplication();
 		}
 
 		Node->AddChild(ChildSceneInfo);
@@ -2947,7 +2977,9 @@ void FLODSceneTree::UpdateAndApplyVisibilityStates(FViewInfo& View)
 	++UpdateCount;
 
 	if (const FSceneViewState* ViewState = (FSceneViewState*)View.State)
-	{
+	{		
+		const float HLODDistanceScale = FMath::Max(0.0f, CVarHLODDistanceScale.GetValueOnRenderThread());
+
 		// Update persistent state on temporal dither sync frames
 		const FTemporalLODState& LODState = ViewState->GetTemporalLODState();
 		bool bSyncFrame = false;
@@ -2972,9 +3004,18 @@ void FLODSceneTree::UpdateAndApplyVisibilityStates(FViewInfo& View)
 			const int32 NodeIndex = Node.SceneInfo->GetIndex();
 			bool bIsVisible = VisibilityFlags[NodeIndex];
 
-			// Determine desired HLOD state
-			const FPrimitiveBounds& Bounds = Scene->PrimitiveBounds[NodeIndex];
-			const float DistanceSquared = (Bounds.Origin - View.ViewMatrices.ViewOrigin).SizeSquared();
+			FPrimitiveBounds& Bounds = Scene->PrimitiveBounds[NodeIndex];
+			{
+				if (LastHLODDistanceScale != HLODDistanceScale)
+				{
+					// Determine desired HLOD state
+					const float MinDrawDistance = Scene->Primitives[NodeIndex]->Proxy->GetMinDrawDistance();						
+					const float AdjustedMinDrawDist = MinDrawDistance * HLODDistanceScale;
+					Bounds.MinDrawDistanceSq = AdjustedMinDrawDist * AdjustedMinDrawDist;
+				}
+			}
+
+			const float DistanceSquared = (Bounds.Origin - View.ViewMatrices.GetViewOrigin()).SizeSquared();
 			const bool bIsInDrawRange = DistanceSquared >= Bounds.MinDrawDistanceSq;
 
 			const bool bWasFadingPreUpdate = Node.bIsFading;
@@ -3054,7 +3095,8 @@ void FLODSceneTree::UpdateAndApplyVisibilityStates(FViewInfo& View)
 				ViewRelevance.bInitializedThisFrame = true;
 			}
 		}
-	}
+		LastHLODDistanceScale = HLODDistanceScale;
+	}	
 }
 
 void FLODSceneTree::ApplyNodeFadingToChildren(FLODSceneNode& Node, FSceneBitArray& VisibilityFlags, const bool bIsFading, const bool bIsFadingOut)

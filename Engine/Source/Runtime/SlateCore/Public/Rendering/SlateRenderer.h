@@ -200,6 +200,20 @@ public:
 	DECLARE_MULTICAST_DELEGATE_TwoParams( FOnSlateWindowRendered, SWindow&, void* );
 	FOnSlateWindowRendered& OnSlateWindowRendered() { return SlateWindowRendered; }
 
+	/**
+	 * Called on the game thread right before a window backbuffer is about to be resized
+	 * @param Pointer to the API specific backbuffer type
+	 */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnPreResizeWindowBackbuffer, void*);
+	FOnPreResizeWindowBackbuffer& OnPreResizeWindowBackBuffer() { return PreResizeBackBufferDelegate; }
+
+	/**
+	 * Called on the game thread right after a window backbuffer has been resized
+	 * @param Pointer to the API specific backbuffer type
+	 */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnPostResizeWindowBackbuffer, void*);
+	FOnPostResizeWindowBackbuffer& OnPostResizeWindowBackBuffer() { return PostResizeBackBufferDelegate; }
+
 	/** 
 	 * Sets which color vision filter to use
 	 */
@@ -427,6 +441,9 @@ protected:
 
 	/** Callback that fires after Slate has rendered each window, each frame */
 	FOnSlateWindowRendered SlateWindowRendered;
+
+	FOnPreResizeWindowBackbuffer PreResizeBackBufferDelegate;
+	FOnPostResizeWindowBackbuffer PostResizeBackBufferDelegate;
 
 	/**
 	 * Necessary to grab before flushing the resource pool, as it may be being 

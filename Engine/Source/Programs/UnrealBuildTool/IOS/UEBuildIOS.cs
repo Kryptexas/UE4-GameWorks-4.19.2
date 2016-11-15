@@ -19,7 +19,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Which version of the iOS to allow at run time
 		/// </summary>
-		private static string RunTimeIOSVersion = "7.0";
+		private static string RunTimeIOSVersion = "8.0";
 
 		/// <summary>
 		/// which devices the game is allowed to run on
@@ -76,19 +76,19 @@ namespace UnrealBuildTool
 
         private string BundleIdentifier = "";
 
-		public IOSPlatformContext(FileReference InProjectFile, bool ForDistribution = false) 
-			: this(UnrealTargetPlatform.IOS, InProjectFile, ForDistribution)
-		{
-		}
+        public IOSPlatformContext(FileReference InProjectFile, bool ForDistribution = false)
+            : this(UnrealTargetPlatform.IOS, InProjectFile, ForDistribution)
+        {
+        }
 
-		protected IOSPlatformContext(UnrealTargetPlatform TargetPlatform, FileReference InProjectFile, bool ForDistribution) 
-			: base(TargetPlatform, InProjectFile)
+        protected IOSPlatformContext(UnrealTargetPlatform TargetPlatform, FileReference InProjectFile, bool ForDistribution)
+            : base(TargetPlatform, InProjectFile)
 		{
             bForDistribtion = ForDistribution;
-		}
+        }
 
-		// The current architecture - affects everything about how UBT operates on IOS
-		public override string GetActiveArchitecture()
+        // The current architecture - affects everything about how UBT operates on IOS
+        public override string GetActiveArchitecture()
 		{
 			return IOSArchitecture;
 		}
@@ -131,8 +131,8 @@ namespace UnrealBuildTool
 		{
 			SetUpProjectEnvironment(Configuration);
 
-			// get the list of architectures to compile
-			string Archs =
+            // get the list of architectures to compile
+            string Archs =
 				UBTArchitecture == "-simulator" ? "i386" :
 				(Configuration == CPPTargetConfiguration.Shipping) ? ShippingArchitectures : NonShippingArchitectures;
 
@@ -182,25 +182,25 @@ namespace UnrealBuildTool
 
 		}
 
-		public void SetUpProjectEnvironment(CPPTargetConfiguration Configuration)
-		{
-			UnrealTargetConfiguration	unrealConfiguration;
-			
-			switch(Configuration)
-			{
-				case CPPTargetConfiguration.Shipping:
-					unrealConfiguration = UnrealTargetConfiguration.Shipping;
-					break;
-				case CPPTargetConfiguration.Development:
-					unrealConfiguration = UnrealTargetConfiguration.Development;
-					break;
-				default:
-					unrealConfiguration = UnrealTargetConfiguration.DebugGame;
-					break;
-			}
-			
-			SetUpProjectEnvironment(unrealConfiguration);
-		}
+        public void SetUpProjectEnvironment(CPPTargetConfiguration Configuration)
+        {
+            UnrealTargetConfiguration unrealConfiguration;
+
+            switch (Configuration)
+            {
+                case CPPTargetConfiguration.Shipping:
+                    unrealConfiguration = UnrealTargetConfiguration.Shipping;
+                    break;
+                case CPPTargetConfiguration.Development:
+                    unrealConfiguration = UnrealTargetConfiguration.Development;
+                    break;
+                default:
+                    unrealConfiguration = UnrealTargetConfiguration.DebugGame;
+                    break;
+            }
+
+            SetUpProjectEnvironment(unrealConfiguration);
+        }
 
         static string Provision = "";
         static string Certificate = "";
@@ -240,32 +240,36 @@ namespace UnrealBuildTool
         }
         static Dictionary<string, ProvisionData> ProvisionCache = new Dictionary<string, ProvisionData>();
 
-        public override void SetUpProjectEnvironment(UnrealTargetConfiguration Configuration)
-		{
+        public override void SetUpProjectEnvironment(UnrealTargetConfiguration Configuration, TargetInfo Target = null)
+        {
             if (!bInitializedProject)
             {
-                base.SetUpProjectEnvironment(Configuration);
+                base.SetUpProjectEnvironment(Configuration, Target);
 
                 // update the configuration based on the project file
                 // look in ini settings for what platforms to compile for
                 ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(Platform, "Engine", DirectoryReference.FromFile(ProjectFile));
-                string MinVersion = "IOS_7";
+                string MinVersion = "IOS_8";
                 if (Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "MinimumiOSVersion", out MinVersion))
                 {
                     switch (MinVersion)
                     {
                         case "IOS_61":
                             Log.TraceWarning("IOS 6 is no longer supported in UE4 as 4.11");
-                            RunTimeIOSVersion = "7.0";
+                            RunTimeIOSVersion = "8.0";
                             break;
                         case "IOS_7":
-                            RunTimeIOSVersion = "7.0";
+                            Log.TraceWarning("IOS 7 is no longer supported in UE4 as 4.14");
+                            RunTimeIOSVersion = "8.0";
                             break;
                         case "IOS_8":
                             RunTimeIOSVersion = "8.0";
                             break;
                         case "IOS_9":
                             RunTimeIOSVersion = "9.0";
+                            break;
+                        case "IOS_10":
+                            RunTimeIOSVersion = "10.0";
                             break;
                     }
                 }
@@ -359,37 +363,42 @@ namespace UnrealBuildTool
                 bInitializedProject = true;
             }
 
-
             ProvisionData Data = new ProvisionData();
             string BundleId = BundleIdentifier.Replace("[PROJECT_NAME]", ((ProjectFile != null) ? ProjectFile.GetFileNameWithoutAnyExtensions() : "UE4Game")).Replace("_", "");
             bool bIsTVOS = GetCodesignPlatformName() == "appletvos";
-            if (!ProvisionCache.ContainsKey(BundleId +" "+bIsTVOS.ToString()+" "+bForDistribtion.ToString()))
+            if (!ProvisionCache.ContainsKey(BundleId + " " + bIsTVOS.ToString() + " " + bForDistribtion.ToString()))
             {
                 Certificate = SigningCertificate;
                 Provision = MobileProvision;
-				if (!string.IsNullOrEmpty (SigningCertificate)) {
-					// verify the certificate
-					Process IPPProcess = new Process ();
-					if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac) {
-						string IPPCmd = "\"" + UnrealBuildTool.EngineDirectory + "/Binaries/DotNET/IOS/IPhonePackager.exe\" certificates " + ((ProjectFile != null) ? ("\"" + ProjectFile.ToString () + "\"") : "Engine") + " -bundlename " + BundleId + (bForDistribtion ? " -distribution" : "");
-						IPPProcess.StartInfo.WorkingDirectory = UnrealBuildTool.EngineDirectory.ToString ();
-						IPPProcess.StartInfo.FileName = UnrealBuildTool.EngineDirectory + "/Build/BatchFiles/Mac/RunMono.sh";
-						IPPProcess.StartInfo.Arguments = IPPCmd;
-						IPPProcess.OutputDataReceived += new DataReceivedEventHandler (IPPDataReceivedHandler);
-						IPPProcess.ErrorDataReceived += new DataReceivedEventHandler (IPPDataReceivedHandler);
-					} else {
-						string IPPCmd = "certificates " + ((ProjectFile != null) ? ("\"" + ProjectFile.ToString () + "\"") : "Engine") + " -bundlename " + BundleId + (bForDistribtion ? " -distribution" : "");
-						IPPProcess.StartInfo.WorkingDirectory = UnrealBuildTool.EngineDirectory.ToString ();
-						IPPProcess.StartInfo.FileName = UnrealBuildTool.EngineDirectory + "\\Binaries\\DotNET\\IOS\\IPhonePackager.exe";
-						IPPProcess.StartInfo.Arguments = IPPCmd;
-						IPPProcess.OutputDataReceived += new DataReceivedEventHandler (IPPDataReceivedHandler);
-						IPPProcess.ErrorDataReceived += new DataReceivedEventHandler (IPPDataReceivedHandler);
-					}
-					Utils.RunLocalProcess (IPPProcess);
-				} else {
-					Certificate = bForDistribtion ? "iPhone Distribution" : "iPhone Developer";
-					bHaveCertificate = true;
-				}
+                if (!string.IsNullOrEmpty(SigningCertificate))
+                {
+                    // verify the certificate
+                    Process IPPProcess = new Process();
+                    if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
+                    {
+                        string IPPCmd = "\"" + UnrealBuildTool.EngineDirectory + "/Binaries/DotNET/IOS/IPhonePackager.exe\" certificates " + ((ProjectFile != null) ? ("\"" + ProjectFile.ToString() + "\"") : "Engine") + " -bundlename " + BundleId + (bForDistribtion ? " -distribution" : "");
+                        IPPProcess.StartInfo.WorkingDirectory = UnrealBuildTool.EngineDirectory.ToString();
+                        IPPProcess.StartInfo.FileName = UnrealBuildTool.EngineDirectory + "/Build/BatchFiles/Mac/RunMono.sh";
+                        IPPProcess.StartInfo.Arguments = IPPCmd;
+                        IPPProcess.OutputDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
+                        IPPProcess.ErrorDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
+                    }
+                    else
+                    {
+                        string IPPCmd = "certificates " + ((ProjectFile != null) ? ("\"" + ProjectFile.ToString() + "\"") : "Engine") + " -bundlename " + BundleId + (bForDistribtion ? " -distribution" : "");
+                        IPPProcess.StartInfo.WorkingDirectory = UnrealBuildTool.EngineDirectory.ToString();
+                        IPPProcess.StartInfo.FileName = UnrealBuildTool.EngineDirectory + "\\Binaries\\DotNET\\IOS\\IPhonePackager.exe";
+                        IPPProcess.StartInfo.Arguments = IPPCmd;
+                        IPPProcess.OutputDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
+                        IPPProcess.ErrorDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
+                    }
+                    Utils.RunLocalProcess(IPPProcess);
+                }
+                else
+                {
+                    Certificate = bForDistribtion ? "iPhone Distribution" : "iPhone Developer";
+                    bHaveCertificate = true;
+                }
 
                 if (string.IsNullOrEmpty(MobileProvision) // no provision specified
                     || !File.Exists((BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac ? (Environment.GetEnvironmentVariable("HOME") + "/Library/MobileDevice/Provisioning Profiles/") : (Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "/Apple Computer/MobileDevice/Provisioning Profiles/")) + MobileProvision) // file doesn't exist
@@ -402,7 +411,7 @@ namespace UnrealBuildTool
                     Process IPPProcess = new Process();
                     if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
                     {
-						string IPPCmd = "\"" + UnrealBuildTool.EngineDirectory + "/Binaries/DotNET/IOS/IPhonePackager.exe\" signing_match " + ((ProjectFile != null) ? ("\""+ ProjectFile.ToString() + "\"") : "Engine") + " -bundlename " + BundleId + (bIsTVOS ? " -tvos" : "") + (bForDistribtion ? " -distribution" : "");
+                        string IPPCmd = "\"" + UnrealBuildTool.EngineDirectory + "/Binaries/DotNET/IOS/IPhonePackager.exe\" signing_match " + ((ProjectFile != null) ? ("\"" + ProjectFile.ToString() + "\"") : "Engine") + " -bundlename " + BundleId + (bIsTVOS ? " -tvos" : "") + (bForDistribtion ? " -distribution" : "");
                         IPPProcess.StartInfo.WorkingDirectory = UnrealBuildTool.EngineDirectory.ToString();
                         IPPProcess.StartInfo.FileName = UnrealBuildTool.EngineDirectory + "/Build/BatchFiles/Mac/RunMono.sh";
                         IPPProcess.StartInfo.Arguments = IPPCmd;
@@ -411,7 +420,7 @@ namespace UnrealBuildTool
                     }
                     else
                     {
-						string IPPCmd = "signing_match " + ((ProjectFile != null) ? ("\""+ ProjectFile.ToString() + "\"") : "Engine") + " -bundlename " + BundleId + (bIsTVOS ? " -tvos" : "") + (bForDistribtion ? " -distribution" : "");
+                        string IPPCmd = "signing_match " + ((ProjectFile != null) ? ("\"" + ProjectFile.ToString() + "\"") : "Engine") + " -bundlename " + BundleId + (bIsTVOS ? " -tvos" : "") + (bForDistribtion ? " -distribution" : "");
                         IPPProcess.StartInfo.WorkingDirectory = UnrealBuildTool.EngineDirectory.ToString();
                         IPPProcess.StartInfo.FileName = UnrealBuildTool.EngineDirectory + "\\Binaries\\DotNET\\IOS\\IPhonePackager.exe";
                         IPPProcess.StartInfo.Arguments = IPPCmd;
@@ -419,7 +428,7 @@ namespace UnrealBuildTool
                         IPPProcess.ErrorDataReceived += new DataReceivedEventHandler(IPPDataReceivedHandler);
                     }
                     Utils.RunLocalProcess(IPPProcess);
-                    Log.TraceLog("Provision found for " + ((ProjectFile != null) ? ProjectFile.GetFileNameWithoutAnyExtensions() : "UE4Game") + ", Provision: " + Provision +" Certificate: " + Certificate);
+                    Log.TraceLog("Provision found for " + ((ProjectFile != null) ? ProjectFile.GetFileNameWithoutAnyExtensions() : "UE4Game") + ", Provision: " + Provision + " Certificate: " + Certificate);
                 }
                 // add to the dictionary
                 Data.MobileProvision = Provision;
@@ -465,14 +474,14 @@ namespace UnrealBuildTool
             SigningCertificate = Data.Certificate;
             MobileProvisionUUID = Data.UUID;
             TeamUUID = Data.TeamUUID;
-		}
+        }
 
-		/// <summary>
-		/// Whether this platform should create debug information or not
-		/// </summary>
-		/// <param name="Configuration"> The UnrealTargetConfiguration being built</param>
-		/// <returns>bool    true if debug info should be generated, false if not</returns>
-		public override bool ShouldCreateDebugInfo(UnrealTargetConfiguration Configuration)
+        /// <summary>
+        /// Whether this platform should create debug information or not
+        /// </summary>
+        /// <param name="Configuration"> The UnrealTargetConfiguration being built</param>
+        /// <returns>bool    true if debug info should be generated, false if not</returns>
+        public override bool ShouldCreateDebugInfo(UnrealTargetConfiguration Configuration)
 		{
 			return true;
 		}

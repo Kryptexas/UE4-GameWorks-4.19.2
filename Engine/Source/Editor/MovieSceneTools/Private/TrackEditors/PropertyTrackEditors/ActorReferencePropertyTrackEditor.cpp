@@ -12,9 +12,11 @@ TSharedRef<ISequencerTrackEditor> FActorReferencePropertyTrackEditor::CreateTrac
 }
 
 
-TSharedRef<FPropertySection> FActorReferencePropertyTrackEditor::MakePropertySectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track )
+TSharedRef<ISequencerSection> FActorReferencePropertyTrackEditor::MakeSectionInterface(UMovieSceneSection& SectionObject, UMovieSceneTrack& Track, FGuid ObjectBinding)
 {
-	return MakeShareable(new FActorReferencePropertySection(SectionObject, Track.GetDisplayName()));
+	UMovieScenePropertyTrack* PropertyTrack = Cast<UMovieScenePropertyTrack>(&Track);
+	checkf(PropertyTrack != nullptr, TEXT("Incompatible track in FActorReferencePropertyTrackEditor"));
+	return MakeShareable(new FActorReferencePropertySection(GetSequencer().Get(), ObjectBinding, PropertyTrack->GetPropertyName(), PropertyTrack->GetPropertyPath(), SectionObject, Track.GetDisplayName()));
 }
 
 

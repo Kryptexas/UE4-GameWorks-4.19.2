@@ -279,6 +279,11 @@ public:
 		return ToStringReference().GetLongPackageName();
 	}
 
+	FORCEINLINE FString GetAssetName() const
+	{
+		return ToStringReference().GetAssetName();
+	}
+
 	/**  
 	 * Dereference lazy pointer to see if it points somewhere valid.
 	 */

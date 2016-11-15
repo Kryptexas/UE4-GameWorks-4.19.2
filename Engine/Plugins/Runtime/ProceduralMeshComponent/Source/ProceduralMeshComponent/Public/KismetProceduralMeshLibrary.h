@@ -7,7 +7,7 @@
 
 /** Options for creating cap geometry when slicing */
 UENUM()
-enum class EProcMeshSliceCapOption
+enum class EProcMeshSliceCapOption : uint8
 {
 	/** Do not create cap geometry */
 	NoCap,

@@ -11,7 +11,7 @@
   <Redistribute>false</Redistribute>
   <IsSourceAvailable>false</IsSourceAvailable>
   <Notification>
-Redirect: ../Classes/Kismet/KismetMathLibrary.tps
+Redirect: ../../../Engine/Classes/Kismet/KismetMathLibrary.tps
 Notes:
 </Notification>
   <LicenseFolder />

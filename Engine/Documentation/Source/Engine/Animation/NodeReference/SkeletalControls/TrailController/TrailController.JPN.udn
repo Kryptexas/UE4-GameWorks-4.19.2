@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3032506
+﻿INTSourceChangelist:3060419
 Availability:Public
 Title:Trail Controller
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
@@ -62,9 +62,13 @@ version:4.12
 
 | ピン | 説明 |
 | --- | ----------- |
-| [REGION:tablesection]**Input Pins**[/REGION] ||
+| [REGION:tablesection]**入力ピン**[/REGION] ||
 | **Component Pose** | 入力されるポーズです。 |
 | **Alpha** | 現在の制御の強さです。 |
+
+**Trail Controller** ノードも 4.11 で導入された **LOD Threshold** システムの影響を受けます。**Trail Controller** ノードの **[Details (詳細)]** パネルにこの設定が表示されます。
+
+[INCLUDE:Engine/Animation/NodeReference/SkeletalControls#lodthresh]
 
 
 

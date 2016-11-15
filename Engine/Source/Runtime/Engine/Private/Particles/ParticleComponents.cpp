@@ -280,6 +280,10 @@ void UParticleLODLevel::PostLoad()
 	{
 		RequiredModule->ConditionalPostLoad();
 	}
+	if ( SpawnModule )
+	{
+		SpawnModule->ConditionalPostLoad();
+	}
 
 	for (UParticleModule* ParticleModule : Modules)
 	{
@@ -3414,20 +3418,20 @@ void UParticleSystemComponent::FinishDestroy()
 }
 
 
-SIZE_T UParticleSystemComponent::GetResourceSize(EResourceSizeMode::Type Mode)
+void UParticleSystemComponent::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
 	ForceAsyncWorkCompletion(ENSURE_AND_STALL);
-	int32 ResSize = Super::GetResourceSize(Mode);
+
+	Super::GetResourceSizeEx(CumulativeResourceSize);
 	for (int32 EmitterIdx = 0; EmitterIdx < EmitterInstances.Num(); EmitterIdx++)
 	{
 		FParticleEmitterInstance* EmitterInstance = EmitterInstances[EmitterIdx];
 		if (EmitterInstance != NULL)
 		{
 			// If the data manager has the PSys, force it to report, regardless of a PSysComp scene info being present...
-			ResSize += EmitterInstance->GetResourceSize(Mode);
+			EmitterInstance->GetResourceSizeEx(CumulativeResourceSize);
 		}
 	}
-	return ResSize;
 }
 
 
@@ -3608,7 +3612,7 @@ void UParticleSystemComponent::SendRenderDynamicData_Concurrent()
 		// or also for PSCs that are attached to a SkelComp which is being attached and reattached but the PSC itself is not active!
 		if (bIsActive)
 		{
-			UpdateDynamicData(PSysSceneProxy);
+			UpdateDynamicData();
 		}
 		else
 		{
@@ -4029,7 +4033,7 @@ void UParticleSystemComponent::ClearDynamicData()
 	}
 }
 
-void UParticleSystemComponent::UpdateDynamicData(FParticleSystemSceneProxy* Proxy)
+void UParticleSystemComponent::UpdateDynamicData()
 {
 	//SCOPE_CYCLE_COUNTER(STAT_ParticleSystemComponent_UpdateDynamicData);
 
@@ -4037,7 +4041,9 @@ void UParticleSystemComponent::UpdateDynamicData(FParticleSystemSceneProxy* Prox
 	if (SceneProxy)
 	{
 		// Create the dynamic data for rendering this particle system
-		FParticleDynamicData* ParticleDynamicData = CreateDynamicData(Proxy->GetScene().GetFeatureLevel());
+		FParticleDynamicData* ParticleDynamicData = CreateDynamicData(SceneProxy->GetScene().GetFeatureLevel());
+
+		FParticleSystemSceneProxy* Proxy = (FParticleSystemSceneProxy*)SceneProxy;
 		// Render the particles
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		//@todo.SAS. Remove thisline  - it is used for debugging purposes...
@@ -4546,7 +4552,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		BurstEvents.Reset();
 		TotalActiveParticles = 0;
 		bNeedsFinalize = true;
-		if (!ThisTickFunction || !CanTickInAnyThread() || FXConsoleVariables::bFreezeParticleSimulation || !FXConsoleVariables::bAllowAsyncTick ||
+		if (!ThisTickFunction || !ThisTickFunction->IsCompletionHandleValid() || !CanTickInAnyThread() || FXConsoleVariables::bFreezeParticleSimulation || !FXConsoleVariables::bAllowAsyncTick ||
 			GDistributionType == 0) // this may not be absolutely required, however if you are using distributions it will be glacial anyway. If you want to get rid of this, note that some modules use this indirectly as their criteria for CanTickInAnyThread
 		{
 			bDisallowAsync = true;
@@ -4884,15 +4890,15 @@ void UParticleSystemComponent::WaitForAsyncAndFinalize(EForceAsyncWorkCompletion
 		}
 
 		float ThisTime = float(FPlatformTime::Seconds() - StartTime) * 1000.0f;
-		if (Behavior != SILENT)
+		if (Behavior != SILENT && ThisTime >= KINDA_SMALL_NUMBER)
 		{
 			if (bDefinitelyGameThread || IsInGameThread())
 			{
-				UE_LOG(LogParticles, Warning, TEXT("Stalled gamethread waiting for particles %5.2fms '%s' '%s'"), ThisTime, *GetFullNameSafe(this), *GetFullNameSafe(Template));
+				UE_LOG(LogParticles, Warning, TEXT("Stalled gamethread waiting for particles %5.6fms '%s' '%s'"), ThisTime, *GetFullNameSafe(this), *GetFullNameSafe(Template));
 			}
 			else
 			{
-				UE_LOG(LogParticles, Warning, TEXT("Stalled worker thread waiting for particles %5.2fms '%s' '%s'"), ThisTime, *GetFullNameSafe(this), *GetFullNameSafe(Template));
+				UE_LOG(LogParticles, Warning, TEXT("Stalled worker thread waiting for particles %5.6fms '%s' '%s'"), ThisTime, *GetFullNameSafe(this), *GetFullNameSafe(Template));
 			}
 		}
 		const_cast<UParticleSystemComponent*>(this)->FinalizeTickComponent();
@@ -5520,6 +5526,11 @@ void UParticleSystemComponent::Activate(bool bReset)
 		if (bReset || ShouldActivate()==true)
 		{
 			ActivateSystem(bReset);
+
+			if (bIsActive)
+			{
+				OnComponentActivated.Broadcast(this, bReset);
+			}
 		}
 	}
 }
@@ -5530,6 +5541,11 @@ void UParticleSystemComponent::Deactivate()
 	if (ShouldActivate()==false)
 	{
 		DeactivateSystem();
+
+		if (bWasDeactivated)
+		{
+			OnComponentDeactivated.Broadcast(this);
+		}
 	}
 }
 
@@ -6702,7 +6718,10 @@ void UParticleSystemComponent::GetUsedMaterials( TArray<UMaterialInterface*>& Ou
 								const UParticleModuleMeshMaterial* MaterialModule = Cast<UParticleModuleMeshMaterial>( LOD->Modules[ ModuleIdx ] );
 								if( TypeDataModule->Mesh )
 								{
-									OutMaterials.Append(TypeDataModule->Mesh->Materials);
+									for (const FStaticMaterial &StaticMaterial : TypeDataModule->Mesh->StaticMaterials)
+									{
+										OutMaterials.Add(StaticMaterial.MaterialInterface);
+									}
 								}
 							}
 						}
@@ -7052,20 +7071,32 @@ AEmitterCameraLensEffectBase::AEmitterCameraLensEffectBase(const FObjectInitiali
 	DistFromCamera_DEPRECATED = TNumericLimits<float>::Max();
 }
 
+
+FTransform AEmitterCameraLensEffectBase::GetAttachedEmitterTransform(AEmitterCameraLensEffectBase const* Emitter, const FVector& CamLoc, const FRotator& CamRot, float CamFOVDeg)
+{
+	if (Emitter)
+	{
+		// adjust for FOV
+		// base dist uses BaseFOV which is set on the indiv camera lens effect class
+		FTransform RelativeTransformAdjustedForFOV = Emitter->RelativeTransform;
+		FVector AdjustedRelativeLoc = RelativeTransformAdjustedForFOV.GetLocation();
+		AdjustedRelativeLoc.X *= FMath::Tan(Emitter->BaseFOV*0.5f*PI / 180.f) / FMath::Tan(CamFOVDeg*0.5f*PI / 180.f);
+		RelativeTransformAdjustedForFOV.SetLocation(AdjustedRelativeLoc);
+
+		FTransform const CameraToWorld(CamRot, CamLoc);
+
+		// RelativeTransform is "effect to camera"
+		FTransform const EffectToWorld = RelativeTransformAdjustedForFOV * CameraToWorld;
+
+		return EffectToWorld;
+	}
+
+	return FTransform::Identity;
+}
+
 void AEmitterCameraLensEffectBase::UpdateLocation(const FVector& CamLoc, const FRotator& CamRot, float CamFOVDeg)
 {
-	// adjust for FOV
-	// base dist uses BaseFOV which is set on the indiv camera lens effect class
-	FTransform RelativeTransformAdjustedForFOV = RelativeTransform;
-	FVector AdjustedRelativeLoc = RelativeTransformAdjustedForFOV.GetLocation();
-	AdjustedRelativeLoc.X *= FMath::Tan(BaseFOV*0.5f*PI / 180.f) / FMath::Tan(CamFOVDeg*0.5f*PI / 180.f);
-	RelativeTransformAdjustedForFOV.SetLocation(AdjustedRelativeLoc);
-
-	FTransform const CameraToWorld(CamRot, CamLoc);
-
-	// RelativeTransform is "effect to camera"
-	FTransform const EffectToWorld = RelativeTransformAdjustedForFOV * CameraToWorld;
-
+	FTransform const EffectToWorld = GetAttachedEmitterTransform(this, CamLoc, CamRot, CamFOVDeg);
 	SetActorTransform(EffectToWorld);
 }
 
@@ -7124,15 +7155,15 @@ void AEmitterCameraLensEffectBase::ActivateLensEffect()
 	check(World);
 	if( !IsNetMode(NM_DedicatedServer) )
 	{
-		UParticleSystem* PSToActuallySpawn;
-		if( World->GameState && World->GameState->ShouldShowGore() )
+		UParticleSystem* PSToActuallySpawn = PS_CameraEffect;
+
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+		AGameState* GameState = World->GetGameState<AGameState>();
+		if(GameState && !GameState->ShouldShowGore() )
 		{
-			PSToActuallySpawn = PS_CameraEffect;
+			PSToActuallySpawn = PS_CameraEffectNonExtremeContent_DEPRECATED;
 		}
-		else
-		{
-			PSToActuallySpawn = PS_CameraEffectNonExtremeContent;
-		}
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 		if( PSToActuallySpawn != NULL )
 		{
@@ -7157,7 +7188,7 @@ bool AEmitterCameraLensEffectBase::IsLooping() const
 		return true;
 	}
 
-	if ((PS_CameraEffectNonExtremeContent != nullptr) && PS_CameraEffectNonExtremeContent->IsLooping())
+	if ((PS_CameraEffectNonExtremeContent_DEPRECATED != nullptr) && PS_CameraEffectNonExtremeContent_DEPRECATED->IsLooping())
 	{
 		return true;
 	}

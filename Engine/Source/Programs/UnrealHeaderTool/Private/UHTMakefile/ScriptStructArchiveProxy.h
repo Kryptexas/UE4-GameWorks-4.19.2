@@ -23,6 +23,5 @@ struct FScriptStructArchiveProxy : public FStructArchiveProxy
 
 	uint32 StructFlagsUInt32;
 	int32 StructMacroDeclaredLineNumber;
-	bool bCppStructOpsFromBaseClass;
 	bool bPrepareCppStructOpsCompleted;
 };

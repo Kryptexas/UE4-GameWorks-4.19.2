@@ -63,11 +63,15 @@ bool UFileMediaSource::Validate() const
 
 FString UFileMediaSource::GetFullPath() const
 {
-	FString FullPath = FPaths::ConvertRelativePathToFull(
-		FPaths::IsRelative(FilePath)
-			? FPaths::GameContentDir() / FilePath
-			: FilePath
-	);
+	if (!FPaths::IsRelative(FilePath))
+	{
+		return FilePath;
+	}
 
-	return FullPath;
+	if (FilePath.StartsWith(TEXT("./")))
+	{
+		return FPaths::ConvertRelativePathToFull(FPaths::GameContentDir(), FilePath.RightChop(2));
+	}
+
+	return FPaths::ConvertRelativePathToFull(FilePath);
 }

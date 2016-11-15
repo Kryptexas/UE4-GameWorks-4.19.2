@@ -93,6 +93,12 @@ FArchive& FArchiveUObject::operator<<(struct FStringAssetReference& Value)
 	return *this;
 }
 
+FArchive& FArchiveUObject::operator<<(FWeakObjectPtr& WeakObjectPtr)
+{
+	WeakObjectPtr.Serialize(*this);
+	return *this;
+}
+
 /*----------------------------------------------------------------------------
 	FObjectAndNameAsStringProxyArchive.
 ----------------------------------------------------------------------------*/
@@ -109,7 +115,7 @@ FArchive& FObjectAndNameAsStringProxyArchive::operator<<(class UObject*& Obj)
 		// look up the object by fully qualified pathname
 		Obj = FindObject<UObject>(nullptr, *LoadedString, false);
 		// If we couldn't find it, and we want to load it, do that
-		if(Obj && bLoadIfFindFails)
+		if ((Obj == nullptr) && bLoadIfFindFails)
 		{
 			Obj = LoadObject<UObject>(nullptr, *LoadedString);
 		}

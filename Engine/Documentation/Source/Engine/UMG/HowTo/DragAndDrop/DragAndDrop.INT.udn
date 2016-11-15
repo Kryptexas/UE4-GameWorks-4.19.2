@@ -19,7 +19,7 @@ In this example, we take a look at how a player can drag and reposition a health
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-qUDIkWcQChI
+kYkhxuJsVs4
 [/PARAMLITERAL]
 [/OBJECT]
 
@@ -39,6 +39,7 @@ _At the end of this guide, you will have a UI widget that you can drag around in
 	* [](Engine\UMG\HowTo\DragAndDrop\WidgetSetup)
 	* [](Engine\UMG\HowTo\DragAndDrop\OnDragDetected)
 	* [](Engine\UMG\HowTo\DragAndDrop\OnDrop)
+	* [](Engine\UMG\HowTo\DragAndDrop\FinishingUp)
 	[/PARAM]
 [/OBJECT]
 

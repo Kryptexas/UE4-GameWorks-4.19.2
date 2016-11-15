@@ -3,7 +3,6 @@
 /*=============================================================================
 	ScriptCore.cpp: Kismet VM execution and support code.
 =============================================================================*/
-
 #include "CoreUObjectPrivate.h"
 #include "MallocProfiler.h"
 #include "HotReloadInterface.h"
@@ -12,14 +11,11 @@
 DEFINE_LOG_CATEGORY(LogScriptFrame);
 DEFINE_LOG_CATEGORY_STATIC(LogScriptCore, Log, All);
 
-DECLARE_CYCLE_STAT(TEXT("Blueprint Time"),STAT_BlueprintTime,STATGROUP_Game);
+DECLARE_CYCLE_STAT(TEXT("Blueprint Time"), STAT_BlueprintTime, STATGROUP_Game);
 
 #define LOCTEXT_NAMESPACE "ScriptCore"
 
 #if TOTAL_OVERHEAD_SCRIPT_STATS
-COREUOBJECT_API FBlueprintEventTimer::FScopedVMTimer* FBlueprintEventTimer::ActiveVMTimer = nullptr;
-COREUOBJECT_API FBlueprintEventTimer::FPausableScopeTimer* FBlueprintEventTimer::ActiveTimer = nullptr;
-
 DEFINE_STAT(STAT_ScriptVmTime_Total);
 DEFINE_STAT(STAT_ScriptNativeTime_Total);
 #endif //TOTAL_OVERHEAD_SCRIPT_STATS
@@ -129,12 +125,13 @@ void FBlueprintCoreDelegates::ThrowScriptException(const UObject* ActiveObject, 
 	// cant fire arbitrary delegates here off the game thread
 	if (IsInGameThread())
 	{
+#if DO_BLUEPRINT_GUARD
 		// If nothing is bound, show warnings so something is left in the log.
 		if (bShouldLogWarning && (OnScriptException.IsBound() == false))
 		{
 			UE_LOG(LogScript, Warning, TEXT("%s"), *StackFrame.GetStackTrace());
 		}
-
+#endif
 		OnScriptException.Broadcast(ActiveObject, StackFrame, Info);
 	}
 
@@ -366,12 +363,14 @@ void FFrame::KismetExecutionMessage(const TCHAR* Message, ELogVerbosity::Type Ve
 	// Tracking down some places that display warnings but no message..
 	ensure(Verbosity > ELogVerbosity::Warning || FCString::Strlen(Message) > 0);
 
+#if DO_BLUEPRINT_GUARD
 	// Show the stackfor fatal/error, and on warning if that option is enabled
 	if (Verbosity <= ELogVerbosity::Error || (ShowKismetScriptStackOnWarnings() && Verbosity == ELogVerbosity::Warning))
 	{
 		ScriptStack = TEXT("Script call stack:\n");
 		ScriptStack += GetScriptCallstack();
 	}
+#endif
 
 	if (Verbosity == ELogVerbosity::Fatal)
 	{
@@ -382,7 +381,10 @@ void FFrame::KismetExecutionMessage(const TCHAR* Message, ELogVerbosity::Type Ve
 	{
 		// Call directly so we can pass verbosity through
 		FMsg::Logf_Internal(__FILE__, __LINE__, LogScriptCore.GetCategoryName(), Verbosity, TEXT("Script Msg: %s"), Message);
-		FMsg::Logf_Internal(__FILE__, __LINE__, LogScriptCore.GetCategoryName(), Verbosity, TEXT("%s"), *ScriptStack);
+		if (!ScriptStack.IsEmpty())
+		{
+			FMsg::Logf_Internal(__FILE__, __LINE__, LogScriptCore.GetCategoryName(), Verbosity, TEXT("%s"), *ScriptStack);
+		}
 	}	
 #endif
 }
@@ -452,10 +454,11 @@ FString FFrame::GetStackTrace() const
 //////////////////////////////////////////////////////////////////////////
 // FScriptInstrumentationSignal
 
-FScriptInstrumentationSignal::FScriptInstrumentationSignal(EScriptInstrumentation::Type InEventType, const UObject* InContextObject, const struct FFrame& InStackFrame)
+FScriptInstrumentationSignal::FScriptInstrumentationSignal(EScriptInstrumentation::Type InEventType, const UObject* InContextObject, const struct FFrame& InStackFrame, const FName EventNameIn)
 	: EventType(InEventType)
 	, ContextObject(InContextObject)
 	, Function(InStackFrame.Node)
+	, EventName(EventNameIn)
 	, StackFramePtr(&InStackFrame)
 	, LatentLinkId(INDEX_NONE)
 {
@@ -473,7 +476,7 @@ const UClass* FScriptInstrumentationSignal::GetFunctionClassScope() const
 
 FName FScriptInstrumentationSignal::GetFunctionName() const
 {
-	return Function->GetFName();
+	return EventName.IsNone() ? Function->GetFName() : EventName;
 }
 
 int32 FScriptInstrumentationSignal::GetScriptCodeOffset() const
@@ -1615,9 +1618,19 @@ void UObject::execInstrumentation( FFrame& Stack, RESULT_DECL )
 		}
 	}
 #endif
-	FScriptInstrumentationSignal InstrumentationEventInfo(EventType, this, Stack);
-	FBlueprintCoreDelegates::InstrumentScriptEvent(InstrumentationEventInfo);
-	Stack.SkipCode(1);
+	if (EventType == EScriptInstrumentation::InlineEvent)
+	{
+		const FName& EventName = *reinterpret_cast<FName*>(&Stack.Code[1]);
+		FScriptInstrumentationSignal InstrumentationEventInfo(EventType, this, Stack, EventName);
+		FBlueprintCoreDelegates::InstrumentScriptEvent(InstrumentationEventInfo);
+		Stack.SkipCode(sizeof(FName) + 1);
+	}
+	else
+	{
+		FScriptInstrumentationSignal InstrumentationEventInfo(EventType, this, Stack);
+		FBlueprintCoreDelegates::InstrumentScriptEvent(InstrumentationEventInfo);
+		Stack.SkipCode(1);
+	}
 #endif
 }
 IMPLEMENT_VM_FUNCTION( EX_InstrumentationEvent, execInstrumentation );

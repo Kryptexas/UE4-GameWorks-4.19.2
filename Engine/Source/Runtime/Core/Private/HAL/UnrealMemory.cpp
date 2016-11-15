@@ -235,6 +235,33 @@ void FMemory::EnablePurgatoryTests()
 	}
 }
 
+void FMemory::EnablePoisonTests()
+{
+	if (PLATFORM_USES_FIXED_GMalloc_CLASS)
+	{
+		UE_LOG(LogMemory, Error, TEXT("Poison proxy cannot be turned on because we are using PLATFORM_USES_FIXED_GMalloc_CLASS"));
+		return;
+	}
+	static bool bOnce = false;
+	if (bOnce)
+	{
+		UE_LOG(LogMemory, Error, TEXT("Poison proxy was already turned on."));
+		return;
+	}
+	bOnce = true;
+	while (true)
+	{
+		FMalloc* LocalGMalloc = GMalloc;
+		FMalloc* Proxy = new FMallocPoisonProxy(LocalGMalloc);
+		if (FPlatformAtomics::InterlockedCompareExchangePointer((void**)&GMalloc, Proxy, LocalGMalloc) == LocalGMalloc)
+		{
+			UE_LOG(LogConsoleResponse, Display, TEXT("Poison proxy is now on."));
+			return;
+		}
+		delete Proxy;
+	}
+}
+
 #if !UE_BUILD_SHIPPING
 #include "TaskGraphInterfaces.h"
 static void FMallocBinnedOverrunTest()
@@ -264,6 +291,13 @@ FAutoConsoleCommand FMallocUsePurgatoryCommand
 TEXT("Memory.UsePurgatory"),
 TEXT("Uses the purgatory malloc proxy to check if things are writing to stale pointers."),
 FConsoleCommandDelegate::CreateStatic(&FMemory::EnablePurgatoryTests)
+);
+
+FAutoConsoleCommand FMallocUsePoisonCommand
+(
+TEXT("Memory.UsePoison"),
+TEXT("Uses the poison malloc proxy to check if things are relying on uninitialized or free'd memory."),
+FConsoleCommandDelegate::CreateStatic(&FMemory::EnablePoisonTests)
 );
 #endif
 

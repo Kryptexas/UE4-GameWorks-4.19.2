@@ -10,10 +10,8 @@ class SColorThemesViewer;
 class SComboButton;
 class SThemeColorBlocksBar;
 
-
 /** Called when the color picker cancel button is pressed */
 DECLARE_DELEGATE_OneParam(FOnColorPickerCancelled, FLinearColor);
-
 
 /**
  * Enumerates color channels (do not reorder).
@@ -454,6 +452,8 @@ private:
 
 	/** Invoked when the color picker cancel button is pressed */
 	FOnColorPickerCancelled OnColorPickerCancelled;
+
+
 
 	/** Invoked when a slider drag, color wheel drag or dropper grab starts */
 	FSimpleDelegate OnInteractivePickBegin;

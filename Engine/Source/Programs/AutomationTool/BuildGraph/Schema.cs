@@ -224,7 +224,7 @@ namespace AutomationTool
 		/// <summary>
 		/// Constructor
 		/// </summary>
-		/// <param name="InTaskNameToReflectionInfo">Mapping of task name to information about how to construct it</param>
+		/// <param name="InNameToTask">Mapping of task name to information about how to construct it</param>
 		public ScriptSchema(Dictionary<string, ScriptTask> InNameToTask)
 		{
 			NameToTask = InNameToTask;
@@ -256,14 +256,10 @@ namespace AutomationTool
 				TaskType.Name = Task.Name + "TaskType";
 				foreach(ScriptTaskParameter Parameter in Task.NameToParameter.Values)
 				{
-					XmlQualifiedName SchemaTypeName;
-					if(Parameter.ValidationType == TaskParameterValidationType.Default)
+					XmlQualifiedName SchemaTypeName = GetQualifiedTypeName(Parameter.ValidationType);
+					if(SchemaTypeName == null)
 					{
 						SchemaTypeName = TypeToSchemaTypeName[Parameter.FieldInfo.FieldType];
-					}
-					else
-					{
-						SchemaTypeName = GetQualifiedTypeName(Parameter.ValidationType);
 					}
 					TaskType.Attributes.Add(CreateSchemaAttribute(Parameter.Name, SchemaTypeName, Parameter.bOptional? XmlSchemaUse.Optional : XmlSchemaUse.Required));
 				}
@@ -386,9 +382,9 @@ namespace AutomationTool
 					return GetQualifiedTypeName(ScriptSchemaStandardType.Tag);
 				case TaskParameterValidationType.TagList:
 					return GetQualifiedTypeName(ScriptSchemaStandardType.TagList);
-				case TaskParameterValidationType.NameOrTag:
+				case TaskParameterValidationType.Target:
 					return GetQualifiedTypeName(ScriptSchemaStandardType.NameOrTag);
-				case TaskParameterValidationType.NameOrTagList:
+				case TaskParameterValidationType.TargetList:
 					return GetQualifiedTypeName(ScriptSchemaStandardType.NameOrTagList);
 			}
 			return null;

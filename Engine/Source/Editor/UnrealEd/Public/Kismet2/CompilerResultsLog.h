@@ -90,14 +90,8 @@ public:
 	// Should detailed results be appended to the final summary log?
 	bool bLogDetailedResults;
 
-	// Special maps used for autocreated macros to preserve information about their source
-	FBacktrackMap FinalNodeBackToMacroSourceMap;
-	TMultiMap<TWeakObjectPtr<UEdGraphNode>, TWeakObjectPtr<UEdGraphNode>> MacroSourceToMacroInstanceNodeMap;
-
-	// Used to track node generatation from tunnels, added in addition to existing code avoid causing any fallout.
-	// This will be refactored after blueprint profiler MVP.
-	TMap<TWeakObjectPtr<UEdGraphNode>, TWeakObjectPtr<UEdGraphNode>> SourceNodeToTunnelInstanceNodeMap;
-	TMap<TWeakObjectPtr<UEdGraphNode>, TWeakObjectPtr<UEdGraphNode>> IntermediateTunnelNodeToSourceNodeMap;
+	// Should composite graphs be treated the same as macro graphs/tunnels to generate more accurate debug data.
+	bool bTreatCompositeGraphsAsTunnels;
 
 	// Minimum event time (ms) for inclusion into the final summary log
 	int EventDisplayThresholdMs;
@@ -111,6 +105,21 @@ protected:
 
 	// Name of the source object being compiled
 	FString SourcePath;
+
+	// Backtrack map for intermendiate tunnel/macro nodes
+	FBacktrackMap FinalNodeBackToTunnelSourceMap;
+	
+	// Map to track intermediate tunnel nodes back to the intermediate expansion tunnel instance.
+	TMap<TWeakObjectPtr<UEdGraphNode>, TWeakObjectPtr<UEdGraphNode>> IntermediateTunnelNodeToTunnelInstanceMap;
+
+	// Map to track active nested tunnels for intermediate tunnel instances.
+	TMultiMap<TWeakObjectPtr<UEdGraphNode>, TWeakObjectPtr<UEdGraphNode>> IntermediateTunnelInstanceHierarchyMap;
+
+	// Map to track compile time only expansion nodes.
+	TSet<TWeakObjectPtr<const UEdGraphNode>> ExpansionNodes;
+
+	// Per pin filtering of trace signals for instrumentation.
+	TSet<const UEdGraphPin*> PinTraceFilter;
 
 public:
 	FCompilerResultsLog(bool bIsCompatibleWithEvents = true);
@@ -158,6 +167,35 @@ public:
 	/** Update the source backtrack map to note that NewObject was most closely generated/caused by the SourceObject */
 	void NotifyIntermediateObjectCreation(UObject* NewObject, UObject* SourceObject);
 	void NotifyIntermediatePinCreation(UEdGraphPin* NewObject, UEdGraphPin* SourceObject);
+
+	/** Compile time node expansion tracking and testing */
+	void RegisterExpansionNode(UEdGraphNode* ExpansionNode) { ExpansionNodes.Add(ExpansionNode); }
+	bool IsExpansionNode(const UEdGraphNode* Node) const { return ExpansionNodes.Contains(Node); }
+
+	/** Per pin trace signal filtering */
+	void AddPinTraceFilter(UEdGraphPin* PinToFilter) { PinTraceFilter.Add(PinToFilter); }
+	bool IsPinTraceSuppressed(const UEdGraphPin* PotentiallyFilteredPin) const { return PinTraceFilter.Contains(PotentiallyFilteredPin); }
+
+	/** Registers intermediate tunnel nodes, both the node and tunnel instance should be intermediate nodes */
+	void RegisterIntermediateTunnelNode(UEdGraphNode* Node, UEdGraphNode* OwningTunnelInstance);
+
+	/** Registers an intermediate tunnel instance node, the active tunnels should not be intermediate nodes. */
+	void RegisterIntermediateTunnelInstance(UEdGraphNode* IntermediateTunnel, TArray<TWeakObjectPtr<UEdGraphNode>>& ActiveTunnels);
+
+	/** Returns the source tunnel instance or the source tunnel node depending on what created the intermediate node */
+	UEdGraphNode* GetSourceNode(const UEdGraphNode* IntermediateNode);
+
+	/** Returns the intermediate tunnel instance that generated the node */
+	UEdGraphNode* GetIntermediateTunnelInstance(const UEdGraphNode* IntermediateNode);
+
+	/** Returns the source tunnel node for the intermediate node */
+	UEdGraphNode* GetSourceTunnelNode(const UEdGraphNode* IntermediateNode);
+
+	/** Returns the source tunnel instance that generated the intermediate node */
+	UEdGraphNode* GetSourceTunnelInstance(const UEdGraphNode* IntermediateNode);
+
+	/** Returns the active tunnel instances for the intermediate node */
+	void GetTunnelsActiveForNode(const UEdGraphNode* IntermediateNode, TArray<TWeakObjectPtr<UEdGraphNode>>& ActiveTunnelsOut);
 
 	/** Returns the true source object for the passed in object */
 	UObject* FindSourceObject(UObject* PossiblyDuplicatedObject);

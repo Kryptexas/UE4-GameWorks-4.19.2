@@ -7,7 +7,7 @@
 =============================================================================*/
 
 #pragma once
-#include "AndOr.h"
+#include "AndOrNot.h"
 #include "AreTypesEqual.h"
 #include "RemoveCV.h"
 

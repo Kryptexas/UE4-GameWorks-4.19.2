@@ -9,7 +9,7 @@
  * Visibility options for the level visibility section.
  */
 UENUM()
-enum class ELevelVisibility
+enum class ELevelVisibility : uint8
 {
 	/** The streamed levels should be visible. */
 	Visible,
@@ -46,7 +46,7 @@ private:
 
 	/** Whether or not the levels in this section should be visible or hidden. */
 	UPROPERTY(EditAnywhere, Category = LevelVisibility)
-	TEnumAsByte<ELevelVisibility> Visibility;
+	ELevelVisibility Visibility;
 
 	/** The short names of the levels who's visibility is controlled by this section. */
 	UPROPERTY(EditAnywhere, Category = LevelVisibility)

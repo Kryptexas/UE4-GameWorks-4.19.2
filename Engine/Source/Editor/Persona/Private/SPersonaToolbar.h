@@ -1,17 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __SPersonaToolbar_h__
-#define __SPersonaToolbar_h__
-
-#include "Editor/Kismet/Public/SBlueprintEditorToolbar.h"
-
-
+#pragma once
 
 class FPersonaToolbar : public TSharedFromThis<FPersonaToolbar>
 {
 public:
-	void SetupPersonaToolbar(TSharedPtr<FExtender> Extender, TSharedPtr<FPersona> InPersona);
+	void SetupPersonaToolbar(TSharedPtr<FExtender> Extender, TSharedPtr<class FPersona> InPersona);
 	
 private:
 	void FillPersonaModeToolbar(FToolBarBuilder& ToolbarBuilder);
@@ -27,11 +21,13 @@ protected:
 	/* Set new reference for the current animation */
 	void OnSetAnimationAssetReference(UObject* Object);
 
+	/** Thunk for SContentReference */
+	UObject* GetSkeletonAsUObject() const;
+
+	/** Thunk for SContentReference */
+	UObject* GetMeshAsUObject() const;
+
 private:
 	/** Pointer back to the blueprint editor tool that owns us */
-	TWeakPtr<FPersona> Persona;
+	TWeakPtr<class FPersona> Persona;
 };
-
-
-
-#endif		// __SPersonaToolbar_h__

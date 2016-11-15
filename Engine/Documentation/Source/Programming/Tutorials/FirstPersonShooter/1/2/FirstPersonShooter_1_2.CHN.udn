@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: 1.2 - Using the C++ Class Wizard
+﻿INTSourceChangelist:3069483
+Availability:Public
+Title:1.2 - 在 Visual Studio 中打开项目
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
-Description: Learn how to create your first C++ class using the C++ Wizard.
-SkillLevel: Beginner
-Version: 4.9
+Description:学习如何在 Visual Studio 中打开 C++ 项目。
+SkillLevel:Beginner
+Version:4.11
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -24,6 +24,37 @@ Version: 4.9
 
 %Steps%
 
-<!--TODO: Add tutorial steps here-->
+在上一步中设置 **基础代码（Basic Code）** 时，虚幻引擎创建了一个 **游戏模式（Game Mode）**。Game Mode 定义游戏的规则和胜利条件。Game Mode 还将设置用于部分基础游戏性框架类型（包括 Pawn、玩家控制器和 HUD）的默认类。此步骤中我们将使用编辑器在 Visual Studio 中打开解决方案，以便查看项目的 Game Mode 类。 
 
+1.	在 File 菜单中，选择 **Open Visual Studio** 在 Visual Studio 中打开 C++ 代码。
+
+	![](FileMenu_OpenVS.png)
+
+1.	Visual Studio 打开 C++ 代码后，可在它的 **Solution Explorer** 中看到 **CPP** 和 **头** 文件。
+
+	![](VS_SolutionExplorer.png)
+
+1.	现在，`FPSProjectGameMode.cpp` 中应包含以下代码。
+
+		#include "FPSProject.h"
+		#include "FPSProjectGameMode.h"
+
+1.	此外，`FPSProjectGameMode.h` 中应包含以下代码。
+
+		#pragma once
+		
+		#include "GameFramework/GameMode.h"
+		#include "FPSProjectGameMode.generated.h"
+		
+		/**
+		 * 
+		 */
+		UCLASS()
+		class FPSPROJECT_API AFPSProjectGameMode : public AGameMode
+		{
+			GENERATED_BODY()
+		};
+
+1.	在 Visual Studio 中打开 C++ 项目后，即可开始在项目中添加代码。 
+		
 %Steps%

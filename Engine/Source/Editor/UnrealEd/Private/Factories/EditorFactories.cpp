@@ -115,6 +115,12 @@
 #include "Sound/SoundNodeDialoguePlayer.h"
 #include "Factories/CanvasRenderTarget2DFactoryNew.h"
 #include "ImageUtils.h"
+#include "Engine/PreviewMeshCollection.h"
+#include "Factories/PreviewMeshCollectionFactory.h"
+#include "Factories/CurveFactory.h"
+#include "Factories/CurveImportFactory.h"
+#include "Factories/DataAssetFactory.h"
+#include "Factories/DataTableFactory.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorFactories, Log, All);
 
@@ -1187,6 +1193,9 @@ UObject* UPolysFactory::FactoryCreateText
 	FFeedbackContext*	Warn
 )
 {
+	FVector PointPool[4096];
+	int32 NumPoints = 0;
+
 	FEditorDelegates::OnAssetPreImport.Broadcast(this, Class, InParent, Name, Type);
 
 	// Create polys.	
@@ -1215,9 +1224,9 @@ UObject* UPolysFactory::FactoryCreateText
 		else if( FCString::Strstr(Str,TEXT("ENTITIES")) && First )
 		{
 			UE_LOG(LogEditorFactories, Log, TEXT("Reading Autocad DXF file"));
-			int32 Started=0, NumPts=0, IsFace=0;
-			FVector PointPool[4096];
+			int32 Started=0, IsFace=0;
 			FPoly NewPoly; NewPoly.Init();
+			NumPoints = 0;
 
 			while
 			(	FParse::Line( &Buffer, StrLine, 1 )
@@ -1234,7 +1243,7 @@ UObject* UPolysFactory::FactoryCreateText
 						if( NewPoly.Vertices.Num() == 0 )
 						{
 							// Got a vertex definition.
-							NumPts++;
+							NumPoints++;
 						}
 						else if( NewPoly.Vertices.Num()>=3 )
 						{
@@ -1258,7 +1267,7 @@ UObject* UPolysFactory::FactoryCreateText
 					if( FParse::Command(&Str,TEXT("VERTEX")) )
 					{
 						// Start of new vertex.
-						PointPool[NumPts] = FVector::ZeroVector;
+						PointPool[NumPoints] = FVector::ZeroVector;
 						Started = 1;
 						IsFace  = 0;
 					}
@@ -1271,7 +1280,7 @@ UObject* UPolysFactory::FactoryCreateText
 					else if( FParse::Command(&Str,TEXT("SEQEND")) )
 					{
 						// End of sequence.
-						NumPts=0;
+						NumPoints=0;
 					}
 					else if( FParse::Command(&Str,TEXT("EOF")) )
 					{
@@ -1294,26 +1303,26 @@ UObject* UPolysFactory::FactoryCreateText
 						{
 							NewPoly.Vertices.AddZeroed(VertexIndex - NewPoly.Vertices.Num() + 1);
 						}
-						NewPoly.Vertices[VertexIndex].X = PointPool[NumPts].X = FCString::Atof(*ExtraLine);
+						NewPoly.Vertices[VertexIndex].X = PointPool[NumPoints].X = FCString::Atof(*ExtraLine);
 					}
 					else if( Code>=20 && Code<=29 )
 					{
 						// Y coordinate.
 						int32 VertexIndex = Code-20;
-						NewPoly.Vertices[VertexIndex].Y = PointPool[NumPts].Y = FCString::Atof(*ExtraLine);
+						NewPoly.Vertices[VertexIndex].Y = PointPool[NumPoints].Y = FCString::Atof(*ExtraLine);
 					}
 					else if( Code>=30 && Code<=39 )
 					{
 						// Z coordinate.
 						int32 VertexIndex = Code-30;
-						NewPoly.Vertices[VertexIndex].Z = PointPool[NumPts].Z = FCString::Atof(*ExtraLine);
+						NewPoly.Vertices[VertexIndex].Z = PointPool[NumPoints].Z = FCString::Atof(*ExtraLine);
 					}
 					else if( Code>=71 && Code<=79 && (Code-71)==NewPoly.Vertices.Num() )
 					{
 						int32 iPoint = FMath::Abs(FCString::Atoi(*ExtraLine));
-						if( iPoint>0 && iPoint<=NumPts )
+						if( iPoint>0 && iPoint<=NumPoints )
 							new(NewPoly.Vertices) FVector(PointPool[iPoint-1]);
-						else UE_LOG(LogEditorFactories, Warning, TEXT("DXF: Invalid point index %i/%i"), iPoint, NumPts );
+						else UE_LOG(LogEditorFactories, Warning, TEXT("DXF: Invalid point index %i/%i"), iPoint, NumPoints );
 					}
 				}
 			}
@@ -1326,22 +1335,22 @@ UObject* UPolysFactory::FactoryCreateText
 		else if( FCString::Strstr(Str,TEXT("Tri-mesh,")) && First )
 		{
 			UE_LOG(LogEditorFactories, Log,  TEXT("Reading 3D Studio ASC file") );
-			FVector PointPool[4096];
+			NumPoints = 0;
 
 			AscReloop:
-			int32 NumVerts = 0, TempNumPolys=0, TempVerts=0;
+			int32 TempNumPolys=0, TempVerts=0;
 			while( FParse::Line( &Buffer, StrLine ) )
 			{
 				Str = *StrLine;
 
-				FString VertText = FString::Printf( TEXT("Vertex %i:"), NumVerts );
+				FString VertText = FString::Printf( TEXT("Vertex %i:"), NumPoints );
 				FString FaceText = FString::Printf( TEXT("Face %i:"), TempNumPolys );
 				if( FCString::Strstr(Str,*VertText) )
 				{
-					PointPool[NumVerts].X = FCString::Atof(FCString::Strstr(Str,TEXT("X:"))+2);
-					PointPool[NumVerts].Y = FCString::Atof(FCString::Strstr(Str,TEXT("Y:"))+2);
-					PointPool[NumVerts].Z = FCString::Atof(FCString::Strstr(Str,TEXT("Z:"))+2);
-					NumVerts++;
+					PointPool[NumPoints].X = FCString::Atof(FCString::Strstr(Str,TEXT("X:"))+2);
+					PointPool[NumPoints].Y = FCString::Atof(FCString::Strstr(Str,TEXT("Y:"))+2);
+					PointPool[NumPoints].Z = FCString::Atof(FCString::Strstr(Str,TEXT("Z:"))+2);
+					NumPoints++;
 					TempVerts++;
 				}
 				else if( FCString::Strstr(Str,*FaceText) )
@@ -2498,7 +2507,6 @@ UObject* USoundConcurrencyFactory::FactoryCreateNew(UClass* Class, UObject* InPa
 	return NewObject<USoundConcurrency>(InParent, Name, Flags);
 }
 
-
 /*------------------------------------------------------------------------------
 	UParticleSystemFactoryNew.
 ------------------------------------------------------------------------------*/
@@ -3086,7 +3094,7 @@ void DecompressTGA_RLE_24bpp( const FTGAFileHeader* TGA, uint32* TextureData )
 	uint8*	IdData = (uint8*)TGA + sizeof(FTGAFileHeader); 
 	uint8*	ColorMap = IdData + TGA->IdFieldLength;
 	uint8*	ImageData = (uint8*) (ColorMap + (TGA->ColorMapEntrySize + 4) / 8 * TGA->ColorMapLength);
-	uint8    Pixel[4];
+	uint8    Pixel[4] = {};
 	int32     RLERun = 0;
 	int32     RAWRun = 0;
 
@@ -3298,6 +3306,11 @@ bool DecompressTGA_helper(
 	{
 		DecompressTGA_8bpp(TGA, (uint8*)TextureData);
 	}
+	// standard grayscale
+	else if(TGA->ColorMapType == 0 && TGA->ImageTypeCode == 3 && TGA->BitsPerPixel == 8)
+	{
+		DecompressTGA_8bpp(TGA, (uint8*)TextureData);
+	}
 	else
 	{
 		Warn->Logf(ELogVerbosity::Error, TEXT("TGA is an unsupported type: %u"),TGA->ImageTypeCode);
@@ -3356,6 +3369,18 @@ UTexture2D* DecompressTGA(
 		//
 		// We store the image as PF_G8, where it will be used as alpha in the Glyph shader.
 
+		Texture->Source.Init(
+			TGA->Width,
+			TGA->Height,
+			/*NumSlices=*/ 1,
+			/*NumMips=*/ 1,
+			TSF_G8);
+
+		Texture->CompressionSettings = TC_Grayscale;
+	}
+	else if(TGA->ColorMapType == 0 && TGA->ImageTypeCode == 3 && TGA->BitsPerPixel == 8)
+	{
+		// standard grayscale images
 		Texture->Source.Init(
 			TGA->Width,
 			TGA->Height,
@@ -3441,7 +3466,13 @@ void UTextureFactory::PostInitProperties()
 
 UTexture2D* UTextureFactory::CreateTexture2D( UObject* InParent, FName Name, EObjectFlags Flags )
 {
-	UTexture2D* NewTexture = CastChecked<UTexture2D>( CreateOrOverwriteAsset(UTexture2D::StaticClass(),InParent,Name,Flags) );
+	UObject* NewObject = CreateOrOverwriteAsset(UTexture2D::StaticClass(), InParent, Name, Flags);
+	UTexture2D* NewTexture = nullptr;
+	if(NewObject)
+	{
+		NewTexture = CastChecked<UTexture2D>(NewObject);
+	}
+	
 	return NewTexture;
 }
 
@@ -4009,19 +4040,20 @@ UTexture* UTextureFactory::ImportTexture(UClass* Class, UObject* InParent, FName
 	{
 		UTexture2D* Texture = 0;
 
-		if (TGA->ColorMapType == 0 && TGA->ImageTypeCode == 3)
-		{
-			Warn->Logf(ELogVerbosity::Error, *NSLOCTEXT("UnrealEd", "Warning_TGAGreyscale", "TGA Greyscale import not supported, use RGB").ToString() );
-			return nullptr;
-		}
-
 		// Check the resolution of the imported texture to ensure validity
 		if ( !IsImportResolutionValid(TGA->Width, TGA->Height, bAllowNonPowerOfTwo, Warn) )
 		{
 			return nullptr;
 		}
 
-		return DecompressTGA(TGA, this, Class, InParent, Name, Flags, Warn);
+		Texture = DecompressTGA(TGA, this, Class, InParent, Name, Flags, Warn);
+		if(Texture && Texture->CompressionSettings == TC_Grayscale && TGA->ImageTypeCode == 3)
+		{
+			// default grayscales to linear as they wont get compression otherwise and are commonly used as masks
+			Texture->SRGB = false;
+		}
+
+		return Texture;
 	}
 	//
 	// PSD File
@@ -5649,6 +5681,7 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 	{
 		//Set misc options
 		ReimportUI->bConvertScene = ImportUI->bConvertScene;
+		ReimportUI->bConvertSceneUnit = ImportUI->bConvertSceneUnit;
 	}
 
 	if( ImportData )
@@ -5669,7 +5702,8 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 		bool bShowOptionDialog = true;
 		bool bOutImportAll = false;
 		bool bIsObjFormat = false;
-		GetImportOptions( FFbxImporter, ReimportUI, bShowOptionDialog, Obj->GetPathName(), bOperationCanceled, bOutImportAll, bIsObjFormat, bForceImportType, FBXIT_StaticMesh );
+		bool bIsAutomated = false;
+		GetImportOptions( FFbxImporter, ReimportUI, bShowOptionDialog, bIsAutomated, Obj->GetPathName(), bOperationCanceled, bOutImportAll, bIsObjFormat, bForceImportType, FBXIT_StaticMesh );
 	}
 
 	if( !bOperationCanceled && ensure(ImportData) )
@@ -5884,6 +5918,7 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 	{
 		//Set misc options
 		ReimportUI->bConvertScene = ImportUI->bConvertScene;
+		ReimportUI->bConvertSceneUnit = ImportUI->bConvertSceneUnit;
 	}
 
 	bool bSuccess = false;
@@ -5910,14 +5945,13 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 		bool bForceImportType = true;
 		bool bOutImportAll = false;
 		bool bIsObjFormat = false;
-
-		// arggg... hate this different option class to confuse everybody
+		bool bIsAutomated = false;
 		// @hack to make sure skeleton is set before opening the dialog
 		ImportOptions->SkeletonForAnimation = SkeletalMesh->Skeleton;
 		ImportOptions->bCreatePhysicsAsset = false;
 		ImportOptions->PhysicsAsset = SkeletalMesh->PhysicsAsset;
 
-		ImportOptions = GetImportOptions( FFbxImporter, ReimportUI, bShowOptionDialog, Obj->GetPathName(), bOperationCanceled, bOutImportAll, bIsObjFormat, bForceImportType, FBXIT_SkeletalMesh );
+		ImportOptions = GetImportOptions( FFbxImporter, ReimportUI, bShowOptionDialog, bIsAutomated, Obj->GetPathName(), bOperationCanceled, bOutImportAll, bIsObjFormat, bForceImportType, FBXIT_SkeletalMesh );
 	}
 
 	if( !bOperationCanceled && ensure(ImportData) )
@@ -6788,7 +6822,7 @@ UObject* UDestructibleMeshFactory::FactoryCreateBinary
 	UDestructibleMesh* DestructibleMesh = nullptr;
 
 	// Create an Apex NxDestructibleAsset from the binary blob
-	NxDestructibleAsset* ApexDestructibleAsset = CreateApexDestructibleAssetFromBuffer(Buffer, (int32)(BufferEnd-Buffer));
+	apex::DestructibleAsset* ApexDestructibleAsset = CreateApexDestructibleAssetFromBuffer(Buffer, (int32)(BufferEnd-Buffer));
 	if( ApexDestructibleAsset != nullptr )
 	{
 		// Succesfully created the NxDestructibleAsset, now create a UDestructibleMesh
@@ -6805,7 +6839,7 @@ UObject* UDestructibleMeshFactory::FactoryCreateBinary
 	else
 	{
 		// verify whether this is an Apex Clothing asset or not 
-		NxClothingAsset* ApexClothingAsset = ApexClothingUtils::CreateApexClothingAssetFromBuffer(Buffer, (int32)(BufferEnd-Buffer));
+		apex::ClothingAsset* ApexClothingAsset = ApexClothingUtils::CreateApexClothingAssetFromBuffer(Buffer, (int32)(BufferEnd-Buffer));
 		
 		if(ApexClothingAsset)
 		{
@@ -6903,7 +6937,7 @@ EReimportResult::Type UReimportDestructibleMeshFactory::Reimport( UObject* Obj )
 	CurrentFilename = Filename;
 
 	// Create an Apex NxDestructibleAsset from the binary blob
-	NxDestructibleAsset* ApexDestructibleAsset = CreateApexDestructibleAssetFromFile(Filename);
+	apex::DestructibleAsset* ApexDestructibleAsset = CreateApexDestructibleAssetFromFile(Filename);
 	if( ApexDestructibleAsset != nullptr )
 	{
 		// Succesfully created the NxDestructibleAsset, now create a UDestructibleMesh
@@ -6956,7 +6990,7 @@ UBlendSpaceFactoryNew::UBlendSpaceFactoryNew(const FObjectInitializer& ObjectIni
 
 	SupportedClass = UBlendSpace::StaticClass();
 	bCreateNew = true;
-		}
+}
 
 bool UBlendSpaceFactoryNew::ConfigureProperties()
 {
@@ -6989,7 +7023,7 @@ bool UBlendSpaceFactoryNew::ConfigureProperties()
 		[
 			ContentBrowserModule.Get().CreateAssetPicker(AssetPickerConfig)
 		]
-		];
+	];
 
 
 	GEditor->EditorAddModalWindow(PickerWindow.ToSharedRef());
@@ -7487,6 +7521,55 @@ UObject* UDataTableFactory::FactoryCreateNew(UClass* Class, UObject* InParent, F
 	return DataTable;
 }
 
+/*------------------------------------------------------------------------------
+ UPreviewMeshCollectionFactory implementation.
+------------------------------------------------------------------------------*/
+
+UPreviewMeshCollectionFactory::UPreviewMeshCollectionFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	SupportedClass = UPreviewMeshCollection::StaticClass();
+	bCreateNew = true;
+}
+
+FText UPreviewMeshCollectionFactory::GetDisplayName() const
+{
+	return LOCTEXT("PreviewMeshCollection", "Preview Mesh Collection");
+}
+
+FText UPreviewMeshCollectionFactory::GetToolTip() const
+{
+	return LOCTEXT("PreviewMeshCollection_Tooltip", "Preview Mesh Collections are used to build collections of related skeletal meshes that are animated together (such as components of a character)");
+}
+
+bool UPreviewMeshCollectionFactory::ConfigureProperties()
+{
+	if (CurrentSkeleton.IsValid())
+	{
+		return true;
+	}
+
+	USkeleton* Skeleton = ChooseSkeleton();
+	if (Skeleton != nullptr)
+	{
+		CurrentSkeleton = Skeleton;
+		return true;
+	}
+
+	return false;
+}
+
+UObject* UPreviewMeshCollectionFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
+{
+	UPreviewMeshCollection* NewCollection = nullptr;
+	if (CurrentSkeleton.IsValid())
+	{
+		NewCollection = NewObject<UPreviewMeshCollection>(InParent, Name, Flags);
+		NewCollection->Skeleton = CurrentSkeleton.Get();
+	}
+
+	return NewCollection;
+}
 
 #undef LOCTEXT_NAMESPACE
 

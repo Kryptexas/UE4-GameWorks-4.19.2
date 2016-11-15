@@ -761,22 +761,13 @@ FReply SCollisionAnalyzer::OnLoadButtonClicked()
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 	if (DesktopPlatform)
 	{
-		// Get the window handles
-		void* ParentWindowWindowHandle = NULL;
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-		if (MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid())
-		{
-			ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-		}
-
 		// Default path to find stats
 		const FString DefaultPath = FPaths::ProfilingDir() + TEXT("CollisionAnalyzer");
 
 		// File open dialog
 		TArray<FString> Filenames;
 		bool bOpened = DesktopPlatform->OpenFileDialog(
-			ParentWindowWindowHandle,
+			FSlateApplication::Get().FindBestParentWindowHandleForDialogs(AsShared()),
 			LOCTEXT("CollisionFileOpen", "Choose collision file to load").ToString(),
 			DefaultPath,
 			TEXT(""),
@@ -799,22 +790,13 @@ FReply SCollisionAnalyzer::OnSaveButtonClicked()
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 	if (DesktopPlatform)
 	{
-		// Get the window handles
-		void* ParentWindowWindowHandle = NULL;
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-		if (MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid())
-		{
-			ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-		}
-
 		// Default path to find stats
 		const FString DefaultPath = FPaths::ProfilingDir() + TEXT("CollisionAnalyzer");
 
 		// File save dialog
 		TArray<FString> Filenames;
 		bool bSaved = DesktopPlatform->SaveFileDialog(
-			ParentWindowWindowHandle,
+			FSlateApplication::Get().FindBestParentWindowHandleForDialogs(AsShared()),
 			LOCTEXT("CollisionFileLocation", "Choose file location").ToString(),
 			DefaultPath,
 			TEXT(""),

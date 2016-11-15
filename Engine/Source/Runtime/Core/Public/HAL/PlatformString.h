@@ -20,9 +20,7 @@
 #include "HTML5/HTML5PlatformString.h"
 #elif PLATFORM_LINUX
 #include "Linux/LinuxPlatformString.h"
+#elif PLATFORM_WOLF
+#include "WolfPlat/WolfPlatformString.h"
 #endif
 
-//TEXT macro, may or may not have come from OS includes
-#if !defined(TEXT) && !UE_BUILD_DOCS
-#define TEXT(s) L##s
-#endif

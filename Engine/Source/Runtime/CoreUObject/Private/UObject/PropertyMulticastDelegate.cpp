@@ -231,7 +231,7 @@ const TCHAR* UMulticastDelegateProperty::ImportText_Internal( const TCHAR* Buffe
 		}
 
 		// Add this delegate to our multicast delegate's invocation list
-		MulticastDelegate.Add( ImportedDelegate );
+		MulticastDelegate.AddUnique( ImportedDelegate );
 
 		SkipWhitespace(Buffer);
 	}

@@ -205,6 +205,9 @@ private:
 	// Callback that is executed before the reimport manager reimported an asset.
 	void HandleReimportManagerPreReimport( UObject* InObject );
 
+	// Callback that is executed once an asset is imported
+	void HandleAssetPostImport(UFactory* InFactory, UObject* InObject);
+
 	// Callback for toggling the Desaturation channel action.
 	void HandleDesaturationChannelActionExecute( );
 

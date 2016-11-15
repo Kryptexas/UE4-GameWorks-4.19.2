@@ -40,9 +40,9 @@ SAdvancedPreviewDetailsTab::~SAdvancedPreviewDetailsTab()
 	}
 }
 
-void SAdvancedPreviewDetailsTab::Construct(const FArguments& InArgs)
+void SAdvancedPreviewDetailsTab::Construct(const FArguments& InArgs, const TSharedRef<FAdvancedPreviewScene>& InPreviewScene)
 {
-	PreviewScene = InArgs._PreviewScenePtr;	
+	PreviewScenePtr = InPreviewScene;
 	DefaultSettings = UAssetViewerSettings::Get();
 	ProfileIndex = PerProjectSettings->AssetViewerProfileIndex;
 		
@@ -127,7 +127,7 @@ void SAdvancedPreviewDetailsTab::ComboBoxSelectionChanged(TSharedPtr<FString> Ne
 		ProfileIndex = NewSelectionIndex;
 		PerProjectSettings->AssetViewerProfileIndex = ProfileIndex;
 		UpdateSettingsView();	
-		PreviewScene->SetProfileIndex(ProfileIndex);
+		PreviewScenePtr.Pin()->SetProfileIndex(ProfileIndex);
 	}
 }
 
@@ -151,17 +151,54 @@ void SAdvancedPreviewDetailsTab::UpdateProfileNames()
 
 FReply SAdvancedPreviewDetailsTab::AddProfileButtonClick()
 {
+	const FScopedTransaction Transaction(LOCTEXT("AddSceneProfile", "Adding Preview Scene Profile"));
+	DefaultSettings->Modify();
+
 	// Add new profile to settings instance
 	DefaultSettings->Profiles.AddDefaulted();
 	FPreviewSceneProfile& NewProfile = DefaultSettings->Profiles.Last();
-	NewProfile.ProfileName = FString::Printf(TEXT("Profile_%i"), DefaultSettings->Profiles.Num());
+	
+	// Try to create a valid profile name when one is added
+	bool bFoundValidName = false;
+	int ProfileAppendNum = DefaultSettings->Profiles.Num();
+	FString NewProfileName;
+	while (!bFoundValidName)
+	{
+		NewProfileName = FString::Printf(TEXT("Profile_%i"), ProfileAppendNum);
+
+		bool bValidName = true;
+		for (const FPreviewSceneProfile& Profile : DefaultSettings->Profiles)
+		{
+			if (Profile.ProfileName == NewProfileName)
+			{
+				bValidName = false;				
+				break;
+			}
+		}
+
+		if (!bValidName)
+		{
+			++ProfileAppendNum;
+		}
+
+		bFoundValidName = bValidName;
+	}
+
+	NewProfile.ProfileName = NewProfileName;
 	DefaultSettings->PostEditChange();
+
+	// Change selection to new profile so the user directly sees the profile that was added
+	Refresh();
+	ProfileComboBox->SetSelectedItem(ProfileNames.Last());
 	
 	return FReply::Handled();
 }
 
 FReply SAdvancedPreviewDetailsTab::RemoveProfileButtonClick()
 {
+	const FScopedTransaction Transaction(LOCTEXT("RemoveSceneProfile", "Remove Preview Scene Profile"));
+	DefaultSettings->Modify();
+
 	// Remove currently selected profile 
 	DefaultSettings->Profiles.RemoveAt(ProfileIndex);
 	ProfileIndex = DefaultSettings->Profiles.IsValidIndex(ProfileIndex - 1 ) ? ProfileIndex - 1 : 0;
@@ -183,7 +220,7 @@ void SAdvancedPreviewDetailsTab::OnAssetViewerSettingsRefresh(const FName& InPro
 		UpdateProfileNames();
 	}
 
-	PreviewScene->UpdateScene(DefaultSettings->Profiles[ProfileIndex], bUpdateSkyLight, bUpdateEnvironment, bUpdatePostProcessing, bUpdateDirectionalLight);
+	PreviewScenePtr.Pin()->UpdateScene(DefaultSettings->Profiles[ProfileIndex], bUpdateSkyLight, bUpdateEnvironment, bUpdatePostProcessing, bUpdateDirectionalLight);
 }
 
 void SAdvancedPreviewDetailsTab::CreateSettingsView()
@@ -209,9 +246,10 @@ void SAdvancedPreviewDetailsTab::CreateSettingsView()
 
 void SAdvancedPreviewDetailsTab::Refresh()
 {	
-	ProfileIndex = PerProjectSettings->AssetViewerProfileIndex;	
+	PerProjectSettings->AssetViewerProfileIndex = DefaultSettings->Profiles.IsValidIndex(PerProjectSettings->AssetViewerProfileIndex) ? PerProjectSettings->AssetViewerProfileIndex : 0;
+	ProfileIndex = PerProjectSettings->AssetViewerProfileIndex;
 	UpdateProfileNames();
-	PreviewScene->SetProfileIndex(ProfileIndex);
+	PreviewScenePtr.Pin()->SetProfileIndex(ProfileIndex);
 	UpdateSettingsView();
 }
 

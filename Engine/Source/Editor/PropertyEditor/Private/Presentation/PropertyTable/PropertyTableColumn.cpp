@@ -561,6 +561,11 @@ void FPropertyTableColumn::Sort( TArray< TSharedRef< class IPropertyTableRow > >
 		Property = Path->GetLeafMostProperty().Property.Get();
 	}
 
+	if (!Property)
+	{
+		return;
+	}
+
 	if ( Property->IsA( UByteProperty::StaticClass() ) )
 	{
 		TWeakObjectPtr<UByteProperty> ByteProperty( Cast< UByteProperty >( Property ) );
@@ -683,13 +688,13 @@ void FPropertyTableColumn::Tick()
 		else
 		{
 			const TSharedRef< FObjectPropertyNode > Node = TableRef->GetObjectPropertyNode( Object );
-			FPropertyNode::DataValidationResult Result = Node->EnsureDataIsValid();
+			EPropertyDataValidationResult Result = Node->EnsureDataIsValid();
 
-			if ( Result == FPropertyNode::ObjectInvalid )
+			if ( Result == EPropertyDataValidationResult::ObjectInvalid )
 			{
 				TableRef->RemoveColumn( SharedThis( this ) );
 			}
-			else if ( Result == FPropertyNode::ArraySizeChanged )
+			else if ( Result == EPropertyDataValidationResult::ArraySizeChanged )
 			{
 				TableRef->RequestRefresh();
 			}

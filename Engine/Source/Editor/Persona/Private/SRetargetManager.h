@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include "Persona.h"
-
 //////////////////////////////////////////////////////////////////////////
 // SRetargetManager
 
@@ -11,11 +9,7 @@ class SRetargetManager : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS( SRetargetManager )
-		: _Persona()
 	{}
-		
-		/* The Persona that owns this table */
-		SLATE_ARGUMENT( TWeakPtr< FPersona >, Persona )
 
 	SLATE_END_ARGS()
 
@@ -25,23 +19,18 @@ public:
 	* @param InArgs - Arguments passed from Slate
 	*
 	*/
-	void Construct( const FArguments& InArgs );
-
-	/**
-	* Destructor - resets the morph targets
-	*
-	*/
-	virtual ~SRetargetManager();
+	void Construct(const FArguments& InArgs, const TSharedRef<IEditableSkeleton>& InEditableSkeleton, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnPostUndo);
 
 private:
 	FReply OnViewRetargetBasePose();
 	FReply OnResetRetargetBasePose();
 	FReply OnSaveRetargetBasePose();
 
-	/** Pointer back to the Persona that owns us */
-	TWeakPtr<FPersona> PersonaPtr;
-	/** The skeletal mesh that we grab the morph targets from */
-	USkeleton* Skeleton;
+	/** The editable skeleton */
+	TWeakPtr<class IEditableSkeleton> EditableSkeletonPtr;
+
+	/** The preview scene  */
+	TWeakPtr<class IPersonaPreviewScene> PreviewScenePtr;
 
 	/** Delegate for undo/redo transaction **/
 	void PostUndo();

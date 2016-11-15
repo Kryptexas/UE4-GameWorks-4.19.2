@@ -2,8 +2,10 @@
 
 #pragma once
 
-#include "ObjectBase.h"
-
+#include "ObjectMacros.h"
+#include "WeakObjectPtr.h"
+#include "Object.h"
+#include "CoreNetTypes.h"
 
 DECLARE_DELEGATE_RetVal_OneParam( bool, FNetObjectIsDynamic, const UObject*);
 
@@ -153,8 +155,9 @@ class COREUOBJECT_API UPackageMap : public UObject
 	void				SetDebugContextString( const FString& Str ) { DebugContextString = Str; }
 	void				ClearDebugContextString() { DebugContextString.Empty(); }
 
-	void							ResetTrackedUnmappedGuids( bool bShouldTrack ) { TrackedUnmappedNetGuids.Empty(); bShouldTrackUnmappedGuids = bShouldTrack; }
-	const TArray< FNetworkGUID > &	GetTrackedUnmappedGuids() const { return TrackedUnmappedNetGuids; }
+	void							ResetTrackedGuids( bool bShouldTrack ) { TrackedUnmappedNetGuids.Empty(); TrackedMappedDynamicNetGuids.Empty(); bShouldTrackUnmappedGuids = bShouldTrack; }
+	const TSet< FNetworkGUID > &	GetTrackedUnmappedGuids() const { return TrackedUnmappedNetGuids; }
+	const TSet< FNetworkGUID > &	GetTrackedDynamicMappedGuids() const { return TrackedMappedDynamicNetGuids; }
 
 	virtual void			LogDebugInfo( FOutputDevice & Ar) { }
 	virtual UObject*		GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const bool bIgnoreMustBeMapped ) { return NULL; }
@@ -166,7 +169,8 @@ protected:
 	bool					bSuppressLogs;
 
 	bool					bShouldTrackUnmappedGuids;
-	TArray< FNetworkGUID >	TrackedUnmappedNetGuids;
+	TSet< FNetworkGUID >	TrackedUnmappedNetGuids;
+	TSet< FNetworkGUID >	TrackedMappedDynamicNetGuids;
 
 	FString					DebugContextString;
 };
@@ -216,33 +220,6 @@ struct FPropertyRetirement
 };
 
 
-/** Secondary condition to check before considering the replication of a lifetime property. */
-enum ELifetimeCondition
-{
-	COND_None						= 0,		// This property has no condition, and will send anytime it changes
-	COND_InitialOnly				= 1,		// This property will only attempt to send on the initial bunch
-	COND_OwnerOnly					= 2,		// This property will only send to the actor's owner
-	COND_SkipOwner					= 3,		// This property send to every connection EXCEPT the owner
-	COND_SimulatedOnly				= 4,		// This property will only send to simulated actors
-	COND_AutonomousOnly				= 5,		// This property will only send to autonomous actors
-	COND_SimulatedOrPhysics			= 6,		// This property will send to simulated OR bRepPhysics actors
-	COND_InitialOrOwner				= 7,		// This property will send on the initial packet, or to the actors owner
-	COND_Custom						= 8,		// This property has no particular condition, but wants the ability to toggle on/off via SetCustomIsActiveOverride
-	COND_ReplayOrOwner				= 9,		// This property will only send to the replay connection, or to the actors owner
-	COND_ReplayOnly					= 10,		// This property will only send to the replay connection
-	COND_SimulatedOnlyNoReplay		= 11,
-	COND_SimulatedOrPhysicsNoReplay	= 12,
-	COND_Max						= 13,
-};
-
-
-enum ELifetimeRepNotifyCondition
-{
-	REPNOTIFY_OnChanged		= 0,		// Only call the property's RepNotify function if it changes from the local value
-	REPNOTIFY_Always		= 1,		// Always Call the property's RepNotify function when it is received from the server
-};
-
-
 /** FLifetimeProperty
  *	This class is used to track a property that is marked to be replicated for the lifetime of the actor channel.
  *  This doesn't mean the property will necessarily always be replicated, it just means:
@@ -275,6 +252,7 @@ public:
 
 template <> struct TIsZeroConstructType<FLifetimeProperty> { enum { Value = true }; };
 
+GENERATE_MEMBER_FUNCTION_CHECK(GetLifetimeReplicatedProps, void, const, TArray<FLifetimeProperty>&)
 
 /**
  * FNetBitWriter
@@ -293,6 +271,7 @@ public:
 	virtual FArchive& operator<<(FName& Name) override;
 	virtual FArchive& operator<<(UObject*& Object) override;
 	virtual FArchive& operator<<(FStringAssetReference& Value) override;
+	virtual FArchive& operator<<(struct FWeakObjectPtr& Value) override;
 };
 
 
@@ -312,8 +291,26 @@ public:
 	virtual FArchive& operator<<(FName& Name) override;
 	virtual FArchive& operator<<(UObject*& Object) override;
 	virtual FArchive& operator<<(FStringAssetReference& Value) override;
+	virtual FArchive& operator<<(struct FWeakObjectPtr& Value) override;
 };
 
+bool FORCEINLINE NetworkGuidSetsAreSame( const TSet< FNetworkGUID >& A, const TSet< FNetworkGUID >& B )
+{
+	if ( A.Num() != B.Num() )
+	{
+		return false;
+	}
+
+	for ( const FNetworkGUID& CompareGuid : A )
+	{
+		if ( !B.Contains( CompareGuid ) )
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
 
 /**
  * INetDeltaBaseState
@@ -377,7 +374,12 @@ struct FNetDeltaSerializeInfo
 		bOutSomeObjectsWereMapped	= false;
 		bCalledPreNetReceive		= false;
 		bOutHasMoreUnmapped			= false;
-		Object						= NULL;
+		bGuidListsChanged			= false;
+		bIsWritingOnClient			= false;
+		Object						= nullptr;
+		GatherGuidReferences		= nullptr;
+		TrackedGuidMemoryBytes		= nullptr;
+		MoveGuidToUnmapped			= nullptr;
 	}
 
 	// Used when writing
@@ -400,7 +402,13 @@ struct FNetDeltaSerializeInfo
 	bool							bOutSomeObjectsWereMapped;
 	bool							bCalledPreNetReceive;
 	bool							bOutHasMoreUnmapped;
+	bool							bGuidListsChanged;
+	bool							bIsWritingOnClient;
 	UObject*						Object;
+
+	TSet< FNetworkGUID >*			GatherGuidReferences;
+	int32*							TrackedGuidMemoryBytes;
+	const FNetworkGUID*				MoveGuidToUnmapped;
 
 	// Debugging variables
 	FString							DebugName;

@@ -8,6 +8,7 @@
 
 class FRepState;
 class FNetFieldExportGroup;
+class FRepChangelistState;
 
 bool FORCEINLINE IsCustomDeltaProperty( const UProperty* Property )
 {
@@ -32,6 +33,31 @@ struct FReplicatedActorProperty
 	FReplicatedActorProperty(int32 InOffset, const UObjectPropertyBase* InProperty)
 		: Offset(InOffset), Property(InProperty)
 	{}
+};
+
+/** 
+ *	FReplicationChangelistMgr manages a list of change lists for a particular replicated object that have occurred since the object started replicating
+ *	Once the history is completely full, the very first changelist will then be merged with the next one (freeing a slot)
+ *		This way we always have the entire history for join in progress players
+ *	This information is then used by all connections, to share the compare work needed to determine what to send each connection
+ *	Connections will send any changelist that is new since the last time the connection checked
+ */
+class ENGINE_API FReplicationChangelistMgr
+{
+public:
+	FReplicationChangelistMgr( UNetDriver* InDriver, UObject* InObject );
+
+	~FReplicationChangelistMgr();
+
+	void Update( const UObject* InObject, const uint32 ReplicationFrame, const int32 LastCompareIndex, const FReplicationFlags& RepFlags );
+
+	FRepChangelistState* GetRepChangelistState() const { return RepChangelistState.Get(); }
+
+private:
+	UNetDriver*							Driver;
+	TSharedPtr< FRepLayout >			RepLayout;
+	TUniquePtr< FRepChangelistState >	RepChangelistState;
+	uint32								LastReplicationFrame;
 };
 
 /** FObjectReplicator
@@ -95,6 +121,11 @@ public:
 	TSharedPtr< FRepLayout >						RepLayout;
 	FRepState *										RepState;
 
+	TSet< FNetworkGUID >							ReferencedGuids;
+	int32											TrackedGuidMemoryBytes;
+
+	TSharedPtr< FReplicationChangelistMgr >			ChangelistMgr;
+
 	struct FRPCCallInfo 
 	{
 		FName	FuncName;
@@ -130,6 +161,8 @@ public:
 	void	PostSendBunch(FPacketIdRange & PacketRange, uint8 bReliable);
 	
 	bool	ReceivedBunch( FNetBitReader& Bunch, const FReplicationFlags& RepFlags, const bool bHasRepLayout, bool& bOutHasUnmapped );
+	void	UpdateGuidToReplicatorMap();
+	bool	MoveMappedObjectToUnmapped( const FNetworkGUID& GUID );
 	void	PostReceivedBunch();
 
 	void	ForceRefreshUnreliableProperties();

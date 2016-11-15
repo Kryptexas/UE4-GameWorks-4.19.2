@@ -6,7 +6,7 @@
 #include "FbxSceneImportData.generated.h"
 
 UENUM()
-enum class EFbxSceneReimportStatusFlags
+enum class EFbxSceneReimportStatusFlags : uint8
 {
 	None = 0x00,
 	Added = 0x01,

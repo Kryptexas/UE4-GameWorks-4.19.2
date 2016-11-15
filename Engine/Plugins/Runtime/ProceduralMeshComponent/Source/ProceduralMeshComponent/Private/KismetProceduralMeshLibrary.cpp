@@ -415,10 +415,10 @@ void UKismetProceduralMeshLibrary::GetSectionFromStaticMesh(UStaticMesh* InMesh,
 void UKismetProceduralMeshLibrary::CopyProceduralMeshFromStaticMeshComponent(UStaticMeshComponent* StaticMeshComponent, int32 LODIndex, UProceduralMeshComponent* ProcMeshComponent, bool bCreateCollision)
 {
 	if( StaticMeshComponent != nullptr && 
-		StaticMeshComponent->StaticMesh != nullptr && 
+		StaticMeshComponent->GetStaticMesh() != nullptr &&
 		ProcMeshComponent != nullptr )
 	{
-		UStaticMesh* StaticMesh = StaticMeshComponent->StaticMesh;
+		UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
 
 		//// MESH DATA
 
@@ -644,11 +644,11 @@ bool TriangulatePoly(TArray<int32>& OutTris, const TArray<FProcMeshVertex>& Poly
 /** Util to slice a convex hull with a plane */
 void SliceConvexElem(const FKConvexElem& InConvex, const FPlane& SlicePlane, TArray<FVector>& OutConvexVerts)
 {
-	// Get set of planes taht make up hull
+	// Get set of planes that make up hull
 	TArray<FPlane> ConvexPlanes;
 	InConvex.GetPlanes(ConvexPlanes);
 
-	if (ConvexPlanes.Num() > 4)
+	if (ConvexPlanes.Num() >= 4)
 	{
 		// Add on the slicing plane (need to flip as it culls geom in the opposite sense to our geom culling code)
 		ConvexPlanes.Add(SlicePlane.Flip());
@@ -686,7 +686,8 @@ void UKismetProceduralMeshLibrary::SliceProceduralMesh(UProceduralMeshComponent*
 		for (int32 SectionIndex = 0; SectionIndex < InProcMesh->GetNumSections(); SectionIndex++)
 		{
 			FProcMeshSection* BaseSection = InProcMesh->GetProcMeshSection(SectionIndex);
-			if (BaseSection != nullptr)
+			// If we have a section, and it has some valid geom
+			if (BaseSection != nullptr && BaseSection->ProcIndexBuffer.Num() > 0 && BaseSection->ProcVertexBuffer.Num() > 0)
 			{
 				// Compare bounding box of section with slicing plane
 				int32 BoxCompare = BoxPlaneCompare(BaseSection->SectionLocalBox, SlicePlane);
@@ -910,13 +911,13 @@ void UKismetProceduralMeshLibrary::SliceProceduralMesh(UProceduralMeshComponent*
 					}
 
 					// Remove 'other' section from array if no valid geometry for it
-					if (NewOtherSection != nullptr && NewOtherSection->ProcIndexBuffer.Num() == 0)
+					if (NewOtherSection != nullptr && (NewOtherSection->ProcIndexBuffer.Num() == 0 || NewOtherSection->ProcVertexBuffer.Num() == 0))
 					{
 						OtherSections.RemoveAt(OtherSections.Num() - 1);
 					}
 
 					// If we have some valid geometry, update section
-					if (NewSection.ProcIndexBuffer.Num() > 0)
+					if (NewSection.ProcIndexBuffer.Num() > 0 && NewSection.ProcVertexBuffer.Num() > 0)
 					{
 						// Assign new geom to this section
 						InProcMesh->SetProcMeshSection(SectionIndex, NewSection);
@@ -1060,7 +1061,7 @@ void UKismetProceduralMeshLibrary::SliceProceduralMesh(UProceduralMeshComponent*
 				TArray<FVector> SlicedConvexVerts;
 				SliceConvexElem(BaseConvex, SlicePlane, SlicedConvexVerts);
 				// If we got something valid, add it
-				if (SlicedConvexVerts.Num() > 0)
+				if (SlicedConvexVerts.Num() >= 4)
 				{
 					SlicedCollision.Add(SlicedConvexVerts);
 				}
@@ -1070,7 +1071,7 @@ void UKismetProceduralMeshLibrary::SliceProceduralMesh(UProceduralMeshComponent*
 				{
 					TArray<FVector> OtherSlicedConvexVerts;
 					SliceConvexElem(BaseConvex, SlicePlane.Flip(), OtherSlicedConvexVerts);
-					if (OtherSlicedConvexVerts.Num() > 0)
+					if (OtherSlicedConvexVerts.Num() >= 4)
 					{
 						OtherSlicedCollision.Add(OtherSlicedConvexVerts);
 					}

@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:3016843
+﻿INTSourceChangelist:3060419
 Availability:Public
 Title:Bone Driven Controller（ボーン駆動型コントローラー）
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
-Description:Bone Driven Controller ノードで、"Driver (駆動する)" ボーンがひとつ以上の “Driven (駆動される)” ボーンのモーションに動的に影響を与えます。
+Description:Bone Driven Controller ノードで、"Driver" ボーンがひとつ以上の “Driven” ボーンのモーションに動的に影響を与えます。
 version:4.12
 
 [VAR:Topic]
@@ -76,6 +76,9 @@ CDG4WcQ7cIY
 | **(As Pin) Alpha** | ノード上のアルファ ピンの表示を有効/無効にします。 |
 | **Alpha Scale Bias**| 最小および最大の入力スケール値を設定します。 |
 
+**AnimDynamics** ノードも 4.11 で導入された **LOD Threshold** システムの影響を受けます。**AnimDynamics** ノードの **[Details (詳細)]** パネルにこの設定が表示されます。
+
+[INCLUDE:Engine/Animation/NodeReference/SkeletalControls#lodthresh]
 
 <!--
 [EXCERPT:LocationSpace]

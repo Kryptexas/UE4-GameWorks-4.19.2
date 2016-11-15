@@ -61,6 +61,8 @@ struct FFoliageUISettings
 	void SetFilterStaticMesh(bool InbFilterStaticMesh) { bFilterStaticMesh = InbFilterStaticMesh; }
 	bool GetFilterBSP() const { return bFilterBSP ? true : false; }
 	void SetFilterBSP(bool InbFilterBSP) { bFilterBSP = InbFilterBSP; }
+	bool GetFilterFoliage() const { return bFilterFoliage; }
+	void SetFilterFoliage(bool InbFilterFoliage) { bFilterFoliage = InbFilterFoliage; }
 	bool GetFilterTranslucent() const { return bFilterTranslucent; }
 	void SetFilterTranslucent(bool InbFilterTranslucent) { bFilterTranslucent = InbFilterTranslucent; }
 
@@ -94,6 +96,8 @@ struct FFoliageUISettings
 		, bFilterLandscape(true)
 		, bFilterStaticMesh(true)
 		, bFilterBSP(true)
+		, bFilterFoliage(false)
+		, bFilterTranslucent(false)
 	{
 	}
 
@@ -127,6 +131,7 @@ public:
 	bool bFilterLandscape;
 	bool bFilterStaticMesh;
 	bool bFilterBSP;
+	bool bFilterFoliage;
 	bool bFilterTranslucent;
 };
 
@@ -192,12 +197,14 @@ struct FFoliagePaintingGeometryFilter
 	bool bAllowLandscape;
 	bool bAllowStaticMesh;
 	bool bAllowBSP;
+	bool bAllowFoliage;
 	bool bAllowTranslucent;
 
 	FFoliagePaintingGeometryFilter(const FFoliageUISettings& InUISettings)
 		: bAllowLandscape(InUISettings.bFilterLandscape)
 		, bAllowStaticMesh(InUISettings.bFilterStaticMesh)
 		, bAllowBSP(InUISettings.bFilterBSP)
+		, bAllowFoliage(InUISettings.bFilterFoliage)
 		, bAllowTranslucent(InUISettings.bFilterTranslucent)
 	{
 	}
@@ -206,6 +213,7 @@ struct FFoliagePaintingGeometryFilter
 		: bAllowLandscape(false)
 		, bAllowStaticMesh(false)
 		, bAllowBSP(false)
+		, bAllowFoliage(false)
 		, bAllowTranslucent(false)
 	{
 	}
@@ -411,11 +419,11 @@ public:
 	/** Add desired instances. Uses foliage settings to determine location/scale/rotation and whether instances should be ignored */
 	static void AddInstances(UWorld* InWorld, const TArray<FDesiredFoliageInstance>& DesiredInstances, const FFoliagePaintingGeometryFilter& OverrideGeometryFilter);
 
-	/** Called when an editor mode is entered or exited */
-	void OnEditorModeChanged(FEdMode* EditorMode, bool bEntered);
-
 	/** Called when the user presses a button on their motion controller device */
 	void OnVRAction(class FEditorViewportClient& ViewportClient, class UViewportInteractor* Interactor, const struct FViewportActionKeyInput& Action, bool& bOutIsInputCaptured, bool& bWasHandled);
+
+	/** Called on VR hovering */
+	void OnVRHoverUpdate(FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, FVector& HoverImpactPoint, bool& bWasHandled);
 
 	typedef TMap<FName, TMap<ULandscapeComponent*, TArray<uint8> > > LandscapeLayerCacheData;
 
@@ -481,13 +489,13 @@ private:
 
 	/**  Return selected actor and instance location */
 	AInstancedFoliageActor* GetSelectionLocation(UWorld* InWorld, FVector& OutLocation) const;
-
+	
 	/**  Updates ed mode widget location to currently selected instance */
 	void UpdateWidgetLocationToInstanceSelection();
 
 	/** Remove currently selected instances*/
 	void RemoveSelectedInstances(UWorld* InWorld);
-
+			
 	/** Snap instance to the ground   */
 	bool SnapInstanceToGround(AInstancedFoliageActor* InIFA, float AlignMaxAngle, FFoliageMeshInfo& Mesh, int32 InstanceIdx);
 	void SnapSelectedInstancesToGround(UWorld* InWorld);

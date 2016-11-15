@@ -1,5 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
+#include "TaskGraphPrivatePCH.h"
 #include "SlateBasics.h"
 #include "TaskGraphInterfaces.h"
 #include "VisualizerEvents.h"
@@ -326,28 +327,6 @@ void SBarVisualizer::HandleEventSelectionChanged( TSharedPtr< FVisualizerEvent >
 				BarGraphsList->SetSelection( BarGraph );
 				BarGraphsList->RequestScrollIntoView( BarGraph );
 				BarGraphFound = true;
-			}
-		}
-
-		if( BarGraphFound == false )
-		{
-			TSharedPtr< FVisualizerEvent > BarGraph = FindSelectedEventsParent( ProfileDataView, Selection );
-			if( BarGraph.IsValid() && ProfileDataView.Contains( BarGraph ) == false )
-			{
-				SelectedBarGraph = BarGraph;
-				CreateDataView();
-				BarGraphsList->RequestListRefresh();
-				OnBarGraphExpansionChangedDelegate.ExecuteIfBound( SelectedBarGraph );
-
-				// Now find the event in the profile data view we've just created
-				for( int32 Index = 0; Index < ProfileDataView.Num() ; Index++ )
-				{
-					if( ProfileDataView[ Index ]->Children.Contains( Selection ) )
-					{
-						BarGraphsList->RequestScrollIntoView( ProfileDataView[ Index ] );
-						break;
-					}
-				}
 			}
 		}
 	}

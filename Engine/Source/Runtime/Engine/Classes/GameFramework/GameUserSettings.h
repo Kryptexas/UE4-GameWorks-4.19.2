@@ -74,6 +74,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Settings)
 	void SetFullscreenMode(EWindowMode::Type InFullscreenMode);
 
+	/** Returns the user setting for game window fullscreen mode. */
+	UFUNCTION(BlueprintPure, Category = Settings)
+	EWindowMode::Type GetPreferredFullscreenMode() const;
+
 	/** Sets the user setting for vsync. See UGameUserSettings::bUseVSync. */
 	UFUNCTION(BlueprintCallable, Category=Settings)
 	void SetVSyncEnabled(bool bEnable);
@@ -304,13 +308,6 @@ protected:
 	/** Window PosY */
 	UPROPERTY(config)
 	int32 WindowPosY;
-
-	/** 
-	 * Whether or not to use the desktop resolution.  
-	 * This value only applies if ResolutionX and ResolutionY have not been set yet and only on desktop platforms
-	 */
-	UPROPERTY(config)
-	bool bUseDesktopResolutionForFullscreen;
 
 	/**
 	 * Game window fullscreen mode

@@ -124,20 +124,37 @@ public:
 	virtual void SetToolTipText(const FText& ToolTip) = 0;
 
 	/**
+	 * @return True if this property has custom documentation, false otherwise
+	 */
+	virtual bool HasDocumentation() = 0;
+
+	/**
+	 * @return The custom documentation link for this property
+	 */
+	virtual FString GetDocumentationLink() = 0;
+
+	/**
+	 * @return The custom documentation except name for this property
+	 */
+	virtual FString GetDocumentationExcerptName() = 0;
+
+	/**
 	 * Gets the value formatted as a string.
 	 *
-	 * @param OutValue	String where the value is stored.  Remains unchanged if the value could not be set
+	 * @param OutValue		String where the value is stored.  Remains unchanged if the value could not be set
+	 * @param PortFlags		Property flags to determine how the string is retrieved. Defaults to PPF_PropertyWindow
 	 * @return The result of attempting to get the value
 	 */
-	virtual FPropertyAccess::Result GetValueAsFormattedString( FString& OutValue ) const = 0;
+	virtual FPropertyAccess::Result GetValueAsFormattedString( FString& OutValue, EPropertyPortFlags PortFlags = PPF_PropertyWindow ) const = 0;
 
 	/**
 	 * Gets the value formatted as a string, possibly using an alternate form more suitable for display in the UI
 	 *
-	 * @param OutValue	String where the value is stored.  Remains unchanged if the value could not be set
+	 * @param OutValue		String where the value is stored.  Remains unchanged if the value could not be set
+	 * @param PortFlags		Property flags to determine how the string is retrieved. Defaults to PPF_PropertyWindow
 	 * @return The result of attempting to get the value
 	 */
-	virtual FPropertyAccess::Result GetValueAsDisplayString( FString& OutValue ) const = 0;
+	virtual FPropertyAccess::Result GetValueAsDisplayString( FString& OutValue, EPropertyPortFlags PortFlags = PPF_PropertyWindow ) const = 0;
 
 	/**
 	 * Gets the value formatted as a string, as Text.
@@ -370,6 +387,16 @@ public:
 	virtual TSharedPtr<class IPropertyHandleArray> AsArray() = 0;
 
 	/**
+	 * @return This handle as a set if possible
+	 */
+	virtual TSharedPtr<class IPropertyHandleSet> AsSet() = 0;
+
+	/**
+	 * @return This handle as a map if possible
+	 */
+	virtual TSharedPtr<class IPropertyHandleMap> AsMap() = 0;
+
+	/**
 	 * @return The display name of the property
 	 */
 	virtual FText GetPropertyDisplayName() const = 0;
@@ -517,4 +544,88 @@ public:
 	 * Sets a delegate to call when the number of elements changes                                                  
 	 */
 	virtual void SetOnNumElementsChanged( FSimpleDelegate& InOnNumElementsChanged ) = 0;
+};
+
+/**
+ * A handle to a property which allows you to manipulate a Set
+ */
+class IPropertyHandleSet
+{
+public:
+	virtual ~IPropertyHandleSet(){}
+
+	/**
+	 * @return True if the set contains an element with a default value, false otherwise
+	 */
+	virtual bool HasDefaultElement() = 0;
+
+	/**
+	 * Adds an item to the set.
+	 * @return Whether or not this was successful
+	 */
+	virtual FPropertyAccess::Result AddItem() = 0;
+
+	/**
+	 * Empties the set
+	 * @return Whether or not this was successful
+	 */
+	virtual FPropertyAccess::Result Empty() = 0;
+
+	/**
+	* Deletes the item in the set with the specified internal index
+	* @return Whether or not this was successful
+	*/
+	virtual FPropertyAccess::Result DeleteItem(int32 Index) = 0;
+
+	/**
+	 * @return The number of elements in the set
+	 */
+	virtual FPropertyAccess::Result GetNumElements(uint32& OutNumElements) = 0;
+
+	/**
+	 * Sets a delegate to call when the number of elements changes
+	 */
+	virtual void SetOnNumElementsChanged(FSimpleDelegate& InOnNumElementsChanged) = 0;
+};
+
+/**
+ * A handle to a property which allows you to manipulate a Map
+ */
+class IPropertyHandleMap
+{
+public:
+	virtual ~IPropertyHandleMap() {}
+
+	/**
+	 * @return True if the map contains a key with a default value, false otherwise
+	 */
+	virtual bool HasDefaultKey() = 0;
+
+	/**
+	 * Adds an item to the map.
+	 * @return Whether or not this was successful
+	 */
+	virtual FPropertyAccess::Result AddItem() = 0;
+
+	/**
+	 * Empties the map
+	 * @return Whether or not this was successful
+	 */
+	virtual FPropertyAccess::Result Empty() = 0;
+
+	/**
+	 * Deletes the item in the map with the specified internal index
+	 * @return Whether or not this was successful
+	 */
+	virtual FPropertyAccess::Result DeleteItem(int32 Index) = 0;
+
+	/**
+	 * @return The number of elements in the map
+	 */
+	virtual FPropertyAccess::Result GetNumElements(uint32& OutNumElements) = 0;
+
+	/**
+	 * Sets a delegate to call when the number of elements changes
+	 */
+	virtual void SetOnNumElementsChanged(FSimpleDelegate& InOnNumElementsChanged) = 0;
 };

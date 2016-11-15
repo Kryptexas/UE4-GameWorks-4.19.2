@@ -175,6 +175,16 @@ void UAnimGraphNode_SubInstance::ReallocatePinsDuringReconstruction(TArray<UEdGr
 			UEdGraphPin* NewPin = CreatePin(EEdGraphPinDirection::EGPD_Input, PinType, Property->GetName());
 			NewPin->PinFriendlyName = Property->GetDisplayNameText();
 
+			// Need to grab the default value for the property from the target generated class CDO
+			FString CDODefaultValueString;
+			uint8* ContainerPtr = reinterpret_cast<uint8*>(TargetClass->GetDefaultObject());
+
+			if(FBlueprintEditorUtils::PropertyValueToString(Property, ContainerPtr, CDODefaultValueString))
+			{
+				// If we successfully pulled a value, set it to the pin
+				Schema->TrySetDefaultValue(*NewPin, CDODefaultValueString);
+			}
+
 			CustomizePinData(NewPin, PropertyName, INDEX_NONE);
 		}
 	}

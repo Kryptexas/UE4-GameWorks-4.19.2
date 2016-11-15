@@ -2,8 +2,6 @@
 
 #pragma once
 
-DECLARE_LOG_CATEGORY_EXTERN(LogTestPAL, Verbose, All);
-
 class FParent
 {
 	/** Children to be controlled */

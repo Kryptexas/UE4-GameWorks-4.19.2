@@ -47,6 +47,22 @@ struct CORE_API FFrameworkObjectVersion
 		// Remove SoundWave CompressionName
 		RemoveSoundWaveCompressionName,
 
+		// Switched render data for clothing over to unreal data, reskinned to the simulation mesh
+		AddInternalClothingGraphicalSkinning,
+
+		// Wheel force offset is now applied at the wheel instead of vehicle COM
+		WheelOffsetIsFromWheel,
+		// Move curve metadata to be saved in skeleton
+		// Individual asset still saves some flag - i.e. disabled curve and editable or not, but 
+		// major flag - i.e. material types - moves to skeleton and handle in one place
+		MoveCurveTypesToSkeleton,
+		
+	        // Cache destructible overlaps on save
+		CacheDestructibleOverlaps,
+
+	        // Added serialization of materials applied to geometry cache objects
+		GeometryCacheMissingMaterials,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

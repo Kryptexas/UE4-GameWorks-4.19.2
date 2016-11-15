@@ -309,7 +309,18 @@ EDialogReturnType SPackagesDialog::GetReturnType(OUT TArray<UPackage*>& OutCheck
  */
 TSharedPtr< SWidget > SPackagesDialog::GetWidgetToFocusOnActivate() const
 {
-	return ButtonsBox->GetChildren()->Num() > 0 ? ButtonsBox->GetChildren()->GetChildAt( 0 ) : TSharedPtr< SWidget >();
+	// Find the first visible button.  That will be our widget to focus
+	FChildren* ButtonBoxChildren = ButtonsBox->GetChildren();
+	for( int ButtonIndex = 0; ButtonIndex < ButtonBoxChildren->Num(); ++ButtonIndex )
+	{
+		TSharedPtr<SWidget> ButtonWidget = ButtonBoxChildren->GetChildAt(0);
+		if(ButtonWidget.IsValid() && ButtonWidget->GetVisibility() == EVisibility::Visible)
+		{
+			return ButtonWidget;
+		}
+	}
+
+	return  TSharedPtr< SWidget >();
 }
 
 /**

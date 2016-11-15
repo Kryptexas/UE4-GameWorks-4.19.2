@@ -213,9 +213,11 @@ public:
 	void RemoveTileCacheLayer(int32 TileX, int32 TileY, int32 LayerIdx);
 	void AddTileCacheLayers(int32 TileX, int32 TileY, const TArray<FNavMeshTileData>& Layers);
 	void AddTileCacheLayer(int32 TileX, int32 TileY, int32 LayerIdx, const FNavMeshTileData& LayerData);
+	void MarkEmptyTileCacheLayers(int32 TileX, int32 TileY);
 	FNavMeshTileData GetTileCacheLayer(int32 TileX, int32 TileY, int32 LayerIdx) const;
 	TArray<FNavMeshTileData> GetTileCacheLayers(int32 TileX, int32 TileY) const;
-	
+	bool HasTileCacheLayers(int32 TileX, int32 TileY) const;
+
 	/** Assigns recast generated navmesh to this instance.
 	 *	@param bOwnData if true from now on this FPImplRecastNavMesh instance will be responsible for this piece 
 	 *		of memory

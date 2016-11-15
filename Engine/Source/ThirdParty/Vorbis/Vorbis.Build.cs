@@ -72,10 +72,10 @@ public class Vorbis : ModuleRules
 		else if (Target.Platform == UnrealTargetPlatform.Android)
 		{
 			// toolchain will filter
-			PublicLibraryPaths.Add(VorbisPath + "Lib/Android/ARMv7");
-			PublicLibraryPaths.Add(VorbisPath + "Lib/Android/ARM64");
-			PublicLibraryPaths.Add(VorbisPath + "Lib/Android/x86");
-			PublicLibraryPaths.Add(VorbisPath + "Lib/Android/x64");
+			PublicLibraryPaths.Add(VorbisPath + "lib/Android/ARMv7");
+			PublicLibraryPaths.Add(VorbisPath + "lib/Android/ARM64");
+			PublicLibraryPaths.Add(VorbisPath + "lib/Android/x86");
+			PublicLibraryPaths.Add(VorbisPath + "lib/Android/x64");
 
 			PublicAdditionalLibraries.Add("vorbis");
 		}

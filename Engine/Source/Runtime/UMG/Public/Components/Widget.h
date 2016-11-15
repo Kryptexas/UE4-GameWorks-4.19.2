@@ -13,6 +13,31 @@ class UPanelSlot;
 class UUserWidget;
 class SObjectWidget;
 
+
+
+namespace UMWidget
+{
+	// valid keywords for the UPROPERTY macro
+	enum
+	{
+		/// [PropertyMetadata] This property if changed will rebuild the widget designer preview.  Use sparingly, try to update most properties by
+		/// setting them in the SynchronizeProperties function.
+		DesignerRebuild,
+		/// [PropertyMetadata] This property requires a widget be bound to it in the designer.  Allows easy native access to designer defined controls.
+		/// UPROPERTY(meta=(BindWidget))
+		BindWidget,
+		/// [PropertyMetadata] This property optionally allows a widget be bound to it in the designer.  Allows easy native access to designer defined controls.
+		/// UPROPERTY(meta=(BindWidgetOptional))
+		BindWidgetOptional,
+		/// [PropertyMetadata] This property optionally allows a widget be bound to it in the designer.  Allows easy native access to designer defined controls.
+		/// UPROPERTY(meta=(BindWidget, OptionalWidget=true))
+		OptionalWidget
+	};
+}
+
+
+
+
 /**
  * Helper macro for binding to a delegate or using the constant value when constructing the underlying SWidget
  */
@@ -163,7 +188,7 @@ public:
 
 	/** The visibility of the widget */
 	UPROPERTY()
-	TEnumAsByte<ESlateVisibility> Visiblity_DEPRECATED;
+	ESlateVisibility Visiblity_DEPRECATED;
 
 	/** The visibility of the widget */
 	UPROPERTY(EditAnywhere, Category="Behavior")
@@ -267,7 +292,7 @@ public:
 
 	/** Sets the current enabled status of the widget */
 	UFUNCTION(BlueprintCallable, Category="Widget")
-	void SetIsEnabled(bool bInIsEnabled);
+	virtual void SetIsEnabled(bool bInIsEnabled);
 
 	/** Sets the tooltip text for the widget. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
@@ -295,7 +320,7 @@ public:
 
 	/** Sets the visibility of the widget. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
-	void SetVisibility(ESlateVisibility InVisibility);
+	virtual void SetVisibility(ESlateVisibility InVisibility);
 
 	/** Sets the forced volatility of the widget. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
@@ -421,6 +446,13 @@ public:
 
 	/** Gets the last created widget does not recreate the gc container for the widget if one is needed. */
 	TSharedPtr<SWidget> GetCachedWidget() const;
+
+	/**
+	 * Gets the player controller associated with this UI.
+	 * @return The player controller that owns the UI.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Player")
+	virtual class APlayerController* GetOwningPlayer() const;
 
 	/**
 	 * Applies all properties to the native widget if possible.  This is called after a widget is constructed.
@@ -571,8 +603,13 @@ protected:
 	/** Function called after the underlying SWidget is constructed. */
 	virtual void OnWidgetRebuilt();
 	
+#if WITH_EDITOR
 	/** Utility method for building a design time wrapper widget. */
 	TSharedRef<SWidget> BuildDesignTimeWidget(TSharedRef<SWidget> WrapWidget);
+#else
+	/** Just returns the incoming widget in non-editor builds. */
+	FORCEINLINE TSharedRef<SWidget> BuildDesignTimeWidget(TSharedRef<SWidget> WrapWidget) { return WrapWidget; }
+#endif
 
 	void UpdateRenderTransform();
 

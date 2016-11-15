@@ -20,9 +20,9 @@ void UMovieSceneBoolSection::PostLoad()
 	Super::PostLoad();
 }
 
-bool UMovieSceneBoolSection::Eval( float Position ) const
+bool UMovieSceneBoolSection::Eval( float Position, bool DefaultValue ) const
 {
-	return !!BoolCurve.Evaluate(Position);
+	return !!BoolCurve.Evaluate(Position, DefaultValue);
 }
 
 
@@ -99,10 +99,15 @@ void UMovieSceneBoolSection::SetDefault( const bool& Value )
 
 bool UMovieSceneBoolSection::NewKeyIsNewData( float Time, const bool& Value ) const
 {
-	return Eval(Time) != Value;
+	return Eval(Time, Value) != Value;
 }
 
 bool UMovieSceneBoolSection::HasKeys( const bool& Value ) const
 {
 	return BoolCurve.GetNumKeys() != 0;
+}
+
+void UMovieSceneBoolSection::ClearDefaults()
+{
+	BoolCurve.ClearDefaultValue();
 }

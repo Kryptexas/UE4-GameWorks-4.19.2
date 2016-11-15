@@ -10,8 +10,8 @@ public:
 	/**
 	 * Processes a Build Image to determine new chunks and produce a chunk based manifest, all saved to the cloud.
 	 * NOTE: This function is blocking and will not return until finished. Don't run on main thread.
-	 * @param Settings      Specifies the settings for the operation.  See FBuildPatchSettings documentation.
+	 * @param Configuration      Specifies the settings for the operation.  See BuildPatchServices::FGenerationConfiguration comments.
 	 * @return True if no errors occurred.
 	 */
-	static bool GenerateChunksManifestFromDirectory(const FBuildPatchSettings& Settings);
+	static bool GenerateChunksManifestFromDirectory(const BuildPatchServices::FGenerationConfiguration& Configuration);
 };

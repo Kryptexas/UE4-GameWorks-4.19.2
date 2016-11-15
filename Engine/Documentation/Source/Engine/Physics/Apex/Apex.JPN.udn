@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2713167
+﻿INTSourceChangelist:3077981
 Availability:Public
 Title:APEX
 Crumbs: %ROOT%, Engine, Engine/Physics
@@ -49,18 +49,18 @@ Version:4.9
 [/REGION]
 
 
-Nvidia 社の APEX PhysX Lab と呼ばれるツールは、被破壊メッシュの作成に使用します。使用方法に関する情報は 
-PEX PhysX Lab ツールの Nvidia ドキュメントでご覧頂けます。ただし、現行のアンリアル エンジン 4 (UE4) は 
- APEX Destructibles と APEX Cloth のみのサポートとなりますのでご注意ください。APEX Cloth アセットを作成するには、PhysX:3Ds Max/Maya DCC プラグインを使用するか、またはスタンドアロンのツールが APEX SDK にあります。 
+NVIDIA 社の APEX PhysX Lab と呼ばれるツールは、被破壊メッシュの作成に使用します。使用方法に関する情報は 
+PEX PhysX Lab ツール上の NVIDIA ドキュメントでご覧頂けます。ただし、現行のアンリアル エンジン 4 は 
+ APEX Destructibles と APEX Cloth のみのサポートとなります。APEX Cloth アセットを作成するには、PhysX:3Ds Max/Maya DCC プラグインまたはスタンドアロンのツールが APEX SDK にあります。 
 
-Destructible アクタは、単一の深度レベルで Voronoi を使って UE4 で作成することができます。複数の深度レベルからなる、 
+被破壊アクタは、単一の深度レベルで Voronoi を使ってアンリアル エンジン 4 で作成することができます。複数の深度レベルからなる、 
 または Voronoi 以外の関数を使用してメッシュを砕け散らす APEX Destructible アセットは現在 APEX PhysX Lab で作成しなければなりません。
 
 [REGION:lightbox]
  [![](APEX_destructibleProj_APL.png)(w:450)](APEX_destructibleProj_APL.png)
 [/REGION]
 
-## APEX Destructibles および Cloth のインポート
+## APEX 被破壊およびクロスのインポート
 
 APEX オブジェクトのインポートは FBX ファイルのインポートと同じです。APEX アセットは全て .apb または .apx としてエクスポートされ、アンリアル エディタが 
 インポートされる APEX オブジェクトのタイプを判断します。

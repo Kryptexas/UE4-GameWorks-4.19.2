@@ -83,7 +83,8 @@ static void SetupAndroidDLCProfile(ILauncherProfileRef& DLCProfile, const FProfi
 	DLCProfile->SetBuildUAT(true);
 	// App build configuration
 	DLCProfile->SetBuildGame(false);
-	
+	DLCProfile->SetBuildConfiguration(Params.BuildConfiguration);
+		
 	//// Cooking
 	DLCProfile->SetCookMode(ELauncherProfileCookModes::ByTheBook);
 	DLCProfile->SetCookConfiguration(Params.BuildConfiguration);

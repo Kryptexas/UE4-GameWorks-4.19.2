@@ -174,7 +174,7 @@ void SAnimTimingTrackNode::Construct(const FArguments& InArgs)
 		);
 }
 
-void SAnimTimingPanel::Construct(const FArguments& InArgs)
+void SAnimTimingPanel::Construct(const FArguments& InArgs, FSimpleMulticastDelegate& OnAnimNotifiesChanged, FSimpleMulticastDelegate& OnSectionsChanged)
 {
 	SAnimTrackPanel::Construct(SAnimTrackPanel::FArguments()
 		.WidgetWidth(InArgs._WidgetWidth)
@@ -184,10 +184,8 @@ void SAnimTimingPanel::Construct(const FArguments& InArgs)
 		.InputMax(InArgs._InputMax)
 		.OnSetInputViewRange(InArgs._OnSetInputViewRange));
 
-	WeakPersona = InArgs._InWeakPersona;
 	AnimSequence = InArgs._InSequence;
 
-	check(WeakPersona.IsValid());
 	check(AnimSequence);
 
 	this->ChildSlot
@@ -211,26 +209,11 @@ void SAnimTimingPanel::Construct(const FArguments& InArgs)
 	Update();
 
 	// Register to some delegates to update the interface
-	TSharedPtr<FPersona> SharedPersona = WeakPersona.Pin();
-	if(SharedPersona.IsValid())
-	{
-		SharedPersona->RegisterOnChangeAnimNotifies(FPersona::FOnAnimNotifiesChanged::CreateSP(this, &SAnimTimingPanel::RefreshTrackNodes));
-		SharedPersona->RegisterOnSectionsChanged(FPersona::FOnSectionsChanged::CreateSP(this, &SAnimTimingPanel::RefreshTrackNodes));
-	}
+	OnAnimNotifiesChanged.Add(FSimpleDelegate::CreateSP(this, &SAnimTimingPanel::RefreshTrackNodes));
+	OnSectionsChanged.Add(FSimpleDelegate::CreateSP(this, &SAnimTimingPanel::RefreshTrackNodes));
 
 	// Clear display flags
 	FMemory::Memset(bElementNodeDisplayFlags, false, sizeof(bElementNodeDisplayFlags));
-}
-
-SAnimTimingPanel::~SAnimTimingPanel()
-{
-	// Clean up our registered delegates
-	TSharedPtr<FPersona> SharedPersona = WeakPersona.Pin();
-	if(SharedPersona.IsValid())
-	{
-		SharedPersona->UnregisterOnChangeAnimNotifies(this);
-		SharedPersona->UnregisterOnSectionsChanged(this);
-	}
 }
 
 void SAnimTimingPanel::Update()

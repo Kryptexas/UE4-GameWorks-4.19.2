@@ -66,7 +66,7 @@ void TBasePassPixelShaderPolicyParamType<PixelParametersType>::SetMesh(FRHIComma
 {
 	if (View.GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 	{
-		ReflectionParameters.SetMesh(RHICmdList, GetPixelShader(), Proxy, View.GetFeatureLevel());
+		ReflectionParameters.SetMesh(RHICmdList, GetPixelShader(), View, Proxy, View.GetFeatureLevel());
 	}
 
 	FMeshMaterialShader::SetMesh(RHICmdList, GetPixelShader(), VertexFactory, View, Proxy, BatchElement, DrawRenderState);

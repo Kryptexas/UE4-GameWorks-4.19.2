@@ -20,9 +20,11 @@ public:
 	};
 
 	SLATE_BEGIN_ARGS(SBoneTreeMenu)
+		: _bShowVirtualBones(true)
 		{}
 
 		SLATE_ARGUMENT(FText, Title)
+		SLATE_ARGUMENT(bool, bShowVirtualBones)
 		SLATE_EVENT(FOnBoneSelectionChanged, OnBoneSelectionChanged)
 
 	SLATE_END_ARGS();
@@ -32,7 +34,7 @@ public:
 	*
 	* @param	InArgs	The declaration data for this widget
 	*/
-	void Construct(const FArguments& InArgs, TWeakObjectPtr<const USkeleton> Skeleton);
+	void Construct(const FArguments& InArgs, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton);
 
 	//Filter text widget
 	TSharedPtr<SSearchBox> FilterTextWidget;
@@ -62,12 +64,14 @@ private:
 	FText FilterText;
 
 	// Skeleton to search
-	TWeakObjectPtr<const USkeleton> TargetSkeleton;
+	TWeakPtr<class IEditableSkeleton> EditableSkeletonPtr;
 
 	// Tree view used in the button menu
 	TSharedPtr<STreeView<TSharedPtr<FBoneNameInfo>>> TreeView;
 
 	FOnBoneSelectionChanged OnSelectionChangedDelegate;
+
+	bool bShowVirtualBones;
 };
 
 class PERSONA_API SBoneSelectionWidget : public SCompoundWidget
@@ -79,6 +83,7 @@ public:
 		,_OnBoneSelectionChanged()
 		,_OnGetSelectedBone()
 	{}
+
 		/** Set tooltip attribute */
 		SLATE_ARGUMENT(FText, Tooltip);
 
@@ -95,7 +100,7 @@ public:
 	 *
 	 * @param	InArgs	The declaration data for this widget
 	 */
-	void Construct( const FArguments& InArgs, TWeakObjectPtr<const USkeleton> Skeleton);
+	void Construct( const FArguments& InArgs, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton );
 
 private: 
 
@@ -110,7 +115,7 @@ private:
 	TSharedPtr<SComboButton> BonePickerButton;
 
 	// Skeleton to search
-	TWeakObjectPtr<const USkeleton> TargetSkeleton;
+	TWeakPtr<class IEditableSkeleton> EditableSkeletonPtr;
 
 	// delegates
 	FOnBoneSelectionChanged OnBoneSelectionChanged;

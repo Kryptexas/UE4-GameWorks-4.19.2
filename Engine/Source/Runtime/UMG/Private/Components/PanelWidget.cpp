@@ -95,6 +95,8 @@ bool UPanelWidget::RemoveChildAt(int32 Index)
 	PanelSlot->Parent = nullptr;
 	PanelSlot->Content = nullptr;
 
+	InvalidateLayoutAndVolatility();
+
 	return true;
 }
 
@@ -125,6 +127,8 @@ UPanelSlot* UPanelWidget::AddChild(UWidget* Content)
 	Slots.Add(PanelSlot);
 
 	OnSlotAdded(PanelSlot);
+
+	InvalidateLayoutAndVolatility();
 
 	return PanelSlot;
 }

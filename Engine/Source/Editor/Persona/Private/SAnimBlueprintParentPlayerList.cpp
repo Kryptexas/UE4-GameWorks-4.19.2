@@ -37,27 +37,15 @@ SAnimBlueprintParentPlayerList::~SAnimBlueprintParentPlayerList()
 		CurrentBlueprint->OnChanged().RemoveAll(this);
 		CurrentBlueprint->OnCompiled().RemoveAll(this);
 	}
-
-	TSharedPtr<FPersona> PersonaShared = PersonaPtr.Pin();
-	if(PersonaPtr.IsValid())
-	{
-		PersonaPtr.Pin()->UnregisterOnPostUndo(this);
-	}
 }
 
-void SAnimBlueprintParentPlayerList::Construct(const FArguments& InArgs)
+void SAnimBlueprintParentPlayerList::Construct(const FArguments& InArgs, const TSharedRef<FBlueprintEditor>& InBlueprintEditor, FSimpleMulticastDelegate& InOnPostUndo)
 {
-	PersonaPtr = InArgs._Persona;
-
 	// Register a refresh on post undo to grab the blueprint assets again
-	TSharedPtr<FPersona> PersonaShared = PersonaPtr.Pin();
-	if(PersonaPtr.IsValid())
-	{
-		PersonaPtr.Pin()->RegisterOnPostUndo(FPersona::FOnPostUndo::CreateSP(this, &SAnimBlueprintParentPlayerList::RefreshDetailView));
-	}
+	InOnPostUndo.Add(FSimpleDelegate::CreateSP(this, &SAnimBlueprintParentPlayerList::RefreshDetailView));
 
 	UEditorParentPlayerListObj* EditorObject = Cast<UEditorParentPlayerListObj>(ObjectTracker.GetEditorObjectForClass(UEditorParentPlayerListObj::StaticClass()));
-	CurrentBlueprint = PersonaPtr.Pin()->GetAnimBlueprint();
+	CurrentBlueprint = CastChecked<UAnimBlueprint>(InBlueprintEditor->GetBlueprintObj());
 	check(CurrentBlueprint);
 	CurrentParentClass = CurrentBlueprint->ParentClass;
 
@@ -72,12 +60,12 @@ void SAnimBlueprintParentPlayerList::Construct(const FArguments& InArgs)
 
 		DetailView = PropertyModule.CreateDetailView(ViewArgs);
 
-		DetailView->RegisterInstancedCustomPropertyLayout(UEditorParentPlayerListObj::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic(&FAnimGraphParentPlayerDetails::MakeInstance, PersonaPtr));
+		DetailView->RegisterInstancedCustomPropertyLayout(UEditorParentPlayerListObj::StaticClass(), FOnGetDetailCustomizationInstance::CreateStatic(&FAnimGraphParentPlayerDetails::MakeInstance, InBlueprintEditor));
 
 		this->ChildSlot
-			[
-				DetailView->AsShared()
-			];
+		[
+			DetailView->AsShared()
+		];
 
 		DetailView->SetObject(EditorObject, true);
 

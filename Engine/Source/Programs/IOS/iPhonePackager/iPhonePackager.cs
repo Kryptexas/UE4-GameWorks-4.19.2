@@ -193,8 +193,8 @@ namespace iPhonePackager
                 {
                     Config.ProjectFile = GamePath;
                 }
-			}
-			else if (Arguments.Length >= 2)
+            }
+            else if (Arguments.Length >= 2)
 			{
 				MainCommand = Arguments[0];
 				GamePath = Arguments[1];
@@ -203,7 +203,7 @@ namespace iPhonePackager
                     Config.ProjectFile = GamePath;
                 }
 
-				for (int ArgIndex = 2; ArgIndex < Arguments.Length; ArgIndex++)
+                for (int ArgIndex = 2; ArgIndex < Arguments.Length; ArgIndex++)
 				{
 					string Arg = Arguments[ArgIndex].ToLowerInvariant();
 
@@ -888,7 +888,7 @@ namespace iPhonePackager
                         }
                         break;
 
-					default:
+                    default:
 						// Commands by themself default to packaging for the device
 						if (CheckArguments())
 						{

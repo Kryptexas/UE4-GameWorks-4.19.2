@@ -118,6 +118,11 @@ FPlatformOpenGLDevice* PlatformCreateOpenGLDevice()
 	return new FPlatformOpenGLDevice;
 }
 
+bool PlatformCanEnableGPUCapture()
+{
+	return false;
+}
+
 void PlatformDestroyOpenGLDevice(FPlatformOpenGLDevice* Device)
 {
 }

@@ -71,6 +71,12 @@ FTextBlockStyle::FTextBlockStyle()
 
 const FName FTextBlockStyle::TypeName( TEXT("FTextBlockStyle") );
 
+void FTextBlockStyle::GetResources(TArray< const FSlateBrush* >& OutBrushes) const
+{
+	OutBrushes.Add(&HighlightShape);
+	OutBrushes.Add(&UnderlineBrush);
+}
+
 const FTextBlockStyle& FTextBlockStyle::GetDefault()
 {
 	static TSharedPtr< FTextBlockStyle > Default;

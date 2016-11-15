@@ -126,9 +126,11 @@ namespace ETranslucencyPass
 {
 	enum Type
 	{
-		TPT_NonSeparateTransluceny,
-		TPT_SeparateTransluceny,
+		TPT_StandardTranslucency,
+		TPT_SeparateTranslucency,
 
+		/** Drawing all translucency, regardless of separate or standard.  Used when drawing translucency outside of the main renderer, eg FRendererModule::DrawTile. */
+		TPT_AllTranslucency,
 		TPT_MAX
 	};
 };
@@ -331,7 +333,8 @@ public:
 	* Draw all the primitives in this set for the mobile pipeline. 
 	* @param bRenderSeparateTranslucency - If false, only primitives with materials without mobile separate translucency enabled are rendered. Opposite if true.
 	*/
-	void DrawPrimitivesForMobile(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, const bool bRenderSeparateTranslucency) const;
+	template <class TDrawingPolicyFactory>
+	void DrawPrimitivesForMobile(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, typename TDrawingPolicyFactory::ContextType& DrawingContext) const;
 
 	/**
 	* Insert a primitive to the translucency rendering list[s]
@@ -565,24 +568,39 @@ class FGlobalDistanceFieldInfo
 {
 public:
 
+	bool bInitialized;
 	TArray<FGlobalDistanceFieldClipmap> Clipmaps;
 	FGlobalDistanceFieldParameterData ParameterData;
 
 	void UpdateParameterData(float MaxOcclusionDistance);
+
+	FGlobalDistanceFieldInfo() :
+		bInitialized(false)
+	{}
 };
 
+#define FORWARD_GLOBAL_LIGHT_DATA_UNIFORM_BUFFER_MEMBER_TABLE \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,NumLocalLights) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, NumReflectionCaptures) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, HasDirectionalLight) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, NumGridCells) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FIntVector, CulledGridSize) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, MaxCulledLightsPerCell) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, LightGridPixelSizeShift) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, LightGridZParams) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, DirectionalLightDirection) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, DirectionalLightColor) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, DirectionalLightShadowMapChannelMask) \
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector2D, DirectionalLightDistanceFadeMAD) \
+
 BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FForwardGlobalLightData,)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,NumLocalLights)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,HasDirectionalLight)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FIntVector,CulledGridSize)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,MaxCulledLightsPerCell)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,LightGridPixelSizeShift)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector,LightGridZParams)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector,DirectionalLightDirection)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector,DirectionalLightColor)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,DirectionalLightShadowMapChannelMask)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector2D,DirectionalLightDistanceFadeMAD)
+	FORWARD_GLOBAL_LIGHT_DATA_UNIFORM_BUFFER_MEMBER_TABLE
 END_UNIFORM_BUFFER_STRUCT(FForwardGlobalLightData)
+
+// Copy for instanced stereo
+BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FInstancedForwardGlobalLightData, )
+	FORWARD_GLOBAL_LIGHT_DATA_UNIFORM_BUFFER_MEMBER_TABLE
+END_UNIFORM_BUFFER_STRUCT(FInstancedForwardGlobalLightData)
 
 class FForwardLightingViewResources
 {
@@ -609,6 +627,24 @@ public:
 	}
 };
 
+/** 
+ * Number of reflection captures to allocate uniform buffer space for. 
+ * This is currently limited by the array texture max size of 2048 for d3d11 (each cubemap is 6 slices).
+ * Must touch the reflection shaders to propagate changes.
+ */
+static const int32 GMaxNumReflectionCaptures = 341;
+
+/** Per-reflection capture data needed by the shader. */
+BEGIN_UNIFORM_BUFFER_STRUCT(FReflectionCaptureData,)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,PositionAndRadius,[GMaxNumReflectionCaptures])
+	// R is brightness, G is array index, B is shape
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,CaptureProperties,[GMaxNumReflectionCaptures])
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,CaptureOffsetAndAverageBrightness,[GMaxNumReflectionCaptures])
+	// Stores the box transform for a box shape, other data is packed for other shapes
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FMatrix,BoxTransform,[GMaxNumReflectionCaptures])
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,BoxScales,[GMaxNumReflectionCaptures])
+END_UNIFORM_BUFFER_STRUCT(FReflectionCaptureData)
+
 /** A FSceneView with additional state used by the scene renderer. */
 class FViewInfo : public FSceneView
 {
@@ -619,6 +655,9 @@ public:
 	 * This should be used internally to the renderer module to avoid having to cast View.State to an FSceneViewState*
 	 */
 	FSceneViewState* ViewState;
+
+	/** Cached view uniform shader parameters, to allow recreating the view uniform buffer without having to fill out the entire struct. */
+	TScopedPointer<FViewUniformShaderParameters> CachedViewUniformShaderParameters;
 
 	/** A map from primitive ID to a boolean visibility value. */
 	FSceneBitArray PrimitiveVisibilityMap;
@@ -652,6 +691,11 @@ public:
 
 	/** A map from static mesh ID to a boolean dithered LOD fade in value. */
 	FSceneBitArray StaticMeshFadeInDitheredLODMap;
+
+#if WITH_EDITOR
+	/** A map from static mesh ID to editor selection visibility (whether or not it is selected AND should be drawn).  */
+	FSceneBitArray StaticMeshEditorSelectionMap;
+#endif
 
 	/** An array of batch element visibility masks, valid only for meshes
 	 set visible in either StaticMeshVisibilityMap or StaticMeshShadowDepthMap. */
@@ -746,6 +790,8 @@ public:
 	uint32 bUsesGlobalDistanceField : 1;
 	uint32 bUsesLightingChannels : 1;
 	uint32 bTranslucentSurfaceLighting : 1;
+	/** Whether the view has any materials that read from scene depth. */
+	uint32 bUsesSceneDepth : 1;
 	/** 
 	 * true if the scene has at least one decal. Used to disable stencil operations in the mobile base pass when the scene has no decals.
 	 * TODO: Right now decal visibility is computed right before rendering them. Ideally it should be done in InitViews and this flag should be replaced with list of visible decals  
@@ -755,12 +801,6 @@ public:
 	uint16 ShadingModelMaskInView;
 
 	FViewMatrices PrevViewMatrices;
-
-	/** Last frame's view and projection matrices */
-	FMatrix	PrevViewProjMatrix;
-
-	/** Last frame's view rotation and projection matrices */
-	FMatrix	PrevViewRotationProjMatrix;
 
 	/** An intermediate number of visible static meshes.  Doesn't account for occlusion until after FinishOcclusionQueries is called. */
 	int32 NumVisibleStaticMeshElements;
@@ -774,8 +814,10 @@ public:
 	// Hierarchical Z Buffer
 	TRefCountPtr<IPooledRenderTarget> HZB;
 
-	/** Points to the view state's resources if a view state exists. */
-	FForwardLightingViewResources* ForwardLightingResources;
+	int32 NumBoxReflectionCaptures;
+	int32 NumSphereReflectionCaptures;
+	float FurthestReflectionCaptureDistance;
+	TUniformBufferRef<FReflectionCaptureData> ReflectionCaptureUniformBuffer;
 
 	/** Used when there is no view state, buffers reallocate every frame. */
 	FForwardLightingViewResources ForwardLightingResourcesStorage;
@@ -823,14 +865,32 @@ public:
 	*/
 	~FViewInfo();
 
-	/** Creates the view's uniform buffers given a set of view transforms. */
-	void CreateUniformBuffer(
-		TUniformBufferRef<FViewUniformShaderParameters>& OutViewUniformBuffer, 
-		FRHICommandList& RHICmdList,
-		const FMatrix& EffectiveTranslatedViewMatrix, 
-		const FMatrix& EffectiveViewToTranslatedWorld, 
+	/** Creates ViewUniformShaderParameters given a set of view transforms. */
+	void SetupUniformBufferParameters(
+		FSceneRenderTargets& SceneContext,
+		const FViewMatrices& InViewMatrices,
+		const FViewMatrices& InPrevViewMatrices,
 		FBox* OutTranslucentCascadeBoundsArray, 
-		int32 NumTranslucentCascades) const;
+		int32 NumTranslucentCascades,
+		FViewUniformShaderParameters& ViewUniformShaderParameters) const;
+
+	/** Recreates ViewUniformShaderParameters, taking the view transform from the View Matrices */
+	inline void SetupUniformBufferParameters(
+		FSceneRenderTargets& SceneContext,
+		FBox* OutTranslucentCascadeBoundsArray,
+		int32 NumTranslucentCascades,
+		FViewUniformShaderParameters& ViewUniformShaderParameters) const
+	{
+		SetupUniformBufferParameters(SceneContext,
+			ViewMatrices,
+			PrevViewMatrices,
+			OutTranslucentCascadeBoundsArray,
+			NumTranslucentCascades,
+			ViewUniformShaderParameters);
+	}
+
+	void SetupDefaultGlobalDistanceFieldUniformBufferParameters(FViewUniformShaderParameters& ViewUniformShaderParameters) const;
+	void SetupGlobalDistanceFieldUniformBufferParameters(FViewUniformShaderParameters& ViewUniformShaderParameters) const;
 
 	/** Initializes the RHI resources used by this view. */
 	void InitRHIResources();
@@ -857,14 +917,18 @@ public:
 	/** Informs sceneinfo that eyedaptation has queued commands to compute it at least once */
 	void SetValidEyeAdaptation() const;
 
-	/** Instanced stereo only needs to render the left eye. */
+	/** Instanced stereo and multi-view only need to render the left eye. */
 	bool ShouldRenderView() const 
 	{
-		if (!bIsInstancedStereoEnabled)
+		if (!bIsInstancedStereoEnabled && !bIsMobileMultiViewEnabled)
 		{
 			return true;
 		}
-		else if (StereoPass != eSSP_RIGHT_EYE)
+		else if (bIsInstancedStereoEnabled && StereoPass != eSSP_RIGHT_EYE)
+		{
+			return true;
+		}
+		else if (bIsMobileMultiViewEnabled && StereoPass != eSSP_RIGHT_EYE && Family && Family->Views.Num() > 1)
 		{
 			return true;
 		}
@@ -907,7 +971,7 @@ public:
 		return DrawRenderState;
 	}
 
-	inline FVector GetPrevViewDirection() const { return PrevViewMatrices.ViewMatrix.GetColumn(2); }
+	inline FVector GetPrevViewDirection() const { return PrevViewMatrices.GetViewMatrix().GetColumn(2); }
 
 	/** Create a snapshot of this view info on the scene allocator. */
 	FViewInfo* CreateSnapshot() const;
@@ -1004,14 +1068,7 @@ public:
 			Desc = &ColorTargets[0]->GetDesc();
 		}
 
-		if (Desc->IsCubemap())
-		{
-			return FIntPoint(Desc->Extent.X, Desc->Extent.X);
-		}
-		else
-		{
-			return Desc->Extent;
-		}
+		return Desc->Extent;
 	}
 
 	int64 ComputeMemorySize() const
@@ -1327,6 +1384,8 @@ public:
 
 	virtual void RenderHitProxies(FRHICommandListImmediate& RHICmdList) override;
 
+	bool RenderInverseOpacity(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
+
 protected:
 	/** Finds the visible dynamic shadows for each view. */
 	void InitDynamicShadows(FRHICommandListImmediate& RHICmdList);
@@ -1346,7 +1405,7 @@ protected:
 	void CopySceneAlpha(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
 
 	/** Resolves scene depth in case hardware does not support reading depth in the shader */
-	void ConditionalResolveSceneDepth(FRHICommandListImmediate& RHICmdList);
+	void ConditionalResolveSceneDepth(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
 
 	/** Renders decals. */
 	void RenderDecals(FRHICommandListImmediate& RHICmdList);
@@ -1360,9 +1419,52 @@ protected:
 	/** Creates uniform buffers with the mobile directional light parameters, for each lighting channel. Called by InitViews */
 	void CreateDirectionalLightUniformBuffers(FSceneView& SceneView);
 
+	/** Copy scene color from the mobile multi-view render targat array to side by side stereo scene color */
+	void CopyMobileMultiViewSceneColor(FRHICommandListImmediate& RHICmdList);
+
+	/** Gather information about post-processing pass, which can be used by render for optimizations. Called by InitViews */
+	void UpdatePostProcessUsageFlags();
+
+	/** Render inverse opacity for the dynamic meshes. */
+	bool RenderInverseOpacityDynamic(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
+	
 private:
+
 	bool bModulatedShadowsInUse;
+	bool bPostProcessUsesDepthTexture;
 };
 
 // The noise textures need to be set in Slate too.
 RENDERER_API void UpdateNoiseTextureParameters(FViewUniformShaderParameters& ViewUniformShaderParameters);
+
+inline FTextureRHIParamRef OrBlack2DIfNull(FTextureRHIParamRef Tex)
+{
+	FTextureRHIParamRef Result = Tex ? Tex : GBlackTexture->TextureRHI.GetReference();
+	check(Result);
+	return Result;
+}
+
+inline FTextureRHIParamRef OrBlack3DIfNull(FTextureRHIParamRef Tex)
+{
+	// we fall back to 2D which are unbound es2 parameters
+	return OrBlack2DIfNull(Tex ? Tex : GBlackVolumeTexture->TextureRHI.GetReference());
+}
+
+inline void SetBlack2DIfNull(FTextureRHIParamRef& Tex)
+{
+	if (!Tex)
+	{
+		Tex = GBlackTexture->TextureRHI.GetReference();
+		check(Tex);
+	}
+}
+
+inline void SetBlack3DIfNull(FTextureRHIParamRef& Tex)
+{
+	if (!Tex)
+	{
+		Tex = GBlackVolumeTexture->TextureRHI.GetReference();
+		// we fall back to 2D which are unbound es2 parameters
+		SetBlack2DIfNull(Tex);
+	}
+}

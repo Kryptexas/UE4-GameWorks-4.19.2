@@ -34,7 +34,7 @@ FTextPropertyTableCellPresenter::FTextPropertyTableCellPresenter( const TSharedR
 
 TSharedRef< class SWidget > FTextPropertyTableCellPresenter::ConstructDisplayWidget()
 {
-	return SNew( SHorizontalBox )
+	TSharedRef<SHorizontalBox> HorizontalBox = SNew( SHorizontalBox )
 		+SHorizontalBox::Slot()
 		.FillWidth( 1.0 )
 		.VAlign( VAlign_Center )
@@ -44,14 +44,20 @@ TSharedRef< class SWidget > FTextPropertyTableCellPresenter::ConstructDisplayWid
 			.Text( PropertyEditor->GetValueAsText() )
 			.ToolTipText( PropertyEditor->GetToolTipText() )
 			.Font( Font )
-		]
-	+SHorizontalBox::Slot()
-		.AutoWidth()
-		.VAlign( VAlign_Center )
-		.Padding( FMargin( 0, 0, 2, 0 ) )
-		[
-			SNew( SResetToDefaultPropertyEditor, PropertyEditor )
 		];
+
+	if (!PropertyEditor->GetPropertyHandle()->HasMetaData(TEXT("NoResetToDefault")))
+	{
+		HorizontalBox->AddSlot()
+		.AutoWidth()
+		.VAlign(VAlign_Center)
+		.Padding(FMargin(0, 0, 2, 0))
+		[
+			SNew(SResetToDefaultPropertyEditor, PropertyEditor)
+		];
+	}
+	
+	return HorizontalBox;
 }
 
 bool FTextPropertyTableCellPresenter::RequiresDropDown()

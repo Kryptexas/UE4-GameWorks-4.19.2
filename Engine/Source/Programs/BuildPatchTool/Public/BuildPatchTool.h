@@ -13,5 +13,7 @@ namespace BuildPatchTool
 		UnknownToolMode,
 		FileNotFound,
 		ToolFailure,
+
+		Crash = 255
 	};
 }

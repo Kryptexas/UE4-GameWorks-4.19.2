@@ -11,6 +11,7 @@
 #include "AnimGraphDefinitions.h"
 #include "Editor/MainFrame/Public/MainFrame.h"
 #include "IDocumentation.h"
+#include "IPersonaToolkit.h"
 
 #define LOCTEXT_NAMESPACE "PersonaToolbar"
 
@@ -69,6 +70,16 @@ void FPersonaToolbar::FillPersonaToolbar(FToolBarBuilder& ParentToolbarBuilder)
 {
 }
 
+UObject* FPersonaToolbar::GetSkeletonAsUObject() const
+{
+	return Persona.Pin()->GetPersonaToolkit()->GetSkeleton();
+}
+
+UObject* FPersonaToolbar::GetMeshAsUObject() const
+{
+	return Persona.Pin()->GetPersonaToolkit()->GetMesh();
+}
+
 void FPersonaToolbar::FillPersonaModeToolbar(FToolBarBuilder& ParentToolbarBuilder)
 {
 	TSharedPtr<FPersona> PersonaPtr = Persona.Pin();
@@ -99,7 +110,7 @@ void FPersonaToolbar::FillPersonaModeToolbar(FToolBarBuilder& ParentToolbarBuild
 			.ShortContents()
 			[
 				SNew(SContentReference)
-				.AssetReference(PersonaPtr.ToSharedRef(), &FPersona::GetSkeletonAsObject)
+				.AssetReference(this, &FPersonaToolbar::GetSkeletonAsUObject)
 				.AllowSelectingNewAsset(false)
 				.AllowClearingReference(false)
 				.WidthOverride(ContentRefWidth)
@@ -125,7 +136,7 @@ void FPersonaToolbar::FillPersonaModeToolbar(FToolBarBuilder& ParentToolbarBuild
 				SNew(SContentReference)
 				.WidthOverride(ContentRefWidth)
 				.AllowSelectingNewAsset(true)
-				.AssetReference(PersonaPtr.ToSharedRef(), &FPersona::GetMeshAsObject)
+				.AssetReference(this, &FPersonaToolbar::GetMeshAsUObject)
 				.AllowedClass(USkeletalMesh::StaticClass())
 				.OnShouldFilterAsset(this, &FPersonaToolbar::ShouldFilterAssetBasedOnSkeleton)
 				.OnSetReference(this, &FPersonaToolbar::OnSetSkeletalMeshReference)
@@ -223,7 +234,7 @@ bool FPersonaToolbar::ShouldFilterAssetBasedOnSkeleton(const FAssetData& AssetDa
 
 	if ( !SkeletonName.IsEmpty() )
 	{
-		USkeleton* Skeleton = Persona.Pin()->GetSkeleton();
+		USkeleton* Skeleton = Persona.Pin()->GetPersonaToolkit()->GetSkeleton();
 		if ( SkeletonName == FString::Printf(TEXT("%s'%s'"), *Skeleton->GetClass()->GetName(), *Skeleton->GetPathName()) )
 		{
 			return false;

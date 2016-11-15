@@ -18,6 +18,11 @@ class ENGINE_API UNetworkSettings : public UDeveloperSettings
 		ToolTip="If true, libcurl authenticates the peer's certificate. Disable to allow self-signed certificates."))
 	uint32 bVerifyPeer:1;
 
+	UPROPERTY(config, EditAnywhere, Category=World, meta = (
+		ConsoleVariable = "p.EnableMultiplayerWorldOriginRebasing", DisplayName = "Enable Multiplayer World Origin Rebasing",
+		ToolTip="If true, origin rebasing is enabled in multiplayer games, meaning that servers and clients can have different local world origins."))
+	uint32 bEnableMultiplayerWorldOriginRebasing : 1;
+
 public:
 
 	//~ Begin UObject Interface

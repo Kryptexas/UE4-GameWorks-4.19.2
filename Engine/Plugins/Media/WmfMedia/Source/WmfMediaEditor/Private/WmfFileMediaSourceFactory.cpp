@@ -39,15 +39,11 @@ UWmfFileMediaSourceFactory::UWmfFileMediaSourceFactory(const FObjectInitializer&
 
 bool UWmfFileMediaSourceFactory::FactoryCanImport(const FString& Filename)
 {
-	// @todo gmp: temp hack until we support multiple factories per file extension
-	FString FileExtension = FPaths::GetExtension(Filename);
+	// @hack: disable file extensions that are used in other factories
+	// @todo gmp: add support for multiple factories per file extension
+	const FString FileExtension = FPaths::GetExtension(Filename);
 
-	if (FileExtension.ToUpper() == FString("WAV"))
-	{
-		return false;
-	}
-
-	return true;
+	return (FileExtension.ToUpper() != FString("WAV"));
 }
 
 

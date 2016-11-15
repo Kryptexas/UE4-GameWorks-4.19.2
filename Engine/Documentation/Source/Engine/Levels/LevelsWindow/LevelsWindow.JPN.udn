@@ -1,7 +1,8 @@
-﻿INTSourceChangelist:3054319
+﻿INTSourceChangelist:3075226
 Availability:Public
 Title:複数のレベルを管理する
 Description:レベル ウィンドウでパーシスタント レベルとサブレベルを管理します。
+crumbs:
 Version:4.12
 parent:Engine/Levels
 type:reference
@@ -145,7 +146,7 @@ Level Streaming Volume を設定するには、ストリーミング レベル�
 ![](LevelDetails_Persistent.png)(w:500)
 
 サブレベルについては、レベルのオフセットの **Position** と **Rotation**、使用する **Streaming Volumes**、およびデバッグの **Level Color** を設定することができます。例えば、 
-パフォーマンスを向上させるための [アンロード リクエスト間の最短時間](Engine/LevelStreaming/Overview#ヒステリシスをロードリクエストに追加する) のような詳細設定もここからアクセスできます。
+パフォーマンスを向上させるための [アンロード リクエスト間の最短時間](Engine/LevelStreaming/StreamingVolumes#ヒステリシスをロードリクエストに追加する) のような詳細設定もここからアクセスできます。
 
 ![](LevelDetails_Streaming.png)
 

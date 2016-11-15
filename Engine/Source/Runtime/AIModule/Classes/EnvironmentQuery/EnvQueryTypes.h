@@ -153,7 +153,7 @@ namespace EEnvItemStatus
 	};
 }
 
-UENUM()
+UENUM(BlueprintType)
 namespace EEnvQueryStatus
 {
 	enum Type
@@ -206,6 +206,7 @@ namespace EEnvQueryTrace
 		None,
 		Navigation,
 		Geometry,
+		NavigationOverLedges
 	};
 }
 
@@ -264,7 +265,7 @@ struct AIMODULE_API FEnvNamedValue
 	FName ParamName;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Param)
-	TEnumAsByte<EAIParamType> ParamType;
+	EAIParamType ParamType;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Param)
 	float Value;
@@ -851,12 +852,12 @@ public:
 	/** raw data operations */
 	void ReserveItemData(int32 NumAdditionalItems);
 
-	template<typename TypeItem, typename TypeValue>
-	void AddItemData(TypeValue ItemValue)
+	template<typename TypeItem>
+	void AddItemData(typename TypeItem::FValueType ItemValue)
 	{
 		DEC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, RawData.GetAllocatedSize() + Items.GetAllocatedSize());
 
-		check(GetDefault<TypeItem>()->GetValueSize() == sizeof(TypeValue));
+		check(GetDefault<TypeItem>()->GetValueSize() == sizeof(typename TypeItem::FValueType));
 		check(GetDefault<TypeItem>()->GetValueSize() == ValueSize);
 		const int32 DataOffset = RawData.AddUninitialized(ValueSize);
 		TypeItem::SetValue(RawData.GetData() + DataOffset, ItemValue);
@@ -866,19 +867,19 @@ public:
 	}
 
 	/** AddItemData specialization for arrays if values */
-	template<typename TypeItem, typename TypeValue>
-	void AddItemData(TArray<TypeValue>& ItemCollection)
+	template<typename TypeItem>
+	void AddItemData(TArray<typename TypeItem::FValueType>& ItemCollection)
 	{
 		if (ItemCollection.Num() > 0)
 		{
 			DEC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, RawData.GetAllocatedSize() + Items.GetAllocatedSize());
 
-			check(GetDefault<TypeItem>()->GetValueSize() == sizeof(TypeValue));
+			check(GetDefault<TypeItem>()->GetValueSize() == sizeof(typename TypeItem::FValueType));
 			check(GetDefault<TypeItem>()->GetValueSize() == ValueSize);
 			int32 DataOffset = RawData.AddUninitialized(ValueSize * ItemCollection.Num());
 			Items.Reserve(Items.Num() + ItemCollection.Num());
 
-			for (TypeValue& Item : ItemCollection)
+			for (typename TypeItem::FValueType& Item : ItemCollection)
 			{
 				TypeItem::SetValue(RawData.GetData() + DataOffset, Item);
 				Items.Add(FEnvQueryItem(DataOffset));
@@ -886,6 +887,21 @@ public:
 			}
 
 			INC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, RawData.GetAllocatedSize() + Items.GetAllocatedSize());
+		}
+	}
+
+	template<typename TypeItem, typename TypeValue>
+	void AddItemData(TypeValue ItemValue)
+	{
+		AddItemData<TypeItem>((typename TypeItem::FValueType)(ItemValue));
+	}
+
+	template<typename TypeItem, typename TypeValue>
+	void AddItemData(TArray<TypeValue>& ItemCollection)
+	{
+		for (auto& Item : ItemCollection)
+		{
+			AddItemData<TypeItem>((typename TypeItem::FValueType)(Item));
 		}
 	}
 
@@ -1236,7 +1252,7 @@ struct AIMODULE_API FAIDynamicParam
 	FName ParamName;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = EQS)
-	TEnumAsByte<EAIParamType> ParamType;
+	EAIParamType ParamType;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EQS)
 	float Value;

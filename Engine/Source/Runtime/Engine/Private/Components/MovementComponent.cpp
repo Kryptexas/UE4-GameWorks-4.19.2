@@ -89,22 +89,23 @@ void UMovementComponent::InitializeComponent()
 	TGuardValue<bool> InInitializeComponentGuard(bInInitializeComponent, true);
 	Super::InitializeComponent();
 
-	USceneComponent* NewUpdatedComponent = NULL;
-	if (UpdatedComponent != NULL)
-	{
-		NewUpdatedComponent = UpdatedComponent;
-	}
-	else if (bAutoRegisterUpdatedComponent)
+	// RootComponent is null in OnRegister for blueprint (non-native) root components.
+	if (!UpdatedComponent && bAutoRegisterUpdatedComponent)
 	{
 		// Auto-register owner's root component if found.
-		AActor* MyActor = GetOwner();
-		if (MyActor)
+		if (AActor* MyActor = GetOwner())
 		{
-			NewUpdatedComponent = MyActor->GetRootComponent();
+			if (USceneComponent* NewUpdatedComponent = MyActor->GetRootComponent())
+			{
+				SetUpdatedComponent(NewUpdatedComponent);
+			}
 		}
 	}
 
-	SetUpdatedComponent(NewUpdatedComponent);
+	if (bSnapToPlaneAtStart)
+	{
+		SnapUpdatedComponentToPlane();
+	}
 }
 
 
@@ -124,11 +125,19 @@ void UMovementComponent::OnRegister()
 	if (MyWorld && MyWorld->IsGameWorld())
 	{
 		PlaneConstraintNormal = PlaneConstraintNormal.GetSafeNormal();
-	}
 
-	if (bSnapToPlaneAtStart)
-	{
-		SnapUpdatedComponentToPlane();
+		USceneComponent* NewUpdatedComponent = UpdatedComponent;
+		if (!UpdatedComponent && bAutoRegisterUpdatedComponent)
+		{
+			// Auto-register owner's root component if found.
+			AActor* MyActor = GetOwner();
+			if (MyActor)
+			{
+				NewUpdatedComponent = MyActor->GetRootComponent();
+			}
+		}
+
+		SetUpdatedComponent(NewUpdatedComponent);
 	}
 
 #if WITH_EDITOR

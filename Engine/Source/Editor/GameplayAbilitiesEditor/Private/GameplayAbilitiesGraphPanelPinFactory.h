@@ -5,6 +5,7 @@
 #include "EdGraphUtilities.h"
 #include "SGameplayAttributeGraphPin.h"
 #include "AttributeSet.h"
+#include "EdGraphSchema_K2.h"
 
 class FGameplayAbilitiesGraphPanelPinFactory: public FGraphPanelPinFactory
 {

@@ -15,6 +15,10 @@
 #define WITH_EQS 1
 
 struct FDebugContext;
+class FDebugRenderSceneCompositeProxy;
+class FEQSSceneProxy;
+class FNavMeshSceneProxy;
+
 //struct FEnvQueryInstance;
 
 UENUM()
@@ -87,6 +91,42 @@ struct FGameplayDebuggerShapeElement
 	static FGameplayDebuggerShapeElement MakeCapsule(const FVector& Center, const float Radius, const float HalfHeight, const FColor& Color, const FString& Description);
 	static FGameplayDebuggerShapeElement MakePolygon(const TArray<FVector>& Verts, const FColor& Color, const FString& Description);
 };
+
+#if WITH_EDITOR
+class FDebugRenderDebugDrawDelegateHelper : public FDebugDrawDelegateHelper
+{
+	typedef FDebugDrawDelegateHelper Super;
+
+public:
+	~FDebugRenderDebugDrawDelegateHelper()
+	{
+		Reset();
+	}
+
+	void Reset();
+
+	void AddDelegateHelper(const FDebugRenderSceneProxy* InSceneProxy);
+#if USE_EQS_DEBUGGER
+	void AddDelegateHelper(const FEQSSceneProxy* InSceneProxy);
+#endif
+#if WITH_RECAST && !UE_BUILD_SHIPPING && !UE_BUILD_TEST
+	void AddDelegateHelper(const FNavMeshSceneProxy* InSceneProxy);
+#endif
+	void InitDelegateHelper(const FDebugRenderSceneCompositeProxy* InSceneProxy);
+
+	virtual void InitDelegateHelper(const FDebugRenderSceneProxy* InSceneProxy) override
+	{
+		check(0);
+	}
+
+	virtual void RegisterDebugDrawDelgate() override;
+
+	virtual void UnregisterDebugDrawDelgate() override;
+
+private:
+	TArray<FDebugDrawDelegateHelper*> DebugDrawDelegateHelpers;
+};
+#endif
 
 UCLASS(config=Engine)
 class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveComponent, public IEQSQueryResultSourceInterface
@@ -353,4 +393,9 @@ protected:
 public:
 	static FName DefaultComponentName;
 	static FOnDebuggingTargetChanged OnDebuggingTargetChangedDelegate;
+
+private:
+#if WITH_EDITOR
+	FDebugRenderDebugDrawDelegateHelper DebugRenderDebugDrawDelegateHelper;
+#endif
 };

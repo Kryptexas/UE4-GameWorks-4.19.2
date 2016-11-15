@@ -1232,6 +1232,6 @@ void SMultiBoxWidget::AddSearchElement( TSharedPtr<SWidget> BlockWidget, FText B
 
 bool SMultiBoxWidget::OnVisualizeTooltip(const TSharedPtr<SWidget>& TooltipContent)
 {
-	// tooltips on multibox widgets are not supported outside of the editor
-	return !GIsEditor;
+	// tooltips on multibox widgets are not supported outside of the editor or programs
+	return !GIsEditor && !FGenericPlatformProperties::IsProgram();
 }

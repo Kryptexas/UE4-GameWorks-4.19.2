@@ -19,6 +19,9 @@ struct CORE_API FReleaseObjectVersion
 		// converted to a TArray:
 		LevelTransArrayConvertedToTArray,
 
+		// Add Component node templates now use their own unique naming scheme to ensure more reliable archetype lookups.
+		AddComponentNodeTemplateUniqueNames,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

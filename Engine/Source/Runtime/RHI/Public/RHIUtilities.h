@@ -209,6 +209,14 @@ inline void DecodeRenderTargetMode(ESimpleRenderTargetMode Mode, ERenderTargetLo
 		DepthLoadAction = ERenderTargetLoadAction::ELoad;
 		DepthStoreAction = ERenderTargetStoreAction::ENoAction;
 		break;
+	case ESimpleRenderTargetMode::EExistingColorAndClearDepth:
+		ColorLoadAction = ERenderTargetLoadAction::ELoad;
+		DepthLoadAction = ERenderTargetLoadAction::EClear;
+		break;
+	case ESimpleRenderTargetMode::EExistingColorAndDepthAndClearStencil:
+		ColorLoadAction = ERenderTargetLoadAction::ELoad;
+		DepthLoadAction = ERenderTargetLoadAction::ELoad;
+		break;
 	default:
 		UE_LOG(LogRHI, Fatal, TEXT("Using a ESimpleRenderTargetMode that wasn't decoded in DecodeRenderTargetMode [value = %d]"), (int32)Mode);
 	}
@@ -433,6 +441,35 @@ inline void RHICreateTargetableShaderResource2D(
 		OutTargetableTexture = RHICreateTexture2D(SizeX, SizeY, Format, NumMips, NumSamples, Flags | TargetableTextureFlags, CreateInfo);
 		OutShaderResourceTexture = RHICreateTexture2D(SizeX, SizeY, Format, NumMips, 1, Flags | ResolveTargetableTextureFlags | TexCreate_ShaderResource, CreateInfo);
 	}
+}
+
+inline void RHICreateTargetableShaderResource2DArray(
+	uint32 SizeX,
+	uint32 SizeY,
+	uint32 SizeZ,
+	uint8 Format,
+	uint32 NumMips,
+	uint32 Flags,
+	uint32 TargetableTextureFlags,
+	FRHIResourceCreateInfo& CreateInfo,
+	FTexture2DArrayRHIRef& OutTargetableTexture,
+	FTexture2DArrayRHIRef& OutShaderResourceTexture,
+	uint32 NumSamples = 1
+)
+{
+	// Ensure none of the usage flags are passed in.
+	check(!(Flags & TexCreate_RenderTargetable));
+	check(!(Flags & TexCreate_ResolveTargetable));
+	check(!(Flags & TexCreate_ShaderResource));
+
+	// Ensure that all of the flags provided for the targetable texture are not already passed in Flags.
+	check(!(Flags & TargetableTextureFlags));
+
+	// Ensure that the targetable texture is either render or depth-stencil targetable.
+	check(TargetableTextureFlags & (TexCreate_RenderTargetable | TexCreate_DepthStencilTargetable));
+
+	// Create a single texture that has both TargetableTextureFlags and TexCreate_ShaderResource set.
+	OutTargetableTexture = OutShaderResourceTexture = RHICreateTexture2DArray(SizeX, SizeY, SizeZ, Format, NumMips, Flags | TargetableTextureFlags | TexCreate_ShaderResource, CreateInfo);
 }
 
 /**

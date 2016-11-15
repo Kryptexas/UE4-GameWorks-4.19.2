@@ -36,7 +36,7 @@ private:
 	virtual IDetailsViewPrivate& GetDetailsView() const override{ return ParentCategory.GetDetailsView(); }
 	virtual void OnItemExpansionChanged( bool bIsExpanded ) override {}
 	virtual bool ShouldBeExpanded() const override { return true; }
-	virtual ENodeVisibility::Type GetVisibility() const override { return bShouldBeVisible ? ENodeVisibility::Visible : ENodeVisibility::HiddenDueToFiltering; }
+	virtual ENodeVisibility GetVisibility() const override { return bShouldBeVisible ? ENodeVisibility::Visible : ENodeVisibility::HiddenDueToFiltering; }
 	virtual TSharedRef< ITableRow > GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities, bool bAllowFavoriteSystem) override;
 	virtual void GetChildren( TArray< TSharedRef<IDetailTreeNode> >& OutChildren )  override;
 	virtual void FilterNode( const FDetailFilter& InFilter ) override;

@@ -95,7 +95,7 @@ FMD5::~FMD5()
 
 }
 
-void FMD5::Update( uint8* input, int32 inputLen )
+void FMD5::Update( const uint8* input, int32 inputLen )
 {
 	int32 i, index, partLen;
 
@@ -154,7 +154,7 @@ void FMD5::Final( uint8* digest )
 	FMemory::Memset( &Context, 0, sizeof(Context) );
 }
 
-void FMD5::Transform( uint32* state, uint8* block )
+void FMD5::Transform( uint32* state, const uint8* block )
 {
 	uint32 a = state[0], b = state[1], c = state[2], d = state[3], x[16];
 
@@ -241,7 +241,7 @@ void FMD5::Transform( uint32* state, uint8* block )
 	FMemory::Memset( x, 0, sizeof(x) );
 }
 
-void FMD5::Encode( uint8* output, uint32* input, int32 len )
+void FMD5::Encode( uint8* output, const uint32* input, int32 len )
 {
 	int32 i, j;
 
@@ -254,7 +254,7 @@ void FMD5::Encode( uint8* output, uint32* input, int32 len )
 	}
 }
 
-void FMD5::Decode( uint32* output, uint8* input, int32 len )
+void FMD5::Decode( uint32* output, const uint8* input, int32 len )
 {
 	int32 i, j;
 

@@ -6,7 +6,7 @@
 #include "Persona.h"
 #include "SCurveEditor.h"
 
-DECLARE_DELEGATE_OneParam(FOnSelectionChanged, const FGraphPanelSelectionSet&)
+DECLARE_DELEGATE_OneParam(FOnSelectionChanged, const TArray<UObject*>&)
 DECLARE_DELEGATE(FOnUpdatePanel)
 DECLARE_DELEGATE_RetVal(float, FOnGetScrubValue)
 

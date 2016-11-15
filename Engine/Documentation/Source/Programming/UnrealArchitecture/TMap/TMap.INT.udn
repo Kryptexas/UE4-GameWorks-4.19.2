@@ -12,15 +12,15 @@ There are two types of map: TMap and **TMultiMap**.  TMap's keys are unique, and
 
 TMaps are primarily defined by two types - a key type and a value type - which are stored as associated pairs in the map.  It is convenient to refer to these pairs as the element type of the map as if it was an individual object.  In this document, element means a key-value pair, while individual components are referred to as the element's key or the element's value.  The element type is actually a **TPair**< KeyType, ElementType >, though it should be rare to need to refer to the TPair type directly.
 
-Like TArray, TMap is a homogeneous container and so all of its elements are strictly the same type.  TMap is also a value type, and supports the usual copying, assignment and destructor operations, as well as strong ownership of its elements, which will be destroyed when the map is destroyed.  The key type and value type must also be value types.
+Like TArray, TMap is a homogeneous container, meaning that all of its elements are strictly the same type.  TMap is also a value type, and supports the usual copying, assignment and destructor operations, as well as strong ownership of its elements, which will be destroyed when the map is destroyed.  The key type and value type must also be value types.
 
-TMap is a hashing container which means that, by default, the key type must support the **GetTypeHash** function and provide an operator== for comparing keys for equality.  Hashing is covered in more detail later.
+TMap is a hashing container which means that, by default, the key type must support the `GetTypeHash` function and provide an `operator==` for comparing keys for equality.  Hashing is covered in more detail later.
 
-TMap can also take an optional allocator to control the memory allocation behavior.  Standard UE4 allocators (e.g. FHeapAllocator, TInlineAllocator) cannot be used as allocators for TMap.  It instead uses set allocators, which define how many hash buckets the map should use and which standard UE4 allocators should be used for hash and element storage.  See TSetAllocator for more information.
+TMap can also take an optional allocator to control the memory allocation behavior.  Standard UE4 allocators (e.g. `FHeapAllocator`, `TInlineAllocator`) cannot be used as allocators for TMap.  It instead uses set allocators, which define how many hash buckets the map should use and which standard UE4 allocators should be used for hash and element storage.  See `TSetAllocator` for more information.
 
 The final TMap template parameter is **KeyFuncs**, which tells the map how to retrieve the key from the element type, how to compare two keys for equality and how to hash the key.  These have defaults which will just return a reference to the key, use operator== for equality and the non-member GetTypeHash function for hashing.  If your key type supports these functions, it is usable as a map key without the need to provide a custom KeyFuncs.
 
-Unlike TArray, the relative order of TMap elements in memory cannot be relied upon and iterating over the elements is likely to return them in a different order from that which they were added.  Elements are also unlikely to be laid out contiguously in memory.  The backing data structure of a map is a sparse array, which is an array with holes.  As elements are removed from the map, holes in the sparse array will appear which are then filled by the addition of future elements.  However, even though TMap doesn't shuffle elements to fill holes, pointers to map elements may still be invalidated, as the entire storage can be reallocated when it is full and new elements are added.
+Unlike TArray, the relative order of TMap elements in memory cannot be relied upon, and iterating over the elements is likely to return them in a different order from the order in which they were added. Elements are also unlikely to be laid out contiguously in memory. The backing data structure of a map is a sparse array, which is an array with holes. As elements are removed from the map, holes in the sparse array will appear. These holes are then filled when future elements are added. However, even though TMap doesn't shuffle elements to fill holes, pointers to map elements may still be invalidated, as the entire storage can be reallocated when it is full and new elements are added.
 
 ## Creating and filling a map
 
@@ -75,7 +75,7 @@ Like TArray, we can also use **Emplace** instead of Add to avoid the creation of
 	// 	{ Key: 3, Value: "Orange"    }
 	// ]
 
-Here, the two arguments are passed directly to the constructors of the key type and value type respectively.  This has no real effect for the int32 here, but it does avoid the creation of a temporary FString for the value.  Unlike TArray, it's only possible to emplace elements into a map with single argument constructors.
+Here, the two arguments are passed directly to the constructors of the key type and value type respectively.  This has no real effect for the int32 here, but it does avoid the creation of a temporary FString for the value.  Unlike TArray, it's only possible to emplace elements into a map with single-argument constructors.
 
 It's also possible to insert all the elements from another map by using the Append function to merge them:
 
@@ -150,7 +150,7 @@ We can check if a particular key exists in the map using the **Contains** functi
 	// bHas7 == true
 	// bHas8 == false
 
-Most of the time you will want to look up elements without knowing whether or not the key exists.  Using Contains followed by operator[] means a double lookup of the key, which we don't really want to do.  The **Find** function will allow you to do a single lookup, returning a pointer to the value of the found element rather than a reference, and returning null when the key does not exist:
+Most of the time, you will want to look up elements without knowing whether or not the key exists.  Using Contains followed by operator[] means a double lookup of the key, which we don't really want to do.  The **Find** function will allow you to do a single lookup, returning a pointer to the value of the found element rather than a reference, and returning null when the key does not exist:
 
 	FString* Ptr7 = FruitMap.Find(7);
 	FString* Ptr8 = FruitMap.Find(8);
@@ -208,7 +208,7 @@ The **FindKey** function allows you to perform a reverse lookup (find a key give
 	// *KeyMangoPtr   == 5
 	//  KeyKumquatPtr == nullptr
 
-The **GenerateKeyArray** and **GenerateValueArray** functions allow an array to be populated with a copy of all the keys and values respectively.  In both cases, the array being passed is emptied before population, so the resulting number of elements will always equal the number of elements in the map:
+The **GenerateKeyArray** and **GenerateValueArray** functions populate a TArray with a copy of all the keys and values respectively.  In both cases, the array being passed is emptied before population, so the resulting number of elements will always equal the number of elements in the map:
 
 	TArray<int32>   FruitKeys;
 	TArray<FString> FruitValues;
@@ -236,7 +236,7 @@ Elements can be removed from maps by using the **Remove** function and providing
 
 Removing elements actually leaves holes in the data structure, which you can see when visualizing the map in Visual Studio's watch window, but they have been omitted here for clarity.
 
-The **FindAndRemoveChecked** function can be used to remove an element by and return the associated value.  The checked part of the name means that the key will be checked for existence and assert if it doesn't exist:
+The **FindAndRemoveChecked** function can be used to remove an element from the map and return its value.  The "checked" part of the name means that the key will be checked for existence and assert if it doesn't exist:
 
 	FString Removed7 = FruitMap.FindAndRemoveChecked(7);
 	// Removed7 == "Pineapple"
@@ -344,7 +344,7 @@ TMap also supports move semantics which can be invoked using the **MoveTemp** fu
 
 ## Slack
 
-TMaps also have a notion of **slack** and can be used to optimize the population of the map.  The **Reset** function acts like a Empty() call but does not free the memory that was previously used by the elements:
+TMaps also have a notion of **slack**, and this can be used to optimize the population of the map.  The **Reset** function acts like an Empty() call, but does not free the memory that was previously used by the elements:
 
 	FruitMap.Reset();
 	// FruitMap == [<invalid>, <invalid>, <invalid>]
@@ -354,7 +354,7 @@ Here the map is emptied in the same way as Empty would, but the memory used for 
 TMap does not provide a way of checking how many elements are preallocated, like TArray::Max() does, but still supports preallocating slack.  The Reserve function can be used to preallocate slack for a particular number of elements before adding:
 
 	FruitMap.Reserve(10);
-	for (int32 i = 0; i != 10; ++i)
+	for (int32 i = 0; i < 10; ++i)
 	{
 		FruitMap.Add(i, FString::Printf(TEXT("Fruit%d"), i));
 	}
@@ -370,7 +370,7 @@ Note that the slack happens to have caused the new elements to be added in rever
 
 The **Shrink** function also works like the TArray equivalent in that it removes any wasted slack from the end of the container.  However, as TMap allows holes in its data structure, this will only remove slack from holes left at the end of the structure:
 
-	for (int32 i = 0; i != 10; i += 2)
+	for (int32 i = 0; i < 10; i += 2)
 	{
 		FruitMap.Remove(i);
 	}
@@ -399,7 +399,7 @@ The **Shrink** function also works like the TArray equivalent in that it removes
 	// 	{ Key: 1, Value: "Fruit1" }
 	// ]
 
-Note that only one invalid element has been removed from the Shrink call, because there was only one hole at the end.  The **Compact** function can be used to remove all the holes before shrinking:
+Note that only one invalid element has been removed by the Shrink call, because there was only one hole at the end.  The **Compact** function can be used to remove all the holes before shrinking:
 
 	FruitMap.Compact();
 	// FruitMap == [
@@ -428,11 +428,11 @@ As long as a type has an operator== and a non-member GetTypeHash overload then i
 
 KeyFuncs requires the definition of 2 typedefs and 3 static functions:
 
-* **KeyInitType** - used to pass keys around
-* **ElementInitType** - used to pass elements around
-* **KeyInitType GetSetKey(ElementInitType Element)** - returns the key of an element.
-* **bool Matches(KeyInitType A, KeyInitType B)** - returns if A and B are equivalent
-* **uint32 GetKeyHash(KeyInitType Key)** - returns the hash value of Key
+* **KeyInitType** - Used to pass keys around.
+* **ElementInitType** - Used to pass elements around.
+* **KeyInitType GetSetKey(ElementInitType Element)** - Returns the key of an element.
+* **bool Matches(KeyInitType A, KeyInitType B)** - Returns if A and B are equivalent.
+* **uint32 GetKeyHash(KeyInitType Key)** - Returns the hash value of Key.
 
 KeyInitType and ElementInitType are typedefs to the normal passing convention of the key type and element type.  Usually these will be a value for trivial types and a const reference for non-trivial types.  Remember that the element type of a map is a TPair.
 
@@ -531,7 +531,7 @@ A note about providing your own KeyFuncs: be aware that TMap assumes that two it
 
 ## Misc
 
-The **CountBytes** and **GetAllocatedSize** functions are used to estimate how much memory is currently being utilized by the array.  CountBytes takes an FArchive and GetAllocatedSize can be called directly.  They are typically used for stats reporting.
+The **CountBytes** and **GetAllocatedSize** functions are used to estimate how much memory is currently being utilized by the internal array.  CountBytes takes an FArchive and GetAllocatedSize can be called directly.  They are typically used for stats reporting.
 
 The **Dump** function takes an FOutputDevice and writes out some implementation information about the contents of the map.  It's usually used for debugging.
 

@@ -85,6 +85,7 @@ void UMaterialGraphNode_Base::GetOutputPins(TArray<class UEdGraphPin*>& OutOutpu
 
 void UMaterialGraphNode_Base::ReplaceNode(UMaterialGraphNode_Base* OldNode)
 {
+	check(OldNode);
 	check(OldNode != this);
 
 	// Get Pins from node passed in
@@ -251,6 +252,14 @@ void UMaterialGraphNode_Base::ReconstructNode()
 	OldPins.Empty();
 
 	GetGraph()->NotifyGraphChanged();
+}
+
+void UMaterialGraphNode_Base::RemovePinAt(const int32 PinIndex, const EEdGraphPinDirection PinDirection)
+{
+	Super::RemovePinAt(PinIndex, PinDirection);
+
+	UMaterialGraph* MaterialGraph = CastChecked<UMaterialGraph>(GetGraph());
+	MaterialGraph->LinkMaterialExpressionsFromGraph();
 }
 
 void UMaterialGraphNode_Base::AutowireNewNode(UEdGraphPin* FromPin)

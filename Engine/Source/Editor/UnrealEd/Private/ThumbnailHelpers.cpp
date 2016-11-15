@@ -564,7 +564,7 @@ void FStaticMeshThumbnailScene::GetViewMatrixParameters(const float InFOVDegrees
 {
 	check(PreviewActor);
 	check(PreviewActor->GetStaticMeshComponent());
-	check(PreviewActor->GetStaticMeshComponent()->StaticMesh);
+	check(PreviewActor->GetStaticMeshComponent()->GetStaticMesh());
 
 	const float HalfFOVRadians = FMath::DegreesToRadians<float>(InFOVDegrees) * 0.5f;
 	// Add extra size to view slightly outside of the sphere to compensate for perspective
@@ -572,7 +572,7 @@ void FStaticMeshThumbnailScene::GetViewMatrixParameters(const float InFOVDegrees
 	const float BoundsZOffset = GetBoundsZOffset(PreviewActor->GetStaticMeshComponent()->Bounds);
 	const float TargetDistance = HalfMeshSize / FMath::Tan(HalfFOVRadians);
 
-	USceneThumbnailInfo* ThumbnailInfo = Cast<USceneThumbnailInfo>(PreviewActor->GetStaticMeshComponent()->StaticMesh->ThumbnailInfo);
+	USceneThumbnailInfo* ThumbnailInfo = Cast<USceneThumbnailInfo>(PreviewActor->GetStaticMeshComponent()->GetStaticMesh()->ThumbnailInfo);
 	if ( ThumbnailInfo )
 	{
 		if ( TargetDistance + ThumbnailInfo->OrbitZoom < 0 )
@@ -1042,7 +1042,7 @@ bool FClassActorThumbnailScene::IsValidComponentForVisualization(UActorComponent
 	if ( PrimComp && PrimComp->IsVisible() && !PrimComp->bHiddenInGame )
 	{
 		UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(Component);
-		if ( StaticMeshComp && StaticMeshComp->StaticMesh )
+		if ( StaticMeshComp && StaticMeshComp->GetStaticMesh())
 		{
 			return true;
 		}

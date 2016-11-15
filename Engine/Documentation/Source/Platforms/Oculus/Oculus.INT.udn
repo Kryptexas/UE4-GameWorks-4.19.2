@@ -17,8 +17,11 @@ tags:Oculus Rift
 
 ## Oculus Rift Topics
 
-[REGION:buttonlist]
 [DIR(output:"listbutton" type:"overview" parent:"Platforms/Oculus")]
+
+## Oculus Rift Resources
+
+[REGION:buttonlist]
 * [Lessons from Integrating the Oculus Rift into Unreal Engine 4](https://de45xmedrsdbp.cloudfront.net/Resources/files/UE4-Integration-and-Demos_OC-100270768.pptx "Oculus Connect 2014 Presentation")
 [/REGION]
 
@@ -41,8 +44,8 @@ While you're developing your UE4 VR project, it's best to enable **Unknown Sourc
 	![](Rift_UKS_03.png)
 
 1. When completed, you should now see a checkmark in the button instead of a **X**. To revert this change back to the default settings, click on the button again and the checkmark will change from a checkmark back into an X.
+	
 	![](Rift_UKS_04.png)
-
 
 
 ## Oculus Talks

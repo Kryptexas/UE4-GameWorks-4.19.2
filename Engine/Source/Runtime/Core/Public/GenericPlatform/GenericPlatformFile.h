@@ -7,12 +7,21 @@
 
 #pragma once
 #include "HAL/Platform.h"
+#include "EnumClassFlags.h"
 
 class FArchive;
 class FString;
 struct FDateTime;
 
-#define USE_NEW_ASYNC_IO (0)
+#if !defined(WITH_EDITORONLY_DATA)
+#error "WITH_EDITORONLY_DATA must be defined"
+#endif
+
+#if !defined(USE_NEW_ASYNC_IO)
+#define USE_NEW_ASYNC_IO 0
+#elif USE_NEW_ASYNC_IO && WITH_EDITORONLY_DATA
+#error USE_NEW_ASYNC_IO can not be used with WITH_EDITORONLY_DATA
+#endif
 
 #if USE_NEW_ASYNC_IO
 class IAsyncReadFileHandle;
@@ -33,6 +42,28 @@ enum EAsyncIOPriority
 	AIOP_MAX = AIOP_CriticalPath,
 	AIOP_NUM
 };
+
+/**
+ * Enum for platform file read flags
+ */
+enum class EPlatformFileRead : uint8
+{
+	None = 0x0,
+	AllowWrite = 0x01	// attempts to open for read while allowing others to write
+};
+
+ENUM_CLASS_FLAGS(EPlatformFileRead);
+
+/**
+ * Enum for platform file write flags
+ */
+enum class EPlatformFileWrite : uint8
+{
+	None = 0x0,
+	AllowRead = 0x01	// attempts to open for write while allowing others to read
+};
+
+ENUM_CLASS_FLAGS(EPlatformFileWrite);
 
 /** 
  * File handle interface. 
@@ -341,11 +372,13 @@ public:
 
 	/** 
 	 * Copy a file. This will fail if the destination file already exists.
-	 * @param To		File to copy to.
-	 * @param From		File to copy from.
+	 * @param To				File to copy to.
+	 * @param From				File to copy from.
+	 * @param ReadFlags			Source file read options.
+	 * @param WriteFlags		Destination file write options.
 	 * @return			true if the file was copied sucessfully.
 	**/
-	virtual bool CopyFile(const TCHAR* To, const TCHAR* From);
+	virtual bool CopyFile(const TCHAR* To, const TCHAR* From, EPlatformFileRead ReadFlags = EPlatformFileRead::None, EPlatformFileWrite WriteFlags = EPlatformFileWrite::None);
 
 	/** 
 	 * Copy a file or a hierarchy of files (directory).

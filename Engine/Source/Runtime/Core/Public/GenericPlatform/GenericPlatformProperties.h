@@ -259,4 +259,10 @@ struct FGenericPlatformProperties
 	{
 		return false;
 	}
+
+	// whether or not the platform supports shader compression
+	static FORCEINLINE bool SupportsShaderCompression()
+	{
+		return true;
+	}
 };

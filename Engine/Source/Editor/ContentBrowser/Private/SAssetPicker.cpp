@@ -233,6 +233,7 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 		.AssetShowWarningText( InArgs._AssetPickerConfig.AssetShowWarningText)
 		.AllowFocusOnSync(false)	// Stop the asset view from stealing focus (we're in control of that)
 		.OnPathSelected(this, &SAssetPicker::FolderEntered)
+		.HiddenColumnNames(InArgs._AssetPickerConfig.HiddenColumnNames)
 	];
 
 	LoadSettings();
@@ -247,6 +248,7 @@ EActiveTimerReturnType SAssetPicker::SetFocusPostConstruct( double InCurrentTime
 		FWidgetPath WidgetToFocusPath;
 		FSlateApplication::Get().GeneratePathToWidgetUnchecked( SearchBoxPtr.ToSharedRef(), WidgetToFocusPath );
 		FSlateApplication::Get().SetKeyboardFocus( WidgetToFocusPath, EFocusCause::SetDirectly );
+		WidgetToFocusPath.GetWindow()->SetWidgetToFocusOnActivate(SearchBoxPtr);
 
 		return EActiveTimerReturnType::Stop;
 	}

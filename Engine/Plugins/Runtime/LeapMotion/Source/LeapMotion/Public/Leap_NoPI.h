@@ -2,6 +2,8 @@
 
 #pragma once
 
+THIRD_PARTY_INCLUDES_START
+
 #ifdef PI
 # undef PI
 # include "Leap.h"
@@ -9,3 +11,5 @@
 #else
 # include "Leap.h"
 #endif
+
+THIRD_PARTY_INCLUDES_END

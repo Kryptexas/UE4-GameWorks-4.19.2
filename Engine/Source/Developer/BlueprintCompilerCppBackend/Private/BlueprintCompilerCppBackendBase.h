@@ -61,8 +61,10 @@ protected:
 				return;
 			}
 
+		Returns true is the generated function is not reducible.
+
 	*/
-	virtual void InnerFunctionImplementation(FKismetFunctionContext& FunctionContext, FEmitterLocalContext& EmitterContext, int32 ExecutionGroup) = 0;
+	virtual bool InnerFunctionImplementation(FKismetFunctionContext& FunctionContext, FEmitterLocalContext& EmitterContext, int32 ExecutionGroup) = 0;
 	
 	int32 StatementToStateIndex(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement* Statement)
 	{
@@ -87,9 +89,6 @@ private:
 	static void EmitFileBeginning(const FString& CleanName, FEmitterLocalContext& EmitterContext, bool bIncludeGeneratedH = true, bool bIncludeCodeHelpersInHeader = false, bool bFullyIncludedDeclaration = false, UField* AdditionalFieldToIncludeInHeader = nullptr);
 
 	static void EmitStructProperties(FEmitterLocalContext& EmitterContext, UStruct* SourceClass);
-
-	/** Emits local variable declarations for a function */
-	static void DeclareLocalVariables(FEmitterLocalContext& EmitterContext, TArray<UProperty*>& LocalVariables);
 
 	static void DeclareDelegates(FEmitterLocalContext& EmitterContext, TIndirectArray<FKismetFunctionContext>& Functions);
 };

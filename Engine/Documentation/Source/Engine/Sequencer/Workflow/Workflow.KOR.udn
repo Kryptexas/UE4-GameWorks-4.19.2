@@ -1,19 +1,19 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3038068
 Availability:Public
-Title: Working with Sequencer
+Title: 시퀀서로 작업하기
 Crumbs: %ROOT%, Engine
-Description:Tips, Tricks and other Considerations when working with Sequencer.
+Description:시퀀서 작업시의 팁, 꼼수, 기타 고려할 사항에 대한 글입니다.
 Navigation:topic
-parent:Engine\Sequencer
-order:1
+parent:Engine/Sequencer
+order:5
 Version: 4.12
 
-There are several built-in shortcuts and keyboard bindings you can use to speed up the rate at which you create your content in Sequencer. There are also several different workflows you can take depending upon the composition of your team. 
+시퀀서로 콘텐츠를 제작할 때의 속도를 올려주는 내장 바로가기와 단축키가 여럿 있습니다. 팀 구성에 따라 취할 수 있는 작업방식도 여러가지 있습니다.
 
-With an understanding of how to use Sequencer, the following pages may improve your productivity or workflows : 
+시퀀서 사용 방법을 이해하면, 다음 글이 생산성이나 작업방식을 개선시키는 데 도움이 될 것입니다.
 
 [REGION:note]
-If you are new to Sequencer it is recommended that you first check out the [**Overview**](Engine\Sequencer\Overview) page. 
+시퀀서에 처음이신 분들은, [**개요**](Engine\Sequencer\Overview) 페이지를 먼저 확인해 주시기 바랍니다.
 [/REGION]
 
 [OBJECT:TopicButtonList]

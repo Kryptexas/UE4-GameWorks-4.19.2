@@ -241,6 +241,8 @@ void FSlateEditableTextLayout::SetText(const TAttribute<FText>& InText)
 			OwnerWidget->OnTextChanged(NewText);
 		}
 	}
+
+	OwnerWidget->GetSlateWidget()->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 }
 
 FText FSlateEditableTextLayout::GetText() const
@@ -263,6 +265,8 @@ void FSlateEditableTextLayout::SetHintText(const TAttribute<FText>& InHintText)
 	{
 		HintTextLayout.Reset();
 	}
+
+	OwnerWidget->GetSlateWidget()->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 }
 
 FText FSlateEditableTextLayout::GetHintText() const
@@ -328,6 +332,9 @@ bool FSlateEditableTextLayout::SetEditableText(const FText& TextToSet, const boo
 		ClearSelection();
 		TextLayout->ClearLines();
 
+		TextLayout->ClearLineHighlights();
+		TextLayout->ClearRunRenderers();
+
 		Marshaller->SetText(TextToSetString, *TextLayout);
 
 		const TArray< FTextLayout::FLineModel >& Lines = TextLayout->GetLineModels();
@@ -357,6 +364,8 @@ bool FSlateEditableTextLayout::SetEditableText(const FText& TextToSet, const boo
 				UpdateCursorHighlight();
 			}
 		}
+
+		OwnerWidget->GetSlateWidget()->Invalidate(EInvalidateWidget::Layout);
 
 		return true;
 	}
@@ -403,36 +412,50 @@ void FSlateEditableTextLayout::SetTextWrapping(const TAttribute<float>& InWrapTe
 	WrapTextAt = InWrapTextAt;
 	AutoWrapText = InAutoWrapText;
 	WrappingPolicy = InWrappingPolicy;
+
+	OwnerWidget->GetSlateWidget()->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 }
 
 void FSlateEditableTextLayout::SetWrapTextAt(const TAttribute<float>& InWrapTextAt)
 {
 	WrapTextAt = InWrapTextAt;
+
+	OwnerWidget->GetSlateWidget()->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 }
 
 void FSlateEditableTextLayout::SetAutoWrapText(const TAttribute<bool>& InAutoWrapText)
 {
 	AutoWrapText = InAutoWrapText;
+
+	OwnerWidget->GetSlateWidget()->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 }
 
 void FSlateEditableTextLayout::SetWrappingPolicy(const TAttribute<ETextWrappingPolicy>& InWrappingPolicy)
 {
 	WrappingPolicy = InWrappingPolicy;
+
+	OwnerWidget->GetSlateWidget()->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 }
 
 void FSlateEditableTextLayout::SetMargin(const TAttribute<FMargin>& InMargin)
 {
 	Margin = InMargin;
+
+	OwnerWidget->GetSlateWidget()->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 }
 
 void FSlateEditableTextLayout::SetJustification(const TAttribute<ETextJustify::Type>& InJustification)
 {
 	Justification = InJustification;
+
+	OwnerWidget->GetSlateWidget()->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 }
 
 void FSlateEditableTextLayout::SetLineHeightPercentage(const TAttribute<float>& InLineHeightPercentage)
 {
 	LineHeightPercentage = InLineHeightPercentage;
+
+	OwnerWidget->GetSlateWidget()->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 }
 
 void FSlateEditableTextLayout::SetDebugSourceInfo(const TAttribute<FString>& InDebugSourceInfo)
@@ -594,6 +617,9 @@ bool FSlateEditableTextLayout::HandleFocusReceived(const FFocusEvent& InFocusEve
 	// of making sure that gets scrolled into view
 	PositionToScrollIntoView.Reset();
 
+	// Focus change affects volatility, so update that too
+	OwnerWidget->GetSlateWidget()->Invalidate(EInvalidateWidget::LayoutAndVolatility);
+
 	return true;
 }
 
@@ -658,6 +684,9 @@ bool FSlateEditableTextLayout::HandleFocusLost(const FFocusEvent& InFocusEvent)
 	// UpdateCursorHighlight always tries to scroll to the cursor, but we don't want that to happen when we 
 	// lose focus since it can cause the scroll position to jump unexpectedly
 	PositionToScrollIntoView.Reset();
+
+	// Focus change affects volatility, so update that too
+	OwnerWidget->GetSlateWidget()->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 
 	return true;
 }
@@ -2248,9 +2277,9 @@ void FSlateEditableTextLayout::UpdateCursorHighlight()
 
 	RemoveCursorHighlight();
 
-	static const int32 SelectionHighlightZOrder = -1; // draw below the text
-	static const int32 CompositionRangeZOrder = 1; // draw above the text
-	static const int32 CursorZOrder = 2; // draw above the text and the composition
+	static const int32 SelectionHighlightZOrder = -10; // draw below the text
+	static const int32 CompositionRangeZOrder = 10; // draw above the text
+	static const int32 CursorZOrder = 11; // draw above the text and the composition
 
 	const FTextLocation CursorInteractionPosition = CursorInfo.GetCursorInteractionLocation();
 	const FTextLocation SelectionLocation = SelectionStart.Get(CursorInteractionPosition);
@@ -2277,7 +2306,7 @@ void FSlateEditableTextLayout::UpdateCursorHighlight()
 			const bool bCursorInRange = (CompositionBeginLocation.GetLineIndex() == CursorInteractionPosition.GetLineIndex() && Range.InclusiveContains(CursorInteractionPosition.GetOffset()));
 			if (!Range.IsEmpty() && bCursorInRange)
 			{
-				TextLayout->AddLineHighlight(FTextLineHighlight(CompositionBeginLocation.GetLineIndex(), Range, CompositionRangeZOrder, TextCompositionHighlighter.ToSharedRef()));
+				ActiveLineHighlights.Add(FTextLineHighlight(CompositionBeginLocation.GetLineIndex(), Range, CompositionRangeZOrder, TextCompositionHighlighter.ToSharedRef()));
 			}
 		}
 	}
@@ -2296,7 +2325,7 @@ void FSlateEditableTextLayout::UpdateCursorHighlight()
 		if (SelectionBeginningLineIndex == SelectionEndLineIndex)
 		{
 			const FTextRange Range(SelectionBeginningLineOffset, SelectionEndLineOffset);
-			TextLayout->AddLineHighlight(FTextLineHighlight(SelectionBeginningLineIndex, Range, SelectionHighlightZOrder, TextSelectionHighlighter.ToSharedRef()));
+			ActiveLineHighlights.Add(FTextLineHighlight(SelectionBeginningLineIndex, Range, SelectionHighlightZOrder, TextSelectionHighlighter.ToSharedRef()));
 		}
 		else
 		{
@@ -2307,17 +2336,17 @@ void FSlateEditableTextLayout::UpdateCursorHighlight()
 				if (LineIndex == SelectionBeginningLineIndex)
 				{
 					const FTextRange Range(SelectionBeginningLineOffset, Lines[LineIndex].Text->Len());
-					TextLayout->AddLineHighlight(FTextLineHighlight(LineIndex, Range, SelectionHighlightZOrder, TextSelectionHighlighter.ToSharedRef()));
+					ActiveLineHighlights.Add(FTextLineHighlight(LineIndex, Range, SelectionHighlightZOrder, TextSelectionHighlighter.ToSharedRef()));
 				}
 				else if (LineIndex == SelectionEndLineIndex)
 				{
 					const FTextRange Range(0, SelectionEndLineOffset);
-					TextLayout->AddLineHighlight(FTextLineHighlight(LineIndex, Range, SelectionHighlightZOrder, TextSelectionHighlighter.ToSharedRef()));
+					ActiveLineHighlights.Add(FTextLineHighlight(LineIndex, Range, SelectionHighlightZOrder, TextSelectionHighlighter.ToSharedRef()));
 				}
 				else
 				{
 					const FTextRange Range(0, Lines[LineIndex].Text->Len());
-					TextLayout->AddLineHighlight(FTextLineHighlight(LineIndex, Range, SelectionHighlightZOrder, TextSelectionHighlighter.ToSharedRef()));
+					ActiveLineHighlights.Add(FTextLineHighlight(LineIndex, Range, SelectionHighlightZOrder, TextSelectionHighlighter.ToSharedRef()));
 				}
 			}
 		}
@@ -2333,23 +2362,38 @@ void FSlateEditableTextLayout::UpdateCursorHighlight()
 
 		if (LineTextLength == 0)
 		{
-			TextLayout->AddLineHighlight(FTextLineHighlight(CursorPosition.GetLineIndex(), FTextRange(0, 0), CursorZOrder, CursorLineHighlighter.ToSharedRef()));
+			ActiveLineHighlights.Add(FTextLineHighlight(CursorPosition.GetLineIndex(), FTextRange(0, 0), CursorZOrder, CursorLineHighlighter.ToSharedRef()));
 		}
 		else if (CursorPosition.GetOffset() == LineTextLength)
 		{
-			TextLayout->AddLineHighlight(FTextLineHighlight(CursorPosition.GetLineIndex(), FTextRange(LineTextLength - 1, LineTextLength), CursorZOrder, CursorLineHighlighter.ToSharedRef()));
+			ActiveLineHighlights.Add(FTextLineHighlight(CursorPosition.GetLineIndex(), FTextRange(LineTextLength - 1, LineTextLength), CursorZOrder, CursorLineHighlighter.ToSharedRef()));
 		}
 		else
 		{
-			TextLayout->AddLineHighlight(FTextLineHighlight(CursorPosition.GetLineIndex(), FTextRange(CursorPosition.GetOffset(), CursorPosition.GetOffset() + 1), CursorZOrder, CursorLineHighlighter.ToSharedRef()));
+			ActiveLineHighlights.Add(FTextLineHighlight(CursorPosition.GetLineIndex(), FTextRange(CursorPosition.GetOffset(), CursorPosition.GetOffset() + 1), CursorZOrder, CursorLineHighlighter.ToSharedRef()));
 		}
+	}
+
+	// We don't use SetLineHighlights here as we don't want to remove any line highlights that other code might have added (eg, underlines)
+	for (const FTextLineHighlight& LineHighlight : ActiveLineHighlights)
+	{
+		TextLayout->AddLineHighlight(LineHighlight);
 	}
 }
 
 void FSlateEditableTextLayout::RemoveCursorHighlight()
 {
-	TextLayout->ClearRunRenderers();
-	TextLayout->ClearLineHighlights();
+	const TArray<FTextLayout::FLineModel>& Lines = TextLayout->GetLineModels();
+
+	for (const FTextLineHighlight& LineHighlight : ActiveLineHighlights)
+	{
+		if (Lines.IsValidIndex(LineHighlight.LineIndex))
+		{
+			TextLayout->RemoveLineHighlight(LineHighlight);
+		}
+	}
+
+	ActiveLineHighlights.Empty();
 }
 
 void FSlateEditableTextLayout::UpdatePreferredCursorScreenOffsetInLine()
@@ -2903,16 +2947,32 @@ void FSlateEditableTextLayout::LoadText()
 	}
 }
 
+bool FSlateEditableTextLayout::ComputeVolatility() const
+{
+	return BoundText.IsBound()
+		|| HintText.IsBound()
+		|| WrapTextAt.IsBound()
+		|| AutoWrapText.IsBound()
+		|| WrappingPolicy.IsBound()
+		|| Margin.IsBound()
+		|| Justification.IsBound()
+		|| LineHeightPercentage.IsBound();
+}
+
 void FSlateEditableTextLayout::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
 	if (bTextCommittedByVirtualKeyboard)
 	{
-		// Let outsiders know that the text content has been changed
-		OwnerWidget->OnTextCommitted(GetEditableText(), VirtualKeyboardTextCommitType);
-		bTextCommittedByVirtualKeyboard = false;
+		if (SetEditableText(VirtualKeyboardText))
+		{
+			// Let outsiders know that the text content has been changed
+			OwnerWidget->OnTextCommitted(GetEditableText(), VirtualKeyboardTextCommitType);
+			bTextCommittedByVirtualKeyboard = false;
+		}
 	}
 	else if (bTextChangedByVirtualKeyboard)
 	{
+		SetEditableText(VirtualKeyboardText);
 		// Let outsiders know that the text content has been changed
 		OwnerWidget->OnTextChanged(GetEditableText());
 		bTextChangedByVirtualKeyboard = false;
@@ -3091,14 +3151,16 @@ FVector2D FSlateEditableTextLayout::ComputeDesiredSize(float LayoutScaleMultipli
 	}
 	else
 	{
-		// If a wrapping width has been provided, then we need to report the wrapped size as the desired width
-		// (rather than the actual text layout size as that can have non-breaking lines that extend beyond the wrap width)
-		// Note: We don't do this when auto-wrapping as it would cause a feedback loop in the Slate sizing logic
-		const FVector2D TextLayoutSize = WrappingWidth > 0 ? TextLayout->GetWrappedSize() : TextLayout->GetSize();
+		// If an explicit wrapping width has been provided, then we need to report the wrapped size as the desired width if it has lines that extend beyond the fixed wrapping width
+		// Note: We don't do this when auto-wrapping with a non-explicit width as it would cause a feedback loop in the Slate sizing logic
+		FVector2D TextLayoutSize = TextLayout->GetSize();
+		if (WrappingWidth > 0 && TextLayoutSize.X > WrappingWidth)
+		{
+			TextLayoutSize = TextLayout->GetWrappedSize();
+		}
 
 		DesiredWidth = TextLayoutSize.X;
 		DesiredHeight = TextLayoutSize.Y;
-		
 	}
 
 	// The layouts current margin size. We should not report a size smaller then the margins.
@@ -3208,15 +3270,13 @@ void FSlateEditableTextLayout::FVirtualKeyboardEntry::SetTextFromVirtualKeyboard
 	}
 
 	// Update the internal editable text
-	if (OwnerLayout->SetEditableText(InNewText))
+	// This method is called from the main thread (i.e. not the game thread) of the device with the virtual keyboard
+	// This causes the app to crash on those devices, so we're using polling here to ensure delegates are
+	// fired on the game thread in Tick.		
+	OwnerLayout->VirtualKeyboardText = InNewText;
+	if (SetTextType == ESetTextType::Changed)
 	{
-		// This method is called from the main thread (i.e. not the game thread) of the device with the virtual keyboard
-		// This causes the app to crash on those devices, so we're using polling here to ensure delegates are
-		// fired on the game thread in Tick.		
-		if (SetTextType == ESetTextType::Changed)
-		{
-			OwnerLayout->bTextChangedByVirtualKeyboard = true;
-		}
+		OwnerLayout->bTextChangedByVirtualKeyboard = true;
 	}
 	if (SetTextType == ESetTextType::Commited)
 	{

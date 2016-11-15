@@ -7,17 +7,57 @@ typedef FString FUniqueOfferId;
 typedef FString FOfferNamespace;
 typedef FString FUniqueCategoryId;
 
+
+enum class EOnlineStoreOfferDiscountType : uint8
+{
+	/** Offer isn't on sale*/
+	NotOnSale = 0u,
+	/** Offer price should be displayed as a percentage of regular price */
+	Percentage,
+	/** Offer price should be displayed as an amount off regular price */
+	DiscountAmount,
+	/** Offer price should be displayed as a new price */
+	PayAmount
+};
+
+namespace EOnlineStoreOfferDiscount
+{
+	inline EOnlineStoreOfferDiscountType FromString(const TCHAR* const String)
+	{
+		if (FCString::Stricmp(String, TEXT("Percentage")) == 0)
+		{
+			return EOnlineStoreOfferDiscountType::Percentage;
+		}
+		else if (FCString::Stricmp(String, TEXT("DiscountAmount")) == 0)
+		{
+			return EOnlineStoreOfferDiscountType::DiscountAmount;
+		}
+		else if (FCString::Stricmp(String, TEXT("PayAmount")) == 0)
+		{
+			return EOnlineStoreOfferDiscountType::PayAmount;
+		}
+		else
+		{
+			return EOnlineStoreOfferDiscountType::NotOnSale;
+		}
+	}
+}
+
 /**
  * Offer entry for display from online store
  */
 class FOnlineStoreOffer
 {
 public:
-	FOnlineStoreOffer()
-	: NumericPrice(-1)
+	FOnlineStoreOffer() :
+	 RegularPrice(-1)
+	, NumericPrice(-1)
 	, ReleaseDate(0)
+	, ExpirationDate(FDateTime::MaxValue())
+	, DiscountType(EOnlineStoreOfferDiscountType::NotOnSale)
 	{
 	}
+
 	virtual ~FOnlineStoreOffer()
 	{
 	}
@@ -26,39 +66,61 @@ public:
 	FUniqueOfferId OfferId;
 
 	/** Title for display */
-	FText Title;	
+	FText Title;
 	/** Short description for display */
 	FText Description;
 	/** Full description for display */
 	FText LongDescription;
-	/** Full pricing info as text for display */
+
+	/** Regular non-sale price as text for display */
+	FText RegularPriceText;
+	/** Regular non-sale price in numeric form for comparison/sorting */
+	int32 RegularPrice;
+
+	/** Final-Pricing (Post-Sales/Discounts) as text for display */
 	FText PriceText;
-	
-	/** Price in numeric form for comparison/sorting */
+	/** Final-Price (Post-Sales/Discounts) in numeric form for comparison/sorting */
 	int32 NumericPrice;
+
 	/** Price currency code */
 	FString CurrencyCode;
 
 	/** Date the offer was released */
 	FDateTime ReleaseDate;
+	/** Date this information is no longer valid (maybe due to sale ending, etc) */
+	FDateTime ExpirationDate;
+	/** Type of discount currently running on this offer (if any) */
+	EOnlineStoreOfferDiscountType DiscountType;
+
+	/** @return FText suitable for localized display */
+	virtual FText GetDisplayRegularPrice() const
+	{
+		if (!RegularPriceText.IsEmpty())
+		{
+			return RegularPriceText;
+		}
+		else
+		{
+			return FText::AsCurrencyBase(RegularPrice, CurrencyCode);
+		}
+	}
 
 	/** @return FText suitable for localized display */
 	virtual FText GetDisplayPrice() const
 	{
 		if (!PriceText.IsEmpty())
 		{
-			return PriceText;			
+			return PriceText;
 		}
 		else
 		{
 			return FText::AsCurrencyBase(NumericPrice, CurrencyCode);
 		}
-		
 	}
 
 	/** @return True if offer can be purchased */
-	virtual bool IsPurchaseable() const 
-	{ 
+	virtual bool IsPurchaseable() const
+	{
 		return true;
 	}
 };

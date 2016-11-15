@@ -305,6 +305,7 @@ namespace EScriptInstrumentation
 		ClassScope,
 		Instance,
 		Event,
+		InlineEvent,
 		ResumeEvent,
 		PureNodeEntry,
 		NodeDebugSite,
@@ -315,6 +316,7 @@ namespace EScriptInstrumentation
 		ResetState,
 		SuspendState,
 		PopState,
+		TunnelEndOfThread,
 		Stop
 	};
 }
@@ -353,12 +355,13 @@ struct COREUOBJECT_API FScriptInstrumentationSignal
 {
 public:
 
-	FScriptInstrumentationSignal(EScriptInstrumentation::Type InEventType, const UObject* InContextObject, const struct FFrame& InStackFrame);
+	FScriptInstrumentationSignal(EScriptInstrumentation::Type InEventType, const UObject* InContextObject, const struct FFrame& InStackFrame, const FName EventNameIn = NAME_None);
 
 	FScriptInstrumentationSignal(EScriptInstrumentation::Type InEventType, const UObject* InContextObject, UFunction* InFunction, const int32 LinkId = INDEX_NONE)
 		: EventType(InEventType)
 		, ContextObject(InContextObject)
 		, Function(InFunction)
+		, EventName(NAME_None)
 		, StackFramePtr(nullptr)
 		, LatentLinkId(LinkId)
 	{
@@ -405,6 +408,8 @@ protected:
 	const UObject* ContextObject;
 	/** The function that emitted this event */
 	const UFunction* Function;
+	/** The event override name */
+	const FName EventName;
 	/** The stack frame for the  */
 	const struct FFrame* StackFramePtr;
 	const int32 LatentLinkId;
@@ -455,12 +460,30 @@ private:
 	struct FBlueprintEventTimer
 	{
 		struct FPausableScopeTimer;
-		COREUOBJECT_API static FPausableScopeTimer* ActiveTimer;
+		struct FScopedVMTimer;
+
+		class FThreadedTimerManager : public TThreadSingleton<FThreadedTimerManager>
+		{
+		public:
+			FThreadedTimerManager()
+				: ActiveTimer(nullptr)
+				, ActiveVMScope(nullptr)
+			{}
+
+			FPausableScopeTimer* ActiveTimer;
+
+			// We need to keep track of the current VM timer because we only want to
+			// track time while 'in' the VM. We use this to detect whether we're running
+			// script or just doing RPC:
+			FScopedVMTimer* ActiveVMScope;
+		};
 
 		struct FPausableScopeTimer
 		{
 			FPausableScopeTimer() 
 			{ 
+				FPausableScopeTimer*& ActiveTimer = FThreadedTimerManager::Get().ActiveTimer;
+
 				double CurrentTime = FPlatformTime::Seconds();
 				if (ActiveTimer)
 				{
@@ -480,7 +503,7 @@ private:
 				{
 					PreviouslyActiveTimer->Resume();
 				}
-				ActiveTimer = PreviouslyActiveTimer;
+				FThreadedTimerManager::Get().ActiveTimer = PreviouslyActiveTimer;
 			}
 
 			void Pause(double CurrentTime) { TotalTime += CurrentTime - StartTime; }
@@ -493,27 +516,23 @@ private:
 			double StartTime;
 		};
 
-		// We need to keep track of the current VM timer because we only want to
-		// track time while 'in' the VM. We use this to detect whether we're running
-		// script or just doing RPC:
-		struct FScopedVMTimer;
-		COREUOBJECT_API static FScopedVMTimer* ActiveVMTimer;
-
 		struct FScopedVMTimer
 		{
 			FScopedVMTimer()
 				: Timer()
-				, VMParent(ActiveVMTimer)
+				, VMParent(nullptr)
 			{
+				FScopedVMTimer*& ActiveVMTimer = FThreadedTimerManager::Get().ActiveVMScope;
+				VMParent = ActiveVMTimer;
+
 				ActiveVMTimer = this;
 			}
 
 			~FScopedVMTimer()
 			{
 				INC_FLOAT_STAT_BY(STAT_ScriptVmTime_Total, Timer.Stop() * 1000.0);
-				ActiveVMTimer = VMParent;
+				FThreadedTimerManager::Get().ActiveVMScope = VMParent;
 			}
-
 			FPausableScopeTimer Timer;
 			FScopedVMTimer* VMParent;
 		};
@@ -522,14 +541,13 @@ private:
 		{
 			FScopedNativeTimer()
 				: Timer()
-			{
-			}
+			{}
 
 			~FScopedNativeTimer()
 			{
 				// only track native time when in a VM scope, RPC time
 				// can be tracked by the online system or whatever is making RPCs:
-				if (ActiveVMTimer)
+				if (FThreadedTimerManager::Get().ActiveVMScope)
 				{
 					INC_FLOAT_STAT_BY(STAT_ScriptNativeTime_Total, Timer.Stop()* 1000.0);
 				}

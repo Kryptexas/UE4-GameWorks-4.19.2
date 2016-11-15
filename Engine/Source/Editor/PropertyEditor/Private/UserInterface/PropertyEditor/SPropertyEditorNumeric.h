@@ -341,7 +341,7 @@ public:
 	{ 
 		const TSharedRef< FPropertyNode > PropertyNode = PropertyEditor->GetPropertyNode();
 		
-		if (!PropertyNode->HasNodeFlags(EPropertyNodeFlags::EditInline))
+		if (!PropertyNode->HasNodeFlags(EPropertyNodeFlags::EditInlineNew))
 		{
 			return TTypeToProperty<NumericType>::Match(PropertyEditor->GetProperty());
 		}

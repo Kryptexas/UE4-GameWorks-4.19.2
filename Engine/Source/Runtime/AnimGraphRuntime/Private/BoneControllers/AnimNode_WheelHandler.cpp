@@ -14,6 +14,7 @@
 
 FAnimNode_WheelHandler::FAnimNode_WheelHandler()
 {
+	AnimInstanceProxy = nullptr;
 }
 
 void FAnimNode_WheelHandler::GatherDebugData(FNodeDebugData& DebugData)
@@ -25,17 +26,19 @@ void FAnimNode_WheelHandler::GatherDebugData(FNodeDebugData& DebugData)
 	DebugLine += ")";
 
 	DebugData.AddDebugItem(DebugLine);
-	for(const auto & WheelSim : WheelSimulators)
+
+	const TArray<FWheelAnimData>& WheelAnimData = AnimInstanceProxy->GetWheelAnimData();
+	for (const FWheelLookupData& Wheel : Wheels)
 	{
-		if (WheelSim.BoneReference.BoneIndex != INDEX_NONE)
+		if (Wheel.BoneReference.BoneIndex != INDEX_NONE)
 		{
-			DebugLine = FString::Printf(TEXT(" [Wheel Index : %d] Bone: %s , Rotation Offset : %s, Location Offset : %s"), 
-				WheelSim.WheelIndex, *WheelSim.BoneReference.BoneName.ToString(), *WheelSim.RotOffset.ToString(), *WheelSim.LocOffset.ToString());
+			DebugLine = FString::Printf(TEXT(" [Wheel Index : %d] Bone: %s , Rotation Offset : %s, Location Offset : %s"),
+				Wheel.WheelIndex, *Wheel.BoneReference.BoneName.ToString(), *WheelAnimData[Wheel.WheelIndex].RotOffset.ToString(), *WheelAnimData[Wheel.WheelIndex].LocOffset.ToString());
 		}
 		else
 		{
 			DebugLine = FString::Printf(TEXT(" [Wheel Index : %d] Bone: %s (invalid bone)"),
-					WheelSim.WheelIndex, *WheelSim.BoneReference.BoneName.ToString());
+				Wheel.WheelIndex, *Wheel.BoneReference.BoneName.ToString());
 		}
 
 		DebugData.AddDebugItem(DebugLine);
@@ -48,12 +51,14 @@ void FAnimNode_WheelHandler::EvaluateBoneTransforms(USkeletalMeshComponent* Skel
 {
 	check(OutBoneTransforms.Num() == 0);
 
+	const TArray<FWheelAnimData>& WheelAnimData = AnimInstanceProxy->GetWheelAnimData();
+
 	const FBoneContainer& BoneContainer = MeshBases.GetPose().GetBoneContainer();
-	for(const auto & WheelSim : WheelSimulators)
+	for(const FWheelLookupData& Wheel : Wheels)
 	{
-		if (WheelSim.BoneReference.IsValid(BoneContainer))
+		if (Wheel.BoneReference.IsValid(BoneContainer))
 		{
-			FCompactPoseBoneIndex WheelSimBoneIndex = WheelSim.BoneReference.GetCompactPoseIndex(BoneContainer);
+			FCompactPoseBoneIndex WheelSimBoneIndex = Wheel.BoneReference.GetCompactPoseIndex(BoneContainer);
 
 			// the way we apply transform is same as FMatrix or FTransform
 			// we apply scale first, and rotation, and translation
@@ -61,13 +66,13 @@ void FAnimNode_WheelHandler::EvaluateBoneTransforms(USkeletalMeshComponent* Skel
 			FTransform NewBoneTM = MeshBases.GetComponentSpaceTransform(WheelSimBoneIndex);
 
 			FAnimationRuntime::ConvertCSTransformToBoneSpace(SkelComp, MeshBases, NewBoneTM, WheelSimBoneIndex, BCS_ComponentSpace);
-			
+
 			// Apply rotation offset
-			const FQuat BoneQuat(WheelSim.RotOffset);
+			const FQuat BoneQuat(WheelAnimData[Wheel.WheelIndex].RotOffset);
 			NewBoneTM.SetRotation(BoneQuat * NewBoneTM.GetRotation());
 
 			// Apply loc offset
-			NewBoneTM.AddToTranslation(WheelSim.LocOffset);
+			NewBoneTM.AddToTranslation(WheelAnimData[Wheel.WheelIndex].LocOffset);
 
 			// Convert back to Component Space.
 			FAnimationRuntime::ConvertBoneSpaceTransformToCS(SkelComp, MeshBases, NewBoneTM, WheelSimBoneIndex, BCS_ComponentSpace);
@@ -81,10 +86,10 @@ void FAnimNode_WheelHandler::EvaluateBoneTransforms(USkeletalMeshComponent* Skel
 bool FAnimNode_WheelHandler::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones) 
 {
 	// if both bones are valid
-	for(const auto & WheelSim : WheelSimulators)
+	for (const FWheelLookupData& Wheel : Wheels)
 	{
 		// if one of them is valid
-		if (WheelSim.BoneReference.IsValid(RequiredBones) == true)
+		if (Wheel.BoneReference.IsValid(RequiredBones) == true)
 		{
 			return true;
 		}
@@ -95,71 +100,23 @@ bool FAnimNode_WheelHandler::IsValidToEvaluate(const USkeleton* Skeleton, const 
 
 void FAnimNode_WheelHandler::InitializeBoneReferences(const FBoneContainer& RequiredBones) 
 {
-	for (auto & WheelSim : WheelSimulators)
+	const TArray<FWheelAnimData>& WheelAnimData = AnimInstanceProxy->GetWheelAnimData();
+	const int32 NumWheels = WheelAnimData.Num();
+	Wheels.Empty(NumWheels);
+
+	for (int32 WheelIndex = 0; WheelIndex < NumWheels; ++WheelIndex)
 	{
-		WheelSim.BoneReference.Initialize(RequiredBones);
+		FWheelLookupData* Wheel = new(Wheels)FWheelLookupData();
+		Wheel->WheelIndex = WheelIndex;
+		Wheel->BoneReference.BoneName = WheelAnimData[WheelIndex].BoneName;
+		Wheel->BoneReference.Initialize(RequiredBones);
 	}
 
 	// sort by bone indices
-	WheelSimulators.Sort([](FWheelSimulator L, FWheelSimulator R) { return L.BoneReference.BoneIndex < R.BoneReference.BoneIndex; });
-}
-
-void FAnimNode_WheelHandler::UpdateInternal(const FAnimationUpdateContext& Context)
-{
-	if(VehicleSimComponent)
-	{
-		for(auto & WheelSim : WheelSimulators)
-		{
-			if(VehicleSimComponent->Wheels.IsValidIndex(WheelSim.WheelIndex))
-			{
-				UVehicleWheel* Wheel = VehicleSimComponent->Wheels[WheelSim.WheelIndex];
-				if(Wheel != nullptr)
-				{
-					WheelSim.RotOffset.Pitch	= Wheel->GetRotationAngle();
-					WheelSim.RotOffset.Yaw		= Wheel->GetSteerAngle();
-					WheelSim.RotOffset.Roll		= 0.f;
-
-					WheelSim.LocOffset.X		= 0.f;
-					WheelSim.LocOffset.Y		= 0.f;
-					WheelSim.LocOffset.Z		= Wheel->GetSuspensionOffset();
-				}
-			}
-		}
-	}
-
-	FAnimNode_SkeletalControlBase::UpdateInternal(Context);
+	Wheels.Sort([](const FWheelLookupData& L, const FWheelLookupData& R) { return L.BoneReference.BoneIndex < R.BoneReference.BoneIndex; });
 }
 
 void FAnimNode_WheelHandler::Initialize(const FAnimationInitializeContext& Context)
 {
-	// TODO: only check vehicle anim instance
-	// UVehicleAnimInstance
-	AWheeledVehicle * Vehicle = Cast<AWheeledVehicle> (Context.AnimInstanceProxy->GetSkelMeshComponent()->GetOwner());
-	;
-	// we only support vehicle for this class
-	if(Vehicle != nullptr)
-	{
-		VehicleSimComponent = Vehicle->GetVehicleMovementComponent();
-
-		int32 NumOfwheels = VehicleSimComponent->WheelSetups.Num();
-		if(NumOfwheels > 0)
-		{
-			WheelSimulators.Empty(NumOfwheels);
-			WheelSimulators.AddZeroed(NumOfwheels);
-			// now add wheel data
-			for(int32 WheelIndex = 0; WheelIndex<WheelSimulators.Num(); ++WheelIndex)
-			{
-				FWheelSimulator & WheelSim = WheelSimulators[WheelIndex];
-				const FWheelSetup& WheelSetup = VehicleSimComponent->WheelSetups[WheelIndex];
-
-				// set data
-				WheelSim.WheelIndex = WheelIndex;
-				WheelSim.BoneReference.BoneName = WheelSetup.BoneName;
-				WheelSim.LocOffset = FVector::ZeroVector;
-				WheelSim.RotOffset = FRotator::ZeroRotator;
-			}
-		}
-	}
-
-	FAnimNode_SkeletalControlBase::Initialize(Context);
+	AnimInstanceProxy = (FVehicleAnimInstanceProxy*)Context.AnimInstanceProxy;	//TODO: This is cached for now because we need it in eval bone transforms.
 }

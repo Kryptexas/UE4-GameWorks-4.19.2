@@ -3,15 +3,14 @@
 
 #include "EnginePrivate.h"
 #include "SoundDefinitions.h"
+#include "Sound/SoundMix.h"
+
 #if WITH_EDITOR
 #include "UnrealEd.h"
-#endif
-#if WITH_EDITOR
 #include "SlateBasics.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #endif
-#include "Sound/SoundMix.h"
 
 /*-----------------------------------------------------------------------------
 	USoundClass implementation.

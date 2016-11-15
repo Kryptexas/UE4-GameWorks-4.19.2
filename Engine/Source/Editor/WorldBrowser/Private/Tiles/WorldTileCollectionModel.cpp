@@ -1965,7 +1965,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 		// Where generated assets will be stored
 		UPackage* AssetsOuter = SimplificationDetails.bCreatePackagePerAsset ? nullptr : LODPackage;
 		// In case we don't have outer generated assets should have same path as LOD level
-		const FString AssetsPath = AssetsOuter ? TEXT("") : FPackageName::GetLongPackagePath(LODLevelPackageName) + TEXT("/");
+		const FString AssetsPath = SimplificationDetails.bCreatePackagePerAsset ? FPackageName::GetLongPackagePath(LODLevelPackageName) + TEXT("/") : TEXT("");
 	
 		// Generate Proxy LOD mesh for all actors excluding landscapes
 		if (Actors.Num() && MeshMerging != nullptr)
@@ -2049,11 +2049,11 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 			}
 								
 			// This is texture resolution for a landscape mesh, probably needs to be calculated using landscape size
-			LandscapeFlattenMaterial.DiffuseSize = SimplificationDetails.LandscapeMaterialSettings.TextureSize;
-			LandscapeFlattenMaterial.NormalSize = SimplificationDetails.LandscapeMaterialSettings.bNormalMap ? SimplificationDetails.LandscapeMaterialSettings.TextureSize : FIntPoint::ZeroValue;
-			LandscapeFlattenMaterial.MetallicSize = SimplificationDetails.LandscapeMaterialSettings.bMetallicMap ? SimplificationDetails.LandscapeMaterialSettings.TextureSize : FIntPoint::ZeroValue;
-			LandscapeFlattenMaterial.RoughnessSize = SimplificationDetails.LandscapeMaterialSettings.bRoughnessMap ? SimplificationDetails.LandscapeMaterialSettings.TextureSize : FIntPoint::ZeroValue;
-			LandscapeFlattenMaterial.SpecularSize = SimplificationDetails.LandscapeMaterialSettings.bSpecularMap ? SimplificationDetails.LandscapeMaterialSettings.TextureSize : FIntPoint::ZeroValue;
+			LandscapeFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::Diffuse, SimplificationDetails.LandscapeMaterialSettings.TextureSize);
+			LandscapeFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::Normal, SimplificationDetails.LandscapeMaterialSettings.bNormalMap ? SimplificationDetails.LandscapeMaterialSettings.TextureSize : FIntPoint::ZeroValue);
+			LandscapeFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::Metallic, SimplificationDetails.LandscapeMaterialSettings.bMetallicMap ? SimplificationDetails.LandscapeMaterialSettings.TextureSize : FIntPoint::ZeroValue);  
+			LandscapeFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::Roughness, SimplificationDetails.LandscapeMaterialSettings.bRoughnessMap ? SimplificationDetails.LandscapeMaterialSettings.TextureSize : FIntPoint::ZeroValue);  
+			LandscapeFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::Specular, SimplificationDetails.LandscapeMaterialSettings.bSpecularMap ? SimplificationDetails.LandscapeMaterialSettings.TextureSize : FIntPoint::ZeroValue);
 			
 			FMaterialUtilities::ExportLandscapeMaterial(Landscape, PrimitivesToHide, LandscapeFlattenMaterial);
 					
@@ -2072,7 +2072,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 			// Construct landscape static mesh
 			FString LandscapeMeshAssetName = TEXT("SM_") + LandscapeBaseAssetName;
 			UPackage* MeshOuter = AssetsOuter;
-			if (MeshOuter == nullptr)
+			if (SimplificationDetails.bCreatePackagePerAsset)
 			{
 				MeshOuter = CreatePackage(nullptr, *(AssetsPath + LandscapeMeshAssetName));
 				MeshOuter->FullyLoad();
@@ -2101,7 +2101,10 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 				SrcModel->RawMeshBulkData->SaveRawMesh(LandscapeRawMesh);
 
 				//Assign the proxy material to the static mesh
-				StaticMesh->Materials.Add(StaticLandscapeMaterial);
+				StaticMesh->StaticMaterials.Add(FStaticMaterial(StaticLandscapeMaterial));
+
+				//Set the Imported version before calling the build
+				StaticMesh->ImportVersion = EImportStaticMeshVersion::LastVersion;
 
 				StaticMesh->Build();
 				StaticMesh->PostEditChange();
@@ -2163,14 +2166,14 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 				if (AssetInfo.SourceLandscape != nullptr)
 				{
 					ALandscapeMeshProxyActor* MeshActor = LODWorld->SpawnActor<ALandscapeMeshProxyActor>(Location, Rotation);
-					MeshActor->GetLandscapeMeshProxyComponent()->StaticMesh = AssetInfo.StaticMesh;
+					MeshActor->GetLandscapeMeshProxyComponent()->SetStaticMesh(AssetInfo.StaticMesh);
 					MeshActor->GetLandscapeMeshProxyComponent()->InitializeForLandscape(AssetInfo.SourceLandscape, AssetInfo.LandscapeLOD);
 					MeshActor->SetActorLabel(AssetInfo.SourceLandscape->GetName());
 				}
 				else
 				{
 					AStaticMeshActor* MeshActor = LODWorld->SpawnActor<AStaticMeshActor>(Location, Rotation);
-					MeshActor->GetStaticMeshComponent()->StaticMesh = AssetInfo.StaticMesh;
+					MeshActor->GetStaticMeshComponent()->SetStaticMesh(AssetInfo.StaticMesh);
 					MeshActor->SetActorLabel(AssetInfo.StaticMesh->GetName());
 				}
 			}

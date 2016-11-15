@@ -22,7 +22,7 @@ namespace EKey3DTransformChannel
 #if WITH_EDITORONLY_DATA
 /** Visibility options for 3d trajectory. */
 UENUM()
-enum class EShow3DTrajectory
+enum class EShow3DTrajectory : uint8
 {
 	EST_OnlyWhenSelected UMETA(DisplayName="Only When Selected"),
 	EST_Always UMETA(DisplayName="Always"),
@@ -185,7 +185,7 @@ public:
 	 * @param Time				The position in time within the movie scene
 	 * @param OutTranslation	The evaluated translation.  Note: will remain unchanged if there were no keys to evaluate
 	 */
-	MOVIESCENETRACKS_API void EvalTranslation( float Time, FVector& OutTranslation ) const;
+	MOVIESCENETRACKS_API void EvalTranslation( float Time, FVector& InOutTranslation ) const;
 
 	/**
 	 * Evaluates the rotation component of the transform
@@ -193,7 +193,7 @@ public:
 	 * @param Time				The position in time within the movie scene
 	 * @param OutRotation		The evaluated rotation.  Note: will remain unchanged if there were no keys to evaluate
 	 */
-	MOVIESCENETRACKS_API void EvalRotation( float Time, FRotator& OutRotation ) const;
+	MOVIESCENETRACKS_API void EvalRotation( float Time, FRotator& InOutRotation ) const;
 
 	/**
 	 * Evaluates the scale component of the transform
@@ -201,7 +201,7 @@ public:
 	 * @param Time				The position in time within the movie scene
 	 * @param OutScale			The evaluated scale.  Note: will remain unchanged if there were no keys to evaluate
 	 */
-	MOVIESCENETRACKS_API void EvalScale( float Time, FVector& OutScale ) const;
+	MOVIESCENETRACKS_API void EvalScale( float Time, FVector& InOutScale ) const;
 
 	/** 
 	 * Returns the translation curve for a specific axis
@@ -253,6 +253,7 @@ public:
 	virtual bool HasKeys( const FTransformKey& KeyData ) const override;
 	virtual void AddKey( float Time, const FTransformKey& KeyData, EMovieSceneKeyInterpolation KeyInterpolation ) override;
 	virtual void SetDefault( const FTransformKey& KeyData ) override;
+	virtual void ClearDefaults() override;
 
 private:
 
@@ -271,6 +272,6 @@ private:
 #if WITH_EDITORONLY_DATA
 	/** Whether to show the 3d trajectory */
 	UPROPERTY(EditAnywhere, DisplayName = "Show 3D Trajectory", Category = "Transform")
-	TEnumAsByte<EShow3DTrajectory> Show3DTrajectory;
+	EShow3DTrajectory Show3DTrajectory;
 #endif
 };

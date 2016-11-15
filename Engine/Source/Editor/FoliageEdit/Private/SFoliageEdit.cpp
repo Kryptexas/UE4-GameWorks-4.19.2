@@ -195,14 +195,12 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 						[
 							SNew(SWrapBox)
 							.UseAllottedWidth(true)
+							.InnerSlotPadding({6, 5})
 
 							+ SWrapBox::Slot()
-							.Padding(FMargin(0.f, 0.f, 6.f, 0.f))
 							[
-								SNew(SVerticalBox)
-
-								+ SVerticalBox::Slot()
-								.Padding(FMargin(0.f, 5.f, 0.f, 0.f))
+								SNew(SBox)
+								.MinDesiredWidth(91)
 								[
 									SNew(SCheckBox)
 									.Visibility(this, &SFoliageEdit::GetVisibility_Filters)
@@ -215,9 +213,30 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 										.Font(StandardFont)
 									]
 								]
+							]
 
-								+ SVerticalBox::Slot()
-								.Padding(FMargin(0.f, 5.f, 0.f, 0.f))
+							+ SWrapBox::Slot()
+							[
+								SNew(SBox)
+								.MinDesiredWidth(91)
+								[
+									SNew(SCheckBox)
+									.Visibility(this, &SFoliageEdit::GetVisibility_Filters)
+									.OnCheckStateChanged(this, &SFoliageEdit::OnCheckStateChanged_StaticMesh)
+									.IsChecked(this, &SFoliageEdit::GetCheckState_StaticMesh)
+									.ToolTipText(this, &SFoliageEdit::GetTooltipText_StaticMesh)
+									[
+										SNew(STextBlock)
+										.Text(LOCTEXT("StaticMeshes", "Static Meshes"))
+										.Font(StandardFont)
+									]
+								]
+							]
+
+							+ SWrapBox::Slot()
+							[
+								SNew(SBox)
+								.MinDesiredWidth(91)
 								[
 									SNew(SCheckBox)
 									.Visibility(this, &SFoliageEdit::GetVisibility_Filters)
@@ -233,27 +252,27 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 							]
 
 							+ SWrapBox::Slot()
-							.Padding(FMargin(0.f, 0.f, 6.f, 0.f))
 							[
-								SNew(SVerticalBox)
-
-								+ SVerticalBox::Slot()
-								.Padding(FMargin(0.f, 5.f, 0.f, 0.f))
+								SNew(SBox)
+								.MinDesiredWidth(91)
 								[
 									SNew(SCheckBox)
 									.Visibility(this, &SFoliageEdit::GetVisibility_Filters)
-									.OnCheckStateChanged(this, &SFoliageEdit::OnCheckStateChanged_StaticMesh)
-									.IsChecked(this, &SFoliageEdit::GetCheckState_StaticMesh)
-									.ToolTipText(this, &SFoliageEdit::GetTooltipText_StaticMesh)
+									.OnCheckStateChanged(this, &SFoliageEdit::OnCheckStateChanged_Foliage)
+									.IsChecked(this, &SFoliageEdit::GetCheckState_Foliage)
+									.ToolTipText(this, &SFoliageEdit::GetTooltipText_Foliage)
 									[
 										SNew(STextBlock)
-										.Text(LOCTEXT("StaticMeshes", "Static Meshes"))
+										.Text(LOCTEXT("Foliage", "Foliage"))
 										.Font(StandardFont)
 									]
 								]
+							]
 
-								+ SVerticalBox::Slot()
-								.Padding(FMargin(0.f, 5.f, 0.f, 0.f))
+							+ SWrapBox::Slot()
+							[
+								SNew(SBox)
+								.MinDesiredWidth(91)
 								[
 									SNew(SCheckBox)
 									.Visibility(this, &SFoliageEdit::GetVisibility_Filters)
@@ -267,6 +286,7 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 									]
 								]
 							]
+
 						]
 					]
 
@@ -623,6 +643,35 @@ FText SFoliageEdit::GetTooltipText_BSP() const
 	else if (IsLassoSelectTool())
 	{
 		TooltipText = LOCTEXT("FilterBSPTooltip_Select", "Select instances on BSP");
+	}
+
+	return TooltipText;
+}
+
+void SFoliageEdit::OnCheckStateChanged_Foliage(ECheckBoxState InState)
+{
+	FoliageEditMode->UISettings.SetFilterFoliage(InState == ECheckBoxState::Checked ? true : false);
+}
+
+ECheckBoxState SFoliageEdit::GetCheckState_Foliage() const
+{
+	return FoliageEditMode->UISettings.GetFilterFoliage() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
+FText SFoliageEdit::GetTooltipText_Foliage() const
+{
+	FText TooltipText;
+	if (IsPaintTool() || IsPaintFillTool())
+	{
+		TooltipText = LOCTEXT("FilterFoliageTooltip_Placement", "Place foliage on other blocking foliage geometry");
+	}
+	else if (IsReapplySettingsTool())
+	{
+		TooltipText = LOCTEXT("FilterFoliageTooltip_Reapply", "Reapply to instances on blocking foliage geometry");
+	}
+	else if (IsLassoSelectTool())
+	{
+		TooltipText = LOCTEXT("FilterFoliageTooltip_Select", "Select instances on blocking foliage geometry");
 	}
 
 	return TooltipText;

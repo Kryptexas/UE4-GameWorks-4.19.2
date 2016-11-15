@@ -404,16 +404,7 @@ static void BlueprintEditorToolbarImpl::MakeCompileDeveloperSubMenu(FMenuBuilder
 
 void FBlueprintEditorToolbar::AddBlueprintEditorModesToolbar(TSharedPtr<FExtender> Extender)
 {
-	if ( !GetDefault<UEditorExperimentalSettings>()->bUnifiedBlueprintEditor )
-	{
-		TSharedPtr<FBlueprintEditor> BlueprintEditorPtr = BlueprintEditor.Pin();
-
-		Extender->AddToolBarExtension(
-			"Asset",
-			EExtensionHook::After,
-			BlueprintEditorPtr->GetToolkitCommands(),
-			FToolBarExtensionDelegate::CreateSP(this, &FBlueprintEditorToolbar::FillBlueprintEditorModesToolbar));
-	}
+	
 }
 
 void FBlueprintEditorToolbar::AddBlueprintGlobalOptionsToolbar(TSharedPtr<FExtender> Extender)
@@ -520,11 +511,7 @@ void FBlueprintEditorToolbar::FillBlueprintGlobalOptionsToolbar(FToolBarBuilder&
 	if(BlueprintObj != NULL)
 	{
 		ToolbarBuilder.AddToolBarButton(Commands.EditGlobalOptions);
-
-		if ( GetDefault<UEditorExperimentalSettings>()->bUnifiedBlueprintEditor )
-		{
-			ToolbarBuilder.AddToolBarButton(Commands.EditClassDefaults);
-		}
+		ToolbarBuilder.AddToolBarButton(Commands.EditClassDefaults);
 	}
 	
 	ToolbarBuilder.EndSection();

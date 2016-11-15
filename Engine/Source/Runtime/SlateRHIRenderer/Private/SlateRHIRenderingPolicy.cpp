@@ -190,94 +190,22 @@ static FSceneView& CreateSceneView( FSceneViewFamilyContext& ViewFamilyContext, 
 	FSceneView* View = new FSceneView( ViewInitOptions );
 	ViewFamilyContext.Views.Add( View );
 
-	/** The view transform, starting from world-space points translated by -ViewOrigin. */
-	FMatrix EffectiveTranslatedViewMatrix = FTranslationMatrix(-View->ViewMatrices.PreViewTranslation) * View->ViewMatrices.ViewMatrix;
-
 	const FIntPoint BufferSize = BackBuffer.GetSizeXY();
-	const float InvBufferSizeX = 1.0f / BufferSize.X;
-	const float InvBufferSizeY = 1.0f / BufferSize.Y;
-
-		// to bring NDC (-1..1, 1..-1) into 0..1 UV for BufferSize textures
-	const FVector4 ScreenPositionScaleBias(
-		ViewRect.Width() * InvBufferSizeX / +2.0f,
-		ViewRect.Height() * InvBufferSizeY / (-2.0f * GProjectionSignY),
-		(ViewRect.Height() / 2.0f + ViewRect.Min.Y) * InvBufferSizeY,
-		(ViewRect.Width() / 2.0f + ViewRect.Min.X) * InvBufferSizeX
-		);
-	
 
 	// Create the view's uniform buffer.
 	FViewUniformShaderParameters ViewUniformShaderParameters;
 
-	ViewUniformShaderParameters.TranslatedWorldToClip = View->ViewMatrices.TranslatedViewProjectionMatrix;
-	ViewUniformShaderParameters.WorldToClip = ViewProjectionMatrix;
-	ViewUniformShaderParameters.TranslatedWorldToView = EffectiveTranslatedViewMatrix;
-	ViewUniformShaderParameters.ViewToTranslatedWorld = View->InvViewMatrix * FTranslationMatrix(View->ViewMatrices.PreViewTranslation);
-	ViewUniformShaderParameters.ViewToClip = View->ViewMatrices.ProjMatrix;
-	ViewUniformShaderParameters.ClipToTranslatedWorld = View->ViewMatrices.InvTranslatedViewProjectionMatrix;
-	ViewUniformShaderParameters.ViewForward = EffectiveTranslatedViewMatrix.GetColumn(2);
-	ViewUniformShaderParameters.ViewUp = EffectiveTranslatedViewMatrix.GetColumn(1);
-	ViewUniformShaderParameters.ViewRight = EffectiveTranslatedViewMatrix.GetColumn(0);
-	ViewUniformShaderParameters.InvDeviceZToWorldZTransform = View->InvDeviceZToWorldZTransform;
-	ViewUniformShaderParameters.WorldViewOrigin = View->ViewMatrices.ViewOrigin;
-	ViewUniformShaderParameters.WorldCameraOrigin = View->ViewMatrices.ViewOrigin;
-	ViewUniformShaderParameters.TranslatedWorldCameraOrigin = ViewUniformShaderParameters.WorldCameraOrigin + View->ViewMatrices.PreViewTranslation;
-	ViewUniformShaderParameters.PreViewTranslation = View->ViewMatrices.PreViewTranslation;
-	ViewUniformShaderParameters.ScreenPositionScaleBias = ScreenPositionScaleBias;
-	
-	ViewUniformShaderParameters.ViewRectMin = FVector4(ViewRect.Min.X, ViewRect.Min.Y, 0.0f, 0.0f);
-	ViewUniformShaderParameters.ViewSizeAndInvSize = FVector4(ViewRect.Width(), ViewRect.Height(), 1.0f / ViewRect.Width(), 1.0f / ViewRect.Height());
-	ViewUniformShaderParameters.BufferSizeAndInvSize = ViewUniformShaderParameters.ViewSizeAndInvSize;
-	ViewUniformShaderParameters.DiffuseOverrideParameter = View->DiffuseOverrideParameter;
-	ViewUniformShaderParameters.SpecularOverrideParameter = View->SpecularOverrideParameter;
-	ViewUniformShaderParameters.NormalOverrideParameter = View->NormalOverrideParameter;
-	ViewUniformShaderParameters.RoughnessOverrideParameter = View->RoughnessOverrideParameter;
-	ViewUniformShaderParameters.PrevFrameGameTime = View->Family->CurrentWorldTime - View->Family->DeltaWorldTime;
-	ViewUniformShaderParameters.PrevFrameRealTime = View->Family->CurrentRealTime - View->Family->DeltaWorldTime;
-	ViewUniformShaderParameters.CullingSign = View->bReverseCulling ? -1.0f : 1.0f;
-	ViewUniformShaderParameters.NearPlane = GNearClippingPlane;
-	ViewUniformShaderParameters.GameTime = View->Family->CurrentWorldTime;
-	ViewUniformShaderParameters.RealTime = View->Family->CurrentRealTime;
-	ViewUniformShaderParameters.Random = FMath::Rand();
-	ViewUniformShaderParameters.FrameNumber = View->Family->FrameNumber;
+	View->SetupCommonViewUniformBufferParameters(
+		ViewUniformShaderParameters,
+		BufferSize,
+		ViewRect,
+		View->ViewMatrices,
+		FViewMatrices()
+	);
 
-	// Update noise buffers
+	ViewUniformShaderParameters.WorldViewOrigin = View->ViewMatrices.GetViewOrigin();
+
 	UpdateNoiseTextureParameters(ViewUniformShaderParameters);
-
-	{
-		// setup a matrix to transform float4(SvPosition.xyz,1) directly to TranslatedWorld (quality, performance as we don't need to convert or use interpolator)
-
-		//	new_xy = (xy - ViewRectMin.xy) * ViewSizeAndInvSize.zw * float2(2,-2) + float2(-1, 1);
-
-		//  transformed into one MAD:  new_xy = xy * ViewSizeAndInvSize.zw * float2(2,-2)      +       (-ViewRectMin.xy) * ViewSizeAndInvSize.zw * float2(2,-2) + float2(-1, 1);
-
-		float Mx = 2.0f * ViewUniformShaderParameters.ViewSizeAndInvSize.Z;
-		float My = -2.0f * ViewUniformShaderParameters.ViewSizeAndInvSize.W;
-		float Ax = -1.0f - 2.0f * ViewRect.Min.X * ViewUniformShaderParameters.ViewSizeAndInvSize.Z;
-		float Ay = 1.0f + 2.0f * ViewRect.Min.Y * ViewUniformShaderParameters.ViewSizeAndInvSize.W;
-
-		// http://stackoverflow.com/questions/9010546/java-transformation-matrix-operations
-
-		ViewUniformShaderParameters.SVPositionToTranslatedWorld =
-			FMatrix(FPlane(Mx, 0, 0, 0),
-			FPlane(0, My, 0, 0),
-			FPlane(0, 0, 1, 0),
-			FPlane(Ax, Ay, 0, 1)) * View->ViewMatrices.InvTranslatedViewProjectionMatrix;
-	}
-
-	ViewUniformShaderParameters.ScreenToWorld = FMatrix(
-		FPlane(1,0,0,0),
-		FPlane(0,1,0,0),
-		FPlane(0,0,View->ProjectionMatrixUnadjustedForRHI.M[2][2],View->ProjectionMatrixUnadjustedForRHI.M[2][3]),
-		FPlane(0,0,View->ProjectionMatrixUnadjustedForRHI.M[3][2],View->ProjectionMatrixUnadjustedForRHI.M[3][3]))
-		* View->InvViewProjectionMatrix;
-
-	ViewUniformShaderParameters.ScreenToTranslatedWorld = FMatrix(
-		FPlane(1,0,0,0),
-		FPlane(0,1,0,0),
-		FPlane(0,0,View->ProjectionMatrixUnadjustedForRHI.M[2][2],View->ProjectionMatrixUnadjustedForRHI.M[2][3]),
-		FPlane(0,0,View->ProjectionMatrixUnadjustedForRHI.M[3][2],View->ProjectionMatrixUnadjustedForRHI.M[3][3]))
-		* View->ViewMatrices.InvTranslatedViewProjectionMatrix;
 
 	View->ViewUniformBuffer = TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(ViewUniformShaderParameters, UniformBuffer_SingleFrame);
 
@@ -290,8 +218,8 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 	check(IsInRenderingThread());
 
 	float TimeSeconds = FApp::GetCurrentTime() - GStartTime;
-	float RealTimeSeconds =  FApp::GetCurrentTime() - GStartTime;
 	float DeltaTimeSeconds = FApp::GetDeltaTime();
+	float RealTimeSeconds =  FPlatformTime::Seconds() - GStartTime;
 
 	static const FEngineShowFlags DefaultShowFlags(ESFIM_Game);
 
@@ -397,13 +325,9 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 				RHICmdList.SetBlendState(
 					( RenderBatch.DrawFlags & ESlateBatchDrawFlag::NoBlending )
 					? TStaticBlendState<>::GetRHI()
-#if SLATE_PRE_MULTIPLY
 					: ( ( RenderBatch.DrawFlags & ESlateBatchDrawFlag::PreMultipliedAlpha )
 						? TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha>::GetRHI()
 						: TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha>::GetRHI() )
-#else
-					: TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha>::GetRHI()
-#endif
 					);
 #else
 				RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One, BO_Add, BF_Zero, BF_InverseSourceAlpha>::GetRHI());
@@ -500,7 +424,7 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 						}
 					}
 				}
-
+                
 				PixelShader->SetTexture(RHICmdList, TextureRHI, SamplerState);
 				PixelShader->SetShaderParams(RHICmdList, ShaderParams.PixelParams);
 				PixelShader->SetDisplayGamma(RHICmdList, (DrawFlags & ESlateBatchDrawFlag::NoGamma) ? 1.0f : DisplayGamma);
@@ -518,11 +442,10 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 					RHICmdList.SetStreamSource(0, VertexBuffer->VertexBufferRHI, sizeof(FSlateVertex), 0);
 					RHICmdList.DrawIndexedPrimitive(IndexBuffer->IndexBufferRHI, GetRHIPrimitiveType(RenderBatch.DrawPrimitiveType), RenderBatch.VertexOffset, 0, RenderBatch.NumVertices, RenderBatch.IndexOffset, PrimitiveCount, RenderBatch.InstanceCount);
 				}
-
 			}
 			else if (ShaderResource && ShaderResource->GetType() == ESlateShaderResource::Material && GEngine)
 			{
-				// Note: This code is only executed if the engine is loaded (in early loading screens attemping to use a material is unsupported
+				// Note: This code is only executed if the engine is loaded (in early loading screens attempting to use a material is unsupported
 				if (!SceneView)
 				{
 					SceneView = &CreateSceneView(SceneViewContext, BackBuffer, ViewProjectionMatrix);
@@ -531,6 +454,13 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 				FSlateMaterialResource* MaterialShaderResource = (FSlateMaterialResource*)ShaderResource;
 				if( MaterialShaderResource->GetMaterialObject() != nullptr )
 				{
+#if !UE_BUILD_SHIPPING
+					// pending kill objects may still be rendered for a frame so it is valid for the check to pass
+					const bool bEvenIfPendingKill = true;
+					// This test needs to be thread safe.  It doesnt give us as many chances to trap bugs here but it is still useful
+					const bool bThreadSafe = true;
+					checkf(MaterialShaderResource->MaterialObjectWeakPtr.IsValid(bEvenIfPendingKill, bThreadSafe), TEXT("Material %s has become invalid.  This means the resource was garbage collected while slate was using it"), *MaterialShaderResource->MaterialName.ToString());
+#endif
 					FMaterialRenderProxy* MaterialRenderProxy = MaterialShaderResource->GetRenderProxy();
 
 					const FMaterial* Material = MaterialRenderProxy->GetMaterial(SceneView->GetFeatureLevel());
@@ -567,13 +497,6 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 
 							PixelShader->SetAdditionalTexture(RHICmdList, TextureRHI, BilinearClamp);
 						}
-
-#if SLATE_PRE_MULTIPLY
-						if (RenderBatch.DrawFlags & ESlateBatchDrawFlag::PreMultipliedAlpha)
-						{
-							RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_InverseSourceAlpha, BO_Add, BF_One, BF_InverseSourceAlpha>::GetRHI());
-						}
-#endif
 
 						uint32 PrimitiveCount = RenderBatch.DrawPrimitiveType == ESlateDrawPrimitive::LineList ? RenderBatch.NumIndices / 2 : RenderBatch.NumIndices / 3;
 

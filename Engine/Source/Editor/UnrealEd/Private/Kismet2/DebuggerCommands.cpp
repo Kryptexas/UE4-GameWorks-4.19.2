@@ -1229,7 +1229,7 @@ void RecordLastExecutedPlayMode()
 			PlayModeString = TEXT("<UNKNOWN>");
 		}
 
-		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.PIE"), TEXT("PlayLocation"), PlayModeString);
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.PIE"), TEXT("PlayLocation"), PlayLocationString);
 		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.PIE"), TEXT("PlayMode"), PlayModeString);
 	}	
 }
@@ -1245,7 +1245,9 @@ void SetLastExecutedLaunchMode( ELaunchModeType LaunchMode )
 
 void FInternalPlayWorldCommandCallbacks::RepeatLastPlay_Clicked()
 {
-	FPlayWorldCommands::GlobalPlayWorldActions->ExecuteAction( GetLastPlaySessionCommand() );
+	TSharedRef<FUICommandInfo> LastCommand = GetLastPlaySessionCommand();
+	UE_LOG(LogTemp, Log, TEXT("Repeting last play command: %s"), *LastCommand->GetLabel().ToString());
+	FPlayWorldCommands::GlobalPlayWorldActions->ExecuteAction(LastCommand);
 }
 
 
@@ -1366,8 +1368,8 @@ void FInternalPlayWorldCommandCallbacks::PlayInEditorFloating_Clicked( )
 	}
 	else
 	{
-		// Terminate existing session
-		GUnrealEd->EndPlayMap();
+		// Terminate existing session.  This is deferred because we could be processing this from the play world and we should not clear the play world while in it.
+		GUnrealEd->RequestEndPlayMap();
 	}
 }
 

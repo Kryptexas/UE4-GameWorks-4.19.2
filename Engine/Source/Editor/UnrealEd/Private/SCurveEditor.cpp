@@ -10,6 +10,7 @@
 #include "SNumericEntryBox.h"
 #include "STextEntryPopup.h"
 #include "CurveEditorSettings.h"
+#include "Factories/CurveFactory.h"
 
 #define LOCTEXT_NAMESPACE "SCurveEditor"
 

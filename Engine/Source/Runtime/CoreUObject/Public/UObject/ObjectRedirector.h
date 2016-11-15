@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "ObjectBase.h"
+#include "ObjectMacros.h"
 
 /**
  * This class will redirect an object load to another object, so if an object is renamed
@@ -21,7 +21,6 @@ class UObjectRedirector : public UObject
 	// UObject interface.
 	virtual void PreSave(const class ITargetPlatform* TargetPlatform) override;
 	void Serialize( FArchive& Ar ) override;
-	virtual bool NeedsLoadForClient() const override;
 	virtual bool NeedsLoadForEditorGame() const override;
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 

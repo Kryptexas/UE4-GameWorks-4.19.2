@@ -27,17 +27,8 @@
 #include "Editor/ActorPositioning.h"
 #include "Matinee/InterpData.h"
 #include "Animation/SkeletalMeshActor.h"
-#include "Landscape.h"
 #include "LandscapeInfo.h"
-#include "LandscapeLayerInfoObject.h"
-#include "LandscapeProxy.h"
-#include "LandscapeGizmoActiveActor.h"
-#include "LandscapeComponent.h"
-#include "LandscapeHeightfieldCollisionComponent.h"
-#include "ComponentReregisterContext.h"
-#include "JsonInternationalizationArchiveSerializer.h"
-#include "JsonInternationalizationManifestSerializer.h"
-#include "Engine/DestructibleMesh.h"
+#include "LandscapeInfoMap.h"
 #include "NotificationManager.h"
 #include "SNotificationList.h"
 #include "Engine/Polys.h"
@@ -59,8 +50,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogUnrealEdSrv, Log, All);
 #define LOCTEXT_NAMESPACE "UnrealEdSrv"
 
 //@hack: this needs to be cleaned up!
-static TCHAR TempStr[MAX_EDCMD], TempName[MAX_EDCMD], Temp[MAX_EDCMD];
-static uint16 Word1, Word4;
+static TCHAR TempStr[MAX_EDCMD];
+static uint16 Word1;
 
 
 /**
@@ -517,7 +508,7 @@ bool UUnrealEdEngine::HandleRecreateLandscapeCollisionCommand(const TCHAR* Str, 
 {
 	if (!PlayWorld && InWorld && InWorld->GetWorldSettings())
 	{
-		for (auto It = GetLandscapeInfoMap(InWorld).Map.CreateIterator(); It; ++It)
+		for (auto It = ULandscapeInfoMap::GetLandscapeInfoMap(InWorld).Map.CreateIterator(); It; ++It)
 		{
 			ULandscapeInfo* Info = It.Value();
 			Info->RecreateCollisionComponents();
@@ -530,7 +521,7 @@ bool UUnrealEdEngine::HandleRemoveLandscapeXYOffsetsCommand(const TCHAR* Str, FO
 {
 	if (!PlayWorld && InWorld && InWorld->GetWorldSettings())
 	{
-		for (auto It = GetLandscapeInfoMap(InWorld).Map.CreateIterator(); It; ++It)
+		for (auto It = ULandscapeInfoMap::GetLandscapeInfoMap(InWorld).Map.CreateIterator(); It; ++It)
 		{
 			ULandscapeInfo* Info = It.Value();
 			Info->RemoveXYOffsets();
@@ -1743,9 +1734,9 @@ TArray<FPoly*> GetSelectedPolygons()
 		{
 			// If its a static mesh component, with a static mesh
 			UStaticMeshComponent* SMComp = StaticMeshComponents[j];
-			if(SMComp->IsRegistered() && SMComp->StaticMesh)
+			if(SMComp->IsRegistered() && SMComp->GetStaticMesh())
 			{
-				UStaticMesh* StaticMesh = SMComp->StaticMesh;
+				UStaticMesh* StaticMesh = SMComp->GetStaticMesh();
 				if ( StaticMesh )
 				{
 					int32 NumLods = StaticMesh->GetNumLODs();

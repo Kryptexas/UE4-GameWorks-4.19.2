@@ -24,7 +24,7 @@ void FGoogleVRHMD::GenerateDistortionCorrectionIndexBuffer()
 	DistortionMeshIndices = nullptr;
 
 	// Allocate new indices
-	DistortionMeshIndices = new uint16[NumIndices];
+	DistortionMeshIndices = new uint16[6 * DistortionPointsX * DistortionPointsY];
 
 	uint32 InsertIndex = 0;
 	for(uint32 y = 0; y < DistortionPointsY - 1; ++y)
@@ -167,34 +167,37 @@ void FGoogleVRHMD::DrawDistortionMesh_RenderThread(struct FRenderingCompositePas
 		static const FDistortionVertex VertsLeft[4] =
 		{
 			// left eye
-			{ FVector2D(-0.9f, -0.9f), FVector2D(0.0f, 1.0f), FVector2D(0.0f, 1.0f), FVector2D(0.0f, 1.0f), 1.0f, 0.0f },
-			{ FVector2D( 0.9f, -0.9f), FVector2D(1.0f, 1.0f), FVector2D(1.0f, 1.0f), FVector2D(1.0f, 1.0f), 1.0f, 0.0f },
-			{ FVector2D(0.9f, 0.9f), FVector2D(1.0f, 0.0f), FVector2D(1.0f, 0.0f), FVector2D(1.0f, 0.0f), 1.0f, 0.0f },
-			{ FVector2D(-0.9f, 0.9f), FVector2D(0.0f, 0.0f), FVector2D(0.0f, 0.0f), FVector2D(0.0f, 0.0f), 1.0f, 0.0f },
+			{ FVector2D(-1.0f, -1.0f), FVector2D(0.0f, 1.0f), FVector2D(0.0f, 1.0f), FVector2D(0.0f, 1.0f), 1.0f, 0.0f },
+			{ FVector2D(1.0f, -1.0f), FVector2D(1.0f, 1.0f), FVector2D(1.0f, 1.0f), FVector2D(1.0f, 1.0f), 1.0f, 0.0f },
+			{ FVector2D(1.0f, 1.0f), FVector2D(1.0f, 0.0f), FVector2D(1.0f, 0.0f), FVector2D(1.0f, 0.0f), 1.0f, 0.0f },
+			{ FVector2D(-1.0f, 1.0f), FVector2D(0.0f, 0.0f), FVector2D(0.0f, 0.0f), FVector2D(0.0f, 0.0f), 1.0f, 0.0f },
 		};
 		static const FDistortionVertex VertsRight[4] =
 		{
 			// right eye
-			{ FVector2D(-0.9f, -0.9f), FVector2D(0.0f, 1.0f), FVector2D(0.0f, 1.0f), FVector2D(0.0f, 1.0f), 1.0f, 0.0f },
-			{ FVector2D( 0.9f, -0.9f), FVector2D(1.0f, 1.0f), FVector2D(1.0f, 1.0f), FVector2D(1.0f, 1.0f), 1.0f, 0.0f },
-			{ FVector2D(0.9f, 0.9f), FVector2D(1.0f, 0.0f), FVector2D(1.0f, 0.0f), FVector2D(1.0f, 0.0f), 1.0f, 0.0f },
-			{ FVector2D(-0.9f, 0.9f), FVector2D(0.0f, 0.0f), FVector2D(0.0f, 0.0f), FVector2D(0.0f, 0.0f), 1.0f, 0.0f },
+			{ FVector2D(-1.0f, -1.0f), FVector2D(0.0f, 1.0f), FVector2D(0.0f, 1.0f), FVector2D(0.0f, 1.0f), 1.0f, 0.0f },
+			{ FVector2D( 1.0f, -1.0f), FVector2D(1.0f, 1.0f), FVector2D(1.0f, 1.0f), FVector2D(1.0f, 1.0f), 1.0f, 0.0f },
+			{ FVector2D(1.0f, 1.0f), FVector2D(1.0f, 0.0f), FVector2D(1.0f, 0.0f), FVector2D(1.0f, 0.0f), 1.0f, 0.0f },
+			{ FVector2D(-1.0f, 1.0f), FVector2D(0.0f, 0.0f), FVector2D(0.0f, 0.0f), FVector2D(0.0f, 0.0f), 1.0f, 0.0f },
 		};
 
 		static const uint16 Indices[6] = {0, 1, 2, 0, 2, 3};
 
-		if(View.StereoPass == eSSP_LEFT_EYE)
-		{
-			RHICmdList.SetViewport(0, 0, 0.0f, ViewportSize.X / 2, ViewportSize.Y, 1.0f);
+		const uint32 XBound = TextureSize.X / 2;
+ 		if(View.StereoPass == eSSP_LEFT_EYE)
+ 		{
+			RHICmdList.SetViewport(0, 0, 0.0f, XBound, TextureSize.Y, 1.0f);
 			DrawIndexedPrimitiveUP(Context.RHICmdList, PT_TriangleList, 0, LocalNumVertsPerEye, LocalNumTrisPerEye, &Indices, sizeof(Indices[0]), &VertsLeft, sizeof(VertsLeft[0]));
-		}
-		else
-		{
-			RHICmdList.SetViewport(ViewportSize.X / 2, 0, 0.0f, ViewportSize.X, ViewportSize.Y, 1.0f);
-			DrawIndexedPrimitiveUP(Context.RHICmdList, PT_TriangleList, 0, LocalNumVertsPerEye, LocalNumTrisPerEye, &Indices, sizeof(Indices[0]), &VertsRight, sizeof(VertsRight[0]));
-		}
+ 		}
+ 		else
+ 		{
+  			RHICmdList.SetViewport(XBound, 0, 0.0f, TextureSize.X, TextureSize.Y, 1.0f);
+  			DrawIndexedPrimitiveUP(Context.RHICmdList, PT_TriangleList, 0, LocalNumVertsPerEye, LocalNumTrisPerEye, &Indices, sizeof(Indices[0]), &VertsRight, sizeof(VertsRight[0]));
+ 		}
 	}
 #endif
+
+
 }
 
 // If bfullResourceResolve is true: A no-op draw call is submitted which resolves all pending states
@@ -248,10 +251,11 @@ static void ResolvePendingRenderTarget(FRHICommandListImmediate& RHICmdList, IRe
 	}
 	else
 	{
-		RHICmdList.ClearMRT(false, 0, nullptr, false, 0.0f, false, 0, FIntRect());
+		RHICmdList.ClearColorTextures(0, nullptr, nullptr, FIntRect());
 	}
 
-	RHICmdList.Flush();
+	RHICmdList.ImmediateFlush(EImmediateFlushType::FlushRHIThread);
+
 #endif
 }
 
@@ -453,19 +457,27 @@ FGoogleVRHMDCustomPresent::FGoogleVRHMDCustomPresent(FGoogleVRHMD* InHMD)
 	, HMD(InHMD)
 	, SwapChain(nullptr)
 	, CurrentFrameViewportList(nullptr)
+	, bSkipPresent(false)
 {
 	CreateGVRSwapChain();
 }
 
 FGoogleVRHMDCustomPresent::~FGoogleVRHMDCustomPresent()
 {
-	if(SwapChain)
+    Shutdown();
+}
+
+void FGoogleVRHMDCustomPresent::Shutdown()
+{
+	if (SwapChain)
+	{
 		gvr_swap_chain_destroy(&SwapChain);
+		SwapChain = nullptr;
+	}
 }
 
 bool FGoogleVRHMDCustomPresent::AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 InFlags, uint32 TargetableTextureFlags)
 {
-
 	FOpenGLDynamicRHI* GLRHI = static_cast<FOpenGLDynamicRHI*>(GDynamicRHI);
 
 	if (TextureSet)
@@ -546,11 +558,13 @@ void FGoogleVRHMDCustomPresent::BeginRendering()
 	gvr_mat4f SceneRenderingHeadPose;
 	if(RenderingHeadPoseQueue.Dequeue(SceneRenderingHeadPose))
 	{
+		bSkipPresent = false;
 		BeginRendering(SceneRenderingHeadPose);
 	}
 	else
 	{
-		UE_LOG(LogHMD, Error, TEXT("Error: Failed to find the head pose used for rendering."));
+		// If somehow there is no rendering headpose avaliable, skip present this frame.
+		bSkipPresent = true;
 	}
 }
 
@@ -558,8 +572,24 @@ void FGoogleVRHMDCustomPresent::BeginRendering(const gvr_mat4f& RenderingHeadPos
 {
 	if(SwapChain != nullptr)
 	{
-		// In case the CurrentFrame is not submmit to GVR, submit here.
-		if(CurrentFrame)
+		// If the CurrentFrame is not submitted to GVR and no need to change the render target size
+		// We don't need to acquire a new buffer
+		if(CurrentFrame && !bNeedResizeGVRRenderTarget)
+		{
+			// Cache the render headpose we use for this frame
+			CurrentFrameRenderHeadPose = RenderingHeadPose;
+			return;
+		}
+
+		// If we need to change the render target size
+		if(bNeedResizeGVRRenderTarget)
+		{
+			gvr_swap_chain_resize_buffer(SwapChain, 0, RenderTargetSize);
+			bNeedResizeGVRRenderTarget = false;
+		}
+
+		// If we got here and still have a valid CurrentFrame, force submit it.
+		if (CurrentFrame)
 		{
 			FinishRendering();
 		}
@@ -567,16 +597,10 @@ void FGoogleVRHMDCustomPresent::BeginRendering(const gvr_mat4f& RenderingHeadPos
 		// Cache the render headpose we use for this frame
 		CurrentFrameRenderHeadPose = RenderingHeadPose;
 
-		if(bNeedResizeGVRRenderTarget)
-		{
-			gvr_swap_chain_resize_buffer(SwapChain, 0, RenderTargetSize);
-			bNeedResizeGVRRenderTarget = false;
-		}
-
-		// attachment id to apply to the texture set below.
+		// Now we need to acquire a new frame from gvr swapchain
 		CurrentFrame = gvr_swap_chain_acquire_frame(SwapChain);
 
-		// gvr_swap_chain_acquire_frame(SwapChain); will only return null when SwapChain is invalid or 
+		// gvr_swap_chain_acquire_frame(SwapChain); will only return null when SwapChain is invalid or
 		// the frame already required. We should hit neither of these cases.
 		check(CurrentFrame);
 
@@ -605,13 +629,21 @@ void FGoogleVRHMDCustomPresent::FinishRendering()
 		if (CurrentFrameViewportList)
 		{
 			gvr_frame_submit(&CurrentFrame, CurrentFrameViewportList, CurrentFrameRenderHeadPose);
+			TextureSet->Resource = 0;
 		}
 	}
 }
 
 bool FGoogleVRHMDCustomPresent::Present(int32& InOutSyncInterval)
 {
-	FinishRendering();
+	if (!bSkipPresent)
+	{
+		FinishRendering();
+	}
+	else
+	{
+		UE_LOG(LogHMD, Log, TEXT("GVR frame present skipped on purpose!"));
+	}
 
 	// Note: true causes normal swapbuffers(), false prevents normal swapbuffers()
 	if(SwapChain)

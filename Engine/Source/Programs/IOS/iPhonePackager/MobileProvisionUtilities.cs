@@ -34,7 +34,7 @@ namespace iPhonePackager
         public string UUID;
         public string Platform;
 
-		public static string FindCompatibleProvision(string CFBundleIdentifier, out bool bNameMatch, bool bCheckCert = true, bool bCheckIdentifier = true)
+        public static string FindCompatibleProvision(string CFBundleIdentifier, out bool bNameMatch, bool bCheckCert = true, bool bCheckIdentifier = true)
 		{
 			bNameMatch = false;
 
@@ -66,8 +66,8 @@ namespace iPhonePackager
 			// copy all of the provisions from the game directory to the library
 			if (!String.IsNullOrEmpty(Config.ProjectFile))
 			{
-				var ProjectFileBuildIOSPath = Path.GetDirectoryName(Config.ProjectFile) + "/Build/" + Config.OSString + "/";
-				if (Directory.Exists(ProjectFileBuildIOSPath))
+                var ProjectFileBuildIOSPath = Path.GetDirectoryName(Config.ProjectFile) + "/Build/" + Config.OSString + "/";
+                if (Directory.Exists(ProjectFileBuildIOSPath))
 				{
 					foreach (string Provision in Directory.EnumerateFiles(ProjectFileBuildIOSPath, "*.mobileprovision", SearchOption.AllDirectories))
 					{
@@ -116,6 +116,12 @@ namespace iPhonePackager
 			{
 				MobileProvision p = MobileProvisionParser.ParseFile(Provision);
 				ProvisionLibrary.Add(Provision, p);
+                if (p.FileName.Contains(p.UUID) && !File.Exists(Path.Combine(Config.ProvisionDirectory, "UE4_"+p.UUID+".mobileprovision")))
+                {
+                    File.Copy(Provision, Path.Combine(Config.ProvisionDirectory, "UE4_" + p.UUID + ".mobileprovision"));
+                    p = MobileProvisionParser.ParseFile(Path.Combine(Config.ProvisionDirectory, "UE4_" + p.UUID + ".mobileprovision"));
+                    ProvisionLibrary.Add(Path.Combine(Config.ProvisionDirectory, "UE4_" + p.UUID + ".mobileprovision"), p);
+                }
 			}
 
 			Program.Log("Searching for mobile provisions that match the game '{0}' with CFBundleIdentifier='{1}' in '{2}'", GameName, CFBundleIdentifier, Config.ProvisionDirectory);
@@ -133,11 +139,11 @@ namespace iPhonePackager
                     if (TestProvision.FileName.Contains(TestProvision.UUID))
                         continue;
 
-					Program.LogVerbose("  Phase {0} considering provision '{1}' named '{2}'", Phase, DebugName, TestProvision.ProvisionName);
-
                     // check to see if the platform is the same as what we are looking for
                     if (!string.IsNullOrEmpty(TestProvision.Platform) && TestProvision.Platform != Config.OSString && !string.IsNullOrEmpty(Config.OSString))
                         continue;
+
+                    Program.LogVerbose("  Phase {0} considering provision '{1}' named '{2}'", Phase, DebugName, TestProvision.ProvisionName);
 
 					// Validate the name
 					bool bPassesNameCheck = false;
@@ -371,12 +377,12 @@ namespace iPhonePackager
             {
                 Platform = "";
             }
-		}
+        }
 
-		/// <summary>
-		/// Does this provision contain the specified UDID?
-		/// </summary>
-		public bool ContainsUDID(string UDID)
+        /// <summary>
+        /// Does this provision contain the specified UDID?
+        /// </summary>
+        public bool ContainsUDID(string UDID)
 		{
 			bool bFound = false;
 			foreach (string TestUDID in ProvisionedDeviceIDs)
@@ -455,7 +461,7 @@ namespace iPhonePackager
 			InputStream.Close();
             Result.FileName = Filename;
 
-			return Result;
+            return Result;
 		}
 
 		/// <summary>

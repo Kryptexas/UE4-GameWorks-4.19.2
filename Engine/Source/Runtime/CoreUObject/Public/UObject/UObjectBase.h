@@ -4,8 +4,9 @@
 	UObjectBase.h: Unreal UObject base class
 =============================================================================*/
 
-#ifndef __UOBJECTBASE_H__
-#define __UOBJECTBASE_H__
+#pragma once
+
+#include "UObjectGlobals.h"
 
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("STAT_UObjectsStatGroupTester"), STAT_UObjectsStatGroupTester, STATGROUP_UObjects, COREUOBJECT_API);
 
@@ -387,6 +388,4 @@ void UObjectBaseInit();
  * Final phase of UObject shutdown
  */
 void UObjectBaseShutdown();
-
-#endif	// __UOBJECTBASE_H__
 

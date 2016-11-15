@@ -23,6 +23,9 @@ class ENGINE_API UInputSettings
 	UPROPERTY(config, EditAnywhere, Category="Bindings", AdvancedDisplay)
 	uint32 bAltEnterTogglesFullscreen:1;
 
+	UPROPERTY(config, EditAnywhere, Category = "Bindings", AdvancedDisplay)
+	uint32 bF11TogglesFullscreen : 1;
+
 	// Allow mouse to be used for touch
 	UPROPERTY(config, EditAnywhere, Category="MouseProperties")
 	uint32 bUseMouseForTouch:1;
@@ -49,7 +52,7 @@ class ENGINE_API UInputSettings
 	
 	/** The default mouse capture mode for the game viewport */
 	UPROPERTY(config, EditAnywhere, Category = "ViewportProperties")
-	TEnumAsByte<EMouseCaptureMode> DefaultViewportMouseCaptureMode;
+	EMouseCaptureMode DefaultViewportMouseCaptureMode;
 
 	/** The default mouse lock state when the viewport acquires capture */
 	UPROPERTY(config)

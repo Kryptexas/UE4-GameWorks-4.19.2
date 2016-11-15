@@ -30,7 +30,7 @@ void FAnimNode_PoseByName::UpdateAssetPlayer(const FAnimationUpdateContext& Cont
 	}
 	else
 	{
-		PoseUID = FSmartNameMapping::MaxUID;
+		PoseUID = SmartName::MaxUID;
 	}
 }
 
@@ -41,7 +41,7 @@ void FAnimNode_PoseByName::Evaluate(FPoseContext& Output)
 		// Zero out all curve value
 		FMemory::Memzero(PoseExtractContext.PoseCurves.GetData(), PoseExtractContext.PoseCurves.GetAllocatedSize());
 
-		if (PoseUID != FSmartNameMapping::MaxUID)
+		if (PoseUID != SmartName::MaxUID)
 		{
 			int32 Index = PoseUIDList.Find(PoseUID);
 			if (Index!=INDEX_NONE)

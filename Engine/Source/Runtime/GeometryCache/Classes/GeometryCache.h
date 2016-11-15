@@ -12,21 +12,16 @@
 * A Geometry Cache is a piece/set of geometry that consists of individual Mesh/Transformation samples.
 * In contrast with Static Meshes they can have their vertices animated in certain ways. * 
 */
-UCLASS(collapsecategories, hidecategories = Object, customconstructor, BlueprintType, config = Engine)
+UCLASS(hidecategories = Object, BlueprintType, config = Engine)
 class GEOMETRYCACHE_API UGeometryCache : public UObject, public IInterface_AssetUserData
 {
 	GENERATED_UCLASS_BODY()
 public:
-	/**
-	* Default constructor
-	*/
-	UGeometryCache(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
-
 	//~ Begin UObject Interface.
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostInitProperties() override;
 	virtual FString GetDesc() override;
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 
 	virtual void BeginDestroy() override;
@@ -34,7 +29,6 @@ public:
 #if WITH_EDITOR
 	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 #endif // WITH_EDITOR
-	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	//~ End UObject Interface.
 
 	/**

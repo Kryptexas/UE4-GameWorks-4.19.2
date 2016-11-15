@@ -97,7 +97,7 @@ public:
 	 * @param OnSelectionChanged Delegate fired when selection is changed
 	 * @return The new widget
 	 */
-	static TSharedRef<SWidget> MakeEnumComboBox(const UEnum* Enum, TAttribute<int32> CurrentValue, FOnEnumSelectionChanged OnSelectionChanged, TAttribute<TOptional<uint8>> InIntermediateValue);
+	static TSharedRef<SWidget> MakeEnumComboBox(const UEnum* Enum, TAttribute<int32> CurrentValue, FOnEnumSelectionChanged OnSelectionChanged);
 
 
 	/**
@@ -116,9 +116,10 @@ public:
 	 * @param InMovieScene The movie scene with the cinematic shot track and audio tracks to export
 	 * @param InFrameRate The frame rate to export the EDL at
 	 * @param InSaveDirectory Optional directory path to save to. If none given, a dialog will pop up to prompt the user
+	 * @param InHandleFrames The number of handle frames to include for each shot.
 	 * @return Whether the export was successful
 	 */
-	static bool ShowExportEDLDialog(const UMovieScene* InMovieScene, float InFrameRate, FString InSaveDirectory = TEXT(""));
+	static bool ShowExportEDLDialog(const UMovieScene* InMovieScene, float InFrameRate, FString InSaveDirectory = TEXT(""), int32 InHandleFrames = 8);
 
 	/**
 	 * Import FBX

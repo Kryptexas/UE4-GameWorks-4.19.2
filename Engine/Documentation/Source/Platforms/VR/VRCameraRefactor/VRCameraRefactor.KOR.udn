@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2940199
+﻿INTSourceChangelist:3011129
 Availability:Public
 Title:VR 카메라 리팩터링
 Crumbs:%ROOT%, Platforms
@@ -40,6 +40,7 @@ UE4.11 이상 버전을 사용해서 VR 프로젝트를 새로 만드는 경우,
 ### 베이스 카메라 컴포넌트
 
 카메라 컴포넌트 기본 구성인 경우, 카메라 트랜스폼이 HMD 오프셋이며, 씬을 바라보는 플레이어의 머리를 움직이기 위해서는 "베이스" 가 필요합니다.
+ 4.11 로 이주한 후 바닥에 VR 카메라가 보인다면, 새로운 씬 트랜스폼을 삽입하여 아래 그림처럼 카메라 베이스 배치를 설정해 줘야 할 것입니다.
 
  ![](VR_Camera_Refactor_01.png)
 

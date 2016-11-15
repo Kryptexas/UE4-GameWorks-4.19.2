@@ -80,8 +80,12 @@ protected:
 	/** signal request to stop and exit thread */
 	FThreadSafeCounter ExitRequest;
 
-	/** Target frame duration of a http thread tick, in seconds. */
-	double	HttpThreadTickBudget;
+	/** Time in seconds to clamp the processing of HTTP requests on the HTTP thread to. 0 means unclamped */
+	double HttpThreadProcessingClampInSeconds;
+	/** Time in seconds to use as a frame time. 0 means no frame time. */
+	double HttpThreadFrameTimeInSeconds;
+	/** Time in seconds to sleep minimally */
+	double HttpThreadMinimumSleepTimeInSeconds;
 
 protected:
 	/** Critical section to lock access to PendingThreadedRequests, CancelledThreadedRequests, and CompletedThreadedRequests */

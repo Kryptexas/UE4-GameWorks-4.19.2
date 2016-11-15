@@ -72,13 +72,15 @@ public:
 	typedef typename TSlateDelegates< ItemType >::FOnMouseButtonDoubleClick FOnMouseButtonDoubleClick;
 	typedef typename TSlateDelegates< ItemType >::FOnExpansionChanged FOnExpansionChanged;
 
+	using FOnWidgetToBeRemoved = typename SListView<ItemType>::FOnWidgetToBeRemoved;
+
 public:
 	
 	SLATE_BEGIN_ARGS( STreeView<ItemType> )
 		: _OnGenerateRow()
 		, _OnGetChildren()
 		, _OnSetExpansionRecursive()
-		, _TreeItemsSource( static_cast< TArray<ItemType>* >(nullptr) ) //@todo Slate Syntax: Initializing from nullptr without a cast
+		, _TreeItemsSource( static_cast< const TArray<ItemType>* >(nullptr) ) //@todo Slate Syntax: Initializing from nullptr without a cast
 		, _ItemHeight(16)
 		, _OnContextMenuOpening()
 		, _OnMouseButtonDoubleClick()
@@ -94,6 +96,8 @@ public:
 
 		SLATE_EVENT( FOnGenerateRow, OnGenerateRow )
 
+		SLATE_EVENT( FOnWidgetToBeRemoved, OnRowReleased )
+
 		SLATE_EVENT( FOnTableViewScrolled, OnTreeViewScrolled )
 
 		SLATE_EVENT( FOnItemScrolledIntoView, OnItemScrolledIntoView )
@@ -102,7 +106,7 @@ public:
 
 		SLATE_EVENT( FOnSetExpansionRecursive, OnSetExpansionRecursive )
 
-		SLATE_ARGUMENT( TArray<ItemType>* , TreeItemsSource )
+		SLATE_ARGUMENT( const TArray<ItemType>* , TreeItemsSource )
 
 		SLATE_ATTRIBUTE( float, ItemHeight )
 
@@ -139,6 +143,7 @@ public:
 	void Construct( const FArguments& InArgs )
 	{
 		this->OnGenerateRow = InArgs._OnGenerateRow;
+		this->OnRowReleased = InArgs._OnRowReleased;
 		this->OnItemScrolledIntoView = InArgs._OnItemScrolledIntoView;
 		this->OnGetChildren = InArgs._OnGetChildren;
 		this->OnSetExpansionRecursive = InArgs._OnSetExpansionRecursive;
@@ -564,7 +569,7 @@ public:
 	 *
 	 * @param InItemsSource  A pointer to the array of items that should be observed by this TreeView.
 	 */
-	void SetTreeItemsSource( TArray<ItemType>* InItemsSource)
+	void SetTreeItemsSource( const TArray<ItemType>* InItemsSource)
 	{
 		TreeItemsSource = InItemsSource;
 		RequestTreeRefresh();
@@ -611,7 +616,7 @@ protected:
 	FOnSetExpansionRecursive OnSetExpansionRecursive;
 
 	/** A pointer to the items being observed by the tree view. */
-	TArray<ItemType>* TreeItemsSource;		
+	const TArray<ItemType>* TreeItemsSource;		
 		
 	/** Info needed by a small fraction of tree items; some of these are not visible to the user. */
 	TMap<ItemType, FSparseItemInfo> SparseItemInfos;

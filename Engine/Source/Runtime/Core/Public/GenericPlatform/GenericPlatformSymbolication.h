@@ -3,7 +3,7 @@
 #pragma once
 
 #include "HAL/Platform.h"
-#include "Serialization/ArchiveBase.h"
+#include "Serialization/Archive.h"
 
 
 /**

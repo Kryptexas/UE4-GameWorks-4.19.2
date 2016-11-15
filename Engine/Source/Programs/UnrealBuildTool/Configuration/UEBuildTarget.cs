@@ -27,6 +27,7 @@ namespace UnrealBuildTool
 		Linux,
 		AllDesktop,
 		TVOS,
+		WolfPlat,
 	}
 
 	public enum UnrealPlatformGroup
@@ -302,6 +303,7 @@ namespace UnrealBuildTool
 				case CPPTargetPlatform.HTML5:			return UnrealTargetPlatform.HTML5;
                 case CPPTargetPlatform.Linux:			return UnrealTargetPlatform.Linux;
 				case CPPTargetPlatform.TVOS:			return UnrealTargetPlatform.TVOS;
+				case CPPTargetPlatform.Wolf: 			return UnrealTargetPlatform.WolfPlat;
 			}
 			throw new BuildException("CPPTargetPlatformToUnrealTargetPlatform: Unknown CPPTargetPlatform {0}", InCPPPlatform.ToString());
 		}
@@ -1388,7 +1390,7 @@ namespace UnrealBuildTool
 				Log.TraceVerbose("\tTargetFilename {0}", TargetFilename);
 
 				// Collect all files to delete.
-				string[] AdditionalFileExtensions = new string[] { ".lib", ".exp", ".dll.response" };
+				string[] AdditionalFileExtensions = new string[] { ".lib", ".exp", ".dll.response", ".map", ".objpaths" };
 				List<string> AllFilesToDelete = new List<string>();
 				foreach (BuildProduct BuildProduct in ReceiptWithFullPaths.BuildProducts)
 				{
@@ -1398,8 +1400,8 @@ namespace UnrealBuildTool
 						continue;
 					}
 
-					// if we're cleaning and in an installed binary and the build product path matches the engine install location, we don't want to delete them
-					if (UEBuildConfiguration.bCleanProject && UnrealBuildTool.IsEngineInstalled() && BuildProduct.Path.Contains(Path.GetFullPath(BuildConfiguration.RelativeEnginePath)))
+					// if we're cleaning and in an installed binary/hot reloading and the build product path matches the engine install location, we don't want to delete them
+					if (UEBuildConfiguration.bCleanProject && (UEBuildConfiguration.bHotReloadFromIDE || UnrealBuildTool.IsEngineInstalled()) && Path.GetFullPath(BuildProduct.Path).Contains(Path.GetFullPath(BuildConfiguration.RelativeEnginePath)))
 					{
 						continue;
 					}
@@ -1410,9 +1412,17 @@ namespace UnrealBuildTool
 						continue;
 					}
 
-					AllFilesToDelete.Add(BuildProduct.Path);
 					string FileExt = Path.GetExtension(BuildProduct.Path);
-					if (FileExt == ".dll" || FileExt == ".exe")
+					bool bIsExecutableOrDynamicLibrary = (FileExt == ".dll" || FileExt == ".exe");
+
+					// Don't delete exe's and dlls if they could currently be in use
+					if (UEBuildConfiguration.bHotReloadFromIDE && bIsExecutableOrDynamicLibrary)
+					{
+						continue;
+					}
+
+					AllFilesToDelete.Add(BuildProduct.Path);
+					if (bIsExecutableOrDynamicLibrary)
 					{
 						string ManifestFileWithoutExtension = Utils.GetPathWithoutExtension(BuildProduct.Path);
 						foreach (string AdditionalExt in AdditionalFileExtensions)
@@ -1514,7 +1524,7 @@ namespace UnrealBuildTool
 						CleanDirectory(ProjectIntermediateDirectory.FullName);
 					}
 				}
-				if (!UnrealBuildTool.IsEngineInstalled())
+				if (!UEBuildConfiguration.bHotReloadFromIDE && !UnrealBuildTool.IsEngineInstalled())
 				{
 					// This is always under Engine installation folder
 					if (GlobalLinkEnvironment.Config.IntermediateDirectory.Exists())
@@ -1573,6 +1583,7 @@ namespace UnrealBuildTool
 
 					// Hot reload makefile
 					{
+						bool bPrevHotReloadState = UEBuildConfiguration.bHotReloadFromIDE;
 						UEBuildConfiguration.bHotReloadFromIDE = true;
 						FileReference UBTMakefilePath = UnrealBuildTool.GetUBTMakefilePath(TargetDescs);
 						if (UBTMakefilePath.Exists())
@@ -1580,7 +1591,7 @@ namespace UnrealBuildTool
 							Log.TraceVerbose("\tDeleting " + UBTMakefilePath);
 							CleanFile(UBTMakefilePath.FullName);
 						}
-						UEBuildConfiguration.bHotReloadFromIDE = false;
+						UEBuildConfiguration.bHotReloadFromIDE = bPrevHotReloadState;
 					}
 				}
 
@@ -1697,6 +1708,36 @@ namespace UnrealBuildTool
 
 				// delete intermediate directory of the extra files
 			}
+
+			// The engine updates the PATH environment variable to supply all valid locations for DLLs, but the Windows loader reads imported DLLs from the first location it finds them. 
+			// If modules are moved from one place to another, we have to be sure to clean up the old versions so that they're not loaded accidentally causing unintuitive import errors.
+			HashSet<FileReference> OutputFiles = new HashSet<FileReference>();
+			Dictionary<string, FileReference> OutputFileNames = new Dictionary<string, FileReference>(StringComparer.InvariantCultureIgnoreCase);
+			foreach(UEBuildBinary Binary in AppBinaries)
+			{
+				foreach(FileReference OutputFile in Binary.Config.OutputFilePaths)
+				{
+					OutputFiles.Add(OutputFile);
+					OutputFileNames[OutputFile.GetFileName()] = OutputFile;
+				}
+			}
+
+			// Search all the output directories for files with a name matching one of our output files
+			foreach(DirectoryReference OutputDirectory in OutputFiles.Select(x => x.Directory).Distinct())
+			{
+                if (OutputDirectory.Exists())
+                {
+                    foreach (FileReference ExistingFile in OutputDirectory.EnumerateFileReferences())
+                    {
+                        FileReference OutputFile;
+                        if (OutputFileNames.TryGetValue(ExistingFile.GetFileName(), out OutputFile) && !OutputFiles.Contains(ExistingFile))
+                        {
+                            Log.TraceInformation("Deleting '{0}' to avoid ambiguity with '{1}'", ExistingFile, OutputFile);
+                            CleanFile(ExistingFile.FullName);
+                        }
+                    }
+                }
+			}
 		}
 
 		/// <summary>
@@ -1781,72 +1822,67 @@ namespace UnrealBuildTool
 					}
 				}
 
-				// Add all the include paths etc. for external modules
-				UEBuildExternalModule ExternalModule = Module as UEBuildExternalModule;
-				if (ExternalModule != null)
+				// Add the rules file itself
+				Files.Add(ModuleRulesFileName);
+
+				// Get a list of all the library paths
+				List<string> LibraryPaths = new List<string>();
+				LibraryPaths.Add(Directory.GetCurrentDirectory());
+				LibraryPaths.AddRange(Rules.PublicLibraryPaths.Where(x => !x.StartsWith("$(")).Select(x => Path.GetFullPath(x.Replace('/', '\\'))));
+
+				// Get all the extensions to look for
+				List<string> LibraryExtensions = new List<string>();
+				LibraryExtensions.Add(BuildPlatform.GetBinaryExtension(UEBuildBinaryType.StaticLibrary));
+				LibraryExtensions.Add(BuildPlatform.GetBinaryExtension(UEBuildBinaryType.DynamicLinkLibrary));
+
+				// Add all the libraries
+				foreach (string LibraryExtension in LibraryExtensions)
 				{
-					// Add the rules file itself
-					Files.Add(ModuleRulesFileName);
-
-					// Get a list of all the library paths
-					List<string> LibraryPaths = new List<string>();
-					LibraryPaths.Add(Directory.GetCurrentDirectory());
-					LibraryPaths.AddRange(Rules.PublicLibraryPaths.Where(x => !x.StartsWith("$(")).Select(x => Path.GetFullPath(x.Replace('/', '\\'))));
-
-					// Get all the extensions to look for
-					List<string> LibraryExtensions = new List<string>();
-					LibraryExtensions.Add(BuildPlatform.GetBinaryExtension(UEBuildBinaryType.StaticLibrary));
-					LibraryExtensions.Add(BuildPlatform.GetBinaryExtension(UEBuildBinaryType.DynamicLinkLibrary));
-
-					// Add all the libraries
-					foreach (string LibraryExtension in LibraryExtensions)
+					foreach (string LibraryName in Rules.PublicAdditionalLibraries)
 					{
-						foreach (string LibraryName in Rules.PublicAdditionalLibraries)
+						foreach (string LibraryPath in LibraryPaths)
 						{
-							foreach (string LibraryPath in LibraryPaths)
+							string LibraryFileName = Path.Combine(LibraryPath, LibraryName);
+							if (File.Exists(LibraryFileName))
 							{
-								string LibraryFileName = Path.Combine(LibraryPath, LibraryName);
-								if (File.Exists(LibraryFileName))
-								{
-									Files.Add(new FileReference(LibraryFileName));
-								}
+								Files.Add(new FileReference(LibraryFileName));
+							}
 
-								string UnixLibraryFileName = Path.Combine(LibraryPath, "lib" + LibraryName + LibraryExtension);
-								if (File.Exists(UnixLibraryFileName))
-								{
-									Files.Add(new FileReference(UnixLibraryFileName));
-								}
+							string UnixLibraryFileName = Path.Combine(LibraryPath, "lib" + LibraryName + LibraryExtension);
+							if (File.Exists(UnixLibraryFileName))
+							{
+								Files.Add(new FileReference(UnixLibraryFileName));
 							}
 						}
 					}
+				}
 
-					// Add all the additional shadow files
-					foreach (string AdditionalShadowFile in Rules.PublicAdditionalShadowFiles)
+				// Add all the additional shadow files
+				foreach (string AdditionalShadowFile in Rules.PublicAdditionalShadowFiles)
+				{
+					string ShadowFileName = Path.GetFullPath(AdditionalShadowFile);
+					if (File.Exists(ShadowFileName))
 					{
-						string ShadowFileName = Path.GetFullPath(AdditionalShadowFile);
-						if (File.Exists(ShadowFileName))
-						{
-							Files.Add(new FileReference(ShadowFileName));
-						}
+						Files.Add(new FileReference(ShadowFileName));
 					}
+				}
 
-					// Find all the include paths
-					List<string> AllIncludePaths = new List<string>();
-					AllIncludePaths.AddRange(Rules.PublicIncludePaths);
-					AllIncludePaths.AddRange(Rules.PublicSystemIncludePaths);
+				// Find all the include paths
+				List<string> AllIncludePaths = new List<string>();
+				AllIncludePaths.AddRange(Rules.PublicIncludePaths);
+				AllIncludePaths.AddRange(Rules.PublicSystemIncludePaths);
 
-					// Add all the include paths
-					foreach (string IncludePath in AllIncludePaths.Where(x => !x.StartsWith("$(")))
+				// Add all the include paths
+				foreach (string IncludePath in AllIncludePaths.Where(x => !x.StartsWith("$(")))
+				{
+					if (Directory.Exists(IncludePath))
 					{
-						if (Directory.Exists(IncludePath))
+						foreach (string IncludeFileName in Directory.EnumerateFiles(IncludePath, "*", SearchOption.AllDirectories))
 						{
-							foreach (string IncludeFileName in Directory.EnumerateFiles(IncludePath, "*", SearchOption.AllDirectories))
+							string Extension = Path.GetExtension(IncludeFileName).ToLower();
+							if (Extension == ".h" || Extension == ".inl")
 							{
-								string Extension = Path.GetExtension(IncludeFileName).ToLower();
-								if (Extension == ".h" || Extension == ".inl")
-								{
-									Files.Add(new FileReference(IncludeFileName));
-								}
+								Files.Add(new FileReference(IncludeFileName));
 							}
 						}
 					}
@@ -1930,7 +1966,7 @@ namespace UnrealBuildTool
 				Manifest = Utils.ReadClass<BuildManifest>(ManifestPath.FullName);
 			}
 
-			if(!BuildConfiguration.bEnableCodeAnalysis)
+			if(!BuildConfiguration.bEnableCodeAnalysis && !BuildConfiguration.bDisableLinking)
 			{
 				// Expand all the paths in the receipt; they'll currently use variables for the engine and project directories
 				TargetReceipt ReceiptWithFullPaths = new TargetReceipt(Receipt);
@@ -2024,13 +2060,17 @@ namespace UnrealBuildTool
             if (Rules.bUsesSlate)
             {
 				Receipt.RuntimeDependencies.Add("$(EngineDir)/Content/Slate/...", StagedFileType.UFS);
-				if(ProjectFile != null)
+				if (Configuration != UnrealTargetConfiguration.Shipping)
+				{
+					Receipt.RuntimeDependencies.Add("$(EngineDir)/Content/SlateDebug/...", StagedFileType.UFS);
+				}
+				if (ProjectFile != null)
 				{
 					Receipt.RuntimeDependencies.Add("$(ProjectDir)/Content/Slate/...", StagedFileType.UFS);
-				}
-				if (Rules.bUsesSlateEditorStyle)
-				{
-					Receipt.RuntimeDependencies.Add("$(EngineDir)/Content/Editor/Slate/...", StagedFileType.UFS);
+					if (Configuration != UnrealTargetConfiguration.Shipping)
+					{
+						Receipt.RuntimeDependencies.Add("$(EngineDir)/Content/SlateDebug/...", StagedFileType.UFS);
+					}
 				}
 			}
 
@@ -2112,7 +2152,7 @@ namespace UnrealBuildTool
 						VersionManifest Manifest;
 						if (!FileNameToVersionManifest.TryGetValue(ManifestFileName, out Manifest))
 						{
-							Manifest = new VersionManifest(Version.Changelist, BuildId);
+							Manifest = new VersionManifest(Version.Changelist, Version.CompatibleChangelist, BuildId);
 
 							VersionManifest ExistingManifest;
 							if (VersionManifest.TryRead(ManifestFileName.FullName, out ExistingManifest) && Version.Changelist == ExistingManifest.Changelist)
@@ -2143,36 +2183,101 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// We generate new version manifests with a unique build id for every build by default, which prevents the engine opportunistically trying to load stale modules
-		/// discovered through directory searches. If we're not updating any files in the engine folder, we can safely recycle the existing build id without requiring a 
-		/// new UBT invocation to update it when switching between projects.
+		/// Try to recycle the build id from existing version manifests in the engine directory rather than generating a new one, if no engine binaries are being modified.
+		/// This allows sharing engine binaries when switching between projects and switching between UE4 and a game-specific project. Note that different targets may require
+		/// additional engine modules to be built, so we don't prohibit files being added or removed.
 		/// </summary>
-		public void RecycleVersionManifests(bool bModifyingEngineFiles)
+		/// <param name="OutputFiles">List of files being modified by this build</param>
+		/// <returns>True if the existing version manifests will remain valid during this build, false if they are invalidated</returns>
+		public bool TryRecycleVersionManifests(HashSet<FileReference> OutputFiles)
 		{
-			if (FileReferenceToVersionManifestPairs != null)
+			// Make sure we've got a list of version manifests to check against
+			if(FileReferenceToVersionManifestPairs == null)
 			{
-				if (bModifyingEngineFiles)
+				return false;
+			}
+
+			// Check we're building a target with an executable in the engine directory. If not, we don't need to worry about sharing build ids between targets.
+			if(OutputPaths.Count != 1 || !OutputPaths[0].IsUnderDirectory(UnrealBuildTool.EngineDirectory))
+			{
+				return false;
+			}
+
+			// Read any the existing version manifests under the engine directory
+			Dictionary<FileReference, VersionManifest> ExistingFileToManifest = new Dictionary<FileReference, VersionManifest>();
+			foreach(FileReference ExistingFile in FileReferenceToVersionManifestPairs.Select(x => x.Key))
+			{
+				VersionManifest ExistingManifest;
+				if(ExistingFile.IsUnderDirectory(UnrealBuildTool.EngineDirectory) && VersionManifest.TryRead(ExistingFile.FullName, out ExistingManifest))
 				{
-					// Delete all the existing manifests, so we don't try to recycle partial builds in future (the current build may fail after modifying engine files, 
-					// causing bModifyingEngineFiles to be incorrect on the next invocation).
-					foreach (KeyValuePair<FileReference, VersionManifest> FileNameToVersionManifest in FileReferenceToVersionManifestPairs)
+					ExistingFileToManifest.Add(ExistingFile, ExistingManifest);
+				}
+			}
+
+			// Get the path to the manifest for the base executable
+			FileReference MainManifestFile = FileReference.Combine(OutputPaths[0].Directory, VersionManifest.GetStandardFileName(AppName, Platform, Configuration, PlatformContext.GetActiveArchitecture(), false));
+
+			// Read the manifest for the base executable. AppBinaries may have precompiled binaries removed, so we use the target's output path for the executable instead.
+			VersionManifest MainManifest;
+			if(!ExistingFileToManifest.TryGetValue(MainManifestFile, out MainManifest))
+			{
+				return false;
+			}
+
+			// Check if we're modifying any files in an existing valid manifest. If the build id for a manifest doesn't match, we can behave as if it doesn't exist.
+			foreach(KeyValuePair<FileReference, VersionManifest> ExistingPair in ExistingFileToManifest)
+			{
+				if(ExistingPair.Value.BuildId == MainManifest.BuildId)
+				{
+					DirectoryReference ExistingManifestDir = ExistingPair.Key.Directory;
+					foreach(FileReference ExistingFile in ExistingPair.Value.ModuleNameToFileName.Values.Select(x => FileReference.Combine(ExistingManifestDir, x)))
 					{
-						FileNameToVersionManifest.Key.Delete();
+						if(OutputFiles.Contains(ExistingFile))
+						{
+							return false;
+						}
 					}
 				}
-				else if(OutputPaths.Count == 1 && OutputPaths[0].IsUnderDirectory(UnrealBuildTool.EngineDirectory))
-				{
-					// Get the path to the manifest for the base executable. AppBinaries may have precompiled binaries removed, so we use the target's output path for the executable instead.
-					FileReference ManifestFileName = FileReference.Combine(OutputPaths[0].Directory, VersionManifest.GetStandardFileName(AppName, Platform, Configuration, PlatformContext.GetActiveArchitecture(), false));
+			}
 
-					// Try to read it and update all the other manifests with the same build id
-					VersionManifest BaseManifest;
-					if (VersionManifest.TryRead(ManifestFileName.FullName, out BaseManifest))
+			// Allow the existing build id to be reused. Merge the existing manifests with the manifests in memory.
+			foreach(KeyValuePair<FileReference, VersionManifest> NewPair in FileReferenceToVersionManifestPairs)
+			{
+				// Reuse the existing build id
+				VersionManifest NewManifest = NewPair.Value;
+				NewManifest.BuildId = MainManifest.BuildId;
+
+				// Merge in the files from the existing manifest
+				VersionManifest ExistingManifest;
+				if(ExistingFileToManifest.TryGetValue(NewPair.Key, out ExistingManifest) && ExistingManifest.BuildId == MainManifest.BuildId)
+				{
+					foreach(KeyValuePair<string, string> ModulePair in ExistingManifest.ModuleNameToFileName)
 					{
-						foreach (KeyValuePair<FileReference, VersionManifest> FileNameToVersionManifest in FileReferenceToVersionManifestPairs)
+						if(!NewManifest.ModuleNameToFileName.ContainsKey(ModulePair.Key))
 						{
-							FileNameToVersionManifest.Value.BuildId = BaseManifest.BuildId;
+							NewManifest.ModuleNameToFileName.Add(ModulePair.Key, ModulePair.Value);
 						}
+					}
+				}
+			}
+			return true;
+		}
+
+		/// <summary>
+		/// Delete all the existing version manifests
+		/// </summary>
+		public void InvalidateVersionManifests()
+		{
+			// Delete all the existing manifests, so we don't try to recycle partial builds in future (the current build may fail after modifying engine files, 
+			// causing bModifyingEngineFiles to be incorrect on the next invocation).
+			if(FileReferenceToVersionManifestPairs != null)
+			{
+				foreach (FileReference VersionManifestFile in FileReferenceToVersionManifestPairs.Select(x => x.Key))
+				{
+					// Make sure the file (and directory) exists before trying to delete it
+					if(VersionManifestFile.Exists())
+					{
+						VersionManifestFile.Delete();
 					}
 				}
 			}
@@ -2201,9 +2306,28 @@ namespace UnrealBuildTool
 			{
 				foreach (KeyValuePair<FileReference, VersionManifest> FileNameToVersionManifest in FileReferenceToVersionManifestPairs)
 				{
+					Directory.CreateDirectory(Path.GetDirectoryName(FileNameToVersionManifest.Key.FullName));
 					FileNameToVersionManifest.Value.Write(FileNameToVersionManifest.Key.FullName);
 				}
 			}
+		}
+
+		/// <summary>
+		/// Reads in the version manifest
+		/// </summary>
+		public bool ReadReceipts()
+		{
+			if (!TargetReceipt.TryRead(ForceReceiptFileName, out Receipt))
+			{
+				if (!TargetReceipt.TryRead(ReceiptFileName, out Receipt))
+				{
+					return false;
+				}
+			}
+
+			//@todo read in all of the module manifests
+
+			return true;
 		}
 
 		/// <summary>
@@ -2233,16 +2357,17 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Builds the target, appending list of output files and returns building result.
 		/// </summary>
-		public ECompilationResult Build(UEToolChain TargetToolChain, out List<FileItem> OutputItems, out List<UHTModuleInfo> UObjectModules, out string EULAViolationWarning)
+		public ECompilationResult Build(UEToolChain TargetToolChain, out List<FileItem> OutputItems, out List<UHTModuleInfo> UObjectModules)
 		{
 			OutputItems = new List<FileItem>();
 			UObjectModules = new List<UHTModuleInfo>();
 
 			PreBuildSetup(TargetToolChain);
 
-			EULAViolationWarning = !ProjectFileGenerator.bGenerateProjectFiles
-				? CheckForEULAViolation()
-				: null;
+			if(!ProjectFileGenerator.bGenerateProjectFiles)
+			{
+				CheckForEULAViolation();
+			}
 
 			// Execute the pre-build steps
 			if(!ExecuteCustomPreBuildSteps())
@@ -2369,7 +2494,7 @@ namespace UnrealBuildTool
 					ECompilationResult UHTResult = ECompilationResult.OtherCompilationError;
 					if (!ExternalExecution.ExecuteHeaderToolIfNecessary(TargetToolChain, this, GlobalCompileEnvironment, UObjectModules, ModuleInfoFileName, ref UHTResult))
 					{
-						Log.TraceInformation("UnrealHeaderTool failed for target '" + GetTargetName() + "' (platform: " + Platform.ToString() + ", module info: " + ModuleInfoFileName + ").");
+						Log.TraceInformation(String.Format("Error: UnrealHeaderTool failed for target '{0}' (platform: {1}, module info: {2}, exit code: {3} ({4})).", GetTargetName(), Platform.ToString(), ModuleInfoFileName, UHTResult.ToString(), (int)UHTResult));
 						return UHTResult;
 					}
 				}
@@ -2405,42 +2530,45 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Check for EULA violation dependency issues.
 		/// </summary>
-		/// <returns>EULAViolationWarning if error hasn't been thrown earlier. This behavior is controlled using BuildConfiguration.bBreakBuildOnLicenseViolation.</returns>
-		private string CheckForEULAViolation()
+		private void CheckForEULAViolation()
 		{
-			string EULAViolationWarning = null;
-
 			if (TargetType != TargetRules.TargetType.Editor && TargetType != TargetRules.TargetType.Program && Configuration == UnrealTargetConfiguration.Shipping &&
 				BuildConfiguration.bCheckLicenseViolations)
 			{
-				StringBuilder RedistributionErrorMessageBuilder = new StringBuilder();
+				bool bLicenseViolation = false;
 				foreach (UEBuildBinary Binary in AppBinaries)
 				{
-					IEnumerable<UEBuildModule> NonRedistModules = Binary.GetAllDependencyModules(true, false).Where((DependencyModule) =>
+					List<UEBuildModule> AllDependencies = Binary.GetAllDependencyModules(true, false);
+					IEnumerable<UEBuildModule> NonRedistModules = AllDependencies.Where((DependencyModule) =>
 							!IsRedistributable(DependencyModule) && DependencyModule.Name != Binary.Target.AppName
 						);
 
 					if (NonRedistModules.Count() != 0)
 					{
-						RedistributionErrorMessageBuilder.Append(string.Format(
-							"{2}Binary {0} depends on: {1}.", Binary.ToString(), string.Join(", ", NonRedistModules),
-							RedistributionErrorMessageBuilder.Length > 0 ? "\n" : ""
-						));
+						IEnumerable<UEBuildModule> NonRedistDeps = AllDependencies.Where((DependantModule) =>
+							DependantModule.GetDirectDependencyModules().Intersect(NonRedistModules).Any()
+						);
+						string Message = string.Format("Non-editor build cannot depend on non-redistributable modules. {0} depends on '{1}'.", Binary.ToString(), string.Join("', '", NonRedistModules));
+						if (NonRedistDeps.Any())
+						{
+							Message = string.Format("{0}\nDependant modules '{1}'", Message, string.Join("', '", NonRedistDeps));
+						}
+						if(BuildConfiguration.bBreakBuildOnLicenseViolation)
+						{
+							Log.TraceError("ERROR: {0}", Message);
+						}
+						else
+						{
+							Log.TraceWarning("WARNING: {0}", Message);
+						}
+						bLicenseViolation = true;
 					}
 				}
-
-				if (RedistributionErrorMessageBuilder.Length > 0)
+				if (BuildConfiguration.bBreakBuildOnLicenseViolation && bLicenseViolation)
 				{
-					EULAViolationWarning = string.Format("Non-editor build cannot depend on non-redistributable modules. Details:\n{0}", RedistributionErrorMessageBuilder.ToString());
-
-					if (BuildConfiguration.bBreakBuildOnLicenseViolation)
-					{
-						throw new BuildException(EULAViolationWarning);
-					}
+					throw new BuildException("Non-editor build cannot depend on non-redistributable modules.");
 				}
 			}
-
-			return EULAViolationWarning;
 		}
 
 		/// <summary>
@@ -2693,6 +2821,12 @@ namespace UnrealBuildTool
 					}
 				}
 				AppBinaries = FilteredBinaries;
+
+				// Check we have at least one match
+				if(AppBinaries.Count == 0)
+				{
+					throw new BuildException("Couldn't find any module containing {0} in {1}.", SingleFileItem.Reference, TargetName);
+				}
 			}
 
 			if (ShouldCheckOutputDistributionLevel() && !ProjectFileGenerator.bGenerateProjectFiles)
@@ -3966,6 +4100,15 @@ namespace UnrealBuildTool
 				GlobalCompileEnvironment.Config.Definitions.Add("WITH_PLUGIN_SUPPORT=0");
 			}
 
+            if (UEBuildConfiguration.bWithPerfCounters)
+            {
+                GlobalCompileEnvironment.Config.Definitions.Add("WITH_PERFCOUNTERS=1");
+            }
+            else
+            {
+                GlobalCompileEnvironment.Config.Definitions.Add("WITH_PERFCOUNTERS=0");
+            }
+
 			if (UEBuildConfiguration.bUseLoggingInShipping)
 			{
 				GlobalCompileEnvironment.Config.Definitions.Add("USE_LOGGING_IN_SHIPPING=1");
@@ -3973,6 +4116,15 @@ namespace UnrealBuildTool
 			else
 			{
 				GlobalCompileEnvironment.Config.Definitions.Add("USE_LOGGING_IN_SHIPPING=0");
+			}
+
+			if (UEBuildConfiguration.bLoggingToMemoryEnabled)
+			{
+				GlobalCompileEnvironment.Config.Definitions.Add("WITH_LOGGING_TO_MEMORY=1");
+			}
+			else
+			{
+				GlobalCompileEnvironment.Config.Definitions.Add("WITH_LOGGING_TO_MEMORY=0");
 			}
 
 			if (UEBuildConfiguration.bUseChecksInShipping)
@@ -4042,6 +4194,15 @@ namespace UnrealBuildTool
 			SetUpConfigurationEnvironment();
 			SetUpProjectEnvironment(Configuration);
 
+			if (UEBuildConfiguration.bEventDrivenLoader && !bUseSharedBuildEnvironment)
+			{
+				GlobalCompileEnvironment.Config.Definitions.Add("USE_NEW_ASYNC_IO=1");
+			}
+			else
+			{
+				GlobalCompileEnvironment.Config.Definitions.Add("USE_NEW_ASYNC_IO=0");
+			}
+
 			// Validates current settings and updates if required.
 			BuildConfiguration.ValidateConfiguration(
 				GlobalCompileEnvironment.Config.Target.Configuration,
@@ -4087,13 +4248,13 @@ namespace UnrealBuildTool
 
 		void SetUpProjectEnvironment(UnrealTargetConfiguration Configuration)
 		{
-			PlatformContext.SetUpProjectEnvironment(Configuration);
+			PlatformContext.SetUpProjectEnvironment(Configuration, TargetInfo);
 		}
 
-		/// <summary>
-		/// Create a rules object for the given module, and set any default values for this target
-		/// </summary>
-		private ModuleRules CreateModuleRulesAndSetDefaults(string ModuleName, out FileReference ModuleFileName)
+        /// <summary>
+        /// Create a rules object for the given module, and set any default values for this target
+        /// </summary>
+        private ModuleRules CreateModuleRulesAndSetDefaults(string ModuleName, out FileReference ModuleFileName)
 		{
 			// Create the rules from the assembly
 			ModuleRules RulesObject = RulesAssembly.CreateModuleRules(ModuleName, TargetInfo, out ModuleFileName);
@@ -4135,6 +4296,13 @@ namespace UnrealBuildTool
 					else
 					{
 						// Game module - do not optimize in Debug and DebugGame builds.
+						////////////////////////////////////////////////////////////////////////////////////////
+						// @todo jira UE-29925:
+						// See the Jira for why this does not always work properly
+						// The following commented out line WORKS AROUND THE ISSUE BUT DOESN'T FIX IT. 
+						// UnrealTournament may act weird without this code.
+						// RulesObject.OptimizeCode = ModuleRules.CodeOptimization.Always;
+						////////////////////////////////////////////////////////////////////////////////////////
 						RulesObject.OptimizeCode = ModuleRules.CodeOptimization.InNonDebugBuilds;
 					}
 				}
@@ -4142,7 +4310,14 @@ namespace UnrealBuildTool
 				// Disable shared PCHs for game modules by default (but not game plugins, since they won't depend on the game's PCH!)
 				if (RulesObject.PCHUsage == ModuleRules.PCHUsageMode.Default)
 				{
-					if (ProjectFile == null || !ModuleFileName.IsUnderDirectory(DirectoryReference.Combine(ProjectFile.Directory, "Source")))
+					////////////////////////////////////////////////////////////////////////////////////////
+					// @todo jira UE-29925:
+					// The above comment is wrong. Plugins need SharedPCHs disabled as well. See the Jira. 
+					// The following line WORKS AROUND THE ISSUE BUT DOESN'T FIX IT. 
+					if (ProjectFile == null || !ModuleFileName.IsUnderDirectory(ProjectFile.Directory))
+					// This is the original code that matched the comment, but will cause at least Wolf to fail to compile UT
+					//if (ProjectFile == null || !ModuleFileName.IsUnderDirectory(DirectoryReference.Combine(ProjectFile.Directory, "Source")))
+					////////////////////////////////////////////////////////////////////////////////////////
 					{
 						// Engine module or plugin module -- allow shared PCHs
 						RulesObject.PCHUsage = ModuleRules.PCHUsageMode.UseSharedPCHs;

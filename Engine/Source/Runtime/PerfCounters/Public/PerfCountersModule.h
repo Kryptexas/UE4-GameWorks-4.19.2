@@ -10,6 +10,7 @@ struct TPrettyJsonPrintPolicy;
 template <class CharType, class PrintPolicy>
 class TJsonWriter;
 typedef TSharedRef< TJsonWriter<TCHAR,TPrettyJsonPrintPolicy<TCHAR> > > FPrettyJsonWriter;
+struct FHistogram;
 
 /**
  * Delegate called for a given counter to generate custom json at the time the query is made

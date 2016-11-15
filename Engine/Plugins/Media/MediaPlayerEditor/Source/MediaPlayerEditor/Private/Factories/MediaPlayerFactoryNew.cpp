@@ -70,21 +70,6 @@ public:
 										.Padding(0.0f, 6.0f, 0.0f, 0.0f)
 										[
 											SNew(SCheckBox)
-												.IsChecked(Options->CreateImageTexture ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-												.OnCheckStateChanged_Lambda([this](ECheckBoxState CheckBoxState) {
-													Options->CreateImageTexture = (CheckBoxState == ECheckBoxState::Checked);
-												})
-												.Content()
-												[
-													SNew(STextBlock)
-														.Text(LOCTEXT("CreateImageTextureLabel", "Still image output MediaTexture asset"))
-												]
-										]
-
-									+ SVerticalBox::Slot()
-										.Padding(0.0f, 6.0f, 0.0f, 0.0f)
-										[
-											SNew(SCheckBox)
 												.IsChecked(Options->CreateVideoTexture ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
 												.OnCheckStateChanged_Lambda([this](ECheckBoxState CheckBoxState) {
 													Options->CreateVideoTexture = (CheckBoxState == ECheckBoxState::Checked);
@@ -167,7 +152,6 @@ UMediaPlayerFactoryNew::UMediaPlayerFactoryNew( const FObjectInitializer& Object
 
 bool UMediaPlayerFactoryNew::ConfigureProperties()
 {
-	Options.CreateImageTexture = false;
 	Options.CreateSoundWave = false;
 	Options.CreateVideoTexture = false;
 	Options.OkClicked = false;
@@ -189,26 +173,13 @@ UObject* UMediaPlayerFactoryNew::FactoryCreateNew(UClass* InClass, UObject* InPa
 {
 	auto NewMediaPlayer = NewObject<UMediaPlayer>(InParent, InClass, InName, Flags);
 
-	if ((NewMediaPlayer != nullptr) && (Options.CreateImageTexture || Options.CreateSoundWave || Options.CreateVideoTexture))
+	if ((NewMediaPlayer != nullptr) && (Options.CreateSoundWave || Options.CreateVideoTexture))
 	{
 		IAssetTools& AssetTools = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
 		const FString ParentName = InParent->GetOutermost()->GetName();
 
 		FString OutAssetName;
 		FString OutPackageName;
-
-		if (Options.CreateImageTexture)
-		{
-			AssetTools.CreateUniqueAssetName(ParentName, TEXT("_Image"), OutPackageName, OutAssetName);
-			const FString PackagePath = FPackageName::GetLongPackagePath(OutPackageName);
-			auto Factory = NewObject<UMediaTextureFactoryNew>();
-			auto ImageTexture = Cast<UMediaTexture>(AssetTools.CreateAsset(OutAssetName, PackagePath, UMediaTexture::StaticClass(), Factory));
-
-			if (ImageTexture != nullptr)
-			{
-				NewMediaPlayer->SetImageTexture(ImageTexture);
-			}
-		}
 
 		if (Options.CreateSoundWave)
 		{

@@ -43,12 +43,15 @@ public:
 	// End of FAnimNode_AssetPlayerBase Interface
 
 protected:
+	/** Called after CurrentPoseAsset is changed.  */
+	virtual void OnPoseAssetChange() {}
+
 	TWeakObjectPtr<UPoseAsset> CurrentPoseAsset;
 	FAnimExtractContext PoseExtractContext;
 	// weight to blend pose per joint - has to be cached whenever cache bones for LOD
 	// note this is for mesh bone
 	TArray<float> BoneBlendWeights;
-	TArray<FSmartNameMapping::UID> PoseUIDList;
+	TArray<SmartName::UID_Type> PoseUIDList;
 
 private:
 	void UpdatePoseAssetProperty(struct FAnimInstanceProxy* InstanceProxy);

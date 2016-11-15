@@ -141,7 +141,7 @@ public:
 	 * @return true if an item was returned, false if the queue was empty.
 	 * @see Dequeue, Enqueue, IsEmpty
 	 */
-	bool Peek( ItemType& OutItem ) const
+	bool Peek(ItemType& OutItem) const
 	{
 		if (Tail->NextNode == nullptr)
 		{
@@ -170,7 +170,7 @@ private:
 		{ }
 
 		/** Creates and initializes a new node. */
-		TNode( const ItemType& InItem )
+		TNode(const ItemType& InItem)
 			: NextNode(nullptr)
 			, Item(InItem)
 		{ }
@@ -184,7 +184,10 @@ private:
 	TNode* Tail;
 
 private:
-	// Non-copyable
+
+	/** Hidden copy constructor. */
 	TQueue(const TQueue&);
+
+	/** Hidden assignment operator. */
 	TQueue& operator=(const TQueue&);
 };

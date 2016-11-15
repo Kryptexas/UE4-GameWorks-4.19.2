@@ -11,8 +11,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogHTML5Input, Log, All);
 
 
 #if PLATFORM_HTML5_BROWSER
-#include "emscripten.h"
-#include "html5.h"
+#include <emscripten/emscripten.h>
+#include <emscripten/html5.h>
 
 static FGamepadKeyNames::Type AxisMapping[4] =
 {

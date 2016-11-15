@@ -83,16 +83,40 @@ namespace Tools.CrashReporter.CrashReportProcess
 		public string DataRouterLandingZone { get; set; }
 
 		/// <summary>
+		/// Folder where new crash reports are queued from the PS4 crash service.
+		/// </summary>
+		[XmlElement]
+		public string PS4LandingZone { get; set; }
+
+		/// <summary>
 		/// Folder where failed reports are moved.
 		/// </summary>
 		[XmlElement]
 		public string InvalidReportsDirectory { get; set; }
 
 		/// <summary>
+		/// Number of reports in a queue at which reports will start to be discarded to stop a backlog from growing uncontrollably.
+		/// </summary>
+		[XmlElement]
+		public int QueueLowerLimitForDiscard { get; set; }
+
+		/// <summary>
+		/// Number of reports in a queue at which reports will all be discarded so this is the upper limit for a backlog.
+		/// </summary>
+		[XmlElement]
+		public int QueueUpperLimitForDiscard { get; set; }
+
+		/// <summary>
 		/// String passed to Minidump Diagnostics to modify its Perforce depot root.
 		/// </summary>
 		[XmlElement]
 		public string DepotIndex { get; set; }
+
+		/// <summary>
+		/// Whether MDD is synched from source control to get the latest files when the CRP starts. Switch off to manually deploy MDD.
+		/// </summary>
+		[XmlElement]
+		public bool bSyncMinidumpDiagnostics { get; set; }
 
 		/// <summary>
 		/// String specifying the binaries that will be synched from source control to get the latest MinidumpDiagnostics.
@@ -119,6 +143,36 @@ namespace Tools.CrashReporter.CrashReportProcess
 		public string MDDBinariesFolderInDepot { get; set; }
 
 		/// <summary>
+		/// String specifying the path to the folder used by MinidumpDiagnostics for the PDB cache
+		/// </summary>
+		[XmlElement]
+		public string MDDPDBCachePath { get; set; }
+
+		/// <summary>
+		/// Number telling MinidumpDiagnostics how large it can make the PDB cache
+		/// </summary>
+		[XmlElement]
+		public int MDDPDBCacheSizeGB { get; set; }
+
+		/// <summary>
+		/// Number telling MinidumpDiagnostics when it should start clearing cache entries to create more disk space
+		/// </summary>
+		[XmlElement]
+		public int MDDPDBCacheMinFreeSpaceGB { get; set; }
+
+		/// <summary>
+		/// Number telling MinidumpDiagnostics the minimum age if a cache entry that should be considered for deletion/stale
+		/// </summary>
+		[XmlElement]
+		public int MDDPDBCacheFileDeleteDays { get; set; }
+
+		/// <summary>
+		/// Timeout when waiting for MinidumpDiagnostics to complete
+		/// </summary>
+		[XmlElement]
+		public int MDDTimeoutMinutes { get; set; }
+
+		/// <summary>
 		/// The number of threads created by each main processor thread to upload crashes to the website. (relieves a bottleneck when using a single processor thread)
 		/// </summary>
 		[XmlElement]
@@ -129,6 +183,12 @@ namespace Tools.CrashReporter.CrashReportProcess
 		/// </summary>
 		[XmlElement]
 		public int ProcessorThreadCount { get; set; }
+
+		/// <summary>
+		/// The number of parallel MDD instances allowed
+		/// </summary>
+		[XmlElement]
+		public int MaxConcurrentMDDs { get; set; }
 
 		/// <summary>
 		/// Incoming webhook URL for Slack integration.
@@ -153,6 +213,18 @@ namespace Tools.CrashReporter.CrashReportProcess
 		/// </summary>
 		[XmlElement]
 		public string SlackEmoji { get; set; }
+
+		/// <summary>
+		/// The time period in which an alert with the same identifying key is not allowed to repeat.
+		/// </summary>
+		[XmlElement]
+		public int SlackAlertRepeatMinimumMinutes { get; set; }
+
+		/// <summary>
+		/// The time period in which a crash decimation (large backlog) alert with the same identifying key is not allowed to repeat.
+		/// </summary>
+		[XmlElement]
+		public int SlackDecimateAlertRepeatMinimumMinutes { get; set; }
 
 		/// <summary>
 		/// Local folder used to setup testing folders in Debug builds. Overrides other folder params in config.
@@ -186,34 +258,70 @@ namespace Tools.CrashReporter.CrashReportProcess
 		public int MaxMemoryQueueSize { get; set; }
 
 		/// <summary>
-		/// AWSSDK service Url for S3 client
-		/// </summary>
-		[XmlElement]
-		public string AWSS3ServiceURL { get; set; }
-
-		/// <summary>
-		/// AWSSDK service Url for SQS client
-		/// </summary>
-		[XmlElement]
-		public string AWSSQSServiceURL { get; set; }
-
-		/// <summary>
-		/// AWSSDK queue Url for SQS client
-		/// </summary>
-		[XmlElement]
-		public string AWSSQSQueueUrl { get; set; }
-
-		/// <summary>
-		/// AWSSDK Profile name used in the AWS credentials file
-		/// </summary>
-		[XmlElement]
-		public string AWSProfileName { get; set; }
-
-		/// <summary>
 		/// AWSSDK AWS credentials filepath containing the keys used to access SQS and S3
 		/// </summary>
 		[XmlElement]
 		public string AWSCredentialsFilepath { get; set; }
+
+		/// <summary>
+		/// AWSSDK Profile name used in the AWS credentials file for reading crashes from DataRouter
+		/// </summary>
+		[XmlElement]
+		public string AWSProfileInputName { get; set; }
+
+		/// <summary>
+		/// AWSSDK service Url for S3 client reading crashes from DataRouter
+		/// </summary>
+		[XmlElement]
+		public string AWSS3ServiceInputURL { get; set; }
+
+		/// <summary>
+		/// AWSSDK service Url for SQS client reading crashes from DataRouter
+		/// </summary>
+		[XmlElement]
+		public string AWSSQSServiceInputURL { get; set; }
+
+		/// <summary>
+		/// AWSSDK queue Url for SQS client reading crashes from DataRouter
+		/// </summary>
+		[XmlElement]
+		public string AWSSQSQueueInputUrl { get; set; }
+
+		/// <summary>
+		/// AWSSDK Profile name used in the AWS credentials file for writing crashes to S3
+		/// </summary>
+		[XmlElement]
+		public string AWSProfileOutputName { get; set; }
+
+		/// <summary>
+		/// AWSSDK service Url for S3 client for writing crashes to S3
+		/// </summary>
+		[XmlElement]
+		public string AWSS3ServiceOutputURL { get; set; }
+
+		/// <summary>
+		/// Should we output a copy of the crash report files to disk? (ProcessedReports, ProcessedVideos)
+		/// </summary>
+		[XmlElement]
+		public bool CrashFilesToDisk { get; set; }
+
+		/// <summary>
+		/// Should we output a copy of the crash report files to S3?
+		/// </summary>
+		[XmlElement]
+		public bool CrashFilesToAWS { get; set; }
+
+		/// <summary>
+		/// AWSSDK AWS S3 bucket used for output of crash reporter files (optional)
+		/// </summary>
+		[XmlElement]
+		public string AWSS3OutputBucket { get; set; }
+
+		/// <summary>
+		/// AWSSDK AWS S3 path/key prefix used for output of crash reporter files (suffix will be crash id and file name) (optional)
+		/// </summary>
+		[XmlElement]
+		public string AWSS3OutputKeyPrefix { get; set; }
 
 		/// <summary>
 		/// Buffer size used to decompress zlib archives taken from S3
@@ -222,7 +330,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 		public int MaxUncompressedS3RecordSize { get; set; }
 
 		/// <summary>
-		/// Index file used to store all processed crash names and times. Stops duplicates.
+		/// Index file used to store all processed crash names and times. Stops duplicates. Leave blank to disable.
 		/// </summary>
 		[XmlElement]
 		public string ProcessedReportsIndexPath { get; set; }
@@ -244,6 +352,12 @@ namespace Tools.CrashReporter.CrashReportProcess
 		/// </summary>
 		[XmlElement]
 		public int AddCrashRetryDelayMillisec { get; set; }
+
+		/// <summary>
+		/// Disk space available threshold that generates alerts. If a disk has less space than this, it will generate alerts.
+		/// </summary>
+		[XmlElement]
+		public float DiskSpaceAlertPercent { get; set; }
 
 		/// <summary>
 		/// Get the default config object (lazy loads it on first access)
@@ -294,16 +408,35 @@ namespace Tools.CrashReporter.CrashReportProcess
 			LoadedConfig.ProcessedReports = Path.Combine(LoadedConfig.DebugTestingFolder, "ProcessedReports");
 			LoadedConfig.ProcessedVideos = Path.Combine(LoadedConfig.DebugTestingFolder, "ProcessedVideos");
 			LoadedConfig.DepotRoot = Path.Combine(LoadedConfig.DebugTestingFolder, "DepotRoot");
-			LoadedConfig.InternalLandingZone = Path.Combine(LoadedConfig.DebugTestingFolder, "InternalLandingZone");
-			LoadedConfig.ExternalLandingZone = Path.Combine(LoadedConfig.DebugTestingFolder, "ExternalLandingZone");
-			LoadedConfig.DataRouterLandingZone = Path.Combine(LoadedConfig.DebugTestingFolder, "DataRouterLandingZone");
+			if (!string.IsNullOrWhiteSpace(LoadedConfig.InternalLandingZone))
+			{
+				LoadedConfig.InternalLandingZone = Path.Combine(LoadedConfig.DebugTestingFolder, "InternalLandingZone");
+			}
+			if (!string.IsNullOrWhiteSpace(LoadedConfig.ExternalLandingZone))
+			{
+				LoadedConfig.ExternalLandingZone = Path.Combine(LoadedConfig.DebugTestingFolder, "ExternalLandingZone");
+			}
+			if (!string.IsNullOrWhiteSpace(LoadedConfig.DataRouterLandingZone))
+			{
+				LoadedConfig.DataRouterLandingZone = Path.Combine(LoadedConfig.DebugTestingFolder, "DataRouterLandingZone");
+			}
+			if (!string.IsNullOrWhiteSpace(LoadedConfig.PS4LandingZone))
+			{
+				LoadedConfig.PS4LandingZone = Path.Combine(LoadedConfig.DebugTestingFolder, "PS4LandingZone");
+			}
 			LoadedConfig.InvalidReportsDirectory = Path.Combine(LoadedConfig.DebugTestingFolder, "InvalidReportsDirectory");
 			LoadedConfig.VersionString += " debugbuild";
 			LoadedConfig.AWSCredentialsFilepath = Path.Combine(LoadedConfig.DebugTestingFolder, "AWS", "credentials.ini");
-			LoadedConfig.ProcessedReportsIndexPath = Path.Combine(LoadedConfig.DebugTestingFolder, "ProcessedReports.ini");
+			if (!string.IsNullOrWhiteSpace(LoadedConfig.ProcessedReportsIndexPath))
+			{
+				LoadedConfig.ProcessedReportsIndexPath = Path.Combine(LoadedConfig.DebugTestingFolder, "ProcessedReports.ini");
+			}
+			LoadedConfig.CrashReportWebSite = string.Empty;
+			LoadedConfig.AWSS3OutputKeyPrefix = LoadedConfig.AWSS3OutputKeyPrefix.Replace("prod", "test");
 
 #if SLACKTESTING
 			LoadedConfig.SlackUsername = "CrashReportProcess_TESTING_IgnoreMe";
+			//LoadedConfig.SlackChannel = "OPTIONALTESTINGCHANNELHERE";
 #else
 			LoadedConfig.SlackWebhookUrl = string.Empty;	// no Slack in dbeug
 #endif

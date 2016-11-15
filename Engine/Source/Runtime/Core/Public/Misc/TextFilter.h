@@ -3,6 +3,7 @@
 
 #include "IFilter.h"
 #include "TextFilterExpressionEvaluator.h"
+#include "Templates/RemoveReference.h"
 
 /**
  *	A generic filter specialized for text restrictions

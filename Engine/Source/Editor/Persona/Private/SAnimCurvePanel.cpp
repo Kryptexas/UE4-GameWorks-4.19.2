@@ -12,6 +12,7 @@
 #include "SExpandableArea.h"
 #include "STextEntryPopup.h"
 #include "Animation/AnimSequence.h"
+#include "IEditableSkeleton.h"
 
 #define LOCTEXT_NAMESPACE "AnimCurvePanel"
 
@@ -24,11 +25,12 @@ class FAnimCurveBaseInterface : public FCurveOwnerInterface
 private:
 	FAnimCurveBase*	CurveData;
 
-	void UpdateNameInternal(FRawCurveTracks& RawCurveData, const FSmartNameMapping::UID& RequestedNameUID, FName RequestedName)
+	void UpdateNameInternal(FRawCurveTracks& RawCurveData, const SmartName::UID_Type& RequestedNameUID, FName RequestedName)
 	{
 		FAnimCurveBase* CurrentCurveData = RawCurveData.GetCurveData(CurveUID);
 		if (CurrentCurveData)
 		{
+			CurrentCurveData->Name.UID = RequestedNameUID;
 			CurrentCurveData->Name.DisplayName = RequestedName;
 		}
 	}
@@ -105,6 +107,10 @@ public:
 
 	virtual void OnCurveChanged(const TArray<FRichCurveEditInfo>& ChangedCurveEditInfos) override
 	{
+		if (AnimSequenceBase.IsValid())
+		{
+			AnimSequenceBase.Get()->PostEditChange();
+		}
 	}
 
 	virtual bool IsValidCurve( FRichCurveEditInfo CurveInfo ) override
@@ -128,20 +134,20 @@ public:
 		CurrentCurveData->FloatCurve.AddKey(0.0f, 1.0f);
 	}
 
-	void UpdateName(const FSmartNameMapping::UID& RequestedNameUID, FName RequestedName)
+	void UpdateName(const SmartName::UID_Type& RequestedNameUID, FName RequestedName)
 	{
-		CurveUID = RequestedNameUID;
 		UpdateNameInternal(AnimSequenceBase.Get()->RawCurveData, RequestedNameUID, RequestedName);
 		if (UAnimSequence* Seq = AnimSequence.Get())
 		{
 			UpdateNameInternal(Seq->CompressedCurveData, RequestedNameUID, RequestedName);
 		}
+		CurveUID = RequestedNameUID;
 	}
 
 	/**
 	* Set InFlag to bValue
 	*/
-	void SetCurveTypeFlag(EAnimCurveFlags InFlag, bool bValue)
+	void SetCurveTypeFlag(EAnimAssetCurveFlags InFlag, bool bValue)
 	{
 		AnimSequenceBase.Get()->RawCurveData.GetCurveData(CurveUID)->SetCurveTypeFlag(InFlag, bValue);
 		if (UAnimSequence* Seq = AnimSequence.Get())
@@ -156,7 +162,7 @@ public:
 	/**
 	* Toggle the value of the specified flag
 	*/
-	void ToggleCurveTypeFlag(EAnimCurveFlags InFlag)
+	void ToggleCurveTypeFlag(EAnimAssetCurveFlags InFlag)
 	{
 		AnimSequenceBase.Get()->RawCurveData.GetCurveData(CurveUID)->ToggleCurveTypeFlag(InFlag);
 		if (UAnimSequence* Seq = AnimSequence.Get())
@@ -171,7 +177,7 @@ public:
 	/**
 	* Return true if InFlag is set, false otherwise
 	*/
-	bool GetCurveTypeFlag(EAnimCurveFlags InFlag) const
+	bool GetCurveTypeFlag(EAnimAssetCurveFlags InFlag) const
 	{
 		return AnimSequenceBase.Get()->RawCurveData.GetCurveData(CurveUID)->GetCurveTypeFlag(InFlag);
 	}
@@ -230,11 +236,6 @@ public:
 	// Delete current track
 	void DeleteTrack();
 
-	// Sets the current mode for this curve
-	void ToggleCurveMode(ECheckBoxState NewState, EAnimCurveFlags ModeToSet);
-
-	// Returns whether this curve is of the specificed mode type
-	ECheckBoxState IsCurveOfMode(EAnimCurveFlags ModeToTest) const;
 
 	/**
 	 * Build and display curve track context menu.
@@ -400,38 +401,50 @@ void SCurveEdTrack::NewCurveNameEntered( const FText& NewText, ETextCommit::Type
 			FName RequestedName = FName(*NewText.ToString());
 			const FSmartNameMapping* NameMapping = Skeleton->GetSmartNameContainer(USkeleton::AnimCurveMappingName);
 
+			FScopedTransaction Transaction(LOCTEXT("CurveEditor_RenameCurve", "Rename Curve"));
+
 			// If requested name exists, make sure it's not currently in use in this sequence.
-			const FSmartNameMapping::UID* RequestedNameUID = NameMapping->FindUID(RequestedName);
-			if (RequestedNameUID != nullptr)
+
+			SmartName::UID_Type RequestedNameUID;
+
+			if (const SmartName::UID_Type* RequestedNameUIDPtr = NameMapping->FindUID(RequestedName))
 			{
+				RequestedNameUID = *RequestedNameUIDPtr;
 				// Already in use in this sequence, skip
-				if (CurveInterface->AnimSequenceBase->RawCurveData.GetCurveData(*RequestedNameUID) != nullptr)
+				if (CurveInterface->AnimSequenceBase->RawCurveData.GetCurveData(RequestedNameUID) != nullptr)
 				{
 					FFormatNamedArguments Args;
 					Args.Add(TEXT("DestinationName"), FText::FromName(RequestedName));
 					const FText DialogMessage = FText::Format(LOCTEXT("CurveEditor_RenameCurve_AlreadyExists", "ERROR: A curve named '{DestinationName}' already exists in this Sequence."), Args);
 					FMessageDialog::Open(EAppMsgType::Ok, DialogMessage);
+					Transaction.Cancel();
 					return;
-				}
-
-				// Not in use in this sequence, switch it to the other curve name.
-				FScopedTransaction Transaction(LOCTEXT("CurveEditor_RenameCurve", "Rename Curve"));
-				CurveInterface->AnimSequenceBase->Modify(true);
-
-				CurveInterface->UpdateName(*RequestedNameUID, RequestedName);
-
-				// 2. refresh panel
-				TSharedPtr<SAnimCurvePanel> SharedPanel = PanelPtr.Pin();
-				if (SharedPanel.IsValid())
-				{
-					SharedPanel.Get()->UpdatePanel();
 				}
 			}
 			else
 			{
-				// If it doesn't exist, rename Curve.
-				FScopedTransaction Transaction(LOCTEXT("CurveEditor_RenameCurve", "Rename Curve"));
-				Skeleton->RenameSmartnameAndModify(USkeleton::AnimCurveMappingName, CurveInterface->CurveUID, FName(*NewText.ToString()));
+				FSmartName NewName;
+				const bool bAdded = Skeleton->AddSmartNameAndModify(USkeleton::AnimCurveMappingName, RequestedName, NewName);
+				if (!bAdded)
+				{
+					const FText DialogMessage = LOCTEXT("CurveEditor_RenameCurve_Unknownfailure", "ERROR: Failed to add new curve smart name, check the log for errors.");
+					FMessageDialog::Open(EAppMsgType::Ok, DialogMessage);
+					Transaction.Cancel();
+					return;
+				}
+				RequestedNameUID = NewName.UID;
+			}
+
+			// Not in use in this sequence, switch it to the other curve name.
+			CurveInterface->AnimSequenceBase->Modify(true);
+
+			CurveInterface->UpdateName(RequestedNameUID, RequestedName);
+
+			// 2. refresh panel
+			TSharedPtr<SAnimCurvePanel> SharedPanel = PanelPtr.Pin();
+			if (SharedPanel.IsValid())
+			{
+				SharedPanel.Get()->UpdatePanel();
 			}
 		}
 	}
@@ -461,49 +474,6 @@ void SCurveEdTrack::DeleteTrack()
 	}
 }
 
-void SCurveEdTrack::ToggleCurveMode(ECheckBoxState NewState,EAnimCurveFlags ModeToSet)
-{
-	const int32 AllModes = (ACF_DriveMorphTarget|ACF_DriveMaterial);
-	check((ModeToSet&AllModes) != 0); //unexpected value for ModeToSet
-
-	FText UndoLabel;
-	bool bIsSwitchingFlagOn = !CurveInterface->GetCurveTypeFlag(ModeToSet);
-	check(bIsSwitchingFlagOn == (NewState==ECheckBoxState::Checked));
-	
-	if(bIsSwitchingFlagOn)
-	{
-		if(ModeToSet == ACF_DriveMorphTarget)
-		{
-			UndoLabel = LOCTEXT("AnimCurve_TurnOnMorphMode", "Enable driving of morph targets");
-		}
-		else if(ModeToSet == ACF_DriveMaterial)
-		{
-			UndoLabel = LOCTEXT("AnimCurve_TurnOnMaterialMode", "Enable driving of materials");
-		}
-	}
-	else
-	{
-		if(ModeToSet == ACF_DriveMorphTarget)
-		{
-			UndoLabel = LOCTEXT("AnimCurve_TurnOffMorphMode", "Disable driving of morph targets");
-		}
-		else if(ModeToSet == ACF_DriveMaterial)
-		{
-			UndoLabel = LOCTEXT("AnimCurve_TurnOffMaterialMode", "Disable driving of materials");
-		}
-	}
-
-	const FScopedTransaction Transaction( UndoLabel );
-	CurveInterface->MakeTransactional();
-	CurveInterface->ModifyOwner();
-
-	CurveInterface->SetCurveTypeFlag(ModeToSet, bIsSwitchingFlagOn);
-}
-
-ECheckBoxState SCurveEdTrack::IsCurveOfMode(EAnimCurveFlags ModeToTest) const
-{
-	return CurveInterface->GetCurveTypeFlag(ModeToTest) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-}
 
 FReply SCurveEdTrack::OnContextMenu()
 {
@@ -570,7 +540,7 @@ public:
 	}
 };
 
-void SAnimCurvePanel::Construct(const FArguments& InArgs)
+void SAnimCurvePanel::Construct(const FArguments& InArgs, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton)
 {
 	SAnimTrackPanel::Construct( SAnimTrackPanel::FArguments()
 		.WidgetWidth(InArgs._WidgetWidth)
@@ -580,10 +550,12 @@ void SAnimCurvePanel::Construct(const FArguments& InArgs)
 		.InputMax(InArgs._InputMax)
 		.OnSetInputViewRange(InArgs._OnSetInputViewRange));
 
-	WeakPersona = InArgs._Persona;
 	Sequence = InArgs._Sequence;
 	WidgetWidth = InArgs._WidgetWidth;
 	OnGetScrubValue = InArgs._OnGetScrubValue;
+	OnCurvesChanged = InArgs._OnCurvesChanged;
+
+	InEditableSkeleton->RegisterOnSmartNameRemoved(FOnSmartNameRemoved::FDelegate::CreateSP(this, &SAnimCurvePanel::HandleSmartNameRemoved));
 
 	this->ChildSlot
 	[
@@ -744,6 +716,7 @@ FReply SAnimCurvePanel::DuplicateTrack(USkeleton::AnimCurveUID Uid)
 			{
 				Sequence->Modify();
 				Sequence->MarkRawDataAsModified();
+				Sequence->PostEditChange();
 				UpdatePanel();
 
 				return FReply::Handled();
@@ -765,6 +738,7 @@ void SAnimCurvePanel::DeleteTrack(USkeleton::AnimCurveUID Uid)
 			Sequence->Modify(true);
 			Sequence->RawCurveData.DeleteCurveData(TrackName);
 			Sequence->MarkRawDataAsModified();
+			Sequence->PostEditChange();
 			UpdatePanel();
 		}
 	}
@@ -777,6 +751,7 @@ void SAnimCurvePanel::DeleteAllTracks()
 	Sequence->Modify(true);
 	Sequence->RawCurveData.DeleteAllCurveData();
 	Sequence->MarkRawDataAsModified();
+	Sequence->PostEditChange();
 	UpdatePanel();
 }
 
@@ -784,34 +759,6 @@ FReply SAnimCurvePanel::OnContextMenu()
 {
 	FMenuBuilder MenuBuilder(true, NULL);
 
-	MenuBuilder.BeginSection("AnimCurvePanelCurveTypes", LOCTEXT("AllCurveTypesHeading", "All Curve Types"));
-	{
-		MenuBuilder.AddWidget(
-			SNew(SCheckBox)
-			.IsChecked( this, &SAnimCurvePanel::AreAllCurvesOfMode, ACF_DriveMorphTarget )
-			.OnCheckStateChanged( this, &SAnimCurvePanel::ToggleAllCurveModes, ACF_DriveMorphTarget )
-			.ToolTipText(LOCTEXT("MorphCurveModeTooltip", "This curve drives a morph target"))
-			[
-				SNew(STextBlock)
-				.Text(LOCTEXT("MorphCurveMode", "Morph Curve"))
-			],
-			FText()
-		);
-
-		MenuBuilder.AddWidget(
-			SNew(SCheckBox)
-			.IsChecked( this, &SAnimCurvePanel::AreAllCurvesOfMode, ACF_DriveMaterial )
-			.OnCheckStateChanged( this, &SAnimCurvePanel::ToggleAllCurveModes, ACF_DriveMaterial )
-			.ToolTipText(LOCTEXT("MaterialCurveModeTooltip", "This curve drives a material"))
-			.HAlign(HAlign_Left)
-			[
-				SNew(STextBlock)
-				.Text(LOCTEXT("MaterialCurveMode", "Material Curve"))
-			],
-			FText()
-		);
-	}
-	MenuBuilder.EndSection();
 
 	MenuBuilder.BeginSection("AnimCurvePanelOptions", LOCTEXT("OptionsHeading", "Options"));
 	{
@@ -840,47 +787,6 @@ EVisibility SAnimCurvePanel::IsSetAllTracksButtonVisible() const
 	return (Tracks.Num() > 1) ? EVisibility::Visible : EVisibility::Hidden;
 }
 
-void SAnimCurvePanel::ToggleAllCurveModes(ECheckBoxState NewState, EAnimCurveFlags ModeToSet)
-{
-	const ECheckBoxState CurrentAllState = AreAllCurvesOfMode(ModeToSet);
-	for(TWeakPtr<SCurveEdTrack> TrackWeak : Tracks)
-	{
-		TSharedPtr<SCurveEdTrack> TrackWidget = TrackWeak.Pin();
-		if( TrackWidget.IsValid() )
-		{
-			const ECheckBoxState CurrentTrackState = TrackWidget->IsCurveOfMode(ModeToSet);
-			if( (CurrentAllState == CurrentTrackState) || ((CurrentAllState == ECheckBoxState::Undetermined) && (CurrentTrackState == ECheckBoxState::Unchecked)) )
-			{
-				TrackWidget->ToggleCurveMode( NewState, ModeToSet );
-			}
-		}
-	}
-}
-
-ECheckBoxState SAnimCurvePanel::AreAllCurvesOfMode(EAnimCurveFlags ModeToSet) const
-{
-	int32 NumChecked = 0;
-	for(const TWeakPtr<SCurveEdTrack> TrackWeak : Tracks)
-	{
-		const TSharedPtr<SCurveEdTrack> TrackWidget = TrackWeak.Pin();
-		if( TrackWidget.IsValid() )
-		{
-			if ( TrackWidget->IsCurveOfMode(ModeToSet) == ECheckBoxState::Checked )
-			{
-				NumChecked++;
-			}
-		}
-	}
-	if( NumChecked == Tracks.Num() )
-	{
-		return ECheckBoxState::Checked;
-	}
-	else if( NumChecked == 0 )
-	{
-		return ECheckBoxState::Unchecked;
-	}
-	return ECheckBoxState::Undetermined;
-}
 
 void SAnimCurvePanel::UpdatePanel()
 {
@@ -956,11 +862,7 @@ void SAnimCurvePanel::UpdatePanel()
 			}
 		}
 
-		TSharedPtr<FPersona> SharedPersona = WeakPersona.Pin();
-		if(SharedPersona.IsValid())
-		{
-			SharedPersona->OnCurvesChanged.Broadcast();
-		}
+		OnCurvesChanged.ExecuteIfBound();
 	}
 }
 
@@ -1246,6 +1148,7 @@ void SAnimCurvePanel::AddMetadataEntry(USkeleton::AnimCurveUID Uid)
 		Curve->FloatCurve.AddKey(0.0f, 1.0f);
 		Curve->SetCurveTypeFlag(ACF_Metadata, true);
 		RefreshPanel();
+		Sequence->PostEditChange();
 	}
 }
 
@@ -1306,33 +1209,6 @@ TSharedRef<SWidget> SAnimCurvePanel::CreateCurveContextMenu(FAnimCurveBaseInterf
 {
 	FMenuBuilder MenuBuilder(true, NULL);
 
-	MenuBuilder.BeginSection("AnimCurvePanelCurveTypes", LOCTEXT("CurveTypesHeading", "Curve Types"));
-	{
-		MenuBuilder.AddWidget(
-			SNew(SCheckBox)
-			.IsChecked(this, &SAnimCurvePanel::GetCurveFlagAsCheckboxState, Curve, ACF_DriveMorphTarget)
-			.OnCheckStateChanged(this, &SAnimCurvePanel::SetCurveFlagFromCheckboxState, Curve, ACF_DriveMorphTarget)
-			.ToolTipText(LOCTEXT("MorphCurveModeTooltip", "This curve drives a morph target"))
-			[
-				SNew(STextBlock)
-				.Text(LOCTEXT("MorphCurveMode", "Morph Curve"))
-			],
-			FText()
-			);
-
-		MenuBuilder.AddWidget(
-			SNew(SCheckBox)
-			.IsChecked(this, &SAnimCurvePanel::GetCurveFlagAsCheckboxState, Curve, ACF_DriveMaterial)
-			.OnCheckStateChanged(this, &SAnimCurvePanel::SetCurveFlagFromCheckboxState, Curve, ACF_DriveMaterial)
-			.ToolTipText(LOCTEXT("MaterialCurveModeTooltip", "This curve drives a material"))
-			[
-				SNew(STextBlock)
-				.Text(LOCTEXT("MaterialCurveMode", "Material Curve"))
-			],
-			FText()
-			);
-	}
-	MenuBuilder.EndSection();
 
 	MenuBuilder.BeginSection("AnimCurvePanelTrackOptions", LOCTEXT("TrackOptionsHeading", "Track Options"));
 	{
@@ -1367,17 +1243,6 @@ TSharedRef<SWidget> SAnimCurvePanel::CreateCurveContextMenu(FAnimCurveBaseInterf
 	return MenuBuilder.MakeWidget();
 }
 
-ECheckBoxState SAnimCurvePanel::GetCurveFlagAsCheckboxState(FAnimCurveBaseInterface* Curve, EAnimCurveFlags InFlag) const
-{
-	return Curve->GetCurveTypeFlag(InFlag) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-}
-
-void SAnimCurvePanel::SetCurveFlagFromCheckboxState(ECheckBoxState CheckState, FAnimCurveBaseInterface* Curve, EAnimCurveFlags InFlag)
-{
-	bool Enabled = CheckState == ECheckBoxState::Checked;
-	Curve->SetCurveTypeFlag(InFlag, Enabled);
-}
-
 void SAnimCurvePanel::ToggleCurveTypeMenuCallback(FAnimCurveBaseInterface* Curve)
 {
 	check(Curve);
@@ -1405,6 +1270,12 @@ void SAnimCurvePanel::AddVariableCurve(USkeleton::AnimCurveUID CurveUid)
 	ensureAlways(Skeleton->GetSmartNameByUID(USkeleton::AnimCurveMappingName, CurveUid, NewName));
 	Sequence->RawCurveData.AddCurveData(NewName);
 	Sequence->MarkRawDataAsModified();
+	Sequence->PostEditChange();
+	UpdatePanel();
+}
+
+void SAnimCurvePanel::HandleSmartNameRemoved(const FName& InContainerName, const TArray<SmartName::UID_Type>& InNameUids)
+{
 	UpdatePanel();
 }
 

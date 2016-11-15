@@ -21,7 +21,7 @@ enum EInitialOscillatorOffset
 
 /** Defines oscillation of a single number. */
 USTRUCT()
-struct FFOscillator
+struct ENGINE_API FFOscillator
 {
 	GENERATED_USTRUCT_BODY()
 

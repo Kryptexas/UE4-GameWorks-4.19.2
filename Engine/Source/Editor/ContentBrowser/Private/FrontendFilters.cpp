@@ -6,6 +6,7 @@
 #include "ObjectTools.h"
 #include "AssetToolsModule.h"
 #include "CollectionManagerModule.h"
+#include "Templates/RemoveReference.h"
 
 
 /////////////////////////////////////////

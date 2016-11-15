@@ -114,12 +114,8 @@ static bool IsSkylightActive(const FViewInfo& View)
 		&& View.Family->EngineShowFlags.SkyLighting;
 }
 
-// @return 0:off, 0..3
-uint32 ComputeAmbientOcclusionPassCount(const FViewInfo& View)
+bool ShouldRenderScreenSpaceAmbientOcclusion(const FViewInfo& View)
 {
-	// 0:off / 1 / 2 / 3
-	uint32 Ret = 0;
-
 	bool bEnabled = true;
 
 	if (!IsLpvIndirectPassRequired(View))
@@ -131,6 +127,17 @@ uint32 ComputeAmbientOcclusionPassCount(const FViewInfo& View)
 			&& (FSSAOHelper::IsBasePassAmbientOcclusionRequired(View) || IsAmbientCubemapPassRequired(View) || IsReflectionEnvironmentActive(View) || IsSkylightActive(View) || View.Family->EngineShowFlags.VisualizeBuffer)
 			&& !IsAnyForwardShadingEnabled(View.GetShaderPlatform());
 	}
+
+	return bEnabled;
+}
+
+// @return 0:off, 0..3
+uint32 ComputeAmbientOcclusionPassCount(const FViewInfo& View)
+{
+	// 0:off / 1 / 2 / 3
+	uint32 Ret = 0;
+
+	const bool bEnabled = ShouldRenderScreenSpaceAmbientOcclusion(View);
 
 	if (bEnabled)
 	{
@@ -424,7 +431,7 @@ void FCompositionLighting::ProcessAfterLighting(FRHICommandListImmediate& RHICmd
 		{
 			float Radius = CVarSSSScale.GetValueOnRenderThread();
 			bool bSimpleDynamicLighting = IsAnyForwardShadingEnabled(View.GetShaderPlatform());
-			bool bScreenSpaceSubsurfacePassNeeded = (View.ShadingModelMaskInView & (1 << MSM_SubsurfaceProfile)) != 0;
+			bool bScreenSpaceSubsurfacePassNeeded = ((View.ShadingModelMaskInView & (1 << MSM_SubsurfaceProfile)) != 0) && IsSubsurfacePostprocessRequired();
 			bool bSubsurfaceAllowed = CVarSubsurfaceScattering.GetValueOnRenderThread() == 1;
 
 			if (bScreenSpaceSubsurfacePassNeeded 
@@ -558,4 +565,11 @@ void FCompositionLighting::GfxWaitForAsyncSSAO(FRHICommandListImmediate& RHICmdL
 		RHICmdList.WaitComputeFence(AsyncSSAOFence);
 		AsyncSSAOFence = nullptr;
 	}
+}
+
+bool FCompositionLighting::IsSubsurfacePostprocessRequired() const
+{
+	const bool bSSSEnabled = CVarSubsurfaceScattering->GetInt() != 0;
+	const bool bSSSScaleEnabled = CVarSSSScale.GetValueOnAnyThread() > 0.0f;
+	return (bSSSEnabled && bSSSScaleEnabled);	
 }

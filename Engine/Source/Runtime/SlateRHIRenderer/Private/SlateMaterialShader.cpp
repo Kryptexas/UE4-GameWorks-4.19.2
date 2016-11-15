@@ -38,7 +38,7 @@ void FSlateMaterialShaderVS::SetMaterialShaderParameters(FRHICommandList& RHICmd
 	const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
 
 	const bool bDeferredPass = false;
-	FMaterialShader::SetParameters<FVertexShaderRHIParamRef>(RHICmdList, ShaderRHI, MaterialRenderProxy, *Material, View, bDeferredPass, ESceneRenderTargetsMode::DontSet);
+	FMaterialShader::SetParameters<FVertexShaderRHIParamRef>(RHICmdList, ShaderRHI, MaterialRenderProxy, *Material, View, View.ViewUniformBuffer, bDeferredPass, ESceneRenderTargetsMode::DontSet);
 }
 
 void FSlateMaterialShaderVS::SetVerticalAxisMultiplier(FRHICommandList& RHICmdList, float InMultiplier )
@@ -102,11 +102,11 @@ void FSlateMaterialShaderPS::SetParameters(FRHICommandList& RHICmdList, const FS
 		break;
 	case BLEND_Additive:
 		// Add to the existing scene color
-		RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One, BO_Add, BF_Zero, BF_InverseSourceAlpha>::GetRHI());
+		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::GetRHI());
 		break;
 	case BLEND_Modulate:
 		// Modulate with the existing scene color
-		RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_DestColor, BF_Zero>::GetRHI());
+		RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_Zero, BF_SourceColor>::GetRHI());
 		break;
 	case BLEND_AlphaComposite:
 		// Blend with existing scene color. New color is already pre-multiplied by alpha.
@@ -117,7 +117,7 @@ void FSlateMaterialShaderPS::SetParameters(FRHICommandList& RHICmdList, const FS
 	SetShaderValue( RHICmdList, ShaderRHI, ShaderParams, InShaderParams );
 
 	const bool bDeferredPass = false;
-	FMaterialShader::SetParameters<FPixelShaderRHIParamRef>(RHICmdList, ShaderRHI, MaterialRenderProxy, *Material, View, bDeferredPass, ESceneRenderTargetsMode::SetTextures);
+	FMaterialShader::SetParameters<FPixelShaderRHIParamRef>(RHICmdList, ShaderRHI, MaterialRenderProxy, *Material, View, View.ViewUniformBuffer, bDeferredPass, ESceneRenderTargetsMode::SetTextures);
 
 }
 

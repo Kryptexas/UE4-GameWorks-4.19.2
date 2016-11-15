@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:2953540
-Availability:Docs
+﻿INTSourceChangelist:3069483
+Availability: Public
 Title:4.4.4 - Jump Start から Jump Loop の遷移を追加
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4, Programming/Tutorials/FirstPersonShooter/4/4
 Description:FPS キャラクターのアニメーション ステートマシンに Jump Start から Jump Loop へのステート遷移を追加する方法を学びます。

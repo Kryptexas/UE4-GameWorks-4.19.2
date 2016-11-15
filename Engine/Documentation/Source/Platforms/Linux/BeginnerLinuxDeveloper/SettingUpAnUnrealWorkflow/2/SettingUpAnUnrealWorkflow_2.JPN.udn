@@ -1,0 +1,12 @@
+﻿INTSourceChangelist:0
+Availability: Docs
+Title: 2 - Downloading Unreal Engine
+Crumbs:%ROOT%, Platforms, Platforms/Linux, Platforms/Linux/BeginnerLinuxDeveloper, Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
+Description:Learn how to fork and clone Unreal Engine source code.
+Version: 4.11
+type:HowTo
+parent:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
+order: 2
+tags:Linux
+SkillLevel:Beginner
+

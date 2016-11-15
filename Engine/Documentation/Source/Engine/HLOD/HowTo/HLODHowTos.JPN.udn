@@ -1,8 +1,11 @@
-﻿INTSourceChangelist:0
-title:Hierarchical Level of Detail How-To's
+﻿INTSourceChangelist:3106123
+title:HLOD （Hierarchical Level of Detail）の操作ガイド
 description:Words
 crumbs:
 availability:docs
+version:4.13
+
+このページでは、**Hierarchical Level of Detail** (HLOD、階層的 LOD) メッシュの操作ガイドへのリンクを示します。こうしたガイドでは、HLOD システムを有効にし、ゲーム内で HLOD をセットアップする方法を説明しています。
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
@@ -14,8 +17,8 @@ availability:docs
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
-		* [](Engine/HLOD/HowTo/BuildingHLODs "%Engine/HLOD/HowTo/BuildingHLODs:description%")
 		* [](Engine/HLOD/HowTo/Enabling "%Engine/HLOD/HowTo/Enabling:description%")
+		* [](Engine/HLOD/HowTo/BuildingHLODs "%Engine/HLOD/HowTo/BuildingHLODs:description%")
 	[/PARAM]
 [/OBJECT]
 []()

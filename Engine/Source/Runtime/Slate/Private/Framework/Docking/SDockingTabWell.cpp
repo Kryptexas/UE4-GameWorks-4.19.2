@@ -372,6 +372,14 @@ FReply SDockingTabWell::OnDrop( const FGeometry& MyGeometry, const FDragDropEven
 	{
 		if (DragDropOperation->CanDockInNode(ParentTabStackPtr.Pin().ToSharedRef(), FDockingDragOperation::DockingViaTabWell))
 		{
+			// It's rare, but sometimes a drop operation can happen after we drag a tab out of a docking tab well but before the engine has a
+			// chance to notify the next docking tab well that a drag operation has entered it. In this case, just use the tab referenced by the
+			// drag/drop operation
+			if (!TabBeingDraggedPtr.IsValid())
+			{
+				TabBeingDraggedPtr = DragDropOperation->GetTabBeingDragged();
+			}
+			
 			if ( ensure( TabBeingDraggedPtr.IsValid() ) )
 			{
 				// We dropped a Tab into this TabWell.

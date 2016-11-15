@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -133,6 +133,9 @@ struct FViewportInteractorData
 		don't want a full press to cancel your light press. */
 	bool bAllowTriggerFullPress;
 
+	/** If the latest hitresult is hovering over a priority type */
+	bool bHitResultIsPriorityType;
+
 	/** Default constructor for FVirtualHand that initializes safe defaults */
 	FViewportInteractorData()
 	{
@@ -167,6 +170,7 @@ struct FViewportInteractorData
 
 		bAllowTriggerLightPressLocking = true;
 		bAllowTriggerFullPress = true;
+		bHitResultIsPriorityType = false;
 	}
 };
 

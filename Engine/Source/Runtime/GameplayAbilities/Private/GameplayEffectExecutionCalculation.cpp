@@ -33,17 +33,23 @@ FGameplayEffectCustomExecutionParameters::FGameplayEffectCustomExecutionParamete
 				ScopedAggregator = &(ScopedModifierAggregators.Add(CurScopedMod.CapturedAttribute, SnapshotAgg));
 			}
 		}
-		
+
 		float ModEvalValue = 0.f;
 		if (ScopedAggregator && CurScopedMod.ModifierMagnitude.AttemptCalculateMagnitude(InOwningSpec, ModEvalValue))
 		{
-			ScopedAggregator->AddAggregatorMod(ModEvalValue, CurScopedMod.ModifierOp, &CurScopedMod.SourceTags, &CurScopedMod.TargetTags, false, ModifierHandle);
+			ScopedAggregator->AddAggregatorMod(ModEvalValue, CurScopedMod.ModifierOp, CurScopedMod.EvaluationChannelSettings.GetEvaluationChannel(), &CurScopedMod.SourceTags, &CurScopedMod.TargetTags, false, ModifierHandle);
 		}
 		else
 		{
 			ABILITY_LOG(Warning, TEXT("Attempted to apply a scoped modifier from %s's %s magnitude calculation that could not be properly calculated. Some attributes necessary for the calculation were missing."), *InOwningSpec.Def->GetName(), *CurScopedMod.CapturedAttribute.ToSimpleString());
 		}
 	}
+}
+
+FGameplayEffectCustomExecutionParameters::FGameplayEffectCustomExecutionParameters(FGameplayEffectSpec& InOwningSpec, const TArray<FGameplayEffectExecutionScopedModifierInfo>& InScopedMods, UAbilitySystemComponent* InTargetAbilityComponent, const FGameplayTagContainer& InPassedInTags, const TArray<FActiveGameplayEffectHandle>& InIgnoreHandles)
+	: FGameplayEffectCustomExecutionParameters(InOwningSpec, InScopedMods, InTargetAbilityComponent, InPassedInTags)
+{
+	IgnoreHandles = InIgnoreHandles;
 }
 
 const FGameplayEffectSpec& FGameplayEffectCustomExecutionParameters::GetOwningSpec() const
@@ -72,6 +78,11 @@ UAbilitySystemComponent* FGameplayEffectCustomExecutionParameters::GetSourceAbil
 const FGameplayTagContainer& FGameplayEffectCustomExecutionParameters::GetPassedInTags() const
 {
 	return PassedInTags;
+}
+
+TArray<FActiveGameplayEffectHandle> FGameplayEffectCustomExecutionParameters::GetIgnoreHandles() const
+{
+	return IgnoreHandles;
 }
 
 bool FGameplayEffectCustomExecutionParameters::AttemptCalculateCapturedAttributeMagnitude(const FGameplayEffectAttributeCaptureDefinition& InCaptureDef, const FAggregatorEvaluateParameters& InEvalParams, OUT float& OutMagnitude) const

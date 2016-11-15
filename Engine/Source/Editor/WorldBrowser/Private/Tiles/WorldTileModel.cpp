@@ -12,7 +12,7 @@
 #include "GameFramework/WorldSettings.h"
 #include "Engine/LevelStreaming.h"
 #include "Engine/LevelStreamingKismet.h"
-#include "Landscape.h"
+#include "LandscapeInfo.h"
 #include "LandscapeStreamingProxy.h"
 #include "AssetData.h"
 
@@ -341,7 +341,7 @@ bool FWorldTileModel::IsTiledLandscapeBased() const
 
 bool FWorldTileModel::IsLandscapeProxy() const
 {
-	return (Landscape.IsValid() && !Landscape.Get()->IsA(ALandscape::StaticClass()));
+	return (Landscape.IsValid() && Landscape.Get()->IsA(ALandscapeStreamingProxy::StaticClass()));
 }
 
 bool FWorldTileModel::IsInLayersList(const TArray<FWorldTileLayer>& InLayerList) const

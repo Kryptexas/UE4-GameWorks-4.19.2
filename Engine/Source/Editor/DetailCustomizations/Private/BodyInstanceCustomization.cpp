@@ -112,6 +112,7 @@ void FBodyInstanceCustomization::AddCollisionCategory(TSharedRef<class IProperty
 		.Font( IDetailLayoutBuilder::GetDetailFont() )
 	]
 	.ValueContent()
+	.MinDesiredWidth(131.0f)
 	[
 		SNew(SVerticalBox)
 		+ SVerticalBox::Slot()
@@ -128,7 +129,6 @@ void FBodyInstanceCustomization::AddCollisionCategory(TSharedRef<class IProperty
 				.OnSelectionChanged(this, &FBodyInstanceCustomization::OnCollisionProfileChanged, &CollisionGroup)
 				.OnComboBoxOpening(this, &FBodyInstanceCustomization::OnCollisionProfileComboOpening)
 				.InitiallySelectedItem(DisplayName)
-				.ContentPadding(2)
 				.Content()
 				[
 					SNew(STextBlock)
@@ -212,7 +212,9 @@ void FBodyInstanceCustomization::CustomizeChildren( TSharedRef<class IPropertyHa
 
 	if (StaticMeshComponentHandle.IsValid())
 	{
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		StaticMeshHandle = StaticMeshComponentHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(UStaticMeshComponent, StaticMesh));
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 		if(StaticMeshHandle.IsValid())
 		{
 			FSimpleDelegate OnStaticMeshChangedDelegate = FSimpleDelegate::CreateSP(this, &FBodyInstanceCustomization::RefreshCollisionProfiles);

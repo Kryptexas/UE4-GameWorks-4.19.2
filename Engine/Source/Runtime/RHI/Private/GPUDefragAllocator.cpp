@@ -3,6 +3,7 @@ BestFitAllocator.cpp: Unreal memory best fit allocator
 Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 =============================================================================*/
 
+#include "RHIPrivatePCH.h"
 #include "RHI.h"
 #include "GPUDefragAllocator.h"
 #include "ScopedTimers.h"

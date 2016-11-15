@@ -13,8 +13,8 @@ class UK2Node_ForEachElementInEnum : public UK2Node
 	UPROPERTY()
 	UEnum* Enum;
 
-	static const FString InsideLoopPinName;
-	static const FString EnumOuputPinName;
+	BLUEPRINTGRAPH_API static const FString InsideLoopPinName;
+	BLUEPRINTGRAPH_API static const FString EnumOuputPinName;
 
 	//~ Begin UEdGraphNode Interface
 	virtual void AllocateDefaultPins() override;

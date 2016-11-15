@@ -2,9 +2,6 @@
 
 #pragma once
 
-#include "IInternationalizationArchiveSerializer.h"
-#include "IInternationalizationManifestSerializer.h"
-
 typedef TSharedRef<FString, ESPMode::ThreadSafe> FTextDisplayStringRef;
 typedef TSharedPtr<FString, ESPMode::ThreadSafe> FTextDisplayStringPtr;
 
@@ -213,11 +210,11 @@ public:
 	 */
 	bool UpdateDisplayString(const FTextDisplayStringRef& DisplayString, const FString& Value, const FString& Namespace, const FString& Key);
 
-	/** Loads localizations for the current culture based on a configuration file specifying which manifests and archives to use. Effectively generates a localization resource in memory. */
-	void LoadFromManifestAndArchives(const FString& ConfigFilePath, IInternationalizationArchiveSerializer& ArchiveSerializer, IInternationalizationManifestSerializer& ManifestSerializer);
-
 	/** Updates display string entries and adds new display string entries based on localizations found in a specified localization resource. */
 	void UpdateFromLocalizationResource(const FString& LocalizationResourceFilePath);
+
+	/** Updates display string entries and adds new display string entries based on localizations found in a specified localization resource. */
+	void UpdateFromLocalizationResource(FArchive& LocResArchive, const FString& LocResID);
 
 	/** Reloads resources for the current culture. */
 	void RefreshResources();
@@ -229,6 +226,10 @@ public:
 	/** Event type for immediately reacting to changes in display strings for text. */
 	DECLARE_EVENT(FTextLocalizationManager, FTextRevisionChangedEvent)
 	FTextRevisionChangedEvent OnTextRevisionChangedEvent;
+
+	/** Delegate for gathering up additional localization paths that are unknown to the UE4 core (such as plugins) */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FGatherAdditionalLocResPathsDelegate, TArray<FString>&);
+	FGatherAdditionalLocResPathsDelegate GatherAdditionalLocResPathsCallback;
 
 private:
 	/** Callback for changes in culture. Loads the new culture's localization resources. */

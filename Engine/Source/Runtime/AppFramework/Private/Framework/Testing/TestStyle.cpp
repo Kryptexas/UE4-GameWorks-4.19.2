@@ -398,4 +398,10 @@ TSharedRef< ISlateStyle > FTestStyle::Create()
 	return Style;
 }
 
+#undef IMAGE_BRUSH
+#undef BOX_BRUSH
+#undef BORDER_BRUSH
+#undef TTF_FONT
+#undef OTF_FONT
+
 #endif // #if !UE_BUILD_SHIPPING

@@ -7,7 +7,7 @@
 */
 namespace NiagaraConstants
 {
-	enum {
+	enum NIAGARA_API ConstantDef {
 		DeltaSeconds = 1,
 		EmitterPosition,
 		EmitterAge,
@@ -15,9 +15,9 @@ namespace NiagaraConstants
 		ActorYAxis,
 		ActorZAxis,
 		NumBuiltinConstants
-	} ConstantDef;
+	};
 
-	FName GConstantNames[] = {
+	const FName GConstantNames[] = {
 		"Undefined",
 		"Delta Time",
 		"Emitter Position",

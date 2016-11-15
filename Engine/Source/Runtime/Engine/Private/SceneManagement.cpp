@@ -28,7 +28,7 @@ void FTemporalLODState::UpdateTemporalLODTransition(const FViewInfo& View, float
 				TemporalDistanceFactor[0] = TemporalDistanceFactor[1];
 				TemporalLODTime[0] = TemporalLODTime[1];
 			}
-			TemporalLODViewOrigin[1] = View.ViewMatrices.ViewOrigin;
+			TemporalLODViewOrigin[1] = View.ViewMatrices.GetViewOrigin();
 			TemporalDistanceFactor[1] = View.GetLODDistanceFactor();
 			TemporalLODTime[1] = LastRenderTime;
 			if (TemporalLODTime[1] <= TemporalLODTime[0])
@@ -39,8 +39,8 @@ void FTemporalLODState::UpdateTemporalLODTransition(const FViewInfo& View, float
 	}
 	if (!bOk)
 	{
-		TemporalLODViewOrigin[0] = View.ViewMatrices.ViewOrigin;
-		TemporalLODViewOrigin[1] = View.ViewMatrices.ViewOrigin;
+		TemporalLODViewOrigin[0] = View.ViewMatrices.GetViewOrigin();
+		TemporalLODViewOrigin[1] = View.ViewMatrices.GetViewOrigin();
 		TemporalDistanceFactor[0] = View.GetLODDistanceFactor();
 		TemporalDistanceFactor[1] = TemporalDistanceFactor[0];
 		TemporalLODTime[0] = LastRenderTime;
@@ -164,12 +164,9 @@ void FSimpleElementCollector::DrawBatchedElements(FRHICommandList& RHICmdList, c
 		RHICmdList,
 		InView.GetFeatureLevel(),
 		bNeedToSwitchVerticalAxis,
-		InView.ViewProjectionMatrix,
-		InView.ViewRect.Width(),
-		InView.ViewRect.Height(),
+		InView,
 		InView.Family->EngineShowFlags.HitProxies,
 		1.0f,
-		&InView,
 		DepthTexture,
 		Filter
 		);
@@ -311,30 +308,28 @@ FLightMapInteraction FLightMapInteraction::Texture(
 
 float ComputeBoundsScreenSize( const FVector4& Origin, const float SphereRadius, const FSceneView& View )
 {
-	// Only need one component from a view transformation; just calculate the one we're interested in. Ignore view direction when rendering in stereo
-	const float Divisor = (View.StereoPass == eSSP_FULL) ? Dot3(Origin - View.ViewMatrices.ViewOrigin, View.ViewMatrices.ViewMatrix.GetColumn(2)) : FVector::Dist(Origin, View.ViewMatrices.ViewOrigin);
+	const float DistSqr = FVector::DistSquared( Origin, View.ViewMatrices.GetViewOrigin() );
 
 	// Get projection multiple accounting for view scaling.
-	const float ScreenMultiple = FMath::Max(View.ViewRect.Width() / 2.0f * View.ViewMatrices.ProjMatrix.M[0][0],
-		View.ViewRect.Height() / 2.0f * View.ViewMatrices.ProjMatrix.M[1][1]);
+	const float ScreenMultiple = FMath::Max(View.ViewRect.Width() / 2.0f * View.ViewMatrices.GetProjectionMatrix().M[0][0],
+		View.ViewRect.Height() / 2.0f * View.ViewMatrices.GetProjectionMatrix().M[1][1]);
 
-	const float ScreenRadius = ScreenMultiple * SphereRadius / FMath::Max(Divisor, 1.0f);
-	const float ScreenArea = PI * ScreenRadius * ScreenRadius;
-	return FMath::Clamp(ScreenArea / View.ViewRect.Area(), 0.0f, 1.0f);
+	// Approximate number of pixels the sphere covers
+	const float ScreenArea = PI * FMath::Square( ScreenMultiple * SphereRadius ) / FMath::Max( DistSqr, 1.0f );
+	return ScreenArea / View.ViewRect.Area();
 }
 
 float ComputeTemporalLODBoundsScreenSize( const FVector& Origin, const float SphereRadius, const FSceneView& View, int32 SampleIndex )
 {
-	// This is radial LOD, not the view parallel computation used in ComputeBoundsScreenSize
-	const float Divisor =  (Origin - View.GetTemporalLODOrigin(SampleIndex)).Size();
+	const float DistSqr =  (Origin - View.GetTemporalLODOrigin(SampleIndex)).SizeSquared();
 
 	// Get projection multiple accounting for view scaling.
-	const float ScreenMultiple = FMath::Max(View.ViewRect.Width() / 2.0f * View.ViewMatrices.ProjMatrix.M[0][0],
-		View.ViewRect.Height() / 2.0f * View.ViewMatrices.ProjMatrix.M[1][1]);
+	const float ScreenMultiple = FMath::Max(View.ViewRect.Width() / 2.0f * View.ViewMatrices.GetProjectionMatrix().M[0][0],
+		View.ViewRect.Height() / 2.0f * View.ViewMatrices.GetProjectionMatrix().M[1][1]);
 
-	const float ScreenRadius = ScreenMultiple * SphereRadius / FMath::Max(Divisor, 1.0f);
-	const float ScreenArea = PI * ScreenRadius * ScreenRadius;
-	return FMath::Clamp(ScreenArea / View.ViewRect.Area(), 0.0f, 1.0f);
+	// Approximate number of pixels the sphere covers
+	const float ScreenArea = PI * FMath::Square( ScreenMultiple * SphereRadius ) / FMath::Max( DistSqr, 1.0f );
+	return ScreenArea / View.ViewRect.Area();
 }
 
 int8 ComputeTemporalStaticMeshLOD( const FStaticMeshRenderData* RenderData, const FVector4& Origin, const float SphereRadius, const FSceneView& View, int32 MinLOD, float FactorScale, int32 SampleIndex )

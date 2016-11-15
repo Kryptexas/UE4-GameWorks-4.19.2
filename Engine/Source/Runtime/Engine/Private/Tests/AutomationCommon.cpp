@@ -5,6 +5,8 @@
 #include "AutomationCommon.h"
 #include "ImageUtils.h"
 #include "ShaderCompiler.h"		// GShaderCompilingManager
+#include "GameFramework/GameStateBase.h"
+#include "Scalability.h"
 
 #if WITH_EDITOR
 #include "FileHelpers.h"
@@ -26,6 +28,112 @@ FOnEditorAutomationMapLoad AutomationCommon::OnEditorAutomationMapLoad;
 
 namespace AutomationCommon
 {
+	FString GetRenderDetailsString()
+	{
+		FString HardwareDetailsString;
+
+		// Create the folder name based on the hardware specs we have been provided
+		FString HardwareDetails = FHardwareInfo::GetHardwareDetailsString();
+
+		FString RHIString;
+		FString RHILookup = NAME_RHI.ToString() + TEXT("=");
+		if ( FParse::Value(*HardwareDetails, *RHILookup, RHIString) )
+		{
+			HardwareDetailsString = ( HardwareDetailsString + TEXT("_") ) + RHIString;
+		}
+
+		FString TextureFormatString;
+		FString TextureFormatLookup = NAME_TextureFormat.ToString() + TEXT("=");
+		if ( FParse::Value(*HardwareDetails, *TextureFormatLookup, TextureFormatString) )
+		{
+			HardwareDetailsString = ( HardwareDetailsString + TEXT("_") ) + TextureFormatString;
+		}
+
+		FString DeviceTypeString;
+		FString DeviceTypeLookup = NAME_DeviceType.ToString() + TEXT("=");
+		if ( FParse::Value(*HardwareDetails, *DeviceTypeLookup, DeviceTypeString) )
+		{
+			HardwareDetailsString = ( HardwareDetailsString + TEXT("_") ) + DeviceTypeString;
+		}
+
+		FString FeatureLevelString;
+		GetFeatureLevelName(GMaxRHIFeatureLevel, FeatureLevelString);
+		{
+			HardwareDetailsString = ( HardwareDetailsString + TEXT("_") ) + FeatureLevelString;
+		}
+
+		if ( GEngine->StereoRenderingDevice.IsValid() )
+		{
+			HardwareDetailsString = ( HardwareDetailsString + TEXT("_") ) + TEXT("STEREO");
+		}
+
+		if ( HardwareDetailsString.Len() > 0 )
+		{
+			//Get rid of the leading "_"
+			HardwareDetailsString = HardwareDetailsString.RightChop(1);
+		}
+
+		return HardwareDetailsString;
+	}
+
+#if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
+
+	/** Gets a path used for automation testing (PNG sent to the AutomationTest folder) */
+	void GetScreenshotPath(const FString& TestName, FString& OutScreenshotName)
+	{
+		FString PathName = FPaths::AutomationDir() + TestName / FPlatformProperties::PlatformName();
+		PathName = PathName + TEXT("_") + GetRenderDetailsString();
+
+		FPaths::MakePathRelativeTo(PathName, *FPaths::RootDir());
+
+		FString AdapterName = GRHIAdapterName.IsEmpty() ? FString(TEXT("Unknown")) : GRHIAdapterName;
+		OutScreenshotName = FString::Printf(TEXT("%s/%s.png"), *PathName, *AdapterName);
+	}
+
+	FAutomationScreenshotData BuildScreenshotData(const FString& MapOrContext, const FString& TestName, int32 Width, int32 Height)
+	{
+		FString HardwareDetails = FHardwareInfo::GetHardwareDetailsString();
+
+		FAutomationScreenshotData Data;
+
+		Data.Name = TestName;
+		Data.Context = MapOrContext;
+
+		Data.Width = Width;
+		Data.Height = Height;
+		Data.Platform = FPlatformProperties::PlatformName();
+		Data.Rhi = FHardwareInfo::GetHardwareInfo(NAME_RHI);
+		GetFeatureLevelName(GMaxRHIFeatureLevel, Data.FeatureLevel);
+		Data.bIsStereo = GEngine->StereoRenderingDevice.IsValid();
+		Data.Vendor = RHIVendorIdToString();
+		Data.AdapterName = GRHIAdapterName;
+		Data.AdapterInternalDriverVersion = GRHIAdapterInternalDriverVersion;
+		Data.AdapterUserDriverVersion = GRHIAdapterUserDriverVersion;
+		Data.UniqueDeviceId = FPlatformMisc::GetUniqueDeviceId();
+
+		Scalability::FQualityLevels QualityLevels = Scalability::GetQualityLevels();
+
+		Data.ResolutionQuality = QualityLevels.ResolutionQuality;
+		Data.ViewDistanceQuality = QualityLevels.ViewDistanceQuality;
+		Data.AntiAliasingQuality = QualityLevels.AntiAliasingQuality;
+		Data.ShadowQuality = QualityLevels.ShadowQuality;
+		Data.PostProcessQuality = QualityLevels.PostProcessQuality;
+		Data.TextureQuality = QualityLevels.TextureQuality;
+		Data.EffectsQuality = QualityLevels.EffectsQuality;
+		Data.FoliageQuality = QualityLevels.FoliageQuality;
+
+		//GRHIDeviceId
+
+		// TBD - 
+		// Device's native resolution (we want to use a hardware dump of the frontbuffer at the native resolution so we compare what we actually output rather than what we think we rendered)
+
+		const FString MapAndTest = MapOrContext + TEXT("_") + TestName;
+		AutomationCommon::GetScreenshotPath(MapAndTest, Data.Path);
+
+		return Data;
+	}
+#endif
+
 	/** These save a PNG and get sent over the network */
 	static void SaveWindowAsScreenshot(TSharedRef<SWindow> Window, const FString& FileName)
 	{
@@ -35,8 +143,30 @@ namespace AutomationCommon
 		FIntVector OutImageSize;
 		if (FSlateApplication::Get().TakeScreenshot(WindowRef, OutImageData, OutImageSize))
 		{
-			FAutomationTestFramework::GetInstance().OnScreenshotCaptured().ExecuteIfBound(OutImageSize.X, OutImageSize.Y, OutImageData, FileName);
+			FAutomationScreenshotData Data;
+			Data.Width = OutImageSize.X;
+			Data.Height = OutImageSize.Y;
+			Data.Path = FileName;
+			FAutomationTestFramework::Get().OnScreenshotCaptured().ExecuteIfBound(OutImageData, Data);
 		}
+	}
+
+	// @todo this is a temporary solution. Once we know how to get test's hands on a proper world
+	// this function should be redone/removed
+	UWorld* GetAnyGameWorld()
+	{
+		UWorld* TestWorld = nullptr;
+		const TIndirectArray<FWorldContext>& WorldContexts = GEngine->GetWorldContexts();
+		for ( const FWorldContext& Context : WorldContexts )
+		{
+			if ( ( ( Context.WorldType == EWorldType::PIE ) || ( Context.WorldType == EWorldType::Game ) ) && ( Context.World() != NULL ) )
+			{
+				TestWorld = Context.World();
+				break;
+			}
+		}
+
+		return TestWorld;
 	}
 }
 
@@ -52,14 +182,14 @@ bool AutomationOpenMap(const FString& MapName)
 	else
 #endif
 	{
-		//will happen on a subsequent frame
-		check(GEngine->GetWorldContexts().Num() == 1);
-		check(GEngine->GetWorldContexts()[0].WorldType == EWorldType::Game);	
+		UWorld* TestWorld = AutomationCommon::GetAnyGameWorld();
+
 		//Don't reload the map if it's already loaded. Check if the two are equal or one contains the other,
 		// since sometime one is a path and the other is the asset name, depending on whether we're in PIE.
-		if (!GEngine->GetWorldContexts()[0].World()->GetName().Contains(MapName) && !MapName.Contains(GEngine->GetWorldContexts()[0].World()->GetName()))
+		if ( !TestWorld->GetMapName().Contains(MapName) && !MapName.Contains(TestWorld->GetMapName()) )
 		{
-			GEngine->Exec(GEngine->GetWorldContexts()[0].World(), *FString::Printf(TEXT("Open %s"), *MapName));
+			FString OpenCommand = FString::Printf(TEXT("Open %s"), *MapName);
+			GEngine->Exec(TestWorld, *OpenCommand);
 		}
 
 		//Wait for map to load - need a better way to determine if loaded
@@ -72,7 +202,7 @@ bool AutomationOpenMap(const FString& MapName)
 
 bool FWaitLatentCommand::Update()
 {
-	float NewTime = FPlatformTime::Seconds();
+	const double NewTime = FPlatformTime::Seconds();
 	if (NewTime - StartTime >= Duration)
 	{
 		return true;
@@ -102,42 +232,40 @@ bool FLoadGameMapCommand::Update()
 	return true;
 }
 
+bool FExitGameCommand::Update()
+{
+	UWorld* TestWorld = AutomationCommon::GetAnyGameWorld();
+
+	if ( APlayerController* TargetPC = UGameplayStatics::GetPlayerController(TestWorld, 0) )
+	{
+		TargetPC->ConsoleCommand(TEXT("Exit"), true);
+	}
+
+	return true;
+}
+
 bool FRequestExitCommand::Update()
 {
 	GIsRequestingExit = true;
 	return true;
 }
 
-namespace
-{
-	// @todo this is a temporary solution. Once we know how to get test's hands on a proper world
-	// this function should be redone/removed
-	UWorld* GetAnyGameWorld()
-	{
-		UWorld* TestWorld = nullptr;
-		const TIndirectArray<FWorldContext>& WorldContexts = GEngine->GetWorldContexts();
-		for (const FWorldContext& Context : WorldContexts)
-		{
-			if (((Context.WorldType == EWorldType::PIE) || (Context.WorldType == EWorldType::Game)) && (Context.World() != NULL))
-			{
-				TestWorld = Context.World();
-				break;
-			}
-		}
-
-		return TestWorld;
-	}
-}
-
 bool FWaitForMapToLoadCommand::Update()
 {
-	//TODO - Is there a better way to see if the map is loaded?  Are Actors Initialized isn't right in Fortnite...
-	UWorld* TestWorld = GetAnyGameWorld();
+	//TODO Automation we need a better way to know when the map finished loading.
 
-	if (TestWorld && TestWorld->AreActorsInitialized())
+	//TODO - Is there a better way to see if the map is loaded?  Are Actors Initialized isn't right in Fortnite...
+	UWorld* TestWorld = AutomationCommon::GetAnyGameWorld();
+
+	if ( TestWorld && TestWorld->AreActorsInitialized() )
 	{
-		return true;
+		AGameStateBase* GameState = TestWorld->GetGameState();
+		if (GameState && GameState->HasMatchStarted() )
+		{
+			return true;
+		}
 	}
+
 	return false;
 }
 
@@ -151,8 +279,8 @@ bool FPlayMatineeLatentCommand::Update()
 	{
 		UE_LOG(LogEngineAutomationLatentCommand, Log, TEXT("Triggering the matinee named: '%s'"), *MatineeActor->GetName())
 
-			//force this matinee to not be looping so it doesn't infinitely loop
-			MatineeActor->bLooping = false;
+		//force this matinee to not be looping so it doesn't infinitely loop
+		MatineeActor->bLooping = false;
 		MatineeActor->Play();
 	}
 	return true;

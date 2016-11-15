@@ -1,5 +1,5 @@
-Availability: Docs
-Title: C++ First Person Shooter Tutorial
+Availability: Public
+Title: First Person Shooter Tutorial
 Crumbs: %ROOT%, GettingStarted, Programming/Tutorials
 Description: Learn how to implement mechanics for a First Person Shooter game.
 prereq:Programming/Development/VisualStudioSetup

@@ -4,37 +4,72 @@
 	CoreUObjectPrivate.h: Unreal core private header file.
 =============================================================================*/
 
-#ifndef COREUOBJECT_PRIVATE_H
-#define COREUOBJECT_PRIVATE_H
+#pragma once
 
 #include "Core.h"
 
+#include "ErrorException.h"
 #include "ModuleManager.h"
 #include "ScriptInterface.h"			// Script interface definitions.
 #include "Script.h"						// Script constants and forward declarations.
-#include "ObjectBase.h"					// Object base class.
+#include "ObjectMacros.h"					// Object base class.
+#include "UObjectAllocator.h"
+#include "UObjectGlobals.h"
+#include "UObjectMarks.h"
+#include "UObjectBase.h"
+#include "UObjectBaseUtility.h"
+#include "UObjectArray.h"
+#include "UObjectHash.h"
+#include "WeakObjectPtr.h"
+#include "Object.h"
+#include "UObjectIterator.h"
 #include "CoreNet.h"					// Core networking.
-#include "ArchiveUObjectBase.h"			// UObject-related Archive classes.
+#include "ArchiveUObject.h"				// UObject-related Archive classes.
 #include "GarbageCollection.h"			// Realtime garbage collection helpers
 #include "Class.h"						// Class definition.
+#include "StructOnScope.h"
 #include "Casts.h"                      // Cast templates
 #include "LazyObjectPtr.h"				// Object pointer types
 #include "AssetPtr.h"					// Object pointer types
-#include "CoreObject.h"					// Core object class definitions.
+#include "LevelGuids.h"					// Core object class definitions.
 #include "UnrealType.h"					// Base property type.
-#include "UTextProperty.h"				// Text property type.
+#include "TextProperty.h"				// Text property type.
 #include "Stack.h"						// Script stack frame definition.
 #include "ObjectRedirector.h"			// Cross-package object redirector
 #include "UObjectAnnotation.h"
 #include "ReferenceChainSearch.h"		// Search for referencers of an objects
 #include "ArchiveUObject.h"				// UObject-related Archive classes.
+#include "AsyncFileHandle.h"
+#include "TextPackageNamespaceUtil.h"
+#include "ArchiveCountMem.h"
+#include "ObjectAndNameAsStringProxyArchive.h"
+#include "ObjectWriter.h"
+#include "ObjectReader.h"
+#include "ReloadObjectArc.h"
+#include "ArchiveReplaceArchetype.h"
+#include "ArchiveShowReferences.h"
+#include "FindReferencersArchive.h"
+#include "FindObjectReferencers.h"
+#include "ArchiveFindCulprit.h"
+#include "ArchiveObjectGraph.h"
+#include "TraceReferences.h"
+#include "ArchiveTraceRoute.h"
+#include "DuplicatedObject.h"
+#include "DuplicatedDataReader.h"
+#include "DuplicatedDataWriter.h"
+#include "ArchiveReplaceObjectRef.h"
+#include "ArchiveReplaceOrClearExternalReferences.h"
+#include "ArchiveObjectPropertyMapper.h"
+#include "ArchiveReferenceMarker.h"
+#include "ArchiveAsync.h"
+#include "ArchiveObjectCrc32.h"
 #include "PackageName.h"
 #include "BulkData.h"					// Bulk data classes
 #include "Linker.h"						// Linker.
+#include "LinkerLoad.h"
+#include "LinkerSave.h"
 #include "GCObject.h"			        // non-UObject object referencer
 #include "RedirectCollector.h"
 #include "WorldCompositionUtility.h"
 #include "StringClassReference.h"
 #include "Blueprint/BlueprintSupport.h"
-
-#endif // COREUOBJECT_PRIVATE_H

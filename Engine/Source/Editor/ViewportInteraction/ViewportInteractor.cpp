@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "ViewportInteractionModule.h"
 #include "ViewportInteractor.h"
@@ -90,12 +90,11 @@ bool UViewportInteractor::HandleInputKey( const FKey Key, const EInputEvent Even
 		// Give subsystems a chance to handle actions for this interactor
 		WorldInteraction->OnViewportInteractionInputAction().Broadcast( *WorldInteraction->GetViewportClient(), this, *Action, Action->bIsInputCaptured, bHandled );
 
-		if ( !bHandled )
+		if(!bHandled)
 		{
 			// Give the derived classes a chance to update according to the input
 			HandleInputKey( *Action, Key, Event, bHandled );
 		}
-
 		// Start checking on default action implementation
 		if ( !bHandled )
 		{
@@ -517,7 +516,7 @@ FHitResult UViewportInteractor::GetHitResultFromLaserPointer( TArray<AActor*>* O
 				
 				if ( bHit )
 				{
-					bool bHitResultIsPriorityType = false;
+					InteractorData.bHitResultIsPriorityType = false;
 					if ( !bOnlyEditorGizmos && ObjectsInFrontOfGizmo )
 					{
 						for ( UClass* CurrentClass : *ObjectsInFrontOfGizmo )
@@ -529,7 +528,7 @@ FHitResult UViewportInteractor::GetHitResultFromLaserPointer( TArray<AActor*>* O
 
 							if ( bClassHasPriority )
 							{
-								bHitResultIsPriorityType = bClassHasPriority;
+								InteractorData.bHitResultIsPriorityType = bClassHasPriority;
 								break;
 							}
 						}
@@ -537,7 +536,7 @@ FHitResult UViewportInteractor::GetHitResultFromLaserPointer( TArray<AActor*>* O
 
 					const bool bHitResultIsGizmo = HitResult.GetActor() != nullptr && HitResult.GetActor() == WorldInteraction->GetTransformGizmoActor();
 					if ( BestHitResult.GetActor() == nullptr ||
-						 bHitResultIsPriorityType ||
+						 InteractorData.bHitResultIsPriorityType ||
 						 bHitResultIsGizmo )
 					{
 						BestHitResult = HitResult;
@@ -615,4 +614,9 @@ void UViewportInteractor::SetAllowTriggerFullPress( const bool bInAllow )
 bool UViewportInteractor::AllowTriggerFullPress() const
 {
 	return InteractorData.bAllowTriggerFullPress;
+}
+
+bool UViewportInteractor::IsHoveringOverPriorityType() const
+{
+	return InteractorData.bHitResultIsPriorityType;
 }

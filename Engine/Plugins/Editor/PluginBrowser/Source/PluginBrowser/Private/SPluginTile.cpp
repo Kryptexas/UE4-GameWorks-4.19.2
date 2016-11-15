@@ -499,8 +499,10 @@ FReply SPluginTile::OnEditPluginFinished(UPluginMetadataObject* MetadataObject)
 	PropertiesWindow->RequestDestroyWindow();
 
 	// Write both to strings
-	FString OldText = OldDescriptor.ToString();
-	FString NewText = NewDescriptor.ToString();
+	FString OldText;
+	OldDescriptor.Write(OldText, Plugin->GetLoadedFrom() == EPluginLoadedFrom::GameProject);
+	FString NewText;
+	NewDescriptor.Write(NewText, Plugin->GetLoadedFrom() == EPluginLoadedFrom::GameProject);
 	if(OldText.Compare(NewText, ESearchCase::CaseSensitive) != 0)
 	{
 		FString DescriptorFileName = Plugin->GetDescriptorFileName();
@@ -538,18 +540,10 @@ FReply SPluginTile::OnEditPluginFinished(UPluginMetadataObject* MetadataObject)
 
 void SPluginTile::OnPackagePlugin()
 {
-	void* ParentWindowWindowHandle = nullptr;
-	IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-	const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-	if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
-	{
-		ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-	}
-
 	FString DefaultDirectory;
 	FString OutputDirectory;
 
-	if ( !FDesktopPlatformModule::Get()->OpenDirectoryDialog(ParentWindowWindowHandle, LOCTEXT("PackagePluginDialogTitle", "Package Plugin...").ToString(), DefaultDirectory, OutputDirectory) )
+	if ( !FDesktopPlatformModule::Get()->OpenDirectoryDialog(FSlateApplication::Get().FindBestParentWindowHandleForDialogs(AsShared()), LOCTEXT("PackagePluginDialogTitle", "Package Plugin...").ToString(), DefaultDirectory, OutputDirectory) )
 	{
 		return;
 	}

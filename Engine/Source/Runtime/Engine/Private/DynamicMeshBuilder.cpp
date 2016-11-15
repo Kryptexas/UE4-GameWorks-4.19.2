@@ -510,6 +510,7 @@ void FDynamicMeshBuilder::GetMesh(const FMatrix& LocalToWorld,const FMaterialRen
 			false,
 			false,
 			false,
+			GetDefaultLightingChannelMask(),
 			1.0f		// LPV bias
 			);
 
@@ -578,6 +579,7 @@ void FDynamicMeshBuilder::Draw(FPrimitiveDrawInterface* PDI,const FMatrix& Local
 			false,
 			false,
 			false,
+			GetDefaultLightingChannelMask(),
 			1.0f		// LPV bias
 			);
 

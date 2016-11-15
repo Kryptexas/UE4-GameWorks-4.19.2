@@ -38,8 +38,8 @@ static TAutoConsoleVariable<int32> CVarTonemapper2084(
 	TEXT("r.Tonemapper2084"),
 	0,
 	TEXT("0: use sRGB on PC monitor output\n")
-	TEXT("1: use ACES 2000 nit ST-2084 (Dolby PQ) for HDR monitor/projectors\n")
-	TEXT("2: use SMPTE ST-2084 (Dolby PQ) for HDR monitor/projectors\n")
+	TEXT("1: use ACES 1000 nit ST-2084 (Dolby PQ) for HDR monitor/projectors\n")
+	TEXT("2: use ACES 2000 nit ST-2084 (Dolby PQ) for HDR monitor/projectors\n")
 	TEXT("3: use Unreal Filmic Tonemapping with for ST-2084 (Dolby PQ) for HDR displays"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
@@ -1306,12 +1306,12 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 		if (Context.HasHmdMesh() && View.StereoPass == eSSP_LEFT_EYE)
 		{
 			// needed when using an hmd mesh instead of a full screen quad because we don't touch all of the pixels in the render target
-			Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect());
+			Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black, FIntRect());
 		}
 		else if (ViewFamily.RenderTarget->GetRenderTargetTexture() != DestRenderTarget.TargetableTexture)
 		{
 			// needed to not have PostProcessAA leaking in content (e.g. Matinee black borders), is optimized away if possible (RT size=view size, )
-			Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, DestRect);
+			Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black, DestRect);
 		}
 	}
 
@@ -1388,7 +1388,7 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 	if (ViewFamily.Scene && ViewFamily.Scene->GetShadingPath() == EShadingPath::Mobile)
 	{
 		// Double buffer tonemapper output for temporal AA.
-		if(View.FinalPostProcessSettings.AntiAliasingMethod == AAM_TemporalAA)
+		if(View.AntiAliasingMethod == AAM_TemporalAA)
 		{
 			FSceneViewState* ViewState = (FSceneViewState*)View.State;
 			if(ViewState) 
@@ -1755,7 +1755,7 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 		// Full clear to avoid restore
 		if (View.StereoPass == eSSP_FULL || View.StereoPass == eSSP_LEFT_EYE)
 		{
-			Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect());
+			Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black, FIntRect());
 		}
 	}
 
@@ -1829,7 +1829,7 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 
 	// Double buffer tonemapper output for temporal AA.
-	if(Context.View.FinalPostProcessSettings.AntiAliasingMethod == AAM_TemporalAA)
+	if(Context.View.AntiAliasingMethod == AAM_TemporalAA)
 	{
 		FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
 		if(ViewState) 

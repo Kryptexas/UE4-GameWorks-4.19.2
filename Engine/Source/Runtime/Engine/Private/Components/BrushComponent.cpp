@@ -563,18 +563,15 @@ void UBrushComponent::PostLoad()
 #endif
 }
 
-
-SIZE_T UBrushComponent::GetResourceSize(EResourceSizeMode::Type Mode)
+void UBrushComponent::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	SIZE_T ResSize = Super::GetResourceSize(Mode);
+	Super::GetResourceSizeEx(CumulativeResourceSize);
 
 	// Count the bodysetup we own as well for 'inclusive' stats
-	if((Mode == EResourceSizeMode::Inclusive) && (BrushBodySetup != NULL))
+	if((CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Inclusive) && (BrushBodySetup != NULL))
 	{
-		ResSize += BrushBodySetup->GetResourceSize(Mode);
+		BrushBodySetup->GetResourceSizeEx(CumulativeResourceSize);
 	}
-
-	return ResSize;
 }
 
 uint8 UBrushComponent::GetStaticDepthPriorityGroup() const
@@ -780,6 +777,11 @@ void UBrushComponent::BuildSimpleBrushCollision()
 	MarkPackageDirty();
 }
 
+bool UBrushComponent::IsEditorOnly() const
+{
+	// Default to actor component behavior instead of primitive component behavior as brush actors handle it themselves
+	return bIsEditorOnly;
+}
 
 #if WITH_EDITOR
 static FVector GetPolyCenter(const FPoly& Poly)

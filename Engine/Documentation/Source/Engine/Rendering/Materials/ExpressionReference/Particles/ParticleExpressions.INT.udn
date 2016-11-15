@@ -192,7 +192,7 @@ The **ParticleSubUV** expression is used to render sub-images of a texture to a 
 | **Blend** | Blends together each frame of the SubUV sprite layout, rather than instantly "popping" from one frame to the next. |
 | **Texture** | Specifies the texture to use. |
 | **Sampler Type** | The type of data that will be sampled and output from the node. |
-| **MipValueMode** | Applies a noise value to the texture that affects the look and performance. |
+| **MipValueMode** | Selects how to customize the sample's mip-level or derivatives from the default hardware computed. Affects the look and performance. |
 | [REGION:tablesection]Inputs[/REGION] ||
 | **UVs** | The UV input is ignored and does nothing. |
 | [REGION:tablesection]Outputs[/REGION] ||
@@ -222,7 +222,7 @@ The **TextureSampleParameterSubUV** expression is identical to the [ParticleSubU
 | **Blend** | Blends together each frame of the SubUV sprite layout, rather than instantly "popping" from one frame to the next. |
 | **Texture** | Specifies the texture sampled by the expression. |
 | **Sampler Type** | The type of data that will be sampled and output from the node. |
-| **MipValueMode** | Applies a noise value to the texture that affects the look and performance. |
+| **MipValueMode** | Selects how to customize the sample's mip-level or derivatives from the default hardware computed. Affects the look and performance. |
 | [REGION:tablesection]Inputs[/REGION] ||
 | **UVs** | The UV input is ignored and does nothing. |
 | [REGION:tablesection]Outputs[/REGION] ||

@@ -137,7 +137,7 @@ void FVisualLoggerExtension::DrawData(UWorld* InWorld, class UEQSRenderingCompon
 		if (SelectedEQSId != INDEX_NONE && DebugData.Id == SelectedEQSId && Canvas)
 		{
 			FVector FireDir = Canvas->SceneView->GetViewDirection();
-			FVector CamLocation = Canvas->SceneView->ViewMatrices.ViewOrigin;
+			FVector CamLocation = Canvas->SceneView->ViewMatrices.GetViewOrigin();
 
 			float bestAim = 0;
 			for (int32 Index = 0; Index < DebugData.RenderDebugHelpers.Num(); ++Index)

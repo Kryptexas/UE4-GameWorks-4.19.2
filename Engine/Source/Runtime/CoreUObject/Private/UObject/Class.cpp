@@ -11,6 +11,7 @@
 #include "LinkerPlaceholderFunction.h"
 #include "StructScriptLoader.h"
 #include "LoadTimeTracker.h"
+#include "PropertyHelper.h"
 
 // This flag enables some expensive class tree validation that is meant to catch mutations of 
 // the class tree outside of SetSuperStruct. It has been disabled because loading blueprints 
@@ -24,6 +25,10 @@ DEFINE_LOG_CATEGORY(LogClass);
 	#ifdef PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 		PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 	#endif
+#endif
+
+#if !defined(USE_EVENT_DRIVEN_ASYNC_LOAD)
+#error "USE_EVENT_DRIVEN_ASYNC_LOAD must be defined"
 #endif
 
 //////////////////////////////////////////////////////////////////////////
@@ -498,6 +503,18 @@ void UStruct::StaticLink(bool bRelinkExistingProperties)
 	Link(ArDummy, bRelinkExistingProperties);
 }
 
+void UStruct::GetPreloadDependencies(TArray<UObject*>& OutDeps)
+{
+	Super::GetPreloadDependencies(OutDeps);
+	UStruct* InheritanceSuper = GetInheritanceSuper();
+	OutDeps.Add(InheritanceSuper);
+
+	for (UField* Field = Children; Field; Field = Field->Next)
+	{
+		OutDeps.Add(Field);
+	}
+}
+
 void UStruct::Link(FArchive& Ar, bool bRelinkExistingProperties)
 {
 	if (bRelinkExistingProperties)
@@ -588,18 +605,10 @@ void UStruct::Link(FArchive& Ar, bool bRelinkExistingProperties)
 			UScriptStruct& ScriptStruct = dynamic_cast<UScriptStruct&>(*this);
 			ScriptStruct.PrepareCppStructOps();
 
-			if (auto* CppStructOps = ScriptStruct.GetCppStructOps())
+			if (UScriptStruct::ICppStructOps* CppStructOps = ScriptStruct.GetCppStructOps())
 			{
-				if (!ScriptStruct.InheritedCppStructOps())
-				{
-					MinAlignment = CppStructOps->GetAlignment();
-					PropertiesSize = CppStructOps->GetSize();
-				}
-				else
-				{
-					// derived class might have increased the alignment, we want the max
-					MinAlignment = FMath::Max(MinAlignment, CppStructOps->GetAlignment());
-				}
+				MinAlignment = CppStructOps->GetAlignment();
+				PropertiesSize = CppStructOps->GetSize();
 				bHandledWithCppStructOps = true;
 			}
 		}
@@ -680,11 +689,12 @@ void UStruct::Link(FArchive& Ar, bool bRelinkExistingProperties)
 	UProperty** RefLinkPtr = (UProperty**)&RefLink;
 	UProperty** PostConstructLinkPtr = &PostConstructLink;
 
+	TArray<const UStructProperty*> EncounteredStructProps;
 	for (TFieldIterator<UProperty> It(this); It; ++It)
 	{
 		UProperty* Property = *It;
 
-		if (Property->ContainsObjectReference() || Property->ContainsWeakObjectReference())
+		if (Property->ContainsObjectReference(EncounteredStructProps) || Property->ContainsWeakObjectReference())
 		{
 			*RefLinkPtr = Property;
 			RefLinkPtr = &(*RefLinkPtr)->NextRef;
@@ -1303,18 +1313,6 @@ void UStruct::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collect
 		// Required by the unified GC when running in the editor
 		Collector.AddReferencedObject( This->SuperStruct, This );
 		Collector.AddReferencedObject( This->Children, This );
-
-		TArray<UObject*> ScriptObjectReferences;
-		FArchiveScriptReferenceCollector ObjectReferenceCollector( ScriptObjectReferences );
-		int32 iCode = 0;
-		while( iCode < This->Script.Num() )
-		{	
-			This->SerializeExpr( iCode, ObjectReferenceCollector );
-		}
-		for( int32 Index = 0; Index < ScriptObjectReferences.Num(); Index++ )
-		{
-			Collector.AddReferencedObject( ScriptObjectReferences[ Index ], This );
-		}
 	}
 
 	//@todo NickW, temp hack to make stale property chains less crashy
@@ -1379,6 +1377,19 @@ bool UStruct::GetStringMetaDataHierarchical(const FName& Key, FString* OutValue)
 	}
 
 	return false;
+}
+
+const UStruct* UStruct::HasMetaDataHierarchical(const FName& Key) const
+{
+	for (const UStruct* TestStruct = this; TestStruct != nullptr; TestStruct = TestStruct->GetSuperStruct())
+	{
+		if (TestStruct->HasMetaData(Key))
+		{
+			return TestStruct;
+		}
+	}
+
+	return nullptr;
 }
 
 #endif
@@ -1729,7 +1740,6 @@ UScriptStruct::UScriptStruct( EStaticConstructor, int32 InSize, EObjectFlags InF
 #if HACK_HEADER_GENERATOR
 	, StructMacroDeclaredLineNumber(INDEX_NONE)
 #endif
-	, bCppStructOpsFromBaseClass(false)
 	, bPrepareCppStructOpsCompleted(false)
 	, CppStructOps(NULL)
 {
@@ -1741,7 +1751,6 @@ UScriptStruct::UScriptStruct(const FObjectInitializer& ObjectInitializer, UScrip
 #if HACK_HEADER_GENERATOR
 	, StructMacroDeclaredLineNumber(INDEX_NONE)
 #endif
-	, bCppStructOpsFromBaseClass(false)
 	, bPrepareCppStructOpsCompleted(false)
 	, CppStructOps(InCppStructOps)
 {
@@ -1754,7 +1763,6 @@ UScriptStruct::UScriptStruct(const FObjectInitializer& ObjectInitializer)
 #if HACK_HEADER_GENERATOR
 	, StructMacroDeclaredLineNumber(INDEX_NONE)
 #endif
-	, bCppStructOpsFromBaseClass(false)
 	, bPrepareCppStructOpsCompleted(false)
 	, CppStructOps(NULL)
 {
@@ -1766,17 +1774,19 @@ UScriptStruct::UScriptStruct(const FObjectInitializer& ObjectInitializer)
 **/
 void UScriptStruct::DeferCppStructOps(FName Target, ICppStructOps* InCppStructOps)
 {
-	if (GetDeferredCppStructOps().Contains(Target))
+	TMap<FName,UScriptStruct::ICppStructOps*>& DeferredStructOps = GetDeferredCppStructOps();
+
+	if (UScriptStruct::ICppStructOps* ExistingOps = DeferredStructOps.FindRef(Target))
 	{
 #if WITH_HOT_RELOAD
 		if (!GIsHotReload) // in hot reload, we will just leak these...they may be in use.
 #endif
 		{
-			check(GetDeferredCppStructOps().FindRef(Target) != InCppStructOps); // if it was equal, then we would be re-adding a now stale pointer to the map
-			delete GetDeferredCppStructOps().FindRef(Target);
+			check(ExistingOps != InCppStructOps); // if it was equal, then we would be re-adding a now stale pointer to the map
+			delete ExistingOps;
 		}
 	}
-	GetDeferredCppStructOps().Add(Target,InCppStructOps);
+	DeferredStructOps.Add(Target,InCppStructOps);
 }
 
 /** Look for the CppStructOps if we don't already have it and set the property size **/
@@ -1799,9 +1809,10 @@ void UScriptStruct::PrepareCppStructOps()
 			bPrepareCppStructOpsCompleted = true;
 			return;
 		}
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		// test that the constructor is initializing everything
-		if (CppStructOps && !CppStructOps->HasZeroConstructor()
+		if (!CppStructOps->HasZeroConstructor()
 #if WITH_HOT_RELOAD
 			&& !GIsHotReload // in hot reload, these produce bogus warnings
 #endif
@@ -1829,132 +1840,101 @@ void UScriptStruct::PrepareCppStructOps()
 		}
 #endif
 	}
-	bCppStructOpsFromBaseClass = false;
-	if (!CppStructOps)
-	{
-		UScriptStruct* Base = dynamic_cast<UScriptStruct*>(GetSuperStruct());
-		if (Base)
-		{
-			Base->PrepareCppStructOps();
-			CppStructOps = Base->GetCppStructOps();
-			bCppStructOpsFromBaseClass = true;
-		}
-	}
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (!CppStructOps)
-	{
-		UScriptStruct* Base = dynamic_cast<UScriptStruct*>(GetSuperStruct());
 
-		while (Base)
-		{
-			if ((Base->StructFlags&STRUCT_Native) || Base->GetCppStructOps())
-			{
-				UE_LOG(LogClass, Fatal,TEXT("Couldn't bind to native BASE struct %s %s."),*GetName(),*Base->GetName());
-				break;
-			}
-			Base = dynamic_cast<UScriptStruct*>(Base->GetSuperStruct());
-		}
-	}
-#endif
 	check(!(StructFlags & STRUCT_ComputedFlags));
-	if (CppStructOps)
+	if (CppStructOps->HasSerializer())
 	{
-		if (!bCppStructOpsFromBaseClass) // if this cpp ops from the base class, we do not propagate certain custom aspects
-		{
-			if (CppStructOps->HasSerializer())
-			{
-				UE_LOG(LogClass, Verbose, TEXT("Native struct %s has a custom serializer."),*GetName());
-				StructFlags = EStructFlags(StructFlags | STRUCT_SerializeNative );
-			}
-			if (CppStructOps->HasPostSerialize())
-			{
-				UE_LOG(LogClass, Verbose, TEXT("Native struct %s wants post serialize."),*GetName());
-				StructFlags = EStructFlags(StructFlags | STRUCT_PostSerializeNative );
-			}
-			if (CppStructOps->HasNetSerializer())
-			{
-				UE_LOG(LogClass, Verbose, TEXT("Native struct %s has a custom net serializer."),*GetName());
-				StructFlags = EStructFlags(StructFlags | STRUCT_NetSerializeNative);
-			}
-			if (CppStructOps->HasNetDeltaSerializer())
-			{
-				UE_LOG(LogClass, Verbose, TEXT("Native struct %s has a custom net delta serializer."),*GetName());
-				StructFlags = EStructFlags(StructFlags | STRUCT_NetDeltaSerializeNative);
-			}
+		UE_LOG(LogClass, Verbose, TEXT("Native struct %s has a custom serializer."),*GetName());
+		StructFlags = EStructFlags(StructFlags | STRUCT_SerializeNative );
+	}
+	if (CppStructOps->HasPostSerialize())
+	{
+		UE_LOG(LogClass, Verbose, TEXT("Native struct %s wants post serialize."),*GetName());
+		StructFlags = EStructFlags(StructFlags | STRUCT_PostSerializeNative );
+	}
+	if (CppStructOps->HasNetSerializer())
+	{
+		UE_LOG(LogClass, Verbose, TEXT("Native struct %s has a custom net serializer."),*GetName());
+		StructFlags = EStructFlags(StructFlags | STRUCT_NetSerializeNative);
+	}
+	if (CppStructOps->HasNetDeltaSerializer())
+	{
+		UE_LOG(LogClass, Verbose, TEXT("Native struct %s has a custom net delta serializer."),*GetName());
+		StructFlags = EStructFlags(StructFlags | STRUCT_NetDeltaSerializeNative);
+	}
 
-			if (CppStructOps->IsPlainOldData())
-			{
-				UE_LOG(LogClass, Verbose, TEXT("Native struct %s is plain old data."),*GetName());
-				StructFlags = EStructFlags(StructFlags | STRUCT_IsPlainOldData | STRUCT_NoDestructor);
-			}
-			else
-			{
-				if (CppStructOps->HasCopy())
-				{
-					UE_LOG(LogClass, Verbose, TEXT("Native struct %s has a native copy."),*GetName());
-					StructFlags = EStructFlags(StructFlags | STRUCT_CopyNative);
-				}
-				if (!CppStructOps->HasDestructor())
-				{
-					UE_LOG(LogClass, Verbose, TEXT("Native struct %s has no destructor."),*GetName());
-					StructFlags = EStructFlags(StructFlags | STRUCT_NoDestructor);
-				}
-			}
-			if (CppStructOps->HasZeroConstructor())
-			{
-				UE_LOG(LogClass, Verbose, TEXT("Native struct %s has zero construction."),*GetName());
-				StructFlags = EStructFlags(StructFlags | STRUCT_ZeroConstructor);
-			}
-			if (CppStructOps->IsPlainOldData() && !CppStructOps->HasZeroConstructor())
-			{
-				// hmm, it is safe to see if this can be zero constructed, lets try
-				int32 Size = CppStructOps->GetSize();
-				uint8* TestData00 = (uint8*)FMemory::Malloc(Size);
-				FMemory::Memzero(TestData00,Size);
-				CppStructOps->Construct(TestData00);
-				CppStructOps->Construct(TestData00); // slightly more like to catch "internal counters" if we do this twice
-				bool IsZeroConstruct = true;
-				for (int32 Index = 0; Index < Size && IsZeroConstruct; Index++)
-				{
-					if (TestData00[Index])
-					{
-						IsZeroConstruct = false;
-					}
-				}
-				FMemory::Free(TestData00);
-				if (IsZeroConstruct)
-				{
-					UE_LOG(LogClass, Verbose, TEXT("Native struct %s has DISCOVERED zero construction. Size = %d"),*GetName(), Size);
-					StructFlags = EStructFlags(StructFlags | STRUCT_ZeroConstructor);
-				}
-			}
-			if (CppStructOps->HasIdentical())
-			{
-				UE_LOG(LogClass, Verbose, TEXT("Native struct %s has native identical."),*GetName());
-				StructFlags = EStructFlags(StructFlags | STRUCT_IdenticalNative);
-			}
-			if (CppStructOps->HasAddStructReferencedObjects())
-			{
-				UE_LOG(LogClass, Verbose, TEXT("Native struct %s has native AddStructReferencedObjects."),*GetName());
-				StructFlags = EStructFlags(StructFlags | STRUCT_AddStructReferencedObjects);
-			}
-			if (CppStructOps->HasExportTextItem())
-			{
-				UE_LOG(LogClass, Verbose, TEXT("Native struct %s has native ExportTextItem."),*GetName());
-				StructFlags = EStructFlags(StructFlags | STRUCT_ExportTextItemNative);
-			}
-			if (CppStructOps->HasImportTextItem())
-			{
-				UE_LOG(LogClass, Verbose, TEXT("Native struct %s has native ImportTextItem."),*GetName());
-				StructFlags = EStructFlags(StructFlags | STRUCT_ImportTextItemNative);
-			}
-			if (CppStructOps->HasSerializeFromMismatchedTag())
-			{
-				UE_LOG(LogClass, Verbose, TEXT("Native struct %s has native SerializeFromMismatchedTag."),*GetName());
-				StructFlags = EStructFlags(StructFlags | STRUCT_SerializeFromMismatchedTag);
-			}
+	if (CppStructOps->IsPlainOldData())
+	{
+		UE_LOG(LogClass, Verbose, TEXT("Native struct %s is plain old data."),*GetName());
+		StructFlags = EStructFlags(StructFlags | STRUCT_IsPlainOldData | STRUCT_NoDestructor);
+	}
+	else
+	{
+		if (CppStructOps->HasCopy())
+		{
+			UE_LOG(LogClass, Verbose, TEXT("Native struct %s has a native copy."),*GetName());
+			StructFlags = EStructFlags(StructFlags | STRUCT_CopyNative);
+		}
+		if (!CppStructOps->HasDestructor())
+		{
+			UE_LOG(LogClass, Verbose, TEXT("Native struct %s has no destructor."),*GetName());
+			StructFlags = EStructFlags(StructFlags | STRUCT_NoDestructor);
 		}
 	}
+	if (CppStructOps->HasZeroConstructor())
+	{
+		UE_LOG(LogClass, Verbose, TEXT("Native struct %s has zero construction."),*GetName());
+		StructFlags = EStructFlags(StructFlags | STRUCT_ZeroConstructor);
+	}
+	if (CppStructOps->IsPlainOldData() && !CppStructOps->HasZeroConstructor())
+	{
+		// hmm, it is safe to see if this can be zero constructed, lets try
+		int32 Size = CppStructOps->GetSize();
+		uint8* TestData00 = (uint8*)FMemory::Malloc(Size);
+		FMemory::Memzero(TestData00,Size);
+		CppStructOps->Construct(TestData00);
+		CppStructOps->Construct(TestData00); // slightly more like to catch "internal counters" if we do this twice
+		bool IsZeroConstruct = true;
+		for (int32 Index = 0; Index < Size && IsZeroConstruct; Index++)
+		{
+			if (TestData00[Index])
+			{
+				IsZeroConstruct = false;
+			}
+		}
+		FMemory::Free(TestData00);
+		if (IsZeroConstruct)
+		{
+			UE_LOG(LogClass, Verbose, TEXT("Native struct %s has DISCOVERED zero construction. Size = %d"),*GetName(), Size);
+			StructFlags = EStructFlags(StructFlags | STRUCT_ZeroConstructor);
+		}
+	}
+	if (CppStructOps->HasIdentical())
+	{
+		UE_LOG(LogClass, Verbose, TEXT("Native struct %s has native identical."),*GetName());
+		StructFlags = EStructFlags(StructFlags | STRUCT_IdenticalNative);
+	}
+	if (CppStructOps->HasAddStructReferencedObjects())
+	{
+		UE_LOG(LogClass, Verbose, TEXT("Native struct %s has native AddStructReferencedObjects."),*GetName());
+		StructFlags = EStructFlags(StructFlags | STRUCT_AddStructReferencedObjects);
+	}
+	if (CppStructOps->HasExportTextItem())
+	{
+		UE_LOG(LogClass, Verbose, TEXT("Native struct %s has native ExportTextItem."),*GetName());
+		StructFlags = EStructFlags(StructFlags | STRUCT_ExportTextItemNative);
+	}
+	if (CppStructOps->HasImportTextItem())
+	{
+		UE_LOG(LogClass, Verbose, TEXT("Native struct %s has native ImportTextItem."),*GetName());
+		StructFlags = EStructFlags(StructFlags | STRUCT_ImportTextItemNative);
+	}
+	if (CppStructOps->HasSerializeFromMismatchedTag())
+	{
+		UE_LOG(LogClass, Verbose, TEXT("Native struct %s has native SerializeFromMismatchedTag."),*GetName());
+		StructFlags = EStructFlags(StructFlags | STRUCT_SerializeFromMismatchedTag);
+	}
+
 	check(!bPrepareCppStructOpsCompleted); // recursion is unacceptable
 	bPrepareCppStructOpsCompleted = true;
 }
@@ -2004,7 +1984,6 @@ void UScriptStruct::SerializeItem(FArchive& Ar, void* Value, void const* Default
 	{
 		UScriptStruct::ICppStructOps* TheCppStructOps = GetCppStructOps();
 		check(TheCppStructOps); // else should not have STRUCT_SerializeNative
-		check(!InheritedCppStructOps()); // else should not have STRUCT_SerializeNative
 		bItemSerialized = TheCppStructOps->Serialize(Ar, Value);
 	}
 
@@ -2032,11 +2011,169 @@ void UScriptStruct::SerializeItem(FArchive& Ar, void* Value, void const* Default
 	{
 		UScriptStruct::ICppStructOps* TheCppStructOps = GetCppStructOps();
 		check(TheCppStructOps); // else should not have STRUCT_PostSerializeNative
-		check(!InheritedCppStructOps()); // else should not have STRUCT_PostSerializeNative
 		TheCppStructOps->PostSerialize(Ar, Value);
 	}
 }
 
+const TCHAR* UScriptStruct::ImportText(const TCHAR* InBuffer, void* Value, UObject* OwnerObject, int32 PortFlags, FOutputDevice* ErrorText, const FString& StructName, bool bAllowNativeOverride)
+{
+	if (bAllowNativeOverride && StructFlags & STRUCT_ImportTextItemNative)
+	{
+		UScriptStruct::ICppStructOps* TheCppStructOps = GetCppStructOps();
+		check(TheCppStructOps); // else should not have STRUCT_ImportTextItemNative
+		if (TheCppStructOps->ImportTextItem(InBuffer, Value, PortFlags, OwnerObject, ErrorText))
+		{
+			return InBuffer;
+		}
+	}
+
+	TArray<FDefinedProperty> DefinedProperties;
+	// this keeps track of the number of errors we've logged, so that we can add new lines when logging more than one error
+	int32 ErrorCount = 0;
+	const TCHAR* Buffer = InBuffer;
+	if (*Buffer++ == TCHAR('('))
+	{
+		// Parse all properties.
+		while (*Buffer != TCHAR(')'))
+		{
+			// parse and import the value
+			Buffer = UProperty::ImportSingleProperty(Buffer, Value, this, OwnerObject, PortFlags | PPF_Delimited, ErrorText, DefinedProperties);
+
+			// skip any remaining text before the next property value
+			SkipWhitespace(Buffer);
+			int32 SubCount = 0;
+			while (*Buffer && *Buffer != TCHAR('\r') && *Buffer != TCHAR('\n') &&
+				(SubCount > 0 || *Buffer != TCHAR(')')) && (SubCount > 0 || *Buffer != TCHAR(',')))
+			{
+				SkipWhitespace(Buffer);
+				if (*Buffer == TCHAR('\"'))
+				{
+					do
+					{
+						Buffer++;
+					} while (*Buffer && *Buffer != TCHAR('\"') && *Buffer != TCHAR('\n') && *Buffer != TCHAR('\r'));
+
+					if (*Buffer != TCHAR('\"'))
+					{
+						ErrorText->Logf(TEXT("%sImportText (%s): Bad quoted string at: %s"), ErrorCount++ > 0 ? LINE_TERMINATOR : TEXT(""), *StructName, Buffer);
+						return nullptr;
+					}
+				}
+				else if (*Buffer == TCHAR('('))
+				{
+					SubCount++;
+				}
+				else if (*Buffer == TCHAR(')'))
+				{
+					SubCount--;
+					if (SubCount < 0)
+					{
+						ErrorText->Logf(TEXT("%sImportText (%s): Too many closing parenthesis in: %s"), ErrorCount++ > 0 ? LINE_TERMINATOR : TEXT(""), *StructName, InBuffer);
+						return nullptr;
+					}
+				}
+				Buffer++;
+			}
+			if (SubCount > 0)
+			{
+				ErrorText->Logf(TEXT("%sImportText(%s): Not enough closing parenthesis in: %s"), ErrorCount++ > 0 ? LINE_TERMINATOR : TEXT(""), *StructName, InBuffer);
+				return nullptr;
+			}
+
+			// Skip comma.
+			if (*Buffer == TCHAR(','))
+			{
+				// Skip comma.
+				Buffer++;
+			}
+			else if (*Buffer != TCHAR(')'))
+			{
+				ErrorText->Logf(TEXT("%sImportText (%s): Missing closing parenthesis: %s"), ErrorCount++ > 0 ? LINE_TERMINATOR : TEXT(""), *StructName, InBuffer);
+				return nullptr;
+			}
+
+			SkipWhitespace(Buffer);
+		}
+
+		// Skip trailing ')'.
+		Buffer++;
+	}
+	else
+	{
+		ErrorText->Logf(TEXT("%sImportText (%s): Missing opening parenthesis: %s"), ErrorCount++ > 0 ? LINE_TERMINATOR : TEXT(""), *StructName, InBuffer);
+		return nullptr;
+	}
+	return Buffer;
+}
+
+void UScriptStruct::ExportText(FString& ValueStr, const void* Value, const void* Defaults, UObject* OwnerObject, int32 PortFlags, UObject* ExportRootScope, bool bAllowNativeOverride)
+{
+	if (bAllowNativeOverride && StructFlags & STRUCT_ExportTextItemNative)
+	{
+		UScriptStruct::ICppStructOps* TheCppStructOps = GetCppStructOps();
+		check(TheCppStructOps); // else should not have STRUCT_ExportTextItemNative
+		if (TheCppStructOps->ExportTextItem(ValueStr, Value, Defaults, OwnerObject, PortFlags, ExportRootScope))
+		{
+			return;
+		}
+	}
+
+	if (0 != (PortFlags & PPF_ExportCpp))
+	{
+		return;
+	}
+
+	int32 Count = 0;
+
+	// if this struct is configured to be serialized as a unit, it must be exported as a unit as well.
+	if ((StructFlags & STRUCT_Atomic) != 0)
+	{
+		// change Defaults to match Value so that ExportText always exports this item
+		Defaults = Value;
+	}
+
+	for (TFieldIterator<UProperty> It(this); It; ++It)
+	{
+		if (It->ShouldPort(PortFlags))
+		{
+			for (int32 Index = 0; Index < It->ArrayDim; Index++)
+			{
+				FString InnerValue;
+				if (It->ExportText_InContainer(Index, InnerValue, Value, Defaults, OwnerObject, PPF_Delimited | PortFlags, ExportRootScope))
+				{
+					Count++;
+					if (Count == 1)
+					{
+						ValueStr += TEXT("(");
+					}
+					else
+					{
+						ValueStr += TEXT(",");
+					}
+
+					if (It->ArrayDim == 1)
+					{
+						ValueStr += FString::Printf(TEXT("%s="), *It->GetName());
+					}
+					else
+					{
+						ValueStr += FString::Printf(TEXT("%s[%i]="), *It->GetName(), Index);
+					}
+					ValueStr += InnerValue;
+				}
+			}
+		}
+	}
+
+	if (Count > 0)
+	{
+		ValueStr += TEXT(")");
+	}
+	else
+	{
+		ValueStr += TEXT("()");
+	}
+}
 
 void UScriptStruct::Link(FArchive& Ar, bool bRelinkExistingProperties)
 {
@@ -2172,7 +2309,7 @@ void UScriptStruct::InitializeStruct(void* InDest, int32 ArrayDim) const
 
 		InitializedSize = TheCppStructOps->GetSize();
 		// here we want to make sure C++ and the property system agree on the size
-		check(InheritedCppStructOps() || (Stride == InitializedSize && PropertiesSize == InitializedSize));
+		check(Stride == InitializedSize && PropertiesSize == InitializedSize);
 	}
 
 	if (PropertiesSize > InitializedSize)
@@ -2229,7 +2366,7 @@ void UScriptStruct::ClearScriptStruct(void* Dest, int32 ArrayDim) const
 		}
 		ClearedSize = TheCppStructOps->GetSize();
 		// here we want to make sure C++ and the property system agree on the size
-		check(InheritedCppStructOps() || (Stride == ClearedSize && PropertiesSize == ClearedSize));
+		check(Stride == ClearedSize && PropertiesSize == ClearedSize);
 	}
 	if ( PropertiesSize > ClearedSize )
 	{
@@ -2278,7 +2415,7 @@ void UScriptStruct::DestroyStruct(void* Dest, int32 ArrayDim) const
 		}
 		ClearedSize = TheCppStructOps->GetSize();
 		// here we want to make sure C++ and the property system agree on the size
-		check(InheritedCppStructOps() || (Stride == ClearedSize && PropertiesSize == ClearedSize));
+		check(Stride == ClearedSize && PropertiesSize == ClearedSize);
 	}
 
 	if (PropertiesSize > ClearedSize)
@@ -2484,6 +2621,9 @@ UObject* UClass::CreateDefaultObject()
 		{
 			UObjectForceRegistration(ParentClass);
 			ParentDefaultObject = ParentClass->GetDefaultObject(); // Force the default object to be constructed if it isn't already
+#if USE_EVENT_DRIVEN_ASYNC_LOAD
+			check(ParentDefaultObject && !ParentDefaultObject->HasAnyFlags(RF_NeedLoad));
+#endif
 		}
 
 		if ( (ParentDefaultObject != NULL) || (this == UObject::StaticClass()) )
@@ -2520,8 +2660,8 @@ UObject* UClass::CreateDefaultObject()
 				ClassDefaultObject = StaticAllocateObject(this, GetOuter(), NAME_None, EObjectFlags(RF_Public|RF_ClassDefaultObject|RF_ArchetypeObject));
 				check(ClassDefaultObject);
 				// Blueprint CDOs have their properties always initialized.
-				const bool bShouldInitilizeProperties = !HasAnyClassFlags(CLASS_Native | CLASS_Intrinsic);
-				(*ClassConstructor)(FObjectInitializer(ClassDefaultObject, ParentDefaultObject, false, bShouldInitilizeProperties));
+				const bool bShouldInitializeProperties = !HasAnyClassFlags(CLASS_Native | CLASS_Intrinsic);
+				(*ClassConstructor)(FObjectInitializer(ClassDefaultObject, ParentDefaultObject, false, bShouldInitializeProperties));
 			}
 		}
 	}
@@ -2905,7 +3045,7 @@ void UClass::Link(FArchive& Ar, bool bRelinkExistingProperties)
 	}
 }
 
-#if UCLASS_FAST_ISA_IMPL & 2
+#if UCLASS_FAST_ISA_IMPL == UCLASS_ISA_INDEXTREE
 
 	struct FClassParentPair
 	{
@@ -3125,25 +3265,63 @@ void UClass::Link(FArchive& Ar, bool bRelinkExistingProperties)
 		FFastIndexingClassTree::Unregister((UClass*)this);
 	}
 
+#elif UCLASS_FAST_ISA_IMPL == UCLASS_ISA_CLASSARRAY
+
+	FClassBaseChain::FClassBaseChain()
+		: ClassBaseChainArray(nullptr)
+		, NumClassBasesInChainMinusOne(-1)
+	{
+	}
+
+	FClassBaseChain::~FClassBaseChain()
+	{
+		delete [] ClassBaseChainArray;
+	}
+
+	void FClassBaseChain::ReinitializeBaseChainArray()
+	{
+		delete [] ClassBaseChainArray;
+
+		int32 Depth = 0;
+		for (UClass* Ptr = static_cast<UClass*>(this); Ptr; Ptr = Ptr->GetSuperClass())
+		{
+			++Depth;
+		}
+
+		FClassBaseChain** Bases = new FClassBaseChain*[Depth];
+		{
+			FClassBaseChain** Base = Bases + Depth;
+			for (UClass* Ptr = static_cast<UClass*>(this); Ptr; Ptr = Ptr->GetSuperClass())
+			{
+				*--Base = Ptr;
+			}
+		}
+
+		ClassBaseChainArray = Bases;
+		NumClassBasesInChainMinusOne = Depth - 1;
+	}
+
 #endif
 
 void UClass::SetSuperStruct(UStruct* NewSuperStruct)
 {
 	UnhashObject(this);
-#if UCLASS_FAST_ISA_IMPL & 2
+#if UCLASS_FAST_ISA_IMPL == UCLASS_ISA_INDEXTREE
 	FFastIndexingClassTree::Unregister(this);
 #endif
 	ClearFunctionMapsCaches();
 	Super::SetSuperStruct(NewSuperStruct);
-#if UCLASS_FAST_ISA_IMPL & 2
+#if UCLASS_FAST_ISA_IMPL == UCLASS_ISA_INDEXTREE
 	FFastIndexingClassTree::Register(this);
+#elif UCLASS_FAST_ISA_IMPL == UCLASS_ISA_CLASSARRAY
+	this->ReinitializeBaseChainArray();
 #endif
 	HashObject(this);
 }
 
 void UClass::SerializeSuperStruct(FArchive& Ar)
 {
-#if UCLASS_FAST_ISA_IMPL & 2
+#if UCLASS_FAST_ISA_IMPL == UCLASS_ISA_INDEXTREE
 	bool bIsLoading = Ar.IsLoading();
 	if (bIsLoading)
 	{
@@ -3151,11 +3329,13 @@ void UClass::SerializeSuperStruct(FArchive& Ar)
 	}
 #endif
 	Super::SerializeSuperStruct(Ar);
-#if UCLASS_FAST_ISA_IMPL & 2
+#if UCLASS_FAST_ISA_IMPL == UCLASS_ISA_INDEXTREE
 	if (bIsLoading)
 	{
 		FFastIndexingClassTree::Register(this);
 	}
+#elif UCLASS_FAST_ISA_IMPL == UCLASS_ISA_CLASSARRAY
+	this->ReinitializeBaseChainArray();
 #endif
 }
 
@@ -3167,11 +3347,11 @@ void UClass::Serialize( FArchive& Ar )
 		UnhashObject(this);
 	}
 
-#if UCLASS_FAST_ISA_IMPL & 2
+#if UCLASS_FAST_ISA_IMPL == UCLASS_ISA_INDEXTREE || UCLASS_FAST_ISA_IMPL == UCLASS_ISA_CLASSARRAY
 	UClass* SuperClassBefore = GetSuperClass();
 #endif
 	Super::Serialize( Ar );
-#if UCLASS_FAST_ISA_IMPL & 2
+#if UCLASS_FAST_ISA_IMPL == UCLASS_ISA_INDEXTREE || UCLASS_FAST_ISA_IMPL == UCLASS_ISA_CLASSARRAY
 	// Handle that fact that FArchive takes UObject*s by reference, and archives can just blat
 	// over our SuperStruct with impunity.
 	if (SuperClassBefore)
@@ -3179,8 +3359,12 @@ void UClass::Serialize( FArchive& Ar )
 		UClass* SuperClassAfter = GetSuperClass();
 		if (SuperClassBefore != SuperClassAfter)
 		{
-			FFastIndexingClassTree::Unregister(this);
-			FFastIndexingClassTree::Register(this);
+			#if UCLASS_FAST_ISA_IMPL == UCLASS_ISA_INDEXTREE
+				FFastIndexingClassTree::Unregister(this);
+				FFastIndexingClassTree::Register(this);
+			#elif UCLASS_FAST_ISA_IMPL == UCLASS_ISA_CLASSARRAY
+				this->ReinitializeBaseChainArray();
+			#endif
 		}
 	}
 #endif
@@ -3405,10 +3589,17 @@ void UClass::Serialize( FArchive& Ar )
 	{
 		if (ClassDefaultObject == NULL)
 		{
-			UE_LOG(LogClass, Error, TEXT("CDO for class %s did not load!"), *GetPathName() );
+
+#if USE_EVENT_DRIVEN_ASYNC_LOAD
+			ClassDefaultObject = GetDefaultObject();
+			// we do this later anyway, once we find it and set it in the export table. 
+			// ClassDefaultObject->SetFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects);
+#else
+			UE_LOG(LogClass, Error, TEXT("CDO for class %s did not load!"), *GetPathName());
 			ensure(ClassDefaultObject != NULL);
 			ClassDefaultObject = GetDefaultObject();
 			Ar.ForceBlueprintFinalization();
+#endif
 		}
 	}
 }
@@ -3879,7 +4070,7 @@ UFunction* UClass::FindFunctionByName(FName InName, EIncludeSuperFlag::Type Incl
 			{
 				for (const FImplementedInterface& Inter : Interfaces)
 				{
-					Result = Inter.Class->FindFunctionByName(InName);
+					Result = Inter.Class ? Inter.Class->FindFunctionByName(InName) : nullptr;
 					if (Result)
 					{
 						break;
@@ -4700,9 +4891,27 @@ UObject* UDynamicClass::FindArchetype(UClass* ArchetypeClass, const FName Archet
 {
 	UDynamicClass* ThisClass = const_cast<UDynamicClass*>(this);
 	UObject* Archetype = static_cast<UObject*>(FindObjectWithOuter(ThisClass, ArchetypeClass, ArchetypeName));
+	if (!Archetype)
+	{
+		// See UBlueprintGeneratedClass::FindArchetype, UE-35259, UE-37480
+		const FName ArchetypeBaseName = FName(ArchetypeName, 0);
+		if (ArchetypeBaseName != ArchetypeName)
+		{
+			UObject* const* FountComponentTemplate = ComponentTemplates.FindByPredicate([&](UObject* InObj) -> bool
+			{ 
+				return InObj && (InObj->GetFName() == ArchetypeBaseName) && InObj->IsA(ArchetypeClass);
+			});
+			Archetype = FountComponentTemplate ? *FountComponentTemplate : nullptr;
+		}
+	}
 	const UClass* SuperClass = GetSuperClass();
 	return Archetype ? Archetype :
 		(SuperClass ? SuperClass->FindArchetype(ArchetypeClass, ArchetypeName) : nullptr);
+}
+
+UStructProperty* UDynamicClass::FindStructPropertyChecked(const TCHAR* PropertyName) const
+{
+	return FindFieldChecked<UStructProperty>(this, PropertyName);
 }
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UDynamicClass, UClass,

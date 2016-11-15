@@ -13,7 +13,7 @@
 
 #if PLATFORM_HTML5_BROWSER
 #include "HTML5JavaScriptFx.h"
-#include <emscripten.h>
+#include <emscripten/emscripten.h>
 #endif 
 
 

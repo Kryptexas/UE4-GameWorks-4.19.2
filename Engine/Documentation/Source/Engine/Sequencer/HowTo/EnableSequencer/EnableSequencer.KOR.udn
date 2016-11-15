@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:2901558
-Availability: Public
+﻿INTSourceChangelist:3011129
+Availability: Docs
 Title:시퀀서 활성화 & 열기
 Crumbs: %ROOT%, Engine, Engine/Sequencer, Engine/Sequencer/HowTo
 Description:레벨 시퀀스 에디터와 시퀀스 레코더 플러그인 활성화, 시퀀스 에디터 여는 방법을 보여드립니다.
@@ -10,6 +10,11 @@ order:1
 checkpoint: editorqs
 Related: Engine/Sequencer/Overview
 Related: Engine\Sequencer\ReferenceEditor\
+
+<!--
+****** This is an outdated and no longer needed doc. *******
+-->
+
 
 [REGION:warning]
 이 기능은 현재 개발중이라 추후 버전에서 예상대로 작동치 않거나 변경될 수 있습니다.

@@ -20,6 +20,12 @@ void FSteamVRHMD::RenderTexture_RenderThread(FRHICommandListImmediate& RHICmdLis
 
 	UpdateLayerTextures();
 
+	if (bSplashIsShown)
+	{
+		SetRenderTarget(RHICmdList, SrcTexture, FTextureRHIRef());
+		RHICmdList.ClearColorTexture(SrcTexture, FLinearColor(0, 0, 0, 0), FIntRect());
+	}
+
 	if (WindowMirrorMode != 0)
 	{
 		const uint32 ViewportWidth = BackBuffer->GetSizeX();
@@ -46,7 +52,7 @@ void FSteamVRHMD::RenderTexture_RenderThread(FRHICommandListImmediate& RHICmdLis
 		if (WindowMirrorMode == 1)
 		{
 			// need to clear when rendering only one eye since the borders won't be touched by the DrawRect below
-			RHICmdList.Clear(true, FLinearColor::Black, false, 0, false, 0, FIntRect());
+			RHICmdList.ClearColorTexture(BackBuffer, FLinearColor::Black, FIntRect());
 
 			RendererModule->DrawRectangle(
 				RHICmdList,
@@ -186,7 +192,7 @@ bool FSteamVRHMD::D3D11Bridge::Present(int& SyncInterval)
 {
 	check(IsInRenderingThread());
 
-	if (bIsQuitting)
+	if (Plugin->VRCompositor == nullptr)
 	{
 		return false;
 	}
@@ -194,6 +200,11 @@ bool FSteamVRHMD::D3D11Bridge::Present(int& SyncInterval)
 	FinishRendering();
 
 	return true;
+}
+
+void FSteamVRHMD::D3D11Bridge::PostPresent()
+{
+	//Plugin->VRCompositor->PostPresentHandoff();
 }
 
 #endif // PLATFORM_WINDOWS

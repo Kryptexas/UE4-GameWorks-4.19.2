@@ -38,7 +38,7 @@ class UFbxMeshImportData : public UFbxAssetImportData
 	bool bTransformVertexToAbsolute;
 
 	/** - Experimental - If this option is true the inverse node rotation pivot will be apply to the mesh vertices. The pivot from the DCC will then be the origin of the mesh. Note: "TransformVertexToAbsolute" must be false.*/
-	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category = ImportSettings, meta = (ImportType = "StaticMesh"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category = ImportSettings, meta = (EditCondition = "!bTransformVertexToAbsolute", ImportType = "StaticMesh"))
 	bool bBakePivotInVertex;
 
 	/** Enables importing of mesh LODs from FBX LOD groups, if present in the FBX file */

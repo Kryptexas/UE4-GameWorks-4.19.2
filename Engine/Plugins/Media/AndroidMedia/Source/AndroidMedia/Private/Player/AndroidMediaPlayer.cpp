@@ -119,7 +119,7 @@ bool FAndroidMediaPlayer::Seek(const FTimespan& Time)
 		return false;
 	}
 
-	JavaMediaPlayer->SeekTo(Time.GetMilliseconds());
+	JavaMediaPlayer->SeekTo(static_cast<int32>(Time.GetTotalMilliseconds()));
 
 	return true;
 }
@@ -225,6 +225,13 @@ IMediaControls& FAndroidMediaPlayer::GetControls()
 FString FAndroidMediaPlayer::GetInfo() const
 {
 	return Info;
+}
+
+
+FName FAndroidMediaPlayer::GetName() const
+{
+	static FName PlayerName(TEXT("AndroidMedia"));
+	return PlayerName;
 }
 
 

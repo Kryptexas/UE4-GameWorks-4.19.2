@@ -1,7 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#ifndef _UNBULKDATA_H
-#define _UNBULKDATA_H
+#pragma once
 
 #include "Async/Async.h"
 
@@ -32,7 +31,8 @@ enum EBulkDataFlags
 	BULKDATA_PayloadInSeperateFile				= 1 << 8,
 	/** If set, payload is compressed using platform specific bit window			*/
 	BULKDATA_SerializeCompressedBitWindow		= 1<<9,
-
+	/** Only used with USE_NEW_ASYNC_IO, which changes the default to inline unless you opt out */
+	BULKDATA_Force_NOT_InlinePayload = 1 << 10,
 };
 
 /**
@@ -638,8 +638,4 @@ public:
 	}
 	COREUOBJECT_API void Serialize(FArchive& Ar, UObject* Owner, const TArray<FName>* FormatsToSave = NULL, bool bSingleUse = true, uint32 InAlignment = DEFAULT_ALIGNMENT);
 };
-
-#endif
-
-
 

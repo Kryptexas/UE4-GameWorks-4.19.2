@@ -253,15 +253,33 @@ FText UKismetTextLibrary::AsDate_DateTime(const FDateTime& InDateTime)
 }
 
 
+FText UKismetTextLibrary::AsTimeZoneDate_DateTime(const FDateTime& InDateTime, const FString& InTimeZone)
+{
+	return FText::AsDate(InDateTime, EDateTimeStyle::Default, InTimeZone);
+}
+
+
 FText UKismetTextLibrary::AsDateTime_DateTime(const FDateTime& InDateTime)
 {
 	return FText::AsDateTime(InDateTime, EDateTimeStyle::Default, EDateTimeStyle::Default, FText::GetInvariantTimeZone());
 }
 
 
+FText UKismetTextLibrary::AsTimeZoneDateTime_DateTime(const FDateTime& InDateTime, const FString& InTimeZone)
+{
+	return FText::AsDateTime(InDateTime, EDateTimeStyle::Default, EDateTimeStyle::Default, InTimeZone);
+}
+
+
 FText UKismetTextLibrary::AsTime_DateTime(const FDateTime& InDateTime)
 {
 	return FText::AsTime(InDateTime, EDateTimeStyle::Default, FText::GetInvariantTimeZone());
+}
+
+
+FText UKismetTextLibrary::AsTimeZoneTime_DateTime(const FDateTime& InDateTime, const FString& InTimeZone)
+{
+	return FText::AsTime(InDateTime, EDateTimeStyle::Default, InTimeZone);
 }
 
 

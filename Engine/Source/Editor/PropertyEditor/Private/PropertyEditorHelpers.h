@@ -26,6 +26,7 @@ namespace EPropertyButton
 		Use,
 		NewBlueprint,
 		EditConfigHierarchy,
+		Documentation,
 	};
 }
 
@@ -112,6 +113,16 @@ namespace PropertyEditorHelpers
 	 * @return true if the property is in an array, false otherwise
 	 */
 	bool IsChildOfArray( const FPropertyNode& InPropertyNode );
+
+	/**
+	 * @return true if the property is a child (within) a set, false otherwise
+	 */
+	bool IsChildOfSet( const FPropertyNode& InPropertyNode );
+
+	/**
+	 * @return true if the property is a child (within) a map, false otherwise
+	 */
+	bool IsChildOfMap( const FPropertyNode& InPropertyNode );
 	
 	/**
 	 * Returns whether or not a property a static array
@@ -130,6 +141,16 @@ namespace PropertyEditorHelpers
 	 * Gets the array parent of a property if it is in a dynamic or static array
 	 */
 	const UProperty* GetArrayParent( const FPropertyNode& InPropertyNode );
+
+	/**
+	 * Gets the set parent of a property if it is in a set
+	 */
+	const UProperty* GetSetParent( const FPropertyNode& InPropertyNode );
+
+	/**
+	 * Gets the map parent of a property if it is in a map
+	 */
+	const UProperty* GetMapParent(const FPropertyNode& InPropertyNode);
 
 	/**
 	 * Returns if a class is acceptable for edit inline

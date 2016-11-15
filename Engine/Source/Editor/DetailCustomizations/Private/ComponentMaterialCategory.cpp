@@ -156,7 +156,6 @@ void FComponentMaterialCategory::Create( IDetailLayoutBuilder& DetailBuilder )
 	FMaterialListDelegates MaterialListDelegates;
 	MaterialListDelegates.OnGetMaterials.BindSP( this, &FComponentMaterialCategory::OnGetMaterialsForView );
 	MaterialListDelegates.OnMaterialChanged.BindSP( this, &FComponentMaterialCategory::OnMaterialChanged );
-
 	TSharedRef<FMaterialList> MaterialList = MakeShareable( new FMaterialList( DetailBuilder, MaterialListDelegates ) );
 
 	bool bAnyMaterialsToDisplay = false;
@@ -242,6 +241,12 @@ void FComponentMaterialCategory::OnMaterialChanged( UMaterialInterface* NewMater
 		}
 	};
 
+	struct FObjectAndProperty
+	{
+		UObject* Object;
+		UProperty* PropertyThatChanged;
+	};
+	TArray<FObjectAndProperty> ObjectsThatChanged;
 	// Scan the selected actors mesh components for the old material and swap it with the new material 
 	for( FMaterialIterator It( SelectedComponents ); It; ++It )
 	{
@@ -305,16 +310,15 @@ void FComponentMaterialCategory::OnMaterialChanged( UMaterialInterface* NewMater
 				{
 					NotifyHook->NotifyPreChange( MaterialProperty );
 				}
+				FObjectAndProperty ObjectAndProperty;
+				ObjectAndProperty.Object = EditChangeObject;
+				ObjectAndProperty.PropertyThatChanged = MaterialProperty;
+
+				ObjectsThatChanged.Add(ObjectAndProperty);
+
+				FPropertyChangedEvent PropertyChangedEvent(MaterialProperty);
 
 				SwapMaterialLambda( CurrentComponent, It.GetMaterialIndex(), NewMaterial );
-
-				FPropertyChangedEvent PropertyChangedEvent( MaterialProperty );
-				EditChangeObject->PostEditChangeProperty( PropertyChangedEvent );
-
-				if( NotifyHook && MaterialProperty )
-				{
-					NotifyHook->NotifyPostChange( PropertyChangedEvent, MaterialProperty );
-				}
 
 				// Propagate material change to instances of the edited component template
 				if( !FApp::IsGame() )
@@ -364,6 +368,20 @@ void FComponentMaterialCategory::OnMaterialChanged( UMaterialInterface* NewMater
 		}
 	}
 
+	// Route post edit change after all components have had their values changed.  This is to avoid 
+	// construction scripts from re-running in the middle of setting values and wiping out components we need to modify
+	for( FObjectAndProperty& ObjectData : ObjectsThatChanged)
+	{
+		FPropertyChangedEvent PropertyChangeEvent(ObjectData.PropertyThatChanged, EPropertyChangeType::ValueSet);
+		ObjectData.Object->PostEditChangeProperty(PropertyChangeEvent);
+
+		if(NotifyHook && ObjectData.PropertyThatChanged)
+		{
+			NotifyHook->NotifyPostChange(PropertyChangeEvent, ObjectData.PropertyThatChanged);
+		}
+	}
+
+	
 	if( bMadeTransaction )
 	{
 		// End the transation if we created one

@@ -4,6 +4,7 @@
 	ShaderCache.cpp: Bound shader state cache implementation.
 =============================================================================*/
 
+#include "ShaderCorePrivatePCH.h"
 #include "ShaderCore.h"
 #include "ShaderCache.h"
 #include "Shader.h"
@@ -150,6 +151,8 @@ static bool ShaderPlatformCanPrebindBoundShaderState(EShaderPlatform Platform)
 		case SP_METAL_SM5:
 		case SP_METAL_MACES3_1:
 		case SP_METAL_MACES2:
+		case SP_WOLF:
+		case SP_WOLF_FORWARD:
 		{
 			return true;
 		}
@@ -166,6 +169,11 @@ static bool ShaderPlatformCanPrebindBoundShaderState(EShaderPlatform Platform)
 			return false;
 		}
 	}
+}
+
+static inline bool ShaderPlatformPrebindRequiresResource(EShaderPlatform Platform)
+{
+	return IsOpenGLPlatform(Platform);
 }
 
 void FShaderCache::SetGameVersion(int32 InGameVersion)
@@ -855,7 +863,7 @@ void FShaderCache::InternalLogDepthStencilState(FDepthStencilStateInitializerRHI
 
 void FShaderCache::InternalLogSamplerState(FSamplerStateInitializerRHI const& Init, FSamplerStateRHIParamRef State)
 {
-	if ( bUseShaderPredraw || bUseShaderDrawLog )
+	if ( (bUseShaderPredraw || bUseShaderDrawLog) && ShaderPlatformPrebindRequiresResource(GMaxRHIShaderPlatform) )
 	{
 		FShaderPlatformCache& PlatformCache = Caches.PlatformCaches.FindOrAdd(GMaxRHIShaderPlatform);
 		int32 ID = PlatformCache.SamplerStates.Add(Init);
@@ -880,7 +888,7 @@ void FShaderCache::InternalLogTexture(FShaderTextureKey const& Init, FTextureRHI
 
 void FShaderCache::InternalLogSRV(FShaderResourceViewRHIParamRef SRV, FTextureRHIParamRef Texture, uint8 StartMip, uint8 NumMips, uint8 Format)
 {
-	if ( bUseShaderPredraw || bUseShaderDrawLog )
+	if ( (bUseShaderPredraw || bUseShaderDrawLog) && ShaderPlatformPrebindRequiresResource(GMaxRHIShaderPlatform) )
 	{
 		FShaderPlatformCache& PlatformCache = Caches.PlatformCaches.FindOrAdd(GMaxRHIShaderPlatform);
 		
@@ -901,7 +909,7 @@ void FShaderCache::InternalLogSRV(FShaderResourceViewRHIParamRef SRV, FTextureRH
 
 void FShaderCache::InternalLogSRV(FShaderResourceViewRHIParamRef SRV, FVertexBufferRHIParamRef Vb, uint32 Stride, uint8 Format)
 {
-	if ( bUseShaderPredraw || bUseShaderDrawLog )
+	if ( (bUseShaderPredraw || bUseShaderDrawLog) && ShaderPlatformPrebindRequiresResource(GMaxRHIShaderPlatform) )
 	{
 		FShaderResourceKey Key;
 		Key.Tex.Type = SCTT_Buffer;
@@ -920,7 +928,7 @@ void FShaderCache::InternalLogSRV(FShaderResourceViewRHIParamRef SRV, FVertexBuf
 
 void FShaderCache::InternalRemoveSRV(FShaderResourceViewRHIParamRef SRV)
 {
-	if ( bUseShaderPredraw || bUseShaderDrawLog )
+	if ( (bUseShaderPredraw || bUseShaderDrawLog) && ShaderPlatformPrebindRequiresResource(GMaxRHIShaderPlatform) )
 	{
 		auto Key = SRVs.FindRef(SRV);
 		CachedSRVs.Remove(Key);
@@ -1042,9 +1050,9 @@ void FShaderCache::InternalSetRenderTargets( uint32 NumSimultaneousRenderTargets
 
 void FShaderCache::InternalSetSamplerState(EShaderFrequency Frequency, uint32 Index, FSamplerStateRHIParamRef State)
 {
-	if ( bUseShaderDrawLog && !bIsPreDraw )
+	if ( (bUseShaderDrawLog && !bIsPreDraw) && ShaderPlatformPrebindRequiresResource(GMaxRHIShaderPlatform) )
 	{
-		checkf(Index < GetFeatureLevelMaxTextureSamplers(GMaxRHIFeatureLevel), TEXT("Attempting to bind sampler at index %u which exceeds RHI max. %d"), Index, GetFeatureLevelMaxTextureSamplers(GMaxRHIFeatureLevel));
+		checkf(Index < GetMaxTextureSamplers(), TEXT("Attempting to bind sampler at index %u which exceeds RHI max. %d"), Index, GetMaxTextureSamplers());
 		InvalidResourceCount -= (uint32)(CurrentDrawKey.SamplerStates[Frequency][Index] == FShaderDrawKey::InvalidState);
 		if ( State )
 		{
@@ -1070,7 +1078,7 @@ void FShaderCache::InternalSetSamplerState(EShaderFrequency Frequency, uint32 In
 
 void FShaderCache::InternalSetTexture(EShaderFrequency Frequency, uint32 Index, FTextureRHIParamRef State)
 {
-	if ( bUseShaderDrawLog && !bIsPreDraw )
+	if ( (bUseShaderDrawLog && !bIsPreDraw) && ShaderPlatformPrebindRequiresResource(GMaxRHIShaderPlatform) )
 	{
 		checkf(Index < MaxResources, TEXT("Attempting to texture bind at index %u which exceeds RHI max. %d"), Index, MaxResources);
 		InvalidResourceCount -= (uint32)(CurrentDrawKey.Resources[Frequency][Index] == FShaderDrawKey::InvalidState);
@@ -1107,7 +1115,7 @@ void FShaderCache::InternalSetTexture(EShaderFrequency Frequency, uint32 Index, 
 
 void FShaderCache::InternalSetSRV(EShaderFrequency Frequency, uint32 Index, FShaderResourceViewRHIParamRef SRV)
 {
-	if ( bUseShaderDrawLog && !bIsPreDraw )
+	if ( (bUseShaderDrawLog && !bIsPreDraw) && ShaderPlatformPrebindRequiresResource(GMaxRHIShaderPlatform) )
 	{
 		checkf(Index < MaxResources, TEXT("Attempting to bind SRV at index %u which exceeds RHI max. %d"), Index, MaxResources);
 		InvalidResourceCount -= (uint32)(CurrentDrawKey.Resources[Frequency][Index] == FShaderDrawKey::InvalidState);
@@ -1864,7 +1872,7 @@ void FShaderCache::SetShaderSamplerTextures( FRHICommandList& RHICmdList, FShade
 {
 	FShaderPlatformCache& PlatformCache = Caches.PlatformCaches.FindOrAdd(GMaxRHIShaderPlatform);
 	
-	for ( uint32 i = 0; i < GetFeatureLevelMaxTextureSamplers(GMaxRHIFeatureLevel); i++ )
+	for ( uint32 i = 0; i < GetMaxTextureSamplers(); i++ )
 	{
 		checkf(DrawKey.SamplerStates[Frequency][i] != FShaderDrawKey::InvalidState, TEXT("Resource state cannot be 'InvalidState' as that indicates a resource lifetime error in the application."));
 		
@@ -2021,10 +2029,12 @@ void FShaderCache::PreDrawShader(FRHICommandList& RHICmdList, FShaderCacheBoundS
 			{
 				if ( VertexDec.Stride > 0 )
 				{
+					check(IsValidRef(PredrawVB));
 					RHICmdList.SetStreamSource(VertexDec.StreamIndex, PredrawVB, VertexDec.Stride, VertexDec.Offset);
 				}
 				else
 				{
+					check(IsValidRef(PredrawZVB));
 					RHICmdList.SetStreamSource(VertexDec.StreamIndex, PredrawZVB, VertexDec.Stride, VertexDec.Offset);
 				}
 			}
@@ -2071,25 +2081,28 @@ void FShaderCache::PreDrawShader(FRHICommandList& RHICmdList, FShaderCacheBoundS
 				break;
 			}
 			
-			if ( Shader.VertexShader.bActive )
+			if ( ShaderPlatformPrebindRequiresResource(GMaxRHIShaderPlatform) )
 			{
-				SetShaderSamplerTextures(RHICmdList, DrawKey, SF_Vertex, CachedVertexShaders.FindRef(Shader.VertexShader).GetReference());
-			}
-			if ( Shader.PixelShader.bActive )
-			{
-				SetShaderSamplerTextures(RHICmdList, DrawKey, SF_Pixel, CachedPixelShaders.FindRef(Shader.PixelShader).GetReference());
-			}
-			if ( Shader.GeometryShader.bActive )
-			{
-				SetShaderSamplerTextures(RHICmdList, DrawKey, SF_Geometry, CachedGeometryShaders.FindRef(Shader.GeometryShader).GetReference());
-			}
-			if ( Shader.HullShader.bActive )
-			{
-				SetShaderSamplerTextures(RHICmdList, DrawKey, SF_Hull, CachedHullShaders.FindRef(Shader.HullShader).GetReference());
-			}
-			if ( Shader.DomainShader.bActive )
-			{
-				SetShaderSamplerTextures(RHICmdList, DrawKey, SF_Domain, CachedDomainShaders.FindRef(Shader.DomainShader).GetReference());
+				if ( Shader.VertexShader.bActive )
+				{
+					SetShaderSamplerTextures(RHICmdList, DrawKey, SF_Vertex, CachedVertexShaders.FindRef(Shader.VertexShader).GetReference());
+				}
+				if ( Shader.PixelShader.bActive )
+				{
+					SetShaderSamplerTextures(RHICmdList, DrawKey, SF_Pixel, CachedPixelShaders.FindRef(Shader.PixelShader).GetReference());
+				}
+				if ( Shader.GeometryShader.bActive )
+				{
+					SetShaderSamplerTextures(RHICmdList, DrawKey, SF_Geometry, CachedGeometryShaders.FindRef(Shader.GeometryShader).GetReference());
+				}
+				if ( Shader.HullShader.bActive )
+				{
+					SetShaderSamplerTextures(RHICmdList, DrawKey, SF_Hull, CachedHullShaders.FindRef(Shader.HullShader).GetReference());
+				}
+				if ( Shader.DomainShader.bActive )
+				{
+					SetShaderSamplerTextures(RHICmdList, DrawKey, SF_Domain, CachedDomainShaders.FindRef(Shader.DomainShader).GetReference());
+				}
 			}
 			
 			switch ( DrawKey.IndexType )
@@ -2118,7 +2131,7 @@ void FShaderCache::PreDrawShader(FRHICommandList& RHICmdList, FShaderCacheBoundS
 			INC_DWORD_STAT(STATGROUP_TotalStatesPredrawn);
 		}
 		
-		if( bWasBound && IsValidRef( ShaderBoundState ) && DrawStates.Num() )
+		if( bWasBound && IsValidRef( ShaderBoundState ) && DrawStates.Num() && ShaderPlatformPrebindRequiresResource(GMaxRHIShaderPlatform) )
 		{
 			if ( Shader.VertexShader.bActive )
 			{

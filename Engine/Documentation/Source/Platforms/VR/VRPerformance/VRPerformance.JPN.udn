@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3011129
 Availability:Doc
-Title: VR Performance Testing
+Title:VR パフォーマンス テスティング
 Crumbs:%ROOT%, Platforms
 Description:
 Navigation:platform
@@ -9,75 +9,75 @@ Skilllevel:Advanced
 
 [TOC(start:2)]
 
-## VR Performance Overview
-Trying to figure out which computer parts are capable of producing the breathtaking imagery and immersive experiences that Virtual Reality (VR) Head Mounted Displays (HMD's) 
-like the Oculus Rift or HTC Vive produce can be a daunting and somewhat frustrating experience due to the many hardware choices available. 
-To help alleviate this frustration and ensure that any personal computer (PC) hardware that anyone is planning to purchase will meet the demanding rendering requirements of a UE4 powered VR experience, the following document has been put together.
-Inside of this  document, you will find detailed information about what PC hardware is recommended for VR development with UE4 and what type of performance you should expect to see on such hardware. 
-You will also find performance tracking data that tracks how different version of UE4 perform with different different HMD's and PC hardware.
+## VR パフォーマンスの概要
+Oculus Rift や HTC Vive などの Virtual Reality (VR) Head Mounted Displays (HMD) を使って息をのむほどの創造的で没入感のある体験を作成可能な PC を 
+数多くのハードウェアから調べることは、とても大変でうんざりします。 
+この悩みを緩和し、購入予定の PC ハードウェアが UE4 採用の VR 体験の厳しいレンダリング要件を満たせるように表を作成しました。
+UE4 を使った VR 開発にお勧めの PC ハードウェアと期待できるパフォーマンスの種類の詳細を説明します。 
+UE4 のバージョンごとに、HMD と PC ハードウェアそれぞれでみせるパフォーマンスを追跡するパフォーマンストラッキング データも含まれています。
 
-## Recommended PC Hardware for VR & UE4
+## VR および UE4 用に推奨される PC ハードウェア
 
-Due to the demanding rendering requirements of VR, the PC that is used to run a VR experience needs to have certain hardware inside of it to give users a smooth VR experience as possible. 
-According to [Oculus](https://www.oculus.com/en-us/blog/powering-the-rift/), for your PC to be able to run the smoothest VR experience as possible, the hardware inside of that PC needs to meet or exceed the following requirements.
+VR の厳しいレンダリング要件を満たすためには、VR 体験を実行する PC は内部に所定のハードウェアを内蔵して VR 体験を可能な限り滑らかにする必要があります。 
+[Oculus](https://www.oculus.com/en-us/blog/powering-the-rift/) では、以下の要件を満たす、あるいはそれ以上の機能をハードウェアを内蔵している PC を推奨しています。
 
-* **CPU:** Intel i5-4590 equivalent or greater.
-* **GPU:** NVIDIA GTX 970 / AMD 290 equivalent or greater.
-* **RAM:** 8 GB of RAM or more.
-* **Opperating System:** Windows 7 SP1 or newer.
-* **USB Ports:** At least 2x USB 3.0 ports or more.
-* **HDMI Output:** HDMI 1.3 video output supporting a 297MHz clock via a direct output architecture.
+* **CPU:** Intel i5-4590 以上
+* **GPU:** NVIDIA GTX 970 / AMD 以上
+* **RAM:** RAM 8 GB 以上
+* **オペレーション システム:** Windows 7 SP1 以上
+* **USB ポート:** 2x USB 3.0 ポート以上
+* **HDMI 出力:** 直接出力アーキテクチャによる 297MHz クロック周波数対応の HDMI 1.3 ビデオ出力
 
-Taking the recommended hardware spec's from Oculus into consideration the following computer parts list was generated. 
-The computer parts that you will find in the list below were picked based on how well the part in question met the following criteria. 
+推奨される Oculus のハードウェアの仕様を考慮して、以下の部品リストを作成しました。 
+以下の 3 つの基準を十分に満たしている部品を選びました。 
 
-* How closely the part matched the recommend hardware specifications set forth by Oculus.
-* Number of positive customer reviews the part had. 
-* What the price of the part was.
+* Oculus が定めた推奨ハードウェア仕様を十分満たしているか
+* 使用者のレビュー評価 
+* 価格
 
 [region:note]
-Please note that while it might be possible to run VR experiences on hardware that does not meet the following specifications, it is not advisable as it could result in a poor VR experiance.
+これらの仕様を満たしていないハードウェア上でも VR は作動する場合がありますが、VR 体験の質が落ちる可能性があるので望ましくありません。ご注意ください。
 [/region]
 
-### Recomened GPU
-While there are a plethora of different video cards on the market to choose from, there are only a few that have enough power to run a VR experience. 
-Choosing any of the following video cards, or video cards that have the same spec as the ones listed below will ensure that you have enough power to run a UE4 powered VR experience.
+### 推奨 GPU
+市場にはビデオカードが星の数ほど出回っていますが、VR 体験に使用できるパワーのあるカードはごくわずかです。 
+以下のビデオカード、あるいは同等の仕様を持つビデオカードは、UE4 採用の VR 体験を使用するパワーを十分確保することができます。
 
-**Minimum GPU**
+**最低限の GPU**
 * [NVIDIA GTX 970 w 4GB of VRam](http://www.newegg.com/Product/Product.aspx?Item=N82E16814487136&cm_re=NVIDIA_GTX_970-_-14-487-136-_-Product)
 * [AMD Radeon R9 w 4GB of VRam](http://www.newegg.com/Product/Product.aspx?Item=N82E16814150724&cm_re=AMD_Radeon_R9_270-_-14-150-724-_-Product)
 
-**Recommended GPU**
+**推奨される GPU**
 * [NVIDIA EVGA GeForce GTX 980 w 4GB of VRam](http://www.newegg.com/Product/Product.aspx?Item=N82E16814487161&cm_re=NVIDIA_GTX_980-_-14-487-161-_-Product)
 * [AMD Radeon R9 290X w 4GB of VRam](http://www.newegg.com/Product/Product.aspx?Item=N82E16814150696&cm_re=AMD_Radeon_R9_290x-_-14-150-696-_-Product)
 
-** Preferred GPU**
+** 好ましい GPU**
 * [NVIDIA GTX Titian w 12GB of VRam](http://www.newegg.com/Product/Product.aspx?Item=N82E16814487129)
 * [AMD Radeon R9 390 w 8GB of VRam](http://www.newegg.com/Product/Product.aspx?Item=N82E16814202164&cm_re=AMD_Radeon_R9_390X-_-14-202-164-_-Product)
 
-### Recomened CPU
+### 推奨される CPU
 * **Intel:** [Intel Core i5-4590 Processor](http://www.amazon.com/Intel-i5-4590-BX80646I54590-Processor-Cache/dp/B00J2LIFBY)
 * **AMD:** [AMD FX-9590 Vishera Processor](http://www.newegg.com/Product/Product.aspx?Item=N82E16819113347)
 
-### Recomened RAM
+### 推奨される RAM
 * **8 GB RAM:** [G.SKILL Ripjaws Series](http://www.newegg.com/Product/Product.aspx?Item=N82E16820231314)
 
-### Recomened Hard Drive
+### 推奨される Hard Drive
 * **SSD Harddrive:** [Mushkin 2.5" Internal 256GB SSD](http://www.newegg.com/Product/Product.aspx?Item=N82E16820226688)
 * ** Standard Harddrive:** [WD 3.5" Internal 7200 RPM 1 TB](http://www.newegg.com/Product/Product.aspx?Item=N82E16822236339&cm_re=1_TB_7200_RMP_drive-_-22-236-339-_-Product)
 
-### Recomened Motherboard
+### 推奨されるマザーボード
 * **Intel Based Motherboard:** [MSI Z97 PC Intel](http://www.newegg.com/Product/Product.aspx?Item=N82E16813130779&cm_re=Z97_motherboards-_-13-130-779-_-Product)
 * **AMD Based Motherboard:** [MSI 970A-G46 AMD](http://www.newegg.com/Product/Product.aspx?Item=N82E16813130637&cm_re=socket_am3-_-13-130-637-_-Product)
 
 [region:note]
-If you are picking a different motherboard than the ones listed above, make sure that it has and can use USB 3.0 as this is a requirement of all HMD's.
+上記以外のマザーボードを仕様する場合は、すべての HMD の要件である USB 3.0 に必ず対応していることを確認してください。
 [/region]
 
-## Oculus VR Performance
+## Oculus VR パフォーマンス
 
 
-## Vive VR Performance
+## Vive VR パフォーマンス
 
 
 

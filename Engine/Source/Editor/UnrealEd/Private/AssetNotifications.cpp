@@ -7,7 +7,7 @@
 
 #define LOCTEXT_NAMESPACE "AssetNotifications"
 
-void FAssetNotifications::SkeletonNeedsToBeSaved(USkeleton* Skeleton)
+void FAssetNotifications::SkeletonNeedsToBeSaved(const USkeleton* Skeleton)
 {
 	FFormatNamedArguments Args;
 	Args.Add( TEXT("SkeletonName"), FText::FromString( Skeleton->GetName() ) );

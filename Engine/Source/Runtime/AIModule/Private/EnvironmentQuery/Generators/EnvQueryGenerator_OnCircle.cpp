@@ -258,6 +258,17 @@ void UEnvQueryGenerator_OnCircle::GenerateItemsForCircle(uint8* ContextRawData, 
 			break;
 		}
 
+		case EEnvQueryTrace::NavigationOverLedges:
+		{
+			ANavigationData* NavData = const_cast<ANavigationData*>(FEQSHelpers::FindNavigationDataForQuery(OutQueryInstance));
+			const UObject* Querier = OutQueryInstance.Owner.Get();
+			if (NavData && Querier)
+			{
+				FEQSHelpers::RunRaycastsOnNavHitOnlyWalls(*NavData, *Querier, TraceData, CenterLocation, ItemCandidates, IgnoredActors);
+			}
+		}
+			break;
+
 		case EEnvQueryTrace::None:
 		{
 			// Just accept the ItemCandidates as they already are (points on a circle), without using navigation OR collision.

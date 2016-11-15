@@ -1,8 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "Landscape.h"
+#include "LandscapePrivatePCH.h"
 #include "LandscapeProxy.h"
-#include "LandscapeInfo.h"
 
 #if WITH_EDITOR
 

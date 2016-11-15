@@ -80,7 +80,7 @@ class FHeadMountedDisplayModule : public IHeadMountedDisplayModule
 		return DummyVal;
 	}
 
-	FString GetModulePriorityKeyName() const
+	FString GetModuleKeyName() const
 	{
 		return FString(TEXT("Default"));
 	}

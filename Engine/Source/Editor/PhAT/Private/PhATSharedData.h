@@ -84,7 +84,11 @@ public:
 	
 	FTransform GetConstraintBodyTM(const UPhysicsConstraintTemplate* ConstraintSetup, EConstraintFrame::Type Frame) const;
 
-	void SetSelectedConstraintRelTM(const FTransform& RelTM);	
+    void SetConstraintRelTM(const FSelection* Constraint, const FTransform& RelTM);
+    inline void SetSelectedConstraintRelTM(const FTransform& RelTM)
+    {
+        SetConstraintRelTM(GetSelectedConstraint(), RelTM);
+    }
 	
 	void DeleteCurrentConstraint();
 	void PasteConstraintProperties();

@@ -16,7 +16,7 @@ UMovieSceneEventSection::UMovieSceneEventSection()
 /* UMovieSceneSection overrides
  *****************************************************************************/
 
-void UMovieSceneEventSection::AddKey(float Time, const FName& EventName, FKeyParams KeyParams)
+void UMovieSceneEventSection::AddKey(float Time, const FName& EventName)
 {
 	if (TryModify())
 	{

@@ -24,7 +24,7 @@ TSharedPtr<IMovieSceneTrackInstance> UMovieSceneColorTrack::CreateInstance()
 }
 
 
-bool UMovieSceneColorTrack::Eval( float Position, float LastPosition, FLinearColor& OutColor ) const
+bool UMovieSceneColorTrack::Eval( float Position, float LastPosition, FLinearColor& InOutColor ) const
 {
 	const UMovieSceneSection* Section = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Position );
 
@@ -35,7 +35,7 @@ bool UMovieSceneColorTrack::Eval( float Position, float LastPosition, FLinearCol
 			Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
 		}
 
-		OutColor = CastChecked<UMovieSceneColorSection>( Section )->Eval( Position, OutColor );
+		InOutColor = CastChecked<UMovieSceneColorSection>( Section )->Eval( Position, InOutColor );
 	}
 
 	return Section != nullptr;

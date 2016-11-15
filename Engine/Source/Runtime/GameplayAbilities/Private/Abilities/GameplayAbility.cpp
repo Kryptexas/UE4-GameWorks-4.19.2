@@ -517,8 +517,6 @@ void UGameplayAbility::CancelAbility(const FGameplayAbilitySpecHandle Handle, co
 
 bool UGameplayAbility::IsEndAbilityValid(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const
 {
-	check(ActorInfo);
-
 	// Protect against EndAbility being called multiple times
 	// Ending an AbilityState may cause this to be invoked again
 	if (bIsActive == false && GetInstancingPolicy() != EGameplayAbilityInstancingPolicy::NonInstanced)
@@ -526,9 +524,16 @@ bool UGameplayAbility::IsEndAbilityValid(const FGameplayAbilitySpecHandle Handle
 		return false;
 	}
 
+	// check if ability has valid owner
+	UAbilitySystemComponent* AbilityComp = ActorInfo ? ActorInfo->AbilitySystemComponent.Get() : nullptr;
+	if (AbilityComp == nullptr)
+	{
+		return false;
+	}
+
 	// check to see if this is an NonInstanced or if the ability is active.
-	const FGameplayAbilitySpec* Spec = ActorInfo ? ActorInfo->AbilitySystemComponent->FindAbilitySpecFromHandle(Handle) : nullptr;
-	const bool bIsSpecActive = (Spec != nullptr) ? Spec->IsActive() : IsActive();
+	const FGameplayAbilitySpec* Spec = AbilityComp ? AbilityComp->FindAbilitySpecFromHandle(Handle) : nullptr;
+	const bool bIsSpecActive = Spec ? Spec->IsActive() : IsActive();
 
 	if (!bIsSpecActive)
 	{
@@ -558,7 +563,7 @@ void UGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const
 		}
 
 		// Stop any timers or latent actions for the ability
-		UWorld* MyWorld = ActorInfo ? ActorInfo->AbilitySystemComponent->GetOwner()->GetWorld() : nullptr;
+		UWorld* MyWorld = GetWorld();
 		if (MyWorld)
 		{
 			MyWorld->GetLatentActionManager().RemoveActionsForObject(this);
@@ -585,6 +590,7 @@ void UGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const
 		}
 		ActiveTasks.Reset();	// Empty the array but dont resize memory, since this object is probably going to be destroyed very soon anyways.
 
+		// TODO: is this condition still required? validity of AbilitySystemComponent is checked by IsEndAbilityValid()
 		if (ActorInfo && ActorInfo->AbilitySystemComponent.IsValid())
 		{
 			if (bReplicateEndAbility)

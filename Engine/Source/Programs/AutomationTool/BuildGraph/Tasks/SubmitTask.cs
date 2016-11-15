@@ -22,23 +22,23 @@ namespace AutomationTool.Tasks
 		/// <summary>
 		/// The files to submit
 		/// </summary>
-		[TaskParameter]
+		[TaskParameter(ValidationType = TaskParameterValidationType.FileSpec)]
 		public string Files;
 
 		/// <summary>
-		/// The filetype for the submitted files
+		/// The Perforce file type for the submitted files (eg. binary+FS32)
 		/// </summary>
 		[TaskParameter(Optional = true)]
 		public string FileType;
 
 		/// <summary>
-		/// The workspace name. If specified, a new workspace will be created using the given stream and root directory to submit the files.
+		/// The workspace name. If specified, a new workspace will be created using the given stream and root directory to submit the files. If not, the current workspace will be used.
 		/// </summary>
 		[TaskParameter(Optional=true)]
 		public string Workspace;
 
 		/// <summary>
-		/// The stream for the workspace. If not specified, defaults to the current stream.
+		/// The stream for the workspace; defaults to the current stream. Ignored unless If the Workspace attribute is also specified.
 		/// </summary>
 		[TaskParameter(Optional = true)]
 		public string Stream;
@@ -46,12 +46,12 @@ namespace AutomationTool.Tasks
 		/// <summary>
 		/// Root directory for the stream. If not specified, defaults to the current root directory.
 		/// </summary>
-		[TaskParameter(Optional = true)]
+		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.DirectoryName)]
 		public string RootDir;
 	}
 
 	/// <summary>
-	/// Task which submits a the version files in the current branch
+	/// Creates a new changelist and submits a set of files to a Perforce stream.
 	/// </summary>
 	[TaskElement("Submit", typeof(SubmitTaskParameters))]
 	public class SubmitTask : CustomTask

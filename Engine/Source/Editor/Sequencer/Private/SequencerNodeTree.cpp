@@ -256,8 +256,15 @@ void FSequencerNodeTree::MakeSectionInterfaces( UMovieSceneTrack& Track, TShared
 
 	for (int32 SectionIndex = 0; SectionIndex < MovieSceneSections.Num(); ++SectionIndex )
 	{
+		FGuid ObjectBinding;
+		if (SectionAreaNode->GetParent().IsValid() && SectionAreaNode->GetParent()->GetType() == ESequencerNode::Object)
+		{
+			TSharedPtr<FSequencerObjectBindingNode> ParentObjectNode = StaticCastSharedPtr<FSequencerObjectBindingNode>(SectionAreaNode->GetParent());
+			ObjectBinding = ParentObjectNode->GetObjectBinding();
+		}
+
 		UMovieSceneSection* SectionObject = MovieSceneSections[SectionIndex];
-		TSharedRef<ISequencerSection> Section = Editor->MakeSectionInterface( *SectionObject, Track );
+		TSharedRef<ISequencerSection> Section = Editor->MakeSectionInterface( *SectionObject, Track, ObjectBinding );
 
 		// Ask the section to generate it's inner layout
 		FSequencerSectionLayoutBuilder Builder( SectionAreaNode );

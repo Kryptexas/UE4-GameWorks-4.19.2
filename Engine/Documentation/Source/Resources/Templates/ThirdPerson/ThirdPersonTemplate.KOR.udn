@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2744667
+﻿INTSourceChangelist:3112268
 Availability: Public
 Title:삼인칭
 Crumbs:%ROOT%
@@ -46,14 +46,14 @@ resources
 [/OBJECT]
 [/VAR]
 
-![](templateMore.png)(convert:false)
+![](templateMore.PNG)(convert:false)
 
 **Third Person Template**, 삼인칭 템플릿을 사용하여 새로운 게임을 막 만들기 시작하셨다면, 잘 된 일입니다! 구체적인 무언가를 이뤄내는 방법 안내서를 찾고 계신가요? 끝도 없이 펼쳐져 있는 빈 캔버스에서 무한한 가능성을 보고 계신가요? 이 문서에는 구현할 수 있는 아이디어를 참고해 보시기 바랍니다.
 
 * **블루프린트 비주얼 스크립트** 시스템에 대한 [문서](Engine/Blueprints) 와 [비디오](Videos) 를 확인하세요. 가끔 무엇을 할 것인가가 아니라 어떻게 할 것인가가 문제인데, 블루프린트에 대해 잘 알아두면 결국 C++ 로 작업을 하게 될지라도 아이디어의 빠른 프로토타입 작업이 가능합니다.
 * 삼인칭 게임에 쓸 [**HUD** 제작](Engine/UMG/QuickStart) 에 [**언리얼 모션 그래픽**](Engine/UMG) 을 사용합니다.
 * 배경에 디스트럭터블 메시 조금 추가하는 건 어떨까요? [](Engine/Physics/Destructibles), [](Engine/Blueprints/HowTo) 문서에서 그 방법을 알아보세요!
-* [비헤이비어 트리](Gameplay/AI/BehaviorTreeQuickStart) 를 사용하여 게임에 **AI 캐릭터** 를 추가하여 플레이어에게서 도망가거나 플레이어를 추적, 원조, 공격하도록 할 수 있습니다.
+* [비헤이비어 트리](Engine/AI/BehaviorTrees/QuickStart) 를 사용하여 게임에 **AI 캐릭터** 를 추가하여 플레이어에게서 도망가거나 플레이어를 추적, 원조, 공격하도록 할 수 있습니다.
 	* **보너스**: **ThirdPersonCharacter** 와 새로운 **AI 캐릭터** 에 [대미지](Engine/Blueprints/UserGuide/Events#eventanydamage) 를 구현하고, 서로를 [**파괴**](Engine/Blueprints/UserGuide/Events#eventendplay) 할 수 있도록 합니다. [](Gameplay/HowTo/SpawnAndDestroyActors/Blueprints) 에 그에 대한 자세한 정보가 안내되어 있습니다.
 	* **더블 보너스**: [](Gameplay/HowTo/CharacterMovement/Blueprints) 문서를 따라 AI 와 **ThirdPersonCharacter** 에 동작 옵션을 추가합니다!
 * 플레이어가 죽게 됐다면, 아마 리스폰시키고 싶겠지요? [](Gameplay/HowTo/RespawnPlayer/Blueprints) 문서를 확인하세요.

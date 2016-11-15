@@ -1,0 +1,136 @@
+﻿INTSourceChangelist:3085410
+Availability:Docs
+Title:カプセル シャドウ ベストプラクティス
+Crumbs: %ROOT%, Engine, 
+Description:カプセル シャドウ ベストプラクティス
+Version:4.13
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows/CapsuleShadows/BestPractices:title%]()
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/LightingAndShadows/CapsuleShadows/BestPractices:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/LightingAndShadows/CapsuleShadows/BestPractices:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/LightingAndShadows/CapsuleShadows/BestPractices]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows/CapsuleShadows/BestPractices:title%]()
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/LightingAndShadows/CapsuleShadows/BestPractices:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/LightingAndShadows/CapsuleShadows/BestPractices:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/LightingAndShadows/CapsuleShadows/BestPractices]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+[TOC(start:2 end:3)]
+
+
+
+
+
+## ベスト プラクティス
+
+以下の操作を行うと、カプセル シャドウがゲームで正しく表示され、パフォーマンスを上げることができます。
+
+### 足のカプセルの配置
+
+背景の中でしっかり地面を踏んでいるように見せるためにも、キャラクターの足のカプセルを正しく配置することは重要です。Shadow Physics アセットを使ってこの設定をいろいろ調整して、 
+正しく見えるようにしてください。どこからみても正しく見えるように、テスト シナリオには何通りか異なるライティング シナリオを用意しておくと良いかもしれません。
+
+
+[REGION:lightbox]
+[![](FootPlacement1.png)(w:600)](FootPlacement1.png)
+[/REGION]
+
+この設定では、足用のカプセルは足の相対サイズに近いので、むこうずね用のカプセルに若干オーバーラップします。シャドウは柔らかいですし、暗すぎくもありません。
+
+[REGION:lightbox]
+[![](FootPlacement2.png)(w:600)](FootPlacement2.png)
+[/REGION]
+ 
+この設定では、足に対してカプセルが長すぎて、踵の裏側まで伸びて、必要以上に影が濃くなっています。
+
+
+### カプセル ボディを制限する
+
+カプセル シャドウは "blob" シャドウの進化形と考えることができます。カプセルは 1 つだけ使ってもいいですし、シャドウイングの精度をあげるために好きな数だけ使用できます。以上を踏まえて、 
+カバーシステムあるいはフォーリングダウンを使って、サーフェイスまで接近するかどうか、ゲームでのキャラクターの移動の必要性を定義します。サーフェイスに接近しないのであれば、
+パフォーマンス負荷はカプセル ボディ数で決定されるので、キャラクターの腕にカプセル ボディを使わないことを検討してください。
+
+[REGION:lightbox]
+[![](BlobShadow.png)(w:400)](BlobShadow.png)
+[/REGION]
+[REGION:caption]
+_画像をクリックしてフルサイズで表示_
+[/REGION]
+
+このサンプルでは、カプセルを 1 つ使ってキャラクターを表します。間接的な照明領域では、キャラクターの表現のために使用するカプセルを 1 つだけにすることでパフォーマンス負荷を抑えることができます。
+ただし、精度は気にしないものとします。
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![With Capsules for Arms](WithArms.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Without Capusles for Arms](WithoutArms.png)(w:600)
+	[/PARAM]
+[/OBJECT]
+
+この比較では、キャラクターの表現から腕を削除しました。直接的な照明領域でサーフェイスに近くない場合は、視覚的な差はほとんど確認することはできません。 
+
+
+### 間接ライティング キャッシュ (Volume Light Samples)
+
+間接ライティングの場合、カプセル シャドウのソフト シャドウの方向性と強度は [間接ライティング キャッシュ](Engine/Rendering/LightingAndShadows/IndirectLightingCache/) に 
+大きく左右されます。ライト サンプルの位置を調節して、ゲームのニーズに合わせた密集や文才が必要な場合があります。 
+
+**[Volume Light Sample Placement]** を調節するには、メイン ツールバーの **[Settings (設定)]** > **[World Settings (ワールド設定)]** で **[World Settings (ワールド設定)]** パネルを有効にしなければなりません。[World Settings (ワールド設定)]** パネルの **[Lightmass]** セクションで 
+ **[Volume Light Sample Placement]** を変更することができます。数字を低くするとサンプルは密集した配置となり、数字を高くすると分散します。
+
+
+**[Viewport (ビューポート)]** > **[Show (表示)]** > **[Visualize (可視化)]** > **[Volume Lighting Samples]** から、レベル内でサンプルを可視化することができます。 
+
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Volume Light Samples Placement: 1.0 (Default)](VolmeLightSamplesDefault.png)(w:600)
+	[/PARAM]
+	[PARAM:after]
+	![Volume Light Samples Placement: 0.25](WithArms.png)(w:600)
+	[/PARAM]
+[/OBJECT]
+
+求めている仕上りにするためには、Volume Light Samples Placement の設定を調節する必要がるかもしれません。このシーンの場合は値を 0.5 と 0.25 の間で調節するのが良さそうですが、 
+ベストな値はゲームによって異なります。
+
+[REGION:warning]
+値が低すぎると、サンプル同士の配置が近すぎるため、カプセルはサンプル間で滑らかな移動ができず、"popping" が起こります。
+[/REGION]
+
+
+
+
+

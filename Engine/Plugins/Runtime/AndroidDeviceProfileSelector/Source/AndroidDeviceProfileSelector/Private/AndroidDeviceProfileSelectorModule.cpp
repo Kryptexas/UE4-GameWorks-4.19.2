@@ -23,9 +23,6 @@ void FAndroidDeviceProfileSelectorModule::ShutdownModule()
 {
 }
 
-// Temp for 4.13.1
-extern FString FAndroidMisc_GetVulkanVersion();
-
 FString const FAndroidDeviceProfileSelectorModule::GetRuntimeDeviceProfileName()
 {
 	static FString ProfileName; 
@@ -42,7 +39,7 @@ FString const FAndroidDeviceProfileSelectorModule::GetRuntimeDeviceProfileName()
 		FString GPUFamily = FAndroidMisc::GetGPUFamily();
 		FString GLVersion = FAndroidMisc::GetGLVersion();
 
-		FString VulkanVersion = FAndroidMisc_GetVulkanVersion();
+		FString VulkanVersion = FAndroidMisc::GetVulkanVersion();
 		FString AndroidVersion = FAndroidMisc::GetAndroidVersion();
 		FString DeviceMake = FAndroidMisc::GetDeviceMake();
 		FString DeviceModel = FAndroidMisc::GetDeviceModel();

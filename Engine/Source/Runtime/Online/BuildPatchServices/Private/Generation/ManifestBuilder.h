@@ -9,6 +9,7 @@ namespace BuildPatchServices
 {
 	struct FManifestDetails
 	{
+	public:
 		// The ID of the app of this build
 		uint32 AppId;
 		// The name of the app of this build

@@ -15,6 +15,11 @@ UGameplayTask_ClaimResource* UGameplayTask_ClaimResource::ClaimResource(TScriptI
 	return InTaskOwner.GetInterface() ? ClaimResource(*InTaskOwner, ResourceClass, Priority, TaskInstanceName) : nullptr;
 }
 
+UGameplayTask_ClaimResource* UGameplayTask_ClaimResource::ClaimResources(TScriptInterface<IGameplayTaskOwnerInterface> InTaskOwner, TArray<TSubclassOf<UGameplayTaskResource> > ResourceClasses, const uint8 Priority, const FName TaskInstanceName)
+{
+	return InTaskOwner.GetInterface() ? ClaimResources(*InTaskOwner, ResourceClasses, Priority, TaskInstanceName) : nullptr;
+}
+
 UGameplayTask_ClaimResource* UGameplayTask_ClaimResource::ClaimResource(IGameplayTaskOwnerInterface& InTaskOwner, const TSubclassOf<UGameplayTaskResource> ResourceClass, const uint8 Priority, const FName TaskInstanceName)
 {
 	if (!ResourceClass)
@@ -22,12 +27,33 @@ UGameplayTask_ClaimResource* UGameplayTask_ClaimResource::ClaimResource(IGamepla
 		return nullptr;
 	}
 
-	UGameplayTask_ClaimResource* MyTask = NewObject<UGameplayTask_ClaimResource>();
+	UGameplayTask_ClaimResource* MyTask = NewTaskUninitialized<UGameplayTask_ClaimResource>();
 	if (MyTask)
 	{
 		MyTask->InitTask(InTaskOwner, Priority);
 		MyTask->InstanceName = TaskInstanceName;
 		MyTask->AddClaimedResource(ResourceClass);
+	}
+
+	return MyTask;
+}
+
+UGameplayTask_ClaimResource* UGameplayTask_ClaimResource::ClaimResources(IGameplayTaskOwnerInterface& InTaskOwner, const TArray<TSubclassOf<UGameplayTaskResource> >& ResourceClasses, const uint8 Priority, const FName TaskInstanceName)
+{
+	if (ResourceClasses.Num() == 0)
+	{
+		return nullptr;
+	}
+
+	UGameplayTask_ClaimResource* MyTask = NewTaskUninitialized<UGameplayTask_ClaimResource>();
+	if (MyTask)
+	{
+		MyTask->InitTask(InTaskOwner, Priority);
+		MyTask->InstanceName = TaskInstanceName;
+		for (const TSubclassOf<UGameplayTaskResource>& ResourceClass : ResourceClasses)
+		{
+			MyTask->AddClaimedResource(ResourceClass);
+		}
 	}
 
 	return MyTask;

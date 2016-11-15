@@ -6,8 +6,6 @@
 
 #pragma once
 
-#include "Audio.h"
-
 /*-----------------------------------------------------------------------------
 	Stats.
 -----------------------------------------------------------------------------*/
@@ -17,6 +15,8 @@ class UPrimitiveComponent;
 class AActor;
 class UTexture2D;
 class FSoundSource;
+class USoundWave;
+struct FWaveInstance;
 struct FStreamingManagerTexture;
 
 /** Helper function to flush resource streaming. */
@@ -387,6 +387,9 @@ struct ITextureStreamingManager : public IStreamingManager
 	virtual void RemoveStreamingTexture(UTexture2D* Texture) = 0;
 
 	virtual int64 GetMemoryOverBudget() const = 0;
+
+	/** Pool size for streaming. */
+	virtual int64 GetPoolSize() const = 0;
 
 	/** Max required textures ever seen in bytes. */
 	virtual int64 GetMaxEverRequired() const = 0;

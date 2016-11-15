@@ -209,6 +209,9 @@ private:
 	bool CanSetTransformMode(ETransformMode::Type InTransformMode) const;
 	bool IsTransformModeActive(ETransformMode::Type InTransformMode) const;
 
+	void ToggleShowingOutlines();
+	bool IsShowingOutlines() const;
+
 	void ProcessDropAndAddWidget(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent, const bool bIsPreview);
 
 	FVector2D GetExtensionPosition(TSharedRef<FDesignerSurfaceElement> ExtensionElement) const;
@@ -216,6 +219,8 @@ private:
 	FVector2D GetExtensionSize(TSharedRef<FDesignerSurfaceElement> ExtensionElement) const;
 	
 	void ClearDropPreviews();
+
+	void DetermineDragDropPreviewWidgets(TArray<UWidget*>& OutWidgets, const FDragDropEvent& DragDropEvent);
 
 private:
 	/** A reference to the BP Editor that owns this designer */

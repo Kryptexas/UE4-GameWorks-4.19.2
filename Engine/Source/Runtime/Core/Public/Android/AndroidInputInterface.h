@@ -214,6 +214,8 @@ public:
 	virtual void SetForceFeedbackChannelValues(int32 ControllerId, const FForceFeedbackValues &values) override;
 	virtual void SetLightColor(int32 ControllerId, FColor Color) override {}
 
+	virtual bool IsGamepadAttached() const;
+
 	virtual void AddExternalInputDevice(TSharedPtr<class IInputDevice> InputDevice);
 
 private:

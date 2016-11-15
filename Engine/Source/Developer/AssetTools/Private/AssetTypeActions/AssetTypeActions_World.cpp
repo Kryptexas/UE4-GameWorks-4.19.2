@@ -8,8 +8,8 @@ void FAssetTypeActions_World::OpenAssetEditor( const TArray<UObject*>& InObjects
 {
 	for (auto ObjIt = InObjects.CreateConstIterator(); ObjIt; ++ObjIt)
 	{
-		auto World = Cast<UWorld>(*ObjIt);
-		if (World != NULL)
+		UWorld* World = Cast<UWorld>(*ObjIt);
+		if (World != nullptr && ensure(World->IsValidLowLevel()))
 		{
 			// If there are any unsaved changes to the current level, see if the user wants to save those first.
 			bool bPromptUserToSave = true;

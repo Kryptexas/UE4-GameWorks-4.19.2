@@ -23,6 +23,8 @@ public class LandscapeEditor : ModuleRules
 				"ImageWrapper",
                 "EditorWidgets",
                 "Foliage",
+				"ViewportInteraction",
+				"VREditor",
 			}
 			);
 
@@ -32,6 +34,7 @@ public class LandscapeEditor : ModuleRules
 				"DesktopPlatform",
 				"ContentBrowser",
                 "AssetTools",
+				"LevelEditor"
 			}
 			);
 

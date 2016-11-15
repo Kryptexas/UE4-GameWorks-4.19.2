@@ -26,7 +26,7 @@ namespace WindowsTargetSettingsDetailsConstants
 	const FText DisabledTip = LOCTEXT("GitHubSourceRequiredToolTip", "This requires GitHub source.");
 }
 
-FText GetFriendlyNameFromRHIName(const FString& InRHIName)
+static FText GetFriendlyNameFromRHIName(const FString& InRHIName)
 {
 	FText FriendlyRHIName = LOCTEXT("UnknownRHI", "UnknownRHI");
 	if (InRHIName == TEXT("PCD3D_SM5"))
@@ -51,11 +51,19 @@ FText GetFriendlyNameFromRHIName(const FString& InRHIName)
 	}
 	else if (InRHIName == TEXT("SF_VULKAN_SM4"))
 	{
-		FriendlyRHIName = LOCTEXT("VulkanSM4", "Vulkan (SM4)");
+		FriendlyRHIName = LOCTEXT("VulkanSM4", "Vulkan Desktop (SM4, Experimental)");
 	}
 	else if (InRHIName == TEXT("SF_VULKAN_SM5"))
 	{
 		FriendlyRHIName = LOCTEXT("VulkanSM5", "Vulkan (SM5)");
+	}
+	else if (InRHIName == TEXT("GLSL_WOLF"))
+	{
+		FriendlyRHIName = LOCTEXT("Wolf", "Wolf (Deferred)");
+	}
+	else if (InRHIName == TEXT("GLSL_WOLF_FORWARD"))
+	{
+		FriendlyRHIName = LOCTEXT("WolfForward", "Wolf (Forward)");
 	}
 
 	return FriendlyRHIName;

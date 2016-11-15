@@ -20,10 +20,10 @@ namespace UnrealBuildTool
 		// by default, use an empty architecture (which is really just a modifer to the platform for some paths/names)
 		public static string TVOSArchitecture = "";
 
-		public TVOSPlatformContext(FileReference InProjectFile, bool ForDistribution = false)
-			: base(UnrealTargetPlatform.IOS, InProjectFile, ForDistribution)
-		{
-		}
+        public TVOSPlatformContext(FileReference InProjectFile, bool ForDistribution = false)
+            : base(UnrealTargetPlatform.IOS, InProjectFile, ForDistribution)
+        {
+        }
 
 		// The current architecture - affects everything about how UBT operates on IOS
 		public override string GetActiveArchitecture()
@@ -66,14 +66,14 @@ namespace UnrealBuildTool
 			return " -arch " + (UBTArchitecture == "-simulator" ? "i386" : "arm64");
 		}
 
-		public override void SetUpProjectEnvironment(UnrealTargetConfiguration Configuration)
+		public override void SetUpProjectEnvironment(UnrealTargetConfiguration Configuration, TargetInfo Target = null)
 		{
-			base.SetUpProjectEnvironment(Configuration);
+			base.SetUpProjectEnvironment(Configuration, Target);
 
-			// @todo tvos: Add ini settings and look them up when they matter - like when we get TVOS10.0 etc
-		}
+            // @todo tvos: Add ini settings and look them up when they matter - like when we get TVOS10.0 etc
+        }
 
-		public override void SetUpEnvironment(UEBuildTarget InBuildTarget)
+        public override void SetUpEnvironment(UEBuildTarget InBuildTarget)
 		{
 			base.SetUpEnvironment(InBuildTarget);
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_TVOS=1");

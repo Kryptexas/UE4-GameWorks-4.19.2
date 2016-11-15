@@ -66,19 +66,13 @@ void FMovieSceneFadeTrackInstance::Update(EMovieSceneUpdateData& UpdateData, con
 		Player.SetViewportSettings(ViewportParamsMap);
 
 		// Set runtime fade
-		for (const FWorldContext& Context : GEngine->GetWorldContexts())
+		UWorld* World = Cast<UWorld>(Player.GetPlaybackContext());
+		if (World && (World->WorldType == EWorldType::Game || World->WorldType == EWorldType::PIE))
 		{
-			if (Context.WorldType == EWorldType::Game || Context.WorldType == EWorldType::PIE)
+			APlayerController* PlayerController = World->GetGameInstance()->GetFirstLocalPlayerController();
+			if (PlayerController != nullptr && PlayerController->PlayerCameraManager && !PlayerController->PlayerCameraManager->IsPendingKill())
 			{
-				UWorld* World = Context.World();
-				if (World != nullptr)
-				{
-					APlayerController* PlayerController = World->GetGameInstance()->GetFirstLocalPlayerController();
-					if (PlayerController != nullptr && PlayerController->PlayerCameraManager && !PlayerController->PlayerCameraManager->IsPendingKill())
-					{
-						PlayerController->PlayerCameraManager->SetManualCameraFade(FloatValue, FadeColor, bFadeAudio);
-					}
-				}
+				PlayerController->PlayerCameraManager->SetManualCameraFade(FloatValue, FadeColor, bFadeAudio);
 			}
 		}
 	}

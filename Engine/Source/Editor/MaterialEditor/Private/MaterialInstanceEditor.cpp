@@ -649,9 +649,6 @@ void FMaterialInstanceEditor::NotifyPreChange(UProperty* PropertyThatChanged)
 
 void FMaterialInstanceEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged)
 {
-	// Update the preview window when the user changes a property.
-	PreviewVC->RefreshViewport();
-
 	// If they changed the parent, regenerate the parent list.
 	if(PropertyThatChanged->GetName()==TEXT("Parent"))
 	{
@@ -680,6 +677,16 @@ void FMaterialInstanceEditor::NotifyPostChange( const FPropertyChangedEvent& Pro
 
 		UpdatePropertyWindow();
 	}
+	else if(PropertyThatChanged->GetName() == TEXT("PreviewMesh"))
+	{
+		UObject* PreviewAsset = MaterialEditorInstance->SourceInstance->PreviewMesh.TryLoad();
+		if(!PreviewAsset)
+		{
+			// Just default to the sphere if the preview asset is null or missing
+			PreviewAsset = GUnrealEd->GetThumbnailManager()->EditorSphere;
+		}
+		PreviewVC->SetPreviewAsset(PreviewAsset);
+	}
 
 	//rebuild the property window to account for the possibility that the item changed was
 	//a static switch
@@ -691,6 +698,10 @@ void FMaterialInstanceEditor::NotifyPostChange( const FPropertyChangedEvent& Pro
 		MaterialEditorInstance->VisibleExpressions.Empty();
 		FMaterialEditorUtilities::GetVisibleMaterialParameters(MaterialEditorInstance->Parent->GetMaterial(), MaterialEditorInstance->SourceInstance, MaterialEditorInstance->VisibleExpressions);
 	}
+
+	// Update the preview window when the user changes a property.
+	PreviewVC->RefreshViewport();
+
 }
 
 void FMaterialInstanceEditor::RebuildInheritanceList()

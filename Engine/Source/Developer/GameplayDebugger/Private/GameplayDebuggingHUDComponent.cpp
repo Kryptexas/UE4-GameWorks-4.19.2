@@ -541,7 +541,7 @@ void AGameplayDebuggingHUDComponent::DrawEQSData(APlayerController* PC, class UG
 		else
 		{
 			FireDir = DefaultContext.Canvas->SceneView->GetViewDirection();
-			CamLocation = DefaultContext.Canvas->SceneView->ViewMatrices.ViewOrigin;
+			CamLocation = DefaultContext.Canvas->SceneView->ViewMatrices.GetViewOrigin();
 		}
 
 		float bestAim = 0;

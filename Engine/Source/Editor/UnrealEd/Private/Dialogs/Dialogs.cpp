@@ -723,18 +723,9 @@ bool PromptUserForDirectory(FString& OutDirectory, const FString& Message, const
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 	if ( DesktopPlatform )
 	{
-		void* ParentWindowWindowHandle = NULL;
-
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-		if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
-		{
-			ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-		}
-
 		FString FolderName;
 		bFolderSelected = DesktopPlatform->OpenDirectoryDialog(
-			ParentWindowWindowHandle,
+			FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr),
 			Message,
 			DefaultPath,
 			FolderName

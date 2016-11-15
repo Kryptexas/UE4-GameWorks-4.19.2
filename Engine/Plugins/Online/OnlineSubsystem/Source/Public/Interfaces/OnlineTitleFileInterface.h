@@ -2,6 +2,7 @@
 
 #pragma once
  #include "OnlineDelegateMacros.h"
+#include "OnlineSubsystemTypes.h"
 
 /**
  * Delegate fired when the list of files has been returned from the network store

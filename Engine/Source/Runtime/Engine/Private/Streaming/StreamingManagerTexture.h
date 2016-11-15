@@ -71,6 +71,9 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 
 	virtual int64 GetMemoryOverBudget() const override { return MemoryOverBudget; }
 
+	/** Pool size for streaming. */
+	virtual int64 GetPoolSize() const override { return GTexturePoolSize;  }
+
 	virtual int64 GetMaxEverRequired() const override { return MaxEverRequired; }
 
 	virtual void ResetMaxEverRequired() override { MaxEverRequired = 0; }

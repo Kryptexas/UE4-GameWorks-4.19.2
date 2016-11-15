@@ -1,4 +1,4 @@
-Availability: Docs
+Availability: Public
 Title:Load and Unload Levels with C++
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
 Description:How to stream levels with a custom streaming Actor created in C++
@@ -120,7 +120,6 @@ will allow us to get and check for our Character. You can use the GameplayStatic
 
 			OverlapVolume = CreateDefaultSubobject<UBoxComponent>(TEXT("OverlapVolume"));
 			RootComponent = OverlapVolume;
-
 
 			OverlapVolume->OnComponentBeginOverlap.AddUniqueDynamic(this, &ALevelStreamerActor::OverlapBegins);
 		}

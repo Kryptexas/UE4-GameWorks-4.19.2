@@ -18,6 +18,7 @@
 #include "HeightfieldLighting.h"
 #include "Components/WindDirectionalSourceComponent.h"
 #include "PlanarReflectionSceneProxy.h"
+#include "ComponentRecreateRenderStateContext.h"
 
 // Enable this define to do slow checks for components being added to the wrong
 // world's scene, when using PIE. This can happen if a PIE component is reattached
@@ -498,6 +499,9 @@ FScene::FReadOnlyCVARCache::FReadOnlyCVARCache()
 	static const auto CVarSupportLowQualityLightmaps = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportLowQualityLightmaps"));
 	static const auto CVarSupportPointLightWholeSceneShadows = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportPointLightWholeSceneShadows"));
 	static const auto CVarSupportAllShaderPermutations = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportAllShaderPermutations"));	
+	static const auto CVarVertexFoggingForOpaque = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.VertexFoggingForOpaque"));	
+	static const auto CVarForwardShading = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ForwardShading"));
+
 	const bool bForceAllPermutations = CVarSupportAllShaderPermutations && CVarSupportAllShaderPermutations->GetValueOnAnyThread() != 0;
 
 	bEnableAtmosphericFog = !CVarSupportAtmosphericFog || CVarSupportAtmosphericFog->GetValueOnAnyThread() != 0 || bForceAllPermutations;
@@ -505,6 +509,9 @@ FScene::FReadOnlyCVARCache::FReadOnlyCVARCache()
 	bEnablePointLightShadows = !CVarSupportPointLightWholeSceneShadows || CVarSupportPointLightWholeSceneShadows->GetValueOnAnyThread() != 0 || bForceAllPermutations;
 	bEnableLowQualityLightmaps = !CVarSupportLowQualityLightmaps || CVarSupportLowQualityLightmaps->GetValueOnAnyThread() != 0 || bForceAllPermutations;
 
+	// Only enable VertexFoggingForOpaque if ForwardShading is enabled 
+	const bool bForwardShading = CVarForwardShading && CVarForwardShading->GetValueOnAnyThread() != 0;
+	bEnableVertexFoggingForOpaque = bForwardShading && ( !CVarVertexFoggingForOpaque || CVarVertexFoggingForOpaque->GetValueOnAnyThread() != 0 );
 
 	const bool bShowMissmatchedLowQualityLightmapsWarning = (!bEnableLowQualityLightmaps) && (GEngine->bShouldGenerateLowQualityLightmaps_DEPRECATED);
 	if ( bShowMissmatchedLowQualityLightmapsWarning )
@@ -640,12 +647,12 @@ void FScene::AddPrimitive(UPrimitiveComponent* Primitive)
 
 	// Cache the primitive's initial transform.
 	FMatrix RenderMatrix = Primitive->GetRenderMatrix();
-	FVector OwnerPosition(0);
+	FVector AttachmentRootPosition(0);
 
-	AActor* Owner = Primitive->GetOwner();
-	if (Owner)
+	AActor* AttachmentRoot = Primitive->GetAttachmentRootActor();
+	if (AttachmentRoot)
 	{
-		OwnerPosition = Owner->GetActorLocation();
+		AttachmentRootPosition = AttachmentRoot->GetActorLocation();
 	}
 
 	struct FCreateRenderThreadParameters
@@ -653,7 +660,7 @@ void FScene::AddPrimitive(UPrimitiveComponent* Primitive)
 		FPrimitiveSceneProxy* PrimitiveSceneProxy;
 		FMatrix RenderMatrix;
 		FBoxSphereBounds WorldBounds;
-		FVector OwnerPosition;
+		FVector AttachmentRootPosition;
 		FBoxSphereBounds LocalBounds;
 	};
 	FCreateRenderThreadParameters Params =
@@ -661,7 +668,7 @@ void FScene::AddPrimitive(UPrimitiveComponent* Primitive)
 		PrimitiveSceneProxy,
 		RenderMatrix,
 		Primitive->Bounds,
-		OwnerPosition,
+		AttachmentRootPosition,
 		Primitive->CalcBounds(FTransform::Identity)
 	};
 
@@ -676,7 +683,7 @@ void FScene::AddPrimitive(UPrimitiveComponent* Primitive)
 	{
 		FPrimitiveSceneProxy* SceneProxy = Params.PrimitiveSceneProxy;
 		FScopeCycleCounter Context(SceneProxy->GetStatId());
-		SceneProxy->SetTransform(Params.RenderMatrix, Params.WorldBounds, Params.LocalBounds, Params.OwnerPosition);
+		SceneProxy->SetTransform(Params.RenderMatrix, Params.WorldBounds, Params.LocalBounds, Params.AttachmentRootPosition);
 
 		// Create any RenderThreadResources required.
 		SceneProxy->CreateRenderThreadResources();
@@ -706,7 +713,7 @@ void FScene::AddPrimitive(UPrimitiveComponent* Primitive)
 
 }
 
-void FScene::UpdatePrimitiveTransform_RenderThread(FRHICommandListImmediate& RHICmdList, FPrimitiveSceneProxy* PrimitiveSceneProxy, const FBoxSphereBounds& WorldBounds, const FBoxSphereBounds& LocalBounds, const FMatrix& LocalToWorld, const FVector& OwnerPosition)
+void FScene::UpdatePrimitiveTransform_RenderThread(FRHICommandListImmediate& RHICmdList, FPrimitiveSceneProxy* PrimitiveSceneProxy, const FBoxSphereBounds& WorldBounds, const FBoxSphereBounds& LocalBounds, const FMatrix& LocalToWorld, const FVector& AttachmentRootPosition)
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdatePrimitiveTransformRenderThreadTime);
 
@@ -723,7 +730,7 @@ void FScene::UpdatePrimitiveTransform_RenderThread(FRHICommandListImmediate& RHI
 	Scene->MotionBlurInfoData.UpdatePrimitiveMotionBlur(PrimitiveSceneProxy->GetPrimitiveSceneInfo());
 	
 	// Update the primitive transform.
-	PrimitiveSceneProxy->SetTransform(LocalToWorld, WorldBounds, LocalBounds, OwnerPosition);
+	PrimitiveSceneProxy->SetTransform(LocalToWorld, WorldBounds, LocalBounds, AttachmentRootPosition);
 
 	DistanceFieldSceneData.UpdatePrimitive(PrimitiveSceneProxy->GetPrimitiveSceneInfo());
 
@@ -762,12 +769,12 @@ void FScene::UpdatePrimitiveTransform(UPrimitiveComponent* Primitive)
 		}
 		else
 		{
-			FVector OwnerPosition(0);
+			FVector AttachmentRootPosition(0);
 
-			AActor* Actor = Primitive->GetOwner();
+			AActor* Actor = Primitive->GetAttachmentRootActor();
 			if (Actor != NULL)
 			{
-				OwnerPosition = Actor->GetActorLocation();
+				AttachmentRootPosition = Actor->GetActorLocation();
 			}
 
 			struct FPrimitiveUpdateParams
@@ -777,7 +784,7 @@ void FScene::UpdatePrimitiveTransform(UPrimitiveComponent* Primitive)
 				FBoxSphereBounds WorldBounds;
 				FBoxSphereBounds LocalBounds;
 				FMatrix LocalToWorld;
-				FVector OwnerPosition;
+				FVector AttachmentRootPosition;
 			};
 
 			FPrimitiveUpdateParams UpdateParams;
@@ -785,7 +792,7 @@ void FScene::UpdatePrimitiveTransform(UPrimitiveComponent* Primitive)
 			UpdateParams.PrimitiveSceneProxy = Primitive->SceneProxy;
 			UpdateParams.WorldBounds = Primitive->Bounds;
 			UpdateParams.LocalToWorld = Primitive->GetRenderMatrix();
-			UpdateParams.OwnerPosition = OwnerPosition;
+			UpdateParams.AttachmentRootPosition = AttachmentRootPosition;
 			UpdateParams.LocalBounds = Primitive->CalcBounds(FTransform::Identity);
 
 			// Help track down primitive with bad bounds way before the it gets to the Renderer
@@ -797,7 +804,7 @@ void FScene::UpdatePrimitiveTransform(UPrimitiveComponent* Primitive)
 				FPrimitiveUpdateParams,UpdateParams,UpdateParams,
 				{
 					FScopeCycleCounter Context(UpdateParams.PrimitiveSceneProxy->GetStatId());
-					UpdateParams.Scene->UpdatePrimitiveTransform_RenderThread(RHICmdList, UpdateParams.PrimitiveSceneProxy, UpdateParams.WorldBounds, UpdateParams.LocalBounds, UpdateParams.LocalToWorld, UpdateParams.OwnerPosition);
+					UpdateParams.Scene->UpdatePrimitiveTransform_RenderThread(RHICmdList, UpdateParams.PrimitiveSceneProxy, UpdateParams.WorldBounds, UpdateParams.LocalBounds, UpdateParams.LocalToWorld, UpdateParams.AttachmentRootPosition);
 				});
 		}
 	}
@@ -1262,14 +1269,16 @@ void FScene::UpdateReflectionCaptureTransform(UReflectionCaptureComponent* Compo
 {
 	if (Component->SceneProxy)
 	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+		ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
 			UpdateTransformCommand,
 			FReflectionCaptureProxy*,Proxy,Component->SceneProxy,
 			FMatrix,Transform,Component->ComponentToWorld.ToMatrixWithScale(),
+			const float*,AverageBrightness,Component->GetAverageBrightnessPtr(),
 			FScene*,Scene,this,
 		{
 			Scene->ReflectionSceneData.bRegisteredReflectionCapturesHasChanged = true;
 			Proxy->SetTransform(Transform);
+			Proxy->InitializeAverageBrightness(*AverageBrightness);
 		});
 	}
 }
@@ -1917,6 +1926,7 @@ void FScene::UpdateSpeedTreeWind(double CurrentTime)
 					for (int32 LODIndex = 0; LODIndex < StaticMesh->RenderData->LODResources.Num(); ++LODIndex)
 					{
 						Scene->SpeedTreeVertexFactoryMap.Add(&StaticMesh->RenderData->LODResources[LODIndex].VertexFactory, StaticMesh);
+						Scene->SpeedTreeVertexFactoryMap.Add(&StaticMesh->RenderData->LODResources[LODIndex].VertexFactoryOverrideColorVertexBuffer, StaticMesh);
 					}
 				}
 
@@ -2132,6 +2142,9 @@ void FScene::UpdateStaticDrawListsForMaterials_RenderThread(FRHICommandListImmed
 	MaskedDepthDrawList.GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
 	HitProxyDrawList.GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
 	HitProxyDrawList_OpaqueOnly.GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
+#if WITH_EDITOR
+	EditorSelectionDrawList.GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
+#endif
 	VelocityDrawList.GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
 	WholeSceneShadowDepthDrawList.GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
 	WholeSceneReflectiveShadowMapDrawList.GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
@@ -2362,6 +2375,9 @@ void FScene::DumpStaticMeshDrawListStats() const
 	DUMP_DRAW_LIST(MobileBasePassUniformLightMapPolicyDrawListWithCSM[EBasePass_Masked]);
 	DUMP_DRAW_LIST(HitProxyDrawList);
 	DUMP_DRAW_LIST(HitProxyDrawList_OpaqueOnly);
+#if WITH_EDITOR
+	DUMP_DRAW_LIST(EditorSelectionDrawList);
+#endif
 	DUMP_DRAW_LIST(VelocityDrawList);
 	DUMP_DRAW_LIST(WholeSceneShadowDepthDrawList);
 #undef DUMP_DRAW_LIST
@@ -2523,8 +2539,13 @@ void FScene::ApplyWorldOffset_RenderThread(FVector InOffset)
 	MotionBlurInfoData.ApplyOffset(InOffset);
 }
 
-void FScene::OnLevelAddedToWorld(FName LevelAddedName)
+void FScene::OnLevelAddedToWorld(FName LevelAddedName, UWorld* InWorld, bool bIsLightingScenario)
 {
+	if (bIsLightingScenario)
+	{
+		InWorld->PropagateLightingScenarioChange();
+	}
+
 	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 		FLevelAddedToWorld,
 		class FScene*, Scene, this,

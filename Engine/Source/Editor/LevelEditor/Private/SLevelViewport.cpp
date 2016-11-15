@@ -1996,45 +1996,49 @@ void SLevelViewport::SetKeyboardFocusToThisViewport()
 }
 
 
-void SLevelViewport::SaveConfig(const FString& ConfigName)
+void SLevelViewport::SaveConfig(const FString& ConfigName) const
 {
-	// When we startup the editor we always start it up in IsInGameView()=false mode
-	FEngineShowFlags& EditorShowFlagsToSave = LevelViewportClient->IsInGameView() ? LevelViewportClient->LastEngineShowFlags : LevelViewportClient->EngineShowFlags;
-	FEngineShowFlags& GameShowFlagsToSave = LevelViewportClient->IsInGameView() ? LevelViewportClient->EngineShowFlags : LevelViewportClient->LastEngineShowFlags;
-
-	FLevelEditorViewportInstanceSettings ViewportInstanceSettings;
-	ViewportInstanceSettings.ViewportType = LevelViewportClient->ViewportType;
-	ViewportInstanceSettings.PerspViewModeIndex = LevelViewportClient->GetPerspViewMode();
-	ViewportInstanceSettings.OrthoViewModeIndex = LevelViewportClient->GetOrthoViewMode();
-	ViewportInstanceSettings.EditorShowFlagsString = EditorShowFlagsToSave.ToString();
-	ViewportInstanceSettings.GameShowFlagsString = GameShowFlagsToSave.ToString();
-	ViewportInstanceSettings.BufferVisualizationMode = LevelViewportClient->CurrentBufferVisualizationMode;
-	ViewportInstanceSettings.ExposureSettings = LevelViewportClient->ExposureSettings;
-	ViewportInstanceSettings.FOVAngle = LevelViewportClient->FOVAngle;
-	ViewportInstanceSettings.bIsRealtime = LevelViewportClient->IsRealtime();
-	ViewportInstanceSettings.bShowStats = LevelViewportClient->ShouldShowStats();
-	ViewportInstanceSettings.FarViewPlane = LevelViewportClient->GetFarClipPlaneOverride();
-	ViewportInstanceSettings.bShowFullToolbar = bShowFullToolbar;
-
-	if (GetDefault<ULevelEditorViewportSettings>()->bSaveEngineStats)
+	if(ensure(GetDefault<ULevelEditorViewportSettings>()))
 	{
-		const TArray<FString>* EnabledStats = NULL;
+		// When we startup the editor we always start it up in IsInGameView()=false mode
+		FEngineShowFlags& EditorShowFlagsToSave = LevelViewportClient->IsInGameView() ? LevelViewportClient->LastEngineShowFlags : LevelViewportClient->EngineShowFlags;
+		FEngineShowFlags& GameShowFlagsToSave = LevelViewportClient->IsInGameView() ? LevelViewportClient->EngineShowFlags : LevelViewportClient->LastEngineShowFlags;
 
-		// If the selected viewport is currently hosting a PIE session, we need to make sure we copy to stats from the active viewport
-		// Note: This happens if you close the editor while it's running because SwapStatCommands gets called after the config save when shutting down.
-		if (IsPlayInEditorViewportActive())
-		{
-			EnabledStats = ActiveViewport->GetClient()->GetEnabledStats();
-		}
-		else
-		{
-			EnabledStats = LevelViewportClient->GetEnabledStats();
-		}
+		FLevelEditorViewportInstanceSettings ViewportInstanceSettings;
+		ViewportInstanceSettings.ViewportType = LevelViewportClient->ViewportType;
+		ViewportInstanceSettings.PerspViewModeIndex = LevelViewportClient->GetPerspViewMode();
+		ViewportInstanceSettings.OrthoViewModeIndex = LevelViewportClient->GetOrthoViewMode();
+		ViewportInstanceSettings.EditorShowFlagsString = EditorShowFlagsToSave.ToString();
+		ViewportInstanceSettings.GameShowFlagsString = GameShowFlagsToSave.ToString();
+		ViewportInstanceSettings.BufferVisualizationMode = LevelViewportClient->CurrentBufferVisualizationMode;
+		ViewportInstanceSettings.ExposureSettings = LevelViewportClient->ExposureSettings;
+		ViewportInstanceSettings.FOVAngle = LevelViewportClient->FOVAngle;
+		ViewportInstanceSettings.bIsRealtime = LevelViewportClient->IsRealtime();
+		ViewportInstanceSettings.bShowStats = LevelViewportClient->ShouldShowStats();
+		ViewportInstanceSettings.FarViewPlane = LevelViewportClient->GetFarClipPlaneOverride();
+		ViewportInstanceSettings.bShowFullToolbar = bShowFullToolbar;
 
-		check(EnabledStats);
-		ViewportInstanceSettings.EnabledStats = *EnabledStats;
+		if(GetDefault<ULevelEditorViewportSettings>()->bSaveEngineStats)
+		{
+			const TArray<FString>* EnabledStats = NULL;
+
+			// If the selected viewport is currently hosting a PIE session, we need to make sure we copy to stats from the active viewport
+			// Note: This happens if you close the editor while it's running because SwapStatCommands gets called after the config save when shutting down.
+			if(IsPlayInEditorViewportActive())
+			{
+				EnabledStats = ActiveViewport->GetClient()->GetEnabledStats();
+			}
+			else
+			{
+				EnabledStats = LevelViewportClient->GetEnabledStats();
+			}
+
+			check(EnabledStats);
+			ViewportInstanceSettings.EnabledStats = *EnabledStats;
+		}
+		GetMutableDefault<ULevelEditorViewportSettings>()->SetViewportInstanceSettings(ConfigName, ViewportInstanceSettings);
 	}
-	GetMutableDefault<ULevelEditorViewportSettings>()->SetViewportInstanceSettings(ConfigName, ViewportInstanceSettings);
+	
 }
 
 

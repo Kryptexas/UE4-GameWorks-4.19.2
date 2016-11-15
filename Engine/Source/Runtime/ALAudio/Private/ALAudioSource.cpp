@@ -104,6 +104,8 @@ void FALSoundSource::Update( void )
 		Volume = FMath::Clamp(Volume, 0.0f, MAX_VOLUME);
 	}
 
+	Volume = FSoundSource::GetDebugVolume(Volume);
+
 	float	Pitch	=	FMath::Clamp(WaveInstance->Pitch, MIN_PITCH, MAX_PITCH );
 
 	// Set whether to apply reverb

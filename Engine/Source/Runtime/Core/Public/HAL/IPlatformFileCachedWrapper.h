@@ -230,7 +230,7 @@ public:
 	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const override
 	{
 		// Default to false on platforms that already do platform file level caching
-		bool bResult = !PLATFORM_PS4 && !PLATFORM_WINDOWS && !PLATFORM_IOS && !PLATFORM_ANDROID && FPlatformProperties::RequiresCookedData();
+		bool bResult = !PLATFORM_PS4 && !PLATFORM_WINDOWS && FPlatformProperties::RequiresCookedData();
 
 		// Allow a choice between shorter load times or less memory on desktop platforms.
 		// Note: this cannot be in config since they aren't read at that point.
@@ -353,9 +353,9 @@ public:
 	{
 		return LowerLevel->DeleteDirectoryRecursively(Directory);
 	}
-	virtual bool		CopyFile(const TCHAR* To, const TCHAR* From) override
+	virtual bool		CopyFile(const TCHAR* To, const TCHAR* From, EPlatformFileRead ReadFlags = EPlatformFileRead::None, EPlatformFileWrite WriteFlags = EPlatformFileWrite::None) override
 	{
-		return LowerLevel->CopyFile(To, From);
+		return LowerLevel->CopyFile(To, From, ReadFlags, WriteFlags);
 	}
 	virtual bool		CreateDirectoryTree(const TCHAR* Directory) override
 	{

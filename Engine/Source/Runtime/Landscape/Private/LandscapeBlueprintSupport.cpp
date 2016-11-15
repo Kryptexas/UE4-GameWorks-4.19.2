@@ -4,9 +4,7 @@
 	LandscapeBlueprintSupport.cpp: Landscape blueprint functions
   =============================================================================*/
 
-#include "Landscape.h"
-#include "LandscapeSplineRaster.h"
-#include "LandscapeProxy.h"
+#include "LandscapePrivatePCH.h"
 #include "LandscapeSplineRaster.h"
 #include "Components/SplineComponent.h"
 #include "LandscapeSplineSegment.h"

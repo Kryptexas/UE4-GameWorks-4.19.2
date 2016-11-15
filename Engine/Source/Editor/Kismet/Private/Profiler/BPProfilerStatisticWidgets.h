@@ -21,6 +21,9 @@ namespace EBlueprintProfilerStat
 		MaxTime,
 		MinTime,
 		Samples
+		// Debugging Values
+		, HottestPath
+		, HeatLevel
 	};
 };
 
@@ -122,6 +125,9 @@ protected:
 
 	/** Calculate and return the heat color to use for max time stats. */
 	FSlateColor GetMaxTimeHeatColor() const;
+
+	/** Calculate and return the heat color to use for total time stats. */
+	FSlateColor GetTotalTimeHeatColor() const;
 
 protected:
 

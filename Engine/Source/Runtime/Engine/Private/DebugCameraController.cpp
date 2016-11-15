@@ -162,9 +162,10 @@ void ADebugCameraController::Select( FHitResult const& Hit )
 	if ( StaticMeshComponent && StaticMeshComponent->LODData.Num() > 0 )
 	{
 		const FStaticMeshComponentLODInfo& LODInfo = StaticMeshComponent->LODData[0];
-		if ( LODInfo.LightMap )
+		const FMeshMapBuildData* MeshMapBuildData = StaticMeshComponent->GetMeshMapBuildData(LODInfo);
+		if ( MeshMapBuildData && MeshMapBuildData->LightMap )
 		{
-			GDebugSelectedLightmap = LODInfo.LightMap->GetLightMap2D();
+			GDebugSelectedLightmap = MeshMapBuildData->LightMap->GetLightMap2D();
 			Texture2D = GDebugSelectedLightmap ? GDebugSelectedLightmap->GetTexture(0) : NULL;
 			if ( Texture2D )
 			{
@@ -260,7 +261,7 @@ ASpectatorPawn* ADebugCameraController::SpawnSpectatorPawn()
 	// Only spawned for the local player
 	if (GetSpectatorPawn() == NULL && IsLocalController())
 	{
-		AGameState const* const GameState = GetWorld()->GameState;
+		AGameStateBase const* const GameState = GetWorld()->GetGameState();
 		if (GameState)
 		{
 			FActorSpawnParameters SpawnParams;
@@ -479,6 +480,11 @@ void ADebugCameraController::ApplySpeedScale()
 			SpectatorMovement->Deceleration = InitialDecel * SpeedScale;
 		}
 	}
+}
+void ADebugCameraController::SetPawnMovementSpeedScale(const float NewSpeedScale)
+{ 
+	SpeedScale = NewSpeedScale;
+	ApplySpeedScale();
 }
 
 void ADebugCameraController::IncreaseFOV()

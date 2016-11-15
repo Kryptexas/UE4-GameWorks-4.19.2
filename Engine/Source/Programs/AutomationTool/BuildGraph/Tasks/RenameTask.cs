@@ -17,32 +17,32 @@ namespace BuildGraph.Tasks
 	public class RenameTaskParameters
 	{
 		/// <summary>
-		/// The file to rename
+		/// The file or files to rename
 		/// </summary>
-		[TaskParameter]
+		[TaskParameter(ValidationType = TaskParameterValidationType.FileSpec)]
 		public string Files;
 
 		/// <summary>
-		/// The new name of the file. Should not include any path information.
+		/// The current file name, or pattern to match (eg. *.txt). Should not include any path separators.
 		/// </summary>
-		[TaskParameter(Optional = true)]
+		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.DirectoryName)]
 		public string From;
 
 		/// <summary>
-		/// The new name of the file. Should not include any path information.
+		/// The new name for the file(s). Should not include any path separators.
 		/// </summary>
-		[TaskParameter]
+		[TaskParameter(ValidationType = TaskParameterValidationType.DirectoryName)]
 		public string To;
 
 		/// <summary>
-		/// Tag to be applied to build products of this task
+		/// Tag to be applied to the renamed files
 		/// </summary>
 		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.TagList)]
 		public string Tag;
 	}
 
 	/// <summary>
-	/// Task which renames a file, or group of files
+	/// Renames a file, or group of files.
 	/// </summary>
 	[TaskElement("Rename", typeof(RenameTaskParameters))]
 	public class RenameTask : CustomTask

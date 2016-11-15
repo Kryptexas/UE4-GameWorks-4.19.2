@@ -209,7 +209,7 @@ bool FSlateRemoteServer::HandleTicker( float DeltaTime )
 			continue;
 		}
 
-		// convert and verify message data
+		// verify message data
 		bool bIsValidMessageVersion =
 			(Message.MagicTag == SLATE_REMOTE_SERVER_MESSAGE_MAGIC_ID) &&
 			(Message.MessageVersion == SLATE_REMOTE_SERVER_PROTOCOL_VERSION);

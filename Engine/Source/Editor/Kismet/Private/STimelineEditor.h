@@ -212,6 +212,9 @@ private:
 	/** If we want the timeline to play to the full specified length, or just to the last keyframe of its curves */
 	TSharedPtr<SCheckBox> UseLastKeyframeCheckBox;
 
+	/** If we want the timeline to replicate */
+	TSharedPtr<SCheckBox> IgnoreTimeDilationCheckBox;
+
 	/** Pointer to the timeline object we are editing */
 	UTimelineTemplate* TimelineObj;
 
@@ -305,6 +308,11 @@ private:
 	ECheckBoxState IsUseLastKeyframeChecked() const;
 	/** Handle toggling between use last keyframe and use length */
 	void OnUseLastKeyframeChanged(ECheckBoxState NewType);
+
+	/** Get state of replicated box */
+	ECheckBoxState IsIgnoreTimeDilationChecked() const;
+	/** Handle loop box being changed */
+	void OnIgnoreTimeDilationChanged(ECheckBoxState NewType);
 
 	/** Get current length of timeline as string */
 	FText GetLengthString() const;

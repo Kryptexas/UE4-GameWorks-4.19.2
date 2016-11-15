@@ -25,6 +25,8 @@ public:
 		MessageHandler = InMessageHandler;
 	}
 
+	bool IsGamepadAttached() const { return bIsGamepadAttached; }
+
 private:
 
 	HIDInputInterface(const TSharedRef<FGenericApplicationMessageHandler>& MessageHandler);
@@ -113,6 +115,8 @@ private:
 
 	/** Delay before sendign a repeat message after a button has been pressed for a while */
 	float ButtonRepeatDelay;
+
+	bool bIsGamepadAttached;
 
 	IOHIDManagerRef HIDManager;
 

@@ -16,11 +16,14 @@ bool FByteKeyArea::CanCreateKeyEditor()
 
 TSharedRef<SWidget> FByteKeyArea::CreateKeyEditor(ISequencer* Sequencer)
 {
-	return SNew(SIntegralCurveKeyEditor)
+	return SNew(SIntegralCurveKeyEditor<uint8>)
 		.Sequencer(Sequencer)
 		.OwningSection(OwningSection)
 		.Curve(&Curve)
-		.IntermediateValue_Lambda( [this] {
-			return IntermediateValue;
-		});
+		.ExternalValue(ExternalValue);
 };
+
+uint8 FByteKeyArea::ConvertCurveValueToIntegralType(int32 CurveValue) const
+{
+	return (uint8)FMath::Clamp<int32>(CurveValue, 0, TNumericLimits<uint8>::Max());
+}

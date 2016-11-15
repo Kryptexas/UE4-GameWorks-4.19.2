@@ -46,30 +46,30 @@ static TArray<FEvent*> ListeningEvents;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
-
 -(void)run:(id)param
 {
 	NSRunLoop *runloop = [NSRunLoop currentRunLoop];
 	CADisplayLink *displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(signal:)];
 #if UE4_HAS_IOS10
-    if ([displayLink respondsToSelector : @selector(preferredFramesPerSecond)] == YES)
-    {
-        displayLink.preferredFramesPerSecond = 60 / FIOSPlatformRHIFramePacer::FrameInterval;
-    }
-    else
+	if ([displayLink respondsToSelector : @selector(preferredFramesPerSecond)] == YES)
+	{
+		displayLink.preferredFramesPerSecond = 60 / FIOSPlatformRHIFramePacer::FrameInterval;
+	}
+	else
 #endif
-    {
+	{
 #if UE4_TARGET_PRE_IOS10
-        displayLink.frameInterval = FIOSPlatformRHIFramePacer::FrameInterval;
+		displayLink.frameInterval = FIOSPlatformRHIFramePacer::FrameInterval;
 #endif
-    }
-    
-    [displayLink addToRunLoop:runloop forMode:NSDefaultRunLoopMode];
+	}
+
+	[displayLink addToRunLoop:runloop forMode:NSDefaultRunLoopMode];
 	[runloop run];
 }
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
+
 
 -(void)signal:(id)param
 {

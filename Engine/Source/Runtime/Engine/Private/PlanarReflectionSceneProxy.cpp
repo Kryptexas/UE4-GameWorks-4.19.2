@@ -8,14 +8,16 @@
 #include "Components/PlanarReflectionComponent.h"
 #include "PlanarReflectionSceneProxy.h"
 
-FPlanarReflectionSceneProxy::FPlanarReflectionSceneProxy(UPlanarReflectionComponent* Component, FPlanarReflectionRenderTarget* InRenderTarget)
+FPlanarReflectionSceneProxy::FPlanarReflectionSceneProxy(UPlanarReflectionComponent* Component, FPlanarReflectionRenderTarget* InRenderTarget) :
+	bIsStereo(false)
 {
 	RenderTarget = InRenderTarget;
 
-	DistanceFromPlaneFadeEnd = Component->DistanceFromPlaneFadeEnd;
+	float ClampedFadeStart = FMath::Max(Component->DistanceFromPlaneFadeoutStart, 0.0f);
+	float ClampedFadeEnd = FMath::Max(Component->DistanceFromPlaneFadeoutEnd, 0.0f);
 
-	float ClampedFadeStart = FMath::Max(Component->DistanceFromPlaneFadeStart, 0.0f);
-	float ClampedFadeEnd = FMath::Max(Component->DistanceFromPlaneFadeEnd, 0.0f);
+	DistanceFromPlaneFadeEnd = ClampedFadeEnd;
+
 	float DistanceFadeScale = 1.0f / FMath::Max(ClampedFadeEnd - ClampedFadeStart, DELTA);
 
 	PlanarReflectionParameters = FVector(
@@ -31,7 +33,8 @@ FPlanarReflectionSceneProxy::FPlanarReflectionSceneProxy(UPlanarReflectionCompon
 		Range,
 		-CosFadeEnd * Range);
 
-	Component->GetProjectionWithExtraFOV(ProjectionWithExtraFOV);
+	Component->GetProjectionWithExtraFOV(ProjectionWithExtraFOV[0], 0);
+	Component->GetProjectionWithExtraFOV(ProjectionWithExtraFOV[1], 1);
 
 	OwnerName = Component->GetOwner() ? Component->GetOwner()->GetFName() : NAME_None;
 

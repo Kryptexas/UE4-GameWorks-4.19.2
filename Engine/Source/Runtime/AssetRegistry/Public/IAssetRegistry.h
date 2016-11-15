@@ -82,9 +82,10 @@ public:
 	 * Gets the asset data for the specified object path
 	 *
 	 * @param ObjectPath the path of the object to be looked up
-	 * @param OutAssetData the assets data;Will be invalid if object could not be found
+	 * @param bIncludeOnlyOnDiskAssets if true, in-memory objects will be ignored. The call will be faster.
+	 * @return the assets data;Will be invalid if object could not be found
 	 */
-	virtual FAssetData GetAssetByObjectPath( const FName ObjectPath ) const = 0;
+	virtual FAssetData GetAssetByObjectPath( const FName ObjectPath, bool bIncludeOnlyOnDiskAssets = false ) const = 0;
 
 	/**
 	 * Gets asset data for all assets in the registry.
@@ -110,7 +111,7 @@ public:
 	 * @param PackageName		the name of the package for which to gather dependencies
 	 * @param OutReferencers	a list of paths to objects that reference the package whose path is PackageName
 	 */
-	virtual bool GetReferencers(FName PackageName, TArray<FName>& OutReferencers) const = 0;
+	virtual bool GetReferencers(FName PackageName, TArray<FName>& OutReferencers, EAssetRegistryDependencyType::Type InReferenceType = EAssetRegistryDependencyType::All) const = 0;
 
 	/** Returns true if the specified ClassName's ancestors could be found. If so, OutAncestorClassNames is a list of all its ancestors */
 	virtual bool GetAncestorClassNames(FName ClassName, TArray<FName>& OutAncestorClassNames) const = 0;
@@ -189,6 +190,9 @@ public:
 
 	/** Informs the asset registry that an in-memory asset has been renamed */
 	virtual void AssetRenamed (const UObject* RenamedAsset, const FString& OldObjectPath) = 0;
+
+	/** Informs the asset registry that an in-memory package has been deleted, and all associated assets should be removed */
+	virtual void PackageDeleted (UPackage* DeletedPackage) = 0;
 
 	/** Event for when assets are added to the registry */
 	DECLARE_EVENT_OneParam( IAssetRegistry, FAssetAddedEvent, const FAssetData& );

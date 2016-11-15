@@ -59,8 +59,6 @@ AEmitter::AEmitter(const FObjectInitializer& ObjectInitializer)
 			ArrowComponent->ArrowColor = FColor(0, 255, 128);
 
 			ArrowComponent->ArrowSize = 1.5f;
-			ArrowComponent->AlwaysLoadOnClient = false;
-			ArrowComponent->AlwaysLoadOnServer = false;
 			ArrowComponent->bTreatAsASprite = true;
 			ArrowComponent->bIsScreenSizeScaled = true;
 			ArrowComponent->SpriteInfo.Category = ConstructorStatics.ID_Effects;

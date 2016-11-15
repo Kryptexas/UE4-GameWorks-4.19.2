@@ -32,6 +32,7 @@ class UGameplayTagsK2Node_MultiCompareBase : public UK2Node
 	virtual bool NodeCausesStructuralBlueprintChange() const override { return true; }
 	virtual bool ShouldShowNodeProperties() const override { return true; }
 	virtual FText GetMenuCategory() const override;
+	virtual bool IsNodePure() const override { return true; }
 	// End of UK2Node interface
 
 	void AddPin();

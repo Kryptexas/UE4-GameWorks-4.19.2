@@ -496,3 +496,76 @@ uint32 FGenericPlatformMallocCrash::SafePageSize()
 	}
 	return PageSize;
 }
+
+
+
+
+
+
+
+FGenericStackBasedMallocCrash::FGenericStackBasedMallocCrash(FMalloc* MainMalloc)
+{
+	CurrentFreeMemPtr = (uint8*)FMemory::Malloc(MEMORYPOOL_SIZE);
+	FreeMemoryEndPtr = CurrentFreeMemPtr + MEMORYPOOL_SIZE;
+}
+
+FGenericStackBasedMallocCrash::~FGenericStackBasedMallocCrash()
+{
+}
+
+FGenericStackBasedMallocCrash& FGenericStackBasedMallocCrash::Get(FMalloc* MainMalloc /*= nullptr*/)
+{
+	static FGenericStackBasedMallocCrash CrashMalloc(MainMalloc);
+	return CrashMalloc;
+}
+
+void FGenericStackBasedMallocCrash::SetAsGMalloc()
+{
+	if (PLATFORM_USES_FIXED_GMalloc_CLASS && GFixedMallocLocationPtr)
+	{
+		*GFixedMallocLocationPtr = nullptr; // this disables any fast-path inline allocators
+	}
+	GMalloc = this;
+}
+
+void* FGenericStackBasedMallocCrash::Malloc(SIZE_T Size, uint32 Alignment)
+{
+	Alignment = FMath::Max(Size >= 16 ? (uint32)16 : (uint32)8, Alignment);
+
+	SIZE_T TotalSize = Size + Alignment + sizeof(SIZE_T);
+	void* Ptr = CurrentFreeMemPtr;
+	check(Ptr);
+	uint8* NewFreeMemPtr = (uint8*)Ptr + TotalSize;
+	if (NewFreeMemPtr <= FreeMemoryEndPtr)
+	{
+		void* Result = Align((uint8*)Ptr + sizeof(SIZE_T), Alignment);
+		*((SIZE_T*)((uint8*)Result - sizeof(SIZE_T))) = Size;
+		CurrentFreeMemPtr = NewFreeMemPtr;
+		return Result;
+	}
+	check(false)
+		return nullptr;
+}
+
+void* FGenericStackBasedMallocCrash::Realloc(void* Ptr, SIZE_T NewSize, uint32 Alignment)
+{
+	if (Ptr && NewSize)
+	{
+		SIZE_T PtrSize = *((SIZE_T*)((uint8*)Ptr - sizeof(SIZE_T)));
+		if (PtrSize == NewSize)
+		{
+			return Ptr;
+		}
+		void* Result = Malloc(NewSize, Alignment);
+		FMemory::Memcpy(Result, Ptr, FMath::Min(NewSize, PtrSize));
+		return Result;
+	}
+	else
+	{
+		return Malloc(NewSize, Alignment);
+	}
+}
+
+void FGenericStackBasedMallocCrash::Free(void* /*Ptr*/)
+{
+}

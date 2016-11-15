@@ -25,7 +25,9 @@ This script is only available in Unreal Engine 4 (UE4) Version **4.8** or later.
 
 The Vertex Animation Script will be in the following location and is called **VertexAnimationTools.ms.**
 
-		4.8\Engine\Extras\3dsMaxScripts\VertexAnimationTools.ms
+		Engine\Extras\3dsMaxScripts\VertexAnimationTools.ms
+
+The newest version of the Verext Animation Script has been updated to correct for the way 3Ds Max 2014 and later handle image gamma.
 
 ### Tool Caveats
 While this tool is very good at reducing animation overhead by storing complex animation data into a texture, there are a few drawbacks to using the tool. 
@@ -176,6 +178,8 @@ Please note that this is here purely for reference or for people who would like 
 Vertex positional morph target information is stored in a 16 bit signed floating point file format. 
 A 32 bit image would be more precise but 16 should suffice for most FX work. 
 With that said, the offset vertex positions will be less precise as they move further away from their resting positions. 
+
+Also note that the scripts Textures should be sampled using the nearest neighbor method.
 
 ### Memory Usage
 The memory usage for each frame per vert is as follows :

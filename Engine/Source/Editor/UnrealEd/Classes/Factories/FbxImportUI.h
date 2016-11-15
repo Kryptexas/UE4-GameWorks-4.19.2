@@ -5,6 +5,7 @@
  */
 
 #pragma once
+#include "ImportSettings.h"
 #include "FbxImportUI.generated.h"
 
 /** Import mesh type */
@@ -24,10 +25,11 @@ enum EFBXImportType
 };
 
 UCLASS(config=EditorPerProjectUserSettings, AutoExpandCategories=(FTransform), HideCategories=Object, MinimalAPI)
-class UFbxImportUI : public UObject
+class UFbxImportUI : public UObject, public IImportSettingsParser
 {
 	GENERATED_UCLASS_BODY()
 
+public:
 	/** Whether or not the imported file is in OBJ format */
 	UPROPERTY()
 	bool bIsObjImport;
@@ -47,6 +49,10 @@ class UFbxImportUI : public UObject
 	/** Whether to convert scene from FBX scene. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=Miscellaneous, meta=(OBJRestrict="true", ToolTip="Convert the scene from FBX coordinate system to UE4 coordinate system"))
 	uint32 bConvertScene:1;
+
+	/** Whether to convert the scene from FBX unit to UE4 unit (centimeter). */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category = Miscellaneous, meta = (OBJRestrict = "true", ToolTip = "Convert the scene from FBX unit to UE4 unit (centimeter)."))
+	uint32 bConvertSceneUnit : 1;
 
 	/** Whether to import the incoming FBX as a skeletal object */
 	UPROPERTY(EditAnywhere, Category = Mesh, meta = (ImportType = "StaticMesh|SkeletalMesh", DisplayName="Skeletal Mesh"))
@@ -112,9 +118,11 @@ class UFbxImportUI : public UObject
 	UPROPERTY(EditAnywhere, Instanced, Category=Material)
 	class UFbxTextureImportData* TextureImportData;
 
-	//~ Begin UObject Interface
+	/** UObject Interface */
 	virtual bool CanEditChange( const UProperty* InProperty ) const override;
-	//~ End UObject Interface
+
+	/** IImportSettings Interface */
+	virtual void ParseFromJson(TSharedRef<class FJsonObject> ImportSettingsJson) override;
 
 	/** sets MeshTypeToImport */
 	void SetMeshTypeToImport()
@@ -127,6 +135,5 @@ class UFbxImportUI : public UObject
 		}
 	}
 };
-
 
 

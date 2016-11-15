@@ -2,7 +2,7 @@
 
 #include "CorePrivatePCH.h"
 #if PLATFORM_HTML5_BROWSER
-#	include <emscripten.h>
+#	include <emscripten/emscripten.h>
 #endif
 #include <string.h>
 

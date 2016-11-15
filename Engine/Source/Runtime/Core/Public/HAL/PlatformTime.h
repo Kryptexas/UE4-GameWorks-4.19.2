@@ -1,5 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
+#pragma once
+
 #include "HAL/Platform.h"
 
 #if PLATFORM_WINDOWS
@@ -18,4 +20,6 @@
 #include "HTML5/HTML5PlatformTime.h"
 #elif PLATFORM_LINUX
 #include "Linux/LinuxPlatformTime.h"
+#elif PLATFORM_WOLF
+#include "WolfPlat/WolfPlatformTime.h"
 #endif

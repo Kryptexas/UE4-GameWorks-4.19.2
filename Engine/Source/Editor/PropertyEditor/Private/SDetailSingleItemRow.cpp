@@ -114,7 +114,14 @@ FReply SDetailSingleItemRow::OnFavoriteToggle()
 			FName CatFavName = *CategoryFavoritesName;
 			int32 SimplePropertiesNum = 0;
 			int32 AdvancePropertiesNum = 0;
-			bool HasCategoryFavorite = OwnerTreeNode.Pin()->GetDetailsView().GetCategoryInfo(CatFavName, SimplePropertiesNum, AdvancePropertiesNum);
+
+			FDetailLayoutBuilderImpl& DetailLayout = OwnerTreeNode.Pin()->GetParentCategory()->GetParentLayoutImpl();
+
+			bool HasCategoryFavorite = DetailLayout.HasCategory(CatFavName);
+			if(HasCategoryFavorite)
+			{
+				DetailLayout.DefaultCategory(CatFavName).GetCategoryInformation(SimplePropertiesNum, AdvancePropertiesNum);
+			}
 
 			//Check if the property we toggle is an advance property
 			bool IsAdvanceProperty = Customization->GetPropertyNode()->HasNodeFlags(EPropertyNodeFlags::IsAdvanced) == 0 ? false : true;
@@ -401,7 +408,7 @@ void SDetailSingleItemRow::OnCopyProperty()
 		TSharedPtr<IPropertyHandle> Handle = PropertyEditorHelpers::GetPropertyHandle( Customization->GetPropertyNode().ToSharedRef(), OwnerTreeNode.Pin()->GetDetailsView().GetNotifyHook(),  OwnerTreeNode.Pin()->GetDetailsView().GetPropertyUtilities() );
 
 		FString Value;
-		if( Handle->GetValueAsFormattedString(Value) == FPropertyAccess::Success )
+		if( Handle->GetValueAsFormattedString(Value, PPF_Copy) == FPropertyAccess::Success )
 		{
 			FPlatformMisc::ClipboardCopy(*Value);
 		}
@@ -464,29 +471,31 @@ const FSlateBrush* SDetailSingleItemRow::GetBorderImage() const
 
 TSharedRef<SWidget> SDetailSingleItemRow::CreateExtensionWidget(TSharedRef<SWidget> ValueWidget, FDetailLayoutCustomization& InCustomization, TSharedRef<IDetailTreeNode> InTreeNode)
 {
-	IDetailsViewPrivate& DetailsView = InTreeNode->GetDetailsView();
-	TSharedPtr<IDetailPropertyExtensionHandler> ExtensionHandler = DetailsView.GetExtensionHandler();
-
-	if ( ExtensionHandler.IsValid() && InCustomization.HasPropertyNode() )
+	if(InTreeNode->GetParentCategory().IsValid())
 	{
-		TSharedPtr<IPropertyHandle> Handle = PropertyEditorHelpers::GetPropertyHandle(InCustomization.GetPropertyNode().ToSharedRef(), nullptr, nullptr);
+		IDetailsViewPrivate& DetailsView = InTreeNode->GetDetailsView();
+		TSharedPtr<IDetailPropertyExtensionHandler> ExtensionHandler = DetailsView.GetExtensionHandler();
 
-		UClass* ObjectClass = InCustomization.GetPropertyNode()->FindObjectItemParent()->GetObjectBaseClass();
-		if (Handle->IsValidHandle() && ExtensionHandler->IsPropertyExtendable(ObjectClass, *Handle))
+		if(ExtensionHandler.IsValid() && InCustomization.HasPropertyNode())
 		{
-			ValueWidget = SNew(SHorizontalBox)
+			TSharedPtr<IPropertyHandle> Handle = PropertyEditorHelpers::GetPropertyHandle(InCustomization.GetPropertyNode().ToSharedRef(), nullptr, nullptr);
 
-				+ SHorizontalBox::Slot()
-				.FillWidth(1.0f)
-				[
-					ValueWidget
-				]
-					
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				[
-					ExtensionHandler->GenerateExtensionWidget(ObjectClass, Handle)
-				];
+			UClass* ObjectClass = InCustomization.GetPropertyNode()->FindObjectItemParent()->GetObjectBaseClass();
+			if(Handle->IsValidHandle() && ExtensionHandler->IsPropertyExtendable(ObjectClass, *Handle))
+			{
+				ValueWidget = SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.FillWidth(1.0f)
+					[
+						ValueWidget
+					]
+
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						ExtensionHandler->GenerateExtensionWidget(ObjectClass, Handle)
+					];
+			}
 		}
 	}
 

@@ -29,8 +29,7 @@ public class AssetTools : ModuleRules
 				"PropertyEditor",
 				"Kismet",
 				"Landscape",
-                "Foliage",
-                "Niagara",
+                "Foliage"
 			}
 		);
 
@@ -56,7 +55,11 @@ public class AssetTools : ModuleRules
 				"SoundClassEditor",
 				"SourceControl",
 				"Landscape",
-			}
+                "SkeletonEditor",
+                "SkeletalMeshEditor",
+                "AnimationEditor",
+                "AnimationBlueprintEditor",
+            }
 		);
 
 		DynamicallyLoadedModuleNames.AddRange(
@@ -77,7 +80,11 @@ public class AssetTools : ModuleRules
 				"Persona",
 				"FontEditor",
 				"SoundCueEditor",
-				"SoundClassEditor"
+				"SoundClassEditor",
+                "SkeletonEditor",
+                "SkeletalMeshEditor",
+                "AnimationEditor",
+                "AnimationBlueprintEditor",
             }
 		);
 	}

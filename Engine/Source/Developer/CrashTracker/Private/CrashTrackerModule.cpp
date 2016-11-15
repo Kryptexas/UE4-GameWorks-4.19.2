@@ -116,12 +116,12 @@ void FCrashTrackerModule::StartupModule()
 	{
 		bool bCrashTrackerShouldBeEnabled = false;
 #if UE_BUILD_DEVELOPMENT
-		bCrashTrackerShouldBeEnabled =
-			false && // Disable crash tracker by default for now unless someone enables it.
-			!GIsDemoMode &&
-			!FParse::Param( FCommandLine::Get(), TEXT("disablecrashtracker") ) &&
-			!FApp::IsBenchmarking() &&
-			!FPlatformMisc::IsDebuggerPresent();
+		// Disable crash tracker by default for now unless someone enables it.
+		// bCrashTrackerShouldBeEnabled =
+		// 	!GIsDemoMode &&
+		// 	!FParse::Param( FCommandLine::Get(), TEXT("disablecrashtracker") ) &&
+		// 	!FApp::IsBenchmarking() &&
+		// 	!FPlatformMisc::IsDebuggerPresent();
 #endif
 		bool bForceEnableCrashTracker = FParse::Param( FCommandLine::Get(), TEXT("forceenablecrashtracker") );
 

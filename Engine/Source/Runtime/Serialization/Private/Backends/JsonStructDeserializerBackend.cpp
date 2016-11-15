@@ -65,7 +65,7 @@ namespace JsonStructDeserializerBackend
 
 			FScriptArrayHelper ArrayHelper(ArrayProperty, ArrayProperty->template ContainerPtrToValuePtr<void>(Data));
 			int32 Index = ArrayHelper.AddValue();
-		
+
 			ValuePtr = (PropertyType*)ArrayHelper.GetRawPtr(Index);
 		}
 		else
@@ -195,42 +195,42 @@ bool FJsonStructDeserializerBackend::ReadProperty( UProperty* Property, UPropert
 			{
 				return SetPropertyValue<UDoubleProperty, double>(Property, Outer, Data, ArrayIndex, NumericValue);
 			}
-			
+
 			if (Property->GetClass() == UFloatProperty::StaticClass())
 			{
 				return SetPropertyValue<UFloatProperty, float>(Property, Outer, Data, ArrayIndex, NumericValue);
 			}
-			
+
 			if (Property->GetClass() == UIntProperty::StaticClass())
 			{
 				return SetPropertyValue<UIntProperty, int32>(Property, Outer, Data, ArrayIndex, (int32)NumericValue);
 			}
-			
+
 			if (Property->GetClass() == UUInt32Property::StaticClass())
 			{
 				return SetPropertyValue<UUInt32Property, uint32>(Property, Outer, Data, ArrayIndex, (uint32)NumericValue);
 			}
-			
+
 			if (Property->GetClass() == UInt16Property::StaticClass())
 			{
 				return SetPropertyValue<UInt16Property, int16>(Property, Outer, Data, ArrayIndex, (int16)NumericValue);
 			}
-			
+
 			if (Property->GetClass() == UUInt16Property::StaticClass())
 			{
 				return SetPropertyValue<UUInt16Property, uint16>(Property, Outer, Data, ArrayIndex, (uint16)NumericValue);
 			}
-			
+
 			if (Property->GetClass() == UInt64Property::StaticClass())
 			{
 				return SetPropertyValue<UInt64Property, int64>(Property, Outer, Data, ArrayIndex, (int64)NumericValue);
 			}
-			
+
 			if (Property->GetClass() == UUInt64Property::StaticClass())
 			{
 				return SetPropertyValue<UUInt64Property, uint64>(Property, Outer, Data, ArrayIndex, (uint64)NumericValue);
 			}
-			
+
 			if (Property->GetClass() == UInt8Property::StaticClass())
 			{
 				return SetPropertyValue<UInt8Property, int8>(Property, Outer, Data, ArrayIndex, (int8)NumericValue);
@@ -255,20 +255,15 @@ bool FJsonStructDeserializerBackend::ReadProperty( UProperty* Property, UPropert
 			{
 				return SetPropertyValue<UStrProperty, FString>(Property, Outer, Data, ArrayIndex, StringValue);
 			}
-		
+
 			if (Property->GetClass() == UNameProperty::StaticClass())
 			{
 				return SetPropertyValue<UNameProperty, FName>(Property, Outer, Data, ArrayIndex, *StringValue);
 			}
-			
+
 			if (Property->GetClass() == UTextProperty::StaticClass())
 			{
-				FText TextValue;
-				if (!FTextStringHelper::ReadFromString(*StringValue, TextValue))
-				{
-					TextValue = FText::FromString(StringValue);
-				}
-				return SetPropertyValue<UTextProperty, FText>(Property, Outer, Data, ArrayIndex, TextValue);
+				return SetPropertyValue<UTextProperty, FText>(Property, Outer, Data, ArrayIndex, FText::FromString(StringValue));
 			}
 
 			if (Property->GetClass() == UByteProperty::StaticClass())
@@ -283,7 +278,7 @@ bool FJsonStructDeserializerBackend::ReadProperty( UProperty* Property, UPropert
 
 				return SetPropertyValue<UByteProperty, uint8>(Property, Outer, Data, ArrayIndex, (uint8)Value);
 			}
-			
+
 			if (Property->GetClass() == UClassProperty::StaticClass())
 			{
 				return SetPropertyValue<UClassProperty, UClass*>(Property, Outer, Data, ArrayIndex, LoadObject<UClass>(NULL, *StringValue, NULL, LOAD_NoWarn));
@@ -300,7 +295,7 @@ bool FJsonStructDeserializerBackend::ReadProperty( UProperty* Property, UPropert
 }
 
 
-void FJsonStructDeserializerBackend::SkipArray() 
+void FJsonStructDeserializerBackend::SkipArray()
 {
 	JsonReader->SkipArray();
 }

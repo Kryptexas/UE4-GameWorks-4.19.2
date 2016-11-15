@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2968923
+﻿INTSourceChangelist:3011129
 Availability: Public
 Title:배열 작업
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -8,7 +8,7 @@ Related: Engine/Blueprints/UserGuide/Arrays/ArrayNodes
 version:4.9
 skilllevel:Intermediate
 parent:Engine/Blueprints/Scripting
-tags:배열과 구조체
+tags:Arrays and Structures
 order:3
 
 [TOC(start:2)]

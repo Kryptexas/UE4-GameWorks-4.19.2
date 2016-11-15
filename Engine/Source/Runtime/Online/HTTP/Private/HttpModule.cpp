@@ -43,8 +43,14 @@ void FHttpModule::StartupModule()
 	HttpDelayTime = 0;
 	GConfig->GetFloat(TEXT("HTTP"), TEXT("HttpDelayTime"), HttpDelayTime, GEngineIni);
 
-	HttpThreadTickRate = 30;
-	GConfig->GetFloat(TEXT("HTTP"), TEXT("HttpThreadTickRate"), HttpThreadTickRate, GEngineIni);
+	HttpThreadProcessingClampInSeconds = 0.005f; // 5ms
+	GConfig->GetFloat(TEXT("HTTP"), TEXT("HttpThreadProcessingClampInSeconds"), HttpThreadProcessingClampInSeconds, GEngineIni);
+
+	HttpThreadFrameTimeInSeconds = 1.0f / 30.0f; // 30Hz
+	GConfig->GetFloat(TEXT("HTTP"), TEXT("HttpThreadFrameTimeInSeconds"), HttpThreadFrameTimeInSeconds, GEngineIni);
+
+	HttpThreadMinimumSleepTimeInSeconds = 0.0f;
+	GConfig->GetFloat(TEXT("HTTP"), TEXT("HttpThreadMinimumSleepTimeInSeconds"), HttpThreadMinimumSleepTimeInSeconds, GEngineIni);
 
 	HttpManager = FPlatformHttp::CreatePlatformHttpManager();
 	if (NULL == HttpManager)
@@ -55,7 +61,12 @@ void FHttpModule::StartupModule()
 	HttpManager->Initialize();
 }
 
-void FHttpModule::ShutdownModule()
+void FHttpModule::PostLoadCallback()
+{
+
+}
+
+void FHttpModule::PreUnloadCallback()
 {
 	if (HttpManager != nullptr)
 	{
@@ -86,6 +97,10 @@ void FHttpModule::ShutdownModule()
 
 	HttpManager = nullptr;
 	Singleton = nullptr;
+}
+
+void FHttpModule::ShutdownModule()
+{
 }
 
 bool FHttpModule::HandleHTTPCommand(const TCHAR* Cmd, FOutputDevice& Ar)

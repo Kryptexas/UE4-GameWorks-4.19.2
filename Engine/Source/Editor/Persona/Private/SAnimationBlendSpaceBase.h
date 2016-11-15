@@ -5,6 +5,7 @@
 #include "SlateBasics.h"
 #include "Sorting.h"
 #include "Animation/BlendSpaceBase.h"
+#include "SAnimEditorBase.h"
 
 extern FText GetErrorMessageForSequence(UBlendSpaceBase* BlendSpace, UAnimSequence* AnimSequence, FVector SampleValue, int32 OriginalIndex);
 
@@ -341,30 +342,25 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // SBlendSpaceEditorBase
 
-class SBlendSpaceEditorBase : public SCompoundWidget
+class SBlendSpaceEditorBase : public SAnimEditorBase
 {
 public:
 	SLATE_BEGIN_ARGS(SBlendSpaceEditorBase)
 		: _BlendSpace(NULL)			
-		, _Persona()
 		{}
 
 		SLATE_ARGUMENT(UBlendSpaceBase*, BlendSpace)
-		SLATE_ARGUMENT(TSharedPtr<class FPersona>, Persona)
 	SLATE_END_ARGS()
 
-	virtual ~SBlendSpaceEditorBase();
-
-	void Construct(const FArguments& InArgs);
+	void Construct(const FArguments& InArgs, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& OnPostUndo);
 
 	void PostUndo();
 
 protected:
+	virtual UAnimationAsset* GetEditorObject() const override { return BlendSpace; }
+
 	/** Updates the preview */
 	EActiveTimerReturnType UpdatePreview( double InCurrentTime, float InDeltaTime );
-
-	/** Creates the editor heading UI */
-	TSharedRef<SWidget> MakeEditorHeader() const;
 
 	/** Creates the options panel for the editor */
 	virtual TSharedRef<SWidget> MakeDisplayOptionsBox() const;
@@ -394,8 +390,7 @@ protected:
 		return FText::FromString(BlendSpace->GetName());
 	}
 
-	/** Pointer back to the Persona that owns us */
-	TWeakPtr<class FPersona> PersonaPtr;
+	TSharedRef<class IPersonaPreviewScene> GetPreviewScene() const { return PreviewScenePtr.Pin().ToSharedRef();  }
 
 	/** The blend space being edited */
 	UBlendSpaceBase* BlendSpace;
@@ -411,6 +406,9 @@ protected:
 
 	/** This is used to tell the user when they do something wrong */
 	TSharedPtr<SNotificationList> NotificationListPtr;
+
+	/** The preview scene we are viewing */
+	TWeakPtr<class IPersonaPreviewScene> PreviewScenePtr;
 
 	/** Whether the active timer to update the preview is registered */
 	bool bIsActiveTimerRegistered;

@@ -121,7 +121,7 @@ class ENGINE_API USoundWave : public USoundBase
 	int32 CompressionQuality;
 
 	/** If set, when played directly (not through a sound cue) the wave will be played looping. */
-	UPROPERTY(EditAnywhere, Category=SoundWave )
+	UPROPERTY(EditAnywhere, Category=SoundWave, AssetRegistrySearchable)
 	uint32 bLooping:1;
 
 	/** Whether this sound can be streamed to avoid increased memory usage */
@@ -282,7 +282,7 @@ public:
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;	
 #endif // WITH_EDITOR
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 	virtual FName GetExporterName() override;
 	virtual FString GetDesc() override;
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;

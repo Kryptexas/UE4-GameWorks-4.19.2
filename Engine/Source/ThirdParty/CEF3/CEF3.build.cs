@@ -8,7 +8,7 @@ public class CEF3 : ModuleRules
 	public CEF3(TargetInfo Target)
 	{
 		/** Mark the current version of the library */
-		string CEFVersion = "3.2357.1291.g47e6d4b";
+		string CEFVersion = "3.2623.1395.g3034273";
 		string CEFPlatform = "";
 
 		Type = ModuleType.External;
@@ -24,7 +24,6 @@ public class CEF3 : ModuleRules
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
 			CEFPlatform = "macosx64";
-			CEFVersion = "3.2623.1395.g3034273";
 		}
 
 		if (CEFPlatform.Length > 0 && UEBuildConfiguration.bCompileCEF3)
@@ -62,7 +61,6 @@ public class CEF3 : ModuleRules
                 string[] Dlls = {
                     "d3dcompiler_43.dll",
                     "d3dcompiler_47.dll",
-                    "ffmpegsumo.dll",
                     "libcef.dll",
                     "libEGL.dll",
                     "libGLESv2.dll",

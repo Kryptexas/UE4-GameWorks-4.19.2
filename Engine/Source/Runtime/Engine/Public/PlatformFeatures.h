@@ -11,7 +11,7 @@
  */
 
 /** Defines the interface of a module implementing platform feature collector class. */
-class IPlatformFeaturesModule : public IModuleInterface
+class ENGINE_API IPlatformFeaturesModule : public IModuleInterface
 {
 public:
 
@@ -36,11 +36,11 @@ public:
 		return *StaticModule;
 	}
 
-	ENGINE_API virtual class ISaveGameSystem* GetSaveGameSystem();
+	virtual class ISaveGameSystem* GetSaveGameSystem();
 
-	ENGINE_API virtual class IDVRStreamingSystem* GetStreamingSystem();
+	virtual class IDVRStreamingSystem* GetStreamingSystem();
 
-	ENGINE_API virtual TSharedPtr<const class FJsonObject> GetTitleSettings();
+	virtual TSharedPtr<const class FJsonObject> GetTitleSettings();
 
-	ENGINE_API virtual IVideoRecordingSystem* GetVideoRecordingSystem();
+	virtual IVideoRecordingSystem* GetVideoRecordingSystem();
 };

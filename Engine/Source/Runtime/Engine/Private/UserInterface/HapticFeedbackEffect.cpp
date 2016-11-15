@@ -143,12 +143,6 @@ UHapticFeedbackEffect_SoundWave::~UHapticFeedbackEffect_SoundWave()
 
 void UHapticFeedbackEffect_SoundWave::Initialize()
 {
-	if (!SoundWave)
-	{
-		bPrepared = false;
-		return;
-	}
-
 	if (!bPrepared)
 	{
 		PrepareSoundWaveBuffer();
@@ -168,7 +162,7 @@ void UHapticFeedbackEffect_SoundWave::GetValues(const float EvalTime, FHapticFee
 
 float UHapticFeedbackEffect_SoundWave::GetDuration() const
 {
-	return SoundWave ? SoundWave->GetDuration() : 0.f;
+	return SoundWave->GetDuration();
 }
 
 void UHapticFeedbackEffect_SoundWave::PrepareSoundWaveBuffer()

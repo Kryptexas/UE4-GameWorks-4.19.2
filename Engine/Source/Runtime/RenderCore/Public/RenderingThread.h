@@ -4,8 +4,7 @@
 	RenderingThread.h: Rendering thread definitions.
 =============================================================================*/
 
-#ifndef __RenderingThread_H__
-#define __RenderingThread_H__
+#pragma once
 
 #include "RenderCore.h"
 #include "TaskGraphInterfaces.h"
@@ -543,5 +542,3 @@ extern RENDERCORE_API void BeginCleanup(FDeferredCleanupInterface* CleanupObject
  * @return A pointer to the set of pending cleanup objects.  The called is responsible for deletion.
  */
 extern RENDERCORE_API FPendingCleanupObjects* GetPendingCleanupObjects();
-
-#endif

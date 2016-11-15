@@ -7,6 +7,7 @@
 #endif
 
 #include "SuperSearchModule.h"
+#include "SlateWidgetStyle.h"
 
 /* 
  * Super search - Searches a number of resources including documentation, tutorials, Wiki and AnswerHub
@@ -27,7 +28,7 @@ public:
 		{}
 
 		/** Style used to draw this search box */
-		SLATE_ARGUMENT( TOptional<const FSearchBoxStyle*>, Style )
+		SLATE_ARGUMENT( TOptional<const FSuperSearchStyle*>, Style )
 
 		/** Where to place the suggestion list */
 		SLATE_ARGUMENT( EMenuPlacement, SuggestionListPlacement )
@@ -133,9 +134,9 @@ private:
 	/** to prevent recursive calls in UI callback */
 	bool bIgnoreUIUpdate;
 
-private:
+	FSuperSearchStyle Style;
 
-	TArray< TSharedPtr<ESearchEngine> > SearchEngines;
+private:
 
 	ESearchEngine CurrentSearchEngine;
 };

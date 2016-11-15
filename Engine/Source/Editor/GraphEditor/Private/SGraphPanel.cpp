@@ -23,42 +23,10 @@
 #include "AnimationGraphSchema.h"
 #include "AnimationStateMachineSchema.h"
 
+// Blueprint Profiler
+#include "Editor/Kismet/Public/Profiler/BlueprintProfilerSettings.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogGraphPanel, Log, All);
-
-//////////////////////////////////////////////////////////////////////////
-// FGraphPinHandle
-
-FGraphPinHandle::FGraphPinHandle(UEdGraphPin* InPin)
-{
-	if (InPin != nullptr)
-	{
-		if (UEdGraphNode* Node = InPin->GetOwningNodeUnchecked())
-		{
-			NodeGuid = Node->NodeGuid;
-			PinId = InPin->PinId;
-		}
-	}
-}
-
-TSharedPtr<SGraphPin> FGraphPinHandle::FindInGraphPanel(const SGraphPanel& InPanel) const
-{
-	// First off, find the node
-	if (NodeGuid.IsValid())
-	{
-		TSharedPtr<SGraphNode> GraphNode = InPanel.GetNodeWidgetFromGuid(NodeGuid);
-		if (GraphNode.IsValid())
-		{
-			UEdGraphNode* Node = GraphNode->GetNodeObj();
-
-			if (UEdGraphPin* Pin = Node->FindPinById(PinId))
-			{
-				return GraphNode->FindWidgetForPin(Pin);
-			}
-		}
-	}
-
-	return TSharedPtr<SGraphPin>();
-}
 
 //////////////////////////////////////////////////////////////////////////
 // SGraphPanel
@@ -141,6 +109,9 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 	// Determine some 'global' settings based on current LOD
 	const bool bDrawShadowsThisFrame = GetCurrentLOD() > EGraphRenderingLOD::LowestDetail;
 
+	// Enable the profiler heatmap displays.
+	const bool bDisplayProfilerHeatmap = GetDefault<UBlueprintProfilerSettings>()->GraphNodeHeatMapDisplayMode != EBlueprintProfilerHeatMapDisplayMode::None;
+
 	// Because we paint multiple children, we must track the maximum layer id that they produced in case one of our parents
 	// wants to an overlay for all of its contents.
 
@@ -211,6 +182,22 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 					{
 						ChildNode->ApplyRename();
 					}
+				}
+
+				// Draw the profiler heatmap if active
+				if (bDisplayProfilerHeatmap)
+				{
+					const FSlateBrush* ProfilerBrush = ChildNode->GetProfilerHeatmapBrush();
+					const FLinearColor ProfilerHeatIntensity = ChildNode->GetProfilerHeatmapIntensity();
+					FSlateDrawElement::MakeBox(
+						OutDrawElements,
+						ShadowLayerId,
+						CurWidget.Geometry.ToInflatedPaintGeometry(NodeShadowSize),
+						ProfilerBrush,
+						MyClippingRect,
+						ESlateDrawEffect::None,
+						ProfilerHeatIntensity
+						);
 				}
 
 				// Draw the node's shadow.
@@ -765,7 +752,7 @@ TSharedPtr<SWidget> SGraphPanel::OnSummonContextMenu(const FGeometry& MyGeometry
 		const FVector2D NodeAddPosition = PanelCoordToGraphCoord( MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition()) );
 		TArray<UEdGraphPin*> NoSourcePins;
 
-		return SummonContextMenu(MouseEvent.GetScreenSpacePosition(), NodeAddPosition, NodeUnderCursor, PinUnderCursor, NoSourcePins, MouseEvent.IsShiftDown());
+		return SummonContextMenu(MouseEvent.GetScreenSpacePosition(), NodeAddPosition, NodeUnderCursor, PinUnderCursor, NoSourcePins);
 	}
 
 	return TSharedPtr<SWidget>();
@@ -982,9 +969,14 @@ FReply SGraphPanel::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& D
 
 void SGraphPanel::OnBeginMakingConnection(UEdGraphPin* InOriginatingPin)
 {
-	if (InOriginatingPin != nullptr)
+	OnBeginMakingConnection(FGraphPinHandle(InOriginatingPin));
+}
+
+void SGraphPanel::OnBeginMakingConnection(FGraphPinHandle PinHandle)
+{
+	if (PinHandle.IsValid())
 	{
-		PreviewConnectorFromPins.Add(InOriginatingPin);
+		PreviewConnectorFromPins.Add(PinHandle);
 	}
 }
 
@@ -1024,7 +1016,7 @@ void SGraphPanel::RemoveAllNodes()
 	SNodePanel::RemoveAllNodes();
 }
 
-TSharedPtr<SWidget> SGraphPanel::SummonContextMenu(const FVector2D& WhereToSummon, const FVector2D& WhereToAddNode, UEdGraphNode* ForNode, UEdGraphPin* ForPin, const TArray<UEdGraphPin*>& DragFromPins, bool bShiftOperation)
+TSharedPtr<SWidget> SGraphPanel::SummonContextMenu(const FVector2D& WhereToSummon, const FVector2D& WhereToAddNode, UEdGraphNode* ForNode, UEdGraphPin* ForPin, const TArray<UEdGraphPin*>& DragFromPins)
 {
 	if (OnGetContextMenuFor.IsBound())
 	{
@@ -1033,7 +1025,6 @@ TSharedPtr<SWidget> SGraphPanel::SummonContextMenu(const FVector2D& WhereToSummo
 		SpawnInfo.GraphNode = ForNode;
 		SpawnInfo.GraphPin = ForPin;
 		SpawnInfo.DragFromPins = DragFromPins;
-		SpawnInfo.bShiftOperation = bShiftOperation;
 
 		FActionMenuContent FocusedContent = OnGetContextMenuFor.Execute(SpawnInfo);
 

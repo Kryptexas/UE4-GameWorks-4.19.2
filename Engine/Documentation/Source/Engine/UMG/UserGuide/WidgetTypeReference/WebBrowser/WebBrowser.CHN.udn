@@ -1,70 +1,74 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3038415
 Availability:Public
-Title: Web Browser
+Title:网络浏览器
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide, Engine/UMG/UserGuide/WidgetTypeReference
-Description:Overview of using the Web Browser widget to create in-game web browsing functionality.
-version: 4.10
+Description:使用网络浏览器控件实现游戏网页浏览功能的概览。
+version:4.10
 
 
 [REGION:warning]
-This feature is still in development and is considered **Experimental**. As such, some features may or may not work as expected. 
+此功能仍在开发中，尚在 **实验性** 阶段。因此部分功能可能无法正常工作。 
 [/REGION]
 
 
 [TOC(start:2 end:2)]
 
 
-##Description
+##描述
 
 [EXCERPT:desc]
-This widget is used to display an in-game web browser that can host content from anywhere on the web. 
+此控件用于显示游戏内的网络浏览器。此浏览器可托管来自网页上任意位置的内容。 
 [/EXCERPT:desc]
 
+![](WebBrowserWidget.png)(w:600)
+
+网络浏览器控件支持桌面平台，以及安卓和 iOS 移动设备。 
+
 [REGION:raw]
-![](Example.png)
+![](Devices.png)
 [/REGION]
 
 [REGION:note]
-Currently this widget is only supported for PC/Android with Mac/iOS support in a future release. For Android devices, the platform's native web control is used so there is no increase in executable size. 
+Chromium 用于桌面平台的网络浏览器控件，但 iOS 和安卓使用的是本机 WebKit 控制（对齐匹配 UMG 布局）。这可有效控制可执行文件的大小，并提升性能。 
 [/REGION]
 
-The Web Browser widget can be created through a Widget Blueprint or in C++ using Slate code and as mentioned above, is currently considered experimental so the feature will need to be enabled from **Edit** menu under **Plugins** menu. Under **Widgets** click **Enabled** on the **Web Browser** plugin to enable it. 
+网络浏览器控件可通过控件蓝图进行创建，或使用 Slate 代码在 C++ 中创建。如之前所述，此功能尚在实验性阶段，需要从 **Plugins** 菜单下的 **Edit** 菜单启用。在 **Widgets** 下，点击 **Web Browser** 插件上的 **Enabled** 启用。 
 
 [REGION:lightbox]
 [![](PlugInWidget.png)](PlugInWidget.png)
 [/REGION]
 
 [REGION:caption]
-Click for full view.
+点击查看全图。
 [/REGION]
 
-Once enabled, you will find the widget in the **Palette** window on the **Designer** tab of a Widget Blueprint under **Experimental**. 
+启用后即可在 **Experimental** 下控件蓝图 **Designer** 标签上的 **Palette** 窗口中找到控件。 
 
 ![](ExperimentalWidgets.png)
 
 
-##Details
+##细节
 
-In the **Details** panel for a placed **Web Browser** widget, there are a couple of specific options that can be set that pertain to the Widget: 
+在放置的 **网络浏览器** 控件的 **Details** 面板中，可对从属于控件的几个指定选项进行设置： 
 
 ![](DetailsPanel.png)
 
-| Option | Description |
+| 选项 | 描述 |
 | -------- | ----------- |
-| **Initial URL** | Enter the default URL that the web browser will open to. You must provide a default World Wide Web address or the page will appear blank.|
-| **Supports Transparency** | Enable or disable transparency of the widget web browser itself. |
+| **Initial URL** | 输入网络浏览器打开的默认 URL。必须设置一个 www 网页地址，否则页面将显示为空。|
+| **Supports Transparency** | 启用或禁用控件网络浏览器的透明度。|
 
-##Functions
+##函数
 
-On the **Graph**, the **Web Browser** widget has some exposed Blueprint Functions you can call. 
+在 **图表** 上，**网络浏览器** 控件拥有一些可调用的公开蓝图函数。 
 
 ![](WebBrowserFunctions.png)
 
-| Node | Description |
+| 节点 | 描述 |
 | -------- | ----------- |
-| **Get Title Text** | When called, this will get the title of the currently displayed web page and return that value as text. |
-| **Load String** | This will load a string as data to create a web page with a dummy URL link. |
-| **Load URL** | This will load the specified URL when called.  |
+| **Get Title Text** | 调用后此节点将获取当前显示的网页并将数值作为文本返回。|
+| **Load String** | 此节点将把字符串作为数据加载，创建带虚拟 URL 链接的网页。|
+| **Load URL** | 调用后此节点将加载指定的 URL。|
 
 
 

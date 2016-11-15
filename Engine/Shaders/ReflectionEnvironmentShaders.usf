@@ -75,8 +75,9 @@ void CopySceneColorToCubeFaceColorPS(
 		Alpha = 1 - smoothstep(.8f * MaxDistance, MaxDistance, RadialDistance);
 	}
 
-	// Pre-multiplied alpha for correct filtering
-	OutColor = float4(SceneColor * Alpha, Alpha);
+	// We need pre-multiplied alpha for correct filtering
+	// However, we need to compute average brightness before masking out sky areas, so premultiplying happens later
+	OutColor = float4(SceneColor, Alpha);
 }
 
 float3 GetCubemapVector(float2 ScaledUVs)
@@ -136,6 +137,8 @@ void CopyCubemapToCubeFaceColorPS(
 			OutColor.rgb = lerp(OutColor.rgb, LowerHemisphereColor.rgb, LowerHemisphereColor.a);
 		}
 	}
+
+	OutColor.a = 1;
 }
 
 int SourceMipIndex;
@@ -177,15 +180,13 @@ void ComputeBrightnessMain(
 	AverageColor += TextureCubeSampleLevel(ReflectionEnvironmentColorTexture, ReflectionEnvironmentColorSampler, float3(0, 0, 1), NumCaptureArrayMips - 1).rgb;
 	AverageColor += TextureCubeSampleLevel(ReflectionEnvironmentColorTexture, ReflectionEnvironmentColorSampler, float3(0, 0, -1), NumCaptureArrayMips - 1).rgb;
 
-	OutColor = dot(AverageColor / 6, .3333f);
+	OutColor = dot(AverageColor / 6, .3333f); 
 }
 
 #endif
 
 #define NUM_FILTER_SAMPLES 1024
 
-Texture2D AverageBrightnessTexture;
-SamplerState AverageBrightnessSampler;
 float CubemapMaxMip;
 
 void FilterPS(
@@ -232,13 +233,6 @@ void FilterPS(
 
 	OutColor = SampleCubemap(CubeCoordinates);
 
-#endif
-
-#if NORMALIZE && ALLOW_STATIC_LIGHTING
-	// Remove low frequency
-	// TODO match the frequency removed to the one added. In other words divide out 2nd order SH instead of 1st.
-	float LowFrequencyBrightness = Texture2DSample(AverageBrightnessTexture, AverageBrightnessSampler, float2(0, 0)).r;
-	OutColor.rgb /= max(LowFrequencyBrightness, 0.01f);
 #endif
 }
 
@@ -333,7 +327,7 @@ float4 CapturePositionAndRadius;
 float4 CaptureProperties;
 float4x4 CaptureBoxTransform;
 float4 CaptureBoxScales;
-float3 CaptureOffset;
+float4 CaptureOffsetAndAverageBrightness;
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 TextureCubeArray ReflectionEnvironmentColorTextureArray;
@@ -371,14 +365,15 @@ void StandardDeferredReflectionPS(
 			float CaptureVectorLength = sqrt(dot(CaptureVector, CaptureVector));
 			float NormalizedDistanceToCapture = saturate(CaptureVectorLength / CapturePositionAndRadius.w);
 
-			ProjectedCaptureVector = GetLookupVectorForSphereCapture(ReflectionVector, WorldPosition, CapturePositionAndRadius, NormalizedDistanceToCapture, CaptureOffset, DistanceAlpha);
+			ProjectedCaptureVector = GetLookupVectorForSphereCapture(ReflectionVector, WorldPosition, CapturePositionAndRadius, NormalizedDistanceToCapture, CaptureOffsetAndAverageBrightness.xyz, DistanceAlpha);
 		#elif BOX_CAPTURE
-			ProjectedCaptureVector = GetLookupVectorForBoxCapture(ReflectionVector, WorldPosition, CapturePositionAndRadius, CaptureBoxTransform, CaptureBoxScales, CaptureOffset, DistanceAlpha);
+			ProjectedCaptureVector = GetLookupVectorForBoxCapture(ReflectionVector, WorldPosition, CapturePositionAndRadius, CaptureBoxTransform, CaptureBoxScales, CaptureOffsetAndAverageBrightness.xyz, DistanceAlpha);
 		#endif
 		
 		BRANCH
 		if (DistanceAlpha > 0)
 		{
+			float AverageBrightness = CaptureOffsetAndAverageBrightness.w;
 			float AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(InGBufferData.Roughness, View.ReflectionCubemapMaxMip);
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
@@ -387,6 +382,10 @@ void StandardDeferredReflectionPS(
 			float4 Reflection = TextureCubeSampleLevel(ReflectionEnvironmentColorTexture, ReflectionEnvironmentColorSampler, ProjectedCaptureVector, AbsoluteSpecularMip);
 #endif
 
+			#if ALLOW_STATIC_LIGHTING
+				Reflection.rgb /= AverageBrightness;
+			#endif
+			
 			Reflection.rgb *= CaptureProperties.r;
 
 			// Composite using the influence shape's alpha, which allows it to only override where it has valid data
@@ -450,18 +449,7 @@ void ReflectionApplyPS(
 		SpecularLighting.rgb *= IndirectSpecularOcclusion;
 
 #if ALLOW_STATIC_LIGHTING
-		FLATTEN
-		if( View.UseLightmaps > 0 )
-		{
-			// We have high frequency directional data but low frequency spatial data in the envmap.
-			// We have high frequency spatial data but low frequency directional data in the lightmap.
-			// So, we combine the two for the best of both. This is done by removing the low spatial frequencies from the envmap and replacing them with the lightmap data.
-			// This is only done with luma so as to not get odd color shifting.
-			// Note: make sure this matches the lightmap mixing done for translucency (BasePassPixelShader.usf)
-
-			// NOTE: this breaks LPV specular if r.allowstaticlighting is enabled
-			SpecularLighting.rgb *= IndirectIrradiance;
-		}
+		SpecularLighting.rgb *= IndirectIrradiance;
 #endif
 #endif
 
@@ -480,9 +468,8 @@ void ReflectionApplyPS(
 		if (SpecularLighting.a > .001f)
 		{			
 			float3 SkyLighting = float3(1,1,1);
+			float SkyAverageBrightness = 1.0f;
 
-			// Normalize for static skylight types which mix with lightmaps
-			bool bNormalize = SkyLightParameters.z < 1 && View.UseLightmaps > 0 && !ALLOW_STATIC_LIGHTING;
 			BRANCH
 			if( GBuffer.ShadingModelID == SHADINGMODELID_CLEAR_COAT )
 			{
@@ -494,7 +481,7 @@ void ReflectionApplyPS(
 				ReflectionVector = 2 * dot(V, ClearCoatUnderNormal) * ClearCoatUnderNormal - V;
 #endif				
 
-				SkyLighting = GetSkyLightReflectionSupportingBlend(ReflectionVector, GBuffer.Roughness, bNormalize);
+				SkyLighting = GetSkyLightReflectionSupportingBlend(ReflectionVector, GBuffer.Roughness, SkyAverageBrightness);
 				SkyLighting *= SpecularColor;
 
 				const float ClearCoat			= GBuffer.CustomData.x;
@@ -514,12 +501,12 @@ void ReflectionApplyPS(
 				#endif				
 
 				float3 TopLayerR = 2 * dot(V, GBuffer.WorldNormal) * N - V;
-				float3 SampleColor = GetSkyLightReflectionSupportingBlend(TopLayerR, ClearCoatRoughness, bNormalize);
+				float3 SampleColor = GetSkyLightReflectionSupportingBlend(TopLayerR, ClearCoatRoughness, SkyAverageBrightness);
 				SkyLighting += SampleColor * F;
 			}
 			else
 			{
-				SkyLighting = GetSkyLightReflectionSupportingBlend(ReflectionVector, GBuffer.Roughness, bNormalize);
+				SkyLighting = GetSkyLightReflectionSupportingBlend(ReflectionVector, GBuffer.Roughness, SkyAverageBrightness);
 				SkyLighting *= SpecularColor;
 
 			}
@@ -527,10 +514,13 @@ void ReflectionApplyPS(
 		    float DirectionalOcclusion = ScreenSpaceData.DirectionalOcclusion.g;
 		    SkyLighting *= DirectionalOcclusion;
 
+			// Normalize for static skylight types which mix with lightmaps
+			bool bNormalize = SkyLightParameters.z < 1 && ALLOW_STATIC_LIGHTING;
+
 			FLATTEN
 			if (bNormalize)
 			{
-				SkyLighting *= IndirectIrradiance;
+				SkyLighting *= IndirectIrradiance / max(SkyAverageBrightness, .001f);
 			}
 
 			SpecularLighting.rgb += SpecularLighting.a * (SkyLighting * IndirectSpecularOcclusion + ExtraIndirectSpecular * SpecularColor);

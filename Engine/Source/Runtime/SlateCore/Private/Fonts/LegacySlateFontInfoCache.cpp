@@ -156,7 +156,7 @@ const FFontData& FLegacySlateFontInfoCache::GetLastResortFontData()
 		// Don't allow GC while we perform this allocation
 		FGCScopeGuard GCGuard;
 
-		const FString LastResortFontPath = FPaths::EngineContentDir() / TEXT("Slate/Fonts/LastResort.ttf");
+		const FString LastResortFontPath = FPaths::EngineContentDir() / TEXT("SlateDebug/Fonts/LastResort.ttf");
 		UFontBulkData* FontBulkData = NewObject<UFontBulkData>();
 		FontBulkData->Initialize(LastResortFontPath);
 		LastResortFontData = MakeShareable(new FFontData(LastResortFontPath, FontBulkData, EFontHinting::Default));

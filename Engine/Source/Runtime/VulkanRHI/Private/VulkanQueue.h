@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "VulkanRHIPrivate.h"
+#include "VulkanConfiguration.h"
 
 class FVulkanDevice;
 class FVulkanCmdBuffer;

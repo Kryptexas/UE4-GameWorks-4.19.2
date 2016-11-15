@@ -65,7 +65,7 @@ private:
 	FBlueprintNativeCodeGenManifest& GetManifest(const TCHAR* PlatformName);
 	void GenerateSingleStub(UBlueprint* BP, const TCHAR* PlatformName);
 	void CollectBoundFunctions(UBlueprint* BP);
-	void GenerateSingleAsset(UField* ForConversion, const TCHAR* PlatformName);
+	void GenerateSingleAsset(UField* ForConversion, const TCHAR* PlatformName, TSharedPtr<FNativizationSummary> NativizationSummary = TSharedPtr<FNativizationSummary>());
 
 	TMap< FString, TUniquePtr<FBlueprintNativeCodeGenManifest> > Manifests;
 
@@ -295,6 +295,7 @@ void FBlueprintNativeCodeGenModule::InitializeForRerunDebugOnly(const TArray< TP
 
 void FBlueprintNativeCodeGenModule::GenerateFullyConvertedClasses()
 {
+	TSharedPtr<FNativizationSummary> NativizationSummary(new FNativizationSummary());
 	for (TAssetPtr<UBlueprint>& BPPtr : ToGenerate)
 	{
 		UBlueprint* BP = BPPtr.LoadSynchronous();
@@ -302,8 +303,34 @@ void FBlueprintNativeCodeGenModule::GenerateFullyConvertedClasses()
 		{
 			for (const FString& PlatformName : TargetPlatformNames)
 			{
-				GenerateSingleAsset(BP->GeneratedClass, *PlatformName);
+				GenerateSingleAsset(BP->GeneratedClass, *PlatformName, NativizationSummary);
 			}
+		}
+	}
+	
+	if (NativizationSummary->InaccessiblePropertyStat.Num())
+	{
+		UE_LOG(LogBlueprintCodeGen, Display, TEXT("Nativization Summary - Inaccessible Properties:"));
+		NativizationSummary->InaccessiblePropertyStat.ValueSort(TGreater<int32>());
+		for (auto& Iter : NativizationSummary->InaccessiblePropertyStat)
+		{
+			UE_LOG(LogBlueprintCodeGen, Display, TEXT("\t %s \t - %d"), *Iter.Key.ToString(), Iter.Value);
+		}
+	}
+	{
+		UE_LOG(LogBlueprintCodeGen, Display, TEXT("Nativization Summary - AnimBP:"));
+		UE_LOG(LogBlueprintCodeGen, Display, TEXT("Name, Children, Non-empty Functions (Empty Functions), Variables, FunctionUsage, VariableUsage"));
+		for (auto& Iter : NativizationSummary->AnimBlueprintStat)
+		{
+			UE_LOG(LogBlueprintCodeGen, Display
+				, TEXT("%s, %d, %d (%d), %d, %d, %d")
+				, *Iter.Key.ToString()
+				, Iter.Value.Children
+				, Iter.Value.Functions - Iter.Value.ReducibleFunctions
+				, Iter.Value.ReducibleFunctions
+				, Iter.Value.Variables
+				, Iter.Value.FunctionUsage
+				, Iter.Value.VariableUsage);
 		}
 	}
 }
@@ -318,7 +345,12 @@ FBlueprintNativeCodeGenManifest& FBlueprintNativeCodeGenModule::GetManifest(cons
 
 void FBlueprintNativeCodeGenModule::GenerateSingleStub(UBlueprint* BP, const TCHAR* PlatformName)
 {
-	UClass* Class = BP ? BP->GeneratedClass : nullptr;
+	if (!ensure(BP))
+	{
+		return;
+	}
+
+	UClass* Class = BP->GeneratedClass;
 	if (!ensure(Class))
 	{
 		return;
@@ -346,7 +378,7 @@ void FBlueprintNativeCodeGenModule::GenerateSingleStub(UBlueprint* BP, const TCH
 	GetManifest(PlatformName).GatherModuleDependencies(BP->GetOutermost());
 }
 
-void FBlueprintNativeCodeGenModule::GenerateSingleAsset(UField* ForConversion, const TCHAR* PlatformName)
+void FBlueprintNativeCodeGenModule::GenerateSingleAsset(UField* ForConversion, const TCHAR* PlatformName, TSharedPtr<FNativizationSummary> NativizationSummary)
 {
 	IBlueprintCompilerCppBackendModule& BackEndModule = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
 	auto& BackendPCHQuery = BackEndModule.OnPCHFilenameQuery();
@@ -363,7 +395,7 @@ void FBlueprintNativeCodeGenModule::GenerateSingleAsset(UField* ForConversion, c
 	TSharedPtr<FString> HeaderSource(new FString());
 	TSharedPtr<FString> CppSource(new FString());
 
-	FBlueprintNativeCodeGenUtils::GenerateCppCode(ForConversion, HeaderSource, CppSource);
+	FBlueprintNativeCodeGenUtils::GenerateCppCode(ForConversion, HeaderSource, CppSource, NativizationSummary);
 	bool bSuccess = !HeaderSource->IsEmpty() || !CppSource->IsEmpty();
 	// Run the cpp first, because we cue off of the presence of a header for a valid conversion record (see
 	// FConvertedAssetRecord::IsValid)
@@ -395,7 +427,7 @@ void FBlueprintNativeCodeGenModule::GenerateSingleAsset(UField* ForConversion, c
 		ConversionRecord.GeneratedHeaderPath.Empty();
 	}
 
-	if (ensure(bSuccess))
+	if (bSuccess)
 	{
 		GetManifest(PlatformName).GatherModuleDependencies(ForConversion->GetOutermost());
 	}
@@ -582,7 +614,7 @@ UObject* FBlueprintNativeCodeGenModule::FindReplacedNameAndOuter(UObject* Object
 				{
 					if (Node->ComponentTemplate == ActorComponent)
 					{
-						OutName = Node->VariableName;
+						OutName = Node->GetVariableName();
 						if (OutName != NAME_None)
 						{
 							Outer = BPGC->GetDefaultObject(false);
@@ -620,6 +652,11 @@ EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const
 
 EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const UObject* Object) const
 {
+	if (Object == nullptr)
+	{
+		return EReplacementResult::DontReplace;
+	}
+
 	const UStruct* Struct = Cast<UStruct>(Object);
 	const UEnum* Enum = Cast<UEnum>(Object);
 
@@ -633,6 +670,20 @@ EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const
 	{
 		if (UBlueprint* Blueprint = Cast<UBlueprint>(BlueprintClass->ClassGeneratedBy))
 		{
+			static const FBoolConfigValueHelper NativizeAnimBPOnlyWhenNonReducibleFuncitons(TEXT("BlueprintNativizationSettings"), TEXT("bNativizeAnimBPOnlyWhenNonReducibleFuncitons"));
+			if (NativizeAnimBPOnlyWhenNonReducibleFuncitons)
+			{
+				if (UAnimBlueprint* AnimBlueprint = Cast<UAnimBlueprint>(Blueprint))
+				{
+					ensure(AnimBlueprint->bHasBeenRegenerated);
+					if (AnimBlueprint->bHasAnyNonReducibleFunction == UBlueprint::EIsBPNonReducible::No)
+					{
+						UE_LOG(LogBlueprintCodeGen, Log, TEXT("AnimBP %s without non-reducible functions is excluded from nativization"), *GetPathNameSafe(Blueprint));
+						Result = EReplacementResult::GenerateStub;
+					}
+				}
+			}
+
 			const EBlueprintType UnconvertableBlueprintTypes[] = {
 				//BPTYPE_Const,		// WTF is a "const" Blueprint?
 				BPTYPE_MacroLibrary,
@@ -709,7 +760,7 @@ EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const
 
 	if (Object && (IsEditorOnlyObject(Object) || IsDeveloperObject(Object)))
 	{
-		UE_LOG(LogBlueprintCodeGen, Warning, TEXT("Object %s depends on Editor or Development stuff. Is shouldn't be cooked."), *GetPathNameSafe(Object));
+		UE_LOG(LogBlueprintCodeGen, Warning, TEXT("Object %s depends on Editor or Development stuff. It shouldn't be cooked."), *GetPathNameSafe(Object));
 		return EReplacementResult::DontReplace;
 	}
 

@@ -861,14 +861,17 @@ void AMatineeActor::InitInterp()
 
 		// Cache whether or not we want to enable extreme content within this sequence
 		bShouldShowGore = true;
+
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		if( GetWorld() != NULL && GetWorld()->GetWorldSettings() != NULL )
 		{
-			AGameState const* const GameState = GetWorld()->GameState;
+			AGameState const* const GameState = GetWorld()->GetGameState<AGameState>();
 			if( GameState != NULL )
 			{
 				bShouldShowGore = GameState->ShouldShowGore();
 			}
 		}
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 		for(int32 GroupIndex=0; GroupIndex<MatineeData->InterpGroups.Num(); GroupIndex++)
 		{
@@ -8016,7 +8019,8 @@ void UInterpTrackSound::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst,
 				else
 				{
 					// If there is no AudioComponent - create one now.
-					SoundInst->PlayAudioComp = FAudioDevice::CreateComponent(NewSound, SoundInst->GetWorld(), Actor, false, false);
+					FAudioDevice::FCreateComponentParams Params(SoundInst->GetWorld(), Actor);
+					SoundInst->PlayAudioComp = FAudioDevice::CreateComponent(NewSound, Params);
 					if(SoundInst->PlayAudioComp)
 					{
 						// If we have no actor to attach sound to - its location is meaningless, so we turn off spatialization.
@@ -8133,7 +8137,7 @@ void UInterpTrackSound::PreviewUpdateTrack(float NewPosition, UInterpTrackInst* 
 				: false;
 
 		USoundCue* TempPlaybackAudioCue = NewObject<USoundCue>();
-		UAudioComponent* Component = FAudioDevice::CreateComponent(TempPlaybackAudioCue, NULL, NULL, false, false);
+		UAudioComponent* Component = FAudioDevice::CreateComponent(TempPlaybackAudioCue);
 
 		if ( bIsInRange && Component )
 		{

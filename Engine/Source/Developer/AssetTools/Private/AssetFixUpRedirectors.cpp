@@ -351,6 +351,8 @@ void FAssetFixUpRedirectors::DeleteRedirectors(TArray<FRedirectorRefs>& Redirect
 		FRedirectorRefs& RedirectorRefs = *RedirectorIt;
 		if ( RedirectorRefs.bRedirectorValidForFixup )
 		{
+			check(RedirectorRefs.Redirector);
+
 			bool bAllReferencersFixedUp = true;
 			for (const auto& ReferencingPackageName : RedirectorRefs.ReferencingPackageNames)
 			{

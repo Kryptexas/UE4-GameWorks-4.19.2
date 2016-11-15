@@ -3,6 +3,10 @@
 
 #pragma once
 
+#include "AI/Navigation/NavigationTypes.h"
+#include "Components/PrimitiveComponent.h"
+#include "LandscapeHeightfieldCollisionComponent.generated.h"
+
 // Forward declarations
 class ULandscapeComponent;
 class ULandscapeLayerInfoObject;
@@ -10,10 +14,6 @@ class ULandscapeInfo;
 class ALandscape;
 class ALandscapeProxy;
 class AInstancedFoliageActor;
-
-#include "AI/Navigation/NavigationTypes.h"
-#include "Components/PrimitiveComponent.h"
-#include "LandscapeHeightfieldCollisionComponent.generated.h"
 
 #if WITH_PHYSX
 namespace physx

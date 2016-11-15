@@ -257,7 +257,7 @@ a _Remote Event_ node is used to call the _Custom Event_ for the next wave.
 
 In the game, your base has 3 lives.  A life is subtracted if an enemy Pawn makes it to the friendly brewery, and the game is lost if all lives are lost.  The enemy boss reaching the friendly brewery also results 
 in losing the game. To win the game, you must defeat all five waves of enemy Pawns before losing all of your lives. The networks setting up both the win condition and the lose condition are in **TowerDefenseMap**'s _Level Blueprint_, and call functions set up
-in the class `StrategyGameMode`, which is derived from the `AGameMode` class.  The `StrategyGameMode` class also contains functions such as `InitGame` which initializes the game and is called before the Actors' PreInitializeComponents, `SetGamePaused`, and `SetGameDifficulty`.
+in the class `StrategyGameMode`, which is derived from the `AGameModeBase` class.  The `StrategyGameMode` class also contains functions such as `InitGame` which initializes the game and is called before the Actors' PreInitializeComponents, `SetGamePaused`, and `SetGameDifficulty`.
 
 After the end boss spawned in Wave 5 has been killed, a _Remote Event_ node is used to call the Winning _Custom Event_.  This _Custom Event_, located in the **Win Condition** comment box, then fires and triggers execution of a sub-network WaitForWin,
 which checks that no other enemy Pawns are still alive.  If this is found to be _true_, the `Finish Game` function is called with the WinningTeam input set to "Player".  

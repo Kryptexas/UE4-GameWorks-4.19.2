@@ -203,6 +203,10 @@ public:
 	UPROPERTY()
 	uint32 bHasMotionBlurVelocityMeshes:1;
 	
+	/** If true, this component will be visible in reflection captures. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Rendering)
+	uint32 bVisibleInReflectionCaptures:1;
+
 	/** If true, this component will be rendered in the main pass (z prepass, basepass, transparency) */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Rendering)
 	uint32 bRenderInMainPass:1;
@@ -359,13 +363,6 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting)
 	FLightingChannels LightingChannels;
 
-	UPROPERTY()
-	bool bHasCachedStaticLighting;
-
-	/** If true, asynchronous static build lighting will be enqueued to be applied to this */
-	UPROPERTY(Transient)
-	bool bStaticLightingBuildEnqueued;
-	
 	// Physics
 	
 	/** Will ignore radial impulses applied to this component. */
@@ -525,6 +522,41 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Collision")
 	void ClearMoveIgnoreActors();
 
+	/**
+	* Set of components to ignore during component sweeps in MoveComponent().
+	* These components will be ignored when this component moves or updates overlaps.
+	* The other components may also need to be told to do the same when they move.
+	* Does not affect movement of this component when simulating physics.
+	* @see IgnoreComponentWhenMoving()
+	*/
+	UPROPERTY(Transient, DuplicateTransient)
+	TArray<UPrimitiveComponent*> MoveIgnoreComponents;
+
+	/**
+	* Tells this component whether to ignore collision with another component when this component is moved.
+	* The other components may also need to be told to do the same when they move.
+	* Does not affect movement of this component when simulating physics.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Collision", meta=(Keywords="Move MoveIgnore"))
+	void IgnoreComponentWhenMoving(UPrimitiveComponent* Component, bool bShouldIgnore);
+
+	/**
+	* Returns the list of actors we currently ignore when moving.
+	*/
+	UFUNCTION(BlueprintCallable, meta=(DisplayName="GetMoveIgnoreComponents"), Category = "Collision")
+	TArray<UPrimitiveComponent*> CopyArrayOfMoveIgnoreComponents();
+
+	/**
+	* Returns the list of components we currently ignore when moving.
+	*/
+	const TArray<UPrimitiveComponent*>& GetMoveIgnoreComponents() const { return MoveIgnoreComponents; }
+
+	/**
+	* Clear the list of components we ignore when moving.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Collision")
+	void ClearMoveIgnoreComponents() { MoveIgnoreComponents.Empty(); }
+
 	/** Set the mask filter we use when moving. */
 	void SetMoveIgnoreMask(FMaskFilter InMoveIgnoreMask);
 
@@ -662,6 +694,7 @@ public:
 	 *	@note For collisions during physics simulation to generate hit events, 'Simulation Generates Hit Events' must be enabled for this component.
 	 *	@note When receiving a hit from another object's movement, the directions of 'Hit.Normal' and 'Hit.ImpactNormal'
 	 *	will be adjusted to indicate force from the other object against this object.
+	 *	@note NormalImpulse will be filled in for physics-simulating bodies, but will be zero for swept-component blocking collisions.
 	 */
 	UPROPERTY(BlueprintAssignable, Category="Collision")
 	FComponentHitSignature OnComponentHit;
@@ -747,6 +780,14 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Material")
 	virtual void SetMaterial(int32 ElementIndex, class UMaterialInterface* Material);
+
+	/**
+	* Changes the material applied to an element of the mesh.
+	* @param MaterialSlotName - The slot name to access the material of.
+	* @return the material used by the indexed element of this mesh.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Rendering|Material")
+	virtual void SetMaterialByName(FName MaterialSlotName, class UMaterialInterface* Material);
 
 	/**
 	 * Creates a Dynamic Material Instance for the specified element index.  The parent of the instance is set to the material being replaced.
@@ -1179,21 +1220,47 @@ public:
 	void GetStreamingTextureInfoWithNULLRemoval(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const;
 
 	/**
-	* Return whether this primitive should have section data for texture streaming but it is missing. Used for incremental updates.
+	* Return whether this primitive should have data for texture streaming. Used to optimize the texture streaming build.
 	*
-	* @param bCheckTexCoordScales - If true, section data must contains texcoord scales to be valid.
-	*
-	* @return - true if some sections have missing data. If this component is not expected to have data, this should return false.
+	* @return	true if a rebuild is required.
 	*/
-	virtual bool HasMissingStreamingSectionData(bool bCheckTexCoordScales) const { return false; }
+	virtual bool RequiresStreamingTextureData() const { return false; }
 
 	/**
-	* Update section data for texture streaming. Note that this data is expected to be transient.
+	* Return whether this primitive has (good) material texcoord size for texture streaming. Used in the texture streaming build and accuracy viewmodes.
+	*
+	* @param bCheckForScales - If true, section data must contains texcoord scales to be valid.
+	* @param TextureIndex - Specific texture index to check. INDEX_NONE if to check for any texture.
+	* @param OutTextureData - Information about how the texture was sampled.
+	*
+	* @return - true if streaming section data is valid.
+	*/
+	virtual bool HasTextureStreamingMaterialData(bool bCheckForScales, int32 TextureIndex = INDEX_NONE, FMaterialTextureInfo* OutTextureData = nullptr) const { return false; }
+
+	/**
+	* Return whether this primitive has (good) built data for texture streaming. Used for the "Texture Streaming Needs Rebuilt" check.
+	*
+	* @return	true if all texture streaming data is valid.
+	*/
+	virtual bool HasStreamingTextureData() const { return false; }
+
+	/**
+	* Update material texcoord size for texture streaming. Note that this data is expected to be transient.
 	* Only useful within the texture streaming build, or streaming accuracy viewmodes.
 	*
 	* @param	TexCoordScales - The texcoord scales for each texture register of each relevant materials.
 	*/
-	virtual void UpdateStreamingSectionData(const FTexCoordScaleMap& TexCoordScales) {}
+	virtual void UpdateTextureStreamingMaterialData(const FTexCoordScaleMap& TexCoordScales) {}
+
+	/**
+	 *	Update the precomputed streaming data of this component.
+	 *
+	 *	@param	LevelTextures	[in,out]	The list of textures referred by all component of a level. The array index maps to UTexture2D::LevelIndex.
+	 *	@param	TexCoordScales	[in]		The texcoord scales for each texture register of each relevant materials.
+	 *	@param	QualityLevel	[in]		The quality level being used in the texture streaming build.
+	 *	@param	FeatureLevel	[in]		The feature level being used in the texture streaming build.
+	 */
+	virtual void UpdateStreamingTextureData(TArray<UTexture2D*>& LevelTextures, const FTexCoordScaleMap& TexCoordScales, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel) {}
 
 	/**
 	 * Determines the DPG the primitive's primary elements are drawn in.
@@ -1470,13 +1537,7 @@ public:
 #endif // WITH_EDITOR
 	virtual void PostLoad() override;
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
-
-	virtual void MarkAsEditorOnlySubobject() override
-	{
-		AlwaysLoadOnClient = false;
-		AlwaysLoadOnServer = false;
-	}
+	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 
 #if WITH_EDITOR
 	/**
@@ -1611,6 +1672,14 @@ public:
 	 *	@param NewRot	New orienatation for the body
 	 */
 	virtual void SetAllPhysicsRotation(FRotator NewRot);
+
+	/**
+	 *	Set the rotation of all bodies in this component.
+	 *	If a SkeletalMeshComponent, the root body will be changed to the desired orientation, and the same delta is applied to all other bodies.
+	 *
+	 *	@param NewRot	New orienatation for the body
+	 */
+	virtual void SetAllPhysicsRotation(const FQuat& NewRot);
 	
 	/**
 	 *	Ensure simulation is running for all bodies in this component.
@@ -1691,6 +1760,7 @@ public:
 	/**
 	 *	Returns if any body in this component is currently awake and simulating.
 	 */
+	UFUNCTION(BlueprintCallable, Category = "Physics", meta = (Keywords = "physics asleep sleeping awake simulating"))
 	virtual bool IsAnyRigidBodyAwake();
 	
 	/**
@@ -1700,7 +1770,7 @@ public:
 	 * @param       NewResponse  What the new response should be to the supplied Channel
 	 */
 	UFUNCTION(BlueprintCallable, Category="Collision")
-	void SetCollisionResponseToChannel(ECollisionChannel Channel, ECollisionResponse NewResponse);
+	virtual void SetCollisionResponseToChannel(ECollisionChannel Channel, ECollisionResponse NewResponse);
 	
 	/**
 	 *	Changes all ResponseToChannels container for this PrimitiveComponent. to be NewResponse
@@ -1708,14 +1778,14 @@ public:
 	 * @param       NewResponse  What the new response should be to the supplied Channel
 	 */
 	UFUNCTION(BlueprintCallable, Category="Collision")
-	void SetCollisionResponseToAllChannels(ECollisionResponse NewResponse);
+	virtual void SetCollisionResponseToAllChannels(ECollisionResponse NewResponse);
 	
 	/**
 	 *	Changes the whole ResponseToChannels container for this PrimitiveComponent.
 	 *
 	 * @param       NewResponses  New set of responses for this component
 	 */
-	void SetCollisionResponseToChannels(const FCollisionResponseContainer& NewReponses);
+	virtual void SetCollisionResponseToChannels(const FCollisionResponseContainer& NewReponses);
 	
 protected:
 
@@ -1810,16 +1880,17 @@ public:
 	virtual bool LineTraceComponent( FHitResult& OutHit, const FVector Start, const FVector End, const FCollisionQueryParams& Params );
 	
 	/** 
-	 *  Trace a box against just this component.
-	 *  @param  OutHit          Information about hit against this component, if true is returned
-	 *  @param  Start           Start location of the box
-	 *  @param  End             End location of the box
-	 *  @param  BoxHalfExtent 	Half Extent of the box
+	 *  Trace a shape against just this component.
+	 *  @param  OutHit          	Information about hit against this component, if true is returned
+	 *  @param  Start           	Start location of the box
+	 *  @param  End             	End location of the box
+	 *  @param  ShapeWorldRotation  The rotation applied to the collision shape in world space.
+	 *  @param  CollisionShape  	Collision Shape
 	 *	@param	bTraceComplex	Whether or not to trace complex
 	 *  @return true if a hit is found
 	 */
-	virtual bool SweepComponent(FHitResult& OutHit, const FVector Start, const FVector End, const FCollisionShape &CollisionShape, bool bTraceComplex=false);
-	
+	virtual bool SweepComponent(FHitResult& OutHit, const FVector Start, const FVector End, const FQuat& ShapeWorldRotation, const FCollisionShape &CollisionShape, bool bTraceComplex=false);
+
 	/** 
 	 *  Test the collision of the supplied component at the supplied location/rotation, and determine if it overlaps this component.
 	 *  @note This overload taking rotation as a FQuat is slightly faster than the version using FRotator.

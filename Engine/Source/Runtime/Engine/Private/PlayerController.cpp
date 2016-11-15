@@ -148,16 +148,11 @@ bool APlayerController::DestroyNetworkActorHandled()
 
 bool APlayerController::IsLocalController() const
 {
-	// Never local on dedicated server, always local on clients. IsServerOnly() and IsClientOnly() are checked at compile time and optimized out appropriately.
+	// Never local on dedicated server. IsServerOnly() is checked at compile time and optimized out appropriately.
 	if (FPlatformProperties::IsServerOnly())
 	{
 		checkSlow(!bIsLocalPlayerController);
 		return false;
-	}
-	else if (FPlatformProperties::IsClientOnly())
-	{
-		bIsLocalPlayerController = true;
-		return true;
 	}
 	
 	// Fast path if we have this bool set.
@@ -197,7 +192,7 @@ void APlayerController::ClientUpdateLevelStreamingStatus_Implementation(FName Pa
 {
 	// For PIE Networking: remap the packagename to our local PIE packagename
 	FString PackageNameStr = PackageName.ToString();
-	if (GEngine->NetworkRemapPath(GetWorld(), PackageNameStr, true))
+	if (GEngine->NetworkRemapPath(GetNetDriver(), PackageNameStr, true))
 	{
 		PackageName = FName(*PackageNameStr);
 	}
@@ -210,8 +205,6 @@ void APlayerController::ClientUpdateLevelStreamingStatus_Implementation(FName Pa
 			return;
 		}
 	}
-
-	//GEngine->NetworkRemapPath(GetWorld(), RealName, false);
 
 	// if we're about to commit a map change, we assume that the streaming update is based on the to be loaded map and so defer it until that is complete
 	if (GEngine->ShouldCommitPendingMapChange(GetWorld()))
@@ -552,7 +545,7 @@ void APlayerController::ServerNotifyLoadedWorld_Implementation(FName WorldPackag
 
 		// if both the server and this client have completed the transition, handle it
 		FSeamlessTravelHandler& SeamlessTravelHandler = GEngine->SeamlessTravelHandlerForWorld(CurWorld);
-		AGameMode* CurGameMode = CurWorld->GetAuthGameMode();
+		AGameModeBase* CurGameMode = CurWorld->GetAuthGameMode();
 
 		if (!SeamlessTravelHandler.IsInTransition() && WorldPackageName == CurWorld->GetOutermost()->GetFName() && CurGameMode != NULL)
 		{
@@ -886,6 +879,9 @@ void APlayerController::GetPlayerViewPoint( FVector& out_Location, FRotator& out
 		{
 			Super::GetPlayerViewPoint(out_Location,out_Rotation);
 		}
+
+		out_Location.DiagnosticCheckNaN(*FString::Printf(TEXT("APlayerController::GetPlayerViewPoint: out_Location, ViewTarget=%s"), *GetNameSafe(TheViewTarget)));
+		out_Rotation.DiagnosticCheckNaN(*FString::Printf(TEXT("APlayerController::GetPlayerViewPoint: out_Rotation, ViewTarget=%s"), *GetNameSafe(TheViewTarget)));
 	}
 }
 
@@ -979,7 +975,7 @@ void APlayerController::ServerShortTimeout_Implementation()
 		}
 		else 
 		{
-			float NetUpdateTimeOffset = (World->GetAuthGameMode()->NumPlayers < 8) ? 0.2f : 0.5f;
+			float NetUpdateTimeOffset = (World->GetAuthGameMode()->GetNumPlayers() < 8) ? 0.2f : 0.5f;
 			for (FActorIterator It(World); It; ++It)
 			{
 				AActor* A = *It;
@@ -1000,8 +996,14 @@ void APlayerController::AddCheats(bool bForce)
 	UWorld* World = GetWorld();
 	check(World);
 
-	// Assuming that this never gets called for NM_Client without bForce=true
-	if ( ((CheatManager == NULL) && (World->GetAuthGameMode() != NULL) && World->GetAuthGameMode()->AllowCheats(this)) || bForce)
+	// Abort if cheat manager exists or there is no cheat class
+	if (CheatManager || !CheatClass)
+	{
+		return;
+	}
+
+	// Spawn if game mode says we are allowed, or if bForce
+	if ( (World->GetAuthGameMode() && World->GetAuthGameMode()->AllowCheats(this)) || bForce)
 	{
 		CheatManager = NewObject<UCheatManager>(this, CheatClass);
 		CheatManager->InitCheatManager();
@@ -1193,12 +1195,6 @@ void APlayerController::ClientSetHUD_Implementation(TSubclassOf<AHUD> NewHUDClas
 
 void APlayerController::CleanupPlayerState()
 {
-	AGameMode* const GameMode = GetWorld()->GetAuthGameMode();
-	if (GameMode)
-	{
-		GameMode->AddInactivePlayer(PlayerState, this);
-	}
-
 	PlayerState = NULL;
 }
 
@@ -1268,7 +1264,7 @@ void APlayerController::OnNetCleanup(UNetConnection* Connection)
 void APlayerController::ClientReceiveLocalizedMessage_Implementation( TSubclassOf<ULocalMessage> Message, int32 Switch, APlayerState* RelatedPlayerState_1, APlayerState* RelatedPlayerState_2, UObject* OptionalObject )
 {
 	// Wait for player to be up to date with replication when joining a server, before stacking up messages
-	if (GetNetMode() == NM_DedicatedServer || GetWorld()->GameState == NULL || Message == NULL)
+	if (GetNetMode() == NM_DedicatedServer || GetWorld()->GetGameState() == nullptr || Message == nullptr)
 	{
 		return;
 	}
@@ -1296,7 +1292,7 @@ void APlayerController::ClientPlaySoundAtLocation_Implementation(USoundBase* Sou
 
 void APlayerController::ClientMessage_Implementation( const FString& S, FName Type, float MsgLifeTime )
 {
-	if ( GetNetMode() == NM_DedicatedServer || GetWorld()->GameState == NULL )
+	if ( GetNetMode() == NM_DedicatedServer || GetWorld()->GetGameState() == nullptr )
 	{
 		return;
 	}
@@ -1389,6 +1385,11 @@ void APlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		}
 	}
 
+	if (CheatManager)
+	{
+		CheatManager->ReceiveEndPlay();
+	}
+	
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -1425,7 +1426,7 @@ void APlayerController::Destroyed()
 
 	// Tells the game info to forcibly remove this player's CanUnpause delegates from its list of Pausers.
 	// Prevents the game from being stuck in a paused state when a PC that paused the game is destroyed before the game is unpaused.
-	AGameMode* const GameMode = GetWorld()->GetAuthGameMode();
+	AGameModeBase* const GameMode = GetWorld()->GetAuthGameMode();
 	if (GameMode)
 	{
 		GameMode->ForceClearUnpauseDelegates(this);
@@ -1589,11 +1590,12 @@ void APlayerController::ServerUpdateCamera_Implementation(FVector_NetQuantize Ca
 	}
 
 	FPOV NewPOV;
-	NewPOV.Location = CamLoc;
+	NewPOV.Location = FRepMovement::RebaseOntoLocalOrigin(CamLoc, this);
 	
 	NewPOV.Rotation.Yaw = FRotator::DecompressAxisFromShort( (CamPitchAndYaw >> 16) & 65535 );
 	NewPOV.Rotation.Pitch = FRotator::DecompressAxisFromShort(CamPitchAndYaw & 65535);
 
+#if ENABLE_DRAW_DEBUG
 	if ( PlayerCameraManager->bDebugClientSideCamera )
 	{
 		// show differences (on server) between local and replicated camera
@@ -1605,6 +1607,7 @@ void APlayerController::ServerUpdateCamera_Implementation(FVector_NetQuantize Ca
 		DrawDebugLine(GetWorld(), NewPOV.Location, NewPOV.Location + 100*NewPOV.Rotation.Vector(), FColor::Yellow);
 	}
 	else
+#endif
 	{
 		//@TODO: CAMERA: Fat pipe
 		FMinimalViewInfo NewInfo = PlayerCameraManager->CameraCache.POV;
@@ -1649,7 +1652,7 @@ bool APlayerController::SetPause( bool bPause, FCanUnpause CanUnpauseDelegate)
 	bool bResult = false;
 	if (GetNetMode() != NM_Client)
 	{
-		AGameMode* const GameMode = GetWorld()->GetAuthGameMode();
+		AGameModeBase* const GameMode = GetWorld()->GetAuthGameMode();
 		if (GameMode != nullptr)
 		{
 			if (bPause)
@@ -1659,7 +1662,7 @@ bool APlayerController::SetPause( bool bPause, FCanUnpause CanUnpauseDelegate)
 			}
 			else
 			{
-				GameMode->ClearPause();
+				bResult = GameMode->ClearPause();
 			}
 		}
 	}
@@ -1702,9 +1705,10 @@ void APlayerController::SetName(const FString& S)
 
 void APlayerController::ServerChangeName_Implementation( const FString& S )
 {
-	if (!S.IsEmpty())
+	AGameModeBase* GameMode = GetWorld()->GetAuthGameMode();
+	if (!S.IsEmpty() && GameMode)
 	{
-		GetWorld()->GetAuthGameMode()->ChangeName( this, S, true );
+		GameMode->ChangeName( this, S, true );
 	}
 }
 
@@ -1902,15 +1906,15 @@ bool APlayerController::DeprojectScreenPositionToWorld(float ScreenX, float Scre
 }
 
 
-bool APlayerController::ProjectWorldLocationToScreen(FVector WorldLocation, FVector2D& ScreenLocation) const
+bool APlayerController::ProjectWorldLocationToScreen(FVector WorldLocation, FVector2D& ScreenLocation, bool bPlayerViewportRelative) const
 {
-	return UGameplayStatics::ProjectWorldToScreen(this, WorldLocation, ScreenLocation);
+	return UGameplayStatics::ProjectWorldToScreen(this, WorldLocation, ScreenLocation, bPlayerViewportRelative);
 }
 
-bool APlayerController::ProjectWorldLocationToScreenWithDistance(FVector WorldLocation, FVector& ScreenLocation) const
+bool APlayerController::ProjectWorldLocationToScreenWithDistance(FVector WorldLocation, FVector& ScreenLocation, bool bPlayerViewportRelative) const
 {
 	FVector2D ScreenLoc2D;
-	if (UGameplayStatics::ProjectWorldToScreen(this, WorldLocation, ScreenLoc2D))
+	if (UGameplayStatics::ProjectWorldToScreen(this, WorldLocation, ScreenLoc2D, bPlayerViewportRelative))
 	{
 		// find distance
 		ULocalPlayer const* const LP = GetLocalPlayer();
@@ -1978,6 +1982,23 @@ bool APlayerController::GetHitResultAtScreenPosition(const FVector2D ScreenPosit
 	}
 
 	return false;
+}
+
+void APlayerController::SetMouseLocation(const int X, const int Y)
+{
+	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>( Player );
+	if (LocalPlayer)
+	{
+		UGameViewportClient* ViewportClient = LocalPlayer->ViewportClient;
+		if (ViewportClient)
+		{
+			FViewport* Viewport = ViewportClient->Viewport;
+			if (Viewport)
+			{
+				Viewport->SetMouse( X, Y );
+			}
+		}
+	}
 }
 
 /* PlayerTick is only called if the PlayerController has a PlayerInput object.  Therefore, it will not be called on servers for non-locally controlled playercontrollers. */
@@ -2627,13 +2648,16 @@ void APlayerController::ServerViewPrevPlayer_Implementation()
 APlayerState* APlayerController::GetNextViewablePlayer(int32 dir)
 {
 	int32 CurrentIndex = -1;
-	UWorld* MyWorld = GetWorld();
+
+	AGameModeBase* GameMode = GetWorld()->GetAuthGameMode();
+	AGameStateBase* GameState = GetWorld()->GetGameState();
+
 	if (PlayerCameraManager->ViewTarget.PlayerState )
 	{
 		// Find index of current viewtarget's PlayerState
-		for ( int32 i=0; i<MyWorld->GameState->PlayerArray.Num(); i++ )
+		for ( int32 i=0; i<GameState->PlayerArray.Num(); i++ )
 		{
-			if (PlayerCameraManager->ViewTarget.PlayerState == MyWorld->GameState->PlayerArray[i])
+			if (PlayerCameraManager->ViewTarget.PlayerState == GameState->PlayerArray[i])
 			{
 				CurrentIndex = i;
 				break;
@@ -2643,25 +2667,25 @@ APlayerState* APlayerController::GetNextViewablePlayer(int32 dir)
 
 	// Find next valid viewtarget in appropriate direction
 	int32 NewIndex;
-	for ( NewIndex=CurrentIndex+dir; (NewIndex>=0)&&(NewIndex<MyWorld->GameState->PlayerArray.Num()); NewIndex=NewIndex+dir )
+	for ( NewIndex=CurrentIndex+dir; (NewIndex>=0)&&(NewIndex<GameState->PlayerArray.Num()); NewIndex=NewIndex+dir )
 	{
-		APlayerState* const NextPlayerState = MyWorld->GameState->PlayerArray[NewIndex];
+		APlayerState* const NextPlayerState = GameState->PlayerArray[NewIndex];
 		AController* NextController = (NextPlayerState ? Cast<AController>(NextPlayerState->GetOwner()) : nullptr);
-		if ( NextController && NextController->GetPawn() != nullptr && MyWorld->GetAuthGameMode()->CanSpectate(this, PlayerState) )
+		if ( NextController && NextController->GetPawn() != nullptr && GameMode->CanSpectate(this, NextPlayerState) )
 		{
-			return PlayerState;
+			return NextPlayerState;
 		}
 	}
 
 	// wrap around
-	CurrentIndex = (NewIndex < 0) ? MyWorld->GameState->PlayerArray.Num() : -1;
-	for ( NewIndex=CurrentIndex+dir; (NewIndex>=0)&&(NewIndex<GetWorld()->GameState->PlayerArray.Num()); NewIndex=NewIndex+dir )
+	CurrentIndex = (NewIndex < 0) ? GameState->PlayerArray.Num() : -1;
+	for ( NewIndex=CurrentIndex+dir; (NewIndex>=0)&&(NewIndex<GameState->PlayerArray.Num()); NewIndex=NewIndex+dir )
 	{
-		APlayerState* const NextPlayerState = MyWorld->GameState->PlayerArray[NewIndex];
+		APlayerState* const NextPlayerState = GameState->PlayerArray[NewIndex];
 		AController* NextController = (NextPlayerState ? Cast<AController>(NextPlayerState->GetOwner()) : nullptr);
-		if ( NextController && NextController->GetPawn() != nullptr && MyWorld->GetAuthGameMode()->CanSpectate(this, PlayerState) )
+		if ( NextController && NextController->GetPawn() != nullptr && GameMode->CanSpectate(this, NextPlayerState) )
 		{
-			return PlayerState;
+			return NextPlayerState;
 		}
 	}
 
@@ -2742,8 +2766,8 @@ void APlayerController::ServerRestartPlayer_Implementation()
 
 	if ( IsInState(NAME_Inactive) || (IsInState(NAME_Spectating) && bPlayerIsWaiting) )
 	{
-		AGameMode* const GameMode = GetWorld()->GetAuthGameMode();
-		if ( !GetWorld()->GetAuthGameMode()->PlayerCanRestart(this) )
+		AGameModeBase* const GameMode = GetWorld()->GetAuthGameMode();
+		if ( !GameMode->PlayerCanRestart(this) )
 		{
 			return;
 		}
@@ -2754,7 +2778,7 @@ void APlayerController::ServerRestartPlayer_Implementation()
 			UnPossess();
 		}
 
-		GameMode->RestartPlayer( this );
+		GameMode->RestartPlayer(this);
 	}
 	else if ( GetPawn() != NULL )
 	{
@@ -2835,6 +2859,40 @@ void APlayerController::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayI
 	{
 		DisplayDebugManager.SetDrawColor(FColor::White);
 		DisplayDebugManager.DrawString(FString::Printf(TEXT("Force Feedback - Enabled: %s LL: %.2f LS: %.2f RL: %.2f RS: %.2f"), (bForceFeedbackEnabled ? TEXT("true") : TEXT("false")), ForceFeedbackValues.LeftLarge, ForceFeedbackValues.LeftSmall, ForceFeedbackValues.RightLarge, ForceFeedbackValues.RightSmall));
+		DisplayDebugManager.DrawString(FString::Printf(TEXT("Pawn: %s"), *this->AcknowledgedPawn->GetFName().ToString()));
+		
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		DisplayDebugManager.DrawString(TEXT("-----------------------------------------------------"));
+		DisplayDebugManager.DrawString(TEXT("Last Played Force Feedback"));
+		const float CurrentTime = GetWorld()->GetTimeSeconds();
+		for (int32 i = ForceFeedbackEffectHistoryEntries.Num() - 1; i >= 0; --i)
+		{
+			if (CurrentTime > ForceFeedbackEffectHistoryEntries[i].TimeShown + 5.0f)
+			{
+				ForceFeedbackEffectHistoryEntries.RemoveAtSwap(i, 1, /*bAllowShrinking=*/ false);
+				continue;
+			}
+			const FActiveForceFeedbackEffect& LastActiveEffect = ForceFeedbackEffectHistoryEntries[i].LastActiveForceFeedbackEffect;
+			DisplayDebugManager.DrawString(FString::Printf(TEXT("Object Name: %s"), *LastActiveEffect.ForceFeedbackEffect->GetFName().ToString()));
+			DisplayDebugManager.DrawString(FString::Printf(TEXT("Tag: %s"), *LastActiveEffect.Tag.ToString()));
+			DisplayDebugManager.DrawString(FString::Printf(TEXT("Looping: %s"), (LastActiveEffect.bLooping ? TEXT("true") : TEXT("false"))));
+			DisplayDebugManager.DrawString(FString::Printf(TEXT("Duration: %f"), LastActiveEffect.ForceFeedbackEffect->GetDuration()));
+			DisplayDebugManager.DrawString(FString::Printf(TEXT("Start Time: %f"), ForceFeedbackEffectHistoryEntries[i].TimeShown));
+		}
+		DisplayDebugManager.DrawString(TEXT("-----------------------------------------------------"));
+
+		DisplayDebugManager.DrawString(TEXT("-----------------------------------------------------"));
+		DisplayDebugManager.DrawString(TEXT("Current Playing Force Feedback"));
+		for (int32 Index = ActiveForceFeedbackEffects.Num() - 1; Index >= 0; --Index)
+		{
+			FActiveForceFeedbackEffect ActiveEffect = ActiveForceFeedbackEffects[Index];
+			DisplayDebugManager.DrawString(FString::Printf(TEXT("Object Name: %s"), *ActiveEffect.ForceFeedbackEffect->GetFName().ToString()));
+			DisplayDebugManager.DrawString(FString::Printf(TEXT("Tag: %s"), *ActiveEffect.Tag.ToString()));
+			DisplayDebugManager.DrawString(FString::Printf(TEXT("Looping: %s"), (ActiveEffect.bLooping ? TEXT("true") : TEXT("false"))));
+			DisplayDebugManager.DrawString(FString::Printf(TEXT("Play Time: %f"), ActiveEffect.PlayTime));
+		}
+		DisplayDebugManager.DrawString(TEXT("-----------------------------------------------------"));
+#endif
 	}
 
 	YPos = DisplayDebugManager.GetYPos();
@@ -2985,9 +3043,8 @@ void APlayerController::GetSeamlessTravelActorList(bool bToEntry, TArray<AActor*
 
 void APlayerController::SeamlessTravelTo(APlayerController* NewPC)
 {
-
+	CleanUpAudioComponents();
 }
-
 
 void APlayerController::SeamlessTravelFrom(APlayerController* OldPC)
 {
@@ -3001,6 +3058,20 @@ void APlayerController::SeamlessTravelFrom(APlayerController* OldPC)
 		OldPC->PlayerState->Destroy();
 		OldPC->PlayerState = NULL;
 	}
+}
+
+void APlayerController::PostSeamlessTravel()
+{
+	// Track the last completed seamless travel for the player
+	LastCompletedSeamlessTravelCount = SeamlessTravelCount;
+
+	CleanUpAudioComponents();
+
+	if (PlayerCameraManager == nullptr)
+	{
+		SpawnPlayerCameraManager();
+	}
+
 }
 
 void APlayerController::ClientEnableNetworkVoice_Implementation(bool bEnable)
@@ -3385,6 +3456,10 @@ void APlayerController::ClientPlayForceFeedback_Implementation( UForceFeedbackEf
 
 		FActiveForceFeedbackEffect ActiveEffect(ForceFeedbackEffect, bLooping, Tag);
 		ActiveForceFeedbackEffects.Add(ActiveEffect);
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		ForceFeedbackEffectHistoryEntries.Emplace(ActiveEffect, GetWorld()->GetTimeSeconds());
+#endif
 	}
 }
 
@@ -3509,7 +3584,7 @@ void APlayerController::PlayDynamicForceFeedback(float Intensity, float Duration
 	}
 }
 
-void APlayerController::PlayHapticEffect(UHapticFeedbackEffect_Base* HapticEffect, TEnumAsByte<EControllerHand> Hand, float Scale, bool bLoop)
+void APlayerController::PlayHapticEffect(UHapticFeedbackEffect_Base* HapticEffect, EControllerHand Hand, float Scale, bool bLoop)
 {
 	if (HapticEffect)
 	{
@@ -3524,18 +3599,18 @@ void APlayerController::PlayHapticEffect(UHapticFeedbackEffect_Base* HapticEffec
 			ActiveHapticEffect_Right = MakeShareable(new FActiveHapticFeedbackEffect(HapticEffect, Scale, bLoop));
 			break;
 		default:
-			UE_LOG(LogPlayerController, Warning, TEXT("Invalid hand specified (%d) for haptic feedback effect %s"), (int32)Hand.GetValue(), *HapticEffect->GetName());
+			UE_LOG(LogPlayerController, Warning, TEXT("Invalid hand specified (%d) for haptic feedback effect %s"), (int32)Hand, *HapticEffect->GetName());
 			break;
 		}
 	}
 }
 
-void APlayerController::StopHapticEffect(TEnumAsByte<EControllerHand> Hand)
+void APlayerController::StopHapticEffect(EControllerHand Hand)
 {
 	SetHapticsByValue(0.f, 0.f, Hand);
 }
 
-void APlayerController::SetHapticsByValue(const float Frequency, const float Amplitude, TEnumAsByte<EControllerHand> Hand)
+void APlayerController::SetHapticsByValue(const float Frequency, const float Amplitude, EControllerHand Hand)
 {
 	if (Hand == EControllerHand::Left)
 	{
@@ -3547,7 +3622,7 @@ void APlayerController::SetHapticsByValue(const float Frequency, const float Amp
 	}
 	else
 	{
-		UE_LOG(LogPlayerController, Warning, TEXT("Invalid hand specified (%d) for setting haptic feedback values (F: %f A: %f)"), (int32)Hand.GetValue(), Frequency, Amplitude);
+		UE_LOG(LogPlayerController, Warning, TEXT("Invalid hand specified (%d) for setting haptic feedback values (F: %f A: %f)"), (int32)Hand, Frequency, Amplitude);
 		return;
 	}
 
@@ -3562,7 +3637,7 @@ void APlayerController::SetHapticsByValue(const float Frequency, const float Amp
 		const int32 ControllerId = CastChecked<ULocalPlayer>(Player)->GetControllerId();
 
 		FHapticFeedbackValues Values(Frequency, Amplitude);
-		InputInterface->SetHapticFeedbackValues(ControllerId, (int32)Hand.GetValue(), Values);
+		InputInterface->SetHapticFeedbackValues(ControllerId, (int32)Hand, Values);
 	}
 }
 
@@ -3710,7 +3785,7 @@ void APlayerController::ClientClearCameraLensEffects_Implementation()
 	}
 }
 
-void APlayerController::ReceivedGameModeClass(TSubclassOf<AGameMode> GameModeClass)
+void APlayerController::ReceivedGameModeClass(TSubclassOf<AGameModeBase> GameModeClass)
 {
 }
 
@@ -3766,9 +3841,9 @@ void APlayerController::SetPlayer( UPlayer* InPlayer )
 {
 	check(InPlayer!=NULL);
 
-	const bool bIsSameWorld = InPlayer->PlayerController && (InPlayer->PlayerController->GetWorld() == GetWorld());
-	// Detach old player if same world.
-	if (bIsSameWorld)
+	const bool bIsSameLevel = InPlayer->PlayerController && (InPlayer->PlayerController->GetLevel() == GetLevel());
+	// Detach old player if it's in the same level.
+	if (bIsSameLevel)
 	{
 		InPlayer->PlayerController->Player = NULL;
 	}
@@ -3914,21 +3989,25 @@ void APlayerController::TickActor( float DeltaSeconds, ELevelTick TickType, FAct
 		// skip updates if pawn lost autonomous proxy role (e.g. TurnOff() call)
 		if (GetPawn() && !GetPawn()->IsPendingKill() && GetPawn()->GetRemoteRole() == ROLE_AutonomousProxy && GetPawn()->bReplicateMovement)
 		{
-			INetworkPredictionInterface* NetworkPredictionInterface = Cast<INetworkPredictionInterface>(GetPawn()->GetMovementComponent());
-			if (NetworkPredictionInterface)
+			UMovementComponent* PawnMovement = GetPawn()->GetMovementComponent();
+			INetworkPredictionInterface* NetworkPredictionInterface = Cast<INetworkPredictionInterface>(PawnMovement);
+			if (NetworkPredictionInterface && IsValid(PawnMovement->UpdatedComponent))
 			{
-				FNetworkPredictionData_Server* ServerData = NetworkPredictionInterface->GetPredictionData_Server();
-				const float TimeSinceUpdate = ServerData ? GetWorld()->GetTimeSeconds() - ServerData->ServerTimeStamp : 0.f;
-				const float PawnTimeSinceUpdate = TimeSinceUpdate * GetPawn()->CustomTimeDilation;
-				if (PawnTimeSinceUpdate > FMath::Max<float>(DeltaSeconds+0.06f,AGameNetworkManager::StaticClass()->GetDefaultObject<AGameNetworkManager>()->MAXCLIENTUPDATEINTERVAL * GetPawn()->GetActorTimeDilation()))
+				FNetworkPredictionData_Server* ServerData = NetworkPredictionInterface->HasPredictionData_Server() ? NetworkPredictionInterface->GetPredictionData_Server() : nullptr;
+				if (ServerData)
 				{
-					//UE_LOG(LogPlayerController, Warning, TEXT("ForcedMovementTick. PawnTimeSinceUpdate: %f, DeltaSeconds: %f, DeltaSeconds+: %f"), PawnTimeSinceUpdate, DeltaSeconds, DeltaSeconds+0.06f);
-					const USkeletalMeshComponent* PawnMesh = GetPawn()->FindComponentByClass<USkeletalMeshComponent>();
-					if (!PawnMesh || !PawnMesh->IsSimulatingPhysics())
+					const float TimeSinceUpdate = GetWorld()->GetTimeSeconds() - ServerData->ServerTimeStamp;
+					const float PawnTimeSinceUpdate = TimeSinceUpdate * GetPawn()->CustomTimeDilation;
+					if (PawnTimeSinceUpdate > FMath::Max<float>(DeltaSeconds+0.06f, AGameNetworkManager::StaticClass()->GetDefaultObject<AGameNetworkManager>()->MAXCLIENTUPDATEINTERVAL * GetPawn()->GetActorTimeDilation()))
 					{
-						NetworkPredictionInterface->ForcePositionUpdate(PawnTimeSinceUpdate);
-						ServerData->ServerTimeStamp = GetWorld()->GetTimeSeconds();
-					}					
+						//UE_LOG(LogPlayerController, Warning, TEXT("ForcedMovementTick. PawnTimeSinceUpdate: %f, DeltaSeconds: %f, DeltaSeconds+: %f"), PawnTimeSinceUpdate, DeltaSeconds, DeltaSeconds+0.06f);
+						const USkeletalMeshComponent* PawnMesh = GetPawn()->FindComponentByClass<USkeletalMeshComponent>();
+						if (!PawnMesh || !PawnMesh->IsSimulatingPhysics())
+						{
+							NetworkPredictionInterface->ForcePositionUpdate(PawnTimeSinceUpdate);
+							ServerData->ServerTimeStamp = GetWorld()->GetTimeSeconds();
+						}
+					}
 				}
 			}
 		}
@@ -4076,7 +4155,7 @@ void APlayerController::EndPlayingState()
 
 void APlayerController::BeginSpectatingState()
 {
-	if ( GetPawn() != NULL )
+	if (GetPawn() != NULL && Role == ROLE_Authority)
 	{
 		UnPossess();
 	}
@@ -4119,35 +4198,38 @@ void APlayerController::SetSpectatorPawn(class ASpectatorPawn* NewSpectatorPawn)
 
 ASpectatorPawn* APlayerController::SpawnSpectatorPawn()
 {
-	ASpectatorPawn* SpawnedSpectator = NULL;
+	ASpectatorPawn* SpawnedSpectator = nullptr;
 
 	// Only spawned for the local player
-	if (GetSpectatorPawn() == NULL && IsLocalController())
+	if ((GetSpectatorPawn() == nullptr) && IsLocalController())
 	{
-		AGameState const* const GameState = GetWorld()->GameState;
-		if (GameState)
+		UWorld* World = GetWorld();
+		if (AGameStateBase const* const GameState = World->GetGameState())
 		{
-			FActorSpawnParameters SpawnParams;
-			SpawnParams.Owner = this;
-			SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-			SpawnParams.ObjectFlags |= RF_Transient;	// We never want to save spectator pawns into a map
-			SpawnedSpectator = GetWorld()->SpawnActor<ASpectatorPawn>(GameState->SpectatorClass, GetSpawnLocation(), GetControlRotation(), SpawnParams);
-			if (SpawnedSpectator)
+			if (UClass* SpectatorClass = GameState->SpectatorClass)
 			{
-				SpawnedSpectator->SetReplicates(false); // Client-side only
-				SpawnedSpectator->PossessedBy(this);
-				SpawnedSpectator->PawnClientRestart();
-				if (SpawnedSpectator->PrimaryActorTick.bStartWithTickEnabled)
+				FActorSpawnParameters SpawnParams;
+				SpawnParams.Owner = this;
+				SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+				SpawnParams.ObjectFlags |= RF_Transient;	// We never want to save spectator pawns into a map
+				SpawnedSpectator = World->SpawnActor<ASpectatorPawn>(SpectatorClass, GetSpawnLocation(), GetControlRotation(), SpawnParams);
+				if (SpawnedSpectator)
 				{
-					SpawnedSpectator->SetActorTickEnabled(true);
-				}
+					SpawnedSpectator->SetReplicates(false); // Client-side only
+					SpawnedSpectator->PossessedBy(this);
+					SpawnedSpectator->PawnClientRestart();
+					if (SpawnedSpectator->PrimaryActorTick.bStartWithTickEnabled)
+					{
+						SpawnedSpectator->SetActorTickEnabled(true);
+					}
 
-				UE_LOG(LogPlayerController, Verbose, TEXT("Spawned spectator %s [server:%d]"), *GetNameSafe(SpawnedSpectator), GetNetMode() < NM_Client);
-			}
-			else
-			{
-				UE_LOG(LogPlayerController, Warning, TEXT("Failed to spawn spectator with class %s"), GameState->SpectatorClass ? *GameState->SpectatorClass->GetName() : TEXT("NULL"));
+					UE_LOG(LogPlayerController, Verbose, TEXT("Spawned spectator %s [server:%d]"), *GetNameSafe(SpawnedSpectator), GetNetMode() < NM_Client);
+				}
+				else
+				{
+					UE_LOG(LogPlayerController, Warning, TEXT("Failed to spawn spectator with class %s"), *GetNameSafe(SpectatorClass));
+				}
 			}
 		}
 		else
@@ -4268,8 +4350,13 @@ void APlayerController::BeginInactiveState()
 
 float APlayerController::GetMinRespawnDelay()
 {
-	AGameState const* const GameState = GetWorld()->GameState;
-	return ((GameState != NULL) && (GameState->GameModeClass != NULL)) ? GetDefault<AGameMode>(GameState->GameModeClass)->MinRespawnDelay : 1.0f;
+	AGameStateBase const* const GameState = GetWorld()->GetGameState();
+	
+	if (GameState)
+	{
+		return GameState->GetPlayerRespawnDelay(this);
+	}
+	return 1.0f;
 }
 
 void APlayerController::EndInactiveState()
@@ -4508,6 +4595,8 @@ void APlayerController::ActivateTouchInterface(UTouchInterface* NewTouchInterfac
 		{
 			LocalPlayer->ViewportClient->RemoveViewportWidgetContent(VirtualJoystick.ToSharedRef());
 		}
+		//clear any input before clearing the VirtualJoystick
+		FlushPressedKeys();
 		VirtualJoystick = NULL;
 	}
 }

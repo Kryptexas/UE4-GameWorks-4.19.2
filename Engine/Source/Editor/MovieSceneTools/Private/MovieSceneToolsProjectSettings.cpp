@@ -15,4 +15,5 @@ UMovieSceneToolsProjectSettings::UMovieSceneToolsProjectSettings()
 	, TakeNumDigits(3)
 	, FirstTakeNumber(1)
 	, TakeSeparator(TEXT("_"))
+	, SubSequenceSeparator(TEXT("_"))
 { }

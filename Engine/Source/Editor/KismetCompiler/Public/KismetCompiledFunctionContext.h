@@ -39,9 +39,6 @@ public:
 	// The nominal function entry point
 	UK2Node_FunctionEntry* EntryPoint;
 
-	// The root set of nodes for the purposes of reachability, etc...
-	TArray<UEdGraphNode*> RootSet;
-
 	UFunction* Function;
 	UBlueprintGeneratedClass* NewClass;
 
@@ -181,6 +178,26 @@ public:
 	bool IsInstrumentationRequired() const
 	{
 		return bInstrumentScriptCode;
+	}
+
+	bool IsInstrumentationRequiredForNode(UEdGraphNode* Node) const
+	{
+		return bInstrumentScriptCode && !IsExpansionNode(Node);
+	}
+
+	bool IsInstrumentationRequiredForPin(UEdGraphPin* Pin) const
+	{
+		return bInstrumentScriptCode && !IsPinTraceSuppressed(Pin);
+	}
+
+	bool IsExpansionNode(const UEdGraphNode* Node) const
+	{
+		return MessageLog.IsExpansionNode(Node);
+	}
+
+	bool IsPinTraceSuppressed(const UEdGraphPin* Pin) const
+	{
+		return MessageLog.IsPinTraceSuppressed(Pin);
 	}
 
 	EKismetCompiledStatementType GetWireTraceType() const

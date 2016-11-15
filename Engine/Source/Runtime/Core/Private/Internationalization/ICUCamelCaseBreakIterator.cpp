@@ -6,16 +6,9 @@
 
 #if UE_ENABLE_ICU
 #include "ICUTextCharacterIterator.h"
-#if defined(_MSC_VER) && USING_CODE_ANALYSIS
-	#pragma warning(push)
-	#pragma warning(disable:28251)
-	#pragma warning(disable:28252)
-	#pragma warning(disable:28253)
-#endif
+THIRD_PARTY_INCLUDES_START
 	#include <unicode/uchar.h>
-#if defined(_MSC_VER) && USING_CODE_ANALYSIS
-	#pragma warning(pop)
-#endif
+THIRD_PARTY_INCLUDES_END
 
 class FICUCamelCaseBreakIterator : public FCamelCaseBreakIterator
 {
@@ -46,7 +39,8 @@ void FICUCamelCaseBreakIterator::TokenizeString(TArray<FToken>& OutTokens)
 			TokenType = ETokenType::Digit;
 		}
 
-		OutTokens.Emplace(FToken(TokenType, CharIter.getIndex()));
+		const int32 CharIndex = CharIter.InternalIndexToSourceIndex(CharIter.getIndex());
+		OutTokens.Emplace(FToken(TokenType, CharIndex));
 	}
 
 	OutTokens.Emplace(FToken(ETokenType::Null, String.Len()));

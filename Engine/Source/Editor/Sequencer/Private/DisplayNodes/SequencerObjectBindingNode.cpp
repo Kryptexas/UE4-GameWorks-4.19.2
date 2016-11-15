@@ -633,13 +633,7 @@ void FSequencerObjectBindingNode::HandlePropertyMenuItemExecute(TArray<UProperty
 		}
 	}
 
-	FKeyPropertyParams KeyPropertyParams(KeyableBoundObjects, PropertyPath);
-	{
-		KeyPropertyParams.KeyParams.bCreateTrackIfMissing = true;
-		KeyPropertyParams.KeyParams.bCreateHandleIfMissing = true;
-		KeyPropertyParams.KeyParams.bCreateKeyIfUnchanged = true;
-		KeyPropertyParams.KeyParams.bCreateKeyIfEmpty = true;
-	}
+	FKeyPropertyParams KeyPropertyParams(KeyableBoundObjects, PropertyPath, ESequencerKeyMode::ManualKeyForced);
 
 	Sequencer.KeyProperty(KeyPropertyParams);
 }

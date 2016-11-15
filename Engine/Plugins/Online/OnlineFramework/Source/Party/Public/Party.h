@@ -18,11 +18,13 @@ enum class EPartyType : uint8;
 /**
  * Holds the basic information needed to join a party
  */
-struct FPartyDetails
+struct FPartyDetails : public TSharedFromThis<FPartyDetails>
 {
 	FPartyDetails(const TSharedRef<const IOnlinePartyJoinInfo>& InPartyJoinInfo, bool bInAcceptInvite = true)
 		: PartyJoinInfo(InPartyJoinInfo), bAcceptInvite(bInAcceptInvite)
 	{}
+
+	virtual ~FPartyDetails() {}
 
 	bool IsValid() const
 	{
@@ -49,7 +51,7 @@ struct FPartyDetails
 		return PartyJoinInfo->GetAppId();
 	}
 
-	FString ToString() const
+	virtual FString ToString() const
 	{
 		return FString::Printf(
 			TEXT("PartyId: %s LeaderId: %s ResKey: %s Client: %s"), 
@@ -245,7 +247,7 @@ public:
 	 * @param PartyDetails party details used for the join
 	 * @param JoinCompleteDelegate delegate to call once the pending invite has been joined or in all failure cases
 	 */
-	void AddPendingPartyJoin(const FUniqueNetId& LocalUserId, const FPartyDetails& PartyDetails, const UPartyDelegates::FOnJoinUPartyComplete& JoinCompleteDelegate);
+	void AddPendingPartyJoin(const FUniqueNetId& LocalUserId, TSharedRef<const FPartyDetails> PartyDetails, const UPartyDelegates::FOnJoinUPartyComplete& JoinCompleteDelegate);
 
 	/** Clears the join data associated with a pending party join. */
 	void ClearPendingPartyJoin();
@@ -305,19 +307,18 @@ protected:
 	/** Pending party join */
 	struct FPendingPartyJoin : public TSharedFromThis<FPendingPartyJoin>
 	{
-		FPendingPartyJoin(TSharedRef<const FUniqueNetId> InLocalUserId, const FPartyDetails& InPartyDetails, const UPartyDelegates::FOnJoinUPartyComplete& InDelegate)
+		FPendingPartyJoin(TSharedRef<const FUniqueNetId> InLocalUserId, TSharedRef<const FPartyDetails>& InPartyDetails, const UPartyDelegates::FOnJoinUPartyComplete& InDelegate)
 			: LocalUserId(InLocalUserId)
 			, PartyDetails(InPartyDetails)
 			, Delegate(InDelegate)
 		{
-			
 			ensure(LocalUserId->IsValid());
 		}
 
 		/** user that sent the invite */
 		TSharedRef<const FUniqueNetId> LocalUserId;
 		/** details about party to join */
-		FPartyDetails PartyDetails;
+		TSharedRef<const FPartyDetails> PartyDetails;
 
 		UPartyDelegates::FOnJoinUPartyComplete Delegate;
 	};

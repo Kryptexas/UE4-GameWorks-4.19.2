@@ -79,7 +79,7 @@ bool UUserWidget::Initialize()
 		}
 		else
 		{
-			CustomNativeInitilize();
+			InitializeNativeClassData();
 		}
 
 		if ( WidgetTree == nullptr )
@@ -689,7 +689,6 @@ void UUserWidget::OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorld)
 	if ( InLevel == nullptr && InWorld == GetWorld() )
 	{
 		RemoveFromParent();
-		MarkPendingKill();
 	}
 }
 

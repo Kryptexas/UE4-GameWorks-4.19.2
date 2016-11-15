@@ -85,6 +85,10 @@ public:
 	UPROPERTY(transient)
 	uint32 bForceMiplevelsToBeResident:1;
 
+	/** Ignores the streaming mip bias used to accommodate memory constraints. */
+	UPROPERTY(transient)
+	uint32 bIgnoreStreamingMipBias:1;
+
 	/** Global and serialized version of ForceMiplevelsToBeResident.				*/
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LevelOfDetail, meta=(DisplayName="Global Force Resident Mip Levels"), AdvancedDisplay)
 	uint32 bGlobalForceMipLevelsToBeResident:1;
@@ -335,7 +339,7 @@ public:
 	 *
 	 * @return size of resource as to be displayed to artists/ LDs in the Editor.
 	 */
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 
 	/**
 	 * Returns whether miplevels should be forced resident.

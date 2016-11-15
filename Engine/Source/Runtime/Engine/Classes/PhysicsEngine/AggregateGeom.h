@@ -35,7 +35,22 @@ struct ENGINE_API FKAggregateGeom
 
 	FKAggregateGeom()
 		: RenderInfo(NULL)
-	{}
+	{
+	}
+
+	FKAggregateGeom(const FKAggregateGeom& Other)
+		: RenderInfo(nullptr)
+	{
+		CloneAgg(Other);
+	}
+
+	const FKAggregateGeom& operator=(const FKAggregateGeom& Other)
+	{
+		FreeRenderInfo();
+		CloneAgg(Other);
+		return *this;
+	}
+
 	int32 GetElementCount() const
 	{
 		return SphereElems.Num() + SphylElems.Num() + BoxElems.Num() + ConvexElems.Num();
@@ -75,4 +90,15 @@ struct ENGINE_API FKAggregateGeom
 
 	/** Returns the volume of this element */
 	float GetVolume(const FVector& Scale3D) const;
+
+private:
+
+	/** Helper function for safely copying instances */
+	void CloneAgg(const FKAggregateGeom& Other)
+	{
+		SphereElems = Other.SphereElems;
+		BoxElems = Other.BoxElems;
+		SphylElems = Other.SphylElems;
+		ConvexElems = Other.ConvexElems;
+	}
 };

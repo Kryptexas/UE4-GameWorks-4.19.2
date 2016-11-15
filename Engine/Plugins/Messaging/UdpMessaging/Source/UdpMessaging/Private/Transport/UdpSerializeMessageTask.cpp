@@ -27,7 +27,7 @@ void FUdpSerializeMessageTask::DoTask(ENamedThreads::Type CurrentThread, const F
 			const TArray<FMessageAddress>& Recipients = MessageContext->GetRecipients();
 			Archive << const_cast<TArray<FMessageAddress>&>(Recipients);
 
-			TEnumAsByte<EMessageScope> Scope = MessageContext->GetScope();
+			EMessageScope Scope = MessageContext->GetScope();
 			Archive << Scope;
 
 			const FDateTime& TimeSent = MessageContext->GetTimeSent();

@@ -6,7 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "Engine/LODActor.h"
-#include "Engine/HLODMeshCullingVolume.h"
+#include "Engine/MeshMergeCullingVolume.h"
 #include "MapErrors.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"
@@ -109,6 +109,29 @@ static FAutoConsoleCommandWithWorldAndArgs GHLODCmd(
 	TEXT("Single argument: 0 or 1 to Disable/Enable HLOD System\nMultiple arguments: force X where X is the HLOD level that should be forced into view"),
 	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(HLODConsoleCommand)
 	);
+
+static void ListUnbuiltHLODActors(const TArray<FString>& Args, UWorld* World)
+{
+	int32 NumUnbuilt = 0;
+	for (TActorIterator<ALODActor> HLODIt(World); HLODIt; ++HLODIt)
+	{
+		ALODActor* Actor = *HLODIt;
+		if (!Actor->IsBuilt())
+		{
+			++NumUnbuilt;
+			FString ActorPathName = Actor->GetPathName(World);
+			UE_LOG(LogInit, Warning, TEXT("HLOD %s is unbuilt"), *ActorPathName);
+		}
+	}
+
+	UE_LOG(LogInit, Warning, TEXT("%d HLOD actor(s) were unbuilt"), NumUnbuilt);
+}
+
+static FAutoConsoleCommandWithWorldAndArgs GHLODListUnbuiltCmd(
+	TEXT("r.HLOD.ListUnbuilt"),
+	TEXT("Lists all unbuilt HLOD actors in the world"),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(ListUnbuiltHLODActors)
+);
 
 #endif // !(UE_BUILD_SHIPPING)
 
@@ -294,7 +317,7 @@ void ALODActor::CheckForErrors()
 			->AddToken(FMapErrorToken::Create(FMapErrors::StaticMeshComponent));
 	}
 
-	if (StaticMeshComponent && StaticMeshComponent->StaticMesh == NULL)
+	if (StaticMeshComponent && StaticMeshComponent->GetStaticMesh() == nullptr)
 	{
 		FFormatNamedArguments Arguments;
 		Arguments.Add(TEXT("ActorName"), FText::FromString(GetName()));
@@ -360,9 +383,9 @@ void ALODActor::AddSubActor(AActor* InActor)
 		InActor->GetComponents<UStaticMeshComponent>(StaticMeshComponents);
 		for (UStaticMeshComponent* Component : StaticMeshComponents)
 		{
-			if (Component && Component->StaticMesh && Component->StaticMesh->RenderData)
+			if (Component && Component->GetStaticMesh() && Component->GetStaticMesh()->RenderData)
 			{
-				NumTrianglesInSubActors += Component->StaticMesh->RenderData->LODResources[0].GetNumTriangles();
+				NumTrianglesInSubActors += Component->GetStaticMesh()->RenderData->LODResources[0].GetNumTriangles();
 			}
 			Component->MarkRenderStateDirty();
 		}
@@ -393,9 +416,9 @@ const bool ALODActor::RemoveSubActor(AActor* InActor)
 			InActor->GetComponents<UStaticMeshComponent>(StaticMeshComponents);
 			for (UStaticMeshComponent* Component : StaticMeshComponents)
 			{
-				if (Component && Component->StaticMesh && Component->StaticMesh->RenderData)
+				if (Component && Component->GetStaticMesh() && Component->GetStaticMesh()->RenderData)
 				{
-					NumTrianglesInSubActors -= Component->StaticMesh->RenderData->LODResources[0].GetNumTriangles();
+					NumTrianglesInSubActors -= Component->GetStaticMesh()->RenderData->LODResources[0].GetNumTriangles();
 				}
 
 				Component->MarkRenderStateDirty();
@@ -467,10 +490,8 @@ void ALODActor::SetIsDirty(const bool bNewState)
 			}
 		}
 
-		// Set static mesh to null (this so we can revert without destroying the previously build static mesh)
-		StaticMeshComponent->StaticMesh = nullptr;
-		// Mark render state dirty to update viewport
-		StaticMeshComponent->MarkRenderStateDirty();
+		// Set static mesh to null
+		StaticMeshComponent->SetStaticMesh(nullptr);
 #if WITH_EDITOR
 		// Broadcast actor marked dirty event
 		if (GEditor)
@@ -561,12 +582,12 @@ void ALODActor::SetStaticMesh(class UStaticMesh* InStaticMesh)
 {
 	if (StaticMeshComponent)
 	{
-		StaticMeshComponent->StaticMesh = InStaticMesh;
+		StaticMeshComponent->SetStaticMesh(InStaticMesh);
 		SetIsDirty(false);
 
-		if (StaticMeshComponent && StaticMeshComponent->StaticMesh && StaticMeshComponent->StaticMesh->RenderData)
+		if (StaticMeshComponent && StaticMeshComponent->GetStaticMesh() && StaticMeshComponent->GetStaticMesh()->RenderData)
 		{
-			NumTrianglesInMergedMesh = StaticMeshComponent->StaticMesh->RenderData->LODResources[0].GetNumTriangles();
+			NumTrianglesInMergedMesh = StaticMeshComponent->GetStaticMesh()->RenderData->LODResources[0].GetNumTriangles();
 		}
 	}
 }
@@ -650,9 +671,9 @@ FBox ALODActor::GetComponentsBoundingBox(bool bNonColliding) const
 
 	if (bNonColliding)
 	{
-		if (StaticMeshComponent && StaticMeshComponent->StaticMesh)
+		if (StaticMeshComponent && StaticMeshComponent->GetStaticMesh())
 		{
-			FBoxSphereBounds StaticBound = StaticMeshComponent->StaticMesh->GetBounds();
+			FBoxSphereBounds StaticBound = StaticMeshComponent->GetStaticMesh()->GetBounds();
 			FBox StaticBoundBox(BoundBox.GetCenter()-StaticBound.BoxExtent, BoundBox.GetCenter()+StaticBound.BoxExtent);
 			BoundBox += StaticBoundBox;
 		}

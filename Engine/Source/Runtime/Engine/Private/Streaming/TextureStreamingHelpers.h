@@ -50,6 +50,7 @@ extern TAutoConsoleVariable<int32> CVarSetTextureStreaming;
 extern TAutoConsoleVariable<float> CVarStreamingBoost;
 extern TAutoConsoleVariable<int32> CVarStreamingUseFixedPoolSize;
 extern TAutoConsoleVariable<int32> CVarStreamingPoolSize;
+extern TAutoConsoleVariable<int32> CVarStreamingCheckBuildStatus;
 
 struct FTextureStreamingSettings
 {
@@ -61,9 +62,9 @@ struct FTextureStreamingSettings
 
 	FORCEINLINE float GlobalMipBias() const { return !bUsePerTextureBias ? MipBias : 0; }
 	FORCEINLINE int32 GlobalMipBiasAsInt() const { return !bUsePerTextureBias ? FMath::FloorToInt(MipBias) : 0; }
-	FORCEINLINE float GlobalMipBiasAsScale() const { return !bUsePerTextureBias ? FMath::Exp2(-MipBias) : 1.f; }
+	FORCEINLINE float GlobalMipBiasAsScale() const { return (!bUsePerTextureBias && bScaleTexturesByGlobalMyBias) ? FMath::Exp2(-MipBias) : 1.f; }
 
-	FORCEINLINE int32 MaxPerTextureMipBias() const { return bUsePerTextureBias ? FMath::FloorToInt(MipBias) : 0; }
+	FORCEINLINE int32 MaxExpectedPerTextureMipBias() const { return bUsePerTextureBias ? FMath::FloorToInt(MipBias) : 0; }
 
 	float MaxEffectiveScreenSize;
 	int32 MaxTempMemoryAllowed;
@@ -71,13 +72,15 @@ struct FTextureStreamingSettings
 	int32 HLODStrategy;
 	float HiddenPrimitiveScale;
 	int32 PoolSize;
+	bool bLimitPoolSizeToVRAM;
 	bool bUseNewMetrics;
 	bool bFullyLoadUsedTextures;
 	bool bUseAllMips;
+	bool bScaleTexturesByGlobalMyBias;
+	bool bUsePerTextureBias;
 
 protected:
 
-	bool bUsePerTextureBias;
 	float MipBias;
 };
 
@@ -91,7 +94,6 @@ typedef TArray<const UTexture2D*, TInlineAllocator<12> > FRemovedTextureArray;
 #define MAX_STREAMINGDISTANCE	10000.0f
 #define MAX_MIPDELTA			5.0f
 #define MAX_LASTRENDERTIME		90.0f
-
 
 class UTexture2D;
 class UPrimitiveComponent;
@@ -178,6 +180,8 @@ struct FTextureStreamingStats
 	int64 NewRequests; // How much texture memory is required by new requests.
 	int64 PendingRequests; // How much texture memory is waiting to be loaded for previous requests.
 	int64 MipIOBandwidth;
+
+	int64 OverBudget;
 
 	double Timestamp;
 

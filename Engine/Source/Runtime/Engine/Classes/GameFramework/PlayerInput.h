@@ -440,12 +440,11 @@ public:
 	 * @note: if we got sample event for zero mouse samples (so we
 				didn't have to guess whether a 0 was caused by no sample occuring during the tick (at high frame rates) or because the mouse actually stopped)
 	 * @param: aMouse is the mouse axis movement received from DirectInput
-	 * @param: DeltaTime is the tick time
 	 * @param: SampleCount is the number of mouse samples received from DirectInput
 	 * @param: Index is 0 for X axis, 1 for Y axis
 	 * @return the smoothed mouse axis movement
 	 */
-	float SmoothMouse(float aMouse, float DeltaTime, uint8& SampleCount, int32 Index);
+	float SmoothMouse(float aMouse, uint8& SampleCount, int32 Index);
 
 	/**
 	 * Draw important PlayerInput variables on canvas.  HUD will call DisplayDebug() on the current ViewTarget when the ShowDebug exec is used
@@ -455,7 +454,7 @@ public:
 	 * @param YL - Height of the current font
 	 * @param YPos - Y position on Canvas. YPos += YL, gives position to draw text for next debug line.
 	 */
-	void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos);
+	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos);
 
 	/** @return key state of the InKey */
 	FKeyState* GetKeyState(FKey InKey) { return KeyStateMap.Find(InKey); }
@@ -513,16 +512,17 @@ public:
 	const TArray<FInputActionKeyMapping>& GetKeysForAction(const FName ActionName);
 
 	static const TArray<FInputActionKeyMapping>& GetEngineDefinedActionMappings() { return EngineDefinedActionMappings; }
+	static const TArray<FInputAxisKeyMapping>& GetEngineDefinedAxisMappings() { return EngineDefinedAxisMappings; }
 
 private:
 	/** 
 	 * Given raw keystate value, returns the "massaged" value. Override for any custom behavior,
 	 * such as input changes dependent on a particular game state.
  	 */
-	float MassageAxisInput(FKey Key, float RawValue, float DeltaTime);
+	float MassageAxisInput(FKey Key, float RawValue);
 
 	/** Process non-axes keystates */
-	void ProcessNonAxesKeys(FKey Inkey, FKeyState* KeyState, float DeltaTime);
+	void ProcessNonAxesKeys(FKey Inkey, FKeyState* KeyState);
 	
 	// finished processing input for this frame, clean up for next update
 	void FinishProcessingPlayerInput();

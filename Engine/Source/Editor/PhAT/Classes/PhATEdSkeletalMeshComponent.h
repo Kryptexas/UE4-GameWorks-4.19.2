@@ -71,7 +71,4 @@ class UPhATEdSkeletalMeshComponent : public USkeletalMeshComponent
 	FTransform GetPrimitiveTransform(FTransform& BoneTM, int32 BodyIndex, EKCollisionPrimitiveType PrimType, int32 PrimIndex, float Scale);
 	FColor GetPrimitiveColor(int32 BodyIndex, EKCollisionPrimitiveType PrimitiveType, int32 PrimitiveIndex);
 	UMaterialInterface* GetPrimitiveMaterial(int32 BodyIndex, EKCollisionPrimitiveType PrimitiveType, int32 PrimitiveIndex, bool bHitTest);
-
-	/** Returns the physics asset for this PhATEd component - note: This hides the implementation in the USkinnedMeshComponent base class */
-	class UPhysicsAsset* GetPhysicsAsset() const;
 };

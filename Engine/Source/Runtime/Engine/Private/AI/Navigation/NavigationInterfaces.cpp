@@ -61,7 +61,7 @@ void INavLinkCustomInterface::UpdateUniqueId(uint32 AlreadyUsedId)
 FNavigationLink INavLinkCustomInterface::GetModifier(const INavLinkCustomInterface* CustomNavLink)
 {
 	FNavigationLink LinkMod;
-	LinkMod.AreaClass = CustomNavLink->GetLinkAreaClass();
+	LinkMod.SetAreaClass(CustomNavLink->GetLinkAreaClass());
 	LinkMod.UserId = CustomNavLink->GetLinkId();
 
 	ENavLinkDirection::Type LinkDirection = ENavLinkDirection::BothWays;

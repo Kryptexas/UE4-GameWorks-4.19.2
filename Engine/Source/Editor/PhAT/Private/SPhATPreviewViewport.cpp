@@ -25,6 +25,11 @@ void SPhATPreviewViewport::SetViewportType(ELevelViewportType ViewType)
 	EditorViewportClient->SetViewportType(ViewType);
 }
 
+void SPhATPreviewViewport::RotateViewportType()
+{
+	EditorViewportClient->RotateViewportType();
+}
+
 void SPhATPreviewViewport::Construct(const FArguments& InArgs)
 {
 	PhATPtr = InArgs._PhAT;

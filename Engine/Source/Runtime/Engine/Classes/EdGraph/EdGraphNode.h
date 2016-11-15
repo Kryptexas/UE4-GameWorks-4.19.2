@@ -164,7 +164,7 @@ class ENGINE_API UEdGraphNode : public UObject
 	UPROPERTY()
 	FString ErrorMsg;
 	
-	/** GUID to uniquely identify this node, to facilitate diff'ing versions of this graph */
+	/** GUID to uniquely identify this node, to facilitate diffing versions of this graph */
 	UPROPERTY()
 	FGuid NodeGuid;
 
@@ -230,6 +230,9 @@ public:
 	/** widget representing this node if it exists; Note: This is not safe to use in general and will be removed in the future, as there is no guarantee that only one graph editor/panel is viewing a given graph */
 	TWeakPtr<SGraphNode> DEPRECATED_NodeWidget;
 
+	/** Get all pins this node owns */
+	TArray<UEdGraphPin*> GetAllPins() { return Pins; }
+
 	/** Create a new pin on this node using the supplied info, and return the new pin */
 	UEdGraphPin* CreatePin(EEdGraphPinDirection Dir, const FString& PinCategory, const FString& PinSubCategory, UObject* PinSubCategoryObject, bool bIsArray, bool bIsReference, const FString& PinName, bool bIsConst = false, int32 Index = INDEX_NONE);
 
@@ -258,7 +261,16 @@ public:
 	virtual bool ShouldOverridePinNames() const { return false; }
 
 	/** Whether or not struct pins belonging to this node should be allowed to be split or not. */
-	virtual bool AllowSplitPins() const { return false; }
+	DEPRECATED(4.14, "Please call CanSplitPin and provide the specific Pin to split.")
+	virtual bool AllowSplitPins() const { return bAllowSplitPins_DEPRECATED; }
+
+	/** Whether or not struct pins belonging to this node should be allowed to be split or not. */
+	virtual bool CanSplitPin(const UEdGraphPin* Pin) const 
+	{
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
+		return AllowSplitPins();
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
+	}
 
 	/** Gets the overridden name for the specified pin, if any */
 	virtual FText GetPinNameOverride(const UEdGraphPin& Pin) const { return FText::GetEmpty(); }
@@ -321,6 +333,11 @@ public:
 	 * Refresh the connectors on a node, preserving as many connections as it can.
 	 */
 	virtual void ReconstructNode() {}
+
+	/**
+	 * Removes the specified pin from the node, preserving remaining pin ordering.
+	 */
+	virtual void RemovePinAt(const int32 PinIndex, const EEdGraphPinDirection PinDirection);
 
 	/**
 	 * Perform any steps necessary prior to copying a node into the paste buffer
@@ -517,6 +534,10 @@ public:
 	void AddNodeUpgradeNote(FText InUpgradeNote);
 #endif // WITH_EDITOR
 
+protected:
+
+	/** (DEPRECATED) Value used for AllowSplitPins(). Do not override. */
+	bool bAllowSplitPins_DEPRECATED;
 };
 
 

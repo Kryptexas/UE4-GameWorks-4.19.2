@@ -426,7 +426,7 @@ void PlaceVPLs(
 			{
 				ShadowBounds = DirectionalLightProxy->GetShadowSplitBoundsDepthRange(
 					View, 
-					View.ViewMatrices.ViewOrigin,
+					View.ViewMatrices.GetViewOrigin(),
 					View.NearClippingDistance, 
 					GVPLPlacementCameraRadius, 
 					&CascadeSettings);
@@ -466,7 +466,7 @@ void PlaceVPLs(
 			}
 			else
 			{
-				ShadowBounds = FSphere(View.ViewMatrices.ViewOrigin, GVPLPlacementCameraRadius);
+				ShadowBounds = FSphere(View.ViewMatrices.GetViewOrigin(), GVPLPlacementCameraRadius);
 
 				FSphere SubjectBounds(FVector::ZeroVector, ShadowBounds.W);
 
@@ -821,11 +821,11 @@ void UpdateVPLs(
 
 					{
 						const float ConeExpandDistance = Parameters.ObjectMaxOcclusionDistance;
-						const float TanHalfFOV = 1.0f / View.ViewMatrices.ProjMatrix.M[0][0];
+						const float TanHalfFOV = 1.0f / View.ViewMatrices.GetProjectionMatrix().M[0][0];
 						const float VertexPullbackLength = ConeExpandDistance / TanHalfFOV;
 
 						// Pull back cone vertex to contain VPLs outside of the view
-						const FVector ViewConeVertex = View.ViewMatrices.ViewOrigin - View.GetViewDirection() * VertexPullbackLength;
+						const FVector ViewConeVertex = View.ViewMatrices.GetViewOrigin() - View.GetViewDirection() * VertexPullbackLength;
 
 						//@todo - expand by AOObjectMaxDistance
 						ShadowBounds = DirectionalLightProxy->GetShadowSplitBoundsDepthRange(

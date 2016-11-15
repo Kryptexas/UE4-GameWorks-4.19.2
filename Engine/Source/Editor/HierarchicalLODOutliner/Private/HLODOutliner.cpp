@@ -1240,7 +1240,7 @@ namespace HLODOutliner
 
 	void SHLODOutliner::OnLevelActorsAdded(AActor* InActor)
 	{
-		if (!InActor->IsA<AHLODSelectionActor>() && !InActor->IsA<AWorldSettings>())
+		if (InActor->GetWorld() == CurrentWorld && !InActor->IsA<AHLODSelectionActor>() && !InActor->IsA<AWorldSettings>())
 		{
 			FullRefresh();
 		}	

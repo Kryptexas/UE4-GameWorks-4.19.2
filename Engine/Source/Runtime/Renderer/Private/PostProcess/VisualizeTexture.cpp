@@ -357,7 +357,7 @@ void FVisualizeTexture::GenerateContent(FRHICommandListImmediate& RHICmdList, co
 	const FSceneRenderTargetItem& DestRenderTarget = VisualizeTextureContent->GetRenderTargetItem();
 
 	SetRenderTarget(RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef(), true);
-	RHICmdList.Clear(true, FLinearColor(1, 1, 0, 1), false, 0.0f, false, 0, FIntRect());
+	RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor(1, 1, 0, 1), FIntRect());
 	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
@@ -553,25 +553,7 @@ void FVisualizeTexture::PresentContent(FRHICommandListImmediate& RHICmdList, con
 			EDRF_Default);
 	}
 
-	// this is a helper class for FCanvas to be able to get screen size
-	class FRenderTargetTemp : public FRenderTarget
-	{
-	public:
-		const FSceneView& View;
-
-		FRenderTargetTemp(const FSceneView& InView) : View(InView)
-		{
-		}
-		virtual FIntPoint GetSizeXY() const
-		{
-			return View.UnscaledViewRect.Size();
-		};
-		virtual const FTexture2DRHIRef& GetRenderTargetTexture() const
-		{
-			return View.Family->RenderTarget->GetRenderTargetTexture();
-		}
-	} TempRenderTarget(View);
-
+	FRenderTargetTemp TempRenderTarget(View, View.UnscaledViewRect.Size());
 	FCanvas Canvas(&TempRenderTarget, NULL, View.Family->CurrentRealTime, View.Family->CurrentWorldTime, View.Family->DeltaWorldTime, View.GetFeatureLevel());
 
 	float X = 100 + View.ViewRect.Min.X;

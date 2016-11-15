@@ -10,16 +10,6 @@ class IProjectLauncherModule
 	: public IModuleInterface
 {
 public:
-	
-	/**
-	 * Creates a session launcher progress panel widget.
-	 *
-	 * @param LauncherWorker The launcher worker.
-	 * @return The new widget.
-	 */
-	virtual TSharedRef<class SWidget> CreateSProjectLauncherProgressPanel( const ILauncherWorkerRef& LauncherWorker ) = 0;
-
-public:
 
 	/**
 	 * Virtual destructor.

@@ -356,6 +356,12 @@ struct CORE_API FGenericPlatformMisc
 		return true;
 	}
 
+	/** Platform can generate a full-memory crashdump during crash handling. */
+	static bool SupportsFullCrashDumps()
+	{
+		return true;
+	}
+
 	/**
 	 * Enforces strict memory load/store ordering across the memory barrier call.
 	 */
@@ -911,6 +917,14 @@ public:
 	}
 
 	/**
+	 * Returns whether WiFi connection is currently active
+	 */
+	static bool HasActiveWiFiConnection()
+	{
+		return false;
+	}
+
+	/**
 	 * Returns whether the given platform feature is currently available (for instance, Metal is only available in IOS8 and with A7 devices)
 	 */
 	static bool HasPlatformFeature(const TCHAR* FeatureName)
@@ -988,6 +1002,25 @@ public:
 	*/
 	static const void PreLoadMap(FString&, FString&, void*)
 	{}
+
+	/**
+	* Returns monitor's DPI scale factor at given screen coordinates (expressed in pixels)
+	* @return Monitor's DPI scale factor at given point
+	*/
+	static float GetDPIScaleFactorAtPoint(float X, float Y)
+	{
+		return 1.0f;
+	}
+
+	/**
+	 * Allows platform at runtime to disable unsupported plugins
+	 *  @param	PluginName	Name of enabled plugin to consider
+	 *	@return	bool		true if plugin should be disabled
+	 */
+	static bool ShouldDisablePluginAtRuntime(const FString& PluginName)
+	{
+		return false;
+	}
 
 #if !UE_BUILD_SHIPPING
 protected:

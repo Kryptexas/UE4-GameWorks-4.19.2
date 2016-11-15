@@ -57,11 +57,7 @@ class SRetargetSourceWindow : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS( SRetargetSourceWindow )
-		: _Persona()
 	{}
-		
-		/* The Persona that owns this table */
-		SLATE_ARGUMENT( TWeakPtr< FPersona >, Persona )
 
 	SLATE_END_ARGS()
 
@@ -71,13 +67,7 @@ public:
 	* @param InArgs - Arguments passed from Slate
 	*
 	*/
-	void Construct( const FArguments& InArgs );
-
-	/**
-	* Destructor - resets the morph targets
-	*
-	*/
-	virtual ~SRetargetSourceWindow();
+	void Construct( const FArguments& InArgs, const TSharedRef<IEditableSkeleton>& InEditableSkeleton, FSimpleMulticastDelegate& InOnPostUndo);
 
 	/**
 	* Filters the SListView when the user changes the search text box (NameFilterBox)
@@ -181,8 +171,8 @@ private:
 	*/
 	void CreateRetargetSourceList( const FString& SearchText = FString(""), const FName  NewName = NAME_None );
 
-	/** Pointer back to the Persona that owns us */
-	TWeakPtr<FPersona> PersonaPtr;
+	/** The editable skeleton */
+	TWeakPtr<class IEditableSkeleton> EditableSkeletonPtr;
 
 	/** Box to filter to a specific morph target name */
 	TSharedPtr<SSearchBox>	NameFilterBox;
@@ -193,31 +183,14 @@ private:
 	/** A list of retarget sources. Used by the RetargetSourceListView. */
 	TArray< TSharedPtr<FDisplayedRetargetSourceInfo> > RetargetSourceList;
 
-	/** The skeletal mesh that we grab the morph targets from */
-	USkeleton* Skeleton;
-
 	/** Current text typed into NameFilterBox */
 	FText FilterText;
 
 	/** Item to rename. Only valid for adding **/
 	mutable TSharedPtr<FDisplayedRetargetSourceInfo> ItemToRename;
 
-	/** data to handle renamed pose when undo action is executed */
-	struct FPoseNameForUndo
-	{
-		FName OldPoseName;
-		FName NewPoseName;
-
-		FPoseNameForUndo(FName OldName, FName NewName)
-			: OldPoseName(OldName), NewPoseName(NewName)
-		{}
-	};
-
-	/** stack for renamed poses for multiple undo actions **/
-	TArray<FPoseNameForUndo> RenamedPoseNameStack;
-
 	/** Rename committed. Called by Inline Widget **/
-	void OnRenameCommit( const FName& OldName,  const FString& NewName );
+	void OnRenameCommit(const FName& InOldName, const FString& InNewName);
 	/** Verify Rename is legit or not **/
 	bool OnVerifyRenameCommit( const FName& OldName, const FString& NewName, FText& OutErrorMessage);
 

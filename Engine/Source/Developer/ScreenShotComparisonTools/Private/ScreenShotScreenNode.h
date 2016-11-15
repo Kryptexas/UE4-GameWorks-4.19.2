@@ -63,7 +63,7 @@ public:
 
 	virtual TSharedRef<IScreenShotData> CreateNode( const FString& ChildName ) override 
 	{
-		TSharedPtr< IScreenShotData > ScreenShotNode = MakeShareable( new FScreenShotPlatformNode( ChildName ) );;
+		TSharedPtr< IScreenShotData > ScreenShotNode = MakeShareable( new FScreenShotPlatformNode( ChildName ) );
 		Children.Add( ScreenShotNode.ToSharedRef() );
 		return ScreenShotNode.ToSharedRef();
 	};

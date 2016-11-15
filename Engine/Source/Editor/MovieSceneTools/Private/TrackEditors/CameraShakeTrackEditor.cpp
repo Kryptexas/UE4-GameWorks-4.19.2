@@ -84,7 +84,7 @@ bool FCameraShakeTrackEditor::SupportsType(TSubclassOf<UMovieSceneTrack> Type) c
 }
 
 
-TSharedRef<ISequencerSection> FCameraShakeTrackEditor::MakeSectionInterface(UMovieSceneSection& SectionObject, UMovieSceneTrack& Track)
+TSharedRef<ISequencerSection> FCameraShakeTrackEditor::MakeSectionInterface(UMovieSceneSection& SectionObject, UMovieSceneTrack& Track, FGuid ObjectBinding)
 {
 	check(SupportsType(SectionObject.GetOuter()->GetClass()));
 	return MakeShareable(new FCameraShakeSection(SectionObject));

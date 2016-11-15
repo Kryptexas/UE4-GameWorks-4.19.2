@@ -14,6 +14,9 @@ USequenceRecorderSettings::USequenceRecorderSettings(const FObjectInitializer& O
 	RecordingDelay = 4.0f;
 	SequenceName = TEXT("RecordedSequence");
 	AnimationSubDirectory = TEXT("Animations");
+	AudioSubDirectory = TEXT("Audio");
+	AudioGain = 0.0f;
+	AudioInputBufferSize = 4048;
 	SequenceRecordingBasePath.Path = TEXT("/Game/Cinematics/Sequences");
 	bRecordNearbySpawnedActors = true;
 	NearbyActorRecordingProximity = 5000.0f;

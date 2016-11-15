@@ -15,19 +15,23 @@ public:
 	virtual uint32 GetCategories() override { return EAssetTypeCategories::Sounds; }
 	virtual bool CanFilter() override { return false; }
 
-private:
+
+	/** Return if the specified sound is playing*/
+	bool IsSoundPlaying(TArray<TWeakObjectPtr<USoundBase>> Objects) const;
+
 	/** Handler for when PlaySound is selected */
-	void ExecutePlaySound(TArray<TWeakObjectPtr<USoundBase>> Objects);
+	void ExecutePlaySound(TArray<TWeakObjectPtr<USoundBase>> Objects) const;
 
 	/** Handler for when StopSound is selected */
-	void ExecuteStopSound(TArray<TWeakObjectPtr<USoundBase>> Objects);
+	void ExecuteStopSound(TArray<TWeakObjectPtr<USoundBase>> Objects) const;
 
 	/** Returns true if only one sound is selected to play */
 	bool CanExecutePlayCommand(TArray<TWeakObjectPtr<USoundBase>> Objects) const;
 
+private:
 	/** Plays the specified sound wave */
-	void PlaySound(USoundBase* Sound);
+	void PlaySound(USoundBase* Sound) const;
 
 	/** Stops any currently playing sounds */
-	void StopSound();
+	void StopSound() const;
 };

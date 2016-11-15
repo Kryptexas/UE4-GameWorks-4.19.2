@@ -33,7 +33,6 @@
 
 #define LOCTEXT_NAMESPACE "PrimitiveComponent"
 
-
 //////////////////////////////////////////////////////////////////////////
 // Globals
 
@@ -174,6 +173,7 @@ UPrimitiveComponent::UPrimitiveComponent(const FObjectInitializer& ObjectInitial
 	AlwaysLoadOnServer = true;
 	SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 	bAlwaysCreatePhysicsState = false;
+	bVisibleInReflectionCaptures = true;
 	bRenderInMainPass = true;
 	VisibilityId = -1;
 	CanBeCharacterBase_DEPRECATED = ECB_Yes;
@@ -219,14 +219,8 @@ void UPrimitiveComponent::GetLightAndShadowMapMemoryUsage( int32& LightMapMemory
 
 void UPrimitiveComponent::InvalidateLightingCacheDetailed(bool bInvalidateBuildEnqueuedLighting, bool bTranslationOnly) 
 {
-	bHasCachedStaticLighting = false;
-	if (bInvalidateBuildEnqueuedLighting)
-	{
-		bStaticLightingBuildEnqueued = false;
-	}
-
 	// If a static lighting build has been enqueued for this primitive, don't stomp on its visibility ID.
-	if (bInvalidateBuildEnqueuedLighting || !bStaticLightingBuildEnqueued)
+	if (bInvalidateBuildEnqueuedLighting)
 	{
 		VisibilityId = INDEX_NONE;
 	}
@@ -236,7 +230,7 @@ void UPrimitiveComponent::InvalidateLightingCacheDetailed(bool bInvalidateBuildE
 
 bool UPrimitiveComponent::IsEditorOnly() const
 {
-	return (AlwaysLoadOnClient == false) && (AlwaysLoadOnServer == false);
+	return Super::IsEditorOnly() || ((AlwaysLoadOnClient == false) && (AlwaysLoadOnServer == false));
 }
 
 bool UPrimitiveComponent::HasStaticLighting() const
@@ -365,7 +359,7 @@ bool UPrimitiveComponent::IsPostPhysicsComponentTickEnabled() const
 void UPrimitiveComponent::CreateRenderState_Concurrent()
 {
 	// Make sure cached cull distance is up-to-date if its zero and we have an LD cull distance
-	if( CachedMaxDrawDistance == 0 && LDMaxDrawDistance > 0 )
+	if( CachedMaxDrawDistance == 0.f && LDMaxDrawDistance > 0.f )
 	{
 		CachedMaxDrawDistance = LDMaxDrawDistance;
 	}
@@ -420,10 +414,18 @@ void UPrimitiveComponent::OnRegister()
 
 void UPrimitiveComponent::OnUnregister()
 {
-	UWorld* World = GetWorld();
-	if (World && World->Scene)
+	// If this is being garbage collected we don't really need to worry about clearing this
+	if (!HasAnyFlags(RF_BeginDestroyed) && !IsUnreachable())
 	{
-		World->Scene->ReleasePrimitive(this);
+		UWorld* World = GetWorld();
+		if (World)
+		{
+			if (World->Scene)
+			{
+				World->Scene->ReleasePrimitive(this);
+			}
+			World->ClearActorComponentEndOfFrameUpdate(this);
+		}
 	}
 
 	Super::OnUnregister();
@@ -586,7 +588,7 @@ void UPrimitiveComponent::EnsurePhysicsStateCreated()
 
 bool UPrimitiveComponent::IsWelded() const
 {
-	return GetBodyInstance() != GetBodyInstance(NAME_None, false);
+	return BodyInstance.WeldParent != nullptr;
 }
 
 void UPrimitiveComponent::OnUpdateTransform(EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport)
@@ -638,11 +640,6 @@ void UPrimitiveComponent::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
-	if (Ar.UE4Ver() < VER_UE4_COMBINED_LIGHTMAP_TEXTURES)
-	{
-		bHasCachedStaticLighting = false;
-	}
-
 	// as temporary fix for the bug TTP 299926
 	// permanent fix is coming
 	if (IsTemplate())
@@ -654,7 +651,6 @@ void UPrimitiveComponent::Serialize(FArchive& Ar)
 #if WITH_EDITOR
 void UPrimitiveComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	static const FName NAME_SimulatePhysics = TEXT("bSimulatePhysics");
 	// Keep track of old cached cull distance to see whether we need to re-attach component.
 	const float OldCachedMaxDrawDistance = CachedMaxDrawDistance;
 
@@ -663,15 +659,11 @@ void UPrimitiveComponent::PostEditChangeProperty(FPropertyChangedEvent& Property
 	{
 		const FName PropertyName = PropertyThatChanged->GetFName();
 
-		// We disregard cull distance volumes in this case as we have no way of handling cull 
-		// distance changes to without refreshing all cull distance volumes. Saving or updating 
-		// any cull distance volume will set the proper value again.
-		if( PropertyName == TEXT("LDMaxDrawDistance") || PropertyName == TEXT("bAllowCullDistanceVolume") )
+		// CachedMaxDrawDistance needs to be set as if you have no cull distance volumes affecting this primitive component the cached value wouldn't get updated
+		if (PropertyName == GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, LDMaxDrawDistance) || PropertyName == GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, bAllowCullDistanceVolume))
 		{
 			CachedMaxDrawDistance = LDMaxDrawDistance;
 		}
-
-
 
 		// we need to reregister the primitive if the min draw distance changed to propagate the change to the rendering thread
 		if (PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, MinDrawDistance))
@@ -697,6 +689,10 @@ void UPrimitiveComponent::PostEditChangeProperty(FPropertyChangedEvent& Property
 	{
 		CachedMaxDrawDistance = LDMaxDrawDistance;
 	}
+	else if (UWorld* World = GetWorld())
+	{
+		World->UpdateCullDistanceVolumes(nullptr, this);
+	}
 
 	// Reattach to propagate cull distance change.
 	if( CachedMaxDrawDistance != OldCachedMaxDrawDistance )
@@ -719,34 +715,42 @@ bool UPrimitiveComponent::CanEditChange(const UProperty* InProperty) const
 	{
 		const FName PropertyName = InProperty->GetFName();
 
-		if (PropertyName == GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, bLightAsIfStatic))
+		static FName LightAsIfStaticName = GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, bLightAsIfStatic);
+		static FName LightmassSettingsName = TEXT("LightmassSettings");
+		static FName LightingChannelsName = GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, LightingChannels);
+		static FName SingleSampleShadowFromStationaryLightsName = GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, bSingleSampleShadowFromStationaryLights);
+		static FName IndirectLightingCacheQualityName = GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, IndirectLightingCacheQuality);
+		static FName CastCinematicShadowName = GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, bCastCinematicShadow);
+		static FName CastInsetShadowName = GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, bCastInsetShadow);
+		static FName CastShadowName = GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, CastShadow);
+
+		if (PropertyName == LightAsIfStaticName)
 		{
 			// Disable editing bLightAsIfStatic on static components, since it has no effect
 			return Mobility != EComponentMobility::Static;
 		}
 
-		if (PropertyName == TEXT("LightmassSettings"))
+		if (PropertyName == LightmassSettingsName)
 		{
 			return Mobility != EComponentMobility::Movable || bLightAsIfStatic;
 		}
 
-		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UPrimitiveComponent, bSingleSampleShadowFromStationaryLights))
+		if (PropertyName == SingleSampleShadowFromStationaryLightsName)
 		{
 			return Mobility != EComponentMobility::Static;
 		}
 
-		if (PropertyName == GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, IndirectLightingCacheQuality)
-			|| PropertyName == GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, bCastCinematicShadow))
+		if (PropertyName == IndirectLightingCacheQualityName || PropertyName == CastCinematicShadowName)
 		{
 			return Mobility == EComponentMobility::Movable;
 		}
 
-		if (PropertyName == GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, bCastInsetShadow))
+		if (PropertyName == CastInsetShadowName)
 		{
 			return !bSelfShadowOnly;
 		}
 
-		if (PropertyName == GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, CastShadow))
+		if (PropertyName == CastShadowName)
 		{
 			// Look for any lit materials
 			bool bHasAnyLitMaterials = false;
@@ -859,7 +863,7 @@ void UPrimitiveComponent::PostLoad()
 
 	// as temporary fix for the bug TTP 299926
 	// permanent fix is coming
-	if (IsTemplate()==false)
+	if (!IsTemplate())
 	{
 		BodyInstance.FixupData(this);
 	}
@@ -870,10 +874,10 @@ void UPrimitiveComponent::PostLoad()
 	}
 
 	// Make sure cached cull distance is up-to-date.
-	if( LDMaxDrawDistance > 0 )
+	if( LDMaxDrawDistance > 0.f )
 	{
 		// Directly use LD cull distance if cached one is not set.
-		if( CachedMaxDrawDistance == 0 )
+		if( CachedMaxDrawDistance == 0.f )
 		{
 			CachedMaxDrawDistance = LDMaxDrawDistance;
 		}
@@ -965,7 +969,7 @@ void UPrimitiveComponent::FinishDestroy()
 
 bool UPrimitiveComponent::NeedsLoadForClient() const
 {
-	if(!IsVisible() && !IsCollisionEnabled() && !AlwaysLoadOnClient)
+	if (!IsVisible() && !IsCollisionEnabled() && !AlwaysLoadOnClient)
 	{
 		return 0;
 	}
@@ -1199,6 +1203,10 @@ UMaterialInterface* UPrimitiveComponent::GetMaterial(int32 Index) const
 }
 
 void UPrimitiveComponent::SetMaterial(int32 Index, UMaterialInterface* InMaterial)
+{
+}
+
+void UPrimitiveComponent::SetMaterialByName(FName MaterialSlotName, class UMaterialInterface* Material)
 {
 }
 
@@ -1480,6 +1488,7 @@ void UPrimitiveComponent::InitSweepCollisionParams(FCollisionQueryParams &OutPar
 {
 	OutResponseParam.CollisionResponse = BodyInstance.GetResponseToChannels();
 	OutParams.AddIgnoredActors(MoveIgnoreActors);
+	OutParams.AddIgnoredComponents(MoveIgnoreComponents);
 	OutParams.bTraceAsyncScene = bCheckAsyncSceneOnMove;
 	OutParams.bTraceComplex = bTraceComplexOnMove;
 	OutParams.bReturnPhysicalMaterial = bReturnMaterialOnMove;
@@ -1590,11 +1599,11 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 			{
 				if (Actor)
 				{
-					UE_LOG(LogPrimitiveComponent, Fatal,TEXT("%s MovedComponent %s not initialized deleteme %d"),*Actor->GetName(), *GetName(), Actor->IsPendingKill());
+					ensureMsgf(IsRegistered(), TEXT("%s MovedComponent %s not initialized deleteme %d"),*Actor->GetName(), *GetName(), Actor->IsPendingKill());
 				}
 				else
 				{
-					UE_LOG(LogPrimitiveComponent, Fatal,TEXT("MovedComponent %s not initialized"), *GetFullName());
+					ensureMsgf(IsRegistered(), TEXT("MovedComponent %s not initialized"), *GetFullName());
 				}
 			}
 #endif
@@ -1825,8 +1834,8 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 	{
 		if (bFilledHitResult)
 		{
-		*OutHit = BlockingHit;
-	}
+			*OutHit = BlockingHit;
+		}
 		else
 		{
 			OutHit->Init(TraceStart, TraceEnd);
@@ -1938,10 +1947,9 @@ bool UPrimitiveComponent::LineTraceComponent(struct FHitResult& OutHit, const FV
 	return bHaveHit;
 }
 
-// @Todo change this to shape with sweep
-bool UPrimitiveComponent::SweepComponent(struct FHitResult& OutHit, const FVector Start, const FVector End, const FCollisionShape &CollisionShape, bool bTraceComplex)
+bool UPrimitiveComponent::SweepComponent(struct FHitResult& OutHit, const FVector Start, const FVector End, const FQuat& ShapeWorldRotation, const FCollisionShape &CollisionShape, bool bTraceComplex)
 {
-	return BodyInstance.Sweep(OutHit, Start, End, CollisionShape, bTraceComplex);
+	return BodyInstance.Sweep(OutHit, Start, End, ShapeWorldRotation, CollisionShape, bTraceComplex);
 }
 
 bool UPrimitiveComponent::ComponentOverlapComponentImpl(class UPrimitiveComponent* PrimComp, const FVector Pos, const FQuat& Quat, const struct FCollisionQueryParams& Params)
@@ -2434,6 +2442,38 @@ void UPrimitiveComponent::ClearMoveIgnoreActors()
 	MoveIgnoreActors.Empty();
 }
 
+void UPrimitiveComponent::IgnoreComponentWhenMoving(UPrimitiveComponent* Component, bool bShouldIgnore)
+{
+	// Clean up stale references
+	MoveIgnoreComponents.RemoveSwap(nullptr);
+
+	// Add/Remove the component from the list
+	if (Component)
+	{
+		if (bShouldIgnore)
+		{
+			MoveIgnoreComponents.AddUnique(Component);
+		}
+		else
+		{
+			MoveIgnoreComponents.RemoveSingleSwap(Component);
+		}
+	}
+}
+
+TArray<UPrimitiveComponent*> UPrimitiveComponent::CopyArrayOfMoveIgnoreComponents()
+{
+	for (int32 Index = MoveIgnoreComponents.Num() - 1; Index >= 0; --Index)
+	{
+		const UPrimitiveComponent* const MoveIgnoreComponent = MoveIgnoreComponents[Index];
+		if (MoveIgnoreComponent == nullptr || MoveIgnoreComponent->IsPendingKill())
+		{
+			MoveIgnoreComponents.RemoveAtSwap(Index, 1, false);
+		}
+	}
+	return MoveIgnoreComponents;
+}
+
 void UPrimitiveComponent::UpdateOverlaps(const TArray<FOverlapInfo>* NewPendingOverlaps, bool bDoNotifies, const TArray<FOverlapInfo>* OverlapsAtEndLocation)
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdateOverlaps); 
@@ -2872,16 +2912,14 @@ void UPrimitiveComponent::DispatchOnInputTouchEnd(const ETouchIndex::Type Finger
 	}
 }
 
-SIZE_T UPrimitiveComponent::GetResourceSize( EResourceSizeMode::Type Mode )
+void UPrimitiveComponent::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	SIZE_T ResSize = Super::GetResourceSize(Mode);
+	Super::GetResourceSizeEx(CumulativeResourceSize);
 
 	if (BodyInstance.IsValidBodyInstance())
 	{
-		ResSize = BodyInstance.GetBodyInstanceResourceSize(Mode);
+		BodyInstance.GetBodyInstanceResourceSizeEx(CumulativeResourceSize);
 	}
-
-	return ResSize;
 }
 
 void UPrimitiveComponent::SetRenderCustomDepth(bool bValue)

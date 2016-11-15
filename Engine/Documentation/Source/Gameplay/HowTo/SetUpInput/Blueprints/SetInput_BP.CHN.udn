@@ -1,12 +1,13 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2749579
 Availability: Public
-Title:如何在蓝图中设置输入
+Title: 如何在蓝图中设置输入
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\SetUpInput
-Description:关于如何在蓝图中进行输入设置的操作指南。
+Description: 关于如何在蓝图中进行输入设置的操作指南。
+Version: 4.9
+SkillLevel: Intermediate
 
 [TOC (start:2 end:2)]
 
-## 概述
 
 在本页中，您将创建一个简单人物并对其进行设置以便接收输入，之后将该人物分配到一个 **GameMode**，使之作为游戏过程中的默认 Pawn。
 如果您熟悉人物设置或拥有一个要接受输入的人物（同时设置了一个使用该人物的 **GameMode**），您可以跳过人物创建部分，直接去新建输入并实施它们。 
@@ -40,7 +41,7 @@ _在此示例中，我们将使用 **Blank** 项目模板并启用 **Starter Con
 1.	在 **Components** 窗口下的 **Components** 选项卡中，单击 **Add Component** 并添加一个 **Spring Arm**。 
 
 	[REGION:raw]
-	![](Input_3.png)
+	![](Input2_3.png)
 	[/REGION]
 	
 	[REGION:note]
@@ -52,12 +53,12 @@ _在此示例中，我们将使用 **Blank** 项目模板并启用 **Starter Con
 1.	在 **Camera Settings** 中选中 **Use Pawn Controller Rotation** 选框。 
 
 	[REGION:raw]
-	![](Input_4.png)
+	![](Input2_4.png)
 	[/REGION]
 
 1.	再次单击 **Add Component** 按钮并添加一个 **Camera**，然后将其拖放到 **Spring Arm** 组件上。 
 
-	![](Input_5.png)
+	![](Input2_5.jpg)
 
 	这样就可以将它指定为 **Spring Arm** 的子对象。 
 
@@ -85,7 +86,7 @@ _在此示例中，我们将使用 **Blank** 项目模板并启用 **Starter Con
 
 1.	在 **Defaults** 选项卡的 **Classes** 部分，单击 **Default Pawn Class** 下拉菜单并选择新人物。 
 
-	![](Input_9.png)
+	![](Input2_9.png)
 
 1.	**Compile** 并 **Save**，然后关闭蓝图。 
 
@@ -99,7 +100,7 @@ _在此示例中，我们将使用 **Blank** 项目模板并启用 **Starter Con
 
 1.	在 **Maps & Modes** 的 **Default Modes** 部分，单击 **Default GameMode** 下拉菜单并选择您的 **GameMode**。 
 
-	![](Input_11.png)
+	![](Input2_11.png)
 
 
 ## 新建输入(Action/Axis Mappings)
@@ -114,7 +115,7 @@ _在此示例中，我们将使用 **Blank** 项目模板并启用 **Starter Con
 
 1.	为空映射填入内容（如下所示）。 
 
-	![](Input_13.png)(w:500)
+	![](Input2_13.png)(w:500)
 
 	您需要在这里为每一个映射命名，然后为其分配一个输入。请务必将高亮显示的 **Scale** 值设置为 **-1.0**，因为在累加坐标值的时候，**Scale** 充当了按键值的乘数（这可以让我们得到相反方向）。 
 
@@ -127,7 +128,7 @@ _在此示例中，我们将使用 **Blank** 项目模板并启用 **Starter Con
 
 1.	在蓝图中，**Right-click** 图表上的任意位置，搜索 **Turn**，然后添加 **Turn** 坐标轴事件。 
 
-	![](Input_14.png)
+	![](Input2_14.png)
 
 1.	拖开 **Axis Value** 并搜索 **Yaw**，然后添加 **Add Controller Yaw Input** 节点。 
 
@@ -143,11 +144,11 @@ _在此示例中，我们将使用 **Blank** 项目模板并启用 **Starter Con
 
 1.	拖开 **Pressed** 针并搜索 **Jump** 函数。 
 
-	![](Input_17.png)
+	![](Input2_17.png)
 
 1.	在图表中 **Right-click**，然后添加 **MoveForward** 坐标轴事件。 
 
-	![](Input_18.png)
+	![](Input2_18.png)
 
 1.	拖开 **Axis Value** 并添加 **Add Movement Input** 节点。 
 
@@ -155,23 +156,23 @@ _在此示例中，我们将使用 **Blank** 项目模板并启用 **Starter Con
 
 1.	拖开 **Axis Value** 并添加 **Add Movement Input** 节点。 
 
-	![](Input_19.png)
+	![](Input2_19.png)
 
 	事件添加完成，但我们还需要为每个事件指定方向。 
 
 1.	在图表中 **Right-click** 并搜索 **Get Control Rotation**。 
 
-	![](Input_20.png)
+	![](Input2_20.png)
 
 1.	拖开 **Return Value** 并添加一个 **Break Rot** 节点（用于将旋转分解为俯仰（Pitch）、偏航（Yaw）和横滚（Roll））。 
 
 1.	拖开 **Yaw** 针并添加一个 **Make Rot** 节点（根据Pitch、Yaw和Roll做出旋转）。 
 
-	![](Input_21.png)
+	![](Input2_21.png)
 
 1.	**Right-click** **Make Rot** 节点并选择 **Break link to Break Rot (Yaw)**。 
 
-	![](Input_22.png)
+	![](Input2_22.png)
 
 	我们要将 **Pitch** 和 **Roll** 归零，仅仅保留 **Yaw**。 
 

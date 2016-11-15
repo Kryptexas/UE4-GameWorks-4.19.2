@@ -14,7 +14,7 @@
 
 #define LOCTEXT_NAMESPACE "PluginsEditor"
 
-IMPLEMENT_MODULE( FPluginBrowserModule, PluginBrowserModule )
+IMPLEMENT_MODULE( FPluginBrowserModule, PluginBrowser )
 
 const FName FPluginBrowserModule::PluginsEditorTabName( TEXT( "PluginsEditor" ) );
 const FName FPluginBrowserModule::PluginCreatorTabName( TEXT( "PluginCreator" ) );

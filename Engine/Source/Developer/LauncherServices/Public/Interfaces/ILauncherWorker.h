@@ -109,6 +109,13 @@ public:
 	 */
 	virtual FOnLaunchCanceledDelegate& OnCanceled() = 0;
 
+	/**
+	 * Get the launcher profile
+	 *
+	 * @return the variable
+	 */
+	virtual ILauncherProfilePtr GetLauncherProfile() const = 0;
+
 protected:
 
 	/** Virtual destructor. */

@@ -9,8 +9,6 @@
   <Products />
   <Eula />
   <RedistributeTo />
-  <Redistribute>false</Redistribute>
-  <IsSourceAvailable>false</IsSourceAvailable>
   <Notification>
 Redirect: ../../../Source/ThirdParty/PhysX/NVIDIAPhysXRedistributables.tps
 Notes:

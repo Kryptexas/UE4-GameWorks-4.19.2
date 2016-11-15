@@ -9,6 +9,7 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "K2Node_TunnelBoundary.h"
+#include "K2Node_Composite.h"
 
 /////////////////////////////////////////////////////
 // FGraphObjectTextFactory
@@ -81,7 +82,6 @@ protected:
 				CreatedNode->GetGraph()->Nodes.Add(CreatedNode);
 			}
 		}
-
 	}
 
 	virtual void PostProcessConstructedObjects() override
@@ -98,8 +98,6 @@ protected:
 			{
 				Notification->SetCompletionState(SNotificationItem::CS_None);
 			}
-
-
 		}
 
 		for (UEdGraphNode* Node : NodesToDestroy)
@@ -279,7 +277,41 @@ void FEdGraphUtilities::MergeChildrenGraphsIn(UEdGraph* MergeTarget, UEdGraph* P
 	{
 		UEdGraph* ChildGraph = ParentGraph->SubGraphs[Index];
 
-		if (bWantBoundaryNodes)
+		if (ChildGraph && MessageLog)
+		{
+			UK2Node_Composite* CompositeInstance = ChildGraph->GetTypedOuter<UK2Node_Composite>();
+			if (MessageLog->bTreatCompositeGraphsAsTunnels && CompositeInstance != nullptr)
+			{
+				// Locate or register active tunnels for this child graph.
+				TArray<TWeakObjectPtr<UEdGraphNode>> ActiveTunnels;
+				UEdGraphNode* TrueCompositeInstance = MessageLog->GetSourceTunnelNode(CompositeInstance);
+				MessageLog->GetTunnelsActiveForNode(TrueCompositeInstance, ActiveTunnels);
+				if (!ActiveTunnels.Num())
+				{
+					ActiveTunnels.Add(TrueCompositeInstance);
+					MessageLog->RegisterIntermediateTunnelInstance(TrueCompositeInstance, ActiveTunnels);
+				}
+				// Register composite nodes to the source composite instance.
+				for (auto Node : ChildGraph->Nodes)
+				{
+					MessageLog->RegisterIntermediateTunnelNode(Node, TrueCompositeInstance);
+					if (FBlueprintEditorUtils::IsTunnelInstanceNode(Node))
+					{
+						if (Node->IsA<UK2Node_Composite>())
+						{
+							UEdGraphNode* SourceNode = MessageLog->GetSourceTunnelNode(Node);
+							MessageLog->RegisterIntermediateTunnelInstance(SourceNode, ActiveTunnels);
+						}
+						else
+						{
+							// Register child macro instance nodes using the duplicated instance.
+							MessageLog->RegisterIntermediateTunnelInstance(Node, ActiveTunnels);
+						}
+					}
+				}
+			}
+		}
+		if (bWantBoundaryNodes && MessageLog)
 		{
 			// Create boundary nodes around tunnels for debugging/profiling if requested.
 			UK2Node_TunnelBoundary::CreateBoundaryNodesForGraph(ChildGraph, *MessageLog);
@@ -418,6 +450,37 @@ void FEdGraphUtilities::CopyCommonState(UEdGraphNode* OldNode, UEdGraphNode* New
 	NewNode->NodeWidth = OldNode->NodeWidth;
 	NewNode->NodeHeight = OldNode->NodeHeight;
 	NewNode->NodeComment = OldNode->NodeComment;
+}
+
+bool FEdGraphUtilities::IsSetParam(const UFunction* Function, const FString& ParameterName)
+{
+	if (Function == nullptr)
+	{
+		return false;
+	}
+
+	const FString& RawMetaData = Function->GetMetaData(FBlueprintMetadata::MD_SetParam);
+	if (RawMetaData.IsEmpty())
+	{
+		return false;
+	}
+
+	TArray<FString> SetParamPinGroups;
+	{
+		RawMetaData.ParseIntoArray(SetParamPinGroups, TEXT(","), true);
+	}
+
+	for (FString& Entry : SetParamPinGroups)
+	{
+		TArray<FString> GroupEntries;
+		Entry.ParseIntoArray(GroupEntries, TEXT("|"), true);
+		if (GroupEntries.Contains(ParameterName))
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void FEdGraphUtilities::RegisterVisualNodeFactory(TSharedPtr<FGraphPanelNodeFactory> NewFactory)

@@ -156,16 +156,19 @@
 
 #if HAS_GPU_STATS
 #define SCOPED_GPU_STAT(RHICmdList, Stat) FScopedGPUStatEvent PREPROCESSOR_JOIN(GPUStatEvent_##Stat,__LINE__); PREPROCESSOR_JOIN(GPUStatEvent_##Stat,__LINE__).Begin(RHICmdList, GET_STATID( Stat ) );
-#define GPU_STATS_UPDATE(RHICmdList) FRealtimeGPUProfiler::Get()->Update(RHICmdList);
+#define GPU_STATS_BEGINFRAME(RHICmdList) FRealtimeGPUProfiler::Get()->BeginFrame(RHICmdList);
+#define GPU_STATS_ENDFRAME(RHICmdList) FRealtimeGPUProfiler::Get()->EndFrame(RHICmdList);
 #else
 #define SCOPED_GPU_STAT(RHICmdList, Stat) 
-#define GPU_STATS_UPDATE(RHICmdList) 
+#define GPU_STATS_BEGINFRAME(RHICmdList) 
+#define GPU_STATS_ENDFRAME(RHICmdList) 
 #endif
 
 #if HAS_GPU_STATS
 
 class FRealtimeGPUProfilerEvent;
 class FRealtimeGPUProfilerFrame;
+class FRenderQueryPool;
 
 /**
 * FRealtimeGPUProfiler class. This manages recording and reporting all for GPU stats
@@ -178,7 +181,8 @@ public:
 	static ENGINE_API FRealtimeGPUProfiler* Get();
 
 	/** Per-frame update */
-	ENGINE_API void Update(FRHICommandListImmediate& RHICmdList);
+	ENGINE_API void BeginFrame(FRHICommandListImmediate& RHICmdList);
+	ENGINE_API void EndFrame(FRHICommandListImmediate& RHICmdList);
 
 	/** Final cleanup */
 	ENGINE_API void Release();
@@ -189,7 +193,6 @@ public:
 
 private:
 	FRealtimeGPUProfiler();
-	void UpdateStats(FRHICommandListImmediate& RHICmdList);
 
 	/** Ringbuffer of profiler frames */
 	TArray<FRealtimeGPUProfilerFrame*> Frames;
@@ -197,6 +200,9 @@ private:
 	int32 WriteBufferIndex;
 	int32 ReadBufferIndex;
 	uint32 WriteFrameNumber;
+	FRenderQueryPool* RenderQueryPool;
+	bool bStatGatheringPaused;
+	bool bInBeginEndBlock;
 };
 
 /**
@@ -244,3 +250,37 @@ ENGINE_API bool IsMobileHDR32bpp();
 
 /** True if the mobile renderer is emulating HDR with mosaic. */
 ENGINE_API bool IsMobileHDRMosaic();
+
+/**
+* A pool of render (e.g. occlusion/timer) queries which are allocated individually, and returned to the pool as a group.
+*/
+class ENGINE_API FRenderQueryPool
+{
+public:
+	FRenderQueryPool(ERenderQueryType InQueryType)
+		: QueryType(InQueryType)
+		, NumQueriesAllocated(0)
+	{ }
+
+	virtual ~FRenderQueryPool();
+
+	/** Releases all the render queries in the pool. */
+	void Release();
+
+	/** Allocates an render query from the pool. */
+	FRenderQueryRHIRef AllocateQuery();
+
+	/** De-reference an render query, returning it to the pool instead of deleting it when the refcount reaches 0. */
+	void ReleaseQuery(FRenderQueryRHIRef &Query);
+
+	/** Returns the number of currently allocated queries. This is not necessarily the same as the pool size */
+	int32 GetAllocatedQueryCount() const { return NumQueriesAllocated;  }
+
+private:
+	/** Container for available render queries. */
+	TArray<FRenderQueryRHIRef> Queries;
+
+	ERenderQueryType QueryType;
+
+	int32 NumQueriesAllocated;
+};

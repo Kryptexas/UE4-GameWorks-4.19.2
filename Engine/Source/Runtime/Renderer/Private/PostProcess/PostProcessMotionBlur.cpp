@@ -377,7 +377,7 @@ void FRCPassPostProcessVelocityScatter::Process(FRenderingCompositePassContext& 
 		TShaderMapRef< FPostProcessVelocityScatterPS > PixelShader(Context.GetShaderMap());
 
 		static FGlobalBoundShaderState BoundShaderState;
-		SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+		SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GEmptyVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 		VertexShader->SetParameters( Context, i );
 		PixelShader->SetParameters( Context );
@@ -796,12 +796,12 @@ public:
 			// Instead of finding the world space position of the current pixel, calculate the world space position offset by the camera position, 
 			// then translate by the difference between last frame's camera position and this frame's camera position,
 			// then apply the rest of the transforms.  This effectively avoids precision issues near the extents of large levels whose world space position is very large.
-			FVector ViewOriginDelta = Context.View.ViewMatrices.ViewOrigin - Context.View.PrevViewMatrices.ViewOrigin;
-			SetShaderValue(Context.RHICmdList, ShaderRHI, PrevViewProjMatrix, FTranslationMatrix(ViewOriginDelta) * Context.View.PrevViewRotationProjMatrix);
+			FVector ViewOriginDelta = Context.View.ViewMatrices.GetViewOrigin() - Context.View.PrevViewMatrices.GetViewOrigin();
+			SetShaderValue(Context.RHICmdList, ShaderRHI, PrevViewProjMatrix, FTranslationMatrix(ViewOriginDelta) * Context.View.PrevViewMatrices.ComputeViewRotationProjectionMatrix());
 		}
 		else
 		{
-			SetShaderValue(Context.RHICmdList, ShaderRHI, PrevViewProjMatrix, Context.View.ViewMatrices.GetViewRotationProjMatrix());
+			SetShaderValue(Context.RHICmdList, ShaderRHI, PrevViewProjMatrix, Context.View.ViewMatrices.ComputeViewRotationProjectionMatrix());
 		}
 	}
 
@@ -852,7 +852,7 @@ void FRCPassPostProcessVisualizeMotionBlur::Process(FRenderingCompositePassConte
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 	
 	// is optimized away if possible (RT size=view size, )
-	Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, SrcRect);
+	Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black, SrcRect);
 
 	Context.SetViewportAndCallRHI(SrcRect);
 
@@ -883,27 +883,7 @@ void FRCPassPostProcessVisualizeMotionBlur::Process(FRenderingCompositePassConte
 		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
-	// this is a helper class for FCanvas to be able to get screen size
-	class FRenderTargetTemp : public FRenderTarget
-	{
-	public:
-		const FSceneView& View;
-		const FTexture2DRHIRef Texture;
-
-		FRenderTargetTemp(const FSceneView& InView, const FTexture2DRHIRef InTexture)
-			: View(InView), Texture(InTexture)
-		{
-		}
-		virtual FIntPoint GetSizeXY() const
-		{
-			return View.ViewRect.Size();
-		};
-		virtual const FTexture2DRHIRef& GetRenderTargetTexture() const
-		{
-			return Texture;
-		}
-	} TempRenderTarget(View, (const FTexture2DRHIRef&)DestRenderTarget.TargetableTexture);
-
+	FRenderTargetTemp TempRenderTarget(View, (const FTexture2DRHIRef&)DestRenderTarget.TargetableTexture);
 	FCanvas Canvas(&TempRenderTarget, NULL, ViewFamily.CurrentRealTime, ViewFamily.CurrentWorldTime, ViewFamily.DeltaWorldTime, Context.GetFeatureLevel());
 
 	float X = 20;
@@ -940,8 +920,8 @@ void FRCPassPostProcessVisualizeMotionBlur::Process(FRenderingCompositePassConte
 	const FSceneViewState *SceneViewState = (const FSceneViewState*)View.State;
 
 	Line = FString::Printf(TEXT("View=%.4x PrevView=%.4x"),
-		View.ViewMatrices.ViewMatrix.ComputeHash() & 0xffff,
-		SceneViewState->PrevViewMatrices.ViewMatrix.ComputeHash() & 0xffff);
+		View.ViewMatrices.GetViewMatrix().ComputeHash() & 0xffff,
+		SceneViewState->PrevViewMatrices.GetViewMatrix().ComputeHash() & 0xffff);
 	Canvas.DrawShadowedString(X, Y += YStep, TEXT("ViewMatrix:"), GetStatsFont(), FLinearColor(1, 1, 0));
 	Canvas.DrawShadowedString(X + ColumnWidth, Y, *Line, GetStatsFont(), FLinearColor(1, 1, 0));
 

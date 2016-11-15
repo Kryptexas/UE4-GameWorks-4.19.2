@@ -32,6 +32,10 @@
 #include "InGamePerformanceTracker.h"
 #include "Streaming/TextureStreamingHelpers.h"
 
+#if WITH_EDITOR
+	#include "UnrealEd.h"
+#endif
+
 // this will log out all of the objects that were ticked in the FDetailedTickStats struct so you can isolate what is expensive
 #define LOG_DETAILED_DUMPSTATS 0
 
@@ -82,12 +86,14 @@ DEFINE_STAT(STAT_FinishAsyncTraceTickTime);
 DEFINE_STAT(STAT_NetBroadcastTickTime);
 DEFINE_STAT(STAT_NetServerRepActorsTime);
 DEFINE_STAT(STAT_NetConsiderActorsTime);
+DEFINE_STAT(STAT_NetUpdateUnmappedObjectsTime);
 DEFINE_STAT(STAT_NetInitialDormantCheckTime);
 DEFINE_STAT(STAT_NetPrioritizeActorsTime);
 DEFINE_STAT(STAT_NetReplicateActorsTime);
 DEFINE_STAT(STAT_NetReplicateDynamicPropTime);
 DEFINE_STAT(STAT_NetSkippedDynamicProps);
 DEFINE_STAT(STAT_NetSerializeItemDeltaTime);
+DEFINE_STAT(STAT_NetUpdateGuidToReplicatorMap);
 DEFINE_STAT(STAT_NetReplicateStaticPropTime);
 DEFINE_STAT(STAT_NetBroadcastPostTickTime);
 DEFINE_STAT(STAT_NetRebuildConditionalTime);
@@ -377,6 +383,8 @@ void AController::TickActor( float DeltaSeconds, ELevelTick TickType, FActorTick
 
 void UWorld::TickNetClient( float DeltaSeconds )
 {
+	SCOPE_TIME_GUARD(TEXT("UWorld::TickNetClient"));
+
 	// If our net driver has lost connection to the server,
 	// and there isn't a PendingNetGame, throw a network failure error.
 	if( NetDriver->ServerConnection->State == USOCK_Closed )
@@ -404,6 +412,17 @@ bool UWorld::IsPaused() const
 				(IsPlayInEditor() && bDebugPauseExecution) );
 }
 
+
+bool UWorld::IsCameraMoveable() const
+{
+	bool bIsCameraMoveable = (!IsPaused() || bIsCameraMoveableWhenPaused);
+#if WITH_EDITOR
+	// to fix UE-17047 Motion Blur exaggeration when Paused in Simulate:
+	// Simulate is excluded as the camera can move which invalidates motionblur
+	bIsCameraMoveable = bIsCameraMoveable || (GEditor && GEditor->bIsSimulatingInEditor);
+#endif
+	return bIsCameraMoveable;
+}
 
 /**
  * Streaming settings for levels which are determined visible by level streaming volumes.
@@ -497,6 +516,11 @@ private:
  */
 void UWorld::ProcessLevelStreamingVolumes(FVector* OverrideViewLocation)
 {
+	if (GetWorldSettings()->bUseClientSideLevelStreamingVolumes != (GetNetMode() == NM_Client))
+	{
+		return;
+	}
+
 	// if we are delaying using streaming volumes, return now
 	if( StreamingVolumeUpdateDelay > 0 )
 	{
@@ -766,6 +790,25 @@ void UWorld::UpdateActorComponentEndOfFrameUpdateState(UActorComponent* Componen
 	}
 }
 
+void UWorld::ClearActorComponentEndOfFrameUpdate(UActorComponent* Component)
+{
+	check(!bPostTickComponentUpdate); // can't call this while we are doing the updates
+
+	const uint32 CurrentState = Component->GetMarkedForEndOfFrameUpdateState();
+
+	if (CurrentState == EComponentMarkedForEndOfFrameUpdateState::Marked)
+	{
+		TWeakObjectPtr<UActorComponent> WeakComponent(Component);
+		verify(ComponentsThatNeedEndOfFrameUpdate.Remove(WeakComponent) == 1);
+	}
+	else if (CurrentState == EComponentMarkedForEndOfFrameUpdateState::MarkedForGameThread)
+	{
+		TWeakObjectPtr<UActorComponent> WeakComponent(Component);
+		verify(ComponentsThatNeedEndOfFrameUpdate_OnGameThread.Remove(WeakComponent) == 1);
+	}
+	FMarkComponentEndOfFrameUpdateState::Set(Component, EComponentMarkedForEndOfFrameUpdateState::Unmarked);
+}
+
 void UWorld::MarkActorComponentForNeededEndOfFrameUpdate(UActorComponent* Component, bool bForceGameThread)
 {
 	check(!bPostTickComponentUpdate); // can't call this while we are doing the updates
@@ -830,10 +873,10 @@ void UWorld::SendAllEndOfFrameUpdates()
 	auto ParallelWork = 
 		[](int32 Index) 
 		{
-			UActorComponent* NextComponent = LocalComponentsThatNeedEndOfFrameUpdate[Index].Get();
+			UActorComponent* NextComponent = LocalComponentsThatNeedEndOfFrameUpdate[Index].Get(/*bEvenIfPendingKill*/true);
 			if (NextComponent)
 			{
-				if (NextComponent->IsRegistered() && !NextComponent->IsTemplate())
+				if (NextComponent->IsRegistered() && !NextComponent->IsTemplate() && !NextComponent->IsPendingKill())
 				{
 					FScopeCycleCounterUObject ComponentScope(NextComponent);
 					FScopeCycleCounterUObject AdditionalScope(STATS ? NextComponent->AdditionalStatObject() : NULL);
@@ -849,10 +892,10 @@ void UWorld::SendAllEndOfFrameUpdates()
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_PostTickComponentUpdate_ForcedGameThread);
 			for (TWeakObjectPtr<UActorComponent> Elem : ComponentsThatNeedEndOfFrameUpdate_OnGameThread)
 			{
-				UActorComponent* Component = Elem.Get();
+				UActorComponent* Component = Elem.Get(/*bEvenIfPendingKill*/true);
 				if (Component)
 				{
-					if (Component->IsRegistered() && !Component->IsTemplate())
+					if (Component->IsRegistered() && !Component->IsTemplate() && !Component->IsPendingKill())
 					{
 						FScopeCycleCounterUObject ComponentScope(Component);
 						FScopeCycleCounterUObject AdditionalScope(STATS ? Component->AdditionalStatObject() : NULL);
@@ -1210,6 +1253,8 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	DeltaSeconds = GameDeltaSeconds;
 	DeltaTimeSeconds = DeltaSeconds;
 
+	UnpausedTimeSeconds += DeltaSeconds;
+
 	if ( !bIsPaused )
 	{
 		TimeSeconds += DeltaSeconds;
@@ -1257,122 +1302,152 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 
 	// Reset the list of objects the LatentActionManager has processed this frame
 	CurrentLatentActionManager.BeginFrame();
-	// If caller wants time update only, or we are paused, skip the rest.
+	
 	if (bDoingActorTicks)
 	{
 		// Reset Async Trace before Tick starts 
-		{
-			SCOPE_CYCLE_COUNTER(STAT_ResetAsyncTraceTickTime);
-			ResetAsyncTrace();
-		}
-		SetupPhysicsTickFunctions(DeltaSeconds);
-		TickGroup = TG_PrePhysics; // reset this to the start tick group
-		FTickTaskManagerInterface::Get().StartFrame(this, DeltaSeconds, TickType);
+		SCOPE_CYCLE_COUNTER(STAT_ResetAsyncTraceTickTime);
+		ResetAsyncTrace();
+	}
 
-		SCOPE_CYCLE_COUNTER(STAT_TickTime);
-		{
-			SCOPE_CYCLE_COUNTER(STAT_TG_PrePhysics);
-			RunTickGroup(TG_PrePhysics);
-		}
-        bInTick = false;
-        EnsureCollisionTreeIsBuilt();
-        bInTick = true;
-		{
-			SCOPE_CYCLE_COUNTER(STAT_TG_StartPhysics);
-			RunTickGroup(TG_StartPhysics); 
-		}
-		{
-			SCOPE_CYCLE_COUNTER(STAT_TG_DuringPhysics);
-			RunTickGroup(TG_DuringPhysics, false); // No wait here, we should run until idle though. We don't care if all of the async ticks are done before we start running post-phys stuff
-		}
-		TickGroup = TG_EndPhysics; // set this here so the current tick group is correct during collision notifies, though I am not sure it matters. 'cause of the false up there^^^
-		{
-			SCOPE_CYCLE_COUNTER(STAT_TG_EndPhysics);
-			RunTickGroup(TG_EndPhysics);
-		}
-		{
-			SCOPE_CYCLE_COUNTER(STAT_TG_PostPhysics);
-			RunTickGroup(TG_PostPhysics);
-		}
-	}
-	else if( bIsPaused )
+	for (FLevelCollection& LC : LevelCollections)
 	{
-		FTickTaskManagerInterface::Get().RunPauseFrame(this, DeltaSeconds, LEVELTICK_PauseTick);
-	}
-	// Process any remaining latent actions
-	if( !bIsPaused )
-	{
-		// This will process any latent actions that have not been processed already
-		CurrentLatentActionManager.ProcessLatentActions(NULL, DeltaSeconds);
-	}
+		// Build a list of levels from the collection that are also in the world's Levels array.
+		// Collections may contain levels that aren't loaded in the world at the moment.
+		TArray<ULevel*> LevelsToTick;
+		for (ULevel* CollectionLevel : LC.GetLevels())
+		{
+			if (Levels.Contains(CollectionLevel))
+			{
+				LevelsToTick.Add(CollectionLevel);
+			}
+		}
+
+		// Set up context on the world for this level collection
+		FScopedLevelCollectionContextSwitch LevelContext(&LC, this);
+
+		// If caller wants time update only, or we are paused, skip the rest.
+		if (bDoingActorTicks)
+		{
+			// Actually tick actors now that context is set up
+			SetupPhysicsTickFunctions(DeltaSeconds);
+			TickGroup = TG_PrePhysics; // reset this to the start tick group
+			FTickTaskManagerInterface::Get().StartFrame(this, DeltaSeconds, TickType, LevelsToTick);
+
+			SCOPE_CYCLE_COUNTER(STAT_TickTime);
+			{
+				SCOPE_CYCLE_COUNTER(STAT_TG_PrePhysics);
+				RunTickGroup(TG_PrePhysics);
+			}
+			bInTick = false;
+			EnsureCollisionTreeIsBuilt();
+			bInTick = true;
+			{
+				SCOPE_CYCLE_COUNTER(STAT_TG_StartPhysics);
+				RunTickGroup(TG_StartPhysics); 
+			}
+			{
+				SCOPE_CYCLE_COUNTER(STAT_TG_DuringPhysics);
+				RunTickGroup(TG_DuringPhysics, false); // No wait here, we should run until idle though. We don't care if all of the async ticks are done before we start running post-phys stuff
+			}
+			TickGroup = TG_EndPhysics; // set this here so the current tick group is correct during collision notifies, though I am not sure it matters. 'cause of the false up there^^^
+			{
+				SCOPE_CYCLE_COUNTER(STAT_TG_EndPhysics);
+				RunTickGroup(TG_EndPhysics);
+			}
+			{
+				SCOPE_CYCLE_COUNTER(STAT_TG_PostPhysics);
+				RunTickGroup(TG_PostPhysics);
+			}
+	
+		}
+		else if( bIsPaused )
+		{
+			FTickTaskManagerInterface::Get().RunPauseFrame(this, DeltaSeconds, LEVELTICK_PauseTick, LevelsToTick);
+		}
+		
+		// We only want to run the following once, so only run it for the source level collection.
+		if (LC.GetType() == ELevelCollectionType::DynamicSourceLevels)
+		{
+			// Process any remaining latent actions
+			if( !bIsPaused )
+			{
+				// This will process any latent actions that have not been processed already
+				CurrentLatentActionManager.ProcessLatentActions(NULL, DeltaSeconds);
+			}
 #if 0 // if you need to debug physics drawing in editor, use this. If you type pxvis collision, it will work. 
-	else
-	{
-		// Tick our async work (physics, etc.) and tick with no elapsed time for playersonly
-		TickAsyncWork(0.f);
-		// Wait for async work to come back
-		WaitForAsyncWork();
-	}
+			else
+			{
+				// Tick our async work (physics, etc.) and tick with no elapsed time for playersonly
+				TickAsyncWork(0.f);
+				// Wait for async work to come back
+				WaitForAsyncWork();
+			}
 #endif
 
-	{
-		SCOPE_CYCLE_COUNTER(STAT_TickableTickTime);
-
-		if (TickType != LEVELTICK_TimeOnly && !bIsPaused)
-		{
-			STAT(FScopeCycleCounter Context(GetTimerManager().GetStatId());)
-			GetTimerManager().Tick(DeltaSeconds);
-		}
-
-		FTickableGameObject::TickObjects(this, TickType, bIsPaused, DeltaSeconds);
-	}
-	
-	// Update cameras and streaming volumes
-	{
-		SCOPE_CYCLE_COUNTER(STAT_UpdateCameraTime);
-		// Update cameras last. This needs to be done before NetUpdates, and after all actors have been ticked.
-		for( FConstPlayerControllerIterator Iterator = GetPlayerControllerIterator(); Iterator; ++Iterator )
-		{
-			APlayerController* PlayerController = *Iterator;			
-			if (!bIsPaused || PlayerController->ShouldPerformFullTickWhenPaused())
 			{
-				PlayerController->UpdateCameraManager(DeltaSeconds);
+				SCOPE_CYCLE_COUNTER(STAT_TickableTickTime);
+
+				if (TickType != LEVELTICK_TimeOnly && !bIsPaused)
+				{
+					STAT(FScopeCycleCounter Context(GetTimerManager().GetStatId());)
+					GetTimerManager().Tick(DeltaSeconds);
+				}
+
+				FTickableGameObject::TickObjects(this, TickType, bIsPaused, DeltaSeconds);
+			}
+
+			// Update cameras and streaming volumes
+			{
+				SCOPE_CYCLE_COUNTER(STAT_UpdateCameraTime);
+				// Update cameras last. This needs to be done before NetUpdates, and after all actors have been ticked.
+				for( FConstPlayerControllerIterator Iterator = GetPlayerControllerIterator(); Iterator; ++Iterator )
+				{
+					APlayerController* PlayerController = *Iterator;			
+					PlayerController->UpdateCameraManager(DeltaSeconds);
+				}
+
+				if( !bIsPaused )
+				{
+					// Issues level streaming load/unload requests based on local players being inside/outside level streaming volumes.
+					if (IsGameWorld())
+					{
+						ProcessLevelStreamingVolumes();
+
+						if (WorldComposition)
+						{
+							WorldComposition->UpdateStreamingState();
+						}
+					}
+				}
 			}
 		}
 
-		if( !bIsPaused )
+		if (bDoingActorTicks)
 		{
-			// Issues level streaming load/unload requests based on local players being inside/outside level streaming volumes.
-			if (IsGameWorld() && GetNetMode() != NM_Client)
+			SCOPE_CYCLE_COUNTER(STAT_TickTime);
 			{
-				ProcessLevelStreamingVolumes();
+				SCOPE_CYCLE_COUNTER(STAT_TG_PostUpdateWork);
+				RunTickGroup(TG_PostUpdateWork);
+			}
+			{
+				SCOPE_CYCLE_COUNTER(STAT_TG_LastDemotable);
+				RunTickGroup(TG_LastDemotable);
 			}
 
-			if (IsGameWorld() && WorldComposition)
-			{
-				WorldComposition->UpdateStreamingState();
-			}
+			FTickTaskManagerInterface::Get().EndFrame(); 
 		}
 	}
 
 	if (bDoingActorTicks)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_TickTime);
-		{
-			SCOPE_CYCLE_COUNTER(STAT_TG_PostUpdateWork);
-			RunTickGroup(TG_PostUpdateWork);
-		}
-		{
-			SCOPE_CYCLE_COUNTER(STAT_TG_LastDemotable);
-			RunTickGroup(TG_LastDemotable);
-		}
+
 		if ( PhysicsScene != NULL )
 		{
 			GPhysCommandHandler->Flush();
 		}
 		
-		FTickTaskManagerInterface::Get().EndFrame(); 
-
 		// All tick is done, execute async trace
 		{
 			SCOPE_CYCLE_COUNTER(STAT_FinishAsyncTraceTickTime);
@@ -1441,11 +1516,9 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	{
 		TimeSinceLastPendingKillPurge += DeltaSeconds;
 
-		const bool bAtLeastOnePlayerConnected = NetDriver && NetDriver->ClientConnections.Num() > 0;
-		const bool bShouldUseLowFrequencyGC = IsRunningDedicatedServer() && !bAtLeastOnePlayerConnected;
-		const float TimeBetweenPurgingPendingKillObjects = bShouldUseLowFrequencyGC ? 
-			GTimeBetweenPurgingPendingKillObjects * 10 :
-			GTimeBetweenPurgingPendingKillObjects;
+		const float TimeBetweenPurgingPendingKillObjects = GetTimeBetweenGarbageCollectionPasses();
+
+		
 
 		// See if we should delay garbage collect for this frame
 		if (bShouldDelayGarbageCollect)
@@ -1554,6 +1627,22 @@ void UWorld::DelayGarbageCollection()
 	bShouldDelayGarbageCollect = true;
 }
 
+void UWorld::SetTimeUntilNextGarbageCollection(float MinTimeUntilNextPass)
+{
+	const float TimeBetweenPurgingPendingKillObjects = GetTimeBetweenGarbageCollectionPasses();
+
+	// This can make it go negative if the desired interval is longer than the typical interval, but it's only ever compared against TimeBetweenPurgingPendingKillObjects
+	TimeSinceLastPendingKillPurge = TimeBetweenPurgingPendingKillObjects - MinTimeUntilNextPass;
+}
+
+float UWorld::GetTimeBetweenGarbageCollectionPasses() const
+{
+	const bool bAtLeastOnePlayerConnected = NetDriver && NetDriver->ClientConnections.Num() > 0;
+	const bool bShouldUseLowFrequencyGC = IsRunningDedicatedServer() && !bAtLeastOnePlayerConnected;
+
+	return bShouldUseLowFrequencyGC ? (GTimeBetweenPurgingPendingKillObjects * 10) : GTimeBetweenPurgingPendingKillObjects;
+}
+
 /**
  *  Interface to allow WorldSettings to request immediate garbage collection
  */
@@ -1569,7 +1658,7 @@ void UWorld::PerformGarbageCollectionAndCleanupActors()
 			CleanupActors();
 
 			// Reset counter.
-			TimeSinceLastPendingKillPurge = 0;
+			TimeSinceLastPendingKillPurge = 0.0f;
 		}
 	}
 }
@@ -1608,8 +1697,6 @@ void UWorld::CleanupActors()
 
 void UWorld::ForceGarbageCollection( bool bForcePurge/*=false*/ )
 {
-	TimeSinceLastPendingKillPurge = 1.f + GTimeBetweenPurgingPendingKillObjects;
+	TimeSinceLastPendingKillPurge = 1.0f + GetTimeBetweenGarbageCollectionPasses();
 	FullPurgeTriggered = FullPurgeTriggered || bForcePurge;
 }
-
-

@@ -7,7 +7,7 @@
 //////////////////////////////////////////////////////////////////////////
 // FAssetEditorModeManager
 
-class UNREALED_API FAssetEditorModeManager : public FEditorModeTools
+class UNREALED_API FAssetEditorModeManager : public FEditorModeTools, public TSharedFromThis<FAssetEditorModeManager>
 {
 public:
 	FAssetEditorModeManager();
@@ -21,6 +21,8 @@ public:
 	// End of FEditorModeTools interface
 
 	void SetPreviewScene(class FPreviewScene* NewPreviewScene);
+	FPreviewScene* GetPreviewScene() const;
+
 protected:
 	class USelection* ActorSet;
 	class USelection* ObjectSet;

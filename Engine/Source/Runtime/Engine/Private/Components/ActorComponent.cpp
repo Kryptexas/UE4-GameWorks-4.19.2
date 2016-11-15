@@ -137,7 +137,25 @@ void UActorComponent::PostInitProperties()
 	// Instance components will be added during the owner's initialization
 	if (OwnerPrivate && CreationMethod != EComponentCreationMethod::Instance)
 	{
-		OwnerPrivate->AddOwnedComponent(this);
+		if (!FPlatformProperties::RequiresCookedData() && CreationMethod == EComponentCreationMethod::Native && HasAllFlags(RF_NeedLoad|RF_DefaultSubObject))
+		{
+			UObject* MyArchetype = GetArchetype();
+			if (!MyArchetype->IsPendingKill() && MyArchetype != GetClass()->ClassDefaultObject)
+			{
+				OwnerPrivate->AddOwnedComponent(this);
+			}
+			else
+			{
+				// else: this is a natively created component that thinks its archetype is the CDO of
+				// this class, rather than a template component and this isn't the template component.
+				// Delete this stale component:
+				MarkPendingKill();
+			}
+		}
+		else
+		{
+			OwnerPrivate->AddOwnedComponent(this);
+		}
 	}
 }
 
@@ -221,7 +239,7 @@ void UActorComponent::PostRename(UObject* OldOuter, const FName OldName)
 	if (OldOuter != GetOuter())
 	{
 		OwnerPrivate = GetTypedOuter<AActor>();
-		AActor* OldOwner = (OldOuter->IsA<AActor>() ? CastChecked<AActor>(OldOuter) : OldOuter->GetTypedOuter<AActor>());
+		AActor* OldOwner = (OldOuter->IsA<AActor>() ? static_cast<AActor*>(OldOuter) : OldOuter->GetTypedOuter<AActor>());
 
 		if (OwnerPrivate != OldOwner)
 		{
@@ -235,21 +253,28 @@ void UActorComponent::PostRename(UObject* OldOuter, const FName OldName)
 			}
 
 			TArray<UObject*> Children;
-			GetObjectsWithOuter(this, Children);
+			GetObjectsWithOuter(this, Children, /*bIncludeNestedObjects=*/false);
 
-			for (UObject* Child : Children)
+			for (int32 Index = 0; Index < Children.Num(); ++Index)
 			{
-				if (UActorComponent* ChildComponent = Cast<UActorComponent>(Child))
+				UObject* Child = Children[Index];
+
+				// Cut off if we have a nested Actor
+				if (!Child->IsA<AActor>())
 				{
-					ChildComponent->OwnerPrivate = OwnerPrivate;
-					if (OldOwner)
+					if (UActorComponent* ChildComponent = Cast<UActorComponent>(Child))
 					{
-						OldOwner->RemoveOwnedComponent(ChildComponent);
+						ChildComponent->OwnerPrivate = OwnerPrivate;
+						if (OldOwner)
+						{
+							OldOwner->RemoveOwnedComponent(ChildComponent);
+						}
+						if (OwnerPrivate)
+						{
+							OwnerPrivate->AddOwnedComponent(ChildComponent);
+						}
 					}
-					if (OwnerPrivate)
-					{
-						OwnerPrivate->AddOwnedComponent(ChildComponent);
-					}
+					GetObjectsWithOuter(Child, Children, /*bIncludeNestedObjects=*/false);
 				}
 			}
 		}
@@ -407,18 +432,16 @@ void UActorComponent::BeginDestroy()
 	Super::BeginDestroy();
 }
 
-
 bool UActorComponent::NeedsLoadForClient() const
 {
 	check(GetOuter());
-	return (GetOuter()->NeedsLoadForClient() && Super::NeedsLoadForClient());
+	return (!IsEditorOnly() && GetOuter()->NeedsLoadForClient() && Super::NeedsLoadForClient());
 }
-
 
 bool UActorComponent::NeedsLoadForServer() const
 {
 	check(GetOuter());
-	return (GetOuter()->NeedsLoadForServer() && Super::NeedsLoadForServer());
+	return (!IsEditorOnly() && GetOuter()->NeedsLoadForServer() && Super::NeedsLoadForServer());
 }
 
 int32 UActorComponent::GetFunctionCallspace( UFunction* Function, void* Parameters, FFrame* Stack )
@@ -536,21 +559,28 @@ void UActorComponent::PostEditUndo()
 		}
 
 		TArray<UObject*> Children;
-		GetObjectsWithOuter(this, Children);
+		GetObjectsWithOuter(this, Children, /*bIncludeNestedObjects=*/false);
 
-		for (UObject* Child : Children)
+		for (int32 Index = 0; Index < Children.Num(); ++Index)
 		{
-			if (UActorComponent* ChildComponent = Cast<UActorComponent>(Child))
+			UObject* Child = Children[Index];
+
+			// Cut off if we have a nested Actor
+			if (!Child->IsA<AActor>())
 			{
-				if (ChildComponent->OwnerPrivate)
+				if (UActorComponent* ChildComponent = Cast<UActorComponent>(Child))
 				{
-					ChildComponent->OwnerPrivate->RemoveOwnedComponent(ChildComponent);
+					if (ChildComponent->OwnerPrivate)
+					{
+						ChildComponent->OwnerPrivate->RemoveOwnedComponent(ChildComponent);
+					}
+					ChildComponent->OwnerPrivate = OwnerPrivate;
+					if (OwnerPrivate)
+					{
+						OwnerPrivate->AddOwnedComponent(ChildComponent);
+					}
 				}
-				ChildComponent->OwnerPrivate = OwnerPrivate;
-				if (OwnerPrivate)
-				{
-					OwnerPrivate->AddOwnedComponent(ChildComponent);
-				}
+				GetObjectsWithOuter(Child, Children, /*bIncludeNestedObjects=*/false);
 			}
 		}
 
@@ -636,7 +666,11 @@ void UActorComponent::OnRegister()
 
 	if (bAutoActivate)
 	{
-		Activate(true);
+		AActor* Owner = GetOwner();
+		if (!WorldPrivate->IsGameWorld() || Owner == nullptr || Owner->IsActorInitialized())
+		{
+			Activate(true);
+		}
 	}
 }
 
@@ -729,7 +763,7 @@ bool UActorComponent::SetupActorComponentTickFunction(struct FTickFunction* Tick
 
 void UActorComponent::SetComponentTickEnabled(bool bEnabled)
 {
-	if (!IsTemplate() && PrimaryComponentTick.bCanEverTick)
+	if (PrimaryComponentTick.bCanEverTick && !IsTemplate())
 	{
 		PrimaryComponentTick.SetTickFunctionEnable(bEnabled);
 	}
@@ -737,7 +771,7 @@ void UActorComponent::SetComponentTickEnabled(bool bEnabled)
 
 void UActorComponent::SetComponentTickEnabledAsync(bool bEnabled)
 {
-	if (!IsTemplate() && PrimaryComponentTick.bCanEverTick)
+	if (PrimaryComponentTick.bCanEverTick && !IsTemplate())
 	{
 		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.SetComponentTickEnabledAsync"),
 			STAT_FSimpleDelegateGraphTask_SetComponentTickEnabledAsync,
@@ -898,7 +932,7 @@ void UActorComponent::RegisterComponentWithWorld(UWorld* InWorld)
 		if (MyOwner->HasActorBegunPlay() || MyOwner->IsActorBeginningPlay())
 		{
 			RegisterAllComponentTickFunctions(true);
-			if (bWantsBeginPlay && !bHasBegunPlay)
+			if (!bHasBegunPlay)
 			{
 				BeginPlay();
 			}
@@ -914,7 +948,7 @@ void UActorComponent::RegisterComponentWithWorld(UWorld* InWorld)
 		for (UObject* Child : Children)
 		{
 			UActorComponent* ChildComponent = Cast<UActorComponent>(Child);
-			if (ChildComponent && !ChildComponent->IsRegistered())
+			if (ChildComponent && !ChildComponent->IsRegistered() && ChildComponent->GetOwner() == MyOwner)
 			{
 				ChildComponent->RegisterComponentWithWorld(InWorld);
 			}
@@ -1377,7 +1411,7 @@ void UActorComponent::Activate(bool bReset)
 		SetComponentTickEnabled(true);
 		bIsActive = true;
 
-		OnComponentActivated.Broadcast(bReset);
+		OnComponentActivated.Broadcast(this, bReset);
 	}
 }
 
@@ -1388,7 +1422,7 @@ void UActorComponent::Deactivate()
 		SetComponentTickEnabled(false);
 		bIsActive = false;
 
-		OnComponentDeactivated.Broadcast();
+		OnComponentDeactivated.Broadcast(this);
 	}
 }
 

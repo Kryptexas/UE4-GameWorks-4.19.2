@@ -23,7 +23,7 @@ public:
 public:	
 	FAnimNode_PoseByName()
 		: PoseWeight(1.f)
-		, PoseUID(FSmartNameMapping::MaxUID)
+		, PoseUID(SmartName::MaxUID)
 	{
 	}
 
@@ -36,6 +36,6 @@ public:
 	// End of FAnimNode_Base interface
 private:
 	// PoseUID
-	FSmartNameMapping::UID PoseUID;
+	SmartName::UID_Type PoseUID;
 };
 

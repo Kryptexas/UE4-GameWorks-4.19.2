@@ -15,6 +15,7 @@ class FRepLayout;
 class FObjectReplicator;
 class FNetworkObjectList;
 struct FNetworkObjectInfo;
+class FReplicationChangelistMgr;
 
 //
 // Whether to support net lag and packet loss testing.
@@ -285,6 +286,8 @@ public:
 	double						StatUpdateTime;
 	/** Interval between gathering stats */
 	float						StatPeriod;
+	/** Collect net stats even if not FThreadStats::IsCollectingData(). */
+	bool bCollectNetStats;
 	/** Time of last netdriver cleanup pass */
 	double						LastCleanupTime;
 	/** Used to determine if checking for standby cheats should occur */
@@ -332,6 +335,9 @@ public:
 	/** Maps FRepLayout to the respective UClass */
 	TMap< TWeakObjectPtr< UObject >, TSharedPtr< FRepLayout > >					RepLayoutMap;
 
+	/** Maps an object to the respective FReplicationChangelistMgr */
+	TMap< TWeakObjectPtr< UObject >, TSharedPtr< FReplicationChangelistMgr > >	ReplicationChangeListMap;
+
 	/** Creates if necessary, and returns a FRepLayout that maps to the passed in UClass */
 	TSharedPtr< FRepLayout >	GetObjectClassRepLayout( UClass * InClass );
 
@@ -341,7 +347,12 @@ public:
 	/** Creates if necessary, and returns a FRepLayout that maps to the passed in UStruct */
 	TSharedPtr<FRepLayout>		GetStructRepLayout( UStruct * Struct );
 
-	TSet< TWeakPtr< FObjectReplicator > > UnmappedReplicators;
+	/** Returns the FReplicationChangelistMgr that is associated with the passed in object */
+	TSharedPtr< FReplicationChangelistMgr > GetReplicationChangeListMgr( UObject* Object );
+
+	TMap< FNetworkGUID, TSet< FObjectReplicator* > >	GuidToReplicatorMap;
+	int32												TotalTrackedGuidMemoryBytes;
+	TSet< FObjectReplicator* >							UnmappedReplicators;
 
 	/** Handles to various registered delegates */
 	FDelegateHandle TickDispatchDelegateHandle;
@@ -656,6 +667,11 @@ public:
 	/** Stop adaptive replication for the given actor if it's currently throttled. It maybe be allowed to throttle again later. */
 	ENGINE_API void CancelAdaptiveReplication(FNetworkObjectInfo& InNetworkActor);
 
+	/** Returns the level ID/PIE instance ID for this netdriver to use. */
+	ENGINE_API int32 GetDuplicateLevelID() const { return DuplicateLevelID; }
+
+	/** Sets the level ID/PIE instance ID for this netdriver to use. */
+	ENGINE_API void SetDuplicateLevelID(const int32 InDuplicateLevelID) { DuplicateLevelID = InDuplicateLevelID; }
 
 protected:
 
@@ -685,4 +701,7 @@ private:
 
 	/** Set to "Lagging" on the server when all client connections are near timing out. We are lagging on the client when the server connection is near timed out. */
 	ENetworkLagState::Type LagState;
+
+	/** Duplicate level instance to use for playback (PIE instance ID) */
+	int32 DuplicateLevelID;
 };

@@ -137,7 +137,7 @@ void MainVS(
 void MainVS(
 	uint VId : SV_VertexID,
 	uint IId : SV_InstanceID,
-	out float2 OutTexCoord : TEXCOORD0,
+	out noperspective float2 OutTexCoord : TEXCOORD0,
 	out nointerpolation float4 OutColor : TEXCOORD1,
 	out float4 OutPosition : SV_POSITION
 	)

@@ -1,9 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef _SLATERENDERRD3D_H__
-#define _SLATERENDERRD3D_H__
-
+#pragma once
 
 class FSlateD3DTextureManager;
 class FSlateD3D11RenderingPolicy;
@@ -78,5 +75,3 @@ private:
 	TSharedPtr<FSlateD3D11RenderingPolicy> RenderingPolicy;
 	TArray<TSharedPtr<FSlateDynamicImageBrush>> DynamicBrushesToRemove;
 };
-
-#endif

@@ -27,7 +27,7 @@ class UK2Node_Copy : public UK2Node
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual FText GetMenuCategory() const override;
 	virtual int32 GetNodeRefreshPriority() const override { return EBaseNodeRefreshPriority::Low_UsesDependentWildcard; }
-	virtual bool AllowSplitPins() const override { return false; }
+	virtual bool CanSplitPin(const UEdGraphPin* Pin) const override { return false; }
 	//~ End UK2Node Interface
 
 	/** Get the input reference pin */

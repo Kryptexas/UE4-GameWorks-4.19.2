@@ -901,20 +901,11 @@ FReply SPListEditorPanel::OnOpenClicked()
 	TArray<FString> OutOpenFilenames;
 	if ( DesktopPlatform )
 	{
-		// Get the parent window
-		void* ParentWindowWindowHandle = NULL;
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-		if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
-		{
-			ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-		}
-
 		//FString DefaultPath = FPaths::GameDir() + TEXT("Build/IOS/");
 		//FString DefaultFile = FString(FApp::GetGameName()) + TEXT("-Info.plist");
 		FString FileTypes = TEXT("Property List (*.plist)|*.plist|All Files (*.*)|*.*");
 		DesktopPlatform->OpenFileDialog(
-			ParentWindowWindowHandle,
+			FSlateApplication::Get().FindBestParentWindowHandleForDialogs(AsShared()),
 			LOCTEXT("PListOpenDialogTitle", "Open").ToString(),
 			InOutLastPath,
 			TEXT(""),
@@ -1025,17 +1016,9 @@ bool SPListEditorPanel::PromptSave()
 			TArray<FString> OutFilenames;
 			if (DesktopPlatform)
 			{
-				void* ParentWindowWindowHandle = NULL;
-				IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-				const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-				if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
-				{
-					ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-				}
-			
 				FString FileTypes = TEXT("Property List (*.plist)|*.plist|All Files (*.*)|*.*");
 				DesktopPlatform->SaveFileDialog(
-					ParentWindowWindowHandle,
+					FSlateApplication::Get().FindBestParentWindowHandleForDialogs(AsShared()),
 					LOCTEXT("PListSaveDialogTitle", "Save").ToString(),
 					InOutLastPath,
 					TEXT(""),
@@ -1171,17 +1154,9 @@ FReply SPListEditorPanel::OnSaveClicked()
 		TArray<FString> OutFilenames;
 		if (DesktopPlatform)
 		{
-			void* ParentWindowWindowHandle = NULL;
-			IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-			const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-			if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
-			{
-				ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-			}
-			
 			FString FileTypes = TEXT("Property List (*.plist)|*.plist|All Files (*.*)|*.*");
 			DesktopPlatform->SaveFileDialog(
-				ParentWindowWindowHandle,
+				FSlateApplication::Get().FindBestParentWindowHandleForDialogs(AsShared()),
 				LOCTEXT("PListSaveDialogTitle", "Save").ToString(),
 				InOutLastPath,
 				TEXT(""),
@@ -1285,17 +1260,9 @@ FReply SPListEditorPanel::OnSaveAsClicked()
 	TArray<FString> OutFilenames;
 	if (DesktopPlatform)
 	{
-		void* ParentWindowWindowHandle = NULL;
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-		if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
-		{
-			ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-		}
-			
 		FString FileTypes = TEXT("Property List (*.plist)|*.plist|All Files (*.*)|*.*");
 		DesktopPlatform->SaveFileDialog(
-			ParentWindowWindowHandle,
+			FSlateApplication::Get().FindBestParentWindowHandleForDialogs(AsShared()),
 			LOCTEXT("PListSaveAsDialogTitle", "Save As").ToString(),
 			InOutLastPath,
 			TEXT(""),

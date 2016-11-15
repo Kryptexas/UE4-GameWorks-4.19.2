@@ -27,6 +27,7 @@ void FMaterialRelevance::SetPrimitiveViewRelevance(FPrimitiveViewRelevance& OutV
 	OutViewRelevance.bUsesWorldPositionOffset = bUsesWorldPositionOffset;
 	OutViewRelevance.bDecal = bDecal;
 	OutViewRelevance.bTranslucentSurfaceLighting = bTranslucentSurfaceLighting;
+	OutViewRelevance.bUsesSceneDepth = bUsesSceneDepth;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -44,6 +45,8 @@ UMaterialInterface::UMaterialInterface(const FObjectInitializer& ObjectInitializ
 			SamplerTypeEnum = FindObject<UEnum>(NULL, TEXT("/Script/Engine.EMaterialSamplerType"));
 			check(SamplerTypeEnum);
 		}
+
+		SetLightingGuid();
 	}
 }
 
@@ -92,7 +95,9 @@ FMaterialRelevance UMaterialInterface::GetRelevance_Internal(const UMaterial* Ma
 			MaterialRelevance.bOutputsVelocityInBasePass = Material->bOutputVelocityOnBasePass;	
 			MaterialRelevance.bUsesGlobalDistanceField = MaterialResource->UsesGlobalDistanceField_GameThread();
 			MaterialRelevance.bUsesWorldPositionOffset = MaterialResource->UsesWorldPositionOffset_GameThread();
-			MaterialRelevance.bTranslucentSurfaceLighting = bIsTranslucent && (MaterialResource->GetTranslucencyLightingMode() == TLM_SurfacePerPixelLighting);
+			ETranslucencyLightingMode TranslucencyLightingMode = MaterialResource->GetTranslucencyLightingMode();
+			MaterialRelevance.bTranslucentSurfaceLighting = bIsTranslucent && (TranslucencyLightingMode == TLM_SurfacePerPixelLighting || TranslucencyLightingMode == TLM_Surface);
+			MaterialRelevance.bUsesSceneDepth = MaterialResource->MaterialUsesSceneDepthLookup_GameThread();
 		}
 		return MaterialRelevance;
 	}
@@ -190,6 +195,13 @@ void UMaterialInterface::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 #endif // WITH_EDITOR
+
+void UMaterialInterface::GetLightingGuidChain(bool bIncludeTextures, TArray<FGuid>& OutGuids) const
+{
+#if WITH_EDITORONLY_DATA
+	OutGuids.Add(LightingGuid);
+#endif // WITH_EDITORONLY_DATA
+}
 
 bool UMaterialInterface::GetVectorParameterValue(FName ParameterName, FLinearColor& OutValue) const
 {
@@ -293,6 +305,11 @@ bool UMaterialInterface::IsTwoSided() const
 }
 
 bool UMaterialInterface::IsDitheredLODTransition() const
+{
+	return false;
+}
+
+bool UMaterialInterface::IsTranslucencyWritingCustomDepth() const
 {
 	return false;
 }

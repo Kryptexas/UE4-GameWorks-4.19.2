@@ -17,7 +17,7 @@ namespace GitSourceControlConstants
 	const int32 MaxFilesPerBatch = 50;
 }
 
-FScopedTempFile::FScopedTempFile(const FText& InText)
+FGitScopedTempFile::FGitScopedTempFile(const FText& InText)
 {
 	Filename = FPaths::CreateTempFilename(*FPaths::GameLogDir(), TEXT("Git-Temp"), TEXT(".txt"));
 	if(!FFileHelper::SaveStringToFile(InText.ToString(), *Filename, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM))
@@ -26,7 +26,7 @@ FScopedTempFile::FScopedTempFile(const FText& InText)
 	}
 }
 
-FScopedTempFile::~FScopedTempFile()
+FGitScopedTempFile::~FGitScopedTempFile()
 {
 	if(FPaths::FileExists(Filename))
 	{
@@ -37,7 +37,7 @@ FScopedTempFile::~FScopedTempFile()
 	}
 }
 
-const FString& FScopedTempFile::GetFilename() const
+const FString& FGitScopedTempFile::GetFilename() const
 {
 	return Filename;
 }
@@ -94,18 +94,20 @@ static bool RunCommandInternalRaw(const FString& InCommand, const FString& InPat
 
 	FullCommand += LogableCommand;
 
-	// @todo: temporary debug logs
-	//UE_LOG(LogSourceControl, Log, TEXT("RunCommandInternalRaw: 'git %s'"), *FullCommand);
+#if UE_BUILD_DEBUG
+	UE_LOG(LogSourceControl, Log, TEXT("RunCommandInternalRaw: 'git %s'"), *FullCommand);
+#endif
 	
 	FPlatformProcess::ExecProcess(*InPathToGitBinary, *FullCommand, &ReturnCode, &OutResults, &OutErrors);
 	
-	//// @todo: temporary debug logs
-	//UE_LOG(LogSourceControl, Log, TEXT("RunCommandInternalRaw: 'OutResults=\n%s'"), *OutResults);
-	//if (ReturnCode != 0)
-	//{
-	//	// @todo: temporary debug logs
-	//	UE_LOG(LogSourceControl, Warning, TEXT("RunCommandInternalRaw: 'OutErrors=\n%s'"), *OutErrors);
-	//}
+#if UE_BUILD_DEBUG
+	UE_LOG(LogSourceControl, Log, TEXT("RunCommandInternalRaw: 'OutResults=\n%s'"), *OutResults);
+
+	if (ReturnCode != 0)
+	{
+		UE_LOG(LogSourceControl, Warning, TEXT("RunCommandInternalRaw: 'OutErrors=\n%s'"), *OutErrors);
+	}
+#endif
 
 	return ReturnCode == 0;
 }
@@ -866,6 +868,7 @@ bool RunGetHistory(const FString& InPathToGitBinary, const FString& InRepository
 		Parameters.Add(TEXT("--follow")); // follow file renames
 		Parameters.Add(TEXT("--date=raw"));
 		Parameters.Add(TEXT("--name-status")); // relative filename at this revision, preceded by a status character
+		Parameters.Add(TEXT("--pretty=medium")); // make sure format matches expected in ParseLogResults
 		TArray<FString> Files;
 		Files.Add(*InFile);
 		if(bMergeConflict)

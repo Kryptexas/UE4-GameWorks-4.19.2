@@ -67,16 +67,10 @@ void FProceduralFoliageComponentDetails::CustomizeDetails(IDetailLayoutBuilder& 
 
 FReply FProceduralFoliageComponentDetails::OnResimulateClicked()
 {
-	TSet<UProceduralFoliageSpawner*> UniqueFoliageSpawners;
 	for (TWeakObjectPtr<UProceduralFoliageComponent>& Component : SelectedComponents)
 	{
 		if (Component.IsValid() && Component->FoliageSpawner)
 		{
-			if (!UniqueFoliageSpawners.Contains(Component->FoliageSpawner))
-			{
-				UniqueFoliageSpawners.Add(Component->FoliageSpawner);
-			}
-
 			FScopedTransaction Transaction(LOCTEXT("Resimulate_Transaction", "Procedural Foliage Simulation"));
 			TArray <FDesiredFoliageInstance> DesiredFoliageInstances;
 			if (Component->GenerateProceduralContent(DesiredFoliageInstances))
@@ -85,6 +79,7 @@ FReply FProceduralFoliageComponentDetails::OnResimulateClicked()
 				OverrideGeometryFilter.bAllowLandscape = Component->bAllowLandscape;
 				OverrideGeometryFilter.bAllowStaticMesh = Component->bAllowStaticMesh;
 				OverrideGeometryFilter.bAllowBSP = Component->bAllowBSP;
+				OverrideGeometryFilter.bAllowFoliage = Component->bAllowFoliage;
 				OverrideGeometryFilter.bAllowTranslucent = Component->bAllowTranslucent;
 
 				FEdModeFoliage::AddInstances(Component->GetWorld(), DesiredFoliageInstances, OverrideGeometryFilter);

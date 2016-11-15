@@ -1,4 +1,4 @@
-Availability: Docs
+Availability: Public
 Title: 1.2 - Opening the Project in Visual Studio
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
 Description: Learn how to open your C++ project in Visual Studio.
@@ -42,14 +42,14 @@ When we setup our **Basic Code** project in the previous step, Unreal Engine cre
 
 		#pragma once
 		
-		#include "GameFramework/GameMode.h"
+		#include "GameFramework/GameModeBase.h"
 		#include "FPSProjectGameMode.generated.h"
 		
 		/**
 		 * 
 		 */
 		UCLASS()
-		class FPSPROJECT_API AFPSProjectGameMode : public AGameMode
+		class FPSPROJECT_API AFPSProjectGameMode : public AGameModeBase
 		{
 			GENERATED_BODY()
 		};

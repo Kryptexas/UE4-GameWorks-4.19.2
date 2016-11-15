@@ -1,34 +1,23 @@
-﻿INTSourceChangelist:2743354
+﻿INTSourceChangelist:3076265
 Availability:Public
 Title:3.Gear VR プロジェクトのパッケージングとデプロイメント
 Crumbs:%ROOT%, Platforms/GearVR
 Description:Samsung Gear VR ヘッドセットを使用するプロジェクトを UE4 からデプロイする方法
-Navigation:platform
-Platform:Gear VR
+Version:4.9
+Skilllevel:Intermediate
+tags:VR
+tags:GearVR
+type:sequential
+parent:Platforms/GearVR/QuickStart
+order:3
+Checkpoint:GearVRQS
 Related:Platforms\GearVR\Prerequisites
 Related:Platforms\GearVR\BestPractices
 Related:Platforms\GearVR\Debugging
-Skilllevel:Intermediate
-Version:4.9
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-	[前のステップ](Platforms/GearVR/QuickStart/2 "%Platforms/GearVR/QuickStart/2:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[クイックスタートのホーム画面](Platforms/GearVR/QuickStart)
-	[/PARAM]
-	[PARAM:next]
+[nav]
 
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-%Steps%
-
+## ステップ
 
 1. 最初に Samsung Galaxy Note 4 スマートフォンと USB コードを接続して、このコードが開発に使用している PC の USB ポートに差し込まれていることを確認してください。
 
@@ -64,5 +53,7 @@ Version:4.9
 
 	![](GVR_On_Phone.png)
 
+[nav]
 
-%Steps%
+## 最終結果
+完了すると、Samsung Galaxy スマートフォンと Gear VR HMD を使ってプロジェクトの起動と表示が可能になります。

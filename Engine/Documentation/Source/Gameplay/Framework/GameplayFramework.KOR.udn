@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2735872
+﻿INTSourceChangelist:2998263
 Availability:Public
 Title:게임플레이 프레임워크
 Crumbs:%ROOT%, Gameplay
@@ -31,6 +31,20 @@ PlayerCamera 에 사용될 것입니다.
 
 [EXCERPT:LandingBoxes]
 [REGION:topics third]
+[OBJECT:Topic]
+	[PARAM:image]
+	![](gameflow_lander.png)
+	[/PARAM]
+	[PARAM:title]
+	%Gameplay/Framework/GameFlow:title%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Gameplay/Framework/GameFlow]
+	[/PARAM]
+	[PARAM:description]
+	%Gameplay/Framework/GameFlow:description%
+	[/PARAM]
+[/OBJECT]
 [OBJECT:Topic]
 	[PARAM:image]
 	![](gamemode_lander.png)

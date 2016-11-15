@@ -652,6 +652,8 @@ public:
 		ScissorRectMinAndSize.Bind(Initializer.ParameterMap,TEXT("ScissorRectMinAndSize"));
 		FadePlaneOffset.Bind(Initializer.ParameterMap,TEXT("FadePlaneOffset"));
 		InvFadePlaneLength.Bind(Initializer.ParameterMap,TEXT("InvFadePlaneLength"));
+		NearFadePlaneOffset.Bind(Initializer.ParameterMap,TEXT("NearFadePlaneOffset"));
+		InvNearFadePlaneLength.Bind(Initializer.ParameterMap,TEXT("InvNearFadePlaneLength"));
 	}
 
 	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo, const FIntRect& ScissorRect, TRefCountPtr<IPooledRenderTarget>& ShadowFactorsTextureValue)
@@ -675,6 +677,17 @@ public:
 			SetShaderValue(RHICmdList, ShaderRHI, FadePlaneOffset, 0.0f);
 			SetShaderValue(RHICmdList, ShaderRHI, InvFadePlaneLength, 0.0f);
 		}
+
+		if (ShadowInfo->bDirectionalLight && ShadowInfo->CascadeSettings.SplitNearFadeRegion > 0)
+		{
+			SetShaderValue(RHICmdList, ShaderRHI, NearFadePlaneOffset, ShadowInfo->CascadeSettings.SplitNear - ShadowInfo->CascadeSettings.SplitNearFadeRegion);
+			SetShaderValue(RHICmdList, ShaderRHI, InvNearFadePlaneLength, 1.0f / FMath::Max(ShadowInfo->CascadeSettings.SplitNearFadeRegion, .00001f));
+		}
+		else
+		{
+			SetShaderValue(RHICmdList, ShaderRHI, NearFadePlaneOffset, -1.0f);
+			SetShaderValue(RHICmdList, ShaderRHI, InvNearFadePlaneLength, 1.0f);
+		}
 	}
 
 	// FShader interface.
@@ -687,6 +700,8 @@ public:
 		Ar << ScissorRectMinAndSize;
 		Ar << FadePlaneOffset;
 		Ar << InvFadePlaneLength;
+		Ar << NearFadePlaneOffset;
+		Ar << InvNearFadePlaneLength;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -698,6 +713,8 @@ private:
 	FShaderParameter ScissorRectMinAndSize;
 	FShaderParameter FadePlaneOffset;
 	FShaderParameter InvFadePlaneLength;
+	FShaderParameter NearFadePlaneOffset;
+	FShaderParameter InvNearFadePlaneLength;
 };
 
 IMPLEMENT_SHADER_TYPE(template<>,TDistanceFieldShadowingUpsamplePS<true>,TEXT("DistanceFieldShadowing"),TEXT("DistanceFieldShadowingUpsamplePS"),SF_Pixel);
@@ -796,7 +813,7 @@ void CullDistanceFieldObjectsForLight(
 
 			TArray<FUnorderedAccessViewRHIParamRef> UAVs;
 			PixelShader->GetUAVs(View, TileIntersectionResources, UAVs);
-			RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, UAVs.GetData(), UAVs.Num());
+			RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToGfx, UAVs.GetData(), UAVs.Num());
 			RHICmdList.SetRenderTargets(0, (const FRHIRenderTargetView *)NULL, NULL, UAVs.Num(), UAVs.GetData());
 
 			RHICmdList.SetViewport(0, 0, 0.0f, LightTileDimensions.X, LightTileDimensions.Y, 1.0f);
@@ -822,7 +839,7 @@ void CullDistanceFieldObjectsForLight(
 				0);
 
 			SetRenderTarget(RHICmdList, NULL, NULL);
-			RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToCompute, UAVs.GetData(), UAVs.Num());
+			RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, EResourceTransitionPipeline::EGfxToCompute, UAVs.GetData(), UAVs.Num());
 		}
 	}
 }

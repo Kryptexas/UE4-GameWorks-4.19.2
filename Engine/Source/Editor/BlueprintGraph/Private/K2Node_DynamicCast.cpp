@@ -326,10 +326,10 @@ bool UK2Node_DynamicCast::IsConnectionDisallowed(const UEdGraphPin* MyPin, const
 		const FEdGraphPinType& OtherPinType = OtherPin->PinType;
 		const FText OtherPinName = OtherPin->PinFriendlyName.IsEmpty() ? FText::FromString(OtherPin->PinName) : OtherPin->PinFriendlyName;
 
-		if (OtherPinType.bIsArray)
+		if (OtherPinType.IsContainer())
 		{
 			bIsDisallowed = true;
-			OutReason = LOCTEXT("CannotArrayCast", "You cannot cast arrays of objects.").ToString();
+			OutReason = LOCTEXT("CannotContainerCast", "You cannot cast containers of objects.").ToString();
 		}
 		else if (TargetType == nullptr)
 		{
@@ -399,9 +399,14 @@ void UK2Node_DynamicCast::ValidateNodeDuringCompilation(FCompilerResultsLog& Mes
 	Super::ValidateNodeDuringCompilation(MessageLog);
 
 	UEdGraphPin* SourcePin = GetCastSourcePin();
-	if ((SourcePin->LinkedTo.Num() > 0) && (TargetType != nullptr))
+	if (SourcePin->LinkedTo.Num() > 0)
 	{
 		const UClass* SourceType = *TargetType;
+		if (SourceType == nullptr)
+		{
+			return;
+		}
+
 		for (UEdGraphPin* CastInput : SourcePin->LinkedTo)
 		{
 			const FEdGraphPinType& SourcePinType = CastInput->PinType;

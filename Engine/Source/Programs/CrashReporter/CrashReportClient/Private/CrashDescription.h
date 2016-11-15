@@ -26,7 +26,9 @@ struct FAnalyticsEventAttribute;
 	"PlatformNameIni"
 	"PlatformFullName"
 	"EngineMode"
+	"EngineModeEx"
 	"EngineVersion"
+	"BuildVersion"
 	"CommandLine"
 	"LanguageLCID"
 	"AppDefaultLocale"
@@ -161,6 +163,12 @@ struct FPrimaryCrashProperties
 	FString GameName;
 
 	/**
+	* The name of the exe that crashed. (AppID)
+	* @GameName	varchar(64)
+	*/
+	FString ExecutableName;
+
+	/**
 	 * The mode the game was in e.g. editor.
 	 * @EngineMode	varchar(64)
 	 * 
@@ -173,6 +181,12 @@ struct FPrimaryCrashProperties
 	 * @DeploymentName varchar(64)
 	 */
 	FString DeploymentName;
+
+	/**
+	 * EngineModeEx e.g. Unset, Dirty, Vanilla
+	 * @DeploymentName varchar(64)
+	 */
+	FCrashProperty EngineModeEx;
 
 	/**
 	 * The platform that crashed e.g. Win64.

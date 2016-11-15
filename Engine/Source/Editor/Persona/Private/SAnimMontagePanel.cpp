@@ -4,7 +4,6 @@
 #include "SAnimMontagePanel.h"
 #include "ScopedTransaction.h"
 #include "SCurveEditor.h"
-#include "SAnimationSequenceBrowser.h"
 #include "SAnimSegmentsPanel.h"
 #include "SMontageEditor.h"
 #include "Editor/UnrealEd/Public/DragAndDrop/AssetDragDropOp.h"
@@ -18,7 +17,7 @@
 //////////////////////////////////////////////////////////////////////////
 // SAnimMontagePanel
 
-void SAnimMontagePanel::Construct(const FArguments& InArgs)
+void SAnimMontagePanel::Construct(const FArguments& InArgs, FSimpleMulticastDelegate& OnAnimNotifiesChanged, FSimpleMulticastDelegate& OnSectionsChanged)
 {
 	SAnimTrackPanel::Construct( SAnimTrackPanel::FArguments()
 		.WidgetWidth(InArgs._WidgetWidth)
@@ -28,13 +27,13 @@ void SAnimMontagePanel::Construct(const FArguments& InArgs)
 		.InputMax(InArgs._InputMax)
 		.OnSetInputViewRange(InArgs._OnSetInputViewRange));
 
-	Persona = InArgs._Persona;
 	Montage = InArgs._Montage;
+	OnInvokeTab = InArgs._OnInvokeTab;
 	MontageEditor = InArgs._MontageEditor;
 	SectionTimingNodeVisibility = InArgs._SectionTimingNodeVisibility;
+	bChildAnimMontage = InArgs._bChildAnimMontage;
 
 	//TrackStyle = TRACK_Double;
-
 	CurrentPosition = InArgs._CurrentPosition;
 
 	this->ChildSlot
@@ -55,24 +54,10 @@ void SAnimMontagePanel::Construct(const FArguments& InArgs)
 		]
 	];
 
-	TSharedPtr<FPersona> SharedPersona = Persona.Pin();
-	if(SharedPersona.IsValid())
-	{
-		SharedPersona->RegisterOnChangeAnimNotifies(FPersona::FOnAnimNotifiesChanged::CreateSP(this, &SAnimMontagePanel::Update));
-		SharedPersona->RegisterOnSectionsChanged(FPersona::FOnAnimNotifiesChanged::CreateSP(this, &SAnimMontagePanel::Update));
-	}
+	OnAnimNotifiesChanged.Add(FSimpleDelegate::CreateSP(this, &SAnimMontagePanel::Update));
+	OnSectionsChanged.Add(FSimpleDelegate::CreateSP(this, &SAnimMontagePanel::Update));
 
 	Update();
-}
-
-SAnimMontagePanel::~SAnimMontagePanel()
-{
-	TSharedPtr<FPersona> SharedPersona = Persona.Pin();
-	if(SharedPersona.IsValid())
-	{
-		SharedPersona->UnregisterOnChangeAnimNotifies(this);
-		SharedPersona->UnregisterOnSectionsChanged(this);
-	}
 }
 
 /** This is the main function that creates the UI widgets for the montage tool.*/
@@ -146,6 +131,7 @@ void SAnimMontagePanel::Update()
 				.Padding( FMargin(0.5f, 0.5f) )
 				[
 					SAssignNew(SectionNameTrack, STrack)
+					.IsEnabled(!bChildAnimMontage)
 					.ViewInputMin(ViewInputMin)
 					.ViewInputMax(ViewInputMax)
 					.TrackColor( ColourTracker->GetNextColor() )
@@ -240,32 +226,62 @@ void SAnimMontagePanel::Update()
 						]
 				];
 
-				SectionTrack->LeftColumn->AddSlot()
-				.AutoHeight()
-				.VAlign(VAlign_Center)
-				[
-					SNew(SAnimSegmentsPanel)
-					.AnimTrack(&Montage->SlotAnimTracks[SlotAnimIdx].AnimTrack)
-					.NodeSelectionSet(&SelectionSet)
-					.ViewInputMin(ViewInputMin)
-					.ViewInputMax(ViewInputMax)
-					.ColorTracker(ColourTracker)
-					.NodeColor(NodeColor)
-					.DraggableBars(Editor, &SMontageEditor::GetSectionStartTimes)
-					.DraggableBarSnapPositions(Editor, &SMontageEditor::GetAnimSegmentStartTimes)
-					.ScrubPosition( Editor, &SMontageEditor::GetScrubValue )
-					.TrackMaxValue(this, &SAnimMontagePanel::GetSequenceLength)
-					.TrackNumDiscreteValues(Montage->GetNumberOfFrames())
+				SectionTrack->RightColumn->SetEnabled(!bChildAnimMontage);
+				if (bChildAnimMontage)
+				{
+					SectionTrack->LeftColumn->AddSlot()
+					.AutoHeight()
+					.VAlign(VAlign_Center)
+					[
+						SNew(SAnimSegmentsPanel)
+						.AnimTrack(&Montage->SlotAnimTracks[SlotAnimIdx].AnimTrack)
+						.SlotName(Montage->SlotAnimTracks[SlotAnimIdx].SlotName)
+						.NodeSelectionSet(&SelectionSet)
+						.ViewInputMin(ViewInputMin)
+						.ViewInputMax(ViewInputMax)
+						.ColorTracker(ColourTracker)
+						.bChildAnimMontage(bChildAnimMontage)
+						.NodeColor(NodeColor)
+						.OnPreAnimUpdate(Editor, &SMontageEditor::PreAnimUpdate)
+						.OnPostAnimUpdate(Editor, &SMontageEditor::PostAnimUpdate)
+						.OnAnimReplaceMapping(Editor, &SMontageEditor::ReplaceAnimationMapping)
+						.OnDiffFromParentAsset(Editor, &SMontageEditor::IsDiffererentFromParent)
+						.ScrubPosition(Editor, &SMontageEditor::GetScrubValue)
+						.TrackMaxValue(this, &SAnimMontagePanel::GetSequenceLength)
+						.TrackNumDiscreteValues(Montage->GetNumberOfFrames())
+					];
 
-					.OnAnimSegmentNodeClicked( this, &SAnimMontagePanel::ShowSegmentInDetailsView, SlotAnimIdx )
-					.OnPreAnimUpdate( Editor, &SMontageEditor::PreAnimUpdate )
-					.OnPostAnimUpdate( Editor, &SMontageEditor::PostAnimUpdate )
-					.OnAnimSegmentRemoved(this, &SAnimMontagePanel::OnAnimSegmentRemoved, SlotAnimIdx )
-					.OnBarDrag(Editor, &SMontageEditor::OnEditSectionTime)
-					.OnBarDrop(Editor, &SMontageEditor::OnEditSectionTimeFinish)
-					.OnBarClicked(SharedThis(this), &SAnimMontagePanel::ShowSectionInDetailsView)
-					.OnTrackRightClickContextMenu( this, &SAnimMontagePanel::SummonTrackContextMenu, static_cast<int>(SlotAnimIdx))
-				];
+				}
+				else
+				{
+					SectionTrack->LeftColumn->AddSlot()
+					.AutoHeight()
+					.VAlign(VAlign_Center)
+					[
+						SNew(SAnimSegmentsPanel)
+						.AnimTrack(&Montage->SlotAnimTracks[SlotAnimIdx].AnimTrack)
+						.SlotName(Montage->SlotAnimTracks[SlotAnimIdx].SlotName)
+						.NodeSelectionSet(&SelectionSet)
+						.ViewInputMin(ViewInputMin)
+						.ViewInputMax(ViewInputMax)
+						.ColorTracker(ColourTracker)
+						.bChildAnimMontage(bChildAnimMontage)
+						.NodeColor(NodeColor)
+						.DraggableBars(Editor, &SMontageEditor::GetSectionStartTimes)
+						.DraggableBarSnapPositions(Editor, &SMontageEditor::GetAnimSegmentStartTimes)
+						.ScrubPosition(Editor, &SMontageEditor::GetScrubValue)
+						.TrackMaxValue(this, &SAnimMontagePanel::GetSequenceLength)
+						.TrackNumDiscreteValues(Montage->GetNumberOfFrames())
+						.OnAnimSegmentNodeClicked(this, &SAnimMontagePanel::ShowSegmentInDetailsView, SlotAnimIdx)
+						.OnPreAnimUpdate(Editor, &SMontageEditor::PreAnimUpdate)
+						.OnPostAnimUpdate(Editor, &SMontageEditor::PostAnimUpdate)
+						.OnAnimSegmentRemoved(this, &SAnimMontagePanel::OnAnimSegmentRemoved, SlotAnimIdx)
+						.OnBarDrag(Editor, &SMontageEditor::OnEditSectionTime)
+						.OnBarDrop(Editor, &SMontageEditor::OnEditSectionTimeFinish)
+						.OnBarClicked(SharedThis(this), &SAnimMontagePanel::ShowSectionInDetailsView)
+						.OnTrackRightClickContextMenu(this, &SAnimMontagePanel::SummonTrackContextMenu, static_cast<int>(SlotAnimIdx))
+					];
+				}
 			}
 		}
 	}
@@ -467,10 +483,8 @@ void SAnimMontagePanel::OnSlotListOpening(int32 AnimSlotIndex)
 
 FReply SAnimMontagePanel::OnOpenAnimSlotManager()
 {
-	if (Persona.IsValid())
-	{
-		Persona.Pin()->GetTabManager()->InvokeTab(FPersonaTabs::SkeletonSlotNamesID);
-	}
+	OnInvokeTab.ExecuteIfBound(FPersonaTabs::SkeletonSlotNamesID);
+
 	return FReply::Handled();
 }
 

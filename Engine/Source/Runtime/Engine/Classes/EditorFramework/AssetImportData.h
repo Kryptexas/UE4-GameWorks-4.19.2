@@ -82,7 +82,12 @@ public:
 	static FOnImportDataChanged OnImportDataChanged;
 
 	/** Update this import data using the specified file. Called when an asset has been imported from a file. */
-	void Update(const FString& AbsoluteFilename);
+	void Update(const FString& AbsoluteFilename, FMD5Hash *Md5Hash = nullptr);
+
+	//@third party BEGIN SIMPLYGON
+	/** Update this import data using the specified filename and Precomputed Hash. */
+	void Update(const FString& AbsoluteFileName, const FMD5Hash PreComputedHash);
+	//@third party END SIMPLYGON
 
 	/** Update this import data using the specified filename. Will not update the imported timestamp or MD5 (so we can update files when they move). */
 	void UpdateFilenameOnly(const FString& InPath);

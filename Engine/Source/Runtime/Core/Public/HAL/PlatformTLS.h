@@ -19,4 +19,6 @@
 #include "HTML5/HTML5PlatformTLS.h"
 #elif PLATFORM_LINUX
 #include "Linux/LinuxPlatformTLS.h"
+#elif PLATFORM_WOLF
+#include "WolfPlat/WolfPlatformTLS.h"
 #endif

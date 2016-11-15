@@ -47,8 +47,9 @@ public class DetailCustomizations : ModuleRules
 				"ConfigEditor",
                 "Persona",
                 "CinematicCamera",
-                "ComponentVisualizers"
-			}
+				"ComponentVisualizers",
+                "SkeletonEditor",
+            }
 		);
 
         PrivateIncludePathModuleNames.AddRange(
@@ -59,7 +60,8 @@ public class DetailCustomizations : ModuleRules
 				"LandscapeEditor",
 				"PropertyEditor",
 				"GameProjectGeneration",
-                "ComponentVisualizers"
+                "ComponentVisualizers",
+				"GraphEditor"
 			}
 		);
 

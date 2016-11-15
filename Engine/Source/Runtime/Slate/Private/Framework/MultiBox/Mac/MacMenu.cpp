@@ -104,7 +104,6 @@ void FSlateMacMenu::UpdateWithMultiBox(const TSharedPtr< FMultiBox > MultiBox)
 		int32 NumItems = [[NSApp mainMenu] numberOfItems];
 		FText HelpTitle = NSLOCTEXT("MainMenu", "HelpMenu", "Help");
 		FText WindowLabel = NSLOCTEXT("MainMenu", "WindowMenu", "Window");
-		NSMenuItem* HelpMenu = [[[NSApp mainMenu] itemWithTitle:HelpTitle.ToString().GetNSString()] retain];
 		for (int32 Index = NumItems - 1; Index > 0; Index--)
 		{
 			[[NSApp mainMenu] removeItemAtIndex:Index];
@@ -149,17 +148,6 @@ void FSlateMacMenu::UpdateWithMultiBox(const TSharedPtr< FMultiBox > MultiBox)
 					[NSApp setWindowsMenu:Menu];
 					[Menu addItem:[NSMenuItem separatorItem]];
 				}
-			}
-
-			if ([[NSApp mainMenu] itemWithTitle:HelpTitle.ToString().GetNSString()] == nil && HelpMenu)
-			{
-				[[NSApp mainMenu] addItem:HelpMenu];
-				GCachedMenuState.Add((FMacMenu*)HelpMenu, TSharedPtr<TArray<FMacMenuItemState>>(new TArray<FMacMenuItemState>()));
-			}
-
-			if (HelpMenu)
-			{
-				[HelpMenu release];
 			}
 
 			delete SafeMultiBoxPtr;

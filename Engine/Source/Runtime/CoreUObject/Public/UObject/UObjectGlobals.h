@@ -4,8 +4,7 @@
 	UnObjGlobals.h: Unreal object system globals.
 =============================================================================*/
 
-#ifndef __UNOBJGLOBALS_H__
-#define __UNOBJGLOBALS_H__
+#pragma once
 
 #include "Script.h"
 
@@ -46,6 +45,18 @@ typedef void (UObject::*Native)( FFrame& TheStack, RESULT_DECL );
 
 /** set while in SavePackage() to detect certain operations that are illegal while saving */
 extern COREUOBJECT_API bool					GIsSavingPackage;
+
+namespace EDuplicateMode
+{
+	enum Type
+	{
+		Normal,
+		// Object is being duplicated as part of a world duplication
+		World,
+		// Object is being duplicated as part of a world duplication for PIE
+		PIE
+	};
+};
 
 /*-----------------------------------------------------------------------------
 	FObjectDuplicationParameters.
@@ -100,6 +111,8 @@ struct FObjectDuplicationParameters
 	 * Any PortFlags to be applied when serializing.
 	 */
 	uint32			PortFlags;
+
+	EDuplicateMode::Type DuplicateMode;
 
 	/**
 	 * optional class to specify for the destination object.
@@ -222,7 +235,7 @@ COREUOBJECT_API UClass* StaticLoadClass(UClass* BaseClass, UObject* InOuter, con
 *
 * @return	a pointer to a fully initialized object of the specified class.
 */
-COREUOBJECT_API UObject* StaticConstructObject_Internal(UClass* Class, UObject* InOuter = (UObject*)GetTransientPackage(), FName Name = NAME_None, EObjectFlags SetFlags = RF_NoFlags, EInternalObjectFlags InternalSetFlags = EInternalObjectFlags::None, UObject* Template = NULL, bool bCopyTransientsFromClassDefaults = false, struct FObjectInstancingGraph* InstanceGraph = NULL);
+COREUOBJECT_API UObject* StaticConstructObject_Internal(UClass* Class, UObject* InOuter = (UObject*)GetTransientPackage(), FName Name = NAME_None, EObjectFlags SetFlags = RF_NoFlags, EInternalObjectFlags InternalSetFlags = EInternalObjectFlags::None, UObject* Template = NULL, bool bCopyTransientsFromClassDefaults = false, struct FObjectInstancingGraph* InstanceGraph = NULL, bool bAssumeTemplateIsArchetype = false);
 
 /**
  * Create a new instance of an object.  The returned object will be fully initialized.  If InFlags contains RF_NeedsLoad (indicating that the object still needs to load its object data from disk), components
@@ -262,12 +275,7 @@ COREUOBJECT_API UObject* StaticConstructObject( UClass* Class, UObject* InOuter=
  *
  * @note: this version is deprecated in favor of StaticDuplicateObjectEx
  */
-enum EDuplicateForPie
-{
-	SDO_No_DuplicateForPie,
-	SDO_DuplicateForPie,
-};
-COREUOBJECT_API UObject* StaticDuplicateObject(UObject const* SourceObject, UObject* DestOuter, const FName DestName = NAME_None, EObjectFlags FlagMask = RF_AllFlags, UClass* DestClass = nullptr, EDuplicateForPie DuplicateForPIE = SDO_No_DuplicateForPie, EInternalObjectFlags InternalFlagsMask = EInternalObjectFlags::AllFlags);
+COREUOBJECT_API UObject* StaticDuplicateObject(UObject const* SourceObject, UObject* DestOuter, const FName DestName = NAME_None, EObjectFlags FlagMask = RF_AllFlags, UClass* DestClass = nullptr, EDuplicateMode::Type DuplicateMode = EDuplicateMode::Normal, EInternalObjectFlags InternalFlagsMask = EInternalObjectFlags::AllFlags);
 COREUOBJECT_API UObject* StaticDuplicateObjectEx( struct FObjectDuplicationParameters& Parameters );
 
 /**
@@ -370,6 +378,11 @@ COREUOBJECT_API int32 LoadPackageAsync(const FString& InName, FLoadPackageAsyncD
 * Cancels all async package loading requests.
 */
 COREUOBJECT_API void CancelAsyncLoading();
+
+/**
+* Returns true if the event driven loader is enabled in cooked builds
+*/
+COREUOBJECT_API bool IsEventDrivenLoaderEnabledInCookedBuilds();
 
 /**
  * Returns the async load percentage for a package in flight with the passed in name or -1 if there isn't one.
@@ -1196,7 +1209,9 @@ COREUOBJECT_API void CheckIsClassChildOf_Internal(UClass* Parent, UClass* Child)
  * @return	a pointer of type T to a new object of the specified class
  */
 template< class T >
-T* NewObject(UObject* Outer, UClass* Class, FName Name = NAME_None, EObjectFlags Flags = RF_NoFlags, UObject* Template = nullptr, bool bCopyTransientsFromClassDefaults = false, FObjectInstancingGraph* InInstanceGraph = nullptr)
+FUNCTION_NON_NULL_RETURN_START
+	T* NewObject(UObject* Outer, UClass* Class, FName Name = NAME_None, EObjectFlags Flags = RF_NoFlags, UObject* Template = nullptr, bool bCopyTransientsFromClassDefaults = false, FObjectInstancingGraph* InInstanceGraph = nullptr)
+FUNCTION_NON_NULL_RETURN_END
 {
 	if (Name == NAME_None)
 	{
@@ -1212,7 +1227,9 @@ T* NewObject(UObject* Outer, UClass* Class, FName Name = NAME_None, EObjectFlags
 }
 
 template< class T >
-T* NewObject(UObject* Outer = (UObject*)GetTransientPackage())
+FUNCTION_NON_NULL_RETURN_START
+	T* NewObject(UObject* Outer = (UObject*)GetTransientPackage())
+FUNCTION_NON_NULL_RETURN_END
 {
 	// Name is always None for this case
 	FObjectInitializer::AssertIfInConstructor(Outer, TEXT("NewObject with empty name can't be used to create default subobjects (inside of UObject derived class constructor) as it produces inconsistent object names. Use ObjectInitializer.CreateDefaultSuobject<> instead."));
@@ -1221,7 +1238,9 @@ T* NewObject(UObject* Outer = (UObject*)GetTransientPackage())
 }
 
 template< class T >
-T* NewObject(UObject* Outer, FName Name, EObjectFlags Flags = RF_NoFlags, UObject* Template = nullptr, bool bCopyTransientsFromClassDefaults = false, FObjectInstancingGraph* InInstanceGraph = nullptr)
+FUNCTION_NON_NULL_RETURN_START
+	T* NewObject(UObject* Outer, FName Name, EObjectFlags Flags = RF_NoFlags, UObject* Template = nullptr, bool bCopyTransientsFromClassDefaults = false, FObjectInstancingGraph* InInstanceGraph = nullptr)
+FUNCTION_NON_NULL_RETURN_END
 {
 	if (Name == NAME_None)
 	{
@@ -1956,5 +1975,3 @@ COREUOBJECT_API TMap<FName, FDynamicClassStaticData>& GetDynamicClassMap();
  */
 COREUOBJECT_API bool IsEditorOnlyObject(const UObject* InObject);
 #endif //WITH_EDITOR
-
-#endif	// __UNOBJGLOBALS_H__

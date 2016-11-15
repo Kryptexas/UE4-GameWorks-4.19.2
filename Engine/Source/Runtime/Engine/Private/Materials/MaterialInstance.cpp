@@ -1610,13 +1610,6 @@ void UMaterialInstance::CacheResourceShadersForRendering()
 {
 	check(IsInGameThread() || IsAsyncLoading());
 
-	// Fix-up the parent lighting guid if it has changed...
-	if (Parent && (Parent->GetLightingGuid() != ParentLightingGuid))
-	{
-		SetLightingGuid();
-		ParentLightingGuid = Parent ? Parent->GetLightingGuid() : FGuid(0,0,0,0);
-	}
-
 	UpdatePermutationAllocations();
 	UpdateOverridableBaseProperties();
 
@@ -1991,6 +1984,9 @@ void UMaterialInstance::PostLoad()
 	// Ensure that the instance's parent is PostLoaded before the instance.
 	if(Parent)
 	{
+#if !WITH_EDITORONLY_DATA
+		check(!Parent->HasAnyFlags(RF_NeedLoad));
+#endif
 		Parent->ConditionalPostLoad();
 	}
 
@@ -2420,15 +2416,6 @@ void UMaterialInstance::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
-	if( PropertyThatChanged )
-	{
-		if(PropertyThatChanged->GetName()==TEXT("Parent"))
-		{
-			ParentLightingGuid = Parent ? Parent->GetLightingGuid() : FGuid(0,0,0,0);
-		}
-	}
-
 	// Ensure that the ReferencedTextureGuids array is up to date.
 	if (GIsEditor)
 	{
@@ -2441,7 +2428,7 @@ void UMaterialInstance::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 
 	UpdateStaticPermutation();
 
-	if (PropertyChangedEvent.ChangeType == EPropertyChangeType::ValueSet || PropertyChangedEvent.ChangeType == EPropertyChangeType::Unspecified)
+	if (PropertyChangedEvent.ChangeType == EPropertyChangeType::ValueSet || PropertyChangedEvent.ChangeType == EPropertyChangeType::Unspecified || PropertyChangedEvent.ChangeType == EPropertyChangeType::Duplicate)
 	{
 		RecacheMaterialInstanceUniformExpressions(this);
 	}
@@ -2487,12 +2474,6 @@ bool UMaterialInstance::UpdateLightmassTextureTracking()
 		}
 	}
 #endif // WITH_EDITORONLY_DATA
-
-	if ( bTexturesHaveChanged )
-	{
-		// This will invalidate any cached Lightmass material exports
-		SetLightingGuid();
-	}
 
 	return bTexturesHaveChanged;
 }
@@ -2592,20 +2573,20 @@ bool UMaterialInstance::GetTexturesInPropertyChain(EMaterialProperty InProperty,
 }
 #endif // WITH_EDITOR
 
-SIZE_T UMaterialInstance::GetResourceSize(EResourceSizeMode::Type Mode)
+void UMaterialInstance::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	SIZE_T ResourceSize = Super::GetResourceSize(Mode);
+	Super::GetResourceSizeEx(CumulativeResourceSize);
 
 	if (bHasStaticPermutationResource)
 	{
-		if (Mode == EResourceSizeMode::Inclusive)
+		if (CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Inclusive)
 		{
 			for (int32 QualityLevelIndex = 0; QualityLevelIndex < EMaterialQualityLevel::Num; QualityLevelIndex++)
 			{
 				for (int32 FeatureLevelIndex = 0; FeatureLevelIndex < ERHIFeatureLevel::Num; FeatureLevelIndex++)
 				{
 					FMaterialResource* CurrentResource = StaticPermutationMaterialResources[QualityLevelIndex][FeatureLevelIndex];
-					ResourceSize += CurrentResource->GetResourceSizeInclusive();
+					CurrentResource->GetResourceSizeEx(CumulativeResourceSize);
 				}
 			}
 		}
@@ -2615,15 +2596,13 @@ SIZE_T UMaterialInstance::GetResourceSize(EResourceSizeMode::Type Mode)
 	{
 		if (Resources[ResourceIndex])
 		{
-			ResourceSize += sizeof(FMaterialInstanceResource);
-			ResourceSize += ScalarParameterValues.Num() * sizeof(FMaterialInstanceResource::TNamedParameter<float>);
-			ResourceSize += VectorParameterValues.Num() * sizeof(FMaterialInstanceResource::TNamedParameter<FLinearColor>);
-			ResourceSize += TextureParameterValues.Num() * sizeof(FMaterialInstanceResource::TNamedParameter<const UTexture*>);
-			ResourceSize += FontParameterValues.Num() * sizeof(FMaterialInstanceResource::TNamedParameter<const UTexture*>);
+			CumulativeResourceSize.AddDedicatedSystemMemoryBytes(sizeof(FMaterialInstanceResource));
+			CumulativeResourceSize.AddDedicatedSystemMemoryBytes(ScalarParameterValues.Num() * sizeof(FMaterialInstanceResource::TNamedParameter<float>));
+			CumulativeResourceSize.AddDedicatedSystemMemoryBytes(VectorParameterValues.Num() * sizeof(FMaterialInstanceResource::TNamedParameter<FLinearColor>));
+			CumulativeResourceSize.AddDedicatedSystemMemoryBytes(TextureParameterValues.Num() * sizeof(FMaterialInstanceResource::TNamedParameter<const UTexture*>));
+			CumulativeResourceSize.AddDedicatedSystemMemoryBytes(FontParameterValues.Num() * sizeof(FMaterialInstanceResource::TNamedParameter<const UTexture*>));
 		}
 	}
-
-	return ResourceSize;
 }
 
 FPostProcessMaterialNode* IteratePostProcessMaterialNodes(const FFinalPostProcessSettings& Dest, const UMaterial* Material, FBlendableEntry*& Iterator)
@@ -2812,9 +2791,9 @@ bool UMaterialInstance::IsPropertyActive(EMaterialProperty InProperty) const
 }
 
 #if WITH_EDITOR
-int32 UMaterialInstance::CompilePropertyEx( class FMaterialCompiler* Compiler, EMaterialProperty Property )
+int32 UMaterialInstance::CompilePropertyEx( class FMaterialCompiler* Compiler, const FGuid& AttributeID )
 {
-	return Parent ? Parent->CompilePropertyEx(Compiler, Property) : INDEX_NONE;
+	return Parent ? Parent->CompilePropertyEx(Compiler, AttributeID) : INDEX_NONE;
 }
 #endif // WITH_EDITOR
 
@@ -2822,6 +2801,22 @@ const FStaticParameterSet& UMaterialInstance::GetStaticParameters() const
 {
 	return StaticParameters;
 }
+
+void UMaterialInstance::GetLightingGuidChain(bool bIncludeTextures, TArray<FGuid>& OutGuids) const
+{
+#if WITH_EDITORONLY_DATA
+	if (bIncludeTextures)
+	{
+		OutGuids.Append(ReferencedTextureGuids);
+	}
+	if (Parent)
+	{
+		Parent->GetLightingGuidChain(bIncludeTextures, OutGuids);
+	}
+	Super::GetLightingGuidChain(bIncludeTextures, OutGuids);
+#endif
+}
+
 
 UMaterialInstance::FCustomStaticParametersGetterDelegate UMaterialInstance::CustomStaticParametersGetters;
 TArray<UMaterialInstance::FCustomParameterSetUpdaterDelegate> UMaterialInstance::CustomParameterSetUpdaters;

@@ -823,6 +823,11 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			}
 		}
 	}
+
+	if (FParse::Param(FCommandLine::Get(), TEXT("emitdrawevents")))
+	{
+		GEmitDrawEvents = true;
+	}	
 #endif // !UE_BUILD_SHIPPING
 
 	// Switch into executable's directory (may be required by some of the platform file overrides)
@@ -836,6 +841,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			FString ProjPath = FPaths::GetProjectFilePath();
 			if (FPaths::FileExists(ProjPath) == false)
 			{
+				// display it multiple ways, it's very important error message...
+				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Project file not found: %s"), *ProjPath);
 				UE_LOG(LogInit, Display, TEXT("Project file not found: %s"), *ProjPath);
 				UE_LOG(LogInit, Display, TEXT("\tAttempting to find via project info helper."));
 				// Use the uprojectdirs
@@ -1128,7 +1135,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	if(ModuleEnumerator.RegisterWithModuleManager())
 	{
 		const FVersionManifest& Manifest = ModuleEnumerator.GetInitialManifest();
-		if(Manifest.Changelist != 0 && !FEngineVersion::OverrideCurrentVersionChangelist(Manifest.Changelist))
+		if(Manifest.Changelist != 0 && !FEngineVersion::OverrideCurrentVersionChangelist(Manifest.Changelist, Manifest.CompatibleChangelist))
 		{
 			UE_LOG(LogInit, Fatal, TEXT("Couldn't update engine changelist to %d."), Manifest.Changelist);
 		}
@@ -1183,7 +1190,11 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	FScopeCycleCounter CycleCount_AfterStats( GET_STATID( STAT_FEngineLoop_PreInit_AfterStats ) );
 
 	// Load Core modules required for everything else to work (needs to be loaded before InitializeRenderingCVarsCaching)
-	LoadCoreModules();
+	if (!LoadCoreModules())
+	{
+		UE_LOG(LogInit, Error, TEXT("Failed to load Core modules."));
+		return 1;
+	}
 
 #if WITH_ENGINE
 	extern ENGINE_API void InitializeRenderingCVarsCaching();
@@ -1266,6 +1277,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	ApplyCVarSettingsFromIni(TEXT("/Script/Engine.RendererOverrideSettings"), *GEngineIni, ECVF_SetByProjectSetting);
 	ApplyCVarSettingsFromIni(TEXT("/Script/Engine.StreamingSettings"), *GEngineIni, ECVF_SetByProjectSetting);
 	ApplyCVarSettingsFromIni(TEXT("/Script/Engine.GarbageCollectionSettings"), *GEngineIni, ECVF_SetByProjectSetting);
+	ApplyCVarSettingsFromIni(TEXT("/Script/Engine.NetworkSettings"), *GEngineIni, ECVF_SetByProjectSetting);
 
 #if !UE_SERVER
 	if (!IsRunningDedicatedServer())
@@ -1339,8 +1351,9 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 #endif	//WITH_EDITOR
 		PRIVATE_GIsRunningCommandlet = true;
 
-		// Allow commandlet rendering based on command line switch (too early to let the commandlet itself override this).
+		// Allow commandlet rendering and/or audio based on command line switch (too early to let the commandlet itself override this).
 		PRIVATE_GAllowCommandletRendering = FParse::Param(FCommandLine::Get(), TEXT("AllowCommandletRendering"));
+		PRIVATE_GAllowCommandletAudio = FParse::Param(FCommandLine::Get(), TEXT("AllowCommandletAudio"));
 
 		// We need to disregard the empty token as we try finding Token + "Commandlet" which would result in finding the
 		// UCommandlet class if Token is empty.
@@ -1403,7 +1416,9 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		InitializeStdOutDevice();
 	}
 
+#if !USE_NEW_ASYNC_IO
 	FIOSystem::Get(); // force it to be created if it isn't already
+#endif
 
 	// allow the platform to start up any features it may need
 	IPlatformFeaturesModule::Get();
@@ -1807,7 +1822,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 			//run automation smoke tests now that the commandlet has had a chance to override the above flags and GEngine is available
 #if !PLATFORM_HTML5 && !PLATFORM_HTML5_WIN32 
-			FAutomationTestFramework::GetInstance().RunSmokeTests();
+			FAutomationTestFramework::Get().RunSmokeTests();
 #endif 
 	
 			UCommandlet* Commandlet = NewObject<UCommandlet>(GetTransientPackage(), CommandletClass);
@@ -2009,18 +2024,21 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 #endif // WITH_ENGINE
 
 	//run automation smoke tests now that everything is setup to run
-	FAutomationTestFramework::GetInstance().RunSmokeTests();
+	FAutomationTestFramework::Get().RunSmokeTests();
 
 	// Note we still have 20% remaining on the slow task: this will be used by the Editor/Engine initialization next
 	return 0;
 }
 
 
-void FEngineLoop::LoadCoreModules()
+bool FEngineLoop::LoadCoreModules()
 {
 	// Always attempt to load CoreUObject. It requires additional pre-init which is called from its module's StartupModule method.
 #if WITH_COREUOBJECT
-	FModuleManager::Get().LoadModule(TEXT("CoreUObject"));
+	bool bResult = FModuleManager::Get().LoadModule(TEXT("CoreUObject")).IsValid();
+	return bResult;
+#else
+	return true;
 #endif
 }
 
@@ -2503,7 +2521,9 @@ void FEngineLoop::Exit()
 
 	FTaskGraphInterface::Shutdown();
 	IStreamingManager::Shutdown();
+#if !USE_NEW_ASYNC_IO
 	FIOSystem::Shutdown();
+#endif
 }
 
 
@@ -2522,22 +2542,24 @@ void FEngineLoop::ProcessLocalPlayerSlateOperations() const
 
 			if ( ViewportWidget.IsValid() )
 			{
-				for( FConstPlayerControllerIterator Iterator = CurWorld->GetPlayerControllerIterator(); Iterator; ++Iterator )
+				FWidgetPath PathToWidget;
+				SlateApp.GeneratePathToWidgetUnchecked(ViewportWidget.ToSharedRef(), PathToWidget);
+
+				if (PathToWidget.IsValid())
 				{
-					APlayerController* PlayerController = *Iterator;
-					if( PlayerController )
+					for (FConstPlayerControllerIterator Iterator = CurWorld->GetPlayerControllerIterator(); Iterator; ++Iterator)
 					{
-						ULocalPlayer* LocalPlayer = Cast< ULocalPlayer >( PlayerController->Player );
-						if( LocalPlayer )
+						APlayerController* PlayerController = *Iterator;
+						if (PlayerController)
 						{
-							FReply& TheReply = LocalPlayer->GetSlateOperations();
+							ULocalPlayer* LocalPlayer = Cast< ULocalPlayer >(PlayerController->Player);
+							if (LocalPlayer)
+							{
+								FReply& TheReply = LocalPlayer->GetSlateOperations();
+								SlateApp.ProcessReply(PathToWidget, TheReply, nullptr, nullptr, LocalPlayer->GetControllerId());
 
-							FWidgetPath PathToWidget;
-							SlateApp.GeneratePathToWidgetUnchecked( ViewportWidget.ToSharedRef(), PathToWidget );
-
-							SlateApp.ProcessReply( PathToWidget, TheReply, nullptr, nullptr, LocalPlayer->GetControllerId() );
-
-							TheReply = FReply::Unhandled();
+								TheReply = FReply::Unhandled();
+							}
 						}
 					}
 				}
@@ -2730,6 +2752,7 @@ void FEngineLoop::Tick()
 			GRHICommandList.LatchBypass();
 			GFrameNumberRenderThread++;
 			RHICmdList.PushEvent(*FString::Printf(TEXT("Frame%d"),GFrameNumberRenderThread), FColor(0, 255, 0, 255));
+			GPU_STATS_BEGINFRAME(RHICmdList);
 			RHICmdList.BeginFrame();
 		});
 
@@ -2755,7 +2778,7 @@ void FEngineLoop::Tick()
 
 		{
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_TickFPSChart);
-			GEngine->TickFPSChart( FApp::GetDeltaTime() );
+			GEngine->TickPerformanceMonitoring( FApp::GetDeltaTime() );
 		}
 
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_Malloc_UpdateStats);
@@ -2806,17 +2829,19 @@ void FEngineLoop::Tick()
 		// input is polled for motion controller devices each frame.
 #if WITH_ENGINE
 		extern ENGINE_API float GNewWorldToMetersScale;
-		if( GNewWorldToMetersScale != 0.0f && GWorld != nullptr )
+		UWorld* HackGWorld = GWorld;
+		if( GNewWorldToMetersScale != 0.0f && HackGWorld != nullptr )
 		{
-			if( GNewWorldToMetersScale != GWorld->GetWorldSettings()->WorldToMeters )
+			if( GNewWorldToMetersScale != HackGWorld->GetWorldSettings()->WorldToMeters )
 			{
-				GWorld->GetWorldSettings()->WorldToMeters = GNewWorldToMetersScale;
+				HackGWorld->GetWorldSettings()->WorldToMeters = GNewWorldToMetersScale;
 			}
 		}
 #endif	// WITH_ENGINE
 
 		if (FSlateApplication::IsInitialized() && !bIdleMode)
 		{
+			SCOPE_TIME_GUARD(TEXT("SlateInput"));
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_Tick_SlateInput);
 
 			FSlateApplication& SlateApp = FSlateApplication::Get();
@@ -2944,6 +2969,7 @@ void FEngineLoop::Tick()
 			EndFrame,
 		{
 			RHICmdList.EndFrame();
+			GPU_STATS_ENDFRAME(RHICmdList);
 			RHICmdList.PopEvent();
 		});
 
@@ -3104,6 +3130,11 @@ bool FEngineLoop::AppInit( )
 		FMemory::EnablePurgatoryTests();
 	}
 
+	if (FParse::Param(FCommandLine::Get(), TEXT("poisonmallocproxy")))
+	{
+		FMemory::EnablePoisonTests();
+	}
+
 #if !UE_BUILD_SHIPPING
 	if (FParse::Param(FCommandLine::Get(), TEXT("BUILDMACHINE")))
 	{
@@ -3141,7 +3172,7 @@ bool FEngineLoop::AppInit( )
 	CheckForPrintTimesOverride();
 
 	// Check whether the project or any of its plugins are missing or are out of date
-#if UE_EDITOR
+#if UE_EDITOR && !IS_MONOLITHIC
 	if(!GIsBuildMachine && FPaths::IsProjectFilePathSet() && IPluginManager::Get().AreRequiredPluginsAvailable())
 	{
 		const FProjectDescriptor* CurrentProject = IProjectManager::Get().GetCurrentProject();
@@ -3244,6 +3275,12 @@ bool FEngineLoop::AppInit( )
 		return false;
 	}
 
+	// Register the callback that allows the text localization manager to load data for plugins
+	FTextLocalizationManager::Get().GatherAdditionalLocResPathsCallback.AddLambda([](TArray<FString>& OutLocResPaths)
+	{
+		IPluginManager::Get().GetLocalizationPathsForEnabledPlugins(OutLocResPaths);
+	});
+
 	PreInitHMDDevice();
 
 	// Put the command line and config info into the suppression system
@@ -3308,6 +3345,8 @@ bool FEngineLoop::AppInit( )
 	// Print compiler version info
 #if defined(__clang__)
 	UE_LOG(LogInit, Log, TEXT("Compiled with Clang: %s"), ANSI_TO_TCHAR( __clang_version__ ) );
+#elif defined(__INTEL_COMPILER)
+	UE_LOG(LogInit, Log, TEXT("Compiled with ICL: %d"), __INTEL_COMPILER);
 #elif defined( _MSC_VER )
 	#ifndef __INTELLISENSE__	// Intellisense compiler doesn't support _MSC_FULL_VER
 	{
@@ -3368,7 +3407,7 @@ bool FEngineLoop::AppInit( )
 	bool bForceSmokeTests = false;
 	GConfig->GetBool(TEXT("AutomationTesting"), TEXT("bForceSmokeTests"), bForceSmokeTests, GEngineIni);
 	bForceSmokeTests |= FParse::Param(FCommandLine::Get(), TEXT("bForceSmokeTests"));
-	FAutomationTestFramework::GetInstance().SetForceSmokeTests(bForceSmokeTests);
+	FAutomationTestFramework::Get().SetForceSmokeTests(bForceSmokeTests);
 
 	// Init other systems.
 	FCoreDelegates::OnInit.Broadcast();

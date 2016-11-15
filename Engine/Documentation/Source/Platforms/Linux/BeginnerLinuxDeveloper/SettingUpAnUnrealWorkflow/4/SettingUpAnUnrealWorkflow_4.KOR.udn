@@ -1,0 +1,51 @@
+﻿INTSourceChangelist:0
+Availability: Docs
+Title: 4 - Running UE4 on Linux
+Crumbs:%ROOT%, Platforms, Platforms/Linux, Platforms/Linux/BeginnerLinuxDeveloper, Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
+Description:Learn how to run Unreal Engine on Linux.
+Version: 4.11
+type:HowTo
+parent:Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow
+order: 4
+tags:Linux
+SkillLevel:Beginner
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow/3 "%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow/3:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Home](Platforms/Linux/BeginnerLinuxDeveloper)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+As you worked your way to this final step, you linked your Epic Games account with your GitHub username, you downloaded the Unreal Engine source code from our 
+GitHub site, and you compiled a binary of UE4 on your Linux system. The only remaining task is for you to run the UE4 Editor so that you can start making 
+games for the Linux platform.
+
+[INCLUDE:Programming/Development/BuildingUnrealEngine#linuxrun]
+
+## End Result
+
+![](howTo_endResult.png)
+
+If you're creating your first game on Linux, you just learned how to establish your primary UE4 workflow on Linux. As you worked your way through this tutorial, 
+you learned:
+
+&#x2713; How to setup Git to download the source code for Unreal Engine.  
+&#x2713; How to fork and clone Unreal Engine's source code.  
+&#x2713; How to build Unreal Engine from source.  
+&#x2713; How to run Unreal Engine on your Linux machine.  
+
+Throughout the course of this tutorial, you spent most of your time using the terminal. In the next tutorial, you'll learn how to setup an integrated development 
+environment (IDE), enabling you to harness the context rich features of an IDE to help you build and debug UE4 games.
+
+%Steps%

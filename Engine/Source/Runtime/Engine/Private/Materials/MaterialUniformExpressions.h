@@ -8,6 +8,7 @@
 #include "EnginePrivate.h"
 #include "MaterialShared.h"
 #include "Materials/MaterialExpressionTextureProperty.h"
+#include "RenderingObjectVersion.h"
 
 /**
  */
@@ -489,21 +490,35 @@ class FMaterialUniformExpressionLength: public FMaterialUniformExpression
 	DECLARE_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionLength);
 public:
 
-	FMaterialUniformExpressionLength() {}
-	FMaterialUniformExpressionLength(FMaterialUniformExpression* InX):
-		X(InX)
+	FMaterialUniformExpressionLength() : ValueType(MCT_Float) {}
+	FMaterialUniformExpressionLength(FMaterialUniformExpression* InX, uint32 InValueType = MCT_Float):
+		X(InX),
+		ValueType(InValueType)
 	{}
 
 	// FMaterialUniformExpression interface.
 	virtual void Serialize(FArchive& Ar)
 	{
+		Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
 		Ar << X;
+				
+		if (Ar.CustomVer(FRenderingObjectVersion::GUID) >= FRenderingObjectVersion::TypeHandlingForMaterialSqrtNodes)
+		{
+			Ar << ValueType;
+		}	
 	}
 	virtual void GetNumberValue(const FMaterialRenderContext& Context,FLinearColor& OutValue) const
 	{
 		FLinearColor ValueX = FLinearColor::Black;
 		X->GetNumberValue(Context,ValueX);
-		OutValue.R = OutValue.G = OutValue.B = FMath::Sqrt(ValueX.R * ValueX.R + ValueX.G * ValueX.G + ValueX.B * ValueX.B);
+
+		check(ValueType & MCT_Float);
+		float LengthSq = ValueX.R * ValueX.R;
+		LengthSq += (ValueType >= MCT_Float2) ? ValueX.G * ValueX.G : 0;
+		LengthSq += (ValueType >= MCT_Float3) ? ValueX.B * ValueX.B : 0;
+		LengthSq += (ValueType >= MCT_Float4) ? ValueX.A * ValueX.A : 0;
+
+		OutValue.R = OutValue.G = OutValue.B = OutValue.A = FMath::Sqrt(LengthSq);
 	}
 	virtual bool IsConstant() const
 	{
@@ -520,11 +535,12 @@ public:
 			return false;
 		}
 		FMaterialUniformExpressionLength* OtherSqrt = (FMaterialUniformExpressionLength*)OtherExpression;
-		return X->IsIdentical(OtherSqrt->X);
+		return X->IsIdentical(OtherSqrt->X) && ValueType == OtherSqrt->ValueType;
 	}
 
 private:
 	TRefCountPtr<FMaterialUniformExpression> X;
+	uint32 ValueType;
 };
 
 /**
@@ -612,17 +628,24 @@ class FMaterialUniformExpressionFoldedMath: public FMaterialUniformExpression
 	DECLARE_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionFoldedMath);
 public:
 
-	FMaterialUniformExpressionFoldedMath() {}
-	FMaterialUniformExpressionFoldedMath(FMaterialUniformExpression* InA,FMaterialUniformExpression* InB,uint8 InOp):
+	FMaterialUniformExpressionFoldedMath() : ValueType(MCT_Float) {}
+	FMaterialUniformExpressionFoldedMath(FMaterialUniformExpression* InA,FMaterialUniformExpression* InB,uint8 InOp, uint32 InValueType = MCT_Float):
 		A(InA),
 		B(InB),
-		Op(InOp)
+		ValueType(InValueType),
+		Op(InOp)	
 	{}
 
 	// FMaterialUniformExpression interface.
 	virtual void Serialize(FArchive& Ar)
 	{
+		Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
 		Ar << A << B << Op;
+		
+		if (Ar.CustomVer(FRenderingObjectVersion::GUID) >= FRenderingObjectVersion::TypeHandlingForMaterialSqrtNodes)
+		{
+			Ar << ValueType;
+		}	
 	}
 	virtual void GetNumberValue(const FMaterialRenderContext& Context,FLinearColor& OutValue) const
 	{
@@ -644,7 +667,11 @@ public:
 				break;
 			case FMO_Dot: 
 				{
-					float DotProduct = ValueA.R * ValueB.R + ValueA.G * ValueB.G + ValueA.B * ValueB.B + ValueA.A * ValueB.A;
+					check(ValueType & MCT_Float);
+					float DotProduct = ValueA.R * ValueB.R;
+					DotProduct += (ValueType >= MCT_Float2) ? ValueA.G * ValueB.G : 0;
+					DotProduct += (ValueType >= MCT_Float3) ? ValueA.B * ValueB.B : 0;
+					DotProduct += (ValueType >= MCT_Float4) ? ValueA.A * ValueB.A : 0;
 					OutValue.R = OutValue.G = OutValue.B = OutValue.A = DotProduct;
 				}
 				break;
@@ -668,12 +695,13 @@ public:
 			return false;
 		}
 		FMaterialUniformExpressionFoldedMath* OtherMath = (FMaterialUniformExpressionFoldedMath*)OtherExpression;
-		return A->IsIdentical(OtherMath->A) && B->IsIdentical(OtherMath->B) && Op == OtherMath->Op;
+		return A->IsIdentical(OtherMath->A) && B->IsIdentical(OtherMath->B) && Op == OtherMath->Op && ValueType == OtherMath->ValueType;
 	}
 
 private:
 	TRefCountPtr<FMaterialUniformExpression> A;
 	TRefCountPtr<FMaterialUniformExpression> B;
+	uint32 ValueType;
 	uint8 Op;
 };
 

@@ -10,15 +10,12 @@ class UMaterialExpressionBreakMaterialAttributes : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY()
-	FExpressionInput Struct;
-
  	UPROPERTY()
  	FMaterialAttributesInput MaterialAttributes;
  
 	//~ Begin UMaterialExpression Interface
 #if WITH_EDITOR
-	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
+	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex) override;
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
 #endif
 	virtual const TArray<FExpressionInput*> GetInputs()override;

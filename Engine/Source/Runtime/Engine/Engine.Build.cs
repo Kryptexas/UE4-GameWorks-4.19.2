@@ -157,6 +157,8 @@ public class Engine : ModuleRules
         // The AnimGraphRuntime module is not needed by Engine proper, but it is loaded in LaunchEngineLoop.cpp,
         // and needs to be listed in an always-included module in order to be compiled into standalone games
         DynamicallyLoadedModuleNames.Add("AnimGraphRuntime");
+        // So does Geometry Cache
+        DynamicallyLoadedModuleNames.Add("GeometryCache");
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[]

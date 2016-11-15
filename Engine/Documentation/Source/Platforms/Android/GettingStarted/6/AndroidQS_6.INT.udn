@@ -2,28 +2,19 @@ Availability:Public
 Title:6. On your Own
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
 Description:Read more about Android development with Unreal Engine.
-Version:4.9
+Version:4.12
 Skilllevel:Intermediate
+tags:Android
+tags:Mobile
+type:sequential
+parent:Platforms/Android/GettingStarted
+order:6
+Checkpoint:AndroidQS
 
 The following section will go over some things that you can do on your own to practice and refine your skills at deploying UE4 projects to Android devices.
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[Previous Step](Platforms/Android/GettingStarted/5 "%Platforms/Android/GettingStarted/5:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[Quick Start Home](Platforms/Android/GettingStarted)
-	[/PARAM]
-	[PARAM:next]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[nav]
 
-
-%Steps%
 
 Now that we have gone over how to get your UE4 project packaged and ready to be tested on your Android device, 
 try and accomplish the following using what you have learned from this Quick Start guide. 
@@ -54,4 +45,4 @@ For more information about designing game content and levels for mobile devices 
 You can also preview your mobile game without deploying to a device by using the [](Platforms\Mobile\Previewer).
 
 
-%Steps%
+[nav]

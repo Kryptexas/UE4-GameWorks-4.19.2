@@ -10,6 +10,12 @@
 /* FAssetTypeActions_Base interface
  *****************************************************************************/
 
+bool FMediaSourceActions::CanFilter()
+{
+	return false;
+}
+
+
 FText FMediaSourceActions::GetAssetDescription(const class FAssetData& AssetData) const
 {
 	auto MediaSource = Cast<UMediaSource>(AssetData.GetAsset());

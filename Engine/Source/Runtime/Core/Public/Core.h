@@ -16,8 +16,11 @@
 #include "PlatformIncludes.h"					// Include the main and misc platform headers
 #include "PlatformFilemanager.h"				// Platform file manager.
 #include "AssertionMacros.h"					// Various assertion macros
+#include "LogMacros.h"							// Various log macros
 #include "UObject/UnrealNames.h"				// EName definition.
 #include "OutputDevice.h"						// Output devices, logf, debugf, etc
+#include "Misc/MessageDialog.h"
+#include "Misc/Exec.h"
 #include "NumericLimits.h"						// Numeric limits
 #include "UnrealMathUtility.h"					// FMath
 #include "UnrealTypeTraits.h"					// Type Traits
@@ -52,17 +55,26 @@
 #include "ObjectVersion.h"				// Object version info.
 #include "TypeHash.h"					// Type hashing functions
 #include "EnumAsByte.h"					// Common template definitions.
-#include "ArchiveBase.h"				// Archive class.
+#include "Archive.h"					// Archive class.
+#include "ArchiveProxy.h"
+#include "NameAsStringProxyArchive.h"
 #include "ScopedPointer.h"				// Scoped pointer definitions.
 #include "Sorting.h"					// Sorting definitions.
 #include "Array.h"						// Dynamic array definitions.
+#include "ScriptArray.h"
+#include "MRUArray.h"
+#include "TransArray.h"
+#include "IndirectArray.h"
 #include "ArrayBuilder.h"				// Builder template for arrays.
 #include "BitArray.h"					// Bit array definition.
-#include "Bitstreams.h"					// Bit stream archiver.
+#include "BitReader.h"					// Bit stream archiver.
+#include "BitWriter.h"					// Bit stream archiver.
 #include "SparseArray.h"				// Sparse array definitions.
 #include "UnrealString.h"				// Dynamic string definitions.
 #include "NameTypes.h"					// Global name subsystem.
 #include "CoreMisc.h"					// Low level utility code.
+#include "CommandLine.h"
+#include "FileHelper.h"
 #include "Paths.h"						// Path helper functions
 #include "StaticArray.h"                // Static array definition.
 #include "StaticBitArray.h"             // Static bit array definition.
@@ -71,6 +83,7 @@
 #include "MapBuilder.h"					// Builder template for maps.
 #include "List.h"						// Dynamic list definitions.
 #include "ResourceArray.h"				// Resource array definitions.
+#include "DynamicRHIResourceArray.h"	// Default to the dynamically bound RHI.
 #include "RefCounting.h"				// Reference counting definitions.
 #include "ScriptDelegates.h"
 #include "Delegate.h"					// C++ delegate system
@@ -83,10 +96,31 @@
 #include "SHMath.h"						// SH math functions.
 #include "RandomStream.h"				// Random stream definitions.
 #include "OutputDevices.h"				// Output devices
+#include "OutputDeviceRedirector.h"
+#include "OutputDeviceNull.h"
+#include "OutputDeviceMemory.h"
+#include "OutputDeviceFile.h"
+#include "OutputDeviceDebug.h"
+#include "OutputDeviceArchiveWrapper.h"
+#include "OutputDeviceAnsiError.h"
+#include "BufferedOutputDevice.h"
+#include "LogScopedVerbosityOverride.h"
 #include "CoreStats.h"
+#include "TimeGuard.h"
 #include "MemStack.h"					// Stack based memory management.
 #include "AsyncWork.h"					// Async threaded work
-#include "Archive.h"					// Utility archive classes
+#include "MemoryArchive.h"
+#include "MemoryWriter.h"
+#include "LargeMemoryWriter.h"
+#include "LargeMemoryReader.h"
+#include "BufferArchive.h"
+#include "MemoryReader.h"
+#include "ArrayReader.h"
+#include "ArrayWriter.h"
+#include "BufferReader.h"
+#include "BufferWriter.h"
+#include "ArchiveSaveCompressedProxy.h"
+#include "ArchiveLoadCompressedProxy.h"
 #include "IOBase.h"						// base IO declarations, FIOManager, FIOSystem
 #include "Variant.h"
 #include "WildcardString.h"
@@ -98,6 +132,8 @@
 #include "ConfigCacheIni.h"				// The configuration cache declarations
 #include "IConsoleManager.h"
 #include "FeedbackContext.h"
+#include "SlowTask.h"
+#include "ScopedSlowTask.h"
 #include "AutomationTest.h"				// Automation testing functionality for game, editor, etc.
 #include "CallbackDevice.h"				// Base class for callback devices.
 #include "ObjectThumbnail.h"			// Object thumbnails

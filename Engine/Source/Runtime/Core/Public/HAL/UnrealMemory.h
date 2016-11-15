@@ -233,6 +233,11 @@ struct CORE_API FMemory
 	* This uses the purgatory malloc proxy to check if things are writing to stale pointers.
 	*/
 	static void EnablePurgatoryTests();
+	/**
+	* Called once main is started and we have -purgatorymallocproxy.
+	* This uses the purgatory malloc proxy to check if things are writing to stale pointers.
+	*/
+	static void EnablePoisonTests();
 private:
 	static void GCreateMalloc();
 	// These versions are called either at startup or in the event of a crash

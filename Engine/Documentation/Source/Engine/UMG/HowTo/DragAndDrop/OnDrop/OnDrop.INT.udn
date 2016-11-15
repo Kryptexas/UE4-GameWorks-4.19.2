@@ -1,7 +1,7 @@
 Availability: Docs
 Title:4. On Drop
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
-Description:We finish by creating the script for OnDrop functionality before we test. 
+Description:In this step we configure what happens when the player drops the dragged widget.
 Related: Engine/UMG
 Related: Engine/UMG/UserGuide
 Version: 4.12
@@ -18,13 +18,14 @@ SkillLevel: Intermediate
 		[Drag and Drop Widgets](Engine\UMG\HowTo\DragAndDrop)
 	[/PARAM]
 	[PARAM:next]
+		[Next Step](Engine\UMG\HowTo\DragAndDrop\FinishingUp "%Engine\UMG\HowTo\DragAndDrop\FinishingUp:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
-To finish up, we script what happens when we "drop" the widget in our HUD as well as test everything out. 
+Here we set up our main **HUD** Widget Blueprint and override what happens when we perform the **OnDrop** function. 
 
 ## Steps
 
@@ -58,46 +59,24 @@ To finish up, we script what happens when we "drop" the widget in our HUD as wel
 	We will use this minus the **DragOffset** to determine where we should place the widget when it is dropped. 
 
 1.	Subtract the **DragOffset** from the **Return Value** of **Absolute to Local**. 
+	
+	![](UpdateDragDrop1.png)
 
-1.	For the **Widget Reference**, use the **Add to Viewport** and **Set Position in Viewport** and connect as shown. 
+1.	Off **Widget Reference**, add a **Remove from Parent** followed by **Add to Viewport** and **Set Position in Viewport** nodes. 
+
+1.	Connect the nodes as shown below and uncheck **Remove DPIScale** and check the **Return Value** on the **Return Node**. 
 
 	[REGION:lightbox]
-	[![](DragDrop18.png)](DragDrop18.png)
+	[![](UpdateDragDrop2.png)](UpdateDragDrop2.png)
 	[/REGION]
 
-	[REGION:caption]
-	Click for full view. 
-	[/REGION]
+	_Click for full view._
+	
+	We uncheck **Remove DPIScale** and check the **Return Value** checkboxes as we do not need to remove the [](Engine/UMG/UserGuide/DPIScaling) and we have handled this function so we return as true. 
+	With this script we first remove the existing Health Bar widget before re-adding it to the screen in the new location relative to our Drag Offset. 
 
-	Make sure to uncheck **Remove DPIScale** and check the **Return Value** checkboxes as we do not need to remove the [](Engine/UMG/UserGuide/DPIScaling) and we have handled this function so we return as true. 
-	With this script we add the widget being dragged to the viewport again and set its position based on where we clicked and started dragging. The last thing we need to do is create and display our HUD Widget Blueprint. 
-
-1.	Inside the **Content/ThirdPersonBP/Blueprints** folder, open the **ThirdPersonCharacter** Blueprint. 
-
-1.	Create the **HUD** Widget Blueprint, **Add to Viewport** and **Get Player Controller** to **Show Mouse Cursor**. 
-
-	![](DragDrop19.png)
-
-1.	**Compile**, **Save** then click the **Play** button to play in the Editor. 
-
-
-## End Result
-
-When you play in the Editor, you can **Left-click** and drag the health bar on screen then drop it in a new location. 
-
-[OBJECT:EmbeddedVideo]
-[PARAMLITERAL:width]
-640
-[/PARAMLITERAL]
-[PARAMLITERAL:height]
-360
-[/PARAMLITERAL]
-[PARAMLITERAL:videoid]
-qUDIkWcQChI
-[/PARAMLITERAL]
-[/OBJECT]
-
-This is just an example of the elements you will need to start the Drag and Drop process. 
-Additional checking may be needed to ensure that players do not drag the widget outside of Safe Zones or potentially on top of other widgets. 
+Our HUD is setup to handle dropping our dragged widget and it displays our Health Bar. 
+In the next and final step in this tutorial we set up our Dragged Widget to mimic the shape of our Health Bar as well as instruct our Character Blueprint to add the HUD to the viewport. 
 
 %Steps%
+

@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3051445
 Availability: Docs
-Title: Building for iOS on Windows
+Title: 윈도우에서 iOS 용 빌드
 Crumbs:%ROOT%, Platforms
-Description:How to remotely compile on a Mac from a Windows machine to create an iOS build. 
+Description:윈도우 머신에서 맥 원격 컴파일을 통해 iOS 빌드를 만드는 법입니다.d. 
 Platform:iOS
 Navigation:platform
 Version: 4.9
@@ -12,67 +12,67 @@ tags:Mobile
 tags:iOS
 prereq:Platforms/iOS/QuickStart
 
-While building for iOS requires a Mac, using remote compilation means that a whole team that primarily uses Windows machines can build for iOS using one Mac. 
+iOS 용 빌드에는 맥이 필요하지만, 원격 컴파일 방법을 통하면 전체 팀원이 윈도우 머신을 써도 맥 하나만 있으면 iOS 빌드가 가능합니다.
 
-## Mac Setup
+## 맥 셋업
 
-1. Enable Remote Compiling on the Mac using [these steps from Apple](https://support.apple.com/kb/PH18726).
+1. 맥에서 Remote Compiling (원격 컴파일) 옵션을 켭니다: [Apple 참고 문서](https://support.apple.com/kb/PH18726).
 
-1. Install your iOS Developer Certificates to the System keychain. If your certificates are already installed to your login keychain, just drag them to the System keychain and they will be installed there as well.
+1. 시스템 키체인에 iOS Developer Certificates 를 설치합니다. 로그인 키체인에 이미 Certificate 가 설치된 경우, 그냥 시스템 키체인에 끌어놓으면 거기에도 설치될 것입니다.
 
 	[REGION:note]
-	For more on creating iOS Developer Certificates, see [](Platforms/iOS/QuickStart/3).
+	iOS Developer Certificates 생성 관련 상세 정보는, [](Platforms/iOS/QuickStart/3) 문서를 참고하세요.
 	[/REGION]
 
-1. Lastly, make sure the private keys for your certificates are set up to be accessible from any program.  This can be accessed by double-clicking on the key under the Developer Certificate. For more information, see [this Apple Support article](https://support.apple.com/kb/PH18682).
+1. 마지막으로 Certificate 에 대한 개인 키가 어떤 프로그램에서도 접근할 수 있도록 구성되었는지 확인합니다. Developer Certificate 아래 키를 더블클릭하면 접근할 수 있습니다. 보다 자세한 정보는, [Apple Support article](https://support.apple.com/kb/PH18682) 을 참고하세요.
 
-## PC Setup
+## PC 셋업
 
-1. Open your project in the editor, then open **Project Settings**.  
+1. 에디터에서 프로젝트를 열고, **프로젝트 세팅** 을 엽니다.
 
 	![](Engine/UI/ProjectSettings/menu_project_settings.png)
 
-1. Click on **iOS** under **Platforms**.
+1. **Platforms** 아래 **iOS** 를 클릭합니다.
 
 	![](iOSsettings.png)
 
-1. Scroll to the **Build** heading, then expand **Remote Build Options**.
+1. **Build** 제목줄로 내려간 뒤, **Remote Build Options** 옵션을 펼칩니다.
 
 	![](BuildOptions.png)
 
-1. In the **Remote Server Name** field, enter the name of the Mac you are using to build the project.
+1. **Remote Server Name** 칸에 프로젝트 빌드에 사용중인 맥 이름을 입력합니다.
 
-1. In the **Remote User Name** field, enter the user name that would normally log in to the remote Mac.
+1. **Remote User Name** 칸에 보통 원격 맥에 로그인하는 데 쓰는 사용자명을 입력합니다.
 
-1. At this point, you will need to generate the SSH key which will be used to ensure a secure connection to the remote Mac.  Press the Generate SSH Key button and follow the prompts.
+1. 여기서 원격 맥 안전 접속 확인에 사용되는 SSH 키를 생성해야 할 것입니다. Generate SSH Key 버튼을 누르고 지시에 따릅니다.
 
-### SSH Setup
+### SSH 셋업
 
-For the SSH setup, you will primarily follow along with the prompts that are presented in the window that pops up. However, here are some additional steps to help guide you through this process.
+SSH 셋업은 주로 표시되는 창에 안내된 대로 따르면 됩니다. 하지만 이 프로세스 진행을 돕기 위한 몇 가지 작업은 이렇습니다.
 
-1. If your host can't be authenticated, enter "yes" at the prompt.
+1. 호스트 인증이 불가능하다면, 확인창에 yes 를 입력합니다.
 
-1. Enter the password which belongs to the user you specified in **Remote User Name**.
+1. **Remote User Name** 칸에 지정한 사용자의 비밀번호를 입력합니다.
 
-1. The prompts will ask you to enter a passphrase.  We recommend not specifying a passphrase so that it can be used without requiring user interaction.
+1. 패스프레이즈를 입력하라는 창이 뜹니다. 사용자 개입이 필요없도록 패스프레이즈를 지정하지 말 것을 추천합니다.
 
-1. You will then be prompted to enter the password for the user name again to complete the process.
+1. 비밀번호를 다시 한 번 입력하면 프로세스가 완료됩니다.
 
-At this point, you should successfully have generated your SSH key and are ready to start building iOS games from editor on PC.
+이제 SSH 키 생성이 완료되고, PC 상의 에디터에서 iOS 게임 빌드를 시작할 수 있을 것입니다.
 
-## Optional Team Setup
+## 최적 팀 셋업
 
-If you wish to pass around this data so that it can be used for all projects in the future, then you will want to specify the **Remote Server Name** and **Remote User Name** in one or more of the `*Engine.ini` files on your computer.  
+이 데이터를 공유하여 앞으로 모든 프로젝트에 사용할 수 있도록 하려면, 컴퓨터에 있는 하나 이상의 `*Engine.ini` 파일에 **Remote Server Name** 과 **Remote User Name** 을 지정해 주면 될 것입니다.
 
-1. Select the multi-dot button next to the property.  
+1. 프로퍼티 옆 복수선택 버튼을 선택합니다.
 
 	![](ConfigFiles.png)
 
-	This will open the **Configuration Editor** 
+	그러면 **Configuration Editor** 가 뜹니다.
 	
-1. Set the properties for each individual `.ini` file you wish.  
+1. 원하는 `.ini` 파일 각각에 대해 프로퍼티를 설정합니다.
 
 	![](inifileexample.png)
 
 
-Also, the SSH keys are stored in `../../../Engine/Build/SSHKeys`. Make sure to check that directory into source control to share them with your team.
+또한, SSH 키는 `../../../Engine/Build/SSHKeys` 에 저장됩니다. 팀과 공유하려면 이 디렉토리를 소스 콘트롤에 체크 인 시켜야 합니다.

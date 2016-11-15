@@ -15,15 +15,29 @@ namespace UnrealBuildTool.Rules
 
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {
-					"DesktopPlatform",
+                    "DesktopPlatform",
                     "InputCore",
-					"Slate",
-					"SlateCore",
+                    "Slate",
+                    "SlateCore",
                     "EditorStyle",
-				}
+                    "CoreUObject",
+                    "Json",
+                    "JsonUtilities"
+                }
 			);
 
-			PrivateIncludePathModuleNames.AddRange(
+            // Added more direct dependencies to the editor for testing functionality
+            if (UEBuildConfiguration.bBuildEditor)
+            {
+                PrivateDependencyModuleNames.AddRange(
+                    new string[] {
+                        "UnrealEd",
+                        "Engine", // Needed for UWorld/GWorld to find current level
+				    }
+                );
+            }
+
+            PrivateIncludePathModuleNames.AddRange(
 				new string[] {
 					"Messaging",
 					"SessionServices",

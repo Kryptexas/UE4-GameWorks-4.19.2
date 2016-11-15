@@ -16,14 +16,12 @@ USmokeTestCommandlet::USmokeTestCommandlet(const FObjectInitializer& ObjectIniti
 	LogToConsole = true;
 }
 
-
-
 int32 USmokeTestCommandlet::Main( const FString& Params )
 {
 	const TCHAR* Parms = *Params;
 
 	GIsRequestingExit = true; // so CTRL-C will exit immediately
-	bool bAllSuccessful = FAutomationTestFramework::GetInstance().RunSmokeTests();
+	bool bAllSuccessful = FAutomationTestFramework::Get().RunSmokeTests();
 
 	return bAllSuccessful ? 0 : 1;
 }

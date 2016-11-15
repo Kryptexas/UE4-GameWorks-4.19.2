@@ -57,8 +57,8 @@ CONSTEXPR inline EUpdateTransformFlags operator ~(EUpdateTransformFlags Value)
 FORCEINLINE EUpdateTransformFlags SkipPhysicsToEnum(bool bSkipPhysics){ return bSkipPhysics ? EUpdateTransformFlags::SkipPhysicsUpdate : EUpdateTransformFlags::None; }
 
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FActorComponentActivatedSignature, bool, bReset);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FActorComponentDeactivateSignature);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FActorComponentActivatedSignature, UActorComponent*, Component, bool, bReset);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FActorComponentDeactivateSignature, UActorComponent*, Component);
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FActorComponentCreatePhysicsSignature, UActorComponent*);
 DECLARE_MULTICAST_DELEGATE_OneParam(FActorComponentDestroyPhysicsSignature, UActorComponent*);
@@ -71,7 +71,7 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FActorComponentDestroyPhysicsSignature, UAct
  * @see USceneComponent
  * @see UPrimitiveComponent
  */
-UCLASS(DefaultToInstanced, BlueprintType, abstract, hideCategories=(ComponentReplication), meta=(ShortTooltip="An ActorComponent is a reusable component that can be added to any actor."))
+UCLASS(DefaultToInstanced, BlueprintType, abstract, meta=(ShortTooltip="An ActorComponent is a reusable component that can be added to any actor."))
 class ENGINE_API UActorComponent : public UObject, public IInterface_AssetUserData
 {
 	GENERATED_BODY()
@@ -189,8 +189,12 @@ public:
 	uint32 bWantsInitializeComponent:1;
 
 	/** If true, we call the virtual BeginPlay */
-	UPROPERTY()
+	DEPRECATED(4.14, "bWantsBeginPlay was inconsistently enforced and is now unused")
 	uint32 bWantsBeginPlay:1;
+
+	/** If true, the component will be excluded from non-editor builds */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Cooking)
+	uint32 bIsEditorOnly:1;
 
 private:
 	/** Indicates that OnCreatedComponent has been called, but OnDestroyedComponent has not yet */
@@ -218,6 +222,7 @@ private:
 	friend struct FMarkComponentEndOfFrameUpdateState;
 
 	friend class FActorComponentInstanceData;
+	friend class FActorComponentDetails;
 
 public:
 	UPROPERTY()
@@ -266,6 +271,16 @@ public:
 	/** See if this component contains the supplied tag */
 	UFUNCTION(BlueprintCallable, Category="Components")
 	bool ComponentHasTag(FName Tag) const;
+
+	/**
+	* Called during saving to determine the load flags to save with the object.
+	*
+	* @return	true if this object should always be loaded for editor game
+	*/
+	virtual bool NeedsLoadForEditorGame() const override
+	{
+		return !IsEditorOnly() && Super::NeedsLoadForEditorGame();
+	}
 
 	//~ Begin Trigger/Activation Interface
 
@@ -348,7 +363,12 @@ public:
 	virtual bool GetComponentClassCanReplicate() const;
 
 	/** Returns whether this component is an editor-only object or not */
-	virtual bool IsEditorOnly() const { return false; }
+	virtual bool IsEditorOnly() const override { return bIsEditorOnly; }
+
+	virtual void MarkAsEditorOnlySubobject() override
+	{
+		bIsEditorOnly = true;
+	}
 
 	/** Returns net role of the owning actor */
 	/** Returns true if we are replicating and not authorative */
@@ -808,25 +828,6 @@ private:
 
 //////////////////////////////////////////////////////////////////////////
 // UActorComponent inlines
-
-FORCEINLINE_DEBUGGABLE class AActor* UActorComponent::GetOwner() const
-{
-#if WITH_EDITOR
-	// During undo/redo the cached owner is unreliable so just used GetTypedOuter
-	if (bCanUseCachedOwner)
-	{
-		checkSlow(OwnerPrivate == GetTypedOuter<AActor>()); // verify cached value is correct
-		return OwnerPrivate;
-	}
-	else
-	{
-		return GetTypedOuter<AActor>();
-	}
-#else
-	checkSlow(OwnerPrivate == GetTypedOuter<AActor>()); // verify cached value is correct
-	return OwnerPrivate;
-#endif
-}
 
 FORCEINLINE bool UActorComponent::CanEverAffectNavigation() const
 {

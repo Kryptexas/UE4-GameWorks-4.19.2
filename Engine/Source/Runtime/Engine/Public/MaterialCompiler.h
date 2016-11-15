@@ -24,6 +24,16 @@ public:
 	// sets internal state CurrentShaderFrequency 
 	// @param OverrideShaderFrequency SF_NumFrequencies to not override
 	virtual void SetMaterialProperty(EMaterialProperty InProperty, EShaderFrequency OverrideShaderFrequency = SF_NumFrequencies, bool bUsePreviousFrameTime = false) = 0;
+	
+	/** Pushes a material attriubtes property onto the stack. Called as we begin compiling a property through a MaterialAttributes pin. */
+	virtual void PushMaterialAttribute(const FGuid& InAttributeID) = 0;
+	/** Pops a MaterialAttributes property off the stack. Called as we finish compiling a property through a MaterialAttributes pin. */
+	virtual FGuid PopMaterialAttribute() = 0;
+	/** Gets the current top of the MaterialAttributes property stack. */
+	virtual const FGuid GetMaterialAttribute() = 0;
+	/** Sets the bottom MaterialAttributes property of the stack. */
+	virtual void SetBaseMaterialAttribute(const FGuid& InAttributeID) = 0;
+
 	// gets value stored by SetMaterialProperty()
 	virtual EShaderFrequency GetCurrentShaderFrequency() const = 0;
 	//
@@ -149,6 +159,8 @@ public:
 
 	virtual int32 VertexColor() = 0;
 
+	virtual int32 PreSkinnedPosition() = 0;
+
 #if WITH_EDITOR
 	virtual int32 MaterialBakingWorldPosition() = 0;
 #endif
@@ -200,6 +212,7 @@ public:
 	virtual int32 PerInstanceFadeAmount() = 0;
 	virtual int32 AntialiasedTextureMask(int32 Tex, int32 UV, float Threshold, uint8 Channel) = 0;
 	virtual int32 Noise(int32 Position, float Scale, int32 Quality, uint8 NoiseFunction, bool bTurbulence, int32 Levels, float OutputMin, float OutputMax, float LevelScale, int32 FilterWidth, bool bTiling, uint32 RepeatSize) = 0;
+	virtual int32 VectorNoise(int32 Position, int32 Quality, uint8 NoiseFunction, bool bTiling, uint32 RepeatSize) = 0;
 	virtual int32 BlackBody( int32 Temp ) = 0;
 	virtual int32 DistanceToNearestSurface(int32 PositionArg) = 0;
 	virtual int32 DistanceFieldGradient(int32 PositionArg) = 0;
@@ -208,6 +221,8 @@ public:
 	virtual int32 SpeedTree(ESpeedTreeGeometryType GeometryType, ESpeedTreeWindType WindType, ESpeedTreeLODType LODType, float BillboardThreshold, bool bAccurateWindVelocities) = 0;
 	virtual int32 TextureCoordinateOffset() = 0;
 	virtual int32 EyeAdaptation() = 0;
+	virtual int32 AtmosphericLightVector() = 0;
+	virtual int32 AtmosphericLightColor() = 0;
 	// The compiler can run in a different state and this affects caching of sub expression, Expressions are different (e.g. View.PrevWorldViewOrigin) when using previous frame's values
 	// If possible we should re-factor this to avoid having to deal with compiler state
 	virtual bool IsCurrentlyCompilingForPreviousFrame() const { return false; }
@@ -230,6 +245,10 @@ public:
 
 	virtual EMaterialShadingModel GetMaterialShadingModel() const { return Compiler->GetMaterialShadingModel();  }
 	virtual void SetMaterialProperty(EMaterialProperty InProperty, EShaderFrequency OverrideShaderFrequency, bool bUsePreviousFrameTime) override { Compiler->SetMaterialProperty(InProperty, OverrideShaderFrequency, bUsePreviousFrameTime); }
+	virtual void PushMaterialAttribute(const FGuid& InAttributeID) override { Compiler->PushMaterialAttribute(InAttributeID); }
+	virtual FGuid PopMaterialAttribute() override { return Compiler->PopMaterialAttribute(); }
+	virtual const FGuid GetMaterialAttribute() override { return Compiler->GetMaterialAttribute(); }
+	virtual void SetBaseMaterialAttribute(const FGuid& InAttributeID) override { Compiler->SetBaseMaterialAttribute(InAttributeID); }
 	virtual EShaderFrequency GetCurrentShaderFrequency() const override { return Compiler->GetCurrentShaderFrequency(); }
 	virtual int32 Error(const TCHAR* Text) override { return Compiler->Error(Text); }
 
@@ -319,6 +338,8 @@ public:
 	virtual int32 StaticTerrainLayerWeight(FName ParameterName,int32 Default) override { return Compiler->StaticTerrainLayerWeight(ParameterName,Default); }
 
 	virtual int32 VertexColor() override { return Compiler->VertexColor(); }
+	
+	virtual int32 PreSkinnedPosition() override { return Compiler->PreSkinnedPosition(); }
 
 	virtual int32 Add(int32 A,int32 B) override { return Compiler->Add(A,B); }
 	virtual int32 Sub(int32 A,int32 B) override { return Compiler->Sub(A,B); }
@@ -374,9 +395,13 @@ public:
 	{
 		return Compiler->AntialiasedTextureMask(Tex, UV, Threshold, Channel);
 	}
-	virtual int32 Noise(int32 Position, float Scale, int32 Quality, uint8 NoiseFunction, bool bTurbulence, int32 Levels, float OutputMin, float OutputMax, float LevelScale, int32 FilterWidth, bool bTiling, uint32 RepeatSize) override
+	virtual int32 Noise(int32 Position, float Scale, int32 Quality, uint8 NoiseFunction, bool bTurbulence, int32 Levels, float OutputMin, float OutputMax, float LevelScale, int32 FilterWidth, bool bTiling, uint32 TileSize) override
 	{
-		return Compiler->Noise(Position, Scale, Quality, NoiseFunction, bTurbulence, Levels, OutputMin, OutputMax, LevelScale, FilterWidth, bTiling, RepeatSize);
+		return Compiler->Noise(Position, Scale, Quality, NoiseFunction, bTurbulence, Levels, OutputMin, OutputMax, LevelScale, FilterWidth, bTiling, TileSize);
+	}
+	virtual int32 VectorNoise(int32 Position, int32 Quality, uint8 NoiseFunction, bool bTiling, uint32 TileSize) override
+	{
+		return Compiler->VectorNoise(Position, Quality, NoiseFunction, bTiling, TileSize);
 	}
 	virtual int32 BlackBody( int32 Temp ) override { return Compiler->BlackBody(Temp); }
 	virtual int32 DistanceToNearestSurface(int32 PositionArg) override { return Compiler->DistanceToNearestSurface(PositionArg); }
@@ -398,6 +423,16 @@ public:
 		return Compiler->AtmosphericFogColor(WorldPosition);
 	}
 
+	virtual int32 AtmosphericLightVector() override
+	{
+		return Compiler->AtmosphericLightVector();
+	}
+
+	virtual int32 AtmosphericLightColor() override
+	{
+		return Compiler->AtmosphericLightColor();
+	}
+
 	virtual int32 TextureCoordinateOffset() override
 	{
 		return Compiler->TextureCoordinateOffset();
@@ -411,4 +446,26 @@ public:
 protected:
 		
 	FMaterialCompiler* Compiler;
+};
+
+// Helper class to handle MaterialAttribute changes on the compiler stack
+class FScopedMaterialCompilerAttribute
+{
+public:
+	FScopedMaterialCompilerAttribute(FMaterialCompiler* InCompiler, const FGuid& InAttributeID)
+	: Compiler(InCompiler)
+	, AttributeID(InAttributeID)
+	{
+		check(Compiler);
+		Compiler->PushMaterialAttribute(AttributeID);
+	}
+
+	~FScopedMaterialCompilerAttribute()
+	{
+		verify(AttributeID == Compiler->PopMaterialAttribute());
+	}
+
+private:
+	FMaterialCompiler*	Compiler;
+	FGuid				AttributeID;
 };

@@ -5,31 +5,13 @@ Description:Information about how to localize your project.
 Related: Programming/UnrealArchitecture/StringHandling/FText
 version: 4.9
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/font_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-	Localizing Text
-	[/PARAM]
-	[PARAM:links]
-	* [Overview](Gameplay/Localization/Overview "%Gameplay/Localization/Overview:description%")
-	* [Setup](Gameplay/Localization/Setup "%Gameplay/Localization/Setup:description%")
-	* [Commandlets](Gameplay/Localization/Commandlets "%Gameplay/Localization/Commandlets:description%")
-	[/PARAM]
-[/OBJECT]
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/cb_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-	Localizing Assets
-	[/PARAM]
-	[PARAM:links]
-	[REGION:tip]
-	Asset localization will be coming in the future just before proper audio localization support. 
-	The implementation will revolve around swapping out the entire uasset package with locale specific versions. 
-	[/REGION:tip]
-	[/PARAM]
-[/OBJECT]
+## Localizing Text
+[DIR(output:"listbutton" parent:"Gameplay/Localization")]
+
+
+
+[REGION:tip]
+Asset localization will be coming in the future just before proper audio localization support. 
+The implementation will revolve around swapping out the entire uasset package with locale specific versions. 
+[/REGION:tip]

@@ -8,7 +8,7 @@ class FBoneDragDropOp : public FDragDropOperation
 public:	
 	DRAG_DROP_OPERATOR_TYPE(FBoneDragDropOp, FDragDropOperation)
 	
-	USkeleton* TargetSkeleton;
+	TWeakPtr<class IEditableSkeleton> EditableSkeleton;
 	FName BoneName;
 
 	/** The widget decorator to use */
@@ -50,11 +50,11 @@ public:
 		CurrentIconBrush = InIcon;
 	}
 
-	static TSharedRef<FBoneDragDropOp> New(USkeleton* Skeleton, const FName& InBoneName)
+	static TSharedRef<FBoneDragDropOp> New(TSharedRef<class IEditableSkeleton> EditableSkeleton, const FName& InBoneName)
 	{
 		TSharedRef<FBoneDragDropOp> Operation = MakeShareable(new FBoneDragDropOp);
 		Operation->BoneName = InBoneName;
-		Operation->TargetSkeleton = Skeleton;
+		Operation->EditableSkeleton = EditableSkeleton;
 		Operation->SetIcon( FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error")) );
 		Operation->Construct();
 		return Operation;

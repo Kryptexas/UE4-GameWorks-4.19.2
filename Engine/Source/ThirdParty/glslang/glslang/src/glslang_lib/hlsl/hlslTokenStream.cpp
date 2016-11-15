@@ -37,10 +37,47 @@
 
 namespace glslang {
 
+void HlslTokenStream::pushPreToken(const HlslToken& tok)
+{
+    assert(preTokenStackSize < tokenBufferSize);
+    preTokenStack[preTokenStackSize++] = tok;
+}
+
+HlslToken HlslTokenStream::popPreToken()
+{
+    assert(preTokenStackSize > 0);
+
+    return preTokenStack[--preTokenStackSize];
+}
+
+void HlslTokenStream::pushTokenBuffer(const HlslToken& tok)
+{
+    tokenBuffer[tokenBufferPos] = tok;
+    tokenBufferPos = (tokenBufferPos+1) % tokenBufferSize;
+}
+
+HlslToken HlslTokenStream::popTokenBuffer()
+{
+    // Back up
+    tokenBufferPos = (tokenBufferPos+tokenBufferSize-1) % tokenBufferSize;
+
+    return tokenBuffer[tokenBufferPos];
+}
+
 // Load 'token' with the next token in the stream of tokens.
 void HlslTokenStream::advanceToken()
 {
-    scanner.tokenize(token);
+    pushTokenBuffer(token);
+    if (preTokenStackSize > 0)
+        token = popPreToken();
+    else
+        scanner.tokenize(token);
+}
+
+void HlslTokenStream::recedeToken()
+{
+    pushPreToken(token);
+    token = popTokenBuffer();
 }
 
 // Return the current token class.

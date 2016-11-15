@@ -18,7 +18,8 @@ class FAlembicLibraryModule : public IAlembicLibraryModule
 		FPropertyEditorModule& PropertyEditorModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		PropertyEditorModule.RegisterCustomClassLayout("AbcImportSettings", FOnGetDetailCustomizationInstance::CreateStatic(&FAbcImportSettingsCustomization::MakeInstance));
 		PropertyEditorModule.RegisterCustomPropertyTypeLayout("AbcCompressionSettings", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FAbcCompressionSettingsCustomization::MakeInstance));
-		PropertyEditorModule.RegisterCustomPropertyTypeLayout("AbcSamplingSettings", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FAbcSamplingSettingsCustomization::MakeInstance));		
+		PropertyEditorModule.RegisterCustomPropertyTypeLayout("AbcSamplingSettings", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FAbcSamplingSettingsCustomization::MakeInstance));
+		PropertyEditorModule.RegisterCustomPropertyTypeLayout("AbcConversionSettings", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FAbcConversionSettingsCustomization::MakeInstance));
 	}
 
 	virtual void ShutdownModule() override

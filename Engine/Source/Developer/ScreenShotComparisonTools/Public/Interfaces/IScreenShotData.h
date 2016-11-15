@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "ScreenShotDataItem.h"
+#include "ScreenShotFilterCollection.h"
 
 /** Flags for specifying the screen shot data type */
 namespace EScreenShotDataType

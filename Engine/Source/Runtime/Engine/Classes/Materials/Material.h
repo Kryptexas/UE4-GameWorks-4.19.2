@@ -462,6 +462,10 @@ public:
 	UPROPERTY(EditAnywhere, Category=Translucency, meta=(DisplayName = "Directional Lighting Intensity"))
 	float TranslucencyDirectionalLightingIntensity;
 
+	/** Allows a translucenct material to be used with custom depth writing by compiling additional shaders. */
+	UPROPERTY(EditAnywhere, Category=Translucency, AdvancedDisplay, meta=(DisplayName = "Allow Custom Depth Writes"))
+	uint32 AllowTranslucentCustomDepthWrites:1;
+
 	/** Scale used to make translucent shadows more or less opaque than the material's actual opacity. */
 	UPROPERTY(EditAnywhere, Category=TranslucencySelfShadowing, meta=(DisplayName = "Shadow Density Scale"))
 	float TranslucentShadowDensityScale;
@@ -643,13 +647,20 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Mobile)
 	uint32 bUseLightmapDirectionality:1;
 
-	/* Enables high quality reflections in the forward renderer. Enabling this setting reduces the number of samplers available to the material as two more samplers will be used for reflection cubemaps. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Mobile, meta = (DisplayName = "High Quality Reflections"))
+	/* 
+	 * Forward renderer: enables multiple parallax-corrected reflection captures that blend together.
+	 * Mobile renderer: blend between nearest 3 reflection captures, but reduces the number of samplers available to the material as two more samplers will be used for reflection cubemaps.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = ForwardShading, meta = (DisplayName = "High Quality Reflections"))
 	uint32 bUseHQForwardReflections : 1;
 
 	/* Enables planar reflection when using the forward renderer or mobile. Enabling this setting reduces the number of samplers available to the material as one more sampler will be used for the planar reflection. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = ForwardShading, meta = (DisplayName = "Planar Reflections"))
 	uint32 bUsePlanarForwardReflections : 1;
+
+	/* Reduce roughness based on screen space normal changes. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=ForwardShading)
+	uint32 bNormalCurvatureToRoughness : 1;
 
 	/** The type of tessellation to apply to this object.  Note D3D11 required for anything except MTM_NoTessellation. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Tessellation)
@@ -743,6 +754,10 @@ public:
 	/** If multiple nodes with the same  type are inserted at the same point, this defined order and if they get combined, only used if domain is PostProcess */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PostProcessMaterial, meta=(DisplayName = "Blendable Priority"))
 	int32 BlendablePriority;
+
+	/** If this is enabled, the blendable will output alpha */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PostProcessMaterial, meta = (DisplayName = "Output Alpha"))
+	bool BlendableOutputAlpha;
 
 	/** Controls how the Refraction input is interpreted and how the refraction offset into scene color is computed for this material. */
 	UPROPERTY(EditAnywhere, Category=Refraction)
@@ -846,6 +861,7 @@ public:
 	ENGINE_API virtual EMaterialShadingModel GetShadingModel() const override;
 	ENGINE_API virtual bool IsTwoSided() const override;
 	ENGINE_API virtual bool IsDitheredLODTransition() const override;
+	ENGINE_API virtual bool IsTranslucencyWritingCustomDepth() const override;
 	ENGINE_API virtual bool IsMasked() const override;
 	ENGINE_API virtual bool IsUIMaterial() const { return MaterialDomain == MD_UI; }
 	ENGINE_API virtual USubsurfaceProfile* GetSubsurfaceProfile_Internal() const override;
@@ -857,7 +873,7 @@ public:
 	ENGINE_API virtual bool IsPropertyActive(EMaterialProperty InProperty) const override;
 #if WITH_EDITOR
 	/** Allows material properties to be compiled with the option of being overridden by the material attributes input. */
-	ENGINE_API virtual int32 CompilePropertyEx( class FMaterialCompiler* Compiler, EMaterialProperty Property ) override;
+	ENGINE_API virtual int32 CompilePropertyEx( class FMaterialCompiler* Compiler, const FGuid& AttributeID ) override;
 #endif // WITH_EDITOR
 	ENGINE_API virtual void ForceRecompileForRendering() override;
 	//~ End UMaterialInterface Interface.
@@ -882,7 +898,7 @@ public:
 	ENGINE_API virtual void BeginDestroy() override;
 	ENGINE_API virtual bool IsReadyForFinishDestroy() override;
 	ENGINE_API virtual void FinishDestroy() override;
-	ENGINE_API virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	ENGINE_API virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 	ENGINE_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	ENGINE_API virtual bool CanBeClusterRoot() const override;
 	ENGINE_API virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
@@ -924,6 +940,15 @@ public:
 	 */
 	ENGINE_API virtual void LogMaterialsAndTextures(FOutputDevice& Ar, int32 Indent) const override;
 #endif
+
+	/**
+	 *	Returns all the Guids related to this material. For material instances, this includes the parent hierarchy.
+	 *  Used for versioning as parent changes don't update the child instance Guids.
+	 *
+	 *	@param	bIncludeTextures	Whether to include the referenced texture Guids.
+	 *	@param	OutGuids			The list of all resource guids affecting the precomputed lighting system and texture streamer.
+	 */
+	ENGINE_API virtual void GetLightingGuidChain(bool bIncludeTextures, TArray<FGuid>& OutGuids) const override;
 
 private:
 	void BackwardsCompatibilityInputConversion();
@@ -1191,7 +1216,22 @@ private:
 	/** Caches shader maps for an array of material resources. */
 	void CacheShadersForResources(EShaderPlatform ShaderPlatform, const TArray<FMaterialResource*>& ResourcesToCache, bool bApplyCompletedShaderMapForRendering);
 
+	/**
+	 * If there is some texture reference used by a TextureProperty node in any expressions, this function
+	 * will extract the current hash of TextureReferencesHash into a string  then append the texture guid used by the node
+	 * and recompute a new hash.
+	 */
+	void GetForceRecompileTextureIdsHash(FSHAHash &TextureReferencesHash);
+
 public:
+	bool IsTextureForceRecompileCacheRessource(UTexture *Texture);
+
+#if WITH_EDITOR
+	/* Recompute the ddc cache key and reload the material in case the key is not the same.
+	 * It will also make sure lightmass texture reference are up to date
+	 */
+	void UpdateMaterialShaderCacheAndTextureReferences();
+#endif
 
 	/**
 	 * Go through every material, flush the specified types and re-initialize the material's shader maps.

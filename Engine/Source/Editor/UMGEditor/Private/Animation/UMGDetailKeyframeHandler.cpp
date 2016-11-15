@@ -26,12 +26,7 @@ void FUMGDetailKeyframeHandler::OnKeyPropertyClicked(const IPropertyHandle& Keye
 	TArray<UObject*> Objects;
 	KeyedPropertyHandle.GetOuterObjects( Objects );
 
-	FKeyPropertyParams KeyPropertyParams(Objects, KeyedPropertyHandle);
-	KeyPropertyParams.KeyParams.bCreateHandleIfMissing = true;
-	KeyPropertyParams.KeyParams.bCreateTrackIfMissing = true;
-	KeyPropertyParams.KeyParams.bCreateKeyIfUnchanged = true;
-	KeyPropertyParams.KeyParams.bCreateKeyIfEmpty = true;
-	KeyPropertyParams.KeyParams.bCreateKeyOnlyWhenAutoKeying = false;
+	FKeyPropertyParams KeyPropertyParams(Objects, KeyedPropertyHandle, ESequencerKeyMode::ManualKeyForced);
 
 	BlueprintEditor.Pin()->GetSequencer()->KeyProperty(KeyPropertyParams);
 }

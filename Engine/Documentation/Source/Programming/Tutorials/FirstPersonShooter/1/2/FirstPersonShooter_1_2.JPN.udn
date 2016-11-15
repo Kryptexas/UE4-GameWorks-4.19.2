@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:2923487
-Availability:Docs
+﻿INTSourceChangelist:3069483
+Availability:Public
 Title:1.2 - Visual Studio でプロジェクトを開く
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
 Description:Visual Studio で C++ プロジェクトを開く方法を学習しましょう。
@@ -42,11 +42,11 @@ Version:4.11
 1.	`FPSProjectGameMode.h` 内に以下のコードもあります。
 
 		#pragma once
+
 		#include "GameFramework/GameMode.h"
-
 		#include "FPSProjectGameMode.generated.h"
-		/**
 
+		/**
 		 * 
 		 */
 		UCLASS()
@@ -56,4 +56,5 @@ Version:4.11
 		};
 
 1.	C++ プロジェクトを Visual Studio で開いたので、プロジェクトにコードを追加することができます。 
-		%Steps%
+
+%Steps%

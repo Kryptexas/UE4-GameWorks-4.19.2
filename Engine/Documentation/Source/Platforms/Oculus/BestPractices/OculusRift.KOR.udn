@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2975673
+﻿INTSourceChangelist:3011129
 Availability:Public
 Title:오큘러스 리프트 실전 사례
 Crumbs:%ROOT%, Platforms, Platforms/Oculus
@@ -12,7 +12,7 @@ tags:Oculus Rift
 
 [TOC(start:2)]
 
-Oculus Rift, 오큘러스 리프트는 Head Mounted Display (HMD), 머리에 장착하는 디스플레이는 사용자가 바라보고 플레이하는 월드와 게임에 대한 몰입감을 
+Oculus Rift, 오큘러스 리프트는 Head Mounted Display (HMD), 머리에 장착하는 디스플레이의 일종으로, 사용자가 바라보고 플레이하는 월드와 게임에 대한 몰입감을 
 크게 높일 수 있도록 해 주는 기기입니다. 이 글을 통해 언리얼 엔진 4 (UE4) 로 오큘러스 리프트용 콘텐츠를 개발할 때 알아둬야 할 
 유용한 정보 몇 가지를 짚어드릴 수 있었으면 합니다.
 

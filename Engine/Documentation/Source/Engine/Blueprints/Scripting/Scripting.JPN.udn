@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3064728
 Availability:Public
-Title: Basic Scripting
+Title:スクリプト処理の基礎
 Crumbs: %ROOT%, Engine, Engine/Blueprints
-Description: The User Guide is the go-to source to learn the different parts of Blueprints and nodes that are available to use within Blueprint graphs.
-version: 4.9
+Description:ブループリント ビジュアル スクリプティング システムの変数と実行フローの概要
+version:4.12
 parent:Engine/Blueprints
 
 [VAR:Topic]
@@ -45,45 +45,35 @@ parent:Engine/Blueprints
 [/OBJECT]
 [/VAR]
 
+ブループリントは、スクリプト処理言語をビジュアル化して表示します。そうすると、通常スクリプト処理言語を書く場合に伴う、データ タイプ変数、配列、構造体など数々のニュアンスが共有できます。 
+ブループリントでは各ノードは明確な線形実行が必要であるにもかかわらず、実行フローは典型的なスクリプト処理言語のように機能します。以下のページでは、様々な変数タイプ、それらの使い方、グラフ内のノードの実行に関して 
+詳しく説明しています。 
 
+## 変数
 
-## Data Types
+変数は、Boolean、integer、float といったデータ型をはじめ、様々な型で作成が可能です。ブループリントでは、これらは色別にコード化されて、区別しやすくなっています。
+さらに Bluepringt 変数は、オブジェクト、アクタ、クラスなどを保持する参照型にもなります。
 
-Variables can be created in a variety of different types, including data types such as Boolean, integer, and float. They are color-coded for easy identification within your Blueprint.
+[DIR(output:"listbutton" parent:"Engine/Blueprints" tags:"Data Types" org:"flat")]
 
-[DIR(output:"listbutton" parent:"Engine/Blueprints/Scripting" tags:"Data Types")]
+## 実行フロー
 
-## Execution Flow
+ブループリントでは、イベントというノードが最初に実行され、それから白い実行ワイヤーの左から右に向かって実行フローが実施されます。ゲームをエディタで実行しながら、実行フローをビジュアル化することで、
+デバッグがしやすくなります。さらにデータは変数型に一致する色のワイヤーを通ります。入力ピンは、
+ノードの実行時に、最終的な結果が計算されてノードに送られるまでデータ ワイヤーを右から左にたどります。
 
-In Blueprints, the first node to execute is an event, and then execution flows through the white execution wire from left to right. You can visualize the execution flow
-while your game is running in the editor, which can help with debugging. Data also flows through wires colored to match the variable types. Input pins are evaluated
-when the node executes, tracing the data wires back from right to left until the final  result is calculated and supplied to the node.
+実行ピンのあるノード (非純粋ノード) は実行時に出力ピンの値を格納します。
+一方、出力ピンのないノード (純粋ノード) は、ノードが出力実行ピンに接続されるたびに毎回出力ピンを再評価します。 
 
 [DIR(output:"listbutton" parent:"Engine/Blueprints/Scripting" tags:"Execution Flow")]
 
-## Arrays & Structures
+## 配列と構造体
 
-The basic data types available in Blueprints can be organized into arrays and structures for more complex systems. 
+配列と構造体は複数のデータ型の集合体です。配列はより複雑なシステムで使用することができます。情報の一括保持や、大容量データのストリーミング処理を容易にします。
 
 [DIR(output:"listbutton" parent:"Engine/Blueprints/Scripting" tags:"Arrays and Structures")]
 
 <!--
 Structs
--->
-
-## Handling Objects and Actors
-
-Blueprint variables can also be reference types for holding things like Objects, Actors, and Classes. 
-
-[DIR(output:"listbutton" tags:"Handling Objects and Actors")]
-
-
-<!--
-References (pointers)
-Set and Get an Actor Reference	Engine/Blueprints/BP_HowTo/ActorReference
-Validity
-Casting
-Blueprint Casting	Engine/Blueprints/BP_HowTo/Casting
-Casting	Engine/Blueprints/UserGuide/CastNodes
 -->
 

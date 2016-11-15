@@ -211,6 +211,7 @@ private:
 
 public:
 	TPanelChildren()
+		: bEmptying(false)
 	{
 	}
 	
@@ -231,22 +232,38 @@ public:
 
 	int32 Add( SlotType* Slot )
 	{
+		if ( bEmptying )
+		{
+			return INDEX_NONE;
+		}
+
 		return TIndirectArray< SlotType >::Add(Slot);
 	}
 
 	void RemoveAt( int32 Index )
 	{
-		TIndirectArray< SlotType >::RemoveAt(Index);
+		if ( !bEmptying )
+		{
+			TIndirectArray< SlotType >::RemoveAt(Index);
+		}
 	}
 
 	void Empty()
 	{
-		TIndirectArray< SlotType >::Empty();
+		if ( !bEmptying )
+		{
+			TGuardValue<bool> GuardEmptying(bEmptying, true);
+
+			TIndirectArray< SlotType >::Empty();
+		}
 	}
 
 	void Insert(SlotType* Item, int32 Index)
 	{
-		TIndirectArray< SlotType >::Insert(Item, Index);
+		if(!bEmptying)
+		{
+			TIndirectArray< SlotType >::Insert(Item, Index);
+		}
 	}
 
 	void Reserve( int32 NumToReserve )
@@ -273,6 +290,9 @@ public:
 	{
 		TIndirectArray< SlotType >::Swap(IndexA, IndexB);
 	}
+
+private:
+	bool bEmptying;
 };
 
 /**

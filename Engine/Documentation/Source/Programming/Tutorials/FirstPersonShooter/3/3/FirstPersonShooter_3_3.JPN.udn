@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3020184
-Availability:Docs
+﻿INTSourceChangelist:3069483
+Availability: Public
 Title:3.3 - 発射物のコリジョンとライフタイムをセットアップする
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/3
 Description:FPS の発射物用にコリジョンとライフタイムををセットアップする方法を学びます。

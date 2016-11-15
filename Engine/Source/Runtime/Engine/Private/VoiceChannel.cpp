@@ -45,6 +45,12 @@ void UVoiceChannel::ReceivedBunch(FInBunch& Bunch)
 				Connection->Driver->VoiceBytesRecv += VoicePacket->GetBufferSize();
 #endif
 			}
+			else
+			{
+				// Unable to serialize the data because the serializer doesn't exist or there was a problem with this packet
+				Bunch.SetError();
+				break;
+			}
 		}
 	}
 }

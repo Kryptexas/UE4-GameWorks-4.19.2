@@ -252,8 +252,8 @@ int64 FStreamingTexture::DropMaxResolution_Async(int32 NumDroppedMips)
 {
 	if (Texture)
 	{
-		// Don't drop bellow min allowed mips.
-		NumDroppedMips = FMath::Min<int32>(MaxAllowedMips - MinAllowedMips, NumDroppedMips);
+		// Don't drop bellow min allowed mips. Also ensure that MinAllowedMips < MaxAllowedMips in order allow the BudgetMipBias to reset.
+		NumDroppedMips = FMath::Min<int32>(MaxAllowedMips - MinAllowedMips - 1, NumDroppedMips);
 
 		if (NumDroppedMips > 0)
 		{
@@ -272,11 +272,15 @@ int64 FStreamingTexture::DropMaxResolution_Async(int32 NumDroppedMips)
 				return FreedMemory;
 			}
 		}
+		else // If we can't reduce resolution, still drop a mip if possible to free memory (eventhough it won't be persistent)
+		{
+			return DropOneMip_Async();
+		}
 	}
 	return 0;
 }
 
-int64 FStreamingTexture::DropOneMip_Async(int32 MaxPerTextureMipBias)
+int64 FStreamingTexture::DropOneMip_Async()
 {
 	if (Texture && BudgetedMips > MinAllowedMips)
 	{

@@ -17,11 +17,4 @@ class AMatineeActorCameraAnim : public AMatineeActor
 	/** The camera anim we are editing */
 	UPROPERTY(Transient)
 	UCameraAnim* CameraAnim;
-
-	//~ Begin UObject Interface
-	virtual bool NeedsLoadForClient() const override
-	{ 
-		return false; 
-	}
-	//~ End UObject Interface
 };

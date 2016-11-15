@@ -31,7 +31,8 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SSessionBrowser::Construct( const FArguments& InArgs, ISessionManagerRef InSessionManager )
 {
 	IgnoreSessionManagerEvents = false;
-	IgnoreSessionTreeEvents = false;
+	updatingTreeExpansion = false;
+	bCanSetDefaultSelection = true;
 	SessionManager = InSessionManager;
 
 	ChildSlot
@@ -39,85 +40,45 @@ void SSessionBrowser::Construct( const FArguments& InArgs, ISessionManagerRef In
 		SNew(SVerticalBox)
 
 		+ SVerticalBox::Slot()
-			.FillHeight(1.0f)
+		.FillHeight(1.0f)
+		[
+			// session tree
+			SNew(SBorder)
+			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+			.Padding(0.0f)
 			[
-				// session tree
-				SNew(SBorder)
-					.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-					.Padding(0.0f)
-					[
-						SAssignNew(SessionTreeView, STreeView<TSharedPtr<FSessionBrowserTreeItem>>)
-							.ItemHeight(20.0f)
-							.OnExpansionChanged(this, &SSessionBrowser::HandleSessionTreeViewExpansionChanged)
-							.OnGenerateRow(this, &SSessionBrowser::HandleSessionTreeViewGenerateRow)
-							.OnGetChildren(this, &SSessionBrowser::HandleSessionTreeViewGetChildren)
-							.OnSelectionChanged(this, &SSessionBrowser::HandleSessionTreeViewSelectionChanged)
-							.SelectionMode(ESelectionMode::Multi)
-							.TreeItemsSource(&SessionTreeItems)
-							.HeaderRow
-							(
-								SNew(SHeaderRow)
+				SAssignNew(SessionTreeView, STreeView<TSharedPtr<FSessionBrowserTreeItem>>)
+				.ItemHeight(20.0f)
+				.OnExpansionChanged(this, &SSessionBrowser::HandleSessionTreeViewExpansionChanged)
+				.OnGenerateRow(this, &SSessionBrowser::HandleSessionTreeViewGenerateRow)
+				.OnGetChildren(this, &SSessionBrowser::HandleSessionTreeViewGetChildren)
+				.OnSelectionChanged(this, &SSessionBrowser::HandleSessionTreeViewSelectionChanged)
+				.SelectionMode(ESelectionMode::Multi)
+				.TreeItemsSource(&SessionTreeItems)
+				.HeaderRow
+				(
+					SNew(SHeaderRow)
 
-								+ SHeaderRow::Column("Name")
-									.DefaultLabel(LOCTEXT("InstanceListNameColumnHeader", "Name"))
-									.FillWidth(0.3f)
+					+ SHeaderRow::Column("Name")
+					.DefaultLabel(LOCTEXT("InstanceListNameColumnHeader", "Name"))
+					.FillWidth(0.3f)
 
-								+ SHeaderRow::Column("Type")
-									.DefaultLabel(LOCTEXT("InstanceListTypeColumnHeader", "Type"))
-									.FillWidth(0.2f)
+					+ SHeaderRow::Column("Type")
+					.DefaultLabel(LOCTEXT("InstanceListTypeColumnHeader", "Type"))
+					.FillWidth(0.2f)
 
-								+ SHeaderRow::Column("Device")
-									.DefaultLabel(LOCTEXT("InstanceListDeviceColumnHeader", "Device"))
-									.FillWidth(0.3f)
+					+ SHeaderRow::Column("Device")
+					.DefaultLabel(LOCTEXT("InstanceListDeviceColumnHeader", "Device"))
+					.FillWidth(0.3f)
 
-								+ SHeaderRow::Column("Status")
-									.DefaultLabel(LOCTEXT("InstanceListStatusColumnHeader", "Status"))
-									.FillWidth(0.2f)
-									.HAlignCell(HAlign_Right)
-									.HAlignHeader(HAlign_Right)
-							)
-					]
+					+ SHeaderRow::Column("Status")
+					.DefaultLabel(LOCTEXT("InstanceListStatusColumnHeader", "Status"))
+					.FillWidth(0.2f)
+					.HAlignCell(HAlign_Right)
+					.HAlignHeader(HAlign_Right)
+				)
 			]
-		/*
-		+ SVerticalBox::Slot()
-			.AutoHeight()
-			.Padding(0.0f, 4.0f, 0.0f, 0.0f)
-			[
-				SNew(SHorizontalBox)
-
-				+ SHorizontalBox::Slot()
-					.AutoWidth()
-					[
-						// terminate button
-						SNew(SButton)
-							.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
-							.ContentPadding(FMargin(6.0f, 2.0f))
-							.IsEnabled(this, &SSessionBrowser::HandleTerminateSessionButtonIsEnabled)
-							.OnClicked(this, &SSessionBrowser::HandleTerminateSessionButtonClicked)
-							.ToolTipText(LOCTEXT("TerminateButtonTooltip", "Shuts down all game instances that are part of this session."))
-							[
-								SNew(SHorizontalBox)
-
-								+ SHorizontalBox::Slot()
-									.AutoWidth()
-									.VAlign(VAlign_Center)
-									[
-										SNew(SImage)
-											.Image(FEditorStyle::GetBrush("SessionBrowser.Terminate"))
-									]
-
-								+ SHorizontalBox::Slot()
-									.AutoWidth()
-									.VAlign(VAlign_Center)
-									.Padding(4.0f, 1.0f, 0.0f, 0.0f)
-									[
-										SNew(STextBlock)
-											.TextStyle(FEditorStyle::Get(), "SessionBrowser.Terminate.Font")
-											.Text(LOCTEXT("TerminateSessionButtonLabel", "Terminate Session"))
-									]
-							]
-					]
-			]*/
+		]
 	];
 
 	AppGroupItem = MakeShareable(new FSessionBrowserGroupTreeItem(LOCTEXT("AppGroupName", "This Application"), LOCTEXT("AppGroupToolTip", "The application instance that this session browser belongs to")));
@@ -134,9 +95,9 @@ void SSessionBrowser::Construct( const FArguments& InArgs, ISessionManagerRef In
 	SessionManager->OnSelectedSessionChanged().AddSP(this, &SSessionBrowser::HandleSessionManagerSelectedSessionChanged);
 	SessionManager->OnSessionsUpdated().AddSP(this, &SSessionBrowser::HandleSessionManagerSessionsUpdated);
 
-	SessionTreeView->SetSingleExpandedItem(AppGroupItem);
-
 	ReloadSessions();
+
+	SessionTreeView->SetSingleExpandedItem(AppGroupItem);
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
@@ -237,6 +198,12 @@ void SSessionBrowser::FilterSessions()
 
 	// refresh tree view
 	SessionTreeView->RequestTreeRefresh();
+
+	if ( bCanSetDefaultSelection && SessionTreeView->GetNumItemsSelected() == 0 && ThisAppInstance.IsValid() )
+	{
+		bCanSetDefaultSelection = false;
+		SessionTreeView->SetItemSelection(ThisAppInstance.Pin(), true, ESelectInfo::Direct);
+	}
 }
 
  void SSessionBrowser::AddInstanceItemToTree(TSharedPtr<FSessionBrowserTreeItem>& SessionItem, const TSharedPtr<FSessionBrowserTreeItem>& InstanceItem, const TSharedPtr<ISessionInstanceInfo>& InstanceInfo)
@@ -246,6 +213,8 @@ void SSessionBrowser::FilterSessions()
 	{
 		AppGroupItem->AddChild(InstanceItem.ToSharedRef());
 		InstanceItem->SetParent(AppGroupItem);
+
+		ThisAppInstance = InstanceItem;
 	}
 	else
 	{
@@ -298,7 +267,7 @@ void SSessionBrowser::HandleSessionManagerSelectedSessionChanged(const ISessionI
 		return;
 	}
 
-	IgnoreSessionTreeEvents = true;
+	updatingTreeExpansion = true;
 	{
 		if (SelectedSession.IsValid())
 		{
@@ -309,7 +278,7 @@ void SSessionBrowser::HandleSessionManagerSelectedSessionChanged(const ISessionI
 			SessionTreeView->SetSingleExpandedItem(nullptr);
 		}
 	}
-	IgnoreSessionTreeEvents = false;
+	updatingTreeExpansion = false;
 }
 
 void SSessionBrowser::HandleSessionManagerInstanceDiscovered(const TSharedRef<ISessionInfo>& OwnerSession, const TSharedRef<ISessionInstanceInfo>& DiscoveredInstance)
@@ -367,7 +336,7 @@ FText SSessionBrowser::HandleSessionTreeRowGetToolTipText(TSharedPtr<FSessionBro
 
 void SSessionBrowser::HandleSessionTreeViewExpansionChanged(TSharedPtr<FSessionBrowserTreeItem> TreeItem, bool bIsExpanded)
 {
-	if (IgnoreSessionTreeEvents || !TreeItem.IsValid())
+	if ( updatingTreeExpansion || !TreeItem.IsValid())
 	{
 		return;
 	}
@@ -381,11 +350,11 @@ void SSessionBrowser::HandleSessionTreeViewExpansionChanged(TSharedPtr<FSessionB
 	{
 		if (bIsExpanded)
 		{
-			IgnoreSessionTreeEvents = true;
+			updatingTreeExpansion = true;
 			{
 				ExpandItem(TreeItem);
 			}
-			IgnoreSessionTreeEvents = false;
+			updatingTreeExpansion = false;
 
 			// select session
 			if (TreeItem->GetType() == ESessionBrowserTreeNodeType::Session)
@@ -438,11 +407,6 @@ void SSessionBrowser::HandleSessionTreeViewGetChildren(TSharedPtr<FSessionBrowse
 
 void SSessionBrowser::HandleSessionTreeViewSelectionChanged(const TSharedPtr<FSessionBrowserTreeItem> Item, ESelectInfo::Type SelectInfo)
 {
-	if (IgnoreSessionTreeEvents || (SelectInfo == ESelectInfo::Direct))
-	{
-		return;
-	}
-
 	IgnoreSessionManagerEvents = true;
 	{
 		if (Item.IsValid())

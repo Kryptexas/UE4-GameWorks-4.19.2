@@ -262,7 +262,7 @@ bool UObjectBase::IsValidLowLevel() const
 
 bool UObjectBase::IsValidLowLevelFast(bool bRecursive /*= true*/) const
 {
-	// As DEFULT_ALIGNMENT is defined to 0 now, I changed that to the original numerical value here
+	// As DEFAULT_ALIGNMENT is defined to 0 now, I changed that to the original numerical value here
 	const int32 AlignmentCheck = MIN_ALIGNMENT - 1;
 
 	// Check 'this' pointer before trying to access any of the Object's members
@@ -270,7 +270,7 @@ bool UObjectBase::IsValidLowLevelFast(bool bRecursive /*= true*/) const
 	{
 		UE_LOG(LogUObjectBase, Error, TEXT("\'this\' pointer is invalid."));
 		return false;
-	}	
+	}
 	if ((UPTRINT)this & AlignmentCheck)
 	{
 		UE_LOG(LogUObjectBase, Error, TEXT("\'this\' pointer is misaligned."));
@@ -769,41 +769,32 @@ static void UObjectLoadAllCompiledInDefaultProperties()
  */
 static void UObjectLoadAllCompiledInStructs()
 {
-	TArray<FPendingEnumRegistrant>& DeferredCompiledInEnumRegistration = GetDeferredCompiledInEnumRegistration();
-	TArray<FPendingStructRegistrant>& DeferredCompiledInStructRegistration = GetDeferredCompiledInStructRegistration();
 
 	// Load Enums first
-	if( DeferredCompiledInEnumRegistration.Num() )
-	{
-		TArray<FPendingEnumRegistrant> PendingRegistrants = MoveTemp(DeferredCompiledInEnumRegistration);
+	TArray<FPendingEnumRegistrant> PendingEnumRegistrants = MoveTemp(GetDeferredCompiledInEnumRegistration());
 		
-		for (const FPendingEnumRegistrant& EnumRegistrant : PendingRegistrants)
+	for (const FPendingEnumRegistrant& EnumRegistrant : PendingEnumRegistrants)
 		{
 			// Make sure the package exists in case it does not contain any UObjects
 			CreatePackage(nullptr, EnumRegistrant.PackageName);
 		}
-
-		for (const FPendingEnumRegistrant& EnumRegistrant : PendingRegistrants)
+	TArray<FPendingStructRegistrant> PendingStructRegistrants = MoveTemp(GetDeferredCompiledInStructRegistration());
+	for (const FPendingStructRegistrant& StructRegistrant : PendingStructRegistrants)
 		{
-			EnumRegistrant.RegisterFn();
-		}
+		// Make sure the package exists in case it does not contain any UObjects or UEnums
+		CreatePackage(nullptr, StructRegistrant.PackageName);
 	}
 
 	// Load Structs
-	if( DeferredCompiledInStructRegistration.Num() )
-	{
-		TArray<FPendingStructRegistrant> PendingRegistrants = MoveTemp(DeferredCompiledInStructRegistration);
 
-		for (const FPendingStructRegistrant& StructRegistrant : PendingRegistrants)
+	for (const FPendingEnumRegistrant& EnumRegistrant : PendingEnumRegistrants)
 		{
-			// Make sure the package exists in case it does not contain any UObjects or UEnums
-			CreatePackage(nullptr, StructRegistrant.PackageName);
+		EnumRegistrant.RegisterFn();
 		}
 
-		for (const FPendingStructRegistrant& StructRegistrant : PendingRegistrants)
+	for (const FPendingStructRegistrant& StructRegistrant : PendingStructRegistrants)
 		{
 			StructRegistrant.RegisterFn();
-		}
 	}
 }
 

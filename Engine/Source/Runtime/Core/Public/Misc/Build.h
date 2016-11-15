@@ -88,6 +88,11 @@
 	#error UBT should always define WITH_PLUGIN_SUPPORT to be 0 or 1
 #endif
 
+ /** Enable perf counters */
+#ifndef WITH_PERFCOUNTERS
+	#define WITH_PERFCOUNTERS		0
+#endif
+
 /**
  * Unreal Header Tool requires extra data stored in the structure of a few core files. This enables some ifdef hacks to make this work. 
  * Set via UBT, do not modify directly
@@ -147,7 +152,7 @@
  * Checks to see if pure virtual has actually been implemented, this is normally run as a CIS process and is set (indirectly) by UBT
  *
  * @see Core.h
- * @see ObjectBase.h
+ * @see ObjectMacros.h
  **/
 #ifndef CHECK_PUREVIRTUALS
 	#define CHECK_PUREVIRTUALS 0
@@ -181,21 +186,21 @@
 #if UE_BUILD_DEBUG
 	#define DO_GUARD_SLOW									1
 	#define DO_CHECK										1
-	#define STATS											(!UE_BUILD_MINIMAL || !WITH_EDITORONLY_DATA || USE_STATS_WITHOUT_ENGINE)
+	#define STATS											(!UE_BUILD_MINIMAL || !WITH_EDITORONLY_DATA || USE_STATS_WITHOUT_ENGINE || USE_MALLOC_PROFILER)
 	#define ALLOW_DEBUG_FILES								1
 	#define ALLOW_CONSOLE									1
 	#define NO_LOGGING										0
 #elif UE_BUILD_DEVELOPMENT
 	#define DO_GUARD_SLOW									0
 	#define DO_CHECK										1
-	#define STATS											(!UE_BUILD_MINIMAL || !WITH_EDITORONLY_DATA || USE_STATS_WITHOUT_ENGINE)
+	#define STATS											(!UE_BUILD_MINIMAL || !WITH_EDITORONLY_DATA || USE_STATS_WITHOUT_ENGINE || USE_MALLOC_PROFILER)
 	#define ALLOW_DEBUG_FILES								1
 	#define ALLOW_CONSOLE									1
 	#define NO_LOGGING										0
 #elif UE_BUILD_TEST
 	#define DO_GUARD_SLOW									0
 	#define DO_CHECK										USE_CHECKS_IN_SHIPPING
-	#define STATS											0
+	#define STATS											(USE_MALLOC_PROFILER)
 	#define ALLOW_DEBUG_FILES								1
 	#define ALLOW_CONSOLE									1
 	#define NO_LOGGING										!USE_LOGGING_IN_SHIPPING

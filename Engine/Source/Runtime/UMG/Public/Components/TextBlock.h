@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "TextWidgetTypes.h"
 #include "TextBlock.generated.h"
 
 /**

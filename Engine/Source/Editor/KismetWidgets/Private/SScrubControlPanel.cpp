@@ -26,12 +26,15 @@ void SScrubControlPanel::Construct( const SScrubControlPanel::FArguments& InArgs
 	TransportControlArgs.OnToggleLooping = InArgs._OnClickedToggleLoop;
 	TransportControlArgs.OnGetLooping = InArgs._OnGetLooping;
 	TransportControlArgs.OnGetPlaybackMode = InArgs._OnGetPlaybackMode;
+	TransportControlArgs.OnGetRecording = InArgs._OnGetRecording;
 	TransportControlArgs.OnTickPlayback = InArgs._OnTickPlayback;
 	
 	FTransportControlArgs TransportControlArgsForRealtimeStreamingMode;
 	TransportControlArgsForRealtimeStreamingMode.OnForwardPlay = TransportControlArgs.OnForwardPlay;
 	TransportControlArgsForRealtimeStreamingMode.OnForwardStep = TransportControlArgs.OnForwardStep;
 	TransportControlArgsForRealtimeStreamingMode.OnGetPlaybackMode = TransportControlArgs.OnGetPlaybackMode;
+	TransportControlArgsForRealtimeStreamingMode.OnGetRecording = TransportControlArgs.OnGetRecording;
+	TransportControlArgsForRealtimeStreamingMode.OnRecord = TransportControlArgs.OnRecord;
 
 	this->ChildSlot
 	.Padding( FMargin( 0.0f, 1.0f) )
@@ -48,6 +51,7 @@ void SScrubControlPanel::Construct( const SScrubControlPanel::FArguments& InArgs
 				SAssignNew(ScrubWidget, SScrubWidget)
 				.Value(InArgs._Value)
 				.NumOfKeys(InArgs._NumOfKeys)
+				.DisplayDrag(InArgs._DisplayDrag)
 				.SequenceLength(InArgs._SequenceLength)
 				.OnValueChanged(InArgs._OnValueChanged)
 				.OnBeginSliderMovement(InArgs._OnBeginSliderMovement)

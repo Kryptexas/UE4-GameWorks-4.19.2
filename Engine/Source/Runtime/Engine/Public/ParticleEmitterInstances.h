@@ -177,6 +177,11 @@ struct FParticleEmitterBuildInfo
 	/** Use fix delta time in the simulation? */
 	uint32 bLocalVectorFieldUseFixDT : 1;
 	
+	/** Particle alignment overrides */
+	uint32 bRemoveHMDRoll : 1;
+	float MinFacingCameraBlendDistance;
+	float MaxFacingCameraBlendDistance;
+	
 	/** Default constructor. */
 	FParticleEmitterBuildInfo();
 };
@@ -588,9 +593,21 @@ public:
 	 * @param	Mode	Specifies which resource size should be displayed. ( see EResourceSizeMode::Type )
 	 * @return  Size of resource as to be displayed to artists/ LDs in the Editor.
 	 */
+	DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode)
 	{
-		return 0;
+		return GetResourceSizeBytes(Mode);
+	}
+
+	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
+	{
+	}
+
+	SIZE_T GetResourceSizeBytes(EResourceSizeMode::Type Mode)
+	{
+		FResourceSizeEx ResSize = FResourceSizeEx(Mode);
+		GetResourceSizeEx(ResSize);
+		return ResSize.GetTotalMemoryBytes();
 	}
 
 	/**
@@ -821,7 +838,7 @@ struct FParticleSpriteEmitterInstance : public FParticleEmitterInstance
 	 * @param	Mode	Specifies which resource size should be displayed. ( see EResourceSizeMode::Type )
 	 * @return  Size of resource as to be displayed to artists/ LDs in the Editor.
 	 */
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 
 protected:
 
@@ -885,7 +902,7 @@ struct ENGINE_API FParticleMeshEmitterInstance : public FParticleEmitterInstance
 	 * @param	Mode	Specifies which resource size should be displayed. ( see EResourceSizeMode::Type )
 	 * @return  Size of resource as to be displayed to artists/ LDs in the Editor.
 	 */
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 
 	/**
 	 * Returns the offset to the mesh rotation payload, if any.
@@ -1083,7 +1100,7 @@ struct FParticleBeam2EmitterInstance : public FParticleEmitterInstance
 	 * @param	Mode	Specifies which resource size should be displayed. ( see EResourceSizeMode::Type )
 	 * @return	Size of resource as to be displayed to artists/ LDs in the Editor.
 	 */
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 
 	/**
 	 * When an emitter is killed, this will check other emitters and clean up anything pointing to this one
@@ -1253,6 +1270,7 @@ struct FParticleTrailsEmitterInstance_Base : public FParticleEmitterInstance
 	{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		for (uint32 TrailIdx = 0; TrailIdx < 128; TrailIdx++)
+		{
 			if (CurrentEndIndices[TrailIdx] != INDEX_NONE)
 			{
 				DECLARE_PARTICLE_PTR(EndParticle, ParticleData + ParticleStride * CurrentEndIndices[TrailIdx]);
@@ -1594,7 +1612,7 @@ struct FParticleRibbonEmitterInstance : public FParticleTrailsEmitterInstance_Ba
 	 * @param	Mode	Specifies which resource size should be displayed. ( see EResourceSizeMode::Type )
 	 * @return  Size of resource as to be displayed to artists/ LDs in the Editor.
 	 */
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 
 	/**
 	 * When an emitter is killed, this will check other emitters and clean up anything pointing to this one
@@ -1757,7 +1775,7 @@ struct FParticleAnimTrailEmitterInstance : public FParticleTrailsEmitterInstance
 	 * @param	Mode	Specifies which resource size should be displayed. ( see EResourceSizeMode::Type )
 	 * @return  Size of resource as to be displayed to artists/ LDs in the Editor.
 	 */
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 
 	virtual bool IsTrailEmitter() const override { return true; }
 

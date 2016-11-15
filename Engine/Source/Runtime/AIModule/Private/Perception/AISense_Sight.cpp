@@ -170,13 +170,13 @@ float UAISense_Sight::Update()
 		TimeSpent += (FPlatformTime::Seconds() - LastTime);
 		LastTime = FPlatformTime::Seconds();
 #endif // AISENSE_SIGHT_TIMESLICING_DEBUG
-		if ((NumQueriesProcessed % MinQueriesPerTimeSliceCheck) == 0 && FPlatformTime::Seconds() > TimeSliceEnd)
+		if (bHitTimeSliceLimit == false && (NumQueriesProcessed % MinQueriesPerTimeSliceCheck) == 0 && FPlatformTime::Seconds() > TimeSliceEnd)
 		{
 			bHitTimeSliceLimit = true;
-			break;
+			// do not break here since that would bypass queue aging
 		}
 
-		if (TracesCount < MaxTracesPerTick)
+		if (TracesCount < MaxTracesPerTick && bHitTimeSliceLimit == false)
 		{
 			FPerceptionListener& Listener = ListenersMap[SightQuery->ObserverId];
 			ensure(Listener.Listener.IsValid());

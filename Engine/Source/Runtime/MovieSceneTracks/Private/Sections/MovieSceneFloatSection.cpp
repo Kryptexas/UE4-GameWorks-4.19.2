@@ -9,9 +9,9 @@ UMovieSceneFloatSection::UMovieSceneFloatSection( const FObjectInitializer& Obje
 { }
 
 
-float UMovieSceneFloatSection::Eval( float Position ) const
+float UMovieSceneFloatSection::Eval( float Position, float DefaultValue ) const
 {
-	return FloatCurve.Eval( Position );
+	return FloatCurve.Eval( Position, DefaultValue );
 }
 
 
@@ -88,4 +88,10 @@ bool UMovieSceneFloatSection::HasKeys( const float& Value ) const
 void UMovieSceneFloatSection::SetDefault( const float& Value )
 {
 	SetCurveDefault( FloatCurve, Value );
+}
+
+
+void UMovieSceneFloatSection::ClearDefaults()
+{
+	FloatCurve.ClearDefaultValue();
 }

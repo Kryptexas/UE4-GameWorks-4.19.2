@@ -116,8 +116,27 @@ namespace AutomationTool
 				MapsToRebuildLighting.Trim();
 			}
 
-			RunCommandlet(ProjectName, UE4Exe, "ResavePackages", String.Format("-buildlighting -MapsOnly -ProjectOnly -AllowCommandletRendering {0} {1}", MapsToRebuildLighting, Parameters));
+			RunCommandlet(ProjectName, UE4Exe, "ResavePackages", String.Format("-buildlighting -MapsOnly -ProjectOnly -AllowCommandletRendering -SkipSkinVerify {0} {1}", MapsToRebuildLighting, Parameters));
 		}
+
+        /// <summary>
+        /// Runs RebuildLightMaps commandlet.
+        /// </summary>
+        /// <param name="ProjectName">Project name.</param>
+        /// <param name="UE4Exe">The name of the UE4 Editor executable to use.</param>
+        /// <param name="Maps">List of maps to rebuild light maps for. Can be null in which case -MapIniSection=AllMaps is used.</param>
+        /// <param name="Parameters">List of additional parameters.</param>
+        public static void ResavePackagesCommandlet(FileReference ProjectName, string UE4Exe = "UE4Editor-Cmd.exe", string[] Maps = null, string Parameters = "")
+        {
+            string MapsToRebuildLighting = "";
+            if (!IsNullOrEmpty(Maps))
+            {
+                MapsToRebuildLighting = "-Map=" + CombineCommandletParams(Maps);
+                MapsToRebuildLighting.Trim();
+            }
+
+            RunCommandlet(ProjectName, UE4Exe, "ResavePackages", String.Format((!String.IsNullOrEmpty(MapsToRebuildLighting) ? "-MapsOnly" : "") + "-ProjectOnly {0} {1}", MapsToRebuildLighting, Parameters));
+        }
 
         /// <summary>
         /// Runs GenerateDistillFileSets commandlet.

@@ -1,12 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "Landscape.h"
+#include "LandscapePrivatePCH.h"
+#include "LandscapeInfoMap.h"
 #include "LandscapeModule.h"
-#include "LandscapeComponent.h"
 #include "UObjectHash.h"
 #include "Engine/World.h"
 #include "Engine/Level.h"
-#include "LandscapeVersion.h"
 #include "Materials/Material.h"
 #include "Materials/MaterialInstance.h"
 
@@ -66,7 +65,15 @@ void WorldCreationEventFunction(UWorld* World)
  *
  * @param World A world that's being destroyed.
  */
-void WorldDestroyEventFunction(UWorld* World);
+void WorldDestroyEventFunction(UWorld* World)
+{
+	World->PerModuleDataObjects.RemoveAll(
+		[](UObject* Object)
+		{
+			return Object->IsA(ULandscapeInfoMap::StaticClass());
+		}
+	);
+}
 
 #if WITH_EDITOR
 /**

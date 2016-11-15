@@ -312,6 +312,16 @@ template<> inline const TCHAR* GetStatFormatString<int64>(void) { return TEXT("%
 template<> inline const TCHAR* GetStatFormatString<float>(void) { return TEXT("%.1f"); }
 template<> inline const TCHAR* GetStatFormatString<double>(void) { return TEXT("%.1f"); }
 
+/*----------------------------------------------------------------------------
+	Stats helpers
+----------------------------------------------------------------------------*/
+
+#if STATS
+	#define STAT(x) x
+#else
+	#define STAT(x)
+#endif
+
 #include "Stats2.h"
 
 #if STATS

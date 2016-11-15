@@ -46,7 +46,7 @@ public:
 	void LoadPreInitModules();
 
 	/** Load core modules. */
-	void LoadCoreModules();
+	bool LoadCoreModules();
 
 #if WITH_ENGINE
 	

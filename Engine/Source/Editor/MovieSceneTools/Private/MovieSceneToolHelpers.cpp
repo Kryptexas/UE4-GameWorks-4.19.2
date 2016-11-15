@@ -403,7 +403,6 @@ class SEnumCombobox : public SComboBox<TSharedPtr<int32>>
 public:
 	SLATE_BEGIN_ARGS(SEnumCombobox) {}
 
-	SLATE_ATTRIBUTE(TOptional<uint8>, IntermediateValue)
 	SLATE_ATTRIBUTE(int32, CurrentValue)
 	SLATE_ARGUMENT(FOnEnumSelectionChanged, OnEnumSelectionChanged)
 
@@ -412,7 +411,6 @@ public:
 	void Construct(const FArguments& InArgs, const UEnum* InEnum)
 	{
 		Enum = InEnum;
-		IntermediateValue = InArgs._IntermediateValue;
 		CurrentValue = InArgs._CurrentValue;
 		check(CurrentValue.IsBound());
 		OnEnumSelectionChangedDelegate = InArgs._OnEnumSelectionChanged;
@@ -448,12 +446,6 @@ public:
 private:
 	FText GetCurrentValue() const
 	{
-		if(IntermediateValue.IsSet() && IntermediateValue.Get().IsSet())
-		{
-			int32 IntermediateNameIndex = Enum->GetIndexByValue(IntermediateValue.Get().GetValue());
-			return Enum->GetDisplayNameText(IntermediateNameIndex);
-		}
-
 		int32 CurrentNameIndex = Enum->GetIndexByValue(CurrentValue.Get());
 		return Enum->GetDisplayNameText(CurrentNameIndex);
 	}
@@ -497,8 +489,6 @@ private:
 
 	TAttribute<int32> CurrentValue;
 
-	TAttribute<TOptional<uint8>> IntermediateValue;
-
 	TArray<TSharedPtr<int32>> VisibleEnumNameIndices;
 
 	bool bUpdatingSelectionInternally;
@@ -506,12 +496,11 @@ private:
 	FOnEnumSelectionChanged OnEnumSelectionChangedDelegate;
 };
 
-TSharedRef<SWidget> MovieSceneToolHelpers::MakeEnumComboBox(const UEnum* InEnum, TAttribute<int32> InCurrentValue, FOnEnumSelectionChanged InOnSelectionChanged, TAttribute<TOptional<uint8>> InIntermediateValue)
+TSharedRef<SWidget> MovieSceneToolHelpers::MakeEnumComboBox(const UEnum* InEnum, TAttribute<int32> InCurrentValue, FOnEnumSelectionChanged InOnSelectionChanged)
 {
 	return SNew(SEnumCombobox, InEnum)
 		.CurrentValue(InCurrentValue)
-		.OnEnumSelectionChanged(InOnSelectionChanged)
-		.IntermediateValue(InIntermediateValue);
+		.OnEnumSelectionChanged(InOnSelectionChanged);
 }
 
 bool MovieSceneToolHelpers::ShowImportEDLDialog(UMovieScene* InMovieScene, float InFrameRate, FString InOpenDirectory)
@@ -521,20 +510,11 @@ bool MovieSceneToolHelpers::ShowImportEDLDialog(UMovieScene* InMovieScene, float
 	bool bOpen = false;
 	if (DesktopPlatform)
 	{
-		void* ParentWindowWindowHandle = NULL;
-
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-		if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
-		{
-			ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-		}
-
 		FString ExtensionStr;
 		ExtensionStr += TEXT("CMX 3600 EDL (*.edl)|*.edl|");
 
 		bOpen = DesktopPlatform->OpenFileDialog(
-			ParentWindowWindowHandle,
+			FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr),
 			NSLOCTEXT("UnrealEd", "MovieSceneToolHelpersImportEDL", "Import EDL from...").ToString(), 
 			InOpenDirectory,
 			TEXT(""), 
@@ -558,7 +538,7 @@ bool MovieSceneToolHelpers::ShowImportEDLDialog(UMovieScene* InMovieScene, float
 	return MovieSceneCaptureHelpers::ImportEDL(InMovieScene, InFrameRate, OpenFilenames[0]);
 }
 
-bool MovieSceneToolHelpers::ShowExportEDLDialog(const UMovieScene* InMovieScene, float InFrameRate, FString InSaveDirectory)
+bool MovieSceneToolHelpers::ShowExportEDLDialog(const UMovieScene* InMovieScene, float InFrameRate, FString InSaveDirectory, int32 InHandleFrames)
 {
 	TArray<FString> SaveFilenames;
 	FString SequenceName = InMovieScene->GetOuter()->GetName();
@@ -568,21 +548,12 @@ bool MovieSceneToolHelpers::ShowExportEDLDialog(const UMovieScene* InMovieScene,
 	bool bSave = false;
 	if (DesktopPlatform)
 	{
-		void* ParentWindowWindowHandle = NULL;
-
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-		if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
-		{
-			ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-		}
-
 		FString ExtensionStr;
 		ExtensionStr += TEXT("CMX 3600 EDL (*.edl)|*.edl|");
 		ExtensionStr += TEXT("RV (*.rv)|*.rv|");
 
 		bSave = DesktopPlatform->SaveFileDialog(
-			ParentWindowWindowHandle,
+			FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr),
 			NSLOCTEXT("UnrealEd", "MovieSceneToolHelpersExportEDL", "Export EDL to...").ToString(), 
 			InSaveDirectory,
 			SequenceName + TEXT(".edl"), 
@@ -601,7 +572,7 @@ bool MovieSceneToolHelpers::ShowExportEDLDialog(const UMovieScene* InMovieScene,
 		return false;
 	}
 
-	if (MovieSceneCaptureHelpers::ExportEDL(InMovieScene, InFrameRate, SaveFilenames[0]))
+	if (MovieSceneCaptureHelpers::ExportEDL(InMovieScene, InFrameRate, SaveFilenames[0], InHandleFrames))
 	{
 		const FString AbsoluteFilename = FPaths::ConvertRelativePathToFull(SaveFilenames[0]);
 		const FString SaveDirectory = FPaths::GetPath(AbsoluteFilename);
@@ -881,20 +852,11 @@ bool MovieSceneToolHelpers::ImportFBX(UMovieScene* InMovieScene, FMovieSceneSequ
 	bool bOpen = false;
 	if (DesktopPlatform)
 	{
-		void* ParentWindowWindowHandle = NULL;
-
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-		if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
-		{
-			ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-		}
-
 		FString ExtensionStr;
 		ExtensionStr += TEXT("FBX (*.fbx)|*.fbx|");
 
 		bOpen = DesktopPlatform->OpenFileDialog(
-			ParentWindowWindowHandle,
+			FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr),
 			NSLOCTEXT("UnrealEd", "MovieSceneToolHelpersImportFBX", "Import FBX from...").ToString(), 
 			FEditorDirectories::Get().GetLastDirectory(ELastDirectory::FBX),
 			TEXT(""), 

@@ -17,6 +17,10 @@ namespace UnrealBuildTool
 		/// </summary>
 		public static HashSet<FileItem> SourceFileWorkingSet = new HashSet<FileItem>();
 
+		/// <summary>
+		/// Set of files which are candidates for being part of the working set.
+		/// </summary>
+		public static HashSet<FileItem> CandidateSourceFilesForWorkingSet = new HashSet<FileItem>();
 
 		/// <summary>
 		/// A class which represents a list of files and the sum of their lengths.
@@ -259,6 +263,12 @@ namespace UnrealBuildTool
 
 					else
 					{
+						// If adaptive unity build is enabled for this module, add this source file to the set that will invalidate the makefile
+						if(bUseAdaptiveUnityBuild)
+						{
+							CandidateSourceFilesForWorkingSet.Add(CPPFile);
+						}
+
 						// Compile this file as part of the unity blob
 						CPPUnityFileBuilder.AddFile(CPPFile);
 

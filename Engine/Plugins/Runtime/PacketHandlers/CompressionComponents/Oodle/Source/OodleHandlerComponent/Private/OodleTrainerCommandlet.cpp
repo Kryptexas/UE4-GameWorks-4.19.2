@@ -795,7 +795,7 @@ void FOodleDictionaryGenerator::ReadPackets(const TArray<FString>& InputCaptureF
 
 	for (FPacketCaptureArchive& CurArc : BoundArchives)
 	{
-		while (CurArc.Tell() < CurArc.TotalSize())
+		while (CurArc.Tell() < CurArc.TotalSize() && PacketIdx < (uint32)PacketCount)
 		{
 			uint32 PacketSize = BufferSize;
 

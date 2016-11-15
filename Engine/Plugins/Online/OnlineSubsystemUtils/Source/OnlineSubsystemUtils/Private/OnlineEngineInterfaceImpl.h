@@ -123,6 +123,7 @@ public:
 public:
 
 	virtual bool SupportsOnlinePIE() override;
+	virtual void SetShouldTryOnlinePIE(bool bShouldTry) override;
 	virtual int32 GetNumPIELogins() override;
 	virtual void SetForceDedicated(FName OnlineIdentifier, bool bForce) override;
 	virtual void LoginPIEInstance(FName OnlineIdentifier, int32 LocalUserNum, int32 PIELoginNum, FOnPIELoginComplete& CompletionDelegate) override;

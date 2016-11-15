@@ -7,6 +7,8 @@
  */
 class CORE_API FThreadHeartBeat : public FRunnable
 {
+	static FThreadHeartBeat* Singleton;
+
 	/** Holds per-thread info about the heartbeat */
 	struct FHeartBeatInfo
 	{
@@ -46,6 +48,7 @@ public:
 
 	/** Gets the heartbeat singleton */
 	static FThreadHeartBeat& Get();
+	static FThreadHeartBeat* GetNoInit();
 
 	/** Begin measuring heartbeat */
 	void Start();

@@ -9,6 +9,8 @@
 #define MAX_LOCAL_PLAYERS 4
 #elif PLATFORM_PS4
 #define MAX_LOCAL_PLAYERS 4
+#elif PLATFORM_WOLF
+#define MAX_LOCAL_PLAYERS 8
 #else
 #define MAX_LOCAL_PLAYERS 1
 #endif
@@ -117,7 +119,7 @@ namespace ELoginStatus
 /** Possible connection states */
 namespace EOnlineServerConnectionStatus
 {
-	enum Type
+	enum Type : unsigned int
 	{
 		/** System normal (used for default state) */
 		Normal,

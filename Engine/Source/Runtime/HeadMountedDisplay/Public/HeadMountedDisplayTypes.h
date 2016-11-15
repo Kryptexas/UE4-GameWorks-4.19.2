@@ -13,7 +13,8 @@ namespace EHMDDeviceType
 		DT_Morpheus,
 		DT_ES2GenericStereoMesh,
 		DT_SteamVR,
-		DT_GearVR
+		DT_GearVR,
+		DT_GoogleVR
 	};
 }
 

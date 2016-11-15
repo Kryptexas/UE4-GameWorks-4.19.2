@@ -63,6 +63,7 @@ namespace BuildPatchServices
 {
 	struct FScannerDetails
 	{
+	public:
 		FScannerDetails(int32 InLayer, uint64 InLayerOffset, bool bInIsFinalScanner, uint64 InPaddingSize, TArray<uint8> InData, FBlockStructure InStructure, const ICloudEnumerationRef& CloudEnumeration, const FStatsCollectorRef& StatsCollector)
 			: Layer(InLayer)
 			, LayerOffset(InLayerOffset)
@@ -73,6 +74,7 @@ namespace BuildPatchServices
 			, Scanner(FDataScannerFactory::Create(Data, CloudEnumeration, StatsCollector))
 		{}
 
+	public:
 		int32 Layer;
 		uint64 LayerOffset;
 		bool bIsFinalScanner;
@@ -83,7 +85,7 @@ namespace BuildPatchServices
 	};
 }
 
-bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const FBuildPatchSettings& Settings)
+bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const BuildPatchServices::FGenerationConfiguration& Settings)
 {
 	uint64 StartTime = FStatsCollector::GetCycles();
 
@@ -143,8 +145,11 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const FBuildPatchS
 	double LastProgressLog = FPlatformTime::Seconds();
 	const double TimeGenStarted = LastProgressLog;
 
-	// 32.5 chunk size data buffer, per scanner.
-	const uint64 ScannerDataSize = FBuildPatchData::ChunkDataSize*32.5;
+	// Load scanner data size from config, default to 32.5 MB.
+	float GenerationScannerSizeMegabytes = 32.5f;
+	GConfig->GetFloat(TEXT("BuildPatchServices"), TEXT("GenerationScannerSizeMegabytes"), GenerationScannerSizeMegabytes, GEngineIni);
+	GenerationScannerSizeMegabytes = FMath::Clamp<float>(GenerationScannerSizeMegabytes, 10.0f, 500.0f);
+	const uint64 ScannerDataSize = GenerationScannerSizeMegabytes * 1048576;
 	const uint64 ScannerOverlapSize = FBuildPatchData::ChunkDataSize - 1;
 	TArray<uint8> DataBuffer;
 
@@ -170,7 +175,6 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const FBuildPatchS
 	// Keep a copy of the new chunk inventory.
 	TMap<uint64, TSet<FGuid>> ChunkInventory;
 	TMap<FGuid, FSHAHash> ChunkShaHashes;
-	TSet<FGuid> ChunksReferenced;
 
 	// Loop through all data.
 	bool bHasUnknownData = true;
@@ -208,6 +212,7 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const FBuildPatchS
 				// Create data processor.
 				FBlockStructure Structure;
 				Structure.Add(DataOffset, DataBuffer.Num() - PadSize);
+				UE_LOG(LogPatchGeneration, Verbose, TEXT("Creating scanner on layer 0 at %llu. IsFinal:%d."), DataOffset, BuildStream->IsEndOfData());
 				Scanners.Emplace(new FScannerDetails(0, DataOffset, BuildStream->IsEndOfData(), PadSize, DataBuffer, MoveTemp(Structure), CloudEnumeration, StatsCollector));
 				LayerToScannerCount.FindOrAdd(0)++;
 			}
@@ -217,6 +222,19 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const FBuildPatchS
 		while (Scanners.Num() > 0 && Scanners[0]->Scanner->IsComplete())
 		{
 			FScannerDetails& Scanner = *Scanners[0];
+			UE_LOG(LogPatchGeneration, Verbose, TEXT("Scanner on layer %d completed. IsFinal:%d."), Scanner.Layer, Scanner.bIsFinalScanner);
+
+			// Check that we are able to process this scanner, there is a 2GB limit on our TArrays of data.
+			if (LayerToUnknownLayerData.Contains(Scanner.Layer))
+			{
+				int32 CurrentUnknownLayerDataNum = LayerToUnknownLayerData[Scanner.Layer].Num();
+				const int32 OneGigabyte = 1073741824;
+				if (CurrentUnknownLayerDataNum >= OneGigabyte)
+				{
+					UE_LOG(LogPatchGeneration, Verbose, TEXT("Ignoring completed scanners in order to process accumulated unknown data."));
+					break;
+				}
+			}
 
 			// Get the scan result.
 			TArray<FChunkMatch> ChunkMatches = Scanner.Scanner->GetResultWhenComplete();
@@ -288,13 +306,14 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const FBuildPatchS
 					BuildSpaceUnknownStructure.Remove(BuildSpaceChunkStructure);
 					BuildSpaceKnownStructure.Add(BuildSpaceChunkStructure);
 					ManifestBuilder->AddChunkMatch(Match.ChunkGuid, BuildSpaceChunkStructure);
-					ChunksReferenced.Add(Match.ChunkGuid);
+					UE_LOG(LogPatchGeneration, Verbose, TEXT("Accepted a chunk match with %s on layer %d. Mapping:%s"), *Match.ChunkGuid.ToString(), Scanner.Layer, *BuildSpaceChunkStructure.ToString());
 				}
 				else
 				{
 					// Currently we don't use overlapping chunks, but we should save that info to drive improvement investigation.
 					RejectedChunkMatches.Add(Match);
 					BuildSpaceRejectedStructure.Add(BuildSpaceChunkStructure);
+					UE_LOG(LogPatchGeneration, Verbose, TEXT("Rejected an overlapping chunk match with %s on layer %d. Mapping:%s"), *Match.ChunkGuid.ToString(), Scanner.Layer, *BuildSpaceChunkStructure.ToString());
 				}
 			}
 			// Remove padding from known structure.
@@ -309,7 +328,7 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const FBuildPatchS
 			check(UnknownLayerData.Num() == PatchGenerationHelpers::CountSerialBytes(UnknownLayerStructure)
 				&& UnknownLayerData.Num() == PatchGenerationHelpers::CountSerialBytes(UnknownBuildStructure));
 
-			// Remove from unknown data buffer what we now know. This covers newly recognised data from previous overlaps.
+			// Remove from unknown data buffer what we now know. This covers newly recognized data from previous overlaps.
 			FBlockStructure NowKnownDataStructure;
 			if (PatchGenerationHelpers::SerialiseIntersection(UnknownLayerStructure, LayerSpaceKnownStructure, NowKnownDataStructure))
 			{
@@ -430,7 +449,7 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const FBuildPatchS
 							return false;
 						}
 						ManifestBuilder->AddChunkMatch(NewChunkGuid, BuildSpaceChunkStructure);
-						ChunksReferenced.Add(NewChunkGuid);
+						UE_LOG(LogPatchGeneration, Verbose, TEXT("Created a new chunk %s with hash %016llX on layer %d. Mapping:%s"), *NewChunkGuid.ToString(), NewChunkHash, Layer, *BuildSpaceChunkStructure.ToString());
 
 						// Remove from tracking.
 						UnknownLayerData.RemoveAt(ByteOffset, FBuildPatchData::ChunkDataSize, false);
@@ -492,6 +511,7 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const FBuildPatchS
 					uint64& DataOffset = LayerToDataOffset.FindOrAdd(Layer + 1);
 					Scanners.Emplace(new FScannerDetails(Layer + 1, DataOffset, bIsFinalScanner, PadSize, MoveTemp(ScannerData), BuildStructure, CloudEnumeration, StatsCollector));
 					LayerToScannerCount.FindOrAdd(Layer + 1)++;
+					UE_LOG(LogPatchGeneration, Verbose, TEXT("Creating scanner on layer %d at %llu. IsFinal:%d."), Layer + 1, DataOffset, bIsFinalScanner);
 
 					// Remove data we just pulled out from tracking, minus the overlap.
 					uint64 RemoveSize = bIsFinalScanner ? SizeToTake : SizeToTake - ScannerOverlapSize;
@@ -544,6 +564,7 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const FBuildPatchS
 		// Sleep to allow other threads.
 		FPlatformProcess::Sleep(0.01f);
 	}
+	UE_LOG(LogPatchGeneration, Verbose, TEXT("Scanning complete, waiting for writer thread."));
 
 	// Inform no more chunks.
 	ChunkWriter.NoMoreChunks();
@@ -560,7 +581,6 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const FBuildPatchS
 		ChunkSet = ChunkSet.Union(ChunkInventoryPair.Value);
 	}
 	ChunkShaHashes.Append(CloudEnumeration->GetChunkShaHashes());
-	bool bFoundAllChunkInfo = true;
 	for (const TPair<uint64, TSet<FGuid>>& ChunkInventoryPair : ChunkInventory)
 	{
 		for (const FGuid& ChunkGuid : ChunkInventoryPair.Value)
@@ -574,17 +594,7 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const FBuildPatchS
 				ChunkInfo.FileSize = ChunkFileSizes[ChunkGuid];
 				ChunkInfo.GroupNumber = FCrc::MemCrc32(&ChunkGuid, sizeof(FGuid)) % 100;
 			}
-			else if (ChunksReferenced.Contains(ChunkGuid))
-			{
-				bFoundAllChunkInfo = false;
-				UE_LOG(LogPatchGeneration, Error, TEXT("Missing info for chunk %s. HasSha:%d HasFileSize:%d."), *ChunkGuid.ToString(), ChunkShaHashes.Contains(ChunkGuid), ChunkFileSizes.Contains(ChunkGuid));
-			}
 		}
-	}
-	if (bFoundAllChunkInfo == false)
-	{
-		UE_LOG(LogPatchGeneration, Error, TEXT("Cannot continue without all required chunk info."));
-		return false;
 	}
 
 	// Finalize the manifest data.
@@ -593,7 +603,6 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const FBuildPatchS
 	if (ManifestBuilder->FinalizeData(BuildStream->GetAllFiles(), MoveTemp(ChunkInfoList)) == false)
 	{
 		UE_LOG(LogPatchGeneration, Error, TEXT("Finalizing manifest failed."));
-		return false;
 	}
 
 	// Produce final stats log.

@@ -4,6 +4,7 @@
 	HlslParser.cpp - Implementation for parsing hlsl.
 =============================================================================*/
 
+#include "ShaderCompilerCommonPrivatePCH.h"
 #include "ShaderCompilerCommon.h"
 #include "HlslParser.h"
 #include "HlslExpressionParser.inl"

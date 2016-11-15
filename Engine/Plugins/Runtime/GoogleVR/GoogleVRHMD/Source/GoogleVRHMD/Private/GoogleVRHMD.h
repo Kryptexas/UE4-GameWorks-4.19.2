@@ -109,6 +109,8 @@ public:
 	FGoogleVRHMDCustomPresent(FGoogleVRHMD* HMD);
 	virtual ~FGoogleVRHMDCustomPresent();
 
+    void Shutdown();
+
 	gvr_frame* CurrentFrame;
 	TRefCountPtr<FGoogleVRHMDTexture2DSet> TextureSet;
 private:
@@ -120,9 +122,9 @@ private:
 
 	gvr_swap_chain* SwapChain;
 	TQueue<gvr_mat4f> RenderingHeadPoseQueue;
-
 	gvr_mat4f CurrentFrameRenderHeadPose;
 	const gvr_buffer_viewport_list* CurrentFrameViewportList;
+	bool bSkipPresent;
 
 public:
 
@@ -289,6 +291,9 @@ private:
 	FIntRect CalculateGVRViewportRect(int RenderTargetSizeX, int RenderTargetSizeY, EStereoscopicPass StereoPassType);
 #endif
 
+	/** Function get called when start loading a map*/
+	void OnPreLoadMap(const FString&);
+
 public:
 
 	// public fucntiosn for In editor distortion previews
@@ -332,6 +337,8 @@ private:
 	bool		bDistortionCorrectionEnabled;
 	bool		bUseGVRApiDistortionCorrection;
 	bool		bUseOffscreenFramebuffers;
+	bool		bIsInDaydreamMode;
+	bool		bForceStopPresentScene;
 	float		NeckModelScale;
 	FQuat		CurHmdOrientation;
 	FVector		CurHmdPosition;
@@ -785,7 +792,7 @@ public:
 	// * If returns 'false' then key will be handled by PlayerController;
 	// * otherwise, key won't be handled by the PlayerController.
 	// */
-	//virtual bool HandleInputKey(class UPlayerInput*, const struct FKey& Key, enum EInputEvent EventType, float AmountDepressed, bool bGamepad) { return false; }
+	virtual bool HandleInputKey(class UPlayerInput*, const struct FKey& Key, enum EInputEvent EventType, float AmountDepressed, bool bGamepad) override;
 
 	/**
 	 * Passing touch events to HMD.

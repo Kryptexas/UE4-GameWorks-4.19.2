@@ -189,14 +189,17 @@ void UConsole::BuildRuntimeAutoCompleteList(bool bForce)
 			int32 NewIdx = AutoCompleteList.AddZeroed(1);
 			AutoCompleteList[NewIdx].Command = FuncName;
 			AutoCompleteList[NewIdx].Color = ConsoleSettings->AutoCompleteCommandColor;
+
+			FString Desc;
+
 			// build a help string
 			// append each property (and it's type) to the help string
 			for (TFieldIterator<UProperty> PropIt(Func); PropIt && (PropIt->PropertyFlags & CPF_Parm); ++PropIt)
 			{
 				UProperty *Prop = *PropIt;
-				FuncName = FString::Printf(TEXT("%s[%s]"),*Prop->GetName(),*Prop->GetCPPType());
+				Desc += FString::Printf(TEXT("%s[%s] "),*Prop->GetName(),*Prop->GetCPPType());
 			}
-			AutoCompleteList[NewIdx].Desc = FuncName;
+			AutoCompleteList[NewIdx].Desc = Desc;
 			ScriptExecCnt++;
 		}
 	}

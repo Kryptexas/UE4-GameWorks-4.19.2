@@ -46,23 +46,6 @@ struct FCompareStructuredEntryByNamespace
 };
 
 
-#if 0 // @todo Json: Serializing from FArchive is currently broken
-bool FJsonInternationalizationManifestSerializer::DeserializeManifest( FArchive& Archive, TSharedRef< FInternationalizationManifest > Manifest )
-{
-	TSharedPtr< FJsonObject > JsonManifestObj;
-	TSharedRef< TJsonReader<> > Reader = TJsonReaderFactory<>::Create( &Archive );
-	bool bExecSuccessful = FJsonSerializer::Deserialize( Reader, JsonManifestObj );
-	
-	if ( bExecSuccessful && JsonManifestObj.IsValid() )
-	{
-		bExecSuccessful = DeserializeInternal( JsonManifestObj.ToSharedRef(), Manifest );
-	}		
-
-	return bExecSuccessful;
-}
-#endif
-
-
 bool FJsonInternationalizationManifestSerializer::DeserializeManifest( const FString& InStr, TSharedRef< FInternationalizationManifest > Manifest )
 {
 	TSharedPtr<FJsonObject> JsonManifestObj;
@@ -84,21 +67,28 @@ bool FJsonInternationalizationManifestSerializer::DeserializeManifest( TSharedRe
 }
 
 
-#if 0 // @todo Json: Serializing from FArchive is currently broken
-bool FJsonInternationalizationManifestSerializer::SerializeManifest( TSharedRef< const FInternationalizationManifest > Manifest, FArchive& Archive )
+bool FJsonInternationalizationManifestSerializer::DeserializeManifestFromFile( const FString& InJsonFile, TSharedRef< FInternationalizationManifest > Manifest )
 {
-	TSharedRef< FJsonObject > JsonManifestObj = MakeShareable( new FJsonObject );
-	bool bExecSuccessful = SerializeInternal( Manifest, JsonManifestObj );
-
-	if( bExecSuccessful )
+	// Read in file as string
+	FString FileContents;
+	if (!FFileHelper::LoadFileToString(FileContents, *InJsonFile))
 	{
-		TSharedRef< TJsonWriter<> > Writer = TJsonWriterFactory<>::Create( &Archive );
-		bExecSuccessful = FJsonSerializer::Serialize( JsonManifestObj, Writer );
-		Writer->Close();
+		UE_LOG(LogInternationalizationManifestSerializer, Error, TEXT("Failed to load manifest '%s'."), *InJsonFile);
+		return false;
 	}
-	return bExecSuccessful;
+
+	// Parse as JSON
+	TSharedPtr<FJsonObject> JsonObject;
+
+	TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(FileContents);
+	if (!FJsonSerializer::Deserialize(JsonReader, JsonObject) || !JsonObject.IsValid())
+	{
+		UE_LOG(LogInternationalizationManifestSerializer, Error, TEXT("Failed to parse manifest '%s'. %s."), *InJsonFile, *JsonReader->GetErrorMessage());
+		return false;
+	}
+
+	return DeserializeInternal(JsonObject.ToSharedRef(), Manifest);
 }
-#endif
 
 
 bool FJsonInternationalizationManifestSerializer::SerializeManifest( TSharedRef< const FInternationalizationManifest > Manifest, FString& Str )
@@ -122,11 +112,42 @@ bool FJsonInternationalizationManifestSerializer::SerializeManifest( TSharedRef<
 }
 
 
+bool FJsonInternationalizationManifestSerializer::SerializeManifestToFile( TSharedRef< const FInternationalizationManifest > Manifest, const FString& InJsonFile )
+{
+	TSharedRef<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
+	if (!SerializeManifest(Manifest, JsonObject))
+	{
+		UE_LOG(LogInternationalizationManifestSerializer, Error, TEXT("Failed to serialize manifest '%s'."), *InJsonFile);
+		return false;
+	}
+
+	// Print the JSON data to a string
+	FString OutputJsonString;
+	TSharedRef<TJsonWriter<>> JsonWriter = TJsonWriterFactory<>::Create(&OutputJsonString);
+	FJsonSerializer::Serialize(JsonObject, JsonWriter);
+
+	// Save the JSON string (force Unicode for our manifest and archive files)
+	if (!FFileHelper::SaveStringToFile(OutputJsonString, *InJsonFile, FFileHelper::EEncodingOptions::ForceUnicode))
+	{
+		UE_LOG(LogInternationalizationManifestSerializer, Error, TEXT("Failed to save manifest '%s'."), *InJsonFile);
+		return false;
+	}
+
+	return true;
+}
+
+
 bool FJsonInternationalizationManifestSerializer::DeserializeInternal( TSharedRef< FJsonObject > InJsonObj, TSharedRef< FInternationalizationManifest > Manifest )
 {
 	if( InJsonObj->HasField( TAG_FORMATVERSION ) )
 	{
 		const int32 FormatVersion = static_cast<int32>(InJsonObj->GetNumberField( TAG_FORMATVERSION ));
+		if (FormatVersion > (int32)FInternationalizationManifest::EFormatVersion::Latest)
+		{
+			// Manifest is too new to be loaded!
+			return false;
+		}
+
 		Manifest->SetFormatVersion(static_cast<FInternationalizationManifest::EFormatVersion>(FormatVersion));
 	}
 	else
@@ -331,7 +352,7 @@ bool FJsonInternationalizationManifestSerializer::JsonObjToManifest( TSharedRef<
 void FJsonInternationalizationManifestSerializer::GenerateStructuredData( TSharedRef< const FInternationalizationManifest > InManifest, TSharedPtr< FStructuredEntry > RootElement )
 {
 	//Loop through all the unstructured manifest entries and build up our structured hierarchy
-	for( TManifestEntryByContextIdContainer::TConstIterator It( InManifest->GetEntriesByContextIdIterator() ); It; ++It )
+	for( FManifestEntryByStringContainer::TConstIterator It( InManifest->GetEntriesByKeyIterator() ); It; ++It )
 	{
 		const TSharedRef< FManifestEntry > UnstructuredManifestEntry = It.Value();
 

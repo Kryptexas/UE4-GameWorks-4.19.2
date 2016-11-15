@@ -31,7 +31,7 @@ FLinearColor UMaterialGraphNode_Root::GetNodeTitleColor() const
 
 FText UMaterialGraphNode_Root::GetTooltipText() const
 {
-	return LOCTEXT("RootToolTip", "Description of final material inputs");
+	return LOCTEXT("MaterialNode", "Result node of the Material");
 }
 
 void UMaterialGraphNode_Root::PostPlacedNewNode()
@@ -70,7 +70,15 @@ int32 UMaterialGraphNode_Root::GetInputIndex(const UEdGraphPin* InputPin) const
 uint32 UMaterialGraphNode_Root::GetInputType(const UEdGraphPin* InputPin) const
 {
 	UMaterialGraph* MaterialGraph = CastChecked<UMaterialGraph>(GetGraph());
-	return GetMaterialPropertyType(MaterialGraph->MaterialInputs[GetInputIndex(InputPin)].GetProperty());
+	EMaterialProperty Property = MaterialGraph->MaterialInputs[GetInputIndex(InputPin)].GetProperty();
+	if (Property == MP_MaterialAttributes)
+	{
+		return MCT_MaterialAttributes;
+	}
+	else
+	{
+		return FMaterialAttributeDefinitionMap::GetValueType(Property);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -28,6 +28,9 @@ DECLARE_DELEGATE_RetVal(bool, FQueryAccessSourceCode);
 DECLARE_DELEGATE(FModalWindowStackStarted)
 DECLARE_DELEGATE(FModalWindowStackEnded)
 
+/** Delegate for when window action occurs (ClickedNonClientArea, Maximize, Restore, WindowMenu). Return true if the OS layer should stop processing the action. */
+DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnWindowAction, const TSharedRef<FGenericWindow>&, EWindowAction::Type);
+
 extern SLATE_API const FName NAME_UnrealOS;
 
 
@@ -542,7 +545,7 @@ public:
 	 * @param WidgetToFocus the widget to set focus to
 	 * @param ReasonFocusIsChanging the contextual reason for the focus change
 	 */
-	void SetUserFocus(uint32 UserIndex, const TSharedPtr<SWidget>& WidgetToFocus, EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
+	bool SetUserFocus(uint32 UserIndex, const TSharedPtr<SWidget>& WidgetToFocus, EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
 
 	/**
 	 * Sets focus for all users to the SWidget passed in.
@@ -570,7 +573,7 @@ public:
 	/**
 	 * Sets the Keyboard focus to the specified SWidget
 	 */
-	void SetKeyboardFocus(const TSharedPtr<SWidget>& OptionalWidgetToFocus, EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
+	bool SetKeyboardFocus(const TSharedPtr<SWidget>& OptionalWidgetToFocus, EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
 
 	/**
 	 * Clears keyboard focus, if any widget is currently focused
@@ -1189,6 +1192,10 @@ public:
 	/** @return the last time a user interacted with a keyboard, mouse, touch device, or controller */
 	double GetLastUserInteractionTime() const { return LastUserInteractionTime; }
 
+	DECLARE_EVENT_OneParam(FSlateApplication, FSlateLastUserInteractionTimeUpdateEvent, double);
+	/** @return Gets the event for LasterUserInteractionTime update */
+	FSlateLastUserInteractionTimeUpdateEvent& GetLastUserInteractionTimeUpdateEvent() { return LastUserInteractionTimeUpdateEvent; }
+
 	/** @return the deadzone size for dragging in screen pixels (aka virtual desktop pixels) */
 	float GetDragTriggerDistance() const;
 
@@ -1397,6 +1404,34 @@ public:
 	 */
 	int32 GetUserIndexForController(int32 ControllerId) const;
 
+	/**
+	* Register for a notification when the window action occurs.
+	*
+	* @param Notification          The notification to invoke.
+	*
+	* @return Handle to the registered delegate.
+	*/
+	FDelegateHandle RegisterOnWindowActionNotification(const FOnWindowAction& Notification);
+
+	/**
+	* Unregister the notification because it is no longer desired.
+	*
+	* @param Handle                Hanlde to the delegate to unregister.
+	*/
+	void UnregisterOnWindowActionNotification(FDelegateHandle Handle);
+
+	/**
+	* Given an optional widget, try and get the most suitable parent window to use with dialogs (such as file and directory pickers).
+	* This will first try and get the window that owns the widget (if provided), before falling back to using the MainFrame window.
+	*/
+	TSharedPtr<SWindow> FindBestParentWindowForDialogs(const TSharedPtr<SWidget>& InWidget);
+
+	/**
+	* Given an optional widget, try and get the most suitable parent window handle to use with dialogs (such as file and directory pickers).
+	* This will first try and get the window that owns the widget (if provided), before falling back to using the MainFrame window.
+	*/
+	const void* FindBestParentWindowHandleForDialogs(const TSharedPtr<SWidget>& InWidget);
+
 private:
 
 	TSharedRef< FGenericWindow > MakeWindow( TSharedRef<SWindow> InSlateWindow, const bool bShowImmediately );
@@ -1441,6 +1476,11 @@ private:
 		/** Desktop Space Rect that bounds the cursor. */
 		FSlateRect LastComputedBounds;
 	} CursorLock;
+
+private:
+
+	/** Sets the LastUserInteractionTime and fires off the LastUserInteractionTimeUpdateEvent */
+	void SetLastUserInteractionTime(const double InCurrentTime);
 
 private:
 
@@ -1656,6 +1696,9 @@ private:
 	/** Subset of LastUserInteractionTime that is used only when considering when to throttle */
 	double LastUserInteractionTimeForThrottling;
 
+	/** Delegate that gets called for LastUserInteractionTime Update */
+	FSlateLastUserInteractionTimeUpdateEvent LastUserInteractionTimeUpdateEvent;
+
 	/** Used when considering whether to put Slate to sleep */
 	double LastMouseMoveTime;
 
@@ -1665,6 +1708,7 @@ private:
 		FDragDetector()
 		: DetectDragStartLocation( FVector2D::ZeroVector )
 		, DetectDragButton( EKeys::Invalid )
+		, DetectDragPointerIndex(INDEX_NONE)
 		{
 		}
 		/** If not null, a widget has request that we detect a drag being triggered in this widget and send an OnDragDetected() event*/
@@ -1673,6 +1717,8 @@ private:
 		FVector2D DetectDragStartLocation;
 		/** Button that must be pressed to trigger the drag */
 		FKey DetectDragButton;
+		/** Pointer index of the drag operation */
+		int32 DetectDragPointerIndex;
 	} DragDetector;
 
 	/** Support for auto-dismissing pop-ups */
@@ -1721,6 +1767,8 @@ private:
 	/** Allows us to track the number of non-slate modal windows active. */
 	int32 NumExternalModalWindowsActive;
 
+	/** List of delegates that need to be called when the window action occurs. */
+	TArray<FOnWindowAction> OnWindowActionNotifications;
 
 	/**
 	 * Tool-tips

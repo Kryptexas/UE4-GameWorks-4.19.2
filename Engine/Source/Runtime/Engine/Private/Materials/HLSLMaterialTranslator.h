@@ -11,6 +11,7 @@
 #include "Materials/MaterialExpressionWorldPosition.h"
 #include "Materials/MaterialExpressionTextureSample.h"
 #include "Materials/MaterialExpressionSceneTexture.h"
+#include "Materials/MaterialExpressionNoise.h"
 #include "Materials/MaterialExpressionFunctionInput.h"
 #include "Materials/MaterialExpressionFunctionOutput.h"
 #include "Materials/MaterialExpressionMaterialFunctionCall.h"
@@ -18,6 +19,7 @@
 #include "Materials/MaterialExpressionTransformPosition.h"
 #include "Materials/MaterialExpressionCustom.h"
 #include "Materials/MaterialExpressionCustomOutput.h"
+#include "Materials/MaterialExpressionVectorNoise.h"
 #include "Materials/MaterialFunction.h"
 #include "MaterialCompiler.h"
 #include "MaterialUniformExpressions.h"
@@ -110,6 +112,8 @@ protected:
 	EShaderFrequency ShaderFrequency;
 	/** The current material property being compiled.  This affects the behavior of all compiler functions except GetFixedParameterCode. */
 	EMaterialProperty MaterialProperty;
+	/** Stack of currently compiling material attributes*/
+	TArray<FGuid> MaterialAttributesStack;
 	/** The code chunks corresponding to the currently compiled property or custom output. */
 	TArray<FShaderCodeChunk>* CurrentScopeChunks;
 
@@ -283,6 +287,10 @@ public:
 				FunctionStacks[Frequency].Add(FMaterialFunctionCompileState(nullptr));
 			}
 		}
+
+		// Default value for attribute stack added to simplify code when compiling new attributes, see SetMaterialProperty.
+		const FGuid& MissingAttribute = FMaterialAttributeDefinitionMap::GetID(MP_MAX);
+		MaterialAttributesStack.Add(MissingAttribute);
 	}
  
 	bool Translate()
@@ -327,7 +335,7 @@ public:
 
 			memset(Chunk, -1, sizeof(Chunk));
 
-			const EShaderFrequency NormalShaderFrequency = GetMaterialPropertyShaderFrequency(MP_Normal);
+			const EShaderFrequency NormalShaderFrequency = FMaterialAttributeDefinitionMap::GetShaderFrequency(MP_Normal);
 
 			// Normal must always be compiled first; this will ensure its chunk calculations are the first to be added
 			{
@@ -445,6 +453,8 @@ public:
 				Errorf(TEXT("Only transparent or postprocess materials can read from scene depth."));
 			}
 
+			MaterialCompilationOutput.bUsesSceneDepthLookup = bUsesSceneDepth;
+
 			if (MaterialCompilationOutput.bRequiresSceneColorCopy)
 			{
 				if (Domain != MD_Surface)
@@ -516,8 +526,73 @@ public:
 
 			ResourcesString = TEXT("");
 
-			// Gather the implementation for any custom output expressions
+#if HANDLE_CUSTOM_OUTPUTS_AS_MATERIAL_ATTRIBUTES
+			// Handle custom outputs when using material attribute output
+			if (Material->HasMaterialAttributesConnected())
 			{
+				TArray<FMaterialAttributeDefintion> CustomAttributeList;
+				FMaterialAttributeDefinitionMap::GetCustomAttributeList(CustomAttributeList);
+				TArray<FShaderCodeChunk> CustomExpressionChunks;
+				
+				for (FMaterialAttributeDefintion& Attribute : CustomAttributeList)
+				{
+					// Compile all outputs for attribute
+					bool bValidResultCompiled = false;
+					int32 NumOutputs = 1;//CustomOutput->GetNumOutputs();
+
+					for (int32 OutputIndex = 0; OutputIndex < NumOutputs; ++OutputIndex)
+					{
+						MaterialProperty = Attribute.Property;
+						ShaderFrequency = Attribute.ShaderFrequency;
+						FunctionStacks[ShaderFrequency].Empty();
+						FunctionStacks[ShaderFrequency].Add(FMaterialFunctionCompileState(nullptr));
+
+						CustomExpressionChunks.Empty();
+						CurrentScopeChunks = &CustomExpressionChunks;
+						int32 Result = Material->CompileCustomAttribute(Attribute.AttributeID, this);	
+
+						// Consider attribute used if varies from default value
+						if (Result != INDEX_NONE)
+						{
+							bool bValueNonDefault = true;
+
+							if (FMaterialUniformExpression* Expression = GetParameterUniformExpression(Result))
+							{
+								FLinearColor Value;
+								FMaterialRenderContext DummyContext(nullptr, *Material, nullptr);
+								Expression->GetNumberValue(DummyContext, Value);
+
+								bool bEqualValue = Value.R == Attribute.DefaultValue.X;
+								bEqualValue &= Value.G == Attribute.DefaultValue.Y || Attribute.ValueType < MCT_Float2;
+								bEqualValue &= Value.B == Attribute.DefaultValue.Z || Attribute.ValueType < MCT_Float3;
+								bEqualValue &= Value.A == Attribute.DefaultValue.W || Attribute.ValueType < MCT_Float4;
+
+								if (Expression->IsConstant() && bEqualValue)
+								{
+									bValueNonDefault = false;
+								}
+							}
+
+							// Valid, non-default value so generate shader code
+							if (bValueNonDefault)
+							{
+								GenerateCustomAttributeCode(OutputIndex, Result, Attribute.ValueType, Attribute.DisplayName);
+								bValidResultCompiled = true;
+							}
+						}
+					}
+
+					// If used, add compile data
+					if (bValidResultCompiled)
+					{
+						ResourcesString += FString::Printf(TEXT("#define NUM_MATERIAL_OUTPUTS_%s %d\r\n"), *Attribute.DisplayName.ToUpper(), NumOutputs);
+					}
+				}
+			}
+			else
+#endif // #if 0
+			{
+				// Gather the implementation for any custom output expressions
 				TArray<UMaterialExpressionCustomOutput*> CustomOutputExpressions;
 				Material->GatherCustomOutputExpressions(CustomOutputExpressions);
 				TSet<UClass*> SeenCustomOutputExpressionsClases;
@@ -546,7 +621,7 @@ public:
 								ShaderFrequency = SF_Pixel;
 								TArray<FShaderCodeChunk> CustomExpressionChunks;
 								CurrentScopeChunks = &CustomExpressionChunks; //-V506
-								CustomOutput->Compile(this, Index, 0);
+								CustomOutput->Compile(this, Index);
 							}
 						}
 					}
@@ -602,12 +677,12 @@ public:
 			// Now the rest, skipping Normal
 			for(uint32 PropertyId = 0; PropertyId < MP_MAX; ++PropertyId)
 			{
-				if (PropertyId == MP_MaterialAttributes || PropertyId == MP_Normal)
+				if (PropertyId == MP_MaterialAttributes || PropertyId == MP_Normal || PropertyId == MP_CustomOutput)
 				{
 					continue;
 				}
 
-				const EShaderFrequency PropertyShaderFrequency = GetMaterialPropertyShaderFrequency((EMaterialProperty)PropertyId);
+				const EShaderFrequency PropertyShaderFrequency = FMaterialAttributeDefinitionMap::GetShaderFrequency((EMaterialProperty)PropertyId);
 
 				int32 StartChunk = 0;
 				if (PropertyShaderFrequency == NormalShaderFrequency && SharedPixelProperties[PropertyId])
@@ -797,10 +872,10 @@ public:
 				}
 
 				const EMaterialProperty Property = (EMaterialProperty)PropertyIndex;
-				check(GetMaterialPropertyShaderFrequency(Property) == SF_Pixel);
-				const FString PropertyName = GetNameOfMaterialProperty(Property);
-				check(PropertyName.Len() > 0);
-				const EMaterialValueType Type = GetMaterialPropertyType(Property);
+				check(FMaterialAttributeDefinitionMap::GetShaderFrequency(Property) == SF_Pixel);
+				const FString PropertyName = FMaterialAttributeDefinitionMap::GetDisplayName(Property);
+				check(PropertyName.Len() > 0);				
+				const EMaterialValueType Type = FMaterialAttributeDefinitionMap::GetValueType(Property);
 
 				// Normal requires its own separate initializer
 				if (Property == MP_Normal)
@@ -938,7 +1013,7 @@ protected:
 		}
 		else
 		{
-			int32 Frequency = (int32)GetMaterialPropertyShaderFrequency(Property);
+			int32 Frequency = (int32)FMaterialAttributeDefinitionMap::GetShaderFrequency(Property);
 			FShaderCodeChunk& PropertyChunk = SharedPropertyCodeChunks[Frequency][PropertyChunkIndex];
 
 			// Determine whether the property is used. 
@@ -1508,6 +1583,7 @@ protected:
 	virtual void SetMaterialProperty(EMaterialProperty InProperty, EShaderFrequency OverrideShaderFrequency = SF_NumFrequencies, bool bUsePreviousFrameTime = false) override
 	{
 		MaterialProperty = InProperty;
+		SetBaseMaterialAttribute(FMaterialAttributeDefinitionMap::GetID(InProperty));
 
 		if(OverrideShaderFrequency != SF_NumFrequencies)
 		{
@@ -1515,13 +1591,38 @@ protected:
 		}
 		else
 		{
-			ShaderFrequency = GetMaterialPropertyShaderFrequency(InProperty);
+			ShaderFrequency = FMaterialAttributeDefinitionMap::GetShaderFrequency(InProperty);
 		}
 
 		bCompilingPreviousFrame = bUsePreviousFrameTime;
 
 		CurrentScopeChunks = &SharedPropertyCodeChunks[ShaderFrequency];
 	}
+
+	virtual void PushMaterialAttribute(const FGuid& InAttributeID) override
+	{
+		MaterialAttributesStack.Push(InAttributeID);
+	}
+
+	virtual FGuid PopMaterialAttribute() override
+	{
+		return MaterialAttributesStack.Pop(false);
+	}
+
+	virtual const FGuid GetMaterialAttribute() override
+	{
+		checkf(MaterialAttributesStack.Num() > 0, TEXT("Tried to query empty material attributes stack."));
+		return MaterialAttributesStack.Top();
+	}
+
+	virtual void SetBaseMaterialAttribute(const FGuid& InAttributeID) override
+	{
+		// This is atypical behavior but is done to allow cleaner code and preserve existing paths.
+		// A base property is kept on the stack and updated by SetMaterialProperty(), the stack is only utilized during translation
+		checkf(MaterialAttributesStack.Num() == 1, TEXT("Tried to set non-base attribute on stack."));
+		MaterialAttributesStack.Top() = InAttributeID;
+	}
+
 	virtual EShaderFrequency GetCurrentShaderFrequency() const override
 	{
 		return ShaderFrequency;
@@ -1601,7 +1702,7 @@ protected:
 			CurrentFunctionStack.Last().ExpressionStack.Add(ExpressionKey);
 			const int32 FunctionDepth = CurrentFunctionStack.Num();
 
-			int32 Result = ExpressionKey.Expression->Compile(Compiler, ExpressionKey.OutputIndex, ExpressionKey.MultiplexIndex);
+			int32 Result = ExpressionKey.Expression->Compile(Compiler, ExpressionKey.OutputIndex);
 
 			FMaterialExpressionKey PoppedExpressionKey = CurrentFunctionStack.Last().ExpressionStack.Pop();
 
@@ -2864,8 +2965,11 @@ protected:
 	// @param SceneTextureId of type ESceneTextureId e.g. PPI_SubsurfaceColor
 	virtual int32 SceneTextureLookup(int32 UV, uint32 InSceneTextureId, bool bFiltered) override
 	{
-		if (InSceneTextureId != PPI_PostProcessInput0 // fetching PostProcessInput0 supported on all platforms
-			&& ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
+		const bool bSupportedOnMobile = InSceneTextureId == PPI_PostProcessInput0 ||
+										InSceneTextureId == PPI_CustomDepth ||
+										InSceneTextureId == PPI_SceneDepth;
+
+		if (!bSupportedOnMobile	&& ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
 		{
 			return INDEX_NONE;
 		}
@@ -2904,8 +3008,7 @@ protected:
 				UV = TextureCoordinate(0, false, false);
 			}
 			FString TexCoordCode = CoerceParameter(UV, MCT_Float2);
-			// Only PPI_PostProcessInput0, which holds scene color 
-			return AddCodeChunk(MCT_Float4,	TEXT("MobileLookupPostProcessInput0(Parameters, %s)"), *TexCoordCode);
+			return AddCodeChunk(MCT_Float4,	TEXT("MobileSceneTextureLookup(Parameters, %d, %s)"), (int32)SceneTextureId, *TexCoordCode);
 		}
 	}
 
@@ -2933,11 +3036,11 @@ protected:
 			// BufferSize
 			if(bInvert)
 			{
-				return Div(Constant(1.0f), AddCodeChunk(MCT_Float2, TEXT("View.RenderTargetSize")));
+				return Div(Constant(1.0f), AddCodeChunk(MCT_Float2, TEXT("View.BufferSizeAndInvSize.xy")));
 			}
 			else
 			{
-				return AddCodeChunk(MCT_Float2, TEXT("View.RenderTargetSize"));
+				return AddCodeChunk(MCT_Float2, TEXT("View.BufferSizeAndInvSize.xy"));
 			}
 		}
 	}
@@ -3048,10 +3151,15 @@ protected:
 			bNeedsSceneTexturePostProcessInputs = bNeedsSceneTexturePostProcessInputs
 				|| ((SceneTextureId >= PPI_PostProcessInput0 && SceneTextureId <= PPI_PostProcessInput6)
 				|| SceneTextureId == PPI_SceneColor);
+
 		}
 
-		MaterialCompilationOutput.bNeedsGBuffer = MaterialCompilationOutput.bNeedsGBuffer
-			|| SceneTextureId == PPI_DiffuseColor 
+		if (SceneTextureId == PPI_SceneDepth && bTextureLookup)
+		{
+			bUsesSceneDepth = true;
+		}
+
+		const bool bNeedsGBuffer = SceneTextureId == PPI_DiffuseColor 
 			|| SceneTextureId == PPI_SpecularColor
 			|| SceneTextureId == PPI_SubsurfaceColor
 			|| SceneTextureId == PPI_BaseColor
@@ -3065,6 +3173,13 @@ protected:
 			|| SceneTextureId == PPI_ShadingModel
 			|| SceneTextureId == PPI_StoredBaseColor
 			|| SceneTextureId == PPI_StoredSpecular;
+
+		MaterialCompilationOutput.bNeedsGBuffer = MaterialCompilationOutput.bNeedsGBuffer || bNeedsGBuffer;
+
+		if (bNeedsGBuffer && IsForwardShadingEnabled(FeatureLevel))
+		{
+			Errorf(TEXT("GBuffer scene textures not available with forward shading."));
+		}
 
 		// not yet tracked:
 		//   PPI_SeparateTranslucency, PPI_CustomDepth, PPI_AmbientOcclusion
@@ -3272,6 +3387,11 @@ protected:
 		return AddInlinedCodeChunk(MCT_Float4,TEXT("Parameters.VertexColor"));
 	}
 
+	virtual int32 PreSkinnedPosition() override
+	{
+		return AddInlinedCodeChunk(MCT_Float3,TEXT("Parameters.PreSkinnedPosition"));
+	}
+
 	virtual int32 Add(int32 A,int32 B) override
 	{
 		if(A == INDEX_NONE || B == INDEX_NONE)
@@ -3362,18 +3482,18 @@ protected:
 			{
 				if (TypeA == TypeB)
 				{
-					return AddUniformExpression(new FMaterialUniformExpressionFoldedMath(ExpressionA,ExpressionB,FMO_Dot),MCT_Float,TEXT("dot(%s,%s)"),*GetParameterCode(A),*GetParameterCode(B));
+					return AddUniformExpression(new FMaterialUniformExpressionFoldedMath(ExpressionA,ExpressionB,FMO_Dot,TypeA),MCT_Float,TEXT("dot(%s,%s)"),*GetParameterCode(A),*GetParameterCode(B));
 				}
 				else
 				{
 					// Promote scalar (or truncate the bigger type)
 					if (TypeA == MCT_Float || (TypeB != MCT_Float && GetNumComponents(TypeA) > GetNumComponents(TypeB)))
 					{
-						return AddUniformExpression(new FMaterialUniformExpressionFoldedMath(ExpressionA,ExpressionB,FMO_Dot),MCT_Float,TEXT("dot(%s,%s)"),*CoerceParameter(A, TypeB),*GetParameterCode(B));
+						return AddUniformExpression(new FMaterialUniformExpressionFoldedMath(ExpressionA,ExpressionB,FMO_Dot,TypeB),MCT_Float,TEXT("dot(%s,%s)"),*CoerceParameter(A, TypeB),*GetParameterCode(B));
 					}
 					else
 					{
-						return AddUniformExpression(new FMaterialUniformExpressionFoldedMath(ExpressionA,ExpressionB,FMO_Dot),MCT_Float,TEXT("dot(%s,%s)"),*GetParameterCode(A),*CoerceParameter(B, TypeA));
+						return AddUniformExpression(new FMaterialUniformExpressionFoldedMath(ExpressionA,ExpressionB,FMO_Dot,TypeA),MCT_Float,TEXT("dot(%s,%s)"),*GetParameterCode(A),*CoerceParameter(B, TypeA));
 					}
 				}
 			}
@@ -3454,7 +3574,7 @@ protected:
 
 		if(GetParameterUniformExpression(X))
 		{
-			return AddUniformExpression(new FMaterialUniformExpressionLength(GetParameterUniformExpression(X)),MCT_Float,TEXT("length(%s)"),*GetParameterCode(X));
+			return AddUniformExpression(new FMaterialUniformExpressionLength(GetParameterUniformExpression(X),GetParameterType(X)),MCT_Float,TEXT("length(%s)"),*GetParameterCode(X));
 		}
 		else
 		{
@@ -4143,7 +4263,17 @@ protected:
 
 	virtual int32 Noise(int32 Position, float Scale, int32 Quality, uint8 NoiseFunction, bool bTurbulence, int32 Levels, float OutputMin, float OutputMax, float LevelScale, int32 FilterWidth, bool bTiling, uint32 RepeatSize) override
 	{
-		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
+		// GradientTex3D uses 3D texturing, which is not available on ES2
+		if (NoiseFunction == NOISEFUNCTION_GradientTex3D)
+		{
+			if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
+			{
+				Errorf(TEXT("3D textures are not supported for ES2"));
+				return INDEX_NONE;
+			}
+		}
+		// all others are fine for ES2 feature level
+		else if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::ES2) == INDEX_NONE)
 		{
 			return INDEX_NONE;
 		}
@@ -4181,6 +4311,45 @@ protected:
 			*GetParameterCode(FilterWidth),
 			*GetParameterCode(TilingConst),
 			*GetParameterCode(RepeatSizeConst));
+	}
+
+	virtual int32 VectorNoise(int32 Position, int32 Quality, uint8 NoiseFunction, bool bTiling, uint32 TileSize) override
+	{
+		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::ES2) == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		if (Position == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		int32 QualityConst = Constant(Quality);
+		int32 NoiseFunctionConst = Constant(NoiseFunction);
+		int32 TilingConst = Constant(bTiling);
+		int32 TileSizeConst = Constant(TileSize);
+
+		if (NoiseFunction == VNF_GradientALU || NoiseFunction == VNF_VoronoiALU)
+		{
+			return AddCodeChunk(MCT_Float4,
+				TEXT("MaterialExpressionVectorNoise(%s,%s,%s,%s,%s)"),
+				*GetParameterCode(Position),
+				*GetParameterCode(QualityConst),
+				*GetParameterCode(NoiseFunctionConst),
+				*GetParameterCode(TilingConst),
+				*GetParameterCode(TileSizeConst));
+		}
+		else
+		{
+			return AddCodeChunk(MCT_Float3,
+				TEXT("MaterialExpressionVectorNoise(%s,%s,%s,%s,%s).xyz"),
+				*GetParameterCode(Position),
+				*GetParameterCode(QualityConst),
+				*GetParameterCode(NoiseFunctionConst),
+				*GetParameterCode(TilingConst),
+				*GetParameterCode(TileSizeConst));
+		}
 	}
 
 	virtual int32 BlackBody( int32 Temp ) override
@@ -4243,6 +4412,22 @@ protected:
 		{
 			return AddCodeChunk( MCT_Float4, TEXT("MaterialExpressionAtmosphericFog(Parameters, %s)"), *GetParameterCode(WorldPosition) );
 		}
+	}
+
+	virtual int32 AtmosphericLightVector() override
+	{
+		bUsesAtmosphericFog = true;
+
+		return AddCodeChunk(MCT_Float3, TEXT("MaterialExpressionAtmosphericLightVector(Parameters)"));
+
+	}
+
+	virtual int32 AtmosphericLightColor() override
+	{
+		bUsesAtmosphericFog = true;
+
+		return AddCodeChunk(MCT_Float3, TEXT("MaterialExpressionAtmosphericLightColor(Parameters)"));
+
 	}
 
 	virtual int32 CustomExpression( class UMaterialExpressionCustom* Custom, TArray<int32>& CompiledInputs ) override
@@ -4368,7 +4553,7 @@ protected:
 	{
 		if (MaterialProperty != MP_MAX)
 		{
-			return Errorf(TEXT("A Custom Output node should not be attached to the %s material property"), *GetNameOfMaterialProperty(MaterialProperty));
+			return Errorf(TEXT("A Custom Output node should not be attached to the %s material property"), *FMaterialAttributeDefinitionMap::GetDisplayName(MaterialProperty));
 		}
 
 		if (OutputCode == INDEX_NONE)
@@ -4416,6 +4601,49 @@ protected:
 		// return value is not used
 		return INDEX_NONE;
 	}
+
+#if HANDLE_CUSTOM_OUTPUTS_AS_MATERIAL_ATTRIBUTES
+	/** Used to translate code for custom output attributes such as ClearCoatBottomNormal */
+	void GenerateCustomAttributeCode(int32 OutputIndex, int32 OutputCode, EMaterialValueType OutputType, FString& DisplayName)
+	{
+		check(MaterialProperty == MP_CustomOutput);
+		check(OutputIndex >= 0 && OutputCode != INDEX_NONE);
+
+		FString OutputTypeString;
+		switch (OutputType)
+		{
+			case MCT_Float1:
+				OutputTypeString = TEXT("MaterialFloat");
+				break;
+			case MCT_Float2:
+				OutputTypeString += TEXT("MaterialFloat2");
+				break;
+			case MCT_Float3:
+				OutputTypeString += TEXT("MaterialFloat3");
+				break;
+			case MCT_Float4:
+				OutputTypeString += TEXT("MaterialFloat4");
+				break;
+			default:
+				check(0);
+		}
+
+		FString Definitions;
+		FString Body;
+
+		if ((*CurrentScopeChunks)[OutputCode].UniformExpression && !(*CurrentScopeChunks)[OutputCode].UniformExpression->IsConstant())
+		{
+			Body = GetParameterCode(OutputCode);
+		}
+		else
+		{
+			GetFixedParameterCode(OutputCode, *CurrentScopeChunks, Definitions, Body);
+		}
+
+		FString ImplementationCode = FString::Printf(TEXT("%s %s%d(FMaterial%sParameters Parameters)\r\n{\r\n%s return %s;\r\n}\r\n"), *OutputTypeString, *DisplayName, OutputIndex, ShaderFrequency == SF_Vertex ? TEXT("Vertex") : TEXT("Pixel"), *Definitions, *Body);
+		CustomOutputImplementations.Add(ImplementationCode);
+	}
+#endif
 
 	/**
 	 * Adds code to return a random value shared by all geometry for any given instanced static mesh

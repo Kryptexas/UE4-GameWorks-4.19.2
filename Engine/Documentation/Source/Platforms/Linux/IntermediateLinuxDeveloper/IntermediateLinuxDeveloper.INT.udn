@@ -1,10 +1,10 @@
-Availability: Docs
+Availability: NoPublish
 Title: Intermediate Linux Developers
 Crumbs:%ROOT%, Platforms, Platforms/Linux
 Description:Learn how to cook, package, and share your games.
 Platform:Linux
 Navigation:platform
-Version: 4.11
+Version: 4.13
 type:landing
 parent:Platforms/Linux
 order: 2

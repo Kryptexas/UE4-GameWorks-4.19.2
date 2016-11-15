@@ -39,6 +39,11 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		OutEnvironment.SetDefine(TEXT("UNDEFINED_ACCURACY"), UndefinedStreamingAccuracyIntensity);
+	}
+
 	virtual void SetParameters(
 		FRHICommandList& RHICmdList, 
 		const FShader* OriginalVS, 

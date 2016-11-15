@@ -121,9 +121,9 @@ public:
 					float ViewedSizeX = SizeX;
 					float ViewedSizeY = SizeY;
 
-					if (bIsScreenSizeScaled && (View->ViewMatrices.ProjMatrix.M[3][3] != 1.0f))
+					if (bIsScreenSizeScaled && (View->ViewMatrices.GetProjectionMatrix().M[3][3] != 1.0f))
 					{
-						const float ZoomFactor	= FMath::Min<float>(View->ViewMatrices.ProjMatrix.M[0][0], View->ViewMatrices.ProjMatrix.M[1][1]);
+						const float ZoomFactor	= FMath::Min<float>(View->ViewMatrices.GetProjectionMatrix().M[0][0], View->ViewMatrices.GetProjectionMatrix().M[1][1]);
 
 						if(ZoomFactor != 0.0f)
 						{
@@ -261,10 +261,14 @@ UBillboardComponent::UBillboardComponent(const FObjectInitializer& ObjectInitial
 		{
 		}
 	};
+
+
+#if WITH_EDITORONLY_DATA
 	static FConstructorStatics ConstructorStatics;
+	Sprite = ConstructorStatics.SpriteTexture.Object;
+#endif
 
 	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
-	Sprite = ConstructorStatics.SpriteTexture.Object;
 	bAbsoluteScale = true;
 
 	bIsScreenSizeScaled = false;

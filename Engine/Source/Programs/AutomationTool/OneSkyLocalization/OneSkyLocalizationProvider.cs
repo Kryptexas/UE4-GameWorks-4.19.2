@@ -65,6 +65,12 @@ public class OneSkyLocalizationProvider : LocalizationProvider
 			var CulturesToExport = new List<string>();
 			foreach (var OneSkyCulture in OneSkyProject.EnabledCultures)
 			{
+				// Skip the native culture, as OneSky has mangled it
+				if (OneSkyCulture == ProjectImportInfo.NativeCulture)
+				{
+					continue;
+				}
+
 				// Only export the OneSky cultures that we care about for this project
 				if (ProjectImportInfo.CulturesToGenerate.Contains(OneSkyCulture))
 				{
@@ -319,6 +325,11 @@ public class OneSkyLocalizationProvider : LocalizationProvider
 			// Apply the branch suffix. OneSky will take care of merging the files from different branches together.
 			var OneSkyFileNameWithSuffix = Path.GetFileNameWithoutExtension(OneSkyFileName) + "_" + LocalizationBranchName + Path.GetExtension(OneSkyFileName);
 			OneSkyFileName = OneSkyFileNameWithSuffix;
+		}
+		if (!String.IsNullOrEmpty(RemoteFilenamePrefix))
+		{
+			// Apply the prefix (this is used to avoid collisions with plugins that use the same name for their PO files)
+			OneSkyFileName = RemoteFilenamePrefix + "_" + OneSkyFileName;
 		}
 		return OneSkyFileName;
 	}

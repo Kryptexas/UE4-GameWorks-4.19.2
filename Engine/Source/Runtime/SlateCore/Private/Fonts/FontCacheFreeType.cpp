@@ -109,6 +109,19 @@ FFreeTypeLibrary::FFreeTypeLibrary()
 	}
 		
 	FT_Add_Default_Modules(FTLibrary);
+
+	static bool bLoggedVersion = false;
+
+	// Write out the version of freetype for debugging purposes
+	if(!bLoggedVersion)
+	{
+		bLoggedVersion = true;
+		FT_Int Major, Minor, Patch;
+
+		FT_Library_Version(FTLibrary, &Major, &Minor, &Patch);
+		UE_LOG(LogSlate, Log, TEXT("Using Freetype %d.%d.%d"), Major, Minor, Patch);
+	}
+
 #endif // WITH_FREETYPE
 }
 

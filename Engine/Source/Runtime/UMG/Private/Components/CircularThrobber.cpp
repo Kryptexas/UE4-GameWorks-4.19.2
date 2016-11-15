@@ -35,7 +35,7 @@ TSharedRef<SWidget> UCircularThrobber::RebuildWidget()
 	MyCircularThrobber = SNew(SCircularThrobber)
 		.PieceImage(&Image)
 		.NumPieces(FMath::Clamp(NumberOfPieces, 1, 25))
-		.Period(Period)
+		.Period(FMath::Max(Period, SCircularThrobber::MinimumPeriodValue))
 		.Radius(Radius);
 
 	return MyCircularThrobber.ToSharedRef();
@@ -46,7 +46,7 @@ void UCircularThrobber::SynchronizeProperties()
 	Super::SynchronizeProperties();
 
 	MyCircularThrobber->SetNumPieces(FMath::Clamp(NumberOfPieces, 1, 25));
-	MyCircularThrobber->SetPeriod(Period);
+	MyCircularThrobber->SetPeriod(FMath::Max(Period, SCircularThrobber::MinimumPeriodValue));
 	MyCircularThrobber->SetRadius(Radius);
 
 	// If widget is child of Canvas Panel and 'Size to Content' is enabled, we allow user to modify radius.
@@ -74,7 +74,7 @@ void UCircularThrobber::SetPeriod(float InPeriod)
 	Period = InPeriod;
 	if (MyCircularThrobber.IsValid())
 	{
-		MyCircularThrobber->SetPeriod(InPeriod);
+		MyCircularThrobber->SetPeriod(FMath::Max(InPeriod, SCircularThrobber::MinimumPeriodValue));
 	}
 }
 

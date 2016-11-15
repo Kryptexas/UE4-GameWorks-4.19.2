@@ -15,7 +15,10 @@
 
 #include "Apple/ApplePlatformCrashContext.h"
 
-/** Amount of free memory in MB reported by the system at starup */
+#include <SystemConfiguration/SystemConfiguration.h>
+#include <netinet/in.h>
+
+/** Amount of free memory in MB reported by the system at startup */
 CORE_API int32 GStartupFreeMemoryMB;
 
 /** Global pointer to memory warning handler */
@@ -668,8 +671,33 @@ FString FIOSPlatformMisc::GetUniqueDeviceId()
 
 class IPlatformChunkInstall* FIOSPlatformMisc::GetPlatformChunkInstall()
 {
-    static FIOSChunkInstall Singleton;
-    return &Singleton;
+	static IPlatformChunkInstall* ChunkInstall = nullptr;
+	if (!ChunkInstall)
+	{
+		FString ProviderName;
+		GConfig->GetString(TEXT("StreamingInstall"), TEXT("DefaultProviderName"), ProviderName, GEngineIni);
+		if (ProviderName == TEXT("HTTPChunkInstaller"))
+		{
+			IPlatformChunkInstallModule* PlatformChunkInstallModule = FModuleManager::LoadModulePtr<IPlatformChunkInstallModule>("HTTPChunkInstaller");
+			if (PlatformChunkInstallModule != NULL)
+			{
+				// Attempt to grab the platform installer
+				ChunkInstall = PlatformChunkInstallModule->GetPlatformChunkInstall();
+			}
+		}
+		else if (ProviderName == TEXT("IOSChunkInstaller"))
+		{
+			static FIOSChunkInstall Singleton;
+			ChunkInstall = &Singleton;
+		}
+		if (!ChunkInstall)
+		{
+			// Placeholder instance
+			ChunkInstall = FGenericPlatformMisc::GetPlatformChunkInstall();
+		}
+	}
+
+	return ChunkInstall;
 }
 
 
@@ -857,7 +885,7 @@ void FIOSPlatformMisc::RegisterForRemoteNotifications()
 {
 #if !PLATFORM_TVOS
 	UIApplication* application = [UIApplication sharedApplication];
-	if ([application respondsToSelector : @selector(registerUserNotifcationSettings:)])
+	if ([application respondsToSelector : @selector(registerUserNotificationSettings:)])
 	{
 #ifdef __IPHONE_8_0
 		UIUserNotificationSettings * settings = [UIUserNotificationSettings settingsForTypes : (UIUserNotificationTypeBadge | UIUserNotificationTypeSound | UIUserNotificationTypeAlert) categories:nil];
@@ -883,6 +911,32 @@ void FIOSPlatformMisc::GetValidTargetPlatforms(TArray<FString>& TargetPlatformNa
 #else
 	TargetPlatformNames.Add(FIOSPlatformProperties::PlatformName());
 #endif
+}
+
+bool FIOSPlatformMisc::HasActiveWiFiConnection()
+{
+	struct sockaddr_in ZeroAddress;
+	FMemory::Memzero(&ZeroAddress, sizeof(ZeroAddress));
+	ZeroAddress.sin_len = sizeof(ZeroAddress);
+	ZeroAddress.sin_family = AF_INET;
+
+	SCNetworkReachabilityRef ReachabilityRef = SCNetworkReachabilityCreateWithAddress(kCFAllocatorDefault, (const struct sockaddr*)&ZeroAddress);
+	SCNetworkReachabilityFlags ReachabilityFlags;
+	bool bFlagsAvailable = SCNetworkReachabilityGetFlags(ReachabilityRef, &ReachabilityFlags);
+	CFRelease(ReachabilityRef);
+	
+	bool bHasActiveWiFiConnection = false;
+	if (bFlagsAvailable)
+	{
+        bool bReachable =	(ReachabilityFlags & kSCNetworkReachabilityFlagsReachable) != 0 && 
+							(ReachabilityFlags & kSCNetworkReachabilityFlagsConnectionRequired) == 0 &&
+							// in case kSCNetworkReachabilityFlagsConnectionOnDemand  || kSCNetworkReachabilityFlagsConnectionOnTraffic
+							(ReachabilityFlags & kSCNetworkReachabilityFlagsInterventionRequired) == 0; 
+					
+		bHasActiveWiFiConnection = bReachable && (ReachabilityFlags & kSCNetworkReachabilityFlagsIsWWAN) == 0;
+	}
+	
+	return bHasActiveWiFiConnection; 
 }
 
 void FIOSPlatformMisc::ResetGamepadAssignments()

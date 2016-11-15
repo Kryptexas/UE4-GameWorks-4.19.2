@@ -48,8 +48,7 @@ public:
 	//~ IMediaOutput interface
 
 	virtual void SetAudioSink(IMediaAudioSink* Sink) override;
-	virtual void SetCaptionSink(IMediaStringSink* Sink) override;
-	virtual void SetImageSink(IMediaTextureSink* Sink) override;
+	virtual void SetOverlaySink(IMediaOverlaySink* Sink) override;
 	virtual void SetVideoSink(IMediaTextureSink* Sink) override;
 
 public:
@@ -73,8 +72,8 @@ protected:
 	/** Initialize the current audio sink. */
 	void InitializeAudioSink();
 
-	/** Initialize the current caption sink. */
-	void InitializeCaptionSink();
+	/** Initialize the current text overlay sink. */
+	void InitializeOverlaySink();
 
 	/** Initialize the current video sink. */
 	void InitializeVideoSink();
@@ -82,8 +81,8 @@ protected:
 	/** Send the latest sample data to the audio sink. */
 	void UpdateAudioSink();
 
-	/** Send the latest sample data to the caption sink. */
-	void UpdateCaptionSink();
+	/** Send the latest sample data to the text overlay sink. */
+	void UpdateOverlaySink();
 
 	/** Send the latest frame to the video sink. */
 	void UpdateVideoSink();
@@ -104,8 +103,8 @@ private:
 	/** The audio sink. */
 	IMediaAudioSink* AudioSink;
 
-	/** The caption sink. */
-	IMediaStringSink* CaptionSink;
+	/** The text overlay sink. */
+	IMediaOverlaySink* OverlaySink;
 
 	/** The video sink. */
 	IMediaTextureSink* VideoSink;

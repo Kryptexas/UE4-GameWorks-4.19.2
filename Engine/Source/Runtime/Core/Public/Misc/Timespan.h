@@ -609,7 +609,7 @@ public:
 	 * @param Timespan The timespan to get the hash for.
 	 * @return Hash value.
 	 */
-	friend uint32 GetTypeHash(const FTimespan& Timespan);
+	friend CORE_API uint32 GetTypeHash(const FTimespan& Timespan);
 
 protected:
 

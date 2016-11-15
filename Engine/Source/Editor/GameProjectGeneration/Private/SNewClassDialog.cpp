@@ -13,8 +13,8 @@
 #include "SWizard.h"
 #include "SHyperlink.h"
 #include "TutorialMetaData.h"
-#include "GameFramework/GameMode.h"
-#include "GameFramework/GameState.h"
+#include "GameFramework/GameModeBase.h"
+#include "GameFramework/GameStateBase.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/WorldSettings.h"
 #include "GameFramework/PlayerController.h"
@@ -31,6 +31,7 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "Engine/BlueprintGeneratedClass.h"
+#include "FeaturedClasses.inl"
 
 
 #define LOCTEXT_NAMESPACE "GameProjectGeneration"

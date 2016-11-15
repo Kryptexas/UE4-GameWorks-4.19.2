@@ -218,7 +218,7 @@ bool FJsonObjectConverter::UStructToJsonObjectString(const UStruct* StructDefini
 	return false;
 }
 
-//template bool FJsonObjectConverter::UStructToFormattedJsonObjectString<TCHAR, TCondensedJsonPrintPolicy>(const UStruct* StructDefinition, const void* Struct, FString& OutJsonString, int64 CheckFlags, int64 SkipFlags, int32 Indent, const CustomExportCallback* ExportCb);
+//template bool FJsonObjectConverter::UStructToJsonObjectString<TCHAR, TCondensedJsonPrintPolicy>(const UStruct* StructDefinition, const void* Struct, FString& OutJsonString, int64 CheckFlags, int64 SkipFlags, int32 Indent, const CustomExportCallback* ExportCb);
 
 namespace
 {

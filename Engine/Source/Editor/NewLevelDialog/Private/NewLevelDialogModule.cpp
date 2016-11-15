@@ -296,8 +296,9 @@ bool FNewLevelDialogModule::CreateAndShowNewLevelDialog( const TSharedPtr<const 
 		SNew(SWindow)
 		.Title(LOCTEXT("WindowHeader", "New Level"))
 		.ClientSize(SNewLevelDialog::DEFAULT_WINDOW_SIZE)
-		.SizingRule( ESizingRule::FixedSize )
-		.SupportsMinimize(false) .SupportsMaximize(false);
+		.SizingRule( ESizingRule::UserSized )
+		.SupportsMinimize(false)
+		.SupportsMaximize(false);
 
 	TSharedRef<SNewLevelDialog> NewLevelDialog =
 		SNew(SNewLevelDialog)

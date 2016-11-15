@@ -394,7 +394,7 @@ public:
 	 * This function is responsible for deleting ShadowMapData and QuantizedData.
 	 * @param LightMapData - The light-map data which has been computed for the mapping.
 	 */
-	virtual void Apply(struct FQuantizedLightmapData* QuantizedData, const TMap<ULightComponent*,class FShadowMapData2D*>& ShadowMapData) = 0;
+	virtual void Apply(struct FQuantizedLightmapData* QuantizedData, const TMap<ULightComponent*,class FShadowMapData2D*>& ShadowMapData, ULevel* LightingScenario) = 0;
 
 	// FStaticLightingMapping interface.
 	virtual FStaticLightingTextureMapping* GetTextureMapping()

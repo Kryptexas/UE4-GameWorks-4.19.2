@@ -4,8 +4,7 @@
 	SceneFilterRendering.h: Filter rendering definitions.
 =============================================================================*/
 
-#ifndef _INC_SCENEFILTERRENDERING
-#define _INC_SCENEFILTERRENDERING
+#pragma once
 
 #include "SceneRenderTargets.h"
 
@@ -208,4 +207,3 @@ public:
 	uint32 NumPrimitives() const;
 };
 
-#endif

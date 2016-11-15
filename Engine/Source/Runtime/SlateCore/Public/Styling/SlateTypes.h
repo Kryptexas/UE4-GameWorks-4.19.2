@@ -11,7 +11,7 @@
 
 /** Used to determine how we should handle mouse wheel input events when someone scrolls. */
 UENUM()
-enum class EConsumeMouseWheel
+enum class EConsumeMouseWheel : uint8
 {
 	/** Only consume the mouse wheel event when we actually scroll some amount. */
 	WhenScrollingPossible,
@@ -189,6 +189,8 @@ struct SLATECORE_API FTextBlockStyle : public FSlateWidgetStyle
 
 	virtual ~FTextBlockStyle() {}
 
+	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const override;
+
 	static const FName TypeName;
 	virtual const FName GetTypeName() const override { return TypeName; };
 
@@ -240,6 +242,11 @@ struct SLATECORE_API FTextBlockStyle : public FSlateWidgetStyle
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance, AdvancedDisplay)
 	FSlateBrush HighlightShape;
 	FTextBlockStyle& SetHighlightShape( const FSlateBrush& InHighlightShape ){ HighlightShape = InHighlightShape; return *this; }
+
+	/** The brush used to draw an underline under the text (if any) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance, AdvancedDisplay)
+	FSlateBrush UnderlineBrush;
+	FTextBlockStyle& SetUnderlineBrush( const FSlateBrush& InUnderlineBrush ){ UnderlineBrush = InUnderlineBrush; return *this; }
 };
 
 /**
@@ -795,7 +802,7 @@ struct SLATECORE_API FSearchBoxStyle : public FSlateWidgetStyle
 	FSearchBoxStyle& SetTextBoxStyle( const FEditableTextBoxStyle& InTextBoxStyle );
 
 	/** Font to use for the text box part of the search box when a search term is entered*/
-	UPROPERTY(EditAnywhere, Category=Appearance)
+	UPROPERTY(EditAnywhere, Category = Appearance)
 	FSlateFontInfo ActiveFontInfo;
 	FSearchBoxStyle& SetActiveFont( const FSlateFontInfo& InFontInfo ){ ActiveFontInfo = InFontInfo; return *this; }
 

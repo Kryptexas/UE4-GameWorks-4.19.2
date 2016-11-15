@@ -55,6 +55,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Current Camera Settings")
 	FCameraLookatTrackingSettings LookatTrackingSettings;
 
+	/** Returns the CineCameraComponent of this CineCamera */
+	UFUNCTION(BlueprintCallable, Category="Camera")
+	UCineCameraComponent* GetCineCameraComponent() const { return CineCameraComponent; }
+
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif

@@ -1,14 +1,14 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Scale UI for Different Devices
+﻿INTSourceChangelist:3011129
+Availability:Public
+Title:针对不同设备缩放 UI
 Crumbs: %ROOT%, Engine, Engine/UMG, Engine/UMG/HowTo
-Description:Shows how you can set up your UI to scale automatically using the DPI Scale Rule for different devices.
-Related: Engine/UMG
-Related: Engine/UMG/UserGuide
-Related: Engine/UMG/UserGuide/DPIScaling
-Related: Resources\SampleGames\UnrealMatch3
-Version: 4.10
-SkillLevel: Intermediate
+Description:说明如何在不同设备上使用 DPI 缩放规则设置自动缩放的 UI。
+Related:Engine/UMG
+Related:Engine/UMG/UserGuide
+Related:Engine/UMG/UserGuide/DPIScaling
+Related:Resources\SampleGames\UnrealMatch3
+Version:4.10
+SkillLevel:Intermediate
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -50,92 +50,91 @@ SkillLevel: Intermediate
 [/VAR]
 
 [REGION:note]
-It is recommended that you have a general understanding of the [](Engine/UMG) before proceeding with this How-to. 
+建议您先整体了解 [](Engine/UMG)，然后再阅读此指南。 
 [/REGION]
 
-When working on the UI for a project, you may already have a targeted device in mind that you intend to release your project on. In fact, it may be multiple devices or platforms that you intend to release your project on. 
-This is where automatic resolution-independent UI scaling using the [](Engine/UMG/UserGuide/DPIScaling) rules comes in to play. 
+制作项目 UI 前应该明确发布项目的目标设备。实际上，您的项目可能在多个设备和平台上发布。 
+因此需要使用遵循 [](Engine/UMG/UserGuide/DPIScaling) 规则的自动分辨率独立 UI 缩放。 
 
-In short, this option allows you to define a **DPI Scale Rule** (which is used to decide what scale to apply) and a **DPI Curve** (which contains the different resolutions and the respective scale values that you can define) to automatically scale your UI elements based on those varying resolutions. 
-This makes it quick and easy to translate your UI screens from devices like a phone to a tablet or a PC, with a range of other screen resolutions. 
+简单来说，该选项可定义一个 **DPI 缩放规则**（用于确定应用的缩放）和一条 **DPI 曲线**（包含可定义的不同分辨率和各自的缩放值），基于这些不同分辨率自动缩放 UI 元素。通过此法可简单快捷地将 UI 画面（含一系列分辨率）从手机设备移植到平板或 PC 上。 
 
-In this how-to, we will walk through setting up the DPI Scale Rules for a simple UI screen so that we may deploy to multiple devices. 
+此指南将讲述如何对简单 UI 画面设置 DPI 缩放规则，以便将其部署到多个设备上。 
 
 
-## Steps
+## 步骤
 
 [REGION:note]
-For this how-to, we are using the **First Person Template**. However, you can use any project you wish. 
+此指南中使用的是 **第一人称模板**。也可使用任意项目。 
 [/REGION]
 
-1.	Create and open a [**Widget Blueprint**](Engine/UMG/UserGuide/WidgetBlueprints). 
+1.	创建并打开一个 [**控件蓝图**](Engine/UMG/UserGuide/WidgetBlueprints)。 
 
-1.	On the **Designer** tab, take note of your current **DPI Scale** in the lower-right corner of the Visual Designer window. 
+1.	在 **Designer** 标签上，记录 Visual Designer 窗口右下角当前的 **DPI Scale**。 
 
 	![](WidgetBlueprint.png)(w:720)
 
-	Typically it is best to work on your UI elements in a scale of 1.0 and use the DPI Scaling Rule to scale up or down your UI elements. 
+	通常，最佳方式是以 1.0 的缩放设置 UI 元素，再使用 DPI 缩放规则对其进行放大缩小。 
 
-1.	Click the **Gear** icon to open up the **User Interface Settings** window. 
+1.	点击 **齿轮** 图表打开 **用户界面设置（User Interface Settings）** 窗口。 
 
 	![](OpenUserInterfaceSettings.png)(w:720)
 
 	[REGION:tip]
-	You can also access the User Interface Settings from the [](Engine/UI/ProjectSettings) of your project.
+	也可从项目的 [](Engine/UI/ProjectSettings) 访问用户界面设置。
 	[/REGION]
 
-1.	Under **DPI Scaling**, choose the **DPI Scale Rule** you prefer to use (we are using the **Shortest Side** of the viewport). 
+1.	在 **DPI Scaling** 下，选择希望使用的 **DPI 缩放规则**（在此使用的是视口 **最短边**）。 
 
-1.	On the **DPI Curve** find the key which reflects a scale value of 1.0. 
+1.	在 **DPI 曲线** 上找到反映缩放值 1.0 的键。 
 
 	![](Scale.png)
 
-	Our project is set up such that 1080 is our 1 scale, but we are going to change this. 
+	此项目将 1080 设为 1 缩放，但我们将进行修改。 
 	
-1.	Back in our **Widget Blueprint** on the **Designer** tab, click the **Screen Size** drop-down menu and select **Apple iPhone 6 (Portrait)**. 
+1.	返回 **Designer** 标签上的 **控件蓝图**，点击 **Screen Size** 下拉菜单并选择 **Apple iPhone 6 (Portrait)**。 
 
 	![](iPhone6Screensize.png)
 
-	We are going to say that the iPhone 6 is our target device for this guide. In your project, you can use whichever you wish. 
+	此设置将把 iPhone 6 作为该指南中使用的目标设备。您可在自己项目中随意选择。 
 	
-	Once you select a Screen Size you will see the Visual Designer window update and reflect your working screen size. 
+	选择屏幕尺寸后，Visual Designer 窗口便会更新，显示实际工作的屏幕尺寸。 
 
 	![](VisualDesignerUpdated.png)	
 	
-	With our DPI Scale Rule to use **Shortest Side**, since an iPhone 6 (Portrait)'s shortest side is 750, this will be our 1 scale. 	
+	DPI 缩放规则使用 **最短边** 后，iPhone 6 (Portrait) 的最短边 750 便是 1 缩放。 	
 
-1.	Back in the User Interface Settings for the **DPI Curve**, set your **Resolution** to **750** for your 1 scale. 
+1.	返回 **DPI 曲线** 的用户界面设置，将 1 缩放的 **分辨率** 设为 **750**。 
 
 	![](UpdatedResolution1.png)
 
-	You may notice that the value entered adjusts and you see something to the effect of **750.000061**. 
-	This could ever so slightly shift some of our UI elements as we start to move between different resolutions, so we are going to provide a resolution range at which we will use 1 scale for our UI. 
+	输入的数值可能会进行调整，出现类似于 **750.000061** 的数字。 
+	在不同分辨率之间切换时，部分 UI 元素可能出现轻微移动，因此我们将为使用 1 缩放的 UI 设置分辨率范围。 
 
-1.	Set the **Resolution** for 1 scale to **749**. 
+1.	将 1 缩放的 **分辨率** 设为 **749**。 
 
-1.	Hold **Shift** and **Left-click** to create another key in the graph, then set its **Resolution** to **760** and **Scale** to **1.0**. 
+1.	长按 **Shift** **单击左键** 在图表中创建另一个键，然后将其 **分辨率** 设为 **760**，**缩放** 设为 **1.0**。 
 
 	![](SecondKeyAdded.png)
 
-	Above, we've zoomed in so you can see our range. You could increase or decrease this range as you see fit. 
+	上图已放大显示，便于您查看范围。您可适当增大或缩小该范围。 
 
-1.	Return to your **Widget Blueprint** and notice that the DPI Scale for iPhone 6 (Portrait) is now 1.0
+1.	返回 **控件蓝图**，可发现 iPhone 6 (Portrait) 的 DPI 缩放为 1.0。
 
 	![](UpdatedScale.png)
 
-1.	Select the **Screen Size** drop-down and select a different aspect ratio (for example, **Samsung Galaxy S4 (Portrait)**). 
+1.	打开 **Screen Size** 下拉菜单，选择一个不同的屏幕高宽比（如 **Samsung Galaxy S4 (Portrait)**）。 
 
 	![](S4Screen.png)
 
-	The DPI Scale value will change. In order to correctly scale our UI to this aspect ratio, we can take our desired resolution's shortest side (1080) and divide that by our target device's shortest side (750) to give us the scale value of 1.44. 
+	DPI 缩放值将发生变化。为保证 UI 正确地缩放到该高宽比中，可用目标分辨率的最短边（1080）除以目标设备的最短边（750），获得缩放值 1.44。 
 
-1.	Back in the User Interface Settings for the **DPI Curve**, hold **Shift** and **Left-click** and create two new keys.
+1.	返回 **DPI 曲线** 的用户界面设置，长按 **Shift** **单击左键** 新建两个键。
 
-1.	Set one key's **Resolution** to **1079** (**Scale 1.44**) and the other key's **Resolution** to **1090** (**Scale 1.44**). 
+1.	将一个键的 **分辨率** 设为 **1079**（**缩放 1.44**），另一个键的 **分辨率** 设为 **1090**（**缩放 1.44**）。 
 
-1.	Repeat steps **11** through **13** for each of the devices you plan to support. 
+1.	对计划支持的每个设备重复步骤 **11** 到 **13**。 
 
-This will automatically scale your UI elements based on the rules you define in the DPI Scaling settings. You may still want to look at working with [](Engine/UMG/UserGuide/Anchors) if you are placing widgets and they are shifting off-screen as you may need to anchor your widgets to locations in the viewport. 
+这将基于 DPI 缩放设置中定义的规则自动缩放 UI 元素。如放置控件时移动出屏，则需要使用 [](Engine/UMG/UserGuide/Anchors)，将控件固定到视口中的位置。 
 
 
 

@@ -8,13 +8,11 @@ GEOMETRYCACHE_API UGeometryCacheTrack_TransformGroupAnimation::UGeometryCacheTra
 {
 }
 
-SIZE_T UGeometryCacheTrack_TransformGroupAnimation::GetResourceSize(EResourceSizeMode::Type Mode)
+void UGeometryCacheTrack_TransformGroupAnimation::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	SIZE_T ResourceSize = 0;
-	ResourceSize += UGeometryCacheTrack::GetResourceSize(Mode);
-	ResourceSize += MeshData.GetResourceSize();
+	Super::GetResourceSizeEx(CumulativeResourceSize);
 
-	return ResourceSize;
+	MeshData.GetResourceSizeEx(CumulativeResourceSize);
 }
 
 void UGeometryCacheTrack_TransformGroupAnimation::Serialize(FArchive& Ar)

@@ -198,6 +198,33 @@ void FAndroidInputInterface::SetForceFeedbackChannelValues(int32 ControllerId, c
 	UpdateVibeMotors();
 }
 
+extern bool AndroidThunkCpp_IsGamepadAttached();
+
+bool FAndroidInputInterface::IsGamepadAttached() const
+{
+	// Check for gamepads that have already been validated
+	for (int32 DeviceIndex = 0; DeviceIndex < MAX_NUM_CONTROLLERS; DeviceIndex++)
+	{
+		FAndroidGamepadDeviceMapping& CurrentDevice = DeviceMapping[DeviceIndex];
+
+		if (CurrentDevice.DeviceState == MappingState::Valid)
+		{
+			return true;
+		}
+	}
+
+	for (auto DeviceIt = ExternalInputDevices.CreateConstIterator(); DeviceIt; ++DeviceIt)
+	{
+		if ((*DeviceIt)->IsGamepadAttached())
+		{
+			return true;
+		}
+	}
+
+	//if all of this fails, do a check on the Java side to see if the gamepad is attached
+	return AndroidThunkCpp_IsGamepadAttached();
+}
+
 extern void AndroidThunkCpp_Vibrate(int32 Duration);
 
 void FAndroidInputInterface::UpdateVibeMotors()

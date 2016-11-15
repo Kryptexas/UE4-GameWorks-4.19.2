@@ -19,11 +19,23 @@ namespace UnrealBuildTool.Rules
 					"AutomationMessages",
 					"CoreUObject",
 					"UnrealEdMessages",
-                    "MessageLog"
-				}
+                    "MessageLog",
+                    "Json",
+                    "JsonUtilities"
+                }
 			);
 
-			PrivateIncludePathModuleNames.AddRange(
+            if (UEBuildConfiguration.bBuildEditor)
+            {
+                PrivateDependencyModuleNames.AddRange(
+                    new string[] {
+                        "UnrealEd",
+                        "Engine", // Needed for UWorld/GWorld to find current level
+				    }
+                );
+            }
+
+            PrivateIncludePathModuleNames.AddRange(
 				new string[]
 				{
 					"Messaging",

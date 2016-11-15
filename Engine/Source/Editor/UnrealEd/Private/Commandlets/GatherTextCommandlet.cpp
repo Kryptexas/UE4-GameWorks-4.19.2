@@ -73,7 +73,6 @@ int32 UGatherTextCommandlet::Main( const FString& Params )
 
 	UE_LOG(LogGatherTextCommandlet, Log,TEXT("Beginning GatherText Commandlet."));
 
-	TSharedRef< FManifestInfo > CommandletManifestInfo = MakeShareable( new FManifestInfo() );
 	TSharedPtr< FGatherTextSCC > CommandletSourceControlInfo = nullptr;
 
 	if( bEnableSourceControl )
@@ -87,6 +86,10 @@ int32 UGatherTextCommandlet::Main( const FString& Params )
 			return -1;
 		}
 	}
+
+	// Basic helper that can be used only to gather a new manifest for writing
+	TSharedRef<FLocTextHelper> CommandletGatherManifestHelper = MakeShareable(new FLocTextHelper(MakeShareable(new FLocFileSCCNotifies(CommandletSourceControlInfo))));
+	CommandletGatherManifestHelper->LoadManifest(ELocTextHelperLoadFlags::Create);
 
 	int32 NumSteps = (ConfigFile->Find("CommonSettings") != NULL) ? ConfigFile->Num() - 1 :  ConfigFile->Num();
 
@@ -113,7 +116,7 @@ int32 UGatherTextCommandlet::Main( const FString& Params )
 		UGatherTextCommandletBase* Commandlet = NewObject<UGatherTextCommandletBase>(GetTransientPackage(), CommandletClass);
 		check(Commandlet);
 		Commandlet->AddToRoot();
-		Commandlet->Initialize( CommandletManifestInfo, CommandletSourceControlInfo );
+		Commandlet->Initialize( CommandletGatherManifestHelper, CommandletSourceControlInfo );
 
 		// Execute the commandlet.
 		double CommandletExecutionStartTime = FPlatformTime::Seconds();

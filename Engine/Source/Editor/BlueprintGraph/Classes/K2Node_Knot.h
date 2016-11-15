@@ -18,7 +18,7 @@ public:
 	virtual FText GetPinNameOverride(const UEdGraphPin& Pin) const override;
 	virtual void OnRenameNode(const FString& NewName) override;
 	virtual TSharedPtr<class INameValidatorInterface> MakeNameValidator() const override;
-	virtual bool AllowSplitPins() const override;
+	virtual bool CanSplitPin(const UEdGraphPin* Pin) const override;
 	virtual bool IsCompilerRelevant() const override { return false; }
 	virtual UEdGraphPin* GetPassThroughPin(const UEdGraphPin* FromPin) const override;
 	// End of UEdGraphNode interface
@@ -30,7 +30,7 @@ public:
 	virtual void PostReconstructNode() override;
 	virtual int32 GetNodeRefreshPriority() const override { return EBaseNodeRefreshPriority::Low_UsesDependentWildcard; }
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
-	virtual bool IsNodePure() const { return true; }
+	virtual bool IsNodePure() const override { return true; }
 	// End of UK2Node interface
 
 	UEdGraphPin* GetInputPin() const

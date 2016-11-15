@@ -69,7 +69,7 @@ static void DetachThreadLinux(void *)
 void OS_CleanupThreadData(void)
 {
 #ifdef __ANDROID__
-  DetachThread();
+	DetachThreadLinux(NULL);
 #else
 	int old_cancel_state, old_cancel_type;
 	void *cleanupArg = NULL;
@@ -170,16 +170,16 @@ void InitGlobalLock() { }
 void GetGlobalLock() { }
 void ReleaseGlobalLock() { }
 
-void* OS_CreateThread(TThreadEntrypoint entry)
+void* OS_CreateThread(TThreadEntrypoint /*entry*/)
 {
     return 0;
 }
 
-void OS_WaitForAllThreads(void* threads, int numThreads)
+void OS_WaitForAllThreads(void* /*threads*/, int /*numThreads*/)
 {
 }
 
-void OS_Sleep(int milliseconds)
+void OS_Sleep(int /*milliseconds*/)
 {
 }
 

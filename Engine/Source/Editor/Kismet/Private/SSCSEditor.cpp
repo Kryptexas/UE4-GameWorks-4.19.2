@@ -71,6 +71,7 @@ void SSCSEditorDragDropTree::Construct( const FArguments& InArgs )
 	BaseArgs.OnGenerateRow( InArgs._OnGenerateRow )
 			.OnItemScrolledIntoView( InArgs._OnItemScrolledIntoView )
 			.OnGetChildren( InArgs._OnGetChildren )
+			.OnSetExpansionRecursive( InArgs._OnSetExpansionRecursive )
 			.TreeItemsSource( InArgs._TreeItemsSource )
 			.ItemHeight( InArgs._ItemHeight )
 			.OnContextMenuOpening( InArgs._OnContextMenuOpening )
@@ -132,6 +133,7 @@ FReply SSCSEditor::TryHandleAssetDragDropOperation(const FDragDropEvent& DragDro
 		if (NumAssets > 0)
 		{
 			GWarn->BeginSlowTask(LOCTEXT("LoadingAssets", "Loading Asset(s)"), true);
+			bool bMarkBlueprintAsModified = false;
 
 			for (int32 DroppedAssetIdx = 0; DroppedAssetIdx < NumAssets; ++DroppedAssetIdx)
 			{
@@ -176,19 +178,35 @@ FReply SSCSEditor::TryHandleAssetDragDropOperation(const FDragDropEvent& DragDro
 				TSubclassOf<UActorComponent> MatchingComponentClassForAsset = FComponentAssetBrokerage::GetPrimaryComponentForAsset(AssetClass);
 				if (MatchingComponentClassForAsset != nullptr)
 				{
-					AddNewComponent(MatchingComponentClassForAsset, Asset);
+					AddNewComponent(MatchingComponentClassForAsset, Asset, true );
+					bMarkBlueprintAsModified = true;
 				}
 				else if ((PotentialComponentClass != nullptr) && !PotentialComponentClass->HasAnyClassFlags(CLASS_Deprecated | CLASS_Abstract | CLASS_NewerVersionExists))
 				{
 					if (PotentialComponentClass->HasMetaData(FBlueprintMetadata::MD_BlueprintSpawnableComponent))
 					{
-						AddNewComponent(PotentialComponentClass, nullptr);
+						AddNewComponent(PotentialComponentClass, nullptr, true );
+						bMarkBlueprintAsModified = true;
 					}
 				}
 				else if ((PotentialActorClass != nullptr) && !PotentialActorClass->HasAnyClassFlags(CLASS_Deprecated | CLASS_Abstract | CLASS_NewerVersionExists))
 				{
-					AddNewComponent(UChildActorComponent::StaticClass(), PotentialActorClass);
+					AddNewComponent(UChildActorComponent::StaticClass(), PotentialActorClass, true );
+					bMarkBlueprintAsModified = true;
 				}
+			}
+
+			// Optimization: Only mark the blueprint as modified at the end
+			if (bMarkBlueprintAsModified && EditorMode == EComponentEditorMode::BlueprintSCS)
+			{
+				UBlueprint* Blueprint = GetBlueprint();
+				check(Blueprint != nullptr && Blueprint->SimpleConstructionScript != nullptr);
+
+				Blueprint->Modify();
+				SaveSCSCurrentState(Blueprint->SimpleConstructionScript);
+
+				bAllowTreeUpdates = true;
+				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
 			}
 
 			GWarn->EndSlowTask();
@@ -1160,7 +1178,7 @@ UActorComponent* FSCSEditorTreeNode::FindComponentInstanceInActor(const AActor* 
 					// Return the component instance that's stored in the property with the given variable name
 					ComponentInstance = Cast<UActorComponent>(Property->GetObjectPropertyValue_InContainer(InActor));
 				}
-				else if (World != nullptr && World->WorldType == EWorldType::Preview)
+				else if (World != nullptr && World->WorldType == EWorldType::EditorPreview)
 				{
 					// If this is the preview actor, return the cached component instance that's being used for the preview actor prior to recompiling the Blueprint
 					ComponentInstance = SCS_Node->EditorComponentInstance;
@@ -3307,6 +3325,7 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 		.SelectionMode(ESelectionMode::Multi)
 		.OnGenerateRow(this, &SSCSEditor::MakeTableRowWidget)
 		.OnGetChildren(this, &SSCSEditor::OnGetChildrenForTree)
+		.OnSetExpansionRecursive(this, &SSCSEditor::SetItemExpansionRecursive)
 		.OnSelectionChanged(this, &SSCSEditor::OnTreeSelectionChanged)
 		.OnContextMenuOpening(this, &SSCSEditor::CreateContextMenu)
 		.OnItemScrolledIntoView(this, &SSCSEditor::OnItemScrolledIntoView)
@@ -4006,7 +4025,7 @@ FSCSEditorTreeNodePtrType SSCSEditor::GetNodeFromActorComponent(const UActorComp
 							for (USCS_Node* SCS_Node : ParentBPStack[StackIndex]->SimpleConstructionScript->GetAllNodes())
 							{
 								check(SCS_Node != NULL);
-								if (SCS_Node->VariableName == ActorComponent->GetFName())
+								if (SCS_Node->GetVariableName() == ActorComponent->GetFName())
 								{
 									// We found a match; redirect to the component archetype instance that may be associated with a tree node
 									ActorComponent = SCS_Node->ComponentTemplate;
@@ -4575,7 +4594,7 @@ bool SSCSEditor::IsEditingAllowed() const
 	return AllowEditing.Get() && nullptr == GEditor->PlayWorld;
 }
 
-UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject* Asset  )
+UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject* Asset, const bool bSkipMarkBlueprintModified )
 {
 	if (NewComponentClass->ClassWithin && NewComponentClass->ClassWithin != UObject::StaticClass())
 	{
@@ -4608,7 +4627,7 @@ UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject
 		SaveSCSCurrentState(Blueprint->SimpleConstructionScript);
 
 		// Defer Blueprint class regeneration and tree updates if we need to copy object properties from a source template.
-		const bool bMarkBlueprintModified = !ComponentTemplate;
+		const bool bMarkBlueprintModified = !ComponentTemplate && !bSkipMarkBlueprintModified;
 		if(!bMarkBlueprintModified)
 		{
 			bAllowTreeUpdates = false;
@@ -4626,8 +4645,11 @@ UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject
 			NewComponent->UpdateComponentToWorld();
 
 			// Wait until here to mark as structurally modified because we don't want any RerunConstructionScript() calls to happen until AFTER we've serialized properties from the source object.
-			bAllowTreeUpdates = true;
-			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+			if (!bSkipMarkBlueprintModified)
+			{
+				bAllowTreeUpdates = true;
+				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+			}
 		}
 	}
 	else    // EComponentEditorMode::ActorInstance
@@ -4713,9 +4735,10 @@ UActorComponent* SSCSEditor::AddNewNode(USCS_Node* NewNode, UObject* Asset, bool
 	NewNodePtr = AddTreeNode(NewNode, SceneRootNodePtr, false);
 
 	// Potentially adjust variable names for any child blueprints
-	if(NewNode->VariableName != NAME_None)
+	const FName VariableName = NewNode->GetVariableName();
+	if(VariableName != NAME_None)
 	{
-		FBlueprintEditorUtils::ValidateBlueprintChildVariables(Blueprint, NewNode->VariableName);
+		FBlueprintEditorUtils::ValidateBlueprintChildVariables(Blueprint, VariableName);
 	}
 	
 	if(bSetFocusToNewItem)
@@ -4996,6 +5019,9 @@ bool SSCSEditor::CanDeleteNodes() const
 
 void SSCSEditor::OnDeleteNodes()
 {
+	// Invalidate any active component in the visualizer
+	GUnrealEd->ComponentVisManager.ClearActiveComponentVis();
+
 	const FScopedTransaction Transaction( LOCTEXT("RemoveComponents", "Remove Components") );
 
 	if (EditorMode == EComponentEditorMode::BlueprintSCS)
@@ -5122,7 +5148,8 @@ void SSCSEditor::RemoveComponentNode(FSCSEditorTreeNodePtrType InNodePtr)
 			// we can re-use the name without having to compile (we still have a 
 			// problem if they attempt to name it to what ever we choose here, 
 			// but that is unlikely)
-			if (SCS_Node->ComponentTemplate != nullptr)
+			// note: skip this for the default scene root; we don't actually destroy that node when it's removed, so we don't need the template to be renamed.
+			if (!InNodePtr->IsDefaultSceneRoot() && SCS_Node->ComponentTemplate != nullptr)
 			{
 				SCS_Node->ComponentTemplate->Modify();
 				const FString RemovedName = SCS_Node->GetVariableName().ToString() + TEXT("_REMOVED_") + FGuid::NewGuid().ToString();
@@ -5196,14 +5223,14 @@ FSCSEditorTreeNodePtrType SSCSEditor::AddTreeNode(USCS_Node* InSCSNode, FSCSEdit
 	{
 		check(InSCSNode->ComponentTemplate != NULL);
 		checkf(InSCSNode->ParentComponentOrVariableName == NAME_None
-			|| (!InSCSNode->bIsParentComponentNative && InParentNodePtr->GetSCSNode() != NULL && InParentNodePtr->GetSCSNode()->VariableName == InSCSNode->ParentComponentOrVariableName)
+			|| (!InSCSNode->bIsParentComponentNative && InParentNodePtr->GetSCSNode() != NULL && InParentNodePtr->GetSCSNode()->GetVariableName() == InSCSNode->ParentComponentOrVariableName)
 			|| (InSCSNode->bIsParentComponentNative && InParentNodePtr->GetComponentTemplate() != NULL && InParentNodePtr->GetComponentTemplate()->GetFName() == InSCSNode->ParentComponentOrVariableName),
 			TEXT("Failed to add SCS node %s to tree:\n- bIsParentComponentNative=%d\n- Stored ParentComponentOrVariableName=%s\n- Actual ParentComponentOrVariableName=%s"),
-			*InSCSNode->VariableName.ToString(),
+			*InSCSNode->GetVariableName().ToString(),
 			!!InSCSNode->bIsParentComponentNative,
 			*InSCSNode->ParentComponentOrVariableName.ToString(),
 			!InSCSNode->bIsParentComponentNative
-			? (InParentNodePtr->GetSCSNode() != NULL ? *InParentNodePtr->GetSCSNode()->VariableName.ToString() : TEXT("NULL"))
+			? (InParentNodePtr->GetSCSNode() != NULL ? *InParentNodePtr->GetSCSNode()->GetVariableName().ToString() : TEXT("NULL"))
 			: (InParentNodePtr->GetComponentTemplate() != NULL ? *InParentNodePtr->GetComponentTemplate()->GetFName().ToString() : TEXT("NULL")));
 	}
 	
@@ -5898,6 +5925,18 @@ const TArray<FSCSEditorTreeNodePtrType>& SSCSEditor::GetRootComponentNodes()
 AActor* SSCSEditor::GetActorContext() const
 {
 	return ActorContext.Get(nullptr);
+}
+
+void SSCSEditor::SetItemExpansionRecursive(FSCSEditorTreeNodePtrType Model, bool bInExpansionState)
+{
+	SetNodeExpansionState(Model, bInExpansionState);
+	for (auto& Child : Model->GetChildren())
+	{
+		if (Child.IsValid())
+		{
+			SetItemExpansionRecursive(Child, bInExpansionState);
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

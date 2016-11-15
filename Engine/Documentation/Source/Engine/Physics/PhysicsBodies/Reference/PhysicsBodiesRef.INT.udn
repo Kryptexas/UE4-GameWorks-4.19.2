@@ -49,20 +49,20 @@ This page contains a reference listing of properties in the Physics and Collisio
 
 Below are the properties for Physics Bodies (Body Instances) separated by major category.
 
-
+[EXCERPT:PropPhysicsCat]
 [OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
-		phys
+		PhysicsCat
 	[/PARAMLITERAL]
 	[PARAM:heading]
 		Physics
 	[/PARAM]
 	[PARAM:content]
-		%p1%
+		%c3%
 	[/PARAM]
 [/OBJECT]
 
-[VAR:p1]
+[VAR:c3]
 
 ![](physicsProps.png)
 
@@ -107,7 +107,7 @@ Below are the properties for Physics Bodies (Body Instances) separated by major 
 [/REGION]
 
 [/VAR]
-
+[/EXCERPT]
 
 [OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]

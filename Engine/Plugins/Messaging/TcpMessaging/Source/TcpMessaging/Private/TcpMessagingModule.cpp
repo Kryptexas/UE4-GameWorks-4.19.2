@@ -37,7 +37,7 @@ public:
 			UTcpMessagingSettings* Settings = GetMutableDefault<UTcpMessagingSettings>();
 
 			// general information
-			Ar.Logf(TEXT("Protocol Version: %i"), TCP_MESSAGING_TRANSPORT_PROTOCOL_VERSION);
+			Ar.Logf(TEXT("Protocol Version: %d"), (int32)ETcpMessagingVersion::LatestVersion);
 
 			// bridge status
 			if (MessageBridge.IsValid())

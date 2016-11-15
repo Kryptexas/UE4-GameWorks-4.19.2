@@ -73,6 +73,14 @@ public:
 	int16 GetBaseline(const FSlateFontInfo& InFontInfo, const float InScale) const;
 
 	/**
+	 * Get the underline metrics used by any character in the default font
+	 *
+	 * @param OutUnderlinePos		The offset from the baseline to the center of the underline bar
+	 * @param OutUnderlineThickness	The thickness of the underline bar
+	 */
+	void GetUnderlineMetrics(const FSlateFontInfo& InFontInfo, const float InScale, int16& OutUnderlinePos, int16& OutUnderlineThickness) const;
+
+	/**
 	 * @param Whether or not the font has kerning
 	 */
 	bool HasKerning(const FFontData& InFontData) const;
@@ -115,20 +123,21 @@ public:
 	 * 
 	 * @param InFontData		Raw font data to render the character with
 	 * @param InSize			The size of the font to draw
+	 * @param InOutlineSettings	Outline settings to apply when rendering the characer
 	 * @param Char				The character to render
 	 * @param OutRenderData		Will contain the created render data
 	 * @param InScale			The scale of the font
 	 * @param OutFallbackLevel	Outputs the fallback level of the font
 	 */
-	bool GetRenderData(const FFontData& InFontData, const int32 InSize, TCHAR Char, FCharacterRenderData& OutRenderData, const float InScale, EFontFallback* OutFallbackLevel = nullptr) const;
-	bool GetRenderData(const FShapedGlyphEntry& InShapedGlyph, FCharacterRenderData& OutRenderData) const;
+	bool GetRenderData(const FFontData& InFontData, const int32 InSize, const FFontOutlineSettings& InOutlineSettings, TCHAR Char, FCharacterRenderData& OutRenderData, const float InScale, EFontFallback* OutFallbackLevel = nullptr) const;
+	bool GetRenderData(const FShapedGlyphEntry& InShapedGlyph, const FFontOutlineSettings& InOutlineSettings, FCharacterRenderData& OutRenderData) const;
 
 private:
 #if WITH_FREETYPE
 	/**
 	 * Internal, shared implementation of GetRenderData
 	 */
-	bool GetRenderData(const FFreeTypeFaceGlyphData& InFaceGlyphData, const float InScale, FCharacterRenderData& OutRenderData) const;
+	bool GetRenderData(const FFreeTypeFaceGlyphData& InFaceGlyphData, const float InScale, const FFontOutlineSettings& InOutlineSettings, FCharacterRenderData& OutRenderData) const;
 
 	/** 
 	 * Gets or loads a FreeType font face 

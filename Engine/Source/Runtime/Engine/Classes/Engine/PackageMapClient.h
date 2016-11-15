@@ -181,6 +181,8 @@ public:
 	TMap< TWeakObjectPtr< UObject >, FNetworkGUID >	NetGUIDLookup;
 	int32											UniqueNetIDs[2];
 
+	TSet< FNetworkGUID >							ImportedNetGuids;
+
 	bool											IsExportingNetGUIDBunch;
 
 	UNetDriver *									Driver;

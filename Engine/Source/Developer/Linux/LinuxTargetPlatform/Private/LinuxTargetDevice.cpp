@@ -165,13 +165,13 @@ bool FLinuxTargetDevice::GetUserCredentials( FString& OutUserName, FString& OutU
 	return true;
 }
 
-bool FLinuxTargetDevice::TerminateProcess( const int32 ProcessId )
+bool FLinuxTargetDevice::TerminateProcess( const int64 ProcessId )
 {
 #if PLATFORM_LINUX // if running natively, just terminate the local process
 	// get process path from the ProcessId
 	const int32 ReadLinkSize = 1024;
 	char ReadLinkCmd[ReadLinkSize] = {0};
-	FCStringAnsi::Sprintf(ReadLinkCmd, "/proc/%d/exe", ProcessId);
+	FCStringAnsi::Sprintf(ReadLinkCmd, "/proc/%lld/exe", ProcessId);
 	char ProcessPath[ MAX_PATH + 1 ] = {0};
 	int32 Ret = readlink(ReadLinkCmd, ProcessPath, ARRAY_COUNT(ProcessPath) - 1);
 	if (Ret != -1)

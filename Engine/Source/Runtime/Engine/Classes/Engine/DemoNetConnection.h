@@ -28,7 +28,7 @@ public:
  * Simulated network connection for recording and playing back game sessions.
  */
 UCLASS(transient, config=Engine)
-class UDemoNetConnection
+class ENGINE_API UDemoNetConnection
 	: public UNetConnection
 {
 	GENERATED_UCLASS_BODY()
@@ -46,6 +46,8 @@ public:
 	virtual void HandleClientPlayer( APlayerController* PC, class UNetConnection* NetConnection ) override;
 	virtual bool ClientHasInitializedLevelFor( const UObject* TestObject ) const override;
 	virtual TSharedPtr<FObjectReplicator> CreateReplicatorForNewActorChannel(UObject* Object);
+
+	virtual void FlushDormancy( class AActor* Actor ) override;
 
 public:
 

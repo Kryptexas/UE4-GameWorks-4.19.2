@@ -18,6 +18,12 @@ FFileMediaSourceActions::FFileMediaSourceActions(const TSharedRef<ISlateStyle>& 
 /* FAssetTypeActions_Base interface
  *****************************************************************************/
 
+bool FFileMediaSourceActions::CanFilter()
+{
+	return true;
+}
+
+
 FText FFileMediaSourceActions::GetName() const
 {
 	return LOCTEXT("AssetTypeActions_FileMediaSource", "File Media Source");

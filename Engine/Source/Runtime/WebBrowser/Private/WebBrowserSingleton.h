@@ -21,9 +21,8 @@ class CefListValue;
 #endif
 
 
-class FWebBrowserApp;
-class FWebBrowserHandler;
-class FWebBrowserWindow;
+class FCEFBrowserApp;
+class FCEFWebBrowserWindow;
 
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
 
@@ -56,15 +55,15 @@ public:
 	virtual TSharedRef<IWebBrowserWindowFactory> GetWebBrowserWindowFactory() const override;
 
 	TSharedPtr<IWebBrowserWindow> CreateBrowserWindow(
-		TSharedPtr<FWebBrowserWindow>& BrowserWindowParent,
+		TSharedPtr<FCEFWebBrowserWindow>& BrowserWindowParent,
 		TSharedPtr<FWebBrowserWindowInfo>& BrowserWindowInfo) override;
 
 	TSharedPtr<IWebBrowserWindow> CreateBrowserWindow(
-		void* OSWindowHandle, 
-		FString InitialURL, 
+		void* OSWindowHandle,
+		FString InitialURL,
 		bool bUseTransparency,
 		bool bThumbMouseButtonNavigation,
-		TOptional<FString> ContentsToLoad = TOptional<FString>(), 
+		TOptional<FString> ContentsToLoad = TOptional<FString>(),
 		bool ShowErrorMessage = true,
 		FColor BackgroundColor = FColor(255, 255, 255, 255),
 		int BrowserFrameRate = 24 ) override;
@@ -108,9 +107,9 @@ private:
 	/** When new render processes are created, send all permanent variable bindings to them. */
 	void HandleRenderProcessCreated(CefRefPtr<CefListValue> ExtraInfo);
 	/** Pointer to the CEF App implementation */
-	CefRefPtr<FWebBrowserApp>			WebBrowserApp;
+	CefRefPtr<FCEFBrowserApp>			CEFBrowserApp;
 	/** List of currently existing browser windows */
-	TArray<TWeakPtr<FWebBrowserWindow>>	WindowInterfaces;
+	TArray<TWeakPtr<FCEFWebBrowserWindow>>	WindowInterfaces;
 
 	TMap<FString, CefRefPtr<CefRequestContext>> RequestContexts;
 #endif

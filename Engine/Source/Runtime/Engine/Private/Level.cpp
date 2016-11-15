@@ -297,6 +297,14 @@ void ULevel::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 	Super::AddReferencedObjects( This, Collector );
 }
 
+void ULevel::PostInitProperties()
+{
+	Super::PostInitProperties();
+
+	// Initialize LevelBuildDataId to something unique, in case this is a new ULevel
+	LevelBuildDataId = FGuid::NewGuid();
+}
+
 void ULevel::Serialize( FArchive& Ar )
 {
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ULevel::Serialize"), STAT_Level_Serialize, STATGROUP_LoadTime);
@@ -304,6 +312,7 @@ void ULevel::Serialize( FArchive& Ar )
 	Super::Serialize( Ar );
 
 	Ar.UsingCustomVersion(FReleaseObjectVersion::GUID);
+	Ar.UsingCustomVersion(FRenderingObjectVersion::GUID);
 
 	if (Ar.IsLoading() && Ar.CustomVer(FReleaseObjectVersion::GUID) < FReleaseObjectVersion::LevelTransArrayConvertedToTArray)
 	{
@@ -392,14 +401,15 @@ void ULevel::Serialize( FArchive& Ar )
 	Ar << NavListStart;
 	Ar << NavListEnd;
 
-	if (HasAnyFlags(RF_ClassDefaultObject))
+	if (Ar.IsLoading() && Ar.CustomVer(FRenderingObjectVersion::GUID) < FRenderingObjectVersion::MapBuildDataSeparatePackage)
 	{
-		FPrecomputedLightVolume DummyVolume;
-		Ar << DummyVolume;
-	}
-	else
-	{
-		Ar << *PrecomputedLightVolume;
+		FPrecomputedLightVolumeData* LegacyData = new FPrecomputedLightVolumeData();
+		Ar << (*LegacyData);
+
+		FLevelLegacyMapBuildData LegacyLevelData;
+		LegacyLevelData.Id = LevelBuildDataId;
+		LegacyLevelData.Data = LegacyData;
+		GLevelsWithLegacyBuildData.AddAnnotation(this, LegacyLevelData);
 	}
 
 	Ar << PrecomputedVisibilityHandler;
@@ -526,6 +536,8 @@ void ULevel::PreSave(const class ITargetPlatform* TargetPlatform)
 				Actor->ClearCrossLevelReferences();
 			}
 		}
+
+		CheckTextureStreamingBuild(this);
 	}
 #endif // WITH_EDITOR
 }
@@ -655,11 +667,20 @@ void ULevel::BeginDestroy()
 
 	Super::BeginDestroy();
 
+	// Remove this level from its OwningWorld's collection
+	if (CachedLevelCollection)
+	{
+		CachedLevelCollection->RemoveLevel(this);
+	}
+
 	if (OwningWorld && IsPersistentLevel() && OwningWorld->Scene)
 	{
 		OwningWorld->Scene->SetPrecomputedVisibility(NULL);
 		OwningWorld->Scene->SetPrecomputedVolumeDistanceField(NULL);
 	}
+
+	ReleaseRenderingResources();
+
 	RemoveFromSceneFence.BeginFence();
 }
 
@@ -671,8 +692,6 @@ bool ULevel::IsReadyForFinishDestroy()
 
 void ULevel::FinishDestroy()
 {
-	ReleaseRenderingResources();
-
 	delete PrecomputedLightVolume;
 	PrecomputedLightVolume = NULL;
 
@@ -1269,6 +1288,7 @@ void ULevel::PreEditUndo()
 	// Wait for the components to be detached.
 	FlushRenderingCommands();
 
+	ABrush::GGeometryRebuildCause = TEXT("Undo");
 }
 
 
@@ -1279,6 +1299,8 @@ void ULevel::PostEditUndo()
 	Model->UpdateVertices();
 	// Update model components that were detached earlier
 	UpdateModelComponents();
+
+	ABrush::GGeometryRebuildCause = nullptr;
 
 	// If it's a streaming level and was not visible, don't init rendering resources
 	if (OwningWorld)
@@ -1601,7 +1623,15 @@ void ULevel::InitializeRenderingResources()
 	{
 		if( !PrecomputedLightVolume->IsAddedToScene() )
 		{
-			PrecomputedLightVolume->AddToScene(OwningWorld->Scene);
+			ULevel* ActiveLightingScenario = OwningWorld->GetActiveLightingScenario();
+			UMapBuildDataRegistry* EffectiveMapBuildData = MapBuildData;
+
+			if (ActiveLightingScenario && ActiveLightingScenario->MapBuildData)
+			{
+				EffectiveMapBuildData = ActiveLightingScenario->MapBuildData;
+			}
+
+			PrecomputedLightVolume->AddToScene(OwningWorld->Scene, EffectiveMapBuildData, LevelBuildDataId);
 		}
 	}
 }
@@ -1667,6 +1697,59 @@ void ULevel::RouteActorInitialize()
 		Actor->BeginPlay();			
 	}
 }
+
+UPackage* ULevel::CreateMapBuildDataPackage() const
+{
+	FString PackageName = GetOutermost()->GetName() + TEXT("_BuiltData");
+	UPackage* BuiltDataPackage = CreatePackage(NULL, *PackageName);
+	// PKG_ContainsMapData required so FEditorFileUtils::GetDirtyContentPackages can treat this as a map package
+	BuiltDataPackage->SetPackageFlags(PKG_ContainsMapData);
+	return BuiltDataPackage;
+}
+
+UMapBuildDataRegistry* ULevel::GetOrCreateMapBuildData()
+{
+	if (!MapBuildData 
+		// If MapBuildData is in the level package we need to create a new one, see CreateRegistryForLegacyMap
+		|| MapBuildData->IsLegacyBuildData()
+		|| !MapBuildData->HasAllFlags(RF_Public | RF_Standalone))
+	{
+		if (MapBuildData)
+		{
+			// Allow the legacy registry to be GC'ed
+			MapBuildData->ClearFlags(RF_Standalone);
+		}
+
+		UPackage* BuiltDataPackage = CreateMapBuildDataPackage();
+
+		FName ShortPackageName = FPackageName::GetShortFName(BuiltDataPackage->GetFName());
+		// Top level UObjects have to have both RF_Standalone and RF_Public to be saved into packages
+		MapBuildData = NewObject<UMapBuildDataRegistry>(BuiltDataPackage, ShortPackageName, RF_Standalone | RF_Public);
+		MarkPackageDirty();
+	}
+
+	return MapBuildData;
+}
+
+void ULevel::SetLightingScenario(bool bNewIsLightingScenario)
+{
+	bIsLightingScenario = bNewIsLightingScenario;
+
+	OwningWorld->PropagateLightingScenarioChange();
+}
+
+#if WITH_EDITOR
+void ULevel::OnApplyNewLightingData(bool bLightingSuccessful)
+{
+	// Store level offset that was used during static light data build
+	// This will be used to find correct world position of precomputed lighting samples during origin rebasing
+	LightBuildLevelOffset = FIntVector::ZeroValue;
+	if (bLightingSuccessful && OwningWorld && OwningWorld->WorldComposition)
+	{
+		LightBuildLevelOffset = OwningWorld->WorldComposition->GetLevelOffset(this);
+	}
+}
+#endif
 
 bool ULevel::HasAnyActorsOfType(UClass *SearchType)
 {
@@ -1735,6 +1818,22 @@ ULevelScriptBlueprint* ULevel::GetLevelScriptBlueprint(bool bDontCreate)
 	}
 
 	return LevelScriptBlueprint;
+}
+
+void ULevel::CleanupLevelScriptBlueprint()
+{
+	if( LevelScriptBlueprint )
+	{
+		if( LevelScriptBlueprint->SkeletonGeneratedClass )
+		{
+			LevelScriptBlueprint->SkeletonGeneratedClass->ClassGeneratedBy = nullptr; 
+		}
+
+		if( LevelScriptBlueprint->GeneratedClass )
+		{
+			LevelScriptBlueprint->GeneratedClass->ClassGeneratedBy = nullptr; 
+		}
+	}
 }
 
 void ULevel::OnLevelScriptBlueprintChanged(ULevelScriptBlueprint* InBlueprint)
@@ -1818,27 +1917,27 @@ void ULevel::ApplyWorldOffset(const FVector& InWorldOffset, bool bWorldShift)
 	if (PrecomputedLightVolume && !InWorldOffset.IsZero())
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_ULevel_ApplyWorldOffset_PrecomputedLightVolume);
-		// Shift light volume only if it's going to be used
-		static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
-		const bool bAllowStaticLighting = (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnGameThread() != 0);
-		if (bAllowStaticLighting) 
+		
+		if (!PrecomputedLightVolume->IsAddedToScene())
 		{
-			if (!PrecomputedLightVolume->IsAddedToScene())
+			// When we add level to world, move precomputed lighting data taking into account position of level at time when lighting was built  
+			if (bIsAssociatingLevel)
 			{
-				PrecomputedLightVolume->ApplyWorldOffset(InWorldOffset);
+				FVector PrecomputedLightVolumeOffset = InWorldOffset - FVector(LightBuildLevelOffset);
+				PrecomputedLightVolume->ApplyWorldOffset(PrecomputedLightVolumeOffset);
 			}
-			// At world origin rebasing all registered volumes will be moved during FScene shifting
-			// Otherwise we need to send a command to move just this volume
-			else if (!bWorldShift) 
-			{
-				ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
- 					ApplyWorldOffset_PLV,
- 					FPrecomputedLightVolume*, InPrecomputedLightVolume, PrecomputedLightVolume,
- 					FVector, InWorldOffset, InWorldOffset,
- 				{
-					InPrecomputedLightVolume->ApplyWorldOffset(InWorldOffset);
- 				});
-			}
+		}
+		// At world origin rebasing all registered volumes will be moved during FScene shifting
+		// Otherwise we need to send a command to move just this volume
+		else if (!bWorldShift) 
+		{
+			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+ 				ApplyWorldOffset_PLV,
+ 				FPrecomputedLightVolume*, InPrecomputedLightVolume, PrecomputedLightVolume,
+ 				FVector, InWorldOffset, InWorldOffset,
+ 			{
+				InPrecomputedLightVolume->ApplyWorldOffset(InWorldOffset);
+ 			});
 		}
 	}
 

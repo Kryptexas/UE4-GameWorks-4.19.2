@@ -43,6 +43,7 @@ public:
 	//~ Begin UObject Interface
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostLoad() override;
 #endif // WITH_EDITOR
 	//~ End UObject Interface
 
@@ -62,6 +63,12 @@ public:
 
 	/** Attempt to remove an Object from the object, return true if removed */
 	virtual bool RemoveObject(UObject *ObjectToRemove);
+
+	DECLARE_EVENT_OneParam(UObjectLibrary, FObjectLibraryOnObjectAdded, UObject* /*NewObject*/);
+	FObjectLibraryOnObjectAdded& OnObjectAdded() { return OnObjectAddedEvent; }
+
+	DECLARE_EVENT_OneParam(UObjectLibrary, FObjectLibraryOnObjectRemoved, UObject* /*ObjectToRemove*/);
+	FObjectLibraryOnObjectRemoved& OnObjectRemoved() { return OnObjectRemovedEvent; }
 
 	/** Fills in a passed in array of objects, casts to proper type */
 	template <typename T>
@@ -165,4 +172,9 @@ public:
 	/** Handler for when assets have finished scanning in the asset registry */
 	virtual void OnAssetRegistryFilesLoaded();
 #endif // WITH_EDITOR
+
+protected:
+	/** Delegates for when an object is added or removed from this library. This happens when objects are being loaded by the library if represented by asset data. */
+	FObjectLibraryOnObjectAdded OnObjectAddedEvent;
+	FObjectLibraryOnObjectRemoved OnObjectRemovedEvent;
 };

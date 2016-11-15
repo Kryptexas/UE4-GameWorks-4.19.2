@@ -179,6 +179,7 @@ void FMovieSceneAudioTrackInstance::PlaySound(UMovieSceneAudioSection* AudioSect
 	Component->SetVolumeMultiplier(AudioSection->GetAudioVolume());
 	Component->SetPitchMultiplier(PitchMultiplier);
 	Component->bIsUISound = true;
+	Component->SubtitlePriority = AudioSection->GetSuppressSubtitles() ? 0.f : 10000.f;
 	Component->Play(Time - AudioSection->GetAudioStartTime());
 }
 
@@ -232,7 +233,18 @@ TWeakObjectPtr<UAudioComponent> FMovieSceneAudioTrackInstance::GetAudioComponent
 	{
 		USoundCue* TempPlaybackAudioCue = NewObject<USoundCue>();
 		UWorld* World = Actor ? Actor->GetWorld() : (Player.GetPlaybackContext() != nullptr) ? Player.GetPlaybackContext()->GetWorld() : nullptr;
-		UAudioComponent* AudioComponent = FAudioDevice::CreateComponent(TempPlaybackAudioCue, World, Actor, false, false);
+
+		FAudioDevice::FCreateComponentParams Params(World);
+
+		UAudioComponent* AudioComponent = FAudioDevice::CreateComponent(TempPlaybackAudioCue, Params);
+		if (AudioComponent)
+		{
+			AudioComponent->SetFlags(RF_Transient);
+			if (Actor)
+			{
+				AudioComponent->AttachToComponent(Actor->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+			}
+		}
 
 		PlaybackAudioComponents[RowIndex].Add(Actor);
 		PlaybackAudioComponents[RowIndex][Actor] = TWeakObjectPtr<UAudioComponent>(AudioComponent);

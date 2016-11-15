@@ -943,6 +943,9 @@ bool FPerforceUpdateStatusWorker::Execute(FPerforceSourceControlCommand& InComma
 			Parameters.Append(InCommand.Files);
 			InCommand.bCommandSuccessful &= Connection.RunCommand(TEXT("filelog"), Parameters, Records, InCommand.ErrorMessages, FOnIsCancelled::CreateRaw(&InCommand, &FPerforceSourceControlCommand::IsCanceled), InCommand.bConnectionDropped);
 			ParseHistoryResults(Records, OutStates, OutHistory);
+			RemoveRedundantErrors(InCommand, TEXT(" - no such file(s)."));
+			RemoveRedundantErrors(InCommand, TEXT(" - file(s) not on client"));
+			RemoveRedundantErrors(InCommand, TEXT("' is not under client's root '"));
 		}
 
 		if(Operation->ShouldGetOpenedOnly())
@@ -954,6 +957,8 @@ bool FPerforceUpdateStatusWorker::Execute(FPerforceSourceControlCommand& InComma
 			FP4RecordSet Records;
 			InCommand.bCommandSuccessful &= Connection.RunCommand(TEXT("opened"), Parameters, Records, InCommand.ErrorMessages, FOnIsCancelled::CreateRaw(&InCommand, &FPerforceSourceControlCommand::IsCanceled), InCommand.bConnectionDropped);
 			ParseOpenedResults(Records, ANSI_TO_TCHAR(Connection.P4Client.GetClient().Text()), Connection.ClientRoot, OutStateMap);
+			RemoveRedundantErrors(InCommand, TEXT(" - no such file(s)."));
+			RemoveRedundantErrors(InCommand, TEXT("' is not under client's root '"));
 		}
 
 		if(Operation->ShouldUpdateModifiedState())
@@ -967,6 +972,9 @@ bool FPerforceUpdateStatusWorker::Execute(FPerforceSourceControlCommand& InComma
 
 			// Parse the results and store them in the command
 			ParseDiffResults(Records, OutModifiedFiles);
+			RemoveRedundantErrors(InCommand, TEXT(" - no such file(s)."));
+			RemoveRedundantErrors(InCommand, TEXT(" - file(s) not opened for edit"));
+			RemoveRedundantErrors(InCommand, TEXT("' is not under client's root '"));
 		}
 	}
 #endif

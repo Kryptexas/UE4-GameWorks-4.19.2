@@ -96,14 +96,11 @@ bool SPropertyEditorText::Supports( const TSharedRef< FPropertyEditor >& InPrope
 	const TSharedRef< FPropertyNode > PropertyNode = InPropertyEditor->GetPropertyNode();
 	const UProperty* Property = InPropertyEditor->GetProperty();
 
-	if(	!PropertyNode->HasNodeFlags(EPropertyNodeFlags::EditInline)
+	if(	!PropertyNode->HasNodeFlags(EPropertyNodeFlags::EditInlineNew)
 		&&	( (Property->IsA(UNameProperty::StaticClass()) && Property->GetFName() != NAME_InitialState)
 		||	Property->IsA(UStrProperty::StaticClass())
 		||	Property->IsA(UTextProperty::StaticClass())
 		||	(Property->IsA(UObjectPropertyBase::StaticClass()) && !Property->HasAnyPropertyFlags(CPF_InstancedReference))
-		||	Property->IsA(UInterfaceProperty::StaticClass())
-		||	Property->IsA(UMapProperty::StaticClass())
-		||	Property->IsA(USetProperty::StaticClass())
 		) )
 	{
 		return true;

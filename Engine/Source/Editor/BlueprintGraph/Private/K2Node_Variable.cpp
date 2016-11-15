@@ -121,6 +121,19 @@ void UK2Node_Variable::CreatePinForSelf()
 			UClass* MemberParentClass = VariableReference.GetMemberParentClass(GetBlueprintClassFromNode());
 			UClass* TargetClass = MemberParentClass;
 			
+			UProperty* VariableProperty = GetPropertyForVariable();
+
+			if (VariableProperty)
+			{
+				UClass* PropertyClass = CastChecked<UClass>(VariableProperty->GetOuter());
+
+				// Fix up target class if it's not correct, this fixes cases where variables have moved within the hierarchy
+				if (PropertyClass != TargetClass)
+				{
+					TargetClass = PropertyClass;
+				}
+			}
+
 			// Self Target pins should always make the class be the owning class of the property,
 			// so if the node is from a Macro Blueprint, it will hook up as self in any placed Blueprint
 			if(bSelfTarget)
@@ -134,9 +147,9 @@ void UK2Node_Variable::CreatePinForSelf()
 					TargetClass = GetBlueprint()->SkeletonGeneratedClass->GetAuthoritativeClass();
 				}
 			}
-			else if(MemberParentClass && MemberParentClass->ClassGeneratedBy)
+			else if(TargetClass && TargetClass->ClassGeneratedBy)
 			{
-				TargetClass = MemberParentClass->GetAuthoritativeClass();
+				TargetClass = TargetClass->GetAuthoritativeClass();
 			}
 
 			UEdGraphPin* TargetPin = CreatePin(EGPD_Input, K2Schema->PC_Object, TEXT(""), TargetClass, false, false, K2Schema->PN_Self);

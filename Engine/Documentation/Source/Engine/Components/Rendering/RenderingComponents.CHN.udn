@@ -81,6 +81,7 @@ Version: 4.9
 
 请在我们的 Wiki 页面上参阅 [**Procedural Room Generation**](https://wiki.unrealengine.com/Videos/Player?series=PLZlv_N0_O1ga0aV9jVqJgog0VWz1cLL5f&video=mI7eYXMJ5eI) 培训教程，了解关于使用 **InstancedStaticMesh** 组件以及程序化生成随机房间的示例。 
 
+(#particlesystemcomponent)
 ## Particle System Component （粒子系统组件）
 
 **ParticleSystemComponent** 可以让您添加一个粒子发射器作为其他对象的子对象。添加 **ParticleSystemComponent** 可用于多种目的，例如，为想要摧毁的对象添加爆炸效果，或是为可以点燃的对象增加着火效果。通过添加这类组件到其他对象，您便可以在游戏过程中借助脚本访问和设置任何粒子效果参数（例如打开或关闭效果）。 

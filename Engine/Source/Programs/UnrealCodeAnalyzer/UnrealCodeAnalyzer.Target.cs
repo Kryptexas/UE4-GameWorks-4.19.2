@@ -90,7 +90,6 @@ public class UnrealCodeAnalyzerTarget : TargetRules
 
 	public override bool GetSupportedPlatforms(ref List<UnrealTargetPlatform> OutPlatforms)
 	{
-		OutPlatforms.Clear();
 		OutPlatforms.Add(UnrealTargetPlatform.Win32);
 		return true;
 	}

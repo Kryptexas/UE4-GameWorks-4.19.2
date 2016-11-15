@@ -173,7 +173,7 @@ void FGoogleVRSplash::RenderStereoSplashScreen(FRHICommandListImmediate& RHICmdL
 	FIntRect DstRect = FIntRect(0, 0, ViewportWidth, ViewportHeight);
 
 	SetRenderTarget(RHICmdList, DstTexture, FTextureRHIRef());
-	RHICmdList.Clear(true, FLinearColor(0.0f, 0.0f, 0.0f, 0.0f), false, 0.0f, false, 0, FIntRect());
+	RHICmdList.ClearColorTexture(DstTexture, FLinearColor(0.0f, 0.0f, 0.0f, 0.0f), FIntRect());
 
 	// If the texture is not avaliable, we just clear the DstTexture with black.
 	if (SplashTexture &&  SplashTexture->IsValidLowLevel())
@@ -238,7 +238,7 @@ void FGoogleVRSplash::SubmitBlackFrame()
 	GVRCustomPresent->BeginRendering(GVRHMD->CachedHeadPose);
 
 	SetRenderTarget(RHICmdList, DstTexture, FTextureRHIRef());
-	RHICmdList.Clear(true, FLinearColor(0.0f, 0.0f, 0.0f, 0.0f), false, 0.0f, false, 0, FIntRect());
+	RHICmdList.ClearColorTexture(DstTexture, FLinearColor(0.0f, 0.0f, 0.0f, 0.0f), FIntRect());
 
 	GVRCustomPresent->FinishRendering();
 }

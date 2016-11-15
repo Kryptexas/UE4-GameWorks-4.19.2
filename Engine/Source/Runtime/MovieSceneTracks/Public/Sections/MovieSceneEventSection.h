@@ -30,7 +30,7 @@ public:
 	 * @param EventName The name of the event to fire at the specified time.
 	 * @param KeyParams The keying parameters.
 	 */
-	void AddKey(float Time, const FName& EventName, FKeyParams KeyParams);
+	void AddKey(float Time, const FName& EventName);
 
 	/**
 	 * Get the section's event curve.

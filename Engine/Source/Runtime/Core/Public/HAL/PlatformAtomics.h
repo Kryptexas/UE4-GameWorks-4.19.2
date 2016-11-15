@@ -19,4 +19,6 @@
 #include "HTML5/HTML5PlatformAtomics.h"
 #elif PLATFORM_LINUX
 #include "Linux/LinuxPlatformAtomics.h"
+#elif PLATFORM_WOLF
+#include "WolfPlat/WolfPlatformAtomics.h"
 #endif

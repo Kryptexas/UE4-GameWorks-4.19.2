@@ -80,6 +80,11 @@ public:
 		return LaunchCanceled;
 	}
 
+	virtual ILauncherProfilePtr GetLauncherProfile() const override
+	{
+		return Profile;
+	}
+
 protected:
 
 	/**

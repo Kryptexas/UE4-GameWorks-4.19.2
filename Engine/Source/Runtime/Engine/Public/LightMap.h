@@ -204,13 +204,34 @@ public:
 	const UTexture2D* GetTexture(uint32 BasisIndex) const;
 	UTexture2D* GetTexture(uint32 BasisIndex);
 
+	void GetReferencedTextures(TArray<UTexture2D*>& OutTextures) const
+	{
+		for (int32 BasisIndex = 0; BasisIndex < ARRAY_COUNT(Textures); BasisIndex++)
+		{
+			if (Textures[BasisIndex])
+			{
+				OutTextures.Add(Textures[BasisIndex]);
+			}
+		}
+
+		if (GetSkyOcclusionTexture())
+		{
+			OutTextures.Add(GetSkyOcclusionTexture());
+		}
+
+		if (GetAOMaterialMaskTexture())
+		{
+			OutTextures.Add(GetAOMaterialMaskTexture());
+		}
+	}
+
 	/**
 	 * Returns SkyOcclusionTexture.
 	 * @return	The SkyOcclusionTexture.
 	 */
-	UTexture2D* GetSkyOcclusionTexture();
+	UTexture2D* GetSkyOcclusionTexture() const;
 
-	UTexture2D* GetAOMaterialMaskTexture();
+	UTexture2D* GetAOMaterialMaskTexture() const;
 
 	/**
 	 * Returns whether the specified basis has a valid lightmap texture or not.
@@ -255,8 +276,8 @@ public:
 	 * @param	InPaddingType - the method for padding the lightmap.
 	 * @param	LightmapFlags - flags that determine how the lightmap is stored (e.g. streamed or not)
 	 */
-	static TRefCountPtr<FLightMap2D> AllocateInstancedLightMap(UInstancedStaticMeshComponent* Component, TArray<TUniquePtr<FQuantizedLightmapData>> SourceQuantizedData,
-		const FBoxSphereBounds& Bounds, ELightMapPaddingType InPaddingType, ELightMapFlags LightmapFlags);
+	static TRefCountPtr<FLightMap2D> AllocateInstancedLightMap(UObject* LightMapOuter, UInstancedStaticMeshComponent* Component, TArray<TUniquePtr<FQuantizedLightmapData>> SourceQuantizedData,
+		UMapBuildDataRegistry* Registry, FGuid MapBuildDataId, const FBoxSphereBounds& Bounds, ELightMapPaddingType InPaddingType, ELightMapFlags LightmapFlags);
 
 	/**
 	 * Executes all pending light-map encoding requests.

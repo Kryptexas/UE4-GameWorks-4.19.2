@@ -330,6 +330,14 @@ void SWebBrowser::ExecuteJavascript(const FString& ScriptText)
 	}
 }
 
+void SWebBrowser::GetSource(TFunction<void (const FString&)> Callback) const
+{
+	if (BrowserView.IsValid())
+	{
+		BrowserView->GetSource(Callback);
+	}
+}
+
 void SWebBrowser::BindUObject(const FString& Name, UObject* Object, bool bIsPermanent)
 {
 	if (BrowserView.IsValid())
@@ -363,4 +371,3 @@ void SWebBrowser::UnbindAdapter(const TSharedRef<IWebBrowserAdapter>& Adapter)
 }
 
 #undef LOCTEXT_NAMESPACE
-

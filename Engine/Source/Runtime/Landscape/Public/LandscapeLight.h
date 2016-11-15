@@ -10,6 +10,7 @@
 #include "RenderUtils.h"
 
 class ULandscapeComponent;
+class FLightmassExporter;
 
 /** A texture mapping for landscapes */
 class FLandscapeStaticLightingTextureMapping : public FStaticLightingTextureMapping
@@ -19,14 +20,14 @@ public:
 	FLandscapeStaticLightingTextureMapping(ULandscapeComponent* InPrimitive,FStaticLightingMesh* InMesh,int32 InLightMapWidth,int32 InLightMapHeight,bool bPerformFullQualityRebuild);
 
 	// FStaticLightingTextureMapping interface
-	virtual void Apply(FQuantizedLightmapData* QuantizedData, const TMap<ULightComponent*,FShadowMapData2D*>& ShadowMapData);
+	virtual void Apply(FQuantizedLightmapData* QuantizedData, const TMap<ULightComponent*,FShadowMapData2D*>& ShadowMapData, ULevel* LightingScenario);
 
 #if WITH_EDITOR
 	/** 
 	* Export static lighting mapping instance data to an exporter 
 	* @param Exporter - export interface to process static lighting data
 	*/
-	UNREALED_API virtual void ExportMapping(class FLightmassExporter* Exporter);
+	UNREALED_API virtual void ExportMapping(FLightmassExporter* Exporter);
 #endif	//WITH_EDITOR
 
 	virtual FString GetDescription() const
@@ -59,7 +60,7 @@ public:
 	* Export static lighting mesh instance data to an exporter 
 	* @param Exporter - export interface to process static lighting data
 	**/
-	UNREALED_API virtual void ExportMeshInstance(class FLightmassExporter* Exporter) const;
+	UNREALED_API virtual void ExportMeshInstance(FLightmassExporter* Exporter) const;
 #endif	//WITH_EDITOR
 
 protected:

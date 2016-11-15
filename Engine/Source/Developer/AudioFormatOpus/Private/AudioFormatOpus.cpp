@@ -267,6 +267,7 @@ public:
 				int32 CurrInterleavedOffset = SampleIndex*kSampleStride;
 				if (CurrSrcOffset < SourceSize)
 				{
+					check(QualityInfo.NumChannels <= 8); // Static analysis fix: warning C6385: Reading invalid data from 'Order':  the readable size is '256' bytes, but '8160' bytes may be read.
 					for (uint32 ChannelIndex = 0; ChannelIndex < QualityInfo.NumChannels; ++ChannelIndex)
 					{
 						// Interleave the channels in the Vorbis format, so that the correct channel is used for LFE

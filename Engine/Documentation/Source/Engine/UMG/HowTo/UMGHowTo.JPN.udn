@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2754318
+﻿INTSourceChangelist:3072583
 Availability:Public
 Title:UMG UI デザイナの操作方法
 Crumbs: %ROOT%, Engine, Engine\UMG
@@ -12,17 +12,26 @@ version:4.9
 
 詳細は以下の表を参照してください。各リンクをクリックすると内容が表示されます。 
 
-## 初心者向け
+## Beginner
+[REGION:wrapper transparent]
+[](FANCY:Engine\UMG\HowTo\CreatingWidgets "%Engine\UMG\HowTo\CreatingWidgets:description%")
+[/REGION]
 
-## 中級者向け
+## Intermediate
 [REGION:wrapper transparent]
 [](FANCY:Engine\UMG\HowTo\Create3DWidgets "%Engine\UMG\HowTo\Create3DWidgets:description%")
+[PUBLISH:docs]
+[](FANCY:Engine\UMG\HowTo\DragAndDrop "%Engine\UMG\HowTo\DragAndDrop:description%")
+[/PUBLISH:docs]
 [](FANCY:Engine\UMG\HowTo\ScalingUI "%Engine\UMG\HowTo\ScalingUI:description%")
 [/REGION]
 
-## 上級者向け
+## Advanced
 [REGION:wrapper transparent]
 [](FANCY:Engine\UMG\HowTo\EventBasedUI "%Engine\UMG\HowTo\EventBasedUI:description%")
+[PUBLISH:docs]
+[](FANCY:Engine\UMG\HowTo\VirtualKeyboards "%Engine\UMG\HowTo\VirtualKeyboards:description%")
+[/PUBLISH:docs]
 [/REGION]
 
 

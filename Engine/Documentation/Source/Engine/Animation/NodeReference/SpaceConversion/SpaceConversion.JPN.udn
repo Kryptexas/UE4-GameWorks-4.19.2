@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2664756
+﻿INTSourceChangelist:3068762
 Availability:Public
 Title:Convert Spaces ノード
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference
 Description:ローカルとコンポーネントの空間の間でポーズを変換する Animation ノード
-バージョン：4.9
+version:4.9
 
 [REGION:banner]
 ![Space Conversion](spaceconversion_banner.png)(convert:false)
@@ -25,17 +25,11 @@ Description:ローカルとコンポーネントの空間の間でポーズを�
 対象となるポーズは、SkeletalControl が処理を実行する前に、正しい空間へ変換されなくてはいけません。 
 SkeletalControl が処理を実行し、結果として生じるポーズは、 
 追加のブレンドの入力ピンまたは Result ピンとしてローカル空間へ戻されなくてはいけません。
-[/EXCERPT:Intro]
 
-[REGION:fullwidth]
-![Usage in graph](graph_usage.png)
-[/REGION]
-
-コンポーネント空間へ、もしくはコンポーネント空間からのそれぞれの変換にはコストが発生するため、 
+コンポーネント空間へ、もしくはコンポーネント空間からのそれぞれの変換には負荷が発生するため、 
 例えば SkeletalControls などのコンポーネント空間で動作するノードをグループ化すると良いでしょう。 
-これにより行ですべて実行され、変換の必要数を制限することができます。
-
-
+これにより連続してすべて実行され、変換の必要数を制限することができます。
+[/EXCERPT:Intro]
 
 ## コンポーネント空間からローカル空間
 

@@ -26,7 +26,7 @@ void UK2Node_SpawnActor::AllocateDefaultPins()
 	CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Then);
 
 	// If required add the world context pin
-	if (GetBlueprint()->ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowWorldContextPin))
+	if (GetBlueprint()->ParentClass->HasMetaDataHierarchical(FBlueprintMetadata::MD_ShowWorldContextPin))
 	{
 		CreatePin(EGPD_Input, K2Schema->PC_Object, TEXT(""), UObject::StaticClass(), false, false, WorldContextPinName);
 	}
@@ -299,6 +299,14 @@ void UK2Node_SpawnActor::ExpandNode(class FKismetCompilerContext& CompilerContex
 	if(SpawnBlueprintPin != NULL)
 	{
 		SpawnBlueprint = Cast<UBlueprint>(SpawnBlueprintPin->DefaultObject);
+	}
+
+	if(NULL == SpawnBlueprint)
+	{
+		CompilerContext.MessageLog.Error(*LOCTEXT("SpawnActorNodeMissingBlueprint_Error", "Spawn node @@ must have a blueprint specified.").ToString(), this);
+		// we break exec links so this is the only error we get, don't want the SpawnActor node being considered and giving 'unexpected node' type warnings
+		BreakAllNodeLinks();
+		return;
 	}
 
 	if(0 == SpawnBlueprintPin->LinkedTo.Num())	

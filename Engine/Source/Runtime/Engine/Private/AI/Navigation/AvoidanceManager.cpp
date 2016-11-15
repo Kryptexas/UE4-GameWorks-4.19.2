@@ -51,7 +51,7 @@ UAvoidanceManager::UAvoidanceManager(const FObjectInitializer& ObjectInitializer
 {
 	DefaultTimeToLive = 1.5f;
 	LockTimeAfterAvoid = 0.2f;
-	LockTimeAfterClean = 0.01f;
+	LockTimeAfterClean = 0.001f;
 	DeltaTimeToPredict = 0.5f;
 	ArtificialRadiusExpansion = 1.5f;
 	TestHeightDifference_DEPRECATED = 500.0f;

@@ -367,7 +367,7 @@ static void GetBuildSettingsForRunningPlatform(
 
 		// Assume there is at least one format and the first one is what we want at runtime.
 		check(PlatformFormats.Num());
-		const UTextureLODSettings* LODSettings = (UTextureLODSettings*)&UDeviceProfileManager::Get().FindProfile(CurrentPlatform->PlatformName());
+		const UTextureLODSettings* LODSettings = (UTextureLODSettings*)UDeviceProfileManager::Get().FindProfile(CurrentPlatform->PlatformName());
 		GetTextureBuildSettings(Texture, *LODSettings, OutBuildSettings);
 		OutBuildSettings.TextureFormatName = PlatformFormats[0];
 	}
@@ -1216,7 +1216,7 @@ int32 FTexturePlatformData::GetNumNonStreamingMips() const
 		for (const FTexture2DMipMap& Mip : Mips)
 		{
 			uint32 BulkDataFlags = Mip.BulkData.GetBulkDataFlags();
-			if (BulkDataFlags & BULKDATA_PayloadInSeperateFile || BulkDataFlags & BULKDATA_PayloadAtEndOfFile)
+			if ((BulkDataFlags & BULKDATA_PayloadInSeperateFile) || (BulkDataFlags & BULKDATA_PayloadAtEndOfFile))
 			{
 				--NumNonStreamingMips;
 			}
@@ -1334,6 +1334,10 @@ static void SerializePlatformData(
 			MinMipToInline = FMath::Max(0, NumMips - PlatformData->GetNumNonStreamingMips());
 		}
 
+		for (int32 MipIndex = 0; MipIndex < NumMips && MipIndex < MinMipToInline; ++MipIndex)
+		{
+			PlatformData->Mips[MipIndex + FirstMipToSerialize].BulkData.SetBulkDataFlags(BULKDATA_Force_NOT_InlinePayload);
+		}
 		for (int32 MipIndex = MinMipToInline; MipIndex < NumMips; ++MipIndex)
 		{
 			PlatformData->Mips[MipIndex + FirstMipToSerialize].BulkData.SetBulkDataFlags(BULKDATA_ForceInlinePayload | BULKDATA_SingleUse);
@@ -1762,7 +1766,7 @@ void UTexture::FinishCachePlatformData()
 	{
 		FTexturePlatformData*& RunningPlatformData = *RunningPlatformDataPtr;
 		
-		if ( FApp::CanEverRender() )
+		if (Source.IsValid() && FApp::CanEverRender())
 		{
 			if ( RunningPlatformData == NULL )
 			{
@@ -1783,7 +1787,7 @@ void UTexture::FinishCachePlatformData()
 				GetBuildSettingsForRunningPlatform(*this, BuildSettings);
 				GetTextureDerivedDataKey(*this, BuildSettings, DerivedDataKey);
 
-				check(RunningPlatformData->DerivedDataKey == DerivedDataKey);
+				check(!RunningPlatformData || RunningPlatformData->DerivedDataKey == DerivedDataKey);
 			}
 #endif
 		}

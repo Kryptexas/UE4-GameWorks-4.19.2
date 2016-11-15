@@ -140,6 +140,9 @@ public:
 	/** Product version, based on FEngineVersion. */
 	FString EngineVersion;
 
+	/** Build version string. */
+	FString BuildVersion;
+
 	/** CL built from. */
 	int32 BuiltFromCL;
 
@@ -169,6 +172,12 @@ public:
 
 	FString PlatformName;
 	FString PlatformVariantName;
+
+	/** If we are using a PDBCache, this is whether we should use a system-wide lock to access it. */
+	bool bMutexPDBCache;
+
+	/** If we are using a PDBCache, this is the name of the system-wide lock we should use to access it. */
+	FString PDBCacheLockName;
 
 	FCrashInfo()
 		: BuiltFromCL( INVALID_CHANGELIST )
@@ -284,8 +293,12 @@ public:
 
 	/**
 	 * Sync the branch root relative file names to the requested label
+	 *
+	 *	@param	bOutPDBCacheEntryValid		Returns whether the PDB cache entry was found or created and whether it contains files.
+	 *
+	 *	@return	bool						true if successful, false if not
 	 */
-	virtual bool SyncModules();
+	virtual bool SyncModules(bool& bOutPDBCacheEntryValid);
 
 	/**
 	 *	Sync a single source file to the requested CL.

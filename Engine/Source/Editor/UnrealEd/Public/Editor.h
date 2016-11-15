@@ -176,6 +176,10 @@ struct UNREALED_API FEditorDelegates
 	static FSimpleMulticastDelegate OnLightingBuildStarted;
 	/** Called when a lighting build has been kept */
 	static FSimpleMulticastDelegate OnLightingBuildKept;
+	/** Called when a lighting build has failed (maybe called twice if cancelled) */
+	static FSimpleMulticastDelegate OnLightingBuildFailed;
+	/** Called when a lighting build has succeeded */
+	static FSimpleMulticastDelegate OnLightingBuildSucceeded;
 	/** Called when when attempting to apply an object to an actor (via drag drop) */
 	static FOnApplyObjectToActor OnApplyObjectToActor;
 	/** Called when focusing viewport on a set of actors */
@@ -420,7 +424,7 @@ extern bool GBuildStaticMeshCollision;
 //
 // Creating a static mesh from an array of triangles.
 //
-UStaticMesh* CreateStaticMesh(struct FRawMesh& RawMesh,TArray<UMaterialInterface*>& Materials,UObject* Outer,FName Name);
+UStaticMesh* CreateStaticMesh(struct FRawMesh& RawMesh,TArray<FStaticMaterial>& Materials,UObject* Outer,FName Name);
 
 struct FMergeStaticMeshParams
 {
@@ -467,9 +471,9 @@ void MergeStaticMesh(UStaticMesh* DestMesh, UStaticMesh* SourceMesh, const FMerg
 //
 // Converting models to static meshes.
 //
-void GetBrushMesh(ABrush* Brush,UModel* Model,struct FRawMesh& OutMesh,TArray<UMaterialInterface*>& OutMaterials);
+UNREALED_API void GetBrushMesh(ABrush* Brush,UModel* Model,struct FRawMesh& OutMesh,TArray<FStaticMaterial>& OutMaterials);
 UStaticMesh* CreateStaticMeshFromBrush(UObject* Outer,FName Name,ABrush* Brush,UModel* Model);
-
+ 
 /**
  * Converts a static mesh to a brush.
  *
@@ -624,6 +628,9 @@ namespace EditorUtilities
 		/** User-specified custom property filter predicate */
 		TFunction<bool(UProperty&, UObject&)> PropertyFilter;
 	};
+
+	/** Helper function for CopyActorProperties(). Copies a single property form a source object to a target object. */
+	UNREALED_API void CopySingleProperty(const UObject* const InSourceObject, UObject* const InTargetObject, UProperty* const InProperty);
 
 	/**
 	 * Copies properties from one actor to another.  Designed for propagating changes made to PIE actors back to their EditorWorld

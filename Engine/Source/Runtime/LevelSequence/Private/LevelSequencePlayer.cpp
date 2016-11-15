@@ -487,7 +487,8 @@ void ULevelSequencePlayer::UpdateCameraCut(UObject* CameraObject, UObject* Unloc
 	// skip unlocking if the current view target differs
 	AActor* UnlockIfCameraActor = Cast<AActor>(UnlockIfCameraObject);
 
-	if ((CameraObject == nullptr) && (UnlockIfCameraActor != ViewTarget))
+	// if unlockIfCameraActor is valid, release lock if currently locked to object
+	if (CameraObject == nullptr && UnlockIfCameraActor != nullptr && UnlockIfCameraActor != ViewTarget)
 	{
 		return;
 	}
@@ -639,7 +640,7 @@ void ULevelSequencePlayer::TakeFrameSnapshot(FLevelSequencePlayerSnapshot& OutSn
 		UMovieSceneCinematicShotSection* ActiveShot = nullptr;
 		for (UMovieSceneSection* Section : ShotTrack->GetAllSections())
 		{
-			if (Section->GetRange().Contains(CurrentTime) && (!ActiveShot || Section->GetRowIndex() < ActiveShot->GetRowIndex()))
+			if (Section->IsActive() && Section->GetRange().Contains(CurrentTime) && (!ActiveShot || Section->GetRowIndex() < ActiveShot->GetRowIndex()))
 			{
 				ActiveShot = Cast<UMovieSceneCinematicShotSection>(Section);
 			}

@@ -527,6 +527,11 @@ public:
 	void UpdateHoveredObjects( const TSet<FViewportHoverTarget>& NewHoveredObjects );
 
 	/**
+	 * Calling SetViewportType from Dragtool_ViewportChange
+	 */
+	void SetViewportTypeFromTool(ELevelViewportType InViewportType);
+
+	/**
 	 * Static: Attempts to place the specified object in the level, returning one or more newly-created actors if successful.
 	 * IMPORTANT: The placed actor's location must be first set using GEditor->ClickLocation and GEditor->ClickPlane.
 	 *
@@ -576,6 +581,7 @@ protected:
 	virtual void UpdateLinkedOrthoViewports( bool bInvalidate = false ) override;
 	virtual ELevelViewportType GetViewportType() const override;
 	virtual void SetViewportType( ELevelViewportType InViewportType ) override;
+	virtual void RotateViewportType() override;
 	virtual void OverridePostProcessSettings( FSceneView& View ) override;
 	virtual void PerspectiveCameraMoved() override;
 	virtual bool ShouldLockPitch() const override;

@@ -92,6 +92,8 @@ FWidgetBlueprintEditor::~FWidgetBlueprintEditor()
 
 void FWidgetBlueprintEditor::InitWidgetBlueprintEditor(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode)
 {
+	bShowDashedOutlines = GetDefault<UWidgetDesignerSettings>()->bShowOutlines;
+
 	TSharedPtr<FWidgetBlueprintEditor> ThisPtr(SharedThis(this));
 	WidgetToolbar = MakeShareable(new FWidgetBlueprintEditorToolbar(ThisPtr));
 
@@ -672,6 +674,8 @@ TSharedPtr<ISequencer>& FWidgetBlueprintEditor::GetSequencer()
 
 		Sequencer = FModuleManager::LoadModuleChecked<ISequencerModule>("Sequencer").CreateSequencer(SequencerInitParams);
 		Sequencer->OnMovieSceneDataChanged().AddSP( this, &FWidgetBlueprintEditor::OnMovieSceneDataChanged );
+		// Change selected widgets in the sequencer tree view
+		Sequencer->GetSelectionChangedObjectGuids().AddSP(this, &FWidgetBlueprintEditor::SyncSelectedWidgetsWithSequencerSelection);
 		ChangeViewedAnimation(*UWidgetAnimation::GetNullAnimation());
 	}
 
@@ -918,12 +922,22 @@ EWidgetDesignFlags::Type FWidgetBlueprintEditor::GetCurrentDesignerFlags() const
 {
 	EWidgetDesignFlags::Type Flags = EWidgetDesignFlags::Designing;
 	
-	if ( GetDefault<UWidgetDesignerSettings>()->bShowOutlines )
+	if ( bShowDashedOutlines )
 	{
 		Flags = ( EWidgetDesignFlags::Type )(Flags | EWidgetDesignFlags::ShowOutline);
 	}
 
 	return Flags;
+}
+
+bool FWidgetBlueprintEditor::GetShowDashedOutlines() const
+{
+	return bShowDashedOutlines;
+}
+
+void FWidgetBlueprintEditor::SetShowDashedOutlines(bool Value)
+{
+	bShowDashedOutlines = Value;
 }
 
 class FObjectAndDisplayName
@@ -1124,7 +1138,9 @@ void FWidgetBlueprintEditor::ReplaceTrackWithSelectedWidget(FWidgetReference Sel
 					UMovieScenePropertyTrack* PropertyTrack = Cast<UMovieScenePropertyTrack>(Track);
 					if (PropertyTrack)
 					{
-						FString NameString = "Set" + PropertyTrack->GetPropertyName().ToString();
+						FString PropertyName = PropertyTrack->GetPropertyName().ToString();
+						PropertyName.RemoveFromStart("b", ESearchCase::CaseSensitive);
+						FString NameString = "Set" + PropertyName;
 						FName FunctionName = FName(*NameString);
 						if (!SelectedWidget.GetTemplate()->FindFunction(FunctionName))
 						{
@@ -1212,7 +1228,7 @@ void FWidgetBlueprintEditor::ExtendSequencerObjectBindingMenu(FMenuBuilder& Obje
 			FUIAction ReplaceWithMenuAction(FExecuteAction::CreateRaw(this, &FWidgetBlueprintEditor::ReplaceTrackWithSelectedWidget, SelectedWidget, BoundWidget));
 
 			FText ReplaceWithLabel = FText::Format(LOCTEXT("ReplaceObject", "Replace with {0}"), FText::FromString(SelectedWidget.GetPreview()->GetName()));
-			FText ReplaceWithToolTip = FText::Format(LOCTEXT("ReplaceObjectToolTip", "Replace the widget in this animation with selected"), FText::FromString(SelectedWidget.GetPreview()->GetName()));
+			FText ReplaceWithToolTip = FText::Format(LOCTEXT("ReplaceObjectToolTip", "Replace the bound widget in this animation with {0}"), FText::FromString(SelectedWidget.GetPreview()->GetName()));
 
 			ObjectBindingMenuBuilder.AddMenuEntry(ReplaceWithLabel, ReplaceWithToolTip, FSlateIcon(), ReplaceWithMenuAction);
 			ObjectBindingMenuBuilder.AddMenuSeparator();
@@ -1255,6 +1271,34 @@ void FWidgetBlueprintEditor::AddMaterialTrack( UWidget* Widget, TArray<UProperty
 void FWidgetBlueprintEditor::OnMovieSceneDataChanged()
 {
 	bRefreshGeneratedClassAnimations = true;
+}
+
+void FWidgetBlueprintEditor::SyncSelectedWidgetsWithSequencerSelection(TArray<FGuid> ObjectGuids)
+{
+	UWidgetAnimation* WidgetAnimation = Cast<UWidgetAnimation>(GetSequencer().Get()->GetFocusedMovieSceneSequence());
+	UObject* BindingContext = GetSequencer().Get()->GetPlaybackContext();
+	TSet<FWidgetReference> SequencerSelectedWidgets;
+	for (FGuid Guid : ObjectGuids)
+	{
+		UObject* BoundObject = WidgetAnimation->FindPossessableObject(Guid, BindingContext);
+		if (!BoundObject)
+		{
+			continue;
+		}
+		else if (Cast<UPanelSlot>(BoundObject))
+		{
+			SequencerSelectedWidgets.Add(GetReferenceFromPreview(Cast<UPanelSlot>(BoundObject)->Content));
+		}
+		else
+		{
+			UWidget* BoundWidget = Cast<UWidget>(BoundObject);
+			SequencerSelectedWidgets.Add(GetReferenceFromPreview(BoundWidget));
+		}
+	}
+	if (SequencerSelectedWidgets.Num() != 0)
+	{
+		SelectWidgets(SequencerSelectedWidgets, false);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

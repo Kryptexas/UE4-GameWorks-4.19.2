@@ -338,6 +338,8 @@ void FCoreAudioSoundSource::Update( void )
 		Volume = 20.0 * log10(Volume);
 		Volume = FMath::Clamp<float>( Volume, -120.0f, 20.0f );
 
+		Volume = FSoundSource::GetDebugVolume(Volume);
+
 		const float Pitch = FMath::Clamp<float>( WaveInstance->Pitch, MIN_PITCH, MAX_PITCH );
 		
 		// Set the HighFrequencyGain value
@@ -885,10 +887,13 @@ bool FCoreAudioSoundSource::DetachFromAUGraph()
 	check(AudioChannel != 0);
 	check(MixerInputNumber != -1);
 
-	AURenderCallbackStruct Input;
-	Input.inputProc = NULL;
-	Input.inputProcRefCon = NULL;
-	SAFE_CA_CALL( AudioUnitSetProperty( SourceUnit, kAudioUnitProperty_SetRenderCallback, kAudioUnitScope_Input, 0, &Input, sizeof( Input ) ) );
+	if (SourceUnit)
+	{
+		AURenderCallbackStruct Input;
+		Input.inputProc = NULL;
+		Input.inputProcRefCon = NULL;
+		SAFE_CA_CALL( AudioUnitSetProperty( SourceUnit, kAudioUnitProperty_SetRenderCallback, kAudioUnitScope_Input, 0, &Input, sizeof( Input ) ) );
+	}
 
 // Make sure we still have null nodes
 #if !CORE_AUDIO_RADIO_ENABLED
@@ -954,7 +959,7 @@ bool FCoreAudioSoundSource::DetachFromAUGraph()
 	{
 		SAFE_CA_CALL( AUGraphRemoveNode( AudioDevice->GetAudioUnitGraph(), ReverbNode ) );
 	}
-	if( AudioChannel )
+	if( SourceNode )
 	{
 		SAFE_CA_CALL( AUGraphRemoveNode( AudioDevice->GetAudioUnitGraph(), SourceNode ) );
 	}

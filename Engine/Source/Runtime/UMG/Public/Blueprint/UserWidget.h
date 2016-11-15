@@ -145,8 +145,12 @@ public:
 	//~ End UObject Interface
 
 	virtual bool Initialize();
-	virtual void CustomNativeInitilize() {}
 
+protected:
+	/** THe function is implemented only in nativized widgets (automatically converted from BP to c++) */
+	virtual void InitializeNativeClassData() {}
+
+public:
 	//UVisual interface
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 	//~ End UVisual Interface
@@ -916,6 +920,11 @@ public:
 
 protected:
 
+	/** Has this widget been initialized by its class yet? */
+	bool bInitialized : 1;
+
+protected:
+
 	/** Adds the widget to the screen, either to the viewport or to the player's screen depending on if the LocalPlayer is null. */
 	virtual void AddToScreen(ULocalPlayer* LocalPlayer, int32 ZOrder);
 
@@ -1048,9 +1057,6 @@ private:
 
 	/** Get World calls can be expensive for Widgets, we speed them up by caching the last found world until it goes away. */
 	mutable TWeakObjectPtr<UWorld> CachedWorld;
-
-	/** Has this widget been initialized by its class yet? */
-	bool bInitialized;
 };
 
 #define LOCTEXT_NAMESPACE "UMG"

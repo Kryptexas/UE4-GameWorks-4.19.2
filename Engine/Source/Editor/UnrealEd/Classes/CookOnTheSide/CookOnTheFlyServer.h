@@ -774,7 +774,8 @@ private:
 	int32 MaxNumPackagesBeforePartialGC;
 	/** Num packages saved since last partial gc */
 	int32 NumPackagesSavedSinceLastPartialGC;
-
+	/** Max number of conncurrent shader jobs reducing this too low will increase cook time */
+	int32 MaxConcurrentShaderJobs;
 	ECookInitializationFlags CookFlags;
 	TAutoPtr<class FSandboxPlatformFile> SandboxFile;
 	bool bIsInitializingSandbox; // stop recursion into callbacks when we are initializing sandbox
@@ -847,9 +848,24 @@ private:
 	mutable TMap<FName, FCachedPackageFilename> PackageFilenameCache; // filename cache (only process the string operations once)
 	mutable TMap<FName, FName> PackageFilenameToPackageFNameCache;
 
-	// declared mutable as it's used purely as a cache and don't want to have to declare all the functions as non const just because of this cache
-	// used by IniSettingsOutOfDate and GetCurrentIniStrings 
-	mutable TMap<FName, TArray<FString>> CachedIniVersionStringsMap;
+
+
+	//////////////////////////////////////////////////////////////////////////
+	// iterative ini settings checking
+	// growing list of ini settings which are accessed over the course of the cook
+	
+	// tmap of the Config name, Section name, Key name, to the value
+	typedef TMap<FName, TMap<FName, TMap<FName, TArray<FString>>>> FIniSettingContainer;
+
+	mutable bool IniSettingRecurse;
+	mutable FIniSettingContainer AccessedIniStrings;
+	TArray<const FConfigFile*> OpenConfigFiles;
+	TArray<FString> ConfigSettingBlacklist;
+	void OnFConfigDeleted(const FConfigFile* Config);
+	void OnFConfigCreated(const FConfigFile* Config);
+
+	void ProcessAccessedIniSettings(const FConfigFile* Config, FIniSettingContainer& AccessedIniStrings) const;
+
 
 public:
 
@@ -976,14 +992,6 @@ public:
 	uint32 TickCookOnTheSide( const float TimeSlice, uint32 &CookedPackagesCount );
 
 	/**
-	 * Editor Tick, special tick which is called only when used from the editor (IsCookingInEditor)
-	 *
-	 * @param Timeslice, duration this function is allowed to run in
-	 * @param RequestedTargetPlatform, keep this target platform up to date this is the platform we are likely to launch on next
-	 */
-	void EditorTick( const float Timeslice, const TArray<const ITargetPlatform*>& RequestedTargetPlatform);
-
-	/**
 	 * Clear all the previously cooked data all cook requests from now on will be considered recook requests
 	 */
 	void ClearAllCookedData();
@@ -1061,6 +1069,9 @@ public:
 
 	/** Returns the configured number of packages to process before GC */
 	uint32 GetPackagesPerGC() const;
+
+	/** Returns the target max concurrent shader jobs */
+	int32 GetMaxConcurrentShaderJobs() const;
 
 	/** Returns the configured amount of idle time before forcing a GC */
 	double GetIdleTimeToGC() const;
@@ -1302,13 +1313,15 @@ private:
 	 */
 	bool ContainsMap(const FName& PackageName) const;
 
+	
+
 	/**
 	 * GetCurrentIniVersionStrings gets the current ini version strings for compare against previous cook
 	 * 
 	 * @param IniVersionStrings return list of the important current ini version strings
 	 * @return false if function fails (should assume all platforms are out of date)
 	 */
-	bool GetCurrentIniVersionStrings( const ITargetPlatform* TargetPlatform, TArray<FString> &IniVersionStrings ) const;
+	bool GetCurrentIniVersionStrings( const ITargetPlatform* TargetPlatform, FIniSettingContainer& IniVersionStrings ) const;
 
 	/**
 	 * GetCookedIniVersionStrings gets the ini version strings used in previous cook for specified target platform
@@ -1316,7 +1329,7 @@ private:
 	 * @param IniVersionStrings return list of the previous cooks ini version strings
 	 * @return false if function fails to find the ini version strings
 	 */
-	bool GetCookedIniVersionStrings( const ITargetPlatform* TargetPlatform, TArray<FString>& IniVersionStrings ) const;
+	bool GetCookedIniVersionStrings( const ITargetPlatform* TargetPlatform, FIniSettingContainer& IniVersionStrings, TMap<FString, FString>& AdditionalStrings ) const;
 
 
 	/**
@@ -1375,7 +1388,7 @@ private:
 	 * 
 	 * @param TargetPlatforms to look for ini settings for
 	 */
-	bool CacheIniVersionStringsMap( const ITargetPlatform* TargetPlatform ) const;
+	//bool CacheIniVersionStringsMap( const ITargetPlatform* TargetPlatform ) const;
 
 	/**
 	 * Checks if important ini settings have changed since last cook for each target platform 
@@ -1391,6 +1404,8 @@ private:
 	 * @param TargetPlatforms to save
 	 */
 	bool SaveCurrentIniSettings( const ITargetPlatform* TargetPlatform ) const;
+
+
 
 	/**
 	 * IsCookFlagSet

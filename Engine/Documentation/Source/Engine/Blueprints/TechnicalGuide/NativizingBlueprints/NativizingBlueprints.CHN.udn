@@ -1,50 +1,47 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title:Nativizing Blueprints
+﻿INTSourceChangelist:3075225
+Availability:Public
+Title:原生化蓝图
 Crumbs: %ROOT%, Programming, Engine/Blueprints/TechnicalGuide
-Description:Technical guide for gameplay programmers exposing gameplay elements to Blueprints.
-Version: 4.12
-Parent: Engine/Blueprints/TechnicalGuide
+Description:游戏性程序员将游戏性元素对蓝图公开的技术教程。
+Version:4.12
+Parent:Engine/Blueprints/TechnicalGuide
+type:overview
 
 [REGION:warning]
-This is an experimental beta feature. All Unreal Engine 4 sample games and some medium-size demos were successfully nativized, but we're still working on using the feature with larger projects.
+这是一个实验性 beta 功能。所有虚幻引擎 4 游戏实例和部分中等大小的 demo 均已成功原生化，但我们仍在努力，力求在大型项目中使用此功能。
 [/REGION]
 
 
-The new Blueprint Nativization tool enables you to generate native C++ code from your project's Blueprints. Cooking your project out for testing outside the editor or for release will
-compile the project with the generated code. All of the Blueprint Classes are then replaced by the newly-generated native classes. The main goal of Blueprint Nativization is to 
-reduce the virtual machine (VM) overhead in the runtime version of the project. As a result, the generated code is not necessarily designed to be "friendly" or reusable. 
+全新的蓝图原生化工具可从项目蓝图生成本地 C++ 代码。完成项目后在编辑器外进行测试或进行发布时，将使用生成的代码对项目进行编译。所有蓝图类将被新生成的本地类替代。蓝图原生化的主要目的是降低项目运行时版本中的虚拟机（VM）开销。因此，生成的代码并未设计为“友好”或可重复使用。 
 
-This page will get you started with nativizing your project's Blueprints, and for Blueprint-only projects, this should be a mostly transparent process. If you have C++ in your project as well,
-or want to debug the nativized code, see  [](Engine/Blueprints/TechnicalGuide/NativizingBlueprints/Advanced) for more information.
+此页面将助您上手项目蓝图的原生化。对纯蓝图项目而言，这应该是透明度最高的一个流程。如项目中也使用了 C++，或需要对原生化代码进行调试，请查阅 [](Engine/Blueprints/TechnicalGuide/NativizingBlueprints/Advanced) 中的更多内容。
 
 
-## Enabling Blueprint Nativization
+## 启用蓝图原生化
 
-To enable Blueprint Nativization, use the **Edit Menu** to open **Project Settings**. Under **Packaging**, enable the **Nativize Blueprint Assets** checkbox.
+如需启用蓝图原生化，使用 **Edit 菜单** 打开 **Project Settings**。在 **Packaging** 下启用 **Nativize Blueprint Assets** 复选框。
 
 ![](BlueprintNativizeCheckbox.png)
 
-Then, when you package your project, the following Blueprint assets will be nativized: 
+之后打包项目时，以下蓝图资源将被原生化： 
 
-* Blueprint Classes
-* Blueprint Function Libraries
-* Blueprint Interfaces
-* Anim Blueprints 
-* Widget Blueprints
-* User Defined Structures
-* User Defined Enums
+* 蓝图类
+* 蓝图函数库
+* 蓝图接口
+* 动画蓝图 
+* 控件蓝图
+* 用户定义结构
+* 用户定义枚举
 
-Currently, _Level Blueprints_ will not be converted. The nativized code is stored in `[ProjectDirectory]\Intermediate\[Platform That Was Cooked For]\NativizedAssets\Source\NativizedAssets\`.
+当前 _关卡蓝图_ 将不会被转换。原生化代码保存的路径为 `[项目目录]\Intermediate\[制作平台]\NativizedAssets\Source\NativizedAssets\`。
 
-## Excluding Blueprints from Conversion
+## 从转换中排除蓝图
 
-You can also exclude certain _Blueprints_ from conversion. In your project's `DefaultEditor.ini` file, create a `[BlueprintNativizationSettings]` heading.
+也可从转换中排除特定 _蓝图_。在项目的 `DefaultEditor.ini` 文件中创建一个 `[BlueprintNativizationSettings]` 标题。
 
-* To exclude a certain type of asset, set `ExcludedBlueprintTypes`. For example, `+ExcludedBlueprintTypes=/Script/UMGEditor.WidgetBlueprint` will not convert any _Widget Blueprints_.
-* To exclude an individual asset, set `ExcludedAssets`. For example, `+ExcludedAssets=/Engine/Tutorial/SubEditors/TutorialAssets/Character/TutorialCharacter` will not convert the **Tutorial Character**.
+* 如需排除特定类型的资源，设置 `ExcludedBlueprintTypes`。例如，`+ExcludedBlueprintTypes=/Script/UMGEditor.WidgetBlueprint` 不会转换 _控件蓝图_。
+* 如需排除单个资源，设置 `ExcludedAssets`。例如，`+ExcludedAssets=/Engine/Tutorial/SubEditors/TutorialAssets/Character/TutorialCharacter` 不会转换 **教程角色**。
 
-Assets are nativized if and only if they are cooked. When the cooker has no assets/maps specified to be cooked, it cooks 
-everything from your project's **Content** directory. If you see some unused Blueprints are being nativized, you can also use the list of maps to package to omit assets. 
+资源只有在被制成后才可进行原生化。如果未指定制作器制作资源/地图，它将对项目 **Content** 目录下的所有内容进行制作。如发现部分未使用的蓝图正被原生化，也可使用地图列表进行打包，排除资源。 
 
 ![](AdditionalMaps.png)

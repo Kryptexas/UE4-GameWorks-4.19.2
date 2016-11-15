@@ -11,6 +11,7 @@
 #include "NotificationManager.h"
 #include "SNotificationList.h"
 #include "ActorRecordingDetailsCustomization.h"
+#include "SequenceRecorderDetailsCustomization.h"
 #include "PropertiesToRecordForClassDetailsCustomization.h"
 
 #define LOCTEXT_NAMESPACE "SequenceRecorder"
@@ -85,11 +86,15 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 			LevelEditorModule.OnCaptureSingleFrameAnimSequence().BindStatic(&FSequenceRecorderModule::HandleCaptureSingleFrameAnimSequence);
 
 			// register standalone UI
-			FGlobalTabmanager::Get()->RegisterNomadTabSpawner(SequenceRecorderTabName, FOnSpawnTab::CreateStatic(&FSequenceRecorderModule::SpawnSequenceRecorderTab))
+			LevelEditorTabManagerChangedHandle = LevelEditorModule.OnTabManagerChanged().AddLambda([]()
+			{
+				FLevelEditorModule& LocalLevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+				LocalLevelEditorModule.GetLevelEditorTabManager()->RegisterTabSpawner(SequenceRecorderTabName, FOnSpawnTab::CreateStatic(&FSequenceRecorderModule::SpawnSequenceRecorderTab))
 				.SetGroup(WorkspaceMenu::GetMenuStructure().GetLevelEditorCategory())
 				.SetDisplayName(LOCTEXT("SequenceRecorderTabTitle", "Sequence Recorder"))
 				.SetTooltipText(LOCTEXT("SequenceRecorderTooltipText", "Open the Sequence Recorder tab."))
 				.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "SequenceRecorder.TabIcon"));
+			});
 
 			// register for debug drawing
 			DrawDebugDelegateHandle = UDebugDrawService::Register(TEXT("Decals"), FDebugDrawDelegate::CreateStatic(&FSequenceRecorderModule::DrawDebug));
@@ -97,6 +102,7 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 			// register details customization
 			FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 			PropertyModule.RegisterCustomClassLayout(UActorRecording::StaticClass()->GetFName(), FOnGetDetailCustomizationInstance::CreateStatic(&FActorRecordingDetailsCustomization::MakeInstance));
+			PropertyModule.RegisterCustomClassLayout(USequenceRecorderSettings::StaticClass()->GetFName(), FOnGetDetailCustomizationInstance::CreateStatic(&FSequenceRecorderDetailsCustomization::MakeInstance));
 			PropertyModule.RegisterCustomPropertyTypeLayout(FPropertiesToRecordForClass::StaticStruct()->GetFName(), FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FPropertiesToRecordForClassDetailsCustomization::MakeInstance));
 		}
 #endif
@@ -121,6 +127,7 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 			{
 				FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
 				LevelEditorModule.OnCaptureSingleFrameAnimSequence().Unbind();
+				LevelEditorModule.OnTabManagerChanged().Remove(LevelEditorTabManagerChangedHandle);
 			}
 
 			if (FModuleManager::Get().IsModuleLoaded(TEXT("Persona")))
@@ -533,6 +540,34 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 		return FGuid();
 	}
 
+	virtual FDelegateHandle RegisterAudioRecorder(const TFunction<TUniquePtr<ISequenceAudioRecorder>()>& FactoryFunction) override
+	{
+		ensureMsgf(!AudioFactory, TEXT("Audio recorder already registered."));
+
+		AudioFactory = FactoryFunction;
+		AudioFactoryHandle = FDelegateHandle(FDelegateHandle::GenerateNewHandle);
+		return AudioFactoryHandle;
+	}
+
+	virtual void UnregisterAudioRecorder(FDelegateHandle Handle) override
+	{
+		if (Handle == AudioFactoryHandle)
+		{
+			AudioFactory.Unset();
+			AudioFactoryHandle = FDelegateHandle();
+		}
+	}
+
+	virtual bool HasAudioRecorder() const override
+	{
+		return AudioFactoryHandle.IsValid();
+	}
+
+	virtual TUniquePtr<ISequenceAudioRecorder> CreateAudioRecorder() const
+	{
+		return AudioFactory ? AudioFactory() : TUniquePtr<ISequenceAudioRecorder>();
+	}
+
 	static void TickSequenceRecorder(float DeltaSeconds)
 	{
 		if (!IsRunningDedicatedServer() && !IsRunningCommandlet())
@@ -608,6 +643,12 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 	FDelegateHandle PostEditorTickHandle;
 
 	FDelegateHandle DrawDebugDelegateHandle;
+
+	FDelegateHandle LevelEditorTabManagerChangedHandle;
+
+	TFunction<TUniquePtr<ISequenceAudioRecorder>()> AudioFactory;
+
+	FDelegateHandle AudioFactoryHandle;
 };
 
 IMPLEMENT_MODULE( FSequenceRecorderModule, SequenceRecorder )

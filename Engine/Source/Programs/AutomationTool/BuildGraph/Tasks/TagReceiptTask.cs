@@ -15,23 +15,21 @@ namespace AutomationTool.Tasks
 	public class TagReceiptTaskParameters
 	{
 		/// <summary>
-		/// Set of *.target files to read from, including wildcards and tag names, separated by semicolons. Resolved relative to the branch root directory.
+		/// Set of receipt files (*.target) to read, including wildcards and tag names, separated by semicolons.
 		/// </summary>
-		[TaskParameter]
+		[TaskParameter(ValidationType = TaskParameterValidationType.FileSpec)]
 		public string Files;
 
 		/// <summary>
-		/// Directory relative to the root directory that the Engine data is in - used to replace the $(EngineDir) property used in *.target files
-		/// If unspecified will default to Root/Engine
+		/// Path to the Engine folder, used to expand $(EngineDir) properties in receipt files. Defaults to the Engine directory for the current workspace.
 		/// </summary>
-		[TaskParameter(Optional = true)]
+		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.DirectoryName)]
 		public string EngineDir;
 
 		/// <summary>
-		/// Directory relative to the root directory that the Project data is in - used to replace the $(ProjectDir) property used in *.target files
-		/// If unspecified will default to Root/Engine
+		/// Path to the project folder, used to expand $(ProjectDir) properties in receipt files. Defaults to the Engine directory for the current workspace.
 		/// </summary>
-		[TaskParameter(Optional = true)]
+		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.DirectoryName)]
 		public string ProjectDir;
 
 		/// <summary>
@@ -79,8 +77,6 @@ namespace AutomationTool.Tasks
 
 	/// <summary>
 	/// Task which tags build products and/or runtime dependencies by reading from *.target files.
-	/// Filtering is performed using the following method:
-	/// * A set of files is enumerated from the tags and file specifications given by the "Files" parameter
 	/// </summary>
 	[TaskElement("TagReceipt", typeof(TagReceiptTaskParameters))]
 	class TagReceiptTask : CustomTask

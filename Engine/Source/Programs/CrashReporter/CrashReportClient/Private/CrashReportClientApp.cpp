@@ -234,11 +234,13 @@ bool RunWithUI(FPlatformErrorReport ErrorReport)
 	// open up the app window	
 	TSharedRef<SCrashReportClient> ClientControl = SNew(SCrashReportClient, CrashReportClient);
 
+	const FSlateRect WorkArea = FSlateApplicationBase::Get().GetPreferredWorkArea();
+
 	auto Window = FSlateApplication::Get().AddWindow(
 		SNew(SWindow)
 		.Title(NSLOCTEXT("CrashReportClient", "CrashReportClientAppName", "Unreal Engine 4 Crash Reporter"))
 		.HasCloseButton(FCrashReportClientConfig::Get().IsAllowedToCloseWithoutSending())
-		.ClientSize(InitialWindowDimensions)
+		.ClientSize(InitialWindowDimensions * FPlatformMisc::GetDPIScaleFactorAtPoint(WorkArea.Left, WorkArea.Top))
 		[
 			ClientControl
 		]);
@@ -299,6 +301,12 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 
 	// Set up the main loop
 	GEngineLoop.PreInit(CommandLine);
+
+	// Make sure all UObject classes are registered and default properties have been initialized
+	ProcessNewlyLoadedUObjects();
+
+	// Tell the module manager is may now process newly-loaded UObjects when new C++ modules are loaded
+	FModuleManager::Get().StartProcessingNewlyLoadedObjects();
 
 	// Initialize config.
 	FCrashReportClientConfig::Get();

@@ -5,23 +5,11 @@
   <Date>2016-06-30T17:09:36.4013221-04:00</Date>
   <Function>Provides the basic C runtime support used by the engine.</Function>
   <Justification>This is the redistributable packaged for applocal install to circumvent issues with the requirements of the full redist installer.</Justification>
-  <Platforms>
-    <Platform>PC</Platform>
-    <Platform>Windows 8</Platform>
-  </Platforms>
-  <Products>
-    <Product>UE4</Product>
-  </Products>
-  <TpsType>dll</TpsType>
   <Eula>https://www.visualstudio.com/en-us/support/legal/mt171576</Eula>
   <RedistributeTo>
     <EndUserGroup>Licensees</EndUserGroup>
     <EndUserGroup>Git</EndUserGroup>
     <EndUserGroup>P4</EndUserGroup>
   </RedistributeTo>
-  <Redistribute>false</Redistribute>
-  <IsSourceAvailable>false</IsSourceAvailable>
-  <NoticeType>None</NoticeType>
-  <Notification />
   <LicenseFolder>None</LicenseFolder>
 </TpsData>

@@ -90,6 +90,8 @@ namespace AutomationTool
 		/// Constructor
 		/// </summary>
 		/// <param name="Name">The name of this option</param>
+		/// <param name="Description">Description of the option, for display on help pages</param>
+		/// <param name="DefaultValue">Default value for the option</param>
 		public GraphOption(string Name, string Description, string DefaultValue)
 		{
 			this.Name = Name;
@@ -358,6 +360,7 @@ namespace AutomationTool
 		/// Writes a preprocessed build graph to a script file
 		/// </summary>
 		/// <param name="File">The file to load</param>
+		/// <param name="SchemaFile">Schema file for validation</param>
 		public void Write(FileReference File, FileReference SchemaFile)
 		{
 			XmlWriterSettings Settings = new XmlWriterSettings();
@@ -464,7 +467,7 @@ namespace AutomationTool
 						{
 							JsonWriter.WriteObjectStart();
 							JsonWriter.WriteValue("Name", Node.Name);
-							JsonWriter.WriteValue("DependsOn", String.Join(";", Node.GetDirectOrderDependencies().Where(x => NodesToExecute.Contains(x))));
+							JsonWriter.WriteValue("DependsOn", String.Join(";", Node.GetDirectOrderDependencies().Where(x => NodesToExecute.Contains(x) && x.ControllingTrigger == Trigger)));
 							JsonWriter.WriteObjectStart("Notify");
 							JsonWriter.WriteValue("Default", String.Join(";", Node.NotifyUsers));
 							JsonWriter.WriteValue("Submitters", String.Join(";", Node.NotifySubmitters));
@@ -568,7 +571,7 @@ namespace AutomationTool
 		/// <summary>
 		/// Print the contents of the graph
 		/// </summary>
-		/// <param name="NodeToState">Mapping of node to its current state</param>
+		/// <param name="CompletedNodes">Set of nodes which are already complete</param>
 		/// <param name="PrintOptions">Options for how to print the graph</param>
 		public void Print(HashSet<Node> CompletedNodes, GraphPrintOptions PrintOptions)
 		{

@@ -3,6 +3,7 @@
 #include "MessageLogPrivatePCH.h"
 #include "SMessageLogMessageListRow.h"
 #include "SHyperlink.h"
+#include "Internationalization/Regex.h"
 
 #define LOCTEXT_NAMESPACE "SMessageLogMessageListRow"
 
@@ -158,8 +159,30 @@ void SMessageLogMessageListRow::CreateMessage(const TSharedRef<SHorizontalBox>& 
 		const TSharedRef<FUObjectToken> UObjectToken = StaticCastSharedRef<FUObjectToken>(InMessageToken);
 
 		IconBrushName = FName("PropertyWindow.Button_Browse");
+
+		UObject* Object = nullptr;
+
+		// Due to blueprint reconstruction, we can't directly use the Object as it will get trashed during the blueprint reconstruction and the message token will no longer point to the right UObject.
+		// Instead we will retrieve the object from the name which should always be good.
+		if (UObjectToken->GetObject().IsValid())
+		{
+			if (!UObjectToken->ToText().ToString().Equals(UObjectToken->GetObject().Get()->GetName()))
+			{
+				Object = FindObject<UObject>(nullptr, *UObjectToken->GetOriginalObjectPathName());
+			}
+			else
+			{
+				Object = const_cast<UObject*>(UObjectToken->GetObject().Get());
+			}
+		}
+		else
+		{
+			// We have no object (probably because is now stale), try finding the original object linked to this message token to see if it still exist
+			Object = FindObject<UObject>(nullptr, *UObjectToken->GetOriginalObjectPathName());
+		}
+
 		RowContent = CreateHyperlink(InMessageToken, FUObjectToken::DefaultOnGetObjectDisplayName().IsBound()
-			? FUObjectToken::DefaultOnGetObjectDisplayName().Execute(UObjectToken->GetObject().Get(), true)
+			? FUObjectToken::DefaultOnGetObjectDisplayName().Execute(Object, true)
 			: UObjectToken->ToText());
 	}
 		break;
@@ -229,9 +252,47 @@ void SMessageLogMessageListRow::CreateMessage(const TSharedRef<SHorizontalBox>& 
 		}
 		else
 		{
-			RowContent = SNew(STextBlock)
+			FString MessageString = InMessageToken->ToText().ToString();
+
+			// ^((?:[\w]\:|\\)(?:(?:\\[a-z_\-\s0-9\.]+)+)\.(?:cpp|h))\((\d+)\)
+			// https://regex101.com/r/vV4cV7/1
+			FRegexPattern FileAndLinePattern(TEXT("^((?:[\\w]\\:|\\\\)(?:(?:\\\\[a-z_\\-\\s0-9\\.]+)+)\\.(?:cpp|h))\\((\\d+)\\)"));
+			FRegexMatcher FileAndLineRegexMatcher(FileAndLinePattern, MessageString);
+
+			TSharedRef<SWidget> SourceLink = SNullWidget::NullWidget;
+
+			if ( FileAndLineRegexMatcher.FindNext() )
+			{
+				FString FileName = FileAndLineRegexMatcher.GetCaptureGroup(1);
+				int32 LineNumber = FCString::Atoi(*FileAndLineRegexMatcher.GetCaptureGroup(2));
+
+				// Remove the hyperlink from the message, since we're splitting it into its own string.
+				MessageString = MessageString.RightChop(FileAndLineRegexMatcher.GetMatchEnding());
+
+				SourceLink = SNew(SHyperlink)
+					.Style(FEditorStyle::Get(), "Common.GotoNativeCodeHyperlink")
+					.TextStyle(FEditorStyle::Get(), "MessageLog")
+					.OnNavigate_Lambda([=] { FSlateApplication::Get().GotoLineInSource(FileName, LineNumber); })
+					.Text(FText::FromString(FileAndLineRegexMatcher.GetCaptureGroup(0)));
+			}
+
+			RowContent = SNew(SHorizontalBox)
+
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(0)
+			[
+				SourceLink
+			]
+
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(0)
+			[
+				SNew(STextBlock)
 				.ColorAndOpacity(FSlateColor::UseSubduedForeground())
-				.Text(InMessageToken->ToText());
+				.Text(FText::FromString(MessageString))
+			];
 		}
 	}
 		break;

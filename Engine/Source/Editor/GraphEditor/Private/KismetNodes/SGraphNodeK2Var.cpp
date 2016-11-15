@@ -206,13 +206,6 @@ void SGraphNodeK2Var::UpdateGraphNode()
 			+ SOverlay::Slot()
 			[
 				SNew(SImage)
-				.Image(FEditorStyle::GetBrush("Graph.VarNode.IndicatorOverlay"))
-				.Visibility(this, &SGraphNodeK2Var::GetNodeIndicatorOverlayVisibility)
-				.ColorAndOpacity(this, &SGraphNodeK2Var::GetNodeIndicatorOverlayColor)
-			]
-			+ SOverlay::Slot()
-			[
-				SNew(SImage)
 				.Image( FEditorStyle::GetBrush("Graph.VarNode.Gloss") )
 			]
 			+SOverlay::Slot()
@@ -319,4 +312,9 @@ void SGraphNodeK2Var::UpdateGraphNode()
 const FSlateBrush* SGraphNodeK2Var::GetShadowBrush(bool bSelected) const
 {
 	return bSelected ? FEditorStyle::GetBrush(TEXT("Graph.VarNode.ShadowSelected")) : FEditorStyle::GetBrush(TEXT("Graph.VarNode.Shadow"));
+}
+
+const FSlateBrush* SGraphNodeK2Var::GetProfilerHeatmapBrush() const
+{
+	return FEditorStyle::GetBrush(TEXT("BlueprintProfiler.VarNode.HeatDisplay"));
 }

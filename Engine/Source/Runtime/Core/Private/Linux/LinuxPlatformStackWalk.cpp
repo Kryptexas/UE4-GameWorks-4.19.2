@@ -732,15 +732,15 @@ namespace LinuxStackWalkHelpers
 
 	void AppendToString(ANSICHAR * HumanReadableString, SIZE_T HumanReadableStringSize, FGenericCrashContext * Context, const ANSICHAR * Text)
 	{
-		FCStringAnsi::Strcat(HumanReadableString, HumanReadableStringSize, Text);
+		FCStringAnsi::Strncat(HumanReadableString, Text, HumanReadableStringSize);
 	}
 
 	void AppendFunctionNameIfAny(FLinuxCrashContext & LinuxContext, const char * FunctionName, uint64 ProgramCounter)
 	{
 		if (FunctionName)
 		{
-			FCStringAnsi::Strcat(LinuxContext.MinidumpCallstackInfo, ARRAY_COUNT( LinuxContext.MinidumpCallstackInfo ) - 1, FunctionName);
-			FCStringAnsi::Strcat(LinuxContext.MinidumpCallstackInfo, ARRAY_COUNT( LinuxContext.MinidumpCallstackInfo ) - 1, " + some bytes");	// this is just to conform to crashreporterue4 standard
+			FCStringAnsi::Strncat(LinuxContext.MinidumpCallstackInfo, FunctionName, ARRAY_COUNT( LinuxContext.MinidumpCallstackInfo ) - 1);
+			FCStringAnsi::Strncat(LinuxContext.MinidumpCallstackInfo, " + some bytes", ARRAY_COUNT( LinuxContext.MinidumpCallstackInfo ) - 1);	// this is just to conform to crashreporterue4 standard
 		}
 		else
 		{
@@ -754,7 +754,7 @@ namespace LinuxStackWalkHelpers
 			{
 				FCStringAnsi::Sprintf(TempArray, "0x%08x", (uint32)ProgramCounter);
 			}
-			FCStringAnsi::Strcat(LinuxContext.MinidumpCallstackInfo, ARRAY_COUNT( LinuxContext.MinidumpCallstackInfo ) - 1, TempArray);
+			FCStringAnsi::Strncat(LinuxContext.MinidumpCallstackInfo, TempArray, ARRAY_COUNT( LinuxContext.MinidumpCallstackInfo ) - 1);
 		}
 	}
 
@@ -856,11 +856,11 @@ bool FLinuxPlatformStackWalk::ProgramCounterToHumanReadableString( int32 Current
 					LinuxStackWalkHelpers::AppendToString(HumanReadableString, HumanReadableStringSize, Context, TempArray);
 
 					// append Module!FunctioName [Source.cpp:X] to MinidumpCallstackInfo
-					FCStringAnsi::Strcat(LinuxContext->MinidumpCallstackInfo, ARRAY_COUNT( LinuxContext->MinidumpCallstackInfo ) - 1, ModuleName);
-					FCStringAnsi::Strcat(LinuxContext->MinidumpCallstackInfo, ARRAY_COUNT( LinuxContext->MinidumpCallstackInfo ) - 1, "!");
+					FCStringAnsi::Strncat(LinuxContext->MinidumpCallstackInfo, ModuleName, ARRAY_COUNT( LinuxContext->MinidumpCallstackInfo ) - 1);
+					FCStringAnsi::Strncat(LinuxContext->MinidumpCallstackInfo, "!", ARRAY_COUNT( LinuxContext->MinidumpCallstackInfo ) - 1);
 					LinuxStackWalkHelpers::AppendFunctionNameIfAny(*LinuxContext, FunctionName, ProgramCounter);
 					FCStringAnsi::Sprintf(TempArray, " [%s:%d]", SourceFilename, LineNumber);
-					FCStringAnsi::Strcat(LinuxContext->MinidumpCallstackInfo, ARRAY_COUNT( LinuxContext->MinidumpCallstackInfo ) - 1, TempArray);
+					FCStringAnsi::Strncat(LinuxContext->MinidumpCallstackInfo, TempArray, ARRAY_COUNT( LinuxContext->MinidumpCallstackInfo ) - 1);
 				}
 				else
 				{
@@ -871,11 +871,11 @@ bool FLinuxPlatformStackWalk::ProgramCounterToHumanReadableString( int32 Current
 						LinuxStackWalkHelpers::AppendToString(HumanReadableString, HumanReadableStringSize, Context, FunctionName);
 					}
 
-					FCStringAnsi::Strcat(LinuxContext->MinidumpCallstackInfo, ARRAY_COUNT( LinuxContext->MinidumpCallstackInfo ) - 1, "Unknown!");
+					FCStringAnsi::Strncat(LinuxContext->MinidumpCallstackInfo, "Unknown!", ARRAY_COUNT( LinuxContext->MinidumpCallstackInfo ) - 1);
 					LinuxStackWalkHelpers::AppendFunctionNameIfAny(*LinuxContext, FunctionName, ProgramCounter);
 				}
 
-				FCStringAnsi::Strcat(LinuxContext->MinidumpCallstackInfo, ARRAY_COUNT( LinuxContext->MinidumpCallstackInfo ) - 1, "\r\n");	// this one always uses Windows line terminators
+				FCStringAnsi::Strncat(LinuxContext->MinidumpCallstackInfo, "\r\n", ARRAY_COUNT( LinuxContext->MinidumpCallstackInfo ) - 1);	// this one always uses Windows line terminators
 			}
 		}
 		return true;

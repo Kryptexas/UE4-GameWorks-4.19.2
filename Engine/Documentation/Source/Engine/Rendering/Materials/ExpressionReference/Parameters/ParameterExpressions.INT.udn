@@ -169,7 +169,7 @@ The **TextureObjectParameter** expression defines a texture parameter and output
 | **Group**| [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#GroupDefinition] |
 | **Texture** | Specifies the texture sampled by the expression. |
 | **Sampler Type** | The type of data that will be sampled and output from the node. |
-| **MipValueMode** | Applies a noise value to the texture that affects the look and performance. |
+| **MipValueMode** | Selects how to customize the sample's mip-level or derivatives from the default hardware computed. Affects the look and performance. |
 
 This node is used with [MaterialFunctions](Engine/Rendering/Materials/Functions).
 [/EXCERPT:TextureObjectParameter]
@@ -187,7 +187,7 @@ The **TextureSampleParameter2D** expression is identical to the TextureSample ex
 | **Group**| [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#GroupDefinition] |
 | **Texture** | Specifies the texture sampled by the expression. |
 | **Sampler Type** | The type of data that will be sampled and output from the node. |
-| **MipValueMode** | Applies a noise value to the texture that affects the look and performance. |
+| **MipValueMode** | Selects how to customize the sample's mip-level or derivatives from the default hardware computed. Affects the look and performance. |
 | [REGION:tablesection]Inputs[/REGION] ||
 | **UVs** | Takes in UV texture coordinates to use for the texture. If no values are input to the UVs, the texture coordinates of the mesh the material is applied to are used. |
 | [REGION:tablesection]Outputs[/REGION] ||
@@ -213,7 +213,7 @@ The **TextureSampleParameterCube** expression is identical to the TextureSample 
 | **Group**| [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#GroupDefinition] |
 | **Texture** | Specifies the texture sampled by the expression. |
 | **Sampler Type** | The type of data that will be sampled and output from the node. |
-| **MipValueMode** | Applies a noise value to the texture that affects the look and performance. |
+| **MipValueMode** | Selects how to customize the sample's mip-level or derivatives from the default hardware computed. Affects the look and performance. |
 | [REGION:tablesection]Inputs[/REGION] ||
 | **UVs** | Takes in UV texture coordinates to use for the texture. If no values are input to the UVs, the texture coordinates of the mesh the material is applied to are used. This must be a three-channel vector value. |
 | [REGION:tablesection]Outputs[/REGION] ||
@@ -237,7 +237,7 @@ The **TextureSampleParameterMovie** expression is identical to the TextureSample
 | **Group**| [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#GroupDefinition] |
 | **Texture** | Specifies the texture sampled by the expression. |
 | **Sampler Type** | The type of data that will be sampled and output from the node. |
-| **MipValueMode** | Applies a noise value to the texture that affects the look and performance. |
+| **MipValueMode** | Selects how to customize the sample's mip-level or derivatives from the default hardware computed. Affects the look and performance. |
 | [REGION:tablesection]Inputs[/REGION] ||
 | **UVs** | Takes in UV texture coordinates to use for the texture. If no values are input to the UVs, the texture coordinates of the mesh the material is applied to are used. |
 | [REGION:tablesection]Outputs[/REGION] ||

@@ -77,6 +77,13 @@ public:
 	virtual FString GetInfo() const = 0;
 
 	/**
+	 * Get the name of this player.
+	 *
+	 * @return Player name, i.e. 'AndroidMedia' or 'WmfMedia'.
+	 */
+	virtual FName GetName() const = 0;
+
+	/**
 	 * Get access to the media player's output.
 	 *
 	 * @return Media tracks interface.

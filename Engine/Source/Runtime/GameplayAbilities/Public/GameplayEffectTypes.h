@@ -32,6 +32,58 @@ GAMEPLAYABILITIES_API FString EGameplayModEffectToString(int32 Type);
 
 GAMEPLAYABILITIES_API FString EGameplayCueEventToString(int32 Type);
 
+/** Valid gameplay modifier evaluation channels; Displayed and renamed via game-specific aliases and options */
+UENUM()
+enum class EGameplayModEvaluationChannel : uint8
+{
+	Channel0 UMETA(Hidden),
+	Channel1 UMETA(Hidden),
+	Channel2 UMETA(Hidden),
+	Channel3 UMETA(Hidden),
+	Channel4 UMETA(Hidden),
+	Channel5 UMETA(Hidden),
+	Channel6 UMETA(Hidden),
+	Channel7 UMETA(Hidden),
+	Channel8 UMETA(Hidden),
+	Channel9 UMETA(Hidden),
+
+	// Always keep last
+	Channel_MAX UMETA(Hidden)
+};
+
+/** Struct representing evaluation channel settings for a gameplay modifier */
+USTRUCT()
+struct GAMEPLAYABILITIES_API FGameplayModEvaluationChannelSettings
+{
+	GENERATED_USTRUCT_BODY()
+	
+	/** Constructor */
+	FGameplayModEvaluationChannelSettings();
+
+	/**
+	 * Get the modifier evaluation channel to use
+	 * 
+	 * @return	Either the channel directly specified within the settings, if valid, or Channel0 in the event of a game not using modifier
+	 *			channels or in the case of an invalid channel being specified within the settings
+	 */
+	EGameplayModEvaluationChannel GetEvaluationChannel() const;
+
+	/** Editor-only constants to aid in hiding evaluation channel settings when appropriate */
+#if WITH_EDITORONLY_DATA
+	static const FName ForceHideMetadataKey;
+	static const FString ForceHideMetadataEnabledValue;
+#endif // #if WITH_EDITORONLY_DATA
+
+protected:
+
+	/** Channel the settings would prefer to use, if possible/valid */
+	UPROPERTY(EditDefaultsOnly, Category=EvaluationChannel)
+	EGameplayModEvaluationChannel Channel;
+
+	// Allow the details customization as a friend so it can handle custom display of the struct
+	friend class FGameplayModEvaluationChannelSettingsDetails;
+};
+
 UENUM(BlueprintType)
 namespace EGameplayModOp
 {
@@ -1281,11 +1333,11 @@ struct TStructOpsTypeTraits<FGameplayEffectSpecHandle> : public TStructOpsTypeTr
 
 
 USTRUCT()
-struct GAMEPLAYABILITIES_API FMinimapReplicationTagCountMap
+struct GAMEPLAYABILITIES_API FMinimalReplicationTagCountMap
 {
 	GENERATED_USTRUCT_BODY()
 
-	FMinimapReplicationTagCountMap()
+	FMinimalReplicationTagCountMap()
 	{
 		MapID = 0;
 	}
@@ -1337,22 +1389,22 @@ struct GAMEPLAYABILITIES_API FMinimapReplicationTagCountMap
 	class UAbilitySystemComponent* Owner;
 
 	/** Comparison operator */
-	bool operator==(FMinimapReplicationTagCountMap const& Other) const
+	bool operator==(FMinimalReplicationTagCountMap const& Other) const
 	{
 		return (MapID == Other.MapID);
 	}
 
 	/** Comparison operator */
-	bool operator!=(FMinimapReplicationTagCountMap const& Other) const
+	bool operator!=(FMinimalReplicationTagCountMap const& Other) const
 	{
-		return !(FMinimapReplicationTagCountMap::operator==(Other));
+		return !(FMinimalReplicationTagCountMap::operator==(Other));
 	}
 
 	int32 MapID;
 };
 
 template<>
-struct TStructOpsTypeTraits<FMinimapReplicationTagCountMap> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FMinimalReplicationTagCountMap> : public TStructOpsTypeTraitsBase
 {
 	enum
 	{
@@ -1361,3 +1413,5 @@ struct TStructOpsTypeTraits<FMinimapReplicationTagCountMap> : public TStructOpsT
 		WithIdenticalViaEquality = true,
 	};
 };
+
+DECLARE_MULTICAST_DELEGATE(FOnExternalGameplayModifierDependencyChange);

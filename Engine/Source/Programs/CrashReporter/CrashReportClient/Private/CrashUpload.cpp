@@ -332,13 +332,10 @@ void FCrashUploadBase::SetCurrentState(EUploadState::Type InState)
 
 void FCrashUploadBase::AddReportToFailedList() const
 {
-	if (PendingFiles.Num() == 0)
+	if (PendingFiles.Num() > 0)
 	{
-		// No files so don't bother
-		return;
+		FailedReportDirectories.AddUnique(ErrorReport.GetReportDirectory());
 	}
-
-	FailedReportDirectories.AddUnique(PendingReportDirectories[PendingReportDirectoryIndex]);
 }
 
 // FCrashUploadToReceiver //////////////////////////////////////////////////////

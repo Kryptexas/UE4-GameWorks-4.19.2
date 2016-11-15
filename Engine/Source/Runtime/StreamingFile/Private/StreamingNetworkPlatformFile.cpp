@@ -657,7 +657,7 @@ bool FStreamingNetworkPlatformFile::DeleteDirectoryRecursively(const TCHAR* Dire
 }
 
 
-bool FStreamingNetworkPlatformFile::CopyFile(const TCHAR* To, const TCHAR* From)
+bool FStreamingNetworkPlatformFile::CopyFile(const TCHAR* To, const TCHAR* From, EPlatformFileRead ReadFlags, EPlatformFileWrite WriteFlags)
 {
 	FScopeLock ScopeLock(&SynchronizationObject);
 

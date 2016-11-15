@@ -9,13 +9,11 @@
 /* SChordEditor interface
  *****************************************************************************/
 
-void SChordEditor::Construct( const FArguments& InArgs, TSharedPtr<FChordTreeItem> InputCommand )
+void SChordEditor::Construct( const FArguments& InArgs, TSharedPtr<FUICommandInfo> InputCommand )
 {
 	bIsEditing = false;
 
-	check( InputCommand->IsCommand() );
-
-	CommandInfo = InputCommand->CommandInfo;
+	CommandInfo = InputCommand;
 	OnEditBoxLostFocus = InArgs._OnEditBoxLostFocus;
 	OnChordChanged = InArgs._OnChordChanged;
 	OnEditingStopped = InArgs._OnEditingStopped;

@@ -18,7 +18,7 @@ class HEADMOUNTEDDISPLAY_API UMotionControllerComponent : public UPrimitiveCompo
 
 	/** Which hand this component should automatically follow */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MotionController")
-	TEnumAsByte<EControllerHand> Hand;
+	EControllerHand Hand;
 
 	/** If false, render transforms within the motion controller hierarchy will be updated a second time immediately before rendering. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MotionController")
@@ -26,7 +26,7 @@ class HEADMOUNTEDDISPLAY_API UMotionControllerComponent : public UPrimitiveCompo
 
 	/** The tracking status for the device (e.g. full tracking, inertial tracking only, no tracking) */
 	UPROPERTY(BlueprintReadOnly, Category = "MotionController")
-	TEnumAsByte<ETrackingStatus> CurrentTrackingStatus;
+	ETrackingStatus CurrentTrackingStatus;
 
 	void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 

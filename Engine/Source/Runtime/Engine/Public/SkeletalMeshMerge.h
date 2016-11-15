@@ -254,18 +254,18 @@ private:
 	/**
 	 * Builds a new 'RefSkeleton' from the reference skeletons in the 'SourceMeshList'.
 	 */
-	static void BuildReferenceSkeleton(const TArray<USkeletalMesh*>& SourceMeshList, FReferenceSkeleton& RefSkeleton);
+	static void BuildReferenceSkeleton(const TArray<USkeletalMesh*>& SourceMeshList, FReferenceSkeleton& RefSkeleton, const USkeleton* SkeletonAsset);
 
 	/**
 	 * Overrides the 'TargetSkeleton' bone poses with the bone poses specified in the 'PoseOverrides' array.
 	 */
-	static void OverrideReferenceSkeletonPose(const TArray<FRefPoseOverride>& PoseOverrides, FReferenceSkeleton& TargetSkeleton);
+	static void OverrideReferenceSkeletonPose(const TArray<FRefPoseOverride>& PoseOverrides, FReferenceSkeleton& TargetSkeleton, const USkeleton* SkeletonAsset);
 
 	/**
 	 * Override the 'TargetSkeleton' bone pose with the pose from from the 'SourceSkeleton'.
 	 * @return 'true' if the override was successful; 'false' otherwise.
 	 */
-	static bool OverrideReferenceBonePose(int32 SourceBoneIndex, const FReferenceSkeleton& SourceSkeleton, FReferenceSkeleton& TargetSkeleton);
+	static bool OverrideReferenceBonePose(int32 SourceBoneIndex, const FReferenceSkeleton& SourceSkeleton, FReferenceSkeletonModifier& TargetSkeleton);
 
 	/**
 	 * Releases any resources the 'MergeMesh' is currently holding.

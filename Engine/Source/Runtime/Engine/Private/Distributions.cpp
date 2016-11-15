@@ -1136,6 +1136,10 @@ void FRawDistributionVector::Initialize()
 		return;
 	}
 
+	// fill out our min/max
+	Distribution->GetOutRange(MinValue, MaxValue);
+	Distribution->GetRange(MinValueVec, MaxValueVec);
+
 	// does this FRawDist need updating? (if UDist is dirty or somehow the distribution wasn't dirty, but we have no data)
 	bool bNeedsUpdating = false;
 	if (Distribution->bIsDirty || (LookupTable.IsEmpty() && Distribution->CanBeBaked()))
@@ -1177,10 +1181,6 @@ void FRawDistributionVector::Initialize()
 	const float MaxIn = MinIn + (LookupTable.EntryCount-1) * (LookupTable.TimeScale == 0.0f ? 0.0f : (1.0f / LookupTable.TimeScale));
 	OptimizeLookupTable( &LookupTable, LOOKUP_TABLE_ERROR_THRESHOLD );
 
-	// fill out our min/max
-	Distribution->GetOutRange(MinValue, MaxValue);
-
-	Distribution->GetRange(MinValueVec, MaxValueVec);
 }
 #endif
 
@@ -1232,7 +1232,7 @@ void FRawDistributionVector::GetOutRange(float& MinOut, float& MaxOut)
 
 void FRawDistributionVector::GetRange(FVector& MinOut, FVector& MaxOut)
 {
-	if (/*!HasLookupTable() &&*/ Distribution)
+	if (Distribution)
 	{
 		check(Distribution);
 		Distribution->GetRange(MinOut, MaxOut);

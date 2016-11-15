@@ -470,6 +470,16 @@ private:
 	/** Interface to the reference counter for this object.  Note that the actual reference
 		controller object is shared by all shared and weak pointers that refer to the object */
 	SharedPointerInternals::FSharedReferencer< Mode > SharedReferenceCount;
+
+	template <typename InObjectType, ESPMode InMode, typename... InArgTypes>
+	friend TSharedRef<InObjectType, InMode> MakeShared(InArgTypes&&... Args);
+
+	FORCEINLINE explicit TSharedRef(ObjectType* InObject, SharedPointerInternals::FReferenceControllerBase* InSharedReferenceCount)
+		: Object(InObject)
+		, SharedReferenceCount(InSharedReferenceCount)
+	{
+		Init(InObject);
+	}
 };
 
 
@@ -491,6 +501,10 @@ struct FMakeReferenceTo<void>
 {
 	typedef void Type;
 };
+
+
+template <typename InObjectType, ESPMode InMode = ESPMode::Fast, typename... InArgTypes>
+TSharedRef<InObjectType, InMode> MakeShared(InArgTypes&&... Args);
 
 
 /**
@@ -853,12 +867,12 @@ private:
 	}
 
 	// We declare ourselves as a friend (templated using OtherType) so we can access members as needed
-    template< class OtherType, ESPMode OtherMode > friend class TSharedPtr;
+	template< class OtherType, ESPMode OtherMode > friend class TSharedPtr;
 
 	// Declare other smart pointer types as friends as needed
-    template< class OtherType, ESPMode OtherMode > friend class TSharedRef;
-    template< class OtherType, ESPMode OtherMode > friend class TWeakPtr;
-    template< class OtherType, ESPMode OtherMode > friend class TSharedFromThis;
+	template< class OtherType, ESPMode OtherMode > friend class TSharedRef;
+	template< class OtherType, ESPMode OtherMode > friend class TWeakPtr;
+	template< class OtherType, ESPMode OtherMode > friend class TSharedFromThis;
 
 private:
 
@@ -868,7 +882,6 @@ private:
 	/** Interface to the reference counter for this object.  Note that the actual reference
 		controller object is shared by all shared and weak pointers that refer to the object */
 	SharedPointerInternals::FSharedReferencer< Mode > SharedReferenceCount;
-
 };
 
 
@@ -1609,6 +1622,17 @@ template< class ObjectType, class DeleterType >
 FORCEINLINE SharedPointerInternals::FRawPtrProxy< ObjectType > MakeShareable( ObjectType* InObject, DeleterType&& InDeleter )
 {
 	return SharedPointerInternals::FRawPtrProxy< ObjectType >( InObject, Forward< DeleterType >( InDeleter ) );
+}
+
+/**
+ * MakeShared utility function.  Allocates a new ObjectType and reference controller in a single memory block.
+ * Equivalent to std::make_shared.
+ */
+template <typename InObjectType, ESPMode InMode, typename... InArgTypes>
+FORCEINLINE TSharedRef<InObjectType, InMode> MakeShared(InArgTypes&&... Args)
+{
+	SharedPointerInternals::TIntrusiveReferenceController<InObjectType>* Controller = SharedPointerInternals::NewIntrusiveReferenceController<InObjectType>(Forward<InArgTypes>(Args)...);
+	return TSharedRef<InObjectType, InMode>(Controller->GetObjectPtr(), (SharedPointerInternals::FReferenceControllerBase*)Controller);
 }
 
 

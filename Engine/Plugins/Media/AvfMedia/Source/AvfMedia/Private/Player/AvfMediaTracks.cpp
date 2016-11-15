@@ -30,7 +30,7 @@
 
 - (void)legibleOutput:(AVPlayerItemLegibleOutput *)Output didOutputAttributedStrings:(NSArray<NSAttributedString *> *)Strings nativeSampleBuffers:(NSArray *)NativeSamples forItemTime:(CMTime)ItemTime
 {
-	Tracks->HandleSubtitleCaptionStrings(Output, Strings, ItemTime);
+	Tracks->HandleSubtitleCaptionStrings(Output, Strings, NativeSamples, ItemTime);
 }
 
 @end
@@ -137,26 +137,35 @@ public:
 
 FAvfMediaTracks::FAvfMediaTracks()
 	: AudioSink(nullptr)
-	, CaptionSink(nullptr)
+	, OverlaySink(nullptr)
 	, VideoSink(nullptr)
 	, PlayerItem(nullptr)
+	, VideoSampler(nullptr)
 	, SelectedAudioTrack(INDEX_NONE)
 	, SelectedCaptionTrack(INDEX_NONE)
 	, SelectedVideoTrack(INDEX_NONE)
 	, bAudioPaused(false)
 	, SeekTime(-1.0)
 	, bZoomed(false)
-#if WITH_ENGINE && !PLATFORM_MAC
-	, MetalTextureCache(nullptr)
-#endif
 {
 	LastAudioSample = kCMTimeZero;
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(InitialiseAvfVideoSampler, FAvfMediaTracks*, This, this,
+	{
+		This->VideoSampler = new FAvfVideoSampler();
+	});
 }
 
 
 FAvfMediaTracks::~FAvfMediaTracks()
 {
 	Reset();
+
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(UninitialiseAvfVideoSampler, FAvfMediaTracks*, This, this,
+	{
+		delete This->VideoSampler;
+	});
+
+	FlushRenderingCommands();
 }
 
 
@@ -237,9 +246,9 @@ void FAvfMediaTracks::Initialize(AVPlayerItem* InPlayerItem)
 			Track->Reader = nil;
 #endif
 		}
-		else if (([mediaType isEqualToString:AVMediaTypeClosedCaption]) || ([mediaType isEqualToString:AVMediaTypeSubtitle]))
+		else if (([mediaType isEqualToString:AVMediaTypeClosedCaption]) || ([mediaType isEqualToString:AVMediaTypeSubtitle]) || ([mediaType isEqualToString:AVMediaTypeText]))
 		{
-			FAVPlayerItemLegibleOutputPushDelegate* Delegate = [[FAVPlayerItemLegibleOutputPushDelegate alloc] init];
+			FAVPlayerItemLegibleOutputPushDelegate* Delegate = [[FAVPlayerItemLegibleOutputPushDelegate alloc] initWithMediaTracks:this];
 			AVPlayerItemLegibleOutput* Output = [AVPlayerItemLegibleOutput new];
 			check(Output);
 			
@@ -324,6 +333,11 @@ void FAvfMediaTracks::Reset()
 {
 	FScopeLock Lock(&CriticalSection);
 
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(InitialiseAvfVideoSampler, FAvfMediaTracks*, This, this,
+    {
+		This->VideoSampler->SetTrack(nullptr, nil);
+    });
+	
 	SelectedAudioTrack = INDEX_NONE;
 	SelectedCaptionTrack = INDEX_NONE;
 	SelectedVideoTrack = INDEX_NONE;
@@ -338,10 +352,10 @@ void FAvfMediaTracks::Reset()
 		AudioSink = nullptr;
 	}
 
-	if (CaptionSink != nullptr)
+	if (OverlaySink != nullptr)
 	{
-		CaptionSink->ShutdownStringSink();
-		CaptionSink = nullptr;
+		OverlaySink->ShutdownOverlaySink();
+		OverlaySink = nullptr;
 	}
 
 	if (VideoSink != nullptr)
@@ -383,14 +397,6 @@ void FAvfMediaTracks::Reset()
 	bAudioPaused = false;
 	SeekTime = -1.0;
 	bZoomed = false;
-	
-#if WITH_ENGINE && !PLATFORM_MAC
-	if (MetalTextureCache)
-	{
-		CFRelease(MetalTextureCache);
-		MetalTextureCache = nullptr;
-	}
-#endif
 }
 
 
@@ -522,14 +528,6 @@ void FAvfMediaTracks::AppendStats(FString &OutStats) const
 bool FAvfMediaTracks::Tick(float DeltaTime)
 {
 	FScopeLock Lock(&CriticalSection);
-	
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-		FAvfMediaTracksTick,
-		FAvfMediaTracks*, Tracks, this,
-		{
-			Tracks->UpdateVideoSink();
-		}
-	);
 
 #if PLATFORM_MAC
 	if (AudioSink && SelectedAudioTrack != INDEX_NONE)
@@ -625,9 +623,9 @@ bool FAvfMediaTracks::Tick(float DeltaTime)
 	return true;
 }
 
-void FAvfMediaTracks::HandleSubtitleCaptionStrings(AVPlayerItemLegibleOutput* Output, NSArray<NSAttributedString*>* Strings, CMTime ItemTime)
+void FAvfMediaTracks::HandleSubtitleCaptionStrings(AVPlayerItemLegibleOutput* Output, NSArray<NSAttributedString*>* Strings, NSArray* NativeSamples, CMTime ItemTime)
 {
-	if (CaptionSink != nil && SelectedCaptionTrack != INDEX_NONE)
+	if (OverlaySink != nil && SelectedCaptionTrack != INDEX_NONE)
 	{
 		FScopeLock Lock(&CriticalSection);
 		
@@ -636,6 +634,7 @@ void FAvfMediaTracks::HandleSubtitleCaptionStrings(AVPlayerItemLegibleOutput* Ou
 	
 		FString OutputString;
 		bool bFirst = true;
+
 		for (NSAttributedString* String in Strings)
 		{
 			if(String)
@@ -654,8 +653,8 @@ void FAvfMediaTracks::HandleSubtitleCaptionStrings(AVPlayerItemLegibleOutput* Ou
 				OutputString += FString(Result);
 			}
 		}
-		
-		CaptionSink->DisplayStringSinkString(OutputString, DiplayTime);
+
+		//OverlaySink->AddOverlaySinkText(FText::FromString(OutputString), DiplayTime);
 	}
 }
 
@@ -682,27 +681,21 @@ void FAvfMediaTracks::SetAudioSink(IMediaAudioSink* Sink)
 }
 
 
-void FAvfMediaTracks::SetCaptionSink(IMediaStringSink* Sink)
+void FAvfMediaTracks::SetOverlaySink(IMediaOverlaySink* Sink)
 {
-	if (Sink != CaptionSink)
+	if (Sink != OverlaySink)
 	{
 		FScopeLock Lock(&CriticalSection);
 
-		if (CaptionSink != nullptr)
+		if (OverlaySink != nullptr)
 		{
-			CaptionSink->ShutdownStringSink();
-			CaptionSink = nullptr;
+			OverlaySink->ShutdownOverlaySink();
+			OverlaySink = nullptr;
 		}
 
-		CaptionSink = Sink;
-		InitializeCaptionSink();
+		OverlaySink = Sink;
+		InitializeOverlaySink();
 	}
-}
-
-
-void FAvfMediaTracks::SetImageSink(IMediaTextureSink* Sink)
-{
-	// not supported
 }
 
 
@@ -982,7 +975,7 @@ bool FAvfMediaTracks::SelectTrack(EMediaTrackType TrackType, int32 TrackIndex)
 
 				if (SelectedCaptionTrack == TrackIndex)
 				{
-					InitializeCaptionSink();
+					InitializeOverlaySink();
 				}
 			}
 
@@ -1060,16 +1053,16 @@ void FAvfMediaTracks::InitializeAudioSink()
 }
 
 
-void FAvfMediaTracks::InitializeCaptionSink()
+void FAvfMediaTracks::InitializeOverlaySink()
 {
-	if ((CaptionSink == nullptr) || (SelectedCaptionTrack == INDEX_NONE))
+	if ((OverlaySink == nullptr) || (SelectedCaptionTrack == INDEX_NONE))
 	{
 		return;
 	}
 	
 	[PlayerItem addOutput:(AVPlayerItemOutput*)CaptionTracks[SelectedCaptionTrack].Output];
 
-	CaptionSink->InitializeStringSink();
+	OverlaySink->InitializeOverlaySink();
 }
 
 
@@ -1095,17 +1088,63 @@ void FAvfMediaTracks::InitializeVideoSink()
 		EMediaTextureSinkMode::Buffered
 	);
 #endif
+	
+	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(InitialiseAvfVideoSampler,
+												 FAvfMediaTracks*, This, this,
+												 IMediaTextureSink*, VideoSink, VideoSink,
+												 AVPlayerItemVideoOutput*, Output, (AVPlayerItemVideoOutput*)VideoTracks[SelectedVideoTrack].Output,
+    {
+		This->VideoSampler->SetTrack(VideoSink, Output);
+    });
 }
 
-void FAvfMediaTracks::UpdateVideoSink()
+FAvfVideoSampler::FAvfVideoSampler()
+: VideoSink(nullptr)
+, Output(nil)
+{
+	
+}
+
+FAvfVideoSampler::~FAvfVideoSampler()
+{
+	[Output release];
+#if WITH_ENGINE && !PLATFORM_MAC
+	if (MetalTextureCache)
+	{
+		CFRelease(MetalTextureCache);
+		MetalTextureCache = nullptr;
+	}
+#endif
+}
+
+void FAvfVideoSampler::SetTrack(IMediaTextureSink* InVideoSink, AVPlayerItemVideoOutput* InOutput)
+{
+	FScopeLock Lock(&CriticalSection);
+	VideoSink = InVideoSink;
+	[InOutput retain];
+	[Output release];
+	Output = InOutput;
+}
+
+/* FTickableObjectRenderThread interface
+ *****************************************************************************/
+
+TStatId FAvfVideoSampler::GetStatId() const
+{
+	RETURN_QUICK_DECLARE_CYCLE_STAT(FAvfVideoSampler, STATGROUP_Tickables);
+}
+
+bool FAvfVideoSampler::IsTickable() const
+{
+	return ((VideoSink != nullptr) && (Output != nil));
+}
+
+void FAvfVideoSampler::Tick(float /*DeltaTime*/)
 {
 	FScopeLock Lock(&CriticalSection);
 	
-	if ((VideoSink != nullptr) && (SelectedVideoTrack != INDEX_NONE))
+	if ((VideoSink != nullptr) && (Output != nil))
 	{
-		AVPlayerItemVideoOutput* Output = (AVPlayerItemVideoOutput*)VideoTracks[SelectedVideoTrack].Output;
-		check(Output);
-		
 		CMTime OutputItemTime = [Output itemTimeForHostTime:CACurrentMediaTime()];
 		if ([Output hasNewPixelBufferForItemTime:OutputItemTime])
 		{
@@ -1144,19 +1183,9 @@ void FAvfMediaTracks::UpdateVideoSink()
 					TRefCountPtr<FRHITexture2D> RenderTarget;
 					TRefCountPtr<FRHITexture2D> ShaderResource;
 					
-					RHICreateTargetableShaderResource2D(Width,
-														Height,
-														PF_B8G8R8A8,
-														1,
-														TexCreateFlags,
-														TexCreate_RenderTargetable,
-														false,
-														CreateInfo,
-														RenderTarget,
-														ShaderResource
-														);
+					ShaderResource = RHICreateTexture2D(Width, Height, PF_B8G8R8A8, 1, 1, TexCreateFlags | TexCreate_ShaderResource, CreateInfo);
 														
-					VideoSink->UpdateTextureSinkResource(RenderTarget, ShaderResource);
+					VideoSink->UpdateTextureSinkResource(ShaderResource, ShaderResource);
 					CFRelease(TextureRef);
 				}
 				else // Ran out of time to implement efficient OpenGLES texture upload - its running out of memory.
@@ -1228,19 +1257,9 @@ void FAvfMediaTracks::UpdateVideoSink()
 					TRefCountPtr<FRHITexture2D> RenderTarget;
 					TRefCountPtr<FRHITexture2D> ShaderResource;
 					
-					RHICreateTargetableShaderResource2D(Width,
-														Height,
-														PF_B8G8R8A8,
-														1,
-														TexCreateFlags,
-														TexCreate_RenderTargetable,
-														false,
-														CreateInfo,
-														RenderTarget,
-														ShaderResource
-														);
+					ShaderResource = RHICreateTexture2D(Width, Height, PF_B8G8R8A8, 1, 1, TexCreateFlags | TexCreate_ShaderResource, CreateInfo);
 														
-					VideoSink->UpdateTextureSinkResource(RenderTarget, ShaderResource);
+					VideoSink->UpdateTextureSinkResource(ShaderResource, ShaderResource);
 				}
 #else
 				int32 Pitch = CVPixelBufferGetBytesPerRow(Frame);

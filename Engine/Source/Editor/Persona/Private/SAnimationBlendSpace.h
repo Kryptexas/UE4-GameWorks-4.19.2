@@ -604,14 +604,12 @@ class SBlendSpaceEditor : public SBlendSpaceEditorBase
 public:
 	SLATE_BEGIN_ARGS(SBlendSpaceEditor)
 		: _BlendSpace(NULL)			
-		, _Persona()
 		{}
 
 		SLATE_ARGUMENT(UBlendSpace*, BlendSpace)
-		SLATE_ARGUMENT(TSharedPtr<class FPersona>, Persona)
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs);
+	void Construct(const FArguments& InArgs, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& OnPostUndo);
 	
 	void SetBlendSpace(UBlendSpace* NewBlendSpace);
 	UBlendSpace* GetBlendSpace() const { return Cast<UBlendSpace>(BlendSpace); }

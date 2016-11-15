@@ -123,10 +123,12 @@ void APlayerState::PostInitializeComponents()
 	Super::PostInitializeComponents();
 
 	UWorld* World = GetWorld();
-	// register this PlayerState with the game's ReplicationInfo
-	if ( World->GameState != NULL )
+	AGameStateBase* GameStateBase = World->GetGameState();
+
+	// register this PlayerState with the game state
+	if (GameStateBase != nullptr )
 	{
-		World->GameState->AddPlayerState(this);
+		GameStateBase->AddPlayerState(this);
 	}
 
 	if ( Role < ROLE_Authority )
@@ -137,12 +139,12 @@ void APlayerState::PostInitializeComponents()
 	AController* OwningController = Cast<AController>(GetOwner());
 	if (OwningController != NULL)
 	{
-		bIsABot = (Cast<APlayerController>(OwningController) == NULL);
+		bIsABot = (Cast<APlayerController>(OwningController) == nullptr);
 	}
 
-	if (World->GameState)
+	if (GameStateBase)
 	{
-		StartTime = World->GameState->ElapsedTime;
+		StartTime = GameStateBase->GetPlayerStartTime(OwningController);
 	}
 }
 
@@ -203,10 +205,10 @@ void APlayerState::OnRep_bIsInactive()
 {
 	// remove and re-add from the GameState so it's in the right list  
 	UWorld* World = GetWorld();
-	if (ensure(World && World->GameState))
+	if (ensure(World && World->GetGameState()))
 	{
-		World->GameState->RemovePlayerState(this);
-		World->GameState->AddPlayerState(this);
+		World->GetGameState()->RemovePlayerState(this);
+		World->GetGameState()->AddPlayerState(this);
 	}
 }
 
@@ -218,9 +220,9 @@ bool APlayerState::ShouldBroadCastWelcomeMessage(bool bExiting)
 void APlayerState::Destroyed()
 {
 	UWorld* World = GetWorld();
-	if (World->GameState != NULL)
+	if (World->GetGameState() != nullptr)
 	{
-		World->GameState->RemovePlayerState(this);
+		World->GetGameState()->RemovePlayerState(this);
 	}
 
 	if( ShouldBroadCastWelcomeMessage(true) )
@@ -340,7 +342,9 @@ void APlayerState::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutL
 	DOREPLIFETIME( APlayerState, bIsSpectator );
 	DOREPLIFETIME( APlayerState, bOnlySpectator );
 	DOREPLIFETIME( APlayerState, bFromPreviousLevel );
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	DOREPLIFETIME( APlayerState, StartTime );
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 	DOREPLIFETIME_CONDITION( APlayerState, Ping,		COND_SkipOwner );
 

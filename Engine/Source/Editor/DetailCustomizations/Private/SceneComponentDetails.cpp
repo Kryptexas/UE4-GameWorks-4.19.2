@@ -61,13 +61,14 @@ static EComponentMobility::Type GetInheritedMobility(USceneComponent const* cons
 			{
 				for (USCS_Node const* Node : BlueprintClass->SimpleConstructionScript->GetAllNodes())
 				{
-					if (Node->VariableName == ComponentNode->ParentComponentOrVariableName)
+					check(Node); // fix for this bug: https://connect.microsoft.com/VisualStudio/feedback/details/3081898
+					if (Node->GetVariableName() == ComponentNode->ParentComponentOrVariableName)
 					{
 						ParentNode = Node;
 						break;
 					}
 				}
-			}			
+			}
 
 			if (ParentNode != NULL)
 			{
@@ -213,7 +214,7 @@ void FSceneComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuild
 	// Details panel for BP component will have the base class be the Actor due to how the SKismetInspector works, but in that case we
 	// have a class default object selected, so use that to infer that this is the component directly selected and since BPs do not do
 	// property flattening it all kind of works
-	if (DetailBuilder.GetDetailsView().GetBaseClass()->IsChildOf<AActor>() && !DetailBuilder.GetDetailsView().HasClassDefaultObject())
+	if (DetailBuilder.GetBaseClass()->IsChildOf<AActor>() && !DetailBuilder.GetDetailsView().HasClassDefaultObject())
 	{
 		TSharedPtr<IPropertyHandle> ComponentHiddenInGameProperty = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(USceneComponent, bHiddenInGame));
 		ComponentHiddenInGameProperty->MarkHiddenByCustomization();

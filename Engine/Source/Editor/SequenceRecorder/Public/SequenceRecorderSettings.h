@@ -6,6 +6,14 @@
 #include "SequenceRecorderActorFilter.h"
 #include "SequenceRecorderSettings.generated.h"
 
+/** Enum denoting if (and how) to record audio */
+UENUM()
+enum class EAudioRecordingMode : uint8
+{
+	None 			UMETA(DisplayName="Don't Record Audio"),
+	AudioTrack		UMETA(DisplayName="Into Audio Track"),
+};
+
 USTRUCT()
 struct FPropertiesToRecordForClass
 {
@@ -62,7 +70,7 @@ public:
 	float SequenceLength;
 
 	/** Delay that we will use before starting recording */
-	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")
+	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording", meta = (ClampMax="9.0", UIMax = "9.0"))
 	float RecordingDelay;
 
 	/** The base name of the sequence to record to. This name will also be used to auto-generate any assets created by this recording. */
@@ -76,6 +84,22 @@ public:
 	/** The name of the subdirectory animations will be placed in. Leave this empty to place into the same directory as the sequence base path */
 	UPROPERTY(Config, EditAnywhere, AdvancedDisplay, Category = "Sequence Recording")
 	FString AnimationSubDirectory;
+
+	/** The name of the subdirectory audio will be placed in. Leave this empty to place into the same directory as the sequence base path */
+	UPROPERTY(Config, EditAnywhere, AdvancedDisplay, Category = "Sequence Recording")
+	FString AudioSubDirectory;
+
+	/** Whether to record audio alongside animation or not */
+	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")
+	EAudioRecordingMode RecordAudio;
+
+	/** Gain in decibels to apply to recorded audio */
+	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")
+	float AudioGain;
+
+	/** The buffer size to use on mic input callbacks. Larger sizes increase latency but reduce chances of buffer overruns (pops and discontinuities). */
+	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")
+	int32 AudioInputBufferSize;
 
 	/** Whether to record nearby spawned actors. */
 	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")

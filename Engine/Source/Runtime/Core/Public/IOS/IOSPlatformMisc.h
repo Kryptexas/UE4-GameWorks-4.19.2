@@ -132,6 +132,7 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 	static FString GetLocalCurrencyCode();
 	static FString GetLocalCurrencySymbol();
 	static void GetValidTargetPlatforms(class TArray<class FString>& TargetPlatformNames);
+	static bool HasActiveWiFiConnection();
 
 	static void ResetGamepadAssignments();
 	static void ResetGamepadAssignmentToController(int32 ControllerId);

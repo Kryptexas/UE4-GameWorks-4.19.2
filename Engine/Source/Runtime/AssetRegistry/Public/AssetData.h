@@ -105,6 +105,11 @@ public:
 		return ObjectPath == Other.ObjectPath;
 	}
 
+	bool operator!=(const FAssetData& Other) const
+	{
+		return ObjectPath != Other.ObjectPath;
+	}
+
 	bool operator>(const FAssetData& Other) const
 	{
 		return ObjectPath > Other.ObjectPath;

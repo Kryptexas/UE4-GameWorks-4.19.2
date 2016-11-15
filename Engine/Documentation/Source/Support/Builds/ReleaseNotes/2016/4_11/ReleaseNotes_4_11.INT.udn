@@ -294,7 +294,7 @@ Metal is now the default graphics API on Mac OS X El Capitan!
 ![image alt text](image_23.png)
 [/REGION]
 
-Epic have worked closely with Apple, AMD, Nvidia, and Intel to integrate Metal for Mac and in 4.11 it replaces OpenGL as the primary graphics API for OS X El Capitan. The 4.11 release provides the same rendering features across Metal and OpenGL by default. Metal provides a streamlined, low-overhead API with precompiled shaders and efficient multi-threading support to maximise the processing power of the GPU. We will continue to improve and extend support for Mac Metal and look for ways to leverage new API features in upcoming versions of the engine.
+Epic have worked closely with Apple, AMD, NVIDIA, and Intel to integrate Metal for Mac and in 4.11 it replaces OpenGL as the primary graphics API for OS X El Capitan. The 4.11 release provides the same rendering features across Metal and OpenGL by default. Metal provides a streamlined, low-overhead API with precompiled shaders and efficient multi-threading support to maximise the processing power of the GPU. We will continue to improve and extend support for Mac Metal and look for ways to leverage new API features in upcoming versions of the engine.
 
 There is also experimental Metal support for Shader Model 5 features, try it out using the "-metalsm5" command-line switch.
 
@@ -3358,7 +3358,7 @@ Stats are automatically broken into the threads they execute on and can appear i
 
 * New: Added an experimental option to enable OpenCL acceleration for the convex decomposition tool on Mac which defaults to off.
 
-    * This avoids an OpenCL crash on Nvidia's OpenCL drivers but still allows users of AMD & Intel GPUs to enable it if they wish.
+    * This avoids an OpenCL crash on the NVIDIA OpenCL drivers but still allows users of AMD & Intel GPUs to enable it if they wish.
 
 * Bugfix: Change the ShaderCache to report when resource references are invalid and prevent it from caching states that use invalid references to avoid errors on subsequent runs.
 
@@ -5388,7 +5388,7 @@ Stats are automatically broken into the threads they execute on and can appear i
 
 * Added implementation of FPlatformProcess::UserTempDir()
 
-* Bind the index buffer as vertex attribute 0 when performing an attribute-less draw call to work around incorrect gl_VertexID values on Nvidia drivers rather than using different index buffers.
+* Bind the index buffer as vertex attribute 0 when performing an attribute-less draw call to work around incorrect gl_VertexID values on NVIDIA drivers rather than using different index buffers.
 
 * Detect when UE4 Mac is running under apitrace and fallback to using NSView rather than CoreAnimation to display so that tracing OpenGL works.
 

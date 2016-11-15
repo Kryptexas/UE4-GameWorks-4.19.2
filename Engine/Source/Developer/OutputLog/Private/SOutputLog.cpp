@@ -3,9 +3,9 @@
 #include "OutputLogPrivatePCH.h"
 #include "SOutputLog.h"
 #include "SScrollBorder.h"
-#include "GameFramework/GameMode.h"
+#include "GameFramework/GameModeBase.h"
+#include "GameFramework/GameStateBase.h"
 #include "Engine/LocalPlayer.h"
-#include "GameFramework/GameState.h"
 #include "SSearchBox.h"
 
 #define LOCTEXT_NAMESPACE "SOutputLog"
@@ -387,12 +387,13 @@ void SConsoleInputBox::OnTextCommitted( const FText& InText, ETextCommit::Type C
 				{
 					if( !bWasHandled )
 					{					
-						AGameMode* const GameMode = World->GetAuthGameMode();
+						AGameModeBase* const GameMode = World->GetAuthGameMode();
+						AGameStateBase* const GameState = World->GetGameState();
 						if( GameMode && GameMode->ProcessConsoleExec( *ExecString, *GLog, NULL ) )
 						{
 							bWasHandled = true;
 						}
-						else if (World->GameState && World->GameState->ProcessConsoleExec(*ExecString, *GLog, NULL))
+						else if (GameState && GameState->ProcessConsoleExec(*ExecString, *GLog, NULL))
 						{
 							bWasHandled = true;
 						}

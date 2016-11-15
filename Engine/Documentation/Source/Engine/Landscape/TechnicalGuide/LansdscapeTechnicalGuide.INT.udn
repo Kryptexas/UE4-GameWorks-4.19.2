@@ -5,45 +5,7 @@ Description:Technical Settings for Landscape.
 version: 4.9
 parent:Engine/Landscape
 order:6
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Landscape/TechnicalGuide:title%](Engine/Landscape/Materials/LS_Technical.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/landscape_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Landscape/TechnicalGuide:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Landscape/TechnicalGuide:description%
-	[/PARAM]
-	[PARAMLITERAL:path]
-		[RELATIVE:Engine/Landscape/TechnicalGuide]
-	[/PARAMLITERAL]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Landscape/TechnicalGuide:title%](Engine/Landscape/Materials/LS_Technical.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/landscape_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Landscape/TechnicalGuide:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Landscape/TechnicalGuide:description%
-	[/PARAM]
-	[PARAMLITERAL:path]
-		[RELATIVE:Engine/Landscape/TechnicalGuide]
-	[/PARAMLITERAL]
-[/OBJECT]
-[/VAR]
+topic-image:Engine/Landscape/Materials/LS_Technical.png
 
 [TOC(start:2 end:3)]
 

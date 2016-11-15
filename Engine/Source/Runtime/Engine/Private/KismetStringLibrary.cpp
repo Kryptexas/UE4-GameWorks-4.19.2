@@ -449,5 +449,5 @@ FString UKismetStringLibrary::TimeSecondsToString(float InSeconds)
 	const int32 NumCentiseconds = FMath::FloorToInt((InSeconds - FMath::FloorToFloat(InSeconds)) * 100.f);
 
 	// Create string, including leading zeroes
-	return FString::Printf(TEXT("%02d:%02d:%02d"), NumMinutes, NumSeconds, NumCentiseconds);
+	return FString::Printf(TEXT("%02d:%02d.%02d"), NumMinutes, NumSeconds, NumCentiseconds);
 }

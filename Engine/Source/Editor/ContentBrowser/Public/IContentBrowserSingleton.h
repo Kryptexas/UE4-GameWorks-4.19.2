@@ -129,6 +129,9 @@ struct FAssetPickerConfig
 	/** Custom front end filters to be displayed */
 	TArray< TSharedRef<class FFrontendFilter> > ExtraFrontendFilters;
 
+	/** The names of columns to hide by default in the column view */
+	TArray<FString> HiddenColumnNames;
+
 	/** The contents of the label on the thumbnail */
 	EThumbnailLabel::Type ThumbnailLabel;
 

@@ -183,10 +183,11 @@ void FTextBlockLayout::UpdateTextLayout(const FString& InText)
 {
 	Marshaller->ClearDirty();
 	TextLayout->ClearLines();
-	Marshaller->SetText(InText, *TextLayout);
 
 	TextLayout->ClearLineHighlights();
 	TextLayout->ClearRunRenderers();
+
+	Marshaller->SetText(InText, *TextLayout);
 
 	HighlightTextLastUpdate = FTextSnapshot();
 }

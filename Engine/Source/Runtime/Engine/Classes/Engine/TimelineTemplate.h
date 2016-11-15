@@ -135,6 +135,10 @@ class UTimelineTemplate : public UObject
 	UPROPERTY()
 	uint32 bValidatedAsWired:1;
 
+	/** If we want the timeline to ignore global time dilation */
+	UPROPERTY(EditAnywhere, Category = TimelineTemplate)
+	uint32 bIgnoreTimeDilation : 1;
+
 	/** Set of event tracks */
 	UPROPERTY()
 	TArray<struct FTTEventTrack> EventTracks;

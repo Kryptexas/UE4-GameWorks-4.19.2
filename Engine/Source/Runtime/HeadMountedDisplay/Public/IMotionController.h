@@ -4,7 +4,7 @@
 #include "InputCoreTypes.h"
 
 UENUM(BlueprintType)
-enum class ETrackingStatus
+enum class ETrackingStatus : uint8
 {
 	NotTracked,
 	InertialOnly,

@@ -16,7 +16,7 @@ DECLARE_CYCLE_STAT( TEXT( "FillAlpha" ),       STAT_SPFillAlpha,       STATGROUP
 
 
 UENUM()
-enum class ECaptureStep
+enum class ECaptureStep : uint8
 {
 	Reset,
     SetStartPosition,
@@ -51,17 +51,19 @@ public:
 
 	virtual void Tick( float DeltaTime ) override;
 
-	virtual bool IsTickable() const 
+	virtual bool IsTickable() const override
 	{ 
 		return true; 
 	}
 
-	virtual bool IsTickableWhenPaused() const
+	virtual bool IsTickableWhenPaused() const override
 	{
 		return bIsTicking;
 	}
 
-	virtual TStatId GetStatId() const
+	virtual UWorld* GetTickableGameObjectWorld() const override;
+
+	virtual TStatId GetStatId() const override
 	{
 		RETURN_QUICK_DECLARE_CYCLE_STAT( USceneCapturer, STATGROUP_Tickables );
 	}
@@ -108,7 +110,7 @@ public:
     int32 StripHeight;
 
 	class APlayerController* CapturePlayerController;
-	class AGameMode* CaptureGameMode;
+	class AGameModeBase* CaptureGameMode;
 
 	TArray<USceneCaptureComponent2D*> LeftEyeCaptureComponents;
 	TArray<USceneCaptureComponent2D*> RightEyeCaptureComponents;

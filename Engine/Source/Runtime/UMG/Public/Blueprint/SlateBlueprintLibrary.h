@@ -64,4 +64,10 @@ public:
 	 */
 	UFUNCTION(BlueprintPure, Category="User Interface|Geometry", meta=( WorldContext="WorldContextObject" ))
 	static void AbsoluteToViewport(UObject* WorldContextObject, FVector2D AbsoluteDesktopCoordinate, FVector2D& PixelPosition, FVector2D& ViewportPosition);
+
+	UFUNCTION(Category="User Interface|Geometry", meta=( WorldContext="WorldContextObject" ))
+	static void ScreenToWidgetLocal(UObject* WorldContextObject, const FGeometry& Geometry, FVector2D ScreenPosition, FVector2D& LocalCoordinate);
+
+	UFUNCTION(Category="User Interface|Geometry", meta=( WorldContext="WorldContextObject" ))
+	static void ScreenToWidgetAbsolute(UObject* WorldContextObject, FVector2D ScreenPosition, FVector2D& AbsoluteCoordinate);
 };

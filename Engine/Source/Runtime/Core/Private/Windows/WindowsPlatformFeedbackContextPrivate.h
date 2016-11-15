@@ -57,7 +57,7 @@ public:
 			}
 		}
 
-		if( GLogConsole && IsRunningCommandlet() )
+		if( GLogConsole && IsRunningCommandlet() && !GLog->IsRedirectingTo(GLogConsole) )
 		{
 			GLogConsole->Serialize( V, Verbosity, Category );
 		}

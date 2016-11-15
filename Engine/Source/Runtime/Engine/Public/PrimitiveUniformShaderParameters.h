@@ -24,6 +24,7 @@ BEGIN_UNIFORM_BUFFER_STRUCT(FPrimitiveUniformShaderParameters,ENGINE_API)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4,InvNonUniformScale,EShaderPrecisionModifier::Half)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, LocalObjectBoundsMin)		// This is used in a custom material function (ObjectLocalBounds.uasset)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector, LocalObjectBoundsMax)		// This is used in a custom material function (ObjectLocalBounds.uasset)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,LightingChannelMask)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,LpvBiasMultiplier)
 END_UNIFORM_BUFFER_STRUCT(FPrimitiveUniformShaderParameters)
 
@@ -38,6 +39,7 @@ inline FPrimitiveUniformShaderParameters GetPrimitiveUniformShaderParameters(
 	bool bHasHeightfieldRepresentation,
 	bool bUseSingleSampleShadowFromStationaryLights,
 	bool bUseEditorDepthTest,
+	uint32 LightingChannelMask,
 	float LpvBiasMultiplier = 1.0f
 )
 {
@@ -50,6 +52,7 @@ inline FPrimitiveUniformShaderParameters GetPrimitiveUniformShaderParameters(
 	Result.LocalObjectBoundsMax = LocalBounds.GetBoxExtrema(1); // 1 == maximum
 	Result.ObjectOrientation = LocalToWorld.GetUnitAxis( EAxis::Z );
 	Result.ActorWorldPosition = ActorPosition;
+	Result.LightingChannelMask = LightingChannelMask;
 	Result.LpvBiasMultiplier = LpvBiasMultiplier;
 
 	{
@@ -88,7 +91,7 @@ inline TUniformBufferRef<FPrimitiveUniformShaderParameters> CreatePrimitiveUnifo
 {
 	check(IsInRenderingThread());
 	return TUniformBufferRef<FPrimitiveUniformShaderParameters>::CreateUniformBufferImmediate(
-		GetPrimitiveUniformShaderParameters(LocalToWorld, WorldBounds.Origin, WorldBounds, LocalBounds, bReceivesDecals, false, false, false, bUseEditorDepthTest, LpvBiasMultiplier ),
+		GetPrimitiveUniformShaderParameters(LocalToWorld, WorldBounds.Origin, WorldBounds, LocalBounds, bReceivesDecals, false, false, false, bUseEditorDepthTest, GetDefaultLightingChannelMask(), LpvBiasMultiplier ),
 		UniformBuffer_MultiFrame
 		);
 }
@@ -118,6 +121,7 @@ public:
 			false,
 			false,
 			true,
+			GetDefaultLightingChannelMask(),
 			1.0f		// LPV bias
 			));
 	}

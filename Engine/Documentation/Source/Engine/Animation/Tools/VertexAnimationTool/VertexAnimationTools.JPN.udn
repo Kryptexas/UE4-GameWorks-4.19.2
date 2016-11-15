@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:2735410
+﻿INTSourceChangelist:3067170
 Availability:Public
 Title:頂点アニメーション ツール
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:3D Max 頂点アニメーション ツールセットのユーザー ガイド
 Related:Engine\Animation\Tools\VertexAnimationTool\VAT_KF_Meshes
 Related:Engine\Animation\Tools\VertexAnimationTool\VAT_TL_Meshes
-SkillLevel:上級者向け
+SkillLevel:Advanced
 Version:4.9
 
 [TOC(start:2 end:3)]
@@ -26,7 +26,9 @@ Version:4.9
 
 Vertex Animation Script (頂点アニメーション スクリプト) は次の場所に保存されていて、 **VertexAnimationTools.ms.** という名前がつけられています。
 
-		4.8\Engine\Extras\3dsMaxScripts\VertexAnimationTools.ms
+		Engine\Extras\3dsMaxScripts\VertexAnimationTools.ms
+
+Verext Animation Script の最新バージョンが、3Ds Max 2014 以降が image gamma を処理する方法を修正するように更新されました。
 
 ### ツールに関する注意事項
 このツールは複雑なアニメーション データをテクスチャに格納することでアニメーション オーバーヘッドを削減する利点がある一方で、いくつかの欠点もあります。 
@@ -52,7 +54,7 @@ Vertex Animation Script (頂点アニメーション スクリプト) は次の�
 	|-------------|------------|
 	|**Animation Options: (アニメーション オプション)** | これは 3Ds Max でタイムラインを活用して作成したアニメーション、または 3Ds Max または Maya や Blender など別の 3D パッケージを利用して作成した個別のキーフレーム メッシュの利用のどちらかを選択することができます。その後、パッケージからフレームごとにエクスポートして 3Ds Max 内でアニメーションを再構成することが可能です。|
 	|**Process Animated Meshes: (アニメートしたメッシュを処理)** | このボタンは 3Ds Max シーン内のアニメートしたメッシュを処理します。必要なテクスチャを作成して、エクスポートします。 |
-	|**Anim Start: (アニメーションの開始) ** |アニメーションが開始するフレームを定義します。 |
+	|**Anim Start: (アニメーションの開始)** |アニメーションが開始するフレームを定義します。 |
 	|**Anim End:(アニメーションの終了)** |アニメーションが終了するフレームを定義します。 |
 	|**Frame Skip: (フレームのスキップ)** |テクスチャ空間を節約するためにフレームをスキップすることができます。 |
 	|**Process Selected Meshes: (選択されたメッシュを処理)** |キーフレーム メッシュが有効な時だけ利用可能なこのオプションは、キーフレームメッシュを選択された順序で処理します。 |
@@ -177,6 +179,8 @@ UE4 ではセンチメートル (CM) をデフォルト単位として使用す�
 頂点位置に関するモーフターゲット情報は、16 ビットの符号付きの浮動小数点ファイル形式で保存されています。 
 32 ビット画像の方が正確ですが、ほとんどの FX 作業には 16 ビットで十分です。 
 しかし、オフセット頂点位置は静止している場所から離れるにつれて精度が低下します。 
+
+スクリプトのテクスチャーは最近傍法を使ってサンプリングすることにも注意してください。
 
 ### メモリ使用量
 頂点ごとの各フレームのメモリ使用量は以下の通りです。

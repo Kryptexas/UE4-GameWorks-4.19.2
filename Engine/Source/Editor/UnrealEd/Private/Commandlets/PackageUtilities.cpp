@@ -1095,6 +1095,21 @@ void FPkgInfoReporter_Log::GeneratePackageReport( FLinkerLoad* InLinker/*=NULL*/
 					}
 				}
 
+				// find the name of this object's parent...for UClasses, this will be the parent class
+				// for UFunctions, this will be the SuperFunction, if it exists, etc.
+				FString TemplateName;
+				if (!Export.TemplateIndex.IsNull())
+				{
+					if ((InfoFlags&PKGINFO_Paths) != 0)
+					{
+						TemplateName = *Linker->GetPathName(Export.TemplateIndex);
+					}
+					else
+					{
+						TemplateName = Linker->ImpExp(Export.TemplateIndex).ObjectName.ToString();
+					}
+				}
+
 				// find the name of this object's Outer.  For UClasses, this will generally be the
 				// top-level package itself.  For properties, a UClass, etc.
 				FString OuterName;
@@ -1111,7 +1126,8 @@ void FPkgInfoReporter_Log::GeneratePackageReport( FLinkerLoad* InLinker/*=NULL*/
 				}
 
 				UE_LOG(LogPackageUtilities, Warning, TEXT("\t\t         Class: '%s' (%i)"), *ClassName.ToString(), ClassIndex.ForDebugging() );
-				UE_LOG(LogPackageUtilities, Warning, TEXT("\t\t        Parent: '%s' (%d)"), *ParentName, Export.SuperIndex.ForDebugging() );
+				UE_LOG(LogPackageUtilities, Warning, TEXT("\t\t        Parent: '%s' (%d)"), *ParentName, Export.SuperIndex.ForDebugging());
+				UE_LOG(LogPackageUtilities, Warning, TEXT("\t\t      Template: '%s' (%d)"), *TemplateName, Export.TemplateIndex.ForDebugging());
 				UE_LOG(LogPackageUtilities, Warning, TEXT("\t\t         Outer: '%s' (%d)"), *OuterName, Export.OuterIndex.ForDebugging() );
 				UE_LOG(LogPackageUtilities, Warning, TEXT("\t\t      Pkg Guid: %s"), *Export.PackageGuid.ToString());
 				UE_LOG(LogPackageUtilities, Warning, TEXT("\t\t   ObjectFlags: 0x%08X"), (uint32)Export.ObjectFlags );
@@ -1653,10 +1669,10 @@ struct CompressAnimationsFunctor
 				{
 					bool bCandidate = false;
 
-					for (int32 i = 0; i<AnimSeq->CompressedTrackToSkeletonMapTable.Num(); i++)
+					for (int32 i = 0; i<AnimSeq->GetCompressedTrackToSkeletonMapTable().Num(); i++)
  					{
  						const int32 TrackIndex = i;
-						const int32 BoneTreeIndex = AnimSeq->CompressedTrackToSkeletonMapTable[TrackIndex].BoneTreeIndex;
+						const int32 BoneTreeIndex = AnimSeq->GetCompressedTrackToSkeletonMapTable()[TrackIndex].BoneTreeIndex;
 						const FName BoneTreeName = Skeleton->GetReferenceSkeleton().GetBoneName(BoneTreeIndex);
 
  						// Translation

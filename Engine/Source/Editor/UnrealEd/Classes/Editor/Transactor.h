@@ -434,7 +434,7 @@ public:
 };
 
 UCLASS(transient)
-class UTransactor : public UObject
+class UNREALED_API UTransactor : public UObject
 {
     GENERATED_UCLASS_BODY()
 	/**

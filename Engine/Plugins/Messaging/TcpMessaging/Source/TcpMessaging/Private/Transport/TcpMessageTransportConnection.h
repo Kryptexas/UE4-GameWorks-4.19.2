@@ -159,7 +159,9 @@ private:
 	virtual void Exit() override;
 
 private:
-	
+	/** Try to send data, but if all data is not sent in one go, block on send until data is sent or an error occurs */
+	bool BlockingSend(const uint8* Data, int32 BytesToSend);
+
 	/** Connection state changed delegate */
 	FOnTcpMessageTransportConnectionStateChanged ConnectionStateChangedDelegate;
 
@@ -193,6 +195,9 @@ private:
 	/** Whether we've received the initial header from the remote end */
 	bool bReceivedHeader;
 
+	/** Peer's value for of ETcpMessagingVersion::LatestVersion */
+	uint32 RemoteProtocolVersion;
+
 	/** Holds the connection socket. */
 	FSocket* Socket;
 
@@ -210,5 +215,11 @@ private:
 
 	/** Delay before re-establishing connection if it drops, 0 disables */
 	int32 ConnectionRetryDelay;
+
+	/** Message data we're currently in the process of receiving, if any */
+	FArrayReaderPtr RecvMessageData;
+
+	/** The number of bytes of incoming message data we're still waiting on before we have a complete message */
+	int32 RecvMessageDataRemaining;
 };
 

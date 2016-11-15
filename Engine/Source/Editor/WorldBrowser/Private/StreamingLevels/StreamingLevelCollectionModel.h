@@ -109,6 +109,9 @@ private:
 	void FillSetStreamingMethodSubMenu(class FMenuBuilder& MenuBuilder);
 	
 	/**  */
+	void FillChangeLightingScenarioSubMenu(class FMenuBuilder& MenuBuilder);
+
+	/**  */
 	void FillDefaultStreamingMethodSubMenu(class FMenuBuilder& MenuBuilder);
 	
 private:

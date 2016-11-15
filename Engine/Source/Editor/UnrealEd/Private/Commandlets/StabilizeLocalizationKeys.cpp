@@ -316,15 +316,10 @@ int32 UStabilizeLocalizationKeysCommandlet::Main(const FString& Params)
 
 			for (const FString& ManifestFilename : ManifestFilenames)
 			{
-				const TSharedPtr<FJsonObject> ManifestJsonObject = UGatherTextCommandletBase::ReadJSONTextFile(ManifestFilename);
-				if (ManifestJsonObject.IsValid())
+				TSharedRef<FInternationalizationManifest> InternationalizationManifest = MakeShareable(new FInternationalizationManifest());
+				if (FJsonInternationalizationManifestSerializer::DeserializeManifestFromFile(ManifestFilename, InternationalizationManifest))
 				{
-					FJsonInternationalizationManifestSerializer ManifestSerializer;
-					TSharedRef<FInternationalizationManifest> InternationalizationManifest = MakeShareable(new FInternationalizationManifest());
-					if (ManifestSerializer.DeserializeManifest(ManifestJsonObject.ToSharedRef(), InternationalizationManifest))
-					{
-						Manifests.Add(InternationalizationManifest);
-					}
+					Manifests.Add(InternationalizationManifest);
 				}
 			}
 
@@ -336,23 +331,18 @@ int32 UStabilizeLocalizationKeysCommandlet::Main(const FString& Params)
 
 			for (const FString& ArchiveFilename : ArchiveFilenames)
 			{
-				TSharedPtr<FJsonObject> ArchiveJsonObject = UGatherTextCommandletBase::ReadJSONTextFile(ArchiveFilename);
-				if (ArchiveJsonObject.IsValid())
+				TSharedRef<FInternationalizationArchive> InternationalizationArchive = MakeShareable(new FInternationalizationArchive());
+				if (FJsonInternationalizationArchiveSerializer::DeserializeArchiveFromFile(ArchiveFilename, InternationalizationArchive, nullptr, nullptr))
 				{
-					FJsonInternationalizationArchiveSerializer ArchiveSerializer;
-					TSharedRef<FInternationalizationArchive> InternationalizationArchive = MakeShareable(new FInternationalizationArchive());
-					if (ArchiveSerializer.DeserializeArchive(ArchiveJsonObject.ToSharedRef(), InternationalizationArchive))
+					const FString ArchivePath = FPaths::GetPath(ArchiveFilename);
+					const bool bIsNativeArchive = ArchivePath.EndsWith(NativeCulture);
+					if (bIsNativeArchive)
 					{
-						const FString ArchivePath = FPaths::GetPath(ArchiveFilename);
-						const bool bIsNativeArchive = ArchivePath.EndsWith(NativeCulture);
-						if (bIsNativeArchive)
-						{
-							NativeLocArchives.Add(FLocArchiveInfo(ArchiveFilename, InternationalizationArchive));
-						}
-						else
-						{
-							ForeignLocArchives.Add(FLocArchiveInfo(ArchiveFilename, InternationalizationArchive));
-						}
+						NativeLocArchives.Add(FLocArchiveInfo(ArchiveFilename, InternationalizationArchive));
+					}
+					else
+					{
+						ForeignLocArchives.Add(FLocArchiveInfo(ArchiveFilename, InternationalizationArchive));
 					}
 				}
 			}
@@ -361,44 +351,15 @@ int32 UStabilizeLocalizationKeysCommandlet::Main(const FString& Params)
 		// Update archives to preserve the translations from the old keys
 		for (const auto& IdPair : TextKeyMap)
 		{
-			TArray<FString> SourceStrings;
-
-			// Find all the source strings for this entry
-			for (const TSharedRef<FInternationalizationManifest>& Manifest : Manifests)
-			{
-				TSharedPtr<FManifestEntry> FoundManifestEntry = Manifest->FindEntryByKey(IdPair.Key.GetNamespace(), IdPair.Key.GetKey());
-				if (FoundManifestEntry.IsValid())
-				{
-					SourceStrings.AddUnique(FoundManifestEntry->Source.Text);
-				}
-			}
-
-			// First check to see if we have a native translation for this entry
-			const int32 NumManifestSourceStrings = SourceStrings.Num();
-			for (FLocArchiveInfo& LocArchive : NativeLocArchives)
-			{
-				// Use non-ranged iteration since we may add to the array while iterating
-				for (int32 SourceStringIndex = 0; SourceStringIndex < NumManifestSourceStrings; ++SourceStringIndex)
-				{
-					const FString& SourceString = SourceStrings[SourceStringIndex];
-					TSharedPtr<FArchiveEntry> FoundArchiveEntry = LocArchive.Archive->FindEntryBySource(IdPair.Key.GetNamespace(), FLocItem(SourceString), nullptr);
-					if (FoundArchiveEntry.IsValid() && !FoundArchiveEntry->Translation.Text.IsEmpty())
-					{
-						SourceStrings.AddUnique(FoundArchiveEntry->Translation.Text);
-					}
-				}
-			}
-
-			// Then see if we have any foreign translations, and if so, add an extra entry using the new namespace
 			for (FLocArchiveInfo& LocArchive : ForeignLocArchives)
 			{
-				for (const FString& SourceString : SourceStrings)
+				TSharedPtr<FArchiveEntry> FoundArchiveEntry = LocArchive.Archive->FindEntryByKey(IdPair.Key.GetNamespace(), IdPair.Key.GetKey(), nullptr);
+				if (FoundArchiveEntry.IsValid() && !FoundArchiveEntry->Translation.Text.IsEmpty())
 				{
-					TSharedPtr<FArchiveEntry> FoundArchiveEntry = LocArchive.Archive->FindEntryBySource(IdPair.Key.GetNamespace(), FLocItem(SourceString), nullptr);
-					if (FoundArchiveEntry.IsValid() && !FoundArchiveEntry->Translation.Text.IsEmpty())
+					LocArchive.bHasArchiveChanged = true;
+					if (!LocArchive.Archive->SetTranslation(IdPair.Value.GetNamespace(), IdPair.Value.GetKey(), FoundArchiveEntry->Source, FoundArchiveEntry->Translation, FoundArchiveEntry->KeyMetadataObj))
 					{
-						LocArchive.bHasArchiveChanged = true;
-						LocArchive.Archive->AddEntry(IdPair.Value.GetNamespace(), FoundArchiveEntry->Source, FoundArchiveEntry->Translation, FoundArchiveEntry->KeyMetadataObj, FoundArchiveEntry->bIsOptional);
+						LocArchive.Archive->AddEntry(IdPair.Value.GetNamespace(), IdPair.Value.GetKey(), FoundArchiveEntry->Source, FoundArchiveEntry->Translation, FoundArchiveEntry->KeyMetadataObj, FoundArchiveEntry->bIsOptional);
 					}
 				}
 			}
@@ -409,11 +370,12 @@ int32 UStabilizeLocalizationKeysCommandlet::Main(const FString& Params)
 		{
 			if (LocArchive.bHasArchiveChanged)
 			{
-				TSharedRef<FJsonObject> FinalArchiveJsonObj = MakeShareable(new FJsonObject());
-				FJsonInternationalizationArchiveSerializer ArchiveSerializer;
-				ArchiveSerializer.SerializeArchive(LocArchive.Archive, FinalArchiveJsonObj);
+				const bool bDidWriteArchive = FLocalizedAssetSCCUtil::SaveFileWithSCC(SourceControlInfo, LocArchive.Filename, [&LocArchive](const FString& InSaveFileName) -> bool
+				{
+					return FJsonInternationalizationArchiveSerializer::SerializeArchiveToFile(LocArchive.Archive, InSaveFileName);
+				});
 
-				if (!UGatherTextCommandletBase::WriteJSONToTextFile(FinalArchiveJsonObj, LocArchive.Filename, SourceControlInfo))
+				if (!bDidWriteArchive)
 				{
 					UE_LOG(LogStabilizeLocalizationKeys, Error, TEXT("Failed to write archive to %s."), *LocArchive.Filename);
 					return false;

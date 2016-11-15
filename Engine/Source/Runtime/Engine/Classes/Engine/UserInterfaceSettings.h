@@ -78,7 +78,7 @@ public:
 	UPROPERTY(config, EditAnywhere, Category="DPI Scaling", meta=(
 		DisplayName="DPI Scale Rule",
 		ToolTip="The rule used when trying to decide what scale to apply." ))
-	TEnumAsByte<EUIScalingRule> UIScaleRule;
+	EUIScalingRule UIScaleRule;
 
 	UPROPERTY(config, EditAnywhere, Category="DPI Scaling", meta=( MetaClass="DPICustomScalingRule", ToolTip = "Set DPI Scale Rule to Custom, and this class will be used instead of any of the built-in rules." ))
 	FStringClassReference CustomScalingRuleClass;
@@ -98,10 +98,6 @@ public:
 
 	/** Gets the current scale of the UI based on the size of a viewport */
 	float GetDPIScaleBasedOnSize(FIntPoint Size) const;
-
-#if WITH_EDITOR
-	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-#endif
 
 private:
 	UPROPERTY(Transient)

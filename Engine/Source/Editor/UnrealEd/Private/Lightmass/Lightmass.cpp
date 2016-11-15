@@ -466,21 +466,6 @@ void FLightmassExporter::AddMaterial(UMaterialInterface* InMaterialInterface, co
 		//@TODO: Add package to warning list if it needs to be resaved (perf warning)
 		InMaterialInterface->UpdateLightmassTextureTracking();
 
-		// Check material instance parent...
-		UMaterialInstance* MaterialInst = Cast<UMaterialInstance>(InMaterialInterface);
-		if (MaterialInst)
-		{
-			if (MaterialInst->Parent)
-			{
-				if (MaterialInst->ParentLightingGuid != MaterialInst->Parent->GetLightingGuid())
-				{
-					//@TODO: Add package to warning list if it needs to be resaved (perf warning)
-					MaterialInst->ParentLightingGuid = MaterialInst->Parent->GetLightingGuid();
-					MaterialInst->SetLightingGuid();
-				}
-			}
-		}
-
 		Materials.Add(InMaterialInterface);
 		MaterialExportSettings.Add(InMaterialInterface, ExportSettings);
 	}
@@ -1135,14 +1120,36 @@ void FLightmassExporter::WriteStaticMeshes()
 	}
 }
 
+void FLightmassExporter::GetMaterialHash(const UMaterialInterface* Material, FSHAHash& OutHash)
+{
+	FSHA1 HashState;
+
+	TArray<FGuid> MaterialGuids;
+	Material->GetLightingGuidChain(true, MaterialGuids);
+	MaterialGuids.Sort();
+
+	FGuid LastGuid;
+	for (const FGuid& MaterialGuid : MaterialGuids)
+	{
+		if (MaterialGuid != LastGuid)
+		{
+			HashState.Update((const uint8*)&MaterialGuid, sizeof(MaterialGuid));
+			LastGuid = MaterialGuid;
+		}
+	}
+	HashState.Final();
+	HashState.GetHash(&OutHash.Hash[0]);
+}
+
 void FLightmassExporter::BuildMaterialMap(UMaterialInterface* Material)
 {
 	if (ensure(Material))
 	{
-		FGuid LightingGuid = Material->GetLightingGuid();
+		FSHAHash MaterialHash;
+		GetMaterialHash(Material, MaterialHash);
 
 		// create a channel name to write the material out to
-		FString NewChannelName = Lightmass::CreateChannelName(LightingGuid, Lightmass::LM_MATERIAL_VERSION, Lightmass::LM_MATERIAL_EXTENSION);
+		FString NewChannelName = Lightmass::CreateChannelName(MaterialHash, Lightmass::LM_MATERIAL_VERSION, Lightmass::LM_MATERIAL_EXTENSION);
 
 		// only export the material if it's not currently in the cache
 		int32 ErrorCode;
@@ -1169,7 +1176,7 @@ void FLightmassExporter::BuildMaterialMap(UMaterialInterface* Material)
 			}
 			else
 			{
-				UE_LOG(LogLightmassSolver, Warning, TEXT("Error in TestChannel() for %s: %s"), *(Material->GetLightingGuid().ToString()), *(Material->GetPathName()));
+				UE_LOG(LogLightmassSolver, Warning, TEXT("Error in TestChannel() for %s: %s"), *(MaterialHash.ToString()), *(Material->GetPathName()));
 			}
 		}
 	}
@@ -1341,7 +1348,7 @@ void FLightmassExporter::WriteBaseMeshInstanceData( int32 Channel, int32 MeshInd
 	if (MaterialElementData.Num() == 0)
 	{
 		Lightmass::FMaterialElementData DefaultData;
-		DefaultData.MaterialId = UMaterial::GetDefaultMaterial(MD_Surface)->GetLightingGuid();
+		GetMaterialHash(UMaterial::GetDefaultMaterial(MD_Surface), DefaultData.MaterialHash);
 		MaterialElementData.Add(DefaultData);
 	}
 
@@ -1470,40 +1477,38 @@ void FLightmassExporter::WriteMeshInstances( int32 Channel )
 		// Collect the material guids for each element
 		TArray<Lightmass::FMaterialElementData> MaterialElementData;
 		const UStaticMesh* StaticMesh = SMLightingMesh->StaticMesh;
+		check(StaticMesh);
 
-		if (StaticMesh)
+		const UStaticMeshComponent* Primitive = SMLightingMesh->Primitive;
+		if (Primitive)
 		{
-			const UStaticMeshComponent* Primitive = SMLightingMesh->Primitive;
-			if (Primitive)
-			{	
-				// get the meshindex from the component
-				MeshId = ComponentToIDMap.Find(Primitive);
+			// get the meshindex from the component
+			MeshId = ComponentToIDMap.Find(Primitive);
 
-				if (StaticMesh->RenderData && SMLightingMesh->LODIndex < StaticMesh->RenderData->LODResources.Num())
+			if (StaticMesh->RenderData && SMLightingMesh->LODIndex < StaticMesh->RenderData->LODResources.Num())
+			{
+				const FStaticMeshLODResources& LODRenderData = StaticMesh->RenderData->LODResources[SMLightingMesh->LODIndex];
+				for (int32 SectionIndex = 0; SectionIndex < LODRenderData.Sections.Num(); SectionIndex++)
 				{
-					const FStaticMeshLODResources& LODRenderData = StaticMesh->RenderData->LODResources[SMLightingMesh->LODIndex];
-					for (int32 SectionIndex = 0; SectionIndex < LODRenderData.Sections.Num(); SectionIndex++)
+					const FStaticMeshSection& Section = LODRenderData.Sections[ SectionIndex ];
+					UMaterialInterface* Material = Primitive->GetMaterial(Section.MaterialIndex);
+					if (Material == NULL)
 					{
-						const FStaticMeshSection& Section = LODRenderData.Sections[ SectionIndex ];
-						UMaterialInterface* Material = Primitive->GetMaterial(Section.MaterialIndex);
-						if (Material == NULL)
-						{
-							Material = UMaterial::GetDefaultMaterial(MD_Surface);
-						}
-						Lightmass::FMaterialElementData NewElementData;
-						NewElementData.MaterialId = Material->GetLightingGuid();
-						NewElementData.bUseTwoSidedLighting = Primitive->LightmassSettings.bUseTwoSidedLighting;
-						NewElementData.bShadowIndirectOnly = Primitive->LightmassSettings.bShadowIndirectOnly;
-						NewElementData.bUseEmissiveForStaticLighting = Primitive->LightmassSettings.bUseEmissiveForStaticLighting;
-						NewElementData.bUseVertexNormalForHemisphereGather = Primitive->LightmassSettings.bUseVertexNormalForHemisphereGather;
-						// Combine primitive and level boost settings so we don't have to send the level settings over to Lightmass  
-						NewElementData.EmissiveLightFalloffExponent = Primitive->LightmassSettings.EmissiveLightFalloffExponent;
-						NewElementData.EmissiveLightExplicitInfluenceRadius = Primitive->LightmassSettings.EmissiveLightExplicitInfluenceRadius;
-						NewElementData.EmissiveBoost = Primitive->GetEmissiveBoost(SectionIndex) * LevelSettings.EmissiveBoost;
-						NewElementData.DiffuseBoost = Primitive->GetDiffuseBoost(SectionIndex) * LevelSettings.DiffuseBoost;
-						NewElementData.FullyOccludedSamplesFraction = Primitive->LightmassSettings.FullyOccludedSamplesFraction;
-						MaterialElementData.Add(NewElementData);
+						Material = UMaterial::GetDefaultMaterial(MD_Surface);
 					}
+					Lightmass::FMaterialElementData NewElementData;
+					GetMaterialHash(Material, NewElementData.MaterialHash);
+					NewElementData.bUseTwoSidedLighting = Primitive->LightmassSettings.bUseTwoSidedLighting;
+					NewElementData.bShadowIndirectOnly = Primitive->LightmassSettings.bShadowIndirectOnly;
+					NewElementData.bUseEmissiveForStaticLighting = Primitive->LightmassSettings.bUseEmissiveForStaticLighting;
+					NewElementData.bUseVertexNormalForHemisphereGather = Primitive->LightmassSettings.bUseVertexNormalForHemisphereGather;
+					// Combine primitive and level boost settings so we don't have to send the level settings over to Lightmass  
+					NewElementData.EmissiveLightFalloffExponent = Primitive->LightmassSettings.EmissiveLightFalloffExponent;
+					NewElementData.EmissiveLightExplicitInfluenceRadius = Primitive->LightmassSettings.EmissiveLightExplicitInfluenceRadius;
+					NewElementData.EmissiveBoost = Primitive->GetEmissiveBoost(SectionIndex) * LevelSettings.EmissiveBoost;
+					NewElementData.DiffuseBoost = Primitive->GetDiffuseBoost(SectionIndex) * LevelSettings.DiffuseBoost;
+					NewElementData.FullyOccludedSamplesFraction = Primitive->LightmassSettings.FullyOccludedSamplesFraction;
+					MaterialElementData.Add(NewElementData);
 				}
 			}
 		}
@@ -1578,7 +1583,7 @@ void FLightmassExporter::WriteLandscapeInstances( int32 Channel )
 				Material = UMaterial::GetDefaultMaterial(MD_Surface);
 			}
 			Lightmass::FMaterialElementData NewElementData;
-			NewElementData.MaterialId = Material->GetLightingGuid();
+			GetMaterialHash(Material, NewElementData.MaterialHash);
 			FLightmassPrimitiveSettings& LMSetting = LandscapeComp->GetLandscapeProxy()->LightmassSettings;
 			NewElementData.bUseTwoSidedLighting = LMSetting.bUseTwoSidedLighting;
 			NewElementData.bShadowIndirectOnly = LMSetting.bShadowIndirectOnly;
@@ -1684,7 +1689,7 @@ void FLightmassExporter::WriteMappings( int32 Channel )
 			const FLightmassPrimitiveSettings& PrimitiveSettings = Model->LightmassSettings[Pair.LightmassSettingsIndex];
 
 			Lightmass::FMaterialElementData TempData;
-			TempData.MaterialId = Material->GetLightingGuid();
+			GetMaterialHash(Material, TempData.MaterialHash);
 			TempData.bUseTwoSidedLighting = PrimitiveSettings.bUseTwoSidedLighting;
 			TempData.bShadowIndirectOnly = PrimitiveSettings.bShadowIndirectOnly;
 			TempData.bUseEmissiveForStaticLighting = PrimitiveSettings.bUseEmissiveForStaticLighting;
@@ -1806,6 +1811,12 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 		Scene.GeneralSettings.NumIndirectLightingBounces = LevelSettings.NumIndirectLightingBounces;
 		Scene.GeneralSettings.IndirectLightingSmoothness = LevelSettings.IndirectLightingSmoothness;
 		Scene.GeneralSettings.IndirectLightingQuality = LevelSettings.IndirectLightingQuality;
+
+		if (QualityLevel == Quality_Preview)
+		{
+			Scene.GeneralSettings.IndirectLightingQuality = FMath::Min(Scene.GeneralSettings.IndirectLightingQuality, 1.0f);
+		}
+
 		verify(GConfig->GetInt(TEXT("DevOptions.StaticLighting"), TEXT("ViewSingleBounceNumber"), Scene.GeneralSettings.ViewSingleBounceNumber, GLightmassIni));
 		verify(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bUseConservativeTexelRasterization"), bConfigBool, GLightmassIni));
 		Scene.GeneralSettings.bUseConservativeTexelRasterization = bConfigBool;
@@ -2381,18 +2392,18 @@ FString FLightmassProcessor::GetMappingFileExtension(const FStaticLightingMappin
 	return FileExtension;
 }
 
-FGuid FLightmassProcessor_GetMappingFileVersion(const FStaticLightingMapping* InMapping)
+int32 FLightmassProcessor_GetMappingFileVersion(const FStaticLightingMapping* InMapping)
 {
 	// Determine the input file name
-	FGuid ReturnGuid = FGuid(0,0,0,0);
+	int32 ReturnVersion = 0;
 	if (InMapping)
 	{
 		if (InMapping->IsTextureMapping() == true)
 		{
-			ReturnGuid = Lightmass::LM_TEXTUREMAPPING_VERSION;
+			ReturnVersion = Lightmass::LM_TEXTUREMAPPING_VERSION;
 		}
 	}
-	return ReturnGuid;
+	return ReturnVersion;
 }
 
 bool FLightmassProcessor::OpenJob()
@@ -3006,8 +3017,6 @@ void FLightmassProcessor::ImportVolumeSamples()
 			FVector4 VolumeExtent;
 			Swarm.ReadChannel(Channel, &VolumeExtent, sizeof(VolumeExtent));
 
-			System.GetWorld()->PersistentLevel->PrecomputedLightVolume->Initialize(FBox(VolumeCenter - VolumeExtent, VolumeCenter + VolumeExtent));
-
 			int32 NumStreamLevels = System.GetWorld()->StreamingLevels.Num();
 			int32 NumVolumeSampleArrays;
 			Swarm.ReadChannel(Channel, &NumVolumeSampleArrays, sizeof(NumVolumeSampleArrays));
@@ -3017,18 +3026,18 @@ void FLightmassProcessor::ImportVolumeSamples()
 				Swarm.ReadChannel(Channel, &LevelGuid, sizeof(LevelGuid));
 				TArray<Lightmass::FVolumeLightingSampleData> VolumeSamples;
 				ReadArray(Channel, VolumeSamples);
-				const ULevel* CurrentLevel = FindLevel(LevelGuid);
+				ULevel* CurrentLevel = FindLevel(LevelGuid);
 
 				if (CurrentLevel)
 				{
-					bool bIsPersistent = (CurrentLevel == System.GetWorld()->PersistentLevel);
-					if (!bIsPersistent)
-					{
-						CurrentLevel->PrecomputedLightVolume->Initialize(FBox(VolumeCenter - VolumeExtent, VolumeCenter + VolumeExtent));
-					}
+					ULevel* CurrentStorageLevel = System.LightingScenario ? System.LightingScenario : CurrentLevel;
+					UMapBuildDataRegistry* CurrentRegistry = CurrentStorageLevel->GetOrCreateMapBuildData();
+					FPrecomputedLightVolumeData& CurrentLevelData = CurrentRegistry->AllocateLevelBuildData(CurrentLevel->LevelBuildDataId);
 
-					// Only build precomputed light for persistent or visible streamed levels
-					if (bIsPersistent || CurrentLevel->bIsVisible)
+					CurrentLevelData.Initialize(FBox(VolumeCenter - VolumeExtent, VolumeCenter + VolumeExtent));
+
+					// Only build precomputed light for visible streamed levels
+					if (CurrentLevel->bIsVisible)
 					{
 						for (int32 SampleIndex = 0; SampleIndex < VolumeSamples.Num(); SampleIndex++)
 						{
@@ -3059,21 +3068,14 @@ void FLightmassProcessor::ImportVolumeSamples()
 								NewLowQualitySample.Lighting.B.V[CoefficientIndex] = CurrentSample.LowQualityCoefficients[CoefficientIndex][2];
 							}							
 
-							CurrentLevel->PrecomputedLightVolume->AddHighQualityLightingSample(NewHighQualitySample);
-							CurrentLevel->PrecomputedLightVolume->AddLowQualityLightingSample(NewLowQualitySample);
+							CurrentLevelData.AddHighQualityLightingSample(NewHighQualitySample);
+							CurrentLevelData.AddLowQualityLightingSample(NewLowQualitySample);
 						}
 
-						if (CurrentLevel != System.GetWorld()->PersistentLevel)
-						{
-							CurrentLevel->PrecomputedLightVolume->FinalizeSamples();
-							CurrentLevel->PrecomputedLightVolume->AddToScene(System.GetWorld()->Scene);
-						}
+						CurrentLevelData.FinalizeSamples();
 					}
 				}
 			}
-
-			System.GetWorld()->PersistentLevel->PrecomputedLightVolume->FinalizeSamples();
-			System.GetWorld()->PersistentLevel->PrecomputedLightVolume->AddToScene(System.GetWorld()->Scene);
 
 			Swarm.CloseChannel(Channel);
 		}
@@ -3711,21 +3713,22 @@ void FLightmassProcessor::ImportStaticShadowDepthMap(ULightComponent* Light)
 	const int32 Channel = Swarm.OpenChannel( *ChannelName, LM_DOMINANTSHADOW_CHANNEL_FLAGS );
 	if (Channel >= 0)
 	{
-		FStaticShadowDepthMap& DepthMap = Light->StaticShadowDepthMap;
+		ULevel* CurrentStorageLevel = System.LightingScenario ? System.LightingScenario : Light->GetOwner()->GetLevel();
+		UMapBuildDataRegistry* CurrentRegistry = CurrentStorageLevel->GetOrCreateMapBuildData();
+		FLightComponentMapBuildData& CurrentLightData = CurrentRegistry->FindOrAllocateLightBuildData(Light->LightGuid, true);
+
 		Lightmass::FStaticShadowDepthMapData ShadowMapData;
 		Swarm.ReadChannel(Channel, &ShadowMapData, sizeof(ShadowMapData));
 
-		BeginReleaseResource(&DepthMap);
-		DepthMap.Empty();
+		BeginReleaseResource(&Light->StaticShadowDepthMap);
+		CurrentLightData.DepthMap.Empty();
 
-		DepthMap.Data.WorldToLight = ShadowMapData.WorldToLight;
-		DepthMap.Data.ShadowMapSizeX = ShadowMapData.ShadowMapSizeX;
-		DepthMap.Data.ShadowMapSizeY = ShadowMapData.ShadowMapSizeY;
+		CurrentLightData.DepthMap.WorldToLight = ShadowMapData.WorldToLight;
+		CurrentLightData.DepthMap.ShadowMapSizeX = ShadowMapData.ShadowMapSizeX;
+		CurrentLightData.DepthMap.ShadowMapSizeY = ShadowMapData.ShadowMapSizeY;
 
-		ReadArray(Channel, DepthMap.Data.DepthSamples);
+		ReadArray(Channel, CurrentLightData.DepthMap.DepthSamples);
 		Swarm.CloseChannel(Channel);
-
-		DepthMap.InitializeAfterImport();
 	}
 	else
 	{
@@ -3990,7 +3993,7 @@ UStaticMesh* FLightmassProcessor::FindStaticMesh(FGuid& Guid)
 	return NULL;
 }
 
-const ULevel* FLightmassProcessor::FindLevel(FGuid& Guid)
+ULevel* FLightmassProcessor::FindLevel(FGuid& Guid)
 {
 	if (Exporter)
 	{

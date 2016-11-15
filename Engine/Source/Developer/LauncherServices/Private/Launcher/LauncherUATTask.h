@@ -105,6 +105,15 @@ protected:
 
 	void HandleOutputReceived(const FString& InMessage)
 	{
+		if (InMessage.Contains(TEXT("Error:"), ESearchCase::IgnoreCase))
+		{
+			++ErrorCounter;
+		}
+		else if (InMessage.Contains(TEXT("Warning:"), ESearchCase::IgnoreCase))
+		{
+			++WarningCounter;
+		}
+
 		EndTextFound |= InMessage.Contains(CommandText);
 	}
 

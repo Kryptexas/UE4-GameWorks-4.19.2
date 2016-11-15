@@ -26,6 +26,7 @@ class UGameplayTagsK2Node_LiteralGameplayTag : public UK2Node
 	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual FText GetMenuCategory() const override;
+	virtual bool IsNodePure() const override { return true; }
 	//~ End UK2Node Interface
 #endif
 

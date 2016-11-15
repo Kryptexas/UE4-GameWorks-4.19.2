@@ -35,6 +35,7 @@ namespace SessionManagerDefs
 	static const FString TimestampStoreKey(TEXT("Timestamp"));
 	static const FString DebuggerStoreKey(TEXT("IsDebugger"));
 	static const FString UserActivityStoreKey(TEXT("CurrentUserActivity"));
+	static const FString VanillaStoreKey(TEXT("IsVanilla"));
 	static const FString GlobalLockName(TEXT("UE4_SessionManager_Lock"));
 	static const FString FalseValueString(TEXT("0"));
 	static const FString TrueValueString(TEXT("1"));
@@ -72,6 +73,7 @@ void FEngineSessionManager::Initialize()
 	FCoreDelegates::ApplicationWillEnterBackgroundDelegate.AddRaw(this, &FEngineSessionManager::OnAppBackground);
 	FCoreDelegates::ApplicationHasEnteredForegroundDelegate.AddRaw(this, &FEngineSessionManager::OnAppForeground);
 	FUserActivityTracking::OnActivityChanged.AddRaw(this, &FEngineSessionManager::OnUserActivity);
+	FCoreDelegates::IsVanillaProductChanged.AddRaw(this, &FEngineSessionManager::OnVanillaStateChanged);
 
 	const bool bFirstInitAttempt = true;
 	InitializeRecords(bFirstInitAttempt);
@@ -173,6 +175,7 @@ void FEngineSessionManager::Shutdown()
 	FCoreDelegates::ApplicationWillDeactivateDelegate.RemoveAll(this);
 	FCoreDelegates::ApplicationWillEnterBackgroundDelegate.RemoveAll(this);
 	FCoreDelegates::ApplicationHasEnteredForegroundDelegate.RemoveAll(this);
+	FCoreDelegates::IsVanillaProductChanged.RemoveAll(this);
 
 	// Clear the session record for this session
 	if (bInitializedRecords)
@@ -188,6 +191,7 @@ void FEngineSessionManager::Shutdown()
 			FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, CurrentSessionSectionName, SessionManagerDefs::DeactivatedStoreKey);
 			FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, CurrentSessionSectionName, SessionManagerDefs::BackgroundStoreKey);
 			FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, CurrentSessionSectionName, SessionManagerDefs::UserActivityStoreKey);
+			FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, CurrentSessionSectionName, SessionManagerDefs::VanillaStoreKey);
 		}
 
 		bInitializedRecords = false;
@@ -237,6 +241,8 @@ bool FEngineSessionManager::BeginReadWriteRecords()
 			FPlatformMisc::GetStoredValue(SessionManagerDefs::StoreId, SectionName, SessionManagerDefs::BackgroundStoreKey, IsInBackgroundString);
 			FString UserActivityString = SessionManagerDefs::DefaultUserActivity;
 			FPlatformMisc::GetStoredValue(SessionManagerDefs::StoreId, SectionName, SessionManagerDefs::UserActivityStoreKey, UserActivityString);
+			FString IsVanillaString = SessionManagerDefs::FalseValueString;
+			FPlatformMisc::GetStoredValue(SessionManagerDefs::StoreId, SectionName, SessionManagerDefs::VanillaStoreKey, IsVanillaString);
 
 			// Create new record from the read values
 			FSessionRecord NewRecord;
@@ -250,6 +256,7 @@ bool FEngineSessionManager::BeginReadWriteRecords()
 			NewRecord.bIsDeactivated = IsDeactivatedString == SessionManagerDefs::TrueValueString;
 			NewRecord.bIsInBackground = IsInBackgroundString == SessionManagerDefs::TrueValueString;
 			NewRecord.CurrentUserActivity = UserActivityString;
+			NewRecord.bIsVanilla = IsVanillaString == SessionManagerDefs::TrueValueString;
 
 			SessionRecords.Add(NewRecord);
 		}
@@ -265,6 +272,7 @@ bool FEngineSessionManager::BeginReadWriteRecords()
 			FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, SectionName, SessionManagerDefs::DeactivatedStoreKey);
 			FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, SectionName, SessionManagerDefs::BackgroundStoreKey);
 			FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, SectionName, SessionManagerDefs::UserActivityStoreKey);
+			FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, SectionName, SessionManagerDefs::VanillaStoreKey);
 		}
 	}
 
@@ -307,11 +315,48 @@ void FEngineSessionManager::DeleteStoredRecord(const FSessionRecord& Record)
 	FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, SectionName, SessionManagerDefs::DeactivatedStoreKey);
 	FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, SectionName, SessionManagerDefs::BackgroundStoreKey);
 	FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, SectionName, SessionManagerDefs::UserActivityStoreKey);
+	FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, SectionName, SessionManagerDefs::VanillaStoreKey);
 
 	// Remove the session record from SessionRecords list
 	SessionRecords.RemoveAll([&SessionId](const FSessionRecord& X){ return X.SessionId == SessionId; });
 }
 
+/**
+ * @EventName Engine.AbnormalShutdown
+ *
+ * @Trigger Fired only by the engine during startup, once for each "abnormal shutdown" detected that has not already been sent.
+ *
+ * @Type Static
+ *
+ * @EventParam RunType - Editor or Game
+ * @EventParam ProjectName - Project for the session that abnormally terminated. 
+ * @EventParam Platform - Windows, Mac, Linux, PS4, XBoxOne or Unknown
+ * @EventParam SessionId - Analytics SessionID of the session that abnormally terminated.
+ * @EventParam EngineVersion - EngineVersion of the session that abnormally terminated.
+ * @EventParam ShutdownType - one of Crashed, Debugger, or AbormalShutdown
+ *               * Crashed - we definitely detected a crash (whether or not a debugger was attached)
+ *               * Debugger - the session crashed or shutdown abnormally, but we had a debugger attached at startup, so abnormal termination is much more likely because the user was debugging.
+ *               * AbnormalShutdown - this happens when we didn't detect a normal shutdown, but none of the above cases is the cause. A session record simply timed-out without being closed.
+ * @EventParam Timestamp - the UTC time of the last known time the abnormally terminated session was running, within 5 minutes.
+ * @EventParam CurrentUserActivity - If one was set when the session abnormally terminated, this is the activity taken from the FUserActivityTracking API.
+ * @EventParam IsVanilla - Value from the engine's IsVanillaProduct() method. Basically if this is a Epic-distributed Editor with zero third party plugins or game code modules.
+ *
+ * @TODO: Debugger should be a completely separate flag, since it's orthogonal to whether we detect a crash or shutdown.
+ *
+ * @Comments The engine will only try to check for abnormal terminations if it determines it is a "real" editor or game run (not a commandlet or PIE, or editor -game run), and the user has not disabled sending usage data to Epic via the settings.
+ * 
+ * The SessionId parameter should be used to find the actual session associated with this crash.
+ * 
+ * If multiple versions of the editor or launched, this code will properly track each one and its shutdown status. So during startup, an editor instance may need to fire off several events.
+ *
+ * When attributing abnormal terminations to engine versions, be sure to use the EngineVersion associated with this event, and not the AppVersion. AppVersion is for the session that is currently sending the event, not for the session that crashed. That is why EngineVersion is sent separately.
+ *
+ * The editor updates Timestamp every 5 minutes, so we should know the time of the crash within 5 minutes. It should technically correlate with the last heartbeat we receive in the data for that session.
+ *
+ * The main difference between an AbnormalShutdown and a Crash is that we KNOW a crash occurred, so we can send the event right away. If the engine did not shut down correctly, we don't KNOW that, so simply wait up to 30m (the engine updates the timestamp every 5 mins) to be sure that it's probably not running anymore.
+ *
+ * We have seen data in the wild that indicated editor freezing for up to 8 days but we're assuming that was likely stopped in a debugger. That's also why we added the ShutdownType of Debugger to the event. However, this code does not check IMMEDIATELY on crash if the debugger is present (that might be dangerous in a crash handler perhaps), we only check if a debugger is attached at startup. Then if an A.S. is detected, we just say "Debugger" because it's likely they just stopped the debugger and killed the process.
+ */
 void FEngineSessionManager::SendAbnormalShutdownReport(const FSessionRecord& Record)
 {
 #if PLATFORM_WINDOWS
@@ -356,6 +401,7 @@ void FEngineSessionManager::SendAbnormalShutdownReport(const FSessionRecord& Rec
 #endif
 
 	FString RunTypeString = Record.Mode == EEngineSessionManagerMode::Editor ? SessionManagerDefs::EditorValueString : SessionManagerDefs::GameValueString;
+	FString IsVanillaString = Record.bIsVanilla ? SessionManagerDefs::TrueValueString : SessionManagerDefs::FalseValueString;
 
 	TArray< FAnalyticsEventAttribute > AbnormalShutdownAttributes;
 	AbnormalShutdownAttributes.Add(FAnalyticsEventAttribute(TEXT("RunType"), RunTypeString));
@@ -366,6 +412,7 @@ void FEngineSessionManager::SendAbnormalShutdownReport(const FSessionRecord& Rec
 	AbnormalShutdownAttributes.Add(FAnalyticsEventAttribute(TEXT("ShutdownType"), ShutdownTypeString));
 	AbnormalShutdownAttributes.Add(FAnalyticsEventAttribute(TEXT("Timestamp"), Record.Timestamp.ToIso8601()));
 	AbnormalShutdownAttributes.Add(FAnalyticsEventAttribute(TEXT("CurrentUserActivity"), Record.CurrentUserActivity));
+	AbnormalShutdownAttributes.Add(FAnalyticsEventAttribute(TEXT("IsVanilla"), IsVanillaString));
 
 	FEngineAnalytics::GetProvider().RecordEvent(TEXT("Engine.AbnormalShutdown"), AbnormalShutdownAttributes);
 }
@@ -391,12 +438,14 @@ void FEngineSessionManager::CreateAndWriteRecordForSession()
 	CurrentSession.Timestamp = FDateTime::UtcNow();
 	CurrentSession.bIsDebugger = FPlatformMisc::IsDebuggerPresent();
 	CurrentSession.CurrentUserActivity = GetUserActivityString();
+	CurrentSession.bIsVanilla = GEngine && GEngine->IsVanillaProduct();
 	CurrentSessionSectionName = GetStoreSectionString(CurrentSession.SessionId);
 
 	FString ModeString = CurrentSession.Mode == EEngineSessionManagerMode::Editor ? SessionManagerDefs::EditorValueString : SessionManagerDefs::GameValueString;
 	FString IsDebuggerString = CurrentSession.bIsDebugger ? SessionManagerDefs::TrueValueString : SessionManagerDefs::FalseValueString;
 	FString IsDeactivatedString = CurrentSession.bIsDeactivated ? SessionManagerDefs::TrueValueString : SessionManagerDefs::FalseValueString;
 	FString IsInBackgroundString = CurrentSession.bIsInBackground ? SessionManagerDefs::TrueValueString : SessionManagerDefs::FalseValueString;
+	FString IsVanillaString = CurrentSession.bIsVanilla ? SessionManagerDefs::TrueValueString : SessionManagerDefs::FalseValueString;
 
 	FPlatformMisc::SetStoredValue(SessionManagerDefs::StoreId, CurrentSessionSectionName, SessionManagerDefs::ModeStoreKey, ModeString);
 	FPlatformMisc::SetStoredValue(SessionManagerDefs::StoreId, CurrentSessionSectionName, SessionManagerDefs::ProjectNameStoreKey, CurrentSession.ProjectName);
@@ -407,6 +456,7 @@ void FEngineSessionManager::CreateAndWriteRecordForSession()
 	FPlatformMisc::SetStoredValue(SessionManagerDefs::StoreId, CurrentSessionSectionName, SessionManagerDefs::DeactivatedStoreKey, IsDeactivatedString);
 	FPlatformMisc::SetStoredValue(SessionManagerDefs::StoreId, CurrentSessionSectionName, SessionManagerDefs::BackgroundStoreKey, IsInBackgroundString);
 	FPlatformMisc::SetStoredValue(SessionManagerDefs::StoreId, CurrentSessionSectionName, SessionManagerDefs::UserActivityStoreKey, CurrentSession.CurrentUserActivity);
+	FPlatformMisc::SetStoredValue(SessionManagerDefs::StoreId, CurrentSessionSectionName, SessionManagerDefs::VanillaStoreKey, IsVanillaString);
 
 	SessionRecords.Add(CurrentSession);
 }
@@ -468,6 +518,16 @@ FString FEngineSessionManager::GetStoreSectionString(FString InSuffix)
 	{
 		const UGeneralProjectSettings& ProjectSettings = *GetDefault<UGeneralProjectSettings>();
 		return FString::Printf(TEXT("%s%s/%s/%s"), *SessionManagerDefs::GameSessionRecordSectionPrefix, *SessionManagerDefs::SessionsVersionString, *ProjectSettings.ProjectName, *InSuffix);
+	}
+}
+
+void FEngineSessionManager::OnVanillaStateChanged(bool bIsVanilla)
+{
+	if (CurrentSession.bIsVanilla != bIsVanilla && bInitializedRecords)
+	{
+		CurrentSession.bIsVanilla = bIsVanilla;
+		FString IsVanillaString = CurrentSession.bIsVanilla ? SessionManagerDefs::TrueValueString : SessionManagerDefs::FalseValueString;
+		FPlatformMisc::SetStoredValue(SessionManagerDefs::StoreId, CurrentSessionSectionName, SessionManagerDefs::VanillaStoreKey, IsVanillaString);
 	}
 }
 

@@ -4,12 +4,14 @@
 struct SLATECORE_API FSlateFontKey
 {
 public:
-	FSlateFontKey( const FSlateFontInfo& InInfo, const float InScale )
+	FSlateFontKey( const FSlateFontInfo& InInfo, const FFontOutlineSettings& InFontOutlineSettings, const float InScale )
 		: FontInfo( InInfo )
+		, OutlineSettings(InFontOutlineSettings)
 		, Scale( InScale )
 		, KeyHash( 0 )
 	{
 		KeyHash = HashCombine(KeyHash, GetTypeHash(FontInfo));
+		KeyHash = HashCombine(KeyHash, GetTypeHash(OutlineSettings));
 		KeyHash = HashCombine(KeyHash, GetTypeHash(Scale));
 	}
 
@@ -23,9 +25,14 @@ public:
 		return Scale;
 	}
 
+	FORCEINLINE const FFontOutlineSettings& GetFontOutlineSettings() const
+	{
+		return OutlineSettings;
+	}
+
 	FORCEINLINE bool operator==(const FSlateFontKey& Other ) const
 	{
-		return FontInfo == Other.FontInfo && Scale == Other.Scale;
+		return FontInfo == Other.FontInfo && OutlineSettings == Other.OutlineSettings && Scale == Other.Scale;
 	}
 
 	FORCEINLINE bool operator!=(const FSlateFontKey& Other ) const
@@ -40,6 +47,7 @@ public:
 
 private:
 	FSlateFontInfo FontInfo;
+	FFontOutlineSettings OutlineSettings;
 	float Scale;
 	uint32 KeyHash;
 };

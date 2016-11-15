@@ -46,7 +46,7 @@ public:
 	{
 		if (UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(InComponent))
 		{
-			return StaticMeshComp->StaticMesh;
+			return StaticMeshComp->GetStaticMesh();
 		}
 		return NULL;
 	}

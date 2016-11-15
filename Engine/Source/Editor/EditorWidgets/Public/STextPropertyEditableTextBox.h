@@ -95,6 +95,7 @@ private:
 	void GetDesiredWidth(float& OutMinDesiredWidth, float& OutMaxDesiredWidth);
 	bool CanEdit() const;
 	bool IsReadOnly() const;
+	bool IsIdentityReadOnly() const;
 	FText GetToolTipText() const;
 
 	FText GetTextValue() const;
@@ -111,6 +112,12 @@ private:
 
 	FText GetPackageValue() const;
 #endif // USE_STABLE_LOCALIZATION_KEYS
+
+	ECheckBoxState GetLocalizableCheckState(bool bActiveState) const;
+
+	void HandleLocalizableCheckStateChanged(ECheckBoxState InCheckboxState, bool bActiveState);
+
+	EVisibility GetTextWarningImageVisibility() const;
 
 	bool IsValidIdentity(const FText& InIdentity, FText* OutReason = nullptr, const FText* InErrorCtx = nullptr) const;
 

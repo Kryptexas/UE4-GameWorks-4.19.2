@@ -124,14 +124,14 @@ We have built the code framework to create and display menus, and remove them wh
 			#pragma once
 
 			#include "Blueprint/UserWidget.h"
-			#include "GameFramework/GameMode.h"
+			#include "GameFramework/GameModeBase.h"
 			#include "HowTo_UMGGameMode.generated.h"
 
 			/**
 			 * 
 			 */
 			UCLASS()
-			class HOWTO_UMG_API AHowTo_UMGGameMode : public AGameMode
+			class HOWTO_UMG_API AHowTo_UMGGameMode : public AGameModeBase
 			{
 				GENERATED_BODY()
 

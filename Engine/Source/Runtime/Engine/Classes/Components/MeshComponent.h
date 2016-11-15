@@ -26,8 +26,30 @@ class ENGINE_API UMeshComponent : public UPrimitiveComponent
 	UFUNCTION(BlueprintCallable, Category="Components|Mesh")
 	virtual TArray<class UMaterialInterface*> GetMaterials() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Components|Mesh")
+	virtual int32 GetMaterialIndex(FName MaterialSlotName) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Components|Mesh")
+	virtual TArray<FName> GetMaterialSlotNames() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Components|Mesh")
+	virtual bool IsMaterialSlotNameValid(FName MaterialSlotName) const;
+
 	/** Returns override Materials count */
 	virtual int32 GetNumOverrideMaterials() const;
+
+#if WITH_EDITOR
+	/*
+	 * Make sure the Override array is using only the space it should use.
+	 * 1. The override array cannot be bigger then the number of mesh material.
+	 * 2. The override array must not end with a nullptr UMaterialInterface.
+	 */
+	void CleanUpOverrideMaterials();
+	/** 
+	 * This empties all override materials and used by editor when replacing preview mesh 
+	 */
+	void EmptyOverrideMaterials(); 
+#endif
 
 	//~ Begin UObject Interface
 	virtual void BeginDestroy() override;
@@ -37,6 +59,7 @@ class ENGINE_API UMeshComponent : public UPrimitiveComponent
 	virtual int32 GetNumMaterials() const override;
 	virtual UMaterialInterface* GetMaterial(int32 ElementIndex) const override;
 	virtual void SetMaterial(int32 ElementIndex, UMaterialInterface* Material) override;
+	virtual void SetMaterialByName(FName MaterialSlotName, class UMaterialInterface* Material) override;
 	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const override;	
 	//~ End UPrimitiveComponent Interface
 

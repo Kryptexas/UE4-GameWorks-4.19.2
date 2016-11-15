@@ -54,7 +54,7 @@ private:
 		bool ShouldGatherFromEditorOnlyData;
 
 		//Destination location of the parsed FLocTextEntrys
-		TSharedPtr< FManifestInfo > ManifestInfo;
+		TSharedPtr< FLocTextHelper > GatherManifestHelper;
 
 		FSourceFileParseContext()
 			: Filename()
@@ -69,7 +69,7 @@ private:
 			, WithinNamespaceDefine(false)
 			, WithinStartingLine()
 			, ShouldGatherFromEditorOnlyData(false)
-			, ManifestInfo()
+			, GatherManifestHelper()
 			, MacroBlockStack()
 			, CachedMacroBlockState()
 		{

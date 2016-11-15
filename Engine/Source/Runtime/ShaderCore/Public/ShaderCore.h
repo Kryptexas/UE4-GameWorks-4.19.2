@@ -207,6 +207,12 @@ public:
 		Definitions.Add(Name, *FString::Printf(TEXT("%u"), Value));
 	}
 
+	void SetDefine(const TCHAR* Name, int32 Value)
+	{
+		// can be optimized
+		Definitions.Add(Name, *FString::Printf(TEXT("%d"), Value));
+	}
+
 	/**
 	 * Works for float
 	 */
@@ -358,7 +364,7 @@ struct FShaderCompilerEnvironment : public FRefCountedObject
 	 */
 	void SetDefine(const TCHAR* Name, const TCHAR* Value)	{ Definitions.SetDefine(Name, Value); }
 	void SetDefine(const TCHAR* Name, uint32 Value)			{ Definitions.SetDefine(Name, Value); }
-	void SetDefine(const TCHAR* Name, int32 Value)			{ Definitions.SetDefine(Name, (uint32)Value); }
+	void SetDefine(const TCHAR* Name, int32 Value)			{ Definitions.SetDefine(Name, Value); }
 	void SetDefine(const TCHAR* Name, bool Value)			{ Definitions.SetDefine(Name, (uint32)Value); }
 	void SetDefine(const TCHAR* Name, float Value)			{ Definitions.SetFloatDefine(Name, Value); }
 

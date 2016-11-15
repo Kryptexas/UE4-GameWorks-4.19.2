@@ -406,6 +406,7 @@ FText SComponentClassCombo::GetFriendlyComponentName(FComponentClassComboEntryPt
 			for(FSelectionIterator ObjectIter(*Selection); ObjectIter; ++ObjectIter)
 			{
 				UObject* Object = *ObjectIter;
+				check(Object);
 				UClass* Class = Object->GetClass();
 
 				TArray<TSubclassOf<UActorComponent> > ComponentClasses = FComponentAssetBrokerage::GetComponentsForAsset(Object);

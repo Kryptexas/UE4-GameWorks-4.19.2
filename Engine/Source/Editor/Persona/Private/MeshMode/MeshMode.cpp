@@ -11,16 +11,17 @@
 #include "PersonaMeshDetails.h"
 
 #include "MeshMode.h"
+#include "IPersonaToolkit.h"
 
 #define LOCTEXT_NAMESPACE "PersonaMeshMode"
 
 /////////////////////////////////////////////////////
 // SMeshPropertiesTabBody
 
-class SMeshPropertiesTabBody : public SSingleObjectDetailsPanel
+class SPersonaMeshPropertiesTabBody : public SSingleObjectDetailsPanel
 {
 public:
-	SLATE_BEGIN_ARGS(SMeshPropertiesTabBody) {}
+	SLATE_BEGIN_ARGS(SPersonaMeshPropertiesTabBody) {}
 	SLATE_END_ARGS()
 
 private:
@@ -33,13 +34,14 @@ public:
 
 		SSingleObjectDetailsPanel::Construct(SSingleObjectDetailsPanel::FArguments().HostCommandList(InPersona->GetToolkitCommands()), true, true);
 
-		PropertyView->SetGenericLayoutDetailsDelegate( FOnGetDetailCustomizationInstance::CreateStatic( &FPersonaMeshDetails::MakeInstance, InPersona ) );
+		FPersonaModule& PersonaModule = FModuleManager::GetModuleChecked<FPersonaModule>("Persona");
+		PersonaModule.CustomizeMeshDetails(PropertyView.ToSharedRef(), InPersona->GetPersonaToolkit());
 	}
 
 	// SSingleObjectDetailsPanel interface
 	virtual UObject* GetObjectToObserve() const override
 	{
-		return PersonaPtr.Pin()->GetMesh();
+		return PersonaPtr.Pin()->GetPersonaToolkit()->GetMesh();
 	}
 	// End of SSingleObjectDetailsPanel interface
 };
@@ -47,7 +49,7 @@ public:
 /////////////////////////////////////////////////////
 // FMeshPropertiesSummoner
 
-FMeshPropertiesSummoner::FMeshPropertiesSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp)
+FPersonaMeshPropertiesSummoner::FPersonaMeshPropertiesSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp)
 	: FWorkflowTabFactory(FPersonaTabs::MeshAssetPropertiesID, InHostingApp)
 {
 	TabLabel = LOCTEXT("MeshProperties_TabTitle", "Mesh Details");
@@ -59,10 +61,10 @@ FMeshPropertiesSummoner::FMeshPropertiesSummoner(TSharedPtr<class FAssetEditorTo
 	ViewMenuTooltip = LOCTEXT("MeshProperties_MenuToolTip", "Shows the skeletal mesh properties");
 }
 
-TSharedRef<SWidget> FMeshPropertiesSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const
+TSharedRef<SWidget> FPersonaMeshPropertiesSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const
 {
 	TSharedPtr<FPersona> PersonaApp = StaticCastSharedPtr<FPersona>(HostingApp.Pin());
-	return SNew(SMeshPropertiesTabBody, PersonaApp);
+	return SNew(SPersonaMeshPropertiesTabBody, PersonaApp);
 }
 
 /////////////////////////////////////////////////////
@@ -72,7 +74,7 @@ FMeshEditAppMode::FMeshEditAppMode(TSharedPtr<FPersona> InPersona)
 	: FPersonaAppMode(InPersona, FPersonaModes::MeshEditMode)
 {
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FSelectionDetailsSummoner(InPersona)));
-	PersonaTabFactories.RegisterFactory(MakeShareable(new FMeshPropertiesSummoner(InPersona)));
+	PersonaTabFactories.RegisterFactory(MakeShareable(new FPersonaMeshPropertiesSummoner(InPersona)));
 
 	TabLayout = FTabManager::NewLayout( "Persona_MeshEditMode_Layout_v7" )
 		->AddArea

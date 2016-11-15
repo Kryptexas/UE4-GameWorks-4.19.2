@@ -18,9 +18,9 @@ bool FMeshPaintGeometryAdapterForStaticMeshes::Construct(UMeshComponent* InCompo
 	{
 		StaticMeshComponent->OnStaticMeshChanged().AddRaw(this, &FMeshPaintGeometryAdapterForStaticMeshes::OnStaticMeshChanged);
 
-		if (StaticMeshComponent->StaticMesh != nullptr)
+		if (StaticMeshComponent->GetStaticMesh() != nullptr)
 		{
-			ReferencedStaticMesh = StaticMeshComponent->StaticMesh;
+			ReferencedStaticMesh = StaticMeshComponent->GetStaticMesh();
 			PaintingMeshLODIndex = InPaintingMeshLODIndex;
 			UVChannelIndex = InUVChannelIndex;
 			ReferencedStaticMesh->OnPostMeshBuild().AddRaw(this, &FMeshPaintGeometryAdapterForStaticMeshes::OnPostMeshBuild);
@@ -56,7 +56,7 @@ void FMeshPaintGeometryAdapterForStaticMeshes::OnStaticMeshChanged(UStaticMeshCo
 	check(StaticMeshComponent == InStaticMeshComponent);
 	OnRemoved();
 	ReferencedStaticMesh->OnPostMeshBuild().RemoveAll(this);
-	ReferencedStaticMesh = InStaticMeshComponent->StaticMesh;
+	ReferencedStaticMesh = InStaticMeshComponent->GetStaticMesh();
 	if (ReferencedStaticMesh)
 	{
 		ReferencedStaticMesh->OnPostMeshBuild().AddRaw(this, &FMeshPaintGeometryAdapterForStaticMeshes::OnPostMeshBuild);
@@ -67,7 +67,7 @@ void FMeshPaintGeometryAdapterForStaticMeshes::OnStaticMeshChanged(UStaticMeshCo
 
 bool FMeshPaintGeometryAdapterForStaticMeshes::Initialize()
 {
-	check(ReferencedStaticMesh == StaticMeshComponent->StaticMesh);
+	check(ReferencedStaticMesh == StaticMeshComponent->GetStaticMesh());
 	if (PaintingMeshLODIndex < ReferencedStaticMesh->GetNumLODs())
 	{
 		LODModel = &(ReferencedStaticMesh->RenderData->LODResources[PaintingMeshLODIndex]);
@@ -140,7 +140,7 @@ void FMeshPaintGeometryAdapterForStaticMeshes::OnAdded()
 {
 	check(StaticMeshComponent);
 	check(ReferencedStaticMesh);
-	check(ReferencedStaticMesh == StaticMeshComponent->StaticMesh);
+	check(ReferencedStaticMesh == StaticMeshComponent->GetStaticMesh());
 
 	FStaticMeshReferencers& StaticMeshReferencers = MeshToComponentMap.FindOrAdd(ReferencedStaticMesh);
 
@@ -313,7 +313,7 @@ TSharedPtr<IMeshPaintGeometryAdapter> FMeshPaintGeometryAdapterForStaticMeshesFa
 {
 	if (UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(InComponent))
 	{
-		if (StaticMeshComponent->StaticMesh != nullptr)
+		if (StaticMeshComponent->GetStaticMesh() != nullptr)
 		{
 			TSharedRef<FMeshPaintGeometryAdapterForStaticMeshes> Result = MakeShareable(new FMeshPaintGeometryAdapterForStaticMeshes());
 			if (Result->Construct(InComponent, InPaintingMeshLODIndex, InUVChannelIndex))

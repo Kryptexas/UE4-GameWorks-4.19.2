@@ -11,6 +11,7 @@
 	Audio includes.
 ------------------------------------------------------------------------------------*/
 
+#include "XAudio2PrivatePCH.h"
 #include "XAudio2Device.h"
 #include "AudioEffect.h"
 #include "XAudio2Effects.h"
@@ -418,7 +419,7 @@ bool FXAudio2EffectsManager::CreateReverbVoice()
 	};
 
 	if( !XAudio2Device->ValidateAPICall( TEXT( "SetOutputMatrix (Reverb)" ), 
-		ReverbEffectVoice->SetOutputMatrix( DryPremasterVoice, 2, SPEAKER_COUNT, OutputMatrix ) ) )
+		ReverbEffectVoice->SetOutputMatrix( DryPremasterVoice, 2, SPEAKER_COUNT, OutputMatrix) ) )
 	{
 		return( false );
 	}
@@ -469,7 +470,7 @@ bool FXAudio2EffectsManager::CreateRadioVoice()
 
 	// Designate the radio-distorted audio to route to the master voice.
 	if( !XAudio2Device->ValidateAPICall( TEXT( "SetOutputMatrix (Radio)" ), 
-		RadioEffectVoice->SetOutputMatrix( NULL, SPEAKER_COUNT, NumChannels, FXAudioDeviceProperties::OutputMixMatrix ) ) )
+		RadioEffectVoice->SetOutputMatrix( NULL, SPEAKER_COUNT, NumChannels, FXAudioDeviceProperties::OutputMixMatrix) ) )
 	{
 		return false;
 	}
@@ -581,7 +582,7 @@ void FXAudio2EffectsManager::SetReverbEffectParameters( const FAudioReverbEffect
 		ReverbConvertI3DL2ToNative( &ReverbParameters, &NativeParameters );
 
 		XAudio2Device->ValidateAPICall( TEXT( "SetEffectParameters (Reverb)" ), 
-			ReverbEffectVoice->SetEffectParameters( 0, &NativeParameters, sizeof( NativeParameters ) ) );
+			ReverbEffectVoice->SetEffectParameters(0, &NativeParameters, sizeof(NativeParameters)));
 	}
 }
 
@@ -611,7 +612,7 @@ void FXAudio2EffectsManager::SetEQEffectParameters( const FAudioEQEffect& EQEffe
 		NativeParameters.Bandwidth3 = EQEffectParameters.Bandwidth3;
 
 		XAudio2Device->ValidateAPICall( TEXT( "SetEffectParameters (EQ)" ), 
-			EQPremasterVoice->SetEffectParameters( 0, &NativeParameters, sizeof( NativeParameters ) ) );
+			EQPremasterVoice->SetEffectParameters(0, &NativeParameters, sizeof(NativeParameters)));
 	}
 }
 
@@ -623,7 +624,7 @@ void FXAudio2EffectsManager::SetEQEffectParameters( const FAudioEQEffect& EQEffe
 void FXAudio2EffectsManager::SetRadioEffectParameters( const FAudioRadioEffect& RadioEffectParameters ) 
 {
 	XAudio2Device->ValidateAPICall( TEXT( "SetEffectParameters (Radio)" ), 
-		RadioEffectVoice->SetEffectParameters( 0, &RadioEffectParameters, sizeof( RadioEffectParameters ) ) );
+		RadioEffectVoice->SetEffectParameters(0, &RadioEffectParameters, sizeof(RadioEffectParameters)));
 }
 
 // end

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2735872
+﻿INTSourceChangelist:3041817
 Availability:Public
 Title:蓝图总览
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -50,7 +50,7 @@ type:reference
 
 [TOC (start:2)]
 
-[INCLUDE:Engine/Blueprints/GettingStarted/#BlueprintIntro]
+[INCLUDE:Engine/Blueprints/GettingStarted/#Intro]
 
 这是否意味着蓝图就是虚幻脚本的替代品？答案既肯定又否定。之前利用虚幻脚本进行的游戏性编程和其他操作 
 仍然可以通过 C++ 代码进行处理。同时，蓝图并非刻意为替代 

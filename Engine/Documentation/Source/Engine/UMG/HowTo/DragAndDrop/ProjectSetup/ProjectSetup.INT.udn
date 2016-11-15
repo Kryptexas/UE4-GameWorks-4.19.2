@@ -30,11 +30,12 @@ For this how-to, we are using the **Blueprint Third Person Template**. However, 
 
 ## Steps
 
-1.	In the **Content Browser** of your project, create a folder with two **Widget Blueprints**, one called **HealthBar** and the other **HUD**. 
+1.	In the **Content Browser**, create three **Widget Blueprints** called: **DragWidget**, **HealthBar** and **HUD**. 
 
 	![](DragDrop1.png)
 
 	In this example, the element that we want to be drag and droppable is our **HealthBar** widget that will be placed in our **HUD**. 
+	We are going to create and drag a widget called **DragWidget** in the same shape as our Health Bar rather than dragging the actual Health Bar around. 
 
 1.	**Right-click** in the **Content Browser** and create a new **Blueprint Class** of the **DragDropOpertion** class and call it **WidgetDrag**. 
 

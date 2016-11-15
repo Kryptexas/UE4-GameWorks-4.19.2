@@ -4,8 +4,7 @@
 	ShadowRendering.h: Shadow rendering definitions.
 =============================================================================*/
 
-#ifndef __ShadowRendering_H__
-#define __ShadowRendering_H__
+#pragma once
 
 #include "ShaderParameterUtils.h"
 #include "SceneCore.h"
@@ -29,8 +28,9 @@ BEGIN_UNIFORM_BUFFER_STRUCT(FDeferredLightUniformStruct,)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,LightingChannelMask)
 END_UNIFORM_BUFFER_STRUCT(FDeferredLightUniformStruct)
 
-extern float GMinScreenRadiusForLights;
 extern uint32 GetShadowQuality();
+
+extern float GetLightFadeFactor(const FSceneView& View, const FLightSceneProxy* Proxy);
 
 template<typename ShaderRHIParamRef>
 void SetDeferredLightParameters(
@@ -111,19 +111,7 @@ void SetDeferredLightParameters(
 
 	if ((LightType == LightType_Point || LightType == LightType_Spot) && View.IsPerspectiveProjection())
 	{
-		// Distance fade
-		FSphere Bounds = LightSceneInfo->Proxy->GetBoundingSphere();
-
-		const float DistanceSquared = (Bounds.Center - View.ViewMatrices.ViewOrigin).SizeSquared();
-		float SizeFade = FMath::Square(FMath::Min(0.0002f, GMinScreenRadiusForLights / Bounds.W) * View.LODDistanceFactor) * DistanceSquared;
-		SizeFade = FMath::Clamp(6.0f - 6.0f * SizeFade, 0.0f, 1.0f);
-
-		float MaxDist = LightSceneInfo->Proxy->GetMaxDrawDistance();
-		float Range = LightSceneInfo->Proxy->GetFadeRange();
-		float DistanceFade = MaxDist ? (MaxDist - FMath::Sqrt(DistanceSquared)) / Range : 1.0f;
-		DistanceFade = FMath::Clamp(DistanceFade, 0.0f, 1.0f);
-
-		DeferredLightUniformsValue.LightColor *= SizeFade * DistanceFade;
+		DeferredLightUniformsValue.LightColor *= GetLightFadeFactor(View, LightSceneInfo->Proxy);
 	}
 
 	DeferredLightUniformsValue.LightingChannelMask = LightSceneInfo->Proxy->GetLightingChannelMask();
@@ -672,7 +660,7 @@ public:
 	typedef TArray<const FPrimitiveSceneInfo*,SceneRenderingAllocator> PrimitiveArrayType;
 
 	/** The view to be used when rendering this shadow's depths. */
-	const FViewInfo* ShadowDepthView;
+	FViewInfo* ShadowDepthView;
 
 	/** The depth or color targets this shadow was rendered to. */
 	FShadowMapRenderTargets RenderTargets;
@@ -836,7 +824,7 @@ public:
 	/** Set state for depth rendering */
 	void SetStateForDepth(FRHICommandList& RHICmdList, EShadowDepthRenderMode RenderMode );
 
-	void ClearDepth(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, bool bPerformClear);
+	void ClearDepth(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, int32 NumColorTextures, FTextureRHIParamRef* ColorTextures, FTextureRHIParamRef DepthTexture, bool bPerformClear);
 
 	/** Renders shadow maps for translucent primitives. */
 	void RenderTranslucencyDepths(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer);
@@ -1059,7 +1047,7 @@ public:
 			RHICmdList, 
 			ShaderRHI,
 			ProjectionMatrix,
-			FTranslationMatrix(ShadowInfo->PreShadowTranslation - View.ViewMatrices.PreViewTranslation) * ShadowInfo->SubjectAndReceiverMatrix
+			FTranslationMatrix(ShadowInfo->PreShadowTranslation - View.ViewMatrices.GetPreViewTranslation()) * ShadowInfo->SubjectAndReceiverMatrix
 			);
 
 		SetShaderValue(RHICmdList, ShaderRHI, ShadowParams, FVector2D(ShadowInfo->GetShaderDepthBias(), ShadowInfo->InvMaxSubjectDepth));
@@ -1120,7 +1108,7 @@ public:
 		FVector4 GeometryPosAndScale;
 		if(LightSceneInfo->Proxy->GetLightType() == LightType_Point)
 		{
-			StencilingGeometry::GStencilSphereVertexBuffer.CalcTransform(GeometryPosAndScale, LightSceneInfo->Proxy->GetBoundingSphere(), View.ViewMatrices.PreViewTranslation);
+			StencilingGeometry::GStencilSphereVertexBuffer.CalcTransform(GeometryPosAndScale, LightSceneInfo->Proxy->GetBoundingSphere(), View.ViewMatrices.GetPreViewTranslation());
 			SetShaderValue(RHICmdList, Shader->GetVertexShader(), StencilGeometryPosAndScale, GeometryPosAndScale);
 			SetShaderValue(RHICmdList, Shader->GetVertexShader(), StencilConeParameters, FVector4(0.0f, 0.0f, 0.0f, 0.0f));
 		}
@@ -1136,7 +1124,7 @@ public:
 					StencilingGeometry::FStencilConeIndexBuffer::NumSlices,
 					LightSceneInfo->Proxy->GetOuterConeAngle(),
 					LightSceneInfo->Proxy->GetRadius()));
-			SetShaderValue(RHICmdList, Shader->GetVertexShader(), StencilPreViewTranslation, View.ViewMatrices.PreViewTranslation);
+			SetShaderValue(RHICmdList, Shader->GetVertexShader(), StencilPreViewTranslation, View.ViewMatrices.GetPreViewTranslation());
 		}
 	}
 
@@ -1855,6 +1843,7 @@ struct FCompareFProjectedShadowInfoByResolution
 // Then sort CSMs by descending split index, and other shadows by resolution.
 // Used to render shadow cascades in far to near order, whilst preserving the
 // descending resolution sort behavior for other shadow types.
+// Note: the ordering must match the requirements of blend modes set in SetBlendStateForProjection (blend modes that overwrite must come first)
 struct FCompareFProjectedShadowInfoBySplitIndex
 {
 	FORCEINLINE bool operator()( const FProjectedShadowInfo& A, const FProjectedShadowInfo& B ) const
@@ -1863,6 +1852,20 @@ struct FCompareFProjectedShadowInfoBySplitIndex
 		{
 			if (B.IsWholeSceneDirectionalShadow())
 			{
+				if (A.bRayTracedDistanceField != B.bRayTracedDistanceField)
+				{
+					// RTDF shadows need to be rendered after all CSM, because they overlap in depth range with Far Cascades, which will use an overwrite blend mode for the fade plane.
+					if (!A.bRayTracedDistanceField && B.bRayTracedDistanceField)
+					{
+						return true;
+					}
+
+					if (A.bRayTracedDistanceField && !B.bRayTracedDistanceField)
+					{
+						return false;
+					}
+				}
+
 				// Both A and B are CSMs
 				// Compare Split Indexes, to order them far to near.
 				return (B.CascadeSettings.ShadowSplitIndex < A.CascadeSettings.ShadowSplitIndex);
@@ -1876,7 +1879,7 @@ struct FCompareFProjectedShadowInfoBySplitIndex
 		{
 			if (B.IsWholeSceneDirectionalShadow())
 			{
-				// B should be rendered after A.
+				// B should be rendered before A.
 				return false;
 			}
 			
@@ -1887,4 +1890,3 @@ struct FCompareFProjectedShadowInfoBySplitIndex
 	}
 };
 
-#endif

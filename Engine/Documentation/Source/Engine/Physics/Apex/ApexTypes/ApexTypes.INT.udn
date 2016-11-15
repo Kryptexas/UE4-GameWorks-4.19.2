@@ -1,7 +1,7 @@
 Availability: Public
 Title:APEX Types
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/Apex
-Description:Nvidia APEX Physics Lab APX and APB files.
+Description:The NVIDIA APEX Physics Lab APX and APB files.
 Version: 4.9
 
 [VAR:Topic]
@@ -52,7 +52,7 @@ Version: 4.9
 		![](APEXtopicIcon.png)(w:150 convert:false)
 	[/PARAM]
 	[PARAM:description]
-	Nvidia PhysX APEX has two file types that Unreal Editor 4 can import, .APX and .APB. 
+	NVIDIA PhysX APEX has two file types that Unreal Editor 4 can import, .APX and .APB. 
 	Both cloth and destructible meshes can be exported as these file types, but only destructible meshes can be import via the **Content Browser.** Cloth assets will need to be imported via **Persona**.
 	[/PARAM]
 [/OBJECT]

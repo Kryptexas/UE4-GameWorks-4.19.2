@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3053927
+﻿INTSourceChangelist:3106713
 Availability:Public
 Title:ランドスケープ マテリアル
 Crumbs: %ROOT%, Engine, Engine/Landscape
@@ -6,45 +6,7 @@ Description:ランドスケープ テレインで作業するためのマテリ�
 version:4.9
 parent:Engine/Landscape
 order:5
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Landscape/Materials:title%](Engine/Landscape/Materials/landscape_materials_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/landscape_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Landscape/Materials:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Landscape/Materials:description%
-	[/PARAM]
-	[PARAMLITERAL:path]
-		[RELATIVE:Engine/Landscape/Materials]
-	[/PARAMLITERAL]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Landscape/Materials:title%](Engine/Landscape/Materials/landscape_materials_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/landscape_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Landscape/Materials:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Landscape/Materials:description%
-	[/PARAM]
-	[PARAMLITERAL:path]
-		[RELATIVE:Engine/Landscape/Materials]
-	[/PARAMLITERAL]
-[/OBJECT]
-[/VAR]
+topic-image:landscape_materials_topic.png
 
 [TOC(start:2 end:3)]
 
@@ -256,9 +218,11 @@ LandscapeVisibilityMask ノードのプロパティは、 **[Details (詳細)]**
 **LandscapeLayerBlend ノードの使用方法:**
 
 1. マテリアル エディタで LandscapeLayerBlend を追加します。
+
 	![](Landscape_LayerBlend_Material_Example_00.png)
 
 1. **[Details (詳細)]** パネルで、 **Layers** の隣のプラス アイコン ![Plus Sign](Shared/Icons/icon_PlusSymbol_12x.png) をクリックしてレイヤーを追加します。
+
 	![](Landscape_LayerBlend_Material_Example_01.png)
 
 1. レイヤーを展開してプロパティを表示します。
@@ -324,7 +288,7 @@ LandscapeVisibilityMask ノードのプロパティは、 **[Details (詳細)]**
 Lansdcape マテリアルと Landscape Hole マテリアルには同じマテリアルを使用できますが、オパシティ マスクを使っているマテリアルはそうでないマテリアルよりもパフォーマンス全体の負荷が大きいです。このような理由で、Landscape Hole マテリアルを別に作成するオプションが付いているのです。
 [/region]
 
-**Landscape Hole マテリアルの作成方法:**
+**Landscape Hole マテリアルの作成方法**
 
 1. まず、マテリアル エディタでマテリアルを開く、もしくは新規に作成します。マテリアルを開いたら、**[Details (詳細)]** パネルを見て、**[Blend Mode]** を **[Masked]** に設定します。
 
@@ -403,10 +367,16 @@ Landscape Hole マテリアルの使用に関する詳細は、[オパシティ�
 
 ## テセレーションと変位
 
-マテリアルの **Tessellation Multipliers (テッセレーション乗数)** と **World Displacement (ワールド変位)** チャンネルは、ランドスケープ テレインと連動して使用されることによって、付加的な詳細と変形をもたらします。これらのチャンネルは、他の標準的なマテリアルの場合とまったく同じように機能します。また、レイヤーのブレンドは、 **Base Color** や **法線** 、他チャンネルの場合とちょうど同じように、これらのチャンネルとともに使用することができます。
+マテリアルの **Tessellation Multipliers (テッセレーション乗数)** と **World Displacement (ワールド変位)** チャンネルは、ランドスケープがカメラに近づくと、ランドスケープ テレインと連動することで付加的な詳細と変形をもたらします。これらのチャンネルの機能は、標準的な他のマテリアルとまったく同じです。さらに、**Base Color** や **法線**、その他のチャンネルと同様、レイヤー ブレンドもこれらのチャンネルと使用することができます。ランドスケープは最も高い LOD でハードウェア テセレーションのみをレンダリングするので、ランドスケープが 2 つ目の LOD に近づくとフェードアウトします。次に続く LOD のテセレーションは有効になっていないので、ランドスケープ テレインで変異に対してテセレーションを有効にすると、パフォーマンスが大幅に改善されます。 
 
 [REGION:note]
-これらの機能を使用できるのは、DirectX 11 が有効になっている場合に限られます。そのため、DirectX 11 のハードウェアを特にターゲットにしていない場合は、上記機能は補助的な仕上げ効果として利用してください。
+これらの機能を使用するには、DirectX 11 を有効にしなければなりません。そのため、DirectX 11 のハードウェアを特にターゲットにしていない場合は、上記機能は補助的な仕上げ効果として利用してください。プロジェクトでテセレーションを有効にして使用する方法は、[Tessellation Multipler](Resources/ContentExamples/MaterialNodes/1_12) をご覧ください。 
+[/REGION]
+
+![](Landscape_HW_Tess.png)
+
+[REGION:caption]
+テセレーションを有効にして最も高い LOD (白) をレンダリングした場合と、テセレーションなしで LOD (カラー) をレンダリングした場合。  
 [/REGION]
 
 

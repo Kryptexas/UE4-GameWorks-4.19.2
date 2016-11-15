@@ -39,33 +39,6 @@ static FVector2D RoundToInt(const FVector2D& Vec)
 	return FVector2D(FMath::RoundToInt(Vec.X), FMath::RoundToInt(Vec.Y));
 }
 
-/**
-* Used to construct a rotated rect from an aligned clip rect and a set of layout and render transforms from the geometry, snapped to pixel boundaries. Returns a float or float16 version of the rect based on the typedef.
-*/
-static FSlateRotatedClipRectType ToSnappedRotatedRect(const FSlateRect& ClipRectInLayoutWindowSpace, const FSlateLayoutTransform& InverseLayoutTransform, const FSlateRenderTransform& RenderTransform)
-{
-	FSlateRotatedRect RotatedRect = TransformRect(
-		Concatenate(InverseLayoutTransform, RenderTransform),
-		FSlateRotatedRect(ClipRectInLayoutWindowSpace));
-
-	// Pixel snapping is done here by rounding the resulting floats to ints, we do this before
-	// calculating the final extents of the clip box otherwise we'll get a smaller clip rect than a visual
-	// rect where each point is individually snapped.
-	FVector2D SnappedTopLeft = RoundToInt(RotatedRect.TopLeft);
-	FVector2D SnappedTopRight = RoundToInt(RotatedRect.TopLeft + RotatedRect.ExtentX);
-	FVector2D SnappedBottomLeft = RoundToInt(RotatedRect.TopLeft + RotatedRect.ExtentY);
-
-	//NOTE: We explicitly do not re-snap the extent x/y, it wouldn't be correct to snap again in distance space
-	// even if two points are snapped, their distance wont necessarily be a whole number if those points are not
-	// axis aligned.
-	return FSlateRotatedClipRectType(
-		SnappedTopLeft,
-		SnappedTopRight - SnappedTopLeft,
-		SnappedBottomLeft - SnappedTopLeft);
-}
-
-
-
 
 //---------------------------------------------------
 
@@ -80,8 +53,10 @@ SRetainerWidget::~SRetainerWidget()
 {
 	if( FSlateApplication::IsInitialized() )
 	{
-		FSlateApplication::Get().OnPreTick().RemoveAll( this );
-
+		if (FApp::CanEverRender())
+		{
+			FSlateApplication::Get().OnPreTick().RemoveAll( this );
+		}
 
 #if !UE_BUILD_SHIPPING
 		OnRetainerModeChangedDelegate.RemoveAll( this );
@@ -93,23 +68,6 @@ SRetainerWidget::~SRetainerWidget()
 void SRetainerWidget::Construct(const FArguments& InArgs)
 {
 	STAT(MyStatId = FDynamicStats::CreateStatId<FStatGroup_STATGROUP_Slate>(InArgs._StatId);)
-
-	if( FSlateApplication::IsInitialized() )
-	{
-		FSlateApplication::Get().OnPreTick().AddRaw(this, &SRetainerWidget::OnTickRetainers);
-
-#if !UE_BUILD_SHIPPING
-		OnRetainerModeChangedDelegate.AddRaw( this, &SRetainerWidget::OnRetainerModeChanged );
-
-		static bool bStaticInit = false;
-
-		if( !bStaticInit )
-		{
-			bStaticInit = true;
-			EnableRetainedRendering.AsVariable()->SetOnChangedCallback( FConsoleVariableDelegate::CreateStatic( &SRetainerWidget::OnRetainerModeCVarChanged ) );
-		}
-#endif
-	}
 
 	RenderTarget = NewObject<UTextureRenderTarget2D>();
 	RenderTarget->SRGB = true;
@@ -134,17 +92,42 @@ void SRetainerWidget::Construct(const FArguments& InArgs)
 	bRenderingOffscreenDesire = true;
 	bRenderingOffscreen = false;
 
+	Window->SetContent(MyWidget.ToSharedRef());
+
 	ChildSlot
 	[
-		MyWidget.ToSharedRef()
+		Window.ToSharedRef()
 	];
 
-	Window->SetContent(MyWidget.ToSharedRef());
+	if ( FSlateApplication::IsInitialized() )
+	{
+		if (FApp::CanEverRender())
+		{
+			FSlateApplication::Get().OnPreTick().AddRaw(this, &SRetainerWidget::OnTickRetainers);
+		}
+
+#if !UE_BUILD_SHIPPING
+		OnRetainerModeChangedDelegate.AddRaw(this, &SRetainerWidget::OnRetainerModeChanged);
+
+		static bool bStaticInit = false;
+
+		if ( !bStaticInit )
+		{
+			bStaticInit = true;
+			EnableRetainedRendering.AsVariable()->SetOnChangedCallback(FConsoleVariableDelegate::CreateStatic(&SRetainerWidget::OnRetainerModeCVarChanged));
+		}
+#endif
+	}
 }
 
 bool SRetainerWidget::ShouldBeRenderingOffscreen() const
 {
 	return bRenderingOffscreenDesire && IsRetainedRenderingEnabled();
+}
+
+bool SRetainerWidget::IsAnythingVisibleToRender() const
+{
+	return GetVisibility().IsVisible() && MyWidget.IsValid() && MyWidget->GetVisibility().IsVisible();
 }
 
 void SRetainerWidget::OnRetainerModeChanged()
@@ -175,37 +158,14 @@ void SRetainerWidget::RefreshRenderingMode()
 	{
 		bRenderingOffscreen = bShouldBeRenderingOffscreen;
 
-		ChildSlot
-		[
-			MyWidget.ToSharedRef()
-		];
-
-		// TODO When parent pointers come into play, we need to make it so the virtual window,
-		// doesn't actually ever own the content, it just sorta kind of owns it.
-		if ( bRenderingOffscreen )
-		{
-			Window->SetContent(MyWidget.ToSharedRef());
-		}
-		else
-		{
-			Window->SetContent(SNullWidget::NullWidget);
-		}
+		Window->SetContent(MyWidget.ToSharedRef());
 	}
 }
 
 void SRetainerWidget::SetContent(const TSharedRef< SWidget >& InContent)
 {
 	MyWidget = InContent;
-
-	ChildSlot
-	[
-		InContent
-	];
-
-	if ( bRenderingOffscreen )
-	{
-		Window->SetContent(InContent);
-	}
+	Window->SetContent(InContent);
 }
 
 UMaterialInstanceDynamic* SRetainerWidget::GetEffectMaterial() const
@@ -257,15 +217,18 @@ FChildren* SRetainerWidget::GetChildren()
 
 bool SRetainerWidget::ComputeVolatility() const
 {
-	return true;// return SCompoundWidget::ComputeVolatility();
+	return true;
 }
 
 void SRetainerWidget::OnTickRetainers(float DeltaTime)
 {
 	STAT(FScopeCycleCounter TickCycleCounter(MyStatId);)
 
-	bool bShouldRenderAtAnything = GetVisibility().IsVisible() && ChildSlot.GetWidget()->GetVisibility().IsVisible(); 
-	if ( bRenderingOffscreen && bShouldRenderAtAnything )
+	// we should not be added to tick if we're not rendering
+	checkSlow(FApp::CanEverRender());
+
+	const bool bShouldRenderAnything = IsAnythingVisibleToRender();
+	if ( bRenderingOffscreen && bShouldRenderAnything )
 	{
 		SCOPE_CYCLE_COUNTER( STAT_SlateRetainerWidgetTick );
 		if ( LastTickedFrame != GFrameCounter && ( GFrameCounter % PhaseCount ) == Phase )
@@ -280,7 +243,7 @@ void SRetainerWidget::OnTickRetainers(float DeltaTime)
 			// extract the layout transform from the draw element
 			FSlateLayoutTransform InverseLayoutTransform(Inverse(FSlateLayoutTransform(PaintGeometry.DrawScale, PaintGeometry.DrawPosition)));
 			// The clip rect is NOT subject to the rotations specified by MakeRotatedBox.
-			FSlateRotatedClipRectType RenderClipRect = ToSnappedRotatedRect(CachedClippingRect, InverseLayoutTransform, CachedAllottedGeometry.GetAccumulatedRenderTransform());
+			FSlateRotatedClipRectType RenderClipRect = FSlateRotatedClipRectType::MakeSnappedRotatedRect(CachedClippingRect, InverseLayoutTransform, CachedAllottedGeometry.GetAccumulatedRenderTransform());
 
 			//const FVector2D ScaledSize = PaintGeometry.GetLocalSize() * PaintGeometry.DrawScale;
 			//const uint32 RenderTargetWidth  = FMath::RoundToInt(ScaledSize.X);
@@ -354,8 +317,8 @@ int32 SRetainerWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 
 	MutableThis->RefreshRenderingMode();
 
-	bool bShouldRenderAtAnything = GetVisibility().IsVisible() && ChildSlot.GetWidget()->GetVisibility().IsVisible(); 
-	if ( bRenderingOffscreen && bShouldRenderAtAnything )
+	const bool bShouldRenderAnything = IsAnythingVisibleToRender();
+	if ( bRenderingOffscreen && bShouldRenderAnything )
 	{
 		SCOPE_CYCLE_COUNTER( STAT_SlateRetainerWidgetPaint );
 		CachedAllottedGeometry = AllottedGeometry;
@@ -394,7 +357,7 @@ int32 SRetainerWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 		
 		return LayerId;
 	}
-	else if( bShouldRenderAtAnything )
+	else if( bShouldRenderAnything )
 	{
 		return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 	}

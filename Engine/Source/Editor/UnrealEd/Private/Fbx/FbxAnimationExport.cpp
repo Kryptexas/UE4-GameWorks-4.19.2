@@ -351,10 +351,10 @@ void FFbxExporter::ExportMatineeGroup(class AMatineeActor* MatineeActor, USkelet
 	BaseNode->AddChild(SkeletonRootNode);
 
 	FMatineeAnimTrackAdapter AnimTrackAdapter(MatineeActor);
-	ExportAnimTrack(AnimTrackAdapter, SkeletalMeshComponent);
+	ExportAnimTrack(AnimTrackAdapter, Owner, SkeletalMeshComponent);
 }
 
-void FFbxExporter::ExportAnimTrack(IAnimTrackAdapter& AnimTrackAdapter, USkeletalMeshComponent* SkeletalMeshComponent)
+void FFbxExporter::ExportAnimTrack(IAnimTrackAdapter& AnimTrackAdapter, AActor* Actor, USkeletalMeshComponent* SkeletalMeshComponent)
 {
 	static const float SamplingRate = 1.f / DEFAULT_SAMPLERATE;
 
@@ -374,9 +374,16 @@ void FFbxExporter::ExportAnimTrack(IAnimTrackAdapter& AnimTrackAdapter, USkeleta
 		return;
 	}
 
+	FTransform InitialInvParentTransform;
+
 	float SampleTime;
 	for(SampleTime = AnimationStart; SampleTime <= AnimationEnd; SampleTime += SamplingRate)
 	{
+		if (SampleTime == AnimationStart)
+		{
+			InitialInvParentTransform = Actor->GetRootComponent()->GetComponentTransform().Inverse();
+		}
+
 		// This will call UpdateSkelPose on the skeletal mesh component to move bones based on animations in the matinee group
 		AnimTrackAdapter.UpdateAnimation( SampleTime );
 
@@ -413,6 +420,12 @@ void FFbxExporter::ExportAnimTrack(IAnimTrackAdapter& AnimTrackAdapter, USkeleta
 			}
 
 			FTransform BoneTransform = SkeletalMeshComponent->BoneSpaceTransforms[BoneIndex];
+
+			if (GetDefault<UEditorPerProjectUserSettings>()->bMapSkeletalMotionToRoot && BoneIndex == 0)
+			{
+				BoneTransform = SkeletalMeshComponent->GetSocketTransform(BoneName) * InitialInvParentTransform;
+			}
+
 			FbxVector4 Translation = Converter.ConvertToFbxPos(BoneTransform.GetLocation());
 			FbxVector4 Rotation = Converter.ConvertToFbxRot(BoneTransform.GetRotation().Euler());
 

@@ -30,47 +30,29 @@ SamplerState SkyLightCubemapSampler;
 
 /** X = max mip, Y = 1 if sky light should be rendered, 0 otherwise, Z = 1 if sky light is dynamic, 0 otherwise, W = blend fraction. */
 float4 SkyLightParameters;
+float SkyLightCubemapBrightness;
 
-float3 GetSkyLightReflection(float3 ReflectionVector, float Roughness, bool bNormalized)
+float3 GetSkyLightReflection(float3 ReflectionVector, float Roughness, out float OutSkyAverageBrightness)
 {
 	float AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness, SkyLightParameters.x);
 	float3 Reflection = TextureCubeSampleLevel(SkyLightCubemap, SkyLightCubemapSampler, ReflectionVector, AbsoluteSpecularMip).rgb;
 
-	BRANCH
-	if (bNormalized)
-	{
-		// Sample the lowest resolution mip to get the average color
-		//@todo - can't normalize sky lighting and reflection capture lighting separately
-		float3 LowFrequencyReflection = TextureCubeSampleLevel(SkyLightCubemap, SkyLightCubemapSampler, ReflectionVector, SkyLightParameters.x).rgb;
-		float LowFrequencyBrightness = Luminance(LowFrequencyReflection);
-		Reflection /= max(LowFrequencyBrightness, .00001f);
-	}
-
+	OutSkyAverageBrightness = SkyLightCubemapBrightness;
 	return Reflection * View.SkyLightColor.rgb;
 }
 
 TextureCube SkyLightBlendDestinationCubemap;
 SamplerState SkyLightBlendDestinationCubemapSampler;
 
-float3 GetSkyLightReflectionSupportingBlend(float3 ReflectionVector, float Roughness, bool bNormalized)
+float3 GetSkyLightReflectionSupportingBlend(float3 ReflectionVector, float Roughness, out float OutSkyAverageBrightness)
 {
-	float3 Reflection = GetSkyLightReflection(ReflectionVector, Roughness, bNormalized);
+	float3 Reflection = GetSkyLightReflection(ReflectionVector, Roughness, OutSkyAverageBrightness);
 
 	BRANCH
 	if (SkyLightParameters.w > 0)
 	{
 		float AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness, SkyLightParameters.x);
 		float3 BlendDestinationReflection = TextureCubeSampleLevel(SkyLightBlendDestinationCubemap, SkyLightBlendDestinationCubemapSampler, ReflectionVector, AbsoluteSpecularMip).rgb;
-
-		BRANCH
-		if (bNormalized)
-		{
-			// Sample the lowest resolution mip to get the average color
-			//@todo - can't normalize sky lighting and reflection capture lighting separately
-			float3 LowFrequencyReflection = TextureCubeSampleLevel(SkyLightBlendDestinationCubemap, SkyLightBlendDestinationCubemapSampler, ReflectionVector, SkyLightParameters.x).rgb;
-			float LowFrequencyBrightness = Luminance(LowFrequencyReflection);
-			BlendDestinationReflection /= max(LowFrequencyBrightness, .00001f);
-		}
 
 		Reflection = lerp(Reflection, BlendDestinationReflection * View.SkyLightColor.rgb, SkyLightParameters.w);
 	}
@@ -185,7 +167,8 @@ float3 GetLookupVectorForSphereCapture(float3 ReflectionVector, float3 WorldPosi
 	float Determinant = QuadraticCoef.y * QuadraticCoef.y - QuadraticCoef.z;
 
 	// Only continue if the ray intersects the sphere
-	//if (Determinant >= 0)
+	FLATTEN
+	if (Determinant >= 0)
 	{
 		float FarIntersection = sqrt(Determinant) - QuadraticCoef.y;
 
@@ -198,4 +181,16 @@ float3 GetLookupVectorForSphereCapture(float3 ReflectionVector, float3 WorldPosi
 		DistanceAlpha = 1 - x*x*(3 - 2*x);
 	}
 	return ProjectedCaptureVector;
+}
+
+float ComputeMixingWeight(float IndirectIrradiance, float AverageBrightness, float Roughness)
+{
+	// Mirror surfaces should have no mixing, so they match reflections from other sources (SSR, planar reflections)
+	float MixingAlpha = smoothstep(0, 1, saturate(Roughness * View.ReflectionEnvironmentRoughnessMixingScaleBias.x + View.ReflectionEnvironmentRoughnessMixingScaleBias.y));
+
+	// We have high frequency directional data but low frequency spatial data in the envmap.
+	// We have high frequency spatial data but low frequency directional data in the lightmap.
+	// So, we combine the two for the best of both. This is done by removing the low spatial frequencies from the envmap and replacing them with the lightmap data.
+	// This is only done with luma so as to not get odd color shifting.
+	return lerp(1.0f, IndirectIrradiance / max(AverageBrightness, .0001f), MixingAlpha);
 }

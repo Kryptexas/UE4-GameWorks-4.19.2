@@ -54,6 +54,7 @@ void ADebugCameraHUD::PostRender()
 {
 	Super::PostRender();
 
+#if ENABLE_DRAW_DEBUG
 	if (bShowHUD)
 	{
 		ADebugCameraController* DCC = Cast<ADebugCameraController>( PlayerOwner );
@@ -189,4 +190,5 @@ void ADebugCameraHUD::PostRender()
 			yl += Y;
 		}
 	}
+#endif
 }

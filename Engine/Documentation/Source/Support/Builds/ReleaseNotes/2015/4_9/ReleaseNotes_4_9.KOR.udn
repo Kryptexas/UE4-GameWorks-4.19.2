@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3011129
+﻿INTSourceChangelist:3077981
 Availability:Public
 Title:언리얼 엔진 4.9 릴리즈 노트
 Crumbs:%ROOT%, Engine
@@ -185,7 +185,7 @@ AO 마스크를 사용하려면, 월드 세팅 -> 라이트매스 세팅 아래 
 
 * PrecomputedAOMask 노드 사용은 표준 텍스처 룩업입니다. 이 기능을 켜면 라이트맵 텍셀당 0.5 바이트가 추가되는데, 기본 가용량은 라이트맵 텍셀당 약 4 바이트입니다.
 
-* AOMaterialMask 텍스처 메모리는 &lsquo;ListTextures' 콘솔 명령으로 조사할 수 있습니다.
+* AOMaterialMask 텍스처 메모리는 'ListTextures' 콘솔 명령으로 조사할 수 있습니다.
 
 ### 메시 디스턴스 필드 머티리얼
 
@@ -694,6 +694,7 @@ Movement Component 포함 액터의 경우, 업데이트된 컴포넌트는 주�
 * 이제 아마존 S3 패키징에 업로드가 지원됩니다. AWS 용 인증서를 채우고 나면, 빌드가 S3 에 업로드되고, 게임이 S3 에서 브라우저에 바로 서빙됩니다.
 
 	![image alt text](image_69.png)
+
 ## Release Notes
 
 ### AI
@@ -2924,7 +2925,7 @@ Movement Component 포함 액터의 경우, 업데이트된 컴포넌트는 주�
 
 * Changed the way the CrashReportClient is launched on Mac OS X to avoid a potential deadlock.
 
-* Disable OpenGL GPU timing on Nvidia GPUs and entirely on OS X 10.9 (Mavericks) to avoid crashes in the OpenGL drivers.
+* Disable OpenGL GPU timing on NVIDIA GPUs and entirely on OS X 10.9 (Mavericks) to avoid crashes in the OpenGL drivers.
 
 * Fix a crash when launching an external process on Mac OS X caused by over-releasing the path to the executable.
 

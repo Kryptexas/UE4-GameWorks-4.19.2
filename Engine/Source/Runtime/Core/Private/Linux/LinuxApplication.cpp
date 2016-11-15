@@ -31,6 +31,11 @@ FLinuxApplication* LinuxApplication = NULL;
 
 FLinuxApplication* FLinuxApplication::CreateLinuxApplication()
 {
+	if (!FApp::CanEverRender())	// this assumes that we're running in "headless" mode, and we don't need any kind of multimedia
+	{
+		return new FLinuxApplication();
+	}
+
 	if (!FPlatformMisc::PlatformInitMultimedia()) //	will not initialize more than once
 	{
 		UE_LOG(LogInit, Fatal, TEXT("FLinuxApplication::CreateLinuxApplication() : PlatformInitMultimedia() failed, cannot create application instance."));
@@ -1364,6 +1369,11 @@ FPlatformRect FLinuxApplication::GetWorkArea( const FPlatformRect& CurrentWindow
 
 void FLinuxApplication::OnMouseCursorLock( bool bLockEnabled )
 {
+	if (UNLIKELY(!FApp::CanEverRender()))
+	{
+		return;
+	}
+
 	bIsMouseCursorLocked = bLockEnabled;
 	UpdateMouseCaptureWindow( NULL );
 	if(bLockEnabled)
@@ -1386,13 +1396,16 @@ void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 {
 	int NumDisplays = 0;
 
-	if (FPlatformMisc::PlatformInitMultimedia()) //	will not initialize more than once
+	if (LIKELY(FApp::CanEverRender()))
 	{
-		NumDisplays = SDL_GetNumVideoDisplays();
-	}
-	else
-	{
-		UE_LOG(LogInit, Warning, TEXT("FDisplayMetrics::GetDisplayMetrics: PlatformInitMultimedia() failed, cannot get display metrics"));
+		if (FPlatformMisc::PlatformInitMultimedia()) //	will not initialize more than once
+		{
+			NumDisplays = SDL_GetNumVideoDisplays();
+		}
+		else
+		{
+			UE_LOG(LogInit, Warning, TEXT("FDisplayMetrics::GetDisplayMetrics: PlatformInitMultimedia() failed, cannot get display metrics"));
+		}
 	}
 
 	// loop over all monitors to determine which one is the best
@@ -1730,7 +1743,7 @@ bool FLinuxApplication::IsMouseAttached() const
 	int rc;
 	char Mouse[64] = "/sys/class/input/mouse0";
 	int MouseIdx = strlen(Mouse) - 1;
-	strcat(Mouse, "/device/name");
+	FCStringAnsi::Strncat(Mouse, "/device/name", sizeof(Mouse) - 1);
 
 	for (int i=0; i<9; i++)
 	{

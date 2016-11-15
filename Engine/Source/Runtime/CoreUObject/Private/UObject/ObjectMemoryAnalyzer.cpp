@@ -189,8 +189,8 @@ SIZE_T FObjectMemoryAnalyzer::CalculateSizeRecursive(UObject* Object)
 	}
 
 	SIZE_T InclusiveSize = Annotation.ExclusiveMemoryUsage;
-	Annotation.ExclusiveResourceSize = Object->GetResourceSize(EResourceSizeMode::Exclusive);
-	Annotation.InclusiveResourceSize = Object->GetResourceSize(EResourceSizeMode::Inclusive);
+	Annotation.ExclusiveResourceSize = Object->GetResourceSizeBytes(EResourceSizeMode::Exclusive);
+	Annotation.InclusiveResourceSize = Object->GetResourceSizeBytes(EResourceSizeMode::Inclusive);
 
 	TArray<UObject*> ReferencedObjects;
 	GetReferencedObjects(Object, ReferencedObjects);

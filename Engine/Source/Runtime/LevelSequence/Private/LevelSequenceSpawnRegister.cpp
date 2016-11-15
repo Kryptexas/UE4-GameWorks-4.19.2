@@ -55,6 +55,8 @@ UObject* FLevelSequenceSpawnRegister::SpawnObject(const FGuid& BindingId, FMovie
 		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		// @todo: Spawning with a non-CDO template is fraught with issues
 		//SpawnInfo.Template = ObjectTemplate;
+		// allow pre-construction variables to be set.
+		SpawnInfo.bDeferConstruction = true;
 	}
 
 	FTransform SpawnTransform;
@@ -107,6 +109,8 @@ UObject* FLevelSequenceSpawnRegister::SpawnObject(const FGuid& BindingId, FMovie
 
 	// tag this actor so we know it was spawned by sequencer
 	SpawnedActor->Tags.Add(SequencerActorTag);
+
+	SpawnedActor->FinishSpawning(SpawnTransform);
 
 	Register.Add(Key, FSpawnedObject(BindingId, *SpawnedActor, Spawnable->GetSpawnOwnership()));
 

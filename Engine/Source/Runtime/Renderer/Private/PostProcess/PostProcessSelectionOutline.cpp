@@ -20,6 +20,7 @@
 
 void FRCPassPostProcessSelectionOutlineColor::Process(FRenderingCompositePassContext& Context)
 {
+#if WITH_EDITOR
 	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessSelectionOutlineBuffer);
 
 	const FPooledRenderTargetDesc* SceneColorInputDesc = GetInputDesc(ePId_Input0);
@@ -39,61 +40,53 @@ void FRCPassPostProcessSelectionOutlineColor::Process(FRenderingCompositePassCon
 	
 	// Set the render target/viewport.
 	SetRenderTarget(Context.RHICmdList, FTextureRHIParamRef(), DestRenderTarget.TargetableTexture);
+
 	// This is a reversed Z depth surface, so 0.0f is the far plane.
-	Context.RHICmdList.Clear(false, FLinearColor(0, 0, 0, 0), true, (float)ERHIZBuffer::FarPlane, true, 0, FIntRect());
+	Context.RHICmdList.ClearDepthStencilTexture(DestRenderTarget.TargetableTexture, EClearDepthStencil::DepthStencil, (float)ERHIZBuffer::FarPlane, 0, FIntRect());
 	Context.SetViewportAndCallRHI(ViewRect);
 
 	if (View.Family->EngineShowFlags.Selection)
 	{
 		FHitProxyDrawingPolicyFactory::ContextType FactoryContext;
 
-		//@todo - use memstack
-		TMap<FName, int32> ActorNameToStencilIndex;
-		TMap<const FPrimitiveSceneProxy*, int32> IndividuallySelectedProxies;
-		ActorNameToStencilIndex.Add(NAME_BSP, 1);
-
 		Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 		Context.RHICmdList.SetBlendState(TStaticBlendStateWriteMask<CW_NONE, CW_NONE, CW_NONE, CW_NONE>::GetRHI());
 
+		// Note that the stencil value will overflow with enough selected objects
+		FEditorSelectionDrawingPolicy::ResetStencilValues();
+
+		// Run selection pass on static elements
+		FScene* Scene = View.Family->Scene->GetRenderScene();
+		if(Scene)
+		{	
+			Scene->EditorSelectionDrawList.DrawVisible(Context.RHICmdList, View, View.StaticMeshEditorSelectionMap, View.StaticMeshBatchVisibility);
+		}
+	
 		for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
 		{
 			const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
 			const FPrimitiveSceneProxy* PrimitiveSceneProxy = MeshBatchAndRelevance.PrimitiveSceneProxy;
 
-#if WITH_EDITOR
 			// Selected actors should be subdued if any component is individually selected
 			bool bActorSelectionColorIsSubdued = View.bHasSelectedComponents;
-#else
-			bool bActorSelectionColorIsSubdued = false;
-#endif
+
 			if (PrimitiveSceneProxy->IsSelected() && MeshBatchAndRelevance.Mesh->bUseSelectionOutline && PrimitiveSceneProxy->WantsSelectionOutline())
 			{
-				const int32* AssignedStencilIndexPtr = PrimitiveSceneProxy->IsIndividuallySelected() ? IndividuallySelectedProxies.Find( PrimitiveSceneProxy ) : ActorNameToStencilIndex.Find(PrimitiveSceneProxy->GetOwnerName());
-
-				if (!AssignedStencilIndexPtr)
+				int32 StencilValue = 1;
+				if(PrimitiveSceneProxy->GetOwnerName() != NAME_BSP)
 				{
-					if( PrimitiveSceneProxy->IsIndividuallySelected() )
-					{
-						// Any component that is individually selected should have a stencil value of < 128 so that it can have a unique color.  We offset the value by 2 because 0 means no selection and 1 is for bsp
-						int32 StencilValue = IndividuallySelectedProxies.Num() % 126 + 2;
-						AssignedStencilIndexPtr = &IndividuallySelectedProxies.Add(PrimitiveSceneProxy, StencilValue);
-					}
-					else
-					{
-						// If we are subduing actor color highlight then use the top level bits to indicate that to the shader.  
-						int32 StencilValue = bActorSelectionColorIsSubdued ? ActorNameToStencilIndex.Num() % 128 + 128 : ActorNameToStencilIndex.Num() % 126 + 2;
-						AssignedStencilIndexPtr = &ActorNameToStencilIndex.Add(PrimitiveSceneProxy->GetOwnerName(), StencilValue);
-					}
+					StencilValue = FEditorSelectionDrawingPolicy::GetStencilValue(View, PrimitiveSceneProxy);
+
 				}
 
 				// Note that the stencil value will overflow with enough selected objects
-				Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_DepthNearOrEqual, true, CF_Always, SO_Keep, SO_Keep, SO_Replace>::GetRHI(), *AssignedStencilIndexPtr);
+				Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_DepthNearOrEqual, true, CF_Always, SO_Keep, SO_Keep, SO_Replace>::GetRHI(), StencilValue);
 
 				const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
 				FHitProxyDrawingPolicyFactory::DrawDynamicMesh(Context.RHICmdList, View, FactoryContext, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
 			}
 		}
-		
+
 		// to get an outline around the objects if it's partly outside of the screen
 		{
 			FIntRect InnerRect = ViewRect;
@@ -107,16 +100,20 @@ void FRCPassPostProcessSelectionOutlineColor::Process(FRenderingCompositePassCon
 
 			// top
 			Context.RHICmdList.SetScissorRect(true, ViewRect.Min.X, ViewRect.Min.Y, ViewRect.Max.X, InnerRect.Min.Y);
-			Context.RHICmdList.Clear(false, FLinearColor(0, 0, 0, 0), true, (float)ERHIZBuffer::FarPlane, true, 0, FIntRect());
+			//#todo-rco: Doesn't work on some RHIs!
+			Context.RHICmdList.ClearDepthStencilTexture(DestRenderTarget.TargetableTexture, EClearDepthStencil::DepthStencil, (float)ERHIZBuffer::FarPlane, 0, FIntRect());
 			// bottom
 			Context.RHICmdList.SetScissorRect(true, ViewRect.Min.X, InnerRect.Max.Y, ViewRect.Max.X, ViewRect.Max.Y);
-			Context.RHICmdList.Clear(false, FLinearColor(0, 0, 0, 0), true, (float)ERHIZBuffer::FarPlane, true, 0, FIntRect());
+			//#todo-rco: Doesn't work on some RHIs!
+			Context.RHICmdList.ClearDepthStencilTexture(DestRenderTarget.TargetableTexture, EClearDepthStencil::DepthStencil, (float)ERHIZBuffer::FarPlane, 0, FIntRect());
 			// left
 			Context.RHICmdList.SetScissorRect(true, ViewRect.Min.X, ViewRect.Min.Y, InnerRect.Min.X, ViewRect.Max.Y);
-			Context.RHICmdList.Clear(false, FLinearColor(0, 0, 0, 0), true, (float)ERHIZBuffer::FarPlane, true, 0, FIntRect());
+			//#todo-rco: Doesn't work on some RHIs!
+			Context.RHICmdList.ClearDepthStencilTexture(DestRenderTarget.TargetableTexture, EClearDepthStencil::DepthStencil, (float)ERHIZBuffer::FarPlane, 0, FIntRect());
 			// right
 			Context.RHICmdList.SetScissorRect(true, InnerRect.Max.X, ViewRect.Min.Y, ViewRect.Max.X, ViewRect.Max.Y);
-			Context.RHICmdList.Clear(false, FLinearColor(0, 0, 0, 0), true, (float)ERHIZBuffer::FarPlane, true, 0, FIntRect());
+			//#todo-rco: Doesn't work on some RHIs!
+			Context.RHICmdList.ClearDepthStencilTexture(DestRenderTarget.TargetableTexture, EClearDepthStencil::DepthStencil, (float)ERHIZBuffer::FarPlane, 0, FIntRect());
 
 			Context.RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
 		}
@@ -124,6 +121,7 @@ void FRCPassPostProcessSelectionOutlineColor::Process(FRenderingCompositePassCon
 	
 	// Resolve to the output
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+#endif	
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessSelectionOutlineColor::ComputeOutputDesc(EPassOutputId InPassOutputId) const
@@ -134,7 +132,9 @@ FPooledRenderTargetDesc FRCPassPostProcessSelectionOutlineColor::ComputeOutputDe
 
 	Ret.Format = PF_DepthStencil;
 	Ret.Flags = TexCreate_None;
-	Ret.TargetableFlags = TexCreate_DepthStencilTargetable;
+
+	//mark targetable as TexCreate_ShaderResource because we actually do want to sample from the unresolved MSAA target in this case.
+	Ret.TargetableFlags = TexCreate_DepthStencilTargetable | TexCreate_ShaderResource;
 	Ret.DebugName = TEXT("SelectionDepthStencil");
 	Ret.NumSamples = FSceneRenderTargets::Get_FrameConstantsOnly().GetEditorMSAACompositingSampleCount();
 
@@ -250,7 +250,7 @@ public:
 				}
 
 				SetSRVParameter(Context.RHICmdList, ShaderRHI, EditorPrimitivesStencil, ViewState->SelectionOutlineCacheValue);
-		}
+			}
 		}
 
 #if WITH_EDITOR

@@ -37,13 +37,20 @@ enum class EJsonToken
 	SquareClose,
 	Colon,
 	String,
+
+	// short values
 	Number,
 	True,
 	False,
 	Null,
+
 	Identifier
 };
 
+FORCEINLINE bool EJsonToken_IsShortValue(EJsonToken Token)
+{
+	return Token >= EJsonToken::Number && Token <= EJsonToken::Null;
+}
 
 enum class EJsonNotation
 {

@@ -20,6 +20,10 @@ struct CORE_API FEditorObjectVersion
 		TextFormatArgumentDataIsVariant,
 		// Changes to SplineComponent
 		SplineComponentCurvesInStruct,
+		// Updated ComboBox to support toggling the menu open, better controller support
+		ComboBoxControllerSupportUpdate,
+		// Refactor mesh editor materials
+		RefactorMeshEditorMaterials,
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

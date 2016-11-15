@@ -115,11 +115,13 @@ void FUserInterfaceCommand::InitializeSlateApplication( const FString& LayoutIni
 		}
 	}
 
+	const float DPIScaleFactor = FPlatformMisc::GetDPIScaleFactorAtPoint(10.0f, 10.0f);
+
 	// restore application layout
 	TSharedRef<FTabManager::FLayout> NewLayout = FTabManager::NewLayout("SessionFrontendLayout_v1.1")
 		->AddArea
 		(
-			FTabManager::NewArea(1280.f, 720.0f)
+			FTabManager::NewArea(1280.f * DPIScaleFactor, 720.0f * DPIScaleFactor)
 				->Split
 				(
 					FTabManager::NewStack()
@@ -131,8 +133,8 @@ void FUserInterfaceCommand::InitializeSlateApplication( const FString& LayoutIni
 		)
 		->AddArea
 		(
-			FTabManager::NewArea(600.0f, 600.0f)
-				->SetWindow(FVector2D(10.0f, 10.0f), false)
+			FTabManager::NewArea(600.0f * DPIScaleFactor, 600.0f * DPIScaleFactor)
+				->SetWindow(FVector2D(10.0f * DPIScaleFactor, 10.0f * DPIScaleFactor), false)
 				->Split
 				(
 					FTabManager::NewStack()->AddTab("WidgetReflector", bAllowDebugTools ? ETabState::OpenedTab : ETabState::ClosedTab)

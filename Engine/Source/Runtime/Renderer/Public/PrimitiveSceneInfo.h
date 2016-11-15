@@ -4,8 +4,7 @@
 	PrimitiveSceneInfo.h: Primitive scene info definitions.
 =============================================================================*/
 
-#ifndef __PRIMITIVESCENEINFO_H__
-#define __PRIMITIVESCENEINFO_H__
+#pragma once
 
 #include "GenericOctree.h"
 
@@ -460,4 +459,3 @@ struct FPrimitiveOctreeSemantics
 	}
 };
 
-#endif

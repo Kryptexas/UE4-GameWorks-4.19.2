@@ -2,10 +2,10 @@
 
 #pragma once
 
+#include "Editor.h"
 #include "UnrealWidget.h"
 #include "Framework/Commands/Commands.h"
 #include "Layout/SlateRect.h"
-#include "Editor.h"
 #include "EditorComponents.h"
 
 
@@ -37,7 +37,8 @@ namespace EDragTool
 	{
 		BoxSelect,
 		FrustumSelect,
-		Measure
+		Measure,
+		ViewportChange
 	};
 }
 
@@ -752,6 +753,9 @@ public:
 	 */
 	void SetViewModes(const EViewModeIndex InPerspViewModeIndex, const EViewModeIndex InOrthoViewModeIndex);
 
+	/** Set the viewmode param. */
+	void SetViewModeParam(int32 InViewModeParam);
+
 	/**
 	 * @return The current view mode in this viewport, for the current viewport type
 	 */
@@ -778,6 +782,9 @@ public:
 	{
 		return GetViewMode() == InViewModeIndex;
 	}
+
+	/** @return True if InViewModeIndex is the current view mode param */
+	bool IsViewModeParam(int32 InViewModeParam) const { return ViewModeParam == InViewModeParam; }
 
 	/**
 	 * Invalidates this viewport and optionally child views.
@@ -812,6 +819,16 @@ public:
 	 */
 	virtual void SetViewportType( ELevelViewportType InViewportType );
 	
+	/**
+	 * Rotate through viewport view options
+	 */
+	virtual void RotateViewportType();
+
+	/**
+	* @return If the viewport option in the array is the active viewport type
+	*/
+	bool IsActiveViewportTypeInRotation() const;
+
 	/**
 	 * @return If InViewportType is the active viewport type 
 	 */
@@ -1464,6 +1481,9 @@ private:
 
 	/* View mode to set when this viewport is not of type LVT_Perspective */
 	EViewModeIndex OrthoViewModeIndex;
+
+	/* View mode param */
+	int32 ViewModeParam;
 
 	/** near plane adjustable for each editor view, if < 0 GNearClippingPlane should be used. */
 	float NearPlane;

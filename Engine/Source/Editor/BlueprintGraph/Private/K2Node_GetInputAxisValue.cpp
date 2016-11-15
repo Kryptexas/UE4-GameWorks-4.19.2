@@ -96,6 +96,7 @@ void UK2Node_GetInputAxisValue::RegisterDynamicBinding(UDynamicBlueprintBinding*
 	Binding.InputAxisName = InputAxisName;
 	Binding.bConsumeInput = bConsumeInput;
 	Binding.bExecuteWhenPaused = bExecuteWhenPaused;
+	Binding.bOverrideParentBinding = false;
 
 	InputAxisBindingObject->InputAxisDelegateBindings.Add(Binding);
 }

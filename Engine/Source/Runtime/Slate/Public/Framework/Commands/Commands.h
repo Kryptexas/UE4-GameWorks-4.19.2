@@ -27,7 +27,7 @@ public:
 	
 
 	/** Use this method to register commands. Usually done in StartupModule(). */
-	static void Register()
+	FORCENOINLINE static void Register()
 	{
 		if ( !Instance.IsValid() )
 		{
@@ -55,14 +55,19 @@ public:
 		}
 	}
 
-	/** Get the singleton instance of this set of commands. */
-	static const CommandContextType& Get()
+	FORCENOINLINE static bool IsRegistered()
 	{
-		return *(Instance.Pin());
+		return Instance.IsValid();
+	}
+
+	/** Get the singleton instance of this set of commands. */
+	FORCENOINLINE static const CommandContextType& Get()
+	{
+		return *( Instance.Pin() );
 	}
 
 	/** Use this method to clean up any resources used by the command set. Usually done in ShutdownModule() */
-	static void Unregister()
+	FORCENOINLINE static void Unregister()
 	{
 		// The instance may not be valid if it was never used.
 		if( Instance.IsValid() )
@@ -77,7 +82,7 @@ public:
 	}
 
 	/** Get the BindingContext for this set of commands. */
-	static const FBindingContext& GetContext()
+	FORCENOINLINE static const FBindingContext& GetContext()
 	{
 		check( Instance.IsValid() );
 		return *(Instance.Pin());

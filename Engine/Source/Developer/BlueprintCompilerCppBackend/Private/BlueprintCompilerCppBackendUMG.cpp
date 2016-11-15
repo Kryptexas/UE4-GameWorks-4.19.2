@@ -12,7 +12,7 @@ void FBackendHelperUMG::WidgetFunctionsInHeader(FEmitterLocalContext& Context)
 	{
 		Context.Header.AddLine(FString::Printf(TEXT("virtual void %s(TArray<FName>& SlotNames) const override;"), GET_FUNCTION_NAME_STRING_CHECKED(UUserWidget, GetSlotNames)));
 		Context.Header.AddLine(FString::Printf(TEXT("virtual void %s(const class ITargetPlatform* TargetPlatform) override;"), GET_FUNCTION_NAME_STRING_CHECKED(UUserWidget, PreSave)));
-		Context.Header.AddLine(FString::Printf(TEXT("virtual void %s() override;"), GET_FUNCTION_NAME_STRING_CHECKED(UUserWidget, CustomNativeInitilize)));
+		Context.Header.AddLine(TEXT("virtual void InitializeNativeClassData() override;"));
 	}
 }
 
@@ -74,8 +74,8 @@ void FBackendHelperUMG::EmitWidgetInitializationFunctions(FEmitterLocalContext& 
 			Context.AddLine(TEXT("}"));
 		}
 
-		{	// CustomNativeInitilize
-			Context.AddLine(FString::Printf(TEXT("void %s::%s()"), *CppClassName, GET_FUNCTION_NAME_STRING_CHECKED(UUserWidget, CustomNativeInitilize)));
+		{	// InitializeNativeClassData
+			Context.AddLine(FString::Printf(TEXT("void %s::InitializeNativeClassData()"), *CppClassName));
 			Context.AddLine(TEXT("{"));
 			Context.IncreaseIndent();
 

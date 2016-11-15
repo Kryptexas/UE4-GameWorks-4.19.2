@@ -82,7 +82,7 @@ bool FUdpDeserializedMessage::Deserialize(const FUdpReassembledMessageRef& Reass
 	{
 		MessageReader << Scope;
 
-		if (static_cast<uint8>(Scope.GetValue()) > static_cast<uint8>(EMessageScope::All))
+		if (Scope > EMessageScope::All)
 		{
 			return false;
 		}
@@ -117,7 +117,7 @@ bool FUdpDeserializedMessage::Deserialize(const FUdpReassembledMessageRef& Reass
 	}
 
 	// create message body
-	MessageData = FMemory::Malloc(TypeInfo->PropertiesSize);
+	MessageData = FMemory::Malloc(TypeInfo->GetStructureSize());
 	TypeInfo->InitializeStruct(MessageData);
 
 	// deserialize message body

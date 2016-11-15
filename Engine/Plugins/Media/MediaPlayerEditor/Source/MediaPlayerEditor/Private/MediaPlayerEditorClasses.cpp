@@ -6,6 +6,6 @@
 
 UMediaPlayerEditorSettings::UMediaPlayerEditorSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-	, ScaleVideoToFit(true)
-	, ShowCaptions(true)
+	, ShowTextOverlays(true)
+	, ViewportScale(EMediaPlayerEditorScale::Fit)
 { }

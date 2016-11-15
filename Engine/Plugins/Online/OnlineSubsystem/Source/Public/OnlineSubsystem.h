@@ -80,6 +80,15 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnOnlineEnvironmentChanged, EOnlineEnviron
 typedef FOnOnlineEnvironmentChanged::FDelegate FOnOnlineEnvironmentChangedDelegate;
 
 /**
+* Delegate fired when the "Play Together" event is sent from the PS4 system
+*
+* @param UserIndex - User index of the player the event is for
+* @param UserIdList - list of other users in the PS4 party to send invites to
+*/
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPlayTogetherEventReceived, int32, TArray<TSharedPtr<const FUniqueNetId>>);
+typedef FOnPlayTogetherEventReceived::FDelegate FOnPlayTogetherEventReceivedDelegate;
+
+/**
  *	OnlineSubsystem - Series of interfaces to support communicating with various web/platform layer services
  */
 class ONLINESUBSYSTEM_API IOnlineSubsystem
@@ -177,7 +186,7 @@ public:
 	 * @param SubsystemName - Name of the requested online service
 	 * @return true if instance exists, false otherwise
 	 */
-	static bool DoesInstanceExist(const FName& SubsystemName = NAME_None)
+	FORCENOINLINE static bool DoesInstanceExist(const FName& SubsystemName = NAME_None)
 	{
 		if (FModuleManager::Get().IsModuleLoaded("OnlineSubsystem"))
 		{
@@ -484,6 +493,14 @@ public:
 	 * @param Environment - current online environment
 	 */
 	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnOnlineEnvironmentChanged, EOnlineEnvironment::Type /*LastEnvironment*/, EOnlineEnvironment::Type /*Environment*/);
+
+	/**
+	* Delegate fired when the "Play Together" event is sent from the PS4 system
+	*
+	* @param UserIndex - User index of the player the event is for
+	* @param UserIdList - list of other users in the PS4 party to send invites to
+	*/
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnPlayTogetherEventReceived, int32, TArray<TSharedPtr<const FUniqueNetId>>);
 };
 
 /** Public references to the online subsystem pointer should use this */

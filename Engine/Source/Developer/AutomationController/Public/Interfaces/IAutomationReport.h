@@ -25,6 +25,37 @@ namespace EAutomationState
 		Success,				// Automation test was run and succeeded
 		NotEnoughParticipants,	// Automation test was not run due to number of participants
 	};
+	inline const TCHAR* ToString(EAutomationState::Type InType)
+	{
+		switch (InType)
+		{
+			case (EAutomationState::NotRun) :
+			{
+				return TEXT("NotRun");
+			}
+			case (EAutomationState::Fail) :
+			{
+				return TEXT("Fail");
+			}
+			case (EAutomationState::Success) :
+			{
+				return TEXT("Pass");
+			}
+			case (EAutomationState::InProcess) :
+			{
+				return TEXT("InProgress");
+			}
+			case (EAutomationState::NotEnoughParticipants) :
+			{
+				return TEXT("NotEnoughParticipants");
+			}
+			default:
+			{
+				return TEXT("Invalid");
+			}
+		}
+		return TEXT("Invalid");
+	}
 };
 
 
@@ -46,13 +77,13 @@ struct FAutomationTestResults
 	EAutomationState::Type State;
 
 	/* All errors reported as part of this test */
-	TArray <FString> Errors;
+	TArray<FAutomationEvent> Errors;
 
 	/* All warnings reported as part of this test */
-	TArray <FString> Warnings;
+	TArray<FString> Warnings;
 
 	/* All misc logs reported as part of this test */
-	TArray <FString> Logs;
+	TArray<FString> Logs;
 
 	/* The time this test took to complete */
 	float Duration;
@@ -152,6 +183,8 @@ public:
 	 */
 	virtual const FString& GetDisplayName() const = 0;
 
+	virtual const FString& GetFullTestPath() const = 0;
+
 	/**
 	 * Returns the name of this level in the test hierarchy for the purposes of UI.
 	 * (Editor.Maps.LoadAll.parameters) would have 3 internal tree nodes and a variable number of leaf nodes depending on how many maps existed
@@ -165,7 +198,16 @@ public:
 	 * 
 	 * @return the asset name.
 	 */
-	virtual FString GetAssetName() const = 0;
+	virtual FString GetTestParameter() const = 0;
+
+	/**
+	 * Gets the asset path associated with a test, it may not have one.
+	 * 
+	 * @return the asset name.
+	 */
+	virtual FString GetAssetPath() const = 0;
+
+	virtual FString GetOpenCommand() const = 0;
 
 	/**
 	 * Get the test type.
@@ -182,6 +224,9 @@ public:
 
 	/** Recursively gets the number of child nodes */
 	virtual int32 GetTotalNumChildren() const = 0;
+
+	/** Recursively gets the total number of filtered children */
+	virtual int32 GetTotalNumFilteredChildren() const = 0;
 
 	/** Gets the names of all the enabled tests */
 	virtual void GetEnabledTestNames(TArray<FString>& OutEnabledTestNames, FString CurrentPath) const = 0;
@@ -406,4 +451,8 @@ public:
 	 * @return A reference to the items of this tests previous runs.
 	 */
 	virtual const TArray<TSharedPtr<FAutomationHistoryItem>>& GetHistory() const = 0;
+
+	// Event that allows log to refresh once a test has finished
+	DECLARE_DELEGATE_OneParam(FOnSetResultsEvent, TSharedPtr<IAutomationReport>);
+	FOnSetResultsEvent OnSetResults;
 };

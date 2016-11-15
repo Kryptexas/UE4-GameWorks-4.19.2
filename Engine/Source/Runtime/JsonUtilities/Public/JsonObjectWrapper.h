@@ -34,3 +34,9 @@ struct TStructOpsTypeTraits<FJsonObjectWrapper> : public TStructOpsTypeTraitsBas
 		WithPostSerialize = true,
 	};
 };
+
+UCLASS()
+class UJsonUtilitiesDummyObject : public UObject
+{
+	GENERATED_BODY()
+};

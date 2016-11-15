@@ -4,6 +4,7 @@
 #include "ObjectTools.h"
 #include "LandscapeEdMode.h"
 #include "ScopedTransaction.h"
+#include "LandscapeStreamingProxy.h"
 #include "LandscapeEdit.h"
 #include "LandscapeRender.h"
 #include "LandscapeDataAccess.h"
@@ -823,7 +824,7 @@ public:
 		}
 	}
 
-	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation) override
+	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation, const UViewportInteractor* Interactor = nullptr) override
 	{
 		if (ViewportClient->IsCtrlPressed())
 		{
@@ -1351,86 +1352,39 @@ public:
 		SelectedSplineControlPoints.Empty();
 		SelectedSplineSegments.Empty();
 
-		if (EdMode->CurrentTool != NULL && EdMode->CurrentTool == this)
+		if (EdMode->CurrentTool != nullptr && EdMode->CurrentTool == this)
 		{
 			for (const FLandscapeListInfo& Info : EdMode->GetLandscapeList())
 			{
-				ALandscape* Landscape = Info.Info->LandscapeActor.Get();
-				if (Landscape != NULL && Landscape->SplineComponent != NULL)
+				Info.Info->ForAllLandscapeProxies([this](ALandscapeProxy* Proxy)
 				{
-					for (ULandscapeSplineControlPoint* ControlPoint : Landscape->SplineComponent->ControlPoints)
+					if (Proxy->SplineComponent)
 					{
-						if (ControlPoint->IsSplineSelected())
-						{
-							SelectedSplineControlPoints.Add(ControlPoint);
-						}
+						Algo::CopyIf(Proxy->SplineComponent->ControlPoints, SelectedSplineControlPoints, &ULandscapeSplineControlPoint::IsSplineSelected);
+						Algo::CopyIf(Proxy->SplineComponent->Segments,      SelectedSplineSegments,      &ULandscapeSplineSegment::IsSplineSelected);
 					}
-
-					for (ULandscapeSplineSegment* Segment : Landscape->SplineComponent->Segments)
-					{
-						if (Segment->IsSplineSelected())
-						{
-							SelectedSplineSegments.Add(Segment);
-						}
-					}
-				}
-
-				for (ALandscapeProxy* LandscapeProxy : Info.Info->Proxies)
-				{
-					if (LandscapeProxy != NULL && LandscapeProxy->SplineComponent != NULL)
-					{
-						for (ULandscapeSplineControlPoint* ControlPoint : LandscapeProxy->SplineComponent->ControlPoints)
-						{
-							if (ControlPoint->IsSplineSelected())
-							{
-								SelectedSplineControlPoints.Add(ControlPoint);
-							}
-						}
-
-						for (ULandscapeSplineSegment* Segment : LandscapeProxy->SplineComponent->Segments)
-						{
-							if (Segment->IsSplineSelected())
-							{
-								SelectedSplineSegments.Add(Segment);
-							}
-						}
-					}
-				}
+				});
 			}
 		}
 		else
 		{
 			for (const FLandscapeListInfo& Info : EdMode->GetLandscapeList())
 			{
-				ALandscape* Landscape = Info.Info->LandscapeActor.Get();
-				if (Landscape != NULL && Landscape->SplineComponent != NULL)
+				Info.Info->ForAllLandscapeProxies([](ALandscapeProxy* Proxy)
 				{
-					for (ULandscapeSplineControlPoint* ControlPoint : Landscape->SplineComponent->ControlPoints)
+					if (Proxy->SplineComponent)
 					{
-						ControlPoint->SetSplineSelected(false);
-					}
-
-					for (ULandscapeSplineSegment* Segment : Landscape->SplineComponent->Segments)
-					{
-						Segment->SetSplineSelected(false);
-					}
-				}
-
-				for (ALandscapeProxy* LandscapeProxy : Info.Info->Proxies)
-				{
-					if (LandscapeProxy != NULL && LandscapeProxy->SplineComponent != NULL)
-					{
-						for (ULandscapeSplineControlPoint* ControlPoint : LandscapeProxy->SplineComponent->ControlPoints)
+						for (ULandscapeSplineControlPoint* ControlPoint : Proxy->SplineComponent->ControlPoints)
 						{
 							ControlPoint->SetSplineSelected(false);
 						}
 
-						for (ULandscapeSplineSegment* Segment : LandscapeProxy->SplineComponent->Segments)
+						for (ULandscapeSplineSegment* Segment : Proxy->SplineComponent->Segments)
 						{
 							Segment->SetSplineSelected(false);
 						}
 					}
-				}
+				});
 			}
 		}
 	}
@@ -1447,19 +1401,13 @@ public:
 
 		for (const FLandscapeListInfo& Info : EdMode->GetLandscapeList())
 		{
-			ALandscape* Landscape = Info.Info->LandscapeActor.Get();
-			if (Landscape && Landscape->SplineComponent)
+			Info.Info->ForAllLandscapeProxies([](ALandscapeProxy* Proxy)
 			{
-				Landscape->SplineComponent->ShowSplineEditorMesh(true);
-			}
-
-			for (ALandscapeProxy* LandscapeProxy : Info.Info->Proxies)
-			{
-				if (LandscapeProxy->SplineComponent)
+				if (Proxy->SplineComponent)
 				{
-					LandscapeProxy->SplineComponent->ShowSplineEditorMesh(true);
+					Proxy->SplineComponent->ShowSplineEditorMesh(true);
 				}
-			}
+			});
 		}
 	}
 
@@ -1470,19 +1418,13 @@ public:
 
 		for (const FLandscapeListInfo& Info : EdMode->GetLandscapeList())
 		{
-			ALandscape* Landscape = Info.Info->LandscapeActor.Get();
-			if (Landscape && Landscape->SplineComponent)
+			Info.Info->ForAllLandscapeProxies([](ALandscapeProxy* Proxy)
 			{
-				Landscape->SplineComponent->ShowSplineEditorMesh(false);
-			}
-
-			for (ALandscapeProxy* LandscapeProxy : Info.Info->Proxies)
-			{
-				if (LandscapeProxy->SplineComponent)
+				if (Proxy->SplineComponent)
 				{
-					LandscapeProxy->SplineComponent->ShowSplineEditorMesh(false);
+					Proxy->SplineComponent->ShowSplineEditorMesh(false);
 				}
-			}
+			});
 		}
 	}
 

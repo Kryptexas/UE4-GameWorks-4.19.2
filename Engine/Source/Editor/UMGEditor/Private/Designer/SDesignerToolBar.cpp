@@ -32,6 +32,10 @@ TSharedRef< SWidget > SDesignerToolBar::MakeToolBar(const TSharedPtr< FExtender 
 	// Transform controls cannot be focusable as it fights with the press space to change transform mode feature
 	ToolbarBuilder.SetIsFocusable( false );
 
+	ToolbarBuilder.BeginSection("View");
+	ToolbarBuilder.AddToolBarButton(FDesignerCommands::Get().ToggleOutlines, NAME_None, TAttribute<FText>(), TAttribute<FText>(), TAttribute<FSlateIcon>(), "ToggleOutlines");
+	ToolbarBuilder.EndSection();
+
 	ToolbarBuilder.BeginSection("Transform");
 	ToolbarBuilder.BeginBlockGroup();
 	{

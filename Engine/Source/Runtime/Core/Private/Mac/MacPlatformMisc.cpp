@@ -172,22 +172,8 @@ struct FMacApplicationInfo
 		
 		// Use the log file specified on the commandline if there is one
 		CommandLine = FCommandLine::Get();
-		if (FParse::Value(*CommandLine, TEXT("LOG="), CommandlineLogFile, ARRAY_COUNT(CommandlineLogFile)))
-		{
-			LogDirectory += CommandlineLogFile;
-		}
-		else if (AppName.Len() != 0)
-		{
-			// If the app name is defined, use it as the log filename
-			LogDirectory += FString::Printf(TEXT("%s.Log"), *AppName);
-		}
-		else
-		{
-			// Revert to hardcoded UE4.log
-			LogDirectory += TEXT("UE4.Log");
-		}
-		FString LogPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*LogDirectory);
-		FCStringAnsi::Strcpy(AppLogPath, PATH_MAX+1, TCHAR_TO_UTF8(*LogPath));
+		FString LogPath = FGenericPlatformOutputDevices::GetAbsoluteLogFilename();
+		FCStringAnsi::Strcpy(AppLogPath, PATH_MAX + 1, TCHAR_TO_UTF8(*LogPath));
 
 		FString UserCrashVideoPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*CrashVideoPath);
 		FCStringAnsi::Strcpy(CrashReportVideo, PATH_MAX+1, TCHAR_TO_UTF8(*UserCrashVideoPath));
@@ -533,6 +519,7 @@ void FMacPlatformMisc::PlatformTearDown()
 		{
 			StdErrFile.readabilityHandler = nil;
 		}
+		
 		[GMacAppInfo.StdErrPipe release];
 	}
 }
@@ -809,8 +796,8 @@ void FMacPlatformMisc::RequestExit( bool Force )
 	
 	if( Force )
 	{
-		// Abort allows signal handler to know we aborted.
-		abort();
+		// Exit immediately, by request.
+		_Exit(GIsCriticalError ? 3 : 0);
 	}
 	else
 	{
@@ -1450,10 +1437,19 @@ FGPUDriverInfo FMacPlatformMisc::GetGPUDriverInfo(const FString& DeviceDescripti
 	SCOPED_AUTORELEASE_POOL;
 
 	FGPUDriverInfo Info;
+	TArray<FString> NameComponents;
 	TArray<FMacPlatformMisc::FGPUDescriptor> const& GPUs = GetGPUDescriptors();
+	
 	for(FMacPlatformMisc::FGPUDescriptor const& GPU : GPUs)
 	{
-		if (DeviceDescription.Contains(FString(GPU.GPUName).Trim()))
+		NameComponents.Empty();
+		bool bMatchesName = FString(GPU.GPUName).Trim().ParseIntoArray(NameComponents, TEXT(" ")) > 0;
+		for (FString& Component : NameComponents)
+		{
+			bMatchesName &= DeviceDescription.Contains(Component);
+		}
+		
+		if (bMatchesName)
 		{
 			Info.VendorId = GPU.GPUVendorId;
 			Info.DeviceDescription = FString(GPU.GPUName);
@@ -1777,6 +1773,12 @@ FString FMacPlatformMisc::GetXcodePath()
 	return GMacAppInfo.XcodePath;
 }
 
+float FMacPlatformMisc::GetDPIScaleFactorAtPoint(float X, float Y)
+{
+	TSharedRef<FMacScreen> Screen = FMacApplication::FindScreenBySlatePosition(X, Y);
+	return Screen->Screen.backingScaleFactor;
+}
+
 /** Global pointer to crash handler */
 void (* GCrashHandlerPointer)(const FGenericCrashContext& Context) = NULL;
 
@@ -2092,6 +2094,8 @@ void FMacCrashContext::GenerateWindowsErrorReport(char const* WERPath, bool bIsE
 		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<IsEnsure>%s</IsEnsure>"), bIsEnsure ? TEXT("1") : TEXT("0")));
 		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<IsAssert>%s</IsAssert>"), FDebug::bHasAsserted ? TEXT("1") : TEXT("0")));
 		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<CrashType>%s</CrashType>"), FGenericCrashContext::GetCrashTypeString(bIsEnsure, FDebug::bHasAsserted)));
+		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<BuildVersion>%s</BuildVersion>"), FApp::GetBuildVersion()));
+		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<EngineModeEx>%s</EngineModeEx>"), FGenericCrashContext::EngineModeExString()));
 
 		WriteLine(ReportFile, TEXT("\t</DynamicSignatures>"));
 		
@@ -2422,8 +2426,7 @@ bool FMacPlatformMisc::HasPlatformFeature(const TCHAR* FeatureName)
 	{
 		bool bHasMetal = false;
 		
-		// Metal is only permitted on 10.11.4 and above now because of all the bug-fixes Apple made for us in 10.11.4.
-		if (FPlatformMisc::MacOSXVersionCompare(10, 11, 4) >= 0 && !FParse::Param(FCommandLine::Get(),TEXT("opengl")) && FModuleManager::Get().ModuleExists(TEXT("MetalRHI")))
+		if (!FParse::Param(FCommandLine::Get(),TEXT("opengl")) && FModuleManager::Get().ModuleExists(TEXT("MetalRHI")))
 		{
 			// Find out if there are any Metal devices on the system - some Mac's have none
 			void* DLLHandle = FPlatformProcess::GetDllHandle(TEXT("/System/Library/Frameworks/Metal.framework/Metal"));
@@ -2441,6 +2444,15 @@ bool FMacPlatformMisc::HasPlatformFeature(const TCHAR* FeatureName)
 				
 				FPlatformProcess::FreeDllHandle(DLLHandle);
 			}
+		}
+		
+		// Metal is only permitted on 10.11.4 and above now because of all the bug-fixes Apple made for us in 10.11.4.
+		if (bHasMetal && FPlatformMisc::MacOSXVersionCompare(10, 11, 4) < 0)
+		{
+			bHasMetal = false;
+			FText Title = NSLOCTEXT("MacPlatform", "UpdateMacOSTitle","Update Mac OS");
+			FText Msg = NSLOCTEXT("MacPlatform", "UpdateMacOS.", "Please update to Mac OS X 10.11.4 or later (macOS Sierra 10.12 or later strongly recommended) to enable Metal rendering support for improved compatibility and performance.");
+			FMacPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *Msg.ToString(), *Title.ToString());
 		}
 		
 		return bHasMetal;

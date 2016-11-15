@@ -411,11 +411,39 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 				pSrcEventNode = CompilerContext.CallsIntoUbergraph.Find(Node);
 			}
 
-			const bool bInstrumentFunctionEntry = Context.IsInstrumentationRequired() && (bIsLatent || IsUserFunctionCall(Node));
+			bool bInlineEventCall = false;
+			bool bEmitInstrumentPushState = false;
+			FName EventName = NAME_None;
+			if (Context.IsInstrumentationRequired())
+			{
+				if (UK2Node_CallFunction* CallFunctionNode = Cast<UK2Node_CallFunction>(Node))
+				{
+					const UEdGraphNode* EventNodeOut = nullptr;
+					if (UEdGraph* FunctionGraph = CallFunctionNode->GetFunctionGraph(EventNodeOut))
+					{
+						bEmitInstrumentPushState = true;
+						if (const UK2Node_Event* EventNode = Cast<UK2Node_Event>(EventNodeOut))
+						{
+							bInlineEventCall = true;
+							EventName = EventNode->GetFunctionName();
+						}
+					}
+				}
+			}
+			const bool bInstrumentFunctionEntry = Context.IsInstrumentationRequired() && (bIsLatent || bInlineEventCall || bEmitInstrumentPushState);
 			if (bInstrumentFunctionEntry)
 			{
-				FBlueprintCompiledStatement& PushState = Context.AppendStatementForNode(Node);
-				PushState.Type = pSrcEventNode ? KCST_InstrumentedStateReset : KCST_InstrumentedStatePush;
+				if (bInlineEventCall)
+				{
+					FBlueprintCompiledStatement& EventStatement = Context.AppendStatementForNode(Node);
+					EventStatement.Type = KCST_InstrumentedEvent;
+					EventStatement.Comment = EventName.ToString();
+				}
+				else
+				{
+					FBlueprintCompiledStatement& PushState = Context.AppendStatementForNode(Node);
+					PushState.Type = KCST_InstrumentedStatePush;
+				}
 			}
 
 			// Iterate over all the contexts this functions needs to be called on, and emit a call function statement for each
@@ -478,8 +506,16 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 				{
 					if (bInstrumentFunctionEntry)
 					{
-						FBlueprintCompiledStatement& PopState = Context.AppendStatementForNode(Node);
-						PopState.Type = KCST_InstrumentedStatePop;
+						if (bInlineEventCall)
+						{
+							FBlueprintCompiledStatement& EventStop = Context.AppendStatementForNode(Node);
+							EventStop.Type = KCST_InstrumentedEventStop;
+						}
+						else
+						{
+							FBlueprintCompiledStatement& PopState = Context.AppendStatementForNode(Node);
+							PopState.Type = KCST_InstrumentedStatePop;
+						}
 					}
 					GenerateSimpleThenGoto(Context, *Node);
 				}
@@ -782,26 +818,6 @@ FString FKCHandler_CallFunction::GetFunctionNameFromNode(UEdGraphNode* Node) con
 		CompilerContext.MessageLog.Error(*NSLOCTEXT("KismetCompiler", "UnableResolveFunctionName_Error", "Unable to resolve function name for @@").ToString(), Node);
 		return TEXT("");
 	}
-}
-
-bool FKCHandler_CallFunction::IsUserFunctionCall(UEdGraphNode* Node) const
-{
-	bool bResult = false;
-	if (UK2Node_CallFunction* CallFunctionNode = Cast<UK2Node_CallFunction>(Node))
-	{
-		TArray<UEdGraph*> Graphs;
-		CompilerContext.Blueprint->GetAllGraphs(Graphs);
-		const FName CalledGraph = CallFunctionNode->FunctionReference.GetMemberName();
-		for (auto Graph : Graphs)
-		{
-			if (CalledGraph == Graph->GetFName())
-			{
-				bResult = true;
-				break;
-			}
-		}
-	}
-	return bResult;
 }
 
 #if _MSC_VER

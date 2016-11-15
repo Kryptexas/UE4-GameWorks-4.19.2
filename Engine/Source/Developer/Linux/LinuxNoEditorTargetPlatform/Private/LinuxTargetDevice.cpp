@@ -61,7 +61,7 @@ bool FLinuxTargetDevice::GetUserCredentials( FString& OutUserName, FString& OutU
 	return true;
 }
 
-bool FLinuxTargetDevice::TerminateProcess( const int32 ProcessId )
+bool FLinuxTargetDevice::TerminateProcess( const int64 ProcessId )
 {
 	return false;
 }

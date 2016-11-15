@@ -45,7 +45,7 @@
 #include "Components/AudioComponent.h"
 #include "Engine/Note.h"
 #include "UnrealEngine.h"
-#include "GameFramework/GameMode.h"
+#include "GameFramework/GameModeBase.h"
 #include "Engine/NavigationObjectBase.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/PlayerStart.h"
@@ -60,8 +60,8 @@
 #include "GameDelegates.h"
 #include "GeneralProjectSettings.h"
 #include "OnlineEngineInterface.h"
-#include "KismetDebugUtilities.h"
 #include "DebuggerCommands.h"
+#include "ScopeExit.h"
 
 #include "AudioThread.h"
 
@@ -592,7 +592,7 @@ void UEditorEngine::TeardownPlaySession(FWorldContext &PieWorldContext)
 	}
 
 	// Change GWorld to be the play in editor world during cleanup.
-	check( EditorWorld == GWorld );
+	ensureMsgf( EditorWorld == GWorld, TEXT("TearDownPlaySession current world: %s"), GWorld ? *GWorld->GetName() : TEXT("No World"));
 	GWorld = PlayWorld;
 	GIsPlayInEditorWorld = true;
 	
@@ -870,9 +870,14 @@ void UEditorEngine::PlaySessionSingleStepped()
 	FEditorDelegates::SingleStepPIE.Broadcast(bIsSimulatingInEditor);
 }
 
-bool UEditorEngine::ProcessDebuggerCommands(const FKey InKey, const FModifierKeysState ModifierKeyState)
+bool UEditorEngine::ProcessDebuggerCommands(const FKey InKey, const FModifierKeysState ModifierKeyState, EInputEvent EventType )
 {
-	return FPlayWorldCommands::GlobalPlayWorldActions->ProcessCommandBindings(InKey, ModifierKeyState, false);
+	if( EventType == IE_Pressed )
+	{
+		return FPlayWorldCommands::GlobalPlayWorldActions->ProcessCommandBindings(InKey, ModifierKeyState, false);
+	}
+	
+	return false;
 }
 
 /* fits the window position to make sure it falls within the confines of the desktop */
@@ -1076,12 +1081,32 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 
 	EndPlayOnLocalPc();
 
+	ON_SCOPE_EXIT
+	{
+		// note that we no longer have a queued request
+		bIsPlayWorldQueued = false;
+		bIsSimulateInEditorQueued = false;
+	};
+
 	const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
 
 	// Launch multi-player instances if necessary
 	// (note that if you have 'RunUnderOneProcess' checked and do a bPlayOnLocalPcSession (standalone) - play standalone 'wins' - multiple instances will be launched for multiplayer)
 	const EPlayNetMode PlayNetMode = [&PlayInSettings]{ EPlayNetMode NetMode(PIE_Standalone); return (PlayInSettings->GetPlayNetMode(NetMode) ? NetMode : PIE_Standalone); }();
 	const bool CanRunUnderOneProcess = [&PlayInSettings]{ bool RunUnderOneProcess(false); return (PlayInSettings->GetRunUnderOneProcess(RunUnderOneProcess) && RunUnderOneProcess); }();
+
+	// World composition does not copy levels to a separate folder to reduce startup time, and instead uses same files as Editor
+	// This causes issues with network replication as server object names will collide with Editor loaded world
+	const bool bWorldCompositionActive = GetEditorWorldContext().World()->WorldComposition != nullptr;
+	if (bWorldCompositionActive && !(CanRunUnderOneProcess || PlayNetMode == PIE_Standalone))
+	{
+		FText ErrorMsg = LOCTEXT("WorldCompPIESingleProcessError", "World Composition does not support multiplayer Play in Editor using separate processes. Please set 'Use Single Process' in the 'Level Editor - Play' settings under Editor Preferences.");
+		UE_LOG(LogPlayLevel, Warning, TEXT("%s"), *ErrorMsg.ToString());
+		FMessageLog(NAME_CategoryPIE).Warning(ErrorMsg);
+		FMessageLog(NAME_CategoryPIE).Open();
+		return;
+	}
+
 	if (PlayNetMode != PIE_Standalone && (!CanRunUnderOneProcess || bPlayOnLocalPcSession) && !bPlayUsingLauncher)
 	{
 		int32 NumClients = 0;
@@ -1135,10 +1160,6 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 			PlayInEditor( GetEditorWorldContext().World(), bWantSimulateInEditor );
 		}
 	}
-
-	// note that we no longer have a queued request
-	bIsPlayWorldQueued = false;
-	bIsSimulateInEditorQueued = false;
 }
 
 /* Temporarily renames streaming levels for pie saving */
@@ -1338,7 +1359,7 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 		GameNameOrProjectFile = FApp::GetGameName();
 	}
 
-	FString AdditionalParameters(TEXT(" -windowed -messaging -SessionName=\"Play in Standalone Game\""));
+	FString AdditionalParameters(TEXT(" -messaging -SessionName=\"Play in Standalone Game\""));
 	bool bRunningDebug = FParse::Param(FCommandLine::Get(), TEXT("debug"));
 	if (bRunningDebug)
 	{
@@ -1376,6 +1397,13 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 	{
 		AdditionalParameters += TEXT(" ");
 		AdditionalParameters += PlayInSettings->AdditionalLaunchParameters;
+	}
+
+	// Decide if fullscreen or windowed based on what is specified in the params
+	if (!AdditionalParameters.Contains(TEXT("-fullscreen")) && !AdditionalParameters.Contains(TEXT("-windowed")))
+	{
+		// Nothing specified fallback to window otherwise keep what is specified
+		AdditionalParameters += TEXT(" -windowed");		
 	}
 
 	FIntPoint WinSize(0, 0);
@@ -1942,6 +1970,17 @@ void UEditorEngine::PlayUsingLauncher()
 		FWorldContext & EditorContext = GetEditorWorldContext();
 		if (EditorContext.World()->WorldComposition || (LauncherProfile->GetCookMode() == ELauncherProfileCookModes::ByTheBookInEditor) || (LauncherProfile->GetCookMode() == ELauncherProfileCookModes::OnTheFlyInEditor) )
 		{
+			// Prompt the user to save the level if it has not been saved before. 
+			// An unmodified but unsaved blank template level does not appear in the dirty packages check below.
+			if (FEditorFileUtils::GetFilename(GWorld).Len() == 0)
+			{
+				if (!FEditorFileUtils::SaveCurrentLevel())
+				{
+					CancelRequestPlaySession();
+					return;
+				}
+			}
+
 			// Daniel: Only reason we actually need to save any packages is because if a new package is created it won't be on disk yet and CookOnTheFly will early out if the package doesn't exist (even though it could be in memory and not require loading at all)
 			//			future me can optimize this by either adding extra allowances to CookOnTheFlyServer code or only saving packages which doesn't exist if it becomes a problem
 			// if this returns false, it means we should stop what we're doing and return to the editor
@@ -2002,10 +2041,9 @@ void UEditorEngine::PlayUsingLauncher()
 
 			// const TArray<FString>& CookedMaps = ChainState.Profile->GetCookedMaps();
 			TArray<FString> CookDirectories;
-			TArray<FString> CookCultures;
 			TArray<FString> IniMapSections;
 
-			StartCookByTheBookInEditor(TargetPlatforms, CookedMaps, CookDirectories, CookCultures, IniMapSections );
+			StartCookByTheBookInEditor(TargetPlatforms, CookedMaps, CookDirectories, GetDefault<UProjectPackagingSettings>()->CulturesToStage, IniMapSections );
 
 			FIsCookFinishedDelegate &CookerFinishedDelegate = LauncherProfile->OnIsCookFinished();
 
@@ -2343,15 +2381,9 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 	// Flush all audio sources from the editor world
 	if (FAudioDevice* AudioDevice = EditorWorld->GetAudioDevice())
 	{
-		const bool bEnableSound = PlayInSettings->EnableSound;
 		AudioDevice->Flush(EditorWorld);
 		AudioDevice->ResetInterpolation();
 		AudioDevice->OnBeginPIE(bInSimulateInEditor);
-
-		if (!bEnableSound)
-		{
-			AudioDevice->SetTransientMasterVolume(0.0f);
-		}
 	}
 	EditorWorld->bAllowAudioPlayback = false;
 
@@ -2385,15 +2417,17 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 		PlayInSettings->SetPlayNetMode(PlayNetMode);
 	}
 
-	// Can't allow realtime viewports whilst in PIE so disable it for ALL viewports here.
-	DisableRealtimeViewports();
 
 	bool bAnyBlueprintErrors = ErroredBlueprints.Num() ? true : false;
 	bool bStartInSpectatorMode = false;
 	bool bSupportsOnlinePIE = false;
 	const int32 PlayNumberOfClients = [&PlayInSettings]{ int32 NumberOfClients(0); return (PlayInSettings->GetPlayNumberOfClients(NumberOfClients) ? NumberOfClients : 0); }();
 
-	if (SupportsOnlinePIE())
+	// Can't allow realtime viewports whilst in PIE so disable it for ALL viewports here.
+	DisableRealtimeViewports();
+
+	// Online PIE is disabled in SIE
+	if (SupportsOnlinePIE() && !bInSimulateInEditor)
 	{
 		bool bHasRequiredLogins = PlayNumberOfClients <= UOnlineEngineInterface::Get()->GetNumPIELogins();
 		if (bHasRequiredLogins)
@@ -2409,6 +2443,8 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 		}
 	}
 
+	UOnlineEngineInterface::Get()->SetShouldTryOnlinePIE(bSupportsOnlinePIE);
+
 	FModifierKeysState KeysState = FSlateApplication::Get().GetModifierKeys();
 	if (bInSimulateInEditor || KeysState.IsControlDown())
 	{
@@ -2422,6 +2458,15 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 		// Only spawning 1 PIE instance under this process, only set the PIEInstance value if we're not connecting to another local instance of the game, otherwise it will run the wrong streaming levels
 		PIEInstance = ( !CanRunUnderOneProcess && PlayNetMode == EPlayNetMode::PIE_Client ) ? INDEX_NONE : 0;
 		UGameInstance* const GameInstance = CreatePIEGameInstance(PIEInstance, bInSimulateInEditor, bAnyBlueprintErrors, bStartInSpectatorMode, false, PIEStartTime);
+
+		if (!PlayInSettings->EnableSound)
+		{
+			UWorld* GameInstanceWorld = GameInstance->GetWorld();
+			if (FAudioDevice* GameInstanceAudioDevice = GameInstanceWorld->GetAudioDevice())
+			{
+				GameInstanceAudioDevice->SetTransientMasterVolume(0.0f);
+			}
+		}
 
 		if (bInSimulateInEditor)
 		{
@@ -2473,6 +2518,7 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 			}
 		}
 	}
+
 }
 
 void UEditorEngine::SpawnIntraProcessPIEWorlds(bool bAnyBlueprintErrors, bool bStartInSpectatorMode)
@@ -3057,7 +3103,6 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 
 		// Add a handler for viewport close requests
 		ViewportClient->OnCloseRequested().BindUObject(this, &UEditorEngine::OnViewportCloseRequested);
-			
 		FSlatePlayInEditorInfo& SlatePlayInEditorSession = SlatePlayInEditorMap.Add(PieWorldContext->ContextHandle, FSlatePlayInEditorInfo());
 		SlatePlayInEditorSession.DestinationSlateViewport = RequestedDestinationSlateViewport;	// Might be invalid depending how pie was launched. Code below handles this.
 		RequestedDestinationSlateViewport = NULL;
@@ -3204,12 +3249,12 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 
 				ViewportClient->SetViewportOverlayWidget( PieWindow, ViewportOverlayWidgetRef );
 				ViewportClient->SetGameLayerManager(GameLayerManagerRef);
-
+				bool bShouldMinimizeRootWindow = bUseVRPreview && GEngine->HMDDevice.IsValid();
 				// Set up a notification when the window is closed so we can clean up PIE
 				{
 					struct FLocal
 					{
-						static void OnPIEWindowClosed( const TSharedRef< SWindow >& WindowBeingClosed, TWeakPtr< SViewport > PIEViewportWidget, int32 index )
+						static void OnPIEWindowClosed( const TSharedRef< SWindow >& WindowBeingClosed, TWeakPtr< SViewport > PIEViewportWidget, int32 index, bool bRestoreRootWindow )
 						{
 							// Save off the window position
 							const FVector2D PIEWindowPos = WindowBeingClosed->GetPositionInScreen();
@@ -3237,7 +3282,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 							// Route the callback
 							PIEViewportWidget.Pin()->OnWindowClosed( WindowBeingClosed );
 
-							if (PIEViewportWidget.Pin()->IsStereoRenderingAllowed() && GEngine->HMDDevice.IsValid())
+							if (bRestoreRootWindow)
 							{
 								// restore previously minimized root window.
 								TSharedPtr<SWindow> RootWindow = FGlobalTabmanager::Get()->GetRootWindow();
@@ -3251,7 +3296,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 				
 					const bool CanPlayNetDedicated = [&PlayInSettings]{ bool PlayNetDedicated(false); return (PlayInSettings->GetPlayNetDedicated(PlayNetDedicated) && PlayNetDedicated); }();
 					PieWindow->SetOnWindowClosed(FOnWindowClosed::CreateStatic(&FLocal::OnPIEWindowClosed, TWeakPtr<SViewport>(PieViewportWidget), 
-						(PlayNumberOfClients == 1) ? 0 : PieWorldContext->PIEInstance - (CanPlayNetDedicated ? 1 : 0)));
+						(PlayNumberOfClients == 1) ? 0 : PieWorldContext->PIEInstance - (CanPlayNetDedicated ? 1 : 0), bShouldMinimizeRootWindow));
 				}
 
 				// Create a new viewport that the viewport widget will use to render the game
@@ -3277,7 +3322,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 				// Change the system resolution to match our window, to make sure game and slate window are kept syncronised
 				FSystemResolution::RequestResolutionChange(NewWindowWidth, NewWindowHeight, EWindowMode::Windowed);
 
-				if (bUseVRPreview && GEngine->HMDDevice.IsValid())
+				if (bShouldMinimizeRootWindow)
 				{
 					GEngine->HMDDevice->EnableStereo(true);
 
@@ -3303,11 +3348,9 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 	// Disable the screensaver when PIE is running.
 	EnableScreenSaver( false );
 
+
 	EditorWorld->TransferBlueprintDebugReferences(PlayWorld);
 
-	// This must have already been set with a call to DisableRealtimeViewports() outside of this method.
-	check(!IsAnyViewportRealtime());
-	
 	// By this point it is safe to remove the GameInstance from the root and allow it to garbage collected as per usual
 	GameInstance->RemoveFromRoot();
 
@@ -3458,52 +3501,10 @@ void UEditorEngine::ToggleBetweenPIEandSIE( bool bNewSession )
 				OnSwitchWorldsForPIE(true);
 
 				UWorld* World = GameViewport->GetWorld();
-				AGameMode* AuthGameMode = World->GetAuthGameMode();
+				AGameModeBase* AuthGameMode = World->GetAuthGameMode();
 				if (AuthGameMode && GameViewport->GetGameInstance())	// If there is no GameMode, we are probably the client and cannot RestartPlayer.
 				{
-					APlayerController* PC = GameViewport->GetGameInstance()->GetFirstLocalPlayerController();
-					if (PC != nullptr)
-				{
-					AuthGameMode->RemovePlayerControllerFromPlayerCount(PC);
-					PC->PlayerState->bOnlySpectator = false;
-					AuthGameMode->NumPlayers++;
-
-					bool bNeedsRestart = true;
-					if (PC->GetPawn() == NULL)
-					{
-						// Use the "auto-possess" pawn in the world, if there is one.
-						for (FConstPawnIterator Iterator = World->GetPawnIterator(); Iterator; ++Iterator)
-						{
-							APawn* Pawn = *Iterator;
-							if (Pawn && Pawn->AutoPossessPlayer == EAutoReceiveInput::Player0)
-							{
-								if (Pawn->Controller == nullptr)
-								{
-									PC->Possess(Pawn);
-									bNeedsRestart = false;
-								}
-								break;
-							}
-						}
-					}
-
-					if (bNeedsRestart)
-					{
-						AuthGameMode->RestartPlayer(PC);
-
-						if (PC->GetPawn())
-						{
-							// If there was no player start, then try to place the pawn where the camera was.						
-							if (PC->StartSpot == nullptr || Cast<AWorldSettings>(PC->StartSpot.Get()))
-							{
-								const FVector Location = EditorViewportClient.GetViewLocation();
-								const FRotator Rotation = EditorViewportClient.GetViewRotation();
-								PC->SetControlRotation(Rotation);
-								PC->GetPawn()->TeleportTo(Location, Rotation);
-							}
-						}
-					}
-				}
+					AuthGameMode->SpawnPlayerFromSimulate(EditorViewportClient.GetViewLocation(), EditorViewportClient.GetViewRotation());
 				}
 
 				OnSwitchWorldsForPIE(false);
@@ -3769,7 +3770,7 @@ UWorld* UEditorEngine::CreatePIEWorldByDuplication(FWorldContext &WorldContext, 
 			InWorld->GetFName(),	// Name for new object
 			RF_AllFlags,			// FlagMask
 			NULL,					// DestClass
-			SDO_DuplicateForPie		// bDuplicateForPIE
+			EDuplicateMode::PIE
 			) );
 
 		FStringAssetReference::ClearPackageNamesBeingDuplicatedForPIE();
@@ -3840,7 +3841,7 @@ UWorld* UEditorEngine::CreatePIEWorldFromEntry(FWorldContext &WorldContext, UWor
 	// Force default GameMode class so project specific code doesn't fire off. 
 	// We want this world to truly remain empty while we wait for connect!
 	check(LoadedWorld->GetWorldSettings());
-	LoadedWorld->GetWorldSettings()->DefaultGameMode = AGameMode::StaticClass();
+	LoadedWorld->GetWorldSettings()->DefaultGameMode = AGameModeBase::StaticClass();
 
 	PlayWorldMapName = UGameMapsSettings::GetGameDefaultMap();
 	return LoadedWorld;

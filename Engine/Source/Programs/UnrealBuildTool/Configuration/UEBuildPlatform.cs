@@ -29,17 +29,17 @@ namespace UnrealBuildTool
 		/// </summary>
 		public readonly FileReference ProjectFile;
 
-		/// <summary>
-		/// The current overall target configuration being worked on
-		/// </summary>
-		public UnrealTargetConfiguration	TargetConfiguration;
+        /// <summary>
+        /// The current overall target configuration being worked on
+        /// </summary>
+        public UnrealTargetConfiguration TargetConfiguration;
 
-		/// <summary>
-		/// Constructor.
-		/// </summary>
-		/// <param name="InPlatform">The platform that this context is for</param>
-		/// <param name="InProjectFile">The project to read settings from, if any</param>
-		public UEBuildPlatformContext(UnrealTargetPlatform InPlatform, FileReference InProjectFile)
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <param name="InPlatform">The platform that this context is for</param>
+        /// <param name="InProjectFile">The project to read settings from, if any</param>
+        public UEBuildPlatformContext(UnrealTargetPlatform InPlatform, FileReference InProjectFile)
 		{
 			Platform = InPlatform;
 			ProjectFile = InProjectFile;
@@ -177,13 +177,21 @@ namespace UnrealBuildTool
 		/// Setup the project environment for building
 		/// </summary>
 		/// <param name="InBuildTarget"> The target being built</param>
-		public virtual void SetUpProjectEnvironment(UnrealTargetConfiguration Configuration)
+		public virtual void SetUpProjectEnvironment(UnrealTargetConfiguration Configuration, TargetInfo Target = null)
 		{
 			if (!bInitializedProject)
 			{
 				TargetConfiguration = Configuration;
-				
-				ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(Platform, "Engine", DirectoryReference.FromFile(ProjectFile));
+
+				string EngineIniPath = ProjectFile != null ? ProjectFile.Directory.FullName : null;
+				if (String.IsNullOrEmpty(EngineIniPath))
+				{
+					// If the project file hasn't been specified, try to get the path from -remoteini command line param
+					EngineIniPath = UnrealBuildTool.GetRemoteIniPath();
+				}
+				DirectoryReference EngineIniDir = !String.IsNullOrEmpty(EngineIniPath) ? new DirectoryReference(EngineIniPath) : null;
+				ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(Platform, "Engine", EngineIniDir);
+
 				bool bValue = UEBuildConfiguration.bCompileAPEX;
 				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileApex", out bValue))
 				{
@@ -244,7 +252,13 @@ namespace UnrealBuildTool
 					UEBuildConfiguration.bCompileWithPluginSupport = bValue;
 				}
 
-				bValue = UEBuildConfiguration.bCompilePhysXVehicle;
+                bValue = UEBuildConfiguration.bWithPerfCounters;
+                if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bWithPerfCounters", out bValue))
+                {
+                    UEBuildConfiguration.bWithPerfCounters = bValue;
+                }
+
+                bValue = UEBuildConfiguration.bCompilePhysXVehicle;
 				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompilePhysXVehicle", out bValue))
 				{
 					UEBuildConfiguration.bCompilePhysXVehicle = bValue;
@@ -268,24 +282,31 @@ namespace UnrealBuildTool
 					UEBuildConfiguration.bCompileCEF3 = bValue;
 				}
 
+				if (Target != null && Target.IsCooked)
+				{
+					if (Ini.GetBool("/Script/Engine.StreamingSettings", "s.EventDrivenLoaderEnabled", out bValue))
+					{
+						UEBuildConfiguration.bEventDrivenLoader = bValue;
+					}
+				}
 				bInitializedProject = true;
 			}
-			else
-			{
-				if(TargetConfiguration != Configuration)
-				{
-					throw new BuildException("SetUpProjectEnvironment: Can not setup a project for a different target configuration");
-				}
-			}
-		}
+            else
+            {
+                if (TargetConfiguration != Configuration)
+                {
+                    throw new BuildException("SetUpProjectEnvironment: Can not setup a project for a different target configuration");
+                }
+            }
+        }
 
-		/// <summary>
-		/// Whether this platform should create debug information or not
-		/// </summary>
-		/// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
-		/// <param name="InConfiguration"> The UnrealTargetConfiguration being built</param>
-		/// <returns>bool    true if debug info should be generated, false if not</returns>
-		public abstract bool ShouldCreateDebugInfo(UnrealTargetConfiguration Configuration);
+        /// <summary>
+        /// Whether this platform should create debug information or not
+        /// </summary>
+        /// <param name="InPlatform">  The UnrealTargetPlatform being built</param>
+        /// <param name="InConfiguration"> The UnrealTargetConfiguration being built</param>
+        /// <returns>bool    true if debug info should be generated, false if not</returns>
+        public abstract bool ShouldCreateDebugInfo(UnrealTargetConfiguration Configuration);
 
 		/// <summary>
 		/// Creates a toolchain instance for the default C++ platform.
@@ -515,7 +536,13 @@ namespace UnrealBuildTool
 			}
 		}
 
-
+		/// <summary>
+		/// Returns the name that should be returned in the output when doing -validateplatforms
+		/// </summary>
+		public virtual string GetPlatformValidationName()
+		{
+			return Platform.ToString();
+		}
 
 		/// <summary>
 		/// If this platform can be compiled with XGE
@@ -799,6 +826,11 @@ namespace UnrealBuildTool
 		/// </summary>
 		public virtual bool HasDefaultBuildConfig(UnrealTargetPlatform Platform, DirectoryReference ProjectDirectoryName)
 		{
+			if(!DoProjectSettingsMatchDefault(Platform, ProjectDirectoryName, "/Script/Engine.StreamingSettings", new string[] { "s.EventDrivenLoaderEnabled" }, null, null))
+			{
+				return false;
+			}
+
 			string[] BoolKeys = new string[] {
 				"bCompileApex", "bCompileBox2D", "bCompileICU", "bCompileSimplygon", "bCompileSimplygonSSF",
 				"bCompileLeanAndMeanUE", "bIncludeADO", "bCompileRecast", "bCompileSpeedTree", 

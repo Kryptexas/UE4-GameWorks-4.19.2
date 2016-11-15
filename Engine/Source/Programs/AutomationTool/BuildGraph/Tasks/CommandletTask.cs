@@ -22,7 +22,7 @@ namespace AutomationTool.Tasks
 		/// <summary>
 		/// The project to run the editor with
 		/// </summary>
-		[TaskParameter(Optional = true)]
+		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.FileSpec)]
 		public string Project;
 
 		/// <summary>
@@ -34,12 +34,12 @@ namespace AutomationTool.Tasks
 		/// <summary>
 		/// The editor executable to use. Defaults to the development UE4Editor executable for the current platform.
 		/// </summary>
-		[TaskParameter(Optional = true)]
+		[TaskParameter(Optional = true, ValidationType = TaskParameterValidationType.FileName)]
 		public string EditorExe;
 	}
 
 	/// <summary>
-	/// Implements a task which calls another UAT command
+	/// Spawns the editor to run a commandlet.
 	/// </summary>
 	[TaskElement("Commandlet", typeof(CommandletTaskParameters))]
 	public class CommandletTask : CustomTask

@@ -1,11 +1,12 @@
-﻿INTSourceChangelist:0
-Title: Sequencer Subway
+﻿INTSourceChangelist:3038067
+Title:Sequencer Subway
 Crumbs:
-Description: The Sequencer example shows how to create film-quality cinematic sequences using Unreal Engine 4's Sequencer Editor.
-Availability: Public
-Related: Engine/Sequencer
-Related: Engine/Sequencer/HowTo/TracksShot
-Related: Engine/Sequencer/HowTo/ViewportOptions
+Description:Sequencer 范例展示如何借助虚幻引擎 4 的 Sequencer 编辑器创建影片级别的过场动画。
+Availability:Public
+Related:Engine/Sequencer
+Related:Engine/Sequencer/HowTo/TracksShot
+Related:Engine/Sequencer/HowTo/ViewportOptions
+tags:Sequencer
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -49,51 +50,51 @@ Related: Engine/Sequencer/HowTo/ViewportOptions
 
 [TOC]
 
-The Sequencer Subway example shows how to create film-quality cinematic sequences using Unreal Engine 4's Sequencer Editor. 
+Sequencer Subway 范例展示如何通过虚幻引擎 4 的 Sequencer 编辑器创建影片级别的过场动画。 
 
 ![](SequencerSubway.png)
 
-Learn how to create stunning cinematics by digging into this scene built with Sequencer. From animated characters to VFX, you can go hands-on to see how everything is controlled within the Editor. Learn the ins and outs of Sequencer with Epic's cinematic example.
+深入研究以 Sequencer 打造的该场景，学习创建效果惊艳的过场动画。从动画角色到 VFX，您均可亲手实践，了解编辑器中资源的控制方式。通过 Epic 的动画实例学习 Sequencer 的各项细节。
 
-This example includes the same cinematic sequence created using the Matinee Editor so you can compare techniques and workflows as you move to using Sequencer.
+此例包含使用 Matinee 编辑器创建的相同过场动画，以便您使用 Sequencer 是对比技术和工作流程。
 
-## The Master Sequence
+## Master 序列
 
 ![](Sequence_Master_Open.png)(convert:false)
 
-The _SubwaySequencerMASTER_ Sequence contains all of the Shots that make up the cinematic along with the audio tracks.
+_SubwaySequencerMASTER_ 序列包含组成过场动画的所有镜头和音轨。
 
 ![](Sequence_Viewport_Lock.png)(convert:false)
 
-## Invididual Shots
+## 单个镜头
 
-Double-clicking on any shot preview in the master Sequence opens it in the Sequencer Editor.
+双击 master 序列中任意镜头预览将其在 Sequencer 编辑器中打开。
 
 ![](Sequence.png)(convert:false)
 
-## Viewing the Cinematic
+## 查看过场
 
-To view the cinematic in the active Level Editor viewport, click the **Lock Viewport to Shots** button in the Sequencer Editor.
+点击 Sequencer 编辑器中的 **Lock Viewport to Shots** 按钮即可在启用的关卡编辑器视口中查看过场。
 
 ![](Sequence_Viewport_Lock.png)(convert:false)
 
-Click the Play button in the Sequencer Editor transport controls to play the cinematic. The active viewport now renders using the cameras in the Sequence.
+点击 Sequencer 编辑器传输功能按钮中的 Play 按钮播放过场。启用的视口将使用序列中的摄像机进行渲染。
 
 ![](Sequence_Viewport.png)(convert:false)
 
-## Cinematic Viewport
+## 过场视口
 
-You can switch the viewport to use the advanced Cinematic Viewport with full transport controls and advanced visualization overlays.
+可切换视口使用带完整传输功能按钮的高级过场视口和高级可视覆层。
 
 ![](Sequence_Viewport_Cinematic.png)(convert:false)
 
-**To Enable the Cinematic Viewport:**
+**启用过场视口的方法：**
 
-1. In the Viewport Toolbar, select **Cinematic Viewport**.
+1. 在视口工具栏中选择 **Cinematic Viewport**。
 
 	![](Sequence_Viewport_Cinematic_Enable.png)(convert:false)
 
-Various viewport overlays are available in the Cinematic Viewport to better visualize the cinematic:
+过场视口中有诸多视口覆层可用，以更佳效果显示过场：
 
 ![](Sequence_Viewport_Overlay.png)(convert:false)
 

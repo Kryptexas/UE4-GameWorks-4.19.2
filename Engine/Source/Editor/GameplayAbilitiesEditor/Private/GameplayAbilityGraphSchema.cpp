@@ -6,7 +6,8 @@
 #include "GameplayAbilityGraphSchema.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "BlueprintEditorUtils.h"
-
+#include "EdGraphSchema_K2.h"
+#include "EdGraphSchema_K2_Actions.h"
 
 UGameplayAbilityGraphSchema::UGameplayAbilityGraphSchema(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)

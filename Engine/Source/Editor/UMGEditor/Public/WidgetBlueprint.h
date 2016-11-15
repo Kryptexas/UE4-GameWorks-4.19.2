@@ -175,12 +175,6 @@ class UMGEDITOR_API UWidgetBlueprint : public UBlueprint
 
 public:
 
-	//~ Begin UObject Interface
-	virtual bool NeedsLoadForClient() const override;
-	//~ End UObject Interface
-
-public:
-
 #if WITH_EDITORONLY_DATA
 	/** A tree of the widget templates to be created */
 	UPROPERTY()
@@ -227,6 +221,9 @@ public:
 	//~ End UBlueprint Interface
 
 	virtual void GatherDependencies(TSet<TWeakObjectPtr<UBlueprint>>& InDependencies) const override;
+
+	/** Returns true if the supplied user widget will not create a circular reference when added to this blueprint */
+	bool IsWidgetFreeFromCircularReferences(UUserWidget* UserWidget) const;
 
 	static bool ValidateGeneratedClass(const UClass* InClass);
 };

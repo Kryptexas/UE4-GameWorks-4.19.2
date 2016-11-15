@@ -229,7 +229,8 @@ bool FMaterialEditorUtilities::GetStaticSwitchExpressionValue(UMaterialInstance*
 	if(FunctionInputExpression && FunctionInputExpression->InputType == FunctionInput_StaticBool)
 	{
 		FGetVisibleMaterialParametersFunctionState* TopmostFunctionState = FunctionStack.Pop();
-		const TArray<FFunctionExpressionInput>* FunctionInputs = TopmostFunctionState->FunctionCall ? &TopmostFunctionState->FunctionCall->FunctionInputs : NULL;
+		check(TopmostFunctionState->FunctionCall);
+		const TArray<FFunctionExpressionInput>* FunctionInputs = &TopmostFunctionState->FunctionCall->FunctionInputs;
 
 		// Get the FFunctionExpressionInput which stores information about the input node from the parent that this is linked to.
 		const FFunctionExpressionInput* MatchingInput = FindInputById(FunctionInputExpression, *FunctionInputs);

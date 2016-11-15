@@ -6,7 +6,7 @@ void FinishSceneStat(uint32 Scene);
 
 //This is only here for now while we transition into substepping
 #if WITH_PHYSX
-#include "pxtask/PxTask.h"
+#include "task/PxTask.h"
 class PhysXCompletionTask : public PxLightCpuTask
 {
 	FGraphEventRef EventToFire;
@@ -139,7 +139,7 @@ struct FPhysTarget
 
 #if WITH_PHYSX
 #if WITH_APEX
-typedef NxApexScene PxApexScene;	//helper typedef so we don't have to use as many ifdefs
+typedef apex::Scene PxApexScene;	//helper typedef so we don't have to use as many ifdefs
 #else
 typedef PxScene PxApexScene;
 #endif

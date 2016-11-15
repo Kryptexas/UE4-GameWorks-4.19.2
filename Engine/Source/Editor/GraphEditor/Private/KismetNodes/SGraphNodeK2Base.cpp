@@ -86,20 +86,9 @@ void SGraphNodeK2Base::UpdateCompactNode()
 			+SOverlay::Slot()
 			.Padding(Settings->GetNonPinNodeBodyPadding())
 			[
-				SNew(SOverlay)
-				+SOverlay::Slot()
-				[
-					SNew(SImage)
-					.Image(FEditorStyle::GetBrush("Graph.CompactNode.Body"))
-					.ColorAndOpacity(this, &SGraphNodeK2Base::GetNodeBodyColor)
-				]
-				+SOverlay::Slot()
-				[
-					SNew(SImage)
-					.Image(FEditorStyle::GetBrush("Graph.CompactNode.IndicatorOverlay"))
-					.Visibility(this, &SGraphNodeK2Base::GetNodeIndicatorOverlayVisibility)
-					.ColorAndOpacity(this, &SGraphNodeK2Base::GetNodeIndicatorOverlayColor)
-				]
+				SNew(SImage)
+				.Image(FEditorStyle::GetBrush("Graph.CompactNode.Body"))
+				.ColorAndOpacity(this, &SGraphNodeK2Base::GetNodeBodyColor)
 			]
 			+SOverlay::Slot()
 			.HAlign(HAlign_Center)
@@ -284,67 +273,6 @@ FText SGraphNodeK2Base::GetToolTipHeading() const
 	return FText::GetEmpty();
 }
 
-FSlateColor SGraphNodeK2Base::GetNodeIndicatorOverlayColor() const
-{
-	float IntensityValue = 0.0f;
-	const float IntensityScale = 0.8f;
-
-	IBlueprintProfilerInterface& ProfilerModule = FModuleManager::LoadModuleChecked<IBlueprintProfilerInterface>("BlueprintProfiler");
-	if (ProfilerModule.IsProfilerEnabled() && GraphNode)
-	{
-		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNode(GraphNode);
-		if (Blueprint && Blueprint->GeneratedClass && Blueprint->GeneratedClass->HasInstrumentation())
-		{
-			TSharedPtr<FScriptExecutionBlueprint> BlueprintExecNode = ProfilerModule.GetProfilerDataForBlueprint(Blueprint);
-			if (BlueprintExecNode.IsValid())
-			{
-				TSharedPtr<FScriptExecutionNode> ExecNode = ProfilerModule.GetProfilerDataForNode(GraphNode);
-				if (ExecNode.IsValid())
-				{
-					FScriptPerfData NodePerfData(EScriptPerfDataType::Node);
-					ExecNode->GetBlueprintPerfDataForAllTracePaths(NodePerfData);
-
-					NodePerfData.SetHeatLevels(BlueprintExecNode->GetHeatLevelMetrics());
-
-					switch (GetDefault<UBlueprintProfilerSettings>()->GraphNodeHeatMapDisplayMode)
-					{
-					case EBlueprintProfilerHeatMapDisplayMode::Average:
-						IntensityValue = NodePerfData.GetAverageHeatLevel();
-						break;
-
-					case EBlueprintProfilerHeatMapDisplayMode::Inclusive:
-						IntensityValue = NodePerfData.GetInclusiveHeatLevel();
-						break;
-
-					case EBlueprintProfilerHeatMapDisplayMode::MaxTiming:
-						IntensityValue = NodePerfData.GetMaxTimeHeatLevel();
-						break;
-
-					case EBlueprintProfilerHeatMapDisplayMode::Total:
-						IntensityValue = NodePerfData.GetTotalHeatLevel();
-						break;
-					}
-				}
-			}
-		}
-	}
-
-	return FLinearColor(0.9f, 0.0f, 0.0f, FMath::Clamp<float>(IntensityValue, 0.0f, 1.0f) * IntensityScale);
-}
-
-EVisibility SGraphNodeK2Base::GetNodeIndicatorOverlayVisibility() const
-{
-	IBlueprintProfilerInterface& ProfilerModule = FModuleManager::LoadModuleChecked<IBlueprintProfilerInterface>("BlueprintProfiler");
-	if (ProfilerModule.IsProfilerEnabled() && GetDefault<UBlueprintProfilerSettings>()->GraphNodeHeatMapDisplayMode != EBlueprintProfilerHeatMapDisplayMode::None)
-	{
-		return EVisibility::Visible;
-	}
-	else
-	{
-		return EVisibility::Hidden;
-	}
-}
-
 /**
  * Update this GraphNode to match the data that it is observing
  */
@@ -456,9 +384,9 @@ void SGraphNodeK2Base::GetOverlayBrushes(bool bSelected, const FVector2D WidgetS
 				const float Padding = 2.5f;
 				IPOverlayInfo.OverlayOffset.X = WidgetSize.X - IPOverlayInfo.Brush->ImageSize.X - Padding;
 				IPOverlayInfo.OverlayOffset.Y = Padding;
+				Offset = IPOverlayInfo.Brush->ImageSize.X;
 			}
 			Brushes.Add(IPOverlayInfo);
-			Offset = IPOverlayInfo.Brush->ImageSize.X;
 		}
 		if (Timeline && Timeline->bLoop)
 		{
@@ -595,6 +523,53 @@ const FSlateBrush* SGraphNodeK2Base::GetShadowBrush(bool bSelected) const
 	{
 		return SGraphNode::GetShadowBrush(bSelected);
 	}
+}
+
+FLinearColor SGraphNodeK2Base::GetProfilerHeatmapIntensity() const
+{
+	float IntensityValue = 0.0f;
+	IBlueprintProfilerInterface& ProfilerModule = FModuleManager::LoadModuleChecked<IBlueprintProfilerInterface>("BlueprintProfiler");
+	if (ProfilerModule.IsProfilerEnabled() && GraphNode)
+	{
+		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNode(GraphNode);
+		if (Blueprint && Blueprint->GeneratedClass && Blueprint->GeneratedClass->HasInstrumentation())
+		{
+			TSharedPtr<FScriptExecutionNode> ExecNode = ProfilerModule.GetProfilerDataForNode(GraphNode);
+			if (ExecNode.IsValid())
+			{
+				const FScriptPerfData& NodePerfData = ExecNode->GetNodePerfData();
+				switch (GetDefault<UBlueprintProfilerSettings>()->GraphNodeHeatMapDisplayMode)
+				{
+				case EBlueprintProfilerHeatMapDisplayMode::Average:
+					IntensityValue = NodePerfData.GetAverageHeatLevel();
+					break;
+
+				case EBlueprintProfilerHeatMapDisplayMode::Inclusive:
+					IntensityValue = NodePerfData.GetInclusiveHeatLevel();
+					break;
+
+				case EBlueprintProfilerHeatMapDisplayMode::MaxTiming:
+					IntensityValue = NodePerfData.GetMaxTimeHeatLevel();
+					break;
+
+				case EBlueprintProfilerHeatMapDisplayMode::Total:
+					IntensityValue = NodePerfData.GetTotalHeatLevel();
+					break;
+				}
+			}
+		}
+	}
+	const float Value = 1.f - IntensityValue;
+	return FLinearColor(1.f, Value, Value, IntensityValue*IntensityValue);
+}
+
+const FSlateBrush* SGraphNodeK2Base::GetProfilerHeatmapBrush() const
+{
+	const UK2Node* K2Node = CastChecked<UK2Node>(GraphNode);
+	const bool bCompactMode = K2Node->ShouldDrawCompact();
+
+	return bCompactMode ?	FEditorStyle::GetBrush(TEXT("BlueprintProfiler.CompactNode.HeatDisplay")) : 
+							FEditorStyle::GetBrush(TEXT("BlueprintProfiler.RegularNode.HeatDisplay"));
 }
 
 void SGraphNodeK2Base::PerformSecondPassLayout(const TMap< UObject*, TSharedRef<SNode> >& NodeToWidgetLookup) const

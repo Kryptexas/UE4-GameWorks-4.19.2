@@ -91,6 +91,9 @@ public: // Helper Functions
 	/** Processes the controller buttons */
 	void ProcessControllerButtons();
 
+	/** Processes the controller events */
+	void ProcessControllerEvents();
+
 	/** Checks if the controller is available */
 	bool IsAvailable() const;
 

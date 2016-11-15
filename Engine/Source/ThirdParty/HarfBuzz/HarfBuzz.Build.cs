@@ -65,11 +65,11 @@ public class HarfBuzz : ModuleRules
 						OpimizationSuffix = "";
 						break;
 			}	}
-//			PublicAdditionalLibraries.Add(HarfBuzzRootPath + "HTML5/libharfbuzz" + OpimizationSuffix + ".bc");
-			PublicAdditionalLibraries.Add(HarfBuzzRootPath + "HTML5/libharfbuzz" + OpimizationSuffix + ".a");
+			PublicAdditionalLibraries.Add(HarfBuzzRootPath + "HTML5/libharfbuzz" + OpimizationSuffix + ".bc");
+//			PublicAdditionalLibraries.Add(HarfBuzzRootPath + "HTML5/libharfbuzz" + OpimizationSuffix + ".a");
         }
 
-		else if (Target.Platform == UnrealTargetPlatform.Mac)
+		else if (Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.IOS)
 		{
 			Definitions.Add("WITH_HARFBUZZ=1");
 

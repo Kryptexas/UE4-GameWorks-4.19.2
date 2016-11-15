@@ -38,6 +38,11 @@ namespace MovieSceneClipboard
 		static FName Name("String");
 		return Name;
 	}
+	template<> inline FName GetKeyTypeName<FGuid>()
+	{
+		static FName Name("Guid");
+		return Name;
+	}
 }
 
 #endif

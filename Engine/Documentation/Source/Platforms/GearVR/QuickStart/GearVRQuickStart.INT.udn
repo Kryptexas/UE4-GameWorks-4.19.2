@@ -5,27 +5,29 @@ Description:Instructions on how to quickly setup and deploy projects for use wit
 Navigation:platform
 Platform:Gear VR
 Skilllevel: Intermediate
-Version: 4.9
+Version:4.9
 type:quickstart
 parent:Platforms/GearVR
 tags:VR
 tags:GearVR
+order:1
+Checkpoint:GearVRQS
+prereq:Platforms\GearVR\Prerequisites
 
+![](GVR_Headset_00.png)
+
+
+## Goals
 The Gear VR Quick Start will walk you through how to setup your development PC and Samsung Galaxy Note 4 Smartphone to work with the Samsung Gear VR headset.
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Steps
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Platforms/GearVR/QuickStart/1 "%Platforms/GearVR/QuickStart/1:description%")
-	* [](Platforms/GearVR/QuickStart/2 "%Platforms/GearVR/QuickStart/2:description%")
-	* [](Platforms/GearVR/QuickStart/3 "%Platforms/GearVR/QuickStart/3:description%")
-	[/PARAM]
-[/OBJECT]
+## Objectives
+* Create a new UE4 project that is targeted towards Gear VR development.
+* Setting the required project settings so your project can be used with Gear VR.
+* Deploying and viewing your UE4 project with the Gear VR HMD.
+
+[DIR(output:"checkpoint" parent:"Platforms/GearVR/QuickStart")]
+
+[REGION:call_to_action]
+ [Click to Start](Platforms/GearVR/QuickStart/1 "%Platforms/GearVR/QuickStart/1:title%")
+[/REGION]
 

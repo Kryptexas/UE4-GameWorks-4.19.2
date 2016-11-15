@@ -4,6 +4,8 @@
 
 #include "ModuleInterface.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogAIGraph, Display, All);
+
 class FAIGraphModule : public IModuleInterface
 {
 public:

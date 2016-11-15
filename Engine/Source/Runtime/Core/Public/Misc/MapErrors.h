@@ -226,10 +226,7 @@ class FMapErrorToken : public FDocumentationToken
 {
 public:
 	/** Factory method, tokens can only be constructed as shared refs */
-	CORE_API static TSharedRef<FMapErrorToken> Create( const FName& InErrorName )
-	{
-		return MakeShareable(new FMapErrorToken(InErrorName));
-	}
+	CORE_API static TSharedRef<FMapErrorToken> Create(const FName& InErrorName);
 
 private:
 	/** Private constructor */

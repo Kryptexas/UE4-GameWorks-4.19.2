@@ -10,6 +10,7 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Amazon.S3.Model;
 using Tools.CrashReporter.CrashReportCommon;
 using Tools.DotNETCommon.LaunchProcess;
 using Tools.DotNETCommon.SimpleWebRequest;
@@ -26,14 +27,11 @@ namespace Tools.CrashReporter.CrashReportProcess
 		/// <summary>Absolute path to Perforce (default installation assumed)</summary>
 		const string PerforceExePath = "C:\\Program Files\\Perforce\\p4.exe";
 
-		/// <summary>Give up on call stack analysis after 30 minutes</summary>
-		private const int MinidumpDiagnosticsTimeoutMilliseconds = 1000 * 60 * 30;
-
 		/// <summary>Give up on Perforce syncs after 2 minutes</summary>
 		const int SyncTimeoutSeconds = 2 * 60;
 
 		/// <summary> Number of all processed reports. </summary>
-		public static int ProcessedReports = 1;
+		public static int ProcessedReportCount = 1;
 
 		/// <summary> Global timer used to measure web added reports per day. </summary>
 		public static Stopwatch Timer = Stopwatch.StartNew();
@@ -71,9 +69,12 @@ namespace Tools.CrashReporter.CrashReportProcess
 		static ReportProcessor()
 		{
 #if !DEBUG
-			if (!SyncRequiredFiles())
+			if (Config.Default.bSyncMinidumpDiagnostics)
 			{
-				CrashReporterProcessServicer.WriteFailure("ReportProcessor: failed to sync files from Perforce");
+				if (!SyncMinidumpDiagnostics())
+				{
+					CrashReporterProcessServicer.WriteFailure("ReportProcessor: failed to sync files from Perforce");
+				}
 			}
 #endif			
 		}
@@ -89,17 +90,21 @@ namespace Tools.CrashReporter.CrashReportProcess
 			Watcher = InWatcher;
 			ProcessorIndex = InProcessorIndex;
 			CancelSource = new CancellationTokenSource();
-			ProcessNewReports();
+			Init();
 		}
 
 		/// <summary>
-		/// Shutdown: stop the thread
+		/// Shutdown: stop the thread. Will request stop first if RequestStop() hasn't been called. Then blocks until the processor thread exits.
 		/// </summary>
 		public void Dispose()
 		{
-			CancelSource.Cancel();
+			if (!CancelSource.IsCancellationRequested)
+			{
+				CancelSource.Cancel();
+			}
 			ProcessorTask.Wait();
-	
+			ProcessorTask.Dispose();
+
 			CancelSource.Dispose();
 		}
 
@@ -107,10 +112,10 @@ namespace Tools.CrashReporter.CrashReportProcess
 		/// Main processing thread.
 		/// </summary>
 		/// <remarks>All exceptions are caught and written to the event log.</remarks>
-		private void ProcessNewReports()
+		private void Init()
 		{
 			var Cancel = CancelSource.Token;
-			ProcessorTask = Task.Factory.StartNew(() =>
+			ProcessorTask = new Task(() =>
 			{
 				while (!Cancel.IsCancellationRequested)
 				{
@@ -139,12 +144,31 @@ namespace Tools.CrashReporter.CrashReportProcess
 					}
 					catch (Exception Ex)
 					{
-						CrashReporterProcessServicer.WriteException(string.Format("PROC-{0} ", ProcessorIndex) + "ProcessNewReports: " + Ex.ToString());
+						CrashReporterProcessServicer.WriteException(string.Format("PROC-{0} ", ProcessorIndex) + "ProcessNewReports: " + Ex, Ex);
 					}
 
 					TickStatic(Watcher);
 				}
 			});
+		}
+
+		/// <summary>
+		/// Starts the processor thread.
+		/// </summary>
+		public void Start()
+		{
+			if (ProcessorTask != null)
+			{
+				ProcessorTask.Start();
+			}
+		}
+
+		/// <summary>
+		/// Requests stopping the processor thread but doesn't block.
+		/// </summary>
+		public void RequestStop()
+		{
+			CancelSource.Cancel();
 		}
 
 		/// <summary> 
@@ -161,7 +185,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 			}
 			else
 			{
-				MoveReportToInvalid( NewContext.CrashDirectory, NewContext.GetAsFilename() );
+				MoveReportToInvalid( NewContext.CrashDirectory, ReportQueueBase.GetSafeFilename(NewContext.GetAsFilename()) );
 			}
 		}
 
@@ -206,7 +230,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 				{
 					if( bWriteException )
 					{
-						CrashReporterProcessServicer.WriteException( "CleanReport: " + Ex.ToString() );
+						CrashReporterProcessServicer.WriteException( "CleanReport: " + Ex, Ex);
 						bWriteException = false;
 					}
 
@@ -243,8 +267,9 @@ namespace Tools.CrashReporter.CrashReportProcess
 
 				DirectoryInfo DirInfo = new DirectoryInfo( ReportName );
 				// Rename the report directory, so we should be able to quickly find the invalid reports.
+				CrashReporterProcessServicer.StatusReporter.AlertOnLowDisk(Config.Default.InvalidReportsDirectory, Config.Default.DiskSpaceAlertPercent);
 				Directory.CreateDirectory( Config.Default.InvalidReportsDirectory );
-				string DestinationDirectory = Path.Combine( Config.Default.InvalidReportsDirectory, ReportQueueBase.GetSafeFilename(ReportNameAsFilename));
+				string DestinationDirectory = Path.Combine( Config.Default.InvalidReportsDirectory, ReportNameAsFilename);
 
 				Directory.CreateDirectory( DestinationDirectory );
 
@@ -259,9 +284,9 @@ namespace Tools.CrashReporter.CrashReportProcess
 				CrashReporterProcessServicer.WriteEvent( string.Format( "Moved to {0}", DestinationDirectory ) );
 				UpdateProcessedReports();
 			}
-			catch( System.Exception Ex )
+			catch( Exception Ex )
 			{
-				CrashReporterProcessServicer.WriteException( "MoveReportToInvalid: " + Ex.ToString() );
+				CrashReporterProcessServicer.WriteException("MoveReportToInvalid: " + Ex, Ex);
 			}	
 		}
 
@@ -271,7 +296,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 		/// </summary>
 		private static void UpdateProcessedReports()
 		{
-			Interlocked.Increment( ref ProcessedReports );
+			Interlocked.Increment( ref ProcessedReportCount );
 		}
 
 		/// <summary> 
@@ -291,7 +316,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 			}
 			catch( Exception Ex )
 			{
-				CrashReporterProcessServicer.WriteException( "CleanRepository: " + Ex.ToString() );
+				CrashReporterProcessServicer.WriteException("CleanRepository: " + Ex, Ex);
 			}
 		}
 
@@ -312,17 +337,19 @@ namespace Tools.CrashReporter.CrashReportProcess
 				FEngineVersion EngineVersion = new FEngineVersion( NewContext.PrimaryCrashProperties.EngineVersion ); 
 
 				// Create a new crash description for uploading
-				CrashDescription NewCrash = new CrashDescription();
+				var NewCrash = new CrashDescription();
 
 				NewCrash.CrashType = NewContext.PrimaryCrashProperties.GetCrashType();
 				NewCrash.BranchName = EngineVersion.GetCleanedBranch();
 				NewCrash.GameName = NewContext.PrimaryCrashProperties.GameName;
 				NewCrash.Platform = NewContext.PrimaryCrashProperties.PlatformFullName;
 				NewCrash.EngineMode = NewContext.PrimaryCrashProperties.EngineMode;
-				NewCrash.BuildVersion = EngineVersion.VersionNumber;
+				NewCrash.EngineVersion = EngineVersion.VersionNumber;
+			    NewCrash.BuildVersion = NewContext.PrimaryCrashProperties.BuildVersion;
+
 				NewCrash.CommandLine = NewContext.PrimaryCrashProperties.CommandLine;
 				NewCrash.BaseDir = NewContext.PrimaryCrashProperties.BaseDir;
-
+			    NewCrash.bProcessorFailed = !string.IsNullOrWhiteSpace(NewContext.PrimaryCrashProperties.ProcessorFailedMessage);
 				NewCrash.Language = NewContext.PrimaryCrashProperties.AppDefaultLocale;
 
 // 				// Create a locate and get the system language.
@@ -383,7 +410,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 			}
 			catch (Exception Ex)
 			{
-				CrashReporterProcessServicer.WriteException(string.Format("PROC-{0} ", ProcessorIndex) + "CreateCrash: " + Ex.ToString());
+				CrashReporterProcessServicer.WriteException(string.Format("PROC-{0} ", ProcessorIndex) + "CreateCrash: " + Ex, Ex);
 			}
 
 			return XmlPayload;
@@ -397,7 +424,6 @@ namespace Tools.CrashReporter.CrashReportProcess
 		private int UploadCrash( string Payload )
 		{
 			int NewID = -1;
-			var Cancel = CancelSource.Token;
 
 			try
 			{
@@ -434,18 +460,10 @@ namespace Tools.CrashReporter.CrashReportProcess
 							CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} UploadCrash response timeout (attempt {1} of {2}): {3}", ProcessorIndex, AddCrashTry + 1, MaxRetries + 1, ErrorMessage));
 							ErrorMessage = Result.Message;
 						}
-						if (Cancel.IsCancellationRequested)
-						{
-							break;
-						}
 						Thread.Sleep(Config.Default.AddCrashRetryDelayMillisec);
 					}
 
-					if (Cancel.IsCancellationRequested)
-					{
-						CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} ", ProcessorIndex) + "UploadCrash cancelled");
-					}
-					else if (NewID == -1)
+					if (NewID == -1)
 					{
 						CrashReporterProcessServicer.WriteFailure(string.Format("PROC-{0} ", ProcessorIndex) + "UploadCrash failed: " + ErrorMessage);
 					}
@@ -461,7 +479,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 			}
 			catch( Exception Ex )
 			{
-				CrashReporterProcessServicer.WriteException(string.Format("PROC-{0} ", ProcessorIndex) + "UploadCrash: " + Ex.ToString());
+				CrashReporterProcessServicer.WriteException(string.Format("PROC-{0} ", ProcessorIndex) + "UploadCrash: " + Ex, Ex);
 			}
 
 			return NewID;
@@ -501,7 +519,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 						ConsecutiveFailedUploads++;
 						if (ConsecutiveFailedUploads == Config.Default.ConsecutiveFailedWebAddLimit)
 						{
-							CrashReporterProcessServicer.StatusReporter.Alert("Cannot contact Crash Report website.");
+							CrashReporterProcessServicer.StatusReporter.Alert("ReportProcessor.AddReport.NoContact", "Cannot contact Crash Report website.", Config.Default.SlackAlertRepeatMinimumMinutes);
 							CrashReporterProcessServicer.WriteFailure("Cannot contact Crash Report website.");
 						}
 						CrashReporterProcessServicer.WriteFailure(string.Format("PROC-{0} ", ProcessorIndex) + "! NoUpload: Path=" + NewContext.CrashDirectory);
@@ -514,52 +532,83 @@ namespace Tools.CrashReporter.CrashReportProcess
 					ConsecutiveFailedUploads = 0;
 				}
 
-				string IDThenUnderscore = string.Format("{0}_", ReportID);
+				bool bToS3 = Config.Default.CrashFilesToAWS && CrashReporterProcessServicer.OutputAWS.IsS3Valid;
+				bool bToDisk = Config.Default.CrashFilesToDisk;
 
 				// Use the row id to name and move the files the way the web site requires
+				string IDThenUnderscore = string.Format("{0}_", ReportID);
+				int ReportIDSegment = (ReportID/10000)*10000;
+				string S3IDPrefix = string.Format("/{0}/{1}/{1}_", ReportIDSegment, ReportID);
 				string DestinationFolder = Path.Combine(Config.Default.ProcessedReports, IDThenUnderscore);
+				Stopwatch WriteToS3Timer = new Stopwatch();
+				Stopwatch WriteToDiskTimer = new Stopwatch();
 
-				// Move report files to crash reporter file store
+				if (bToDisk)
+				{
+					CrashReporterProcessServicer.StatusReporter.AlertOnLowDisk(DestinationFolder, Config.Default.DiskSpaceAlertPercent);
+				}
+
+				// Save log file
 				if (LogFileName != null)
 				{
 					LogFileName = Path.Combine(DirInfo.FullName, LogFileName);
 					FileInfo LogInfo = new FileInfo(LogFileName);
-					if(LogInfo.Exists)
+					if (LogInfo.Exists)
 					{
-						LogInfo.MoveTo(DestinationFolder + "Launch.log");
+						if (bToS3)
+						{
+							WriteToS3Timer.Start();
+							UploadFileToS3(LogInfo, S3IDPrefix + "Launch.log");
+							WriteToS3Timer.Stop();
+						}
+						if (bToDisk)
+						{
+							WriteToDiskTimer.Start();
+							LogInfo.MoveTo(DestinationFolder + "Launch.log");
+							WriteToDiskTimer.Stop();
+						}
 					}
 				}
 
-				string CrashContextRuntimeName = Path.Combine( DirInfo.FullName, FGenericCrashContext.CrashContextRuntimeXMLName );
-				FileInfo CrashContextInfo = new FileInfo( CrashContextRuntimeName );
+				// Save crash context file
+				string CrashContextRuntimeName = Path.Combine(DirInfo.FullName, FGenericCrashContext.CrashContextRuntimeXMLName);
+				FileInfo CrashContextInfo = new FileInfo(CrashContextRuntimeName);
 				if (CrashContextInfo.Exists)
 				{
-					CrashContextInfo.MoveTo( DestinationFolder + FGenericCrashContext.CrashContextRuntimeXMLName );
-				}
-
-// 				WERMetaDataName = Path.Combine(DirInfo.FullName, WERMetaDataName);
-// 				FileInfo MetaInfo = new FileInfo(WERMetaDataName);
-// 				if (MetaInfo.Exists)
-// 				{
-// 					MetaInfo.MoveTo(DestinationFolder + "WERMeta.xml");
-// 				}
-
-				if( DumpFileName != null )
-				{
-					DumpFileName = Path.Combine( DirInfo.FullName, DumpFileName );
-					FileInfo DumpInfo = new FileInfo( DumpFileName );
-					if (DumpInfo.Exists && NewContext.PrimaryCrashProperties.CrashDumpMode != 1 /* ECrashDumpMode.FullDump = 1*/ )
+					if (bToS3)
 					{
-						DumpInfo.MoveTo( DestinationFolder + "MiniDump.dmp" );
+						WriteToS3Timer.Start();
+						UploadFileToS3(CrashContextInfo, S3IDPrefix + FGenericCrashContext.CrashContextRuntimeXMLName);
+						WriteToS3Timer.Stop();
+					}
+					if (bToDisk)
+					{
+						WriteToDiskTimer.Start();
+						CrashContextInfo.MoveTo(DestinationFolder + FGenericCrashContext.CrashContextRuntimeXMLName);
+						WriteToDiskTimer.Stop();
 					}
 				}
 
-// 				DiagnosticsFileName = Path.Combine(DirInfo.FullName, DiagnosticsFileName);
-// 				FileInfo DiagnosticsInfo = new FileInfo(DiagnosticsFileName);
-// 				if (DiagnosticsInfo.Exists)
-// 				{
-// 					DiagnosticsInfo.MoveTo(DestinationFolder + CrashReporterConstants.DiagnosticsFileName);
-// 				}
+				if (DumpFileName != null)
+				{
+					DumpFileName = Path.Combine(DirInfo.FullName, DumpFileName);
+					FileInfo DumpInfo = new FileInfo(DumpFileName);
+					if (DumpInfo.Exists && NewContext.PrimaryCrashProperties.CrashDumpMode != 1 /* ECrashDumpMode.FullDump = 1*/)
+					{
+						if (bToS3)
+						{
+							WriteToS3Timer.Start();
+							UploadFileToS3(DumpInfo, S3IDPrefix + "MiniDump.dmp");
+							WriteToS3Timer.Stop();
+						}
+						if (bToDisk)
+						{
+							WriteToDiskTimer.Start();
+							DumpInfo.MoveTo(DestinationFolder + "MiniDump.dmp");
+							WriteToDiskTimer.Stop();
+						}
+					}
+				}
 
 				// Move the video (if it exists) to an alternate store
 				if (VideoFileName != null)
@@ -570,31 +619,73 @@ namespace Tools.CrashReporter.CrashReportProcess
 					FileInfo VideoInfo = new FileInfo(VideoFileName);
 					if (VideoInfo.Exists)
 					{
-						VideoInfo.MoveTo(DestinationFolder + CrashReporterConstants.VideoFileName);
+						if (bToS3)
+						{
+							WriteToS3Timer.Start();
+							UploadFileToS3(VideoInfo, S3IDPrefix + CrashReporterConstants.VideoFileName);
+							WriteToS3Timer.Stop();
+						}
+						if (bToDisk)
+						{
+							CrashReporterProcessServicer.StatusReporter.AlertOnLowDisk(DestinationFolder, Config.Default.DiskSpaceAlertPercent);
+
+							WriteToDiskTimer.Start();
+							VideoInfo.MoveTo(DestinationFolder + CrashReporterConstants.VideoFileName);
+							WriteToDiskTimer.Stop();
+						}
 					}
 				}
 
-				CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} ", ProcessorIndex) + "# WebAdded: ReportID   =" + string.Format("{0,7}", ReportID) + " Path=" + NewContext.CrashDirectory);
+				string TimeTakenString = string.Empty;
+				if (bToS3)
+				{
+					TimeTakenString = string.Format("S3UploadTime={0:F1} ", WriteToS3Timer.Elapsed.TotalSeconds);
+				}
+				if (bToDisk)
+				{
+					TimeTakenString += string.Format("DiskMoveTime={0:F1} ", WriteToDiskTimer.Elapsed.TotalSeconds);
+				}
+
+				CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} AddReport: ReportID={1,8} {2}Path={3}", ProcessorIndex, ReportID, TimeTakenString, NewContext.CrashDirectory));
 
 				UpdateProcessedReports();
 				WebAddCounter.AddEvent();
 				CrashReporterProcessServicer.StatusReporter.IncrementCount(StatusReportingEventNames.ProcessingSucceededEvent);
-				double Ratio = (double)WebAddCounter.TotalEvents / (double)ProcessedReports * 100;
+				double Ratio = (double)WebAddCounter.TotalEvents / (double)ProcessedReportCount * 100;
 
 				double AddedPerDay = (double)WebAddCounter.TotalEvents / Timer.Elapsed.TotalDays;
 
 				CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} ", ProcessorIndex) + 
 					string.Format(
-						"Ratio={0,2} Processed={1,7} WebAdded={2,7} AddReportTime={3} AddedPerDay={4} AddedPerMinute={5:N1}", (int) Ratio,
-						ProcessedReports, WebAddCounter.TotalEvents, AddReportTime.Elapsed.TotalSeconds.ToString("0.00"), (int)AddedPerDay, WebAddCounter.EventsPerSecond * 60));
+						"AddReport: Ratio={0,2} Processed={1,7} WebAdded={2,7} AddReportTime={3} AddedPerDay={4} AddedPerMinute={5:N1}", (int) Ratio,
+						ProcessedReportCount, WebAddCounter.TotalEvents, AddReportTime.Elapsed.TotalSeconds.ToString("0.00"), (int)AddedPerDay, WebAddCounter.EventsPerSecond * 60));
 				return true;
 			}
 			catch( Exception Ex )
 			{
-				CrashReporterProcessServicer.WriteException(string.Format("PROC-{0} ", ProcessorIndex) + "AddReport: " + DirInfo.Name + "\n\n" + Ex.ToString());
+				CrashReporterProcessServicer.WriteException(string.Format("PROC-{0} ", ProcessorIndex) + "AddReport: " + DirInfo.Name + "\n\n" + Ex, Ex);
 			}
 
 			return false;
+		}
+
+		private void UploadFileToS3(FileInfo FileInfo, string DestFilename)
+		{
+			try
+			{
+				PutObjectResponse Response = CrashReporterProcessServicer.OutputAWS.PutS3ObjectFromFile(Config.Default.AWSS3OutputBucket,
+																										Config.Default.AWSS3OutputKeyPrefix + DestFilename,
+																										FileInfo.FullName);
+
+				if (Response == null || Response.HttpStatusCode != HttpStatusCode.OK)
+				{
+					throw new CrashReporterException(string.Format("Failed to upload {0} to {1}", FileInfo.FullName, DestFilename));
+				}
+			}
+			catch (Exception Ex)
+			{
+				CrashReporterProcessServicer.WriteException("UploadFileToS3: " + Ex, Ex);
+			}
 		}
 
 		/// <summary>
@@ -602,10 +693,11 @@ namespace Tools.CrashReporter.CrashReportProcess
 		/// </summary>
 		/// <returns>true if all the files synced without issue, false otherwise.</returns>
 		/// <remarks>As MinidumpDiagnostics is synced to #head, it requires the engine config files that match to run properly.</remarks>
-		private static bool SyncRequiredFiles()
+		private static bool SyncMinidumpDiagnostics()
 		{
-            // Use the latest MinidumpDiagnostics from the main branch.
-            string UserString = "-u " + Config.Default.P4User;
+			// Use the latest MinidumpDiagnostics from the main branch.
+			CrashReporterProcessServicer.StatusReporter.AlertOnLowDisk(Config.Default.DepotRoot, Config.Default.DiskSpaceAlertPercent);
+			string UserString = "-u " + Config.Default.P4User;
             string ClientString = "-c " + Config.Default.P4Client;
             string SyncBinariesString = Path.Combine(Config.Default.DepotRoot, Config.Default.SyncBinariesFromDepot);
             using (var MDDSyncProc = new LaunchProcess(PerforceExePath, null, CrashReporterProcessServicer.WriteP4, UserString, ClientString, "sync", SyncBinariesString))
@@ -769,7 +861,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 			}
 			catch( Exception Ex )
 			{
-				CrashReporterProcessServicer.WriteException(string.Format("PROC-{0} ", ProcessorIndex) + "ProcessReport: " + NewContext.CrashDirectory + "\n\n: " + Ex.ToString());
+				CrashReporterProcessServicer.WriteException(string.Format("PROC-{0} ", ProcessorIndex) + "ProcessReport: " + NewContext.CrashDirectory + "\n\n: " + Ex, Ex);
 			}
 
 			return 0.0;
@@ -811,98 +903,17 @@ namespace Tools.CrashReporter.CrashReportProcess
 
 		void ProcessDumpFile( string DiagnosticsPath, FGenericCrashContext NewContext )
 		{
-			// Use the latest MinidumpDiagnostics from the main branch.
-			string Win64BinariesDirectory = Path.Combine(Config.Default.DepotRoot, Config.Default.MDDBinariesFolderInDepot);
-#if DEBUG
-			// Note: the debug executable must be built locally or synced from Perforce manually
-			string MinidumpDiagnosticsName = Path.Combine(Win64BinariesDirectory, "MinidumpDiagnostics-Win64-Debug.exe");
-#else
-			string MinidumpDiagnosticsName = Path.Combine(Win64BinariesDirectory, "MinidumpDiagnostics.exe");
-#endif
-			// Purge logs every 2048 processed crashes
-			string PurgeLogsDays = ProcessedReports % 2048 == 0 ? "2" : "-1";
+			CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} ", ProcessorIndex) + "ProcessDumpFile: Waiting to run MDD on " + DiagnosticsPath);
 
-			FEngineVersion EngineVersion = new FEngineVersion( NewContext.PrimaryCrashProperties.EngineVersion );
-
-			// Pass Windows variants (Win32/64) to MinidumpDiagnostics
-			string PlatformVariant = NewContext.PrimaryCrashProperties.PlatformName;
-			if (PlatformVariant != null && NewContext.PrimaryCrashProperties.PlatformFullName != null && PlatformVariant.ToUpper().Contains("WINDOWS"))
+			if (CrashReporterProcessServicer.Symbolicator.Run(DiagnosticsPath, NewContext, ProcessorIndex))
 			{
-				if (NewContext.PrimaryCrashProperties.PlatformFullName.Contains("Win32") ||
-				    NewContext.PrimaryCrashProperties.PlatformFullName.Contains("32b"))
-				{
-					PlatformVariant = "Win32";
-				}
-				else if (NewContext.PrimaryCrashProperties.PlatformFullName.Contains("Win64") ||
-						NewContext.PrimaryCrashProperties.PlatformFullName.Contains("64b"))
-				{
-					PlatformVariant = "Win64";
-				}
-			}
-
-			List<string> MinidumpDiagnosticsParams = new List<string>
-			(
-				new string[] 
-				{
-					"\""+DiagnosticsPath+"\"",
-					"-BranchName=" + EngineVersion.Branch,			// Backward compatibility
-					"-BuiltFromCL=" + EngineVersion.Changelist,		// Backward compatibility
-					"-GameName=" + NewContext.PrimaryCrashProperties.GameName,
-					"-EngineVersion=" + NewContext.PrimaryCrashProperties.EngineVersion,
-					"-PlatformName=" + NewContext.PrimaryCrashProperties.PlatformName,
-					"-PlatformVariantName=" + PlatformVariant,
-					"-bUsePDBCache=true",
-					"-Annotate",
-					"-SyncSymbols",
-					"-SyncMicrosoftSymbols",
-					"-unattended",
-					"-Log=" + NewContext.GetAsFilename() + "-backup-.log",
-					"-DepotIndex=" + Config.Default.DepotIndex,
-                    "-P4User=" + Config.Default.P4User,
-                    "-P4Client=" + Config.Default.P4Client,
-                    "-ini:Engine:[LogFiles]:PurgeLogsDays="+PurgeLogsDays,
-					"-LOGTIMESINCESTART"
-				}
-			);
-
-			LaunchProcess.CaptureMessageDelegate CaptureMessageDelegate = null;
-			if (Environment.UserInteractive)
-			{
-				CaptureMessageDelegate = CrashReporterProcessServicer.WriteMDD;
+				CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} ", ProcessorIndex) + "ProcessDumpFile: MDD finished running on " + DiagnosticsPath);
+				ReadDiagnosticsFile(NewContext);
 			}
 			else
 			{
-				MinidumpDiagnosticsParams.AddRange
-				(
-					new[] 
-					{ 
-						"-buildmachine", 
-						"-forcelogflush" 
-					}
-				);
-
-				// Write some debugging message.
-				CrashReporterProcessServicer.WriteMDD( MinidumpDiagnosticsName + " Params: " + String.Join( " ", MinidumpDiagnosticsParams ) );
+				CrashReporterProcessServicer.WriteFailure(string.Format("PROC-{0} ", ProcessorIndex) + "ProcessDumpFile: MDD didn't run on " + DiagnosticsPath);
 			}
-
-			Stopwatch WaitSW = Stopwatch.StartNew();
-			lock (MinidumpDiagnosticsLock)
-			{
-				Double WaitForLockTime = WaitSW.Elapsed.TotalSeconds;
-
-				LaunchProcess ReportParser = new LaunchProcess(MinidumpDiagnosticsName, Path.GetDirectoryName(MinidumpDiagnosticsName), CaptureMessageDelegate, MinidumpDiagnosticsParams.ToArray());
-
-				if (ReportParser.WaitForExit(MinidumpDiagnosticsTimeoutMilliseconds) == EWaitResult.TimedOut)
-				{
-					CrashReporterProcessServicer.WriteFailure(string.Format("PROC-{0} ", ProcessorIndex) + "ProcessDumpFile: Timed out running MinidumpDiagnostics");
-				}
-
-				Double TotalMDDTime = WaitSW.Elapsed.TotalSeconds;
-                
-                CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} ", ProcessorIndex) + string.Format("ProcessDumpFile: Thread blocked for {0:N1}s then MDD ran for {1:N1}s", WaitForLockTime, TotalMDDTime - WaitForLockTime));
-            }
-
-			ReadDiagnosticsFile( NewContext );
 		}
 
 		private static void TickStatic(ReportWatcher InWatcher)

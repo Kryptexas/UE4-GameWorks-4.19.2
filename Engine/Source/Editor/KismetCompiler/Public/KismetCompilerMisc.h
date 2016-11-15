@@ -60,6 +60,9 @@ public:
 	/** return function, that overrides BlueprintImplementableEvent with given name in given class (super-classes are not considered) */
 	static const UFunction* FindOverriddenImplementableEvent(const FName& EventName, const UClass* Class);
 
+	/** Helper function for creating property for primitive types. Used only to create inner peroperties for UArrayProperty, USetProperty, and UMapProperty: */
+	static UProperty* CreatePrimitiveProperty( UObject* PropertyScope, const FName& ValidatedPropertyName, const FString& PinCategory, const FString& PinSubCategory, UObject* PinSubCategoryObject, UClass* SelfClass, bool bIsWeakPointer, const class UEdGraphSchema_K2* Schema, FCompilerResultsLog& MessageLog);
+
 	/** Creates a property named PropertyName of type PropertyType in the Scope or returns NULL if the type is unknown, but does *not* link that property in */
 	static UProperty* CreatePropertyOnScope(UStruct* Scope, const FName& PropertyName, const FEdGraphPinType& Type, UClass* SelfClass, uint64 PropertyFlags, const class UEdGraphSchema_K2* Schema, FCompilerResultsLog& MessageLog);
 
@@ -100,6 +103,8 @@ public:
 
 	/** Generate an error for non-const output parameters */
 	static void DetectValuesReturnedByRef(const UFunction* Func, const UK2Node * Node, FCompilerResultsLog& MessageLog);
+
+	static bool IsStatementReducible(EKismetCompiledStatementType StatementType);
 };
 
 //////////////////////////////////////////////////////////////////////////

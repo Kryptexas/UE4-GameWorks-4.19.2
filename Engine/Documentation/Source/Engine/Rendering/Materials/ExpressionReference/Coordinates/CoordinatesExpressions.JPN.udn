@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2688735
+﻿INTSourceChangelist:2994308
 Availability:Public
 Title:Coordinates 表現式
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -18,7 +18,7 @@ Version:4.9
 
 ## LightmapUVs
 
-**LightmapUV** 表現式は、2 チャンネルのベクター値形式でライトマップの UV テクスチャ座標を出力します。ライトマップ UV が利用不可能な場合、2 チャンネルのベクター値 (0、0) を出力します。
+**LightmapUVs** 表現式は、2 チャンネルのベクター値形式でライトマップの UV テクスチャ座標を出力します。ライトマップ UV が利用不可能な場合、2 チャンネルのベクター値 (0、0) を出力します。
 
 
 [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Vector#ObjectOrientation]

@@ -5,6 +5,40 @@
 #include "IMediaOutput.h"
 #include "IMediaTracks.h"
 
+#include "TickableObjectRenderThread.h"
+
+class FAvfVideoSampler : public FTickableObjectRenderThread
+{
+public:
+	FAvfVideoSampler();
+	virtual ~FAvfVideoSampler();
+	
+	void SetTrack(IMediaTextureSink* VideoSink, AVPlayerItemVideoOutput* Output);
+
+public:
+	/* FTickableObjectRenderThread interface */
+	virtual TStatId GetStatId() const override;
+	
+	virtual bool IsTickable() const override;
+	
+	virtual void Tick(float /*DeltaTime*/) override;
+	
+private:
+	/** Mutex to ensure thread-safe access */
+	FCriticalSection CriticalSection;
+	
+	/** The video sink */
+	IMediaTextureSink* VideoSink;
+	
+	/** The track's video output handle */
+	AVPlayerItemVideoOutput* Output;
+	
+#if WITH_ENGINE && !PLATFORM_MAC
+private:
+	/** The Metal texture cache for unbuffered texture uploads. */
+	CVMetalTextureCacheRef MetalTextureCache;
+#endif
+};
 
 class FAvfMediaTracks
 	: public IMediaOutput
@@ -87,15 +121,14 @@ public:
 	 * @param Strings The attributed caption strings.
 	 * @param ItemTime The display time for the strings.
 	 */
-	void HandleSubtitleCaptionStrings(AVPlayerItemLegibleOutput* Output, NSArray<NSAttributedString*>* Strings, CMTime ItemTime);
+	void HandleSubtitleCaptionStrings(AVPlayerItemLegibleOutput* Output, NSArray<NSAttributedString*>* Strings, NSArray* NativeSamples, CMTime ItemTime);
 
 public:
 
 	//~ IMediaOutput interface
 
 	virtual void SetAudioSink(IMediaAudioSink* Sink) override;
-	virtual void SetCaptionSink(IMediaStringSink* Sink) override;
-	virtual void SetImageSink(IMediaTextureSink* Sink) override;
+	virtual void SetOverlaySink(IMediaOverlaySink* Sink) override;
 	virtual void SetVideoSink(IMediaTextureSink* Sink) override;
 
 public:
@@ -119,8 +152,8 @@ protected:
 	/** Initialize the current audio sink. */
 	void InitializeAudioSink();
 
-	/** Initialize the current caption sink. */
-	void InitializeCaptionSink();
+	/** Initialize the current text overlay sink. */
+	void InitializeOverlaySink();
 
 	/** Initialize the current video sink. */
 	void InitializeVideoSink();
@@ -133,8 +166,8 @@ private:
 	/** The currently used audio sink. */
 	IMediaAudioSink* AudioSink;
 
-	/** The currently used caption sink. */
-	IMediaStringSink* CaptionSink;
+	/** The currently used text overlay sink. */
+	IMediaOverlaySink* OverlaySink;
 
 	/** The currently used video sink. */
 	IMediaTextureSink* VideoSink;
@@ -157,6 +190,9 @@ private:
 
 	/** The player item containing the track information. */
 	AVPlayerItem* PlayerItem;
+	
+	/** Object to sample video frames */
+	FAvfVideoSampler* VideoSampler;
 
 	/** Index of the selected audio track. */
 	int32 SelectedAudioTrack;
@@ -183,10 +219,4 @@ private:
 	
 	/** Has been played with fast/slow rate? */
 	bool bZoomed;
-	
-#if WITH_ENGINE && !PLATFORM_MAC
-private:
-	/** The Metal texture cache for unbuffered texture uploads. */
-	CVMetalTextureCacheRef MetalTextureCache;
-#endif
 };

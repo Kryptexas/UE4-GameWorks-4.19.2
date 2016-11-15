@@ -10,62 +10,45 @@
 #include "ScopedTransaction.h"
 
 /////////////////////////////////////////////////////
-// FKnotNetCollector
+// FGraphPinHandle
 
-struct FKnotNetCollector
+FGraphPinHandle::FGraphPinHandle(UEdGraphPin* InPin)
 {
-	TSet<UEdGraphNode*> VisitedNodes;
-	TSet<UEdGraphPin*> VisitedPins;
-
-	FKnotNetCollector(UEdGraphPin* StartingPin)
+	if (InPin != nullptr)
 	{
-		TraversePin(StartingPin);
-	}
-
-	void TraversePin(UEdGraphPin* Pin)
-	{
-		if (UK2Node_Knot* Knot = Cast<UK2Node_Knot>(Pin->GetOwningNodeUnchecked()))
+		if (UEdGraphNode* Node = InPin->GetOwningNodeUnchecked())
 		{
-			TraverseNodes(Knot);
-		}
-		else
-		{
-			VisitedPins.Add(Pin);
-
-			for (UEdGraphPin* OtherPin : Pin->LinkedTo)
-			{
-				UEdGraphNode* OtherNode = OtherPin->GetOwningNodeUnchecked();
-				if (OtherNode && OtherNode->IsA(UK2Node_Knot::StaticClass()))
-				{
-					TraverseNodes(OtherNode);
-				}
-			}
+			NodeGuid = Node->NodeGuid;
+			PinId = InPin->PinId;
 		}
 	}
+}
 
-	void TraverseNodes(UEdGraphNode* Node)
+UEdGraphPin* FGraphPinHandle::GetPinObj(const SGraphPanel& Panel) const
+{
+	UEdGraphPin* AssociatedPin = nullptr;
+	if (IsValid())
 	{
-		if (VisitedNodes.Contains(Node))
+		TSharedPtr<SGraphNode> NodeWidget = Panel.GetNodeWidgetFromGuid(NodeGuid);
+		if (NodeWidget.IsValid())
 		{
-			return;
-		}
-		VisitedNodes.Add(Node);
-
-		for (UEdGraphPin* MyPin : Node->Pins)
-		{
-			VisitedPins.Add(MyPin);
-
-			for (UEdGraphPin* OtherPin : MyPin->LinkedTo)
-			{
-				UEdGraphNode* OtherNode = OtherPin->GetOwningNodeUnchecked();
-				if (OtherNode && OtherNode->IsA(UK2Node_Knot::StaticClass()))
-				{
-					TraverseNodes(OtherNode);
-				}
-			}
+			UEdGraphNode* NodeObj = NodeWidget->GetNodeObj();
+			AssociatedPin = NodeObj->FindPinById(PinId);
 		}
 	}
-};
+	return AssociatedPin;
+}
+
+TSharedPtr<SGraphPin> FGraphPinHandle::FindInGraphPanel(const SGraphPanel& InPanel) const
+{
+	if (UEdGraphPin* ReferencedPin = GetPinObj(InPanel))
+	{
+		TSharedPtr<SGraphNode> GraphNode = InPanel.GetNodeWidgetFromGuid(NodeGuid);
+		return GraphNode->FindWidgetForPin(ReferencedPin);
+	}
+	return TSharedPtr<SGraphPin>();
+}
+
 
 /////////////////////////////////////////////////////
 // SGraphPin
@@ -354,13 +337,17 @@ FReply SGraphPin::OnPinMouseDown( const FGeometry& SenderGeometry, const FPointe
 				OwnerPanelPtr->GetAllPins(AllPins);
 
 				// Construct a UEdGraphPin->SGraphPin mapping for the full pin set
-				TMap< UEdGraphPin*, TSharedRef<SGraphPin> > PinToPinWidgetMap;
+				TMap< FGraphPinHandle, TSharedRef<SGraphPin> > PinToPinWidgetMap;
 				for( TSet< TSharedRef<SWidget> >::TIterator ConnectorIt(AllPins); ConnectorIt; ++ConnectorIt )
 				{
 					const TSharedRef<SWidget>& SomePinWidget = *ConnectorIt;
 					const SGraphPin& PinWidget = static_cast<const SGraphPin&>(SomePinWidget.Get());
 
-					PinToPinWidgetMap.Add(PinWidget.GetPinObj(), StaticCastSharedRef<SGraphPin>(SomePinWidget));
+					UEdGraphPin* GraphPin = PinWidget.GetPinObj();
+					if (GraphPin->LinkedTo.Num() > 0)
+					{
+						PinToPinWidgetMap.Add(FGraphPinHandle(GraphPin), StaticCastSharedRef<SGraphPin>(SomePinWidget));
+					}
 				}
 
 				// Define a local struct to temporarily store lookup information for pins that we are currently linked to
@@ -387,11 +374,7 @@ FReply SGraphPin::OnPinMouseDown( const FGeometry& SenderGeometry, const FPointe
 						LinkedToPinInfoArray.Add(PinInfo);
 					}
 				}
-
-				// Control-Left clicking will break all existing connections to a pin
-				// Note that for some nodes, this can cause reconstruction. In that case, pins we had previously linked to may now be destroyed.
-				const UEdGraphSchema* Schema = GraphPinObj->GetSchema();
-				Schema->BreakPinLinks(*GraphPinObj, true);
+				
 				
 				// Now iterate over our lookup table to find the instances of pin widgets that we had previously linked to
 				TArray<TSharedRef<SGraphPin>> PinArray;
@@ -406,7 +389,7 @@ FReply SGraphPin::OnPinMouseDown( const FGeometry& SenderGeometry, const FPointe
 							UEdGraphPin* Pin = *PinIter;
 							if(Pin->PinName == PinInfo.PinName)
 							{
-								if (auto pWidget = PinToPinWidgetMap.Find(Pin))
+								if (TSharedRef<SGraphPin>* pWidget = PinToPinWidgetMap.Find(FGraphPinHandle(Pin)))
 								{
 									PinArray.Add(*pWidget);
 								}
@@ -415,11 +398,23 @@ FReply SGraphPin::OnPinMouseDown( const FGeometry& SenderGeometry, const FPointe
 					}
 				}
 
-				if(PinArray.Num() > 0)
+				TSharedPtr<FDragDropOperation> DragEvent;
+				if (PinArray.Num() > 0)
+				{
+					DragEvent = SpawnPinDragEvent(OwnerPanelPtr.ToSharedRef(), PinArray);
+				}
+
+				// Control-Left clicking will break all existing connections to a pin
+				// Note: that for some nodes, this can cause reconstruction. In that case, pins we had previously linked to may now be destroyed. 
+				//       So the break MUST come after the SpawnPinDragEvent(), since that acquires handles from PinArray (the pins need to be
+				//       around for us to construct valid handles from).
+				const UEdGraphSchema* Schema = GraphPinObj->GetSchema();
+				Schema->BreakPinLinks(*GraphPinObj, true);
+
+				if(DragEvent.IsValid())
 				{
 					bIsMovingLinks = true;
-
-					return FReply::Handled().BeginDragDrop(SpawnPinDragEvent(OwnerPanelPtr.ToSharedRef(), PinArray, /*bIsShiftOperation=*/ false));
+					return FReply::Handled().BeginDragDrop(DragEvent.ToSharedRef());
 				}
 				else
 				{
@@ -434,7 +429,7 @@ FReply SGraphPin::OnPinMouseDown( const FGeometry& SenderGeometry, const FPointe
 				TArray<TSharedRef<SGraphPin>> PinArray;
 				PinArray.Add(SharedThis(this));
 
-				return FReply::Handled().BeginDragDrop(SpawnPinDragEvent(OwnerNodePinned->GetOwnerPanel().ToSharedRef(), PinArray, MouseEvent.IsShiftDown()));
+				return FReply::Handled().BeginDragDrop(SpawnPinDragEvent(OwnerNodePinned->GetOwnerPanel().ToSharedRef(), PinArray));
 			}
 			else
 			{
@@ -496,9 +491,19 @@ TOptional<EMouseCursor::Type> SGraphPin::GetPinCursor() const
 	}
 }
 
-TSharedRef<FDragDropOperation> SGraphPin::SpawnPinDragEvent(const TSharedRef<SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphPin> >& InStartingPins, bool bShiftOperation)
+TSharedRef<FDragDropOperation> SGraphPin::SpawnPinDragEvent(const TSharedRef<SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphPin> >& InStartingPins)
 {
-	return FDragConnection::New(InGraphPanel, InStartingPins, bShiftOperation);
+	FDragConnection::FDraggedPinTable PinHandles;
+	PinHandles.Reserve(InStartingPins.Num());
+	// since the graph can be refreshed and pins can be reconstructed/replaced 
+	// behind the scenes, the DragDropOperation holds onto FGraphPinHandles 
+	// instead of direct widgets/graph-pins
+	for (const TSharedRef<SGraphPin>& PinWidget : InStartingPins)
+	{
+		PinHandles.Add(PinWidget->GetPinObj());
+	}
+
+	return FDragConnection::New(InGraphPanel, PinHandles);
 }
 
 /**
@@ -539,13 +544,61 @@ void SGraphPin::OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& 
 {
 	if (!bIsHovered)
 	{
-		FKnotNetCollector NetCollector(GetPinObj());
-
-		TSharedPtr<SGraphPanel> Panel = OwnerNodePtr.Pin()->GetOwnerPanel();
-		for (UEdGraphPin* PinInNet : NetCollector.VisitedPins)
+		UEdGraphPin* MyPin = GetPinObj();
+		if (MyPin && !MyPin->IsPendingKill() && MyPin->GetOuter() && MyPin->GetOuter()->IsA(UEdGraphNode::StaticClass()))
 		{
-			Panel->AddPinToHoverSet(PinInNet);
-			HoverPinSet.Add(PinInNet);
+			struct FHoverPinHelper
+			{
+				FHoverPinHelper(TSharedPtr<SGraphPanel> Panel, TSet<FEdGraphPinReference>& PinSet)
+					: PinSetOut(PinSet), TargetPanel(Panel)
+				{}
+
+				void SetHovered(UEdGraphPin* Pin)
+				{
+					bool bAlreadyAdded = false;
+					PinSetOut.Add(Pin, &bAlreadyAdded);
+					if (bAlreadyAdded)
+					{
+						return;
+					}
+					TargetPanel->AddPinToHoverSet(Pin);
+	
+					for (UEdGraphPin* LinkedPin : Pin->LinkedTo)
+					{
+						if (UK2Node_Knot* OwningNode = Cast<UK2Node_Knot>(LinkedPin->GetOwningNodeUnchecked()))
+						{
+							SetHovered(OwningNode);
+						}
+					}
+				}
+
+			private:
+				void SetHovered(UK2Node_Knot* KnotNode)
+				{
+					bool bAlreadyTraversed = false;
+					IntermediateNodes.Add(KnotNode, &bAlreadyTraversed);
+
+					if (!bAlreadyTraversed)
+					{
+						for (UEdGraphPin* KnotPin : KnotNode->Pins)
+						{
+							SetHovered(KnotPin);
+						}
+					}
+				}
+
+			private:
+				TSet<UK2Node_Knot*> IntermediateNodes;
+				TSet<FEdGraphPinReference>& PinSetOut;
+				TSharedPtr<SGraphPanel>   TargetPanel;
+			};
+
+
+			TSharedPtr<SGraphPanel> Panel = OwnerNodePtr.Pin()->GetOwnerPanel();
+			if (Panel.IsValid())
+			{
+				FHoverPinHelper(Panel, HoverPinSet).SetHovered(MyPin);
+			}
 		}
 	}
 
@@ -863,18 +916,21 @@ const FSlateBrush* SGraphPin::GetPinBorder() const
 
 FSlateColor SGraphPin::GetPinColor() const
 {
-	if(GraphPinObj->bIsDiffing)
+	if (!GraphPinObj->IsPendingKill())
 	{
-		return FSlateColor(FLinearColor(0.9f,0.2f,0.15f));
-	}
-	if (const UEdGraphSchema* Schema = GraphPinObj->GetSchema())
-	{
-		if(!GetPinObj()->GetOwningNode()->IsNodeEnabled() || !IsEditingEnabled())
+		if (GraphPinObj->bIsDiffing)
 		{
-			return Schema->GetPinTypeColor(GraphPinObj->PinType) * FLinearColor(1.0f, 1.0f, 1.0f, 0.5f);
+			return FSlateColor(FLinearColor(0.9f, 0.2f, 0.15f));
 		}
+		if (const UEdGraphSchema* Schema = GraphPinObj->GetSchema())
+		{
+			if (!GetPinObj()->GetOwningNode()->IsNodeEnabled() || !IsEditingEnabled())
+			{
+				return Schema->GetPinTypeColor(GraphPinObj->PinType) * FLinearColor(1.0f, 1.0f, 1.0f, 0.5f);
+			}
 
-		return Schema->GetPinTypeColor(GraphPinObj->PinType) * PinColorModifier;
+			return Schema->GetPinTypeColor(GraphPinObj->PinType) * PinColorModifier;
+		}
 	}
 
 	return FLinearColor::White;
@@ -900,15 +956,18 @@ FSlateColor SGraphPin::GetPinTextColor() const
 
 const FSlateBrush* SGraphPin::GetPinStatusIcon() const
 {
-	UEdGraphPin* WatchedPin = ((GraphPinObj->Direction == EGPD_Input) && (GraphPinObj->LinkedTo.Num() > 0)) ? GraphPinObj->LinkedTo[0] : GraphPinObj;
-
-	if (UEdGraphNode* GraphNode = WatchedPin->GetOwningNodeUnchecked())
+	if (!GraphPinObj->IsPendingKill())
 	{
-		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNodeChecked(GraphNode);
+		UEdGraphPin* WatchedPin = ((GraphPinObj->Direction == EGPD_Input) && (GraphPinObj->LinkedTo.Num() > 0)) ? GraphPinObj->LinkedTo[0] : GraphPinObj;
 
-		if (FKismetDebugUtilities::IsPinBeingWatched(Blueprint, WatchedPin) )
+		if (UEdGraphNode* GraphNode = WatchedPin->GetOwningNodeUnchecked())
 		{
-			return FEditorStyle::GetBrush( TEXT("Graph.WatchedPinIcon_Pinned") );
+			UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNodeChecked(GraphNode);
+
+			if (FKismetDebugUtilities::IsPinBeingWatched(Blueprint, WatchedPin))
+			{
+				return FEditorStyle::GetBrush(TEXT("Graph.WatchedPinIcon_Pinned"));
+			}
 		}
 	}
 
@@ -917,6 +976,11 @@ const FSlateBrush* SGraphPin::GetPinStatusIcon() const
 
 EVisibility SGraphPin::GetPinStatusIconVisibility() const
 {
+	if (GraphPinObj->IsPendingKill())
+	{
+		return EVisibility::Collapsed;
+	}
+
 	UEdGraphPin const* WatchedPin = ((GraphPinObj->Direction == EGPD_Input) && (GraphPinObj->LinkedTo.Num() > 0)) ? GraphPinObj->LinkedTo[0] : GraphPinObj;
 
 	UEdGraphSchema const* Schema = GraphPinObj->GetSchema();
@@ -925,6 +989,11 @@ EVisibility SGraphPin::GetPinStatusIconVisibility() const
 
 FReply SGraphPin::ClickedOnPinStatusIcon()
 {
+	if (GraphPinObj->IsPendingKill())
+	{
+		return FReply::Handled();
+	}
+
 	UEdGraphPin* WatchedPin = ((GraphPinObj->Direction == EGPD_Input) && (GraphPinObj->LinkedTo.Num() > 0)) ? GraphPinObj->LinkedTo[0] : GraphPinObj;
 
 	UEdGraphSchema const* Schema = GraphPinObj->GetSchema();
@@ -936,7 +1005,7 @@ FReply SGraphPin::ClickedOnPinStatusIcon()
 EVisibility SGraphPin::GetDefaultValueVisibility() const
 {
 	// First ask schema
-	const UEdGraphSchema* Schema = GraphPinObj->GetSchema();
+	const UEdGraphSchema* Schema = !GraphPinObj->IsPendingKill() ? GraphPinObj->GetSchema() : nullptr;
 	if (Schema == nullptr || Schema->ShouldHidePinDefaultValue(GraphPinObj))
 	{
 		return EVisibility::Collapsed;

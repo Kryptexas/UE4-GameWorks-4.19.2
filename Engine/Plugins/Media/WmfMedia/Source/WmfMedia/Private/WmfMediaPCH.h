@@ -17,7 +17,7 @@
 	#include "Runtime/Media/Public/IMediaAudioSink.h"
 	#include "Runtime/Media/Public/IMediaModule.h"
 	#include "Runtime/Media/Public/IMediaOptions.h"
-	#include "Runtime/Media/Public/IMediaStringSink.h"
+	#include "Runtime/Media/Public/IMediaOverlaySink.h"
 	#include "Runtime/Media/Public/IMediaTextureSink.h"
 
 	#include "../../WmfMediaFactory/Public/WmfMediaSettings.h"

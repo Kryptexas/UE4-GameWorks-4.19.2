@@ -78,8 +78,7 @@ UFuncTestRenderingComponent::UFuncTestRenderingComponent(const FObjectInitialize
 
 	BodyInstance.SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 
-	AlwaysLoadOnClient = false;
-	AlwaysLoadOnServer = false;
+	bIsEditorOnly = true;
 
 	bGenerateOverlapEvents = false;
 }

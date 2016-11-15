@@ -1,50 +1,50 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title:Nativizing Blueprints
+﻿INTSourceChangelist:3075225
+Availability:Public
+Title:블루프린트 네이티브화
 Crumbs: %ROOT%, Programming, Engine/Blueprints/TechnicalGuide
-Description:Technical guide for gameplay programmers exposing gameplay elements to Blueprints.
+Description:블루프린트에 게임플레이 요소를 노출시키는 게임플레이 프로그래머를 위한 기술 안내서입니다.
 Version: 4.12
 Parent: Engine/Blueprints/TechnicalGuide
+type:overview
 
 [REGION:warning]
-This is an experimental beta feature. All Unreal Engine 4 sample games and some medium-size demos were successfully nativized, but we're still working on using the feature with larger projects.
+이 기능은 실험단계 베타 기능입니다. 모든 언리얼 엔진 4 샘플 게임과 몇몇 중간 크기 데모는 네이티브화에 성공했으나, 규모가 더 큰 프로젝트에도 이 기능을 사용할 수 있도록 계속해서 작업중입니다.
 [/REGION]
 
 
-The new Blueprint Nativization tool enables you to generate native C++ code from your project's Blueprints. Cooking your project out for testing outside the editor or for release will
-compile the project with the generated code. All of the Blueprint Classes are then replaced by the newly-generated native classes. The main goal of Blueprint Nativization is to 
-reduce the virtual machine (VM) overhead in the runtime version of the project. As a result, the generated code is not necessarily designed to be "friendly" or reusable. 
+새로운 Blueprint Nativization (블루프린트 네이티브화) 툴은 프로젝트의 블루프린트에서 C++ 코드를 생성해 줍니다. 프로젝트를 에디터 외부 테스트용 또는 릴리즈 용으로 쿠킹하면 
+프로젝트를 생성된 코드로 컴파일합니다. 그러면 모든 블루프린트 클래스가 새로 생성된 네이티브 클래스로 대체됩니다. 블루프린트 네이티브화의 주요 목표는, 
+프로젝트 런타임 버전의 가상 머신(VM) 부하를 줄이는 것입니다. 그로 인해, 생성된 코드가 꼭 "사용자 친화적"이거나 재사용 가능하도록 디자인되어있지 않을 수 있습니다.
 
-This page will get you started with nativizing your project's Blueprints, and for Blueprint-only projects, this should be a mostly transparent process. If you have C++ in your project as well,
-or want to debug the nativized code, see  [](Engine/Blueprints/TechnicalGuide/NativizingBlueprints/Advanced) for more information.
+여기서는 프로젝트의 블루프린트를 네이티브화를 시작하는 법을 안내해 드릴 것이며, 블루프린트 전용 프로젝트의 경우 거의 투명한 프로세스일 것입니다. 프로젝트에 C++ 코드도 포함되어 있거나, 네이티브화된 코드를 디버깅하고자 하는 경우, [](Engine/Blueprints/TechnicalGuide/NativizingBlueprints/Advanced) 문서를 참고하세요.
 
 
-## Enabling Blueprint Nativization
+## 블루프린트 네이티브화 활성화
 
-To enable Blueprint Nativization, use the **Edit Menu** to open **Project Settings**. Under **Packaging**, enable the **Nativize Blueprint Assets** checkbox.
+블루프린트 네이티브화 활성화를 위해서는, **편집 메뉴** 에서 **프로젝트 세팅** 을 엽니다. **패키징** 부분 아래 **Nativize Blueprint Assets** (블루프린트 애셋 네이티브화) 박스를 체크합니다.
 
 ![](BlueprintNativizeCheckbox.png)
 
-Then, when you package your project, the following Blueprint assets will be nativized: 
+그런 다음, 프로젝트를 패키징할 때, 다음과 같은 블루프린트 애셋이 네이티브화 됩니다:
 
-* Blueprint Classes
-* Blueprint Function Libraries
-* Blueprint Interfaces
-* Anim Blueprints 
-* Widget Blueprints
-* User Defined Structures
-* User Defined Enums
+* 블루프린트 클래스
+* 블루프린트 함수 라이브러리
+* 블루프린트 인터페이스
+* 애님 블루프린트
+* 위젯 블루프린트
+* 사용자 정의 구조체
+* 사용자 정의 열거형
 
-Currently, _Level Blueprints_ will not be converted. The nativized code is stored in `[ProjectDirectory]\Intermediate\[Platform That Was Cooked For]\NativizedAssets\Source\NativizedAssets\`.
+현재, _레벨 블루프린트_ 는 변환되지 않습니다. 네이티브화된 코드는 `[프로젝트 디렉토리]\Intermediate\[쿠킹 대상 플랫폼]\NativizedAssets\Source\NativizedAssets\` 에 저장됩니다.
 
-## Excluding Blueprints from Conversion
+## 블루프린트 변환 제외
 
-You can also exclude certain _Blueprints_ from conversion. In your project's `DefaultEditor.ini` file, create a `[BlueprintNativizationSettings]` heading.
+특정 _블루프린트_ 를 변환에서 제외시킬 수도 있습니다. 프로젝트의 `DefaultEditor.ini` 파일에, `[BlueprintNativizationSettings]` 제목줄을 만듭니다.
 
-* To exclude a certain type of asset, set `ExcludedBlueprintTypes`. For example, `+ExcludedBlueprintTypes=/Script/UMGEditor.WidgetBlueprint` will not convert any _Widget Blueprints_.
-* To exclude an individual asset, set `ExcludedAssets`. For example, `+ExcludedAssets=/Engine/Tutorial/SubEditors/TutorialAssets/Character/TutorialCharacter` will not convert the **Tutorial Character**.
+* 특정 유형 애셋을 제외시키려면, `ExcludedBlueprintTypes` 를 설정합니다. 예를 들어, `+ExcludedBlueprintTypes=/Script/UMGEditor.WidgetBlueprint` 줄을 추가하면 _위젯 블루프린트_ 는 변환하지 않습니다.
+* 개별 애셋을 제외시키려면, `ExcludedAssets` 를 설정합니다. 예를 들어, `+ExcludedAssets=/Engine/Tutorial/SubEditors/TutorialAssets/Character/TutorialCharacter` 줄을 추가하면 **Tutorial Character** 는 변환하지 않습니다.
 
-Assets are nativized if and only if they are cooked. When the cooker has no assets/maps specified to be cooked, it cooks 
-everything from your project's **Content** directory. If you see some unused Blueprints are being nativized, you can also use the list of maps to package to omit assets. 
+애셋은 쿠킹된 경우에만 네이티브화됩니다. 쿠커에 쿠킹할 애셋/맵이 지정되지 않은 경우, 
+프로젝트의 **Content** 디렉토리에 있는 모든 것을 쿠킹합니다. 사용되지도 않은 블루프린트가 네이티브화된 것이 보이는 경우, 패키징할 맵 목록을 사용해서도 애셋을 생략시킬 수 있습니다.
 
 ![](AdditionalMaps.png)

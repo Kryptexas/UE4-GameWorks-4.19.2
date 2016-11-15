@@ -1,5 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
+#include "Core.h"
 #include "ModuleManager.h"
 
 #include "WorkspaceMenuStructureModule.h"
@@ -90,8 +91,9 @@ public:
 		DeveloperToolsDebugCategory = DeveloperToolsCategory->AddGroup(LOCTEXT("WorkspaceMenu_DeveloperToolsDebugCategory", "Debug"), FSlateIcon(), true);
 		DeveloperToolsLogCategory = DeveloperToolsCategory->AddGroup(LOCTEXT("WorkspaceMenu_DeveloperToolsLogCategory", "Log"), FSlateIcon(), true);
 		DeveloperToolsMiscCategory = DeveloperToolsCategory->AddGroup(LOCTEXT("WorkspaceMenu_DeveloperToolsMiscCategory", "Miscellaneous"), FSlateIcon(), true);
-
-		AutomationToolsCategory = ToolsCategory->AddGroup(LOCTEXT("WorkspaceMenu_AutomationToolsCategory", "Automation Tools"), FSlateIcon(FEditorStyle::GetStyleSetName(), "AutomationTools.MenuIcon"));
+		
+		// Automation tools sub menu
+		AutomationToolsCategory = FWorkspaceItem::NewGroup(LOCTEXT("WorkspaceMenu_AutomationToolsCategory", "Automation Tools"), FSlateIcon(), true);
 	}
 
 public:
@@ -120,6 +122,7 @@ private:
 	TSharedPtr<FWorkspaceItem> DeveloperToolsDebugCategory;
 	TSharedPtr<FWorkspaceItem> DeveloperToolsLogCategory;
 	TSharedPtr<FWorkspaceItem> DeveloperToolsMiscCategory;
+	
 	TSharedPtr<FWorkspaceItem> AutomationToolsCategory;
 	
 	TSharedPtr<FWorkspaceItem> EditOptions;

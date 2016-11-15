@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Stream Sublevels with Blueprints
+﻿INTSourceChangelist:3075226
+Availability:Public
+Title:使用蓝图加载和卸载关卡
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
-Description:How to stream levels with a custom streaming Actor created with Blueprints
+Description:如何使用蓝图创建的自定义流送 Actor 进行关卡流送。
 parent:Engine/LevelStreaming/HowTo
 type:howto
 order:2
@@ -13,54 +13,53 @@ tags:Level Streaming
 [INCLUDE:Engine/LevelStreaming/HowTo#levelstreamscenario]
 
 
-## Streaming In Levels with Blueprints
+## 使用蓝图流入关卡
 
-1. Open the **Content Browser** and create a new **Blueprint Class**. This class is going to be based on **Actor**.
+1. 打开 **Content Browser**，新建一个 **蓝图类**。此类将以 **Actor** 为基础。
 
-1. Name the new **Blueprint Class** "LevelStreamer", then save it.
+1. 将新建的 **蓝图类** 命名为“LevelStreamer”，然后保存。
 
-1. Open **LevelStreamer** in the **Blueprint Editor**. 
+1. 在 **蓝图编辑器** 中打开 **LevelStreamer**。 
 
-For this scenario, we want to stream the second level in once the **Character** overlaps the Box Component. 
+在此情况下，需要在 **角色** 重叠方块组件时立即流入第二个关卡。 
 
-1. Add a **Box Collision** Component using the **Add Component** button in the **Components** tab. 
+1. 使用 **Components** 标签中的 **Add Component** 按钮添加一个 **Box Collision** 组件。 
 
-1. Open the Blueprint's **Event Graph**. Select the **Box** Component in the **Components** tab, then **right-click** in the graph to summon the context menu.
+1. 打开蓝图的 **事件图表**。选择 **Components** 标签中的 **Box** 组件，然后在图表中 **单击右键** 呼出快捷菜单。
 
-1. Type "begin overlap" then select **On Component Begin Overlap** to add the event. 
+1. 输入“begin overlap”，然后选择 **On Component Begin Overlap** 添加事件。 
 
-1. Click and drag off of the **Other Actor** pin, then type "=" into the context menu's search. Select the **Equal (Object)** entry to add the node. 
+1. 点击并从 **Other Actor** 引脚连出引线，然后在快捷菜单的搜索中输入“=”。选择 **Equal (Object)** 条目添加节点。 
 
-1. Click and drag off of the second Object pin on the **==** node, then type "character" into the context menu's search. Select the **Get Player Character** entry to add the node.  
+1. 点击 **==** 节点的第二个 Object 引脚并连出引线，然后在快捷菜单的搜索中输入“character”。选择 **Get Player Character** 条目添加节点。  
 
-1. Hold down the **B** key and click in the graph to add a **Branch** node, then connect the boolean pin of the **==** node to the input on the **Branch** node. 
+1. 按住 **B** 键然后在图表中点击添加一个 **Branch** 节点，然后将 **==** 节点的布尔引脚连接到 **Branch** 节点的输入。 
 
-1. Connect the execution output pin of the **OnComponentBeginOverlap** node to the execution input pin of the **Branch** node. 
+1. 将 **OnComponentBeginOverlap** 节点的执行输出引脚和 **Branch** 节点的执行输入引脚相连。 
 
-1. **Right-click** in the graph, then type "level" to search in the context menu. Select **Load Stream Level** from the menu. 
+1. 在图表中 **单击右键**，然后输入“level”在快捷菜单中进行搜索。从菜单中选择 **Load Stream Level**。 
 
-1. **Right-click** on the **Level Name** pin and promote it to a variable, then name the variable "LevelToStream" and make it **Editable** in the **Details** panel.  
+1. **右键单击** **Level Name** 引脚并将其提升为变量，将变量命名为“LevelToStream”，在 **Details** 面板中将其设为 **Editable**。  
 	
 	![](LevelToStreamVar.png)
 
-1. Toggle **Make Visible After Load** and **Should Block on Load** to true on the **Load Stream Level** node.
+1. 在 **Load Stream Level** 节点上将 **Make Visible After Load** 和 **Should Block on Load** 勾选为 true。
 
-	For this example, we are going to have the same default loading behavior for all levels using this Blueprint, but you could also make those **Editable** variables.
+	在此例中，使用此蓝图的所有关卡均拥有相同的默认加载行为，但也可将它们设为 **可编辑** 变量。
 
-1. Connect the **True** execution output pin of the **Branch** node to the input execution pin on the **Load Stream Level** node. 
+1. 将 **Branch** 节点的 **True** 执行输出引脚和 **Load Stream Level** 节点的输出执行引脚连接起来。 
 
 	![](FinalLoadBP.png)
 
-1. Place your **LevelStreamer** Blueprint into your level, and adjust the placement and scale until it encompasses the part of the persistent world you want your **Character** to be in to begin streaming, as well 
-as the entire walkable volume where the streaming level will be.
+1. 将 **LevelStreamer** 蓝图放入关卡，调整其放置和大小，直到它将固定关卡中 **角色** 进入即开始流送的部分，以及流送关卡所在的整个可行走体积域包含在内。
 
-1. Enter **SunTemple_Streaming** as the **Level to Stream**. 
+1. 将 **SunTemple_Streaming** 设为 **流送关卡（Level to Stream）**。 
 
-1. Use Play In Editor to test out your streaming level.
+1. 使用 Play In Editor 测试流送关卡。
 
-## Unloading Levels with Blueprints
+## 使用蓝图卸载关卡
 
-To unload the level as your _Character_ exits the **Box** component, your graph will have very similar logic but will end in an **Unload Stream Level** node.
+要实现 _角色_ 离开 **方块** 组件时卸载关卡，图表的逻辑非常相似，但最后是以一个 **Unload Stream Level** 节点结束。
 
 ![](UnloadLevel.png)
 

@@ -3,7 +3,7 @@
 #include "CoreUObjectPrivate.h"
 #include "PropertyLocalizationDataGathering.h"
 #include "TextPackageNamespaceUtil.h"
-#include "UTextProperty.h"
+#include "TextProperty.h"
 
 FPropertyLocalizationDataGatherer::FPropertyLocalizationDataGatherer(TArray<FGatherableTextData>& InOutGatherableTextDataArray, const UPackage* const InPackage, EPropertyLocalizationGathererResultFlags& OutResultFlags)
 	: GatherableTextDataArray(InOutGatherableTextDataArray)

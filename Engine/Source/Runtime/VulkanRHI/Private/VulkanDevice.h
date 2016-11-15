@@ -65,6 +65,11 @@ public:
 		return Features;
 	}
 
+	inline bool HasUnifiedMemory() const
+	{
+		return MemoryManager.HasUnifiedMemory();
+	}
+
 	bool IsFormatSupported(VkFormat Format) const;
 
 	const VkComponentMapping& GetFormatComponentMapping(EPixelFormat UEFormat) const;
@@ -133,7 +138,14 @@ public:
 	{
 		return CmdDbgMarkerEnd;
 	}
+
+	PFN_vkDebugMarkerSetObjectNameEXT GetDebugMarkerSetObjectName() const
+	{
+		return DebugMarkerSetObjectName;
+	}
 #endif
+
+	void PrepareForCPURead();
 
 private:
 	void MapFormatSupport(EPixelFormat UEFormat, VkFormat VulkanFormat);

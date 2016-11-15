@@ -2,6 +2,15 @@
 
 #pragma once
 
+class FText;
+
+namespace SettingsHelpers
+{
+	SHAREDSETTINGSWIDGETS_API bool IsSourceControlled(const FString& InFileToCheckOut, bool bForceSourceControlUpdate = false);
+	SHAREDSETTINGSWIDGETS_API bool IsCheckedOut(const FString& InFileToCheckOut, bool bForceSourceControlUpdate = false);
+	SHAREDSETTINGSWIDGETS_API bool CheckOutOrAddFile(const FString& InFileToCheckOut, bool bForceSourceControlUpdate = false, bool ShowErrorInNotification = true, FText* OutErrorMessage = nullptr);
+	SHAREDSETTINGSWIDGETS_API bool MakeWritable(const FString& InFileToMakeWritable, bool ShowErrorInNotification = true, FText* OutErrorMessage = nullptr);
+}
 
 /**
  * Implements a widget that provides a notice for files that need to be checked out.

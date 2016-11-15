@@ -5,14 +5,17 @@
 #include "SocketTypes.h"
 
 #if PLATFORM_HAS_BSD_SOCKET_FEATURE_WINSOCKETS
-	#include "AllowWindowsPlatformTypes.h"
+	#include "Windows/AllowWindowsPlatformTypes.h"
 
 	#include <winsock2.h>
 	#include <ws2tcpip.h>
 
 	typedef int32 SOCKLEN;
 
-	#include "HideWindowsPlatformTypes.h"
+	#include "Windows/HideWindowsPlatformTypes.h"
+#else
+#if PLATFORM_WOLF
+	#include "WolfPlat/WolfSocketApiWrapper.h"
 #else
 	#include <sys/socket.h>
 #if PLATFORM_HAS_BSD_SOCKET_FEATURE_IOCTL
@@ -26,6 +29,8 @@
 	#include <unistd.h>
 
 	#define ioctlsocket ioctl
+#endif
+
 	#define SOCKET_ERROR -1
 	#define INVALID_SOCKET -1
 
@@ -76,7 +81,7 @@ protected:
 	 */
 	inline ESocketErrors TranslateGAIErrorCode(int32 Code) const
 	{
-#if PLATFORM_HAS_BSD_SOCKET_FEATURE_GETHOSTNAME
+#if PLATFORM_HAS_BSD_SOCKET_FEATURE_GETADDRINFO
 		switch (Code)
 		{
 			// getaddrinfo() has its own error codes
@@ -101,7 +106,7 @@ protected:
 				UE_LOG(LogSockets, Warning, TEXT("Unhandled getaddrinfo() socket error! Code: %d"), Code);
 				return SE_EINVAL;
 		}
-#endif // PLATFORM_HAS_BSD_SOCKET_FEATURE_GETHOSTNAME
+#endif // PLATFORM_HAS_BSD_SOCKET_FEATURE_GETADDRINFO
 
 		return SE_NO_ERROR;
 	};

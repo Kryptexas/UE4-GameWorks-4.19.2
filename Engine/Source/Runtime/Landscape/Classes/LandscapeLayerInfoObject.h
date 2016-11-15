@@ -4,6 +4,8 @@
 
 #include "LandscapeLayerInfoObject.generated.h"
 
+class UPhysicalMaterial;
+
 UCLASS(MinimalAPI)
 class ULandscapeLayerInfoObject : public UObject
 {
@@ -13,7 +15,7 @@ class ULandscapeLayerInfoObject : public UObject
 	FName LayerName;
 
 	UPROPERTY(EditAnywhere, Category=LandscapeLayerInfoObject)
-	class UPhysicalMaterial* PhysMaterial;
+	UPhysicalMaterial* PhysMaterial;
 
 	UPROPERTY(EditAnywhere, Category=LandscapeLayerInfoObject)
 	float Hardness;
@@ -24,7 +26,7 @@ class ULandscapeLayerInfoObject : public UObject
 #endif // WITH_EDITORONLY_DATA
 
 	/* The color to use for layer usage debug */
-	UPROPERTY(EditAnywhere, Category = LandscapeLayerInfoObject)
+	UPROPERTY(EditAnywhere, Category=LandscapeLayerInfoObject)
 	FLinearColor LayerUsageDebugColor;
 
 #if WITH_EDITOR
@@ -34,6 +36,3 @@ class ULandscapeLayerInfoObject : public UObject
 	//~ End UObject Interface
 #endif
 };
-
-
-

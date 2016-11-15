@@ -2,6 +2,7 @@
 
 #pragma once
 #include "MaterialMerging.h"
+#include "MapBuildDataRegistry.h"
 #include "Level.generated.h"
 
 class ALevelBounds;
@@ -11,6 +12,8 @@ class UNavigationDataChunk;
 class AInstancedFoliageActor;
 class AWorldSettings;
 class UWorld;
+class FSceneInterface;
+struct FLevelCollection;
 
 /**
  * Structure containing all information needed for determining the screen space
@@ -70,6 +73,12 @@ struct ENGINE_API FDynamicTextureInstance : public FStreamableTextureInstance
 	 * @return	Returns the archive passed in
 	 */
 	friend FArchive& operator<<( FArchive& Ar, FDynamicTextureInstance& TextureInstance );
+};
+
+/** Manually implement TPointerIsConvertibleFromTo for AActor so that TWeakObjectPtr can use it below when AActor is forward declared. */
+template<> struct TPointerIsConvertibleFromTo<AActor, const volatile UObject>
+{
+	enum { Value = 1 };
 };
 
 /** Struct that holds on to information about Actors that wish to be auto enabled for input before the player controller has been created */
@@ -364,7 +373,20 @@ public:
 	/** Reference to the blueprint for level scripting */
 	UPROPERTY(NonTransactional)
 	class ULevelScriptBlueprint* LevelScriptBlueprint;
+
+	/** The Guid list of all materials and meshes Guid used in the last texture streaming build. Used to know if the streaming data needs rebuild. Only used for the persistent level. */
+	UPROPERTY(NonTransactional)
+	TArray<FGuid> TextureStreamingBuildGuids;
+
 #endif //WITH_EDITORONLY_DATA
+
+	/** Num of components missing valid texture streaming data. Updated in map check. */
+	UPROPERTY(NonTransactional)
+	int32 NumTextureStreamingUnbuiltComponents;
+
+	/** Num of resources that have changed since the last texture streaming build. Updated in map check. */
+	UPROPERTY(NonTransactional)
+	int32 NumTextureStreamingDirtyResources;
 
 	/** The level scripting actor, created by instantiating the class from LevelScriptBlueprint.  This handles all level scripting */
 	UPROPERTY(NonTransactional)
@@ -419,6 +441,27 @@ public:
 
 	/** Fence used to track when the rendering thread has finished referencing this ULevel's resources. */
 	FRenderCommandFence							RemoveFromSceneFence;
+
+	/** 
+	 * Whether the level is a lighting scenario.  Lighting is built separately for each lighting scenario level with all other scenario levels hidden. 
+	 * Only one lighting scenario level should be visible at a time for correct rendering, and lightmaps from that level will be used on the rest of the world.
+	 * Note: When a lighting scenario level is present, lightmaps for all streaming levels are placed in the scenario's _BuildData package.  
+	 *		This means that lightmaps for those streaming levels will not be streamed with them.
+	 */
+	UPROPERTY()
+	bool bIsLightingScenario;
+
+	/** Identifies map build data specific to this level, eg lighting volume samples. */
+	UPROPERTY()
+	FGuid LevelBuildDataId;
+
+	/** Registry for data from the map build.  This is stored in a separate package from the level to speed up saving / autosaving. */
+	UPROPERTY()
+	UMapBuildDataRegistry* MapBuildData;
+
+	/** Level offset at time when lighting was built */
+	UPROPERTY()
+	FIntVector LightBuildLevelOffset;
 
 	/** Whether components are currently registered or not. */
 	uint8										bAreComponentsCurrentlyRegistered:1;
@@ -513,6 +556,9 @@ private:
 	UPROPERTY()
 	AWorldSettings* WorldSettings;
 
+	/** Cached level collection that this level is contained in, for faster access than looping through the collections in the world. */
+	FLevelCollection* CachedLevelCollection;
+
 protected:
 
 	/** Array of user data stored with the asset */
@@ -545,6 +591,7 @@ public:
 	~ULevel();
 
 	//~ Begin UObject Interface.
+	virtual void PostInitProperties() override;	
 	virtual void Serialize( FArchive& Ar ) override;
 	virtual void BeginDestroy() override;
 	virtual bool IsReadyForFinishDestroy() override;
@@ -630,7 +677,7 @@ public:
 	void InitializeNetworkActors();
 
 	/** Initializes rendering resources for this level. */
-	void InitializeRenderingResources();
+	ENGINE_API void InitializeRenderingResources();
 
 	/** Releases rendering resources for this level. */
 	ENGINE_API void ReleaseRenderingResources();
@@ -681,6 +728,12 @@ public:
 	 */
 	ENGINE_API class ALevelScriptActor* GetLevelScriptActor() const;
 
+	/** Returns the cached collection that contains this level, if any. May be null. */
+	FLevelCollection* GetCachedLevelCollection() const { return CachedLevelCollection; }
+
+	/** Sets the cached level collection that contains this level. Should only be called by FLevelCollection. */
+	void SetCachedLevelCollection(FLevelCollection* const InCachedLevelCollection) { CachedLevelCollection = InCachedLevelCollection; }
+
 	/**
 	 * Utility searches this level's actor list for any actors of the specified type.
 	 */
@@ -691,13 +744,34 @@ public:
 	 */
 	ENGINE_API void ResetNavList();
 
+	ENGINE_API UPackage* CreateMapBuildDataPackage() const;
+
+	ENGINE_API UMapBuildDataRegistry* GetOrCreateMapBuildData();
+
+	/** Sets whether this level is a lighting scenario and handles propagating the change. */
+	ENGINE_API void SetLightingScenario(bool bNewIsLightingScenario);
+
+	/** Creates UMapBuildDataRegistry entries for legacy lightmaps from components loaded for this level. */
+	ENGINE_API void HandleLegacyMapBuildData();
+
 #if WITH_EDITOR
+	/** 
+	*  Called after lighting was built and data gets propagated to this level
+	*  @param	bLightingSuccessful	 Whether lighting build was successful
+	*/
+	ENGINE_API void OnApplyNewLightingData(bool bLightingSuccessful);
+
 	/**
 	 *	Grabs a reference to the level scripting blueprint for this level.  If none exists, it creates a new blueprint
 	 *
 	 * @param	bDontCreate		If true, if no level scripting blueprint is found, none will be created
 	 */
 	ENGINE_API class ULevelScriptBlueprint* GetLevelScriptBlueprint(bool bDontCreate=false);
+
+	/**
+	 * Nulls certain references related to the LevelScriptBlueprint. Called by UWorld::CleanupWorld.
+	 */
+	ENGINE_API void CleanupLevelScriptBlueprint();
 
 	/**
 	 *  Returns a list of all blueprints contained within the level

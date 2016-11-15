@@ -343,8 +343,7 @@ FMenuStack::FPrePushResults FMenuStack::PrePush(const FPrePushArgs& InArgs)
 
 	OutResults.WrappedContent = WrapContent(TempContent, OptionalMinWidth, OptionalMinHeight);
 
-	// @todo slate: Assumes that popup is not Scaled up or down from application scale.
-	OutResults.WrappedContent->SlatePrepass(FSlateApplication::Get().GetApplicationScale());
+	OutResults.WrappedContent->SlatePrepass(FSlateApplication::Get().GetApplicationScale() * HostWindow->GetNativeWindow()->GetDPIScaleFactor());
 	// @todo slate: Doesn't take into account potential window border size
 	OutResults.ExpectedSize = OutResults.WrappedContent->GetDesiredSize();
 

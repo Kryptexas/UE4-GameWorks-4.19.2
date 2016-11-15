@@ -4,6 +4,7 @@
 #define __AnimationEditorUtils_h__
 
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
+#include "Developer/AssetTools/Public/AssetToolsModule.h"
 
 /** dialog to prompt users to decide an animation asset name */
 class SCreateAnimationAssetDlg : public SWindow
@@ -56,10 +57,38 @@ DECLARE_DELEGATE_OneParam(FAnimAssetCreated, TArray<class UObject*>);
 namespace AnimationEditorUtils
 {
 	UNREALED_API void CreateAnimationAssets(const TArray<TWeakObjectPtr<USkeleton>>& Skeletons, TSubclassOf<UAnimationAsset> AssetClass, const FString& InPrefix, FAnimAssetCreated AssetCreated );
+	
 	UNREALED_API void CreateNewAnimBlueprint(TArray<TWeakObjectPtr<USkeleton>> Skeletons, FAnimAssetCreated AssetCreated);
 	UNREALED_API void FillCreateAssetMenu(FMenuBuilder& MenuBuilder, TArray<TWeakObjectPtr<USkeleton>> Skeletons, FAnimAssetCreated AssetCreated, bool bInContentBrowser=true);
 	UNREALED_API void CreateUniqueAssetName(const FString& InBasePackageName, const FString& InSuffix, FString& OutPackageName, FString& OutAssetName);
 	UNREALED_API bool ApplyCompressionAlgorithm(TArray<UAnimSequence*>& AnimSequencePtrs, class UAnimCompress* Algorithm);
+
+	// template version of simple creating animation asset
+	template< class T >
+	T* CreateAnimationAsset(USkeleton* Skeleton, const FString& AssetPath, const FString& InPrefix)
+	{
+		if (Skeleton)
+		{
+			FString Name;
+			FString PackageName;
+			// Determine an appropriate name
+			CreateUniqueAssetName(AssetPath, InPrefix, PackageName, Name);
+
+			// Create the asset, and assign its skeleton
+			FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
+			T* NewAsset = Cast<T>(AssetToolsModule.Get().CreateAsset(Name, FPackageName::GetLongPackagePath(PackageName), T::StaticClass(), NULL));
+
+			if (NewAsset)
+			{
+				NewAsset->SetSkeleton(Skeleton);
+				NewAsset->MarkPackageDirty();
+			}
+
+			return NewAsset;
+		}
+
+		return nullptr;
+	}
 	
 	// The following functions are used to fix subgraph arrays for assets
 	UNREALED_API void RegenerateSubGraphArrays(UAnimBlueprint* Blueprint);

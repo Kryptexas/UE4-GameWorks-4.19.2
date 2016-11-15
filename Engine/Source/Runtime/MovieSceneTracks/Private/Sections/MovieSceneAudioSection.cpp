@@ -16,6 +16,7 @@ UMovieSceneAudioSection::UMovieSceneAudioSection( const FObjectInitializer& Obje
 #if WITH_EDITORONLY_DATA
 	bShowIntensity = false;
 #endif
+	bSuppressSubtitles = false;
 }
 
 

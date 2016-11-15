@@ -92,6 +92,7 @@ bool GetFbxSceneImportOptions(UnFbx::FFbxImporter* FbxImporter
 	GlobalImportSettings->ImportUniformScale = 1.0f;
 
 	GlobalImportSettings->bConvertScene = true;
+	GlobalImportSettings->bConvertSceneUnit = true;
 
 	GlobalImportSettings->bBakePivotInVertex = SceneImportOptions->bBakePivotInVertex;
 	GlobalImportSettings->bInvertNormalMap = SceneImportOptions->bInvertNormalMaps;
@@ -194,7 +195,7 @@ static void ExtractPropertyTextures(FbxSurfaceMaterial *FbxMaterial, TSharedPtr<
 		int32 LayeredTextureCount = FbxProperty.GetSrcObjectCount<FbxLayeredTexture>();
 		if (LayeredTextureCount == 0)
 		{
-			int32 TextureCount = FbxProperty.GetSrcObjectCount<FbxTexture>();
+			int32 TextureCount = FbxProperty.GetSrcObjectCount<FbxFileTexture>();
 			if (TextureCount > 0)
 			{
 				for (int32 TextureIndex = 0; TextureIndex < TextureCount; ++TextureIndex)
@@ -393,9 +394,7 @@ void FetchFbxLightInScene(UnFbx::FFbxImporter *FbxImporter, FbxNode* ParentNode,
 				LightInfo->Type = 4;
 				break;
 			}
-			LightInfo->Color.R = (uint8)(LightAttribute->Color.Get()[0] * 255.0);
-			LightInfo->Color.G = (uint8)(LightAttribute->Color.Get()[1] * 255.0);
-			LightInfo->Color.B = (uint8)(LightAttribute->Color.Get()[2] * 255.0);
+			LightInfo->Color = FFbxDataConverter::ConvertColor(LightAttribute->Color);
 			LightInfo->Intensity = (float)(LightAttribute->Intensity.Get());
 			switch (LightAttribute->DecayType.Get())
 			{
@@ -414,9 +413,7 @@ void FetchFbxLightInScene(UnFbx::FFbxImporter *FbxImporter, FbxNode* ParentNode,
 			}
 			LightInfo->CastLight = LightAttribute->CastLight.Get();
 			LightInfo->CastShadow = LightAttribute->CastShadows.Get();
-			LightInfo->ShadowColor.R = (uint8)(LightAttribute->ShadowColor.Get()[0] * 255.0);
-			LightInfo->ShadowColor.G = (uint8)(LightAttribute->ShadowColor.Get()[1] * 255.0);
-			LightInfo->ShadowColor.B = (uint8)(LightAttribute->ShadowColor.Get()[2] * 255.0);
+			LightInfo->ShadowColor = FFbxDataConverter::ConvertColor(LightAttribute->ShadowColor);
 
 			LightInfo->InnerAngle = (float)(LightAttribute->InnerAngle.Get());
 			LightInfo->OuterAngle = (float)(LightAttribute->OuterAngle.Get());
@@ -854,6 +851,7 @@ FFeedbackContext*	Warn
 	
 	//Always convert the scene
 	GlobalImportSettings->bConvertScene = true;
+	GlobalImportSettings->bConvertSceneUnit = true;
 
 	//Set the import option in importscene mode
 	GlobalImportSettings->bImportScene = true;
@@ -944,15 +942,12 @@ FFeedbackContext*	Warn
 
 	//We are a scene import set the flag for the reimport factory for both static mesh and skeletal mesh
 	StaticMeshImportData->bImportAsScene = true;
-	StaticMeshImportData->bImportMaterials = GlobalImportSettings->bImportMaterials;
 	StaticMeshImportData->FbxSceneImportDataReference = ReimportData;
 
 	SkeletalMeshImportData->bImportAsScene = true;
-	SkeletalMeshImportData->bImportMaterials = GlobalImportSettings->bImportMaterials;
 	SkeletalMeshImportData->FbxSceneImportDataReference = ReimportData;
 
 	AnimSequenceImportData->bImportAsScene = true;
-	AnimSequenceImportData->bImportMaterials = GlobalImportSettings->bImportMaterials;
 	AnimSequenceImportData->FbxSceneImportDataReference = ReimportData;
 
 	//Get the scene root node
@@ -981,16 +976,19 @@ FFeedbackContext*	Warn
 	for (auto ItAsset = AllNewAssets.CreateIterator(); ItAsset; ++ItAsset)
 	{
 		UObject *AssetObject = ItAsset.Value();
-		if (AssetObject && ReturnObject == nullptr)
+		if (AssetObject)
 		{
-			//Set the first import object as the return object to prevent false error from the caller of this factory
-			ReturnObject = AssetObject;
-		}
-		if (AssetObject->IsA(UStaticMesh::StaticClass()) || AssetObject->IsA(USkeletalMesh::StaticClass()))
-		{
-			//Mark the mesh as modified so the render will draw the mesh correctly
-			AssetObject->Modify();
-			AssetObject->PostEditChange();
+			if (ReturnObject == nullptr)
+			{
+				//Set the first import object as the return object to prevent false error from the caller of this factory
+				ReturnObject = AssetObject;
+			}
+			if (AssetObject->IsA(UStaticMesh::StaticClass()) || AssetObject->IsA(USkeletalMesh::StaticClass()))
+			{
+				//Mark the mesh as modified so the render will draw the mesh correctly
+				AssetObject->Modify();
+				AssetObject->PostEditChange();
+			}
 		}
 	}
 
@@ -1058,8 +1056,8 @@ FFeedbackContext*	Warn
 bool UFbxSceneImportFactory::SetStaticMeshComponentOverrideMaterial(UStaticMeshComponent* StaticMeshComponent, TSharedPtr<FFbxNodeInfo> NodeInfo)
 {
 	bool bOverrideMaterial = false;
-	UStaticMesh *StaticMesh = StaticMeshComponent->StaticMesh;
-	if (StaticMesh->Materials.Num() == NodeInfo->Materials.Num())
+	UStaticMesh *StaticMesh = StaticMeshComponent->GetStaticMesh();
+	if (StaticMesh->StaticMaterials.Num() == NodeInfo->Materials.Num())
 	{
 		for (int32 MaterialIndex = 0; MaterialIndex < NodeInfo->Materials.Num(); ++MaterialIndex)
 		{

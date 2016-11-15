@@ -250,6 +250,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		.Font(DetailFontInfo)
 	]
 	.ValueContent()
+	.MaxDesiredWidth(980.f)
 	[
 		SNew(SPinTypeSelector, FGetPinTypeTree::CreateUObject(Schema, &UEdGraphSchema_K2::GetVariableTypeTree))
 		.TargetPinType(this, &FBlueprintVarActionDetails::OnGetVarType)
@@ -632,6 +633,37 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		.ToolTip(ReplicationTooltip)
 	];
 
+	ReplicationConditionEnumTypeNames.Empty();
+	UEnum* Enum = FindObject<UEnum>(ANY_PACKAGE, TEXT("ELifetimeCondition"), true);
+	check(Enum);
+	
+	for (int32 i = 0; i < Enum->NumEnums(); i++)
+	{
+		if (!Enum->HasMetaData(TEXT("Hidden"), i))
+		{
+			ReplicationConditionEnumTypeNames.Add(MakeShareable(new FString(Enum->GetDisplayNameText(i).ToString())));
+		}
+	}
+
+	Category.AddCustomRow(LOCTEXT("VariableReplicationConditionsLabel", "Replication Condition"))
+	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::ReplicationVisibility))
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.ToolTip(ReplicationTooltip)
+		.Text(LOCTEXT("VariableReplicationConditionsLabel", "Replication Condition"))
+		.Font(DetailFontInfo)
+	]
+	.ValueContent()
+	[
+		SNew(STextComboBox)
+		.OptionsSource(&ReplicationConditionEnumTypeNames)
+		.InitiallySelectedItem(GetVariableReplicationCondition())
+		.OnSelectionChanged(this, &FBlueprintVarActionDetails::OnChangeReplicationCondition)
+		.IsEnabled(this, &FBlueprintVarActionDetails::ReplicationConditionEnabled)
+	];
+
+
 	UBlueprint* BlueprintObj = GetBlueprintObj();
 
 	// Handle event generation
@@ -736,13 +768,17 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 				// There should always be an entry node in the function graph
 				check(EntryNodes.Num() > 0);
 
+				const UStructProperty* PotentialUDSProperty = Cast<const UStructProperty>(VariableProperty);
+				//UDS requires default data even when the LocalVariable value is empty
+				const bool bUDSProperty = PotentialUDSProperty && Cast<const UUserDefinedStruct>(PotentialUDSProperty->Struct);
+
 				UK2Node_FunctionEntry* FuncEntry = EntryNodes[0];
 				for(auto& LocalVar : FuncEntry->LocalVariables)
 				{
 					if(LocalVar.VarName == VariableProperty->GetFName()) //Property->GetFName())
 					{
 						// Only set the default value if there is one
-						if(!LocalVar.DefaultValue.IsEmpty())
+						if(bUDSProperty || !LocalVar.DefaultValue.IsEmpty())
 						{
 							FBlueprintEditorUtils::PropertyValueFromString(VariableProperty, LocalVar.DefaultValue, StructData->GetStructMemory());
 						}
@@ -979,7 +1015,7 @@ bool FBlueprintVarActionDetails::GetVariableNameChangeEnabled() const
 		{
 			if (USCS_Node* Node = BlueprintObj->SimpleConstructionScript->FindSCSNode(CachedVariableName))
 			{
-				bIsReadOnly = !FComponentEditorUtils::IsValidVariableNameString(Node->ComponentTemplate, Node->VariableName.ToString());
+				bIsReadOnly = !FComponentEditorUtils::IsValidVariableNameString(Node->ComponentTemplate, Node->GetVariableName().ToString());
 			}
 		}
 		else if(IsALocalVariable(VariableProperty))
@@ -1008,7 +1044,7 @@ void FBlueprintVarActionDetails::OnVarNameChanged(const FText& InNewText)
 	{
 		for (USCS_Node* Node : BlueprintObj->SimpleConstructionScript->GetAllNodes())
 		{
-			if (Node && Node->VariableName == CachedVariableName && !FComponentEditorUtils::IsValidVariableNameString(Node->ComponentTemplate, InNewText.ToString()))
+			if (Node && Node->GetVariableName() == CachedVariableName && !FComponentEditorUtils::IsValidVariableNameString(Node->ComponentTemplate, InNewText.ToString()))
 			{
 				VarNameEditableTextBox->SetError(LOCTEXT("ComponentVariableRenameFailed_NotValid", "This name is reserved for engine use."));
 				return;
@@ -1663,6 +1699,64 @@ EVisibility FBlueprintVarActionDetails::ExposeToCinematicsVisibility() const
 	return EVisibility::Collapsed;
 }
 
+TSharedPtr<FString> FBlueprintVarActionDetails::GetVariableReplicationCondition() const
+{
+	ELifetimeCondition VariableRepCondition = COND_None;
+		
+	const UProperty* const Property = CachedVariableProperty.Get();
+
+	if (Property)
+	{
+		VariableRepCondition = Property->GetBlueprintReplicationCondition();
+	}
+
+	return ReplicationConditionEnumTypeNames[(uint8)VariableRepCondition];
+}
+
+void FBlueprintVarActionDetails::OnChangeReplicationCondition(TSharedPtr<FString> ItemSelected, ESelectInfo::Type SelectInfo)
+{
+	int32 NewSelection;
+	const bool bFound = ReplicationConditionEnumTypeNames.Find(ItemSelected, NewSelection);
+	check(bFound && NewSelection != INDEX_NONE);
+
+	const ELifetimeCondition NewRepCondition = (ELifetimeCondition)NewSelection;
+
+	UBlueprint* const BlueprintObj = GetBlueprintObj();
+	const FName VarName = CachedVariableName;
+
+	if (BlueprintObj && VarName != NAME_None)
+	{
+		const int32 VarIndex = FBlueprintEditorUtils::FindNewVariableIndex(BlueprintObj, VarName);
+
+		if (VarIndex != INDEX_NONE)
+		{
+			BlueprintObj->NewVariables[VarIndex].ReplicationCondition = NewRepCondition;
+		
+			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BlueprintObj);
+		}
+	}
+
+}
+
+bool FBlueprintVarActionDetails::ReplicationConditionEnabled() const
+{
+	const UProperty* const VariableProperty = CachedVariableProperty.Get();
+	if (VariableProperty)
+	{
+		const uint64 *PropFlagPtr = FBlueprintEditorUtils::GetBlueprintVariablePropertyFlags(GetBlueprintObj(), VariableProperty->GetFName());
+		uint64 PropFlags = 0;
+
+		if (PropFlagPtr != nullptr)
+		{
+			PropFlags = *PropFlagPtr;
+			return (PropFlags & CPF_Net) > 0;
+			
+		}
+	}
+
+	return false;
+}
+
 ECheckBoxState FBlueprintVarActionDetails::OnGetConfigVariableCheckboxState() const
 {
 	UBlueprint* BlueprintObj = GetPropertyOwnerBlueprint();
@@ -1944,6 +2038,14 @@ void FBlueprintVarActionDetails::OnChangeReplication(TSharedPtr<FString> ItemSel
 	
 	UProperty* VariableProperty = CachedVariableProperty.Get();
 
+	UBlueprint* const BlueprintObj = GetBlueprintObj();
+	const FName VarName = CachedVariableName;
+	int32 VarIndex = INDEX_NONE;
+	if (BlueprintObj && VarName != NAME_None)
+	{
+		VarIndex = FBlueprintEditorUtils::FindNewVariableIndex(BlueprintObj, VarName);
+	}
+
 	if (VariableProperty)
 	{
 		uint64 *PropFlagPtr = FBlueprintEditorUtils::GetBlueprintVariablePropertyFlags(GetBlueprintObj(), VariableProperty->GetFName());
@@ -1953,7 +2055,14 @@ void FBlueprintVarActionDetails::OnChangeReplication(TSharedPtr<FString> ItemSel
 			{
 			case EVariableReplication::None:
 				*PropFlagPtr &= ~CPF_Net;
-				ReplicationOnRepFuncChanged(FName(NAME_None).ToString());	
+				ReplicationOnRepFuncChanged(FName(NAME_None).ToString());
+
+				//set replication condition to none:
+				if (VarIndex != INDEX_NONE)
+				{
+					BlueprintObj->NewVariables[VarIndex].ReplicationCondition = COND_None;
+				}
+				
 				break;
 				
 			case EVariableReplication::Replicated:
@@ -1964,11 +2073,11 @@ void FBlueprintVarActionDetails::OnChangeReplication(TSharedPtr<FString> ItemSel
 			case EVariableReplication::RepNotify:
 				*PropFlagPtr |= CPF_Net;
 				FString NewFuncName = FString::Printf(TEXT("OnRep_%s"), *VariableProperty->GetName());
-				UEdGraph* FuncGraph = FindObject<UEdGraph>(GetBlueprintObj(), *NewFuncName);
+				UEdGraph* FuncGraph = FindObject<UEdGraph>(BlueprintObj, *NewFuncName);
 				if (!FuncGraph)
 				{
-					FuncGraph = FBlueprintEditorUtils::CreateNewGraph(GetBlueprintObj(), FName(*NewFuncName), UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
-					FBlueprintEditorUtils::AddFunctionGraph<UClass>(GetBlueprintObj(), FuncGraph, false, NULL);
+					FuncGraph = FBlueprintEditorUtils::CreateNewGraph(BlueprintObj, FName(*NewFuncName), UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
+					FBlueprintEditorUtils::AddFunctionGraph<UClass>(BlueprintObj, FuncGraph, false, NULL);
 				}
 
 				if (FuncGraph)
@@ -1978,7 +2087,7 @@ void FBlueprintVarActionDetails::OnChangeReplication(TSharedPtr<FString> ItemSel
 				break;
 			}
 
-			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprintObj());
+			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BlueprintObj);
 		}
 	}
 }
@@ -2300,12 +2409,13 @@ void FBlueprintGraphArgumentLayout::GenerateHeaderRowContent( FDetailWidgetRow& 
 		]
 	]
 	.ValueContent()
+	.MaxDesiredWidth(980.f)
 	[
 		SNew(SHorizontalBox)
 		+SHorizontalBox::Slot()
-		.FillWidth(1)
 		.VAlign(VAlign_Center)
 		.Padding(0.0f, 0.0f, 4.0f, 0.0f)
+		.AutoWidth()
 		[
 			SNew(SPinTypeSelector, FGetPinTypeTree::CreateUObject(K2Schema, &UEdGraphSchema_K2::GetVariableTypeTree))
 				.TargetPinType(this, &FBlueprintGraphArgumentLayout::OnGetPinInfo)
@@ -2318,7 +2428,6 @@ void FBlueprintGraphArgumentLayout::GenerateHeaderRowContent( FDetailWidgetRow& 
 				.Font( IDetailLayoutBuilder::GetDetailFont() )
 		]
 		+SHorizontalBox::Slot()
-		.AutoWidth()
 		.HAlign(HAlign_Right)
 		.VAlign(VAlign_Center)
 		[
@@ -2602,31 +2711,34 @@ void FBlueprintGraphArgumentLayout::PinInfoChanged(const FEdGraphPinType& PinTyp
 	if (ParamItemPtr.IsValid() && FBlueprintEditorUtils::IsPinTypeValid(PinType))
 	{
 		const FString PinName = ParamItemPtr.Pin()->PinName;
-		auto GraphActionDetailsPinned = GraphActionDetailsPtr.Pin();
+		TSharedPtr<class FBaseBlueprintGraphActionDetails> GraphActionDetailsPinned = GraphActionDetailsPtr.Pin();
 		if (GraphActionDetailsPinned.IsValid())
 		{
-			auto MyBPPinned = GraphActionDetailsPinned->GetMyBlueprint().Pin();
+			TSharedPtr<SMyBlueprint> MyBPPinned = GraphActionDetailsPinned->GetMyBlueprint().Pin();
 			if (MyBPPinned.IsValid())
 			{
 				MyBPPinned->GetLastFunctionPinTypeUsed() = PinType;
 			}
 			if( !ShouldPinBeReadOnly(true) )
 			{
-				auto TargetNodes = GatherAllResultNodes(TargetNode);
-				for (auto Node : TargetNodes)
+				TArray<UK2Node_EditablePinBase*> TargetNodes = GatherAllResultNodes(TargetNode);
+				for (UK2Node_EditablePinBase* Node : TargetNodes)
 				{
-					auto UDPinPtr = Node->UserDefinedPins.FindByPredicate([&](TSharedPtr<FUserPinInfo>& UDPin)
+					if (Node)
 					{
-						return UDPin.IsValid() && (UDPin->PinName == PinName);
-					});
-					if (UDPinPtr)
-					{
-						(*UDPinPtr)->PinType = PinType;
+						auto UDPinPtr = Node->UserDefinedPins.FindByPredicate([&](TSharedPtr<FUserPinInfo>& UDPin)
+						{
+							return UDPin.IsValid() && (UDPin->PinName == PinName);
+						});
+						if (UDPinPtr)
+						{
+							(*UDPinPtr)->PinType = PinType;
 
-						// Array types are implicitly passed by reference. For custom event nodes, since they are inputs, also implicitly treat them as 'const' so that they don't result in a compiler note.
-						(*UDPinPtr)->PinType.bIsConst = PinType.bIsArray && Node && Node->IsA<UK2Node_CustomEvent>();
+							// Array types are implicitly passed by reference. For custom event nodes, since they are inputs, also implicitly treat them as 'const' so that they don't result in a compiler note.
+							(*UDPinPtr)->PinType.bIsConst = PinType.bIsArray && Node->IsA<UK2Node_CustomEvent>();
+						}
+						GraphActionDetailsPinned->OnParamsChanged(Node);
 					}
-					GraphActionDetailsPinned->OnParamsChanged(Node);
 				}
 			}
 		}
@@ -3052,7 +3164,7 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 		TSharedRef<FBlueprintGraphArgumentGroupLayout> InputArgumentGroup =
 			MakeShareable(new FBlueprintGraphArgumentGroupLayout(SharedThis(this), FunctionEntryNode));
 		InputsCategory.AddCustomBuilder(InputArgumentGroup);
-
+		
 		InputsCategory.AddCustomRow( LOCTEXT("FunctionNewInputArg", "New") )
 		[
 			SNew(SBox)
@@ -5273,7 +5385,9 @@ void FBlueprintComponentDetails::AddExperimentalWarningCategory( IDetailLayoutBu
 	{
 		const FName CategoryName(TEXT("Warning"));
 		const FText CategoryDisplayName = LOCTEXT("WarningCategoryDisplayName", "Warning");
-		const FText WarningText = bIsExperimental ? LOCTEXT("ExperimentalClassWarning", "Uses experimental class") : LOCTEXT("EarlyAccessClassWarning", "Uses early access class");
+		FString ClassUsed = DetailBuilder.GetTopLevelProperty().ToString();
+		const FText WarningText = bIsExperimental ? FText::Format( LOCTEXT("ExperimentalClassWarning", "Uses experimental class: {0}"), FText::FromString(*ClassUsed) )
+			: FText::Format( LOCTEXT("EarlyAccessClassWarning", "Uses early access class: {0}"), FText::FromString(*ClassUsed) );
 		const FText SearchString = WarningText;
 		const FText Tooltip = bIsExperimental ? LOCTEXT("ExperimentalClassTooltip", "Here be dragons!  Uses one or more unsupported 'experimental' classes") : LOCTEXT("EarlyAccessClassTooltip", "Uses one or more 'early access' classes");
 		const FString ExcerptName = bIsExperimental ? TEXT("ComponentUsesExperimentalClass") : TEXT("ComponentUsesEarlyAccessClass");
@@ -5284,27 +5398,32 @@ void FBlueprintComponentDetails::AddExperimentalWarningCategory( IDetailLayoutBu
 		FDetailWidgetRow& WarningRow = WarningCategory.AddCustomRow(SearchString)
 			.WholeRowContent()
 			[
-				SNew(SHorizontalBox)
-				.ToolTip(IDocumentation::Get()->CreateToolTip(Tooltip, nullptr, TEXT("Shared/LevelEditor"), ExcerptName))
-				.Visibility(EVisibility::Visible)
-
-				+ SHorizontalBox::Slot()
-				.VAlign(VAlign_Center)
-				.AutoWidth()
-				.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+				SNew(SBorder)
+				.BorderImage(FEditorStyle::GetBrush("SettingsEditor.CheckoutWarningBorder"))
+				.BorderBackgroundColor(FColor(166,137,0))
 				[
-					SNew(SImage)
-					.Image(WarningIcon)
-				]
+					SNew(SHorizontalBox)
+					.ToolTip(IDocumentation::Get()->CreateToolTip(Tooltip, nullptr, TEXT("Shared/LevelEditor"), ExcerptName))
+					.Visibility(EVisibility::Visible)
 
-				+SHorizontalBox::Slot()
-				.VAlign(VAlign_Center)
-				.AutoWidth()
-				.Padding(4.0f, 0.0f, 0.0f, 0.0f)
-				[
-					SNew(STextBlock)
-					.Text(WarningText)
-					.Font(IDetailLayoutBuilder::GetDetailFont())
+					+ SHorizontalBox::Slot()
+					.VAlign(VAlign_Center)
+					.AutoWidth()
+					.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+					[
+						SNew(SImage)
+						.Image(WarningIcon)
+					]
+
+					+SHorizontalBox::Slot()
+					.VAlign(VAlign_Center)
+					.AutoWidth()
+					.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+					[
+						SNew(STextBlock)
+						.Text(WarningText)
+						.Font(IDetailLayoutBuilder::GetDetailFont())
+					]
 				]
 			];
 	}
@@ -5520,6 +5639,43 @@ void FChildActorComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailB
 				}
 			}
 		}
+
+
+		auto TemplatesVisible = [](const TArray<TWeakObjectPtr<UObject>>& WeakObjects)
+		{
+			bool bResult = true;
+			
+			return bResult;
+		};
+
+		TArray<TWeakObjectPtr<UObject>> ObjectsBeingCustomized;
+		DetailBuilder.GetObjectsBeingCustomized(ObjectsBeingCustomized);
+
+		IDetailCategoryBuilder& CategoryBuilder = DetailBuilder.EditCategory(TEXT("ChildActorComponent"));
+				
+		// Ensure ordering is what we want by adding class in first
+		CategoryBuilder.AddProperty(GET_MEMBER_NAME_CHECKED(UChildActorComponent, ChildActorClass));
+
+		IDetailPropertyRow& CATRow = CategoryBuilder.AddProperty(GET_MEMBER_NAME_CHECKED(UChildActorComponent, ChildActorTemplate));
+		CATRow.Visibility(TAttribute<EVisibility>::Create([ObjectsBeingCustomized]()
+		{
+			for (const TWeakObjectPtr<UObject>& ObjectBeingCustomized : ObjectsBeingCustomized)
+			{
+				if (UChildActorComponent* CAC = Cast<UChildActorComponent>(ObjectBeingCustomized.Get()))
+				{
+					if (CAC->ChildActorTemplate == nullptr)
+					{
+						return EVisibility::Hidden;
+					}
+				}
+				else
+				{
+					return EVisibility::Hidden;
+				}
+			}
+
+			return EVisibility::Visible;
+		}));
 	}
 }
 

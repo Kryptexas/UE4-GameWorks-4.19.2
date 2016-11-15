@@ -6,7 +6,6 @@
 #include "SAnimMontageSectionsPanel.h"
 #include "ScopedTransaction.h"
 #include "SCurveEditor.h"
-#include "SAnimationSequenceBrowser.h"
 #include "SMontageEditor.h"
 #include "SExpandableArea.h"
 
@@ -22,6 +21,7 @@ void SAnimMontageSectionsPanel::Construct(const FArguments& InArgs)
 	MontageEditor = InArgs._MontageEditor;
 	Montage = InArgs._Montage;
 	SelectedCompositeSection = INDEX_NONE;
+	bChildAnimMontage = InArgs._bChildAnimMontage;
 
 	this->ChildSlot
 	[
@@ -89,6 +89,7 @@ void SAnimMontageSectionsPanel::Update()
 				.VAlign(VAlign_Center)
 				[				
 					SNew(SButton)
+					.IsEnabled(!bChildAnimMontage)
 					.Visibility( EVisibility::Visible )
 					.Text( LOCTEXT("CreateDefault", "Create Default") )
 					.ToolTipText( LOCTEXT("CreateDefaultToolTip", "Reconstructs section ordering based on start time") )
@@ -102,6 +103,7 @@ void SAnimMontageSectionsPanel::Update()
 				.VAlign(VAlign_Center)
 				[				
 					SNew(SButton)
+					.IsEnabled(!bChildAnimMontage)
 					.Visibility( EVisibility::Visible )
 					.Text( LOCTEXT("Clear", "Clear") )
 					.ToolTipText( LOCTEXT("ClearToolTip", "Resets section orderings") )
@@ -119,6 +121,7 @@ void SAnimMontageSectionsPanel::Update()
 			.Padding( FMargin(0.5f, 20.0f) )
 			[
 				SAssignNew(Track, STrack)
+				.IsEnabled(!bChildAnimMontage)
 				.ViewInputMin(0)
 				.ViewInputMax(100)
 				.TrackColor( FLinearColor(0.0f, 0.0f, 0.0f, 0.0f))
@@ -239,6 +242,7 @@ void SAnimMontageSectionsPanel::Update()
 				
 					Track->AddTrackNode(
 						SNew(STrackNode)
+						.IsEnabled(!bChildAnimMontage)
 						.ViewInputMax(100)
 						.ViewInputMin(0)
 						.NodeColor( IsLoop(SectionIdx) ? LoopColor : NodeColor)
@@ -259,6 +263,7 @@ void SAnimMontageSectionsPanel::Update()
 					{
 						Track->AddTrackNode(
 							SNew(STrackNode)
+							.IsEnabled(!bChildAnimMontage)
 							.ViewInputMax(100)
 							.ViewInputMin(0)
 							.NodeColor(IsLoop(SectionIdx) ? LoopColor : NodeColor)
@@ -315,6 +320,8 @@ void SAnimMontageSectionsPanel::TopSectionClicked(int32 SectionIndex)
 		Montage->CompositeSections[SelectedCompositeSection].NextSectionName = Montage->CompositeSections[SectionIndex].SectionName;
 		MontageEditor.Pin()->RestartPreview();
 		Update();
+
+		Montage->PostEditChange();
 	}
 	MontageEditor.Pin()->ShowSectionInDetailsView(SectionIndex);
 	TopSelectionSet.Empty();
@@ -349,6 +356,8 @@ void SAnimMontageSectionsPanel::RemoveLink(int32 SectionIndex)
 		Montage->CompositeSections[SectionIndex].NextSectionName = NAME_None;
 		MontageEditor.Pin()->RestartPreview();
 		Update();
+
+		Montage->PostEditChange();
 	}
 }
 

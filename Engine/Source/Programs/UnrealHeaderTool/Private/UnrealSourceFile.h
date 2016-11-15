@@ -26,9 +26,9 @@ public:
 		, bParsed              (false)
 		, bDependenciesResolved(false)
 	{
-		if (GetStrippedFilename() != "Object")
+		if (GetStrippedFilename() != "NoExportTypes")
 		{
-			Includes.Add(FHeaderProvider(EHeaderProviderSourceType::FileName, "Object.h"));
+			Includes.Add(FHeaderProvider(EHeaderProviderSourceType::FileName, "NoExportTypes.h"));
 		}
 	}
 

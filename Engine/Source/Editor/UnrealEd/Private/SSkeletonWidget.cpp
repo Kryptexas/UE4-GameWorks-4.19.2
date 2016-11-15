@@ -297,7 +297,7 @@ void SSkeletonSelectorWindow::ConstructWindowFromMesh(USkeletalMesh* InSkeletalM
 {
 	TArray<FName>  BoneNames;
 
-	for (int32 I=0; I<InSkeletalMesh->RefSkeleton.GetNum(); ++I)
+	for (int32 I=0; I<InSkeletalMesh->RefSkeleton.GetRawBoneNum(); ++I)
 	{
 		BoneNames.Add(InSkeletalMesh->RefSkeleton.GetBoneName(I));
 	}

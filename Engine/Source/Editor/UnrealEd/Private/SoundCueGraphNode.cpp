@@ -204,9 +204,12 @@ void USoundCueGraphNode::ResetSoundNodeOwner()
 
 void USoundCueGraphNode::CreateInputPins()
 {
-	for (int32 ChildIndex = 0; ChildIndex < SoundNode->ChildNodes.Num(); ++ChildIndex)
+	if (SoundNode)
 	{
-		CreateInputPin();
+		for (int32 ChildIndex = 0; ChildIndex < SoundNode->ChildNodes.Num(); ++ChildIndex)
+		{
+			CreateInputPin();
+		}
 	}
 }
 

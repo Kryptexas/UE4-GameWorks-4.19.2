@@ -629,9 +629,9 @@ bool FApplePlatformFile::IterateDirectoryCommon(const TCHAR* Directory, const TF
 	return Result;
 }
 
-bool FApplePlatformFile::CopyFile(const TCHAR* To, const TCHAR* From)
+bool FApplePlatformFile::CopyFile(const TCHAR* To, const TCHAR* From, EPlatformFileRead ReadFlags, EPlatformFileWrite WriteFlags)
 {
-	bool Result = IPlatformFile::CopyFile(To, From);
+	bool Result = IPlatformFile::CopyFile(To, From, ReadFlags, WriteFlags);
 	if (Result)
 	{
 		struct stat FileInfo;

@@ -64,6 +64,9 @@ bool FProjectDescriptor::Load(const FString& FileName, FText& OutFailReason)
 		return false;
 	}
 
+	// Store the path to this project descriptor for path relative paths
+	PathToProject = FPaths::GetPath(FileName);
+
 	// Parse it as a project descriptor
 	return Read(*Object.Get(), OutFailReason);
 }
@@ -106,6 +109,20 @@ bool FProjectDescriptor::Read(const FJsonObject& Object, FText& OutFailReason)
 	if(!FPluginReferenceDescriptor::ReadArray(Object, TEXT("Plugins"), Plugins, OutFailReason))
 	{
 		return false;
+	}
+
+	// Read the list of additional plugin directories to scan
+	const TArray< TSharedPtr<FJsonValue> >* AdditionalPluginDirectoriesValue;
+	if (Object.TryGetArrayField(TEXT("AdditionalPluginDirectories"), AdditionalPluginDirectoriesValue))
+	{
+		for (int32 Idx = 0; Idx < AdditionalPluginDirectoriesValue->Num(); Idx++)
+		{
+			FString AdditionalDir;
+			if ((*AdditionalPluginDirectoriesValue)[Idx]->TryGetString(AdditionalDir))
+			{
+				AddPluginDirectory(AdditionalDir);
+			}
+		}
 	}
 
 	// Read the target platforms
@@ -168,6 +185,27 @@ void FProjectDescriptor::Write(TJsonWriter<>& Writer) const
 	// Write the plugin list
 	FPluginReferenceDescriptor::WriteArray(Writer, TEXT("Plugins"), Plugins);
 
+	// Write out the additional plugin directories to scan
+	if (AdditionalPluginDirectories.Num() > 0)
+	{
+		Writer.WriteArrayStart(TEXT("AdditionalPluginDirectories"));
+		for (const FString& Dir : AdditionalPluginDirectories)
+		{
+			// Strip off the project path so that it's back to being a relative path
+			if (Dir.StartsWith(PathToProject))
+			{
+				FString NewPath = Dir.Right(Dir.Len() - PathToProject.Len());
+				Writer.WriteValue(NewPath);
+			}
+			else
+			{
+				// Absolute path so write out with no changes
+				Writer.WriteValue(Dir);
+			}
+		}
+		Writer.WriteArrayEnd();
+	}
+
 	// Write the target platforms
 	if(TargetPlatforms.Num() > 0)
 	{
@@ -202,6 +240,67 @@ FString FProjectDescriptor::GetExtension()
 {
 	static const FString ProjectExtension(TEXT("uproject"));
 	return ProjectExtension;
+}
+
+static bool IsRootedPath(const FString& Path)
+{
+	return Path[0] == TEXT('\\') || Path[0] == TEXT('/') || Path[1] == TEXT(':');
+}
+
+void FProjectDescriptor::AddPluginDirectory(const FString& AdditionalDir)
+{
+	check(!AdditionalDir.StartsWith(IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*FPaths::GamePluginsDir())));
+	check(!AdditionalDir.StartsWith(IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*FPaths::EnginePluginsDir())));
+
+	FString ModifiedDir(AdditionalDir);
+	if (IsRootedPath(ModifiedDir))
+	{
+		// Try to turn this into a relative path if possible
+		FString ProjectDir = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*PathToProject);
+		FPaths::MakePlatformFilename(ProjectDir);
+		FPaths::MakePathRelativeTo(ModifiedDir, *ProjectDir);
+	}
+	if (IsRootedPath(ModifiedDir))
+	{
+		// If this is still a rooted directory, just add to the list
+		AdditionalPluginDirectories.AddUnique(ModifiedDir);
+	}
+	else
+	{
+		// Make a directory that is relative to the project
+		AdditionalPluginDirectories.AddUnique(PathToProject / ModifiedDir);
+	}
+}
+
+void FProjectDescriptor::RemovePluginDirectory(const FString& Dir)
+{
+	if (IsRootedPath(Dir))
+	{
+		// If this is a rooted directory, just add to the list
+		AdditionalPluginDirectories.RemoveSingle(Dir);
+	}
+	else
+	{
+		// Make a directory that is relative to the project
+		AdditionalPluginDirectories.RemoveSingle(PathToProject / Dir);
+	}
+}
+
+const TArray<FString> FProjectDescriptor::GetRawAdditionalPluginDirectories() const
+{
+	TArray<FString> RawDirs;
+	for (const FString& Dir : AdditionalPluginDirectories)
+	{
+		if (Dir.StartsWith(PathToProject))
+		{
+			RawDirs.Add(Dir.Right(Dir.Len() - PathToProject.Len()));
+		}
+		else
+		{
+			RawDirs.Add(Dir);
+		}
+	}
+	return RawDirs;
 }
 
 #undef LOCTEXT_NAMESPACE

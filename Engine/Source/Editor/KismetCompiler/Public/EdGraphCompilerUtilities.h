@@ -62,11 +62,6 @@ protected:
 	 */
 	UEdGraphNode* FindNodeByClass(const UEdGraph* Graph, TSubclassOf<UEdGraphNode>  NodeClass, bool bExpectedUnique) const;
 
-	/**
-	 * Scans a graph for all nodes of the specified class.
-	 */
-	void FindNodesByClass(const UEdGraph* Graph, TSubclassOf<UEdGraphNode>  NodeClass, TArray<UEdGraphNode*>& FoundNodes) const;
-
 	/** Prunes any nodes that weren't visited from the graph, printing out a warning */
 	virtual void PruneIsolatedNodes(const TArray<UEdGraphNode*>& RootSet, TArray<UEdGraphNode*>& GraphNodes);
 

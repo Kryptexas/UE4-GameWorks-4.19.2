@@ -72,9 +72,9 @@ public:
 	EVisibility GetPropertyVisibility() const { return PropertyVisibility.Get(); }
 private:
 	/**
-	 * Makes a name widget for the tree
+	 * Makes a name widget or key widget for the tree
 	 */
-	void MakeNameWidget( FDetailWidgetRow& Row, const TSharedPtr<FDetailWidgetRow> InCustomRow ) const;
+	void MakeNameOrKeyWidget( FDetailWidgetRow& Row, const TSharedPtr<FDetailWidgetRow> InCustomRow ) const;
 
 	/**
 	 * Makes the value widget for the tree
@@ -102,9 +102,11 @@ private:
 	/**
 	 * Makes a property editor from the property node on this row
 	 *
+	 * @param InPropertyNode	The node to create the editor for
 	 * @param PropertyUtilities	Utilities for the property editor
+	 * @param InEditor			The editor we wish to create if it does not yet exist.
 	 */
-	TSharedRef<FPropertyEditor> MakePropertyEditor( const TSharedRef<IPropertyUtilities>& PropertyUtilities );
+	static TSharedRef<FPropertyEditor> MakePropertyEditor( const TSharedRef<FPropertyNode>& InPropertyNode, const TSharedRef<IPropertyUtilities>& PropertyUtilities, TSharedPtr<FPropertyEditor>& InEditor );
 private:
 	/** User driven enabled state */
 	TAttribute<bool> CustomIsEnabledAttrib;
@@ -122,6 +124,8 @@ private:
 	TSharedPtr<FPropertyNode> PropertyNode;
 	/** The property editor for this row */
 	TSharedPtr<FPropertyEditor> PropertyEditor;
+	/** The property editor for this row's key */
+	TSharedPtr<FPropertyEditor> PropertyKeyEditor;
 	/** Custom widgets to use for this row instead of the default ones */
 	TSharedPtr<FDetailWidgetRow> CustomPropertyWidget;
 	/** User customized edit condition */

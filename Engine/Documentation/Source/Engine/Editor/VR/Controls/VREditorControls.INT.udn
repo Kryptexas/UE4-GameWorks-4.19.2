@@ -43,7 +43,7 @@ skilllevel: intermediate
 [/OBJECT]
 [/VAR]
 
-There are various controls to enable you to navigate the scene, select and manipulate Actors, and workw ith editor panels and windows.
+There are various controls for navigating the scene, selecting and manipulating Actors, and working with editor panels and windows.
 
 ## The Controller
 
@@ -83,7 +83,7 @@ Each Controller emits a beam called the laser pointer which is used to determine
 | Control |  Description |
 | ------- | ----------- |
 | ![Aim Controller at Actor + Squeeze Trigger](select_actor.png)(convert:false) | Aim the controller at an Actor in the world and squeeze the Trigger to select the Actor. |
-| [INCLUDE:#multiselect] | Aim one controller at an Actor in the world and squeeze the Trigger halfway to select the Actor and enter multi-select mode. While holding the Trigger halfway, Aim the other controller at other Actors and squeeze its Trigger to add or remove them from the selection. |
+| [INCLUDE:#multiselect] | Aim one controller at an Actor in the world and squeeze the Trigger halfway to select the Actor and enter multi-select mode. While holding the Trigger halfway, aim the other controller at other Actors and squeeze its Trigger to add or remove them from the selection. |
 [/REGION]
 
 ## Transform Controls
@@ -115,15 +115,25 @@ Each Controller emits a beam called the laser pointer which is used to determine
 | ![Aim Controller at Window Grip + Squeeze Trigger + Track Pad Towards or Away](scale_window.png)(convert:false) | Aim the controller at the Grip of a window and squeeze the Trigger to grab the window. Move your thumb up or down on the Track Pad to scale the window up or down. |
 [/REGION]
 
-## Mesh Paint Controls
+## Mesh Painting Controls
 
 [REGION:raw]
 | Control | Description |
 | ------- | ----------- |
 | ![Aim Controller at Actor + Squeeze Trigger + Move Controller](MeshPaint_2_NoModifier.png)(convert:false) | Aim the controller at a Static Mesh in the world and squeeze the Trigger to begin painting. Move the controller to move the brush along the Mesh. |
-| ![Modifier + Aim Controller at Actor + Squeeze Trigger + Move Controller](ModifierMeshPaint.png)(convert:false) | To erase instead of paint, hold the modifier button. Aim the controller at a Static Mesh in the world and squeeze the Trigger to begin erasing. Move the controller to move the brush along the Mesh.  |
+| ![Modifier + Aim Controller at Actor + Squeeze Trigger + Move Controller](ModifierMeshPaint.png)(convert:false) | To erase instead of paint, hold the modifier button. Aim the controller at a Static Mesh in the world and squeeze the Trigger to begin erasing. Move the controller to move the eraser along the Mesh.  |
 [/REGION]
 
+## Foliage Painting Controls
+
+For both painting and erasing foliage, pressure sensitivity on the Trigger is supported. 
+
+[REGION:raw]
+| Control | Description |
+| ------- | ----------- |
+| ![Aim Controller at Actor + Squeeze Trigger + Move Controller](MeshPaint_2_NoModifier.png)(convert:false) | Select a foliage type in the **Modes** panel. Aim the controller at a location in the world and squeeze the Trigger to begin painting foliage. Move the controller to move the brush around the world.|
+| ![Modifier + Aim Controller at Actor + Squeeze Trigger + Move Controller](ModifierMeshPaint.png)(convert:false) | To erase foliage, hold the modifier button. Aim the controller at a location in the world and squeeze the Trigger to begin erasing. Move the controller to move the eraser around the world.  |
+[/REGION]
 
 <!--
 [EXCERPT:MultiSelect]

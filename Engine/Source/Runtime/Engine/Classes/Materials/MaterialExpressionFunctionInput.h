@@ -25,7 +25,7 @@ class UMaterialExpressionFunctionInput : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Used for previewing when editing the function, also temporarily used to connect to the outside material when compiling that material. */
+	/** Used for previewing when editing the function, or when bUsePreviewValueAsDefault is enabled. */
 	UPROPERTY(meta=(RequiredInput = "false"))
 	FExpressionInput Preview;
 
@@ -68,6 +68,16 @@ class UMaterialExpressionFunctionInput : public UMaterialExpression
 	UPROPERTY(transient)
 	uint32 bCompilingFunctionPreview:1;
 
+	/** The Preview input to use during compilation from another material, when bCompilingFunctionPreview is false. */
+	FExpressionInput EffectivePreviewDuringCompile;
+
+#if WITH_EDITOR
+	/** Returns the appropriate preview expression when compiling a function or material preview. */
+	UMaterialExpression* GetEffectivePreviewExpression()
+	{
+		return bCompilingFunctionPreview ? Preview.Expression : EffectivePreviewDuringCompile.Expression;
+	}
+#endif
 
 	//~ Begin UObject Interface.
 	virtual void PostLoad() override;
@@ -82,8 +92,8 @@ class UMaterialExpressionFunctionInput : public UMaterialExpression
 	//~ Begin UMaterialExpression Interface
 #if WITH_EDITOR
 	virtual void GetExpressionToolTip(TArray<FString>& OutToolTip) override;
-	virtual int32 CompilePreview(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
-	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
+	virtual int32 CompilePreview(class FMaterialCompiler* Compiler, int32 OutputIndex) override;
+	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex) override;
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
 
 	virtual bool IsResultMaterialAttributes(int32 OutputIndex) override;
@@ -103,7 +113,7 @@ private:
 
 #if WITH_EDITOR
 	/** Helper function which compiles this expression for previewing. */
-	int32 CompilePreviewValue(FMaterialCompiler* Compiler, int32 MultiplexIndex=INDEX_NONE);
+	int32 CompilePreviewValue(FMaterialCompiler* Compiler);
 #endif // WITH_EDITOR
 };
 

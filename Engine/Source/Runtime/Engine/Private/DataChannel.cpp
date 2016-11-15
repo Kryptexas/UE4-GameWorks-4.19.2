@@ -1532,6 +1532,52 @@ void UActorChannel::CleanupReplicators( const bool bKeepReplicators )
 	ActorReplicator = NULL;
 }
 
+static TAutoConsoleVariable<int32> CVarRelinkMappedReferences( TEXT( "net.RelinkMappedReferences" ), 1, TEXT( "" ) );
+
+void UActorChannel::MoveMappedObjectToUnmapped( const UObject* Object )
+{
+	if ( !Object )
+	{
+		return;
+	}
+
+	if ( !CVarRelinkMappedReferences.GetValueOnGameThread() )
+	{
+		return;
+	}
+
+	UNetDriver* Driver = Connection ? Connection->Driver : nullptr;
+
+	if ( !Driver || Driver->IsServer() )
+	{
+		return;
+	}
+
+	// Find all replicators that are referencing this object, and make sure to mark the references as unmapped
+	// This is so when/if this object is instantiated again (using same network guid), we can re-establish the old references
+	FNetworkGUID NetGuid = Driver->GuidCache->NetGUIDLookup.FindRef( Object );
+
+	if ( NetGuid.IsValid() )
+	{
+		TSet< FObjectReplicator* >* Replicators = Driver->GuidToReplicatorMap.Find( NetGuid );
+
+		if ( Replicators != nullptr )
+		{
+			for ( FObjectReplicator* Replicator : *Replicators )
+			{
+				if ( Replicator->MoveMappedObjectToUnmapped( NetGuid ) )
+				{
+					Driver->UnmappedReplicators.Add( Replicator );
+				}
+				else if ( !Driver->UnmappedReplicators.Contains( Replicator ) )
+				{
+					UE_LOG( LogNet, Warning, TEXT( "UActorChannel::MoveMappedObjectToUnmapped: MoveMappedObjectToUnmapped didn't find object: %s" ), *GetPathNameSafe( Replicator->GetObject() ) );
+				}
+			}
+		}
+	}
+}
+
 void UActorChannel::DestroyActorAndComponents()
 {
 	// Destroy any sub-objects we created
@@ -1540,6 +1586,9 @@ void UActorChannel::DestroyActorAndComponents()
 		if ( CreateSubObjects[i].IsValid() )
 		{
 			UObject *SubObject = CreateSubObjects[i].Get();
+
+			// Unmap this object so we can remap it if it becomes relevant again in the future
+			MoveMappedObjectToUnmapped( SubObject );
 
 			if ( Connection != nullptr && Connection->Driver != nullptr )
 			{
@@ -1557,6 +1606,9 @@ void UActorChannel::DestroyActorAndComponents()
 	// Destroy the actor
 	if ( Actor != NULL )
 	{
+		// Unmap this object so we can remap it if it becomes relevant again in the future
+		MoveMappedObjectToUnmapped( Actor );
+
 		Actor->PreDestroyFromReplication();
 		Actor->Destroy( true );
 	}
@@ -1709,6 +1761,20 @@ void UActorChannel::SetChannelActor( AActor* InActor )
 {
 	check(!Closing);
 	check(Actor==NULL);
+
+	// Sanity check that the actor is in the same level collection as the channel's driver.
+	const UWorld* const World = Connection->Driver ? Connection->Driver->GetWorld() : nullptr;
+	if (World && InActor)
+	{
+		const ULevel* const CachedLevel = InActor->GetLevel();
+		const FLevelCollection* const ActorCollection = CachedLevel ? CachedLevel->GetCachedLevelCollection() : nullptr;
+		if (ActorCollection &&
+			ActorCollection->GetNetDriver() != Connection->Driver &&
+			ActorCollection->GetDemoNetDriver() != Connection->Driver)
+		{
+			UE_LOG(LogNet, Verbose, TEXT("UActorChannel::SetChannelActor: actor %s is not in the same level collection as the net driver (%s)!"), *GetFullNameSafe(InActor), *GetFullNameSafe(Connection->Driver));
+		}
+	}
 
 	// Set stuff.
 	Actor = InActor;
@@ -2112,7 +2178,7 @@ void UActorChannel::ProcessBunch( FInBunch & Bunch )
 
 		if ( bHasUnmapped )
 		{
-			Connection->Driver->UnmappedReplicators.Add( Replicator );
+			Connection->Driver->UnmappedReplicators.Add( &Replicator.Get() );
 		}
 	}
 
@@ -2719,6 +2785,9 @@ UObject* UActorChannel::ReadContentBlockHeader( FInBunch & Bunch, bool& bObjectD
 	{
 		if ( SubObj )
 		{
+			// Unmap this object so we can remap it if it becomes relevant again in the future
+			MoveMappedObjectToUnmapped( SubObj );
+
 			// Stop tracking this sub-object
 			CreateSubObjects.Remove( SubObj );
 
@@ -2794,6 +2863,9 @@ UObject* UActorChannel::ReadContentBlockHeader( FInBunch & Bunch, bool& bObjectD
 
 		// Track which sub-object guids we are creating
 		CreateSubObjects.AddUnique( SubObj );
+
+		// Add this sub-object to the ImportedNetGuids list so we can possibly map this object if needed
+		Connection->Driver->GuidCache->ImportedNetGuids.Add( NetGUID );
 	}
 
 	return SubObj;
@@ -2974,12 +3046,19 @@ static FORCEINLINE FString GenerateClassNetCacheNetFieldExportGroupName( const U
 	return ObjectClass->GetName() + FString( TEXT( "_ClassNetCache" ) );
 }
 
-FNetFieldExportGroup* UActorChannel::GetOrCreateNetFieldExportGroupForClassNetCache( const UClass* ObjectClass )
+FNetFieldExportGroup* UActorChannel::GetOrCreateNetFieldExportGroupForClassNetCache( const UObject* Object )
 {
 	if ( !Connection->InternalAck )
 	{
 		return nullptr;
 	}
+
+	check( Object );
+
+	const UClass* ObjectClass = Object->GetClass();
+
+	checkf( ObjectClass, TEXT( "ObjectClass is null. ObjectName: %s" ), *GetNameSafe( Object ) );
+	checkf( ObjectClass->IsValidLowLevelFast(), TEXT( "ObjectClass is invalid. ObjectName: %s" ), *GetNameSafe( Object ) );
 
 	UPackageMapClient* PackageMapClient = ( ( UPackageMapClient* )Connection->PackageMap );
 
@@ -3243,9 +3322,11 @@ static void	DeleteDormantActor( UWorld* InWorld )
 
 		UE_LOG(LogNet, Warning, TEXT("Deleting actor %s"), *ThisActor->GetName());
 
+#if ENABLE_DRAW_DEBUG
 		FBox Box = ThisActor->GetComponentsBoundingBox();
 		
 		DrawDebugBox( InWorld, Box.GetCenter(), Box.GetExtent(), FQuat::Identity, FColor::Red, true, 30 );
+#endif
 
 		ThisActor->Destroy();
 

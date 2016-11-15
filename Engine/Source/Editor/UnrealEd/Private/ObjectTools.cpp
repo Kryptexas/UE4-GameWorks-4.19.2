@@ -29,7 +29,7 @@
 #include "DesktopPlatformModule.h"
 #include "LevelUtils.h"
 #include "ConsolidateWindow.h"
-#include "ComponentReregisterContext.h"
+#include "ComponentRecreateRenderStateContext.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "Layers/ILayers.h"
@@ -262,7 +262,7 @@ namespace ObjectTools
 		}
 	}
 
-	UObject* DuplicateSingleObject(UObject* Object, const FPackageGroupName& PGN, TSet<UPackage*>& InOutPackagesUserRefusedToFullyLoad)
+	UObject* DuplicateSingleObject(UObject* Object, const FPackageGroupName& PGN, TSet<UPackage*>& InOutPackagesUserRefusedToFullyLoad, bool bPromptToOverwrite)
 	{
 		UObject* ReturnObject = NULL;
 
@@ -379,7 +379,7 @@ namespace ObjectTools
 
 		// If there are objects that already exist with the same name, give the user the option to overwrite the 
 		// object. This will delete the object so the new one can be created in its place.
-		if( ObjectsToOverwriteName.Len() > 0 )
+		if(bPromptToOverwrite && ObjectsToOverwriteName.Len() > 0 )
 		{
 			bool bOverwriteExistingObjects =
 				EAppReturnType::Yes == FMessageDialog::Open(
@@ -415,7 +415,7 @@ namespace ObjectTools
 				}
 			}
 
-			const int32 NumObjectsDeleted = ObjectTools::DeleteObjects(ObjectsToDelete);
+			const int32 NumObjectsDeleted = ObjectTools::DeleteObjects(ObjectsToDelete, bPromptToOverwrite);
 
 			// Remove all packages that we added to the root set above.
 			for ( auto PkgIt = DeletedObjectPackages.CreateConstIterator(); PkgIt; ++PkgIt )
@@ -451,7 +451,8 @@ namespace ObjectTools
 		// Any existing objects should be deleted and garbage collected by now
 		if ( ensure(ExistingObject == NULL) )
 		{
-			DupObject = StaticDuplicateObject( Object, CreatePackage(NULL,*PkgName), *ObjName );
+			EDuplicateMode::Type DuplicateMode = Object->IsA(UWorld::StaticClass()) ? EDuplicateMode::World : EDuplicateMode::Normal;
+			DupObject = StaticDuplicateObject( Object, CreatePackage(NULL,*PkgName), *ObjName, RF_AllFlags, nullptr, DuplicateMode );
 		}
 
 		if( DupObject )
@@ -818,7 +819,7 @@ namespace ObjectTools
 			// Scope the reregister context below to complete after object deletion and before garbage collection
 			{
 				// Replacing references inside already loaded objects could cause rendering issues, so globally detach all components from their scenes for now
-				FGlobalComponentReregisterContext ReregisterContext;
+				FGlobalComponentRecreateRenderStateContext ReregisterContext;
 				
 				ForceReplaceReferences(ObjectToConsolidateTo, ObjectsToConsolidate, ReplaceInfo);
 
@@ -1157,6 +1158,8 @@ namespace ObjectTools
 					for(TSet<UObject*>::TConstIterator SetIt(ReferencedObjects); SetIt; ++SetIt)
 					{
 						const UObject *ReferencedObject = *SetIt;
+						check(ReferencedObject);
+
 						// Don't list an object as referring to itself.
 						if ( ReferencedObject != Object )
 						{
@@ -1422,7 +1425,7 @@ namespace ObjectTools
 	{
 		TArray<UPackage*> PackagesToDelete = PotentialPackagesToDelete;
 		TArray<FString> PackageFilesToDelete;
-		TArray<FSourceControlStatePtr> PackageSCCStates;
+		TArray<TSharedRef<ISourceControlState, ESPMode::ThreadSafe> > PackageSCCStates;
 		ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
 
 		GWarn->BeginSlowTask( NSLOCTEXT("ObjectTools", "OldPackageCleanupSlowTask", "Cleaning Up Old Assets"), true );
@@ -1472,11 +1475,13 @@ namespace ObjectTools
 
 				PackageFilesToDelete.Add(PackageFilename);
 				Cast<UPackage>(Package)->SetDirtyFlag(false);
-				if ( ISourceControlModule::Get().IsEnabled() )
-				{
-					PackageSCCStates.Add( SourceControlProvider.GetState(PackageFilename, EStateCacheUsage::ForceUpdate) );
-				}
 			}
+		}
+
+		// Get the current source control states of all the package files we're deleting at once.
+		if (ISourceControlModule::Get().IsEnabled())
+		{
+			SourceControlProvider.GetState(PackageFilesToDelete, PackageSCCStates, EStateCacheUsage::ForceUpdate);
 		}
 
 		GWarn->EndSlowTask();
@@ -1497,24 +1502,27 @@ namespace ObjectTools
 		// Now delete all packages that have become empty
 		bool bMakeWritable = false;
 		bool bSilent = false;
+		TArray<FString> SCCFilesToRevert;
+		TArray<FString> SCCFilesToDelete;
+
 		for ( int32 PackageFileIdx = 0; PackageFileIdx < PackageFilesToDelete.Num(); ++PackageFileIdx )
 		{
 			const FString& PackageFilename = PackageFilesToDelete[PackageFileIdx];
 			if ( ISourceControlModule::Get().IsEnabled() )
 			{
-				const FSourceControlStatePtr SourceControlState = PackageSCCStates[PackageFileIdx];
-				const bool bInDepot = (SourceControlState.IsValid() && SourceControlState->IsSourceControlled());
+				const FSourceControlStateRef SourceControlState = PackageSCCStates[PackageFileIdx];
+				const bool bInDepot = SourceControlState->IsSourceControlled();
 				if ( bInDepot )
 				{
 					// The file is managed by source control. Open it for delete.
-					TArray<FString> DeleteFilenames;
-					DeleteFilenames.Add(FPaths::ConvertRelativePathToFull(PackageFilename));
+					FString FullPackageFilename = FPaths::ConvertRelativePathToFull(PackageFilename);
 
 					// Revert the file if it is checked out
 					const bool bIsAdded = SourceControlState->IsAdded();
 					if ( SourceControlState->IsCheckedOut() || bIsAdded || SourceControlState->IsDeleted() )
 					{
-						SourceControlProvider.Execute(ISourceControlOperation::Create<FRevert>(), DeleteFilenames);
+						// Batch the revert operation so that we only make one request to the source control module.
+						SCCFilesToRevert.Add(FullPackageFilename);
 					}
 
 					if ( bIsAdded )
@@ -1524,10 +1532,14 @@ namespace ObjectTools
 					}
 					else
 					{
-						// Open the file for delete
-						if ( SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), DeleteFilenames) == ECommandResult::Failed )
+						// Batch this file for deletion so that we only send one deletion request to the source control module.
+						if (SourceControlState->CanDelete())
 						{
-							UE_LOG(LogObjectTools, Warning, TEXT("SCC failed to open '%s' for delete while saving an empty package."), *PackageFilename);
+							SCCFilesToDelete.Add(FullPackageFilename);
+						}
+						else
+						{
+							UE_LOG(LogObjectTools, Warning, TEXT("SCC failed to open '%s' for deletion."), *PackageFilename);
 						}
 					}
 				}
@@ -1563,6 +1575,23 @@ namespace ObjectTools
 				else
 				{
 					IFileManager::Get().Delete(*PackageFilename);
+				}
+			}
+		}
+
+		// Handle all source control revert and delete operations as a batched operation.
+		if (ISourceControlModule::Get().IsEnabled())
+		{
+			if (SCCFilesToRevert.Num() > 0)
+			{
+				SourceControlProvider.Execute(ISourceControlOperation::Create<FRevert>(), SCCFilesToRevert);
+			}
+
+			if (SCCFilesToDelete.Num() > 0)
+			{
+				if (SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), SCCFilesToDelete) == ECommandResult::Failed)
+				{
+					UE_LOG(LogObjectTools, Warning, TEXT("SCC failed to open the selected files for deletion."));
 				}
 			}
 		}
@@ -2134,7 +2163,7 @@ namespace ObjectTools
 				}
 
 				// Replacing references inside already loaded objects could cause rendering issues, so globally detach all components from their scenes for now
-				FGlobalComponentReregisterContext ReregisterContext;
+				FGlobalComponentRecreateRenderStateContext ReregisterContext;
 
 				// UserDefinedStructs (probably all SctiptStructs) should be replaced with the FallbackStruct
 				{
@@ -3130,19 +3159,10 @@ namespace ObjectTools
 				IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 				if ( DesktopPlatform )
 				{
-					void* ParentWindowWindowHandle = NULL;
-
-					IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-					const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-					if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
-					{
-						ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-					}
-
 					FString FolderName;
 					const FString Title = NSLOCTEXT("UnrealEd", "ChooseADirectory", "Choose A Directory").ToString();
 					const bool bFolderSelected = DesktopPlatform->OpenDirectoryDialog(
-						ParentWindowWindowHandle,
+						FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr),
 						Title,
 						LastExportPath,
 						FolderName
@@ -3271,17 +3291,8 @@ namespace ObjectTools
 				bool bSave = false;
 				if ( DesktopPlatform )
 				{
-					void* ParentWindowWindowHandle = NULL;
-
-					IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-					const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-					if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
-					{
-						ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-					}
-
 					bSave = DesktopPlatform->SaveFileDialog(
-						ParentWindowWindowHandle,
+						FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr),
 						FText::Format( NSLOCTEXT("UnrealEd", "Save_F", "Save: {0}"), FText::FromString(ObjectToExport->GetName()) ).ToString(),
 						*LastExportPath,
 						*ObjectToExport->GetName(),

@@ -26,6 +26,8 @@ SOCKETS_API DECLARE_LOG_CATEGORY_EXTERN(LogSockets, Log, All);
 		#define PLATFORM_SOCKETSUBSYSTEM FName(TEXT("XBOXONE"))
 	#elif PLATFORM_HTML5
 		#define PLATFORM_SOCKETSUBSYSTEM FName(TEXT("HTML5"))
+	#elif PLATFORM_WOLF
+		#define PLATFORM_SOCKETSUBSYSTEM FName(TEXT("WOLF"))
 	#else
 		#define PLATFORM_SOCKETSUBSYSTEM FName(TEXT(""))
 	#endif
@@ -76,15 +78,6 @@ public:
 	 * @return the new socket or NULL if failed
 	 */
 	virtual class FSocket* CreateSocket(const FName& SocketType, const FString& SocketDescription, bool bForceUDP = false) = 0;
-
-	/**
-	* Creates a resolve info cached struct to hold the resolved address
-	*
-	* @Param Addr address to resolve for the socket subsystem
-	*
-	* @return the new resolved address or NULL if failed
-	*/
-	virtual class FResolveInfoCached* CreateResolveInfoCached(TSharedPtr<FInternetAddr> Addr) const;
 
 	/**
 	 * Cleans up a socket class

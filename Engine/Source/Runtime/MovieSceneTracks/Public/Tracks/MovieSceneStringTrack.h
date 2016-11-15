@@ -36,17 +36,17 @@ public:
 	 * @param String The string to add.
 	 * @param KeyParams The keying parameters
 	 */
-	bool AddKeyToSection(float Time, const FString& String, FKeyParams KeyParams);
+	bool AddKeyToSection(float Time, const FString& String);
 
 	/**
 	 * Evaluates the track at the playback position
 	 *
 	 * @param Position The psootion at which to evaluate this track.
 	 * @param LastPositionThe last playback position.
-	 * @param OutString The string at the evaluation time.
-	 * @return true if anything was evaluated. Note: if false is returned OutColor remains unchanged
+	 * @param InOutString The string at the evaluation time.
+	 * @return true if anything was evaluated. Note: if false is returned InOutString remains unchanged
 	 */
-	virtual bool Eval(float Position, float LastPostion, FString& OutString) const;
+	virtual bool Eval(float Position, float LastPostion, FString& InOutString) const;
 
 public:
 

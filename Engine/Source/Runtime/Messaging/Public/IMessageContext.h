@@ -153,7 +153,7 @@ private:
  * Scopes only apply to published messages. Messages that are being sent to specific
  * recipients will always be delivered, regardless of the endpoint locations.
  */
-enum class EMessageScope
+enum class EMessageScope : uint8
 {
 	/** Deliver to subscribers in the same thread. */
 	Thread,

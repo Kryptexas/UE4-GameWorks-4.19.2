@@ -266,6 +266,7 @@ void FMatinee::GetGroupLabelPosition( UInterpGroup* InGroup, int32& LabelTopPosi
 				}
 
 				const UInterpGroup* CurGroup = IData->InterpGroups[ CurGroupIndex ];
+				check(CurGroup);
 
 				// If this is the group we are looking for, stop searching
 				if( CurGroup == InGroup)

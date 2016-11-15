@@ -31,10 +31,10 @@ UMaterialInterface* FWidgetMaterialTrackEditor::GetMaterialInterfaceForTrack( FG
 	UMovieSceneWidgetMaterialTrack* WidgetMaterialTrack = Cast<UMovieSceneWidgetMaterialTrack>( MaterialTrack );
 	if ( Widget != nullptr && WidgetMaterialTrack != nullptr )
 	{
-		FSlateBrush* Brush = WidgetMaterialTrackUtilities::GetBrush( Widget, WidgetMaterialTrack->GetBrushPropertyNamePath() );
-		if ( Brush != nullptr )
+		FWidgetMaterialHandle Handle = WidgetMaterialTrackUtilities::GetMaterialHandle( Widget, WidgetMaterialTrack->GetBrushPropertyNamePath() );
+		if (Handle.IsValid() )
 		{
-			return Cast<UMaterialInterface>(Brush->GetResourceObject());
+			return Handle.GetMaterial();
 		}
 	}
 	return nullptr;

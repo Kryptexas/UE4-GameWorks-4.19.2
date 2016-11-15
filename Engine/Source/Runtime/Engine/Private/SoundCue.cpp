@@ -276,17 +276,17 @@ FString USoundCue::GetDesc()
 	return Description;
 }
 
-SIZE_T USoundCue::GetResourceSize(EResourceSizeMode::Type Mode)
+void USoundCue::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	if( Mode == EResourceSizeMode::Exclusive )
+	Super::GetResourceSizeEx(CumulativeResourceSize);
+
+	if( CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Exclusive )
 	{
-		return( 0 );
+		// Nothing to add
 	}
 	else
 	{
 		// Sum up the size of referenced waves
-		int32 ResourceSize = 0;
-
 		TArray<USoundNodeWavePlayer*> WavePlayers;
 		RecursiveFindNode<USoundNodeWavePlayer>( FirstNode, WavePlayers );
 
@@ -295,11 +295,9 @@ SIZE_T USoundCue::GetResourceSize(EResourceSizeMode::Type Mode)
 			USoundWave* SoundWave = WavePlayers[WaveIndex]->GetSoundWave();
 			if (SoundWave)
 			{
-				ResourceSize += SoundWave->GetResourceSize(Mode);
+				SoundWave->GetResourceSizeEx(CumulativeResourceSize);
 			}
 		}
-
-		return( ResourceSize );
 	}
 }
 

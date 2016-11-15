@@ -132,6 +132,11 @@ class IMessageRpcClient
 			}
 		}
 
+		virtual void* ConstructMessage() const override
+		{
+			return new typename RpcType::FRequest(*MessageTemplate);
+		}
+
 		TFuture<typename RpcType::FResult> GetFuture()
 		{
 			return Promise.GetFuture();
@@ -145,11 +150,6 @@ class IMessageRpcClient
 		virtual void* GetMessageTemplate() const override
 		{
 			return MessageTemplate;
-		}
-
-		virtual void* ConstructMessage() const override
-		{
-			return new typename RpcType::FRequest(*MessageTemplate);
 		}
 
 		virtual UScriptStruct* GetMessageType() const override
@@ -172,11 +172,6 @@ class IMessageRpcClient
 public:
 
 	/**
-	 * @return Whether the MessageRpcClient is currently connected to an RPC server.
-	 */
-	virtual bool IsConnected() const = 0;
-
-	/**
 	 * Connect this client to an RPC server.
 	 *
 	 * @param InServerAddress The RPC server's message address.
@@ -190,6 +185,13 @@ public:
 	 * @see Connect
 	 */
 	virtual void Disconnect() = 0;
+
+	/**
+	 * Whether the MessageRpcClient is currently connected to an RPC server.
+	 *
+	 * @return true if the client is connected, false otherwise.
+	 */
+	virtual bool IsConnected() const = 0;
 
 public:
 

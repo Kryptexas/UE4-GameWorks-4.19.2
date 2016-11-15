@@ -317,6 +317,8 @@ public:
 
 	void LoadText();
 
+	bool ComputeVolatility() const;
+
 	void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime);
 
 	int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled);
@@ -508,6 +510,9 @@ private:
 	/** Run renderer used to draw the active text selection */
 	TSharedPtr<SlateEditableTextTypes::FTextSelectionHighlighter> TextSelectionHighlighter;
 
+	/** Line highlights that have been added from this editable text layout (used for cleanup without removing) */
+	TArray<FTextLineHighlight> ActiveLineHighlights;
+
 	/** The scroll offset (in unscaled Slate units) for this text */
 	FVector2D ScrollOffset;
 
@@ -549,6 +554,9 @@ private:
 
 	/** Whether the text has been committed by a virtual keyboard */
 	bool bTextCommittedByVirtualKeyboard;
+
+	/** What text was submitted by a virtual keyboard */
+	FText VirtualKeyboardText;
 
 	/** How the text was committed by the virtual keyboard */
 	ETextCommit::Type VirtualKeyboardTextCommitType;

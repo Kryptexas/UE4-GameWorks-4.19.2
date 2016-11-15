@@ -59,8 +59,9 @@ UAnimBlueprint* FAnimationBaseContext::GetAnimBlueprint() const
 void FPoseContext::Initialize(FAnimInstanceProxy* InAnimInstanceProxy)
 {
 	checkSlow(AnimInstanceProxy && AnimInstanceProxy->GetRequiredBones().IsValid());
-	Pose.SetBoneContainer(&AnimInstanceProxy->GetRequiredBones());
-	Curve.InitFrom(AnimInstanceProxy->GetSkelMeshComponent()->GetCachedAnimCurveMappingNameUids());
+	const FBoneContainer& RequiredBone = AnimInstanceProxy->GetRequiredBones();
+	Pose.SetBoneContainer(&RequiredBone);
+	Curve.InitFrom(RequiredBone);
 }
 
 /////////////////////////////////////////////////////
@@ -69,8 +70,9 @@ void FPoseContext::Initialize(FAnimInstanceProxy* InAnimInstanceProxy)
 void FComponentSpacePoseContext::ResetToRefPose()
 {
 	checkSlow(AnimInstanceProxy && AnimInstanceProxy->GetRequiredBones().IsValid());
-	Pose.InitPose(&AnimInstanceProxy->GetRequiredBones());
-	Curve.InitFrom(AnimInstanceProxy->GetSkelMeshComponent()->GetCachedAnimCurveMappingNameUids());
+	const FBoneContainer& RequiredBone = AnimInstanceProxy->GetRequiredBones();
+	Pose.InitPose(&RequiredBone);
+	Curve.InitFrom(RequiredBone);
 }
 
 /////////////////////////////////////////////////////
@@ -500,6 +502,7 @@ void FExposedValueHandler::Initialize(FAnimNode_Base* AnimNode, UObject* AnimIns
 			}
 
 			CopyRecord.CachedBoolDestProperty = Cast<UBoolProperty>(CopyRecord.DestProperty);
+			CopyRecord.CachedStructDestProperty = Cast<UStructProperty>(CopyRecord.DestProperty);
 		}
 	}
 
@@ -529,6 +532,10 @@ void FExposedValueHandler::Execute(const FAnimationBaseContext& Context) const
 				{
 					bool bValue = CopyRecord.CachedBoolSourceProperty->GetPropertyValue_InContainer(CopyRecord.CachedSourceContainer);
 					CopyRecord.CachedBoolDestProperty->SetPropertyValue_InContainer(CopyRecord.CachedDestContainer, bValue, CopyRecord.DestArrayIndex);
+				}
+				else if(CopyRecord.CachedStructDestProperty != nullptr)
+				{
+					CopyRecord.CachedStructDestProperty->Struct->CopyScriptStruct(CopyRecord.Dest, CopyRecord.Source);
 				}
 				else
 				{

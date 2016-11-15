@@ -56,13 +56,10 @@ ANavLinkProxy::ANavLinkProxy(const FObjectInitializer& ObjectInitializer) : Supe
 	}
 #endif
 
-	if (HasAnyFlags(RF_ClassDefaultObject) == false)
-	{
-		SmartLinkComp = CreateDefaultSubobject<UNavLinkCustomComponent>(TEXT("SmartLinkComp"));
-		SmartLinkComp->SetNavigationRelevancy(false);
-		SmartLinkComp->SetMoveReachedLink(this, &ANavLinkProxy::NotifySmartLinkReached);
-		bSmartLinkIsRelevant = false;
-	}
+	SmartLinkComp = CreateDefaultSubobject<UNavLinkCustomComponent>(TEXT("SmartLinkComp"));
+	SmartLinkComp->SetNavigationRelevancy(false);
+	SmartLinkComp->SetMoveReachedLink(this, &ANavLinkProxy::NotifySmartLinkReached);
+	bSmartLinkIsRelevant = false;
 
 	PointLinks.Add(FNavigationLink());
 	SetActorEnableCollision(false);
@@ -85,6 +82,12 @@ void ANavLinkProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 	if (CategoryName == TEXT("SimpleLink") || MemberCategoryName == TEXT("SimpleLink"))
 	{
 		bUpdateInNavOctree = true;
+		// @hack fix for changes to AreaClass in the editor not taking effect
+		// proper fix already in at CL#3183123
+		for (FNavigationLink& Link : PointLinks)
+		{
+			Link.InitializeAreaClass();
+		}
 	}
 
 	if (bUpdateInNavOctree)
@@ -186,7 +189,7 @@ FBox ANavLinkProxy::GetComponentsBoundingBox(bool bNonColliding) const
 
 	LinksBB = LinksBB.TransformBy(RootComponent->ComponentToWorld);
 
-	if (SmartLinkComp->IsNavigationRelevant())
+	if (SmartLinkComp && SmartLinkComp->IsNavigationRelevant())
 	{
 		LinksBB += SmartLinkComp->GetStartPoint();
 		LinksBB += SmartLinkComp->GetEndPoint();

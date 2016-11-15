@@ -10,6 +10,8 @@
 #include "UObject/UObjectThreadContext.h"
 #include "ModuleManager.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogBlueprintSupport, Log, All);
+
 /** 
  * Defined in BlueprintSupport.cpp
  * Duplicates all fields of a class in depth-first order. It makes sure that everything contained
@@ -475,7 +477,7 @@ bool FLinkerLoad::DeferPotentialCircularImport(const int32 Index)
 				{
 					Import.XObject = MakeImportPlaceholder<ULinkerPlaceholderClass>(LinkerRoot, *Import.ObjectName.ToString(), Index);
 				}
-				else if (ImportClass->IsChildOf<UFunction>())
+				else if (ImportClass->IsChildOf<UFunction>() && Import.OuterIndex.IsImport())
 				{
 					const int32 OuterImportIndex = Import.OuterIndex.ToImport();
 					// @TODO: if the sole reason why we have ULinkerPlaceholderFunction 
@@ -513,7 +515,6 @@ bool FLinkerLoad::IsSuppressableBlueprintImportError(int32 ImportIndex) const
 	// compiled-on-load.
 	static const FName NAME_BlueprintGeneratedClass("BlueprintGeneratedClass");
 
-	bool bImportBelongsToBlueprint = false;
 	// We will look at each outer of the Import to see if any of them are a BPGC
 	while (ImportMap.IsValidIndex(ImportIndex))
 	{
@@ -521,8 +522,16 @@ bool FLinkerLoad::IsSuppressableBlueprintImportError(int32 ImportIndex) const
 		if (TestImport.ClassName == NAME_BlueprintGeneratedClass)
 		{
 			// The import is a BPGC, suppress errors
-			bImportBelongsToBlueprint = true;
-			break;
+			return true;
+		}
+
+		// Check if this is a BP CDO, if so our class will be in the import table
+		for (const FObjectImport& PotentialBPClass : ImportMap)
+		{
+			if (PotentialBPClass.ObjectName == TestImport.ClassName && PotentialBPClass.ClassName == NAME_BlueprintGeneratedClass)
+			{
+				return true;
+			}
 		}
 
 		if (!TestImport.OuterIndex.IsNull() && TestImport.OuterIndex.IsImport())
@@ -536,7 +545,7 @@ bool FLinkerLoad::IsSuppressableBlueprintImportError(int32 ImportIndex) const
 		}
 	}
 
-	return bImportBelongsToBlueprint;
+	return false;
 }
 #endif // WITH_EDITOR
 
@@ -1525,7 +1534,7 @@ void FLinkerLoad::ResolveDeferredExports(UClass* LoadClass)
 		// sub-classes of this Blueprint could have had their CDO's 
 		// initialization deferred (this occurs when the sub-class CDO is 
 		// created before this super CDO has been fully serialized; we do this
-		// because the  sub-class's CDO would not have been initialized with 
+		// because the sub-class's CDO would not have been initialized with 
 		// accurate values)
 		//
 		// in that case, the sub-class CDOs are waiting around until their 
@@ -2008,6 +2017,24 @@ void FDeferredObjInitializerTracker::ResolveDeferredSubObjects(UObject* CDO)
 
 	for (FObjectInitializer* DeferredInitializer : DeferredSubObjInitializers)
 	{
+		UObject* SubObjArchetype = DeferredInitializer->GetArchetype();
+		// just because the class's CDO archetype has completed serialization 
+		// does not mean that the archetypes for these sub-objects have... 
+		// unfortunately there isn't anywhere else where we ensure that these 
+		// archetypes are loaded (else we should defer this further, until then 
+		// when we can guarantee that each archetype is complete) - we don't  
+		// even force a load of these sub-object archetypes prior to their own 
+		// Blueprint's regeneration, meaning it's compiled-on-load potentially 
+		// with incomplete component templates; this is potentially bad in 
+		// itself (TODO: investigate)
+		if (SubObjArchetype && !SubObjArchetype->HasAnyFlags(RF_LoadCompleted))
+		{
+			if (FLinkerLoad* SubObjLinker = SubObjArchetype->GetLinker())
+			{
+				SubObjArchetype->SetFlags(RF_NeedLoad);
+				SubObjLinker->Preload(SubObjArchetype);
+			}
+		}
 		FScriptIntegrationObjectHelper::PostConstructInitObject(*DeferredInitializer);
 	}
 	ThreadInst.DeferredSubObjInitializers.Remove(LoadClass);
@@ -2051,9 +2078,12 @@ void FDeferredObjInitializerTracker::ResolveDeferredSubClassObjects(UClass* Supe
 // don't want other files ending up with this internal define
 #undef DEFERRED_DEPENDENCY_CHECK
 
-FBlueprintDependencyData::FBlueprintDependencyData(const TCHAR* InPackageName
-	, const TCHAR* InObjectName, const TCHAR* InClassPackageName, const TCHAR* InClassName) 
-	: PackageName(InPackageName)
+FBlueprintDependencyData::FBlueprintDependencyData(const TCHAR* InPackageFolder
+	, const TCHAR* InShortPackageName
+	, const TCHAR* InObjectName
+	, const TCHAR* InClassPackageName
+	, const TCHAR* InClassName) 
+	: PackageName(*(FString(InPackageFolder) + TEXT("/") + InShortPackageName))
 	, ObjectName(InObjectName)
 	, ClassPackageName(InClassPackageName)
 	, ClassName(InClassName)
@@ -2118,3 +2148,178 @@ void IBlueprintNativeCodeGenCore::Register(const IBlueprintNativeCodeGenCore* Co
 }
 
 #endif // WITH_EDITOR
+
+
+/*******************************************************************************
+ * FLegacyEditorOnlyBlueprintManager
+ ******************************************************************************/
+
+struct FLegacyEditorOnlyBlueprintOptions_Impl
+{
+	static void Init();
+	static const UClass* GetUBlueprintObjType();
+
+	static bool bExcludeBlueprintObjectsFromCookedBuilds;
+	static bool bFixupLegacyBlueprintProperties;
+	static bool bProhibitLegacyBlueprintVarType;
+	static bool bForceAllowLegacyBlueprintPinConnections;
+};
+
+bool FLegacyEditorOnlyBlueprintOptions_Impl::bExcludeBlueprintObjectsFromCookedBuilds = false;
+bool FLegacyEditorOnlyBlueprintOptions_Impl::bFixupLegacyBlueprintProperties = false;
+bool FLegacyEditorOnlyBlueprintOptions_Impl::bProhibitLegacyBlueprintVarType = false;
+bool FLegacyEditorOnlyBlueprintOptions_Impl::bForceAllowLegacyBlueprintPinConnections = false;
+
+void FLegacyEditorOnlyBlueprintOptions_Impl::Init()
+{
+	static bool bInited = false;
+	if (!bInited)
+	{
+		const TCHAR* SectionId = TEXT("EditoronlyBP");
+
+		bool bHasSettings = GConfig->GetBool(SectionId, TEXT("bDontLoadBlueprintOutsideEditor"), bExcludeBlueprintObjectsFromCookedBuilds, GEditorIni);
+		bHasSettings |= GConfig->GetBool(SectionId, TEXT("bReplaceBlueprintWithClass"),   bFixupLegacyBlueprintProperties, GEditorIni);
+		bHasSettings |= GConfig->GetBool(SectionId, TEXT("bBlueprintIsNotBlueprintType"), bProhibitLegacyBlueprintVarType, GEditorIni);
+		bHasSettings |= GConfig->GetBool(SectionId, TEXT("bAllowClassAndBlueprintPinMatching"), bForceAllowLegacyBlueprintPinConnections, GEditorIni);
+
+		// we expect all these settings to be enabled
+		const bool bOptionsDisabled = !bExcludeBlueprintObjectsFromCookedBuilds || !bFixupLegacyBlueprintProperties ||
+			!bProhibitLegacyBlueprintVarType || !bForceAllowLegacyBlueprintPinConnections;
+		if (bOptionsDisabled)
+		{
+			if (bHasSettings)
+			{
+				UE_LOG(LogBlueprintSupport, Warning, TEXT("Editor config [EditoronlyBP] settings are DEPRECATED. You're explicitly disabling some. If you're relying on this functionality, then please fix it up so your Blueprints don't break in a future release."));
+			}
+			else
+			{
+				UE_LOG(LogBlueprintSupport, Warning, TEXT("Editor config [EditoronlyBP] settings are DEPRECATED. You're not explicitly setting any, but they've been defaulting to off. If you are relying on this functionality, then please fix it up so your Blueprints don't break in a future release."));
+			}
+		}
+
+		bInited = true;
+	}
+}
+
+const UClass* FLegacyEditorOnlyBlueprintOptions_Impl::GetUBlueprintObjType()
+{
+	static const UClass* BlueprintClass = FindObject<UClass>(nullptr, TEXT("/Script/Engine.Blueprint"));
+	return BlueprintClass;
+}
+
+FString FLegacyEditorOnlyBlueprintOptions::GetDefaultEditorConfig()
+{
+	FString ConfigStr;
+	ConfigStr += TEXT("[EditoronlyBP]") LINE_TERMINATOR;
+	ConfigStr += TEXT("bAllowClassAndBlueprintPinMatching=true") LINE_TERMINATOR;
+	ConfigStr += TEXT("bReplaceBlueprintWithClass=true") LINE_TERMINATOR;
+	ConfigStr += TEXT("bDontLoadBlueprintOutsideEditor=true") LINE_TERMINATOR;
+	ConfigStr += TEXT("bBlueprintIsNotBlueprintType=true") LINE_TERMINATOR;
+	return ConfigStr;
+}
+
+bool FLegacyEditorOnlyBlueprintOptions::IncludeUBlueprintObjsInCookedBuilds()
+{
+	FLegacyEditorOnlyBlueprintOptions_Impl::Init();
+	return !FLegacyEditorOnlyBlueprintOptions_Impl::bExcludeBlueprintObjectsFromCookedBuilds;
+}
+
+bool FLegacyEditorOnlyBlueprintOptions::AllowLegacyBlueprintPinMatchesWithClass()
+{
+	FLegacyEditorOnlyBlueprintOptions_Impl::Init();
+	return FLegacyEditorOnlyBlueprintOptions_Impl::bForceAllowLegacyBlueprintPinConnections;
+}
+
+bool FLegacyEditorOnlyBlueprintOptions::FixupLegacyBlueprintReferences()
+{
+	FLegacyEditorOnlyBlueprintOptions_Impl::Init();
+	return FLegacyEditorOnlyBlueprintOptions_Impl::bFixupLegacyBlueprintProperties;
+}
+
+bool FLegacyEditorOnlyBlueprintOptions::DetectInvalidBlueprintExport(const FLinkerSave* Linker, const int32 ExportIndex)
+{
+	const UObject* ExportObj = Linker->ExportMap[ExportIndex].Object;
+	if (Linker->IsCooking() && ExportObj && IncludeUBlueprintObjsInCookedBuilds())
+	{
+		const UClass* BlueprintClass = FLegacyEditorOnlyBlueprintOptions_Impl::GetUBlueprintObjType();
+		if (BlueprintClass && ExportObj->IsA(BlueprintClass))
+		{
+			const bool bIsFatal = IsEventDrivenLoaderEnabledInCookedBuilds();
+			if (bIsFatal)
+			{
+				UE_LOG(LogBlueprintSupport, Fatal,
+					TEXT("You're exporting a UBlueprint ('%s') editor object with your cook. This is now DEPRECATED (the Blueprint's class & CDO should be all that's needed). This is incompatible with the new event-driven loader. Please add the following to your editor ini file to strip UBluprints from cooked packages (these settings will become the default):\n%s"),
+					*ExportObj->GetName(),
+					*GetDefaultEditorConfig());
+			}
+			else
+			{
+				UE_LOG(LogBlueprintSupport, Warning,
+					TEXT("You're exporting a UBlueprint ('%s') editor object with your cook. This is now DEPRECATED (the Blueprint's class & CDO should be all that's needed). Please fix up any relience you have on it, and add the following to your editor ini file (these settings will become the default):\n%s"),
+					*ExportObj->GetName(),
+					*GetDefaultEditorConfig());
+			}
+			return true;
+		}
+	}
+	return false;
+}
+
+bool FLegacyEditorOnlyBlueprintOptions::FixupClassProperty(const UClassProperty* Property, void* Value)
+{
+	const UObject* ObjValue = Property->GetObjectPropertyValue(Value);
+	if (ObjValue && (Property->MetaClass == UObject::StaticClass()))
+	{
+		// since we're in core, we don't have access to UBlueprint::StaticClass()
+		const UClass* BlueprintClass = FLegacyEditorOnlyBlueprintOptions_Impl::GetUBlueprintObjType();
+		if (BlueprintClass && ObjValue->IsA(BlueprintClass))
+		{
+			FLegacyEditorOnlyBlueprintOptions_Impl::Init();
+			if (FLegacyEditorOnlyBlueprintOptions_Impl::bFixupLegacyBlueprintProperties)
+			{
+				UE_LOG(LogBlueprintSupport, Warning,
+					TEXT("Attempting to fix up an old Blueprint property (%s), which is referencing a UBlueprint (%s) instead of its class - this fixup is DEPRECATED; please fix manually (possibly just a resave)"),
+					*Property->GetFullName(),
+					*ObjValue->GetFullName());
+
+				// again, no access to UBlueprint, so we have to sift through reflection data to get what we want
+				if (UClassProperty* BPGeneratedClassProp = FindField<UClassProperty>(BlueprintClass, TEXT("GeneratedClass")))
+				{
+					UObject* ClassObject = BPGeneratedClassProp->GetPropertyValue_InContainer(ObjValue);
+					Property->SetObjectPropertyValue(Value, ClassObject);
+					return true;
+				}
+			}
+			else
+			{
+				UE_LOG(LogBlueprintSupport, Warning,
+					TEXT("An old Blueprint property (%s), references a UBlueprint (%s) instead of its class - this is DEPRECATED in packaged builds; please fix (possibly by enabling bReplaceBlueprintWithClass and resaving)"),
+					*Property->GetFullName(),
+					*ObjValue->GetFullName());
+			}
+		}
+	}
+
+	return false;
+}
+
+bool FLegacyEditorOnlyBlueprintOptions::IsTypeProhibited(const UClass* VarType)
+{
+	// since we're in core, we don't have access to UBlueprint::StaticClass()
+	const UClass* BlueprintClass = FLegacyEditorOnlyBlueprintOptions_Impl::GetUBlueprintObjType();
+	if (BlueprintClass && VarType->IsChildOf(BlueprintClass))
+	{
+		FLegacyEditorOnlyBlueprintOptions_Impl::Init();
+		if (FLegacyEditorOnlyBlueprintOptions_Impl::bForceAllowLegacyBlueprintPinConnections)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+
+
+
+
+

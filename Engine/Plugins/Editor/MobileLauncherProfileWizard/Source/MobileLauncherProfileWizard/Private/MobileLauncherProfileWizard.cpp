@@ -19,7 +19,7 @@ private:
 	TSharedPtr<FIOSProfileWizard> IOSWizardPtr;
 };
 
-IMPLEMENT_MODULE( FMobileLauncherProfileWizardModule, MobileLauncherProfileWizardModule )
+IMPLEMENT_MODULE( FMobileLauncherProfileWizardModule, MobileLauncherProfileWizard )
 
 void FMobileLauncherProfileWizardModule::StartupModule()
 {

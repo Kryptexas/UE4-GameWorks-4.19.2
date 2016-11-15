@@ -44,8 +44,13 @@ struct FEmitterLocalContext
 
 	EGeneratedCodeType CurrentCodeType;
 
-	TArray<const UObject*> UsedObjectInCurrentClass;
+	// List od assets directly used in class implementation.
+	TArray<const UObject*> UsedObjectInCurrentClass; 
 	TArray<const UUserDefinedEnum*> EnumsInCurrentClass;
+
+	// Nativized UDS doesn't reference its default value dependencies. When ::GetDefaultValue is used, then we need to reference the dependencies in the class.
+	TArray<UUserDefinedStruct*> StructsWithDefaultValuesUsed;
+
 private:
 	int32 LocalNameIndexMax;
 
@@ -234,7 +239,7 @@ struct FEmitHelper
 
 	static bool ShouldHandleAsImplementableEvent(UFunction* Function);
 
-	static bool GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, const FEdGraphPinType& LType, const FEdGraphPinType& RType, FString& OutCastBegin, FString& OutCastEnd);
+	static bool GenerateAutomaticCast(FEmitterLocalContext& EmitterContext, const FEdGraphPinType& LType, const FEdGraphPinType& RType, FString& OutCastBegin, FString& OutCastEnd, bool bForceReference = false);
 
 	static FString GenerateReplaceConvertedMD(UObject* Obj);
 
@@ -287,12 +292,12 @@ struct FEmitDefaultValueHelper
 
 	// Creates the subobject (of class) returns it's native local name, 
 	// returns empty string if cannot handle
-	static FString HandleClassSubobject(FEmitterLocalContext& Context, UObject* Object, FEmitterLocalContext::EClassSubobjectList ListOfSubobjectsTyp, bool bCreate, bool bInitilize);
+	static FString HandleClassSubobject(FEmitterLocalContext& Context, UObject* Object, FEmitterLocalContext::EClassSubobjectList ListOfSubobjectsTyp, bool bCreate, bool bInitialize);
 
 	// returns true, and fill OutResult, when the structure is handled in a custom way.
 	static bool SpecialStructureConstructor(const UStruct* Struct, const uint8* ValuePtr, FString* OutResult);
 
-	// Add static initialization functions. Must be call after Context.UsedObjectInCurrentClass is fully filled
+	// Add static initialization functions. Must be called after Context.UsedObjectInCurrentClass is fully filled
 	static void AddStaticFunctionsForDependencies(FEmitterLocalContext& Context, TSharedPtr<FGatherConvertedClassDependencies> ParentDependencies);
 
 	static void AddRegisterHelper(FEmitterLocalContext& Context);
@@ -334,4 +339,16 @@ struct FBackendHelperStaticSearchableValues
 	static FString GenerateClassMetaData(UClass* Class);
 	static void EmitFunctionDeclaration(FEmitterLocalContext& Context);
 	static void EmitFunctionDefinition(FEmitterLocalContext& Context);
+};
+
+struct FNativizationSummaryHelper
+{
+	static void InaccessibleProperty(const UProperty* Property);
+	// Notify, that the class used a (unrelated) property
+	static void PropertyUsed(const UClass* Class, const UProperty* Property);
+	// Notify, that the class used a (unrelated) function
+	static void FunctionUsed(const UClass* Class, const UFunction* Function);
+	static void RegisterClass(const UClass* OriginalClass);
+
+	static void ReducibleFunciton(const UClass* OriginalClass);
 };

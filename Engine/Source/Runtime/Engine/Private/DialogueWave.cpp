@@ -462,13 +462,16 @@ void UDialogueSoundWaveProxy::Parse(class FAudioDevice* AudioDevice, const UPTRI
 	if (ActiveSound.bHandleSubtitles && Subtitles.Num() > 0)
 	{
 		FQueueSubtitleParams QueueSubtitleParams(Subtitles);
-		QueueSubtitleParams.AudioComponentID = ActiveSound.GetAudioComponentID();
-		QueueSubtitleParams.WorldPtr = ActiveSound.GetWeakWorld();
-		QueueSubtitleParams.WaveInstance = (PTRINT)WaveInstance;
-		QueueSubtitleParams.SubtitlePriority = ActiveSound.SubtitlePriority;
-		QueueSubtitleParams.Duration = GetDuration();
-		QueueSubtitleParams.bManualWordWrap = false;
-		QueueSubtitleParams.bSingleLine = false;
+		{
+			QueueSubtitleParams.AudioComponentID = ActiveSound.GetAudioComponentID();
+			QueueSubtitleParams.WorldPtr = ActiveSound.GetWeakWorld();
+			QueueSubtitleParams.WaveInstance = (PTRINT)WaveInstance;
+			QueueSubtitleParams.SubtitlePriority = ActiveSound.SubtitlePriority;
+			QueueSubtitleParams.Duration = GetDuration();
+			QueueSubtitleParams.bManualWordWrap = false;
+			QueueSubtitleParams.bSingleLine = false;
+			QueueSubtitleParams.RequestedStartTime = ActiveSound.RequestedStartTime;
+		}
 
 		FSubtitleManager::QueueSubtitles(QueueSubtitleParams);
 	}

@@ -14,7 +14,7 @@ class UAnimGraphNode_Slot;
 struct FSkeletonSlotNamesSummoner : public FWorkflowTabFactory
 {
 public:
-	FSkeletonSlotNamesSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp);
+	FSkeletonSlotNamesSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton, FSimpleMulticastDelegate& InOnPostUndo, FOnObjectSelected InOnObjectSelected);
 
 	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override;
 
@@ -23,6 +23,10 @@ public:
 	{
 		return  IDocumentation::Get()->CreateToolTip(LOCTEXT("WindowTooltip", "This tab lets you modify custom animation SlotName"), NULL, TEXT("Shared/Editors/Persona"), TEXT("AnimationSlotName_Window"));
 	}
+public:
+	TWeakPtr<class IEditableSkeleton> EditableSkeleton;
+	FSimpleMulticastDelegate& OnPostUndo;
+	FOnObjectSelected OnObjectSelected;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -64,16 +68,13 @@ class SSkeletonSlotNames : public SCompoundWidget, public FGCObject
 {
 public:
 	SLATE_BEGIN_ARGS( SSkeletonSlotNames )
-		: _Persona()
 	{}
 
-	SLATE_ARGUMENT( TWeakPtr<FPersona>, Persona )
-		
-		SLATE_END_ARGS()
-public:
-	void Construct(const FArguments& InArgs);
+	SLATE_ARGUMENT(FOnObjectSelected, OnObjectSelected)
 
-	~SSkeletonSlotNames();
+	SLATE_END_ARGS()
+public:
+	void Construct(const FArguments& InArgs, const TSharedRef<IEditableSkeleton>& InEditableSkeleton, FSimpleMulticastDelegate& InOnPostUndo);
 
 	/**
 	* Accessor so our rows can grab the filter text for highlighting
@@ -187,11 +188,11 @@ private:
 	// Callback for popup reference window closing
 	void ReferenceWindowClosed(const TSharedRef<SWindow>& Window);
 
-	/** The owning Persona instance */
-	TWeakPtr<class FPersona> PersonaPtr;
-
 	/** The skeleton we are currently editing */
-	USkeleton* TargetSkeleton;
+	TWeakPtr<class IEditableSkeleton> EditableSkeletonPtr;
+
+	/** Delegate call to select an object & display its details */
+	FOnObjectSelected OnObjectSelected;
 
 	/** SSearchBox to filter the notify list */
 	TSharedPtr<SSearchBox>	NameFilterBox;

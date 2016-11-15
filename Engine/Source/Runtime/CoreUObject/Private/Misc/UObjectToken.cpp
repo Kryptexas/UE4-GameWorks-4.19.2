@@ -19,16 +19,27 @@ FUObjectToken::FUObjectToken( const UObject* InObject,  const FText& InLabelOver
 		if ( DefaultGetObjectDisplayName.IsBound() )
 		{
 			CachedText = DefaultGetObjectDisplayName.Execute(InObject, false);
+
+			if (InObject)
+			{
+				OriginalObjectPathName = InObject->GetPathName();
+			}
 		}
 		else if ( InObject )
 		{
 			CachedText = FText::FromString( InObject->GetName() );
+			OriginalObjectPathName = InObject->GetPathName();
 		}
 		else
 		{
 			CachedText = NSLOCTEXT("MessageLog", "NoneObjectToken", "<None>");
 		}
 	}
+}
+
+TSharedRef<FUObjectToken> FUObjectToken::Create(const UObject* InObject, const FText& InLabelOverride)
+{
+	return MakeShareable(new FUObjectToken(InObject, InLabelOverride));
 }
 
 const FOnMessageTokenActivated& FUObjectToken::GetOnMessageTokenActivated() const

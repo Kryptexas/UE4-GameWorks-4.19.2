@@ -1,17 +1,17 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Material Editor - How To use Dual Normals with Clear Coat
-Description: A How-To guide for using Dual Normal maps in your Clear Coat Material.
+﻿INTSourceChangelist:3011129
+Availability:Public
+Title:材质编辑器 - 如何对透明涂层使用双法线
+Description:在透明涂层材质中使用双法线的指南。
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
-Version: 4.12
-SkillLevel: Intermediate
+Version:4.12
+SkillLevel:Intermediate
 
 [TOC(start:2)]
 
-The Clear Coat Shading Model now has the option to add a 2nd Normal map for the surface that is below the clearcoat layer. This allows us to more accurately model complex materials such as carbon fiber which have a different geometric surface than the Clear Coat layer. In the following How - To we will go over how you can enable and use this feature in your UE4 projects.
+透明涂层着色模型现在可以为透明涂层以下的表面添加第二法线贴图。这样可以更精确地为复杂的材质建模，如表面与透明涂层存在几何差异的碳纤维。在下面的说明中，我们将介绍如何在 UE4 项目中打开并使用这一功能。
 
-## What the 2nd Normal does
-Before we get started with this How - To, let's take a quick look at what adding a 2nd Normal map allows us to achieve with the Clear Coat shading model.
+## 第二法线贴图的作用
+在开始之前，我们先来看看添加第二法线贴图能让我们通过透明涂层着色模型实现什么。
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -22,44 +22,44 @@ Before we get started with this How - To, let's take a quick look at what adding
 	[/PARAM]
 [/OBJECT]
 
-In the above image you can see the effect adding a 2nd Normal map has on the way the surface under the Clear Coat is lit. If you take a look at the image on the left, Clear Coat Bottom Normal Off, you will notice that while the surface under the Clear Coat is interacting with the lighting, the light is only affecting the surface in one direction making the lighting look a little flat. If you take a look at the image on the right, Clear Coat Bottom Normal On, you will notice that the light looks to be affecting the surface in multiple directions and this is the type of interaction we are after.
+在上图中，您可以看到添加第二法线之后对透明涂层下的表面的光照有什么效果。左图是关闭透明涂层底面法线的效果，您会注意到虽然透明涂层下方的表面与光照有互动，但光线只会在一个方向上对表面产生影响，这是的光照效果显得有些平板。右图是开启透明涂层底面法线的效果，您会注意到光线在多个方向上对表面产生影响，而这正是我们要追求的互动结果。
 
-## Required Files
-In order to follow along with this How - To you will need to download, extract and then import to UE4 the following Texture files. If you are unfamiliar with how to do this please check out the [Texture Import Guide](https://docs.unrealengine.com/latest/INT/Engine/Content/Types/Textures/Importing/) for more information about how to go about doing this.
+## 所需文件
+为重现本说明中的步骤，您需要下载并解压下列纹理文件，并将其导入 UE4。如果您不熟悉这些操作，请参考 [纹理导入指南](https://docs.unrealengine.com/latest/INT/Engine/Content/Types/Textures/Importing/)，了解相应的详细信息。
 
-**[Required Textures Download](ClearCoatDualNormalTextures.zip)** (Right - Click Save as)
+**[所需纹理下载](ClearCoatDualNormalTextures.zip)**（右键 - 另存为）
 
-## Enabling the Dual - Normal Clear Coat option
-Before you can use the new dual normal you will need to enable the feature by doing the following.
+## 启用双法线透明涂层选项
+在使用全新的双法线功能前，您需要先按下列步骤启用该功能。
 
-1. From the **Main Toolbar** go to **Edit** > **Project Settings**.
+1. 在**主工具栏**中，点击 **Edit** > **Project Settings**。
 
 	![](Dual_CC_Enable_Option_00.png)
 
-1. In the Project Settings go to **Rendering** > **Materials** and then click on the check mark box that is next to **Clear Coat Enable Second Normal** option to enable it.
+1. 在 Project Settings 中，点击 **Rendering** > **Materials** 然后勾选 **Clear Coat Enable Second Normal** 选项前的复选框，即可启用。
 
 	![](Dual_CC_Enable_Option_01.png)
 
-1. Click on the **Restart Now** option to re-launch the UE4 Editor with the Clear Coat Enable Second Normal feature now enabled.
+1. 点击 **Restart Now** 选项重启 UE4 Editor，随后 Clear Coat Enable Second Normal 功能将被启用。
 
 	![](Dual_CC_Restart_Editor.png)
 
-## Using the Dual - Normal Clear Coat option
+## 使用双法线透明涂层选项
 
-With the Dual - Normal Clear Coat option now enabled, it is now time to create and setup a new  Material that can use it. To accomplish this you will need to do the following.
+启用双法线透明涂层选项后，我们将创建并设置一个可以使用它的新材质。为此，请按以下步骤操作。
 
-1. Create a new Material in the **Content Browser** with a name of **Dual_Normal_Clear_Coat** and then double - click on it to open it up.
+1. 在 **Content Browser** 中创建一个新材质，命名为 **Dual_Normal_Clear_Coat**，然后双击将其打开。
 
 	![](Dual_CC_Create_Material.png)
 
-1. Select the **Main Material Node** and in the **Details** panel under the **Material** section, change the following options.
-	* **Shading Model:** Clear Coat
+1. 选择 **Main Material Node**，并在 **Details** 面板的 **Material** 部分中，更改下列选项。
+	* **Shading Model:**Clear Coat
 
 	![](Dual_CC_Change_Shading_Model.png)
 
-1. Add four **Scalar Parameter Expression** nodes to the Material Graph and give them the following names and values then connect them so that they match the image below.
+1. 向材质图表中添加四个**标量参数表现（Scalar Parameter Expression）**节点，名称和值如下所示。然后将其按下图连接起来。
 
-	|Material Expression Type| Name| Default Value|
+	|材质表现类型| 名称| 默认值|
 	|--------------------------------|---------|---------|
 	|Scalar Parameter| Base Color|0.1225|
 	|Scalar Parameter| Metallic|0.5|
@@ -70,9 +70,9 @@ With the Dual - Normal Clear Coat option now enabled, it is now time to create a
 	[![](Dual_CC_Base_Nodes_Setup.png)(w:200 h:250)](Dual_CC_Base_Nodes_Setup.png)
 	[/REGION]
 
-1. To setup, the **Roughness** section of the Material add the following Material Expression nodes to the Material Graph and give them the following values and name. Once the Material Expression nodes have been added, connect them so that they match the image below.
+1. 接下来的设置：在 Material 的 **Roughness** 部分中，向材质图表添加下列材质表现节点，并为其赋予以下值和名称。添加材质表现节点后，按下图将其连接起来。
 
-	|Material Expression Type| Name| Default Value|
+	|材质表现类型| 名称| 默认值|
 	|--------------------------------|---------|---------|
 	|Scalar Parameter| Roughness Scaling|30.0|
 	|Scalar Parameter| Roughness Min|0.1|
@@ -83,9 +83,9 @@ With the Dual - Normal Clear Coat option now enabled, it is now time to create a
 
 	![](Dual_CC_Roughness_Setup.png)
 
-1. Since this Material makes use of two Normal maps, we will need to setup two different **Normal** map sections for this Material. The first Normal map section of the Material is for the Clear Coat surface and will require the following Material Expression nodes. Once the Material Expression nodes have been added, connect them so that they match the image below.
+1. 由于此材质使用两个法线贴图，我们需要对该材质的两个**法线**贴图部分分别进行设置。材质的第一个法线贴图部分对应透明涂层表面，需要下列材质表现节点。添加材质表现节点后，按下图将其连接起来。
 
-	|Material Expression Type| Name| Default Value|
+	|材质表现类型| 名称| 默认值|
 	|--------------------------------|---------|---------|
 	|Scalar Parameter|Surface Normal Strength|0.98|
 	|Scalar Parameter| Surface Normal Scaling|30.0|
@@ -96,9 +96,9 @@ With the Dual - Normal Clear Coat option now enabled, it is now time to create a
 
 	![](Dual_CC_Normal_Setup.png)
 
-1. This **Normal** map is for the surface that is under the Clear Coat section of the Material and will require the following Material Expression nodes be added to the Material Graph with the following values and names. When completed connect the Material Expression nodes so that they match the image below.
+1. 此**法线**贴图对应的是材质的透明涂层以下的表面，需要对材质图表添加具有如下值和名称的材质表现节点。添加完成后，按下图连接这些材质表现节点。
 
-	|Material Expression Type| Name| Default Value|
+	|材质表现类型| 名称| 默认值|
 	|--------------------------------|---------|---------|
 	|Scalar Parameter| Clear Coat Scaling|30.0|
 	|Scalar Parameter|Fiber Strength|0.98|
@@ -111,16 +111,16 @@ With the Dual - Normal Clear Coat option now enabled, it is now time to create a
 	![](Dual_CC_Normal_ClearCoat_Setup.png)
 
 	[region:note]
-	Make sure that you have added the **ClearCoatBottomNormal** Material Expression node to the Material Graph and that you have connected the Normal map you want to use to its input. Failing to do this will result in you not being able to see the 2nd Normal map in your Material.
+	请确保将 **ClearCoatBottomNormal** 材质表现节点添加到了材质图表中，并将需要使用的法线贴图连接到其输入。否则，您将无法在材质中看到第二法线贴图。
 	[/region]
 
-1. With all of the individual sections of the Material now setup, connect the outputs to the Main Material node so that your Material setup matches the following image.
+1. 设置好材质的各个部分后，按下图将输出连接到主材质节点。
 	
 	[REGION:lightbox]
 	[![](Dual_CC_Final_Setup.png)(w:500 h:350)](Dual_CC_Final_Setup.png)
 	[/REGION]
 
-1. Finally, once all the various sections of the Material have been connected to the appropriate places on the Main Material node, press the **Apply** button to compile the Material and then close the Material Editor. 
+1. 最后，当材质的所有部分都连接到主材质节点的正确位置后，点击 **Apply** 按钮编译材质，然后关闭材质编辑器。 
 
 	![](Dual_CC_Apply_Material.png)
 

@@ -2,8 +2,6 @@
 
 #pragma once
 
-class UGameplayCueSet;
-
 #include "GameplayTags.h"
 #include "GameplayEffect.h"
 #include "GameplayCueNotify_Actor.h"
@@ -11,7 +9,10 @@ class UGameplayCueSet;
 #include "AssetData.h"
 #include "Engine/DataAsset.h"
 #include "Engine/StreamableManager.h"
+#include "GameplayCueTranslator.h"
 #include "GameplayCueManager.generated.h"
+
+class UGameplayCueSet;
 
 /**
  *	
@@ -89,9 +90,20 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 	// Handling GameplayCues at runtime:
 	// -------------------------------------------------------------
 
+	/** Main entry point for handling a gameplaycue event. These functions will call the 3 functions below to handle gameplay cues */
 	virtual void HandleGameplayCues(AActor* TargetActor, const FGameplayTagContainer& GameplayCueTags, EGameplayCueEvent::Type EventType, const FGameplayCueParameters& Parameters);
-
 	virtual void HandleGameplayCue(AActor* TargetActor, FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType, const FGameplayCueParameters& Parameters);
+
+	/** 1. returns true to ignore gameplay cues */
+	virtual bool ShouldSuppressGameplayCues(AActor* TargetActor);
+
+	/** 2. Allows Tag to be translated in place to a different Tag. See FGameplayCueTranslorManager */
+	void TranslateGameplayCue(FGameplayTag& Tag, AActor* TargetActor, const FGameplayCueParameters& Parameters);
+
+	/** 3. Actually routes the gameplaycue event to the right place.  */
+	virtual void RouteGameplayCue(AActor* TargetActor, FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType, const FGameplayCueParameters& Parameters);
+
+	// -------------------------------------------------------------
 
 	/** Force any instanced GameplayCueNotifies to stop */
 	virtual void EndGameplayCuesFor(AActor* TargetActor);
@@ -102,13 +114,14 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 	/** Notify that this actor is finished and should be destroyed or recycled */
 	virtual void NotifyGameplayCueActorFinished(AGameplayCueNotify_Actor* Actor);
 
+	/** Notify to say the actor is about to be destroyed and the GC manager needs to remove references to it. This should not happen in normal play with recycling enabled, but could happen in replays. */
+	virtual void NotifyGameplayCueActorEndPlay(AGameplayCueNotify_Actor* Actor);
+
 	/** Resets preallocation for a given world */
 	void ResetPreallocation(UWorld* World);
 
 	/** Prespawns a single actor for gameplaycue notify actor classes that need prespawning (should be called by outside gamecode, such as gamestate) */
 	void UpdatePreallocation(UWorld* World);
-
-	void OnWorldCreated(UWorld* NewWorld, const UWorld::InitializationValues);
 
 	void OnWorldCleanup(UWorld* World, bool bSessionEnded, bool bCleanupResources);
 
@@ -133,6 +146,9 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 	UPROPERTY(transient)
 	UObjectLibrary* GameplayCueNotifyStaticObjectLibrary;
 
+	/** Called before loading any gameplay cue notifies from object libraries. Allows subclasses to skip notifies. */
+	virtual bool ShouldLoadGameplayCueAssetData(const FAssetData& Data) const { return true; }
+
 	// -------------------------------------------------------------
 	// Preload GameplayCue tags that we think we will need:
 	// -------------------------------------------------------------
@@ -140,6 +156,9 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 	void BeginLoadingGameplayCueNotify(FGameplayTag GameplayCueTag);
 
 	int32 FinishLoadingGameplayCueNotifies();
+
+	/** Get filenames of all GC notifies we know about (loaded or not). Useful for cooking */
+	void GetGameplayCueNotifyFilenames(TArray<FString>& Filenames) const;
 
 	UPROPERTY(transient)
 	FStreamableManager	StreamableManager;
@@ -156,8 +175,6 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 	/** Called from editor to soft load all gameplay cue notifies for the GameplayCueEditor */
 	void LoadAllGameplayCueNotifiesForEditor();
 
-	bool IsAssetInLoadedPaths(UObject *Object) const;
-
 	/** Handles updating an object library when a new asset is created */
 	void HandleAssetAdded(UObject *Object);
 
@@ -167,7 +184,7 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 	/** Warns if we move a GameplayCue notify out of the valid search paths */
 	void HandleAssetRenamed(const FAssetData& Data, const FString& String);
 
-	void VerifyNotifyAssetIsInValidPath(FString Path);
+	bool VerifyNotifyAssetIsInValidPath(FString Path);
 
 	/** returns list of valid gameplay cue paths. Subclasses may override this to specify locations that aren't part of the "always loaded" LoadedPaths array */
 	virtual TArray<FString>	GetValidGameplayCuePaths() { return LoadedPaths; }
@@ -187,6 +204,8 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 	
 	virtual bool ShouldAsyncLoadObjectLibrariesAtStart() const { return true; }
 
+	FGameplayCueTranslationManager	TranslationManager;
+
 protected:
 
 #if WITH_EDITOR
@@ -198,7 +217,11 @@ protected:
 
 	void InitObjectLibraries(TArray<FString> Paths, UObjectLibrary* ActorObjectLibrary, UObjectLibrary* StaticObjectLibrary, FOnGameplayCueNotifySetLoaded OnLoaded, FShouldLoadGCNotifyDelegate ShouldLoad = FShouldLoadGCNotifyDelegate());
 
+	/** Async load all gameplay cue notify classes that we find in ::InitObjectLibraries */
 	virtual bool ShouldAsyncLoadAtStartup() const { return true; }
+
+	/** Sync load all gameplay cue notify classes that we find in ::InitObjectLibraries */
+	virtual bool ShouldSyncLoadAtStartup() const { return IsRunningCommandlet(); }
 
 	void BuildCuesToAddToGlobalSet(const TArray<FAssetData>& AssetDataList, FName TagPropertyName, TArray<struct FGameplayCueReferencePair>& OutCuesToAdd, TArray<FStringAssetReference>& OutAssetsToLoad, FShouldLoadGCNotifyDelegate = FShouldLoadGCNotifyDelegate());
 
@@ -234,7 +257,4 @@ protected:
 
 	UPROPERTY(transient)
 	TArray<FPreallocationInfo>	PreallocationInfoList_Internal;
-
-	UPROPERTY(transient)
-	FPreallocationInfo	PreallocationInfo_Internal;
 };

@@ -34,13 +34,13 @@ public:
 	TSharedPtr< FUICommandInfo > ProcessRootMotion;
 
 	/** Show reference pose on preview mesh */
-	TSharedPtr< FUICommandInfo > ShowReferencePose;
-
-	/** Show reference pose on preview mesh */
 	TSharedPtr< FUICommandInfo > ShowRetargetBasePose;
 	
 	/** Show Bound of preview mesh */
 	TSharedPtr< FUICommandInfo > ShowBound;
+
+	/** Use in-game Bound of preview mesh */
+	TSharedPtr< FUICommandInfo > UseInGameBound;
 
 	/** Show/hide the preview mesh */
 	TSharedPtr< FUICommandInfo > ShowPreviewMesh;
@@ -81,8 +81,10 @@ public:
 	TSharedPtr< FUICommandInfo > ShowDisplayInfoSkelControls;
 	TSharedPtr< FUICommandInfo > HideDisplayInfo;
 
-	/** Show selected bone weight */
+	/** Show overlay material option */
+	TSharedPtr< FUICommandInfo > ShowOverlayNone;
 	TSharedPtr< FUICommandInfo > ShowBoneWeight;
+	TSharedPtr< FUICommandInfo > ShowMorphTargetVerts;
 
 	/** Show socket hit point diamonds */
 	TSharedPtr< FUICommandInfo > ShowSockets;

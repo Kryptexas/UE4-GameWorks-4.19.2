@@ -53,13 +53,13 @@ public:
 
 	void GetDesiredWidth( float& OutMinDesiredWidth, float &OutMaxDesiredWidth )
 	{
-		OutMinDesiredWidth = 130.0f;
-		OutMaxDesiredWidth = 130.0f;
+		OutMinDesiredWidth = 170.0f;
+		OutMaxDesiredWidth = 170.0f;
 	}
 private:
 	FText GetArrayTextValue() const
 	{
-		return FText::Format( LOCTEXT("NumArrayItemsFmt", "{0} elements"), FText::AsNumber(PropertyEditor->GetPropertyNode()->GetNumChildNodes()) );
+		return FText::Format( LOCTEXT("NumArrayItemsFmt", "{0} Array elements"), FText::AsNumber(PropertyEditor->GetPropertyNode()->GetNumChildNodes()) );
 	}
 
 	/** @return True if the property can be edited */

@@ -66,7 +66,7 @@ private:
 	TArray<FMessageAddress> Recipients;
 
 	/** Holds the message's scope. */
-	TEnumAsByte<EMessageScope> Scope;
+	EMessageScope Scope;
 
 	/** Holds the sender's identifier. */
 	FMessageAddress Sender;

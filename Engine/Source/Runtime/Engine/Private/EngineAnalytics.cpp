@@ -64,7 +64,7 @@ void FEngineAnalytics::Initialize()
 	bIsGameRun = !IsRunningCommandlet() && !FPlatformProperties::IsProgram() && FPlatformProperties::RequiresCookedData();
 #endif
 
-#if UE_BUILD_DEBUG
+#if UE_BUILD_DEBUG || (PLATFORM_XBOXONE && UE_BUILD_SHIPPING) // Can't allow analytics on packaged XB1 games, as per XRs (titles can opt back in on a case-by-case basis with Microsoft)
 	const bool bShouldInitAnalytics = false;
 #else
 	// Outside of the editor, the only engine analytics usage is the hardware survey
@@ -112,6 +112,7 @@ void FEngineAnalytics::Initialize()
 			Config.AppVersionET = FEngineVersion::Current().ToString();
 		}
 
+
 		// Connect the engine analytics provider (if there is a configuration delegate installed)
 		Analytics = FAnalyticsET::Get().CreateAnalyticsProvider(Config);
 
@@ -127,7 +128,8 @@ void FEngineAnalytics::Initialize()
 					FPlatformMisc::SetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Privacy"), TEXT("AnonymousID"), AnonymousId);
 				}
 
-				Analytics->SetUserID(FString::Printf(TEXT("ANON-%s"), *AnonymousId));
+				// Place the anonymous user id into the first field of the UserID set, as it most closely matches the LoginID semantics.
+				Analytics->SetUserID(FString::Printf(TEXT("ANON-%s||"), *AnonymousId));
 			}
 			else
 			{
@@ -175,6 +177,8 @@ void FEngineAnalytics::Shutdown(bool bIsEngineShutdown)
 
 void FEngineAnalytics::Tick(float DeltaTime)
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineAnalytics_Tick);
+
 	if (SessionManager.IsValid())
 	{
 		SessionManager->Tick(DeltaTime);

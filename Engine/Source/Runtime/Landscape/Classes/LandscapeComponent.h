@@ -240,14 +240,14 @@ private:
 
 #endif // WITH_EDITORONLY_DATA
 public:
-	/**	INTERNAL: Array of lights that don't apply to the terrain component.		*/
+
+	/** Uniquely identifies this component's built map data. */
 	UPROPERTY()
-	TArray<FGuid> IrrelevantLights;
+	FGuid MapBuildDataId;
 
-	/** Reference to the texture lightmap resource. */
-	FLightMapRef LightMap;
-
-	FShadowMapRef ShadowMap;
+	/**	Legacy irrelevant lights */
+	UPROPERTY()
+	TArray<FGuid> IrrelevantLights_DEPRECATED;
 
 	/** Heightfield mipmap used to generate collision */
 	UPROPERTY(EditAnywhere, Category=LandscapeComponent)
@@ -334,7 +334,7 @@ public:
 	//~ Begin UObject Interface.	
 	virtual void PostInitProperties() override;	
 	virtual void Serialize(FArchive& Ar) override;
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 	virtual void BeginDestroy() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
@@ -363,6 +363,7 @@ public:
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual ELightMapInteractionType GetStaticLightingType() const override { return LMIT_Texture;	}
 	virtual void GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const override;
+	virtual bool IsPrecomputedLightingValid() const override;
 
 #if WITH_EDITOR
 	virtual int32 GetNumMaterials() const override;
@@ -385,6 +386,7 @@ public:
 #if WITH_EDITOR
 	virtual void InvalidateLightingCacheDetailed(bool bInvalidateBuildEnqueuedLighting, bool bTranslationOnly) override;
 #endif
+	virtual void PropagateLightingScenarioChange() override;
 	//~ End UActorComponent Interface.
 
 
@@ -470,6 +472,12 @@ public:
 #endif // WITH_EDITORONLY_DATA
 	}
 
+	FGuid GetMapBuildDataId() const
+	{
+		return MapBuildDataId;
+	}
+
+	LANDSCAPE_API const FMeshMapBuildData* GetMeshMapBuildData() const;
 
 #if WITH_EDITOR
 	/** Initialize the landscape component */
@@ -485,6 +493,9 @@ public:
 	 * Creates the MaterialInstance if it doesn't exist.
 	 */
 	LANDSCAPE_API void UpdateMaterialInstances();
+
+	// Internal implementation of UpdateMaterialInstances, not safe to call directly
+	void UpdateMaterialInstances_Internal(FMaterialUpdateContext& Context);
 
 	/** Helper function for UpdateMaterialInstance to get Material without set parameters */
 	UMaterialInstanceConstant* GetCombinationMaterial(bool bMobile = false);

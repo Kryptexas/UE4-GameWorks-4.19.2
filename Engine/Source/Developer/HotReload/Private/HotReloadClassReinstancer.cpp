@@ -181,6 +181,11 @@ void FHotReloadClassReinstancer::SerializeCDOProperties(UObject* InObject, FHotR
 
 			return Ar;
 		}
+		FArchive& operator<<(FWeakObjectPtr& WeakObjectPtr) override
+		{
+			WeakObjectPtr.Serialize(*this);
+			return *this;
+		}
 		/** Archive name, for debugging */
 		virtual FString GetArchiveName() const override { return TEXT("FCDOWriter"); }
 	};
@@ -202,9 +207,9 @@ void FHotReloadClassReinstancer::ReconstructClassDefaultObject(UClass* InClass, 
 	// Re-create
 	InClass->ClassDefaultObject = StaticAllocateObject(InClass, InOuter, InName, InFlags, EInternalObjectFlags::None, false);
 	check(InClass->ClassDefaultObject);
-	const bool bShouldInitilizeProperties = false;
+	const bool bShouldInitializeProperties = false;
 	const bool bCopyTransientsFromClassDefaults = false;
-	(*InClass->ClassConstructor)(FObjectInitializer(InClass->ClassDefaultObject, ParentDefaultObject, bCopyTransientsFromClassDefaults, bShouldInitilizeProperties));
+	(*InClass->ClassConstructor)(FObjectInitializer(InClass->ClassDefaultObject, ParentDefaultObject, bCopyTransientsFromClassDefaults, bShouldInitializeProperties));
 }
 
 void FHotReloadClassReinstancer::RecreateCDOAndSetupOldClassReinstancing(UClass* InOldClass)
@@ -415,6 +420,11 @@ void FHotReloadClassReinstancer::UpdateDefaultProperties()
 			}
 
 			return Ar;
+		}
+		FArchive& operator<<(FWeakObjectPtr& WeakObjectPtr) override
+		{
+			WeakObjectPtr.Serialize(*this);
+			return *this;
 		}
 	};
 

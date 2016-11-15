@@ -1,56 +1,85 @@
-﻿INTSourceChangelist:0
-Availability: Public
-Title:Landscape Collision Guide
+﻿INTSourceChangelist:3053927
+Availability:Public
+Title:地形碰撞指南
 Crumbs: %ROOT%, Engine, Engine/Landscape
-Description:Collision settings for Landscape.
-version: 4.12
+Description:地形碰撞设置。
+version:4.12
+parent:Engine/Landscape
+order:7
 
-
-
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](Engine/Landscape/Landscape_Collision_Banner.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/Collision:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape/Collision]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](Engine/Landscape/Landscape_Collision_Banner.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/Collision:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Landscape/Collision:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape/Collision]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
 [TOC(start:2 end:3)]
 
 
-## Landscape Collision 
+## 地形碰撞 
 
-The Unreal Engine 4 (UE4) Landscape system enables you to specify the detail level of the geometry used for both simple and complex collisions for the entire Landscape as a whole or on a per-Component basis. In the following sections, we will go over how to use the system as well as any relevant information you must know before using this in your UE4 projects.
+虚幻引擎 4（UE4）地形系统可指定几何体（这些几何体用于整个地形或单独组件的简单和复杂碰撞）的细节程度。在以下部分中，我们将说明如何使用该系统，以及在 UE4 项目中使用前须知的相关信息。
 
 [region:note]
-For this example, we are using the Landscape Mountains project that can be found in the Learn tab of the UE4 Launcher.
+在此例中我们使用的是在 UE4 Launcher Learn 标签下选择的 Landscape Mountains 项目。
 [/region]
 
-### Collision Mip Level
+### 碰撞 Mip 等级
 
-If you select any Landscape Actor that has been placed in a level and go to the **Details** panel, under the **Collision** section you will find two settings called **Collision Mip Level** and **Simple Collision Mip Level**.
+如选择已放置在关卡中的任意地形 Actor，可在 **Details** 面板的 **Collision** 部分下可找到两个设置：**Collision Mip Level** 和 **Simple Collision Mip Level**。
 
 | --- | --- |
-| **Collision Mip Level** | The Collision Mip Level sets the complexity of the **Complex** collision that is used for the Landscape. Setting Collision Mip Level to **0**, the default,  will give you a very accurate Landscape collision at the expense of memory. Setting this value to **5**, the maximum setting, will make the Landscape collision cheaper, but the accuracy of the collision will suffer.  [INCLUDE:Engine\Landscape\\Collision\#VC] |
-| **Simple Collision Mip Level** | The Simple Collision Mip Level sets the complexity of the **Simple** collision that is used for the Landscape. Setting Simple Collision Mip Level to **0**, the default,  will give you a very accurate Landscape collision at the expense of memory. Setting this value to **5**, the maximum setting, will make the Landscape collision cheaper, but the accuracy of the collision will suffer. [INCLUDE:Engine\Landscape\\Collision\#PC] |
+| **Collision Mip Level** | Collision Mip Level 设置用于地形的 **复杂** 碰撞的复杂度。Collision Mip Level 默认设为 **0**，将获得准确的地形碰撞，但内存消耗较大。将此数值设为最高的 **5** 可控制地形碰撞的开销，但碰撞的准确性便会下降。[INCLUDE:Engine\Landscape\\Collision\#VC] |
+| **Simple Collision Mip Level** | Simple Collision Mip Level 设置用于地形的 **简单** 碰撞的复杂度。Simple Collision Mip Level 默认设为 **0**，将获得准确的地形碰撞，但内存消耗较大。将此数值设为最高的 **5** 可控制地形碰撞的开销，但碰撞的准确性便会下降。[INCLUDE:Engine\Landscape\\Collision\#PC] |
 
-### Viewing Collision Mip Level 
+### 查看碰撞 Mip 等级 
 
-You can visualize the Landscape collision geometry using the Collision Viewmodes. To enable the collision view mode, go to the **View Mode** menu in the Editor viewport toolbar, under the **Collision** section, select either **Player Collision**  or **Visibility Collision**.
+可通过碰撞查看模式显示地形碰撞几何体。前往编辑器视口工具栏中的 **View Mode** 菜单的 **Collision** 部分下，选择 **Player Collision** 或 **Visibility Collision** 即可启用碰撞查看模式。
 
 ![](LSC_00.png)(convert:false)
 
 | --- | --- |
-| **Player Collision** | The **Player Collision** view mode displays the Simple Collision Mip Level. ![](CML_Player_Collision.png)(w:640) |
-| **Visibility Collision** | The **Visibility Collision** view mode displays the Collision Mip Level. ![](CML_Vis_Collision.png)(w:640) |
+| **Player Collision** | **Player Collision** 查看模式显示简单碰撞 Mip 等级。 ![](CML_Player_Collision.png)(w:640) |
+| **Visibility Collision** | **Visibility Collision** 查看模式显示碰撞 Mip 等级。 ![](CML_Vis_Collision.png)(w:640) |
 
-### Adjusting the Landscape Collision Mip Level
+### 调整地形碰撞 Mip 等级
 
-To set the complexity for both simple and complex Landscape collision you will need to do the following:
+如要对简单和复杂地形碰撞的复杂度进行设置，需要执行以下操作：
 
-1. Select your Landscape Terrain in the Editor viewport. In the **Details** panel, expand the **Collision** section.
+1. 在编辑器视口中选择地形地貌。在 **Details** 面板中打开 **Collision** 部分。
 
 	[REGION:lightbox]
 	[![](LSC_01.png)(convert:false)](LSC_01.png)
 	[/REGION]
 	[REGION:caption]
-	Click for full image.
+	点击查看全图。
 	[/REGION]
 
-1. Under the **Collision** section, find the **Collision Mip Level** option. Set the value  from **0** to **5** and then press the **Enter** key to apply the change. The gray collision mesh in the level updates automatically to reflect the changes.
+1. 在 **Collision** 部分下找到 **Collision Mip Level** 选项。将数值设为 **0** 到 **5** 之间，然后按下 **Enter** 键应用变更。关卡中的灰色碰撞网格体将自动更新反映变更。
 
 	[OBJECT:ComparisonSlider]
 		[PARAM:before]
@@ -62,24 +91,24 @@ To set the complexity for both simple and complex Landscape collision you will n
 	[/OBJECT]
 
 
-### Mixing Collision Mip Level Options 
+### 混合碰撞 Mip 等级选项 
 
-You can set the complexity of both the simple and complex Landscape collision meshes to provide a better balance between performance and accuracy. To set the simple and complex collision levels independently in your project you will need to do the following:
+可对简单和复杂地形碰撞网格体二者的复杂度进行设置，在性能和准确度上达到更好的平衡。如要在项目中独立设置简单和复杂碰撞等级，需要执行下列操作：
 
-1. Select your Landscape and in the **Details** panel and expand the **Collision** section.
+1. 选择地形，然后在 **Details** 面板中打开 **Collision** 部分。
 
 	[REGION:lightbox]
 	[![](LSC_01.png)(convert:false)](LSC_01.png)
 	[/REGION]
 	[REGION:caption]
-	Click for full image.
+	点击查看全图。
 	[/REGION]
 
-1. Set the **Collision Mip Level** to a value of **0** and **Simple Collision Mip Level** to a value of **2**.
+1. 将 **Collision Mip Level** 的数值设为 **0**；**Simple Collision Mip Level** 的数值设为 **2**。
 
 	![](LSC_04.png)
 
-In the following image comparison, you can see what happens to the Landscape collision when the Collision Mip Level and Simple Collision Mip Level are set to different values.
+在下图对比中即可明确 Collision Mip Level 和 Simple Collision Mip Level 设为不同数值时地形碰撞的变化。
 
 [OBJECT:ComparisonSlider]
 	[PARAM:before]
@@ -91,42 +120,42 @@ In the following image comparison, you can see what happens to the Landscape col
 [/OBJECT]
 
 [region:note]
-For most cases, you will want to leave the **Collision Mip Level** at 0 and then use 1 or 2 for the **Simple Collision Mip Level**. Using any higher numbers will start to show inaccuracies between the player and collision.
+多数情况下将 **Collision Mip Level** 设为 0，**Simple Collision Mip Level** 设为 1 或 2。如使用的数字较高，角色和碰撞的精确度便会降低。
 [/region]
 
 
-### Setting Collision Mip Level Per Landscape Components
+### 设置每个地形组件的碰撞 Mip 等级
 
-You can set the Collision Mip Level collision for individual Landscape Components which enables you to reduce the Landscape collision complexity even further in non-playable areas of the level.
+可对单个地形组件的碰撞 Mip 等级进行设置，可降低关卡非操作区域的地形碰撞复杂度。
 
 
- To set the Collision Mip Level for an individual component in your project, you will need to do the following:
+ 如要在项目中设置单个组件的碰撞 Mip 等级，需要执行下列操作：
 
-1. From the **Modes** panel, click on the Landscape option and select **Manage** mode.
+1. 在 **Modes** 面板中点击 Landscape 选项并选择 **Manage** 模式。
 
 	![](CC_01.png)
 
-1. Select a few Landscape components by clicking on them with the **Left Mouse Button**. The selected Landscape Components are highlighted in red.
+1. 使用 **鼠标左键** 点击选中地形组件。选中的地形组件为红色高亮。
 
 	![](CC_02.png)
 
-1. In the **Details** panel, expand the **Landscape Component** section and change both the **Collision Mip Level** and **Simple Collision Mip Level** to **5**.
+1. 在 **Details** 面板中展开 **Landscape Component** 部分，将 **Collision Mip Level** 和 **Simple Collision Mip Level** 设为 **5**。
 
 	![](CC_03.png)
 
-1. In the Landscape **Manage** section under **Tool Settings**, press the **Clear Component Selection** button to deselect any currently selected Landscape components.  
+1. 在 **Tool Settings** 下的地形 **Manage** 部分中，按下 **Clear Component Selection** 按钮可取消当前选中的地形组件。  
 
 	![](Clear_Selected_Comps.png)
 
-1. Select a few more Landscape components and this time set both Collision Mip levels to a value of 2.
+1. 多选择几个地形组件并将两个碰撞 Mip 等级均设为 2。
 
 	![](CC_04.png)
 
-In the following image, the Collision Mip level for each of the four outlined Landscape Component has been set to a different level. 
+下图中四个标出轮廓的地形组件的碰撞 Mip 等级设置不同。 
 
 ![](CC_05.png)
 
-|Number| Collision Mip Level|
+|数字| 碰撞 Mip 等级|
 |----------|-------------------------|
 |1|3|
 |2|4|
@@ -148,7 +177,7 @@ In the following image, the Collision Mip level for each of the four outlined La
 	VC
 	[/PARAMLITERAL]
 	[PARAM:caption]
-	**Drag the slider to adjust the Collision Mip Level from 0 to 5**
+	**拖动滑条可在 0 到 5 之间调整碰撞 Mip 等级**
 	[/PARAM]
 	[PARAM:image_list]
 	![](VC_1.png)(w:780)
@@ -175,7 +204,7 @@ In the following image, the Collision Mip level for each of the four outlined La
 	PC
 	[/PARAMLITERAL]
 	[PARAM:caption]
-	**Drag the slider to adjust the Simple Collision Mip Level from 0 to 5**
+	**拖动滑条可在 0 到 5 之间调整简单碰撞 Mip 等级**
 	[/PARAM]
 	[PARAM:image_list]
 	![](PC_1.png)(w:780)

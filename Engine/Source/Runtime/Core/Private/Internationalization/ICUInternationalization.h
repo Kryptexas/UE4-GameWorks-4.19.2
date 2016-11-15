@@ -3,16 +3,10 @@
 
 #if UE_ENABLE_ICU
 
-#if defined(_MSC_VER) && USING_CODE_ANALYSIS
-	#pragma warning(push)
-	#pragma warning(disable:28251)
-	#pragma warning(disable:28252)
-	#pragma warning(disable:28253)
-#endif
+THIRD_PARTY_INCLUDES_START
 	#include <unicode/umachine.h>
-#if defined(_MSC_VER) && USING_CODE_ANALYSIS
-	#pragma warning(pop)
-#endif
+	#include <unicode/gregocal.h>
+THIRD_PARTY_INCLUDES_END
 
 // This should be defined by ICU.build.cs
 #ifndef NEEDS_ICU_DLLS
@@ -37,6 +31,8 @@ public:
 	TArray<FString> GetPrioritizedCultureNames(const FString& Name);
 	FCulturePtr GetCulture(const FString& Name);
 
+	UDate UEDateTimeToICUDate(const FDateTime& DateTime);
+
 private:
 #if NEEDS_ICU_DLLS
 	void LoadDLLs();
@@ -49,6 +45,8 @@ private:
 
 	enum class EAllowDefaultCultureFallback : uint8 { No, Yes, };
 	FCulturePtr FindOrMakeCulture(const FString& Name, const EAllowDefaultCultureFallback AllowDefaultFallback);
+
+	void InitializeInvariantGregorianCalendar();
 
 private:
 	struct FICUCultureData
@@ -86,6 +84,9 @@ private:
 
 	TMap<FString, FCultureRef> CachedCultures;
 	FCriticalSection CachedCulturesCS;
+
+	TUniquePtr<icu::GregorianCalendar> InvariantGregorianCalendar;
+	FCriticalSection InvariantGregorianCalendarCS;
 
 	static UBool OpenDataFile(const void* context, void** fileContext, void** contents, const char* path);
 	static void CloseDataFile(const void* context, void* const fileContext, void* const contents);

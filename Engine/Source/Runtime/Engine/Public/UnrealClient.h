@@ -665,7 +665,7 @@ extern ENGINE_API bool IsShiftDown(FViewport* Viewport);
 extern ENGINE_API bool IsAltDown(FViewport* Viewport);
 
 extern ENGINE_API bool GetViewportScreenShot(FViewport* Viewport, TArray<FColor>& Bitmap, const FIntRect& ViewRect = FIntRect());
-extern ENGINE_API bool GetHighResScreenShotInput(const TCHAR* Cmd, FOutputDevice& Ar, uint32& OutXRes, uint32& OutYRes, float& OutResMult, FIntRect& OutCaptureRegion, bool& OutShouldEnableMask);
+extern ENGINE_API bool GetHighResScreenShotInput(const TCHAR* Cmd, FOutputDevice& Ar, uint32& OutXRes, uint32& OutYRes, float& OutResMult, FIntRect& OutCaptureRegion, bool& OutShouldEnableMask, bool& OutDumpBufferVisualizationTargets, bool& OutCaptureHDR);
 
 /**
  * An abstract interface to a viewport's client.
@@ -823,6 +823,17 @@ public:
 
 	virtual void Activated(FViewport* Viewport, const FWindowActivateEvent& InActivateEvent) {}
 	virtual void Deactivated(FViewport* Viewport, const FWindowActivateEvent& InActivateEvent) {}
+
+	/**
+	 * Called when the top level window associated with the viewport has been requested to close.
+	 * At this point, the viewport has not been closed and the operation may be canceled.
+	 * This may not called from PIE, Editor Windows, on consoles, or before the game ends
+ 	 * from other methods.
+	 * This is only when the platform specific window is closed.
+	 *
+	 * @return True if the viewport may be closed, false otherwise.
+	 */
+	virtual bool WindowCloseRequested() { return true; }
 
 	virtual void CloseRequested(FViewport* Viewport) {}
 

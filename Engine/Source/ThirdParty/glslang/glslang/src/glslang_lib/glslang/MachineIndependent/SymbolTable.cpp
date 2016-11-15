@@ -73,9 +73,13 @@ void TType::buildMangledName(TString& mangledName)
         default: break; // some compilers want this
         }
         if (sampler.image)
-            mangledName += "I";
+            mangledName += "I";  // a normal image
+        else if (sampler.sampler)
+            mangledName += "p";  // a "pure" sampler
+        else if (!sampler.combined)
+            mangledName += "t";  // a "pure" texture
         else
-            mangledName += "s";
+            mangledName += "s";  // traditional combined sampler
         if (sampler.arrayed)
             mangledName += "A";
         if (sampler.shadow)
@@ -246,7 +250,7 @@ TSymbol::TSymbol(const TSymbol& copyOf)
 }
 
 TVariable::TVariable(const TVariable& copyOf) : TSymbol(copyOf)
-{	
+{
     type.deepCopy(copyOf.type);
     userType = copyOf.userType;
     numExtensions = 0;
@@ -272,7 +276,7 @@ TVariable* TVariable::clone() const
 }
 
 TFunction::TFunction(const TFunction& copyOf) : TSymbol(copyOf)
-{	
+{
     for (unsigned int i = 0; i < copyOf.parameters.size(); ++i) {
         TParameter param;
         parameters.push_back(param);

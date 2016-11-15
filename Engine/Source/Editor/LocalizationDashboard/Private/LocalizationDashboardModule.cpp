@@ -7,6 +7,7 @@
 #include "SDockTab.h"
 #include "Features/IModularFeatures.h"
 #include "ILocalizationServiceProvider.h"
+#include "LocalizationDashboardSettingsDetailCustomization.h"
 #include "LocalizationTargetSetDetailCustomization.h"
 #include "LocalizationTargetDetailCustomization.h"
 #include "GatherTextDetailCustomizations.h"
@@ -28,6 +29,12 @@ public:
 		ServiceProviders = IModularFeatures::Get().GetModularFeatureImplementations<ILocalizationServiceProvider>("LocalizationService");
 
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		PropertyModule.RegisterCustomClassLayout("LocalizationDashboardSettings", FOnGetDetailCustomizationInstance::CreateLambda(
+			[]() -> TSharedRef<IDetailCustomization>
+			{
+				return MakeShareable( new FLocalizationDashboardSettingsDetailCustomization());
+			})
+		);
 		PropertyModule.RegisterCustomClassLayout("LocalizationTargetSet", FOnGetDetailCustomizationInstance::CreateLambda(
 			[]() -> TSharedRef<IDetailCustomization>
 			{
@@ -121,6 +128,7 @@ public:
 		PropertyModule.UnregisterCustomPropertyTypeLayout("GatherTextSearchDirectory");
 		PropertyModule.UnregisterCustomClassLayout("LocalizationTarget");
 		PropertyModule.UnregisterCustomClassLayout("LocalizationTargetSet");
+		PropertyModule.UnregisterCustomClassLayout("LocalizationDashboardSettings");
 	}
 	// End IModuleInterface interface
 

@@ -438,7 +438,8 @@ private:
 	TArray<FCoreAudioSoundSource*> SourcesAttached;
 	TArray<FCoreAudioSoundSource*> SourcesDetached;
 	bool						bNeedsUpdate;
-	
+	bool						bAuGraphErrorLogged;
+
 	friend class FCoreAudioSoundBuffer;
 	friend class FCoreAudioSoundSource;
 	friend class FCoreAudioEffectsManager;

@@ -16,6 +16,7 @@ FMonitoredProcess::FMonitoredProcess( const FString& InURL, const FString& InPar
 	, ReturnCode(0)
 	, StartTime(0)
 	, Thread(nullptr)
+	, bIsRunning(false)
 	, URL(InURL)
 	, WritePipe(nullptr)
 	, bCreatePipes(InCreatePipes)
@@ -28,6 +29,10 @@ FMonitoredProcess::~FMonitoredProcess()
 	if (IsRunning())
 	{
 		Cancel(true);
+	}
+
+	if (Thread != nullptr) 
+	{
 		Thread->WaitForCompletion();
 		delete Thread;
 	}
@@ -55,6 +60,8 @@ bool FMonitoredProcess::Launch()
 		return false;
 	}
 
+	check (Thread == nullptr); // We shouldn't be calling this twice
+
 	if (bCreatePipes && !FPlatformProcess::CreatePipe(ReadPipe, WritePipe))
 	{
 		return false;
@@ -71,6 +78,7 @@ bool FMonitoredProcess::Launch()
 	const FString MonitoredProcessName = FString::Printf( TEXT( "FMonitoredProcess %d" ), MonitoredProcessIndex );
 	MonitoredProcessIndex++;
 
+	bIsRunning = true;
 	Thread = FRunnableThread::Create(this, *MonitoredProcessName, 128 * 1024, TPri_AboveNormal);
 
 	return true;
@@ -82,14 +90,28 @@ bool FMonitoredProcess::Launch()
 
 void FMonitoredProcess::ProcessOutput( const FString& Output )
 {
-	TArray<FString> LogLines;
+	// Append this output to the output buffer
+	OutputBuffer += Output;
 
-	Output.ParseIntoArray(LogLines, TEXT("\n"), false);
-
-	for (int32 LogIndex = 0; LogIndex < LogLines.Num(); ++LogIndex)
+	// Output all the complete lines
+	int32 LineStartIdx = 0;
+	for(int32 Idx = 0; Idx < OutputBuffer.Len(); Idx++)
 	{
-		OutputDelegate.ExecuteIfBound(LogLines[LogIndex]);
+		if(OutputBuffer[Idx] == '\r' || OutputBuffer[Idx] == '\n')
+		{
+			OutputDelegate.ExecuteIfBound(OutputBuffer.Mid(LineStartIdx, Idx - LineStartIdx));
+			
+			if(OutputBuffer[Idx] == '\r' && Idx + 1 < OutputBuffer.Len() && OutputBuffer[Idx + 1] == '\n')
+			{
+				Idx++;
+			}
+
+			LineStartIdx = Idx + 1;
+		}
 	}
+
+	// Remove all the complete lines from the buffer
+	OutputBuffer = OutputBuffer.Mid(LineStartIdx);
 }
 
 
@@ -111,7 +133,7 @@ uint32 FMonitoredProcess::Run()
 			{
 				FPlatformProcess::TerminateProc(ProcessHandle, KillTree);
 				CanceledDelegate.ExecuteIfBound();
-				Thread = nullptr;
+				bIsRunning = false;
 
 				return 0;
 			}
@@ -131,7 +153,7 @@ uint32 FMonitoredProcess::Run()
 	}
 
 	CompletedDelegate.ExecuteIfBound(ReturnCode);
-	Thread = nullptr;
+	bIsRunning = false;
 
 	return 0;
 }

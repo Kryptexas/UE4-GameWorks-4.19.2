@@ -35,7 +35,7 @@ namespace BuildGraph.Tasks
 	}
 
 	/// <summary>
-	/// Implements a task which calls another UAT command
+	/// Invokes an AutomationTool child process to run the given command.
 	/// </summary>
 	[TaskElement("Command", typeof(CommandTaskParameters))]
 	public class CommandTask : CustomTask

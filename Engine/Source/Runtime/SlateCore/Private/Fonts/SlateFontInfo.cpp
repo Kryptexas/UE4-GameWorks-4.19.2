@@ -8,6 +8,8 @@
 /* FSlateFontInfo structors
  *****************************************************************************/
 
+FFontOutlineSettings FFontOutlineSettings::NoOutline;
+
 FSlateFontInfo::FSlateFontInfo( )
 	: FontObject(nullptr)
 	, FontMaterial(nullptr)

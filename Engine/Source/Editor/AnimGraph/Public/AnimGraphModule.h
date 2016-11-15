@@ -9,8 +9,7 @@
 class FAnimGraphModule : public IModuleInterface
 {
 public:
-	virtual void StartupModule() override
-	{
-		FAnimGraphCommands::Register();
-	}
+	/** IModuleInterface interface */
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 };

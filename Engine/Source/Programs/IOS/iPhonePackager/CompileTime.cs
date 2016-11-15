@@ -90,8 +90,8 @@ namespace iPhonePackager
 				CmdLine += String.Format(" CODE_SIGN_IDENTITY=\\\"{0}\\\"", Config.CodeSigningIdentity);
 
 				CmdLine += String.Format(" IPHONEOS_DEPLOYMENT_TARGET=\\\"{0}\\\"", Config.MinOSVersion);
-            }
-            else
+			}
+			else
 			{
 				CmdLine += String.Format(" CODE_SIGN_IDENTITY=\"{0}\"", Config.CodeSigningIdentity);
 
@@ -280,7 +280,7 @@ namespace iPhonePackager
                     UUID = AllText.Substring(idx, AllText.IndexOf("</string>", idx) - idx);
                 }
             }
-            CurrentBaseXCodeCommandLine += String.Format(" PROVISIONING_PROFILE="+UUID);
+            CurrentBaseXCodeCommandLine += String.Format(" PROVISIONING_PROFILE=" + UUID);
 
             // make sure this .mobileprovision file is newer than any other .mobileprovision file on the Mac (this file gets multiple games named the same file, 
             // so the time stamp checking can fail when moving between games, a la the buildmachines!)

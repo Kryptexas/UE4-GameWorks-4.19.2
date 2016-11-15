@@ -40,6 +40,9 @@ struct ENGINE_API FHighResScreenshotConfig
 	/** Enable/disable HDR capable captures **/
 	void SetHDRCapture(bool bCaptureHDRIN);
 
+	/** Configure taking a high res screenshot */
+	bool SetResolution(uint32 ResolutionX, uint32 ResolutionY, float ResolutionScale = 1.0f);
+
 	/** Save to image file **/
 	template<typename TPixelType>
 	ENGINE_API bool SaveImage(const FString& File, const TArray<TPixelType>& Bitmap, const FIntPoint& BitmapSize, FString* OutFilename = nullptr) const;

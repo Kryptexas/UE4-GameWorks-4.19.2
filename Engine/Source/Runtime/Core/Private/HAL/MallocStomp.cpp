@@ -132,7 +132,7 @@ bool FMallocStomp::GetAllocationSize(void *Original, SIZE_T &SizeOut)
 	{
 		FAllocationData *AllocDataPtr = reinterpret_cast<FAllocationData*>(Original);
 		AllocDataPtr--;
-		SizeOut = AllocDataPtr->FullSize;
+		SizeOut = AllocDataPtr->Size;
 	}
 
 	return true;

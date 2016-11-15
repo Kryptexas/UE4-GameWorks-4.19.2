@@ -45,6 +45,24 @@ DEFINE_STAT(STAT_MetalBufferNativeFreed);
 DEFINE_STAT(STAT_MetalBufferNativeMemAlloc);
 DEFINE_STAT(STAT_MetalBufferNativeMemFreed);
 
+DEFINE_STAT(STAT_MetalPrepareVertexDescTime);
+DEFINE_STAT(STAT_MetalBoundShaderPrepareDrawTime);
+DEFINE_STAT(STAT_MetalBoundShaderLockTime);
+DEFINE_STAT(STAT_MetalPipelineLockTime);
+
+DEFINE_STAT(STAT_MetalUniformMemAlloc);
+DEFINE_STAT(STAT_MetalUniformMemFreed);
+DEFINE_STAT(STAT_MetalVertexMemAlloc);
+DEFINE_STAT(STAT_MetalVertexMemFreed);
+DEFINE_STAT(STAT_MetalIndexMemAlloc);
+DEFINE_STAT(STAT_MetalIndexMemFreed);
+DEFINE_STAT(STAT_MetalTextureMemUpdate);
+DEFINE_STAT(STAT_MetalPrivateTextureCount);
+DEFINE_STAT(STAT_MetalManagedTextureCount);
+DEFINE_STAT(STAT_MetalTexturePageOnTime);
+
+DEFINE_STAT(STAT_MetalCommandBufferCreatedPerFrame);
+DEFINE_STAT(STAT_MetalCommandBufferCommittedPerFrame);
 
 #if METAL_STATISTICS
 void FMetalEventNode::GetStats(FMetalPipelineStats& OutStats)

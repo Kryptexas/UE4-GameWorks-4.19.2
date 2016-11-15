@@ -3,6 +3,7 @@
 #pragma once
 
 #include "ComboBoxWidgetStyle.h"
+#include "EditorObjectVersion.h"
 
 #include "ComboBoxString.generated.h"
 
@@ -50,6 +51,13 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Content, AdvancedDisplay)
 	bool HasDownArrow;
+
+	/**
+	* When false, directional keys will change the selection. When true, ComboBox 
+	* must be activated and will only capture arrow input while activated.
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Content, AdvancedDisplay)
+	bool EnableGamepadNavigationMode;
 
 	/**
 	 * The default font to use in the combobox, only applies if you're not implementing OnGenerateWidgetEvent

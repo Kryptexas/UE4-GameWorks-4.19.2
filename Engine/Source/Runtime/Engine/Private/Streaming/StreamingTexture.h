@@ -52,7 +52,7 @@ struct FStreamingTexture
 	int64 DropMaxResolution_Async(int32 NumDroppedMips);
 
 	/** Reduce BudgetedMip by 1 and return the size freed by doing so. */
-	int64 DropOneMip_Async(int32 MaxPerTextureMipBias = 0);
+	int64 DropOneMip_Async();
 
 	/** Increase BudgetedMip by 1, up to resident mips, and return the size taken. */
 	int64 KeepOneMip_Async();
@@ -68,7 +68,7 @@ struct FStreamingTexture
 	FORCEINLINE int32 GetPerfectWantedMips() const { return FMath::Max<int32>(VisibleWantedMips,  HiddenWantedMips); }
 
 	// Whether this texture can be affected by Global Bias and Budget Bias per texture.
-	FORCEINLINE bool IsMaxResolutionAffectedByGlobalBias() const { return LODGroup != TEXTUREGROUP_HierarchicalLOD && !bIsTerrainTexture; }
+	FORCEINLINE bool IsMaxResolutionAffectedByGlobalBias() const { return LODGroup != TEXTUREGROUP_HierarchicalLOD && !bIsTerrainTexture && !(Texture && Texture->bIgnoreStreamingMipBias); }
 
 	/***************************************************************
 	 * Members initialized when this is constructed => NEVER CHANGES

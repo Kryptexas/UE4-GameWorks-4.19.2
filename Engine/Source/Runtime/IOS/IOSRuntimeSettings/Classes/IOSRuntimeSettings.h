@@ -25,16 +25,20 @@ UENUM()
 	enum class EIOSVersion : uint8
 {
 	/** iOS 6.1 */
-	IOS_61 = 6 UMETA(DisplayName="6.1"),
+	IOS_61 = 6 UMETA(Hidden),
 
 	/** iOS 7 */
-	IOS_7 = 7 UMETA(DisplayName="7.0"),
+	IOS_7 = 7 UMETA(Hidden),
 
 	/** iOS 8 */
 	IOS_8 = 8 UMETA(DisplayName="8.0"),
 
 	/** iOS 9 */
 	IOS_9 = 9 UMETA(DisplayName = "9.0"),
+
+	/** iOS 10 */
+	IOS_10 = 10 UMETA(DisplayName = "10.0"),
+
 };
 
 
@@ -172,6 +176,10 @@ public:
 	// Whether or not to add support for OpenGL ES2 (if this is false, then your game should specify minimum IOS8 version)
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Rendering)
 	bool bSupportsOpenGLES2;
+	
+	// Remotely compile shaders offline
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build)
+	bool EnableRemoteShaderCompile;
 
 	// Enable generation of dSYM file
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Generate dSYM file for code debugging and profiling"))
@@ -292,14 +300,14 @@ public:
 	// Specifies the version for the application.
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = BundleInformation)
 	FString VersionInfo;
-    
-    /** Set the maximum frame rate to save on power consumption */
+
+	/** Set the maximum frame rate to save on power consumption */
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = PowerUsage, meta = (ConfigHierarchyEditable))
-    TEnumAsByte<EPowerUsageFrameRateLock> FrameRateLock;
+	EPowerUsageFrameRateLock FrameRateLock;
 
 	// Minimum iOS version this game supports
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = OSInfo)
-	TEnumAsByte<EIOSVersion> MinimumiOSVersion;
+	EIOSVersion MinimumiOSVersion;
 
 	// Whether or not to add support for iPad devices
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = DeviceUsage)

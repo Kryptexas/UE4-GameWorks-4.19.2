@@ -6,6 +6,10 @@
 #include "NiagaraEffectRenderer.h"
 #include "StaticMeshResources.h"
 
+DECLARE_CYCLE_STAT(TEXT("Generate Sprite Vertex Data"), STAT_NiagaraGenSpriteVertexData, STATGROUP_Niagara);
+DECLARE_CYCLE_STAT(TEXT("Generate Ribbon Vertex Data"), STAT_NiagaraGenRibbonVertexData, STATGROUP_Niagara);
+DECLARE_CYCLE_STAT(TEXT("Generate Mesh Vertex Data"), STAT_NiagaraGenMeshVertexData, STATGROUP_Niagara);
+
 DECLARE_CYCLE_STAT(TEXT("Render Total"), STAT_NiagaraRender, STATGROUP_Niagara);
 DECLARE_CYCLE_STAT(TEXT("Render Sprites"), STAT_NiagaraRenderSprites, STATGROUP_Niagara);
 DECLARE_CYCLE_STAT(TEXT("Render Ribbons"), STAT_NiagaraRenderRibbons, STATGROUP_Niagara);
@@ -143,7 +147,8 @@ void NiagaraEffectRendererSprites::GetDynamicMeshElements(const TArray<const FSc
 				false,
 				false,
 				SceneProxy->UseSingleSampleShadowFromStationaryLights(),
-				SceneProxy->UseEditorDepthTest()
+				SceneProxy->UseEditorDepthTest(),
+				SceneProxy->GetLightingChannelMask()
 				);
 			WorldSpacePrimitiveUniformBuffer.SetContents(PrimitiveUniformShaderParameters);
 			WorldSpacePrimitiveUniformBuffer.InitResource();
@@ -412,7 +417,8 @@ void NiagaraEffectRendererRibbon::GetDynamicMeshElements(const TArray<const FSce
 				false,
 				false,
 				SceneProxy->UseSingleSampleShadowFromStationaryLights(),
-				SceneProxy->UseEditorDepthTest()
+				SceneProxy->UseEditorDepthTest(),
+				SceneProxy->GetLightingChannelMask()
 				);
 			WorldSpacePrimitiveUniformBuffer.SetContents(PrimitiveUniformShaderParameters);
 			WorldSpacePrimitiveUniformBuffer.InitResource();
@@ -820,7 +826,8 @@ void NiagaraEffectRendererMeshes::GetDynamicMeshElements(const TArray<const FSce
 				false,
 				false,
 				false,
-				SceneProxy->UseEditorDepthTest()
+				SceneProxy->UseEditorDepthTest(),
+				SceneProxy->GetLightingChannelMask()
 				);
 			WorldSpacePrimitiveUniformBuffer.SetContents(PrimitiveUniformShaderParameters);
 			WorldSpacePrimitiveUniformBuffer.InitResource();

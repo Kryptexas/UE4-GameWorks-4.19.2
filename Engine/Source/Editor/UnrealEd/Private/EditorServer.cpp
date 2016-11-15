@@ -74,6 +74,7 @@
 #include "KismetReinstanceUtilities.h"
 #include "AnalyticsEventAttribute.h"
 #include "Developer/SlateReflector/Public/ISlateReflectorModule.h"
+#include "Editor/PropertyEditorTestObject.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorServer, Log, All);
 
@@ -98,12 +99,12 @@ namespace
 		FWaveCluster(const TCHAR* InName)
 			:	Name( InName )
 			,	Num( 0 )
-			,	Size( 0 )
+			,	Size( )
 		{}
 
 		FString Name;
 		int32 Num;
-		int32 Size;
+		FResourceSizeEx Size;
 	};
 
 	struct FAnimSequenceUsageInfo
@@ -522,6 +523,37 @@ bool UEditorEngine::Exec_StaticMesh( UWorld* InWorld, const TCHAR* Str, FOutputD
 			GetSelectedObjects()->Select( StaticMesh );
 		}
 	}
+	else if (FParse::Command(&Str, TEXT("FORCELODGROUP")))	// STATICMESH FORCELODGROUP <name>
+	{
+		FName NewGroup(Str);
+		if (NewGroup != NAME_None)
+		{
+			// get the selected meshes
+			TArray<UStaticMesh*> SelectedMeshes;
+			for (FSelectionIterator Iter(GetSelectedActorIterator()); Iter; ++Iter)
+			{
+				TInlineComponentArray<UStaticMeshComponent*> SMComps(CastChecked<AActor>(*Iter));
+				for (UStaticMeshComponent* SMC : SMComps)
+				{
+					if (SMC->GetStaticMesh())
+					{
+						SelectedMeshes.AddUnique(SMC->GetStaticMesh());
+					}
+				}
+
+			}
+
+			// look at all loaded static meshes
+			for (UStaticMesh* SM : SelectedMeshes)
+			{
+				// update any mesh not already in a group
+				if (!SM->IsTemplate() && SM->LODGroup == NAME_None)
+				{
+					SM->SetLODGroup(NewGroup);
+				}
+			}
+		}
+	}
 #endif // UE_BUILD_SHIPPING
 	return bResult;
 }
@@ -701,7 +733,10 @@ bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 
 				InWorld->GetModel()->Modify();
 				NewBrush->Modify();
+				FlushRenderingCommands();
+				ABrush::GGeometryRebuildCause = TEXT("Add Brush");
 				bspBrushCSG( NewBrush, InWorld->GetModel(), DWord1, Brush_Add, CSG_None, true, true, true );
+				ABrush::GGeometryRebuildCause = nullptr;
 			}
 			InWorld->InvalidateModelGeometry( InWorld->GetCurrentLevel() );
 		}
@@ -785,7 +820,10 @@ bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 			{
 				NewBrush->Modify();
 				InWorld->GetModel()->Modify();
+				FlushRenderingCommands();
+				ABrush::GGeometryRebuildCause = TEXT("Subtract Brush");
 				bspBrushCSG( NewBrush, InWorld->GetModel(), 0, Brush_Subtract, CSG_None, true, true, true );
+				ABrush::GGeometryRebuildCause = nullptr;
 			}
 			InWorld->InvalidateModelGeometry( InWorld->GetCurrentLevel() );
 		}
@@ -1622,6 +1660,9 @@ void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushes
 	const int32 NumVectors = Model->Vectors.Num();
 	const int32 NumSurfs = Model->Surfs.Num();
 
+	// Debug purposes only; an attempt to catch the cause of UE-36265
+	ABrush::GGeometryRebuildCause = TEXT("RebuildModelFromBrushes");
+
 	Model->Modify();
 	Model->EmptyModel(1, 1);
 
@@ -1711,6 +1752,9 @@ void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushes
 
 		FBSPOps::csgPrepMovingBrush(DynamicBrush);
 	}
+
+	// Debug purposes only; an attempt to catch the cause of UE-36265
+	ABrush::GGeometryRebuildCause = nullptr;
 
 	FBspPointsGrid::GBspPoints = nullptr;
 	FBspPointsGrid::GBspVectors = nullptr;
@@ -1814,7 +1858,9 @@ void UEditorEngine::BSPIntersectionHelper(UWorld* InWorld, ECsgOper Operation)
 		DefaultBrush->Modify();
 		InWorld->GetModel()->Modify();
 		FinishAllSnaps();
+		ABrush::GGeometryRebuildCause = TEXT("BSPIntersectionHelper");
 		bspBrushCSG(DefaultBrush, InWorld->GetModel(), 0, Brush_MAX, Operation, false, true, true);
+		ABrush::GGeometryRebuildCause = nullptr;
 	}
 }
 
@@ -1825,7 +1871,7 @@ void UEditorEngine::CheckForWorldGCLeaks( UWorld* NewWorld, UPackage* WorldPacka
 	{
 		UWorld* RemainingWorld = *It;
 		const bool bIsNewWorld = (NewWorld && RemainingWorld == NewWorld);
-		const bool bIsPersistantWorldType = (RemainingWorld->WorldType == EWorldType::Inactive) || (RemainingWorld->WorldType == EWorldType::Preview);
+		const bool bIsPersistantWorldType = (RemainingWorld->WorldType == EWorldType::Inactive) || (RemainingWorld->WorldType == EWorldType::EditorPreview);
 		if(!bIsNewWorld && !bIsPersistantWorldType && !WorldHasValidContext(RemainingWorld))
 		{
 			StaticExec(RemainingWorld, *FString::Printf(TEXT("OBJ REFS CLASS=WORLD NAME=%s"), *RemainingWorld->GetPathName()));
@@ -1883,7 +1929,7 @@ void UEditorEngine::EditorDestroyWorld( FWorldContext & Context, const FText& Cl
 		WorldPackage = NULL;
 	}
 
-	if (ContextWorld->WorldType != EWorldType::Preview && ContextWorld->WorldType != EWorldType::Inactive)
+	if (ContextWorld->WorldType != EWorldType::EditorPreview && ContextWorld->WorldType != EWorldType::Inactive)
 	{
 		// Go away, come again never!
 		ContextWorld->ClearFlags(RF_Standalone | RF_Transactional);
@@ -2431,6 +2477,8 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 
 				World->WorldType = EWorldType::Editor;
 
+				Context.World()->PersistentLevel->HandleLegacyMapBuildData();
+
 				// Parse requested feature level if supplied
 				int32 FeatureLevelIndex = (int32)GMaxRHIFeatureLevel;
 				FParse::Value(Str, TEXT("FEATURELEVEL="), FeatureLevelIndex);
@@ -2483,6 +2531,14 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 						Context.World()->GetModel()->Polys->SetFlags( RF_Transactional );
 					}
 
+					// Process any completed shader maps since we at a loading screen anyway
+					// Do this before we register components, as USkinnedMeshComponents require the GPU skin cache global shaders when creating render state.
+					if (GShaderCompilingManager)
+					{
+						// Process any asynchronous shader compile results that are ready, limit execution time
+						GShaderCompilingManager->ProcessAsyncResults(false, true);
+					}
+
 					// Register components in the persistent level (current)
 					Context.World()->UpdateWorldComponents(true, true);
 
@@ -2498,13 +2554,6 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 					// actors in the scene
 					FEditorDelegates::MapChange.Broadcast(MapChangeEventFlags::NewMap );
 					GEngine->BroadcastLevelActorListChanged();
-
-					// Process any completed shader maps since we at a loading screen anyway
-					if (GShaderCompilingManager)
-					{
-						// Process any asynchronous shader compile results that are ready, limit execution time
-						GShaderCompilingManager->ProcessAsyncResults(false, true);
-					}
 
 					NoteSelectionChange();
 
@@ -2542,7 +2591,7 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 					Context.World()->CreateAISystem();
 
 					// Assign stationary light channels for previewing
-					ULightComponent::ReassignStationaryLightChannels(Context.World(), false);
+					ULightComponent::ReassignStationaryLightChannels(Context.World(), false, NULL);
 
 					// Process Layers
 					{
@@ -2855,7 +2904,9 @@ public:
 				*OutClipboardContents = *ScratchData;
 			}
 
-			GEditor->edactDeleteSelected( World, false );
+			// Do not warn if we are only copying not pasint as we are not actually deleting anything from the real level
+			const bool bWarnAboutReferencedActors = !bCopyOnly;
+			GEditor->edactDeleteSelected( World, false, bWarnAboutReferencedActors);
 		}
 
 		if( DestLevel )
@@ -3740,6 +3791,13 @@ bool UEditorEngine::Map_Check( UWorld* InWorld, const TCHAR* Str, FOutputDevice&
 	}
 
 	Game_Map_Check(InWorld, Str, Ar, bCheckDeprecatedOnly);
+
+
+	CheckTextureStreamingBuild(InWorld);
+	if (InWorld->NumTextureStreamingUnbuiltComponents > 0 || InWorld->NumTextureStreamingDirtyResources > 0)
+	{
+		FMessageLog("MapCheck").Warning()->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_TextureStreamingNeedsRebuild", "Texture streaming needs to be rebuilt, run 'Build Texture Streaming'.")));
+	}
 
 	GWarn->StatusUpdate( 0, ProgressDenominator, CheckMapLocText );
 
@@ -5180,7 +5238,7 @@ void UEditorEngine::AssignReplacementComponentsByActors(TArray<AActor*>& ActorsT
 	UPrimitiveComponent* ReplacementComponent = NULL;
 
 	// loop over the clases until a component is found
-	for (int32 ClassIndex = 0; ClassIndex < ARRAY_COUNT(PossibleReplacementClass) && ReplacementComponent == NULL; ClassIndex++)
+	for (int32 ClassIndex = 0; ClassIndex < ARRAY_COUNT(PossibleReplacementClass); ClassIndex++)
 	{
 		// use ClassToReplace of UMeshComponent if not specified
 		UClass* ReplacementComponentClass = ClassToReplace ? ClassToReplace : PossibleReplacementClass[ClassIndex];
@@ -5197,11 +5255,12 @@ void UEditorEngine::AssignReplacementComponentsByActors(TArray<AActor*>& ActorsT
 				if (PrimitiveComponent->IsA(ReplacementComponentClass))
 				{
 					ReplacementComponent = PrimitiveComponent;
-					break;
+					goto FoundComponent;
 				}
 			}
 		}
 	}
+FoundComponent:
 
 	// attempt to set replacement component for all selected actors
 	for (int32 ActorIndex = 0; ActorIndex < ActorsToReplace.Num(); ActorIndex++)
@@ -6228,15 +6287,14 @@ bool UEditorEngine::HandleBugItGoCommand( const TCHAR* Str, FOutputDevice& Ar )
 bool UEditorEngine::HandleTagSoundsCommand( const TCHAR* Str, FOutputDevice& Ar )
 {
 	int32 NumObjects = 0;
-	int32 TotalSize = 0;
+	SIZE_T TotalSize = 0;
 	for( FObjectIterator It(USoundWave::StaticClass()); It; ++It )
 	{
 		++NumObjects;
 		DebugSoundAnnotation.Set(*It);
 
 		USoundWave* Wave = static_cast<USoundWave*>(*It);
-		const SIZE_T Size = Wave->GetResourceSize(EResourceSizeMode::Exclusive);
-		TotalSize += Size;
+		TotalSize += Wave->GetResourceSizeBytes(EResourceSizeMode::Exclusive);
 	}
 	UE_LOG(LogEditorServer, Log,  TEXT("Marked %i sounds %10.2fMB"), NumObjects, ((float)TotalSize) /(1024.f*1024.f) );
 	return true;
@@ -6275,19 +6333,20 @@ bool UEditorEngine::HandlecheckSoundsCommand( const TCHAR* Str, FOutputDevice& A
 		const int32 NumCoreClusters = Clusters.Num();
 
 		// Output information.
-		int32 TotalSize = 0;
 		UE_LOG(LogEditorServer, Log,  TEXT("=================================================================================") );
 		UE_LOG(LogEditorServer, Log,  TEXT("%60s %10s"), TEXT("Wave Name"), TEXT("Size") );
 		for ( int32 WaveIndex = 0 ; WaveIndex < WaveList.Num() ; ++WaveIndex )
 		{
 			USoundWave* Wave = WaveList[WaveIndex];
-			const SIZE_T WaveSize = Wave->GetResourceSize(EResourceSizeMode::Exclusive);
 			UPackage* WavePackage = Wave->GetOutermost();
 			const FString PackageName( WavePackage->GetName() );
 
+			FResourceSizeEx WaveResourceSize = FResourceSizeEx(EResourceSizeMode::Exclusive);
+			Wave->GetResourceSizeEx(WaveResourceSize);
+
 			// Totals.
 			Clusters[0].Num++;
-			Clusters[0].Size += WaveSize;
+			Clusters[0].Size += WaveResourceSize;
 
 			// Core clusters
 			for ( int32 ClusterIndex = 1 ; ClusterIndex < NumCoreClusters ; ++ClusterIndex )
@@ -6296,7 +6355,7 @@ bool UEditorEngine::HandlecheckSoundsCommand( const TCHAR* Str, FOutputDevice& A
 				if ( PackageName.Find( Cluster.Name ) != -1 )
 				{
 					Cluster.Num++;
-					Cluster.Size += WaveSize;
+					Cluster.Size += WaveResourceSize;
 				}
 			}
 
@@ -6309,7 +6368,7 @@ bool UEditorEngine::HandlecheckSoundsCommand( const TCHAR* Str, FOutputDevice& A
 				{
 					// Found a cluster with this package name.
 					Cluster.Num++;
-					Cluster.Size += WaveSize;
+					Cluster.Size += WaveResourceSize;
 					bFoundMatch = true;
 					break;
 				}
@@ -6319,17 +6378,17 @@ bool UEditorEngine::HandlecheckSoundsCommand( const TCHAR* Str, FOutputDevice& A
 				// Create a new cluster with the package name.
 				FWaveCluster NewCluster( *PackageName );
 				NewCluster.Num = 1;
-				NewCluster.Size = WaveSize;
+				NewCluster.Size = WaveResourceSize;
 				Clusters.Add( NewCluster );
 			}
 
 			// Dump bulk sound list.
-			UE_LOG(LogEditorServer, Log,  TEXT("%70s %10.2fk"), *Wave->GetPathName(), ((float)WaveSize)/1024.f );
+			UE_LOG(LogEditorServer, Log,  TEXT("%70s %10.2fk"), *Wave->GetPathName(), ((float)WaveResourceSize.GetTotalMemoryBytes())/1024.f );
 		}
 		UE_LOG(LogEditorServer, Log,  TEXT("=================================================================================") );
 		UE_LOG(LogEditorServer, Log,  TEXT("%60s %10s %10s"), TEXT("Cluster Name"), TEXT("Num"), TEXT("Size") );
 		UE_LOG(LogEditorServer, Log,  TEXT("=================================================================================") );
-		int32 TotalClusteredSize = 0;
+		FResourceSizeEx TotalClusteredSize;
 		for ( int32 ClusterIndex = 0 ; ClusterIndex < Clusters.Num() ; ++ClusterIndex )
 		{
 			const FWaveCluster& Cluster = Clusters[ClusterIndex];
@@ -6338,10 +6397,10 @@ bool UEditorEngine::HandlecheckSoundsCommand( const TCHAR* Str, FOutputDevice& A
 				UE_LOG(LogEditorServer, Log,  TEXT("---------------------------------------------------------------------------------") );
 				TotalClusteredSize += Cluster.Size;
 			}
-			UE_LOG(LogEditorServer, Log,  TEXT("%60s %10i %10.2fMB"), *Cluster.Name, Cluster.Num, ((float)Cluster.Size)/(1024.f*1024.f) );
+			UE_LOG(LogEditorServer, Log,  TEXT("%60s %10i %10.2fMB"), *Cluster.Name, Cluster.Num, ((float)Cluster.Size.GetTotalMemoryBytes())/(1024.f*1024.f) );
 		}
 		UE_LOG(LogEditorServer, Log,  TEXT("=================================================================================") );
-		UE_LOG(LogEditorServer, Log,  TEXT("Total Clusterd: %10.2fMB"), ((float)TotalClusteredSize)/(1024.f*1024.f) );
+		UE_LOG(LogEditorServer, Log,  TEXT("Total Clusterd: %10.2fMB"), ((float)TotalClusteredSize.GetTotalMemoryBytes())/(1024.f*1024.f) );
 		return true;
 }
 
@@ -6571,13 +6630,13 @@ bool IsComponentMergable(UStaticMeshComponent* Component)
 	}
 
 	// we need a static mesh to work
-	if (Component->StaticMesh == NULL || Component->StaticMesh->RenderData == NULL)
+	if (Component->GetStaticMesh() == nullptr || Component->GetStaticMesh()->RenderData == nullptr)
 	{
 		return false;
 	}
 
 	// only components with a single LOD can be merged
-	if (Component->StaticMesh->GetNumLODs() != 1)
+	if (Component->GetStaticMesh()->GetNumLODs() != 1)
 	{
 		return false;
 	}
@@ -6826,7 +6885,7 @@ void UEditorEngine::AutoMergeStaticMeshes()
 void UEditorEngine::MoveViewportCamerasToBox(const FBox& BoundingBox, bool bActiveViewportOnly) const
 {
 	// Make sure we had at least one non-null actor in the array passed in.
-	if (BoundingBox.GetSize() != FVector::ZeroVector)
+	if (BoundingBox.GetSize() != FVector::ZeroVector || BoundingBox.GetCenter() != FVector::ZeroVector)
 	{
 		if (bActiveViewportOnly)
 		{

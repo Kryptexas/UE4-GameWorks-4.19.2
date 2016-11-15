@@ -3,32 +3,24 @@
 SET VSComnToolsPath=
 SET TmpPath=""
 
-REM Non-express VS2013 on 64-bit machine.
-FOR /f "tokens=2,*" %%A IN ('REG.exe query HKLM\Software\Wow6432Node\Microsoft\VisualStudio\%1.0 /v "InstallDir" 2^>Nul') DO (
-	SET TmpPath="%%B\..\Tools"
+FOR /f "tokens=2,*" %%A IN ('REG.exe query HKCU\SOFTWARE\Microsoft\VisualStudio\SxS\VS7 /v "%1.0" 2^>Nul') DO (
+	SET TmpPath="%%B\Common7\Tools"
+	GOTO havePath
+)
+FOR /f "tokens=2,*" %%A IN ('REG.exe query HKLM\SOFTWARE\Microsoft\VisualStudio\SxS\VS7 /v "%1.0" 2^>Nul') DO (
+	SET TmpPath="%%B\Common7\Tools"
+	GOTO havePath
+)
+FOR /f "tokens=2,*" %%A IN ('REG.exe query HKCU\SOFTWARE\Wow6432Node\Microsoft\VisualStudio\SxS\VS7 /v "%1.0" 2^>Nul') DO (
+	SET TmpPath="%%B\Common7\Tools"
+	GOTO havePath
+)
+FOR /f "tokens=2,*" %%A IN ('REG.exe query HKLM\SOFTWARE\Wow6432Node\Microsoft\VisualStudio\SxS\VS7 /v "%1.0" 2^>Nul') DO (
+	SET TmpPath="%%B\Common7\Tools"
+	GOTO havePath
 )
 
-REM Non-express VS2013 on 32-bit machine.
-IF %TmpPath% == "" (
-	FOR /f "tokens=2,*" %%A IN ('REG.exe query HKLM\Software\Microsoft\VisualStudio\%1.0 /v "InstallDir" 2^>Nul') DO (
-		SET TmpPath="%%B\..\Tools"
-	)
-)
-
-REM Express VS2013 on 64-bit machine.
-IF %TmpPath% == "" (
-	FOR /f "tokens=2,*" %%A IN ('REG.exe query HKLM\Software\Wow6432Node\Microsoft\WDExpress\%1.0 /v "InstallDir" 2^>Nul') DO (
-		SET TmpPath="%%B\..\Tools"
-	)
-)
-
-REM Express VS2013 on 32-bit machine.
-IF %TmpPath% == "" (
-	FOR /f "tokens=2,*" %%A IN ('REG.exe query HKLM\Software\Microsoft\WDExpress\%1.0 /v "InstallDir" 2^>Nul') DO (
-		SET TmpPath="%%B\..\Tools"
-	)
-)
-
+:havePath
 IF NOT %TmpPath% == "" (
 	CALL :normalisePath %TmpPath%
 )

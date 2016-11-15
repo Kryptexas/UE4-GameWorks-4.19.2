@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2710135
+﻿INTSourceChangelist:2944273
 Availability:Public
 Title:C++ 와 블루프린트
 Crumbs: %ROOT%, Gameplay, Gameplay/ClassCreation
@@ -63,15 +63,15 @@ LightSwitchBoth.h
 
 			/** 무언가 구체 컴포넌트에 들어설 때 호출 */
 			UFUNCTION(BlueprintNativeEvent, Category="Switch Functions")
-			void OnOverlapBegin(class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+			void OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 			
-			void OnOverlapBegin_Implementation(class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+			void OnOverlapBegin_Implementation(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 			/** 무언가 구체 컴포넌트를 나설 때 호출 */
 			UFUNCTION(BlueprintNativeEvent, Category="Switch Functions")
-			void OnOverlapEnd(class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+			void OnOverlapEnd(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
-			void OnOverlapEnd_Implementation(class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+			void OnOverlapEnd_Implementation(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 			/** 라이트 컴포넌트의 표시여부 토글*/
 			UFUNCTION()
@@ -110,13 +110,13 @@ LightSwitchBoth.cpp
 
 		Sphere1 = CreateDefaultSubobject<USphereComponent>(this, TEXT("Sphere1"));
 		Sphere1->InitSphereRadius(250.0f);
-		Sphere1->AttachParent = RootComponent;
+		Sphere1->SetupAttachment(RootComponent);
 
 		Sphere1->OnComponentBeginOverlap.AddDynamic(this, &ALightSwitchBoth::OnOverlapBegin);		// set up a notification for when this component overlaps something
 		Sphere1->OnComponentEndOverlap.AddDynamic(this, &ALightSwitchBoth::OnOverlapEnd);		// set up a notification for when this component overlaps something
 	}
 
-	void ALightSwitchBoth::OnOverlapBegin_Implementation(class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+	void ALightSwitchBoth::OnOverlapBegin_Implementation(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 	{
 		if (OtherActor && (OtherActor != this) && OtherComp)
 		{
@@ -124,7 +124,7 @@ LightSwitchBoth.cpp
 		}
 	}
 
-	void ALightSwitchBoth::OnOverlapEnd_Implementation(class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+	void ALightSwitchBoth::OnOverlapEnd_Implementation(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 	{
 		if (OtherActor && (OtherActor != this) && OtherComp)
 		{

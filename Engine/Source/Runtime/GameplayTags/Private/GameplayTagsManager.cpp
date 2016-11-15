@@ -144,22 +144,50 @@ void UGameplayTagsManager::ConstructGameplayTagTree()
 
 		if (ShouldImportTagsFromINI())
 		{
+			UGameplayTagsSettings* MutableDefault = GetMutableDefault<UGameplayTagsSettings>();
 #if STATS
 			FString PerfMessage = FString::Printf(TEXT("UGameplayTagsManager::ConstructGameplayTagTree: ImportINI"));
 			SCOPE_LOG_TIME_IN_SECONDS(*PerfMessage, nullptr)
 #endif
-
+			// ------------------------------------------------------------------------------------------------------------
 			// Update path: Check for old tags in DefaultEngine.ini (we'll push them to the UGameplayTagSettings class).
+			// ------------------------------------------------------------------------------------------------------------
 			TArray<FString> EngineConfigTags;
 			GConfig->GetArray(TEXT("/Script/GameplayTags.GameplayTagsSettings"), TEXT("GameplayTags"), EngineConfigTags, GEngineIni);
+			
 			if (EngineConfigTags.Num() > 0)
 			{
-				UGameplayTagsSettings* MutableDefault = GetMutableDefault<UGameplayTagsSettings>();
 				if (MutableDefault->GameplayTags.Num() == 0)
 				{
 					MutableDefault->GameplayTags.Append(EngineConfigTags);
 				}
 			}
+
+			// ---------------------------------------------------------------
+			//	Developer Tags
+			// ---------------------------------------------------------------
+
+			{
+				// Read all tags from the ini
+				DeveloperTags.Items.Reset();
+				TArray<FString> FilesInDirectory;
+				IFileManager::Get().FindFilesRecursive(FilesInDirectory, *(FPaths::GameConfigDir() / TEXT("Tags")), TEXT("*.ini"), true, false);
+				FilesInDirectory.Sort();
+				for (FString& FileName : FilesInDirectory)
+				{
+					UE_LOG(LogGameplayTags, Display, TEXT("File: %s"), *FileName);
+
+					auto& NewItem = DeveloperTags.Items[DeveloperTags.Items.AddDefaulted()];
+					NewItem.IniName = FileName;
+
+					GConfig->GetArray(TEXT("UserTags"), TEXT("GameplayTags"), NewItem.Tags, FileName);
+
+					MutableDefault->GameplayTags.Append(NewItem.Tags);
+				}
+			}
+			
+
+			// ---------------------------------------------------------------
 
 			// Load any GameplayTagSettings from config (their default object)
 			for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
@@ -173,8 +201,7 @@ void UGameplayTagsManager::ConstructGameplayTagTree()
 #if WITH_EDITOR
 				Class->GetDefaultObject<UGameplayTagsSettings>()->SortTags();
 #endif
-				
-				for (FString TagStr : Class->GetDefaultObject<UGameplayTagsSettings>()->GameplayTags)
+				for (FString& TagStr : Class->GetDefaultObject<UGameplayTagsSettings>()->GameplayTags)
 				{
 					FGameplayTagTableRow TableRow;
 					TableRow.Tag = TagStr;
@@ -475,7 +502,8 @@ void UGameplayTagsManager::AddTagTableRow(const FGameplayTagTableRow& TagRow)
 
 	if (SubTags.Num() > 0)
 	{
-		int32 InsertionIdx = InsertTagIntoNodeArray(*SubTags[0], NULL, GameplayRootTags, SubTags.Num() == 1 ? TagRow.CategoryText : FText());
+		bool FromDictionary = SubTags.Num() == 1;
+		int32 InsertionIdx = InsertTagIntoNodeArray(*SubTags[0], NULL, GameplayRootTags, SubTags.Num() == 1 ? TagRow.CategoryText : FText(), FromDictionary);
 		TSharedPtr<FGameplayTagNode> CurNode = GameplayRootTags[InsertionIdx];
 
 		for (int32 SubTagIdx = 1; SubTagIdx < SubTags.Num(); ++SubTagIdx)
@@ -486,7 +514,9 @@ void UGameplayTagsManager::AddTagTableRow(const FGameplayTagTableRow& TagRow)
 			{
 				Description = TagRow.CategoryText;
 			}
-			InsertionIdx = InsertTagIntoNodeArray(*SubTags[SubTagIdx], CurNode, ChildTags, Description);
+
+			FromDictionary = (SubTagIdx == (SubTags.Num()-1));
+			InsertionIdx = InsertTagIntoNodeArray(*SubTags[SubTagIdx], CurNode, ChildTags, Description, FromDictionary);
 
 			CurNode = ChildTags[InsertionIdx];
 		}
@@ -507,7 +537,7 @@ void UGameplayTagsManager::DestroyGameplayTagTree()
 	}
 }
 
-int32 UGameplayTagsManager::InsertTagIntoNodeArray(FName Tag, TWeakPtr<FGameplayTagNode> ParentNode, TArray< TSharedPtr<FGameplayTagNode> >& NodeArray, FText CategoryDescription)
+int32 UGameplayTagsManager::InsertTagIntoNodeArray(FName Tag, TWeakPtr<FGameplayTagNode> ParentNode, TArray< TSharedPtr<FGameplayTagNode> >& NodeArray, FText CategoryDescription, bool InWasAddedDirectlyFromDictionary)
 {
 	int32 InsertionIdx = INDEX_NONE;
 
@@ -524,7 +554,7 @@ int32 UGameplayTagsManager::InsertTagIntoNodeArray(FName Tag, TWeakPtr<FGameplay
 	// Insert the tag at the end of the array if not already found
 	if (InsertionIdx == INDEX_NONE)
 	{
-		TSharedPtr<FGameplayTagNode> TagNode = MakeShareable(new FGameplayTagNode(Tag, ParentNode, CategoryDescription));
+		TSharedPtr<FGameplayTagNode> TagNode = MakeShareable(new FGameplayTagNode(Tag, ParentNode, CategoryDescription, InWasAddedDirectlyFromDictionary));
 		InsertionIdx = NodeArray.Add(TagNode);
 
 		FGameplayTag GameplayTag = FGameplayTag(TagNode->GetCompleteTag());
@@ -547,10 +577,16 @@ int32 UGameplayTagsManager::InsertTagIntoNodeArray(FName Tag, TWeakPtr<FGameplay
 			TagNode->Parents.AddTagFast(FGameplayTag(Name));
 		}
 	}
-	else if (NodeArray[InsertionIdx]->CategoryDescription.IsEmpty() && !CategoryDescription.IsEmpty())
+	else
 	{
 		// Fill in category description for nodes that were added by virtue of being a parent node
-		NodeArray[InsertionIdx]->CategoryDescription = CategoryDescription;
+		if (NodeArray[InsertionIdx]->CategoryDescription.IsEmpty() && !CategoryDescription.IsEmpty())
+		{
+			NodeArray[InsertionIdx]->CategoryDescription = CategoryDescription;
+		}
+
+		// This node could have been created as an implicit tag, and later we found the explicit declaration in the dictionary
+		NodeArray[InsertionIdx]->WasAddedDirectlyFromDictionary |= InWasAddedDirectlyFromDictionary;
 	}
 
 	return InsertionIdx;
@@ -760,6 +796,53 @@ TSharedPtr<FGameplayTagNode> UGameplayTagsManager::FindTagNode(FName TagName) co
 	return FindTagNode(GameplayRootTag, TagName);
 }
 
+void GameplayTagsUpdateSourceControl(FString RelativeConfigFilePath)
+{
+	FString ConfigPath = FPaths::ConvertRelativePathToFull(RelativeConfigFilePath);
+
+	if (ISourceControlModule::Get().IsEnabled())
+	{
+		FText ErrorMessage;
+
+		if (!SourceControlHelpers::CheckoutOrMarkForAdd(ConfigPath, FText::FromString(ConfigPath), NULL, ErrorMessage))
+		{
+			FNotificationInfo Info(ErrorMessage);
+			Info.ExpireDuration = 3.0f;
+			FSlateNotificationManager::Get().AddNotification(Info);
+		}
+	}
+	else
+	{
+		if (!FPlatformFileManager::Get().GetPlatformFile().SetReadOnly(*ConfigPath, false))
+		{
+			FText NotificationErrorText = FText::Format(LOCTEXT("FailedToMakeWritable", "Could not make {0} writable."), FText::FromString(ConfigPath));
+
+			FNotificationInfo Info(NotificationErrorText);
+			Info.ExpireDuration = 3.0f;
+
+			FSlateNotificationManager::Get().AddNotification(Info);
+		}
+	}
+}
+
+bool UGameplayTagsManager::IsDictionaryTag(FName TagName) const
+{
+	FGameplayTag TagTemp;
+	TagTemp.TagName = TagName;
+	if (const TSharedPtr<FGameplayTagNode>* Node = GameplayTagNodeMap.Find(TagTemp))
+	{
+		if (Node->IsValid())
+		{
+			if (Node->Get()->WasAddedDirectlyFromDictionary)
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 void UGameplayTagsManager::AddNewGameplayTagToINI(FString NewTag)
 {
 	if(NewTag.IsEmpty())
@@ -771,51 +854,108 @@ void UGameplayTagsManager::AddNewGameplayTagToINI(FString NewTag)
 	{
 		return;
 	}
+	
+	UGameplayTagsSettings*			Settings = GetMutableDefault<UGameplayTagsSettings>();
+	UGameplayTagsDeveloperSettings* DevSettings = GetMutableDefault<UGameplayTagsDeveloperSettings>();
 
-	UGameplayTagsSettings* Settings = GetMutableDefault<UGameplayTagsSettings>();
+	// Already in the list as an explicit tag, ignore. Note we want to add if it is in implicit tag. (E.g, someone added A.B.C then someone tries to add A.B)
+	{
+		
+		if (IGameplayTagsModule::Get().GetGameplayTagsManager().IsDictionaryTag(FName(*NewTag)))
+		{
+			return;
+		}
+	}
+
 	if (Settings)
 	{
-
 		FString RelativeConfigFilePath = Settings->GetDefaultConfigFilename();
-		FString ConfigPath = FPaths::ConvertRelativePathToFull(RelativeConfigFilePath);
-
-		if (ISourceControlModule::Get().IsEnabled())
+		if (DevSettings && DevSettings->DeveloperConfigName.IsEmpty() == false)
 		{
-			FText ErrorMessage;
+			// Write this tag to the Developer's ini file
+			FDeveloperTags& DeveloperTags = IGameplayTagsModule::Get().GetGameplayTagsManager().DeveloperTags;
 
-			if (!SourceControlHelpers::CheckoutOrMarkForAdd(ConfigPath, FText::FromString(ConfigPath), NULL, ErrorMessage))
+			// Get config filename
+			RelativeConfigFilePath.ReplaceInline(TEXT("DefaultGameplayTags"), *FString::Printf(TEXT("Tags/%s"), *DevSettings->DeveloperConfigName));
+
+			// See if there is already an entry for this one
+			int32 idx=0;
+			for(; idx < DeveloperTags.Items.Num(); ++idx)
 			{
-				FNotificationInfo Info(ErrorMessage);
-				Info.ExpireDuration = 3.0f;
-				FSlateNotificationManager::Get().AddNotification(Info);
+				if (DeveloperTags.Items[idx].IniName == RelativeConfigFilePath)
+				{
+					break;
+				}
 			}
+
+			// Create new entry if necessary
+			if (DeveloperTags.Items.IsValidIndex(idx) == false)
+			{
+				idx = DeveloperTags.Items.AddDefaulted();
+			}
+
+			// Setup the entry and add the tag
+			DeveloperTags.Items[idx].IniName = RelativeConfigFilePath;
+			DeveloperTags.Items[idx].Tags.Add(NewTag);
+
+			// Write back out to config
+			GConfig->SetArray(TEXT("UserTags"), TEXT("GameplayTags"), DeveloperTags.Items[idx].Tags, RelativeConfigFilePath);
+
+			// Flush once to possible write the file to disk for the first time
+			GConfig->Flush(false, RelativeConfigFilePath);
+
+			// Source Control
+			GameplayTagsUpdateSourceControl(RelativeConfigFilePath);
+
+			// Flush again in the case where the file already existed
+			GConfig->Flush(false, RelativeConfigFilePath);
+			
 		}
 		else
 		{
-			if (!FPlatformFileManager::Get().GetPlatformFile().SetReadOnly(*ConfigPath, false))
+			// Write this tag to the global ini file
+			Settings->GameplayTags.Add(NewTag);
+			Settings->SortTags();
+
+			// Backup the full list before dumping to config
+			TArray<FString> Backup = Settings->GameplayTags;
+
+			// Remove DeveloperTags from the master list
+			FDeveloperTags& DeveloperTags = IGameplayTagsModule::Get().GetGameplayTagsManager().DeveloperTags;
+			for(int32 idx=0; idx < DeveloperTags.Items.Num(); ++idx)
 			{
-				FText NotificationErrorText = FText::Format(LOCTEXT("FailedToMakeWritable", "Could not make {0} writable."), FText::FromString(ConfigPath));
+				for (FString& Str : DeveloperTags.Items[idx].Tags)
+				{
+					Settings->GameplayTags.Remove(Str);
+				}
+			}			
+						
+			// Source Control
+			GameplayTagsUpdateSourceControl(RelativeConfigFilePath);
 
-				FNotificationInfo Info(NotificationErrorText);
-				Info.ExpireDuration = 3.0f;
+			Settings->UpdateDefaultConfigFile();
+			
+			GConfig->Flush(false, RelativeConfigFilePath);
 
-				FSlateNotificationManager::Get().AddNotification(Info);
-			}
+			// Restore
+			Settings->GameplayTags = Backup;
 		}
 
-		Settings->GameplayTags.Add(NewTag);
-		Settings->SortTags();
+		// ------------------------------------------------
+
+		
+
+		// ------------------------------------------------
+
 		IGameplayTagsModule::Get().GetGameplayTagsManager().DestroyGameplayTagTree();
 
 		{
 #if STATS
-			FString PerfMessage = FString::Printf(TEXT("ConstructGameplayTagTree GameplayTag tables"));
+			FString PerfMessage = FString::Printf(TEXT("ConstructGameplayTagTree GameplayTag tables after adding new tag"));
 			SCOPE_LOG_TIME_IN_SECONDS(*PerfMessage, nullptr)
 #endif
 			IGameplayTagsModule::Get().GetGameplayTagsManager().ConstructGameplayTagTree();
 		}
-
-		Settings->UpdateDefaultConfigFile();
 	}
 	
 }
@@ -858,11 +998,11 @@ FGameplayTagContainer UGameplayTagsManager::RequestGameplayTagParents(const FGam
 	return TagContainer;
 }
 
-FGameplayTagContainer UGameplayTagsManager::RequestGameplayTagChildren(const FGameplayTag& GameplayTag) const
+FGameplayTagContainer UGameplayTagsManager::RequestGameplayTagChildren(const FGameplayTag& GameplayTag, bool OnlyIncludeDictionaryTags) const
 {
 	FGameplayTagContainer TagContainer;
 	// Note this purposefully does not include the passed in GameplayTag in the container.
-	AddChildrenTags(TagContainer, GameplayTag, true);
+	AddChildrenTags(TagContainer, GameplayTag, true, OnlyIncludeDictionaryTags);
 	return TagContainer;
 }
 
@@ -940,7 +1080,7 @@ void UGameplayTagsManager::AddParentTags(FGameplayTagContainer& TagContainer, co
 	}
 }
 
-void UGameplayTagsManager::AddChildrenTags(FGameplayTagContainer& TagContainer, const FGameplayTag& GameplayTag, bool RecurseAll) const
+void UGameplayTagsManager::AddChildrenTags(FGameplayTagContainer& TagContainer, const FGameplayTag& GameplayTag, bool RecurseAll, bool OnlyIncludeDictionaryTags) const
 {
 	const TSharedPtr<FGameplayTagNode>* GameplayTagNode = GameplayTagNodeMap.Find(GameplayTag);
 	if (GameplayTagNode)
@@ -953,14 +1093,31 @@ void UGameplayTagsManager::AddChildrenTags(FGameplayTagContainer& TagContainer, 
 				const FGameplayTag* Tag = GameplayTagNodeMap.FindKey(ChildNode);
 				if (Tag)
 				{
-					TagContainer.AddTag(*Tag);
+					if (OnlyIncludeDictionaryTags == false || ChildNode->WasAddedDirectlyFromDictionary)
+					{
+						TagContainer.AddTag(*Tag);
+					}
+
 					if (RecurseAll)
 					{
-						AddChildrenTags(TagContainer, *Tag, true);
+						AddChildrenTags(TagContainer, *Tag, true, OnlyIncludeDictionaryTags);
 					}
 				}
 			}
 
+		}
+	}
+}
+
+void UGameplayTagsManager::SplitGameplayTagFName(const FGameplayTag& Tag, TArray<FName>& OutNames)
+{
+	if (const TSharedPtr<FGameplayTagNode>* GameplayTagNodePtr = GameplayTagNodeMap.Find(Tag))
+	{
+		TSharedPtr<FGameplayTagNode> CurNode = *GameplayTagNodePtr;
+		while (CurNode.IsValid())
+		{
+			OutNames.Insert(CurNode->GetSimpleTag(), 0);
+			CurNode = CurNode->GetParentTagNode().Pin();
 		}
 	}
 }
@@ -1173,13 +1330,15 @@ bool FGameplayTagTableRow::operator!=(FGameplayTagTableRow const& Other) const
 	return (Tag != Other.Tag);
 }
 
-FGameplayTagNode::FGameplayTagNode(FName InTag, TWeakPtr<FGameplayTagNode> InParentNode, FText InCategoryDescription)
+FGameplayTagNode::FGameplayTagNode(FName InTag, TWeakPtr<FGameplayTagNode> InParentNode, FText InCategoryDescription, bool InWasAddedDirectlyFromDictionary)
 	: Tag(InTag)
 	, CompleteTag(NAME_None)
 	, CategoryDescription(InCategoryDescription)
 	, ParentNode(InParentNode)
 	, NetIndex(INVALID_TAGNETINDEX)
 {
+	WasAddedDirectlyFromDictionary = InWasAddedDirectlyFromDictionary;
+
 	TArray<FName> Tags;
 
 	Tags.Add(InTag);
@@ -1202,41 +1361,6 @@ FGameplayTagNode::FGameplayTagNode(FName InTag, TWeakPtr<FGameplayTagNode> InPar
 	}
 
 	CompleteTag = FName(*CompleteTagString);
-}
-
-FName FGameplayTagNode::GetCompleteTag() const
-{
-	return CompleteTag;
-}
-
-FName FGameplayTagNode::GetSimpleTag() const
-{
-	return Tag;
-}
-
-FText FGameplayTagNode::GetCategoryDescription() const
-{
-	return CategoryDescription;
-}
-
-TArray< TSharedPtr<FGameplayTagNode> >& FGameplayTagNode::GetChildTagNodes()
-{
-	return ChildTags;
-}
-
-const TArray< TSharedPtr<FGameplayTagNode> >& FGameplayTagNode::GetChildTagNodes() const
-{
-	return ChildTags;
-}
-
-TWeakPtr<FGameplayTagNode> FGameplayTagNode::GetParentTagNode() const
-{
-	return ParentNode;
-}
-
-FGameplayTagNetIndex FGameplayTagNode::GetNetIndex() const
-{
-	return NetIndex;
 }
 
 void FGameplayTagNode::ResetNode()

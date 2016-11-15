@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2940199
+﻿INTSourceChangelist:3097732
 Title:Samsung Gear VR ヘッドセットの前提条件
 Description:Gear VR ヘッドセットで必要な初期セットアップ
 Availability:Public
-Crumbs:
+Crumbs:%ROOT%, Platforms, Platforms/GearVR
 Navigation:platform
 Platform:Gear VR
 Skilllevel:Intermediate
@@ -26,10 +26,8 @@ Gear VR Headset の開発には **Unreal Engine 4.7.4** 以降が必要です。
 
 Gear VR SDK がどのように機能するか、または Oculus Mobile VR の開発に関する詳しい情報は、以下のリンク先に掲載されている Oculus の公式ドキュメントをご覧ください。
 
-* **[Oculus モバイル ソフトウェア開発キット (SDK) のデバイスと環境設定のガイド](http://static.oculus.com/sdk-downloads/documents/Oculus_Mobile_v0.4.0_Device_and_Environment_Setup_Guide.pdf)**
-* **[Oculus モバイル開発 (SDK) のドキュメント](http://static.oculus.com/sdk-downloads/documents/Oculus_Mobile_v0.5.0_SDK_Documentation.pdf)**
-
-
+* [Oculus モバイル ソフトウェア開発キット (SDK) のデバイスと環境設定のガイド](http://static.oculus.com/sdk-downloads/documents/Oculus_Mobile_v0.4.0_Device_and_Environment_Setup_Guide.pdf)
+* [Oculus モバイル開発 (SDK) のドキュメント](http://static.oculus.com/sdk-downloads/documents/Oculus_Mobile_v0.5.0_SDK_Documentation.pdf)
 
 ## Gear VR ヘッドセットの前提条件 
 
@@ -39,16 +37,17 @@ UE4 での Gear VR 開発を開始する前に、以下の前提条件を満た�
 USB コードは、開発用 PC とスマートフォン間のデータ転送の手段であり、非常に重要です。
 
 * Gear VR ヘッドセットで使える Samsung Galaxy スマートフォンの種類は限られています。 
-	**[Oculus のウェブサイト](https://support.oculus.com/hc/en-us/articles/204113096-Samsung-Gear-VR-Innovator-Edition-Samsung-Galaxy-Note-4-Compatibility)** で、Gear VR ヘッドセットで使用できるスマートフォン モデルの一覧を確認することができます。
+	[Oculus のウェブサイト](https://support.oculus.com/help/oculus/1099393013405406/?ref=hc_fnav) で、Gear VR ヘッドセットで使用できるスマートフォン モデルの一覧を確認することができます。
 	Samsung Galaxy Note 4 スマートフォンを購入する際は、Gear VR ヘッドセットで使用できるモデルであることを十分確認してください。
 
-* **[サムスンのウェブサイト] (http://www.samsung.com/us/support/downloads)** からお持ちの Galaxy Note 4 用の USB ドライバをダウンロードし、インストールしてください。 
 
-* アンリアル エンジン バージョン **4.7.4** 以降を、**[UE4 ランチャー](https://www.unrealengine.com/)** あるいは **[Github](https://www.unrealengine.com/ue4-on-github)** からダウンロードしてください。 
+* [サムスンのウェブサイト] (http://www.samsung.com/us/support/downloads) からお持ちの Galaxy Note 4 用の USB ドライバをダウンロードし、インストールしてください。 
 
-* **Engine\Extras\Android** から **Tegra Android Development Pack** をインストールします。  
+* アンリアル エンジン バージョン **4.7.4** 以降を、[UE4 ランチャー](https://www.unrealengine.com/) あるいは [Github](https://www.unrealengine.com/ue4-on-github) からダウンロードしてください。 
 
-* Samsung Galaxy Note 4 スマートフォンで **[Developer Mode](https://docs.unrealengine.com/latest/INT/Platforms/Android/GettingStarted/2/index.html )** が有効になっているか確認してください。なっていない場合は、有効にしてください。 
+* **Engine\Extras\Android** から **CodeWorks for Android 1R4** をインストールします。  
+
+* Samsung Galaxy Note 4 スマートフォンで [Developer Mode](https://docs.unrealengine.com/latest/INT/Platforms/Android/GettingStarted/2/index.html ) が有効になっているか確認してください。なっていない場合は、有効にしてください。 
 
 * PC からスマートフォンにデータをロードできるように、[USB Debugging] が有効になっていることを確認してください。
 
@@ -60,21 +59,23 @@ USB コードは、開発用 PC とスマートフォン間のデータ転送の
 
 	![](Platforms\GearVR\GVR_USB_Debuging.png)
 
-* スマートフォンのデバイス ID と **[Oculus](https://developer.oculus.com/tools/osig/)** のウェブサイトを使って、Samsung スマートフォン用に **OSIG File** を生成 / ダウンロードします。
-スマートフォンの **デバイス ID** の取得方法が分からない場合は、**[Oculus のウェブサイト](https://developer.oculus.com/tools/osig/)** に詳しい方法が記載されています。
+* スマートフォンのデバイス ID と **[Oculus](https://developer.oculus.com/tools/osig/)** のウェブサイトを使って、Samsung スマートフォン用に OSIG File を生成 / ダウンロードします。
+スマートフォンの **デバイス ID** の取得方法が分からない場合は、[Oculus のウェブサイト](https://developer.oculus.com/tools/osig/) に詳しい方法が記載されています。
 
 	![](Platforms\GearVR\GVR_OSIG_Website.png)
 
-* OSIG ファイルをダウンロードしたら、「 **assets** 」というフォルダを作成し、その中に「 **OSIG** 」というファイルを置きます。 
-そしてそのフォルダを **Engine/Build/Android/Java** に置きます。 
+* OSIG ファイルをダウンロードしたら、**「assets」** というフォルダを作成し、その中に**「OSIG」** というファイルを置きます。 
+そのフォルダを **Engine/Build/Android/Java** に置きます。 
 
 	[region:warning]
-	**この操作を行わないと、プロジェクトが Galaxy スマートフォン上で動作できなくなります。**
+	この操作を行わないと、プロジェクトが Galaxy スマートフォン上で動作できなくなります。
 	[/region]
 
 	![](Platforms\GearVR\GVR_OSIG_File_Location.png)
 
-次のセクションに進む前に、[Gear VR の前提条件] セクションでリストされているすべての項目が完了しているか、しっかり確認してください。とても重要なことです。 
+*OSIG ファイルは Engine/Build/Android/Java ではなく、プロジェクトの **Build/Android/assets** ディレクトリに置くこともできます。この方法で OSIG ファイルを追加した場合、OSIG ファイルは追加先のプロジェクト内のみでの使用となります。他の Gear VR プロジェクトでは使えませんのでご注意ください。
+
+次のセクションに進む前に、[Gear VR Prerequisites (Gear VR の前提条件)] セクションでリストされているすべての項目が完了しているか、しっかり確認してください。とても重要なことです。 
 どこか手順が抜けていると、プロジェクトが Gear VR ヘッドセットで動作しなくなります。 
 
 [OBJECT:TopicButtonList]

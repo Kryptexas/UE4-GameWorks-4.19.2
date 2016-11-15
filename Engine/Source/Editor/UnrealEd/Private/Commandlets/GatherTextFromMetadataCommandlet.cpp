@@ -117,11 +117,14 @@ int32 UGatherTextFromMetaDataCommandlet::Main( const FString& Params )
 	TArray<FString> ManifestDependenciesList;
 	GetPathArrayFromConfig(*SectionName, TEXT("ManifestDependencies"), ManifestDependenciesList, GatherTextConfigPath);
 
-
-	if( !ManifestInfo->AddManifestDependencies( ManifestDependenciesList ) )
+	for (const FString& ManifestDependency : ManifestDependenciesList)
 	{
-		UE_LOG(LogGatherTextFromMetaDataCommandlet, Error, TEXT("The GatherTextFromMetaData commandlet couldn't find all the specified manifest dependencies."));
-		return -1;
+		FText OutError;
+		if (!GatherManifestHelper->AddDependency(ManifestDependency, &OutError))
+		{
+			UE_LOG(LogGatherTextFromMetaDataCommandlet, Error, TEXT("The GatherTextFromMetaData commandlet couldn't load the specified manifest dependency: '%'. %s"), *ManifestDependency, *OutError.ToString());
+			return -1;
+		}
 	}
 
 	return 0;
@@ -182,7 +185,7 @@ void UGatherTextFromMetaDataCommandlet::GatherTextFromUObject(UField* const Fiel
 					FManifestContext Context;
 					Context.Key = FText::Format(Arguments.OutputKeys[i], PatternArguments).ToString();
 					Context.SourceLocation = FString::Printf(TEXT("From metadata for key %s of member %s in %s"), *Arguments.InputKeys[i], *Field->GetName(), *Field->GetFullGroupName(true));
-					ManifestInfo->AddEntry(TEXT("EntryDescription"), Namespace, LocItem, Context);
+					GatherManifestHelper->AddSourceText(Namespace, LocItem, Context);
 				}
 			}
 		}
@@ -218,7 +221,7 @@ void UGatherTextFromMetaDataCommandlet::GatherTextFromUObject(UField* const Fiel
 							FManifestContext Context;
 							Context.Key = FText::Format(Arguments.OutputKeys[j], PatternArguments).ToString();
 							Context.SourceLocation = FString::Printf(TEXT("From metadata for key %s of enum value %s of enum %s in %s"), *Arguments.InputKeys[j], *Enum->GetEnumName(i), *Enum->GetName(), *Enum->GetFullGroupName(true));
-							ManifestInfo->AddEntry(TEXT("EntryDescription"), Namespace, LocItem, Context);
+							GatherManifestHelper->AddSourceText(Namespace, LocItem, Context);
 						}
 					}
 				}

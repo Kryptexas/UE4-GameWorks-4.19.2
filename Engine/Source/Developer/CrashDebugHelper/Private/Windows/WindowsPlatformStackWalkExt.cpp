@@ -416,7 +416,7 @@ void FWindowsPlatformStackWalkExt::GetExceptionInfo()
 }
 
 
-int FWindowsPlatformStackWalkExt::GetCallstacks()
+int FWindowsPlatformStackWalkExt::GetCallstacks(bool bTrimCallstack)
 {
 	const int32 MAX_NAME_LENGHT = FProgramCounterSymbolInfo::MAX_NAME_LENGHT;
 	int32 NumValidFunctionNames = 0;
@@ -459,7 +459,9 @@ int FWindowsPlatformStackWalkExt::GetCallstacks()
 	bool bFoundSourceFile = false;
 	void* ContextData = FMemStack::Get().PushBytes( MaxFramesSize, 0 );
 	FMemory::Memzero( ContextData, MaxFramesSize );
+	UE_LOG(LogCrashDebugHelper, Log, TEXT("Running GetContextStackTrace()"));
 	HRESULT HR = Control->GetContextStackTrace( Context, ContextUsed, StackFrames, MaxFrames, ContextData, MaxFramesSize, ContextUsed, &Count );
+	UE_LOG(LogCrashDebugHelper, Log, TEXT("GetContextStackTrace() got %d frames"), Count);
 
 	int32 AssertOrEnsureIndex = -1;
 
@@ -518,7 +520,7 @@ int FWindowsPlatformStackWalkExt::GetCallstacks()
 					|| FunctionName.Contains( TEXT( "NewReportEnsure" ), ESearchCase::CaseSensitive ) )
 				{
 					bFoundSourceFile = false;
-					AssertOrEnsureIndex = FMath::Max( AssertOrEnsureIndex, (int32)StackIndex );
+					AssertOrEnsureIndex = Exception.CallStackString.Num();
 				}
 			}
 
@@ -533,7 +535,7 @@ int FWindowsPlatformStackWalkExt::GetCallstacks()
 	}
 
 	// Remove callstack entries below FDebug, we don't need them.
-	if (AssertOrEnsureIndex > 0)
+	if (bTrimCallstack && AssertOrEnsureIndex > 0)
 	{	
 		Exception.CallStackString.RemoveAt( 0, AssertOrEnsureIndex );
 		UE_LOG( LogCrashDebugHelper, Warning, TEXT( "Callstack trimmed to %i entries" ), Exception.CallStackString.Num() );

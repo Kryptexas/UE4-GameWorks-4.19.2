@@ -213,13 +213,16 @@ bool USoundCueGraphSchema::ConnectionCausesLoop(const UEdGraphPin* InputPin, con
 		// Only nodes representing SoundNodes have outputs
 		USoundCueGraphNode* OutputNode = CastChecked<USoundCueGraphNode>(OutputPin->GetOwningNode());
 
-		// Grab all child nodes. We can't just test the output because 
-		// the loop could happen from any additional child nodes. 
-		TArray<USoundNode*> Nodes;
-		OutputNode->SoundNode->GetAllNodes(Nodes);
+		if (OutputNode->SoundNode)
+		{
+			// Grab all child nodes. We can't just test the output because 
+			// the loop could happen from any additional child nodes. 
+			TArray<USoundNode*> Nodes;
+			OutputNode->SoundNode->GetAllNodes(Nodes);
 
-		// If our test input is in that set, return true.
-		return Nodes.Contains(InputNode->SoundNode);
+			// If our test input is in that set, return true.
+			return Nodes.Contains(InputNode->SoundNode);
+		}
 	}
 
 	// Simple connection to root node

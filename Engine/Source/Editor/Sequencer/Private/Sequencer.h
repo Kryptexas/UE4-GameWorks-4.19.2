@@ -8,6 +8,7 @@
 #include "MovieScenePossessable.h"
 #include "SequencerLabelManager.h"
 #include "LevelEditor.h"
+#include "SequencerTimingManager.h"
 
 class ACineCameraActor;
 class FMenuBuilder;
@@ -379,6 +380,8 @@ public:
 
 	EPlaybackMode::Type GetPlaybackMode() const;
 
+	bool IsRecording() const;
+
 	/** Called to determine whether a frame number is set so that frame numbers can be shown */
 	bool CanShowFrameNumbers() const;
 
@@ -405,6 +408,14 @@ public:
 	/** Called when a user executes the delete node menu item */
 	void DeleteNode(TSharedRef<FSequencerDisplayNode> NodeToBeDeleted);
 	void DeleteSelectedNodes();
+
+	/** Called when a user executes the copy track menu item */
+	void CopySelectedTracks(TArray<TSharedPtr<FSequencerTrackNode>>& TrackNodes);
+	void ExportTracksToText(TArray<UMovieSceneTrack*> TrackToExport, /*out*/ FString& ExportedText);
+
+	/** Called when a user executes the paste track menu item */
+	void PasteCopiedTracks(TArray<TSharedPtr<FSequencerObjectBindingNode>>& ObjectNodes);
+	void ImportTracksFromText(const FString& TextToImport, /*out*/ TArray<UMovieSceneTrack*>& ImportedTrack);
 
 	/** Called when a user executes the active node menu item */
 	void ToggleNodeActive();
@@ -434,6 +445,12 @@ public:
 	void SynchronizeSequencerSelectionWithExternalSelection();
 
 public:
+
+	/** Copy the selection, whether it's keys or tracks */
+	void CopySelection();
+
+	/** Cut the selection, whether it's keys or tracks */
+	void CutSelection();
 
 	/** Copy the selected keys to the clipboard */
 	void CopySelectedKeys();
@@ -533,6 +550,7 @@ public:
 	virtual void SetKeyInterpolation(EMovieSceneKeyInterpolation) override;
 	virtual bool GetInfiniteKeyAreas() const override;
 	virtual void SetInfiniteKeyAreas(bool bInfiniteKeyAreas) override;
+	virtual bool GetAutoSetTrackDefaults() const override;
 	virtual bool IsRecordingLive() const override;
 	virtual float GetCurrentLocalTime(UMovieSceneSequence& InMovieSceneSequence) override;
 	virtual float GetGlobalTime() const override;
@@ -561,6 +579,7 @@ public:
 	virtual void NotifyMapChanged(UWorld* NewWorld, EMapChangeType MapChangeType) override;
 	virtual FOnGlobalTimeChanged& OnGlobalTimeChanged() override { return OnGlobalTimeChangedDelegate; }
 	virtual FOnMovieSceneDataChanged& OnMovieSceneDataChanged() override { return OnMovieSceneDataChangedDelegate; }
+	virtual FOnSelectionChangedObjectGuids& GetSelectionChangedObjectGuids() override { return OnSelectionChangedObjectGuidsDelegate; }
 	virtual FGuid CreateBinding(UObject& InObject, const FString& InName) override;
 	virtual UObject* GetPlaybackContext() const override;
 	virtual TArray<UObject*> GetEventContexts() const override;
@@ -838,6 +857,10 @@ protected:
 	void PossessPIEViewports(UObject* CameraObject, UObject* UnlockIfCameraObject, bool bJumpCut);
 
 private:
+
+	/** Reset the timing manager to default, or audio clock locked */
+	void ResetTimingManager(bool bUseAudioClock);
+
 	/** Performs any post-tick rendering work needed when moving through scenes */
 	void PostTickRenderStateFixup();
 
@@ -955,6 +978,9 @@ private:
 	/** A delegate which is called any time the movie scene data is changed. */
 	FOnMovieSceneDataChanged OnMovieSceneDataChangedDelegate;
 
+	/** A delegate which is called any time the sequencer selection changes. */
+	FOnSelectionChangedObjectGuids OnSelectionChangedObjectGuidsDelegate;
+
 	/** A map of all the transport controls to viewports that this sequencer has made */
 	TMap< TSharedPtr<class ILevelViewport>, TSharedPtr<class SWidget> > TransportControls;
 
@@ -969,7 +995,7 @@ private:
 	FLevelEditorModule::FLevelEditorMenuExtender ViewMenuExtender;
 	FDelegateHandle LevelEditorExtenderDelegateHandle;
 
-	/** When true the sequencer selection is being updated from changes to the external seleciton. */
+	/** When true the sequencer selection is being updated from changes to the external selection. */
 	bool bUpdatingSequencerSelection;
 
 	/** When true the external selection is being updated from changes to the sequencer selection. */
@@ -978,6 +1004,9 @@ private:
 	/** The maximum tick rate prior to playing (used for overriding delta time during playback). */
 	double OldMaxTickRate;
 
+	/** Timing manager that can adjust playback times */
+	TUniquePtr<FSequencerTimingManager> TimingManager;
+	
 	struct FCachedViewTarget
 	{
 		/** The player controller we're possessing */

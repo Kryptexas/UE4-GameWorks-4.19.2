@@ -85,6 +85,11 @@ protected:
 		ToolTip = "Batching granularity used to register actor components during level streaming."))
 	int32 LevelStreamingComponentsRegistrationGranularity;
 
+	UPROPERTY(config, EditAnywhere, Category = PackageStreaming, meta = (
+		ConsoleVariable = "s.EventDrivenLoaderEnabled", DisplayName = "Event Driven Loader Enabled",
+		ToolTip = "Enables the event driven loader in cooked builds."))
+	uint32 EventDrivenLoaderEnabled : 1;
+
 	//~ Begin UObject Interface
 	virtual void PostInitProperties() override;
 

@@ -47,7 +47,6 @@ class ULevelStreamingKismet : public ULevelStreaming
 
 	//~ Begin ULevelStreaming Interface
 	virtual bool ShouldBeLoaded() const override;
-	virtual bool ShouldBeVisible() const override;
 	//~ End ULevelStreaming Interface
 
 private:

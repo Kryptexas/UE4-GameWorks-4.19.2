@@ -21,7 +21,7 @@ SMediaPlayerEditorOutput::SMediaPlayerEditorOutput()
 	{
 		DefaultSoundWave->AddToRoot();
 
-		AudioComponent = FAudioDevice::CreateComponent(DefaultSoundWave, nullptr, nullptr, false, false);
+		AudioComponent = FAudioDevice::CreateComponent(DefaultSoundWave);
 	
 		if (AudioComponent != nullptr)
 		{

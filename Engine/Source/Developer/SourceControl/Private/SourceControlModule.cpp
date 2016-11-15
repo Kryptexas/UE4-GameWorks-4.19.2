@@ -210,6 +210,18 @@ void FSourceControlModule::InitializeSourceControlProviders()
 	CurrentSourceControlProvider->Init(false);	// Don't force a connection here, as its synchronous. Let the user establish a connection.
 }
 
+void FSourceControlModule::GetProviderNames(TArray<FName>& OutProviderNames)
+{
+	OutProviderNames.Reset();
+
+	int32 ProviderCount = GetNumSourceControlProviders();
+	for ( int32 ProviderIndex = 0; ProviderIndex < ProviderCount; ProviderIndex++ )
+	{
+		FName ProviderName = GetSourceControlProviderName(ProviderIndex);
+		OutProviderNames.Add(ProviderName);
+	}
+}
+
 void FSourceControlModule::Tick()
 {	
 	if( CurrentSourceControlProvider != nullptr )

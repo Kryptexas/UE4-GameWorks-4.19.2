@@ -21,87 +21,11 @@ public:
 		bool bSceneColorCopyIsUpToDate;
 		bool bPostAA;
 
-		ContextType(const FProjectedShadowInfo* InTranslucentSelfShadow = NULL, ETranslucencyPass::Type InTranslucenyPassType = ETranslucencyPass::TPT_NonSeparateTransluceny, bool bPostAAIn = false)
+		ContextType(const FProjectedShadowInfo* InTranslucentSelfShadow = NULL, ETranslucencyPass::Type InTranslucenyPassType = ETranslucencyPass::TPT_StandardTranslucency, bool bPostAAIn = false)
 			: TranslucentSelfShadow(InTranslucentSelfShadow)
 			, TranslucenyPassType(InTranslucenyPassType)
 			, bSceneColorCopyIsUpToDate(false)
 			, bPostAA(bPostAAIn)
-		{}
-	};
-
-	/**
-	* Render a dynamic mesh using a translucent draw policy 
-	* @return true if the mesh rendered
-	*/
-	static bool DrawDynamicMesh(
-		FRHICommandList& RHICmdList, 
-		const FViewInfo& View,
-		ContextType DrawingContext,
-		const FMeshBatch& Mesh,
-		bool bBackFace,
-		bool bPreFog,
-		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
-		FHitProxyId HitProxyId,
-		bool bSeparateTranslucencyEnabled = false
-		);
-
-	/**
-	* Render a dynamic mesh using a translucent draw policy 
-	* @return true if the mesh rendered
-	*/
-	static bool DrawStaticMesh(
-		FRHICommandList& RHICmdList, 
-		const FViewInfo& View,
-		ContextType DrawingContext,
-		const FStaticMesh& StaticMesh,
-		const uint64& BatchElementMask,
-		bool bPreFog,
-		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
-		FHitProxyId HitProxyId,
-		bool bSeparateTranslucencyEnabled = true
-		);
-
-	/**
-	* Resolves the scene color target and copies it for use as a source texture.
-	*/
-	static void CopySceneColor(FRHICommandList& RHICmdList, const FViewInfo& View, const FPrimitiveSceneProxy* PrimitiveSceneProxy);
-
-private:
-	/**
-	* Render a dynamic or static mesh using a translucent draw policy
-	* @return true if the mesh rendered
-	*/
-	static bool DrawMesh(
-		FRHICommandList& RHICmdList,
-		const FViewInfo& View,
-		ContextType DrawingContext,
-		const FMeshBatch& Mesh,
-		const uint64& BatchElementMask,
-		bool bBackFace,
-		const FMeshDrawingRenderState& DrawRenderState,
-		bool bPreFog,
-		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
-		FHitProxyId HitProxyId,
-		bool bSeparateTranslucencyEnabled = false
-		);
-
-};
-
-
-/**
-* Translucent draw policy factory.
-* Creates the policies needed for rendering a mesh based on its material
-*/
-class FMobileTranslucencyDrawingPolicyFactory
-{
-public:
-	enum { bAllowSimpleElements = true };
-	struct ContextType 
-	{
-		bool bRenderingSeparateTranslucency;
-
-		ContextType(bool InbRenderingSeparateTranslucency)
-		:	bRenderingSeparateTranslucency(InbRenderingSeparateTranslucency)
 		{}
 	};
 
@@ -129,6 +53,67 @@ public:
 		const FViewInfo& View,
 		ContextType DrawingContext,
 		const FStaticMesh& StaticMesh,
+		const uint64& BatchElementMask,
+		bool bPreFog,
+		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
+		FHitProxyId HitProxyId
+		);
+
+	/**
+	* Resolves the scene color target and copies it for use as a source texture.
+	*/
+	static void CopySceneColor(FRHICommandList& RHICmdList, const FViewInfo& View, const FPrimitiveSceneProxy* PrimitiveSceneProxy);
+
+private:
+	/**
+	* Render a dynamic or static mesh using a translucent draw policy
+	* @return true if the mesh rendered
+	*/
+	static bool DrawMesh(
+		FRHICommandList& RHICmdList,
+		const FViewInfo& View,
+		ContextType DrawingContext,
+		const FMeshBatch& Mesh,
+		const uint64& BatchElementMask,
+		bool bBackFace,
+		const FMeshDrawingRenderState& DrawRenderState,
+		bool bPreFog,
+		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
+		FHitProxyId HitProxyId
+		);
+
+};
+
+
+/**
+* Translucent draw policy factory.
+* Creates the policies needed for rendering a mesh based on its material
+*/
+class FMobileTranslucencyDrawingPolicyFactory
+{
+public:
+	enum { bAllowSimpleElements = true };
+	struct ContextType 
+	{
+		bool bRenderingSeparateTranslucency;
+
+		ContextType(bool InbRenderingSeparateTranslucency)
+		:	bRenderingSeparateTranslucency(InbRenderingSeparateTranslucency)
+		{}
+
+		bool ShouldRenderSeparateTranslucency() const { return bRenderingSeparateTranslucency; }
+	};
+
+	/**
+	* Render a dynamic mesh using a translucent draw policy 
+	* @return true if the mesh rendered
+	*/
+	static bool DrawDynamicMesh(
+		FRHICommandList& RHICmdList, 
+		const FViewInfo& View,
+		ContextType DrawingContext,
+		const FMeshBatch& Mesh,
+		bool bBackFace,
 		bool bPreFog,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		FHitProxyId HitProxyId

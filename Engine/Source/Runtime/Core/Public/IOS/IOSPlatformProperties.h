@@ -33,6 +33,11 @@ struct FIOSPlatformProperties
 		return "IOS";
 	}
 
+	static FORCEINLINE bool IsGameOnly()
+	{
+		return UE_GAME;
+	}
+	
 	static FORCEINLINE bool RequiresCookedData( )
 	{
 		return true;

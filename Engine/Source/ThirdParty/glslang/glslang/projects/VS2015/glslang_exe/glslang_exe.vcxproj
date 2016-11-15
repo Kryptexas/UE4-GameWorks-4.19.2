@@ -15,7 +15,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\src\glslang_exe\StandAlone\DefaultResourceLimits.h" />
+    <ClInclude Include="..\..\..\src\glslang_exe\StandAlone\ResourceLimits.h" />
     <ClInclude Include="..\..\..\src\glslang_exe\StandAlone\Worklist.h" />
   </ItemGroup>
   <ItemGroup>
@@ -23,7 +23,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\glslang_exe\StandAlone\DefaultResourceLimits.cpp" />
+    <ClCompile Include="..\..\..\src\glslang_exe\StandAlone\ResourceLimits.cpp" />
     <ClCompile Include="..\..\..\src\glslang_exe\StandAlone\spirv-remap.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>

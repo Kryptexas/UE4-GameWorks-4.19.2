@@ -11,13 +11,13 @@
 #include "TimerManager.h"
 #include "Engine/Level.h"
 
+#include "Actor.generated.h"
+
 struct FHitResult;
 class AActor;
 class FTimerManager; 
 class UNetDriver;
 struct FNetViewer;
-
-#include "Actor.generated.h"
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogActor, Log, Warning);
  
@@ -191,6 +191,9 @@ private:
 
 	/** Whether we've tried to register tick functions. Reset when they are unregistered. */
 	uint8 bTickFunctionsRegistered : 1;
+
+	/** Whether we've deferred the RegisterAllComponents() call at spawn time. Reset when RegisterAllComponents() is called. */
+	uint8 bHasDeferredComponentRegistration : 1;
 
 	/**
 	 * Enables any collision on this actor.
@@ -422,7 +425,7 @@ public:
 	UPROPERTY(BlueprintReadWrite, replicatedUsing=OnRep_Instigator, meta=(ExposeOnSpawn=true), Category=Actor)
 	class APawn* Instigator;
 
-	/** Called on clients when Instigatolr is replicated. */
+	/** Called on clients when Instigator is replicated. */
 	UFUNCTION()
 	virtual void OnRep_Instigator();
 
@@ -534,6 +537,9 @@ public:
 	/** If true, prevents the actor from being moved in the editor viewport. */
 	UPROPERTY()
 	uint8 bLockLocation:1;
+
+	/** If true during PostEditMove the construction script will be run every time. If false it will only run when the drag finishes. */
+	uint8 bRunConstructionScriptOnDrag:1;
 
 	/** Returns how many lights are uncached for this actor. */
 	int32 GetNumUncachedLights();
@@ -1314,6 +1320,9 @@ public:
 
 	/** Event when this actor takes POINT damage */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintAuthorityOnly, meta=(DisplayName = "PointDamage"), Category="Game|Damage")
+	void ReceivePointDamage(float Damage, const class UDamageType* DamageType, FVector HitLocation, FVector HitNormal, class UPrimitiveComponent* HitComponent, FName BoneName, FVector ShotFromDirection, class AController* InstigatedBy, AActor* DamageCauser, const FHitResult& HitInfo);
+
+	DEPRECATED(4.14, "Call the updated version of ReceivePointDamage that takes a FHitResult.")
 	void ReceivePointDamage(float Damage, const class UDamageType* DamageType, FVector HitLocation, FVector HitNormal, class UPrimitiveComponent* HitComponent, FName BoneName, FVector ShotFromDirection, class AController* InstigatedBy, AActor* DamageCauser);
 
 	/** Event called every frame */
@@ -1434,6 +1443,7 @@ public:
 	 * @note For collisions during physics simulation to generate hit events, 'Simulation Generates Hit Events' must be enabled.
 	 * @note When receiving a hit from another object's movement (bSelfMoved is false), the directions of 'Hit.Normal' and 'Hit.ImpactNormal'
 	 * will be adjusted to indicate force from the other object against this object.
+	 * @note NormalImpulse will be filled in for physics-simulating bodies, but will be zero for swept-component blocking collisions.
 	 */
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName = "Hit"), Category="Collision")
 	void ReceiveHit(class UPrimitiveComponent* MyComp, AActor* Other, class UPrimitiveComponent* OtherComp, bool bSelfMoved, FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit);
@@ -2196,6 +2206,9 @@ public:
 	/** Called after all the components in the Components array are registered */
 	virtual void PostRegisterAllComponents();
 
+	/** Returns true if Actor has deferred the RegisterAllComponents() call at spawn time (e.g. pending Blueprint SCS execution to set up a scene root component). */
+	FORCEINLINE bool HasDeferredComponentRegistration() const { return bHasDeferredComponentRegistration; }
+
 	/** Returns true if Actor has a registered root component */
 	bool HasValidRootComponent();
 
@@ -2417,13 +2430,13 @@ protected:
 	*/
 	bool CheckActorComponents();
 
-	/** Checks for and resolve any name conflicts prior to instancing a new Blueprint Component. */
-	void CheckComponentInstanceName(const FName InName);
-
 	/** Called after instancing a new Blueprint Component from either a template or cooked data. */
 	void PostCreateBlueprintComponent(UActorComponent* NewActorComp);
 
 public:
+
+	/** Checks for and resolve any name conflicts prior to instancing a new Blueprint Component. */
+	void CheckComponentInstanceName(const FName InName);
 
 	/** Walk up the attachment chain from RootComponent until we encounter a different actor, and return it. If we are not attached to a component in a different actor, returns NULL */
 	virtual AActor* GetAttachParentActor() const;
@@ -2657,8 +2670,8 @@ public:
 	UActorComponent* GetComponentByClass(TSubclassOf<UActorComponent> ComponentClass) const;
 
 	/* Gets all the components that inherit from the given class.
-		Currently returns an array of UActorComponent which must be cast to the correct type. */
-	UFUNCTION(BlueprintCallable, Category = "Actor", meta = (ComponentClass = "ActorComponent"), meta=(DeterminesOutputType="ComponentClass"))
+	Currently returns an array of UActorComponent which must be cast to the correct type. */
+	UFUNCTION(BlueprintCallable, Category = "Actor", meta = (ComponentClass = "ActorComponent"), meta = (DeterminesOutputType = "ComponentClass"))
 	TArray<UActorComponent*> GetComponentsByClass(TSubclassOf<UActorComponent> ComponentClass) const;
 
 	/* Gets all the components that inherit from the given class with a given tag. */
@@ -2995,8 +3008,9 @@ FORCEINLINE_DEBUGGABLE ENetRole AActor::GetRemoteRole() const
 FORCEINLINE_DEBUGGABLE ENetMode AActor::GetNetMode() const
 {
 	// IsRunningDedicatedServer() is a compile-time check in optimized non-editor builds.
-	if (IsRunningDedicatedServer())
+	if (IsRunningDedicatedServer() && (NetDriverName == NAME_None || NetDriverName == NAME_GameNetDriver))
 	{
+		// Only normal net driver actors can have this optimization
 		return NM_DedicatedServer;
 	}
 
@@ -3014,9 +3028,14 @@ FORCEINLINE_DEBUGGABLE bool AActor::IsNetMode(ENetMode Mode) const
 	{
 		return IsRunningDedicatedServer();
 	}
+	else if (NetDriverName == NAME_None || NetDriverName == NAME_GameNetDriver)
+	{
+		// Only normal net driver actors can have this optimization
+		return !IsRunningDedicatedServer() && (InternalGetNetMode() == Mode);
+	}
 	else
 	{
-		return !IsRunningDedicatedServer() && (InternalGetNetMode() == Mode);
+		return (InternalGetNetMode() == Mode);
 	}
 #endif
 }
@@ -3025,6 +3044,28 @@ FORCEINLINE_DEBUGGABLE bool AActor::IsNetMode(ENetMode Mode) const
 FORCEINLINE_DEBUGGABLE void AActor::SetNetUpdateTime(float NewUpdateTime)
 {
 	NetUpdateTime = NewUpdateTime;
+}
+
+//////////////////////////////////////////////////////////////////////////
+// UActorComponent inlines
+
+FORCEINLINE_DEBUGGABLE class AActor* UActorComponent::GetOwner() const
+{
+#if WITH_EDITOR
+	// During undo/redo the cached owner is unreliable so just used GetTypedOuter
+	if (bCanUseCachedOwner)
+	{
+		checkSlow(OwnerPrivate == GetTypedOuter<AActor>()); // verify cached value is correct
+		return OwnerPrivate;
+	}
+	else
+	{
+		return GetTypedOuter<AActor>();
+	}
+#else
+	checkSlow(OwnerPrivate == GetTypedOuter<AActor>()); // verify cached value is correct
+	return OwnerPrivate;
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////////

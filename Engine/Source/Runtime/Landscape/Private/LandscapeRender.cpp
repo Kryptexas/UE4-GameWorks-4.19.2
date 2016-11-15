@@ -4,8 +4,8 @@
 LandscapeRender.cpp: New terrain rendering
 =============================================================================*/
 
-#include "Landscape.h"
-
+#include "LandscapePrivatePCH.h"
+#include "LandscapeMeshProxyComponent.h"
 #include "Materials/MaterialExpressionTextureCoordinate.h"
 #include "Materials/MaterialExpressionLandscapeLayerCoords.h"
 #include "ShaderParameters.h"
@@ -23,7 +23,6 @@ LandscapeRender.cpp: New terrain rendering
 #include "EngineGlobals.h"
 #include "UnrealEngine.h"
 #include "LandscapeLight.h"
-#include "LandscapeLayerInfoObject.h"
 #include "Algo/Find.h"
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FLandscapeUniformShaderParameters, TEXT("LandscapeParameters"));
@@ -641,7 +640,7 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 	ComponentLightInfo = MakeUnique<FLandscapeLCI>(InComponent);
 	check(ComponentLightInfo);
 
-	const bool bHasStaticLighting = InComponent->bHasCachedStaticLighting;
+	const bool bHasStaticLighting = ComponentLightInfo->GetLightMap() || ComponentLightInfo->GetShadowMap();
 
 	// Check material usage
 	if (ensure(MaterialInterfacesByLOD.Num() > 0))
@@ -871,7 +870,8 @@ bool FLandscapeComponentSceneProxy::CanBeOccluded() const
 FPrimitiveViewRelevance FLandscapeComponentSceneProxy::GetViewRelevance(const FSceneView* View) const
 {
 	FPrimitiveViewRelevance Result;
-	Result.bDrawRelevance = IsShown(View) && View->Family->EngineShowFlags.Landscape;
+	const bool bCollisionView = (View->Family->EngineShowFlags.CollisionVisibility || View->Family->EngineShowFlags.CollisionPawn);
+	Result.bDrawRelevance = (IsShown(View) || bCollisionView) && View->Family->EngineShowFlags.Landscape;
 
 	auto FeatureLevel = View->GetFeatureLevel();
 
@@ -1236,7 +1236,7 @@ uint64 FLandscapeComponentSceneProxy::GetStaticBatchElementVisibility(const clas
 	else
 	{
 		// camera position in local heightmap space
-		FVector CameraLocalPos3D = WorldToLocal.TransformPosition(View.ViewMatrices.ViewOrigin);
+		FVector CameraLocalPos3D = WorldToLocal.TransformPosition(View.ViewMatrices.GetViewOrigin());
 		FVector2D CameraLocalPos(CameraLocalPos3D.X, CameraLocalPos3D.Y);
 
 		int32 BatchesPerLOD = NumSubsections > 1 ? FMath::Square(NumSubsections) + 1 : 1;
@@ -1372,7 +1372,7 @@ float FLandscapeComponentSceneProxy::CalcDesiredLOD(const FSceneView& View, cons
 		}
 		else
 		{
-			float Scale = 1.0f / (View.ViewRect.Width() * View.ViewMatrices.ProjMatrix.M[0][0]);
+			float Scale = 1.0f / (View.ViewRect.Width() * View.ViewMatrices.GetProjectionMatrix().M[0][0]);
 
 			// The "/ 5.0f" is totally arbitrary
 			switch (LODFalloff)
@@ -1411,6 +1411,21 @@ void FLandscapeComponentSceneProxy::CalcLODParamsForSubsection(const FSceneView&
 	OutNeighborLODs[3] = FMath::Max<float>(OutfLOD, CalcDesiredLOD(View, CameraLocalPos, SubX,     SubY + 1));
 }
 
+namespace
+{
+    FLinearColor GetColorForLod(int32 CurrentLOD, int32 ForcedLOD)
+    {
+	    int32 ColorIndex = INDEX_NONE;
+	    if (GEngine->LODColorationColors.Num() > 0)
+	    {
+		    ColorIndex = CurrentLOD;
+		    ColorIndex = FMath::Clamp(ColorIndex, 0, GEngine->LODColorationColors.Num() - 1);
+	    }
+	    const FLinearColor& LODColor = ColorIndex != INDEX_NONE ? GEngine->LODColorationColors[ColorIndex] : FLinearColor::Gray;
+	    return ForcedLOD >= 0 ? LODColor : LODColor * 0.2f;
+	}
+}
+
 void FLandscapeComponentSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FLandscapeComponentSceneProxy_GetMeshElements);
@@ -1431,7 +1446,7 @@ void FLandscapeComponentSceneProxy::GetDynamicMeshElements(const TArray<const FS
 		if (VisibilityMap & (1 << ViewIndex))
 		{
 			const FSceneView* View = Views[ViewIndex];
-			FVector CameraLocalPos3D = WorldToLocal.TransformPosition(View->ViewMatrices.ViewOrigin);
+			FVector CameraLocalPos3D = WorldToLocal.TransformPosition(View->ViewMatrices.GetViewOrigin());
 			FVector2D CameraLocalPos(CameraLocalPos3D.X, CameraLocalPos3D.Y);
 
 			FLandscapeElementParamArray& ParameterArray = Collector.AllocateOneFrameResource<FLandscapeElementParamArray>();
@@ -1544,6 +1559,8 @@ void FLandscapeComponentSceneProxy::GetDynamicMeshElements(const TArray<const FS
 
 			// Render the landscape component
 #if WITH_EDITOR
+			const bool bMaterialModifiesMeshPosition = MaterialInterface->GetRenderProxy(false)->GetMaterial(View->GetFeatureLevel())->MaterialModifiesMeshPosition_RenderThread();
+
 			switch (GLandscapeViewMode)
 			{
 			case ELandscapeViewMode::DebugLayer:
@@ -1610,43 +1627,29 @@ void FLandscapeComponentSceneProxy::GetDynamicMeshElements(const TArray<const FS
 
 			case ELandscapeViewMode::LOD:
 			{
-				for (int32 i = 0; i < MeshTools.Elements.Num(); i++)
+				auto& TemplateMesh = bIsWireframe ? Mesh : MeshTools;
+				for (int32 i = 0; i < TemplateMesh.Elements.Num(); i++)
 				{
 					FMeshBatch& LODMesh = Collector.AllocateMesh();
-					LODMesh = MeshTools;
+					LODMesh = TemplateMesh;
 					LODMesh.Elements.Empty(1);
-					LODMesh.Elements.Add(MeshTools.Elements[i]);
-
-					int32 ColorIndex = INDEX_NONE;
-					if (GEngine->LODColorationColors.Num() > 0)
-					{
-						ColorIndex = ((FLandscapeBatchElementParams*)MeshTools.Elements[i].UserData)->CurrentLOD;
-						ColorIndex = FMath::Clamp(ColorIndex, 0, GEngine->LODColorationColors.Num() - 1);
-						LODMesh.VisualizeLODIndex = ColorIndex;
-					}
-
-					const FLinearColor& LODColor = ColorIndex != INDEX_NONE ? GEngine->LODColorationColors[ColorIndex] : FLinearColor::Gray;
-					FLinearColor Color = ForcedLOD >= 0 ? LODColor : LODColor * 0.2f;
-
-					auto LODMaterialInstance = new FColoredMaterialRenderProxy(GEngine->LevelColorationUnlitMaterial->GetRenderProxy(false), Color);
-					LODMesh.MaterialRenderProxy = LODMaterialInstance;
-					Collector.RegisterOneFrameMaterialProxy(LODMaterialInstance);
-
-					if (ViewFamily.EngineShowFlags.Wireframe)
-					{
-						LODMesh.bCanApplyViewModeOverrides = false;
-						LODMesh.bWireframe = true;
-					}
-					else
-					{
-						LODMesh.bCanApplyViewModeOverrides = true;
-						LODMesh.bUseWireframeSelectionColoring = IsSelected();
-					}
-
+					LODMesh.Elements.Add(TemplateMesh.Elements[i]);
+					int32 CurrentLOD = ((FLandscapeBatchElementParams*)TemplateMesh.Elements[i].UserData)->CurrentLOD;
+					LODMesh.VisualizeLODIndex = CurrentLOD;
+					FLinearColor Color = GetColorForLod(CurrentLOD, ForcedLOD);
+					FMaterialRenderProxy* LODMaterialProxy =
+						bMaterialModifiesMeshPosition && bIsWireframe
+						? (FMaterialRenderProxy*)new FOverrideSelectionColorMaterialRenderProxy(MaterialInterface->GetRenderProxy(false), Color)
+						: (FMaterialRenderProxy*)new FColoredMaterialRenderProxy(GEngine->LevelColorationUnlitMaterial->GetRenderProxy(false), Color);
+					Collector.RegisterOneFrameMaterialProxy(LODMaterialProxy);
+					LODMesh.MaterialRenderProxy = LODMaterialProxy;
+					LODMesh.bCanApplyViewModeOverrides = !bIsWireframe;
+					LODMesh.bWireframe = bIsWireframe;
+					LODMesh.bUseWireframeSelectionColoring = IsSelected();
 					Collector.AddMesh(ViewIndex, LODMesh);
 
 					NumPasses++;
-					NumTriangles += MeshTools.Elements[i].NumPrimitives;
+					NumTriangles += TemplateMesh.Elements[i].NumPrimitives;
 					NumDrawCalls++;
 				}
 			}
@@ -2390,7 +2393,7 @@ public:
 		}
 
 		// Calculate LOD params
-		FVector CameraLocalPos3D = SceneProxy->WorldToLocal.TransformPosition(View.ViewMatrices.ViewOrigin);
+		FVector CameraLocalPos3D = SceneProxy->WorldToLocal.TransformPosition(View.ViewMatrices.GetViewOrigin());
 		FVector2D CameraLocalPos = FVector2D(CameraLocalPos3D.X, CameraLocalPos3D.Y);
 
 		FVector4 fCurrentLODs;
@@ -2592,14 +2595,31 @@ ULandscapeMaterialInstanceConstant::ULandscapeMaterialInstanceConstant(const FOb
 
 class FLandscapeMaterialResource : public FMaterialResource
 {
-	bool bIsLayerThumbnail;
-	bool bDisableTessellation;
+	const bool bIsLayerThumbnail;
+	const bool bDisableTessellation;
 
 public:
 	FLandscapeMaterialResource(ULandscapeMaterialInstanceConstant* Parent)
 		: bIsLayerThumbnail(Parent->bIsLayerThumbnail)
 		, bDisableTessellation(Parent->bDisableTessellation)
 	{
+	}
+
+	void GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& OutId) const override
+	{
+		FMaterialResource::GetShaderMapId(Platform, OutId);
+
+		if (bIsLayerThumbnail || bDisableTessellation)
+		{
+			FSHA1 Hash;
+			Hash.Update(OutId.BasePropertyOverridesHash.Hash, ARRAY_COUNT(OutId.BasePropertyOverridesHash.Hash));
+
+			const FString HashString = TEXT("bOverride_TessellationMode");
+			Hash.UpdateWithString(*HashString, HashString.Len());
+
+			Hash.Final();
+			Hash.GetHash(OutId.BasePropertyOverridesHash.Hash);
+		}
 	}
 
 	bool IsUsedWithLandscape() const override
@@ -2646,7 +2666,9 @@ public:
 						FName(TEXT("TBasePassVSFCachedPointIndirectLightingPolicy")),
 						FName(TEXT("TBasePassPSFCachedPointIndirectLightingPolicy")),
 						FName(TEXT("TShadowDepthVSVertexShadowDepth_OutputDepthfalse")),
+						FName(TEXT("TShadowDepthVSVertexShadowDepth_OutputDepthtrue")), // used by LPV
 						FName(TEXT("TShadowDepthPSPixelShadowDepth_NonPerspectiveCorrectfalse")),
+						FName(TEXT("TShadowDepthPSPixelShadowDepth_NonPerspectiveCorrecttrue")), // used by LPV
 						FName(TEXT("TDepthOnlyVS<false>")),
 						FName(TEXT("TDepthOnlyVS<true>")),
 						FName(TEXT("FDepthOnlyPS")),
@@ -2791,7 +2813,9 @@ void ULandscapeComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext&
 		// Lightmap
 		const auto FeatureLevel = GetWorld() ? GetWorld()->FeatureLevel : GMaxRHIFeatureLevel;
 
-		FLightMap2D* Lightmap = LightMap ? LightMap->GetLightMap2D() : nullptr;
+		const FMeshMapBuildData* MapBuildData = GetMeshMapBuildData();
+
+		FLightMap2D* Lightmap = MapBuildData && MapBuildData->LightMap ? MapBuildData->LightMap->GetLightMap2D() : nullptr;
 		uint32 LightmapIndex = AllowHighQualityLightmaps(FeatureLevel) ? 0 : 1;
 		if (Lightmap && Lightmap->IsValid(LightmapIndex))
 		{
@@ -2808,7 +2832,7 @@ void ULandscapeComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext&
 		}
 
 		// Shadowmap
-		FShadowMap2D* Shadowmap = ShadowMap ? ShadowMap->GetShadowMap2D() : nullptr;
+		FShadowMap2D* Shadowmap = MapBuildData && MapBuildData->ShadowMap ? MapBuildData->ShadowMap->GetShadowMap2D() : nullptr;
 		if (Shadowmap && Shadowmap->IsValid())
 		{
 			const FVector2D& Scale = Shadowmap->GetCoordinateScale();
@@ -3081,10 +3105,10 @@ FLandscapeMeshProxySceneProxy::~FLandscapeMeshProxySceneProxy()
 
 FPrimitiveSceneProxy* ULandscapeMeshProxyComponent::CreateSceneProxy()
 {
-	if (StaticMesh == NULL
-		|| StaticMesh->RenderData == NULL
-		|| StaticMesh->RenderData->LODResources.Num() == 0
-		|| StaticMesh->RenderData->LODResources[0].VertexBuffer.GetNumVertices() == 0)
+	if (GetStaticMesh() == NULL
+		|| GetStaticMesh()->RenderData == NULL
+		|| GetStaticMesh()->RenderData->LODResources.Num() == 0
+		|| GetStaticMesh()->RenderData->LODResources[0].VertexBuffer.GetNumVertices() == 0)
 	{
 		return NULL;
 	}

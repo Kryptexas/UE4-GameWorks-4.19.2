@@ -4,7 +4,6 @@
 
 #include "Toolkits/IToolkitHost.h"
 
-
 /**
  * Public interface to SLevelEditor
  */
@@ -15,6 +14,9 @@ public:
 
 	/** Summons a context menu for this level editor at the mouse cursor's location */
 	virtual void SummonLevelViewportContextMenu() = 0;
+
+	/** Summons a context menu for view options */
+	virtual void SummonLevelViewportViewOptionMenu(ELevelViewportType ViewOption) = 0;
 
 	/** Returns a list of all of the toolkits that are currently hosted by this toolkit host */
 	virtual const TArray< TSharedPtr< IToolkit > >& GetHostedToolkits() const = 0;

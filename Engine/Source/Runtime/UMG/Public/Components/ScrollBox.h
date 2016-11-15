@@ -34,11 +34,11 @@ public:
 
 	/** Visibility */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Scroll")
-	TEnumAsByte<ESlateVisibility> ScrollBarVisibility;
+	ESlateVisibility ScrollBarVisibility;
 
 	/**  Enable to always consume mouse wheel event, even when scrolling is not possible */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Scroll")
-	TEnumAsByte<EConsumeMouseWheel> ConsumeMouseWheel;
+	EConsumeMouseWheel ConsumeMouseWheel;
 
 	/**  */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Scroll")

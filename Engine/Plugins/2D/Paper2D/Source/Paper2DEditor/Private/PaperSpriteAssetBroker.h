@@ -27,7 +27,7 @@ public:
 			{
 				RenderComponent->SetSprite(Sprite);
 
-				if (Sprite->BodySetup != nullptr)
+				if (Sprite != nullptr && Sprite->BodySetup != nullptr)
 				{
 					RenderComponent->BodyInstance.CopyBodyInstancePropertiesFrom(&(Sprite->BodySetup->DefaultInstance));
 				}

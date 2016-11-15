@@ -1,60 +1,61 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title:Advanced Blueprint Nativization
+﻿INTSourceChangelist:3075225
+Availability:Public
+Title:고급 블루프린트 네이티브화
 Crumbs: %ROOT%, Programming, Engine/Blueprints/TechnicalGuide
-Description:Technical guide for gameplay programmers exposing gameplay elements to Blueprints.
+Description:블루프린트에 게임플레이 요소를 노출시키는 게임플레이 프로그래머를 위한 기술 안내서입니다.
 Related: Engine/Blueprints/TechnicalGuide/NativizingBlueprints
 Parent: Engine/Blueprints/TechnicalGuide
 Version:4.12
+type:reference
 
 [TOC(start:2)]
 
 
-## Building with Unreal Automation Tool
-To nativize Blueprints while building with Unreal Automation too, add the `-nativizeAssets` switch to your BuildCookRun command line.
+## 언리얼 자동화 툴로 빌드
+언리얼 자동화 툴로 빌드를 하면서 블루프린트를 네이티브화 시키기 위해서는, BuildCookRun 명령줄에 `-nativizeAssets` 스위치를 추가합니다.
 
-## C++ Cooperation
+## C++ 협동
 
-Nativized blueprints are stored in a new, separate module, which means that the headers from gameplay module are now used outside their module. 
-You should check that all headers have declared all classes and all structs that are used, either as a included header, or as a forward declaration.
+네이티브화된 블루프린트는 새로운 별도의 모듈에 저장되는데, 게임플레이 모듈에서 온 헤더를 이제 그 모듈 밖에서도 사용할 수 있다는 뜻입니다.
+모든 헤더에 사용되는 클래스와 구조체 전부가 선언되었는지, 헤더를 포함시켜서든 직접 선언을 해서든 확인해 줘야 합니다.
 
-There are some rules/restrictions that help make cooperation between manually written code and the nativized code more reliable and efficient. 
+손수 작성한 코드와 네이티브화된 코드 사이 협동의 안정성과 효율성을 높이는 데 도움이 되는 규칙/제약이 몇 가지 있습니다.
 
-The following implementations are not supported: 
-- private/protected variables with `BlueprintVisible` or `Editable` tags
-- private/protected functions that are marked as `BlueprintPure` or `BlueprintCallable`
-- `noexport` structures/classes
-- bitfield variables with `BlueprintVisible` or `Editable` tags
-- private bitfield variables
-- `UBlueprintGeneratedClass`, `UUserDefinedStruct`, `UUserDefinedEnum` variables, or any type based on them
+다음과 같은 구현은 지원되지 않습니다:
+- `BlueprintVisible` 또는 `Editable` 태그가 붙은 private/protected 변수
+- `BlueprintPure` 또는 `BlueprintCallable` 로 마킹된 private/protected 변수
+- `noexport` 구조체/클래스
+- `BlueprintVisible` 또는 `Editable` 태그가 붙은 비트필드 변수
+- private 비트필드 변수
+- `UBlueprintGeneratedClass`, `UUserDefinedStruct`, `UUserDefinedEnum` 변수, 또는 이들을 기반으로 한 유형
 
-## Technical Details
+## 기술적 세부사항
 
-Nativizing Blueprints should work with Visual Studio 2013 and Visual Studio 2015, however 2015 is strongly recommended as it handles larger projects better.
-If there is a strange compiler/linker error like LNK1000, LNK1248, then try to reduce the amount of nativized Blueprints by excluding types or specific Blueprints.
+블루프린트 네이티브화는 Visual Studio 2013 에서도 Visual Studio 2015 에서도 작동은 하지만, 2015 에서 규모가 큰 프로젝트를 더욱 원활히 처리해 내므로 추천합니다.
+LNK1000, LNK1248 같은 애먼 컴파일러/링커 오류가 나면, 특정 블루프린트나 유형을 제외시켜 네이티브화되는 블루프린트 양을 줄여 보시기 바랍니다.
 
-The `BlueprintCompilerCppBackend` module (found here: `Engine\Source\Developer\BlueprintCompilerCppBackend\`) converts the Blueprint syntax tree into C++. 
-The `BlueprintNativeCodeGen` module (found here: `Engine\Source\Developer\BlueprintNativeCodeGen\`) does a lot of magic while cooking and packaging. 
+`BlueprintCompilerCppBackend` 모듈(이 있는 위치는: `Engine\Source\Developer\BlueprintCompilerCppBackend\`) 은 블루프린트 문법 트리를 C++ 로 변환합니다.
+`BlueprintNativeCodeGen` 모듈(이 있는 위치는: `Engine\Source\Developer\BlueprintNativeCodeGen\`) 은 쿠킹과 패키징 도중 여러가지 마법같은 작업을 합니다.
 
 
 [PUBLISH:Licensee]
-## Debugging Converted Code on Windows
+## 윈도우에서 변환된 코드 디버깅
 
-If you are working with a project that already includes some C++ code, you can debug using the existing project solution.
-However, if your project originally contained only Blueprints, you need to execute `GenerateProjectFiles.bat` so that your project will have a solution.  
-Do not use this solution (or the new project under the main UE4 solution) to compile your project or to build an Editor version of your project. 
+C++ 코드가 이미 조금 포함된 프로젝트 작업을 하는 경우, 기존 프로젝트 솔류션을 사용해서 디버깅 가능합니다.
+하지만 프로젝트가 블루프린트 전용이었던 경우, `GenerateProjectFiles.bat` 파일을 실행시켜 줘야 프로젝트 솔루션 파일이 생깁니다.
+이 솔루션(이나 메인 UE4 솔루션 아래 새로운 프로젝트 파일)을 사용해서 프로젝트를 컴파일하거나 에디터 버전을 빌드하지 마세요.
 
-To build a debug .exe file:
+디버그 .exe 파일을 빌드하려면:
 
-1. Run the following lines. They can be found in your output log when your nativized build is packaged, so it's easiest to copy them out to verify that the switches 
-are correct for your environment. Just change the `Development` switch to `Debug`. 
+1. 다음 줄을 실행시킵니다. 네이티브화된 빌드가 패키징되면 출력 로그에서 찾을 수 있으니, 스위치가 자신의 환경에 맞게끔 붙어있는지 확인하려면 거기서 직접 복사하는 방법이 가장 쉽습니다.
+`Development` 스위치만 `Debug` 로 바꿔주면 됩니다. 
 
-		<UE4>\Engine\Binaries\DotNET\UnrealBuildTool.exe" <project name> Win64 Debug -Project=<project path>\<project name>.uproject  <project path>\<project name>.uproject  -PLUGIN "<project path>\Intermediate\<platform>\NativizedAssets\NativizedAssets.uplugin" -remoteini="<project path>" -noxge -generatemanifest -NoHotReloadFromIDE -ignorejunk
+		<UE4>\Engine\Binaries\DotNET\UnrealBuildTool.exe" <프로젝트 이름> Win64 Debug -Project=<프로젝트 경로>\<프로젝트 이름>.uproject  <프로젝트 경로>\<프로젝트 이름>.uproject  -PLUGIN "<프로젝트 경로>\Intermediate\<플랫폼>\NativizedAssets\NativizedAssets.uplugin" -remoteini="<프로젝트 경로>" -noxge -generatemanifest -NoHotReloadFromIDE -ignorejunk
 
-		<UE4>\Engine\Binaries\DotNET\UnrealBuildTool.exe" <project name> Win64 Debug -Project=<project path>\<project name>.uproject  <project path>\<project name>.uproject  -PLUGIN "<project path>\Intermediate\<platform>\NativizedAssets\NativizedAssets.uplugin" -remoteini="<project path>" -noxge -NoHotReloadFromIDE -ignorejunk
+		<UE4>\Engine\Binaries\DotNET\UnrealBuildTool.exe" <프로젝트 이름> Win64 Debug -Project=<프로젝트 경로>\<프로젝트 이름>.uproject  <프로젝트 경로>\<프로젝트 이름>.uproject  -PLUGIN "<프로젝트 경로>\Intermediate\<플랫폼>\NativizedAssets\NativizedAssets.uplugin" -remoteini="<프로젝트 경로>" -noxge -NoHotReloadFromIDE -ignorejunk
 
-2. Set the working directory in your Visual Studio project (debug configuration) to `<Packaged Folder>\<platform>\<project name>\Binaries\Win64\`
+2. Visual Studio 프로젝트 (debug 환경설정) 의 작업 디렉토리를 `<패키징된 폴더>\<플랫폼>\<프로젝트 이름>\Binaries\Win64\` 로 변경합니다.
 
-3. Run debug in Visual Studio, but do not recompile the project from Visual Studio.
+3. Visual Studio 에서 디버그를 실행하되, Visual Studio 에서 프로젝트를 리컴파일하지는 마십시오.
 
 [/PUBLISH:Licensee]

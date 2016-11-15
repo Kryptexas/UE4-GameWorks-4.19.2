@@ -16,6 +16,9 @@ public:
 
 	void Construct( const FArguments& InArgs );
 
+	/** @return Whether the given viewmode is supported. */ 
+	virtual bool IsViewModeSupported(EViewModeIndex ViewModeIndex) const;
+
 private:
 	/**
 	 * Returns the label for the "Camera" tool bar menu, which changes depending on the viewport type
@@ -88,7 +91,7 @@ private:
 	void SetLevelProfile( FString DeviceProfileName );
 
 	/**
-	 * Generates the toolbar options menu content 
+	 * Generates the toolbar view mode options menu content 
 	 *
 	 * @return The widget containing the options menu content
 	 */
@@ -129,6 +132,20 @@ private:
 	 * @return The widget containing the show menu content
 	 */
 	TSharedRef<SWidget> GenerateShowMenu() const;
+
+	/**
+	 * Returns the initial visibility of the view mode options widget 
+	 *
+	 * @return The visibility value
+	 */
+	EVisibility GetViewModeOptionsVisibility() const;
+
+	/**
+	 * Generates the toolbar view param menu content 
+	 *
+	 * @return The widget containing the show menu content
+	 */
+	TSharedRef<SWidget> GenerateViewModeOptionsMenu() const;
 
 	/**
 	 * @return The widget containing the perspective only FOV window.

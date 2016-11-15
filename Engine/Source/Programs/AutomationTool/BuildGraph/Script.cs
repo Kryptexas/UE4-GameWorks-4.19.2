@@ -475,6 +475,7 @@ namespace AutomationTool
 		/// Reads the body of a trigger element
 		/// </summary>
 		/// <param name="Element">Xml element to read the definition from</param>
+		/// <param name="Trigger">The enclosing trigger definition</param>
 		void ReadTriggerBody(XmlElement Element, ManualTrigger Trigger)
 		{
 			EnterScope();
@@ -1220,7 +1221,6 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="Element">Xml element to read from</param>
 		/// <param name="Name">Name of the alias</param>
-		/// <param name="Nodes">Array of nodes that this name should resolve to</param>
 		/// <returns>True if the name was registered correctly, false otherwise.</returns>
 		bool CheckNameIsUnique(ScriptElement Element, string Name)
 		{
@@ -1410,7 +1410,7 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="Element">Element to read the attribute from</param>
 		/// <param name="Name">Name of the attribute</param>
-		/// <param name="DefaultValue">Default value if the attribute is missing</param>
+		/// <param name="bDefaultValue">Default value if the attribute is missing</param>
 		/// <returns>The value of the attribute field</returns>
 		bool ReadBooleanAttribute(ScriptElement Element, string Name, bool bDefaultValue)
 		{

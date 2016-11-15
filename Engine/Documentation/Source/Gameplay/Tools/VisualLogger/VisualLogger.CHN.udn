@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:0
-Title:可视化日志 Visual Logger
+﻿INTSourceChangelist:2714483
+Title: 可视化日志 Visual Logger
 Availability:Public
 Crumbs:
 Description: 该工具可捕捉 actor 的状态，然后在游戏或编辑器中进行可视显示。

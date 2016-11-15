@@ -10,7 +10,7 @@
 #include "HAL/Platform.h"
 #include "HTML5/HTML5DebugLogging.h"
 #include "HTML5/HTML5SystemIncludes.h"
-#include <emscripten.h>
+#include <emscripten/emscripten.h>
 
 /**
  * HTML5 implementation of the misc OS functions

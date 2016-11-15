@@ -19,7 +19,7 @@ public:
 
 	void SetParameters(FRHICommandList& RHICmdList, const FMaterialRenderProxy* MaterialRenderProxy,const FSceneView& View)
 	{
-		FMeshMaterialShader::SetParameters(RHICmdList, GetVertexShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, ESceneRenderTargetsMode::SetTextures);
+		FMeshMaterialShader::SetParameters(RHICmdList, GetVertexShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, View.ViewUniformBuffer, ESceneRenderTargetsMode::SetTextures);
 	}
 
 	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement,const FMeshDrawingRenderState& DrawRenderState)
@@ -123,7 +123,7 @@ public:
 
 	void SetParameters(FRHICommandList& RHICmdList, const FMaterialRenderProxy* MaterialRenderProxy,const FSceneView& View)
 	{
-		FMeshMaterialShader::SetParameters(RHICmdList, GetPixelShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, ESceneRenderTargetsMode::SetTextures);
+		FMeshMaterialShader::SetParameters(RHICmdList, GetPixelShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, View.ViewUniformBuffer, ESceneRenderTargetsMode::SetTextures);
 	}
 
 	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement,const FMeshDrawingRenderState& DrawRenderState)
@@ -152,8 +152,7 @@ IMPLEMENT_MATERIAL_SHADER_TYPE(,FHitProxyPS,TEXT("HitProxyPixelShader"),TEXT("Ma
 FHitProxyDrawingPolicy::FHitProxyDrawingPolicy(
 	const FVertexFactory* InVertexFactory,
 	const FMaterialRenderProxy* InMaterialRenderProxy,
-	ERHIFeatureLevel::Type InFeatureLevel
-	):
+	ERHIFeatureLevel::Type InFeatureLevel ):
 	FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, *InMaterialRenderProxy->GetMaterial(InFeatureLevel))
 {
 	HullShader = NULL;
@@ -243,6 +242,61 @@ void FHitProxyDrawingPolicy::SetMeshRenderState(
 		));
 }
 
+#if WITH_EDITOR
+
+TMap<const FPrimitiveSceneProxy*,int32> FEditorSelectionDrawingPolicy::ProxyToStencilIndex;
+TMap<FName, int32> FEditorSelectionDrawingPolicy::ActorNameToStencilIndex;
+
+void FEditorSelectionDrawingPolicy::SetMeshRenderState( FRHICommandList& RHICmdList, const FSceneView& View, const FPrimitiveSceneProxy* PrimitiveSceneProxy, const FMeshBatch& Mesh, int32 BatchElementIndex, bool bBackFace, const FMeshDrawingRenderState& DrawRenderState, const FHitProxyId HitProxyId, const ContextDataType PolicyContext )
+{
+	FHitProxyDrawingPolicy::SetMeshRenderState(RHICmdList, View, PrimitiveSceneProxy, Mesh, BatchElementIndex, bBackFace, DrawRenderState, HitProxyId, PolicyContext);
+
+	int32 StencilValue = GetStencilValue(View, PrimitiveSceneProxy);
+		
+	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_DepthNearOrEqual, true, CF_Always, SO_Keep, SO_Keep, SO_Replace>::GetRHI(), StencilValue);
+
+	//RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+	RHICmdList.SetBlendState(TStaticBlendStateWriteMask<CW_NONE, CW_NONE, CW_NONE, CW_NONE>::GetRHI());
+
+}
+
+int32 FEditorSelectionDrawingPolicy::GetStencilValue(const FSceneView& View, const FPrimitiveSceneProxy* PrimitiveSceneProxy)
+{
+	const bool bActorSelectionColorIsSubdued = View.bHasSelectedComponents;
+
+	const int32* ExistingStencilValue = PrimitiveSceneProxy->IsIndividuallySelected() ? ProxyToStencilIndex.Find(PrimitiveSceneProxy) : ActorNameToStencilIndex.Find(PrimitiveSceneProxy->GetOwnerName());
+
+	int32 StencilValue = 0;
+	if(ExistingStencilValue != nullptr )
+	{
+		StencilValue = *ExistingStencilValue;
+	}
+	else if(PrimitiveSceneProxy->IsIndividuallySelected())
+	{
+		// Any component that is individually selected should have a stencil value of < 128 so that it can have a unique color.  We offset the value by 2 because 0 means no selection and 1 is for bsp
+		StencilValue = ProxyToStencilIndex.Num() % 126 + 2;
+		ProxyToStencilIndex.Add(PrimitiveSceneProxy, StencilValue);
+	}
+	else
+	{
+			
+		// If we are subduing actor color highlight then use the top level bits to indicate that to the shader.  
+		StencilValue = bActorSelectionColorIsSubdued ? ActorNameToStencilIndex.Num() % 128 + 128 : ActorNameToStencilIndex.Num() % 126 + 2;
+		ActorNameToStencilIndex.Add(PrimitiveSceneProxy->GetOwnerName(), StencilValue);
+	}
+
+	return StencilValue;
+}
+
+void FEditorSelectionDrawingPolicy::ResetStencilValues()
+{
+	ProxyToStencilIndex.Reset();
+	ActorNameToStencilIndex.Reset();
+	ActorNameToStencilIndex.Add(NAME_BSP,1);
+}
+
+#endif
+
 void FHitProxyDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* StaticMesh,ContextType)
 {
 	checkSlow( Scene->RequiresHitProxies() );
@@ -264,6 +318,13 @@ void FHitProxyDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* Sta
 		);
 
 #if WITH_EDITOR
+
+	Scene->EditorSelectionDrawList.AddMesh(
+		StaticMesh,
+		StaticMesh->BatchHitProxyId,
+		FEditorSelectionDrawingPolicy(StaticMesh->VertexFactory, MaterialRenderProxy, Scene->GetFeatureLevel()),
+		Scene->GetFeatureLevel());
+
 	// If the mesh isn't translucent then we'll also add it to the "opaque-only" draw list.  Depending
 	// on user preferences in the editor, we may use this draw list to disallow selection of
 	// translucent objects in perspective viewports
@@ -326,7 +387,7 @@ bool FHitProxyDrawingPolicyFactory::DrawDynamicMesh(
 
 #if WITH_EDITOR
 
-TRefCountPtr<IPooledRenderTarget> InitHitProxyRender(FRHICommandListImmediate& RHICmdList, const FSceneRenderer* SceneRenderer)
+void InitHitProxyRender(FRHICommandListImmediate& RHICmdList, const FSceneRenderer* SceneRenderer, TRefCountPtr<IPooledRenderTarget>& OutHitProxyRT, TRefCountPtr<IPooledRenderTarget>& OutHitProxyDepthRT)
 {
 	auto& ViewFamily = SceneRenderer->ViewFamily;
 	auto FeatureLevel = ViewFamily.Scene->GetFeatureLevel();
@@ -338,22 +399,28 @@ TRefCountPtr<IPooledRenderTarget> InitHitProxyRender(FRHICommandListImmediate& R
 	// Allocate the maximum scene render target space for the current view family.
 	SceneContext.Allocate(RHICmdList, ViewFamily);
 
-	TRefCountPtr<IPooledRenderTarget> HitProxyRT;
-
 	// Create a texture to store the resolved light attenuation values, and a render-targetable surface to hold the unresolved light attenuation values.
 	{
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(SceneContext.GetBufferSizeXY(), PF_B8G8R8A8, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable, false));
 		Desc.Flags |= TexCreate_FastVRAM;
-		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, HitProxyRT, TEXT("HitProxy"));
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, OutHitProxyRT, TEXT("HitProxy"));
+
+		// create non-MSAA version for hit proxies on PC if needed
+		const EShaderPlatform CurrentShaderPlatform = GShaderPlatformForFeatureLevel[FeatureLevel];
+		FPooledRenderTargetDesc DepthDesc = SceneContext.SceneDepthZ->GetDesc();
+
+		if (DepthDesc.NumSamples > 1 && RHISupportsSeparateMSAAAndResolveTextures(CurrentShaderPlatform))
+		{
+			DepthDesc.NumSamples = 1;
+			GRenderTargetPool.FindFreeElement(RHICmdList, DepthDesc, OutHitProxyDepthRT, TEXT("NoMSAASceneDepthZ"));
+		}
+		else
+		{
+			OutHitProxyDepthRT = SceneContext.SceneDepthZ;
+		}
 	}
 
-	if (!HitProxyRT)
-	{
-		// HitProxyRT==0 should never happen but better we don't crash
-		return HitProxyRT;
-	}
-
-	SetRenderTarget(RHICmdList, HitProxyRT->GetRenderTargetItem().TargetableTexture, SceneContext.GetSceneDepthSurface(), ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthWrite_StencilWrite, true);
+	SetRenderTarget(RHICmdList, OutHitProxyRT->GetRenderTargetItem().TargetableTexture, OutHitProxyDepthRT->GetRenderTargetItem().TargetableTexture, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthWrite_StencilWrite, true);
 
 	// Clear color for each view.
 	auto& Views = SceneRenderer->Views;
@@ -361,12 +428,11 @@ TRefCountPtr<IPooledRenderTarget> InitHitProxyRender(FRHICommandListImmediate& R
 	{
 		const FViewInfo& View = Views[ViewIndex];
 		RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
-		RHICmdList.Clear(true, FLinearColor::White, false, (float)ERHIZBuffer::FarPlane, false, 0, FIntRect());
+		RHICmdList.ClearColorTexture(OutHitProxyRT->GetRenderTargetItem().TargetableTexture, FLinearColor::White, FIntRect());
 	}
-	return HitProxyRT;
 }
 
-void RenderHitProxies(FRHICommandListImmediate& RHICmdList, const FSceneRenderer* SceneRenderer, TRefCountPtr<IPooledRenderTarget> HitProxyRT)
+static void DoRenderHitProxies(FRHICommandListImmediate& RHICmdList, const FSceneRenderer* SceneRenderer, TRefCountPtr<IPooledRenderTarget> HitProxyRT, TRefCountPtr<IPooledRenderTarget> HitProxyDepthRT)
 {
 	auto & ViewFamily = SceneRenderer->ViewFamily;
 	auto & Views = SceneRenderer->Views;
@@ -392,7 +458,7 @@ void RenderHitProxies(FRHICommandListImmediate& RHICmdList, const FSceneRenderer
 		RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 
 		// Clear the depth buffer for each DPG.
-		RHICmdList.Clear(false, FLinearColor::Black, true, (float)ERHIZBuffer::FarPlane, true, 0, FIntRect());
+		RHICmdList.ClearDepthStencilTexture(HitProxyDepthRT->GetRenderTargetItem().TargetableTexture, EClearDepthStencil::DepthStencil, (float)ERHIZBuffer::FarPlane, 0, FIntRect());
 
 		// Adjust the visibility map for this view
 		if (!View.bAllowTranslucentPrimitivesInHitProxy)
@@ -443,7 +509,7 @@ void RenderHitProxies(FRHICommandListImmediate& RHICmdList, const FSceneRenderer
 		DrawViewElements<FHitProxyDrawingPolicyFactory>(RHICmdList, View, FHitProxyDrawingPolicyFactory::ContextType(), SDPG_World, bPreFog);
 
 		// Draw the view's batched simple elements(lines, sprites, etc).
-		View.BatchedViewElements.Draw(RHICmdList, FeatureLevel, bNeedToSwitchVerticalAxis, View.ViewProjectionMatrix, View.ViewRect.Width(), View.ViewRect.Height(), true);
+		View.BatchedViewElements.Draw(RHICmdList, FeatureLevel, bNeedToSwitchVerticalAxis, View, true);
 
 		// Some elements should never be occluded (e.g. gizmos).
 		// So we render those twice, first to overwrite potentially nearer objects,
@@ -452,13 +518,13 @@ void RenderHitProxies(FRHICommandListImmediate& RHICmdList, const FSceneRenderer
 		// Draw the view's foreground elements last.
 		DrawViewElements<FHitProxyDrawingPolicyFactory>(RHICmdList, View, FHitProxyDrawingPolicyFactory::ContextType(), SDPG_Foreground, bPreFog);
 
-		View.TopBatchedViewElements.Draw(RHICmdList, FeatureLevel, bNeedToSwitchVerticalAxis, View.ViewProjectionMatrix, View.ViewRect.Width(), View.ViewRect.Height(), true);
+		View.TopBatchedViewElements.Draw(RHICmdList, FeatureLevel, bNeedToSwitchVerticalAxis, View, true);
 
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI());
 		// Draw the view's foreground elements last.
 		DrawViewElements<FHitProxyDrawingPolicyFactory>(RHICmdList, View, FHitProxyDrawingPolicyFactory::ContextType(), SDPG_Foreground, bPreFog);
 
-		View.TopBatchedViewElements.Draw(RHICmdList, FeatureLevel, bNeedToSwitchVerticalAxis, View.ViewProjectionMatrix, View.ViewRect.Width(), View.ViewRect.Height(), true);
+		View.TopBatchedViewElements.Draw(RHICmdList, FeatureLevel, bNeedToSwitchVerticalAxis, View, true);
 	}
 
 	// Finish drawing to the hit proxy render target.
@@ -522,9 +588,7 @@ void RenderHitProxies(FRHICommandListImmediate& RHICmdList, const FSceneRenderer
 				RHICmdList,
 				FeatureLevel,
 				bNeedToSwitchVerticalAxis,
-				PixelToView,
-				RenderTargetSize.X,
-				RenderTargetSize.Y,
+				FBatchedElements::CreateProxySceneView(PixelToView, FIntRect(0, 0, RenderTargetSize.X, RenderTargetSize.Y)),
 				false,
 				1.0f
 				);
@@ -536,13 +600,15 @@ void RenderHitProxies(FRHICommandListImmediate& RHICmdList, const FSceneRenderer
 void FMobileSceneRenderer::RenderHitProxies(FRHICommandListImmediate& RHICmdList)
 {
 #if WITH_EDITOR
-	TRefCountPtr<IPooledRenderTarget> HitProxyRT = ::InitHitProxyRender(RHICmdList, this);
+	TRefCountPtr<IPooledRenderTarget> HitProxyRT;
+	TRefCountPtr<IPooledRenderTarget> HitProxyDepthRT;
+	InitHitProxyRender(RHICmdList, this, HitProxyRT, HitProxyDepthRT);
 	// HitProxyRT==0 should never happen but better we don't crash
 	if (HitProxyRT)
 	{
 		// Find the visible primitives.
 		InitViews(RHICmdList);
-		::RenderHitProxies(RHICmdList, this, HitProxyRT);
+		::DoRenderHitProxies(RHICmdList, this, HitProxyRT, HitProxyDepthRT);
 	}
 #endif
 }
@@ -550,7 +616,10 @@ void FMobileSceneRenderer::RenderHitProxies(FRHICommandListImmediate& RHICmdList
 void FDeferredShadingSceneRenderer::RenderHitProxies(FRHICommandListImmediate& RHICmdList)
 {
 #if WITH_EDITOR
-	TRefCountPtr<IPooledRenderTarget> HitProxyRT = ::InitHitProxyRender(RHICmdList, this);
+	TRefCountPtr<IPooledRenderTarget> HitProxyRT;
+	TRefCountPtr<IPooledRenderTarget> HitProxyDepthRT;
+	InitHitProxyRender(RHICmdList, this, HitProxyRT, HitProxyDepthRT);
+
 	// HitProxyRT==0 should never happen but better we don't crash
 	if (HitProxyRT)
 	{
@@ -562,7 +631,7 @@ void FDeferredShadingSceneRenderer::RenderHitProxies(FRHICommandListImmediate& R
 		{
 			InitViewsPossiblyAfterPrepass(RHICmdList, ILCTaskData, SortEvents);
 		}
-		::RenderHitProxies(RHICmdList, this, HitProxyRT);
+		::DoRenderHitProxies(RHICmdList, this, HitProxyRT, HitProxyDepthRT);
 		ClearPrimitiveSingleFramePrecomputedLightingBuffers();
 	}
 #endif

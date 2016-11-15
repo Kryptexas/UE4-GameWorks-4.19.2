@@ -177,7 +177,9 @@ static void GetVehicleEngineSetup(const FVehicleEngineData& Setup, PxVehicleEngi
 	for (int32 KeyIdx = 0; KeyIdx < NumTorqueCurveKeys; KeyIdx++)
 	{
 		FRichCurveKey& Key = TorqueKeys[KeyIdx];
-		PxSetup.mTorqueCurve.addPair(FMath::Clamp(Key.Time / Setup.MaxRPM, 0.f, 1.f), Key.Value/PeakTorque); // Normalize torque to 0-1 range
+		const float KeyFloat = FMath::IsNearlyZero(Setup.MaxRPM) ? 0.f : Key.Time / Setup.MaxRPM;
+		const float ValueFloat = FMath::IsNearlyZero(PeakTorque) ? 0.f : Key.Value / PeakTorque;
+		PxSetup.mTorqueCurve.addPair(FMath::Clamp(KeyFloat, 0.f, 1.f), FMath::Clamp(ValueFloat, 0.f, 1.f)); // Normalize torque to 0-1 range
 	}
 }
 
@@ -242,38 +244,14 @@ void SetupDriveHelper(const UWheeledVehicleMovementComponent4W* VehicleData, con
 	DriveData.setAutoBoxData(AutoBoxSetup);
 }
 
-void UWheeledVehicleMovementComponent4W::SetupVehicle()
+void UWheeledVehicleMovementComponent4W::SetupVehicleDrive(PxVehicleWheelsSimData* PWheelsSimData)
 {
-	if (!UpdatedPrimitive)
+	if(WheelSetups.Num() != 4)
 	{
+		PVehicle = nullptr;
+		PVehicleDrive = nullptr;
 		return;
 	}
-
-	if (WheelSetups.Num() != 4)
-	{
-		PVehicle = NULL;
-		PVehicleDrive = NULL;
-		return;
-	}
-
-	for (int32 WheelIdx = 0; WheelIdx < WheelSetups.Num(); ++WheelIdx)
-	{
-		const FWheelSetup& WheelSetup = WheelSetups[WheelIdx];
-		if (WheelSetup.BoneName == NAME_None)
-		{
-			return;
-		}
-	}
-
-	// Setup the chassis and wheel shapes
-	SetupVehicleShapes();
-
-	// Setup mass properties
-	SetupVehicleMass();
-
-	// Setup the wheels
-	PxVehicleWheelsSimData* PWheelsSimData = PxVehicleWheelsSimData::allocate(4);
-	SetupWheels(PWheelsSimData);
 
 	// Setup drive data
 	PxVehicleDriveSimData4W DriveData;
@@ -291,8 +269,6 @@ void UWheeledVehicleMovementComponent4W::SetupVehicle()
 		// cleanup
 		PWheelsSimData->free();
 	});
-	
-	PWheelsSimData = NULL;
 
 	// cache values
 	PVehicle = PVehicleDrive4W;

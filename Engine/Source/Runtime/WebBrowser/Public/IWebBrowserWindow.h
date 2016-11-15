@@ -269,6 +269,16 @@ public:
 	 */
 	virtual void SetIsDisabled(bool bValue) = 0;
 
+	/**
+	* Get parent SWindow for this window
+	*/
+	virtual TSharedPtr<class SWindow> GetParentWindow() const = 0;
+
+	/**
+	* Set parent SWindow for this window
+	*/
+	virtual void SetParentWindow(TSharedPtr<class SWindow> Window) = 0;
+
 public:
 
 	/** A delegate that is invoked when the loading state of a document changed. */

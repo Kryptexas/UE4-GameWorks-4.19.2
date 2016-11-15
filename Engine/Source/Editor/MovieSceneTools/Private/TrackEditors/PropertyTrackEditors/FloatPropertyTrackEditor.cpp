@@ -13,9 +13,17 @@ TSharedRef<ISequencerTrackEditor> FFloatPropertyTrackEditor::CreateTrackEditor( 
 }
 
 
-TSharedRef<FPropertySection> FFloatPropertyTrackEditor::MakePropertySectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack& Track )
+TSharedRef<ISequencerSection> FFloatPropertyTrackEditor::MakeSectionInterface(UMovieSceneSection& SectionObject, UMovieSceneTrack& Track, FGuid ObjectBinding)
 {
-	return MakeShareable(new FFloatPropertySection(SectionObject, Track.GetDisplayName()));
+	UMovieScenePropertyTrack* PropertyTrack = Cast<UMovieScenePropertyTrack>(&Track);
+	if (PropertyTrack != nullptr)
+	{
+		return MakeShareable(new FFloatPropertySection(GetSequencer().Get(), ObjectBinding, PropertyTrack->GetPropertyName(), PropertyTrack->GetPropertyPath(), SectionObject, Track.GetDisplayName()));
+	}
+	else
+	{
+		return MakeShareable(new FFloatPropertySection(SectionObject, Track.GetDisplayName()));
+	}
 }
 
 
@@ -52,4 +60,7 @@ void FFloatPropertyTrackEditor::BuildTrackContextMenu( FMenuBuilder& MenuBuilder
 		FUIAction(
 			FExecuteAction::CreateStatic( &CopyInterpFloatTrack, GetSequencer().ToSharedRef(), MatineeFloatTrack, FloatTrack ),
 			FCanExecuteAction::CreateLambda( [=]()->bool { return MatineeFloatTrack != nullptr && MatineeFloatTrack->GetNumKeys() > 0 && FloatTrack != nullptr; } ) ) );
+
+	MenuBuilder.AddMenuSeparator();
+	FKeyframeTrackEditor::BuildTrackContextMenu(MenuBuilder, Track);
 }

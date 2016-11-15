@@ -398,13 +398,13 @@ public:
 		FILE_LOG(LogPlatformFile, Log, TEXT("DeleteDirectoryRecursively return %d [%fms]"), int32(Result), ThisTime);
 		return Result;
 	}
-	virtual bool		CopyFile(const TCHAR* To, const TCHAR* From) override
+	virtual bool		CopyFile(const TCHAR* To, const TCHAR* From, EPlatformFileRead ReadFlags = EPlatformFileRead::None, EPlatformFileWrite WriteFlags = EPlatformFileWrite::None) override
 	{
 		FString DataStr = FString::Printf(TEXT("CopyFile %s %s"), To, From);
 		FScopedNamedEvent NamedEvent(FColor::Emerald, *DataStr);
 		FILE_LOG(LogPlatformFile, Log, TEXT("%s"), *DataStr);
 		double StartTime = FPlatformTime::Seconds();
-		bool Result = LowerLevel->CopyFile(To, From);
+		bool Result = LowerLevel->CopyFile(To, From, ReadFlags, WriteFlags);
 		float ThisTime = (FPlatformTime::Seconds() - StartTime) / 1000.0;
 		FILE_LOG(LogPlatformFile, Log, TEXT("CopyFile return %d [%fms]"), int32(Result), ThisTime);
 		return Result;

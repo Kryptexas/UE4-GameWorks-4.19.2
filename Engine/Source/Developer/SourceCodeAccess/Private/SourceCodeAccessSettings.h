@@ -4,7 +4,7 @@
 
 #include "SourceCodeAccessSettings.generated.h"
 
-UCLASS(config=EditorPerProjectUserSettings)
+UCLASS(config=EditorPerProjectUserSettings, defaultconfig)
 class USourceCodeAccessSettings : public UObject
 {
 	GENERATED_UCLASS_BODY()

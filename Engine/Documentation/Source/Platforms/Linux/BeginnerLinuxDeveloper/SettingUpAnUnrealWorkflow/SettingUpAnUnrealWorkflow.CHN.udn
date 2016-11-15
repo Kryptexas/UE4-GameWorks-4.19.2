@@ -1,0 +1,13 @@
+﻿INTSourceChangelist:0
+Availability: Docs
+Title: How to Setup your Workflow
+Crumbs:%ROOT%, Platforms, Platforms/Linux, Platforms/Linux/BeginnerLinuxDeveloper
+Description:Learn how to download, build, and run UE4 on Linux.
+Platform:Linux
+Version: 4.11
+type:HowTo
+parent:Platforms/Linux/BeginnerLinuxDeveloper
+order: 2
+tags:Linux
+SkillLevel:Beginner
+

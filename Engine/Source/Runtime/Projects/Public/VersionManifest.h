@@ -9,6 +9,7 @@ class PROJECTS_API FVersionManifest
 {
 public:
 	uint32 Changelist;
+	uint32 CompatibleChangelist;
 	FString BuildId;
 	TMap<FString, FString> ModuleNameToFileName;
 

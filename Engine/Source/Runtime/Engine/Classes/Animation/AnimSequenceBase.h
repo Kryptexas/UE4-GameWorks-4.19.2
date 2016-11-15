@@ -13,9 +13,6 @@
 #include "Animation/AnimCurveTypes.h"
 #include "AnimSequenceBase.generated.h"
 
-#define DEFAULT_SAMPLERATE			30.f
-#define MINIMUM_ANIMATION_LENGTH	(1/DEFAULT_SAMPLERATE)
-
 UENUM()
 enum ETypeAdvanceAnim
 {
@@ -34,7 +31,7 @@ class UAnimSequenceBase : public UAnimationAsset
 	TArray<struct FAnimNotifyEvent> Notifies;
 
 	/** Length (in seconds) of this AnimSequence if played back with a speed of 1.0. */
-	UPROPERTY(Category=Length, AssetRegistrySearchable, VisibleAnywhere)
+	UPROPERTY(Category=Length, AssetRegistrySearchable, VisibleAnywhere, BlueprintReadOnly)
 	float SequenceLength;
 
 	/** Number for tweaking playback rate of this animation globally. */
@@ -110,7 +107,10 @@ class UAnimSequenceBase : public UAnimationAsset
 	// Get a pointer to the data for a given array property item
 	ENGINE_API uint8* FindArrayProperty(const TCHAR* PropName, UArrayProperty*& ArrayProperty, int32 ArrayIndex);
 
+protected:
+	virtual void RefreshParentAssetData() override;
 #endif	//WITH_EDITORONLY_DATA
+public: 
 	// update cache data (notify tracks, sync markers)
 	ENGINE_API virtual void RefreshCacheData();
 
@@ -154,6 +154,7 @@ class UAnimSequenceBase : public UAnimationAsset
 	
 	virtual float GetFirstMatchingPosFromMarkerSyncPos(const FMarkerSyncAnimPosition& InMarkerSyncGroupPosition) const { return 0.f; }
 	virtual float GetNextMatchingPosFromMarkerSyncPos(const FMarkerSyncAnimPosition& InMarkerSyncGroupPosition, const float& StartingPosition) const { return 0.f; }
+	virtual float GetPrevMatchingPosFromMarkerSyncPos(const FMarkerSyncAnimPosition& InMarkerSyncGroupPosition, const float& StartingPosition) const { return 0.f; }
 
 	// default implementation, no additive
 	virtual EAdditiveAnimationType GetAdditiveAnimType() const { return AAT_None; }

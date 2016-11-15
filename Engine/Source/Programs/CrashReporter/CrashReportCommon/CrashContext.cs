@@ -303,10 +303,7 @@ namespace Tools.CrashReporter.CrashReportCommon
 		/// <returns>Unique name of this report, can be used as name of file.</returns>
 		public string GetAsFilename()
 		{
-			string EngineVersion = PrimaryCrashProperties.EngineVersion;
-
-			string Directory = string.Format( "{0}_{1}__{2}", EngineVersion, !string.IsNullOrEmpty( PrimaryCrashProperties.GameName ) ? PrimaryCrashProperties.GameName : "NO_GAMENAME", PrimaryCrashProperties.TimeofCrash.Ticks );
-			return Directory;
+			return Path.GetFileName(CrashDirectory);
 		}
 	}
 
@@ -436,6 +433,10 @@ namespace Tools.CrashReporter.CrashReportCommon
 		/// <summary></summary>
 		[XmlElement]
 		public string EngineVersion;
+
+		/// <summary></summary>
+		[XmlElement]
+		public string BuildVersion;
 
 		/// <summary></summary>
 		[XmlElement]

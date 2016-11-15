@@ -100,6 +100,7 @@ class ENGINE_API UMaterialExpression : public UObject
 	int32 MaterialExpressionEditorY;
 
 	/** Expression's Graph representation */
+	UPROPERTY(transient)
 	UEdGraphNode*	GraphNode;
 
 	/** Text of last error for this expression */
@@ -172,9 +173,11 @@ class ENGINE_API UMaterialExpression : public UObject
 	UPROPERTY()
 	uint32 bShowOutputs:1;
 
+#if WITH_EDITORONLY_DATA
 	/** Localized categories to sort this expression into... */
 	UPROPERTY()
 	TArray<FText> MenuCategories;
+#endif // WITH_EDITORONLY_DATA
 
 	/** The expression's outputs, which are set in default properties by derived classes. */
 	UPROPERTY()
@@ -204,12 +207,16 @@ class ENGINE_API UMaterialExpression : public UObject
 	 * Create the new shader code chunk needed for the Abs expression
 	 *
 	 * @param	Compiler - UMaterial compiler that knows how to handle this expression.
-	 * @param	MultiplexIndex - An index used by some expressions to send multiple values across a single connection.
 	 * @return	Index to the new FMaterialCompiler::CodeChunk entry for this expression
 	 */	
-	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) { return INDEX_NONE; }
-	virtual int32 CompilePreview(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) { return Compile(Compiler, OutputIndex, MultiplexIndex); }
+	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex) { return INDEX_NONE; }
+	virtual int32 CompilePreview(class FMaterialCompiler* Compiler, int32 OutputIndex) { return Compile(Compiler, OutputIndex); }
 #endif
+
+	/**
+	* Fill the array with all textures dependence that should trig a recompile of the material.
+	*/
+	virtual void GetTexturesForceMaterialRecompile(TArray<UTexture *> &Textures) const { }
 
 	/** 
 	 * Callback to get any texture reference this expression emits.

@@ -380,9 +380,9 @@ private:
 		SetVisualizeSSS(false);
 		SetVisualizeBloom(false);
 		SetPrimitiveDistanceAccuracy(false);
-		SetMeshTexCoordSizeAccuracy(false);
-		SetMaterialTexCoordScalesAccuracy(false);
-		SetMaterialTexCoordScalesAnalysis(false);
+		SetMeshUVDensityAccuracy(false);
+		SetMaterialTextureScaleAccuracy(false);
+		SetOutputMaterialTextureScales(false);
 	}
 
 

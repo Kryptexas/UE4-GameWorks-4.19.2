@@ -154,7 +154,7 @@ bool FIOSTargetDevice::SupportsSdkVersion(const FString& VersionString) const
 	return true;
 }
 
-bool FIOSTargetDevice::TerminateProcess(const int32 ProcessId)
+bool FIOSTargetDevice::TerminateProcess(const int64 ProcessId)
 {
 	return false;
 }

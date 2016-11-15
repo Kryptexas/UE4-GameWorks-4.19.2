@@ -60,6 +60,8 @@
 #include "EngineModule.h"
 #include "RendererInterface.h"
 
+#include "EditorWorldManager.h"
+
 #if PLATFORM_WINDOWS
 // For WAVEFORMATEXTENSIBLE
 	#include "AllowWindowsPlatformTypes.h"
@@ -122,6 +124,9 @@
 #include "ShaderCompiler.h"
 
 #include "PixelInspectorModule.h"
+
+#include "SourceCodeNavigation.h"
+#include "GameProjectUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditor, Log, All);
 
@@ -549,6 +554,9 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 	// create the timer manager
 	TimerManager = MakeShareable(new FTimerManager());
 
+	// create the editor world manager
+	EditorWorldManager = MakeShareable(new FEditorWorldManager());
+
 	// Settings.
 	FBSPOps::GFastRebuild = 0;
 
@@ -645,6 +653,13 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 	AssetRegistryModule.Get().OnInMemoryAssetCreated().AddUObject(this, &UEditorEngine::OnAssetCreated);
 	
+	// Initialize vanilla status before other systems that consume its status are started inside InitEditor()
+	UpdateIsVanillaProduct();
+	FSourceCodeNavigation::AccessOnNewModuleAdded().AddLambda([this](FName InModuleName)
+	{
+		UpdateIsVanillaProduct();
+	});
+
 	// Init editor.
 	SlowTask.EnterProgressFrame(40);
 	GEditor = this;
@@ -692,14 +707,12 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			TEXT("AutomationController"),
 			TEXT("DeviceManager"),
 			TEXT("ProfilerClient"),
-//			TEXT("Search"),
 			TEXT("SessionFrontend"),
 			TEXT("ProjectLauncher"),
 			TEXT("SettingsEditor"),
 			TEXT("EditorSettingsViewer"),
 			TEXT("ProjectSettingsViewer"),
 			TEXT("Blutility"),
-			//TEXT("OnlineBlueprintSupport"),
 			TEXT("XmlParser"),
 			TEXT("UserFeedback"),
 			TEXT("GameplayTagsEditor"),
@@ -713,7 +726,8 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			TEXT("TreeMap"),
 			TEXT("SizeMap"),
 			TEXT("MergeActors"),
-			TEXT("NiagaraEditor")
+			TEXT("NiagaraEditor"),
+			TEXT("InputBindingEditor")
 		};
 
 		FScopedSlowTask ModuleSlowTask(ARRAY_COUNT(ModuleNames));
@@ -1476,7 +1490,10 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 			ViewportClient->Tick(DeltaSeconds);
 		}
 	}
-	
+
+	// Updates the ViewportWorldInteraction
+	EditorWorldManager->Tick( DeltaSeconds );
+
 	bool bIsMouseOverAnyLevelViewport = false;
 
 	//Do this check separate to the above loop as the ViewportClient may no longer be valid after we have ticked it
@@ -1978,7 +1995,7 @@ UAudioComponent* UEditorEngine::ResetPreviewAudioComponent( USoundBase* Sound, U
 			PreviewSoundCue = NewObject<USoundCue>();
 			// Set world to NULL as it will most likely become invalid in the next PIE/Simulate session and the
 			// component will be left with invalid pointer.
-			PreviewAudioComponent = FAudioDevice::CreateComponent(PreviewSoundCue, NULL, NULL, false);
+			PreviewAudioComponent = FAudioDevice::CreateComponent(PreviewSoundCue);
 		}
 
 		check(PreviewAudioComponent);
@@ -3085,7 +3102,6 @@ struct FConvertStaticMeshActorInfo
 	UStaticMesh*						StaticMesh;
 	USkeletalMesh*						SkeletalMesh;
 	TArray<UMaterialInterface*>			OverrideMaterials;
-	TArray<FGuid>						IrrelevantLights;
 	float								CachedMaxDrawDistance;
 	bool								CastShadow;
 
@@ -3108,7 +3124,7 @@ struct FConvertStaticMeshActorInfo
 	 * We don't want to simply copy all properties, because classes with different defaults will have
 	 * their defaults hosed by other types.
 	 */
-	bool bComponentPropsDifferFromDefaults[7];
+	bool bComponentPropsDifferFromDefaults[6];
 
 	AGroupActor* ActorGroup;
 
@@ -3135,9 +3151,8 @@ struct FConvertStaticMeshActorInfo
 		InternalGetFromActor(Actor);
 
 		// Copy over component properties.
-		StaticMesh				= MeshComp->StaticMesh;
+		StaticMesh				= MeshComp->GetStaticMesh();
 		OverrideMaterials		= MeshComp->OverrideMaterials;
-		IrrelevantLights		= MeshComp->IrrelevantLights;
 		CachedMaxDrawDistance	= MeshComp->CachedMaxDrawDistance;
 		CastShadow				= MeshComp->CastShadow;
 
@@ -3167,11 +3182,10 @@ struct FConvertStaticMeshActorInfo
 		// Record which component properties differ from their defaults.
 		bComponentPropsDifferFromDefaults[0] = PropsDiffer( TEXT("Engine.StaticMeshComponent:StaticMesh"), MeshComp );
 		bComponentPropsDifferFromDefaults[1] = true; // Assume the materials array always differs.
-		bComponentPropsDifferFromDefaults[2] = true; // Assume the set of irrelevant lights always differs.
-		bComponentPropsDifferFromDefaults[3] = PropsDiffer( TEXT("Engine.PrimitiveComponent:CachedMaxDrawDistance"), MeshComp );
-		bComponentPropsDifferFromDefaults[4] = PropsDiffer( TEXT("Engine.PrimitiveComponent:CastShadow"), MeshComp );
-		bComponentPropsDifferFromDefaults[5] = PropsDiffer( TEXT("Engine.PrimitiveComponent:BodyInstance"), MeshComp );
-		bComponentPropsDifferFromDefaults[6] = bHasAnyVertexOverrideColors;	// Differs from default if there are any vertex override colors
+		bComponentPropsDifferFromDefaults[2] = PropsDiffer( TEXT("Engine.PrimitiveComponent:CachedMaxDrawDistance"), MeshComp );
+		bComponentPropsDifferFromDefaults[3] = PropsDiffer( TEXT("Engine.PrimitiveComponent:CastShadow"), MeshComp );
+		bComponentPropsDifferFromDefaults[4] = PropsDiffer( TEXT("Engine.PrimitiveComponent:BodyInstance"), MeshComp );
+		bComponentPropsDifferFromDefaults[5] = bHasAnyVertexOverrideColors;	// Differs from default if there are any vertex override colors
 	}
 
 	void SetToActor(AActor* Actor, UStaticMeshComponent* MeshComp)
@@ -3179,19 +3193,18 @@ struct FConvertStaticMeshActorInfo
 		InternalSetToActor(Actor);
 
 		// Set component properties.
-		if ( bComponentPropsDifferFromDefaults[0] ) MeshComp->StaticMesh			= StaticMesh;
+		if ( bComponentPropsDifferFromDefaults[0] ) MeshComp->SetStaticMesh(StaticMesh);
 		if ( bComponentPropsDifferFromDefaults[1] ) MeshComp->OverrideMaterials		= OverrideMaterials;
-		if ( bComponentPropsDifferFromDefaults[2] ) MeshComp->IrrelevantLights		= IrrelevantLights;
-		if ( bComponentPropsDifferFromDefaults[3] ) MeshComp->CachedMaxDrawDistance	= CachedMaxDrawDistance;
-		if ( bComponentPropsDifferFromDefaults[4] ) MeshComp->CastShadow			= CastShadow;
-		if ( bComponentPropsDifferFromDefaults[5] ) 
+		if ( bComponentPropsDifferFromDefaults[2] ) MeshComp->CachedMaxDrawDistance	= CachedMaxDrawDistance;
+		if ( bComponentPropsDifferFromDefaults[3] ) MeshComp->CastShadow			= CastShadow;
+		if ( bComponentPropsDifferFromDefaults[4] ) 
 		{
 			MeshComp->BodyInstance.CopyBodyInstancePropertiesFrom(&BodyInstance);
 		}
-		if ( bComponentPropsDifferFromDefaults[6] )
+		if ( bComponentPropsDifferFromDefaults[5] )
 		{
 			// Ensure the LODInfo has the right number of entries
-			MeshComp->SetLODDataCount( OverrideVertexColors.Num(), MeshComp->StaticMesh->GetNumLODs() );
+			MeshComp->SetLODDataCount( OverrideVertexColors.Num(), MeshComp->GetStaticMesh()->GetNumLODs() );
 			
 			// Loop over each LODInfo to see if there are any vertex override colors to restore
 			for ( int32 LODIndex = 0; LODIndex < MeshComp->LODData.Num(); ++LODIndex )
@@ -3248,11 +3261,10 @@ struct FConvertStaticMeshActorInfo
 		// Record which component properties differ from their defaults.
 		bComponentPropsDifferFromDefaults[0] = PropsDiffer( TEXT("Engine.SkinnedMeshComponent:SkeletalMesh"), MeshComp );
 		bComponentPropsDifferFromDefaults[1] = true; // Assume the materials array always differs.
-		bComponentPropsDifferFromDefaults[2] = true; // Assume the set of irrelevant lights always differs.
-		bComponentPropsDifferFromDefaults[3] = PropsDiffer( TEXT("Engine.PrimitiveComponent:CachedMaxDrawDistance"), MeshComp );
-		bComponentPropsDifferFromDefaults[4] = PropsDiffer( TEXT("Engine.PrimitiveComponent:CastShadow"), MeshComp );
-		bComponentPropsDifferFromDefaults[5] = PropsDiffer( TEXT("Engine.PrimitiveComponent:BodyInstance"), MeshComp );
-		bComponentPropsDifferFromDefaults[6] = false;	// Differs from default if there are any vertex override colors
+		bComponentPropsDifferFromDefaults[2] = PropsDiffer( TEXT("Engine.PrimitiveComponent:CachedMaxDrawDistance"), MeshComp );
+		bComponentPropsDifferFromDefaults[3] = PropsDiffer( TEXT("Engine.PrimitiveComponent:CastShadow"), MeshComp );
+		bComponentPropsDifferFromDefaults[4] = PropsDiffer( TEXT("Engine.PrimitiveComponent:BodyInstance"), MeshComp );
+		bComponentPropsDifferFromDefaults[5] = false;	// Differs from default if there are any vertex override colors
 
 		InternalGetAnimationData(MeshComp);
 	}
@@ -3264,9 +3276,9 @@ struct FConvertStaticMeshActorInfo
 		// Set component properties.
 		if ( bComponentPropsDifferFromDefaults[0] ) MeshComp->SkeletalMesh			= SkeletalMesh;
 		if ( bComponentPropsDifferFromDefaults[1] ) MeshComp->OverrideMaterials		= OverrideMaterials;
-		if ( bComponentPropsDifferFromDefaults[3] ) MeshComp->CachedMaxDrawDistance	= CachedMaxDrawDistance;
-		if ( bComponentPropsDifferFromDefaults[4] ) MeshComp->CastShadow			= CastShadow;
-		if ( bComponentPropsDifferFromDefaults[5] ) MeshComp->BodyInstance.CopyBodyInstancePropertiesFrom(&BodyInstance);
+		if ( bComponentPropsDifferFromDefaults[2] ) MeshComp->CachedMaxDrawDistance	= CachedMaxDrawDistance;
+		if ( bComponentPropsDifferFromDefaults[3] ) MeshComp->CastShadow			= CastShadow;
+		if ( bComponentPropsDifferFromDefaults[4] ) MeshComp->BodyInstance.CopyBodyInstancePropertiesFrom(&BodyInstance);
 
 		InternalSetAnimationData(MeshComp);
 	}
@@ -3439,7 +3451,7 @@ void UEditorEngine::ConvertActorsFromClass( UClass* FromClass, UClass* ToClass )
 				SpawnInfo.OverrideLevel = Info.SourceLevel;
 				SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 				if( bToStaticMesh )
-				{					
+				{
 					AStaticMeshActor* SMActor = CastChecked<AStaticMeshActor>( World->SpawnActor( ToClass, &Info.Location, &Info.Rotation, SpawnInfo ) );
 					SMActor->UnregisterAllComponents();
 					Info.SetToActor(SMActor, SMActor->GetStaticMeshComponent());
@@ -3448,8 +3460,9 @@ void UEditorEngine::ConvertActorsFromClass( UClass* FromClass, UClass* ToClass )
 					Actor = SMActor;
 				}
 				else if(bToInteractiveFoliage)
-				{					
+				{
 					AInteractiveFoliageActor* FoliageActor = World->SpawnActor<AInteractiveFoliageActor>( Info.Location, Info.Rotation, SpawnInfo );
+					check(FoliageActor);
 					FoliageActor->UnregisterAllComponents();
 					Info.SetToActor(FoliageActor, FoliageActor->GetStaticMeshComponent());
 					FoliageActor->RegisterAllComponents();
@@ -6066,7 +6079,7 @@ bool UEditorEngine::LoadPreviewMesh( int32 Index )
 		if( PreviewMesh )
 		{
 			bMeshLoaded = true;
-			PreviewMeshComp->StaticMesh = PreviewMesh;
+			PreviewMeshComp->SetStaticMesh(PreviewMesh);
 		}
 		else
 		{
@@ -6209,7 +6222,7 @@ void UEditorEngine::UpdateAutoLoadProject()
 			TTypeFromString<uint8>::FromString(ComponentValues[i], *Components[i]);
 		}
 		
-		if(ComponentValues[0] < 10 || ComponentValues[1] < 9 || (ComponentValues[1] == 9 && ComponentValues[2] < 4))
+		if(ComponentValues[0] < 10 || ComponentValues[1] < 12 || (ComponentValues[1] == 12 && ComponentValues[2] < 0))
 		{
 			if(FSlateApplication::IsInitialized())
 			{
@@ -6222,6 +6235,22 @@ void UEditorEngine::UpdateAutoLoadProject()
 			else
 			{
 				UE_LOG(LogEditor, Warning, TEXT("Please update to the latest version of Mac OS X for best performance."));
+			}
+		}
+		
+		if(!FPlatformMisc::HasPlatformFeature(TEXT("Metal")))
+		{
+			if(FSlateApplication::IsInitialized())
+			{
+				FSuppressableWarningDialog::FSetupInfo Info(NSLOCTEXT("MessageDialog", "MessageMacOpenGLDeprecated","Support for running Unreal Engine 4 using OpenGL on macOS is deprecated and will be removed in a future release. Unreal Engine 4 may not render correctly and may run at substantially reduced performance."), NSLOCTEXT("MessageDialog", "TitleMacOpenGLDeprecated", "WARNING: OpenGL on macOS Deprecated"), TEXT("MacOpenGLDeprecated"), GEditorSettingsIni );
+				Info.ConfirmText = LOCTEXT( "OK", "OK");
+				Info.bDefaultToSuppressInTheFuture = true;
+				FSuppressableWarningDialog OSUpdateWarning( Info );
+				OSUpdateWarning.ShowModal();
+			}
+			else
+			{
+				UE_LOG(LogEditor, Warning, TEXT("Support for running Unreal Engine 4 using OpenGL on macOS is deprecated and will be removed in a future release. Unreal Engine 4 may not render correctly and may run at substantially reduced performance."));
 			}
 		}
 		
@@ -6375,9 +6404,14 @@ FORCEINLINE bool NetworkRemapPath_local(FWorldContext &Context, FString &Str, bo
 	}
 }
 
-bool UEditorEngine::NetworkRemapPath( UWorld *InWorld, FString &Str, bool reading)
+bool UEditorEngine::NetworkRemapPath(UNetDriver* Driver, FString &Str, bool reading)
 {
-	FWorldContext &Context = GetWorldContextFromWorldChecked(InWorld);
+	if (Driver == nullptr)
+	{
+		return false;
+	}
+
+	FWorldContext &Context = GetWorldContextFromWorldChecked(Driver->GetWorld());
 	if (Context.PIEPrefix.IsEmpty() || Context.PIERemapPrefix.IsEmpty())
 	{
 		return false;
@@ -6407,7 +6441,7 @@ void UEditorEngine::VerifyLoadMapWorldCleanup()
 	for( TObjectIterator<UWorld> It; It; ++It )
 	{
 		UWorld* World = *It;
-		if (World->WorldType != EWorldType::Preview && World->WorldType != EWorldType::Editor && World->WorldType != EWorldType::Inactive)
+		if (World->WorldType != EWorldType::EditorPreview && World->WorldType != EWorldType::Editor && World->WorldType != EWorldType::Inactive)
 		{
 			TArray<UWorld*> OtherEditorWorlds;
 			EditorLevelUtils::GetWorlds(EditorWorld, OtherEditorWorlds, true, false);
@@ -6451,6 +6485,43 @@ void UEditorEngine::VerifyLoadMapWorldCleanup()
 			}
 		}
 	}
+}
+
+void UEditorEngine::UpdateIsVanillaProduct()
+{
+	// Check that we're running a content-only project through an installed build of the engine
+	bool bResult = false;
+	if (FApp::IsEngineInstalled() && !GameProjectUtils::ProjectHasCodeFiles())
+	{
+		// Check the build was installed by the launcher
+		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+		FString Identifier = DesktopPlatform->GetCurrentEngineIdentifier();
+		if (Identifier.Len() > 0)
+		{
+			FEngineVersion Version;
+			if (DesktopPlatform->TryParseStockEngineVersion(Identifier, Version))
+			{
+				// Check if we have any marketplace plugins enabled
+				bool bHasMarketplacePlugin = false;
+				for (const TSharedRef<IPlugin>& Plugin : IPluginManager::Get().GetEnabledPlugins())
+				{
+					if (Plugin->GetDescriptor().MarketplaceURL.Len() > 0)
+					{
+						bHasMarketplacePlugin = true;
+						break;
+					}
+				}
+
+				// If not, we're running Epic-only code.
+				if (!bHasMarketplacePlugin)
+				{
+					bResult = true;
+				}
+			}
+		}
+	}
+
+	SetIsVanillaProduct(bResult);
 }
 
 void UEditorEngine::HandleBrowseToDefaultMapFailure(FWorldContext& Context, const FString& TextURL, const FString& Error)
@@ -6732,7 +6803,8 @@ void UEditorEngine::AutomationLoadMap(const FString& MapName, FString* OutError)
 	//should really be wait until the map is properly loaded....in PIE or gameplay....
 	if (bNeedPieStart)
 	{
-		ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(10.f));
+		//TODO NICKD We need a better way to determine when to start the map.
+		//ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(10.f));
 	}
 #endif
 	return;

@@ -7,6 +7,7 @@
 #include "EdGraphSchema_K2.h"
 #include "K2Node_EditablePinBase.h"
 #include "Engine/LevelScriptBlueprint.h"
+#include "BlueprintSupport.h" // for FLegacyEditorOnlyBlueprintOptions
 
 class  USCS_Node;
 struct FComponentKey;
@@ -768,15 +769,6 @@ public:
 	static UEdGraph* FindScopeGraph(const UBlueprint* InBlueprint, const UStruct* InScope);
 
 	/**
-	 * Helper function to set the default value of a user defined struct property's local variable description
-	 *
-	 * @param	InBlueprint					The Blueprint the local variable can be found in
-	 * @param	InScope	Name				Local variable's scope name
-	 * @param	InOutVariableDescription	Description of the variable, will be modified with the default value
-	 */
-	static void SetDefaultValueOnUserDefinedStructProperty(UBlueprint* InBlueprint, FString InScopeName, FBPVariableDescription* InOutVariableDescription);
-
-	/**
 	 * Adds a local variable to the function graph.  It cannot mask a member variable or a variable in any superclass.
 	 *
 	 * @param	NewVarName	Name of the new variable.
@@ -1312,6 +1304,16 @@ public:
 	static const struct FSlateBrush* GetIconFromPin(const FEdGraphPinType& PinType);
 
 	/**
+	 * Determine the best secondary icon icon to represent the given pin.
+	 */
+	static const struct FSlateBrush* GetSecondaryIconFromPin(const FEdGraphPinType& PinType);
+
+	/**
+	 * Returns true if this terminal type can be hashed (native types need GetTypeHash, script types are always hashable).
+	 */
+	static bool HasGetTypeHash(const FEdGraphPinType& PinType);
+
+	/**
 	 * Generate component instancing data (for cooked builds).
 	 *
 	 * @param ComponentTemplate	The component template to generate instancing data for.
@@ -1319,6 +1321,9 @@ public:
 	 * @return					TRUE if component instancing data was built, FALSE otherwise.
 	 */
 	static void BuildComponentInstancingData(UActorComponent* ComponentTemplate, FBlueprintCookedComponentInstancingData& OutData);
+
+	/** Switch for hiding TMap/TSet support until stablized */
+	static bool ShouldEnableAdvancedContainers();
 
 protected:
 	// Removes all NULL graph references from the SubGraphs array and recurses thru the non-NULL ones
@@ -1434,4 +1439,58 @@ struct UNREALED_API FBlueprintDuplicationScopeFlags
 
 	TGuardValue<uint32> Guard;
 	FBlueprintDuplicationScopeFlags(uint32 InFlags) : Guard(bStaticFlags, InFlags) {}
+};
+
+struct UNREALED_API FMakeClassSpawnableOnScope
+{
+	UClass* Class;
+	bool bIsDeprecated;
+	bool bIsAbstract;
+	FMakeClassSpawnableOnScope(UClass* InClass)
+		: Class(InClass), bIsDeprecated(false), bIsAbstract(false)
+	{
+		if (Class)
+		{
+			bIsDeprecated = Class->HasAnyClassFlags(CLASS_Deprecated);
+			Class->ClassFlags &= ~CLASS_Deprecated;
+			bIsAbstract = Class->HasAnyClassFlags(CLASS_Abstract);
+			Class->ClassFlags &= ~CLASS_Abstract;
+		}
+	}
+	~FMakeClassSpawnableOnScope()
+	{
+		if (Class)
+		{
+			if (bIsAbstract)
+			{
+				Class->ClassFlags |= CLASS_Abstract;
+			}
+
+			if (bIsDeprecated)
+			{
+				Class->ClassFlags |= CLASS_Deprecated;
+			}
+		}
+	}
+};
+
+/** 
+ * Temporary util struct that deals with the now deprecated [EditoronlyBP] 
+ * settings. Inherited from FLegacyEditorOnlyBlueprintOptions (in CoreUObject), 
+ * which consolidates these settings, but is extended here to deal with UnrealEd 
+ * specific types.
+ */
+struct FLegacyEditorOnlyBlueprintUtils : public FLegacyEditorOnlyBlueprintOptions
+{
+	UNREALED_API static bool DoPinsMatch(const FEdGraphPinType& Input, const FEdGraphPinType& Output);
+	static bool FixupBlueprint(UBlueprint* Blueprint);
+
+private:
+	static bool HasLegacyBlueprintReferences(UBlueprint* Blueprint);
+	static bool IsUnwantedType(const FEdGraphPinType& Type);
+	static bool IsUnwantedDefaultObject(const UObject* Obj);
+	static void ChangePinType(FEdGraphPinType& Type);
+	static void HandleEditablePinNode(class UK2Node_EditablePinBase* Node);
+	static void HandleTemporaryVariableNode(class UK2Node_TemporaryVariable* Node);
+	static void HandleDefaultObjects(UK2Node* Node);
 };

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3032506
+﻿INTSourceChangelist:3060419
 Availability:Public
 Title:Twist Corrective
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
@@ -63,5 +63,9 @@ version:4.12
 | **Alpha** | スケルタル制御で適用されるトランスフォームの重み付けを決定するためのアルファ値として使用する [0.0, 1.0] 範囲の浮動小数点値です。値 0.0 は入力ポーズに最大限の重み付けをし、値 1.0 は制御の計算をしたトランスフォームに対し最大限の重み付けをします。|
 | [REGION:tablesection]**出力ピン**[/REGION] ||
 | Pose (Blank) | トランスフォーム適用後の最終ポーズ |
+
+**Twist Corrective** ノードも 4.11 で導入された **LOD Threshold** システムの影響を受けます。**Twist Corrective** ノードの **[Details (詳細)]** パネルにこの設定が表示されます。
+
+[INCLUDE:Engine/Animation/NodeReference/SkeletalControls#lodthresh]
 
 

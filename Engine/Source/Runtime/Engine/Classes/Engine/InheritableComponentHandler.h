@@ -66,6 +66,9 @@ struct FComponentOverrideRecord
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
+	UClass* ComponentClass;
+
+	UPROPERTY()
 	UActorComponent* ComponentTemplate;
 
 	UPROPERTY()
@@ -75,7 +78,8 @@ struct FComponentOverrideRecord
 	FBlueprintCookedComponentInstancingData CookedComponentInstancingData;
 
 	FComponentOverrideRecord()
-		: ComponentTemplate(nullptr)
+		: ComponentClass(nullptr)
+		, ComponentTemplate(nullptr)
 	{}
 };
 
@@ -84,8 +88,13 @@ class ENGINE_API UInheritableComponentHandler : public UObject
 {
 	GENERATED_BODY()
 
-#if WITH_EDITOR
 private:
+
+	/* Template name prefix for SCS DefaultSceneRootNode overrides */
+	static const FString SCSDefaultSceneRootOverrideNamePrefix;
+
+#if WITH_EDITOR
+
 	bool IsRecordValid(const FComponentOverrideRecord& Record) const;
 	bool IsRecordNecessary(const FComponentOverrideRecord& Record) const;
 
@@ -112,6 +121,7 @@ public:
 
 	//~ Begin UObject Interface
 	virtual void PostLoad() override;
+	virtual void GetPreloadDependencies(TArray<UObject*>& OutDeps) override;
 	//~ End UObject Interface
 
 	void PreloadAllTempates();

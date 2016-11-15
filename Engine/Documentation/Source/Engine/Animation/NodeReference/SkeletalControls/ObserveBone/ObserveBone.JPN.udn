@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3016843
+﻿INTSourceChangelist:3060419
 Availability:Public
 Title:Observe Bone
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference, Engine/Animation/NodeReference/SkeletalControls
@@ -57,6 +57,10 @@ version:4.12
 | ピン | 説明 |
 | --- | ----------- |
 | [REGION:tablesection]**入力ピン**[/REGION] ||
-| **Component Pose** | 受け取るポーズ |
+| **Component Pose** | 入力されるポーズです。 |
+
+**Observe Bone** ノードも 4.11 で導入された **LOD Threshold** システムの影響を受けます。**Observe Bone** ノードの **[Details (詳細)]** パネルにこの設定が表示されます。
+
+[INCLUDE:Engine/Animation/NodeReference/SkeletalControls#lodthresh]
 
 

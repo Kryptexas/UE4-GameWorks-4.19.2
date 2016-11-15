@@ -253,7 +253,7 @@ void UAnimInstance::UninitializeAnimation()
 		TArray<FName> ParamsToClearCopy = MaterialParamatersToClear;
 		for(int i = 0; i < ParamsToClearCopy.Num(); ++i)
 		{
-			AddCurveValue(ParamsToClearCopy[i], 0.0f, ACF_DriveMaterial);
+			AddCurveValue(ParamsToClearCopy[i], 0.0f);
 		}
 	}
 
@@ -327,6 +327,7 @@ void UAnimInstance::UpdateMontage(float DeltaSeconds)
 				// Update the sync group if it exists
 				if (SyncGroup != NULL)
 				{
+					// the max count should be 2 as you had older one and you have newer one. After TestMontageTickRecordForLeadership, it should set to be 1
 					SyncGroup->TestMontageTickRecordForLeadership();
 				}
 			}
@@ -727,6 +728,7 @@ void OutputTickRecords(const TArray<FAnimTickRecord>& Records, UCanvas* Canvas, 
 
 void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
+#if ENABLE_DRAW_DEBUG
 	FAnimInstanceProxy& Proxy = GetProxyOnGameThread<FAnimInstanceProxy>();
 
 	float Indent = 0.f;
@@ -959,6 +961,7 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 			}
 		}
 	}
+#endif // ENABLE_DRAW_DEBUG
 }
 
 void UAnimInstance::ResetDynamics()
@@ -979,6 +982,11 @@ void UAnimInstance::RecalcRequiredBones()
 	{
 		GetProxyOnGameThread<FAnimInstanceProxy>().RecalcRequiredBones(SkelMeshComp, CurrentSkeleton);
 	}
+}
+
+void UAnimInstance::RecalcRequiredCurves()
+{
+	GetProxyOnGameThread<FAnimInstanceProxy>().RecalcRequiredCurves();
 }
 
 void UAnimInstance::Serialize(FArchive& Ar)
@@ -1039,58 +1047,60 @@ void UAnimInstance::AddAnimNotifyFromGeneratedClass(int32 NotifyIndex)
 	GetProxyOnGameThread<FAnimInstanceProxy>().AddAnimNotifyFromGeneratedClass(NotifyIndex);
 }
 
-void UAnimInstance::AddCurveValue(const FName& CurveName, float Value, int32 CurveTypeFlags)
+void UAnimInstance::AddCurveValue(const FName& CurveName, float Value)
 {
 	FAnimInstanceProxy& Proxy = GetProxyOnGameThread<FAnimInstanceProxy>();
 
 	// save curve value, it will overwrite if same exists, 
 	//CurveValues.Add(CurveName, Value);
-	if (CurveTypeFlags & ACF_DriveAttribute)
+	float* CurveValPtr = AnimationCurves[(uint8)EAnimCurveType::AttributeCurve].Find(CurveName);
+	if ( CurveValPtr )
 	{
-		float *CurveValPtr = AnimationCurves[(uint8)EAnimCurveType::AttributeCurve].Find(CurveName);
-		if ( CurveValPtr )
-		{
-			// sum up, in the future we might normalize, but for now this just sums up
-			// this won't work well if all of them have full weight - i.e. additive 
-			*CurveValPtr = Value;
-		}
-		else
-		{
-			AnimationCurves[(uint8)EAnimCurveType::AttributeCurve].Add(CurveName, Value);
-		}
+		// sum up, in the future we might normalize, but for now this just sums up
+		// this won't work well if all of them have full weight - i.e. additive 
+		*CurveValPtr = Value;
+	}
+	else
+	{
+		AnimationCurves[(uint8)EAnimCurveType::AttributeCurve].Add(CurveName, Value);
 	}
 
-	if (CurveTypeFlags & ACF_DriveMorphTarget)
-	{
-		float *CurveValPtr = AnimationCurves[(uint8)EAnimCurveType::MorphTargetCurve].Find(CurveName);
-		if ( CurveValPtr )
-		{
-			// sum up, in the future we might normalize, but for now this just sums up
-			// this won't work well if all of them have full weight - i.e. additive 
-			*CurveValPtr = Value;
-		}
-		else
-		{
-			AnimationCurves[(uint8)EAnimCurveType::MorphTargetCurve].Add(CurveName, Value);
-		}
-	}
+	check(CurrentSkeleton);
 
-	if (CurveTypeFlags & ACF_DriveMaterial)
+	const FCurveMetaData* CurveMetaData = CurrentSkeleton->GetCurveMetaData(CurveName);
+	if (CurveMetaData)
 	{
-		MaterialParamatersToClear.RemoveSwap(CurveName);
-		float* CurveValPtr = AnimationCurves[(uint8)EAnimCurveType::MaterialCurve].Find(CurveName);
-		if( CurveValPtr)
+		if (CurveMetaData->Type.bMorphtarget)
 		{
-			*CurveValPtr = Value;
+			CurveValPtr = AnimationCurves[(uint8)EAnimCurveType::MorphTargetCurve].Find(CurveName);
+			if (CurveValPtr)
+			{
+				// sum up, in the future we might normalize, but for now this just sums up
+				// this won't work well if all of them have full weight - i.e. additive 
+				*CurveValPtr = Value;
+			}
+			else
+			{
+				AnimationCurves[(uint8)EAnimCurveType::MorphTargetCurve].Add(CurveName, Value);
+			}
 		}
-		else
+		if (CurveMetaData->Type.bMaterial)
 		{
-			AnimationCurves[(uint8)EAnimCurveType::MaterialCurve].Add(CurveName, Value);
+			MaterialParamatersToClear.RemoveSwap(CurveName);
+			CurveValPtr = AnimationCurves[(uint8)EAnimCurveType::MaterialCurve].Find(CurveName);
+			if (CurveValPtr)
+			{
+				*CurveValPtr = Value;
+			}
+			else
+			{
+				AnimationCurves[(uint8)EAnimCurveType::MaterialCurve].Add(CurveName, Value);
+			}
 		}
 	}
 }
 
-void UAnimInstance::AddCurveValue(const USkeleton::AnimCurveUID Uid, float Value, int32 CurveTypeFlags)
+void UAnimInstance::AddCurveValue(const USkeleton::AnimCurveUID Uid, float Value)
 {
 	FName CurrentCurveName;
 	// Grab the smartname mapping from our current skeleton and resolve the curve name. We cannot cache
@@ -1099,7 +1109,7 @@ void UAnimInstance::AddCurveValue(const USkeleton::AnimCurveUID Uid, float Value
 	{
 		NameMapping->GetName(Uid, CurrentCurveName);
 	}
-	AddCurveValue(CurrentCurveName, Value, CurveTypeFlags);
+	AddCurveValue(CurrentCurveName, Value);
 }
 
 int32 UAnimInstance::GetSyncGroupReadIndex() const
@@ -1126,23 +1136,14 @@ void UAnimInstance::UpdateCurvesToComponents(USkeletalMeshComponent* Component /
 	}
 }
 
-void UAnimInstance::GetAnimationCurveList(int32 CurveFlags, TMap<FName, float>& OutCurveList) const
+void UAnimInstance::GetAnimationCurveList(EAnimCurveType Type, TMap<FName, float>& OutCurveList) const
 {
-	OutCurveList.Reset();
+	uint8 ArrayIndex = (uint8)Type;
 
-	if (CurveFlags & ACF_DriveAttribute)
+	if (ArrayIndex < (uint8)EAnimCurveType::MaxAnimCurveType)
 	{
-		OutCurveList.Append(AnimationCurves[(uint8)EAnimCurveType::AttributeCurve]);
-	}
-
-	if (CurveFlags & ACF_DriveMorphTarget)
-	{
-		OutCurveList.Append(AnimationCurves[(uint8)EAnimCurveType::MorphTargetCurve]);
-	}
-
-	if (CurveFlags & ACF_DriveMaterial)
-	{
-		OutCurveList.Append(AnimationCurves[(uint8)EAnimCurveType::MaterialCurve]);
+		// add unique only
+		OutCurveList.Append(AnimationCurves[ArrayIndex]);
 	}
 }
 
@@ -1179,11 +1180,11 @@ void UAnimInstance::UpdateCurves(const FBlendedHeapCurve& InCurve)
 
 	if (InCurve.UIDList != nullptr)
 	{
-		const TArray<FSmartNameMapping::UID>& UIDList = *InCurve.UIDList;
+		const TArray<SmartName::UID_Type>& UIDList = *InCurve.UIDList;
 		for (int32 CurveId = 0; CurveId < InCurve.UIDList->Num(); ++CurveId)
 		{
 			// had to add to another data type
-			AddCurveValue(UIDList[CurveId], InCurve.Elements[CurveId].Value, InCurve.Elements[CurveId].Flags);
+			AddCurveValue(UIDList[CurveId], InCurve.Elements[CurveId].Value);
 		}
 	}	
 
@@ -1192,7 +1193,7 @@ void UAnimInstance::UpdateCurves(const FBlendedHeapCurve& InCurve)
 	TArray<FName> ParamsToClearCopy = MaterialParamatersToClear;
 	for(int i = 0; i < ParamsToClearCopy.Num(); ++i)
 	{
-		AddCurveValue(ParamsToClearCopy[i], 0.0f, ACF_DriveMaterial);
+		AddCurveValue(ParamsToClearCopy[i], 0.0f);
 	}
 
 	// @todo: delete me later when james g's change goes in
@@ -1318,6 +1319,20 @@ void UAnimInstance::TriggerSingleAnimNotify(const FAnimNotifyEvent* AnimNotifyEv
 			}
 		}
 	}
+}
+
+void UAnimInstance::EndNotifyStates()
+{
+	USkeletalMeshComponent* SkelMeshComp = GetSkelMeshComponent();
+
+	for (FAnimNotifyEvent& Event : ActiveAnimNotifyState)
+	{
+		if (UAnimNotifyState* NotifyState = Event.NotifyStateClass)
+		{
+			NotifyState->NotifyEnd(SkelMeshComp, Cast<UAnimSequenceBase>(NotifyState->GetOuter()));
+		}
+	}
+	ActiveAnimNotifyState.Reset();
 }
 
 //to debug montage weight
@@ -1594,6 +1609,24 @@ void UAnimInstance::QueueMontageEndedEvent(const FQueuedMontageEndedEvent& Monta
 
 void UAnimInstance::TriggerMontageEndedEvent(const FQueuedMontageEndedEvent& MontageEndedEvent)
 {
+	// Send end notifications for anim notify state when we are stopped
+	USkeletalMeshComponent* SkelMeshComp = GetOwningComponent();
+
+	if (SkelMeshComp != nullptr)
+	{
+		for (int32 Index = ActiveAnimNotifyState.Num() - 1; Index >= 0; --Index)
+		{
+			const FAnimNotifyEvent& AnimNotifyEvent = ActiveAnimNotifyState[Index];
+			UAnimMontage* NotifyMontage = Cast<UAnimMontage>(AnimNotifyEvent.NotifyStateClass->GetOuter());
+
+			if (NotifyMontage && (NotifyMontage == MontageEndedEvent.Montage))
+			{
+				AnimNotifyEvent.NotifyStateClass->NotifyEnd(SkelMeshComp, NotifyMontage);
+				ActiveAnimNotifyState.RemoveAtSwap(Index);
+			}
+		}
+	}
+
 	MontageEndedEvent.Delegate.ExecuteIfBound(MontageEndedEvent.Montage, MontageEndedEvent.bInterrupted);
 	OnMontageEnded.Broadcast(MontageEndedEvent.Montage, MontageEndedEvent.bInterrupted);
 }
@@ -1606,7 +1639,7 @@ void UAnimInstance::TriggerQueuedMontageEvents()
 	// Trigger Montage blending out before Ended events.
 	if (QueuedMontageBlendingOutEvents.Num() > 0)
 	{
-		for (auto MontageBlendingOutEvent : QueuedMontageBlendingOutEvents)
+		for (const FQueuedMontageBlendingOutEvent& MontageBlendingOutEvent : QueuedMontageBlendingOutEvents)
 		{
 			TriggerMontageBlendingOutEvent(MontageBlendingOutEvent);
 		}
@@ -1615,7 +1648,7 @@ void UAnimInstance::TriggerQueuedMontageEvents()
 
 	if (QueuedMontageEndedEvents.Num() > 0)
 	{
-		for (auto MontageEndedEvent : QueuedMontageEndedEvents)
+		for (const FQueuedMontageEndedEvent& MontageEndedEvent : QueuedMontageEndedEvents)
 		{
 			TriggerMontageEndedEvent(MontageEndedEvent);
 		}
@@ -1684,7 +1717,7 @@ float UAnimInstance::PlaySlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeN
 	return Montage_Play(NewMontage, InPlayRate);
 }
 
-UAnimMontage* UAnimInstance::PlaySlotAnimationAsDynamicMontage(UAnimSequenceBase* Asset, FName SlotNodeName, float BlendInTime, float BlendOutTime, float InPlayRate, int32 LoopCount, float BlendOutTriggerTime)
+UAnimMontage* UAnimInstance::PlaySlotAnimationAsDynamicMontage(UAnimSequenceBase* Asset, FName SlotNodeName, float BlendInTime, float BlendOutTime, float InPlayRate, int32 LoopCount, float BlendOutTriggerTime, float InTimeToStartMontageAt)
 {
 	// create temporary montage and play
 	bool bValidAsset = Asset && !Asset->IsA(UAnimMontage::StaticClass());
@@ -1744,7 +1777,7 @@ UAnimMontage* UAnimInstance::PlaySlotAnimationAsDynamicMontage(UAnimSequenceBase
 	NewMontage->SlotAnimTracks.Add(NewTrack);
 
 	// if playing is successful, return the montage to allow more control if needed
-	float PlayTime = Montage_Play(NewMontage, InPlayRate);
+	float PlayTime = Montage_Play(NewMontage, InPlayRate, EMontagePlayReturnType::MontageLength, InTimeToStartMontageAt);
 	return PlayTime > 0.0f ? NewMontage : NULL;
 }
 
@@ -1818,11 +1851,11 @@ bool UAnimInstance::IsPlayingSlotAnimation(const UAnimSequenceBase* Asset, FName
 }
 
 /** Play a Montage. Returns Length of Montage in seconds. Returns 0.f if failed to play. */
-float UAnimInstance::Montage_Play(UAnimMontage* MontageToPlay, float InPlayRate/*= 1.f*/, EMontagePlayReturnType ReturnValueType)
+float UAnimInstance::Montage_Play(UAnimMontage* MontageToPlay, float InPlayRate/*= 1.f*/, EMontagePlayReturnType ReturnValueType, float InTimeToStartMontageAt)
 {
 	if (MontageToPlay && (MontageToPlay->SequenceLength > 0.f) && MontageToPlay->HasValidSlotSetup())
 	{
-		if (CurrentSkeleton->IsCompatible(MontageToPlay->GetSkeleton()))
+		if (CurrentSkeleton && CurrentSkeleton->IsCompatible(MontageToPlay->GetSkeleton()))
 		{
 			// Enforce 'a single montage at once per group' rule
 			FName NewMontageGroupName = MontageToPlay->GetGroupName();
@@ -1841,8 +1874,11 @@ float UAnimInstance::Montage_Play(UAnimMontage* MontageToPlay, float InPlayRate/
 			FAnimMontageInstance* NewInstance = new FAnimMontageInstance(this);
 			check(NewInstance);
 
+			const float MontageLength = MontageToPlay->SequenceLength;
+
 			NewInstance->Initialize(MontageToPlay);
 			NewInstance->Play(InPlayRate);
+			NewInstance->SetPosition(FMath::Clamp(InTimeToStartMontageAt, 0.f, MontageLength));
 			MontageInstances.Add(NewInstance);
 			ActiveMontagesMap.Add(MontageToPlay, NewInstance);
 
@@ -1856,8 +1892,6 @@ float UAnimInstance::Montage_Play(UAnimMontage* MontageToPlay, float InPlayRate/
 
 			UE_LOG(LogAnimMontage, Verbose, TEXT("Montage_Play: AnimMontage: %s,  (DesiredWeight:%0.2f, Weight:%0.2f)"),
 						*NewInstance->Montage->GetName(), NewInstance->GetDesiredWeight(), NewInstance->GetWeight());
-			
-			const float MontageLength = NewInstance->Montage->SequenceLength;
 			
 			return (ReturnValueType == EMontagePlayReturnType::MontageLength) ? MontageLength : (MontageLength/(InPlayRate*MontageToPlay->RateScale));
 		}
@@ -2435,6 +2469,12 @@ void UAnimInstance::ClearMontageInstanceReferences(FAnimMontageInstance& InMonta
 	InMontageInstance.MontageSync_StopLeading();
 }
 
+FAnimNode_SubInput* UAnimInstance::GetSubInputNode() const
+{
+	const FAnimInstanceProxy& Proxy = GetProxyOnAnyThread<FAnimInstanceProxy>();
+	return Proxy.SubInstanceInputNode;
+}
+
 FAnimMontageInstance* UAnimInstance::GetActiveInstanceForMontage(UAnimMontage const& Montage) const
 {
 	return GetActiveInstanceForMontage(&Montage);
@@ -2731,7 +2771,7 @@ int32 UAnimInstance::GetSyncGroupIndexFromName(FName SyncGroupName) const
 bool UAnimInstance::IsRunningParallelEvaluation() const
 {
 	USkeletalMeshComponent* Comp = GetOwningComponent();
-	if (Comp)
+	if (Comp && Comp->GetAnimInstance() == this)
 	{
 		return Comp->IsRunningParallelEvaluation();
 	}

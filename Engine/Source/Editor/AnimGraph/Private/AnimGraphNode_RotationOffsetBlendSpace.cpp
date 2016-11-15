@@ -168,6 +168,7 @@ void UAnimGraphNode_RotationOffsetBlendSpace::GetContextMenuActions(const FGraph
 		Context.MenuBuilder->BeginSection("AnimGraphNodeBlendSpacePlayer", NSLOCTEXT("A3Nodes", "BlendSpaceHeading", "Blend Space"));
 		{
 			Context.MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().OpenRelatedAsset);
+			Context.MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().ConvertToAimOffsetLookAt);
 		}
 		Context.MenuBuilder->EndSection();
 	}

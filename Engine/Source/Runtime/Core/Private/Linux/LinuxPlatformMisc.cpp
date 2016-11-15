@@ -9,7 +9,9 @@
 #include "LinuxApplication.h"
 #include "LinuxPlatformCrashContext.h"
 
-#include <cpuid.h>
+#if PLATFORM_HAS_CPUID
+	#include <cpuid.h>
+#endif // PLATFORM_HAS_CPUID
 #include <sys/sysinfo.h>
 #include <sched.h>
 #include <fcntl.h>
@@ -92,7 +94,7 @@ namespace
 	bool GInitializedSDL = false;
 }
 
-size_t GCacheLineSize = PLATFORM_CACHE_LINE_SIZE;
+size_t CORE_API GCacheLineSize = PLATFORM_CACHE_LINE_SIZE;
 
 void LinuxPlatform_UpdateCacheLineSize()
 {
@@ -118,7 +120,7 @@ void FLinuxPlatformMisc::PlatformInit()
 
 	// do not remove the below check for IsFirstInstance() - it is not just for logging, it actually lays the claim to be first
 	bool bFirstInstance = FPlatformProcess::IsFirstInstance();
-	bool bIsNullRHI = FApp::ShouldUseNullRHI();
+	bool bIsNullRHI = !FApp::CanEverRender();
 
 	UE_LOG(LogInit, Log, TEXT("Linux hardware info:"));
 	UE_LOG(LogInit, Log, TEXT(" - we are %sthe first instance of this executable"), bFirstInstance ? TEXT("") : TEXT("not "));
@@ -135,11 +137,7 @@ void FLinuxPlatformMisc::PlatformInit()
 	UE_LOG(LogInit, Log, TEXT(" - Cache line size: %Zu"), GCacheLineSize);
 	UE_LOG(LogInit, Log, TEXT(" - Memory allocator used: %s"), GMalloc->GetDescriptiveName());
 
-	// programs don't need it by default
-	if (!IS_PROGRAM || FParse::Param(FCommandLine::Get(), TEXT("calibrateclock")))
-	{
-		FPlatformTime::CalibrateClock();
-	}
+	FPlatformTime::PrintCalibrationLog();
 
 	UE_LOG(LogInit, Log, TEXT("Linux-specific commandline switches:"));
 	UE_LOG(LogInit, Log, TEXT(" -%s (currently %s): suppress parsing of DWARF debug info (callstacks will be generated faster, but won't have line numbers)"), 
@@ -187,9 +185,12 @@ bool FLinuxPlatformMisc::PlatformInitMultimedia()
 		SDL_version RunTimeSDLVersion;
 		SDL_VERSION(&CompileTimeSDLVersion);
 		SDL_GetVersion(&RunTimeSDLVersion);
-		UE_LOG(LogInit, Log, TEXT("Initialized SDL %d.%d.%d (compiled against %d.%d.%d)"),
-			CompileTimeSDLVersion.major, CompileTimeSDLVersion.minor, CompileTimeSDLVersion.patch,
-			RunTimeSDLVersion.major, RunTimeSDLVersion.minor, RunTimeSDLVersion.patch
+		int SdlRevisionNum = SDL_GetRevisionNumber();
+		FString SdlRevision = UTF8_TO_TCHAR(SDL_GetRevision());
+		UE_LOG(LogInit, Log, TEXT("Initialized SDL %d.%d.%d revision: %d (%s) (compiled against %d.%d.%d)"),
+			RunTimeSDLVersion.major, RunTimeSDLVersion.minor, RunTimeSDLVersion.patch,
+			SdlRevisionNum, *SdlRevision,
+			CompileTimeSDLVersion.major, CompileTimeSDLVersion.minor, CompileTimeSDLVersion.patch
 			);
 
 		// Used to make SDL push SDL_TEXTINPUT events.
@@ -377,6 +378,28 @@ uint32 FLinuxPlatformMisc::GetKeyMap( uint32* KeyCodes, FString* KeyNames, uint3
 uint8 GOverriddenReturnCode = 0;
 bool GHasOverriddenReturnCode = false;
 
+void FLinuxPlatformMisc::RequestExit(bool Force)
+{
+	UE_LOG(LogLinux, Log,  TEXT("FLinuxPlatformMisc::RequestExit(%i)"), Force );
+	if( Force )
+	{
+		// Force immediate exit. Cannot call abort() here, because abort() raises SIGABRT which we treat as crash
+		// (to prevent other, particularly third party libs, from quitting without us noticing)
+		// Propagate override return code, but normally don't exit with 0, so the parent knows it wasn't a normal exit.
+		if (GHasOverriddenReturnCode)
+		{
+			_exit(GOverriddenReturnCode);
+		}
+		else
+		{
+			_exit(1);
+		}
+	}
+
+	// Tell the platform specific code we want to exit cleanly from the main loop.
+	FGenericPlatformMisc::RequestExit(Force);
+}
+
 void FLinuxPlatformMisc::RequestExitWithStatus(bool Force, uint8 ReturnCode)
 {
 	UE_LOG(LogLinux, Log, TEXT("FLinuxPlatformMisc::RequestExit(bForce=%s, ReturnCode=%d)"), Force ? TEXT("true") : TEXT("false"), ReturnCode);
@@ -413,14 +436,12 @@ const TCHAR* FLinuxPlatformMisc::GetSystemErrorMessage(TCHAR* OutBuffer, int32 B
 
 void FLinuxPlatformMisc::ClipboardCopy(const TCHAR* Str)
 {
-	if (SDL_HasClipboardText() == SDL_TRUE)
+	if (SDL_SetClipboardText(TCHAR_TO_UTF8(Str)))
 	{
-		if (SDL_SetClipboardText(TCHAR_TO_UTF8(Str)))
-		{
-			UE_LOG(LogInit, Fatal, TEXT("Error copying clipboard contents: %s\n"), UTF8_TO_TCHAR(SDL_GetError()));
-		}
+		UE_LOG(LogInit, Fatal, TEXT("Error copying clipboard contents: %s\n"), UTF8_TO_TCHAR(SDL_GetError()));
 	}
 }
+
 void FLinuxPlatformMisc::ClipboardPaste(class FString& Result)
 {
 	char* ClipContent;

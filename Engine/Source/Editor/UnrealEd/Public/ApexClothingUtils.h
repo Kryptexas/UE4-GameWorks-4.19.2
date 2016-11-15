@@ -10,11 +10,11 @@ struct FClothPhysicsProperties;
 
 #if WITH_APEX_CLOTHING
 
-namespace physx
+namespace nvidia
 {
 	namespace apex
 	{
-		class NxClothingAsset;
+		class ClothingAsset;
 	}
 }
 
@@ -85,7 +85,7 @@ namespace ApexClothingUtils
 
 	// if AssetIndex is -1, means newly added asset, otherwise re-import
 	UNREALED_API EClothUtilRetType ImportApexAssetFromApexFile(FString& ApexFile,USkeletalMesh* SkelMesh, int32 AssetIndex=-1);
-	UNREALED_API bool GetSubmeshInfoFromApexAsset(physx::apex::NxClothingAsset *InAsset, uint32 LODIndex, TArray<FSubmeshInfo>& OutSubmeshInfos);
+	UNREALED_API bool GetSubmeshInfoFromApexAsset(nvidia::apex::ClothingAsset *InAsset, uint32 LODIndex, TArray<FSubmeshInfo>& OutSubmeshInfos);
 
 	// import cloth by a specifed section and LOD index
 	UNREALED_API bool ImportClothingSectionFromClothingAsset(USkeletalMesh* SkelMesh, uint32 LODIndex, uint32 SectionIndex, int32 AssetIndex, int32 AssetSubmeshIndex);
@@ -95,14 +95,31 @@ namespace ApexClothingUtils
 
 	UNREALED_API void BackupClothingDataFromSkeletalMesh(USkeletalMesh* SkelMesh, FClothingBackup& ClothingBackup);
 	UNREALED_API void ReapplyClothingDataToSkeletalMesh(USkeletalMesh* SkelMesh, FClothingBackup& ClothingBackup);
-	UNREALED_API int32 GetNumLODs(physx::apex::NxClothingAsset *InAsset);
-	UNREALED_API int32 GetNumRenderSubmeshes(physx::apex::NxClothingAsset *InAsset, int32 LODIndex);
+	UNREALED_API int32 GetNumLODs(nvidia::apex::ClothingAsset *InAsset);
+	UNREALED_API int32 GetNumRenderSubmeshes(nvidia::apex::ClothingAsset *InAsset, int32 LODIndex);
 
-	UNREALED_API physx::apex::NxClothingAsset* CreateApexClothingAssetFromBuffer(const uint8* Buffer, int32 BufferSize);
+	UNREALED_API nvidia::apex::ClothingAsset* CreateApexClothingAssetFromBuffer(const uint8* Buffer, int32 BufferSize);
 
 	// if MaterialIndex is not specified, default material index will be used
-	UNREALED_API void GetPhysicsPropertiesFromApexAsset(physx::apex::NxClothingAsset *InAsset, FClothPhysicsProperties& OutPropertyInfo);
-	UNREALED_API void SetPhysicsPropertiesToApexAsset(physx::apex::NxClothingAsset *InAsset, FClothPhysicsProperties& InPropertyInfo);
+	UNREALED_API void GetPhysicsPropertiesFromApexAsset(nvidia::apex::ClothingAsset *InAsset, FClothPhysicsProperties& OutPropertyInfo);
+	UNREALED_API void SetPhysicsPropertiesToApexAsset(nvidia::apex::ClothingAsset *InAsset, FClothPhysicsProperties& InPropertyInfo);
+
+	UNREALED_API void GenerateMeshToMeshSkinningData(TArray<FApexClothPhysToRenderVertData>& OutSkinningData,
+													 const TArray<FVector>& Mesh0Verts,
+													 const TArray<FVector>& Mesh0Normals,
+													 const TArray<FVector>& Mesh0Tangents,
+													 const TArray<FVector>& Mesh1Verts,
+													 const TArray<FVector>& Mesh1Normals,
+													 const TArray<uint32>& Mesh1Indices);
+
+	FVector4 GetPointBaryAndDist(const FVector& A,
+								 const FVector& B,
+								 const FVector& C,
+								 const FVector& NA,
+								 const FVector& NB,
+								 const FVector& NC,
+								 const FVector& Point);
+
 #endif // #if WITH_APEX_CLOTHING
 } // namespace ApexClothingUtils
 

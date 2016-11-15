@@ -10,6 +10,11 @@
 #include "SSkeletonBlendProfiles.h"
 #include "SDockTab.h"
 #include "SAdvancedPreviewDetailsTab.h"
+#include "ISkeletonEditorModule.h"
+#include "SPersonaDetails.h"
+#include "Editor/KismetWidgets/Public/SSingleObjectDetailsPanel.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "PersonaUtils.h"
 
 #define LOCTEXT_NAMESPACE "PersonaModes"
 
@@ -46,6 +51,8 @@ const FName FPersonaTabs::BlendProfileManagerID("BlendProfileManager");
 
 const FName FPersonaTabs::AdvancedPreviewSceneSettingsID("AdvancedPreviewTab");
 
+const FName FPersonaTabs::DetailsID("DetailsTab");
+
 /////////////////////////////////////////////////////
 // FPersonaMode
 
@@ -65,15 +72,15 @@ FPersonaAppMode::FPersonaAppMode(TSharedPtr<class FPersona> InPersona, FName InM
 	MyPersona = InPersona;
 
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FSkeletonTreeSummoner(InPersona)));
-	PersonaTabFactories.RegisterFactory(MakeShareable(new FAnimationAssetBrowserSummoner(InPersona)));
-	PersonaTabFactories.RegisterFactory(MakeShareable(new FPreviewViewportSummoner(InPersona)));
-	PersonaTabFactories.RegisterFactory(MakeShareable(new FMorphTargetTabSummoner(InPersona)));
-	PersonaTabFactories.RegisterFactory(MakeShareable(new FAnimCurveViewerTabSummoner(InPersona)));
-	PersonaTabFactories.RegisterFactory(MakeShareable(new FSkeletonAnimNotifiesSummoner(InPersona)));
-	PersonaTabFactories.RegisterFactory(MakeShareable(new FRetargetManagerTabSummoner(InPersona)));
-	PersonaTabFactories.RegisterFactory(MakeShareable(new FSkeletonSlotNamesSummoner(InPersona)));
+	PersonaTabFactories.RegisterFactory(MakeShareable(new FAnimationAssetBrowserSummoner(InPersona, InPersona->GetPersonaToolkit(), FOnOpenNewAsset::CreateSP(InPersona.Get(), &FPersona::HandleOpenNewAsset), FOnAnimationSequenceBrowserCreated::CreateSP(InPersona.Get(), &FPersona::HandleAnimationSequenceBrowserCreated), true)));
+	PersonaTabFactories.RegisterFactory(MakeShareable(new FPreviewViewportSummoner(InPersona, InPersona->GetSkeletonTree(), InPersona->GetPreviewScene(), InPersona->OnPostUndo, InPersona, FOnViewportCreated::CreateSP(InPersona.Get(), &FPersona::HandleViewportCreated), InModeName != FPersonaModes::AnimationEditMode, true)));
+	PersonaTabFactories.RegisterFactory(MakeShareable(new FMorphTargetTabSummoner(InPersona, InPersona->GetPreviewScene(), InPersona->OnPostUndo)));
+	PersonaTabFactories.RegisterFactory(MakeShareable(new FAnimCurveViewerTabSummoner(InPersona, InPersona->GetSkeletonTree()->GetEditableSkeleton(), InPersona->GetPreviewScene(), InPersona->OnCurvesChanged, InPersona->OnPostUndo)));
+	PersonaTabFactories.RegisterFactory(MakeShareable(new FSkeletonAnimNotifiesSummoner(InPersona, InPersona->GetSkeletonTree()->GetEditableSkeleton(), InPersona->OnAnimNotifiesChanged, InPersona->OnPostUndo, FOnObjectsSelected::CreateSP(InPersona.Get(), &FPersona::HandleObjectsSelected))));
+	PersonaTabFactories.RegisterFactory(MakeShareable(new FRetargetManagerTabSummoner(InPersona, InPersona->GetSkeletonTree()->GetEditableSkeleton(), InPersona->GetPreviewScene(), InPersona->OnPostUndo)));
+	PersonaTabFactories.RegisterFactory(MakeShareable(new FSkeletonSlotNamesSummoner(InPersona, InPersona->GetSkeletonTree()->GetEditableSkeleton(), InPersona->OnPostUndo, FOnObjectSelected::CreateSP(InPersona.Get(), &FPersona::HandleObjectSelected))));
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FSkeletonBlendProfilesSummoner(InPersona)));
-	PersonaTabFactories.RegisterFactory(MakeShareable(new FAdvancedPreviewSceneTabSummoner(InPersona)));
+	PersonaTabFactories.RegisterFactory(MakeShareable(new FAdvancedPreviewSceneTabSummoner(InPersona, InPersona->GetPreviewScene())));
 }
 
 void FPersonaAppMode::RegisterTabFactories(TSharedPtr<FTabManager> InTabManager)
@@ -108,14 +115,46 @@ FPersonaModeSharedData::FPersonaModeSharedData()
 	, bShowSockets(false)
 	, bShowBound(false)
 	, ViewportType(0)
-	, PlaybackSpeedMode(0)
+	, PlaybackSpeedMode(EAnimationPlaybackSpeeds::Normal)
 	, LocalAxesMode(0)
 {}
 
+void FPersonaModeSharedData::Save(const TSharedRef<FAnimationViewportClient>& InFromViewport)
+{
+	ViewLocation = InFromViewport->GetViewLocation();
+	ViewRotation = InFromViewport->GetViewRotation();
+	LookAtLocation = InFromViewport->GetLookAtLocation();
+	OrthoZoom = InFromViewport->GetOrthoZoom();
+	bCameraLock = InFromViewport->IsCameraLocked();
+	bCameraFollow = InFromViewport->IsSetCameraFollowChecked();
+	bShowBound = InFromViewport->IsSetShowBoundsChecked();
+	LocalAxesMode = InFromViewport->GetLocalAxesMode();
+	ViewportType = InFromViewport->ViewportType;
+	PlaybackSpeedMode = InFromViewport->GetPlaybackSpeedMode();
+}
+
+void FPersonaModeSharedData::Restore(const TSharedRef<FAnimationViewportClient>& InToViewport)
+{	
+	InToViewport->SetViewportType((ELevelViewportType)ViewportType);
+	InToViewport->SetViewLocation(ViewLocation);
+	InToViewport->SetViewRotation(ViewRotation);
+	InToViewport->SetShowBounds(bShowBound);
+	InToViewport->SetLocalAxesMode((ELocalAxesMode::Type)LocalAxesMode);
+	InToViewport->SetOrthoZoom(OrthoZoom);
+	InToViewport->SetPlaybackSpeedMode(PlaybackSpeedMode);
+	
+	if (bCameraLock)
+	{
+		InToViewport->SetLookAtLocation(LookAtLocation);
+	}
+	else if(bCameraFollow)
+	{
+		InToViewport->SetCameraFollow();
+	}
+}
+
 /////////////////////////////////////////////////////
 // FSkeletonTreeSummoner
-
-#include "SSkeletonTree.h"
 
 FSkeletonTreeSummoner::FSkeletonTreeSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp)
 	: FWorkflowTabFactory(FPersonaTabs::SkeletonTreeViewID, InHostingApp)
@@ -132,8 +171,8 @@ FSkeletonTreeSummoner::FSkeletonTreeSummoner(TSharedPtr<class FAssetEditorToolki
 
 TSharedRef<SWidget> FSkeletonTreeSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const
 {
-	return SNew(SSkeletonTree)
-		.Persona(StaticCastSharedPtr<FPersona>(HostingApp.Pin()));
+	TSharedPtr<FPersona> Persona = StaticCastSharedPtr<FPersona>(HostingApp.Pin());
+	return Persona->GetSkeletonTree();
 }
 
 /////////////////////////////////////////////////////
@@ -141,8 +180,10 @@ TSharedRef<SWidget> FSkeletonTreeSummoner::CreateTabBody(const FWorkflowTabSpawn
 
 #include "SMorphTargetViewer.h"
 
-FMorphTargetTabSummoner::FMorphTargetTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp)
+FMorphTargetTabSummoner::FMorphTargetTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnPostUndo)
 	: FWorkflowTabFactory(FPersonaTabs::MorphTargetsID, InHostingApp)
+	, PreviewScene(InPreviewScene)
+	, OnPostUndo(InOnPostUndo)
 {
 	TabLabel = LOCTEXT("MorphTargetTabTitle", "Morph Target Previewer");
 	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "Persona.Tabs.MorphTargetPreviewer");
@@ -156,16 +197,19 @@ FMorphTargetTabSummoner::FMorphTargetTabSummoner(TSharedPtr<class FAssetEditorTo
 
 TSharedRef<SWidget> FMorphTargetTabSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const
 {
-	return SNew(SMorphTargetViewer)
-		.Persona(StaticCastSharedPtr<FPersona>(HostingApp.Pin()));
+	return SNew(SMorphTargetViewer, PreviewScene.Pin().ToSharedRef(), OnPostUndo);
 }
 /////////////////////////////////////////////////////
 // FAnimCurveViewerTabSummoner
 
 #include "SAnimCurveViewer.h"
 
-FAnimCurveViewerTabSummoner::FAnimCurveViewerTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp)
+FAnimCurveViewerTabSummoner::FAnimCurveViewerTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, const TSharedRef<IEditableSkeleton>& InEditableSkeleton, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnCurvesChanged, FSimpleMulticastDelegate& InOnPostUndo)
 	: FWorkflowTabFactory(FPersonaTabs::AnimCurveViewID, InHostingApp)
+	, EditableSkeleton(InEditableSkeleton)
+	, PreviewScene(InPreviewScene)
+	, OnCurvesChanged(InOnCurvesChanged)
+	, OnPostUndo(InOnPostUndo)
 {
 	TabLabel = LOCTEXT("AnimCurveViewTabTitle", "Anim Curves");
 	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "Persona.Tabs.AnimCurvePreviewer");
@@ -179,8 +223,7 @@ FAnimCurveViewerTabSummoner::FAnimCurveViewerTabSummoner(TSharedPtr<class FAsset
 
 TSharedRef<SWidget> FAnimCurveViewerTabSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const
 {
-	return SNew(SAnimCurveViewer)
-		.Persona(StaticCastSharedPtr<FPersona>(HostingApp.Pin()));
+	return SNew(SAnimCurveViewer, EditableSkeleton.Pin().ToSharedRef(), PreviewScene.Pin().ToSharedRef(), OnCurvesChanged, OnPostUndo);
 }
 
 /////////////////////////////////////////////////////
@@ -188,13 +231,16 @@ TSharedRef<SWidget> FAnimCurveViewerTabSummoner::CreateTabBody(const FWorkflowTa
 
 #include "SAnimationSequenceBrowser.h"
 
-FAnimationAssetBrowserSummoner::FAnimationAssetBrowserSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp)
+FAnimationAssetBrowserSummoner::FAnimationAssetBrowserSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, const TSharedRef<IPersonaToolkit>& InPersonaToolkit, FOnOpenNewAsset InOnOpenNewAsset, FOnAnimationSequenceBrowserCreated InOnAnimationSequenceBrowserCreated, bool bInShowHistory)
 	: FWorkflowTabFactory(FPersonaTabs::AssetBrowserID, InHostingApp)
+	, PersonaToolkit(InPersonaToolkit)
+	, OnOpenNewAsset(InOnOpenNewAsset)
+	, OnAnimationSequenceBrowserCreated(InOnAnimationSequenceBrowserCreated)
+	, bShowHistory(bInShowHistory)
 {
 	TabLabel = LOCTEXT("AssetBrowserTabTitle", "Asset Browser");
 	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.TabIcon");
 
-	EnableTabPadding();
 	bIsSingleton = true;
 
 	ViewMenuDescription = LOCTEXT("AssetBrowser", "Asset Browser");
@@ -203,8 +249,13 @@ FAnimationAssetBrowserSummoner::FAnimationAssetBrowserSummoner(TSharedPtr<class 
 
 TSharedRef<SWidget> FAnimationAssetBrowserSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const
 {
-	return SNew(SAnimationSequenceBrowser)
-		.Persona(StaticCastSharedPtr<FPersona>(HostingApp.Pin()));
+	TSharedRef<SAnimationSequenceBrowser> Widget = SNew(SAnimationSequenceBrowser, PersonaToolkit.Pin().ToSharedRef())
+		.OnOpenNewAsset(OnOpenNewAsset)
+		.ShowHistory(bShowHistory);
+
+	OnAnimationSequenceBrowserCreated.ExecuteIfBound(Widget);
+
+	return Widget;
 }
 
 /////////////////////////////////////////////////////
@@ -212,15 +263,20 @@ TSharedRef<SWidget> FAnimationAssetBrowserSummoner::CreateTabBody(const FWorkflo
 
 #include "SAnimationEditorViewport.h"
 
-FPreviewViewportSummoner::FPreviewViewportSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp)
+FPreviewViewportSummoner::FPreviewViewportSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, const TSharedRef<ISkeletonTree>& InSkeletonTree, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnPostUndo, const TSharedPtr<FBlueprintEditor>& InBlueprintEditor, FOnViewportCreated InOnViewportCreated, bool bInShowTimeline, bool bInShowStats)
 	: FWorkflowTabFactory(FPersonaTabs::PreviewViewportID, InHostingApp)
+	, SkeletonTree(InSkeletonTree)
+	, PreviewScene(InPreviewScene)
+	, OnPostUndo(InOnPostUndo)
+	, BlueprintEditor(InBlueprintEditor)
+	, OnViewportCreated(InOnViewportCreated)
+	, bShowTimeline(bInShowTimeline)
+	, bShowStats(bInShowStats)
 {
 	TabLabel = LOCTEXT("ViewportTabTitle", "Viewport");
 	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Viewports");
 
 	bIsSingleton = true;
-
-	EnableTabPadding();
 
 	ViewMenuDescription = LOCTEXT("ViewportView", "Viewport");
 	ViewMenuTooltip = LOCTEXT("ViewportView_ToolTip", "Shows the viewport");
@@ -228,29 +284,14 @@ FPreviewViewportSummoner::FPreviewViewportSummoner(TSharedPtr<class FAssetEditor
 
 TSharedRef<SWidget> FPreviewViewportSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const
 {
-	TSharedPtr<FPersona> PersonaPtr = StaticCastSharedPtr<FPersona>(HostingApp.Pin());
+	TSharedRef<SAnimationEditorViewportTabBody> NewViewport = SNew(SAnimationEditorViewportTabBody, SkeletonTree.Pin().ToSharedRef(), PreviewScene.Pin().ToSharedRef(), HostingApp.Pin().ToSharedRef(), OnPostUndo)
+		.BlueprintEditor(BlueprintEditor.Pin())
+		.OnInvokeTab(FOnInvokeTab::CreateSP(HostingApp.Pin().Get(), &FAssetEditorToolkit::InvokeTab))
+		.AddMetaData<FTagMetaData>(TEXT("Persona.Viewport"))
+		.ShowTimeline(bShowTimeline)
+		.ShowStats(bShowStats);
 
-	TSharedRef<SAnimationEditorViewportTabBody> NewViewport = SNew(SAnimationEditorViewportTabBody)
-		.Persona(PersonaPtr)
-		.Skeleton(PersonaPtr->GetSkeleton())
-		.AddMetaData<FTagMetaData>(TEXT("Persona.Viewport"));
-
-	//@TODO:MODES:check(!PersonaPtr->Viewport.IsValid());
-	// mode switch data sharing
-	// we saves data from previous viewport
-	// and restore after switched
-	bool bRestoreData = PersonaPtr->Viewport.IsValid();
-	if (bRestoreData)
-	{
-		NewViewport.Get().SaveData(PersonaPtr->Viewport.Pin().Get());
-	}
-
-	PersonaPtr->SetViewport(NewViewport);
-
-	if (bRestoreData)
-	{
-		NewViewport.Get().RestoreData();
-	}
+	OnViewportCreated.ExecuteIfBound(NewViewport);
 
 	return NewViewport;
 }
@@ -260,8 +301,11 @@ TSharedRef<SWidget> FPreviewViewportSummoner::CreateTabBody(const FWorkflowTabSp
 
 #include "SRetargetManager.h"
 
-FRetargetManagerTabSummoner::FRetargetManagerTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp)
+FRetargetManagerTabSummoner::FRetargetManagerTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, const TSharedRef<IEditableSkeleton>& InEditableSkeleton, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnPostUndo)
 	: FWorkflowTabFactory(FPersonaTabs::RetargetManagerID, InHostingApp)
+	, EditableSkeleton(InEditableSkeleton)
+	, PreviewScene(InPreviewScene)
+	, OnPostUndo(InOnPostUndo)
 {
 	TabLabel = LOCTEXT("RetargetManagerTabTitle", "Retarget Manager");
 	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "Persona.Tabs.RetargetManager");
@@ -275,18 +319,120 @@ FRetargetManagerTabSummoner::FRetargetManagerTabSummoner(TSharedPtr<class FAsset
 
 TSharedRef<SWidget> FRetargetManagerTabSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const
 {
-	return SNew(SRetargetManager)
-		.Persona(StaticCastSharedPtr<FPersona>(HostingApp.Pin()));
+	return SNew(SRetargetManager, EditableSkeleton.Pin().ToSharedRef(), PreviewScene.Pin().ToSharedRef(), OnPostUndo);
 }
 
+
+/////////////////////////////////////////////////////
+// SPersonaPreviewPropertyEditor
+
+void SPersonaPreviewPropertyEditor::Construct(const FArguments& InArgs, TSharedRef<IPersonaPreviewScene> InPreviewScene)
+{
+	PreviewScene = InPreviewScene;
+	bPropertyEdited = false;
+
+	SSingleObjectDetailsPanel::Construct(SSingleObjectDetailsPanel::FArguments(), /*bAutomaticallyObserveViaGetObjectToObserve*/ true, /*bAllowSearch*/ true);
+
+	PropertyView->SetIsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateStatic([] { return !GIntraFrameDebuggingGameThread; }));
+	PropertyView->OnFinishedChangingProperties().Add(FOnFinishedChangingProperties::FDelegate::CreateSP(this, &SPersonaPreviewPropertyEditor::HandlePropertyChanged));
+}
+
+UObject* SPersonaPreviewPropertyEditor::GetObjectToObserve() const
+{
+	if (UDebugSkelMeshComponent* PreviewMeshComponent = PreviewScene.Pin()->GetPreviewMeshComponent())
+	{
+		if (PreviewMeshComponent->GetAnimInstance() != nullptr)
+		{
+			return PreviewMeshComponent->GetAnimInstance();
+		}
+	}
+
+	return nullptr;
+}
+
+TSharedRef<SWidget> SPersonaPreviewPropertyEditor::PopulateSlot(TSharedRef<SWidget> PropertyEditorWidget)
+{
+	return SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.FillHeight(1.0f)
+		[
+			PropertyEditorWidget
+		]
+		+SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew(SBorder)
+			.BorderImage(FEditorStyle::GetBrush("Docking.Tab.ContentAreaBrush"))
+			.Visibility_Lambda([this]() { return bPropertyEdited ? EVisibility::Visible : EVisibility::Collapsed; })
+			[
+				SNew(SHorizontalBox)
+				+SHorizontalBox::Slot()
+				.FillWidth(1.0f)
+				.VAlign(VAlign_Center)
+				.Padding(2.0f)
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("AnimBlueprintEditPreviewText", "Changes made to preview only. Changes will not be saved!"))
+					.ColorAndOpacity(FLinearColor::Yellow)
+					.ShadowOffset(FVector2D::UnitVector)
+					.AutoWrapText(true)
+				]
+				+SHorizontalBox::Slot()
+				.AutoWidth()
+				.HAlign(HAlign_Right)
+				.VAlign(VAlign_Center)
+				.Padding(2.0f)
+				[
+					SNew(SButton)
+					.OnClicked(this, &SPersonaPreviewPropertyEditor::HandleApplyChanges)
+					.ToolTipText(LOCTEXT("AnimBlueprintEditApplyChanges_Tooltip", "Apply any changes that have been made to the preview to the defaults."))
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("AnimBlueprintEditApplyChanges", "Apply"))
+					]
+				]
+			]
+		];
+}
+
+void SPersonaPreviewPropertyEditor::HandlePropertyChanged(const FPropertyChangedEvent& InPropertyChangedEvent)
+{
+	if (UDebugSkelMeshComponent* PreviewMeshComponent = PreviewScene.Pin()->GetPreviewMeshComponent())
+	{
+		if (UAnimInstance* AnimInstance = PreviewMeshComponent->GetAnimInstance())
+		{
+			// check to see how many properties have changed
+			const int32 NumChangedProperties = PersonaUtils::CopyPropertiesToCDO(AnimInstance, PersonaUtils::FCopyOptions(PersonaUtils::ECopyOptions::PreviewOnly));
+			bPropertyEdited = (NumChangedProperties > 0);
+		}
+	}
+}
+
+FReply SPersonaPreviewPropertyEditor::HandleApplyChanges()
+{
+	// copy preview properties into CDO
+	if (UDebugSkelMeshComponent* PreviewMeshComponent = PreviewScene.Pin()->GetPreviewMeshComponent())
+	{
+		if (UAnimInstance* AnimInstance = PreviewMeshComponent->GetAnimInstance())
+		{
+			PersonaUtils::CopyPropertiesToCDO(AnimInstance);
+
+			bPropertyEdited = false;
+		}
+	}
+
+	return FReply::Handled();
+}
 
 /////////////////////////////////////////////////////
 // FAnimBlueprintPreviewEditorSummoner
 
 #include "SKismetInspector.h"
 
-FAnimBlueprintPreviewEditorSummoner::FAnimBlueprintPreviewEditorSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp)
-	: FWorkflowTabFactory(FPersonaTabs::AnimBlueprintPreviewEditorID, InHostingApp)
+FAnimBlueprintPreviewEditorSummoner::FAnimBlueprintPreviewEditorSummoner(TSharedPtr<class FBlueprintEditor> InBlueprintEditor, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene)
+	: FWorkflowTabFactory(FPersonaTabs::AnimBlueprintPreviewEditorID, InBlueprintEditor)
+	, BlueprintEditor(InBlueprintEditor)
+	, PreviewScene(InPreviewScene)
 {
 	TabLabel = LOCTEXT("AnimBlueprintPreviewTabTitle", "Anim Preview Editor");
 
@@ -300,8 +446,6 @@ FAnimBlueprintPreviewEditorSummoner::FAnimBlueprintPreviewEditorSummoner(TShared
 
 TSharedRef<SWidget> FAnimBlueprintPreviewEditorSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const
 {
-	TSharedPtr<FPersona> PersonaPtr = StaticCastSharedPtr<FPersona>(HostingApp.Pin());
-
 	return	SNew(SVerticalBox)
 			+SVerticalBox::Slot()
 			.AutoHeight()
@@ -362,17 +506,17 @@ TSharedRef<SWidget> FAnimBlueprintPreviewEditorSummoner::CreateTabBody(const FWo
 					.BorderImage( FEditorStyle::GetBrush("NoBorder") )
 					.Visibility(this, &FAnimBlueprintPreviewEditorSummoner::IsEditorVisible, EAnimBlueprintEditorMode::PreviewMode)
 					[
-						PersonaPtr->GetPreviewEditor()
+						SNew(SPersonaPreviewPropertyEditor, PreviewScene.Pin().ToSharedRef())
 					]
 				]
 				+SOverlay::Slot()
 				[
 					SNew(SBorder)
-					.Padding(0)
+					.Padding(FMargin(3.0f, 2.0f))
 					.BorderImage( FEditorStyle::GetBrush("NoBorder") )
 					.Visibility(this, &FAnimBlueprintPreviewEditorSummoner::IsEditorVisible, EAnimBlueprintEditorMode::DefaultsMode)
 					[
-						PersonaPtr->GetDefaultEditor()
+						BlueprintEditor.Pin()->GetDefaultEditor()
 					]
 				]
 			];
@@ -416,8 +560,10 @@ void FAnimBlueprintPreviewEditorSummoner::OnCheckedChanged(ECheckBoxState NewTyp
 //////////////////////////////////////////////////////////////////////////
 // FAnimBlueprintParentPlayerEditorSummoner
 
-FAnimBlueprintParentPlayerEditorSummoner::FAnimBlueprintParentPlayerEditorSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp) 
-: FWorkflowTabFactory(FPersonaTabs::AnimBlueprintParentPlayerEditorID, InHostingApp)
+FAnimBlueprintParentPlayerEditorSummoner::FAnimBlueprintParentPlayerEditorSummoner(TSharedPtr<class FBlueprintEditor> InBlueprintEditor, FSimpleMulticastDelegate& InOnPostUndo)
+	: FWorkflowTabFactory(FPersonaTabs::AnimBlueprintParentPlayerEditorID, InBlueprintEditor)
+	, BlueprintEditor(InBlueprintEditor)
+	, OnPostUndo(InOnPostUndo)
 {
 	TabLabel = LOCTEXT("ParentPlayerOverrideEditor", "Asset Override Editor");
 	bIsSingleton = true;
@@ -425,8 +571,7 @@ FAnimBlueprintParentPlayerEditorSummoner::FAnimBlueprintParentPlayerEditorSummon
 
 TSharedRef<SWidget> FAnimBlueprintParentPlayerEditorSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const
 {
-	TWeakPtr<FPersona> PersonaPtr = StaticCastSharedPtr<FPersona>(HostingApp.Pin());
-	return SNew(SAnimBlueprintParentPlayerList).Persona(PersonaPtr);
+	return SNew(SAnimBlueprintParentPlayerList, BlueprintEditor.Pin().ToSharedRef(), OnPostUndo);
 }
 
 FText FAnimBlueprintParentPlayerEditorSummoner::GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const
@@ -437,8 +582,9 @@ FText FAnimBlueprintParentPlayerEditorSummoner::GetTabToolTipText(const FWorkflo
 /////////////////////////////////////////////////////
 // FAdvancedPreviewSceneTabSummoner
 
-FAdvancedPreviewSceneTabSummoner::FAdvancedPreviewSceneTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp)
+FAdvancedPreviewSceneTabSummoner::FAdvancedPreviewSceneTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, const TSharedRef<IPersonaPreviewScene>& InPreviewScene)
 	: FWorkflowTabFactory(FPersonaTabs::AdvancedPreviewSceneSettingsID, InHostingApp)
+	, PreviewScene(InPreviewScene)
 {
 	TabLabel = LOCTEXT("PreviewSceneSettingsTab", "Preview Scene Settings");
 	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Details");	
@@ -450,14 +596,43 @@ FAdvancedPreviewSceneTabSummoner::FAdvancedPreviewSceneTabSummoner(TSharedPtr<cl
 
 TSharedRef<SWidget> FAdvancedPreviewSceneTabSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const
 {
-	TSharedPtr<FPersona> PersonaPtr = StaticCastSharedPtr<FPersona>(HostingApp.Pin());	
-	return SNew(SAdvancedPreviewDetailsTab).PreviewScenePtr(&(PersonaPtr->GetPreviewScene()));
+	return SNew(SAdvancedPreviewDetailsTab, PreviewScene.Pin().ToSharedRef());
 }
 
 FText FAdvancedPreviewSceneTabSummoner::GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const
 {
 	return LOCTEXT("AdvancedPreviewSettingsToolTip", "The Advanced Preview Settings tab will let you alter the preview scene's settings.");
 }
+
+/////////////////////////////////////////////////////
+// FDetailsTabSummoner
+
+FDetailsTabSummoner::FDetailsTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, FOnDetailsCreated InOnDetailsCreated)
+	: FWorkflowTabFactory(FPersonaTabs::DetailsID, InHostingApp)
+	, OnDetailsCreated(InOnDetailsCreated)
+{
+	TabLabel = LOCTEXT("PersonaDetailsTab", "Details");
+	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Details");
+	bIsSingleton = true;
+
+	ViewMenuDescription = LOCTEXT("DetailsDescription", "Details");
+	ViewMenuTooltip = LOCTEXT("DetailsToolTip", "Shows the details tab for selected objects.");
+
+	PersonaDetails = SNew(SPersonaDetails);
+
+	OnDetailsCreated.ExecuteIfBound(PersonaDetails->DetailsView.ToSharedRef());
+}
+
+TSharedRef<SWidget> FDetailsTabSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const
+{
+	return PersonaDetails.ToSharedRef();
+}
+
+FText FDetailsTabSummoner::GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const
+{
+	return LOCTEXT("PersonaDetailsToolTip", "Edit the details of selected objects.");
+}
+
 
 #undef LOCTEXT_NAMESPACE
 

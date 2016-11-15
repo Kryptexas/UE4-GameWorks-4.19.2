@@ -10,7 +10,7 @@
 
 struct FMeshDecalVSToPS
 {
-	FVertexFactoryInterpolantsVSToPS FactoryInterpolants;	
+	FVertexFactoryInterpolantsVSToPS FactoryInterpolants;
 	float4	Position		: SV_POSITION;
 };
 
@@ -51,7 +51,6 @@ struct FMeshDecalVSToPS
 		
 		// Finally, transform position to clip-space
 		O.Position = mul(WorldPosition, View.TranslatedWorldToClip);
-		
 		return O;
 	}
 	

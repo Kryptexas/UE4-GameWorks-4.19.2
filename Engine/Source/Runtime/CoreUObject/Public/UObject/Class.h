@@ -6,7 +6,9 @@
 
 #pragma once
 
-#include "ObjectBase.h"
+#include "ObjectMacros.h"
+#include "Object.h"
+#include "GarbageCollection.h"
 
 /*-----------------------------------------------------------------------------
 	Mirrors of mirror structures in Object.h. These are used by generated code 
@@ -18,6 +20,7 @@ COREUOBJECT_API DECLARE_LOG_CATEGORY_EXTERN(LogClass, Log, All);
 COREUOBJECT_API DECLARE_LOG_CATEGORY_EXTERN(LogScriptSerialization, Log, All);
 
 struct FPropertyTag;
+struct FNetDeltaSerializeInfo;
 
 /*-----------------------------------------------------------------------------
 	FRepRecord.
@@ -279,6 +282,7 @@ public:
 	virtual void FinishDestroy() override;
 	virtual void RegisterDependencies() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+	virtual void GetPreloadDependencies(TArray<UObject*>& OutDeps) override;
 
 	// UField interface.
 	virtual void AddCppProperty(UProperty* Property) override;
@@ -337,7 +341,7 @@ public:
 	virtual void DestroyStruct(void* Dest, int32 ArrayDim = 1) const;
 
 #if WITH_EDITOR
-private:
+public:
 	virtual UProperty* CustomFindProperty(const FName InName) const { return NULL; };
 #endif // WITH_EDITOR
 public:
@@ -421,6 +425,14 @@ public:
 
 	/** Try and find string metadata with the given key. If not found on this class, work up hierarchy looking for it. */
 	bool GetStringMetaDataHierarchical(const FName& Key, FString* OutValue = nullptr) const;
+
+	/**
+	* Determines if the struct or any of its super structs has any metadata associated with the provided key
+	*
+	* @param Key The key to lookup in the metadata
+	* @return pointer to the UStruct that has associated metadata, nullptr if Key is not associated with any UStruct in the hierarchy
+	*/
+	const UStruct* HasMetaDataHierarchical(const FName& Key) const;
 #endif
 
 #if HACK_HEADER_GENERATOR
@@ -1023,8 +1035,6 @@ public:
 #endif
 
 private:
-	/** true if these cpp ops are not for me, but rather this is an incomplete cpp ops from my base class. **/
-	bool bCppStructOpsFromBaseClass;
 	/** true if we have performed PrepareCppStructOps **/
 	bool bPrepareCppStructOpsCompleted;
 	/** Holds the Cpp ctors and dtors, sizeof, etc. Is not owned by this and is not released. **/
@@ -1052,22 +1062,14 @@ public:
 
 	FORCEINLINE ICppStructOps* GetCppStructOps() const
 	{
-		check(bPrepareCppStructOpsCompleted);
+		checkf(bPrepareCppStructOpsCompleted, TEXT("GetCppStructOps: PrepareCppStructOps() has not been called for class %s"), *GetName());
 		return CppStructOps;
-	}
-
-	/** return true if these cpp ops are not for me, but rather this is an incomplete cpp ops from my base class **/
-	FORCEINLINE bool InheritedCppStructOps() const
-	{
-		check(bPrepareCppStructOpsCompleted);
-		return bCppStructOpsFromBaseClass;
 	}
 
 	void ClearCppStructOps()
 	{
 		StructFlags = EStructFlags(StructFlags & ~STRUCT_ComputedFlags);
 		bPrepareCppStructOpsCompleted = false;
-		bCppStructOpsFromBaseClass = false;
 		CppStructOps = NULL;
 	}
 	/** 
@@ -1122,6 +1124,33 @@ public:
 	COREUOBJECT_API void SerializeItem(FArchive& Ar, void* Value, void const* Defaults);
 
 	/**
+	 * Export script struct to a string that can later be imported
+	 *
+	 * @param	ValueStr		String to write to
+	 * @param	Value			Actual struct being exported
+	 * @param	Defaults		Default value for this struct, pass nullptr to not use defaults 
+	 * @param	OwnerObject		UObject that contains this struct
+	 * @param	PortFlags		EPropertyPortFlags controlling export behavior
+	 * @param	ExportRootScope	The scope to create relative paths from, if the PPF_ExportsNotFullyQualified flag is passed in.  If NULL, the package containing the object will be used instead.
+	 * @param	bAllowNativeOverride If true, will try to run native version of export text on the struct
+	 */
+	COREUOBJECT_API void ExportText(FString& ValueStr, const void* Value, const void* Defaults, UObject* OwnerObject, int32 PortFlags, UObject* ExportRootScope, bool bAllowNativeOverride = true);
+
+	/**
+	 * Sets value of script struct based on imported string
+	 *
+	 * @param	Buffer			String to read text data out of
+	 * @param	Value			Struct that will be modified
+	 * @param	OwnerObject		UObject that contains this struct
+	 * @param	PortFlags		EPropertyPortFlags controlling import behavior
+	 * @param	ErrorText		What to print import errors to
+	 * @param	StructName		Name of struct, used in error display
+	 * @param	bAllowNativeOverride If true, will try to run native version of export text on the struct
+	 * @return Buffer after parsing has succeeded, or NULL on failure
+	 */
+	COREUOBJECT_API const TCHAR* ImportText(const TCHAR* Buffer, void* Value, UObject* OwnerObject, int32 PortFlags, FOutputDevice* ErrorText, const FString& StructName, bool bAllowNativeOverride = true);
+
+	/**
 	 * Compare two script structs
 	 *
 	 * @param	Dest		Pointer to memory to a struct
@@ -1140,6 +1169,7 @@ public:
 	 * @param	Stride		Stride of the array, If this default (0), then we will pull the size from the struct
 	 */
 	COREUOBJECT_API void CopyScriptStruct(void* Dest, void const* Src, int32 ArrayDim = 1) const;
+	
 	/**
 	 * Reinitialize a struct in memory. This may be done by calling the native destructor and then the constructor or individually reinitializing properties
 	 *
@@ -1147,7 +1177,7 @@ public:
 	 * @param	ArrayDim	Number of elements in the array
 	 * @param	Stride		Stride of the array, only relevant if there more than one element. If this default (0), then we will pull the size from the struct
 	 */
-	void ClearScriptStruct(void* Dest, int32 ArrayDim = 1) const;
+	COREUOBJECT_API void ClearScriptStruct(void* Dest, int32 ArrayDim = 1) const;
 
 	virtual COREUOBJECT_API void RecursivelyPreload();
 
@@ -1160,119 +1190,6 @@ public:
 	*/
 	virtual COREUOBJECT_API void InitializeDefaultValue(uint8* InStructData) const;
 #endif // WITH_EDITOR
-};
-
-class FStructOnScope
-{
-protected:
-	TWeakObjectPtr<const UStruct> ScriptStruct;
-	uint8* SampleStructMemory;
-	TWeakObjectPtr<UPackage> Package;
-
-	FStructOnScope()
-		: SampleStructMemory(nullptr)
-		, OwnsMemory(false)
-	{
-	}
-
-	void Initialize()
-	{
-		if (ScriptStruct.IsValid())
-		{
-			SampleStructMemory = (uint8*)FMemory::Malloc(ScriptStruct->GetStructureSize());
-			ScriptStruct.Get()->InitializeStruct(SampleStructMemory);
-			OwnsMemory = true;
-		}
-	}
-
-public:
-
-	FStructOnScope(const UStruct* InScriptStruct)
-		: ScriptStruct(InScriptStruct)
-		, SampleStructMemory(nullptr)
-		, OwnsMemory(false)
-	{
-		Initialize();
-	}
-
-	FStructOnScope(const UStruct* InScriptStruct, uint8* InData)
-		: ScriptStruct(InScriptStruct)
-		, SampleStructMemory(InData)
-		, OwnsMemory(false)
-	{
-	}
-
-	virtual uint8* GetStructMemory()
-	{
-		return SampleStructMemory;
-	}
-
-	virtual const uint8* GetStructMemory() const
-	{
-		return SampleStructMemory;
-	}
-
-	virtual const UStruct* GetStruct() const
-	{
-		return ScriptStruct.Get();
-	}
-
-	virtual UPackage* GetPackage() const
-	{
-		return Package.Get();
-	}
-
-	virtual void SetPackage(UPackage* InPackage)
-	{
-		Package = InPackage;
-	}
-
-	virtual bool IsValid() const
-	{
-		return ScriptStruct.IsValid() && SampleStructMemory;
-	}
-
-	virtual void Destroy()
-	{
-		if (!OwnsMemory)
-		{
-			return;
-		}
-
-		if (ScriptStruct.IsValid() && SampleStructMemory)
-		{
-			ScriptStruct.Get()->DestroyStruct(SampleStructMemory);
-			ScriptStruct = NULL;
-		}
-
-		if (SampleStructMemory)
-		{
-			FMemory::Free(SampleStructMemory);
-			SampleStructMemory = NULL;
-		}
-	}
-
-	virtual ~FStructOnScope()
-	{
-		Destroy();
-	}
-
-	/** Re-initializes the scope with a specified UStruct */
-	void Initialize(TWeakObjectPtr<const UStruct> InScriptStruct)
-	{
-		ScriptStruct = InScriptStruct;
-		Initialize();
-	}
-
-private:
-
-	FStructOnScope(const FStructOnScope&);
-	FStructOnScope& operator=(const FStructOnScope&);
-
-private:
-
-	/** Whether the struct memory is owned by this instance. */
-	bool OwnsMemory;
 };
 
 /*-----------------------------------------------------------------------------
@@ -1361,12 +1278,7 @@ public:
 	virtual void Link(FArchive& Ar, bool bRelinkExistingProperties) override;
 
 	// UFunction interface.
-	UFunction* GetSuperFunction() const
-	{
-		UStruct* Result = GetSuperStruct();
-		checkSlow(!Result || Result->IsA<UFunction>());
-		return (UFunction*)Result;
-	}
+	UFunction* GetSuperFunction() const;
 
 	UProperty* GetReturnProperty() const;
 
@@ -1508,9 +1420,8 @@ public:
 
 	// UObject interface.
 	virtual void Serialize(FArchive& Ar) override;
+	virtual void BeginDestroy() override;
 	// End of UObject interface.
-
-	~UEnum();
 
 	/*
 	 *	Try to update an out-of-date enum index after an enum's change
@@ -1893,29 +1804,56 @@ namespace EIncludeSuperFlag
 }
 
 
-#if UCLASS_FAST_ISA_IMPL & 2
+#if UCLASS_FAST_ISA_IMPL == UCLASS_ISA_INDEXTREE
 
 	class FFastIndexingClassTreeRegistrar
 	{
-	public:
-		FFastIndexingClassTreeRegistrar();
-		FFastIndexingClassTreeRegistrar(const FFastIndexingClassTreeRegistrar&);
-		~FFastIndexingClassTreeRegistrar();
+	protected:
+		COREUOBJECT_API FFastIndexingClassTreeRegistrar();
+		COREUOBJECT_API FFastIndexingClassTreeRegistrar(const FFastIndexingClassTreeRegistrar&);
+		COREUOBJECT_API ~FFastIndexingClassTreeRegistrar();
 
 	private:
 		friend class UClass;
 		friend class UObjectBaseUtility;
 		friend class FFastIndexingClassTree;
 
-		bool IsAUsingFastTree(const FFastIndexingClassTreeRegistrar& Parent) const
+		FORCEINLINE bool IsAUsingFastTree(const FFastIndexingClassTreeRegistrar& Parent) const
 		{
 			return ClassTreeIndex - Parent.ClassTreeIndex <= Parent.ClassTreeNumChildren;
 		}
 
-		FFastIndexingClassTreeRegistrar& operator=(const FFastIndexingClassTreeRegistrar&);
+		FFastIndexingClassTreeRegistrar& operator=(const FFastIndexingClassTreeRegistrar&) = delete;
 
 		uint32 ClassTreeIndex;
 		uint32 ClassTreeNumChildren;
+	};
+
+#elif UCLASS_FAST_ISA_IMPL == UCLASS_ISA_CLASSARRAY
+
+	class FClassBaseChain
+	{
+	protected:
+		COREUOBJECT_API FClassBaseChain();
+		COREUOBJECT_API ~FClassBaseChain();
+
+		// Non-copyable
+		FClassBaseChain(const FClassBaseChain&) = delete;
+		FClassBaseChain& operator=(const FClassBaseChain&) = delete;
+
+		COREUOBJECT_API void ReinitializeBaseChainArray();
+
+		FORCEINLINE bool IsAUsingClassArray(const FClassBaseChain& Parent) const
+		{
+			int32 NumParentClassBasesInChainMinusOne = Parent.NumClassBasesInChainMinusOne;
+			return NumParentClassBasesInChainMinusOne <= NumClassBasesInChainMinusOne && ClassBaseChainArray[NumParentClassBasesInChainMinusOne] == &Parent;
+		}
+
+	private:
+		FClassBaseChain** ClassBaseChainArray;
+		int32 NumClassBasesInChainMinusOne;
+
+		friend class UClass;
 	};
 
 #endif
@@ -1925,15 +1863,17 @@ namespace EIncludeSuperFlag
  * An object class.
  */
 class COREUOBJECT_API UClass : public UStruct
-#if UCLASS_FAST_ISA_IMPL & 2
+#if UCLASS_FAST_ISA_IMPL == UCLASS_ISA_INDEXTREE
 	, private FFastIndexingClassTreeRegistrar
+#elif UCLASS_FAST_ISA_IMPL == UCLASS_ISA_CLASSARRAY
+	, private FClassBaseChain
 #endif
 {
 	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR(UClass, UStruct, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UClass, NO_API)
 	DECLARE_WITHIN(UPackage)
 
 public:
-#if UCLASS_FAST_ISA_IMPL & 2
+#if UCLASS_FAST_ISA_IMPL == UCLASS_ISA_INDEXTREE
 	friend class FFastIndexingClassTree;
 #endif
 	friend class FRestoreClassInfo;
@@ -2257,7 +2197,7 @@ public:
 	T* GetDefaultObject()
 	{
 		UObject *Ret = GetDefaultObject();
-		checkSlow(Ret->IsA(T::StaticClass()));
+		check(Ret->IsA(T::StaticClass()));
 		return (T*)Ret;
 	}
 
@@ -2477,10 +2417,18 @@ public:
 	virtual bool HasInstrumentation() const { return false; }
 
 private:
-	#if UCLASS_FAST_ISA_IMPL & 2
+	#if UCLASS_FAST_ISA_IMPL == UCLASS_ISA_INDEXTREE
 		// For UObjectBaseUtility
 		friend class UObjectBaseUtility;
 		using FFastIndexingClassTreeRegistrar::IsAUsingFastTree;
+	#elif UCLASS_FAST_ISA_IMPL == UCLASS_ISA_CLASSARRAY
+		// For UObjectBaseUtility
+		friend class UObjectBaseUtility;
+		using FClassBaseChain::IsAUsingClassArray;
+		using FClassBaseChain::ReinitializeBaseChainArray;
+
+		friend class FClassBaseChain;
+		friend class FBlueprintCompileReinstancer;
 	#endif
 
 	// This signature intentionally hides the method declared in UObjectBaseUtility to make it private.
@@ -2542,6 +2490,8 @@ public:
 	// UClass interface
 	virtual void PurgeClass(bool bRecompilingOnLoad) override;
 	virtual UObject* FindArchetype(UClass* ArchetypeClass, const FName ArchetypeName) const override;
+
+	UStructProperty* FindStructPropertyChecked(const TCHAR* PropertyName) const;
 
 	/** Misc objects owned by the class. */
 	TArray<UObject*> MiscConvertedSubobjects;
@@ -2816,28 +2766,15 @@ private:
 	TMap<class UObject*,class UObject*>			SourceToDestinationMap;
 };
 
+// UFunction interface.
 
-// ObjectBase.h
-
-/**
- * Dereference back into a UClass
- * @return	the embedded UClass
- */
-template<class TClass>
-FORCEINLINE UClass* TSubclassOf<TClass>::operator*() const
+inline UFunction* UFunction::GetSuperFunction() const
 {
-	if (!Class || !Class->IsChildOf(TClass::StaticClass()))
-{
-		return NULL;
-	}
-	return Class;
+	UStruct* Result = GetSuperStruct();
+	checkSlow(!Result || Result->IsA<UFunction>());
+	return (UFunction*)Result;
 }
 
-template<class TClass>
-FORCEINLINE TClass* TSubclassOf<TClass>::GetDefaultObject() const
-{
-	return Class ? Class->GetDefaultObject<TClass>() : NULL;
-}
 
 // UObject.h
 
@@ -3005,3 +2942,4 @@ template<> struct TBaseStructure<FInt32Interval>
 {
 	COREUOBJECT_API static UScriptStruct* Get();
 };
+

@@ -22,6 +22,7 @@
 #pragma pop_macro("MAX_uint16")
 #pragma pop_macro("MAX_uint32")
 #pragma pop_macro("MAX_int32")
+#pragma pop_macro("TEXT")
 
 // Redefine CDECL to our version of the #define.  <AJS> Is this really necessary?
 #define CDECL	    __cdecl					/* Standard C function */

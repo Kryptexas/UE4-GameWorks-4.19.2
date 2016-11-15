@@ -8,22 +8,25 @@
  */
 enum class EMediaTrackType
 {
-	/** Audio tracks. */
+	/** Audio track. */
 	Audio,
 
-	/** Binary data tracks. */
+	/** Binary data track. */
 	Binary,
 
-	/** Caption (subtitle) tracks) */
+	/** Closed caption track. */
 	Caption,
 
-	/** Still image tracks. */
-	Image,
-
-	/** Script tracks. */
+	/** Script track. */
 	Script,
 
-	/** Video tracks. */
+	/** Subtitle track. */
+	Subtitle,
+
+	/** Generic text track. */
+	Text,
+
+	/** Video track. */
 	Video
 };
 

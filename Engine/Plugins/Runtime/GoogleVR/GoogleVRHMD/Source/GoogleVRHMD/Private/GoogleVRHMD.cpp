@@ -67,6 +67,11 @@ static const float kDefaultRenderTargetScaleFactor = 1.0f;
 // Only one HMD can be active at a time, so using file static to track this for transferring to game thread
 static bool bBackDetected = false;
 static bool bTriggerDetected = false;
+static double BackbuttonPressTime;
+static const double BACK_BUTTON_SHORT_PRESS_TIME = 1.0f;
+
+//static variable for debugging;
+static bool bDebugShowGVRSplash = false;
 
 ////////////////////////////////////////////////
 // Begin Misc Helper Functions Implementation //
@@ -172,6 +177,15 @@ bool AndroidThunkCpp_IsVrLaunch()
 	return true;
 }
 
+void AndroidThunkCpp_QuitDaydreamApplication()
+{
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+	{
+		static jmethodID Method = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_QuitDaydreamApplication", "()V", false);
+		FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GameActivityThis, Method);
+	}
+}
+
 FString AndroidThunkCpp_GetDataString()
 {
 	FString Result = FString("");
@@ -239,7 +253,7 @@ class FGoogleVRHMDPlugin : public IGoogleVRHMDPlugin
 public:
 
 	/** Returns the key into the HMDPluginPriority section of the config file for this module */
-	virtual FString GetModulePriorityKeyName() const override
+	virtual FString GetModuleKeyName() const override
 	{
 		return TEXT("GoogleVRHMD");
 	}
@@ -250,6 +264,11 @@ public:
 	 * @return	Interface to the new head tracking device, if we were able to successfully create one
 	 */
 	virtual TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > CreateHeadMountedDisplay() override;
+
+	/**
+	 * Always return true for GoogleVR, when enabled, to allow HMD Priority to sort it out
+	 */
+	virtual bool IsHMDConnected() { return true; }
 };
 
 IMPLEMENT_MODULE( FGoogleVRHMDPlugin, GoogleVRHMD );
@@ -280,6 +299,8 @@ FGoogleVRHMD::FGoogleVRHMD()
 	, bDistortionCorrectionEnabled(true)
 	, bUseGVRApiDistortionCorrection(false)
 	, bUseOffscreenFramebuffers(false)
+	, bIsInDaydreamMode(false)
+	, bForceStopPresentScene(false)
 	, NeckModelScale(1.0f)
 	, CurHmdOrientation(FQuat::Identity)
 	, CurHmdPosition(FVector::ZeroVector)
@@ -344,6 +365,8 @@ FGoogleVRHMD::FGoogleVRHMD()
 #if GOOGLEVRHMD_SUPPORTED_ANDROID_PLATFORMS
 		//Set the flag when async reprojection is enabled
 		bUseOffscreenFramebuffers = gvr_get_async_reprojection_enabled(GVRAPI);
+		//We are in Daydream Mode when async reprojection is enabled.
+		bIsInDaydreamMode = bUseOffscreenFramebuffers;
 
 		// Only use gvr api distortion when async reprojection is enabled
 		// And by default we use Unreal's PostProcessing Distortion for Cardboard
@@ -369,6 +392,7 @@ FGoogleVRHMD::FGoogleVRHMD()
 
 		// We will use Unreal's PostProcessing Distortion for iOS
 		bUseGVRApiDistortionCorrection = false;
+		bIsInDaydreamMode = false;
 
 		// Setup and show ui on iOS
 		dispatch_async(dispatch_get_main_queue(), ^
@@ -402,6 +426,9 @@ FGoogleVRHMD::FGoogleVRHMD()
 
 		// Initialize distortion mesh and indices
 		SetNumOfDistortionPoints(DistortionPointsX, DistortionPointsY);
+
+		// Register LoadMap Delegate
+		FCoreUObjectDelegates::PreLoadMap.AddRaw(this, &FGoogleVRHMD::OnPreLoadMap);
 	}
 	else
 	{
@@ -433,8 +460,11 @@ FGoogleVRHMD::~FGoogleVRHMD()
 		gvr_buffer_viewport_destroy(&ScratchViewport);
 	}
 
-	delete CustomPresent;
+	CustomPresent->Shutdown();
+    CustomPresent = nullptr;
 #endif
+
+	FCoreUObjectDelegates::PreLoadMap.RemoveAll(this);
 }
 
 bool FGoogleVRHMD::IsInitialized() const
@@ -504,7 +534,7 @@ void FGoogleVRHMD::GetCurrentPose(FQuat& CurrentOrientation, FVector& CurrentPos
 		PosePitch += (FMath::RadiansToDegrees(MouseY * DeltaTime * 4.0f) * PreviewSensitivity);
 		PosePitch = FMath::Clamp(PosePitch, -90.0f + KINDA_SMALL_NUMBER, 90.0f - KINDA_SMALL_NUMBER);
 
-		CurrentOrientation = FQuat(FRotator(PosePitch, PoseYaw, 0.0f));
+		CurrentOrientation = BaseOrientation * FQuat(FRotator(PosePitch, PoseYaw, 0.0f));
 	}
 	else
 	{
@@ -633,6 +663,12 @@ bool FGoogleVRHMD::SetGVRHMDRenderTargetSize(int DesiredWidth, int DesiredHeight
 #else
 	return false;
 #endif
+}
+
+void FGoogleVRHMD::OnPreLoadMap(const FString &)
+{
+	// Force not to present the scene when start loading a map.
+	bForceStopPresentScene = true;
 }
 
 void FGoogleVRHMD::ApplicationResumeDelegate()
@@ -1013,7 +1049,11 @@ void FGoogleVRHMD::SetupView(FSceneViewFamily& InViewFamily, FSceneView& InView)
 void FGoogleVRHMD::BeginRenderViewFamily(FSceneViewFamily& InViewFamily)
 {
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
-	if(CustomPresent)
+	// Note that we force not enqueue the CachedHeadPose when start loading a map until a new game frame started.
+	// This is for solving the one frame flickering issue when load another level due to that there is one frame
+	// the scene is rendered before the camera is updated.
+	// TODO: We need to investigate a better solution here.
+	if(CustomPresent && !bForceStopPresentScene && !bDebugShowGVRSplash)
 	{
 		CustomPresent->UpdateRenderingPose(CachedHeadPose);
 	}
@@ -1330,7 +1370,7 @@ EHMDDeviceType::Type FGoogleVRHMD::GetHMDDeviceType() const
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
 	return EHMDDeviceType::DT_ES2GenericStereoMesh;
 #else
-	return EHMDDeviceType::DT_OculusRift; // Workaround needed for non-es2 post processing to call PostProcessHMD
+	return EHMDDeviceType::DT_GoogleVR; // Workaround needed for non-es2 post processing to call PostProcessHMD
 #endif
 }
 
@@ -1583,6 +1623,25 @@ bool FGoogleVRHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 			return true;
 		}
 	}
+	else if (FParse::Command(&Cmd, TEXT("GVRSPLASH")))
+	{
+		if (FParse::Command(&Cmd, TEXT("SHOW")))
+		{
+			if (GVRSplash.IsValid())
+			{
+				GVRSplash->Show();
+				bDebugShowGVRSplash = true;
+			}
+		}
+		else if (FParse::Command(&Cmd, TEXT("HIDE")))
+		{
+			if (GVRSplash.IsValid())
+			{
+				GVRSplash->Hide();
+				bDebugShowGVRSplash = false;
+			}
+		}
+	}
 #endif
 
 	return false;
@@ -1628,8 +1687,10 @@ void FGoogleVRHMD::ResetOrientation(float Yaw)
 {
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
 	gvr_reset_tracking(GVRAPI);
-	SetBaseOrientation(FRotator(0.0f, Yaw, 0.0f).Quaternion());
+#else
+	PoseYaw = 0;
 #endif
+	SetBaseOrientation(FRotator(0.0f, Yaw, 0.0f).Quaternion());
 }
 
 void FGoogleVRHMD::ResetPosition()
@@ -1654,6 +1715,32 @@ void FGoogleVRHMD::SetBaseOrientation(const FQuat& BaseOrient)
 FQuat FGoogleVRHMD::GetBaseOrientation() const
 {
 	return BaseOrientation;
+}
+
+bool FGoogleVRHMD::HandleInputKey(UPlayerInput *, const FKey & Key, EInputEvent EventType, float AmountDepressed, bool bGamepad)
+{
+#if GOOGLEVRHMD_SUPPORTED_ANDROID_PLATFORMS
+	if (Key == EKeys::Android_Back)
+	{
+		if (EventType == IE_Pressed)
+		{
+			BackbuttonPressTime = FPlatformTime::Seconds();
+		}
+		else if (EventType == IE_Released)
+		{
+			if (FPlatformTime::Seconds() - BackbuttonPressTime < BACK_BUTTON_SHORT_PRESS_TIME)
+			{
+				// Add default back button behavior in Daydream Mode
+				if (bIsInDaydreamMode)
+				{
+					AndroidThunkCpp_QuitDaydreamApplication();
+				}
+			}
+		}
+		return true;
+	}
+#endif
+	return false;
 }
 
 bool FGoogleVRHMD::HandleInputTouch(uint32 Handle, ETouchType::Type Type, const FVector2D& TouchLocation, FDateTime DeviceTimestamp, uint32 TouchpadIndex)
@@ -1731,6 +1818,8 @@ bool FGoogleVRHMD::OnStartGameFrame( FWorldContext& WorldContext )
 	// Update ViewportList from GVR API
 	UpdateGVRViewportList();
 
+	// Enable scene present after OnStartGameFrame get called.
+	bForceStopPresentScene = false;
 	return false;
 }
 

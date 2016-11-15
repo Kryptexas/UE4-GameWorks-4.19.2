@@ -1,131 +1,114 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2714483
 Availability:Public
-Title:Blendables
+Title:可混合物
 Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
-Description:Blendables assets can be smoothly interpolated and used to affecting the rendering (e.g. post processing, fog, Ambient Cubemap, ambient occlusion). 
+Description:可混合物资源可进行平滑的插值，并用于影响渲染（如后期处理、雾气、环境立方体贴图、环境遮蔽）。 
 
 [EXCERPT:Blendables_Desc]
-A **Blendable** is an asset that has properties which can be smoothly interpolated (blended) with other blendables. We mostly used blendables for PostProcessMaterials but the system
-can be used for anything that should be depending on the view (usually dependent on the camera position).
+**可混合物（Blendable）** 资源的属性可与其他可混合物进行平滑插值。可混合物最常用于后期处理材质，但系统可取决于画面用于任意资源（通常取决于摄像机位置）。
 [/EXCERPT:Blendables_Desc]
 
 
-## Blendable
+## 可混合物
 
-We have **Blendables** in the engine for a while but only used for PostprocessMaterils / PostprocessMaterialInstances. But the concept is more general purpose as it allows
-to blend arbitrary data (linear values or colors are best suitable) to some final data. Any subsystem can pickup the data in the view and affect rendering. As the data is blended per view
-it means in the splitscreen case you can have different settings blended for each view (e.g. hit indicator affecting post process).
+**可混合物** 加入引擎已有一段时间，但只用于后期处理材质 / 后期处理材质实例。但概念为更整体的应用，因为它可将任意数据（线性值或颜色最为适合）混合到部分最终数据。子系统可拾取画面中的数据并影响渲染。因为数据为每个画面进行混合，意味着分屏情况下每个画面可拥有不同的混合设置（如命中指示器影响后期处理）。
 
-A **Blendable** is an object that has the IBlendableInterface and currently that is implemented by those asset types:
+**可混合物** 是拥有 IBlendableInterface 的对象，当前由这些资源类型实现：
 * PostprocessMaterials (todo: link)
 * PostprocessMaterialInstances (todo: link)
-* LightPropagationVolumeBlendable (see below)
+* LightPropagationVolumeBlendable（如下）
 
-The **Blendables** container can be found in the PostProcessSettings which is embedded in the following objects:
+**可混合物** 容器存在 PostProcessSettings 中。此资源内置在以下对象中：
 * PostProcessVolume
 * PostProcessComponent
 * SceneCaptureActor
 * CameraComponent
 
-The **LightPropagationVolumeBlendable** asset was created to demonstrate on how to create new blendables and to show how we can replace the existing PostProcessSettings. The existing system
-worked well when it was small but the large amount of settings showed the need for a more sophisticated system.
+**LightPropagationVolumeBlendable** 资源的创建用于展示如何创建新可混合物，并说明如何替代现有的 PostProcessSettings。现有系统在小规模时工作效率佳，但大量设置需要更为复杂的系统。
 
 [REGION:imagetable]
 | ![](CreateBlendableAsset.png) |
 | ------ |
-| Blendable assets show up in the content browser in the **Blendable** category. You can use the **Add New** or filter asset by this category. |
+| 可混合物资源显示在 content browser 的 **Blendable** 类目中。可使用 **Add New** 或按此类目进行资源过滤。|
 [/REGION]
 
-The benefits of the new system:
-* Easier to extend and maintain with engine changes (no need to change the one central structure, can be in it's own module)
-* Indirection over packages allows to adjust the content without level access (version control)
-* Indirection means a single asset can be reused in many occasions (less redundancy, more power)
-* Custom UI for each blendable is possible (much harder to do with a single struct)
-* Each Blendable reference can have its own weight, the asset can have a weight (see LightPropagationVolumeBlendable) and a per-property-weight would be easy to do.
-* Breaking up the large struct make interaction with blueprints more efficient and simpler.
+新系统的优点：
+* 引擎修改时易于延展和维持（无需变更中心架构，可位于其自身的模块中）
+* 在包上使用间接法无需层访问即可调整内容（版本控制）
+* 间接法意味着单一资源可重复在多个情况下使用（冗余更少，性能更佳）
+* 可对每个可混合物的 UI 进行自定义（通过单一结构体执行较难）
+* 每个可混合物引用均拥有其各自的权重，资源可拥有权重（引用 LightPropagationVolumeBlendable），每个属性的权重也容易达成。
+* 分解大型结构体，使和蓝图的互动更加高效简单。
 
-## The Blendables Container
+## 可混合物容器
 
-The container is implemented as an array of weights and IBlendableInterface references. 
+容器作为权重和 IBlendableInterface 引用的阵列实现。 
 
-When you open the PostProcessVolume setting and look at the blendables array you see an array of weightes with references to a blendable asset. The weights are usually in the 0..1 range and
-the reference can be to an asset living in a package (created with the content browser) or living in the object that contains the blendables array.
+打开 PostProcessVolume 设置并查看可混合物阵列，可看到一个引用可混合资源的权重阵列。权重通常在 0..1 范围中，引用对象可为包（通过 content browser 创建）中的资源，或包含可混合物阵列的对象中的资源。
 
 [REGION:imagetable]
 | ![](BlendablesUI.png) |
 | ------ |
-| The blendables container can be found in the post process settings (here in a postprocess volume). The array here has three elements, a LightPropagationVolumeBlendable (living in the volume object), a not yet used array element and a reference to a an asset (living an in a package) called LPV0. The weights are 1.0 for both blendables. |
+| 可在后期处理设置中（此处为后期处理体积域中）找到可混合物容器。此处的阵列拥有三个元素，一个 LightPropagationVolumeBlendable（保存在体积域对象中）、一个尚未使用的阵列元素和一个名为 LPV0 的资源引用（保存在包中）。两个可混合物的权重均为 1.0。|
 [/REGION]
 
-When you create new elements in the array you can choose to create a blendable of a specitic type (currently only LightPropagationVolumeBlendable) or using an asset reference
-(e.g. LightPropagationVolumeBlendable, Material, Material Instance). Over time we intend to create more blendable types (e.g. Bloom, SceneColor, DepthOfField, ...). The reference
-can be of any type that is a Blendable (implements the IBlendableInterface). The order in the array is opposite to how layers stack because their blending is applied from top to bottom
-and blending is overwriting the data that was there before. Keep in mind the data of many volumes (or other objects) are getting combined taking weight and priority into account.
+在阵列中创建新元素时，可选择创建一个特定类型（当前只有 LightPropagationVolumeBlendable）的可混合物，或使用资源引用（如 LightPropagationVolumeBlendable、材质、材质实例）。之后将会有更多可混合物类型（如 Bloom、SceneColor、DepthOfField 等）引用可为任意类型的可混合物（拥有 IBlendableInterface）。阵列中的排序与层堆栈的方式相反，因为它们的混合自上而下应用，且混合将覆写之前的数据。注意：许多体积域（或其他对象）的数据组合时将把权重和优先级考虑在内。
 
-Note: It's a good practice to have a unbound PostProcessVolume with lower priority in the level called "global". To get get full control over an existing level you can add
-an unbound volume with high priority. To check if a blendable has effect you can quickly adjust it's weight to 0 and back.
+注解：在名为“global”的关卡中设置一个低优先级的未绑定后期处理体积域不失为一个好方法。如需对现有关卡进行完整控制，可添加一个高优先级的未绑定体积域。将可混合物的权重调到 0 然后再迅速调回原有数字，即可确认可混合物是否有效。
 
-## Blendable in the package, as part of the object (e.g. volume) or dynamically created in the blueprint 
+## 可混合物在包中、作为对象（如体积域）的部分，或在蓝图中动态创建 
 
-It's your choice but we suggest the package (referencing a named asset in the package) as it allows for easier bulk adjustments later on minimizing version control conflicts.
-For maximum programability it's possible to create a blendable in a blueprint. As blueprints are a form of programming this is simialar to putting settings in a UI or hard
-coding them in the code. The code method is more involved and makes it harder for others tweaking the settings. 
+您可任意进行选择，但我们建议使用包（引用包中的命名资源），因其便于进行批量调整，可将版本控制冲突最小化。为获得最大的可编程性，可在蓝图中创建一个可混合物。因为蓝图是编程的一种形式，这和将设置放入 UI 或将它们硬编码到代码中相似。代码方法更为复杂，其他用户调整设置更为困难。 
 
 [REGION:imagetable]
 | ![](AssetWithDifferentOuter.png) |
 | ------ |
-| The LightPropagationVolumeBlendable details as they can be seen in the editor. No matter if the blendable was created in the content browser (left) or created in the object (e.g. post process volume) the user interface is similar. It's good practice to give each property a checkbox (weight=0 or weight=1) and give the whole struct a blend weight. |
+| 可在编辑器中看到 LightPropagationVolumeBlendable 的细节。无论可混合物是在 content browser 中（左图）还是在对象（如后期处理体积域）中创建，用户界面皆相似。好办法是 - 为每个属性设置一个复选框（权重为 0 或 1）并为整个结构体设置一个混合权重。|
 [/REGION]
 
-Note: The LightPropagationVolumeBlendable properties still exist in the PostProcessSettings for backwards compatibility reasons but we plan to remove the settings from there and make the blendables the only method.
+注解：LightPropagationVolumeBlendable 属性仍存在于 PostProcessSettings 中，以便向下兼容。但之后的版本将移除这个设置，将可混合物设为唯一的方法。
 
-## How to create your own Blendable (in C++)
+## 如何自行创建可混合物（在 C++ 中）
 
-At the moment we suggets to copy the LightPropagationVolumeBlendable plugin. After creating the asset you can pick up the blended data the same way the Light Propagation System is doing that.
-The method **GetSingleFinalDataConst()** is used to get the data after it was blended. For best performance you might want to avoid calling this function unneccessarily (too often).
+我们建议复制 LightPropagationVolumeBlendable 插件。创建资源后，即可以光线传播系统相同的方式获得混合数据。混合后，**GetSingleFinalDataConst()** 法用于获取数据。为保证性能，建议只在必要时调用此函数（不要进行频繁调用）。
 
-## Blueprint
+## 蓝图
 
-The **AddOrUpdateBlendable** blueprint function is exposed where you can find PostProcessSettings. It allows convenient access to the blendables container. You pass in the object that has the
-Blendables container, the weight and a reference to the blendable. If the reference was already found in the container it simply updates the weight. It doesn't remove container elements as that
-could confuse other code traversing the container and has implications to the garbage collection. There is no real performance cost a blendable reference of a weight of 0 as removing the element
-should never be needed.
+**AddOrUpdateBlendable** 蓝图函数将在 PostProcessSettings 所在之处公开。可对可混合物容器进行便捷访问。将拥有可混合物容器、权重和混合物引用的对象传入。如容器中已存在引用，它将更新权重。因可能误导遍历容器的其他代码，它不会移除容器元素，并存在对垃圾回收的蕴含。权重为 0 的可混合物引用不存在实际的性能开销，因为不需要移除元素。
 
-Here you can see how to reference a blendable asset in the content browser:
+您可在此处了解如何在 content browser 中引用可混合物资源。
 
 [REGION:imagetable]
 | ![](AddBlendableVar.png) |
 | ------ |
-| The variable 'BlendableVar' of the type LightPropagationVolumeBlendable (Object Reference) is used to reference an LightPropagationVolumeBlendable asset called 'LPV0'. |
+| LightPropagationVolumeBlendable（对象引用）类型的变量“BlendableVar”用于引用一个名为“LPV0”的 LightPropagationVolumeBlendable 资源。|
 [/REGION]
 
-With the **ConstructObjectFromClass** blueprint function you can create a new blendable in the blueprint. By setting the **Outer** of the new object to the object that has the blendables container
-you get the same behavior as if you would created the object in the UI (create the blendable as part of the object).
+可通过 **ConstructObjectFromClass** 蓝图函数在蓝图中新建可混合物。将新对象的 **Outer** 设为拥有可混合物容器的对象，此操作的效果和在 UI 中创建对象相同（将可混合物作为对象的一部分创建）。
 
 [REGION:imagetable]
 | ![](AddBlendableConstruct.png) |
 | ------ |
-| Here we create an object of the type LightpropagationVolumeBlendable, get the settings and set some members with the **SetMembersIn...** function. |
+| 此处我们创建了一个 LightpropagationVolumeBlendable 类型的对象，获取设置并通过 **SetMembersIn...** 设置成员。|
 [/REGION]
 
-Note: At the moment you need to manually put the override flag to true (checked checkbox), otherwise the property with the same name would not get picked up.
+注解：此时需要手动将覆盖标记设为 true（勾选复选框），否则无法获得命名相同的属性。
 
-For experiments you can use the showflag **VisualizeLPV** (in editor: Visualize/Light Propagation Volume) to display the blended properties.
-This was implemented in C++ code and only for this blendable type but later we should be able to expose any property without the need to do any code changes.
+可使用显示标识 **VisualizeLPV**（编辑器中：Visualize/Light Propagation Volume）显示混合属性。这应用到 C++ 代码中，只用于该可混合物类型，但之后即可在不修改代码的前提下公开属性。
 
 [REGION:imagetable]
 | ![](VisualizeLPV.png) |
 | ------ |
-| The showflag **VisualizeLPV** displays the blended values which makes it useful for debugging. |
+| 显示标识 **VisualizeLPV** 将显示混合值，便于进行调试。|
 [/REGION]
 
 
-## Future
-* The context sensitive feature when browsing the function AddOrUpdateBlendable doesn't work yet (workaround: disable the 'context sensitive' checkbox).
-* We intend to break up all PostprocessSettings into object like the LightPropagationVolumeBlendable so one day the PostProcessSettings can be removed. Old levels can be converted on load without
-any data loss. In order to avoid a lot of assets spaming the content packages we would create the objects as part of the level. 
-* We want to further polish the blueprint interaction to make it easier to use.
-* We could easily expose a Blendable array in the world settings and the project settings.
-* In order to get more transpareceny which Blendable are getting applied we should have some debug view showing the weights and asset/object names and types.
+## 未来更新
+* 浏览函数 AddOrUpdateBlendable 时上下文相关功能无法使用（解决方法：禁用“context sensitive”复选框）。
+* 计划将所有 PostprocessSettings 分割为 LightPropagationVolumeBlendable 之类的对象，之后 PostProcessSettings 将被移除。旧版本的关卡可在加载时进行转换，
+不会丢失数据。为避免大量资源过度生成内容包，可能会将对象创建为关卡的一部分。 
+* 将进一步改良蓝图互动，使其更易于使用。
+* 将可混合阵列更简单地公开到世界场景设置和项目设置中。
+* 为使应用的可混合物拥有更高的透明度，将加入调试画面，显示权重、资源/对象名称和类型。
 
 

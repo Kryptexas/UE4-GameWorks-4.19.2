@@ -1,8 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
+#pragma once
+
 #if WITH_GAMEPLAY_DEBUGGER
 
-#pragma once
 #include "GameplayDebuggerCategory.h"
 #include "AI/Navigation/NavMeshRenderingComponent.h"
 
@@ -12,7 +13,7 @@ public:
 	FGameplayDebuggerCategory_Navmesh();
 
 	virtual void CollectData(APlayerController* OwnerPC, AActor* DebugActor) override;
-	virtual FDebugRenderSceneProxy* CreateSceneProxy(const UPrimitiveComponent* InComponent) override;
+	virtual FDebugRenderSceneProxy* CreateDebugSceneProxy(const UPrimitiveComponent* InComponent, FDebugDrawDelegateHelper*& OutDelegateHelper) override;
 	virtual void OnDataPackReplicated(int32 DataPackId) override;
 
 	static TSharedRef<FGameplayDebuggerCategory> MakeInstance();

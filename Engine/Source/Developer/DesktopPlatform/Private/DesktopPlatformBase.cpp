@@ -737,16 +737,6 @@ FProcHandle FDesktopPlatformBase::InvokeUnrealBuildToolAsync(const FString& InCm
 {
 	FString CmdLineParams = InCmdLineParams;
 
-#if PLATFORM_WINDOWS
-	#if _MSC_VER >= 1900
-		CmdLineParams += TEXT(" -2015");
-	#elif _MSC_VER >= 1800
-		CmdLineParams += TEXT(" -2013");
-	#else
-		CmdLineParams += TEXT(" -2012");
-	#endif
-#endif // PLATFORM_WINDOWS
-
 	// UnrealBuildTool is currently always located in the Binaries/DotNET folder
 	FString ExecutableFileName = GetUnrealBuildToolExecutableFilename(FPaths::RootDir());
 
@@ -1159,7 +1149,9 @@ bool FDesktopPlatformBase::BuildUnrealBuildTool(const FString& RootDir, FOutputD
 		FString VCVarsBat;
 
 #if PLATFORM_WINDOWS
-	#if _MSC_VER >= 1900
+	#if _MSC_VER >= 1910
+		FPlatformMisc::GetVSComnTools(15, VCVarsBat);
+	#elif _MSC_VER >= 1900
 		FPlatformMisc::GetVSComnTools(14, VCVarsBat);
 	#elif _MSC_VER >= 1800
 		FPlatformMisc::GetVSComnTools(12, VCVarsBat);

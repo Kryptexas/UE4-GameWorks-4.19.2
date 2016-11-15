@@ -363,9 +363,9 @@ void UFont::GetStringHeightAndWidth( const TCHAR *Text, int32& Height, int32& Wi
 	Height = FMath::CeilToInt( TotalHeight );
 }
 
-SIZE_T UFont::GetResourceSize(EResourceSizeMode::Type Mode)
+void UFont::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	int32 ResourceSize = 0;
+	Super::GetResourceSizeEx(CumulativeResourceSize);
 
 	switch(FontCacheType)
 	{
@@ -375,7 +375,7 @@ SIZE_T UFont::GetResourceSize(EResourceSizeMode::Type Mode)
 			{
 				if (Texture)
 				{
-					ResourceSize += Texture->GetResourceSize(Mode);
+					Texture->GetResourceSizeEx(CumulativeResourceSize);
 				}
 			}
 		}
@@ -383,25 +383,23 @@ SIZE_T UFont::GetResourceSize(EResourceSizeMode::Type Mode)
 
 	case EFontCacheType::Runtime:
 		{
-			auto GetTypefaceResourceSize = [](const FTypeface& Typeface) -> int32
+			auto GetTypefaceResourceSize = [&CumulativeResourceSize](const FTypeface& Typeface)
 			{
-				int32 TypefaceResourceSize = 0;
 				for (const FTypefaceEntry& TypefaceEntry : Typeface.Fonts)
 				{
 					if (TypefaceEntry.Font.BulkDataPtr)
 					{
 						// We use GetBulkDataSizeOnDisk since that will be the resident size once the bulk data has been decompressed
-						TypefaceResourceSize += TypefaceEntry.Font.BulkDataPtr->GetBulkDataSizeOnDisk();
+						CumulativeResourceSize.AddDedicatedSystemMemoryBytes(TypefaceEntry.Font.BulkDataPtr->GetBulkDataSizeOnDisk());
 					}
 				}
-				return TypefaceResourceSize;
 			};
 
 			// Sum the contained font data sizes
-			ResourceSize += GetTypefaceResourceSize(CompositeFont.DefaultTypeface);
+			GetTypefaceResourceSize(CompositeFont.DefaultTypeface);
 			for (const FCompositeSubFont& SubTypeface : CompositeFont.SubTypefaces)
 			{
-				ResourceSize += GetTypefaceResourceSize(SubTypeface.Typeface);
+				GetTypefaceResourceSize(SubTypeface.Typeface);
 			}
 		}
 		break;
@@ -409,8 +407,6 @@ SIZE_T UFont::GetResourceSize(EResourceSizeMode::Type Mode)
 	default:
 		break;
 	}
-
-	return ResourceSize;
 }
 
 void UFont::ForceLoadFontData()

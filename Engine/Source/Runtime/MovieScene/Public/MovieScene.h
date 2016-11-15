@@ -213,6 +213,18 @@ public:
 	UMovieSceneTrack* AddTrack(TSubclassOf<UMovieSceneTrack> TrackClass, const FGuid& ObjectGuid);
 
 	/**
+	* Adds a given track.
+	*
+	* Note: Function will only add if the track is not already exist.
+	*
+	* @param InTrack The track to add.
+	* @param ObjectGuid The runtime object guid that the type should bind to.
+	* @see  FindTrack, RemoveTrack
+	* @return true if the track is successfully added, false otherwise.
+	*/
+	bool AddGivenTrack(UMovieSceneTrack* InTrack, const FGuid& ObjectGuid);
+
+	/**
 	 * Adds a track.
 	 *
 	 * Note: The type should not already exist.

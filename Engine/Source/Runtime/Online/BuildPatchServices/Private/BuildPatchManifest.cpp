@@ -491,6 +491,46 @@ int64 FBuildPatchCustomField::AsInteger() const
 	return 0;
 }
 
+/* BuildPatchAppManifest namespace contains helper functions for handling multiple type options
+*****************************************************************************/
+
+namespace BuildPatchAppManifest
+{
+	template<typename ContainerType>
+	void GetChunksRequiredForFilesHelper(const FBuildPatchAppManifest& Manifest, const ContainerType& FileList, TArray<FGuid>& RequiredChunks, bool bAddUnique)
+	{
+		for (const FString& File : FileList)
+		{
+			const FFileManifestData* FileManifest = Manifest.GetFileManifest(File);
+			if (FileManifest != nullptr)
+			{
+				for (const FChunkPartData& ChunkPart : FileManifest->FileChunkParts)
+				{
+					if (bAddUnique)
+					{
+						RequiredChunks.AddUnique(ChunkPart.Guid);
+					}
+					else
+					{
+						RequiredChunks.Add(ChunkPart.Guid);
+					}
+				}
+			}
+		}
+	}
+
+	template<typename ContainerType>
+	int64 GetFileSizeHelper(const FBuildPatchAppManifest& Manifest, const ContainerType& Filenames)
+	{
+		int64 TotalSize = 0;
+		for (const FString& Filename : Filenames)
+		{
+			TotalSize += Manifest.GetFileSize(Filename);
+		}
+		return TotalSize;
+	}
+}
+
 /* FBuildPatchAppManifest implementation
 *****************************************************************************/
 
@@ -1206,24 +1246,12 @@ EBuildPatchAppManifestVersion::Type FBuildPatchAppManifest::GetManifestVersion()
 
 void FBuildPatchAppManifest::GetChunksRequiredForFiles(const TArray<FString>& FileList, TArray<FGuid>& RequiredChunks, bool bAddUnique) const
 {
-	for (const auto& File : FileList)
-	{
-		FFileManifestData* const * FileManifest = FileManifestLookup.Find(File);
-		if (FileManifest)
-		{
-			for (const auto& ChunkPart : (*FileManifest)->FileChunkParts)
-			{
-				if (bAddUnique)
-				{
-					RequiredChunks.AddUnique(ChunkPart.Guid);
-				}
-				else
-				{
-					RequiredChunks.Add(ChunkPart.Guid);
-				}
-			}
-		}
-	}
+	BuildPatchAppManifest::GetChunksRequiredForFilesHelper(*this, FileList, RequiredChunks, bAddUnique);
+}
+
+void FBuildPatchAppManifest::GetChunksRequiredForFiles(const TSet<FString>& FileList, TArray<FGuid>& RequiredChunks, bool bAddUnique) const
+{
+	BuildPatchAppManifest::GetChunksRequiredForFilesHelper(*this, FileList, RequiredChunks, bAddUnique);
 }
 
 int64 FBuildPatchAppManifest::GetDownloadSize() const
@@ -1260,6 +1288,37 @@ int64 FBuildPatchAppManifest::GetDownloadSize(const TSet<FString>& Tags) const
 		}
 	}
 	return TotalSize;
+}
+
+int64 FBuildPatchAppManifest::GetDeltaDownloadSize(const TSet<FString>& Tags, const IBuildManifestRef& InPreviousVersion) const
+{
+	FBuildPatchAppManifestRef PreviousVersion = StaticCastSharedRef< FBuildPatchAppManifest >(InPreviousVersion);
+
+	TArray<FGuid> PreviousChunksArray;
+	PreviousVersion->GetDataList(PreviousChunksArray);
+
+	FString DummyString;
+	TSet<FString> OutdatedFiles;
+	GetOutdatedFiles(PreviousVersion, DummyString, OutdatedFiles);
+
+	TArray<FGuid> RequiredChunksArray;
+	GetChunksRequiredForFiles(OutdatedFiles, RequiredChunksArray, true);
+
+	TSet<FGuid> PreviousChunksSet;
+	TSet<FGuid> RequiredChunksSet;
+	PreviousChunksSet.Append(PreviousChunksArray);
+	RequiredChunksSet.Append(RequiredChunksArray);
+
+	TSet<FGuid> DeltaChunksSet = RequiredChunksSet.Difference(PreviousChunksSet);
+
+	// sanity check
+	for (const FGuid& DeltaChunk : DeltaChunksSet)
+	{
+		check(RequiredChunksSet.Contains(DeltaChunk) == true);
+		check(PreviousChunksSet.Contains(DeltaChunk) == false);
+	}
+
+	return GetDataSize(DeltaChunksSet.Array());
 }
 
 int64 FBuildPatchAppManifest::GetBuildSize() const
@@ -1300,12 +1359,12 @@ TArray<FString> FBuildPatchAppManifest::GetBuildFileList() const
 
 int64 FBuildPatchAppManifest::GetFileSize(const TArray<FString>& Filenames) const
 {
-	int64 TotalSize = 0;
-	for (const auto& Filename : Filenames)
-	{
-		TotalSize += GetFileSize(Filename);
-	}
-	return TotalSize;
+	return BuildPatchAppManifest::GetFileSizeHelper(*this, Filenames);
+}
+
+int64 FBuildPatchAppManifest::GetFileSize(const TSet<FString>& Filenames) const
+{
+	return BuildPatchAppManifest::GetFileSizeHelper(*this, Filenames);
 }
 
 int64 FBuildPatchAppManifest::GetFileSize(const FString& Filename) const
@@ -1385,7 +1444,7 @@ void FBuildPatchAppManifest::GetDataList(TArray<FGuid>& DataGuids) const
 	ChunkInfoLookup.GetKeys(DataGuids);
 }
 
-const FFileManifestData* FBuildPatchAppManifest::GetFileManifest(const FString& Filename)
+const FFileManifestData* FBuildPatchAppManifest::GetFileManifest(const FString& Filename) const
 {
 	const FFileManifestData* const * FileManifest = FileManifestLookup.Find(Filename);
 	return (FileManifest) ? (*FileManifest) : nullptr;
@@ -1495,7 +1554,7 @@ IBuildManifestRef FBuildPatchAppManifest::Duplicate() const
 	return MakeShareable(new FBuildPatchAppManifest(*this));
 }
 
-void FBuildPatchAppManifest::CopyCustomFields(IBuildManifestRef InOther, bool bClobber)
+void FBuildPatchAppManifest::CopyCustomFields(const IBuildManifestRef& InOther, bool bClobber)
 {
 	// Cast manifest parameters
 	FBuildPatchAppManifestRef Other = StaticCastSharedRef< FBuildPatchAppManifest >(InOther);
@@ -1695,15 +1754,10 @@ bool FBuildPatchAppManifest::IsSameAs(FBuildPatchAppManifestRef Other) const
 	return this == &Other.Get() || (GetAppID() == Other->GetAppID() && GetAppName() == Other->GetAppName() && GetVersionString() == Other->GetVersionString());
 }
 
-void FBuildPatchAppManifest::GetRemovableFiles(FBuildPatchAppManifestRef OldManifest, FBuildPatchAppManifestRef NewManifest, TArray< FString >& RemovableFiles)
-{
-	NewManifest->GetRemovableFiles(OldManifest, RemovableFiles);
-}
-
-void FBuildPatchAppManifest::GetRemovableFiles(IBuildManifestRef InOldManifest, TArray< FString >& RemovableFiles) const
+void FBuildPatchAppManifest::GetRemovableFiles(const IBuildManifestRef& InOldManifest, TArray< FString >& RemovableFiles) const
 {
 	// Cast manifest parameters
-	FBuildPatchAppManifestRef OldManifest = StaticCastSharedRef< FBuildPatchAppManifest >(InOldManifest);
+	const FBuildPatchAppManifestRef OldManifest = StaticCastSharedRef< FBuildPatchAppManifest >(InOldManifest);
 	// Simply put, any files that exist in the OldManifest file list, but do not in this manifest's file list, are assumed
 	// to be files no longer required by the build
 	for (const auto& OldFile : OldManifest->Data->FileManifestList)
@@ -1746,29 +1800,30 @@ bool FBuildPatchAppManifest::NeedsResaving() const
 	return bNeedsResaving;
 }
 
-void FBuildPatchAppManifest::GetOutdatedFiles(FBuildPatchAppManifestPtr OldManifest, FBuildPatchAppManifestRef NewManifest, const FString& InstallDirectory, TSet< FString >& OutDatedFiles)
+void FBuildPatchAppManifest::GetOutdatedFiles(const FBuildPatchAppManifestPtr& OldManifest, const FString& InstallDirectory, TSet< FString >& OutDatedFiles) const
 {
+	const bool bCheckExistingFile = InstallDirectory.IsEmpty() == false;
 	if (!OldManifest.IsValid())
 	{
 		// All files are outdated if no OldManifest
 		TArray<FString> Filenames;
-		NewManifest->FileManifestLookup.GetKeys(Filenames);
+		FileManifestLookup.GetKeys(Filenames);
 		OutDatedFiles.Append(MoveTemp(Filenames));
 	}
 	else
 	{
-		// Enumerate files in the NewManifest file list, that do not exist, or have different hashes in the OldManifest
+		// Enumerate files in the this file list, that do not exist, or have different hashes in the OldManifest
 		// to be files no longer required by the build
-		for (const auto& NewFile : NewManifest->Data->FileManifestList)
+		for (const auto& NewFile : Data->FileManifestList)
 		{
 			const int64 ExistingFileSize = IFileManager::Get().FileSize(*(InstallDirectory / NewFile.Filename));
 			// Check changed
-			if (IsFileOutdated(OldManifest.ToSharedRef(), NewManifest, NewFile.Filename))
+			if (IsFileOutdated(OldManifest.ToSharedRef(), NewFile.Filename))
 			{
 				OutDatedFiles.Add(NewFile.Filename);
 			}
 			// Double check an unchanged file is not missing (size will be -1) or is incorrect size
-			else if (ExistingFileSize != NewFile.GetFileSize())
+			else if (bCheckExistingFile && ExistingFileSize != NewFile.GetFileSize())
 			{
 				OutDatedFiles.Add(NewFile.Filename);
 			}
@@ -1776,16 +1831,16 @@ void FBuildPatchAppManifest::GetOutdatedFiles(FBuildPatchAppManifestPtr OldManif
 	}
 }
 
-bool FBuildPatchAppManifest::IsFileOutdated(FBuildPatchAppManifestRef OldManifest, FBuildPatchAppManifestRef NewManifest, const FString& Filename)
+bool FBuildPatchAppManifest::IsFileOutdated(const FBuildPatchAppManifestRef& OldManifest, const FString& Filename) const
 {
 	// If both app manifests are the same, return false as only repair would touch the file.
-	if (OldManifest == NewManifest)
+	if (&OldManifest.Get() == this)
 	{
 		return false;
 	}
 	// Get file manifests
 	const FFileManifestData* OldFile = OldManifest->GetFileManifest(Filename);
-	const FFileManifestData* NewFile = NewManifest->GetFileManifest(Filename);
+	const FFileManifestData* NewFile = GetFileManifest(Filename);
 	// Out of date if not in either manifest
 	if (!OldFile || !NewFile)
 	{

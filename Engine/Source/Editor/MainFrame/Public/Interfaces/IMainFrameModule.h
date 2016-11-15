@@ -144,7 +144,8 @@ public:
 	 */
 	static IMainFrameModule& Get( )
 	{
-		return FModuleManager::LoadModuleChecked<IMainFrameModule>("MainFrame");
+		static const FName MainFrameModuleName = "MainFrame";
+		return FModuleManager::LoadModuleChecked<IMainFrameModule>(MainFrameModuleName);
 	}
 
 public:

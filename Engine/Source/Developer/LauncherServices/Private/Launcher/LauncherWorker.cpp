@@ -241,7 +241,7 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 {
 	CommandStart = TEXT("");
 	FString UATCommand = TEXT(" -utf8output");
-	static FGuid SessionId(FGuid::NewGuid());
+	FGuid SessionId(FGuid::NewGuid());
 	FString InitialMap = InProfile->GetDefaultLaunchRole()->GetInitialMap();
 	if (InitialMap.IsEmpty() && InProfile->GetCookedMaps().Num() == 1)
 	{
@@ -474,6 +474,11 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 			{
 				UATCommand += TEXT(" -dlcname=");
 				UATCommand += InProfile->GetDLCName();
+			}
+
+			if ( InProfile->IsDLCIncludingEngineContent() )
+			{
+				UATCommand += TEXT(" -DLCIncludeEngineContent");
 			}
 
 			if ( InProfile->IsGeneratingPatch() )

@@ -15,6 +15,7 @@ const FSlateBrush* FClassIconFinder::FindIconForActors(const TArray< TWeakObject
 	{
 		TWeakObjectPtr<AActor> Actor = InActors[ActorIdx];
 		UClass* ObjClass = Actor->GetClass();
+		check(ObjClass);
 
 		if (!CommonBaseClass)
 		{

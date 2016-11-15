@@ -237,11 +237,13 @@ FSlateColor SGraphNode_BehaviorTree::GetBackgroundColor() const
 	}
 	else if (BTGraph_Decorator || Cast<UBehaviorTreeGraphNode_CompositeDecorator>(GraphNode))
 	{
+		check(BTGraphNode);
 		NodeColor = bIsActiveForDebugger ? BehaviorTreeColors::Debugger::ActiveDecorator : 
 			BTGraphNode->bRootLevel ? BehaviorTreeColors::NodeBody::InjectedSubNode : BehaviorTreeColors::NodeBody::Decorator;
 	}
 	else if (Cast<UBehaviorTreeGraphNode_Task>(GraphNode))
 	{
+		check(BTGraphNode);
 		const bool bIsSpecialTask = Cast<UBTTask_RunBehavior>(BTGraphNode->NodeInstance) != NULL;
 		NodeColor = bIsSpecialTask ? BehaviorTreeColors::NodeBody::TaskSpecial : BehaviorTreeColors::NodeBody::Task;
 	}

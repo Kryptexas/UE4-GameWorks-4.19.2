@@ -86,15 +86,16 @@ void SProjectLauncherPackagingSettings::Construct( const FArguments& InArgs, con
 							[
 
 								SNew(SCheckBox)
-								.IsChecked(this, &SProjectLauncherPackagingSettings::HandleForDistributionCheckBoxIsChecked)
-							.OnCheckStateChanged(this, &SProjectLauncherPackagingSettings::HandleForDistributionCheckBoxCheckStateChanged)
-							.Padding(FMargin(4.0f, 0.0f))
-							.ToolTipText(LOCTEXT("ForDistributionCheckBoxTooltip", "If checked the build will be marked as for release to the public (distribution)."))
-							.Content()
-							[
-								SNew(STextBlock)
-								.Text(LOCTEXT("ForDistributionCheckBoxText", "Is this build for distribution to the public"))
-							]
+									.IsEnabled(this, &SProjectLauncherPackagingSettings::IsEditable)
+									.IsChecked(this, &SProjectLauncherPackagingSettings::HandleForDistributionCheckBoxIsChecked)
+									.OnCheckStateChanged(this, &SProjectLauncherPackagingSettings::HandleForDistributionCheckBoxCheckStateChanged)
+									.Padding(FMargin(4.0f, 0.0f))
+									.ToolTipText(LOCTEXT("ForDistributionCheckBoxTooltip", "If checked the build will be marked as for release to the public (distribution)."))
+									.Content()
+									[
+										SNew(STextBlock)
+										.Text(LOCTEXT("ForDistributionCheckBoxText", "Is this build for distribution to the public"))
+									]
 							]
 					]
 			]

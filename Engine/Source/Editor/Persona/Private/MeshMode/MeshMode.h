@@ -9,9 +9,9 @@
 /////////////////////////////////////////////////////
 // FMeshPropertiesSummoner
 
-struct FMeshPropertiesSummoner : public FWorkflowTabFactory
+struct FPersonaMeshPropertiesSummoner : public FWorkflowTabFactory
 {
-	FMeshPropertiesSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp);
+	FPersonaMeshPropertiesSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp);
 
 	// FWorkflowTabFactory interface
 	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override;

@@ -45,8 +45,15 @@ public:
 
 private:
 
+	void UpdateClipping();
+
+private:
+
 	EMouseCursor::Type CurrentType;
 
 	/** Cursors */
 	HCURSOR CursorHandles[ EMouseCursor::TotalCursorCount ];
+
+	bool bIsVisible;
+	RECT ClipRect;
 };

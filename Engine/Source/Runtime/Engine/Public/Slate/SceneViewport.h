@@ -220,6 +220,7 @@ public:
 	virtual FReply OnFocusReceived( const FFocusEvent& InFocusEvent ) override;
 	virtual void OnFocusLost( const FFocusEvent& InFocusEvent ) override;
 	virtual void OnViewportClosed() override;
+	virtual FReply OnRequestWindowClose() override;
 	virtual TWeakPtr<SWidget> GetWidget() override;
 	virtual FReply OnViewportActivated(const FWindowActivateEvent& InActivateEvent) override;
 	virtual void OnViewportDeactivated(const FWindowActivateEvent& InActivateEvent) override;
@@ -319,6 +320,17 @@ private:
 	{
 		return bUseSeparateRenderTarget || bForceSeparateRenderTarget;
 	}
+
+	/** 
+	 * Called right before a backbuffer is resized. If this viewport is using this backbuffer 
+	 * it will release its resource here
+	 */
+	void OnPreResizeWindowBackbuffer(void* Backbuffer);
+
+	/** 
+	 * Called right after a backbuffer is resized. This viewport will reaquire its backbuffer handle if needed
+	 */
+	void OnPostResizeWindowBackbuffer(void* Backbuffer);
 
 private:
 	/** An intermediate reply state that is reset whenever an input event is generated */

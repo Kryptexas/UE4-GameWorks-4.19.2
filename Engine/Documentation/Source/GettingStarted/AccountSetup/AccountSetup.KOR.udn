@@ -1,4 +1,5 @@
-﻿Availability:NoPublish
+﻿INTSourceChangelist:3067712
+Availability:NoPublish
 Title:에픽 게임스 계정 구성
 Crumbs: %ROOT%, GettingStarted
 Description:에픽 게임스 계정을 구성하는 법입니다.
@@ -7,11 +8,11 @@ Related: Support/Builds
 Version: 4.8
 SkillLevel: Beginner
 
-[EXCERPT:epicAccount]
-
 ## 에픽 게임스 계정 생성
 
 에픽 게임스 런처 실행을 위해서는, 유효한 에픽 게임스 계정이 있어야 합니다.
+
+[EXCERPT:epicAccount]
 
 1.	[UnrealEngine.com](https://www.unrealengine.com/what-is-unreal-engine-4) 으로 이동합니다.
 

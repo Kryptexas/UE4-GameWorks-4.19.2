@@ -27,7 +27,8 @@ UContentBrowserSettings::FSettingChangedEvent UContentBrowserSettings::SettingCh
 
 UContentBrowserSettings::UContentBrowserSettings( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
-{ }
+{
+}
 
 
 void UContentBrowserSettings::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent )
@@ -67,7 +68,6 @@ UDestructableMeshEditorSettings::UDestructableMeshEditorSettings( const FObjectI
 
 UEditorExperimentalSettings::UEditorExperimentalSettings( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
-	, bUnifiedBlueprintEditor(true)
 	, bBlueprintableComponents(true)
 	, bBlueprintPerformanceAnalysisTools(false)
 	, bUseOpenCLForConvexHullDecomp(false)
@@ -397,18 +397,21 @@ void ULevelEditorViewportSettings::PostEditChangeProperty( struct FPropertyChang
 			IndexRef = &(CurrentScalingGridSize);
 		}
 
-		// Don't allow an empty array of grid sizes
-		if (ArrayRef->Num() == 0)
+		if (ArrayRef && IndexRef)
 		{
-			ArrayRef->Add(MinGridSize);
-		}
-
-		// Don't allow negative numbers
-		for (int32 SizeIdx = 0; SizeIdx < ArrayRef->Num(); ++SizeIdx)
-		{
-			if ((*ArrayRef)[SizeIdx] < MinGridSize)
+			// Don't allow an empty array of grid sizes
+			if (ArrayRef->Num() == 0)
 			{
-				(*ArrayRef)[SizeIdx] = MinGridSize;
+				ArrayRef->Add(MinGridSize);
+			}
+
+			// Don't allow negative numbers
+			for (int32 SizeIdx = 0; SizeIdx < ArrayRef->Num(); ++SizeIdx)
+			{
+				if ((*ArrayRef)[SizeIdx] < MinGridSize)
+				{
+					(*ArrayRef)[SizeIdx] = MinGridSize;
+				}
 			}
 		}
 	}

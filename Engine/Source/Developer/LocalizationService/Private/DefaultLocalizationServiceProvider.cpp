@@ -40,7 +40,7 @@ const FName& FDefaultLocalizationServiceProvider::GetName(void) const
 
 const FText FDefaultLocalizationServiceProvider::GetDisplayName() const
 {
-	return LOCTEXT("DefaultLocalizationServiceProviderDisplayName", "Localization Service Disabled");
+	return LOCTEXT("DefaultLocalizationServiceProviderDisplayName", "None");
 }
 
 ELocalizationServiceOperationCommandResult::Type FDefaultLocalizationServiceProvider::GetState(const TArray<FLocalizationServiceTranslationIdentifier>& InTranslationIds, TArray< TSharedRef<ILocalizationServiceState, ESPMode::ThreadSafe> >& OutState, ELocalizationServiceCacheUsage::Type InStateCacheUsage)

@@ -16,6 +16,7 @@
  *  +-Tools Tabs
  *    |-Tab
  *    |-...
+ *    \ Automation >
  *    \ Developer Tools >
  */
 

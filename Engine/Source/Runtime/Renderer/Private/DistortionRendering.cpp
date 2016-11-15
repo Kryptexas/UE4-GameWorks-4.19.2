@@ -15,6 +15,12 @@
 
 DECLARE_FLOAT_COUNTER_STAT(TEXT("Distortion"), Stat_GPU_Distortion, STATGROUP_GPU);
 
+static TAutoConsoleVariable<int32> CVarDisableDistortion(
+														 TEXT("r.DisableDistortion"),
+														 0,
+														 TEXT("Prevents distortion effects from rendering.  Saves a full-screen framebuffer's worth of memory."),
+														 ECVF_Default);
+
 /**
 * A pixel shader for rendering the full screen refraction pass
 */
@@ -179,7 +185,7 @@ public:
 	
 	void SetParameters(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FMaterialRenderProxy* MaterialRenderProxy,const FSceneView* View)
 	{
-		FMeshMaterialShader::SetParameters(RHICmdList, GetVertexShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View->GetFeatureLevel()), *View, ESceneRenderTargetsMode::SetTextures);
+		FMeshMaterialShader::SetParameters(RHICmdList, GetVertexShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View->GetFeatureLevel()), *View, View->ViewUniformBuffer, ESceneRenderTargetsMode::SetTextures);
 	}
 
 	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement,const FMeshDrawingRenderState& DrawRenderState)
@@ -272,11 +278,11 @@ public:
 		const FSceneView& View
 		)
 	{
-		FMeshMaterialShader::SetParameters(RHICmdList, GetPixelShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, ESceneRenderTargetsMode::SetTextures);
+		FMeshMaterialShader::SetParameters(RHICmdList, GetPixelShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, View.ViewUniformBuffer, ESceneRenderTargetsMode::SetTextures);
 
 		float Ratio = View.UnscaledViewRect.Width() / (float)View.UnscaledViewRect.Height();
 		float Params[4];
-		Params[0] = View.ViewMatrices.ProjMatrix.M[0][0];
+		Params[0] = View.ViewMatrices.GetProjectionMatrix().M[0][0];
 		Params[1] = Ratio;
 		Params[2] = (float)View.UnscaledViewRect.Width();
 		Params[3] = (float)View.UnscaledViewRect.Height();
@@ -868,6 +874,7 @@ void FSceneRenderer::RenderDistortion(FRHICommandListImmediate& RHICmdList)
 		{
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(SceneContext.GetBufferSizeXY(), PF_B8G8R8A8, FClearValueBinding::Transparent, TexCreate_None, TexCreate_RenderTargetable, false));
 			Desc.Flags |= TexCreate_FastVRAM;
+			Desc.NumSamples = SceneContext.SceneDepthZ->GetDesc().NumSamples;
 			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, DistortionRT, TEXT("Distortion"));
 
 			// use RGBA8 light target for accumulating distortion offsets	
@@ -1017,7 +1024,7 @@ void FSceneRenderer::RenderDistortion(FRHICommandListImmediate& RHICmdList)
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI());		
 			
 		// Distortions RT is no longer needed, buffer can be reused by the pool, see BeginRenderingDistortionAccumulation() call above
-		SceneContext.FinishRenderingSceneColor(RHICmdList, true);
+		SceneContext.FinishRenderingSceneColor(RHICmdList);
 	}
 }
 
@@ -1040,8 +1047,11 @@ void FSceneRenderer::RenderDistortionES2(FRHICommandListImmediate& RHICmdList)
 			break;
 		}
 	}
-			
-	if (bRender)
+	
+	static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DisableDistortion"));
+	int32 DisableDistortion = CVar->GetInt();
+	
+	if (bRender && !DisableDistortion)
 	{
 		// Apply distortion
 		SCOPED_DRAW_EVENT(RHICmdList, Distortion);

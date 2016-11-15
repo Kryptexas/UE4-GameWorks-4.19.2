@@ -51,13 +51,11 @@ private:
 	{
 		ILauncherTaskPtr TaskPtr = Task.Pin();
 
-		if (TaskPtr.IsValid())
+		if (TaskPtr.IsValid() &&
+			TaskPtr->GetStatus() != ELauncherTaskStatus::Pending &&
+			TaskPtr->GetStatus() != ELauncherTaskStatus::Canceled)
 		{
-			if ((TaskPtr->GetStatus() != ELauncherTaskStatus::Pending) &&
-				(TaskPtr->GetStatus() != ELauncherTaskStatus::Canceled))
-			{
-				return FText::AsTimespan(TaskPtr->GetDuration());
-			}
+			return FText::AsTimespan(TaskPtr->GetDuration());
 		}
 
 		return FText::GetEmpty();
@@ -163,13 +161,37 @@ private:
 		if (TaskPtr.IsValid())
 		{
 			if ((TaskPtr->GetStatus() == ELauncherTaskStatus::Busy) ||
-				(TaskPtr->IsCancelling()))
+				(TaskPtr->IsCancelling() && TaskPtr->GetStatus() != ELauncherTaskStatus::Completed))
 			{
 				return EVisibility::Visible;
 			}
 		}
 
 		return EVisibility::Hidden;
+	}
+
+	FText HandleWarningCounterText() const
+	{
+		ILauncherTaskPtr TaskPtr = Task.Pin();
+		if (TaskPtr.IsValid() &&
+			TaskPtr->GetStatus() != ELauncherTaskStatus::Pending &&
+			TaskPtr->GetStatus() != ELauncherTaskStatus::Canceled)
+		{
+			return FText::AsNumber(TaskPtr->GetWarningCount());
+		}
+		return FText::GetEmpty();
+	}
+
+	FText HandleErrorCounterText() const
+	{
+		ILauncherTaskPtr TaskPtr = Task.Pin();
+		if (TaskPtr.IsValid() &&
+			TaskPtr->GetStatus() != ELauncherTaskStatus::Pending &&
+			TaskPtr->GetStatus() != ELauncherTaskStatus::Canceled)
+		{
+			return FText::AsNumber(TaskPtr->GetErrorCount());
+		}
+		return FText::GetEmpty();
 	}
 
 private:

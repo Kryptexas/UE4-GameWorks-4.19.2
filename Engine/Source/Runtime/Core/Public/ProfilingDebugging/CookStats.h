@@ -9,6 +9,7 @@
 #if ENABLE_COOK_STATS
 #include "Core.h"
 #include "ThreadingBase.h"
+#include "Templates/Decay.h"
 
 /**
  * Centralizes the system to gather stats from a cook that need to be collected at the core/engine level.

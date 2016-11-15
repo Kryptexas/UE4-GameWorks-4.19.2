@@ -71,6 +71,9 @@ class GRAPHEDITOR_API SCommentBubble : public SCompoundWidget
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	//~ End SWidget Interface
 
+	/** Updates the comment Visibility */
+	void TickVisibility(const double InCurrentTime, const float InDeltaTime);
+
 	/** Returns the offset from the SNode center slot */
 	FVector2D GetOffset() const;
 

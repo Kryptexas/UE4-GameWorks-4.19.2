@@ -245,7 +245,8 @@ FLinearColor SGraphNodeAnimTransition::StaticGetTransitionColor(UAnimStateTransi
 
 	// Display various types of debug data
 	UAnimBlueprint* AnimBlueprint = Cast<UAnimBlueprint>(FBlueprintEditorUtils::FindBlueprintForNodeChecked(TransNode));
-	UAnimInstance* ActiveObject = (AnimBlueprint != NULL) ? Cast<UAnimInstance>(AnimBlueprint->GetObjectBeingDebugged()) : NULL;
+	check(AnimBlueprint);
+	UAnimInstance* ActiveObject = Cast<UAnimInstance>(AnimBlueprint->GetObjectBeingDebugged());
 	UAnimBlueprintGeneratedClass* Class = AnimBlueprint->GetAnimBlueprintGeneratedClass();
 	UEdGraph* StateMachineGraph = TransNode->GetGraph();
 

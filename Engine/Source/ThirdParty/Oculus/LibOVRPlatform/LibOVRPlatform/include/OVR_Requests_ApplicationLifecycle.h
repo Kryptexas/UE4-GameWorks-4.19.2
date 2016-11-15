@@ -7,6 +7,28 @@
 #include "OVR_Platform_Defs.h"
 
 
+/// \file
+/// # Application Lifecycle
+///
+/// The Application Lifecycle APIs are designed to help you manage application state
+/// within the Oculus Runtime (PC only right now). As of writing this, the only
+/// interesting cases here revolve around Universal Windows Platform (UWP) Applications.
+///
+/// ## Why it's needed:
+/// UWP applications ship in two parts: launcher and implementation. However,
+/// the Oculus runtime only knows about the application it launched. We now provide
+/// a way to register the second application with our runtime.
+///
+/// ## How it works:
+/// The launcher will need to request a SessionKey from the Runtime using
+///   ovr_ApplicationLifecycle_GetSessionKey();
+///
+/// The launcher will then need to that session key to the second application.
+/// The second application will then need to register itself using the session key using:
+///   ovr_ApplicationLifecycle_RegisterSessionKey(char * sessionKey)
+///
+/// The second application will now be able to communicate with the runtime.
+
 /// Return a list of all the pids that we know are registered to your
 /// application.
 ///

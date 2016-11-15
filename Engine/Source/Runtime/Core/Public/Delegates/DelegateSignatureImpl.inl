@@ -7,6 +7,7 @@
 
 #pragma once
 #include "UObject/ScriptDelegates.h"
+#include "Templates/RemoveReference.h"
 
 /**
  * Unicast delegate base object.
