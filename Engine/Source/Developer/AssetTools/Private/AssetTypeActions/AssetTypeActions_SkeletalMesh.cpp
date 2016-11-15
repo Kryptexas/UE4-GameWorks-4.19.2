@@ -511,33 +511,15 @@ void FAssetTypeActions_SkeletalMesh::OpenAssetEditor( const TArray<UObject*>& In
 
 			if ( Mesh->Skeleton != NULL )
 			{
-				if (GetDefault<UPersonaOptions>()->bUseStandaloneAnimationEditors)
+				const bool bBringToFrontIfOpen = true;
+				if (IAssetEditorInstance* EditorInstance = FAssetEditorManager::Get().FindEditorForAsset(Mesh, bBringToFrontIfOpen))
 				{
-					const bool bBringToFrontIfOpen = true;
-					if (IAssetEditorInstance* EditorInstance = FAssetEditorManager::Get().FindEditorForAsset(Mesh, bBringToFrontIfOpen))
-					{
-						EditorInstance->FocusWindow(Mesh);
-					}
-					else
-					{
-						ISkeletalMeshEditorModule& SkeletalMeshEditorModule = FModuleManager::LoadModuleChecked<ISkeletalMeshEditorModule>("SkeletalMeshEditor");
-						SkeletalMeshEditorModule.CreateSkeletalMeshEditor(Mode, EditWithinLevelEditor, Mesh);
-					}
+					EditorInstance->FocusWindow(Mesh);
 				}
 				else
 				{
-					const bool bBringToFrontIfOpen = false;
-					if (IAssetEditorInstance* EditorInstance = FAssetEditorManager::Get().FindEditorForAsset(Mesh->Skeleton, bBringToFrontIfOpen))
-					{
-						// The skeleton is already open in an editor.
-						// Tell persona that a mesh was requested
-						EditorInstance->FocusWindow(Mesh);
-					}
-					else
-					{
-						FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>("Persona");
-						PersonaModule.CreatePersona(Mode, EditWithinLevelEditor, Mesh->Skeleton, NULL, NULL, Mesh);
-					}
+					ISkeletalMeshEditorModule& SkeletalMeshEditorModule = FModuleManager::LoadModuleChecked<ISkeletalMeshEditorModule>("SkeletalMeshEditor");
+					SkeletalMeshEditorModule.CreateSkeletalMeshEditor(Mode, EditWithinLevelEditor, Mesh);
 				}
 			}
 		}

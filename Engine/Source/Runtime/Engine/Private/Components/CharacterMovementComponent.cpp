@@ -328,6 +328,7 @@ UCharacterMovementComponent::UCharacterMovementComponent(const FObjectInitialize
 	bCanWalkOffLedgesWhenCrouching = false;
 	bNetworkSmoothingComplete = true; // Initially true until we get a net update, so we don't try to smooth to an uninitialized value.
 	bWantsToLeaveNavWalking = false;
+	bIsNavWalkingOnServer = false;
 
 	bEnablePhysicsInteraction = true;
 	StandingDownwardForceScale = 1.0f;
@@ -387,6 +388,7 @@ UCharacterMovementComponent::UCharacterMovementComponent(const FObjectInitialize
 	NavMeshProjectionInterpSpeed = 12.f;
 	NavMeshProjectionHeightScaleUp = 0.67f;
 	NavMeshProjectionHeightScaleDown = 1.0f;
+	NavWalkingFloorDistTolerance = 10.0f;
 }
 
 void UCharacterMovementComponent::PostLoad()
@@ -968,6 +970,9 @@ void UCharacterMovementComponent::ApplyNetworkMovementMode(const uint8 ReceivedM
 	uint8 NetCustomMode(0);
 	UnpackNetworkMovementMode(ReceivedMode, NetMovementMode, NetCustomMode, NetGroundMode);
 	ensure(NetGroundMode == MOVE_Walking || NetGroundMode == MOVE_NavWalking);
+
+	// set additional flag, GroundMovementMode will be overwritten by SetMovementMode to match actual mode on client side
+	bIsNavWalkingOnServer = (NetGroundMode == MOVE_NavWalking);
 
 	GroundMovementMode = NetGroundMode;
 	SetMovementMode(NetMovementMode, NetCustomMode);
@@ -1882,16 +1887,8 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 
 		ApplyAccumulatedForces(DeltaSeconds);
 
-		// Check for a change in crouch state. Players toggle crouch by changing bWantsToCrouch.
-		const bool bAllowedToCrouch = CanCrouchInCurrentState();
-		if ((!bAllowedToCrouch || !bWantsToCrouch) && IsCrouching())
-		{
-			UnCrouch(false);
-		}
-		else if (bWantsToCrouch && bAllowedToCrouch && !IsCrouching()) 
-		{
-			Crouch(false);
-		}
+		// Update the character state before we do our movement
+		UpdateCharacterStateBeforeMovement();
 
 		if (MovementMode == MOVE_NavWalking && bWantsToLeaveNavWalking)
 		{
@@ -1990,11 +1987,8 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 			return;
 		}
 
-		// uncrouch if no longer allowed to be crouched
-		if (IsCrouching() && !CanCrouchInCurrentState())
-		{
-			UnCrouch(false);
-		}
+		// Update character state based on change from movement
+		UpdateCharacterStateAfterMovement();
 
 		if (!HasAnimRootMotion() && !CharacterOwner->IsMatineeControlled())
 		{
@@ -2231,7 +2225,7 @@ void UCharacterMovementComponent::Crouch(bool bClientSimulation)
 		if (bCrouchMaintainsBaseLocation)
 		{
 			// Intentionally not using MoveUpdatedComponent, where a horizontal plane constraint would prevent the base of the capsule from staying at the same spot.
-			UpdatedComponent->MoveComponent(FVector(0.f, 0.f, -ScaledHalfHeightAdjust), UpdatedComponent->GetComponentQuat(), true);
+			UpdatedComponent->MoveComponent(FVector(0.f, 0.f, -ScaledHalfHeightAdjust), UpdatedComponent->GetComponentQuat(), true, nullptr, EMoveComponentFlags::MOVECOMP_NoFlags, ETeleportType::TeleportPhysics);
 		}
 
 		CharacterOwner->bIsCrouched = true;
@@ -2291,8 +2285,6 @@ void UCharacterMovementComponent::UnCrouch(bool bClientSimulation)
 
 	// Grow to uncrouched size.
 	check(CharacterOwner->GetCapsuleComponent());
-	bool bUpdateOverlaps = false;
-	CharacterOwner->GetCapsuleComponent()->SetCapsuleSize(DefaultCharacter->GetCapsuleComponent()->GetUnscaledCapsuleRadius(), DefaultCharacter->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight(), bUpdateOverlaps);
 
 	if( !bClientSimulation )
 	{
@@ -2301,7 +2293,9 @@ void UCharacterMovementComponent::UnCrouch(bool bClientSimulation)
 		FCollisionQueryParams CapsuleParams(CharacterMovementComponentStatics::CrouchTraceName, false, CharacterOwner);
 		FCollisionResponseParams ResponseParam;
 		InitCollisionParams(CapsuleParams, ResponseParam);
-		const FCollisionShape StandingCapsuleShape = GetPawnCapsuleCollisionShape(SHRINK_HeightCustom, -SweepInflation); // Shrink by negative amount, so actually grow it.
+
+		// Compensate for the difference between current capsule size and standing size
+		const FCollisionShape StandingCapsuleShape = GetPawnCapsuleCollisionShape(SHRINK_HeightCustom, -SweepInflation - ScaledHalfHeightAdjust); // Shrink by negative amount, so actually grow it.
 		const ECollisionChannel CollisionChannel = UpdatedComponent->GetCollisionObjectType();
 		bool bEncroached = true;
 
@@ -2338,7 +2332,7 @@ void UCharacterMovementComponent::UnCrouch(bool bClientSimulation)
 						if (!bEncroached)
 						{
 							// Intentionally not using MoveUpdatedComponent, where a horizontal plane constraint would prevent the base of the capsule from staying at the same spot.
-							UpdatedComponent->MoveComponent(NewLoc - PawnLocation, UpdatedComponent->GetComponentQuat(), false);
+							UpdatedComponent->MoveComponent(NewLoc - PawnLocation, UpdatedComponent->GetComponentQuat(), false, nullptr, EMoveComponentFlags::MOVECOMP_NoFlags, ETeleportType::TeleportPhysics);
 						}
 					}
 				}
@@ -2367,7 +2361,7 @@ void UCharacterMovementComponent::UnCrouch(bool bClientSimulation)
 			if (!bEncroached)
 			{
 				// Commit the change in location.
-				UpdatedComponent->MoveComponent(StandingLocation - PawnLocation, UpdatedComponent->GetComponentQuat(), false);
+				UpdatedComponent->MoveComponent(StandingLocation - PawnLocation, UpdatedComponent->GetComponentQuat(), false, nullptr, EMoveComponentFlags::MOVECOMP_NoFlags, ETeleportType::TeleportPhysics);
 				bForceNextFloorCheck = true;
 			}
 		}
@@ -2375,7 +2369,6 @@ void UCharacterMovementComponent::UnCrouch(bool bClientSimulation)
 		// If still encroached then abort.
 		if (bEncroached)
 		{
-			CharacterOwner->GetCapsuleComponent()->SetCapsuleSize(CharacterOwner->GetCapsuleComponent()->GetUnscaledCapsuleRadius(), OldUnscaledHalfHeight, false);
 			return;
 		}
 
@@ -2386,9 +2379,8 @@ void UCharacterMovementComponent::UnCrouch(bool bClientSimulation)
 		bShrinkProxyCapsule = true;
 	}
 
-	// now call SetCapsuleSize() to cause touch/untouch events
-	bUpdateOverlaps = true;
-	CharacterOwner->GetCapsuleComponent()->SetCapsuleSize(DefaultCharacter->GetCapsuleComponent()->GetUnscaledCapsuleRadius(), DefaultCharacter->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight(), bUpdateOverlaps);
+	// Now call SetCapsuleSize() to cause touch/untouch events and actually grow the capsule
+	CharacterOwner->GetCapsuleComponent()->SetCapsuleSize(DefaultCharacter->GetCapsuleComponent()->GetUnscaledCapsuleRadius(), DefaultCharacter->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight(), true);
 
 	const float MeshAdjust = ScaledHalfHeightAdjust;
 	AdjustProxyCapsuleSize();
@@ -2403,6 +2395,29 @@ void UCharacterMovementComponent::UnCrouch(bool bClientSimulation)
 			ClientData->MeshTranslationOffset += FVector(0.f, 0.f, MeshAdjust);
 			ClientData->OriginalMeshTranslationOffset = ClientData->MeshTranslationOffset;
 		}
+	}
+}
+
+void UCharacterMovementComponent::UpdateCharacterStateBeforeMovement()
+{
+	// Check for a change in crouch state. Players toggle crouch by changing bWantsToCrouch.
+	const bool bAllowedToCrouch = CanCrouchInCurrentState();
+	if ((!bAllowedToCrouch || !bWantsToCrouch) && IsCrouching())
+	{
+		UnCrouch(false);
+	}
+	else if (bWantsToCrouch && bAllowedToCrouch && !IsCrouching())
+	{
+		Crouch(false);
+	}
+}
+
+void UCharacterMovementComponent::UpdateCharacterStateAfterMovement()
+{
+	// Uncrouch if no longer allowed to be crouched
+	if (IsCrouching() && !CanCrouchInCurrentState())
+	{
+		UnCrouch(false);
 	}
 }
 
@@ -6455,7 +6470,15 @@ void UCharacterMovementComponent::SmoothCorrection(const FVector& OldLocation, c
 		}
 
 		// The mesh doesn't move, but the capsule does so we have a new offset.
-		const FVector NewToOldVector = (OldLocation - NewLocation);
+		FVector NewToOldVector = (OldLocation - NewLocation);
+		if (bIsNavWalkingOnServer && FMath::Abs(NewToOldVector.Z) < NavWalkingFloorDistTolerance)
+		{
+			// ignore smoothing on Z axis
+			// don't modify new location (local simulation result), since it's probably more accurate than server data
+			// and shouldn't matter as long as difference is relatively small
+			NewToOldVector.Z = 0;
+		}
+
 		const float DistSq = NewToOldVector.SizeSquared();
 		if (DistSq > FMath::Square(ClientData->MaxSmoothNetUpdateDist))
 		{

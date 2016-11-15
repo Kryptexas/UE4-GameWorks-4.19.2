@@ -704,14 +704,6 @@ public:
 	UPROPERTY()
 	UObject *GameSingleton;
 
-	/** The tire type used when no tire type is explicitly applied. */
-	UPROPERTY()
-	class UTireType* DefaultTireType;
-
-	/** Path to the default tire type */
-	UPROPERTY(globalconfig, EditAnywhere, Category=DefaultClasses, meta=(AllowedClasses="TireType", DisplayName="Default Tire Type"), AdvancedDisplay)
-	FStringAssetReference DefaultTireTypeName;
-
 	/** Path that levels for play on console will be saved to (relative to FPaths::GameSavedDir()) */
 	UPROPERTY(config)
 	FString PlayOnConsoleSaveDir;
@@ -1129,9 +1121,13 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Blueprints)
 	uint32 bCanBlueprintsTickByDefault:1;
 
-	/** Controls whether anim blueprint nodes that access member variables of their class directly should use the optimized path that avoids a thunk to the Blueprint VM */
+	/** Controls whether anim blueprint nodes that access member variables of their class directly should use the optimized path that avoids a thunk to the Blueprint VM. This will force all anim blueprints to be recompiled. */
 	UPROPERTY(EditAnywhere, config, Category="Anim Blueprints")
 	uint32 bOptimizeAnimBlueprintMemberVariableAccess:1;
+
+	/** Controls whether by default we allow anim blueprint graph updates to be performed on non-game threads. This enables some extra checks in the anim blueprint compiler that will warn when unsafe operations are being attempted. This will force all anim blueprints to be recompiled. */
+	UPROPERTY(EditAnywhere, config, Category="Anim Blueprints")
+	uint32 bAllowMultiThreadedAnimationUpdate:1;
 
 	/** @todo document */
 	UPROPERTY(config)

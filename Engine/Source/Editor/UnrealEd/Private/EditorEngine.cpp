@@ -726,7 +726,8 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			TEXT("SizeMap"),
 			TEXT("MergeActors"),
 			TEXT("NiagaraEditor"),
-			TEXT("InputBindingEditor")
+			TEXT("InputBindingEditor"),
+			TEXT("AudioEditor")
 		};
 
 		FScopedSlowTask ModuleSlowTask(ARRAY_COUNT(ModuleNames));
@@ -778,14 +779,6 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 		{
 			FModuleManager::Get().LoadModule(TEXT("EnvironmentQueryEditor"));
 		}
-
-		bool bGameplayAbilitiesEnabled = false;
-		GConfig->GetBool(TEXT("GameplayAbilities"), TEXT("GameplayAbilitiesEditorEnabled"), bGameplayAbilitiesEnabled, GEngineIni);
-		if (bGameplayAbilitiesEnabled)
-		{
-			FModuleManager::Get().LoadModule(TEXT("GameplayAbilitiesEditor"));
-		}
-
 
 		FModuleManager::Get().LoadModule(TEXT("LogVisualizer"));
 		FModuleManager::Get().LoadModule(TEXT("HotReload"));
@@ -1864,7 +1857,8 @@ void UEditorEngine::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 			Blueprint->Status = BS_Dirty;
 		}
 	}
-	else if (PropertyName == GET_MEMBER_NAME_CHECKED(UEngine, bOptimizeAnimBlueprintMemberVariableAccess))
+	else if (PropertyName == GET_MEMBER_NAME_CHECKED(UEngine, bOptimizeAnimBlueprintMemberVariableAccess) ||
+			 PropertyName == GET_MEMBER_NAME_CHECKED(UEngine, bAllowMultiThreadedAnimationUpdate))
 	{
 		FScopedSlowTask SlowTask(100, LOCTEXT("DirtyingAnimBlueprintsDueToOptimizationChange", "Invalidating All Anim Blueprints"));
 

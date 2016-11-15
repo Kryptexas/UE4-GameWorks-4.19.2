@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "WindowsApplication.h"
@@ -767,6 +767,23 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 			return Result;
 		}();
 
+		bool bMessageExternallyHandled = false;
+		int32 ExternalMessageHandlerResult = 0;
+
+		// give others a chance to handle messages
+		for (IWindowsMessageHandler* Handler : MessageHandlers)
+		{
+			int32 HandlerResult = 0;
+			if (Handler->ProcessMessage(hwnd, msg, wParam, lParam, HandlerResult))
+			{
+				if (!bMessageExternallyHandled)
+				{
+					bMessageExternallyHandled = true;
+					ExternalMessageHandlerResult = HandlerResult;
+				}
+			}
+		}
+
 		switch(msg)
 		{
 		case WM_INPUTLANGCHANGEREQUEST:
@@ -1345,19 +1362,12 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 				XInput->SetNeedsControllerStateUpdate(); 
 				QueryConnectedMice();
 			}
+			break;
 
 		default:
+			if (bMessageExternallyHandled)
 			{
-				int32 HandlerResult = 0;
-
-				// give others a chance to handle unprocessed messages
-				for (auto Handler : MessageHandlers)
-				{
-					if (Handler->ProcessMessage(hwnd, msg, wParam, lParam, HandlerResult))
-					{
-						return HandlerResult;
-					}
-				}
+				return ExternalMessageHandlerResult;
 			}
 		}
 	}

@@ -56,6 +56,7 @@ namespace nvidia
 #endif // WITH_APEX
 
 struct FConstraintInstance;
+class UPhysicsAsset;
 
 struct FConstraintBrokenDelegateData
 {
@@ -290,6 +291,15 @@ public:
 	/** Gets the array of collision notifications, pending execution at the end of the physics engine run. */
 	TArray<FCollisionNotifyInfo>& GetPendingCollisionNotifies(int32 SceneType){ return PendingCollisionData[SceneType].PendingCollisionNotifies; }
 
+
+	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnPhysScenePreTick, FPhysScene*, uint32 /*SceneType*/, float /*DeltaSeconds*/);
+	FOnPhysScenePreTick OnPhysScenePreTick;
+
+	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnPhysSceneStep, FPhysScene*, uint32 /*SceneType*/, float /*DeltaSeconds*/);
+	FOnPhysSceneStep OnPhysSceneStep;
+
+
+
 private:
 	/** World that owns this physics scene */
 	UWorld*							OwningWorld;
@@ -425,10 +435,6 @@ private:
 	class PxCpuDispatcher*			CPUDispatcher[PST_MAX];
 	/** Simulation event callback object */
 	physx::PxSimulationEventCallback*			SimEventCallback[PST_MAX];
-#if WITH_VEHICLE
-	/** Vehicle scene */
-	class FPhysXVehicleManager*			VehicleManager;
-#endif
 #endif	//
 
 	struct FPendingCollisionData
@@ -458,10 +464,6 @@ public:
 	/** Utility for looking up the PxScene of the given EPhysicsSceneType associated with this FPhysScene.  SceneType must be in the range [0,PST_MAX). */
 	ENGINE_API physx::PxScene*					GetPhysXScene(uint32 SceneType);
 
-#if WITH_VEHICLE
-	/** Get the vehicle manager */
-	FPhysXVehicleManager*						GetVehicleManager();
-#endif
 #endif
 
 #if WITH_APEX
@@ -861,3 +863,20 @@ void	ListAwakeRigidBodies(bool bIncludeKinematic, UWorld* world);
 FTransform FindBodyTransform(AActor* Actor, FName BoneName);
 FBox	FindBodyBox(AActor* Actor, FName BoneName);
 
+/** Set of delegates to allowing hooking different parts of the physics engine */
+class ENGINE_API FPhysicsDelegates
+{
+public:
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnUpdatePhysXMaterial, UPhysicalMaterial*);
+	static FOnUpdatePhysXMaterial OnUpdatePhysXMaterial;
+
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnPhysicsAssetChanged, const UPhysicsAsset*);
+	static FOnPhysicsAssetChanged OnPhysicsAssetChanged;
+
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPhysSceneInit, FPhysScene*, EPhysicsSceneType);
+	static FOnPhysSceneInit OnPhysSceneInit;
+
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPhysSceneTerm, FPhysScene*, EPhysicsSceneType);
+	static FOnPhysSceneTerm OnPhysSceneTerm;
+
+};

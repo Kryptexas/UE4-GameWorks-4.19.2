@@ -142,26 +142,29 @@ public:
 
 	// Note: @@ will re replaced by FEdGraphToken::Create
 	template<typename... Args>
-	void Error(const TCHAR* Format, Args... args)
+	TSharedRef<FTokenizedMessage> Error(const TCHAR* Format, Args... args)
 	{
 		++NumErrors;
 		TSharedRef<FTokenizedMessage> Line = FTokenizedMessage::Create(EMessageSeverity::Error);
 		InternalLogMessage(Format, Line, args...);
+		return Line;
 	}
 
 	template<typename... Args>
-	void Warning(const TCHAR* Format, Args... args)
+	TSharedRef<FTokenizedMessage> Warning(const TCHAR* Format, Args... args)
 	{
 		++NumWarnings;
 		TSharedRef<FTokenizedMessage> Line = FTokenizedMessage::Create(EMessageSeverity::Warning);
 		InternalLogMessage(Format, Line, args...);
+		return Line;
 	}
 
 	template<typename... Args>
-	void Note(const TCHAR* Format, Args... args)
+	TSharedRef<FTokenizedMessage> Note(const TCHAR* Format, Args... args)
 	{
 		TSharedRef<FTokenizedMessage> Line = FTokenizedMessage::Create(EMessageSeverity::Info);
 		InternalLogMessage(Format, Line, args...);
+		return Line;
 	}
 
 	/** Update the source backtrack map to note that NewObject was most closely generated/caused by the SourceObject */

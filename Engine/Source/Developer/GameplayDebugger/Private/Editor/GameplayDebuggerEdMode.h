@@ -3,7 +3,9 @@
 #pragma once
 
 #if WITH_EDITOR
+#include "EditorModes.h"
 #include "EdMode.h"
+#include "EditorViewportClient.h"
 
 class FGameplayDebuggerEdMode : public FEdMode
 {

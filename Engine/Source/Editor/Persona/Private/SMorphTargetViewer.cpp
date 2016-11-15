@@ -9,6 +9,7 @@
 #include "SSearchBox.h"
 #include "Animation/MorphTarget.h"
 #include "Animation/AnimInstance.h"
+#include "IPersonaPreviewScene.h"
 
 #define LOCTEXT_NAMESPACE "SMorphTargetViewer"
 

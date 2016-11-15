@@ -72,8 +72,6 @@ private:
 	/** The name and weight of the retarget source*/
 	FDisplayedBoneMappingInfoPtr	Item;
 
-	/** Pointer back to the Persona that owns us */
-	TWeakPtr<FPersona> PersonaPtr;
 
 	// Bone tree widget delegates
 	void OnBoneSelectionChanged(FName Name);
@@ -136,7 +134,7 @@ TSharedRef< SWidget > SBoneMappingListRow::GenerateWidgetForColumn( const FName&
 				+SHorizontalBox::Slot()
 				[
 					SNew(SBoneSelectionWidget, Item->EditableSkeletonPtr.Pin().ToSharedRef())
-					.Tooltip(FText::Format(LOCTEXT("BoneSelectinWidget", "Select Bone for node {0}"), FText::FromString(Item->GetDisplayName())))
+					.ToolTipText(FText::Format(LOCTEXT("BoneSelectinWidget", "Select Bone for node {0}"), FText::FromString(Item->GetDisplayName())))
 					.OnBoneSelectionChanged(this, &SBoneMappingListRow::OnBoneSelectionChanged)
 					.OnGetSelectedBone(this, &SBoneMappingListRow::GetSelectedBone)
 				]

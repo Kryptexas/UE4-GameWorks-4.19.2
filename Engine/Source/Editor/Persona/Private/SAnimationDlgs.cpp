@@ -2,7 +2,6 @@
 
 
 #include "PersonaPrivatePCH.h"
-#include "Persona.h"
 #include "SAnimationDlgs.h"
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 #include "Developer/AssetTools/Public/AssetToolsModule.h"

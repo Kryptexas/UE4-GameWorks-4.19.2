@@ -133,7 +133,7 @@ void FEngineAnalytics::Initialize()
 			}
 			else
 			{
-				Analytics->SetUserID(FString::Printf(TEXT("%s|%s|%s"), *FPlatformMisc::GetMachineId().ToString(EGuidFormats::Digits).ToLower(), *FPlatformMisc::GetEpicAccountId(), *FPlatformMisc::GetOperatingSystemId()));
+				Analytics->SetUserID(FString::Printf(TEXT("%s|%s|%s"), *FPlatformMisc::GetLoginId(), *FPlatformMisc::GetEpicAccountId(), *FPlatformMisc::GetOperatingSystemId()));
 			}
 
 			TArray<FAnalyticsEventAttribute> StartSessionAttributes;
@@ -164,6 +164,7 @@ void FEngineAnalytics::Initialize()
 
 void FEngineAnalytics::Shutdown(bool bIsEngineShutdown)
 {
+	ensure(!Analytics.IsValid() || Analytics.IsUnique());
 	Analytics.Reset();
 	bIsInitialized = false;
 

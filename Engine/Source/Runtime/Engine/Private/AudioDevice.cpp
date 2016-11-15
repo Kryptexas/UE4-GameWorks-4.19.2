@@ -116,7 +116,7 @@ FAudioDevice::FAudioDevice()
 #if !UE_BUILD_SHIPPING
 	, RequestedAudioStats(0)
 #endif
-	, UpdateDeltaTime(0.0f)
+	, DeviceDeltaTime(0.0f)
 	, ConcurrencyManager(this)
 {
 }
@@ -2920,13 +2920,15 @@ void FAudioDevice::Update(bool bGameTicking)
 	// Check for any audio device state changes before playing or updating audio
 	CheckDeviceStateChange();
 
-	double CurrTime = FPlatformTime::Seconds();
-	UpdateDeltaTime = CurrTime - LastUpdateTime;
-	LastUpdateTime = CurrTime;
+	// Updates the audio device delta time
+	UpdateDeviceDeltaTime();
+
+	// Update the audio clock, this can be overridden per platform to get a sample-accurate clock
+	UpdateAudioClock();
 
 	if (bGameTicking)
 	{
-		GlobalPitchScale.Update(UpdateDeltaTime);
+		GlobalPitchScale.Update(GetDeviceDeltaTime());
 	}
 
 	// Start a new frame
@@ -2973,7 +2975,7 @@ void FAudioDevice::Update(bool bGameTicking)
 	}
 
 	// Gets the current state of the sound classes accounting for sound mix
-	UpdateSoundClassProperties(UpdateDeltaTime);
+	UpdateSoundClassProperties(GetDeviceDeltaTime());
 
 	ProcessingPendingActiveSoundStops();
 

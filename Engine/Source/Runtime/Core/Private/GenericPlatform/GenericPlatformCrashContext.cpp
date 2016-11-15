@@ -51,7 +51,7 @@ namespace NCachedCrashContextProperties
 	static FString BaseDir;
 	static FString RootDir;
 	static FString EpicAccountId;
-	static FString MachineIdStr;
+	static FString LoginIdStr;
 	static FString OsVersion;
 	static FString OsSubVersion;
 	static int32 NumberOfCores;
@@ -86,7 +86,7 @@ void FGenericCrashContext::Initialize()
 	NCachedCrashContextProperties::BaseDir = FPlatformProcess::BaseDir();
 	NCachedCrashContextProperties::RootDir = FPlatformMisc::RootDir();
 	NCachedCrashContextProperties::EpicAccountId = FPlatformMisc::GetEpicAccountId();
-	NCachedCrashContextProperties::MachineIdStr = FPlatformMisc::GetMachineId().ToString(EGuidFormats::Digits);
+	NCachedCrashContextProperties::LoginIdStr = FPlatformMisc::GetLoginId();
 	FPlatformMisc::GetOSVersions(NCachedCrashContextProperties::OsVersion, NCachedCrashContextProperties::OsSubVersion);
 	NCachedCrashContextProperties::NumberOfCores = FPlatformMisc::NumberOfCores();
 	NCachedCrashContextProperties::NumberOfCoresIncludingHyperthreads = FPlatformMisc::NumberOfCoresIncludingHyperthreads();
@@ -245,7 +245,8 @@ void FGenericCrashContext::SerializeContentToBuffer()
 
 	AddCrashProperty( TEXT( "BaseDir" ), *NCachedCrashContextProperties::BaseDir );
 	AddCrashProperty( TEXT( "RootDir" ), *NCachedCrashContextProperties::RootDir );
-	AddCrashProperty( TEXT( "MachineId" ), *NCachedCrashContextProperties::MachineIdStr );
+	AddCrashProperty( TEXT( "MachineId" ), *NCachedCrashContextProperties::LoginIdStr.ToUpper() );
+	AddCrashProperty( TEXT( "LoginId" ), *NCachedCrashContextProperties::LoginIdStr );
 	AddCrashProperty( TEXT( "EpicAccountId" ), *NCachedCrashContextProperties::EpicAccountId );
 
 	AddCrashProperty( TEXT( "CallStack" ), TEXT( "" ) );

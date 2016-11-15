@@ -218,9 +218,6 @@ void FUnrealEdMisc::OnInit()
 	// Register common asset editor commands
 	FAssetEditorCommonCommands::Register();
 
-	// Register Graph based SoundCue editor commands
-	FSoundCueGraphEditorCommands::Register();
-
 	// Register Material Editor commands
 	FMaterialEditorCommands::Register();
 

@@ -5,6 +5,7 @@
 #include "GameplayTagContainer.h"
 #include "GameplayTagsSettings.generated.h"
 
+/** A single redirect from a deleted tag to the new tag that should replace it */
 USTRUCT()
 struct GAMEPLAYTAGS_API FGameplayTagRedirect
 {
@@ -22,7 +23,7 @@ struct GAMEPLAYTAGS_API FGameplayTagRedirect
 	}
 };
 
-/** Base class for storing a list of gameplay tags as an ini list */
+/** Base class for storing a list of gameplay tags as an ini list. This is used for both the central list and additional lists */
 UCLASS(config = GameplayTagsList, notplaceable)
 class GAMEPLAYTAGS_API UGameplayTagsList : public UObject
 {
@@ -59,14 +60,6 @@ class GAMEPLAYTAGS_API UGameplayTagsSettings : public UGameplayTagsList
 {
 	GENERATED_UCLASS_BODY()
 
-	/** List of active tag redirects */
-	UPROPERTY(config, EditAnywhere, Category = GameplayTags)
-	TArray<FGameplayTagRedirect> GameplayTagRedirects;
-
-	/** List of data tables to load tags from */
-	UPROPERTY(config, EditAnywhere, Category = GameplayTags, meta = (AllowedClasses = "DataTable"))
-	TArray<FStringAssetReference> GameplayTagTableList;
-
 	/** If true, will import tags from ini files in the config/tags folder */
 	UPROPERTY(config, EditAnywhere, Category = GameplayTags)
 	bool ImportTagsFromConfig;
@@ -78,6 +71,14 @@ class GAMEPLAYTAGS_API UGameplayTagsSettings : public UGameplayTagsList
 	/** If true, will replicate gameplay tags by index instead of name. For this to work, tags must be identical on client and server */
 	UPROPERTY(config, EditAnywhere, Category = "Advanced Replication")
 	bool FastReplication;
+
+	/** List of data tables to load tags from */
+	UPROPERTY(config, EditAnywhere, Category = GameplayTags, meta = (AllowedClasses = "DataTable"))
+	TArray<FStringAssetReference> GameplayTagTableList;
+
+	/** List of active tag redirects */
+	UPROPERTY(config, EditAnywhere, Category = GameplayTags)
+	TArray<FGameplayTagRedirect> GameplayTagRedirects;
 
 	/** List of tags most frequently replicated */
 	UPROPERTY(config, EditAnywhere, Category = "Advanced Replication")

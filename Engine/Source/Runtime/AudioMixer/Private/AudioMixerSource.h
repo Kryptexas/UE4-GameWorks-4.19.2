@@ -134,11 +134,8 @@ namespace Audio
 		/** Computes the stereo-channel map. */
 		bool ComputeStereoChannelMap();
 
-		/** Computes the quad channel map. */
-		bool ComputeQuadChannelMap();
-
-		/** Computes the hex channel map. */
-		bool ComputeHexChannelMap();
+		/** Compute the channel map based on the number of channels. */
+		bool ComputeChannelMap(const int32 NumChannels);
 
 		/** Whether or not we should create the source voice with the HRTF spatializer. */
 		bool UseHRTSpatialization() const;

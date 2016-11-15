@@ -33,6 +33,8 @@
 #include "Engine/PreviewMeshCollection.h"
 #include "AssetViewerSettings.h"
 #include "IPersonaEditorModeManager.h"
+#include "PersonaModule.h"
+#include "AnimationEditorPreviewScene.h"
 
 namespace {
 	// Value from UE3
@@ -71,6 +73,7 @@ FAnimationViewportClient::FAnimationViewportClient(const TSharedRef<ISkeletonTre
 	, bFocusOnDraw(false)
 	, bInstantFocusOnDraw(true)
 	, bShowMeshStats(bInShowStats)
+	, bInitiallyFocused(false)
 {
 	// we actually own the mode tools here, we just override its type in the FEditorViewportClient constructor above
 	bOwnsModeTools = true;
@@ -130,6 +133,7 @@ FAnimationViewportClient::FAnimationViewportClient(const TSharedRef<ISkeletonTre
 	InPreviewScene->RegisterOnPreviewMeshChanged(FOnPreviewMeshChanged::CreateRaw(this, &FAnimationViewportClient::HandleSkeletalMeshChanged));
 	HandleSkeletalMeshChanged(InPreviewScene->GetPreviewMeshComponent()->SkeletalMesh);
 	InPreviewScene->RegisterOnInvalidateViews(FSimpleDelegate::CreateRaw(this, &FAnimationViewportClient::HandleInvalidateViews));
+	InPreviewScene->RegisterOnFocusViews(FSimpleDelegate::CreateRaw(this, &FAnimationViewportClient::HandleFocusViews));
 
 	// Register delegate to update the show flags when the post processing is turned on or off
 	UAssetViewerSettings::Get()->OnAssetViewerSettingsChanged().AddRaw(this, &FAnimationViewportClient::OnAssetViewerSettingsChanged);
@@ -282,7 +286,11 @@ void FAnimationViewportClient::HandleSkeletalMeshChanged(USkeletalMesh* InSkelet
 {
 	GetSkeletonTree()->DeselectAll();
 
-	FocusViewportOnPreviewMesh();
+	if (!bInitiallyFocused)
+	{
+		FocusViewportOnPreviewMesh();
+		bInitiallyFocused = true;
+	}
 
 	UpdateCameraSetup();
 
@@ -967,12 +975,6 @@ bool FAnimationViewportClient::InputKey( FViewport* InViewport, int32 Controller
 {
 	bool bHandled = false;
 
-	if(Event == IE_Pressed && Key == EKeys::F)
-	{
-		bHandled = true;
-		FocusViewportOnPreviewMesh();
-	}
-
 	FAdvancedPreviewScene* AdvancedScene = static_cast<FAdvancedPreviewScene*>(PreviewScene);
 	bHandled |= AdvancedScene->HandleInputKey(InViewport, ControllerId, Key, Event, AmountDepressed, bGamepad);
 
@@ -1196,6 +1198,20 @@ void FAnimationViewportClient::DrawBones(const USkeletalMeshComponent* MeshCompo
 	{
 		SelectedBones = DebugMeshComponent->BonesOfInterest;
 
+		if(GetBoneDrawMode() == EBoneDrawMode::SelectedAndParents)
+		{
+			int32 BoneIndex = GetAnimPreviewScene()->GetSelectedBoneIndex();
+			while (BoneIndex != INDEX_NONE)
+			{
+				int32 ParentIndex = DebugMeshComponent->SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
+				if (ParentIndex != INDEX_NONE)
+				{
+					SelectedBones.AddUnique(ParentIndex);
+				}
+				BoneIndex = ParentIndex;
+			}
+		}
+
 		// we could cache parent bones as we calculate, but right now I'm not worried about perf issue of this
 		for ( int32 Index=0; Index<RequiredBones.Num(); ++Index )
 		{
@@ -1203,7 +1219,7 @@ void FAnimationViewportClient::DrawBones(const USkeletalMeshComponent* MeshCompo
 
 			if (bForceDraw ||
 				(GetBoneDrawMode() == EBoneDrawMode::All) ||
-				((GetBoneDrawMode() == EBoneDrawMode::Selected) && SelectedBones.Contains(BoneIndex) )
+				((GetBoneDrawMode() == EBoneDrawMode::Selected || GetBoneDrawMode() == EBoneDrawMode::SelectedAndParents) && SelectedBones.Contains(BoneIndex) )
 				)
 			{
 				const int32 ParentIndex = MeshComponent->SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
@@ -1687,6 +1703,11 @@ IPersonaEditorModeManager& FAnimationViewportClient::GetPersonaModeManager() con
 void FAnimationViewportClient::HandleInvalidateViews()
 {
 	Invalidate();
+}
+
+void FAnimationViewportClient::HandleFocusViews()
+{
+	FocusViewportOnPreviewMesh();
 }
 
 bool FAnimationViewportClient::CanCycleWidgetMode() const

@@ -80,12 +80,6 @@ public class PhysX : ModuleRules
 			// This will properly cover the case where PhysX is compiled but APEX is not.
 			Definitions.Add("WITH_APEX=0");
 		}
-		if (UEBuildConfiguration.bCompilePhysXVehicle == false)
-		{
-			// Since PhysX Vehicle is dependent on PhysX, if Vehicle is not being include, set the flag properly.
-			// This will properly cover the case where PhysX is compiled but Vehicle is not.
-			Definitions.Add("WITH_VEHICLE=0");
-		}
 
 		if (LibraryMode == PhysXLibraryMode.Shipping)
 		{
@@ -128,8 +122,7 @@ public class PhysX : ModuleRules
 				PhysXIncludeDir + "cooking",
 				PhysXIncludeDir + "common",
 				PhysXIncludeDir + "extensions",
-				PhysXIncludeDir + "geometry",
-				PhysXIncludeDir + "vehicle"
+				PhysXIncludeDir + "geometry"
 			}
 			);
 
@@ -146,7 +139,6 @@ public class PhysX : ModuleRules
 				"PhysX3Extensions{0}_x64.lib",
 				"PhysX3Cooking{0}_x64.lib",
 				"PhysX3Common{0}_x64.lib",
-				"PhysX3Vehicle{0}_x64.lib",
 				"PsFastXml{0}_x64.lib",
 				"PxFoundation{0}_x64.lib",
 				"PxPvdSDK{0}_x64.lib",
@@ -207,7 +199,6 @@ public class PhysX : ModuleRules
 				"PhysX3Extensions{0}_x86.lib",
 				"PhysX3Cooking{0}_x86.lib",
 				"PhysX3Common{0}_x86.lib",
-				"PhysX3Vehicle{0}_x86.lib",
 				"PsFastXml{0}_x86.lib",
 				"PxFoundation{0}_x86.lib",
 				"PxPvdSDK{0}_x86.lib",
@@ -257,7 +248,6 @@ public class PhysX : ModuleRules
 				PhysXLibDir + "/libLowLevel{0}.a",
 				PhysXLibDir + "/libLowLevelCloth{0}.a",
 				PhysXLibDir + "/libPhysX3Extensions{0}.a",
-				PhysXLibDir + "/libPhysX3Vehicle{0}.a",
 				PhysXLibDir + "/libSceneQuery{0}.a",
 				PhysXLibDir + "/libSimulationController{0}.a",
 				PxSharedLibDir + "/libPxTask{0}.a",
@@ -312,7 +302,6 @@ public class PhysX : ModuleRules
 				"PhysX3Extensions{0}",
 				// "PhysX3Cooking{0}", // not needed until Apex
 				"PhysX3Common{0}",
-				"PhysX3Vehicle{0}",
 				//"PhysXVisualDebuggerSDK{0}",
 				"SceneQuery{0}",
 				"SimulationController{0}",
@@ -353,7 +342,6 @@ public class PhysX : ModuleRules
 				"PhysX3Extensions{0}",
 				"PhysX3Cooking{0}",
 				"PhysX3Common{0}",
-				"PhysX3Vehicle{0}",
 				"SceneQuery{0}",
 				"SimulationController{0}",
 				"PxFoundation{0}",
@@ -386,7 +374,6 @@ public class PhysX : ModuleRules
 					"PhysX3Common",
 					// "PhysX3Cooking", // not needed until Apex
 					"PhysX3Extensions",
-					"PhysX3Vehicle",
 					"SceneQuery",
 					"SimulationController",
 					"PxFoundation",
@@ -419,7 +406,6 @@ public class PhysX : ModuleRules
 					"PhysX3Common",
 					// "PhysX3Cooking", // not needed until Apex
 					"PhysX3Extensions",
-					"PhysX3Vehicle",
 					"SceneQuery",
 					"SimulationController",
 					"PxFoundation",
@@ -451,7 +437,6 @@ public class PhysX : ModuleRules
 					"PhysX3Common",
 					"PhysX3Cooking",
 					"PhysX3Extensions",
-					"PhysX3Vehicle",
 					//"PhysXVisualDebuggerSDK",
 					"SceneQuery",
 					"SimulationController",
@@ -468,22 +453,6 @@ public class PhysX : ModuleRules
 					PublicAdditionalLibraries.Add(PhysXLibDir + lib + (UEBuildConfiguration.bCompileForSize ? "_Oz" : "") + ".bc");
 				}
 			}
-
-			if (UEBuildConfiguration.bCompilePhysXVehicle)
-			{
-				string[] PhysXVehicleLibs = new string[]
-				{
-					"PhysX3Vehicle",
-				};
-
-				foreach (var lib in PhysXVehicleLibs)
-				{
-					if (!lib.Contains("Cooking") || Target.IsCooked == false)
-					{
-						PublicAdditionalLibraries.Add(PhysXLibDir + lib + (UEBuildConfiguration.bCompileForSize ? "_Oz" : "") + ".bc");
-					}
-				}
-			}
 		}
 		else if (Target.Platform == UnrealTargetPlatform.PS4)
 		{
@@ -494,7 +463,6 @@ public class PhysX : ModuleRules
 				"PhysX3Extensions{0}",
 				"PhysX3Cooking{0}",
 				"PhysX3Common{0}",
-				"PhysX3Vehicle{0}",
 				"LowLevel{0}",
 				"LowLevelAABB{0}",
 				"LowLevelCloth{0}",
@@ -525,7 +493,6 @@ public class PhysX : ModuleRules
 				"PhysX3Extensions{0}.lib",
 				"PhysX3Cooking{0}.lib",
 				"PhysX3Common{0}.lib",
-				"PhysX3Vehicle{0}.lib",
 				"LowLevel{0}.lib",
 				"LowLevelAABB{0}.lib",
 				"LowLevelCloth{0}.lib",
@@ -559,7 +526,6 @@ public class PhysX : ModuleRules
 					"PhysX3Common",
 					// "PhysX3Cooking", // not needed until Apex
 					"PhysX3Extensions",
-					"PhysX3Vehicle",
 					"SceneQuery",
 					"SimulationController",
 					"PxFoundation",

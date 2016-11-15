@@ -28,13 +28,6 @@ PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 #include "PxCollectionExt.h"
 #include "PxPvd.h"
 
-// vehicle related header files
-#include "PxVehicleSDK.h"
-#include "PxVehicleNoDrive.h"
-#include "PxVehicleDrive4W.h"
-//#include "PxVehicleSuspLimitConstraintShader.h"
-//#include "PxVehicleUtils.h"
-
 // utils
 #include "PxGeometryQuery.h"
 #include "PxMeshQuery.h"

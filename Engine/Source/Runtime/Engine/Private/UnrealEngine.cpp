@@ -57,7 +57,6 @@
 #include "Engine/LevelStreamingVolume.h"
 #include "Engine/WorldComposition.h"
 #include "Engine/LevelScriptActor.h"
-#include "Vehicles/TireType.h"
 #include "RHICommandList.h"
 #include "HardwareSurvey.h"
 
@@ -1632,11 +1631,6 @@ void UEngine::InitializeObjectReferences()
 		{
 			UE_LOG(LogEngine, Error, TEXT("Engine config value GameSingletonClassName '%s' is not a valid class name."), *GameSingletonClassName.ToString());
 		}
-	}
-
-	if (DefaultTireType == nullptr && DefaultTireTypeName.ToString().Len())
-	{
-		DefaultTireType = LoadObject<UTireType>(NULL, *DefaultTireTypeName.ToString());
 	}
 
 	UUserInterfaceSettings* UISettings = GetMutableDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass());

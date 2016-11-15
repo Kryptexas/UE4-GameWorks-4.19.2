@@ -8,7 +8,7 @@
 #include "PhysicsEngine/BodySetup.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "PhysicsEngine/PhysXSupport.h"
-#include "PhysicsFiltering.h"
+#include "Physics/PhysicsFiltering.h"
 
 #if WITH_BOX2D
 #include "../PhysicsEngine2D/Box2DIntegration.h"

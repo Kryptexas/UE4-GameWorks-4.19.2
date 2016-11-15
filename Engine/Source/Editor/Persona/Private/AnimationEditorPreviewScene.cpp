@@ -18,6 +18,8 @@
 #include "Engine/WindDirectionalSource.h"
 #include "Components/WindDirectionalSourceComponent.h"
 #include "PhysicsEngine/PhysicsSettings.h"
+#include "Animation/CurveSourceInterface.h"
+#include "PersonaModule.h"
 
 #define LOCTEXT_NAMESPACE "AnimationEditorPreviewScene"
 
@@ -42,9 +44,12 @@ FAnimationEditorPreviewScene::FAnimationEditorPreviewScene(const ConstructionVal
 	
 	FloorBounds = FloorMeshComponent->CalcBounds(FloorMeshComponent->GetRelativeTransform());
 
+	Actor = GetWorld()->SpawnActor<AActor>(AActor::StaticClass(), FTransform::Identity);
+	Actor->AddToRoot();
+
 	// Create the preview component
-	SkeletalMeshComponent = NewObject<UDebugSkelMeshComponent>(GetTransientPackage());
-	SkeletalMeshComponent->AddToRoot();
+	SkeletalMeshComponent = NewObject<UDebugSkelMeshComponent>(Actor);
+	AddComponent(SkeletalMeshComponent, FTransform::Identity);
 
 	InEditableSkeleton->LoadAdditionalPreviewSkeletalMeshes();
 
@@ -247,7 +252,7 @@ void FAnimationEditorPreviewScene::RefreshAdditionalMeshes()
 				USkeletalMesh* SkeletalMesh = Entry.SkeletalMesh.LoadSynchronous();
 				if (SkeletalMesh)
 				{
-					USkeletalMeshComponent* NewComp = NewObject<USkeletalMeshComponent>();
+					USkeletalMeshComponent* NewComp = NewObject<USkeletalMeshComponent>(Actor);
 					NewComp->SetMasterPoseComponent(SkeletalMeshComponent);
 					NewComp->SetSkeletalMesh(SkeletalMesh);
 					NewComp->UpdateMasterBoneMap();
@@ -359,6 +364,11 @@ void FAnimationEditorPreviewScene::RemoveAttachedObjectFromPreviewComponent(UObj
 void FAnimationEditorPreviewScene::InvalidateViews()
 {
 	OnInvalidateViews.Broadcast();
+}
+
+void FAnimationEditorPreviewScene::FocusViews()
+{
+	OnFocusViews.Broadcast();
 }
 
 void FAnimationEditorPreviewScene::RemoveAttachedComponent( bool bRemovePreviewAttached /* = true */ )
@@ -881,6 +891,11 @@ void FAnimationEditorPreviewScene::TogglePlayback()
 	}
 }
 
+AActor* FAnimationEditorPreviewScene::GetActor() const
+{
+	return Actor;
+}
+
 void FAnimationEditorPreviewScene::Tick(float InDeltaTime)
 {
 	IPersonaPreviewScene::Tick(InDeltaTime);
@@ -890,6 +905,30 @@ void FAnimationEditorPreviewScene::Tick(float InDeltaTime)
 		OnLODChanged.Broadcast();
 		LastCachedLODForPreviewComponent = SkeletalMeshComponent->PredictedLODLevel;
 	}
+}
+
+void FAnimationEditorPreviewScene::AddComponent(class UActorComponent* Component, const FTransform& LocalToWorld)
+{
+	if (USceneComponent* SceneComponent = Cast<USceneComponent>(Component))
+	{
+		SceneComponent->AttachToComponent(Actor->GetRootComponent(), FAttachmentTransformRules::KeepWorldTransform);
+	}
+
+	Actor->AddOwnedComponent(Component);
+
+	IPersonaPreviewScene::AddComponent(Component, LocalToWorld);
+}
+
+void FAnimationEditorPreviewScene::RemoveComponent(class UActorComponent* Component)
+{
+	if (USceneComponent* SceneComponent = Cast<USceneComponent>(Component))
+	{
+		SceneComponent->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+	}
+
+	Actor->RemoveOwnedComponent(Component);
+
+	IPersonaPreviewScene::RemoveComponent(Component);
 }
 
 void FAnimationEditorPreviewScene::PostUndo(bool bSuccess)

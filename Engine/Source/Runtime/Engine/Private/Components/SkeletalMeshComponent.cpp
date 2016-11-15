@@ -37,13 +37,13 @@
 
 #include "MessageLog.h"
 #include "Animation/AnimNode_SubInput.h"
-
+#include "Animation/PoseSnapshot.h"
 
 #define LOCTEXT_NAMESPACE "SkeletalMeshComponent"
 
 TAutoConsoleVariable<int32> CVarUseParallelAnimationEvaluation(TEXT("a.ParallelAnimEvaluation"), 1, TEXT("If 1, animation evaluation will be run across the task graph system. If 0, evaluation will run purely on the game thread"));
 TAutoConsoleVariable<int32> CVarUseParallelAnimUpdate(TEXT("a.ParallelAnimUpdate"), 1, TEXT("If != 0, then we update animation blend tree, native update, asset players and montages (is possible) on worker threads."));
-TAutoConsoleVariable<int32> CVarForceUseParallelAnimUpdate(TEXT("a.ForceParallelAnimUpdate"), 1, TEXT("If != 0, then we update animations on worker threads regardless of the setting on the anim blueprint."));
+TAutoConsoleVariable<int32> CVarForceUseParallelAnimUpdate(TEXT("a.ForceParallelAnimUpdate"), 0, TEXT("If != 0, then we update animations on worker threads regardless of the setting on the project or anim blueprint."));
 
 static TAutoConsoleVariable<float> CVarStallParallelAnimation(
 	TEXT("CriticalPathStall.ParallelAnimation"),
@@ -353,7 +353,8 @@ void USkeletalMeshComponent::OnRegister()
 	// variables propogate to the anim instance.
 	// This is done only in this case to limit the surface area of when we force a re-init 
 	// (which is an expensive operation).
-	bForceReInit = GIsEditor && GetWorld() && GetWorld()->WorldType == EWorldType::Editor;
+	const UWorld* OwnWorld = GetWorld();
+	bForceReInit = GIsEditor &&  OwnWorld && !OwnWorld->IsGameWorld();
 #endif
 	InitAnim(bForceReInit);
 
@@ -834,9 +835,10 @@ void USkeletalMeshComponent::TickPose(float DeltaTime, bool bNeedsValidRootMotio
 	}
 }
 
-void USkeletalMeshComponent::UpdateMorphTargetCurves()
+void USkeletalMeshComponent::ResetMorphTargetCurves()
 {
 	ActiveMorphTargets.Reset();
+
 	if (SkeletalMesh)
 	{
 		MorphTargetWeights.SetNum(SkeletalMesh->MorphTargets.Num());
@@ -848,15 +850,21 @@ void USkeletalMeshComponent::UpdateMorphTargetCurves()
 		{
 			FMemory::Memzero(MorphTargetWeights.GetData(), MorphTargetWeights.GetAllocatedSize());
 		}
-
-		if (MorphTargetCurves.Num() > 0)
-		{
-			FAnimationRuntime::AppendActiveMorphTargets(SkeletalMesh, MorphTargetCurves, ActiveMorphTargets, MorphTargetWeights);
-		}
 	}
 	else
 	{
 		MorphTargetWeights.Reset();
+	}
+}
+
+void USkeletalMeshComponent::UpdateMorphTargetOverrideCurves()
+{
+	if (SkeletalMesh)
+	{
+		if (MorphTargetCurves.Num() > 0)
+		{
+			FAnimationRuntime::AppendActiveMorphTargets(SkeletalMesh, MorphTargetCurves, ActiveMorphTargets, MorphTargetWeights);
+		}
 	}
 }
 
@@ -875,8 +883,8 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime, enum ELevelTick Tick
 	UpdateEndPhysicsTickRegisteredState();
 	UpdateClothTickRegisteredState();
 
-	// clear and add morphtarget curves that are added via SetMorphTarget
-	UpdateMorphTargetCurves();
+	// clear morphtarget curve sets for this frame
+	ResetMorphTargetCurves();
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
@@ -1703,6 +1711,9 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 			SubInstance->UpdateCurves(EvaluationContext.Curve);
 		}
 	}
+
+	// now update morphtarget curves that are added via SetMorphTare
+	UpdateMorphTargetOverrideCurves();
 
 	if(PostProcessAnimInstance)
 	{
@@ -2610,7 +2621,7 @@ void USkeletalMeshComponent::SetRootBodyIndex(int32 InBodyIndex)
 
 void USkeletalMeshComponent::RefreshMorphTargets()
 {
-	UpdateMorphTargetCurves();
+	ResetMorphTargetCurves();
 
 	if (SkeletalMesh && AnimScriptInstance)
 	{
@@ -2635,6 +2646,8 @@ void USkeletalMeshComponent::RefreshMorphTargets()
 			MasterSMC->AnimScriptInstance->RefreshCurves(this);
 		}
 	}
+	
+	UpdateMorphTargetOverrideCurves();
 }
 
 void USkeletalMeshComponent::ParallelAnimationEvaluation() 
@@ -2841,6 +2854,46 @@ void USkeletalMeshComponent::AddSlavePoseComponent(USkinnedMeshComponent* Skinne
 	Super::AddSlavePoseComponent(SkinnedMeshComponent);
 
 	bRequiredBonesUpToDate = false;
+}
+
+void USkeletalMeshComponent::SnapshotPose(FPoseSnapshot& Snapshot)
+{
+	const TArray<FTransform>& ComponentSpaceTMs = GetComponentSpaceTransforms();
+	const FReferenceSkeleton& RefSkeleton = SkeletalMesh->RefSkeleton;
+	const TArray<FTransform>& RefPoseSpaceBaseTMs = RefSkeleton.GetRefBonePose();
+
+	Snapshot.SkeletalMeshName = SkeletalMesh->GetFName();
+
+	const int32 NumSpaceBases = ComponentSpaceTMs.Num();
+	Snapshot.LocalTransforms.Reset(NumSpaceBases);
+	Snapshot.LocalTransforms.AddUninitialized(NumSpaceBases);
+	Snapshot.BoneNames.Reset(NumSpaceBases);
+	Snapshot.BoneNames.AddUninitialized(NumSpaceBases);
+
+	//Set root bone which is always evaluated.
+	Snapshot.LocalTransforms[0] = ComponentSpaceTMs[0];	
+	Snapshot.BoneNames[0] = RefSkeleton.GetBoneName(0);
+
+	int32 CurrentRequiredBone = 1;
+	for (int32 ComponentSpaceIdx = 1; ComponentSpaceIdx < NumSpaceBases; ++ComponentSpaceIdx)
+	{
+		Snapshot.BoneNames[ComponentSpaceIdx] = RefSkeleton.GetBoneName(ComponentSpaceIdx);
+
+		const bool bBoneHasEvaluated = FillComponentSpaceTransformsRequiredBones.IsValidIndex(CurrentRequiredBone) && ComponentSpaceIdx == FillComponentSpaceTransformsRequiredBones[CurrentRequiredBone];
+		const int32 ParentIndex = RefSkeleton.GetParentIndex(ComponentSpaceIdx);
+		ensureMsgf(ParentIndex != INDEX_NONE, TEXT("Getting an invalid parent bone for bone %d, but this should not be possible since this is not the root bone!"), ComponentSpaceIdx);
+
+		const FTransform& ParentTransform = ComponentSpaceTMs[ParentIndex];
+		const FTransform& ChildTransform = ComponentSpaceTMs[ComponentSpaceIdx];
+		Snapshot.LocalTransforms[ComponentSpaceIdx] = bBoneHasEvaluated ? ChildTransform.GetRelativeTransform(ParentTransform) : RefPoseSpaceBaseTMs[ComponentSpaceIdx];
+
+		if (bBoneHasEvaluated)
+		{
+			CurrentRequiredBone++;
+		}
+	}
+
+	Snapshot.bIsValid = true;
 }
 
 #undef LOCTEXT_NAMESPACE

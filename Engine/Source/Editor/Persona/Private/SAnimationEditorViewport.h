@@ -3,9 +3,10 @@
 
 #pragma once
 
-#include "Persona.h"
 #include "SEditorViewport.h"
 #include "IPersonaViewport.h"
+#include "PersonaDelegates.h"
+#include "AnimationEditorViewportClient.h"
 
 struct FAnimationEditorViewportRequiredArgs
 {
@@ -48,6 +49,7 @@ protected:
 	// SEditorViewport interface
 	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
 	virtual TSharedPtr<SWidget> MakeViewportToolbar() override;
+	virtual void OnFocusViewportToSelection() override;
 	// End of SEditorViewport interface
 
 	/**  Handle undo/redo by refreshing the viewport */
@@ -101,7 +103,8 @@ public:
 	/** IPersonaViewport interface */
 	virtual TSharedRef<IPersonaViewportState> SaveState() const override;
 	virtual void RestoreState(TSharedRef<IPersonaViewportState> InState) override;
-	
+	virtual FEditorViewportClient& GetViewportClient() const override;
+
 	void RefreshViewport();
 
 	/**
@@ -324,10 +327,13 @@ private:
 	void ToggleCameraFollow();
 	bool IsCameraFollowEnabled() const;
 
+	/** Focus the viewport on the preview mesh */
+	void HandleFocusCamera();
+
 	/** Called to determine whether the camera mode menu options should be enabled */
 	bool CanChangeCameraMode() const;
 
-	/** Tests to see if bone move mode buttons should be visibile */
+	/** Tests to see if bone move mode buttons should be visible */
 	EVisibility GetBoneMoveModeButtonVisibility() const;
 
 	/** Function to mute/unmute viewport audio */
@@ -462,8 +468,6 @@ private:
 	/** Update scrub panel to reflect viewed animation asset */
 	void UpdateScrubPanel(UAnimationAsset* AnimAsset);
 private:
-	friend class FPersona;
-
 	EVisibility GetViewportCornerTextVisibility() const;
 	FText GetViewportCornerText() const;
 	FText GetViewportCornerTooltip() const;

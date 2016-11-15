@@ -7,6 +7,8 @@
 #include "Animation/AnimSingleNodeInstance.h"
 #include "BoneControllers/AnimNode_ModifyBone.h"
 #include "Animation/AnimSingleNodeInstanceProxy.h"
+#include "AnimNodes/AnimNode_CurveSource.h"
+#include "AnimNodes/AnimNode_PoseBlendNode.h"
 #include "AnimPreviewInstance.generated.h"
 
 /** Enum to know how montage is being played */
@@ -48,6 +50,7 @@ public:
 	virtual void Initialize(UAnimInstance* InAnimInstance) override;
 	virtual void Update(float DeltaSeconds) override;
 	virtual bool Evaluate(FPoseContext& Output) override;
+	virtual void PreUpdate(UAnimInstance* InAnimInstance, float DeltaSeconds) override;
 
 	void ResetModifiedBone(bool bCurveController = false);
 
@@ -113,6 +116,12 @@ private:
 	/** Curve modifiers */
 	TArray<FAnimNode_ModifyBone> CurveBoneControllers;
 
+	/** External curve for in-editor curve sources (such as audio) */
+	FAnimNode_CurveSource CurveSource;
+
+	/** Pose blend node for evaluating pose assets (for previewing curve sources) */
+	FAnimNode_PoseBlendNode PoseBlendNode;
+
 	/**
 	 * Delegate to call after Key is set
 	 */
@@ -147,24 +156,7 @@ class ANIMGRAPH_API UAnimPreviewInstance : public UAnimSingleNodeInstance
 {
 	GENERATED_UCLASS_BODY()
 
-	// Disable compiler-generated deprecation warnings by implementing our own destructor
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	~UAnimPreviewInstance() {}
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS
-
-	/** Controllers for individual bones */
-	DEPRECATED(4.11, "This cannot be accessed directly as it is potentially in use on worker threads")
-	TArray<FAnimNode_ModifyBone> BoneControllers;
-
-	/** Curve modifiers */
-	DEPRECATED(4.11, "This cannot be accessed directly as it is potentially in use on worker threads")
-	TArray<FAnimNode_ModifyBone> CurveBoneControllers;
-
-	/** Shared parameters for previewing blendspace or animsequence **/
-	DEPRECATED(4.11, "This cannot be accessed directly as it is potentially in use on worker threads")
-	float SkeletalControlAlpha;
-
-	/** Shared parameters for previewing blendspace or animsequence **/
+		/** Shared parameters for previewing blendspace or animsequence **/
 	UPROPERTY(transient)
 	TEnumAsByte<enum EMontagePreviewType> MontagePreviewType;
 
@@ -241,11 +233,6 @@ class ANIMGRAPH_API UAnimPreviewInstance : public UAnimSingleNodeInstance
 	void SetForceRetargetBasePose(bool ForceRetargetBasePose);
 
 	bool GetForceRetargetBasePose() const;
-
-#if WITH_EDITORONLY_DATA
-	DEPRECATED(4.11, "This cannot be accessed directly as it is potentially in use on worker threads, use SetForceRetargetBasePose/GetForceRetargetBasePose")
-	bool bForceRetargetBasePose;
-#endif
 
 	/**
 	 * Convert current modified bone transforms (BoneControllers) to transform curves (CurveControllers)

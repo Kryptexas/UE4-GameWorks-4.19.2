@@ -168,11 +168,6 @@ void UBTDecorator::UpdateFlowAbortMode()
 //----------------------------------------------------------------------//
 // DEPRECATED
 //----------------------------------------------------------------------//
-bool UBTDecorator::CalculateRawConditionValue(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
-{
-	return OwnerComp ? CalculateRawConditionValue(*OwnerComp, NodeMemory) : false;
-}
-
 void UBTDecorator::InitializeDecorator(uint8 InChildIndex)
 {
 	InitializeParentLink(InChildIndex);

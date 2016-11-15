@@ -12,7 +12,8 @@
 #include "SAnimCurvePanel.h"
 #include "AnimPreviewInstance.h"
 #include "Animation/BlendSpaceBase.h"
-
+#include "IDocumentation.h"
+#include "IPersonaPreviewScene.h"
 
 #define LOCTEXT_NAMESPACE "AnimEditorBase"
 

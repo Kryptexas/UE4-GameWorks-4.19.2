@@ -5,6 +5,7 @@
 #include "Navigation/CrowdManager.h"
 #include "AI/Navigation/NavLinkCustomInterface.h"
 #include "AI/Navigation/AbstractNavData.h"
+#include "AIConfig.h"
 #include "Navigation/MetaNavMeshPath.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
@@ -983,7 +984,7 @@ FVector UCrowdFollowingComponent::GetMoveFocus(bool bAllowStrafe) const
 			MovementComp->GetOwner()->GetActorForwardVector() :
 			CrowdAgentMoveDirection;
 
-		return AgentLoc + ForwardDir * 100.0f;
+		return AgentLoc + (ForwardDir * FAIConfig::Navigation::FocalPointDistance);
 	}
 
 	return Super::GetMoveFocus(bAllowStrafe);

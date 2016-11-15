@@ -266,6 +266,8 @@ bool FSLESSoundSource::EnqueuePCMRTBuffer( bool bLoop )
  */
 bool FSLESSoundSource::Init( FWaveInstance* InWaveInstance )
 {
+	FSoundSource::InitCommon();
+
 	// don't do anything if no volume! THIS APPEARS TO HAVE THE VOLUME IN TIME, CHECK HERE THOUGH IF ISSUES
 	if( InWaveInstance && ( InWaveInstance->Volume * InWaveInstance->VolumeMultiplier ) <= 0 )
 	{
@@ -413,6 +415,8 @@ void FSLESSoundSource::Update( void )
 	{
 		return;
 	}
+
+	FSoundSource::UpdateCommon();
 	
 	float Volume = WaveInstance->Volume * WaveInstance->VolumeMultiplier;
 	if (SetStereoBleed())
@@ -424,8 +428,6 @@ void FSLESSoundSource::Update( void )
 	Volume = FMath::Clamp(Volume, 0.0f, MAX_VOLUME);
 	
 	Volume = FSoundSource::GetDebugVolume(Volume);
-
-	const float Pitch = FMath::Clamp<float>(WaveInstance->Pitch, MIN_PITCH, MAX_PITCH);
 
 	// Set whether to apply reverb
 	SetReverbApplied(true);

@@ -33,7 +33,7 @@ void FAutomationAnalytics::Initialize()
 	Analytics = FAnalyticsET::Get().CreateAnalyticsProvider(FAnalyticsET::Config(FString::Printf(TEXT("AutomationAnalytics.%s"), GInternalGameName), TEXT("https://datarouter.ol.epicgames.com/")));
 	if (Analytics.IsValid())
 	{
-		Analytics->SetUserID(FString::Printf(TEXT("%s|%s|%s"), *FPlatformMisc::GetMachineId().ToString(EGuidFormats::Digits).ToLower(), *FPlatformMisc::GetEpicAccountId(), *FPlatformMisc::GetOperatingSystemId()));
+		Analytics->SetUserID(FString::Printf(TEXT("%s|%s|%s"), *FPlatformMisc::GetLoginId(), *FPlatformMisc::GetEpicAccountId(), *FPlatformMisc::GetOperatingSystemId()));
 		Analytics->StartSession();
 
 		MachineSpec = FParse::Param(FCommandLine::Get(), TEXT("60hzmin")) 

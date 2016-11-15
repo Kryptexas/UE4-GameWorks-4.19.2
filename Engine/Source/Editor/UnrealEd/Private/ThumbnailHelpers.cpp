@@ -17,6 +17,7 @@
 #include "Engine/TextureCube.h"
 #include "Engine/DestructibleMesh.h"
 #include "PhysicsEngine/DestructibleActor.h"
+#include "Animation/BlendSpace1D.h"
 
 /*
 ***************************************************************
@@ -775,7 +776,8 @@ bool FBlendSpaceThumbnailScene::SetBlendSpace(class UBlendSpaceBase* InBlendSpac
 				if (AnimInstance)
 				{
 					FVector BlendInput(0.f);
-					for (int32 i = 0; i < InBlendSpace->NumOfDimension; ++i)
+					const int32 NumDimensions = InBlendSpace->IsA<UBlendSpace1D>() ? 1 : 2;
+					for (int32 i = 0; i < NumDimensions; ++i)
 					{
 						const FBlendParameter& Param = InBlendSpace->GetBlendParameter(i);
 						BlendInput[i] = (Param.GetRange() / 2.f) + Param.Min;

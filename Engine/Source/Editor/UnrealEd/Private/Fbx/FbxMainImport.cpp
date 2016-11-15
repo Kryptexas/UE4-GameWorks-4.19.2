@@ -972,7 +972,8 @@ bool FFbxImporter::ImportFromFile(const FString& Filename, const FString& Type, 
 			// The imported axis system is unknown for obj files
 			if( !Type.Equals( Obj, ESearchCase::IgnoreCase ) )
 			{
-				if (GetImportOptions()->bConvertScene)
+				const FBXImportOptions* ImportOption = GetImportOptions();
+				if (ImportOption->bConvertScene)
 				{
 					// we use -Y as forward axis here when we import. This is odd considering our forward axis is technically +X
 					// but this is to mimic Maya/Max behavior where if you make a model facing +X facing, 
@@ -982,7 +983,7 @@ bool FFbxImporter::ImportFromFile(const FString& Filename, const FString& Type, 
 					FbxAxisSystem::ECoordSystem CoordSystem = FbxAxisSystem::eRightHanded;
 					FbxAxisSystem::EUpVector UpVector = FbxAxisSystem::eZAxis;
 					FbxAxisSystem::EFrontVector FrontVector = (FbxAxisSystem::EFrontVector) - FbxAxisSystem::eParityOdd;
-					if (GetImportOptions()->bForceFrontXAxis)
+					if (ImportOption->bForceFrontXAxis)
 					{
 						FrontVector = FbxAxisSystem::eParityEven;
 					}
@@ -998,7 +999,7 @@ bool FFbxImporter::ImportFromFile(const FString& Filename, const FString& Type, 
 						UnrealImportAxis.ConvertScene(Scene);
 						FbxAMatrix JointOrientationMatrix;
 						JointOrientationMatrix.SetIdentity();
-						if (GetImportOptions()->bForceFrontXAxis)
+						if (ImportOption->bForceFrontXAxis)
 						{
 							JointOrientationMatrix.SetR(FbxVector4(-90.0, -90.0, 0.0));
 						}
@@ -1009,7 +1010,7 @@ bool FFbxImporter::ImportFromFile(const FString& Filename, const FString& Type, 
 				// Convert the scene's units to what is used in this program, if needed.
 				// The base unit used in both FBX and Unreal is centimeters.  So unless the units 
 				// are already in centimeters (ie: scalefactor 1.0) then it needs to be converted
-				if (GetImportOptions()->bConvertSceneUnit && Scene->GetGlobalSettings().GetSystemUnit() != FbxSystemUnit::cm)
+				if (ImportOption->bConvertSceneUnit && Scene->GetGlobalSettings().GetSystemUnit() != FbxSystemUnit::cm)
 				{
 					FbxSystemUnit::cm.ConvertScene(Scene);
 				}

@@ -12,6 +12,7 @@
 #include "SExpandableArea.h"
 #include "STextEntryPopup.h"
 #include "AnimPreviewInstance.h"
+#include "IPersonaPreviewScene.h"
 
 #define LOCTEXT_NAMESPACE "AnimTrackCurvePanel"
 

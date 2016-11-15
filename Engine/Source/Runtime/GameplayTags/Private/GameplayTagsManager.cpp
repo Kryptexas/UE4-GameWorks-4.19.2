@@ -12,6 +12,7 @@ UGameplayTagsManager::UGameplayTagsManager(const FObjectInitializer& ObjectIniti
 {
 	bUseFastReplication = false;
 	bShouldWarnOnInvalidTags = true;
+	bDoneAddingNativeTags = false;
 	NetIndexFirstBitSegment = 16;
 	NetIndexTrueBitNum = 16;
 	NumBitsForContainerSize = 6;
@@ -55,6 +56,13 @@ void UGameplayTagsManager::ConstructGameplayTagTree()
 	if (!GameplayRootTag.IsValid())
 	{
 		GameplayRootTag = MakeShareable(new FGameplayTagNode());
+
+		// Add native tags first
+		for (FName TagToAdd : NativeTagsToAdd)
+		{
+			AddTagTableRow(FGameplayTagTableRow(TagToAdd), FGameplayTagSource::GetNativeName());
+		}
+
 		{
 #if STATS
 			FString PerfMessage = FString::Printf(TEXT("UGameplayTagsManager::ConstructGameplayTagTree: Construct from data asset"));
@@ -146,23 +154,21 @@ void UGameplayTagsManager::ConstructGameplayTagTree()
 					AddTagTableRow(TableRow, TagSource);
 				}
 			}
-		
-			// Grab the commonly replicated tags
-			CommonlyReplicatedTags.Empty();
-			for (FName TagName : MutableDefault->CommonlyReplicatedTags)
-			{
-				FGameplayTag Tag = RequestGameplayTag(TagName);
-				if (Tag.IsValid())
-				{
-					CommonlyReplicatedTags.Add(Tag);
-				}
-				else
-				{
-					UE_LOG(LogGameplayTags, Warning, TEXT("%s was found in the CommonlyReplicatedTags list but doesn't appear to be a valid tag!"), *TagName.ToString());
-				}
-			}
+		}
 
-			GameplayRootTag->GetChildTagNodes().Sort(FCompareFGameplayTagNodeByTag());
+		// Grab the commonly replicated tags
+		CommonlyReplicatedTags.Empty();
+		for (FName TagName : MutableDefault->CommonlyReplicatedTags)
+		{
+			FGameplayTag Tag = RequestGameplayTag(TagName);
+			if (Tag.IsValid())
+			{
+				CommonlyReplicatedTags.Add(Tag);
+			}
+			else
+			{
+				UE_LOG(LogGameplayTags, Warning, TEXT("%s was found in the CommonlyReplicatedTags list but doesn't appear to be a valid tag!"), *TagName.ToString());
+			}
 		}
 
 		bUseFastReplication = MutableDefault->FastReplication;
@@ -267,7 +273,7 @@ void UGameplayTagsManager::ConstructNetIndex()
 
 	NetworkGameplayTagNodeIndex.Sort(FCompareFGameplayTagNodeByTag());
 
-	check(CommonlyReplicatedTags.Num() < NetworkGameplayTagNodeIndex.Num());
+	check(CommonlyReplicatedTags.Num() <= NetworkGameplayTagNodeIndex.Num());
 
 	// Put the common indices up front
 	for (int32 CommonIdx=0; CommonIdx < CommonlyReplicatedTags.Num(); ++CommonIdx)
@@ -458,6 +464,9 @@ void UGameplayTagsManager::InitializeManager()
 
 	SingletonManager->LoadGameplayTagTables();
 	SingletonManager->ConstructGameplayTagTree();
+
+	// Bind to end of engine init to be done adding native tags
+	UEngine::OnPostEngineInit.AddUObject(SingletonManager, &UGameplayTagsManager::DoneAddingNativeTags);
 }
 
 void UGameplayTagsManager::PopulateTreeFromDataTable(class UDataTable* InTable)
@@ -513,29 +522,46 @@ void UGameplayTagsManager::DestroyGameplayTagTree()
 	{
 		GameplayRootTag->ResetNode();
 		GameplayRootTag.Reset();
+		GameplayTagNodeMap.Reset();
 	}
 }
 
 int32 UGameplayTagsManager::InsertTagIntoNodeArray(FName Tag, TSharedPtr<FGameplayTagNode> ParentNode, TArray< TSharedPtr<FGameplayTagNode> >& NodeArray, FName SourceName, const FString& DevComment)
 {
 	int32 InsertionIdx = INDEX_NONE;
+	int32 WhereToInsert = INDEX_NONE;
 
 	// See if the tag is already in the array
 	for (int32 CurIdx = 0; CurIdx < NodeArray.Num(); ++CurIdx)
 	{
-		if (NodeArray[CurIdx].IsValid() && NodeArray[CurIdx].Get()->GetSimpleTagName() == Tag)
+		if (NodeArray[CurIdx].IsValid())
 		{
-			InsertionIdx = CurIdx;
-			break;
+			if (NodeArray[CurIdx].Get()->GetSimpleTagName() == Tag)
+			{
+				InsertionIdx = CurIdx;
+				break;
+			}
+			else if (NodeArray[CurIdx].Get()->GetSimpleTagName() > Tag && WhereToInsert == INDEX_NONE)
+			{
+				// Insert new node before this
+				WhereToInsert = CurIdx;
+			}
 		}
 	}
 
-	// Insert the tag at the end of the array if not already found
 	if (InsertionIdx == INDEX_NONE)
 	{
+		if (WhereToInsert == INDEX_NONE)
+		{
+			// Insert at end
+			WhereToInsert = NodeArray.Num();
+		}
+
 		// Don't add the root node as parent
 		TSharedPtr<FGameplayTagNode> TagNode = MakeShareable(new FGameplayTagNode(Tag, ParentNode != GameplayRootTag ? ParentNode : nullptr));
-		InsertionIdx = NodeArray.Add(TagNode);
+
+		// Add at the sorted location
+		InsertionIdx = NodeArray.Insert(TagNode, WhereToInsert);
 
 		FGameplayTag GameplayTag = TagNode->GetCompleteTag();
 
@@ -550,9 +576,15 @@ int32 UGameplayTagsManager::InsertTagIntoNodeArray(FName Tag, TSharedPtr<FGamepl
 	}
 
 #if WITH_EDITOR
+	static FName NativeSourceName = FGameplayTagSource::GetNativeName();
 	// Set/update editor only data
 	if (NodeArray[InsertionIdx]->SourceName.IsNone() && !SourceName.IsNone())
 	{
+		NodeArray[InsertionIdx]->SourceName = SourceName;
+	}
+	else if (SourceName == NativeSourceName)
+	{
+		// Native overrides other types
 		NodeArray[InsertionIdx]->SourceName = SourceName;
 	}
 
@@ -868,6 +900,45 @@ FGameplayTag UGameplayTagsManager::RequestGameplayTag(FName TagName, bool ErrorI
 		}
 	}
 	return FGameplayTag();
+}
+
+FGameplayTag UGameplayTagsManager::AddNativeGameplayTag(FName TagName)
+{
+	if (TagName.IsNone())
+	{
+		return FGameplayTag();
+	}
+
+	// Unsafe to call after done adding
+	if (ensure(!bDoneAddingNativeTags))
+	{
+		FGameplayTag NewTag = FGameplayTag(TagName);
+
+		if (!NativeTagsToAdd.Contains(TagName))
+		{
+			NativeTagsToAdd.Add(TagName);
+		}
+
+		AddTagTableRow(FGameplayTagTableRow(TagName), FGameplayTagSource::GetNativeName());
+
+		return NewTag;
+	}
+
+	return FGameplayTag();
+}
+
+void UGameplayTagsManager::DoneAddingNativeTags()
+{
+	// Safe to call multiple times, only works the first time
+	if (!bDoneAddingNativeTags)
+	{
+		bDoneAddingNativeTags = true;
+
+		if (ShouldUseFastReplication())
+		{
+			ConstructNetIndex();
+		}
+	}
 }
 
 FGameplayTagContainer UGameplayTagsManager::RequestGameplayTagParents(const FGameplayTag& GameplayTag) const

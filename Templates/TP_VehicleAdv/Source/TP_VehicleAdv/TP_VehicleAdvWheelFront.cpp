@@ -2,7 +2,7 @@
 
 #include "TP_VehicleAdv.h"
 #include "TP_VehicleAdvWheelFront.h"
-#include "Vehicles/TireType.h"
+#include "TireConfig.h"
 
 UTP_VehicleAdvWheelFront::UTP_VehicleAdvWheelFront()
 {
@@ -19,6 +19,6 @@ UTP_VehicleAdvWheelFront::UTP_VehicleAdvWheelFront()
 	SuspensionDampingRatio = 1.05f;
 
 	// Find the tire object and set the data for it
-	static ConstructorHelpers::FObjectFinder<UTireType> TireData(TEXT("/Game/VehicleAdv/Vehicle/WheelData/Vehicle_FrontTireType.Vehicle_FrontTireType"));
-	TireType = TireData.Object;
+	static ConstructorHelpers::FObjectFinder<UTireConfig> TireData(TEXT("/Game/VehicleAdv/Vehicle/WheelData/Vehicle_FrontTireConfig.Vehicle_FrontTireConfig"));
+	TireConfig = TireData.Object;
 }

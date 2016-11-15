@@ -3,7 +3,6 @@
 #include "PersonaPrivatePCH.h"
 #include "PropertyEditing.h"
 #include "PropertyCustomizationHelpers.h"
-#include "Persona.h"
 #include "PersonaMeshDetails.h"
 #include "DesktopPlatformModule.h"
 #include "MainFrame.h"
@@ -25,6 +24,8 @@
 #include "Animation/AnimInstance.h"
 #include "IPersonaToolkit.h"
 #include "SNumericEntryBox.h"
+#include "IPersonaPreviewScene.h"
+#include "IDocumentation.h"
 
 #define LOCTEXT_NAMESPACE "PersonaMeshDetails"
 

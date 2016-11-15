@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include "Persona.h"
-
 //////////////////////////////////////////////////////////////////////////
 // FDisplayedMorphTargetInfo
 
@@ -53,7 +51,7 @@ public:
 	* @param InArgs - Arguments passed from Slate
 	*
 	*/
-	void Construct( const FArguments& InArgs, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& OnPostUndo );
+	void Construct( const FArguments& InArgs, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& OnPostUndo );
 
 	/**
 	* Destructor - resets the morph targets

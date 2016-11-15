@@ -5,6 +5,13 @@
 #include "GameplayTagsManager.h"
 #include "SlateBasics.h"
 
+/** Determines the behavior of the gameplay tag UI depending on where it's used */
+enum class EGameplayTagUIMode : uint8
+{
+	SelectionMode,
+	ManagementMode,
+};
+
 /** Widget allowing user to tag assets with gameplay tags */
 class SGameplayTagWidget : public SCompoundWidget
 {
@@ -14,18 +21,22 @@ public:
 	DECLARE_DELEGATE( FOnTagChanged )
 
 	SLATE_BEGIN_ARGS( SGameplayTagWidget )
-	: _Filter(),
-	  _ReadOnly(false),
-	  _TagContainerName( TEXT("") ),
-	  _MultiSelect(true),
-	  _PropertyHandle(NULL)
-	{}
+		: _Filter()
+		, _ReadOnly( false )
+		, _TagContainerName( TEXT("") )
+		, _MultiSelect( true )
+		, _PropertyHandle( NULL )
+		, _GameplayTagUIMode( EGameplayTagUIMode::SelectionMode )
+		, _MaxHeight(260.0f)
+		{}
 		SLATE_ARGUMENT( FString, Filter ) // Comma delimited string of tag root names to filter by
 		SLATE_ARGUMENT( bool, ReadOnly ) // Flag to set if the list is read only
 		SLATE_ARGUMENT( FString, TagContainerName ) // The name that will be used for the settings file
 		SLATE_ARGUMENT( bool, MultiSelect ) // If we can select multiple entries
 		SLATE_ARGUMENT( TSharedPtr<IPropertyHandle>, PropertyHandle )
 		SLATE_EVENT( FOnTagChanged, OnTagChanged ) // Called when a tag status changes
+		SLATE_ARGUMENT( EGameplayTagUIMode, GameplayTagUIMode )	// Determines behavior of the menu based on where it's used
+		SLATE_ARGUMENT( float, MaxHeight )	// caps the height of the gameplay tag tree
 	SLATE_END_ARGS()
 
 	/** Simple struct holding a tag container and its owner for generic re-use of the widget */
@@ -47,16 +58,25 @@ public:
 	/** Construct the actual widget */
 	void Construct(const FArguments& InArgs, const TArray<FEditableGameplayTagContainerDatum>& EditableTagContainers);
 
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+
+	/** Ensures that this widget will always account for the MaxHeight if it's specified */
+	virtual FVector2D ComputeDesiredSize(float LayoutScaleMultiplier) const override;
+
 	/** Updates the tag list when the filter text changes */
 	void OnFilterTextChanged( const FText& InFilterText );
 
 	/** Returns true if this TagNode has any children that match the current filter */
 	bool FilterChildrenCheck( TSharedPtr<FGameplayTagNode>  );
 
-	bool IsAddingNewTag() const
-	{
-		return bIsAddingNewTag;
-	}
+	/** Returns true if we're currently adding a new tag to an INI file */
+	bool IsAddingNewTag() const;
+
+	/** Refreshes the tags that should be displayed by the widget */
+	void RefreshTags();
+
+	/** Forces the widget to refresh its tags on the next tick */
+	void RefreshOnNextTick();
 
 private:
 
@@ -78,8 +98,14 @@ private:
 	/* Flag to set if we can select multiple items form the list*/
 	bool bMultiSelect;
 
-	/* Flag set while we are in process of adding new tag */
-	bool bIsAddingNewTag;
+	/** Tracks if the Add Tag UI is expanded */
+	bool bAddTagSectionExpanded;
+
+	/** If true, refreshes tags on the next frame */
+	bool bDelayRefresh;
+
+	/** The maximum height of the gameplay tag tree. If 0, the height is unbound. */
+	float MaxHeight;
 
 	/* Array of tags to be displayed in the TreeView*/
 	TArray< TSharedPtr<FGameplayTagNode> > TagItems;
@@ -87,11 +113,16 @@ private:
 	/* Array of tags to be displayed in the TreeView*/
 	TArray< TSharedPtr<FGameplayTagNode> > FilteredTagItems;
 
+	/** Container widget holding the tag tree */
+	TSharedPtr<SBorder> TagTreeContainerWidget;
+
 	/** Tree widget showing the gameplay tag library */
 	TSharedPtr< STreeView< TSharedPtr<FGameplayTagNode> > > TagTreeWidget;
 
-	TSharedPtr<SEditableTextBox> NewTagTextBox;
+	/** The widget that controls how new gameplay tags are added to the config files */
+	TSharedPtr<class SAddNewGameplayTagWidget> AddNewTagWidget;
 
+	/** Allows for the user to find a specific gameplay tag in the tree */
 	TSharedPtr<SSearchBox> SearchTagBox;
 
 	/** Containers to modify */
@@ -100,13 +131,10 @@ private:
 	/** Called when the Tag list changes*/
 	FOnTagChanged OnTagChanged;
 
+	/** Determines behavior of the widget */
+	EGameplayTagUIMode GameplayTagUIMode;
+
 	TSharedPtr<IPropertyHandle> PropertyHandle;
-
-	void OnNewGameplayTagCommited(const FText& InText, ETextCommit::Type InCommitType);
-
-	FReply OnNewGameplayTagButtonPressed();
-
-	void CreateNewGameplayTag();
 
 	/**
 	 * Generate a row widget for the specified item node and table
@@ -198,6 +226,15 @@ private:
 	/** Load settings for the tags*/
 	void LoadSettings();
 
+	/** Helper function to determine the visibility of the expandable UI controls */
+	EVisibility DetermineExpandableUIVisibility() const;
+
+	/** Helper function to determine the visibility of the Add New Tag widget */
+	EVisibility DetermineAddNewTagWidgetVisibility() const;
+
+	/** Helper function to determine the visibility of the Clear Selection button */
+	EVisibility DetermineClearSelectionVisibility() const;
+
 	/** Recursive load function to go through all tags in the tree and set the expansion*/
 	void LoadTagNodeItemExpansion( TSharedPtr<FGameplayTagNode> Node );
 
@@ -207,5 +244,38 @@ private:
 	/** Expansion changed callback */
 	void OnExpansionChanged( TSharedPtr<FGameplayTagNode> InItem, bool bIsExpanded );
 
+	/** Callback for when a new tag is added */
+	void OnGameplayTagAdded(const FString& TagName, const FString& TagComment, const FName& TagSource);
+
+	/** Callback when the user wants to add a subtag to an existing tag */
+	FReply OnAddSubtagClicked(TSharedPtr<FGameplayTagNode> InTagNode);
+
+	/** Creates a dropdown menu to provide additional functionality for tags (renaming, deletion, search for references, etc.) */
+	TSharedRef<SWidget> MakeTagActionsMenu(TSharedPtr<FGameplayTagNode> InTagNode);
+
+	/** Attempts to rename the tag through a dialog box */
+	void OnRenameTag(TSharedPtr<FGameplayTagNode> InTagNode);
+
+	/** Attempts to delete the specified tag */
+	void OnDeleteTag(TSharedPtr<FGameplayTagNode> InTagNode);
+
+	/** Searches for all references for the selected tag */
+	void OnSearchForReferences(TSharedPtr<FGameplayTagNode> InTagNode);
+
+	/** Returns true if the user can select tags from the widget */
+	bool CanSelectTags() const;
+
+	/** Determines if the expandable UI that contains the Add New Tag widget should be expanded or collapsed */
+	ECheckBoxState GetAddTagSectionExpansionState() const;
+
+	/** Callback for when the state of the expandable UI section changes */
+	void OnAddTagSectionExpansionStateChanged(ECheckBoxState NewState);
+
 	void SetContainer(FGameplayTagContainer* OriginalContainer, FGameplayTagContainer* EditedContainer, UObject* OwnerObj);
+
+	/** Opens a dialog window to rename the selected tag */
+	void OpenRenameGameplayTagDialog(TSharedPtr<FGameplayTagNode> GameplayTagNode) const;
+
+	/** Delegate that is fired when a tag is successfully renamed */
+	void OnGameplayTagRenamed(FString OldTagName, FString NewTagName);
 };

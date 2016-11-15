@@ -930,7 +930,7 @@ void USkeleton::RemoveBonesFromSkeleton( const TArray<FName>& BonesToRemove, boo
 		BonesRemoved.Sort();
 		for(int32 Index = BonesRemoved.Num()-1; Index >=0; --Index)
 		{
-			BoneTree.RemoveAt(Index);
+			BoneTree.RemoveAt(BonesRemoved[Index]);
 		}
 		HandleSkeletonHierarchyChange();
 	}

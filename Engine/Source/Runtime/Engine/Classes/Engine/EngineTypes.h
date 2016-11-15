@@ -754,9 +754,9 @@ enum ECollisionResponse
 UENUM()
 enum EFilterInterpolationType
 {
-	BSIT_Average,
-	BSIT_Linear,
-	BSIT_Cubic,
+	BSIT_Average UMETA(DisplayName = "Averaged Interpolation"),
+	BSIT_Linear UMETA(DisplayName = "Linear Interpolation"),
+	BSIT_Cubic UMETA(DisplayName = "Cubic Interpolation"),
 	BSIT_MAX
 };
 

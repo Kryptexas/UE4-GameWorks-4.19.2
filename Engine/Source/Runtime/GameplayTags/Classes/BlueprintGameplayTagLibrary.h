@@ -106,7 +106,7 @@ class UBlueprintGameplayTagLibrary : public UBlueprintFunctionLibrary
 	static bool HasAllTags(const FGameplayTagContainer& TagContainer, const FGameplayTagContainer& OtherContainer, bool bExactMatch);
 
 	/**
-	 * Check if the specified tag container matches the given Tag Query.
+	 * Check if the specified tag container matches the given Tag Query
 	 * 
 	 * @param TagContainer			Container to check if it matches all of the tags in the other container
 	 * @param TagQuery				Query to match against
@@ -117,7 +117,7 @@ class UBlueprintGameplayTagLibrary : public UBlueprintFunctionLibrary
 	static bool DoesContainerMatchTagQuery(const FGameplayTagContainer& TagContainer, const FGameplayTagQuery& TagQuery);
 
 	/**
-	 * Takes 2 Gameplay Tag Containers Appends the In Container to the In/Out Container
+	 * Adds a single tag to the passed in tag container
 	 *
 	 * @param InOutTagContainer		The container that will be appended too.
 	 * @param Tag					The tag to add to the container
@@ -126,7 +126,7 @@ class UBlueprintGameplayTagLibrary : public UBlueprintFunctionLibrary
 	static void AddGameplayTag(UPARAM(ref) FGameplayTagContainer& InOutTagContainer, FGameplayTag Tag);
 
 	/**
-	* Takes 2 Gameplay Tag Containers Appends the In Container to the In/Out Container
+	 * Appends all tags in the InTagContainer to InOutTagContainer
 	 *
 	 * @param InOutTagContainer		The container that will be appended too.
 	 * @param InTagContainer		The container to append.

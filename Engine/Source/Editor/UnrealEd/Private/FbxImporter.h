@@ -810,6 +810,19 @@ public:
 	 */
 	void BuildFbxMatrixForImportTransform(FbxAMatrix& OutMatrix, UFbxAssetImportData* AssetData);
 
+	/**
+	 * Import FbxCurve to Curve
+	 */
+	bool ImportCurve(const FbxAnimCurve* FbxCurve, FRichCurve& RichCurve, const FbxTimeSpan &AnimTimeSpan, const float ValueScale = 1.f) const;
+
+	/**
+	 * Merge all layers of one AnimStack to one layer.
+	 *
+	 * @param AnimStack     AnimStack which layers will be merged
+	 * @param ResampleRate  resample rate for the animation
+	 */
+	void MergeAllLayerAnimation(FbxAnimStack* AnimStack, int32 ResampleRate);
+
 private:
 	/**
 	* This function fill the last imported Material name. Those named are used to reorder the mesh sections
@@ -1237,14 +1250,6 @@ protected:
 	int32 DoUnSmoothVerts(FSkeletalMeshImportData &ImportData, bool bDuplicateUnSmoothWedges = true);
 	
 	/**
-	 * Merge all layers of one AnimStack to one layer.
-	 *
-	 * @param AnimStack     AnimStack which layers will be merged
-	 * @param ResampleRate  resample rate for the animation
-	 */
-	void MergeAllLayerAnimation(FbxAnimStack* AnimStack, int32 ResampleRate);
-	
-	/**
 	* Fill the FbxNodeInfo structure recursively to reflect the FbxNode hierarchy. The result will be an array sorted with the parent first
 	*
 	* @param SceneInfo   The scene info to modify
@@ -1384,10 +1389,7 @@ private:
 	FImportedMaterialData ImportedMaterialData;
 
 private:
-	/**
-	 * Import FbxCurve to Curve
-	 */
-	bool ImportCurve(const FbxAnimCurve* FbxCurve, FFloatCurve * Curve, const FbxTimeSpan &AnimTimeSpan, const float ValueScale = 1.f) const;
+
 
 
 	/**

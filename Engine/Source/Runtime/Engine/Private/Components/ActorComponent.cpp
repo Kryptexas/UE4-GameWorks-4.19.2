@@ -1324,7 +1324,7 @@ void UActorComponent::DoDeferredRenderUpdates_Concurrent()
 
 void UActorComponent::MarkRenderStateDirty()
 {
-	// If registered and has a render state to make as dirty
+	// If registered and has a render state to mark as dirty
 	if(IsRegistered() && bRenderStateCreated && (!bRenderStateDirty || !GetWorld()))
 	{
 		// Flag as dirty
@@ -1346,7 +1346,7 @@ void UActorComponent::MarkRenderTransformDirty()
 
 void UActorComponent::MarkRenderDynamicDataDirty()
 {
-	// If registered and has a render state to make as dirty
+	// If registered and has a render state to mark as dirty
 	if(IsRegistered() && bRenderStateCreated)
 	{
 		// Flag as dirty

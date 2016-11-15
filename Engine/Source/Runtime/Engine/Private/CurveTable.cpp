@@ -478,6 +478,58 @@ TArray<FString> UCurveTable::CreateTableFromJSONString(const FString& InString, 
 	return OutProblems;
 }
 
+TArray<FRichCurveEditInfoConst> UCurveTable::GetCurves() const
+{
+	TArray<FRichCurveEditInfoConst> Curves;
+
+	for (auto Iter = RowMap.CreateConstIterator(); Iter; ++Iter)
+	{
+		Curves.Add(FRichCurveEditInfoConst(Iter.Value(), Iter.Key()));
+	}
+
+	return Curves;
+}
+
+TArray<FRichCurveEditInfo> UCurveTable::GetCurves()
+{
+	TArray<FRichCurveEditInfo> Curves;
+	
+	for (auto Iter = RowMap.CreateIterator(); Iter; ++Iter)
+	{
+		Curves.Add(FRichCurveEditInfo(Iter.Value(), Iter.Key()));
+	}
+
+	return Curves;
+}
+
+void UCurveTable::ModifyOwner()
+{
+	Modify(true);
+}
+
+void UCurveTable::MakeTransactional()
+{
+	SetFlags(GetFlags() | RF_Transactional);
+}
+
+void UCurveTable::OnCurveChanged(const TArray<FRichCurveEditInfo>& ChangedCurveEditInfos)
+{
+
+}
+
+bool UCurveTable::IsValidCurve(FRichCurveEditInfo CurveInfo)
+{
+	for (auto Iter = RowMap.CreateConstIterator(); Iter; ++Iter)
+	{
+		if (CurveInfo.CurveToEdit == Iter.Value())
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 //////////////////////////////////////////////////////////////////////////
 
 

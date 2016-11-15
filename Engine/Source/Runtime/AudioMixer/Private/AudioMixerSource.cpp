@@ -43,6 +43,8 @@ namespace Audio
 		AUDIO_MIXER_CHECK(MixerBuffer);
 		AUDIO_MIXER_CHECK(MixerBuffer->IsRealTimeSourceReady());
 
+		FSoundSource::InitCommon();
+
 		// Get the number of frames before creating the buffer
 		int32 NumFrames = INDEX_NONE;
 
@@ -143,6 +145,8 @@ namespace Audio
 		{
 			return;
 		}
+
+		FSoundSource::UpdateCommon();
 
 		UpdatePitch();
 
@@ -541,13 +545,6 @@ namespace Audio
 
 	void FMixerSource::UpdatePitch()
 	{
-		float Pitch = WaveInstance->Pitch;
-
-		if (!WaveInstance->bIsUISound)
-		{	
-			Pitch *= AudioDevice->GetGlobalPitchScale().GetValue();
-		}
-
 		// Scale in the sound sample rate divided by device sample rate so pitch is 
 		// accurate independent of sound source sample rate or device sample rate
 		AUDIO_MIXER_CHECK(MixerBuffer);
@@ -605,27 +602,7 @@ namespace Audio
 		bool bChanged = false;
 
 		check(Buffer);
-		if (Buffer->NumChannels == 1)
-		{
-			bChanged = ComputeMonoChannelMap();
-		}
-		else if (Buffer->NumChannels == 2)
-		{
-			bChanged = ComputeStereoChannelMap();
-		}
-		else if (Buffer->NumChannels == 4)
-		{
-			bChanged = ComputeQuadChannelMap();
-		}
-		else if (Buffer->NumChannels == 6)
-		{
-			bChanged = ComputeHexChannelMap();
-		}
-		else
-		{
-			UE_LOG(LogAudioMixer, Warning, TEXT("Unsupported input audio channels '%d'"), Buffer->NumChannels);
-			return;
-		}
+		bChanged = ComputeChannelMap(Buffer->NumChannels);
 
 		if (bChanged)
 		{
@@ -729,21 +706,19 @@ namespace Audio
 		return false;
 	}
 
-	bool FMixerSource::ComputeQuadChannelMap()
+	bool FMixerSource::ComputeChannelMap(const int32 NumChannels)
 	{
-		if (!ChannelMap.Num())
+		if (NumChannels == 1)
 		{
-			MixerDevice->Get2DChannelMap(4, ChannelMap);
-			return true;
+			return ComputeMonoChannelMap();
 		}
-		return false;
-	}
-
-	bool FMixerSource::ComputeHexChannelMap()
-	{
-		if (!ChannelMap.Num())
+		else if (NumChannels == 2)
 		{
-			MixerDevice->Get2DChannelMap(6, ChannelMap);
+			return ComputeStereoChannelMap();
+		}
+		else if (!ChannelMap.Num())
+		{
+			MixerDevice->Get2DChannelMap(NumChannels, ChannelMap);
 			return true;
 		}
 		return false;

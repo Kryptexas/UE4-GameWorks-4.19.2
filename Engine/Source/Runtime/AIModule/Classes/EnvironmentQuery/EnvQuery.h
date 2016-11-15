@@ -35,9 +35,6 @@ public:
 	/** Gather all required named params */
 	void CollectQueryParams(UObject& QueryOwner, TArray<FAIDynamicParam>& NamedValues) const;
 
-	DEPRECATED(4.10, "This version of CollectQueryParams is deprecated. Please use the other version.")
-	void CollectQueryParams(TArray<FEnvNamedValue>& NamedValues) const;
-
 	virtual  void PostInitProperties() override;
 
 	/** QueryName patching up */

@@ -25,32 +25,17 @@ struct FSkeletonTreeArgs
 	TSharedPtr<class IPersonaPreviewScene> PreviewScene;
 };
 
-/** Enum which tells us what type of bones we should be showing */
-enum class EBoneFilter : uint8
-{
-	All,
-	Mesh,
-	LOD,
-	Weighted, /** only showing weighted bones of current LOD */
-	None,
-	Count
-};
-
-/** Enum which tells us what type of sockets we should be showing */
-enum class ESocketFilter : uint8
-{
-	Active,
-	Mesh,
-	Skeleton,
-	All,
-	None,
-	Count
-};
-
 /** Interface used to deal with skeleton editing UI */
-class ISkeletonTree : public SCompoundWidget
+class SKELETONEDITOR_API ISkeletonTree : public SCompoundWidget
 {
 public:
+	struct Columns
+	{
+		static const FName Name;
+		static const FName Retargeting;
+		static const FName BlendProfile;
+	};
+
 	/** Get editable skeleton that this widget is editing */
 	virtual TSharedRef<class IEditableSkeleton> GetEditableSkeleton() const = 0;
 
@@ -77,4 +62,10 @@ public:
 
 	/** Unregisters a delegate to be called when the selected object is changed */
 	virtual void UnregisterOnObjectSelected(SWidget* Widget) = 0;
+
+	/** Gets the currently selected blend profile */
+	virtual UBlendProfile* GetSelectedBlendProfile() = 0;
+
+	/** Attached the supplied assets to the tree to the specified attach item (bone/socket) */
+	virtual void AttachAssets(const TSharedRef<class ISkeletonTreeItem>& TargetItem, const TArray<FAssetData>& AssetData) = 0;
 };

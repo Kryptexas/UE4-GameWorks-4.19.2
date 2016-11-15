@@ -666,7 +666,26 @@ FString FIOSPlatformMisc::GetUniqueDeviceId()
 			return IDFV;
 		}
 	}
+
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	return FPlatformMisc::GetHashedMacAddressString();
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+}
+
+FString FIOSPlatformMisc::GetDeviceId()
+{
+	// Check to see if this OS has this function
+	if ([[UIDevice currentDevice] respondsToSelector:@selector(identifierForVendor)])
+	{
+	    NSUUID* Id = [[UIDevice currentDevice] identifierForVendor];
+	    if (Id != nil)
+	    {
+		    NSString* IdfvString = [Id UUIDString];
+		    FString IDFV(IdfvString);
+		    return IDFV;
+	    }
+	}
+	return FString();
 }
 
 class IPlatformChunkInstall* FIOSPlatformMisc::GetPlatformChunkInstall()

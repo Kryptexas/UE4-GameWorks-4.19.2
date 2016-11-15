@@ -6,7 +6,6 @@
 
 #if WITH_PHYSX
 	#include "PhysXSupport.h"
-	#include "../Vehicles/PhysXVehicleManager.h"
 #endif
 
 FPhysCommandHandler::~FPhysCommandHandler()

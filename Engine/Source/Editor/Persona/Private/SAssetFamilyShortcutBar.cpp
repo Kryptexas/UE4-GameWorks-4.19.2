@@ -240,6 +240,7 @@ public:
 				AssetPickerConfig.bAllowNullSelection = false;
 				AssetPickerConfig.ThumbnailLabel = EThumbnailLabel::ClassName;
 				AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
+				AssetPickerConfig.InitialAssetSelection = AssetData;
 
 				MenuBuilder.AddWidget(
 					SNew(SBox)

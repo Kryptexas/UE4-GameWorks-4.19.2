@@ -314,7 +314,7 @@ void UDebugSkelMeshComponent::InitAnim(bool bForceReinit)
 	{
 		// Add the same settings as the preview instance in this case.
 		PostProcessAnimInstance->RootMotionMode = ERootMotionMode::RootMotionFromEverything;
-		PostProcessAnimInstance->bCanUseParallelUpdateAnimation = false;
+		PostProcessAnimInstance->bUseMultiThreadedAnimationUpdate = false;
 	}
 }
 

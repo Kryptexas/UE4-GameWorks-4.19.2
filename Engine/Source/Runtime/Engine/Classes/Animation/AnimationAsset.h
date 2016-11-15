@@ -827,15 +827,6 @@ public:
 	/** Advances the asset player instance 
 	 * 
 	 * @param Instance		AnimationTickRecord Instance - saves data to evaluate
-	 * @param InstanceOwner	AnimInstance playing this asset
-	 * @param Context		The tick context (leader/follower, delta time, sync point, etc...)
-	 */
-	DEPRECATED(4.11, "This function is deprecated, use TickAssetPlayer")
-	ENGINE_API virtual void TickAssetPlayerInstance(FAnimTickRecord& Instance, class UAnimInstance* AnimInstance, FAnimAssetTickContext& Context) const;
-
-	/** Advances the asset player instance 
-	 * 
-	 * @param Instance		AnimationTickRecord Instance - saves data to evaluate
 	 * @param NotifyQueue	Queue for any notifies we create
 	 * @param Context		The tick context (leader/follower, delta time, sync point, etc...)
 	 */

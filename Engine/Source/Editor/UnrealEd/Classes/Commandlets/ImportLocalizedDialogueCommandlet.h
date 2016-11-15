@@ -3,6 +3,7 @@
 #pragma once 
 
 #include "Commandlets/GatherTextCommandletBase.h"
+#include "Factories/SoundFactory.h"
 #include "ImportLocalizedDialogueCommandlet.generated.h"
 
 class USoundWave;
@@ -39,9 +40,6 @@ private:
 
 	USoundWave* ConditionalImportSoundWave(const FString& InSoundWavePackageName, const FString& InSoundWaveAssetName, const FString& InWavFilename) const;
 	USoundWave* ImportSoundWave(const FString& InSoundWavePackageName, const FString& InSoundWaveAssetName, const FString& InWavFilename) const;
-
-	UPROPERTY()
-	USoundFactory* SoundWaveFactory;
 
 	TSet<FName> AssetsToKeep;
 };

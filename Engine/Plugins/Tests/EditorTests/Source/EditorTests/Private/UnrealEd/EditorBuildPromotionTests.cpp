@@ -56,6 +56,9 @@
 //Animation
 #include "Animation/AnimSequence.h"
 
+//Audio
+#include "Factories/SoundFactory.h"
+#include "Factories/SoundSurroundFactory.h"
 
 #include "ScopedTransaction.h"
 #include "LevelEditor.h"

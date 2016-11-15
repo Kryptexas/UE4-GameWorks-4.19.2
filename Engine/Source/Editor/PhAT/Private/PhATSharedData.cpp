@@ -14,7 +14,6 @@
 #include "PhysicsEngine/PhysicsConstraintTemplate.h"
 #include "PhysicsEngine/PhysicsHandleComponent.h"
 #include "PhysicsEngine/PhysicsAsset.h"
-#include "Vehicles/WheeledVehicleMovementComponent.h"
 #include "Engine/StaticMesh.h"
 
 #define LOCTEXT_NAMESPACE "PhATShared"
@@ -395,19 +394,8 @@ void FPhATSharedData::RefreshPhysicsAssetChange(const UPhysicsAsset* InPhysAsset
 			}
 		}
 
-		for (FObjectIterator Iter(UWheeledVehicleMovementComponent::StaticClass()); Iter; ++Iter)
-		{
-			UWheeledVehicleMovementComponent * WheeledVehicleMovementComponent = Cast<UWheeledVehicleMovementComponent>(*Iter);
-			if (USkeletalMeshComponent * SkeltalMeshComponent = Cast<USkeletalMeshComponent>(WheeledVehicleMovementComponent->UpdatedComponent))
-			{
-				if (SkeltalMeshComponent->GetPhysicsAsset() == InPhysAsset)
-				{
-					//Need to recreate car data
-					WheeledVehicleMovementComponent->RecreatePhysicsState();
-				}
-
-			}
-		}
+		// Broadbcast delegate
+		FPhysicsDelegates::OnPhysicsAssetChanged.Broadcast(InPhysAsset);
 
 		FEditorSupportDelegates::RedrawAllViewports.Broadcast();
 		// since we recreate physicsstate, a lot of transient state data will be gone

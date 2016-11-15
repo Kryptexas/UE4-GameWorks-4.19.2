@@ -6,7 +6,7 @@
 #include "GameplayTagContainer.h"
 #include "GameplayTagsManager.generated.h"
 
-/** Simple struct for a table row in the gameplay tag table */
+/** Simple struct for a table row in the gameplay tag table and element in the ini list */
 USTRUCT()
 struct FGameplayTagTableRow : public FTableRowBase
 {
@@ -83,7 +83,7 @@ struct FGameplayTagSource
 	}
 };
 
-/** Simple tree node for gameplay tags */
+/** Simple tree node for gameplay tags, this stores metadata about specific tags */
 USTRUCT()
 struct FGameplayTagNode
 {
@@ -144,7 +144,7 @@ struct FGameplayTagNode
 	GAMEPLAYTAGS_API void ResetNode();
 
 private:
-	/** Raw name for this  */
+	/** Raw name for this tag at current rank in the tree */
 	FName Tag;
 
 	/** This complete tag is at GameplayTags[0], with parents in ParentTags[] */
@@ -176,7 +176,7 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	// Destructor
+	/** Destructor */
 	~UGameplayTagsManager();
 
 	/** Returns the global UGameplayTagsManager manager */
@@ -194,12 +194,24 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	 * Gets the FGameplayTag that corresponds to the TagName
 	 *
 	 * @param TagName The Name of the tag to search for
-	 * 
 	 * @param ErrorIfNotfound: ensure() that tag exists.
 	 * 
 	 * @return Will return the corresponding FGameplayTag or an empty one if not found.
 	 */
 	FGameplayTag RequestGameplayTag(FName TagName, bool ErrorIfNotFound=true) const;
+
+	/**
+	 * Registers the given name as a gameplay tag, and tracks that it is being directly referenced from code
+	 * This can only be called during engine initialization, the table needs to be locked down before replication
+	 *
+	 * @param TagName The Name of the tag to add
+	 * 
+	 * @return Will return the corresponding FGameplayTag
+	 */
+	FGameplayTag AddNativeGameplayTag(FName TagName);
+
+	/** Call to flush the list of native tags, once called it is unsafe to add more */
+	void DoneAddingNativeTags();
 
 	/**
 	 * Gets a Tag Container containing the supplied tag and all of it's parents as explicit tags
@@ -435,11 +447,17 @@ private:
 	UPROPERTY()
 	TArray<FGameplayTagSource> TagSources;
 
+	/** List of native tags to add when reconstructing tree */
+	TSet<FName> NativeTagsToAdd;
+
 	/** Cached runtime value for whether we are using fast replication or not. Initialized from config setting. */
 	bool bUseFastReplication;
 
 	/** Cached runtime value for whether we should warn when loading invalid tags */
 	bool bShouldWarnOnInvalidTags;
+
+	/** True if native tags have all been added and flushed */
+	bool bDoneAddingNativeTags;
 
 #if WITH_EDITOR
 	// This critical section is to handle and editor-only issue where tag requests come from another thread when async loading from a background thread in FGameplayTagContainer::Serialize.

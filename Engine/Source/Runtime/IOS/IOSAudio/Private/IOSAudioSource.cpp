@@ -105,6 +105,8 @@ FIOSAudioSoundSource::~FIOSAudioSoundSource(void)
 
 bool FIOSAudioSoundSource::Init(FWaveInstance* InWaveInstance)
 {
+	FSoundSource::InitCommon();
+
 	if (InWaveInstance->OutputTarget == EAudioOutputTarget::Controller)
 	{
 		return false;
@@ -243,6 +245,8 @@ void FIOSAudioSoundSource::Update(void)
 		return;
 	}
 
+	FSoundSource::UpdateCommon();
+
 	AudioUnitParameterValue Volume = 0.0f;
 
 	if (!AudioDevice->IsAudioDeviceMuted())
@@ -262,7 +266,7 @@ void FIOSAudioSoundSource::Update(void)
 
 	// Convert to dB
 	const AudioUnitParameterValue Gain = FMath::Clamp<float>(20.0f * log10(Volume), -100, 0.0f);
-	const AudioUnitParameterValue Pitch = FMath::Clamp<float>(WaveInstance->Pitch, MIN_PITCH, MAX_PITCH);
+	const AudioUnitParameterValue PitchParam = Pitch;
 
 	OSStatus Status = noErr;
 
@@ -297,7 +301,7 @@ void FIOSAudioSoundSource::Update(void)
 		                               k3DMixerParam_PlaybackRate,
 		                               kAudioUnitScope_Input,
 		                               GetAudioUnitElement(Channel),
-		                               Pitch,
+									   PitchParam,
 		                               0);
 		UE_CLOG(Status != noErr, LogIOSAudio, Error, TEXT("Failed to set k3DMixerParam_PlaybackRate for audio mixer unit: BusNumber=%d, Channel=%d"), BusNumber, Channel);
 	}

@@ -1023,19 +1023,18 @@ void UPrimitiveComponent::OnComponentCollisionSettingsChanged()
 	}
 }
 
-bool UPrimitiveComponent::K2_LineTraceComponent(FVector TraceStart, FVector TraceEnd, bool bTraceComplex, bool bShowTrace, FVector& HitLocation, FVector& HitNormal, FName& BoneName)
+bool UPrimitiveComponent::K2_LineTraceComponent(FVector TraceStart, FVector TraceEnd, bool bTraceComplex, bool bShowTrace, FVector& HitLocation, FVector& HitNormal, FName& BoneName, FHitResult& OutHit)
 {
-	FHitResult Hit;
 	static FName KismetTraceComponentName(TEXT("KismetTraceComponent"));
 	FCollisionQueryParams LineParams(KismetTraceComponentName, bTraceComplex);
-	const bool bDidHit = LineTraceComponent(Hit, TraceStart, TraceEnd, LineParams);
+	const bool bDidHit = LineTraceComponent(OutHit, TraceStart, TraceEnd, LineParams);
 
 	if( bDidHit )
 	{
 		// Fill in the results if we hit
-		HitLocation = Hit.Location;
-		HitNormal = Hit.Normal;
-		BoneName = Hit.BoneName;
+		HitLocation = OutHit.Location;
+		HitNormal = OutHit.Normal;
+		BoneName = OutHit.BoneName;
 	}
 	else
 	{

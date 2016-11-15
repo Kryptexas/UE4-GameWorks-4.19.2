@@ -619,12 +619,6 @@ protected:
 	/** Which sound buffer should be written to next - used for triple buffering. */
 	int32 CurrentBuffer;
 
-	/** The duration of the sound to use when playing virtualized. */
-	float VirtualDuration;
-
-	/** The virtual current playback time. Used to trigger notifications when finished. */
-	float VirtualPlaybackTime;
-
 	/** Set to true when the loop end callback is hit */
 	FThreadSafeBool bLoopCallback;
 

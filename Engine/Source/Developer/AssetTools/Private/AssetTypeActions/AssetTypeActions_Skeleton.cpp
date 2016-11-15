@@ -472,23 +472,15 @@ void FAssetTypeActions_Skeleton::OpenAssetEditor( const TArray<UObject*>& InObje
 		auto Skeleton = Cast<USkeleton>(*ObjIt);
 		if (Skeleton != NULL)
 		{
-			if (GetDefault<UPersonaOptions>()->bUseStandaloneAnimationEditors)
+			const bool bBringToFrontIfOpen = true;
+			if (IAssetEditorInstance* EditorInstance = FAssetEditorManager::Get().FindEditorForAsset(Skeleton, bBringToFrontIfOpen))
 			{
-				const bool bBringToFrontIfOpen = true;
-				if (IAssetEditorInstance* EditorInstance = FAssetEditorManager::Get().FindEditorForAsset(Skeleton, bBringToFrontIfOpen))
-				{
-					EditorInstance->FocusWindow(Skeleton);
-				}
-				else
-				{
-					ISkeletonEditorModule& SkeletonEditorModule = FModuleManager::LoadModuleChecked<ISkeletonEditorModule>("SkeletonEditor");
-					SkeletonEditorModule.CreateSkeletonEditor(Mode, EditWithinLevelEditor, Skeleton);
-				}
+				EditorInstance->FocusWindow(Skeleton);
 			}
 			else
 			{
-				FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>("Persona");
-				PersonaModule.CreatePersona(Mode, EditWithinLevelEditor, Skeleton, NULL, NULL, NULL);
+				ISkeletonEditorModule& SkeletonEditorModule = FModuleManager::LoadModuleChecked<ISkeletonEditorModule>("SkeletonEditor");
+				SkeletonEditorModule.CreateSkeletonEditor(Mode, EditWithinLevelEditor, Skeleton);
 			}
 		}
 	}

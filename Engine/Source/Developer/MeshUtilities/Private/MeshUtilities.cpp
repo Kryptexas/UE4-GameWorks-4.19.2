@@ -7827,6 +7827,7 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 	// Flatten out the occupied UV channel flags, we need this to ensure the same amount of uv sets written out for each mesh
 	bool bFlattenedOcuppiedUVChannels[MAX_MESH_TEXTURE_COORDS];
 	FMemory::Memset(bFlattenedOcuppiedUVChannels, 0, sizeof(bool) * MAX_MESH_TEXTURE_COORDS);
+	bFlattenedOcuppiedUVChannels[0] = true;
 	for (int CoordinateIndex = 0; CoordinateIndex < MAX_MESH_TEXTURE_COORDS; ++CoordinateIndex)
 	{
 		for (int32 LODIndex = 0; LODIndex < MAX_STATIC_MESH_LODS; ++LODIndex)

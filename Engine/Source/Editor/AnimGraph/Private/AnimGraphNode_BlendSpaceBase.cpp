@@ -70,7 +70,7 @@ void UAnimGraphNode_BlendSpaceBase::CustomizePinData(UEdGraphPin* Pin, FName Sou
 		else if (SourcePropertyName == TEXT("Y"))
 		{
 			Pin->PinFriendlyName = FText::FromString(BlendSpace->GetBlendParameter(1).DisplayName);
-			Pin->bHidden = (BlendSpace->NumOfDimension == 1) ? 1 : 0;
+			Pin->bHidden = BlendSpace->IsA<UBlendSpace1D>() ? 1 : 0;
 		}
 		else if (SourcePropertyName == TEXT("Z"))
 		{

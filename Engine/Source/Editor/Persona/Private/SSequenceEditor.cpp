@@ -11,6 +11,7 @@
 #include "SAnimNotifyPanel.h"
 #include "SAnimCurvePanel.h"
 #include "SAnimTrackCurvePanel.h"
+#include "IPersonaPreviewScene.h"
 
 #define LOCTEXT_NAMESPACE "AnimSequenceEditor"
 
@@ -27,8 +28,8 @@ void SSequenceEditor::Construct(const FArguments& InArgs, TSharedRef<class IPers
 		.OnObjectsSelected(InArgs._OnObjectsSelected), 
 		InPreviewScene );
 
-	OnPostUndo.Add(FPersona::FOnPostUndo::CreateSP( this, &SSequenceEditor::PostUndo ) );
-	OnCurvesChanged.Add(FPersona::FOnTrackCurvesChanged::CreateSP( this, &SSequenceEditor::HandleCurvesChanged) );
+	OnPostUndo.Add(FSimpleDelegate::CreateSP( this, &SSequenceEditor::PostUndo ) );
+	OnCurvesChanged.Add(FSimpleDelegate::CreateSP( this, &SSequenceEditor::HandleCurvesChanged) );
 	
 	EditorPanels->AddSlot()
 	.AutoHeight()

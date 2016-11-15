@@ -40,11 +40,18 @@ FEdGraphToken::FEdGraphToken(const UObject* InObject, const UEdGraphPin* InPin)
 {
 	if (InPin)
 	{
-		CachedText = FText::FromString(InPin->GetName());
+		CachedText = InPin->GetDisplayName();
 	}
 	else if (InObject)
 	{
-		CachedText = FText::FromString(InObject->GetName());
+		if (const UEdGraphNode* Node = Cast<UEdGraphNode>(InObject))
+		{
+			CachedText = Node->GetNodeTitle(ENodeTitleType::ListView);
+		}
+		else
+		{
+			CachedText = FText::FromString(InObject->GetName());
+		}
 	}
 	else
 	{

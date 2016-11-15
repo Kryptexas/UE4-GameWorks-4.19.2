@@ -60,8 +60,6 @@ FAssetTools::FAssetTools()
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_DataAsset) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_DataTable) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_DestructibleMesh) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_DialogueVoice) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_DialogueWave) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Enum) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Class) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Struct) );
@@ -79,7 +77,6 @@ FAssetTools::FAssetTools()
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_MaterialInstanceConstant(BlendablesCategoryBit)) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_MaterialInterface) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_MaterialParameterCollection) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_MorphTarget) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_ObjectLibrary) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_ParticleSystem) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_PhysicalMaterial) );
@@ -87,19 +84,11 @@ FAssetTools::FAssetTools()
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_PreviewMeshCollection) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_ProceduralFoliageSpawner) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Redirector) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_ReverbEffect) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Rig) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SkeletalMesh) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Skeleton) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SlateBrush) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SlateWidgetStyle) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SoundAttenuation) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SoundConcurrency));
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SoundBase) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SoundClass) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SoundCue) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SoundMix) );
-	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_SoundWave) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_StaticMesh) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Texture) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Texture2D) );

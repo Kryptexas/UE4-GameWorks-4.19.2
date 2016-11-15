@@ -44,9 +44,9 @@ UClass* FNavigationLinkBase::GetAreaClass() const
 	return ClassOb ? ClassOb : (UClass*)UNavigationSystem::GetDefaultWalkableArea();
 }
 
-void FNavigationLinkBase::InitializeAreaClass()
+void FNavigationLinkBase::InitializeAreaClass(const bool bForceRefresh)
 {
-	if (!bAreaClassInitialized)
+	if (!bAreaClassInitialized || bForceRefresh)
 	{
 		AreaClassOb = (UClass*)AreaClass;
 		bAreaClassInitialized = true;

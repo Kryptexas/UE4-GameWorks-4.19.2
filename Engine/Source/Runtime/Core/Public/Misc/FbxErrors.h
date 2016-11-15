@@ -28,6 +28,8 @@ struct CORE_API FFbxErrors
 
 	static FName Generic_MeshNotFound;
 
+	static FName Generic_CannotDetectImportType;
+
 	/** Mesh Generic **/
 
 	static FName Generic_Mesh_NoGeometry;

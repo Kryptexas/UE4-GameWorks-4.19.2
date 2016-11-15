@@ -249,13 +249,6 @@ FArchive & operator<<(FArchive & Ar, FReferenceSkeleton & F)
 		Ar << F.RawNameToIndexMap;
 	}
 
-	if (Ar.IsLoading())
-	{
-		F.FinalRefBoneInfo = F.RawRefBoneInfo;
-		F.FinalRefBonePose = F.RawRefBonePose;
-		F.FinalNameToIndexMap = F.RawNameToIndexMap;
-	}
-
 	// Fix up any assets that don't have an INDEX_NONE parent for Bone[0]
 	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_FIXUP_ROOTBONE_PARENT)
 	{
@@ -263,6 +256,13 @@ FArchive & operator<<(FArchive & Ar, FReferenceSkeleton & F)
 		{
 			F.RawRefBoneInfo[0].ParentIndex = INDEX_NONE;
 		}
+	}
+
+	if (Ar.IsLoading())
+	{
+		F.FinalRefBoneInfo = F.RawRefBoneInfo;
+		F.FinalRefBonePose = F.RawRefBonePose;
+		F.FinalNameToIndexMap = F.RawNameToIndexMap;
 	}
 
 	return Ar;

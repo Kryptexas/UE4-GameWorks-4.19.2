@@ -221,13 +221,6 @@ void UAnimationAsset::SetSkeleton(USkeleton* NewSkeleton)
 	}
 }
 
-void UAnimationAsset::TickAssetPlayerInstance(FAnimTickRecord& Instance, class UAnimInstance* AnimInstance, FAnimAssetTickContext& Context) const
-{ 
-	// @todo: remove after deprecation
-	// Forward to non-deprecated function
-	TickAssetPlayer(Instance, AnimInstance->NotifyQueue, Context); 
-}
-
 #if WITH_EDITOR
 void UAnimationAsset::RemapTracksToNewSkeleton(USkeleton* NewSkeleton, bool bConvertSpaces)
 {

@@ -6,7 +6,7 @@
 #include "Sound/SoundCue.h"
 
 #if WITH_EDITOR
-#include "UnrealEd.h"
+//#include "AudioEditor.h"
 #endif
 #include "AssetData.h"
 
@@ -53,9 +53,9 @@ void USoundNode::AddReferencedObjects(UObject* InThis, FReferenceCollector& Coll
 #endif //WITH_EDITOR
 
 #if WITH_EDITORONLY_DATA
-USoundCueGraphNode* USoundNode::GetGraphNode() const
+UEdGraphNode* USoundNode::GetGraphNode() const
 {
-	return CastChecked<USoundCueGraphNode>(GraphNode);
+	return GraphNode;
 }
 #endif
 
@@ -112,7 +112,7 @@ void USoundNode::InsertChildNode( int32 Index )
 	{
 		ChildNodes.InsertZeroed( Index );
 #if WITH_EDITOR
-		GetGraphNode()->CreateInputPin();
+		USoundCue::GetSoundCueAudioEditor()->CreateInputPin(GetGraphNode());
 #endif //WITH_EDITORONLY_DATA
 	}
 }

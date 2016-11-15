@@ -14,6 +14,7 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("UGameplayTagsManager::GameplayTagsMatch"), STAT_
 
 struct FGameplayTagContainer;
 
+// DEPRECATED ENUMS
 UENUM(BlueprintType)
 namespace EGameplayTagMatchType
 {
@@ -174,6 +175,9 @@ struct GAMEPLAYTAGS_API FGameplayTag
 	/** Used to upgrade a Name property to a GameplayTag struct property */
 	bool SerializeFromMismatchedTag(const FPropertyTag& Tag, FArchive& Ar);
 
+	/** Sets from a ImportText string, used in asset registry */
+	void FromExportString(FString ExportString);
+
 	/** Handles importing tag strings without (TagName=) in it */
 	bool ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText);
 
@@ -280,6 +284,7 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 	{
 	}
 
+	/** Creates a container from an array of tags, this is more efficient than adding them all individually */
 	template<class AllocatorType>
 	static FGameplayTagContainer CreateFromArray(const TArray<FGameplayTag, AllocatorType>& SourceTags)
 	{
@@ -538,10 +543,13 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 	/** Returns string version of container in ImportText format */
 	FString ToString() const;
 
+	/** Sets from a ImportText string, used in asset registry */
+	void FromExportString(FString ExportString);
+
 	/** Returns abbreviated human readable Tag list without parens or property names */
 	FString ToStringSimple() const;
 
-	// Returns human readable description of what match is being looked for on the readable tag list.
+	/** Returns human readable description of what match is being looked for on the readable tag list. */
 	FText ToMatchingText(EGameplayContainerMatchType MatchType, bool bInvertCondition) const;
 
 	/** Gets the explicit list of gameplay tags */
@@ -765,15 +773,15 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 protected:
 
 	/**
-	* Returns true if the tags in this container match the tags in OtherContainer for the specified matching types.
-	*
-	* @param OtherContainer		The Container to filter against
-	* @param TagMatchType			Type of match to use for the tags in this container
-	* @param OtherTagMatchType		Type of match to use for the tags in the OtherContainer param
-	* @param ContainerMatchType	Type of match to use for filtering
-	*
-	* @return Returns true if ContainerMatchType is Any and any of the tags in OtherContainer match the tags in this or ContainerMatchType is All and all of the tags in OtherContainer match at least one tag in this. Returns false otherwise.
-	*/
+	 * Returns true if the tags in this container match the tags in OtherContainer for the specified matching types.
+	 *
+	 * @param OtherContainer		The Container to filter against
+	 * @param TagMatchType			Type of match to use for the tags in this container
+	 * @param OtherTagMatchType		Type of match to use for the tags in the OtherContainer param
+	 * @param ContainerMatchType	Type of match to use for filtering
+	 *
+	 * @return Returns true if ContainerMatchType is Any and any of the tags in OtherContainer match the tags in this or ContainerMatchType is All and all of the tags in OtherContainer match at least one tag in this. Returns false otherwise.
+	 */
 	bool DoesTagContainerMatchComplex(const FGameplayTagContainer& OtherContainer, TEnumAsByte<EGameplayTagMatchType::Type> TagMatchType, TEnumAsByte<EGameplayTagMatchType::Type> OtherTagMatchType, EGameplayContainerMatchType ContainerMatchType) const;
 
 	/**

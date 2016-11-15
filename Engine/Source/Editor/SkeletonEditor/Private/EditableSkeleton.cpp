@@ -171,7 +171,7 @@ void FEditableSkeleton::SetBoneTranslationRetargetingMode(FName InBoneName, EBon
 	FAssetNotifications::SkeletonNeedsToBeSaved(Skeleton);
 }
 
-EBoneTranslationRetargetingMode::Type FEditableSkeleton::GetBoneTranslationRetargetingMode(FName InBoneName)
+EBoneTranslationRetargetingMode::Type FEditableSkeleton::GetBoneTranslationRetargetingMode(FName InBoneName) const
 {
 	const int32 BoneIndex = Skeleton->GetReferenceSkeleton().FindBoneIndex(InBoneName);
 	return Skeleton->GetBoneTranslationRetargetingMode(BoneIndex);
@@ -1009,8 +1009,11 @@ void FEditableSkeleton::UnregisterOnSkeletonHierarchyChanged(void* Thing)
 
 void FEditableSkeleton::SetPreviewMesh(class USkeletalMesh* InSkeletalMesh)
 {
-	const FScopedTransaction Transaction(LOCTEXT("ChangeSkeletonPreviewMesh", "Change Skeleton Preview Mesh"));
-	Skeleton->SetPreviewMesh(InSkeletalMesh);
+	if (InSkeletalMesh != Skeleton->GetPreviewMesh())
+	{
+		const FScopedTransaction Transaction(LOCTEXT("ChangeSkeletonPreviewMesh", "Change Skeleton Preview Mesh"));
+		Skeleton->SetPreviewMesh(InSkeletalMesh);
+	}
 }
 
 void FEditableSkeleton::LoadAdditionalPreviewSkeletalMeshes()

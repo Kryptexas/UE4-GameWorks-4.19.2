@@ -15,9 +15,9 @@ struct FCrashReportUtil
 	/** Formats processed diagnostic text by adding additional information about machine and user. */
 	static FText FormatDiagnosticText( const FText& DiagnosticText )
 	{
-		const FString MachineId = FPrimaryCrashProperties::Get()->MachineId.AsString();
+		const FString LoginId = FPrimaryCrashProperties::Get()->LoginId.AsString();
 		const FString EpicAccountId = FPrimaryCrashProperties::Get()->EpicAccountId.AsString();
-		return FText::Format( LOCTEXT( "CrashReportClientCallstackPattern", "MachineId:{0}\nEpicAccountId:{1}\n\n{2}" ), FText::FromString( MachineId ), FText::FromString( EpicAccountId ), DiagnosticText );
+		return FText::Format( LOCTEXT( "CrashReportClientCallstackPattern", "LoginId:{0}\nEpicAccountId:{1}\n\n{2}" ), FText::FromString( LoginId ), FText::FromString( EpicAccountId ), DiagnosticText );
 	}
 };
 

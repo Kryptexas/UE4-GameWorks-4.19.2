@@ -1,0 +1,33 @@
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+#pragma once
+
+#include "AbilityTask.h"
+#include "AbilityTask_WaitVelocityChange.generated.h"
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FWaitVelocityChangeDelegate);
+
+UCLASS(MinimalAPI)
+class UAbilityTask_WaitVelocityChange: public UAbilityTask
+{
+	GENERATED_UCLASS_BODY()
+
+	/** Delegate called when velocity requirements are met */
+	UPROPERTY(BlueprintAssignable)
+	FWaitVelocityChangeDelegate OnVelocityChage;
+
+	virtual void TickTask(float DeltaTime) override;
+
+	/** Wait for the actor's movement component velocity to be of minimum magnitude when projected along given direction */
+	UFUNCTION(BlueprintCallable, Category = "Ability|Tasks", meta = (DisplayName="WaitVelocityChange",HidePin = "OwningAbility", DefaultToSelf = "OwningAbility", BlueprintInternalUseOnly = "TRUE"))
+	static UAbilityTask_WaitVelocityChange* CreateWaitVelocityChange(UGameplayAbility* OwningAbility, FVector Direction, float MinimumMagnitude);
+		
+	virtual void Activate() override;
+
+protected:
+
+	UPROPERTY()
+	UMovementComponent*	CachedMovementComponent;
+
+	float	MinimumMagnitude;
+	FVector Direction;
+};

@@ -5419,6 +5419,10 @@ void FSlateEditorStyle::FStyle::SetupPersonaStyle()
 		Set("AnimCurveViewer.MorphTargetHover", new IMAGE_BRUSH(TEXT("Persona/AnimCurveViewer/MorphTarget_On"), Icon16x16));
 		Set("AnimCurveViewer.MaterialHover", new IMAGE_BRUSH(TEXT("Persona/AnimCurveViewer/Material_On"), Icon16x16));
 
+		// blend space
+		Set("BlendSpaceEditor.ToggleTriangulation", new IMAGE_BRUSH(TEXT("Persona/BlendSpace/triangulation_16"), Icon16x16));
+		Set("BlendSpaceEditor.ToggleTriangulation", new IMAGE_BRUSH(TEXT("Persona/BlendSpace/triangulation_16"), Icon16x16));
+
 		const FButtonStyle BlueprintContextTargetsButtonStyle = FButtonStyle()
 			.SetNormal(IMAGE_BRUSH("Common/TreeArrow_Collapsed_Hovered", Icon10x10, FLinearColor(0.2f, 0.2f, 0.2f, 1.f)))
 			.SetHovered(IMAGE_BRUSH("Common/TreeArrow_Collapsed_Hovered", Icon10x10, FLinearColor(0.4f, 0.4f, 0.4f, 1.f)))
@@ -5566,6 +5570,17 @@ void FSlateEditorStyle::FStyle::SetupPersonaStyle()
 		Set("Persona.AssetActions.FindSkeleton", new IMAGE_BRUSH(TEXT("Icons/icon_Genericfinder_16x"), Icon16x16));
 		Set("Persona.AssetActions.DuplicateAndRetargetSkeleton", new IMAGE_BRUSH(TEXT("Icons/icon_Animation_Duplicate_Retarget_Skeleton_16x"), Icon16x16));
 		Set("Persona.AssetActions.AssignSkeleton", new IMAGE_BRUSH(TEXT("Icons/icon_Animation_Assign_Skeleton_16x"), Icon16x16));
+	}
+
+	// Blend space colors
+	{
+		Set("BlendSpaceKey.Regular", DefaultForeground);
+		Set("BlendSpaceKey.Highlight", SelectionColor);
+		Set("BlendSpaceKey.Pressed", SelectionColor_Pressed);
+		Set("BlendSpaceKey.Drag", SelectionColor_Subdued);
+		Set("BlendSpaceKey.Drop", SelectionColor_Inactive);
+		Set("BlendSpaceKey.Invalid", LogColor_Error);
+		Set("BlendSpaceKey.Preview", LogColor_Command);
 	}
 #endif // WITH_EDITOR
 }

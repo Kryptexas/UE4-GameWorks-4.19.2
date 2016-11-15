@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include "Persona.h"
 #include "GraphEditor.h"
 #include "SNodePanel.h"
 #include "STrack.h"

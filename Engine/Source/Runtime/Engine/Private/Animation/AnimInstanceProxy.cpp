@@ -13,6 +13,7 @@
 #include "Animation/AnimNode_TransitionResult.h"
 #include "Animation/AnimNode_SaveCachedPose.h"
 #include "Animation/AnimNode_SubInput.h"
+#include "Animation/PoseSnapshot.h"
 
 #define DO_ANIMSTAT_PROCESSING(StatName) DEFINE_STAT(STAT_ ## StatName)
 #include "AnimMTStats.h"
@@ -242,35 +243,11 @@ void FAnimInstanceProxy::SavePoseSnapshot(USkeletalMeshComponent* InSkeletalMesh
 	FPoseSnapshot* PoseSnapshot = PoseSnapshots.FindByPredicate([SnapshotName](const FPoseSnapshot& PoseData) { return PoseData.SnapshotName == SnapshotName; });
 	if (PoseSnapshot == nullptr)
 	{
-		PoseSnapshot = new (PoseSnapshots) FPoseSnapshot();
+		PoseSnapshot = &PoseSnapshots[PoseSnapshots.AddDefaulted()];
 		PoseSnapshot->SnapshotName = SnapshotName;
 	}
 
-	const TArray<FTransform>& ComponentSpaceTMs = InSkeletalMeshComponent->GetComponentSpaceTransforms();
-	const FReferenceSkeleton& RefSkeleton = InSkeletalMeshComponent->SkeletalMesh->RefSkeleton;
-	const TArray<FTransform>& RefPoseSpaceBaseTMs = RefSkeleton.GetRefBonePose();
-
-	const int32 NumSpaceBases = ComponentSpaceTMs.Num();
-	PoseSnapshot->LocalTransforms.Reset(NumSpaceBases);
-	PoseSnapshot->LocalTransforms.AddUninitialized(NumSpaceBases);
-	PoseSnapshot->LocalTransforms[0] = ComponentSpaceTMs[0];	//Set root bone which is always evaluated.
-
-	int32 CurrentRequiredBone = 1;
-	for(int32 ComponentSpaceIdx = 1; ComponentSpaceIdx < NumSpaceBases; ++ComponentSpaceIdx)
-	{
-		const bool bBoneHasEvaluated = InSkeletalMeshComponent->FillComponentSpaceTransformsRequiredBones.IsValidIndex(CurrentRequiredBone) && ComponentSpaceIdx == InSkeletalMeshComponent->FillComponentSpaceTransformsRequiredBones[CurrentRequiredBone];
-		const int32 ParentIndex = RefSkeleton.GetParentIndex(ComponentSpaceIdx);
-		ensureMsgf(ParentIndex != INDEX_NONE, TEXT("Getting an invalid parent bone for bone %d, but this should not be possible since this is not the root bone!"), ComponentSpaceIdx);
-
-		const FTransform& ParentTransform = ComponentSpaceTMs[ParentIndex];
-		const FTransform& ChildTransform =  ComponentSpaceTMs[ComponentSpaceIdx];
-		PoseSnapshot->LocalTransforms[ComponentSpaceIdx] = bBoneHasEvaluated ? ChildTransform.GetRelativeTransform(ParentTransform) :  RefPoseSpaceBaseTMs[ComponentSpaceIdx];
-
-		if (bBoneHasEvaluated)
-		{
-			CurrentRequiredBone++;
-		}
-	}
+	InSkeletalMeshComponent->SnapshotPose(*PoseSnapshot);
 }
 
 void FAnimInstanceProxy::PostUpdate(UAnimInstance* InAnimInstance) const
@@ -1737,7 +1714,7 @@ void FAnimInstanceProxy::RegisterWatchedPose(const FCSPose<FCompactPose>& Pose, 
 }
 #endif
 
-const FAnimInstanceProxy::FPoseSnapshot* FAnimInstanceProxy::GetPoseSnapshot(FName SnapshotName) const
+const FPoseSnapshot* FAnimInstanceProxy::GetPoseSnapshot(FName SnapshotName) const
 {
 	return PoseSnapshots.FindByPredicate([SnapshotName](const FPoseSnapshot& PoseData) { return PoseData.SnapshotName == SnapshotName; });
 }

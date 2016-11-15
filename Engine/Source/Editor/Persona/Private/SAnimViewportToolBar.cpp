@@ -397,17 +397,13 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateViewMenu() const
 		{
 			ViewMenuBuilder.AddMenuEntry(FAnimViewportMenuCommands::Get().PreviewSceneSettings);
 
-			// We cant allow animation configuration via the viewport menu in 'old regular' Persona
-			if (GetDefault<UPersonaOptions>()->bUseStandaloneAnimationEditors)
-			{
-				ViewMenuBuilder.AddSubMenu(
-					LOCTEXT("SceneSetupLabel", "Scene Setup"),
-					LOCTEXT("SceneSetupTooltip", "Set up preview meshes, animations etc."),
-					FNewMenuDelegate::CreateRaw(this, &SAnimViewportToolBar::GenerateSceneSetupMenu),
-					false,
-					FSlateIcon(FEditorStyle::GetStyleSetName(), "AnimViewportMenu.SceneSetup")
-					);
-			}
+			ViewMenuBuilder.AddSubMenu(
+				LOCTEXT("SceneSetupLabel", "Scene Setup"),
+				LOCTEXT("SceneSetupTooltip", "Set up preview meshes, animations etc."),
+				FNewMenuDelegate::CreateRaw(this, &SAnimViewportToolBar::GenerateSceneSetupMenu),
+				false,
+				FSlateIcon(FEditorStyle::GetStyleSetName(), "AnimViewportMenu.SceneSetup")
+				);
 
 			ViewMenuBuilder.AddSubMenu(
 				LOCTEXT("TurnTableLabel", "Turn Table"),
@@ -422,6 +418,7 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateViewMenu() const
 		ViewMenuBuilder.BeginSection("AnimViewportCamera", LOCTEXT("ViewMenu_CameraLabel", "Camera"));
 		{
 			ViewMenuBuilder.AddMenuEntry(FAnimViewportMenuCommands::Get().CameraFollow);
+			ViewMenuBuilder.AddMenuEntry(FEditorViewportCommands::Get().FocusViewportToSelection);
 		}
 		ViewMenuBuilder.EndSection();
 	}
@@ -589,10 +586,11 @@ void SAnimViewportToolBar::FillShowBoneDrawMenu(FMenuBuilder& MenuBuilder) const
 {
 	const FAnimViewportShowCommands& Actions = FAnimViewportShowCommands::Get();
 
-	MenuBuilder.BeginSection("AnimViewportPreviewHierarchyBoneDraw", LOCTEXT("ShowMenu_Actions_HierarchyAxes", "Hierarchy Local Axes"));
+	MenuBuilder.BeginSection("AnimViewportPreviewHierarchyBoneDraw", LOCTEXT("ShowMenu_Actions_BoneDrawing", "Bone Drawing"));
 	{
 		MenuBuilder.AddMenuEntry(Actions.ShowBoneDrawAll);
 		MenuBuilder.AddMenuEntry(Actions.ShowBoneDrawSelected);
+		MenuBuilder.AddMenuEntry(Actions.ShowBoneDrawSelectedAndParents);
 		MenuBuilder.AddMenuEntry(Actions.ShowBoneDrawNone);
 	}
 	MenuBuilder.EndSection();

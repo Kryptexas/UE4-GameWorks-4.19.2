@@ -273,12 +273,6 @@ namespace UnrealBuildTool
 		public static bool bUseChecksInShipping;
 
 		/// <summary>
-		/// True if we need PhysX vehicle support
-		/// </summary>
-		[XmlConfig]
-		public static bool bCompilePhysXVehicle;
-
-		/// <summary>
 		/// True if we need FreeType support
 		/// </summary>
 		[XmlConfig]
@@ -386,7 +380,6 @@ namespace UnrealBuildTool
             bUseLoggingInShipping = false;
 			bUseChecksInShipping = false;
             bUseLauncherChecks = false;
-			bCompilePhysXVehicle = true;
 			bCompileFreeType = true;
 			bCompileForSize = false;
 			bHotReloadFromIDE = false;

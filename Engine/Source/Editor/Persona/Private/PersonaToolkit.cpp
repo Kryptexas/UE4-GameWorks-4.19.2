@@ -5,6 +5,7 @@
 #include "ISkeletonEditorModule.h"
 #include "ScopedTransaction.h"
 #include "IEditableSkeleton.h"
+#include "PersonaModule.h"
 
 FPersonaToolkit::FPersonaToolkit()
 	: Skeleton(nullptr)
@@ -79,6 +80,10 @@ void FPersonaToolkit::CreatePreviewScene()
 
 		//Temporary fix for missing attached assets - MDW
 		PreviewScene->GetWorld()->GetWorldSettings()->SetIsTemporarilyHiddenInEditor(false);
+
+		// allow external systems to add components or otherwise manipulate the scene
+		FPersonaModule& PersonaModule = FModuleManager::GetModuleChecked<FPersonaModule>(TEXT("Persona"));
+		PersonaModule.OnPreviewSceneCreated().Broadcast(PreviewScene.ToSharedRef());
 
 		bool bSetMesh = false;
 

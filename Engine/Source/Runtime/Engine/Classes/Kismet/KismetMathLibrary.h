@@ -114,7 +114,7 @@ struct ENGINE_API FVectorSpringState
 	}
 };
 
-UCLASS()
+UCLASS(meta=(BlueprintThreadSafe))
 class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
@@ -124,14 +124,14 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	//
 	
 	/* Returns a uniformly distributed random bool*/
-	UFUNCTION(BlueprintPure, Category="Math|Random")
+	UFUNCTION(BlueprintPure, Category="Math|Random", meta=(NotBlueprintThreadSafe))
 	static bool RandomBool();
 
 	/** 
 	 * Get a random chance with the specified weight. Range of weight is 0.0 - 1.0 E.g.,
 	 *		Weight = .6 return value = True 60% of the time
 	 */
-	UFUNCTION(BlueprintPure, Category = "Math|Random", meta=(Weight = "0.5"))
+	UFUNCTION(BlueprintPure, Category = "Math|Random", meta=(Weight = "0.5", NotBlueprintThreadSafe))
 	static bool RandomBoolWithWeight(float Weight);
 
 	/** 
@@ -298,11 +298,11 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	static int32 SignOfInteger(int32 A);
 
 	/* Returns a uniformly distributed random number between 0 and Max - 1 */
-	UFUNCTION(BlueprintPure, Category="Math|Random")
+	UFUNCTION(BlueprintPure, Category="Math|Random", meta=(NotBlueprintThreadSafe))
 	static int32 RandomInteger(int32 Max);
 
 	/** Return a random integer between Min and Max (>= Min and <= Max) */
-	UFUNCTION(BlueprintPure, Category="Math|Random")
+	UFUNCTION(BlueprintPure, Category="Math|Random", meta = (NotBlueprintThreadSafe))
 	static int32 RandomIntegerInRange(int32 Min, int32 Max);
 
 	/* Returns the minimum value of A and B */
@@ -490,11 +490,11 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	static float Square(float A);
 
 	/** Returns a random float between 0 and 1 */
-	UFUNCTION(BlueprintPure, Category="Math|Random")
+	UFUNCTION(BlueprintPure, Category="Math|Random", meta=(NotBlueprintThreadSafe))
 	static float RandomFloat();
 
 	/** Generate a random number between Min and Max */
-	UFUNCTION(BlueprintPure, Category="Math|Random")
+	UFUNCTION(BlueprintPure, Category="Math|Random", meta=(NotBlueprintThreadSafe))
 	static float RandomFloatInRange(float Min, float Max);
 
 	/* Returns the value of PI */
@@ -801,11 +801,11 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	static FVector VEase(FVector A, FVector B, float Alpha, TEnumAsByte<EEasingFunc::Type> EasingFunc, float BlendExp = 2, int32 Steps = 2);
 
 	/* Returns a random vector with length of 1 */
-	UFUNCTION(BlueprintPure, Category="Math|Random")
+	UFUNCTION(BlueprintPure, Category="Math|Random", meta=(NotBlueprintThreadSafe))
 	static FVector RandomUnitVector();
 
 	/** Returns a random point within the specified bounding box */
-	UFUNCTION(BlueprintPure, Category = "Math|Random")
+	UFUNCTION(BlueprintPure, Category = "Math|Random", meta=(NotBlueprintThreadSafe))
 	static FVector RandomPointInBoundingBox(const FVector& Origin, const FVector& BoxExtent);
 
 	/** 
@@ -813,7 +813,7 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	 * @param ConeDir	The base "center" direction of the cone.
 	 * @param ConeHalfAngle		The half-angle of the cone (from ConeDir to edge), in radians.
 	 */
-	UFUNCTION(BlueprintPure, Category = "Math|Random")
+	UFUNCTION(BlueprintPure, Category = "Math|Random", meta=(NotBlueprintThreadSafe))
 	static FVector RandomUnitVectorInCone(FVector ConeDir, float ConeHalfAngle);
 
 	/**
@@ -822,7 +822,7 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	* @param MaxYaw - The Yaw-angle of the cone (from ConeDir to horizontal-edge), in degrees.
 	* @param MaxPitch - The Pitch-angle of the cone (from ConeDir to vertical-edge), in degrees.	
 	*/
-	UFUNCTION(BlueprintPure, Category = "Math|Random", meta = (Keywords = "RandomVector"))
+	UFUNCTION(BlueprintPure, Category = "Math|Random", meta = (Keywords = "RandomVector", NotBlueprintThreadSafe))
 	static FVector RandomUnitVectorInConeWithYawAndPitch(FVector ConeDir, float MaxYawInDegrees, float MaxPitchInDegrees);
 
 	// Mirrors a vector by a normal
@@ -975,7 +975,7 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	static void GetAxes(FRotator A, FVector& X, FVector& Y, FVector& Z);
 
 	/** Generates a random rotation, with optional random roll. */
-	UFUNCTION(BlueprintPure, Category="Math|Random", meta=(Keywords="rotate rotation"))
+	UFUNCTION(BlueprintPure, Category="Math|Random", meta=(Keywords="rotate rotation", NotBlueprintThreadSafe))
 	static FRotator RandomRotator(bool bRoll = false);
 
 	/* Linearly interpolates between A and B based on Alpha (100% of A when Alpha=0 and 100% of B when Alpha=1) */

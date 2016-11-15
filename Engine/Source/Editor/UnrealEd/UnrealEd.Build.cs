@@ -46,7 +46,7 @@ public class UnrealEd : ModuleRules
 				"Settings",
 				"SettingsEditor",
                 "SuperSearch",
-                "SoundClassEditor",
+                "AudioEditor",
 				"ViewportSnapping",
 				"SourceCodeAccess",
 				"ReferenceViewer",
@@ -92,6 +92,7 @@ public class UnrealEd : ModuleRules
                 "FunctionalTesting",
 				"AutomationController",
 				"Internationalization",
+				"AudioEditor",
 			}
 		);
 
@@ -120,8 +121,6 @@ public class UnrealEd : ModuleRules
 				"RHI", 
 				"ShaderCore", 
 				"Sockets",
-				"SoundClassEditor",
-				"SoundCueEditor",
 				"SourceControlWindows",
 				"StatsViewer",
 				"SwarmInterface",
@@ -219,8 +218,8 @@ public class UnrealEd : ModuleRules
                 "PortalProxies",
                 "PortalServices",
                 "GeometryCacheEd",
-                "BlueprintNativeCodeGen"
-			}
+                "BlueprintNativeCodeGen",
+            }
 		);
 
 		if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Mac || Target.Platform == UnrealTargetPlatform.Linux)
@@ -233,6 +232,7 @@ public class UnrealEd : ModuleRules
 			{
                 "GraphEditor",
 				"Kismet",
+				"AudioEditor"
             }
 		); 
 

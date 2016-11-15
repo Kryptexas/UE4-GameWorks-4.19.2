@@ -56,15 +56,11 @@ public:
 	virtual void RenameSlotName(const FName& InOldSlotName, const FName& InNewSlotName) override;
 	virtual FDelegateHandle RegisterOnSmartNameRemoved(const FOnSmartNameRemoved::FDelegate& InOnSmartNameRemoved) override;
 	virtual void UnregisterOnSmartNameRemoved(FDelegateHandle InHandle) override;
+	virtual void SetBoneTranslationRetargetingMode(FName InBoneName, EBoneTranslationRetargetingMode::Type NewRetargetingMode) override;
+	virtual EBoneTranslationRetargetingMode::Type GetBoneTranslationRetargetingMode(FName InBoneName) const override;
 
 	/** FGCObject interface */
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
-
-	/** Wrap USkeleton::SetBoneTranslationRetargetingMode */
-	void SetBoneTranslationRetargetingMode(FName InBoneName, EBoneTranslationRetargetingMode::Type NewRetargetingMode);
-
-	/** Wrap USkeleton::GetBoneTranslationRetargetingMode */
-	EBoneTranslationRetargetingMode::Type GetBoneTranslationRetargetingMode(FName InBoneName);
 
 	/** Generates a unique socket name from the input name, by changing the FName's number */
 	FName GenerateUniqueSocketName(FName InName, USkeletalMesh* InSkeletalMesh);

@@ -601,6 +601,14 @@ void USceneComponent::PropagateTransformUpdate(bool bTransformChanged, EUpdateTr
 	//QUICK_SCOPE_CYCLE_COUNTER(STAT_USceneComponent_PropagateTransformUpdate);
 	if (IsDeferringMovementUpdates())
 	{
+		FScopedMovementUpdate* CurrentUpdate = GetCurrentScopedMovement();
+
+		if (CurrentUpdate && Teleport == ETeleportType::TeleportPhysics)
+		{
+			// Remember this was a teleport
+			CurrentUpdate->SetHasTeleported();
+		}
+
 		// We are deferring these updates until later.
 		return;
 	}
@@ -706,8 +714,8 @@ void USceneComponent::EndScopedMovementUpdate(class FScopedMovementUpdate& Compl
 			const bool bTransformChanged = CurrentScopedUpdate->IsTransformDirty();
 			if (bTransformChanged)
 			{
-				// TODO: handle teleporting flag when it differs between accumulated moves.
-				PropagateTransformUpdate(true);
+				// Pass teleport flag if set
+				PropagateTransformUpdate(true, EUpdateTransformFlags::None, CurrentScopedUpdate->bHasTeleported ? ETeleportType::TeleportPhysics : ETeleportType::None);
 			}
 
 			// We may have moved somewhere and then moved back to the start, we still need to update overlaps if we touched things along the way.
@@ -3075,6 +3083,7 @@ FScopedMovementUpdate::FScopedMovementUpdate( class USceneComponent* Component, 
 , OuterDeferredScope(nullptr)
 , bDeferUpdates(ScopeBehavior == EScopedUpdate::DeferredUpdates)
 , bHasMoved(false)
+, bHasTeleported(false)
 , CurrentOverlapState(EOverlapState::eUseParent)
 , FinalOverlapCandidatesIndex(INDEX_NONE)
 {

@@ -37,6 +37,7 @@ struct FAnalyticsEventAttribute;
 	"BaseDir"
 	"RootDir"
 	"MachineId"
+	"LoginId"
 	"EpicAccountId"
 	"CallStack"
 	"SourceContext"
@@ -260,9 +261,9 @@ struct FPrimaryCrashProperties
 	 * The unique ID used to identify the machine the crash occurred on.
 	 * @ComputerName varchar(64)
 	 * 
-	 * FPlatformMisc::GetMachineId().ToString( EGuidFormats::Digits )
+	 * FPlatformMisc::GetLoginId()
 	 */
-	FCrashProperty MachineId;
+	FCrashProperty LoginId;
 
 	/** 
 	 * The Epic account ID for the user who last used the Launcher.
@@ -420,7 +421,7 @@ public:
 		return CallStack.AsString().Len() > 0 && ErrorMessage.AsString().Len() > 0;
 	}
 
-	/** Updates following properties: UserName, MachineID and EpicAccountID. */
+	/** Updates following properties: UserName, LoginID and EpicAccountID. */
 	void UpdateIDs();
 
 	/** Sends this crash for analytics (before upload). */

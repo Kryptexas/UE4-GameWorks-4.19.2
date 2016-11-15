@@ -22,6 +22,10 @@
 #include "ISkeletonTree.h"
 #include "IEditableSkeleton.h"
 #include "IPersonaPreviewScene.h"
+#include "EditorViewportCommands.h"
+#include "AnimationEditorPreviewScene.h"
+#include "BlueprintEditor.h"
+#include "TabSpawners.h"
 
 #define LOCTEXT_NAMESPACE "PersonaViewportToolbar"
 
@@ -69,6 +73,12 @@ TSharedPtr<SWidget> SAnimationEditorViewport::MakeViewportToolbar()
 void SAnimationEditorViewport::OnUndoRedo()
 {
 	LevelViewportClient->Invalidate();
+}
+
+void SAnimationEditorViewport::OnFocusViewportToSelection()
+{
+	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
+	AnimViewportClient->FocusViewportOnPreviewMesh();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -263,6 +273,11 @@ void SAnimationEditorViewportTabBody::RestoreState(TSharedRef<IPersonaViewportSt
 {
 	TSharedRef<FPersonaModeSharedData> State = StaticCastSharedRef<FPersonaModeSharedData>(InState);
 	State->Restore(StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef()));
+}
+
+FEditorViewportClient& SAnimationEditorViewportTabBody::GetViewportClient() const
+{
+	return *LevelViewportClient;
 }
 
 void SAnimationEditorViewportTabBody::RefreshViewport()
@@ -552,7 +567,7 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingSockets));
 
-	// Set bone local axes mode
+	// Set bone drawing mode
 	CommandList.MapAction(
 		ViewportShowMenuCommands.ShowBoneDrawNone,
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetBoneDrawMode, (int32)EBoneDrawMode::None),
@@ -564,6 +579,12 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetBoneDrawMode, (int32)EBoneDrawMode::Selected),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsBoneDrawModeSet, (int32)EBoneDrawMode::Selected));
+
+	CommandList.MapAction(
+		ViewportShowMenuCommands.ShowBoneDrawSelectedAndParents,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetBoneDrawMode, (int32)EBoneDrawMode::SelectedAndParents),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsBoneDrawModeSet, (int32)EBoneDrawMode::SelectedAndParents));
 
 	CommandList.MapAction(
 		ViewportShowMenuCommands.ShowBoneDrawAll,
@@ -757,6 +778,10 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetTurnTableMode, int32(EPersonaTurnTableMode::Stopped)),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsTurnTableModeSelected, int32(EPersonaTurnTableMode::Stopped)));
+
+	CommandList.MapAction(
+		FEditorViewportCommands::Get().FocusViewportToSelection,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::HandleFocusCamera));
 }
 
 void SAnimationEditorViewportTabBody::OnSetTurnTableSpeed(int32 SpeedIndex)
@@ -1381,7 +1406,6 @@ bool SAnimationEditorViewportTabBody::IsCameraFollowEnabled() const
 	return (AnimViewportClient->IsSetCameraFollowChecked());
 }
 
-
 bool SAnimationEditorViewportTabBody::CanChangeCameraMode() const
 {
 	//Not allowed to change camera type when we are in an ortho camera
@@ -1842,6 +1866,12 @@ FReply SAnimationEditorViewportTabBody::ClickedOnViewportCornerText()
 	}
 
 	return FReply::Handled();
+}
+
+void SAnimationEditorViewportTabBody::HandleFocusCamera()
+{
+	TSharedRef<FAnimationViewportClient> AnimViewportClient = StaticCastSharedRef<FAnimationViewportClient>(LevelViewportClient.ToSharedRef());
+	AnimViewportClient->FocusViewportOnPreviewMesh();
 }
 
 #undef LOCTEXT_NAMESPACE

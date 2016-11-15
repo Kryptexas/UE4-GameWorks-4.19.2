@@ -8,7 +8,7 @@
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSmartNameRemoved, const FName& /*InContainerName*/, const TArray<SmartName::UID_Type>& /*InNameUids*/);
 
 /** Enum which tells us whether the parent of a socket is the skeleton or skeletal mesh */
-enum class ESocketParentType : uint8
+enum class ESocketParentType : int32
 {
 	Skeleton,
 	Mesh
@@ -158,4 +158,10 @@ public:
 
 	/** Register a delegate to be called when a set of smart names are removed */
 	virtual void UnregisterOnSmartNameRemoved(FDelegateHandle InHandle) = 0;
+
+	/** Wrap USkeleton::SetBoneTranslationRetargetingMode */
+	virtual void SetBoneTranslationRetargetingMode(FName InBoneName, EBoneTranslationRetargetingMode::Type NewRetargetingMode) = 0;
+
+	/** Wrap USkeleton::GetBoneTranslationRetargetingMode */
+	virtual EBoneTranslationRetargetingMode::Type GetBoneTranslationRetargetingMode(FName InBoneName) const = 0;
 };

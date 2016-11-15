@@ -34,7 +34,7 @@ FAnalyticsProviderFileLogging::FAnalyticsProviderFileLogging() :
 {
 	FileArchive = nullptr;
 	AnalyticsFilePath = FPaths::GameSavedDir() + TEXT("Analytics/");
-	UserId = FPlatformMisc::GetUniqueDeviceId();
+	UserId = FPlatformMisc::GetLoginId();
 }
 
 FAnalyticsProviderFileLogging::~FAnalyticsProviderFileLogging()

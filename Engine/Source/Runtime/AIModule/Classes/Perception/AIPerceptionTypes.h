@@ -126,14 +126,6 @@ struct FPerceptionChannelWhitelist
 	};
 };
 
-struct FPerceptionChannelFilter : public FPerceptionChannelWhitelist
-{
-	DEPRECATED(4.5, "FPerceptionChannelFilter has been renamed to FPerceptionChannelWhitelist. Please use that instead.")
-	FPerceptionChannelFilter()
-	{
-	}
-};
-
 USTRUCT(BlueprintType)
 struct AIMODULE_API FAIStimulus
 {

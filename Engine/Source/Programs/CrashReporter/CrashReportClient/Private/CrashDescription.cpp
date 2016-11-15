@@ -104,7 +104,7 @@ FPrimaryCrashProperties::FPrimaryCrashProperties()
 	, PlatformFullName( FGenericCrashContext::RuntimePropertiesTag, TEXT( "PlatformFullName" ), this )
 	, CommandLine( FGenericCrashContext::RuntimePropertiesTag, TEXT( "CommandLine" ), this )
 	, UserName( FGenericCrashContext::RuntimePropertiesTag, TEXT("UserName"), this )
-	, MachineId( FGenericCrashContext::RuntimePropertiesTag, TEXT( "MachineId" ), this )
+	, LoginId( FGenericCrashContext::RuntimePropertiesTag, TEXT( "LoginId" ), this )
 	, EpicAccountId( FGenericCrashContext::RuntimePropertiesTag, TEXT( "EpicAccountId" ), this )
 	, GameSessionID( FGenericCrashContext::RuntimePropertiesTag, TEXT( "GameSessionID" ), this )
 	// Multiline properties
@@ -161,7 +161,7 @@ void FPrimaryCrashProperties::UpdateIDs()
 		UserName = FString();
 	}
 
-	MachineId = FPlatformMisc::GetMachineId().ToString( EGuidFormats::Digits );
+	LoginId = FPlatformMisc::GetLoginId();
 }
 
 void FPrimaryCrashProperties::ReadXML( const FString& CrashContextFilepath  )
@@ -267,7 +267,7 @@ void FPrimaryCrashProperties::MakeCrashEventAttributes(TArray<FAnalyticsEventAtt
 	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("CrashReportClientVersion"), CrashReportClientVersion.AsString()));
 
 	// @see UpdateIDs()
-	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("MachineID"), MachineId.AsString()));
+	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("LoginID"), LoginId.AsString()));
 	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("UserName"), UserName.AsString()));
 	OutCrashAttributes.Add(FAnalyticsEventAttribute(TEXT("EpicAccountId"), EpicAccountId.AsString()));
 

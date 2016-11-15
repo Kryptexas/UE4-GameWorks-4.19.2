@@ -76,7 +76,3 @@ FName UBTDecorator_BlackboardBase::GetNodeIconName() const
 //----------------------------------------------------------------------//
 // DEPRECATED
 //----------------------------------------------------------------------//
-void UBTDecorator_BlackboardBase::OnBlackboardChange(const UBlackboardComponent& Blackboard, FBlackboard::FKey ChangedKeyID)
-{
-	OnBlackboardKeyValueChange(Blackboard, ChangedKeyID);
-}

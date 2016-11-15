@@ -42,6 +42,7 @@ void FAnimViewportShowCommands::RegisterCommands()
 
 	UI_COMMAND( ShowBoneDrawNone, "None", "Hides bone selection", EUserInterfaceActionType::RadioButton, FInputChord());
 	UI_COMMAND( ShowBoneDrawSelected, "Selected Only", "Shows only the selected bone", EUserInterfaceActionType::RadioButton, FInputChord());
+	UI_COMMAND( ShowBoneDrawSelectedAndParents, "Selected and Parents", "Shows the selected bone and its parents, to the root", EUserInterfaceActionType::RadioButton, FInputChord());
 	UI_COMMAND( ShowBoneDrawAll, "All Hierarchy", "Shows all hierarchy joints", EUserInterfaceActionType::RadioButton, FInputChord());
 
 	UI_COMMAND( ShowLocalAxesNone, "None", "Hides all local hierarchy axis", EUserInterfaceActionType::RadioButton, FInputChord() );

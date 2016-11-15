@@ -1430,18 +1430,18 @@ void FAnimationRuntime::AppendActiveMorphTargets(const USkeletalMesh* InSkeletal
 		// if somehow it gets rendered without going through these places, there will be crash. Renderer expect the buffer size being same. 
 		InOutMorphTargetWeights.SetNumZeroed(InSkeletalMesh->MorphTargets.Num());
 
-		// If it has a valid weight
-		if(FMath::Abs(Weight) > MinMorphTargetBlendWeight)
+		// Find morph reference
+		int32 SkeletalMorphIndex = INDEX_NONE;
+		UMorphTarget* Target = InSkeletalMesh->FindMorphTargetAndIndex(CurveName, SkeletalMorphIndex);
+		if (Target != nullptr)
 		{
-			// Find morph reference
-			int32 SkeletalMorphIndex = INDEX_NONE;
-			UMorphTarget* Target = InSkeletalMesh->FindMorphTargetAndIndex(CurveName, SkeletalMorphIndex);
-			if (Target != nullptr)
+			// If it has a valid weight
+			if (FMath::Abs(Weight) > MinMorphTargetBlendWeight)
 			{
 				// See if this morph target already has an entry
 				int32 MorphIndex = FindMorphTarget(InOutActiveMorphTargets, Target);
 				// If not, add it
-				if(MorphIndex == INDEX_NONE)
+				if (MorphIndex == INDEX_NONE)
 				{
 					InOutActiveMorphTargets.Add(FActiveMorphTarget(Target, SkeletalMorphIndex));
 					InOutMorphTargetWeights[SkeletalMorphIndex] = Weight;
@@ -1450,10 +1450,19 @@ void FAnimationRuntime::AppendActiveMorphTargets(const USkeletalMesh* InSkeletal
 				{
 					// If it does, use the max weight
 					check(SkeletalMorphIndex == InOutActiveMorphTargets[MorphIndex].WeightIndex);
-					float& CurrentWeight = InOutMorphTargetWeights[SkeletalMorphIndex];
-					CurrentWeight = FMath::Max<float>(CurrentWeight, Weight);
+					InOutMorphTargetWeights[SkeletalMorphIndex] = Weight;
 				}
 			}
+			else
+			{
+				int32 MorphIndex = FindMorphTarget(InOutActiveMorphTargets, Target);
+				if (MorphIndex != INDEX_NONE)
+				{
+					// clear weight
+					InOutMorphTargetWeights[SkeletalMorphIndex] = 0.f;
+				}
+			}
+
 		}
 	}
 }

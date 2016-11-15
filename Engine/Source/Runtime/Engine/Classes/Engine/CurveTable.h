@@ -21,6 +21,7 @@ class TJsonWriter;
 UCLASS(MinimalAPI)
 class UCurveTable
 	: public UObject
+	, public FCurveOwnerInterface
 {
 	GENERATED_UCLASS_BODY()
 
@@ -46,6 +47,15 @@ class UCurveTable
 #endif	// WITH_EDITORONLY_DATA
 
 	//~ End  UObject Interface
+
+	//~ Begin FCurveOwnerInterface Interface.
+	virtual TArray<FRichCurveEditInfoConst> GetCurves() const override;
+	virtual TArray<FRichCurveEditInfo> GetCurves() override;
+	virtual void ModifyOwner() override;
+	virtual void MakeTransactional() override;
+	virtual void OnCurveChanged(const TArray<FRichCurveEditInfo>& ChangedCurveEditInfos) override;
+	virtual bool IsValidCurve(FRichCurveEditInfo CurveInfo) override;
+	//~ End FCurveOwnerInterface Interface.
 
 	//~ Begin UCurveTable Interface
 

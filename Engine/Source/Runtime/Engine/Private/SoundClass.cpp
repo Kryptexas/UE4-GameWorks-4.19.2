@@ -6,7 +6,6 @@
 #include "Sound/SoundMix.h"
 
 #if WITH_EDITOR
-#include "UnrealEd.h"
 #include "SlateBasics.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
@@ -16,10 +15,14 @@
 	USoundClass implementation.
 -----------------------------------------------------------------------------*/
 
+#if WITH_EDITOR
+TSharedPtr<ISoundClassAudioEditor> USoundClass::SoundClassAudioEditor = nullptr;
+#endif
+
 USoundClass::USoundClass(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 #if WITH_EDITORONLY_DATA
-	, SoundClassGraph(NULL)
+	, SoundClassGraph(nullptr)
 #endif
 {
 }
@@ -141,6 +144,15 @@ void USoundClass::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyC
 		}
 	}
 
+	// Use the main/default audio device for storing and retrieving sound class properties
+	FAudioDeviceManager* AudioDeviceManager = (GEngine ? GEngine->GetAudioDeviceManager() : nullptr);
+
+	// Force the properties to be initialized for this SoundClass on all active audio devices
+	if (AudioDeviceManager)
+	{
+		AudioDeviceManager->RegisterSoundClass(this);
+	}
+
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 #endif
@@ -242,17 +254,33 @@ void USoundClass::AddReferencedObjects(UObject* InThis, FReferenceCollector& Col
 
 void USoundClass::RefreshAllGraphs(bool bIgnoreThis)
 {
-	// Update the graph representation of every SoundClass
-	for (TObjectIterator<USoundClass> It; It; ++It)
+	if (SoundClassAudioEditor.IsValid())
 	{
-		USoundClass* SoundClass = *It;
-		if (!bIgnoreThis || SoundClass != this)
+		// Update the graph representation of every SoundClass
+		for (TObjectIterator<USoundClass> It; It; ++It)
 		{
-			if (SoundClass->SoundClassGraph)
+			USoundClass* SoundClass = *It;
+			if (!bIgnoreThis || SoundClass != this)
 			{
-				SoundClass->SoundClassGraph->RefreshGraphLinks();
+				if (SoundClass->SoundClassGraph)
+				{
+					SoundClassAudioEditor->RefreshGraphLinks(SoundClass->SoundClassGraph);
+				}
 			}
 		}
 	}
 }
+
+void USoundClass::SetSoundClassAudioEditor(TSharedPtr<ISoundClassAudioEditor> InSoundClassAudioEditor)
+{
+	check(!SoundClassAudioEditor.IsValid());
+	SoundClassAudioEditor = InSoundClassAudioEditor;
+}
+
+TSharedPtr<ISoundClassAudioEditor> USoundClass::GetSoundClassAudioEditor()
+{
+	return SoundClassAudioEditor;
+}
+
+
 #endif

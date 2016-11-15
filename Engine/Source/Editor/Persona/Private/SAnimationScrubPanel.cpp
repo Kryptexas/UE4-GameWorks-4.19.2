@@ -3,12 +3,12 @@
 #include "AnimGraphDefinitions.h"
 #include "AnimPreviewInstance.h"
 #include "Animation/AnimSingleNodeInstance.h"
-#include "Persona.h"
 #include "SAnimationScrubPanel.h"
 #include "Editor/KismetWidgets/Public/SScrubControlPanel.h"
 #include "AnimationUtils.h"
 #include "ScopedTransaction.h"
 #include "Animation/BlendSpaceBase.h"
+#include "AnimationEditorPreviewScene.h"
 
 #define LOCTEXT_NAMESPACE "AnimationScrubPanel"
 

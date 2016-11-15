@@ -516,6 +516,7 @@ UEngine::UEngine(const FObjectInitializer& ObjectInitializer)
 
 	bCanBlueprintsTickByDefault = true;
 	bOptimizeAnimBlueprintMemberVariableAccess = true;
+	bAllowMultiThreadedAnimationUpdate = true;
 
 	bUseFixedFrameRate = false;
 	FixedFrameRate = 30.f;

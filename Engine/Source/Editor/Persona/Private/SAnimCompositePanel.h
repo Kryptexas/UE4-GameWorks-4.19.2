@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "Persona.h"
 #include "STrack.h"
 #include "SAnimTrackPanel.h"
 

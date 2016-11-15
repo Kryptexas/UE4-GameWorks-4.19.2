@@ -599,7 +599,7 @@ void SAnimCurvePanel::Construct(const FArguments& InArgs, const TSharedRef<class
 					[
 						SNew(STextBlock)
 						.Font(FEditorStyle::GetFontStyle("CurveEd.InfoFont"))
-						.Text(FText::FromString(FString::Printf(TEXT(" Total Number : %d "), Sequence->RawCurveData.FloatCurves.Num())))
+						.Text(this, &SAnimCurvePanel::GetCurveNumText)
 					]
 
 					+SHorizontalBox::Slot()
@@ -979,6 +979,11 @@ TSharedRef<SWidget> SAnimCurvePanel::GenerateCurveList()
 	}
 
 	return NewWidget;
+}
+
+FText SAnimCurvePanel::GetCurveNumText() const
+{
+	return FText::FromString(FString::Printf(TEXT(" Total Number : %d "), Sequence->RawCurveData.FloatCurves.Num()));
 }
 
 ECheckBoxState SAnimCurvePanel::IsCurveEditable(USkeleton::AnimCurveUID Uid) const

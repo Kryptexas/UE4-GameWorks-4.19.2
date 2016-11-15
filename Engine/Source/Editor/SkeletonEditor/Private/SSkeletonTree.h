@@ -7,425 +7,9 @@
 #include "EditableSkeleton.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "Preferences/PersonaOptions.h"
+#include "SkeletonTreeBuilder.h"
+#include "ISkeletonTreeItem.h"
 
-/** 
- * Enum which determines what type a tree row is. Value is
- * used as a flag for filtering tree items, so each goes up
- * to the next bit value
- */
-enum class ESkeletonTreeRowType : int32
-{
-	Bone = 1,
-	Socket = 2,
-	AttachedAsset = 4,
-	VirtualBone  =8
-};
-
-ENUM_CLASS_FLAGS(ESkeletonTreeRowType);
-
-struct FDisplayedTreeRowInfo;
-class SBlendProfilePicker;
-
-typedef STreeView< TSharedPtr<FDisplayedTreeRowInfo> > SMeshSkeletonTreeRowType;
-typedef TSharedPtr< FDisplayedTreeRowInfo > FDisplayedTreeRowInfoPtr;
-
-//////////////////////////////////////////////////////////////////////////
-// FDisplayedTreeRowInfo
-
-struct FDisplayedTreeRowInfo : public TSharedFromThis<FDisplayedTreeRowInfo>
-{
-public:
-	TArray< TSharedPtr<FDisplayedTreeRowInfo> > Children;
-
-	// I don't like this, but our derived classes both hold completely different types of data
-	// so void* seems the only sensible thing without RTTI (which isn't sensible either!)
-	virtual void* GetData() = 0;
-	virtual ESkeletonTreeRowType GetType() const = 0;
-
-	/** Builds the table row widget to display this info */
-	virtual TSharedRef<ITableRow> MakeTreeRowWidget(
-		const TSharedRef<STableViewBase>& InOwnerTable,
-		FText InFilterText ) = 0;
-
-	/** Builds the slate widget for the name column */
-	virtual void GenerateWidgetForNameColumn( TSharedPtr< SHorizontalBox > Box, FText& FilterText, FIsSelected InIsSelected ) = 0;
-
-	/** Builds the slate widget for the data column */
-	virtual TSharedRef< SWidget > GenerateWidgetForDataColumn(const FName& DataColumnName) = 0;
-
-	/** Builds the slate widget for any inline data editing */
-	virtual TSharedRef< SWidget > GenerateInlineEditWidget(FText& FilterText, FIsSelected InIsSelected) { return SNullWidget::NullWidget; };
-
-	/** @return true if the item has an in-line editor widget */
-	virtual bool HasInlineEditor() const { return false; }
-
-	/** Toggle the expansion state of the inline editor */
-	virtual void ToggleInlineEditorExpansion() {}
-
-	/** Get the expansion state of the inline editor */
-	virtual bool IsInlineEditorExpanded() const { return false; }
-
-	/** Get the name of the item that this row represents */
-	virtual FName GetRowItemName() const PURE_VIRTUAL(FDisplayedTreeRowInfo::GetRowItemName, return FName(););
-
-	/** Return the name used to attach to this item */
-	virtual FName GetAttachName() const { return GetRowItemName(); }
-
-	/** Requests a rename on the the tree row item */
-	virtual void RequestRename() {};
-
-	/** Handler for when the user double clicks on this item in the tree */
-	virtual void OnItemDoubleClicked() {}
-
-	/** Get a shared reference to the editable skeleton that owns us */
-	TSharedRef<class FEditableSkeleton> GetEditableSkeleton() const;
-
-	/** Get a shared reference to the skeleton tree that owns us */
-	TSharedRef<class SSkeletonTree> GetSkeletonTree() const { return SkeletonTree.Pin().ToSharedRef(); }
-
-protected:
-	FDisplayedTreeRowInfo() {};
-
-	/** Skeleton tree that owns us */
-	TWeakPtr<class SSkeletonTree> SkeletonTree;
-};
-
-//////////////////////////////////////////////////////////////////////////
-// FDisplayedMeshBoneInfo
-
-struct FDisplayedMeshBoneInfo : public FDisplayedTreeRowInfo
-{
-public:
-	/** Static function for creating a new item, but ensures that you can only have a TSharedRef to one */
-	static TSharedRef<FDisplayedMeshBoneInfo> Make(
-		const FName& BoneName,
-		TWeakPtr<SSkeletonTree> InSkeletonTree)
-	{
-		FDisplayedMeshBoneInfo* DisplayedMeshBoneInfo = new FDisplayedMeshBoneInfo(BoneName);
-		DisplayedMeshBoneInfo->SkeletonTree = InSkeletonTree;
-
-		return MakeShareable( DisplayedMeshBoneInfo );
-	}
-
-	// Manual RTTI - not particularly elegant! :-(
-	virtual void* GetData() override { return &BoneName; }
-	virtual ESkeletonTreeRowType GetType() const override { return ESkeletonTreeRowType::Bone; }
-
-	/** Builds the table row widget to display this info */
-	virtual TSharedRef<ITableRow> MakeTreeRowWidget(
-		const TSharedRef<STableViewBase>& InOwnerTable,
-		FText InFilterText ) override;
-
-	/** Builds the slate widget for the name column */
-	virtual void GenerateWidgetForNameColumn( TSharedPtr< SHorizontalBox > Box, FText& FilterText, FIsSelected InIsSelected ) override;
-
-	/** Builds the slate widget for the data column */
-	virtual TSharedRef< SWidget > GenerateWidgetForDataColumn(const FName& DataColumnName) override;
-
-	/** Handle dragging a bone */
-	FReply OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
-
-	/** Return the name of the bone */
-	virtual FName GetRowItemName() const override {return BoneName;}
-
-	/** Set Translation Retargeting Mode for this bone. */
-	void SetBoneTranslationRetargetingMode(EBoneTranslationRetargetingMode::Type NewRetargetingMode);
-
-	/** Set current Blend Scale for this bone */
-	void SetBoneBlendProfileScale(float NewScale, bool bRecurse);
-
-	virtual ~FDisplayedMeshBoneInfo() {}
-
-	/** Cache to use Bold Font or not */
-	void CacheLODChange(class UDebugSkelMeshComponent* PreviewComponent);
-
-protected:
-	/** Hidden constructor, always use Make above */
-	FDisplayedMeshBoneInfo(const FName& InSource)
-		: BoneName(InSource)
-	{}
-
-	/** Hidden constructor, always use Make above */
-	FDisplayedMeshBoneInfo() {}
-
-private:
-	/** Gets the font for displaying bone text in the skeletal tree */
-	FSlateFontInfo GetBoneTextFont() const;
-
-	/** Get the text color based on bone part of skeleton or part of mesh */
-	FSlateColor GetBoneTextColor() const;
-
-	/** visibility of the icon */
-	EVisibility GetLODIconVisibility() const;
-
-	/** Function that returns the current tooltip for this bone, depending on how it's used by the mesh */
-	FText GetBoneToolTip();
-
-	/** Vary the color of the combo based on hover state */
-	FSlateColor GetRetargetingComboButtonForegroundColor() const;
-
-	/** The actual bone data that we create Slate widgets to display */
-	FName BoneName;
-
-	/** Weighted bone */
-	bool bWeightedBone;
-
-	/** Required bone */
-	bool bRequiredBone;
-
-	/** Reference to the retargetting combo button */
-	TSharedPtr<SComboButton> RetargetingComboButton;
-
-	/** Create menu for Bone Translation Retargeting Mode. */
-	TSharedRef< SWidget > CreateBoneTranslationRetargetingModeMenu();
-
-	/** Get Title for Bone Translation Retargeting Mode menu. */
-	FText GetTranslationRetargetingModeMenuTitle() const;
-
-	/** Callback from a slider widget if the text entry or slider movement is used */
-	void OnBlendSliderCommitted(float NewValue, ETextCommit::Type CommitType);
-};
-
-//////////////////////////////////////////////////////////////////////////
-// FDisplayedSocketInfo
-
-struct FDisplayedSocketInfo : public FDisplayedTreeRowInfo
-{
-public:
-	/** Static function for creating a new item, but ensures that you can only have a TSharedRef to one */
-	static TSharedRef<FDisplayedSocketInfo> Make(
-		USkeletalMeshSocket* Source,
-		ESocketParentType InParentType,
-		TWeakPtr<SSkeletonTree> InSkeletonTree,
-		bool bIsCustomized )
-	{
-		FDisplayedSocketInfo* DisplayedSocketInfo = new FDisplayedSocketInfo(Source, InParentType);
-		DisplayedSocketInfo->SkeletonTree = InSkeletonTree;
-		DisplayedSocketInfo->bIsCustomized = bIsCustomized;
-
-		return MakeShareable( DisplayedSocketInfo );
-	}
-
-	// Manual RTTI - not particularly elegant! :-(
-	virtual void* GetData() override { return SocketData; }
-	virtual ESkeletonTreeRowType GetType() const override { return ESkeletonTreeRowType::Socket; }
-
-	/** Builds the table row widget to display this info */
-	virtual TSharedRef<ITableRow> MakeTreeRowWidget(
-		const TSharedRef<STableViewBase>& InOwnerTable,
-		FText InFilterText ) override;
-
-	/** Builds the slate widget for the name column */
-	virtual void GenerateWidgetForNameColumn( TSharedPtr< SHorizontalBox > Box, FText& FilterText, FIsSelected InIsSelected ) override;
-
-	/** Builds the slate widget for any inline data editing */
-	virtual TSharedRef< SWidget > GenerateInlineEditWidget(FText& FilterText, FIsSelected InIsSelected) override;
-
-	/** @return true if the item has an in-line editor widget */
-	virtual bool HasInlineEditor() const override { return GetDefault<UPersonaOptions>()->bUseInlineSocketEditor; }
-
-	/** Toggle the expansion state of the inline editor */
-	virtual void ToggleInlineEditorExpansion() { bInlineEditorExpanded = !bInlineEditorExpanded; }
-
-	/** Get the expansion state of the inline editor */
-	virtual bool IsInlineEditorExpanded() const { return bInlineEditorExpanded; }
-
-	/** Builds the slate widget for the data column */
-	virtual TSharedRef< SWidget > GenerateWidgetForDataColumn(const FName& DataColumnName) override;
-
-	ESocketParentType GetParentType() const { return ParentType; }
-
-	/** Handle dragging a socket */
-	FReply OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
-
-	/** Return the name of the socket */
-	virtual FName GetRowItemName() const override {return SocketData->SocketName;}
-
-	/** Handle double clicking a socket */
-	virtual void OnItemDoubleClicked() override;
-
-	/** Is this socket customized */
-	bool IsSocketCustomized() const { return bIsCustomized; }
-
-	/** Can we customize this socket? */
-	bool CanCustomizeSocket() const;
-
-	/** Delegate for when the context menu requests a rename */
-	DECLARE_DELEGATE(FOnRenameRequested);
-	FOnRenameRequested OnRenameRequested;
-
-	/** Requests a rename on the socket item */
-	virtual void RequestRename() override;
-
-	/** Return socket name as FText for display in skeleton tree */
-	FText GetSocketNameAsText() const { return FText::FromName(SocketData->SocketName); }
-
-	virtual ~FDisplayedSocketInfo() {}
-
-protected:
-	/** Hidden constructor, always use Make above */
-	FDisplayedSocketInfo( USkeletalMeshSocket* InSource, ESocketParentType InParentType )
-		: SocketData( InSource )
-		, ParentType( InParentType )
-		, bInlineEditorExpanded( false )
-	{}
-
-	/** Hidden constructor, always use Make above */
-	FDisplayedSocketInfo() {}
-
-	/** Called when user is renaming a socket to verify the name **/
-	bool OnVerifySocketNameChanged( const FText& InText, FText& OutErrorMessage );
-
-	/** Called when user renames a socket **/
-	void OnCommitSocketName( const FText& InText, ETextCommit::Type CommitInfo );
-
-	/** Function that returns the current tooltip for this socket */
-	FText GetSocketToolTip();
-
-	/** Get the color to display for the socket name */
-	FSlateColor GetTextColor() const;
-
-	/** Pointer to the socket */
-	USkeletalMeshSocket*	SocketData;
-
-	/** This enum tells us whether the socket is on the skeleton or the mesh */
-	ESocketParentType ParentType;
-
-	/** Box for the user to type in the name - stored here so that SSkeletonTree can set the keyboard focus in Slate */
-	TSharedPtr<SEditableText> NameEntryBox;
-
-	/** True for sockets which exist on both the skeleton and mesh */
-	bool bIsCustomized;
-
-	/** Track expansion state of the in-line editor */
-	bool bInlineEditorExpanded;
-};
-
-//////////////////////////////////////////////////////////////////////////
-// FDisplayedAttachedAssetInfo
-
-struct FDisplayedAttachedAssetInfo : public FDisplayedTreeRowInfo
-{
-public:
-	/** Static function for creating a new item, but ensures that you can only have a TSharedRef to one */
-	static TSharedRef<FDisplayedAttachedAssetInfo> Make(const FName& InAttachedTo, UObject* InAsset, TWeakPtr<SSkeletonTree> InSkeletonTree);
-
-	// Manual RTTI - not particularly elegant! :-(
-	virtual void* GetData() override { return NULL; }
-	virtual ESkeletonTreeRowType GetType() const override { return ESkeletonTreeRowType::AttachedAsset; }
-
-	/** Builds the table row widget to display this info */
-	virtual TSharedRef<ITableRow> MakeTreeRowWidget(
-		const TSharedRef<STableViewBase>& InOwnerTable,
-		FText InFilterText ) override;
-
-	/** Builds the slate widget for the name column */
-	virtual void GenerateWidgetForNameColumn( TSharedPtr< SHorizontalBox > Box, FText& FilterText, FIsSelected InIsSelected ) override;
-
-	/** Builds the slate widget for the data column */
-	virtual TSharedRef< SWidget > GenerateWidgetForDataColumn(const FName& DataColumnName) override;
-
-	/** Return the name of the asset */
-	virtual FName GetRowItemName() const override {return FName( *Asset->GetName() ) ;}
-
-	/** Return the name used to attach to this item (in assets case return the item we are attached to */
-	virtual FName GetAttachName() const override { return GetParentName(); }
-
-	/** Returns the name of the socket/bone this asset is attached to */
-	const FName& GetParentName() const { return AttachedTo; }
-
-	/** Return the asset this info represents */
-	UObject* GetAsset() const { return Asset; }
-
-	/** Accessor for SCheckBox **/
-	ECheckBoxState IsAssetDisplayed() const;
-
-	/** Called when user toggles checkbox **/
-	void OnToggleAssetDisplayed( ECheckBoxState InCheckboxState );
-
-	/** Called when we need to get the state-based-image to show for the asset displayed checkbox */
-	const FSlateBrush* OnGetAssetDisplayedButtonImage() const;
-
-	/** Handler for when the user double clicks on this item in the tree */
-	virtual void OnItemDoubleClicked() override;
-
-	virtual ~FDisplayedAttachedAssetInfo() {}
-
-protected:
-	/** Hidden constructor, always use Make above */
-	FDisplayedAttachedAssetInfo( const FName& InAttachedTo, UObject* InAsset ) :
-		 AttachedTo(InAttachedTo), Asset(InAsset)
-	{}
-
-	/** The name of the socket/bone this asset is attached to */
-	const FName AttachedTo;
-
-	/** The attached asset that this tree item represents */
-	UObject* Asset;
-
-	/** The component of the attached asset */
-	TWeakObjectPtr<USceneComponent> AssetComponent;
-};
-
-struct FDisplayedVirtualBoneInfo : public FDisplayedTreeRowInfo
-{
-public:
-	/** Static function for creating a new item, but ensures that you can only have a TSharedRef to one */
-	static TSharedRef<FDisplayedVirtualBoneInfo> Make(
-		const FName& BoneName,
-		TWeakPtr<SSkeletonTree> InSkeletonTree)
-	{
-		FDisplayedVirtualBoneInfo* DisplayedVirtualBoneInfo = new FDisplayedVirtualBoneInfo(BoneName);
-		DisplayedVirtualBoneInfo->SkeletonTree = InSkeletonTree;
-
-		return MakeShareable(DisplayedVirtualBoneInfo);
-	}
-
-	// Manual RTTI - not particularly elegant! :-(
-	virtual void* GetData() override { return &BoneName; }
-	virtual ESkeletonTreeRowType GetType() const override { return ESkeletonTreeRowType::VirtualBone; }
-
-	/** Builds the table row widget to display this info */
-	virtual TSharedRef<ITableRow> MakeTreeRowWidget(
-		const TSharedRef<STableViewBase>& InOwnerTable,
-		FText InFilterText) override;
-
-	/** Builds the slate widget for the name column */
-	virtual void GenerateWidgetForNameColumn(TSharedPtr< SHorizontalBox > Box, FText& FilterText, FIsSelected InIsSelected) override;
-
-	/** Builds the slate widget for the data column */
-	virtual TSharedRef< SWidget > GenerateWidgetForDataColumn(const FName& DataColumnName) override;
-
-	/** Return the name of the bone */
-	virtual FName GetRowItemName() const override { return BoneName; }
-
-	virtual ~FDisplayedVirtualBoneInfo() {}
-
-protected:
-	/** Hidden constructor, always use Make above */
-	FDisplayedVirtualBoneInfo(const FName& InSource)
-		: BoneName(InSource)
-	{}
-
-	/** Hidden constructor, always use Make above */
-	FDisplayedVirtualBoneInfo() {}
-
-private:
-	/** Gets the font for displaying bone text in the skeletal tree */
-	FSlateFontInfo GetBoneTextFont() const;
-
-	/** Get the text color based on bone part of skeleton or part of mesh */
-	FSlateColor GetBoneTextColor() const;
-
-	/** visibility of the icon */
-	EVisibility GetLODIconVisibility() const;
-
-	/** Function that returns the current tooltip for this bone, depending on how it's used by the mesh */
-	FText GetBoneToolTip();
-
-	/** The actual bone data that we create Slate widgets to display */
-	FName BoneName;
-};
 //////////////////////////////////////////////////////////////////////////
 // SSkeletonTree
 
@@ -437,6 +21,8 @@ public:
 		{}
 
 	SLATE_ATTRIBUTE( bool, IsEditable )
+
+	SLATE_ARGUMENT( TSharedPtr<class ISkeletonTreeBuilder>, Builder )
 
 	SLATE_END_ARGS()
 public:
@@ -468,11 +54,17 @@ public:
 		OnObjectSelectedMulticast.RemoveAll(Widget);
 	}
 
+	virtual UBlendProfile* GetSelectedBlendProfile() override;
+	virtual void AttachAssets(const TSharedRef<ISkeletonTreeItem>& TargetItem, const TArray<FAssetData>& AssetData) override;
+
 	/** Creates the tree control and then populates */
 	void CreateTreeColumns();
 
 	/** Function to build the skeleton tree widgets from the source skeleton tree */
-	void CreateFromSkeleton(USkeletalMeshSocket* SocketToRename = nullptr);
+	void CreateFromSkeleton();
+
+	/** Apply filtering to the tree */
+	void ApplyFilter();
 
 	/** This triggers a rebuild of the tree after undo to make the UI consistent with the real data */
 	void PostUndo();
@@ -480,24 +72,14 @@ public:
 	/** Utility function to print notifications to the user */
 	void NotifyUser( FNotificationInfo& NotificationInfo );
 
-	/** Handle dropping something onto a skeleton bone tree item */
-	FReply OnDropAssetToSkeletonTree(const FDisplayedTreeRowInfoPtr TargetItem, const FDragDropEvent& DragDropEvent);
-
-	/** Attached the supplied assets to the tree to the specified attach item (bone/socket) */
-	void AttachAssetsToSkeletonTree(const FDisplayedTreeRowInfoPtr TargetItem, const TArray<FAssetData>& AssetData);
-
-	/** Returns true if a bone has vertices weighted against it */
-	bool IsBoneWeighted( int32 MeshBoneIndex, class UDebugSkelMeshComponent* PreviewComponent ) const;
-	bool IsBoneRequired(int32 MeshBoneIndex, class UDebugSkelMeshComponent* PreviewComponent) const;
-
 	/** Callback when an item is scrolled into view, handling calls to rename items */
-	void OnItemScrolledIntoView( FDisplayedTreeRowInfoPtr InItem, const TSharedPtr<ITableRow>& InWidget);
+	void OnItemScrolledIntoView( TSharedPtr<ISkeletonTreeItem> InItem, const TSharedPtr<ITableRow>& InWidget);
 
 	/** Callback for when the user double-clicks on an item in the tree */
-	void OnTreeDoubleClick( FDisplayedTreeRowInfoPtr InItem );
+	void OnTreeDoubleClick( TSharedPtr<ISkeletonTreeItem> InItem );
 
 	/** Handle recursive expansion/contraction of the tree */
-	void SetTreeItemExpansionRecursive(TSharedPtr< FDisplayedTreeRowInfo > TreeItem, bool bInExpansionState) const;
+	void SetTreeItemExpansionRecursive(TSharedPtr< ISkeletonTreeItem > TreeItem, bool bInExpansionState) const;
 
 	/** Set Bone Translation Retargeting Mode for bone selection, and their children. */
 	void SetBoneTranslationRetargetingModeRecursive(EBoneTranslationRetargetingMode::Type NewRetargetingMode);
@@ -507,9 +89,6 @@ public:
 
 	/** Called when the preview mesh is changed - simply rebuilds the skeleton tree for the new mesh */
 	void OnLODSwitched();
-
-	/** Gets the currently selected blend profile */
-	UBlendProfile* GetSelectedBlendProfile();
 
 	/** Get the name of the currently selected blend profile */
 	FName GetSelectedBlendProfileName() const;
@@ -531,10 +110,10 @@ private:
 	void BindCommands();
 
 	/** Create a widget for an entry in the tree from an info */
-	TSharedRef<ITableRow> MakeTreeRowWidget(TSharedPtr<FDisplayedTreeRowInfo> InInfo, const TSharedRef<STableViewBase>& OwnerTable);
+	TSharedRef<ITableRow> MakeTreeRowWidget(TSharedPtr<ISkeletonTreeItem> InInfo, const TSharedRef<STableViewBase>& OwnerTable);
 
 	/** Get all children for a given entry in the list */
-	void GetChildrenForInfo(TSharedPtr<FDisplayedTreeRowInfo> InInfo, TArray< TSharedPtr<FDisplayedTreeRowInfo> >& OutChildren);
+	void GetFilteredChildren(TSharedPtr<ISkeletonTreeItem> InInfo, TArray< TSharedPtr<ISkeletonTreeItem> >& OutChildren);
 
 	/** Called to display context menu when right clicking on the widget */
 	TSharedPtr< SWidget > CreateContextMenu();
@@ -552,7 +131,7 @@ private:
 	void OnCopySockets() const;
 
 	/** Function to serialize a single socket to a string */
-	FString SerializeSocketToString( USkeletalMeshSocket* Socket, const FDisplayedSocketInfo* DisplayedSocketInfo ) const;
+	FString SerializeSocketToString( class USkeletalMeshSocket* Socket, ESocketParentType ParentType ) const;
 
 	/** Function to paste selected sockets from the clipboard */
 	void OnPasteSockets(bool bPasteToSelectedBone);
@@ -573,16 +152,16 @@ private:
 	void OnPromoteSocket();
 
 	/** Create sub menu to allow users to pick a target bone for the new space switching bone(s) */
-	void FillVirtualBoneSubmenu(FMenuBuilder& MenuBuilder, TArray<TSharedPtr<FDisplayedMeshBoneInfo>> SourceBones);
+	void FillVirtualBoneSubmenu(FMenuBuilder& MenuBuilder, TArray<TSharedPtr<class FSkeletonTreeBoneItem>> SourceBones);
 
 	/** Handler for user picking a target bone */
-	void OnVirtualTargetBonePicked(FName TargetBoneName, TArray<TSharedPtr<FDisplayedMeshBoneInfo>> SourceBones);
+	void OnVirtualTargetBonePicked(FName TargetBoneName, TArray<TSharedPtr<class FSkeletonTreeBoneItem>> SourceBones);
 
 	/** Create content picker sub menu to allow users to pick an asset to attach */
-	void FillAttachAssetSubmenu(FMenuBuilder& MenuBuilder, const FDisplayedTreeRowInfoPtr TargetItem);
+	void FillAttachAssetSubmenu(FMenuBuilder& MenuBuilder, const TSharedPtr<class ISkeletonTreeItem> TargetItem);
 
 	/** Helper function for asset picker that handles users choice */
-	void OnAssetSelectedFromPicker(const FAssetData& AssetData, const FDisplayedTreeRowInfoPtr TargetItem);
+	void OnAssetSelectedFromPicker(const FAssetData& AssetData, const TSharedPtr<class ISkeletonTreeItem> TargetItem);
 
 	/** Context menu function to remove all attached assets */
 	void OnRemoveAllAssets();
@@ -594,31 +173,22 @@ private:
 	void OnCopySocketToMesh() {};
 
 	/** Callback function to be called when selection changes in the tree view widget. */
-	void OnSelectionChanged(TSharedPtr<FDisplayedTreeRowInfo> Selection, ESelectInfo::Type SelectInfo);
+	void OnSelectionChanged(TSharedPtr<class ISkeletonTreeItem> Selection, ESelectInfo::Type SelectInfo);
 
 	/** Filters the SListView when the user changes the search text box (NameFilterBox)	*/
 	void OnFilterTextChanged( const FText& SearchText );
 
-	/** Attach the given item to its parent */
-	bool AttachToParent( TSharedRef<FDisplayedTreeRowInfo> ItemToAttach, FName ParentName, int32 ItemsToInclude);
-
-	/** Add sockets from a TArray - separate function to avoid duplicating for skeleton and mesh */
-	void AddSocketsFromData(
-		const TArray< USkeletalMeshSocket* >& SocketArray,
-		ESocketParentType ParentType,
-		USkeletalMeshSocket* SocketToRename );
-
 	/** Sets which types of bone to show */
-	void SetBoneFilter( EBoneFilter InBoneFilter );
+	void SetBoneFilter(EBoneFilter InBoneFilter );
 
 	/** Queries the bone filter */
-	bool IsBoneFilter( EBoneFilter InBoneFilter ) const;
+	bool IsBoneFilter(EBoneFilter InBoneFilter ) const;
 
 	/** Sets which types of socket to show */
-	void SetSocketFilter( ESocketFilter InSocketFilter );
+	void SetSocketFilter(ESocketFilter InSocketFilter );
 
 	/** Queries the bone filter */
-	bool IsSocketFilter( ESocketFilter InSocketFilter ) const;
+	bool IsSocketFilter(ESocketFilter InSocketFilter ) const;
 
 	/** Returns the current text for the filter button - "All", "Mesh" or "Weighted" etc. */
 	FText GetFilterMenuTitle() const;
@@ -642,16 +212,13 @@ private:
 	void OnDeleteSelectedRows();
 
 	/** Function to remove attached assets from the skeleton/mesh */
-	void DeleteAttachedAssets(const TArray<TSharedPtr<FDisplayedAttachedAssetInfo>>& InDisplayedAttachedAssetInfos );
+	void DeleteAttachedAssets(const TArray<TSharedPtr<class FSkeletonTreeAttachedAssetItem>>& InDisplayedAttachedAssetInfos );
 
 	/** Function to remove sockets from the skeleton/mesh */
-	void DeleteSockets(const TArray<TSharedPtr<FDisplayedSocketInfo>>& InDisplayedSocketInfos );
+	void DeleteSockets(const TArray<TSharedPtr<class FSkeletonTreeSocketItem>>& InDisplayedSocketInfos );
 
 	/** Function to remove virtual bones from the skeleton/mesh */
-	void DeleteVirtualBones(const TArray<TSharedPtr<FDisplayedVirtualBoneInfo>>& InDisplayedVirtualBonestInfos);
-
-	/** Add attached assets from a given TArray of them */
-	void AddAttachedAssets( const FPreviewAssetAttachContainer& AttachedObjects );
+	void DeleteVirtualBones(const TArray<TSharedPtr<class FSkeletonTreeVirtualBoneItem>>& InDisplayedVirtualBonestInfos);
 
 	/** Called when the user selects a blend profile to edit */
 	void OnBlendProfileSelected(UBlendProfile* NewProfile);
@@ -664,6 +231,12 @@ private:
 
 	/** Vary the foreground color of the filter button based on hover state */
 	FSlateColor GetFilterComboButtonForegroundColor() const;
+
+	/** Handle focusing the camera on the current selection */
+	void HandleFocusCamera();
+
+	/** Handle filtering the tree  */
+	ESkeletonTreeFilterResult HandleFilterSkeletonTreeItem(const TSharedPtr<class ISkeletonTreeItem>& InItem);
 
 private:
 	/** Pointer back to the skeleton tree that owns us */
@@ -682,13 +255,16 @@ private:
 	TSharedPtr<SOverlay> TreeHolder;
 
 	/** Widget used to display the skeleton hierarchy */
-	TSharedPtr<SMeshSkeletonTreeRowType> SkeletonTreeView;
+	TSharedPtr<STreeView<TSharedPtr<class ISkeletonTreeItem>>> SkeletonTreeView;
 
-	/** A tree of bone info. Used by the BoneTreeView. */
-	TArray< TSharedPtr<struct FDisplayedTreeRowInfo> > SkeletonRowList;
+	/** A tree of unfiltered items */
+	TArray<TSharedPtr<class ISkeletonTreeItem>> Items;
 
 	/** A "mirror" of the tree as a flat array for easier searching */
-	TArray< TSharedRef<struct FDisplayedTreeRowInfo> > DisplayMirror;
+	TArray<TSharedPtr<class ISkeletonTreeItem>> LinearItems;
+
+	/** Filtered view of the skeleton tree. This is what is actually used in the tree widget */
+	TArray<TSharedPtr<class ISkeletonTreeItem>> FilteredItems;
 
 	/** Is this view editable */
 	TAttribute<bool> IsEditable;
@@ -708,7 +284,7 @@ private:
 	bool bShowingAdvancedOptions;
 
 	/** Points to an item that is being requested to be renamed */
-	TSharedPtr<FDisplayedTreeRowInfo> DeferredRenameRequest;
+	TSharedPtr<ISkeletonTreeItem> DeferredRenameRequest;
 
 	/** Last Cached Preview Mesh Component LOD */
 	int32 LastCachedLODForPreviewMeshComponent;
@@ -726,4 +302,10 @@ private:
 
 	/** Add virtual bones to the skeleton tree */
 	void AddVirtualBones(const TArray<FVirtualBone>& VirtualBones);
+
+	/** The builder we use to construct the tree */
+	TSharedPtr<class ISkeletonTreeBuilder> Builder;
+
+	/** Compiled filter search terms. */
+	TSharedPtr<class FTextFilterExpressionEvaluator> TextFilterPtr;
 }; 

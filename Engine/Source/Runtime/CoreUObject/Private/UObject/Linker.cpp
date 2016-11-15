@@ -366,7 +366,7 @@ static void LogGetPackageLinkerError(FArchive* LinkerArchive, const TCHAR* InFil
 				Message->AddToken(FAssetNameToken::Create(ThreadContext.SerializedImportLinker->GetImportPathName(ThreadContext.SerializedImportIndex)));
 				Message->AddToken(FTextToken::Create(LOCTEXT("FailedLoad_Referenced", "Referenced by")));
 				Message->AddToken(FUObjectToken::Create(ThreadContext.SerializedObject));
-				auto SerializedProperty = InLinkerArchive ? InLinkerArchive->GetSerializedProperty() : nullptr;
+				UProperty* SerializedProperty = InLinkerArchive ? InLinkerArchive->GetSerializedProperty() : nullptr;
 				if (SerializedProperty != nullptr)
 				{
 					FString PropertyPathName = SerializedProperty->GetPathName();
@@ -499,7 +499,7 @@ FLinkerLoad* GetPackageLinker
 )
 {
 	// See if there is already a linker for this package.
-	auto Result = FLinkerLoad::FindExistingLinkerForPackage(InOuter);
+	FLinkerLoad* Result = FLinkerLoad::FindExistingLinkerForPackage(InOuter);
 
 	// Try to load the linker.
 	// See if the linker is already loaded.
@@ -605,7 +605,7 @@ FLinkerLoad* GetPackageLinker
 
 		// Create the package with the provided long package name.
 		UPackage* FilenamePkg = (ExistingPackage ? ExistingPackage : CreatePackage(nullptr, *PackageNameToCreate));
-		if (FilenamePkg != ExistingPackage && (LoadFlags & LOAD_PackageForPIE))
+		if (FilenamePkg && FilenamePkg != ExistingPackage && (LoadFlags & LOAD_PackageForPIE))
 		{
 			FilenamePkg->SetPackageFlags(PKG_PlayInEditor);
 		}

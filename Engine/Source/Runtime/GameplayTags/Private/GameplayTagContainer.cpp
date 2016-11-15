@@ -893,6 +893,14 @@ FString FGameplayTagContainer::ToString() const
 	return ExportString;
 }
 
+void FGameplayTagContainer::FromExportString(FString ExportString)
+{
+	Reset();
+
+	FOutputDeviceNull NullOut;
+	FGameplayTagContainer::StaticStruct()->ImportText(*ExportString, this, nullptr, 0, &NullOut, TEXT("FGameplayTagContainer"), true);
+}
+
 bool FGameplayTagContainer::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText)
 {
 	// Call default import, but skip the native callback to avoid recursion
@@ -1308,6 +1316,14 @@ bool FGameplayTag::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject
 
 	// Let normal ImportText try.
 	return false;
+}
+
+void FGameplayTag::FromExportString(FString ExportString)
+{
+	TagName = NAME_None;
+
+	FOutputDeviceNull NullOut;
+	FGameplayTag::StaticStruct()->ImportText(*ExportString, this, nullptr, 0, &NullOut, TEXT("FGameplayTag"), true);
 }
 
 FGameplayTagQuery::FGameplayTagQuery()

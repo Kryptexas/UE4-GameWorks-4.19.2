@@ -266,9 +266,6 @@ int32 SysInfoTest(const TCHAR* CommandLine)
 	FString OSInstanceGuid = FPlatformMisc::GetOperatingSystemId();
 	UE_LOG(LogTestPAL, Display, TEXT("  FPlatformMisc::GetOperatingSystemId() = '%s'"), *OSInstanceGuid);
 
-	FString MacAddress = FPlatformMisc::GetMacAddressString();
-	UE_LOG(LogTestPAL, Display, TEXT("  FPlatformMisc::GetMacAddress() = '%s'"), *MacAddress);
-
 	FString UserDir = FPlatformProcess::UserDir();
 	UE_LOG(LogTestPAL, Display, TEXT("  FPlatformMisc::UserDir() = '%s'"), *UserDir);
 

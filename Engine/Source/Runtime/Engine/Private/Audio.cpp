@@ -512,6 +512,48 @@ FSpatializationParams FSoundSource::GetSpatializationParams()
 	return Params;
 }
 
+void FSoundSource::InitCommon()
+{
+	PlaybackTime = 0.0f;
+}
+
+
+void FSoundSource::UpdateCommon()
+{
+	check(WaveInstance);
+
+	Pitch = WaveInstance->Pitch;
+
+	// Don't apply global pitch scale to UI sounds
+	if (!WaveInstance->bIsUISound)
+	{
+		Pitch *= AudioDevice->GetGlobalPitchScale().GetValue();
+	}
+
+	Pitch = FMath::Clamp<float>(Pitch, MIN_PITCH, MAX_PITCH);
+
+	// Track playback time even if the voice is not virtual, it can flip to being virtual while playing.
+	const float DeviceDeltaTime = AudioDevice->GetDeviceDeltaTime();
+
+	// Scale the playback time based on the pitch of the sound
+	PlaybackTime += DeviceDeltaTime * Pitch;
+}
+
+float FSoundSource::GetPlaybackPercent() const
+{
+	const float Percentage = PlaybackTime / WaveInstance->WaveData->GetDuration();
+	if (WaveInstance->LoopingMode == LOOP_Never)
+	{
+		return FMath::Clamp(Percentage, 0.0f, 1.0f);
+	}
+	else
+	{
+		// Wrap the playback percent for looping sounds
+		return FMath::Fmod(Percentage, 1.0f);
+	}
+
+}
+
 void FSoundSource::NotifyPlaybackPercent()
 {
 	if (WaveInstance->ActiveSound->bUpdatePlayPercentage)

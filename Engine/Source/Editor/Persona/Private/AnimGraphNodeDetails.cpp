@@ -26,6 +26,7 @@
 #include "ISkeletonEditorModule.h"
 #include "BlueprintEditor.h"
 #include "Animation/EditorAnimCurveBoneLinks.h"
+#include "IDocumentation.h"
 
 #define LOCTEXT_NAMESPACE "KismetNodeWithOptionalPinsDetails"
 
@@ -535,9 +536,10 @@ void FBoneReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> S
 		];
 
 		HeaderRow.ValueContent()
+		.MinDesiredWidth(200.f)
 		[
 			SNew(SBoneSelectionWidget, EditableSkeleton.ToSharedRef())
-			.Tooltip(StructPropertyHandle->GetToolTipText())
+			.ToolTipText(StructPropertyHandle->GetToolTipText())
 			.OnBoneSelectionChanged(this, &FBoneReferenceCustomization::OnBoneSelectionChanged)
 			.OnGetSelectedBone(this, &FBoneReferenceCustomization::GetSelectedBone)
 		];

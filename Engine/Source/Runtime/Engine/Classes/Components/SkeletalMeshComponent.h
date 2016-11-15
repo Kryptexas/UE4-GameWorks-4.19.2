@@ -7,6 +7,7 @@
 #include "AnimCurveTypes.h"
 #include "ClothSimData.h"
 #include "SingleAnimationPlayData.h"
+#include "Animation/PoseSnapshot.h"
 #include "SkeletalMeshComponent.generated.h"
 
 
@@ -741,6 +742,14 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
 	float GetMorphTarget(FName MorphTargetName) const;
+
+	/**
+	 * Takes a snapshot of this skeletal mesh component's pose and saves it to the specified snapshot.
+	 * The snapshot is taken at the current LOD, so if for example you took the snapshot at LOD1 
+	 * and then used it at LOD0 any bones not in LOD1 will use the reference pose 
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Pose")
+	void SnapshotPose(UPARAM(ref) FPoseSnapshot& Snapshot);
 
 	/**
 	 * Get/Set the max distance scale of clothing mesh vertices
@@ -1675,9 +1684,13 @@ private:
 	
 
 	/*
-	 * Update MorphTargetCurves - these are not animation curves, but SetMorphTarget and similar functions that can set to this mesh component
+	 * Update MorphTargetCurves from mesh - these are not animation curves, but SetMorphTarget and similar functions that can set to this mesh component
 	 */
-	void UpdateMorphTargetCurves();
+	void UpdateMorphTargetOverrideCurves();
+	/*
+	 * Reset MorphTarget Curves - Reset all morphtarget curves
+	 */
+	void ResetMorphTargetCurves();
 
 public:
 	/** Keep track of when animation has been ticked to ensure it is ticked only once per frame. */

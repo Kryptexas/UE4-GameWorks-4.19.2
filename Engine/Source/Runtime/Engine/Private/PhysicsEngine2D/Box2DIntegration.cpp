@@ -3,7 +3,7 @@
 #include "EnginePrivate.h"
 #include "Box2DIntegration.h"
 #include "PhysicsEngine/PhysXSupport.h"
-#include "Collision/PhysicsFiltering.h"
+#include "Physics/PhysicsFiltering.h"
 
 #if WITH_BOX2D
 

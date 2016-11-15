@@ -627,13 +627,6 @@ void UAnimSequenceBase::Serialize(FArchive& Ar)
 	RawCurveData.PostSerialize(Ar);
 }
 
-void UAnimSequenceBase::OnAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, class UAnimInstance* InAnimInstance) const
-{
-	// @todo: remove after deprecation
-	// forward to non-deprecated version
-	HandleAssetPlayerTickedInternal(Context, PreviousTime, MoveDelta, Instance, InAnimInstance->NotifyQueue);
-}
-
 void UAnimSequenceBase::HandleAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, struct FAnimNotifyQueue& NotifyQueue) const
 {
 	if (Context.ShouldGenerateNotifies())

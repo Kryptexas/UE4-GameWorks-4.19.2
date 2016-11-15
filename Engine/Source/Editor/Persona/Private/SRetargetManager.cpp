@@ -15,6 +15,8 @@
 #include "SRigWindow.h"
 #include "Editor/AnimGraph/Classes/AnimPreviewInstance.h"
 #include "IEditableSkeleton.h"
+#include "IDocumentation.h"
+#include "IPersonaPreviewScene.h"
 
 #define LOCTEXT_NAMESPACE "SRetargetManager"
 

@@ -22,6 +22,11 @@
 FPhysCommandHandler * GPhysCommandHandler = NULL;
 FDelegateHandle GPreGarbageCollectDelegateHandle;
 
+FPhysicsDelegates::FOnUpdatePhysXMaterial FPhysicsDelegates::OnUpdatePhysXMaterial;
+FPhysicsDelegates::FOnPhysicsAssetChanged FPhysicsDelegates::OnPhysicsAssetChanged;
+FPhysicsDelegates::FOnPhysSceneInit FPhysicsDelegates::OnPhysSceneInit;
+FPhysicsDelegates::FOnPhysSceneTerm FPhysicsDelegates::OnPhysSceneTerm;
+
 // CVars
 static TAutoConsoleVariable<float> CVarToleranceScaleLength(
 	TEXT("p.ToleranceScale_Length"),
@@ -293,9 +298,6 @@ void InitGamePhys()
 
 	// Init Extensions
 	PxInitExtensions(*GPhysXSDK, GPhysXVisualDebugger);
-#if WITH_VEHICLE
-	PxInitVehicleSDK(*GPhysXSDK);
-#endif
 
 	if (CVarUseUnifiedHeightfield.GetValueOnGameThread())
 	{
@@ -500,7 +502,6 @@ void TermGamePhys()
 	if (GPhysXSDK != NULL)
 	{
 		PxCloseExtensions();
-		PxCloseVehicleSDK();
 	}
 
 	if(GPhysXSDK != NULL)

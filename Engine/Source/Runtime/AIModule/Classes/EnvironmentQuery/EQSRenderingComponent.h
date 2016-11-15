@@ -15,8 +15,12 @@ class AIMODULE_API FEQSSceneProxy : public FDebugRenderSceneProxy
 {
 	friend class FEQSRenderingDebugDrawDelegateHelper;
 public:
+	DEPRECATED(4.14, "This FEQSSceneProxy constructor version is deprecated. Please use the one taking UPrimitiveComponent&")
 	FEQSSceneProxy(const UPrimitiveComponent* InComponent, const FString& ViewFlagName = TEXT("DebugAI"));
+	DEPRECATED(4.14, "This FEQSSceneProxy constructor version is deprecated. Please use the one taking UPrimitiveComponent&")
 	FEQSSceneProxy(const UPrimitiveComponent* InComponent, const FString& ViewFlagName, const TArray<FSphere>& Spheres, const TArray<FText3d>& Texts);
+
+	explicit FEQSSceneProxy(const UPrimitiveComponent& InComponent, const FString& ViewFlagName = TEXT("DebugAI"), const TArray<FSphere>& Spheres = TArray<FSphere>(), const TArray<FText3d>& Texts = TArray<FText3d>());
 	
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override;
 
@@ -82,16 +86,21 @@ class AIMODULE_API UEQSRenderingComponent : public UPrimitiveComponent
 	FString DrawFlagName;
 	uint32 bDrawOnlyWhenSelected : 1;
 
-#if  USE_EQS_DEBUGGER || ENABLE_VISUAL_LOG
-	EQSDebug::FQueryData DebugData;
-#endif
-
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform &LocalToWorld) const override;
 	virtual void CreateRenderState_Concurrent() override;
 	virtual void DestroyRenderState_Concurrent() override;
 
+	void ClearStoredDebugData();
+#if  USE_EQS_DEBUGGER || ENABLE_VISUAL_LOG
+	void StoreDebugData(const EQSDebug::FQueryData& DebugData);
+#endif
 #if  USE_EQS_DEBUGGER
 	FEQSRenderingDebugDrawDelegateHelper EQSRenderingDebugDrawDelegateHelper;
 #endif
+
+protected:
+	//EQSDebug::FQueryData DebugData;
+	TArray<FDebugRenderSceneProxy::FSphere> DebugDataSolidSpheres;
+	TArray<FDebugRenderSceneProxy::FText3d> DebugDataTexts;
 };

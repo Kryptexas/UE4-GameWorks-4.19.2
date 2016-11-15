@@ -13,6 +13,7 @@
 #include "Engine/Canvas.h"
 #include "TimerManager.h"
 #include "DisplayDebugHelpers.h"
+#include "AIConfig.h"
 
 #include "Navigation/PathFollowingComponent.h"
 
@@ -660,7 +661,7 @@ FVector UPathFollowingComponent::GetMoveFocus(bool bAllowStrafe) const
 	else
 	{
 		const FVector CurrentMoveDirection = GetCurrentDirection();
-		MoveFocus = *CurrentDestination + (CurrentMoveDirection * 20.0f);
+		MoveFocus = *CurrentDestination + (CurrentMoveDirection * FAIConfig::Navigation::FocalPointDistance);
 	}
 
 	return MoveFocus;

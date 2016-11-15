@@ -3,7 +3,6 @@
 
 #include "PersonaPrivatePCH.h"
 #include "PersonaModule.h"
-#include "Persona.h"
 #include "BlueprintUtilities.h"
 #include "AnimGraphDefinitions.h"
 #include "Toolkits/ToolkitManager.h"
@@ -16,7 +15,7 @@
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "Animation/AnimInstance.h"
 #include "PersonaToolkit.h"
-#include "Shared/PersonaMode.h"
+#include "TabSpawners.h"
 #include "SSkeletonAnimNotifies.h"
 #include "PersonaAssetFamily.h"
 #include "SAssetFamilyShortcutBar.h"
@@ -37,16 +36,19 @@
 #include "AnimationCompressionPanel.h"
 #include "DesktopPlatformModule.h"
 #include "FbxAnimUtils.h"
-#include "AnimationMode/AnimationMode.h"
 #include "PersonaAssetFamilyManager.h"
 #include "AnimGraphNode_Slot.h"
 #include "Customization/AnimGraphNodeSlotDetails.h"
+#include "Customization/BlendSpaceDetails.h"
+#include "Customization/BlendParameterDetails.h"
+#include "Customization/InterpolationParameterDetails.h"
 #include "EditModes/SkeletonSelectionEditMode.h"
 #include "PersonaEditorModeManager.h"
 #include "PreviewSceneCustomizations.h"
 #include "SSkeletonSlotNames.h"
 #include "PersonaMeshDetails.h"
 #include "PersonaCommonCommands.h"
+#include "WorkflowCentricApplication.h"
 
 IMPLEMENT_MODULE( FPersonaModule, Persona );
 
@@ -91,10 +93,14 @@ void FPersonaModule::StartupModule()
 		PropertyModule.RegisterCustomClassLayout( "EditorNotifyObject", FOnGetDetailCustomizationInstance::CreateStatic(&FAnimNotifyDetails::MakeInstance));
 		PropertyModule.RegisterCustomClassLayout( "AnimGraphNode_Base", FOnGetDetailCustomizationInstance::CreateStatic( &FAnimGraphNodeDetails::MakeInstance ) );
 		PropertyModule.RegisterCustomClassLayout( "AnimInstance", FOnGetDetailCustomizationInstance::CreateStatic(&FAnimInstanceDetails::MakeInstance));
+		PropertyModule.RegisterCustomClassLayout("BlendSpaceBase", FOnGetDetailCustomizationInstance::CreateStatic(&FBlendSpaceDetails::MakeInstance));	
 
 		PropertyModule.RegisterCustomPropertyTypeLayout( "InputScaleBias", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FInputScaleBiasCustomization::MakeInstance ) );
 		PropertyModule.RegisterCustomPropertyTypeLayout( "BoneReference", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FBoneReferenceCustomization::MakeInstance ) );
 		PropertyModule.RegisterCustomPropertyTypeLayout( "PreviewMeshCollectionEntry", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FPreviewMeshCollectionEntryCustomization::MakeInstance ) );
+
+		PropertyModule.RegisterCustomPropertyTypeLayout("BlendParameter", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FBlendParameterDetails::MakeInstance));
+		PropertyModule.RegisterCustomPropertyTypeLayout("InterpolationParameter", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FInterpolationParameterDetails::MakeInstance));
 	}
 
 	// Register the editor modes
@@ -118,18 +124,14 @@ void FPersonaModule::ShutdownModule()
 		PropertyModule.UnregisterCustomClassLayout("SkeletalMeshSocket");
 		PropertyModule.UnregisterCustomClassLayout("EditorNotifyObject");
 		PropertyModule.UnregisterCustomClassLayout("AnimGraphNode_Base");
-
+		PropertyModule.UnregisterCustomClassLayout("BlendSpaceBase");
+		
 		PropertyModule.UnregisterCustomPropertyTypeLayout("InputScaleBias");
 		PropertyModule.UnregisterCustomPropertyTypeLayout("BoneReference");
+
+		PropertyModule.UnregisterCustomPropertyTypeLayout("BlendParameter");
+		PropertyModule.UnregisterCustomPropertyTypeLayout("InterpolationParameter");
 	}
-}
-
-
-TSharedRef<IBlueprintEditor> FPersonaModule::CreatePersona( const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, class USkeleton* Skeleton, class UAnimBlueprint* Blueprint, class UAnimationAsset* AnimationAsset, class USkeletalMesh * Mesh )
-{
-	TSharedRef< FPersona > NewPersona( new FPersona() );
-	NewPersona->InitPersona( Mode, InitToolkitHost, Skeleton, Blueprint, AnimationAsset, Mesh );
-	return NewPersona;
 }
 
 static void SetupPersonaToolkit(const TSharedRef<FPersonaToolkit>& Toolkit, const FPersonaToolkitArgs& PersonaToolkitArgs)

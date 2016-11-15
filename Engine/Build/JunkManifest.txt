@@ -22,6 +22,7 @@ Engine\Binaries\Win64\*-WorkflowEditor.*
 Engine\Binaries\Win64\*-Workflows.*
 Engine\Binaries\Win64\*-TutorialSystem.*
 Engine\Binaries\Win64\*-GameplayTagsEditor.*
+Engine\Binaries\Win64\*-GameplayAbilities*.*
 Engine\Binaries\Win32\*-CoreSlateStyle*.*
 Engine\Binaries\Win32\*-SlateStyle*.*
 Engine\Binaries\Win64\*-CoreSlateStyle*.*

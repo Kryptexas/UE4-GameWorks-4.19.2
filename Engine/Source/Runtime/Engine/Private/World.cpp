@@ -3661,15 +3661,14 @@ ABrush* UWorld::GetDefaultBrush() const
 	return PersistentLevel->GetDefaultBrush();
 }
 
-
 bool UWorld::HasBegunPlay() const
 {
-	return PersistentLevel && PersistentLevel->Actors.Num() && bBegunPlay;
+	return bBegunPlay && PersistentLevel && PersistentLevel->Actors.Num();
 }
 
 bool UWorld::AreActorsInitialized() const
 {
-	return PersistentLevel && PersistentLevel->Actors.Num() && bActorsInitialized;
+	return bActorsInitialized && PersistentLevel && PersistentLevel->Actors.Num();
 }
 
 void UWorld::CreatePhysicsScene()

@@ -344,8 +344,8 @@ namespace Audio
 		// If we already have a source voice, we can just restart it
 		if (OutputAudioStreamSourceVoice)
 		{
-			OutputAudioStreamSourceVoice->Start();
 			AudioStreamInfo.StreamState = EAudioOutputStreamState::Running;
+			OutputAudioStreamSourceVoice->Start();
 			return true;
 		}
 
@@ -362,18 +362,22 @@ namespace Audio
 
 		check(XAudio2System);
 
-		// Signal that the thread that is running the update that we're stopping
-		if (!(AudioStreamInfo.StreamState == EAudioOutputStreamState::Stopped))
+		if (AudioStreamInfo.StreamState != EAudioOutputStreamState::Stopped)
 		{
-			AudioStreamInfo.StreamState = EAudioOutputStreamState::Stopping;
-		}
+			// Signal that the thread that is running the update that we're stopping
+			if (OutputAudioStreamSourceVoice)
+			{
+				OutputAudioStreamSourceVoice->FlushSourceBuffers();
+				OutputAudioStreamSourceVoice->Stop(0);
+			}
 
-		if (OutputAudioStreamSourceVoice)
-		{
-			OutputAudioStreamSourceVoice->Stop(0);
-		}
+			if (AudioStreamInfo.StreamState == EAudioOutputStreamState::Running)
+			{
+				StopGeneratingAudio();
+			}
 
-		check(AudioStreamInfo.StreamState == EAudioOutputStreamState::Stopped);
+			check(AudioStreamInfo.StreamState == EAudioOutputStreamState::Stopped);
+		}
 
 		return true;
 	}

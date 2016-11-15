@@ -109,7 +109,7 @@ namespace AutomationCommon
 		Data.AdapterName = GRHIAdapterName;
 		Data.AdapterInternalDriverVersion = GRHIAdapterInternalDriverVersion;
 		Data.AdapterUserDriverVersion = GRHIAdapterUserDriverVersion;
-		Data.UniqueDeviceId = FPlatformMisc::GetUniqueDeviceId();
+		Data.UniqueDeviceId = FPlatformMisc::GetDeviceId();
 
 		Scalability::FQualityLevels QualityLevels = Scalability::GetQualityLevels();
 

@@ -942,9 +942,6 @@ namespace UP
 
 		/// Property shouldn't be serialized, can still be exported to text
 		SkipSerialization,
-
-		/// Property wont have a 'reset to default' button when displayed in property windows
-		NoResetToDefault,
 	};
 }
 
@@ -1025,6 +1022,9 @@ namespace UM
 
 		//[ClassMetadata] Expose a proxy object of this class in Async Task node.
 		ExposedAsyncProxy,
+
+		//[ClassMetadata] Only valid on Blueprint Function Libraries. Mark the functions in this class as callable on non-game threads in an Animation Blueprint.
+		BlueprintThreadSafe,
 	};
 
 	// Metadata usable in USTRUCT
@@ -1150,6 +1150,9 @@ namespace UM
 
 		/// [PropertyMetadata] Used by FDirectoryPath properties.  Converts the path to a long package name
 		LongPackageName,
+
+		/// [PropertyMetadata] Property wont have a 'reset to default' button when displayed in property windows
+		NoResetToDefault,
 	};
 
 	// Metadata usable in UPROPERTY for customizing the behavior of Persona and UMG
@@ -1260,11 +1263,14 @@ namespace UM
 		/// [FunctionMetadata] Used by BlueprintCallable functions to indicate that this function is not to be allowed in the Construction Script.
 		UnsafeDuringActorConstruction,
 
-		/// [FunctionMetadta] Used by BlueprintCallable functions to indicate which parameter is used to determine the World that the operation is occurring within.
+		/// [FunctionMetadata] Used by BlueprintCallable functions to indicate which parameter is used to determine the World that the operation is occurring within.
 		WorldContext,
 
-		/// [FunctionMetadta] Used only by static BlueprintPure functions from BlueprintLibrary. A cast node will be automatically added for the return type and the type of the first parameter of the function.
+		/// [FunctionMetadata] Used only by static BlueprintPure functions from BlueprintLibrary. A cast node will be automatically added for the return type and the type of the first parameter of the function.
 		BlueprintAutocast,
+
+		// [FunctionMetadata] Only valid in Blueprint Function Libraries. Mark this function as an exception to the class's general BlueprintThreadSafe metadata.
+		NotBlueprintThreadSafe,
 	};
 
 	// Metadata usable in UINTERFACE

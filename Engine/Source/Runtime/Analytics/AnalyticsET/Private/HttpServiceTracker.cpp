@@ -66,7 +66,7 @@ FHttpServiceTracker::FHttpServiceTracker(const FHttpServiceTrackerConfig& Config
 {
 	AnalyticsProvider = FAnalyticsET::Get().CreateAnalyticsProvider(FAnalyticsET::Config(Config.APIKey, Config.APIServer, Config.ApiVersion, false, TEXT("unknown"), TEXT("qosmetrics")));
 	// Use the standard UserID
-	AnalyticsProvider->SetUserID(FString::Printf(TEXT("%s|%s|%s"), *FPlatformMisc::GetMachineId().ToString(EGuidFormats::Digits).ToLower(), *FPlatformMisc::GetEpicAccountId(), *FPlatformMisc::GetOperatingSystemId()));
+	AnalyticsProvider->SetUserID(FString::Printf(TEXT("%s|%s|%s"), *FPlatformMisc::GetLoginId(), *FPlatformMisc::GetEpicAccountId(), *FPlatformMisc::GetOperatingSystemId()));
 	// Note we also don't start/stop the session. The AnalyticsET provider allows this, and this enables our collector
 	// to receive ONLY monitoring events.
 }

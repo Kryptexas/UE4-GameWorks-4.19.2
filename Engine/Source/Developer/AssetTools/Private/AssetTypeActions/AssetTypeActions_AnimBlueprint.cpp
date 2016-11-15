@@ -126,23 +126,15 @@ void FAssetTypeActions_AnimBlueprint::OpenAssetEditor( const TArray<UObject*>& I
 			}
 			else
 			{
-				if (GetDefault<UPersonaOptions>()->bUseStandaloneAnimationEditors)
+				const bool bBringToFrontIfOpen = true;
+				if (IAssetEditorInstance* EditorInstance = FAssetEditorManager::Get().FindEditorForAsset(AnimBlueprint, bBringToFrontIfOpen))
 				{
-					const bool bBringToFrontIfOpen = true;
-					if (IAssetEditorInstance* EditorInstance = FAssetEditorManager::Get().FindEditorForAsset(AnimBlueprint, bBringToFrontIfOpen))
-					{
-						EditorInstance->FocusWindow(AnimBlueprint);
-					}
-					else
-					{
-						IAnimationBlueprintEditorModule& AnimationBlueprintEditorModule = FModuleManager::LoadModuleChecked<IAnimationBlueprintEditorModule>("AnimationBlueprintEditor");
-						AnimationBlueprintEditorModule.CreateAnimationBlueprintEditor(Mode, EditWithinLevelEditor, AnimBlueprint);
-					}
+					EditorInstance->FocusWindow(AnimBlueprint);
 				}
 				else
 				{
-					FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>("Persona");
-					PersonaModule.CreatePersona(Mode, EditWithinLevelEditor, NULL, AnimBlueprint, NULL, NULL);
+					IAnimationBlueprintEditorModule& AnimationBlueprintEditorModule = FModuleManager::LoadModuleChecked<IAnimationBlueprintEditorModule>("AnimationBlueprintEditor");
+					AnimationBlueprintEditorModule.CreateAnimationBlueprintEditor(Mode, EditWithinLevelEditor, AnimBlueprint);
 				}
 			}
 		}

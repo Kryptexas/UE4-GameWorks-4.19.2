@@ -86,6 +86,7 @@
 #if WITH_EDITOR
 	#include "FeedbackContextEditor.h"
 	static FFeedbackContextEditor UnrealEdWarn;
+	#include "AudioEditorModule.h"
 #endif	// WITH_EDITOR
 
 #if UE_EDITOR
@@ -2079,6 +2080,12 @@ void FEngineLoop::LoadPreInitModules()
 	FModuleManager::Get().LoadModule(TEXT("TextureCompressor"));
 #endif
 #endif // WITH_ENGINE
+
+#if (WITH_EDITOR && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
+	// Load audio editor module before engine class CDOs are loaded
+	FModuleManager::Get().LoadModule(TEXT("AudioEditor"));
+#endif
+
 }
 
 
@@ -2161,22 +2168,14 @@ bool FEngineLoop::LoadStartupCoreModules()
 	// Ability tasks are based on GameplayTasks, so we need to make sure that module is loaded as well
 	FModuleManager::Get().LoadModule(TEXT("GameplayTasksEditor"));
 
+	IAudioEditorModule* AudioEditorModule = &FModuleManager::LoadModuleChecked<IAudioEditorModule>("AudioEditor");
+	AudioEditorModule->RegisterAssetActions();
+
 	if( !IsRunningDedicatedServer() )
 	{
 		// VREditor needs to be loaded in non-server editor builds early, so engine content Blueprints can be loaded during DDC generation
 		FModuleManager::Get().LoadModule(TEXT("VREditor"));
 	}
-	// -----------------------------------------------------
-
-	// HACK: load AbilitySystem editor as early as possible for statically initialized assets (non cooked BT assets needs it)
-	// cooking needs this module too
-	bool bGameplayAbilitiesEnabled = false;
-	GConfig->GetBool(TEXT("GameplayAbilities"), TEXT("GameplayAbilitiesEditorEnabled"), bGameplayAbilitiesEnabled, GEngineIni);
-	if (bGameplayAbilitiesEnabled)
-	{
-		FModuleManager::Get().LoadModule(TEXT("GameplayAbilitiesEditor"));
-	}
-
 	// -----------------------------------------------------
 
 	// HACK: load EQS editor as early as possible for statically initialized assets (non cooked EQS assets needs it)

@@ -3,12 +3,12 @@
 
 #pragma once
 
-#include "Persona.h"
 #include "GraphEditor.h"
 #include "SNodePanel.h"
 #include "STrack.h"
 #include "SCurveEditor.h"
 #include "SAnimTrackPanel.h"
+#include "PersonaDelegates.h"
 
 DECLARE_DELEGATE( FOnMontageLengthChange )
 DECLARE_DELEGATE( FOnMontagePropertyChanged )

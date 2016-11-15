@@ -3,7 +3,6 @@
 
 #include "PersonaPrivatePCH.h"
 
-#include "Persona.h"
 #include "SSkeletonSlotNames.h"
 #include "AssetRegistryModule.h"
 #include "ScopedTransaction.h"
@@ -19,6 +18,7 @@
 #include "SSlotNameReferenceWindow.h"
 #include "IMainFrameModule.h"
 #include "IEditableSkeleton.h"
+#include "TabSpawners.h"
 
 #define LOCTEXT_NAMESPACE "SkeletonSlotNames"
 

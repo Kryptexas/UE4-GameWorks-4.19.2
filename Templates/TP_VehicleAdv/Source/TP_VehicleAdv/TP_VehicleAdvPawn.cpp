@@ -12,7 +12,7 @@
 #include "Components/TextRenderComponent.h"
 #include "Sound/SoundCue.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
-#include "Vehicles/WheeledVehicleMovementComponent4W.h"
+#include "WheeledVehicleMovementComponent4W.h"
 #include "Engine/SkeletalMesh.h"
 
 

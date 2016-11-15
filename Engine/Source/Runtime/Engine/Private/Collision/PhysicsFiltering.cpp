@@ -3,7 +3,6 @@
 #include "EnginePrivate.h"
 
 #include "../PhysicsEngine/PhysXSupport.h"
-#include "PhysicsFiltering.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FPhysicsFilterBuilder

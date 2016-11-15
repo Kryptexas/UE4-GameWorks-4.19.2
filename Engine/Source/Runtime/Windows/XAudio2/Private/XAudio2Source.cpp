@@ -530,9 +530,7 @@ bool FXAudio2SoundSource::IsPreparedToInit()
 
 bool FXAudio2SoundSource::Init(FWaveInstance* InWaveInstance)
 {
-	// Setup our virtual duration/playback data regardless of it's currently virtual since it can flip while playing
-	VirtualDuration = InWaveInstance->WaveData->GetDuration();
-	VirtualPlaybackTime = 0.0f;
+	FSoundSource::InitCommon();
 
 	if (bIsVirtual)
 	{
@@ -1318,15 +1316,7 @@ void FXAudio2SoundSource::Update()
 		return;
 	}
 
-	float Pitch = WaveInstance->Pitch;
-
-	// Don't apply global pitch scale to UI sounds
-	if (!WaveInstance->bIsUISound)
-	{
-		Pitch *= AudioDevice->GetGlobalPitchScale().GetValue();
-	}
-
-	Pitch = FMath::Clamp<float>(Pitch, MIN_PITCH, MAX_PITCH);
+	FSoundSource::UpdateCommon();
 
 	// If the headphones have been unplugged after playing, set this voice to be virtual
 	if (!AudioDevice->DeviceProperties->bAllowNewVoices)
@@ -1334,16 +1324,10 @@ void FXAudio2SoundSource::Update()
 		bIsVirtual = true;
 	}
 
-	// Track virtual playback time even if the voice is not virtual, it can flip to being virtual while playing.
-	const float DeviceDeltaTime = AudioDevice->GetUpdateDeltaTime();
-
-	// Scale the virtual playback time based on the pitch of the sound
-	VirtualPlaybackTime += DeviceDeltaTime * Pitch;
-
-	// If this is a virtual source, then update it's duration and do any notification on completion based on duration
+	// If this is a virtual source, then do any notification on completion
 	if (bIsVirtual)
 	{
-		if (VirtualPlaybackTime >= VirtualDuration)
+		if (PlaybackTime >= WaveInstance->WaveData->GetDuration())
 		{
 			if (WaveInstance->LoopingMode == LOOP_Never)
 			{
@@ -1431,7 +1415,7 @@ float FXAudio2SoundSource::GetPlaybackPercent() const
 		return 0.0f;
 	}
 
-	const int32 CurrentFrame = (StartFrame + NumFramesPlayed) % NumTotalFrames;
+	const int32 CurrentFrame = StartFrame + NumFramesPlayed;
 
 	// Compute the percent based on frames played and total frames
 	const float Percent = (float)CurrentFrame / NumTotalFrames;

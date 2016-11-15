@@ -331,9 +331,6 @@ private:
 
 public:
 
-	DEPRECATED(4.11, "bChartDistanceFactor is no longer useful, please remove references to it")
-	uint32 bChartDistanceFactor:1;
-
 	/** Whether or not we can highlight selected sections - this should really only be done in the editor */
 	UPROPERTY(transient)
 	uint32 bCanHighlightSelectedSections:1;

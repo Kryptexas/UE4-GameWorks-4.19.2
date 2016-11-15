@@ -502,13 +502,13 @@ public:
 	 * Components on the other Actor may also need to be told to do the same when they move.
 	 * Does not affect movement of this component when simulating physics.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Collision", meta=(Keywords="Move MoveIgnore"))
+	UFUNCTION(BlueprintCallable, Category = "Collision", meta=(Keywords="Move MoveIgnore", UnsafeDuringActorConstruction="true"))
 	void IgnoreActorWhenMoving(AActor* Actor, bool bShouldIgnore);
 
 	/**
 	 * Returns the list of actors we currently ignore when moving.
 	 */
-	UFUNCTION(BlueprintCallable, meta=(DisplayName="GetMoveIgnoreActors"), Category = "Collision")
+	UFUNCTION(BlueprintCallable, meta=(DisplayName="GetMoveIgnoreActors", UnsafeDuringActorConstruction="true"), Category = "Collision")
 	TArray<AActor*> CopyArrayOfMoveIgnoreActors();
 
 	/**
@@ -519,7 +519,7 @@ public:
 	/**
 	 * Clear the list of actors we ignore when moving.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Collision")
+	UFUNCTION(BlueprintCallable, Category = "Collision", meta=(UnsafeDuringActorConstruction="true"))
 	void ClearMoveIgnoreActors();
 
 	/**
@@ -537,13 +537,13 @@ public:
 	* The other components may also need to be told to do the same when they move.
 	* Does not affect movement of this component when simulating physics.
 	*/
-	UFUNCTION(BlueprintCallable, Category = "Collision", meta=(Keywords="Move MoveIgnore"))
+	UFUNCTION(BlueprintCallable, Category = "Collision", meta=(Keywords="Move MoveIgnore", UnsafeDuringActorConstruction="true"))
 	void IgnoreComponentWhenMoving(UPrimitiveComponent* Component, bool bShouldIgnore);
 
 	/**
 	* Returns the list of actors we currently ignore when moving.
 	*/
-	UFUNCTION(BlueprintCallable, meta=(DisplayName="GetMoveIgnoreComponents"), Category = "Collision")
+	UFUNCTION(BlueprintCallable, meta=(DisplayName="GetMoveIgnoreComponents", UnsafeDuringActorConstruction="true"), Category = "Collision")
 	TArray<UPrimitiveComponent*> CopyArrayOfMoveIgnoreComponents();
 
 	/**
@@ -554,7 +554,7 @@ public:
 	/**
 	* Clear the list of components we ignore when moving.
 	*/
-	UFUNCTION(BlueprintCallable, Category = "Collision")
+	UFUNCTION(BlueprintCallable, Category = "Collision", meta=(UnsafeDuringActorConstruction="true"))
 	void ClearMoveIgnoreComponents() { MoveIgnoreComponents.Empty(); }
 
 	/** Set the mask filter we use when moving. */
@@ -649,7 +649,7 @@ public:
 	void GetOverlappingComponents(TArray<UPrimitiveComponent*>& InOverlappingComponents) const;
 
 	/** Returns list of components this component is overlapping. */
-	UFUNCTION(BlueprintCallable, Category="Collision")
+	UFUNCTION(BlueprintCallable, Category="Collision", meta=(UnsafeDuringActorConstruction="true"))
 	const TArray<FOverlapInfo>& GetOverlapInfos() const;
 
 	/** 
@@ -853,7 +853,7 @@ public:
 	 *	@param	BoneName	If a SkeletalMeshComponent, name of body to apply impulse to. 'None' indicates root body.
 	 *	@param	bVelChange	If true, the Strength is taken as a change in velocity instead of an impulse (ie. mass will have no affect).
 	 */
-	UFUNCTION(BlueprintCallable, Category="Physics")
+	UFUNCTION(BlueprintCallable, Category="Physics", meta=(UnsafeDuringActorConstruction="true"))
 	virtual void AddImpulse(FVector Impulse, FName BoneName = NAME_None, bool bVelChange = false);
 
 	/**
@@ -863,7 +863,7 @@ public:
 	*	@param	BoneName	If a SkeletalMeshComponent, name of body to apply angular impulse to. 'None' indicates root body.
 	*	@param	bVelChange	If true, the Strength is taken as a change in angular velocity instead of an impulse (ie. mass will have no affect).
 	*/
-	UFUNCTION(BlueprintCallable, Category = "Physics")
+	UFUNCTION(BlueprintCallable, Category = "Physics", meta=(UnsafeDuringActorConstruction="true"))
 	virtual void AddAngularImpulse(FVector Impulse, FName BoneName = NAME_None, bool bVelChange = false);
 
 	/**
@@ -873,7 +873,7 @@ public:
 	 *	@param	Location	Point in world space to apply impulse at.
 	 *	@param	BoneName	If a SkeletalMeshComponent, name of bone to apply impulse to. 'None' indicates root body.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Physics")
+	UFUNCTION(BlueprintCallable, Category="Physics", meta=(UnsafeDuringActorConstruction="true"))
 	virtual void AddImpulseAtLocation(FVector Impulse, FVector Location, FName BoneName = NAME_None);
 
 	/**
@@ -885,7 +885,7 @@ public:
 	 * @param Falloff		Allows you to control the strength of the impulse as a function of distance from Origin.
 	 * @param bVelChange	If true, the Strength is taken as a change in velocity instead of an impulse (ie. mass will have no affect).
 	 */
-	UFUNCTION(BlueprintCallable, Category="Physics")
+	UFUNCTION(BlueprintCallable, Category="Physics", meta=(UnsafeDuringActorConstruction="true"))
 	virtual void AddRadialImpulse(FVector Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff, bool bVelChange = false);
 
 	/**
@@ -896,7 +896,7 @@ public:
 	 *	@param	BoneName	 If a SkeletalMeshComponent, name of body to apply force to. 'None' indicates root body.
 	 *  @param  bAccelChange If true, Force is taken as a change in acceleration instead of a physical force (i.e. mass will have no affect).
 	 */
-	UFUNCTION(BlueprintCallable, Category="Physics")
+	UFUNCTION(BlueprintCallable, Category="Physics", meta=(UnsafeDuringActorConstruction="true"))
 	virtual void AddForce(FVector Force, FName BoneName = NAME_None, bool bAccelChange = false);
 
 	/**
@@ -907,7 +907,7 @@ public:
 	 *	@param Location		Location to apply force, in world space.
 	 *	@param BoneName		If a SkeletalMeshComponent, name of body to apply force to. 'None' indicates root body.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Physics")
+	UFUNCTION(BlueprintCallable, Category="Physics", meta=(UnsafeDuringActorConstruction="true"))
 	virtual void AddForceAtLocation(FVector Force, FVector Location, FName BoneName = NAME_None);
 
 	/**
@@ -919,7 +919,7 @@ public:
 	 *  @param Falloff		Allows you to control the strength of the force as a function of distance from Origin.
 	 *  @param bAccelChange If true, Strength is taken as a change in acceleration instead of a physical force (i.e. mass will have no affect).
 	 */
-	UFUNCTION(BlueprintCallable, Category="Physics")
+	UFUNCTION(BlueprintCallable, Category="Physics", meta=(UnsafeDuringActorConstruction="true"))
 	virtual void AddRadialForce(FVector Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff, bool bAccelChange = false);
 
 	/**
@@ -928,7 +928,7 @@ public:
 	 *	@param BoneName		If a SkeletalMeshComponent, name of body to apply torque to. 'None' indicates root body.
 	 *  @param bAccelChange If true, Torque is taken as a change in angular acceleration instead of a physical torque (i.e. mass will have no affect).
 	 */
-	UFUNCTION(BlueprintCallable, Category="Physics")
+	UFUNCTION(BlueprintCallable, Category="Physics", meta=(UnsafeDuringActorConstruction="true"))
 	void AddTorque(FVector Torque, FName BoneName = NAME_None, bool bAccelChange = false);
 
 	/**
@@ -939,14 +939,14 @@ public:
 	 *	@param bAddToCurrent	If true, NewVel is added to the existing velocity of the body.
 	 *	@param BoneName			If a SkeletalMeshComponent, name of body to modify velocity of. 'None' indicates root body.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Physics")
+	UFUNCTION(BlueprintCallable, Category="Physics", meta=(UnsafeDuringActorConstruction="true"))
 	void SetPhysicsLinearVelocity(FVector NewVel, bool bAddToCurrent = false, FName BoneName = NAME_None);
 
 	/** 
 	 *	Get the linear velocity of a single body. 
 	 *	@param BoneName			If a SkeletalMeshComponent, name of body to get velocity of. 'None' indicates root body.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Physics")	
+	UFUNCTION(BlueprintCallable, Category="Physics", meta=(UnsafeDuringActorConstruction="true"))	
 	FVector GetPhysicsLinearVelocity(FName BoneName = NAME_None);
 
 	/**
@@ -954,7 +954,7 @@ public:
 	*	@param Point			Point is specified in world space.
 	*	@param BoneName			If a SkeletalMeshComponent, name of body to get velocity of. 'None' indicates root body.
 	*/
-	UFUNCTION(BlueprintCallable, Category = "Physics")
+	UFUNCTION(BlueprintCallable, Category = "Physics", meta=(UnsafeDuringActorConstruction="true"))
 	FVector GetPhysicsLinearVelocityAtPoint(FVector Point, FName BoneName = NAME_None);
 
 	/**
@@ -963,7 +963,7 @@ public:
 	 *	@param NewVel			New linear velocity to apply to physics.
 	 *	@param bAddToCurrent	If true, NewVel is added to the existing velocity of the body.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Physics")
+	UFUNCTION(BlueprintCallable, Category="Physics", meta=(UnsafeDuringActorConstruction="true"))
 	virtual void SetAllPhysicsLinearVelocity(FVector NewVel, bool bAddToCurrent = false);
 
 	/**
@@ -974,7 +974,7 @@ public:
 	 *	@param bAddToCurrent	If true, NewAngVel is added to the existing angular velocity of the body.
 	 *	@param BoneName			If a SkeletalMeshComponent, name of body to modify angular velocity of. 'None' indicates root body.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Physics")
+	UFUNCTION(BlueprintCallable, Category="Physics", meta=(UnsafeDuringActorConstruction="true"))
 	void SetPhysicsAngularVelocity(FVector NewAngVel, bool bAddToCurrent = false, FName BoneName = NAME_None);
 
 	/**
@@ -984,14 +984,14 @@ public:
 	*	@param bAddToCurrent	If true, NewMaxAngVel is added to the existing maximum angular velocity of the body.
 	*	@param BoneName			If a SkeletalMeshComponent, name of body to modify maximum angular velocity of. 'None' indicates root body.
 	*/
-	UFUNCTION(BlueprintCallable, Category = "Physics")
+	UFUNCTION(BlueprintCallable, Category = "Physics", meta=(UnsafeDuringActorConstruction="true"))
 	void SetPhysicsMaxAngularVelocity(float NewMaxAngVel, bool bAddToCurrent = false, FName BoneName = NAME_None);
 
 	/** 
 	 *	Get the angular velocity of a single body, in degrees per second. 
 	 *	@param BoneName			If a SkeletalMeshComponent, name of body to get velocity of. 'None' indicates root body.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Physics")	
+	UFUNCTION(BlueprintCallable, Category="Physics", meta=(UnsafeDuringActorConstruction="true"))	
 	FVector GetPhysicsAngularVelocity(FName BoneName = NAME_None);
 
 	/**
@@ -999,7 +999,7 @@ public:
 	*   Objects that are not simulated return (0,0,0) as they do not have COM
 	*	@param BoneName			If a SkeletalMeshComponent, name of body to get center of mass of. 'None' indicates root body.
 	*/
-	UFUNCTION(BlueprintCallable, Category = "Physics")
+	UFUNCTION(BlueprintCallable, Category = "Physics", meta=(UnsafeDuringActorConstruction="true"))
 	FVector GetCenterOfMass(FName BoneName = NAME_None);
 
 	/**
@@ -1008,21 +1008,21 @@ public:
 	*	@param CenterOfMassOffset		User specified offset for the center of mass of this object, from the calculated location.
 	*	@param BoneName			If a SkeletalMeshComponent, name of body to set center of mass of. 'None' indicates root body.
 	*/
-	UFUNCTION(BlueprintCallable, Category = "Physics")
+	UFUNCTION(BlueprintCallable, Category = "Physics", meta=(UnsafeDuringActorConstruction="true"))
 	void SetCenterOfMass(FVector CenterOfMassOffset, FName BoneName = NAME_None);
 
 	/**
 	 *	'Wake' physics simulation for a single body.
 	 *	@param	BoneName	If a SkeletalMeshComponent, name of body to wake. 'None' indicates root body.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Physics")
+	UFUNCTION(BlueprintCallable, Category="Physics", meta=(UnsafeDuringActorConstruction="true"))
 	virtual void WakeRigidBody(FName BoneName = NAME_None);
 
 	/** 
 	 *	Force a single body back to sleep. 
 	 *	@param	BoneName	If a SkeletalMeshComponent, name of body to put to sleep. 'None' indicates root body.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Physics")
+	UFUNCTION(BlueprintCallable, Category="Physics", meta=(UnsafeDuringActorConstruction="true"))
 	void PutRigidBodyToSleep(FName BoneName = NAME_None);
 
 	/** Changes the value of bNotifyRigidBodyCollision
@@ -1073,8 +1073,8 @@ public:
 	void SetCollisionObjectType(ECollisionChannel Channel);
 
 	/** Perform a line trace against a single component */
-	UFUNCTION(BlueprintCallable, Category="Collision", meta=(DisplayName = "Line Trace Component", bTraceComplex="true"))	
-	bool K2_LineTraceComponent(FVector TraceStart, FVector TraceEnd, bool bTraceComplex, bool bShowTrace, FVector& HitLocation, FVector& HitNormal, FName& BoneName);
+	UFUNCTION(BlueprintCallable, Category="Collision", meta=(DisplayName = "Line Trace Component", bTraceComplex="true", UnsafeDuringActorConstruction="true"))	
+	bool K2_LineTraceComponent(FVector TraceStart, FVector TraceEnd, bool bTraceComplex, bool bShowTrace, FVector& HitLocation, FVector& HitNormal, FName& BoneName, FHitResult& OutHit);
 
 	/** Sets the bRenderCustomDepth property and marks the render state dirty. */
 	UFUNCTION(BlueprintCallable, Category="Rendering")
@@ -1338,7 +1338,7 @@ public:
 	* @return		Success if returns > 0.f, if returns 0.f, it is either not convex or inside of the point
 	*				If returns < 0.f, this primitive does not have collsion
 	*/
-	UFUNCTION(BlueprintCallable, Category = "Collision")
+	UFUNCTION(BlueprintCallable, Category = "Collision", meta=(UnsafeDuringActorConstruction="true"))
 	float GetClosestPointOnCollision(const FVector& Point, FVector& OutPointOnBody, FName BoneName = NAME_None) const;
 
 	/**
@@ -1649,7 +1649,7 @@ public:
 	/**
 	 *	Ensure simulation is running for all bodies in this component.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Physics")
+	UFUNCTION(BlueprintCallable, Category="Physics", meta=(UnsafeDuringActorConstruction="true"))
 	virtual void WakeAllRigidBodies();
 	
 	/** Enables/disables whether this component is affected by gravity. This applies only to components with bSimulatePhysics set to true. */
@@ -1697,15 +1697,15 @@ public:
 	virtual void SetMassOverrideInKg(FName BoneName = NAME_None, float MassInKg = 1.f, bool bOverrideMass = true);
 
 	/** Returns the mass of this component in kg. */
-	UFUNCTION(BlueprintCallable, Category="Physics")
+	UFUNCTION(BlueprintCallable, Category="Physics", meta=(UnsafeDuringActorConstruction="true"))
 	virtual float GetMass() const;
 
 	/** Returns the inertia tensor of this component in kg cm^2. The inertia tensor is in local component space.*/
-	UFUNCTION(BlueprintCallable, Category = "Physics", meta =(Keywords = "physics moment of inertia tensor MOI"))
+	UFUNCTION(BlueprintCallable, Category = "Physics", meta =(Keywords = "physics moment of inertia tensor MOI", UnsafeDuringActorConstruction="true"))
 	virtual FVector GetInertiaTensor(FName BoneName = NAME_None) const;
 
 	/** Scales the given vector by the world space moment of inertia. Useful for computing the torque needed to rotate an object.*/
-	UFUNCTION(BlueprintCallable, Category = "Physics", meta = (Keywords = "physics moment of inertia tensor MOI"))
+	UFUNCTION(BlueprintCallable, Category = "Physics", meta = (Keywords = "physics moment of inertia tensor MOI", UnsafeDuringActorConstruction="true"))
 	virtual FVector ScaleByMomentOfInertia(FVector InputVector, FName BoneName = NAME_None) const;
 
 	/** Returns the calculated mass in kg. This is not 100% exactly the mass physx will calculate, but it is very close ( difference < 0.1kg ). */
@@ -1721,11 +1721,11 @@ public:
 	 *	@param	BoneName	If a SkeletalMeshComponent, name of body to return wakeful state from. 'None' indicates root body.
 	 */
 	bool RigidBodyIsAwake(FName BoneName = NAME_None);
-	
+
 	/**
 	 *	Returns if any body in this component is currently awake and simulating.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Physics", meta = (Keywords = "physics asleep sleeping awake simulating"))
+	UFUNCTION(BlueprintCallable, Category = "Physics", meta = (Keywords = "physics asleep sleeping awake simulating", UnsafeDuringActorConstruction="true"))
 	virtual bool IsAnyRigidBodyAwake();
 	
 	/**

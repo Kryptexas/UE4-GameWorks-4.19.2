@@ -9,7 +9,6 @@
 #include "IDetailPropertyRow.h"
 #include "DetailWidgetRow.h"
 #include "IDetailsView.h"
-#include "Persona.h"
 #include "AssetSearchBoxUtilPersona.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "ISkeletonTree.h"

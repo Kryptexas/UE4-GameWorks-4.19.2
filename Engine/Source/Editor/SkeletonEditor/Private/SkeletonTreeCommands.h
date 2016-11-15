@@ -42,6 +42,9 @@ public:
 	/** Show retargeting options */
 	TSharedPtr< FUICommandInfo > ShowRetargeting;
 
+	/** Flatten hierarchy on filter */
+	TSharedPtr< FUICommandInfo > FilteringFlattensHierarchy;
+
 	/** Add a socket to the skeleton */
 	TSharedPtr< FUICommandInfo > AddSocket;
 
@@ -86,6 +89,9 @@ public:
 
 	/** Paste sockets from clipboard */
 	TSharedPtr< FUICommandInfo > PasteSocketsToSelectedBone;
+
+	/** Focus the camera on the current selection */
+	TSharedPtr< FUICommandInfo > FocusCamera;
 };
 
 #endif // __SkeletonTreeCommands_h_

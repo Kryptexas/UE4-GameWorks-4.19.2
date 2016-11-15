@@ -10,6 +10,9 @@
 #include "DrawDebugHelpers.h"
 #include "Engine/Selection.h"
 #include "Engine/Canvas.h"
+#include "Engine/DebugCameraController.h"
+#include "UnrealEngine.h"
+#include "Engine/LocalPlayer.h"
 #include "GameFramework/PlayerInput.h"
 #include "GameFramework/Pawn.h"
 
@@ -577,7 +580,24 @@ void UGameplayDebuggerLocalController::OnSelectActorTick()
 	{
 		FVector CameraLocation;
 		FRotator CameraRotation;
-		OwnerPC->GetPlayerViewPoint(CameraLocation, CameraRotation);
+		if (OwnerPC->Player)
+		{
+			// normal game
+			OwnerPC->GetPlayerViewPoint(CameraLocation, CameraRotation);
+		}
+		else
+		{
+			// spectator mode
+			for (FLocalPlayerIterator It(GEngine, OwnerPC->GetWorld()); It; ++It)
+			{
+				ADebugCameraController* SpectatorPC = Cast<ADebugCameraController>(It->PlayerController);
+				if (SpectatorPC)
+				{
+					SpectatorPC->GetPlayerViewPoint(CameraLocation, CameraRotation);
+					break;
+				}
+			}
+		}
 
 		// TODO: move to module's settings
 		const float MaxScanDistance = 25000.0f;

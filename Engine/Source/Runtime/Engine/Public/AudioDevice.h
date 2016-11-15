@@ -1115,9 +1115,23 @@ public:
 	FVector GetListenerTransformedDirection(const FVector& Position, float* OutDistance);
 
 	/** Returns the current audio device update delta time. */
-	float GetUpdateDeltaTime() const
+	float GetDeviceDeltaTime() const
 	{
-		return UpdateDeltaTime;
+		return DeviceDeltaTime;
+	}
+
+	/** Sets the update delta time for the audio frame */
+	void UpdateDeviceDeltaTime()
+	{
+		const double CurrTime = FPlatformTime::Seconds();
+		DeviceDeltaTime = CurrTime - LastUpdateTime;
+		LastUpdateTime = CurrTime;
+	}
+
+	/** Update the audio clock to be based off the update delta time */
+	virtual void UpdateAudioClock()
+	{
+		AudioClock += GetDeviceDeltaTime();
 	}
 
 private:
@@ -1325,8 +1339,8 @@ private:
 	uint8 RequestedAudioStats;
 	FAudioStats AudioStats;
 #endif
-	/** The game thread update delta time for this update tick. */
-	float UpdateDeltaTime;
+	/** The audio thread update delta time for this audio thread update tick. */
+	float DeviceDeltaTime;
 
 	TArray<FActiveSound*> ActiveSounds;
 	TArray<FWaveInstance*> ActiveWaveInstances;

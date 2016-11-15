@@ -968,7 +968,7 @@ public:
 	/** 
 	 * Get the PhysicsVolume overlapping this component.
 	 */
-	UFUNCTION(BlueprintCallable, Category=PhysicsVolume)
+	UFUNCTION(BlueprintCallable, Category=PhysicsVolume, meta=(UnsafeDuringActorConstruction="true"))
 	APhysicsVolume* GetPhysicsVolume() const;
 
 
@@ -1432,6 +1432,9 @@ public:
 	/** Force full overlap update once this scope finishes. */
 	void ForceOverlapUpdate();
 
+	/** Registers that this move is a teleport */
+	void SetHasTeleported();
+
 	//--------------------------------------------------------------------------------------------------------//
 
 private:
@@ -1455,6 +1458,7 @@ private:
 	FScopedMovementUpdate* OuterDeferredScope;
 	uint32 bDeferUpdates:1;
 	uint32 bHasMoved:1;
+	uint32 bHasTeleported:1;
 	EOverlapState CurrentOverlapState;
 
 	FTransform InitialTransform;
@@ -1525,6 +1529,11 @@ FORCEINLINE_DEBUGGABLE void FScopedMovementUpdate::ForceOverlapUpdate()
 	bHasMoved = true;
 	CurrentOverlapState = EOverlapState::eForceUpdate;
 	FinalOverlapCandidatesIndex = INDEX_NONE;
+}
+
+FORCEINLINE_DEBUGGABLE void FScopedMovementUpdate::SetHasTeleported()
+{
+	bHasTeleported = true;
 }
 
 FORCEINLINE_DEBUGGABLE class FScopedMovementUpdate* USceneComponent::GetCurrentScopedMovement() const

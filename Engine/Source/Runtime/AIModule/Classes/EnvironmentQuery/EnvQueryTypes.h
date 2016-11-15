@@ -642,79 +642,6 @@ struct FEQSQueryDebugData
 	}
 };
 
-// BEGIN DEPRECATED SUPPORT
-
-USTRUCT()
-struct AIMODULE_API FEnvFloatParam_DEPRECATED
-{
-	GENERATED_USTRUCT_BODY();
-
-	/** default value */
-	UPROPERTY(EditDefaultsOnly, Category = Param)
-	float Value;
-
-	/** name of parameter */
-	UPROPERTY(EditDefaultsOnly, Category = Param)
-	FName ParamName;
-
-	bool IsNamedParam() const { return ParamName != NAME_None; }
-	void Convert(UObject* Owner, FAIDataProviderFloatValue& ValueProvider);
-};
-
-USTRUCT()
-struct AIMODULE_API FEnvIntParam_DEPRECATED
-{
-	GENERATED_USTRUCT_BODY();
-
-	/** default value */
-	UPROPERTY(EditDefaultsOnly, Category = Param)
-	int32 Value;
-
-	/** name of parameter */
-	UPROPERTY(EditDefaultsOnly, Category = Param)
-	FName ParamName;
-
-	bool IsNamedParam() const { return ParamName != NAME_None; }
-	void Convert(UObject* Owner, FAIDataProviderIntValue& ValueProvider);
-};
-
-USTRUCT()
-struct AIMODULE_API FEnvBoolParam_DEPRECATED
-{
-	GENERATED_USTRUCT_BODY();
-
-	/** default value */
-	UPROPERTY(EditDefaultsOnly, Category = Param)
-	bool Value;
-
-	/** name of parameter */
-	UPROPERTY(EditDefaultsOnly, Category = Param)
-	FName ParamName;
-
-	bool IsNamedParam() const { return ParamName != NAME_None; }
-	void Convert(UObject* Owner, FAIDataProviderBoolValue& ValueProvider);
-};
-
-USTRUCT()
-struct DEPRECATED(4.8, "FEnvFloatParam is deprecated in 4.8 and was replaced with FAIDataProviderFloatValue. Please use that type instead.") AIMODULE_API FEnvFloatParam : public FEnvFloatParam_DEPRECATED
-{
-	GENERATED_USTRUCT_BODY();
-};
-
-USTRUCT()
-struct DEPRECATED(4.8, "FEnvIntParam is deprecated in 4.8 and was replaced with FAIDataProviderIntValue. Please use that type instead.") AIMODULE_API FEnvIntParam : public FEnvIntParam_DEPRECATED
-{
-	GENERATED_USTRUCT_BODY();
-};
-
-USTRUCT()
-struct DEPRECATED(4.8, "FEnvBoolParam is deprecated in 4.8 and was replaced with FAIDataProviderBoolValue. Please use that type instead.") AIMODULE_API FEnvBoolParam : public FEnvBoolParam_DEPRECATED
-{
-	GENERATED_USTRUCT_BODY();
-};
-
-// END DEPRECATED SUPPORT
-
 UCLASS(Abstract)
 class AIMODULE_API UEnvQueryTypes : public UObject
 {
@@ -1101,18 +1028,6 @@ public:
 			ItemScore = Score;
 		}
 
-		DEPRECATED(4.9, "This function is now deprecated, please use ForceItemState instead")
-		void DiscardItem()
-		{
-			ForceItemState(EEnvItemStatus::Failed);
-		}
-
-		DEPRECATED(4.9, "This function is now deprecated, please use ForceItemState instead")
-		void SkipItem()
-		{
-			ForceItemState(EEnvItemStatus::Passed);
-		}
-
 		/** Disables time slicing for this iterator, use with caution! */
 		void IgnoreTimeLimit()
 		{
@@ -1122,12 +1037,6 @@ public:
 		int32 GetIndex() const
 		{
 			return CurrentItem;
-		}
-
-		DEPRECATED(4.8, "This function is now deprecatewd, please use GetIndex() for current index or GetItemData() for raw data pointer")
-		int32 operator*() const
-		{
-			return GetIndex();
 		}
 
 		FORCEINLINE explicit operator bool() const
@@ -1236,11 +1145,6 @@ public:
 namespace FEQSHelpers
 {
 	AIMODULE_API const ANavigationData* FindNavigationDataForQuery(FEnvQueryInstance& QueryInstance);
-
-#if WITH_RECAST
-	DEPRECATED(4.8, "FindNavMeshForQuery is deprecated. Please use FindNavigationDataForQuery")
-	AIMODULE_API const ARecastNavMesh* FindNavMeshForQuery(FEnvQueryInstance& QueryInstance);
-#endif // WITH_RECAST
 }
 
 USTRUCT(BlueprintType)

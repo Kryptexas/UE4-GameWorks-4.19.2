@@ -231,6 +231,8 @@ void FCoreAudioSoundSource::SubmitPCMRTBuffers( void )
  */
 bool FCoreAudioSoundSource::Init( FWaveInstance* InWaveInstance )
 {
+	FSoundSource::InitCommon();
+
 	if (InWaveInstance->OutputTarget != EAudioOutputTarget::Controller)
 	{
 		// Find matching buffer.
@@ -308,6 +310,8 @@ void FCoreAudioSoundSource::Update( void )
 		return;
 	}
 
+	FSoundSource::UpdateCommon();
+
 	check(AudioChannel != 0);
 	check(MixerInputNumber != -1);
 
@@ -339,9 +343,7 @@ void FCoreAudioSoundSource::Update( void )
 		Volume = FMath::Clamp<float>( Volume, -120.0f, 20.0f );
 
 		Volume = FSoundSource::GetDebugVolume(Volume);
-
-		const float Pitch = FMath::Clamp<float>( WaveInstance->Pitch, MIN_PITCH, MAX_PITCH );
-		
+	
 		// Set the HighFrequencyGain value
 		SetFilterFrequency();
 		

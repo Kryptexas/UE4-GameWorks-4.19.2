@@ -921,7 +921,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param Key			(out) Key portion of Pair. If no = in string will be the same as Pair.
 	 * @param Value			(out) Value portion of Pair. If no = in string will be empty.
 	 */
-	UFUNCTION(BlueprintPure, Category="Game Options")
+	UFUNCTION(BlueprintPure, Category="Game Options", meta=(BlueprintThreadSafe))
 	static void GetKeyValue( const FString& Pair, FString& Key, FString& Value );
 
 	/** 
@@ -930,7 +930,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param Key			The key to find the value of in Options.
 	 * @return				The value associated with Key if Key found in Options string.
 	 */
-	UFUNCTION(BlueprintPure, Category="Game Options")
+	UFUNCTION(BlueprintPure, Category="Game Options", meta=(BlueprintThreadSafe))
 	static FString ParseOption( FString Options, const FString& Key );
 
 	/** 
@@ -939,7 +939,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param Key			The key to determine if it exists in Options.
 	 * @return				Whether Key was found in Options.
 	 */
-	UFUNCTION(BlueprintPure, Category="Game Options")
+	UFUNCTION(BlueprintPure, Category="Game Options", meta=(BlueprintThreadSafe))
 	static bool HasOption( FString Options, const FString& InKey );
 
 	/** 
@@ -948,7 +948,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param Key			The key to find the value of in Options.
 	 * @return				The value associated with Key as an integer if Key found in Options string, otherwise DefaultValue.
 	 */
-	UFUNCTION(BlueprintPure, Category="Game Options")
+	UFUNCTION(BlueprintPure, Category="Game Options", meta=(BlueprintThreadSafe))
 	static int32 GetIntOption( const FString& Options, const FString& Key, int32 DefaultValue);
 
 };

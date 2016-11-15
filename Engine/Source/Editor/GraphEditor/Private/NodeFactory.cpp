@@ -4,7 +4,6 @@
 #include "GraphEditorCommon.h"
 
 #include "UnrealEd.h"
-
 #include "NodeFactory.h"
 
 #include "SGraphNodeDefault.h"
@@ -69,9 +68,6 @@
 #include "KismetPins/SGraphPinIndex.h"
 #include "KismetPins/SGraphPinCollisionProfile.h"
 
-#include "SoundNodes/SGraphNodeSoundBase.h"
-#include "SoundNodes/SGraphNodeSoundResult.h"
-
 #include "MaterialNodes/SGraphNodeMaterialBase.h"
 #include "MaterialNodes/SGraphNodeMaterialComment.h"
 #include "MaterialNodes/SGraphNodeMaterialResult.h"
@@ -81,7 +77,6 @@
 #include "ConnectionDrawingPolicy.h"
 #include "AnimGraphConnectionDrawingPolicy.h"
 #include "StateMachineConnectionDrawingPolicy.h"
-#include "SoundCueGraphConnectionDrawingPolicy.h"
 #include "MaterialGraphConnectionDrawingPolicy.h"
 
 #include "EdGraphUtilities.h"
@@ -137,18 +132,6 @@ TSharedPtr<SGraphNode> FNodeFactory::CreateNodeWidget(UEdGraphNode* InNode)
 		else
 		{
 			return SNew(SAnimationGraphNode, BaseAnimNode);
-		}
-	}
-
-	if (USoundCueGraphNode_Base* BaseSoundNode = Cast<USoundCueGraphNode_Base>(InNode))
-	{
-		if (USoundCueGraphNode_Root* RootSoundNode = Cast<USoundCueGraphNode_Root>(InNode))
-		{
-			return SNew(SGraphNodeSoundResult, RootSoundNode);
-		}
-		else if (USoundCueGraphNode* SoundNode = Cast<USoundCueGraphNode>(InNode))
-		{
-			return SNew(SGraphNodeSoundBase, SoundNode);
 		}
 	}
 
@@ -456,10 +439,6 @@ FConnectionDrawingPolicy* FNodeFactory::CreateConnectionPolicy(const UEdGraphSch
         else if (Schema->IsA(UEdGraphSchema_K2::StaticClass()))
         {
             ConnectionDrawingPolicy = new FKismetConnectionDrawingPolicy(InBackLayerID, InFrontLayerID, ZoomFactor, InClippingRect, InDrawElements, InGraphObj);
-        }
-        else if (Schema->IsA(USoundCueGraphSchema::StaticClass()))
-        {
-            ConnectionDrawingPolicy = new FSoundCueGraphConnectionDrawingPolicy(InBackLayerID, InFrontLayerID, ZoomFactor, InClippingRect, InDrawElements, InGraphObj);
         }
         else if (Schema->IsA(UMaterialGraphSchema::StaticClass()))
         {

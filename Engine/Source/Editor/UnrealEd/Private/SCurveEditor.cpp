@@ -1199,7 +1199,10 @@ void SCurveEditor::SetCurveOwner(FCurveOwnerInterface* InCurveOwner, bool bCanEd
 			CurveViewModels.Add(TSharedPtr<FCurveViewModel>(new FCurveViewModel(CurveInfo, CurveOwner->GetCurveColor(CurveInfo), !bCanEdit)));
 			curveIndex++;
 		}
-		CurveOwner->MakeTransactional();
+		if (bCanEdit)
+		{
+			CurveOwner->MakeTransactional();
+		}
 	}
 
 	ValidateSelection();
@@ -1874,7 +1877,7 @@ void SCurveEditor::ProcessClick(const FGeometry& InMyGeometry, const FPointerEve
 		else
 		{
 			// If the user didn't click a key, add a new one if shift is held down, or try to select a curve.
-			if (bShiftDown)
+			if (bShiftDown && IsEditingEnabled())
 			{
 				TSharedPtr<TArray<TSharedPtr<FCurveViewModel>>> CurvesToAddKeysTo = MakeShareable(new TArray<TSharedPtr<FCurveViewModel>>());
 				TSharedPtr<FCurveViewModel> HoveredCurve = HitTestCurves(InMyGeometry, InMouseEvent);

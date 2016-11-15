@@ -27,8 +27,7 @@ void FVisualLoggerExtension::DisableEQSRendering(AActor* HelperActor)
 		{
 			EQSRenderComp->SetHiddenInGame(true);
 			EQSRenderComp->Deactivate();
-			EQSRenderComp->DebugData.Reset();
-			EQSRenderComp->MarkRenderStateDirty();
+			EQSRenderComp->ClearStoredDebugData();
 		}
 	}
 #endif
@@ -88,8 +87,7 @@ void FVisualLoggerExtension::DrawData(IVisualLoggerEditorInterface* EdInterface,
 					{
 						Component->SetHiddenInGame(true);
 						Component->Deactivate();
-						Component->DebugData.Reset();
-						Component->MarkRenderStateDirty();
+						Component->ClearStoredDebugData();
 					}
 				}
 			}
@@ -126,10 +124,9 @@ void FVisualLoggerExtension::DrawData(UWorld* InWorld, class UEQSRenderingCompon
 		UEnvQueryDebugHelpers::BlobArrayToDebugData(DataBlock.Data, DebugData, false);
 		if (EQSRenderComp && !Canvas && (SelectedEQSId == DebugData.Id || SelectedEQSId == INDEX_NONE))
 		{
-			EQSRenderComp->DebugData = DebugData;
 			EQSRenderComp->SetHiddenInGame(false);
 			EQSRenderComp->Activate();
-			EQSRenderComp->MarkRenderStateDirty();
+			EQSRenderComp->StoreDebugData(DebugData);
 		}
 
 		/** find and draw item selection */

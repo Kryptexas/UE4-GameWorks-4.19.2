@@ -192,7 +192,9 @@ TArray<uint8> FGenericPlatformMisc::GetMacAddress()
 
 FString FGenericPlatformMisc::GetMacAddressString()
 {
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	TArray<uint8> MacAddr = FPlatformMisc::GetMacAddress();
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	FString Result;
 	for (TArray<uint8>::TConstIterator it(MacAddr);it;++it)
 	{
@@ -203,12 +205,21 @@ FString FGenericPlatformMisc::GetMacAddressString()
 
 FString FGenericPlatformMisc::GetHashedMacAddressString()
 {
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	return FMD5::HashAnsiString(*FPlatformMisc::GetMacAddressString());
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 FString FGenericPlatformMisc::GetUniqueDeviceId()
 {
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	return FPlatformMisc::GetHashedMacAddressString();
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+}
+
+FString FGenericPlatformMisc::GetDeviceId()
+{
+	return FString();
 }
 
 void FGenericPlatformMisc::SubmitErrorReport( const TCHAR* InErrorHist, EErrorReportMode::Type InMode )
@@ -983,6 +994,20 @@ FGuid FGenericPlatformMisc::GetMachineId()
 
 	return MachineId;
 }
+
+FString FGenericPlatformMisc::GetLoginId()
+{
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	FGuid Id = FPlatformMisc::GetMachineId();
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+	// force an empty string if we cannot determine an ID.
+	if (Id == FGuid())
+	{
+		return FString();
+	}
+	return Id.ToString(EGuidFormats::Digits).ToLower();
+}
+
 
 FString FGenericPlatformMisc::GetEpicAccountId()
 {

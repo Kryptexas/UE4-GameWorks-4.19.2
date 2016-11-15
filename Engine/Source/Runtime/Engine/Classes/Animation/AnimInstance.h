@@ -28,6 +28,7 @@ struct FAnimNode_SubInput;
 struct FAnimNode_AssetPlayerBase;
 struct FAnimNode_Base;
 struct FAnimInstanceProxy;
+struct FPoseSnapshot;
 
 UENUM()
 enum class EAnimCurveType : uint8 
@@ -335,7 +336,7 @@ struct FMontageEvaluationState
 	bool bIsActive;
 };
 
-UCLASS(transient, Blueprintable, hideCategories=AnimInstance, BlueprintType)
+UCLASS(transient, Blueprintable, hideCategories=AnimInstance, BlueprintType, meta=(BlueprintThreadSafe))
 class ENGINE_API UAnimInstance : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -355,39 +356,47 @@ class ENGINE_API UAnimInstance : public UObject
 	UPROPERTY(transient)
 	USkeleton* CurrentSkeleton;
 
-	// The list of animation assets which are going to be evaluated this frame and need to be ticked (ungrouped)
-	DEPRECATED(4.11, "This cannot be accessed directly as it is potentially in use on worker threads")
-	TArray<FAnimTickRecord> UngroupedActivePlayerArrays[2];
-
-	// The set of tick groups for this anim instance
-	DEPRECATED(4.11, "This cannot be accessed directly as it is potentially in use on worker threads")
-	TArray<FAnimGroupInstance> SyncGroupArrays[2];
-
 	// Sets where this blueprint pulls Root Motion from
 	UPROPERTY(Category = RootMotion, EditDefaultsOnly)
 	TEnumAsByte<ERootMotionMode::Type> RootMotionMode;
 
-	// Allows this anim instance to update its native update, blend tree, montages and asset players on
-	// a worker thread. this requires certain conditions to be met:
-	// - All access of variables in the blend tree should be a direct access of a member variable
-	// - No BlueprintUpdateAnimation event should be used (i.e. the event graph should be empty). Only native update is permitted.
-	UPROPERTY(Category = Optimization, EditDefaultsOnly)
+	/** 
+	 * DEPRECATED: No longer used.
+	 * Allows this anim instance to update its native update, blend tree, montages and asset players on
+	 * a worker thread. this requires certain conditions to be met:
+	 * - All access of variables in the blend tree should be a direct access of a member variable
+	 * - No BlueprintUpdateAnimation event should be used (i.e. the event graph should be empty). Only native update is permitted.
+	 */
+	DEPRECATED(4.15, "This variable is no longer used. Use bUseMultiThreadedAnimationUpdate to control threaded update on a per-instance basis.")
+	UPROPERTY()
 	bool bRunUpdatesInWorkerThreads;
 
 	/** 
+	 * DEPRECATED: No longer used.
 	 * Whether we can use parallel updates for our animations.
 	 * Conditions affecting this include:
 	 * - Use of BlueprintUpdateAnimation
 	 * - Use of non 'fast-path' EvaluateGraphExposedInputs in the node graph
 	 */
+	DEPRECATED(4.15, "This variable is no longer used. Use bUseMultiThreadedAnimationUpdate to control threaded update on a per-instance basis.")
 	UPROPERTY()
 	bool bCanUseParallelUpdateAnimation;
+
+	/**
+	 * Allows this anim instance to update its native update, blend tree, montages and asset players on
+	 * a worker thread. The compiler will attempt to pick up any issues that may occur with threaded update.
+	 * For updates to run in multiple threads both this flag and the project setting "Allow Multi Threaded 
+	 * Animation Update" should be set.
+	 */
+	UPROPERTY(meta=(BlueprintCompilerGeneratedDefaults))
+	bool bUseMultiThreadedAnimationUpdate;
 
 	/**
 	 * Selecting this option will cause the compiler to emit warnings whenever a call into Blueprint
 	 * is made from the animation graph. This can help track down optimizations that need to be made.
 	 */
-	UPROPERTY(Category = Optimization, EditDefaultsOnly)
+	DEPRECATED(4.15, "This variable is no longer used. Use bWarnAboutBlueprintUsage on the UAnimBlueprint to control this.")
+	UPROPERTY()
 	bool bWarnAboutBlueprintUsage;
 
 	/** Flag to check back on the game thread that indicates we need to run PostUpdateAnimation() in the post-eval call */
@@ -396,48 +405,8 @@ class ENGINE_API UAnimInstance : public UObject
 public:
 
 	// @todo document
-	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
-	void MakeSequenceTickRecord(FAnimTickRecord& TickRecord, UAnimSequenceBase* Sequence, bool bLooping, float PlayRate, float FinalBlendWeight, float& CurrentTime, FMarkerTickRecord& MarkerTickRecord) const;
-	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
-	void MakeBlendSpaceTickRecord(FAnimTickRecord& TickRecord, UBlendSpaceBase* BlendSpace, const FVector& BlendInput, TArray<FBlendSampleData>& BlendSampleDataCache, FBlendFilter& BlendFilter, bool bLooping, float PlayRate, float FinalBlendWeight, float& CurrentTime, FMarkerTickRecord& MarkerTickRecord) const;
 	void MakeMontageTickRecord(FAnimTickRecord& TickRecord, class UAnimMontage* Montage, float CurrentPosition, float PreviousPosition, float MoveDelta, float Weight, TArray<FPassedMarker>& MarkersPassedThisTick, FMarkerTickRecord& MarkerTickRecord);
 
-	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
-	void SequenceAdvanceImmediate(UAnimSequenceBase* Sequence, bool bLooping, float PlayRate, float DeltaSeconds, /*inout*/ float& CurrentTime, FMarkerTickRecord& MarkerTickRecord);
-
-	// @todo document
-	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
-	void BlendSpaceAdvanceImmediate(UBlendSpaceBase* BlendSpace, const FVector& BlendInput, TArray<FBlendSampleData> & BlendSampleDataCache, FBlendFilter & BlendFilter, bool bLooping, float PlayRate, float DeltaSeconds, /*inout*/ float& CurrentTime, FMarkerTickRecord& MarkerTickRecord);
-
-	// Creates an uninitialized tick record in the list for the correct group or the ungrouped array.  If the group is valid, OutSyncGroupPtr will point to the group.
-	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
-	FAnimTickRecord& CreateUninitializedTickRecord(int32 GroupIndex, FAnimGroupInstance*& OutSyncGroupPtr);
-
-	/**
-	 * Get Slot Node Weight : this returns new Slot Node Weight, Source Weight, Original TotalNodeWeight
-	 *							this 3 values can't be derived from each other
-	 *
-	 * @param SlotNodeName : the name of the slot node you're querying
-	 * @param out_SlotNodeWeight : The node weight for this slot node in the range of [0, 1]
-	 * @param out_SourceWeight : The Source weight for this node. 
-	 * @param out_TotalNodeWeight : Total weight of this node
-	 */
-	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
-	void GetSlotWeight(FName const& SlotNodeName, float& out_SlotNodeWeight, float& out_SourceWeight, float& out_TotalNodeWeight) const;
-
-	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
-	void SlotEvaluatePose(FName SlotNodeName, const FCompactPose& SourcePose, const FBlendedCurve& SourceCurve, float InSourceWeight, FCompactPose& BlendedPose, FBlendedCurve& BlendedCurve, float InBlendWeight, float InTotalNodeWeight);
-
-	// slot node run-time functions
-	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
-	void ReinitializeSlotNodes();
-	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
-	void RegisterSlotNodeWithAnimInstance(FName SlotNodeName);
-	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
-	void UpdateSlotNodeWeight(FName SlotNodeName, float InLocalMontageWeight, float InGlobalWeight);
-	// if it doesn't tick, it will keep old weight, so we'll have to clear it in the beginning of tick
-	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
-	void ClearSlotNodeWeights();
 	bool IsSlotNodeRelevantForNotifies(FName SlotNodeName) const;
 
 	/** Get global weight in AnimGraph for this slot node.
@@ -453,12 +422,24 @@ public:
 
 	// kismet event functions
 
-	UFUNCTION(BlueprintCallable, Category = "Animation")
+	UFUNCTION(BlueprintCallable, Category = "Animation", meta=(NotBlueprintThreadSafe))
 	virtual APawn* TryGetPawnOwner() const;
 
-	/** Takes a snapshot of the current skeletal mesh component pose. This snapshot can then be retrieved in the animation blueprint for blending. The snapshot is taken at the current LOD, so if for example you took the snapshot at LOD1 and then used it at LOD0 any bones not in LOD1 will use the reference pose */
-	UFUNCTION(BlueprintCallable, Category = "Animation")
+	/** 
+	 * Takes a snapshot of the current skeletal mesh component pose & saves it internally.
+	 * This snapshot can then be retrieved by name in the animation blueprint for blending. 
+	 * The snapshot is taken at the current LOD, so if for example you took the snapshot at LOD1 and then used it at LOD0 any bones not in LOD1 will use the reference pose 
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Pose")
 	virtual void SavePoseSnapshot(FName SnapshotName);
+
+	/**
+	 * Takes a snapshot of the current skeletal mesh component pose and saves it to the specified snapshot.
+	 * The snapshot is taken at the current LOD, so if for example you took the snapshot at LOD1 
+	 * and then used it at LOD0 any bones not in LOD1 will use the reference pose 
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Pose")
+	virtual void SnapshotPose(UPARAM(ref) FPoseSnapshot& Snapshot);
 
 	// Are we being evaluated on a worker thread
 	bool IsRunningParallelEvaluation() const;
@@ -472,11 +453,11 @@ private:
 
 public:
 	/** Returns the owning actor of this AnimInstance */
-	UFUNCTION(BlueprintCallable, Category = "Animation")
+	UFUNCTION(BlueprintCallable, Category = "Animation", meta=(NotBlueprintThreadSafe))
 	AActor* GetOwningActor() const;
 	
 	// Returns the skeletal mesh component that has created this AnimInstance
-	UFUNCTION(BlueprintCallable, Category = "Animation")
+	UFUNCTION(BlueprintCallable, Category = "Animation", meta=(NotBlueprintThreadSafe))
 	USkeletalMeshComponent* GetOwningComponent() const;
 
 public:
@@ -526,27 +507,27 @@ public:
 	 ********************************************************************************************* */
 public:
 	/** Plays an animation montage. Returns the length of the animation montage in seconds. Returns 0.f if failed to play. */
-	UFUNCTION(BlueprintCallable, Category = "Animation")
+	UFUNCTION(BlueprintCallable, Category = "Montage")
 	float Montage_Play(UAnimMontage* MontageToPlay, float InPlayRate = 1.f, EMontagePlayReturnType ReturnValueType = EMontagePlayReturnType::MontageLength, float InTimeToStartMontageAt=0.f);
 
 	/** Stops the animation montage. If reference is NULL, it will stop ALL active montages. */
-	UFUNCTION(BlueprintCallable, Category = "Animation")
+	UFUNCTION(BlueprintCallable, Category = "Montage")
 	void Montage_Stop(float InBlendOutTime, const UAnimMontage* Montage = NULL);
 
 	/** Pauses the animation montage. If reference is NULL, it will pause ALL active montages. */
-	UFUNCTION(BlueprintCallable, Category = "Animation")
+	UFUNCTION(BlueprintCallable, Category = "Montage")
 	void Montage_Pause(const UAnimMontage* Montage = NULL);
 
 	/** Resumes a paused animation montage. If reference is NULL, it will resume ALL active montages. */
-	UFUNCTION(BlueprintCallable, Category = "Animation")
+	UFUNCTION(BlueprintCallable, Category = "Montage")
 	void Montage_Resume(const UAnimMontage* Montage);
 
 	/** Makes a montage jump to a named section. If Montage reference is NULL, it will do that to all active montages. */
-	UFUNCTION(BlueprintCallable, Category="Animation")
+	UFUNCTION(BlueprintCallable, Category="Montage")
 	void Montage_JumpToSection(FName SectionName, const UAnimMontage* Montage = NULL);
 
 	/** Makes a montage jump to the end of a named section. If Montage reference is NULL, it will do that to all active montages. */
-	UFUNCTION(BlueprintCallable, Category="Animation")
+	UFUNCTION(BlueprintCallable, Category="Montage")
 	void Montage_JumpToSectionsEnd(FName SectionName, const UAnimMontage* Montage = NULL);
 
 	/** Relink new next section AFTER SectionNameToChange in run-time
@@ -558,25 +539,57 @@ public:
 	 * @param SectionNameToChange : This should be the name of the Montage Section after which you want to insert a new next section
 	 * @param NextSection	: new next section 
 	 */
-	UFUNCTION(BlueprintCallable, Category="Animation")
+	UFUNCTION(BlueprintCallable, Category="Montage")
 	void Montage_SetNextSection(FName SectionNameToChange, FName NextSection, const UAnimMontage* Montage = NULL);
 
 	/** Change AnimMontage play rate. NewPlayRate = 1.0 is the default playback rate. */
-	UFUNCTION(BlueprintCallable, Category="Animation")
+	UFUNCTION(BlueprintCallable, Category="Montage")
 	void Montage_SetPlayRate(const UAnimMontage* Montage, float NewPlayRate = 1.f);
 
 	/** Returns true if the animation montage is active. If the Montage reference is NULL, it will return true if any Montage is active. */
-	UFUNCTION(BlueprintPure, Category="Animation")
+	UFUNCTION(BlueprintPure, Category="Montage", meta=(NotBlueprintThreadSafe))
 	bool Montage_IsActive(const UAnimMontage* Montage) const;
 
 	/** Returns true if the animation montage is currently active and playing. 
 	If reference is NULL, it will return true is ANY montage is currently active and playing. */
-	UFUNCTION(BlueprintPure, Category="Animation")
+	UFUNCTION(BlueprintPure, Category="Montage", meta = (NotBlueprintThreadSafe))
 	bool Montage_IsPlaying(const UAnimMontage* Montage) const;
 
 	/** Returns the name of the current animation montage section. */
-	UFUNCTION(BlueprintPure, Category="Animation")
+	UFUNCTION(BlueprintPure, Category="Montage", meta = (NotBlueprintThreadSafe))
 	FName Montage_GetCurrentSection(const UAnimMontage* Montage = NULL) const;
+
+	/** Get Current Montage Position */
+	UFUNCTION(BlueprintPure, Category = "Montage", meta = (NotBlueprintThreadSafe))
+	float Montage_GetPosition(const UAnimMontage* Montage) const;
+	
+	/** Set position. */
+	UFUNCTION(BlueprintCallable, Category = "Montage")
+	void Montage_SetPosition(const UAnimMontage* Montage, float NewPosition);
+	
+	/** return true if Montage is not currently active. (not valid or blending out) */
+	UFUNCTION(BlueprintPure, Category = "Montage", meta = (NotBlueprintThreadSafe))
+	bool Montage_GetIsStopped(const UAnimMontage* Montage) const;
+
+	/** Get the current blend time of the Montage.
+	If Montage reference is NULL, it will return the current blend time on the first active Montage found. */
+	UFUNCTION(BlueprintPure, Category = "Montage", meta = (NotBlueprintThreadSafe))
+	float Montage_GetBlendTime(const UAnimMontage* Montage) const;
+
+	/** Get PlayRate for Montage.
+	If Montage reference is NULL, PlayRate for any Active Montage will be returned.
+	If Montage is not playing, 0 is returned. */
+	UFUNCTION(BlueprintPure, Category = "Montage", meta = (NotBlueprintThreadSafe))
+	float Montage_GetPlayRate(const UAnimMontage* Montage) const;
+
+	/** Returns true if any montage is playing currently. Doesn't mean it's active though, it could be blending out. */
+	UFUNCTION(BlueprintPure, Category = "Montage", meta = (NotBlueprintThreadSafe))
+	bool IsAnyMontagePlaying() const;
+
+	/** Get a current Active Montage in this AnimInstance. 
+		Note that there might be multiple Active at the same time. This will only return the first active one it finds. **/
+	UFUNCTION(BlueprintPure, Category = "Montage", meta = (NotBlueprintThreadSafe))
+	UAnimMontage* GetCurrentActiveMontage() const;
 
 	/** Called when a montage starts blending out, whether interrupted or finished */
 	UPROPERTY(BlueprintAssignable)
@@ -602,33 +615,8 @@ public:
 	If Montage reference is NULL, it will pick the first active montage found. */
 	FOnMontageBlendingOutStarted* Montage_GetBlendingOutDelegate(UAnimMontage* Montage = NULL);
 
-	/** Get Current Montage Position */
-	float Montage_GetPosition(const UAnimMontage* Montage);
-	
-	/** Set position. */
-	void Montage_SetPosition(const UAnimMontage* Montage, float NewPosition);
-	
-	/** return true if Montage is not currently active. (not valid or blending out) */
-	bool Montage_GetIsStopped(const UAnimMontage* Montage);
-
-	/** Get the current blend time of the Montage.
-	If Montage reference is NULL, it will return the current blend time on the first active Montage found. */
-	float Montage_GetBlendTime(const UAnimMontage* Montage);
-
-	/** Get PlayRate for Montage.
-	If Montage reference is NULL, PlayRate for any Active Montage will be returned.
-	If Montage is not playing, 0 is returned. */
-	float Montage_GetPlayRate(const UAnimMontage* Montage);
-
 	/** Get next sectionID for given section ID */
 	int32 Montage_GetNextSectionID(const UAnimMontage* Montage, int32 const & CurrentSectionID) const;
-
-	/** Returns true if any montage is playing currently. Doesn't mean it's active though, it could be blending out. */
-	bool IsAnyMontagePlaying() const;
-
-	/** Get a current Active Montage in this AnimInstance. 
-		Note that there might be multiple Active at the same time. This will only return the first active one it finds. **/
-	UAnimMontage* GetCurrentActiveMontage();
 
 	/** Get Currently active montage instance.
 		Note that there might be multiple Active at the same time. This will only return the first active one it finds. **/
@@ -648,10 +636,6 @@ public:
 	* - only one is primarily active per group, and the other ones are blending out
 	*/
 	TArray<struct FAnimMontageInstance*> MontageInstances;
-
-	// Cached data for montage evaluation, save us having to access MontageInstances from slot nodes as that isn't thread safe
-	DEPRECATED(4.11, "Please use FAnimInstanceProxy::GetMontageEvaluationData()")
-	TArray<FMontageEvaluationState> MontageEvaluationData;
 
 	virtual void OnMontageInstanceStopped(FAnimMontageInstance & StoppedMontageInstance);
 	void ClearMontageInstanceReferences(FAnimMontageInstance& InMontageInstance);
@@ -810,32 +794,6 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Asset Player", meta = (BlueprintInternalUseOnly = "true", AnimGetter = "true", GetterContext = "Transition"))
 	float GetRelevantAnimTimeFraction(int32 MachineIndex, int32 StateIndex);
 
-	/** Gets an unchecked (can return nullptr) node given an index into the node property array */
-	DEPRECATED(4.11, "Please use FAnimInstanceProxy::GetNodeFromIndexUntyped")
-	FAnimNode_Base* GetNodeFromIndexUntyped(int32 NodeIdx, UScriptStruct* RequiredStructType);
-
-	/** Gets a checked node given an index into the node property array */
-	DEPRECATED(4.11, "Please use FAnimInstanceProxy::GetCheckedNodeFromIndexUntyped")
-	FAnimNode_Base* GetCheckedNodeFromIndexUntyped(int32 NodeIdx, UScriptStruct* RequiredStructType);
-
-	/** Gets a checked node given an index into the node property array */
-	template<class NodeType>
-	DEPRECATED(4.11, "Please use FAnimInstanceProxy::GetCheckedNodeFromIndex")
-	NodeType* GetCheckedNodeFromIndex(int32 NodeIdx)
-	{
-		return (NodeType*)GetCheckedNodeFromIndexUntyped(NodeIdx, NodeType::StaticStruct());
-	}
-
-	/** Gets an unchecked (can return nullptr) node given an index into the node property array */
-	template<class NodeType>
-	DEPRECATED(4.11, "Please use FAnimInstanceProxy::GetNodeFromIndex")
-	NodeType* GetNodeFromIndex(int32 NodeIdx)
-	{
-		PRAGMA_DISABLE_DEPRECATION_WARNINGS
-		return (NodeType*)GetNodeFromIndexUntyped(NodeIdx, NodeType::StaticStruct());
-		PRAGMA_ENABLE_DEPRECATION_WARNINGS
-	}
-
 	/** Gets the runtime instance of the specified state machine by Name */
 	FAnimNode_StateMachine* GetStateMachineInstanceFromName(FName MachineName);
 
@@ -947,11 +905,6 @@ public:
 	FMarkerSyncAnimPosition GetSyncGroupPosition(FName InSyncGroupName) const;
 
 public:
-	// Root node of animation graph
-	DEPRECATED(4.11, "RootNode access has been moved to FAnimInstanceProxy")
-	struct FAnimNode_Base* RootNode;
-
-public:
 	//~ Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void BeginDestroy() override;
@@ -980,9 +933,6 @@ public:
 	/** Called on the game thread pre-evaluation. */
 	void PreEvaluateAnimation();
 
-	DEPRECATED(4.11, "This function should no longer be used. Use ParallelEvaluateAnimation")
-	void EvaluateAnimation(struct FPoseContext& Output);
-
 	/** Check whether evaluation can be performed on the supplied skeletal mesh. Can be called from worker threads. */
 	bool ParallelCanEvaluate(const USkeletalMesh* InSkeletalMesh) const;
 
@@ -1001,12 +951,8 @@ public:
 	// Native update override point. Can be called from a worker thread. This is a good place to do any
 	// heavy lifting (as opposed to NativeUpdateAnimation_GameThread()).
 	// This function should not be used. Worker thread updates should be performed in the FAnimInstanceProxy attached to this instance.
+	DEPRECATED(4.15, "This function is only called for backwards-compatibility. It is no longer called on a worker thread.")
 	virtual void NativeUpdateAnimation_WorkerThread(float DeltaSeconds);
-	// Native evaluate override point.
-	// @return true if this function is implemented, false otherwise.
-	// Note: the node graph will not be evaluated if this function returns true
-	DEPRECATED(4.11, "Please use FAnimInstanceProxy::Evaluate")
-	virtual bool NativeEvaluateAnimation(FPoseContext& Output);
 	// Native Post Evaluate override point
 	virtual void NativePostEvaluateAnimation();
 	// Native Uninitialize override point
@@ -1042,14 +988,6 @@ public:
 	/** Access the required bones array */
 	FBoneContainer& GetRequiredBones();	
 
-	/** Temporary array of bone indices required this frame. Should be subset of Skeleton and Mesh's RequiredBones */
-	DEPRECATED(4.11, "This cannot be accessed directly, use UnimInstance::GetRequiredBones")
-	FBoneContainer RequiredBones;
-
-	/** Animation Notifies that has been triggered in the latest tick **/
-	DEPRECATED(4.11, "Use UAnimInstance::NotifyQueue")
-	TArray<const struct FAnimNotifyEvent *> AnimNotifies;
-
 	/** Animation Notifies that has been triggered in the latest tick **/
 	FAnimNotifyQueue NotifyQueue;
 
@@ -1058,14 +996,6 @@ public:
 		is removed correctly. */
 	UPROPERTY(transient)
 	TArray<FAnimNotifyEvent> ActiveAnimNotifyState;
-
-protected:
-	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
-	int32 GetSyncGroupReadIndex() const;
-	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
-	int32 GetSyncGroupWriteIndex() const;
-	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
-	void TickSyncGroupWriteIndex();
 
 private:
 	/** This is if you want to separate to another array**/
@@ -1105,17 +1035,7 @@ public:
 #endif
 
 public:
-	DEPRECATED(4.11, "This cannot be accessed directly as it is potentially in use on worker threads")
-	FGraphTraversalCounter InitializationCounter;
-	DEPRECATED(4.11, "This cannot be accessed directly as it is potentially in use on worker threads")
-	FGraphTraversalCounter CachedBonesCounter;
-	DEPRECATED(4.11, "This cannot be accessed directly as it is potentially in use on worker threads")
-	FGraphTraversalCounter UpdateCounter;
-	DEPRECATED(4.11, "This cannot be accessed directly as it is potentially in use on worker threads")
-	FGraphTraversalCounter EvaluationCounter;
 	FGraphTraversalCounter DebugDataCounter;
-	DEPRECATED(4.11, "This cannot be accessed directly as it is potentially in use on worker threads")
-	FGraphTraversalCounter SlotNodeInitializationCounter;
 
 private:
 	TMap<FName, FMontageActiveSlotTracker> SlotWeightTracker;
@@ -1132,30 +1052,10 @@ public:
 	*/
 	void RecalcRequiredCurves();
 
-	/** When RequiredBones mapping has changed, AnimNodes need to update their bones caches. */
-	DEPRECATED(4.11, "This cannot be accessed directly, use FAnimInstanceProxy::bBoneCachesInvalidated")
-	bool bBoneCachesInvalidated;
-
 	// @todo document
 	inline USkeletalMeshComponent* GetSkelMeshComponent() const { return CastChecked<USkeletalMeshComponent>(GetOuter()); }
 
 	virtual UWorld* GetWorld() const override;
-
-	/** Add anim notifier **/
-	DEPRECATED(4.11, "Please use NotifyQueue.AddAnimNotifies")
-	void AddAnimNotifies(const TArray<const FAnimNotifyEvent*>& NewNotifies, const float InstanceWeight);
-
-	/** Should the notifies current filtering mode stop it from triggering */
-	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
-	bool PassesFiltering(const FAnimNotifyEvent* Notify) const;
-
-	/** Work out whether this notify should be triggered based on its chance of triggering value */
-	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
-	bool PassesChanceOfTriggering(const FAnimNotifyEvent* Event) const;
-
-	/** Queues an Anim Notify from the shared list on our generated class */
-	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
-	void AddAnimNotifyFromGeneratedClass(int32 NotifyIndex);
 
 	/** Trigger AnimNotifies **/
 	void TriggerAnimNotifies(float DeltaSeconds);
@@ -1227,10 +1127,6 @@ private:
 	void UpdateMontage(float DeltaSeconds);
 
 protected:
-	/** Update all animation node */
-	DEPRECATED(4.11, "This cannot be called directly as it relies on data potentially in use on worker threads")
-	virtual void UpdateAnimationNode(float DeltaSeconds);
-
 	// Updates the montage data used for evaluation based on the current playing montages
 	void UpdateMontageEvaluationData();
 
@@ -1324,9 +1220,6 @@ protected:
 		}
 		return *static_cast<const T*>(AnimInstanceProxy);
 	}
-
-	// TODO: Remove after deprecation (4.11)
-	friend struct FAnimationBaseContext;
 	
 	friend struct FAnimNode_SubInstance;
 

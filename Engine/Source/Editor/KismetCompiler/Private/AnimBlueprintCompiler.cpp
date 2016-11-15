@@ -1758,9 +1758,12 @@ void FAnimBlueprintCompiler::PostCompile()
 	UAnimBlueprintGeneratedClass* AnimBlueprintGeneratedClass = CastChecked<UAnimBlueprintGeneratedClass>(NewClass);
 
 	UAnimInstance* DefaultAnimInstance = CastChecked<UAnimInstance>(AnimBlueprintGeneratedClass->GetDefaultObject());
-	DefaultAnimInstance->bCanUseParallelUpdateAnimation = DefaultAnimInstance->bRunUpdatesInWorkerThreads;
 
-	if(DefaultAnimInstance->bCanUseParallelUpdateAnimation)
+	// copy threaded update flag to CDO
+	DefaultAnimInstance->bUseMultiThreadedAnimationUpdate = AnimBlueprint->bUseMultiThreadedAnimationUpdate;
+
+	// Verify thread-safety
+	if(GetDefault<UEngine>()->bAllowMultiThreadedAnimationUpdate && DefaultAnimInstance->bUseMultiThreadedAnimationUpdate)
 	{
 		// iterate all properties to determine validity
 		for (UStructProperty* Property : TFieldRange<UStructProperty>(AnimBlueprintGeneratedClass, EFieldIteratorFlags::IncludeSuper))
@@ -1770,26 +1773,81 @@ void FAnimBlueprintCompiler::PostCompile()
 				FAnimNode_Base* AnimNode = Property->ContainerPtrToValuePtr<FAnimNode_Base>(DefaultAnimInstance);
 				if(!AnimNode->CanUpdateInWorkerThread())
 				{
-					DefaultAnimInstance->bCanUseParallelUpdateAnimation = false;
-					if(DefaultAnimInstance->bRunUpdatesInWorkerThreads)
-					{
-						MessageLog.Warning(*FText::Format(LOCTEXT("HasIncompatibleNode", "Found incompatible node \"{0}\" in blend graph. Parallel update will be disabled."), FText::FromName(Property->Struct->GetFName())).ToString());
-					}
+					MessageLog.Warning(*FText::Format(LOCTEXT("HasIncompatibleNode", "Found incompatible node \"{0}\" in blend graph. Disable threaded update or use member variable access."), FText::FromName(Property->Struct->GetFName())).ToString())
+						->AddToken(FDocumentationToken::Create(TEXT("Engine/Animation/AnimBlueprints/AnimGraph")));;
 				}
 			}
 		}
 
-		for(auto& EvaluationHandler : ValidEvaluationHandlerList)
+		if (FunctionList.Num() > 0)
 		{
-			for(auto& Property : EvaluationHandler.ServicedProperties)
+			// check the assumption that the ubergraph is the first function
+			check(FunctionList[0].Function->GetName().StartsWith(TEXT("ExecuteUbergraph")));
+			FKismetFunctionContext& UbergraphFunctionContext = FunctionList[0];
+
+			// run through the per-node compiled statements looking for struct-sets used by anim nodes
+			for (auto& StatementPair : UbergraphFunctionContext.StatementsPerNode)
 			{
-				if(Property.Value.SimpleCopyPropertyName == NAME_None && !Property.Value.bHasOnlyMemberAccess)
+				if (UK2Node_StructMemberSet* StructMemberSetNode = Cast<UK2Node_StructMemberSet>(StatementPair.Key))
 				{
-					DefaultAnimInstance->bCanUseParallelUpdateAnimation = false;
-					if(DefaultAnimInstance->bRunUpdatesInWorkerThreads)
+					UObject* SourceNode = MessageLog.FindSourceObject(StructMemberSetNode);
+
+					if (SourceNode && StructMemberSetNode->StructType->IsChildOf(FAnimNode_Base::StaticStruct()))
 					{
-						UEdGraphNode* Node = Property.Value.ArrayPins.Num() > 0 ? Property.Value.ArrayPins[0]->GetOwningNode() : Property.Value.SinglePin->GetOwningNode();
-						MessageLog.Warning(*LOCTEXT("HasNonNativeMemberAccess", "Found non-native or non-member access in node @@ in blend graph. Parallel update will be disabled.").ToString(), Node);
+						for (FBlueprintCompiledStatement* Statement : StatementPair.Value)
+						{
+							if (Statement->Type == KCST_CallFunction && Statement->FunctionToCall)
+							{
+								// pure function?
+								const bool bPureFunctionCall = Statement->FunctionToCall->HasAnyFunctionFlags(FUNC_BlueprintPure);
+
+								// function called on something other than function library or anim instance?
+								UClass* FunctionClass = CastChecked<UClass>(Statement->FunctionToCall->GetOuter());
+								const bool bFunctionLibraryCall = FunctionClass->IsChildOf<UBlueprintFunctionLibrary>();
+								const bool bAnimInstanceCall = FunctionClass->IsChildOf<UAnimInstance>();
+
+								// Whitelisted/blacklisted? Some functions are not really 'pure', so we give people the opportunity to mark them up.
+								// Mark up the class if it is generally thread safe, then unsafe functions can be marked up individually. We assume
+								// that classes are unsafe by default, as well as if they are marked up NotBlueprintThreadSafe.
+								const bool bClassThreadSafe = FunctionClass->HasMetaData(TEXT("BlueprintThreadSafe"));
+								const bool bClassNotThreadSafe = FunctionClass->HasMetaData(TEXT("NotBlueprintThreadSafe")) || !FunctionClass->HasMetaData(TEXT("BlueprintThreadSafe"));
+								const bool bFunctionThreadSafe = Statement->FunctionToCall->HasMetaData(TEXT("BlueprintThreadSafe"));
+								const bool bFunctionNotThreadSafe = Statement->FunctionToCall->HasMetaData(TEXT("NotBlueprintThreadSafe"));
+
+								const bool bThreadSafe = (bClassThreadSafe && !bFunctionNotThreadSafe) || (bClassNotThreadSafe && bFunctionThreadSafe);
+
+								const bool bValidForUsage = bPureFunctionCall && bThreadSafe && (bFunctionLibraryCall || bAnimInstanceCall);
+
+								if (!bValidForUsage)
+								{
+									UEdGraphNode* FunctionNode = nullptr;
+									if (Statement->FunctionContext && Statement->FunctionContext->SourcePin)
+									{
+										FunctionNode = Statement->FunctionContext->SourcePin->GetOwningNode();
+									}
+									else if (Statement->LHS && Statement->LHS->SourcePin)
+									{
+										FunctionNode = Statement->LHS->SourcePin->GetOwningNode();
+									}
+
+									if (FunctionNode)
+									{
+										MessageLog.Warning(*LOCTEXT("NotThreadSafeWarning", "Node @@ uses potentially thread-unsafe call @@. Disable threaded update or use a thread-safe call. Function may need BlueprintThreadSafe metadata adding.").ToString(), SourceNode, FunctionNode)
+											->AddToken(FDocumentationToken::Create(TEXT("Engine/Animation/AnimBlueprints/AnimGraph")));
+									}
+									else if(Statement->FunctionToCall)
+									{
+										MessageLog.Warning(*FText::Format(LOCTEXT("NotThreadSafeWarningUnknownContext", "Node @@ uses potentially thread-unsafe call {0}. Disable threaded update or use a thread-safe call. Function may need BlueprintThreadSafe metadata adding."), Statement->FunctionToCall->GetDisplayNameText()).ToString(), SourceNode)
+											->AddToken(FDocumentationToken::Create(TEXT("Engine/Animation/AnimBlueprints/AnimGraph")));
+									}
+									else
+									{
+										MessageLog.Warning(*LOCTEXT("NotThreadSafeWarningUnknownContext", "Node @@ uses potentially thread-unsafe call. Disable threaded update or use a thread-safe call.").ToString(), SourceNode)
+											->AddToken(FDocumentationToken::Create(TEXT("Engine/Animation/AnimBlueprints/AnimGraph")));
+									}
+								}
+							}
+						}
 					}
 				}
 			}
@@ -1814,7 +1872,7 @@ void FAnimBlueprintCompiler::PostCompile()
 			FExposedValueHandler* HandlerPtr = EvaluationHandler.EvaluationHandlerProperty->ContainerPtrToValuePtr<FExposedValueHandler>(EvaluationHandler.NodeVariableProperty->ContainerPtrToValuePtr<void>(DefaultAnimInstance));
 			TrueNode->BlueprintUsage = HandlerPtr->BoundFunction != NAME_None ? EBlueprintUsage::UsesBlueprint : EBlueprintUsage::DoesNotUseBlueprint;
 
-			if(TrueNode->BlueprintUsage == EBlueprintUsage::UsesBlueprint && DefaultAnimInstance->bWarnAboutBlueprintUsage)
+			if(TrueNode->BlueprintUsage == EBlueprintUsage::UsesBlueprint && AnimBlueprint->bWarnAboutBlueprintUsage)
 			{
 				MessageLog.Warning(*LOCTEXT("BlueprintUsageWarning", "Node @@ uses Blueprint to update its values, access member variables directly or use a constant value for better performance.").ToString(), Node);
 			}

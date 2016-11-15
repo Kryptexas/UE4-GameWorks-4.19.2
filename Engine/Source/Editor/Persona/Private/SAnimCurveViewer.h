@@ -4,6 +4,7 @@
 
 #include "Animation/AnimInstance.h"
 #include "EditorObjectsTracker.h"
+#include "PersonaDelegates.h"
 
 class SAnimCurveViewer;
 
@@ -58,7 +59,7 @@ public:
 
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& OwnerTableView, const TSharedRef<IPersonaPreviewScene>& InPreviewScene);
+	void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& OwnerTableView, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene);
 
 	/** Overridden from SMultiColumnTableRow.  Generates a widget for this column of the tree row. */
 	virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override;
@@ -107,7 +108,7 @@ private:
 	TSharedPtr<FDisplayedAnimCurveInfo>	Item;
 
 	/** Preview scene used to update on scrub */
-	TWeakPtr<IPersonaPreviewScene> PreviewScenePtr;
+	TWeakPtr<class IPersonaPreviewScene> PreviewScenePtr;
 	/** Returns curve type widget constructed */
 	TSharedRef<SWidget> GetCurveTypeWidget();
 

@@ -840,6 +840,9 @@ public:
 	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, AdvancedDisplay)
 	uint32 bRequestedMoveUseAcceleration:1;
 
+	/** Set on clients when server's movement mode is NavWalking */
+	uint32 bIsNavWalkingOnServer : 1;
+
 protected:
 
 	// AI PATH FOLLOWING
@@ -960,6 +963,10 @@ public:
 	 */
 	UPROPERTY(Category="Character Movement: NavMesh Movement", EditAnywhere, BlueprintReadWrite, meta=(editcondition = "bProjectNavMeshWalking", ClampMin="0", UIMin="0"))
 	float NavMeshProjectionHeightScaleDown;
+
+	/** Ignore small differences in ground height between server and client data during NavWalking mode */
+	UPROPERTY(Category="Character Movement: NavMesh Movement", EditAnywhere, BlueprintReadWrite)
+	float NavWalkingFloorDistTolerance;
 
 	/** Change avoidance state and registers in RVO manager if needed */
 	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement", meta = (UnsafeDuringActorConstruction = "true"))
@@ -1268,6 +1275,12 @@ public:
 	
 	/** Applies momentum accumulated through AddImpulse() and AddForce(). */
 	virtual void ApplyAccumulatedForces(float DeltaSeconds);
+
+	/** Update the character state in PerformMovement right before doing the actual position change */
+	virtual void UpdateCharacterStateBeforeMovement();
+
+	/** Update the character state in PerformMovement after the position change. Some rotation updates happen after this. */
+	virtual void UpdateCharacterStateAfterMovement();
 
 	/** 
 	 * Handle start swimming functionality

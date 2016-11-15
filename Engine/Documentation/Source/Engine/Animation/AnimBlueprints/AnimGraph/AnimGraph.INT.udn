@@ -157,3 +157,16 @@ See [**Convert Space Nodes**](Engine/Animation/NodeReference/SpaceConversion) fo
 [REGION:note]
 See [**Sync Groups**](Engine\Animation\SyncGroups) for more information on Sync Group usage and additional details.
 [/REGION]
+
+## Thread Safety
+
+AnimGraph logic can be run on worker threads using the "Use Multi Threaded Animation Update" setting found in "Class Defaults". This can
+significantly improve the perfomance of games on multi-core machines by allowing animation work to complete in parallel with other
+updates.
+
+If this setting is enabled (it is by default) then the compiler will warn if 'unsafe' operations are performed in the AnimGraph. Generally,
+safe operations are:
+
+* Using most AnimGRaph nodes.
+* Directly accessing member variables of your Animation Blueprint (including members of structures).
+* Calling Blueprint 'pure' functions that dont modify state (such as most math functions).

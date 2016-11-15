@@ -294,33 +294,33 @@ public:
 	 * Activates the SceneComponent
 	 * @param bReset - The value to assign to HiddenGame.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Components|Activation")
+	UFUNCTION(BlueprintCallable, Category="Components|Activation", meta=(UnsafeDuringActorConstruction="true"))
 	virtual void Activate(bool bReset=false);
 	
 	/**
 	 * Deactivates the SceneComponent.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Components|Activation")
+	UFUNCTION(BlueprintCallable, Category="Components|Activation", meta=(UnsafeDuringActorConstruction="true"))
 	virtual void Deactivate();
 
 	/**
 	 * Sets whether the component is active or not
 	 * @param bNewActive - The new active state of the component
 	 */
-	UFUNCTION(BlueprintCallable, Category="Components|Activation")
+	UFUNCTION(BlueprintCallable, Category="Components|Activation", meta=(UnsafeDuringActorConstruction="true"))
 	virtual void SetActive(bool bNewActive, bool bReset=false);
 
 	/**
 	 * Toggles the active state of the component
 	 */
-	UFUNCTION(BlueprintCallable, Category="Components|Activation")
+	UFUNCTION(BlueprintCallable, Category="Components|Activation", meta=(UnsafeDuringActorConstruction="true"))
 	virtual void ToggleActive();
 
 	/**
 	 * Returns whether the component is active or not
 	 * @return - The active state of the component.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Components|Activation")
+	UFUNCTION(BlueprintCallable, Category="Components|Activation", meta=(UnsafeDuringActorConstruction="true"))
 	virtual bool IsActive() const;
 
 	/** Sets whether this component can tick when paused. */

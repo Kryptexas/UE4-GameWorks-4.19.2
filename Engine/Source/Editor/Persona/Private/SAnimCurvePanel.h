@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include "Persona.h"
 #include "GraphEditor.h"
 #include "SNodePanel.h"
 #include "SAnimTrackPanel.h"
@@ -172,6 +171,12 @@ private:
 	 * Get Widget that shows all curve list and edit
 	 */
 	TSharedRef<SWidget>		GenerateCurveList();
+
+	/**
+	 * Return text for curve panel label
+	 */
+	FText GetCurveNumText() const;
+
 	/**
 	 * Returns true if this curve is editable
 	 */

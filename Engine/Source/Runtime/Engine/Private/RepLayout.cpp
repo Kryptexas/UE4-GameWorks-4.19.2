@@ -9,6 +9,7 @@
 #include "Net/DataReplication.h"
 #include "Net/NetworkProfiler.h"
 #include "Engine/ActorChannel.h"
+#include "Engine/NetworkSettings.h"
 #include "Engine/PackageMapClient.h"
 
 static TAutoConsoleVariable<int32> CVarAllowPropertySkipping( TEXT( "net.AllowPropertySkipping" ), 1, TEXT( "Allow skipping of properties that haven't changed for other clients" ) );
@@ -19,6 +20,12 @@ FAutoConsoleVariable CVarDoReplicationContextString( TEXT( "net.ContextDebug" ),
 
 int32 LogSkippedRepNotifies = 0;
 static FAutoConsoleVariableRef CVarLogSkippedRepNotifies(TEXT("Net.LogSkippedRepNotifies"), LogSkippedRepNotifies, TEXT("Log when the networking code skips calling a repnotify clientside due to the property value not changing."), ECVF_Default );
+
+int32 MaxRepArraySize = UNetworkSettings::DefaultMaxRepArraySize;
+static FAutoConsoleVariableRef CVarMaxArraySize(TEXT("net.MaxRepArraySize"), MaxRepArraySize, TEXT("Maximum allowable size for replicated dynamic arrays (in number of elements). Value must be between 1 and 65535."));
+
+int32 MaxRepArrayMemory = UNetworkSettings::DefaultMaxRepArrayMemory;
+static FAutoConsoleVariableRef CVarMaxArrayMemory(TEXT("net.MaxRepArrayMemory"), MaxRepArrayMemory, TEXT("Maximum allowable size for replicated dynamic arrays (in bytes). Value must be between 1 and 65535"));
 
 #define ENABLE_PROPERTY_CHECKSUMS
 
@@ -3060,20 +3067,45 @@ void FRepLayout::SerializeProperties_DynamicArray_r(
 	uint16 ArrayNum = Array->Num();
 	Ar << ArrayNum;
 
-	const int MAX_ARRAY_SIZE = 2048;
 
-	if ( ArrayNum > MAX_ARRAY_SIZE )
+	if ((int32)UINT16_MAX < MaxRepArraySize || 1 > MaxRepArraySize)
 	{
-		UE_LOG( LogRepTraffic, Error, TEXT( "SerializeProperties_DynamicArray_r: ArrayNum > MAX_ARRAY_SIZE (%s)" ), *Cmd.Property->GetName() );
+		UE_LOG(LogRepTraffic, Error,
+			TEXT("SerializeProperties_DynamicArray_r: MaxRepArraySize (%l) must be between 1 and 65535. net.MaxRepArraySize can be updated in Project Settings under Network Settings."),
+			MaxRepArraySize);
+
 		Ar.SetError();
 		return;
 	}
 
-	const int MAX_ARRAY_MEMORY = 1024 * 64;
-
-	if ( (int32)ArrayNum * Cmd.ElementSize > MAX_ARRAY_MEMORY )
+	if ((int32)UINT16_MAX < MaxRepArrayMemory || 1 > MaxRepArrayMemory)
 	{
-		UE_LOG( LogRepTraffic, Error, TEXT( "SerializeProperties_DynamicArray_r: ArrayNum * Cmd.ElementSize > MAX_ARRAY_MEMORY (%s)" ), *Cmd.Property->GetName() );
+		UE_LOG(LogRepTraffic, Error,
+			TEXT("SerializeProperties_DynamicArray_r: MaxRepArrayMemory (%l) must be between 1 and 65535. net.MaxRepArrayMemory can be updated in Project Settings under Network Settings."),
+			MaxRepArrayMemory);
+
+		Ar.SetError();
+		return;
+	}
+
+	if ( ArrayNum > MaxRepArraySize )
+	{
+		UE_LOG( LogRepTraffic, Error,
+			TEXT( "SerializeProperties_DynamicArray_r: ArrayNum (%l) > net.MaxRepArraySize(%l) (%s). net.MaxRepArraySize can be updated in Project Settings under Network Settings." ),
+			(int32)ArrayNum, MaxRepArraySize, *Cmd.Property->GetName() );
+
+		Ar.SetError();
+		return;
+	}
+
+	const int32 TotalSize = (int32)ArrayNum * Cmd.ElementSize;
+
+	if ( TotalSize > MaxRepArrayMemory )
+	{
+		UE_LOG( LogRepTraffic, Error,
+			TEXT( "SerializeProperties_DynamicArray_r: ArrayNum (%l) * Cmd.ElementSize (%l) > net.MaxRepArrayMemory(%l) (%s). net.MaxRepArrayMemory can be updated in Project Settings under Network Settings." ),
+			(int32)ArrayNum, (int32)Cmd.ElementSize, MaxRepArrayMemory, *Cmd.Property->GetName() );
+
 		Ar.SetError();
 		return;
 	}

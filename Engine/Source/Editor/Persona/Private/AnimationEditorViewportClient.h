@@ -30,6 +30,7 @@ namespace EBoneDrawMode
 	{
 		None,
 		Selected,
+		SelectedAndParents,
 		All,
 		NumAxesModes
 	};
@@ -379,6 +380,9 @@ private:
 	/** Invalidate this view in response to a preview scene change */
 	void HandleInvalidateViews();
 
+	/** Handle the view being focused from the preview scene */
+	void HandleFocusViews();
+
 	/** Delegate for preview profile is changed (used for updating show flags) */
 	void OnAssetViewerSettingsChanged(const FName& InPropertyName);
 
@@ -388,4 +392,7 @@ private:
 private:
 	/** Allow mesh stats to be disabled for specific viewport instances */
 	bool bShowMeshStats;
+
+	/** Whether we have initially focused on the preview mesh */
+	bool bInitiallyFocused;
 };

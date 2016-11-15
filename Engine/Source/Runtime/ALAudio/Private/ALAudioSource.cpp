@@ -14,6 +14,8 @@
  */
 bool FALSoundSource::Init( FWaveInstance* InWaveInstance )
 {
+	FSoundSource::InitCommon();
+
 	check(InWaveInstance);
 	GetALDevice()->MakeCurrent(TEXT("FALSoundSource::Init()"));
 
@@ -83,6 +85,8 @@ void FALSoundSource::Update( void )
 		return;
 	}
 
+	FSoundSource::UpdateCommon();
+
 	GetALDevice()->MakeCurrent(TEXT("FALSoundSource::Update()"));
 
 	float Volume = 1.0f;
@@ -105,8 +109,6 @@ void FALSoundSource::Update( void )
 	}
 
 	Volume = FSoundSource::GetDebugVolume(Volume);
-
-	float	Pitch	=	FMath::Clamp(WaveInstance->Pitch, MIN_PITCH, MAX_PITCH );
 
 	// Set whether to apply reverb
 	SetReverbApplied( true );

@@ -303,7 +303,7 @@ bool UStructProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uin
 
 	if (Struct)
 	{
-		if ((Struct->StructFlags & STRUCT_SerializeFromMismatchedTag) && (Tag.Type != NAME_StructProperty || (Tag.StructName != Struct->GetFName())) && Struct->StructFlags & STRUCT_SerializeFromMismatchedTag)
+		if ((Struct->StructFlags & STRUCT_SerializeFromMismatchedTag) && (Tag.Type != NAME_StructProperty || (Tag.StructName != Struct->GetFName())))
 		{
 			UScriptStruct::ICppStructOps* CppStructOps = Struct->GetCppStructOps();
 			check(CppStructOps && CppStructOps->HasSerializeFromMismatchedTag()); // else should not have STRUCT_SerializeFromMismatchedTag

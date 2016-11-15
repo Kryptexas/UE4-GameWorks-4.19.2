@@ -8,6 +8,7 @@
 #include "PreviewScene.h"
 #include "EditorAnimUtils.h"
 #include "IAnimationSequenceBrowser.h"
+#include "PersonaDelegates.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FAnimationAssetViewportClient
@@ -38,7 +39,7 @@ public:
 
 	SLATE_END_ARGS()
 public:
-	void Construct(const FArguments& InArgs, const TSharedRef<IPersonaToolkit>& InPersonaToolkit);
+	void Construct(const FArguments& InArgs, const TSharedRef<class IPersonaToolkit>& InPersonaToolkit);
 
 	void OnRequestOpenAsset(const FAssetData& AssetData, bool bFromHistory);
 
@@ -162,6 +163,19 @@ protected:
 
 	/** Returns visible when not in a Blueprint mode (anim mode, etc...) */
 	EVisibility GetHistoryVisibility() const;
+
+	/** Perform additional filtering */
+	bool HandleFilterAsset(const FAssetData& InAssetData) const;
+
+	/** Handle playing audio from the right-click menu */
+	void HandlePlayAudio(FAssetData InAssetData);
+
+	/** Handle stopping audio from the right-click menu */
+	void HandleStopAudio();
+
+	/** Play the specified sound on the preview audio component */
+	void PlayPreviewAudio(USoundWave* InSoundWave);
+
 protected:
 	/**
 	 * The actual viewport widget

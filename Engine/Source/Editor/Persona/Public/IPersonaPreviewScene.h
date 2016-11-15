@@ -40,6 +40,9 @@ public:
 	/** Flag that we want our views to be updated */
 	virtual void InvalidateViews() = 0;
 
+	/** Request our views to focus on the current item */
+	virtual void FocusViews() = 0;
+
 	/** Get the skeletal mesh component we are using for preview, if any. */
 	virtual UDebugSkelMeshComponent* GetPreviewMeshComponent() const = 0;
 
@@ -115,6 +118,12 @@ public:
 	/** Unregisters a delegate to be called when the view is invalidated */
 	virtual void UnregisterOnInvalidateViews(void* Thing) = 0;
 
+	/** Registers a delegate to be called when the view should be focused */
+	virtual void RegisterOnFocusViews(const FSimpleDelegate& Delegate) = 0;
+
+	/** Unregisters a delegate to be called when the view should be focused */
+	virtual void UnregisterOnFocusViews(void* Thing) = 0;
+
 	/** Set the default mode this preview scene appears in. Optionally show the default mode. */
 	virtual void SetDefaultAnimationMode(EPreviewSceneDefaultAnimationMode Mode, bool bShowNow = true) = 0;
 
@@ -150,4 +159,7 @@ public:
 
 	/** Toggle the playback of animation, if any */
 	virtual void TogglePlayback() = 0;
+
+	/** Get the main actor */
+	virtual AActor* GetActor() const = 0;
 };
