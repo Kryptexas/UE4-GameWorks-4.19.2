@@ -778,7 +778,7 @@ bool USkeletalMeshComponent::ShouldTickPose() const
 	// So only enforce a single tick per frame.
 	const bool bAlreadyTickedThisFrame = PoseTickedThisFrame();
 
-#ifdef WITH_EDITOR
+#if WITH_EDITOR
 	if (GetWorld()->WorldType == EWorldType::Editor)
 	{
 		if (bUpdateAnimationInEditor)
