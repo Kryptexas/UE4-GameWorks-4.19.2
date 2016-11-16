@@ -323,6 +323,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Components|Activation", meta=(UnsafeDuringActorConstruction="true"))
 	virtual bool IsActive() const;
 
+	/**
+	 * Sets whether the component should be auto activate or not. Only safe during construction scripts.
+	 * @param bNewAutoActivate - The new auto activate state of the component
+	 */
+	UFUNCTION(BlueprintCallable, Category="Components|Activation")
+	virtual void SetAutoActivate(bool bNewAutoActivate);
+
 	/** Sets whether this component can tick when paused. */
 	UFUNCTION(BlueprintCallable, Category="Utilities")
 	void SetTickableWhenPaused(bool bTickableWhenPaused);
