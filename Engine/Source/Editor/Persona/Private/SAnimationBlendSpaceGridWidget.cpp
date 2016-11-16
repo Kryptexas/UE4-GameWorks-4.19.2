@@ -7,7 +7,7 @@
 #include "Animation/BlendSpaceBase.h"
 #include "Animation/BlendSpace1D.h"
 
-#include "STooltip.h"
+#include "SToolTip.h"
 #include "SNumericEntryBox.h"
 
 #include "PropertyEditing.h"
