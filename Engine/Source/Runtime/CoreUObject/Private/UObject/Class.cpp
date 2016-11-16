@@ -3335,7 +3335,10 @@ void UClass::SerializeSuperStruct(FArchive& Ar)
 		FFastIndexingClassTree::Register(this);
 	}
 #elif UCLASS_FAST_ISA_IMPL == UCLASS_ISA_CLASSARRAY
-	this->ReinitializeBaseChainArray();
+	if (Ar.IsLoading())
+	{
+		this->ReinitializeBaseChainArray();
+	}
 #endif
 }
 
