@@ -191,6 +191,13 @@ FD3D12DynamicRHI::FD3D12DynamicRHI(TArray<FD3D12Adapter*>& ChosenAdaptersIn) :
 	GSupportsTimestampRenderQueries = true;
 	GSupportsParallelOcclusionQueries = true;
 
+	{
+		// Workaround for 4.14. Limit the number of GPU stats on D3D12 due to an issue with high memory overhead with render queries (Jira UE-38139)
+		//@TODO: Remove this when render query issues are fixed
+		static IConsoleVariable* GPUStatsEnabledCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.GPUStatsMaxQueriesPerFrame"));
+		GPUStatsEnabledCVar->Set(1024); // 1024*64KB = 64MB
+	}
+
 	// Enable async compute by default
 	GEnableAsyncCompute = true;
 }

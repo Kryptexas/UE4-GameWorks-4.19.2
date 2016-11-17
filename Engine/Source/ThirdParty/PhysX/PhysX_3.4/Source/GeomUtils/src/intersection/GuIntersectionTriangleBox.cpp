@@ -33,6 +33,7 @@
 #include "GuBox.h"
 #include "GuSIMDHelpers.h"
 
+
 using namespace physx;
 
 /********************************************************/
@@ -64,6 +65,8 @@ using namespace physx;
 
 static PX_FORCE_INLINE Ps::IntBool planeBoxOverlap(const PxVec3& normal, PxReal d, const PxVec3& maxbox)
 {
+	
+
 	PxVec3 vmin,vmax;
 
 	if (normal.x>0.0f)

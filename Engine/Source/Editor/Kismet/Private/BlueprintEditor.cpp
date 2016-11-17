@@ -3121,8 +3121,17 @@ void FBlueprintEditor::OnBlueprintCompiled(UBlueprint* InBlueprint)
 {	
 	if( InBlueprint )
 	{
-		// Compiling will invalidate any cached components in the component visualizer, so clear out active components here
-		GUnrealEd->ComponentVisManager.ClearActiveComponentVis();
+		UUnrealEdEngine* EditorEngine = GUnrealEd;
+		// GUnrealEd can be null after a hot-reload... this seems like a bigger 
+		// problem worth investigating (that could affect other systems), but 
+		// as I cannot repro it a second time (to see if it gets reset soon after), 
+		// we'll just gaurd here for now and see if we can tie this ensure to any 
+		// future crash reports
+		if (ensure(EditorEngine != nullptr))
+		{
+			// Compiling will invalidate any cached components in the component visualizer, so clear out active components here
+			EditorEngine->ComponentVisManager.ClearActiveComponentVis();
+		}
 
 		// This could be made more efficient by tracking which nodes change
 		// their bHasCompilerMessage flag, or immediately updating the error info

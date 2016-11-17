@@ -8,6 +8,7 @@
  import android.content.BroadcastReceiver;
  import android.content.Context;
  import android.content.Intent;
+ import android.support.v4.app.NotificationCompat;
  
  public class LocalNotificationReceiver extends BroadcastReceiver
  {
@@ -26,14 +27,6 @@
 			return;
 		}
 
-		int notificationIconID = context.getResources().getIdentifier("icon", "drawable", context.getPackageName());
-
-		Notification notification = new Notification(notificationIconID , details ,System.currentTimeMillis());
-
-		// Stick with the defaults
-		notification.flags |= Notification.FLAG_AUTO_CANCEL;
-		notification.defaults |= Notification.DEFAULT_SOUND | Notification.DEFAULT_VIBRATE;
-
 		// Open UE4 app if clicked
 		Intent notificationIntent = new Intent(context, GameActivity.class);
 
@@ -43,9 +36,21 @@
 		notificationIntent.putExtra("localNotificationAppLaunched" , true);
 		notificationIntent.putExtra("localNotificationLaunchActivationEvent", activationEvent);
 
+		int notificationIconID = context.getResources().getIdentifier("icon", "drawable", context.getPackageName());
 		PendingIntent pendingNotificationIntent = PendingIntent.getActivity(context, notificationID, notificationIntent, 0);
 
-		notification.setLatestEventInfo(context, title, details, pendingNotificationIntent);
+		NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
+			.setSmallIcon(notificationIconID)
+			.setContentIntent(pendingNotificationIntent)
+			.setWhen(System.currentTimeMillis())
+			.setTicker(details)		// note: will not show up on Lollipop up except for accessibility
+			.setContentTitle(title);
+		Notification notification = builder.build();
+
+		// Stick with the defaults
+		notification.flags |= Notification.FLAG_AUTO_CANCEL;
+		notification.defaults |= Notification.DEFAULT_SOUND | Notification.DEFAULT_VIBRATE;
+
 		NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 
 		// show the notification

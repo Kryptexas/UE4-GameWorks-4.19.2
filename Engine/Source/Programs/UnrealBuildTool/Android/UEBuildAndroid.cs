@@ -57,30 +57,12 @@ namespace UnrealBuildTool
 			return bHaveVulkan;
 		}
 
-		private bool IsVulkanSupportEnabled()
-		{
-			ConfigCacheIni Ini = new ConfigCacheIni(UnrealTargetPlatform.Android, "Engine", DirectoryReference.FromFile(ProjectFile));
-			bool bSupportsVulkan = false;
-			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bSupportsVulkan", out bSupportsVulkan);
-
-			return bSupportsVulkan;
-		}
-
 		public override void AddExtraModules(TargetInfo Target, List<string> PlatformExtraModules)
 		{
 			bool bVulkanExists = IsVulkanSDKAvailable();
 			if (bVulkanExists)
 			{
-				bool bSupportsVulkan = IsVulkanSupportEnabled();
-				
-				if (bSupportsVulkan)
-				{
-					PlatformExtraModules.Add("VulkanRHI");
-				}
-				else
-				{
-					Log.TraceInformationOnce("Vulkan SDK is installed, but the project disabled Vulkan (bSupportsVulkan setting in Engine). Disabling Vulkan RHI for Android");
-				}
+				PlatformExtraModules.Add("VulkanRHI");
 			}
 		}
 
@@ -200,17 +182,6 @@ namespace UnrealBuildTool
 			UEBuildConfiguration.bCompileSimplygon = false;
 			UEBuildConfiguration.bCompileSimplygonSSF = false;
 			BuildConfiguration.bDeployAfterCompile = true;
-
-			bool bBuildWithVulkan = IsVulkanSDKAvailable() && IsVulkanSupportEnabled();
-			if (bBuildWithVulkan)
-			{
-				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_ANDROID_VULKAN=1");
-                Log.TraceInformationOnce("building with VULKAN define");
-			}
-			else
-			{
-				Log.TraceInformationOnce("building WITHOUT VULKAN define");
-			}
 		}
 
 		private bool UseTegraGraphicsDebugger(UEBuildTarget InBuildTarget)
@@ -294,7 +265,7 @@ namespace UnrealBuildTool
 		{
 			string[] BoolKeys = new string[] {
 				"bBuildForArmV7", "bBuildForArm64", "bBuildForX86", "bBuildForX8664", 
-				"bBuildForES2", "bBuildForESDeferred", "bSupportsVulkan", "bBuildForES3"
+				"bBuildForES2", "bBuildForESDeferred", "bBuildForES3"
             };
 
 			// look up Android specific settings

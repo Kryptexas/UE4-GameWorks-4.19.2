@@ -234,11 +234,13 @@ bool RunWithUI(FPlatformErrorReport ErrorReport)
 	// open up the app window	
 	TSharedRef<SCrashReportClient> ClientControl = SNew(SCrashReportClient, CrashReportClient);
 
+	const FSlateRect WorkArea = FSlateApplicationBase::Get().GetPreferredWorkArea();
+
 	auto Window = FSlateApplication::Get().AddWindow(
 		SNew(SWindow)
 		.Title(NSLOCTEXT("CrashReportClient", "CrashReportClientAppName", "Unreal Engine 4 Crash Reporter"))
 		.HasCloseButton(FCrashReportClientConfig::Get().IsAllowedToCloseWithoutSending())
-		.ClientSize(InitialWindowDimensions)
+		.ClientSize(InitialWindowDimensions * FPlatformMisc::GetDPIScaleFactorAtPoint(WorkArea.Left, WorkArea.Top))
 		[
 			ClientControl
 		]);

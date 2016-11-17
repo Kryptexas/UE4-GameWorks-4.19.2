@@ -885,7 +885,7 @@ void FViewMatrices::UpdateViewMatrix(const FVector& ViewLocation, const FRotator
 
 	// Compute a transform from view origin centered world-space to clip space.
 	TranslatedViewProjectionMatrix = GetTranslatedViewMatrix() * GetProjectionMatrix();
-	InvTranslatedViewProjectionMatrix = GetInvProjectionMatrix() * GetTranslatedViewMatrix().GetTransposed();
+	InvTranslatedViewProjectionMatrix = GetInvProjectionMatrix() * GetInvTranslatedViewMatrix();
 
 	ViewProjectionMatrix = GetViewMatrix() * GetProjectionMatrix();
 	InvViewProjectionMatrix = GetInvProjectionMatrix() * GetInvViewMatrix();

@@ -275,17 +275,6 @@ class BuildPhysX : BuildCommand
 						return DirectoryReference.Combine(ApexCMakeFiles, "Linux").ToString() + " -G \"Unix Makefiles\" -DTARGET_BUILD_PLATFORM=Linux -DCMAKE_BUILD_TYPE=" + BuildConfig + GetLinuxToolchainSettings(TargetData) + OutputFlags + CustomFlags;
 					case UnrealTargetPlatform.Mac:
 						return DirectoryReference.Combine(ApexCMakeFiles, "Mac").ToString() + " -G \"Xcode\" -DTARGET_BUILD_PLATFORM=Mac" + OutputFlags + CustomFlags;
-					case UnrealTargetPlatform.HTML5:
-						string CmakeToolchainFile = FileReference.Combine(PhysXSourceRootDirectory, "Externals", "CMakeModules", "HTML5", "Emscripten." + BuildConfig + ".cmake").ToString();
-						return DirectoryReference.Combine(ApexCMakeFiles, "HTML5").ToString() +
-							" -G \"Unix Makefiles\" -DTARGET_BUILD_PLATFORM=HTML5" +
-							" -DPHYSX_ROOT_DIR=\"" + PhysX34SourceRootDirectory.ToString() + "\"" +
-							" -DPXSHARED_ROOT_DIR=\"" + SharedSourceRootDirectory.ToString() + "\"" +
-							" -DNVSIMD_INCLUDE_DIR=\"" + SharedSourceRootDirectory.ToString() + "/src/NvSimd\"" +
-							" -DNVTOOLSEXT_INCLUDE_DIRS=\"" + PhysX34SourceRootDirectory + "/externals/nvToolsExt/include\"" +
-							" -DEMSCRIPTEN_GENERATE_BITCODE_STATIC_LIBRARIES=ON " +
-							" -DCMAKE_BUILD_TYPE=\"Release\" -DCMAKE_TOOLCHAIN_FILE=\"" + CmakeToolchainFile + "\"" +
-							OutputFlags + CustomFlags;
 					 default:
 						throw new AutomationException(String.Format("Non-CMake or unsupported platform '{0}' supplied to GetCMakeArguments", TargetData.ToString()));
 				}
@@ -1254,12 +1243,24 @@ class BuildPhysX : BuildCommand
 				{"release", "_O3"}
 			};
 		}
+
 		return BuildSuffix[TargetConfiguration];
 	}
 
 	private static void FindOutputFiles(HashSet<FileReference> OutputFiles, PhysXTargetLib TargetLib, TargetPlatformData TargetData, string TargetConfiguration, WindowsCompiler TargetWindowsCompiler = WindowsCompiler.VisualStudio2015)
 	{
-		string SearchPrefix = "*" + GetConfigurationSuffix(TargetConfiguration, TargetData).ToUpper() + "*.";
+		string SearchSuffix = GetConfigurationSuffix(TargetConfiguration, TargetData).ToUpper();
+		switch (TargetData.Platform)
+		{
+			case UnrealTargetPlatform.Win32:
+				SearchSuffix += "_x86";
+				break;
+			case UnrealTargetPlatform.Win64:
+				SearchSuffix += "_x64";
+				break;
+		}
+		string SearchPrefix = "*" + SearchSuffix + ".";
+
 		string DebugExtension = PlatformUsesDebugDatabase(TargetData) ? GetPlatformDebugDatabaseExtension(TargetData) : "";
 
 		if (PlatformHasBinaries(TargetData))

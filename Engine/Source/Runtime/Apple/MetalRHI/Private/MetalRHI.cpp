@@ -47,7 +47,7 @@ static void ValidateTargetedRHIFeatureLevelExists(EShaderPlatform Platform)
 	}
 #endif
 	
-	if (!bSupportsShaderPlatform)
+	if (!bSupportsShaderPlatform && !WITH_EDITOR)
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("ShaderPlatform"), FText::FromString(LegacyShaderPlatformToShaderFormat(Platform).ToString()));
@@ -147,40 +147,9 @@ FMetalDynamicRHI::FMetalDynamicRHI(ERHIFeatureLevel::Type RequestedFeatureLevel)
     bool bCanUseWideMRTs = true;
     bool bCanUseASTC = false;
 	bool bSupportsD24S8 = false;
-    bool bSupportsD16 = false;
-
-	// Default to Metal SM5 on 10.11.5 or later. Earlier versions should still be running SM4.
-	bool const bTenElevenFiveOrLater = (FPlatformMisc::MacOSXVersionCompare(10,11,5) >= 0);
-	bool const bRequestedSM5 = (RequestedFeatureLevel == ERHIFeatureLevel::SM5 || (!bRequestedFeatureLevel && FParse::Param(FCommandLine::Get(),TEXT("metalsm5"))));
-	if(bTenElevenFiveOrLater && bRequestedSM5)
-	{
-		ValidateTargetedRHIFeatureLevelExists(SP_METAL_SM5);
-		
-		GMaxRHIFeatureLevel = ERHIFeatureLevel::SM5;
-		GMaxRHIShaderPlatform = SP_METAL_SM5;
-	}
-	else
-	{
-		if (bRequestedSM5)
-		{
-			UE_LOG(LogMetal, Warning, TEXT("Metal Shader Model 5 support requires Mac OS X El Capitan 10.11.5 or later. Falling back to Metal Shader Model 4."));
-		}
-		
-		ValidateTargetedRHIFeatureLevelExists(SP_METAL_SM4);
-		
-		GMaxRHIFeatureLevel = ERHIFeatureLevel::SM4;
-		GMaxRHIShaderPlatform = SP_METAL_SM4;
-	}
-	
-	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = SP_METAL_MACES2;
-	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES3_1] = SP_METAL_MACES3_1;
-	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM4] = SP_METAL_SM4;
-	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM5] = (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5) ? GMaxRHIShaderPlatform : SP_NumPlatforms;
+	bool bSupportsD16 = false;
 	
 	GRHIAdapterName = FString(Device.name);
-	
-	// Mac GPUs support layer indexing.
-	GSupportsVolumeTextureRendering = true;
 	
 	// However they don't all support other features depending on the version of the OS.
 	bool bSupportsPointLights = false;
@@ -214,6 +183,37 @@ FMetalDynamicRHI::FMetalDynamicRHI(ERHIFeatureLevel::Type RequestedFeatureLevel)
 		GRHIVendorId = 0x8086;
 		bSupportsRHIThread = true;
 	}
+
+	// Default to Metal SM5 on 10.11.5 or later. Earlier versions should still be running SM4. Apparently so will Intel GPUs - as of 10.12.1 and UE4 4.14 the Intel drivers can't compile our compute shaders.
+	bool const bTenElevenFiveOrLater = (FPlatformMisc::MacOSXVersionCompare(10,11,5) >= 0);
+	bool const bRequestedSM5 = (RequestedFeatureLevel == ERHIFeatureLevel::SM5 || (!bRequestedFeatureLevel && FParse::Param(FCommandLine::Get(),TEXT("metalsm5"))));
+	if(bTenElevenFiveOrLater && !IsRHIDeviceIntel() && bRequestedSM5)
+	{
+		ValidateTargetedRHIFeatureLevelExists(SP_METAL_SM5);
+		
+		GMaxRHIFeatureLevel = ERHIFeatureLevel::SM5;
+		GMaxRHIShaderPlatform = SP_METAL_SM5;
+	}
+	else
+	{
+		if (bRequestedSM5)
+		{
+			UE_LOG(LogMetal, Warning, TEXT("Metal Shader Model 5 support requires Mac OS X El Capitan 10.11.5 or later & an AMD or Nvidia GPU. Falling back to Metal Shader Model 4."));
+		}
+		
+		ValidateTargetedRHIFeatureLevelExists(SP_METAL_SM4);
+		
+		GMaxRHIFeatureLevel = ERHIFeatureLevel::SM4;
+		GMaxRHIShaderPlatform = SP_METAL_SM4;
+	}
+	
+	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = SP_METAL_MACES2;
+	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES3_1] = SP_METAL_MACES3_1;
+	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM4] = SP_METAL_SM4;
+	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM5] = (GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5) ? GMaxRHIShaderPlatform : SP_NumPlatforms;
+	
+	// Mac GPUs support layer indexing.
+	GSupportsVolumeTextureRendering = true;
 	
 	// Make sure the vendors match - the assumption that order in IORegistry is the order in Metal may not hold up forever.
 	if(GPUDesc.GPUVendorId == GRHIVendorId)

@@ -298,7 +298,7 @@ void UUnrealEdEngine::UpdatePivotLocationForSelection( bool bOnChange )
 
 			if (ComponentOwner != nullptr)
 			{
-				auto SelectedActors = GetSelectedActors();
+				USelection* SelectedActors = GetSelectedActors();
 				const bool bIsOwnerSelected = SelectedActors->IsSelected(ComponentOwner);
 				check(bIsOwnerSelected);
 
@@ -598,11 +598,16 @@ void UUnrealEdEngine::SelectActor(AActor* Actor, bool bInSelected, bool bNotify,
 				GetSelectedComponents()->BeginBatchSelectOperation();
 				for (UActorComponent* Component : Actor->GetComponents())
 				{
-					GetSelectedComponents()->Deselect( Component );
+					if (Component)
+					{
+						GetSelectedComponents()->Deselect(Component);
 
-					// Remove the selection override delegates from the deselected components
-					auto SceneComponent = Cast<USceneComponent>(Component);
-					FComponentEditorUtils::BindComponentSelectionOverride(SceneComponent, false);
+						// Remove the selection override delegates from the deselected components
+						if (USceneComponent* SceneComponent = Cast<USceneComponent>(Component))
+						{
+							FComponentEditorUtils::BindComponentSelectionOverride(SceneComponent, false);
+						}
+					}
 				}
 				GetSelectedComponents()->EndBatchSelectOperation(false);
 			}
@@ -611,8 +616,10 @@ void UUnrealEdEngine::SelectActor(AActor* Actor, bool bInSelected, bool bNotify,
 				// Bind the override delegates for the components in the selected actor
 				for (UActorComponent* Component : Actor->GetComponents())
 				{
-					auto SceneComponent = Cast<USceneComponent>(Component);
-					FComponentEditorUtils::BindComponentSelectionOverride(SceneComponent, true);
+					if (USceneComponent* SceneComponent = Cast<USceneComponent>(Component))
+					{
+						FComponentEditorUtils::BindComponentSelectionOverride(SceneComponent, true);
+					}
 				}
 			}
 
@@ -660,7 +667,7 @@ void UUnrealEdEngine::SelectComponent(UActorComponent* Component, bool bInSelect
 		GetSelectedComponents()->Select(Component, bInSelected);
 
 		// Make sure the override delegate is bound properly
-		auto SceneComponent = Cast<USceneComponent>(Component);
+		USceneComponent* SceneComponent = Cast<USceneComponent>(Component);
 		if (SceneComponent)
 		{
 			FComponentEditorUtils::BindComponentSelectionOverride(SceneComponent, true);

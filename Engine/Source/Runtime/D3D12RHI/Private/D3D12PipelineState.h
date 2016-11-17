@@ -206,16 +206,14 @@ struct FD3D12PipelineStateWorker : public FD3D12AdapterChild, public FNonAbandon
 		GraphicsPipelineCreationArgs_POD GraphicsArgs;
 	} CreationArgs;
 
-	bool bIsGraphics;
+	const bool bIsGraphics;
 	TRefCountPtr<ID3D12PipelineState> PSO;
 };
 
-struct FD3D12PipelineState : public FD3D12AdapterChild, public FD3D12MultiNodeGPUObject
+struct FD3D12PipelineState : public FD3D12AdapterChild, public FD3D12MultiNodeGPUObject, public FNoncopyable
 {
 public:
-	FD3D12PipelineState() : Worker(nullptr), FD3D12AdapterChild(nullptr), FD3D12MultiNodeGPUObject(0, 0) {};
-	FD3D12PipelineState(FD3D12Adapter* Parent);
-
+	explicit FD3D12PipelineState(FD3D12Adapter* Parent);
 	~FD3D12PipelineState();
 
 	void Create(const ComputePipelineCreationArgs& InCreationArgs);
@@ -293,10 +291,10 @@ protected:
 		}
 	};
 
-	template <typename TDesc, typename TValue = FD3D12PipelineState>
+	template <typename TDesc, typename TValue = FD3D12PipelineState*>
 	using TPipelineCache = TMap<TDesc, TValue, FDefaultSetAllocator, TStateCacheKeyFuncs<TDesc, TValue>>;
 
-	TPipelineCache<FD3D12HighLevelGraphicsPipelineStateDesc, TPair<FD3D12PipelineState, uint64>> HighLevelGraphicsPipelineStateCache;
+	TPipelineCache<FD3D12HighLevelGraphicsPipelineStateDesc, TPair<FD3D12PipelineState*, uint64>> HighLevelGraphicsPipelineStateCache;
 	TPipelineCache<FD3D12LowLevelGraphicsPipelineStateDesc> LowLevelGraphicsPipelineStateCache;
 	TPipelineCache<FD3D12ComputePipelineStateDesc> ComputePipelineStateCache;
 
@@ -309,6 +307,28 @@ protected:
 	uint64 HighLevelCacheStaleCount;
 	uint64 HighLevelCacheMissCount;
 #endif
+
+	void CleanupPipelineStateCaches()
+	{
+		// The high level graphics cache doesn't manage lifetime, we can just empty it.
+		HighLevelGraphicsPipelineStateCache.Empty();
+
+		// The low level graphics and compute maps manage the lifetime of their PSOs.
+		// We need to delete each element before we empty it.
+		for (auto Iter = LowLevelGraphicsPipelineStateCache.CreateConstIterator(); Iter; ++Iter)
+		{
+			const FD3D12PipelineState* const PipelineState = Iter.Value();
+			delete PipelineState;
+		}
+		LowLevelGraphicsPipelineStateCache.Empty();
+
+		for (auto Iter = ComputePipelineStateCache.CreateConstIterator(); Iter; ++Iter)
+		{
+			const FD3D12PipelineState* const PipelineState = Iter.Value();
+			delete PipelineState;
+		}
+		ComputePipelineStateCache.Empty();
+	}
 
 public:
 	static SIZE_T HashPSODesc(const FD3D12HighLevelGraphicsPipelineStateDesc& Desc);

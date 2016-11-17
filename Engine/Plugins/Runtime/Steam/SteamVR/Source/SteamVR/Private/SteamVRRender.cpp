@@ -202,6 +202,11 @@ bool FSteamVRHMD::D3D11Bridge::Present(int& SyncInterval)
 	return true;
 }
 
+void FSteamVRHMD::D3D11Bridge::PostPresent()
+{
+	//Plugin->VRCompositor->PostPresentHandoff();
+}
+
 #endif // PLATFORM_WINDOWS
 
 #endif // STEAMVR_SUPPORTED_PLATFORMS

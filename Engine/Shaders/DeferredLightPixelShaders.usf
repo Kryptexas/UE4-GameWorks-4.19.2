@@ -4,6 +4,8 @@
 	DeferredLightPixelShaders.usf: 
 =============================================================================*/
 
+#define SUPPORT_CONTACT_SHADOWS 1
+
 #include "Common.usf"
 #include "DeferredShadingCommon.usf"
 #include "DeferredLightingCommon.usf"

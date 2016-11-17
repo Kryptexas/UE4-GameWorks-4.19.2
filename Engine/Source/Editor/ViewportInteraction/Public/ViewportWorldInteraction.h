@@ -260,6 +260,9 @@ private:
 	/** Closes when deactivated */
 	void Exit();
 
+	/** Called when the editor is closed */
+	void OnEditorClosed();
+
 	/** Called every frame to update hover state */
 	void HoverTick( const float DeltaTime );
 

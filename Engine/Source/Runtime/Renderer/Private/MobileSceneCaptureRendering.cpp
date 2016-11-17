@@ -152,6 +152,7 @@ static FShader* SetCaptureToTargetShaders(FRHICommandListImmediate& RHICmdList, 
 	{
 		case SCS_SceneColorHDR:
 			return SetCaptureToTargetShaders<bDemosaic, SCS_SceneColorHDR>(RHICmdList, View, SourceTexSize, SourceTextureRHI);
+		case SCS_FinalColorLDR:
 		case SCS_SceneColorHDRNoAlpha:
 			return SetCaptureToTargetShaders<bDemosaic, SCS_SceneColorHDRNoAlpha>(RHICmdList, View, SourceTexSize, SourceTextureRHI);
 		case SCS_SceneColorSceneDepth:

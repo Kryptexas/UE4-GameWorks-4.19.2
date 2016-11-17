@@ -2,6 +2,19 @@
 # Build PhysXCommon common
 #
 
+IF (NOT "HTML5" IN_LIST PLATFORM_LIST)
+	SET(PXCOMMON_BVH4_FILES
+		${GU_SOURCE_DIR}/src/mesh/GuBV4_AABBSweep.cpp
+		${GU_SOURCE_DIR}/src/mesh/GuBV4_BoxOverlap.cpp
+		${GU_SOURCE_DIR}/src/mesh/GuBV4_CapsuleSweep.cpp
+		${GU_SOURCE_DIR}/src/mesh/GuBV4_CapsuleSweepAA.cpp
+		${GU_SOURCE_DIR}/src/mesh/GuBV4_OBBSweep.cpp
+		${GU_SOURCE_DIR}/src/mesh/GuBV4_Raycast.cpp
+		${GU_SOURCE_DIR}/src/mesh/GuBV4_SphereOverlap.cpp
+		${GU_SOURCE_DIR}/src/mesh/GuBV4_SphereSweep.cpp
+		${GU_SOURCE_DIR}/src/mesh/GuMidphaseBV4.cpp
+	)
+ENDIF()
 
 # Add all source files individually, don't glob.
 ADD_LIBRARY(PhysXCommon ${PXCOMMON_LIBTYPE} 
@@ -87,16 +100,10 @@ ADD_LIBRARY(PhysXCommon ${PXCOMMON_LIBTYPE}
 	${GU_SOURCE_DIR}/src/intersection/GuIntersectionTriangleBox.cpp
 	${GU_SOURCE_DIR}/src/mesh/GuBV4.cpp
 	${GU_SOURCE_DIR}/src/mesh/GuBV4Build.cpp
-	${GU_SOURCE_DIR}/src/mesh/GuBV4_AABBSweep.cpp
-	${GU_SOURCE_DIR}/src/mesh/GuBV4_BoxOverlap.cpp
-	${GU_SOURCE_DIR}/src/mesh/GuBV4_CapsuleSweep.cpp
-	${GU_SOURCE_DIR}/src/mesh/GuBV4_CapsuleSweepAA.cpp
-	${GU_SOURCE_DIR}/src/mesh/GuBV4_OBBSweep.cpp
-	${GU_SOURCE_DIR}/src/mesh/GuBV4_Raycast.cpp
-	${GU_SOURCE_DIR}/src/mesh/GuBV4_SphereOverlap.cpp
-	${GU_SOURCE_DIR}/src/mesh/GuBV4_SphereSweep.cpp
+
+	${PXCOMMON_BVH4_FILES}
+
 	${GU_SOURCE_DIR}/src/mesh/GuMeshQuery.cpp
-	${GU_SOURCE_DIR}/src/mesh/GuMidphaseBV4.cpp
 	${GU_SOURCE_DIR}/src/mesh/GuMidphaseRTree.cpp
 	${GU_SOURCE_DIR}/src/mesh/GuOverlapTestsMesh.cpp
 	${GU_SOURCE_DIR}/src/mesh/GuRTree.cpp

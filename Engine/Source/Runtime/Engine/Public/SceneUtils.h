@@ -257,7 +257,11 @@ ENGINE_API bool IsMobileHDRMosaic();
 class ENGINE_API FRenderQueryPool
 {
 public:
-	FRenderQueryPool(ERenderQueryType InQueryType) :QueryType(InQueryType) { }
+	FRenderQueryPool(ERenderQueryType InQueryType)
+		: QueryType(InQueryType)
+		, NumQueriesAllocated(0)
+	{ }
+
 	virtual ~FRenderQueryPool();
 
 	/** Releases all the render queries in the pool. */
@@ -269,9 +273,14 @@ public:
 	/** De-reference an render query, returning it to the pool instead of deleting it when the refcount reaches 0. */
 	void ReleaseQuery(FRenderQueryRHIRef &Query);
 
+	/** Returns the number of currently allocated queries. This is not necessarily the same as the pool size */
+	int32 GetAllocatedQueryCount() const { return NumQueriesAllocated;  }
+
 private:
 	/** Container for available render queries. */
 	TArray<FRenderQueryRHIRef> Queries;
 
 	ERenderQueryType QueryType;
+
+	int32 NumQueriesAllocated;
 };

@@ -26,7 +26,7 @@ public:
 	virtual void Render(const FSceneView* View,FViewport* Viewport,FPrimitiveDrawInterface* PDI) override;
 	virtual void DrawHUD(FEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas) override;
 
-	void SetSequencer(FSequencer* InSequencer) { Sequencer = InSequencer; }
+	void SetSequencer(const TWeakPtr<FSequencer>& InSequencer) { SequencerPtr = InSequencer; }
 
 	void OnKeySelected(FViewport* Viewport, HMovieSceneKeyProxy* KeyProxy);
 
@@ -34,7 +34,7 @@ protected:
 	void DrawTracks3D(const FSceneView* View, FPrimitiveDrawInterface* PDI);
 
 private:
-	FSequencer* Sequencer;
+	TWeakPtr<FSequencer> SequencerPtr;
 };
 
 /**

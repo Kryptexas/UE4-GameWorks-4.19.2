@@ -189,6 +189,11 @@ FVector2D STrackNode::GetDragDropScreenSpacePosition(const FGeometry& ParentAllo
 // mouse interface for tooltip/selection
 FReply STrackNode::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
+	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+	{
+		Select();
+		OnTrackNodeClicked.ExecuteIfBound();
+	}
 	return FReply::Unhandled();
 }
 
@@ -228,6 +233,9 @@ FReply STrackNode::BeginDrag( const FGeometry& MyGeometry, const FPointerEvent& 
 	bBeingDragged = true;
 	LastSize = MyGeometry.Size;
 
+	Select();
+	OnTrackNodeClicked.ExecuteIfBound();
+
 	//void FTrackNodeDragDropOp(TSharedRef<STrackNode> TrackNode, const FVector2D &CursorPosition, const FVector2D &ScreenPositionOfNode)
 	return FReply::Handled().BeginDragDrop(FTrackNodeDragDropOp::New(SharedThis(this), ScreenCursorPos, ScreenNodePosition));
 }
@@ -236,8 +244,6 @@ FReply STrackNode::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointe
 {
 	if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
 	{
-		Select();
-		OnTrackNodeClicked.ExecuteIfBound();
 		if(AllowDrag)
 		{
 			return FReply::Handled().DetectDrag( SharedThis(this), EKeys::LeftMouseButton );

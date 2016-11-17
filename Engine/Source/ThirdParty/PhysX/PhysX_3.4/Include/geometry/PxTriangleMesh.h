@@ -66,6 +66,7 @@ struct PxMeshMidPhase
 	enum Enum
 	{
 		eBVH33 = 0,		//!< Default midphase mesh structure, as used up to PhysX 3.3
+		//NOTE: this is not supported on platforms that do not have SIMD (HTML5 for example) - can't remove for now because of eBVH32
 		eBVH34 = 1,		//!< New midphase mesh structure, introduced in PhysX 3.4
 
 		eINVALID = 2,	//!< Invalid mesh midphase
