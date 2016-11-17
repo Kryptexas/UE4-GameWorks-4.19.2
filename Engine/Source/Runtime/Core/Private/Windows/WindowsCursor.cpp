@@ -183,3 +183,7 @@ void FWindowsCursor::Lock( const RECT* const Bounds )
 	// Lock/Unlock the cursor
 	::ClipCursor(Bounds);
 }
+
+void FWindowsCursor::UpdateClipping()
+{
+}
