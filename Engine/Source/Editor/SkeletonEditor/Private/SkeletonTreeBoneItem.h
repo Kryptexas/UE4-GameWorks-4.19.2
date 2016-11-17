@@ -15,6 +15,8 @@ public:
 		, bWeightedBone(false)
 		, bRequiredBone(false)
 	{}
+	virtual ~FSkeletonTreeBoneItem()
+	{}
 
 	/** ISkeletonTreeItem interface */
 	virtual TSharedRef<ITableRow> MakeTreeRowWidget(const TSharedRef<STableViewBase>& OwnerTable, const TAttribute<FText>& FilterText) override;
