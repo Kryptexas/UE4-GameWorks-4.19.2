@@ -1227,7 +1227,12 @@ void FAnimationBlueprintEditor::OnSelectedNodesChangedImpl(const TSet<class UObj
 void FAnimationBlueprintEditor::OnPostCompile()
 {
 	// act as if we have re-selected, so internal pointers are updated
-	OnSelectedNodesChangedImpl(GetSelectedNodes());
+	if (CurrentUISelection == FBlueprintEditor::SelectionState_Graph)
+	{
+		FGraphPanelSelectionSet SelectionSet = GetSelectedNodes();
+		OnSelectedNodesChangedImpl(SelectionSet);
+		FocusInspectorOnGraphSelection(SelectionSet, /*bForceRefresh=*/ true);
+	}
 
 	// if the user manipulated Pin values directly from the node, then should copy updated values to the internal node to retain data consistency
 	UEdGraph* FocusedGraph = GetFocusedGraph();
