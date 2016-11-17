@@ -251,6 +251,7 @@ FSceneRenderTargets::FSceneRenderTargets(const FViewInfo& View, const FSceneRend
 	, bCurrentLightPropagationVolume(SnapshotSource.bCurrentLightPropagationVolume)
 	, CurrentFeatureLevel(SnapshotSource.CurrentFeatureLevel)
 	, CurrentShadingPath(SnapshotSource.CurrentShadingPath)
+	, bRequireSceneColorAlpha(SnapshotSource.bRequireSceneColorAlpha)
 	, bAllocateVelocityGBuffer(SnapshotSource.bAllocateVelocityGBuffer)
 	, bGBuffersFastCleared(SnapshotSource.bGBuffersFastCleared)	
 	, bSceneDepthCleared(SnapshotSource.bSceneDepthCleared)	
