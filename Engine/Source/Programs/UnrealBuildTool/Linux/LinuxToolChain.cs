@@ -383,10 +383,6 @@ namespace UnrealBuildTool
 				if (CompilerVersionGreaterOrEqual(3, 9, 0))
 				{
 					Result += " -Wno-undefined-var-template"; // not really a good warning to disable
-					Result += " -Wno-delete-non-virtual-dtor";  // at least for 4.14
-					Result += " -Wno-expansion-to-defined";		// at least for 4.14
-					Result += " -Wno-null-dereference";         // at least for 4.14
-					Result += " -Wno-literal-conversion";       // at least for 4.14
 				}
 			}
 

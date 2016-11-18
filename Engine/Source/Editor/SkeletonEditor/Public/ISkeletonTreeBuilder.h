@@ -69,6 +69,9 @@ struct FSkeletonTreeFilterArgs
 class ISkeletonTreeBuilder
 {
 public:
+
+	virtual ~ISkeletonTreeBuilder() {};
+
 	/**
 	 * Build an array of skeleton tree items to display in the tree.
 	 * @param	InArgs			Parameters to use when building the tree
