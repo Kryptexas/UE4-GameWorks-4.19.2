@@ -17,6 +17,8 @@ public:
 		, bIsCustomized(bInIsCustomized)
 		, bInlineEditorExpanded(false)
 	{}
+	virtual ~FSkeletonTreeSocketItem()
+	{}
 
 	/** ISkeletonTreeItem interface */
 	virtual TSharedRef<ITableRow> MakeTreeRowWidget(const TSharedRef<STableViewBase>& InOwnerTable, const TAttribute<FText>& InFilterText) override;
