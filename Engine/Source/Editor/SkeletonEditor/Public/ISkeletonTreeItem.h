@@ -39,6 +39,8 @@ public:
 		return IsOfTypeByName(TType::GetTypeId());
 	}
 
+	virtual ~ISkeletonTreeItem() {};
+
 	/** Builds the table row widget to display this info */
 	virtual TSharedRef<ITableRow> MakeTreeRowWidget(const TSharedRef<STableViewBase>& InOwnerTable, const TAttribute<FText>& InFilterText) = 0;
 
