@@ -2152,7 +2152,7 @@ namespace UnrealBuildTool
 						VersionManifest Manifest;
 						if (!FileNameToVersionManifest.TryGetValue(ManifestFileName, out Manifest))
 						{
-							Manifest = new VersionManifest(Version.Changelist, Version.CompatibleChangelist, BuildId);
+							Manifest = new VersionManifest(Version.Changelist, Version.EffectiveCompatibleChangelist, BuildId);
 
 							VersionManifest ExistingManifest;
 							if (VersionManifest.TryRead(ManifestFileName.FullName, out ExistingManifest) && Version.Changelist == ExistingManifest.Changelist)
