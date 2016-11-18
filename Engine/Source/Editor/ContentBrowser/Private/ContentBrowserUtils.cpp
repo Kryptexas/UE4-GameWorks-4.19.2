@@ -569,7 +569,7 @@ bool ContentBrowserUtils::DeleteFolders(const TArray<FString>& PathsToDelete)
 		for (const FString& PathToDelete : PathsToDelete)
 		{
 			FString PathToDeleteOnDisk;
-			if (FPackageName::TryConvertLongPackageNameToFilename(PathToDelete, PathToDeleteOnDisk) && IFileManager::Get().DeleteDirectory(*PathToDeleteOnDisk))
+			if (FPackageName::TryConvertLongPackageNameToFilename(PathToDelete, PathToDeleteOnDisk) && IFileManager::Get().DeleteDirectory(*PathToDeleteOnDisk, false, true))
 			{
 				AssetRegistryModule.Get().RemovePath(PathToDelete);
 			}
