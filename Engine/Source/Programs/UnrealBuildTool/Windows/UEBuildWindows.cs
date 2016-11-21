@@ -805,7 +805,7 @@ namespace UnrealBuildTool
 				DirectoryReference VSInstallDir;
 				if(TryGetVSInstallDir(Compiler, out VSInstallDir))
 				{
-					FileReference VersionPath = FileReference.Combine(VSInstallDir, "Common7", "IDE", "VisualCpp", "Auxiliary", "Build", "Microsoft.VCToolsVersion.default.txt");
+					FileReference VersionPath = FileReference.Combine(VSInstallDir, "VC", "Auxiliary", "Build", "Microsoft.VCToolsVersion.default.txt");
 					if(VersionPath.Exists())
 					{
 						InstallDir = VersionPath.Directory.ParentDirectory.ParentDirectory;
