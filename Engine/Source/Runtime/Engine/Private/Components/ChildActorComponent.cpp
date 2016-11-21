@@ -399,16 +399,30 @@ void UChildActorComponent::PostLoad()
 	// For a period of time the parent component property on Actor was not a UPROPERTY so this value was not set
 	if (ChildActor)
 	{
-		FActorParentComponentSetter::Set(ChildActor, this);
-		ChildActor->SetFlags(RF_TextExportTransient|RF_NonPIEDuplicateTransient);
+		// Since the template could have been changed we need to respawn the child actor
+		// Don't do this if there is no linker which implies component was created via duplication
+		if (ChildActorTemplate && GetLinker())
+		{
+			UWorld* MyWorld = GetWorld();
+			if (MyWorld && MyWorld->IsGameWorld())
+			{
+				// A game world might already be kicking along and then we will try and dispatch destroy events and it will be bad
+				// so just mark the child pending kill and move along
+				ChildActor->MarkPendingKill();
+				ChildActor = nullptr;
+			}
+			else
+			{
+				DestroyChildActor();
+			}
+		}
+		else
+		{
+			FActorParentComponentSetter::Set(ChildActor, this);
+			ChildActor->SetFlags(RF_TextExportTransient | RF_NonPIEDuplicateTransient);
+		}
 	}
 
-	// Since the template could have been changed we need to respawn the child actor
-	// Don't do this if there is no linker which implies component was created via duplication
-	if (ChildActorTemplate && GetLinker())
-	{
-		DestroyChildActor();
-	}
 }
 #endif
 
