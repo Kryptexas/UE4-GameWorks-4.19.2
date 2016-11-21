@@ -100,7 +100,7 @@ void SSessionConsoleFilterBar::Construct(const FArguments& InArgs)
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 
-bool SSessionConsoleFilterBar::FilterLogMessage(const FSessionLogMessageRef& LogMessage)
+bool SSessionConsoleFilterBar::FilterLogMessage(const TSharedRef<FSessionLogMessage>& LogMessage)
 {
 	// create or update category counter
 	int32& CategoryCounter = CategoryCounters.FindOrAdd(LogMessage->Category);

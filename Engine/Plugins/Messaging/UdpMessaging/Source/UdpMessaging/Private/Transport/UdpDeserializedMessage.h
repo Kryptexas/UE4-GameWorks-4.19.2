@@ -3,6 +3,9 @@
 #pragma once
 
 
+class FReassembledUdpMessage;
+
+
 /**
  * Holds a deserialized message.
  */
@@ -16,7 +19,7 @@ public:
 	 *
 	 * @param InAttachment An optional message attachment.
 	 */
-	FUdpDeserializedMessage(const IMessageAttachmentPtr& InAttachment);
+	FUdpDeserializedMessage(const TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe>& InAttachment);
 
 	/** Virtual destructor. */
 	virtual ~FUdpDeserializedMessage() override;
@@ -29,14 +32,14 @@ public:
 	 * @param ReassembledMessage The reassembled message to deserialize.
 	 * @return true on success, false otherwise.
 	 */
-	bool Deserialize(const FUdpReassembledMessageRef& ReassembledMessage);
+	bool Deserialize(const FReassembledUdpMessage& ReassembledMessage);
 
 public:
 
-	// IMessageContext interface
+	//~ IMessageContext interface
 
 	virtual const TMap<FName, FString>& GetAnnotations() const override;
-	virtual IMessageAttachmentPtr GetAttachment() const override;
+	virtual TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe> GetAttachment() const override;
 	virtual const FDateTime& GetExpiration() const override;
 	virtual const void* GetMessage() const override;
 	virtual const TWeakObjectPtr<UScriptStruct>& GetMessageTypeInfo() const override;
@@ -54,7 +57,7 @@ private:
 	TMap<FName, FString> Annotations;
 
 	/** Holds a pointer to attached binary data. */
-	IMessageAttachmentPtr Attachment;
+	TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe> Attachment;
 
 	/** Holds the expiration time. */
 	FDateTime Expiration;
@@ -77,10 +80,3 @@ private:
 	/** Holds the message's type information. */
 	TWeakObjectPtr<UScriptStruct> TypeInfo;
 };
-
-
-/** Type definition for shared pointers to instances of FUdpDeserializedMessage. */
-typedef TSharedPtr<FUdpDeserializedMessage, ESPMode::ThreadSafe> FUdpDeserializedMessagePtr;
-
-/** Type definition for shared references to instances of FUdpDeserializedMessage. */
-typedef TSharedRef<FUdpDeserializedMessage, ESPMode::ThreadSafe> FUdpDeserializedMessageRef;

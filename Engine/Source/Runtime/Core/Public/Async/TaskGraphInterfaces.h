@@ -339,7 +339,7 @@ public:
 	*	A (slow) function to call a function on every known thread, both named and workers
 	*	@param	Callback - function to call prior to shutting down the taskgraph
 	**/
-	static void BroadcastSlow_OnlyUseForSpecialPurposes(bool bDoBackgroundThreads, TFunction<void(ENamedThreads::Type CurrentThread)>& Callback);
+	static void BroadcastSlow_OnlyUseForSpecialPurposes(bool bDoTaskThreads, bool bDoBackgroundThreads, TFunction<void(ENamedThreads::Type CurrentThread)>& Callback);
 };
 
 /** 

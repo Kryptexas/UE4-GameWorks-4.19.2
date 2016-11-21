@@ -175,12 +175,29 @@ struct FFindHeadersToInclude : public FGatherConvertedClassDependenciesHelperBas
 			{
 				if (Graph)
 				{
-					TArray<UK2Node_EnumLiteral*> LiteralEnumNodes;
-					Graph->GetNodesOfClass<UK2Node_EnumLiteral>(LiteralEnumNodes);
-					for (UK2Node_EnumLiteral* LiteralEnumNode : LiteralEnumNodes)
+					TArray<UK2Node*> AllNodes;
+					Graph->GetNodesOfClass<UK2Node>(AllNodes);
+					for (UK2Node* K2Node : AllNodes)
 					{
-						UEnum* Enum = LiteralEnumNode ? LiteralEnumNode->Enum : nullptr;
-						IncludeTheHeaderInBody(Enum);
+						if (UK2Node_EnumLiteral* LiteralEnumNode = Cast<UK2Node_EnumLiteral>(K2Node))
+						{
+							UEnum* Enum = LiteralEnumNode ? LiteralEnumNode->Enum : nullptr;
+							IncludeTheHeaderInBody(Enum);
+						}
+						// HACK FOR LITERAL ENUMS:
+						else if(K2Node)
+						{
+							for (UEdGraphPin* Pin : K2Node->Pins)
+							{
+								if (Pin && (Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Byte))
+								{
+									if (UEnum* Enum = Cast<UEnum>(Pin->PinType.PinSubCategoryObject.Get()))
+									{
+										IncludeTheHeaderInBody(Enum);
+									}
+								}
+							}
+						}
 					}
 				}
 			}
@@ -405,6 +422,14 @@ void FGatherConvertedClassDependencies::DependenciesForHeader()
 		const bool bIsMemberVariable = OwnerProperty && (OwnerProperty->GetOuter() == OriginalStruct);
 		if (bIsParam || bIsMemberVariable)
 		{
+			if (auto AssetClassProperty = Cast<const UAssetClassProperty>(Property))
+			{
+				DeclareInHeader.Add(GetFirstNativeOrConvertedClass(AssetClassProperty->MetaClass));
+			}
+			if (auto ClassProperty = Cast<const UClassProperty>(Property))
+			{
+				DeclareInHeader.Add(GetFirstNativeOrConvertedClass(ClassProperty->MetaClass));
+			}
 			if (auto ObjectProperty = Cast<const UObjectPropertyBase>(Property))
 			{
 				DeclareInHeader.Add(GetFirstNativeOrConvertedClass(ObjectProperty->PropertyClass));
@@ -499,6 +524,25 @@ void FGatherConvertedClassDependencies::DependenciesForHeader()
 TSet<const UObject*> FGatherConvertedClassDependencies::AllDependencies() const
 {
 	TSet<const UObject*> All;
+
+	UBlueprintGeneratedClass* SuperClass = Cast<UBlueprintGeneratedClass>(OriginalStruct->GetSuperStruct());
+	if (SuperClass && WillClassBeConverted(SuperClass))
+	{
+		All.Add(SuperClass);
+	}
+
+	if (auto SourceClass = Cast<UClass>(OriginalStruct))
+	{
+		for (auto& ImplementedInterface : SourceClass->Interfaces)
+		{
+			UBlueprintGeneratedClass* InterfaceClass = Cast<UBlueprintGeneratedClass>(ImplementedInterface.Class);
+			if (InterfaceClass && WillClassBeConverted(InterfaceClass))
+			{
+				All.Add(InterfaceClass);
+			}
+		}
+	}
+
 	for (auto It : Assets)
 	{
 		All.Add(It);

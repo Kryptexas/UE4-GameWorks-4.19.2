@@ -38,11 +38,7 @@ public:
 	/**
 	 * An even should return FReply::Handled().SetMousePos to ask Slate to move the mouse cursor to a different location
 	 */
-	FReply& SetMousePos( const FIntPoint& NewMousePos )
-	{
-		this->RequestedMousePos = NewMousePos;
-		return Me();
-	}
+	FReply& SetMousePos( const FIntPoint& NewMousePos );
 
 	/** An event should return FReply::Handled().SetUserFocus( SomeWidget ) as a means of asking the system to set users focus to the provided widget*/
 	FReply& SetUserFocus(TSharedRef<SWidget> GiveMeFocus, EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly, bool bInAllUsers = false);

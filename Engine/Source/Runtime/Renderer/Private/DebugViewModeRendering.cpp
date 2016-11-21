@@ -33,7 +33,10 @@ public:
 
 	virtual bool Serialize(FArchive& Ar) override { return FGlobalShader::Serialize(Ar); }
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment) {}
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		OutEnvironment.SetDefine(TEXT("UNDEFINED_VALUE"), UndefinedStreamingAccuracyIntensity);
+	}
 
 	virtual void SetParameters(
 		FRHICommandList& RHICmdList, 
@@ -94,10 +97,10 @@ IDebugViewModePSInterface* FDebugViewMode::GetPSInterface(TShaderMap<FGlobalShad
 		return *TShaderMapRef<TShaderComplexityAccumulatePS>(ShaderMap);
 	case DVSM_PrimitiveDistanceAccuracy:
 		return *TShaderMapRef<FPrimitiveDistanceAccuracyPS>(ShaderMap);
-	case DVSM_MeshTexCoordSizeAccuracy:
+	case DVSM_MeshUVDensityAccuracy:
 		return *TShaderMapRef<FMeshTexCoordSizeAccuracyPS>(ShaderMap);
-	case DVSM_MaterialTexCoordScalesAccuracy:
-	case DVSM_MaterialTexCoordScalesAnalysis:
+	case DVSM_MaterialTextureScaleAccuracy:
+	case DVSM_OutputMaterialTextureScales:
 	{
 		const FMaterial* MaterialForPS = GetDebugViewMaterialPS(DebugViewShaderMode, Material);
 		if (MaterialForPS)

@@ -761,7 +761,7 @@ bool FOpenEditorForAssetCommand::Update()
 		if ( FAssetEditorManager::Get().FindEditorForAsset(Object, true) != NULL )
 		{
 			UE_LOG(LogEditorAutomationTests, Log, TEXT("Verified asset editor for: %s."), *AssetName);
-			UE_LOG(LogEditorAutomationTests, Display, TEXT("The editor successffully loaded for: %s."), *AssetName);
+			UE_LOG(LogEditorAutomationTests, Display, TEXT("The editor successfully loaded for: %s."), *AssetName);
 			return true;
 		}
 	}
@@ -787,7 +787,7 @@ bool FCloseAllAssetEditorsCommand::Update()
 	}
 
 	UE_LOG(LogEditorAutomationTests, Log, TEXT("Verified asset editors were closed"));
-	UE_LOG(LogEditorAutomationTests, Display, TEXT("The asset editors closed successffully"));
+	UE_LOG(LogEditorAutomationTests, Display, TEXT("The asset editors closed successfully"));
 	return true;
 }
 

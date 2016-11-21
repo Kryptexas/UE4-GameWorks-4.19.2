@@ -249,30 +249,7 @@ void SReferenceViewer::Construct( const FArguments& InArgs )
 						]
 					]
 
-					+ SVerticalBox::Slot()
-					.AutoHeight()
-					[
-						SNew(SHorizontalBox)
-
-						+ SHorizontalBox::Slot()
-						.VAlign(VAlign_Center)
-						.Padding(2.f)
-						[
-							SNew(STextBlock)
-							.Text(LOCTEXT("ShowHideSoftDependencies", "Show Soft Dependencies"))
-						]
-
-						+SHorizontalBox::Slot()
-						.AutoWidth()
-						.VAlign(VAlign_Center)
-						.Padding(2.f)
-						[
-							SNew(SCheckBox)
-							.OnCheckStateChanged(this, &SReferenceViewer::OnShowSoftDependenciesChanged)
-							.IsChecked(this, &SReferenceViewer::IsShowSoftDependenciesChecked)
-						]
-					]
-
+				
 					+ SVerticalBox::Slot()
 					.AutoHeight()
 					[
@@ -307,7 +284,7 @@ void SReferenceViewer::Construct( const FArguments& InArgs )
 						.Padding(2.f)
 						[
 							SNew(STextBlock)
-							.Text(LOCTEXT("ShowHideHardDependencies", "Show Hard Dependencies"))
+							.Text(LOCTEXT("ShowHideSearchableNames", "Show Searchable Names"))
 						]
 
 						+SHorizontalBox::Slot()
@@ -316,8 +293,32 @@ void SReferenceViewer::Construct( const FArguments& InArgs )
 						.Padding(2.f)
 						[
 							SNew(SCheckBox)
-							.OnCheckStateChanged(this, &SReferenceViewer::OnShowHardDependenciesChanged)
-							.IsChecked(this, &SReferenceViewer::IsShowHardDependenciesChecked)
+							.OnCheckStateChanged(this, &SReferenceViewer::OnShowSearchableNamesChanged)
+							.IsChecked(this, &SReferenceViewer::IsShowSearchableNamesChecked)
+						]
+					]
+
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SNew(SHorizontalBox)
+
+						+ SHorizontalBox::Slot()
+						.VAlign(VAlign_Center)
+						.Padding(2.f)
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("ShowHideNativePackages", "Show Native Packages"))
+						]
+
+						+SHorizontalBox::Slot()
+						.AutoWidth()
+						.VAlign(VAlign_Center)
+						.Padding(2.f)
+						[
+							SNew(SCheckBox)
+							.OnCheckStateChanged(this, &SReferenceViewer::OnShowNativePackagesChanged)
+							.IsChecked(this, &SReferenceViewer::IsShowNativePackagesChecked)
 						]
 					]
 				]
@@ -334,9 +335,9 @@ void SReferenceViewer::Construct( const FArguments& InArgs )
 	];
 }
 
-void SReferenceViewer::SetGraphRootPackageNames(const TArray<FName>& NewGraphRootPackageNames)
+void SReferenceViewer::SetGraphRootPackageNames(const TArray<FAssetIdentifier>& NewGraphRootIdentifiers)
 {
-	GraphObj->SetGraphRoot(NewGraphRootPackageNames);
+	GraphObj->SetGraphRoot(NewGraphRootIdentifiers);
 	
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 	if ( AssetRegistryModule.Get().IsLoadingAssets() )
@@ -428,14 +429,14 @@ FText SReferenceViewer::GetAddressBarText() const
 	{
 		if (TemporaryPathBeingEdited.IsEmpty())
 		{
-			const TArray<FName>& CurrentGraphRootPackageNames = GraphObj->GetCurrentGraphRootPackageNames();
+			const TArray<FAssetIdentifier>& CurrentGraphRootPackageNames = GraphObj->GetCurrentGraphRootIdentifiers();
 			if (CurrentGraphRootPackageNames.Num() == 1)
 			{
-				return FText::FromName(CurrentGraphRootPackageNames[0]);
+				return FText::FromString(CurrentGraphRootPackageNames[0].ToString());
 			}
 			else if (CurrentGraphRootPackageNames.Num() > 1)
 			{
-				return FText::Format(LOCTEXT("AddressBarMultiplePackagesText", "{0} and {1} others"), FText::FromName(CurrentGraphRootPackageNames[0]), FText::AsNumber(CurrentGraphRootPackageNames.Num()));
+				return FText::Format(LOCTEXT("AddressBarMultiplePackagesText", "{0} and {1} others"), FText::FromString(CurrentGraphRootPackageNames[0].ToString()), FText::AsNumber(CurrentGraphRootPackageNames.Num()));
 			}
 		}
 		else
@@ -451,10 +452,8 @@ void SReferenceViewer::OnAddressBarTextCommitted(const FText& NewText, ETextComm
 {
 	if (CommitInfo == ETextCommit::OnEnter)
 	{
-		const FName NewPath(*NewText.ToString());
-
-		TArray<FName> NewPaths;
-		NewPaths.Add(NewPath);
+		TArray<FAssetIdentifier> NewPaths;
+		NewPaths.Add(FAssetIdentifier::FromString(NewText.ToString()));
 
 		SetGraphRootPackageNames(NewPaths);
 	}
@@ -471,7 +470,7 @@ void SReferenceViewer::OnApplyHistoryData(const FReferenceViewerHistoryData& His
 {
 	if ( GraphObj )
 	{
-		GraphObj->SetGraphRoot(History.PackageNames);
+		GraphObj->SetGraphRoot(History.Identifiers);
 		UEdGraphNode_Reference* NewRootNode = GraphObj->RebuildGraph();
 		
 		if ( NewRootNode && ensure(GraphEditorPtr.IsValid()) )
@@ -485,26 +484,14 @@ void SReferenceViewer::OnUpdateHistoryData(FReferenceViewerHistoryData& HistoryD
 {
 	if ( GraphObj )
 	{
-		const TArray<FName>& CurrentGraphRootPackageNames = GraphObj->GetCurrentGraphRootPackageNames();
-		if ( CurrentGraphRootPackageNames.Num() == 1 )
-		{
-			HistoryData.HistoryDesc = FText::FromName(CurrentGraphRootPackageNames[0]);
-		}
-		else if ( CurrentGraphRootPackageNames.Num() > 1 )
-		{
-			HistoryData.HistoryDesc = FText::Format(LOCTEXT("AddressBarMultiplePackagesText", "{0} and {1} others"), FText::FromName(CurrentGraphRootPackageNames[0]), FText::AsNumber(CurrentGraphRootPackageNames.Num()));
-		}
-		else
-		{
-			HistoryData.HistoryDesc = FText::GetEmpty();
-		}
-
-		HistoryData.PackageNames = CurrentGraphRootPackageNames;
+		const TArray<FAssetIdentifier>& CurrentGraphRootIdentifiers = GraphObj->GetCurrentGraphRootIdentifiers();
+		HistoryData.HistoryDesc = GetAddressBarText();
+		HistoryData.Identifiers = CurrentGraphRootIdentifiers;
 	}
 	else
 	{
 		HistoryData.HistoryDesc = FText::GetEmpty();
-		HistoryData.PackageNames.Empty();
+		HistoryData.Identifiers.Empty();
 	}
 }
 
@@ -592,27 +579,6 @@ ECheckBoxState SReferenceViewer::IsShowSoftReferencesChecked() const
 	}
 }
 
-void SReferenceViewer::OnShowSoftDependenciesChanged(ECheckBoxState NewState)
-{
-	if (GraphObj)
-	{
-		GraphObj->SetShowSoftDependenciesEnabled(NewState == ECheckBoxState::Checked);
-		GraphObj->RebuildGraph();
-	}
-}
-
-ECheckBoxState SReferenceViewer::IsShowSoftDependenciesChecked() const
-{
-	if (GraphObj)
-	{
-		return GraphObj->IsShowSoftDependencies() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-	}
-	else
-	{
-		return ECheckBoxState::Unchecked;
-	}
-}
-
 void SReferenceViewer::OnShowHardReferencesChanged(ECheckBoxState NewState)
 {
 	if (GraphObj)
@@ -635,20 +601,41 @@ ECheckBoxState SReferenceViewer::IsShowHardReferencesChecked() const
 	}
 }
 
-void SReferenceViewer::OnShowHardDependenciesChanged(ECheckBoxState NewState)
+void SReferenceViewer::OnShowSearchableNamesChanged(ECheckBoxState NewState)
 {
 	if (GraphObj)
 	{
-		GraphObj->SetShowHardDependenciesEnabled(NewState == ECheckBoxState::Checked);
+		GraphObj->SetShowSearchableNames(NewState == ECheckBoxState::Checked);
 		GraphObj->RebuildGraph();
 	}
 }
 
-ECheckBoxState SReferenceViewer::IsShowHardDependenciesChecked() const
+ECheckBoxState SReferenceViewer::IsShowSearchableNamesChecked() const
 {
 	if (GraphObj)
 	{
-		return GraphObj->IsShowHardDependencies() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		return GraphObj->IsShowSearchableNames() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	}
+	else
+	{
+		return ECheckBoxState::Unchecked;
+	}
+}
+
+void SReferenceViewer::OnShowNativePackagesChanged(ECheckBoxState NewState)
+{
+	if (GraphObj)
+	{
+		GraphObj->SetShowNativePackages(NewState == ECheckBoxState::Checked);
+		GraphObj->RebuildGraph();
+	}
+}
+
+ECheckBoxState SReferenceViewer::IsShowNativePackagesChecked() const
+{
+	if (GraphObj)
+	{
+		return GraphObj->IsShowNativePackages() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 	else
 	{
@@ -684,7 +671,8 @@ void SReferenceViewer::RegisterActions()
 
 	ReferenceViewerActions->MapAction(
 		FGlobalEditorCommonCommands::Get().FindInContentBrowser,
-		FExecuteAction::CreateSP(this, &SReferenceViewer::ShowSelectionInContentBrowser));
+		FExecuteAction::CreateSP(this, &SReferenceViewer::ShowSelectionInContentBrowser),
+		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasAtLeastOnePackageNodeSelected));
 
 	ReferenceViewerActions->MapAction(
 		FReferenceViewerActions::Get().OpenSelectedInAssetEditor,
@@ -699,52 +687,52 @@ void SReferenceViewer::RegisterActions()
 	ReferenceViewerActions->MapAction(
 		FReferenceViewerActions::Get().ListReferencedObjects,
 		FExecuteAction::CreateSP(this, &SReferenceViewer::ListReferencedObjects),
-		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOneNodeSelected));
+		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOnePackageNodeSelected));
 
 	ReferenceViewerActions->MapAction(
 		FReferenceViewerActions::Get().ListObjectsThatReference,
 		FExecuteAction::CreateSP(this, &SReferenceViewer::ListObjectsThatReference),
-		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOneNodeSelected));
+		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOnePackageNodeSelected));
 
 	ReferenceViewerActions->MapAction(
 		FReferenceViewerActions::Get().MakeLocalCollectionWithReferencers,
-		FExecuteAction::CreateSP(this, &SReferenceViewer::MakeCollectionWithReferenersOrDependencies, ECollectionShareType::CST_Local, true),
-		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOneNodeSelected));
+		FExecuteAction::CreateSP(this, &SReferenceViewer::MakeCollectionWithReferencersOrDependencies, ECollectionShareType::CST_Local, true),
+		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOnePackageNodeSelected));
 	
 	ReferenceViewerActions->MapAction(
 		FReferenceViewerActions::Get().MakePrivateCollectionWithReferencers,
-		FExecuteAction::CreateSP(this, &SReferenceViewer::MakeCollectionWithReferenersOrDependencies, ECollectionShareType::CST_Private, true),
-		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOneNodeSelected));
+		FExecuteAction::CreateSP(this, &SReferenceViewer::MakeCollectionWithReferencersOrDependencies, ECollectionShareType::CST_Private, true),
+		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOnePackageNodeSelected));
 	
 	ReferenceViewerActions->MapAction(
 		FReferenceViewerActions::Get().MakeSharedCollectionWithReferencers,
-		FExecuteAction::CreateSP(this, &SReferenceViewer::MakeCollectionWithReferenersOrDependencies, ECollectionShareType::CST_Shared, true),
-		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOneNodeSelected));
+		FExecuteAction::CreateSP(this, &SReferenceViewer::MakeCollectionWithReferencersOrDependencies, ECollectionShareType::CST_Shared, true),
+		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOnePackageNodeSelected));
 
 	ReferenceViewerActions->MapAction(
 		FReferenceViewerActions::Get().MakeLocalCollectionWithDependencies,
-		FExecuteAction::CreateSP(this, &SReferenceViewer::MakeCollectionWithReferenersOrDependencies, ECollectionShareType::CST_Local, false),
-		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOneNodeSelected));
+		FExecuteAction::CreateSP(this, &SReferenceViewer::MakeCollectionWithReferencersOrDependencies, ECollectionShareType::CST_Local, false),
+		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOnePackageNodeSelected));
 
 	ReferenceViewerActions->MapAction(
 		FReferenceViewerActions::Get().MakePrivateCollectionWithDependencies,
-		FExecuteAction::CreateSP(this, &SReferenceViewer::MakeCollectionWithReferenersOrDependencies, ECollectionShareType::CST_Private, false),
-		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOneNodeSelected));
+		FExecuteAction::CreateSP(this, &SReferenceViewer::MakeCollectionWithReferencersOrDependencies, ECollectionShareType::CST_Private, false),
+		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOnePackageNodeSelected));
 
 	ReferenceViewerActions->MapAction(
 		FReferenceViewerActions::Get().MakeSharedCollectionWithDependencies,
-		FExecuteAction::CreateSP(this, &SReferenceViewer::MakeCollectionWithReferenersOrDependencies, ECollectionShareType::CST_Shared, false),
-		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOneNodeSelected));
+		FExecuteAction::CreateSP(this, &SReferenceViewer::MakeCollectionWithReferencersOrDependencies, ECollectionShareType::CST_Shared, false),
+		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOnePackageNodeSelected));
 	
 	ReferenceViewerActions->MapAction(
 		FReferenceViewerActions::Get().ShowSizeMap,
 		FExecuteAction::CreateSP(this, &SReferenceViewer::ShowSizeMap),
-		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasAtLeastOneNodeSelected));
+		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasAtLeastOnePackageNodeSelected));
 
 	ReferenceViewerActions->MapAction(
 		FReferenceViewerActions::Get().ShowReferenceTree,
 		FExecuteAction::CreateSP(this, &SReferenceViewer::ShowReferenceTree),
-		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOneNodeSelected));
+		FCanExecuteAction::CreateSP(this, &SReferenceViewer::HasExactlyOnePackageNodeSelected));
 }
 
 void SReferenceViewer::ShowSelectionInContentBrowser()
@@ -757,7 +745,10 @@ void SReferenceViewer::ShowSelectionInContentBrowser()
 	{
 		if (UEdGraphNode_Reference* ReferenceNode = Cast<UEdGraphNode_Reference>(*It))
 		{
-			AssetList.Add(ReferenceNode->GetAssetData());
+			if (ReferenceNode->GetAssetData().IsValid())
+			{
+				AssetList.Add(ReferenceNode->GetAssetData());
+			}
 		}
 	}
 
@@ -769,6 +760,23 @@ void SReferenceViewer::ShowSelectionInContentBrowser()
 
 void SReferenceViewer::OpenSelectedInAssetEditor()
 {
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	TSet<UObject*> SelectedNodes = GraphEditorPtr->GetSelectedNodes();
+	for (FGraphPanelSelectionSet::TConstIterator It(SelectedNodes); It; ++It)
+	{
+		if (UEdGraphNode_Reference* ReferenceNode = Cast<UEdGraphNode_Reference>(*It))
+		{
+			if (!ReferenceNode->IsPackage() && !ReferenceNode->IsCollapsed())
+			{
+				if (AssetRegistryModule.Get().EditSearchableName(ReferenceNode->GetIdentifier()))
+				{
+					// Was handled by callback, otherwise fall back to default behavior
+					return;
+				}
+			}
+		}
+	}
+
 	UObject* SelectedObject = GetObjectFromSingleSelectedNode();
 
 	if( SelectedObject )
@@ -807,7 +815,7 @@ void SReferenceViewer::ListObjectsThatReference()
 	}
 }
 
-void SReferenceViewer::MakeCollectionWithReferenersOrDependencies(ECollectionShareType::Type ShareType, bool bReferencers)
+void SReferenceViewer::MakeCollectionWithReferencersOrDependencies(ECollectionShareType::Type ShareType, bool bReferencers)
 {
 	TSet<FName> AllSelectedPackageNames;
 	GetPackageNamesFromSelectedNodes(AllSelectedPackageNames);
@@ -914,7 +922,13 @@ void SReferenceViewer::ShowSizeMap()
 		UEdGraphNode_Reference* ReferenceNode = Cast<UEdGraphNode_Reference>(SelectedNodes.Array()[0]);
 		if ( ReferenceNode )
 		{
-			SelectedAssetPackageNames.AddUnique( ReferenceNode->GetPackageName() );
+			TArray<FName> PackageNames;
+			ReferenceNode->GetAllPackageNames(PackageNames);
+
+			for (FName Name : PackageNames)
+			{
+				SelectedAssetPackageNames.AddUnique(Name);
+			}
 		}
 	}
 
@@ -951,14 +965,14 @@ void SReferenceViewer::ShowReferenceTree()
 
 void SReferenceViewer::ReCenterGraphOnNodes(const TSet<UObject*>& Nodes)
 {
-	TArray<FName> NewGraphRootNames;
+	TArray<FAssetIdentifier> NewGraphRootNames;
 	FIntPoint TotalNodePos(EForceInit::ForceInitToZero);
 	for ( auto NodeIt = Nodes.CreateConstIterator(); NodeIt; ++NodeIt )
 	{
 		UEdGraphNode_Reference* ReferenceNode = Cast<UEdGraphNode_Reference>(*NodeIt);
 		if ( ReferenceNode )
 		{
-			NewGraphRootNames.Add(ReferenceNode->GetPackageName());
+			ReferenceNode->GetAllIdentifiers(NewGraphRootNames);
 			TotalNodePos.X += ReferenceNode->NodePosX;
 			TotalNodePos.Y += ReferenceNode->NodePosY;
 		}
@@ -1033,11 +1047,49 @@ bool SReferenceViewer::HasExactlyOneNodeSelected() const
 	return false;
 }
 
-bool SReferenceViewer::HasAtLeastOneNodeSelected() const
+bool SReferenceViewer::HasExactlyOnePackageNodeSelected() const
+{
+	if (GraphEditorPtr.IsValid())
+	{
+		if (GraphEditorPtr->GetSelectedNodes().Num() != 1)
+		{
+			return false;
+		}
+
+		TSet<UObject*> SelectedNodes = GraphEditorPtr->GetSelectedNodes();
+		for (UObject* Node : SelectedNodes)
+		{
+			UEdGraphNode_Reference* ReferenceNode = Cast<UEdGraphNode_Reference>(Node);
+			if (ReferenceNode)
+			{
+				if (ReferenceNode->IsPackage())
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+	}
+
+	return false;
+}
+
+bool SReferenceViewer::HasAtLeastOnePackageNodeSelected() const
 {
 	if ( GraphEditorPtr.IsValid() )
 	{
-		return GraphEditorPtr->GetSelectedNodes().Num() > 0;
+		TSet<UObject*> SelectedNodes = GraphEditorPtr->GetSelectedNodes();
+		for (UObject* Node : SelectedNodes)
+		{
+			UEdGraphNode_Reference* ReferenceNode = Cast<UEdGraphNode_Reference>(Node);
+			if (ReferenceNode)
+			{
+				if (ReferenceNode->IsPackage())
+				{
+					return true;
+				}
+			}
+		}
 	}
 	
 	return false;

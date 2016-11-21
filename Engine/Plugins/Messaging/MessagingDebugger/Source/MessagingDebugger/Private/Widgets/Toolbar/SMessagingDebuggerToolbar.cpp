@@ -1,6 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MessagingDebuggerPrivatePCH.h"
+#include "MessagingDebuggerPCH.h"
+#include "MessagingDebuggerCommands.h"
+#include "SMessagingDebuggerToolbar.h"
 
 
 #define LOCTEXT_NAMESPACE "SMessagingDebuggerToolbar"
@@ -9,7 +11,7 @@
 /* SMessagingDebuggerToolbar interface
  *****************************************************************************/
 
-void SMessagingDebuggerToolbar::Construct( const FArguments& InArgs, const TSharedRef<ISlateStyle>& InStyle, const TSharedRef<FUICommandList>& InCommandList )
+void SMessagingDebuggerToolbar::Construct(const FArguments& InArgs, const TSharedRef<ISlateStyle>& InStyle, const TSharedRef<FUICommandList>& InCommandList)
 {
 	ChildSlot
 	[
@@ -21,7 +23,7 @@ void SMessagingDebuggerToolbar::Construct( const FArguments& InArgs, const TShar
 /* SMessagingDebuggerToolbar implementation
  *****************************************************************************/
 
-TSharedRef<SWidget> SMessagingDebuggerToolbar::MakeToolbar( const TSharedRef<FUICommandList>& CommandList )
+TSharedRef<SWidget> SMessagingDebuggerToolbar::MakeToolbar(const TSharedRef<FUICommandList>& CommandList)
 {
 	FToolBarBuilder ToolBarBuilder(CommandList, FMultiBoxCustomization::None);
 

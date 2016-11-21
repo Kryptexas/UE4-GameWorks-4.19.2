@@ -90,11 +90,7 @@ int32 SButton::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry
 			);
 	}
 
-	FWidgetStyle CompoundedWidgetStyle = FWidgetStyle(InWidgetStyle)
-		.BlendColorAndOpacityTint(ColorAndOpacity.Get())
-		.SetForegroundColor(ForegroundColor.Get());
-
-	return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect.IntersectionWith(AllottedGeometry.GetClippingRect()), OutDrawElements, LayerId, CompoundedWidgetStyle, bEnabled);
+	return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect.IntersectionWith(AllottedGeometry.GetClippingRect()), OutDrawElements, LayerId, InWidgetStyle, bEnabled);
 }
 
 FMargin SButton::GetCombinedPadding() const
@@ -245,7 +241,7 @@ FReply SButton::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const F
 FReply SButton::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	FReply Reply = FReply::Unhandled();
-	const bool bMustBePressed = ClickMethod == EButtonClickMethod::DownAndUp;
+	const bool bMustBePressed = ClickMethod == EButtonClickMethod::DownAndUp || IsPreciseTapOrClick(MouseEvent);
 	const bool bMeetsPressedRequirements = (!bMustBePressed || (bIsPressed && bMustBePressed));
 
 	if (bMeetsPressedRequirements && IsEnabled() && ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton || MouseEvent.IsTouchEvent() ) )

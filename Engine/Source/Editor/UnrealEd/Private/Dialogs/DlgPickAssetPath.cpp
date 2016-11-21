@@ -112,11 +112,16 @@ void SDlgPickAssetPath::OnPathChange(const FString& NewPath)
 FReply SDlgPickAssetPath::OnButtonClick(EAppReturnType::Type ButtonID)
 {
 	UserResponse = ButtonID;
-
+	
 	if (ButtonID == EAppReturnType::Cancel || ValidatePackage())
 	{
 		// Only close the window if canceling or if the asset name is valid
 		RequestDestroyWindow();
+	}
+	else
+	{
+		// reset the user response in case the window is closed using 'x'.
+		UserResponse = EAppReturnType::Cancel;
 	}
 
 	return FReply::Handled();

@@ -48,13 +48,16 @@ public:
 	/** Show Morphtarget */
 	TSharedPtr< FUICommandInfo > ShowMorphTargets;
 
-	/** Hide all local axes */
+	/** Hide all bones */
 	TSharedPtr< FUICommandInfo > ShowBoneDrawNone;
 
-	/** Show only selected axes */
+	/** Show only selected bones */
 	TSharedPtr< FUICommandInfo > ShowBoneDrawSelected;
 
-	/** Show all local axes */
+	/** Show only selected bones and their parents */
+	TSharedPtr< FUICommandInfo > ShowBoneDrawSelectedAndParents;
+
+	/** Show all bones */
 	TSharedPtr< FUICommandInfo > ShowBoneDrawAll;
 
 	/** Show raw animation (vs compressed) */

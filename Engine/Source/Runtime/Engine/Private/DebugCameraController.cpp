@@ -162,9 +162,10 @@ void ADebugCameraController::Select( FHitResult const& Hit )
 	if ( StaticMeshComponent && StaticMeshComponent->LODData.Num() > 0 )
 	{
 		const FStaticMeshComponentLODInfo& LODInfo = StaticMeshComponent->LODData[0];
-		if ( LODInfo.LightMap )
+		const FMeshMapBuildData* MeshMapBuildData = StaticMeshComponent->GetMeshMapBuildData(LODInfo);
+		if ( MeshMapBuildData && MeshMapBuildData->LightMap )
 		{
-			GDebugSelectedLightmap = LODInfo.LightMap->GetLightMap2D();
+			GDebugSelectedLightmap = MeshMapBuildData->LightMap->GetLightMap2D();
 			Texture2D = GDebugSelectedLightmap ? GDebugSelectedLightmap->GetTexture(0) : NULL;
 			if ( Texture2D )
 			{

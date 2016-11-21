@@ -41,13 +41,13 @@ public:
 	*/
 	void Construct(const FArguments& InArgs)
 	{
-		OnKeyDown = InArgs._OnKeyDown;		
+		OnKeyDownHandler = InArgs._OnKeyDown;
 
-		SBorder::Construct(SBorder::FArguments()			
+		SBorder::Construct(SBorder::FArguments()
 			.BorderImage(FCoreStyle::Get().GetBrush(TEXT("BlackBrush")))
 			.OnMouseButtonDown(InArgs._OnMouseButtonDown)
 			.Padding(0)[InArgs._Content.Widget]);
-		
+
 	}
 
 	/**
@@ -57,12 +57,35 @@ public:
 	*/
 	void SetOnOnKeyDown(const FOnKeyDown& InHandler)
 	{
-		OnKeyDown = InHandler;
-	}	
+		OnKeyDownHandler = InHandler;
+	}
+
+	/**
+	* Overrides SWidget::OnKeyDown()
+	* executes OnKeyDownHandler if it is bound
+	*/
+	FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override
+	{
+		if (OnKeyDownHandler.IsBound())
+		{
+			// If a handler is assigned, call it.
+			return OnKeyDownHandler.Execute(MyGeometry, InKeyEvent);
+		}
+		return SBorder::OnKeyDown(MyGeometry, InKeyEvent);
+	}
+
+	/**
+	* Overrides SWidget::SupportsKeyboardFocus()
+	* Must support keyboard focus to accept OnKeyDown events
+	*/
+	bool SupportsKeyboardFocus() const override
+	{
+		return true;
+	}
 
 protected:
-	
-	FOnKeyDown OnKeyDown;	
+
+	FOnKeyDown OnKeyDownHandler;
 };
 
 TSharedPtr<FDefaultGameMoviePlayer> FDefaultGameMoviePlayer::MoviePlayer;
@@ -322,6 +345,15 @@ void FDefaultGameMoviePlayer::WaitForMovieToFinish()
 		const bool bWaitForManualStop = LoadingScreenAttributes.bWaitForManualStop;
 
 		FSlateApplication& SlateApp = FSlateApplication::Get();
+
+		// Make sure the movie player widget has user focus to accept keypresses
+		if (LoadingScreenContents.IsValid())
+		{
+			SlateApp.ForEachUser([&](FSlateUser* User) {
+				SlateApp.SetUserFocus(User->GetUserIndex(), LoadingScreenContents);
+			});
+		}
+
 		// Continue to wait until the user calls finish (if enabled) or when loading completes or the minimum enforced time (if any) has been reached.
 		while ( (bWaitForManualStop && !bUserCalledFinish) || (!bUserCalledFinish && ((!bEnforceMinimumTime && !IsMovieStreamingFinished() && !bAutoCompleteWhenLoadingCompletes) || (bEnforceMinimumTime && (FPlatformTime::Seconds() - LastPlayTime) < LoadingScreenAttributes.MinimumLoadingScreenDisplayTime))))
 		{

@@ -82,6 +82,7 @@ static void SetupIOSDLCProfile(ILauncherProfileRef& DLCProfile, const FProfilePa
 	DLCProfile->SetBuildUAT(true);
 	// App build configuration
 	DLCProfile->SetBuildGame(false);
+	DLCProfile->SetBuildConfiguration(Params.BuildConfiguration);
 	
 	//// Cooking
 	DLCProfile->SetCookMode(ELauncherProfileCookModes::ByTheBook);

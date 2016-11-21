@@ -1,7 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "ISteamVRPlugin.h"
 #include "TickableObjectRenderThread.h"
+
+#if STEAMVR_SUPPORTED_PLATFORMS
 
 class FSteamSplashTicker : public FTickableObjectRenderThread, public TSharedFromThis<FSteamSplashTicker>
 {
@@ -24,3 +27,5 @@ public:
 private:
 	class FSteamVRHMD* SteamVRHMD;
 };
+
+#endif

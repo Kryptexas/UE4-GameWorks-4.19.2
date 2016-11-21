@@ -61,7 +61,7 @@ public:
 		
 		if(ShadowViewProjectionMatrices.IsBound())
 		{
-			const FMatrix Translation = FTranslationMatrix(-View.ViewMatrices.PreViewTranslation);
+			const FMatrix Translation = FTranslationMatrix(-View.ViewMatrices.GetPreViewTranslation());
 			
 			FMatrix TranslatedShadowViewProjectionMatrices[6];
 			for (int32 FaceIndex = 0; FaceIndex < 6; FaceIndex++)
@@ -333,7 +333,7 @@ public:
 	{
 		FMaterialShader::SetViewParameters(RHICmdList, GetGeometryShader(),View,View.ViewUniformBuffer);
 
-		const FMatrix Translation = FTranslationMatrix(-View.ViewMatrices.PreViewTranslation);
+		const FMatrix Translation = FTranslationMatrix(-View.ViewMatrices.GetPreViewTranslation());
 
 		FMatrix TranslatedShadowViewProjectionMatrices[6];
 		for (int32 FaceIndex = 0; FaceIndex < 6; FaceIndex++)
@@ -457,7 +457,7 @@ public:
 				RHICmdList, 
 				ShaderRHI,
 				ProjectionMatrixParameter,
-				FTranslationMatrix(ShadowInfo->PreShadowTranslation - View.ViewMatrices.PreViewTranslation) * ShadowInfo->SubjectAndReceiverMatrix
+				FTranslationMatrix(ShadowInfo->PreShadowTranslation - View.ViewMatrices.GetPreViewTranslation()) * ShadowInfo->SubjectAndReceiverMatrix
 				);
 
 			const FSceneViewState* ViewState = (const FSceneViewState*)View.State;
@@ -1025,7 +1025,8 @@ bool FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(
 
 				RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(FeatureLevel));
 				DrawingPolicy.SetSharedState(RHICmdList, &View, PolicyContext);
-				const FMeshDrawingRenderState DrawRenderState(Mesh.DitheredLODTransitionAlpha);
+				FMeshDrawingRenderState DrawRenderState;
+				DrawRenderState.DitheredLODTransitionAlpha = Mesh.DitheredLODTransitionAlpha;
 				for (int32 BatchElementIndex = 0, Num = Mesh.Elements.Num(); BatchElementIndex < Num; BatchElementIndex++)
 				{
 					TDrawEvent<FRHICommandList> MeshEvent;
@@ -1051,7 +1052,8 @@ bool FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(
 
 				RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(FeatureLevel));
 				DrawingPolicy.SetSharedState(RHICmdList, &View, PolicyContext);
-				const FMeshDrawingRenderState DrawRenderState(Mesh.DitheredLODTransitionAlpha);
+				FMeshDrawingRenderState DrawRenderState;
+				DrawRenderState.DitheredLODTransitionAlpha = Mesh.DitheredLODTransitionAlpha;
 				for (int32 BatchElementIndex = 0; BatchElementIndex < Mesh.Elements.Num(); BatchElementIndex++)
 				{
 					TDrawEvent<FRHICommandList> MeshEvent;
@@ -1210,7 +1212,7 @@ static void CheckShadowDepthMaterials(const FMaterialRenderProxy* InRenderProxy,
 	check(Material == InMaterial);
 }
 
-void FProjectedShadowInfo::ClearDepth(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, bool bPerformClear)
+void FProjectedShadowInfo::ClearDepth(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, int32 NumColorTextures, FTextureRHIParamRef* ColorTextures, FTextureRHIParamRef DepthTexture, bool bPerformClear)
 {
 	uint32 ViewportMinX = X;
 	uint32 ViewportMinY = Y;
@@ -1222,11 +1224,6 @@ void FProjectedShadowInfo::ClearDepth(FRHICommandList& RHICmdList, class FSceneR
 	int32 NumClearColors;
 	bool bClearColor;
 	FLinearColor Colors[2];
-	bool bClearDepth;
-	float Depth;
-	bool bClearStencil;
-	uint32 Stencil;
-	FIntRect ExcludeRect;
 
 	// Translucent shadows use draw call clear
 	check(!bTranslucentShadow);
@@ -1238,22 +1235,14 @@ void FProjectedShadowInfo::ClearDepth(FRHICommandList& RHICmdList, class FSceneR
 		Colors[0] = FLinearColor(0, 0, 1, 0);
 		Colors[1] = FLinearColor(0, 0, 0, 0);
 		
-		bClearDepth = true;
-		Depth = 1.0f;
-		bClearStencil = false;
-		Stencil = 0;
-		NumClearColors = 2;			
+		NumClearColors = FMath::Min(2, NumColorTextures);
 	}
 	else
 	{
 		// Clear depth only.
 		bClearColor = false;
 		Colors[0] = FLinearColor::White;
-		bClearDepth = true;
-		Depth = 1.0f;
-		bClearStencil = false;
-		Stencil = 0;
-		NumClearColors = 1;			
+		NumClearColors = FMath::Min(1, NumColorTextures);
 	}
 
 	if (bPerformClear)
@@ -1267,11 +1256,15 @@ void FProjectedShadowInfo::ClearDepth(FRHICommandList& RHICmdList, class FSceneR
 			ViewportMaxZ
 			);
 		
-		RHICmdList.ClearMRT(bClearColor, NumClearColors, Colors, bClearDepth, Depth, bClearStencil, Stencil, FIntRect());
+		if (bClearColor)
+		{
+			RHICmdList.ClearColorTextures(NumClearColors, ColorTextures, Colors, FIntRect());
+		}
+		DrawClearQuadMRT(RHICmdList, SceneRenderer->FeatureLevel, bClearColor, NumClearColors, Colors, true, 1.0f, false, 0);
 	}
 	else
 	{
-		RHICmdList.BindClearMRTValues(bClearColor, bClearDepth, bClearStencil);
+		RHICmdList.BindClearMRTValues(bClearColor, true, false);
 	}
 }
 
@@ -1300,7 +1293,7 @@ void DrawMeshElements(FRHICommandList& RHICmdList, FShadowDepthDrawingPolicy<bRe
 	checkSlow(CompareDrawingPolicy(DebugPolicy, SharedDrawingPolicy) == 0);
 #endif
 
-	const FMeshDrawingRenderState DrawRenderState(View.GetDitheredLODTransitionState(*Mesh));
+	const FMeshDrawingRenderState DrawRenderState(FMeshDrawingPolicy::GetDitheredLODTransitionState(View, *Mesh));
 	// Render only those batch elements that match the current LOD
 	uint64 BatchElementMask = Mesh->bRequiresPerElementVisibility ? View.StaticMeshBatchVisibility[Mesh->Id] : ((1ull << Mesh->Elements.Num()) - 1);
 	int32 BatchElementIndex = 0;
@@ -1882,32 +1875,17 @@ void FProjectedShadowInfo::ModifyViewForShadow(FRHICommandList& RHICmdList, FVie
 	FoundView->ViewRect.Min.Y = 0;
 	FoundView->ViewRect.Max.X = ResolutionX;
 	FoundView->ViewRect.Max.Y =  ResolutionY;
-	FoundView->ViewMatrices.ProjMatrix.M[2][0] = 0.0f;
-	FoundView->ViewMatrices.ProjMatrix.M[2][1] = 0.0f;
 
-	{
-		// Compute the view projection matrix and its inverse.
-		FoundView->ViewProjectionMatrix = FoundView->ViewMatrices.ViewMatrix * FoundView->ViewMatrices.ProjMatrix;
-		FoundView->InvViewProjectionMatrix = FoundView->ViewMatrices.GetInvProjMatrix() * FoundView->InvViewMatrix;
-
-		/** The view transform, starting from world-space points translated by -ViewOrigin. */
-		FMatrix TranslatedViewMatrix = FTranslationMatrix(-FoundView->ViewMatrices.PreViewTranslation) * FoundView->ViewMatrices.ViewMatrix;
-
-		// Compute a transform from view origin centered world-space to clip space.
-		FoundView->ViewMatrices.TranslatedViewProjectionMatrix = TranslatedViewMatrix * FoundView->ViewMatrices.ProjMatrix;
-		FoundView->ViewMatrices.InvTranslatedViewProjectionMatrix = FoundView->ViewMatrices.TranslatedViewProjectionMatrix.Inverse();
-	}
+	FoundView->ViewMatrices.HackRemoveTemporalAAProjectionJitter();
 
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 	FoundView->CachedViewUniformShaderParameters = new FViewUniformShaderParameters();
 
 	// Override the view matrix so that billboarding primitives will be aligned to the light
-	FoundView->ViewMatrices.ViewMatrix = ShadowViewMatrix;
+	FoundView->ViewMatrices.HackOverrideViewMatrixForShadows(ShadowViewMatrix);
 	FBox VolumeBounds[TVC_MAX];
 	FoundView->SetupUniformBufferParameters(
 		SceneContext,
-		ShadowViewMatrix, 
-		ShadowViewMatrix.Inverse(),
 		VolumeBounds,
 		TVC_MAX,
 		*FoundView->CachedViewUniformShaderParameters);
@@ -1996,7 +1974,7 @@ void FProjectedShadowInfo::RenderDepth(FRHICommandList& RHICmdList, FSceneRender
 
 void FProjectedShadowInfo::SetupShadowDepthView(FRHICommandListImmediate& RHICmdList, FSceneRenderer* SceneRenderer)
 {
-	const FViewInfo* FoundView = FindViewForShadow(SceneRenderer);
+	FViewInfo* FoundView = FindViewForShadow(SceneRenderer);
 	check(FoundView && IsInRenderingThread());
 	FViewInfo* DepthPassView = FoundView->CreateSnapshot();
 	ModifyViewForShadow(RHICmdList, DepthPassView);
@@ -2218,20 +2196,23 @@ void FSceneRenderer::RenderShadowDepthMaps(FRHICommandListImmediate& RHICmdList)
 		{
 			FProjectedShadowInfo* ProjectedShadowInfo = SortedShadowsForShadowDepthPass.PreshadowCache.Shadows[ShadowIndex];
 
-			auto SetShadowRenderTargets = [this, ProjectedShadowInfo](FRHICommandList& InRHICmdList, bool bPerformClear)
+			if (!ProjectedShadowInfo->bDepthsCached)
 			{
-				FTextureRHIParamRef PreShadowCacheDepthZ = Scene->PreShadowCacheDepthZ->GetRenderTargetItem().TargetableTexture.GetReference();
-				InRHICmdList.TransitionResources(EResourceTransitionAccess::EWritable, &PreShadowCacheDepthZ, 1);
+				auto SetShadowRenderTargets = [this, ProjectedShadowInfo](FRHICommandList& InRHICmdList, bool bPerformClear)
+				{
+					FTextureRHIParamRef PreShadowCacheDepthZ = Scene->PreShadowCacheDepthZ->GetRenderTargetItem().TargetableTexture.GetReference();
+					InRHICmdList.TransitionResources(EResourceTransitionAccess::EWritable, &PreShadowCacheDepthZ, 1);
 
-				// Must preserve existing contents as the clear will be scissored
-				SetRenderTarget(InRHICmdList, FTextureRHIRef(), PreShadowCacheDepthZ, ESimpleRenderTargetMode::EExistingColorAndDepth);
-				ProjectedShadowInfo->ClearDepth(InRHICmdList, this, bPerformClear);
-			};				
+					// Must preserve existing contents as the clear will be scissored
+					SetRenderTarget(InRHICmdList, FTextureRHIRef(), PreShadowCacheDepthZ, ESimpleRenderTargetMode::EExistingColorAndDepth);
+					ProjectedShadowInfo->ClearDepth(InRHICmdList, this, 0, nullptr, PreShadowCacheDepthZ, bPerformClear);
+				};
 
-			SetShadowRenderTargets(RHICmdList, true);		
+				SetShadowRenderTargets(RHICmdList, true);
 
-			ProjectedShadowInfo->RenderDepth(RHICmdList, this, SetShadowRenderTargets, ShadowDepthRenderMode_Normal);
-			ProjectedShadowInfo->bDepthsCached = true;
+				ProjectedShadowInfo->RenderDepth(RHICmdList, this, SetShadowRenderTargets, ShadowDepthRenderMode_Normal);
+				ProjectedShadowInfo->bDepthsCached = true;
+			}
 		}
 
 		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, RenderTarget.TargetableTexture);
@@ -2297,7 +2278,7 @@ void FSceneRenderer::RenderShadowDepthMaps(FRHICommandListImmediate& RHICmdList)
 				InRHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EGfxToGfx, Uavs, ARRAY_COUNT(Uavs));
 				SetRenderTargets(InRHICmdList, ARRAY_COUNT(RenderTargets), RenderTargets, DepthTarget.TargetableTexture, ARRAY_COUNT(Uavs), Uavs);
 
-				ProjectedShadowInfo->ClearDepth(InRHICmdList, this, bPerformClear);
+				ProjectedShadowInfo->ClearDepth(InRHICmdList, this, ARRAY_COUNT(RenderTargets), RenderTargets, DepthTarget.TargetableTexture, bPerformClear);
 			};					
 
 			{

@@ -489,8 +489,11 @@ class ULandscapeEditorObject : public UObject
 	uint32 ImportLandscape_Width;
 	UPROPERTY(NonTransactional)
 	uint32 ImportLandscape_Height;
+
+private:
 	UPROPERTY(NonTransactional)
 	TArray<uint16> ImportLandscape_Data;
+public:
 
 	// Whether the imported alpha maps are to be interpreted as "layered" or "additive" (UE4 uses additive internally)
 	UPROPERTY(Category="New Landscape", EditAnywhere, NonTransactional, meta=(DisplayName="Layer Alphamap Type", ShowForTools="NewLandscape"))
@@ -593,9 +596,10 @@ class ULandscapeEditorObject : public UObject
 	// New Landscape
 	FString LastImportPath;
 
-	const TArray<uint16>& GetImportLandscapeData();
+	const TArray<uint16>& GetImportLandscapeData() const { return ImportLandscape_Data; }
 	void ClearImportLandscapeData() { ImportLandscape_Data.Empty(); }
 
+	void ImportLandscapeData();
 	void RefreshImportLayersList();
 	
 	void UpdateComponentLayerWhitelist();

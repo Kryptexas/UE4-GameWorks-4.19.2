@@ -9,6 +9,8 @@
 #include "IPersonaPreviewScene.h"
 #include "IPropertyUtilities.h"
 
+#define LOCTEXT_NAMESPACE "PreviewSceneCustomizations"
+
 void FPreviewSceneDescriptionCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
@@ -41,24 +43,41 @@ void FPreviewSceneDescriptionCustomization::CustomizeDetails(IDetailLayoutBuilde
 		.ThumbnailPool(DetailBuilder.GetThumbnailPool())
 	];
 
-	DetailBuilder.EditCategory("Mesh")
-	.AddProperty(SkeletalMeshProperty)
-	.CustomWidget()
-	.NameContent()
-	[
-		SkeletalMeshProperty->CreatePropertyNameWidget()
-	]
-	.ValueContent()
-	.MaxDesiredWidth(250.0f)
-	.MinDesiredWidth(250.0f)
-	[
-		SNew(SObjectPropertyEntryBox)
-		.AllowedClass(USkeletalMesh::StaticClass())
-		.PropertyHandle(SkeletalMeshProperty)
-		.OnShouldFilterAsset(this, &FPreviewSceneDescriptionCustomization::HandleShouldFilterAsset, false)
-		.OnObjectChanged(this, &FPreviewSceneDescriptionCustomization::HandleMeshChanged)
-		.ThumbnailPool(DetailBuilder.GetThumbnailPool())
-	];
+	if (PersonaToolkit.Pin()->GetContext() != USkeletalMesh::StaticClass()->GetFName())
+	{
+		FText PreviewMeshName;
+		if (PersonaToolkit.Pin()->GetContext() == UAnimationAsset::StaticClass()->GetFName())
+		{
+			PreviewMeshName = FText::Format(LOCTEXT("PreviewMeshAnimation", "{0} (Animation)"), SkeletalMeshProperty->GetPropertyDisplayName());
+		}
+		else
+		{
+			PreviewMeshName = FText::Format(LOCTEXT("PreviewMeshSkeleton", "{0} (Skeleton)"), SkeletalMeshProperty->GetPropertyDisplayName());
+		}
+
+		DetailBuilder.EditCategory("Mesh")
+		.AddProperty(SkeletalMeshProperty)
+		.CustomWidget()
+		.NameContent()
+		[
+			SkeletalMeshProperty->CreatePropertyNameWidget(PreviewMeshName)
+		]
+		.ValueContent()
+		.MaxDesiredWidth(250.0f)
+		.MinDesiredWidth(250.0f)
+		[
+			SNew(SObjectPropertyEntryBox)
+			.AllowedClass(USkeletalMesh::StaticClass())
+			.PropertyHandle(SkeletalMeshProperty)
+			.OnShouldFilterAsset(this, &FPreviewSceneDescriptionCustomization::HandleShouldFilterAsset, false)
+			.OnObjectChanged(this, &FPreviewSceneDescriptionCustomization::HandleMeshChanged)
+			.ThumbnailPool(DetailBuilder.GetThumbnailPool())
+		];
+	}
+	else
+	{
+		DetailBuilder.HideProperty(SkeletalMeshProperty);
+	}
 
 	// use a factory with a custom fixed skeleton as we shouldn't be picking one here
 	UPreviewMeshCollectionFactory* FactoryToUse = NewObject<UPreviewMeshCollectionFactory>();
@@ -108,7 +127,7 @@ bool FPreviewSceneDescriptionCustomization::HandleShouldFilterAsset(const FAsset
 {
 	if (bCanUseDifferentSkeleton && GetDefault<UPersonaOptions>()->bAllowPreviewMeshCollectionsToSelectFromDifferentSkeletons)
 	{
-		return true;
+		return false;
 	}
 
 	FString SkeletonTag = InAssetData.GetTagValueRef<FString>("Skeleton");
@@ -151,9 +170,7 @@ void FPreviewSceneDescriptionCustomization::HandleAnimationChanged(const FAssetD
 void FPreviewSceneDescriptionCustomization::HandleMeshChanged(const FAssetData& InAssetData)
 {
 	USkeletalMesh* NewPreviewMesh = Cast<USkeletalMesh>(InAssetData.GetAsset());
-
-	EditableSkeleton.Pin()->SetPreviewMesh(NewPreviewMesh);
-	PreviewScene.Pin()->SetPreviewMesh(NewPreviewMesh);
+	PersonaToolkit.Pin()->SetPreviewMesh(NewPreviewMesh);
 }
 
 void FPreviewSceneDescriptionCustomization::HandleAdditionalMeshesChanged(const FAssetData& InAssetData, IDetailLayoutBuilder* DetailLayoutBuilder)
@@ -202,7 +219,7 @@ bool FPreviewMeshCollectionEntryCustomization::HandleShouldFilterAsset(const FAs
 {
 	if (GetDefault<UPersonaOptions>()->bAllowPreviewMeshCollectionsToSelectFromDifferentSkeletons)
 	{
-		return true;
+		return false;
 	}
 
 	FString SkeletonTag = InAssetData.GetTagValueRef<FString>("Skeleton");
@@ -233,3 +250,5 @@ void FPreviewMeshCollectionEntryCustomization::HandleMeshesArrayChanged(TSharedP
 		}
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

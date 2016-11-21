@@ -5,7 +5,7 @@
 #include "K2Node.h"
 #include "K2Node_IfThenElse.generated.h"
 
-UCLASS(MinimalAPI, meta=(Keywords = "if bool"))
+UCLASS(MinimalAPI, meta=(Keywords = "if bool branch"))
 class UK2Node_IfThenElse : public UK2Node
 {
 	GENERATED_UCLASS_BODY()

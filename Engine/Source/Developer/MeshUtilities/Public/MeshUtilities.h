@@ -106,9 +106,14 @@ class IMeshReductionModule : public IModuleInterface
 {
 public:
 	/**
-	 * Retrieve the mesh reduction interface.
+	 * Retrieve the static mesh reduction interface.
 	 */
-	virtual class IMeshReduction* GetMeshReductionInterface() = 0;
+	virtual class IMeshReduction* GetStaticMeshReductionInterface() = 0;
+
+	/**
+	 * Retrieve the static mesh reduction interface.
+	 */
+	virtual class IMeshReduction* GetSkeletalMeshReductionInterface() = 0;
 	
 	/**
 	 * Retrieve the mesh merging interface.
@@ -129,7 +134,8 @@ public:
 	virtual bool BuildStaticMesh(
 		class FStaticMeshRenderData& OutRenderData,
 		TArray<struct FStaticMeshSourceModel>& SourceModels,
-		const class FStaticMeshLODGroup& LODGroup
+		const class FStaticMeshLODGroup& LODGroup,
+		int32 ImportVersion
 		) = 0;
 
 	virtual void BuildStaticMeshVertexAndIndexBuffers(
@@ -138,8 +144,10 @@ public:
 		TArray<int32>& OutWedgeMap,
 		const FRawMesh& RawMesh,
 		const TMultiMap<int32, int32>& OverlappingCorners,
+		const TMap<uint32, uint32>& MaterialToSectionMapping,
 		float ComparisonThreshold,
-		FVector BuildScale
+		FVector BuildScale,
+		int32 ImportVersion
 		) = 0;
 
 	/**
@@ -200,7 +208,10 @@ public:
 		) = 0;
 
 	/** Returns the mesh reduction plugin if available. */
-	virtual IMeshReduction* GetMeshReductionInterface() = 0;
+	virtual IMeshReduction* GetStaticMeshReductionInterface() = 0;
+
+	/** Returns the mesh reduction plugin if available. */
+	virtual IMeshReduction* GetSkeletalMeshReductionInterface() = 0;
 
 	/** Returns the mesh merging plugin if available. */
 	virtual IMeshMerging* GetMeshMergingInterface() = 0;
@@ -232,7 +243,7 @@ public:
 	 */
 	virtual void CalcBoneVertInfos( USkeletalMesh* SkeletalMesh, TArray<FBoneVertInfo>& Infos, bool bOnlyDominant) = 0;
 
-	/** 
+	/**
 	 * Convert a set of mesh components in their current pose to a static mesh. 
 	 * @param	InMeshComponents		The mesh components we want to convert
 	 * @param	InRootTransform			The transform of the root of the mesh we want to output

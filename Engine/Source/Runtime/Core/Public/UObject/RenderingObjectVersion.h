@@ -30,6 +30,16 @@ struct CORE_API FRenderingObjectVersion
 		// Particle Cutout (SubUVAnimation) data is now stored in the ParticleRequired Module
 		MovedParticleCutoutsToRequiredModule,
 
+		MapBuildDataSeparatePackage,
+
+		// StaticMesh and SkeletalMesh texcoord size data.
+		TextureStreamingMeshUVChannelData,
+		
+		// Added type handling to material normalize and length (sqrt) nodes
+		TypeHandlingForMaterialSqrtNodes,
+
+		FixedBSPLightmaps,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

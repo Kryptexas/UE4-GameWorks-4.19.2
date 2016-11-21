@@ -237,21 +237,28 @@ public:
 		// Perform other kinds of zero-extent queries as zero-extent sphere queries
 		if ((CollisionShape.ShapeType != ECollisionShape::Sphere) && CollisionShape.IsNearlyZero())
 		{
-			PtrToUnionData = UnionData.SetSubtype<PxSphereGeometry>(PxSphereGeometry(0.0f));
+			PtrToUnionData = UnionData.SetSubtype<PxSphereGeometry>(PxSphereGeometry(KINDA_SMALL_NUMBER));
 		}
 		else
 		{
 			switch (CollisionShape.ShapeType)
 			{
 			case ECollisionShape::Box:
-				PtrToUnionData = UnionData.SetSubtype<PxBoxGeometry>(PxBoxGeometry(U2PVector(CollisionShape.GetBox())));
-				Rotation = U2PQuat(Rot);
-				break;
+				{
+					PxVec3 BoxExtents = U2PVector(CollisionShape.GetBox());
+					BoxExtents.x = FMath::Max(BoxExtents.x, KINDA_SMALL_NUMBER);
+					BoxExtents.y = FMath::Max(BoxExtents.y, KINDA_SMALL_NUMBER);
+					BoxExtents.z = FMath::Max(BoxExtents.z, KINDA_SMALL_NUMBER);
+
+					PtrToUnionData = UnionData.SetSubtype<PxBoxGeometry>(PxBoxGeometry(BoxExtents));
+					Rotation = U2PQuat(Rot);
+					break;
+				}
 			case ECollisionShape::Sphere:
-				PtrToUnionData = UnionData.SetSubtype<PxSphereGeometry>(PxSphereGeometry(CollisionShape.GetSphereRadius()));
+				PtrToUnionData = UnionData.SetSubtype<PxSphereGeometry>(PxSphereGeometry(FMath::Max(CollisionShape.GetSphereRadius(), KINDA_SMALL_NUMBER)));
 				break;
 			case ECollisionShape::Capsule:
-				PtrToUnionData = UnionData.SetSubtype<PxCapsuleGeometry>(PxCapsuleGeometry(CollisionShape.GetCapsuleRadius(), CollisionShape.GetCapsuleAxisHalfLength()));
+				PtrToUnionData = UnionData.SetSubtype<PxCapsuleGeometry>(PxCapsuleGeometry(FMath::Max(CollisionShape.GetCapsuleRadius(), KINDA_SMALL_NUMBER), FMath::Max(CollisionShape.GetCapsuleAxisHalfLength(), KINDA_SMALL_NUMBER)));
 				Rotation = ConvertToPhysXCapsuleRot(Rot);
 				break;
 			default:

@@ -338,13 +338,13 @@ FDlgMergeSkeleton::EResult FDlgMergeSkeleton::ShowModal()
 
 	// Make a list of all skeleton bone list
 	const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
-	for ( int32 BoneTreeId=0; BoneTreeId<RefSkeleton.GetNum(); ++BoneTreeId )
+	for ( int32 BoneTreeId=0; BoneTreeId<RefSkeleton.GetRawBoneNum(); ++BoneTreeId )
 	{
 		const FName& BoneName = RefSkeleton.GetBoneName(BoneTreeId);
 		BoneIndicesMap.Add(BoneName, BoneTreeId);
 	}
 
-	for ( int32 RefBoneId=0 ; RefBoneId< Mesh->RefSkeleton.GetNum() ; ++RefBoneId )
+	for ( int32 RefBoneId=0 ; RefBoneId< Mesh->RefSkeleton.GetRawBoneNum() ; ++RefBoneId )
 	{
 		const FName& BoneName = Mesh->RefSkeleton.GetBoneName(RefBoneId);
 		// if I can't find this from Skeleton
@@ -361,7 +361,7 @@ FDlgMergeSkeleton::EResult FDlgMergeSkeleton::ShowModal()
 	{
 		// it's all identical, but still need to return RequiredBones
 		// for the case, where they'd like to replace the one exactly same hierarchy but different skeleton 
-		for ( int32 RefBoneId= 0 ; RefBoneId< Mesh->RefSkeleton.GetNum() ; ++RefBoneId )
+		for ( int32 RefBoneId= 0 ; RefBoneId< Mesh->RefSkeleton.GetRawBoneNum() ; ++RefBoneId )
 		{
 			const FName& BoneName = Mesh->RefSkeleton.GetBoneName(RefBoneId);
 			RequiredBones.Add(RefBoneId);
@@ -378,7 +378,7 @@ FDlgMergeSkeleton::EResult FDlgMergeSkeleton::ShowModal()
 
 	if(UserResponse == EResult::Confirm)
 	{
-		for ( int32 RefBoneId= 0 ; RefBoneId< Mesh->RefSkeleton.GetNum() ; ++RefBoneId )
+		for ( int32 RefBoneId= 0 ; RefBoneId< Mesh->RefSkeleton.GetRawBoneNum() ; ++RefBoneId )
 		{
 			if ( DialogWidget->IsBoneIncluded(RefBoneId) )
 			{
@@ -511,33 +511,15 @@ void FAssetTypeActions_SkeletalMesh::OpenAssetEditor( const TArray<UObject*>& In
 
 			if ( Mesh->Skeleton != NULL )
 			{
-				if (GetDefault<UPersonaOptions>()->bUseStandaloneAnimationEditors)
+				const bool bBringToFrontIfOpen = true;
+				if (IAssetEditorInstance* EditorInstance = FAssetEditorManager::Get().FindEditorForAsset(Mesh, bBringToFrontIfOpen))
 				{
-					const bool bBringToFrontIfOpen = true;
-					if (IAssetEditorInstance* EditorInstance = FAssetEditorManager::Get().FindEditorForAsset(Mesh, bBringToFrontIfOpen))
-					{
-						EditorInstance->FocusWindow(Mesh);
-					}
-					else
-					{
-						ISkeletalMeshEditorModule& SkeletalMeshEditorModule = FModuleManager::LoadModuleChecked<ISkeletalMeshEditorModule>("SkeletalMeshEditor");
-						SkeletalMeshEditorModule.CreateSkeletalMeshEditor(Mode, EditWithinLevelEditor, Mesh);
-					}
+					EditorInstance->FocusWindow(Mesh);
 				}
 				else
 				{
-					const bool bBringToFrontIfOpen = false;
-					if (IAssetEditorInstance* EditorInstance = FAssetEditorManager::Get().FindEditorForAsset(Mesh->Skeleton, bBringToFrontIfOpen))
-					{
-						// The skeleton is already open in an editor.
-						// Tell persona that a mesh was requested
-						EditorInstance->FocusWindow(Mesh);
-					}
-					else
-					{
-						FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>("Persona");
-						PersonaModule.CreatePersona(Mode, EditWithinLevelEditor, Mesh->Skeleton, NULL, NULL, Mesh);
-					}
+					ISkeletalMeshEditorModule& SkeletalMeshEditorModule = FModuleManager::LoadModuleChecked<ISkeletalMeshEditorModule>("SkeletalMeshEditor");
+					SkeletalMeshEditorModule.CreateSkeletalMeshEditor(Mode, EditWithinLevelEditor, Mesh);
 				}
 			}
 		}
@@ -579,7 +561,7 @@ void FAssetTypeActions_SkeletalMesh::GetLODMenu(class FMenuBuilder& MenuBuilder,
 
 		MenuBuilder.AddMenuEntry(	Description, 
 									ToolTip, FSlateIcon(),
-									FUIAction(FExecuteAction::CreateStatic( &FbxMeshUtils::ImportMeshLODDialog, Cast<UObject>(SkeletalMesh), LOD) )) ;
+									FUIAction(FExecuteAction::CreateStatic( &FAssetTypeActions_SkeletalMesh::ExecuteImportMeshLOD, Cast<UObject>(SkeletalMesh), LOD) )) ;
 	}
 }
 
@@ -700,6 +682,11 @@ void FAssetTypeActions_SkeletalMesh::ExecuteFindSkeleton(TArray<TWeakObjectPtr<U
 	}
 }
 
+
+void FAssetTypeActions_SkeletalMesh::ExecuteImportMeshLOD(UObject* Mesh, int32 LOD)
+{
+	FbxMeshUtils::ImportMeshLODDialog(Mesh, LOD);
+}
 
 void FAssetTypeActions_SkeletalMesh::FillSkeletonMenu(FMenuBuilder& MenuBuilder, const TArray<TWeakObjectPtr<USkeletalMesh>> Meshes) const
 {

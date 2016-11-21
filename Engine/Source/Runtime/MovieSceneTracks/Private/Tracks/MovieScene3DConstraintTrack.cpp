@@ -4,7 +4,6 @@
 #include "MovieScene3DConstraintSection.h"
 #include "MovieScene3DConstraintTrack.h"
 #include "IMovieScenePlayer.h"
-#include "MovieScene3DConstraintTrackInstance.h"
 
 
 #define LOCTEXT_NAMESPACE "MovieScene3DConstraintTrack"

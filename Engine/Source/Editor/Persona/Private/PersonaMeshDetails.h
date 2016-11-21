@@ -191,14 +191,6 @@ private:
 	FText GetOriginalImportMaterialNameText(int32 MaterialIndex)const;
 
 	/**
-	* Called by the material list widget on generating each name widget
-	*
-	* @param Material		The material that is being displayed
-	* @param MaterialIndex	The index of the material slot
-	*/
-	TSharedRef<SWidget> OnGenerateCustomNameWidgetsForMaterialArray(UMaterialInterface* Material, int32 MaterialIndex, int32 LODIndex);
-
-	/**
 	* Called by the material list widget on generating each thumbnail widget
 	*
 	* @param Material		The material that is being displayed
@@ -211,7 +203,7 @@ private:
 
 	bool CanDeleteMaterialSlot(int32 MaterialIndex) const;
 
-	FReply OnDeleteMaterialSlot(int32 MaterialIndex);
+	void OnDeleteMaterialSlot(int32 MaterialIndex);
 
 	TSharedRef<SWidget> OnGetMaterialSlotUsedByMenuContent(int32 MaterialIndex);
 
@@ -357,6 +349,26 @@ private:
 
 	/** Access the persona toolkit ptr. It should always be valid in the lifetime of this customization */
 	TSharedRef<IPersonaToolkit> GetPersonaToolkit() const { check(PersonaToolkitPtr.IsValid()); return PersonaToolkitPtr.Pin().ToSharedRef(); }
+
+	EVisibility GetOverrideUVDensityVisibililty() const;
+	ECheckBoxState IsUVDensityOverridden(int32 MaterialIndex) const;
+	void OnOverrideUVDensityChanged(ECheckBoxState NewState, int32 MaterialIndex);
+
+	EVisibility GetUVDensityVisibility(int32 MaterialIndex, int32 UVChannelIndex) const;
+	TOptional<float> GetUVDensityValue(int32 MaterialIndex, int32 UVChannelIndex) const;
+	void SetUVDensityValue(float InDensity, ETextCommit::Type CommitType, int32 MaterialIndex, int32 UVChannelIndex);
+
+	SVerticalBox::FSlot& GetUVDensitySlot(int32 MaterialIndex, int32 UVChannelIndex) const;
+
+	// Used to control the type of reimport to do with a named parameter
+	enum class EReimportButtonType : uint8
+	{
+		Reimport,
+		ReimportWithNewFile
+	};
+
+	// Handler for reimport buttons in LOD details
+	FReply OnReimportLodClicked(IDetailLayoutBuilder* DetailLayout, EReimportButtonType InReimportType, int32 InLODIndex);
 
 public:
 

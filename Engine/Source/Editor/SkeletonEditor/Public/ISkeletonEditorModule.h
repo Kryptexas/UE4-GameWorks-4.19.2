@@ -16,7 +16,7 @@ public:
 	virtual TSharedRef<ISkeletonEditor> CreateSkeletonEditor(const EToolkitMode::Type Mode, const TSharedPtr<IToolkitHost>& InitToolkitHost, class USkeleton* InSkeleton) = 0;
 
 	/** Creates a new skeleton tree instance */
-	virtual TSharedRef<ISkeletonTree> CreateSkeletonTree(USkeleton* InSkeleton, USkeletalMesh* InSkeletalMesh, const FSkeletonTreeArgs& InSkeletonTreeArgs) = 0;
+	virtual TSharedRef<ISkeletonTree> CreateSkeletonTree(USkeleton* InSkeleton, const FSkeletonTreeArgs& InSkeletonTreeArgs) = 0;
 
 	/** Creates a new skeleton tree instance & registers a tab factory with the supplied tab factories */
 	virtual TSharedRef<class FWorkflowTabFactory> CreateSkeletonTreeTabFactory(const TSharedRef<class FWorkflowCentricApplication>& InHostingApp, const TSharedRef<ISkeletonTree>& InSkeletonTree) = 0;

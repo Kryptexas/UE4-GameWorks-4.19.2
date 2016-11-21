@@ -273,12 +273,6 @@ namespace UnrealBuildTool
 		public static bool bUseChecksInShipping;
 
 		/// <summary>
-		/// True if we need PhysX vehicle support
-		/// </summary>
-		[XmlConfig]
-		public static bool bCompilePhysXVehicle;
-
-		/// <summary>
 		/// True if we need FreeType support
 		/// </summary>
 		[XmlConfig]
@@ -346,6 +340,12 @@ namespace UnrealBuildTool
         public static bool bForceCompilePerformanceAutomationTests;
 
 		/// <summary>
+		/// If true, event driven loader will be used in cooked builds. @todoio This needs to be replaced by a runtime solution after async loading refactor
+		/// </summary>
+		[XmlConfig]
+		public static bool bEventDrivenLoader;
+
+		/// <summary>
 		/// Sets the configuration back to defaults.
 		/// </summary>
 		public static void LoadDefaults()
@@ -380,7 +380,6 @@ namespace UnrealBuildTool
             bUseLoggingInShipping = false;
 			bUseChecksInShipping = false;
             bUseLauncherChecks = false;
-			bCompilePhysXVehicle = true;
 			bCompileFreeType = true;
 			bCompileForSize = false;
 			bHotReloadFromIDE = false;
@@ -393,6 +392,7 @@ namespace UnrealBuildTool
 			bEditorDependsOnShaderCompileWorker = true;
             bForceCompileDevelopmentAutomationTests = false;
             bForceCompilePerformanceAutomationTests = false;
+			bEventDrivenLoader = false;
 		}
 
 		/// <summary>

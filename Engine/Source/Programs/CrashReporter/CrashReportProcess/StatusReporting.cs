@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Tools.CrashReporter.CrashReportCommon;
 
 namespace Tools.CrashReporter.CrashReportProcess
 {
@@ -27,17 +28,20 @@ namespace Tools.CrashReporter.CrashReportProcess
 			// Collapse list of folders and labels into a set of drive letters and one or more labels
 			foreach (var FolderAndLabel in InFolderMonitors)
 			{
-				string Drive;
-				if (CrashReportCommon.StorageSpaceHelper.TryGetDriveLetter(FolderAndLabel.Key, out Drive))
+				if (!string.IsNullOrWhiteSpace(FolderAndLabel.Key))
 				{
-					if (FolderMonitors.ContainsKey(Drive))
+					string Drive;
+					if (CrashReportCommon.StorageSpaceHelper.TryGetDriveLetter(FolderAndLabel.Key, out Drive))
 					{
-						// Add label to existing value
-						FolderMonitors[Drive] = FolderMonitors[Drive] + ", " + FolderAndLabel.Value;
-					}
-					else
-					{
-						FolderMonitors.Add(Drive, FolderAndLabel.Value);
+						if (FolderMonitors.ContainsKey(Drive))
+						{
+							// Add label to existing value
+							FolderMonitors[Drive] = FolderMonitors[Drive] + ", " + FolderAndLabel.Value;
+						}
+						else
+						{
+							FolderMonitors.Add(Drive, FolderAndLabel.Value);
+						}
 					}
 				}
 			}
@@ -85,25 +89,31 @@ namespace Tools.CrashReporter.CrashReportProcess
 
 		public void AlertOnLowDisk(string Filepath, float AlertThresholdPercent)
 		{
-			string Drive;
-			if (!CrashReportCommon.StorageSpaceHelper.TryGetDriveLetter(Filepath, out Drive))
+			try
 			{
-				CrashReporterProcessServicer.WriteException("Failed to get drive letter for path " + Filepath);
-				return;
-			}
-
-			Int64 FreeSpace;
-			float FreePercent;
-			if (CrashReportCommon.StorageSpaceHelper.TryGetSpaceAvailable(Drive, out FreeSpace, out FreePercent))
-			{
-				if (FreePercent < AlertThresholdPercent)
+				string Drive;
+				if (!StorageSpaceHelper.TryGetDriveLetter(Filepath, out Drive))
 				{
-					Alert("AlertOnLowDisk" + Drive, "Low disk space warning on " + Drive + " =>> " + GetDiskSpaceString(FreeSpace, FreePercent), Config.Default.SlackAlertRepeatMinimumMinutes);
+					throw new CrashReporterException("Failed to get drive letter for path " + Filepath);
+				}
+
+				Int64 FreeSpace;
+				float FreePercent;
+				if (StorageSpaceHelper.TryGetSpaceAvailable(Drive, out FreeSpace, out FreePercent))
+				{
+					if (FreePercent < AlertThresholdPercent)
+					{
+						Alert("AlertOnLowDisk" + Drive, "Low disk space warning on " + Drive + " =>> " + GetDiskSpaceString(FreeSpace, FreePercent), 3 * Config.Default.SlackAlertRepeatMinimumMinutes);
+					}
+				}
+				else
+				{
+					CrashReporterProcessServicer.WriteEvent("Failed to read disk space for " + Drive);
 				}
 			}
-			else
+			catch (Exception Ex)
 			{
-				CrashReporterProcessServicer.WriteException("Failed to read disk space for " + Drive);
+				CrashReporterProcessServicer.WriteException("AlertOnLowDisk failed: " + Ex, Ex);
 			}
         }
 
@@ -188,7 +198,10 @@ namespace Tools.CrashReporter.CrashReportProcess
 							StatusReportMessage.AppendLine(string.Format("Events in the last {0}...", PeriodTimeString));
 							foreach (var CountInPeriod in CountsInPeriod)
 							{
-								StatusReportMessage.AppendLine("> " + CountInPeriod.Key + " " + CountInPeriod.Value);
+								if (CountInPeriod.Value > 0)
+								{
+									StatusReportMessage.AppendLine("> " + CountInPeriod.Key + " " + CountInPeriod.Value);
+								}
 							}
 						}
 					}

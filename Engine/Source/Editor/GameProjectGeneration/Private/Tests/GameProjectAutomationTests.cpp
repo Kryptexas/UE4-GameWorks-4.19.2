@@ -44,7 +44,7 @@ namespace GameProjectAutomationUtils
 		}
 		else
 		{
-			ProjectPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*FDesktopPlatformModule::Get()->GetDefaultProjectCreationPath());
+			ProjectPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*FAutomationTestFramework::Get().GetUserAutomationDirectory());
 		}
 
 
@@ -113,7 +113,8 @@ namespace GameProjectAutomationUtils
 				for (TSharedPtr<FTemplateItem> OneTemplate : EachTemplate.Value)
 				{				
 					TSharedPtr<FTemplateItem> Item = OneTemplate;
-					// If this template is flagged as not for creation dont try to create it
+
+					// If this template is flagged as not for creation don't try to create it
 					if( Item->ProjectFile.IsEmpty())
 						continue;
 
@@ -140,6 +141,12 @@ namespace GameProjectAutomationUtils
 						FString BasePath = FPaths::RootDir();
 						DesiredProjectFilename = FString::Printf(TEXT("%s/%s/%s%s/%s%s"), *BasePath, *TestRootFolder, *Hardware, *ProjectDirName, *Hardware, *ProjectName);
 					}
+
+					// If the project already exists, delete it just in case things were left in a bad state.
+					if ( IFileManager::Get().DirectoryExists(*FPaths::GetPath(DesiredProjectFilename)) )
+					{
+						IFileManager::Get().DeleteDirectory(*FPaths::GetPath(DesiredProjectFilename), /*RequireExists=*/false, /*Tree=*/true);
+					}
 					
 					// Setup creation parameters
 					FText FailReason, FailLog;
@@ -153,7 +160,7 @@ namespace GameProjectAutomationUtils
 					if (!GameProjectUtils::CreateProject(ProjectInfo, FailReason, FailLog, &CreatedFiles))
 					{
 						// Failed, report the reason
-						UE_LOG(LogGameProjectGenerationTests, Display, TEXT("Test failed! Failed to create %s project %s based on %s. Reason:%s"), *SourceCategoryEnum->GetEnumName((int32)InCategory), *DesiredProjectFilename, *Item->Name.ToString(), *FailReason.ToString());
+						UE_LOG(LogGameProjectGenerationTests, Error, TEXT("Failed to create %s project %s based on %s. Reason: %s\nProject Creation Failure Log:\n%s"), *SourceCategoryEnum->GetEnumName((int32)InCategory), *DesiredProjectFilename, *Item->Name.ToString(), *FailReason.ToString(), *FailLog.ToString());
 					}
 					else
 					{
@@ -323,7 +330,7 @@ bool FBuildPromotionNewProjectMapTest::RunTest(const FString& Parameters)
 /*
 * Template project creation test
 */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCreateBPTemplateProjectAutomationTests, "System.Promotion.Project Promotion Pass.Step 3 NewProjectCreationTests.CreateBlueprintProjects", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCreateBPTemplateProjectAutomationTests, "System.Promotion.Project Promotion Pass.Step 3 NewProjectCreationTests.CreateBlueprintProjects", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter | EAutomationTestFlags::Disabled)
 
 /** 
  * Uses the new project wizard to locate all templates available for new blueprint project creation and verifies creation succeeds.
@@ -335,8 +342,8 @@ bool FCreateBPTemplateProjectAutomationTests::RunTest(const FString& Parameters)
 {
 	TSharedPtr<SNewProjectWizard> NewProjectWizard;
 	NewProjectWizard = SNew(SNewProjectWizard);
-	//return ;
-	TMap<FName, TArray<TSharedPtr<FTemplateItem>> >& Templates = NewProjectWizard->FindTemplateProjects();//GameProjectAutomationUtils::CreateTemplateList();
+	
+	TMap<FName, TArray<TSharedPtr<FTemplateItem>> >& Templates = NewProjectWizard->FindTemplateProjects();
 	int32 OutMatchedProjectsDesk = 0;
 	int32 OutCreatedProjectsDesk = 0;
 	GameProjectAutomationUtils::CreateProjectSet(Templates, EHardwareClass::Desktop, EGraphicsPreset::Maximum, EContentSourceCategory::BlueprintFeature, false, OutMatchedProjectsDesk, OutCreatedProjectsDesk);
@@ -351,7 +358,7 @@ bool FCreateBPTemplateProjectAutomationTests::RunTest(const FString& Parameters)
 /*
 * Template project creation test
 */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCreateCPPTemplateProjectAutomationTests, "System.Promotion.Project Promotion Pass.Step 3 NewProjectCreationTests.CreateCodeProjects", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCreateCPPTemplateProjectAutomationTests, "System.Promotion.Project Promotion Pass.Step 3 NewProjectCreationTests.CreateCodeProjects", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter | EAutomationTestFlags::Disabled)
 
 /** 
  * Uses the new project wizard to locate all templates available for new code project creation and verifies creation succeeds.

@@ -369,7 +369,7 @@ void FMacWindow::Show()
 		MainThreadCall(^{
 			SCOPED_AUTORELEASE_POOL;
 			[WindowHandle orderFrontAndMakeMain:bMakeMainAndKey andKey:bMakeMainAndKey];
-		}, UE4ShowEventMode, true);
+		}, UE4ShowEventMode, false);
 		
 		bIsVisible = true;
 	}
@@ -508,9 +508,44 @@ void FMacWindow::SetOpacity( const float InOpacity )
 bool FMacWindow::IsPointInWindow( int32 X, int32 Y ) const
 {
 	SCOPED_AUTORELEASE_POOL;
-	const FVector2D Point = FMacApplication::ConvertSlatePositionToCocoa(X + PositionX, Y + PositionY);
-	const NSInteger WindowNumber = [NSWindow windowNumberAtPoint:NSMakePoint(Point.X, Point.Y) belowWindowWithWindowNumber:0];
-	return WindowNumber == WindowHandle.windowNumber;
+
+	bool PointInWindow = false;
+	if (![WindowHandle isMiniaturized])
+	{
+		NSRect WindowFrame = [WindowHandle frame];
+		WindowFrame.size = [WindowHandle openGLFrame].size;
+		NSRect VisibleFrame = WindowFrame;
+		VisibleFrame.origin = NSMakePoint(0, 0);
+
+		// Only the editor needs to handle the space-per-display logic introduced in Mavericks.
+#if WITH_EDITOR
+		// Only fetch the spans-displays once - it requires a log-out to change.
+		// Note that we have no way to tell if the current setting is actually in effect,
+		// so this won't work if the user schedules a change but doesn't logout to confirm it.
+		static bool bScreensHaveSeparateSpaces = false;
+		static bool bSettingFetched = false;
+		if (!bSettingFetched)
+		{
+			bSettingFetched = true;
+			bScreensHaveSeparateSpaces = [NSScreen screensHaveSeparateSpaces];
+		}
+		if (bScreensHaveSeparateSpaces)
+		{
+			NSRect ScreenFrame = [[WindowHandle screen] frame];
+			NSRect Intersection = NSIntersectionRect(ScreenFrame, WindowFrame);
+			VisibleFrame.size = Intersection.size;
+			VisibleFrame.origin.x = Intersection.origin.x - WindowFrame.origin.x;
+			VisibleFrame.origin.y = Intersection.origin.y - WindowFrame.origin.y;
+		}
+#endif
+
+		if (WindowHandle->bIsOnActiveSpace)
+		{
+			NSPoint CursorPoint = NSMakePoint(X, WindowFrame.size.height - (Y + 1));
+			PointInWindow = (NSPointInRect(CursorPoint, VisibleFrame) == YES);
+		}
+	}
+	return PointInWindow;
 }
 
 int32 FMacWindow::GetWindowBorderSize() const

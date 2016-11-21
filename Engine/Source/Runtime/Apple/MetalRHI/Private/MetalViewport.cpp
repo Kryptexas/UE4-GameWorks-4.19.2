@@ -43,36 +43,37 @@ FMetalViewport::FMetalViewport(void* WindowHandle, uint32 InSizeX,uint32 InSizeY
 : Drawable(nil)
 {
 #if PLATFORM_MAC
-	FCocoaWindow* Window = (FCocoaWindow*)WindowHandle;
-	const NSRect ContentRect = NSMakeRect(0, 0, InSizeX, InSizeY);
-	View = [[FMetalView alloc] initWithFrame:ContentRect];
-	[View setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
-	[View setWantsLayer:YES];
+	MainThreadCall(^{
+		FCocoaWindow* Window = (FCocoaWindow*)WindowHandle;
+		const NSRect ContentRect = NSMakeRect(0, 0, InSizeX, InSizeY);
+		View = [[FMetalView alloc] initWithFrame:ContentRect];
+		[View setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
+		[View setWantsLayer:YES];
 
-	CAMetalLayer* Layer = [CAMetalLayer new];
+		CAMetalLayer* Layer = [CAMetalLayer new];
 
-	CGFloat bgColor[] = { 0.0, 0.0, 0.0, 0.0 };
-	Layer.edgeAntialiasingMask = 0;
-	Layer.masksToBounds = YES;
-	Layer.backgroundColor = CGColorCreate(CGColorSpaceCreateDeviceRGB(), bgColor);
-	Layer.presentsWithTransaction = NO;
-	Layer.anchorPoint = CGPointMake(0.5, 0.5);
-	Layer.frame = ContentRect;
-	Layer.magnificationFilter = kCAFilterNearest;
-	Layer.minificationFilter = kCAFilterNearest;
-//	Layer.drawsAsynchronously = YES; // @todo zebra: do we need and/or want this on Mac?
+		CGFloat bgColor[] = { 0.0, 0.0, 0.0, 0.0 };
+		Layer.edgeAntialiasingMask = 0;
+		Layer.masksToBounds = YES;
+		Layer.backgroundColor = CGColorCreate(CGColorSpaceCreateDeviceRGB(), bgColor);
+		Layer.presentsWithTransaction = NO;
+		Layer.anchorPoint = CGPointMake(0.5, 0.5);
+		Layer.frame = ContentRect;
+		Layer.magnificationFilter = kCAFilterNearest;
+		Layer.minificationFilter = kCAFilterNearest;
 
-	[Layer setDevice:GetMetalDeviceContext().GetDevice()];
-	[Layer setPixelFormat:MTLPixelFormatBGRA8Unorm];
-	[Layer setFramebufferOnly:NO];
-	[Layer removeAllAnimations];
+		[Layer setDevice:GetMetalDeviceContext().GetDevice()];
+		[Layer setPixelFormat:MTLPixelFormatBGRA8Unorm];
+		[Layer setFramebufferOnly:NO];
+		[Layer removeAllAnimations];
 
-	[View setLayer:Layer];
+		[View setLayer:Layer];
 
-	[Window setContentView:View];
-	[[Window standardWindowButton:NSWindowCloseButton] setAction:@selector(performClose:)];
+		[Window setContentView:View];
+		[[Window standardWindowButton:NSWindowCloseButton] setAction:@selector(performClose:)];
 
-	Resize(InSizeX, InSizeY, bInIsFullscreen);
+		Resize(InSizeX, InSizeY, bInIsFullscreen);
+	}, NSDefaultRunLoopMode, true);
 #else
 	Resize(InSizeX, InSizeY, bInIsFullscreen);
 #endif

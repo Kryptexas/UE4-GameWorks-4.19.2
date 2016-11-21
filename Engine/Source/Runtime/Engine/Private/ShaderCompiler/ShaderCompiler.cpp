@@ -75,6 +75,13 @@ static FAutoConsoleVariableRef CVarDumpShaderDebugSCWCommandLine(
 	TEXT("When set to 1, it will generate a file that can be used with ShaderCompileWorker's -directcompile.")
 	);
 
+static int32 GDumpSCWJobInfoOnCrash = 0;
+static FAutoConsoleVariableRef CVarDumpSCWJobInfoOnCrash(
+	TEXT("r.DumpSCWQueuedJobs"),
+	GDumpSCWJobInfoOnCrash,
+	TEXT("When set to 1, it will dump a job list to help track down crashes that happened on ShaderCompileWorker.")
+);
+
 static int32 GShowShaderWarnings = 0;
 static FAutoConsoleVariableRef CVarShowShaderWarnings(
 	TEXT("r.ShowShaderCompilerWarnings"),
@@ -526,7 +533,47 @@ static void DoReadTaskResults(const TArray<FShaderCommonCompileJob*>& QueuedJobs
 		{
 		default:
 		case SCWErrorCode::GeneralCrash:
-			SCWErrorCode::HandleGeneralCrash(ExceptionInfo.GetData(), Callstack.GetData());
+			{
+				if (GDumpSCWJobInfoOnCrash != 0)
+				{
+					auto DumpSingleJob = [](FShaderCompileJob* SingleJob) -> FString
+					{
+						if (!SingleJob)
+						{
+							return TEXT("Internal error, not a Job!");
+						}
+						FString String = SingleJob->Input.GenerateShaderName();
+						if (SingleJob->VFType)
+						{
+							String += FString::Printf(TEXT(" VF '%s'"), SingleJob->VFType->GetName());
+						}
+						String += FString::Printf(TEXT(" Type '%s'"), SingleJob->ShaderType->GetName());
+						String += FString::Printf(TEXT(" '%s' Entry '%s'"), *SingleJob->Input.SourceFilename, *SingleJob->Input.EntryPointName);
+						return String;
+					};
+					UE_LOG(LogShaderCompilers, Error, TEXT("SCW %d Queued Jobs:"), QueuedJobs.Num());
+					for (int32 Index = 0; Index < QueuedJobs.Num(); ++Index)
+					{
+						FShaderCommonCompileJob* CommonJob = QueuedJobs[0];
+						FShaderCompileJob* SingleJob = CommonJob->GetSingleShaderJob();
+						GLog->Flush();
+						if (SingleJob)
+						{
+							UE_LOG(LogShaderCompilers, Error, TEXT("Job %d [Single] %s"), Index, *DumpSingleJob(SingleJob));
+						}
+						else
+						{
+							FShaderPipelineCompileJob* PipelineJob = CommonJob->GetShaderPipelineJob();
+							UE_LOG(LogShaderCompilers, Error, TEXT("Job %d: Pipeline %s "), Index, PipelineJob->ShaderPipeline->GetName());
+							for (int32 Job = 0; Job < PipelineJob->StageJobs.Num(); ++Job)
+							{
+								UE_LOG(LogShaderCompilers, Error, TEXT("PipelineJob %d %s"), Job, *DumpSingleJob(PipelineJob->StageJobs[Job]->GetSingleShaderJob()));
+							}
+						}
+					}
+				}
+				SCWErrorCode::HandleGeneralCrash(ExceptionInfo.GetData(), Callstack.GetData());
+			}
 			break;
 		case SCWErrorCode::BadShaderFormatVersion:
 			SCWErrorCode::HandleBadShaderFormatVersion(ExceptionInfo.GetData());
@@ -1677,16 +1724,16 @@ void FShaderCompilingManager::ProcessCompiledShaderMaps(
 				LocalShaderMapReferences.Add(ShaderMap);
 				FMaterialShaderMap::ShaderMapsBeingCompiled.Remove(ShaderMap);
 #if DEBUG_INFINITESHADERCOMPILE
-				UE_LOG(LogTemp, Warning, TEXT("Finished compile of shader map 0x%08X%08X"), (int)((int64)(ShaderMap.GetReference()) >> 32), (int)((int64)(ShaderMap.GetReference())));
+				UE_LOG(LogTemp, Display, TEXT("Finished compile of shader map 0x%08X%08X"), (int)((int64)(ShaderMap.GetReference()) >> 32), (int)((int64)(ShaderMap.GetReference())));
 #endif
 				for (int32 MaterialIndex = 0; MaterialIndex < MaterialsArray.Num(); MaterialIndex++)
 				{
 					FMaterial* Material = MaterialsArray[MaterialIndex];
 					FMaterialShaderMap* CompletedShaderMap = ShaderMap;
 #if DEBUG_INFINITESHADERCOMPILE
-					UE_LOG(LogTemp, Warning, TEXT("Shader map %s complete, GameThreadShaderMap 0x%08X%08X, marking material %s as finished"), *ShaderMap->GetFriendlyName(), (int)((int64)(ShaderMap.GetReference()) >> 32), (int)((int64)(ShaderMap.GetReference())), *Material->GetFriendlyName());
+					UE_LOG(LogTemp, Display, TEXT("Shader map %s complete, GameThreadShaderMap 0x%08X%08X, marking material %s as finished"), *ShaderMap->GetFriendlyName(), (int)((int64)(ShaderMap.GetReference()) >> 32), (int)((int64)(ShaderMap.GetReference())), *Material->GetFriendlyName());
 
-					UE_LOG(LogTemp, Warning, TEXT("Marking material as finished 0x%08X%08X"), (int)((int64)(Material) >> 32), (int)((int64)(Material)));
+					UE_LOG(LogTemp, Display, TEXT("Marking material as finished 0x%08X%08X"), (int)((int64)(Material) >> 32), (int)((int64)(Material)));
 #endif
 					Material->RemoveOutstandingCompileId(ShaderMap->CompilingId);
 
@@ -2514,16 +2561,18 @@ void GlobalBeginCompileShader(
 		static const auto CVarMultiView = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MultiView"));
 		static const auto CVarMobileMultiView = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MobileMultiView"));
 
-		const bool bIsInstancedStereoCVar = CVarInstancedStereo ? (CVarInstancedStereo->GetValueOnGameThread() != false) : false;
-		const bool bIsMultiViewCVar = CVarMultiView ? (CVarMultiView->GetValueOnGameThread() != false) : false;
-		const bool bIsMobileMultiViewCVar = CVarMobileMultiView ? (CVarMobileMultiView->GetValueOnGameThread() != false) : false;
+		const bool bIsInstancedStereoCVar = CVarInstancedStereo ? (CVarInstancedStereo->GetValueOnGameThread() != 0) : false;
+		const bool bIsMultiViewCVar = CVarMultiView ? (CVarMultiView->GetValueOnGameThread() != 0) : false;
+		const bool bIsMobileMultiViewCVar = CVarMobileMultiView ? (CVarMobileMultiView->GetValueOnGameThread() != 0) : false;
 
 		const EShaderPlatform ShaderPlatform = static_cast<EShaderPlatform>(Target.Platform);
 		
 		const bool bIsInstancedStereo = bIsInstancedStereoCVar && (ShaderPlatform == EShaderPlatform::SP_PCD3D_SM5 || ShaderPlatform == EShaderPlatform::SP_PS4);
 		Input.Environment.SetDefine(TEXT("INSTANCED_STEREO"), bIsInstancedStereo);
 		Input.Environment.SetDefine(TEXT("MULTI_VIEW"), bIsInstancedStereo && bIsMultiViewCVar && ShaderPlatform == EShaderPlatform::SP_PS4);
-		Input.Environment.SetDefine(TEXT("MOBILE_MULTI_VIEW"), bIsMobileMultiViewCVar && ShaderPlatform == EShaderPlatform::SP_OPENGL_ES3_1_ANDROID);
+
+		const bool bIsAndroidGLES = (ShaderPlatform == EShaderPlatform::SP_OPENGL_ES3_1_ANDROID || ShaderPlatform == EShaderPlatform::SP_OPENGL_ES2_ANDROID);
+		Input.Environment.SetDefine(TEXT("MOBILE_MULTI_VIEW"), bIsMobileMultiViewCVar && bIsAndroidGLES);
 
 		// Throw a warning if we are silently disabling ISR due to missing platform support.
 		if (bIsInstancedStereoCVar && !bIsInstancedStereo && !GShaderCompilingManager->AreWarningsSuppressed(ShaderPlatform))
@@ -2651,14 +2700,19 @@ void GlobalBeginCompileShader(
 		Input.Environment.SetDefine(TEXT("PROJECT_ALLOW_GLOBAL_CLIP_PLANE"), CVar ? (CVar->GetInt() != 0) : 0);
 	}
 
-	{
-		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ForwardShading"));
-		Input.Environment.SetDefine(TEXT("FORWARD_SHADING"), CVar ? (CVar->GetInt() != 0) : 0);
-	}
+	static IConsoleVariable* CVarForwardShading = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ForwardShading"));
+	const bool bForwardShading = CVarForwardShading ? (CVarForwardShading->GetInt() != 0) : false;
+
+	Input.Environment.SetDefine(TEXT("FORWARD_SHADING"), bForwardShading);
 
 	{
 		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VertexFoggingForOpaque"));
-		Input.Environment.SetDefine(TEXT("VERTEX_FOGGING_FOR_OPAQUE"), CVar ? (CVar->GetInt() != 0) : 0);
+		Input.Environment.SetDefine(TEXT("VERTEX_FOGGING_FOR_OPAQUE"), bForwardShading && (CVar ? (CVar->GetInt() != 0) : 0));
+	}
+
+	{
+		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Mobile.DisableVertexFog"));
+		Input.Environment.SetDefine(TEXT("PROJECT_MOBILE_DISABLE_VERTEX_FOG"), CVar ? (CVar->GetInt() != 0) : 0);
 	}
 
 	if (GSupportsRenderTargetWriteMask)

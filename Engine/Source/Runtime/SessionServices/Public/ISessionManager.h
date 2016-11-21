@@ -127,10 +127,3 @@ public:
 	/** Virtual destructor. */
 	virtual ~ISessionManager() { }
 };
-
-
-/** Type definition for shared pointers to instances of ISessionManager. */
-typedef TSharedPtr<ISessionManager> ISessionManagerPtr;
-
-/** Type definition for shared references to instances of ISessionManager. */
-typedef TSharedRef<ISessionManager> ISessionManagerRef;

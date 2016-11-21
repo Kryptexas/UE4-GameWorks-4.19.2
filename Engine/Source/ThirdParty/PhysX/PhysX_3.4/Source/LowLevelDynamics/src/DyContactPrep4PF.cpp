@@ -950,7 +950,7 @@ SolverConstraintPrepState::Enum createFinalizeSolverContacts4Coulomb(
 		if(overflow)
 			return SolverConstraintPrepState::eUNBATCHABLE;
 
-		blockDesc.numContactPatches = c.contactPatchCount - blockDesc.startContactPatchIndex;
+		blockDesc.numContactPatches = PxU16(c.contactPatchCount - blockDesc.startContactPatchIndex);
 		blockDesc.numFrictionPatches = c.frictionPatchCount - blockDesc.startFrictionPatchIndex;
 
 		invMassScale0[a] *= blockDesc.mInvMassScales.linear0;

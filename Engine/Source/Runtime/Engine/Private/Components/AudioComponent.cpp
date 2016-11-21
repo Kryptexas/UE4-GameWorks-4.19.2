@@ -30,9 +30,11 @@ UAudioComponent::UAudioComponent(const FObjectInitializer& ObjectInitializer)
 #endif
 	VolumeMultiplier = 1.f;
 	bOverridePriority = false;
+	bOverrideSubtitlePriority = true;
 	bIsPreviewSound = false;
 	bIsPaused = false;
 	Priority = 1.f;
+	SubtitlePriority = DEFAULT_SUBTITLE_PRIORITY;
 	PitchMultiplier = 1.f;
 	VolumeModulationMin = 1.f;
 	VolumeModulationMax = 1.f;
@@ -237,7 +239,15 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 			NewActiveSound.bEnableLowPassFilter = bEnableLowPassFilter;
 			NewActiveSound.LowPassFilterFrequency = LowPassFilterFrequency;
 			NewActiveSound.RequestedStartTime = FMath::Max(0.f, StartTime);
-			NewActiveSound.SubtitlePriority = SubtitlePriority;
+
+			if (bOverrideSubtitlePriority)
+			{
+				NewActiveSound.SubtitlePriority = SubtitlePriority;
+			}
+			else
+			{
+				NewActiveSound.SubtitlePriority = Sound->GetSubtitlePriority();
+			}
 
 			NewActiveSound.bShouldRemainActiveIfDropped = bShouldRemainActiveIfDropped;
 			NewActiveSound.bHandleSubtitles = (!bSuppressSubtitles || OnQueueSubtitles.IsBound());
@@ -573,6 +583,10 @@ void UAudioComponent::Activate(bool bReset)
 	if (bReset || ShouldActivate() == true)
 	{
 		Play();
+		if (bIsActive)
+		{
+			OnComponentActivated.Broadcast(this, bReset);
+		}
 	}
 }
 
@@ -581,6 +595,11 @@ void UAudioComponent::Deactivate()
 	if (ShouldActivate() == false)
 	{
 		Stop();
+
+		if (!bIsActive)
+		{
+			OnComponentDeactivated.Broadcast(this);
+		}
 	}
 }
 

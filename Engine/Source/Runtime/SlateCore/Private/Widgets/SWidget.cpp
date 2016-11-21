@@ -21,6 +21,55 @@ TAutoConsoleVariable<int32> TickInvisibleWidgets(TEXT("Slate.TickInvisibleWidget
 SLATECORE_API int32 bFoldTick = 1;
 FAutoConsoleVariableRef FoldTick(TEXT("Slate.FoldTick"), bFoldTick, TEXT("When folding, call Tick as part of the paint pass instead of a separate tick pass."));
 
+#if STATS
+
+struct FScopeCycleCounterSWidget : public FCycleCounter
+{
+	/**
+	 * Constructor, starts timing
+	 */
+	FORCEINLINE_STATS FScopeCycleCounterSWidget(const SWidget* Widget)
+	{
+		if (Widget)
+		{
+			TStatId WidgetStatId = Widget->GetStatID();
+			if (FThreadStats::IsCollectingData(WidgetStatId))
+			{
+				Start(WidgetStatId);
+			}
+		}
+	}
+
+	/**
+	 * Updates the stat with the time spent
+	 */
+	FORCEINLINE_STATS ~FScopeCycleCounterSWidget()
+	{
+		Stop();
+	}
+};
+
+#else
+
+struct FScopeCycleCounterSWidget
+{
+	FScopeCycleCounterSWidget(const SWidget* Widget)
+	{
+	}
+	~FScopeCycleCounterSWidget()
+	{;
+	}
+};
+
+#endif
+
+void SWidget::CreateStatID() const
+{
+#if STATS
+	StatID = FDynamicStats::CreateStatId<FStatGroup_STATGROUP_SlateVeryVerbose>( ToString() );
+#endif
+}
+
 SWidget::SWidget()
 	: Cursor( TOptional<EMouseCursor::Type>() )
 	, EnabledState( true )
@@ -96,6 +145,8 @@ void SWidget::Construct(
 	Tag = InTag;
 	bForceVolatile = InForceVolatile;
 	MetaData = InMetaData;
+
+	CreateStatID();
 }
 
 FReply SWidget::OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent)
@@ -653,6 +704,10 @@ void SWidget::SetDebugInfo( const ANSICHAR* InType, const ANSICHAR* InFile, int3
 
 int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
+#if WITH_VERY_VERBOSE_SLATE_STATS
+	FScopeCycleCounterSWidget WidgetScope( this );
+#endif
+
 	INC_DWORD_STAT(STAT_SlateNumPaintedWidgets);
 	SLATE_CYCLE_COUNTER_SCOPE_CUSTOM_DETAILED(SLATE_STATS_DETAIL_LEVEL_MED, GSlateOnPaint, GetType());
 

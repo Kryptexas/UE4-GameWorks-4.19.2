@@ -9,7 +9,7 @@ struct FContextMenuSuppressor;
 struct FPaintPlaybackRangeArgs
 {
 	FPaintPlaybackRangeArgs()
-		: StartBrush(nullptr), EndBrush(nullptr), BrushWidth(0.f)
+		: StartBrush(nullptr), EndBrush(nullptr), BrushWidth(0.f), SolidFillOpacity(0.f)
 	{}
 
 	FPaintPlaybackRangeArgs(const FSlateBrush* InStartBrush, const FSlateBrush* InEndBrush, float InBrushWidth)
@@ -21,6 +21,8 @@ struct FPaintPlaybackRangeArgs
 	const FSlateBrush* EndBrush;
 	/** The width of the above brushes, in slate units */
 	float BrushWidth;
+	/** level of opacity for the fill color between the range markers */
+	float SolidFillOpacity;
 };
 
 struct FPaintSectionAreaViewArgs
@@ -166,6 +168,13 @@ private:
 	 */
 	int32 DrawPlaybackRange(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FScrubRangeToScreen& RangeToScreen, const FPaintPlaybackRangeArgs& Args) const;
 
+	/**
+	 * Draw the playback range.
+	 *
+	 * @return the new layer ID
+	 */
+	int32 DrawSubSequenceRange(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FScrubRangeToScreen& RangeToScreen, const FPaintPlaybackRangeArgs& Args) const;
+	
 private:
 
 	/**
@@ -180,6 +189,9 @@ private:
 
 	void SetPlaybackRangeStart(float NewStart);
 	void SetPlaybackRangeEnd(float NewEnd);
+
+	void SetSelectionRangeStart(float NewStart);
+	void SetSelectionRangeEnd(float NewEnd);
 
 	TSharedRef<SWidget> OpenSetPlaybackRangeMenu(float MouseTime);
 
@@ -220,7 +232,7 @@ private:
 	
 	/** Range stack */
 	TArray<FVector2D> RangeStack;
-	
+
 	/** When > 0, we should not show context menus */
 	int32 ContextMenuSuppression;
 	

@@ -69,26 +69,6 @@ void SRetainerWidget::Construct(const FArguments& InArgs)
 {
 	STAT(MyStatId = FDynamicStats::CreateStatId<FStatGroup_STATGROUP_Slate>(InArgs._StatId);)
 
-	if( FSlateApplication::IsInitialized() )
-	{
-		if (FApp::CanEverRender())
-		{
-			FSlateApplication::Get().OnPreTick().AddRaw(this, &SRetainerWidget::OnTickRetainers);
-		}
-
-#if !UE_BUILD_SHIPPING
-		OnRetainerModeChangedDelegate.AddRaw( this, &SRetainerWidget::OnRetainerModeChanged );
-
-		static bool bStaticInit = false;
-
-		if( !bStaticInit )
-		{
-			bStaticInit = true;
-			EnableRetainedRendering.AsVariable()->SetOnChangedCallback( FConsoleVariableDelegate::CreateStatic( &SRetainerWidget::OnRetainerModeCVarChanged ) );
-		}
-#endif
-	}
-
 	RenderTarget = NewObject<UTextureRenderTarget2D>();
 	RenderTarget->SRGB = true;
 	RenderTarget->TargetGamma = 1;
@@ -112,17 +92,42 @@ void SRetainerWidget::Construct(const FArguments& InArgs)
 	bRenderingOffscreenDesire = true;
 	bRenderingOffscreen = false;
 
+	Window->SetContent(MyWidget.ToSharedRef());
+
 	ChildSlot
 	[
-		MyWidget.ToSharedRef()
+		Window.ToSharedRef()
 	];
 
-	Window->SetContent(MyWidget.ToSharedRef());
+	if ( FSlateApplication::IsInitialized() )
+	{
+		if (FApp::CanEverRender())
+		{
+			FSlateApplication::Get().OnPreTick().AddRaw(this, &SRetainerWidget::OnTickRetainers);
+		}
+
+#if !UE_BUILD_SHIPPING
+		OnRetainerModeChangedDelegate.AddRaw(this, &SRetainerWidget::OnRetainerModeChanged);
+
+		static bool bStaticInit = false;
+
+		if ( !bStaticInit )
+		{
+			bStaticInit = true;
+			EnableRetainedRendering.AsVariable()->SetOnChangedCallback(FConsoleVariableDelegate::CreateStatic(&SRetainerWidget::OnRetainerModeCVarChanged));
+		}
+#endif
+	}
 }
 
 bool SRetainerWidget::ShouldBeRenderingOffscreen() const
 {
 	return bRenderingOffscreenDesire && IsRetainedRenderingEnabled();
+}
+
+bool SRetainerWidget::IsAnythingVisibleToRender() const
+{
+	return GetVisibility().IsVisible() && MyWidget.IsValid() && MyWidget->GetVisibility().IsVisible();
 }
 
 void SRetainerWidget::OnRetainerModeChanged()
@@ -153,37 +158,14 @@ void SRetainerWidget::RefreshRenderingMode()
 	{
 		bRenderingOffscreen = bShouldBeRenderingOffscreen;
 
-		ChildSlot
-		[
-			MyWidget.ToSharedRef()
-		];
-
-		// TODO When parent pointers come into play, we need to make it so the virtual window,
-		// doesn't actually ever own the content, it just sorta kind of owns it.
-		if ( bRenderingOffscreen )
-		{
-			Window->SetContent(MyWidget.ToSharedRef());
-		}
-		else
-		{
-			Window->SetContent(SNullWidget::NullWidget);
-		}
+		Window->SetContent(MyWidget.ToSharedRef());
 	}
 }
 
 void SRetainerWidget::SetContent(const TSharedRef< SWidget >& InContent)
 {
 	MyWidget = InContent;
-
-	ChildSlot
-	[
-		InContent
-	];
-
-	if ( bRenderingOffscreen )
-	{
-		Window->SetContent(InContent);
-	}
+	Window->SetContent(InContent);
 }
 
 UMaterialInstanceDynamic* SRetainerWidget::GetEffectMaterial() const
@@ -235,7 +217,7 @@ FChildren* SRetainerWidget::GetChildren()
 
 bool SRetainerWidget::ComputeVolatility() const
 {
-	return true;// return SCompoundWidget::ComputeVolatility();
+	return true;
 }
 
 void SRetainerWidget::OnTickRetainers(float DeltaTime)
@@ -245,8 +227,8 @@ void SRetainerWidget::OnTickRetainers(float DeltaTime)
 	// we should not be added to tick if we're not rendering
 	checkSlow(FApp::CanEverRender());
 
-	bool bShouldRenderAtAnything = GetVisibility().IsVisible() && ChildSlot.GetWidget()->GetVisibility().IsVisible();
-	if ( bRenderingOffscreen && bShouldRenderAtAnything )
+	const bool bShouldRenderAnything = IsAnythingVisibleToRender();
+	if ( bRenderingOffscreen && bShouldRenderAnything )
 	{
 		SCOPE_CYCLE_COUNTER( STAT_SlateRetainerWidgetTick );
 		if ( LastTickedFrame != GFrameCounter && ( GFrameCounter % PhaseCount ) == Phase )
@@ -335,8 +317,8 @@ int32 SRetainerWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 
 	MutableThis->RefreshRenderingMode();
 
-	bool bShouldRenderAtAnything = GetVisibility().IsVisible() && ChildSlot.GetWidget()->GetVisibility().IsVisible(); 
-	if ( bRenderingOffscreen && bShouldRenderAtAnything )
+	const bool bShouldRenderAnything = IsAnythingVisibleToRender();
+	if ( bRenderingOffscreen && bShouldRenderAnything )
 	{
 		SCOPE_CYCLE_COUNTER( STAT_SlateRetainerWidgetPaint );
 		CachedAllottedGeometry = AllottedGeometry;
@@ -375,7 +357,7 @@ int32 SRetainerWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 		
 		return LayerId;
 	}
-	else if( bShouldRenderAtAnything )
+	else if( bShouldRenderAnything )
 	{
 		return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 	}

@@ -87,5 +87,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
             var users = _unitOfWork.UserRepository.Get(data => data.UserName.Contains(userName)).Take(10).Select(data => new { UserName = data.UserName, Group = data.UserGroup.Name}).ToList();
             return Json(users, JsonRequestBehavior.AllowGet);
         }
+
+        protected override void Dispose(bool disposing)
+        {
+            _unitOfWork.Dispose();
+            base.Dispose(disposing);
+        }
 	}
 }

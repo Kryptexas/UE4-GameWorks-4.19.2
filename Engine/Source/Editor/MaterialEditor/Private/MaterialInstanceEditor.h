@@ -49,6 +49,8 @@ public:
 	/** Post edit change notify for properties. */
 	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged ) override;
 
+	void PreSavePackage(UPackage* Obj);
+
 	/** Rebuilds the inheritance list for this material instance. */
 	void RebuildInheritanceList();
 

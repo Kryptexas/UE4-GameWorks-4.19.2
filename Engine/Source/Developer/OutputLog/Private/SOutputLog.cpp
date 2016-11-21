@@ -636,8 +636,11 @@ void FOutputLogTextLayoutMarshaller::AppendMessageToTextLayout(const TSharedPtr<
 		return;
 	}
 
-	// Increment the cached count
-	CachedNumMessages++;
+	// Increment the cached count if we're not rebuilding the log
+	if ( !IsDirty() )
+	{
+		CachedNumMessages++;
+	}
 
 	const FTextBlockStyle& MessageTextStyle = FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>(InMessage->Style);
 
@@ -654,6 +657,8 @@ void FOutputLogTextLayoutMarshaller::AppendMessagesToTextLayout(const TArray<TSh
 	TArray<FTextLayout::FNewLineData> LinesToAdd;
 	LinesToAdd.Reserve(InMessages.Num());
 
+	int32 NumAddedMessages = 0;
+
 	for (const auto& CurrentMessage : InMessages)
 	{
 		if (!Filter->IsMessageAllowed(CurrentMessage))
@@ -661,8 +666,7 @@ void FOutputLogTextLayoutMarshaller::AppendMessagesToTextLayout(const TArray<TSh
 			continue;
 		}
 
-		// Increment the cached count
-		CachedNumMessages++;
+		++NumAddedMessages;
 
 		const FTextBlockStyle& MessageTextStyle = FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>(CurrentMessage->Style);
 
@@ -672,6 +676,12 @@ void FOutputLogTextLayoutMarshaller::AppendMessagesToTextLayout(const TArray<TSh
 		Runs.Add(FSlateTextRun::Create(FRunInfo(), LineText, MessageTextStyle));
 
 		LinesToAdd.Emplace(MoveTemp(LineText), MoveTemp(Runs));
+	}
+
+	// Increment the cached message count if the log is not being rebuilt
+	if ( !IsDirty() )
+	{
+		CachedNumMessages += NumAddedMessages;
 	}
 
 	TextLayout->AddLines(LinesToAdd);
@@ -734,6 +744,7 @@ void FOutputLogTextLayoutMarshaller::MarkMessagesCacheAsDirty()
 
 FOutputLogTextLayoutMarshaller::FOutputLogTextLayoutMarshaller(TArray< TSharedPtr<FLogMessage> > InMessages, FLogFilter* InFilter)
 	: Messages(MoveTemp(InMessages))
+	, CachedNumMessages(0)
 	, Filter(InFilter)
 	, TextLayout(nullptr)
 {
@@ -815,6 +826,7 @@ void SOutputLog::Construct( const FArguments& InArgs )
 						SAssignNew(FilterTextBox, SSearchBox)
 						.HintText(LOCTEXT("SearchLogHint", "Search Log"))
 						.OnTextChanged(this, &SOutputLog::OnFilterTextChanged)
+						.OnTextCommitted(this, &SOutputLog::OnFilterTextCommitted)
 						.DelayChangeNotificationsWhileTyping(true)
 					]
 				]
@@ -1012,6 +1024,12 @@ void SOutputLog::Refresh()
 
 void SOutputLog::OnFilterTextChanged(const FText& InFilterText)
 {
+	if (Filter.GetFilterText().ToString().Equals(InFilterText.ToString(), ESearchCase::CaseSensitive))
+	{
+		// nothing to do
+		return;
+	}
+
 	// Flag the messages count as dirty
 	MessagesTextMarshaller->MarkMessagesCacheAsDirty();
 
@@ -1023,6 +1041,11 @@ void SOutputLog::OnFilterTextChanged(const FText& InFilterText)
 
 	// Repopulate the list to show only what has not been filtered out.
 	Refresh();
+}
+
+void SOutputLog::OnFilterTextCommitted(const FText& InFilterText, ETextCommit::Type InCommitType)
+{
+	OnFilterTextChanged(InFilterText);
 }
 
 TSharedRef<SWidget> SOutputLog::MakeAddFilterMenu()

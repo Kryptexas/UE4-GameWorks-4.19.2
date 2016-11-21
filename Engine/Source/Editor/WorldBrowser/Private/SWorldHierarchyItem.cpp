@@ -73,6 +73,24 @@ TSharedRef< SWidget > SWorldHierarchyItem::GenerateWidgetForColumn( const FName&
 			]
 		;
 	}
+	else if (ColumnID == HierarchyColumns::ColumnID_LightingScenario)
+	{
+		TableRowContent = 
+			SAssignNew(LightingScenarioButton, SButton)
+			.ContentPadding(0 )
+			.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
+			.IsEnabled(this, &SWorldHierarchyItem::IsLightingScenarioEnabled)
+			.OnClicked(this, &SWorldHierarchyItem::OnToggleLightingScenario)
+			.ToolTipText(this, &SWorldHierarchyItem::GetLightingScenarioToolTip)
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			.Content()
+			[
+				SNew(SImage)
+				.Image(this, &SWorldHierarchyItem::GetLightingScenarioBrush)
+			]
+		;
+	}
 	else if (ColumnID == HierarchyColumns::ColumnID_Lock)
 	{
 		TableRowContent = 
@@ -214,6 +232,11 @@ bool SWorldHierarchyItem::IsSaveEnabled() const
 	return LevelModel->IsLoaded();
 }
 
+bool SWorldHierarchyItem::IsLightingScenarioEnabled() const
+{
+	return LevelModel->IsLoaded();
+}
+
 bool SWorldHierarchyItem::IsLockEnabled() const
 {
 	return LevelModel->IsLoaded();
@@ -248,6 +271,12 @@ FReply SWorldHierarchyItem::OnToggleVisibility()
 		WorldModel->ShowLevels(LevelList);
 	}
 
+	return FReply::Handled();
+}
+
+FReply SWorldHierarchyItem::OnToggleLightingScenario()
+{
+	LevelModel->SetIsLightingScenario(!LevelModel->IsLightingScenario());
 	return FReply::Handled();
 }
 
@@ -469,6 +498,23 @@ const FSlateBrush* SWorldHierarchyItem::GetLevelVisibilityBrush() const
 	{
 		return FEditorStyle::GetBrush( "Level.EmptyIcon16x" );
 	}
+}
+
+const FSlateBrush* SWorldHierarchyItem::GetLightingScenarioBrush() const
+{
+	if (LevelModel->IsLightingScenario())
+	{
+		return FEditorStyle::GetBrush( "Level.LightingScenarioIcon16x" );
+	}
+	else
+	{
+		return FEditorStyle::GetBrush( "Level.LightingScenarioNotIcon16x" );
+	}
+}
+
+FText SWorldHierarchyItem::GetLightingScenarioToolTip() const
+{
+	return LOCTEXT("LightingScenarioButtonToolTip", "Toggle Lighting Scenario");
 }
 
 const FSlateBrush* SWorldHierarchyItem::GetLevelLockBrush() const

@@ -753,6 +753,9 @@ public:
 	 */
 	void SetViewModes(const EViewModeIndex InPerspViewModeIndex, const EViewModeIndex InOrthoViewModeIndex);
 
+	/** Set the viewmode param. */
+	void SetViewModeParam(int32 InViewModeParam);
+
 	/**
 	 * @return The current view mode in this viewport, for the current viewport type
 	 */
@@ -779,6 +782,9 @@ public:
 	{
 		return GetViewMode() == InViewModeIndex;
 	}
+
+	/** @return True if InViewModeIndex is the current view mode param */
+	bool IsViewModeParam(int32 InViewModeParam) const { return ViewModeParam == InViewModeParam; }
 
 	/**
 	 * Invalidates this viewport and optionally child views.
@@ -1311,6 +1317,8 @@ public:
 	/** True if the orbit camera is currently being used */
 	bool bUsingOrbitCamera;
 	
+	/** If true, numpad keys will be used to move camera in perspective viewport */
+	bool bUseNumpadCameraControl;
 
 	/**
 	 * true if all input is rejected from this viewport
@@ -1475,6 +1483,9 @@ private:
 
 	/* View mode to set when this viewport is not of type LVT_Perspective */
 	EViewModeIndex OrthoViewModeIndex;
+
+	/* View mode param */
+	int32 ViewModeParam;
 
 	/** near plane adjustable for each editor view, if < 0 GNearClippingPlane should be used. */
 	float NearPlane;

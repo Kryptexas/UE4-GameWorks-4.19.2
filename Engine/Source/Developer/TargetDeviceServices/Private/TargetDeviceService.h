@@ -16,7 +16,7 @@ public:
 	 * @param InDeviceName The name of the device to expose.
 	 * @param InMessageBus The message bus to listen on for clients.
 	 */
-	FTargetDeviceService(const FString& InDeviceName, const IMessageBusRef& InMessageBus);
+	FTargetDeviceService(const FString& InDeviceName, const TSharedRef<IMessageBus, ESPMode::ThreadSafe>& InMessageBus);
 
 	/** Destructor. */
 	~FTargetDeviceService();

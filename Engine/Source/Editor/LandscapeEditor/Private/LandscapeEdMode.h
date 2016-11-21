@@ -12,6 +12,7 @@
 DECLARE_LOG_CATEGORY_EXTERN(LogLandscapeEdMode, Log, All);
 
 // Forward declarations
+class ULandscapeEditorObject;
 class ULandscapeLayerInfoObject;
 class FLandscapeToolSplines;
 class UViewportInteractor;
@@ -108,7 +109,7 @@ struct FLandscapeTargetListInfo
 			}
 			else
 			{
-				int32 Index = Proxy->EditorLayerSettings.Add(LayerInfoObj.Get());
+				int32 Index = Proxy->EditorLayerSettings.Add(FLandscapeEditorLayerSettings(LayerInfoObj.Get()));
 				return &Proxy->EditorLayerSettings[Index];
 			}
 		}
@@ -220,7 +221,7 @@ class FEdModeLandscape : public FEdMode
 {
 public:
 
-	class ULandscapeEditorObject* UISettings;
+	ULandscapeEditorObject* UISettings;
 
 	FLandscapeToolMode* CurrentToolMode;
 	FLandscapeTool* CurrentTool;
@@ -431,7 +432,8 @@ public:
 
 	void OnVRHoverUpdate(FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, FVector& HoverImpactPoint, bool& bWasHandled);
 
-	void OnWorldChange();
+	/** Handle notification that visible levels may have changed and we should update the editable landscapes list */
+	void HandleLevelsChanged();
 
 	void OnMaterialCompilationFinished(UMaterialInterface* MaterialInterface);
 
@@ -467,7 +469,12 @@ private:
 	const FViewport* ToolActiveViewport;
 
 	FDelegateHandle OnWorldChangeDelegateHandle;
+	FDelegateHandle OnLevelsChangedDelegateHandle;
 	FDelegateHandle OnMaterialCompilationFinishedDelegateHandle;
 
-	bool bIsPainting;
+	/** Check if we are painting using the VREditor */
+	bool bIsPaintingInVR;
+
+	/** The interactor that is currently painting, prevents multiple interactors from sculpting when one actually is */
+	class UViewportInteractor* InteractorPainting;
 };

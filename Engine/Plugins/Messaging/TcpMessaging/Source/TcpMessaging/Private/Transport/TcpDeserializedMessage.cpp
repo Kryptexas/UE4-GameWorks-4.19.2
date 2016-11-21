@@ -8,11 +8,10 @@
 /* FTcpDeserializedMessage structors
 *****************************************************************************/
 
-FTcpDeserializedMessage::FTcpDeserializedMessage(const IMessageAttachmentPtr& InAttachment)
+FTcpDeserializedMessage::FTcpDeserializedMessage(const TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe>& InAttachment)
 	: Attachment(InAttachment)
 	, MessageData(nullptr)
-{
-}
+{ }
 
 
 FTcpDeserializedMessage::~FTcpDeserializedMessage()
@@ -117,7 +116,7 @@ bool FTcpDeserializedMessage::Deserialize(const FArrayReaderPtr& Message)
 	}
 
 	// create message body
-	MessageData = FMemory::Malloc(TypeInfo->PropertiesSize);
+	MessageData = FMemory::Malloc(TypeInfo->GetStructureSize());
 	TypeInfo->InitializeStruct(MessageData);
 
 	// deserialize message body
@@ -136,7 +135,7 @@ const TMap<FName, FString>& FTcpDeserializedMessage::GetAnnotations() const
 }
 
 
-IMessageAttachmentPtr FTcpDeserializedMessage::GetAttachment() const
+TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe> FTcpDeserializedMessage::GetAttachment() const
 {
 	return Attachment;
 }

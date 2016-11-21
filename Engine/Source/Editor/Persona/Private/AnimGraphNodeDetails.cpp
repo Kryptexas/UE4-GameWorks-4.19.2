@@ -25,6 +25,8 @@
 #include "Animation/AnimInstance.h"
 #include "ISkeletonEditorModule.h"
 #include "BlueprintEditor.h"
+#include "Animation/EditorAnimCurveBoneLinks.h"
+#include "IDocumentation.h"
 
 #define LOCTEXT_NAMESPACE "KismetNodeWithOptionalPinsDetails"
 
@@ -475,6 +477,8 @@ void FBoneReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> S
 	UAnimationAsset * AnimationAsset = NULL;
 	USkeleton* TargetSkeleton = NULL;
 
+	TSharedPtr<IEditableSkeleton> EditableSkeleton; 
+
 	for (auto OuterIter = Objects.CreateIterator() ; OuterIter ; ++OuterIter)
 	{
 		AnimGraphNode = Cast<UAnimGraphNode_Base>(*OuterIter);
@@ -509,25 +513,42 @@ void FBoneReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> S
 				break;
 			}
 		}
+
+		// editor animation curve bone links are responsible for linking joints to curve
+		// this is editor object that only exists for editor
+		if (UEditorAnimCurveBoneLinks* AnimCurveObj = Cast<UEditorAnimCurveBoneLinks>(*OuterIter))
+		{
+			EditableSkeleton = AnimCurveObj->EditableSkeleton.Pin();
+		}
 	}
 
 	if (TargetSkeleton)
 	{
 		ISkeletonEditorModule& SkeletonEditorModule = FModuleManager::LoadModuleChecked<ISkeletonEditorModule>("SkeletonEditor");
-		TSharedRef<IEditableSkeleton> EditableSkeleton = SkeletonEditorModule.CreateEditableSkeleton(TargetSkeleton);
+		EditableSkeleton = SkeletonEditorModule.CreateEditableSkeleton(TargetSkeleton);
+	}
 
+	if (EditableSkeleton.IsValid())
+	{
 		HeaderRow.NameContent()
 		[
 			StructPropertyHandle->CreatePropertyNameWidget()
 		];
 
 		HeaderRow.ValueContent()
+		.MinDesiredWidth(200.f)
 		[
-			SNew(SBoneSelectionWidget, EditableSkeleton)
-			.Tooltip(StructPropertyHandle->GetToolTipText())
+			SNew(SBoneSelectionWidget, EditableSkeleton.ToSharedRef())
+			.ToolTipText(StructPropertyHandle->GetToolTipText())
 			.OnBoneSelectionChanged(this, &FBoneReferenceCustomization::OnBoneSelectionChanged)
 			.OnGetSelectedBone(this, &FBoneReferenceCustomization::GetSelectedBone)
 		];
+	}
+	else
+	{
+		// if this FBoneReference is used by some other Outers, this will fail	
+		// should warn programmers instead of silent fail
+		ensureAlways(false);
 	}
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION

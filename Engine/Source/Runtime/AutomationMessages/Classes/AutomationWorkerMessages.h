@@ -170,9 +170,35 @@ struct FAutomationWorkerRequestTestsReply
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** Holds the test information serialized into a string. */
 	UPROPERTY(EditAnywhere, Category="Message")
-	FString TestInfo;
+	FString DisplayName;
+
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString FullTestPath;
+
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString TestName;
+
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString TestParameter;
+
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString SourceFile;
+
+	UPROPERTY(EditAnywhere, Category="Message")
+	int32 SourceFileLine;
+
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString AssetPath;
+
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString OpenCommand;
+
+	UPROPERTY(EditAnywhere, Category="Message")
+	uint32 TestFlags;
+
+	UPROPERTY(EditAnywhere, Category="Message")
+	uint32 NumParticipantsRequired;
 
 	/** Holds the total number of tests returned. */
 	UPROPERTY(EditAnywhere, Category="Message")
@@ -182,10 +208,35 @@ struct FAutomationWorkerRequestTestsReply
 	FAutomationWorkerRequestTestsReply() { }
 
 	/** Creates and initializes a new instance. */
-	FAutomationWorkerRequestTestsReply(const FString& InTestInfo, const int32& InTotalNumTests)
-		: TestInfo(InTestInfo)
-		, TotalNumTests(InTotalNumTests)
-	{ }
+	FAutomationWorkerRequestTestsReply(const FAutomationTestInfo& InTestInfo, const int32& InTotalNumTests)
+		: TotalNumTests(InTotalNumTests)
+	{
+		DisplayName = InTestInfo.GetDisplayName();
+		FullTestPath = InTestInfo.GetFullTestPath();
+		TestName = InTestInfo.GetTestName();
+		TestParameter = InTestInfo.GetTestParameter();
+		SourceFile = InTestInfo.GetSourceFile();
+		SourceFileLine = InTestInfo.GetSourceFileLine();
+		AssetPath = InTestInfo.GetAssetPath();
+		OpenCommand = InTestInfo.GetOpenCommand();
+		TestFlags = InTestInfo.GetTestFlags();
+		NumParticipantsRequired = InTestInfo.GetNumParticipantsRequired();
+	}
+
+	FAutomationTestInfo GetTestInfo() const
+	{
+		return FAutomationTestInfo(
+			DisplayName,
+			FullTestPath,
+			TestName,
+			TestFlags,
+			NumParticipantsRequired,
+			TestParameter,
+			SourceFile,
+			SourceFileLine,
+			AssetPath,
+			OpenCommand);
+	}
 };
 
 
@@ -423,7 +474,9 @@ public:
 	UPROPERTY(EditAnywhere, Category="Message")
 	uint8 ToleranceMaxBrightness;
 	UPROPERTY(EditAnywhere, Category="Message")
-	float MaximumAllowedError;
+	float MaximumLocalError;
+	UPROPERTY(EditAnywhere, Category="Message")
+	float MaximumGlobalError;
 	UPROPERTY(EditAnywhere, Category="Message")
 	bool bIgnoreAntiAliasing;
 	UPROPERTY(EditAnywhere, Category="Message")
@@ -473,7 +526,10 @@ public:
 		ToleranceAlpha = Data.ToleranceAlpha;
 		ToleranceMinBrightness = Data.ToleranceMinBrightness;
 		ToleranceMaxBrightness = Data.ToleranceMaxBrightness;
-		MaximumAllowedError = Data.MaximumAllowedError;
+		
+		MaximumLocalError = Data.MaximumLocalError;
+		MaximumGlobalError = Data.MaximumGlobalError;
+
 		bIgnoreAntiAliasing = Data.bIgnoreAntiAliasing;
 		bIgnoreColors = Data.bIgnoreColors;
 	}
@@ -498,4 +554,36 @@ struct FAutomationWorkerScreenImage
 
 	UPROPERTY(EditAnywhere, Category="Message")
 	FAutomationScreenshotMetadata Metadata;
+};
+
+
+
+/**
+ * Implements a message that is sent in containing a screen shot run during performance test.
+ */
+USTRUCT()
+struct FAutomationWorkerImageComparisonResults
+{
+	GENERATED_USTRUCT_BODY()
+
+public:
+	FAutomationWorkerImageComparisonResults()
+		: bNew(false)
+		, bSimilar(false)
+	{
+	}
+
+	FAutomationWorkerImageComparisonResults(bool InIsNew, bool InAreSimilar)
+		: bNew(InIsNew)
+		, bSimilar(InAreSimilar)
+	{
+	}
+
+	/** Was this a new image we've never seen before and have no ground truth for? */
+	UPROPERTY(EditAnywhere, Category="Message")
+	bool bNew;
+
+	/** Were the images similar?  If they're not you should log an error. */
+	UPROPERTY(EditAnywhere, Category="Message")
+	bool bSimilar;
 };

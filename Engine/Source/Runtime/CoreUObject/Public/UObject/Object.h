@@ -3,6 +3,7 @@
 #pragma once
 
 #include "UObjectBaseUtility.h"
+#include "ResourceSize.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogObj, Log, All);
 
@@ -13,18 +14,6 @@ namespace ECastCheckedType
 	{
 		NullAllowed,
 		NullChecked
-	};
-};
-
-/** Passed to GetResourceSize() to indicate which resource size should be returned.*/
-namespace EResourceSizeMode
-{
-	enum Type
-	{
-		/** Only exclusive resource size */
-		Exclusive,
-		/** Resource size of the object and all of its references */
-		Inclusive,
 	};
 };
 
@@ -332,6 +321,11 @@ public:
 	 */
 	virtual void PostDuplicate(bool bDuplicateForPIE) {}
 
+	virtual void PostDuplicate(EDuplicateMode::Type DuplicateMode) 
+	{
+		PostDuplicate(DuplicateMode == EDuplicateMode::PIE);
+	}
+
 	/**
 	 * Called during saving to determine the load flags to save with the object.
 	 * Upon reload, this object will be discarded on clients
@@ -377,6 +371,13 @@ public:
 	{
 		return false;
 	}
+
+	/**
+	* Called during cooking. Must return all objects that will be Preload()ed when this is serialized at load time
+	*
+	* @param	OutDeps				all objects that will be preloaded when this is serialized at load time
+	*/
+	virtual void GetPreloadDependencies(TArray<UObject*>& OutDeps);
 
 	/**
 	*	Update the list of classes that we should exclude from dedicated server builds
@@ -463,12 +464,37 @@ public:
 	 * default behavior is to return 0 which indicates that the resource shouldn't
 	 * display its size.
 	 *
-	 * @param	Type	Indicates which resource size should be returned
+	 * @param	Mode	Indicates which resource size should be returned
 	 * @return	Size of resource as to be displayed to artists/ LDs in the Editor.
 	 */
+	DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode)
 	{
-		return 0;
+		return GetResourceSizeBytes(Mode);
+	}
+
+	/**
+	 * Get the size of the object/resource for display to artists/LDs in the Editor.
+	 * This is the extended version which separates up the used memory into different memory regions (the actual definition of which may be platform specific).
+	 *
+	 * @param	CumulativeResourceSize	Struct used to count up the cumulative size of the resource as to be displayed to artists/LDs in the Editor.
+	 */
+	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
+	{
+	}
+
+	/**
+	 * Get the size of the object/resource for display to artists/LDs in the Editor.
+	 * This is the simple version which just returns the total number of bytes used by this object.
+	 *
+	 * @param	Mode					Indicates which resource size should be returned.
+	 * @return The cumulative size of the resource as to be displayed to artists/LDs in the Editor.
+	 */
+	SIZE_T GetResourceSizeBytes(EResourceSizeMode::Type Mode)
+	{
+		FResourceSizeEx ResSize = FResourceSizeEx(Mode);
+		GetResourceSizeEx(ResSize);
+		return ResSize.GetTotalMemoryBytes();
 	}
 
 	/** 
@@ -752,6 +778,15 @@ public:
 	 * @param	TargetPlatform	target platform to cache platform specific data for
 	 */
 	virtual void ClearAllCachedCookedPlatformData() { }
+
+	/**
+	 * Called during cook to allow objects to generate additional cooked files alongside their cooked package.
+	 * @note These should typically match the name of the package, but with a different extension.
+	 *
+	 * @param	PackageFilename full path to the package that this object is being saved to on disk
+	 * @param	TargetPlatform	target platform to cook additional files for
+	 */
+	virtual void CookAdditionalFiles( const TCHAR* PackageFilename, const ITargetPlatform* TargetPlatform ) { }
 #endif
 	/**
 	 * Determine if this object has SomeObject in its archetype chain.

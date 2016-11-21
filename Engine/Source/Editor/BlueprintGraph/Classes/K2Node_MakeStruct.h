@@ -54,6 +54,7 @@ class UK2Node_MakeStruct : public UK2Node_StructMemberSet
 	virtual ERedirectType DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex)  const override;
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual FText GetMenuCategory() const override;
+	virtual void ConvertDeprecatedNode(UEdGraph* Graph, bool bOnlySafeChanges) override;
 	//~ End K2Node Interface
 
 protected:
@@ -62,9 +63,15 @@ protected:
 		const uint8* const SampleStructMemory;
 	public:
 		FMakeStructPinManager(const uint8* InSampleStructMemory);
+
+		bool HasAdvancedPins() const { return bHasAdvancedPins; }
 	protected:
+		virtual void GetRecordDefaults(UProperty* TestProperty, FOptionalPinFromProperty& Record) const override;
 		virtual void CustomizePinData(UEdGraphPin* Pin, FName SourcePropertyName, int32 ArrayIndex, UProperty* Property) const override;
 		virtual bool CanTreatPropertyAsOptional(UProperty* TestProperty) const override;
+
+		/** set by GetRecordDefaults(), mutable as it is a const function */
+		mutable bool bHasAdvancedPins;
 	};
 
 private:

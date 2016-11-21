@@ -316,7 +316,7 @@ void FAnimNode_AnimDynamics::GatherDebugData(FNodeDebugData& DebugData)
 	DebugLine += FString::Printf(TEXT("(Alpha: %.1f%%)"), ActualBiasedAlpha*100.f);
 
 	DebugData.AddDebugItem(DebugLine);
-	ComponentPose.GatherDebugData(DebugData.BranchFlow(1.f));
+	ComponentPose.GatherDebugData(DebugData);
 }
 
 bool FAnimNode_AnimDynamics::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones)

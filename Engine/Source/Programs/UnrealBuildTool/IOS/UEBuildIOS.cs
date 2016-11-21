@@ -19,7 +19,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Which version of the iOS to allow at run time
 		/// </summary>
-		private static string RunTimeIOSVersion = "7.0";
+		private static string RunTimeIOSVersion = "8.0";
 
 		/// <summary>
 		/// which devices the game is allowed to run on
@@ -240,32 +240,36 @@ namespace UnrealBuildTool
         }
         static Dictionary<string, ProvisionData> ProvisionCache = new Dictionary<string, ProvisionData>();
 
-        public override void SetUpProjectEnvironment(UnrealTargetConfiguration Configuration)
+        public override void SetUpProjectEnvironment(UnrealTargetConfiguration Configuration, TargetInfo Target = null)
         {
             if (!bInitializedProject)
             {
-                base.SetUpProjectEnvironment(Configuration);
+                base.SetUpProjectEnvironment(Configuration, Target);
 
                 // update the configuration based on the project file
                 // look in ini settings for what platforms to compile for
                 ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(Platform, "Engine", DirectoryReference.FromFile(ProjectFile));
-                string MinVersion = "IOS_7";
+                string MinVersion = "IOS_8";
                 if (Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "MinimumiOSVersion", out MinVersion))
                 {
                     switch (MinVersion)
                     {
                         case "IOS_61":
-                            Log.TraceWarning("IOS 6 is no longer supported in UE4 as 4.11");
-                            RunTimeIOSVersion = "7.0";
+                            Log.TraceWarningOnce("IOS 6 is no longer supported in UE4 as 4.11");
+                            RunTimeIOSVersion = "8.0";
                             break;
                         case "IOS_7":
-                            RunTimeIOSVersion = "7.0";
+                            Log.TraceWarningOnce("IOS 7 is no longer supported in UE4 as 4.14");
+                            RunTimeIOSVersion = "8.0";
                             break;
                         case "IOS_8":
                             RunTimeIOSVersion = "8.0";
                             break;
                         case "IOS_9":
                             RunTimeIOSVersion = "9.0";
+                            break;
+                        case "IOS_10":
+                            RunTimeIOSVersion = "10.0";
                             break;
                     }
                 }

@@ -1,7 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-// ..
+// .
 
 #include "VulkanShaderFormat.h"
+#include "VulkanConfiguration.h"
 #include "Core.h"
 #include "ShaderPreprocessor.h"
 #include "ShaderCompilerCommon.h"
@@ -240,15 +241,17 @@ static uint32 GetTypeComponents(const FString& Type)
 static void GenerateBindingTable(const FVulkanShaderSerializedBindings& SerializedBindings, FVulkanShaderBindingTable& OutBindingTable)
 {
 	int32 NumCombinedSamplers = 0;
-	int32 NumSamplerBuffers = 0;
+	int32 NumUniformTexelBuffers = 0;
+	int32 NumStorageTexelBuffers = 0;
 	int32 NumUniformBuffers = 0;
 
 	auto& Layouts = SerializedBindings.Bindings;
 
 	//#todo-rco: FIX! SamplerBuffers share numbering with Samplers
-	NumCombinedSamplers = Layouts[FVulkanShaderSerializedBindings::TYPE_COMBINED_IMAGE_SAMPLER].Num() + Layouts[FVulkanShaderSerializedBindings::TYPE_SAMPLER_BUFFER].Num();
-	NumSamplerBuffers = Layouts[FVulkanShaderSerializedBindings::TYPE_COMBINED_IMAGE_SAMPLER].Num() + Layouts[FVulkanShaderSerializedBindings::TYPE_SAMPLER_BUFFER].Num();
-	NumUniformBuffers = Layouts[FVulkanShaderSerializedBindings::TYPE_PACKED_UNIFORM_BUFFER].Num() + Layouts[FVulkanShaderSerializedBindings::TYPE_UNIFORM_BUFFER].Num();
+	NumCombinedSamplers = Layouts[EVulkanBindingType::CombinedImageSampler].Num() + Layouts[EVulkanBindingType::UniformTexelBuffer].Num();
+	NumUniformTexelBuffers = Layouts[EVulkanBindingType::CombinedImageSampler].Num() + Layouts[EVulkanBindingType::UniformTexelBuffer].Num();
+	NumUniformBuffers = Layouts[EVulkanBindingType::PackedUniformBuffer].Num() + Layouts[EVulkanBindingType::UniformBuffer].Num();
+	NumStorageTexelBuffers = Layouts[EVulkanBindingType::StorageTexelBuffer].Num();
 
 	for (int32 Index = 0; Index < CrossCompiler::PACKED_TYPEINDEX_MAX; ++Index)
 	{
@@ -257,34 +260,41 @@ static void GenerateBindingTable(const FVulkanShaderSerializedBindings& Serializ
 
 	OutBindingTable.CombinedSamplerBindingIndices.AddUninitialized(NumCombinedSamplers);
 	//#todo-rco: FIX! SamplerBuffers share numbering with Samplers
-	OutBindingTable.SamplerBufferBindingIndices.AddUninitialized(NumSamplerBuffers);
+	OutBindingTable.UniformTexelBufferBindingIndices.AddUninitialized(NumUniformTexelBuffers);
+	OutBindingTable.StorageTexelBufferBindingIndices.AddUninitialized(NumStorageTexelBuffers);
 	OutBindingTable.UniformBufferBindingIndices.AddUninitialized(NumUniformBuffers);
 
-	for (int32 Index = 0; Index < Layouts[FVulkanShaderSerializedBindings::TYPE_COMBINED_IMAGE_SAMPLER].Num(); ++Index)
+	for (int32 Index = 0; Index < Layouts[EVulkanBindingType::CombinedImageSampler].Num(); ++Index)
 	{
-		auto& Mapping = Layouts[FVulkanShaderSerializedBindings::TYPE_COMBINED_IMAGE_SAMPLER][Index];
+		auto& Mapping = Layouts[EVulkanBindingType::CombinedImageSampler][Index];
 		OutBindingTable.CombinedSamplerBindingIndices[Mapping.EngineBindingIndex] = Mapping.VulkanBindingIndex;
 		//#todo-rco: FIX! SamplerBuffers share numbering with Samplers
-		OutBindingTable.SamplerBufferBindingIndices[Mapping.EngineBindingIndex] = Mapping.VulkanBindingIndex;
+		OutBindingTable.UniformTexelBufferBindingIndices[Mapping.EngineBindingIndex] = Mapping.VulkanBindingIndex;
 	}
 
-	for (int32 Index = 0; Index < Layouts[FVulkanShaderSerializedBindings::TYPE_SAMPLER_BUFFER].Num(); ++Index)
+	for (int32 Index = 0; Index < Layouts[EVulkanBindingType::UniformTexelBuffer].Num(); ++Index)
 	{
-		auto& Mapping = Layouts[FVulkanShaderSerializedBindings::TYPE_SAMPLER_BUFFER][Index];
+		auto& Mapping = Layouts[EVulkanBindingType::UniformTexelBuffer][Index];
 		OutBindingTable.CombinedSamplerBindingIndices[Mapping.EngineBindingIndex] = Mapping.VulkanBindingIndex;
 		//#todo-rco: FIX! SamplerBuffers share numbering with Samplers
-		OutBindingTable.SamplerBufferBindingIndices[Mapping.EngineBindingIndex] = Mapping.VulkanBindingIndex;
+		OutBindingTable.UniformTexelBufferBindingIndices[Mapping.EngineBindingIndex] = Mapping.VulkanBindingIndex;
 	}
 
-	for (int32 Index = 0; Index < Layouts[FVulkanShaderSerializedBindings::TYPE_UNIFORM_BUFFER].Num(); ++Index)
+	for (int32 Index = 0; Index < Layouts[EVulkanBindingType::StorageTexelBuffer].Num(); ++Index)
 	{
-		auto& Mapping = Layouts[FVulkanShaderSerializedBindings::TYPE_UNIFORM_BUFFER][Index];
+		auto& Mapping = Layouts[EVulkanBindingType::StorageTexelBuffer][Index];
+		OutBindingTable.StorageTexelBufferBindingIndices[Mapping.EngineBindingIndex] = Mapping.VulkanBindingIndex;
+	}
+
+	for (int32 Index = 0; Index < Layouts[EVulkanBindingType::UniformBuffer].Num(); ++Index)
+	{
+		auto& Mapping = Layouts[EVulkanBindingType::UniformBuffer][Index];
 		OutBindingTable.UniformBufferBindingIndices[Mapping.EngineBindingIndex] = Mapping.VulkanBindingIndex;
 	}
 
-	for (int32 Index = 0; Index < Layouts[FVulkanShaderSerializedBindings::TYPE_PACKED_UNIFORM_BUFFER].Num(); ++Index)
+	for (int32 Index = 0; Index < Layouts[EVulkanBindingType::PackedUniformBuffer].Num(); ++Index)
 	{
-		auto& Mapping = Layouts[FVulkanShaderSerializedBindings::TYPE_PACKED_UNIFORM_BUFFER][Index];
+		auto& Mapping = Layouts[EVulkanBindingType::PackedUniformBuffer][Index];
 		OutBindingTable.UniformBufferBindingIndices[Mapping.EngineBindingIndex] = Mapping.VulkanBindingIndex;
 		uint8 PackedIndex = SerializedBindings.PackedUBTypeIndex[Index];
 		check(PackedIndex != (uint8)-1);
@@ -292,8 +302,8 @@ static void GenerateBindingTable(const FVulkanShaderSerializedBindings& Serializ
 	}
 
 	// Do not share numbers here
-	OutBindingTable.NumDescriptorsWithoutPackedUniformBuffers = Layouts[FVulkanShaderSerializedBindings::TYPE_COMBINED_IMAGE_SAMPLER].Num() + Layouts[FVulkanShaderSerializedBindings::TYPE_SAMPLER_BUFFER].Num() + Layouts[FVulkanShaderSerializedBindings::TYPE_UNIFORM_BUFFER].Num();
-	OutBindingTable.NumDescriptors = OutBindingTable.NumDescriptorsWithoutPackedUniformBuffers + Layouts[FVulkanShaderSerializedBindings::TYPE_PACKED_UNIFORM_BUFFER].Num();
+	OutBindingTable.NumDescriptorsWithoutPackedUniformBuffers = Layouts[EVulkanBindingType::CombinedImageSampler].Num() + Layouts[EVulkanBindingType::UniformTexelBuffer].Num() + Layouts[EVulkanBindingType::UniformBuffer].Num() + Layouts[EVulkanBindingType::StorageTexelBuffer].Num();
+	OutBindingTable.NumDescriptors = OutBindingTable.NumDescriptorsWithoutPackedUniformBuffers + Layouts[EVulkanBindingType::PackedUniformBuffer].Num();
 }
 
 
@@ -412,23 +422,18 @@ static void BuildShaderOutput(
 		auto NewBindingName = ParseIdentifierANSI(CurrBinding.Name);
 		NewBinding.EngineBindingIndex = ParseNumber(NewBindingName.GetData());
 
-		auto Type = FVulkanShaderSerializedBindings::TYPE_MAX;
+		auto Type = CurrBinding.Type;
 		switch (CurrBinding.Type)
 		{
 		//case FVulkanBindingTable::TYPE_SAMPLER:
-		//	Type = FVulkanShaderSerializedBindings::TYPE_SAMPLER;
+		//	Type = EVulkanBindingType::SAMPLER;
 		//	break;
-		case FVulkanBindingTable::TYPE_COMBINED_IMAGE_SAMPLER:
-			Type = FVulkanShaderSerializedBindings::TYPE_COMBINED_IMAGE_SAMPLER;
+		case EVulkanBindingType::CombinedImageSampler:
+		case EVulkanBindingType::UniformTexelBuffer:
+		case EVulkanBindingType::UniformBuffer:
+		case EVulkanBindingType::StorageTexelBuffer:
 			break;
-		case FVulkanBindingTable::TYPE_SAMPLER_BUFFER:
-			Type = FVulkanShaderSerializedBindings::TYPE_SAMPLER_BUFFER;
-			break;
-		case FVulkanBindingTable::TYPE_UNIFORM_BUFFER:
-			Type = FVulkanShaderSerializedBindings::TYPE_UNIFORM_BUFFER;
-			break;
-		case FVulkanBindingTable::TYPE_PACKED_UNIFORM_BUFFER:
-			Type = FVulkanShaderSerializedBindings::TYPE_PACKED_UNIFORM_BUFFER;
+		case EVulkanBindingType::PackedUniformBuffer:
 			check(Header.SerializedBindings.Bindings[Type].Num() < CrossCompiler::PACKED_TYPEINDEX_MAX);
 			Header.SerializedBindings.PackedUBTypeIndex[Header.SerializedBindings.Bindings[Type].Num()] = CrossCompiler::PackedTypeNameToTypeIndex(CurrBinding.SubType);
 			break;
@@ -448,7 +453,7 @@ static void BuildShaderOutput(
 		{
 			bChanged = false;
 
-			auto& Bindings = Header.SerializedBindings.Bindings[FVulkanShaderSerializedBindings::TYPE_PACKED_UNIFORM_BUFFER];
+			auto& Bindings = Header.SerializedBindings.Bindings[EVulkanBindingType::PackedUniformBuffer];
 			auto& PackedTypes = Header.SerializedBindings.PackedUBTypeIndex;
 			for (int32 Index = 0; Index < Bindings.Num() - 1; ++Index)
 			{
@@ -920,14 +925,14 @@ static void CompileUsingExternal(const struct FShaderCompilerInput& Input, struc
 	EHlslCompileTarget HlslCompilerTarget = HCT_FeatureLevelES3_1Ext;
 	EHlslCompileTarget HlslCompilerTargetES = HCT_FeatureLevelES3_1Ext;
 	AdditionalDefines.SetDefine(TEXT("COMPILER_HLSLCC"), 1);
-	if (Version == EVulkanShaderVersion::ES3_1 || Version == EVulkanShaderVersion::ES3_1_ANDROID || Version == EVulkanShaderVersion::ES3_1_UB)
+	if (Version == EVulkanShaderVersion::ES3_1 || Version == EVulkanShaderVersion::ES3_1_ANDROID)
 	{
 		HlslCompilerTarget = HCT_FeatureLevelES3_1Ext;
 		HlslCompilerTargetES = HCT_FeatureLevelES3_1Ext;
 		AdditionalDefines.SetDefine(TEXT("USE_LOWER_PRECISION"), 1);
 		AdditionalDefines.SetDefine(TEXT("ES2_PROFILE"), 1);
 	}
-	else if (Version == EVulkanShaderVersion::SM4)
+	else if (Version == EVulkanShaderVersion::SM4 || Version == EVulkanShaderVersion::SM4_UB)
 	{
 		HlslCompilerTarget = HCT_FeatureLevelSM4;
 		HlslCompilerTargetES = HCT_FeatureLevelSM4;
@@ -1354,7 +1359,7 @@ void CompileShader_Windows_Vulkan(const FShaderCompilerInput& Input, FShaderComp
 	//}
 
 	const bool bIsSM5 = (Version == EVulkanShaderVersion::SM5);
-	const bool bIsSM4 = (Version == EVulkanShaderVersion::SM4);
+	const bool bIsSM4 = (Version == EVulkanShaderVersion::SM4 || Version == EVulkanShaderVersion::SM4_UB);
 
 	const EHlslShaderFrequency FrequencyTable[] =
 	{
@@ -1382,7 +1387,7 @@ void CompileShader_Windows_Vulkan(const FShaderCompilerInput& Input, FShaderComp
 	EHlslCompileTarget HlslCompilerTarget = HCT_FeatureLevelES3_1Ext;
 	EHlslCompileTarget HlslCompilerTargetES = HCT_FeatureLevelES3_1Ext;
 	AdditionalDefines.SetDefine(TEXT("COMPILER_HLSLCC"), 1);
-	if (Version == EVulkanShaderVersion::ES3_1 || Version == EVulkanShaderVersion::ES3_1_ANDROID || Version == EVulkanShaderVersion::ES3_1_UB)
+	if (Version == EVulkanShaderVersion::ES3_1 || Version == EVulkanShaderVersion::ES3_1_ANDROID)
 	{
 		HlslCompilerTarget = HCT_FeatureLevelES3_1Ext;
 		HlslCompilerTargetES = HCT_FeatureLevelES3_1Ext;
@@ -1390,13 +1395,13 @@ void CompileShader_Windows_Vulkan(const FShaderCompilerInput& Input, FShaderComp
 		AdditionalDefines.SetDefine(TEXT("ES2_PROFILE"), 1);
 		AdditionalDefines.SetDefine(TEXT("VULKAN_PROFILE"), 1);
 	}
-	else if (Version == EVulkanShaderVersion::SM4)
+	else if (bIsSM4)
 	{
 		HlslCompilerTarget = HCT_FeatureLevelSM4;
 		HlslCompilerTargetES = HCT_FeatureLevelSM4;
 		AdditionalDefines.SetDefine(TEXT("VULKAN_PROFILE_SM4"), 1);
 	}
-	else if (Version == EVulkanShaderVersion::SM5)
+	else if (bIsSM5)
 	{
 		HlslCompilerTarget = HCT_FeatureLevelSM5;
 		HlslCompilerTargetES = HCT_FeatureLevelSM5;
@@ -1457,7 +1462,11 @@ void CompileShader_Windows_Vulkan(const FShaderCompilerInput& Input, FShaderComp
 	CompilerInfo.CCFlags |= HLSLCC_PackUniforms;
 	CompilerInfo.CCFlags |= HLSLCC_PackUniformsIntoUniformBuffers;
 	//#todo-rco: All version using packed currently
-	//if (Version == EVulkanShaderVersion::ES3_1 || Version == EVulkanShaderVersion::ES3_1_ANDROID)
+	if (Version == EVulkanShaderVersion::SM4_UB)
+	{
+		CompilerInfo.CCFlags |= HLSLCC_FlattenUniformBufferStructures;
+	}
+	else
 	{
 		CompilerInfo.CCFlags |= HLSLCC_FlattenUniformBuffers;
 	}

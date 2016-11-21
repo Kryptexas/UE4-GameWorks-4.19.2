@@ -333,7 +333,8 @@ public:
 	* Draw all the primitives in this set for the mobile pipeline. 
 	* @param bRenderSeparateTranslucency - If false, only primitives with materials without mobile separate translucency enabled are rendered. Opposite if true.
 	*/
-	void DrawPrimitivesForMobile(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, const bool bRenderSeparateTranslucency) const;
+	template <class TDrawingPolicyFactory>
+	void DrawPrimitivesForMobile(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, typename TDrawingPolicyFactory::ContextType& DrawingContext) const;
 
 	/**
 	* Insert a primitive to the translucency rendering list[s]
@@ -537,14 +538,28 @@ private:
 	void WaitForTasksInternal();
 };
 
+enum EVolumeUpdateType
+{
+	VUT_MeshDistanceFields = 1,
+	VUT_Heightfields = 2,
+	VUT_All = VUT_MeshDistanceFields | VUT_Heightfields
+};
+
 class FVolumeUpdateRegion
 {
 public:
+
+	FVolumeUpdateRegion() :
+		UpdateType(VUT_All)
+	{}
+
 	/** World space bounds. */
 	FBox Bounds;
 
 	/** Number of texels in each dimension to update. */
 	FIntVector CellsSize;
+
+	EVolumeUpdateType UpdateType;
 };
 
 class FGlobalDistanceFieldClipmap
@@ -789,6 +804,8 @@ public:
 	uint32 bUsesGlobalDistanceField : 1;
 	uint32 bUsesLightingChannels : 1;
 	uint32 bTranslucentSurfaceLighting : 1;
+	/** Whether the view has any materials that read from scene depth. */
+	uint32 bUsesSceneDepth : 1;
 	/** 
 	 * true if the scene has at least one decal. Used to disable stencil operations in the mobile base pass when the scene has no decals.
 	 * TODO: Right now decal visibility is computed right before rendering them. Ideally it should be done in InitViews and this flag should be replaced with list of visible decals  
@@ -798,12 +815,6 @@ public:
 	uint16 ShadingModelMaskInView;
 
 	FViewMatrices PrevViewMatrices;
-
-	/** Last frame's view and projection matrices */
-	FMatrix	PrevViewProjMatrix;
-
-	/** Last frame's view rotation and projection matrices */
-	FMatrix	PrevViewRotationProjMatrix;
 
 	/** An intermediate number of visible static meshes.  Doesn't account for occlusion until after FinishOcclusionQueries is called. */
 	int32 NumVisibleStaticMeshElements;
@@ -871,12 +882,26 @@ public:
 	/** Creates ViewUniformShaderParameters given a set of view transforms. */
 	void SetupUniformBufferParameters(
 		FSceneRenderTargets& SceneContext,
-		const FMatrix& EffectiveTranslatedViewMatrix, 
-		const FMatrix& EffectiveViewToTranslatedWorld, 
+		const FViewMatrices& InViewMatrices,
+		const FViewMatrices& InPrevViewMatrices,
 		FBox* OutTranslucentCascadeBoundsArray, 
 		int32 NumTranslucentCascades,
 		FViewUniformShaderParameters& ViewUniformShaderParameters) const;
 
+	/** Recreates ViewUniformShaderParameters, taking the view transform from the View Matrices */
+	inline void SetupUniformBufferParameters(
+		FSceneRenderTargets& SceneContext,
+		FBox* OutTranslucentCascadeBoundsArray,
+		int32 NumTranslucentCascades,
+		FViewUniformShaderParameters& ViewUniformShaderParameters) const
+	{
+		SetupUniformBufferParameters(SceneContext,
+			ViewMatrices,
+			PrevViewMatrices,
+			OutTranslucentCascadeBoundsArray,
+			NumTranslucentCascades,
+			ViewUniformShaderParameters);
+	}
 
 	void SetupDefaultGlobalDistanceFieldUniformBufferParameters(FViewUniformShaderParameters& ViewUniformShaderParameters) const;
 	void SetupGlobalDistanceFieldUniformBufferParameters(FViewUniformShaderParameters& ViewUniformShaderParameters) const;
@@ -913,7 +938,11 @@ public:
 		{
 			return true;
 		}
-		else if (StereoPass != eSSP_RIGHT_EYE)
+		else if (bIsInstancedStereoEnabled && StereoPass != eSSP_RIGHT_EYE)
+		{
+			return true;
+		}
+		else if (bIsMobileMultiViewEnabled && StereoPass != eSSP_RIGHT_EYE && Family && Family->Views.Num() > 1)
 		{
 			return true;
 		}
@@ -923,40 +952,7 @@ public:
 		}
 	}
 
-	FORCEINLINE_DEBUGGABLE FMeshDrawingRenderState GetDitheredLODTransitionState(const FStaticMesh& Mesh, const bool bAllowStencil = false) const
-	{
-		FMeshDrawingRenderState DrawRenderState(EDitheredLODState::None, bAllowStencil);
-
-		if (Mesh.bDitheredLODTransition)
-		{
-			if (StaticMeshFadeOutDitheredLODMap[Mesh.Id])
-			{
-				if (bAllowStencil)
-				{
-					DrawRenderState.DitheredLODState = EDitheredLODState::FadeOut;
-				}
-				else
-				{
-					DrawRenderState.DitheredLODTransitionAlpha = GetTemporalLODTransition();
-				}
-			}
-			else if (StaticMeshFadeInDitheredLODMap[Mesh.Id])
-			{
-				if (bAllowStencil)
-				{
-					DrawRenderState.DitheredLODState = EDitheredLODState::FadeIn;
-			}
-				else
-				{
-					DrawRenderState.DitheredLODTransitionAlpha = GetTemporalLODTransition() - 1.0f;
-		}
-			}
-		}
-
-		return DrawRenderState;
-	}
-
-	inline FVector GetPrevViewDirection() const { return PrevViewMatrices.ViewMatrix.GetColumn(2); }
+	inline FVector GetPrevViewDirection() const { return PrevViewMatrices.GetViewMatrix().GetColumn(2); }
 
 	/** Create a snapshot of this view info on the scene allocator. */
 	FViewInfo* CreateSnapshot() const;
@@ -1053,14 +1049,7 @@ public:
 			Desc = &ColorTargets[0]->GetDesc();
 		}
 
-		if (Desc->IsCubemap())
-		{
-			return FIntPoint(Desc->Extent.X, Desc->Extent.X);
-		}
-		else
-		{
-			return Desc->Extent;
-		}
+		return Desc->Extent;
 	}
 
 	int64 ComputeMemorySize() const
@@ -1376,6 +1365,8 @@ public:
 
 	virtual void RenderHitProxies(FRHICommandListImmediate& RHICmdList) override;
 
+	bool RenderInverseOpacity(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
+
 protected:
 	/** Finds the visible dynamic shadows for each view. */
 	void InitDynamicShadows(FRHICommandListImmediate& RHICmdList);
@@ -1395,7 +1386,7 @@ protected:
 	void CopySceneAlpha(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
 
 	/** Resolves scene depth in case hardware does not support reading depth in the shader */
-	void ConditionalResolveSceneDepth(FRHICommandListImmediate& RHICmdList);
+	void ConditionalResolveSceneDepth(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
 
 	/** Renders decals. */
 	void RenderDecals(FRHICommandListImmediate& RHICmdList);
@@ -1412,9 +1403,16 @@ protected:
 	/** Copy scene color from the mobile multi-view render targat array to side by side stereo scene color */
 	void CopyMobileMultiViewSceneColor(FRHICommandListImmediate& RHICmdList);
 
+	/** Gather information about post-processing pass, which can be used by render for optimizations. Called by InitViews */
+	void UpdatePostProcessUsageFlags();
+
+	/** Render inverse opacity for the dynamic meshes. */
+	bool RenderInverseOpacityDynamic(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
+	
 private:
 
 	bool bModulatedShadowsInUse;
+	bool bPostProcessUsesDepthTexture;
 };
 
 // The noise textures need to be set in Slate too.

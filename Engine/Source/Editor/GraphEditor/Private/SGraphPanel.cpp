@@ -29,41 +29,6 @@
 DEFINE_LOG_CATEGORY_STATIC(LogGraphPanel, Log, All);
 
 //////////////////////////////////////////////////////////////////////////
-// FGraphPinHandle
-
-FGraphPinHandle::FGraphPinHandle(UEdGraphPin* InPin)
-{
-	if (InPin != nullptr)
-	{
-		if (UEdGraphNode* Node = InPin->GetOwningNodeUnchecked())
-		{
-			NodeGuid = Node->NodeGuid;
-			PinId = InPin->PinId;
-		}
-	}
-}
-
-TSharedPtr<SGraphPin> FGraphPinHandle::FindInGraphPanel(const SGraphPanel& InPanel) const
-{
-	// First off, find the node
-	if (NodeGuid.IsValid())
-	{
-		TSharedPtr<SGraphNode> GraphNode = InPanel.GetNodeWidgetFromGuid(NodeGuid);
-		if (GraphNode.IsValid())
-		{
-			UEdGraphNode* Node = GraphNode->GetNodeObj();
-
-			if (UEdGraphPin* Pin = Node->FindPinById(PinId))
-			{
-				return GraphNode->FindWidgetForPin(Pin);
-			}
-		}
-	}
-
-	return TSharedPtr<SGraphPin>();
-}
-
-//////////////////////////////////////////////////////////////////////////
 // SGraphPanel
 
 void SGraphPanel::Construct( const SGraphPanel::FArguments& InArgs )
@@ -364,7 +329,7 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 		}
 		ConnectionDrawingPolicy->SetHoveredPins(CurrentHoveredPins, OverridePins, TimeWhenMouseEnteredPin);
 		ConnectionDrawingPolicy->SetMarkedPin(MarkedPin);
-		ConnectionDrawingPolicy->SetMousePosition(AllottedGeometry.AbsolutePosition + SavedMousePosForOnPaintEventLocalSpace);
+		ConnectionDrawingPolicy->SetMousePosition(AllottedGeometry.LocalToAbsolute(SavedMousePosForOnPaintEventLocalSpace));
 
 		// Get the set of pins for all children and synthesize geometry for culled out pins so lines can be drawn to them.
 		TMap<TSharedRef<SWidget>, FArrangedWidget> PinGeometries;
@@ -426,13 +391,13 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 
 					if (CurrentStartPin->GetDirection() == EGPD_Input)
 					{
-						StartPoint = AllottedGeometry.AbsolutePosition + PreviewConnectorEndpoint;
+						StartPoint = AllottedGeometry.LocalToAbsolute(PreviewConnectorEndpoint);
 						EndPoint = FGeometryHelper::VerticalMiddleLeftOf( PinGeometry->Geometry ) - FVector2D(ConnectionDrawingPolicy->ArrowRadius.X, 0);
 					}
 					else
 					{
 						StartPoint = FGeometryHelper::VerticalMiddleRightOf( PinGeometry->Geometry );
-						EndPoint = AllottedGeometry.AbsolutePosition + PreviewConnectorEndpoint;
+						EndPoint = AllottedGeometry.LocalToAbsolute(PreviewConnectorEndpoint);
 					}
 
 					ConnectionDrawingPolicy->DrawPreviewConnector(PinGeometry->Geometry, StartPoint, EndPoint, CurrentStartPin.Get()->GetPinObj());
@@ -460,7 +425,7 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 				OverlapData.ComputeBestPin();
 
 				// Only allow spline overlaps when there is no node under the cursor (unless it is a comment box)
-				const FVector2D PaintAbsoluteSpaceMousePos = AllottedGeometry.AbsolutePosition + SavedMousePosForOnPaintEventLocalSpace;
+				const FVector2D PaintAbsoluteSpaceMousePos = AllottedGeometry.LocalToAbsolute(SavedMousePosForOnPaintEventLocalSpace);
 				const int32 HoveredNodeIndex = SWidget::FindChildUnderPosition(ArrangedChildren, PaintAbsoluteSpaceMousePos);
 				if (HoveredNodeIndex != INDEX_NONE)
 				{
@@ -787,7 +752,7 @@ TSharedPtr<SWidget> SGraphPanel::OnSummonContextMenu(const FGeometry& MyGeometry
 		const FVector2D NodeAddPosition = PanelCoordToGraphCoord( MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition()) );
 		TArray<UEdGraphPin*> NoSourcePins;
 
-		return SummonContextMenu(MouseEvent.GetScreenSpacePosition(), NodeAddPosition, NodeUnderCursor, PinUnderCursor, NoSourcePins, MouseEvent.IsShiftDown());
+		return SummonContextMenu(MouseEvent.GetScreenSpacePosition(), NodeAddPosition, NodeUnderCursor, PinUnderCursor, NoSourcePins);
 	}
 
 	return TSharedPtr<SWidget>();
@@ -1004,9 +969,14 @@ FReply SGraphPanel::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& D
 
 void SGraphPanel::OnBeginMakingConnection(UEdGraphPin* InOriginatingPin)
 {
-	if (InOriginatingPin != nullptr)
+	OnBeginMakingConnection(FGraphPinHandle(InOriginatingPin));
+}
+
+void SGraphPanel::OnBeginMakingConnection(FGraphPinHandle PinHandle)
+{
+	if (PinHandle.IsValid())
 	{
-		PreviewConnectorFromPins.Add(InOriginatingPin);
+		PreviewConnectorFromPins.Add(PinHandle);
 	}
 }
 
@@ -1046,7 +1016,7 @@ void SGraphPanel::RemoveAllNodes()
 	SNodePanel::RemoveAllNodes();
 }
 
-TSharedPtr<SWidget> SGraphPanel::SummonContextMenu(const FVector2D& WhereToSummon, const FVector2D& WhereToAddNode, UEdGraphNode* ForNode, UEdGraphPin* ForPin, const TArray<UEdGraphPin*>& DragFromPins, bool bShiftOperation)
+TSharedPtr<SWidget> SGraphPanel::SummonContextMenu(const FVector2D& WhereToSummon, const FVector2D& WhereToAddNode, UEdGraphNode* ForNode, UEdGraphPin* ForPin, const TArray<UEdGraphPin*>& DragFromPins)
 {
 	if (OnGetContextMenuFor.IsBound())
 	{
@@ -1055,7 +1025,6 @@ TSharedPtr<SWidget> SGraphPanel::SummonContextMenu(const FVector2D& WhereToSummo
 		SpawnInfo.GraphNode = ForNode;
 		SpawnInfo.GraphPin = ForPin;
 		SpawnInfo.DragFromPins = DragFromPins;
-		SpawnInfo.bShiftOperation = bShiftOperation;
 
 		FActionMenuContent FocusedContent = OnGetContextMenuFor.Execute(SpawnInfo);
 

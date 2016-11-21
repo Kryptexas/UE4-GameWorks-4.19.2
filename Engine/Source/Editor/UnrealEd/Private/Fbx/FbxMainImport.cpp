@@ -28,7 +28,7 @@ TSharedPtr<FFbxImporter> FFbxImporter::StaticInstance;
 
 
 
-FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImportUI* ImportUI, bool bShowOptionDialog, const FString& FullPath, bool& OutOperationCanceled, bool& bOutImportAll, bool bIsObjFormat, bool bForceImportType, EFBXImportType ImportType )
+FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImportUI* ImportUI, bool bShowOptionDialog, bool bIsAutomated, const FString& FullPath, bool& OutOperationCanceled, bool& bOutImportAll, bool bIsObjFormat, bool bForceImportType, EFBXImportType ImportType )
 {
 	OutOperationCanceled = false;
 
@@ -151,7 +151,7 @@ FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImport
 			OutOperationCanceled = true;
 		}
 	}
-	else if (GIsAutomationTesting)
+	else if (bIsAutomated)
 	{
 		//Automation tests set ImportUI settings directly.  Just copy them over
 		UnFbx::FBXImportOptions* ImportOptions = FbxImporter->GetImportOptions();
@@ -187,6 +187,7 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 	InOutImportOptions.bImportTextures = ImportUI->bImportTextures;
 	InOutImportOptions.bUsedAsFullName = ImportUI->bOverrideFullName;
 	InOutImportOptions.bConvertScene = ImportUI->bConvertScene;
+	InOutImportOptions.bForceFrontXAxis = ImportUI->bForceFrontXAxis;
 	InOutImportOptions.bConvertSceneUnit = ImportUI->bConvertSceneUnit;
 	InOutImportOptions.bImportAnimations = ImportUI->bImportAnimations;
 	InOutImportOptions.SkeletonForAnimation = ImportUI->Skeleton;
@@ -971,32 +972,45 @@ bool FFbxImporter::ImportFromFile(const FString& Filename, const FString& Type, 
 			// The imported axis system is unknown for obj files
 			if( !Type.Equals( Obj, ESearchCase::IgnoreCase ) )
 			{
-				if (GetImportOptions()->bConvertScene)
+				const FBXImportOptions* ImportOption = GetImportOptions();
+				if (ImportOption->bConvertScene)
 				{
 					// we use -Y as forward axis here when we import. This is odd considering our forward axis is technically +X
 					// but this is to mimic Maya/Max behavior where if you make a model facing +X facing, 
 					// when you import that mesh, you want +X facing in engine. 
 					// only thing that doesn't work is hand flipping because Max/Maya is RHS but UE is LHS
 					// On the positive note, we now have import transform set up you can do to rotate mesh if you don't like default setting
+					FbxAxisSystem::ECoordSystem CoordSystem = FbxAxisSystem::eRightHanded;
+					FbxAxisSystem::EUpVector UpVector = FbxAxisSystem::eZAxis;
 					FbxAxisSystem::EFrontVector FrontVector = (FbxAxisSystem::EFrontVector) - FbxAxisSystem::eParityOdd;
-					const FbxAxisSystem UnrealZUp(FbxAxisSystem::eZAxis, FrontVector, FbxAxisSystem::eRightHanded);
-					const FbxAxisSystem SourceSetup = Scene->GetGlobalSettings().GetAxisSystem();
-
-					if(SourceSetup != UnrealZUp)
+					if (ImportOption->bForceFrontXAxis)
 					{
-						// Converts the FBX data to Z-up, X-forward, Y-left.  Unreal is the same except with Y-right, 
-						// but the conversion to left-handed coordinates is not working properly
+						FrontVector = FbxAxisSystem::eParityEven;
+					}
+					
+					
+					FbxAxisSystem UnrealImportAxis(UpVector, FrontVector, CoordSystem);
+					
+					FbxAxisSystem SourceSetup = Scene->GetGlobalSettings().GetAxisSystem();
 
-						// convert axis to Z-up
+					if (SourceSetup != UnrealImportAxis)
+					{
 						FbxRootNodeUtility::RemoveAllFbxRoots(Scene);
-						UnrealZUp.ConvertScene(Scene);
+						UnrealImportAxis.ConvertScene(Scene);
+						FbxAMatrix JointOrientationMatrix;
+						JointOrientationMatrix.SetIdentity();
+						if (ImportOption->bForceFrontXAxis)
+						{
+							JointOrientationMatrix.SetR(FbxVector4(-90.0, -90.0, 0.0));
+						}
+						FFbxDataConverter::SetJointPostConversionMatrix(JointOrientationMatrix);
 					}
 				}
 
 				// Convert the scene's units to what is used in this program, if needed.
 				// The base unit used in both FBX and Unreal is centimeters.  So unless the units 
 				// are already in centimeters (ie: scalefactor 1.0) then it needs to be converted
-				if (GetImportOptions()->bConvertSceneUnit && Scene->GetGlobalSettings().GetSystemUnit() != FbxSystemUnit::cm)
+				if (ImportOption->bConvertSceneUnit && Scene->GetGlobalSettings().GetSystemUnit() != FbxSystemUnit::cm)
 				{
 					FbxSystemUnit::cm.ConvertScene(Scene);
 				}

@@ -48,6 +48,7 @@
 #include "UnitConversion.h"
 
 #include "MovieScene.h"
+#include "MovieSceneFwd.h"
 #include "MovieSceneBinding.h"
 #include "IMovieScenePlayer.h"
 #include "Tracks/MovieScene3DTransformTrack.h"
@@ -55,6 +56,8 @@
 #include "Tracks/MovieSceneSkeletalAnimationTrack.h"
 #include "Sections/MovieScene3DTransformSection.h"
 #include "Sections/MovieSceneFloatSection.h"
+#include "MovieSceneEvaluationTemplateInstance.h"
+#include "MovieSceneSequence.h"
 
 #if WITH_PHYSX
 #include "PhysicsEngine/AggregateGeom.h"
@@ -724,7 +727,7 @@ void FFbxExporter::ExportStaticMesh(AActor* Actor, UStaticMeshComponent* StaticM
 	}
 
 	// Retrieve the static mesh rendering information at the correct LOD level.
-	UStaticMesh* StaticMesh = StaticMeshComponent->StaticMesh;
+	UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
 	if (StaticMesh == NULL || !StaticMesh->HasValidRenderData())
 	{
 		return;
@@ -1299,10 +1302,11 @@ bool FFbxExporter::ExportMatinee(AMatineeActor* InMatineeActor)
 }
 
 
-FFbxExporter::FLevelSequenceNodeNameAdapter::FLevelSequenceNodeNameAdapter( UMovieScene* InMovieScene, IMovieScenePlayer* InMovieScenePlayer )
+FFbxExporter::FLevelSequenceNodeNameAdapter::FLevelSequenceNodeNameAdapter( UMovieScene* InMovieScene, IMovieScenePlayer* InMovieScenePlayer, FMovieSceneSequenceIDRef InSequenceID )
 {
 	MovieScene = InMovieScene;
 	MovieScenePlayer = InMovieScenePlayer;
+	SequenceID = InSequenceID;
 }
 
 FString FFbxExporter::FLevelSequenceNodeNameAdapter::GetActorNodeName(const AActor* Actor)
@@ -1311,10 +1315,7 @@ FString FFbxExporter::FLevelSequenceNodeNameAdapter::GetActorNodeName(const AAct
 
 	for ( const FMovieSceneBinding& MovieSceneBinding : MovieScene->GetBindings() )
 	{
-		TArray<TWeakObjectPtr<UObject>> RuntimeObjects;
-		MovieScenePlayer->GetRuntimeObjects( MovieScenePlayer->GetRootMovieSceneSequenceInstance(), MovieSceneBinding.GetObjectGuid(), RuntimeObjects );
-
-		for ( TWeakObjectPtr<UObject> RuntimeObject : RuntimeObjects )
+		for ( TWeakObjectPtr<UObject> RuntimeObject : MovieScenePlayer->FindBoundObjects(MovieSceneBinding.GetObjectGuid(), SequenceID) )
 		{
 			if (RuntimeObject.Get() == Actor)
 			{
@@ -1352,12 +1353,12 @@ float FFbxExporter::FLevelSequenceAnimTrackAdapter::GetAnimationLength() const
 
 void FFbxExporter::FLevelSequenceAnimTrackAdapter::UpdateAnimation( float Time )
 {
-	EMovieSceneUpdateData UpdateData( Time, Time );
-	return MovieScenePlayer->GetRootMovieSceneSequenceInstance()->Update( UpdateData, *MovieScenePlayer );
+	FMovieSceneContext Context = FMovieSceneContext(FMovieSceneEvaluationRange(Time), MovieScenePlayer->GetPlaybackStatus()).SetHasJumped(true);
+	return MovieScenePlayer->GetEvaluationTemplate().Evaluate( Context, *MovieScenePlayer );
 }
 
 
-bool FFbxExporter::ExportLevelSequence( UMovieScene* MovieScene, const TArray<FGuid>& Bindings, IMovieScenePlayer* MovieScenePlayer )
+bool FFbxExporter::ExportLevelSequence( UMovieScene* MovieScene, const TArray<FGuid>& Bindings, IMovieScenePlayer* MovieScenePlayer, FMovieSceneSequenceIDRef SequenceID )
 {
 	if ( MovieScene == nullptr || MovieScenePlayer == nullptr )
 	{
@@ -1372,10 +1373,7 @@ bool FFbxExporter::ExportLevelSequence( UMovieScene* MovieScene, const TArray<FG
 			continue;
 		}
 
-		TArray<TWeakObjectPtr<UObject>> RuntimeObjects;
-		MovieScenePlayer->GetRuntimeObjects( MovieScenePlayer->GetRootMovieSceneSequenceInstance(), MovieSceneBinding.GetObjectGuid(), RuntimeObjects );
-
-		for ( TWeakObjectPtr<UObject> RuntimeObject : RuntimeObjects )
+		for ( TWeakObjectPtr<UObject> RuntimeObject : MovieScenePlayer->FindBoundObjects(MovieSceneBinding.GetObjectGuid(), SequenceID) )
 		{
 			if ( RuntimeObject.IsValid() )
 			{
@@ -1527,7 +1525,7 @@ FbxNode* FFbxExporter::ExportActor(AActor* Actor, bool bExportComponents, INodeN
 				USkeletalMeshComponent* SkelMeshComp = Cast<USkeletalMeshComponent>( Component );
 				UChildActorComponent* ChildActorComp = Cast<UChildActorComponent>( Component );
 
-				if( StaticMeshComp && StaticMeshComp->StaticMesh)
+				if( StaticMeshComp && StaticMeshComp->GetStaticMesh())
 				{
 					ComponentsToExport.Add( StaticMeshComp );
 				}
@@ -1593,7 +1591,7 @@ FbxNode* FFbxExporter::ExportActor(AActor* Actor, bool bExportComponents, INodeN
 				USkeletalMeshComponent* SkelMeshComp = Cast<USkeletalMeshComponent>( Component );
 				UChildActorComponent* ChildActorComp = Cast<UChildActorComponent>( Component );
 
-				if (StaticMeshComp && StaticMeshComp->StaticMesh)
+				if (StaticMeshComp && StaticMeshComp->GetStaticMesh())
 				{
 					if (USplineMeshComponent* SplineMeshComp = Cast<USplineMeshComponent>(StaticMeshComp))
 					{
@@ -1606,7 +1604,7 @@ FbxNode* FFbxExporter::ExportActor(AActor* Actor, bool bExportComponents, INodeN
 					else
 					{
 						const int32 LODIndex = (StaticMeshComp->ForcedLodModel > 0 ? StaticMeshComp->ForcedLodModel - 1 : /* auto-select*/ 0);
-						ExportStaticMeshToFbx(StaticMeshComp->StaticMesh, LODIndex, *StaticMeshComp->GetName(), ExportNode);
+						ExportStaticMeshToFbx(StaticMeshComp->GetStaticMesh(), LODIndex, *StaticMeshComp->GetName(), ExportNode);
 					}
 				}
 				else if (SkelMeshComp && SkelMeshComp->SkeletalMesh)
@@ -3534,7 +3532,7 @@ FbxNode* FFbxExporter::ExportStaticMeshToFbx(const UStaticMesh* StaticMesh, int3
 
 void FFbxExporter::ExportSplineMeshToFbx(const USplineMeshComponent* SplineMeshComp, const TCHAR* MeshName, FbxNode* FbxActor)
 {
-	const UStaticMesh* StaticMesh = SplineMeshComp->StaticMesh;
+	const UStaticMesh* StaticMesh = SplineMeshComp->GetStaticMesh();
 	check(StaticMesh);
 
 	const int32 LODIndex = (SplineMeshComp->ForcedLodModel > 0 ? SplineMeshComp->ForcedLodModel - 1 : /* auto-select*/ 0);
@@ -3794,7 +3792,7 @@ void FFbxExporter::ExportSplineMeshToFbx(const USplineMeshComponent* SplineMeshC
 
 void FFbxExporter::ExportInstancedMeshToFbx(const UInstancedStaticMeshComponent* InstancedMeshComp, const TCHAR* MeshName, FbxNode* FbxActor)
 {
-	const UStaticMesh* StaticMesh = InstancedMeshComp->StaticMesh;
+	const UStaticMesh* StaticMesh = InstancedMeshComp->GetStaticMesh();
 	check(StaticMesh);
 
 	const int32 LODIndex = (InstancedMeshComp->ForcedLodModel > 0 ? InstancedMeshComp->ForcedLodModel - 1 : /* auto-select*/ 0);

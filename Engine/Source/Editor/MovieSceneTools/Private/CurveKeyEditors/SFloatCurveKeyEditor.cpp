@@ -67,7 +67,7 @@ float SFloatCurveKeyEditor::OnGetKeyValue() const
 		return ExternalValue.Get().GetValue();
 	}
 
-	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
+	float CurrentTime = Sequencer->GetLocalTime();
 	return Curve->Eval(CurrentTime);
 }
 
@@ -75,7 +75,7 @@ void SFloatCurveKeyEditor::OnValueChanged(float Value)
 {
 	if (OwningSection->TryModify())
 	{
-		float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
+		float CurrentTime = Sequencer->GetLocalTime();
 		bool bAutoSetTrackDefaults = Sequencer->GetAutoSetTrackDefaults();
 		
 		FKeyHandle CurrentKeyHandle = Curve->FindKey(CurrentTime);

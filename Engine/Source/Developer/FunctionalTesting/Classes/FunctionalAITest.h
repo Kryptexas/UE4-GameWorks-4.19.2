@@ -143,6 +143,7 @@ public:
 	// AActor interface end
 
 	virtual bool RunTest(const TArray<FString>& Params = TArray<FString>()) override;
+	virtual bool IsReady_Implementation() override;
 	virtual bool WantsToRunAgain() const override;
 	virtual void GatherRelevantActors(TArray<AActor*>& OutActors) const override;
 	virtual void CleanUp() override;

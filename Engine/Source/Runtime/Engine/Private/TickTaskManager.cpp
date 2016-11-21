@@ -991,12 +991,12 @@ public:
 			CumulativeCooldown += TickFunction->RelativeTickCooldown;
 			if (TickFunction->bTickEvenWhenPaused)
 			{
+				TickFunction->TaskPointer = nullptr; // this is stale, clear it out now
 				if (CumulativeCooldown < InContext.DeltaSeconds)
 				{
 					TickFunction->TickVisitedGFrameCounter = GFrameCounter;
 					TickFunction->TickQueuedGFrameCounter = GFrameCounter;
 					TickFunction->ExecuteTick(TickFunction->CalculateDeltaTime(InContext), InContext.TickType, ENamedThreads::GameThread, FGraphEventRef());
-					TickFunction->TaskPointer = nullptr; // this is stale, clear it out now
 
 					TickFunctionsToReschedule.Add(FTickScheduleDetails(TickFunction, TickFunction->TickInterval - (InContext.DeltaSeconds - CumulativeCooldown))); // Give credit for any overrun
 				}
@@ -1319,14 +1319,15 @@ public:
 	}
 
 	/**
-	 * Ticks the world's dynamic actors based upon their tick group. This function
+	 * Ticks the dynamic actors in the given levels based upon their tick group. This function
 	 * is called once for each ticking group
 	 *
 	 * @param World	- World currently ticking
 	 * @param DeltaSeconds - time in seconds since last tick
 	 * @param TickType - type of tick (viewports only, time only, etc)
+	 * @param LevelsToTick - the levels to tick, may be a subset of InWorld->Levels
 	 */
-	virtual void StartFrame(UWorld* InWorld, float InDeltaSeconds, ELevelTick InTickType) override
+	virtual void StartFrame(UWorld* InWorld, float InDeltaSeconds, ELevelTick InTickType, const TArray<ULevel*>& LevelsToTick) override
 	{
 		SCOPE_CYCLE_COUNTER(STAT_QueueTicks);
 #if !UE_BUILD_SHIPPING
@@ -1344,7 +1345,7 @@ public:
 
 		bTickNewlySpawned = true;
 		TickTaskSequencer.StartFrame();
-		FillLevelList();
+		FillLevelList(LevelsToTick);
 		
 		int32 NumWorkerThread = 0;
 		bool bConcurrentQueue = false;
@@ -1406,7 +1407,7 @@ public:
 	 * @param DeltaSeconds - time in seconds since last tick
 	 * @param TickType - type of tick (viewports only, time only, etc)
 	 */
-	virtual void RunPauseFrame(UWorld* InWorld, float InDeltaSeconds, ELevelTick InTickType) override
+	virtual void RunPauseFrame(UWorld* InWorld, float InDeltaSeconds, ELevelTick InTickType, const TArray<ULevel*>& LevelsToTick) override
 	{
 		bTickNewlySpawned = true; // we don't support new spawns, but lets at least catch them.
 		Context.TickGroup = ETickingGroup(0); // reset this to the start tick group
@@ -1414,7 +1415,7 @@ public:
 		Context.TickType = InTickType;
 		Context.Thread = ENamedThreads::GameThread;
 		Context.World = InWorld;
-		FillLevelList();
+		FillLevelList(LevelsToTick);
 		for( int32 LevelIndex = 0; LevelIndex < LevelList.Num(); LevelIndex++ )
 		{
 			LevelList[LevelIndex]->RunPauseFrame(Context);
@@ -1515,14 +1516,17 @@ private:
 	}
 
 	/** Fill the level list **/
-	void FillLevelList()
+	void FillLevelList(const TArray<ULevel*>& Levels)
 	{
 		check(!LevelList.Num());
-		check(Context.World->TickTaskLevel);
-		LevelList.Add(Context.World->TickTaskLevel);
-		for( int32 LevelIndex = 0; LevelIndex < Context.World->GetNumLevels(); LevelIndex++ )
+		if (!Context.World->GetActiveLevelCollection() || Context.World->GetActiveLevelCollection()->GetType() == ELevelCollectionType::DynamicSourceLevels)
 		{
-			ULevel* Level = Context.World->GetLevel(LevelIndex);
+			check(Context.World->TickTaskLevel);
+			LevelList.Add(Context.World->TickTaskLevel);
+		}
+		for( int32 LevelIndex = 0; LevelIndex < Levels.Num(); LevelIndex++ )
+		{
+			ULevel* Level = Levels[LevelIndex];
 			if (Level->bIsVisible)
 			{
 				check(Level->TickTaskLevel);

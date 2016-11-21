@@ -157,7 +157,6 @@
 #include "Curves/CurveVector.h"
 #include "Engine/CurveTable.h"
 #include "GameFramework/DamageType.h"
-#include "Vehicles/TireType.h"
 #include "Engine/DataTable.h"
 #include "Sound/DialogueVoice.h"
 #include "Sound/DialogueWave.h"

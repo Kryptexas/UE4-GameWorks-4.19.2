@@ -143,7 +143,7 @@ bool FMeshMergingTool::RunMerge(const FString& PackageName)
 				FRotator MergedActorRotation(ForceInit);
 								
 				AStaticMeshActor* MergedActor = World->SpawnActor<AStaticMeshActor>(MergedActorLocation, MergedActorRotation, Params);
-				MergedActor->GetStaticMeshComponent()->StaticMesh = MergedMesh;
+				MergedActor->GetStaticMeshComponent()->SetStaticMesh(MergedMesh);
 				MergedActor->SetActorLabel(AssetsToSync[0]->GetName());
 
 				// Remove source actors

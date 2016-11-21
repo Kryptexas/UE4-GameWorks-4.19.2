@@ -115,6 +115,10 @@ class ENGINE_API UAudioComponent : public USceneComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attenuation)
 	uint8 bOverrideAttenuation:1;
 
+	/** Whether or not to override the sound's subtitle priority. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Sound)
+	uint32 bOverrideSubtitlePriority:1;
+
 	/** Whether or not this sound plays when the game is paused in the UI */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Sound)
 	uint8 bIsUISound : 1;
@@ -185,6 +189,7 @@ class ENGINE_API UAudioComponent : public USceneComponent
 	float Priority;
 
 	/** Used by the subtitle manager to prioritize subtitles wave instances spawned by this component. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Sound, meta = (ClampMin = "0.0", UIMin = "0.0", EditCondition = "bOverrideSubtitlePriority"))
 	float SubtitlePriority;
 
 	UPROPERTY()
@@ -248,7 +253,7 @@ class ENGINE_API UAudioComponent : public USceneComponent
 	 * @param FadeVolumeLevel the percentage of the AudioComponents's calculated volume to fade to
 	 */
 	UFUNCTION(BlueprintCallable, Category="Audio|Components|Audio")
-	void FadeIn(float FadeInDuration, float FadeVolumeLevel = 1.f, float StartTime = 0.f);
+	virtual void FadeIn(float FadeInDuration, float FadeVolumeLevel = 1.f, float StartTime = 0.f);
 
 	/**
 	 * This is used in place of "stop" when it is desired to fade the volume of the sound before stopping.
@@ -261,15 +266,15 @@ class ENGINE_API UAudioComponent : public USceneComponent
 	 * @param FadeVolumeLevel the percentage of the AudioComponents's calculated volume in which to fade to
 	 */
 	UFUNCTION(BlueprintCallable, Category="Audio|Components|Audio")
-	void FadeOut(float FadeOutDuration, float FadeVolumeLevel);
+	virtual	void FadeOut(float FadeOutDuration, float FadeVolumeLevel);
 
 	/** Start a sound playing on an audio component */
 	UFUNCTION(BlueprintCallable, Category="Audio|Components|Audio")
-	void Play(float StartTime = 0.f);
+	virtual void Play(float StartTime = 0.f);
 
 	/** Stop an audio component playing its sound cue, issue any delegates if needed */
 	UFUNCTION(BlueprintCallable, Category="Audio|Components|Audio")
-	void Stop();
+	virtual void Stop();
 
 	/** Pause an audio component playing its sound cue, issue any delegates if needed */
 	UFUNCTION(BlueprintCallable, Category = "Audio|Components|Audio")
@@ -277,7 +282,7 @@ class ENGINE_API UAudioComponent : public USceneComponent
 
 	/** @return true if this component is currently playing a SoundCue. */
 	UFUNCTION(BlueprintCallable, Category="Audio|Components|Audio")
-	bool IsPlaying() const;
+	virtual bool IsPlaying() const;
 
 	/** This will allow one to adjust the volume of an AudioComponent on the fly */
 	UFUNCTION(BlueprintCallable, Category="Audio|Components|Audio")
@@ -367,15 +372,16 @@ public:
 
 	void UpdateInteriorSettings(bool bFullUpdate);
 
+protected:
+	/** Utility function called by Play and FadeIn to start a sound playing. */
+	void PlayInternal(const float StartTime = 0.f, const float FadeInDuration = 0.f, const float FadeVolumeLevel = 1.f);
+
 private:
 	
 #if WITH_EDITORONLY_DATA
 	/** Utility function that updates which texture is displayed on the sprite dependent on the properties of the Audio Component. */
 	void UpdateSpriteTexture();
 #endif
-
-	/** Utility function called by Play and FadeIn to start a sound playing. */
-	void PlayInternal(const float StartTime = 0.f, const float FadeInDuration = 0.f, const float FadeVolumeLevel = 1.f);
 
 	/** A count of how many times we've started playing */
 	int32 ActiveCount;

@@ -59,6 +59,9 @@ import android.widget.PopupWindow;
 
 import android.media.AudioManager;
 
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+
 import com.google.android.gms.auth.GoogleAuthUtil;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.GooglePlayServicesUtil;
@@ -205,6 +208,12 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	/** Whether this application is for distribution */
 	private boolean IsForDistribution = false;
 
+	/** Whether we are in VRMode */
+	private boolean IsInVRMode = false;
+
+	/** Implement this if app wants to handle IAB activity launch. For e.g use DaydreamApi for transitions **/
+	GooglePlayStoreHelper.PurchaseLaunchCallback purchaseLaunchCallback = null;
+
 	/** Used for SurfaceHolder.setFixedSize buffer scaling workaround on early Amazon devices and some others */
 	private boolean bUseSurfaceView = false;
 	private SurfaceView MySurfaceView;
@@ -228,6 +237,16 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	}
 	private EAlertDialogType CurrentDialogType = EAlertDialogType.None;
 	
+	public boolean IsInVRMode()
+	{
+		return IsInVRMode;
+	}
+
+	public GooglePlayStoreHelper.PurchaseLaunchCallback getPurchaseLaunchCallback()
+	{
+		return purchaseLaunchCallback;
+	}
+
 	/** Access singleton activity for game. **/
 	public static GameActivity Get()
 	{
@@ -2121,6 +2140,19 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		return false;
 	}
 
+	public boolean AndroidThunkJava_HasActiveWiFiConnection()
+	{
+		ConnectivityManager cm = (ConnectivityManager)this.getSystemService(Context.CONNECTIVITY_SERVICE);
+		NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+		
+		boolean isConnected = (activeNetwork != null && activeNetwork.isConnectedOrConnecting());
+		if (isConnected)
+		{
+			return (activeNetwork.getType() == ConnectivityManager.TYPE_WIFI);
+		}
+		return false;
+	}
+	
 	public boolean AndroidThunkJava_HasMetaDataKey(String key)
 	{
 		if (_bundle == null || key == null)

@@ -5,8 +5,6 @@
 =============================================================================*/
 
 #include "LandscapePrivatePCH.h"
-#include "Landscape.h"
-#include "LandscapeStreamingProxy.h"
 #include "Components/SplineMeshComponent.h"
 #include "ShaderParameterUtils.h"
 #include "StaticMeshResources.h"
@@ -846,21 +844,13 @@ TArray<ULandscapeSplinesComponent*> ULandscapeSplinesComponent::GetAllStreamingS
 		if (LandscapeInfo)
 		{
 			TArray<ULandscapeSplinesComponent*> SplinesComponents;
-			SplinesComponents.Reserve(LandscapeInfo->Proxies.Num() + 1);
-
-			ALandscape* RootLandscape = LandscapeInfo->LandscapeActor.Get();
-			if (RootLandscape && RootLandscape->SplineComponent)
+			LandscapeInfo->ForAllLandscapeProxies([&SplinesComponents](ALandscapeProxy* Proxy)
 			{
-				SplinesComponents.Add(RootLandscape->SplineComponent);
-			}
-			for (ALandscapeProxy* LandscapeProxy : LandscapeInfo->Proxies)
-			{
-				if (LandscapeProxy && LandscapeProxy->SplineComponent)
+				if (Proxy->SplineComponent)
 				{
-					SplinesComponents.Add(LandscapeProxy->SplineComponent);
+					SplinesComponents.Add(Proxy->SplineComponent);
 				}
-			}
-
+			});
 			return SplinesComponents;
 		}
 	}
@@ -1469,7 +1459,7 @@ void ULandscapeSplineControlPoint::UpdateSplinePoints(bool bUpdateCollision, boo
 			MeshComponent->InvalidateLightingCache();
 		}
 
-		if (MeshComponent->StaticMesh != Mesh)
+		if (MeshComponent->GetStaticMesh() != Mesh)
 		{
 			MeshComponent->Modify();
 			MeshComponent->UnregisterComponent();
@@ -1808,7 +1798,7 @@ void ULandscapeSplineSegment::PostLoad()
 		{
 			for (auto* LocalMeshComponent : LocalMeshComponents)
 			{
-				if (LocalMeshComponent->StaticMesh == nullptr)
+				if (LocalMeshComponent->GetStaticMesh() == nullptr)
 				{
 					LocalMeshComponent->ConditionalPostLoad();
 					LocalMeshComponent->SetStaticMesh(OuterSplines->SplineEditorMesh);
@@ -2200,7 +2190,7 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 		for (int32 i = 0; i < MeshComponents.Num(); i++)
 		{
 			USplineMeshComponent* const MeshComponent = MeshComponents[i];
-			const UStaticMesh* const Mesh = MeshComponent->StaticMesh;
+			const UStaticMesh* const Mesh = MeshComponent->GetStaticMesh();
 			const FBoxSphereBounds MeshBounds = Mesh->GetBounds();
 
 			const float RescaledT = MeshSettings[i].T * Rescale;

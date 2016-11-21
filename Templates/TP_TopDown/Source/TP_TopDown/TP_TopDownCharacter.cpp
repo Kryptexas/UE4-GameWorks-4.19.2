@@ -53,6 +53,8 @@ ATP_TopDownCharacter::ATP_TopDownCharacter()
 
 void ATP_TopDownCharacter::Tick(float DeltaSeconds)
 {
+    Super::Tick(DeltaSeconds);
+
 	if (CursorToWorld != nullptr)
 	{
 		if (UHeadMountedDisplayFunctionLibrary::IsHeadMountedDisplayEnabled())

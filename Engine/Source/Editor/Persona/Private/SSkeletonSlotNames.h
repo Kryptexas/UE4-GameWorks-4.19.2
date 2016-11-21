@@ -5,6 +5,7 @@
 #include "EditorObjectsTracker.h"
 #include "IDocumentation.h"
 #include "SSlotNameReferenceWindow.h"
+#include "PersonaDelegates.h"
 
 class UAnimGraphNode_Slot;
 

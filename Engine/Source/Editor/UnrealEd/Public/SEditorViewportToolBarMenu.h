@@ -51,10 +51,12 @@ private:
 
 	EVisibility GetLabelIconVisibility() const;
 
+protected:
+	/** Parent tool bar for querying other open menus */
+	TWeakPtr<class SViewportToolBar> ParentToolBar;
+
 private:
 	/** Our menus anchor */
 	TSharedPtr<SMenuAnchor> MenuAnchor;
-	/** Parent tool bar for querying other open menus */
-	TWeakPtr<class SViewportToolBar> ParentToolBar;
 	TAttribute<const FSlateBrush*> LabelIconBrush;
 };

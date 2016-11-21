@@ -68,14 +68,34 @@ public:
 					.Text(FText::FromString(PolyMesh->Name))
 				];
 		}
-		else if (ColumnName == "TrackInformation")
+		else if (ColumnName == "TrackFrameStart")
 		{
 			return SNew(SBox)
 				.Padding(FMargin(4.0f, 0.0f))
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(FText::FromString(FString::Printf(TEXT("Number of Samples: %i"), PolyMesh->NumSamples)))
+					.Text(FText::FromString(FString::FromInt(PolyMesh->StartFrameIndex)))
+				];
+		}
+		else if (ColumnName == "TrackFrameEnd")
+		{
+			return SNew(SBox)
+				.Padding(FMargin(4.0f, 0.0f))
+				.VAlign(VAlign_Center)
+				[
+					SNew(STextBlock)
+					.Text(FText::FromString(FString::FromInt(PolyMesh->StartFrameIndex + PolyMesh->NumSamples)))
+				];
+		}
+		else if (ColumnName == "TrackFrameNum")
+		{
+			return SNew(SBox)
+				.Padding(FMargin(4.0f, 0.0f))
+				.VAlign(VAlign_Center)
+				[
+					SNew(STextBlock)
+					.Text(FText::FromString(FString::FromInt(PolyMesh->NumSamples)))
 				];
 		}
 

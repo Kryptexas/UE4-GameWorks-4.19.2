@@ -4,7 +4,6 @@
 #include "GraphEditorCommon.h"
 
 #include "UnrealEd.h"
-
 #include "NodeFactory.h"
 
 #include "SGraphNodeDefault.h"
@@ -27,7 +26,6 @@
 #include "KismetNodes/SGraphNodeCallParameterCollectionFunction.h"
 #include "KismetNodes/SGraphNodeK2Event.h"
 #include "KismetNodes/SGraphNodeFormatText.h"
-#include "KismetNodes/SGraphNodeK2ArrayFunction.h"
 #include "KismetNodes/SGraphNodeMakeStruct.h"
 #include "KismetNodes/SGraphNodeK2Copy.h"
 
@@ -70,9 +68,6 @@
 #include "KismetPins/SGraphPinIndex.h"
 #include "KismetPins/SGraphPinCollisionProfile.h"
 
-#include "SoundNodes/SGraphNodeSoundBase.h"
-#include "SoundNodes/SGraphNodeSoundResult.h"
-
 #include "MaterialNodes/SGraphNodeMaterialBase.h"
 #include "MaterialNodes/SGraphNodeMaterialComment.h"
 #include "MaterialNodes/SGraphNodeMaterialResult.h"
@@ -82,7 +77,6 @@
 #include "ConnectionDrawingPolicy.h"
 #include "AnimGraphConnectionDrawingPolicy.h"
 #include "StateMachineConnectionDrawingPolicy.h"
-#include "SoundCueGraphConnectionDrawingPolicy.h"
 #include "MaterialGraphConnectionDrawingPolicy.h"
 
 #include "EdGraphUtilities.h"
@@ -138,18 +132,6 @@ TSharedPtr<SGraphNode> FNodeFactory::CreateNodeWidget(UEdGraphNode* InNode)
 		else
 		{
 			return SNew(SAnimationGraphNode, BaseAnimNode);
-		}
-	}
-
-	if (USoundCueGraphNode_Base* BaseSoundNode = Cast<USoundCueGraphNode_Base>(InNode))
-	{
-		if (USoundCueGraphNode_Root* RootSoundNode = Cast<USoundCueGraphNode_Root>(InNode))
-		{
-			return SNew(SGraphNodeSoundResult, RootSoundNode);
-		}
-		else if (USoundCueGraphNode* SoundNode = Cast<USoundCueGraphNode>(InNode))
-		{
-			return SNew(SGraphNodeSoundBase, SoundNode);
 		}
 	}
 
@@ -222,14 +204,6 @@ TSharedPtr<SGraphNode> FNodeFactory::CreateNodeWidget(UEdGraphNode* InNode)
 		else if (UK2Node_FormatText* FormatTextNode = Cast<UK2Node_FormatText>(InNode))
 		{
 			return SNew(SGraphNodeFormatText, FormatTextNode);
-		}
-		else if (UK2Node_CallArrayFunction* CallFunction = Cast<UK2Node_CallArrayFunction>(InNode))
-		{
-			return SNew(SGraphNodeK2ArrayFunction, CallFunction);
-		}
-		else if (UK2Node_GetArrayItem* GetArrayItemNode = Cast<UK2Node_GetArrayItem>(InNode))
-		{
-			return SNew(SGraphNodeK2ArrayFunction, GetArrayItemNode);
 		}
 		else if (UK2Node_Knot* Knot = Cast<UK2Node_Knot>(InNode))
 		{
@@ -465,10 +439,6 @@ FConnectionDrawingPolicy* FNodeFactory::CreateConnectionPolicy(const UEdGraphSch
         else if (Schema->IsA(UEdGraphSchema_K2::StaticClass()))
         {
             ConnectionDrawingPolicy = new FKismetConnectionDrawingPolicy(InBackLayerID, InFrontLayerID, ZoomFactor, InClippingRect, InDrawElements, InGraphObj);
-        }
-        else if (Schema->IsA(USoundCueGraphSchema::StaticClass()))
-        {
-            ConnectionDrawingPolicy = new FSoundCueGraphConnectionDrawingPolicy(InBackLayerID, InFrontLayerID, ZoomFactor, InClippingRect, InDrawElements, InGraphObj);
         }
         else if (Schema->IsA(UMaterialGraphSchema::StaticClass()))
         {

@@ -26,7 +26,7 @@ void* FMallocStomp::Malloc(SIZE_T Size, uint32 Alignment)
 {
 	if(Size == 0U)
 	{
-		return nullptr;
+		Size = 1U;
 	}
 
 	const SIZE_T AlignedSize = (Alignment > 0U) ? ((Size + Alignment - 1U) & -static_cast<int32>(Alignment)) : Size;

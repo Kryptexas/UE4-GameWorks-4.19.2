@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "AssetRegistryModule.h"
 #include "EdGraph_ReferenceViewer.generated.h"
 
 UCLASS()
@@ -14,23 +15,23 @@ public:
 	virtual void BeginDestroy() override;
 	// End UObject implementation
 
-	void SetGraphRoot(const TArray<FName>& GraphRootPackageNames, const FIntPoint& GraphRootOrigin = FIntPoint(ForceInitToZero));
-	const TArray<FName>& GetCurrentGraphRootPackageNames() const;
+	void SetGraphRoot(const TArray<FAssetIdentifier>& GraphRootIdentifiers, const FIntPoint& GraphRootOrigin = FIntPoint(ForceInitToZero));
+	const TArray<FAssetIdentifier>& GetCurrentGraphRootIdentifiers() const;
 	class UEdGraphNode_Reference* RebuildGraph();
 
 	bool IsSearchDepthLimited() const;
 	bool IsSearchBreadthLimited() const;
 	bool IsShowSoftReferences() const;
-	bool IsShowSoftDependencies() const;
 	bool IsShowHardReferences() const;
-	bool IsShowHardDependencies() const;
+	bool IsShowSearchableNames() const;
+	bool IsShowNativePackages() const;
 
 	void SetSearchDepthLimitEnabled(bool newEnabled);
 	void SetSearchBreadthLimitEnabled(bool newEnabled);
 	void SetShowSoftReferencesEnabled(bool newEnabled);
-	void SetShowSoftDependenciesEnabled(bool newEnabled);
 	void SetShowHardReferencesEnabled(bool newEnabled);
-	void SetShowHardDependenciesEnabled(bool newEnabled);
+	void SetShowSearchableNames(bool newEnabled);
+	void SetShowNativePackages(bool newEnabled);
 
 	int32 GetSearchDepthLimit() const;
 	int32 GetSearchBreadthLimit() const;
@@ -42,13 +43,14 @@ public:
 	const TSharedPtr<class FAssetThumbnailPool>& GetAssetThumbnailPool() const;
 
 private:
-	UEdGraphNode_Reference* ConstructNodes(const TArray<FName>& GraphRootPackageNames, const FIntPoint& GraphRootOrigin);
-	int32 RecursivelyGatherSizes(bool bReferencers, const TArray<FName>& PackageNames, int32 CurrentDepth, TSet<FName>& VisitedNames, TMap<FName, int32>& OutNodeSizes) const;
+	UEdGraphNode_Reference* ConstructNodes(const TArray<FAssetIdentifier>& GraphRootIdentifiers, const FIntPoint& GraphRootOrigin);
+	int32 RecursivelyGatherSizes(bool bReferencers, const TArray<FAssetIdentifier>& Identifiers, int32 CurrentDepth, TSet<FAssetIdentifier>& VisitedNames, TMap<FAssetIdentifier, int32>& OutNodeSizes) const;
 	void GatherAssetData(const TSet<FName>& AllPackageNames, TMap<FName, FAssetData>& OutPackageToAssetDataMap) const;
-	class UEdGraphNode_Reference* RecursivelyConstructNodes(bool bReferencers, UEdGraphNode_Reference* RootNode, const TArray<FName>& PackageNames, const FIntPoint& NodeLoc, const TMap<FName, int32>& NodeSizes, const TMap<FName, FAssetData>& PackagesToAssetDataMap, int32 CurrentDepth, TSet<FName>& VisitedNames);
+	class UEdGraphNode_Reference* RecursivelyConstructNodes(bool bReferencers, UEdGraphNode_Reference* RootNode, const TArray<FAssetIdentifier>& Identifiers, const FIntPoint& NodeLoc, const TMap<FAssetIdentifier, int32>& NodeSizes, const TMap<FName, FAssetData>& PackagesToAssetDataMap, int32 CurrentDepth, TSet<FAssetIdentifier>& VisitedNames);
 
 	bool ExceedsMaxSearchDepth(int32 Depth) const;
 	bool ExceedsMaxSearchBreadth(int32 Breadth) const;
+	EAssetRegistryDependencyType::Type GetReferenceSearchFlags(bool bReferencers) const;
 
 	UEdGraphNode_Reference* CreateReferenceNode();
 
@@ -59,7 +61,7 @@ private:
 	/** Pool for maintaining and rendering thumbnails */
 	TSharedPtr<class FAssetThumbnailPool> AssetThumbnailPool;
 
-	TArray<FName> CurrentGraphRootPackageNames;
+	TArray<FAssetIdentifier> CurrentGraphRootIdentifiers;
 	FIntPoint CurrentGraphRootOrigin;
 
 	int32 MaxSearchDepth;
@@ -68,8 +70,8 @@ private:
 	bool bLimitSearchDepth;
 	bool bLimitSearchBreadth;
 	bool bIsShowSoftReferences;
-	bool bIsShowSoftDependencies;
 	bool bIsShowHardReferences;
-	bool bIsShowHardDependencies;
+	bool bIsShowSearchableNames;
+	bool bIsShowNativePackages;
 };
 

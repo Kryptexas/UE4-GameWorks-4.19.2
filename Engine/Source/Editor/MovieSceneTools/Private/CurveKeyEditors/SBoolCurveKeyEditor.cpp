@@ -29,7 +29,7 @@ ECheckBoxState SBoolCurveKeyEditor::IsChecked() const
 	}
 	else
 	{
-		float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
+		float CurrentTime = Sequencer->GetLocalTime();
 		bool DefaultValue = false;
 		bCurrentValue = Curve->Evaluate(CurrentTime, DefaultValue) != 0;
 	}
@@ -43,7 +43,7 @@ void SBoolCurveKeyEditor::OnCheckStateChanged(ECheckBoxState NewCheckboxState)
 	OwningSection->SetFlags(RF_Transactional);
 	if (OwningSection->TryModify())
 	{
-		float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
+		float CurrentTime = Sequencer->GetLocalTime();
 		bool bAutoSetTrackDefaults = Sequencer->GetAutoSetTrackDefaults();
 		int32 NewValue = NewCheckboxState == ECheckBoxState::Checked ? 1 : 0;
 

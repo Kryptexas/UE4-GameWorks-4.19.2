@@ -4,16 +4,19 @@
 #include "ObjectTools.h"
 #include "AssetToolsModule.h"
 #include "EditorClassUtils.h"
-
+#include "AutomatedAssetImportData.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFactory, Log, All);
 
 
 FString UFactory::CurrentFilename(TEXT(""));
 
+//@third party BEGIN SIMPLYGON
+FMD5Hash UFactory::FileHash;
+//@third party END SIMPLYGON
+
 // This needs to be greater than 0 to allow factories to have both higher and lower priority than the default
 const int32 UFactory::DefaultImportPriority = 100;
-int32 UFactory::OverwriteYesOrNoToAllState = -1;
 bool UFactory::bAllowOneTimeWarningMessages = true;
 
 
@@ -118,6 +121,10 @@ UObject* UFactory::ImportObject(UClass* InClass, UObject* InOuter, FName InName,
 {
 	UObject* Result = nullptr;
 	CurrentFilename = Filename;
+	//@third party BEGIN SIMPLYGON
+	FileHash = FMD5Hash::HashFile(*CurrentFilename);
+	//@third party END SIMPLYGON
+
 
 	if (CanCreateNew())
 	{
@@ -239,7 +246,7 @@ UClass* UFactory::GetSupportedClass() const
 }
 
 
-bool UFactory::DoesSupportClass(UClass * Class)
+bool UFactory::DoesSupportClass(UClass* Class)
 {
 	return (Class == GetSupportedClass());
 }
@@ -264,8 +271,12 @@ void UFactory::ResetState()
 
 void UFactory::DisplayOverwriteOptionsDialog(const FText& Message)
 {
-	// Prompt the user for what to do if a 'To All' response wasn't already given.
-	if (OverwriteYesOrNoToAllState != EAppReturnType::YesAll && OverwriteYesOrNoToAllState != EAppReturnType::NoAll)
+	// if the asset importing is automated, get the override state from the automated settings from there because we cannot prompt
+	if(AutomatedImportData)
+	{
+		OverwriteYesOrNoToAllState =  AutomatedImportData->bReplaceExisting ? EAppReturnType::YesAll : EAppReturnType::NoAll;
+	}
+	else if (OverwriteYesOrNoToAllState != EAppReturnType::YesAll && OverwriteYesOrNoToAllState != EAppReturnType::NoAll)
 	{
 		OverwriteYesOrNoToAllState = FMessageDialog::Open(EAppMsgType::YesNoYesAllNoAllCancel, FText::Format(
 			NSLOCTEXT("UnrealEd", "ImportedAssetAlreadyExists", "{0} Would you like to overwrite the existing settings?\n\nYes or Yes to All: Overwrite the existing settings.\nNo or No to All: Preserve the existing settings.\nCancel: Abort the operation."),
@@ -534,6 +545,7 @@ UObject* UFactory::CreateOrOverwriteAsset(UClass* InClass, UObject* InParent, FN
 	// otherwise delete and replace
 	if (!ObjectTools::DeleteSingleObject(ExistingAsset))
 	{
+		UE_LOG(LogFactory, Warning, TEXT("Could not delete existing asset %s"), *ExistingAsset->GetFullName());
 		return nullptr;
 	}
 
@@ -570,4 +582,9 @@ UObject* UFactory::CreateOrOverwriteAsset(UClass* InClass, UObject* InParent, FN
 FString UFactory::GetDefaultNewAssetName() const
 {
 	return FString(TEXT("New")) + GetSupportedClass()->GetName();
+}
+
+void UFactory::SetAutomatedAssetImportData(const UAutomatedAssetImportData* Data)
+{
+	AutomatedImportData = Data;
 }

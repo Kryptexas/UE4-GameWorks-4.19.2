@@ -51,13 +51,14 @@ struct FEmitterLocalContext
 	// Nativized UDS doesn't reference its default value dependencies. When ::GetDefaultValue is used, then we need to reference the dependencies in the class.
 	TArray<UUserDefinedStruct*> StructsWithDefaultValuesUsed;
 
-private:
-	int32 LocalNameIndexMax;
-
 	//ConstructorOnly Local Names
 	TMap<UObject*, FString> ClassSubobjectsMap;
 	//ConstructorOnly Local Names
 	TMap<UObject*, FString> CommonSubobjectsMap;
+
+
+private:
+	int32 LocalNameIndexMax;
 
 	// Class subobjects
 	TArray<UObject*> MiscConvertedSubobjects;
@@ -162,7 +163,14 @@ public:
 	FString FindGloballyMappedObject(const UObject* Object, const UClass* ExpectedClass = nullptr, bool bLoadIfNotFound = false, bool bTryUsedAssetsList = true);
 
 	// Functions needed for Unconverted classes
-	FString ExportCppDeclaration(const UProperty* Property, EExportedDeclaration::Type DeclarationType, uint32 AdditionalExportCPPFlags, bool bSkipParameterName = false, const FString& NamePostfix = FString(), const FString& TypePrefix = FString()) const;
+	enum class EPropertyNameInDeclaration
+	{
+		Regular,
+		Skip,
+		ForceConverted,
+	};
+
+	FString ExportCppDeclaration(const UProperty* Property, EExportedDeclaration::Type DeclarationType, uint32 AdditionalExportCPPFlags, EPropertyNameInDeclaration ParameterName = EPropertyNameInDeclaration::Regular, const FString& NamePostfix = FString(), const FString& TypePrefix = FString()) const;
 	FString ExportTextItem(const UProperty* Property, const void* PropertyValue) const;
 
 	// AS FCodeText
@@ -188,7 +196,7 @@ private:
 struct FEmitHelper
 {
 	// bUInterface - use interface with "U" prefix, by default there is "I" prefix
-	static FString GetCppName(const UField* Field, bool bUInterface = false);
+	static FString GetCppName(const UField* Field, bool bUInterface = false, bool bForceParameterNameModification = false);
 
 	// returns an unique number for a structure in structures hierarchy
 	static int32 GetInheritenceLevel(const UStruct* Struct);
@@ -272,8 +280,6 @@ struct FEmitDefaultValueHelper
 
 	static void GenerateConstructor(FEmitterLocalContext& Context);
 
-	static void FillCommonUsedAssets(FEmitterLocalContext& Context, TSharedPtr<FGatherConvertedClassDependencies> ParentDependencies);
-
 	static void GenerateCustomDynamicClassInitialization(FEmitterLocalContext& Context, TSharedPtr<FGatherConvertedClassDependencies> ParentDependencies);
 
 	enum class EPropertyAccessOperator
@@ -351,4 +357,25 @@ struct FNativizationSummaryHelper
 	static void RegisterClass(const UClass* OriginalClass);
 
 	static void ReducibleFunciton(const UClass* OriginalClass);
+};
+
+struct FDependenciesGlobalMapHelper
+{
+	static FString EmitHeaderCode();
+	static FString EmitBodyCode();
+
+	static FNativizationSummary::FDependencyRecord& FindDependencyRecord(const FStringAssetReference& Key);
+
+private:
+	static TMap<FStringAssetReference, FNativizationSummary::FDependencyRecord>& GetDependenciesGlobalMap();
+};
+
+struct FDisableUnwantedWarningOnScope
+{
+private:
+	FCodeText& CodeText;
+
+public:
+	FDisableUnwantedWarningOnScope(FCodeText& InCodeText);
+	~FDisableUnwantedWarningOnScope();
 };

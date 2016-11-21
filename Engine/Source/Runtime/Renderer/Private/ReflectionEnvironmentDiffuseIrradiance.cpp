@@ -251,7 +251,10 @@ void ComputeDiffuseIrradiance(FRHICommandListImmediate& RHICmdList, ERHIFeatureL
 			for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
 			{
 				SetRenderTarget(RHICmdList, EffectiveRT.TargetableTexture, 0, CubeFace, NULL, true);
-					
+
+				// Clear this face before rendering to ensure it's cleared at least once (avoids issues on XB1 11x/FS)
+				RHICmdList.ClearColorTexture(EffectiveRT.TargetableTexture, FLinearColor(0, 0, 0, 0), FIntRect());
+
 				const FIntRect ViewRect(0, 0, MipSize, MipSize);
 				RHICmdList.SetViewport(0, 0, 0.0f, MipSize, MipSize, 1.0f);
 				RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());

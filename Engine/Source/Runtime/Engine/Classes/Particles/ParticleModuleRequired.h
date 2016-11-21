@@ -315,7 +315,7 @@ class UParticleModuleRequired : public UParticleModule
 	/**
 	* Texture to generate bounding geometry from.
 	*/
-	UPROPERTY(EditAnywhere, Category=Rendering)
+	UPROPERTY(EditAnywhere, Category=ParticleCutout)
 	UTexture2D* CutoutTexture;
 
 	/**
@@ -323,17 +323,17 @@ class UParticleModuleRequired : public UParticleModule
 	* The eight vertex mode is best used when the SubUV texture has a lot of space to cut out that is not captured by the four vertex version,
 	* and when the particles using the texture will be few and large.
 	*/
-	UPROPERTY(EditAnywhere, Category=Rendering)
+	UPROPERTY(EditAnywhere, Category=ParticleCutout)
 	TEnumAsByte<enum ESubUVBoundingVertexCount> BoundingMode;
 
-	UPROPERTY(EditAnywhere, Category=Rendering)
+	UPROPERTY(EditAnywhere, Category=ParticleCutout)
 	TEnumAsByte<enum EOpacitySourceMode> OpacitySourceMode;
 
 	/**
 	* Alpha channel values larger than the threshold are considered occupied and will be contained in the bounding geometry.
 	* Raising this threshold slightly can reduce overdraw in particles using this animation asset.
 	*/
-	UPROPERTY(EditAnywhere, Category=Rendering, meta=(UIMin = "0", UIMax = "1"))
+	UPROPERTY(EditAnywhere, Category=ParticleCutout, meta=(UIMin = "0", UIMax = "1"))
 	float AlphaThreshold;
 
 	/** Normal generation mode for this emitter LOD. */

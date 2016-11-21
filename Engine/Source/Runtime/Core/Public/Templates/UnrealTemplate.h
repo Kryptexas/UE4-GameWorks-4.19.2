@@ -431,19 +431,6 @@ template <typename T> struct TRValueToLValueReference      { typedef T  Type; };
 template <typename T> struct TRValueToLValueReference<T&&> { typedef T& Type; };
 
 /**
- * A traits class which tests if a type is a C++ array.
- */
-template <typename T>           struct TIsCPPArray       { enum { Value = false }; };
-template <typename T, uint32 N> struct TIsCPPArray<T[N]> { enum { Value = true  }; };
-
-/**
- * Removes one dimension of extents from an array type.
- */
-template <typename T>           struct TRemoveExtent       { typedef T Type; };
-template <typename T>           struct TRemoveExtent<T[]>  { typedef T Type; };
-template <typename T, uint32 N> struct TRemoveExtent<T[N]> { typedef T Type; };
-
-/**
  * Reverses the order of the bits of a value.
  * This is an TEnableIf'd template to ensure that no undesirable conversions occur.  Overloads for other types can be added in the same way.
  *

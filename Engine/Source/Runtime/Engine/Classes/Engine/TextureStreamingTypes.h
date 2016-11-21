@@ -5,6 +5,7 @@
 #pragma once 
 
 #include "EngineTypes.h"
+#include "Components.h" // For FMeshUVChannelInfo
 #include "TextureStreamingTypes.generated.h"
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(TextureStreamingBuild, Log, All);
@@ -12,6 +13,7 @@ ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(TextureStreamingBuild, Log, All);
 class UTexture;
 class UTexture2D;
 struct FStreamingTextureBuildInfo;
+struct FMaterialTextureInfo;
 
 /** Information about a streaming texture that a primitive uses for rendering. */
 USTRUCT()
@@ -97,62 +99,40 @@ struct FStreamingTextureBuildInfo
 	 *	@param	RefBounds		[in]		The reference bounds used to compute the packed relative box.
 	 *	@param	Info			[in]		The unpacked params.
 	 */
-	ENGINE_API void PackFrom(TArray<UTexture2D*>& LevelTextures, const FBoxSphereBounds& RefBounds, const FStreamingTexturePrimitiveInfo& Info);
+	ENGINE_API void PackFrom(ULevel* Level, const FBoxSphereBounds& RefBounds, const FStreamingTexturePrimitiveInfo& Info);
 
 };
 
-/** 
- * This struct holds data about the texture coordinate used to sample a texture within a material.
- */
-struct FMaterialTexCoordBuildInfo
+// The max number of uv channels processed in the texture streaming build.
+#define TEXSTREAM_MAX_NUM_UVCHANNELS  4
+// The initial texture scales (must be bigger than actual used values)
+#define TEXSTREAM_INITIAL_GPU_SCALE 256
+// The tile size when outputting the material texture scales.
+#define TEXSTREAM_TILE_RESOLUTION 32
+// The max number of textures processed in the material texture scales build.
+#define TEXSTREAM_MAX_NUM_TEXTURES_PER_MATERIAL 32
+
+struct FPrimitiveMaterialInfo
 {
-	enum 
-	{
-		MAX_NUM_TEX_COORD = 4,			// The max number of texcoords processed in the analysis.
-		INITIAL_GPU_SCALE = 256,		// The initial texcoord scale (must be bigger than actual used values)
-		TILE_RESOLUTION = 32,			// The tile size of the render used when analysis the shader scales.
-		MAX_NUM_TEXTURE_REGISTER = 32	// The max number of texture indices processed in the analysis.
-	};
+	FPrimitiveMaterialInfo() : Material(nullptr), UVChannelData(nullptr) {}
 
-	FMaterialTexCoordBuildInfo() : Scale(0), Index(INDEX_NONE) {}
+	// The material
+	const UMaterialInterface* Material;
 
-	/** The coordinate scale */
-	float Scale;
+	// The mesh UV channel data
+	const FMeshUVChannelInfo* UVChannelData;
 
-	/** The coordinate index */
-	int32 Index;
+	// The material bounds for the mesh.
+	FBox Bounds;
+
+	bool IsValid() const { return Material && UVChannelData && Bounds.IsValid; }
 };
 
-/** 
- * This struct holds the transient data used in the texture streaming build and is also useful for debugging results.
- */
-struct FStreamingSectionBuildInfo
+enum ETextureStreamingBuildType
 {
-	FStreamingSectionBuildInfo() : LODIndex(INDEX_NONE), ElementIndex(INDEX_NONE), MaterialIndex(INDEX_NONE), BoxOrigin(0, 0, 0), BoxExtent(0, 0, 0)  
-	{
-		FMemory::Memzero(TexelFactors);
-	}
-
-	/** LOD Index related to this data. */
-	int32 LODIndex;
-
-	/** Element (Section) Index related to this data. */
-	int32 ElementIndex;
-
-	/** The material index used for this LOD Section. */
-	int32 MaterialIndex;
-
-	/** The world space box origin of the lod section.*/
-	FVector	BoxOrigin;
-
-	/** The world space box extent of the lod section.*/
-	FVector BoxExtent;
-
-	/** The texture world size associated to the mesh UV mapping.*/
-	TArray<FMaterialTexCoordBuildInfo> TexCoordData;
-
-	/** The texture world size computed from the mesh UV mapping.*/
-	float TexelFactors[FMaterialTexCoordBuildInfo::MAX_NUM_TEX_COORD];
+	TSB_MapBuild,
+	TSB_ValidationOnly,
+	TSB_ViewMode
 };
 
 /** 
@@ -171,35 +151,27 @@ class FStreamingTextureLevelContext
 	/** Reversed lookup for ULevel::StreamingTextureGuids. */
 	TMap<FGuid, int32> TextureGuidToLevelIndex;
 
-	/** List of texture for which LevelIndex was set. Used to reset the value to INDEX_NONE after the level was processed. */
-	TArray<UTexture2D*> ProcessedTextures;
-
-	/*
-	 * Whether the precomputed relative bounds should be used or not. 
-	 * Will be false if the transform level was rotated  since the last texture streaming build.
-	 */
+	/** Whether the precomputed relative bounds should be used or not.  Will be false if the transform level was rotated  since the last texture streaming build. */
 	bool bUseRelativeBoxes;
 
-	/** An id used to identify the component. */
-	int32 ComponentTimestamp;
+	/** An id used to identify the component build data. */
+	int32 BuildDataTimestamp;
 
 	/** The last bound component texture streaming build data. */
 	const TArray<FStreamingTextureBuildInfo>* ComponentBuildData;
-	/** The last bound component bounds. */
-	FBoxSphereBounds ComponentBounds;
-	/** The last bound component precomputed data scale. */
-	float ComponentPrecomputedDataScale;
-	/** The last bound component streaming fallback scale. */
-	float ComponentFallbackScale;
 
 	struct FTextureBoundState
 	{
-		/** The component timestamp that last component referring this texture. */
-		int32 Timestamp;
-		/** The component timestamp that last component having build data for this texture. */
+		FTextureBoundState() {}
+
+		FTextureBoundState(UTexture2D* InTexture) : BuildDataTimestamp(0), BuildDataIndex(0), Texture(InTexture) {}
+
+		/** The timestamp of the build data to indentify whether BuildDataIndex is valid or not. */
 		int32 BuildDataTimestamp;
 		/** The ComponentBuildData Index referring this texture. */
 		int32 BuildDataIndex;
+		/**  The texture relative to this entry. */
+		UTexture2D* Texture;
 	};
 
 	/*
@@ -208,13 +180,26 @@ class FStreamingTextureLevelContext
 	 */
 	TArray<FTextureBoundState> BoundStates;
 
+	EMaterialQualityLevel::Type QualityLevel;
+	ERHIFeatureLevel::Type FeatureLevel;
+
+	int32* GetBuildDataIndexRef(UTexture2D* Texture2D);
+
+	void InitFromLevel(const ULevel* InLevel);
+
 public:
 
-	FStreamingTextureLevelContext(const ULevel* InLevel = nullptr);
+	// Needs InLevel to use precomputed data from 
+	FStreamingTextureLevelContext(EMaterialQualityLevel::Type InQualityLevel, ERHIFeatureLevel::Type InFeatureLevel, const ULevel* InLevel = nullptr);
+	FStreamingTextureLevelContext(EMaterialQualityLevel::Type InQualityLevel, const ULevel* InLevel = nullptr);
+	FStreamingTextureLevelContext(EMaterialQualityLevel::Type InQualityLevel, const UPrimitiveComponent* Primitive);
 	~FStreamingTextureLevelContext();
 
-	void BindComponent(const TArray<FStreamingTextureBuildInfo>* BuildData, const FBoxSphereBounds& Bounds, float PrecomputedDataScale, float FallbackScale);
-	void Process(const TArray<UTexture*>& InTextures, TArray<FStreamingTexturePrimitiveInfo>& OutInfos);
+	void BindBuildData(const TArray<FStreamingTextureBuildInfo>* PreBuiltData);
+	void ProcessMaterial(const FPrimitiveMaterialInfo& MaterialData, float ComponentScaling, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures);
+
+	EMaterialQualityLevel::Type GetQualityLevel() { return QualityLevel; }
+	ERHIFeatureLevel::Type GetFeatureLevel() { return FeatureLevel; }
 };
 
 
@@ -224,19 +209,24 @@ public:
  * This is reflected in UMaterialInterface::GetUsedTexturesAndIndices where each texture is bound to 
  * an array of texture register indices.
  */
-typedef TMap<UMaterialInterface*, TArray<FMaterialTexCoordBuildInfo> > FTexCoordScaleMap;
+typedef TMap<UMaterialInterface*, TArray<FMaterialTextureInfo> > FTexCoordScaleMap;
 
 /** A mapping between used material and levels for refering primitives. */
 typedef TMap<UMaterialInterface*, TArray<ULevel*> > FMaterialToLevelsMap;
 
 /** Build the shaders required for the texture streaming build. Returns whether or not the action was successful. */
-ENGINE_API bool BuildTextureStreamingShaders(UWorld* InWorld, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, OUT FTexCoordScaleMap& TexCoordScales, OUT FMaterialToLevelsMap& MaterialToLevels, bool bIncremental, FSlowTask& BuildTextureStreamingTask);
-ENGINE_API bool UpdateComponentStreamingSectionData(UWorld* InWorld, const FTexCoordScaleMap& InTexCoordScales, bool bIncremental, FSlowTask& BuildTextureStreamingTask);
-ENGINE_API bool BuildTextureStreamingData(UWorld* InWorld, const FTexCoordScaleMap& InTexCoordScales, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, FSlowTask& BuildTextureStreamingTask);
+ENGINE_API bool GetTextureStreamingBuildMaterials(UWorld* InWorld, OUT TSet<UMaterialInterface*>& MaterialsToUpdate, FSlowTask& BuildTextureStreamingTask);
+ENGINE_API bool CompileTextureStreamingShaders(EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, bool bFullRebuild, bool bWaitForPreviousShaders, TSet<UMaterialInterface*>& Materials, FSlowTask& BuildTextureStreamingTask);
+ENGINE_API bool BuildTextureStreamingComponentData(UWorld* InWorld, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, bool bFullRebuild, FSlowTask& BuildTextureStreamingTask);
 
-/** Check if the lighting build is dirty. Updates the needs rebuild status of the level. */
-ENGINE_API void CheckTextureStreamingBuild(ULevel* InLevel);
 /** Check if the lighting build is dirty. Updates the needs rebuild status of the level and world. */
-ENGINE_API void CheckTextureStreamingBuild(UWorld* InWorld);
+ENGINE_API void CheckTextureStreamingBuildValidity(UWorld* InWorld);
+
+/**
+ * Checks whether a UTexture2D is a texture with streamable mips
+ * @param Texture	Texture to check
+ * @return			true if the UTexture2D is supposed to be streaming
+ */
+ENGINE_API bool IsStreamingTexture( const UTexture2D* Texture2D );
 
 extern ENGINE_API TAutoConsoleVariable<int32> CVarStreamingUseNewMetrics;

@@ -365,6 +365,11 @@ public:
 
 	uint32 GetAllocatedSize() const;
 
+#if !UE_BUILD_SHIPPING
+	// Get all (non removed) components refered by the manager. Debug only.
+	void GetAllComponents(TArray<const UPrimitiveComponent*>& Components) const;
+#endif
+
 private:
 
 	struct FComponentState

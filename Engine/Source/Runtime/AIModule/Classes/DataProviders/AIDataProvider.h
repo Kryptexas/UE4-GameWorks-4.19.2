@@ -60,6 +60,8 @@ public:
 		DataBinding(nullptr)
 	{
 	}
+
+	virtual ~FAIDataProviderValue() {};
 };
 
 USTRUCT()

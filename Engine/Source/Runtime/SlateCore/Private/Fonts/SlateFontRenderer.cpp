@@ -28,7 +28,7 @@ void AppendGlyphFlags(const FFontData& InFontData, uint32& InOutGlyphFlags)
 	// Setup additional glyph flags
 	InOutGlyphFlags |= GlobalGlyphFlags;
 
-	switch(InFontData.Hinting)
+	switch(InFontData.GetHinting())
 	{
 	case EFontHinting::Auto:		InOutGlyphFlags |= FT_LOAD_FORCE_AUTOHINT; break;
 	case EFontHinting::AutoLight:	InOutGlyphFlags |= FT_LOAD_TARGET_LIGHT; break;

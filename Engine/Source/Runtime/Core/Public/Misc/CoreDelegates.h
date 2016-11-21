@@ -268,7 +268,11 @@ public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnCrashOverrideParamsChanged, const FCrashOverrideParameters&);
 	static FOnCrashOverrideParamsChanged CrashOverrideParamsChanged;
 	
-		// Callback for platform specific very early init code.
+	/** Sent by engine code when the "vanilla" status of the engine changes */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnIsVanillaProductChanged, bool);
+	static FOnIsVanillaProductChanged IsVanillaProductChanged;
+
+	// Callback for platform specific very early init code.
 	DECLARE_MULTICAST_DELEGATE(FOnPreMainInit);
 	static FOnPreMainInit& GetPreMainInitDelegate();
 	
@@ -300,6 +304,23 @@ public:
 
 	// Called when OOM event occurs, after backup memory has been freed, so there's some hope of being effective
 	static FSimpleMulticastDelegate OnOutOfMemory;
+
+	enum class EOnScreenMessageSeverity : uint8
+	{
+		Info,
+		Warning,
+		Error,
+	};
+	typedef TMultiMap<EOnScreenMessageSeverity, FText> FSeverityMessageMap;
+
+	// Called when displaying on screen messages (like the "Lighting needs to be rebuilt"), to let other systems add any messages as needed
+	// Sample Usage:
+	// void GetMyOnScreenMessages(FCoreDelegates::FSeverityMessageMap& OutMessages)
+	// {
+	//		OutMessages.Add(FCoreDelegates::EOnScreenMessageSeverity::Info, FText::Format(LOCTEXT("MyMessage", "My Status: {0}"), SomeStatus));
+	// }
+	DECLARE_MULTICAST_DELEGATE_OneParam(FGetOnScreenMessagesDelegate, FSeverityMessageMap&);
+	static FGetOnScreenMessagesDelegate OnGetOnScreenMessages;
 
 private:
 

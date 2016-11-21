@@ -528,7 +528,7 @@ bool ULandscapeEditorObject::SetAlphaTexture(UTexture2D* InTexture, EColorChanne
 	return Result;
 }
 
-const TArray<uint16>& ULandscapeEditorObject::GetImportLandscapeData()
+void ULandscapeEditorObject::ImportLandscapeData()
 {
 	ILandscapeEditorModule& LandscapeEditorModule = FModuleManager::GetModuleChecked<ILandscapeEditorModule>("LandscapeEditor");
 	const ILandscapeHeightmapFileFormat* HeightmapFormat = LandscapeEditorModule.GetHeightmapFormatByExtension(*FPaths::GetExtension(ImportLandscape_HeightmapFilename, true));
@@ -550,8 +550,6 @@ const TArray<uint16>& ULandscapeEditorObject::GetImportLandscapeData()
 	{
 		ImportLandscape_Data.Empty();
 	}
-
-	return ImportLandscape_Data;
 }
 
 void ULandscapeEditorObject::RefreshImportLayersList()

@@ -192,7 +192,7 @@ void APlayerController::ClientUpdateLevelStreamingStatus_Implementation(FName Pa
 {
 	// For PIE Networking: remap the packagename to our local PIE packagename
 	FString PackageNameStr = PackageName.ToString();
-	if (GEngine->NetworkRemapPath(GetWorld(), PackageNameStr, true))
+	if (GEngine->NetworkRemapPath(GetNetDriver(), PackageNameStr, true))
 	{
 		PackageName = FName(*PackageNameStr);
 	}
@@ -205,8 +205,6 @@ void APlayerController::ClientUpdateLevelStreamingStatus_Implementation(FName Pa
 			return;
 		}
 	}
-
-	//GEngine->NetworkRemapPath(GetWorld(), RealName, false);
 
 	// if we're about to commit a map change, we assume that the streaming update is based on the to be loaded map and so defer it until that is complete
 	if (GEngine->ShouldCommitPendingMapChange(GetWorld()))
@@ -998,8 +996,14 @@ void APlayerController::AddCheats(bool bForce)
 	UWorld* World = GetWorld();
 	check(World);
 
-	// Assuming that this never gets called for NM_Client without bForce=true
-	if ( ((CheatManager == NULL) && (World->GetAuthGameMode() != NULL) && World->GetAuthGameMode()->AllowCheats(this)) || bForce)
+	// Abort if cheat manager exists or there is no cheat class
+	if (CheatManager || !CheatClass)
+	{
+		return;
+	}
+
+	// Spawn if game mode says we are allowed, or if bForce
+	if ( (World->GetAuthGameMode() && World->GetAuthGameMode()->AllowCheats(this)) || bForce)
 	{
 		CheatManager = NewObject<UCheatManager>(this, CheatClass);
 		CheatManager->InitCheatManager();
@@ -1586,11 +1590,12 @@ void APlayerController::ServerUpdateCamera_Implementation(FVector_NetQuantize Ca
 	}
 
 	FPOV NewPOV;
-	NewPOV.Location = CamLoc;
+	NewPOV.Location = FRepMovement::RebaseOntoLocalOrigin(CamLoc, this);
 	
 	NewPOV.Rotation.Yaw = FRotator::DecompressAxisFromShort( (CamPitchAndYaw >> 16) & 65535 );
 	NewPOV.Rotation.Pitch = FRotator::DecompressAxisFromShort(CamPitchAndYaw & 65535);
 
+#if ENABLE_DRAW_DEBUG
 	if ( PlayerCameraManager->bDebugClientSideCamera )
 	{
 		// show differences (on server) between local and replicated camera
@@ -1602,6 +1607,7 @@ void APlayerController::ServerUpdateCamera_Implementation(FVector_NetQuantize Ca
 		DrawDebugLine(GetWorld(), NewPOV.Location, NewPOV.Location + 100*NewPOV.Rotation.Vector(), FColor::Yellow);
 	}
 	else
+#endif
 	{
 		//@TODO: CAMERA: Fat pipe
 		FMinimalViewInfo NewInfo = PlayerCameraManager->CameraCache.POV;
@@ -2665,9 +2671,9 @@ APlayerState* APlayerController::GetNextViewablePlayer(int32 dir)
 	{
 		APlayerState* const NextPlayerState = GameState->PlayerArray[NewIndex];
 		AController* NextController = (NextPlayerState ? Cast<AController>(NextPlayerState->GetOwner()) : nullptr);
-		if ( NextController && NextController->GetPawn() != nullptr && GameMode->CanSpectate(this, PlayerState) )
+		if ( NextController && NextController->GetPawn() != nullptr && GameMode->CanSpectate(this, NextPlayerState) )
 		{
-			return PlayerState;
+			return NextPlayerState;
 		}
 	}
 
@@ -2677,9 +2683,9 @@ APlayerState* APlayerController::GetNextViewablePlayer(int32 dir)
 	{
 		APlayerState* const NextPlayerState = GameState->PlayerArray[NewIndex];
 		AController* NextController = (NextPlayerState ? Cast<AController>(NextPlayerState->GetOwner()) : nullptr);
-		if ( NextController && NextController->GetPawn() != nullptr && GameMode->CanSpectate(this, PlayerState) )
+		if ( NextController && NextController->GetPawn() != nullptr && GameMode->CanSpectate(this, NextPlayerState) )
 		{
-			return PlayerState;
+			return NextPlayerState;
 		}
 	}
 
@@ -2800,7 +2806,7 @@ void APlayerController::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayI
 {
 	Super::DisplayDebug(Canvas, DebugDisplay, YL, YPos);
 
-	FDisplayDebugManager DisplayDebugManager = Canvas->DisplayDebugManager;
+	FDisplayDebugManager& DisplayDebugManager = Canvas->DisplayDebugManager;
 	DisplayDebugManager.SetDrawColor(FColor(255, 255, 0));
 	DisplayDebugManager.DrawString(FString::Printf(TEXT("STATE %s"), *GetStateName().ToString()));
 
@@ -3835,9 +3841,9 @@ void APlayerController::SetPlayer( UPlayer* InPlayer )
 {
 	check(InPlayer!=NULL);
 
-	const bool bIsSameWorld = InPlayer->PlayerController && (InPlayer->PlayerController->GetWorld() == GetWorld());
-	// Detach old player if same world.
-	if (bIsSameWorld)
+	const bool bIsSameLevel = InPlayer->PlayerController && (InPlayer->PlayerController->GetLevel() == GetLevel());
+	// Detach old player if it's in the same level.
+	if (bIsSameLevel)
 	{
 		InPlayer->PlayerController->Player = NULL;
 	}
@@ -3983,21 +3989,25 @@ void APlayerController::TickActor( float DeltaSeconds, ELevelTick TickType, FAct
 		// skip updates if pawn lost autonomous proxy role (e.g. TurnOff() call)
 		if (GetPawn() && !GetPawn()->IsPendingKill() && GetPawn()->GetRemoteRole() == ROLE_AutonomousProxy && GetPawn()->bReplicateMovement)
 		{
-			INetworkPredictionInterface* NetworkPredictionInterface = Cast<INetworkPredictionInterface>(GetPawn()->GetMovementComponent());
-			if (NetworkPredictionInterface)
+			UMovementComponent* PawnMovement = GetPawn()->GetMovementComponent();
+			INetworkPredictionInterface* NetworkPredictionInterface = Cast<INetworkPredictionInterface>(PawnMovement);
+			if (NetworkPredictionInterface && IsValid(PawnMovement->UpdatedComponent))
 			{
-				FNetworkPredictionData_Server* ServerData = NetworkPredictionInterface->GetPredictionData_Server();
-				const float TimeSinceUpdate = ServerData ? GetWorld()->GetTimeSeconds() - ServerData->ServerTimeStamp : 0.f;
-				const float PawnTimeSinceUpdate = TimeSinceUpdate * GetPawn()->CustomTimeDilation;
-				if (PawnTimeSinceUpdate > FMath::Max<float>(DeltaSeconds+0.06f,AGameNetworkManager::StaticClass()->GetDefaultObject<AGameNetworkManager>()->MAXCLIENTUPDATEINTERVAL * GetPawn()->GetActorTimeDilation()))
+				FNetworkPredictionData_Server* ServerData = NetworkPredictionInterface->HasPredictionData_Server() ? NetworkPredictionInterface->GetPredictionData_Server() : nullptr;
+				if (ServerData)
 				{
-					//UE_LOG(LogPlayerController, Warning, TEXT("ForcedMovementTick. PawnTimeSinceUpdate: %f, DeltaSeconds: %f, DeltaSeconds+: %f"), PawnTimeSinceUpdate, DeltaSeconds, DeltaSeconds+0.06f);
-					const USkeletalMeshComponent* PawnMesh = GetPawn()->FindComponentByClass<USkeletalMeshComponent>();
-					if (!PawnMesh || !PawnMesh->IsSimulatingPhysics())
+					const float TimeSinceUpdate = GetWorld()->GetTimeSeconds() - ServerData->ServerTimeStamp;
+					const float PawnTimeSinceUpdate = TimeSinceUpdate * GetPawn()->CustomTimeDilation;
+					if (PawnTimeSinceUpdate > FMath::Max<float>(DeltaSeconds+0.06f, AGameNetworkManager::StaticClass()->GetDefaultObject<AGameNetworkManager>()->MAXCLIENTUPDATEINTERVAL * GetPawn()->GetActorTimeDilation()))
 					{
-						NetworkPredictionInterface->ForcePositionUpdate(PawnTimeSinceUpdate);
-						ServerData->ServerTimeStamp = GetWorld()->GetTimeSeconds();
-					}					
+						//UE_LOG(LogPlayerController, Warning, TEXT("ForcedMovementTick. PawnTimeSinceUpdate: %f, DeltaSeconds: %f, DeltaSeconds+: %f"), PawnTimeSinceUpdate, DeltaSeconds, DeltaSeconds+0.06f);
+						const USkeletalMeshComponent* PawnMesh = GetPawn()->FindComponentByClass<USkeletalMeshComponent>();
+						if (!PawnMesh || !PawnMesh->IsSimulatingPhysics())
+						{
+							NetworkPredictionInterface->ForcePositionUpdate(PawnTimeSinceUpdate);
+							ServerData->ServerTimeStamp = GetWorld()->GetTimeSeconds();
+						}
+					}
 				}
 			}
 		}

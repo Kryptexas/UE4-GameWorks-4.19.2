@@ -1811,6 +1811,12 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 		Scene.GeneralSettings.NumIndirectLightingBounces = LevelSettings.NumIndirectLightingBounces;
 		Scene.GeneralSettings.IndirectLightingSmoothness = LevelSettings.IndirectLightingSmoothness;
 		Scene.GeneralSettings.IndirectLightingQuality = LevelSettings.IndirectLightingQuality;
+
+		if (QualityLevel == Quality_Preview)
+		{
+			Scene.GeneralSettings.IndirectLightingQuality = FMath::Min(Scene.GeneralSettings.IndirectLightingQuality, 1.0f);
+		}
+
 		verify(GConfig->GetInt(TEXT("DevOptions.StaticLighting"), TEXT("ViewSingleBounceNumber"), Scene.GeneralSettings.ViewSingleBounceNumber, GLightmassIni));
 		verify(GConfig->GetBool(TEXT("DevOptions.StaticLighting"), TEXT("bUseConservativeTexelRasterization"), bConfigBool, GLightmassIni));
 		Scene.GeneralSettings.bUseConservativeTexelRasterization = bConfigBool;
@@ -3006,12 +3012,10 @@ void FLightmassProcessor::ImportVolumeSamples()
 		const int32 Channel = Swarm.OpenChannel( *ChannelName, LM_VOLUMESAMPLES_CHANNEL_FLAGS );
 		if (Channel >= 0)
 		{
-			FVector4 VolumeCenter;
-			Swarm.ReadChannel(Channel, &VolumeCenter, sizeof(VolumeCenter));
-			FVector4 VolumeExtent;
-			Swarm.ReadChannel(Channel, &VolumeExtent, sizeof(VolumeExtent));
-
-			System.GetWorld()->PersistentLevel->PrecomputedLightVolume->Initialize(FBox(VolumeCenter - VolumeExtent, VolumeCenter + VolumeExtent));
+			FVector4 UnusedVolumeCenter;
+			Swarm.ReadChannel(Channel, &UnusedVolumeCenter, sizeof(UnusedVolumeCenter));
+			FVector4 UnusedVolumeExtent;
+			Swarm.ReadChannel(Channel, &UnusedVolumeExtent, sizeof(UnusedVolumeExtent));
 
 			int32 NumStreamLevels = System.GetWorld()->StreamingLevels.Num();
 			int32 NumVolumeSampleArrays;
@@ -3022,63 +3026,63 @@ void FLightmassProcessor::ImportVolumeSamples()
 				Swarm.ReadChannel(Channel, &LevelGuid, sizeof(LevelGuid));
 				TArray<Lightmass::FVolumeLightingSampleData> VolumeSamples;
 				ReadArray(Channel, VolumeSamples);
-				const ULevel* CurrentLevel = FindLevel(LevelGuid);
+				ULevel* CurrentLevel = FindLevel(LevelGuid);
 
-				if (CurrentLevel)
+				// Only build precomputed light for visible streamed levels
+				if (CurrentLevel && CurrentLevel->bIsVisible)
 				{
-					bool bIsPersistent = (CurrentLevel == System.GetWorld()->PersistentLevel);
-					if (!bIsPersistent)
+					ULevel* CurrentStorageLevel = System.LightingScenario ? System.LightingScenario : CurrentLevel;
+					UMapBuildDataRegistry* CurrentRegistry = CurrentStorageLevel->GetOrCreateMapBuildData();
+					FPrecomputedLightVolumeData& CurrentLevelData = CurrentRegistry->AllocateLevelBuildData(CurrentLevel->LevelBuildDataId);
+
+					FBox LevelVolumeBounds(0);
+
+					for (int32 SampleIndex = 0; SampleIndex < VolumeSamples.Num(); SampleIndex++)
 					{
-						CurrentLevel->PrecomputedLightVolume->Initialize(FBox(VolumeCenter - VolumeExtent, VolumeCenter + VolumeExtent));
+						const Lightmass::FVolumeLightingSampleData& CurrentSample = VolumeSamples[SampleIndex];
+						FVector SampleMin = CurrentSample.PositionAndRadius - FVector(CurrentSample.PositionAndRadius.W);
+						FVector SampleMax = CurrentSample.PositionAndRadius + FVector(CurrentSample.PositionAndRadius.W);
+						LevelVolumeBounds += FBox(SampleMin, SampleMax);
 					}
 
-					// Only build precomputed light for persistent or visible streamed levels
-					if (bIsPersistent || CurrentLevel->bIsVisible)
+					CurrentLevelData.Initialize(LevelVolumeBounds);
+
+					for (int32 SampleIndex = 0; SampleIndex < VolumeSamples.Num(); SampleIndex++)
 					{
-						for (int32 SampleIndex = 0; SampleIndex < VolumeSamples.Num(); SampleIndex++)
+						const Lightmass::FVolumeLightingSampleData& CurrentSample = VolumeSamples[SampleIndex];
+						FVolumeLightingSample NewHighQualitySample;
+						NewHighQualitySample.Position = CurrentSample.PositionAndRadius;
+						NewHighQualitySample.Radius = CurrentSample.PositionAndRadius.W;
+						NewHighQualitySample.SetPackedSkyBentNormal(CurrentSample.SkyBentNormal); 
+						NewHighQualitySample.DirectionalLightShadowing = CurrentSample.DirectionalLightShadowing;
+
+						for (int32 CoefficientIndex = 0; CoefficientIndex < NUM_INDIRECT_LIGHTING_SH_COEFFICIENTS; CoefficientIndex++)
 						{
-							const Lightmass::FVolumeLightingSampleData& CurrentSample = VolumeSamples[SampleIndex];
-							FVolumeLightingSample NewHighQualitySample;
-							NewHighQualitySample.Position = CurrentSample.PositionAndRadius;
-							NewHighQualitySample.Radius = CurrentSample.PositionAndRadius.W;
-							NewHighQualitySample.SetPackedSkyBentNormal(CurrentSample.SkyBentNormal); 
-							NewHighQualitySample.DirectionalLightShadowing = CurrentSample.DirectionalLightShadowing;
+							NewHighQualitySample.Lighting.R.V[CoefficientIndex] = CurrentSample.HighQualityCoefficients[CoefficientIndex][0];
+							NewHighQualitySample.Lighting.G.V[CoefficientIndex] = CurrentSample.HighQualityCoefficients[CoefficientIndex][1];
+							NewHighQualitySample.Lighting.B.V[CoefficientIndex] = CurrentSample.HighQualityCoefficients[CoefficientIndex][2];
+						}							
 
-							for (int32 CoefficientIndex = 0; CoefficientIndex < NUM_INDIRECT_LIGHTING_SH_COEFFICIENTS; CoefficientIndex++)
-							{
-								NewHighQualitySample.Lighting.R.V[CoefficientIndex] = CurrentSample.HighQualityCoefficients[CoefficientIndex][0];
-								NewHighQualitySample.Lighting.G.V[CoefficientIndex] = CurrentSample.HighQualityCoefficients[CoefficientIndex][1];
-								NewHighQualitySample.Lighting.B.V[CoefficientIndex] = CurrentSample.HighQualityCoefficients[CoefficientIndex][2];
-							}							
+						FVolumeLightingSample NewLowQualitySample;
+						NewLowQualitySample.Position = CurrentSample.PositionAndRadius;
+						NewLowQualitySample.Radius = CurrentSample.PositionAndRadius.W;
+						NewLowQualitySample.DirectionalLightShadowing = CurrentSample.DirectionalLightShadowing;
+						NewLowQualitySample.SetPackedSkyBentNormal(CurrentSample.SkyBentNormal); 
 
-							FVolumeLightingSample NewLowQualitySample;
-							NewLowQualitySample.Position = CurrentSample.PositionAndRadius;
-							NewLowQualitySample.Radius = CurrentSample.PositionAndRadius.W;
-							NewLowQualitySample.DirectionalLightShadowing = CurrentSample.DirectionalLightShadowing;
-							NewLowQualitySample.SetPackedSkyBentNormal(CurrentSample.SkyBentNormal); 
-
-							for (int32 CoefficientIndex = 0; CoefficientIndex < NUM_INDIRECT_LIGHTING_SH_COEFFICIENTS; CoefficientIndex++)
-							{
-								NewLowQualitySample.Lighting.R.V[CoefficientIndex] = CurrentSample.LowQualityCoefficients[CoefficientIndex][0];
-								NewLowQualitySample.Lighting.G.V[CoefficientIndex] = CurrentSample.LowQualityCoefficients[CoefficientIndex][1];
-								NewLowQualitySample.Lighting.B.V[CoefficientIndex] = CurrentSample.LowQualityCoefficients[CoefficientIndex][2];
-							}							
-
-							CurrentLevel->PrecomputedLightVolume->AddHighQualityLightingSample(NewHighQualitySample);
-							CurrentLevel->PrecomputedLightVolume->AddLowQualityLightingSample(NewLowQualitySample);
-						}
-
-						if (CurrentLevel != System.GetWorld()->PersistentLevel)
+						for (int32 CoefficientIndex = 0; CoefficientIndex < NUM_INDIRECT_LIGHTING_SH_COEFFICIENTS; CoefficientIndex++)
 						{
-							CurrentLevel->PrecomputedLightVolume->FinalizeSamples();
-							CurrentLevel->PrecomputedLightVolume->AddToScene(System.GetWorld()->Scene);
-						}
+							NewLowQualitySample.Lighting.R.V[CoefficientIndex] = CurrentSample.LowQualityCoefficients[CoefficientIndex][0];
+							NewLowQualitySample.Lighting.G.V[CoefficientIndex] = CurrentSample.LowQualityCoefficients[CoefficientIndex][1];
+							NewLowQualitySample.Lighting.B.V[CoefficientIndex] = CurrentSample.LowQualityCoefficients[CoefficientIndex][2];
+						}							
+
+						CurrentLevelData.AddHighQualityLightingSample(NewHighQualitySample);
+						CurrentLevelData.AddLowQualityLightingSample(NewLowQualitySample);
 					}
+
+					CurrentLevelData.FinalizeSamples();
 				}
 			}
-
-			System.GetWorld()->PersistentLevel->PrecomputedLightVolume->FinalizeSamples();
-			System.GetWorld()->PersistentLevel->PrecomputedLightVolume->AddToScene(System.GetWorld()->Scene);
 
 			Swarm.CloseChannel(Channel);
 		}
@@ -3716,21 +3720,22 @@ void FLightmassProcessor::ImportStaticShadowDepthMap(ULightComponent* Light)
 	const int32 Channel = Swarm.OpenChannel( *ChannelName, LM_DOMINANTSHADOW_CHANNEL_FLAGS );
 	if (Channel >= 0)
 	{
-		FStaticShadowDepthMap& DepthMap = Light->StaticShadowDepthMap;
+		ULevel* CurrentStorageLevel = System.LightingScenario ? System.LightingScenario : Light->GetOwner()->GetLevel();
+		UMapBuildDataRegistry* CurrentRegistry = CurrentStorageLevel->GetOrCreateMapBuildData();
+		FLightComponentMapBuildData& CurrentLightData = CurrentRegistry->FindOrAllocateLightBuildData(Light->LightGuid, true);
+
 		Lightmass::FStaticShadowDepthMapData ShadowMapData;
 		Swarm.ReadChannel(Channel, &ShadowMapData, sizeof(ShadowMapData));
 
-		BeginReleaseResource(&DepthMap);
-		DepthMap.Empty();
+		BeginReleaseResource(&Light->StaticShadowDepthMap);
+		CurrentLightData.DepthMap.Empty();
 
-		DepthMap.Data.WorldToLight = ShadowMapData.WorldToLight;
-		DepthMap.Data.ShadowMapSizeX = ShadowMapData.ShadowMapSizeX;
-		DepthMap.Data.ShadowMapSizeY = ShadowMapData.ShadowMapSizeY;
+		CurrentLightData.DepthMap.WorldToLight = ShadowMapData.WorldToLight;
+		CurrentLightData.DepthMap.ShadowMapSizeX = ShadowMapData.ShadowMapSizeX;
+		CurrentLightData.DepthMap.ShadowMapSizeY = ShadowMapData.ShadowMapSizeY;
 
-		ReadArray(Channel, DepthMap.Data.DepthSamples);
+		ReadArray(Channel, CurrentLightData.DepthMap.DepthSamples);
 		Swarm.CloseChannel(Channel);
-
-		DepthMap.InitializeAfterImport();
 	}
 	else
 	{
@@ -3995,7 +4000,7 @@ UStaticMesh* FLightmassProcessor::FindStaticMesh(FGuid& Guid)
 	return NULL;
 }
 
-const ULevel* FLightmassProcessor::FindLevel(FGuid& Guid)
+ULevel* FLightmassProcessor::FindLevel(FGuid& Guid)
 {
 	if (Exporter)
 	{

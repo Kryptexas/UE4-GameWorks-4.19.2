@@ -28,6 +28,10 @@ const FString FGenericCrashContext::CrashTypeCrash = TEXT("Crash");
 const FString FGenericCrashContext::CrashTypeAssert = TEXT("Assert");
 const FString FGenericCrashContext::CrashTypeEnsure = TEXT("Ensure");
 
+const FString FGenericCrashContext::EngineModeExUnknown = TEXT("Unset");
+const FString FGenericCrashContext::EngineModeExDirty = TEXT("Dirty");
+const FString FGenericCrashContext::EngineModeExVanilla = TEXT("Vanilla");
+
 bool FGenericCrashContext::bIsInitialized = false;
 FPlatformMemoryStats FGenericCrashContext::CrashMemoryStats = FPlatformMemoryStats();
 int32 FGenericCrashContext::StaticCrashContextIndex = 0;
@@ -38,6 +42,7 @@ namespace NCachedCrashContextProperties
 	static bool bIsPerforceBuild;
 	static bool bIsSourceDistribution;
 	static bool bIsUE4Release;
+	static TOptional<bool> bIsVanilla;
 	static FString GameName;
 	static FString ExecutableName;
 	static FString PlatformName;
@@ -46,7 +51,7 @@ namespace NCachedCrashContextProperties
 	static FString BaseDir;
 	static FString RootDir;
 	static FString EpicAccountId;
-	static FString MachineIdStr;
+	static FString LoginIdStr;
 	static FString OsVersion;
 	static FString OsSubVersion;
 	static int32 NumberOfCores;
@@ -81,7 +86,7 @@ void FGenericCrashContext::Initialize()
 	NCachedCrashContextProperties::BaseDir = FPlatformProcess::BaseDir();
 	NCachedCrashContextProperties::RootDir = FPlatformMisc::RootDir();
 	NCachedCrashContextProperties::EpicAccountId = FPlatformMisc::GetEpicAccountId();
-	NCachedCrashContextProperties::MachineIdStr = FPlatformMisc::GetMachineId().ToString(EGuidFormats::Digits);
+	NCachedCrashContextProperties::LoginIdStr = FPlatformMisc::GetLoginId();
 	FPlatformMisc::GetOSVersions(NCachedCrashContextProperties::OsVersion, NCachedCrashContextProperties::OsSubVersion);
 	NCachedCrashContextProperties::NumberOfCores = FPlatformMisc::NumberOfCores();
 	NCachedCrashContextProperties::NumberOfCoresIncludingHyperthreads = FPlatformMisc::NumberOfCoresIncludingHyperthreads();
@@ -152,6 +157,11 @@ void FGenericCrashContext::Initialize()
 		NCachedCrashContextProperties::CrashReportClientRichText = InParams.CrashReportClientMessageText;
 	});
 
+	FCoreDelegates::IsVanillaProductChanged.AddLambda([](bool bIsVanilla)
+	{
+		NCachedCrashContextProperties::bIsVanilla = bIsVanilla;
+	});
+
 	FCoreDelegates::ConfigReadyForUse.AddStatic(FGenericCrashContext::InitializeFromConfig);
 
 	bIsInitialized = true;
@@ -217,6 +227,7 @@ void FGenericCrashContext::SerializeContentToBuffer()
 	AddCrashProperty( TEXT( "PlatformName" ), *NCachedCrashContextProperties::PlatformName );
 	AddCrashProperty( TEXT( "PlatformNameIni" ), *NCachedCrashContextProperties::PlatformNameIni );
 	AddCrashProperty( TEXT( "EngineMode" ), FPlatformMisc::GetEngineMode() );
+	AddCrashProperty( TEXT( "EngineModeEx" ), EngineModeExString());
 
 	AddCrashProperty( TEXT( "DeploymentName"), *NCachedCrashContextProperties::DeploymentName );
 
@@ -225,7 +236,6 @@ void FGenericCrashContext::SerializeContentToBuffer()
 	AddCrashProperty( TEXT( "LanguageLCID" ), NCachedCrashContextProperties::LanguageLCID );
 	AddCrashProperty( TEXT( "AppDefaultLocale" ), *NCachedCrashContextProperties::DefaultLocale );
 	AddCrashProperty( TEXT( "BuildVersion" ), FApp::GetBuildVersion() );
-
 	AddCrashProperty( TEXT( "IsUE4Release" ), NCachedCrashContextProperties::bIsUE4Release );
 
 	// Remove periods from user names to match AutoReporter user names
@@ -235,7 +245,8 @@ void FGenericCrashContext::SerializeContentToBuffer()
 
 	AddCrashProperty( TEXT( "BaseDir" ), *NCachedCrashContextProperties::BaseDir );
 	AddCrashProperty( TEXT( "RootDir" ), *NCachedCrashContextProperties::RootDir );
-	AddCrashProperty( TEXT( "MachineId" ), *NCachedCrashContextProperties::MachineIdStr );
+	AddCrashProperty( TEXT( "MachineId" ), *NCachedCrashContextProperties::LoginIdStr.ToUpper() );
+	AddCrashProperty( TEXT( "LoginId" ), *NCachedCrashContextProperties::LoginIdStr );
 	AddCrashProperty( TEXT( "EpicAccountId" ), *NCachedCrashContextProperties::EpicAccountId );
 
 	AddCrashProperty( TEXT( "CallStack" ), TEXT( "" ) );
@@ -409,6 +420,12 @@ const TCHAR* FGenericCrashContext::GetCrashTypeString(bool InIsEnsure, bool InIs
 	}
 
 	return *CrashTypeCrash;
+}
+
+const TCHAR* FGenericCrashContext::EngineModeExString()
+{
+	return !NCachedCrashContextProperties::bIsVanilla.IsSet() ? *FGenericCrashContext::EngineModeExUnknown :
+		(NCachedCrashContextProperties::bIsVanilla.GetValue() ? *FGenericCrashContext::EngineModeExVanilla : *FGenericCrashContext::EngineModeExDirty);
 }
 
 const TCHAR* FGenericCrashContext::GetCrashConfigFilePath()

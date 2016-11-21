@@ -58,6 +58,11 @@ const FString& FAutomationReport::GetDisplayName() const
 	return TestInfo.GetDisplayName();
 }
 
+const FString& FAutomationReport::GetFullTestPath() const
+{
+	return TestInfo.GetFullTestPath();
+}
+
 FString FAutomationReport::GetDisplayNameWithDecoration() const
 {
 	FString FinalDisplayName = TestInfo.GetDisplayName();
@@ -769,7 +774,7 @@ TSharedPtr<IAutomationReport> FAutomationReport::EnsureReportExists(FAutomationT
 		else
 		{
 			// Create a parent node
-			FAutomationTestInfo ParentTestInfo(NameToMatch, "", InTestInfo.GetTestFlags(), InTestInfo.GetNumParticipantsRequired());
+			FAutomationTestInfo ParentTestInfo(NameToMatch, TEXT(""), TEXT(""), InTestInfo.GetTestFlags(), InTestInfo.GetNumParticipantsRequired());
 			MatchTest = MakeShareable(new FAutomationReport(ParentTestInfo, true));
 		}
 		//make new test

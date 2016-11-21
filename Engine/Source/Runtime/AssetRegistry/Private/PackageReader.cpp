@@ -352,6 +352,7 @@ bool FPackageReader::ReadDependencyData (FPackageDependencyData& OutDependencyDa
 	SerializeNameMap();
 	SerializeImportMap(OutDependencyData.ImportMap);
 	SerializeStringAssetReferencesMap(OutDependencyData.StringAssetReferencesMap);
+	SerializeSearchableNamesMap(OutDependencyData);
 
 	return true;
 }
@@ -401,7 +402,7 @@ void FPackageReader::SerializeExportMap(TArray<FObjectExport>& OutExportMap)
 
 void FPackageReader::SerializeStringAssetReferencesMap(TArray<FString>& OutStringAssetReferencesMap)
 {
-	if (UE4Ver() >= VER_UE4_ADD_STRING_ASSET_REFERENCES_MAP && PackageFileSummary.StringAssetReferencesCount > 0)
+	if (UE4Ver() >= VER_UE4_ADD_STRING_ASSET_REFERENCES_MAP && PackageFileSummary.StringAssetReferencesOffset > 0 && PackageFileSummary.StringAssetReferencesCount > 0)
 	{
 		Seek(PackageFileSummary.StringAssetReferencesOffset);
 
@@ -439,6 +440,16 @@ void FPackageReader::SerializeStringAssetReferencesMap(TArray<FString>& OutStrin
 				OutStringAssetReferencesMap.Add(MoveTemp(Buf));
 			}
 		}
+	}
+}
+
+void FPackageReader::SerializeSearchableNamesMap(FPackageDependencyData& OutDependencyData)
+{
+	if (UE4Ver() >= VER_UE4_ADDED_SEARCHABLE_NAMES && PackageFileSummary.SearchableNamesOffset > 0)
+	{
+		Seek(PackageFileSummary.SearchableNamesOffset);
+
+		OutDependencyData.SerializeSearchableNamesMap(*this);
 	}
 }
 

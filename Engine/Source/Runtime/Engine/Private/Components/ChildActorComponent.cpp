@@ -123,39 +123,7 @@ void UChildActorComponent::PostEditChangeChainProperty(FPropertyChangedChainEven
 	{
 		if (IsTemplate())
 		{
-			if (ChildActorClass)
-			{
-				if (ChildActorTemplate == nullptr || (ChildActorTemplate->GetClass() != ChildActorClass))
-				{
-					Modify();
-
-					AActor* NewChildActorTemplate = NewObject<AActor>(GetTransientPackage(), ChildActorClass, NAME_None, RF_ArchetypeObject | RF_Transactional | RF_Public);
-
-					if (ChildActorTemplate)
-					{
-						UEngine::CopyPropertiesForUnrelatedObjects(ChildActorTemplate, NewChildActorTemplate);
-
-						ChildActorTemplate->Rename(nullptr, GetTransientPackage(), REN_DontCreateRedirectors);
-					}
-
-					ChildActorTemplate = NewChildActorTemplate;
-
-					// Record initial object state in case we're in a transaction context.
-					ChildActorTemplate->Modify();
-
-					// Now set the actual name and outer to the BPGC.
-					const FString TemplateName = FString::Printf(TEXT("%s_%s_CAT"), *GetName(), *ChildActorClass->GetName());
-
-					ChildActorTemplate->Rename(*TemplateName, this, REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders);
-				}
-			}
-			else if (ChildActorTemplate)
-			{
-				Modify();
-
-				ChildActorTemplate->Rename(nullptr, GetTransientPackage(), REN_DontCreateRedirectors);
-				ChildActorTemplate = nullptr;
-			}
+			SetChildActorClass(ChildActorClass);
 		}
 		else
 		{
@@ -208,13 +176,6 @@ void UChildActorComponent::PostRepNotifies()
 		ChildActorClass = nullptr;
 		ChildActorName = NAME_None;
 	}
-}
-
-void UChildActorComponent::OnComponentCreated()
-{
-	Super::OnComponentCreated();
-
-	CreateChildActor();
 }
 
 void UChildActorComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
@@ -376,7 +337,43 @@ void UChildActorComponent::ApplyComponentInstanceData(FChildActorComponentInstan
 void UChildActorComponent::SetChildActorClass(TSubclassOf<AActor> Class)
 {
 	ChildActorClass = Class;
-	if (IsRegistered())
+	if (IsTemplate())
+	{
+		if (ChildActorClass)
+		{
+			if (ChildActorTemplate == nullptr || (ChildActorTemplate->GetClass() != ChildActorClass))
+			{
+				Modify();
+
+				AActor* NewChildActorTemplate = NewObject<AActor>(GetTransientPackage(), ChildActorClass, NAME_None, RF_ArchetypeObject | RF_Transactional | RF_Public);
+
+				if (ChildActorTemplate)
+				{
+					UEngine::CopyPropertiesForUnrelatedObjects(ChildActorTemplate, NewChildActorTemplate);
+
+					ChildActorTemplate->Rename(nullptr, GetTransientPackage(), REN_DontCreateRedirectors);
+				}
+
+				ChildActorTemplate = NewChildActorTemplate;
+
+				// Record initial object state in case we're in a transaction context.
+				ChildActorTemplate->Modify();
+
+				// Now set the actual name and outer to the BPGC.
+				const FString TemplateName = FString::Printf(TEXT("%s_%s_CAT"), *GetName(), *ChildActorClass->GetName());
+
+				ChildActorTemplate->Rename(*TemplateName, this, REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders);
+			}
+		}
+		else if (ChildActorTemplate)
+		{
+			Modify();
+
+			ChildActorTemplate->Rename(nullptr, GetTransientPackage(), REN_DontCreateRedirectors);
+			ChildActorTemplate = nullptr;
+		}
+	}
+	else if (IsRegistered())
 	{
 		DestroyChildActor();
 		CreateChildActor();
@@ -403,6 +400,7 @@ void UChildActorComponent::PostLoad()
 	if (ChildActor)
 	{
 		FActorParentComponentSetter::Set(ChildActor, this);
+		ChildActor->SetFlags(RF_TextExportTransient|RF_NonPIEDuplicateTransient);
 	}
 
 	// Since the template could have been changed we need to respawn the child actor
@@ -459,6 +457,7 @@ void UChildActorComponent::CreateChildActor()
 				Params.OverrideLevel = (MyOwner ? MyOwner->GetLevel() : nullptr);
 				Params.Name = ChildActorName;
 				Params.Template = ChildActorTemplate;
+				Params.ObjectFlags |= (RF_TextExportTransient | RF_NonPIEDuplicateTransient);
 				if (!HasAllFlags(RF_Transactional))
 				{
 					Params.ObjectFlags &= ~RF_Transactional;
@@ -485,6 +484,21 @@ void UChildActorComponent::CreateChildActor()
 					ChildActor->AttachToComponent(this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 
 					SetIsReplicated(ChildActor->GetIsReplicated());
+
+					if (CachedInstanceData)
+					{
+						for (const FChildActorComponentInstanceData::FAttachedActorInfo& AttachedActorInfo : CachedInstanceData->AttachedActors)
+						{
+							AActor* AttachedActor = AttachedActorInfo.Actor.Get();
+
+							if (AttachedActor && AttachedActor->GetAttachParentActor() == nullptr)
+							{
+								AttachedActor->AttachToActor(ChildActor, FAttachmentTransformRules::KeepWorldTransform, AttachedActorInfo.SocketName);
+								AttachedActor->SetActorRelativeTransform(AttachedActorInfo.RelativeTransform);
+							}
+						}
+					}
+
 				}
 			}
 		}

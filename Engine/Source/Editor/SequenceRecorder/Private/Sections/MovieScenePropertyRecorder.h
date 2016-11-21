@@ -37,8 +37,10 @@ public:
 
 	virtual void Create(UObject* InObjectToRecord, class UMovieScene* InMovieScene, const FGuid& InGuid, float InTime) override
 	{
-		Binding.UpdateBinding(InObjectToRecord);
-		PreviousValue = Binding.GetCurrentValue<PropertyType>(InObjectToRecord);
+		if (InObjectToRecord)
+		{
+			PreviousValue = Binding.GetCurrentValue<PropertyType>(*InObjectToRecord);
+		}
 
 		MovieSceneSection = AddSection(InObjectToRecord, InMovieScene, InGuid, InTime);
 	}
@@ -49,7 +51,7 @@ public:
 		{
 			MovieSceneSection->SetEndTime(InCurrentTime);
 
-			PropertyType NewValue = Binding.GetCurrentValue<PropertyType>(InObjectToRecord);
+			PropertyType NewValue = Binding.GetCurrentValue<PropertyType>(*InObjectToRecord);
 			if (ShouldAddNewKey(NewValue))
 			{
 				FPropertyKey<PropertyType> Key;

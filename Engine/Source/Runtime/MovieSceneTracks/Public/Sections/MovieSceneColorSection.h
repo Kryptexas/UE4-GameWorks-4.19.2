@@ -65,14 +65,6 @@ class UMovieSceneColorSection
 public:
 
 	/**
-	 * Updates this section
-	 *
-	 * @param Position The position in time within the movie scene.
-	 * @param DefaultColor The default value to return.
-	 */
-	virtual FLinearColor Eval(float Position, const FLinearColor& DefaultColor) const;
-
-	/**
 	 * Gets the red color curve
 	 *
 	 * @return The rich curve for this color channel

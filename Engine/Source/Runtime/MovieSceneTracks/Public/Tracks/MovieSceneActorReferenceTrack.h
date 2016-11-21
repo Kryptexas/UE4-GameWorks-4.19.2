@@ -18,15 +18,5 @@ class UMovieSceneActorReferenceTrack : public UMovieScenePropertyTrack
 public:
 	/** UMovieSceneTrack interface */
 	virtual UMovieSceneSection* CreateNewSection() override;
-	virtual TSharedPtr<IMovieSceneTrackInstance> CreateInstance() override;
-
-	/**
-	 * Evaluates the track at the playback position
-	 *
-	 * @param Position	The current playback position
-	 * @param LastPosition	The last plackback position
-	 * @param OutActorReference 	The value at the playback position
-	 * @return true if anything was evaluated. Note: if false is returned OutActorReference remains unchanged
-	 */
-	virtual bool Eval( float Position, float LastPosition, FGuid& OutActorReferenceGuid ) const;
+	virtual FMovieSceneEvalTemplatePtr CreateTemplateForSection(const UMovieSceneSection& InSection) const override;
 };

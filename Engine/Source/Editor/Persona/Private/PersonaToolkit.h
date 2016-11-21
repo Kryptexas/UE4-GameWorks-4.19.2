@@ -9,6 +9,7 @@ class FPersonaToolkit : public IPersonaToolkit, public TSharedFromThis<FPersonaT
 {
 public:
 	FPersonaToolkit();
+	virtual ~FPersonaToolkit() {}
 
 	/** Initialize from a various sources */
 	void Initialize(USkeleton* InSkeleton);
@@ -21,6 +22,7 @@ public:
 
 	/** IPersonaToolkit interface */
 	virtual class USkeleton* GetSkeleton() const override;
+	virtual TSharedPtr<class IEditableSkeleton> GetEditableSkeleton() const override;
 	virtual class UDebugSkelMeshComponent* GetPreviewMeshComponent() const override;
 	virtual class USkeletalMesh* GetMesh() const override;
 	virtual void SetMesh(class USkeletalMesh* InSkeletalMesh) override;
@@ -28,6 +30,9 @@ public:
 	virtual class UAnimationAsset* GetAnimationAsset() const override;
 	virtual void SetAnimationAsset(class UAnimationAsset* InAnimationAsset) override;
 	virtual class TSharedRef<IPersonaPreviewScene> GetPreviewScene() const override;
+	virtual class USkeletalMesh* GetPreviewMesh() const override;
+	virtual void SetPreviewMesh(class USkeletalMesh* InSkeletalMesh) override;
+	virtual FName GetContext() const override;
 
 private:
 	/** The skeleton we are editing */
@@ -47,4 +52,7 @@ private:
 
 	/** Preview scene for the editor */
 	TSharedPtr<FAnimationEditorPreviewScene> PreviewScene;
+
+	/** The class of the initial asset we were created with */
+	UClass* InitialAssetClass;
 };

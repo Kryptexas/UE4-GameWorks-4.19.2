@@ -256,7 +256,7 @@ void UComboBoxString::HandleSelectionChanged(TSharedPtr<FString> Item, ESelectIn
 	}
 
 	// When the selection changes we always generate another widget to represent the content area of the comobox.
-	ComoboBoxContent->SetContent( HandleGenerateWidget(Item) );
+	ComoboBoxContent->SetContent( HandleGenerateWidget(CurrentOptionPtr) );
 }
 
 void UComboBoxString::HandleOpening()

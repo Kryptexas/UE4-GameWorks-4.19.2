@@ -98,6 +98,7 @@ void AActor::InitializeDefaults()
 	bAllowReceiveTickEventOnDedicatedServer = true;
 	bRelevantForNetworkReplays = true;
 	bGenerateOverlapEventsDuringLevelStreaming = false;
+	bHasDeferredComponentRegistration = false;
 #if WITH_EDITORONLY_DATA
 	PivotOffset = FVector::ZeroVector;
 #endif
@@ -230,12 +231,10 @@ void AActor::ResetOwnedComponents()
 	}
 #endif
 
-	TArray<UObject*> ActorChildren;
 	OwnedComponents.Reset();
 	ReplicatedComponents.Reset();
-	GetObjectsWithOuter(this, ActorChildren, true, RF_NoFlags, EInternalObjectFlags::PendingKill);
 
-	for (UObject* Child : ActorChildren)
+	ForEachObjectWithOuter(this, [this](UObject* Child)
 	{
 		UActorComponent* Component = Cast<UActorComponent>(Child);
 		if (Component && Component->GetOwner() == this)
@@ -247,7 +246,7 @@ void AActor::ResetOwnedComponents()
 				ReplicatedComponents.Add(Component);
 			}
 		}
-	}
+	}, true, RF_NoFlags, EInternalObjectFlags::PendingKill);
 }
 
 void AActor::PostInitProperties()
@@ -524,7 +523,7 @@ void AActor::Serialize(FArchive& Ar)
 			DuplicatingComponents.Reserve(OwnedComponents.Num());
 			for (UActorComponent* OwnedComponent : OwnedComponents)
 			{
-				if (!OwnedComponent->HasAnyFlags(RF_Transient))
+				if (OwnedComponent && !OwnedComponent->HasAnyFlags(RF_Transient))
 				{
 					DuplicatingComponents.Add(OwnedComponent);
 				}
@@ -1054,6 +1053,8 @@ bool AActor::Modify( bool bAlwaysMarkDirty/*=true*/ )
 	{
 		bSavedToTransactionBuffer = RootComponent->Modify( bAlwaysMarkDirty ) || bSavedToTransactionBuffer;
 	}
+
+	ULevel* Level = GetLevel();
 
 	return bSavedToTransactionBuffer;
 }
@@ -2699,7 +2700,7 @@ void AActor::PostSpawnInitialize(FTransform const& UserSpawnTransform, AActor* I
 	ExchangeNetRoles(bRemoteOwned);
 
 	USceneComponent* const SceneRootComponent = FixupNativeActorComponents(this);
-	if (SceneRootComponent != NULL)
+	if (SceneRootComponent != nullptr)
 	{
 		// Set the actor's location and rotation since it has a native rootcomponent
 		// Note that we respect any initial transformation the root component may have from the CDO, so the final transform
@@ -2712,8 +2713,14 @@ void AActor::PostSpawnInitialize(FTransform const& UserSpawnTransform, AActor* I
 	// Call OnComponentCreated on all default (native) components
 	DispatchOnComponentsCreated(this);
 
-	// Initialize the actor's components.
-	RegisterAllComponents();
+	// Register the actor's default (native) components, but only if we have a native scene root. If we don't, it implies that there could be only non-scene components
+	// at the native class level. In that case, if this is a Blueprint instance, we need to defer native registration until after SCS execution can establish a scene root.
+	// Note: This API will also call PostRegisterAllComponents() on the actor instance. If deferred, PostRegisterAllComponents() won't be called until the root is set by SCS.
+	bHasDeferredComponentRegistration = (SceneRootComponent == nullptr && Cast<UBlueprintGeneratedClass>(GetClass()) != nullptr);
+	if (!bHasDeferredComponentRegistration)
+	{
+		RegisterAllComponents();
+	}
 
 	// Set owner.
 	SetOwner(InOwner);
@@ -2815,7 +2822,7 @@ void AActor::PostActorConstruction()
 		PreInitializeComponents();
 	}
 
-	// If this is dynamically spawned replicted actor, defer calls to BeginPlay and UpdateOverlaps until replicated properties are deserialized
+	// If this is dynamically spawned replicated actor, defer calls to BeginPlay and UpdateOverlaps until replicated properties are deserialized
 	const bool bDeferBeginPlayAndUpdateOverlaps = (bExchangedRoles && RemoteRole == ROLE_Authority);
 
 	if (bActorsInitialized)
@@ -3929,6 +3936,9 @@ void AActor::RegisterAllComponents()
 {
 	// 0 - means register all components
 	verify(IncrementalRegisterComponents(0));
+
+	// Clear this flag as it's no longer deferred
+	bHasDeferredComponentRegistration = false;
 }
 
 // Walks through components hierarchy and returns closest to root parent component that is unregistered
@@ -4117,9 +4127,18 @@ void AActor::InitializeComponents()
 
 	for (UActorComponent* ActorComp : Components)
 	{
-		if (ActorComp->bWantsInitializeComponent && ActorComp->IsRegistered())
+		if (ActorComp->IsRegistered())
 		{
-			ActorComp->InitializeComponent();
+			if (!ActorComp->IsActive() && ActorComp->bAutoActivate)
+			{
+				ActorComp->Activate(true);
+			}
+
+			if (ActorComp->bWantsInitializeComponent)
+			{
+				// Broadcast the activation event since Activate occurs too early to fire a callback in a game
+				ActorComp->InitializeComponent();
+			}
 		}
 	}
 }
@@ -4140,6 +4159,7 @@ void AActor::UninitializeComponents()
 
 void AActor::DrawDebugComponents(FColor const& BaseColor) const
 {
+#if ENABLE_DRAW_DEBUG
 	TInlineComponentArray<USceneComponent*> Components;
 	GetComponents(Components);
 
@@ -4164,6 +4184,7 @@ void AActor::DrawDebugComponents(FColor const& BaseColor) const
 		// draw component name
 		DrawDebugString(MyWorld, Loc+FVector(0,0,32), *Component->GetName());
 	}
+#endif // ENABLE_DRAW_DEBUG
 }
 
 
@@ -4186,7 +4207,7 @@ void AActor::InvalidateLightingCacheDetailed(bool bTranslationOnly)
 	// Validate that we didn't change it during this action
 	TInlineComponentArray<UActorComponent*> NewComponents;
 	GetComponents(NewComponents);
-	check(Components == NewComponents);
+	ensure(Components == NewComponents);
 #endif
 }
 

@@ -5,6 +5,7 @@
 #include "Navigation/CrowdManager.h"
 #include "AI/Navigation/NavLinkCustomInterface.h"
 #include "AI/Navigation/AbstractNavData.h"
+#include "AIConfig.h"
 #include "Navigation/MetaNavMeshPath.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
@@ -899,7 +900,8 @@ void UCrowdFollowingComponent::UpdatePathSegment()
 
 			// can't use HasReachedDestination here, because it will use last path point
 			// which is not set correctly for partial paths without string pulling
-			if (bMovedTooFar || HasReachedInternal(GoalLocation, 0.0f, 0.0f, CurrentLocation, AcceptanceRadius, bReachTestIncludesAgentRadius ? MinAgentRadiusPct : 0.0f))
+			const float UseAcceptanceRadius = GetFinalAcceptanceRadius(*Path, OriginalMoveRequestGoalLocation, &GoalLocation);
+			if (bMovedTooFar || HasReachedInternal(GoalLocation, 0.0f, 0.0f, CurrentLocation, UseAcceptanceRadius, bReachTestIncludesAgentRadius ? MinAgentRadiusPct : 0.0f))
 			{
 				UE_VLOG(GetOwner(), LogCrowdFollowing, Log, TEXT("Last path segment finished due to \'%s\'"), bMovedTooFar ? TEXT("Missing Last Point") : TEXT("Reaching Destination"));
 				OnPathFinished(FPathFollowingResult(EPathFollowingResult::Success, FPathFollowingResultFlags::None));
@@ -982,7 +984,7 @@ FVector UCrowdFollowingComponent::GetMoveFocus(bool bAllowStrafe) const
 			MovementComp->GetOwner()->GetActorForwardVector() :
 			CrowdAgentMoveDirection;
 
-		return AgentLoc + ForwardDir * 100.0f;
+		return AgentLoc + (ForwardDir * FAIConfig::Navigation::FocalPointDistance);
 	}
 
 	return Super::GetMoveFocus(bAllowStrafe);

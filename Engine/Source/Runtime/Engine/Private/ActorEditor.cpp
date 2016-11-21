@@ -121,21 +121,16 @@ void AActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 		GEngine->BroadcastOnActorMoved( this );
 	}
 
-	if (GetWorld())
-	{
-		GetWorld()->bDoDelayedUpdateCullDistanceVolumes = true;
-	}
-
 	FEditorSupportDelegates::UpdateUI.Broadcast();
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
 void AActor::PostEditMove(bool bFinished)
 {
-	if ( ReregisterComponentsWhenModified() )
+	if ( ReregisterComponentsWhenModified() && !FLevelUtils::IsMovingLevel())
 	{
 		UBlueprint* Blueprint = Cast<UBlueprint>(GetClass()->ClassGeneratedBy);
-		if(Blueprint && (Blueprint->bRunConstructionScriptOnDrag || bFinished) && !FLevelUtils::IsMovingLevel() )
+		if (bFinished || bRunConstructionScriptOnDrag || (Blueprint && Blueprint->bRunConstructionScriptOnDrag))
 		{
 			FNavigationLockContext NavLock(GetWorld(), ENavigationLockReason::AllowUnregister);
 			RerunConstructionScripts();
@@ -144,8 +139,10 @@ void AActor::PostEditMove(bool bFinished)
 
 	if ( bFinished )
 	{
-		GetWorld()->bDoDelayedUpdateCullDistanceVolumes = true;
-		GetWorld()->bAreConstraintsDirty = true;
+		UWorld* World = GetWorld();
+
+		World->UpdateCullDistanceVolumes(this);
+		World->bAreConstraintsDirty = true;
 
 		FEditorSupportDelegates::RefreshPropertyWindows.Broadcast();
 
@@ -423,7 +420,6 @@ void AActor::PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionAn
 		return;
 	}
 
-
 	// Notify LevelBounds actor that level bounding box might be changed
 	if (!IsTemplate())
 	{
@@ -434,6 +430,10 @@ void AActor::PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionAn
 	if (!IsPendingKill())
 	{
 		ResetOwnedComponents();
+
+		// BP created components are not serialized, so this should be cleared and will be filled in as the construction scripts are run
+		BlueprintCreatedComponents.Reset();
+
 		// notify navigation system
 		UNavigationSystem::UpdateActorAndComponentsInNavOctree(*this);
 	}

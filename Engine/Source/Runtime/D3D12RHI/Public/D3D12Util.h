@@ -72,6 +72,7 @@ namespace D3D12RHI
 using namespace D3D12RHI;
 
 class FD3D12Resource;
+typedef TStaticArray<DXGI_FORMAT, D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT> TRenderTargetFormatsArray;
 
 void SetName(ID3D12Object* const Object, const TCHAR* const Name);
 void SetName(FD3D12Resource* const Resource, const TCHAR* const Name);
@@ -762,6 +763,17 @@ bool AssertResourceState(ID3D12CommandList* pCommandList, FD3D12View<TView>* pVi
 bool AssertResourceState(ID3D12CommandList* pCommandList, FD3D12Resource* pResource, const D3D12_RESOURCE_STATES& State, uint32 Subresource);
 bool AssertResourceState(ID3D12CommandList* pCommandList, FD3D12Resource* pResource, const D3D12_RESOURCE_STATES& State, const CViewSubresourceSubset& SubresourceSubset);
 
+inline DXGI_FORMAT GetPlatformTextureResourceFormat(DXGI_FORMAT InFormat, uint32 InFlags)
+{
+	// DX 12 Shared textures must be B8G8R8A8_UNORM
+	if (InFlags & TexCreate_Shared)
+	{
+		return DXGI_FORMAT_B8G8R8A8_UNORM;
+	}
+
+	return InFormat;
+}
+
 /** Find an appropriate DXGI format for the input format and SRGB setting. */
 inline DXGI_FORMAT FindShaderResourceDXGIFormat(DXGI_FORMAT InFormat, bool bSRGB)
 {
@@ -850,6 +862,133 @@ inline bool HasStencilBits(DXGI_FORMAT InFormat)
 #endif
 	};
 	return false;
+}
+
+FORCEINLINE_DEBUGGABLE D3D12_PRIMITIVE_TOPOLOGY_TYPE TranslatePrimitiveTopologyType(EPrimitiveTopologyType TopologyType)
+{
+	switch (TopologyType)
+	{
+	case EPrimitiveTopologyType::Triangle:	return D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	case EPrimitiveTopologyType::Patch:		return D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
+	case EPrimitiveTopologyType::Line:		return D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+	case EPrimitiveTopologyType::Point:		return D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+	default:								return D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
+	}
+}
+
+FORCEINLINE_DEBUGGABLE D3D_PRIMITIVE_TOPOLOGY TranslatePrimitiveType(EPrimitiveType PrimitiveType)
+{
+	switch (PrimitiveType)
+	{
+	case PT_TriangleList:				return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	case PT_TriangleStrip:				return D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+	case PT_LineList:					return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
+	case PT_QuadList:					return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+	case PT_PointList:					return D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
+	case PT_1_ControlPointPatchList:	return D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST;
+	case PT_2_ControlPointPatchList:	return D3D_PRIMITIVE_TOPOLOGY_2_CONTROL_POINT_PATCHLIST;
+	case PT_3_ControlPointPatchList:	return D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST;
+	case PT_4_ControlPointPatchList:	return D3D_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST;
+	case PT_5_ControlPointPatchList:	return D3D_PRIMITIVE_TOPOLOGY_5_CONTROL_POINT_PATCHLIST;
+	case PT_6_ControlPointPatchList:	return D3D_PRIMITIVE_TOPOLOGY_6_CONTROL_POINT_PATCHLIST;
+	case PT_7_ControlPointPatchList:	return D3D_PRIMITIVE_TOPOLOGY_7_CONTROL_POINT_PATCHLIST;
+	case PT_8_ControlPointPatchList:	return D3D_PRIMITIVE_TOPOLOGY_8_CONTROL_POINT_PATCHLIST;
+	case PT_9_ControlPointPatchList:	return D3D_PRIMITIVE_TOPOLOGY_9_CONTROL_POINT_PATCHLIST;
+	case PT_10_ControlPointPatchList:	return D3D_PRIMITIVE_TOPOLOGY_10_CONTROL_POINT_PATCHLIST;
+	case PT_11_ControlPointPatchList:	return D3D_PRIMITIVE_TOPOLOGY_11_CONTROL_POINT_PATCHLIST;
+	case PT_12_ControlPointPatchList:	return D3D_PRIMITIVE_TOPOLOGY_12_CONTROL_POINT_PATCHLIST;
+	case PT_13_ControlPointPatchList:	return D3D_PRIMITIVE_TOPOLOGY_13_CONTROL_POINT_PATCHLIST;
+	case PT_14_ControlPointPatchList:	return D3D_PRIMITIVE_TOPOLOGY_14_CONTROL_POINT_PATCHLIST;
+	case PT_15_ControlPointPatchList:	return D3D_PRIMITIVE_TOPOLOGY_15_CONTROL_POINT_PATCHLIST;
+	case PT_16_ControlPointPatchList:	return D3D_PRIMITIVE_TOPOLOGY_16_CONTROL_POINT_PATCHLIST;
+	case PT_17_ControlPointPatchList:	return D3D_PRIMITIVE_TOPOLOGY_17_CONTROL_POINT_PATCHLIST;
+	case PT_18_ControlPointPatchList:	return D3D_PRIMITIVE_TOPOLOGY_18_CONTROL_POINT_PATCHLIST;
+	case PT_19_ControlPointPatchList:	return D3D_PRIMITIVE_TOPOLOGY_19_CONTROL_POINT_PATCHLIST;
+	case PT_20_ControlPointPatchList:	return D3D_PRIMITIVE_TOPOLOGY_20_CONTROL_POINT_PATCHLIST;
+	case PT_21_ControlPointPatchList:	return D3D_PRIMITIVE_TOPOLOGY_21_CONTROL_POINT_PATCHLIST;
+	case PT_22_ControlPointPatchList:	return D3D_PRIMITIVE_TOPOLOGY_22_CONTROL_POINT_PATCHLIST;
+	case PT_23_ControlPointPatchList:	return D3D_PRIMITIVE_TOPOLOGY_23_CONTROL_POINT_PATCHLIST;
+	case PT_24_ControlPointPatchList:	return D3D_PRIMITIVE_TOPOLOGY_24_CONTROL_POINT_PATCHLIST;
+	case PT_25_ControlPointPatchList:	return D3D_PRIMITIVE_TOPOLOGY_25_CONTROL_POINT_PATCHLIST;
+	case PT_26_ControlPointPatchList:	return D3D_PRIMITIVE_TOPOLOGY_26_CONTROL_POINT_PATCHLIST;
+	case PT_27_ControlPointPatchList:	return D3D_PRIMITIVE_TOPOLOGY_27_CONTROL_POINT_PATCHLIST;
+	case PT_28_ControlPointPatchList:	return D3D_PRIMITIVE_TOPOLOGY_28_CONTROL_POINT_PATCHLIST;
+	case PT_29_ControlPointPatchList:	return D3D_PRIMITIVE_TOPOLOGY_29_CONTROL_POINT_PATCHLIST;
+	case PT_30_ControlPointPatchList:	return D3D_PRIMITIVE_TOPOLOGY_30_CONTROL_POINT_PATCHLIST;
+	case PT_31_ControlPointPatchList:	return D3D_PRIMITIVE_TOPOLOGY_31_CONTROL_POINT_PATCHLIST;
+	case PT_32_ControlPointPatchList:	return D3D_PRIMITIVE_TOPOLOGY_32_CONTROL_POINT_PATCHLIST;
+	default:							return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+	}
+}
+
+FORCEINLINE_DEBUGGABLE D3D12_PRIMITIVE_TOPOLOGY_TYPE D3D12PrimitiveTypeToTopologyType(D3D_PRIMITIVE_TOPOLOGY PrimitiveType)
+{
+	switch (PrimitiveType)
+	{
+	case D3D_PRIMITIVE_TOPOLOGY_POINTLIST:
+		return D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+
+	case D3D_PRIMITIVE_TOPOLOGY_LINELIST:
+	case D3D_PRIMITIVE_TOPOLOGY_LINESTRIP:
+	case D3D_PRIMITIVE_TOPOLOGY_LINELIST_ADJ:
+	case D3D_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ:
+		return D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+
+	case D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST:
+	case D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP:
+	case D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ:
+	case D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ:
+		return D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+
+	case D3D_PRIMITIVE_TOPOLOGY_UNDEFINED:
+		return D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
+
+	default:
+		return D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
+	}
+}
+
+static void TranslateRenderTargetFormats(
+	const FGraphicsPipelineStateInitializer &PsoInit,
+	TRenderTargetFormatsArray& RenderTargetFormats,
+	DXGI_FORMAT& DSVFormat
+	)
+{
+	for (uint32 RTIdx = 0; RTIdx < PsoInit.RenderTargetsEnabled; ++RTIdx)
+	{
+		checkSlow(PsoInit.RenderTargetFormats[RTIdx] == PF_Unknown || GPixelFormats[PsoInit.RenderTargetFormats[RTIdx]].Supported);
+
+		DXGI_FORMAT PlatformFormat = (DXGI_FORMAT)GPixelFormats[PsoInit.RenderTargetFormats[RTIdx]].PlatformFormat;
+		uint32 Flags = PsoInit.RenderTargetFlags[RTIdx];
+
+		RenderTargetFormats[RTIdx] = FindShaderResourceDXGIFormat(
+			GetPlatformTextureResourceFormat(PlatformFormat, Flags),
+			(Flags & TexCreate_SRGB) != 0
+			);
+	}
+
+	checkSlow(PsoInit.DepthStencilTargetFormat == PF_Unknown || GPixelFormats[PsoInit.DepthStencilTargetFormat].Supported);
+
+	DXGI_FORMAT PlatformFormat = (DXGI_FORMAT)GPixelFormats[PsoInit.DepthStencilTargetFormat].PlatformFormat;
+	uint32 Flags = PsoInit.DepthStencilTargetFlag;
+
+	DSVFormat = FindDepthStencilDXGIFormat(
+		GetPlatformTextureResourceFormat(PlatformFormat, PsoInit.DepthStencilTargetFlag)
+		);
+}
+
+// @return 0xffffffff if not not supported
+FORCEINLINE_DEBUGGABLE uint32 GetMaxMSAAQuality(uint32 SampleCount)
+{
+	if (SampleCount <= DX_MAX_MSAA_COUNT)
+	{
+		// 0 has better quality (a more even distribution)
+		// higher quality levels might be useful for non box filtered AA or when using weighted samples 
+		return 0;
+	}
+
+	// not supported
+	return 0xffffffff;
 }
 
 /** Find the appropriate depth-stencil typeless DXGI format for the given format. */

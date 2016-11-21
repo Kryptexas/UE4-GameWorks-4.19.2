@@ -170,7 +170,7 @@ public:
 	virtual void Empty() = 0;
 
 	/**
-	 * Returns the complete command line for an automation test including any relevant parameters
+	 * Returns the complete command for an automation test including any relevant parameters.  This is the class name + the parameter.
 	 */
 	virtual FString GetCommand() const = 0;
 
@@ -182,6 +182,11 @@ public:
 	 * @return the name of this level in the hierarchy for use in UI.
 	 */
 	virtual const FString& GetDisplayName() const = 0;
+
+	/**
+	 * Returns the full path for the test, e.g. System.Audio.PlaySoundTest.
+	 */
+	virtual const FString& GetFullTestPath() const = 0;
 
 	/**
 	 * Returns the name of this level in the test hierarchy for the purposes of UI.

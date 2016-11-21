@@ -943,13 +943,13 @@ UMaterialExpressionLandscapeGrassOutput::UMaterialExpressionLandscapeGrassOutput
 }
 
 #if WITH_EDITOR
-int32 UMaterialExpressionLandscapeGrassOutput::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
+int32 UMaterialExpressionLandscapeGrassOutput::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
 	if (GrassTypes.IsValidIndex(OutputIndex))
 	{
 		if (GrassTypes[OutputIndex].Input.Expression)
 		{
-			return Compiler->CustomOutput(this, OutputIndex, GrassTypes[OutputIndex].Input.Compile(Compiler, MultiplexIndex));
+			return Compiler->CustomOutput(this, OutputIndex, GrassTypes[OutputIndex].Input.Compile(Compiler));
 		}
 		else
 		{
@@ -1173,7 +1173,7 @@ FArchive& operator<<(FArchive& Ar, FLandscapeComponentGrassData& Data)
 	// Each weight data array, being 1 byte will be serialized in bulk.
 	Ar << Data.WeightData;
 
-	if (Ar.IsLoading() && !GIsEditor && CVarGrassDiscardDataOnLoad.GetValueOnGameThread())
+	if (Ar.IsLoading() && !GIsEditor && CVarGrassDiscardDataOnLoad.GetValueOnAnyThread())
 	{
 		//Data = FLandscapeComponentGrassData();
 		Data.WeightData.Empty();
@@ -1449,16 +1449,21 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 		LightMapComponentScale = FVector2D(LightmapScaleX, LightmapScaleY) / FVector2D(DrawScale);
 		LightMapComponentBias = FVector2D(LightmapBiasX, LightmapBiasY);
 
-		if (Component->LightMap.IsValid())
-		{
-			LightmapBaseBias = Component->LightMap->GetLightMap2D()->GetCoordinateBias();
-			LightmapBaseScale = Component->LightMap->GetLightMap2D()->GetCoordinateScale();
-		}
+		const FMeshMapBuildData* MeshMapBuildData = Component->GetMeshMapBuildData();
 
-		if (Component->ShadowMap.IsValid())
+		if (MeshMapBuildData != nullptr)
 		{
-			ShadowmapBaseBias = Component->ShadowMap->GetShadowMap2D()->GetCoordinateBias();
-			ShadowmapBaseScale = Component->ShadowMap->GetShadowMap2D()->GetCoordinateScale();
+			if (MeshMapBuildData->LightMap.IsValid())
+			{
+				LightmapBaseBias = MeshMapBuildData->LightMap->GetLightMap2D()->GetCoordinateBias();
+				LightmapBaseScale = MeshMapBuildData->LightMap->GetLightMap2D()->GetCoordinateScale();
+			}
+
+			if (MeshMapBuildData->ShadowMap.IsValid())
+			{
+				ShadowmapBaseBias = MeshMapBuildData->ShadowMap->GetShadowMap2D()->GetCoordinateBias();
+				ShadowmapBaseScale = MeshMapBuildData->ShadowMap->GetShadowMap2D()->GetCoordinateScale();
+			}
 		}
 	}
 
@@ -2109,6 +2114,7 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 										{
 											QUICK_SCOPE_CYCLE_COUNTER(STAT_GrassCreateComp);
 											HierarchicalInstancedStaticMeshComponent = NewObject<UHierarchicalInstancedStaticMeshComponent>(this);
+											HierarchicalInstancedStaticMeshComponent->SetFlags(RF_Transient);
 										}
 										NewComp.Foliage = HierarchicalInstancedStaticMeshComponent;
 										FoliageCache.CachedGrassComps.Add(NewComp);
@@ -2116,7 +2122,7 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 										HierarchicalInstancedStaticMeshComponent->Mobility = EComponentMobility::Static;
 										HierarchicalInstancedStaticMeshComponent->bCastStaticShadow = false;
 
-										HierarchicalInstancedStaticMeshComponent->StaticMesh = GrassVariety.GrassMesh;
+										HierarchicalInstancedStaticMeshComponent->SetStaticMesh(GrassVariety.GrassMesh);
 										HierarchicalInstancedStaticMeshComponent->MinLOD = GrassVariety.MinLOD;
 										HierarchicalInstancedStaticMeshComponent->bSelectable = false;
 										HierarchicalInstancedStaticMeshComponent->bHasPerInstanceHitProxies = false;
@@ -2127,21 +2133,24 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 										HierarchicalInstancedStaticMeshComponent->SetCanEverAffectNavigation(false);
 										HierarchicalInstancedStaticMeshComponent->InstancingRandomSeed = FolSeed;
 										HierarchicalInstancedStaticMeshComponent->LightingChannels = GrassVariety.LightingChannels;
-											
+										
+										const FMeshMapBuildData* MeshMapBuildData = Component->GetMeshMapBuildData();
+
 										if (GrassVariety.bUseLandscapeLightmap
 											&& GrassVariety.GrassMesh->GetNumLODs() > 0
-											&& Component->LightMap.IsValid())
+											&& MeshMapBuildData
+											&& MeshMapBuildData->LightMap)
 										{
 											HierarchicalInstancedStaticMeshComponent->SetLODDataCount(GrassVariety.GrassMesh->GetNumLODs(), GrassVariety.GrassMesh->GetNumLODs());
-											HierarchicalInstancedStaticMeshComponent->bHasCachedStaticLighting = true;
 
-											FLightMapRef GrassLightMap = new FLandscapeGrassLightMap(*Component->LightMap->GetLightMap2D());
-											FShadowMapRef GrassShadowMap = Component->ShadowMap ? new FLandscapeGrassShadowMap(*Component->ShadowMap->GetShadowMap2D()) : nullptr;
+											FLightMapRef GrassLightMap = new FLandscapeGrassLightMap(*MeshMapBuildData->LightMap->GetLightMap2D());
+											FShadowMapRef GrassShadowMap = MeshMapBuildData->ShadowMap ? new FLandscapeGrassShadowMap(*MeshMapBuildData->ShadowMap->GetShadowMap2D()) : nullptr;
 
 											for (auto& LOD : HierarchicalInstancedStaticMeshComponent->LODData)
 											{
-												LOD.LightMap = GrassLightMap;
-												LOD.ShadowMap = GrassShadowMap;
+												LOD.OverrideMapBuildData = TScopedPointer<FMeshMapBuildData>(new FMeshMapBuildData());
+												LOD.OverrideMapBuildData->LightMap = GrassLightMap;
+												LOD.OverrideMapBuildData->ShadowMap = GrassShadowMap;
 											}
 										}
 

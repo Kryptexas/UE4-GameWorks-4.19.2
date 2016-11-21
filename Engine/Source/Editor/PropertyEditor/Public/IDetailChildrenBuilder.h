@@ -46,6 +46,14 @@ public:
 	virtual class IDetailPropertyRow& AddChildProperty( TSharedRef<IPropertyHandle> PropertyHandle ) = 0;
 
 	/**
+	 * Adds a child structure
+	 * 
+	 * @param ChildStructure	The structure to add
+	 * @return An array of interfaces to the properties that were added
+	 */
+	virtual TArray<TSharedPtr<IPropertyHandle>> AddChildStructure( TSharedRef<FStructOnScope> ChildStructure ) = 0;
+
+	/**
 	 * Generates a value widget from a customized struct
 	 * If the customized struct has no value widget an empty widget will be returned
 	 *

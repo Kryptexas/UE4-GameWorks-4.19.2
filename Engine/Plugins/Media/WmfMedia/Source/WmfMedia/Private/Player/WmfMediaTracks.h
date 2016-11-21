@@ -28,7 +28,7 @@ class FWmfMediaTracks
 		TComPtr<IMFMediaType> OutputType;
 		bool Protected;
 		TComPtr<FWmfMediaSampler> Sampler;
-		DWORD StreamIndex;	
+		DWORD StreamIndex;
 	};
 	
 	struct FAudioTrack : public FStreamInfo
@@ -45,9 +45,9 @@ class FWmfMediaTracks
 	struct FVideoTrack : public FStreamInfo
 	{
 		uint32 BitRate;
-		FIntPoint Dimensions;
+		FIntPoint BufferDim;
 		float FrameRate;
-		uint32 Pitch;
+		FIntPoint OutputDim;
 		EMediaTextureSinkFormat SinkFormat;
 	};
 	

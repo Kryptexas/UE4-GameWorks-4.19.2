@@ -12,7 +12,7 @@
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Texture Atlases"), STAT_SlateNumTextureAtlases, STATGROUP_SlateMemory);
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Non-Atlased Textures"), STAT_SlateNumNonAtlasedTextures, STATGROUP_SlateMemory);
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Dynamic Textures"), STAT_SlateNumDynamicTextures, STATGROUP_SlateMemory);
-DECLARE_CYCLE_STAT(TEXT("GetResource Time"), STAT_SlateGetResourceTime, STATGROUP_SlateVerbose);
+DECLARE_CYCLE_STAT(TEXT("GetResource Time"), STAT_SlateGetResourceTime, STATGROUP_Slate);
 
 FDynamicResourceMap::FDynamicResourceMap()
 	: TextureMemorySincePurge(0)
@@ -64,7 +64,7 @@ void FDynamicResourceMap::AddUTextureResource( UTexture* TextureObject, TSharedR
 		check(TextureObject == InResource->TextureObject);
 		TextureMap.Add(TextureObject, InResource);
 
-		TextureMemorySincePurge += TextureObject->GetResourceSize(EResourceSizeMode::Inclusive);
+		TextureMemorySincePurge += TextureObject->GetResourceSizeBytes(EResourceSizeMode::Inclusive);
 	}
 }
 
@@ -84,7 +84,7 @@ void FDynamicResourceMap::RemoveUTextureResource( UTexture* TextureObject )
 	if(TextureObject)
 	{
 		TextureMap.Remove(TextureObject);
-		TextureMemorySincePurge -= TextureObject->GetResourceSize(EResourceSizeMode::Inclusive);
+		TextureMemorySincePurge -= TextureObject->GetResourceSizeBytes(EResourceSizeMode::Inclusive);
 	}
 }
 
@@ -506,9 +506,9 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::GetShaderResource( const FS
 
 	UObject* ResourceObject = InBrush.GetResourceObject();
 	FSlateShaderResourceProxy* Resource = nullptr;
-	if( ResourceObject != nullptr && ResourceObject->HasAnyFlags(RF_BeginDestroyed))
+	if(ResourceObject != nullptr && ResourceObject->IsPendingKill())
 	{
-		UE_LOG(LogSlate, Warning, TEXT("Attempted to access resource for %s which is being destroyed"), *ResourceObject->GetName());
+		UE_LOG(LogSlate, Warning, TEXT("Attempted to access resource for %s which is pending kill"), *ResourceObject->GetName());
 	}
 	else
 	{

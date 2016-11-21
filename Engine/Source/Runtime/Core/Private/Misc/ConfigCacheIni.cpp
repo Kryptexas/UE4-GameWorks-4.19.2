@@ -333,8 +333,6 @@ FConfigSection* FConfigFile::FindOrAddSection(const FString& SectionName)
 	if (Section == nullptr)
 	{
 		Section = &Add(SectionName, FConfigSection());
-		// mark that we have been modified
-		Dirty = true;
 	}
 	return Section;
 }
@@ -864,9 +862,6 @@ static void OverrideFromCommandline(FConfigFile* File, const FString& Filename)
  **/
 static bool LoadIniFileHierarchy(const FConfigFileHierarchy& HierarchyToLoad, FConfigFile& ConfigFile, const bool bUseCache)
 {
-	// This shouldn't be getting called if seekfree is enabled on console.
-	check(!GUseSeekFreeLoading || !FPlatformProperties::RequiresCookedData());
-
 	// if the file does not exist then return
 	if (HierarchyToLoad.Num() == 0)
 	{
@@ -2736,9 +2731,6 @@ bool FConfigCacheIni::ForEachEntry(const FKeyValueSink& Visitor, const TCHAR* Se
  **/
 static void LoadAnIniFile(const FString& FilenameToLoad, FConfigFile& ConfigFile)
 {
-	// This shouldn't be getting called if seekfree is enabled on console.
-	check(!GUseSeekFreeLoading || !FPlatformProperties::RequiresCookedData());
-
 	if( !IsUsingLocalIniFile(*FilenameToLoad, nullptr) || (IFileManager::Get().FileSize( *FilenameToLoad ) >= 0) )
 	{
 		ProcessIniContents(*FilenameToLoad, *FilenameToLoad, &ConfigFile, false, false);
@@ -2938,8 +2930,11 @@ static void GetSourceIniHierarchyFilenames(const TCHAR* InBaseIniName, const TCH
 	// into the hierarchy and remove the delete operation
 	// - Remember to fixup EngineConfiguration.cs
 	/////
-	IFileManager::Get().Delete(*FString::Printf(TEXT("%sNoRedist/Base%s.ini"), EngineConfigDir, InBaseIniName), false, true, true);
-	IFileManager::Get().DeleteDirectory(*FString::Printf(TEXT("%sNoRedist"), EngineConfigDir), false, false);
+	if (IFileManager::Get().DirectoryExists(*FString::Printf(TEXT("%sNoRedist"), EngineConfigDir)))
+	{
+		IFileManager::Get().Delete(*FString::Printf(TEXT("%sNoRedist/Base%s.ini"), EngineConfigDir, InBaseIniName), false, true, true);
+		IFileManager::Get().DeleteDirectory(*FString::Printf(TEXT("%sNoRedist"), EngineConfigDir), false, false);
+	}
 	// OutHierarchy.Add( FIniFilename(FString::Printf(TEXT("%sNoRedist/Base%s.ini"), EngineConfigDir, InBaseIniName), false) );
 
 	// [[[[ PROJECT SETTINGS ]]]]
@@ -3615,4 +3610,11 @@ void ApplyCVarSettingsGroupFromIni(const TCHAR* InSectionBaseName, int32 InGroup
 	// Lookup the config section for this section and group number
 	FString SectionName = FString::Printf(TEXT("%s@%d"), InSectionBaseName, InGroupNumber);
 	ApplyCVarSettingsFromIni(*SectionName,InIniFilename, SetBy);
+}
+
+void ApplyCVarSettingsGroupFromIni(const TCHAR* InSectionBaseName, const TCHAR* InSectionTag, const TCHAR* InIniFilename, uint32 SetBy)
+{
+	// Lookup the config section for this section and group number
+	FString SectionName = FString::Printf(TEXT("%s@%s"), InSectionBaseName, InSectionTag);
+	ApplyCVarSettingsFromIni(*SectionName, InIniFilename, SetBy);
 }

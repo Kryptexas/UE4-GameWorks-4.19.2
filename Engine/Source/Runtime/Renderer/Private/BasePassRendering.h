@@ -12,6 +12,8 @@
 #include "EditorCompositeParams.h"
 #include "PlanarReflectionRendering.h"
 
+class FViewInfo;
+
 /** Whether to allow the indirect lighting cache to be applied to dynamic objects. */
 extern int32 GIndirectLightingCache;
 
@@ -277,6 +279,7 @@ protected:
 		VertexParametersType::Bind(Initializer.ParameterMap);
 		HeightFogParameters.Bind(Initializer.ParameterMap);
 		TranslucentLightingVolumeParameters.Bind(Initializer.ParameterMap);
+		ForwardLightingParameters.Bind(Initializer.ParameterMap);
 		const bool bOutputsVelocityToGBuffer = FVelocityRendering::OutputsToGBuffer();
 		if (bOutputsVelocityToGBuffer)
 		{
@@ -294,6 +297,7 @@ public:
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FMeshMaterialShader::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		FForwardLightingParameters::ModifyCompilationEnvironment(Platform, OutEnvironment);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -302,6 +306,7 @@ public:
 		VertexParametersType::Serialize(Ar);
 		Ar << HeightFogParameters;
 		Ar << TranslucentLightingVolumeParameters;
+		Ar << ForwardLightingParameters;
 		Ar << PreviousLocalToWorldParameter;
 		Ar << SkipOutputVelocityParameter;
 		Ar << InstancedEyeIndexParameter;
@@ -314,8 +319,7 @@ public:
 		const FMaterialRenderProxy* MaterialRenderProxy,
 		const FVertexFactory* VertexFactory,
 		const FMaterial& InMaterialResource,
-		const FSceneView& View,
-		bool bAllowGlobalFog,
+		const FViewInfo& View,
 		ESceneRenderTargetsMode::Type TextureMode, 
 		bool bIsInstancedStereo,
 		bool bUseDownsampledTranslucencyViewUniformBuffer
@@ -325,12 +329,10 @@ public:
 		const TUniformBufferRef<FViewUniformShaderParameters>& ViewUniformBuffer = bUseDownsampledTranslucencyViewUniformBuffer ? View.DownsampledTranslucencyViewUniformBuffer : View.ViewUniformBuffer;
 		FMeshMaterialShader::SetParameters(RHICmdList, GetVertexShader(), MaterialRenderProxy, InMaterialResource, View, ViewUniformBuffer, TextureMode);
 
-		if (bAllowGlobalFog)
-		{
-			HeightFogParameters.Set(RHICmdList, GetVertexShader(), &View);
-		}
+		HeightFogParameters.Set(RHICmdList, GetVertexShader(), &View);
 
 		TranslucentLightingVolumeParameters.Set(RHICmdList, GetVertexShader());
+		ForwardLightingParameters.Set(RHICmdList, GetVertexShader(), View, bIsInstancedStereo);
 
 		if (IsInstancedStereoParameter.IsBound())
 		{
@@ -352,6 +354,7 @@ private:
 	/** The parameters needed to calculate the fog contribution from height fog layers. */
 	FHeightFogShaderParameters HeightFogParameters;
 	FTranslucentLightingVolumeParameters TranslucentLightingVolumeParameters;
+	FForwardLightingParameters ForwardLightingParameters;
 	// When outputting from base pass, the previous transform
 	FShaderParameter PreviousLocalToWorldParameter;
 	FShaderParameter SkipOutputVelocityParameter;
@@ -584,7 +587,7 @@ public:
 
 	void Set(FRHICommandList& RHICmdList, FPixelShaderRHIParamRef PixelShaderRHI, const FViewInfo* View);
 
-	void SetMesh(FRHICommandList& RHICmdList, FPixelShaderRHIParamRef PixelShaderRH, const FPrimitiveSceneProxy* Proxy, ERHIFeatureLevel::Type FeatureLevel);
+	void SetMesh(FRHICommandList& RHICmdList, FPixelShaderRHIParamRef PixelShaderRH, const FSceneView& View, const FPrimitiveSceneProxy* Proxy, ERHIFeatureLevel::Type FeatureLevel);
 
 	/** Serializer. */
 	friend FArchive& operator<<(FArchive& Ar,FBasePassReflectionParameters& P)
@@ -861,11 +864,24 @@ void GetBasePassShaders<FUniformLightMapPolicy>(
 	TBasePassPixelShaderPolicyParamType<FUniformLightMapPolicyShaderParametersType>*& PixelShader
 	);
 
+class FBasePassDrawingPolicy : public FMeshDrawingPolicy
+{
+public:
+	FBasePassDrawingPolicy(
+		const FVertexFactory* InVertexFactory,
+		const FMaterialRenderProxy* InMaterialRenderProxy, 
+		const FMaterial& InMaterialResource, 
+		EDebugViewShaderMode InDebugViewShaderMode) : FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InDebugViewShaderMode, false, false, false)
+	{}
+
+	static FMeshDrawingRenderState GetDitheredLODTransitionState(const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither = false);
+};
+
 /**
  * Draws the emissive color and the light-map of a mesh.
  */
 template<typename LightMapPolicyType>
-class TBasePassDrawingPolicy : public FMeshDrawingPolicy
+class TBasePassDrawingPolicy : public FBasePassDrawingPolicy
 {
 public:
 
@@ -899,15 +915,13 @@ public:
 		bool bInEnableSkyLight,
 		bool bInEnableAtmosphericFog,
 		EDebugViewShaderMode InDebugViewShaderMode = DVSM_None,
-		bool bInAllowGlobalFog = false,
 		bool bInEnableEditorPrimitiveDepthTest = false,
 		bool bInEnableReceiveDecalOutput = false
 		):
-		FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InDebugViewShaderMode, false, false, false),
+		FBasePassDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InDebugViewShaderMode),
 		LightMapPolicy(InLightMapPolicy),
 		BlendMode(InBlendMode), 
 		SceneTextureMode(InSceneTextureMode),
-		bAllowGlobalFog(bInAllowGlobalFog),
 		bEnableSkyLight(bInEnableSkyLight),
 		bEnableEditorPrimitiveDepthTest(bInEnableEditorPrimitiveDepthTest),
 		bEnableAtmosphericFog(bInEnableAtmosphericFog),
@@ -955,7 +969,6 @@ public:
 			DRAWING_POLICY_MATCH(HullShader == Other.HullShader) &&
 			DRAWING_POLICY_MATCH(DomainShader == Other.DomainShader) &&
 			DRAWING_POLICY_MATCH(SceneTextureMode == Other.SceneTextureMode) &&
-			DRAWING_POLICY_MATCH(bAllowGlobalFog == Other.bAllowGlobalFog) &&
 			DRAWING_POLICY_MATCH(bEnableSkyLight == Other.bEnableSkyLight) && 
 			DRAWING_POLICY_MATCH(LightMapPolicy == Other.LightMapPolicy);
 		DRAWING_POLICY_MATCH_END
@@ -973,7 +986,7 @@ public:
 			// Set the light-map policy.
 			LightMapPolicy.Set(RHICmdList, VertexShader, !UseDebugViewPS() ? PixelShader : nullptr, VertexShader, PixelShader, VertexFactory, MaterialRenderProxy, View);
 
-			VertexShader->SetParameters(RHICmdList, MaterialRenderProxy, VertexFactory, *MaterialResource, *View, bAllowGlobalFog, SceneTextureMode, PolicyContext.bIsInstancedStereo, bUseDownsampledTranslucencyViewUniformBuffer);
+			VertexShader->SetParameters(RHICmdList, MaterialRenderProxy, VertexFactory, *MaterialResource, *View, SceneTextureMode, PolicyContext.bIsInstancedStereo, bUseDownsampledTranslucencyViewUniformBuffer);
 
 			if(HullShader)
 			{
@@ -994,7 +1007,7 @@ public:
 				{	// If we are in the translucent pass then override the blend mode, otherwise maintain additive blending.
 					RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_Zero, BF_One>::GetRHI());
 				}
-				else if (View->Family->GetDebugViewShaderMode() != DVSM_MaterialTexCoordScalesAnalysis)
+				else if (View->Family->GetDebugViewShaderMode() != DVSM_OutputMaterialTextureScales)
 				{	// Otherwise, force translucent blend mode (shaders will use an hardcoded alpha).
 					RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_InverseSourceAlpha>::GetRHI());
 				}
@@ -1133,15 +1146,9 @@ public:
 			const uint8 StencilValue = GET_STENCIL_BIT_MASK(RECEIVE_DECAL, PrimitiveSceneProxy ? !!PrimitiveSceneProxy->ReceivesDecals() : 0x00)
 				| STENCIL_LIGHTING_CHANNELS_MASK(PrimitiveSceneProxy ? PrimitiveSceneProxy->GetLightingChannelStencilValue() : 0x00);
 			
-			const bool bStencilDithered = DrawRenderState.bAllowStencilDither && DrawRenderState.DitheredLODState != EDitheredLODState::None;
-			if (bStencilDithered)
+			if (DrawRenderState.DepthStencilState)
 			{
-				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
-					false, CF_Equal,
-					true, CF_Always, SO_Keep, SO_Keep, SO_Replace,
-					false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
-					0xFF, GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1) | STENCIL_LIGHTING_CHANNELS_MASK(0x7)
-				>::GetRHI(), StencilValue);
+				RHICmdList.SetDepthStencilState(DrawRenderState.DepthStencilState, StencilValue);
 			}
 			else
 			{
@@ -1166,7 +1173,6 @@ public:
 		COMPAREDRAWINGPOLICYMEMBERS(VertexFactory);
 		COMPAREDRAWINGPOLICYMEMBERS(MaterialRenderProxy);
 		COMPAREDRAWINGPOLICYMEMBERS(SceneTextureMode);
-		COMPAREDRAWINGPOLICYMEMBERS(bAllowGlobalFog);
 		COMPAREDRAWINGPOLICYMEMBERS(bEnableSkyLight);
 		COMPAREDRAWINGPOLICYMEMBERS(bEnableReceiveDecalOutput);
 
@@ -1186,8 +1192,6 @@ protected:
 	EBlendMode BlendMode;
 
 	ESceneRenderTargetsMode::Type SceneTextureMode;
-
-	uint32 bAllowGlobalFog : 1;
 
 	uint32 bEnableSkyLight : 1;
 

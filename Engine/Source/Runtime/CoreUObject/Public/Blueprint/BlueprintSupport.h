@@ -102,6 +102,16 @@ enum class EReplacementResult
 	ReplaceCompletely
 };
 
+struct COREUOBJECT_API FScopedPlaceholderRawContainerTracker
+{
+public:
+	FScopedPlaceholderRawContainerTracker(void* InData);
+	~FScopedPlaceholderRawContainerTracker();
+
+private:
+	void* Data;
+};
+
 /**
  * Interface needed by CoreUObject to the BlueprintNativeCodeGen logic. Used by cooker to convert assets 
  * to native code.
@@ -210,21 +220,78 @@ private:
 	TMultiMap<UClass*, FObjectInitializer> DeferredSubObjInitializers;
 };
 
+struct FBlueprintDependencyType
+{
+	uint8 bSerializationBeforeSerializationDependency : 1;
+	uint8 bCreateBeforeSerializationDependency : 1;
+	uint8 bSerializationBeforeCreateDependency : 1;
+	uint8 bCreateBeforeCreateDependency : 1;
 
-struct COREUOBJECT_API FBlueprintDependencyData
+	FBlueprintDependencyType()
+		: bSerializationBeforeSerializationDependency(0)
+		, bCreateBeforeSerializationDependency(0)
+		, bSerializationBeforeCreateDependency(0)
+		, bCreateBeforeCreateDependency(0) {}
+
+	FBlueprintDependencyType(bool bInSerializationBeforeSerializationDependency
+		, bool bInCreateBeforeSerializationDependency
+		, bool bInSerializationBeforeCreateDependency
+		, bool bInCreateBeforeCreateDependency)
+		: bSerializationBeforeSerializationDependency(bInSerializationBeforeSerializationDependency)
+		, bCreateBeforeSerializationDependency(bInCreateBeforeSerializationDependency)
+		, bSerializationBeforeCreateDependency(bInSerializationBeforeCreateDependency)
+		, bCreateBeforeCreateDependency(bInCreateBeforeCreateDependency)
+	{}
+};
+
+struct COREUOBJECT_API FCompactBlueprintDependencyData
+{
+	int16 ObjectRefIndex;
+	FBlueprintDependencyType ClassDependency;
+	FBlueprintDependencyType CDODependency;
+
+	FCompactBlueprintDependencyData()
+		: ObjectRefIndex(-1)
+	{}
+
+	FCompactBlueprintDependencyData(int16 InObjectRefIndex
+		, FBlueprintDependencyType InClassDependency
+		, FBlueprintDependencyType InCDODependency)
+		: ObjectRefIndex(InObjectRefIndex)
+		, ClassDependency(InClassDependency)
+		, CDODependency(InCDODependency)
+	{}
+};
+
+struct COREUOBJECT_API FBlueprintDependencyObjectRef
 {
 	FName PackageName;
 	FName ObjectName;
 	FName ClassPackageName;
 	FName ClassName;
 
-	FBlueprintDependencyData() {}
-
-	FORCENOINLINE FBlueprintDependencyData(const TCHAR* InPackageFolder
+	FORCENOINLINE FBlueprintDependencyObjectRef(const TCHAR* InPackageFolder
 		, const TCHAR* InShortPackageName
 		, const TCHAR* InObjectName
 		, const TCHAR* InClassPackageName
 		, const TCHAR* InClassName);
+};
+
+struct COREUOBJECT_API FBlueprintDependencyData
+{
+	FBlueprintDependencyObjectRef ObjectRef;
+	// 0 - dependency type for dynamic class
+	// 1 - dependency type for CD0
+	FBlueprintDependencyType DependencyTypes[2];
+
+	FBlueprintDependencyData(const FBlueprintDependencyObjectRef& InObjectRef
+		, FBlueprintDependencyType InClassDependency
+		, FBlueprintDependencyType InCDODependency)
+		: ObjectRef(InObjectRef)
+	{
+		DependencyTypes[0] = InClassDependency;
+		DependencyTypes[1] = InCDODependency;
+	}
 };
 
 /**

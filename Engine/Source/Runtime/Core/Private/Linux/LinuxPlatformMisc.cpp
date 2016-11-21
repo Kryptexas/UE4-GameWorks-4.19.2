@@ -103,13 +103,14 @@ void LinuxPlatform_UpdateCacheLineSize()
 	if (SysFsFile)
 	{
 		int SystemLineSize = 0;
-		fscanf(SysFsFile, "%d", &SystemLineSize);
-		fclose(SysFsFile);
-
-		if (SystemLineSize > 0)
+		if (1 == fscanf(SysFsFile, "%d", &SystemLineSize))
 		{
-			GCacheLineSize = SystemLineSize;
+			if (SystemLineSize > 0)
+			{
+				GCacheLineSize = SystemLineSize;
+			}
 		}
+		fclose(SysFsFile);
 	}
 }
 

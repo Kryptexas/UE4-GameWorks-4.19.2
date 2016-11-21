@@ -46,6 +46,18 @@ typedef void (UObject::*Native)( FFrame& TheStack, RESULT_DECL );
 /** set while in SavePackage() to detect certain operations that are illegal while saving */
 extern COREUOBJECT_API bool					GIsSavingPackage;
 
+namespace EDuplicateMode
+{
+	enum Type
+	{
+		Normal,
+		// Object is being duplicated as part of a world duplication
+		World,
+		// Object is being duplicated as part of a world duplication for PIE
+		PIE
+	};
+};
+
 /*-----------------------------------------------------------------------------
 	FObjectDuplicationParameters.
 -----------------------------------------------------------------------------*/
@@ -99,6 +111,8 @@ struct FObjectDuplicationParameters
 	 * Any PortFlags to be applied when serializing.
 	 */
 	uint32			PortFlags;
+
+	EDuplicateMode::Type DuplicateMode;
 
 	/**
 	 * optional class to specify for the destination object.
@@ -221,7 +235,7 @@ COREUOBJECT_API UClass* StaticLoadClass(UClass* BaseClass, UObject* InOuter, con
 *
 * @return	a pointer to a fully initialized object of the specified class.
 */
-COREUOBJECT_API UObject* StaticConstructObject_Internal(UClass* Class, UObject* InOuter = (UObject*)GetTransientPackage(), FName Name = NAME_None, EObjectFlags SetFlags = RF_NoFlags, EInternalObjectFlags InternalSetFlags = EInternalObjectFlags::None, UObject* Template = NULL, bool bCopyTransientsFromClassDefaults = false, struct FObjectInstancingGraph* InstanceGraph = NULL);
+COREUOBJECT_API UObject* StaticConstructObject_Internal(UClass* Class, UObject* InOuter = (UObject*)GetTransientPackage(), FName Name = NAME_None, EObjectFlags SetFlags = RF_NoFlags, EInternalObjectFlags InternalSetFlags = EInternalObjectFlags::None, UObject* Template = NULL, bool bCopyTransientsFromClassDefaults = false, struct FObjectInstancingGraph* InstanceGraph = NULL, bool bAssumeTemplateIsArchetype = false);
 
 /**
  * Create a new instance of an object.  The returned object will be fully initialized.  If InFlags contains RF_NeedsLoad (indicating that the object still needs to load its object data from disk), components
@@ -261,12 +275,7 @@ COREUOBJECT_API UObject* StaticConstructObject( UClass* Class, UObject* InOuter=
  *
  * @note: this version is deprecated in favor of StaticDuplicateObjectEx
  */
-enum EDuplicateForPie
-{
-	SDO_No_DuplicateForPie,
-	SDO_DuplicateForPie,
-};
-COREUOBJECT_API UObject* StaticDuplicateObject(UObject const* SourceObject, UObject* DestOuter, const FName DestName = NAME_None, EObjectFlags FlagMask = RF_AllFlags, UClass* DestClass = nullptr, EDuplicateForPie DuplicateForPIE = SDO_No_DuplicateForPie, EInternalObjectFlags InternalFlagsMask = EInternalObjectFlags::AllFlags);
+COREUOBJECT_API UObject* StaticDuplicateObject(UObject const* SourceObject, UObject* DestOuter, const FName DestName = NAME_None, EObjectFlags FlagMask = RF_AllFlags, UClass* DestClass = nullptr, EDuplicateMode::Type DuplicateMode = EDuplicateMode::Normal, EInternalObjectFlags InternalFlagsMask = EInternalObjectFlags::AllFlags);
 COREUOBJECT_API UObject* StaticDuplicateObjectEx( struct FObjectDuplicationParameters& Parameters );
 
 /**
@@ -369,6 +378,11 @@ COREUOBJECT_API int32 LoadPackageAsync(const FString& InName, FLoadPackageAsyncD
 * Cancels all async package loading requests.
 */
 COREUOBJECT_API void CancelAsyncLoading();
+
+/**
+* Returns true if the event driven loader is enabled in cooked builds
+*/
+COREUOBJECT_API bool IsEventDrivenLoaderEnabledInCookedBuilds();
 
 /**
  * Returns the async load percentage for a package in flight with the passed in name or -1 if there isn't one.
@@ -1923,9 +1937,13 @@ extern COREUOBJECT_API bool GShouldVerifyGCAssumptions;
 
 /** A struct used as stub for deleted ones. */
 COREUOBJECT_API UScriptStruct* GetFallbackStruct();
-
+enum class EConstructDynamicType : uint8
+{
+	OnlyAllocateClassObject,
+	CallZConstructor
+};
 /** Constructs dynamic type of a given class. */
-COREUOBJECT_API UObject* ConstructDynamicType(FName TypePathName);
+COREUOBJECT_API UObject* ConstructDynamicType(FName TypePathName, EConstructDynamicType ConstructionSpecifier);
 
 /** Given a dynamic type path name, returns that type's class name (can be either DynamicClass, ScriptStruct or Enum). */
 COREUOBJECT_API FName GetDynamicTypeClassName(FName TypePathName);

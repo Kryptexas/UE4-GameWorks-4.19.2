@@ -1208,11 +1208,6 @@ void FConstraintInstance::PostSerialize(const FArchive& Ar)
 #endif
 }
 
-void FConstraintInstance::OnConstraintBroken()
-{
-	OnConstraintBrokenDelegate.ExecuteIfBound(ConstraintIndex);
-}
-
 //Hacks to easily get zeroed memory for special case when we don't use GC
 void FConstraintInstance::Free(FConstraintInstance * Ptr)
 {

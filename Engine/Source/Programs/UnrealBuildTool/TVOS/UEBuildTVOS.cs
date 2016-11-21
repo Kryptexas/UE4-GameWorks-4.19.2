@@ -66,9 +66,9 @@ namespace UnrealBuildTool
 			return " -arch " + (UBTArchitecture == "-simulator" ? "i386" : "arm64");
 		}
 
-        public override void SetUpProjectEnvironment(UnrealTargetConfiguration Configuration)
-        {
-            base.SetUpProjectEnvironment(Configuration);
+		public override void SetUpProjectEnvironment(UnrealTargetConfiguration Configuration, TargetInfo Target = null)
+		{
+			base.SetUpProjectEnvironment(Configuration, Target);
 
             // @todo tvos: Add ini settings and look them up when they matter - like when we get TVOS10.0 etc
         }

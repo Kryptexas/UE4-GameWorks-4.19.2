@@ -55,7 +55,7 @@ class ENGINE_API USoundNode : public UObject
 	UPROPERTY()
 	UEdGraphNode*	GraphNode;
 
-	class USoundCueGraphNode* GetGraphNode() const;
+	class UEdGraphNode* GetGraphNode() const;
 #endif
 
 public:

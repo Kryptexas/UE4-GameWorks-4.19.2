@@ -1067,13 +1067,8 @@ public:
 	// Element batch maps sorted by layer.
 	FElementBatchMap LayerToElementBatches;
 
-#if SLATE_POOL_DRAW_ELEMENTS
-	/** The elements drawn on this layer */
-	TArray<FSlateDrawElement*> DrawElements;
-#else
 	/** The elements drawn on this layer */
 	TArray<FSlateDrawElement> DrawElements;
-#endif
 };
 
 /**
@@ -1118,16 +1113,7 @@ public:
 	{
 		return TopLevelWindow.Pin();
 	}
-	
-#if SLATE_POOL_DRAW_ELEMENTS
-	
-	/** @return Get the draw elements that we want to render into this window */
-	FORCEINLINE const TArray<FSlateDrawElement*>& GetDrawElements() const
-	{
-		return RootDrawLayer.DrawElements;
-	}
 
-#else
 
 	/** @return Get the draw elements that we want to render into this window */
 	FORCEINLINE const TArray<FSlateDrawElement>& GetDrawElements() const
@@ -1145,44 +1131,25 @@ public:
 		TArray<FSlateDrawElement>& ActiveDrawElements = DrawStack.Last()->DrawElements;
 		ActiveDrawElements.Add(InDrawElement);
 	}
-#endif
 
 	/**
 	 * Creates an uninitialized draw element
 	 */
 	FORCEINLINE FSlateDrawElement& AddUninitialized()
 	{
-#if SLATE_POOL_DRAW_ELEMENTS
-		FSlateDrawElement* DrawElement = ( DrawElementFreePool.Num() > 0 ) ? DrawElementFreePool.Pop() : new FSlateDrawElement();
-		DrawStack.Last()->DrawElements.Push(DrawElement);
-
-		return *DrawElement;
-#else
 		TArray<FSlateDrawElement>& ActiveDrawElements = DrawStack.Last()->DrawElements;
 		const int32 InsertIdx = ActiveDrawElements.AddDefaulted();
 		return ActiveDrawElements[InsertIdx];
-#endif
 	}
 
-#if SLATE_POOL_DRAW_ELEMENTS
 	/**
 	 * Append draw elements to the list of draw elements
 	 */
-	FORCEINLINE void AppendDrawElements(const TArray<FSlateDrawElement*>& InDrawElements)
-	{
-		TArray<FSlateDrawElement*>& ActiveDrawElements = DrawStack.Last()->DrawElements;
-		ActiveDrawElements.Append(InDrawElements);
-	}
-#else
-	/**
-	* Append draw elements to the list of draw elements
-	*/
 	FORCEINLINE void AppendDrawElements(const TArray<FSlateDrawElement>& InDrawElements)
 	{
 		TArray<FSlateDrawElement>& ActiveDrawElements = DrawStack.Last()->DrawElements;
 		ActiveDrawElements.Append(InDrawElements);
 	}
-#endif
 
 	/**
 	 * Some widgets may want to paint their children after after another, loosely-related widget finished painting.
@@ -1326,11 +1293,6 @@ private:
 
 	/** */
 	TArray< FSlateDrawLayer* > DrawStack;
-
-#if SLATE_POOL_DRAW_ELEMENTS
-	/** List of draw elements for the window */
-	TArray<FSlateDrawElement*> DrawElementFreePool;
-#endif
 
 	TArray< TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> > CachedRenderHandlesInUse;
 

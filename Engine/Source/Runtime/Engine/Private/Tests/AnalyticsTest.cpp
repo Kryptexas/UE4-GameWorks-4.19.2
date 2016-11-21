@@ -26,7 +26,7 @@ bool FAnalyticStartUpSimTest::RunTest(const FString& Parameters)
 
 		//Setup the 'Event Attributes'
 		TArray<FAnalyticsEventAttribute> EventAttributes;
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("MachineID"),		FPlatformMisc::GetMachineId().ToString(EGuidFormats::Digits).ToLower()));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("LoginID"),		FPlatformMisc::GetLoginId()));
 		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("AccountID"),		FPlatformMisc::GetEpicAccountId()));
 		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OSID"),			FPlatformMisc::GetOperatingSystemId()));
 		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("GameName"),		FApp::GetGameName()));
@@ -36,14 +36,14 @@ bool FAnalyticStartUpSimTest::RunTest(const FString& Parameters)
 		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Engine.AutomationTest.Analytics.ProgramStartedEvent"), EventAttributes);
 
 		//Get the event strings used
-		FString MachineIDTest	=	FPlatformMisc::GetMachineId().ToString(EGuidFormats::Digits).ToLower();
+		FString LoginIDTest		=	FPlatformMisc::GetLoginId();
 		FString AccountIDTest	=	FPlatformMisc::GetEpicAccountId();
 		FString OSID			=	FPlatformMisc::GetOperatingSystemId();
 		FString GameNameTest	=	FApp::GetGameName();
 		FString CommandLineArgs	=	FCommandLine::Get();
 
 		//Test the strings to verify they have data.
-		TestFalse(TEXT("'MachineID' is not expected to be empty!"), MachineIDTest.IsEmpty());
+		TestFalse(TEXT("'LoginID' is not expected to be empty!"), LoginIDTest.IsEmpty());
 		TestFalse(TEXT("'AccountID' is not expected to be empty!"), AccountIDTest.IsEmpty());
 		TestFalse(TEXT("'OperatingSystemID' is not expected to be empty!"), OSID.IsEmpty());
 		TestFalse(TEXT("'GameName' is expected."), GameNameTest.IsEmpty());
@@ -52,7 +52,7 @@ bool FAnalyticStartUpSimTest::RunTest(const FString& Parameters)
 		//Verify record event is holding the actual data.  This only triggers if the command line argument of 'AnalyticsDisableCaching' was used.
 		if (CommandLineArgs.Contains(TEXT("AnalyticsDisableCaching")))
 		{
-			FString FullMachineIDTestEventName = FString::Printf(TEXT("MachineID\":\"%s"), *MachineIDTest);
+			FString FullLoginIDTestEventName = FString::Printf(TEXT("LoginID\":\"%s"), *LoginIDTest);
 			FString FullAccountIDTestEventName = FString::Printf(TEXT("AccountID\":\"%s"), *AccountIDTest);
 			FString FullOSIDTestEventName = FString::Printf(TEXT("OSID\":\"%s"), *OSID);
 
@@ -61,7 +61,7 @@ bool FAnalyticStartUpSimTest::RunTest(const FString& Parameters)
 				if (ExecutionInfo.LogItems[i].Contains(TEXT("Engine.AutomationTest.Analytics.ProgramStartedEvent")))
 				{
 					TestTrue(TEXT("Recorded event name is expected to be in the sent event."), ExecutionInfo.LogItems[i].Contains(TEXT("Engine.AutomationTest.Analytics.ProgramStartedEvent")));
-					TestTrue(TEXT("'MachineID' is expected to be in the sent event."), ExecutionInfo.LogItems[i].Contains(*FullMachineIDTestEventName));
+					TestTrue(TEXT("'LoginID' is expected to be in the sent event."), ExecutionInfo.LogItems[i].Contains(*FullLoginIDTestEventName));
 					TestTrue(TEXT("'AccountID' is expected to be in the sent event."), ExecutionInfo.LogItems[i].Contains(*FullAccountIDTestEventName));
 					TestTrue(TEXT("'OperatingSystemID' is expected to be in the sent event."), ExecutionInfo.LogItems[i].Contains(*FullOSIDTestEventName));
 					TestTrue(TEXT("'GameName' is expected to be in the sent event."), ExecutionInfo.LogItems[i].Contains(*GameNameTest));

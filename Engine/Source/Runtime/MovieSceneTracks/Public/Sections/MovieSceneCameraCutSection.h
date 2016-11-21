@@ -16,6 +16,11 @@ class UMovieSceneCameraCutSection
 	GENERATED_BODY()
 
 public:
+	UMovieSceneCameraCutSection(const FObjectInitializer& Init)
+		: Super(Init)
+	{
+		EvalOptions.EnableAndSetCompletionMode(EMovieSceneCompletionMode::RestoreState);
+	}
 
 	/** Gets the camera guid for this CameraCut section */
 	FGuid GetCameraGuid() const
@@ -28,6 +33,8 @@ public:
 	{
 		CameraGuid = InGuid;
 	}
+
+	virtual FMovieSceneEvalTemplatePtr GenerateTemplate() const override;
 
 private:
 
@@ -53,7 +60,7 @@ public:
 	// UMovieSceneSection interface
 	virtual TOptional<float> GetKeyTime( FKeyHandle KeyHandle ) const override { return TOptional<float>(); }
 	virtual void SetKeyTime( FKeyHandle KeyHandle, float Time ) override { }
-
+	
 private:
 
 	/** The reference frame offset for single thumbnail rendering */

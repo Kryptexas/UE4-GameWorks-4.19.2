@@ -109,7 +109,7 @@ Architecture defines, see http://sourceforge.net/p/predef/wiki/Architectures/
 /**
 SIMD defines
 */
-#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) || defined(_M_X64) || defined (__EMSCRIPTEN__)
+#if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) || defined(_M_X64) || (defined (__EMSCRIPTEN__) && defined(__SSE2__))
 #define PX_SSE2 1
 #endif
 #if defined(_M_ARM) || defined(__ARM_NEON__)
@@ -216,6 +216,7 @@ family shortcuts
 #define PX_EMSCRIPTEN 0
 #endif
 // architecture
+//#define PX_INTEL_FAMILY (PX_X64 || PX_X86) && (!PX_EMSCRIPTEN || __SSE2__)
 #define PX_INTEL_FAMILY (PX_X64 || PX_X86)
 #define PX_ARM_FAMILY (PX_ARM || PX_A64)
 #define PX_P64_FAMILY (PX_X64 || PX_A64) // shortcut for 64-bit architectures

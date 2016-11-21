@@ -563,18 +563,15 @@ void UBrushComponent::PostLoad()
 #endif
 }
 
-
-SIZE_T UBrushComponent::GetResourceSize(EResourceSizeMode::Type Mode)
+void UBrushComponent::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	SIZE_T ResSize = Super::GetResourceSize(Mode);
+	Super::GetResourceSizeEx(CumulativeResourceSize);
 
 	// Count the bodysetup we own as well for 'inclusive' stats
-	if((Mode == EResourceSizeMode::Inclusive) && (BrushBodySetup != NULL))
+	if((CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Inclusive) && (BrushBodySetup != NULL))
 	{
-		ResSize += BrushBodySetup->GetResourceSize(Mode);
+		BrushBodySetup->GetResourceSizeEx(CumulativeResourceSize);
 	}
-
-	return ResSize;
 }
 
 uint8 UBrushComponent::GetStaticDepthPriorityGroup() const

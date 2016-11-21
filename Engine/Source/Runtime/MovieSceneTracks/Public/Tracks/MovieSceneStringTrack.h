@@ -41,11 +41,12 @@ public:
 	/**
 	 * Evaluates the track at the playback position
 	 *
-	 * @param Position The psootion at which to evaluate this track.
+	 * @param Position The position at which to evaluate this track.
 	 * @param LastPositionThe last playback position.
 	 * @param InOutString The string at the evaluation time.
 	 * @return true if anything was evaluated. Note: if false is returned InOutString remains unchanged
 	 */
+	DEPRECATED(4.15, "Direct evaluation of string tracks is no longer supported. Please create an evaluation template (see FMovieSceneStringPropertySectionTemplate).")
 	virtual bool Eval(float Position, float LastPostion, FString& InOutString) const;
 
 public:
@@ -53,8 +54,8 @@ public:
 	//~ UMovieSceneTrack interface
 
 	virtual void AddSection(UMovieSceneSection& Section) override;
-	virtual TSharedPtr<IMovieSceneTrackInstance> CreateInstance() override;
 	virtual UMovieSceneSection* CreateNewSection() override;
+	virtual FMovieSceneEvalTemplatePtr CreateTemplateForSection(const UMovieSceneSection& InSection) const override;
 	virtual const TArray<UMovieSceneSection*>& GetAllSections() const override;
 	virtual TRange<float> GetSectionBoundaries() const override;
 	virtual bool HasSection(const UMovieSceneSection& Section) const override;

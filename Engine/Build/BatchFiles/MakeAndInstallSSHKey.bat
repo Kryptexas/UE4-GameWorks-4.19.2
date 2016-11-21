@@ -50,7 +50,7 @@ pause
 
 mkdir "%KEY_DIR%" 2> NUL
 pushd %SSHDIR%
-%RSYNC% -e "%SSH% -p %SSHPORT%" -za %USER%@%MACHINE%:.ssh/RemoteToolChainPrivate.key "%CYGWIN_KEY_PATH%"
+%RSYNC% -az -e '%SSH% -p %SSHPORT%' %USER%@%MACHINE%:.ssh/RemoteToolChainPrivate.key "%CYGWIN_KEY_PATH%"
 popd
 
 echo.

@@ -222,9 +222,10 @@ FText SKismetInspector::GetContextualEditingWidgetTitle() const
 			{
 				if (SCSNode->ComponentTemplate != NULL)
 				{
-					if (SCSNode->VariableName != NAME_None)
+					const FName VariableName = SCSNode->GetVariableName();
+					if (VariableName != NAME_None)
 					{
-						Title = FText::Format(LOCTEXT("TemplateForFmt", "Template for {0}"), FText::FromName(SCSNode->VariableName));
+						Title = FText::Format(LOCTEXT("TemplateForFmt", "Template for {0}"), FText::FromName(VariableName));
 					}
 					else 
 					{
@@ -672,11 +673,11 @@ bool SKismetInspector::IsPropertyVisible( const FPropertyAndParent& PropertyAndP
 	bool bEditOnTemplateDisabled = Property.HasAnyPropertyFlags(CPF_DisableEditOnTemplate);
 	if (bEditOnTemplateDisabled)
 	{
-		// Only hide properties if we are editing a CDO
+		// Only hide properties if we are editing a CDO/archetype
 		for (const TWeakObjectPtr<UObject>& SelectedObject : SelectedObjects)
 		{
 			UObject* Object = Cast<UObject>(SelectedObject.Get());
-			if (!Object->HasAllFlags(RF_ClassDefaultObject))
+			if (!Object->IsTemplate())
 			{
 				bEditOnTemplateDisabled = false;
 				break;

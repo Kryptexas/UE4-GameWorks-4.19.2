@@ -301,6 +301,36 @@ FBlendStateRHIRef FD3D12DynamicRHI::RHICreateBlendState(const FBlendStateInitial
 	return BlendState;
 }
 
+FGraphicsPipelineStateRHIRef FD3D12DynamicRHI::RHICreateGraphicsPipelineState(const FGraphicsPipelineStateInitializer& Initializer)
+{
+	FD3D12PipelineStateCache& PSOCache = GetAdapter().GetPSOCache();
+
+	FD3D12HighLevelGraphicsPipelineStateDesc GraphicsDesc = {};
+	GraphicsDesc.BoundShaderState = FD3D12DynamicRHI::ResourceCast(
+		RHICreateBoundShaderState(
+			Initializer.BoundShaderState.VertexDeclarationRHI,
+			Initializer.BoundShaderState.VertexShaderRHI,
+			Initializer.BoundShaderState.HullShaderRHI,
+			Initializer.BoundShaderState.DomainShaderRHI,
+			Initializer.BoundShaderState.PixelShaderRHI,
+			Initializer.BoundShaderState.GeometryShaderRHI
+		).GetReference()
+	);
+	GraphicsDesc.BlendState = &FD3D12DynamicRHI::ResourceCast(Initializer.BlendState)->Desc;
+	GraphicsDesc.RasterizerState = &FD3D12DynamicRHI::ResourceCast(Initializer.RasterizerState)->Desc;
+	GraphicsDesc.DepthStencilState = &FD3D12DynamicRHI::ResourceCast(Initializer.DepthStencilState)->Desc;
+	GraphicsDesc.SampleMask = 0xFFFFFFFF;
+	GraphicsDesc.PrimitiveTopologyType = D3D12PrimitiveTypeToTopologyType(TranslatePrimitiveType(Initializer.PrimitiveType));
+
+	TranslateRenderTargetFormats(Initializer, GraphicsDesc.RTVFormats, GraphicsDesc.DSVFormat);
+	GraphicsDesc.NumRenderTargets = Initializer.RenderTargetsEnabled;
+	GraphicsDesc.SampleDesc.Count = Initializer.NumSamples;
+	GraphicsDesc.SampleDesc.Quality = GetMaxMSAAQuality(Initializer.NumSamples);
+
+	// TODO: [PSO API] do we really have to make a new alloc or can we update the RHI to hold/convert to a FxxxRHIRef?
+	return new FD2D12GraphicsPipelineState(Initializer, PSOCache.FindGraphics(&GraphicsDesc));
+}
+
 FD3D12SamplerState::FD3D12SamplerState(FD3D12Device* InParent, const D3D12_SAMPLER_DESC& Desc, uint16 SamplerID)
 	: ID(SamplerID),
 	FD3D12DeviceChild(InParent)

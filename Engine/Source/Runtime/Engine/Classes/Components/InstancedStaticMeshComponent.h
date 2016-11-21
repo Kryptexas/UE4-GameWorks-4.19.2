@@ -21,29 +21,28 @@ struct FInstancedStaticMeshInstanceData
 	UPROPERTY(EditAnywhere, Category=Instances)
 	FMatrix Transform;
 
+	/** Legacy, this is now stored in FMeshMapBuildData.  Still serialized for backwards compatibility. */
 	UPROPERTY()
-	FVector2D LightmapUVBias;
+	FVector2D LightmapUVBias_DEPRECATED;
 
+	/** Legacy, this is now stored in FMeshMapBuildData.  Still serialized for backwards compatibility. */
 	UPROPERTY()
-	FVector2D ShadowmapUVBias;
-
+	FVector2D ShadowmapUVBias_DEPRECATED;
 
 	FInstancedStaticMeshInstanceData()
 		: Transform(FMatrix::Identity)
-		, LightmapUVBias(ForceInit)
-		, ShadowmapUVBias(ForceInit)
+		, LightmapUVBias_DEPRECATED(ForceInit)
+		, ShadowmapUVBias_DEPRECATED(ForceInit)
 	{
 	}
-
 
 	friend FArchive& operator<<(FArchive& Ar, FInstancedStaticMeshInstanceData& InstanceData)
 	{
 		// @warning BulkSerialize: FInstancedStaticMeshInstanceData is serialized as memory dump
 		// See TArray::BulkSerialize for detailed description of implied limitations.
-		Ar << InstanceData.Transform << InstanceData.LightmapUVBias << InstanceData.ShadowmapUVBias;
+		Ar << InstanceData.Transform << InstanceData.LightmapUVBias_DEPRECATED << InstanceData.ShadowmapUVBias_DEPRECATED;
 		return Ar;
 	}
-	
 };
 
 USTRUCT()
@@ -108,14 +107,14 @@ class ENGINE_API UInstancedStaticMeshComponent : public UStaticMeshComponent
 
 	virtual void OnUpdateTransform(EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport) override;
 
-
-	/**
-	* Return whether this primitive should have data for texture streaming.
-	* Instanced Static Mesh component don't have valid build data yet.
-	*
-	* @return	true if a rebuild is required.
-	*/
-	virtual bool RequiresStreamingTextureData() const override { return false; }
+	/** Get the scale comming form the component, when computing StreamingTexture data. Used to support instanced meshes. */
+	virtual float GetTextureStreamingTransformScale() const override;
+	/** Get material, UV density and bounds for a given material index. */
+	virtual bool GetMaterialStreamingData(int32 MaterialIndex, FPrimitiveMaterialInfo& MaterialData) const override;
+	/** Build the data to compute accuracte StreaminTexture data. */
+	virtual bool BuildTextureStreamingData(ETextureStreamingBuildType BuildType, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, TSet<FGuid>& DependentResources) override;
+	/** Get the StreaminTexture data. */
+	virtual void GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const override;
 
 	/**
 	* Update the transform for the instance specified.
@@ -155,10 +154,6 @@ class ENGINE_API UInstancedStaticMeshComponent : public UStaticMeshComponent
 	virtual TArray<int32> GetInstancesOverlappingBox(const FBox& Box, bool bBoxInWorldSpace=true) const;
 
 	virtual bool ShouldCreatePhysicsState() const override;
-
-	virtual bool GetStreamingTextureFactors(float& OutTexelFactor, FBoxSphereBounds& OutBounds, int32 CoordinateIndex, int32 LODIndex, int32 ElementIndex) const override;
-
-	virtual bool GetStreamingTextureFactors(float& OutWorldTexelFactor, float& OutWorldLightmapFactor) const override;
 
 public:
 	/** Render data will be initialized once we create scene proxy for this component. Released on the rendering thread. */
@@ -213,7 +208,7 @@ public:
 	
 	//~ Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 	void BeginDestroy() override;
 #if WITH_EDITOR
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
@@ -238,6 +233,8 @@ public:
 
 	// Number of instances in the render-side instance buffer
 	virtual int32 GetNumRenderInstances() const { return PerInstanceSMData.Num() + RemovedInstances.Num(); }
+
+	virtual void PropagateLightingScenarioChange() override;
 
 private:
 	/** Creates body instances for all instances owned by this component. */
@@ -267,7 +264,7 @@ protected:
 	UPROPERTY(Transient, DuplicateTransient, TextExportTransient)
 	TArray<FInstancedStaticMeshMappingInfo> CachedMappings;
 
-	void ApplyLightMapping(FStaticLightingTextureMapping_InstancedStaticMesh* InMapping);
+	void ApplyLightMapping(FStaticLightingTextureMapping_InstancedStaticMesh* InMapping, ULevel* LightingScenario);
 
 	friend FStaticLightingTextureMapping_InstancedStaticMesh;
 	friend FInstancedLightMap2D;

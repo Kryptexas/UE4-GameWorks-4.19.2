@@ -257,6 +257,7 @@ bool GSupportsQuads = false;
 bool GSupportsVolumeTextureRendering = true;
 bool GSupportsSeparateRenderTargetBlendState = false;
 bool GSupportsDepthRenderTargetWithoutColorRenderTarget = true;
+bool GRHINeedsUnatlasedCSMDepthsWorkaround = false;
 bool GSupportsTexture3D = true;
 bool GSupportsMobileMultiView = false;
 bool GSupportsResourceView = true;
@@ -290,6 +291,8 @@ bool GSupportsParallelOcclusionQueries = false;
 bool GSupportsRenderTargetWriteMask = false;
 
 bool GRHISupportsMSAADepthSampleAccess = false;
+
+bool GRHISupportsHDROutput = false;
 
 /** Whether we are profiling GPU hitches. */
 bool GTriggerGPUHitchProfile = false;
@@ -385,7 +388,7 @@ static FName NAME_GLSL_ES3_1_ANDROID(TEXT("GLSL_ES3_1_ANDROID"));
 static FName NAME_SF_METAL_SM5(TEXT("SF_METAL_SM5"));
 static FName NAME_VULKAN_ES3_1_ANDROID(TEXT("SF_VULKAN_ES31_ANDROID"));
 static FName NAME_VULKAN_ES3_1(TEXT("SF_VULKAN_ES31"));
-static FName NAME_VULKAN_ES3_1_UB(TEXT("SF_VULKAN_ES31_UB"));
+static FName NAME_VULKAN_SM4_UB(TEXT("SF_VULKAN_SM4_UB"));
 static FName NAME_VULKAN_SM4(TEXT("SF_VULKAN_SM4"));
 static FName NAME_VULKAN_SM5(TEXT("SF_VULKAN_SM5"));
 static FName NAME_SF_METAL_SM4(TEXT("SF_METAL_SM4"));
@@ -446,14 +449,14 @@ FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 	case SP_OPENGL_ES3_1_ANDROID:
 		return NAME_GLSL_ES3_1_ANDROID;
 	case SP_VULKAN_SM4:
-		return NAME_VULKAN_SM4;
+	{
+		static auto* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Vulkan.UseRealUBs"));
+		return (CVar && CVar->GetValueOnAnyThread() != 0) ? NAME_VULKAN_SM4_UB : NAME_VULKAN_SM4;
+	}
 	case SP_VULKAN_SM5:
 		return NAME_VULKAN_SM5;
 	case SP_VULKAN_PCES3_1:
-	{
-		static auto* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Vulkan.UseRealUBs"));
-		return (CVar && CVar->GetValueOnAnyThread() != 0) ? NAME_VULKAN_ES3_1_UB : NAME_VULKAN_ES3_1;
-	}
+		return NAME_VULKAN_ES3_1;
 	case SP_VULKAN_ES3_1_ANDROID:
 		return NAME_VULKAN_ES3_1_ANDROID;
 	case SP_WOLF:
@@ -492,7 +495,7 @@ EShaderPlatform ShaderFormatToLegacyShaderPlatform(FName ShaderFormat)
 	if (ShaderFormat == NAME_VULKAN_SM5)			return SP_VULKAN_SM5;
 	if (ShaderFormat == NAME_VULKAN_ES3_1_ANDROID)	return SP_VULKAN_ES3_1_ANDROID;
 	if (ShaderFormat == NAME_VULKAN_ES3_1)			return SP_VULKAN_PCES3_1;
-	if (ShaderFormat == NAME_VULKAN_ES3_1_UB)		return SP_VULKAN_PCES3_1;
+	if (ShaderFormat == NAME_VULKAN_SM4_UB)			return SP_VULKAN_SM4;
 	if (ShaderFormat == NAME_SF_METAL_SM4)			return SP_METAL_SM4;
 	if (ShaderFormat == NAME_SF_METAL_MACES3_1)		return SP_METAL_MACES3_1;
 	if (ShaderFormat == NAME_SF_METAL_MACES2)		return SP_METAL_MACES2;
@@ -524,4 +527,18 @@ RHI_API bool IsRHIDeviceNVIDIA()
 	check(GRHIVendorId != 0);
 	// NVIDIA GPUs are discrete and use DedicatedVideoMemory only.
 	return GRHIVendorId == 0x10DE;
+}
+
+RHI_API const TCHAR* RHIVendorIdToString()
+{
+	switch (GRHIVendorId)
+	{
+	case 0x1002: return TEXT("AMD");
+	case 0x1010: return TEXT("ImgTec");
+	case 0x10DE: return TEXT("NVIDIA");
+	case 0x13B5: return TEXT("ARM");
+	case 0x5143: return TEXT("Qualcomm");
+	case 0x8086: return TEXT("Intel");
+	default: return TEXT("Unknown");
+	}
 }

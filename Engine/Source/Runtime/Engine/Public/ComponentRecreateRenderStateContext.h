@@ -30,7 +30,7 @@ public:
 
 	~FComponentRecreateRenderStateContext()
 	{
-		if (Component != nullptr)
+		if (Component && !Component->IsRenderStateCreated() && Component->IsRegistered())
 		{
 			Component->CreateRenderState_Concurrent();
 		}

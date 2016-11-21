@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "Persona.h"
 #include "IDetailsView.h"
 #include "EditorObjectsTracker.h"
 

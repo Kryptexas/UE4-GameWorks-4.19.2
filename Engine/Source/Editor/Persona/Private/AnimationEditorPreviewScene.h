@@ -16,12 +16,14 @@ public:
 	~FAnimationEditorPreviewScene();
 
 	/** IPersonaPreviewScene interface */
+	virtual TSharedRef<class IPersonaToolkit> GetPersonaToolkit() const override { return PersonaToolkit.Pin().ToSharedRef(); }
 	virtual void SetPreviewAnimationAsset(UAnimationAsset* AnimAsset, bool bEnablePreview = true) override;
 	virtual UAnimationAsset* GetPreviewAnimationAsset() const override;
 	virtual void SetPreviewMesh(USkeletalMesh* NewPreviewMesh) override;
 	virtual bool AttachObjectToPreviewComponent(UObject* Object, FName AttachTo) override;
 	virtual void RemoveAttachedObjectFromPreviewComponent(UObject* Object, FName AttachedTo) override;
 	virtual void InvalidateViews() override;
+	virtual void FocusViews() override;
 	virtual UDebugSkelMeshComponent* GetPreviewMeshComponent() const override { return SkeletalMeshComponent; }
 	virtual void SetAdditionalMeshes(class UPreviewMeshCollection* InAdditionalMeshes) override;
 	virtual void RefreshAdditionalMeshes() override;
@@ -75,6 +77,16 @@ public:
 		OnInvalidateViews.RemoveAll(Thing);
 	}
 
+	virtual void RegisterOnFocusViews(const FSimpleDelegate& Delegate) override
+	{
+		OnFocusViews.Add(Delegate);
+	}
+
+	virtual void UnregisterOnFocusViews(void* Thing) override
+	{
+		OnFocusViews.RemoveAll(Thing);
+	}
+
 	virtual void SetDefaultAnimationMode(EPreviewSceneDefaultAnimationMode Mode, bool bShowNow) override;
 	virtual void ShowDefaultMode() override;
 	virtual void EnableWind(bool bEnableWind) override;
@@ -86,9 +98,13 @@ public:
 	virtual AActor* GetSelectedActor() const override;
 	virtual FSelectedSocketInfo GetSelectedSocket() const override;
 	virtual int32 GetSelectedBoneIndex() const override;
+	virtual void TogglePlayback() override;
+	virtual AActor* GetActor() const override;
 
 	/** FPreviewScene interface */
 	virtual void Tick(float InDeltaTime) override;
+	virtual void AddComponent(class UActorComponent* Component, const FTransform& LocalToWorld) override;
+	virtual void RemoveComponent(class UActorComponent* Component) override;
 
 	/** FEditorUndoClient interface */
 	virtual void PostUndo(bool bSuccess) override;
@@ -173,6 +189,9 @@ private:
 	TSharedRef<class IEditableSkeleton> GetEditableSkeleton() const { return EditableSkeletonPtr.Pin().ToSharedRef(); }
 
 private:
+	/** The one and only actor we have */
+	AActor* Actor;
+
 	/** The main preview skeletal mesh component */
 	UDebugSkelMeshComponent*			SkeletalMeshComponent;
 
@@ -231,4 +250,7 @@ private:
 
 	/** View invalidation delegate */
 	FSimpleMulticastDelegate OnInvalidateViews;
+
+	/** View focus delegate */
+	FSimpleMulticastDelegate OnFocusViews;
 };

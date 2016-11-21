@@ -36,7 +36,7 @@ TSharedPtr<IMeshPaintGeometryAdapter> FMeshPaintGeometryAdapterForSplineMeshesFa
 {
 	if (USplineMeshComponent* SplineMeshComponent = Cast<USplineMeshComponent>(InComponent))
 	{
-		if (SplineMeshComponent->StaticMesh != nullptr)
+		if (SplineMeshComponent->GetStaticMesh() != nullptr)
 		{
 			TSharedRef<FMeshPaintGeometryAdapterForSplineMeshes> Result = MakeShareable(new FMeshPaintGeometryAdapterForSplineMeshes());
 			if (Result->Construct(InComponent, InPaintingMeshLODIndex, InUVChannelIndex))

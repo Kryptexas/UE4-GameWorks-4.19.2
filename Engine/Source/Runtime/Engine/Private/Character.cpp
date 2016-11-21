@@ -63,7 +63,7 @@ ACharacter::ACharacter(const FObjectInitializer& ObjectInitializer)
 	JumpMaxHoldTime = 0.0f;
     JumpMaxCount = 1;
     JumpCurrentCount = 0;
-    bJumpMaxCountExceeded = false;
+    bWasJumping = false;
 
 	AnimRootMotionTranslationScale = 1.0f;
 
@@ -192,17 +192,6 @@ void ACharacter::UpdateNavigationRelevance()
 	}
 }
 
-void ACharacter::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)
-{
-	Super::ApplyWorldOffset(InOffset, bWorldShift);
-
-	// Update cached location values in movement component
-	if (CharacterMovement)
-	{
-		CharacterMovement->OldBaseLocation+= InOffset;
-	}
-}
-
 float ACharacter::GetDefaultHalfHeight() const
 {
 	UCapsuleComponent* DefaultCapsule = GetClass()->GetDefaultObject<ACharacter>()->CapsuleComponent;
@@ -255,19 +244,49 @@ bool ACharacter::CanJump() const
 
 bool ACharacter::CanJumpInternal_Implementation() const
 {
-    const bool bIsHoldTimeValid = (GetJumpMaxHoldTime() <= 0.0f) || IsJumpProvidingForce();
+	// Ensure the character isn't currently crouched.
+	bool bCanJump = !bIsCrouched;
 
-	const bool bIsCharacterMovementStateValid = (CharacterMovement &&
-													CharacterMovement->IsJumpAllowed() &&
-													!CharacterMovement->bWantsToCrouch &&
-													// We can only jump from the ground, or multi-jump if we're already falling.
-													(CharacterMovement->IsMovingOnGround() || CharacterMovement->IsFalling()));
+	// Ensure that the CharacterMovement state is valid
+	bCanJump &= CharacterMovement &&
+				CharacterMovement->IsJumpAllowed() &&
+				!CharacterMovement->bWantsToCrouch &&
+				// Can only jump from the ground, or multi-jump if already falling.
+				(CharacterMovement->IsMovingOnGround() || CharacterMovement->IsFalling());
 
-	return !bIsCrouched && !bJumpMaxCountExceeded && bIsHoldTimeValid && bIsCharacterMovementStateValid;
+	if (bCanJump)
+	{
+		// Ensure JumpHoldTime and JumpCount are valid.
+		if (GetJumpMaxHoldTime() <= 0.0f || !bWasJumping)
+		{
+			if (JumpCurrentCount == 0 && CharacterMovement->IsFalling())
+			{
+				bCanJump = JumpCurrentCount + 1 < JumpMaxCount;
+			}
+			else
+			{
+				bCanJump = JumpCurrentCount < JumpMaxCount;
+			}
+		}
+		else
+		{
+			// Only consider IsJumpProviding force as long as:
+			// A) The jump limit hasn't been met OR
+			// B) The jump limit has been met AND we were already jumping
+			bCanJump = (IsJumpProvidingForce()) &&
+						(JumpCurrentCount < JumpMaxCount ||
+						(bWasJumping && JumpCurrentCount == JumpMaxCount));
+		}
+	}
+
+	return bCanJump;
 }
 
-void ACharacter::CheckResetJumpCount()
+void ACharacter::ResetJumpState()
 {
+	bWasJumping = false;
+	JumpKeyHoldTime = 0.0f;
+
 	if (CharacterMovement && !CharacterMovement->IsFalling())
 	{
 		JumpCurrentCount = 0;
@@ -322,11 +341,11 @@ void ACharacter::SetReplicateMovement(bool bInReplicateMovement)
 {
 	Super::SetReplicateMovement(bInReplicateMovement);
 
-	if (CharacterMovement != nullptr)
+	if (CharacterMovement != nullptr && Role == ROLE_Authority)
 	{
 		// Set prediction data time stamp to current time to stop extrapolating
 		// from time bReplicateMovement was turned off to when it was turned on again
-		FNetworkPredictionData_Server* NetworkPrediction = CharacterMovement->GetPredictionData_Server();
+		FNetworkPredictionData_Server* NetworkPrediction = CharacterMovement->HasPredictionData_Server() ? CharacterMovement->GetPredictionData_Server() : nullptr;
 
 		if (NetworkPrediction != nullptr)
 		{
@@ -748,11 +767,9 @@ void ACharacter::Restart()
 	Super::Restart();
 
     JumpCurrentCount = 0;
-    bJumpMaxCountExceeded = false;
 
 	bPressedJump = false;
-	JumpKeyHoldTime = 0.0f;
-	ClearJumpInput();
+	ResetJumpState();
 	UnCrouch(true);
 
 	if (CharacterMovement)
@@ -896,7 +913,7 @@ void ACharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 Pre
 {
 	if (!bPressedJump)
 	{
-		CheckResetJumpCount();
+		ResetJumpState();
 	}
 
 	K2_OnMovementModeChanged(PrevMovementMode, CharacterMovement->MovementMode, PrevCustomMode, CharacterMovement->CustomMovementMode);
@@ -928,16 +945,13 @@ void ACharacter::Jump()
 void ACharacter::StopJumping()
 {
 	bPressedJump = false;
-	JumpKeyHoldTime = 0.0f;
-
-	CheckResetJumpCount();
+	ResetJumpState();
 }
 
 void ACharacter::CheckJumpInput(float DeltaTime)
 {
 	if (CharacterMovement)
 	{
-		const bool bWasJumping = JumpKeyHoldTime > 0.0f;
 		if (bPressedJump)
 		{
 			// Increment our timer first so calls to IsJumpProvidingForce() will return true
@@ -948,25 +962,21 @@ void ACharacter::CheckJumpInput(float DeltaTime)
 				JumpCurrentCount++;
 			}
 
-			if (!bWasJumping)
-			{
-				JumpCurrentCount++;
-				bJumpMaxCountExceeded = JumpCurrentCount > JumpMaxCount;
-			}
-
 			const bool bDidJump = CanJump() && CharacterMovement->DoJump(bClientUpdating);
 			if (!bWasJumping && bDidJump)
 			{
+				JumpCurrentCount++;
 				OnJumped();
 			}
+
+			bWasJumping = bDidJump;
 		}
 
 		// If the jump key is no longer pressed and the character is no longer falling,
 		// but it still "looks" like the character was jumping, reset the counters.
 		else if (bWasJumping && !CharacterMovement->IsFalling())
 		{
-			JumpKeyHoldTime = 0.0f;
-			JumpCurrentCount = 0;
+			ResetJumpState();
 		}
 	}
 }
@@ -1257,7 +1267,8 @@ bool ACharacter::RestoreReplicatedMove(const FSimulatedRootMotionReplicatedMove&
 	// Absolute position
 	else
 	{
-		SetActorLocationAndRotation(RootMotionRepMove.RootMotion.Location, RootMotionRepMove.RootMotion.Rotation);
+		FVector LocalLocation = FRepMovement::RebaseOntoLocalOrigin(RootMotionRepMove.RootMotion.Location, this);
+		SetActorLocationAndRotation(LocalLocation, RootMotionRepMove.RootMotion.Rotation);
 	}
 
 	CharacterMovement->bJustTeleported = true;
@@ -1324,10 +1335,11 @@ void ACharacter::PostNetReceiveLocationAndRotation()
 		if (!ReplicatedBasedMovement.HasRelativeLocation())
 		{
 			const FVector OldLocation = GetActorLocation();
+			const FVector NewLocation = FRepMovement::RebaseOntoLocalOrigin(ReplicatedMovement.Location, this);
 			const FQuat OldRotation = GetActorQuat();
 		
 			CharacterMovement->bNetworkSmoothingComplete = false;
-			CharacterMovement->SmoothCorrection(OldLocation, OldRotation, ReplicatedMovement.Location, ReplicatedMovement.Rotation.Quaternion());
+			CharacterMovement->SmoothCorrection(OldLocation, OldRotation, NewLocation, ReplicatedMovement.Rotation.Quaternion());
 			OnUpdateSimulatedPosition(OldLocation, OldRotation);
 		}
 	}
@@ -1345,7 +1357,7 @@ void ACharacter::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTra
 		// Is position stored in local space?
 		RepRootMotion.bRelativePosition = BasedMovement.HasRelativeLocation();
 		RepRootMotion.bRelativeRotation = BasedMovement.HasRelativeRotation();
-		RepRootMotion.Location			= RepRootMotion.bRelativePosition ? BasedMovement.Location : GetActorLocation();
+		RepRootMotion.Location			= RepRootMotion.bRelativePosition ? BasedMovement.Location : FRepMovement::RebaseOntoZeroOrigin(GetActorLocation(), GetWorld()->OriginLocation);
 		RepRootMotion.Rotation			= RepRootMotion.bRelativeRotation ? BasedMovement.Rotation : GetActorRotation();
 		RepRootMotion.MovementBase		= BasedMovement.MovementBase;
 		RepRootMotion.MovementBaseBoneName = BasedMovement.BoneName;

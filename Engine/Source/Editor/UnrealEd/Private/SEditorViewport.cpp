@@ -341,9 +341,15 @@ void SEditorViewport::BindCommands()
 	MAP_EXPOSURE_ACTION( Commands.FixedExposure3p, 3);
 	MAP_EXPOSURE_ACTION( Commands.FixedExposure4p, 4);
 
+	// Simple macro for binding many view mode UI commands
 
+#define MAP_VIEWMODEPARAM_ACTION( ViewModeCommand, ViewModeParam ) \
+	CommandListRef.MapAction( \
+		ViewModeCommand, \
+		FExecuteAction::CreateSP( ClientRef, &FEditorViewportClient::SetViewModeParam, ViewModeParam ), \
+		FCanExecuteAction(), \
+		FIsActionChecked::CreateSP( ClientRef, &FEditorViewportClient::IsViewModeParam, ViewModeParam ) ) 
 
-		// Simple macro for binding many view mode UI commands
 #define MAP_VIEWMODE_ACTION( ViewModeCommand, ViewModeID ) \
 	CommandListRef.MapAction( \
 		ViewModeCommand, \
@@ -362,8 +368,8 @@ void SEditorViewport::BindCommands()
 	MAP_VIEWMODE_ACTION( Commands.QuadOverdrawMode, VMI_QuadOverdraw);
 	MAP_VIEWMODE_ACTION( Commands.ShaderComplexityWithQuadOverdrawMode, VMI_ShaderComplexityWithQuadOverdraw );
 	MAP_VIEWMODE_ACTION( Commands.TexStreamAccPrimitiveDistanceMode, VMI_PrimitiveDistanceAccuracy );
-	MAP_VIEWMODE_ACTION( Commands.TexStreamAccMeshTexCoordSizeMode, VMI_MeshTexCoordSizeAccuracy );
-	MAP_VIEWMODE_ACTION( Commands.TexStreamAccMaterialTexCoordScalesMode, VMI_MaterialTexCoordScalesAccuracy );
+	MAP_VIEWMODE_ACTION( Commands.TexStreamAccMeshUVDensityMode, VMI_MeshUVDensityAccuracy);
+	MAP_VIEWMODE_ACTION( Commands.TexStreamAccMaterialTextureScaleMode, VMI_MaterialTextureScaleAccuracy );
 	MAP_VIEWMODE_ACTION( Commands.StationaryLightOverlapMode, VMI_StationaryLightOverlap );
 	MAP_VIEWMODE_ACTION( Commands.LightmapDensityMode, VMI_LightmapDensity );
 	MAP_VIEWMODE_ACTION( Commands.ReflectionOverrideMode, VMI_ReflectionOverride );
@@ -373,6 +379,18 @@ void SEditorViewport::BindCommands()
 	MAP_VIEWMODE_ACTION( Commands.VisualizeBufferMode, VMI_VisualizeBuffer );
 	MAP_VIEWMODE_ACTION( Commands.CollisionPawn, VMI_CollisionPawn);
 	MAP_VIEWMODE_ACTION( Commands.CollisionVisibility, VMI_CollisionVisibility);
+
+	MAP_VIEWMODEPARAM_ACTION( Commands.TexStreamAccMeshUVDensityAll, -1 );
+	for (int32 TexCoordIndex = 0; TexCoordIndex < TEXSTREAM_MAX_NUM_UVCHANNELS; ++TexCoordIndex)
+	{
+		MAP_VIEWMODEPARAM_ACTION( Commands.TexStreamAccMeshUVDensitySingle[TexCoordIndex], TexCoordIndex );
+	}
+
+	MAP_VIEWMODEPARAM_ACTION( Commands.TexStreamAccMaterialTextureScaleAll, -1 );
+	for (int32 TextureIndex = 0; TextureIndex < TEXSTREAM_MAX_NUM_TEXTURES_PER_MATERIAL; ++TextureIndex)
+	{
+		MAP_VIEWMODEPARAM_ACTION( Commands.TexStreamAccMaterialTextureScaleSingle[TextureIndex], TextureIndex );
+	}
 }
 
 EVisibility SEditorViewport::OnGetViewportContentVisibility() const

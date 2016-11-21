@@ -1084,6 +1084,8 @@ void UAnimMontage::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNotify
 		const float MoveDelta = Instance.Montage.MoveDelta;
 
 		Context.SetLeaderDelta(MoveDelta);
+		Context.SetPreviousAnimationPositionRatio(PreviousTime / SequenceLength);
+
 		if (MoveDelta != 0.f)
 		{
 			if (Instance.bCanUseMarkerSync && Instance.MarkerTickRecord && Context.CanUseMarkerPosition())

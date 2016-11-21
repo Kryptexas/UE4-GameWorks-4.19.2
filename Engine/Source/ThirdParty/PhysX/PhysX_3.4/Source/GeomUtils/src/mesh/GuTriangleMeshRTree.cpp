@@ -112,7 +112,8 @@ struct RefitCallback : Gu::RTree::CallbackRefit
 			mn = V3Min(mn, vPos); mx = V3Max(mx, vPos);
 		}
 
-		aMn = mn, aMx = mx;
+		aMn = mn;
+		aMx = mx;
 	}
 };
 

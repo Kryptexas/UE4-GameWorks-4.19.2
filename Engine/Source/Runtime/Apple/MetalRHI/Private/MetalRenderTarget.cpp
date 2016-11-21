@@ -505,12 +505,12 @@ void FMetalDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI, FIntRe
 			id<MTLBlitCommandEncoder> Blitter = Context->GetBlitContext();
 			METAL_DEBUG_COMMAND_BUFFER_BLIT_LOG(Context, @"RHIReadSurfaceData(synchronizeTexture(TextureRHI %p))", TextureRHI);
 			[Blitter synchronizeTexture:Texture slice:0 level:0];
-			
-			//kick the current command buffer.
-			Context->SubmitCommandBufferAndWait();
 		}
 #endif
 #endif
+
+		//kick the current command buffer.
+		Context->SubmitCommandBufferAndWait();
 		
 		const uint32 Stride = GPixelFormats[Surface->PixelFormat].BlockBytes * SizeX;
 		const uint32 BytesPerImage = Stride * SizeY;

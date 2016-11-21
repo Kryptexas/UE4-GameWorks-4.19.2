@@ -88,6 +88,9 @@ private:
 	// Handles FAutomationWorkerRunTests messages.
 	void HandleRunTestsMessage( const FAutomationWorkerRunTests& Message, const IMessageContextRef& Context );
 
+	// Handles FAutomationWorkerImageComparisonResults messages.
+	void HandleScreenShotCompared(const FAutomationWorkerImageComparisonResults& Message, const IMessageContextRef& Context);
+
 	// Handles FAutomationTestFramework PreTestingEvents.
 	void HandlePreTestingEvent();
 

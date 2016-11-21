@@ -23,6 +23,8 @@ rem ## Change the CWD to /Engine/Source.  We always need to run UnrealBuildTool 
 pushd "%~dp0..\..\Source"
 if not exist ..\Build\BatchFiles\Clean.bat goto Error_BatchFileInWrongLocation
 
+rem ## If this is an installed build, we don't need to rebuild UBT. Go straight to cleaning.
+if exist ..\Build\InstalledBuild.txt goto ReadyToClean
 
 rem ## Check to see if we're already running under a Visual Studio environment shell
 if not "%INCLUDE%" == "" if not "%LIB%" == "" goto ReadyToCompile
@@ -34,9 +36,9 @@ call GetVSComnToolsPath 15
 popd
 
 if "%VsComnToolsPath%" == "" goto NoVisualStudio2017Environment
-rem ## Check if the C++ toolchain is not installed
-if not exist "%VsComnToolsPath%/../IDE/VC/bin/x86_amd64/vcvarsx86_amd64.bat" goto NoVisualStudio2017Environment
-call "%VsComnToolsPath%/../IDE/VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
+rem ## Check if MSBuild is installed as part of VS2017
+if not exist "%VsComnToolsPath%\..\..\MSBuild\15.0\bin\MSBuild.exe" goto NoVisualStudio2017Environment
+path=%VsComnToolsPath%\..\..\MSBuild\15.0\bin;%path%
 goto ReadyToCompile
 
 :NoVisualStudio2017Environment

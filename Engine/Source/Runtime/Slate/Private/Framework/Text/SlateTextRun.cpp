@@ -43,7 +43,9 @@ FVector2D FSlateTextRun::Measure( int32 BeginIndex, int32 EndIndex, float Scale,
 
 	// Offset the measured shaped text by the outline since the outline was not factored into the size of the text
 	const float OutlineSize = Style.Font.OutlineSettings.OutlineSize * Scale;
-	const FVector2D OutlineSizeToApply(OutlineSize, OutlineSize);
+
+	// Need to add the outline offsetting to the beginning and the end because it surrounds both sides.
+	const FVector2D OutlineSizeToApply(EndIndex == Range.EndIndex ? OutlineSize : BeginIndex == Range.BeginIndex ? OutlineSize : 0, OutlineSize);
 
 	if ( EndIndex - BeginIndex == 0 )
 	{

@@ -391,7 +391,7 @@ void SWidgetReflector::Construct( const FArguments& InArgs )
 
 #if SLATE_REFLECTOR_HAS_SESSION_SERVICES
 	{
-		ISessionManagerRef SessionManager = FModuleManager::LoadModuleChecked<ISessionServicesModule>("SessionServices").GetSessionManager();
+		TSharedRef<ISessionManager> SessionManager = FModuleManager::LoadModuleChecked<ISessionServicesModule>("SessionServices").GetSessionManager();
 		SessionManager->OnSessionsUpdated().AddSP(this, &SWidgetReflector::OnAvailableSnapshotTargetsChanged);
 	}
 #endif // SLATE_REFLECTOR_HAS_SESSION_SERVICES
@@ -1581,7 +1581,7 @@ void SWidgetReflector::UpdateAvailableSnapshotTargets()
 
 #if SLATE_REFLECTOR_HAS_SESSION_SERVICES
 	{
-		ISessionManagerRef SessionManager = FModuleManager::LoadModuleChecked<ISessionServicesModule>("SessionServices").GetSessionManager();
+		TSharedRef<ISessionManager> SessionManager = FModuleManager::LoadModuleChecked<ISessionServicesModule>("SessionServices").GetSessionManager();
 
 		TArray<TSharedPtr<ISessionInfo>> AvailableSessions;
 		SessionManager->GetSessions(AvailableSessions);

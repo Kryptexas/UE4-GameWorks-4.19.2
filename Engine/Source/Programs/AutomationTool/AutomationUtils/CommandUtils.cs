@@ -2178,27 +2178,63 @@ namespace AutomationTool
 		/// <returns>List of files written</returns>
 		public static IEnumerable<string> UnzipFiles(string ZipFileName, string BaseDirectory)
 		{
-			// manually extract the files. There was a problem with the Ionic.Zip library that required this on non-PC at one point,
-			// but that problem is now fixed. Leaving this code as is as we need to return the list of created files and fix up their permissions anyway.
-			using (Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile(ZipFileName))
+			List<string> OutputFileNames = new List<string>();
+			if (Utils.IsRunningOnMono)
 			{
-				List<string> OutputFileNames = new List<string>();
-				foreach(Ionic.Zip.ZipEntry Entry in Zip.Entries.Where(x => !x.IsDirectory))
+				CommandUtils.CreateDirectory(BaseDirectory);
+
+				// Use system unzip tool as there have been instances of Ionic not being able to open zips created with Mac zip tool
+				string Output = CommandUtils.RunAndLog("unzip", "\"" + ZipFileName + "\" -d \"" + BaseDirectory + "\"");
+
+				// Split log output into lines
+				string[] Lines = Output.Split(new char[] { '\n', '\r' });
+
+				foreach (string LogLine in Lines)
 				{
-					string OutputFileName = Path.Combine(BaseDirectory, Entry.FileName);
-					Directory.CreateDirectory(Path.GetDirectoryName(OutputFileName));
-					using(FileStream OutputStream = new FileStream(OutputFileName, FileMode.Create, FileAccess.Write))
+					CommandUtils.Log(LogLine);
+
+					// Split each line into two by whitespace
+					string[] SplitLine = LogLine.Split(new char[] { ' ', '\t' }, 2, StringSplitOptions.RemoveEmptyEntries);
+					if (SplitLine.Length == 2)
 					{
-						Entry.Extract(OutputStream);
+						// Second part of line should be a path
+						string FilePath = SplitLine[1].Trim();
+						CommandUtils.Log(FilePath);
+						if (File.Exists(FilePath) && !OutputFileNames.Contains(FilePath) && FilePath != ZipFileName)
+						{
+							if (CommandUtils.IsProbablyAMacOrIOSExe(FilePath))
+							{
+								FixUnixFilePermissions(FilePath);
+							}
+							OutputFileNames.Add(FilePath);
+						}
 					}
-					if (UnrealBuildTool.Utils.IsRunningOnMono && CommandUtils.IsProbablyAMacOrIOSExe(OutputFileName))
-					{
-						FixUnixFilePermissions(OutputFileName);
-					}
-					OutputFileNames.Add(OutputFileName);
 				}
-				return OutputFileNames;
+				if (OutputFileNames.Count == 0)
+				{
+					CommandUtils.LogWarning("Unable to parse unzipped files from {0}", ZipFileName);
+				}
 			}
+			else
+			{
+				// manually extract the files. There was a problem with the Ionic.Zip library that required this on non-PC at one point,
+				// but that problem is now fixed. Leaving this code as is as we need to return the list of created files anyway.
+				using (Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile(ZipFileName))
+				{
+					
+					foreach (Ionic.Zip.ZipEntry Entry in Zip.Entries.Where(x => !x.IsDirectory))
+					{
+						string OutputFileName = Path.Combine(BaseDirectory, Entry.FileName);
+						Directory.CreateDirectory(Path.GetDirectoryName(OutputFileName));
+						using (FileStream OutputStream = new FileStream(OutputFileName, FileMode.Create, FileAccess.Write))
+						{
+							Entry.Extract(OutputStream);
+						}
+						OutputFileNames.Add(OutputFileName);
+					}
+				}
+			}
+			return OutputFileNames;
 		}
 
 		/// <summary>
@@ -2598,8 +2634,10 @@ namespace AutomationTool
 				return;
 			}
 
+			WindowsCompiler Compiler = WindowsPlatform.GetDefaultCompiler(new string[0], null);
+
 			string SignToolName = null;
-			if (WindowsPlatform.Compiler >= WindowsCompiler.VisualStudio2015)
+			if (Compiler >= WindowsCompiler.VisualStudio2015)
 			{
 				//@todo: Get these paths from the registry
 				if (WindowsPlatform.bUseWindowsSDK10)
@@ -2611,7 +2649,7 @@ namespace AutomationTool
 					SignToolName = "C:/Program Files (x86)/Windows Kits/8.1/bin/x86/SignTool.exe";
 				}
 			}
-			else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013)
+			else if (Compiler == WindowsCompiler.VisualStudio2013)
 			{
 				SignToolName = "C:/Program Files (x86)/Windows Kits/8.1/bin/x86/SignTool.exe";
 			}
@@ -2784,8 +2822,10 @@ namespace AutomationTool
 
 		public static void SignListFilesIfEXEOrDLL(string FilesToSign)
 		{
+			WindowsCompiler Compiler = WindowsPlatform.GetDefaultCompiler(new string[0], null);
+
 			string SignToolName = null;
-			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)
+			if (Compiler == WindowsCompiler.VisualStudio2015)
 			{
 				//@todo: Get these paths from the registry
 				if (WindowsPlatform.bUseWindowsSDK10)
@@ -2797,7 +2837,7 @@ namespace AutomationTool
 					SignToolName = "C:/Program Files (x86)/Windows Kits/8.1/bin/x86/SignTool.exe";
 				}
 			}
-			else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013)
+			else if (Compiler == WindowsCompiler.VisualStudio2013)
 			{
 				SignToolName = "C:/Program Files (x86)/Windows Kits/8.1/bin/x86/SignTool.exe";
 			}

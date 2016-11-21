@@ -197,7 +197,7 @@ static void InjectCurves(
 
 	if (bFirstCall)
 	{
-		RHICmdList.Clear(true, FLinearColor::Blue, false, 0.0f, false, 0, FIntRect());
+		RHICmdList.ClearColorTexture(CurveTextureTargetRHI, FLinearColor::Blue, FIntRect());
 		bFirstCall = false;
 	}
 

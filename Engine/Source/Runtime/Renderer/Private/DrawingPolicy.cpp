@@ -46,6 +46,25 @@ FMeshDrawingPolicy::FMeshDrawingPolicy(
 	bUsePositionOnlyVS = false;
 }
 
+FMeshDrawingRenderState FMeshDrawingPolicy::GetDitheredLODTransitionState(const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither)
+{
+	FMeshDrawingRenderState DrawRenderState;
+
+	if (Mesh.bDitheredLODTransition && !InAllowStencilDither)
+	{
+		if (ViewInfo.StaticMeshFadeOutDitheredLODMap[Mesh.Id])
+		{
+			DrawRenderState.DitheredLODTransitionAlpha = ViewInfo.GetTemporalLODTransition();
+		}
+		else if (ViewInfo.StaticMeshFadeInDitheredLODMap[Mesh.Id])
+		{
+			DrawRenderState.DitheredLODTransitionAlpha = ViewInfo.GetTemporalLODTransition() - 1.0f;
+		}
+	}
+
+	return DrawRenderState;
+}
+
 void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch& Mesh, int32 BatchElementIndex, const bool bIsInstancedStereo) const
 {
 	INC_DWORD_STAT(STAT_MeshDrawCalls);

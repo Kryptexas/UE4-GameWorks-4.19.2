@@ -8,8 +8,6 @@
   <Products />
   <Eula />
   <RedistributeTo />
-  <Redistribute>false</Redistribute>
-  <IsSourceAvailable>false</IsSourceAvailable>
   <Notification>
 Redirect: ../../../../HarfBuzz/harfbuzz-1.2.4/BuildForUE/Android/AndroidCMake.tps
 </Notification>

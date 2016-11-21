@@ -140,26 +140,6 @@ class AIMODULE_API UBlackboardKeyType : public UObject
 	/** get test supported by this type */
 	EBlackboardKeyOperation::Type GetTestOperation() const;
 
-	// DEPRECATED FUNCTION
-	DEPRECATED(4.8, "This function now requires an extra UBlackboardComponent parameter.")
-	virtual void Initialize(uint8* MemoryBlock) const;
-	DEPRECATED(4.8, "This function is deprecated. Please use WrappedGetLocation for external access and version with extra UBlackboardComponent parameter for overrides.")
-	virtual bool GetLocation(const uint8* MemoryBlock, FVector& Location) const;
-	DEPRECATED(4.8, "This function is deprecated. Please use WrappedGetLocation for external access and version with extra UBlackboardComponent parameter for overrides.")
-	virtual bool GetRotation(const uint8* MemoryBlock, FRotator& Rotation) const;
-	DEPRECATED(4.8, "This function is deprecated. Please use WrappedClear/WrappedIsEmpty for external access and versions with extra UBlackboardComponent parameter for overrides.")
-	virtual bool Clear(uint8* MemoryBlock) const;
-	DEPRECATED(4.8, "This function is deprecated. Please use CompareValues instead.")
-	virtual EBlackboardCompare::Type Compare(const uint8* MemoryBlockA, const uint8* MemoryBlockB) const;
-	DEPRECATED(4.8, "This function is deprecated. Please use WrappedTestBasicOperation for external access and version with extra UBlackboardComponent parameter for overrides.")
-	virtual bool TestBasicOperation(const uint8* MemoryBlock, EBasicKeyOperation::Type Op) const;
-	DEPRECATED(4.8, "This function is deprecated. Please use WrappedTestArithmeticOperation for external access and version with extra UBlackboardComponent parameter for overrides.")
-	virtual bool TestArithmeticOperation(const uint8* MemoryBlock, EArithmeticKeyOperation::Type Op, int32 OtherIntValue, float OtherFloatValue) const;
-	DEPRECATED(4.8, "This function is deprecated. Please use WrappedTestTextOperation for external access and version with extra UBlackboardComponent parameter for overrides.")
-	virtual bool TestTextOperation(const uint8* MemoryBlock, ETextKeyOperation::Type Op, const FString& OtherString) const;
-	DEPRECATED(4.8, "This function is deprecated. Please use WrappedDescribeValue for external access and version with extra UBlackboardComponent parameter for overrides.")
-	virtual FString DescribeValue(const uint8* MemoryBlock) const;
-
 protected:
 
 	/** size of value for this type */

@@ -882,19 +882,7 @@ void UPrimitiveComponent::UnWeldChildren()
 
 FBodyInstance* UPrimitiveComponent::GetBodyInstance(FName BoneName, bool bGetWelded) const
 {
-	if (bGetWelded && BodyInstance.bWelded)
-	{
-		FName OutSocket;
-		if (UPrimitiveComponent * RootComponentWelded = GetRootWelded(this, GetAttachSocketName(), &OutSocket))
-		{
-			if (FBodyInstance* BI = RootComponentWelded->GetBodyInstance(OutSocket, bGetWelded))
-			{
-				return BI;
-			}
-		}
-	}
-
-	return const_cast<FBodyInstance*>(&BodyInstance);
+	return const_cast<FBodyInstance*>((bGetWelded && BodyInstance.WeldParent) ? BodyInstance.WeldParent : &BodyInstance);
 }
 
 bool UPrimitiveComponent::GetSquaredDistanceToCollision(const FVector& Point, float& OutSquaredDistance, FVector& OutClosestPointOnCollision) const
@@ -1035,19 +1023,18 @@ void UPrimitiveComponent::OnComponentCollisionSettingsChanged()
 	}
 }
 
-bool UPrimitiveComponent::K2_LineTraceComponent(FVector TraceStart, FVector TraceEnd, bool bTraceComplex, bool bShowTrace, FVector& HitLocation, FVector& HitNormal, FName& BoneName)
+bool UPrimitiveComponent::K2_LineTraceComponent(FVector TraceStart, FVector TraceEnd, bool bTraceComplex, bool bShowTrace, FVector& HitLocation, FVector& HitNormal, FName& BoneName, FHitResult& OutHit)
 {
-	FHitResult Hit;
 	static FName KismetTraceComponentName(TEXT("KismetTraceComponent"));
 	FCollisionQueryParams LineParams(KismetTraceComponentName, bTraceComplex);
-	const bool bDidHit = LineTraceComponent(Hit, TraceStart, TraceEnd, LineParams);
+	const bool bDidHit = LineTraceComponent(OutHit, TraceStart, TraceEnd, LineParams);
 
 	if( bDidHit )
 	{
 		// Fill in the results if we hit
-		HitLocation = Hit.Location;
-		HitNormal = Hit.Normal;
-		BoneName = Hit.BoneName;
+		HitLocation = OutHit.Location;
+		HitNormal = OutHit.Normal;
+		BoneName = OutHit.BoneName;
 	}
 	else
 	{

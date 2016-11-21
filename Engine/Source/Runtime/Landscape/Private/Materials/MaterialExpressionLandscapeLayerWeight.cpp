@@ -67,9 +67,9 @@ bool UMaterialExpressionLandscapeLayerWeight::IsResultMaterialAttributes(int32 O
 	return bLayerIsMaterialAttributes || bBaseIsMaterialAttributes;
 }
 
-int32 UMaterialExpressionLandscapeLayerWeight::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
+int32 UMaterialExpressionLandscapeLayerWeight::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	const int32 BaseCode = Base.Expression ? Base.Compile(Compiler, MultiplexIndex) : Compiler->Constant3(ConstBase.X, ConstBase.Y, ConstBase.Z);
+	const int32 BaseCode = Base.Expression ? Base.Compile(Compiler) : Compiler->Constant3(ConstBase.X, ConstBase.Y, ConstBase.Z);
 	const int32 WeightCode = Compiler->StaticTerrainLayerWeight(ParameterName, Compiler->Constant(PreviewWeight));
 
 	int32 ReturnCode = INDEX_NONE;
@@ -79,7 +79,7 @@ int32 UMaterialExpressionLandscapeLayerWeight::Compile(class FMaterialCompiler* 
 	}
 	else
 	{
-		const int32 LayerCode = Layer.Compile(Compiler, MultiplexIndex);
+		const int32 LayerCode = Layer.Compile(Compiler);
 		ReturnCode = Compiler->Add(BaseCode, Compiler->Mul(LayerCode, WeightCode));
 	}
 

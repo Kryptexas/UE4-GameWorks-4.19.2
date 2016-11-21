@@ -41,6 +41,16 @@ public:
      */
     virtual void PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) = 0;
 
+	/** 
+	 * Called on render thread from FSceneRenderer::Render implementation after init views has completed, but before rendering proper has started
+	 */
+	virtual void PostInitViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily) {};
+
+	/** 
+	 * Called on render thread, for each view, after the PostInitViewFamily_RenderThread call
+	 */
+	virtual void PostInitView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) {};
+
 	/**
 	 * Allows to render content after the 3D content scene, useful for debugging
 	 */

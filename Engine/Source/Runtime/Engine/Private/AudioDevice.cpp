@@ -116,7 +116,7 @@ FAudioDevice::FAudioDevice()
 #if !UE_BUILD_SHIPPING
 	, RequestedAudioStats(0)
 #endif
-	, UpdateDeltaTime(0.0f)
+	, DeviceDeltaTime(0.0f)
 	, ConcurrencyManager(this)
 {
 }
@@ -957,12 +957,12 @@ bool FAudioDevice::HandleAudioMemoryInfo(const TCHAR* Cmd, FOutputDevice& Ar)
 	struct FSoundWaveInfo
 	{
 		USoundWave* SoundWave;
-		SIZE_T ResourceSize;
+		FResourceSizeEx ResourceSize;
 		FString SoundGroupName;
 		float Duration;
 		bool bDecompressed;
 
-		FSoundWaveInfo(USoundWave* InSoundWave, SIZE_T InResourceSize, const FString& InSoundGroupName, float InDuration, bool bInDecompressed)
+		FSoundWaveInfo(USoundWave* InSoundWave, FResourceSizeEx InResourceSize, const FString& InSoundGroupName, float InDuration, bool bInDecompressed)
 			: SoundWave(InSoundWave)
 			, ResourceSize(InResourceSize)
 			, SoundGroupName(InSoundGroupName)
@@ -973,12 +973,12 @@ bool FAudioDevice::HandleAudioMemoryInfo(const TCHAR* Cmd, FOutputDevice& Ar)
 
 	struct FSoundWaveGroupInfo
 	{
-		SIZE_T ResourceSize;
-		SIZE_T CompressedResourceSize;
+		FResourceSizeEx ResourceSize;
+		FResourceSizeEx CompressedResourceSize;
 
 		FSoundWaveGroupInfo()
-			: ResourceSize(0)
-			, CompressedResourceSize(0)
+			: ResourceSize()
+			, CompressedResourceSize()
 		{}
 	};
 
@@ -1023,9 +1023,9 @@ bool FAudioDevice::HandleAudioMemoryInfo(const TCHAR* Cmd, FOutputDevice& Ar)
 		}
 	}
 
-	SIZE_T TotalResourceSize = 0;
-	SIZE_T CompressedResourceSize = 0;
-	SIZE_T DecompressedResourceSize = 0;
+	FResourceSizeEx TotalResourceSize;
+	FResourceSizeEx CompressedResourceSize;
+	FResourceSizeEx DecompressedResourceSize;
 	int32 CompressedResourceCount = 0;
 
 	if (SoundWaveClass != nullptr)
@@ -1039,8 +1039,9 @@ bool FAudioDevice::HandleAudioMemoryInfo(const TCHAR* Cmd, FOutputDevice& Ar)
 			}
 
 			// Get the resource size of the sound wave
-			const SIZE_T TrueResourceSize = It->GetResourceSize(EResourceSizeMode::Exclusive);
-			if (TrueResourceSize == 0)
+			FResourceSizeEx TrueResourceSize = FResourceSizeEx(EResourceSizeMode::Exclusive);
+			It->GetResourceSizeEx(TrueResourceSize);
+			if (TrueResourceSize.GetTotalMemoryBytes() == 0)
 			{
 				continue;
 			}
@@ -1138,9 +1139,9 @@ bool FAudioDevice::HandleAudioMemoryInfo(const TCHAR* Cmd, FOutputDevice& Ar)
 			// Log the sound wave objects
 			
 			ReportAr->Logf(TEXT("Memory (MB),Count"));
-			ReportAr->Logf(TEXT("Total,%.3f,%d"), TotalResourceSize / 1024.f / 1024.f, SoundWaveObjects.Num());
-			ReportAr->Logf(TEXT("Decompressed,%.3f,%d"), DecompressedResourceSize / 1024.f / 1024.f, CompressedResourceCount);
-			ReportAr->Logf(TEXT("Compressed,%.3f,%d"), CompressedResourceSize / 1024.f / 1024.f, SoundWaveObjects.Num() - CompressedResourceCount);
+			ReportAr->Logf(TEXT("Total,%.3f,%d"), TotalResourceSize.GetTotalMemoryBytes() / 1024.f / 1024.f, SoundWaveObjects.Num());
+			ReportAr->Logf(TEXT("Decompressed,%.3f,%d"), DecompressedResourceSize.GetTotalMemoryBytes() / 1024.f / 1024.f, CompressedResourceCount);
+			ReportAr->Logf(TEXT("Compressed,%.3f,%d"), CompressedResourceSize.GetTotalMemoryBytes() / 1024.f / 1024.f, SoundWaveObjects.Num() - CompressedResourceCount);
 
 			if (SoundWaveGroupFolders.Num())
 			{
@@ -1152,7 +1153,7 @@ bool FAudioDevice::HandleAudioMemoryInfo(const TCHAR* Cmd, FOutputDevice& Ar)
 				{
 					FSoundWaveGroupInfo* SubDirSize = SoundWaveGroupSizes.Find(SoundWaveGroupFolder);
 					check(SubDirSize);
-					ReportAr->Logf(TEXT("%s,%10.2f,%10.2f"), *SoundWaveGroupFolder, SubDirSize->ResourceSize / 1024.0f / 1024.0f, SubDirSize->CompressedResourceSize / 1024.0f / 1024.0f);
+					ReportAr->Logf(TEXT("%s,%10.2f,%10.2f"), *SoundWaveGroupFolder, SubDirSize->ResourceSize.GetTotalMemoryBytes() / 1024.0f / 1024.0f, SubDirSize->CompressedResourceSize.GetTotalMemoryBytes() / 1024.0f / 1024.0f);
 				}
 			}
 
@@ -1163,7 +1164,7 @@ bool FAudioDevice::HandleAudioMemoryInfo(const TCHAR* Cmd, FOutputDevice& Ar)
 			ReportAr->Logf(TEXT("%s,%s,%s,%s,%s,%s"), TEXT("SoundWave"), TEXT("KB"), TEXT("MB"), TEXT("SoundGroup"), TEXT("Duration"), TEXT("CompressionState"));
 			for (const FSoundWaveInfo& Info : SoundWaveObjects)
 			{
-				float Kbytes = Info.ResourceSize / 1024.0f;
+				float Kbytes = Info.ResourceSize.GetTotalMemoryBytes() / 1024.0f;
 				ReportAr->Logf(TEXT("%s,%10.2f,%10.2f,%s,%10.2f,%s"), *Info.SoundWave->GetPathName(), Kbytes, Kbytes / 1024.0f, *Info.SoundGroupName, Info.Duration, Info.bDecompressed ? TEXT("Decompressed") : TEXT("Compressed"));
 			}
 		}
@@ -1660,7 +1661,9 @@ bool FAudioDevice::TryClearingSoundMix(USoundMix* SoundMix, FSoundMixState* Soun
 {
 	if (SoundMix && SoundMixState)
 	{
-		if (SoundMixState->ActiveRefCount == 0 && SoundMixState->PassiveRefCount == 0 && SoundMixState->IsBaseSoundMix == false)
+		// Only manually clear the sound mix if it's no longer referenced and if the duration was not set.
+		// If the duration was set by sound designer, let the sound mix clear itself up automatically.
+		if (SoundMix->Duration < 0.0f && SoundMixState->ActiveRefCount == 0 && SoundMixState->PassiveRefCount == 0 && SoundMixState->IsBaseSoundMix == false)
 		{
 			// do whatever is needed to remove influence of this SoundMix
 			if (SoundMix->FadeOutTime > 0.f)
@@ -2449,15 +2452,6 @@ void FAudioDevice::PopSoundMixModifier(USoundMix* SoundMix, bool bIsPassive)
 			if (bIsPassive && SoundMixState->PassiveRefCount > 0)
 			{
 				SoundMixState->PassiveRefCount--;
-				if (SoundMixState->PassiveRefCount == 0)
-				{
-					// Check whether Fade out time was previously set and reset it to current time
-					if (SoundMixState->FadeOutStartTime >= 0.f && FApp::GetCurrentTime() > SoundMixState->FadeOutStartTime)
-					{
-						SoundMixState->FadeOutStartTime = FApp::GetCurrentTime();
-						SoundMixState->EndTime = SoundMixState->FadeOutStartTime + SoundMix->FadeOutTime;
-					}
-				}
 			}
 			else if (!bIsPassive && SoundMixState->ActiveRefCount > 0)
 			{
@@ -2926,13 +2920,15 @@ void FAudioDevice::Update(bool bGameTicking)
 	// Check for any audio device state changes before playing or updating audio
 	CheckDeviceStateChange();
 
-	double CurrTime = FPlatformTime::Seconds();
-	UpdateDeltaTime = CurrTime - LastUpdateTime;
-	LastUpdateTime = CurrTime;
+	// Updates the audio device delta time
+	UpdateDeviceDeltaTime();
+
+	// Update the audio clock, this can be overridden per platform to get a sample-accurate clock
+	UpdateAudioClock();
 
 	if (bGameTicking)
 	{
-		GlobalPitchScale.Update(UpdateDeltaTime);
+		GlobalPitchScale.Update(GetDeviceDeltaTime());
 	}
 
 	// Start a new frame
@@ -2979,7 +2975,7 @@ void FAudioDevice::Update(bool bGameTicking)
 	}
 
 	// Gets the current state of the sound classes accounting for sound mix
-	UpdateSoundClassProperties(UpdateDeltaTime);
+	UpdateSoundClassProperties(GetDeviceDeltaTime());
 
 	ProcessingPendingActiveSoundStops();
 
@@ -3104,6 +3100,7 @@ void FAudioDevice::SendUpdateResultsToGameThread(const int32 FirstActiveIndex)
 				WaveInstanceInfo.Description = Source ? Source->Describe((RequestedAudioStats & ERequestedAudioStats::LongSoundNames) != 0) : FString(TEXT("No source"));
 				WaveInstanceInfo.ActualVolume = WaveInstance->GetVolume();
 				WaveInstanceInfo.InstanceIndex = InstanceIndex;
+				WaveInstanceInfo.WaveInstanceName = *WaveInstance->GetName();
 				StatSoundInfos[*SoundInfoIndex].WaveInstanceInfos.Add(MoveTemp(WaveInstanceInfo));
 			}
 		}
@@ -3794,6 +3791,12 @@ void FAudioDevice::PlaySoundAtLocation(USoundBase* Sound, UWorld* World, float V
 		return;
 	}
 
+	// Not audible if the ticking level collection is not visible
+	if (World && World->GetActiveLevelCollection() && !World->GetActiveLevelCollection()->IsVisible())
+	{
+		return;
+	}
+
 	const FAttenuationSettings* AttenuationSettingsToApply = (AttenuationSettings ? &AttenuationSettings->Attenuation : Sound->GetAttenuationSettingsToApply());
 	float MaxDistance = 0.0f;
 	float FocusFactor = 0.0f;
@@ -4048,7 +4051,7 @@ void FAudioDevice::Precache(USoundWave* SoundWave, bool bSynchronous, bool bTrac
 
 	if (bTrackMemory)
 	{
-		const int32 ResourceSize = SoundWave->GetResourceSize(EResourceSizeMode::Exclusive);
+		const int32 ResourceSize = SoundWave->GetResourceSizeBytes(EResourceSizeMode::Exclusive);
 		SoundWave->TrackedMemoryUsage += ResourceSize;
 
 		// If we aren't decompressing it above, then count the memory
@@ -4496,7 +4499,7 @@ void FAudioDevice::DumpActiveSounds() const
 			for (const TPair<UPTRINT, FWaveInstance*>& WaveInstancePair : ActiveSound->WaveInstances)
 			{
 				const FWaveInstance* WaveInstance = WaveInstancePair.Value;
-				UE_LOG(LogAudio, Display, TEXT("   %s (%.3g) (%d) - %.3g"), *WaveInstance->GetName(), WaveInstance->WaveData->GetDuration(), WaveInstance->WaveData->GetResourceSize(EResourceSizeMode::Inclusive), WaveInstance->GetActualVolume());
+				UE_LOG(LogAudio, Display, TEXT("   %s (%.3g) (%d) - %.3g"), *WaveInstance->GetName(), WaveInstance->WaveData->GetDuration(), WaveInstance->WaveData->GetResourceSizeBytes(EResourceSizeMode::Inclusive), WaveInstance->GetActualVolume());
 			}
 		}
 	}

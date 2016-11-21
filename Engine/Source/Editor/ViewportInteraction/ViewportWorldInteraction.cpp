@@ -511,9 +511,7 @@ void UViewportWorldInteraction::Redo()
 
 void UViewportWorldInteraction::DeleteSelectedObjects()
 {
-	const FScopedTransaction Transaction( LOCTEXT( "DeleteSelection", "Delete selection" ) );
-	
-	GUnrealEd->edactDeleteSelected( GetViewportWorld() );
+	GUnrealEd->Exec(GetViewportWorld(), TEXT("DELETE"));
 }
 
 void UViewportWorldInteraction::Copy()

@@ -387,9 +387,7 @@ bool FCanvasBatchedElementRenderItem::Render_RenderThread(FRHICommandListImmedia
 			RHICmdList,
 			Canvas->GetFeatureLevel(),
 			bNeedsToSwitchVerticalAxis,
-			Data->Transform.GetMatrix(),
-			CanvasRenderTarget->GetSizeXY().X,
-			CanvasRenderTarget->GetSizeXY().Y,
+			FBatchedElements::CreateProxySceneView(Data->Transform.GetMatrix(), FIntRect(0, 0, CanvasRenderTarget->GetSizeXY().X, CanvasRenderTarget->GetSizeXY().Y)),
 			Canvas->IsHitTesting(),
 			Gamma
 			);
@@ -460,9 +458,7 @@ bool FCanvasBatchedElementRenderItem::Render_GameThread(const FCanvas* Canvas)
 				RHICmdList,
 				Parameters.FeatureLevel,
 				Parameters.bNeedsToSwitchVerticalAxis,
-				Parameters.RenderData->Transform.GetMatrix(),
-				Parameters.ViewportSizeX,
-				Parameters.ViewportSizeY,
+				FBatchedElements::CreateProxySceneView(Parameters.RenderData->Transform.GetMatrix(),FIntRect(0, 0, Parameters.ViewportSizeX, Parameters.ViewportSizeY)),
 				Parameters.bHitTesting,
 				Parameters.DisplayGamma
 				);
@@ -828,7 +824,14 @@ void FCanvas::PushRelativeTransform(const FMatrix& Transform)
 
 void FCanvas::PushAbsoluteTransform(const FMatrix& Transform) 
 {
-	TransformStack.Add( FTransformEntry(Transform * TransformStack[0].GetMatrix()) );
+	if(ensure(TransformStack.Num()>0))
+	{
+		TransformStack.Add(FTransformEntry(Transform * TransformStack[0].GetMatrix()));
+	}
+	else
+	{
+		TransformStack.Add(FTransformEntry(Transform));
+	}
 }
 
 void FCanvas::PopTransform()
@@ -902,8 +905,14 @@ void FCanvas::Clear(const FLinearColor& LinearColor)
 		{
 			::SetRenderTarget(RHICmdList, CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef(), true);
 			RHICmdList.SetViewport(0, 0, 0.0f, CanvasRenderTarget->GetSizeXY().X, CanvasRenderTarget->GetSizeXY().Y, 1.0f);
+			RHICmdList.ClearColorTexture(CanvasRenderTarget->GetRenderTargetTexture(), ClearColor, FIntRect());
 		}
-		RHICmdList.Clear(true, ClearColor, false, 0.0f, false, 0, FIntRect());
+		else
+		{
+			//#todo-rco!
+			ensure(0);
+			//RHICmdList.ClearColorTexture(CanvasRenderTarget->GetRenderTargetTexture(), ClearColor, FIntRect());
+		}
 	});
 }
 
@@ -1867,7 +1876,7 @@ void UCanvas::SetView(FSceneView* InView)
 		}
 		else
 		{
-			ViewProjectionMatrix = InView->ViewProjectionMatrix;
+			ViewProjectionMatrix = InView->ViewMatrices.GetViewProjectionMatrix();
 		}
 	}
 	else

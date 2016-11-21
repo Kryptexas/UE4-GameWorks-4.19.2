@@ -22,11 +22,7 @@ public:
 		bReferencedByAtlas(false)
 	{}
 
-	~FDistanceFieldVolumeTexture()
-	{
-		// Make sure we have been properly removed from the atlas before deleting
-		check(!bReferencedByAtlas);
-	}
+	~FDistanceFieldVolumeTexture();
 
 	/** Called at load time on game thread */
 	void Initialize();
@@ -143,9 +139,23 @@ public:
 		delete this;
 	}
 
+	DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
 	SIZE_T GetResourceSize() const
 	{
-		return sizeof(*this) + DistanceFieldVolume.GetAllocatedSize();
+		return GetResourceSizeBytes();
+	}
+
+	void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const
+	{
+		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(sizeof(*this));
+		CumulativeResourceSize.AddUnknownMemoryBytes(DistanceFieldVolume.GetAllocatedSize());
+	}
+
+	SIZE_T GetResourceSizeBytes() const
+	{
+		FResourceSizeEx ResSize;
+		GetResourceSizeEx(ResSize);
+		return ResSize.GetTotalMemoryBytes();
 	}
 
 #if WITH_EDITORONLY_DATA

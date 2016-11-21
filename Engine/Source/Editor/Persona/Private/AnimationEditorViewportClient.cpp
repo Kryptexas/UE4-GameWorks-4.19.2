@@ -33,6 +33,8 @@
 #include "Engine/PreviewMeshCollection.h"
 #include "AssetViewerSettings.h"
 #include "IPersonaEditorModeManager.h"
+#include "PersonaModule.h"
+#include "AnimationEditorPreviewScene.h"
 
 namespace {
 	// Value from UE3
@@ -71,6 +73,7 @@ FAnimationViewportClient::FAnimationViewportClient(const TSharedRef<ISkeletonTre
 	, bFocusOnDraw(false)
 	, bInstantFocusOnDraw(true)
 	, bShowMeshStats(bInShowStats)
+	, bInitiallyFocused(false)
 {
 	// we actually own the mode tools here, we just override its type in the FEditorViewportClient constructor above
 	bOwnsModeTools = true;
@@ -80,6 +83,7 @@ FAnimationViewportClient::FAnimationViewportClient(const TSharedRef<ISkeletonTre
 
 	Widget->SetUsesEditorModeTools(ModeTools);
 	((FAssetEditorModeManager*)ModeTools)->SetPreviewScene(&InPreviewScene.Get());
+	((FAssetEditorModeManager*)ModeTools)->SetDefaultMode(FPersonaEditModes::SkeletonSelection);
 
 	// load config
 	ConfigOption = UPersonaOptions::StaticClass()->GetDefaultObject<UPersonaOptions>();
@@ -129,6 +133,7 @@ FAnimationViewportClient::FAnimationViewportClient(const TSharedRef<ISkeletonTre
 	InPreviewScene->RegisterOnPreviewMeshChanged(FOnPreviewMeshChanged::CreateRaw(this, &FAnimationViewportClient::HandleSkeletalMeshChanged));
 	HandleSkeletalMeshChanged(InPreviewScene->GetPreviewMeshComponent()->SkeletalMesh);
 	InPreviewScene->RegisterOnInvalidateViews(FSimpleDelegate::CreateRaw(this, &FAnimationViewportClient::HandleInvalidateViews));
+	InPreviewScene->RegisterOnFocusViews(FSimpleDelegate::CreateRaw(this, &FAnimationViewportClient::HandleFocusViews));
 
 	// Register delegate to update the show flags when the post processing is turned on or off
 	UAssetViewerSettings::Get()->OnAssetViewerSettingsChanged().AddRaw(this, &FAnimationViewportClient::OnAssetViewerSettingsChanged);
@@ -142,6 +147,11 @@ FAnimationViewportClient::~FAnimationViewportClient()
 	{
 		GetPreviewScene()->UnregisterOnPreviewMeshChanged(this);
 		GetPreviewScene()->UnregisterOnInvalidateViews(this);
+	}
+
+	if (AssetEditorToolkitPtr.IsValid())
+	{
+		AssetEditorToolkitPtr.Pin()->SetAssetEditorModeManager(nullptr);
 	}
 
 	((FAssetEditorModeManager*)ModeTools)->SetPreviewScene(nullptr);
@@ -274,15 +284,18 @@ bool FAnimationViewportClient::IsSetCameraFollowChecked() const
 
 void FAnimationViewportClient::HandleSkeletalMeshChanged(USkeletalMesh* InSkeletalMesh)
 {
-	FocusViewportOnPreviewMesh();
+	GetSkeletonTree()->DeselectAll();
 
-	UDebugSkelMeshComponent* PreviewMeshComponent = GetAnimPreviewScene()->GetPreviewMeshComponent();
-
-	PreviewMeshComponent->BonesOfInterest.Empty();
+	if (!bInitiallyFocused)
+	{
+		FocusViewportOnPreviewMesh();
+		bInitiallyFocused = true;
+	}
 
 	UpdateCameraSetup();
 
 	// Setup physics data from physics assets if available, clearing any physics setup on the component
+	UDebugSkelMeshComponent* PreviewMeshComponent = GetAnimPreviewScene()->GetPreviewMeshComponent();
 	UPhysicsAsset* PhysAsset = PreviewMeshComponent->GetPhysicsAsset();
 	if(PhysAsset)
 	{
@@ -550,9 +563,10 @@ bool FAnimationViewportClient::ShouldDisplayAdditiveScaleErrorMessage()
 	{
 		if (AnimSequence->IsValidAdditive() && AnimSequence->RefPoseSeq)
 		{
-			if (RefPoseGuid != AnimSequence->RefPoseSeq->RawDataGuid)
+			FGuid AnimSeqGuid = AnimSequence->RefPoseSeq->GetRawDataGuid();
+			if (RefPoseGuid != AnimSeqGuid)
 			{
-				RefPoseGuid = AnimSequence->RefPoseSeq->RawDataGuid;
+				RefPoseGuid = AnimSeqGuid;
 				bDoesAdditiveRefPoseHaveZeroScale = AnimSequence->DoesSequenceContainZeroScale();
 			}
 			return bDoesAdditiveRefPoseHaveZeroScale;
@@ -707,13 +721,7 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 
 			// Draw stats about the mesh
 			const FBoxSphereBounds& SkelBounds = PreviewMeshComponent->Bounds;
-			const FPlane ScreenPosition = View->Project(SkelBounds.Origin);
-
-			const int32 HalfX = Viewport->GetSizeXY().X / 2;
-			const int32 HalfY = Viewport->GetSizeXY().Y / 2;
-
-			const float ScreenRadius = FMath::Max((float)HalfX * View->ViewMatrices.ProjMatrix.M[0][0], (float)HalfY * View->ViewMatrices.ProjMatrix.M[1][1]) * SkelBounds.SphereRadius / FMath::Max(ScreenPosition.W, 1.0f);
-			const float LODFactor = ScreenRadius / 320.0f;
+			const float ScreenSize = ComputeBoundsScreenSize(SkelBounds.Origin, SkelBounds.SphereRadius, *View);
 
 			int32 NumBonesInUse;
 			int32 NumBonesMappedToVerts;
@@ -743,7 +751,7 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 
 			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
 
-			InfoString = FString::Printf(TEXT("Current Screen Size: %3.2f, FOV:%3.0f"), LODFactor, ViewFOV);
+			InfoString = FString::Printf(TEXT("Current Screen Size: %3.2f, FOV:%3.0f"), ScreenSize, ViewFOV);
 			CurYOffset += YL + 2;
 			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
 
@@ -832,16 +840,9 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 
 			// current screen size
 			const FBoxSphereBounds& SkelBounds = PreviewMeshComponent->Bounds;
-			const FPlane ScreenPosition = View->Project(SkelBounds.Origin);
+			const float ScreenSize = ComputeBoundsScreenSize(SkelBounds.Origin, SkelBounds.SphereRadius, *View);
 
-			const int32 HalfX = Viewport->GetSizeXY().X / 2;
-			const int32 HalfY = Viewport->GetSizeXY().Y / 2;
-			const float ScreenRadius = FMath::Max((float)HalfX * View->ViewMatrices.ProjMatrix.M[0][0], (float)HalfY * View->ViewMatrices.ProjMatrix.M[1][1]) * SkelBounds.SphereRadius / FMath::Max(ScreenPosition.W, 1.0f);
-			const float LODFactor = ScreenRadius / 320.0f;
-
-			float ScreenSize = ComputeBoundsScreenSize(ScreenPosition, SkelBounds.SphereRadius, *View);
-
-			InfoString = FString::Printf(TEXT("Current Screen Size: %3.2f"), LODFactor);
+			InfoString = FString::Printf(TEXT("Current Screen Size: %3.2f"), ScreenSize);
 			CurYOffset += YL + 2;
 			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
 
@@ -973,12 +974,6 @@ void FAnimationViewportClient::RotateViewportType()
 bool FAnimationViewportClient::InputKey( FViewport* InViewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool bGamepad )
 {
 	bool bHandled = false;
-
-	if(Event == IE_Pressed && Key == EKeys::F)
-	{
-		bHandled = true;
-		FocusViewportOnPreviewMesh();
-	}
 
 	FAdvancedPreviewScene* AdvancedScene = static_cast<FAdvancedPreviewScene*>(PreviewScene);
 	bHandled |= AdvancedScene->HandleInputKey(InViewport, ControllerId, Key, Event, AmountDepressed, bGamepad);
@@ -1203,6 +1198,20 @@ void FAnimationViewportClient::DrawBones(const USkeletalMeshComponent* MeshCompo
 	{
 		SelectedBones = DebugMeshComponent->BonesOfInterest;
 
+		if(GetBoneDrawMode() == EBoneDrawMode::SelectedAndParents)
+		{
+			int32 BoneIndex = GetAnimPreviewScene()->GetSelectedBoneIndex();
+			while (BoneIndex != INDEX_NONE)
+			{
+				int32 ParentIndex = DebugMeshComponent->SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
+				if (ParentIndex != INDEX_NONE)
+				{
+					SelectedBones.AddUnique(ParentIndex);
+				}
+				BoneIndex = ParentIndex;
+			}
+		}
+
 		// we could cache parent bones as we calculate, but right now I'm not worried about perf issue of this
 		for ( int32 Index=0; Index<RequiredBones.Num(); ++Index )
 		{
@@ -1210,7 +1219,7 @@ void FAnimationViewportClient::DrawBones(const USkeletalMeshComponent* MeshCompo
 
 			if (bForceDraw ||
 				(GetBoneDrawMode() == EBoneDrawMode::All) ||
-				((GetBoneDrawMode() == EBoneDrawMode::Selected) && SelectedBones.Contains(BoneIndex) )
+				((GetBoneDrawMode() == EBoneDrawMode::Selected || GetBoneDrawMode() == EBoneDrawMode::SelectedAndParents) && SelectedBones.Contains(BoneIndex) )
 				)
 			{
 				const int32 ParentIndex = MeshComponent->SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
@@ -1452,10 +1461,10 @@ void FAnimationViewportClient::UpdateCameraSetup()
 		// Move the floor to the bottom of the bounding box of the mesh, rather than on the origin
 		FVector Bottom = PreviewMeshComponent->Bounds.GetBoxExtrema(0);
 
-		FVector FloorPos(0.f, 0.f, 0.f);
+		FVector FloorPos(0.f, 0.f, GetFloorOffset());
 		if (bAutoAlignFloor)
 		{
-			FloorPos.Z = GetFloorOffset() + Bottom.Z;
+			FloorPos.Z += Bottom.Z;
 		}
 		GetAnimPreviewScene()->SetFloorLocation(FloorPos);
 	}
@@ -1488,8 +1497,7 @@ void FAnimationViewportClient::FocusViewportOnPreviewMesh(bool bInstant /*= true
 	else
 	{
 		// dont auto-focus if there is nothing to focus on
-		UPersonaPreviewSceneDescription* PreviewSceneDescription = GetAnimPreviewScene()->GetPreviewSceneDescription();
-		if (!(!PreviewSceneDescription->PreviewMesh.IsValid() && (!PreviewSceneDescription->AdditionalMeshes.IsValid() || PreviewSceneDescription->AdditionalMeshes.LoadSynchronous()->SkeletalMeshes.Num() == 0)))
+		if (GetAnimPreviewScene()->GetPreviewMeshComponent()->SkeletalMesh)
 		{
 			FSphere Sphere = GetCameraTarget();
 			FocusViewportOnSphere(Sphere);
@@ -1695,6 +1703,16 @@ IPersonaEditorModeManager& FAnimationViewportClient::GetPersonaModeManager() con
 void FAnimationViewportClient::HandleInvalidateViews()
 {
 	Invalidate();
+}
+
+void FAnimationViewportClient::HandleFocusViews()
+{
+	FocusViewportOnPreviewMesh();
+}
+
+bool FAnimationViewportClient::CanCycleWidgetMode() const
+{
+	return ModeTools ? ModeTools->CanCycleWidgetMode() : false;
 }
 
 #undef LOCTEXT_NAMESPACE

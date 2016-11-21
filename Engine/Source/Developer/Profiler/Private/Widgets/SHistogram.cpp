@@ -1,8 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "ProfilerPrivatePCH.h"
+#include "ProfilerFPSAnalyzer.h"
+#include "SHistogram.h"
+
 
 #define LOCTEXT_NAMESPACE "SHistogram"
+
 
 /*-----------------------------------------------------------------------------
 	SHistogram

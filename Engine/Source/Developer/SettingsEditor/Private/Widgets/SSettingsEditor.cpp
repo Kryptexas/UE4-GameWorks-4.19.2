@@ -149,6 +149,7 @@ void SSettingsEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyCha
 		{
 			FString RelativePath;
 			bool bIsSourceControlled = false;
+			bool bIsNewFile = false;
 
 			// Attempt to checkout the file automatically
 			if (ObjectBeingEdited->GetClass()->HasAnyClassFlags(CLASS_DefaultConfig))
@@ -162,6 +163,11 @@ void SSettingsEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyCha
 			}
 
 			FString FullPath = FPaths::ConvertRelativePathToFull(RelativePath);
+
+			if (!FPlatformFileManager::Get().GetPlatformFile().FileExists(*FullPath))
+			{
+				bIsNewFile = true;
+			}
 
 			if (!bIsSourceControlled || !SettingsHelpers::CheckOutOrAddFile(FullPath))
 			{
@@ -188,6 +194,11 @@ void SSettingsEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyCha
 			else
 			{
 				Section->Save();
+			}
+
+			if (bIsNewFile && bIsSourceControlled)
+			{
+				SettingsHelpers::CheckOutOrAddFile(FullPath);
 			}
 
 			static const FName ConfigRestartRequiredKey = "ConfigRestartRequired";

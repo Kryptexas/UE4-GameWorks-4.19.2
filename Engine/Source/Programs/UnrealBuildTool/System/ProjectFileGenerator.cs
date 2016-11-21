@@ -113,6 +113,19 @@ namespace UnrealBuildTool
 		public readonly List<string> Files = new List<string>();		
 	}
 
+	/// <summary>
+	/// The type of project files to generate
+	/// </summary>
+	public enum ProjectFileType
+	{
+		Make,
+		CMake,
+		QMake,
+		KDevelop,
+		CodeLite,
+		VisualStudio,
+		XCode,
+	}
 
 	/// <summary>
 	/// Base class for all project file generators
@@ -346,9 +359,9 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="Arguments">Command-line arguments</param>
 		/// <param name="bSuccess">True if everything went OK</param>
-		public virtual void GenerateProjectFiles( String[] Arguments, out bool bSuccess )
+		public virtual bool GenerateProjectFiles( String[] Arguments )
 		{
-			bSuccess = true;
+			bool bSuccess = true;
 
 			// Parse project generator options
 			bool IncludeAllPlatforms = true;
@@ -668,6 +681,8 @@ namespace UnrealBuildTool
 					}
 				}
 			}
+
+			return bSuccess;
 		}
 
 		/// <summary>
@@ -1244,29 +1259,6 @@ namespace UnrealBuildTool
 				throw new BuildException( ProjectFileName.FullName + " doesn't exist!" );
 			}
 
-			return Project;
-		}
-
-		/// <summary>
-		/// Adds a Sandcastle Help File Builder project to the master project
-		/// </summary>
-		/// <param name="ProjectName">Name of project file to add</param>
-		private ProjectFile AddSimpleSHFBProject( string ProjectName )
-		{
-			// We only need this for non-native projects
-			ProjectFile Project = null;
-
-			FileReference ProjectFileName = FileReference.Combine( UnrealBuildTool.EngineSourceDirectory, "Programs", ProjectName, Path.GetFileName( ProjectName ) + ".shfbproj" );
-			if( ProjectFileName.Exists() )
-			{
-				Project = new VSHFBProjectFile( ProjectFileName );
-				AddExistingProjectFile(Project);
-			}
-			else
-			{
-				throw new BuildException( ProjectFileName.FullName + " doesn't exist!" );
-			}
-			
 			return Project;
 		}
 
@@ -2024,30 +2016,6 @@ namespace UnrealBuildTool
 				WriteMasterProjectFile( UBTProject: UBTProject );
 				Progress.Write(TotalProjectFileCount, TotalProjectFileCount);
 			}
-
-            // Write AutomationReferences file
-            if (AutomationProjectFiles.Any())
-            {
-                XNamespace NS = XNamespace.Get("http://schemas.microsoft.com/developer/msbuild/2003");
-
-                DirectoryReference AutomationToolDir = DirectoryReference.Combine(UnrealBuildTool.EngineSourceDirectory, "Programs", "AutomationTool");
-                new XDocument(
-                    new XElement(NS + "Project",
-                        new XAttribute("ToolsVersion", VCProjectFileGenerator.ProjectFileToolVersionString),
-                        new XAttribute("DefaultTargets", "Build"),
-                        new XElement(NS + "ItemGroup",
-                            from AutomationProject in AutomationProjectFiles
-                            select new XElement(NS + "ProjectReference",
-                                new XAttribute("Include", AutomationProject.ProjectFilePath.MakeRelativeTo(AutomationToolDir)),
-                                new XElement(NS + "Project", (AutomationProject as VCSharpProjectFile).ProjectGUID.ToString("B")),
-                                new XElement(NS + "Name", AutomationProject.ProjectFilePath.GetFileNameWithoutExtension()),
-                                new XElement(NS + "Private", "false")
-                            )
-                        )
-                    )
-                ).Save(FileReference.Combine( AutomationToolDir, "AutomationTool.csproj.References" ).FullName);
-            }
-
 			return true;
 		}
 

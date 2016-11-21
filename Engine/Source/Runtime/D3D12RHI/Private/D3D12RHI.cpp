@@ -102,29 +102,32 @@ FD3D12DynamicRHI::FD3D12DynamicRHI(TArray<FD3D12Adapter*>& ChosenAdaptersIn) :
 	}
 
 	// Initialize the platform pixel format map.
-	GPixelFormats[PF_Unknown].PlatformFormat = DXGI_FORMAT_UNKNOWN;
-	GPixelFormats[PF_A32B32G32R32F].PlatformFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
-	GPixelFormats[PF_B8G8R8A8].PlatformFormat = DXGI_FORMAT_B8G8R8A8_TYPELESS;
-	GPixelFormats[PF_G8].PlatformFormat = DXGI_FORMAT_R8_UNORM;
-	GPixelFormats[PF_G16].PlatformFormat = DXGI_FORMAT_R16_UNORM;
-	GPixelFormats[PF_DXT1].PlatformFormat = DXGI_FORMAT_BC1_TYPELESS;
-	GPixelFormats[PF_DXT3].PlatformFormat = DXGI_FORMAT_BC2_TYPELESS;
-	GPixelFormats[PF_DXT5].PlatformFormat = DXGI_FORMAT_BC3_TYPELESS;
-	GPixelFormats[PF_BC4].PlatformFormat = DXGI_FORMAT_BC4_UNORM;
-	GPixelFormats[PF_UYVY].PlatformFormat = DXGI_FORMAT_UNKNOWN;		// TODO: Not supported in D3D11
+	GPixelFormats[PF_Unknown		].PlatformFormat = DXGI_FORMAT_UNKNOWN;
+	GPixelFormats[PF_A32B32G32R32F	].PlatformFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	GPixelFormats[PF_B8G8R8A8		].PlatformFormat = DXGI_FORMAT_B8G8R8A8_TYPELESS;
+	GPixelFormats[PF_G8				].PlatformFormat = DXGI_FORMAT_R8_UNORM;
+	GPixelFormats[PF_G16			].PlatformFormat = DXGI_FORMAT_R16_UNORM;
+	GPixelFormats[PF_DXT1			].PlatformFormat = DXGI_FORMAT_BC1_TYPELESS;
+	GPixelFormats[PF_DXT3			].PlatformFormat = DXGI_FORMAT_BC2_TYPELESS;
+	GPixelFormats[PF_DXT5			].PlatformFormat = DXGI_FORMAT_BC3_TYPELESS;
+	GPixelFormats[PF_BC4			].PlatformFormat = DXGI_FORMAT_BC4_UNORM;
+	GPixelFormats[PF_UYVY			].PlatformFormat = DXGI_FORMAT_UNKNOWN;		// TODO: Not supported in D3D11
 #if DEPTH_32_BIT_CONVERSION
-	GPixelFormats[PF_DepthStencil].PlatformFormat = DXGI_FORMAT_R32G8X24_TYPELESS;
-	GPixelFormats[PF_DepthStencil].BlockBytes = 5;
-	GPixelFormats[PF_X24_G8].PlatformFormat = DXGI_FORMAT_X32_TYPELESS_G8X24_UINT;
-	GPixelFormats[PF_X24_G8].BlockBytes = 5;
+	GPixelFormats[PF_DepthStencil	].PlatformFormat = DXGI_FORMAT_R32G8X24_TYPELESS;
+	GPixelFormats[PF_DepthStencil	].BlockBytes = 5;
+	GPixelFormats[PF_DepthStencil	].Supported = true;
+	GPixelFormats[PF_X24_G8			].PlatformFormat = DXGI_FORMAT_X32_TYPELESS_G8X24_UINT;
+	GPixelFormats[PF_X24_G8			].BlockBytes = 5;
 #else
-	GPixelFormats[PF_DepthStencil].PlatformFormat = DXGI_FORMAT_R24G8_TYPELESS;
-	GPixelFormats[PF_DepthStencil].BlockBytes = 4;
-	GPixelFormats[PF_X24_G8].PlatformFormat = DXGI_FORMAT_X24_TYPELESS_G8_UINT;
-	GPixelFormats[PF_X24_G8].BlockBytes = 4;
+	GPixelFormats[PF_DepthStencil	].PlatformFormat = DXGI_FORMAT_R24G8_TYPELESS;
+	GPixelFormats[PF_DepthStencil	].BlockBytes = 4;
+	GPixelFormats[PF_DepthStencil	].Supported = true;
+	GPixelFormats[PF_X24_G8			].PlatformFormat = DXGI_FORMAT_X24_TYPELESS_G8_UINT;
+	GPixelFormats[PF_X24_G8			].BlockBytes = 4;
 #endif
 	GPixelFormats[PF_ShadowDepth	].PlatformFormat = DXGI_FORMAT_R16_TYPELESS;
 	GPixelFormats[PF_ShadowDepth	].BlockBytes = 2;
+	GPixelFormats[PF_ShadowDepth	].Supported = true;
 	GPixelFormats[PF_R32_FLOAT		].PlatformFormat = DXGI_FORMAT_R32_FLOAT;
 	GPixelFormats[PF_G16R16			].PlatformFormat = DXGI_FORMAT_R16G16_UNORM;
 	GPixelFormats[PF_G16R16F		].PlatformFormat = DXGI_FORMAT_R16G16_FLOAT;
@@ -495,19 +498,6 @@ void FD3D12DynamicRHI::GetBestSupportedMSAASetting(DXGI_FORMAT PlatformFormat, u
 	}
 
 	return;
-}
-
-uint32 FD3D12DynamicRHI::GetMaxMSAAQuality(uint32 SampleCount)
-{
-	if (SampleCount <= DX_MAX_MSAA_COUNT)
-	{
-		// 0 has better quality (a more even distribution)
-		// higher quality levels might be useful for non box filtered AA or when using weighted samples 
-		return 0;
-		//		return AvailableMSAAQualities[SampleCount];
-	}
-	// not supported
-	return 0xffffffff;
 }
 
 void FD3D12DynamicRHI::RHISwitchToAFRIfApplicable()

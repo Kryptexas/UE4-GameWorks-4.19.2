@@ -31,6 +31,36 @@ void FActorComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuild
 	}
 
 	PrimaryTickProperty->MarkHiddenByCustomization();
+
+	TArray<TWeakObjectPtr<UObject>> WeakObjectsBeingCustomized;
+	DetailBuilder.GetObjectsBeingCustomized(WeakObjectsBeingCustomized);
+
+	bool bHideReplicates = false;
+	for (TWeakObjectPtr<UObject>& WeakObjectBeingCustomized : WeakObjectsBeingCustomized)
+	{
+		if (UObject* ObjectBeingCustomized = WeakObjectBeingCustomized.Get())
+		{
+			if (UActorComponent* Component = Cast<UActorComponent>(ObjectBeingCustomized))
+			{
+				if (!Component->GetComponentClassCanReplicate())
+				{
+					bHideReplicates = true;
+					break;
+				}
+			}
+			else
+			{
+				bHideReplicates = true;
+				break;
+			}
+		}
+	}
+
+	if (bHideReplicates)
+	{
+		TSharedPtr<IPropertyHandle> ReplicatesProperty = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UActorComponent, bReplicates));
+		ReplicatesProperty->MarkHiddenByCustomization();
+	}
 }
 
 void FActorComponentDetails::AddExperimentalWarningCategory( IDetailLayoutBuilder& DetailBuilder )

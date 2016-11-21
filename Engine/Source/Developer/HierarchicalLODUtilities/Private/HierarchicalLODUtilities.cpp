@@ -79,28 +79,12 @@ void FHierarchicalLODUtilities::ExtractSubActorsFromLODActor(AActor* Actor, TArr
 
 float FHierarchicalLODUtilities::CalculateScreenSizeFromDrawDistance(const float SphereRadius, const FMatrix& ProjectionMatrix, const float Distance)
 {
-	// Only need one component from a view transformation; just calculate the one we're interested in.
-	const float Divisor = Distance;
-
-	// Get projection multiple accounting for view scaling.
-	const float ScreenMultiple = FMath::Max(1920.0f / 2.0f * ProjectionMatrix.M[0][0],
-		1080.0f / 2.0f * ProjectionMatrix.M[1][1]);
-
-	const float ScreenRadius = ScreenMultiple * SphereRadius / FMath::Max(Divisor, 1.0f);
-	const float ScreenArea = PI * ScreenRadius * ScreenRadius;
-	return FMath::Clamp(ScreenArea / (1920.0f * 1080.0f), 0.0f, 1.0f);
+	return ComputeBoundsScreenSize(FVector::ZeroVector, SphereRadius, FVector(0.0f, 0.0f, Distance), ProjectionMatrix);
 }
 
 float FHierarchicalLODUtilities::CalculateDrawDistanceFromScreenSize(const float SphereRadius, const float ScreenSize, const FMatrix& ProjectionMatrix)
 {
-	// Get projection multiple accounting for view scaling.
-	const float ScreenMultiple = FMath::Max(1920.0f / 2.0f * ProjectionMatrix.M[0][0],
-		1080.0f / 2.0f * ProjectionMatrix.M[1][1]);
-
-	// (ScreenMultiple * SphereRadius) / Sqrt(Screensize * 1920 * 1080.0f * PI) = Distance
-	const float Distance = (ScreenMultiple * SphereRadius) / FMath::Sqrt((ScreenSize * 1920.0f * 1080.0f) / PI);
-
-	return Distance;
+	return ComputeBoundsDrawDistance(ScreenSize, SphereRadius, ProjectionMatrix);
 }
 
 UPackage* FHierarchicalLODUtilities::CreateOrRetrieveLevelHLODPackage(ULevel* InLevel)
@@ -144,8 +128,6 @@ bool FHierarchicalLODUtilities::BuildStaticMeshForLODActor(ALODActor* LODActor, 
 		
 		TArray<UStaticMeshComponent*> AllComponents;
 		{
-			FScopedSlowTask SlowTask(LODActor->SubActors.Num(), (LOCTEXT("HierarchicalLODUtils_CollectStaticMeshes", "Collecting Static Meshes for Cluster")));
-			SlowTask.MakeDialog();
 			for (auto& Actor : LODActor->SubActors)
 			{
 				TArray<UStaticMeshComponent*> Components;
@@ -163,16 +145,12 @@ bool FHierarchicalLODUtilities::BuildStaticMeshForLODActor(ALODActor* LODActor, 
 				Components.RemoveAll([](UStaticMeshComponent* Val){ return Val->IsA(UInstancedStaticMeshComponent::StaticClass()); });
 
 				AllComponents.Append(Components);
-				SlowTask.EnterProgressFrame(1);
 			}
 		}
 
 		// it shouldn't even have come here if it didn't have any staticmesh
 		if (ensure(AllComponents.Num() > 0))
 		{
-			FScopedSlowTask SlowTask(LODActor->SubActors.Num(), (LOCTEXT("HierarchicalLODUtils_MergingMeshes", "Merging Static Meshes and creating LODActor")));
-			SlowTask.MakeDialog();
-
 			// In case we don't have outer generated assets should have same path as LOD level
 			const FString AssetsPath = AssetsOuter->GetName() + TEXT("/");
 			AActor* FirstActor = LODActor->SubActors[0];
@@ -267,8 +245,6 @@ bool FHierarchicalLODUtilities::BuildStaticMeshForLODActor(ALODActor* LODActor, 
 
 				// Freshly build so mark not dirty
 				LODActor->SetIsDirty(false);
-
-
 
 				return true;
 			}
@@ -718,13 +694,13 @@ void FHierarchicalLODUtilities::DeleteLODActorsInHLODLevel(UWorld* InWorld, cons
 	}
 }
 
-int32 FHierarchicalLODUtilities::ComputeStaticMeshLODLevel(const TArray<FStaticMeshSourceModel>& SourceModels, const FStaticMeshRenderData* RenderData, const float ScreenAreaSize)
+int32 FHierarchicalLODUtilities::ComputeStaticMeshLODLevel(const TArray<FStaticMeshSourceModel>& SourceModels, const FStaticMeshRenderData* RenderData, const float ScreenSize)
 {	
 	const int32 NumLODs = SourceModels.Num();
 	// Walk backwards and return the first matching LOD
 	for (int32 LODIndex = NumLODs - 1; LODIndex >= 0; --LODIndex)
 	{
-		if (SourceModels[LODIndex].ScreenSize > ScreenAreaSize || ((SourceModels[LODIndex].ScreenSize == 0.0f) && (RenderData->ScreenSize[LODIndex] != SourceModels[LODIndex].ScreenSize) && (RenderData->ScreenSize[LODIndex] > ScreenAreaSize)))
+		if (SourceModels[LODIndex].ScreenSize > ScreenSize || ((SourceModels[LODIndex].ScreenSize == 0.0f) && (RenderData->ScreenSize[LODIndex] != SourceModels[LODIndex].ScreenSize) && (RenderData->ScreenSize[LODIndex] > ScreenSize)))
 		{
 			return FMath::Max(LODIndex, 0);
 		}
@@ -733,14 +709,14 @@ int32 FHierarchicalLODUtilities::ComputeStaticMeshLODLevel(const TArray<FStaticM
 	return 0;
 }
 
-int32 FHierarchicalLODUtilities::GetLODLevelForScreenAreaSize(const UStaticMeshComponent* StaticMeshComponent, const float ScreenAreaSize)
+int32 FHierarchicalLODUtilities::GetLODLevelForScreenSize(const UStaticMeshComponent* StaticMeshComponent, const float ScreenSize)
 {
 	check(StaticMeshComponent != nullptr);
-	const FStaticMeshRenderData* RenderData = StaticMeshComponent->StaticMesh->RenderData.GetOwnedPointer();
+	const FStaticMeshRenderData* RenderData = StaticMeshComponent->GetStaticMesh()->RenderData.GetOwnedPointer();
 	checkf(RenderData != nullptr, TEXT("StaticMesh in StaticMeshComponent %s contains invalid render data"), *StaticMeshComponent->GetName());
-	checkf(StaticMeshComponent->StaticMesh->SourceModels.Num() > 0, TEXT("StaticMesh in StaticMeshComponent %s contains no SourceModels"), *StaticMeshComponent->GetName());
+	checkf(StaticMeshComponent->GetStaticMesh()->SourceModels.Num() > 0, TEXT("StaticMesh in StaticMeshComponent %s contains no SourceModels"), *StaticMeshComponent->GetName());
 
-	return ComputeStaticMeshLODLevel(StaticMeshComponent->StaticMesh->SourceModels, RenderData, ScreenAreaSize);
+	return ComputeStaticMeshLODLevel(StaticMeshComponent->GetStaticMesh()->SourceModels, RenderData, ScreenSize);
 }
 
 AHierarchicalLODVolume* FHierarchicalLODUtilities::CreateVolumeForLODActor(ALODActor* InLODActor, UWorld* InWorld)

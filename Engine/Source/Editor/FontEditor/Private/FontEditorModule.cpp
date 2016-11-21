@@ -7,6 +7,9 @@
 #include "SFontEditorViewport.h"
 #include "SCompositeFontEditor.h"
 #include "FontEditor.h"
+#include "Engine/FontFace.h"
+#include "FontFaceDetailsCustomization.h"
+#include "PropertyEditorModule.h"
 
 const FName FontEditorAppIdentifier = FName(TEXT("FontEditorApp"));
 
@@ -28,6 +31,9 @@ public:
 	{
 		MenuExtensibilityManager = MakeShareable(new FExtensibilityManager);
 		ToolBarExtensibilityManager = MakeShareable(new FExtensibilityManager);
+
+		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		PropertyModule.RegisterCustomClassLayout(UFontFace::StaticClass()->GetFName(), FOnGetDetailCustomizationInstance::CreateStatic(&FFontFaceDetailsCustomization::MakeInstance));
 	}
 
 	/** Called before the module is unloaded, right before the module object is destroyed */
@@ -35,6 +41,16 @@ public:
 	{
 		MenuExtensibilityManager.Reset();
 		ToolBarExtensibilityManager.Reset();
+
+		if (FModuleManager::Get().IsModuleLoaded(TEXT("PropertyEditor")))
+		{
+			FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+
+			if (UObjectInitialized())
+			{
+				PropertyModule.UnregisterCustomClassLayout(UFontFace::StaticClass()->GetFName());
+			}
+		}
 	}
 
 	/** Creates a new Font editor */

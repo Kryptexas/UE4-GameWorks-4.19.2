@@ -335,7 +335,7 @@ FCreateRigDlg::EResult FCreateRigDlg::ShowModal()
 
 	// Make a list of all skeleton bone list
 	const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
-	for ( int32 BoneTreeId=0; BoneTreeId<RefSkeleton.GetNum(); ++BoneTreeId )
+	for ( int32 BoneTreeId=0; BoneTreeId<RefSkeleton.GetRawBoneNum(); ++BoneTreeId )
 	{
 		const FName& BoneName = RefSkeleton.GetBoneName(BoneTreeId);
 
@@ -359,7 +359,7 @@ FCreateRigDlg::EResult FCreateRigDlg::ShowModal()
 
 	if(UserResponse == EResult::Confirm)
 	{
-		for ( int32 RefBoneId= 0 ; RefBoneId< RefSkeleton.GetNum() ; ++RefBoneId )
+		for ( int32 RefBoneId= 0 ; RefBoneId< RefSkeleton.GetRawBoneNum() ; ++RefBoneId )
 		{
 			if ( DialogWidget->IsBoneIncluded(RefBoneId) )
 			{
@@ -472,23 +472,15 @@ void FAssetTypeActions_Skeleton::OpenAssetEditor( const TArray<UObject*>& InObje
 		auto Skeleton = Cast<USkeleton>(*ObjIt);
 		if (Skeleton != NULL)
 		{
-			if (GetDefault<UPersonaOptions>()->bUseStandaloneAnimationEditors)
+			const bool bBringToFrontIfOpen = true;
+			if (IAssetEditorInstance* EditorInstance = FAssetEditorManager::Get().FindEditorForAsset(Skeleton, bBringToFrontIfOpen))
 			{
-				const bool bBringToFrontIfOpen = true;
-				if (IAssetEditorInstance* EditorInstance = FAssetEditorManager::Get().FindEditorForAsset(Skeleton, bBringToFrontIfOpen))
-				{
-					EditorInstance->FocusWindow(Skeleton);
-				}
-				else
-				{
-					ISkeletonEditorModule& SkeletonEditorModule = FModuleManager::LoadModuleChecked<ISkeletonEditorModule>("SkeletonEditor");
-					SkeletonEditorModule.CreateSkeletonEditor(Mode, EditWithinLevelEditor, Skeleton);
-				}
+				EditorInstance->FocusWindow(Skeleton);
 			}
 			else
 			{
-				FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>("Persona");
-				PersonaModule.CreatePersona(Mode, EditWithinLevelEditor, Skeleton, NULL, NULL, NULL);
+				ISkeletonEditorModule& SkeletonEditorModule = FModuleManager::LoadModuleChecked<ISkeletonEditorModule>("SkeletonEditor");
+				SkeletonEditorModule.CreateSkeletonEditor(Mode, EditWithinLevelEditor, Skeleton);
 			}
 		}
 	}

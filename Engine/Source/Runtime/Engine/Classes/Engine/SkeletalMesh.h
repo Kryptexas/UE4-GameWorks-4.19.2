@@ -12,6 +12,7 @@
 #include "Interfaces/Interface_CollisionDataProvider.h"
 #include "Interfaces/Interface_AssetUserData.h"
 #include "BoneIndices.h"
+#include "Components.h"
 #include "SkeletalMesh.generated.h"
 
 /** The maximum number of skeletal mesh LODs allowed. */
@@ -235,7 +236,11 @@ struct FSkeletalMeshLODInfo
 {
 	GENERATED_USTRUCT_BODY()
 
-	/**	Indicates when to use this LOD. A smaller number means use this LOD when further away. */
+	/** 
+	 * ScreenSize to display this LOD.
+	 * The screen size is based around the projected diameter of the bounding
+	 * sphere of the model. i.e. 0.5 means half the screen's maximum dimension.
+	 */
 	UPROPERTY(EditAnywhere, Category=SkeletalMeshLODInfo)
 	float ScreenSize;
 
@@ -265,6 +270,10 @@ struct FSkeletalMeshLODInfo
 	/** This has been removed in editor. We could re-apply this in import time or by mesh reduction utilities*/
 	UPROPERTY(EditAnywhere, Category = ReductionSettings)
 	TArray<FName> RemovedBones;
+
+	/** The filename of the file tha was used to import this LOD if it was not auto generated. */
+	UPROPERTY(VisibleAnywhere, Category= SkeletalMeshLODInfo, AdvancedDisplay)
+	FString SourceImportFilename;
 
 	FSkeletalMeshLODInfo()
 		: ScreenSize(0)
@@ -436,6 +445,10 @@ struct FClothingAssetData
 	UPROPERTY(EditAnywhere, Transient, Category = ClothingAssetData)
 	FClothPhysicsProperties PhysicsProperties;
 
+	UPROPERTY(Transient)
+	/** Apex stores only the bones that cloth needs. We need a mapping from apex bone index to UE bone index. */
+	TArray<int32> ApexToUnrealBoneMapping;
+
 #if WITH_APEX_CLOTHING
 	nvidia::apex::ClothingAsset* ApexClothingAsset;
 
@@ -452,9 +465,6 @@ struct FClothingAssetData
 	 */
 	TArray<FClothVisualizationInfo> ClothVisualizationInfos;
 
-	/** Apex stores only the bones that cloth needs. We need a mapping from apex bone index to UE bone index. */
-	TArray<int32> ApexToUnrealBoneMapping;
-
 	/** currently mapped morph target name */
 	FName PreparedMorphTargetName;
 
@@ -468,7 +478,10 @@ struct FClothingAssetData
 	friend FArchive& operator<<(FArchive& Ar, FClothingAssetData& A);
 
 	// get resource size
+	DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
 	SIZE_T GetResourceSize() const;
+	void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const;
+	SIZE_T GetResourceSizeBytes() const;
 };
 
 //~ Begin Material Interface for USkeletalMesh - contains a material and a shadow casting flag
@@ -526,6 +539,10 @@ struct FSkeletalMaterial
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = SkeletalMesh)
 	FName						ImportedMaterialSlotName;
 #endif //WITH_EDITORONLY_DATA
+
+	/** Data used for texture streaming relative to each UV channels. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = SkeletalMesh)
+	FMeshUVChannelInfo			UVChannelData;
 };
 
 class FSkeletalMeshResource;
@@ -643,6 +660,12 @@ public:
 	UPROPERTY(EditAnywhere, Category = Physics)
 	uint32 bEnablePerPolyCollision : 1;
 
+	/**
+	 * If true on post load we need to calculate resolution independent Display Factors from the
+	 * loaded LOD screen sizes.
+	 */
+	uint32 bRequiresLODScreenSizeConversion : 1;
+
 	// Physics data for the per poly collision case. In 99% of cases you will not need this and are better off using simple ragdoll collision (physics asset)
 	UPROPERTY(transient)
 	class UBodySetup* BodySetup;
@@ -688,14 +711,6 @@ public:
 	FPreviewAssetAttachContainer PreviewAttachedAssetContainer;
 
 #endif // WITH_EDITORONLY_DATA
-
-	/**
-	 * Allows artists to adjust the distance where textures using UV 0 are streamed in/out.
-	 * 1.0 is the default, whereas a higher value increases the streamed-in resolution.
-	 * Value can be < 0 (from legcay content, or code changes)
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=TextureStreaming, meta=(ClampMin = 0))
-	float StreamingDistanceMultiplier;
 
 	UPROPERTY(Category=Mesh, BlueprintReadWrite)
 	TArray<UMorphTarget*> MorphTargets;
@@ -752,9 +767,6 @@ private:
 	/** Skeletal mesh source data */
 	class FSkeletalMeshSourceData* SourceData;
 
-	/** The cached streaming texture factors.  If the array doesn't have MAX_TEXCOORDS entries in it, the cache is outdated. */
-	TArray<float> CachedStreamingTextureFactors;
-
 	/** 
 	 *	Array of named socket locations, set up in editor and used as a shortcut instead of specifying 
 	 *	everything explicitly to AttachComponent in the SkeletalMeshComponent. 
@@ -780,13 +792,21 @@ public:
 	/** Release CPU access version of buffer */
 	void ReleaseCPUResources();
 
-	/**
-	 * Returns the scale dependent texture factor used by the texture streaming code.	
+	/** 
+	 * Update the material UV channel data used by the texture streamer. 
 	 *
-	 * @param RequestedUVIndex UVIndex to look at
-	 * @return scale dependent texture factor
+	 * @param bResetOverrides		True if overridden values should be reset.
 	 */
-	float GetStreamingTextureFactor( int32 RequestedUVIndex );
+	ENGINE_API void UpdateUVChannelData(bool bResetOverrides);
+
+	/**
+	 * Returns the UV channel data for a given material index. Used by the texture streamer.
+	 * This data applies to all lod-section using the same material.
+	 *
+	 * @param MaterialIndex		the material index for which to get the data for.
+	 * @return the data, or null if none exists.
+	 */
+	ENGINE_API const FMeshUVChannelInfo* GetUVChannelData(int32 MaterialIndex) const;
 
 	/**
 	 * Gets the center point from which triangles should be sorted, if any.
@@ -815,7 +835,7 @@ public:
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 	virtual FString GetDesc() override;
 	virtual FString GetDetailedInfoInternal() const override;
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	//~ End UObject Interface.
 
@@ -967,6 +987,9 @@ public:
 	ENGINE_API void BuildPhysicsData();
 	ENGINE_API void AddBoneToReductionSetting(int32 LODIndex, const TArray<FName>& BoneNames);
 	ENGINE_API void AddBoneToReductionSetting(int32 LODIndex, FName BoneName);
+
+	/** Convert legacy screen size (based on fixed resolution) into screen size (diameter in screen units) */
+	void ConvertLegacyLODScreenSize();
 #endif
 	
 

@@ -1,8 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
+#include "UdpMessagingPrivatePCH.h"
+
 #if PLATFORM_DESKTOP
 
-#include "UdpMessagingPrivatePCH.h"
+#include "UdpMessageTunnelConnection.h"
 
 
 /* FUdpMessageTunnelConnection structors

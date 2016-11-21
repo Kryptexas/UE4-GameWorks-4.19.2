@@ -54,10 +54,3 @@ public:
 	/** Virtual destructor. */
 	virtual ~IMessageBridge() { }
 };
-
-
-/** Type definition for shared pointers to instances of IMessageBridge. */
-typedef TSharedPtr<IMessageBridge, ESPMode::ThreadSafe> IMessageBridgePtr;
-
-/** Type definition for shared references to instances of IMessageBridge. */
-typedef TSharedRef<IMessageBridge, ESPMode::ThreadSafe> IMessageBridgeRef;

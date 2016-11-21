@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 #include "Engine/CoreSettings.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogCoreSettings, Log, All);
 
 int32 GUseBackgroundLevelStreaming = 1;
 float GAsyncLoadingTimeLimit = 5.0f;
@@ -70,7 +71,8 @@ UStreamingSettings::UStreamingSettings()
 	AsyncLoadingUseFullTimeLimit = true;
 	PriorityAsyncLoadingExtraTime = 20.0f;
 	LevelStreamingActorsUpdateTimeLimit = 5.0f;
-	LevelStreamingComponentsRegistrationGranularity = 10;	
+	LevelStreamingComponentsRegistrationGranularity = 10;
+	EventDrivenLoaderEnabled = false;
 }
 
 void UStreamingSettings::PostInitProperties()
@@ -81,6 +83,12 @@ void UStreamingSettings::PostInitProperties()
 	if (IsTemplate())
 	{
 		ImportConsoleVariableValues();
+
+		// EDL can only be enabled in source code builds
+		if (FApp::IsEngineInstalled())
+		{
+			EventDrivenLoaderEnabled = false;
+		}
 	}
 #endif // #if WITH_EDITOR
 }
@@ -88,8 +96,20 @@ void UStreamingSettings::PostInitProperties()
 #if WITH_EDITOR
 void UStreamingSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
+	static FName NAME_EventDrivenLoaderEnabled(TEXT("EventDrivenLoaderEnabled"));
+
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
+	if (Cast<UBoolProperty>(PropertyChangedEvent.Property) && PropertyChangedEvent.Property->GetFName() == NAME_EventDrivenLoaderEnabled)
+	{
+		if (FApp::IsEngineInstalled())
+		{
+			UBoolProperty* EventDrivenLoaderEnabledProperty = CastChecked<UBoolProperty>(PropertyChangedEvent.Property);
+			EventDrivenLoaderEnabledProperty->SetPropertyValue_InContainer(this, false);
+			UE_LOG(LogCoreSettings, Warning, TEXT("Event Driven Loader can only be enabled in source code distributions."))
+		}
+	}
+	
 	if (PropertyChangedEvent.Property)
 	{
 		ExportValuesToConsoleVariables(PropertyChangedEvent.Property);

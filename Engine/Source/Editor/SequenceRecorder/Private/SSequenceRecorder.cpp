@@ -136,6 +136,7 @@ void SSequenceRecorder::Construct(const FArguments& Args)
 	{
 		ToolBarBuilder.AddToolBarButton(FSequenceRecorderCommands::Get().AddRecording);
 		ToolBarBuilder.AddToolBarButton(FSequenceRecorderCommands::Get().RemoveRecording);
+		ToolBarBuilder.AddToolBarButton(FSequenceRecorderCommands::Get().RemoveAllRecordings);
 	}
 	ToolBarBuilder.EndSection();
 
@@ -263,6 +264,11 @@ void SSequenceRecorder::BindCommands()
 		FExecuteAction::CreateSP(this, &SSequenceRecorder::HandleRemoveRecording),
 		FCanExecuteAction::CreateSP(this, &SSequenceRecorder::CanRemoveRecording)
 		);
+
+	CommandList->MapAction(FSequenceRecorderCommands::Get().RemoveAllRecordings,
+		FExecuteAction::CreateSP(this, &SSequenceRecorder::HandleRemoveAllRecordings),
+		FCanExecuteAction::CreateSP(this, &SSequenceRecorder::CanRemoveAllRecordings)
+		);
 }
 
 TSharedRef<ITableRow> SSequenceRecorder::MakeListViewWidget(UActorRecording* Recording, const TSharedRef<STableViewBase>& OwnerTable) const
@@ -344,6 +350,17 @@ void SSequenceRecorder::HandleRemoveRecording()
 bool SSequenceRecorder::CanRemoveRecording() const
 {
 	return ListView->GetNumItemsSelected() > 0 && !FAnimationRecorderManager::Get().IsRecording();
+}
+
+void SSequenceRecorder::HandleRemoveAllRecordings()
+{
+	FSequenceRecorder::Get().ClearQueuedRecordings();
+	ActorRecordingDetailsView->SetObject(nullptr);
+}
+
+bool SSequenceRecorder::CanRemoveAllRecordings() const
+{
+	return FSequenceRecorder::Get().HasQueuedRecordings() && !FAnimationRecorderManager::Get().IsRecording();
 }
 
 EActiveTimerReturnType SSequenceRecorder::HandleRefreshItems(double InCurrentTime, float InDeltaTime)

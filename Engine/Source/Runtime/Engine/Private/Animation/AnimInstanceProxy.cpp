@@ -13,6 +13,7 @@
 #include "Animation/AnimNode_TransitionResult.h"
 #include "Animation/AnimNode_SaveCachedPose.h"
 #include "Animation/AnimNode_SubInput.h"
+#include "Animation/PoseSnapshot.h"
 
 #define DO_ANIMSTAT_PROCESSING(StatName) DEFINE_STAT(STAT_ ## StatName)
 #include "AnimMTStats.h"
@@ -235,6 +236,18 @@ void FAnimInstanceProxy::PreUpdate(UAnimInstance* InAnimInstance, float DeltaSec
 	{
 		Node->PreUpdate(InAnimInstance);
 	}
+}
+
+void FAnimInstanceProxy::SavePoseSnapshot(USkeletalMeshComponent* InSkeletalMeshComponent, FName SnapshotName)
+{
+	FPoseSnapshot* PoseSnapshot = PoseSnapshots.FindByPredicate([SnapshotName](const FPoseSnapshot& PoseData) { return PoseData.SnapshotName == SnapshotName; });
+	if (PoseSnapshot == nullptr)
+	{
+		PoseSnapshot = &PoseSnapshots[PoseSnapshots.AddDefaulted()];
+		PoseSnapshot->SnapshotName = SnapshotName;
+	}
+
+	InSkeletalMeshComponent->SnapshotPose(*PoseSnapshot);
 }
 
 void FAnimInstanceProxy::PostUpdate(UAnimInstance* InAnimInstance) const
@@ -1700,5 +1713,10 @@ void FAnimInstanceProxy::RegisterWatchedPose(const FCSPose<FCompactPose>& Pose, 
 	}
 }
 #endif
+
+const FPoseSnapshot* FAnimInstanceProxy::GetPoseSnapshot(FName SnapshotName) const
+{
+	return PoseSnapshots.FindByPredicate([SnapshotName](const FPoseSnapshot& PoseData) { return PoseData.SnapshotName == SnapshotName; });
+}
 
 #undef LOCTEXT_NAMESPACE

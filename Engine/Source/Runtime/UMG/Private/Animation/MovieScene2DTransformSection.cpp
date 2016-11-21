@@ -133,7 +133,8 @@ void UMovieScene2DTransformSection::SetKeyTime( FKeyHandle KeyHandle, float Time
 /**
  * Chooses an appropriate curve from an axis and a set of curves
  */
-static FRichCurve* ChooseCurve( EAxis::Type Axis, FRichCurve* Curves )
+template<typename T>
+static T* ChooseCurve( EAxis::Type Axis, T* Curves )
 {
 	switch(Axis)
 	{
@@ -156,7 +157,19 @@ FRichCurve& UMovieScene2DTransformSection::GetTranslationCurve(EAxis::Type Axis)
 }
 
 
+const FRichCurve& UMovieScene2DTransformSection::GetTranslationCurve(EAxis::Type Axis) const
+{
+	return *ChooseCurve( Axis, Translation );
+}
+
+
 FRichCurve& UMovieScene2DTransformSection::GetRotationCurve()
+{
+	return Rotation;
+}
+
+
+const FRichCurve& UMovieScene2DTransformSection::GetRotationCurve() const
 {
 	return Rotation;
 }
@@ -168,7 +181,19 @@ FRichCurve& UMovieScene2DTransformSection::GetScaleCurve(EAxis::Type Axis)
 }
 
 
-FRichCurve& UMovieScene2DTransformSection::GetSheerCurve(EAxis::Type Axis)
+const FRichCurve& UMovieScene2DTransformSection::GetScaleCurve(EAxis::Type Axis) const
+{
+	return *ChooseCurve(Axis, Scale);
+}
+
+
+FRichCurve& UMovieScene2DTransformSection::GetShearCurve(EAxis::Type Axis)
+{
+	return *ChooseCurve(Axis, Shear);
+}
+
+
+const FRichCurve& UMovieScene2DTransformSection::GetShearCurve(EAxis::Type Axis) const
 {
 	return *ChooseCurve(Axis, Shear);
 }

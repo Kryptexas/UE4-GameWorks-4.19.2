@@ -14,6 +14,7 @@
 #include "UnitConversion.h"
 #include "GeneratedCodeVersion.h"
 #include "FileLineException.h"
+#include "Containers/EnumAsByte.h"
 
 #include "Algo/FindSortedStringCaseInsensitive.h"
 
@@ -887,6 +888,15 @@ namespace
 			// Script VM doesn't support array of weak ptrs.
 			return IsPropertySupportedByBlueprint(ArrayProperty->Inner, false);
 		}
+		else if (const USetProperty* SetProperty = Cast<const USetProperty>(Property))
+		{
+			return IsPropertySupportedByBlueprint(SetProperty->ElementProp, false);
+		}
+		else if (const UMapProperty* MapProperty = Cast<const UMapProperty>(Property))
+		{
+			return IsPropertySupportedByBlueprint(MapProperty->KeyProp, false) &&
+				IsPropertySupportedByBlueprint(MapProperty->ValueProp, false);
+		}
 
 		const bool bSupportedType = Property->IsA<UInterfaceProperty>()
 			|| Property->IsA<UClassProperty>()
@@ -1197,22 +1207,29 @@ UEnum* FHeaderParser::CompileEnum()
 	// Read base for enum class
 	if (CppForm == UEnum::ECppForm::EnumClass)
 	{
-		RequireSymbol(TEXT(":"), TEXT("'Enum'"));
-
-		FToken BaseToken;
-		if (!GetIdentifier(BaseToken))
+		if (MatchSymbol(TEXT(":")))
 		{
-			FError::Throwf(TEXT("Missing enum base") );
-		}
+			FToken BaseToken;
+			if (!GetIdentifier(BaseToken))
+			{
+				FError::Throwf(TEXT("Missing enum base") );
+			}
 
-		// We only support uint8 at the moment, until the properties get updated
-		if (FCString::Strcmp(BaseToken.Identifier, TEXT("uint8")))
+			// We only support uint8 at the moment, until the properties get updated
+			if (FCString::Strcmp(BaseToken.Identifier, TEXT("uint8")))
+			{
+				FError::Throwf(TEXT("Only enum bases of type uint8 are currently supported"));
+			}
+
+			GEnumUnderlyingTypes.Add(Enum, CPT_Byte);
+			UHTMakefile.AddGEnumUnderlyingType(CurrentSrcFile, Enum, CPT_Byte);
+		}
+	#if DEPRECATE_ENUM_AS_BYTE_FOR_ENUM_CLASSES
+		else
 		{
-			FError::Throwf(TEXT("Only enum bases of type uint8 are currently supported"));
+			FError::Throwf(TEXT("Missing base specifier for enum class '%s' - did you mean ': uint8'?"), EnumToken.Identifier);
 		}
-
-		GEnumUnderlyingTypes.Add(Enum, CPT_Byte);
-		UHTMakefile.AddGEnumUnderlyingType(CurrentSrcFile, Enum, CPT_Byte);
+	#endif
 	}
 
 	// Get opening brace.
@@ -3396,6 +3413,11 @@ FIndexRange*                    ParsedVarIndexRange
 			FError::Throwf(TEXT("UINTERFACEs are not currently supported as key types."));
 		}
 
+		if (MapKeyType.Type == CPT_Text)
+		{
+			FError::Throwf(TEXT("FText is not currently supported as a key type."));
+		}
+
 		FToken CommaToken;
 		if (!GetToken(CommaToken, /*bNoConsts=*/ true) || CommaToken.TokenType != TOKEN_Symbol || FCString::Stricmp(CommaToken.Identifier, TEXT(",")))
 		{
@@ -3463,6 +3485,11 @@ FIndexRange*                    ParsedVarIndexRange
 		if (VarProperty.Type == CPT_Interface)
 		{
 			FError::Throwf(TEXT("UINTERFACEs are not currently supported as element types."));
+		}
+
+		if (VarProperty.Type == CPT_Text)
+		{
+			FError::Throwf(TEXT("FText is not currently supported as an element type."));
 		}
 
 		OriginalVarTypeFlags |= VarProperty.PropertyFlags & (CPF_ContainsInstancedReference | CPF_InstancedReference); // propagate these to the set, we will fix them later
@@ -4860,6 +4887,9 @@ FClass* FHeaderParser::ParseClassNameDeclaration(FClasses& AllClasses, FString& 
 
 	// Get parent class.
 	bool bSpecifiesParentClass = false;
+
+	// Skip optional final keyword
+	MatchIdentifier(TEXT("final"));
 
 	if (MatchSymbol(TEXT(":")))
 	{
@@ -7844,6 +7874,9 @@ void FHeaderPreParser::ParseClassDeclaration(const TCHAR* InputText, int32 InLin
 		DeclarationData->ParseClassProperties(SpecifiersFound, RequiredAPIMacroIfPresent);
 		GClassDeclarations.Add(ClassNameWithoutPrefix, DeclarationData);
 	}
+
+	// Skip optional final keyword
+	MatchIdentifier(TEXT("final"));
 
 	// Handle inheritance
 	if (MatchSymbol(TEXT(":")))

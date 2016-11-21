@@ -20,7 +20,7 @@ UAnimGraphNode_Base::UAnimGraphNode_Base(const FObjectInitializer& ObjectInitial
 {
 }
 
-void UAnimGraphNode_Base::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+void UAnimGraphNode_Base::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	FName PropertyName = (PropertyChangedEvent.Property != NULL) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
 
@@ -30,6 +30,8 @@ void UAnimGraphNode_Base::PostEditChangeProperty(struct FPropertyChangedEvent& P
 	}
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	PropertyChangeEvent.Broadcast(PropertyChangedEvent);
 }
 
 void UAnimGraphNode_Base::CreateOutputPins()
@@ -68,6 +70,8 @@ void UAnimGraphNode_Base::AllocateDefaultPins()
 void UAnimGraphNode_Base::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins)
 {
 	InternalPinCreation(&OldPins);
+
+	RestoreSplitPins(OldPins);
 }
 
 FLinearColor UAnimGraphNode_Base::GetNodeTitleColor() const
@@ -147,7 +151,7 @@ FText UAnimGraphNode_Base::GetMenuCategory() const
 	return FText::FromString(GetNodeCategory());
 }
 
-void UAnimGraphNode_Base::GetPinAssociatedProperty(const UScriptStruct* NodeType, UEdGraphPin* InputPin, UProperty*& OutProperty, int32& OutIndex)
+void UAnimGraphNode_Base::GetPinAssociatedProperty(const UScriptStruct* NodeType, const UEdGraphPin* InputPin, UProperty*& OutProperty, int32& OutIndex) const
 {
 	OutProperty = nullptr;
 	OutIndex = INDEX_NONE;

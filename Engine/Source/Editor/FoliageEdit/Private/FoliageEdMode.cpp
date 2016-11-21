@@ -158,7 +158,7 @@ bool FFoliagePaintingGeometryFilter::operator() (const UPrimitiveComponent* Comp
 		bool bAllowed =
 			(bAllowLandscape   && Component->IsA(ULandscapeHeightfieldCollisionComponent::StaticClass())) ||
 			(bAllowStaticMesh  && Component->IsA(UStaticMeshComponent::StaticClass()) && !Component->IsA(UFoliageInstancedStaticMeshComponent::StaticClass())) ||
-			(bAllowBSP         && Component->IsA(UModelComponent::StaticClass())) ||
+			(bAllowBSP         && (Component->IsA(UBrushComponent::StaticClass()) || Component->IsA(UModelComponent::StaticClass()))) ||
 			(bAllowFoliage     && Component->IsA(UFoliageInstancedStaticMeshComponent::StaticClass()));
 
 		// Blacklist
@@ -196,7 +196,7 @@ FEdModeFoliage::FEdModeFoliage()
 	SphereBrushComponent = NewObject<UStaticMeshComponent>(GetTransientPackage(), TEXT("SphereBrushComponent"));
 	SphereBrushComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	SphereBrushComponent->SetCollisionObjectType(ECC_WorldDynamic);
-	SphereBrushComponent->StaticMesh = StaticMesh;
+	SphereBrushComponent->SetStaticMesh(StaticMesh);
 	SphereBrushComponent->OverrideMaterials.Add(BrushMaterial);
 	SphereBrushComponent->SetAbsolute(true, true, true);
 	SphereBrushComponent->CastShadow = false;
@@ -447,8 +447,7 @@ void FEdModeFoliage::OnVRHoverUpdate(FEditorViewportClient& ViewportClient, UVie
 			{
 				// Check if we're hovering over UI. If so, stop painting so we don't display the preview brush sphere
 				const UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>(ViewportInteractor);
-				const bool bIsHoveringOverUIVR = VRInteractor->IsHoveringOverUI();
-				if (bIsHoveringOverUIVR)
+				if (VRInteractor->IsHoveringOverPriorityType())
 				{
 					EndFoliageBrushTrace();
 				}
@@ -481,7 +480,7 @@ void FEdModeFoliage::OnVRAction(class FEditorViewportClient& ViewportClient, UVi
 		// Consume both full press and light press
 		if (Action.ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed || Action.ActionType == ViewportWorldActionTypes::SelectAndMove)
 		{
-			if (Action.Event == IE_Pressed && !VRInteractor->IsHoveringOverUI())
+			if (Action.Event == IE_Pressed && !VRInteractor->IsHoveringOverPriorityType())
 			{
 				// Go ahead and paint immediately
 				FVector LaserPointerStart, LaserPointerEnd;
@@ -746,8 +745,7 @@ void FEdModeFoliage::Tick(FEditorViewportClient* ViewportClient, float DeltaTime
 				{
 					// Check if we're hovering over UI. If so, stop painting so we don't display the preview brush sphere
 					const UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>(Interactor);
-					const bool bIsHoveringOverUIVR = VRInteractor->IsHoveringOverUI();
-					if (bIsHoveringOverUIVR)
+					if (VRInteractor->IsHoveringOverPriorityType())
 					{
 						EndFoliageBrushTrace();
 					}
@@ -2303,10 +2301,10 @@ void FEdModeFoliage::ApplyPaintBucket_Add(AActor* Actor)
 	{
 		UMaterialInterface* Material = StaticMeshComponent->GetMaterial(0);
 
-		if (UISettings.bFilterStaticMesh && StaticMeshComponent->StaticMesh && StaticMeshComponent->StaticMesh->RenderData &&
+		if (UISettings.bFilterStaticMesh && StaticMeshComponent->GetStaticMesh() && StaticMeshComponent->GetStaticMesh()->RenderData &&
 			(UISettings.bFilterTranslucent || !Material || !IsTranslucentBlendMode(Material->GetBlendMode())))
 		{
-			UStaticMesh* StaticMesh = StaticMeshComponent->StaticMesh;
+			UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
 			FStaticMeshLODResources& LODModel = StaticMesh->RenderData->LODResources[0];
 			TArray<FFoliagePaintBucketTriangle>& PotentialTriangles = ComponentPotentialTriangles.Add(StaticMeshComponent, TArray<FFoliagePaintBucketTriangle>());
 
@@ -2443,7 +2441,7 @@ void FEdModeFoliage::ApplyPaintBucket_Add(AActor* Actor)
 
 bool FEdModeFoliage::GetStaticMeshVertexColorForHit(const UStaticMeshComponent* InStaticMeshComponent, int32 InTriangleIndex, const FVector& InHitLocation, FColor& OutVertexColor)
 {
-	const UStaticMesh* StaticMesh = InStaticMeshComponent->StaticMesh;
+	const UStaticMesh* StaticMesh = InStaticMeshComponent->GetStaticMesh();
 
 	if (StaticMesh == nullptr || StaticMesh->RenderData == nullptr)
 	{
@@ -2933,7 +2931,7 @@ void FEdModeFoliage::BakeFoliage(UFoliageType* Settings, bool bSelectedOnly)
 			UWorld* World = IFA->GetWorld();
 			check(World != nullptr);
 			AStaticMeshActor* SMA = World->SpawnActor<AStaticMeshActor>(Instance.Location, Instance.Rotation);
-			SMA->GetStaticMeshComponent()->StaticMesh = Settings->GetStaticMesh();
+			SMA->GetStaticMeshComponent()->SetStaticMesh(Settings->GetStaticMesh());
 			SMA->GetRootComponent()->SetRelativeScale3D(Instance.DrawScale3D);
 			SMA->MarkComponentsRenderStateDirty();
 		}

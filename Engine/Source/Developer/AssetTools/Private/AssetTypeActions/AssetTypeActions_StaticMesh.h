@@ -44,6 +44,9 @@ private:
 
 	/** Handler to provide the LOD sub-menu. Hides away LOD actions - includes Import LOD sub menu */
 	void GetLODMenu(class FMenuBuilder& MenuBuilder, TArray<TWeakObjectPtr<UStaticMesh>> Meshes);
+
+	/** Handler for calling import methods */
+	static void ExecuteImportMeshLOD(UObject* Mesh, int32 LOD);
 private:
 
 	TWeakObjectPtr<UStaticMesh> LODCopyMesh;	

@@ -87,7 +87,8 @@ struct UNREALED_API FLevelEditorViewportInstanceSettings
 		, FarViewPlane(0)
 		, bIsRealtime(false)
 		, bShowFPS_DEPRECATED(false)
-		, bShowStats(false)
+		// Show 'lighting needs to be rebuilt' message by default, avoids confusion when artists think lighting is built until they PIE
+		, bShowOnScreenStats(true)
 		, bShowFullToolbar(true)
 	{ }
 
@@ -143,7 +144,7 @@ struct UNREALED_API FLevelEditorViewportInstanceSettings
 
 	/* Whether viewport statistics should be shown. */
 	UPROPERTY(config)
-	bool bShowStats;
+	bool bShowOnScreenStats;
 
 	/* Whether viewport statistics should be enabled by default. */
 	UPROPERTY(config)

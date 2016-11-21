@@ -143,11 +143,11 @@ static void RHIDetectAndWarnOfBadDrivers()
 			FText LocalizedMsg;
 			if (bLatestBlacklisted)
 			{
-				LocalizedMsg = FText::Format(NSLOCTEXT("MessageDialog", "LatestVideoCardDriverIssueReport","The latest version of the {Vendor} graphics driver has known issues.\n\nPlease install the last known good driver version.\n\n{AdapterName}\n{RecommendedVer} is the last known good\n{InstalledVer} is installed"),Args);
+				LocalizedMsg = FText::Format(NSLOCTEXT("MessageDialog", "LatestVideoCardDriverIssueReport","The latest version of the {Vendor} graphics driver has known issues.\nPlease install the recommended driver version.\n\n{AdapterName}\nInstalled: {InstalledVer}\nRecommended: {RecommendedVer}"),Args);
 			}
 			else
 			{
-				LocalizedMsg = FText::Format(NSLOCTEXT("MessageDialog", "VideoCardDriverIssueReport","Your {Vendor} graphics driver has known issues.\n\nPlease update to the latest driver version.\n\n{AdapterName}\n{RecommendedVer} is recommended\n{InstalledVer} is installed"),Args);
+				LocalizedMsg = FText::Format(NSLOCTEXT("MessageDialog", "VideoCardDriverIssueReport","The installed version of the {Vendor} graphics driver has known issues.\nPlease update to the latest driver version.\n\n{AdapterName}\nInstalled: {InstalledVer}\nRecommended: {RecommendedVer}"),Args);
 			}
 
 			FPlatformMisc::MessageBoxExt(EAppMsgType::Ok,

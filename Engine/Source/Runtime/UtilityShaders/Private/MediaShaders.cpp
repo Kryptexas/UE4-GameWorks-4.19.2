@@ -39,26 +39,57 @@ void FAYUVConvertPS::SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRH
 }
 
 
+/* FRGBConvertPS shader
+ *****************************************************************************/
+
+BEGIN_UNIFORM_BUFFER_STRUCT(FBMPConvertUB, )
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector2D, UVScale)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture2D, BMPTexture)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, BMPSampler)
+END_UNIFORM_BUFFER_STRUCT(FBMPConvertUB)
+
+IMPLEMENT_UNIFORM_BUFFER_STRUCT(FBMPConvertUB, TEXT("BMPConvertUB"));
+IMPLEMENT_SHADER_TYPE(, FBMPConvertPS, TEXT("MediaShaders"), TEXT("BMPConvertPS"), SF_Pixel);
+
+
+void FBMPConvertPS::SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> BMPTexture, const FIntPoint& OutputDimensions)
+{
+	FBMPConvertUB UB;
+	{
+		UB.UVScale = FVector2D((float)OutputDimensions.X / (float)BMPTexture->GetSizeX(), (float)OutputDimensions.Y / (float)BMPTexture->GetSizeY());
+		UB.BMPTexture = BMPTexture;
+		UB.BMPSampler = TStaticSamplerState<SF_Bilinear>::GetRHI();
+	}
+
+	TUniformBufferRef<FBMPConvertUB> Data = TUniformBufferRef<FBMPConvertUB>::CreateUniformBufferImmediate(UB, UniformBuffer_SingleFrame);
+	SetUniformBufferParameter(RHICmdList, GetPixelShader(), GetUniformBufferParameter<FBMPConvertUB>(), Data);
+}
+
+
 /* FNV12ConvertPS shader
  *****************************************************************************/
 
 BEGIN_UNIFORM_BUFFER_STRUCT(FNV12ConvertUB, )
-DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, Width)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, OutputWidth)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector2D, UVScale)
 DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture2D, NV12Texture)
-DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, NV12Sampler)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, NV12SamplerB)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, NV12SamplerP)
 END_UNIFORM_BUFFER_STRUCT(FNV12ConvertUB)
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FNV12ConvertUB, TEXT("NV12ConvertUB"));
 IMPLEMENT_SHADER_TYPE(, FNV12ConvertPS, TEXT("MediaShaders"), TEXT("NV12ConvertPS"), SF_Pixel);
 
 
-void FNV12ConvertPS::SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> NV12Texture)
+void FNV12ConvertPS::SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> NV12Texture, const FIntPoint& OutputDimensions)
 {
 	FNV12ConvertUB UB;
 	{
-		UB.Width = NV12Texture->GetSizeX();
+		UB.OutputWidth = OutputDimensions.X;
+		UB.UVScale = FVector2D((float)OutputDimensions.X / (float)NV12Texture->GetSizeX(), (float)OutputDimensions.Y / (float)NV12Texture->GetSizeY());
 		UB.NV12Texture = NV12Texture;
-		UB.NV12Sampler = TStaticSamplerState<SF_Bilinear>::GetRHI();
+		UB.NV12SamplerB = TStaticSamplerState<SF_Bilinear>::GetRHI();
+		UB.NV12SamplerP = TStaticSamplerState<SF_Point>::GetRHI();
 	}
 
 	TUniformBufferRef<FNV12ConvertUB> Data = TUniformBufferRef<FNV12ConvertUB>::CreateUniformBufferImmediate(UB, UniformBuffer_SingleFrame);
@@ -70,26 +101,57 @@ void FNV12ConvertPS::SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRH
  *****************************************************************************/
 
 BEGIN_UNIFORM_BUFFER_STRUCT(FNV21ConvertUB, )
-DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, Width)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, OutputWidth)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector2D, UVScale)
 DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture2D, NV21Texture)
-DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, NV21Sampler)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, NV21SamplerB)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, NV21SamplerP)
 END_UNIFORM_BUFFER_STRUCT(FNV21ConvertUB)
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FNV21ConvertUB, TEXT("NV21ConvertUB"));
 IMPLEMENT_SHADER_TYPE(, FNV21ConvertPS, TEXT("MediaShaders"), TEXT("NV21ConvertPS"), SF_Pixel);
 
 
-void FNV21ConvertPS::SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> NV21Texture)
+void FNV21ConvertPS::SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> NV21Texture, const FIntPoint& OutputDimensions)
 {
 	FNV21ConvertUB UB;
 	{
-		UB.Width = NV21Texture->GetSizeX();
+		UB.OutputWidth = OutputDimensions.Y;
+		UB.UVScale = FVector2D((float)OutputDimensions.X / (float)NV21Texture->GetSizeX(), (float)OutputDimensions.Y / (float)NV21Texture->GetSizeY());
 		UB.NV21Texture = NV21Texture;
-		UB.NV21Sampler = TStaticSamplerState<SF_Bilinear>::GetRHI();
+		UB.NV21SamplerB = TStaticSamplerState<SF_Bilinear>::GetRHI();
+		UB.NV21SamplerP = TStaticSamplerState<SF_Point>::GetRHI();
 	}
 
 	TUniformBufferRef<FNV21ConvertUB> Data = TUniformBufferRef<FNV21ConvertUB>::CreateUniformBufferImmediate(UB, UniformBuffer_SingleFrame);
 	SetUniformBufferParameter(RHICmdList, GetPixelShader(), GetUniformBufferParameter<FNV21ConvertUB>(), Data);
+}
+
+
+/* FRGBConvertPS shader
+ *****************************************************************************/
+
+BEGIN_UNIFORM_BUFFER_STRUCT(FRGBConvertUB, )
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector2D, UVScale)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture2D, RGBTexture)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, RGBSampler)
+END_UNIFORM_BUFFER_STRUCT(FRGBConvertUB)
+
+IMPLEMENT_UNIFORM_BUFFER_STRUCT(FRGBConvertUB, TEXT("RGBConvertUB"));
+IMPLEMENT_SHADER_TYPE(, FRGBConvertPS, TEXT("MediaShaders"), TEXT("RGBConvertPS"), SF_Pixel);
+
+
+void FRGBConvertPS::SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> RGBTexture, const FIntPoint& OutputDimensions)
+{
+	FRGBConvertUB UB;
+	{
+		UB.UVScale = FVector2D((float)OutputDimensions.X / (float)RGBTexture->GetSizeX(), (float)OutputDimensions.Y / (float)RGBTexture->GetSizeY());
+		UB.RGBTexture = RGBTexture;
+		UB.RGBSampler = TStaticSamplerState<SF_Bilinear>::GetRHI();
+	}
+
+	TUniformBufferRef<FRGBConvertUB> Data = TUniformBufferRef<FRGBConvertUB>::CreateUniformBufferImmediate(UB, UniformBuffer_SingleFrame);
+	SetUniformBufferParameter(RHICmdList, GetPixelShader(), GetUniformBufferParameter<FRGBConvertUB>(), Data);
 }
 
 
@@ -188,7 +250,8 @@ void FYUVConvertPS::SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHI
  *****************************************************************************/
 
 BEGIN_UNIFORM_BUFFER_STRUCT(FYUY2ConvertUB, )
-DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, Width)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32, OutputWidth)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector2D, UVScale)
 DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture2D, YUY2Texture)
 DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, YUY2SamplerB)
 DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, YUY2SamplerP)
@@ -198,11 +261,12 @@ IMPLEMENT_UNIFORM_BUFFER_STRUCT(FYUY2ConvertUB, TEXT("YUY2ConvertUB"));
 IMPLEMENT_SHADER_TYPE(, FYUY2ConvertPS, TEXT("MediaShaders"), TEXT("YUY2ConvertPS"), SF_Pixel);
 
 
-void FYUY2ConvertPS::SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> YUY2Texture)
+void FYUY2ConvertPS::SetParameters(FRHICommandList& RHICmdList, TRefCountPtr<FRHITexture2D> YUY2Texture, const FIntPoint& OutputDimensions)
 {
 	FYUY2ConvertUB UB;
 	{
-		UB.Width = YUY2Texture->GetSizeX();
+		UB.OutputWidth = OutputDimensions.X;
+		UB.UVScale = FVector2D((float)OutputDimensions.X / (2.0f * YUY2Texture->GetSizeX()), (float)OutputDimensions.Y / (float)YUY2Texture->GetSizeY());
 		UB.YUY2Texture = YUY2Texture;
 		UB.YUY2SamplerB = TStaticSamplerState<SF_Bilinear>::GetRHI();
 		UB.YUY2SamplerP = TStaticSamplerState<SF_Point>::GetRHI();

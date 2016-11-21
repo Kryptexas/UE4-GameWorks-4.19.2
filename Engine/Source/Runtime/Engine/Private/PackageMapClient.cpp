@@ -25,6 +25,7 @@ static const int INTERNAL_LOAD_OBJECT_RECURSION_LIMIT = 16;
 
 static TAutoConsoleVariable<int32> CVarAllowAsyncLoading( TEXT( "net.AllowAsyncLoading" ), 0, TEXT( "Allow async loading" ) );
 static TAutoConsoleVariable<int32> CVarIgnoreNetworkChecksumMismatch( TEXT( "net.IgnoreNetworkChecksumMismatch" ), 0, TEXT( "" ) );
+extern FAutoConsoleVariableRef CVarEnableMultiplayerWorldOriginRebasing;
 
 void BroadcastNetFailure(UNetDriver* Driver, ENetworkFailure::Type FailureType, const FString& ErrorStr)
 {
@@ -289,6 +290,7 @@ bool UPackageMapClient::SerializeNewActor(FArchive& Ar, class UActorChannel *Cha
 	{
 		UObject* Archetype = NULL;
 		FVector_NetQuantize10 Location;
+		FVector_NetQuantize10 LocalLocation;
 		FVector_NetQuantize10 Scale;
 		FVector_NetQuantize10 Velocity;
 		FRotator Rotation;
@@ -304,7 +306,15 @@ bool UPackageMapClient::SerializeNewActor(FArchive& Ar, class UActorChannel *Cha
 
 			const USceneComponent* RootComponent = Actor->GetRootComponent();
 
-			Location = RootComponent ? Actor->GetActorLocation() : FVector::ZeroVector;
+			if (RootComponent)
+			{
+				LocalLocation = Actor->GetActorLocation();
+				Location = FRepMovement::RebaseOntoZeroOrigin(Actor->GetActorLocation(), Actor);
+			} 
+			else
+			{
+				Location = LocalLocation = FVector::ZeroVector;
+			}
 			Rotation = RootComponent ? Actor->GetActorRotation() : FRotator::ZeroRotator;
 			Scale = RootComponent ? Actor->GetActorScale() : FVector::ZeroVector;
 			Velocity = RootComponent ? Actor->GetVelocity() : FVector::ZeroVector;
@@ -393,7 +403,7 @@ bool UPackageMapClient::SerializeNewActor(FArchive& Ar, class UActorChannel *Cha
 				uint8* Recent = RepData && RepData->RepState != NULL && RepData->RepState->StaticBuffer.Num() ? RepData->RepState->StaticBuffer.GetData() : NULL;
 				if ( Recent )
 				{
-					((AActor*)Recent)->ReplicatedMovement.Location = Location;
+					((AActor*)Recent)->ReplicatedMovement.Location = LocalLocation;
 					((AActor*)Recent)->ReplicatedMovement.Rotation = Rotation;
 					((AActor*)Recent)->ReplicatedMovement.LinearVelocity = Velocity;
 				}
@@ -412,7 +422,11 @@ bool UPackageMapClient::SerializeNewActor(FArchive& Ar, class UActorChannel *Cha
 					SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 					SpawnInfo.bRemoteOwned = true;
 					SpawnInfo.bNoFail = true;
-					Actor = Connection->Driver->GetWorld()->SpawnActorAbsolute(Archetype->GetClass(), FTransform(Rotation, Location), SpawnInfo );
+
+					UWorld* World = Connection->Driver->GetWorld();
+					FVector SpawnLocation = FRepMovement::RebaseOntoLocalOrigin( Location, World->OriginLocation );
+					Actor = World->SpawnActorAbsolute(Archetype->GetClass(), FTransform( Rotation, SpawnLocation ), SpawnInfo );
+
 					// Velocity was serialized by the server
 					if (bSerializeVelocity)
 					{
@@ -572,7 +586,7 @@ void UPackageMapClient::InternalWriteObject( FArchive & Ar, FNetworkGUID NetGUID
 
 		InternalWriteObject( Ar, OuterNetGUID, ObjectOuter, TEXT( "" ), NULL );
 
-		GEngine->NetworkRemapPath(Connection->Driver->GetWorld(), ObjectPathName, false);
+		GEngine->NetworkRemapPath(Connection->Driver, ObjectPathName, false);
 
 		// Serialize Name of object
 		Ar << ObjectPathName;
@@ -747,7 +761,7 @@ FNetworkGUID UPackageMapClient::InternalLoadObject( FArchive & Ar, UObject *& Ob
 		}
 
 		// Remap name for PIE
-		GEngine->NetworkRemapPath( Connection->Driver->GetWorld(), PathName, true );
+		GEngine->NetworkRemapPath( Connection->Driver, PathName, true );
 
 		if ( Object != NULL )
 		{

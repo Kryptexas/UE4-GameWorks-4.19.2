@@ -61,6 +61,7 @@ namespace Tools.CrashReporter.CrashReportCommon
 		"BaseDir"
 		"RootDir"
 		"MachineId"
+		"LoginId"
 		"EpicAccountId"
 		"CallStack"
 		"SourceContext"
@@ -469,6 +470,10 @@ namespace Tools.CrashReporter.CrashReportCommon
 		/// <summary></summary>
 		[XmlElement]
 		public string MachineId;
+
+		/// <summary></summary>
+		[XmlElement]
+		public string LoginId;
 
 		/// <summary></summary>
 		[XmlElement]

@@ -7,6 +7,7 @@
 #include "AnimCurveTypes.h"
 #include "ClothSimData.h"
 #include "SingleAnimationPlayData.h"
+#include "Animation/PoseSnapshot.h"
 #include "SkeletalMeshComponent.generated.h"
 
 
@@ -752,6 +753,14 @@ public:
 	float GetMorphTarget(FName MorphTargetName) const;
 
 	/**
+	 * Takes a snapshot of this skeletal mesh component's pose and saves it to the specified snapshot.
+	 * The snapshot is taken at the current LOD, so if for example you took the snapshot at LOD1 
+	 * and then used it at LOD0 any bones not in LOD1 will use the reference pose 
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Pose")
+	void SnapshotPose(UPARAM(ref) FPoseSnapshot& Snapshot);
+
+	/**
 	 * Get/Set the max distance scale of clothing mesh vertices
 	 */
 	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
@@ -1040,7 +1049,7 @@ public:
 	virtual void LoadedFromAnotherClass(const FName& OldClassName) override;
 	virtual void UpdateCollisionProfile() override;
 #endif // WITH_EDITOR
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 	//~ End UObject Interface.
 
 	//~ Begin UActorComponent Interface.
@@ -1161,7 +1170,7 @@ public:
 	bool K2_GetClosestPointOnPhysicsAsset(const FVector& WorldPosition, FVector& ClosestWorldPosition, FVector& Normal, FName& BoneName, float& Distance) const;
 
 	virtual bool LineTraceComponent( FHitResult& OutHit, const FVector Start, const FVector End, const FCollisionQueryParams& Params ) override;
-	virtual bool SweepComponent( FHitResult& OutHit, const FVector Start, const FVector End, const FCollisionShape& CollisionShape, bool bTraceComplex=false) override;
+    virtual bool SweepComponent( FHitResult& OutHit, const FVector Start, const FVector End, const FQuat& ShapRotation, const FCollisionShape& CollisionShape, bool bTraceComplex=false) override;
 	virtual bool OverlapComponent(const FVector& Pos, const FQuat& Rot, const FCollisionShape& CollisionShape) override;
 	virtual void SetSimulatePhysics(bool bEnabled) override;
 	virtual void AddRadialImpulse(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bVelChange=false) override;
@@ -1691,9 +1700,13 @@ private:
 	
 
 	/*
-	 * Update MorphTargetCurves - these are not animation curves, but SetMorphTarget and similar functions that can set to this mesh component
+	 * Update MorphTargetCurves from mesh - these are not animation curves, but SetMorphTarget and similar functions that can set to this mesh component
 	 */
-	void UpdateMorphTargetCurves();
+	void UpdateMorphTargetOverrideCurves();
+	/*
+	 * Reset MorphTarget Curves - Reset all morphtarget curves
+	 */
+	void ResetMorphTargetCurves();
 
 public:
 	/** Keep track of when animation has been ticked to ensure it is ticked only once per frame. */

@@ -39,13 +39,36 @@ struct FDependencyRef
 	friend uint32 GetTypeHash( const FDependencyRef& Ref  );
 };
 
+/** Helper struct to keep track of the first time CreateImport() is called in the current callstack. */
+struct FScopedCreateImportCounter
+{
+	/**
+	*	Constructor. Called upon CreateImport() entry.
+	*	@param Linker	- Current Linker
+	*	@param Index	- Index of the current Import
+	*/
+	FScopedCreateImportCounter(FLinkerLoad* Linker, int32 Index);
+
+	/** Destructor. Called upon CreateImport() exit. */
+	~FScopedCreateImportCounter();
+
+	/** Previously stored linker */
+	FLinkerLoad* PreviousLinker;
+	/** Previously stored index */
+	int32 PreviousIndex;
+};
+
 /**
  * Handles loading Unreal package files, including reading UObject data from disk.
  */
 #if USE_NEW_ASYNC_IO
-	class FArchiveAsync2;
+class FArchiveAsync2;
 #endif
-class FLinkerLoad : public FLinker, public FArchiveUObject
+class FLinkerLoad
+#if USE_NEW_ASYNC_IO
+	final
+#endif
+	: public FLinker, public FArchiveUObject
 {
 	// Friends.
 	friend class UObject;
@@ -90,6 +113,11 @@ public:
 	bool					bHaveImportsBeenVerified;
 	/** Indicates that this linker was created for a dynamic class package and will not use Loader */
 	bool					bDynamicClassLinker;
+#if USE_EVENT_DRIVEN_ASYNC_LOAD
+	UObject*				TemplateForGetArchetypeFromLoader;
+	bool					bForceSimpleIndexToObject;
+	bool					bLockoutLegacyOperations;
+#endif
 #if USE_NEW_ASYNC_IO
 	/** True if Loader is FArchiveAsync2  */
 	bool					bLoaderIsFArchiveAsync2;
@@ -109,6 +137,11 @@ public:
 
 	/** Hash table for exports.																								*/
 	int32						ExportHash[256];
+
+	/**
+	* List of imports and exports that must be serialized before other exports...all packed together, see FirstExportDependency
+	*/
+	TArray<FPackageIndex> PreloadDependencies;
 
 	/** OldClassName to NewClassName for ImportMap */
 	static TMap<FName, FName> ObjectNameRedirects;
@@ -181,8 +214,6 @@ private:
 	int32						ImportMapIndex;
 	/** Current index into export map, used by async linker creation for spreading out serializing exportmap entries.			*/
 	int32						ExportMapIndex;
-	/** Current index into export map, used by async linker creation for spreading out serializing exportmap entries.			*/
-	int32						FirstNotLoadedExportMapIndex;
 	/** Current index into depends map, used by async linker creation for spreading out serializing dependsmap entries.			*/
 	int32						DependsMapIndex;
 	/** Current index into export hash map, used by async linker creation for spreading out hashing exports.					*/
@@ -222,6 +253,7 @@ private:
 	/** Id of the thread that created this linker. This is to guard against using this linker on other threads than the one it was created on **/
 	int32					OwnerThread;
 
+#if !USE_NEW_ASYNC_IO
 	/**
 	 * Helper struct to keep track of background file reads
 	 */
@@ -257,6 +289,17 @@ private:
 	/** Map that keeps track of any precached full package reads															*/
 	static TMap<FString, FPackagePrecacheInfo> PackagePrecacheMap;
 
+	/**
+	* Fills in the passed in TArray with the packages that are in its PrecacheMap
+	*
+	* @param TArray<FString> to be populated
+	*/
+public:
+	COREUOBJECT_API static void GetListOfPackagesInPackagePrecacheMap(TArray<FString>& ListOfPackages);
+private:
+
+#endif
+
 	/** Allows access to UTexture2D::StaticClass() without linking Core with Engine											*/
 	static UClass* UTexture2DStaticClass;
 
@@ -269,7 +312,7 @@ private:
 	/** Test whether we should report progress or not */
 	FORCEINLINE bool ShouldReportProgress() const
 	{
-		return !IsAsyncLoading() && ( LoadFlags & ( LOAD_Quiet | LOAD_SeekFree ) ) == 0;
+		return !IsAsyncLoading() && (LoadFlags & (LOAD_Quiet | LOAD_Async)) == 0;
 	}
 #endif 
 
@@ -299,14 +342,6 @@ public:
 	 * Allows object instances to be converted to other classes upon loading a package
 	 */
 	COREUOBJECT_API ELinkerStatus FixupExportMap();
-
-
-	/**
- 	 * Fills in the passed in TArray with the packages that are in its PrecacheMap
-	 *
-	 * @param TArray<FString> to be populated
-	 */
-	COREUOBJECT_API static void GetListOfPackagesInPackagePrecacheMap( TArray<FString>& ListOfPackages );
 
 	/**
 	 * Returns whether linker has finished (potentially) async initialization.
@@ -348,6 +383,7 @@ public:
 	COREUOBJECT_API FName GetExportClassPackage( int32 i );
 	virtual FString GetArchiveName() const override;
 
+#if WITH_EDITORONLY_DATA
 	/**
 	 * Recursively gathers the dependencies of a given export (the recursive chain of imports
 	 * and their imports, and so on)
@@ -367,6 +403,7 @@ public:
 	 * @param bSkipLoadedObjects Whether to skip already loaded objects when gathering dependencies
 	 */
 	COREUOBJECT_API void GatherImportDependencies(int32 ImportIndex, TSet<FDependencyRef>& Dependencies, bool bSkipLoadedObjects=true);
+#endif
 
 	/**
 	 * A wrapper around VerifyImportInner. If the VerifyImportInner (previously VerifyImport) fails, this function
@@ -458,12 +495,14 @@ public:
 	 */
 	COREUOBJECT_API bool WillTextureBeLoaded( UClass* Class, int32 ExportIndex );
 
+#if !USE_NEW_ASYNC_IO
 	/**
 	 * Kick off an async load of a package file into memory
 	 * 
 	 * @param PackageName Name of package to read in. Must be the same name as passed into LoadPackage/CreateLinker
 	 */
 	COREUOBJECT_API static void AsyncPreloadPackage(const TCHAR* PackageName);
+#endif
 
 	/**
 	 * Called when an object begins serializing property data using script serialization.
@@ -474,6 +513,10 @@ public:
 	 * Called when an object stops serializing property data using script serialization.
 	 */
 	virtual void MarkScriptSerializationEnd( const UObject* Obj ) override;
+
+#if USE_EVENT_DRIVEN_ASYNC_LOAD
+	virtual UObject* GetArchetypeFromLoader(const UObject* Obj) override;
+#endif
 
 	/**
 	 * Looks for an existing linker for the given package, without trying to make one if it doesn't exist
@@ -602,7 +645,10 @@ private:
 	 * @param	PrecacheSize	Number of bytes to precache
 	 * @return	false if precache operation is still pending, true otherwise
 	 */
-	virtual bool Precache( int64 PrecacheOffset, int64 PrecacheSize ) override;
+	FORCEINLINE virtual bool Precache(int64 PrecacheOffset, int64 PrecacheSize) override
+	{
+		return bDynamicClassLinker || Loader->Precache(PrecacheOffset, PrecacheSize);
+	}
 
 #if WITH_EDITOR
 	/**
@@ -640,17 +686,73 @@ public:
 
 private:
 
-	void Seek( int64 InPos ) override;
-	int64 Tell() override;
-	int64 TotalSize() override;
+	FORCEINLINE virtual void Seek(int64 InPos) override
+	{
+		Loader->Seek(InPos);
+	}
+	FORCEINLINE virtual int64 Tell() override
+	{
+		return Loader->Tell();
+	}
+	FORCEINLINE virtual int64 TotalSize() override
+	{
+		return Loader->TotalSize();
+	}
+
 	// this fixes the warning : 'ULinkerSave::Serialize' hides overloaded virtual function
 	using FLinker::Serialize;
-	virtual void Serialize( void* V, int64 Length ) override;
+	FORCEINLINE virtual void Serialize(void* V, int64 Length) override
+	{
+		checkSlow(FPlatformTLS::GetCurrentThreadId() == OwnerThread);
+		Loader->Serialize(V, Length);
+	}
 	using FArchiveUObject::operator<<; // For visibility of the overloads we don't override
-	virtual FArchive& operator<<( UObject*& Object ) override;
-	virtual FArchive& operator<<( FLazyObjectPtr& LazyObjectPtr) override;
-	virtual FArchive& operator<<( FAssetPtr& AssetPtr) override;
-	virtual FArchive& operator<<( FName& Name ) override;
+	virtual FArchive& operator<<(UObject*& Object) override;
+	FORCEINLINE virtual FArchive& operator<<(FLazyObjectPtr& LazyObjectPtr) override
+	{
+		FArchive& Ar = *this;
+		FUniqueObjectGuid ID;
+		Ar << ID;
+		LazyObjectPtr = ID;
+		return Ar;
+	}
+
+	FORCEINLINE virtual FArchive& operator<<(FAssetPtr& AssetPtr) override
+	{
+		FArchive& Ar = *this;
+		FStringAssetReference ID;
+		ID.Serialize(Ar);
+		AssetPtr = ID;
+		return Ar;
+	}
+	void BadNameIndexError(NAME_INDEX NameIndex);
+	FORCEINLINE virtual FArchive& operator<<(FName& Name) override
+	{
+		Name = NAME_None;
+		FArchive& Ar = *this;
+		NAME_INDEX NameIndex;
+		Ar << NameIndex;
+		int32 Number;
+		Ar << Number;
+
+		if (!NameMap.IsValidIndex(NameIndex))
+		{
+			BadNameIndexError(NameIndex);
+			ArIsError = true;
+			ArIsCriticalError = true;
+		}
+		else
+		{
+			// if the name wasn't loaded (because it wasn't valid in this context)
+			const FName& MappedName = NameMap[NameIndex];
+			if (!MappedName.IsNone())
+			{
+				// simply create the name from the NameMap's name and the serialized instance number
+				Name = FName(MappedName, Number);
+			}
+		}
+		return *this;
+	}
 
 	/**
 	 * Safely verify that an import in the ImportMap points to a good object. This decides whether or not
@@ -678,7 +780,11 @@ private:
 	 *
 	 * @return	new FLinkerLoad object for Parent/ Filename
 	 */
-	COREUOBJECT_API static FLinkerLoad* CreateLinkerAsync( UPackage* Parent, const TCHAR* Filename, uint32 LoadFlags );
+	COREUOBJECT_API static FLinkerLoad* CreateLinkerAsync(UPackage* Parent, const TCHAR* Filename, uint32 LoadFlags
+#if USE_EVENT_DRIVEN_ASYNC_LOAD
+		, TFunction<void()>&& InSummaryReadyCallback
+#endif		
+	);
 
 	/**
 	 * Ticks an in-flight linker and spends InTimeLimit seconds on creation. This is a soft time limit used
@@ -715,7 +821,11 @@ protected: // Daniel L: Made this protected so I can override the constructor an
 	/**
 	 * Creates loader used to serialize content.
 	 */
-	ELinkerStatus CreateLoader();
+	ELinkerStatus CreateLoader(
+#if USE_EVENT_DRIVEN_ASYNC_LOAD
+		TFunction<void()>&& InSummaryReadyCallback
+#endif
+	);
 private:
 	/**
 	 * Serializes the package file summary.
@@ -747,17 +857,9 @@ private:
 	 */
 	ELinkerStatus SerializeExportMap();
 
-#if WITH_ENGINE
-	/**
-	 * Kicks off async memory allocations for all textures that will be loaded from this package.
-	 */
-	ELinkerStatus StartTextureAllocation();
-#endif
-
-	/**
-	 * Serializes the import map.
-	 */
 	ELinkerStatus SerializeDependsMap();
+
+	ELinkerStatus SerializePreloadDependencies();
 
 public:
 	/**
@@ -944,7 +1046,7 @@ private:
 	/** Finds import, tries to fall back to dynamic class if the object could not be found */
 	UObject* FindImport(UClass* ImportClass, UObject* ImportOuter, const TCHAR* Name);
 	/** Finds import, tries to fall back to dynamic class if the object could not be found */
-	UObject* FindImportFast(UClass* ImportClass, UObject* ImportOuter, FName Name);
+	static UObject* FindImportFast(UClass* ImportClass, UObject* ImportOuter, FName Name);
 
 	/** Fills all necessary information for constructing dynamic type package linker */
 	void CreateDynamicTypeLoader();

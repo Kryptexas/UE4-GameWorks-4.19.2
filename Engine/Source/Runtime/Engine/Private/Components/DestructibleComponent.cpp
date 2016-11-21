@@ -147,10 +147,13 @@ void UDestructibleComponent::OnUpdateTransform(EUpdateTransformFlags UpdateTrans
 
 	const FTransform& CurrentLocalToWorld = ComponentToWorld;
 
+#if !(UE_BUILD_SHIPPING)
 	if(CurrentLocalToWorld.ContainsNaN())
 	{
+		logOrEnsureNanError(TEXT("UDestructibleComponent:OnUpdateTransform found NaN in CurrentLocalToWorld: %s"), *CurrentLocalToWorld.ToString());
 		return;
 	}
+#endif
 
 	// warn if it has non-uniform scale
 	const FVector& MeshScale3D = CurrentLocalToWorld.GetScale3D();
@@ -1324,7 +1327,7 @@ bool UDestructibleComponent::LineTraceComponent( FHitResult& OutHit, const FVect
 	return bHaveHit;
 }
 
-bool UDestructibleComponent::SweepComponent(FHitResult& OutHit, const FVector Start, const FVector End, const FCollisionShape &CollisionShape, bool bTraceComplex/*=false*/)
+bool UDestructibleComponent::SweepComponent(FHitResult& OutHit, const FVector Start, const FVector End, const FQuat& ShapeWorldRotation, const FCollisionShape &CollisionShape, bool bTraceComplex/*=false*/)
 {
 	bool bHaveHit = false;
 #if WITH_APEX
@@ -1345,7 +1348,7 @@ bool UDestructibleComponent::SweepComponent(FHitResult& OutHit, const FVector St
 				FFakeBodyInstanceState PrevState;
 				SetupFakeBodyInstance(PActor, ChunkIdx, &PrevState);
 
-				bHaveHit = Super::SweepComponent(OutHit, Start, End, CollisionShape, bTraceComplex);
+				bHaveHit = Super::SweepComponent(OutHit, Start, End, ShapeWorldRotation, CollisionShape, bTraceComplex);
 
 				// Reset original body instance
 				ResetFakeBodyInstance(PrevState);
@@ -1614,7 +1617,7 @@ void UDestructibleComponent::SetMaterial(int32 ElementIndex, UMaterialInterface*
 	// Update physical properties for individual bone instances as well
 	if (SkeletalMesh)
 	{
-		int32 NumBones = SkeletalMesh->RefSkeleton.GetNum();
+		int32 NumBones = SkeletalMesh->RefSkeleton.GetRawBoneNum();
 		for (int32 BoneIdx = 0; BoneIdx < NumBones; ++BoneIdx)
 		{
 			FName BoneName = SkeletalMesh->RefSkeleton.GetBoneName(BoneIdx);

@@ -751,7 +751,7 @@ void FCrashUploadToDataRouter::CompressAndSendData()
 
 	PendingFiles.Empty();
 
-	FString UserId = FString::Printf(TEXT("%s|%s|%s"), *FPlatformMisc::GetMachineId().ToString(EGuidFormats::Digits).ToLower(), *FPlatformMisc::GetEpicAccountId(), *FPlatformMisc::GetOperatingSystemId());
+	FString UserId = FString::Printf(TEXT("%s|%s|%s"), *FPlatformMisc::GetLoginId(), *FPlatformMisc::GetEpicAccountId(), *FPlatformMisc::GetOperatingSystemId());
 
 	FString UrlParams = FString::Printf(TEXT("?AppID=%s&AppVersion=%s&AppEnvironment=%s&UploadType=%s&UserID=%s"),
 		*FGenericPlatformHttp::UrlEncode(CrashUploadDefs::APIKey),

@@ -190,10 +190,10 @@ void FBasePassReflectionParameters::Set(FRHICommandList& RHICmdList, FPixelShade
 {
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
-	SkyLightReflectionParameters.SetParameters(RHICmdList, PixelShaderRHI, (const FScene*)(View->Family->Scene), true);
+	SkyLightReflectionParameters.SetParameters(RHICmdList, PixelShaderRHI, (const FScene*)(View->Family->Scene), View->Family->EngineShowFlags.SkyLighting);
 }
 
-void FBasePassReflectionParameters::SetMesh(FRHICommandList& RHICmdList, FPixelShaderRHIParamRef PixelShaderRHI, const FPrimitiveSceneProxy* Proxy, ERHIFeatureLevel::Type FeatureLevel)
+void FBasePassReflectionParameters::SetMesh(FRHICommandList& RHICmdList, FPixelShaderRHIParamRef PixelShaderRHI, const FSceneView& View, const FPrimitiveSceneProxy* Proxy, ERHIFeatureLevel::Type FeatureLevel)
 {
 	const FPrimitiveSceneInfo* PrimitiveSceneInfo = Proxy ? Proxy->GetPrimitiveSceneInfo() : NULL;
 	const FPlanarReflectionSceneProxy* ReflectionSceneProxy = NULL;
@@ -212,7 +212,7 @@ void FBasePassReflectionParameters::SetMesh(FRHICommandList& RHICmdList, FPixelS
 	FVector4 CaptureOffsetAndAverageBrightnessValue(0, 0, 0, 1);
 	FVector4 PositionAndRadius = FVector4(0, 0, 0, 1);
 
-	if (PrimitiveSceneInfo && ReflectionProxy)
+	if (PrimitiveSceneInfo && ReflectionProxy && View.Family->EngineShowFlags.ReflectionEnvironment)
 	{
 		PrimitiveSceneInfo->Scene->GetCaptureParameters(ReflectionProxy, CubeArrayTexture, ArrayIndex);
 		CaptureOffsetAndAverageBrightnessValue = FVector4(ReflectionProxy->CaptureOffset, ReflectionProxy->AverageBrightness);
@@ -298,6 +298,49 @@ void FTranslucentLightingParameters::Set(FRHICommandList& RHICmdList, FPixelShad
 	}
 }
 
+FMeshDrawingRenderState FBasePassDrawingPolicy::GetDitheredLODTransitionState(const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither)
+{
+	FMeshDrawingRenderState DrawRenderState;
+
+	if (Mesh.bDitheredLODTransition)
+	{
+		if (ViewInfo.StaticMeshFadeOutDitheredLODMap[Mesh.Id])
+		{
+			if (InAllowStencilDither)
+			{
+				DrawRenderState.DepthStencilState = TStaticDepthStencilState<
+					false, CF_Equal,
+					true, CF_Always, SO_Keep, SO_Keep, SO_Replace,
+					false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
+					0xFF, GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1) | STENCIL_LIGHTING_CHANNELS_MASK(0x7)
+				>::GetRHI();
+			}
+			else
+			{
+				DrawRenderState.DitheredLODTransitionAlpha = ViewInfo.GetTemporalLODTransition();
+			}
+		}
+		else if (ViewInfo.StaticMeshFadeInDitheredLODMap[Mesh.Id])
+		{
+			if (InAllowStencilDither)
+			{
+				DrawRenderState.DepthStencilState = TStaticDepthStencilState<
+					false, CF_Equal,
+					true, CF_Always, SO_Keep, SO_Keep, SO_Replace,
+					false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
+					0xFF, GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1) | STENCIL_LIGHTING_CHANNELS_MASK(0x7)
+				>::GetRHI();
+			}
+			else
+			{
+				DrawRenderState.DitheredLODTransitionAlpha = ViewInfo.GetTemporalLODTransition() - 1.0f;
+			}
+		}
+	}
+
+	return DrawRenderState;
+}
+
 /** The action used to draw a base pass static mesh element. */
 class FDrawBasePassStaticMeshAction
 {
@@ -367,7 +410,6 @@ public:
 					bRenderSkylight,
 					bRenderAtmosphericFog,
 					DVSM_None,
-					Scene->ReadOnlyCVARCache.bEnableVertexFoggingForOpaque,
 					/* bInEnableEditorPrimitiveDepthTest = */ false,
 					/* bInEnableReceiveDecalOutput = */ true
 				),
@@ -412,7 +454,6 @@ public:
 	const FViewInfo& View;
 	bool bBackFace;
 	float DitheredLODTransitionAlpha;
-	bool bPreFog;
 	FHitProxyId HitProxyId;
 
 	/** Initialization constructor. */
@@ -461,7 +502,7 @@ public:
 			// Then rendering in the base pass with additive complexity blending, depth tests on, and depth writes off.
 			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_DepthNearOrEqual>::GetRHI());
 		}
-		else if (View.Family->UseDebugViewPS() && View.Family->GetDebugViewShaderMode() != DVSM_MaterialTexCoordScalesAnalysis)
+		else if (View.Family->UseDebugViewPS() && View.Family->GetDebugViewShaderMode() != DVSM_OutputMaterialTextureScales)
 		{
 			if (Parameters.PrimitiveSceneProxy && Parameters.PrimitiveSceneProxy->IsSelected())
 			{
@@ -489,13 +530,14 @@ public:
 			bRenderSkylight,
 			bRenderAtmosphericFog,
 			View.Family->GetDebugViewShaderMode(),
-			Scene ? Scene->ReadOnlyCVARCache.bEnableVertexFoggingForOpaque : false,
 			Parameters.bEditorCompositeDepthTest,
 			/* bInEnableReceiveDecalOutput = */ Scene != nullptr
 			);
 		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
 		DrawingPolicy.SetSharedState(RHICmdList, &View, typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType(Parameters.bIsInstancedStereo));
-		const FMeshDrawingRenderState DrawRenderState(DitheredLODTransitionAlpha);
+
+		FMeshDrawingRenderState DrawRenderState;
+		DrawRenderState.DitheredLODTransitionAlpha = DitheredLODTransitionAlpha;
 
 		for( int32 BatchElementIndex = 0, Num = Parameters.Mesh.Elements.Num(); BatchElementIndex < Num; BatchElementIndex++ )
 		{
@@ -1097,13 +1139,13 @@ void FDeferredShadingSceneRenderer::RenderEditorPrimitives(FRHICommandList& RHIC
 		bDirty |= DrawViewElements<FBasePassOpaqueDrawingPolicyFactory>(RHICmdList, View, FBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::DontSet), SDPG_World, true) || bDirty;
 
 		// Draw the view's batched simple elements(lines, sprites, etc).
-		bDirty |= View.BatchedViewElements.Draw(RHICmdList, FeatureLevel, bNeedToSwitchVerticalAxis, View.ViewProjectionMatrix, View.ViewRect.Width(), View.ViewRect.Height(), false) || bDirty;
+		bDirty |= View.BatchedViewElements.Draw(RHICmdList, FeatureLevel, bNeedToSwitchVerticalAxis, View, false) || bDirty;
 
 		// Draw foreground objects last
 		bDirty |= DrawViewElements<FBasePassOpaqueDrawingPolicyFactory>(RHICmdList, View, FBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::DontSet), SDPG_Foreground, true) || bDirty;
 
 		// Draw the view's batched simple elements(lines, sprites, etc).
-		bDirty |= View.TopBatchedViewElements.Draw(RHICmdList, FeatureLevel, bNeedToSwitchVerticalAxis, View.ViewProjectionMatrix, View.ViewRect.Width(), View.ViewRect.Height(), false) || bDirty;
+		bDirty |= View.TopBatchedViewElements.Draw(RHICmdList, FeatureLevel, bNeedToSwitchVerticalAxis, View, false) || bDirty;
 
 	}
 

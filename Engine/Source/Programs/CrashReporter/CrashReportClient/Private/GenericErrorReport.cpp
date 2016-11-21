@@ -135,17 +135,17 @@ bool FGenericErrorReport::SetUserComment(const FText& UserComment)
 	}
 
 	// @see FCrashDescription::UpdateIDs
-	const FString EpicMachineAndUserNameIDs = FString::Printf( TEXT( "!MachineId:%s!EpicAccountId:%s!Name:%s" ), *FPrimaryCrashProperties::Get()->MachineId.AsString(), *FPrimaryCrashProperties::Get()->EpicAccountId.AsString(), *FPrimaryCrashProperties::Get()->UserName.AsString() );
+	const FString EpicLoginAndUserNameIDs = FString::Printf( TEXT( "!LoginId:%s!EpicAccountId:%s!Name:%s" ), *FPrimaryCrashProperties::Get()->LoginId.AsString(), *FPrimaryCrashProperties::Get()->EpicAccountId.AsString(), *FPrimaryCrashProperties::Get()->UserName.AsString() );
 
 	// Add or update a user ID.
 	FXmlNode* Parameter4Node = DynamicSignaturesNode->FindChildNode(TEXT("Parameter4"));
 	if( Parameter4Node )
 	{
-		Parameter4Node->SetContent(EpicMachineAndUserNameIDs);
+		Parameter4Node->SetContent(EpicLoginAndUserNameIDs);
 	}
 	else
 	{
-		DynamicSignaturesNode->AppendChildNode(TEXT("Parameter4"), EpicMachineAndUserNameIDs);
+		DynamicSignaturesNode->AppendChildNode(TEXT("Parameter4"), EpicLoginAndUserNameIDs);
 	}
 
 	// Add or update bAllowToBeContacted

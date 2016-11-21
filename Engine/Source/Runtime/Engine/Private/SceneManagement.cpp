@@ -28,7 +28,7 @@ void FTemporalLODState::UpdateTemporalLODTransition(const FViewInfo& View, float
 				TemporalDistanceFactor[0] = TemporalDistanceFactor[1];
 				TemporalLODTime[0] = TemporalLODTime[1];
 			}
-			TemporalLODViewOrigin[1] = View.ViewMatrices.ViewOrigin;
+			TemporalLODViewOrigin[1] = View.ViewMatrices.GetViewOrigin();
 			TemporalDistanceFactor[1] = View.GetLODDistanceFactor();
 			TemporalLODTime[1] = LastRenderTime;
 			if (TemporalLODTime[1] <= TemporalLODTime[0])
@@ -39,8 +39,8 @@ void FTemporalLODState::UpdateTemporalLODTransition(const FViewInfo& View, float
 	}
 	if (!bOk)
 	{
-		TemporalLODViewOrigin[0] = View.ViewMatrices.ViewOrigin;
-		TemporalLODViewOrigin[1] = View.ViewMatrices.ViewOrigin;
+		TemporalLODViewOrigin[0] = View.ViewMatrices.GetViewOrigin();
+		TemporalLODViewOrigin[1] = View.ViewMatrices.GetViewOrigin();
 		TemporalDistanceFactor[0] = View.GetLODDistanceFactor();
 		TemporalDistanceFactor[1] = TemporalDistanceFactor[0];
 		TemporalLODTime[0] = LastRenderTime;
@@ -164,12 +164,9 @@ void FSimpleElementCollector::DrawBatchedElements(FRHICommandList& RHICmdList, c
 		RHICmdList,
 		InView.GetFeatureLevel(),
 		bNeedToSwitchVerticalAxis,
-		InView.ViewProjectionMatrix,
-		InView.ViewRect.Width(),
-		InView.ViewRect.Height(),
+		InView,
 		InView.Family->EngineShowFlags.HitProxies,
 		1.0f,
-		&InView,
 		DepthTexture,
 		Filter
 		);
@@ -309,42 +306,74 @@ FLightMapInteraction FLightMapInteraction::Texture(
 	return Result;
 }
 
-float ComputeBoundsScreenSize( const FVector4& Origin, const float SphereRadius, const FSceneView& View )
+float ComputeBoundsScreenRadiusSquared(const FVector4& BoundsOrigin, const float SphereRadius, const FVector4& ViewOrigin, const FMatrix& ProjMatrix)
 {
-	const float DistSqr = FVector::DistSquared( Origin, View.ViewMatrices.ViewOrigin );
+	const float DistSqr = FVector::DistSquared(BoundsOrigin, ViewOrigin);
 
 	// Get projection multiple accounting for view scaling.
-	const float ScreenMultiple = FMath::Max(View.ViewRect.Width() / 2.0f * View.ViewMatrices.ProjMatrix.M[0][0],
-		View.ViewRect.Height() / 2.0f * View.ViewMatrices.ProjMatrix.M[1][1]);
+	const float ScreenMultiple = FMath::Max(0.5f * ProjMatrix.M[0][0], 0.5f * ProjMatrix.M[1][1]);
 
-	// Approximate number of pixels the sphere covers
-	const float ScreenArea = PI * FMath::Square( ScreenMultiple * SphereRadius ) / FMath::Max( DistSqr, 1.0f );
-	return ScreenArea / View.ViewRect.Area();
+	// Calculate screen-space projected radius
+	return FMath::Square(ScreenMultiple * SphereRadius) / FMath::Max(1.0f, DistSqr);
+}
+
+/** Runtime comparison version of ComputeTemporalLODBoundsScreenSize that avoids a square root */
+static float ComputeTemporalLODBoundsScreenRadiusSquared(const FVector& Origin, const float SphereRadius, const FSceneView& View, int32 SampleIndex)
+{
+	return ComputeBoundsScreenRadiusSquared(Origin, SphereRadius, View.GetTemporalLODOrigin(SampleIndex), View.ViewMatrices.GetProjectionMatrix());
+}
+
+float ComputeBoundsScreenRadiusSquared(const FVector4& Origin, const float SphereRadius, const FSceneView& View)
+{
+	return ComputeBoundsScreenRadiusSquared(Origin, SphereRadius, View.ViewMatrices.GetViewOrigin(), View.ViewMatrices.GetProjectionMatrix());
+}
+
+float ComputeBoundsScreenSize( const FVector4& Origin, const float SphereRadius, const FSceneView& View )
+{
+	return ComputeBoundsScreenSize(Origin, SphereRadius, View.ViewMatrices.GetViewOrigin(), View.ViewMatrices.GetProjectionMatrix());
 }
 
 float ComputeTemporalLODBoundsScreenSize( const FVector& Origin, const float SphereRadius, const FSceneView& View, int32 SampleIndex )
 {
-	const float DistSqr =  (Origin - View.GetTemporalLODOrigin(SampleIndex)).SizeSquared();
+	return ComputeBoundsScreenSize(Origin, SphereRadius, View.GetTemporalLODOrigin(SampleIndex), View.ViewMatrices.GetProjectionMatrix());
+}
+
+float ComputeBoundsScreenSize(const FVector4& BoundsOrigin, const float SphereRadius, const FVector4& ViewOrigin, const FMatrix& ProjMatrix)
+{
+	const float Dist = FVector::Dist(BoundsOrigin, ViewOrigin);
 
 	// Get projection multiple accounting for view scaling.
-	const float ScreenMultiple = FMath::Max(View.ViewRect.Width() / 2.0f * View.ViewMatrices.ProjMatrix.M[0][0],
-		View.ViewRect.Height() / 2.0f * View.ViewMatrices.ProjMatrix.M[1][1]);
+	const float ScreenMultiple = FMath::Max(0.5f * ProjMatrix.M[0][0], 0.5f * ProjMatrix.M[1][1]);
 
-	// Approximate number of pixels the sphere covers
-	const float ScreenArea = PI * FMath::Square( ScreenMultiple * SphereRadius ) / FMath::Max( DistSqr, 1.0f );
-	return ScreenArea / View.ViewRect.Area();
+	// Calculate screen-space projected radius
+	const float ScreenRadius = ScreenMultiple * SphereRadius / FMath::Max(1.0f, Dist);
+
+	// For clarity, we end up comparing the diameter
+	return ScreenRadius * 2.0f;
+}
+
+float ComputeBoundsDrawDistance(const float ScreenSize, const float SphereRadius, const FMatrix& ProjMatrix)
+{
+	// Get projection multiple accounting for view scaling.
+	const float ScreenMultiple = FMath::Max(0.5f * ProjMatrix.M[0][0], 0.5f * ProjMatrix.M[1][1]);
+
+	// ScreenSize is the projected diameter, so halve it
+	const float ScreenRadius = FMath::Max(SMALL_NUMBER, ScreenSize * 0.5f);
+
+	// Invert the calcs in ComputeBoundsScreenSize
+	return (ScreenMultiple * SphereRadius) / ScreenRadius;
 }
 
 int8 ComputeTemporalStaticMeshLOD( const FStaticMeshRenderData* RenderData, const FVector4& Origin, const float SphereRadius, const FSceneView& View, int32 MinLOD, float FactorScale, int32 SampleIndex )
 {
 	const int32 NumLODs = MAX_STATIC_MESH_LODS;
 
-	const float ScreenSize = ComputeTemporalLODBoundsScreenSize(Origin, SphereRadius, View, SampleIndex) * FactorScale;
+	const float ScreenRadiusSquared = ComputeTemporalLODBoundsScreenRadiusSquared(Origin, SphereRadius, View, SampleIndex) * FactorScale * FactorScale;
 
 	// Walk backwards and return the first matching LOD
 	for(int32 LODIndex = NumLODs - 1 ; LODIndex >= 0 ; --LODIndex)
 	{
-		if(RenderData->ScreenSize[LODIndex] > ScreenSize)
+		if(FMath::Square(RenderData->ScreenSize[LODIndex] * 0.5f) > ScreenRadiusSquared)
 		{
 			return FMath::Max(LODIndex, MinLOD);
 		}
@@ -359,12 +388,12 @@ int8 ComputeStaticMeshLOD( const FStaticMeshRenderData* RenderData, const FVecto
 	{
 		const int32 NumLODs = MAX_STATIC_MESH_LODS;
 
-		const float ScreenSize = ComputeBoundsScreenSize(Origin, SphereRadius, View) * FactorScale;
+		const float ScreenRadiusSquared = ComputeBoundsScreenRadiusSquared(Origin, SphereRadius, View) * FactorScale * FactorScale;
 
 		// Walk backwards and return the first matching LOD
 		for (int32 LODIndex = NumLODs - 1; LODIndex >= 0; --LODIndex)
 		{
-			if (RenderData->ScreenSize[LODIndex] > ScreenSize)
+			if (FMath::Square(RenderData->ScreenSize[LODIndex] * 0.5f) > ScreenRadiusSquared)
 			{
 				return FMath::Max(LODIndex, MinLOD);
 			}
@@ -400,7 +429,7 @@ FLODMask ComputeLODForMeshes( const TIndirectArray<class FStaticMesh>& StaticMes
 			{
 				int32 MinLODFound = INT_MAX;
 				bool bFoundLOD = false;
-				const float ScreenSize = ComputeTemporalLODBoundsScreenSize(Origin, SphereRadius, View, SampleIndex);
+				const float ScreenRadiusSquared = ComputeTemporalLODBoundsScreenRadiusSquared(Origin, SphereRadius, View, SampleIndex);
 
 				for(int32 MeshIndex = NumMeshes-1 ; MeshIndex >= 0 ; --MeshIndex)
 				{
@@ -408,7 +437,7 @@ FLODMask ComputeLODForMeshes( const TIndirectArray<class FStaticMesh>& StaticMes
 
 					float MeshScreenSize = Mesh.ScreenSize * ScreenSizeScale;
 
-					if(MeshScreenSize >= ScreenSize)
+					if(FMath::Square(MeshScreenSize * 0.5f) >= ScreenRadiusSquared)
 					{
 						LODToRender.SetLODSample(Mesh.LODIndex, SampleIndex);
 						bFoundLOD = true;
@@ -428,7 +457,7 @@ FLODMask ComputeLODForMeshes( const TIndirectArray<class FStaticMesh>& StaticMes
 		{
 			int32 MinLODFound = INT_MAX;
 			bool bFoundLOD = false;
-			const float ScreenSize = ComputeBoundsScreenSize(Origin, SphereRadius, View);
+			const float ScreenRadiusSquared = ComputeBoundsScreenRadiusSquared(Origin, SphereRadius, View);
 
 			for(int32 MeshIndex = NumMeshes-1 ; MeshIndex >= 0 ; --MeshIndex)
 			{
@@ -436,7 +465,7 @@ FLODMask ComputeLODForMeshes( const TIndirectArray<class FStaticMesh>& StaticMes
 
 				float MeshScreenSize = Mesh.ScreenSize * ScreenSizeScale;
 
-				if(MeshScreenSize >= ScreenSize)
+				if(FMath::Square(MeshScreenSize * 0.5f) >= ScreenRadiusSquared)
 				{
 					LODToRender.SetLOD(Mesh.LODIndex);
 					bFoundLOD = true;

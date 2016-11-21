@@ -138,6 +138,7 @@ void FMediaPlayerActions::ExecuteCreateMediaSoundWave(TArray<TWeakObjectPtr<UMed
 		if (NewAsset != nullptr)
 		{
 			MediaPlayer->SetSoundWave(Cast<UMediaSoundWave>(NewAsset));
+			MediaPlayer->MarkPackageDirty();
 			ObjectsToSync.Add(NewAsset);
 		}
 	}
@@ -180,6 +181,7 @@ void FMediaPlayerActions::ExecuteCreateMediaTexture(TArray<TWeakObjectPtr<UMedia
 		if (NewAsset != nullptr)
 		{
 			MediaPlayer->SetVideoTexture(Cast<UMediaTexture>(NewAsset));
+			MediaPlayer->MarkPackageDirty();
 			ObjectsToSync.Add(NewAsset);
 		}
 	}

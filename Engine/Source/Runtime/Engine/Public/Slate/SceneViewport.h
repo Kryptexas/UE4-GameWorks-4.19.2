@@ -191,7 +191,7 @@ public:
 	}
 
 	/** Updates the viewport RHI with a new size and fullscreen flag */
-	virtual void UpdateViewportRHI(bool bDestroyed,uint32 NewSizeX,uint32 NewSizeY,EWindowMode::Type NewWindowMode) override;
+	virtual void UpdateViewportRHI(bool bDestroyed, uint32 NewSizeX, uint32 NewSizeY, EWindowMode::Type NewWindowMode, EPixelFormat PreferredPixelFormat) override;
 
 	/** ISlateViewport interface */
 	virtual FSlateShaderResource* GetViewportRenderTargetTexture() const override;
@@ -320,6 +320,17 @@ private:
 	{
 		return bUseSeparateRenderTarget || bForceSeparateRenderTarget;
 	}
+
+	/** 
+	 * Called right before a backbuffer is resized. If this viewport is using this backbuffer 
+	 * it will release its resource here
+	 */
+	void OnPreResizeWindowBackbuffer(void* Backbuffer);
+
+	/** 
+	 * Called right after a backbuffer is resized. This viewport will reaquire its backbuffer handle if needed
+	 */
+	void OnPostResizeWindowBackbuffer(void* Backbuffer);
 
 private:
 	/** An intermediate reply state that is reset whenever an input event is generated */

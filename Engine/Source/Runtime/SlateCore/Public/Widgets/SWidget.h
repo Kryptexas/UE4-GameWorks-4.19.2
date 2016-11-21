@@ -629,6 +629,23 @@ public:
 	private: virtual FVector2D ComputeDesiredSize(float LayoutScaleMultiplier) const = 0;
 
 public:
+	void CreateStatID() const;
+
+	FORCEINLINE TStatId GetStatID() const
+	{
+#if STATS
+		// this is done to avoid even registering stats for a disabled group (unless we plan on using it later)
+		if (FThreadStats::IsCollectingData())
+		{
+			if (!StatID.IsValidStat())
+			{
+				CreateStatID();
+			}
+			return StatID;
+		}
+#endif
+		return TStatId(); // not doing stats at the moment, or ever
+	}
 
 	/** What is the Child's scale relative to this widget. */
 	virtual float GetRelativeLayoutScale( const FSlotBase& Child ) const;
@@ -1206,6 +1223,7 @@ private:
 	/** The current layout cache that may need to invalidated by changes to this widget. */
 	mutable TWeakPtr<ILayoutCache> LayoutCache;
 
+	STAT(mutable TStatId				StatID;)
 protected:
 	/** Is this widget hovered? */
 	bool bIsHovered : 1;

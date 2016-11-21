@@ -22,7 +22,11 @@ void UNameProperty::ExportTextItem( FString& ValueStr, const void* PropertyValue
 	}
 	else if ( Temp != NAME_None )
 	{
-		ValueStr += FString::Printf( TEXT("\"%s\""), *Temp.ToString() );
+		ValueStr += FString::Printf( TEXT("\"%s\""), *Temp.ToString().ReplaceCharWithEscapedChar() );
+	}
+	else
+	{
+		ValueStr += TEXT("\"\"");
 	}
 }
 const TCHAR* UNameProperty::ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText ) const
@@ -70,6 +74,16 @@ bool UNameProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8
 	}
 
 	return bOutAdvanceProperty;
+}
+
+FString UNameProperty::GetCPPTypeForwardDeclaration() const
+{
+	return FString();
+}
+
+uint32 UNameProperty::GetValueTypeHashInternal(const void* Src) const
+{
+	return GetTypeHash(*(const FName*)Src);
 }
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UNameProperty, UProperty,

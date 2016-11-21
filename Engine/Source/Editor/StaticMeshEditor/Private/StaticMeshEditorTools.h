@@ -336,7 +336,6 @@ private:
 
 	void GetMaterials(class IMaterialListBuilder& ListBuilder);
 	void OnMaterialChanged(UMaterialInterface* NewMaterial, UMaterialInterface* PrevMaterial, int32 SlotIndex, bool bReplaceAll);
-	TSharedRef<SWidget> OnGenerateNameWidgetsForMaterial(UMaterialInterface* Material, int32 SlotIndex);
 	TSharedRef<SWidget> OnGenerateWidgetsForMaterial(UMaterialInterface* Material, int32 SlotIndex);
 	void OnResetMaterialToDefaultClicked(UMaterialInterface* Material, int32 SlotIndex);
 
@@ -345,7 +344,7 @@ private:
 	void OnMaterialNameCommitted(const FText& InValue, ETextCommit::Type CommitType, int32 MaterialIndex);
 	void OnMaterialNameChanged(const FText& InValue, int32 MaterialIndex);
 	bool CanDeleteMaterialSlot(int32 MaterialIndex) const;
-	FReply OnDeleteMaterialSlot(int32 MaterialIndex);
+	void OnDeleteMaterialSlot(int32 MaterialIndex);
 	TSharedRef<SWidget> OnGetMaterialSlotUsedByMenuContent(int32 MaterialIndex);
 	FText GetFirstMaterialSlotUsedBySection(int32 MaterialIndex) const;
 
@@ -354,6 +353,16 @@ private:
 
 	ECheckBoxState IsShadowCastingEnabled(int32 SlotIndex) const;
 	void OnShadowCastingChanged(ECheckBoxState NewState, int32 SlotIndex);
+
+	EVisibility GetOverrideUVDensityVisibililty() const;
+	ECheckBoxState IsUVDensityOverridden(int32 SlotIndex) const;
+	void OnOverrideUVDensityChanged(ECheckBoxState NewState, int32 SlotIndex);
+
+	EVisibility GetUVDensityVisibility(int32 SlotIndex, int32 UVChannelIndex) const;
+	TOptional<float> GetUVDensityValue(int32 SlotIndex, int32 UVChannelIndex) const;
+	void SetUVDensityValue(float InDensity, ETextCommit::Type CommitType, int32 SlotIndex, int32 UVChannelIndex);
+
+	SVerticalBox::FSlot& GetUVDensitySlot(int32 SlotIndex, int32 UVChannelIndex) const;
 
 	void CallPostEditChange(UProperty* PropertyChanged = nullptr);
 

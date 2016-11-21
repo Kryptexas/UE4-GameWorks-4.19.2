@@ -21,6 +21,7 @@ class TJsonWriter;
 UCLASS(MinimalAPI)
 class UCurveTable
 	: public UObject
+	, public FCurveOwnerInterface
 {
 	GENERATED_UCLASS_BODY()
 
@@ -46,6 +47,15 @@ class UCurveTable
 #endif	// WITH_EDITORONLY_DATA
 
 	//~ End  UObject Interface
+
+	//~ Begin FCurveOwnerInterface Interface.
+	virtual TArray<FRichCurveEditInfoConst> GetCurves() const override;
+	virtual TArray<FRichCurveEditInfo> GetCurves() override;
+	virtual void ModifyOwner() override;
+	virtual void MakeTransactional() override;
+	virtual void OnCurveChanged(const TArray<FRichCurveEditInfo>& ChangedCurveEditInfos) override;
+	virtual bool IsValidCurve(FRichCurveEditInfo CurveInfo) override;
+	//~ End FCurveOwnerInterface Interface.
 
 	//~ Begin UCurveTable Interface
 
@@ -165,8 +175,17 @@ struct ENGINE_API FCurveTableRowHandle
 
 	bool operator==(const FCurveTableRowHandle& Other) const;
 	bool operator!=(const FCurveTableRowHandle& Other) const;
+	void PostSerialize(const FArchive& Ar);
 };
 
+template<>
+struct TStructOpsTypeTraits< FCurveTableRowHandle > : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithPostSerialize = true,
+	};
+};
 
 /** Macro to call GetCurve with a correct error info. Assumed to be called within a UObject */
 #define GETCURVE_REPORTERROR(Handle) Handle.GetCurve(FString::Printf(TEXT("%s.%s"), *GetPathName(), TEXT(#Handle)))

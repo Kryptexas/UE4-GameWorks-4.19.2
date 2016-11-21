@@ -10,6 +10,7 @@
 #include "SNumericEntryBox.h"
 #include "STextEntryPopup.h"
 #include "CurveEditorSettings.h"
+#include "Factories/CurveFactory.h"
 
 #define LOCTEXT_NAMESPACE "SCurveEditor"
 
@@ -1198,7 +1199,10 @@ void SCurveEditor::SetCurveOwner(FCurveOwnerInterface* InCurveOwner, bool bCanEd
 			CurveViewModels.Add(TSharedPtr<FCurveViewModel>(new FCurveViewModel(CurveInfo, CurveOwner->GetCurveColor(CurveInfo), !bCanEdit)));
 			curveIndex++;
 		}
-		CurveOwner->MakeTransactional();
+		if (bCanEdit)
+		{
+			CurveOwner->MakeTransactional();
+		}
 	}
 
 	ValidateSelection();
@@ -1873,7 +1877,7 @@ void SCurveEditor::ProcessClick(const FGeometry& InMyGeometry, const FPointerEve
 		else
 		{
 			// If the user didn't click a key, add a new one if shift is held down, or try to select a curve.
-			if (bShiftDown)
+			if (bShiftDown && IsEditingEnabled())
 			{
 				TSharedPtr<TArray<TSharedPtr<FCurveViewModel>>> CurvesToAddKeysTo = MakeShareable(new TArray<TSharedPtr<FCurveViewModel>>());
 				TSharedPtr<FCurveViewModel> HoveredCurve = HitTestCurves(InMyGeometry, InMouseEvent);
@@ -3009,7 +3013,11 @@ void SCurveEditor::OnFlattenOrStraightenTangents(bool bFlattenTangents)
 
 			Key.Curve->GetKey(Key.KeyHandle).LeaveTangent = LeaveTangent;
 			Key.Curve->GetKey(Key.KeyHandle).ArriveTangent = ArriveTangent;
-			Key.Curve->GetKey(Key.KeyHandle).TangentMode = RCTM_User;
+			if (Key.Curve->GetKey(Key.KeyHandle).InterpMode == RCIM_Cubic &&
+				Key.Curve->GetKey(Key.KeyHandle).TangentMode == RCTM_Auto)
+			{
+				Key.Curve->GetKey(Key.KeyHandle).TangentMode = RCTM_User;
+			}
 		}
 				
 		for(auto It = SelectedTangents.CreateIterator();It;++It)
@@ -3033,7 +3041,11 @@ void SCurveEditor::OnFlattenOrStraightenTangents(bool bFlattenTangents)
 
 			Tangent.Key.Curve->GetKey(Tangent.Key.KeyHandle).LeaveTangent = LeaveTangent;
 			Tangent.Key.Curve->GetKey(Tangent.Key.KeyHandle).ArriveTangent = ArriveTangent;
-			Tangent.Key.Curve->GetKey(Tangent.Key.KeyHandle).TangentMode = RCTM_User;
+			if (Tangent.Key.Curve->GetKey(Tangent.Key.KeyHandle).InterpMode == RCIM_Cubic &&
+				Tangent.Key.Curve->GetKey(Tangent.Key.KeyHandle).TangentMode == RCTM_Auto)
+			{
+				Tangent.Key.Curve->GetKey(Tangent.Key.KeyHandle).TangentMode = RCTM_User;
+			}
 		}
 
 		TArray<FRichCurveEditInfo> ChangedCurveEditInfos;

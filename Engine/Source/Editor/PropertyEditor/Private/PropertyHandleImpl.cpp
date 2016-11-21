@@ -1492,13 +1492,13 @@ void FPropertyValueImpl::DeleteChild( TSharedPtr<FPropertyNode> ChildNodeToDelet
 				else if (SetProperty)
 				{
 					FScriptSetHelper SetHelper(SetProperty, Address);
-					SetHelper.RemoveAt_NeedsRehash(ChildNodePtr->GetArrayIndex());
+					SetHelper.RemoveAt(ChildNodePtr->GetArrayIndex());
 					SetHelper.Rehash();
 				}
 				else if (MapProperty)
 				{
 					FScriptMapHelper MapHelper(MapProperty, Address);
-					MapHelper.RemoveAt_NeedsRehash(ChildNodePtr->GetArrayIndex());
+					MapHelper.RemoveAt(ChildNodePtr->GetArrayIndex());
 					MapHelper.Rehash();
 				}
 			}
@@ -2088,7 +2088,10 @@ FPropertyAccess::Result FPropertyHandleBase::SetPerObjectValues( const TArray<FS
 			TArray<FObjectBaseAddress> ObjectsToModify;
 			Implementation->GetObjectsToModify( ObjectsToModify, PropertyNode.Get() );
 
-			Implementation->ImportText( ObjectsToModify, InPerObjectValues, PropertyNode.Get(), Flags );
+			if(ObjectsToModify.Num() > 0)
+			{
+				Implementation->ImportText( ObjectsToModify, InPerObjectValues, PropertyNode.Get(), Flags );
+			}
 
 			return FPropertyAccess::Success;
 		}
@@ -2905,7 +2908,9 @@ FPropertyAccess::Result FPropertyHandleObject::SetValueFromFormattedString(const
 				UClass* AllowedClass = FindObject<UClass>(ANY_PACKAGE, *ClassName);
 				const bool bIsInterface = AllowedClass && AllowedClass->HasAnyClassFlags(CLASS_Interface);
 				
-				if (AllowedClass && (QualifiedObject->IsA(AllowedClass) || (bIsInterface && QualifiedObject->GetClass()->ImplementsInterface(AllowedClass))))
+				// Check if the object is an allowed class type this property supports
+				// Note: QualifieObject may be null if we're clearing the value.  Allow clears to pass through without a supported class
+				if (AllowedClass && (!QualifiedObject || QualifiedObject->IsA(AllowedClass) || (bIsInterface && QualifiedObject->GetClass()->ImplementsInterface(AllowedClass))))
 				{
 					bSupportedObject = true;
 					break;

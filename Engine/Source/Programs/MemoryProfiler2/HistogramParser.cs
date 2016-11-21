@@ -128,10 +128,22 @@ namespace MemoryProfiler2
 				long Size = 0;
 				int Count = 0;
 
-				foreach( FCallStackAllocationInfo AllocationInfo in CallStackList )
+				bool bFilterIn = OwnerWindow.IsFilteringIn();
+
+				var FilteredCallstackList = new List<FCallStackAllocationInfo>(CallStackList.Count);
+				foreach (var AllocationInfo in CallStackList)
+				{
+					var FilteredAllocationInfo = AllocationInfo.GetAllocationInfoForTags(OwnerWindow.GetTagsFilter(), bFilterIn);
+					if (FilteredAllocationInfo.TotalCount != 0)
+					{
+						FilteredCallstackList.Add(FilteredAllocationInfo);
+					}
+				}
+
+				foreach ( FCallStackAllocationInfo AllocationInfo in FilteredCallstackList )
 				{
 					// Update progress bar.
-					if( CallStackCurrent >= NextProgressUpdate )
+					if ( CallStackCurrent >= NextProgressUpdate )
 					{
 						OwnerWindow.ToolStripProgressBar.PerformStep();
 						NextProgressUpdate += ProgressInterval;
@@ -139,8 +151,8 @@ namespace MemoryProfiler2
 					}
 					CallStackCurrent++;
 
-					FCallStack OriginalCallStack = FStreamInfo.GlobalInstance.CallStackArray[ AllocationInfo.CallStackIndex ];
-					if( OriginalCallStack.RunFilters( FilterText, CallStackGroups, OwnerWindow.IsFilteringIn(), OwnerWindow.SelectedMemoryPool ) )
+					FCallStack OriginalCallStack = FStreamInfo.GlobalInstance.CallStackArray[AllocationInfo.CallStackIndex ];
+					if( OriginalCallStack.RunFilters( FilterText, CallStackGroups, bFilterIn, OwnerWindow.SelectedMemoryPool ) )
 					{
 						bool bFound = false;
 						int Column = FMemoryPoolInfo.GetMemoryPoolHistogramColumn( OriginalCallStack.MemoryPool );
@@ -172,8 +184,8 @@ HackyBreakAll:
 						}
 					}
 
-					Size += AllocationInfo.Size;
-					Count += AllocationInfo.Count;
+					Size += AllocationInfo.TotalSize;
+					Count += AllocationInfo.TotalCount;
 				}
 			}
 
@@ -716,7 +728,7 @@ HackyBreakAll:
 			if (BatchAddingCount == 0)
 			{
 				// Sorting largest -> smallest
-				CallStackList.Sort((First, Second) => Math.Sign(First.Size - Second.Size));
+				CallStackList.Sort((First, Second) => Math.Sign(First.TotalSize - Second.TotalSize));
 			}
 		}
 
@@ -729,7 +741,7 @@ HackyBreakAll:
 			{
 				for (int Index = 0; Index < CallStackList.Count; Index++)
 				{
-					if (CallStackList[Index].Size > AllocationInfo.Size)
+					if (CallStackList[Index].TotalSize > AllocationInfo.TotalSize)
 					{
 						CallStackList.Insert(Index, AllocationInfo);
 						bInserted = true;
@@ -743,8 +755,8 @@ HackyBreakAll:
 				CallStackList.Add(AllocationInfo);
 			}
 
-			MemorySize += AllocationInfo.Size;
-			AllocationCount += AllocationInfo.Count;
+			MemorySize += AllocationInfo.TotalSize;
+			AllocationCount += AllocationInfo.TotalCount;
 		}
 	}
 }

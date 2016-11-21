@@ -46,26 +46,26 @@ void EndInitTextLocalization()
 		// Use culture override specified on commandline.
 		else if (FParse::Value(FCommandLine::Get(), TEXT("CULTURE="), RequestedCultureName))
 		{
-			UE_LOG(LogInit, Log, TEXT("Overriding culture %s w/ command-line option."), *RequestedCultureName);
+			UE_LOG(LogInit, Log, TEXT("Overriding culture %s with command-line option."), *RequestedCultureName);
 		}
 		else
 #if WITH_EDITOR
 			// See if we've been provided a culture override in the editor
 			if(GIsEditor && GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), RequestedCultureName, GEditorSettingsIni ))
 			{
-				UE_LOG(LogInit, Log, TEXT("Overriding culture %s w/ editor configuration."), *RequestedCultureName);
+				UE_LOG(LogInit, Log, TEXT("Overriding culture %s with editor configuration."), *RequestedCultureName);
 			}
 			else
 #endif // WITH_EDITOR
 				// Use culture specified in game configuration.
 				if(GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), RequestedCultureName, GGameUserSettingsIni ))
 				{
-					UE_LOG(LogInit, Log, TEXT("Overriding culture %s w/ game configuration."), *RequestedCultureName);
+					UE_LOG(LogInit, Log, TEXT("Overriding culture %s with game configuration."), *RequestedCultureName);
 				}
 				// Use culture specified in engine configuration.
 				else if(GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), RequestedCultureName, GEngineIni ))
 				{
-					UE_LOG(LogInit, Log, TEXT("Overriding culture %s w/ engine configuration."), *RequestedCultureName);
+					UE_LOG(LogInit, Log, TEXT("Overriding culture %s with engine configuration."), *RequestedCultureName);
 				}
 				else
 				{

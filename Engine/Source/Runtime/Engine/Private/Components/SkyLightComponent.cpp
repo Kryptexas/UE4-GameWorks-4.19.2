@@ -109,7 +109,6 @@ FSkyLightSceneProxy::FSkyLightSceneProxy(const USkyLightComponent* InLightCompon
 	, SkyDistanceThreshold(InLightComponent->SkyDistanceThreshold)
 	, bCastShadows(InLightComponent->CastShadows)
 	, bWantsStaticShadowing(InLightComponent->Mobility == EComponentMobility::Stationary)
-	, bPrecomputedLightingIsValid(InLightComponent->bPrecomputedLightingIsValid)
 	, bHasStaticLighting(InLightComponent->HasStaticLighting())
 	, LightColor(FLinearColor(InLightComponent->LightColor) * InLightComponent->Intensity)
 	, IndirectLightingIntensity(InLightComponent->IndirectLightingIntensity)
@@ -178,6 +177,8 @@ void USkyLightComponent::SetCaptureIsDirty()
 { 
 	if (bVisible && bAffectsWorld)
 	{
+		FScopeLock Lock(&SkyCapturesToUpdateLock);
+
 		SkyCapturesToUpdate.AddUnique(this);
 
 		// Mark saved values as invalid, in case a sky recapture is requested in a construction script between a save / restore of sky capture state
@@ -205,6 +206,7 @@ void USkyLightComponent::SetBlendDestinationCaptureIsDirty()
 
 TArray<USkyLightComponent*> USkyLightComponent::SkyCapturesToUpdate;
 TArray<USkyLightComponent*> USkyLightComponent::SkyCapturesToUpdateBlendDestinations;
+FCriticalSection USkyLightComponent::SkyCapturesToUpdateLock;
 
 void USkyLightComponent::CreateRenderState_Concurrent()
 {
@@ -242,6 +244,7 @@ void USkyLightComponent::PostInitProperties()
 	{
 		// Enqueue an update by default, so that newly placed components will get an update
 		// PostLoad will undo this for components loaded from disk
+		FScopeLock Lock(&SkyCapturesToUpdateLock);
 		SkyCapturesToUpdate.AddUnique(this);
 	}
 
@@ -257,6 +260,7 @@ void USkyLightComponent::PostLoad()
 	// All components are queued for update on creation by default, remove if needed
 	if (!bVisible || HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))
 	{
+		FScopeLock Lock(&SkyCapturesToUpdateLock);
 		SkyCapturesToUpdate.Remove(this);
 	}
 }
@@ -407,7 +411,11 @@ void USkyLightComponent::CheckForErrors()
 void USkyLightComponent::BeginDestroy()
 {
 	// Deregister the component from the update queue
-	SkyCapturesToUpdate.Remove(this);
+	{
+		FScopeLock Lock(&SkyCapturesToUpdateLock); 
+		SkyCapturesToUpdate.Remove(this);
+	}
+	
 	SkyCapturesToUpdateBlendDestinations.Remove(this);
 
 	// Release reference
@@ -440,7 +448,6 @@ public:
 	}
 
 	FGuid LightGuid;
-	bool bPrecomputedLightingIsValid;
 	// This has to be refcounted to keep it alive during the handoff without doing a deep copy
 	TRefCountPtr<FSkyTextureCubeResource> ProcessedSkyTexture;
 	FSHVectorRGB3 IrradianceEnvironmentMap;
@@ -451,7 +458,6 @@ FActorComponentInstanceData* USkyLightComponent::GetComponentInstanceData() cons
 {
 	FPrecomputedSkyLightInstanceData* InstanceData = new FPrecomputedSkyLightInstanceData(this);
 	InstanceData->LightGuid = LightGuid;
-	InstanceData->bPrecomputedLightingIsValid = bPrecomputedLightingIsValid;
 	InstanceData->ProcessedSkyTexture = ProcessedSkyTexture;
 
 	// Block until the rendering thread has completed its writes from a previous capture
@@ -467,7 +473,6 @@ void USkyLightComponent::ApplyComponentInstanceData(FPrecomputedSkyLightInstance
 	check(LightMapData);
 
 	LightGuid = LightMapData->LightGuid;
-	bPrecomputedLightingIsValid = LightMapData->bPrecomputedLightingIsValid;
 	ProcessedSkyTexture = LightMapData->ProcessedSkyTexture;
 	IrradianceEnvironmentMap = LightMapData->IrradianceEnvironmentMap;
 	AverageBrightness = LightMapData->AverageBrightness;
@@ -475,6 +480,7 @@ void USkyLightComponent::ApplyComponentInstanceData(FPrecomputedSkyLightInstance
 	if (ProcessedSkyTexture && bSavedConstructionScriptValuesValid)
 	{
 		// We have valid capture state, remove the queued update
+		FScopeLock Lock(&SkyCapturesToUpdateLock);
 		SkyCapturesToUpdate.Remove(this);
 	}
 
@@ -545,8 +551,16 @@ void USkyLightComponent::UpdateSkyCaptureContents(UWorld* WorldToUpdate)
 	if (WorldToUpdate->Scene)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_SkylightCaptures);
-		UpdateSkyCaptureContentsArray(WorldToUpdate, SkyCapturesToUpdate, true);
-		UpdateSkyCaptureContentsArray(WorldToUpdate, SkyCapturesToUpdateBlendDestinations, false);
+		if (SkyCapturesToUpdate.Num() > 0)
+		{
+			FScopeLock Lock(&SkyCapturesToUpdateLock);
+			UpdateSkyCaptureContentsArray(WorldToUpdate, SkyCapturesToUpdate, true);
+		}
+		
+		if (SkyCapturesToUpdateBlendDestinations.Num() > 0)
+		{
+			UpdateSkyCaptureContentsArray(WorldToUpdate, SkyCapturesToUpdateBlendDestinations, false);
+		}
 	}
 }
 

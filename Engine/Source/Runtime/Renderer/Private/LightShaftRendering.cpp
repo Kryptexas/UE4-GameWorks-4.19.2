@@ -133,7 +133,7 @@ public:
 
 		SetShaderValue(RHICmdList, Shader, AspectRatioAndInvAspectRatioParameter, AspectRatioAndInvAspectRatio);
 
-		const FVector WorldSpaceBlurOrigin = LightSceneInfo->Proxy->GetLightPositionForLightShafts(View.ViewMatrices.ViewOrigin);
+		const FVector WorldSpaceBlurOrigin = LightSceneInfo->Proxy->GetLightPositionForLightShafts(View.ViewMatrices.GetViewOrigin());
 		// Transform into texture coordinates
 		FVector4 ProjectedBlurOrigin = View.WorldToScreen(WorldSpaceBlurOrigin);
 
@@ -168,8 +168,8 @@ public:
 			SetShaderValue(RHICmdList, Shader, SpotAnglesParameter, LightSceneInfo->Proxy->GetLightShaftConeParams());
 		}
 
-		const float DistanceFromLight = (View.ViewMatrices.ViewOrigin - WorldSpaceBlurOrigin).Size() + PointLightFadeDistanceIncrease;
-		SetShaderValue(RHICmdList, Shader, WorldSpaceCameraPositionParameter, FVector4(View.ViewMatrices.ViewOrigin, DistanceFromLight));
+		const float DistanceFromLight = (View.ViewMatrices.GetViewOrigin() - WorldSpaceBlurOrigin).Size() + PointLightFadeDistanceIncrease;
+		SetShaderValue(RHICmdList, Shader, WorldSpaceCameraPositionParameter, FVector4(View.ViewMatrices.GetViewOrigin(), DistanceFromLight));
 
 		const FIntPoint DownSampledXY = View.ViewRect.Min / DownsampleFactor;
 		const uint32 DownsampledSizeX = View.ViewRect.Width() / DownsampleFactor;
@@ -713,12 +713,12 @@ bool DoesViewFamilyAllowLightShafts(const FSceneViewFamily& ViewFamily)
 
 bool ShouldRenderLightShaftsForLight(const FViewInfo& View, const FLightSceneInfo* LightSceneInfo)
 {
-	const FVector WorldSpaceBlurOrigin = LightSceneInfo->Proxy->GetLightPositionForLightShafts(View.ViewMatrices.ViewOrigin);
+	const FVector WorldSpaceBlurOrigin = LightSceneInfo->Proxy->GetLightPositionForLightShafts(View.ViewMatrices.GetViewOrigin());
 
 	// Transform into post projection space
-	FVector4 ProjectedBlurOrigin = View.ViewProjectionMatrix.TransformPosition(WorldSpaceBlurOrigin);
+	FVector4 ProjectedBlurOrigin = View.ViewMatrices.GetViewProjectionMatrix().TransformPosition(WorldSpaceBlurOrigin);
 
-	const float DistanceToBlurOrigin = (View.ViewMatrices.ViewOrigin - WorldSpaceBlurOrigin).Size() + PointLightFadeDistanceIncrease;
+	const float DistanceToBlurOrigin = (View.ViewMatrices.GetViewOrigin() - WorldSpaceBlurOrigin).Size() + PointLightFadeDistanceIncrease;
 
 	// Don't render if the light's origin is behind the view
 	return ProjectedBlurOrigin.W > 0.0f

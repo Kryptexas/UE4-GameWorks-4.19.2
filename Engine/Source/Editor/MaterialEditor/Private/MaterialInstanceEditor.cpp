@@ -245,6 +245,7 @@ FMaterialInstanceEditor::FMaterialInstanceEditor()
 , MenuExtensibilityManager(new FExtensibilityManager)
 , ToolBarExtensibilityManager(new FExtensibilityManager)
 {
+	UPackage::PreSavePackageEvent.AddRaw(this, &FMaterialInstanceEditor::PreSavePackage);
 }
 
 FMaterialInstanceEditor::~FMaterialInstanceEditor()
@@ -253,6 +254,18 @@ FMaterialInstanceEditor::~FMaterialInstanceEditor()
 	OnMaterialEditorClosed().Broadcast();
 
 	GEditor->UnregisterForUndo( this );
+
+	UPackage::PreSavePackageEvent.RemoveAll(this);
+
+	// The streaming data will be null if there were any edits
+	if (MaterialEditorInstance && MaterialEditorInstance->SourceInstance && !MaterialEditorInstance->SourceInstance->HasTextureStreamingData())
+	{
+		UPackage* Package = MaterialEditorInstance->SourceInstance->GetOutermost();
+		if (Package && Package->IsDirty() && Package != GetTransientPackage())
+		{
+			FMaterialEditorUtilities::BuildTextureStreamingData(MaterialEditorInstance->SourceInstance);
+		}
+	}
 
 	MaterialEditorInstance = NULL;
 	ParentList.Empty();
@@ -701,7 +714,18 @@ void FMaterialInstanceEditor::NotifyPostChange( const FPropertyChangedEvent& Pro
 
 	// Update the preview window when the user changes a property.
 	PreviewVC->RefreshViewport();
+}
 
+void FMaterialInstanceEditor::PreSavePackage(UPackage* Package)
+{
+	// The streaming data will be null if there were any edits
+	if (MaterialEditorInstance && 
+		MaterialEditorInstance->SourceInstance && 
+		MaterialEditorInstance->SourceInstance->GetOutermost() == Package &&
+		!MaterialEditorInstance->SourceInstance->HasTextureStreamingData())
+	{
+		FMaterialEditorUtilities::BuildTextureStreamingData(MaterialEditorInstance->SourceInstance);
+	}
 }
 
 void FMaterialInstanceEditor::RebuildInheritanceList()

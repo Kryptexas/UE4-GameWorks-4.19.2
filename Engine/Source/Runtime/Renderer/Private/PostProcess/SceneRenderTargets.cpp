@@ -15,6 +15,7 @@
 #include "Public/LightPropagationVolumeBlendable.h"
 #include "Engine/EngineTypes.h"
 #include "WideCustomResolveShaders.h"
+#include "ClearQuad.h"
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FGBufferResourceStruct,TEXT("GBuffers"));
 
@@ -401,6 +402,17 @@ void FSceneRenderTargets::Allocate(FRHICommandList& RHICmdList, const FSceneView
 	const auto NewFeatureLevel = ViewFamily.Scene->GetFeatureLevel();
 	CurrentShadingPath = ViewFamily.Scene->GetShadingPath();
 
+	bRequireSceneColorAlpha = false;
+
+	for (int32 ViewIndex = 0; ViewIndex < ViewFamily.Views.Num(); ViewIndex++)
+	{
+		// Planar reflections and scene captures use scene color alpha to keep track of where content has been rendered, for compositing into a different scene later
+		if (ViewFamily.Views[ViewIndex]->bIsPlanarReflection || ViewFamily.Views[ViewIndex]->bIsSceneCapture)
+		{
+			bRequireSceneColorAlpha = true;
+		}
+	}
+
 	FIntPoint DesiredBufferSize = ComputeDesiredSize(ViewFamily);
 	check(DesiredBufferSize.X > 0 && DesiredBufferSize.Y > 0);
 	QuantizeBufferSize(DesiredBufferSize.X, DesiredBufferSize.Y);
@@ -606,13 +618,16 @@ void FSceneRenderTargets::BeginRenderingGBuffer(FRHICommandList& RHICmdList, ERe
 		if (bShaderClear)
 		{
 			FLinearColor ClearColors[MaxSimultaneousRenderTargets];
+			FTextureRHIParamRef Textures[MaxSimultaneousRenderTargets];
 			ClearColors[0] = ClearColor;
+			Textures[0] = RenderTargets[0].Texture;
 			for (int32 i = 1; i < MRTCount; ++i)
 			{
 				ClearColors[i] = RenderTargets[i].Texture->GetClearColor();
+				Textures[i] = RenderTargets[i].Texture;
 			}
 			//depth/stencil should have been handled by the fast clear.  only color for RT0 can get changed.
-			RHICmdList.ClearMRT(true, MRTCount, ClearColors, false, 0.0f, false, 0, FIntRect());
+			RHICmdList.ClearColorTextures(MRTCount, Textures, ClearColors, FIntRect());
 		}
 
 		//bind any clear data that won't be bound automatically by the preceding SetRenderTargetsAndClear
@@ -736,6 +751,7 @@ void FSceneRenderTargets::AllocLightAttenuation(FRHICommandList& RHICmdList)
 	{
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_B8G8R8A8, FClearValueBinding::White, TexCreate_None, TexCreate_RenderTargetable, false));
 		Desc.Flags |= TexCreate_FastVRAM;
+		Desc.NumSamples = GetNumSceneColorMSAASamples(CurrentFeatureLevel);
 		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, LightAttenuation, TEXT("LightAttenuation"));
 	}
 
@@ -949,7 +965,7 @@ TRefCountPtr<IPooledRenderTarget>& FSceneRenderTargets::GetSceneColor()
 void FSceneRenderTargets::SetSceneColor(IPooledRenderTarget* In)
 {
 	check(CurrentShadingPath < EShadingPath::Num);
-	SceneColor[(int32)CurrentShadingPath] = In;
+	SceneColor[(int32)GetSceneColorFormatType()] = In;
 }
 
 void FSceneRenderTargets::SetLightAttenuation(IPooledRenderTarget* In)
@@ -1074,13 +1090,9 @@ void FSceneRenderTargets::ResolveSceneColor(FRHICommandList& RHICmdList, const F
 		// Custom shader based color resolve for HDR color to emulate mobile.
 		SetRenderTarget(RHICmdList, GetSceneColorTexture(), FTextureRHIParamRef());
 		
-		if(ResolveRect.IsValid())
+		if (ResolveRect.IsValid())
 		{
 			RHICmdList.SetScissorRect(true, ResolveRect.X1, ResolveRect.Y1, ResolveRect.X2, ResolveRect.Y2);
-		}
-		else
-		{
-			RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
 		}
 
 		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
@@ -1133,6 +1145,11 @@ void FSceneRenderTargets::ResolveSceneColor(FRHICommandList& RHICmdList, const F
 				// Everything other than 2,4,8 samples is not implemented.
 				check(0);
 			}
+		}
+
+		if (ResolveRect.IsValid())
+		{
+			RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
 		}
 	}
 }
@@ -1200,7 +1217,7 @@ void FSceneRenderTargets::BeginRenderingLightAttenuation(FRHICommandList& RHICmd
 	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, GetLightAttenuation());
 
 	// Set the light attenuation surface as the render target, and the scene depth buffer as the depth-stencil surface.
-	SetRenderTarget(RHICmdList, GetLightAttenuationSurface(), GetSceneDepthTexture(), bClearToWhite ? ESimpleRenderTargetMode::EClearColorExistingDepth : ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite, true);
+	SetRenderTarget(RHICmdList, GetLightAttenuationSurface(), GetSceneDepthSurface(), bClearToWhite ? ESimpleRenderTargetMode::EClearColorExistingDepth : ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite, true);
 }
 
 void FSceneRenderTargets::FinishRenderingLightAttenuation(FRHICommandList& RHICmdList)
@@ -1248,7 +1265,8 @@ void FSceneRenderTargets::BeginRenderingTranslucency(FRHICommandList& RHICmdList
 	if (bFirstTimeThisFrame)
 	{
 		// Clear the stencil buffer for ResponsiveAA
-		RHICmdList.Clear(false, FLinearColor::White, false, (float)ERHIZBuffer::FarPlane, true, 0, FIntRect());
+		const FTexture2DRHIRef& DepthSurface = GetSceneDepthSurface();
+		DrawClearQuad(RHICmdList, CurrentFeatureLevel, false, FLinearColor(), false, 0, true, 0, FIntPoint(DepthSurface->GetSizeX(), DepthSurface->GetSizeY()), View.ViewRect);
 	}
 		
 	// viewport to match view size
@@ -1333,11 +1351,21 @@ void FSceneRenderTargets::FinishRenderingSeparateTranslucency(FRHICommandList& R
 	bSeparateTranslucencyPass = false;
 }
 
-void FSceneRenderTargets::ResolveSceneDepthTexture(FRHICommandList& RHICmdList)
+void FSceneRenderTargets::ResolveSceneDepthTexture(FRHICommandList& RHICmdList, const FResolveRect& ResolveRect)
 {
 	SCOPED_DRAW_EVENT(RHICmdList, ResolveSceneDepthTexture);
 
+	if (ResolveRect.IsValid())
+	{
+		RHICmdList.SetScissorRect(true, ResolveRect.X1, ResolveRect.Y1, ResolveRect.X2, ResolveRect.Y2);
+	}
+
 	RHICmdList.CopyToResolveTarget(GetSceneDepthSurface(), GetSceneDepthTexture(), true, FResolveParams());
+
+	if (ResolveRect.IsValid())
+	{
+		RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
+	}
 }
 
 void FSceneRenderTargets::ResolveSceneDepthToAuxiliaryTexture(FRHICommandList& RHICmdList)
@@ -1833,6 +1861,10 @@ EPixelFormat FSceneRenderTargets::GetSceneColorFormat() const
 		    SceneColorBufferFormat = PF_FloatRGBA;
 	    }
 
+		if (bRequireSceneColorAlpha)
+		{
+			SceneColorBufferFormat = PF_FloatRGBA;
+		}
 	}
 
 	return SceneColorBufferFormat;
@@ -1840,7 +1872,7 @@ EPixelFormat FSceneRenderTargets::GetSceneColorFormat() const
 
 void FSceneRenderTargets::AllocateRenderTargets(FRHICommandList& RHICmdList)
 {
-	if (BufferSize.X > 0 && BufferSize.Y > 0 && !AreShadingPathRenderTargetsAllocated(CurrentShadingPath))
+	if (BufferSize.X > 0 && BufferSize.Y > 0 && !AreShadingPathRenderTargetsAllocated(GetSceneColorFormatType()))
 	{
 		if ((EShadingPath)CurrentShadingPath == EShadingPath::Mobile)
 		{
@@ -1855,7 +1887,7 @@ void FSceneRenderTargets::AllocateRenderTargets(FRHICommandList& RHICmdList)
 
 void FSceneRenderTargets::ReleaseSceneColor()
 {
-	for (auto i = 0; i < (int32)EShadingPath::Num; ++i)
+	for (auto i = 0; i < (int32)ESceneColorFormatType::Num; ++i)
 	{
 		SceneColor[i].SafeRelease();
 	}
@@ -2111,17 +2143,21 @@ int32 FSceneRenderTargets::GetCubeShadowDepthZResolution(int32 ShadowIndex) cons
 	return SurfaceSizes[ShadowIndex];
 }
 
-bool FSceneRenderTargets::AreShadingPathRenderTargetsAllocated(EShadingPath InShadingPath) const
+bool FSceneRenderTargets::AreShadingPathRenderTargetsAllocated(ESceneColorFormatType InSceneColorFormatType) const
 {
-	switch (InShadingPath)
+	switch (InSceneColorFormatType)
 	{
-	case EShadingPath::Mobile:
+	case ESceneColorFormatType::Mobile:
 		{
-			return (SceneColor[(int32)EShadingPath::Mobile] != nullptr);
+			return (SceneColor[(int32)ESceneColorFormatType::Mobile] != nullptr);
 		}
-	case EShadingPath::Deferred:
+	case ESceneColorFormatType::HighEndWithAlpha:
 		{
-			return (ScreenSpaceAO != nullptr);
+			return (SceneColor[(int32)ESceneColorFormatType::HighEndWithAlpha] != nullptr);
+		}
+	case ESceneColorFormatType::HighEnd:
+		{
+			return (SceneColor[(int32)ESceneColorFormatType::HighEnd] != nullptr);
 		}
 	default:
 		{
@@ -2434,7 +2470,7 @@ void FDeferredPixelShaderParameters::Set(TRHICmdList& RHICmdList, const ShaderRH
 
 	const auto FeatureLevel = View.GetFeatureLevel();
 
-	if (TextureMode == ESceneRenderTargetsMode::SetTextures && FeatureLevel >= ERHIFeatureLevel::SM4)
+	if (TextureMode == ESceneRenderTargetsMode::SetTextures)
 	{
 		// if there is no ambient occlusion it's better to have white there
 		IPooledRenderTarget* ScreenSpaceAO = SceneContext.ScreenSpaceAO;
@@ -2449,6 +2485,7 @@ void FDeferredPixelShaderParameters::Set(TRHICmdList& RHICmdList, const ShaderRH
 		{
 			CustomDepth = GSystemTextures.BlackDummy;
 		}
+		SetTextureParameter(RHICmdList, ShaderRHI, CustomDepthTexture, CustomDepthTextureSampler, TStaticSamplerState<>::GetRHI(), CustomDepth->GetRenderTargetItem().ShaderResourceTexture);
 
 		if (FeatureLevel >= ERHIFeatureLevel::SM4)
 		{
@@ -2461,7 +2498,6 @@ void FDeferredPixelShaderParameters::Set(TRHICmdList& RHICmdList, const ShaderRH
 			SetTextureParameter(RHICmdList, ShaderRHI, ScreenSpaceAOTextureMS, ScreenSpaceAO->GetRenderTargetItem().TargetableTexture);
 			SetTextureParameter(RHICmdList, ShaderRHI, ScreenSpaceAOTextureNonMS, ScreenSpaceAO->GetRenderTargetItem().ShaderResourceTexture);
 
-			SetTextureParameter(RHICmdList, ShaderRHI, CustomDepthTexture, CustomDepthTextureSampler, TStaticSamplerState<>::GetRHI(), CustomDepth->GetRenderTargetItem().ShaderResourceTexture);
 			SetTextureParameter(RHICmdList, ShaderRHI, CustomDepthTextureNonMS, CustomDepth->GetRenderTargetItem().ShaderResourceTexture);
 
 			if (CustomStencilTexture.IsBound())

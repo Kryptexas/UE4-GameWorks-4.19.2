@@ -45,6 +45,9 @@ private:
 	/** Handler for when FindSkeleton is selected */
 	void ExecuteFindSkeleton(TArray<TWeakObjectPtr<USkeletalMesh>> Objects);
 
+	/** Handler for skeletal mesh import */
+	static void ExecuteImportMeshLOD(class UObject* Mesh, int32 LOD);
+
 	// Helper functions
 private:
 	/** Creates a physics asset based on the mesh */

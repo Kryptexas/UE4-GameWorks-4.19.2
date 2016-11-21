@@ -50,13 +50,6 @@ public:
 
 
 template<>
-struct TIsPODType<FStringCurveKey>
-{
-	enum { Value = true };
-};
-
-
-template<>
 struct TStructOpsTypeTraits<FStringCurveKey>
 	: public TStructOpsTypeTraitsBase
 {

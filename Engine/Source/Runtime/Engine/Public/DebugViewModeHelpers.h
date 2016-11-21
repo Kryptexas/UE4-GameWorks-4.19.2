@@ -16,10 +16,10 @@ enum EDebugViewShaderMode
 	DVSM_ShaderComplexityContainedQuadOverhead,	// Show shader complexity with quad overdraw scaling the PS instruction count.
 	DVSM_ShaderComplexityBleedingQuadOverhead,	// Show shader complexity with quad overdraw bleeding the PS instruction count over the quad.
 	DVSM_QuadComplexity,			// Show quad overdraw only.
-	DVSM_PrimitiveDistanceAccuracy,	// Visualize the accuracy of the CPU primitive distance when compared with the GPU value.
-	DVSM_MeshTexCoordSizeAccuracy,	// Visualize the accuracy of the CPU mesh texture coordinate size when compared to the GPU value.
-	DVSM_MaterialTexCoordScalesAccuracy, // Visualize the accuracy of CPU material texture coordinate scales when compared to the GPU values.
-	DVSM_MaterialTexCoordScalesAnalysis, // Outputs the material texture coordinate scales.
+	DVSM_PrimitiveDistanceAccuracy,	// Visualize the accuracy of the primitive distance computed for texture streaming.
+	DVSM_MeshUVDensityAccuracy,		// Visualize the accuracy of the mesh UV densities computed for texture streaming.
+	DVSM_MaterialTextureScaleAccuracy, // Visualize the accuracy of the material texture scales used for texture streaming.
+	DVSM_OutputMaterialTextureScales, // Outputs the material texture scales.
 	DVSM_MAX
 };
 

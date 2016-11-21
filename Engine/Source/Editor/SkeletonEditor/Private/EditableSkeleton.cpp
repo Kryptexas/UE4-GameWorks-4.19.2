@@ -106,9 +106,8 @@ private:
 	USkeletalMesh* SkeletalMesh;
 };
 
-FEditableSkeleton::FEditableSkeleton(USkeleton* InSkeleton, USkeletalMesh* InSkeletalMesh)
+FEditableSkeleton::FEditableSkeleton(USkeleton* InSkeleton)
 	: Skeleton(InSkeleton)
-	, SkeletalMesh(InSkeletalMesh)
 {
 	Skeleton->CollectAnimationNotifies();
 }
@@ -160,7 +159,6 @@ void FEditableSkeleton::SetBlendProfileScale(const FName& InBlendProfileName, co
 void FEditableSkeleton::AddReferencedObjects(FReferenceCollector& Collector)
 {
 	Collector.AddReferencedObject(Skeleton);
-	Collector.AddReferencedObject(SkeletalMesh);
 }
 
 void FEditableSkeleton::SetBoneTranslationRetargetingMode(FName InBoneName, EBoneTranslationRetargetingMode::Type NewRetargetingMode)
@@ -173,18 +171,18 @@ void FEditableSkeleton::SetBoneTranslationRetargetingMode(FName InBoneName, EBon
 	FAssetNotifications::SkeletonNeedsToBeSaved(Skeleton);
 }
 
-EBoneTranslationRetargetingMode::Type FEditableSkeleton::GetBoneTranslationRetargetingMode(FName InBoneName)
+EBoneTranslationRetargetingMode::Type FEditableSkeleton::GetBoneTranslationRetargetingMode(FName InBoneName) const
 {
 	const int32 BoneIndex = Skeleton->GetReferenceSkeleton().FindBoneIndex(InBoneName);
 	return Skeleton->GetBoneTranslationRetargetingMode(BoneIndex);
 }
 
-bool FEditableSkeleton::DoesSocketAlreadyExist(const USkeletalMeshSocket* InSocket, const FText& InSocketName, ESocketParentType SocketParentType) const
+bool FEditableSkeleton::DoesSocketAlreadyExist(const USkeletalMeshSocket* InSocket, const FText& InSocketName, ESocketParentType SocketParentType, USkeletalMesh* InSkeletalMesh) const
 {
 	TArray<USkeletalMeshSocket*>* SocketArrayPtr = nullptr;
-	if (SocketParentType == ESocketParentType::Mesh && SkeletalMesh)
+	if (SocketParentType == ESocketParentType::Mesh && InSkeletalMesh)
 	{
-		SocketArrayPtr = &SkeletalMesh->GetMeshOnlySocketList();
+		SocketArrayPtr = &InSkeletalMesh->GetMeshOnlySocketList();
 	}
 	else if(SocketParentType == ESocketParentType::Skeleton)
 	{
@@ -359,6 +357,7 @@ void FEditableSkeleton::RemoveSmartnamesAndFixupAnimations(const FName& InContai
 
 void FEditableSkeleton::SetCurveMetaDataMaterial(const FSmartName& CurveName, bool bOverrideMaterial)
 {
+	Skeleton->Modify();
 	FCurveMetaData* CurveMetaData = Skeleton->GetCurveMetaData(CurveName);
 	if (CurveMetaData)
 	{
@@ -367,13 +366,30 @@ void FEditableSkeleton::SetCurveMetaDataMaterial(const FSmartName& CurveName, bo
 	}
 }
 
-FName FEditableSkeleton::GenerateUniqueSocketName( FName InName )
+void FEditableSkeleton::SetCurveMetaBoneLinks(const FSmartName& CurveName, TArray<FBoneReference>& BoneLinks)
+{
+	Skeleton->Modify();
+	FCurveMetaData* CurveMetaData = Skeleton->GetCurveMetaData(CurveName);
+	if (CurveMetaData)
+	{
+		// override curve data
+		CurveMetaData->LinkedBones = BoneLinks;
+		
+		//  initialize to this skeleton
+		for (FBoneReference& BoneReference : CurveMetaData->LinkedBones)
+		{
+			BoneReference.Initialize(Skeleton);
+		}
+	}
+}
+
+FName FEditableSkeleton::GenerateUniqueSocketName( FName InName, USkeletalMesh* InSkeletalMesh )
 {
 	int32 NewNumber = InName.GetNumber();
 
 	// Increment NewNumber until we have a unique name (potential infinite loop if *all* int32 values are used!)
-	while ( DoesSocketAlreadyExist( NULL, FText::FromName( FName( InName, NewNumber ) ), ESocketParentType::Skeleton ) ||
-		(SkeletalMesh ? DoesSocketAlreadyExist( NULL, FText::FromName( FName( InName, NewNumber ) ), ESocketParentType::Mesh ) : false ) )
+	while ( DoesSocketAlreadyExist( NULL, FText::FromName( FName( InName, NewNumber ) ), ESocketParentType::Skeleton, InSkeletalMesh ) ||
+		(InSkeletalMesh ? DoesSocketAlreadyExist( NULL, FText::FromName( FName( InName, NewNumber ) ), ESocketParentType::Mesh, InSkeletalMesh ) : false ) )
 	{
 		++NewNumber;
 	}
@@ -399,21 +415,17 @@ static USkeletalMeshSocket* FindSocket(const FName& InSocketName, USkeletalMesh*
 	return Socket;
 }
 
-void FEditableSkeleton::RenameSocket(const FName& OldSocketName, const FName& NewSocketName)
+void FEditableSkeleton::RenameSocket(const FName& OldSocketName, const FName& NewSocketName, USkeletalMesh* InSkeletalMesh)
 {
-	USkeletalMeshSocket* SocketData = FindSocket(OldSocketName, SkeletalMesh, Skeleton);
+	USkeletalMeshSocket* SocketData = FindSocket(OldSocketName, InSkeletalMesh, Skeleton);
 
 	if (SocketData != nullptr)
 	{
-		const FScopedTransaction Transaction(LOCTEXT("RenameSocket", "Rename Socket"));
+		const FScopedTransaction Transaction(Skeleton->PreviewAttachedAssetContainer.Num() > 0 ? LOCTEXT("RenameSocketAndMoveAttachments", "Rename Socket And Move Attachments") : LOCTEXT("RenameSocket", "Rename Socket"));
 		SocketData->SetFlags(RF_Transactional);	// Undo doesn't work without this!
 		SocketData->Modify();
 
 		SocketData->SocketName = NewSocketName;
-	}
-
-	{
-		const FScopedTransaction Transaction(LOCTEXT("RenameSocketAndMoveAttachments", "Rename Socket And Move Attachments"));
 
 		bool bSkeletonModified = false;
 		for (int AttachedObjectIndex = 0; AttachedObjectIndex < Skeleton->PreviewAttachedAssetContainer.Num(); ++AttachedObjectIndex)
@@ -440,19 +452,19 @@ void FEditableSkeleton::RenameSocket(const FName& OldSocketName, const FName& Ne
 			}
 		}
 
-		if (SkeletalMesh != nullptr)
+		if (InSkeletalMesh != nullptr)
 		{
 			bool bMeshModified = false;
-			for (int AttachedObjectIndex = 0; AttachedObjectIndex < SkeletalMesh->PreviewAttachedAssetContainer.Num(); ++AttachedObjectIndex)
+			for (int AttachedObjectIndex = 0; AttachedObjectIndex < InSkeletalMesh->PreviewAttachedAssetContainer.Num(); ++AttachedObjectIndex)
 			{
-				FPreviewAttachedObjectPair& Pair = SkeletalMesh->PreviewAttachedAssetContainer[AttachedObjectIndex];
+				FPreviewAttachedObjectPair& Pair = InSkeletalMesh->PreviewAttachedAssetContainer[AttachedObjectIndex];
 				if (Pair.AttachedTo == OldSocketName)
 				{
 					// Only modify the mesh if we actually intend to change something. Avoids dirtying
 					// meshes when we don't actually update any data on them. (such as adding a new socket)
 					if (!bMeshModified)
 					{
-						SkeletalMesh->Modify();
+						InSkeletalMesh->Modify();
 						bMeshModified = true;
 					}
 					Pair.AttachedTo = NewSocketName;
@@ -467,12 +479,14 @@ void FEditableSkeleton::RenameSocket(const FName& OldSocketName, const FName& Ne
 				}
 			}
 		}
+
+		OnTreeRefresh.Broadcast();
 	}
 }
 
-void FEditableSkeleton::SetSocketParent(const FName& SocketName, const FName& NewParentName)
+void FEditableSkeleton::SetSocketParent(const FName& SocketName, const FName& NewParentName, USkeletalMesh* InSkeletalMesh)
 {
-	USkeletalMeshSocket* Socket = FindSocket(SocketName, SkeletalMesh, Skeleton);
+	USkeletalMeshSocket* Socket = FindSocket(SocketName, InSkeletalMesh, Skeleton);
 	if (Socket)
 	{
 		// Create an undo transaction, re-parent the socket and rebuild the skeleton tree view
@@ -487,7 +501,7 @@ void FEditableSkeleton::SetSocketParent(const FName& SocketName, const FName& Ne
 	}
 }
 
-void FEditableSkeleton::HandlePasteSockets(const FName& InBoneName)
+void FEditableSkeleton::HandlePasteSockets(const FName& InBoneName, USkeletalMesh* InSkeletalMesh)
 {
 	FString PasteString;
 	FPlatformMisc::ClipboardPaste(PasteString);
@@ -504,13 +518,13 @@ void FEditableSkeleton::HandlePasteSockets(const FName& InBoneName)
 		FParse::Line(&PastePtr, PasteLine);	// Need this to advance PastePtr, for multiple sockets
 		FParse::Value(*PasteLine, TEXT("NumSockets="), NumSocketsToPaste);
 
-		FSocketTextObjectFactory TextObjectFactory(Skeleton, SkeletalMesh, InBoneName);
+		FSocketTextObjectFactory TextObjectFactory(Skeleton, InSkeletalMesh, InBoneName);
 		TextObjectFactory.ProcessBuffer(nullptr, RF_Transactional, PastePtr);
 
 		for (USkeletalMeshSocket* NewSocket : TextObjectFactory.CreatedSockets)
 		{
 			// Check the socket name is unique
-			NewSocket->SocketName = GenerateUniqueSocketName(NewSocket->SocketName);
+			NewSocket->SocketName = GenerateUniqueSocketName(NewSocket->SocketName, InSkeletalMesh);
 		}
 	}
 }
@@ -525,20 +539,35 @@ USkeletalMeshSocket* FEditableSkeleton::HandleAddSocket(const FName& InBoneName)
 
 	NewSocket->BoneName = InBoneName;
 	FString SocketName = NewSocket->BoneName.ToString() + LOCTEXT("SocketPostfix", "Socket").ToString();
-	NewSocket->SocketName = GenerateUniqueSocketName(*SocketName);
+	NewSocket->SocketName = GenerateUniqueSocketName(*SocketName, nullptr);
 
 	Skeleton->Sockets.Add(NewSocket);
 	return NewSocket;
 }
 
-void FEditableSkeleton::HandleCustomizeSocket(USkeletalMeshSocket* InSocketToCustomize)
+bool FEditableSkeleton::HandleAddVirtualBone(const FName SourceBoneName, const FName TargetBoneName)
 {
-	if (SkeletalMesh)
+	FScopedTransaction Transaction(LOCTEXT("AddVirtualBone", "Add Virtual Bone to Skeleton"));
+	const bool Success = Skeleton->AddNewVirtualBone(SourceBoneName, TargetBoneName);
+	if (!Success)
+	{
+		Transaction.Cancel();
+	}
+	else
+	{
+		OnTreeRefresh.Broadcast();
+	}
+	return Success;
+}
+
+void FEditableSkeleton::HandleCustomizeSocket(USkeletalMeshSocket* InSocketToCustomize, USkeletalMesh* InSkeletalMesh)
+{
+	if (InSkeletalMesh)
 	{
 		const FScopedTransaction Transaction(LOCTEXT("CreateMeshSocket", "Create Mesh Socket"));
-		SkeletalMesh->Modify();
+		InSkeletalMesh->Modify();
 
-		USkeletalMeshSocket* NewSocket = NewObject<USkeletalMeshSocket>(SkeletalMesh);
+		USkeletalMeshSocket* NewSocket = NewObject<USkeletalMeshSocket>(InSkeletalMesh);
 		check(NewSocket);
 
 		NewSocket->BoneName = InSocketToCustomize->BoneName;
@@ -547,7 +576,7 @@ void FEditableSkeleton::HandleCustomizeSocket(USkeletalMeshSocket* InSocketToCus
 		NewSocket->RelativeRotation = InSocketToCustomize->RelativeRotation;
 		NewSocket->RelativeScale = InSocketToCustomize->RelativeScale;
 
-		SkeletalMesh->GetMeshOnlySocketList().Add(NewSocket);
+		InSkeletalMesh->GetMeshOnlySocketList().Add(NewSocket);
 	}
 }
 
@@ -575,6 +604,7 @@ void FEditableSkeleton::HandleRemoveAllAssets(TSharedPtr<IPersonaPreviewScene> I
 
 	DeleteAttachedObjects(Skeleton->PreviewAttachedAssetContainer, InPreviewScene);
 
+	USkeletalMesh* SkeletalMesh = InPreviewScene->GetPreviewMeshComponent()->SkeletalMesh;
 	if (SkeletalMesh)
 	{
 		SkeletalMesh->Modify();
@@ -596,7 +626,7 @@ void FEditableSkeleton::DeleteAttachedObjects(FPreviewAssetAttachContainer& Atta
 	AttachedAssets.ClearAllAttachedObjects();
 }
 
-USkeletalMeshSocket* FEditableSkeleton::DuplicateSocket(const FSelectedSocketInfo& SocketInfoToDuplicate, const FName& NewParentBoneName)
+USkeletalMeshSocket* FEditableSkeleton::DuplicateSocket(const FSelectedSocketInfo& SocketInfoToDuplicate, const FName& NewParentBoneName, USkeletalMesh* InSkeletalMesh)
 {
 	check(SocketInfoToDuplicate.Socket);
 
@@ -612,10 +642,10 @@ USkeletalMeshSocket* FEditableSkeleton::DuplicateSocket(const FSelectedSocketInf
 		bModifiedSkeleton = true;
 		NewSocket = NewObject<USkeletalMeshSocket>(Skeleton);
 	}
-	else if (SkeletalMesh)
+	else if (InSkeletalMesh)
 	{
-		SkeletalMesh->Modify();
-		NewSocket = NewObject<USkeletalMeshSocket>(SkeletalMesh);
+		InSkeletalMesh->Modify();
+		NewSocket = NewObject<USkeletalMeshSocket>(InSkeletalMesh);
 	}
 	else
 	{
@@ -624,7 +654,7 @@ USkeletalMeshSocket* FEditableSkeleton::DuplicateSocket(const FSelectedSocketInf
 		return nullptr;
 	}
 
-	NewSocket->SocketName = GenerateUniqueSocketName(SocketInfoToDuplicate.Socket->SocketName);
+	NewSocket->SocketName = GenerateUniqueSocketName(SocketInfoToDuplicate.Socket->SocketName, InSkeletalMesh);
 	NewSocket->BoneName = NewParentBoneName != "" ? NewParentBoneName : SocketInfoToDuplicate.Socket->BoneName;
 	NewSocket->RelativeLocation = SocketInfoToDuplicate.Socket->RelativeLocation;
 	NewSocket->RelativeRotation = SocketInfoToDuplicate.Socket->RelativeRotation;
@@ -634,9 +664,9 @@ USkeletalMeshSocket* FEditableSkeleton::DuplicateSocket(const FSelectedSocketInf
 	{
 		Skeleton->Sockets.Add(NewSocket);
 	}
-	else if (SkeletalMesh)
+	else if (InSkeletalMesh)
 	{
-		SkeletalMesh->GetMeshOnlySocketList().Add(NewSocket);
+		InSkeletalMesh->GetMeshOnlySocketList().Add(NewSocket);
 	}
 
 	// Duplicated attached assets
@@ -688,6 +718,7 @@ void FEditableSkeleton::HandleAttachAssets(const TArray<UObject*>& InObjects, co
 
 		if (bAttachToMesh)
 		{
+			USkeletalMesh* SkeletalMesh = InPreviewScene->GetPreviewMeshComponent()->SkeletalMesh;
 			if (SkeletalMesh != nullptr)
 			{
 				FScopedTransaction Transaction(LOCTEXT("DragDropAttachMeshUndo", "Attach Assets to Mesh"));
@@ -734,6 +765,7 @@ void FEditableSkeleton::HandleDeleteAttachedAssets(const TArray<FPreviewAttached
 	if (InAttachedObjects.Num() > 0)
 	{
 		Skeleton->Modify();
+		USkeletalMesh* SkeletalMesh = InPreviewScene->GetPreviewMeshComponent()->SkeletalMesh;
 		if (SkeletalMesh != nullptr)
 		{
 			SkeletalMesh->Modify();
@@ -769,6 +801,7 @@ void FEditableSkeleton::HandleDeleteSockets(const TArray<FSelectedSocketInfo>& I
 		}
 		else
 		{
+			USkeletalMesh* SkeletalMesh = InPreviewScene->GetPreviewMeshComponent()->SkeletalMesh;
 			if (SkeletalMesh != nullptr)
 			{
 				UObject* Object = SkeletalMesh->PreviewAttachedAssetContainer.GetAttachedObjectByAttachName(SocketName);
@@ -798,6 +831,14 @@ void FEditableSkeleton::HandleDeleteSockets(const TArray<FSelectedSocketInfo>& I
 			}
 		}
 	}
+
+	OnTreeRefresh.Broadcast();
+}
+
+void FEditableSkeleton::HandleDeleteVirtualBones(const TArray<FName>& InVirtualBoneInfo, TSharedPtr<class IPersonaPreviewScene> InPreviewScene)
+{
+	FScopedTransaction Transaction(LOCTEXT("RemoveVirtualBone", "Remove Virtual Bone from Skeleton"));
+	Skeleton->RemoveVirtualBones(InVirtualBoneInfo);
 
 	OnTreeRefresh.Broadcast();
 }
@@ -968,8 +1009,11 @@ void FEditableSkeleton::UnregisterOnSkeletonHierarchyChanged(void* Thing)
 
 void FEditableSkeleton::SetPreviewMesh(class USkeletalMesh* InSkeletalMesh)
 {
-	const FScopedTransaction Transaction(LOCTEXT("ChangeSkeletonPreviewMesh", "Change Skeleton Preview Mesh"));
-	Skeleton->SetPreviewMesh(InSkeletalMesh);
+	if (InSkeletalMesh != Skeleton->GetPreviewMesh())
+	{
+		const FScopedTransaction Transaction(LOCTEXT("ChangeSkeletonPreviewMesh", "Change Skeleton Preview Mesh"));
+		Skeleton->SetPreviewMesh(InSkeletalMesh);
+	}
 }
 
 void FEditableSkeleton::LoadAdditionalPreviewSkeletalMeshes()
@@ -1221,7 +1265,7 @@ void FEditableSkeleton::RemoveUnusedBones()
 	TArray<FName> SkeletonBones;
 	const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
 
-	for (int32 BoneIndex = 0; BoneIndex < RefSkeleton.GetNum(); ++BoneIndex)
+	for (int32 BoneIndex = 0; BoneIndex < RefSkeleton.GetRawBoneNum(); ++BoneIndex)
 	{
 		SkeletonBones.Add(RefSkeleton.GetBoneName(BoneIndex));
 	}
@@ -1243,32 +1287,46 @@ void FEditableSkeleton::RemoveUnusedBones()
 		const FText StatusUpdate = FText::Format(LOCTEXT("RemoveUnusedBones_ProcessingAssetsFor", "Processing Skeletal Meshes for {0}"), FText::FromString(Skeleton->GetName()));
 		GWarn->BeginSlowTask(StatusUpdate, true);
 
-		// Loop through all SkeletalMeshes and remove the bones they use from our list
-		for (int32 MeshIdx = 0; MeshIdx < SkeletalMeshes.Num(); ++MeshIdx)
+		// Loop through virtual bones and remove the bones they use from the list
+		for (const FVirtualBone& VB : Skeleton->GetVirtualBones())
 		{
-			GWarn->StatusUpdate(MeshIdx, SkeletalMeshes.Num(), StatusUpdate);
-
-			USkeletalMesh* Mesh = Cast<USkeletalMesh>(SkeletalMeshes[MeshIdx].GetAsset());
-			const FReferenceSkeleton& MeshRefSkeleton = Mesh->RefSkeleton;
-
-			for (int32 BoneIndex = 0; BoneIndex < MeshRefSkeleton.GetNum(); ++BoneIndex)
-			{
-				SkeletonBones.Remove(MeshRefSkeleton.GetBoneName(BoneIndex));
-				if (SkeletonBones.Num() == 0)
-				{
-					break;
-				}
-			}
+			SkeletonBones.Remove(VB.SourceBoneName);
+			SkeletonBones.Remove(VB.TargetBoneName);
 			if (SkeletonBones.Num() == 0)
 			{
 				break;
 			}
 		}
 
+		if (SkeletonBones.Num() != 0)
+		{
+			// Loop through all SkeletalMeshes and remove the bones they use from our list
+			for (int32 MeshIdx = 0; MeshIdx < SkeletalMeshes.Num(); ++MeshIdx)
+			{
+				GWarn->StatusUpdate(MeshIdx, SkeletalMeshes.Num(), StatusUpdate);
+
+				USkeletalMesh* Mesh = Cast<USkeletalMesh>(SkeletalMeshes[MeshIdx].GetAsset());
+				const FReferenceSkeleton& MeshRefSkeleton = Mesh->RefSkeleton;
+
+				for (int32 BoneIndex = 0; BoneIndex < MeshRefSkeleton.GetRawBoneNum(); ++BoneIndex)
+				{
+					SkeletonBones.Remove(MeshRefSkeleton.GetBoneName(BoneIndex));
+					if (SkeletonBones.Num() == 0)
+					{
+						break;
+					}
+				}
+				if (SkeletonBones.Num() == 0)
+				{
+					break;
+				}
+			}
+		}
+
 		GWarn->EndSlowTask();
 
 		//Remove bones that are a parent to bones we aren't removing
-		for (int32 BoneIndex = RefSkeleton.GetNum() - 1; BoneIndex >= 0; --BoneIndex)
+		for (int32 BoneIndex = RefSkeleton.GetRawBoneNum() - 1; BoneIndex >= 0; --BoneIndex)
 		{
 			FName CurrBoneName = RefSkeleton.GetBoneName(BoneIndex);
 			if (!SkeletonBones.Contains(CurrBoneName))

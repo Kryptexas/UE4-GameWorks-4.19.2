@@ -18,7 +18,8 @@
 #include "DistanceFieldAtlas.h"
 #include "LightRendering.h"
 
-int32 GAOHeightfieldOcclusion = 1;
+// Currently disabled because the bHasHeightfieldRepresentation GBuffer bit has been reallocated, and self-shadowing artifacts are too severe without that bit
+int32 GAOHeightfieldOcclusion = 0;
 FAutoConsoleVariableRef CVarAOHeightfieldOcclusion(
 	TEXT("r.AOHeightfieldOcclusion"),
 	GAOHeightfieldOcclusion,
@@ -401,7 +402,7 @@ void FHeightfieldLightingViewInfo::SetupVisibleHeightfields(const FViewInfo& Vie
 		{
 			const FPrimitiveSceneInfo* HeightfieldPrimitive = Scene->DistanceFieldSceneData.HeightfieldPrimitives[HeightfieldPrimitiveIndex];
 			const FBoxSphereBounds& PrimitiveBounds = HeightfieldPrimitive->Proxy->GetBounds();
-			const float DistanceToPrimitiveSq = (PrimitiveBounds.Origin - View.ViewMatrices.ViewOrigin).SizeSquared();
+			const float DistanceToPrimitiveSq = (PrimitiveBounds.Origin - View.ViewMatrices.GetViewOrigin()).SizeSquared();
 						
 			if (View.ViewFrustum.IntersectSphere(PrimitiveBounds.Origin, PrimitiveBounds.SphereRadius + GetGHeightfieldBounceDistance())
 				&& DistanceToPrimitiveSq < MaxDistanceSquared)

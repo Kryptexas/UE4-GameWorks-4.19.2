@@ -212,7 +212,11 @@ public:
 	/////////
 	// SIM SETTINGS
 
-	/** If true, this body will use simulation. If false, will be 'fixed' (ie kinematic) and move where it is told. */
+	/** 
+	 * If true, this body will use simulation. If false, will be 'fixed' (ie kinematic) and move where it is told. 
+	 * For a Skeletal Mesh Component, simulating requires a physics asset setup and assigned on the SkeletalMesh asset.
+	 * For a Static Mesh Component, simulating requires simple collision to be setup on the StaticMesh asset.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Physics)
 	uint32 bSimulatePhysics : 1;
 
@@ -915,15 +919,16 @@ public:
 	bool LineTrace(struct FHitResult& OutHit, const FVector& Start, const FVector& End, bool bTraceComplex, bool bReturnPhysicalMaterial = false) const;
 
 	/** 
-	 *  Trace a box against just this bodyinstance
-	 *  @param  OutHit          Information about hit against this component, if true is returned
-	 *  @param  Start           Start location of the box
-	 *  @param  End             End location of the box
-	 *  @param  CollisionShape	Collision Shape
-	 *	@param	bTraceComplex	Should we trace against complex or simple collision of this body
+	 *  Trace a shape against just this bodyinstance
+	 *  @param  OutHit          	Information about hit against this component, if true is returned
+	 *  @param  Start           	Start location of the box
+	 *  @param  End             	End location of the box
+	 *  @param  ShapeWorldRotation  The rotation applied to the collision shape in world space.
+	 *  @param  CollisionShape		Collision Shape
+	 *	@param	bTraceComplex		Should we trace against complex or simple collision of this body
 	 *  @return true if a hit is found
 	 */
-	bool Sweep(struct FHitResult& OutHit, const FVector& Start, const FVector& End, const FCollisionShape& Shape, bool bTraceComplex) const;
+	bool Sweep(struct FHitResult& OutHit, const FVector& Start, const FVector& End, const FQuat& ShapeWorldRotation, const FCollisionShape& Shape, bool bTraceComplex) const;
 
 #if WITH_PHYSX
 	/**
@@ -1041,7 +1046,9 @@ public:
 	/** 
 	 * Returns memory used by resources allocated for this body instance ( ex. Physx resources )
 	 **/
+	DEPRECATED(4.14, "GetBodyInstanceResourceSize is deprecated. Please use GetBodyInstanceResourceSizeEx instead.")
 	SIZE_T GetBodyInstanceResourceSize(EResourceSizeMode::Type Mode) const;
+	void GetBodyInstanceResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const;
 
 	/**
 	 * UObject notification by OwningComponent
@@ -1062,16 +1069,15 @@ public:
 
 private:
 	/**
-	 *  Trace a box against just this bodyinstance
+	 *  Trace a shape against just this bodyinstance
 	 *  @param  OutHit          Information about hit against this component, if true is returned
 	 *  @param  Start           Start location of the box
 	 *  @param  End             End location of the box
-	 *  @param  CollisionShape	Collision Shape
+	 *  @param  ShapeAdaptor    Adaptor containing geometry information about the shape to be swept.
 	 *  @param	bTraceComplex	Should we trace against complex or simple collision of this body
-	 *  @param	PGeom			Geometry that will sweep
 	 *  @return true if a hit is found
 	 */
-	bool InternalSweepPhysX(struct FHitResult& OutHit, const FVector& Start, const FVector& End, const FCollisionShape& Shape, bool bTraceComplex, const physx::PxRigidActor* RigidBody, const physx::PxGeometry* Geometry) const;
+	bool InternalSweepPhysX(struct FHitResult& OutHit, const FVector& Start, const FVector& End, const struct FPhysXShapeAdaptor& ShapeAdaptor, bool bTraceComplex, const physx::PxRigidActor* RigidBody) const;
 
 	/** 
 	 * Helper function to update per shape filtering info. This should interface is not very friendly and should only be used from inside FBodyInstance

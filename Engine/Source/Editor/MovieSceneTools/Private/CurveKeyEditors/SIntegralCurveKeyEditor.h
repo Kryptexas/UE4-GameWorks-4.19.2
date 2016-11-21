@@ -77,7 +77,7 @@ private:
 			return ExternalValue.Get().GetValue();
 		}
 
-		float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
+		float CurrentTime = Sequencer->GetLocalTime();
 		return Curve->Evaluate(CurrentTime);
 	}
 
@@ -85,7 +85,7 @@ private:
 	{
 		if (OwningSection->TryModify())
 		{
-			float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
+			float CurrentTime = Sequencer->GetLocalTime();
 			bool bAutoSetTrackDefaults = Sequencer->GetAutoSetTrackDefaults();
 
 			FKeyHandle CurrentKeyHandle = Curve->FindKey(CurrentTime);

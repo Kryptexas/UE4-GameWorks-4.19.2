@@ -41,6 +41,13 @@ public:
 		OnCloseClicked = InArgs._OnCloseClicked;
 		OnRerunClicked = InArgs._OnRerunClicked;
 
+		TSharedRef<SScrollBar> HorizontalScrollBar = SNew(SScrollBar)
+			.Orientation(EOrientation::Orient_Horizontal)
+			.AlwaysShowScrollbar(true);
+		TSharedRef<SScrollBar> VerticalScrollBar = SNew(SScrollBar)
+			.Orientation(EOrientation::Orient_Vertical)
+			.AlwaysShowScrollbar(true);
+
 		ChildSlot
 		[
 			SNew(SVerticalBox)
@@ -76,7 +83,7 @@ public:
 			]
 
 			+ SVerticalBox::Slot()
-			.Padding(0.0, 8.0, 8.0, 0.0)
+			.Padding(0.0, 8.0, 0.0, 0.0)
 			[
 				SNew(SSplitter)
 				.Orientation(Orient_Vertical)
@@ -132,18 +139,59 @@ public:
 					.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 					.Padding(0.0f)
 					[
-						SAssignNew(MessageListView, SListView< TSharedPtr<FProjectLauncherMessage> >)
-						.HeaderRow
-						(
+						SNew(SGridPanel)
+						.FillColumn(0, 1.f)
+						.FillRow(1, 1.f)
+						+ SGridPanel::Slot(0, 0)
+						[
 							SNew(SHeaderRow)
 							+ SHeaderRow::Column("Status")
-							.DefaultLabel(LOCTEXT("TaskListStatusColumnHeader", "Status"))
+							.DefaultLabel(LOCTEXT("TaskListOutputLogColumnHeader", "Output Log"))
 							.FillWidth(1.0)
-						)
-						.ListItemsSource(&MessageList)
-						.OnGenerateRow(this, &SProjectLauncherProgress::HandleMessageListViewGenerateRow)
-						.ItemHeight(24.0)
-						.SelectionMode(ESelectionMode::Multi)
+						]
+						+ SGridPanel::Slot(1, 0)
+						[
+							SNew(SHeaderRow)
+						]
+						+ SGridPanel::Slot(0, 1)
+						[
+							SNew(SScrollBox)
+							.Orientation(EOrientation::Orient_Horizontal)
+							.ExternalScrollbar(HorizontalScrollBar)
+							+ SScrollBox::Slot()
+							[
+								SAssignNew(MessageListView, SListView< TSharedPtr<FProjectLauncherMessage> >)
+								.HeaderRow
+								(
+									SNew(SHeaderRow)
+									.Visibility(EVisibility::Collapsed)
+									+ SHeaderRow::Column("Status")
+									.DefaultLabel(LOCTEXT("TaskListOutputLogColumnHeader", "Output Log"))
+								)
+								.ListItemsSource(&MessageList)
+								.OnGenerateRow(this, &SProjectLauncherProgress::HandleMessageListViewGenerateRow)
+								.ItemHeight(24.0)
+								.SelectionMode(ESelectionMode::Multi)
+								.ExternalScrollbar(VerticalScrollBar)
+								.AllowOverscroll(EAllowOverscroll::No)
+							]
+						]
+						+ SGridPanel::Slot(1, 1)
+						[
+							SNew(SBox)
+							.WidthOverride(FOptionalSize(16))
+							[
+								VerticalScrollBar
+							]
+						]
+						+ SGridPanel::Slot(0, 2)
+						[
+							SNew(SBox)
+							.HeightOverride(FOptionalSize(16))
+							[
+								HorizontalScrollBar
+							]
+						]
 					]
 				]
 			]

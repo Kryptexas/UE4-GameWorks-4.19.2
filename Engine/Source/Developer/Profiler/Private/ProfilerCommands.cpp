@@ -1,23 +1,29 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "ProfilerPrivatePCH.h"
-#include "DesktopPlatformModule.h"
-#include "FileManagerGeneric.h"
+#include "ProfilerCommands.h"
+#include "ProfilerManager.h"
+#include "ProfilerSession.h"
+#include "SMultiDumpBrowser.h"
+#include "SProfilerWindow.h"
+
 
 #define LOCTEXT_NAMESPACE "FProfilerCommands"
+
 
 /*-----------------------------------------------------------------------------
 	FProfilerCommands
 -----------------------------------------------------------------------------*/
 
-FProfilerCommands::FProfilerCommands() : TCommands<FProfilerCommands>
-(
-	TEXT( "ProfilerCommand" ), // Context name for fast lookup
-	NSLOCTEXT("Contexts", "ProfilerCommand", "Profiler Command"), // Localized context name for displaying
-	NAME_None, // Parent
-	FEditorStyle::GetStyleSetName() // Icon Style Set
-)
-{}
+FProfilerCommands::FProfilerCommands()
+	: TCommands<FProfilerCommands>(
+		TEXT( "ProfilerCommand" ), // Context name for fast lookup
+		NSLOCTEXT("Contexts", "ProfilerCommand", "Profiler Command"), // Localized context name for displaying
+		NAME_None, // Parent
+		FEditorStyle::GetStyleSetName() // Icon Style Set
+	)
+{ }
+
 
 /** UI_COMMAND takes long for the compile to optimize */
 PRAGMA_DISABLE_OPTIMIZATION
@@ -63,22 +69,24 @@ PRAGMA_ENABLE_OPTIMIZATION
 
 //static_assert(sizeof(FProfilerActionManager) == 0, "Cannot contain any variables at this moment.");
 
+
 /*-----------------------------------------------------------------------------
 	FProfilerMenuBuilder
 -----------------------------------------------------------------------------*/
 
-void FProfilerMenuBuilder::AddMenuEntry( FMenuBuilder& MenuBuilder, const TSharedPtr< FUICommandInfo >& FUICommandInfo, const FUIAction& UIAction )
+void FProfilerMenuBuilder::AddMenuEntry( FMenuBuilder& MenuBuilder, const TSharedPtr< FUICommandInfo >& UICommandInfo, const FUIAction& UIAction )
 {
 	MenuBuilder.AddMenuEntry
 	( 
-		FUICommandInfo->GetLabel(),
-		FUICommandInfo->GetDescription(),
-		FUICommandInfo->GetIcon(),
+		UICommandInfo->GetLabel(),
+		UICommandInfo->GetDescription(),
+		UICommandInfo->GetIcon(),
 		UIAction,
 		NAME_None, 
-		FUICommandInfo->GetUserInterfaceType()
+		UICommandInfo->GetUserInterfaceType()
 	);
 }
+
 
 /*-----------------------------------------------------------------------------
 	ToggleDataPreview
@@ -121,6 +129,7 @@ ECheckBoxState FProfilerActionManager::ToggleDataPreview_GetCheckState( const FG
 	return bDataPreview ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
+
 /*-----------------------------------------------------------------------------
 	ProfilerManager_ToggleLivePreview
 -----------------------------------------------------------------------------*/
@@ -150,6 +159,7 @@ ECheckBoxState FProfilerActionManager::ProfilerManager_ToggleLivePreview_GetChec
 {
 	return This->bLivePreview ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
+
 
 /*-----------------------------------------------------------------------------
 	ProfilerManager_Load
@@ -214,7 +224,6 @@ void FProfilerActionManager::ProfilerManager_Load_Execute()
 }
 
 
-
 void FProfilerActionManager::ProfilerManager_LoadMultiple_Execute()
 {
 	// @see FStatConstants::StatsFileExtension
@@ -258,6 +267,7 @@ bool FProfilerActionManager::ProfilerManager_Load_CanExecute() const
 	const bool bIsConnectionActive = This->IsDataCapturing() || This->IsDataPreviewing() || This->IsLivePreview();
 	return !(bIsConnectionActive && This->ProfilerType == EProfilerSessionTypes::Live);
 }
+
 
 /*-----------------------------------------------------------------------------
 	ToggleDataCapture
@@ -311,6 +321,7 @@ ECheckBoxState FProfilerActionManager::ToggleDataCapture_GetCheckState( const FG
 	const bool bDataCapturing = This->IsDataCapturing();
 	return bDataCapturing ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
+
 
 /*-----------------------------------------------------------------------------
 		OpenSettings

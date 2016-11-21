@@ -536,8 +536,8 @@ private:
 
 	virtual FSphere GetShadowSplitBoundsDepthRange(const FSceneView& View, FVector ViewOrigin, float SplitNear, float SplitFar, FShadowCascadeSettings* OutCascadeSettings) const override
 	{
-		const FMatrix ViewMatrix = View.ShadowViewMatrices.ViewMatrix;
-		const FMatrix ProjectionMatrix = View.ShadowViewMatrices.ProjMatrix;
+		const FMatrix& ViewMatrix = View.ShadowViewMatrices.GetViewMatrix();
+		const FMatrix& ProjectionMatrix = View.ShadowViewMatrices.GetProjectionMatrix();
 
 		const FVector CameraDirection = ViewMatrix.GetColumn(2);
 		const FVector LightDirection = -GetDirection();
@@ -660,7 +660,7 @@ private:
 			OutCascadeSettings->FadePlaneLength = SplitFar - FadePlane;
 		}
 
-		const FSphere CascadeSphere = FDirectionalLightSceneProxy::GetShadowSplitBoundsDepthRange(View, View.ViewMatrices.ViewOrigin, SplitNear, SplitFar, OutCascadeSettings);
+		const FSphere CascadeSphere = FDirectionalLightSceneProxy::GetShadowSplitBoundsDepthRange(View, View.ViewMatrices.GetViewOrigin(), SplitNear, SplitFar, OutCascadeSettings);
 
 		return CascadeSphere;
 	}

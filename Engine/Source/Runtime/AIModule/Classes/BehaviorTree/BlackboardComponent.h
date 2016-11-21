@@ -75,10 +75,18 @@ public:
 	/** unregister all observers associated with given owner */
 	void UnregisterObserversFrom(UObject* NotifyOwner);
 
+	/** pause observer change notifications, any new ones will be added to a queue */
+	void PauseObserverNotifications();
+
+	/** resume observer change notifications and, optionally, process the queued observation list */
+	void ResumeObserverNotifications(bool bSendQueuedObserverNotifications);
+
 	/** pause change notifies and add them to queue */
+	DEPRECATED(4.15, "Please call PauseObserverUpdates.")
 	void PauseUpdates();
 
 	/** resume change notifies and process queued list */
+	DEPRECATED(4.15, "Please call ResumeObserverNotifications.")
 	void ResumeUpdates();
 
 	/** @return associated behavior tree component */
@@ -243,7 +251,7 @@ protected:
 	/** queued key change notification, will be processed on ResumeUpdates call */
 	mutable TArray<uint8> QueuedUpdates;
 
-	/** set when notifies are paused and shouldn't be passed to observers */
+	/** set when observation notifies are paused and shouldn't be passed to observers */
 	uint32 bPausedNotifies : 1;
 
 	/** reset to false every time a new BB asset is assigned to this component */

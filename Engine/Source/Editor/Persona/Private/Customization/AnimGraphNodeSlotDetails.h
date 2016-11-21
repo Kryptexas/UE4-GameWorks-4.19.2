@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "PersonaDelegates.h"
 
 /**
  * Customizes a DataTable asset to use a dropdown

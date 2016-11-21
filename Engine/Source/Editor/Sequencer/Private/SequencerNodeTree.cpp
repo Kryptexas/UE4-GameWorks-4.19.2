@@ -299,7 +299,6 @@ TSharedRef<FSequencerObjectBindingNode> FSequencerNodeTree::AddObjectBinding(con
 		TSharedPtr<FSequencerObjectBindingNode> ParentNode;
 
 		UMovieSceneSequence* Sequence = Sequencer.GetFocusedMovieSceneSequence();
-		TSharedRef<FMovieSceneSequenceInstance> SequenceInstance = Sequencer.GetFocusedMovieSceneSequenceInstance();
 
 		// Prefer to use the parent spawnable if possible, rather than relying on runtime object presence
 		FMovieScenePossessable* Possessable = Sequence->GetMovieScene()->FindPossessable(ObjectBinding);
@@ -311,38 +310,9 @@ TSharedRef<FSequencerObjectBindingNode> FSequencerNodeTree::AddObjectBinding(con
 				ParentNode = AddObjectBinding( ParentBinding->GetName(), Possessable->GetParent(), GuidToBindingMap, OutNodeList );
 			}
 		}
-		
-		UObject* RuntimeObject = SequenceInstance->FindObject(ObjectBinding, Sequencer);
-
-		// fallback to using the parent runtime object
-		if (!ParentNode.IsValid() && RuntimeObject)
-		{
-			UObject* ParentObject = Sequence->GetParentObject(RuntimeObject);
-
-			if (ParentObject != nullptr)
-			{
-				FGuid ParentBinding = SequenceInstance->FindObjectId(*ParentObject);
-				TSharedPtr<FSequencerObjectBindingNode>* FoundParentNode = ObjectBindingMap.Find( ParentBinding );
-				if ( FoundParentNode != nullptr )
-				{
-					ParentNode = *FoundParentNode;
-				}
-				else
-				{
-					const FMovieSceneBinding** FoundParentMovieSceneBinding = GuidToBindingMap.Find( ParentBinding );
-					if ( FoundParentMovieSceneBinding != nullptr )
-					{
-						ParentNode = AddObjectBinding( (*FoundParentMovieSceneBinding)->GetName(), ParentBinding, GuidToBindingMap, OutNodeList );
-					}
-				}
-			}
-		}
 
 		// get human readable name of the object
-		AActor* RuntimeActor = Cast<AActor>(RuntimeObject);
-		const FString& DisplayString = (RuntimeActor != nullptr)
-			? RuntimeActor->GetActorLabel()
-			: ObjectName;
+		const FString& DisplayString = ObjectName;
 
 		// Create the node.
 		ObjectNode = MakeShareable(new FSequencerObjectBindingNode(ObjectNodeName, FText::FromString(DisplayString), ObjectBinding, ParentNode, *this));

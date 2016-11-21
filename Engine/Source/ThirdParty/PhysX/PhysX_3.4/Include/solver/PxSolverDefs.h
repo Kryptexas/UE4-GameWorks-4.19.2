@@ -38,6 +38,11 @@
 #include "PxConstraintDesc.h"
 #include "GeomUtils/GuContactPoint.h"
 
+#if PX_VC
+#pragma warning(push)
+#pragma warning(disable : 4324) // structure was padded due to alignment
+#endif
+
 #if !PX_DOXYGEN
 namespace physx
 {
@@ -72,16 +77,16 @@ PX_COMPILE_TIME_ASSERT(sizeof(PxSolverBody) == 32);
 
 struct PxSolverBodyData
 {
-	PxVec3			linearVelocity;		//!< Pre-solver linear velocity
-	PxReal			invMass;			//!< inverse mass
-	PxVec3			angularVelocity;	//!< Pre-solver angular velocity
-	PxReal			reportThreshold;	//!< contact force threshold
-	PxMat33			sqrtInvInertia;		//!< inverse inertia in world space
-	PxReal			penBiasClamp;		//!< the penetration bias clamp
-	PxU32			nodeIndex;			//!< the node idx of this solverBodyData. Used by solver to reference between solver bodies and island bodies. Not required by immediate mode
-	PxReal			maxContactImpulse;	//!< the max contact impulse
-	PxTransform		body2World;			//!< the body's transform
-	PxU32			lockFlags;			//!< lock flags
+	PX_ALIGN(16, PxVec3 linearVelocity);	//!< 12 Pre-solver linear velocity
+	PxReal			invMass;				//!< 16 inverse mass
+	PxVec3			angularVelocity;		//!< 28 Pre-solver angular velocity
+	PxReal			reportThreshold;		//!< 32 contact force threshold
+	PxMat33			sqrtInvInertia;			//!< 68 inverse inertia in world space
+	PxReal			penBiasClamp;			//!< 72 the penetration bias clamp
+	PxU32			nodeIndex;				//!< 76 the node idx of this solverBodyData. Used by solver to reference between solver bodies and island bodies. Not required by immediate mode
+	PxReal			maxContactImpulse;		//!< 80 the max contact impulse
+	PxTransform		body2World;				//!< 108 the body's transform
+	PxU32			lockFlags;				//!< 112 lock flags
 
 	PX_FORCE_INLINE PxReal projectVelocity(const PxVec3& lin, const PxVec3& ang)	const
 	{
@@ -176,7 +181,7 @@ struct PxSolverConstraintPrepDescBase
 
 struct PxSolverConstraintPrepDesc : public PxSolverConstraintPrepDescBase
 {
-	Px1DConstraint* rows;						//!< The start of the constraint rows
+	PX_ALIGN(16, Px1DConstraint* rows);			//!< The start of the constraint rows
 	PxU32 numRows;								//!< The number of rows
 
 	PxReal linBreakForce, angBreakForce;		//!< Break forces
@@ -189,10 +194,11 @@ struct PxSolverConstraintPrepDesc : public PxSolverConstraintPrepDescBase
 	PxVec3 body0WorldOffset;					//!< Body0 world offset
 };
 
+
 struct PxSolverContactDesc : public PxSolverConstraintPrepDescBase
 {
 
-	Sc::ShapeInteraction* shapeInteraction; //!< Pointer to share interaction. Used for force threshold reports in solver. Set to NULL if using immediate mode.
+	PX_ALIGN(16, Sc::ShapeInteraction* shapeInteraction); //!< Pointer to share interaction. Used for force threshold reports in solver. Set to NULL if using immediate mode.
 	Gu::ContactPoint* contacts;				//!< The start of the contacts for this pair
 	PxU32 numContacts;						//!< The total number of contacs this pair references.
 
@@ -212,9 +218,10 @@ struct PxSolverContactDesc : public PxSolverConstraintPrepDescBase
 	PxU32 numFrictionPatches;				//!< Total number of friction patches in this pair. Set by friction correlation
 
 	PxU32 startContactPatchIndex;			//!< The start index of this pair's contact patches in the correlation buffer. For internal use only
-	PxU32 numContactPatches;				//!< Total number of contact patches.
+	PxU16 numContactPatches;				//!< Total number of contact patches.
 	PxU16 axisConstraintCount;				//!< Axis constraint count. Defines how many constraint rows this pair has produced. Useful for statistical purposes.
 
+	PxU8 pad[16 - sizeof(void*)];
 };
 
 class PxConstraintAllocator
@@ -239,6 +246,10 @@ public:
 
 #if !PX_DOXYGEN
 }
+#endif
+
+#if PX_VC
+#pragma warning(pop)
 #endif
 
 #endif

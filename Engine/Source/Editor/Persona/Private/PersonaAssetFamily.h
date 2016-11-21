@@ -8,6 +8,7 @@ class FPersonaAssetFamily : public IAssetFamily
 {
 public:
 	FPersonaAssetFamily(const UObject* InFromObject);
+	virtual ~FPersonaAssetFamily() {}
 
 	/** IAssetFamily interface */
 	virtual void GetAssetTypes(TArray<UClass*>& OutAssetTypes) const override;

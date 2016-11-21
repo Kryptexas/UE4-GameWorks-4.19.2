@@ -4,7 +4,6 @@
 #include "MovieSceneColorSection.h"
 #include "MovieSceneColorTrack.h"
 
-
 /* FMovieSceneColorKeyStruct interface
  *****************************************************************************/
 
@@ -33,20 +32,6 @@ void FMovieSceneColorKeyStruct::PropagateChanges(const FPropertyChangedEvent& Ch
 UMovieSceneColorSection::UMovieSceneColorSection(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 { }
-
-
-/* UMovieSceneColorSection interface
- *****************************************************************************/
-
-FLinearColor UMovieSceneColorSection::Eval(float Position, const FLinearColor& DefaultColor) const
-{
-	return FLinearColor(
-		RedCurve.Eval(Position, DefaultColor.R),
-		GreenCurve.Eval(Position, DefaultColor.G),
-		BlueCurve.Eval(Position, DefaultColor.B),
-		AlphaCurve.Eval(Position, DefaultColor.A));
-}
-
 
 /* UMovieSceneSection interface
  *****************************************************************************/

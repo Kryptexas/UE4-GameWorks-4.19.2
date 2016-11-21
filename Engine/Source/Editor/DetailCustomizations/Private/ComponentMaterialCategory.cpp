@@ -156,8 +156,6 @@ void FComponentMaterialCategory::Create( IDetailLayoutBuilder& DetailBuilder )
 	FMaterialListDelegates MaterialListDelegates;
 	MaterialListDelegates.OnGetMaterials.BindSP( this, &FComponentMaterialCategory::OnGetMaterialsForView );
 	MaterialListDelegates.OnMaterialChanged.BindSP( this, &FComponentMaterialCategory::OnMaterialChanged );
-	MaterialListDelegates.OnGenerateCustomNameWidgets.BindSP(this, &FComponentMaterialCategory::OnGetMaterialNameForView);
-
 	TSharedRef<FMaterialList> MaterialList = MakeShareable( new FMaterialList( DetailBuilder, MaterialListDelegates ) );
 
 	bool bAnyMaterialsToDisplay = false;
@@ -180,98 +178,6 @@ void FComponentMaterialCategory::Create( IDetailLayoutBuilder& DetailBuilder )
 	MaterialCategory->AddCustomBuilder( MaterialList );
 	MaterialCategory->SetCategoryVisibility( bAnyMaterialsToDisplay );
 	
-}
-
-TSharedRef<SWidget> FComponentMaterialCategory::OnGetMaterialNameForView(UMaterialInterface* Material, int32 MaterialIndex)
-{
-	if (SelectedComponents.Num() <= 0)
-		return SNullWidget::NullWidget;
-
-	bool IsValueInitialize = false;
-	bool IsAllSameName = true;
-	FName MaterialSlotName(NAME_None);
-	for (FMaterialIterator It(SelectedComponents); It; ++It)
-	{
-		//Just compare the parameter material and MaterialIndex
-		//Skip the others
-		int32 IteratorMaterialIndex = It.GetMaterialIndex();
-		if (IteratorMaterialIndex != MaterialIndex)
-			continue;
-		UMaterialInterface *IteratorMaterial = It.GetMaterial();
-		if (Material != nullptr && IteratorMaterial != Material)
-			continue;
-
-		UActorComponent* CurrentComponent = It.GetComponent();
-		if (!CurrentComponent)
-		{
-			IsAllSameName = false;
-			break;
-		}
-
-		UStaticMeshComponent *StaticMeshComponent = Cast<UStaticMeshComponent>(CurrentComponent);
-		USkeletalMeshComponent *SkeletalMeshComponent = Cast<USkeletalMeshComponent>(CurrentComponent);
-		FName CurrentMaterialSlotName(NAME_None);
-		if (StaticMeshComponent && StaticMeshComponent->StaticMesh && StaticMeshComponent->StaticMesh->StaticMaterials.IsValidIndex(MaterialIndex))
-		{
-			CurrentMaterialSlotName = StaticMeshComponent->StaticMesh->StaticMaterials[MaterialIndex].MaterialSlotName;
-		}
-		else if (SkeletalMeshComponent && SkeletalMeshComponent->SkeletalMesh && SkeletalMeshComponent->SkeletalMesh->Materials.IsValidIndex(MaterialIndex))
-		{
-			CurrentMaterialSlotName = SkeletalMeshComponent->SkeletalMesh->Materials[MaterialIndex].MaterialSlotName;
-		}
-		else
-		{
-			IsAllSameName = false;
-			break;
-		}
-		if (!IsValueInitialize)
-		{
-			IsValueInitialize = true;
-			MaterialSlotName = CurrentMaterialSlotName;
-		}
-		else if (MaterialSlotName != CurrentMaterialSlotName)
-		{
-			IsAllSameName = false;
-			break;
-		}
-	}
-
-	if (!IsValueInitialize)
-	{
-		return SNullWidget::NullWidget;
-	}
-
-	if (!IsAllSameName)
-	{
-		MaterialSlotName = FName(TEXT("Multiple Values"));
-	}
-
-	TSharedRef<SVerticalBox> CustomNameWidget = SNew(SVerticalBox)
-		+ SVerticalBox::Slot()
-		.AutoHeight()
-		.Padding(0, 2, 0, 0)
-		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
-			.VAlign(VAlign_Center)
-			.Padding(0.0f, 3.0f, 0.0f, 0.0f)
-			.FillWidth(0.4f)
-			[
-				SNew(STextBlock)
-				.Font(IDetailLayoutBuilder::GetDetailFont())
-				.Text(LOCTEXT("MaterialArrayNameLabelStringKey", "Name"))
-			]
-			+ SHorizontalBox::Slot()
-			.Padding(5.0f, 3.0f, 5.0f, 0.0f)
-			.VAlign(VAlign_Center)
-			.FillWidth(1.0f)
-			[
-				SNew(SEditableTextBox)
-				.Text(FText::FromName(MaterialSlotName))
-				.IsEnabled(false)
-			]
-		];
-	return CustomNameWidget;
 }
 
 void FComponentMaterialCategory::OnGetMaterialsForView( IMaterialListBuilder& MaterialList )
@@ -335,6 +241,12 @@ void FComponentMaterialCategory::OnMaterialChanged( UMaterialInterface* NewMater
 		}
 	};
 
+	struct FObjectAndProperty
+	{
+		UObject* Object;
+		UProperty* PropertyThatChanged;
+	};
+	TArray<FObjectAndProperty> ObjectsThatChanged;
 	// Scan the selected actors mesh components for the old material and swap it with the new material 
 	for( FMaterialIterator It( SelectedComponents ); It; ++It )
 	{
@@ -398,16 +310,15 @@ void FComponentMaterialCategory::OnMaterialChanged( UMaterialInterface* NewMater
 				{
 					NotifyHook->NotifyPreChange( MaterialProperty );
 				}
+				FObjectAndProperty ObjectAndProperty;
+				ObjectAndProperty.Object = EditChangeObject;
+				ObjectAndProperty.PropertyThatChanged = MaterialProperty;
+
+				ObjectsThatChanged.Add(ObjectAndProperty);
+
+				FPropertyChangedEvent PropertyChangedEvent(MaterialProperty);
 
 				SwapMaterialLambda( CurrentComponent, It.GetMaterialIndex(), NewMaterial );
-
-				FPropertyChangedEvent PropertyChangedEvent( MaterialProperty );
-				EditChangeObject->PostEditChangeProperty( PropertyChangedEvent );
-
-				if( NotifyHook && MaterialProperty )
-				{
-					NotifyHook->NotifyPostChange( PropertyChangedEvent, MaterialProperty );
-				}
 
 				// Propagate material change to instances of the edited component template
 				if( !FApp::IsGame() )
@@ -457,6 +368,20 @@ void FComponentMaterialCategory::OnMaterialChanged( UMaterialInterface* NewMater
 		}
 	}
 
+	// Route post edit change after all components have had their values changed.  This is to avoid 
+	// construction scripts from re-running in the middle of setting values and wiping out components we need to modify
+	for( FObjectAndProperty& ObjectData : ObjectsThatChanged)
+	{
+		FPropertyChangedEvent PropertyChangeEvent(ObjectData.PropertyThatChanged, EPropertyChangeType::ValueSet);
+		ObjectData.Object->PostEditChangeProperty(PropertyChangeEvent);
+
+		if(NotifyHook && ObjectData.PropertyThatChanged)
+		{
+			NotifyHook->NotifyPostChange(PropertyChangeEvent, ObjectData.PropertyThatChanged);
+		}
+	}
+
+	
 	if( bMadeTransaction )
 	{
 		// End the transation if we created one

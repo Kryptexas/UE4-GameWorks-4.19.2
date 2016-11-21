@@ -343,7 +343,7 @@ void UUnrealEdEngine::edactPasteSelected(UWorld* InWorld, bool bDuplicate, bool 
 			Actor->InvalidateLightingCache();
 			// Call PostEditMove to update components, etc.
 			Actor->PostEditMove(true);
-			Actor->PostDuplicate(false);
+			Actor->PostDuplicate(EDuplicateMode::Normal);
 			Actor->CheckDefaultSubobjects();
 
 			// Request saves/refreshes.
@@ -626,7 +626,7 @@ bool UUnrealEdEngine::CanDeleteSelectedActors( const UWorld* InWorld, const bool
 	return bContainsDeletable;
 }
 
-bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletionCanHappen)
+bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletionCanHappen, bool bWarnAboutReferences)
 {
 	if ( bVerifyDeletionCanHappen )
 	{
@@ -723,9 +723,12 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 		ClassTypesToIgnore.Add( ALevelScriptActor::StaticClass() );
 		// The delete warning is meant for actor referneces that affect gameplay.  Group actors do not affect gameplay and should not show up as a warning.
 		ClassTypesToIgnore.Add( AGroupActor::StaticClass() );
-		FBlueprintEditorUtils::FindActorsThatReferenceActor( Actor, ClassTypesToIgnore, ReferencingActors );
+		if( bWarnAboutReferences )
+		{
+			FBlueprintEditorUtils::FindActorsThatReferenceActor( Actor, ClassTypesToIgnore, ReferencingActors );
+		}
 
-		bool bReferencedByLevelScript = (NULL != LSB && FBlueprintEditorUtils::FindNumReferencesToActorFromLevelScript(LSB, Actor) > 0);
+		bool bReferencedByLevelScript = bWarnAboutReferences && (nullptr != LSB && FBlueprintEditorUtils::FindNumReferencesToActorFromLevelScript(LSB, Actor) > 0);
 		bool bReferencedByActor = false;
 		bool bReferencedByLODActor = false;
 		for (AActor* ReferencingActor : ReferencingActors)
@@ -1882,7 +1885,7 @@ public:
 		{
 			if ( OutStaticMeshActor.StaticMeshActor->GetStaticMeshComponent() )
 			{
-				OutStaticMeshActor.StaticMesh = OutStaticMeshActor.StaticMeshActor->GetStaticMeshComponent()->StaticMesh;
+				OutStaticMeshActor.StaticMesh = OutStaticMeshActor.StaticMeshActor->GetStaticMeshComponent()->GetStaticMesh();
 			}
 		}
 		return OutStaticMeshActor.HasStaticMesh();

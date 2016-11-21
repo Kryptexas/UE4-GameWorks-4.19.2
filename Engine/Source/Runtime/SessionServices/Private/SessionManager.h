@@ -5,6 +5,15 @@
 #include "ISessionManager.h"
 
 
+struct FEngineServicePong;
+class FSessionInfo;
+struct FSessionServicePong;
+class IMessageBus;
+class IMessageContext;
+class ISessionInfo;
+class ISessionInstanceInfo;
+
+
 /**
  * Implement the session manager
  */
@@ -19,18 +28,18 @@ public:
 	 *
 	 * @param InMessageBus The message bus to use.
 	 */
-	FSessionManager(const IMessageBusRef& InMessageBus);
+	FSessionManager(const TSharedRef<IMessageBus, ESPMode::ThreadSafe>& InMessageBus);
 	
 	/** Destructor */
 	~FSessionManager();
 
 public:
 
-	// ISessionManager interface
+	//~ ISessionManager interface
 
 	virtual void AddOwner(const FString& InOwner) override;
-	virtual const TArray<ISessionInstanceInfoPtr>& GetSelectedInstances() const override;
-	virtual const ISessionInfoPtr& GetSelectedSession() const override;
+	virtual const TArray<TSharedPtr<ISessionInstanceInfo>>& GetSelectedInstances() const override;
+	virtual const TSharedPtr<ISessionInfo>& GetSelectedSession() const override;
 	virtual void GetSessions(TArray<TSharedPtr<ISessionInfo>>& OutSessions) const override;
 	virtual bool IsInstanceSelected(const TSharedRef<ISessionInstanceInfo>& Instance) const override;
 
@@ -61,8 +70,8 @@ public:
 	virtual FSimpleMulticastDelegate& OnSessionsUpdated() override;
 	virtual FSimpleMulticastDelegate& OnSessionInstanceUpdated() override;
 	virtual void RemoveOwner(const FString& InOwner) override;
-	virtual bool SelectSession(const ISessionInfoPtr& Session) override;
-	virtual bool SetInstanceSelected(const ISessionInstanceInfoRef& Instance, bool Selected) override;
+	virtual bool SelectSession(const TSharedPtr<ISessionInfo>& Session) override;
+	virtual bool SetInstanceSelected(const TSharedRef<ISessionInstanceInfo>& Instance, bool Selected) override;
 
 protected:
 
@@ -89,13 +98,13 @@ protected:
 private:
 
 	/** Callback for handling FSessionServicePong messages. */
-	void HandleEnginePongMessage(const FEngineServicePong& Message, const IMessageContextRef& Context);
+	void HandleEnginePongMessage(const FEngineServicePong& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
 
 	/** Callback received log entries. */
-	void HandleLogReceived(const ISessionInfoRef& Session, const ISessionInstanceInfoRef& Instance, const FSessionLogMessageRef& Message);
+	void HandleLogReceived(const TSharedRef<ISessionInfo>& Session, const TSharedRef<ISessionInstanceInfo>& Instance, const TSharedRef<FSessionLogMessage>& Message);
 
 	/** Callback for handling FSessionServicePong messages. */
-	void HandleSessionPongMessage(const FSessionServicePong& Message, const IMessageContextRef& Context);
+	void HandleSessionPongMessage(const FSessionServicePong& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
 
 	/** Callback for ticks from the ticker. */
 	bool HandleTicker(float DeltaTime);
@@ -109,16 +118,16 @@ private:
 	FDateTime LastPingTime;
 
 	/** Holds a pointer to the message bus. */
-	IMessageBusWeakPtr MessageBusPtr;
+	TWeakPtr<IMessageBus, ESPMode::ThreadSafe> MessageBusPtr;
 
 	/** Holds the messaging endpoint. */
 	FMessageEndpointPtr MessageEndpoint;
 
 	/** Holds the list of currently selected instances. */
-	TArray<ISessionInstanceInfoPtr> SelectedInstances;
+	TArray<TSharedPtr<ISessionInstanceInfo>> SelectedInstances;
 
 	/** Holds a reference to the currently selected session. */
-	ISessionInfoPtr SelectedSession;
+	TSharedPtr<ISessionInfo> SelectedSession;
 
 	/** Holds the collection of discovered sessions. */
 	TMap<FGuid, TSharedPtr<FSessionInfo>> Sessions;

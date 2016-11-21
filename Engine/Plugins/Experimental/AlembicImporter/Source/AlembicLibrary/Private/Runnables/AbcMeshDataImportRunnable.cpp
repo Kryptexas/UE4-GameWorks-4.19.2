@@ -73,6 +73,12 @@ uint32 FAbcMeshDataImportRunnable::Run()
 			{
 				break;
 			}
+			
+			// No data for this frame index available (empty frames at beginning of sequence)
+			if (PolyMeshObject->StartFrameIndex > (uint32)FrameIndex)
+			{
+				continue;
+			}
 
 			// Determine sample time from frame index and time-step
 			const float SampleTime = FrameIndex * TimeStep;

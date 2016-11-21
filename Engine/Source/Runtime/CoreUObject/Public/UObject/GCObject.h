@@ -23,6 +23,8 @@ class COREUOBJECT_API UGCObjectReferencer : public UObject
 	 * This is the list of objects that are referenced
 	 */
 	TArray<FGCObject*> ReferencedObjects;
+	/** Critical section used when adding and removing objects */
+	FCriticalSection ReferencedObjectsCritical;
 
 public:
 	DECLARE_CASTED_CLASS_INTRINSIC_WITH_API(UGCObjectReferencer, UObject, CLASS_Transient, TEXT("/Script/CoreUObject"), CASTCLASS_None, NO_API);

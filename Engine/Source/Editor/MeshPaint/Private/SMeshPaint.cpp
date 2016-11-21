@@ -2340,9 +2340,9 @@ FReply SMeshPaint::SaveVertexPaintPackageButtonClicked()
 			StaticMeshComponent = StaticMeshActor->GetStaticMeshComponent();
 		}
 
-		if( StaticMeshComponent != NULL && StaticMeshComponent->StaticMesh != NULL )
+		if( StaticMeshComponent != nullptr && StaticMeshComponent->GetStaticMesh() != nullptr )
 		{
-			StaticMeshesToSave.Add( StaticMeshComponent->StaticMesh );
+			StaticMeshesToSave.Add( StaticMeshComponent->GetStaticMesh());
 		}
 	}
 
@@ -2469,7 +2469,7 @@ bool SMeshPaint::IsPushInstanceVertexColorsToMeshButtonEnabled() const
 				LeftStaticMeshComponent = LeftStaticMeshActor->GetStaticMeshComponent();
 			}
 
-			if( LeftStaticMeshComponent != nullptr && LeftStaticMeshComponent->StaticMesh != nullptr )
+			if( LeftStaticMeshComponent != nullptr && LeftStaticMeshComponent->GetStaticMesh() != nullptr )
 			{
 				// Check the left static mesh to the static meshes of all the other selected actors for a match
 				for( int32 RightCompareIndex = LeftCompareIndex + 1; (RightCompareIndex < SelectedActors.Num()) && bIsEnabled; ++RightCompareIndex )
@@ -2487,9 +2487,9 @@ bool SMeshPaint::IsPushInstanceVertexColorsToMeshButtonEnabled() const
 						RightStaticMeshComponent = RightStaticMeshActor->GetStaticMeshComponent();
 					}
 					
-					if(RightStaticMeshComponent != nullptr && RightStaticMeshComponent->StaticMesh != nullptr)
+					if(RightStaticMeshComponent != nullptr && RightStaticMeshComponent->GetStaticMesh() != nullptr)
 					{
-						if(LeftStaticMeshComponent->StaticMesh == RightStaticMeshComponent->StaticMesh)
+						if(LeftStaticMeshComponent->GetStaticMesh() == RightStaticMeshComponent->GetStaticMesh())
 						{
 							// We found more than one actor that point to the same static mesh so we can't perform this operation.  Disable to button.  This will
 							//  also stop our duplicate checking since the bool is used in the loop control
@@ -2517,9 +2517,9 @@ bool SMeshPaint::IsSaveVertexPaintPackageButtonEnabled() const
 			StaticMeshComponent = StaticMeshActor->GetStaticMeshComponent();
 		}
 
-		if( StaticMeshComponent != NULL && StaticMeshComponent->StaticMesh != NULL )
+		if( StaticMeshComponent != nullptr && StaticMeshComponent->GetStaticMesh() != nullptr )
 		{
-			if( StaticMeshComponent->StaticMesh->GetOutermost()->IsDirty() )
+			if( StaticMeshComponent->GetStaticMesh()->GetOutermost()->IsDirty() )
 			{
 				return true;
 			}

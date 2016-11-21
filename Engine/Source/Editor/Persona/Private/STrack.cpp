@@ -670,7 +670,6 @@ FReply STrack::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEve
 		{
 			if(!bDraggingBar)
 			{
-				OnBarClicked.ExecuteIfBound(DraggableBarIndex);
 				return FReply::Handled().DetectDrag( SharedThis(this), EKeys::LeftMouseButton );
 			}
 		}
@@ -706,6 +705,9 @@ FReply STrack::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent
 		if(bDraggingBar)
 		{
 			OnBarDrop.Execute(DraggableBarIndex);
+		}
+		if (DraggableBarIndex != INDEX_NONE)
+		{
 			OnBarClicked.ExecuteIfBound(DraggableBarIndex);
 		}
 

@@ -127,7 +127,7 @@ void AArchVisCharacter::MoveForward(float Val)
 FRotator AArchVisCharacter::GetViewRotation() const
 {
 	// pawn rotation dictates camera rotation
-	float const Pitch = GetActorRotation().Pitch;
+	float const Pitch = GetControlRotation().Pitch;
 	float const Yaw = GetActorRotation().Yaw;
 	return FRotator(Pitch, Yaw, 0.f);
 }

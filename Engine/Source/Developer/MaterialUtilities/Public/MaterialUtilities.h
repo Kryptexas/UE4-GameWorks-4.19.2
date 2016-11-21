@@ -100,7 +100,7 @@ struct MATERIALUTILITIES_API FExportMaterialProxyCache
 {
 	// Material proxies for each property. Note: we're not handling all properties here,
 	// so hold only up to MP_Normal inclusive.
-	class FMaterialRenderProxy* Proxies[EMaterialProperty::MP_MAX];
+	class FMaterialRenderProxy* Proxies[MP_MAX];
 
 	FExportMaterialProxyCache();
 	~FExportMaterialProxyCache();
@@ -354,7 +354,7 @@ public:
 	* @param OutMaterialMap					Map of MeshIDAndLOD keys with a material index array as value mapping InMeshData to the OutMaterials array
 	* @param OutMaterials					List of Material interfaces (unique)
 	*/
-	static void RemapUniqueMaterialIndices(const TArray<UMaterialInterface*>& InMaterials, const TArray<struct FRawMeshExt>& InMeshData, const TMap<FIntPoint, TArray<int32> >& InMaterialMap, const FMaterialProxySettings& InMaterialProxySettings, const bool bBakeVertexData, const bool bMergeMaterials, TArray<bool>& OutMeshShouldBakeVertexData, TMap<FIntPoint, TArray<int32> >& OutMaterialMap, TArray<UMaterialInterface*>& OutMaterials);
+	static void RemapUniqueMaterialIndices(const TArray<struct FSectionInfo>& InSections, const TArray<struct FRawMeshExt>& InMeshData, const TMap<FIntPoint, TArray<int32> >& InMaterialMap, const FMaterialProxySettings& InMaterialProxySettings, const bool bBakeVertexData, const bool bMergeMaterials, TArray<bool>& OutMeshShouldBakeVertexData, TMap<FIntPoint, TArray<int32> >& OutMaterialMap, TArray<struct FSectionInfo>& OutSections);
 
 	/**
 	* Tries to optimize the flatten material's data by picking out constant values for the various properties
@@ -391,11 +391,11 @@ public:
 		* Register a new error.
 		*
 		* @param Material			The material having this error.
-		* @param Texture			The texture for which the scale could not be generated.
+		* @param TextureName		The texture for which the scale could not be generated.
 		* @param RegisterIndex		The register index bound to this texture.
 		* @param ErrorType			The issue encountered.
 		*/
-		void Register(const UMaterialInterface* Material, const UTexture* Texture, int32 RegisterIndex, EErrorType ErrorType);
+		void Register(const UMaterialInterface* Material, FName TextureName, int32 RegisterIndex, EErrorType ErrorType);
 
 		/**
 		* Output all errors registered.
@@ -416,7 +416,7 @@ public:
 		struct FInstance
 		{
 			const UMaterialInterface* Material;
-			const UTexture* Texture;
+			FName TextureName;
 		};
 
 		friend uint32 GetTypeHash(const FError& Error);
@@ -431,10 +431,10 @@ public:
 	* @param InMaterial			Target material
 	* @param QualityLevel		Quality level used for the shader profiling.
 	* @param FeatureLevel		Feature level used for the shader profiling.
-	* @param OutScales			TheOutput array of rendered samples	
+	* @param OutErrors			Manager to log errors (removes duplicates and similar errors)	
 	* @return					Whether operation was successful
 	*/
-	static bool ExportMaterialTexCoordScales(UMaterialInterface* InMaterial, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, TArray<FMaterialTexCoordBuildInfo>& OutScales, FExportErrorManager& OutErrors);
+	static bool ExportMaterialUVDensities(UMaterialInterface* InMaterial, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, FExportErrorManager& OutErrors);
 
 	// QQQ COMMENTS
 	static void DetermineMaterialImportance(const TArray<UMaterialInterface*>& InMaterials, TArray<float>& OutImportance);

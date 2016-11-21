@@ -66,11 +66,11 @@ public:
 	bool bImmersiveMode;
 
 	/** The length of the recorded sequence */
-	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")
+	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording", meta = (ClampMin="0.0", UIMin = "0.0"))
 	float SequenceLength;
 
 	/** Delay that we will use before starting recording */
-	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording", meta = (ClampMax="9.0", UIMax = "9.0"))
+	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording", meta = (ClampMin="0.0", UIMin = "0.0", ClampMax="9.0", UIMax = "9.0"))
 	float RecordingDelay;
 
 	/** The base name of the sequence to record to. This name will also be used to auto-generate any assets created by this recording. */
@@ -94,11 +94,11 @@ public:
 	EAudioRecordingMode RecordAudio;
 
 	/** Gain in decibels to apply to recorded audio */
-	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")
+	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording", meta = (ClampMin="0.0", UIMin = "0.0"))
 	float AudioGain;
 
 	/** The buffer size to use on mic input callbacks. Larger sizes increase latency but reduce chances of buffer overruns (pops and discontinuities). */
-	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")
+	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording", meta = (ClampMin="0", UIMin = "0"))
 	int32 AudioInputBufferSize;
 
 	/** Whether to record nearby spawned actors. */
@@ -106,7 +106,7 @@ public:
 	bool bRecordNearbySpawnedActors;
 
 	/** Proximity to currently recorded actors to record newly spawned actors. */
-	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")
+	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording", meta = (ClampMin="0.0", UIMin = "0.0"))
 	float NearbyActorRecordingProximity;
 
 	/** Whether to record the world settings actor in the sequence (some games use this to attach world SFX) */

@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include "Persona.h"
-
 //////////////////////////////////////////////////////////////////////////
 // FDisplayedRetargetSourceInfo
 
@@ -67,7 +65,7 @@ public:
 	* @param InArgs - Arguments passed from Slate
 	*
 	*/
-	void Construct( const FArguments& InArgs, const TSharedRef<IEditableSkeleton>& InEditableSkeleton, FSimpleMulticastDelegate& InOnPostUndo);
+	void Construct( const FArguments& InArgs, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton, FSimpleMulticastDelegate& InOnPostUndo);
 
 	/**
 	* Filters the SListView when the user changes the search text box (NameFilterBox)

@@ -212,6 +212,9 @@ public:
 
 	/** Unregisters a delegate to be called after an Undo operation */
 	virtual void UnregisterOnPostUndo( SWidget* Widget ) = 0;
+
+	/** Get the active view mode */
+	virtual EViewModeIndex GetViewMode() const = 0;
 };
 
 

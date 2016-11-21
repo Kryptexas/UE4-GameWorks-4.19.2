@@ -471,29 +471,31 @@ const FSlateBrush* SDetailSingleItemRow::GetBorderImage() const
 
 TSharedRef<SWidget> SDetailSingleItemRow::CreateExtensionWidget(TSharedRef<SWidget> ValueWidget, FDetailLayoutCustomization& InCustomization, TSharedRef<IDetailTreeNode> InTreeNode)
 {
-	IDetailsViewPrivate& DetailsView = InTreeNode->GetDetailsView();
-	TSharedPtr<IDetailPropertyExtensionHandler> ExtensionHandler = DetailsView.GetExtensionHandler();
-
-	if ( ExtensionHandler.IsValid() && InCustomization.HasPropertyNode() )
+	if(InTreeNode->GetParentCategory().IsValid())
 	{
-		TSharedPtr<IPropertyHandle> Handle = PropertyEditorHelpers::GetPropertyHandle(InCustomization.GetPropertyNode().ToSharedRef(), nullptr, nullptr);
+		IDetailsViewPrivate& DetailsView = InTreeNode->GetDetailsView();
+		TSharedPtr<IDetailPropertyExtensionHandler> ExtensionHandler = DetailsView.GetExtensionHandler();
 
-		UClass* ObjectClass = InCustomization.GetPropertyNode()->FindObjectItemParent()->GetObjectBaseClass();
-		if (Handle->IsValidHandle() && ExtensionHandler->IsPropertyExtendable(ObjectClass, *Handle))
+		if(ExtensionHandler.IsValid() && InCustomization.HasPropertyNode())
 		{
-			ValueWidget = SNew(SHorizontalBox)
+			TSharedPtr<IPropertyHandle> Handle = PropertyEditorHelpers::GetPropertyHandle(InCustomization.GetPropertyNode().ToSharedRef(), nullptr, nullptr);
 
-				+ SHorizontalBox::Slot()
-				.FillWidth(1.0f)
-				[
-					ValueWidget
-				]
-					
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				[
-					ExtensionHandler->GenerateExtensionWidget(ObjectClass, Handle)
-				];
+			UClass* ObjectClass = InCustomization.GetPropertyNode()->FindObjectItemParent()->GetObjectBaseClass();
+			if(Handle->IsValidHandle() && ExtensionHandler->IsPropertyExtendable(ObjectClass, *Handle))
+			{
+				ValueWidget = SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.FillWidth(1.0f)
+					[
+						ValueWidget
+					]
+
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						ExtensionHandler->GenerateExtensionWidget(ObjectClass, Handle)
+					];
+			}
 		}
 	}
 

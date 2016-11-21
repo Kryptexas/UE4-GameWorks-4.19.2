@@ -742,7 +742,7 @@ void FActiveSound::SetBoolParameter( const FName InName, const bool InBool )
 	}
 }
 
-int32 FActiveSound::GetIntParameter( const FName InName, int32& OutInt ) const
+bool FActiveSound::GetIntParameter( const FName InName, int32& OutInt ) const
 {
 	// Always fail if we pass in no name.
 	if( InName != NAME_None )

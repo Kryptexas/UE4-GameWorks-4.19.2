@@ -762,16 +762,37 @@ void FIndirectLightingCache::UpdateTransitionsOverTime(const TArray<FIndirectLig
 	}
 }
 
-void FIndirectLightingCache::SetLightingCacheDirty()
+void FIndirectLightingCache::SetLightingCacheDirty(FScene* Scene, const FPrecomputedLightVolume* Volume)
 {
-	for (TMap<FPrimitiveComponentId, FIndirectLightingCacheAllocation*>::TIterator It(PrimitiveAllocations); It; ++It)
+	if (Volume)
 	{
-		It.Value()->bIsDirty = true;
-		It.Value()->bHasEverUpdatedSingleSample = false;
+		for (int32 PrimitiveIndex = 0; PrimitiveIndex < Scene->Primitives.Num(); ++PrimitiveIndex)
+		{
+			FPrimitiveSceneInfo* PrimitiveSceneInfo = Scene->Primitives[PrimitiveIndex];
+			FIndirectLightingCacheAllocation** PrimitiveAllocationPtr = PrimitiveAllocations.Find(PrimitiveSceneInfo->PrimitiveComponentId);
+			FIndirectLightingCacheAllocation* PrimitiveAllocation = PrimitiveAllocationPtr != NULL ? *PrimitiveAllocationPtr : NULL;
+
+			if (PrimitiveAllocation)
+			{
+				if (Volume->IntersectBounds(PrimitiveSceneInfo->Proxy->GetBounds()))
+				{
+					PrimitiveAllocation->bIsDirty = true;
+					PrimitiveAllocation->bHasEverUpdatedSingleSample = false;
+				}
+			}
+		}
 	}
+	else
+	{
+		for (TMap<FPrimitiveComponentId, FIndirectLightingCacheAllocation*>::TIterator It(PrimitiveAllocations); It; ++It)
+		{
+			It.Value()->bIsDirty = true;
+			It.Value()->bHasEverUpdatedSingleSample = false;
+		}
 	
-	// next rendering we update all entries no matter if they are visible to avoid further hitches
-	bUpdateAllCacheEntries = true;
+		// next rendering we update all entries no matter if they are visible to avoid further hitches
+		bUpdateAllCacheEntries = true;
+	}
 }
 
 void FIndirectLightingCache::UpdateBlock(FScene* Scene, FViewInfo* DebugDrawingView, FBlockUpdateInfo& BlockInfo)

@@ -25,6 +25,8 @@ class TDepthOnlyVS;
 
 class FDepthOnlyPS;
 
+class FViewInfo;
+
 /**
  * Used to write out depth for opaque and masked materials during the depth-only pass.
  */
@@ -34,9 +36,14 @@ public:
 
 	struct ContextDataType : public FMeshDrawingPolicy::ContextDataType
 	{
-		explicit ContextDataType(const bool InbIsInstancedStereo) : FMeshDrawingPolicy::ContextDataType(InbIsInstancedStereo), bIsInstancedStereoEmulated(false) {};
-		ContextDataType(const bool InbIsInstancedStereo, const bool InbIsInstancedStereoEmulated) : FMeshDrawingPolicy::ContextDataType(InbIsInstancedStereo), bIsInstancedStereoEmulated(InbIsInstancedStereoEmulated) {};
-		ContextDataType() : bIsInstancedStereoEmulated(false) {};
+		explicit ContextDataType(const TUniformBufferRef<FViewUniformShaderParameters>& InViewUniformBuffer, const bool InbIsInstancedStereo) : FMeshDrawingPolicy::ContextDataType(InbIsInstancedStereo), ViewUniformBuffer(InViewUniformBuffer), bIsInstancedStereoEmulated(false) {};
+		ContextDataType(const TUniformBufferRef<FViewUniformShaderParameters>& InViewUniformBuffer, const bool InbIsInstancedStereo, const bool InbIsInstancedStereoEmulated) : FMeshDrawingPolicy::ContextDataType(InbIsInstancedStereo), ViewUniformBuffer(InViewUniformBuffer), bIsInstancedStereoEmulated(InbIsInstancedStereoEmulated) {};
+		ContextDataType(const TUniformBufferRef<FViewUniformShaderParameters>& InViewUniformBuffer) : ViewUniformBuffer(InViewUniformBuffer), bIsInstancedStereoEmulated(false) {};
+		
+		//this has been explicitly deleted to force an error message when the default constructor is used (by some template code) In this case the ContextDataType has to be provided explicitly with the uniform buffer or else we will crash later.
+		ContextDataType() = delete;
+
+		const TUniformBufferRef<FViewUniformShaderParameters>& ViewUniformBuffer;
 		bool bIsInstancedStereoEmulated;
 	};
 
@@ -49,6 +56,9 @@ public:
 		);
 
 	// FMeshDrawingPolicy interface.
+
+	static FMeshDrawingRenderState GetDitheredLODTransitionState(const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither = false);
+
 	FDrawingPolicyMatchResult Matches(const FDepthDrawingPolicy& Other) const
 	{
 		DRAWING_POLICY_MATCH_BEGIN
@@ -120,6 +130,9 @@ public:
 		);
 
 	// FMeshDrawingPolicy interface.
+
+	static FMeshDrawingRenderState GetDitheredLODTransitionState(const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither = false);
+
 	FDrawingPolicyMatchResult Matches(const FPositionOnlyDepthDrawingPolicy& Other) const
 	{
 		DRAWING_POLICY_MATCH_BEGIN
@@ -168,12 +181,15 @@ public:
 	enum { bAllowSimpleElements = false };
 	struct ContextType
 	{
+		const TUniformBufferRef<FViewUniformShaderParameters>& ViewUniformBuffer;
+
 		EDepthDrawingMode DepthDrawingMode;
 
 		/** Uses of FDepthDrawingPolicyFactory that are not the depth pre-pass will not want the bUseAsOccluder flag to interfere. */
 		bool bRespectUseAsOccluderFlag;
 
-		ContextType(EDepthDrawingMode InDepthDrawingMode, bool bInRespectUseAsOccluderFlag) :
+		ContextType(const TUniformBufferRef<FViewUniformShaderParameters>& InViewUniformBuffer, EDepthDrawingMode InDepthDrawingMode, bool bInRespectUseAsOccluderFlag) :
+			ViewUniformBuffer(InViewUniformBuffer),
 			DepthDrawingMode(InDepthDrawingMode),
 			bRespectUseAsOccluderFlag(bInRespectUseAsOccluderFlag)
 		{}

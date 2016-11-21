@@ -29,7 +29,7 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_HandIKRetargeting : public FAnimNode_Skele
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HandIKRetargeting")
 	FBoneReference RightHandIK;
 
-	/** Bone for Left Hand FK */
+	/** Bone for Left Hand IK */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HandIKRetargeting")
 	FBoneReference LeftHandIK;
 

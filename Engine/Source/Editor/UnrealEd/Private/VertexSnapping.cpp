@@ -67,8 +67,8 @@ public:
 	FStaticMeshVertexIterator( UStaticMeshComponent* SMC )
 		: ComponentToWorldIT( SMC->ComponentToWorld.ToInverseMatrixWithScale().GetTransposed() )
 		, StaticMeshComponent( SMC )
-		, PositionBuffer( SMC->StaticMesh->RenderData->LODResources[0].PositionVertexBuffer )
-		, VertexBuffer( SMC->StaticMesh->RenderData->LODResources[0].VertexBuffer )
+		, PositionBuffer( SMC->GetStaticMesh()->RenderData->LODResources[0].PositionVertexBuffer )
+		, VertexBuffer( SMC->GetStaticMesh()->RenderData->LODResources[0].VertexBuffer )
 		, CurrentVertexIndex( 0 )
 	{
 
@@ -242,7 +242,7 @@ private:
 static TSharedPtr<FVertexIterator> MakeVertexIterator( UPrimitiveComponent* Component )
 {
 	UStaticMeshComponent* SMC = Cast<UStaticMeshComponent>( Component );
-	if( SMC && SMC->StaticMesh )
+	if( SMC && SMC->GetStaticMesh())
 	{
 		return MakeShareable( new FStaticMeshVertexIterator( SMC ) );
 	}
@@ -412,7 +412,7 @@ bool FVertexSnappingImpl::GetClosestVertexOnComponent( const FSnapActor& SnapAct
 			{
 				// When moving in screen space compute the vertex closest to the mouse location for more accuracy
 
-				FVector ViewToVertex = View->ViewMatrices.ViewOrigin - Position;
+				FVector ViewToVertex = View->ViewMatrices.GetViewOrigin() - Position;
 
 				// Ignore backface vertices 
 				if( View->IsPerspectiveProjection() && Normal != FVector::ZeroVector && FVector::DotProduct( ViewToVertex, Normal ) < 0 )
@@ -430,7 +430,7 @@ bool FVertexSnappingImpl::GetClosestVertexOnComponent( const FSnapActor& SnapAct
 
 					if( !bOutside )
 					{
-						DistanceFromCamera = View->IsPerspectiveProjection() ? FVector::DistSquared( Position, View->ViewMatrices.ViewOrigin ) : 0;
+						DistanceFromCamera = View->IsPerspectiveProjection() ? FVector::DistSquared( Position, View->ViewMatrices.GetViewOrigin() ) : 0;
 						Distance = FVector::DistSquared( FVector( MousePosition, 0 ), FVector( PixelPos, 0 ) );
 					}
 				}

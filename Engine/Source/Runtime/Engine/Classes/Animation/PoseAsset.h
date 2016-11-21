@@ -231,17 +231,6 @@ public:
 #if WITH_EDITOR
 protected:
 	virtual void RemapTracksToNewSkeleton(USkeleton* NewSkeleton, bool bConvertSpaces) override;
-
-private:
-	DECLARE_MULTICAST_DELEGATE(FOnPoseAssetModifiedMulticaster);
-	FOnPoseAssetModifiedMulticaster OnAssetModifiedNotifier;
-
-public:
-	typedef FOnPoseAssetModifiedMulticaster::FDelegate FAssetModifiedNotifier;
-
-	/** Registers a delegate to be called after asset has changed*/
-	ENGINE_API void RegisterOnAssetModifiedNotifier(const FAssetModifiedNotifier& Delegate);
-	ENGINE_API void UnregisterOnAssetModifiedNotifier(void* Unregister);
 #endif // WITH_EDITOR	
 
 private:

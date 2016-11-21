@@ -42,6 +42,7 @@ public:
 	static jmethodID AndroidThunkJava_LocalNotificationClearAll;
 	static jmethodID AndroidThunkJava_LocalNotificationGetLaunchNotification;
 	//static jmethodID AndroidThunkJava_LocalNotificationDestroyIfExists; - This is not needed yet but will be soon so just leaving commented out for now
+	static jmethodID AndroidThunkJava_HasActiveWiFiConnection;
 
 	// InputDeviceInfo member field ids
 	static jclass InputDeviceInfoClass;

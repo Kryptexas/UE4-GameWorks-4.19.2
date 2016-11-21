@@ -76,7 +76,7 @@ public:
 	/**
 	 * Constructs the widget.
 	 */
-	void Construct(const FArguments& InArgs, const IAutomationControllerManagerRef& AutomationController, const ISessionManagerRef& InSessionManager);
+	void Construct(const FArguments& InArgs, const IAutomationControllerManagerRef& AutomationController, const TSharedRef<ISessionManager>& InSessionManager);
 
 	/**
 	* Check tests aren't running.
@@ -373,14 +373,14 @@ private:
 	EVisibility HandleSelectSessionOverlayVisibility( ) const;
 
 	/** Callback for determining whether a session can be selected in the session manager. */
-	void HandleSessionManagerCanSelectSession( const ISessionInfoPtr& Session, bool& CanSelect );
+	void HandleSessionManagerCanSelectSession( const TSharedPtr<ISessionInfo>& Session, bool& CanSelect );
 
 	/**
 	 * Session selection has changed in the session manager
 	 *
 	 * @param SelectedSession The session that was selected.
 	 */
-	void HandleSessionManagerSelectionChanged( const ISessionInfoPtr& SelectedSession );
+	void HandleSessionManagerSelectionChanged( const TSharedPtr<ISessionInfo>& SelectedSession );
 
 	/** Called when the session manager updates an instances. */
 	void HandleSessionManagerInstanceChanged();
@@ -526,7 +526,7 @@ private:
 	TSharedPtr<FUICommandList> AutomationWindowActions;
 
 	/** Holds a pointer to the active session. */
-	ISessionInfoPtr ActiveSession;
+	TSharedPtr<ISessionInfo> ActiveSession;
 
 	/** Holds the AutomationController. */
 	IAutomationControllerManagerPtr AutomationController;
@@ -571,7 +571,7 @@ private:
 	TSharedPtr< AutomationFilterCollection > AutomationFilters;
 
 	/** Holds the session manager. */
-	ISessionManagerPtr SessionManager;
+	TSharedPtr<ISessionManager> SessionManager;
 
 	/**
 	 * Holds the automation controller module state.

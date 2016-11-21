@@ -2222,15 +2222,16 @@ bool USkeletalMeshComponent::LineTraceComponent(struct FHitResult& OutHit, const
 	return bHaveHit;
 }
 
-bool USkeletalMeshComponent::SweepComponent( FHitResult& OutHit, const FVector Start, const FVector End, const FCollisionShape& CollisionShape, bool bTraceComplex)
+bool USkeletalMeshComponent::SweepComponent( FHitResult& OutHit, const FVector Start, const FVector End, const FQuat& ShapeWorldRotation, const FCollisionShape& CollisionShape, bool bTraceComplex)
 {
 	bool bHaveHit = false;
 
 	for (int32 BodyIdx=0; BodyIdx < Bodies.Num(); ++BodyIdx)
 	{
-		if (Bodies[BodyIdx]->Sweep(OutHit, Start, End, CollisionShape, bTraceComplex))
+		if (Bodies[BodyIdx]->Sweep(OutHit, Start, End, ShapeWorldRotation, CollisionShape, bTraceComplex))
 		{
 			bHaveHit = true;
+			break;
 		}
 	}
 
@@ -2305,7 +2306,11 @@ void USkeletalMeshComponent::AddClothingBounds(FBoxSphereBounds& InOutBounds, co
 {
 	for (const FClothingActor& ClothingActor : ClothingActors)
 	{
-		if(apex::ClothingActor* Actor = ClothingActor.ApexClothingActor)
+		apex::ClothingActor* Actor = ClothingActor.ApexClothingActor;
+
+		// If this clothing actor is not simulating we shouldn't consider it for bounds, as that means we're only
+		// drawing the current LOD skeletal section and the clothing will not render.
+		if(Actor && ClothingActor.bSimulateForCurrentLOD)
 		{
 			physx::PxBounds3 ApexClothingBounds = Actor->getBounds();
 
@@ -2482,6 +2487,7 @@ bool USkeletalMeshComponent::CreateClothingActor(int32 AssetIndex, nvidia::apex:
 	ApexClothingActor->setFrozen(false);
 
 	ClothingActor.bSimulateForCurrentLOD = true;
+	SetClothingLOD(PredictedLODLevel);
 
 #if WITH_CLOTH_COLLISION_DETECTION
 	// process clothing collisions once for the case that this component doesn't move
@@ -2623,6 +2629,7 @@ void USkeletalMeshComponent::GetWindForCloth_GameThread(FVector& WindDirection, 
 
 void USkeletalMeshComponent::DrawDebugConvexFromPlanes(FClothCollisionPrimitive& CollisionPrimitive, FColor& Color, bool bDrawWithPlanes)
 {
+#if ENABLE_DRAW_DEBUG
 	int32 NumPlanes = CollisionPrimitive.ConvexPlanes.Num();
 
 	//draw with planes
@@ -2673,10 +2680,12 @@ void USkeletalMeshComponent::DrawDebugConvexFromPlanes(FClothCollisionPrimitive&
 			}
 		}
 	}
+#endif // ENABLE_DRAW_DEBUG
 }
 
 void USkeletalMeshComponent::DrawDebugClothCollisions()
 {
+#if ENABLE_DRAW_DEBUG
 	FColor Colors[6] = { FColor::Red, FColor::Green, FColor::Blue, FColor::Cyan, FColor::Yellow, FColor::Magenta };
 
 	for( auto It = ClothOverlappedComponentsMap.CreateConstIterator(); It; ++It )
@@ -2756,11 +2765,12 @@ void USkeletalMeshComponent::DrawDebugClothCollisions()
 	//draw this skeletal mesh component's bounding box
 
 	DrawDebugBox(GetWorld(), Bounds.Origin, Bounds.BoxExtent, FColor::Red);
-
+#endif // ENABLE_DRAW_DEBUG
 }
 
 bool USkeletalMeshComponent::GetClothCollisionDataFromStaticMesh(UPrimitiveComponent* PrimComp, TArray<FClothCollisionPrimitive>& ClothCollisionPrimitives)
 {
+#if ENABLE_DRAW_DEBUG
 	//make sure Num of collisions should be 0 in the case this returns false
 	ClothCollisionPrimitives.Empty();
 
@@ -2915,6 +2925,9 @@ bool USkeletalMeshComponent::GetClothCollisionDataFromStaticMesh(UPrimitiveCompo
 	});
 
 	return bSuccess;
+#else
+	return false;
+#endif // ENABLE_DRAW_DEBUG
 }
 
 FName GetConvertedBoneName(apex::ClothingAsset* ApexClothingAsset, int32 BoneIndex)
@@ -3472,7 +3485,7 @@ void USkeletalMeshComponent::UpdateClothTransformImp()
 	}
 #endif // WITH_CLOTH_COLLISION_DETECTION
 
-//#if ENABLE_NAN_DIAGNOSTIC
+#if !(UE_BUILD_SHIPPING)
 	if (ComponentToWorld.GetRotation().ContainsNaN())
 	{
 		logOrEnsureNanError(TEXT("SkeletalMeshComponent::UpdateClothTransform found NaN in ComponentToWorld.GetRotation()"));
@@ -3483,7 +3496,7 @@ void USkeletalMeshComponent::UpdateClothTransformImp()
 		logOrEnsureNanError(TEXT("SkeletalMeshComponent::UpdateClothTransform still found NaN in ComponentToWorld (wasn't the rotation)"));
 		ComponentToWorld.SetIdentity();
 	}
-//#endif
+#endif
 }
 
 void USkeletalMeshComponent::UpdateClothTransform(ETeleportType TeleportType)
@@ -3807,6 +3820,14 @@ void USkeletalMeshComponent::UpdateClothStateAndSimulate(float DeltaTime, FTickF
 	}
 
 	check(IsInGameThread());
+
+	// If we simulate an APEX actor at 0s it will fill simulated positions and normals with NaNs.
+	// we can skip all the work it is still doing, and get the desired result (frozen sim) by not
+	// updating and simulating.
+	if(DeltaTime == 0.0f)
+	{
+		return;
+	}
 
 	// if turned on bClothMorphTarget option
 	if (bClothMorphTarget)
@@ -4482,7 +4503,7 @@ TAutoConsoleVariable<int32> CVarEnableTaperedCapsulesTrueHull(TEXT("p.TaperedCap
 
 void USkeletalMeshComponent::DrawClothingCollisionVolumes(FPrimitiveDrawInterface* PDI)
 {
-#if WITH_APEX_CLOTHING
+#if WITH_APEX_CLOTHING && ENABLE_DRAW_DEBUG
 	if (!SkeletalMesh
 	|| SkeletalMesh->ClothingAssets.Num() == 0) 
 	{
@@ -4644,12 +4665,12 @@ void USkeletalMeshComponent::DrawClothingCollisionVolumes(FPrimitiveDrawInterfac
 			                             (CVarEnableTaperedCapsulesTrueHull.GetValueOnAnyThread()) != 0);
 		}
 	}
-#endif // #if WITH_APEX_CLOTHING
+#endif // WITH_APEX_CLOTHING && ENABLE_DRAW_DEBUG
 }
 
 void USkeletalMeshComponent::DrawClothingFixedVertices(FPrimitiveDrawInterface* PDI)
 {
-#if WITH_APEX_CLOTHING
+#if WITH_APEX_CLOTHING && ENABLE_DRAW_DEBUG
 
 	if (!SkeletalMesh || !MeshObject)
 	{
@@ -4756,7 +4777,7 @@ void USkeletalMeshComponent::DrawClothingFixedVertices(FPrimitiveDrawInterface* 
 		}
 	}
 
-#endif // #if WITH_APEX_CLOTHING
+#endif // WITH_APEX_CLOTHING && ENABLE_DRAW_DEBUG
 }
 
 void USkeletalMeshComponent::LoadClothingVisualizationInfo(FClothingAssetData& AssetData)
@@ -4960,7 +4981,7 @@ void USkeletalMeshComponent::LoadAllClothingVisualizationInfos()
 
 void USkeletalMeshComponent::DrawClothingMaxDistances(FPrimitiveDrawInterface* PDI)
 {
-#if WITH_APEX_CLOTHING
+#if WITH_APEX_CLOTHING && ENABLE_DRAW_DEBUG
 	if (!SkeletalMesh
 		|| SkeletalMesh->ClothingAssets.Num() == 0) 
 	{
@@ -5005,12 +5026,12 @@ void USkeletalMeshComponent::DrawClothingMaxDistances(FPrimitiveDrawInterface* P
 		}
 	}	
 
-#endif // #if WITH_APEX_CLOTHING
+#endif // WITH_APEX_CLOTHING && ENABLE_DRAW_DEBUG
 }
 
 void USkeletalMeshComponent::DrawClothingBackstops(FPrimitiveDrawInterface* PDI)
 {
-#if WITH_APEX_CLOTHING
+#if WITH_APEX_CLOTHING && ENABLE_DRAW_DEBUG
 	if (!SkeletalMesh
 		|| SkeletalMesh->ClothingAssets.Num() == 0) 
 	{
@@ -5070,12 +5091,12 @@ void USkeletalMeshComponent::DrawClothingBackstops(FPrimitiveDrawInterface* PDI)
 		}
 	}
 
-#endif // #if WITH_APEX_CLOTHING
+#endif // WITH_APEX_CLOTHING && ENABLE_DRAW_DEBUG
 }
 
 void USkeletalMeshComponent::DrawClothingPhysicalMeshWire(FPrimitiveDrawInterface* PDI)
 {
-#if WITH_APEX_CLOTHING
+#if WITH_APEX_CLOTHING && ENABLE_DRAW_DEBUG
 	if (!SkeletalMesh
 		|| SkeletalMesh->ClothingAssets.Num() == 0) 
 	{
@@ -5228,7 +5249,7 @@ void USkeletalMeshComponent::DrawClothingPhysicalMeshWire(FPrimitiveDrawInterfac
 		}
 	}
 
-#endif // #if WITH_APEX_CLOTHING
+#endif // WITH_APEX_CLOTHING && ENABLE_DRAW_DEBUG
 }
 
 void USkeletalMeshComponent::SetAllMassScale(float InMassScale)

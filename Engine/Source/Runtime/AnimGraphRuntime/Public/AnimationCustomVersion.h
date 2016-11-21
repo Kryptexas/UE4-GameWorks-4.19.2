@@ -20,6 +20,9 @@ struct ANIMGRAPHRUNTIME_API FAnimationCustomVersion
 		// Added ability to offset angular ranges for constraints
 		AnimDynamicsAddAngularOffsets = 3,
 
+		// Renamed Stretch Limits to better names
+		RenamedStretchLimits = 4,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

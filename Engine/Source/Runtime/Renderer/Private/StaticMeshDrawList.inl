@@ -93,7 +93,7 @@ int32 TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 	}
 	
 	uint32 BackFaceEnd = DrawingPolicyLink->DrawingPolicy.NeedsBackfacePass() ? 2 : 1;
-	const FMeshDrawingRenderState DrawRenderState(View.GetDitheredLODTransitionState(*Element.Mesh, View.bAllowStencilDither));
+	const FMeshDrawingRenderState DrawRenderState(DrawingPolicyType::GetDitheredLODTransitionState(View, *Element.Mesh, View.bAllowStencilDither));
 
 	int32 DrawCount = 0;
 

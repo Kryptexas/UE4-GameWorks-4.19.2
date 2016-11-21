@@ -15,20 +15,6 @@ class FModeTool;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogEditorModes, Log, All);
 
-/** Outcomes when determining whether it's possible to perform an action on the edit modes*/
-namespace EEditAction
-{
-	enum Type
-	{
-		/** Can't process this action */
-		Skip		= 0,
-		/** Can process this action */
-		Process,
-		/** Stop evaluating other modes (early out) */
-		Halt,
-	};
-};
-
 // Builtin editor mode constants
 struct UNREALED_API FBuiltinEditorModes
 {

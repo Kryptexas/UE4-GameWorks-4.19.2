@@ -177,7 +177,11 @@ void UAnimationAsset::PostLoad()
 	// skeleton is ready
 	if (Skeleton)
 	{
-		Skeleton ->ConditionalPostLoad();
+		if (FLinkerLoad* SkeletonLinker = Skeleton->GetLinker())
+		{
+			SkeletonLinker->Preload(Skeleton);
+		}
+		Skeleton->ConditionalPostLoad();
 	}
 
 	ValidateSkeleton();
@@ -215,13 +219,6 @@ void UAnimationAsset::SetSkeleton(USkeleton* NewSkeleton)
 		Skeleton = NewSkeleton;
 		SkeletonGuid = NewSkeleton->GetGuid();
 	}
-}
-
-void UAnimationAsset::TickAssetPlayerInstance(FAnimTickRecord& Instance, class UAnimInstance* AnimInstance, FAnimAssetTickContext& Context) const
-{ 
-	// @todo: remove after deprecation
-	// Forward to non-deprecated function
-	TickAssetPlayer(Instance, AnimInstance->NotifyQueue, Context); 
 }
 
 #if WITH_EDITOR

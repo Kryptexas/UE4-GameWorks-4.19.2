@@ -1980,6 +1980,8 @@ void FParticleEmitterInstance::SpawnParticles( int32 Count, float StartTime, flo
 			{
 				UParticleModule* OffsetModule = HighestLODLevel->SpawnModules[ModuleIndex];
 				SpawnModule->Spawn(this, GetModuleDataOffset(OffsetModule), SpawnTime, Particle);
+
+				ensureMsgf(!Particle->Location.ContainsNaN(), TEXT("NaN in Particle Location. Template: %s, Component: %s"), Component ? *GetNameSafe(Component->Template) : TEXT("UNKNOWN"), *GetPathNameSafe(Component));
 			}
 		}
 		PostSpawn(Particle, Interp, SpawnTime);
@@ -2811,26 +2813,24 @@ void FParticleSpriteEmitterInstance::GetAllocatedSize(int32& OutNum, int32& OutM
  * @param	Mode	Specifies which resource size should be displayed. ( see EResourceSizeMode::Type )
  * @return	Size of resource as to be displayed to artists/ LDs in the Editor.
  */
-SIZE_T FParticleSpriteEmitterInstance::GetResourceSize(EResourceSizeMode::Type Mode)
+void FParticleSpriteEmitterInstance::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	int32 ResSize = 0;
-	if (Mode == EResourceSizeMode::Inclusive || (Component && Component->SceneProxy))
+	if (CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Inclusive || (Component && Component->SceneProxy))
 	{
 		int32 MaxActiveParticleDataSize = (ParticleData != NULL) ? (MaxActiveParticles * ParticleStride) : 0;
 		int32 MaxActiveParticleIndexSize = (ParticleIndices != NULL) ? (MaxActiveParticles * sizeof(uint16)) : 0;
 		// Take dynamic data into account as well
-		ResSize = sizeof(FDynamicSpriteEmitterData);
-		ResSize += MaxActiveParticleDataSize;								// Copy of the particle data on the render thread
-		ResSize += MaxActiveParticleIndexSize;								// Copy of the particle indices on the render thread
-		ResSize += MaxActiveParticles * sizeof(FParticleSpriteVertex);		// The vertex data array
+		CumulativeResourceSize.AddUnknownMemoryBytes(sizeof(FDynamicSpriteEmitterData));
+		CumulativeResourceSize.AddUnknownMemoryBytes(MaxActiveParticleDataSize);								// Copy of the particle data on the render thread
+		CumulativeResourceSize.AddUnknownMemoryBytes(MaxActiveParticleIndexSize);								// Copy of the particle indices on the render thread
+		CumulativeResourceSize.AddUnknownMemoryBytes(MaxActiveParticles * sizeof(FParticleSpriteVertex));		// The vertex data array
 
 		// Account for dynamic parameter data
 		if (DynamicParameterDataOffset > 0)
 		{
-			ResSize += MaxActiveParticles * sizeof(FParticleVertexDynamicParameter);
+			CumulativeResourceSize.AddUnknownMemoryBytes(MaxActiveParticles * sizeof(FParticleVertexDynamicParameter));
 		}
 	}
-	return ResSize;
 }
 
 /**
@@ -3021,7 +3021,7 @@ void FParticleMeshEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 						check(LastOrbit);
 					
 						uint32 SpriteOrbitModuleOffset = *SpriteTemplate->ModuleOffsetMap.Find(LastOrbit);
-						if (OrbitModuleOffset != 0)
+						if (SpriteOrbitModuleOffset != 0)
 						{
 							const FOrbitChainModuleInstancePayload &OrbitPayload = *(FOrbitChainModuleInstancePayload*)((uint8*)&Particle + SpriteOrbitModuleOffset);
 
@@ -3442,19 +3442,17 @@ void FParticleMeshEmitterInstance::GetAllocatedSize(int32& OutNum, int32& OutMax
  * @param	Mode	Specifies which resource size should be displayed. ( see EResourceSizeMode::Type )
  * @return  Size of resource as to be displayed to artists/ LDs in the Editor.
  */
-SIZE_T FParticleMeshEmitterInstance::GetResourceSize(EResourceSizeMode::Type Mode)
+void FParticleMeshEmitterInstance::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	int32 ResSize = 0;
-	if (Mode == EResourceSizeMode::Inclusive || (Component && Component->SceneProxy))
+	if (CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Inclusive || (Component && Component->SceneProxy))
 	{
 		int32 MaxActiveParticleDataSize = (ParticleData != NULL) ? (MaxActiveParticles * ParticleStride) : 0;
 		int32 MaxActiveParticleIndexSize = (ParticleIndices != NULL) ? (MaxActiveParticles * sizeof(uint16)) : 0;
 		// Take dynamic data into account as well
-		ResSize = sizeof(FDynamicMeshEmitterData);
-		ResSize += MaxActiveParticleDataSize;								// Copy of the particle data on the render thread
-		ResSize += MaxActiveParticleIndexSize;								// Copy of the particle indices on the render thread
+		CumulativeResourceSize.AddUnknownMemoryBytes(sizeof(FDynamicMeshEmitterData));
+		CumulativeResourceSize.AddUnknownMemoryBytes(MaxActiveParticleDataSize);								// Copy of the particle data on the render thread
+		CumulativeResourceSize.AddUnknownMemoryBytes(MaxActiveParticleIndexSize);								// Copy of the particle indices on the render thread
 	}
-	return ResSize;
 }
 
 /**

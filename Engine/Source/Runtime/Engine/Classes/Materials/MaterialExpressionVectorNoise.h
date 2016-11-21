@@ -10,28 +10,34 @@ enum EVectorNoiseFunction
 {
 	/** Random color for each unit cell in 3D space.
 	  * RGB output range 0 to 1
+	  * R only = 9 instructions, RGB = 11 instructions
 	  */
 	VNF_CellnoiseALU UMETA(DisplayName = "Cellnoise"),
 
 	/** Perlin-style noise with 3D vector/color output.
-	  * RGB output range -1 to 1 
+	  * RGB output range -1 to 1
+	  * R only = ~83 instructions, RGB = ~125 instructions
 	  */
 	VNF_VectorALU UMETA(DisplayName = "Perlin 3D Noise"),
 
 	/** Gradient of Perlin noise, useful for bumps.
 	  * RGB = Gradient of scalar noise (signed 3D vector)
 	  * A = Base scalar noise with range -1 to 1
+	  * A only = ~83 instructions, RGBA = ~106 instructions
 	  */
 	VNF_GradientALU UMETA(DisplayName = "Perlin Gradient"),
 
 	/** Curl of Perlin noise, useful for 3D flow directions.
 	  * RGB = signed curl vector
+	  * ~162 instructions
 	  */
 	VNF_CurlALU UMETA(DisplayName = "Perlin Curl"),
 
 	/** Also known as Worley or Cellular noise.
 	  * RGB = *position* of closest point at center of Voronoi cell
 	  * A = distance to closest point with range 0 to about 4
+	  * Quality levels 1-4 search 8, 16, 27 & 32 cells
+	  * All ~20 instructions per cell searched
 	  */
 	VNF_VoronoiALU UMETA(DisplayName = "Voronoi"),
 
@@ -68,7 +74,7 @@ class UMaterialExpressionVectorNoise : public UMaterialExpression
 	//~ Begin UMaterialExpression Interface
 #if WITH_EDITOR
 	virtual bool CanEditChange(const UProperty* InProperty) const override;
-	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
+	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex) override;
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
 #endif
 	//~ End UMaterialExpression Interface

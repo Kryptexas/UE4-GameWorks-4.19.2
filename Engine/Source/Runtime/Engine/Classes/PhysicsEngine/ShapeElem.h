@@ -48,6 +48,12 @@ struct FKShapeElem
 
 	virtual ~FKShapeElem(){}
 
+	const FKShapeElem& operator=(const FKShapeElem& Other)
+	{
+		CloneElem(Other);
+		return *this;
+	}
+
 	template <typename T>
 	T* GetShapeCheck()
 	{
@@ -58,6 +64,13 @@ struct FKShapeElem
 	const FPhysxUserData* GetUserData() const { FPhysxUserData::Set<FKShapeElem>((void*)&UserData, const_cast<FKShapeElem*>(this));  return &UserData; }
 
 	ENGINE_API static EAggCollisionShape::Type StaticShapeType;
+
+protected:
+	/** Helper function to safely clone instances of this shape element */
+	void CloneElem(const FKShapeElem& Other)
+	{
+		ShapeType = Other.ShapeType;
+	}
 
 private:
 	EAggCollisionShape::Type ShapeType;

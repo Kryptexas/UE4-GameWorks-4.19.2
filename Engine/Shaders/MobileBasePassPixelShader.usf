@@ -34,6 +34,10 @@ float4 LightColorAndFalloffExponent[MAX_DYNAMIC_POINT_LIGHTS];
 #define MOBILE_QL_FORCE_LQ_REFLECTIONS 0
 #endif
 
+#ifndef MOBILE_CSM_QUALITY
+#define MOBILE_CSM_QUALITY 2
+#endif
+
 #define FULLY_ROUGH (MATERIAL_FULLY_ROUGH || MOBILE_QL_FORCE_FULLY_ROUGH)
 #define NONMETAL (MATERIAL_NONMETAL || MOBILE_QL_FORCE_NONMETAL)
 #define HQ_REFLECTIONS (MATERIAL_HQ_FORWARD_REFLECTIONS && !MOBILE_QL_FORCE_LQ_REFLECTIONS)
@@ -294,15 +298,16 @@ void Main(
 	, in float4 SvPosition : SV_Position
 	OPTIONAL_IsFrontFace
 	, out half4 OutColor	: SV_Target0
-#if MOBILE_MULTI_VIEW
-	, in uint ViewId : SV_ViewID
-#endif
 	)
 {
 #if MOBILE_MULTI_VIEW
-	ResolvedView = ResolveView(ViewId);
+	ResolvedView = ResolveView(uint(BasePassInterpolants.MultiViewId));
 #else
 	ResolvedView = ResolveView();
+#endif
+
+#if USE_PS_CLIP_PLANE
+	clip(BasePassInterpolants.OutClipDistance);
 #endif
 
 #if PACK_INTERPOLANTS
@@ -426,8 +431,6 @@ void Main(
 
 	#if !MATERIAL_SHADINGMODEL_UNLIT
 		half Shadow = GetPrimaryPrecomputedShadowMask(Interpolants).r;
-			
-		// TODO: This is broken with multi-view?
 		#if DIRECTIONAL_LIGHT_CSM && !MOBILE_MULTI_VIEW
 		// Cascaded Shadow Map
 		{
@@ -456,10 +459,14 @@ void Main(
 			float LightSpacePixelDepthForOpaque = min(ShadowPosition.z, 0.99999f);
 			Settings.SceneDepth = LightSpacePixelDepthForOpaque;
 
-			#if 0
+			#if MOBILE_CSM_QUALITY == 0
+				half ShadowMap = ManualNoFiltering(ShadowPosition.xy, Settings);
+			#elif MOBILE_CSM_QUALITY == 1
 				half ShadowMap = Manual1x1PCF(ShadowPosition.xy, Settings);
-			#else
+			#elif MOBILE_CSM_QUALITY == 2
 				half ShadowMap = Manual2x2PCF(ShadowPosition.xy, Settings);
+			#else
+				#error Unsupported MOBILE_CSM_QUALITY value.
 			#endif
 
 			#if MOVABLE_DIRECTIONAL_LIGHT
@@ -499,8 +506,8 @@ void Main(
 
 		#if MAX_DYNAMIC_POINT_LIGHTS > 0
 			#if VARIABLE_NUM_DYNAMIC_POINT_LIGHTS
-			#if WEBGL
-			// webgl needs a constant loop counter
+			#if WEBGL || ES2_PROFILE
+			// webgl and ES2 needs a constant loop counter
 			UNROLL
 			for (int i = 0; i < MAX_DYNAMIC_POINT_LIGHTS; i++)
 			{
@@ -594,10 +601,17 @@ void Main(
 		OutColor.rgba *= ResolvedView.ExposureScale.xyzw;
 	#endif
 
-	#if OUTPUT_GAMMA_SPACE
-		OutColor.rgb = sqrt( OutColor.rgb );
+#if USE_EDITOR_COMPOSITING && (MOBILE_EMULATION)
+	// Editor primitive depth testing
+	OutColor.a = 1.0;
+	#if MATERIALBLENDING_MASKED
+		// some material might have an opacity value
+		OutColor.a = GetMaterialMaskInputRaw(PixelMaterialInputs);
 	#endif
-
+		// we output premultiplied alpha to we have to darken all 4 channels
+	OutColor *= ClipForEditorPrimitives(MaterialParameters);
+	clip(OutColor.a - GetMaterialOpacityMaskClipValue());
+#else
 	#if ES2_PROFILE && !OUTPUT_GAMMA_SPACE
 		float Mode = GetHDR32bppEncodeMode();
 		if (Mode != HDR_ENCODE_NONE)
@@ -609,15 +623,8 @@ void Main(
 			OutColor = Encode32BPPHDR(OutColor, SvPosition.xy);
 		}
 	#endif
-
-	// Editor primitive depth testing
-	#if USE_EDITOR_COMPOSITING && (MOBILE_EMULATION)
-		#if MATERIALBLENDING_MASKED
-			// some material might have a opacity value
-			OutColor.a = GetMaterialMaskInputRaw(PixelMaterialInputs);
-		#endif
-		// we output premultiplied alpha to we have to darken all 4 channels
-		OutColor *= ClipForEditorPrimitives(MaterialParameters);
-		clip(OutColor.a - GetMaterialOpacityMaskClipValue());
+	#if OUTPUT_GAMMA_SPACE
+		OutColor.rgb = sqrt(OutColor.rgb);
 	#endif
+#endif
 }

@@ -369,7 +369,7 @@ void SLevelViewport::ConstructLevelEditorViewportClient( const FArguments& InArg
 		LevelViewportClient->SetAllowCinematicPreview(true);
 	}
 	LevelViewportClient->SetRealtime(ViewportInstanceSettings.bIsRealtime);
-	LevelViewportClient->SetShowStats(ViewportInstanceSettings.bShowStats);
+	LevelViewportClient->SetShowStats(ViewportInstanceSettings.bShowOnScreenStats);
 	if (ViewportInstanceSettings.bShowFPS_DEPRECATED)
 	{
 		GetMutableDefault<ULevelEditorViewportSettings>()->bSaveEngineStats = true;
@@ -2014,7 +2014,7 @@ void SLevelViewport::SaveConfig(const FString& ConfigName) const
 		ViewportInstanceSettings.ExposureSettings = LevelViewportClient->ExposureSettings;
 		ViewportInstanceSettings.FOVAngle = LevelViewportClient->FOVAngle;
 		ViewportInstanceSettings.bIsRealtime = LevelViewportClient->IsRealtime();
-		ViewportInstanceSettings.bShowStats = LevelViewportClient->ShouldShowStats();
+		ViewportInstanceSettings.bShowOnScreenStats = LevelViewportClient->ShouldShowStats();
 		ViewportInstanceSettings.FarViewPlane = LevelViewportClient->GetFarClipPlaneOverride();
 		ViewportInstanceSettings.bShowFullToolbar = bShowFullToolbar;
 
@@ -2107,7 +2107,7 @@ FLevelEditorViewportInstanceSettings SLevelViewport::LoadLegacyConfigFromIni(con
 	}
 
 	GConfig->GetBool(*IniSection, *(InConfigKey + TEXT(".bIsRealtime")), ViewportInstanceSettings.bIsRealtime, GEditorPerProjectIni);
-	GConfig->GetBool(*IniSection, *(InConfigKey + TEXT(".bWantStats")), ViewportInstanceSettings.bShowStats, GEditorPerProjectIni);
+	GConfig->GetBool(*IniSection, *(InConfigKey + TEXT(".bWantStats")), ViewportInstanceSettings.bShowOnScreenStats, GEditorPerProjectIni);
 	GConfig->GetBool(*IniSection, *(InConfigKey + TEXT(".bWantFPS")), ViewportInstanceSettings.bShowFPS_DEPRECATED, GEditorPerProjectIni);
 	GConfig->GetFloat(*IniSection, *(InConfigKey + TEXT(".FOVAngle")), ViewportInstanceSettings.FOVAngle, GEditorPerProjectIni);
 

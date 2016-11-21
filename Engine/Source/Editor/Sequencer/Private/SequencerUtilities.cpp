@@ -76,7 +76,7 @@ FName FSequencerUtilities::GetUniqueName( FName CandidateName, const TArray<FNam
 	int32 NameIndex = 1;
 	while ( ExistingNames.Contains( UniqueName ) )
 	{
-		UniqueName = FName( *FString::Printf(TEXT("%s%03i"), *BaseNameString, NameIndex ) );
+		UniqueName = FName( *FString::Printf(TEXT("%s%i"), *BaseNameString, NameIndex ) );
 		NameIndex++;
 	}
 

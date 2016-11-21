@@ -114,36 +114,15 @@ void FAssetTypeActions_AnimationAsset::OpenAssetEditor( const TArray<UObject*>& 
 			}
 			else
 			{
-				if (GetDefault<UPersonaOptions>()->bUseStandaloneAnimationEditors)
+				const bool bBringToFrontIfOpen = true;
+				if (IAssetEditorInstance* EditorInstance = FAssetEditorManager::Get().FindEditorForAsset(AnimAsset, bBringToFrontIfOpen))
 				{
-					const bool bBringToFrontIfOpen = true;
-					if (IAssetEditorInstance* EditorInstance = FAssetEditorManager::Get().FindEditorForAsset(AnimAsset, bBringToFrontIfOpen))
-					{
-						EditorInstance->FocusWindow(AnimAsset);
-					}
-					else
-					{
-						IAnimationEditorModule& AnimationEditorModule = FModuleManager::LoadModuleChecked<IAnimationEditorModule>("AnimationEditor");
-						AnimationEditorModule.CreateAnimationEditor(Mode, EditWithinLevelEditor, AnimAsset);
-					}
+					EditorInstance->FocusWindow(AnimAsset);
 				}
 				else
 				{
-					if (AnimSkeleton)
-					{
-						const bool bBringToFrontIfOpen = false;
-						if (IAssetEditorInstance* EditorInstance = FAssetEditorManager::Get().FindEditorForAsset(AnimSkeleton, bBringToFrontIfOpen))
-						{
-							// The skeleton is already open in an editor.
-							// Tell persona that an animation asset was requested
-							EditorInstance->FocusWindow(AnimAsset);
-						}
-						else
-						{
-							FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>("Persona");
-							PersonaModule.CreatePersona(Mode, EditWithinLevelEditor, AnimSkeleton, NULL, AnimAsset, NULL);
-						}
-					}
+					IAnimationEditorModule& AnimationEditorModule = FModuleManager::LoadModuleChecked<IAnimationEditorModule>("AnimationEditor");
+					AnimationEditorModule.CreateAnimationEditor(Mode, EditWithinLevelEditor, AnimAsset);
 				}
 			}
 		}
@@ -204,19 +183,13 @@ void FAssetTypeActions_AnimationAsset::RetargetNonSkeletonAnimationHandler(USkel
 		{
 			if (Asset.IsValid())
 			{
-				const bool bBringToFrontIfOpen = false;
-				if(IAssetEditorInstance* EditorInstance = FAssetEditorManager::Get().FindEditorForAsset(NewSkeleton, bBringToFrontIfOpen))
+				if (EditWithinLevelEditor.IsValid())
 				{
-					// The skeleton is already open in an editor.
-					// Tell persona that an animation asset was requested
-					EditorInstance->FocusWindow(Asset.Get());
+					FAssetEditorManager::Get().OpenEditorForAsset(Asset.Get(), EToolkitMode::WorldCentric, EditWithinLevelEditor.Pin());
 				}
 				else
 				{
-					EToolkitMode::Type Mode = EditWithinLevelEditor.IsValid() ? EToolkitMode::WorldCentric : EToolkitMode::Standalone;
-					TSharedPtr<IToolkitHost> EditWithInEditor = EditWithinLevelEditor.IsValid()? EditWithinLevelEditor.Pin() : NULL;
-					FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>("Persona");
-					PersonaModule.CreatePersona(Mode, EditWithInEditor, NewSkeleton, NULL, Cast<UAnimationAsset>(Asset.Get()), NULL);
+					FAssetEditorManager::Get().OpenEditorForAsset(Asset.Get());
 				}
 			}
 		}

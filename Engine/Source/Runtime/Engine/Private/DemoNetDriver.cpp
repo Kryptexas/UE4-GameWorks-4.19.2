@@ -30,6 +30,7 @@
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
 #include "NetworkVersion.h"
+#include "Engine/Level.h"
 
 DEFINE_LOG_CATEGORY( LogDemo );
 
@@ -507,54 +508,79 @@ bool UDemoNetDriver::InitConnectInternal( FString& Error )
 		bAsyncLoadWorld = FCString::ToBool(AsyncLoadWorldOverrideOption);
 	}
 
-	if ( bAsyncLoadWorld )
+	const TCHAR* const LevelPrefixOverrideOption = DemoURL.GetOption(TEXT("LevelPrefixOverride="), nullptr);
+	if (LevelPrefixOverrideOption)
 	{
-		TArray<AController*> Controllers;
-		for ( FConstControllerIterator Iterator = World->GetControllerIterator(); Iterator; ++Iterator )
+		SetDuplicateLevelID(FCString::Atoi(LevelPrefixOverrideOption));
+	}
+
+	if (GetDuplicateLevelID() == -1)
+	{
+		// Set this driver as the demo net driver for the source level collection.
+		FLevelCollection* const SourceCollection = GetWorld()->FindCollectionByType(ELevelCollectionType::DynamicSourceLevels);
+		if (SourceCollection)
 		{
-			Controllers.Add( *Iterator );
+			SourceCollection->SetDemoNetDriver(this);
 		}
 
-		for ( int i = 0; i < Controllers.Num(); i++ )
+		if ( bAsyncLoadWorld )
 		{
-			if ( Controllers[i] )
+			TArray<AController*> Controllers;
+			for ( FConstControllerIterator Iterator = World->GetControllerIterator(); Iterator; ++Iterator )
 			{
-				Controllers[i]->Destroy();
+				Controllers.Add( *Iterator );
 			}
-		}
 
-		// FIXME: Test for failure!!!
-		World->SeamlessTravel( PlaybackDemoHeader.LevelName, true );
+			for ( int i = 0; i < Controllers.Num(); i++ )
+			{
+				if ( Controllers[i] )
+				{
+					Controllers[i]->Destroy();
+				}
+			}
+
+			// FIXME: Test for failure!!!
+			World->SeamlessTravel( PlaybackDemoHeader.LevelName, true );
+		}
+		else
+		{
+			// Bypass UDemoPendingNetLevel
+			FString LoadMapError;
+
+			FURL LocalDemoURL;
+			LocalDemoURL.Map = PlaybackDemoHeader.LevelName;
+
+			FWorldContext * WorldContext = GEngine->GetWorldContextFromWorld( GetWorld() );
+
+			if ( WorldContext == NULL )
+			{
+				Error = FString::Printf( TEXT( "No world context" ) );
+				UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::InitConnect: %s" ), *Error );
+				GameInstance->HandleDemoPlaybackFailure( EDemoPlayFailure::Generic, FString( TEXT( "No world context" ) ) );
+				return false;
+			}
+
+			GetWorld()->DemoNetDriver = NULL;
+			SetWorld( NULL );
+
+			auto NewPendingNetGame = NewObject<UDemoPendingNetGame>();
+
+			// Set up the pending net game so that the engine can call LoadMap on the next tick.
+			NewPendingNetGame->DemoNetDriver = this;
+			NewPendingNetGame->URL = LocalDemoURL;
+			NewPendingNetGame->bSuccessfullyConnected = true;
+
+			WorldContext->PendingNetGame = NewPendingNetGame;
+		}
 	}
 	else
 	{
-		// Bypass UDemoPendingNetLevel
-		FString LoadMapError;
-
-		FURL LocalDemoURL;
-		LocalDemoURL.Map = PlaybackDemoHeader.LevelName;
-
-		FWorldContext * WorldContext = GEngine->GetWorldContextFromWorld( GetWorld() );
-
-		if ( WorldContext == NULL )
+		// Set this driver as the demo net driver for the duplicate level collection.
+		FLevelCollection* const DuplicateCollection = GetWorld()->FindCollectionByType(ELevelCollectionType::DynamicDuplicatedLevels);
+		if (DuplicateCollection)
 		{
-			Error = FString::Printf( TEXT( "No world context" ) );
-			UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::InitConnect: %s" ), *Error );
-			GameInstance->HandleDemoPlaybackFailure( EDemoPlayFailure::Generic, FString( TEXT( "No world context" ) ) );
-			return false;
+			DuplicateCollection->SetDemoNetDriver(this);
 		}
-
-		GetWorld()->DemoNetDriver = NULL;
-		SetWorld( NULL );
-
-		auto NewPendingNetGame = NewObject<UDemoPendingNetGame>();
-
-		// Set up the pending net game so that the engine can call LoadMap on the next tick.
-		NewPendingNetGame->DemoNetDriver = this;
-		NewPendingNetGame->URL = LocalDemoURL;
-		NewPendingNetGame->bSuccessfullyConnected = true;
-
-		WorldContext->PendingNetGame = NewPendingNetGame;
 	}
 
 	return true;
@@ -648,6 +674,22 @@ bool UDemoNetDriver::IsPlaying() const
 
 void UDemoNetDriver::TickFlush( float DeltaSeconds )
 {
+	// Set the context on the world for this driver's level collection.
+	const FLevelCollection* FoundCollection = nullptr;
+	if (GetWorld())
+	{
+		for (const FLevelCollection& LC : GetWorld()->GetLevelCollections())
+		{
+			if (LC.GetDemoNetDriver() == this)
+			{
+				FoundCollection = &LC;
+				break;
+			}
+		}
+	}
+
+	FScopedLevelCollectionContextSwitch LCSwitch(FoundCollection, GetWorld());
+
 	Super::TickFlush( DeltaSeconds );
 
 	if ( !IsRecording() || bPauseRecording )
@@ -729,6 +771,22 @@ static float GetClampedDeltaSeconds( UWorld* World, const float DeltaSeconds )
 
 void UDemoNetDriver::TickDispatch( float DeltaSeconds )
 {
+	// Set the context on the world for this driver's level collection.
+	const FLevelCollection* FoundCollection = nullptr;
+	if (GetWorld())
+	{
+		for (const FLevelCollection& LC : GetWorld()->GetLevelCollections())
+		{
+			if (LC.GetDemoNetDriver() == this)
+			{
+				FoundCollection = &LC;
+				break;
+			}
+		}
+	}
+
+	FScopedLevelCollectionContextSwitch LCSwitch(FoundCollection, GetWorld());
+
 	Super::TickDispatch( DeltaSeconds );
 
 	if ( !IsPlaying() )
@@ -2283,6 +2341,19 @@ void UDemoNetDriver::LoadCheckpoint( FArchive* GotoCheckpointArchive, int64 Goto
 
 	bIsLoadingCheckpoint = true;
 
+	struct FPreservedNetworkGUIDEntry
+	{
+		FPreservedNetworkGUIDEntry( const FNetworkGUID InNetGUID, const AActor* const InActor )
+			: NetGUID( InNetGUID ), Actor( InActor ) {}
+
+		FNetworkGUID NetGUID;
+		const AActor* Actor;
+	};
+
+	// Store GUIDs for the spectator controller and any of its owned actors, so we can find them when we process the checkpoint.
+	// For the spectator controller, this allows the state and position to persist.
+	TArray<FPreservedNetworkGUIDEntry> NetGUIDsToPreserve;
+
 #if 1
 	// Destroy all non startup actors. They will get restored with the checkpoint
 	for ( FActorIterator It( GetWorld() ); It; ++It )
@@ -2299,13 +2370,17 @@ void UDemoNetDriver::LoadCheckpoint( FArchive* GotoCheckpointArchive, int64 Goto
 		
 		if ( SpectatorController != nullptr )
 		{
-			if ( *It == SpectatorController || *It == SpectatorController->GetSpectatorPawn() )
+			if ( *It == SpectatorController || *It == SpectatorController->GetSpectatorPawn() || It->GetOwner() == SpectatorController )
 			{
-				continue;
-			}
-
-			if ( It->GetOwner() == SpectatorController )
-			{
+				// If an non-startup actor that we don't destroy has an entry in the GuidCache, preserve that entry so
+				// that the object will be re-used after loading the checkpoint. Otherwise, a new copy
+				// of the object will be created each time a checkpoint is loaded, causing a leak.
+				const FNetworkGUID FoundGUID = GuidCache->NetGUIDLookup.FindRef( *It );
+				
+				if ( FoundGUID.IsValid() )
+				{
+					NetGUIDsToPreserve.Emplace( FoundGUID, *It );
+				}
 				continue;
 			}
 		}
@@ -2381,18 +2456,15 @@ void UDemoNetDriver::LoadCheckpoint( FArchive* GotoCheckpointArchive, int64 Goto
 	// Create fake control channel
 	ServerConnection->CreateChannel( CHTYPE_Control, 1 );
 
-	// Remember the spectator network guid, so we can persist the spectator player across the checkpoint
-	// (so the state and position persists)
-	FNetworkGUID SpectatorGUID = GuidCache->NetGUIDLookup.FindRef( SpectatorController );
-
-	// Handle a rare case where the spectator controller is null, but a valid GUID is
+	// Catch a rare case where the spectator controller is null, but a valid GUID is
 	// found on the GuidCache. The weak pointers in the NetGUIDLookup map are probably
 	// going null, and we want catch these cases and investigate further.
-	if ( !ensure( SpectatorGUID.IsValid() == ( SpectatorController != nullptr ) ) )
+	if (!ensure( GuidCache->NetGUIDLookup.FindRef( SpectatorController ).IsValid() == ( SpectatorController != nullptr ) ))
 	{
-		SpectatorGUID.Reset();
+		UE_LOG(LogDemo, Log, TEXT("LoadCheckpoint: SpectatorController is null and a valid GUID for null was found in the GuidCache. SpectatorController = %s"),
+			*GetFullNameSafe(SpectatorController));
 	}
-
+	
 	// Clean package map to prepare to restore it to the checkpoint state
 	FlushAsyncLoading();
 	GuidCache->ObjectLookup.Empty();
@@ -2402,15 +2474,17 @@ void UDemoNetDriver::LoadCheckpoint( FArchive* GotoCheckpointArchive, int64 Goto
 	GuidCache->NetFieldExportGroupPathToIndex.Empty();
 	GuidCache->NetFieldExportGroupIndexToPath.Empty();
 
-	// Restore the spectator controller packagemap entry (so we find it when we process the checkpoint)
-	if ( SpectatorGUID.IsValid() )
+	// Restore preserved packagemap entries
+	for ( const FPreservedNetworkGUIDEntry& PreservedEntry : NetGUIDsToPreserve )
 	{
-		FNetGuidCacheObject& CacheObject = GuidCache->ObjectLookup.FindOrAdd( SpectatorGUID );
+		check( PreservedEntry.NetGUID.IsValid() );
+		
+		FNetGuidCacheObject& CacheObject = GuidCache->ObjectLookup.FindOrAdd( PreservedEntry.NetGUID );
 
-		CacheObject.Object = SpectatorController;
+		CacheObject.Object = PreservedEntry.Actor;
 		check( CacheObject.Object != NULL );
 		CacheObject.bNoLoad = true;
-		GuidCache->NetGUIDLookup.Add( SpectatorController, SpectatorGUID );
+		GuidCache->NetGUIDLookup.Add( PreservedEntry.Actor, PreservedEntry.NetGUID );
 	}
 
 	if ( GotoCheckpointArchive->TotalSize() == 0 || GotoCheckpointArchive->TotalSize() == INDEX_NONE )
@@ -2446,7 +2520,7 @@ void UDemoNetDriver::LoadCheckpoint( FArchive* GotoCheckpointArchive, int64 Goto
 		*GotoCheckpointArchive << CacheObject.NetworkChecksum;
 
 		// Remap the pathname to handle client-recorded replays
-		GEngine->NetworkRemapPath(GetWorld(), PathName, true);
+		GEngine->NetworkRemapPath(this, PathName, true);
 
 		CacheObject.PathName = FName( *PathName );
 
@@ -2738,6 +2812,13 @@ TSharedPtr<FObjectReplicator> UDemoNetConnection::CreateReplicatorForNewActorCha
 	if (bIsCheckpointStartupActor && NewReplicator->RepLayout.IsValid() && Object->GetClass())
 	{
 		NewReplicator->RepLayout->DiffProperties(nullptr, Object, Object->GetClass()->GetDefaultObject(), true);
+
+		// Need to swap roles for the startup actor since in the CDO they aren't swapped, and the CDO just
+		// overwrote the actor state.
+		if (Actor->Role == ROLE_Authority)
+		{
+			Actor->SwapRolesForReplay();
+		}
 	}
 
 	return NewReplicator;

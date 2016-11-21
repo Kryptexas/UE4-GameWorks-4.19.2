@@ -215,7 +215,7 @@ const TCHAR* UInterfaceProperty::ImportText_Internal( const TCHAR* InBuffer, voi
 	return Buffer;
 }
 
-bool UInterfaceProperty::ContainsObjectReference() const
+bool UInterfaceProperty::ContainsObjectReference(TArray<const UStructProperty*>& EncounteredStructProps) const
 {
 	return true; 
 }

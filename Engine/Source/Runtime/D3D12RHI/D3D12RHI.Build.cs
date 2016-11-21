@@ -35,7 +35,7 @@ public class D3D12RHI : ModuleRules
 		Definitions.Add("DX_MAX_MSAA_COUNT=8");
 
 		// This is a value that should be tweaked to fit the app, lower numbers will have better performance
-		Definitions.Add("MAX_SRVS=22");
+		Definitions.Add("MAX_SRVS=32");
 		Definitions.Add("MAX_CBS=8");
 
 		// This value controls how many root constant buffers can be used per shader stage in a root signature.

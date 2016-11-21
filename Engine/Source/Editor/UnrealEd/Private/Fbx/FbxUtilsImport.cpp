@@ -9,6 +9,8 @@
 using namespace UnFbx;
 
 
+FbxAMatrix FFbxDataConverter::JointPostConversionMatrix;
+
 FVector FFbxDataConverter::ConvertPos(FbxVector4 Vector)
 {
 	FVector Out;

@@ -48,7 +48,7 @@ static VkBool32 VKAPI_PTR DebugReportFunction(
 #if VULKAN_ENABLE_DUMP_LAYER
 			VulkanRHI::FlushDebugWrapperLog();
 #endif
-			FString Message = FString::Printf(TEXT("VK ERROR: [%s] Code %d : %s"), ANSI_TO_TCHAR(LayerPrefix), MsgCode, ANSI_TO_TCHAR(Msg));
+			FString Message = FString::Printf(TEXT("ERROR[%s:%d] Object %p: %s"), ANSI_TO_TCHAR(LayerPrefix), MsgCode, (void*)SrcObject, ANSI_TO_TCHAR(Msg));
 			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("VulkanRHI: %s\n"), *Message);
 			UE_LOG(LogVulkanRHI, Error, TEXT("%s"), *Message);
     
@@ -75,7 +75,7 @@ static VkBool32 VKAPI_PTR DebugReportFunction(
 #if VULKAN_ENABLE_DUMP_LAYER
 		VulkanRHI::FlushDebugWrapperLog();
 #endif
-		FString Message = FString::Printf(TEXT("VK WARNING: [%s] Code %d : %s\n"), ANSI_TO_TCHAR(LayerPrefix), MsgCode, ANSI_TO_TCHAR(Msg));
+		FString Message = FString::Printf(TEXT("WARNING[%s:%d] Object %p: %s\n"), ANSI_TO_TCHAR(LayerPrefix), MsgCode, SrcObject, ANSI_TO_TCHAR(Msg));
 		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("VulkanRHI: %s\n"), *Message);
 		UE_LOG(LogVulkanRHI, Warning, TEXT("%s"), *Message);
 		return VK_FALSE;
@@ -91,7 +91,7 @@ static VkBool32 VKAPI_PTR DebugReportFunction(
 		else
 #endif
 		{
-			FString Message = FString::Printf(TEXT("VK INFO: [%s] Code %d : %s\n"), ANSI_TO_TCHAR(LayerPrefix), MsgCode, ANSI_TO_TCHAR(Msg));
+			FString Message = FString::Printf(TEXT("INFO[%s:%d] Object %p: %s\n"), ANSI_TO_TCHAR(LayerPrefix), MsgCode, SrcObject, ANSI_TO_TCHAR(Msg));
 			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("VulkanRHI: %s\n"), *Message);
 			UE_LOG(LogVulkanRHI, Display, TEXT("%s"), *Message);
 		}
@@ -101,7 +101,7 @@ static VkBool32 VKAPI_PTR DebugReportFunction(
 #if VULKAN_ENABLE_API_DUMP_DETAILED
 	else if (MsgFlags & VK_DEBUG_REPORT_DEBUG_BIT_EXT)
 	{
-		FString Message = FString::Printf(TEXT("VK DEBUG: [%s] Code %d : %s\n"), ANSI_TO_TCHAR(LayerPrefix), MsgCode, ANSI_TO_TCHAR(Msg));
+		FString Message = FString::Printf(TEXT("DEBUG[%s:%d] Object %p: %s\n"), ANSI_TO_TCHAR(LayerPrefix), MsgCode, SrcObject, ANSI_TO_TCHAR(Msg));
 		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("VulkanRHI: %s\n"), *Message);
 		UE_LOG(LogVulkanRHI, Display, TEXT("%s"), *Message);
 		return VK_FALSE;
@@ -966,7 +966,23 @@ namespace VulkanRHI
 
 	void DumpMappedMemoryRanges(uint32 memoryRangeCount, const VkMappedMemoryRange* MemoryRanges)
 	{
-		ensure(0);
+		if (CVarVulkanDumpLayer.GetValueOnAnyThread())
+		{
+			for (uint32 Index = 0; Index < memoryRangeCount; ++Index)
+			{
+				const VkMappedMemoryRange& Range = MemoryRanges[Index];
+				typedef struct VkMappedMemoryRange {
+					VkStructureType    sType;
+					const void*        pNext;
+					VkDeviceMemory     memory;
+					VkDeviceSize       offset;
+					VkDeviceSize       size;
+				} VkMappedMemoryRange;
+
+				DebugLog += FString::Printf(TEXT("%s%d Memory=%p Offset=%d Size=%d\n"), Tabs, Index,
+					(void*)Range.memory, (uint64)Range.offset, (uint64)Range.size);
+			}
+		}
 	}
 
 	void DumpResolveImage(VkCommandBuffer CommandBuffer, VkImage SrcImage, VkImageLayout SrcImageLayout, VkImage DstImage, VkImageLayout DstImageLayout, uint32 RegionCount, const VkImageResolve* Regions)
@@ -1323,11 +1339,11 @@ namespace VulkanRHI
 	{
 		if (CVarVulkanDumpLayer.GetValueOnAnyThread())
 		{
-			DevicePrintfBeginResult(Device, FString::Printf(TEXT("vkCreatePipelineLayout(CreateInfo=%p, OutPipelineLayout=%p)[...]"), CreateInfo, PipelineLayout));
-			DebugLog += FString::Printf(TEXT("VkPipelineLayoutCreateInfo: NumLayouts=%d "), CreateInfo->setLayoutCount);
+			DevicePrintfBegin(Device, FString::Printf(TEXT("vkCreatePipelineLayout(CreateInfo=%p, OutPipelineLayout=%p) NumLayouts=%d"), CreateInfo, PipelineLayout, CreateInfo->setLayoutCount));
+			DebugLog += FString::Printf(TEXT("%sLayouts: "), Tabs);
 			for (uint32 Index = 0; Index < CreateInfo->setLayoutCount; ++Index)
 			{
-				DebugLog += FString::Printf(TEXT("Layout[%d]=%p "), Index, CreateInfo->pSetLayouts[Index]);
+				DebugLog += FString::Printf(TEXT("%d=%p "), Index, CreateInfo->pSetLayouts[Index]);
 			}
 			DebugLog += '\n';
 		}
@@ -1522,6 +1538,64 @@ namespace VulkanRHI
 			}
 		}
 	}
+
+	void DumpQueuePresent(VkQueue Queue, const VkPresentInfoKHR* PresentInfo)
+	{
+		if (CVarVulkanDumpLayer.GetValueOnAnyThread())
+		{
+			PrintfBeginResult(FString::Printf(TEXT("vkQueuePresentKHR(Queue=%p, Info=%p)[...]"), Queue, PresentInfo));
+
+			DebugLog += FString::Printf(TEXT("\n%sPresentInfo: Results=%p"), Tabs, PresentInfo->pResults);
+			if (PresentInfo->waitSemaphoreCount > 0)
+			{
+				DebugLog += FString::Printf(TEXT("\n%s\tWaitSemaphores: "), Tabs);
+				for (uint32 SubIndex = 0; SubIndex < PresentInfo->waitSemaphoreCount; ++SubIndex)
+				{
+					DebugLog += FString::Printf(TEXT("%p "), PresentInfo->pWaitSemaphores[SubIndex]);
+				}
+			}
+			if (PresentInfo->swapchainCount > 0)
+			{
+				DebugLog += FString::Printf(TEXT("\n%s\tSwapchains (ImageIndex): "), Tabs);
+				for (uint32 SubIndex = 0; SubIndex < PresentInfo->swapchainCount; ++SubIndex)
+				{
+					DebugLog += FString::Printf(TEXT("%p(%d)"), PresentInfo->pSwapchains[SubIndex], PresentInfo->pImageIndices[SubIndex]);
+				}
+			}
+		}
+	}
+
+	void DumpCreateGraphicsPipelines(VkDevice Device, VkPipelineCache PipelineCache, uint32 CreateInfoCount, const VkGraphicsPipelineCreateInfo* CreateInfos, VkPipeline* Pipelines)
+	{
+		if (CVarVulkanDumpLayer.GetValueOnAnyThread())
+		{
+			DevicePrintfBegin(Device, FString::Printf(TEXT("vkCreateGraphicsPipelines(PipelineCache=%p, CreateInfoCount=%d, CreateInfos=%p, OutPipelines=%p)[...]"), PipelineCache, CreateInfoCount, CreateInfos, Pipelines));
+			for (uint32 Index = 0; Index < CreateInfoCount; ++Index)
+			{
+				const VkGraphicsPipelineCreateInfo& CreateInfo = CreateInfos[Index];
+				DebugLog += FString::Printf(TEXT("%s%d: Flags=%d Stages=%d Layout=%p RenderPass=%p Subpass=%d\n"), Tabs, Index,
+					CreateInfo.flags, CreateInfo.stageCount, (void*)CreateInfo.layout, (void*)CreateInfo.renderPass, CreateInfo.subpass);
+/*
+				DebugLog += FString::Printf(TEXT(""));
+				typedef struct VkGraphicsPipelineCreateInfo {
+					const VkPipelineShaderStageCreateInfo*           pStages;
+					const VkPipelineVertexInputStateCreateInfo*      pVertexInputState;
+					const VkPipelineInputAssemblyStateCreateInfo*    pInputAssemblyState;
+					const VkPipelineTessellationStateCreateInfo*     pTessellationState;
+					const VkPipelineViewportStateCreateInfo*         pViewportState;
+					const VkPipelineRasterizationStateCreateInfo*    pRasterizationState;
+					const VkPipelineMultisampleStateCreateInfo*      pMultisampleState;
+					const VkPipelineDepthStencilStateCreateInfo*     pDepthStencilState;
+					const VkPipelineColorBlendStateCreateInfo*       pColorBlendState;
+					const VkPipelineDynamicStateCreateInfo*          pDynamicState;
+					VkPipeline                                       basePipelineHandle;
+					int32_t                                          basePipelineIndex;
+				} VkGraphicsPipelineCreateInfo;
+*/
+			}
+		}
+	}
+
 
 	static struct FGlobalDumpLog
 	{

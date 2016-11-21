@@ -4,7 +4,6 @@
 #include "MovieSceneParticleSection.h"
 #include "MovieSceneParticleTrack.h"
 #include "IMovieScenePlayer.h"
-#include "MovieSceneParticleTrackInstance.h"
 
 
 #define LOCTEXT_NAMESPACE "MovieSceneParticleTrack"
@@ -16,12 +15,6 @@ UMovieSceneParticleTrack::UMovieSceneParticleTrack( const FObjectInitializer& Ob
 #if WITH_EDITORONLY_DATA
 	TrackTint = FColor(255,255,255,160);
 #endif
-}
-
-
-TSharedPtr<IMovieSceneTrackInstance> UMovieSceneParticleTrack::CreateInstance()
-{
-	return MakeShareable( new FMovieSceneParticleTrackInstance( *this ) ); 
 }
 
 

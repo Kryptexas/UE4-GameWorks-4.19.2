@@ -54,6 +54,69 @@ void SGraphNodeK2Base::UpdateCompactNode()
 	// Setup a meta tag for this node
 	FGraphNodeMetaData TagMeta(TEXT("Graphnode"));
 	PopulateMetaTag(&TagMeta);
+	
+	TSharedPtr<SNodeTitle> NodeTitle = SNew(SNodeTitle, GraphNode)
+		.Text(this, &SGraphNodeK2Base::GetNodeCompactTitle);
+
+	TSharedRef<SOverlay> NodeOverlay = SNew(SOverlay);
+	
+	// add optional node specific widget to the overlay:
+	TSharedPtr<SWidget> OverlayWidget = GraphNode->CreateNodeImage();
+	if(OverlayWidget.IsValid())
+	{
+		NodeOverlay->AddSlot()
+		.HAlign(HAlign_Center)
+		.VAlign(VAlign_Center)
+		[
+			SNew( SBox )
+			.WidthOverride( 70.f )
+			.HeightOverride( 70.f )
+			[
+				OverlayWidget.ToSharedRef()
+			]
+		];
+	}
+
+	NodeOverlay->AddSlot()
+		.HAlign(HAlign_Center)
+		.VAlign(VAlign_Center)
+		.Padding(45.f, 0.f, 45.f, 0.f)
+		[
+			// MIDDLE
+			SNew(SVerticalBox)
+			+SVerticalBox::Slot()
+			.HAlign(HAlign_Center)
+			.AutoHeight()
+			[
+				SNew(STextBlock)
+					.TextStyle( FEditorStyle::Get(), "Graph.CompactNode.Title" )
+					.Text( NodeTitle.Get(), &SNodeTitle::GetHeadTitle )
+					.WrapTextAt(128.0f)
+			]
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				NodeTitle.ToSharedRef()
+			]
+		];
+	
+	NodeOverlay->AddSlot()
+		.HAlign(HAlign_Left)
+		.VAlign(VAlign_Center)
+		.Padding(0.f, 0.f, 55.f, 0.f)
+		[
+			// LEFT
+			SAssignNew(LeftNodeBox, SVerticalBox)
+		];
+
+	NodeOverlay->AddSlot()
+		.HAlign(HAlign_Right)
+		.VAlign(VAlign_Center)
+		.Padding(55.f, 0.f, 0.f, 0.f)
+		[
+			// RIGHT
+			SAssignNew(RightNodeBox, SVerticalBox)
+		];
 
 	//
 	//             ______________________
@@ -66,63 +129,35 @@ void SGraphNodeK2Base::UpdateCompactNode()
 	//
 	this->ContentScale.Bind( this, &SGraphNode::GetContentScale );
 	this->GetOrAddSlot( ENodeZone::Center )
-
 	.HAlign(HAlign_Center)
 	.VAlign(VAlign_Center)
 	[
 		SNew(SVerticalBox)
 		+SVerticalBox::Slot()
-		.AutoHeight()
-		.Padding( FMargin(5.0f, 1.0f) )
-		[
-			ErrorReporting->AsWidget()
-		]
-		+SVerticalBox::Slot()
 		[
 			// NODE CONTENT AREA
-			SNew(SOverlay)
-			.ToolTip( NodeToolTip.ToSharedRef() )
-			.AddMetaData<FGraphNodeMetaData>(TagMeta)
+			SNew( SOverlay)
 			+SOverlay::Slot()
-			.Padding(Settings->GetNonPinNodeBodyPadding())
 			[
 				SNew(SImage)
-				.Image(FEditorStyle::GetBrush("Graph.CompactNode.Body"))
-				.ColorAndOpacity(this, &SGraphNodeK2Base::GetNodeBodyColor)
+				.Image( FEditorStyle::GetBrush("Graph.VarNode.Body") )
 			]
-			+SOverlay::Slot()
-			.HAlign(HAlign_Center)
-			.VAlign(VAlign_Center)
-			.Padding(Settings->GetNonPinNodeBodyPadding())
+			+ SOverlay::Slot()
 			[
-				// MIDDLE
-				SNew(STextBlock)
-				.TextStyle( FEditorStyle::Get(), "Graph.CompactNode.Title" )
-				.Text( this, &SGraphNodeK2Base::GetNodeCompactTitle )
+				SNew(SImage)
+				.Image( FEditorStyle::GetBrush("Graph.VarNode.Gloss") )
 			]
 			+SOverlay::Slot()
 			.Padding( FMargin(0,3) )
 			[
-				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
-				.Padding(0)
-				.HAlign(HAlign_Left)
-				.VAlign(VAlign_Center)
-				.FillWidth(1.0f)
-				[
-					// LEFT
-					SAssignNew(LeftNodeBox, SVerticalBox)
-				]
-				+SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(0)
-				.HAlign(HAlign_Right)
-				.VAlign(VAlign_Center)
-				[
-					// RIGHT
-					SAssignNew(RightNodeBox, SVerticalBox)
-				]
+				NodeOverlay
 			]
+		]
+		+SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding( FMargin(5.0f, 1.0f) )
+		[
+			ErrorReporting->AsWidget()
 		]
 	];
 
@@ -517,7 +552,7 @@ const FSlateBrush* SGraphNodeK2Base::GetShadowBrush(bool bSelected) const
 
 	if (bSelected && bCompactMode)
 	{
-		return FEditorStyle::GetBrush( "Graph.CompactNode.ShadowSelected" );
+		return FEditorStyle::GetBrush( "Graph.VarNode.ShadowSelected" );
 	}
 	else
 	{

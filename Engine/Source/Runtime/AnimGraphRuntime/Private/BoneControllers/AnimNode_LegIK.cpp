@@ -43,6 +43,7 @@ static FVector GetBoneWorldLocation(const FTransform& InBoneTransform, const USk
 	return InSkelMeshComp.GetComponentTransform().TransformPosition(MeshCompSpaceLocation);
 }
 
+#if ENABLE_DRAW_DEBUG
 static void DrawDebugLeg(const FAnimLegIKData& InLegData, const USkeletalMeshComponent& InSkelMeshComp, const UWorld* InWorld, const FColor& InColor)
 {
 	for (int32 Index = 0; Index < InLegData.NumBones - 1; Index++)
@@ -52,6 +53,8 @@ static void DrawDebugLeg(const FAnimLegIKData& InLegData, const USkeletalMeshCom
 		DrawDebugLine(InWorld, CurrentBoneWorldLoc, ParentBoneWorldLoc, InColor, false, -1.f, SDPG_Foreground, 2.f);
 	}
 }
+#endif // ENABLE_DRAW_DEBUG
+
 
 void FAnimLegIKData::InitializeTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases)
 {
@@ -64,14 +67,14 @@ void FAnimLegIKData::InitializeTransforms(USkeletalMeshComponent* SkelComp, FCSP
 		FKLegBoneTransforms.Add(MeshBases.GetComponentSpaceTransform(LegBoneIndex));
 	}
 
-#if ENABLE_ANIM_DEBUG
+#if ENABLE_ANIM_DEBUG && ENABLE_DRAW_DEBUG
 	const bool bShowDebug = (CVarAnimNodeLegIKDebug.GetValueOnAnyThread() == 1);
 	if (bShowDebug)
 	{
 		DrawDebugLeg(*this, *SkelComp, SkelComp->GetWorld(), FColor::Red);
 		DrawDebugSphere(SkelComp->GetWorld(), GetBoneWorldLocation(IKFootTransform, *SkelComp), 4.f, 4, FColor::Red, false, -1.f, SDPG_Foreground, 2.f);
 	}
-#endif
+#endif // ENABLE_ANIM_DEBUG && ENABLE_DRAW_DEBUG
 }
 
 void FAnimNode_LegIK::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
@@ -294,6 +297,7 @@ void FAnimNode_LegIK::DoLegReachIK(FAnimLegIKData& InLegData, USkeletalMeshCompo
 
 void FIKChain::DrawDebugIKChain(const FIKChain& IKChain, const FColor& InColor)
 {
+#if ENABLE_DRAW_DEBUG
 	if (IKChain.bInitialized && IKChain.SkelMeshComp)
 	{
 		for (int32 Index = 0; Index < IKChain.NumLinks - 1; Index++)
@@ -303,6 +307,7 @@ void FIKChain::DrawDebugIKChain(const FIKChain& IKChain, const FColor& InColor)
 			DrawDebugLine(IKChain.SkelMeshComp->GetWorld(), CurrentBoneWorldLoc, ParentBoneWorldLoc, InColor, false, -1.f, SDPG_Foreground, 1.f);
 		}
 	}
+#endif // ENABLE_DRAW_DEBUG
 }
 
 void FIKChain::FABRIK_ApplyLinkConstraints_Forward(FIKChain& IKChain, int32 LinkIndex)

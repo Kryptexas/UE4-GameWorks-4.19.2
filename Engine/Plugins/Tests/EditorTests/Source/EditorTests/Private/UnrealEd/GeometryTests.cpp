@@ -331,8 +331,8 @@ bool FBSPCubePlacement::RunTest(const FString& Parameters)
 
 	// Verify the BSP brushes that were created have been found.
 	TestEqual(TEXT("BSP Brushes Created"), BrushCount, 2);
+
 	TestNotNull<ABrush>(TEXT("Additive BSP is NULL.  Most likely it wasn't created."), AdditiveBSP);
-	TestNotNull<ABrush>(TEXT("Subtractive BSP is NULL.  Most likely it wasn't created."), SubtractiveBSP);
 
 	// Verify the location of the BSP.
 	if (AdditiveBSP)
@@ -353,7 +353,9 @@ bool FBSPCubePlacement::RunTest(const FString& Parameters)
 	{
 		TestEqual(TEXT("Subtractive Brush Vertex Count"), SubtractiveBSP->Brush->NumUniqueVertices, CUBE_VERTS_COUNT);
 	}
+	
 
+	
 	// Verify there are the correct amount of BSP surfaces are visible in the level.
 	TestEqual(TEXT("Surfaces Reported"), BSPModel->Surfs.Num(), 10);
 

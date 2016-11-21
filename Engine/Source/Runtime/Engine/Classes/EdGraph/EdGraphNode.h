@@ -10,6 +10,7 @@ class UEdGraphNode;
 class UEdGraphSchema;
 class UEdGraphPin;
 class SGraphNode;
+class SWidget;
 struct FEdGraphPinType;
 struct FSlateIcon;
 
@@ -335,6 +336,11 @@ public:
 	virtual void ReconstructNode() {}
 
 	/**
+	 * Removes the specified pin from the node, preserving remaining pin ordering.
+	 */
+	virtual void RemovePinAt(const int32 PinIndex, const EEdGraphPinDirection PinDirection);
+
+	/**
 	 * Perform any steps necessary prior to copying a node into the paste buffer
 	 */
 	virtual void PrepareForCopying() {}
@@ -524,6 +530,9 @@ public:
 
 	/** Create a visual widget to represent this node in a graph editor or graph panel.  If not implemented, the default node factory will be used. */
 	virtual TSharedPtr<SGraphNode> CreateVisualWidget() { return TSharedPtr<SGraphNode>(); }
+
+	/** Create the background image for the widget representing this node */
+	virtual TSharedPtr<SWidget> CreateNodeImage() const { return TSharedPtr<SWidget>(); }
 
 	/** Adds an upgrade note to this node */
 	void AddNodeUpgradeNote(FText InUpgradeNote);

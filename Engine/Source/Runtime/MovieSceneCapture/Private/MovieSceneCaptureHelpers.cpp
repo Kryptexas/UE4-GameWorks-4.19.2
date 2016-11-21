@@ -381,7 +381,7 @@ bool MovieSceneCaptureHelpers::ImportEDL(UMovieScene* InMovieScene, float InFram
 			if (ShotSection)
 			{
 				ShotSection->Modify();
-				ShotSection->StartOffset = ShotData.SourceInTime;
+				ShotSection->Parameters.StartOffset = ShotData.SourceInTime;
 				ShotSection->SetStartTime(ShotData.EditInTime);
 				ShotSection->SetEndTime(ShotData.EditOutTime);
 			}

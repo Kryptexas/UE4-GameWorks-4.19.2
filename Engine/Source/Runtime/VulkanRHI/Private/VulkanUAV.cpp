@@ -40,6 +40,10 @@ void FVulkanShaderResourceView::UpdateView()
 			if (FRHITexture2D* Tex2D = SourceTexture->GetTexture2D())
 			{
 				FVulkanTexture2D* VTex2D = ResourceCast(Tex2D);
+				if (Format == PF_X24_G8)
+				{
+					Format = PF_DepthStencil;
+				}
 				TextureView.Create(*Device, VTex2D->Surface.Image, VK_IMAGE_VIEW_TYPE_2D, VTex2D->Surface.GetPartialAspectMask(), Format, UEToVkFormat(Format, false), MipLevel, NumMips, 0, 1);
 			}
 			else
@@ -192,9 +196,16 @@ FShaderResourceViewRHIRef FVulkanDynamicRHI::RHICreateShaderResourceView(FIndexB
 
 void FVulkanCommandListContext::RHIClearUAV(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const uint32* Values)
 {
-#if 0
 	FVulkanUnorderedAccessView* UnorderedAccessView = ResourceCast(UnorderedAccessViewRHI);
-#endif
-	VULKAN_SIGNAL_UNIMPLEMENTED();
+	FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+	ensure(CmdBuffer->IsOutsideRenderPass());
+	if (UnorderedAccessView->SourceVertexBuffer)
+	{
+		FVulkanVertexBuffer* VertexBuffer = UnorderedAccessView->SourceVertexBuffer;
+		VulkanRHI::vkCmdFillBuffer(CmdBuffer->GetHandle(), VertexBuffer->GetHandle(), 0, VertexBuffer->GetSize(), Values[0]);
+	}
+	else
+	{
+		ensure(0);
+	}
 }
-

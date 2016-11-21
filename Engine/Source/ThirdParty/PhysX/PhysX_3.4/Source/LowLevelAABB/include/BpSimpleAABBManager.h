@@ -187,7 +187,10 @@ namespace Bp
 		{
 			// we shift some potential NaNs here because we don't know what's active, but should be harmless
 			for(PxU32 i=0;i<mBounds.size();i++)
-				mBounds[i].minimum -= shift, mBounds[i].maximum -= shift; 
+			{
+				mBounds[i].minimum -= shift;
+				mBounds[i].maximum -= shift;
+			}
 			mHasAnythingChanged = true;
 		}
 

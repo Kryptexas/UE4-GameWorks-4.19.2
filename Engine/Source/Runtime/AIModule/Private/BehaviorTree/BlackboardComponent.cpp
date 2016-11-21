@@ -337,6 +337,27 @@ void UBlackboardComponent::UnregisterObserversFrom(UObject* NotifyOwner)
 	}
 }
 
+void UBlackboardComponent::PauseObserverNotifications()
+{
+	bPausedNotifies = true;
+}
+
+
+void UBlackboardComponent::ResumeObserverNotifications(bool bSendQueuedObserverNotifications)
+{
+	bPausedNotifies = false;
+
+	if (bSendQueuedObserverNotifications)
+	{
+		for (int32 UpdateIndex = 0; UpdateIndex < QueuedUpdates.Num(); UpdateIndex++)
+		{
+			NotifyObservers(QueuedUpdates[UpdateIndex]);
+		}
+	}
+
+	QueuedUpdates.Empty();
+}
+
 void UBlackboardComponent::PauseUpdates()
 {
 	bPausedNotifies = true;

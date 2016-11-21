@@ -9,7 +9,7 @@ struct FReferenceViewerHistoryData
 	FText HistoryDesc;
 
 	/** The list of package names to serve as the root */
-	TArray<FName> PackageNames;
+	TArray<FAssetIdentifier> Identifiers;
 };
 
 /** The delegate for when history data should be applied */

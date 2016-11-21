@@ -4,6 +4,7 @@
 
 #include "MovieSceneSection.h"
 #include "IKeyframeSection.h"
+#include "Evaluation/MovieSceneEvalTemplate.h"
 #include "MovieSceneMarginSection.generated.h"
 
 
@@ -44,13 +45,6 @@ public:
 	virtual void GetKeyHandles(TSet<FKeyHandle>& OutKeyHandles, TRange<float> TimeRange) const override;
 	virtual TOptional<float> GetKeyTime( FKeyHandle KeyHandle ) const override;
 	virtual void SetKeyTime( FKeyHandle KeyHandle, float Time ) override;
-
-	/**
-	 * Updates this section
-	 *
-	 * @param Position	The position in time within the movie scene
-	 */
-	FMargin Eval( float Position, const FMargin& DefaultValue ) const;
 
 	// IKeyframeSection interface.
 	virtual void AddKey( float Time, const FMarginKey& MarginKey, EMovieSceneKeyInterpolation KeyInterpolation ) override;

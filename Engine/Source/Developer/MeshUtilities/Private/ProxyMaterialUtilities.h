@@ -148,11 +148,7 @@ namespace ProxyMaterialUtilities
 			// Merge properties into one texture using the separate colour channels
 
 			// R G B masks
-#if PLATFORM_LITTLE_ENDIAN
-			const uint32 ColorMask[3] = { 0x0000FF00, 0x00FF0000, 0xFF000000 };
-#else // PLATFORM_LITTLE_ENDIAN
-			const uint32 ColorMask[3] = { 0x00FF0000, 0x0000FF00, 0x000000FF };
-#endif
+			const uint32 ColorMask[3] = { FColor::Red.DWColor(), FColor::Green.DWColor(), FColor::Blue.DWColor() };
 			for (int32 PropertyIndex = 0; PropertyIndex < 3; ++PropertyIndex)
 			{
 				EFlattenMaterialProperties Property = (EFlattenMaterialProperties)(PropertyIndex + (int32)EFlattenMaterialProperties::Metallic);

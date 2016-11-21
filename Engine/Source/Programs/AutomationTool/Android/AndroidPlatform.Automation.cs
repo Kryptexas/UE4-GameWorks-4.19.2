@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -105,9 +105,25 @@ public class AndroidPlatform : Platform
 		}
     }
 
-	private static string GetFinalBatchName(string ApkName, ProjectParams Params, string Architecture, string GPUArchitecture, bool bNoOBBInstall, bool bUninstall, bool bIsPC)
+	private static string GetFinalBatchName(string ApkName, ProjectParams Params, string Architecture, string GPUArchitecture, bool bNoOBBInstall, bool bUninstall, UnrealTargetPlatform Target)
 	{
-		return Path.Combine(Path.GetDirectoryName(ApkName), (bUninstall ? "Uninstall_" : "Install_") + Params.ShortProjectName + (!bNoOBBInstall ? "_" : "_NoOBBInstall_") + Params.ClientConfigsToBuild[0].ToString() + Architecture + GPUArchitecture + (bIsPC ? ".bat" : ".command"));
+		string Extension = ".bat";
+		switch (Target)
+		{
+			default:
+			case UnrealTargetPlatform.Win64:
+				Extension = ".bat";
+				break;
+
+			case UnrealTargetPlatform.Linux:
+				Extension = ".sh";
+				break;
+
+			case UnrealTargetPlatform.Mac:
+				Extension = ".command";
+				break;
+		}
+		return Path.Combine(Path.GetDirectoryName(ApkName), (bUninstall ? "Uninstall_" : "Install_") + Params.ShortProjectName + (!bNoOBBInstall ? "_" : "_NoOBBInstall_") + Params.ClientConfigsToBuild[0].ToString() + Architecture + GPUArchitecture + Extension);
 	}
 
 	private List<string> CollectPluginDataPaths(DeploymentContext SC)
@@ -227,42 +243,48 @@ public class AndroidPlatform : Platform
 
 				//figure out which platforms we need to create install files for
 				bool bNeedsPCInstall = false;
-				bool bNeedsMonoInstall = false;
-				GetPlatformInstallOptions(SC, out bNeedsPCInstall, out bNeedsMonoInstall);
+				bool bNeedsMacInstall = false;
+				bool bNeedsLinuxInstall = false;
+				GetPlatformInstallOptions(SC, out bNeedsPCInstall, out bNeedsMacInstall, out bNeedsLinuxInstall);
 
 				//helper delegate to prevent code duplication but allow us access to all the local variables we need
-				var CreateInstallFilesAction = new Action<bool>(bPCInstall =>
-					{
-						// Write install batch file(s).
-						string BatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "", false, false, bPCInstall);
-						string PackageName = GetPackageInfo(ApkName, false);
-						// make a batch file that can be used to install the .apk and .obb files
-						string[] BatchLines = GenerateInstallBatchFile(bPackageDataInsideApk, PackageName, ApkName, Params, ObbName, DeviceObbName, false, bPCInstall);
-						File.WriteAllLines(BatchName, BatchLines);
-						// make a batch file that can be used to uninstall the .apk and .obb files
-						string UninstallBatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "", false, true, bPCInstall);
-						BatchLines = GenerateUninstallBatchFile(bPackageDataInsideApk, PackageName, ApkName, Params, ObbName, DeviceObbName, false, bPCInstall);
-						File.WriteAllLines(UninstallBatchName, BatchLines);
+				var CreateInstallFilesAction = new Action<UnrealTargetPlatform>(Target =>
+				{
+					bool bIsPC = (Target == UnrealTargetPlatform.Win64);
+					// Write install batch file(s).
+					string BatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "", false, false, Target);
+					string PackageName = GetPackageInfo(ApkName, false);
+					// make a batch file that can be used to install the .apk and .obb files
+					string[] BatchLines = GenerateInstallBatchFile(bPackageDataInsideApk, PackageName, ApkName, Params, ObbName, DeviceObbName, false, bIsPC);
+					File.WriteAllLines(BatchName, BatchLines);
+					// make a batch file that can be used to uninstall the .apk and .obb files
+					string UninstallBatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "", false, true, Target);
+					BatchLines = GenerateUninstallBatchFile(bPackageDataInsideApk, PackageName, ApkName, Params, ObbName, DeviceObbName, false, bIsPC);
+					File.WriteAllLines(UninstallBatchName, BatchLines);
 
-						if (Utils.IsRunningOnMono)
-						{
-							CommandUtils.FixUnixFilePermissions(BatchName);
-							CommandUtils.FixUnixFilePermissions(UninstallBatchName);
-							//if(File.Exists(NoInstallBatchName)) 
-							//{
-							//    CommandUtils.FixUnixFilePermissions(NoInstallBatchName);
-							//}
-						}
+					if (Utils.IsRunningOnMono)
+					{
+						CommandUtils.FixUnixFilePermissions(BatchName);
+						CommandUtils.FixUnixFilePermissions(UninstallBatchName);
+						//if(File.Exists(NoInstallBatchName)) 
+						//{
+						//    CommandUtils.FixUnixFilePermissions(NoInstallBatchName);
+						//}
 					}
+				}
 				);
 
 				if (bNeedsPCInstall)
 				{
-					CreateInstallFilesAction.Invoke(true);
+					CreateInstallFilesAction.Invoke(UnrealTargetPlatform.Win64);
 				}
-				if(bNeedsMonoInstall)
+				if (bNeedsMacInstall)
 				{
-					CreateInstallFilesAction.Invoke(false);
+					CreateInstallFilesAction.Invoke(UnrealTargetPlatform.Mac);
+				}
+				if (bNeedsLinuxInstall)
+				{
+					CreateInstallFilesAction.Invoke(UnrealTargetPlatform.Linux);
 				}
 
 				// If we aren't packaging data in the APK then lets write out a bat file to also let us test without the OBB
@@ -282,12 +304,14 @@ public class AndroidPlatform : Platform
     private string[] GenerateInstallBatchFile(bool bPackageDataInsideApk, string PackageName, string ApkName, ProjectParams Params, string ObbName, string DeviceObbName, bool bNoObbInstall, bool bIsPC)
     {
         string[] BatchLines = null;
-        
+        string ReadPermissionGrantCommand = "shell pm grant " + PackageName + " android.permission.READ_EXTERNAL_STORAGE";
+        string WritePermissionGrantCommand = "shell pm grant " + PackageName + " android.permission.WRITE_EXTERNAL_STORAGE";
+
         if (!bIsPC)
         {
             string OBBInstallCommand = bNoObbInstall ? "shell 'rm -r $EXTERNAL_STORAGE/" + DeviceObbName + "'" : "push " + Path.GetFileName(ObbName) + " $STORAGE/" + DeviceObbName;
 
-			Log("Writing shell script for install with {0}", bPackageDataInsideApk ? "data in APK" : "separate obb");
+            Log("Writing shell script for install with {0}", bPackageDataInsideApk ? "data in APK" : "separate obb");
             BatchLines = new string[] {
 						"#!/bin/sh",
 						"cd \"`dirname \"$0\"`\"",
@@ -302,7 +326,11 @@ public class AndroidPlatform : Platform
 						"echo Installing existing application. Failures here indicate a problem with the device \\(connection or storage permissions\\) and are fatal.",
 						"$ADB $DEVICE install " + Path.GetFileName(ApkName),
 						"if [ $? -eq 0 ]; then",
-						"\techo",
+                        "\techo",
+                        bPackageDataInsideApk ? "" : "\techo Grant READ_EXTERNAL_STORAGE and WRITE_EXTERNAL_STORAGE to the apk for reading OBB file.",
+                        bPackageDataInsideApk ? "" : "\t$ADB $DEVICE " + ReadPermissionGrantCommand,
+                        bPackageDataInsideApk ? "" : "\t$ADB $DEVICE " + WritePermissionGrantCommand,
+                        "\techo",
 						"\techo Removing old data. Failures here are usually fine - indicating the files were not on the device.",
                         "\t$ADB $DEVICE shell 'rm -r $EXTERNAL_STORAGE/UE4Game/" + Params.ShortProjectName + "'",
 						"\t$ADB $DEVICE shell 'rm -r $EXTERNAL_STORAGE/UE4Game/UE4CommandLine.txt" + "'",
@@ -312,7 +340,7 @@ public class AndroidPlatform : Platform
 						bPackageDataInsideApk ? "" : "\tSTORAGE=$(echo \"`$ADB $DEVICE shell 'echo $EXTERNAL_STORAGE'`\" | cat -v | tr -d '^M')",
 						bPackageDataInsideApk ? "" : "\t$ADB $DEVICE " + OBBInstallCommand,
 						bPackageDataInsideApk ? "if [ 1 ]; then" : "\tif [ $? -eq 0 ]; then",
-						"\t\techo",
+                        "\t\techo",
 						"\t\techo Installation successful",
 						"\t\texit 0",
 						"\tfi",
@@ -355,7 +383,11 @@ public class AndroidPlatform : Platform
 						bPackageDataInsideApk ? "" : "%ADB% %DEVICE% " + OBBInstallCommand,
 						bPackageDataInsideApk ? "" : "if \"%ERRORLEVEL%\" NEQ \"0\" goto Error",
 						"@echo.",
-						"@echo Installation successful",
+                        bPackageDataInsideApk ? "" : "@echo Grant READ_EXTERNAL_STORAGE and WRITE_EXTERNAL_STORAGE to the apk for reading OBB file.",
+                        bPackageDataInsideApk ? "" : "%ADB% %DEVICE% " + ReadPermissionGrantCommand,
+                        bPackageDataInsideApk ? "" : "%ADB% %DEVICE% " + WritePermissionGrantCommand,
+                        "@echo.",
+                        "@echo Installation successful",
 						"goto:eof",
 						":Error",
 						"@echo.",
@@ -464,48 +496,65 @@ public class AndroidPlatform : Platform
 				}
 
 				bool bNeedsPCInstall = false;
-				bool bNeedsMonoInstall = false;
-				GetPlatformInstallOptions(SC, out bNeedsPCInstall, out bNeedsMonoInstall);
+				bool bNeedsMacInstall = false;
+				bool bNeedsLinuxInstall = false;
+				GetPlatformInstallOptions(SC, out bNeedsPCInstall, out bNeedsMacInstall, out bNeedsLinuxInstall);
 
 				//helper delegate to prevent code duplication but allow us access to all the local variables we need
-				var CreateBatchFilesAndArchiveAction = new Action<bool>(bPCInstall =>
-					{
-						string BatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "", false, false, bPCInstall);
-						string UninstallBatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "", false, true, bPCInstall);
+				var CreateBatchFilesAndArchiveAction = new Action<UnrealTargetPlatform>(Target =>
+				{
+					string BatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "", false, false, Target);
+					string UninstallBatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "", false, true, Target);
 
-						SC.ArchiveFiles(Path.GetDirectoryName(BatchName), Path.GetFileName(BatchName));
-						SC.ArchiveFiles(Path.GetDirectoryName(UninstallBatchName), Path.GetFileName(UninstallBatchName));
-						//SC.ArchiveFiles(Path.GetDirectoryName(NoOBBBatchName), Path.GetFileName(NoOBBBatchName));
-					}
+					SC.ArchiveFiles(Path.GetDirectoryName(BatchName), Path.GetFileName(BatchName));
+					SC.ArchiveFiles(Path.GetDirectoryName(UninstallBatchName), Path.GetFileName(UninstallBatchName));
+					//SC.ArchiveFiles(Path.GetDirectoryName(NoOBBBatchName), Path.GetFileName(NoOBBBatchName));
+				}
 				);
 
 				//it's possible we will need both PC and Mac/Linux install files, do both
 				if (bNeedsPCInstall)
 				{
-					CreateBatchFilesAndArchiveAction(true);
+					CreateBatchFilesAndArchiveAction(UnrealTargetPlatform.Win64);
 				}
-				if(bNeedsMonoInstall)
+				if (bNeedsMacInstall)
 				{
-					CreateBatchFilesAndArchiveAction(false);
+					CreateBatchFilesAndArchiveAction(UnrealTargetPlatform.Mac);
+				}
+				if (bNeedsLinuxInstall)
+				{
+					CreateBatchFilesAndArchiveAction(UnrealTargetPlatform.Linux);
 				}
 			}
 		}
 	}
 
-	private void GetPlatformInstallOptions(DeploymentContext SC, out bool bNeedsPCInstall, out bool bNeedsMonoInstall)
+	private void GetPlatformInstallOptions(DeploymentContext SC, out bool bNeedsPCInstall, out bool bNeedsMacInstall, out bool bNeedsLinuxInstall)
 	{
-		ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(SC.StageTargetPlatform.PlatformType, "Engine", DirectoryReference.FromFile(SC.RawProjectPath));		
+		ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(SC.StageTargetPlatform.PlatformType, "Engine", DirectoryReference.FromFile(SC.RawProjectPath));
 		bool bGenerateAllPlatformInstall = false;
-	 	Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bCreateAllPlatformsInstall", out bGenerateAllPlatformInstall);
+		Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bCreateAllPlatformsInstall", out bGenerateAllPlatformInstall);
 
-		if(bGenerateAllPlatformInstall)
+		bNeedsPCInstall = bNeedsMacInstall = bNeedsLinuxInstall = false;
+
+		if (bGenerateAllPlatformInstall)
 		{
-			bNeedsMonoInstall = bNeedsPCInstall = true;
+			bNeedsPCInstall = bNeedsMacInstall = bNeedsLinuxInstall = true;
 		}
 		else
 		{
-			bNeedsMonoInstall = Utils.IsRunningOnMono;
-			bNeedsPCInstall = !bNeedsMonoInstall;
+			if (HostPlatform.Current.HostEditorPlatform == UnrealTargetPlatform.Mac)
+			{
+				bNeedsMacInstall = true;
+			}
+			else if (HostPlatform.Current.HostEditorPlatform == UnrealTargetPlatform.Linux)
+			{
+				bNeedsLinuxInstall = true;
+			}
+			else
+			{
+				bNeedsPCInstall = true;
+			}
 		}
 	}
 
@@ -771,6 +820,15 @@ public class AndroidPlatform : Platform
                         LogError("minSdkVersion is higher than Android version installed on device, possibly due to NDK API Level");
                     }
                     throw new AutomationException(ExitCode.Error_AppInstallFailed, ErrorMessage);
+                }
+                else
+                {
+                    // giving EXTERNAL_STORAGE_WRITE permission to the apk for API23+
+                    // without this permission apk can't access to the assets put into the device
+                    string ReadPermissionCommandLine = "shell pm grant " + PackageName + " android.permission.READ_EXTERNAL_STORAGE";
+                    string WritePermissionCommandLine = "shell pm grant " + PackageName + " android.permission.WRITE_EXTERNAL_STORAGE";
+                    RunAndLogAdbCommand(Params, DeviceName, ReadPermissionCommandLine, out SuccessCode);
+                    RunAndLogAdbCommand(Params, DeviceName, WritePermissionCommandLine, out SuccessCode);
                 }
             }
 
@@ -1345,25 +1403,16 @@ public class AndroidPlatform : Platform
 
 	public override void GetFilesToDeployOrStage(ProjectParams Params, DeploymentContext SC)
 	{
-		// 		if (SC.StageExecutables.Count != 1 && Params.Package)
-		// 		{
-		// 			throw new AutomationException("Exactly one executable expected when staging Android. Had " + SC.StageExecutables.Count.ToString());
-		// 		}
-		// 
-		// 		// stage all built executables
-		// 		foreach (var Exe in SC.StageExecutables)
-		// 		{
-		// 			string ApkName = Exe + GetArchitecture(Params) + ".apk";
-		// 
-		// 			SC.StageFiles(StagedFileType.NonUFS, Params.ProjectBinariesFolder, ApkName);
-		// 		}
-	}
+        // Add any Android shader cache files
+        string ProjectShaderDir = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(Params.RawProjectPath.ToString())), "Build/ShaderCaches/Android");
+        SC.StageFiles(StagedFileType.UFS, ProjectShaderDir, "*.*", true, null, null, true);
+    }
 
-	/// <summary>
-	/// Gets cook platform name for this platform.
-	/// </summary>
-	/// <returns>Cook platform string.</returns>
-	public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly)
+    /// <summary>
+    /// Gets cook platform name for this platform.
+    /// </summary>
+    /// <returns>Cook platform string.</returns>
+    public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly)
 	{
 		return "Android";
 	}

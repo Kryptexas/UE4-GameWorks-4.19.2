@@ -22,7 +22,7 @@ struct FMetalHashedVertexDescriptor
 	MTLVertexDescriptor* VertexDesc;
 	
 	FMetalHashedVertexDescriptor();
-	FMetalHashedVertexDescriptor(MTLVertexDescriptor* Desc);
+	FMetalHashedVertexDescriptor(MTLVertexDescriptor* Desc, uint32 Hash);
 	FMetalHashedVertexDescriptor(FMetalHashedVertexDescriptor const& Other);
 	~FMetalHashedVertexDescriptor();
 	
@@ -49,6 +49,9 @@ public:
 
 	/** This is the layout for the vertex elements */
 	FMetalHashedVertexDescriptor Layout;
+	
+	/** Hash without considering strides which may be overriden */
+	uint32 BaseHash;
 
 protected:
 	void GenerateLayout(const FVertexDeclarationElementList& Elements);
@@ -260,6 +263,9 @@ private:
 	// The movie playback IOSurface/CVTexture wrapper to avoid page-off
 	CFTypeRef CoreVideoImageRef;
 	
+	// Texture view surfaces don't own their resources, only reference
+	bool bTextureView;
+	
 	// next format for the pixel format mapping
 	static uint8 NextKey;
 	
@@ -428,14 +434,11 @@ struct FMetalQueryBuffer : public FRHIResource
     
     virtual ~FMetalQueryBuffer();
     
-    bool Wait(uint64 Millis);
     void const* GetResult(uint32 Offset);
 	
 	TWeakPtr<struct FMetalQueryBufferPool, ESPMode::ThreadSafe> Pool;
     id<MTLBuffer> Buffer;
 	uint32 WriteOffset;
-	bool bCompleted;
-	id<MTLCommandBuffer> CommandBuffer;
 };
 typedef TRefCountPtr<FMetalQueryBuffer> FMetalQueryBufferRef;
 
@@ -443,9 +446,11 @@ struct FMetalQueryResult
 {
     bool Wait(uint64 Millis);
     void const* GetResult();
-    
+	
     FMetalQueryBufferRef SourceBuffer;
+	id<MTLCommandBuffer> CommandBuffer;
     uint32 Offset;
+	bool bCompleted;
 };
 
 /** Metal occlusion query */
@@ -535,6 +540,9 @@ public:
 	
 	// balsa buffer memory
 	id<MTLBuffer> Buffer;
+	
+	/** Buffer for small buffers < 4Kb to avoid heap fragmentation. */
+	NSMutableData* Data;
 
 	// offset into the buffer (for lock usage)
 	uint32 LockOffset;
@@ -562,9 +570,13 @@ public:
 		return Buffer.length > 0;
 	}
 
+	void const* GetData();
 
 	/** The buffer containing the contents - either a fresh buffer or the ring buffer */
 	id<MTLBuffer> Buffer;
+	
+	/** CPU copy of data so that we can defer upload of smaller buffers */
+	NSData* Data;
 	
 	/** This offset is used when passing to setVertexBuffer, etc */
 	uint32 Offset;

@@ -115,9 +115,7 @@ void F3DPathTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, 
 bool F3DPathTrackEditor::IsActorPickable(const AActor* const ParentActor, FGuid ObjectBinding, UMovieSceneSection* InSection)
 {
 	// Can't pick the object that this track binds
-	TArray<TWeakObjectPtr<UObject>> OutObjects;
-	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectBinding, OutObjects);
-	if (OutObjects.Contains(ParentActor))
+	if (GetSequencer()->FindObjectsInCurrentSequence(ObjectBinding).Contains(ParentActor))
 	{
 		return false;
 	}
@@ -130,9 +128,7 @@ bool F3DPathTrackEditor::IsActorPickable(const AActor* const ParentActor, FGuid 
 
 		if (ConstraintId.IsValid())
 		{
-			TArray<TWeakObjectPtr<UObject>> ConstraintObjects;
-			GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ConstraintId, ConstraintObjects);
-			if (ConstraintObjects.Contains(ParentActor))
+			if (GetSequencer()->FindObjectsInCurrentSequence(ConstraintId).Contains(ParentActor))
 			{
 				return false;
 			}
@@ -171,8 +167,11 @@ void F3DPathTrackEditor::ActorSocketPicked(const FName SocketName, USceneCompone
 	}
 	else if (ObjectGuid.IsValid())
 	{
-		TArray<TWeakObjectPtr<UObject>> OutObjects;
-		GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects);
+		TArray<TWeakObjectPtr<>> OutObjects;
+		for (TWeakObjectPtr<> Object : GetSequencer()->FindObjectsInCurrentSequence(ObjectGuid))
+		{
+			OutObjects.Add(Object);
+		}
 		AnimatablePropertyChanged( FOnKeyProperty::CreateRaw( this, &F3DPathTrackEditor::AddKeyInternal, OutObjects, ParentActor) );
 	}
 }

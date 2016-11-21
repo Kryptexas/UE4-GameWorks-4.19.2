@@ -3,7 +3,6 @@
 #pragma once
 
 #include "IMessageBus.h"
-#include "IMessageHandler.h"
 #include "IMessagingModule.h"
 #include "MessageEndpoint.h"
 #include "MessageHandlers.h"
@@ -25,7 +24,7 @@ public:
 	 * @param InName The endpoint's name (for debugging purposes).
 	 * @param InBus The message bus to attach the endpoint to.
 	 */
-	FMessageEndpointBuilder( const FName& InName )
+	FMessageEndpointBuilder(const FName& InName)
 		: BusPtr(IMessagingModule::Get().GetDefaultBus())
 		, Disabled(false)
 		, InboxEnabled(false)
@@ -39,7 +38,7 @@ public:
 	 * @param InName The endpoint's name (for debugging purposes).
 	 * @param InBus The message bus to attach the endpoint to.
 	 */
-	FMessageEndpointBuilder( const FName& InName, const IMessageBusRef& InBus )
+	FMessageEndpointBuilder(const FName& InName, const TSharedRef<IMessageBus, ESPMode::ThreadSafe>& InBus)
 		: BusPtr(InBus)
 		, Disabled(false)
 		, InboxEnabled(false)
@@ -65,7 +64,7 @@ public:
 	 * @see WithCatchall, WithHandler
 	 */
 	template<typename MessageType, typename HandlerType>
-	FMessageEndpointBuilder& Handling( HandlerType* Handler, typename TRawMessageHandler<MessageType, HandlerType>::FuncType HandlerFunc )
+	FMessageEndpointBuilder& Handling(HandlerType* Handler, typename TRawMessageHandler<MessageType, HandlerType>::FuncType HandlerFunc)
 	{
 		Handlers.Add(MakeShareable(new TRawMessageHandler<MessageType, HandlerType>(Handler, MoveTemp(HandlerFunc))));
 
@@ -87,7 +86,7 @@ public:
 	 * @see WithCatchall, WithHandler
 	 */
 	template<typename MessageType>
-	FMessageEndpointBuilder& Handling( typename TFunctionMessageHandler<MessageType>::FuncType HandlerFunc )
+	FMessageEndpointBuilder& Handling(typename TFunctionMessageHandler<MessageType>::FuncType HandlerFunc)
 	{
 		Handlers.Add(MakeShareable(new TFunctionMessageHandler<MessageType>(MoveTemp(HandlerFunc))));
 
@@ -128,7 +127,7 @@ public:
 	 * @return This instance (for method chaining).
 	 * @see ReceivingOnAnyThread
 	 */
-	FMessageEndpointBuilder& ReceivingOnThread( ENamedThreads::Type NamedThread )
+	FMessageEndpointBuilder& ReceivingOnThread(ENamedThreads::Type NamedThread)
 	{
 		RecipientThread = NamedThread;
 
@@ -163,7 +162,7 @@ public:
 	 * @see WithHandler
 	 */
 	template<typename HandlerType>
-	FMessageEndpointBuilder& WithCatchall( HandlerType* Handler, typename TRawMessageCatchall<HandlerType>::FuncType HandlerFunc )
+	FMessageEndpointBuilder& WithCatchall(HandlerType* Handler, typename TRawMessageCatchall<HandlerType>::FuncType HandlerFunc)
 	{
 		Handlers.Add(MakeShareable(new TRawMessageCatchall<HandlerType>(Handler, MoveTemp(HandlerFunc))));
 
@@ -184,7 +183,7 @@ public:
 	 * @return This instance (for method chaining).
 	 * @see WithHandler
 	 */
-	FMessageEndpointBuilder& WithCatchall( FFunctionMessageCatchall::FuncType HandlerFunc )
+	FMessageEndpointBuilder& WithCatchall(FFunctionMessageCatchall::FuncType HandlerFunc)
 	{
 		Handlers.Add(MakeShareable(new FFunctionMessageCatchall(MoveTemp(HandlerFunc))));
 
@@ -201,7 +200,7 @@ public:
 	 * @return This instance (for method chaining).
 	 * @see Handling, WithCatchall
 	 */
-	FMessageEndpointBuilder& WithHandler( const IMessageHandlerRef& Handler )
+	FMessageEndpointBuilder& WithHandler(const TSharedRef<IMessageHandler, ESPMode::ThreadSafe>& Handler)
 	{
 		Handlers.Add(Handler);
 
@@ -232,8 +231,7 @@ public:
 	FMessageEndpointPtr Build()
 	{
 		FMessageEndpointPtr Endpoint;
-
-		IMessageBusPtr Bus = BusPtr.Pin();
+		TSharedPtr<IMessageBus, ESPMode::ThreadSafe> Bus = BusPtr.Pin();
 		
 		if (Bus.IsValid())
 		{
@@ -272,13 +270,13 @@ public:
 private:
 
 	/** Holds a reference to the message bus to attach to. */
-	IMessageBusWeakPtr BusPtr;
+	TWeakPtr<IMessageBus, ESPMode::ThreadSafe> BusPtr;
 
 	/** Holds a flag indicating whether the endpoint should be disabled. */
 	bool Disabled;
 
 	/** Holds the collection of message handlers to register. */
-	TArray<IMessageHandlerPtr> Handlers;
+	TArray<TSharedPtr<IMessageHandler, ESPMode::ThreadSafe>> Handlers;
 
 	/** Holds a flag indicating whether the inbox should be enabled. */
 	bool InboxEnabled;

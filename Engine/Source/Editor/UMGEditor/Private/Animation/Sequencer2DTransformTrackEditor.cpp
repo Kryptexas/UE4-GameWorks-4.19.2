@@ -58,11 +58,11 @@ public:
 		// Shear
 		TAttribute<TOptional<float>> ShearXExternalValue = TAttribute<TOptional<float>>::Create(
 			TAttribute<TOptional<float>>::FGetter::CreateRaw(this, &F2DTransformSection::GetShearXValue));
-		TSharedRef<FFloatCurveKeyArea> ShearXKeyArea = MakeShareable(new FFloatCurveKeyArea(&TransformSection->GetSheerCurve(EAxis::X), ShearXExternalValue, TransformSection, RedKeyAreaColor));
+		TSharedRef<FFloatCurveKeyArea> ShearXKeyArea = MakeShareable(new FFloatCurveKeyArea(&TransformSection->GetShearCurve(EAxis::X), ShearXExternalValue, TransformSection, RedKeyAreaColor));
 
 		TAttribute<TOptional<float>> ShearYExternalValue = TAttribute<TOptional<float>>::Create(
 			TAttribute<TOptional<float>>::FGetter::CreateRaw(this, &F2DTransformSection::GetShearYValue));
-		TSharedRef<FFloatCurveKeyArea> ShearYKeyArea = MakeShareable(new FFloatCurveKeyArea(&TransformSection->GetSheerCurve(EAxis::Y), ShearYExternalValue, TransformSection, GreenKeyAreaColor));
+		TSharedRef<FFloatCurveKeyArea> ShearYKeyArea = MakeShareable(new FFloatCurveKeyArea(&TransformSection->GetShearCurve(EAxis::Y), ShearYExternalValue, TransformSection, GreenKeyAreaColor));
 
 		// This generates the tree structure for the transform section
 		LayoutBuilder.PushCategory("Translation", NSLOCTEXT("F2DTransformSection", "TranslationArea", "Translation"));

@@ -461,9 +461,16 @@ class FLandscapeComponentSceneProxy : public FPrimitiveSceneProxy, public FLands
 	public:
 		/** Initialization constructor. */
 		FLandscapeLCI(const ULandscapeComponent* InComponent)
-			: FLightCacheInterface(InComponent->LightMap, InComponent->ShadowMap)
+			: FLightCacheInterface(NULL, NULL)
 		{
-			IrrelevantLights = InComponent->IrrelevantLights;
+			const FMeshMapBuildData* MapBuildData = InComponent->GetMeshMapBuildData();
+
+			if (MapBuildData)
+			{
+				SetLightMap(MapBuildData->LightMap);
+				SetShadowMap(MapBuildData->ShadowMap);
+				IrrelevantLights = MapBuildData->IrrelevantLights;
+			}
 		}
 
 		// FLightCacheInterface
@@ -516,8 +523,9 @@ protected:
 	FVector4 WeightmapScaleBias;
 	float WeightmapSubsectionOffset;
 	TArray<UTexture2D*> WeightmapTextures;
-	TArray<FName> LayerNames;
+#if WITH_EDITOR
 	TArray<FLinearColor> LayerColors;
+#endif
 	int8 NumWeightmapLayerAllocations;
 	UTexture2D* NormalmapTexture; // PC : Heightmap, Mobile : Weightmap
 	UTexture2D* BaseColorForGITexture;

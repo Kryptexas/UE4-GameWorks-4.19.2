@@ -10,9 +10,9 @@
 
 #include "ScopedTransaction.h"
 #include "AnimGraphNodeSlotDetails.h"
-#include "Persona.h"
 #include "STextComboBox.h"
 #include "STextEntryPopup.h"
+#include "TabSpawners.h"
 
 #define LOCTEXT_NAMESPACE "AnimNodeSlotDetails"
 

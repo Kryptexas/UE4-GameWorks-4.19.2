@@ -581,7 +581,33 @@ public partial class Project : CommandUtils
 				// Add config files.
 				SC.StageFiles( StagedFileType.NonUFS, CombinePaths( SC.LocalRoot, "Engine/Programs/CrashReportClient/Config" ) );
 			}
-        }
+
+
+			// check if the game will be verifying ssl connections - if not, we can skip staging files that won't be needed
+			bool bStageSSLCertificates = false;
+			ConfigCacheIni PlatformEngineConfig = ConfigCacheIni.CreateConfigCacheIni(SC.StageTargetPlatform.IniPlatformType, "Engine", new DirectoryReference(CommandUtils.GetDirectoryName(Params.RawProjectPath.FullName)));
+			if (PlatformEngineConfig != null)
+			{
+				PlatformEngineConfig.GetBool("/Script/Engine.NetworkSettings", "n.VerifyPeer", out bStageSSLCertificates);
+			}
+
+			if (bStageSSLCertificates)
+			{
+				// Game's SSL certs
+				int NumFilesBeforeGameCert = SC.UFSStagingFiles.Count;
+				SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Content/Certificates"), "cacert.pem", true, null, null, true, !Params.UsePak(SC.StageTargetPlatform));
+
+				// if the game had any files to be staged, then we don't need to stage the engine one - it will just added hundreds of kb of data that is never used
+				if (SC.UFSStagingFiles.Count == NumFilesBeforeGameCert)
+				{
+					// Engine SSL certs
+					SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Certificates/ThirdParty"), "cacert.pem", true, null, null, true, !Params.UsePak(SC.StageTargetPlatform));
+				}
+
+				// now stage any other game certs besides cacert
+				SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Certificates"), "*.pem", true, null, null, true, !Params.UsePak(SC.StageTargetPlatform));
+			}
+		}
         else
         {
             if (PlatformGameConfig != null)
@@ -1061,7 +1087,6 @@ public partial class Project : CommandUtils
 
 				string BuildRoot = MakePathSafeToUseWithCommandLine(RawDataPath);
 				string CloudDir = MakePathSafeToUseWithCommandLine(CombinePaths(ChunkInstallBasePath, "CloudDir"));
-                InternalUtils.SafeDeleteDirectory(CloudDir, true);
 				string ManifestDir = CombinePaths(ChunkInstallBasePath, "ManifestDir");
 				var AppID = 1; // For a chunk install this value doesn't seem to matter
 				string AppName = String.Format("{0}_{1}", SC.ShortProjectName, PakName);

@@ -13,7 +13,8 @@ static UTF8BOMType UTF8BOM = { 0xEF, 0xBB, 0xBF };
 
 /**
 * Thread heartbeat check class.
-* Used by crash handling code to check for hangs.
+* Used by crash handling code to check for hangs. 
+* [] tags identify which thread owns a variable or function
 */
 class CORE_API FAsyncWriter : public FRunnable, public FArchive
 {
@@ -31,49 +32,72 @@ class CORE_API FAsyncWriter : public FRunnable, public FArchive
 	FArchive& Ar;
 	/** Data ring buffer */
 	TArray<uint8> Buffer;
-	/** Position where the unserialized data starts in the buffer */
+	/** [WRITER THREAD] Position where the unserialized data starts in the buffer */
 	int32 BufferStartPos;
-	/** Position where the unserialized data ends in the buffer (such as if (BufferEndPos > BufferStartPos) Length = BufferEndPos - BufferStartPos; */
+	/** [CLIENT THREAD] Position where the unserialized data ends in the buffer (such as if (BufferEndPos > BufferStartPos) Length = BufferEndPos - BufferStartPos; */
 	int32 BufferEndPos;
-	/** Sync object for the buffer pos */
+	/** [CLIENT THREAD] Sync object for the buffer pos */
 	FCriticalSection BufferPosCritical;
-	/** Event to let the worker thread know there is data to save to disk. */
-	FEvent* BufferDirtyEvent;
-	/** Event flagged when the worker thread finished processing data */
-	FEvent* BufferEmptyEvent;
+	/** [CLIENT/WRITER THREAD] Outstanding serialize request counter. This is to make sure we flush all requests. */
+	FThreadSafeCounter SerializeRequestCounter;
 
-	/** Serialize the contents of the ring buffer to disk */
+	/** [WRITER THREAD] Last time the archive was flushed. used in threaded situations to flush the underlying archive at a certain maximum rate. */
+	double LastArchiveFlushTime;
+
+	/** [WRITER THREAD] Serialize the contents of the ring buffer to disk */
 	void SerializeBufferToArchive()
 	{
-		// Grab a local copy of the end pos. It's ok if it changes on the client thread later on.
-		// We won't be modifying it anyway and will later serialize new data in the next iteration.
-		// Here we only serialize what we know exists at the beginning of this function.
-		int32 ThisThreadEndPos = BufferEndPos;
-		if (ThisThreadEndPos >= BufferStartPos)
+		while (SerializeRequestCounter.GetValue() > 0)
 		{
-			Ar.Serialize(Buffer.GetData() + BufferStartPos, ThisThreadEndPos - BufferStartPos);
+			// Grab a local copy of the end pos. It's ok if it changes on the client thread later on.
+			// We won't be modifying it anyway and will later serialize new data in the next iteration.
+			// Here we only serialize what we know exists at the beginning of this function.
+			int32 ThisThreadEndPos = BufferEndPos;
+
+			if (ThisThreadEndPos >= BufferStartPos)
+			{
+				Ar.Serialize(Buffer.GetData() + BufferStartPos, ThisThreadEndPos - BufferStartPos);
+			}
+			else
+			{
+				// Data is wrapped around the ring buffer
+				Ar.Serialize(Buffer.GetData() + BufferStartPos, Buffer.Num() - BufferStartPos);
+				Ar.Serialize(Buffer.GetData(), BufferEndPos);
+			}
+			// Modify the start pos. Only the worker thread modifies this value so it's ok to not guard it with a critical section.
+			BufferStartPos = ThisThreadEndPos;
+
+			// Flush the archive periodically if running on a separate thread
+			if (Thread)
+			{
+				const double ArchiveFlushIntervalSec = 0.2;
+				if ((FPlatformTime::Seconds() - LastArchiveFlushTime) > ArchiveFlushIntervalSec)
+				{
+					Ar.Flush();
+					LastArchiveFlushTime = FPlatformTime::Seconds();
+				}
+			}
+
+			// Decrement the request counter, we now know we serialized at least one request.
+			// We might have serialized more requests but it's irrelevant, the counter will go down to 0 eventually
+			SerializeRequestCounter.Decrement();
 		}
-		else
-		{
-			// Data is wrapped around the ring buffer
-			Ar.Serialize(Buffer.GetData() + BufferStartPos, Buffer.Num() - BufferStartPos);
-			Ar.Serialize(Buffer.GetData(), BufferEndPos);
-		}
-		// Modify the start pos. Only the worker thread modifies this value so it's ok to not guard it with a critical section.
-		BufferStartPos = ThisThreadEndPos;
-		// Let the client threads know we're done (this is used by FlushBuffer).
-		BufferEmptyEvent->Trigger();
 	}
 
-	/** Flush the memory buffer (doesn't force the archive to flush) */
+	/** [CLIENT THREAD] Flush the memory buffer (doesn't force the archive to flush). Can only be used from inside of BufferPosCritical lock. */
 	void FlushBuffer()
 	{
-		BufferDirtyEvent->Trigger();
+		SerializeRequestCounter.Increment();
 		if (!Thread)
 		{
 			SerializeBufferToArchive();
 		}
-		BufferEmptyEvent->Wait();
+		while (SerializeRequestCounter.GetValue() != 0)
+		{
+			FPlatformProcess::SleepNoStats(0);
+		}
+		// Make sure there's been no unexpected concurrency
+		check(SerializeRequestCounter.GetValue() == 0);
 	}
 
 public:
@@ -83,11 +107,9 @@ public:
 		, Ar(InAr)
 		, BufferStartPos(0)
 		, BufferEndPos(0)
+		, LastArchiveFlushTime(0.0)
 	{
 		Buffer.AddUninitialized(InitialBufferSize);
-		BufferDirtyEvent = FPlatformProcess::GetSynchEventFromPool();
-		BufferEmptyEvent = FPlatformProcess::GetSynchEventFromPool(true);
-		BufferEmptyEvent->Trigger();
 
 		if (FPlatformProcess::SupportsMultithreading())
 		{
@@ -101,13 +123,9 @@ public:
 		Flush();
 		delete Thread;
 		Thread = nullptr;
-		FPlatformProcess::ReturnSynchEventToPool(BufferDirtyEvent);
-		BufferDirtyEvent = nullptr;
-		FPlatformProcess::ReturnSynchEventToPool(BufferEmptyEvent);
-		BufferEmptyEvent = nullptr;
 	}
 
-	/** Serialize data to buffer that will later be saved to disk by the async thread */
+	/** [CLIENT THREAD] Serialize data to buffer that will later be saved to disk by the async thread */
 	virtual void Serialize(void* InData, int64 Length) override
 	{
 		if (!InData || Length <= 0)
@@ -117,7 +135,6 @@ public:
 
 		const uint8* Data = (uint8*)InData;
 
-		BufferEmptyEvent->Reset();
 		FScopeLock WriteLock(&BufferPosCritical);
 
 		// Store the local copy of the current buffer start pos. It may get moved by the worker thread but we don't
@@ -131,7 +148,6 @@ public:
 			if (BufferFreeSize <= Length)
 			{
 				// Force the async thread to call SerializeBufferToArchive even if it's currently empty
-				BufferDirtyEvent->Trigger();
 				FlushBuffer();
 
 				// Resize the buffer if needed
@@ -160,7 +176,7 @@ public:
 
 		// Update the end position and let the async thread know we need to write to disk
 		BufferEndPos = (BufferEndPos + Length) % Buffer.Num();
-		BufferDirtyEvent->Trigger();
+		SerializeRequestCounter.Increment();
 
 		// No async thread? Serialize now.
 		if (!Thread)
@@ -174,6 +190,8 @@ public:
 	{
 		FScopeLock WriteLock(&BufferPosCritical);
 		FlushBuffer();
+		// At this point the serialize queue should be empty and the writer thread should no longer
+		// be accessing the Archive so we should be safe to flush it from here.
 		Ar.Flush();
 	}
 
@@ -186,9 +204,13 @@ public:
 	{
 		while (StopTaskCounter.GetValue() == 0)
 		{
-			if (BufferDirtyEvent->Wait(10))
+			if (SerializeRequestCounter.GetValue() > 0)
 			{
 				SerializeBufferToArchive();
+			}
+			else
+			{
+				FPlatformProcess::Sleep(0.01f);
 			}
 		}
 		return 0;

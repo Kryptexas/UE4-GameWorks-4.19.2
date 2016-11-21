@@ -586,6 +586,30 @@ void FAudioDeviceManager::ToggleVisualize3dDebug()
 	bVisualize3dDebug = !bVisualize3dDebug;
 }
 
+void FAudioDeviceManager::ToggleDebugStat(const uint8 StatBitMask)
+{
+#if !UE_BUILD_SHIPPING
+	if (!IsInAudioThread())
+	{
+		FAudioDeviceManager* AudioDeviceManager = this;
+		FAudioThread::RunCommandOnAudioThread([AudioDeviceManager, StatBitMask]()
+		{
+			AudioDeviceManager->ToggleDebugStat(StatBitMask);
+		});
+
+		return;
+	}
+
+	for (FAudioDevice* AudioDevice : Devices)
+	{
+		if (AudioDevice)
+		{
+			AudioDevice->UpdateRequestedStat(StatBitMask);
+		}
+	}
+#endif
+}
+
 void FAudioDeviceManager::SetDebugSoloSoundClass(const TCHAR* SoundClassName)
 {
 	if (!IsInAudioThread())

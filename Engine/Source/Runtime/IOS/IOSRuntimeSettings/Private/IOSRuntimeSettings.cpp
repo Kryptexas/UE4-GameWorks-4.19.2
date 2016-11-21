@@ -17,7 +17,7 @@ UIOSRuntimeSettings::UIOSRuntimeSettings(const FObjectInitializer& ObjectInitial
     FrameRateLock = EPowerUsageFrameRateLock::PUFRL_30;
 	bSupportsIPad = true;
 	bSupportsIPhone = true;
-	MinimumiOSVersion = EIOSVersion::IOS_7;
+	MinimumiOSVersion = EIOSVersion::IOS_8;
 	EnableRemoteShaderCompile = false;
 	bGeneratedSYMFile = false;
 	bGeneratedSYMBundle = false;
@@ -107,10 +107,10 @@ void UIOSRuntimeSettings::PostInitProperties()
 		}
 	}
 
-	// switch IOS_6.1 to IOS_7
-	if (MinimumiOSVersion == EIOSVersion::IOS_61)
+	// switch IOS_6.1 and IOS_7 to IOS_8
+	if (MinimumiOSVersion < EIOSVersion::IOS_8)
 	{
-		MinimumiOSVersion = EIOSVersion::IOS_7;
+		MinimumiOSVersion = EIOSVersion::IOS_8;
 	}
 }
 #endif

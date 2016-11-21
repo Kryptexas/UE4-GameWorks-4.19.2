@@ -188,6 +188,9 @@ namespace EditorAnimUtils
 			DuplicatedAnimAssets = DuplicateAssets<UAnimationAsset>(AnimationAssetsToDuplicate, DestinationPackage, NameRule);
 			DuplicatedBlueprints = DuplicateAssets<UAnimBlueprint>(AnimBlueprintsToDuplicate, DestinationPackage, NameRule);
 
+			// Remapped assets needs the duplicated ones added
+			RemappedAnimAssets.Append(DuplicatedAnimAssets);
+
 			DuplicatedAnimAssets.GenerateValueArray(AnimationAssetsToRetarget);
 			DuplicatedBlueprints.GenerateValueArray(AnimBlueprintsToRetarget);
 		}
@@ -248,14 +251,11 @@ namespace EditorAnimUtils
 			UAnimationAsset* AssetToRetarget = (*Iter);
 			if (HasDuplicates())
 			{
-				AssetToRetarget->ReplaceReferredAnimations(DuplicatedAnimAssets);
+				AssetToRetarget->ReplaceReferredAnimations(RemappedAnimAssets);
 			}
 			AssetToRetarget->ReplaceSkeleton(NewSkeleton, bConvertAnimationDataInComponentSpaces);
 			AssetToRetarget->MarkPackageDirty();
 		}
-
-		// Put duplicated and remapped assets in one list
-		RemappedAnimAssets.Append(DuplicatedAnimAssets);
 
 		// convert all Animation Blueprints and compile 
 		for ( auto AnimBPIter = AnimBlueprintsToRetarget.CreateIterator(); AnimBPIter; ++AnimBPIter )
@@ -288,17 +288,7 @@ namespace EditorAnimUtils
 
 	void OpenAssetFromNotify(UObject* AssetToOpen)
 	{
-		EToolkitMode::Type Mode = EToolkitMode::Standalone;
-		FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>( "Persona" );
-
-		if(UAnimationAsset* AnimAsset = Cast<UAnimationAsset>(AssetToOpen))
-		{
-			PersonaModule.CreatePersona( Mode, TSharedPtr<IToolkitHost>(), AnimAsset->GetSkeleton(), NULL, AnimAsset, NULL );
-		}
-		else if(UAnimBlueprint* AnimBlueprint = Cast<UAnimBlueprint>(AssetToOpen))
-		{
-			PersonaModule.CreatePersona( Mode, TSharedPtr<IToolkitHost>(), AnimBlueprint->TargetSkeleton, AnimBlueprint, NULL, NULL );
-		}
+		FAssetEditorManager::Get().OpenEditorForAsset(AssetToOpen);
 	}
 
 	//////////////////////////////////////////////////////////////////

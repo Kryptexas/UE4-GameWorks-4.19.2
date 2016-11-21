@@ -4101,7 +4101,7 @@ dtStatus dtNavMeshQuery::getPolyWallSegments(dtPolyRef ref, const dtQueryFilter*
 }
 
 static void storeWallSegment(const dtMeshTile* tile, const dtPoly* poly, int edge,
-	dtPolyRef ref0, dtPolyRef ref1, const float* centerPos, const float radiusSqr,
+	dtPolyRef ref0, dtPolyRef ref1, const dtNavMesh* nav, const float* centerPos, const float radiusSqr,
 	float* resultWalls, dtPolyRef* resultRefs, int* resultCount, const int maxResult)
 {
 	if (*resultCount < maxResult)
@@ -4113,12 +4113,80 @@ static void storeWallSegment(const dtMeshTile* tile, const dtPoly* poly, int edg
 		float distSqr = dtDistancePtSegSqr2D(centerPos, va, vb, tseg);
 		if (distSqr <= radiusSqr)
 		{
-			dtVcopy(&resultWalls[*resultCount * 6 + 0], va);
-			dtVcopy(&resultWalls[*resultCount * 6 + 3], vb);
+			const int32 Wall0Offset = (*resultCount * 6) + 0;
+			const int32 Wall1Offset = (*resultCount * 6) + 3;
+
+			dtVcopy(&resultWalls[Wall0Offset], va);
+			dtVcopy(&resultWalls[Wall1Offset], vb);
 			resultRefs[*resultCount * 2 + 0] = ref0;
 			resultRefs[*resultCount * 2 + 1] = ref1;
 
 			*resultCount += 1;
+
+			// find intersection between two edge segments
+			if (nav)
+			{
+				const dtMeshTile* NeiTile = 0;
+				const dtPoly* NeiPoly = 0;
+				nav->getTileAndPolyByRef(ref1, &NeiTile, &NeiPoly);
+
+				unsigned int NeiLinkId = NeiPoly ? NeiPoly->firstLink : DT_NULL_LINK;
+				while (NeiLinkId != DT_NULL_LINK)
+				{
+					const dtLink& link = nav->getLink(NeiTile, NeiLinkId);
+					NeiLinkId = link.next;
+
+					if (link.ref == ref0)
+					{
+						const float* va2 = &NeiTile->verts[NeiPoly->verts[link.edge] * 3];
+						const float* vb2 = &NeiTile->verts[NeiPoly->verts[(link.edge + 1) % NeiPoly->vertCount] * 3];
+
+						// project segment va2-vb2 on va-vb: point va2
+						float seg[3], toPt[3], closestA[3], closestB[3];
+						dtVsub(seg, vb, va);
+
+						dtVsub(toPt, va2, va);
+						float d1 = dtVdot(toPt, seg);
+						float d2 = dtVdot(seg, seg);
+
+						if (d1 <= 0)
+						{
+							dtVcopy(closestA, va);
+						}
+						else if (d2 <= d1)
+						{
+							dtVcopy(closestA, vb);
+						}
+						else
+						{
+							dtVmad(closestA, va, seg, d1 / d2);
+						}
+
+						// project segment va2-vb2 on va-vb: point vb2
+						dtVsub(toPt, vb2, va);
+						d1 = dtVdot(toPt, seg);
+						d2 = dtVdot(seg, seg);
+
+						if (d1 <= 0)
+						{
+							dtVcopy(closestB, va);
+						}
+						else if (d2 <= d1)
+						{
+							dtVcopy(closestB, vb);
+						}
+						else
+						{
+							dtVmad(closestB, va, seg, d1 / d2);
+						}
+
+						// store projected segment (intersection of both edges)
+						dtVcopy(&resultWalls[Wall0Offset], closestA);
+						dtVcopy(&resultWalls[Wall1Offset], closestB);
+						break;
+					}
+				}
+			}
 		}
 	}
 }
@@ -4188,7 +4256,7 @@ dtStatus dtNavMeshQuery::findWallsInNeighbourhood(dtPolyRef startRef, const floa
 			{
 				// store wall segment
 				storeWallSegment(curTile, curPoly, link.edge, 
-					curRef, neighbourRef, centerPos, radiusSqr, 
+					curRef, 0, 0, centerPos, radiusSqr, 
 					resultWalls, resultRefs, resultCount, maxResult);
 				continue;
 			}
@@ -4214,9 +4282,10 @@ dtStatus dtNavMeshQuery::findWallsInNeighbourhood(dtPolyRef startRef, const floa
 			if (!filter->passFilter(neighbourRef, neighbourTile, neighbourPoly) || !passLinkFilterByRef(neighbourTile, neighbourRef))
 			{
 				// store wall segment
-				storeWallSegment(curTile, curPoly, link.edge, 
-					curRef, neighbourRef, centerPos, radiusSqr,
+				storeWallSegment(curTile, curPoly, link.edge,
+					curRef, neighbourRef, m_nav, centerPos, radiusSqr,
 					resultWalls, resultRefs, resultCount, maxResult);
+
 				continue;
 			}
 
@@ -4281,7 +4350,7 @@ dtStatus dtNavMeshQuery::findWallsInNeighbourhood(dtPolyRef startRef, const floa
 			if (bStoreEdge)
 			{
 				storeWallSegment(curTile, curPoly, neighbourIndex,
-					curRef, 0, centerPos, radiusSqr, 
+					curRef, 0, 0, centerPos, radiusSqr, 
 					resultWalls, resultRefs, resultCount, maxResult);
 			}
 		}

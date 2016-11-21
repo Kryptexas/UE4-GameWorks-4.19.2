@@ -914,7 +914,7 @@ void AbcImporterUtilities::GenerateDeltaFrameDataMatrix(const TArray<FVector>& F
 	}
 }
 
-void AbcImporterUtilities::GenerateCompressedMeshData(FCompressedAbcData& CompressedData, const uint32 NumUsedSingularValues, const uint32 NumSamples, const TArray<float>& BasesMatrix, const TArray<float>& BasesWeights, const float SampleTimeStep)
+void AbcImporterUtilities::GenerateCompressedMeshData(FCompressedAbcData& CompressedData, const uint32 NumUsedSingularValues, const uint32 NumSamples, const TArray<float>& BasesMatrix, const TArray<float>& BasesWeights, const float SampleTimeStep, const float StartTime)
 {
 	// Allocate base sample data	
 	CompressedData.BaseSamples.AddZeroed(NumUsedSingularValues);
@@ -952,7 +952,7 @@ void AbcImporterUtilities::GenerateCompressedMeshData(FCompressedAbcData& Compre
 		for (uint32 CurveSampleIndex = 0; CurveSampleIndex < NumSamples; ++CurveSampleIndex)
 		{
 			CurveValues.Add(BasesWeights[BaseIndex + (OriginalNumberOfSingularValues* CurveSampleIndex)]);
-			TimeValues.Add(SampleTimeStep * CurveSampleIndex);
+			TimeValues.Add(StartTime + (SampleTimeStep * CurveSampleIndex));
 		}
 	}
 }
@@ -1022,6 +1022,50 @@ bool AbcImporterUtilities::AreVerticesEqual(const FSoftSkinVertex& V1, const FSo
 	}
 
 	return true;
+}
+
+void AbcImporterUtilities::ApplyConversion(FAbcMeshSample* InOutSample, const FAbcConversionSettings& InConversionSettings)
+{
+	if ( InConversionSettings.bFlipV || InConversionSettings.bFlipU )
+	{
+		// Apply UV matrix to flip channels
+		FMatrix2x2 UVMatrix( FScale2D(InConversionSettings.bFlipU ? -1.0f : 1.0f, InConversionSettings.bFlipV ? -1.0f : 1.0f) );
+		FVector2D UVOffset(InConversionSettings.bFlipU ? 1.0f : 0.0f, InConversionSettings.bFlipV ? 1.0f : 0.0f);
+		for (FVector2D& UV : InOutSample->UVs)
+		{
+			UV = UVOffset + UVMatrix.TransformPoint(UV);
+		}
+	}
+	
+	// Calculate conversion matrix	
+	const FMatrix Matrix = FScaleMatrix::Make(InConversionSettings.Scale) * FRotationMatrix::Make(FQuat::MakeFromEuler(InConversionSettings.Rotation));
+	if (!Matrix.Equals(FMatrix::Identity))
+	{
+		// In case of negative determinant (e.g. negative scaling), invert the indice data
+		if (Matrix.Determinant() < 0.0f)
+		{
+			Algo::Reverse(InOutSample->Indices);
+			Algo::Reverse(InOutSample->Normals);
+			Algo::Reverse(InOutSample->TangentX);
+			Algo::Reverse(InOutSample->TangentY);
+			Algo::Reverse(InOutSample->UVs);
+			Algo::Reverse(InOutSample->MaterialIndices);
+			Algo::Reverse(InOutSample->SmoothingGroupIndices);
+		}
+	}
+}
+
+void AbcImporterUtilities::ApplyConversion(TArray<FMatrix>& InOutMatrices, const FAbcConversionSettings& InConversionSettings)
+{
+	// Calculate conversion matrix	
+	const FMatrix ConversionMatrix = FScaleMatrix::Make(InConversionSettings.Scale) * FRotationMatrix::Make(FQuat::MakeFromEuler(InConversionSettings.Rotation));
+	if (!ConversionMatrix.Equals(FMatrix::Identity))
+	{
+		for (FMatrix& SampleMatrix : InOutMatrices)
+		{			
+			SampleMatrix = SampleMatrix * ConversionMatrix;
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE // "AbcImporterUtilities"

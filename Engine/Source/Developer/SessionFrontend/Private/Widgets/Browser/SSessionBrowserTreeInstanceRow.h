@@ -49,7 +49,7 @@ public:
 	{
 		if (ColumnName == "Device")
 		{
-			ISessionInstanceInfoPtr InstanceInfo = Item->GetInstanceInfo();
+			TSharedPtr<ISessionInstanceInfo> InstanceInfo = Item->GetInstanceInfo();
 
 			if (InstanceInfo.IsValid())
 			{
@@ -94,7 +94,7 @@ public:
 		}
 		else if (ColumnName == "Name")
 		{
-			ISessionInstanceInfoPtr InstanceInfo = Item->GetInstanceInfo();
+			TSharedPtr<ISessionInstanceInfo> InstanceInfo = Item->GetInstanceInfo();
 
 			if (InstanceInfo.IsValid())
 			{
@@ -140,7 +140,7 @@ public:
 		}
 		else if (ColumnName == "Type")
 		{
-			ISessionInstanceInfoPtr InstanceInfo = Item->GetInstanceInfo();
+			TSharedPtr<ISessionInstanceInfo> InstanceInfo = Item->GetInstanceInfo();
 
 			if (InstanceInfo.IsValid())
 			{
@@ -164,7 +164,7 @@ private:
 	/** Callback for getting the image of the Authorized icon. */
 	const FSlateBrush* HandleAuthorizedImage() const
 	{
-		ISessionInstanceInfoPtr InstanceInfo = Item->GetInstanceInfo();
+		TSharedPtr<ISessionInstanceInfo> InstanceInfo = Item->GetInstanceInfo();
 
 		if (InstanceInfo.IsValid() && !InstanceInfo->IsAuthorized())
 		{
@@ -177,7 +177,7 @@ private:
 	/** Callback for getting the text in the 'Device' column. */
 	FText HandleDeviceColumnText() const
 	{
-		ISessionInstanceInfoPtr InstanceInfo = Item->GetInstanceInfo();
+		TSharedPtr<ISessionInstanceInfo> InstanceInfo = Item->GetInstanceInfo();
 
 		if (InstanceInfo.IsValid())
 		{
@@ -190,7 +190,7 @@ private:
 	/** Callback for getting the border color for this row. */
 	FSlateColor HandleInstanceBorderBackgroundColor() const
 	{
-		ISessionInstanceInfoPtr InstanceInfo = Item->GetInstanceInfo();
+		TSharedPtr<ISessionInstanceInfo> InstanceInfo = Item->GetInstanceInfo();
 
 		if (InstanceInfo.IsValid())
 		{
@@ -203,7 +203,7 @@ private:
 	/** Callback for getting the border brush for this row. */
 	const FSlateBrush* HandleInstanceBorderBrush() const
 	{
-		ISessionInstanceInfoPtr InstanceInfo = Item->GetInstanceInfo();
+		TSharedPtr<ISessionInstanceInfo> InstanceInfo = Item->GetInstanceInfo();
 
 		if (InstanceInfo.IsValid())
 		{
@@ -221,7 +221,7 @@ private:
 	/** Callback for getting the type of the session instance. */
 	FText HandleInstanceTypeText() const
 	{
-		ISessionInstanceInfoPtr InstanceInfo = Item->GetInstanceInfo();
+		TSharedPtr<ISessionInstanceInfo> InstanceInfo = Item->GetInstanceInfo();
 
 		if (InstanceInfo.IsValid())
 		{
@@ -234,7 +234,7 @@ private:
 	/** Callback for getting the instance's current level. */
 	FText HandleLevelColumnText() const
 	{
-		ISessionInstanceInfoPtr InstanceInfo = Item->GetInstanceInfo();
+		TSharedPtr<ISessionInstanceInfo> InstanceInfo = Item->GetInstanceInfo();
 
 		if (InstanceInfo.IsValid())
 		{
@@ -247,7 +247,7 @@ private:
 	/** Callback for getting the image of the Status icon. */
 	const FSlateBrush* HandleStatusImage() const
 	{
-		ISessionInstanceInfoPtr InstanceInfo = Item->GetInstanceInfo();
+		TSharedPtr<ISessionInstanceInfo> InstanceInfo = Item->GetInstanceInfo();
 
 		if (InstanceInfo.IsValid())
 		{
@@ -265,7 +265,7 @@ private:
 	/** Callback for getting the foreground text color. */
 	FSlateColor HandleTextColorAndOpacity() const
 	{
-		ISessionInstanceInfoPtr InstanceInfo = Item->GetInstanceInfo();
+		TSharedPtr<ISessionInstanceInfo> InstanceInfo = Item->GetInstanceInfo();
 
 		if (InstanceInfo.IsValid())
 		{

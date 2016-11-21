@@ -324,6 +324,6 @@ void FPixelShaderDeclaration::UnbindBuffers(FRHICommandList& RHICmdList)
 	}
 }
 
-IMPLEMENT_SHADER_TYPE(, FPixelShaderDeclaration, TEXT("OculusShaders"), TEXT("MainPixelShader"), SF_Pixel);
+IMPLEMENT_SHADER_TYPE(, FPixelShaderDeclaration, TEXT("OculusStressShaders"), TEXT("MainPixelShader"), SF_Pixel);
 
 #endif // #if OCULUS_STRESS_TESTS_ENABLED

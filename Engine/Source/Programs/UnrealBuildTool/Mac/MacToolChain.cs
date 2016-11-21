@@ -40,7 +40,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Minimum version of Mac OS X to actually run on, running on earlier versions will display the system minimum version error dialog & exit.
 		/// </summary>
-		public static string MinMacOSVersion = "10.10.5";
+		public static string MinMacOSVersion = "10.11.6";
 
 		/// <summary>
 		/// Which developer directory to root from? If this is "xcode-select", UBT will query for the currently selected Xcode
@@ -527,32 +527,50 @@ namespace UnrealBuildTool
 
 		private void AddLibraryPathToRPaths(string Library, string ExeAbsolutePath, ref List<string> RPaths, ref string LinkCommand, bool bIsBuildingAppBundle)
 		{
-			string LibraryDir = Path.GetDirectoryName(Library);
+			string LibraryFullPath = Path.GetFullPath(Library);
+ 			string LibraryDir = Path.GetDirectoryName(LibraryFullPath);
 			string ExeDir = Path.GetDirectoryName(ExeAbsolutePath);
-			if (!Library.Contains("/Engine/Binaries/Mac/") && (Library.EndsWith("dylib") || Library.EndsWith(".framework")) && LibraryDir != ExeDir)
-			{
-				string RelativePath = Utils.MakePathRelativeTo(LibraryDir, ExeDir).Replace("\\", "/");
-				if ((!RelativePath.Contains(LibraryDir) || RelativePath.Contains("/ThirdParty/")) && !RPaths.Contains(RelativePath))
-				{
-					// For CEF3 for the Shipping Launcher we only want the RPATH to the framework inside the app bundle, otherwise OS X gatekeeper erroneously complains about not seeing framework. 
-					if (!ExeAbsolutePath.Contains("EpicGamesLauncher-Mac-Shipping") || !Library.Contains("CEF3"))
-					{
-						RPaths.Add(RelativePath);
-						LinkCommand += " -rpath \"@loader_path/" + RelativePath + "\"";
-					}
 
-					if (bIsBuildingAppBundle)
+			// Only dylibs and frameworks, and only those that are outside of Engine/Binaries/Mac and Engine/Source/ThirdParty, and outside of the folder where the executable is need an additional RPATH entry
+			if ((Library.EndsWith("dylib") || Library.EndsWith(".framework")) && !LibraryFullPath.Contains("/Engine/Binaries/Mac/")
+			    && !LibraryFullPath.Contains("/Engine/Source/ThirdParty/") && LibraryDir != ExeDir && !RPaths.Contains(LibraryDir))
+			{
+				// macOS gatekeeper erroneously complains about not seeing the CEF3 framework in the codesigned Launcher because it's only present in one of the folders specified in RPATHs.
+				// To work around this we will only add a single RPATH entry for it, for the framework stored in .app/Contents/UE4/ subfolder of the packaged app bundle
+				bool bCanUseMultipleRPATHs = !ExeAbsolutePath.Contains("EpicGamesLauncher-Mac-Shipping") || !Library.Contains("CEF3");
+
+				// First, add a path relative to the executable.
+				string RelativePath = Utils.MakePathRelativeTo(LibraryDir, ExeDir).Replace("\\", "/");
+				if (bCanUseMultipleRPATHs)
+				{
+					LinkCommand += " -rpath \"@loader_path/" + RelativePath + "\"";
+				}
+
+				// If building an app bundle, we also need an RPATH for use in packaged game and a separate one for staged builds
+				if (bIsBuildingAppBundle)
+				{
+					string EngineDir = UnrealBuildTool.RootDirectory.ToString();
+
+					// In packaged games dylibs are stored in Contents/UE4 subfolders, for example in GameName.app/Contents/UE4/Engine/Binaries/ThirdParty/PhysX/Mac
+					string BundleUE4Dir = Path.GetFullPath(ExeDir + "/../../Contents/UE4");
+					string BundleLibraryDir = LibraryDir.Replace(EngineDir, BundleUE4Dir);
+					string BundleRelativeDir = Utils.MakePathRelativeTo(BundleLibraryDir, ExeDir).Replace("\\", "/");
+					LinkCommand += " -rpath \"@loader_path/" + BundleRelativeDir + "\"";
+
+					// For staged code-based games we need additional entry if the game is not stored directly in the engine's root directory
+					if (bCanUseMultipleRPATHs)
 					{
-						// If building an app bunlde, we also prepare an rpath for use in packaged game. In that case dylibs are stored in Contents/UE4/Engine/ subfolders, for example in
-						// GameName.app/Contents/UE4/Engine/Binaries/ThirdParty/PhysX/Mac/
-						// RelativePath is a path to a copy of the lib folder in engine directory tree, so we need to convert it to a path relative to what it will be inside the app bundle
-						int NumCharactersToSkip = ExeAbsolutePath.Contains("/Engine/Binaries/Mac/") ? 9 : 15; // Skip 3 or 5 sets of ../ from the beginning of relative path, depending on where the app bundle is
-						string PathInBundle = Path.Combine(Path.GetDirectoryName(ExeDir), "UE4/Engine/Binaries/Mac", RelativePath.Substring(NumCharactersToSkip));
-						Utils.CollapseRelativeDirectories(ref PathInBundle);
-						string RelativePathInBundle = Utils.MakePathRelativeTo(PathInBundle, ExeDir).Replace("\\", "/");
-						LinkCommand += " -rpath \"@loader_path/" + RelativePathInBundle + "\"";
+						string StagedUE4Dir = Path.GetFullPath(ExeDir + "/../../../../../..");
+						string StagedLibraryDir = LibraryDir.Replace(EngineDir, StagedUE4Dir);
+						string StagedRelativeDir = Utils.MakePathRelativeTo(StagedLibraryDir, ExeDir).Replace("\\", "/");
+						if (StagedRelativeDir != RelativePath)
+						{
+							LinkCommand += " -rpath \"@loader_path/" + StagedRelativeDir + "\"";
+						}
 					}
 				}
+
+				RPaths.Add(LibraryDir);
 			}
 		}
 

@@ -70,10 +70,10 @@ AWorldSettings::AWorldSettings(const FObjectInitializer& ObjectInitializer)
 	DefaultColorScale = FVector(1.0f, 1.0f, 1.0f);
 	DefaultMaxDistanceFieldOcclusionDistance = 600;
 	GlobalDistanceFieldViewDistance = 20000;
+	DynamicIndirectShadowsSelfShadowingIntensity = .8f;
 	bPlaceCellsOnlyAlongCameraTracks = false;
 	VisibilityCellSize = 200;
 	VisibilityAggressiveness = VIS_LeastAggressive;
-	LevelLightingQuality = Quality_MAX;
 
 #if WITH_EDITORONLY_DATA
 	bActorLabelEditable = false;
@@ -279,7 +279,19 @@ void AWorldSettings::CheckForErrors()
 			->AddToken(FMapErrorToken::Create(FMapErrors::DuplicateLevelInfo));
 	}
 
-	if( World->NumLightingUnbuiltObjects > 0 )
+	int32 NumLightingScenariosEnabled = 0;
+
+	for (int32 LevelIndex = 0; LevelIndex < World->GetNumLevels(); LevelIndex++)
+	{
+		ULevel* Level = World->GetLevels()[LevelIndex];
+
+		if (Level->bIsLightingScenario && Level->bIsVisible)
+		{
+			NumLightingScenariosEnabled++;
+		}
+	}
+
+	if( World->NumLightingUnbuiltObjects > 0 && NumLightingScenariosEnabled <= 1 )
 	{
 		FMessageLog("MapCheck").Error()
 			->AddToken(FUObjectToken::Create(this))
@@ -376,11 +388,6 @@ void AWorldSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChang
 
 	if (PropertyThatChanged != nullptr && GetWorld() != nullptr && GetWorld()->PersistentLevel->GetWorldSettings() == this)
 	{
-		if (GIsEditor)
-		{
-			GEngine->DeferredCommands.AddUnique(TEXT("UpdateLandscapeSetup"));
-		}
-
 		if (PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(FHierarchicalSimplification,TransitionScreenSize))
 		{
 			GEditor->BroadcastHLODTransitionScreenSizeChanged();

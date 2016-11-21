@@ -121,8 +121,7 @@ UMaterial* FMaterialTrackEditor::GetMaterialForTrack( FGuid ObjectBinding, UMovi
 
 void FMaterialTrackEditor::AddScalarParameter( FGuid ObjectBinding, UMovieSceneMaterialTrack* MaterialTrack, FName ParameterName )
 {
-	UMovieSceneSequence* MovieSceneSequence = GetMovieSceneSequence();
-	float KeyTime = GetTimeForKey( MovieSceneSequence );
+	float KeyTime = GetTimeForKey();
 
 	UMaterial* Material = GetMaterialForTrack(ObjectBinding, MaterialTrack);
 	if (Material != nullptr)
@@ -139,8 +138,7 @@ void FMaterialTrackEditor::AddScalarParameter( FGuid ObjectBinding, UMovieSceneM
 
 void FMaterialTrackEditor::AddColorParameter( FGuid ObjectBinding, UMovieSceneMaterialTrack* MaterialTrack, FName ParameterName )
 {
-	UMovieSceneSequence* MovieSceneSequence = GetMovieSceneSequence();
-	float KeyTime = GetTimeForKey( MovieSceneSequence );
+	float KeyTime = GetTimeForKey();
 
 	UMaterial* Material = GetMaterialForTrack( ObjectBinding, MaterialTrack );
 	if ( Material != nullptr )

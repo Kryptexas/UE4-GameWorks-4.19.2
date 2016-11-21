@@ -160,37 +160,48 @@ struct FViewMatrices
 {
 	FViewMatrices()
 	{
-		ProjMatrix.SetIdentity();
+		ProjectionMatrix.SetIdentity();
 		ViewMatrix.SetIdentity();
 		HMDViewMatrixNoRoll.SetIdentity();
 		TranslatedViewMatrix.SetIdentity();
 		TranslatedViewProjectionMatrix.SetIdentity();
 		InvTranslatedViewProjectionMatrix.SetIdentity();
-		GetDynamicMeshElementsShadowCullFrustum = nullptr;
-		PreShadowTranslation = FVector::ZeroVector;
 		PreViewTranslation = FVector::ZeroVector;
 		ViewOrigin = FVector::ZeroVector;
 		ProjectionScale = FVector2D::ZeroVector;
-		TemporalAAProjJitter = FVector2D::ZeroVector;
+		TemporalAAProjectionJitter = FVector2D::ZeroVector;
 		ScreenScale = 1.f;
 	}
 
+	FViewMatrices(const FSceneViewInitOptions& InitOptions);
+
+private:
 	/** ViewToClip : UE4 projection matrix projects such that clip space Z=1 is the near plane, and Z=0 is the infinite far plane. */
-	FMatrix		ProjMatrix;
+	FMatrix		ProjectionMatrix;
+	/** ClipToView : UE4 projection matrix projects such that clip space Z=1 is the near plane, and Z=0 is the infinite far plane. */
+	FMatrix		InvProjectionMatrix;
 	// WorldToView..
 	FMatrix		ViewMatrix;
+	// ViewToWorld..
+	FMatrix		InvViewMatrix;
+	// WorldToClip : UE4 projection matrix projects such that clip space Z=1 is the near plane, and Z=0 is the infinite far plane. */
+	FMatrix		ViewProjectionMatrix;
+	// ClipToWorld : UE4 projection matrix projects such that clip space Z=1 is the near plane, and Z=0 is the infinite far plane. */
+	FMatrix		InvViewProjectionMatrix;
 	// HMD WorldToView with roll removed
 	FMatrix		HMDViewMatrixNoRoll;
 	/** WorldToView with PreViewTranslation. */
 	FMatrix		TranslatedViewMatrix;
+	/** ViewToWorld with PreViewTranslation. */
+	FMatrix		InvTranslatedViewMatrix;
+	/** WorldToView with PreViewTranslation. */
+	FMatrix		OverriddenTranslatedViewMatrix;
+	/** ViewToWorld with PreViewTranslation. */
+	FMatrix		OverriddenInvTranslatedViewMatrix;
 	/** The view-projection transform, starting from world-space points translated by -ViewOrigin. */
 	FMatrix		TranslatedViewProjectionMatrix;
 	/** The inverse view-projection transform, ending with world-space points translated by -ViewOrigin. */
 	FMatrix		InvTranslatedViewProjectionMatrix;
-	/** During GetDynamicMeshElements this will be the correct cull volume for shadow stuff */
-	const FConvexVolume* GetDynamicMeshElementsShadowCullFrustum;
-	/** If the above is non-null, a translation that is applied to world-space before transforming by one of the shadow matrices. */
-	FVector		PreShadowTranslation;
 	/** The translation to apply to the world before TranslatedViewProjectionMatrix. Usually it is -ViewOrigin but with rereflections this can differ */
 	FVector		PreViewTranslation;
 	/** To support ortho and other modes this is redundant, in world space */
@@ -198,7 +209,7 @@ struct FViewMatrices
 	/** Scale applied by the projection matrix in X and Y. */
 	FVector2D	ProjectionScale;
 	/** TemporalAA jitter offset currently stored in the projection matrix */
-	FVector2D	TemporalAAProjJitter;
+	FVector2D	TemporalAAProjectionJitter;
 
 	/**
 	 * Scale factor to use when computing the size of a sphere in pixels.
@@ -217,62 +228,155 @@ struct FViewMatrices
 
 	// ----------------
 
+public:
+	void UpdateViewMatrix(const FVector& ViewLocation, const FRotator& ViewRotation);
+
+	void UpdatePlanarReflectionViewMatrix(const FSceneView& SourceView, const FMirrorMatrix& MirrorMatrix);
+
+	inline const FMatrix& GetProjectionMatrix() const
+	{
+		return ProjectionMatrix;
+	}
+
+	inline const FMatrix& GetInvProjectionMatrix() const
+	{
+		return InvProjectionMatrix;
+	}
+
+	inline const FMatrix& GetViewMatrix() const
+	{
+		return ViewMatrix;
+	}
+
+	inline const FMatrix& GetInvViewMatrix() const
+	{
+		return InvViewMatrix;
+	}
+
+	inline const FMatrix& GetViewProjectionMatrix() const
+	{
+		return ViewProjectionMatrix;
+	}
+
+	inline const FMatrix& GetInvViewProjectionMatrix() const
+	{
+		return InvViewProjectionMatrix;
+	}
+	
+	inline const FMatrix& GetHMDViewMatrixNoRoll() const
+	{
+		return HMDViewMatrixNoRoll;
+	}
+	
+	inline const FMatrix& GetTranslatedViewMatrix() const
+	{
+		return TranslatedViewMatrix;
+	}
+
+	inline const FMatrix& GetInvTranslatedViewMatrix() const
+	{
+		return InvTranslatedViewMatrix;
+	}
+
+	inline const FMatrix& GetOverriddenTranslatedViewMatrix() const
+	{
+		return OverriddenTranslatedViewMatrix;
+	}
+
+	inline const FMatrix& GetOverriddenInvTranslatedViewMatrix() const
+	{
+		return OverriddenInvTranslatedViewMatrix;
+	}
+
+	inline const FMatrix& GetTranslatedViewProjectionMatrix() const
+	{
+		return TranslatedViewProjectionMatrix;
+	}
+
+	inline const FMatrix& GetInvTranslatedViewProjectionMatrix() const
+	{
+		return InvTranslatedViewProjectionMatrix;
+	}
+
+	inline const FVector& GetPreViewTranslation() const
+	{
+		return PreViewTranslation;
+	}
+	
+	inline const FVector& GetViewOrigin() const
+	{
+		return ViewOrigin;
+	}
+
+	inline float GetScreenScale() const
+	{
+		return ScreenScale;
+	}
+
+	inline const FVector2D& GetProjectionScale() const
+	{
+		return ProjectionScale;
+	} 
+
 	/** @return true:perspective, false:orthographic */
 	inline bool IsPerspectiveProjection() const
 	{
-		return ProjMatrix.M[3][3] < 1.0f;
+		return ProjectionMatrix.M[3][3] < 1.0f;
 	}
 
-	FMatrix GetProjNoAAMatrix() const
+	inline void HackOverrideViewMatrixForShadows(const FMatrix& InViewMatrix)
 	{
-		FMatrix ProjNoAAMatrix = ProjMatrix;
+		OverriddenTranslatedViewMatrix = ViewMatrix = InViewMatrix;
+		OverriddenInvTranslatedViewMatrix = InViewMatrix.Inverse();
+	}
 
-		ProjNoAAMatrix.M[2][0] -= TemporalAAProjJitter.X;
-		ProjNoAAMatrix.M[2][1] -= TemporalAAProjJitter.Y;
+	void HackAddTemporalAAProjectionJitter(const FVector2D& InTemporalAAProjectionJitter)
+	{
+		ensure(TemporalAAProjectionJitter.X == 0.0f && TemporalAAProjectionJitter.Y == 0.0f);
+		TemporalAAProjectionJitter = InTemporalAAProjectionJitter;
+
+		ProjectionMatrix.M[2][0] += TemporalAAProjectionJitter.X;
+		ProjectionMatrix.M[2][1] += TemporalAAProjectionJitter.Y;
+		InvProjectionMatrix = InvertProjectionMatrix(ProjectionMatrix);
+
+		RecomputeDerivedMatrices();
+	}
+
+	void HackRemoveTemporalAAProjectionJitter()
+	{
+		TemporalAAProjectionJitter = FVector2D::ZeroVector;
+
+		ProjectionMatrix.M[2][0] = 0.0f;
+		ProjectionMatrix.M[2][1] = 0.0f;
+		InvProjectionMatrix = InvertProjectionMatrix(ProjectionMatrix);
+
+		RecomputeDerivedMatrices();
+	}
+
+	const FMatrix ComputeProjectionNoAAMatrix() const
+	{
+		FMatrix ProjNoAAMatrix = ProjectionMatrix;
+
+		ProjNoAAMatrix.M[2][0] -= TemporalAAProjectionJitter.X;
+		ProjNoAAMatrix.M[2][1] -= TemporalAAProjectionJitter.Y;
 
 		return ProjNoAAMatrix;
 	}
 
-	void RemoveTemporalJitter()
+	const FMatrix ComputeViewRotationProjectionMatrix() const
 	{
-		ProjMatrix = GetProjNoAAMatrix();
-		TemporalAAProjJitter = FVector2D::ZeroVector;
-	}
-
-	FMatrix GetViewProjMatrix() const
-	{
-		return ViewMatrix * ProjMatrix;
-	}
-
-	FMatrix GetViewRotationProjMatrix() const
-	{
-		return ViewMatrix.RemoveTranslation() * ProjMatrix;
-	}
-
-	FMatrix GetInvProjMatrix() const
-	{
-		return InvertProjMatrix( ProjMatrix );
+		return ViewMatrix.RemoveTranslation() * ProjectionMatrix;
 	}
 	
-	FMatrix GetInvProjNoAAMatrix() const
+	const FMatrix ComputeInvProjectionNoAAMatrix() const
 	{
-		return InvertProjMatrix( GetProjNoAAMatrix() );
-	}
-
-	FMatrix GetInvViewMatrix() const
-	{
-		return FTranslationMatrix( -ViewMatrix.GetOrigin() ) * ViewMatrix.RemoveTranslation().GetTransposed();
-	}
-
-	FMatrix GetInvViewProjMatrix() const
-	{
-		return GetInvProjMatrix() * GetInvViewMatrix();
+		return InvertProjectionMatrix( ComputeProjectionNoAAMatrix() );
 	}
 
 	// @return in radians (horizontal,vertical)
-	FVector2D GetHalfFieldOfViewPerAxis() const
+	const FVector2D ComputeHalfFieldOfViewPerAxis() const
 	{
-		const FMatrix ClipToView = GetInvProjNoAAMatrix();
+		const FMatrix ClipToView = ComputeInvProjectionNoAAMatrix();
 
 		FVector VCenter = FVector(ClipToView.TransformPosition(FVector(0.0, 0.0, 0.0)));
 		FVector VUp = FVector(ClipToView.TransformPosition(FVector(0.0, 1.0, 0.0)));
@@ -286,7 +390,18 @@ struct FViewMatrices
 	}
 
 private:
-	static FMatrix InvertProjMatrix( const FMatrix& M )
+	inline void RecomputeDerivedMatrices()
+	{
+		// Compute the view projection matrix and its inverse.
+		ViewProjectionMatrix = GetViewMatrix() * GetProjectionMatrix();
+		InvViewProjectionMatrix = GetInvProjectionMatrix() * GetInvViewMatrix();
+
+		// Compute a transform from view origin centered world-space to clip space.
+		TranslatedViewProjectionMatrix = GetTranslatedViewMatrix() * GetProjectionMatrix();
+		InvTranslatedViewProjectionMatrix = GetInvProjectionMatrix() * GetInvTranslatedViewMatrix();
+	}
+
+	static const FMatrix InvertProjectionMatrix( const FMatrix& M )
 	{
 		if( M.M[1][0] == 0.0f &&
 			M.M[3][0] == 0.0f &&
@@ -474,7 +589,7 @@ enum ETranslucencyVolumeCascade
 	VIEW_UNIFORM_BUFFER_MEMBER(float, ShowDecalsMask) \
 	VIEW_UNIFORM_BUFFER_MEMBER(uint32, DistanceFieldAOSpecularOcclusionMode) \
 	VIEW_UNIFORM_BUFFER_MEMBER(float, IndirectCapsuleSelfShadowingIntensity) \
-	VIEW_UNIFORM_BUFFER_MEMBER(FVector2D, ReflectionEnvironmentRoughnessMixingScaleBias) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FVector, ReflectionEnvironmentRoughnessMixingScaleBiasAndLargestWeight) \
 	VIEW_UNIFORM_BUFFER_MEMBER(int32, StereoPassIndex) \
 	VIEW_UNIFORM_BUFFER_MEMBER_ARRAY(FVector4, GlobalVolumeCenterAndExtent_UB, [GMaxGlobalDistanceFieldClipmaps]) \
 	VIEW_UNIFORM_BUFFER_MEMBER_ARRAY(FVector4, GlobalVolumeWorldToUVAddAndMul_UB, [GMaxGlobalDistanceFieldClipmaps]) \
@@ -579,6 +694,13 @@ public:
 	  */
 	TUniformBufferRef<FMobileDirectionalLightShaderParameters> MobileDirectionalLightUniformBuffers[NUM_LIGHTING_CHANNELS+1];
 
+private:
+	/** During GetDynamicMeshElements this will be the correct cull volume for shadow stuff */
+	const FConvexVolume* DynamicMeshElementsShadowCullFrustum;
+	/** If the above is non-null, a translation that is applied to world-space before transforming by one of the shadow matrices. */
+	FVector		PreShadowTranslation;
+
+public:
 	/** The actor which is being viewed from. */
 	const AActor* ViewActor;
 
@@ -656,14 +778,6 @@ public:
 
 	// Derived members.
 
-	/** redundant, ViewMatrices.GetViewProjMatrix() */
-	/* UE4 projection matrix projects such that clip space Z=1 is the near plane, and Z=0 is the infinite far plane. */
-	FMatrix ViewProjectionMatrix;
-	/** redundant, ViewMatrices.GetInvViewMatrix() */
-	FMatrix InvViewMatrix;				
-	/** redundant, ViewMatrices.GetInvViewProjMatrix() */
-	FMatrix InvViewProjectionMatrix;	
-
 	bool bAllowTemporalJitter;
 
 	float TemporalJitterPixelsX;
@@ -732,6 +846,9 @@ public:
 
 	/** True if mobile multi-view is enabled. */
 	bool bIsMobileMultiViewEnabled;
+
+	/** True if we need to bind the instanced view uniform buffer parameters. */
+	bool bShouldBindInstancedViewUB;
 
 	/** Global clipping plane being applied to the scene, or all 0's if disabled.  This is used when rendering the planar reflection pass. */
 	FPlane GlobalClippingPlane;
@@ -853,9 +970,15 @@ public:
 	 */
 	static bool ProjectWorldToScreen(const FVector& WorldPosition, const FIntRect& ViewRect, const FMatrix& ViewProjectionMatrix, FVector2D& out_ScreenPos);
 
-	inline FVector GetViewRight() const { return ViewMatrices.ViewMatrix.GetColumn(0); }
-	inline FVector GetViewUp() const { return ViewMatrices.ViewMatrix.GetColumn(1); }
-	inline FVector GetViewDirection() const { return ViewMatrices.ViewMatrix.GetColumn(2); }
+	inline FVector GetViewRight() const { return ViewMatrices.GetViewMatrix().GetColumn(0); }
+	inline FVector GetViewUp() const { return ViewMatrices.GetViewMatrix().GetColumn(1); }
+	inline FVector GetViewDirection() const { return ViewMatrices.GetViewMatrix().GetColumn(2); }
+
+	inline const FConvexVolume* GetDynamicMeshElementsShadowCullFrustum() const { return DynamicMeshElementsShadowCullFrustum; }
+	inline void SetDynamicMeshElementsShadowCullFrustum(const FConvexVolume* InDynamicMeshElementsShadowCullFrustum) { DynamicMeshElementsShadowCullFrustum = InDynamicMeshElementsShadowCullFrustum; }
+
+	inline const FVector& GetPreShadowTranslation() const { return PreShadowTranslation; }
+	inline void SetPreShadowTranslation(const FVector& InPreShadowTranslation) { PreShadowTranslation = InPreShadowTranslation; }
 
 	/** @return true:perspective, false:orthographic */
 	inline bool IsPerspectiveProjection() const { return ViewMatrices.IsPerspectiveProjection(); }
@@ -925,22 +1048,22 @@ public:
 	bool IsInstancedStereoPass() const { return bIsInstancedStereoEnabled && StereoPass == eSSP_LEFT_EYE; }
 
 	/** Sets up the view rect parameters in the view's uniform shader parameters */
-	void SetupViewRectUniformBufferParameters(const FIntPoint& BufferSize, const FIntRect& EffectiveViewRect, FViewUniformShaderParameters& ViewUniformShaderParameters) const;
+	void SetupViewRectUniformBufferParameters(FViewUniformShaderParameters& ViewUniformShaderParameters, 
+		const FIntPoint& InBufferSize,
+		const FIntRect& InEffectiveViewRect,
+		const FViewMatrices& InViewMatrices,
+		const FViewMatrices& InPrevViewMatrice) const;
 
 	/** 
 	 * Populates the uniform buffer prameters common to all scene view use cases
 	 * View parameters should be set up in this method if they are required for the view to render properly.
 	 * This is to avoid code duplication and uninitialized parameters in other places that create view uniform parameters (e.g Slate) 
 	 */
-	void SetupCommonViewUniformBufferParameters(
-		FViewUniformShaderParameters& ViewUniformShaderParameters,
-		const FIntPoint& BufferSize,
-		const FIntRect& EffectiveViewRect,
-		const FMatrix& EffectiveTranslatedViewMatrix,
-		const FMatrix& EffectiveViewToTranslatedWorld,
-		const FViewMatrices& PrevViewMatrices,
-		const FMatrix& PrevViewProjMatrix,
-		const FMatrix& PrevViewRotationProjMatrix) const;
+	void SetupCommonViewUniformBufferParameters(FViewUniformShaderParameters& ViewUniformShaderParameters,
+		const FIntPoint& InBufferSize,
+		const FIntRect& InEffectiveViewRect,
+		const FViewMatrices& InViewMatrices,
+		const FViewMatrices& InPrevViewMatrices) const;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -997,6 +1120,7 @@ public:
 		:	RenderTarget(InRenderTarget)
 		,	Scene(InScene)
 		,	EngineShowFlags(InEngineShowFlags)
+		,	ViewModeParam(-1)
 		,	CurrentWorldTime(0.0f)
 		,	DeltaWorldTime(0.0f)
 		,	CurrentRealTime(0.0f)
@@ -1027,6 +1151,9 @@ public:
 
 		/** The engine show flags for the views. */
 		FEngineShowFlags EngineShowFlags;
+
+		/** Additional view params related to the current viewmode (example : texcoord index) */
+		int32 ViewModeParam;
 
 		/** The current world time. */
 		float CurrentWorldTime;
@@ -1066,6 +1193,9 @@ public:
 		
 		/** Set Gamma correction used when rendering this family. */
 		ConstructionValues& SetGammaCorrection(const float Value) { GammaCorrection = Value; return *this; }		
+
+		/** Set the view param. */
+		ConstructionValues& SetViewModeParam(const int InViewModeParam) { ViewModeParam = InViewModeParam; return *this; }		
 	};
 	
 	/** The views which make up the family. */
@@ -1173,13 +1303,16 @@ public:
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	EDebugViewShaderMode DebugViewShaderMode;
+	int32 ViewModeParam;
 	bool bUsedDebugViewPSVSHS;
 	FORCEINLINE EDebugViewShaderMode GetDebugViewShaderMode() const { return DebugViewShaderMode; }
+	FORCEINLINE int32 GetViewModeParam() const { return ViewModeParam; }
 	EDebugViewShaderMode ChooseDebugViewShaderMode() const;
 	FORCEINLINE bool UseDebugViewVSDSHS() const { return bUsedDebugViewPSVSHS; }
 	FORCEINLINE bool UseDebugViewPS() const { return DebugViewShaderMode != DVSM_None; }
 #else
 	FORCEINLINE EDebugViewShaderMode GetDebugViewShaderMode() const { return DVSM_None; }
+	FORCEINLINE int32 GetViewModeParam() const { return -1; }
 	FORCEINLINE bool UseDebugViewVSDSHS() const { return false; }
 	FORCEINLINE bool UseDebugViewPS() const { return false; }
 #endif

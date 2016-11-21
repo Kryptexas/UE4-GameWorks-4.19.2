@@ -3,11 +3,11 @@
 
 #pragma once
 
-#include "Persona.h"
 #include "GraphEditor.h"
 #include "SNodePanel.h"
 #include "SAnimCurvePanel.h"
 #include "EditorObjectsTracker.h"
+#include "PersonaDelegates.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FTrackMarkerBar

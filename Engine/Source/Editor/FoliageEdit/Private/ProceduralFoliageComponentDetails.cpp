@@ -67,16 +67,10 @@ void FProceduralFoliageComponentDetails::CustomizeDetails(IDetailLayoutBuilder& 
 
 FReply FProceduralFoliageComponentDetails::OnResimulateClicked()
 {
-	TSet<UProceduralFoliageSpawner*> UniqueFoliageSpawners;
 	for (TWeakObjectPtr<UProceduralFoliageComponent>& Component : SelectedComponents)
 	{
 		if (Component.IsValid() && Component->FoliageSpawner)
 		{
-			if (!UniqueFoliageSpawners.Contains(Component->FoliageSpawner))
-			{
-				UniqueFoliageSpawners.Add(Component->FoliageSpawner);
-			}
-
 			FScopedTransaction Transaction(LOCTEXT("Resimulate_Transaction", "Procedural Foliage Simulation"));
 			TArray <FDesiredFoliageInstance> DesiredFoliageInstances;
 			if (Component->GenerateProceduralContent(DesiredFoliageInstances))

@@ -56,6 +56,18 @@ struct CORE_API FFrameworkObjectVersion
 		// Individual asset still saves some flag - i.e. disabled curve and editable or not, but 
 		// major flag - i.e. material types - moves to skeleton and handle in one place
 		MoveCurveTypesToSkeleton,
+		
+	        // Cache destructible overlaps on save
+		CacheDestructibleOverlaps,
+
+	        // Added serialization of materials applied to geometry cache objects
+		GeometryCacheMissingMaterials,
+
+		// Switch static & skeletal meshes to calculate LODs based on resolution-independent screen size
+		LODsUseResolutionIndependentScreenSize,
+
+		// Blend space post load verification
+		BlendSpacePostLoadSnapToGrid,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

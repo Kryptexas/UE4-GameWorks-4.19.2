@@ -921,6 +921,24 @@ bool FLevelCollectionModel::IsSelectedLevelEditable() const
 	return false;
 }
 
+bool FLevelCollectionModel::IsNewLightingScenarioState(bool bExistingState) const
+{
+	if (SelectedLevelsList.Num() == 1)
+	{
+		return SelectedLevelsList[0]->IsLightingScenario() != bExistingState;
+	}
+	
+	return false;
+}
+
+void FLevelCollectionModel::SetIsLightingScenario(bool bNewLightingScenario)
+{
+	if (SelectedLevelsList.Num() == 1)
+	{
+		SelectedLevelsList[0]->SetIsLightingScenario(bNewLightingScenario);
+	}
+}
+
 bool FLevelCollectionModel::AreAnySelectedLevelsDirty() const
 {
 	for (auto It = SelectedLevelsList.CreateConstIterator(); It; ++It)

@@ -16,4 +16,7 @@ public:
 
 	/** Restore the viewport state */
 	virtual void RestoreState(TSharedRef<IPersonaViewportState> InState) = 0;
+
+	/** Get the viewport client contained within this viewport */
+	virtual class FEditorViewportClient& GetViewportClient() const = 0;
 };

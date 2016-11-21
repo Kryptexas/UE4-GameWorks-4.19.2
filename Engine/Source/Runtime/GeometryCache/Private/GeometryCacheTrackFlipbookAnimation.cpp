@@ -17,21 +17,19 @@ UGeometryCacheTrack_FlipbookAnimation::~UGeometryCacheTrack_FlipbookAnimation()
 	MeshSampleTimes.Empty();
 }
 
-SIZE_T UGeometryCacheTrack_FlipbookAnimation::GetResourceSize(EResourceSizeMode::Type Mode)
+void UGeometryCacheTrack_FlipbookAnimation::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
+	Super::GetResourceSizeEx(CumulativeResourceSize);
+
 	// Determine resource size according to what is actually serialized
-	SIZE_T ResourceSize = 0;
-	ResourceSize += UGeometryCacheTrack::GetResourceSize(Mode);
 	for (int32 SampleIndex = 0; SampleIndex < MeshSamples.Num(); ++SampleIndex )
 	{
-		ResourceSize += MeshSamples[SampleIndex].GetResourceSize();
+		MeshSamples[SampleIndex].GetResourceSizeEx(CumulativeResourceSize);
 	}
-	ResourceSize += sizeof(MeshSamples);
-	ResourceSize += MeshSampleTimes.Num() * sizeof(float);
-	ResourceSize += sizeof(MeshSampleTimes);
-	ResourceSize += sizeof(NumMeshSamples);
-
-	return ResourceSize;
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(sizeof(MeshSamples));
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(MeshSampleTimes.Num() * sizeof(float));
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(sizeof(MeshSampleTimes));
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(sizeof(NumMeshSamples));
 }
 
 void UGeometryCacheTrack_FlipbookAnimation::Serialize(FArchive& Ar)

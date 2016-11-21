@@ -8,7 +8,7 @@
 
 #include "PhysXPublic.h"
 
-#include "../Collision/PhysicsFiltering.h"
+#include "Physics/PhysicsFiltering.h"
 
 #if WITH_PHYSX
 

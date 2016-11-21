@@ -131,19 +131,6 @@ public:
 		, NumDevicesCurrentlyRunningTest( 0 )
 	{}
 
-
-	/**
-	 * Constructor
-	 *
-	 * @param	InTestInfo - comma separated value string containing the test info
-	 */
-	FAutomationTestInfo( const FString& InTestInfo )
-		: NumParticipantsRequired( 0 )
-		, NumDevicesCurrentlyRunningTest( 0 )
-	{
-		ParseStringInfo( InTestInfo );
-	}
-
 	/**
 	 * Constructor
 	 *
@@ -152,8 +139,9 @@ public:
 	 * @param	InTestFlag - Test flags
 	 * @param	InParameterName - optional parameter. e.g. asset name
 	 */
-	FAutomationTestInfo(const FString& InDisplayName, const FString& InTestName, const uint32 InTestFlags, const int32 InNumParticipantsRequired, const FString& InParameterName = FString(), const FString& InSourceFile = FString(), int32 InSourceFileLine = 0, const FString& InAssetPath = FString(), const FString& InOpenCommand = FString())
+	FAutomationTestInfo(const FString& InDisplayName, const FString& InFullTestPath, const FString& InTestName, const uint32 InTestFlags, const int32 InNumParticipantsRequired, const FString& InParameterName = FString(), const FString& InSourceFile = FString(), int32 InSourceFileLine = 0, const FString& InAssetPath = FString(), const FString& InOpenCommand = FString())
 		: DisplayName( InDisplayName )
+		, FullTestPath( InFullTestPath )
 		, TestName( InTestName )
 		, TestParameter( InParameterName )
 		, SourceFile( InSourceFile )
@@ -177,7 +165,6 @@ public:
 		TestFlags |= InTestFlags;
 	}
 
-
 	/**
 	 * Get the display name of this test.
 	 *
@@ -188,14 +175,15 @@ public:
 		return DisplayName;
 	}
 
-
 	/**
-	 * Get the test as a string so it can be sent over the network.
+	 * Gets the full path for this test if you wanted to run it.
 	 *
-	 * @return The test as a string.
+	 * @return the display name.
 	 */
-	FString GetTestAsString() const;
-
+	const FString& GetFullTestPath() const
+	{
+		return FullTestPath;
+	}
 
 	/**
 	 * Get the test name of this test.
@@ -206,7 +194,6 @@ public:
 	{
 		return TestName;
 	}
-
 
 	/**
 	 * Get the type of parameter. This will be the asset name for linked assets.
@@ -325,19 +312,11 @@ public:
 		NumParticipantsRequired = NumRequired;
 	}
 
-
-private:
-
-	/**
-	 * Set the test info from a string.
-	 *
-	 * @Param InTestInfo - the test information as a string.
-	 */
-	void ParseStringInfo(const FString& InTestInfo);
-
 private:
 	/** Display name used in the UI */
 	FString DisplayName; 
+
+	FString FullTestPath;
 
 	/** Test name used to run the test */
 	FString TestName;
@@ -467,7 +446,8 @@ struct FAutomationScreenshotData
 	uint8 ToleranceAlpha;
 	uint8 ToleranceMinBrightness;
 	uint8 ToleranceMaxBrightness;
-	float MaximumAllowedError;
+	float MaximumLocalError;
+	float MaximumGlobalError;
 	bool bIgnoreAntiAliasing;
 	bool bIgnoreColors;
 
@@ -492,7 +472,8 @@ struct FAutomationScreenshotData
 		, ToleranceAlpha(0)
 		, ToleranceMinBrightness(0)
 		, ToleranceMaxBrightness(255)
-		, MaximumAllowedError(0.0f)
+		, MaximumLocalError(0.0f)
+		, MaximumGlobalError(0.0f)
 		, bIgnoreAntiAliasing(false)
 		, bIgnoreColors(false)
 	{
@@ -509,14 +490,23 @@ struct FAutomationScreenshotData
  */
 DECLARE_DELEGATE_TwoParams(FOnTestScreenshotCaptured, const TArray<FColor>&, const FAutomationScreenshotData&);
 
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnTestScreenshotComparisonComplete, bool /*bWasNew*/, bool /*bWasSimilar*/);
+
 /** Class representing the main framework for running automation tests */
 class CORE_API FAutomationTestFramework
 {
 public:
 	/** Called right before unit testing is about to begin */
 	FSimpleMulticastDelegate PreTestingEvent;
+	
 	/** Called after all unit tests have completed */
 	FSimpleMulticastDelegate PostTestingEvent;
+
+	/** Called when a screenshot comparison completes. */
+	FOnTestScreenshotComparisonComplete OnScreenshotCompared;
+
+	/** The final call related to screenshots, after they've been taken, and after they've been compared (or not if automation isn't running). */
+	FSimpleMulticastDelegate OnScreenshotTakenAndCompared;
 
 	/**
 	 * Return the singleton instance of the framework.
@@ -525,6 +515,13 @@ public:
 	 */
 	static FAutomationTestFramework& Get();
 	static FAutomationTestFramework& GetInstance() { return Get(); }
+
+	/**
+	 * Gets a scratch space location outside of the project and saved directories.  When an automation test needs
+	 * to do something like generate project files, or create new projects it should use this directory, rather
+	 * than pollute other areas of the machine.
+	 */
+	FString GetUserAutomationDirectory() const;
 
 	/**
 	 * Register a automation test into the framework. The automation test may or may not be necessarily valid
@@ -679,6 +676,13 @@ public:
 	{
 		return CurrentTest;
 	}
+
+	bool GetTreatWarningsAsErrors() const;
+	void SetTreatWarningsAsErrors(TOptional<bool> bTreatWarningsAsErrors);
+
+	void NotifyScreenshotComparisonComplete(bool bWasNew, bool bWasSimilar);
+
+	void NotifyScreenshotTakenAndCompared();
 
 private:
 
@@ -964,7 +968,7 @@ public:
 	{
 		if ( Actual != Expected )
 		{
-			AddError(FString::Printf(TEXT("Expected '%s' to be %d, but it was %d."), *What, Actual, Expected), 1);
+			AddError(FString::Printf(TEXT("Expected '%s' to be %d, but it was %d."), *What, Expected, Actual), 1);
 		}
 	}
 
@@ -972,7 +976,7 @@ public:
 	{
 		if ( !FMath::IsNearlyEqual(Actual, Expected, Tolerance) )
 		{
-			AddError(FString::Printf(TEXT("Expected '%s' to be %f, but it was %f within tolerance %f."), *What, Actual, Expected, Tolerance), 1);
+			AddError(FString::Printf(TEXT("Expected '%s' to be %f, but it was %f within tolerance %f."), *What, Expected, Actual, Tolerance), 1);
 		}
 	}
 
@@ -1123,6 +1127,9 @@ public:
 			AddError(FString::Printf(TEXT("%s: The value is not true."), *Description), 1);
 		}
 	}
+
+	/** Macro version of above, uses the passed in expression as the description as well */
+	#define TestTrueExpr(Expression) TestTrue(TEXT(#Expression), Expression)
 
 	/**
 	 * Logs an error if the given shared pointer is not valid.

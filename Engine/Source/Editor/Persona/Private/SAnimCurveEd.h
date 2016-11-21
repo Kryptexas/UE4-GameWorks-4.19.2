@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include "Persona.h"
 #include "SCurveEditor.h"
 
 DECLARE_DELEGATE_OneParam(FOnSelectionChanged, const TArray<UObject*>&)

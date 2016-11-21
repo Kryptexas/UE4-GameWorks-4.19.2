@@ -4,6 +4,8 @@
 
 #include "ModuleManager.h"
 
+class UBlueprintRuntimeSettings;
+
 /**
  * The public interface to this module
  */
@@ -22,5 +24,6 @@ public:
 	}
 
 	virtual void PropagateWarningSettings() = 0;
+	virtual UBlueprintRuntimeSettings* GetMutableBlueprintRuntimeSettings() = 0;
 };
 

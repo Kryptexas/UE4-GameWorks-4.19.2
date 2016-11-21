@@ -1012,7 +1012,7 @@ void UVREditorMotionControllerInteractor::ShowHelpForHand( const bool bShowIt )
 				const FKey Key = KeyToAction.Key;
 				const FViewportActionKeyInput& Action = KeyToAction.Value;
 
-				UStaticMeshSocket* Socket = FindMeshSocketForKey( HandMeshComponent->StaticMesh, Key );
+				UStaticMeshSocket* Socket = FindMeshSocketForKey( HandMeshComponent->GetStaticMesh(), Key );
 				if ( Socket != nullptr )
 				{
 					FText LabelText;
@@ -1126,7 +1126,7 @@ void UVREditorMotionControllerInteractor::UpdateHelpLabels()
 			const FKey Key = KeyAndValue.Key;
 			AFloatingText* FloatingText = KeyAndValue.Value;
 
-			UStaticMeshSocket* Socket = FindMeshSocketForKey( HandMeshComponent->StaticMesh, Key );
+			UStaticMeshSocket* Socket = FindMeshSocketForKey( HandMeshComponent->GetStaticMesh(), Key );
 			check( Socket != nullptr );
 			FTransform SocketRelativeTransform( Socket->RelativeRotation, Socket->RelativeLocation, Socket->RelativeScale );
 

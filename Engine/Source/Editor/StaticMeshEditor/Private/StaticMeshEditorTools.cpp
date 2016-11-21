@@ -11,10 +11,11 @@
 #include "PhysicsEngine/BodySetup.h"
 #include "FbxMeshUtils.h"
 #include "SVectorInputBox.h"
-
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "EngineAnalytics.h"
 #include "STextComboBox.h"
+#include "ScopedTransaction.h"
+#include "SNumericEntryBox.h"
 
 const float MaxHullAccuracy = 1.f;
 const float MinHullAccuracy = 0.f;
@@ -1654,13 +1655,14 @@ UStaticMesh& FMeshMaterialsLayout::GetStaticMesh() const
 
 void FMeshMaterialsLayout::AddToCategory(IDetailCategoryBuilder& CategoryBuilder)
 {
-	CategoryBuilder.AddCustomRow(LOCTEXT("AddLODLevelCategories_MaterialArrayOperationAdd", "Materials Operation Add Material Slot"))
+	CategoryBuilder.AddCustomRow(LOCTEXT("AddLODLevelCategories_MaterialArrayOperationAdd", "Add Material Slot"))
 		.NameContent()
 		.HAlign(HAlign_Left)
 		.VAlign(VAlign_Center)
 		[
 			SNew(STextBlock)
-			.Text(LOCTEXT("AddLODLevelCategories_MaterialArrayOperations", "Materials Operations"))
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+			.Text(LOCTEXT("AddLODLevelCategories_MaterialArrayOperations", "Material Slots"))
 		]
 		.ValueContent()
 		.HAlign(HAlign_Left)
@@ -1677,6 +1679,7 @@ void FMeshMaterialsLayout::AddToCategory(IDetailCategoryBuilder& CategoryBuilder
 				[
 					SNew(STextBlock)
 					.Text(this, &FMeshMaterialsLayout::GetMaterialArrayText)
+					.Font(IDetailLayoutBuilder::GetDetailFont())
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
@@ -1704,7 +1707,6 @@ void FMeshMaterialsLayout::AddToCategory(IDetailCategoryBuilder& CategoryBuilder
 	FMaterialListDelegates MaterialListDelegates;
 	MaterialListDelegates.OnGetMaterials.BindSP(this, &FMeshMaterialsLayout::GetMaterials);
 	MaterialListDelegates.OnMaterialChanged.BindSP(this, &FMeshMaterialsLayout::OnMaterialChanged);
-	MaterialListDelegates.OnGenerateCustomNameWidgets.BindSP(this, &FMeshMaterialsLayout::OnGenerateNameWidgetsForMaterial);
 	MaterialListDelegates.OnGenerateCustomMaterialWidgets.BindSP(this, &FMeshMaterialsLayout::OnGenerateWidgetsForMaterial);
 	MaterialListDelegates.OnMaterialListDirty.BindSP(this, &FMeshMaterialsLayout::OnMaterialListDirty);
 	MaterialListDelegates.OnResetMaterialToDefaultClicked.BindSP(this, &FMeshMaterialsLayout::OnResetMaterialToDefaultClicked);
@@ -1716,13 +1718,12 @@ FReply FMeshMaterialsLayout::AddMaterialSlot()
 {
 	UStaticMesh& StaticMesh = GetStaticMesh();
 
-	GEditor->BeginTransaction(LOCTEXT("FMeshMaterialsLayout_AddMaterialSlot", "Add a material slot"));
+	FScopedTransaction Transaction(LOCTEXT("FMeshMaterialsLayout_AddMaterialSlot", "Add material slot"));
 	StaticMesh.Modify();
 	StaticMesh.StaticMaterials.Add(FStaticMaterial());
 
 	StaticMesh.PostEditChange();
-	// End the transation if we created one
-	GEditor->EndTransaction();
+
 	return FReply::Handled();
 }
 
@@ -1730,7 +1731,7 @@ FText FMeshMaterialsLayout::GetMaterialArrayText() const
 {
 	UStaticMesh& StaticMesh = GetStaticMesh();
 
-	FString MaterialArrayText = TEXT(" Materials Slots");
+	FString MaterialArrayText = TEXT(" Material Slots");
 	int32 SlotNumber = 0;
 	SlotNumber = StaticMesh.StaticMaterials.Num();
 	MaterialArrayText = FString::FromInt(SlotNumber) + MaterialArrayText;
@@ -1769,126 +1770,44 @@ void FMeshMaterialsLayout::OnMaterialChanged(UMaterialInterface* NewMaterial, UM
 	CallPostEditChange(ChangedProperty);
 }
 
-
-TSharedRef<SWidget> FMeshMaterialsLayout::OnGenerateNameWidgetsForMaterial(UMaterialInterface* Material, int32 MaterialIndex)
-{
-	UStaticMesh& StaticMesh = GetStaticMesh();
-	bool MaterialIsUsed = false;
-	if (MaterialUsedMap.Contains(MaterialIndex))
-	{
-		MaterialIsUsed = MaterialUsedMap.Find(MaterialIndex)->Num() > 0;
-	}
-	TSharedRef<SVerticalBox> CustomNameWidget = SNew(SVerticalBox)
-		+ SVerticalBox::Slot()
-		.AutoHeight()
-		.Padding(0, 2, 0, 0)
-		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
-			.VAlign(VAlign_Center)
-			.Padding(0.0f, 3.0f, 0.0f, 0.0f)
-			.FillWidth(0.4f)
-			[
-				SNew(STextBlock)
-				.Font(IDetailLayoutBuilder::GetDetailFont())
-				.Text(LOCTEXT("MaterialArrayNameLabelStringKey", "Name"))
-				.ToolTipText(this, &FMeshMaterialsLayout::GetOriginalImportMaterialNameText, MaterialIndex)
-			]
-			+ SHorizontalBox::Slot()
-			.Padding(5.0f, 3.0f, 5.0f, 0.0f)
-			.VAlign(VAlign_Center)
-			.FillWidth(1.0f)
-			[
-				SNew(SEditableTextBox)
-				.Text(this, &FMeshMaterialsLayout::GetMaterialNameText, MaterialIndex)
-				.OnTextChanged(this, &FMeshMaterialsLayout::OnMaterialNameChanged, MaterialIndex)
-				.OnTextCommitted(this, &FMeshMaterialsLayout::OnMaterialNameCommitted, MaterialIndex)
-			]
-		];
-	if (!MaterialIsUsed)
-	{
-		CustomNameWidget->AddSlot()
-			.AutoHeight()
-			.Padding(0, 2, 0, 0)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.Padding(0.0f, 3.0f, 0.0f, 0.0f)
-				.VAlign(VAlign_Center)
-				.FillWidth(0.4f)
-				[
-					SNew(STextBlock)
-					.Font(IDetailLayoutBuilder::GetDetailFont())
-					.Text(LOCTEXT("CustomNameMaterialNotUsed", "Unused"))
-					.ToolTipText(LOCTEXT("CustomNameMaterialNotUsedTooltip", "This material is not use by any LODs section! It will be set to None when the skeletal mesh will be saved."))
-				]
-				+ SHorizontalBox::Slot()
-				.Padding(5.0f, 3.0f, 5.0f, 0.0f)
-				.VAlign(VAlign_Center)
-				.FillWidth(1.0f)
-				[
-					SNew(SButton)
-					.Text(LOCTEXT("CustomNameMaterialNotUsedDelete", "Delete"))
-					.ToolTipText(LOCTEXT("CustomNameMaterialNotUsedDeleteTooltip", "Delete this material slot."))
-					.IsEnabled(this, &FMeshMaterialsLayout::CanDeleteMaterialSlot, MaterialIndex)
-					.OnClicked(this, &FMeshMaterialsLayout::OnDeleteMaterialSlot, MaterialIndex)
-				]
-			];
-	}
-	else
-	{
-		CustomNameWidget->AddSlot()
-			.AutoHeight()
-			.Padding(0, 2, 0, 0)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.VAlign(VAlign_Center)
-				.Padding(0.0f, 3.0f, 0.0f, 0.0f)
-				.FillWidth(0.4f)
-				[
-					SNew(STextBlock)
-					.Font(IDetailLayoutBuilder::GetDetailFont())
-					.Text(LOCTEXT("MaterialSlotUsedByLabel", "Used By"))
-					.ToolTipText(LOCTEXT("MaterialSlotUsedByLabelTooltip", "List all sections that use this material slot"))
-				]
-				+ SHorizontalBox::Slot()
-				.Padding(5.0f, 3.0f, 5.0f, 0.0f)
-				.VAlign(VAlign_Center)
-				.FillWidth(1.0f)
-				[
-					//Material Slot Name
-					SNew(SComboButton)
-					.OnGetMenuContent(this, &FMeshMaterialsLayout::OnGetMaterialSlotUsedByMenuContent, MaterialIndex)
-					.VAlign(VAlign_Center)
-					.ContentPadding(2)
-					.ButtonContent()
-					[
-						SNew(STextBlock)
-						.Font(IDetailLayoutBuilder::GetDetailFont())
-						.Text(this, &FMeshMaterialsLayout::GetFirstMaterialSlotUsedBySection, MaterialIndex)
-					]
-				]
-			];
-	}
-	return CustomNameWidget;
-}
-
 TSharedRef<SWidget> FMeshMaterialsLayout::OnGenerateWidgetsForMaterial(UMaterialInterface* Material, int32 SlotIndex)
 {
-	return SNew(SVerticalBox)
+	UStaticMesh& StaticMesh = GetStaticMesh();
+	bool bMaterialIsUsed = false;
+	if(MaterialUsedMap.Contains(SlotIndex))
+	{
+		bMaterialIsUsed = MaterialUsedMap.Find(SlotIndex)->Num() > 0;
+	}
+
+	return 
+		SNew(SMaterialSlotWidget, SlotIndex, bMaterialIsUsed)
+		.MaterialName(this, &FMeshMaterialsLayout::GetMaterialNameText, SlotIndex)
+		.OnMaterialNameChanged(this, &FMeshMaterialsLayout::OnMaterialNameChanged, SlotIndex)
+		.OnMaterialNameCommitted(this, &FMeshMaterialsLayout::OnMaterialNameCommitted, SlotIndex)
+		.CanDeleteMaterialSlot(this, &FMeshMaterialsLayout::CanDeleteMaterialSlot, SlotIndex)
+		.OnDeleteMaterialSlot(this, &FMeshMaterialsLayout::OnDeleteMaterialSlot, SlotIndex)
+		.ToolTipText(this, &FMeshMaterialsLayout::GetOriginalImportMaterialNameText, SlotIndex);
+
+#if 0 // HACK!!! Temporary disabled
 		+SVerticalBox::Slot()
 		.AutoHeight()
+		.Padding(0,2,0,0)
 		[
 			SNew(SCheckBox)
-				.IsChecked(this, &FMeshMaterialsLayout::IsShadowCastingEnabled, SlotIndex)
-				.OnCheckStateChanged(this, &FMeshMaterialsLayout::OnShadowCastingChanged, SlotIndex)
+				.Visibility(this, &FMeshMaterialsLayout::GetOverrideUVDensityVisibililty)
+				.IsChecked(this, &FMeshMaterialsLayout::IsUVDensityOverridden, SlotIndex)
+				.OnCheckStateChanged(this, &FMeshMaterialsLayout::OnOverrideUVDensityChanged, SlotIndex)
 			[
 				SNew(STextBlock)
 					.Font(FEditorStyle::GetFontStyle("StaticMeshEditor.NormalFont"))
-					.Text(LOCTEXT("CastShadow", "Cast Shadow"))
+					.Text(LOCTEXT("OverrideUVDensity", "Override UV Density"))
 			]
-		];
+		]
+		+ GetUVDensitySlot(SlotIndex, 0)
+		+ GetUVDensitySlot(SlotIndex, 1)
+		+ GetUVDensitySlot(SlotIndex, 2)
+		+ GetUVDensitySlot(SlotIndex, 3);
+#endif
 }
 
 void FMeshMaterialsLayout::OnResetMaterialToDefaultClicked(UMaterialInterface* Material, int32 MaterialIndex)
@@ -1942,21 +1861,19 @@ bool FMeshMaterialsLayout::CanDeleteMaterialSlot(int32 MaterialIndex) const
 	return (MaterialIndex + 1) == StaticMesh.StaticMaterials.Num();
 }
 
-FReply FMeshMaterialsLayout::OnDeleteMaterialSlot(int32 MaterialIndex)
+void FMeshMaterialsLayout::OnDeleteMaterialSlot(int32 MaterialIndex)
 {
 	UStaticMesh& StaticMesh = GetStaticMesh();
-	if (!CanDeleteMaterialSlot(MaterialIndex))
-		return FReply::Handled();
+	if (CanDeleteMaterialSlot(MaterialIndex))
+	{
+		FScopedTransaction Transaction(LOCTEXT("PersonaDeletedMaterialSlot", "Deleted material slot on skeletal mesh"));
 
-	GEditor->BeginTransaction(LOCTEXT("PersonaDeletedMaterialSlot", "Deleted material slot on skeletal mesh"));
-	StaticMesh.Modify();
-	StaticMesh.StaticMaterials.RemoveAt(MaterialIndex);
+		StaticMesh.Modify();
+		StaticMesh.StaticMaterials.RemoveAt(MaterialIndex);
 
-	StaticMesh.PostEditChange();
-	// End the transation if we created one
-	GEditor->EndTransaction();
+		StaticMesh.PostEditChange();
+	}
 
-	return FReply::Handled();
 }
 
 TSharedRef<SWidget> FMeshMaterialsLayout::OnGetMaterialSlotUsedByMenuContent(int32 MaterialIndex)
@@ -2115,6 +2032,80 @@ void FMeshMaterialsLayout::OnShadowCastingChanged(ECheckBoxState NewState, int32
 	}
 }
 
+EVisibility FMeshMaterialsLayout::GetOverrideUVDensityVisibililty() const
+{
+	if (StaticMeshEditor.GetViewMode() == VMI_MeshUVDensityAccuracy)
+	{
+		return EVisibility::SelfHitTestInvisible;
+	}
+	else
+	{
+		return EVisibility::Collapsed;
+	}
+}
+
+ECheckBoxState FMeshMaterialsLayout::IsUVDensityOverridden(int32 SlotIndex) const
+{
+	const UStaticMesh& StaticMesh = GetStaticMesh();
+	if (!StaticMesh.StaticMaterials.IsValidIndex(SlotIndex))
+	{
+		return ECheckBoxState::Undetermined;
+	}
+	else if (StaticMesh.StaticMaterials[SlotIndex].UVChannelData.bOverrideDensities)
+	{
+		return ECheckBoxState::Checked;
+	}
+	else
+	{
+		return ECheckBoxState::Unchecked;
+	}
+}
+
+
+void FMeshMaterialsLayout::OnOverrideUVDensityChanged(ECheckBoxState NewState, int32 SlotIndex)
+{
+	UStaticMesh& StaticMesh = GetStaticMesh();
+	if (NewState != ECheckBoxState::Undetermined && StaticMesh.StaticMaterials.IsValidIndex(SlotIndex))
+	{
+		StaticMesh.StaticMaterials[SlotIndex].UVChannelData.bOverrideDensities = (NewState == ECheckBoxState::Checked);
+		StaticMesh.UpdateUVChannelData(true);
+	}
+}
+
+EVisibility FMeshMaterialsLayout::GetUVDensityVisibility(int32 SlotIndex, int32 UVChannelIndex) const
+{
+	UStaticMesh& StaticMesh = GetStaticMesh();
+	if (StaticMeshEditor.GetViewMode() == VMI_MeshUVDensityAccuracy && IsUVDensityOverridden(SlotIndex) == ECheckBoxState::Checked && UVChannelIndex < StaticMeshEditor.GetNumUVChannels())
+	{
+		return EVisibility::SelfHitTestInvisible;
+	}
+	else
+	{
+		return EVisibility::Collapsed;
+	}
+}
+
+TOptional<float> FMeshMaterialsLayout::GetUVDensityValue(int32 SlotIndex, int32 UVChannelIndex) const
+{
+	const UStaticMesh& StaticMesh = GetStaticMesh();
+	if (StaticMesh.StaticMaterials.IsValidIndex(SlotIndex))
+	{
+		float Value = StaticMesh.StaticMaterials[SlotIndex].UVChannelData.LocalUVDensities[UVChannelIndex];
+		return FMath::RoundToFloat(Value * 4.f) * .25f;
+	}
+	return TOptional<float>();
+}
+
+void FMeshMaterialsLayout::SetUVDensityValue(float InDensity, ETextCommit::Type CommitType, int32 SlotIndex, int32 UVChannelIndex)
+{
+	UStaticMesh& StaticMesh = GetStaticMesh();
+	if (StaticMesh.StaticMaterials.IsValidIndex(SlotIndex))
+	{
+		StaticMesh.StaticMaterials[SlotIndex].UVChannelData.LocalUVDensities[UVChannelIndex] = FMath::Max<float>(0, InDensity);
+		StaticMesh.UpdateUVChannelData(true);
+	}
+}
+
 void FMeshMaterialsLayout::CallPostEditChange(UProperty* PropertyChanged/*=nullptr*/)
 {
 	UStaticMesh& StaticMesh = GetStaticMesh();
@@ -2167,7 +2158,7 @@ FLevelOfDetailSettingsLayout::FLevelOfDetailSettingsLayout( FStaticMeshEditor& I
 /** Returns true if automatic mesh reduction is available. */
 static bool IsAutoMeshReductionAvailable()
 {
-	static bool bAutoMeshReductionAvailable = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities").GetMeshReductionInterface() != NULL;
+	bool bAutoMeshReductionAvailable = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities").GetStaticMeshReductionInterface() != NULL;
 	return bAutoMeshReductionAvailable;
 }
 

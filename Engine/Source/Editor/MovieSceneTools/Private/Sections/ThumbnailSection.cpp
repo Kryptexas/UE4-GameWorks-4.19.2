@@ -62,7 +62,8 @@ void FThumbnailSection::PreDraw(FTrackEditorThumbnail& Thumbnail, FLevelEditorVi
 
 		SavedPlaybackStatus = Sequencer->GetPlaybackStatus();
 		Sequencer->SetPlaybackStatus(EMovieScenePlayerStatus::Jumping);
-		Sequencer->SetGlobalTimeDirectly(Thumbnail.GetEvalPosition());
+		Sequencer->SetLocalTimeDirectly(Thumbnail.GetEvalPosition());
+		Sequencer->ForceEvaluate();
 
 		ViewportClient.SetActorLock(Camera);
 		Sequencer->OnCameraCut().Remove(Handle);
@@ -97,7 +98,7 @@ TSharedRef<SWidget> FThumbnailSection::GenerateSectionWidget()
 		.VAlign(VAlign_Top)
 		.Padding(GetContentPadding())
 		[
-			SNew(SInlineEditableTextBlock)
+			SAssignNew(NameWidget, SInlineEditableTextBlock)
 				.ToolTipText(CanRename() ? LOCTEXT("RenameThumbnail", "Click or hit F2 to rename") : FText::GetEmpty())
 				.Text(this, &FThumbnailSection::HandleThumbnailTextBlockText)
 				.ShadowOffset(FVector2D(1,1))
@@ -106,6 +107,15 @@ TSharedRef<SWidget> FThumbnailSection::GenerateSectionWidget()
 		];
 }
 
+void FThumbnailSection::EnterRename()
+{
+	if (NameWidget.IsValid())
+	{
+		NameWidget->SetReadOnly(false);
+		NameWidget->EnterEditingMode();
+		NameWidget->SetReadOnly(!CanRename());
+	}
+}
 
 void FThumbnailSection::BuildSectionContextMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding)
 {
@@ -118,7 +128,7 @@ void FThumbnailSection::BuildSectionContextMenu(FMenuBuilder& MenuBuilder, const
 
 				TSharedPtr<ISequencer> Sequencer = SequencerPtr.Pin();
 
-				FText CurrentTime = FText::FromString(Sequencer->GetZeroPadNumericTypeInterface()->ToString(Sequencer->GetGlobalTime()));
+				FText CurrentTime = FText::FromString(Sequencer->GetZeroPadNumericTypeInterface()->ToString(Sequencer->GetLocalTime()));
 
 				InMenuBuilder.BeginSection(NAME_None, LOCTEXT("ThisSectionText", "This Section"));
 				{
@@ -134,7 +144,7 @@ void FThumbnailSection::BuildSectionContextMenu(FMenuBuilder& MenuBuilder, const
 						FSlateIcon(),
 						FUIAction(
 							FExecuteAction::CreateLambda([=]{
-								SetSingleTime(Sequencer->GetGlobalTime());
+								SetSingleTime(Sequencer->GetLocalTime());
 								GetMutableDefault<UMovieSceneUserThumbnailSettings>()->bDrawSingleThumbnails = true;
 								GetMutableDefault<UMovieSceneUserThumbnailSettings>()->SaveConfig();
 							})

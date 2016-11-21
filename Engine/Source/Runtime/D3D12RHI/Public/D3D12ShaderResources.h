@@ -15,7 +15,7 @@ struct FD3D12ShaderResourceTable : public FBaseShaderResourceTable
 	{
 		const FBaseShaderResourceTable& BaseA = A;
 		const FBaseShaderResourceTable& BaseB = B;
-		return A == B && (FMemory::Memcmp(A.TextureMap.GetData(), B.TextureMap.GetData(), A.TextureMap.GetTypeSize()*A.TextureMap.Num()) == 0);
+		return BaseA == BaseB && (FMemory::Memcmp(A.TextureMap.GetData(), B.TextureMap.GetData(), A.TextureMap.GetTypeSize()*A.TextureMap.Num()) == 0);
 	}
 };
 

@@ -54,8 +54,10 @@ EMaterialValueType UTextureRenderTarget2D::GetMaterialType()
 	return MCT_Texture2D;
 }
 
-SIZE_T UTextureRenderTarget2D::GetResourceSize(EResourceSizeMode::Type Mode)
+void UTextureRenderTarget2D::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
+	Super::GetResourceSizeEx(CumulativeResourceSize);
+
 	// Calculate size based on format.
 	EPixelFormat Format = GetFormat();
 	int32 BlockSizeX	= GPixelFormats[Format].BlockSizeX;
@@ -65,7 +67,7 @@ SIZE_T UTextureRenderTarget2D::GetResourceSize(EResourceSizeMode::Type Mode)
 	int32 NumBlocksY	= (SizeY + BlockSizeY - 1) / BlockSizeY;
 	int32 NumBytes	= NumBlocksX * NumBlocksY * BlockBytes;
 
-	return NumBytes;
+	CumulativeResourceSize.AddUnknownMemoryBytes(NumBytes);
 }
 
 void UTextureRenderTarget2D::InitCustomFormat( uint32 InSizeX, uint32 InSizeY, EPixelFormat InOverrideFormat, bool bInForceLinearGamma )

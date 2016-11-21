@@ -129,9 +129,13 @@ static FString GetHFDDCKeyString(const FName& Format, bool bDefMaterial, const F
 
 ECollisionEnabled::Type ULandscapeHeightfieldCollisionComponent::GetCollisionEnabled() const
 {
-	ALandscapeProxy* Proxy = GetLandscapeProxy();
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		ALandscapeProxy* Proxy = GetLandscapeProxy();
 
-	return Proxy->BodyInstance.GetCollisionEnabled();
+		return Proxy->BodyInstance.GetCollisionEnabled();
+	}
+	return ECollisionEnabled::QueryAndPhysics;
 }
 
 ECollisionResponse ULandscapeHeightfieldCollisionComponent::GetCollisionResponseToChannel(ECollisionChannel Channel) const
@@ -829,7 +833,7 @@ bool ULandscapeMeshCollisionComponent::CookCollisionData(const FName& Format, bo
 	TArray<uint8> OutData;
 	ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
 	const IPhysXFormat* Cooker = TPM->FindPhysXFormat(Format);
-	bool Result = Cooker->CookTriMesh(Format, 0, Vertices, Indices, MaterialIndices, bFlipNormals, OutData);
+	bool Result = Cooker->CookTriMesh(Format, EPhysXMeshCookFlags::Default, Vertices, Indices, MaterialIndices, bFlipNormals, OutData);
 
 	if (Result)
 	{
@@ -1668,34 +1672,38 @@ void ULandscapeInfo::UpdateAllAddCollisions()
 {
 	XYtoAddCollisionMap.Reset();
 
-	for (auto It = XYtoComponentMap.CreateIterator(); It; ++It)
+	// Don't recreate add collisions if the landscape is not registered. This can happen during Undo.
+	if (GetLandscapeProxy())
 	{
-		const ULandscapeComponent* const Component = It.Value();
-		if (ensure(Component))
+		for (auto It = XYtoComponentMap.CreateIterator(); It; ++It)
 		{
-			const FIntPoint ComponentBase = Component->GetSectionBase() / ComponentSizeQuads;
-
-			const FIntPoint NeighborsKeys[8] =
+			const ULandscapeComponent* const Component = It.Value();
+			if (ensure(Component))
 			{
-				ComponentBase + FIntPoint(-1, -1),
-				ComponentBase + FIntPoint(+0, -1),
-				ComponentBase + FIntPoint(+1, -1),
-				ComponentBase + FIntPoint(-1, +0),
-				ComponentBase + FIntPoint(+1, +0),
-				ComponentBase + FIntPoint(-1, +1),
-				ComponentBase + FIntPoint(+0, +1),
-				ComponentBase + FIntPoint(+1, +1)
-			};
+				const FIntPoint ComponentBase = Component->GetSectionBase() / ComponentSizeQuads;
 
-			// Search for Neighbors...
-			for (int32 i = 0; i < 8; ++i)
-			{
-				ULandscapeComponent* NeighborComponent = XYtoComponentMap.FindRef(NeighborsKeys[i]);
-
-				// UpdateAddCollision() treats a null CollisionComponent as an empty hole
-				if (!NeighborComponent || !NeighborComponent->CollisionComponent.IsValid())
+				const FIntPoint NeighborsKeys[8] =
 				{
-					UpdateAddCollision(NeighborsKeys[i]);
+					ComponentBase + FIntPoint(-1, -1),
+					ComponentBase + FIntPoint(+0, -1),
+					ComponentBase + FIntPoint(+1, -1),
+					ComponentBase + FIntPoint(-1, +0),
+					ComponentBase + FIntPoint(+1, +0),
+					ComponentBase + FIntPoint(-1, +1),
+					ComponentBase + FIntPoint(+0, +1),
+					ComponentBase + FIntPoint(+1, +1)
+				};
+
+				// Search for Neighbors...
+				for (int32 i = 0; i < 8; ++i)
+				{
+					ULandscapeComponent* NeighborComponent = XYtoComponentMap.FindRef(NeighborsKeys[i]);
+
+					// UpdateAddCollision() treats a null CollisionComponent as an empty hole
+					if (!NeighborComponent || !NeighborComponent->CollisionComponent.IsValid())
+					{
+						UpdateAddCollision(NeighborsKeys[i]);
+					}
 				}
 			}
 		}

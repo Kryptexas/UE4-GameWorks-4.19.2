@@ -64,10 +64,3 @@ public:
 		}
 	};
 };
-
-
-/** Type definition for shared pointers to instances of FLauncherLogMessage. */
-typedef TSharedPtr<FSessionLogMessage> FSessionLogMessagePtr;
-
-/** Type definition for shared references to instances of FLauncherLogMessage. */
-typedef TSharedRef<FSessionLogMessage> FSessionLogMessageRef;

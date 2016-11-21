@@ -257,43 +257,6 @@ void FEnvTraceData::OnPostLoad()
 	VersionNum = 1;
 }
 
-void FEnvBoolParam_DEPRECATED::Convert(UObject* Owner, FAIDataProviderBoolValue& ValueProvider)
-{
-	ValueProvider.DefaultValue = Value;
-	if (IsNamedParam())
-	{
-		UAIDataProvider_QueryParams* ParamsProvider = NewObject<UAIDataProvider_QueryParams>(Owner);
-		ParamsProvider->ParamName = ParamName;
-		ValueProvider.DataBinding = ParamsProvider;
-		ValueProvider.DataField = GET_MEMBER_NAME_CHECKED(UAIDataProvider_QueryParams, BoolValue);
-	}
-}
-
-void FEnvIntParam_DEPRECATED::Convert(UObject* Owner, FAIDataProviderIntValue& ValueProvider)
-{
-	ValueProvider.DefaultValue = Value;
-	if (IsNamedParam())
-	{
-		UAIDataProvider_QueryParams* ParamsProvider = NewObject<UAIDataProvider_QueryParams>(Owner);
-		ParamsProvider->ParamName = ParamName;
-		ValueProvider.DataBinding = ParamsProvider;
-		ValueProvider.DataField = GET_MEMBER_NAME_CHECKED(UAIDataProvider_QueryParams, IntValue);
-	}
-}
-
-void FEnvFloatParam_DEPRECATED::Convert(UObject* Owner, FAIDataProviderFloatValue& ValueProvider)
-{
-	ValueProvider.DefaultValue = Value;
-	if (IsNamedParam())
-	{
-		UAIDataProvider_QueryParams* ParamsProvider = NewObject<UAIDataProvider_QueryParams>(Owner);
-		ParamsProvider->ParamName = ParamName;
-		ValueProvider.DataBinding = ParamsProvider;
-		ValueProvider.DataField = GET_MEMBER_NAME_CHECKED(UAIDataProvider_QueryParams, FloatValue);
-	}
-}
-
-
 //----------------------------------------------------------------------//
 // namespace FEQSHelpers
 //----------------------------------------------------------------------//

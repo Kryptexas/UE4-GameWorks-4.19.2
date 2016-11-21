@@ -37,7 +37,7 @@ float FAnimNode_BlendSpacePlayer::GetCurrentAssetLength()
 	{
 		if (BlendSpace != nullptr)
 		{
-			FBlendSample& Sample = BlendSpace->SampleData[HighestWeightedSample->SampleDataIndex];
+			const FBlendSample& Sample = BlendSpace->GetBlendSample(HighestWeightedSample->SampleDataIndex);
 			return Sample.Animation->SequenceLength;
 		}
 	}

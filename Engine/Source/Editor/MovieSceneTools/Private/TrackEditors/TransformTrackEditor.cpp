@@ -192,8 +192,7 @@ private:
 	{
 		if (Sequencer != nullptr)
 		{
-			TArray<TWeakObjectPtr<UObject>> RuntimeObjects;
-			Sequencer->GetRuntimeObjects(Sequencer->GetFocusedMovieSceneSequenceInstance(), ObjectBinding, RuntimeObjects);
+			TArrayView<TWeakObjectPtr<UObject>> RuntimeObjects = Sequencer->FindBoundObjects(ObjectBinding, Sequencer->GetFocusedTemplateID());
 			if (RuntimeObjects.Num() == 1)
 			{
 				return MovieSceneHelpers::SceneComponentFromRuntimeObject(RuntimeObjects[0].Get());
@@ -403,8 +402,7 @@ TSharedRef<ISequencerSection> F3DTransformTrackEditor::MakeSectionInterface(UMov
 
 void F3DTransformTrackEditor::OnPreTransformChanged( UObject& InObject )
 {
-	UMovieSceneSequence* MovieSceneSequence = GetMovieSceneSequence();
-	float AutoKeyTime = GetTimeForKey( MovieSceneSequence );
+	float AutoKeyTime = GetTimeForKey();
 
 	if( IsAllowedToAutoKey() )
 	{
@@ -522,10 +520,7 @@ void F3DTransformTrackEditor::BuildObjectBindingEditButtons(TSharedPtr<SHorizont
 {
 	bool bHasCameraComponent = false;
 
-	TArray<TWeakObjectPtr<UObject>> OutObjects;
-	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects);
-
-	for (auto Object : OutObjects)
+	for (auto Object : GetSequencer()->FindObjectsInCurrentSequence(ObjectGuid))
 	{
 		AActor* Actor = Cast<AActor>(Object.Get());
 		if (Actor != nullptr)
@@ -593,10 +588,7 @@ bool F3DTransformTrackEditor::CanAddTransformTrackForActorHandle( FGuid ObjectBi
 EVisibility
 F3DTransformTrackEditor::IsCameraVisible(FGuid ObjectGuid) const
 {
-	TArray<TWeakObjectPtr<UObject>> OutObjects;
-	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects);
-
-	for (auto Object : OutObjects)
+	for (auto Object : GetSequencer()->FindObjectsInCurrentSequence(ObjectGuid))
 	{
 		AActor* Actor = Cast<AActor>(Object.Get());
 		
@@ -611,12 +603,9 @@ F3DTransformTrackEditor::IsCameraVisible(FGuid ObjectGuid) const
 
 ECheckBoxState F3DTransformTrackEditor::IsCameraLocked(FGuid ObjectGuid) const
 {
-	TArray<TWeakObjectPtr<UObject>> OutObjects;
-	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects);
-
 	TWeakObjectPtr<AActor> CameraActor;
 
-	for (auto Object : OutObjects)
+	for (auto Object : GetSequencer()->FindObjectsInCurrentSequence(ObjectGuid))
 	{
 		AActor* Actor = Cast<AActor>(Object.Get());
 		
@@ -670,12 +659,9 @@ ECheckBoxState F3DTransformTrackEditor::IsCameraLocked(FGuid ObjectGuid) const
 
 void F3DTransformTrackEditor::OnLockCameraClicked(ECheckBoxState CheckBoxState, FGuid ObjectGuid)
 {
-	TArray<TWeakObjectPtr<UObject>> OutObjects;
-	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects);
-
 	TWeakObjectPtr<AActor> CameraActor;
 
-	for (auto Object : OutObjects)
+	for (auto Object : GetSequencer()->FindObjectsInCurrentSequence(ObjectGuid))
 	{
 		AActor* Actor = Cast<AActor>(Object.Get());
 
@@ -741,12 +727,9 @@ void F3DTransformTrackEditor::OnLockCameraClicked(ECheckBoxState CheckBoxState, 
 
 FText F3DTransformTrackEditor::GetLockCameraToolTip(FGuid ObjectGuid) const
 {
-	TArray<TWeakObjectPtr<UObject>> OutObjects;
-	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects);
-
 	TWeakObjectPtr<AActor> CameraActor;
 
-	for (auto Object : OutObjects)
+	for (auto Object : GetSequencer()->FindObjectsInCurrentSequence(ObjectGuid))
 	{
 		AActor* Actor = Cast<AActor>(Object.Get());
 
@@ -816,10 +799,7 @@ void F3DTransformTrackEditor::GetTransformKeys( const FTransformData& LastTransf
 
 void F3DTransformTrackEditor::AddTransformKeysForHandle( FGuid ObjectHandle, EKey3DTransformChannel::Type ChannelToKey, ESequencerKeyMode KeyMode )
 {
-	TArray<TWeakObjectPtr<UObject>> OutObjects;
-	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectHandle, OutObjects );
-
-	for ( TWeakObjectPtr<UObject> Object : OutObjects )
+	for ( TWeakObjectPtr<UObject> Object : GetSequencer()->FindObjectsInCurrentSequence(ObjectHandle) )
 	{
 		AddTransformKeysForObject(Object.Get(), ChannelToKey, KeyMode);
 	}
@@ -917,7 +897,7 @@ void F3DTransformTrackEditor::ImportAnimSequenceTransforms(const FAssetData& Ass
 		}
 	}
 
-	if(AnimSequence && AnimSequence->RawAnimationData.Num() > 0)
+	if(AnimSequence && AnimSequence->GetRawAnimationData().Num() > 0)
 	{
 		const FScopedTransaction Transaction( NSLOCTEXT( "Sequencer", "ImportAnimSequenceTransforms", "Import Anim Sequence Transforms" ) );
 
@@ -943,7 +923,7 @@ void F3DTransformTrackEditor::ImportAnimSequenceTransforms(const FAssetData& Ass
 
 			TArray<FTempTransformKey> TempKeys;
 
-			FRawAnimSequenceTrack& RawTrack = AnimSequence->RawAnimationData[0];
+			FRawAnimSequenceTrack& RawTrack = AnimSequence->GetRawAnimationTrack(0);
 			const int32 KeyCount = FMath::Max(FMath::Max(RawTrack.PosKeys.Num(), RawTrack.RotKeys.Num()), RawTrack.ScaleKeys.Num());
 			for(int32 KeyIndex = 0; KeyIndex < KeyCount; KeyIndex++)
 			{

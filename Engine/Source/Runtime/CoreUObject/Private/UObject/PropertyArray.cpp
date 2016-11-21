@@ -8,6 +8,11 @@
 	UArrayProperty.
 -----------------------------------------------------------------------------*/
 
+void UArrayProperty::GetPreloadDependencies(TArray<UObject*>& OutDeps)
+{
+	Super::GetPreloadDependencies(OutDeps);
+	OutDeps.Add(Inner);
+}
 
 void UArrayProperty::LinkInternal(FArchive& Ar)
 {
@@ -488,10 +493,22 @@ void UArrayProperty::InstanceSubobjects( void* Data, void const* DefaultData, UO
 		FScriptArrayHelper ArrayHelper(this, Data);
 		FScriptArrayHelper DefaultArrayHelper(this, DefaultData);
 
+		int32 InnerElementSize = Inner->ElementSize;
+		void* TempElement = FMemory_Alloca(InnerElementSize);
+
 		for( int32 ElementIndex = 0; ElementIndex < ArrayHelper.Num(); ElementIndex++ )
 		{
-			uint8* DefaultValue = (DefaultData && ElementIndex < DefaultArrayHelper.Num()) ? DefaultArrayHelper.GetRawPtr(ElementIndex) : NULL;
-			Inner->InstanceSubobjects( ArrayHelper.GetRawPtr(ElementIndex), DefaultValue, Owner, InstanceGraph );
+			uint8* DefaultValue = (DefaultData && ElementIndex < DefaultArrayHelper.Num()) ? DefaultArrayHelper.GetRawPtr(ElementIndex) : nullptr;
+			FMemory::Memmove(TempElement, ArrayHelper.GetRawPtr(ElementIndex), InnerElementSize);
+			Inner->InstanceSubobjects( TempElement, DefaultValue, Owner, InstanceGraph );
+			if (ElementIndex < ArrayHelper.Num())
+			{
+				FMemory::Memmove(ArrayHelper.GetRawPtr(ElementIndex), TempElement, InnerElementSize);
+			}
+			else
+			{
+				Inner->DestroyValue(TempElement);
+			}
 		}
 	}
 }

@@ -8,7 +8,6 @@ struct FVector2D;
 class FSlateRect;
 enum class EPopupMethod : uint8;
 
-#define SLATE_PRE_MULTIPLY 1
 #define SLATE_USE_32BIT_INDICES !PLATFORM_USES_ES2
 
 #if SLATE_USE_32BIT_INDICES

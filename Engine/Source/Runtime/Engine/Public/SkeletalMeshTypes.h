@@ -1707,7 +1707,10 @@ public:
 	/**
 	 * Get Resource Size
 	 */
+	DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
 	SIZE_T GetResourceSize() const;
+	void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) const;
+	SIZE_T GetResourceSizeBytes() const;
 
 	/** Rebuild index buffer for everything **/
 #if WITH_EDITOR
@@ -1751,7 +1754,17 @@ public:
 	/** 
 	 *	Return the resource size
 	 */
+	DEPRECATED(4.14, "GetResourceSize is deprecated. Please use GetResourceSizeEx or GetResourceSizeBytes instead.")
 	SIZE_T GetResourceSize();
+	void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize);
+	SIZE_T GetResourceSizeBytes();
+
+#if WITH_EDITORONLY_DATA
+	/** UV data used for streaming accuracy debug view modes. In sync for rendering thread */
+	TArray<FMeshUVChannelInfo> UVChannelDataPerMaterial;
+
+	void SyncUVChannelData(const TArray<struct FSkeletalMaterial>& ObjectData);
+#endif
 
 private:
 	/** True if the resource has been initialized. */
@@ -1795,7 +1808,7 @@ public:
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override;
 	virtual bool CanBeOccluded() const override;
 	
-	virtual bool HasDistanceFieldRepresentation() const override;
+	virtual bool HasDynamicIndirectShadowCasterRepresentation() const override;
 	virtual void GetShadowShapes(TArray<FCapsuleShape>& CapsuleShapes) const override;
 
 	/** Returns a pre-sorted list of shadow capsules's bone indicies */
@@ -1839,7 +1852,9 @@ public:
 
 
 #if WITH_EDITORONLY_DATA
-	virtual const FStreamingSectionBuildInfo* GetStreamingSectionData(float& OutComponentExtraScale, float& OutMeshExtraScale, int32 LODIndex, int32 ElementIndex) const override;
+	virtual bool GetPrimitiveDistance(int32 LODIndex, int32 SectionIndex, const FVector& ViewOrigin, float& PrimitiveDistance) const override;
+	virtual bool GetMeshUVDensities(int32 LODIndex, int32 SectionIndex, FVector4& WorldUVDensities) const override;
+	virtual bool GetMaterialTextureScales(int32 LODIndex, int32 SectionIndex, const FMaterialRenderProxy* MaterialRenderProxy, FVector4* OneOverScales, FIntVector4* UVChannelIndices) const override;
 #endif
 
 	friend class FSkeletalMeshSectionIter;
@@ -1908,8 +1923,6 @@ protected:
 #if WITH_EDITORONLY_DATA
 	/** The component streaming distance multiplier */
 	float StreamingDistanceMultiplier;
-	/** The mesh streaming texel factor (fallback) */
-	float StreamingTexelFactor;
 #endif
 
 	void GetDynamicElementsSection(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap,

@@ -719,7 +719,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 *	@param	SaveGameClass	Class of SaveGame to create
 	 *	@return					New SaveGame object to write data to
 	 */
-	UFUNCTION(BlueprintCallable, Category="Game")
+	UFUNCTION(BlueprintCallable, Category="Game", meta=(DeterminesOutputType="SaveGameClass"))
 	static USaveGame* CreateSaveGameObject(TSubclassOf<USaveGame> SaveGameClass);
 
 	/** 
@@ -868,6 +868,14 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, Category="Game", meta=(WorldContext="WorldContextObject"))
 	static void SetWorldOriginLocation(const UObject* WorldContextObject, FIntVector NewLocation);
 
+	/** Returns origin based position for local world location. */
+	UFUNCTION(BlueprintPure, Category = "Game", meta = (WorldContext = "WorldContextObject"))
+	static FVector RebaseLocalOriginOntoZero(UObject* WorldContextObject, FVector WorldLocation);
+
+	/** Returns local location for origin based position. */
+	UFUNCTION(BlueprintPure, Category = "Game", meta = (WorldContext = "WorldContextObject"))
+	static FVector RebaseZeroOriginOntoLocal(UObject* WorldContextObject, FVector WorldLocation);
+
 	/**
 	* Counts how many grass foliage instances overlap a given sphere.
 	*
@@ -913,7 +921,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param Key			(out) Key portion of Pair. If no = in string will be the same as Pair.
 	 * @param Value			(out) Value portion of Pair. If no = in string will be empty.
 	 */
-	UFUNCTION(BlueprintPure, Category="Game Options")
+	UFUNCTION(BlueprintPure, Category="Game Options", meta=(BlueprintThreadSafe))
 	static void GetKeyValue( const FString& Pair, FString& Key, FString& Value );
 
 	/** 
@@ -922,7 +930,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param Key			The key to find the value of in Options.
 	 * @return				The value associated with Key if Key found in Options string.
 	 */
-	UFUNCTION(BlueprintPure, Category="Game Options")
+	UFUNCTION(BlueprintPure, Category="Game Options", meta=(BlueprintThreadSafe))
 	static FString ParseOption( FString Options, const FString& Key );
 
 	/** 
@@ -931,7 +939,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param Key			The key to determine if it exists in Options.
 	 * @return				Whether Key was found in Options.
 	 */
-	UFUNCTION(BlueprintPure, Category="Game Options")
+	UFUNCTION(BlueprintPure, Category="Game Options", meta=(BlueprintThreadSafe))
 	static bool HasOption( FString Options, const FString& InKey );
 
 	/** 
@@ -940,7 +948,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param Key			The key to find the value of in Options.
 	 * @return				The value associated with Key as an integer if Key found in Options string, otherwise DefaultValue.
 	 */
-	UFUNCTION(BlueprintPure, Category="Game Options")
+	UFUNCTION(BlueprintPure, Category="Game Options", meta=(BlueprintThreadSafe))
 	static int32 GetIntOption( const FString& Options, const FString& Key, int32 DefaultValue);
 
 };

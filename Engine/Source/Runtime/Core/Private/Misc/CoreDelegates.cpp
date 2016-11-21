@@ -3,8 +3,6 @@
 // Core includes.
 #include "CorePrivatePCH.h"
 
-const FVector DefaultRefVector(0);
-
 
 //////////////////////////////////////////////////////////////////////////
 // FCoreDelegates
@@ -88,6 +86,7 @@ FCoreDelegates::FVRHeadsetRemovedFromHead FCoreDelegates::VRHeadsetRemovedFromHe
 FCoreDelegates::FOnUserActivityStringChanged FCoreDelegates::UserActivityStringChanged;
 FCoreDelegates::FOnGameSessionIDChange FCoreDelegates::GameSessionIDChanged;
 FCoreDelegates::FOnCrashOverrideParamsChanged FCoreDelegates::CrashOverrideParamsChanged;
+FCoreDelegates::FOnIsVanillaProductChanged FCoreDelegates::IsVanillaProductChanged;
 
 FCoreDelegates::FOnAsyncLoadingFlush FCoreDelegates::OnAsyncLoadingFlush;
 FCoreDelegates::FRenderingThreadChanged FCoreDelegates::PostRenderingThreadCreated;
@@ -100,3 +99,4 @@ FCoreDelegates::FApplicationReceivedOnScreenOrientationChangedNotificationDelega
 FCoreDelegates::FConfigReadyForUse FCoreDelegates::ConfigReadyForUse;
 
 FSimpleMulticastDelegate FCoreDelegates::OnOutOfMemory;
+FCoreDelegates::FGetOnScreenMessagesDelegate FCoreDelegates::OnGetOnScreenMessages;

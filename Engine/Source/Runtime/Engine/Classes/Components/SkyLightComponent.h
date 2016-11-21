@@ -255,6 +255,7 @@ protected:
 	 */
 	static TArray<USkyLightComponent*> SkyCapturesToUpdate;
 	static TArray<USkyLightComponent*> SkyCapturesToUpdateBlendDestinations;
+	static FCriticalSection SkyCapturesToUpdateLock;
 
 	//~ Begin UActorComponent Interface
 	virtual void CreateRenderState_Concurrent() override;

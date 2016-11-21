@@ -16,6 +16,8 @@ UMovieScene3DAttachSection::UMovieScene3DAttachSection( const FObjectInitializer
 	bConstrainRx = true;
 	bConstrainRy = true;
 	bConstrainRz = true;
+
+	EvalOptions.EnableAndSetCompletionMode(EMovieSceneCompletionMode::RestoreState);
 }
 
 

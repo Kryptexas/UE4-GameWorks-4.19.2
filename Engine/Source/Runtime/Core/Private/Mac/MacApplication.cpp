@@ -16,6 +16,9 @@
 #include "ModuleManager.h"
 #include "CocoaTextView.h"
 
+#include <IOKit/IOKitLib.h>
+#include <IOKit/graphics/IOGraphicsLib.h>
+
 FMacApplication* MacApplication = nullptr;
 
 static FCriticalSection GAllScreensMutex;
@@ -1369,6 +1372,22 @@ void FMacApplication::UpdateScreensArray()
 			}
 		}
 	}
+
+	// The primary screen needs to be at (0,0), so we need to offset all screen origins by its position
+	TSharedRef<FMacScreen> PrimaryScreen = AllScreens[0];
+	const FVector2D FrameOffset(PrimaryScreen->Frame.origin.x, PrimaryScreen->Frame.origin.y);
+	const FVector2D FramePixelsOffset(PrimaryScreen->FramePixels.origin.x, PrimaryScreen->FramePixels.origin.y);
+	for (TSharedRef<FMacScreen> CurScreen : AllScreens)
+	{
+		CurScreen->Frame.origin.x -= FrameOffset.X;
+		CurScreen->Frame.origin.y -= FrameOffset.Y;
+		CurScreen->VisibleFrame.origin.x -= FrameOffset.X;
+		CurScreen->VisibleFrame.origin.y -= FrameOffset.Y;
+		CurScreen->FramePixels.origin.x -= FramePixelsOffset.X;
+		CurScreen->FramePixels.origin.y -= FramePixelsOffset.Y;
+		CurScreen->VisibleFramePixels.origin.x -= FramePixelsOffset.X;
+		CurScreen->VisibleFramePixels.origin.y -= FramePixelsOffset.Y;
+	}
 }
 
 FVector2D FMacApplication::CalculateScreenOrigin(NSScreen* Screen)
@@ -1435,14 +1454,14 @@ TSharedRef<FMacScreen> FMacApplication::FindScreenByCocoaPosition(float X, float
 FVector2D FMacApplication::ConvertSlatePositionToCocoa(float X, float Y)
 {
 	TSharedRef<FMacScreen> Screen = FindScreenBySlatePosition(X, Y);
-	const FVector2D OffsetOnScreen = FVector2D(X - Screen->FramePixels.origin.x, Screen->FramePixels.size.height - Y - Screen->FramePixels.origin.y) / Screen->Screen.backingScaleFactor;
+	const FVector2D OffsetOnScreen = FVector2D(X - Screen->FramePixels.origin.x, Screen->FramePixels.origin.y + Screen->FramePixels.size.height - Y) / Screen->Screen.backingScaleFactor;
 	return FVector2D(Screen->Screen.frame.origin.x + OffsetOnScreen.X, Screen->Screen.frame.origin.y + OffsetOnScreen.Y);
 }
 
 FVector2D FMacApplication::ConvertCocoaPositionToSlate(float X, float Y)
 {
 	TSharedRef<FMacScreen> Screen = FindScreenByCocoaPosition(X, Y);
-	const FVector2D OffsetOnScreen = FVector2D(X - Screen->Screen.frame.origin.x, Screen->Screen.frame.size.height - Y - Screen->Screen.frame.origin.y) * Screen->Screen.backingScaleFactor;
+	const FVector2D OffsetOnScreen = FVector2D(X - Screen->Screen.frame.origin.x, Screen->Screen.frame.origin.y + Screen->Screen.frame.size.height - Y) * Screen->Screen.backingScaleFactor;
 	return FVector2D(Screen->FramePixels.origin.x + OffsetOnScreen.X, Screen->FramePixels.origin.y + OffsetOnScreen.Y);
 }
 
@@ -1649,24 +1668,76 @@ void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 	const TArray<TSharedRef<FMacScreen>>& AllScreens = FMacApplication::GetAllScreens();
 	TSharedRef<FMacScreen> PrimaryScreen = AllScreens[0];
 
-	NSRect ScreenFrame = PrimaryScreen->FramePixels;
-	NSRect VisibleFrame = PrimaryScreen->VisibleFramePixels;
+	const NSRect ScreenFrame = PrimaryScreen->FramePixels;
+	const NSRect VisibleFrame = PrimaryScreen->VisibleFramePixels;
 
 	// Total screen size of the primary monitor
 	OutDisplayMetrics.PrimaryDisplayWidth = ScreenFrame.size.width;
 	OutDisplayMetrics.PrimaryDisplayHeight = ScreenFrame.size.height;
 
-	// Virtual desktop area
+	OutDisplayMetrics.MonitorInfo.Empty();
+
 	NSRect WholeWorkspace = {{0,0},{0,0}};
 	for (TSharedRef<FMacScreen> Screen : AllScreens)
 	{
 		WholeWorkspace = NSUnionRect(WholeWorkspace, Screen->FramePixels);
+
+		NSDictionary* ScreenDesc = Screen->Screen.deviceDescription;
+		const CGDirectDisplayID DisplayID = [[ScreenDesc objectForKey:@"NSScreenNumber"] unsignedIntegerValue];
+
+		FMonitorInfo Info;
+		Info.ID = FString::Printf(TEXT("%u"), DisplayID);
+		Info.NativeWidth = CGDisplayPixelsWide(DisplayID);
+		Info.NativeHeight = CGDisplayPixelsHigh(DisplayID);
+		Info.DisplayRect = FPlatformRect(Screen->FramePixels.origin.x, Screen->FramePixels.origin.y, Screen->FramePixels.origin.x + Screen->FramePixels.size.width, Screen->FramePixels.origin.y + Screen->FramePixels.size.height);
+		Info.WorkArea = FPlatformRect(Screen->VisibleFramePixels.origin.x, Screen->VisibleFramePixels.origin.y, Screen->VisibleFramePixels.origin.x + Screen->VisibleFramePixels.size.width, Screen->VisibleFramePixels.origin.y + Screen->VisibleFramePixels.size.height);
+		Info.bIsPrimary = Screen->Screen == [NSScreen mainScreen];
+
+		// Monitor's name can only be obtained from IOKit
+		io_iterator_t IOIterator;
+		kern_return_t Result = IOServiceGetMatchingServices(kIOMasterPortDefault, IOServiceMatching("IODisplayConnect"), &IOIterator);
+		if (Result == kIOReturnSuccess)
+		{
+			io_object_t Device;
+			while ((Device = IOIteratorNext(IOIterator)))
+			{
+				CFDictionaryRef Dictionary = IODisplayCreateInfoDictionary(Device, kIODisplayOnlyPreferredName);
+				if (Dictionary)
+				{
+					const uint32 VendorID = [(__bridge NSNumber*)CFDictionaryGetValue(Dictionary, CFSTR(kDisplayVendorID)) unsignedIntegerValue];
+					const uint32 ProductID = [(__bridge NSNumber*)CFDictionaryGetValue(Dictionary, CFSTR(kDisplayProductID)) unsignedIntegerValue];
+					const uint32 SerialNumber = [(__bridge NSNumber*)CFDictionaryGetValue(Dictionary, CFSTR(kDisplaySerialNumber)) unsignedIntegerValue];
+
+					if (VendorID == CGDisplayVendorNumber(DisplayID) && ProductID == CGDisplayModelNumber(DisplayID) && SerialNumber == CGDisplaySerialNumber(DisplayID))
+					{
+						NSDictionary* NamesDictionary = (__bridge NSDictionary*)CFDictionaryGetValue(Dictionary, CFSTR(kDisplayProductName));
+						if (NamesDictionary && NamesDictionary.count > 0)
+						{
+							Info.Name = (NSString*)[NamesDictionary objectForKey:[NamesDictionary.allKeys objectAtIndex:0]];
+							CFRelease(Dictionary);
+							IOObjectRelease(Device);
+							break;
+						}
+					}
+
+					CFRelease(Dictionary);
+				}
+
+				IOObjectRelease(Device);
+			}
+
+			IOObjectRelease(IOIterator);
+		}
+
+		OutDisplayMetrics.MonitorInfo.Add(Info);
 	}
+
+	// Virtual desktop area
 	OutDisplayMetrics.VirtualDisplayRect.Left = WholeWorkspace.origin.x;
 	OutDisplayMetrics.VirtualDisplayRect.Top = FMath::Min(WholeWorkspace.origin.y, 0.0);
 	OutDisplayMetrics.VirtualDisplayRect.Right = WholeWorkspace.origin.x + WholeWorkspace.size.width;
 	OutDisplayMetrics.VirtualDisplayRect.Bottom = WholeWorkspace.size.height + OutDisplayMetrics.VirtualDisplayRect.Top;
-	
+
 	// Get the screen rect of the primary monitor, excluding taskbar etc.
 	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Left = VisibleFrame.origin.x;
 	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top = VisibleFrame.origin.y;

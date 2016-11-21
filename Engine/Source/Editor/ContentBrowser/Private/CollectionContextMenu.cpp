@@ -411,6 +411,12 @@ void FCollectionContextMenu::ExecuteNewCollection(ECollectionShareType::Type Col
 		return;
 	}
 
+	if (!GetDefault<UContentBrowserSettings>()->GetDisplayCollections())
+	{
+		GetMutableDefault<UContentBrowserSettings>()->SetDisplayCollections(true);
+		GetMutableDefault<UContentBrowserSettings>()->PostEditChange();
+	}
+
 	CollectionView.Pin()->CreateCollectionItem(CollectionType, StorageMode, InCreationPayload);
 }
 
@@ -436,6 +442,12 @@ void FCollectionContextMenu::ExecuteSetCollectionShareType(ECollectionShareType:
 void FCollectionContextMenu::ExecuteSaveDynamicCollection(FCollectionNameType InCollection, FText InSearchQuery)
 {
 	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
+
+	if (!GetDefault<UContentBrowserSettings>()->GetDisplayCollections())
+	{
+		GetMutableDefault<UContentBrowserSettings>()->SetDisplayCollections(true);
+		GetMutableDefault<UContentBrowserSettings>()->PostEditChange();
+	}
 
 	CollectionManagerModule.Get().SetDynamicQueryText(InCollection.Name, InCollection.Type, InSearchQuery.ToString());
 }

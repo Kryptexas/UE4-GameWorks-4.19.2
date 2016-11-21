@@ -102,7 +102,6 @@ namespace Audio
 
 				// Initialize some data that depends on speaker configuration, etc.
 				InitializeChannelAzimuthMap(PlatformInfo.NumChannels);
-				Initialize2DChannelMaps();
 
 				SourceManager.Init(MaxChannels);
 
@@ -125,6 +124,9 @@ namespace Audio
 	{
 		if (AudioMixerPlatform)
 		{
+			AudioMixerPlatform->StopAudioStream();
+			AudioMixerPlatform->CloseAudioStream();
+
 			AudioMixerPlatform->TeardownHardware();
 
 			delete MasterSubmix;

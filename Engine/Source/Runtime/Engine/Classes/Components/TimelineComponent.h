@@ -260,7 +260,8 @@ public:
 	, bPlaying( false )
 	, PlayRate( 1.f )
 	, Position( 0.0f )	
-	, PropertySetObject(NULL)
+	, PropertySetObject(nullptr)
+	, DirectionProperty(nullptr)
 	{
 	}
 

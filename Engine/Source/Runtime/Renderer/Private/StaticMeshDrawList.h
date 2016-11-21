@@ -350,6 +350,13 @@ public:
 		return DrawVisibleInner<InstancedStereoPolicy::Enabled>(RHICmdList, *StereoView.LeftView, typename DrawingPolicyType::ContextDataType(true), nullptr, nullptr, &StereoView, 0, OrderedDrawingPolicies.Num() - 1, false);
 	}
 
+	inline bool DrawVisibleInstancedStereo(
+		FRHICommandList& RHICmdList,
+		const StereoPair& StereoView,
+		const TUniformBufferRef<FViewUniformShaderParameters>& ViewUniformBuffer)
+	{
+		return DrawVisibleInner<InstancedStereoPolicy::Enabled>(RHICmdList, *StereoView.LeftView, typename DrawingPolicyType::ContextDataType(ViewUniformBuffer, true), nullptr, nullptr, &StereoView, 0, OrderedDrawingPolicies.Num() - 1, false);
+	}
 	/**
 	* Draws only the static meshes which are in the visibility map of the stereo pair
 	* Stereo instancing is not enabled, the driver handles this for mobile multi-view
@@ -408,6 +415,10 @@ public:
 		DrawVisibleParallelInternal(typename DrawingPolicyType::ContextDataType(true), nullptr, nullptr, &StereoView, ParallelCommandListSet);
 	}
 
+	inline void DrawVisibleParallelInstancedStereo(const StereoPair& StereoView, const TUniformBufferRef<FViewUniformShaderParameters>& ViewUniformBuffer, FParallelCommandListSet& ParallelCommandListSet)
+	{
+		DrawVisibleParallelInternal(typename DrawingPolicyType::ContextDataType(ViewUniformBuffer, true), nullptr, nullptr, &StereoView, ParallelCommandListSet);
+	}
 	/**
 	* Draws only the static meshes which are in the visibility map, sorted front-to-back.
 	* Both StaticMeshVisibilityMap and BatchVisibilityArray should be non-null for regular rendering or StereoView should be non-null if rendering with mobile multi-view

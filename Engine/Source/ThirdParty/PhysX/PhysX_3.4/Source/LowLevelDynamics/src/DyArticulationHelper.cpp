@@ -408,7 +408,7 @@ namespace
 		PX_UNUSED(aux);
 		PX_ASSERT(rows[linkID].pathToRoot&1);
 
-		lZ = V3Neg(lZ),
+		lZ = V3Neg(lZ);
 		aZ = V3Neg(aZ);
 
 		for(PxU32 i = linkID; i; i = matrix.parent[i])

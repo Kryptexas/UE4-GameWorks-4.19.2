@@ -5,6 +5,7 @@
 	<Property Name="ConfidentialExceptions" Value=".../EpicInternal/...;.../CarefullyRedist/...;.../NotForLicensees/...;.../NoRedist/..."/>
 	<Property Name="ConfidentialExceptions" Value="$(ConfidentialExceptions);.../PS4/..." If="'$(WithPS4)' != true"/>
 	<Property Name="ConfidentialExceptions" Value="$(ConfidentialExceptions);.../XboxOne/..." If="'$(WithXboxOne)' != true"/>
+	<Property Name="ConfidentialExceptions" Value="$(ConfidentialExceptions);.../Switch/..." If="'$(WithSwitch)' != true"/>
 
 	<!-- List of file types to be stripped and signed for different platforms -->
 	<Property Name="Win64StripFilter" Value="*.pdb"/>
@@ -80,8 +81,15 @@
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Source/Editor/..."/>
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Source/ThirdParty/.../*.Build.cs"/>
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Source/ThirdParty/Licenses/..."/>
+	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Source/Programs/AutomationTool/..."/>
+	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Source/Programs/AutomationToolLauncher/..."/>
+	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Source/DotNETCommon/..."/>
+	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Source/Programs/UnrealBuildTool/..."/>
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Source/Programs/UnrealHeaderTool/..."/>
 	<Property Name="CopyEditorExceptions" Value="$(CopyEditorExceptions);Engine/Source/Runtime/SQLiteSupport/..."/>
+
+	<!-- Third Party Software description files -->
+	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/.../*.tps"/>
 
 	<!-- Shaders -->
 	<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Shaders/..."/>
@@ -249,6 +257,11 @@
 	<!-- Mac Specific -->
 	<Do If="'$(HostPlatform)' == 'Mac'">
 		<Property Name="CopyAndroidFilter" Value="$(CopyAndroidFilter);Engine/Extras/AndroidWorks/Mac/*.dmg"/>
+	</Do>
+
+	<!-- Linux Specific -->
+	<Do If="'$(HostPlatform)' == 'Linux'">
+		<Property Name="CopyAndroidFilter" Value="$(CopyAndroidFilter);Engine/Extras/AndroidWorks/Linux/*.run"/>
 	</Do>
 
 	<!-- IOS -->

@@ -29,8 +29,14 @@ public:
 	/** The archive that actually writes the data to disk. */
 	FArchive* Saver;
 
+	FPackageIndex CurrentlySavingExport;
+	TArray<FPackageIndex> DepListForErrorChecking;
+
 	/** Index array - location of the resource for a UObject is stored in the ObjectIndices array using the UObject's Index */
 	TMap<UObject *,FPackageIndex> ObjectIndicesMap;
+
+	/** List of Searchable Names, by object containing them. This gets turned into package indices later */
+	TMap<const UObject *, TArray<FName> > SearchableNamesObjectMap;
 
 	/** Index array - location of the name in the NameMap array for each FName is stored in the NameIndices array using the FName's Index */
 	TMap<FName, int32, FDefaultSetAllocator, TLinkerNameMapKeyFuncs<int32>> NameIndices;

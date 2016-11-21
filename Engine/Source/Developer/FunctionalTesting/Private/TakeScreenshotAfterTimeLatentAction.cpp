@@ -3,23 +3,24 @@
 #include "AutomationBlueprintFunctionLibrary.h"
 #include "TakeScreenshotAfterTimeLatentAction.h"
 
-FTakeScreenshotAfterTimeLatentAction::FTakeScreenshotAfterTimeLatentAction(const FLatentActionInfo& LatentInfo, const FString& InScreenshotName, FIntPoint Resolution, float Seconds)
+FTakeScreenshotAfterTimeLatentAction::FTakeScreenshotAfterTimeLatentAction(const FLatentActionInfo& LatentInfo, const FString& InScreenshotName, FAutomationScreenshotOptions InOptions)
 	: ExecutionFunction(LatentInfo.ExecutionFunction)
 	, OutputLink(LatentInfo.Linkage)
 	, CallbackTarget(LatentInfo.CallbackTarget)
 	, ScreenshotName(InScreenshotName)
-	, SecondsRemaining(Seconds)
+	, SecondsRemaining(InOptions.Delay)
 	, IssuedScreenshotCapture(false)
 	, TakenScreenshot(false)
-	, DesiredResolution(Resolution)
+	, Options(InOptions)
 {
 }
 
 FTakeScreenshotAfterTimeLatentAction::~FTakeScreenshotAfterTimeLatentAction()
 {
+	FAutomationTestFramework::Get().OnScreenshotTakenAndCompared.RemoveAll(this);
 }
 
-void FTakeScreenshotAfterTimeLatentAction::OnScreenshotTaken(int32 InSizeX, int32 InSizeY, const TArray<FColor>& InImageData)
+void FTakeScreenshotAfterTimeLatentAction::OnScreenshotTakenAndCompared()
 {
 	TakenScreenshot = true;
 }
@@ -33,9 +34,9 @@ void FTakeScreenshotAfterTimeLatentAction::UpdateOperation(FLatentResponse& Resp
 			SecondsRemaining -= Response.ElapsedTime();
 			if ( SecondsRemaining <= 0.0f )
 			{
-				DelegateHandle = GEngine->GameViewport->OnScreenshotCaptured().AddRaw(this, &FTakeScreenshotAfterTimeLatentAction::OnScreenshotTaken);
+				FAutomationTestFramework::Get().OnScreenshotTakenAndCompared.AddRaw(this, &FTakeScreenshotAfterTimeLatentAction::OnScreenshotTakenAndCompared);
 
-				if ( UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(ScreenshotName, DesiredResolution) )
+				if ( UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(ScreenshotName, Options) )
 				{
 					IssuedScreenshotCapture = true;
 				}
@@ -49,6 +50,7 @@ void FTakeScreenshotAfterTimeLatentAction::UpdateOperation(FLatentResponse& Resp
 	}
 	else
 	{
+		FAutomationTestFramework::Get().OnScreenshotTakenAndCompared.RemoveAll(this);
 		Response.FinishAndTriggerIf(true, ExecutionFunction, OutputLink, CallbackTarget);
 	}
 }
@@ -57,5 +59,45 @@ void FTakeScreenshotAfterTimeLatentAction::UpdateOperation(FLatentResponse& Resp
 FString FTakeScreenshotAfterTimeLatentAction::GetDescription() const
 {
 	return FString::Printf(TEXT("Take screenshot named %s after %f seconds"), *ScreenshotName, SecondsRemaining);
+}
+#endif
+
+
+
+
+
+
+FWaitForScreenshotComparisonLatentAction::FWaitForScreenshotComparisonLatentAction(const FLatentActionInfo& LatentInfo)
+	: ExecutionFunction(LatentInfo.ExecutionFunction)
+	, OutputLink(LatentInfo.Linkage)
+	, CallbackTarget(LatentInfo.CallbackTarget)
+	, TakenScreenshot(false)
+{
+	FAutomationTestFramework::Get().OnScreenshotTakenAndCompared.AddRaw(this, &FWaitForScreenshotComparisonLatentAction::OnScreenshotTakenAndCompared);
+}
+
+FWaitForScreenshotComparisonLatentAction::~FWaitForScreenshotComparisonLatentAction()
+{
+	FAutomationTestFramework::Get().OnScreenshotTakenAndCompared.RemoveAll(this);
+}
+
+void FWaitForScreenshotComparisonLatentAction::OnScreenshotTakenAndCompared()
+{
+	TakenScreenshot = true;
+}
+
+void FWaitForScreenshotComparisonLatentAction::UpdateOperation(FLatentResponse& Response)
+{
+	if ( TakenScreenshot )
+	{
+		FAutomationTestFramework::Get().OnScreenshotTakenAndCompared.RemoveAll(this);
+		Response.FinishAndTriggerIf(true, ExecutionFunction, OutputLink, CallbackTarget);
+	}
+}
+
+#if WITH_EDITOR
+FString FWaitForScreenshotComparisonLatentAction::GetDescription() const
+{
+	return FString(TEXT(""));
 }
 #endif

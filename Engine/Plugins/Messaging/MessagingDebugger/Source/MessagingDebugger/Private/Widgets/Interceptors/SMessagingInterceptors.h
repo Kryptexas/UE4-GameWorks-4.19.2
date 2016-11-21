@@ -3,6 +3,11 @@
 #pragma once
 
 
+class FMessagingDebuggerModel;
+struct FMessageTracerInterceptorInfo;
+class IMessageTracer;
+
+
 /**
  * Implements the message interceptors panel.
  */
@@ -24,7 +29,11 @@ public:
 	 * @param InStyle The visual style to use for this widget.
 	 * @param InTracer The message tracer.
 	 */
-	void Construct(const FArguments& InArgs, const FMessagingDebuggerModelRef& InModel, const TSharedRef<ISlateStyle>& InStyle, const IMessageTracerRef& InTracer);
+	void Construct(
+		const FArguments& InArgs,
+		const TSharedRef<FMessagingDebuggerModel>& InModel,
+		const TSharedRef<ISlateStyle>& InStyle,
+		const TSharedRef<IMessageTracer, ESPMode::ThreadSafe>& InTracer);
 
 protected:
 
@@ -34,22 +43,22 @@ protected:
 private:
 
 	/** Handles generating a row widget for the interceptor list view. */
-	TSharedRef<ITableRow> HandleInterceptorListGenerateRow(FMessageTracerInterceptorInfoPtr InterceptorInfo, const TSharedRef<STableViewBase>& OwnerTable);
+	TSharedRef<ITableRow> HandleInterceptorListGenerateRow(TSharedPtr<FMessageTracerInterceptorInfo> InterceptorInfo, const TSharedRef<STableViewBase>& OwnerTable);
 
 private:
 
 	/** Holds the filtered list of interceptors. */
-	TArray<FMessageTracerInterceptorInfoPtr> InterceptorList;
+	TArray<TSharedPtr<FMessageTracerInterceptorInfo>> InterceptorList;
 
 	/** Holds the interceptor list view. */
-	TSharedPtr<SListView<FMessageTracerInterceptorInfoPtr>> InterceptorListView;
+	TSharedPtr<SListView<TSharedPtr<FMessageTracerInterceptorInfo>>> InterceptorListView;
 
 	/** Holds a pointer to the view model. */
-	FMessagingDebuggerModelPtr Model;
+	TSharedPtr<FMessagingDebuggerModel> Model;
 
 	/** Holds the widget's visual style. */
 	TSharedPtr<ISlateStyle> Style;
 
 	/** Holds a pointer to the message bus tracer. */
-	IMessageTracerPtr Tracer;
+	TSharedPtr<IMessageTracer, ESPMode::ThreadSafe> Tracer;
 };

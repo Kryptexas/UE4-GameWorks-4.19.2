@@ -67,7 +67,7 @@ struct FMetalRenderPipelineDesc
 	 */
 	id<MTLRenderPipelineState> CreatePipelineStateForBoundShaderState(FMetalBoundShaderState* BSS, FMetalHashedVertexDescriptor const& VertexDesc, MTLRenderPipelineReflection** Reflection = nil) const;
 
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 	/**
 	 * @return a reflection object that matches the current state and the BSS
 	 */
@@ -99,7 +99,7 @@ struct FMetalRenderPipelineDesc
 	static TMap<FMetalRenderPipelineKey, id<MTLRenderPipelineState>> MetalPipelineCache;
 	static uint32 BlendBitOffsets[6];
 	static uint32 RTBitOffsets[6];
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 	static TMap<FMetalRenderPipelineKey, MTLRenderPipelineReflection*> MetalReflectionCache;
 #endif
 };

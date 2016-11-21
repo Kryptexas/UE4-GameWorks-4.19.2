@@ -113,7 +113,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 							}
 							catch (Exception Ex)
 							{
-								CrashReporterProcessServicer.WriteException("CheckForNewReportsInner: " + Ex.ToString());
+								CrashReporterProcessServicer.WriteException("CheckForNewReportsInner: " + Ex, Ex);
 								ReportProcessor.MoveReportToInvalid(NewReportPath, "NEWRECORD_FAIL_" + DateTime.Now.Ticks);
 							}
 						}
@@ -133,7 +133,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 			}
 			catch (Exception Ex)
 			{
-				CrashReporterProcessServicer.WriteException("CheckForNewReportsOuter: " + Ex.ToString());
+				CrashReporterProcessServicer.WriteException("CheckForNewReportsOuter: " + Ex, Ex);
 			}
 
 			return GetTotalWaitingCount();
@@ -167,7 +167,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 					try
 					{
 						string ReportName = Path.GetFileName(NewCrashContexts.Peek().CrashDirectory);
-						ReportIndex.TryRemoveReport(ReportName);
+						CrashReporterProcessServicer.ReportIndex.TryRemoveReport(ReportName);
 					}
 					finally
 					{
@@ -495,9 +495,10 @@ namespace Tools.CrashReporter.CrashReportProcess
 			// This WILL happen when running multiple, non-mutually exclusive crash sources (e.g. Receiver + Data Router)
 			// This can be safely discontinued when all crashes come from the same SQS
 			// This DOES NOT scale to multiple CRP instances
+			// ReportIndex can be disabled by leaving the path empty in config
 			lock (ReportIndexLock)
 			{
-				if (!ReportIndex.TryAddNewReport(ReportName))
+				if (!CrashReporterProcessServicer.ReportIndex.TryAddNewReport(ReportName))
 				{
 					// Crash report not accepted by index
 					CrashReporterProcessServicer.WriteEvent(string.Format(

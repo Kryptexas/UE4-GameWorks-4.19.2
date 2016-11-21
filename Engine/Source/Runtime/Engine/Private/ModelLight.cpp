@@ -12,6 +12,7 @@
 #include "LightMap.h"
 #include "ShadowMap.h"
 #include "ComponentReregisterContext.h"
+#include "ComponentRecreateRenderStateContext.h"
 #include "Components/ModelComponent.h"
 
 //
@@ -150,7 +151,7 @@ FLightRayIntersection FBSPSurfaceStaticLighting::IntersectLightRay(const FVector
 }
 
 #if WITH_EDITOR
-void FBSPSurfaceStaticLighting::Apply(FQuantizedLightmapData* InQuantizedData, const TMap<ULightComponent*,FShadowMapData2D*>& InShadowMapData)
+void FBSPSurfaceStaticLighting::Apply(FQuantizedLightmapData* InQuantizedData, const TMap<ULightComponent*,FShadowMapData2D*>& InShadowMapData, ULevel* LightingScenario)
 {
 	if(!bComplete)
 	{
@@ -166,7 +167,7 @@ void FBSPSurfaceStaticLighting::Apply(FQuantizedLightmapData* InQuantizedData, c
 	// If all the surfaces have complete static lighting, apply the component's static lighting.
 	if(Model->NumIncompleteNodeGroups == 0)
 	{
-		Model->ApplyStaticLighting();
+		Model->ApplyStaticLighting(LightingScenario);
 	}
 }
 
@@ -360,27 +361,23 @@ public:
 
 void UModelComponent::InvalidateLightingCacheDetailed(bool bInvalidateBuildEnqueuedLighting, bool bTranslationOnly)
 {
-	if(bHasCachedStaticLighting)
+	// Save the model state for transactions.
+	Modify();
+
+	FComponentReregisterContext ReregisterContext(this);
+
+	Super::InvalidateLightingCacheDetailed(bInvalidateBuildEnqueuedLighting, bTranslationOnly);
+
+	for (int32 ElementIndex = 0; ElementIndex < Elements.Num(); ElementIndex++)
 	{
-		// Save the model state for transactions.
-		Modify();
-
-		FComponentReregisterContext ReregisterContext(this);
-
-		// Block until the RT processes the unregister before modifying variables that it may need to access
-		FlushRenderingCommands();
-
-		Super::InvalidateLightingCacheDetailed(bInvalidateBuildEnqueuedLighting, bTranslationOnly);
-
-		// Clear all statically cached shadowing data.
-		for(int32 ElementIndex = 0;ElementIndex < Elements.Num();ElementIndex++)
-		{
-			FModelElement& Element = Elements[ElementIndex];
-			Element.IrrelevantLights.Empty();
-			Element.LightMap = NULL;
-			Element.ShadowMap = NULL;
-		}
+		FModelElement& Element = Elements[ElementIndex];
+		Element.MapBuildDataId = FGuid::NewGuid();
 	}
+}
+
+void UModelComponent::PropagateLightingScenarioChange()
+{
+	FComponentRecreateRenderStateContext Context(this);
 }
 
 void UModelComponent::GetSurfaceLightMapResolution( int32 SurfaceIndex, int32 QualityScale, int32& Width, int32& Height, FMatrix& WorldToMap, TArray<int32>* GatheredNodes ) const
@@ -700,7 +697,7 @@ void FPlaneMap::AddPlane(const FPlane& Plane, int32 Index)
  * @param Level The level for this model
  * @param Lights The possible lights that will be cached in the NodeGroups
  */
-void UModel::GroupAllNodes(const ULevel* Level, const TArray<ULightComponentBase*>& Lights)
+void UModel::GroupAllNodes(ULevel* Level, const TArray<ULightComponentBase*>& Lights)
 {
 #if WITH_EDITOR
 	FScopedSlowTask SlowTask(10);
@@ -976,7 +973,7 @@ void UModel::GroupAllNodes(const ULevel* Level, const TArray<ULightComponentBase
 /**
  * Applies all of the finished lighting cached in the NodeGroups 
  */
-void UModel::ApplyStaticLighting()
+void UModel::ApplyStaticLighting(ULevel* LightingScenario)
 {
 #if WITH_EDITOR
 	check(CachedMappings[0]->QuantizedData);
@@ -1195,9 +1192,13 @@ void UModel::ApplyStaticLighting()
 		// the number of shader permutations to support in the very unlikely case of a unshadowed surfaces that has lighting values of zero.
 		const bool bHasRelevantLights = SurfaceGroup.Surfaces.ContainsByPredicate([](const FSurfaceStaticLightingGroup::FSurfaceInfo& SurfaceInfo) { return SurfaceInfo.SurfaceStaticLighting->RelevantLights.Num() > 0; });
 		const bool bNeedsLightMap = bHasNonZeroData || SurfaceGroup.ShadowMappedLights.Num() > 0 || bHasRelevantLights || GroupQuantizedData->bHasSkyShadowing;
+
+		ULevel* StorageLevel = LightingScenario ? LightingScenario : LightingLevel;
+		UMapBuildDataRegistry* Registry = StorageLevel->GetOrCreateMapBuildData();
+
 		if (bNeedsLightMap)
 		{
-			LightMap = FLightMap2D::AllocateLightMap(this, GroupQuantizedData, GroupLightmapBounds, PaddingType, LMF_None);
+			LightMap = FLightMap2D::AllocateLightMap(Registry, GroupQuantizedData, GroupLightmapBounds, PaddingType, LMF_None);
 		}
 
 		// Allocate merged shadow-map data.
@@ -1252,7 +1253,7 @@ void UModel::ApplyStaticLighting()
 		
 		if(GroupShadowMapData.Num())
 		{
-			ShadowMap = FShadowMap2D::AllocateShadowMap( this, GroupShadowMapData, GroupLightmapBounds, PaddingType, SMF_None );
+			ShadowMap = FShadowMap2D::AllocateShadowMap( Registry, GroupShadowMapData, GroupLightmapBounds, PaddingType, SMF_None );
 		}
 
 		// Apply the surface's static lighting mapping to its vertices.
@@ -1313,10 +1314,10 @@ void UModel::ApplyStaticLighting()
 
 			// Create an element for the surface group.
 			FModelElement* Element = UModelComponent::CreateNewTempElement(Component);
-			
-			// Create the element's light-map and shadow-map.
-			Element->LightMap = LightMap;
-			Element->ShadowMap = ShadowMap;
+
+			FMeshMapBuildData& MeshBuildData = Registry->AllocateMeshBuildData(Element->MapBuildDataId, true);
+			MeshBuildData.LightMap = LightMap;
+			MeshBuildData.ShadowMap = ShadowMap;
 
  			TSet<FGuid> TempIrrelevantLights;
 			for(int32 SurfaceIndex = 0;SurfaceIndex < SurfaceGroup.Surfaces.Num();SurfaceIndex++)
@@ -1330,8 +1331,8 @@ void UModel::ApplyStaticLighting()
 					ULightComponent* Light = SurfaceStaticLighting->NodeGroup->RelevantLights[LightIndex];
 
 					// Check if the light is stored in the light-map or shadow-map.
-					const bool bIsInLightMap = Element->LightMap && Element->LightMap->ContainsLight(Light->LightGuid);
-					const bool bIsInShadowMap = Element->ShadowMap && Element->ShadowMap->ContainsLight(Light->LightGuid);
+					const bool bIsInLightMap = MeshBuildData.LightMap && MeshBuildData.LightMap->ContainsLight(Light->LightGuid);
+					const bool bIsInShadowMap = MeshBuildData.ShadowMap && MeshBuildData.ShadowMap->ContainsLight(Light->LightGuid);
 					if (!bIsInLightMap && !bIsInShadowMap)
 					{
 						// Add the light to the statically irrelevant light list if it is in the potentially relevant light list, but didn't contribute to the light-map or a shadow-map.
@@ -1354,10 +1355,8 @@ void UModel::ApplyStaticLighting()
 			// Move the data from the set into the array
  			for(TSet<FGuid>::TIterator It(TempIrrelevantLights); It; ++It)
  			{
- 				Element->IrrelevantLights.Add(*It);
+ 				MeshBuildData.IrrelevantLights.Add(*It);
  			}
-
-			Component->bHasCachedStaticLighting = true;
 		}
 	}
 

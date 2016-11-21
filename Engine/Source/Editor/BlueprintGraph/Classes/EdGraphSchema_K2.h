@@ -175,7 +175,13 @@ public:
 	static const FName MD_ArrayParam;
 	static const FName MD_ArrayDependentParam;
 
+	/** Metadata that flags TSet parameters that will have their type determined at blueprint compile time */
 	static const FName MD_SetParam;
+
+	/** Metadata that flags TMap function parameters that will have their type determined at blueprint compile time */
+	static const FName MD_MapParam;
+	static const FName MD_MapKeyParam;
+	static const FName MD_MapValueParam;
 
 	/** Metadata that identifies an integral property as a bitmask. */
 	static const FName MD_Bitmask;
@@ -410,7 +416,7 @@ public:
 	};
 
 public:
-	void SelectAllInputNodes(UEdGraph* Graph, UEdGraphPin* InGraphPin);
+	void SelectAllNodesInDirection(TEnumAsByte<enum EEdGraphPinDirection> InDirection, UEdGraph* Graph, UEdGraphPin* InGraphPin);
 
 	//~ Begin EdGraphSchema Interface
 	virtual void GetContextMenuActions(const UEdGraph* CurrentGraph, const UEdGraphNode* InGraphNode, const UEdGraphPin* InGraphPin, class FMenuBuilder* MenuBuilder, bool bIsDebugging) const override;
@@ -1015,6 +1021,9 @@ public:
 	 * Make links from all data pins from InOutputNode output to InInputNode input.
 	 */
 	void LinkDataPinFromOutputToInput(UEdGraphNode* InOutputNode, UEdGraphNode* InInputNode) const;
+
+	/** Convert a deprecated node into a function call node, called from per-node ConvertDeprecatedNode */
+	UK2Node* ConvertDeprecatedNodeToFunctionCall(UK2Node* OldNode, UFunction* NewFunction, TMap<FString, FString>& OldPinToNewPinMap, UEdGraph* Graph) const;
 
 	/** some inherited schemas don't want anim-notify actions listed, so this is an easy way to check that */
 	virtual bool DoesSupportAnimNotifyActions() const { return true; }

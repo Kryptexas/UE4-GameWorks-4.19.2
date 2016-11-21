@@ -23,7 +23,7 @@ class FMetalDynamicRHI : public FDynamicRHI, public FMetalRHICommandContext
 public:
 
 	/** Initialization constructor. */
-	FMetalDynamicRHI();
+	FMetalDynamicRHI(ERHIFeatureLevel::Type RequestedFeatureLevel);
 
 	/** Destructor */
 	~FMetalDynamicRHI();

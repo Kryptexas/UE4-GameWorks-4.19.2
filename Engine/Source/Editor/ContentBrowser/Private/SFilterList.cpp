@@ -598,7 +598,7 @@ void SFilterList::DisableFiltersThatHideAssets(const TArray<FAssetData>& AssetDa
 				{
 					for ( auto AssetIt = AssetDataList.CreateConstIterator(); AssetIt; ++AssetIt )
 					{
-						if ( !FrontendFilter->PassesFilter( *AssetIt ) )
+						if (!FrontendFilter->IsInverseFilter() && !FrontendFilter->PassesFilter(*AssetIt))
 						{
 							// This is a frontend filter and at least one asset did not pass.
 							Filter->SetEnabled(false);
@@ -1160,7 +1160,7 @@ TSharedRef<SWidget> SFilterList::MakeAddFilterMenu(EAssetTypeCategories::Type Me
 		SNew(SVerticalBox)
 
 		+SVerticalBox::Slot()
-		.MaxHeight(DisplaySize.Y * 0.5)
+		.MaxHeight(DisplaySize.Y * 0.9)
 		[
 			MenuBuilder.MakeWidget()
 		];

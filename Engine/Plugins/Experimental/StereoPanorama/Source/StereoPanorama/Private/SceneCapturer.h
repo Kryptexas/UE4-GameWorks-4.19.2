@@ -51,17 +51,19 @@ public:
 
 	virtual void Tick( float DeltaTime ) override;
 
-	virtual bool IsTickable() const 
+	virtual bool IsTickable() const override
 	{ 
 		return true; 
 	}
 
-	virtual bool IsTickableWhenPaused() const
+	virtual bool IsTickableWhenPaused() const override
 	{
 		return bIsTicking;
 	}
 
-	virtual TStatId GetStatId() const
+	virtual UWorld* GetTickableGameObjectWorld() const override;
+
+	virtual TStatId GetStatId() const override
 	{
 		RETURN_QUICK_DECLARE_CYCLE_STAT( USceneCapturer, STATGROUP_Tickables );
 	}

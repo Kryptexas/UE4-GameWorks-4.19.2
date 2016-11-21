@@ -34,6 +34,9 @@ DECLARE_DELEGATE_OneParam(FOnDetailsCreated, const TSharedRef<class IDetailsView
 /** Called back when an anim sequence browser is created */
 DECLARE_DELEGATE_OneParam(FOnAnimationSequenceBrowserCreated, const TSharedRef<class IAnimationSequenceBrowser>&);
 
+/** Called back when a Persona preview scene is created */
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnPreviewSceneCreated, const TSharedRef<class IPersonaPreviewScene>&);
+
 /** Initialization parameters for persona toolkits */
 struct FPersonaToolkitArgs
 {
@@ -91,23 +94,6 @@ public:
 	 */
 	virtual void ShutdownModule();
 
-	/**
-	 * Creates an instance of a Persona editor.  Only virtual so that it can be called across the DLL boundary.
-	 *
-	 * Note: This function should not be called directly, use one of the following instead:
-	 *	- FKismetEditorUtilities::BringKismetToFocusAttentionOnObject
-	 *  - FAssetEditorManager::Get().OpenEditorForAsset
-	 *
-	 * @param	Mode					Mode that this editor should operate in
-	 * @param	InitToolkitHost			When Mode is WorldCentric, this is the level editor instance to spawn this editor within
-	 * @param	AnimBlueprint			The blueprint object to start editing.  If specified, Skeleton and AnimationAsset must be NULL.
-	 * @param	Skeleton				The skeleton to edit.  If specified, Blueprint must be NULL.
-	 * @param	AnimationAsset			The animation asset to edit.  If specified, Blueprint must be NULL.
-	 *
-	 * @return	Interface to the new Persona editor
-	 */
-	virtual TSharedRef<class IBlueprintEditor> CreatePersona( const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, class USkeleton* Skeleton, class UAnimBlueprint* Blueprint, class UAnimationAsset* AnimationAsset, class USkeletalMesh * Mesh );
-
 	/** Create a re-usable toolkit that multiple asset editors that are concerned with USkeleton-related data can use */
 	virtual TSharedRef<class IPersonaToolkit> CreatePersonaToolkit(USkeleton* InSkeleton, const FPersonaToolkitArgs& PersonaToolkitArgs = FPersonaToolkitArgs()) const;
 	virtual TSharedRef<class IPersonaToolkit> CreatePersonaToolkit(UAnimationAsset* InAnimationAsset, const FPersonaToolkitArgs& PersonaToolkitArgs = FPersonaToolkitArgs()) const;
@@ -130,7 +116,7 @@ public:
 	virtual TSharedRef<class FWorkflowTabFactory> CreateAnimNotifiesTabFactory(const TSharedRef<class FWorkflowCentricApplication>& InHostingApp, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton, FSimpleMulticastDelegate& InOnChangeAnimNotifies, FSimpleMulticastDelegate& InOnPostUndo, FOnObjectsSelected InOnObjectsSelected) const;
 
 	/** Create a skeleton cuve viewer tab factory */
-	virtual TSharedRef<class FWorkflowTabFactory> CreateCurveViewerTabFactory(const TSharedRef<class FWorkflowCentricApplication>& InHostingApp, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnCurvesChanged, FSimpleMulticastDelegate& InOnPostUndo) const;
+	virtual TSharedRef<class FWorkflowTabFactory> CreateCurveViewerTabFactory(const TSharedRef<class FWorkflowCentricApplication>& InHostingApp, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnCurvesChanged, FSimpleMulticastDelegate& InOnPostUndo, FOnObjectsSelected InOnObjectsSelected) const;
 
 	/** Create a retarget manager tab factory */
 	virtual TSharedRef<class FWorkflowTabFactory> CreateRetargetManagerTabFactory(const TSharedRef<class FWorkflowCentricApplication>& InHostingApp, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnPostUndo) const;
@@ -202,6 +188,9 @@ public:
 	/** Delegate used to get the currently recording animation time */
 	FGetCurrentRecordingTime& OnGetCurrentRecordingTime() { return GetCurrentRecordingTimeDelegate; }
 
+	/** Delegate broadcast when a preview scene is created */
+	virtual FOnPreviewSceneCreated& OnPreviewSceneCreated() { return OnPreviewSceneCreatedDelegate; }
+
 private:
 	/** When a new AnimBlueprint is created, this will handle post creation work such as adding non-event default nodes */
 	void OnNewBlueprintCreated(UBlueprint* InBlueprint);
@@ -227,5 +216,8 @@ private:
 
 	/** Delegate used to tick the skelmesh component recording */
 	FTickRecording TickRecordingDelegate;
+
+	/** Delegate broadcast when a preview scene is created */
+	FOnPreviewSceneCreated OnPreviewSceneCreatedDelegate;
 };
 

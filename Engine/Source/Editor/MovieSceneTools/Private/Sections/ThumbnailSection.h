@@ -10,6 +10,7 @@ class FTrackEditorThumbnailPool;
 class IMenu;
 class ISectionLayoutBuilder;
 class SWidget;
+class SInlineEditableTextBlock;
 class UMovieSceneSection;
 
 
@@ -42,6 +43,9 @@ public:
 	{
 		return SequencerPtr.Pin()->GetSequencerWidget();
 	}
+
+	/** Enter rename mode for the section */
+	void EnterRename();
 
 	/** Get whether the text is renameable */
 	virtual bool CanRename() const { return false; }
@@ -98,6 +102,9 @@ protected:
 	/** Saved playback status. Used for restoring state when rendering thumbnails */
 	EMovieScenePlayerStatus::Type SavedPlaybackStatus;
 	
+	/** Rename widget */
+	TSharedPtr<SInlineEditableTextBlock> NameWidget;
+
 	/** Fade brush. */
 	const FSlateBrush* WhiteBrush;
 };

@@ -76,6 +76,9 @@ namespace BlueprintNativeCodeGenUtilsImpl
 	 * @return Either a class, enum, or struct class (depending on the asset's type).
 	 */
 	static UClass* ResolveReplacementType(const FConvertedAssetRecord& ConversionRecord);
+
+	static FString NativizedDependenciesFileName() { return TEXT("NativizedAssets_Dependencies"); }
+	static bool GenerateNativizedDependenciesSourceFiles(const FBlueprintNativeCodeGenPaths& TargetPaths);
 }
 
 //------------------------------------------------------------------------------
@@ -132,6 +135,7 @@ static bool BlueprintNativeCodeGenUtilsImpl::GenerateModuleSourceFiles(const FBl
 	TArray<FString> PchIncludes;
 	PchIncludes.Add(EngineHeaderFile);
 	PchIncludes.Add(TEXT("GeneratedCodeHelpers.h"));
+	PchIncludes.Add(NativizedDependenciesFileName() + TEXT(".h"));
 
 	TArray<FString> FilesToIncludeInModuleHeader;
 	GConfig->GetArray(TEXT("BlueprintNativizationSettings"), TEXT("FilesToIncludeInModuleHeader"), FilesToIncludeInModuleHeader, GEditorIni);
@@ -149,6 +153,32 @@ static bool BlueprintNativeCodeGenUtilsImpl::GenerateModuleSourceFiles(const FBl
 	if (!bSuccess)
 	{
 		UE_LOG(LogBlueprintCodeGen, Error, TEXT("Failed to generate module source files: %s"), *FailureReason.ToString());
+	}
+	return bSuccess;
+}
+
+//------------------------------------------------------------------------------
+static bool BlueprintNativeCodeGenUtilsImpl::GenerateNativizedDependenciesSourceFiles(const FBlueprintNativeCodeGenPaths& TargetPaths)
+{
+	FText FailureReason;
+	bool bSuccess = true;
+
+	IBlueprintCompilerCppBackendModule& CodeGenBackend = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
+	{
+		const FString HeaderFilePath = FPaths::Combine(*TargetPaths.RuntimeSourceDir(FBlueprintNativeCodeGenPaths::HFile), *NativizedDependenciesFileName()) + TEXT(".h");
+		const FString HeaderFileContent = CodeGenBackend.DependenciesGlobalMapHeaderCode();
+		bSuccess &= GameProjectUtils::WriteOutputFile(HeaderFilePath, HeaderFileContent, FailureReason);
+	}
+
+	{
+		const FString SourceFilePath = FPaths::Combine(*TargetPaths.RuntimeSourceDir(FBlueprintNativeCodeGenPaths::CppFile), *NativizedDependenciesFileName()) + TEXT(".cpp");
+		const FString SourceFileContent = CodeGenBackend.DependenciesGlobalMapBodyCode();
+		bSuccess &= GameProjectUtils::WriteOutputFile(SourceFilePath, SourceFileContent, FailureReason);
+	}
+
+	if (!bSuccess)
+	{
+		UE_LOG(LogBlueprintCodeGen, Error, TEXT("Failed to generate NativizedDependencies source files: %s"), *FailureReason.ToString());
 	}
 	return bSuccess;
 }
@@ -247,6 +277,7 @@ bool FBlueprintNativeCodeGenUtils::FinalizePlugin(const FBlueprintNativeCodeGenM
 	FBlueprintNativeCodeGenPaths TargetPaths = Manifest.GetTargetPaths();
 	bSuccess = bSuccess && BlueprintNativeCodeGenUtilsImpl::GenerateModuleBuildFile(Manifest);
 	bSuccess = bSuccess && BlueprintNativeCodeGenUtilsImpl::GenerateModuleSourceFiles(TargetPaths);
+	bSuccess = bSuccess && BlueprintNativeCodeGenUtilsImpl::GenerateNativizedDependenciesSourceFiles(TargetPaths);
 	bSuccess = bSuccess && BlueprintNativeCodeGenUtilsImpl::GeneratePluginDescFile(TargetPaths.RuntimeModuleName(), TargetPaths);
 	return bSuccess;
 }

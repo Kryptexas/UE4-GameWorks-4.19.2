@@ -86,6 +86,13 @@ FPrimitiveSceneProxy* UVisualLoggerRenderingComponent::CreateSceneProxy()
 		VLogSceneProxy->Capsles.Append(RenderingActor->TestDebugShapes.Capsles);
 	}
 
+#if WITH_EDITOR
+	if (VLogSceneProxy)
+	{
+		DebugDrawDelegateHelper.InitDelegateHelper(VLogSceneProxy);
+		DebugDrawDelegateHelper.ReregisterDebugDrawDelgate();
+	}
+#endif
 	return VLogSceneProxy;
 }
 
@@ -104,20 +111,14 @@ void UVisualLoggerRenderingComponent::CreateRenderState_Concurrent()
 	Super::CreateRenderState_Concurrent();
 
 #if WITH_EDITOR
-	if (SceneProxy)
-	{
-		static_cast<FVisualLoggerSceneProxy*>(SceneProxy)->RegisterDebugDrawDelgate();
-	}
+	DebugDrawDelegateHelper.RegisterDebugDrawDelgate();
 #endif
 }
 
 void UVisualLoggerRenderingComponent::DestroyRenderState_Concurrent()
 {
 #if WITH_EDITOR
-	if (SceneProxy)
-	{
-		static_cast<FVisualLoggerSceneProxy*>(SceneProxy)->UnregisterDebugDrawDelgate();
-	}
+	DebugDrawDelegateHelper.UnregisterDebugDrawDelgate();
 #endif
 
 	Super::DestroyRenderState_Concurrent();

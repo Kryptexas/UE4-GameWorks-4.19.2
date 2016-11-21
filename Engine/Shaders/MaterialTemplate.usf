@@ -262,6 +262,8 @@ struct FMaterialVertexParameters
 	/** Per-particle properties. */
 	float4x4 InstanceLocalToWorld;
 #endif
+	float3 PreSkinnedPosition;
+	float3 PreSkinnedNormal;
 
 	half4 VertexColor;
 #if NUM_MATERIAL_TEXCOORDS_VERTEX
@@ -1092,19 +1094,50 @@ float4 GetPostProcessInputMinMax(uint Index)
 	return 1.0f;
 }
 
-MaterialFloat4 MobileLookupPostProcessInput0(inout FMaterialPixelParameters Parameters, float2 UV)
+MaterialFloat4 MobileSceneTextureLookup(inout FMaterialPixelParameters Parameters, int SceneTextureId, float2 UV)
 {
-#if POST_PROCESS_MATERIAL && (FEATURE_LEVEL <= FEATURE_LEVEL_ES3_1)
-	MaterialFloat4 Input0 = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV);
-	#if POST_PROCESS_MATERIAL_BEFORE_TONEMAP
+#if (FEATURE_LEVEL <= FEATURE_LEVEL_ES3_1)
+	
+	// For fetching SceneDepth and CustomDepth after tonemapper we need to switch OpenGL coordinates
+	// SceneColor will be transformed to OpenGL coordinates during tonemapping
+	#define NEEDTOSWITCHVERTICLEAXIS (COMPILER_GLSL_ES2 || COMPILER_GLSL_ES3_1) && (POST_PROCESS_MATERIAL && !POST_PROCESS_MATERIAL_BEFORE_TONEMAP)
+	
+	//PPI_SceneDepth
+	if (SceneTextureId == 1)
+	{
+		#if NEEDTOSWITCHVERTICLEAXIS
+		UV.y = 1.0 - UV.y; 
+		#endif
+		
+		MaterialFloat Depth = ConvertFromDeviceZ(Texture2DSample(SceneDepthTexture, SceneDepthTextureSampler, UV).r);
+		return MaterialFloat4(Depth.rrr, 0.f);
+	}
+	//PPI_CustomDepth
+	else if (SceneTextureId == 13)
+	{
+		#if NEEDTOSWITCHVERTICLEAXIS
+		UV.y = 1.0 - UV.y; 
+		#endif
+
+		MaterialFloat Depth = ConvertFromDeviceZ(Texture2DSample(CustomDepthTexture, CustomDepthTextureSampler, UV).r);
+		return MaterialFloat4(Depth.rrr, 0.f);
+	}
+	// PPI_PostprocessInput
+	else if (SceneTextureId == 14)
+	{
+#if POST_PROCESS_MATERIAL	
+		MaterialFloat4 Input0 = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV);
+		#if POST_PROCESS_MATERIAL_BEFORE_TONEMAP
 		Input0 = Decode32BPPHDR(Input0);
-	#endif
-	// We need to preserve original SceneColor Alpha as it's used by tonemaper on mobile
-	Parameters.BackupSceneColorAlpha = Input0.a;
-	return Input0;
-#else
+		#endif
+		// We need to preserve original SceneColor Alpha as it's used by tonemaper on mobile
+		Parameters.BackupSceneColorAlpha = Input0.a;
+		return Input0;
+#endif// POST_PROCESS_MATERIAL	
+	}
+#endif// FEATURE_LEVEL
+
 	return MaterialFloat4(0.0f, 0.0f, 0.0f, 0.0f);
-#endif
 }
 
 /** Applies an offset to the scene texture lookup and decodes the HDR linear space color. */
@@ -1607,9 +1640,19 @@ void ClipLODTransition(float2 SvPosition)
 void GetMaterialClippingShadowDepth(FMaterialPixelParameters Parameters, FPixelMaterialInputs PixelMaterialInputs)
 {
 	ClipLODTransition(Parameters);
-	//#if MATERIALBLENDING_MASKED && MATERIAL_DITHER_OPACITY_MASK
-	//	clip(GetMaterialMaskInputRaw(PixelMaterialInputs) - 1.0f / 255.0f);
 	#if MATERIALBLENDING_MASKED
+		clip(GetMaterialMask(PixelMaterialInputs)); 
+	#elif MATERIALBLENDING_TRANSLUCENT
+		clip(GetMaterialOpacity(PixelMaterialInputs) - 1.0f / 255.0f);
+	#endif
+}
+
+void GetMaterialClippingVelocity(FMaterialPixelParameters Parameters, FPixelMaterialInputs PixelMaterialInputs)
+{
+	ClipLODTransition(Parameters);
+	#if MATERIALBLENDING_MASKED && MATERIAL_DITHER_OPACITY_MASK
+		clip(GetMaterialMaskInputRaw(PixelMaterialInputs) - 1.0f / 255.0f);
+	#elif MATERIALBLENDING_MASKED
 		clip(GetMaterialMask(PixelMaterialInputs)); 
 	#elif MATERIALBLENDING_TRANSLUCENT
 		clip(GetMaterialOpacity(PixelMaterialInputs) - 1.0f / 255.0f);
@@ -1743,7 +1786,7 @@ half3x3 AssembleTangentToWorld( half3 TangentToWorld0, half4 TangentToWorld2 )
 }
 
 // Whether the material shader should output pixel depth offset
-#define OUTPUT_PIXEL_DEPTH_OFFSET (WANT_PIXEL_DEPTH_OFFSET && (MATERIALBLENDING_SOLID || MATERIALBLENDING_MASKED))
+#define OUTPUT_PIXEL_DEPTH_OFFSET (WANT_PIXEL_DEPTH_OFFSET && (MATERIALBLENDING_SOLID || MATERIALBLENDING_MASKED) && !ES2_PROFILE)
 
 // Whether to use the hidden d3d11 feature that supports depth writes with ZCull by only pushing into the screen
 //@todo - use for other SM5 platforms

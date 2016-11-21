@@ -12,7 +12,6 @@ class FCinematicShotTrackEditor;
 class IMenu;
 class ISectionLayoutBuilder;
 class UMovieSceneCinematicShotSection;
-class FMovieSceneSequenceInstance;
 
 
 /**
@@ -45,7 +44,6 @@ public:
 
 	// FThumbnail interface
 	virtual void SetSingleTime(float GlobalTime) override;
-	virtual bool CanRename() const override { return true; }
 	virtual FText HandleThumbnailTextBlockText() const override;
 	virtual void HandleThumbnailTextBlockTextCommitted(const FText& NewThumbnailName, ETextCommit::Type CommitType) override;
 
@@ -58,9 +56,6 @@ private:
 
 	/** The section we are visualizing */
 	UMovieSceneCinematicShotSection& SectionObject;
-
-	/** The instance that this section is part of */
-	TWeakPtr<FMovieSceneSequenceInstance> SequenceInstance;
 
 	/** Sequencer interface */
 	TWeakPtr<ISequencer> Sequencer;

@@ -3,7 +3,8 @@
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieSceneSlomoSection.h"
 #include "MovieSceneSlomoTrack.h"
-#include "MovieSceneSlomoTrackInstance.h"
+#include "Evaluation/MovieSceneSlomoTemplate.h"
+#include "Evaluation/MovieSceneEvaluationTrack.h"
 
 
 #define LOCTEXT_NAMESPACE "MovieSceneSlomoTrack"
@@ -11,16 +12,21 @@
 
 /* UMovieSceneEventTrack interface
  *****************************************************************************/
-
-TSharedPtr<IMovieSceneTrackInstance> UMovieSceneSlomoTrack::CreateInstance()
+UMovieSceneSlomoTrack::UMovieSceneSlomoTrack(const FObjectInitializer& Init)
+	: Super(Init)
 {
-	return MakeShareable(new FMovieSceneSlomoTrackInstance(*this)); 
+	EvalOptions.bCanEvaluateNearestSection = true;
+	EvalOptions.bEvaluateNearestSection = false;
 }
-
 
 UMovieSceneSection* UMovieSceneSlomoTrack::CreateNewSection()
 {
 	return NewObject<UMovieSceneSection>(this, UMovieSceneSlomoSection::StaticClass(), NAME_None, RF_Transactional);
+}
+
+FMovieSceneEvalTemplatePtr UMovieSceneSlomoTrack::CreateTemplateForSection(const UMovieSceneSection& InSection) const
+{
+	return FMovieSceneSlomoSectionTemplate(*CastChecked<UMovieSceneSlomoSection>(&InSection));
 }
 
 

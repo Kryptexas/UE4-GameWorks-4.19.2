@@ -1773,9 +1773,9 @@ void UNetConnection::HandleClientPlayer( APlayerController *PC, UNetConnection* 
 		break;
 	}
 
-	// Detach old player if same world.
+	// Detach old player if it's in the same level.
 	check(LocalPlayer);
-	if( LocalPlayer->PlayerController && LocalPlayer->PlayerController->GetWorld() == PC->GetWorld() )
+	if( LocalPlayer->PlayerController && LocalPlayer->PlayerController->GetLevel() == PC->GetLevel())
 	{
 		if (LocalPlayer->PlayerController->Role == ROLE_Authority)
 		{
@@ -1820,7 +1820,7 @@ void UNetConnection::HandleClientPlayer( APlayerController *PC, UNetConnection* 
 				// Remap packagename for PIE networking before sending out to server
 				FName PackageName = Level->GetOutermost()->GetFName();
 				FString PackageNameStr = PackageName.ToString();
-				if (GEngine->NetworkRemapPath(Driver->GetWorld(), PackageNameStr, false))
+				if (GEngine->NetworkRemapPath(Driver, PackageNameStr, false))
 				{
 					PackageName = FName(*PackageNameStr);
 				}

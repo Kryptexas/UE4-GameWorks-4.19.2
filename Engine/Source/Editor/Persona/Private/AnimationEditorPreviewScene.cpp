@@ -18,6 +18,8 @@
 #include "Engine/WindDirectionalSource.h"
 #include "Components/WindDirectionalSourceComponent.h"
 #include "PhysicsEngine/PhysicsSettings.h"
+#include "Animation/CurveSourceInterface.h"
+#include "PersonaModule.h"
 
 #define LOCTEXT_NAMESPACE "AnimationEditorPreviewScene"
 
@@ -42,9 +44,12 @@ FAnimationEditorPreviewScene::FAnimationEditorPreviewScene(const ConstructionVal
 	
 	FloorBounds = FloorMeshComponent->CalcBounds(FloorMeshComponent->GetRelativeTransform());
 
+	Actor = GetWorld()->SpawnActor<AActor>(AActor::StaticClass(), FTransform::Identity);
+	Actor->AddToRoot();
+
 	// Create the preview component
-	SkeletalMeshComponent = NewObject<UDebugSkelMeshComponent>(GetTransientPackage());
-	SkeletalMeshComponent->AddToRoot();
+	SkeletalMeshComponent = NewObject<UDebugSkelMeshComponent>(Actor);
+	AddComponent(SkeletalMeshComponent, FTransform::Identity);
 
 	InEditableSkeleton->LoadAdditionalPreviewSkeletalMeshes();
 
@@ -54,7 +59,7 @@ FAnimationEditorPreviewScene::FAnimationEditorPreviewScene(const ConstructionVal
 
 	PreviewSceneDescription->AnimationMode = EPreviewAnimationMode::Default;
 	PreviewSceneDescription->Animation = InPersonaToolkit->GetAnimationAsset();
-	PreviewSceneDescription->PreviewMesh = InPersonaToolkit->GetSkeleton()->GetPreviewMesh();
+	PreviewSceneDescription->PreviewMesh = InPersonaToolkit->GetPreviewMesh();
 	PreviewSceneDescription->AdditionalMeshes = InEditableSkeleton->GetSkeleton().GetAdditionalPreviewSkeletalMeshes();
 
 	// Force validation of preview attached assets (catch case of never doing it if we dont have a valid preview mesh)
@@ -131,6 +136,7 @@ void FAnimationEditorPreviewScene::SetPreviewMeshInternal(USkeletalMesh* NewPrev
 			bPlaying = SkeletalMeshComponent->PreviewInstance->IsPlaying();
 		}
 
+		SkeletalMeshComponent->EmptyOverrideMaterials();
 		SkeletalMeshComponent->SetSkeletalMesh(NewPreviewMesh);
 
 		if (bNeedsToCopyAnimationData)
@@ -177,9 +183,6 @@ void FAnimationEditorPreviewScene::SetPreviewMeshInternal(USkeletalMesh* NewPrev
 	}
 
 	OnPreviewMeshChanged.Broadcast(NewPreviewMesh);
-
-	// make sure the scene desc is up to date, as this funciton is not necessarily called from the UI code that customizes it
-	PreviewSceneDescription->PreviewMesh = NewPreviewMesh;
 }
 
 void FAnimationEditorPreviewScene::ValidatePreviewAttachedAssets(USkeletalMesh* PreviewSkeletalMesh)
@@ -249,7 +252,7 @@ void FAnimationEditorPreviewScene::RefreshAdditionalMeshes()
 				USkeletalMesh* SkeletalMesh = Entry.SkeletalMesh.LoadSynchronous();
 				if (SkeletalMesh)
 				{
-					USkeletalMeshComponent* NewComp = NewObject<USkeletalMeshComponent>();
+					USkeletalMeshComponent* NewComp = NewObject<USkeletalMeshComponent>(Actor);
 					NewComp->SetMasterPoseComponent(SkeletalMeshComponent);
 					NewComp->SetSkeletalMesh(SkeletalMesh);
 					NewComp->UpdateMasterBoneMap();
@@ -361,6 +364,11 @@ void FAnimationEditorPreviewScene::RemoveAttachedObjectFromPreviewComponent(UObj
 void FAnimationEditorPreviewScene::InvalidateViews()
 {
 	OnInvalidateViews.Broadcast();
+}
+
+void FAnimationEditorPreviewScene::FocusViews()
+{
+	OnFocusViews.Broadcast();
 }
 
 void FAnimationEditorPreviewScene::RemoveAttachedComponent( bool bRemovePreviewAttached /* = true */ )
@@ -868,6 +876,26 @@ int32 FAnimationEditorPreviewScene::GetSelectedBoneIndex() const
 	return SelectedBoneIndex;
 }
 
+void FAnimationEditorPreviewScene::TogglePlayback()
+{
+	if (SkeletalMeshComponent)
+	{
+		if (SkeletalMeshComponent->IsPreviewOn() && SkeletalMeshComponent->PreviewInstance)
+		{
+			SkeletalMeshComponent->PreviewInstance->SetPlaying(!SkeletalMeshComponent->PreviewInstance->IsPlaying());
+		}
+		else
+		{
+			SkeletalMeshComponent->GlobalAnimRateScale = (SkeletalMeshComponent->GlobalAnimRateScale > 0.0f) ? 0.0f : 1.0f;
+		}
+	}
+}
+
+AActor* FAnimationEditorPreviewScene::GetActor() const
+{
+	return Actor;
+}
+
 void FAnimationEditorPreviewScene::Tick(float InDeltaTime)
 {
 	IPersonaPreviewScene::Tick(InDeltaTime);
@@ -877,6 +905,30 @@ void FAnimationEditorPreviewScene::Tick(float InDeltaTime)
 		OnLODChanged.Broadcast();
 		LastCachedLODForPreviewComponent = SkeletalMeshComponent->PredictedLODLevel;
 	}
+}
+
+void FAnimationEditorPreviewScene::AddComponent(class UActorComponent* Component, const FTransform& LocalToWorld)
+{
+	if (USceneComponent* SceneComponent = Cast<USceneComponent>(Component))
+	{
+		SceneComponent->AttachToComponent(Actor->GetRootComponent(), FAttachmentTransformRules::KeepWorldTransform);
+	}
+
+	Actor->AddOwnedComponent(Component);
+
+	IPersonaPreviewScene::AddComponent(Component, LocalToWorld);
+}
+
+void FAnimationEditorPreviewScene::RemoveComponent(class UActorComponent* Component)
+{
+	if (USceneComponent* SceneComponent = Cast<USceneComponent>(Component))
+	{
+		SceneComponent->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+	}
+
+	Actor->RemoveOwnedComponent(Component);
+
+	IPersonaPreviewScene::RemoveComponent(Component);
 }
 
 void FAnimationEditorPreviewScene::PostUndo(bool bSuccess)

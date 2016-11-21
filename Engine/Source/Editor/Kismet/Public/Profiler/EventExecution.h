@@ -36,6 +36,7 @@ namespace EScriptExecutionNodeFlags
 		InvalidTrace				= 0x00400000,	// Indicates that node doesn't contain a valid script trace.
 		RuntimeEvent				= 0x01000000,	// Event that is considered part of the runtime cost.
 		ConstructionEvent			= 0x02000000,	// Event that is considered part of the construction cost.
+		RequiresRefresh				= 0x04000000,	// This event has updated stats and requires a refresh.
 		// Groups
 		CallSite					= FunctionCall|ParentFunctionCall|MacroCall|TunnelInstance,
 		BranchNode					= ConditionalBranch|SequentialBranch,

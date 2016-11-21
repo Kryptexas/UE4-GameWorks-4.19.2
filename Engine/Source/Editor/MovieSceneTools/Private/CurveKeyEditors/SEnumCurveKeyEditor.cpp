@@ -33,7 +33,7 @@ int32 SEnumCurveKeyEditor::OnGetCurrentValue() const
 		return ExternalValue.Get().GetValue();
 	}
 
-	float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
+	float CurrentTime = Sequencer->GetLocalTime();
 	int32 DefaultValue = 0;
 	return Curve->Evaluate(CurrentTime, DefaultValue);
 }
@@ -46,7 +46,7 @@ void SEnumCurveKeyEditor::OnComboSelectionChanged(int32 InSelectedItem, ESelectI
 
 	if (OwningSection->TryModify())
 	{
-		float CurrentTime = Sequencer->GetCurrentLocalTime(*Sequencer->GetFocusedMovieSceneSequence());
+		float CurrentTime = Sequencer->GetLocalTime();
 		bool bAutoSetTrackDefaults = Sequencer->GetAutoSetTrackDefaults();
 
 		FKeyHandle CurrentKeyHandle = Curve->FindKey(CurrentTime);

@@ -12,6 +12,7 @@
 #include "PhysicsEngine/PhysXSupport.h"
 #include "EditorFramework/AssetImportData.h"
 #include "GPUSkinVertexFactory.h"
+#include "FrameworkObjectVersion.h"
 
 #if WITH_APEX && WITH_EDITOR
 #include "ApexDestructibleAssetImport.h"
@@ -132,6 +133,8 @@ void UDestructibleMesh::Serialize(FArchive& Ar)
 {
 	Super::Serialize( Ar );
 
+	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
+
 	if( Ar.IsLoading() )
 	{
 		// Deserializing the name of the NxDestructibleAsset
@@ -176,6 +179,26 @@ void UDestructibleMesh::Serialize(FArchive& Ar)
 			GApexSDK->releaseMemoryReadStream( *Stream );
 #endif
 		}
+		if (Ar.CustomVer(FFrameworkObjectVersion::GUID) >= FFrameworkObjectVersion::CacheDestructibleOverlaps)
+		{
+			Ar << Size;
+			if( Size > 0 )
+			{
+				// Here comes the collision data cache
+				Buffer.Reset(Size);
+				Buffer.AddZeroed(Size);
+
+				Ar.Serialize( Buffer.GetData(), Size );
+#if WITH_APEX
+				if(ApexDestructibleAsset != NULL)
+				{
+					physx::PxFileBuf* Stream = GApexSDK->createMemoryReadStream( Buffer.GetData(), Size );
+					ModuleCachedData* cacheData = GApexSDK->getCachedData().getCacheForModule(GApexModuleDestructible->getModuleID());
+					cacheData->deserializeSingleAsset(*ApexDestructibleAsset, *Stream);
+				}
+#endif
+			}
+		}
 	}
 	else if ( Ar.IsSaving() )
 	{
@@ -206,6 +229,9 @@ void UDestructibleMesh::Serialize(FArchive& Ar)
 		// Get the NvParameterized data for our Destructible asset
 		if( ApexDestructibleAsset != NULL )
 		{
+			// Ensure the overlap data is cached since it does not get generated until a game started otherwise
+			ApexDestructibleAsset->cacheChunkOverlapsUpToDepth(ApexDestructibleAsset->getDepthCount());
+
 			const NvParameterized::Interface* AssetParameterized = ApexDestructibleAsset->getAssetNvParameterized();
 			if( AssetParameterized != NULL )
 			{
@@ -225,9 +251,34 @@ void UDestructibleMesh::Serialize(FArchive& Ar)
 		// Release our temporary objects
 		Serializer->release();
 		Stream->release();
+
+		// Add the collision mesh data as well
+		Size = 0;
+		Stream = GApexSDK->createMemoryWriteStream();
+		if(ApexDestructibleAsset != NULL)
+		{
+			ModuleCachedData* cacheData = GApexSDK->getCachedData().getCacheForModule(GApexModuleDestructible->getModuleID());
+			cacheData->getCachedDataForAssetAtScale(*ApexDestructibleAsset, GApexModuleDestructible->getChunkCollisionHullCookingScale());
+			cacheData->serializeSingleAsset(*ApexDestructibleAsset, *Stream);
+
+			Size = Stream->getFileLength();
+			
+			Buffer.Reset(Size);
+			Buffer.AddZeroed(Size);
+
+			Stream->read(Buffer.GetData(), Size);
+		}
+
+		Ar << Size;
+		if ( Size > 0 )
+		{
+			Ar.Serialize( Buffer.GetData(), Size );
+		}
+		Stream->release();
 #else
 		uint32 size=0;
-		Ar << size;
+		Ar << size; // Buffer for the NxDestructibleAsset
+		Ar << size; // collision data cache
 #endif
 	}
 

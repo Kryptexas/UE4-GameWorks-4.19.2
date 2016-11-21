@@ -16,7 +16,7 @@ public:
 	 * @param EndpointInfo The endpoint to filter.
 	 * @return true if the endpoint passed the filter, false otherwise.
 	 */
-	bool FilterEndpoint( const FMessageTracerEndpointInfoPtr& EndpointInfo ) const
+	bool FilterEndpoint(const TSharedPtr<FMessageTracerEndpointInfo>& EndpointInfo) const
 	{
 		if (!EndpointInfo.IsValid())
 		{
@@ -45,7 +45,7 @@ public:
 	 *
 	 * @param InFilterString The filter string to set.
 	 */
-	void SetFilterString( const FString& InFilterString )
+	void SetFilterString(const FString& InFilterString)
 	{
 		FilterString = InFilterString;
 		ChangedEvent.Broadcast();
@@ -74,10 +74,3 @@ private:
 	/** Holds an event delegate that is invoked when the filter settings changed. */
 	FOnMessagingEndpointFilterChanged ChangedEvent;
 };
-
-
-/** Type definition for shared pointers to instances of FMessagingDebuggerEndpointFilter. */
-typedef TSharedPtr<FMessagingDebuggerEndpointFilter> FMessagingDebuggerEndpointFilterPtr;
-
-/** Type definition for shared references to instances of FMessagingDebuggerEndpointFilter. */
-typedef TSharedRef<FMessagingDebuggerEndpointFilter> FMessagingDebuggerEndpointFilterRef;

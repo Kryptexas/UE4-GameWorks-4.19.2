@@ -17,6 +17,7 @@
 #include "Engine/TextureCube.h"
 #include "Engine/DestructibleMesh.h"
 #include "PhysicsEngine/DestructibleActor.h"
+#include "Animation/BlendSpace1D.h"
 
 /*
 ***************************************************************
@@ -564,7 +565,7 @@ void FStaticMeshThumbnailScene::GetViewMatrixParameters(const float InFOVDegrees
 {
 	check(PreviewActor);
 	check(PreviewActor->GetStaticMeshComponent());
-	check(PreviewActor->GetStaticMeshComponent()->StaticMesh);
+	check(PreviewActor->GetStaticMeshComponent()->GetStaticMesh());
 
 	const float HalfFOVRadians = FMath::DegreesToRadians<float>(InFOVDegrees) * 0.5f;
 	// Add extra size to view slightly outside of the sphere to compensate for perspective
@@ -572,7 +573,7 @@ void FStaticMeshThumbnailScene::GetViewMatrixParameters(const float InFOVDegrees
 	const float BoundsZOffset = GetBoundsZOffset(PreviewActor->GetStaticMeshComponent()->Bounds);
 	const float TargetDistance = HalfMeshSize / FMath::Tan(HalfFOVRadians);
 
-	USceneThumbnailInfo* ThumbnailInfo = Cast<USceneThumbnailInfo>(PreviewActor->GetStaticMeshComponent()->StaticMesh->ThumbnailInfo);
+	USceneThumbnailInfo* ThumbnailInfo = Cast<USceneThumbnailInfo>(PreviewActor->GetStaticMeshComponent()->GetStaticMesh()->ThumbnailInfo);
 	if ( ThumbnailInfo )
 	{
 		if ( TargetDistance + ThumbnailInfo->OrbitZoom < 0 )
@@ -775,7 +776,8 @@ bool FBlendSpaceThumbnailScene::SetBlendSpace(class UBlendSpaceBase* InBlendSpac
 				if (AnimInstance)
 				{
 					FVector BlendInput(0.f);
-					for (int32 i = 0; i < InBlendSpace->NumOfDimension; ++i)
+					const int32 NumDimensions = InBlendSpace->IsA<UBlendSpace1D>() ? 1 : 2;
+					for (int32 i = 0; i < NumDimensions; ++i)
 					{
 						const FBlendParameter& Param = InBlendSpace->GetBlendParameter(i);
 						BlendInput[i] = (Param.GetRange() / 2.f) + Param.Min;
@@ -1042,7 +1044,7 @@ bool FClassActorThumbnailScene::IsValidComponentForVisualization(UActorComponent
 	if ( PrimComp && PrimComp->IsVisible() && !PrimComp->bHiddenInGame )
 	{
 		UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(Component);
-		if ( StaticMeshComp && StaticMeshComp->StaticMesh )
+		if ( StaticMeshComp && StaticMeshComp->GetStaticMesh())
 		{
 			return true;
 		}

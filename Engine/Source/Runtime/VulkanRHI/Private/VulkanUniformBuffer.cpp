@@ -6,6 +6,7 @@
 
 #include "VulkanRHIPrivate.h"
 
+#if 0
 const int NUM_SAFE_FRAMES = 5;
 static TArray<TRefCountPtr<FVulkanBuffer>> GUBPool[NUM_SAFE_FRAMES];
 
@@ -27,6 +28,7 @@ void CleanupUniformBufferPool()
 	int32 BufferIndex = (GFrameNumberRenderThread  + 1) % NUM_SAFE_FRAMES;
 	GUBPool[BufferIndex].Reset(0);
 }
+#endif
 
 /*-----------------------------------------------------------------------------
 	Uniform buffer RHI object
@@ -68,7 +70,7 @@ FVulkanUniformBuffer::FVulkanUniformBuffer(FVulkanDevice& Device, const FRHIUnif
 		static TConsoleVariableData<int32>* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Vulkan.UseRealUBs"));
 		if (CVar && CVar->GetValueOnAnyThread() != 0)
 		{
-			check(0);
+			ensure(0);
 			//#todo-rco:...
 #if 0
 			Buffer = AllocateBufferFromPool(Device, InLayout.ConstantBufferSize, Usage);

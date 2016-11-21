@@ -8,7 +8,7 @@
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSmartNameRemoved, const FName& /*InContainerName*/, const TArray<SmartName::UID_Type>& /*InNameUids*/);
 
 /** Enum which tells us whether the parent of a socket is the skeleton or skeletal mesh */
-enum class ESocketParentType : uint8
+enum class ESocketParentType : int32
 {
 	Skeleton,
 	Mesh
@@ -37,16 +37,16 @@ public:
 	virtual void SetBlendProfileScale(const FName& InBlendProfileName, const FName& InBoneName, float InNewScale, bool bInRecurse) = 0;
 
 	/** Handle drag-drop socket duplication */
-	virtual class USkeletalMeshSocket* DuplicateSocket(const struct FSelectedSocketInfo& SocketInfoToDuplicate, const FName& NewParentBoneName) = 0;
+	virtual class USkeletalMeshSocket* DuplicateSocket(const struct FSelectedSocketInfo& SocketInfoToDuplicate, const FName& NewParentBoneName, USkeletalMesh* InSkeletalMesh) = 0;
 
 	/** Rename a socket on the mesh or the skeleton */
-	virtual void RenameSocket(const FName& OldSocketName, const FName& NewSocketName) = 0;
+	virtual void RenameSocket(const FName& OldSocketName, const FName& NewSocketName, USkeletalMesh* InSkeletalMesh) = 0;
 
 	/** Set the parent of a socket */
-	virtual void SetSocketParent(const FName& SocketName, const FName& NewParentName) = 0;
+	virtual void SetSocketParent(const FName& SocketName, const FName& NewParentName, USkeletalMesh* InSkeletalMesh) = 0;
 
 	/** Function to tell you if a socket name already exists. SocketParentType determines where we will look to see if the socket exists, i.e. mesh or skeleton */
-	virtual bool DoesSocketAlreadyExist(const class USkeletalMeshSocket* InSocket, const FText& InSocketName, ESocketParentType SocketParentType) const = 0;
+	virtual bool DoesSocketAlreadyExist(const class USkeletalMeshSocket* InSocket, const FText& InSocketName, ESocketParentType SocketParentType, USkeletalMesh* InSkeletalMesh) const = 0;
 
 	/** Add a new smart name. @return true if name was succesfully added */
 	virtual bool AddSmartname(const FName& InContainerName, const FName& InNewName, FSmartName& OutSmartName) = 0;
@@ -62,6 +62,10 @@ public:
 
 	/** Sets Material Meta Data for the curve */
 	virtual void SetCurveMetaDataMaterial(const FSmartName& CurveName, bool bOverrideMaterial) = 0;
+
+	/** Sets Bone Links per curve */
+	virtual void SetCurveMetaBoneLinks(const FSmartName& CurveName, TArray<FBoneReference>& BoneLinks) = 0;
+
 	/**
 	 * Makes sure all attached objects are valid and removes any that aren't.
 	 *
@@ -154,4 +158,10 @@ public:
 
 	/** Register a delegate to be called when a set of smart names are removed */
 	virtual void UnregisterOnSmartNameRemoved(FDelegateHandle InHandle) = 0;
+
+	/** Wrap USkeleton::SetBoneTranslationRetargetingMode */
+	virtual void SetBoneTranslationRetargetingMode(FName InBoneName, EBoneTranslationRetargetingMode::Type NewRetargetingMode) = 0;
+
+	/** Wrap USkeleton::GetBoneTranslationRetargetingMode */
+	virtual EBoneTranslationRetargetingMode::Type GetBoneTranslationRetargetingMode(FName InBoneName) const = 0;
 };

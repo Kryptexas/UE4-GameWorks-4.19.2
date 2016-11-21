@@ -158,6 +158,9 @@ struct FLogFilter
 	/** Set the Text to be used as the Filter's restrictions */
 	void SetFilterText(const FText& InFilterText) { TextFilterExpressionEvaluator.SetFilterText(InFilterText); }
 
+	/** Get the Text currently being used as the Filter's restrictions */
+	const FText GetFilterText() const { return TextFilterExpressionEvaluator.GetFilterText(); }
+
 	/** Returns Evaluator syntax errors (if any) */
 	FText GetSyntaxErrors() { return TextFilterExpressionEvaluator.GetFilterErrorText(); }
 
@@ -254,6 +257,9 @@ protected:
 private:
 	/** Called by Slate when the filter box changes text. */
 	void OnFilterTextChanged(const FText& InFilterText);
+
+	/** Called by Slate when the filter text box is confirmed. */
+	void OnFilterTextCommitted(const FText& InFilterText, ETextCommit::Type InCommitType); 
 
 	/** Make the "Filters" menu. */
 	TSharedRef<SWidget> MakeAddFilterMenu();

@@ -155,6 +155,12 @@ public:
 	const FHitResult& GetLastHitResult() const;
 
 	/**
+	 * Gets the last hit location on the widget in 2D, local pixel units of the render target.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Interaction")
+	FVector2D Get2DHitLocation() const;
+
+	/**
 	 * Set custom hit result.  This is only taken into account if InteractionSource is set to EWidgetInteractionSource::Custom.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Interaction")

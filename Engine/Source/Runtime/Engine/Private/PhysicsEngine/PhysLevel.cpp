@@ -22,6 +22,11 @@
 FPhysCommandHandler * GPhysCommandHandler = NULL;
 FDelegateHandle GPreGarbageCollectDelegateHandle;
 
+FPhysicsDelegates::FOnUpdatePhysXMaterial FPhysicsDelegates::OnUpdatePhysXMaterial;
+FPhysicsDelegates::FOnPhysicsAssetChanged FPhysicsDelegates::OnPhysicsAssetChanged;
+FPhysicsDelegates::FOnPhysSceneInit FPhysicsDelegates::OnPhysSceneInit;
+FPhysicsDelegates::FOnPhysSceneTerm FPhysicsDelegates::OnPhysSceneTerm;
+
 // CVars
 static TAutoConsoleVariable<float> CVarToleranceScaleLength(
 	TEXT("p.ToleranceScale_Length"),
@@ -293,9 +298,6 @@ void InitGamePhys()
 
 	// Init Extensions
 	PxInitExtensions(*GPhysXSDK, GPhysXVisualDebugger);
-#if WITH_VEHICLE
-	PxInitVehicleSDK(*GPhysXSDK);
-#endif
 
 	if (CVarUseUnifiedHeightfield.GetValueOnGameThread())
 	{
@@ -469,17 +471,20 @@ void TermGamePhys()
 #endif	// #if WITH_APEX
 
 	//Remove all scenes still registered
-	if (int32 NumScenes = GPhysXSDK->getNbScenes())
+	if (GPhysXSDK != NULL)
 	{
-		TArray<PxScene*> PScenes;
-		PScenes.AddUninitialized(NumScenes);
-		GPhysXSDK->getScenes(PScenes.GetData(), sizeof(PxScene*)* NumScenes);
-
-		for (PxScene* PScene : PScenes)
+		if (int32 NumScenes = GPhysXSDK->getNbScenes())
 		{
-			if (PScene)
+			TArray<PxScene*> PScenes;
+			PScenes.AddUninitialized(NumScenes);
+			GPhysXSDK->getScenes(PScenes.GetData(), sizeof(PxScene*)* NumScenes);
+
+			for (PxScene* PScene : PScenes)
 			{
-				PScene->release();
+				if (PScene)
+				{
+					PScene->release();
+				}
 			}
 		}
 	}
@@ -494,8 +499,10 @@ void TermGamePhys()
 	}
 #endif
 
-	PxCloseExtensions();
-	PxCloseVehicleSDK();
+	if (GPhysXSDK != NULL)
+	{
+		PxCloseExtensions();
+	}
 
 	if(GPhysXSDK != NULL)
 	{

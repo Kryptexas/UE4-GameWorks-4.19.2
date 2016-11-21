@@ -105,6 +105,16 @@ public:
 	static void DetectValuesReturnedByRef(const UFunction* Func, const UK2Node * Node, FCompilerResultsLog& MessageLog);
 
 	static bool IsStatementReducible(EKismetCompiledStatementType StatementType);
+
+	/**
+	 * Intended to avoid errors that come from checking for external member 
+	 * (function, variable, etc.) dependencies. This can happen when a Blueprint
+	 * was saved without having new members compiled in (saving w/out compiling),
+	 * and a Blueprint that uses those members is compiled-on-load before the 
+	 * uncompiled one. Any valid errors should surface later, when the dependant 
+	 * Blueprint's bytecode is recompiled.
+	 */
+	static bool IsMissingMemberPotentiallyLoading(const UBlueprint* SelfBlueprint, const UStruct* MemberOwner);
 };
 
 //////////////////////////////////////////////////////////////////////////

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "WindowsApplication.h"
@@ -542,11 +542,36 @@ inline bool GetSizeForDevID(const FString& TargetDevID, int32& Width, int32& Hei
 	return bRes;
 }
 
+static BOOL CALLBACK MonitorEnumProc(HMONITOR Monitor, HDC MonitorDC, LPRECT Rect, LPARAM UserData)
+{
+	MONITORINFOEX MonitorInfoEx;
+	MonitorInfoEx.cbSize = sizeof(MonitorInfoEx);
+	GetMonitorInfo(Monitor, &MonitorInfoEx);
+
+	FMonitorInfo* Info = (FMonitorInfo*)UserData;
+	if (Info->Name == MonitorInfoEx.szDevice)
+	{
+		Info->DisplayRect.Bottom = MonitorInfoEx.rcMonitor.bottom;
+		Info->DisplayRect.Left = MonitorInfoEx.rcMonitor.left;
+		Info->DisplayRect.Right = MonitorInfoEx.rcMonitor.right;
+		Info->DisplayRect.Top = MonitorInfoEx.rcMonitor.top;
+
+		Info->WorkArea.Bottom = MonitorInfoEx.rcWork.bottom;
+		Info->WorkArea.Left = MonitorInfoEx.rcWork.left;
+		Info->WorkArea.Right = MonitorInfoEx.rcWork.right;
+		Info->WorkArea.Top = MonitorInfoEx.rcWork.top;
+
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 /**
  * Extract hardware information about connect monitors
  * @param OutMonitorInfo - Reference to an array for holding records about each detected monitor
  **/
-void GetMonitorInfo(TArray<FMonitorInfo>& OutMonitorInfo)
+static void GetMonitorsInfo(TArray<FMonitorInfo>& OutMonitorInfo)
 {
 	DISPLAY_DEVICE DisplayDevice;
 	DisplayDevice.cb = sizeof(DisplayDevice);
@@ -571,6 +596,9 @@ void GetMonitorInfo(TArray<FMonitorInfo>& OutMonitorInfo)
 					!(Monitor.StateFlags & DISPLAY_DEVICE_MIRRORING_DRIVER))
 				{
 					FMonitorInfo Info;
+
+					Info.Name = DisplayDevice.DeviceName;
+					EnumDisplayMonitors(nullptr, nullptr, MonitorEnumProc, (LPARAM)&Info);
 
 					Info.ID = FString::Printf(TEXT("%s"), Monitor.DeviceID);
 					Info.Name = Info.ID.Mid (8, Info.ID.Find (TEXT("\\"), ESearchCase::CaseSensitive, ESearchDir::FromStart, 9) - 8);
@@ -625,7 +653,7 @@ void FDisplayMetrics::GetDisplayMetrics(struct FDisplayMetrics& OutDisplayMetric
 	OutDisplayMetrics.VirtualDisplayRect.Bottom = OutDisplayMetrics.VirtualDisplayRect.Top + ::GetSystemMetrics( SM_CYVIRTUALSCREEN );
 
 	// Get connected monitor information
-	GetMonitorInfo(OutDisplayMetrics.MonitorInfo);
+	GetMonitorsInfo(OutDisplayMetrics.MonitorInfo);
 
 	// Apply the debug safe zones
 	OutDisplayMetrics.ApplyDefaultSafeZones();
@@ -739,6 +767,23 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 			return Result;
 		}();
 
+		bool bMessageExternallyHandled = false;
+		int32 ExternalMessageHandlerResult = 0;
+
+		// give others a chance to handle messages
+		for (IWindowsMessageHandler* Handler : MessageHandlers)
+		{
+			int32 HandlerResult = 0;
+			if (Handler->ProcessMessage(hwnd, msg, wParam, lParam, HandlerResult))
+			{
+				if (!bMessageExternallyHandled)
+				{
+					bMessageExternallyHandled = true;
+					ExternalMessageHandlerResult = HandlerResult;
+				}
+			}
+		}
+
 		switch(msg)
 		{
 		case WM_INPUTLANGCHANGEREQUEST:
@@ -807,6 +852,9 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 		case WM_NCMOUSEMOVE:
 		case WM_MOUSEMOVE:
 		case WM_MOUSEWHEEL:
+#if WINVER >= 0x0601
+		case WM_TOUCH:
+#endif
 			{
 				DeferMessage( CurrentNativeEventWindowPtr, hwnd, msg, wParam, lParam );
 				// Handled
@@ -1314,19 +1362,12 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 				XInput->SetNeedsControllerStateUpdate(); 
 				QueryConnectedMice();
 			}
+			break;
 
 		default:
+			if (bMessageExternallyHandled)
 			{
-				int32 HandlerResult = 0;
-
-				// give others a chance to handle unprocessed messages
-				for (auto Handler : MessageHandlers)
-				{
-					if (Handler->ProcessMessage(hwnd, msg, wParam, lParam, HandlerResult))
-					{
-						return HandlerResult;
-					}
-				}
+				return ExternalMessageHandlerResult;
 			}
 		}
 	}
@@ -1713,6 +1754,66 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 				return MessageHandler->OnCursorSet() ? 0 : 1;
 			}
 			break;
+
+#if WINVER >= 0x0601
+		case WM_TOUCH:
+			{
+				UINT InputCount = LOWORD( wParam );
+				if ( InputCount > 0 )
+				{
+					TUniquePtr<TOUCHINPUT> Inputs( new TOUCHINPUT[InputCount] );
+					if ( GetTouchInputInfo( (HTOUCHINPUT)lParam, InputCount, Inputs.Get(), sizeof(TOUCHINPUT) ) )
+					{
+						for ( uint32 i = 0; i < InputCount; i++ )
+						{
+							TOUCHINPUT Input = Inputs.Get()[i];
+							FVector2D Location( Input.x / 100.0f, Input.y / 100.0f );
+							if ( Input.dwFlags & TOUCHEVENTF_DOWN )
+							{
+								int32 TouchIndex = GetTouchIndexForID( Input.dwID );
+								if (TouchIndex < 0)
+								{
+									TouchIndex = GetFirstFreeTouchIndex();
+									if (TouchIndex >= 0)
+									{
+										TouchIDs[TouchIndex] = TOptional<int32>( Input.dwID );
+										MessageHandler->OnTouchStarted( CurrentNativeEventWindowPtr, Location, TouchIndex + 1, 0 );
+									}
+									else
+									{
+										// TODO: Error handling for more than 10 touches?
+									}
+								}
+							}
+							else if ( Input.dwFlags & TOUCHEVENTF_MOVE )
+							{
+								int32 TouchIndex = GetTouchIndexForID( Input.dwID );
+								if ( TouchIndex >= 0 )
+								{
+									MessageHandler->OnTouchMoved( Location, TouchIndex + 1, 0 );
+								}
+							}
+							else if ( Input.dwFlags & TOUCHEVENTF_UP )
+							{
+								int32 TouchIndex = GetTouchIndexForID( Input.dwID );
+								if ( TouchIndex >= 0 )
+								{
+									TouchIDs[TouchIndex] = TOptional<int32>();
+									MessageHandler->OnTouchEnded( Location, TouchIndex + 1, 0 );
+								}
+								else
+								{
+									// TODO: Error handling.
+								}
+							}
+						}
+						CloseTouchInputHandle( (HTOUCHINPUT)lParam );
+						return 0;
+					}
+				}
+				break;
+			}
+#endif
 
 			// Window focus and activation
 		case WM_MOUSEACTIVATE:
@@ -2301,6 +2402,32 @@ void FWindowsApplication::QueryConnectedMice()
 
 	bIsMouseAttached = MouseCount > 0;
 }
+
+#if WINVER >= 0x0601
+uint32 FWindowsApplication::GetTouchIndexForID( int32 TouchID )
+{
+	for ( int i = 0; i < MaxTouches; i++ )
+	{
+		if ( TouchIDs[i].IsSet() && TouchIDs[i].GetValue() == TouchID )
+		{
+			return i;
+		}
+	}
+	return -1;
+}
+
+uint32 FWindowsApplication::GetFirstFreeTouchIndex()
+{
+	for ( int i = 0; i < MaxTouches; i++ )
+	{
+		if ( TouchIDs[i].IsSet() == false )
+		{
+			return i;
+		}
+	}
+	return -1;
+}
+#endif
 
 void FTaskbarList::Initialize()
 {

@@ -363,6 +363,11 @@ FArchive& FNetBitWriter::operator<<(FStringAssetReference& Value)
 	return *this;
 }
 
+FArchive& FNetBitWriter::operator<<(struct FWeakObjectPtr& WeakObjectPtr)
+{
+	WeakObjectPtr.Serialize(*this);
+	return *this;
+}
 
 // ----------------------------------------------------------------
 //	FNetBitReader
@@ -396,6 +401,12 @@ FArchive& FNetBitReader::operator<<(FStringAssetReference& Value)
 		Value.SetPath(MoveTemp(Path));
 	}
 
+	return *this;
+}
+
+FArchive& FNetBitReader::operator<<(struct FWeakObjectPtr& WeakObjectPtr)
+{
+	WeakObjectPtr.Serialize(*this);
 	return *this;
 }
 

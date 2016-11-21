@@ -136,6 +136,7 @@ protected:
 	//~ Begin FBlueprintEditor Interface
 	//virtual void CreateDefaultToolbar() override;
 	virtual void CreateDefaultCommands() override;
+	virtual void OnCreateGraphEditorCommands(TSharedPtr<FUICommandList> GraphEditorCommandsList);
 	virtual bool CanSelectBone() const override { return true; }
 	virtual void OnAddPosePin() override;
 	virtual bool CanAddPosePin() const override;
@@ -164,6 +165,11 @@ protected:
 	virtual void PostUndo(bool bSuccess) override;
 	virtual void PostRedo(bool bSuccess) override;
 	// End of FEditorUndoClient
+
+	// Toggle pose watch on selected nodes
+	void OnTogglePoseWatch();
+
+	void BindCommands();
 
 protected:
 

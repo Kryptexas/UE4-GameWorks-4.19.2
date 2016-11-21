@@ -425,7 +425,12 @@ namespace VulkanRHI
 				}
 				else
 				{
-					check(0);
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+					Owner->GetParent()->GetMemoryManager().DumpMemory();
+					Owner->GetParent()->GetResourceHeapManager().DumpMemory();
+					GLog->Flush();
+#endif
+					ensure(0);
 				}
 			}
 
@@ -607,15 +612,52 @@ namespace VulkanRHI
 			++NumTypesPerHeap[MemoryProperties.memoryTypes[Index].heapIndex];
 		}
 
+		auto GetMemoryTypesFromProperties = [MemoryProperties](uint32 InTypeBits, VkMemoryPropertyFlags Properties, TArray<uint32>& OutTypeIndices)
+		{
+			// Search memtypes to find first index with those properties
+			for (uint32 i = 0; i < MemoryProperties.memoryTypeCount && InTypeBits; i++)
+			{
+				if ((InTypeBits & 1) == 1)
+				{
+					// Type is available, does it match user properties?
+					if ((MemoryProperties.memoryTypes[i].propertyFlags & Properties) == Properties)
+					{
+						OutTypeIndices.Add(i);
+					}
+				}
+				InTypeBits >>= 1;
+			}
+
+			for (int32 Index = OutTypeIndices.Num() - 1; Index >= 1; --Index)
+			{
+				if (MemoryProperties.memoryTypes[Index].propertyFlags != MemoryProperties.memoryTypes[0].propertyFlags)
+				{
+					OutTypeIndices.RemoveAtSwap(Index);
+				}
+			}
+
+			// No memory types matched, return failure
+			return OutTypeIndices.Num() > 0;
+		};
+
 		// Setup main GPU heap
 		uint32 NumGPUAllocations = 0;
 		{
-			uint32 TypeIndex = 0;
-			VERIFYVULKANRESULT(MemoryManager.GetMemoryTypeFromProperties(TypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &TypeIndex));
-			uint64 HeapSize = MemoryProperties.memoryHeaps[MemoryProperties.memoryTypes[TypeIndex].heapIndex].size;
-			GPUHeap = new FOldResourceHeap(this, TypeIndex, GPU_ONLY_HEAP_PAGE_SIZE);
-			ResourceTypeHeaps[TypeIndex] = GPUHeap;
-			RemainingHeapSizes[MemoryProperties.memoryTypes[TypeIndex].heapIndex] -= HeapSize;
+			// Some drivers return the same memory types multiple times, so weed those out
+			TArray<uint32> TypeIndices;
+			GetMemoryTypesFromProperties(TypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, TypeIndices);
+			check(TypeIndices.Num() > 0);
+
+			uint32 HeapIndex = MemoryProperties.memoryTypes[TypeIndices[0]].heapIndex;
+			uint64 HeapSize = MemoryProperties.memoryHeaps[HeapIndex].size / TypeIndices.Num();
+			for (int32 Index = 0; Index < TypeIndices.Num(); ++Index)
+			{
+				ensure(MemoryProperties.memoryTypes[TypeIndices[Index]].heapIndex == HeapIndex);
+				ResourceTypeHeaps[TypeIndices[Index]] = new FOldResourceHeap(this, TypeIndices[Index], GPU_ONLY_HEAP_PAGE_SIZE);
+				RemainingHeapSizes[MemoryProperties.memoryTypes[TypeIndices[Index]].heapIndex] -= HeapSize;
+				// Last one...
+				GPUHeap = ResourceTypeHeaps[TypeIndices[Index]];
+			}
 			NumGPUAllocations = HeapSize / GPU_ONLY_HEAP_PAGE_SIZE;
 		}
 
@@ -1092,6 +1134,9 @@ namespace VulkanRHI
 		VkMemoryRequirements MemReqs;
 		VulkanRHI::vkGetBufferMemoryRequirements(VulkanDevice, StagingBuffer->Buffer, &MemReqs);
 
+		// Set minimum alignment to 16 bytes, as some buffers are used with CPU SIMD instructions
+		MemReqs.alignment = FMath::Max((VkDeviceSize)16, MemReqs.alignment);
+
 		StagingBuffer->ResourceAllocation = Device->GetResourceHeapManager().AllocateBufferMemory(MemReqs, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | (bCPURead ? VK_MEMORY_PROPERTY_HOST_CACHED_BIT : VK_MEMORY_PROPERTY_HOST_COHERENT_BIT), __FILE__, __LINE__);
 		StagingBuffer->bCPURead = bCPURead;
 		StagingBuffer->ResourceAllocation->BindBuffer(Device, StagingBuffer->Buffer);
@@ -1321,7 +1366,7 @@ namespace VulkanRHI
 		check(Entries.Num() == 0);
 	}
 
-	void FDeferredDeletionQueue::EnqueueGenericResource(EType Type, void* Handle)
+	void FDeferredDeletionQueue::EnqueueGenericResource(EType Type, uint64 Handle)
 	{
 		FVulkanQueue* Queue = Device->GetQueue();
 

@@ -34,11 +34,12 @@ public:
 	void SetVisibility(ELevelVisibility InVisibility);
 
 	TArray<FName>* GetLevelNames();
+	const TArray<FName>& GetLevelNames() const { return LevelNames; }
 
 public:
 
 	//~ UMovieSceneSection interface
-
+	virtual FMovieSceneEvalTemplatePtr GenerateTemplate() const override;
 	virtual TOptional<float> GetKeyTime(FKeyHandle KeyHandle) const override;
 	virtual void SetKeyTime(FKeyHandle KeyHandle, float Time) override;
 

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "GraphSplineOverlapResult.h"
+#include "GraphEditorSettings.h"
 
 /////////////////////////////////////////////////////
 

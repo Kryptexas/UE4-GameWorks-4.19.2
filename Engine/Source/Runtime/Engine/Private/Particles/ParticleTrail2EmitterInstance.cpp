@@ -2674,27 +2674,25 @@ void FParticleRibbonEmitterInstance::GetAllocatedSize(int32& OutNum, int32& OutM
  * @param	Mode	Specifies which resource size should be displayed. ( see EResourceSizeMode::Type )
  * @return  Size of resource as to be displayed to artists/ LDs in the Editor.
  */
-SIZE_T FParticleRibbonEmitterInstance::GetResourceSize(EResourceSizeMode::Type Mode)
+void FParticleRibbonEmitterInstance::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	int32 ResSize = 0;
-	if (Mode == EResourceSizeMode::Inclusive || (Component && Component->SceneProxy))
+	if (CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Inclusive || (Component && Component->SceneProxy))
 	{
 		int32 MaxActiveParticleDataSize = (ParticleData != NULL) ? (MaxActiveParticles * ParticleStride) : 0;
 		int32 MaxActiveParticleIndexSize = (ParticleIndices != NULL) ? (MaxActiveParticles * sizeof(uint16)) : 0;
 		// Take dynamic data into account as well
-		ResSize = sizeof(FParticleRibbonEmitterInstance);
-		ResSize += MaxActiveParticleDataSize;								// Copy of the particle data on the render thread
-		ResSize += MaxActiveParticleIndexSize;								// Copy of the particle indices on the render thread
+		CumulativeResourceSize.AddUnknownMemoryBytes(sizeof(FParticleRibbonEmitterInstance));
+		CumulativeResourceSize.AddUnknownMemoryBytes(MaxActiveParticleDataSize);								// Copy of the particle data on the render thread
+		CumulativeResourceSize.AddUnknownMemoryBytes(MaxActiveParticleIndexSize);								// Copy of the particle indices on the render thread
 		if (DynamicParameterDataOffset == 0)
 		{
-			ResSize += MaxActiveParticles * sizeof(FParticleBeamTrailVertex);	// The vertex data array
+			CumulativeResourceSize.AddUnknownMemoryBytes(MaxActiveParticles * sizeof(FParticleBeamTrailVertex));	// The vertex data array
 		}
 		else
 		{
-			ResSize += MaxActiveParticles * sizeof(FParticleBeamTrailVertexDynamicParameter);
+			CumulativeResourceSize.AddUnknownMemoryBytes(MaxActiveParticles * sizeof(FParticleBeamTrailVertexDynamicParameter));
 		}
 	}
-	return ResSize;
 }
 
 /**
@@ -3973,27 +3971,25 @@ void FParticleAnimTrailEmitterInstance::GetAllocatedSize(int32& OutNum, int32& O
  * @param	Mode	Specifies which resource size should be displayed. ( see EResourceSizeMode::Type )
  * @return  Size of resource as to be displayed to artists/ LDs in the Editor.
  */
-SIZE_T FParticleAnimTrailEmitterInstance::GetResourceSize(EResourceSizeMode::Type Mode)
+void FParticleAnimTrailEmitterInstance::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	int32 ResSize = 0;
-	if (Mode == EResourceSizeMode::Inclusive || (Component && Component->SceneProxy))
+	if (CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Inclusive || (Component && Component->SceneProxy))
 	{
 		int32 MaxActiveParticleDataSize = (ParticleData != NULL) ? (MaxActiveParticles * ParticleStride) : 0;
 		int32 MaxActiveParticleIndexSize = (ParticleIndices != NULL) ? (MaxActiveParticles * sizeof(uint16)) : 0;
 		// Take dynamic data into account as well
-		ResSize = sizeof(FParticleAnimTrailEmitterInstance);
-		ResSize += MaxActiveParticleDataSize;								// Copy of the particle data on the render thread
-		ResSize += MaxActiveParticleIndexSize;								// Copy of the particle indices on the render thread
+		CumulativeResourceSize.AddUnknownMemoryBytes(sizeof(FParticleAnimTrailEmitterInstance));
+		CumulativeResourceSize.AddUnknownMemoryBytes(MaxActiveParticleDataSize);								// Copy of the particle data on the render thread
+		CumulativeResourceSize.AddUnknownMemoryBytes(MaxActiveParticleIndexSize);								// Copy of the particle indices on the render thread
 		if (DynamicParameterDataOffset == 0)
 		{
-			ResSize += MaxActiveParticles * sizeof(FParticleBeamTrailVertex);	// The vertex data array
+			CumulativeResourceSize.AddUnknownMemoryBytes(MaxActiveParticles * sizeof(FParticleBeamTrailVertex));	// The vertex data array
 		}
 		else
 		{
-			ResSize += MaxActiveParticles * sizeof(FParticleBeamTrailVertexDynamicParameter);
+			CumulativeResourceSize.AddUnknownMemoryBytes(MaxActiveParticles * sizeof(FParticleBeamTrailVertexDynamicParameter));
 		}
 	}
-	return ResSize;
 }
 
 void FParticleAnimTrailEmitterInstance::BeginTrail()

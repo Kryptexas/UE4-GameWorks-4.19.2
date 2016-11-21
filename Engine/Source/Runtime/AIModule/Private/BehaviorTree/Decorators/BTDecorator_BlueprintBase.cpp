@@ -306,10 +306,3 @@ bool UBTDecorator_BlueprintBase::UsesBlueprint() const
 }
 
 #endif // WITH_EDITOR
-
-//----------------------------------------------------------------------//
-// DEPRECATED
-//----------------------------------------------------------------------//
-void UBTDecorator_BlueprintBase::FinishConditionCheck(bool bAllowExecution)
-{
-}

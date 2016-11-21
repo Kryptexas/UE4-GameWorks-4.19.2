@@ -156,10 +156,19 @@ public:
 	{
 		if (!PLATFORM_LINUX)
 		{
-			// check for LINUX_ROOT when targeting Linux from Win/Mac
+			// check for LINUX_MULTIARCH_ROOT or for legacy LINUX_ROOT when targeting Linux from Win/Mac
 			TCHAR ToolchainRoot[32768] = { 0 };
-			FPlatformMisc::GetEnvironmentVariable(TEXT("LINUX_ROOT"), ToolchainRoot, ARRAY_COUNT(ToolchainRoot));
-
+			FPlatformMisc::GetEnvironmentVariable(TEXT("LINUX_MULTIARCH_ROOT"), ToolchainRoot, ARRAY_COUNT(ToolchainRoot));
+			// proceed with any value for MULTIARCH root, because checking exact architecture is not possible at this point
+			FString ToolchainMultiarchRoot = ToolchainRoot;
+			if (ToolchainMultiarchRoot.Len() > 0 && FPaths::DirectoryExists(ToolchainMultiarchRoot))
+			{
+				return true;
+			}
+			
+			// else check for legacy LINUX_ROOT
+			ToolchainRoot[ 0 ] = 0;
+			FPlatformMisc::GetEnvironmentVariable(TEXT("LINUX_MULTIARCH_ROOT"), ToolchainRoot, ARRAY_COUNT(ToolchainRoot));            
 			FString ToolchainCompiler = ToolchainRoot;
 			if (PLATFORM_WINDOWS)
 			{

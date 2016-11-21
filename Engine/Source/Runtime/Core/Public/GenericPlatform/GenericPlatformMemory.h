@@ -150,6 +150,21 @@ struct CORE_API FGenericPlatformMemory
 		MCR_MAX
 	};
 
+	/** Which allocator is being used */
+	enum EMemoryAllocatorToUse
+	{
+		Ansi, // Default C allocator
+		Stomp, // Allocator to check for memory stomping
+		TBB, // Thread Building Blocks malloc
+		Jemalloc, // Linux/FreeBSD malloc
+		Binned, // Older binned malloc
+		Binned2, // Newer binned malloc
+		Platform, // Custom platform specific allocator
+	};
+
+	/** Current allocator */
+	static EMemoryAllocatorToUse AllocatorToUse;
+
 	/**
 	 * Flags used for shared memory creation/open
 	 */

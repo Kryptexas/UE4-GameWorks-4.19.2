@@ -292,6 +292,13 @@ void UActorRecording::StartRecordingActorProperties(ULevelSequence* CurrentSeque
 					SkeletalMeshComponent->ForcedLodModel = 1;
 				}
 
+				// Disable possession of pawns otherwise the recorded character will auto possess the player
+				if (ObjectTemplate->IsA(APawn::StaticClass()))
+				{
+					APawn* Pawn = CastChecked<APawn>(ObjectTemplate);
+					Pawn->AutoPossessPlayer = EAutoReceiveInput::Disabled;
+				}
+
 				Guid = MovieScene->AddSpawnable(TemplateName, *ObjectTemplate);
 			}
 		}

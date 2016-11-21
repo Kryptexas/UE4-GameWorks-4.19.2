@@ -415,10 +415,10 @@ void UKismetProceduralMeshLibrary::GetSectionFromStaticMesh(UStaticMesh* InMesh,
 void UKismetProceduralMeshLibrary::CopyProceduralMeshFromStaticMeshComponent(UStaticMeshComponent* StaticMeshComponent, int32 LODIndex, UProceduralMeshComponent* ProcMeshComponent, bool bCreateCollision)
 {
 	if( StaticMeshComponent != nullptr && 
-		StaticMeshComponent->StaticMesh != nullptr && 
+		StaticMeshComponent->GetStaticMesh() != nullptr &&
 		ProcMeshComponent != nullptr )
 	{
-		UStaticMesh* StaticMesh = StaticMeshComponent->StaticMesh;
+		UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
 
 		//// MESH DATA
 
@@ -917,7 +917,7 @@ void UKismetProceduralMeshLibrary::SliceProceduralMesh(UProceduralMeshComponent*
 					}
 
 					// If we have some valid geometry, update section
-					if (NewSection.ProcIndexBuffer.Num() > 0 && NewOtherSection->ProcVertexBuffer.Num() > 0)
+					if (NewSection.ProcIndexBuffer.Num() > 0 && NewSection.ProcVertexBuffer.Num() > 0)
 					{
 						// Assign new geom to this section
 						InProcMesh->SetProcMeshSection(SectionIndex, NewSection);

@@ -4,12 +4,12 @@
 #include <SDL.h>
 
 #if PLATFORM_HTML5_BROWSER
-#include <html5.h>
-#endif 
+#include <emscripten/html5.h>
+#endif
 
 
 /**
- * Interface class for HTML5 input devices                 
+ * Interface class for HTML5 input devices
  */
 class FHTML5InputInterface
 {
@@ -45,9 +45,9 @@ private:
 
 #if PLATFORM_HTML5_BROWSER
 
-	EmscriptenGamepadEvent PrevGamePadState[5]; 
+	EmscriptenGamepadEvent PrevGamePadState[5];
 	double LastPressedTime[5][15];
 
-#endif 
+#endif
 
 };

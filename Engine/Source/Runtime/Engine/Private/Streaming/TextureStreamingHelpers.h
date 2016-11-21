@@ -51,6 +51,7 @@ extern TAutoConsoleVariable<float> CVarStreamingBoost;
 extern TAutoConsoleVariable<int32> CVarStreamingUseFixedPoolSize;
 extern TAutoConsoleVariable<int32> CVarStreamingPoolSize;
 extern TAutoConsoleVariable<int32> CVarStreamingCheckBuildStatus;
+extern TAutoConsoleVariable<int32> CVarStreamingUseMaterialData;
 
 struct FTextureStreamingSettings
 {
@@ -78,6 +79,7 @@ struct FTextureStreamingSettings
 	bool bUseAllMips;
 	bool bScaleTexturesByGlobalMyBias;
 	bool bUsePerTextureBias;
+	bool bUseMaterialData;
 
 protected:
 
@@ -108,14 +110,6 @@ struct FStreamingTexture;
 struct FStreamingContext;
 struct FStreamingHandlerTextureBase;
 struct FTexturePriority;
-
-/**
- * Checks whether a UTexture2D is supposed to be streaming.
- * @param Texture	Texture to check
- * @return			true if the UTexture2D is supposed to be streaming
- */
-bool IsStreamingTexture( const UTexture2D* Texture2D );
-
 
 /**
  *	Helper struct that represents a texture and the parameters used for sorting and streaming out high-res mip-levels.

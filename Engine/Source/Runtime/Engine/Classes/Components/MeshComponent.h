@@ -38,6 +38,19 @@ class ENGINE_API UMeshComponent : public UPrimitiveComponent
 	/** Returns override Materials count */
 	virtual int32 GetNumOverrideMaterials() const;
 
+#if WITH_EDITOR
+	/*
+	 * Make sure the Override array is using only the space it should use.
+	 * 1. The override array cannot be bigger then the number of mesh material.
+	 * 2. The override array must not end with a nullptr UMaterialInterface.
+	 */
+	void CleanUpOverrideMaterials();
+	/** 
+	 * This empties all override materials and used by editor when replacing preview mesh 
+	 */
+	void EmptyOverrideMaterials(); 
+#endif
+
 	//~ Begin UObject Interface
 	virtual void BeginDestroy() override;
 	//~ End UObject Interface
@@ -66,6 +79,12 @@ class ENGINE_API UMeshComponent : public UPrimitiveComponent
 	 *	@param CinematicTextureGroups			Bitfield indicating which texture groups that use extra high-resolution mips
 	 */
 	virtual void PrestreamTextures( float Seconds, bool bPrioritizeCharacterTextures, int32 CinematicTextureGroups = 0 );
+
+	/** Get the material info for texture stremaing. Return whether the data is valid or not. */
+	virtual bool GetMaterialStreamingData(int32 MaterialIndex, FPrimitiveMaterialInfo& MaterialData) const { return false; }
+
+	/** Generate streaming data for all materials. */
+	void GetStreamingTextureInfoInner(FStreamingTextureLevelContext& LevelContext, const TArray<FStreamingTextureBuildInfo>* PreBuiltData, float ComponentScaling, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	/**

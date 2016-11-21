@@ -23,11 +23,6 @@ public:
 	*/
 	virtual IScreenShotManagerPtr GetScreenShotManager( ) = 0;
 
-	/**
-	* Update the screenshot data after it has been updated.
-	*/
-	virtual void UpdateScreenShotData( ) = 0;
-
 public:
 
 	/**

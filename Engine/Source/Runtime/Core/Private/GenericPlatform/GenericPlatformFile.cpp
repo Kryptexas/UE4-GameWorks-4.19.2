@@ -8,6 +8,8 @@
 #include "AsyncFileHandle.h"
 
 class FGenericBaseRequest;
+class FGenericAsyncReadFileHandle;
+
 class FGenericReadRequestWorker : public FNonAbandonableTask
 {
 	FGenericBaseRequest& ReadRequest;
@@ -30,8 +32,8 @@ protected:
 	IPlatformFile* LowerLevel;
 	const TCHAR* Filename;
 public:
-	FGenericBaseRequest(IPlatformFile* InLowerLevel, const TCHAR* InFilename, FAsyncFileCallBack* CompleteCallback, bool bInSizeRequest)
-		: IAsyncReadRequest(CompleteCallback, bInSizeRequest)
+	FGenericBaseRequest(IPlatformFile* InLowerLevel, const TCHAR* InFilename, FAsyncFileCallBack* CompleteCallback, bool bInSizeRequest, uint8* UserSuppliedMemory = nullptr)
+		: IAsyncReadRequest(CompleteCallback, bInSizeRequest, UserSuppliedMemory)
 		, Task(nullptr)
 		, LowerLevel(InLowerLevel)
 		, Filename(InFilename)
@@ -64,32 +66,36 @@ public:
 
 	virtual void WaitCompletionImpl(float TimeLimitSeconds) override
 	{
-		check(Task);
-		bool bResult;
-		if (TimeLimitSeconds <= 0.0f)
+		if (Task)
 		{
-			Task->EnsureCompletion();
-			bResult = true;
-		}
-		else
-		{
-			bResult = Task->WaitCompletionWithTimeout(TimeLimitSeconds);
-		}
-		if (bResult)
-		{
-			check(bCompleteAndCallbackCalled);
-			delete Task;
-			Task = nullptr;
+			bool bResult;
+			if (TimeLimitSeconds <= 0.0f)
+			{
+				Task->EnsureCompletion();
+				bResult = true;
+			}
+			else
+			{
+				bResult = Task->WaitCompletionWithTimeout(TimeLimitSeconds);
+			}
+			if (bResult)
+			{
+				check(bCompleteAndCallbackCalled);
+				delete Task;
+				Task = nullptr;
+			}
 		}
 	}
 	virtual void CancelImpl() override
 	{
-		check(Task);
-		if (Task->Cancel())
+		if (Task)
 		{
-			delete Task;
-			Task = nullptr;
-			SetComplete();
+			if (Task->Cancel())
+			{
+				delete Task;
+				Task = nullptr;
+				SetComplete();
+			}
 		}
 	}
 };
@@ -116,25 +122,31 @@ public:
 
 class FGenericReadRequest : public FGenericBaseRequest
 {
+	FGenericAsyncReadFileHandle* Owner;
 	int64 Offset;
 	int64 BytesToRead;
+	EAsyncIOPriority Priority;
 public:
-	FGenericReadRequest(IPlatformFile* InLowerLevel, const TCHAR* InFilename, FAsyncFileCallBack* CompleteCallback, int64 InOffset, int64 InBytesToRead, EAsyncIOPriority Priority)
-		: FGenericBaseRequest(InLowerLevel, InFilename, CompleteCallback, false)
+	FGenericReadRequest(FGenericAsyncReadFileHandle* InOwner, IPlatformFile* InLowerLevel, const TCHAR* InFilename, FAsyncFileCallBack* CompleteCallback, uint8* UserSuppliedMemory, int64 InOffset, int64 InBytesToRead, EAsyncIOPriority InPriority)
+		: FGenericBaseRequest(InLowerLevel, InFilename, CompleteCallback, false, UserSuppliedMemory)
+		, Owner(InOwner)
 		, Offset(InOffset)
 		, BytesToRead(InBytesToRead)
+		, Priority(InPriority)
 	{
-		if (Priority == AIOP_Precache)
+		check(Offset >= 0 && BytesToRead > 0);
+		if (CheckForPrecache()) 
 		{
-			SetComplete(); // we don't do precaching, so it is done
+			SetComplete();
 		}
 		else
 		{
-			check(Offset >= 0 && BytesToRead > 0 && BytesToRead < MAX_int64);
 			Task = new FAsyncTask<FGenericReadRequestWorker>(this);
 			Start();
 		}
 	}
+	~FGenericReadRequest();
+	bool CheckForPrecache();
 	virtual void PerformRequest() override
 	{
 		if (!bCanceled)
@@ -142,14 +154,40 @@ public:
 			IFileHandle* Handle = LowerLevel->OpenRead(Filename);
 			if (Handle)
 			{
-				check(BytesToRead != MAX_int64);
-				Memory = (uint8*)FMemory::Malloc(BytesToRead);
+				if (BytesToRead == MAX_uint64)
+				{
+					BytesToRead = Handle->Size() - Offset;
+					check(BytesToRead > 0);
+				}
+				if (!bUserSuppliedMemory)
+				{
+					check(!Memory);
+					Memory = (uint8*)FMemory::Malloc(BytesToRead);
+					INC_MEMORY_STAT_BY(STAT_AsyncFileMemory, BytesToRead);
+				}
+				check(Memory);
 				Handle->Seek(Offset);
 				Handle->Read(Memory, BytesToRead);
 				delete Handle;
 			}
 		}
 		SetComplete();
+	}
+	uint8* GetContainedSubblock(uint8* UserSuppliedMemory, int64 InOffset, int64 InBytesToRead)
+	{
+		if (InOffset >= Offset && InOffset + InBytesToRead <= Offset + BytesToRead &&
+			this->PollCompletion())
+		{
+			check(Memory);
+			if (!UserSuppliedMemory)
+			{
+				UserSuppliedMemory = (uint8*)FMemory::Malloc(InBytesToRead);
+				INC_MEMORY_STAT_BY(STAT_AsyncFileMemory, InBytesToRead);
+			}
+			FMemory::Memcpy(UserSuppliedMemory, Memory + InOffset - Offset, InBytesToRead);
+			return UserSuppliedMemory;
+		}
+		return nullptr;
 	}
 };
 
@@ -158,32 +196,104 @@ void FGenericReadRequestWorker::DoWork()
 	ReadRequest.PerformRequest();
 }
 
-
-
 class FGenericAsyncReadFileHandle final : public IAsyncReadFileHandle
 {
 	IPlatformFile* LowerLevel;
 	FString Filename;
+	TArray<FGenericReadRequest*> LiveRequests; // linear searches could be improved
+	FThreadSafeCounter LiveRequestsNonConcurrent; // This file handle should not be used concurrently; we test that with this.
 public:
 	FGenericAsyncReadFileHandle(IPlatformFile* InLowerLevel, const TCHAR* InFilename)
 		: LowerLevel(InLowerLevel)
 		, Filename(InFilename)
 	{
 	}
+	~FGenericAsyncReadFileHandle()
+	{
+		check(!LiveRequests.Num()); // must delete all requests before you delete the handle
+	}
+	void RemoveRequest(FGenericReadRequest* Req)
+	{
+		check(LiveRequestsNonConcurrent.Increment() == 1);
+		verify(LiveRequests.Remove(Req) == 1);
+		check(LiveRequestsNonConcurrent.Decrement() == 0);
+	}
+	uint8* GetPrecachedBlock(uint8* UserSuppliedMemory, int64 InOffset, int64 InBytesToRead)
+	{
+		check(LiveRequestsNonConcurrent.Increment() == 1);
+		uint8* Result = nullptr;
+		for (FGenericReadRequest* Req : LiveRequests)
+		{
+			Result = Req->GetContainedSubblock(UserSuppliedMemory, InOffset, InBytesToRead);
+			if (Result)
+			{
+				break;
+			}
+		}
+		check(LiveRequestsNonConcurrent.Decrement() == 0);
+		return Result;
+	}
 	virtual IAsyncReadRequest* SizeRequest(FAsyncFileCallBack* CompleteCallback = nullptr) override
 	{
 		return new FGenericSizeRequest(LowerLevel, *Filename, CompleteCallback);
 	}
-	virtual IAsyncReadRequest* ReadRequest(int64 Offset, int64 BytesToRead, EAsyncIOPriority Priority = AIOP_Normal, FAsyncFileCallBack* CompleteCallback = nullptr) override
+	virtual IAsyncReadRequest* ReadRequest(int64 Offset, int64 BytesToRead, EAsyncIOPriority Priority = AIOP_Normal, FAsyncFileCallBack* CompleteCallback = nullptr, uint8* UserSuppliedMemory = nullptr) override
 	{
-		return new FGenericReadRequest(LowerLevel, *Filename, CompleteCallback, Offset, BytesToRead, Priority);
+		FGenericReadRequest* Result = new FGenericReadRequest(this, LowerLevel, *Filename, CompleteCallback, UserSuppliedMemory, Offset, BytesToRead, Priority);
+		if (Priority == AIOP_Precache) // only precache requests are tracked for possible reuse
+		{
+			check(LiveRequestsNonConcurrent.Increment() == 1);
+			LiveRequests.Add(Result);
+			check(LiveRequestsNonConcurrent.Decrement() == 0);
+		}
+		return Result;
 	}
+
 };
+
+FGenericReadRequest::~FGenericReadRequest()
+{
+	if (Memory)
+	{
+		// this can happen with a race on cancel, it is ok, they didn't take the memory, free it now
+		if (!bUserSuppliedMemory)
+		{
+			DEC_MEMORY_STAT_BY(STAT_AsyncFileMemory, BytesToRead);
+			FMemory::Free(Memory);
+		}
+		Memory = nullptr;
+	}
+	if (Priority == AIOP_Precache) // only precache requests are tracked for possible reuse
+	{
+		Owner->RemoveRequest(this);
+	}
+	Owner = nullptr;
+}
+
+bool FGenericReadRequest::CheckForPrecache()
+{
+	if (Priority > AIOP_Precache)  // only requests at higher than precache priority check for existing blocks to copy from 
+	{
+		check(!Memory || bUserSuppliedMemory);
+		uint8* Result = Owner->GetPrecachedBlock(Memory, Offset, BytesToRead);
+		if (Result)
+		{
+			check(!bUserSuppliedMemory || Memory == Result);
+			Memory = Result;
+			return true;
+		}
+	}
+	return false;
+}
 
 IAsyncReadFileHandle* IPlatformFile::OpenAsyncRead(const TCHAR* Filename)
 {
 	return new FGenericAsyncReadFileHandle(this, Filename);
 }
+
+DEFINE_STAT(STAT_AsyncFileMemory);
+DEFINE_STAT(STAT_AsyncFileHandles);
+DEFINE_STAT(STAT_AsyncFileRequests);
 
 #endif //USE_NEW_ASYNC_IO
 

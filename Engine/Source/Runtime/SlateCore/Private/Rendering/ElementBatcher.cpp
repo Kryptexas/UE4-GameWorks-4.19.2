@@ -106,26 +106,11 @@ void FSlateElementBatcher::AddElements(FSlateDrawLayer& InDrawLayer)
 
 	DrawLayer = &InDrawLayer;
 
-#if SLATE_POOL_DRAW_ELEMENTS
-	const TArray<FSlateDrawElement*>& DrawElements = InDrawLayer.DrawElements;
-#else
 	const TArray<FSlateDrawElement>& DrawElements = InDrawLayer.DrawElements;
-#endif
 
 	for( int32 DrawElementIndex = 0; DrawElementIndex < DrawElements.Num(); ++DrawElementIndex )
 	{
-#if SLATE_POOL_DRAW_ELEMENTS
-		if ( DrawElementIndex < ( DrawElements.Num() - 1 ) )
-		{
-			FPlatformMisc::Prefetch(DrawElements[DrawElementIndex + 1]);
-		}
-#endif
-
-#if SLATE_POOL_DRAW_ELEMENTS
-		const FSlateDrawElement& DrawElement = *DrawElements[DrawElementIndex];
-#else
 		const FSlateDrawElement& DrawElement = DrawElements[DrawElementIndex];
-#endif
 
 		const FSlateRect& InClippingRect = DrawElement.GetClippingRect();
 	

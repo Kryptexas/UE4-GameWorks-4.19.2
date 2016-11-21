@@ -90,21 +90,11 @@ UAnimInstance::UAnimInstance(const FObjectInitializer& ObjectInitializer)
 	, bUpdatingAnimation(false)
 	, bPostUpdatingAnimation(false)
 {
-PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	RootNode = nullptr;
-PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	RootMotionMode = ERootMotionMode::RootMotionFromMontagesOnly;
 	bNeedsUpdate = false;
-}
 
-void UAnimInstance::MakeSequenceTickRecord(FAnimTickRecord& TickRecord, class UAnimSequenceBase* Sequence, bool bLooping, float PlayRate, float FinalBlendWeight, float& CurrentTime, FMarkerTickRecord& MarkerTickRecord) const
-{
-	GetProxyOnGameThread<FAnimInstanceProxy>().MakeSequenceTickRecord(TickRecord, Sequence, bLooping, PlayRate, FinalBlendWeight, CurrentTime, MarkerTickRecord);
-}
-
-void UAnimInstance::MakeBlendSpaceTickRecord(FAnimTickRecord& TickRecord, class UBlendSpaceBase* BlendSpace, const FVector& BlendInput, TArray<FBlendSampleData>& BlendSampleDataCache, FBlendFilter& BlendFilter, bool bLooping, float PlayRate, float FinalBlendWeight, float& CurrentTime, FMarkerTickRecord& MarkerTickRecord) const
-{
-	GetProxyOnGameThread<FAnimInstanceProxy>().MakeBlendSpaceTickRecord(TickRecord, BlendSpace, BlendInput, BlendSampleDataCache, BlendFilter, bLooping, PlayRate, FinalBlendWeight, CurrentTime, MarkerTickRecord);
+	// Default to using threaded animation update.
+	bUseMultiThreadedAnimationUpdate = true;
 }
 
 // this is only used by montage marker based sync
@@ -119,21 +109,6 @@ void UAnimInstance::MakeMontageTickRecord(FAnimTickRecord& TickRecord, class UAn
 	TickRecord.PlayRateMultiplier = 1.f; // we don't care here, this is alreayd applied in the montageinstance::Advance
 	TickRecord.EffectiveBlendWeight = Weight;
 	TickRecord.bLooping = false;
-}
-
-void UAnimInstance::SequenceAdvanceImmediate(UAnimSequenceBase* Sequence, bool bLooping, float PlayRate, float DeltaSeconds, float& CurrentTime, FMarkerTickRecord& MarkerTickRecord)
-{
-	GetProxyOnGameThread<FAnimInstanceProxy>().SequenceAdvanceImmediate(Sequence, bLooping, PlayRate, DeltaSeconds, CurrentTime, MarkerTickRecord);
-}
-
-void UAnimInstance::BlendSpaceAdvanceImmediate(class UBlendSpaceBase* BlendSpace, const FVector& BlendInput, TArray<FBlendSampleData>& BlendSampleDataCache, FBlendFilter& BlendFilter, bool bLooping, float PlayRate, float DeltaSeconds, float& CurrentTime, FMarkerTickRecord& MarkerTickRecord)
-{
-	GetProxyOnGameThread<FAnimInstanceProxy>().BlendSpaceAdvanceImmediate(BlendSpace, BlendInput, BlendSampleDataCache, BlendFilter, bLooping, PlayRate, DeltaSeconds, CurrentTime, MarkerTickRecord);
-}
-
-FAnimTickRecord& UAnimInstance::CreateUninitializedTickRecord(int32 GroupIndex, FAnimGroupInstance*& OutSyncGroupPtr)
-{
-	return GetProxyOnGameThread<FAnimInstanceProxy>().CreateUninitializedTickRecord(GroupIndex, OutSyncGroupPtr);
 }
 
 AActor* UAnimInstance::GetOwningActor() const
@@ -151,6 +126,23 @@ APawn* UAnimInstance::TryGetPawnOwner() const
 	}
 
 	return NULL;
+}
+
+void UAnimInstance::SavePoseSnapshot(FName SnapshotName)
+{
+	FAnimInstanceProxy& Proxy = GetProxyOnGameThread<FAnimInstanceProxy>();
+	if(USkeletalMeshComponent* SkeletalMeshComponent = GetSkelMeshComponent())
+	{
+		Proxy.SavePoseSnapshot(SkeletalMeshComponent, SnapshotName);
+	}
+}
+
+void UAnimInstance::SnapshotPose(FPoseSnapshot& Snapshot)
+{
+	if (USkeletalMeshComponent* SkeletalMeshComponent = GetSkelMeshComponent())
+	{
+		SkeletalMeshComponent->SnapshotPose(Snapshot);
+	}
 }
 
 USkeletalMeshComponent* UAnimInstance::GetOwningComponent() const
@@ -209,11 +201,6 @@ void UAnimInstance::InitializeAnimation()
 	BlueprintInitializeAnimation();
 
 	GetProxyOnGameThread<FAnimInstanceProxy>().InitializeRootNode();
-
-PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	// @todo: remove after deprecation
-	RootNode = GetProxyOnGameThread<FAnimInstanceProxy>().GetRootNode();
-PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 	// we can bind rules & events now the graph has been initialized
 	GetProxyOnGameThread<FAnimInstanceProxy>().BindNativeDelegates();
@@ -288,12 +275,6 @@ bool UAnimInstance::UpdateSnapshotAndSkipRemainingUpdate()
 	return false;
 }
 #endif
-
-// update animation node, if you have your own anim instance, you could override this to update extra nodes if you'd like
-void UAnimInstance::UpdateAnimationNode(float DeltaSeconds)
-{
-	GetProxyOnGameThread<FAnimInstanceProxy>().UpdateAnimationNode(DeltaSeconds);
-}
 
 void UAnimInstance::UpdateMontage(float DeltaSeconds)
 {
@@ -504,7 +485,7 @@ bool UAnimInstance::NeedsImmediateUpdate(float DeltaSeconds) const
 	USkeletalMeshComponent* SkelMeshComp = GetSkelMeshComponent();
 	const bool bEvaluationPhaseSkipped = SkelMeshComp && !SkelMeshComp->bRecentlyRendered && (SkelMeshComp->MeshComponentUpdateFlag > EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones);
 
-	const bool bUseParallelUpdateAnimation = bCanUseParallelUpdateAnimation || (CVarForceUseParallelAnimUpdate.GetValueOnGameThread() != 0);
+	const bool bUseParallelUpdateAnimation = (GetDefault<UEngine>()->bAllowMultiThreadedAnimationUpdate && bUseMultiThreadedAnimationUpdate) || (CVarForceUseParallelAnimUpdate.GetValueOnGameThread() != 0);
 
 	return
 		GIntraFrameDebuggingGameThread ||
@@ -524,11 +505,6 @@ bool UAnimInstance::NeedsUpdate() const
 void UAnimInstance::PreEvaluateAnimation()
 {
 	GetProxyOnGameThread<FAnimInstanceProxy>().PreEvaluateAnimation(this);
-}
-
-void UAnimInstance::EvaluateAnimation(FPoseContext& Output)
-{
-	GetProxyOnGameThread<FAnimInstanceProxy>().EvaluateAnimation(Output);
 }
 
 bool UAnimInstance::ParallelCanEvaluate(const USkeletalMesh* InSkeletalMesh) const
@@ -597,11 +573,6 @@ void UAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 void UAnimInstance::NativeUpdateAnimation_WorkerThread(float DeltaSeconds)
 {
-}
-
-bool UAnimInstance::NativeEvaluateAnimation(FPoseContext& Output)
-{
-	return false;
 }
 
 void UAnimInstance::NativePostEvaluateAnimation()
@@ -728,6 +699,7 @@ void OutputTickRecords(const TArray<FAnimTickRecord>& Records, UCanvas* Canvas, 
 
 void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
+#if ENABLE_DRAW_DEBUG
 	FAnimInstanceProxy& Proxy = GetProxyOnGameThread<FAnimInstanceProxy>();
 
 	float Indent = 0.f;
@@ -960,6 +932,7 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 			}
 		}
 	}
+#endif // ENABLE_DRAW_DEBUG
 }
 
 void UAnimInstance::ResetDynamics()
@@ -1030,21 +1003,6 @@ void UAnimInstance::PostInitProperties()
 	}
 }
 
-bool UAnimInstance::PassesFiltering(const FAnimNotifyEvent* Notify) const
-{
-	return NotifyQueue.PassesFiltering(Notify);
-}
-
-bool UAnimInstance::PassesChanceOfTriggering(const FAnimNotifyEvent* Event) const
-{
-	return NotifyQueue.PassesChanceOfTriggering(Event);
-}
-
-void UAnimInstance::AddAnimNotifyFromGeneratedClass(int32 NotifyIndex)
-{
-	GetProxyOnGameThread<FAnimInstanceProxy>().AddAnimNotifyFromGeneratedClass(NotifyIndex);
-}
-
 void UAnimInstance::AddCurveValue(const FName& CurveName, float Value)
 {
 	FAnimInstanceProxy& Proxy = GetProxyOnGameThread<FAnimInstanceProxy>();
@@ -1108,21 +1066,6 @@ void UAnimInstance::AddCurveValue(const USkeleton::AnimCurveUID Uid, float Value
 		NameMapping->GetName(Uid, CurrentCurveName);
 	}
 	AddCurveValue(CurrentCurveName, Value);
-}
-
-int32 UAnimInstance::GetSyncGroupReadIndex() const
-{ 
-	return GetProxyOnGameThread<FAnimInstanceProxy>().GetSyncGroupReadIndex(); 
-}
-
-int32 UAnimInstance::GetSyncGroupWriteIndex() const 
-{ 
-	return GetProxyOnGameThread<FAnimInstanceProxy>().GetSyncGroupWriteIndex(); 
-}
-
-void UAnimInstance::TickSyncGroupWriteIndex() 
-{
-	GetProxyOnGameThread<FAnimInstanceProxy>().TickSyncGroupWriteIndex();
 }
 
 void UAnimInstance::UpdateCurvesToComponents(USkeletalMeshComponent* Component /*= nullptr*/)
@@ -1319,43 +1262,22 @@ void UAnimInstance::TriggerSingleAnimNotify(const FAnimNotifyEvent* AnimNotifyEv
 	}
 }
 
+void UAnimInstance::EndNotifyStates()
+{
+	USkeletalMeshComponent* SkelMeshComp = GetSkelMeshComponent();
+
+	for (FAnimNotifyEvent& Event : ActiveAnimNotifyState)
+	{
+		if (UAnimNotifyState* NotifyState = Event.NotifyStateClass)
+		{
+			NotifyState->NotifyEnd(SkelMeshComp, Cast<UAnimSequenceBase>(NotifyState->GetOuter()));
+		}
+	}
+	ActiveAnimNotifyState.Reset();
+}
+
 //to debug montage weight
 #define DEBUGMONTAGEWEIGHT 0
-
-void UAnimInstance::GetSlotWeight(FName const& SlotNodeName, float& out_SlotNodeWeight, float& out_SourceWeight, float& out_TotalNodeWeight) const
-{
-	GetProxyOnGameThread<FAnimInstanceProxy>().GetSlotWeight(SlotNodeName, out_SlotNodeWeight, out_SourceWeight, out_TotalNodeWeight);
-}
-
-void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FCompactPose& SourcePose, const FBlendedCurve& SourceCurve, float InSourceWeight, FCompactPose& BlendedPose, FBlendedCurve& BlendedCurve, float InBlendWeight, float InTotalNodeWeight)
-{
-	GetProxyOnGameThread<FAnimInstanceProxy>().SlotEvaluatePose(SlotNodeName, SourcePose, SourceCurve, InSourceWeight, BlendedPose, BlendedCurve, InBlendWeight, InTotalNodeWeight);
-}
-
-void UAnimInstance::ReinitializeSlotNodes()
-{
-	GetProxyOnGameThread<FAnimInstanceProxy>().ReinitializeSlotNodes();
-}
-
-void UAnimInstance::RegisterSlotNodeWithAnimInstance(FName SlotNodeName)
-{
-	GetProxyOnGameThread<FAnimInstanceProxy>().RegisterSlotNodeWithAnimInstance(SlotNodeName);
-}
-
-void UAnimInstance::UpdateSlotNodeWeight(FName SlotNodeName, float InLocalMontageWeight, float InGlobalWeight)
-{
-	GetProxyOnGameThread<FAnimInstanceProxy>().UpdateSlotNodeWeight(SlotNodeName, InLocalMontageWeight, InGlobalWeight);
-}
-
-void UAnimInstance::ClearSlotNodeWeights()
-{
-	GetProxyOnGameThread<FAnimInstanceProxy>().ClearSlotNodeWeights();
-}
-
-bool UAnimInstance::IsSlotNodeRelevantForNotifies(FName SlotNodeName) const
-{
-	return GetProxyOnGameThread<FAnimInstanceProxy>().IsSlotNodeRelevantForNotifies(SlotNodeName);
-}
 
 float UAnimInstance::GetSlotNodeGlobalWeight(FName SlotNodeName) const
 {
@@ -1647,7 +1569,7 @@ float UAnimInstance::PlaySlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeN
 	if (!bValidAsset)
 	{
 		// user warning
-		UE_LOG(LogAnimMontage, Warning, TEXT("Invalid Asset. If Montage, use Montage_Play"));
+		UE_LOG(LogAnimMontage, Warning, TEXT("PlaySlotAnimation: Invalid input asset(%s). If Montage, please use Montage_Play"), *GetNameSafe(Asset));
 		return 0.f;
 	}
 
@@ -1708,7 +1630,7 @@ UAnimMontage* UAnimInstance::PlaySlotAnimationAsDynamicMontage(UAnimSequenceBase
 	if (!bValidAsset)
 	{
 		// user warning
-		UE_LOG(LogAnimMontage, Warning, TEXT("Invalid Asset. If Montage, use Montage_Play"));
+		UE_LOG(LogAnimMontage, Warning, TEXT("PlaySlotAnimationAsDynamicMontage: Invalid input asset(%s). If Montage, please use Montage_Play"), *GetNameSafe(Asset));
 		return nullptr;
 	}
 
@@ -2245,11 +2167,11 @@ void UAnimInstance::Montage_SetPosition(const UAnimMontage* Montage, float NewPo
 	}
 }
 
-float UAnimInstance::Montage_GetPosition(const UAnimMontage* Montage)
+float UAnimInstance::Montage_GetPosition(const UAnimMontage* Montage) const
 {
 	if (Montage)
 	{
-		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(Montage);
+		const FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(Montage);
 		if (MontageInstance)
 		{
 			return MontageInstance->GetPosition();
@@ -2260,7 +2182,7 @@ float UAnimInstance::Montage_GetPosition(const UAnimMontage* Montage)
 		// If no Montage reference, use first active one found.
 		for (int32 InstanceIndex = 0; InstanceIndex < MontageInstances.Num(); InstanceIndex++)
 		{
-			FAnimMontageInstance* MontageInstance = MontageInstances[InstanceIndex];
+			const FAnimMontageInstance* MontageInstance = MontageInstances[InstanceIndex];
 			if (MontageInstance && MontageInstance->IsActive())
 			{
 				return MontageInstance->GetPosition();
@@ -2271,21 +2193,21 @@ float UAnimInstance::Montage_GetPosition(const UAnimMontage* Montage)
 	return 0.f;
 }
 
-bool UAnimInstance::Montage_GetIsStopped(const UAnimMontage* Montage)
+bool UAnimInstance::Montage_GetIsStopped(const UAnimMontage* Montage) const
 {
 	if (Montage)
 	{
-		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(Montage);
+		const FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(Montage);
 		return (!MontageInstance); // Not active == Stopped.
 	}
 	return true;
 }
 
-float UAnimInstance::Montage_GetBlendTime(const UAnimMontage* Montage)
+float UAnimInstance::Montage_GetBlendTime(const UAnimMontage* Montage) const
 {
 	if (Montage)
 	{
-		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(Montage);
+		const FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(Montage);
 		if (MontageInstance)
 		{
 			return MontageInstance->GetBlendTime();
@@ -2296,7 +2218,7 @@ float UAnimInstance::Montage_GetBlendTime(const UAnimMontage* Montage)
 		// If no Montage reference, use first active one found.
 		for (int32 InstanceIndex = 0; InstanceIndex < MontageInstances.Num(); InstanceIndex++)
 		{
-			FAnimMontageInstance* MontageInstance = MontageInstances[InstanceIndex];
+			const FAnimMontageInstance* MontageInstance = MontageInstances[InstanceIndex];
 			if (MontageInstance && MontageInstance->IsActive())
 			{
 				return MontageInstance->GetBlendTime();
@@ -2307,11 +2229,11 @@ float UAnimInstance::Montage_GetBlendTime(const UAnimMontage* Montage)
 	return 0.f;
 }
 
-float UAnimInstance::Montage_GetPlayRate(const UAnimMontage* Montage)
+float UAnimInstance::Montage_GetPlayRate(const UAnimMontage* Montage) const
 {
 	if (Montage)
 	{
-		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(Montage);
+		const FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(Montage);
 		if (MontageInstance)
 		{
 			return MontageInstance->GetPlayRate();
@@ -2322,7 +2244,7 @@ float UAnimInstance::Montage_GetPlayRate(const UAnimMontage* Montage)
 		// If no Montage reference, use first active one found.
 		for (int32 InstanceIndex = 0; InstanceIndex < MontageInstances.Num(); InstanceIndex++)
 		{
-			FAnimMontageInstance* MontageInstance = MontageInstances[InstanceIndex];
+			const FAnimMontageInstance* MontageInstance = MontageInstances[InstanceIndex];
 			if (MontageInstance && MontageInstance->IsActive())
 			{
 				return MontageInstance->GetPlayRate();
@@ -2364,13 +2286,13 @@ bool UAnimInstance::IsAnyMontagePlaying() const
 	return (MontageInstances.Num() > 0);
 }
 
-UAnimMontage* UAnimInstance::GetCurrentActiveMontage()
+UAnimMontage* UAnimInstance::GetCurrentActiveMontage() const
 {
 	// Start from end, as most recent instances are added at the end of the queue.
 	int32 const NumInstances = MontageInstances.Num();
 	for (int32 InstanceIndex = NumInstances - 1; InstanceIndex >= 0; InstanceIndex--)
 	{
-		FAnimMontageInstance* MontageInstance = MontageInstances[InstanceIndex];
+		const FAnimMontageInstance* MontageInstance = MontageInstances[InstanceIndex];
 		if (MontageInstance && MontageInstance->IsActive())
 		{
 			return MontageInstance->Montage;
@@ -2722,16 +2644,6 @@ void UAnimInstance::GetStateMachineIndexAndDescription(FName InMachineName, int3
 	return GetProxyOnAnyThread<FAnimInstanceProxy>().GetStateMachineIndexAndDescription(InMachineName, OutMachineIndex, OutMachineDescription);
 }
 
-FAnimNode_Base* UAnimInstance::GetCheckedNodeFromIndexUntyped(int32 NodeIdx, UScriptStruct* RequiredStructType)
-{
-	return GetProxyOnGameThread<FAnimInstanceProxy>().GetCheckedNodeFromIndexUntyped(NodeIdx, RequiredStructType);
-}
-
-FAnimNode_Base* UAnimInstance::GetNodeFromIndexUntyped(int32 NodeIdx, UScriptStruct* RequiredStructType)
-{
-	return GetProxyOnGameThread<FAnimInstanceProxy>().GetNodeFromIndexUntyped(NodeIdx, RequiredStructType);
-}
-
 const FBakedAnimationStateMachine* UAnimInstance::GetMachineDescription(IAnimClassInterface* AnimBlueprintClass, FAnimNode_StateMachine* MachineInstance)
 {
 	return GetProxyOnGameThread<FAnimInstanceProxy>().GetMachineDescription(AnimBlueprintClass, MachineInstance);
@@ -2755,7 +2667,7 @@ int32 UAnimInstance::GetSyncGroupIndexFromName(FName SyncGroupName) const
 bool UAnimInstance::IsRunningParallelEvaluation() const
 {
 	USkeletalMeshComponent* Comp = GetOwningComponent();
-	if (Comp)
+	if (Comp && Comp->GetAnimInstance() == this)
 	{
 		return Comp->IsRunningParallelEvaluation();
 	}

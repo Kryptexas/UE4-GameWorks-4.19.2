@@ -3,6 +3,9 @@
 #pragma once
 
 
+enum class EUdpMessageSegments : uint8;
+
+
 /**
  * Implements a beacon sender thread.
  *
@@ -46,7 +49,7 @@ public:
 
 public:
 
-	// FRunnable interface
+	//~ FRunnable interface
 
 	virtual bool Init() override;
 	virtual uint32 Run() override;
@@ -60,7 +63,7 @@ protected:
 	 *
 	 * @param SegmentType The type of segment to send (Hello or Bye).
 	 */
-	void SendSegment(EUdpMessageSegments::Type SegmentType);
+	void SendSegment(EUdpMessageSegments SegmentType);
 
 private:
 

@@ -1098,11 +1098,24 @@ protected:
 		}
 		else if (op >= ir_unop_fasu && op <= ir_unop_uasf)
 		{
-			ralloc_asprintf_append(buffer, "as_type<");
-			print_type_full(expr->type);
-			ralloc_asprintf_append(buffer, ">(");
-			expr->operands[0]->accept(this);
-			ralloc_asprintf_append(buffer, ")");
+		
+		
+		
+		
+			if (expr->type != expr->operands[0]->type)
+			{
+				ralloc_asprintf_append(buffer, "as_type<");
+				print_type_full(expr->type);
+				ralloc_asprintf_append(buffer, ">(");
+				expr->operands[0]->accept(this);
+				ralloc_asprintf_append(buffer, ")");
+			}
+			else
+			{
+				ralloc_asprintf_append(buffer, "(");
+				expr->operands[0]->accept(this);
+				ralloc_asprintf_append(buffer, ")");
+			}
 		}
 		else if (numOps == 1 && op >= ir_unop_first_conversion && op <= ir_unop_last_conversion)
 		{

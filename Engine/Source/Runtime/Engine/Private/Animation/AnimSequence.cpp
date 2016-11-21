@@ -140,16 +140,17 @@ void UAnimSequence::PostInitProperties()
 	Super::PostInitProperties();
 }
 
-SIZE_T UAnimSequence::GetResourceSize(EResourceSizeMode::Type Mode)
+void UAnimSequence::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	if (Mode == EResourceSizeMode::Exclusive)
+	Super::GetResourceSizeEx(CumulativeResourceSize);
+
+	if (CumulativeResourceSize.GetResourceSizeMode() == EResourceSizeMode::Exclusive)
 	{
 		// All of the sequence data is serialized and will be counted as part of the direct object size rather than as a resource
-		return 0;
 	}
 	else
 	{
-		return (CompressedTrackOffsets.Num() == 0) ? GetApproxRawSize() : GetApproxCompressedSize();
+		CumulativeResourceSize.AddDedicatedSystemMemoryBytes((CompressedTrackOffsets.Num() == 0) ? GetApproxRawSize() : GetApproxCompressedSize());
 	}
 }
 
@@ -251,6 +252,15 @@ void UAnimSequence::Serialize(FArchive& Ar)
 
 		bool bSerializeCompressedData = bCookingTargetNeedsCompressedData || bIsDuplicating || bIsTransacting;
 		Ar << bSerializeCompressedData;
+
+		if (bCookingTargetNeedsCompressedData)
+		{
+			if(GetSkeleton())
+			{
+				// Validate that we are cooking valid compressed data.
+				checkf(Ar.IsObjectReferenceCollector() || (GetSkeletonVirtualBoneGuid() == GetSkeleton()->GetVirtualBoneGuid()), TEXT("Attempting to cook animation '%s' containing invalid virtual bone guid! Animation:%s Skeleton:%s"), *GetFullName(), *GetSkeletonVirtualBoneGuid().ToString(EGuidFormats::HexValuesInBraces), *GetSkeleton()->GetVirtualBoneGuid().ToString(EGuidFormats::HexValuesInBraces));
+			}
+		}
 
 		if (bIsDuplicating)
 		{
@@ -386,7 +396,7 @@ void UAnimSequence::PostLoad()
 	// No animation data is found. Warn - this should check before we check CompressedTrackOffsets size
 	// Otherwise, we'll see empty data set crashing game due to no CompressedTrackOffsets
 	// You can't check RawAnimationData size since it gets removed during cooking
-	if ( NumFrames == 0 )
+	if ( NumFrames == 0 && RawCurveData.FloatCurves.Num() == 0 )
 	{
 		UE_LOG(LogAnimation, Warning, TEXT("No animation data exists for sequence %s (%s)"), *GetName(), (GetOuter() ? *GetOuter()->GetFullName() : *GetFullName()) );
 #if WITH_EDITOR
@@ -419,6 +429,10 @@ void UAnimSequence::PostLoad()
 	// If we're in the game and compressed animation data exists, whack the raw data.
 	if (FPlatformProperties::RequiresCookedData())
 	{
+		if (GetSkeleton())
+		{
+			SetSkeletonVirtualBoneGuid(GetSkeleton()->GetVirtualBoneGuid());
+		}
 		if( RawAnimationData.Num() > 0  && CompressedTrackOffsets.Num() > 0 )
 		{
 #if 0//@todo.Cooker/Package...
@@ -446,7 +460,7 @@ void UAnimSequence::PostLoad()
 	if( IsRunningGame() )
 	{
 		// this probably will not show newly created animations in PIE but will show them in the game once they have been saved off
-		INC_DWORD_STAT_BY( STAT_AnimationMemory, GetResourceSize(EResourceSizeMode::Exclusive) );
+		INC_DWORD_STAT_BY( STAT_AnimationMemory, GetResourceSizeBytes(EResourceSizeMode::Exclusive) );
 	}
 
 	{
@@ -549,7 +563,7 @@ void UAnimSequence::VerifyTrackMap(USkeleton* MySkeleton)
 		// first check if any of them needs to be removed
 		{
 			int32 NumTracks = AnimationTrackNames.Num();
-			int32 NumSkeletonBone = UseSkeleton->GetReferenceSkeleton().GetNum();
+			int32 NumSkeletonBone = UseSkeleton->GetReferenceSkeleton().GetRawBoneNum();
 
 			// the first fix is to make sure 
 			bool bNeedsFixing = false;
@@ -605,7 +619,7 @@ void UAnimSequence::BeginDestroy()
 
 	if( IsRunningGame() )
 	{
-		DEC_DWORD_STAT_BY( STAT_AnimationMemory, GetResourceSize(EResourceSizeMode::Exclusive) );
+		DEC_DWORD_STAT_BY( STAT_AnimationMemory, GetResourceSizeBytes(EResourceSizeMode::Exclusive) );
 	}
 }
 
@@ -1028,12 +1042,25 @@ void UAnimSequence::ResetRootBoneForRootMotion(FTransform& BoneTransform, const 
 	}
 }
 
+struct FRetargetTracking
+{
+	const FCompactPoseBoneIndex PoseBoneIndex;
+	const int32 SkeletonBoneIndex;
+
+	FRetargetTracking(const FCompactPoseBoneIndex InPoseBoneIndex, const int32 InSkeletonBoneIndex)
+		: PoseBoneIndex(InPoseBoneIndex), SkeletonBoneIndex(InSkeletonBoneIndex) 
+	{
+	}
+};
+
 struct FGetBonePoseScratchArea : public TThreadSingleton<FGetBonePoseScratchArea>
 {
 	BoneTrackArray RotationScalePairs;
 	BoneTrackArray TranslationPairs;
 	BoneTrackArray AnimScaleRetargetingPairs;
 	BoneTrackArray AnimRelativeRetargetingPairs;
+	TArray<FRetargetTracking> RetargetTracking;
+	TArray<FVirtualBoneCompactPoseData> VirtualBoneCompactPoseData;
 };
 
 void UAnimSequence::GetBonePose(FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext, bool bForceUseRawData) const
@@ -1116,6 +1143,12 @@ void UAnimSequence::GetBonePose(FCompactPose& OutPose, FBlendedCurve& OutCurve, 
 			AnimationData = &RawAnimationData;
 		}
 
+		TArray<FRetargetTracking>& RetargetTracking = FGetBonePoseScratchArea::Get().RetargetTracking;
+		RetargetTracking.Reset(NumTracks);
+
+		TArray<FVirtualBoneCompactPoseData>& VBCompactPoseData = FGetBonePoseScratchArea::Get().VirtualBoneCompactPoseData;
+		VBCompactPoseData = RequiredBones.GetVirtualBoneCompactPoseData();
+
 		for (int32 TrackIndex = 0; TrackIndex < NumTracks; TrackIndex++)
 		{
 			const int32 SkeletonBoneIndex = GetSkeletonIndexFromRawDataTrackIndex(TrackIndex);
@@ -1125,14 +1158,43 @@ void UAnimSequence::GetBonePose(FCompactPose& OutPose, FBlendedCurve& OutCurve, 
 				const FCompactPoseBoneIndex PoseBoneIndex = RequiredBones.GetCompactPoseIndexFromSkeletonIndex(SkeletonBoneIndex);
 				if (PoseBoneIndex != INDEX_NONE)
 				{
+					for (int32 Idx = 0; Idx < VBCompactPoseData.Num(); ++Idx)
+					{
+						FVirtualBoneCompactPoseData& VB = VBCompactPoseData[Idx];
+						if (PoseBoneIndex == VB.VBIndex)
+						{
+							// Remove this bone as we have written data for it (false so we dont resize allocation)
+							VBCompactPoseData.RemoveAtSwap(Idx, 1, false);
+							break; //Modified TArray so must break here
+						}
+					}
 					// extract animation
 					ExtractBoneTransform(*AnimationData, OutPose[PoseBoneIndex], TrackIndex, ExtractionContext.CurrentTime);
 
-					if (!bDisableRetargeting)
-					{
-						RetargetBoneTransform(OutPose[PoseBoneIndex], SkeletonBoneIndex, PoseBoneIndex, RequiredBones, bIsBakedAdditive);
-					}
+					RetargetTracking.Add(FRetargetTracking(PoseBoneIndex, SkeletonBoneIndex));
 				}
+			}
+		}
+
+		//Build Virtual Bones
+		if(VBCompactPoseData.Num() > 0)
+		{
+			FCSPose<FCompactPose> CSPose;
+			CSPose.InitPose(OutPose);
+	
+			for (FVirtualBoneCompactPoseData& VB : VBCompactPoseData)
+			{
+				FTransform Source = CSPose.GetComponentSpaceTransform(VB.SourceIndex);
+				FTransform Target = CSPose.GetComponentSpaceTransform(VB.TargetIndex);
+				OutPose[VB.VBIndex] = Target.GetRelativeTransform(Source);
+			}
+		}
+
+		if(!bDisableRetargeting)
+		{
+			for (const FRetargetTracking& RT : RetargetTracking)
+			{
+				RetargetBoneTransform(OutPose[RT.PoseBoneIndex], RT.SkeletonBoneIndex, RT.PoseBoneIndex, RequiredBones, bIsBakedAdditive);
 			}
 		}
 
@@ -1292,6 +1354,40 @@ void UAnimSequence::GetBonePose(FCompactPose& OutPose, FBlendedCurve& OutCurve, 
 		}
 	}
 }
+
+#if WITH_EDITORONLY_DATA
+int32 UAnimSequence::AddNewRawTrack(FName TrackName, FRawAnimSequenceTrack* TrackData)
+{
+	const int32 SkeletonIndex = GetSkeleton() ? GetSkeleton()->GetReferenceSkeleton().FindBoneIndex(TrackName) : INDEX_NONE;
+
+	if(SkeletonIndex != INDEX_NONE)
+	{
+		int32 TrackIndex = AnimationTrackNames.IndexOfByKey(TrackName);
+		if (TrackIndex != INDEX_NONE)
+		{
+			if (TrackData)
+			{
+				RawAnimationData[TrackIndex] = *TrackData;
+			}
+			return TrackIndex;
+		}
+
+		check(AnimationTrackNames.Num() == RawAnimationData.Num());
+		TrackIndex = AnimationTrackNames.Add(TrackName);
+		TrackToSkeletonMapTable.Add(FTrackToSkeletonMap(SkeletonIndex));
+		if (TrackData)
+		{
+			RawAnimationData.Add(*TrackData);
+		}
+		else
+		{
+			RawAnimationData.Add(FRawAnimSequenceTrack());
+		}
+		return TrackIndex;
+	}
+	return INDEX_NONE;
+}
+#endif
 
 void UAnimSequence::GetBonePose_Additive(FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const
 {
@@ -1945,6 +2041,8 @@ void UAnimSequence::RequestAnimCompression(bool bAsyncCompression, TSharedPtr<FA
 		{
 			FMemoryReader MemAr(OutData);
 			SerializeCompressedData(MemAr, true);
+			//This is only safe during sync anim compression
+			SetSkeletonVirtualBoneGuid(GetSkeleton()->GetVirtualBoneGuid());
 			bUseRawDataOnly = false;
 		}
 	}
@@ -1966,7 +2064,7 @@ struct FAnimDDCDebugData
 			FullName = AnimSequence->GetFullName();
 			AdditiveSetting = (uint8)AnimSequence->AdditiveAnimType.GetValue();
 			CompressionSchemeName = AnimSequence->CompressionScheme->GetFullName();
-			RawDataGuid = AnimSequence->RawDataGuid;
+			RawDataGuid = AnimSequence->GetRawDataGuid();
 		}
 
 		Ar << FullName;
@@ -2151,6 +2249,99 @@ void CopyTransformToRawAnimationData(const FTransform& BoneTransform, FRawAnimSe
 	Track.ScaleKeys[Frame] = BoneTransform.GetScale3D();
 }
 
+struct FByFramePoseEvalContext
+{
+private:
+	const UAnimSequence* AnimToEval;
+	
+public:
+	FBoneContainer RequiredBones;
+
+	// Length of one frame.
+	const float IntervalTime;
+
+	TArray<FBoneIndexType> RequiredBoneIndexArray;
+
+	FByFramePoseEvalContext(const UAnimSequence* InAnimToEval)
+		: AnimToEval(InAnimToEval)
+		, IntervalTime(InAnimToEval->SequenceLength / ((float)InAnimToEval->NumFrames - 1))
+	{
+		// Initialize RequiredBones for pose evaluation
+		RequiredBones.SetUseRAWData(true);
+
+		USkeleton* MySkeleton = AnimToEval->GetSkeleton();
+		check(MySkeleton);
+
+		RequiredBoneIndexArray.AddUninitialized(MySkeleton->GetReferenceSkeleton().GetNum());
+		for (int32 BoneIndex = 0; BoneIndex < RequiredBoneIndexArray.Num(); ++BoneIndex)
+		{
+			RequiredBoneIndexArray[BoneIndex] = BoneIndex;
+		}
+
+		RequiredBones.InitializeTo(RequiredBoneIndexArray, *MySkeleton);
+	}
+
+};
+
+void UAnimSequence::BakeOutVirtualBoneTracks()
+{
+	const int32 NumVirtualBones = GetSkeleton()->GetVirtualBones().Num();
+	check( (RawAnimationData.Num() == TrackToSkeletonMapTable.Num()) && (RawAnimationData.Num() == AnimationTrackNames.Num()) ); //Make sure starting data is valid
+
+	TArray<FRawAnimSequenceTrack> NewRawTracks = TArray<FRawAnimSequenceTrack>(RawAnimationData, NumVirtualBones);
+
+	TArray<FTrackToSkeletonMap> NewTrackToSkeletonMapTable = TArray<FTrackToSkeletonMap>(TrackToSkeletonMapTable, NumVirtualBones);
+
+	TArray<FName> NewAnimationTrackNames = TArray<FName>(AnimationTrackNames, NumVirtualBones);
+
+	for (int32 VBIndex = 0; VBIndex < NumVirtualBones; ++VBIndex)
+	{
+		const int32 TrackIndex = NewRawTracks.Add(FRawAnimSequenceTrack());
+
+		//Init new tracks
+		NewRawTracks[TrackIndex].PosKeys.SetNumUninitialized(NumFrames);
+		NewRawTracks[TrackIndex].RotKeys.SetNumUninitialized(NumFrames);
+		NewRawTracks[TrackIndex].ScaleKeys.SetNumUninitialized(NumFrames);
+		
+		NewTrackToSkeletonMapTable.Add(FTrackToSkeletonMap(GetSkeleton()->GetReferenceSkeleton().GetRequiredVirtualBones()[VBIndex]));
+		NewAnimationTrackNames.Add(GetSkeleton()->GetVirtualBones()[VBIndex].VirtualBoneName);
+	}
+
+	FMemMark Mark(FMemStack::Get());
+	FByFramePoseEvalContext EvalContext(this);
+
+	//Pose evaluation data
+	FCompactPose Pose;
+	Pose.SetBoneContainer(&EvalContext.RequiredBones);
+	FAnimExtractContext ExtractContext;
+
+	const TArray<FVirtualBoneRefData>& VBRefData = GetSkeleton()->GetReferenceSkeleton().GetVirtualBoneRefData();
+
+	for (int Frame = 0; Frame < NumFrames; ++Frame)
+	{
+		// Initialise curve data from Skeleton
+		FBlendedCurve Curve;
+		Curve.InitFrom(EvalContext.RequiredBones);
+
+		//Grab pose for this frame
+		const float CurrentFrameTime = Frame * EvalContext.IntervalTime;
+		ExtractContext.CurrentTime = CurrentFrameTime;
+		GetAnimationPose(Pose, Curve, ExtractContext);
+
+		for (int32 VBIndex = 0; VBIndex < VBRefData.Num(); ++VBIndex)
+		{
+			const FVirtualBoneRefData& VB = VBRefData[VBIndex];
+			CopyTransformToRawAnimationData(Pose[FCompactPoseBoneIndex(VB.VBRefSkelIndex)], NewRawTracks[VBIndex + RawAnimationData.Num()], Frame);
+		}
+	}
+
+	RawAnimationData = MoveTemp(NewRawTracks);
+	AnimationTrackNames = MoveTemp(NewAnimationTrackNames);
+	TrackToSkeletonMapTable = MoveTemp(NewTrackToSkeletonMapTable);
+
+	CompressRawAnimData();
+}
+
 void UAnimSequence::BakeOutAdditiveIntoRawData()
 {
 	if (!CanBakeAdditive())
@@ -2160,30 +2351,17 @@ void UAnimSequence::BakeOutAdditiveIntoRawData()
 
 	FMemMark Mark(FMemStack::Get());
 
-	// Length of one frame.
-	float const IntervalTime = SequenceLength / ((float)NumFrames - 1);
-
-	// Initialize RequiredBones for pose evaluation
-	FBoneContainer RequiredBones;
-	RequiredBones.SetUseRAWData(true);
+	FByFramePoseEvalContext EvalContext(this);
 
 	USkeleton* MySkeleton = GetSkeleton();
 	check(MySkeleton);
 
-	TArray<FBoneIndexType> RequiredBoneIndexArray;
-	RequiredBoneIndexArray.AddUninitialized(MySkeleton->GetReferenceSkeleton().GetNum());
-	for (int32 BoneIndex = 0; BoneIndex < RequiredBoneIndexArray.Num(); ++BoneIndex)
-	{
-		RequiredBoneIndexArray[BoneIndex] = BoneIndex;
-	}
-
-	RequiredBones.InitializeTo(RequiredBoneIndexArray, *GetSkeleton());
 
 	//New raw data
 	FRawCurveTracks NewCurveTracks;
 
 	TArray<FRawAnimSequenceTrack> NewRawTracks;
-	NewRawTracks.SetNum(RequiredBoneIndexArray.Num());
+	NewRawTracks.SetNum(EvalContext.RequiredBoneIndexArray.Num());
 
 	for (FRawAnimSequenceTrack& RawTrack : NewRawTracks)
 	{
@@ -2196,35 +2374,35 @@ void UAnimSequence::BakeOutAdditiveIntoRawData()
 	TemporaryAdditiveBaseAnimationData = NewRawTracks;
 
 	TArray<FTrackToSkeletonMap> NewTrackToSkeletonMapTable;
-	NewTrackToSkeletonMapTable.SetNumUninitialized(RequiredBoneIndexArray.Num());
+	NewTrackToSkeletonMapTable.SetNumUninitialized(EvalContext.RequiredBoneIndexArray.Num());
 
 	TArray<FName> NewAnimationTrackNames;
-	NewAnimationTrackNames.SetNumUninitialized(RequiredBoneIndexArray.Num());
+	NewAnimationTrackNames.SetNumUninitialized(EvalContext.RequiredBoneIndexArray.Num());
 
-	for (int32 TrackIndex = 0; TrackIndex < RequiredBoneIndexArray.Num(); ++TrackIndex)
+	for (int32 TrackIndex = 0; TrackIndex < EvalContext.RequiredBoneIndexArray.Num(); ++TrackIndex)
 	{
-		NewTrackToSkeletonMapTable[TrackIndex].BoneTreeIndex = TrackIndex; // Skeleton->GetReferenceSkeleton().FindBoneIndex(TrackName);
+		NewTrackToSkeletonMapTable[TrackIndex].BoneTreeIndex = TrackIndex;
 		NewAnimationTrackNames[TrackIndex] = GetSkeleton()->GetReferenceSkeleton().GetBoneName(TrackIndex);
 	}
 
 	//Pose evaluation data
 	FCompactPose Pose;
-	Pose.SetBoneContainer(&RequiredBones);
+	Pose.SetBoneContainer(&EvalContext.RequiredBones);
 	FCompactPose BasePose;
-	BasePose.SetBoneContainer(&RequiredBones);
+	BasePose.SetBoneContainer(&EvalContext.RequiredBones);
 	FAnimExtractContext ExtractContext;
 
 	for (int Frame = 0; Frame < NumFrames; ++Frame)
 	{
 		// Initialise curve data from Skeleton
 		FBlendedCurve Curve;
-		Curve.InitFrom(RequiredBones);
+		Curve.InitFrom(EvalContext.RequiredBones);
 
 		FBlendedCurve DummyBaseCurve;
-		DummyBaseCurve.InitFrom(RequiredBones);
+		DummyBaseCurve.InitFrom(EvalContext.RequiredBones);
 
 		//Grab pose for this frame
-		const float CurrentFrameTime = Frame * IntervalTime;
+		const float CurrentFrameTime = Frame * EvalContext.IntervalTime;
 		ExtractContext.CurrentTime = CurrentFrameTime;
 		GetAnimationPose(Pose, Curve, ExtractContext);
 		GetAdditiveBasePose(BasePose, DummyBaseCurve, ExtractContext);
@@ -2261,7 +2439,7 @@ void UAnimSequence::BakeOutAdditiveIntoRawData()
 					//Add pre key of 0
 					if (Frame > 0)
 					{
-						const float PreKeyTime = (Frame - 1)*IntervalTime;
+						const float PreKeyTime = (Frame - 1)*EvalContext.IntervalTime;
 						RawCurve->UpdateOrAddKey(0.f, PreKeyTime);
 					}
 
@@ -2335,7 +2513,7 @@ bool UAnimSequence::CopyAnimSequenceProperties(UAnimSequence* SourceAnimSeq, UAn
 	DestAnimSeq->bDoNotOverrideCompression	= SourceAnimSeq->bDoNotOverrideCompression;
 
 	// Copy Compression Settings
-	DestAnimSeq->CompressionScheme = static_cast<UAnimCompress*>(StaticDuplicateObject(SourceAnimSeq->CompressionScheme, DestAnimSeq, NAME_None, RF_AllFlags, nullptr, SDO_No_DuplicateForPie, ~EInternalObjectFlags::RootSet));
+	DestAnimSeq->CompressionScheme = static_cast<UAnimCompress*>(StaticDuplicateObject(SourceAnimSeq->CompressionScheme, DestAnimSeq, NAME_None, RF_AllFlags, nullptr, EDuplicateMode::Normal, ~EInternalObjectFlags::RootSet));
 	DestAnimSeq->TranslationCompressionFormat	= SourceAnimSeq->TranslationCompressionFormat;
 	DestAnimSeq->RotationCompressionFormat		= SourceAnimSeq->RotationCompressionFormat;
 	DestAnimSeq->AdditiveAnimType				= SourceAnimSeq->AdditiveAnimType;
@@ -2444,7 +2622,7 @@ bool UAnimSequence::CopyNotifies(UAnimSequence* SourceAnimSeq, UAnimSequence* De
 		// Copy the notify itself, and point the new one at it.
 		if( SrcNotifyEvent.Notify )
 		{
-			DestAnimSeq->Notifies[NewNotifyIndex].Notify = static_cast<UAnimNotify*>(StaticDuplicateObject(SrcNotifyEvent.Notify, DestAnimSeq, NAME_None, RF_AllFlags, nullptr, SDO_No_DuplicateForPie, ~EInternalObjectFlags::RootSet));
+			DestAnimSeq->Notifies[NewNotifyIndex].Notify = static_cast<UAnimNotify*>(StaticDuplicateObject(SrcNotifyEvent.Notify, DestAnimSeq, NAME_None, RF_AllFlags, nullptr, EDuplicateMode::Normal, ~EInternalObjectFlags::RootSet));
 		}
 		else
 		{
@@ -2453,7 +2631,7 @@ bool UAnimSequence::CopyNotifies(UAnimSequence* SourceAnimSeq, UAnimSequence* De
 
 		if( SrcNotifyEvent.NotifyStateClass )
 		{
-			DestAnimSeq->Notifies[NewNotifyIndex].NotifyStateClass = static_cast<UAnimNotifyState*>(StaticDuplicateObject(SrcNotifyEvent.NotifyStateClass, DestAnimSeq, NAME_None, RF_AllFlags, nullptr, SDO_No_DuplicateForPie, ~EInternalObjectFlags::RootSet));
+			DestAnimSeq->Notifies[NewNotifyIndex].NotifyStateClass = static_cast<UAnimNotifyState*>(StaticDuplicateObject(SrcNotifyEvent.NotifyStateClass, DestAnimSeq, NAME_None, RF_AllFlags, nullptr, EDuplicateMode::Normal, ~EInternalObjectFlags::RootSet));
 		}
 		else
 		{
@@ -4119,7 +4297,7 @@ bool UAnimSequence::CreateAnimation(USkeletalMesh* Mesh)
 		SequenceLength = MINIMUM_ANIMATION_LENGTH;
 		NumFrames = 1;
 
-		const int32 NumBones = RefSkeleton.GetNum();
+		const int32 NumBones = RefSkeleton.GetRawBoneNum();
 		RawAnimationData.AddZeroed(NumBones);
 		AnimationTrackNames.AddUninitialized(NumBones);
 
@@ -4161,7 +4339,7 @@ bool UAnimSequence::CreateAnimation(USkeletalMeshComponent* MeshComponent)
 		SequenceLength = MINIMUM_ANIMATION_LENGTH;
 		NumFrames = 1;
 
-		const int32 NumBones = RefSkeleton.GetNum();
+		const int32 NumBones = RefSkeleton.GetRawBoneNum();
 		RawAnimationData.AddZeroed(NumBones);
 		AnimationTrackNames.AddUninitialized(NumBones);
 
@@ -4542,7 +4720,7 @@ void UAnimSequence::ValidateCurrentPosition(const FMarkerSyncAnimPosition& Posit
 
 bool UAnimSequence::UseRawDataForPoseExtraction(const FBoneContainer& RequiredBones) const
 {
-	return bUseRawDataOnly || RequiredBones.GetDisableRetargeting() || RequiredBones.ShouldUseRawData() || RequiredBones.ShouldUseSourceData();
+	return bUseRawDataOnly || (GetSkeletonVirtualBoneGuid() != GetSkeleton()->GetVirtualBoneGuid()) || RequiredBones.GetDisableRetargeting() || RequiredBones.ShouldUseRawData() || RequiredBones.ShouldUseSourceData();
 }
 
 void UAnimSequence::AdvanceMarkerPhaseAsFollower(const FMarkerTickContext& Context, float DeltaRemaining, bool bLooping, float& CurrentTime, FMarkerPair& PreviousMarker, FMarkerPair& NextMarker) const
@@ -5077,7 +5255,7 @@ void GatherAnimSequenceStats(FOutputDevice& Ar)
 			NumTransTracksWithOneKey, NumRotTracksWithOneKey, NumScaleTracksWithOneKey,
 			TotalNumTransKeys, TotalNumRotKeys, TotalNumScaleKeys,
 			*FAnimationUtils::GetAnimationKeyFormatString(static_cast<AnimationKeyFormat>(Seq->KeyEncodingFormat)),
-			(int32)Seq->GetResourceSize(EResourceSizeMode::Exclusive) );
+			(int32)Seq->GetResourceSizeBytes(EResourceSizeMode::Exclusive) );
 	}
 	Ar.Logf( TEXT("======================================================================") );
 	Ar.Logf( TEXT("Total Num Tracks: %i trans, %i rot, %i scale, %i trans1, %i rot1, %i scale1"), GlobalNumTransTracks, GlobalNumRotTracks, GlobalNumScaleTracks, GlobalNumTransTracksWithOneKey, GlobalNumRotTracksWithOneKey, GlobalNumScaleTracksWithOneKey  );

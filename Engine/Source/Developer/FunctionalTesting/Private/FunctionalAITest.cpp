@@ -78,6 +78,11 @@ bool AFunctionalAITest::RunTest(const TArray<FString>& Params)
 	return Super::RunTest(Params);
 }
 
+bool AFunctionalAITest::IsReady_Implementation()
+{
+	return Super::IsReady_Implementation() && IsNavMeshReady();
+}
+
 void AFunctionalAITest::StartSpawning()
 {
 	if (bWaitForNavMesh && !IsNavMeshReady())

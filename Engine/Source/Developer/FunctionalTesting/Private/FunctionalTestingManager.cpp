@@ -84,7 +84,7 @@ bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContext, boo
 
 	if (Manager->bIsRunning)
 	{
-		UE_LOG(LogFunctionalTest, Warning, TEXT("Functional tests are already running, aborting."));
+		UE_LOG(LogFunctionalTest, Log, TEXT("Functional tests are already running."));
 		return true;
 	}
 	
@@ -224,7 +224,7 @@ void UFunctionalTestingManager::NotifyTestDone(AFunctionalTest* FTest)
 	if (FTest->OnWantsReRunCheck() == false && FTest->WantsToRunAgain() == false)
 	{
 		//We can also do named reruns. These are lower priority than those triggered above.
-		//These names can be querried by phases to alter behviour in re-runs.
+		//These names can be queried by phases to alter behavior in re-runs.
 		if (FTest->RerunCauses.Num() > 0)
 		{
 			FTest->CurrentRerunCause = FTest->RerunCauses.Pop();
@@ -320,6 +320,10 @@ bool UFunctionalTestingManager::RunFirstValidTest()
 			AFunctionalTest* TestToRun = FindObject<AFunctionalTest>(TestsOuter, *TestName);			
 			if (TestToRun)
 			{
+				// Add the test we found to the tests left to run, so that if re-runs occur we continue to process this test until
+				// it has finished.
+				TestsLeft.Add(TestToRun);
+
 				TestToRun->TestFinishedObserver = TestFinishedObserver;
 				if (TestToRun->RunTest(TestParams))
 				{

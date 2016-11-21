@@ -53,6 +53,23 @@
 		_Pragma("clang diagnostic pop")
 #endif // PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 
+#ifndef PRAGMA_DISABLE_NULL_DEREFERENCE_WARNINGS
+	#if (__clang_major__ > 3 || (__clang_major__ == 3 && __clang_minor__ >= 9))
+		#define PRAGMA_DISABLE_NULL_DEREFERENCE_WARNINGS \
+				_Pragma ("clang diagnostic push") \
+				_Pragma ("clang diagnostic ignored \"-Wnull-dereference\"")
+	#else
+		#define PRAGMA_DISABLE_NULL_DEREFERENCE_WARNINGS \
+				_Pragma ("clang diagnostic push")
+	#endif // (__clang_major__ > 3 || (__clang_major__ == 3 && __clang_minor__ >= 9))
+#endif // PRAGMA_DISABLE_NULL_DEREFERENCE_WARNINGS
+
+#ifndef PRAGMA_ENABLE_NULL_DEREFERENCE_WARNINGS
+	#define PRAGMA_ENABLE_NULL_DEREFERENCE_WARNINGS \
+			_Pragma("clang diagnostic pop")
+#endif // PRAGMA_ENABLE_NULL_DEREFERENCE_WARNINGS
+
+
 #ifndef PRAGMA_POP
 	#define PRAGMA_POP \
 		_Pragma("clang diagnostic pop")
@@ -61,11 +78,13 @@
 // Disable common CA warnings around SDK includes
 #ifndef THIRD_PARTY_INCLUDES_START
 	#define THIRD_PARTY_INCLUDES_START \
-		PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
+		PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS \
+		PRAGMA_DISABLE_NULL_DEREFERENCE_WARNINGS
 #endif
 
 #ifndef THIRD_PARTY_INCLUDES_END
 	#define THIRD_PARTY_INCLUDES_END \
+		PRAGMA_ENABLE_NULL_DEREFERENCE_WARNINGS \
 		PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 #endif
 

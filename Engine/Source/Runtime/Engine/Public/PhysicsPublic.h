@@ -55,6 +55,22 @@ namespace nvidia
 }
 #endif // WITH_APEX
 
+struct FConstraintInstance;
+class UPhysicsAsset;
+
+struct FConstraintBrokenDelegateData
+{
+	FConstraintBrokenDelegateData(FConstraintInstance* ConstraintInstance);
+
+	void DispatchOnBroken()
+	{
+		OnConstraintBrokenDelegate.ExecuteIfBound(ConstraintIndex);
+	}
+
+	FOnConstraintBroken OnConstraintBrokenDelegate;
+	int32 ConstraintIndex;
+};
+
 using namespace physx;
 #if WITH_APEX
 using namespace nvidia;
@@ -275,6 +291,15 @@ public:
 	/** Gets the array of collision notifications, pending execution at the end of the physics engine run. */
 	TArray<FCollisionNotifyInfo>& GetPendingCollisionNotifies(int32 SceneType){ return PendingCollisionData[SceneType].PendingCollisionNotifies; }
 
+
+	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnPhysScenePreTick, FPhysScene*, uint32 /*SceneType*/, float /*DeltaSeconds*/);
+	FOnPhysScenePreTick OnPhysScenePreTick;
+
+	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnPhysSceneStep, FPhysScene*, uint32 /*SceneType*/, float /*DeltaSeconds*/);
+	FOnPhysSceneStep OnPhysSceneStep;
+
+
+
 private:
 	/** World that owns this physics scene */
 	UWorld*							OwningWorld;
@@ -302,8 +327,10 @@ public:
 	float							FrameTimeSmoothingFactor[PST_MAX];
 
 #if WITH_PHYSX
-	/** Flush the deferred actor and instance arrays, either adding or removing from the scene */
-	void FlushDeferredActors();
+	bool IsFlushNeededForDeferredActors_AssumesLocked(EPhysicsSceneType SceneType) const
+	{
+		return DeferredSceneData[SceneType].IsFlushNeeded_AssumesLocked();
+	}
 
 	/** Defer the addition of an actor to a scene, this will actually be performed before the *next*
 	 *  Physics tick
@@ -316,21 +343,35 @@ public:
 	/** Defer the addition of a group of actors to a scene, this will actually be performed before the *next*
 	 *  Physics tick. 
 	 *
-	 *	@param OwningInstance - The FBodyInstance that owns the actor
-	 *	@param Actor - The actual PhysX actor to add
+	 *	@param OwningInstances - The FBodyInstance that owns the actor
+	 *	@param Actors - The actual PhysX actor to add
 	 *	@param SceneType - The scene type to add the actor to
 	 */
-	void DeferAddActors(TArray<FBodyInstance*>& OwningInstances, TArray<PxActor*>& Actors, EPhysicsSceneType SceneType);
+	void DeferAddActors(const TArray<FBodyInstance*>& OwningInstances, const TArray<PxActor*>& Actors, EPhysicsSceneType SceneType);
 
 	/** Defer the removal of an actor to a scene, this will actually be performed before the *next*
 	 *  Physics tick
 	 *	@param OwningInstance - The FBodyInstance that owns the actor
-	 *	@param Actor - The actual PhysX actor to add
-	 *	@param SceneType - The scene type to add the actor to
+	 *	@param Actor - The actual PhysX actor to remove
+	 *	@param SceneType - The scene type to remove the actor from
 	 */
 	void DeferRemoveActor(FBodyInstance* OwningInstance, PxActor* Actor, EPhysicsSceneType SceneType);
 
+	/** Defer the removal of actors from a scene, this will actually be performed before the *next*
+	*  Physics tick
+	*	@param OwningInstances - The FBodyInstance that owns the actor
+	*	@param Actors - The actual PhysX actor to remove
+	*	@param SceneType - The scene type to remove the actor from
+	*/
+	void DeferRemoveActors(const TArray<FBodyInstance*>& OwningInstances, const TArray<PxActor*>& Actors, EPhysicsSceneType SceneType);
+
+	/** Flushes deferred actors to ensure they are in the physics scene. Note if this is called while the simulation is still running we use a slower insertion/removal path */
+	void FlushDeferredActors(EPhysicsSceneType SceneType);
+
 	void AddPendingSleepingEvent(PxActor* Actor, SleepEvent::Type SleepEventType, int32 SceneType);
+
+	/** Pending constraint break events */
+	void AddPendingOnConstraintBreak(FConstraintInstance* ConstraintInstance, int32 SceneType);
 #endif
 
 private:
@@ -354,12 +395,17 @@ private:
 	// for the calls to PxScene::simulate to save it calling into the OS to allocate during simulation
 	FSimulationScratchBuffer SimScratchBuffers[PST_MAX];
 
+	// Boundary value for PhysX scratch buffers (currently PhysX requires the buffer length be a multiple of 16K)
+	static const int32 SimScratchBufferBoundary = 16 * 1024;
+
 #if WITH_PHYSX
 
 	struct FDeferredSceneData
 	{
-		/** The PhysX scene index used*/
-		int32 SceneIndex;
+		FDeferredSceneData();
+
+		/** Whether the physx scene is currently simulating. */
+		bool bIsSimulating;
 
 		/** Body instances awaiting scene add */
 		TArray<FBodyInstance*> AddInstances;
@@ -371,23 +417,24 @@ private:
 		/** PhysX Actors awaiting scene remove */
 		TArray<PxActor*> RemoveActors;
 
-		void FlushDeferredActors();
-		void DeferAddActor(FBodyInstance* OwningInstance, PxActor* Actor);
-		void DeferAddActors(TArray<FBodyInstance*>& OwningInstances, TArray<PxActor*>& Actors);
-		void DeferRemoveActor(FBodyInstance* OwningInstance, PxActor* Actor);
+		void FlushDeferredActors_AssumesLocked(PxScene* Scene);
+		void DeferAddActor_AssumesLocked(FBodyInstance* OwningInstance, PxActor* Actor);
+		void DeferAddActors_AssumesLocked(const TArray<FBodyInstance*>& OwningInstances, const TArray<PxActor*>& Actors);
+		void DeferRemoveActor_AssumesLocked(FBodyInstance* OwningInstance, PxActor* Actor);
+		void DeferRemoveActors_AssumesLocked(const TArray<FBodyInstance*>& OwningInstances, const TArray<PxActor*>& Actors);
+
+		bool IsFlushNeeded_AssumesLocked() const
+		{
+			return AddInstances.Num() > 0 || RemoveInstances.Num() > 0;
+		}
 	};
 
 	FDeferredSceneData DeferredSceneData[PST_MAX];
-
 
 	/** Dispatcher for CPU tasks */
 	class PxCpuDispatcher*			CPUDispatcher[PST_MAX];
 	/** Simulation event callback object */
 	physx::PxSimulationEventCallback*			SimEventCallback[PST_MAX];
-#if WITH_VEHICLE
-	/** Vehicle scene */
-	class FPhysXVehicleManager*			VehicleManager;
-#endif
 #endif	//
 
 	struct FPendingCollisionData
@@ -397,6 +444,14 @@ private:
 	};
 
 	FPendingCollisionData PendingCollisionData[PST_MAX];
+
+	struct FPendingConstraintData
+	{
+		/** Array of constraint broken notifications, pending execution at the end of the physics engine run. */
+		TArray<FConstraintBrokenDelegateData> PendingConstraintBroken;
+	};
+
+	FPendingConstraintData PendingConstraintData[PST_MAX];
 
 public:
 
@@ -409,10 +464,6 @@ public:
 	/** Utility for looking up the PxScene of the given EPhysicsSceneType associated with this FPhysScene.  SceneType must be in the range [0,PST_MAX). */
 	ENGINE_API physx::PxScene*					GetPhysXScene(uint32 SceneType);
 
-#if WITH_VEHICLE
-	/** Get the vehicle manager */
-	FPhysXVehicleManager*						GetVehicleManager();
-#endif
 #endif
 
 #if WITH_APEX
@@ -812,3 +863,20 @@ void	ListAwakeRigidBodies(bool bIncludeKinematic, UWorld* world);
 FTransform FindBodyTransform(AActor* Actor, FName BoneName);
 FBox	FindBodyBox(AActor* Actor, FName BoneName);
 
+/** Set of delegates to allowing hooking different parts of the physics engine */
+class ENGINE_API FPhysicsDelegates
+{
+public:
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnUpdatePhysXMaterial, UPhysicalMaterial*);
+	static FOnUpdatePhysXMaterial OnUpdatePhysXMaterial;
+
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnPhysicsAssetChanged, const UPhysicsAsset*);
+	static FOnPhysicsAssetChanged OnPhysicsAssetChanged;
+
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPhysSceneInit, FPhysScene*, EPhysicsSceneType);
+	static FOnPhysSceneInit OnPhysSceneInit;
+
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPhysSceneTerm, FPhysScene*, EPhysicsSceneType);
+	static FOnPhysSceneTerm OnPhysSceneTerm;
+
+};

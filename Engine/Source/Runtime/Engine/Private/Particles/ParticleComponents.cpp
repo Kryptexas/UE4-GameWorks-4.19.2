@@ -3418,20 +3418,20 @@ void UParticleSystemComponent::FinishDestroy()
 }
 
 
-SIZE_T UParticleSystemComponent::GetResourceSize(EResourceSizeMode::Type Mode)
+void UParticleSystemComponent::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
 	ForceAsyncWorkCompletion(ENSURE_AND_STALL);
-	int32 ResSize = Super::GetResourceSize(Mode);
+
+	Super::GetResourceSizeEx(CumulativeResourceSize);
 	for (int32 EmitterIdx = 0; EmitterIdx < EmitterInstances.Num(); EmitterIdx++)
 	{
 		FParticleEmitterInstance* EmitterInstance = EmitterInstances[EmitterIdx];
 		if (EmitterInstance != NULL)
 		{
 			// If the data manager has the PSys, force it to report, regardless of a PSysComp scene info being present...
-			ResSize += EmitterInstance->GetResourceSize(Mode);
+			EmitterInstance->GetResourceSizeEx(CumulativeResourceSize);
 		}
 	}
-	return ResSize;
 }
 
 
@@ -3642,7 +3642,10 @@ void UParticleSystemComponent::DestroyRenderState_Concurrent()
 		ResetParticles();
 	}
 
-	Super::DestroyRenderState_Concurrent();
+	if (bRenderStateCreated)
+	{
+		Super::DestroyRenderState_Concurrent();
+	}
 }
 
 
@@ -4552,7 +4555,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 		BurstEvents.Reset();
 		TotalActiveParticles = 0;
 		bNeedsFinalize = true;
-		if (!ThisTickFunction || !CanTickInAnyThread() || FXConsoleVariables::bFreezeParticleSimulation || !FXConsoleVariables::bAllowAsyncTick ||
+		if (!ThisTickFunction || !ThisTickFunction->IsCompletionHandleValid() || !CanTickInAnyThread() || FXConsoleVariables::bFreezeParticleSimulation || !FXConsoleVariables::bAllowAsyncTick ||
 			GDistributionType == 0) // this may not be absolutely required, however if you are using distributions it will be glacial anyway. If you want to get rid of this, note that some modules use this indirectly as their criteria for CanTickInAnyThread
 		{
 			bDisallowAsync = true;
@@ -5526,6 +5529,11 @@ void UParticleSystemComponent::Activate(bool bReset)
 		if (bReset || ShouldActivate()==true)
 		{
 			ActivateSystem(bReset);
+
+			if (bIsActive)
+			{
+				OnComponentActivated.Broadcast(this, bReset);
+			}
 		}
 	}
 }
@@ -5536,6 +5544,11 @@ void UParticleSystemComponent::Deactivate()
 	if (ShouldActivate()==false)
 	{
 		DeactivateSystem();
+
+		if (bWasDeactivated)
+		{
+			OnComponentDeactivated.Broadcast(this);
+		}
 	}
 }
 

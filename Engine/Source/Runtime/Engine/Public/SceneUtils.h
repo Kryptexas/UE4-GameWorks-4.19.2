@@ -156,10 +156,12 @@
 
 #if HAS_GPU_STATS
 #define SCOPED_GPU_STAT(RHICmdList, Stat) FScopedGPUStatEvent PREPROCESSOR_JOIN(GPUStatEvent_##Stat,__LINE__); PREPROCESSOR_JOIN(GPUStatEvent_##Stat,__LINE__).Begin(RHICmdList, GET_STATID( Stat ) );
-#define GPU_STATS_UPDATE(RHICmdList) FRealtimeGPUProfiler::Get()->Update(RHICmdList);
+#define GPU_STATS_BEGINFRAME(RHICmdList) FRealtimeGPUProfiler::Get()->BeginFrame(RHICmdList);
+#define GPU_STATS_ENDFRAME(RHICmdList) FRealtimeGPUProfiler::Get()->EndFrame(RHICmdList);
 #else
 #define SCOPED_GPU_STAT(RHICmdList, Stat) 
-#define GPU_STATS_UPDATE(RHICmdList) 
+#define GPU_STATS_BEGINFRAME(RHICmdList) 
+#define GPU_STATS_ENDFRAME(RHICmdList) 
 #endif
 
 #if HAS_GPU_STATS
@@ -179,7 +181,8 @@ public:
 	static ENGINE_API FRealtimeGPUProfiler* Get();
 
 	/** Per-frame update */
-	ENGINE_API void Update(FRHICommandListImmediate& RHICmdList);
+	ENGINE_API void BeginFrame(FRHICommandListImmediate& RHICmdList);
+	ENGINE_API void EndFrame(FRHICommandListImmediate& RHICmdList);
 
 	/** Final cleanup */
 	ENGINE_API void Release();
@@ -190,7 +193,6 @@ public:
 
 private:
 	FRealtimeGPUProfiler();
-	void UpdateStats(FRHICommandListImmediate& RHICmdList);
 
 	/** Ringbuffer of profiler frames */
 	TArray<FRealtimeGPUProfilerFrame*> Frames;
@@ -199,6 +201,8 @@ private:
 	int32 ReadBufferIndex;
 	uint32 WriteFrameNumber;
 	FRenderQueryPool* RenderQueryPool;
+	bool bStatGatheringPaused;
+	bool bInBeginEndBlock;
 };
 
 /**

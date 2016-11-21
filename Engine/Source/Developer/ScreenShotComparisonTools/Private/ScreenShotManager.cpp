@@ -16,20 +16,22 @@ public:
 	TArray<FString> Missing;
 };
 
-FScreenShotManager::FScreenShotManager( const IMessageBusRef& InMessageBus )
+FScreenShotManager::FScreenShotManager()
 {
-	MessageEndpoint = FMessageEndpoint::Builder("FScreenShotToolsModule", InMessageBus)
-		.Handling<FAutomationWorkerScreenImage>(this, &FScreenShotManager::HandleScreenShotMessage);
-
-	if (MessageEndpoint.IsValid())
-	{
-		MessageEndpoint->Subscribe<FAutomationWorkerScreenImage>();
-	}
-
-	ScreenshotApprovedFolder = FPaths::GameDir() / TEXT("Test/Screenshots/");
-	ScreenshotIncomingFolder = FPaths::GameSavedDir() / TEXT("Automation/Incoming/");
+	ScreenshotUnapprovedFolder = FPaths::GameSavedDir() / TEXT("Automation/Incoming/");
 	ScreenshotDeltaFolder = FPaths::GameSavedDir() / TEXT("Automation/Delta/");
 	ScreenshotResultsFolder = FPaths::GameSavedDir() / TEXT("Automation/");
+	ScreenshotApprovedFolder = FPaths::GameDir() / TEXT("Test/Screenshots/");
+}
+
+FString FScreenShotManager::GetLocalUnapprovedFolder() const
+{
+	return FPaths::ConvertRelativePathToFull(ScreenshotUnapprovedFolder);
+}
+
+FString FScreenShotManager::GetLocalApprovedFolder() const
+{
+	return FPaths::ConvertRelativePathToFull(ScreenshotApprovedFolder);
 }
 
 TSharedRef<FScreenshotComparisons> FScreenShotManager::GenerateFileList() const
@@ -37,21 +39,21 @@ TSharedRef<FScreenshotComparisons> FScreenShotManager::GenerateFileList() const
 	TSharedRef<FScreenshotComparisons> Comparisons = MakeShareable(new FScreenshotComparisons());
 
 	Comparisons->ApprovedFolder = ScreenshotApprovedFolder;
-	Comparisons->UnapprovedFolder = ScreenshotIncomingFolder;
+	Comparisons->UnapprovedFolder = ScreenshotUnapprovedFolder;
 
 	TArray<FString> UnapprovedShots;
 	TArray<FString> ApprovedShots;
 
 	{
 		TArray<FString> UnapprovedShotList;
-		IFileManager::Get().FindFilesRecursive(UnapprovedShotList, *ScreenshotIncomingFolder, TEXT("*.png"), true, false);
+		IFileManager::Get().FindFilesRecursive(UnapprovedShotList, *ScreenshotUnapprovedFolder, TEXT("*.png"), true, false);
 
 		TArray<FString> ApprovedShotList;
 		IFileManager::Get().FindFilesRecursive(ApprovedShotList, *ScreenshotApprovedFolder, TEXT("*.png"), true, false);
 
 		for ( FString UnapprovedPngFile : UnapprovedShotList )
 		{
-			FPaths::MakePathRelativeTo(UnapprovedPngFile, *ScreenshotIncomingFolder);
+			FPaths::MakePathRelativeTo(UnapprovedPngFile, *ScreenshotUnapprovedFolder);
 			UnapprovedShots.AddUnique(FPaths::GetPath(UnapprovedPngFile));
 		}
 
@@ -99,47 +101,6 @@ void FScreenShotManager::CreateData()
 	CachedPlatformList.Empty();
 	ScreenShotDataArray.Empty();
 
-	const FString RenderOutputValidation(TEXT("RenderOutputValidation"));
-
-	const float AllowedPercentDifference = 0.02f;
-
-	// <Stream or NetworkPath>/<CLNumber or Name>/<OS>_<RHI>/Project(<Project>) Map(<Map>) Time(<Time>s).png
-	/*for ( const FImageComparisonResult& Result : Results )
-	{
-		FString PathString = Result.FileB;
-
-		FPaths::MakePathRelativeTo(PathString, *Comparisons->UnapprovedFolder);
-
-		FString PathRemainder = PathString;
-
-		FString Map_Test;
-		FString Platform_RHI;
-
-		bool FoundMapAndTest = PathRemainder.Split(TEXT("/"), &Map_Test, &PathRemainder, ESearchCase::CaseSensitive, ESearchDir::FromStart);
-		bool FoundPlatformRHI = PathRemainder.Split(TEXT("/"), &Platform_RHI, &PathRemainder, ESearchCase::CaseSensitive, ESearchDir::FromStart);
-
-		ScreenShotDataArray.Add(MakeShareable(new FScreenShotDataItem(Result.FileB, Map_Test, Platform_RHI, Result)));
-
-		TempPlatforms.Add(Platform_RHI);
-	}*/
-	
-	// Sort change list.
-	//struct FSortDataItems
-	//{
-	//	FORCEINLINE bool operator()( const FScreenShotDataItem A, const FScreenShotDataItem B ) const 
-	//	{ 
-	//		if ( B.ViewName == A.ViewName )
-	//		{
-	//			return B.ChangeListNumber < A.ChangeListNumber;
-	//		}
-	//		else
-	//		{
-	//			return FCString::Stricmp( *B.ViewName, *A.ViewName ) > 0;
-	//		}
-	//	}
-	//};
-	//ScreenShotDataArray.Sort( FSortDataItems() );
-
 	// Add platforms for searching
 	CachedPlatformList.Add( MakeShareable(new FString("Any") ) );
 
@@ -163,31 +124,14 @@ TArray< TSharedPtr<FScreenShotDataItem> >& FScreenShotManager::GetScreenshotResu
 
 void FScreenShotManager::GenerateLists()
 {
-	// Create the screen shot tree root
-	ScreenShotRoot = MakeShareable( new FScreenShotBaseNode( "ScreenShotRoot" ) ); 
-
 	// Create the screen shot data
 	CreateData();
-
-	//// Populate the screen shot tree with the dummy screen shot data
-	//for ( int32 Index = 0; Index < ScreenShotDataArray.Num(); Index++ )
-	//{
-	//	ScreenShotRoot->AddScreenShotData( ScreenShotDataArray[ Index ] );
-	//}
 }
-
 
 TArray<TSharedPtr<FString> >& FScreenShotManager::GetCachedPlatfomList()
 {
 	return CachedPlatformList;
 }
-
-
-TArray<IScreenShotDataPtr>& FScreenShotManager::GetLists()
-{
-	return ScreenShotRoot->GetFilteredChildren();
-}
-
 
 void FScreenShotManager::RegisterScreenShotUpdate(const FOnScreenFilterChanged& InDelegate )
 {
@@ -195,56 +139,23 @@ void FScreenShotManager::RegisterScreenShotUpdate(const FOnScreenFilterChanged& 
 	ScreenFilterChangedDelegate = InDelegate;
 }
 
-
 void FScreenShotManager::SetFilter( TSharedPtr< ScreenShotFilterCollection > InFilter )
 {
-	// Set the filter on the root screen shot
-	ScreenShotRoot->SetFilter( InFilter );
-
 	// Update the UI
 	ScreenFilterChangedDelegate.ExecuteIfBound();
 }
-
-void FScreenShotManager::SetDisplayEveryNthScreenshot(int32 NewNth)
-{
-	ScreenShotRoot->SetDisplayEveryNthScreenshot(NewNth);
-
-	// Update the UI
-	ScreenFilterChangedDelegate.ExecuteIfBound();
-}
-
 
 /* IScreenShotManager event handlers
  *****************************************************************************/
 
-void FScreenShotManager::HandleScreenShotMessage( const FAutomationWorkerScreenImage& Message, const IMessageContextRef& Context )
-{
-	bool bTree = true;
-	FString FileName = ScreenshotIncomingFolder / Message.ScreenShotName;
-	IFileManager::Get().MakeDirectory( *FPaths::GetPath(FileName), bTree );
-	FFileHelper::SaveArrayToFile( Message.ScreenImage, *FileName );
-
-	// TODO Automation There is identical code in, Engine\Source\Runtime\AutomationWorker\Private\AutomationWorkerModule.cpp,
-	// need to move this code into common area.
-
-	FString Json;
-	if ( FJsonObjectConverter::UStructToJsonObjectString(Message.Metadata, Json) )
-	{
-		FString MetadataPath = FPaths::ChangeExtension(FileName, TEXT("json"));
-		FFileHelper::SaveStringToFile(Json, *MetadataPath, FFileHelper::EEncodingOptions::ForceUTF8);
-	}
-
-	// Regenerate the UI
-	//GenerateLists();
-
-	//TODO Rescan?  Just add new one?
-
-	ScreenShotRoot->SetFilter(MakeShareable( new ScreenShotFilterCollection()));
-}
-
 TFuture<void> FScreenShotManager::CompareScreensotsAsync()
 {
 	return Async<void>(EAsyncExecution::Thread, [&] () { CompareScreensots(); });
+}
+
+TFuture<FImageComparisonResult> FScreenShotManager::CompareScreensotAsync(FString RelativeImagePath)
+{
+	return Async<FImageComparisonResult>(EAsyncExecution::Thread, [&] () { return CompareScreensot(RelativeImagePath); });
 }
 
 void FScreenShotManager::CompareScreensots()
@@ -253,66 +164,119 @@ void FScreenShotManager::CompareScreensots()
 
 	IFileManager::Get().DeleteDirectory(*ScreenshotDeltaFolder, /*RequireExists =*/false, /*Tree =*/true);
 
-	FImageComparer Comparer;
-	Comparer.ImageRootA = ScreenshotApprovedFolder;
-	Comparer.ImageRootB = ScreenshotIncomingFolder;
-	Comparer.DeltaDirectory = ScreenshotDeltaFolder;
-
-	FImageTolerance Tolerance = FImageTolerance::DefaultIgnoreLess;
-	Tolerance.IgnoreAntiAliasing = true;
-
 	FComparisonResults Results;
 	Results.ApprovedPath = TEXT("Approved");
 	Results.IncomingPath = TEXT("Incoming");
 	Results.DeltaPath = TEXT("Delta");
 
-	for ( const FString& Existing : Comparisons->Existing )
+	for ( const FString& New : Comparisons->New )
 	{
-		FString TestApprovedFolder = FPaths::Combine(Comparisons->ApprovedFolder, Existing);
-		FString TestUnapprovedFolder = FPaths::Combine(Comparisons->UnapprovedFolder, Existing);
+		Results.Added.Add(New);
+	}
 
-		TArray<FString> ApprovedDeviceShots;
-		IFileManager::Get().FindFilesRecursive(ApprovedDeviceShots, *TestApprovedFolder, TEXT("*.png"), true, false);
+	for ( const FString& Missing : Comparisons->Missing )
+	{
+		Results.Missing.Add(Missing);
+	}
+
+	for ( const FString& ExistingGroup : Comparisons->Existing )
+	{
+		FString TestUnapprovedFolder = FPaths::Combine(ScreenshotUnapprovedFolder, ExistingGroup);
 
 		TArray<FString> UnapprovedDeviceShots;
 		IFileManager::Get().FindFilesRecursive(UnapprovedDeviceShots, *TestUnapprovedFolder, TEXT("*.png"), true, false);
 
-		check(ApprovedDeviceShots.Num() > 0);
 		check(UnapprovedDeviceShots.Num() > 0);
 
-		// Look for an exact adapter match so we're comparing apples to apples.
 		for ( const FString& UnapprovedShot : UnapprovedDeviceShots )
 		{
-			FString UnapprovedFileName = FPaths::GetCleanFilename(UnapprovedShot);
+			FString RelativeUnapprovedShot = UnapprovedShot;
+			FPaths::MakePathRelativeTo(RelativeUnapprovedShot, *ScreenshotUnapprovedFolder);
 
-			FString* ExistingApprovedAdapter = ApprovedDeviceShots.FindByPredicate([&UnapprovedFileName] (const FString& ApprovedPath) {
-				FString ApprovedFileName = FPaths::GetCleanFilename(ApprovedPath);
-				return ApprovedFileName == UnapprovedFileName;
-			});
-
-			FString ExistingApproved;
-
-			if ( ExistingApprovedAdapter )
-			{
-				ExistingApproved = FPaths::GetCleanFilename(*ExistingApprovedAdapter);
-			}
-			else
-			{
-				ExistingApproved = FPaths::GetCleanFilename(ApprovedDeviceShots[0]);
-				// TODO No good, this should find closest resolution, maybe some other stuff as well?
-			}
-
-			FString ApprovedFullPath = FPaths::Combine(TestApprovedFolder, ExistingApproved);
-			FString UnapprovedFullPath = FPaths::Combine(TestUnapprovedFolder, UnapprovedFileName);
-
-			// TODO need to read in metadata file telling how to compare these files.
-
-			FImageComparisonResult Result = Comparer.Compare(ApprovedFullPath, UnapprovedFullPath, Tolerance);
-			Results.Comparisons.Add(Result);
+			const FImageComparisonResult ShotResult = CompareScreensot(RelativeUnapprovedShot);
+			Results.Comparisons.Add(ShotResult);
 		}
 	}
 
 	SaveComparisonResults(Results);
+}
+
+FImageComparisonResult FScreenShotManager::CompareScreensot(FString ExistingImage)
+{
+	FString Existing = FPaths::GetPath(ExistingImage);
+
+	FImageComparer Comparer;
+	Comparer.ImageRootA = ScreenshotApprovedFolder;
+	Comparer.ImageRootB = ScreenshotUnapprovedFolder;
+	Comparer.DeltaDirectory = ScreenshotDeltaFolder;
+
+	// If the metadata for the screenshot does not provide tolerance rules, use these instead.
+	FImageTolerance DefaultTolerance = FImageTolerance::DefaultIgnoreLess;
+	DefaultTolerance.IgnoreAntiAliasing = true;
+
+	FString TestApprovedFolder = FPaths::Combine(ScreenshotApprovedFolder, Existing);
+	FString TestUnapprovedFolder =  FPaths::Combine(ScreenshotUnapprovedFolder, Existing);
+
+	TArray<FString> ApprovedDeviceShots;
+	IFileManager::Get().FindFilesRecursive(ApprovedDeviceShots, *TestApprovedFolder, TEXT("*.png"), true, false);
+
+	if ( ApprovedDeviceShots.Num() == 0 )
+	{
+		return FImageComparisonResult();
+	}
+
+	// Look for an exact adapter match so we're comparing apples to apples.
+	
+	FString UnapprovedFileName = FPaths::GetCleanFilename(ExistingImage);
+
+	FString* ExistingApprovedAdapter = ApprovedDeviceShots.FindByPredicate([&UnapprovedFileName] (const FString& ApprovedPath) {
+		FString ApprovedFileName = FPaths::GetCleanFilename(ApprovedPath);
+		return ApprovedFileName == UnapprovedFileName;
+	});
+
+	FString ExistingApproved;
+
+	if ( ExistingApprovedAdapter )
+	{
+		ExistingApproved = FPaths::GetCleanFilename(*ExistingApprovedAdapter);
+	}
+	else
+	{
+		ExistingApproved = FPaths::GetCleanFilename(ApprovedDeviceShots[0]);
+		// TODO No good, this should find closest resolution, maybe some other stuff as well?
+	}
+
+	FString ApprovedFullPath = FPaths::Combine(TestApprovedFolder, ExistingApproved);
+	FString UnapprovedFullPath = FPaths::Combine(TestUnapprovedFolder, UnapprovedFileName);
+
+	// Always read the metadata file from the unapproved location, as we may have introduced new comparison rules.
+	FString MetadataFile = FPaths::ChangeExtension(UnapprovedFullPath, ".json");
+
+	FImageTolerance Tolerance = DefaultTolerance;
+
+	FString Json;
+	if ( FFileHelper::LoadFileToString(Json, *MetadataFile) )
+	{
+		FAutomationScreenshotMetadata Metadata;
+		if ( FJsonObjectConverter::JsonObjectStringToUStruct(Json, &Metadata, 0, 0) )
+		{
+			if ( Metadata.bHasComparisonRules )
+			{
+				Tolerance.Red = Metadata.ToleranceRed;
+				Tolerance.Green = Metadata.ToleranceGreen;
+				Tolerance.Blue = Metadata.ToleranceBlue;
+				Tolerance.Alpha = Metadata.ToleranceAlpha;
+				Tolerance.MinBrightness = Metadata.ToleranceMinBrightness;
+				Tolerance.MaxBrightness = Metadata.ToleranceMaxBrightness;
+				Tolerance.IgnoreAntiAliasing = Metadata.bIgnoreAntiAliasing;
+				Tolerance.IgnoreColors = Metadata.bIgnoreColors;
+				Tolerance.MaximumLocalError = Metadata.MaximumLocalError;
+				Tolerance.MaximumGlobalError = Metadata.MaximumGlobalError;
+			}
+		}
+	}
+
+	return Comparer.Compare(ApprovedFullPath, UnapprovedFullPath, Tolerance);
 }
 
 TFuture<void> FScreenShotManager::ExportScreensotsAsync(FString ExportPath)
@@ -352,8 +316,8 @@ bool FScreenShotManager::ExportComparisonResults(FString RootExportFolder)
 	// Copy the ground truth images
 	CopyDirectory(ExportDirectory_Approved, ScreenshotApprovedFolder);
 
-	// Copy the incoming images
-	CopyDirectory(ExportDirectory_Incoming, ScreenshotIncomingFolder);
+	// Copy the incoming unapproved images
+	CopyDirectory(ExportDirectory_Incoming, ScreenshotUnapprovedFolder);
 
 	// Copy the delta images
 	CopyDirectory(ExportDirectory_Delta, ScreenshotDeltaFolder);

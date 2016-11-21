@@ -5,8 +5,11 @@
 #include "ISessionInstanceInfo.h"
 
 
+class IMessageBus;
 class ISessionInfo;
+struct FEngineServicePong;
 struct FSessionLogMessage;
+struct FSessionServicePong;
 
 
 /**
@@ -28,7 +31,7 @@ public:
 	 * @param InOwner The session that owns this instance.
 	 * @param InMessageBus The message bus to use.
 	 */
-	FSessionInstanceInfo(const FGuid& InInstanceId, const TSharedRef<ISessionInfo>& InOwner, const IMessageBusRef& InMessageBus);
+	FSessionInstanceInfo(const FGuid& InInstanceId, const TSharedRef<ISessionInfo>& InOwner, const TSharedRef<IMessageBus, ESPMode::ThreadSafe>& InMessageBus);
 
 public:
 
@@ -50,7 +53,7 @@ public:
 
 public:	
 
-	// IGameInstanceInfo interface
+	//~ IGameInstanceInfo interface
 
 	virtual void ExecuteCommand(const FString& CommandString) override;
 

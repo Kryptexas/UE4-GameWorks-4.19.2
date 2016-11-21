@@ -3,10 +3,12 @@
 #pragma once
 
 #include "MovieSceneTrack.h"
+#include "Curves/IntegralCurve.h"
 #include "MovieSceneSpawnTrack.generated.h"
 
 
 class IMovieSceneTrackInstance;
+class UMovieSceneBoolSection;
 class UMovieSceneSection;
 
 
@@ -24,9 +26,6 @@ public:
 
 public:
 
-	/** Evaluate whether the controlled object should currently be spawned or not */
-	bool Eval(float Position, float LastPostion, bool& bOutSpawned) const;
-
 	/** Get the object identifier that this spawn track controls */
 	const FGuid& GetObjectId() const
 	{
@@ -39,18 +38,25 @@ public:
 		ObjectGuid = InGuid;
 	}
 
+	static uint16 GetEvaluationPriority() { return uint16(0xFFF); }
+	
 public:
 
 	// UMovieSceneTrack interface
-
 	virtual UMovieSceneSection* CreateNewSection() override;
-	virtual TSharedPtr<IMovieSceneTrackInstance> CreateInstance() override;
 	virtual bool HasSection(const UMovieSceneSection& Section) const override;
 	virtual void AddSection(UMovieSceneSection& Section) override;
 	virtual void RemoveSection(UMovieSceneSection& Section) override;
 	virtual bool IsEmpty() const override;
 	virtual TRange<float> GetSectionBoundaries() const override;
 	virtual const TArray<UMovieSceneSection*>& GetAllSections() const override;
+	virtual void GenerateTemplate(const FMovieSceneTrackCompilerArgs& Args) const override;
+	virtual void PostCompile(FMovieSceneEvaluationTrack& OutTrack, const FMovieSceneTrackCompilerArgs& Args) const override;
+	virtual FMovieSceneEvalTemplatePtr CreateTemplateForSection(const UMovieSceneSection& InSection) const override;
+
+	//~ UObject interface
+	virtual void PostLoad() override;
+
 #if WITH_EDITOR
 	virtual ECookOptimizationFlags GetCookOptimizationFlags() const override;
 #endif

@@ -116,7 +116,7 @@ void FAssetTypeActions_StaticMesh::GetImportLODMenu(class FMenuBuilder& MenuBuil
 		}
 
 		MenuBuilder.AddMenuEntry( Description, ToolTip, FSlateIcon(),
-			FUIAction(FExecuteAction::CreateStatic( &FbxMeshUtils::ImportMeshLODDialog, Cast<UObject>(StaticMesh), LOD) )) ;
+			FUIAction(FExecuteAction::CreateStatic( &FAssetTypeActions_StaticMesh::ExecuteImportMeshLOD, Cast<UObject>(StaticMesh), LOD) )) ;
 	}
 }
 
@@ -160,6 +160,11 @@ void FAssetTypeActions_StaticMesh::GetLODMenu(class FMenuBuilder& MenuBuilder, T
 
 }
 
+void FAssetTypeActions_StaticMesh::ExecuteImportMeshLOD(UObject* Mesh, int32 LOD)
+{
+	FbxMeshUtils::ImportMeshLODDialog(Mesh, LOD);
+}
+
 void FAssetTypeActions_StaticMesh::ExecuteCopyLODSettings(TArray<TWeakObjectPtr<UStaticMesh>> Objects)
 {
 	LODCopyMesh = Objects[0];
@@ -194,7 +199,6 @@ void FAssetTypeActions_StaticMesh::ExecutePasteLODSettings(TArray<TWeakObjectPtr
 	}
 
 	const bool bAutoComputeLODScreenSize = LODCopyMesh->bAutoComputeLODScreenSize;
-	const float StreamingDistanceMultiplier = LODCopyMesh->StreamingDistanceMultiplier;
 
 	// Copy LOD settings over to selected objects in content browser (meshes)
 	for (TWeakObjectPtr<UStaticMesh> MeshPtr : Objects)
@@ -230,7 +234,6 @@ void FAssetTypeActions_StaticMesh::ExecutePasteLODSettings(TArray<TWeakObjectPtr
 			}
 
 			Mesh->bAutoComputeLODScreenSize = bAutoComputeLODScreenSize;
-			Mesh->StreamingDistanceMultiplier = StreamingDistanceMultiplier;
 
 			Mesh->PostEditChange();
 			Mesh->MarkPackageDirty();

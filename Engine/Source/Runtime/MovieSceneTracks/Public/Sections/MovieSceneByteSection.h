@@ -18,18 +18,10 @@ class UMovieSceneByteSection
 {
 	GENERATED_UCLASS_BODY()
 public:
-	/**
-	 * Update this section.
-	 *
-	 * @param Position The position in time within the movie scene
-	 */
-	virtual uint8 Eval(float Position, uint8 DefaultValue) const;
 
 	/** Gets all the keys of this byte section */
-	FIntegralCurve& GetCurve()
-	{
-		return ByteCurve;
-	}
+	FIntegralCurve& GetCurve() { return ByteCurve; }
+	const FIntegralCurve& GetCurve() const { return ByteCurve; }
 
 public:
 

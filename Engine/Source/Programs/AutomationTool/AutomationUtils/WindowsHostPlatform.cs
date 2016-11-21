@@ -12,29 +12,6 @@ namespace AutomationTool
 {
 	class WindowsHostPlatform : HostPlatform
 	{
-		/// <returns>The path to Windows SDK directory for the specified version.</returns>
-		private static string FindWindowsSDKInstallationFolder( string Version )
-		{
-			// Based on VCVarsQueryRegistry
-			string WinSDKPath = (string)Microsoft.Win32.Registry.GetValue( @"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Microsoft SDKs\Windows\" + Version, "InstallationFolder", null );
-			if( WinSDKPath != null )
-			{
-				return WinSDKPath;
-			}
-			WinSDKPath = (string)Microsoft.Win32.Registry.GetValue( @"HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\" + Version, "InstallationFolder", null );
-			if( WinSDKPath != null )
-			{
-				return WinSDKPath;
-			}
-			WinSDKPath = (string)Microsoft.Win32.Registry.GetValue( @"HKEY_CURRENT_USER\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\" + Version, "InstallationFolder", null );
-			if( WinSDKPath != null )
-			{
-				return WinSDKPath;
-			}
-
-			throw new BuildException( "Can't find Windows SDK {0}.", Version );
-		}
-
 		public override string GetMsBuildExe()
 		{
 			return VCEnvironment.GetMSBuildToolPath();
@@ -42,9 +19,11 @@ namespace AutomationTool
 
 		public override string GetMsDevExe()
 		{
+			WindowsCompiler Compiler = WindowsPlatform.GetDefaultCompiler(new string[0], null);
+
 			// Locate MsDevEnv executable
 			DirectoryReference VSInstallDir;
-			if(!WindowsPlatform.TryGetVSInstallDir(WindowsPlatform.Compiler, out VSInstallDir))
+			if(!WindowsPlatform.TryGetVSInstallDir(Compiler, out VSInstallDir))
 			{
 				throw new NotSupportedException("Couldn't find installation of Visual Studio");
 			}

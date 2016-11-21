@@ -43,6 +43,7 @@ public:
 protected:
 	TArray<FPerBoneBlendWeight> DesiredBoneBlendWeights;
 	TArray<FPerBoneBlendWeight> CurrentBoneBlendWeights;
+	TArray<uint8> CurvePoseSourceIndices;
 
 public:	
 	FAnimNode_LayeredBoneBlend()

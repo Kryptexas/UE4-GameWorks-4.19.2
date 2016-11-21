@@ -219,14 +219,8 @@ void UPrimitiveComponent::GetLightAndShadowMapMemoryUsage( int32& LightMapMemory
 
 void UPrimitiveComponent::InvalidateLightingCacheDetailed(bool bInvalidateBuildEnqueuedLighting, bool bTranslationOnly) 
 {
-	bHasCachedStaticLighting = false;
-	if (bInvalidateBuildEnqueuedLighting)
-	{
-		bStaticLightingBuildEnqueued = false;
-	}
-
 	// If a static lighting build has been enqueued for this primitive, don't stomp on its visibility ID.
-	if (bInvalidateBuildEnqueuedLighting || !bStaticLightingBuildEnqueued)
+	if (bInvalidateBuildEnqueuedLighting)
 	{
 		VisibilityId = INDEX_NONE;
 	}
@@ -236,7 +230,7 @@ void UPrimitiveComponent::InvalidateLightingCacheDetailed(bool bInvalidateBuildE
 
 bool UPrimitiveComponent::IsEditorOnly() const
 {
-	return ((AlwaysLoadOnClient == false) && (AlwaysLoadOnServer == false)) || Super::IsEditorOnly();
+	return Super::IsEditorOnly() || ((AlwaysLoadOnClient == false) && (AlwaysLoadOnServer == false));
 }
 
 bool UPrimitiveComponent::HasStaticLighting() const
@@ -365,7 +359,7 @@ bool UPrimitiveComponent::IsPostPhysicsComponentTickEnabled() const
 void UPrimitiveComponent::CreateRenderState_Concurrent()
 {
 	// Make sure cached cull distance is up-to-date if its zero and we have an LD cull distance
-	if( CachedMaxDrawDistance == 0 && LDMaxDrawDistance > 0 )
+	if( CachedMaxDrawDistance == 0.f && LDMaxDrawDistance > 0.f )
 	{
 		CachedMaxDrawDistance = LDMaxDrawDistance;
 	}
@@ -420,10 +414,18 @@ void UPrimitiveComponent::OnRegister()
 
 void UPrimitiveComponent::OnUnregister()
 {
-	UWorld* World = GetWorld();
-	if (World && World->Scene)
+	// If this is being garbage collected we don't really need to worry about clearing this
+	if (!HasAnyFlags(RF_BeginDestroyed) && !IsUnreachable())
 	{
-		World->Scene->ReleasePrimitive(this);
+		UWorld* World = GetWorld();
+		if (World)
+		{
+			if (World->Scene)
+			{
+				World->Scene->ReleasePrimitive(this);
+			}
+			World->ClearActorComponentEndOfFrameUpdate(this);
+		}
 	}
 
 	Super::OnUnregister();
@@ -638,11 +640,6 @@ void UPrimitiveComponent::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
-	if (Ar.UE4Ver() < VER_UE4_COMBINED_LIGHTMAP_TEXTURES)
-	{
-		bHasCachedStaticLighting = false;
-	}
-
 	// as temporary fix for the bug TTP 299926
 	// permanent fix is coming
 	if (IsTemplate())
@@ -654,7 +651,6 @@ void UPrimitiveComponent::Serialize(FArchive& Ar)
 #if WITH_EDITOR
 void UPrimitiveComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	static const FName NAME_SimulatePhysics = TEXT("bSimulatePhysics");
 	// Keep track of old cached cull distance to see whether we need to re-attach component.
 	const float OldCachedMaxDrawDistance = CachedMaxDrawDistance;
 
@@ -663,15 +659,11 @@ void UPrimitiveComponent::PostEditChangeProperty(FPropertyChangedEvent& Property
 	{
 		const FName PropertyName = PropertyThatChanged->GetFName();
 
-		// We disregard cull distance volumes in this case as we have no way of handling cull 
-		// distance changes to without refreshing all cull distance volumes. Saving or updating 
-		// any cull distance volume will set the proper value again.
-		if( PropertyName == TEXT("LDMaxDrawDistance") || PropertyName == TEXT("bAllowCullDistanceVolume") )
+		// CachedMaxDrawDistance needs to be set as if you have no cull distance volumes affecting this primitive component the cached value wouldn't get updated
+		if (PropertyName == GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, LDMaxDrawDistance) || PropertyName == GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, bAllowCullDistanceVolume))
 		{
 			CachedMaxDrawDistance = LDMaxDrawDistance;
 		}
-
-
 
 		// we need to reregister the primitive if the min draw distance changed to propagate the change to the rendering thread
 		if (PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, MinDrawDistance))
@@ -696,6 +688,10 @@ void UPrimitiveComponent::PostEditChangeProperty(FPropertyChangedEvent& Property
 	if( !bAllowCullDistanceVolume )
 	{
 		CachedMaxDrawDistance = LDMaxDrawDistance;
+	}
+	else if (UWorld* World = GetWorld())
+	{
+		World->UpdateCullDistanceVolumes(nullptr, this);
 	}
 
 	// Reattach to propagate cull distance change.
@@ -867,7 +863,7 @@ void UPrimitiveComponent::PostLoad()
 
 	// as temporary fix for the bug TTP 299926
 	// permanent fix is coming
-	if (IsTemplate()==false)
+	if (!IsTemplate())
 	{
 		BodyInstance.FixupData(this);
 	}
@@ -878,10 +874,10 @@ void UPrimitiveComponent::PostLoad()
 	}
 
 	// Make sure cached cull distance is up-to-date.
-	if( LDMaxDrawDistance > 0 )
+	if( LDMaxDrawDistance > 0.f )
 	{
 		// Directly use LD cull distance if cached one is not set.
-		if( CachedMaxDrawDistance == 0 )
+		if( CachedMaxDrawDistance == 0.f )
 		{
 			CachedMaxDrawDistance = LDMaxDrawDistance;
 		}
@@ -973,7 +969,7 @@ void UPrimitiveComponent::FinishDestroy()
 
 bool UPrimitiveComponent::NeedsLoadForClient() const
 {
-	if(!IsVisible() && !IsCollisionEnabled() && !AlwaysLoadOnClient)
+	if (!IsVisible() && !IsCollisionEnabled() && !AlwaysLoadOnClient)
 	{
 		return 0;
 	}
@@ -1135,15 +1131,28 @@ void UPrimitiveComponent::PushHoveredToProxy(const bool bInHovered)
 	}
 }
 
-void UPrimitiveComponent::SetCullDistance(float NewCullDistance)
+void UPrimitiveComponent::SetCullDistance(const float NewCullDistance)
 {
-	if (NewCullDistance >= 0)
+	if (NewCullDistance >= 0.f && NewCullDistance != LDMaxDrawDistance)
 	{
+		const float OldLDMaxDrawDistance = LDMaxDrawDistance;
+
 		LDMaxDrawDistance = NewCullDistance;
 	
-		if (LDMaxDrawDistance < CachedMaxDrawDistance)
+		if (CachedMaxDrawDistance == 0.f || LDMaxDrawDistance < CachedMaxDrawDistance)
 		{
 			SetCachedMaxDrawDistance(LDMaxDrawDistance);
+		}
+		else if (OldLDMaxDrawDistance == CachedMaxDrawDistance)
+		{
+			if (UWorld* World = GetWorld())
+			{
+				World->UpdateCullDistanceVolumes(nullptr, this);
+			}
+			else
+			{
+				SetCachedMaxDrawDistance(LDMaxDrawDistance);
+			}
 		}
 	}
 }
@@ -1951,10 +1960,9 @@ bool UPrimitiveComponent::LineTraceComponent(struct FHitResult& OutHit, const FV
 	return bHaveHit;
 }
 
-// @Todo change this to shape with sweep
-bool UPrimitiveComponent::SweepComponent(struct FHitResult& OutHit, const FVector Start, const FVector End, const FCollisionShape &CollisionShape, bool bTraceComplex)
+bool UPrimitiveComponent::SweepComponent(struct FHitResult& OutHit, const FVector Start, const FVector End, const FQuat& ShapeWorldRotation, const FCollisionShape &CollisionShape, bool bTraceComplex)
 {
-	return BodyInstance.Sweep(OutHit, Start, End, CollisionShape, bTraceComplex);
+	return BodyInstance.Sweep(OutHit, Start, End, ShapeWorldRotation, CollisionShape, bTraceComplex);
 }
 
 bool UPrimitiveComponent::ComponentOverlapComponentImpl(class UPrimitiveComponent* PrimComp, const FVector Pos, const FQuat& Quat, const struct FCollisionQueryParams& Params)
@@ -2540,7 +2548,7 @@ void UPrimitiveComponent::UpdateOverlaps(const TArray<FOverlapInfo>* NewPendingO
 					Params.bIgnoreBlocks = true;	//We don't care about blockers since we only route overlap events to real overlaps
 					FCollisionResponseParams ResponseParam;
 					InitSweepCollisionParams(Params, ResponseParam);
-					MyWorld->ComponentOverlapMulti(Overlaps, this, GetComponentLocation(), GetComponentQuat(), Params);
+					ComponentOverlapMulti(Overlaps, MyWorld, GetComponentLocation(), GetComponentQuat(), GetCollisionObjectType(), Params);
 
 					for( int32 ResultIdx=0; ResultIdx<Overlaps.Num(); ResultIdx++ )
 					{
@@ -2917,16 +2925,14 @@ void UPrimitiveComponent::DispatchOnInputTouchEnd(const ETouchIndex::Type Finger
 	}
 }
 
-SIZE_T UPrimitiveComponent::GetResourceSize( EResourceSizeMode::Type Mode )
+void UPrimitiveComponent::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	SIZE_T ResSize = Super::GetResourceSize(Mode);
+	Super::GetResourceSizeEx(CumulativeResourceSize);
 
 	if (BodyInstance.IsValidBodyInstance())
 	{
-		ResSize = BodyInstance.GetBodyInstanceResourceSize(Mode);
+		BodyInstance.GetBodyInstanceResourceSizeEx(CumulativeResourceSize);
 	}
-
-	return ResSize;
 }
 
 void UPrimitiveComponent::SetRenderCustomDepth(bool bValue)

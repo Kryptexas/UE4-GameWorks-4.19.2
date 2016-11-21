@@ -330,6 +330,18 @@ void UBlueprint::PreSave(const class ITargetPlatform* TargetPlatform)
 }
 #endif // WITH_EDITORONLY_DATA
 
+void UBlueprint::GetPreloadDependencies(TArray<UObject*>& OutDeps)
+{
+	Super::GetPreloadDependencies(OutDeps);
+	for (UClass* ClassIt = ParentClass; (ClassIt != NULL) && !(ClassIt->HasAnyClassFlags(CLASS_Native)); ClassIt = ClassIt->GetSuperClass())
+	{
+		if (ClassIt->ClassGeneratedBy)
+		{
+			OutDeps.Add(ClassIt->ClassGeneratedBy);
+		}
+	}
+}
+
 void UBlueprint::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
@@ -458,7 +470,7 @@ bool UBlueprint::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Fl
 	bool bSuccess = Super::Rename( InName, NewOuter, Flags );
 
 	// Finally, do a compile, but only if the new name differs from before
-	if(bSuccess && !(Flags & REN_Test) && !(Flags & REN_DoNotDirty) && InName != OldName)
+	if(bSuccess && !(Flags & REN_Test) && !(Flags & REN_DoNotDirty) && InName && InName != OldName)
 	{
 		// Gather all blueprints that currently depend on this one.
 		TArray<UBlueprint*> Dependents;
@@ -625,19 +637,7 @@ void UBlueprint::PostLoad()
 	FBlueprintEditorUtils::UpdateStalePinWatches(this);
 #endif // WITH_EDITORONLY_DATA
 
-	{
-		TArray<UEdGraph*> Graphs;
-		GetAllGraphs(Graphs);
-		for (auto It = Graphs.CreateIterator(); It; ++It)
-		{
-			UEdGraph* const Graph = *It;
-			const UEdGraphSchema* Schema = Graph->GetSchema();
-			Schema->BackwardCompatibilityNodeConversion(Graph, true);
-		}
-	}
-
 	FStructureEditorUtils::RemoveInvalidStructureMemberVariableFromBlueprint(this);
-
 
 #if WITH_EDITOR
 	// Do not want to run this code without the editor present nor when running commandlets.
@@ -701,7 +701,7 @@ void UBlueprint::SetObjectBeingDebugged(UObject* NewObject)
 				NewObject->IsA(this->GeneratedClass), 
 				TEXT("Type mismatch: Expected %s, Found %s"), 
 				this->GeneratedClass ? *(this->GeneratedClass->GetName()) : TEXT("NULL"), 
-				NewObject->GetClass() ? *(this->GetClass()->GetName()) : TEXT("NULL")))
+				NewObject->GetClass() ? *(NewObject->GetClass()->GetName()) : TEXT("NULL")))
 		{
 			NewObject = NULL;
 		}
@@ -1217,32 +1217,36 @@ FString UBlueprint::GetDesc(void)
 	return ResultString;
 }
 
-struct FDontLoadBlueprintOutsideEditorHelper
-{
-	bool bDontLoad;
-
-	FDontLoadBlueprintOutsideEditorHelper() : bDontLoad(false)
-	{
-		GConfig->GetBool(TEXT("EditoronlyBP"), TEXT("bDontLoadBlueprintOutsideEditor"), bDontLoad, GEditorIni);
-	}
-};
-
 bool UBlueprint::NeedsLoadForClient() const
 {
-	static const FDontLoadBlueprintOutsideEditorHelper Helper;
-	return !Helper.bDontLoad;
+	return false;
 }
 
 bool UBlueprint::NeedsLoadForServer() const
 {
-	static const FDontLoadBlueprintOutsideEditorHelper Helper;
-	return !Helper.bDontLoad;
+	return false;
 }
 
 bool UBlueprint::NeedsLoadForEditorGame() const
 {
 	return true;
 }
+
+#if WITH_EDITOR
+bool UBlueprint::CanEditChange(const UProperty* InProperty) const
+{
+	bool bIsEditable = Super::CanEditChange(InProperty);
+	if (bIsEditable && InProperty)
+	{
+		const FName PropertyName = InProperty->GetFName();
+		if (PropertyName == GET_MEMBER_NAME_CHECKED(UBlueprint, bNativize))
+		{
+			return (BlueprintType != BPTYPE_LevelScript) && (BlueprintType != BPTYPE_MacroLibrary);
+		}
+	}
+	return bIsEditable;
+}
+#endif // WITH_EDITOR
 
 void UBlueprint::TagSubobjects(EObjectFlags NewFlags)
 {

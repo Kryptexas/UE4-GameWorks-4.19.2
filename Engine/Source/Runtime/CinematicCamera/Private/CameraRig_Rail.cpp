@@ -27,6 +27,7 @@ ACameraRig_Rail::ACameraRig_Rail(const FObjectInitializer& ObjectInitializer)
 	RailCameraMount = CreateDefaultSubobject<USceneComponent>(TEXT("RailCameraMount"));
 	RailCameraMount->SetupAttachment(RailSplineComponent);
 
+#if WITH_EDITORONLY_DATA
 	if (!IsRunningDedicatedServer())
 	{
 		static ConstructorHelpers::FObjectFinder<UStaticMesh> RailMesh(TEXT("/Engine/EditorMeshes/Camera/SM_RailRig_Track.SM_RailRig_Track"));
@@ -46,6 +47,7 @@ ACameraRig_Rail::ACameraRig_Rail(const FObjectInitializer& ObjectInitializer)
 			PreviewMesh_Mount->SetupAttachment(RailCameraMount);
 		}
 	}
+#endif
 }
 
 USplineMeshComponent* ACameraRig_Rail::CreateSplinePreviewSegment()

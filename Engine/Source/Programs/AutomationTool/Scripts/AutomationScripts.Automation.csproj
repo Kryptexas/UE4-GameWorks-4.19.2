@@ -104,6 +104,7 @@
     <Compile Include="UE4BuildUtils.cs" />
     <Compile Include="UnrealSync.Automation.cs" />
     <Compile Include="UpdateLocalVersion.Automation.cs" />
+    <Compile Include="ZipUtils.Automation.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\UnrealBuildTool\UnrealBuildTool.csproj">

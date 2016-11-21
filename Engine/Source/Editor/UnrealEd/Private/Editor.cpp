@@ -614,11 +614,6 @@ FReimportManager::FReimportManager()
 	// Create reimport handler for APEX destructible meshes
 	UReimportDestructibleMeshFactory::StaticClass();
 
-	// Create reimport handler for sound node waves
-	UReimportSoundFactory::StaticClass();
-
-	// Create reimport handler for surround sound waves
-	UReimportSoundSurroundFactory::StaticClass();
 }
 
 FReimportManager::~FReimportManager()

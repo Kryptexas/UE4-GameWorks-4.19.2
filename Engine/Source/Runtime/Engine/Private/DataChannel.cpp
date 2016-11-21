@@ -1762,6 +1762,20 @@ void UActorChannel::SetChannelActor( AActor* InActor )
 	check(!Closing);
 	check(Actor==NULL);
 
+	// Sanity check that the actor is in the same level collection as the channel's driver.
+	const UWorld* const World = Connection->Driver ? Connection->Driver->GetWorld() : nullptr;
+	if (World && InActor)
+	{
+		const ULevel* const CachedLevel = InActor->GetLevel();
+		const FLevelCollection* const ActorCollection = CachedLevel ? CachedLevel->GetCachedLevelCollection() : nullptr;
+		if (ActorCollection &&
+			ActorCollection->GetNetDriver() != Connection->Driver &&
+			ActorCollection->GetDemoNetDriver() != Connection->Driver)
+		{
+			UE_LOG(LogNet, Verbose, TEXT("UActorChannel::SetChannelActor: actor %s is not in the same level collection as the net driver (%s)!"), *GetFullNameSafe(InActor), *GetFullNameSafe(Connection->Driver));
+		}
+	}
+
 	// Set stuff.
 	Actor = InActor;
 
@@ -2849,6 +2863,9 @@ UObject* UActorChannel::ReadContentBlockHeader( FInBunch & Bunch, bool& bObjectD
 
 		// Track which sub-object guids we are creating
 		CreateSubObjects.AddUnique( SubObj );
+
+		// Add this sub-object to the ImportedNetGuids list so we can possibly map this object if needed
+		Connection->Driver->GuidCache->ImportedNetGuids.Add( NetGUID );
 	}
 
 	return SubObj;
@@ -3305,9 +3322,11 @@ static void	DeleteDormantActor( UWorld* InWorld )
 
 		UE_LOG(LogNet, Warning, TEXT("Deleting actor %s"), *ThisActor->GetName());
 
+#if ENABLE_DRAW_DEBUG
 		FBox Box = ThisActor->GetComponentsBoundingBox();
 		
 		DrawDebugBox( InWorld, Box.GetCenter(), Box.GetExtent(), FQuat::Identity, FColor::Red, true, 30 );
+#endif
 
 		ThisActor->Destroy();
 

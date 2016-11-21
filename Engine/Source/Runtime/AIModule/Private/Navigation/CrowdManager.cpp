@@ -13,8 +13,6 @@
 #include "Navigation/CrowdFollowingComponent.h"
 #include "Navigation/CrowdAgentInterface.h"
 
-#include "DrawDebugHelpers.h"
-
 DECLARE_STATS_GROUP(TEXT("Crowd"), STATGROUP_AICrowd, STATCAT_Advanced);
 
 DECLARE_CYCLE_STAT(TEXT("Nav Tick: crowd simulation"), STAT_AI_Crowd_Tick, STATGROUP_AICrowd);
@@ -899,6 +897,7 @@ void UCrowdManager::DestroyCrowdManager()
 	DetourCrowd = NULL;
 }
 
+#if ENABLE_DRAW_DEBUG
 void UCrowdManager::DrawDebugCorners(const dtCrowdAgent* CrowdAgent) const
 {
 	{
@@ -1058,6 +1057,7 @@ void UCrowdManager::DrawDebugSharedBoundary() const
 		}
 	}
 }
+#endif // ENABLE_DRAW_DEBUG
 
 #endif // WITH_RECAST
 
@@ -1080,6 +1080,7 @@ void UCrowdManager::DebugTick() const
 		}
 	}
 
+#if ENABLE_DRAW_DEBUG
 	// on screen debugging
 	const dtCrowdAgent* SelectedAgent = DetourAgentDebug->idx >= 0 ? DetourCrowd->getAgent(DetourAgentDebug->idx) : NULL;
 	if (SelectedAgent && CrowdDebugDrawing::bDebugSelectedActors)
@@ -1119,6 +1120,7 @@ void UCrowdManager::DebugTick() const
 	{
 		DrawDebugSharedBoundary();
 	}
+#endif // ENABLE_DRAW_DEBUG
 
 	// vislog debugging
 	if (CrowdDebugDrawing::bDebugVisLog)

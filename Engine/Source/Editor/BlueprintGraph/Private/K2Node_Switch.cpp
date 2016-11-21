@@ -97,7 +97,7 @@ public:
 					// Create a term for the switch case value
 					FBPTerminal* CaseValueTerm = new (Context.Literals) FBPTerminal();
 					CaseValueTerm->Name = Pin->PinName;
-					CaseValueTerm->Type = SelectionPin->PinType;
+					CaseValueTerm->Type = SwitchNode->GetInnerCaseType();
 					CaseValueTerm->SourcePin = Pin;
 					CaseValueTerm->bIsLiteral = true;
 
@@ -293,19 +293,19 @@ void UK2Node_Switch::CreateFunctionPin()
 	}
 }
 
-UEdGraphPin* UK2Node_Switch::GetFunctionPin()
+UEdGraphPin* UK2Node_Switch::GetFunctionPin() const
 {
 	//@TODO: Should probably use a specific index, though FindPin starts at 0, so this won't *currently* conflict with user created pins
 	return FindPin(FunctionName.ToString());
 }
 
-UEdGraphPin* UK2Node_Switch::GetSelectionPin()
+UEdGraphPin* UK2Node_Switch::GetSelectionPin() const
 {
 	//@TODO: Should probably use a specific index, though FindPin starts at 0, so this won't *currently* conflict with user created pins
 	return FindPin(SelectionPinName);
 }
 
-UEdGraphPin* UK2Node_Switch::GetDefaultPin()
+UEdGraphPin* UK2Node_Switch::GetDefaultPin() const
 {
 	return (bHasDefaultPin)
 		? Pins[0]
@@ -328,4 +328,13 @@ FText UK2Node_Switch::GetMenuCategory() const
 	return CachedCategory;
 }
 
+FEdGraphPinType UK2Node_Switch::GetInnerCaseType() const
+{
+	UEdGraphPin* SelectionPin = GetSelectionPin();
+	if (ensure(SelectionPin))
+	{
+		return SelectionPin->PinType;
+	}
+	return FEdGraphPinType();
+}
 #undef LOCTEXT_NAMESPACE

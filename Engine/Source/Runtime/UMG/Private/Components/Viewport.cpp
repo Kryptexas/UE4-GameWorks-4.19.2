@@ -309,6 +309,10 @@ class SAutoRefreshViewport : public SViewport
 	}
 	SLATE_END_ARGS()
 
+	SAutoRefreshViewport()
+		: PreviewScene(FPreviewScene::ConstructionValues().SetEditor(false))
+	{}
+
 	void Construct(const FArguments& InArgs)
 	{
 		SViewport::FArguments ParentArgs;

@@ -629,9 +629,9 @@ bool ULevelExporterSTL::ExportText( const FExportObjectInnerContext* Context, UO
 		// Static meshes
 
 		AStaticMeshActor* Actor = Cast<AStaticMeshActor>(Level->Actors[iActor]);
-		if( Actor && ( !bSelectedOnly || Actor->IsSelected() ) && Actor->GetStaticMeshComponent()->StaticMesh && Actor->GetStaticMeshComponent()->StaticMesh->HasValidRenderData() )
+		if( Actor && ( !bSelectedOnly || Actor->IsSelected() ) && Actor->GetStaticMeshComponent()->GetStaticMesh() && Actor->GetStaticMeshComponent()->GetStaticMesh()->HasValidRenderData() )
 		{
-			FStaticMeshLODResources& LODModel = Actor->GetStaticMeshComponent()->StaticMesh->RenderData->LODResources[0];
+			FStaticMeshLODResources& LODModel = Actor->GetStaticMeshComponent()->GetStaticMesh()->RenderData->LODResources[0];
 			FIndexArrayView Indices = LODModel.IndexBuffer.GetArrayView();
 			int32 NumSections = LODModel.Sections.Num();
 			for (int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
@@ -876,11 +876,11 @@ static void AddActorToOBJs(AActor* Actor, TArray<FOBJGeom*>& Objects, TSet<UMate
 	{
 		// If its a static mesh component, with a static mesh
 		StaticMeshComponent = StaticMeshComponents[j];
-		if( StaticMeshComponent->IsRegistered() && StaticMeshComponent->StaticMesh
-			&& StaticMeshComponent->StaticMesh->HasValidRenderData() )
+		if( StaticMeshComponent->IsRegistered() && StaticMeshComponent->GetStaticMesh()
+			&& StaticMeshComponent->GetStaticMesh()->HasValidRenderData() )
 		{
 			LocalToWorld = StaticMeshComponent->ComponentToWorld.ToMatrixWithScale();
-			StaticMesh = StaticMeshComponent->StaticMesh;
+			StaticMesh = StaticMeshComponent->GetStaticMesh();
 			if (StaticMesh)
 			{
 				// make room for the faces

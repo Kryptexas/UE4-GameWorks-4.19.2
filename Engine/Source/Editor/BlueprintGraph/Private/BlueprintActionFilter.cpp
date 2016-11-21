@@ -1429,9 +1429,10 @@ static bool BlueprintActionFilterImpl::IsMissingMatchingPinParam(FBlueprintActio
 {
 	bool bIsFilteredOut = false;
 
-	// we have a separate pin tests for function/property nodes (IsFunctionMissingPinParam/IsMissmatchedPropertyType)
-	bool const bTestPinCompatibility = (BlueprintAction.GetAssociatedProperty() == nullptr) &&
-		(BlueprintAction.GetAssociatedFunction() == nullptr);
+	// we have a separate pin tests for function/property nodes (IsFunctionMissingPinParam/IsMissmatchedPropertyType). Note that we only skip
+	// this test for functions with bindings (because it does not handle getting templates for all binding nodes). By running this for 
+	// other functions we ensure that IsConnectionDisallowed is honored.
+	bool const bTestPinCompatibility = (BlueprintAction.GetAssociatedProperty() == nullptr) && BlueprintAction.GetBindings().Num() == 0;
 
 	if (bTestPinCompatibility)
 	{

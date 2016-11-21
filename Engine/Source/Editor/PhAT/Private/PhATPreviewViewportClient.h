@@ -92,9 +92,9 @@ private:
 	FVector SimGrabZ;
 
 	/** Members used for interacting with the asset while the simulation is running */
-	FTransform StartManRelConTM;
-	FTransform StartManParentConTM;
-	FTransform StartManChildConTM;
+	TArray<FTransform> StartManRelConTM;
+	TArray<FTransform> StartManParentConTM;
+	TArray<FTransform> StartManChildConTM;
 
 	/** Misc members used for input handling */
 	bool bAllowedToMoveCamera;

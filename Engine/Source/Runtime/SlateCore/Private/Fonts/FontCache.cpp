@@ -563,7 +563,6 @@ int8 FCharacterList::GetKerning( const FCharacterEntry& FirstCharacterEntry, con
 	if (FirstCharacterEntry.Valid &&
 		SecondCharacterEntry.Valid &&
 		FirstCharacterEntry.FontData && 
-		FirstCharacterEntry.FontData->BulkDataPtr && 
 		FirstCharacterEntry.HasKerning && 
 		*FirstCharacterEntry.FontData == *SecondCharacterEntry.FontData )
 	{

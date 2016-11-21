@@ -3,7 +3,6 @@
 #pragma once
 
 
-// forward declarations
 class ISessionManager;
 class ISessionService;
 
@@ -20,6 +19,7 @@ public:
 	 * Gets the session manager.
 	 *
 	 * @return The session manager.
+	 * @see GetSessionService
 	 */
 	virtual TSharedRef<ISessionManager> GetSessionManager() = 0;
 
@@ -27,6 +27,7 @@ public:
 	 * Gets the session service.
 	 *
 	 * @return The session service.
+	 * @see GetSessionManager
 	 */
 	virtual TSharedRef<ISessionService> GetSessionService() = 0;
 

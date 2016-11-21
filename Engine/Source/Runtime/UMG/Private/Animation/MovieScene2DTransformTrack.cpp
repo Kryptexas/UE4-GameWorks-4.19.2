@@ -4,7 +4,7 @@
 #include "MovieScene2DTransformSection.h"
 #include "MovieScene2DTransformTrack.h"
 #include "IMovieScenePlayer.h"
-#include "MovieScene2DTransformTrackInstance.h"
+#include "MovieScene2DTransformTemplate.h"
 #include "MovieSceneCommonHelpers.h"
 
 UMovieScene2DTransformTrack::UMovieScene2DTransformTrack(const FObjectInitializer& ObjectInitializer)
@@ -13,6 +13,8 @@ UMovieScene2DTransformTrack::UMovieScene2DTransformTrack(const FObjectInitialize
 #if WITH_EDITORONLY_DATA
 	TrackTint = FColor(48, 227, 255, 65);
 #endif
+
+	EvalOptions.bEvaluateNearestSection = EvalOptions.bCanEvaluateNearestSection = true;
 }
 
 UMovieSceneSection* UMovieScene2DTransformTrack::CreateNewSection()
@@ -21,12 +23,12 @@ UMovieSceneSection* UMovieScene2DTransformTrack::CreateNewSection()
 }
 
 
-TSharedPtr<IMovieSceneTrackInstance> UMovieScene2DTransformTrack::CreateInstance()
+FMovieSceneEvalTemplatePtr UMovieScene2DTransformTrack::CreateTemplateForSection(const UMovieSceneSection& InSection) const
 {
-	return MakeShareable( new FMovieScene2DTransformTrackInstance( *this ) );
+	return FMovieScene2DTransformSectionTemplate(*CastChecked<const UMovieScene2DTransformSection>(&InSection), *this);
 }
 
-
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 bool UMovieScene2DTransformTrack::Eval(float Position, float LastPosition, FWidgetTransform& InOutTransform) const
 {
 	const UMovieSceneSection* Section = MovieSceneHelpers::FindNearestSectionAtTime(Sections, Position);
@@ -45,3 +47,4 @@ bool UMovieScene2DTransformTrack::Eval(float Position, float LastPosition, FWidg
 
 	return (Section != nullptr);
 }
+PRAGMA_ENABLE_DEPRECATION_WARNINGS

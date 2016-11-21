@@ -96,6 +96,11 @@ public:
 	/** @return Whether level is dirty */
 	bool IsDirty() const;
 
+	/** @return Whether level is a lighting scenario */
+	bool IsLightingScenario() const;
+
+	void SetIsLightingScenario(bool bNew);
+
 	/** @return Whether level has loaded content */
 	bool IsLoaded() const;
 

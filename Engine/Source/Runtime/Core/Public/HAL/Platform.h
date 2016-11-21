@@ -130,6 +130,9 @@
 #ifndef PLATFORM_LITTLE_ENDIAN
 	#define PLATFORM_LITTLE_ENDIAN				0
 #endif
+#ifndef PLATFORM_SUPPORTS_UNALIGNED_INT_LOADS
+	#define PLATFORM_SUPPORTS_UNALIGNED_INT_LOADS	0
+#endif
 #ifndef PLATFORM_EXCEPTIONS_DISABLED
 	#define PLATFORM_EXCEPTIONS_DISABLED		!PLATFORM_DESKTOP
 #endif
@@ -157,6 +160,13 @@
 #endif
 #ifndef PLATFORM_USE_SYSTEM_VSWPRINTF
 	#define PLATFORM_USE_SYSTEM_VSWPRINTF		1
+#endif
+#ifndef PLATFORM_COMPILER_CLANG
+	#if defined(__clang__)
+		#define PLATFORM_COMPILER_CLANG			1
+	#else
+		#define PLATFORM_COMPILER_CLANG			0
+	#endif // defined(__clang__)
 #endif
 #ifndef PLATFORM_COMPILER_DISTINGUISHES_INT_AND_LONG
 	#define PLATFORM_COMPILER_DISTINGUISHES_INT_AND_LONG			0
@@ -508,57 +518,6 @@
 #define private_subobject public
 #endif
 
-// explicit bool support
-namespace FHasOperatorImpl
-{
-	struct FNotSpecified {};
-
-	template <typename T>
-	struct FReturnValueCheck
-	{
-		static char (&Func())[2];
-	};
-
-	template <>
-	struct FReturnValueCheck<FNotSpecified>
-	{
-		static char (&Func())[1];
-	};
-
-	template <typename T>
-	FNotSpecified operator==(const T&, const T&);
-
-	template <typename T>
-	FNotSpecified operator!=(const T&, const T&);
-
-	template <typename T>
-	const T& Make();
-
-	template <typename T>
-	struct Equals
-	{
-		enum { Value = sizeof(FReturnValueCheck<decltype(Make<T>() == Make<T>())>::Func()) == sizeof(char[2]) };
-	};
-
-	template <typename T>
-	struct NotEquals
-	{
-		enum { Value = sizeof(FReturnValueCheck<decltype(Make<T>() != Make<T>())>::Func()) == sizeof(char[2]) };
-	};
-}
-
-template <typename T>
-struct THasOperatorEquals
-{
-	enum { Value = FHasOperatorImpl::Equals<T>::Value };
-};
-
-template <typename T>
-struct THasOperatorNotEquals
-{
-	enum { Value = FHasOperatorImpl::NotEquals<T>::Value };
-};
-
 // Console ANSICHAR/TCHAR command line handling
 #if PLATFORM_COMPILER_HAS_TCHAR_WMAIN
 #define INT32_MAIN_INT32_ARGC_TCHAR_ARGV() int32 wmain(int32 ArgC, TCHAR* ArgV[])
@@ -627,34 +586,55 @@ int32 tchar_main(int32 ArgC, TCHAR* ArgV[])
 // Transfer the platform types to global types
 //------------------------------------------------------------------
 
-// Unsigned base types.
-typedef FPlatformTypes::uint8		uint8;		///< An 8-bit unsigned integer.
-typedef FPlatformTypes::uint16		uint16;		///< A 16-bit unsigned integer.
-typedef FPlatformTypes::uint32		uint32;		///< A 32-bit unsigned integer.
-typedef FPlatformTypes::uint64		uint64;		///< A 64-bit unsigned integer.
+//~ Unsigned base types.
+/// An 8-bit unsigned integer.
+typedef FPlatformTypes::uint8		uint8;
+/// A 16-bit unsigned integer.
+typedef FPlatformTypes::uint16		uint16;
+/// A 32-bit unsigned integer.
+typedef FPlatformTypes::uint32		uint32;
+/// A 64-bit unsigned integer.
+typedef FPlatformTypes::uint64		uint64;
 
-// Signed base types.
-typedef	FPlatformTypes::int8		int8;		///< An 8-bit signed integer.
-typedef FPlatformTypes::int16		int16;		///< A 16-bit signed integer.
-typedef FPlatformTypes::int32		int32;		///< A 32-bit signed integer.
-typedef FPlatformTypes::int64		int64;		///< A 64-bit signed integer.
+//~ Signed base types.
+/// An 8-bit signed integer.
+typedef	FPlatformTypes::int8		int8;
+/// A 16-bit signed integer.
+typedef FPlatformTypes::int16		int16;
+/// A 32-bit signed integer.
+typedef FPlatformTypes::int32		int32;
+/// A 64-bit signed integer.
+typedef FPlatformTypes::int64		int64;
 
-// Character types.
-typedef FPlatformTypes::ANSICHAR	ANSICHAR;	///< An ANSI character. Normally a signed type.
-typedef FPlatformTypes::WIDECHAR	WIDECHAR;	///< A wide character. Normally a signed type.
-typedef FPlatformTypes::TCHAR		TCHAR;		///< Either ANSICHAR or WIDECHAR, depending on whether the platform supports wide characters or the requirements of the licensee.
-typedef FPlatformTypes::CHAR8		UTF8CHAR;	///< An 8-bit character containing a UTF8 (Unicode, 8-bit, variable-width) code unit.
-typedef FPlatformTypes::CHAR16		UCS2CHAR;	///< A 16-bit character containing a UCS2 (Unicode, 16-bit, fixed-width) code unit, used for compatibility with 'Windows TCHAR' across multiple platforms.
-typedef FPlatformTypes::CHAR16		UTF16CHAR;	///< A 16-bit character containing a UTF16 (Unicode, 16-bit, variable-width) code unit.
-typedef FPlatformTypes::CHAR32		UTF32CHAR;	///< A 32-bit character containing a UTF32 (Unicode, 32-bit, fixed-width) code unit.
+//~ Character types.
+/// An ANSI character. Normally a signed type.
+typedef FPlatformTypes::ANSICHAR	ANSICHAR;
+/// A wide character. Normally a signed type.
+typedef FPlatformTypes::WIDECHAR	WIDECHAR;
+/// Either ANSICHAR or WIDECHAR, depending on whether the platform supports wide characters or the requirements of the licensee.
+typedef FPlatformTypes::TCHAR		TCHAR;
+/// An 8-bit character containing a UTF8 (Unicode, 8-bit, variable-width) code unit.
+typedef FPlatformTypes::CHAR8		UTF8CHAR;
+/// A 16-bit character containing a UCS2 (Unicode, 16-bit, fixed-width) code unit, used for compatibility with 'Windows TCHAR' across multiple platforms.
+typedef FPlatformTypes::CHAR16		UCS2CHAR;
+/// A 16-bit character containing a UTF16 (Unicode, 16-bit, variable-width) code unit.
+typedef FPlatformTypes::CHAR16		UTF16CHAR;
+/// A 32-bit character containing a UTF32 (Unicode, 32-bit, fixed-width) code unit.
+typedef FPlatformTypes::CHAR32		UTF32CHAR;
 
-typedef FPlatformTypes::UPTRINT UPTRINT;		///< An unsigned integer the same size as a pointer
-typedef FPlatformTypes::PTRINT PTRINT;			///< A signed integer the same size as a pointer
-typedef FPlatformTypes::SIZE_T SIZE_T;			///< An unsigned integer the same size as a pointer, the same as UPTRINT
-typedef FPlatformTypes::SSIZE_T SSIZE_T;		///< An integer the same size as a pointer, the same as PTRINT
+/// An unsigned integer the same size as a pointer
+typedef FPlatformTypes::UPTRINT UPTRINT;
+/// A signed integer the same size as a pointer
+typedef FPlatformTypes::PTRINT PTRINT;
+/// An unsigned integer the same size as a pointer, the same as UPTRINT
+typedef FPlatformTypes::SIZE_T SIZE_T;
+/// An integer the same size as a pointer, the same as PTRINT
+typedef FPlatformTypes::SSIZE_T SSIZE_T;
 
-typedef FPlatformTypes::TYPE_OF_NULL	TYPE_OF_NULL;		///< The type of the NULL constant.
-typedef FPlatformTypes::TYPE_OF_NULLPTR	TYPE_OF_NULLPTR;	///< The type of the C++ nullptr keyword.
+/// The type of the NULL constant.
+typedef FPlatformTypes::TYPE_OF_NULL	TYPE_OF_NULL;
+/// The type of the C++ nullptr keyword.
+typedef FPlatformTypes::TYPE_OF_NULLPTR	TYPE_OF_NULLPTR;
 
 //------------------------------------------------------------------
 // Test the global types

@@ -5,23 +5,11 @@
   <Date>2016-09-13T15:14:19.7375982-04:00</Date>
   <Function>Allows you to compile Harfbuzz/PhysX on Android</Function>
   <Justification />
-  <Platforms>
-    <Platform>Android</Platform>
-  </Platforms>
-  <Products>
-    <Product>UDK4</Product>
-    <Product>UE4</Product>
-  </Products>
-  <TpsType>Source Code</TpsType>
   <Eula>https://github.com/taka-no-me/android-cmake</Eula>
   <RedistributeTo>
     <EndUserGroup>Licensees</EndUserGroup>
     <EndUserGroup>Git</EndUserGroup>
     <EndUserGroup>P4</EndUserGroup>
   </RedistributeTo>
-  <Redistribute>false</Redistribute>
-  <IsSourceAvailable>false</IsSourceAvailable>
-  <NoticeType>Full EULA Text</NoticeType>
-  <Notification />
   <LicenseFolder>/Engine/Source/ThirdParty/Licenses/CMakeAndroid_License.txt</LicenseFolder>
 </TpsData>

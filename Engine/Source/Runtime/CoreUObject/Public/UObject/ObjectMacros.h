@@ -23,13 +23,17 @@ typedef	uint64 ScriptPointerType;
 /** Set this to 0 to disable UObject thread safety features */
 #define THREADSAFE_UOBJECTS 1
 
-// 1 = old IsA behavior
-// 2 = new IsA behavior
-// 3 = old IsA behavior with checks against the new behavior
+// Enumeration of different methods of determining class relationships.
+#define UCLASS_ISA_OUTERWALK  1 // walks the class chain                                         - original IsA behavior
+#define UCLASS_ISA_INDEXTREE  2 // uses position in an index-based tree                          - thread-unsafe if one thread does a parental test while the tree is changing, e.g. by async loading a class
+#define UCLASS_ISA_CLASSARRAY 3 // stores an array of parents per class and uses this to compare - faster than 1, slower but comparable with 2, and thread-safe
+
+// UCLASS_FAST_ISA_IMPL sets which implementation of IsA to use.
+#define UCLASS_FAST_ISA_IMPL UCLASS_ISA_CLASSARRAY
+
+// UCLASS_FAST_ISA_COMPARE_WITH_OUTERWALK, if set, does a checked comparison of the current implementation against the outer walk - used for testing.
 #if 0//!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	#define UCLASS_FAST_ISA_IMPL 3
-#else
-	#define UCLASS_FAST_ISA_IMPL 2
+	#define UCLASS_FAST_ISA_COMPARE_WITH_OUTERWALK 1
 #endif
 
 /*-----------------------------------------------------------------------------
@@ -42,7 +46,7 @@ typedef	uint64 ScriptPointerType;
 enum ELoadFlags
 {
 	LOAD_None						= 0x00000000,	// No flags.
-	LOAD_SeekFree					= 0x00000001,	// Loads the package via the seek free loading path/ reader
+	LOAD_Async					= 0x00000001,	// Loads the package using async loading path/ reader
 	LOAD_NoWarn						= 0x00000002,	// Don't display warning if load fails.
 	LOAD_EditorOnly					= 0x00000004, // Load for editor-only purposes and by editor-only code
 	LOAD_ResolvingDeferredExports	= 0x00000008,	// Denotes that we should not defer export loading (as we're resolving them)
@@ -100,7 +104,7 @@ enum EPackageFlags
 //	PKG_Unused						= 0x00000800,
 //	PKG_Unused						= 0x00001000,
 //	PKG_Unused						= 0x00002000,
-//	PKG_Unused						= 0x00004000,
+	PKG_ContainsMapData				= 0x00004000,   // Contains map data (UObjects only referenced by a single ULevel) but is stored in a different package
 	PKG_Need						= 0x00008000,	// Client needs to download this package.
 	PKG_Compiling					= 0x00010000,	// package is currently being compiled
 	PKG_ContainsMap					= 0x00020000,	// Set if the package contains a ULevel/ UWorld object
@@ -470,9 +474,9 @@ enum EObjectFlags
 	RF_TextExportTransient		=0x00100000,	///< Do not export object to text form (e.g. copy/paste). Generally used for sub-objects that can be regenerated from data in their parent object.
 	RF_LoadCompleted			=0x00200000,	///< Object has been completely serialized by linkerload at least once. DO NOT USE THIS FLAG, It should be replaced with RF_WasLoaded.
 	RF_InheritableComponentTemplate = 0x00400000, ///< Archetype of the object can be in its super class
-	//RF_Unused = 0x00800000, ///
+	RF_DuplicateTransient = 0x00800000, ///< Object should not be included in any type of duplication (copy/paste, binary duplication, etc.)
 	RF_StrongRefOnFrame			= 0x01000000,	///< References to this object from persistent function frame are handled as strong ones.
-	//RF_Unused		= 0x02000000,  ///
+	RF_NonPIEDuplicateTransient		= 0x02000000,  ///< Object should not be included for duplication unless it's being duplicated for a PIE session
 	RF_Dynamic = 0x04000000, // Field Only. Dynamic field - doesn't get constructed during static initialization, can be constructed multiple times
 };
 
@@ -480,7 +484,7 @@ enum EObjectFlags
 #define RF_AllFlags				(EObjectFlags)0x07ffffff	///< All flags, used mainly for error checking
 
 	// Predefined groups of the above
-#define RF_Load						((EObjectFlags)(RF_Public | RF_Standalone | RF_Transactional | RF_ClassDefaultObject | RF_ArchetypeObject | RF_DefaultSubObject | RF_TextExportTransient | RF_InheritableComponentTemplate)) // Flags to load from Unrealfiles.
+#define RF_Load						((EObjectFlags)(RF_Public | RF_Standalone | RF_Transactional | RF_ClassDefaultObject | RF_ArchetypeObject | RF_DefaultSubObject | RF_TextExportTransient | RF_InheritableComponentTemplate | RF_DuplicateTransient | RF_NonPIEDuplicateTransient)) // Flags to load from Unrealfiles.
 #define RF_PropagateToSubObjects	((EObjectFlags)(RF_Public | RF_ArchetypeObject | RF_Transactional | RF_Transient))		// Sub-objects will inherit these flags from their SuperObject.
 
 FORCEINLINE EObjectFlags operator|(EObjectFlags Arg1,EObjectFlags Arg2)
@@ -938,9 +942,6 @@ namespace UP
 
 		/// Property shouldn't be serialized, can still be exported to text
 		SkipSerialization,
-
-		/// Property wont have a 'reset to default' button when displayed in property windows
-		NoResetToDefault,
 	};
 }
 
@@ -1021,6 +1022,9 @@ namespace UM
 
 		//[ClassMetadata] Expose a proxy object of this class in Async Task node.
 		ExposedAsyncProxy,
+
+		//[ClassMetadata] Only valid on Blueprint Function Libraries. Mark the functions in this class as callable on non-game threads in an Animation Blueprint.
+		BlueprintThreadSafe,
 	};
 
 	// Metadata usable in USTRUCT
@@ -1146,6 +1150,9 @@ namespace UM
 
 		/// [PropertyMetadata] Used by FDirectoryPath properties.  Converts the path to a long package name
 		LongPackageName,
+
+		/// [PropertyMetadata] Property wont have a 'reset to default' button when displayed in property windows
+		NoResetToDefault,
 	};
 
 	// Metadata usable in UPROPERTY for customizing the behavior of Persona and UMG
@@ -1256,11 +1263,14 @@ namespace UM
 		/// [FunctionMetadata] Used by BlueprintCallable functions to indicate that this function is not to be allowed in the Construction Script.
 		UnsafeDuringActorConstruction,
 
-		/// [FunctionMetadta] Used by BlueprintCallable functions to indicate which parameter is used to determine the World that the operation is occurring within.
+		/// [FunctionMetadata] Used by BlueprintCallable functions to indicate which parameter is used to determine the World that the operation is occurring within.
 		WorldContext,
 
-		/// [FunctionMetadta] Used only by static BlueprintPure functions from BlueprintLibrary. A cast node will be automatically added for the return type and the type of the first parameter of the function.
+		/// [FunctionMetadata] Used only by static BlueprintPure functions from BlueprintLibrary. A cast node will be automatically added for the return type and the type of the first parameter of the function.
 		BlueprintAutocast,
+
+		// [FunctionMetadata] Only valid in Blueprint Function Libraries. Mark this function as an exception to the class's general BlueprintThreadSafe metadata.
+		NotBlueprintThreadSafe,
 	};
 
 	// Metadata usable in UINTERFACE

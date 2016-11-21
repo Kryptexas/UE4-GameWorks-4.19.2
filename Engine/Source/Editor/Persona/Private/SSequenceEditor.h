@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include "Persona.h"
 #include "GraphEditor.h"
 #include "SNodePanel.h"
 #include "SAnimCurvePanel.h"
@@ -24,6 +23,7 @@ public:
 		SLATE_EVENT(FOnObjectsSelected, OnObjectsSelected)
 		SLATE_EVENT(FSimpleDelegate, OnAnimNotifiesChanged)
 		SLATE_EVENT(FOnInvokeTab, OnInvokeTab)
+		SLATE_EVENT(FSimpleDelegate, OnCurvesChanged)
 
 	SLATE_END_ARGS()
 

@@ -50,15 +50,15 @@ static FAutoConsoleVariableRef CVarGSkinCacheSafety(
 	);
 
 // 0/1
-int32 GEnableGPUSkinCache = 0;
+int32 GEnableGPUSkinCache = 1;
 static TAutoConsoleVariable<int32> CVarEnableGPUSkinCache(
 	TEXT("r.SkinCache.Mode"),
 	0,
 	TEXT("Whether or not to use the GPU compute skinning cache.\n")
 	TEXT("This will perform skinning on a compute job and not skin on the vertex shader.\n")
 	TEXT("Requires r.SkinCache.CompileShaders=1\n")
-	TEXT(" 0: off(default)\n")
-	TEXT(" 1: on"),
+	TEXT(" 0: off\n")
+	TEXT(" 1: on(default)"),
 	ECVF_RenderThreadSafe
 	);
 
@@ -520,11 +520,10 @@ int32 FGPUSkinCache::StartCacheMesh(FRHICommandListImmediate& RHICmdList, uint32
 
 	FDispatchData DispatchData(RHICmdList, BatchElement, Skin->GetFeatureLevel(), Skin);
 
-	// could be removed for SHIPPING
+	FSkeletalMeshResource& SkeletalMeshResource = Skin->GetSkeletalMeshResource();
+	int32 LODIndex = Skin->GetLOD();
+	FStaticLODModel& LodModel = SkeletalMeshResource.LODModels[LODIndex];
 	{
-		FSkeletalMeshResource& SkeletalMeshResource = Skin->GetSkeletalMeshResource();
-		int32 LODIndex = Skin->GetLOD();
-		FStaticLODModel& LodModel = SkeletalMeshResource.LODModels[LODIndex];
 		DispatchData.SectionIdx = LodModel.FindSectionIndex(BatchElement);
 	}
 
@@ -567,14 +566,12 @@ int32 FGPUSkinCache::StartCacheMesh(FRHICommandListImmediate& RHICmdList, uint32
 	
 	TargetVertexFactory->UpdateVertexDeclaration(VertexFactory, DispatchData.SkinCacheBuffer);
 
-	const bool bRecomputeTangents = MorphVertexBuffer && CVarGPUSkinCacheRecomputeTangents.GetValueOnRenderThread() != 0;
-
-	if(bRecomputeTangents)
+	const bool bRecomputeTangents = CVarGPUSkinCacheRecomputeTangents.GetValueOnRenderThread() != 0;
+	if (bRecomputeTangents)
 	{
-		if(BatchElement.bRecomputeTangent)
+		if (BatchElement.bRecomputeTangent)
 		{
-			FStaticLODModel* StaticLODModel = MorphVertexBuffer->GetStaticLODModel();
-			FRawStaticIndexBuffer16or32Interface* IndexBuffer = StaticLODModel->MultiSizeIndexContainer.GetIndexBuffer();
+			FRawStaticIndexBuffer16or32Interface* IndexBuffer = LodModel.MultiSizeIndexContainer.GetIndexBuffer();
 
 			DispatchData.IndexBuffer = IndexBuffer->GetSRV();
 			check(!GSkinCacheSafety || DispatchData.IndexBuffer);

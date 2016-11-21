@@ -217,6 +217,10 @@ namespace UE4Asserts_Private
 	bool GetMemberNameCheckedJunk(const volatile T&);
 }
 
+// Returns FName(TEXT("EnumeratorName")), while statically verifying that the enumerator exists in the enum
+#define GET_ENUMERATOR_NAME_CHECKED(EnumName, EnumeratorName) \
+	((void)sizeof(UE4Asserts_Private::GetMemberNameCheckedJunk(EnumName::EnumeratorName)), FName(TEXT(#EnumeratorName)))
+
 // Returns FName(TEXT("MemberName")), while statically verifying that the member exists in ClassName
 #define GET_MEMBER_NAME_CHECKED(ClassName, MemberName) \
 	((void)sizeof(UE4Asserts_Private::GetMemberNameCheckedJunk(((ClassName*)0)->MemberName)), FName(TEXT(#MemberName)))

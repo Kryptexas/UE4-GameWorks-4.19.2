@@ -222,7 +222,16 @@ void FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
 		PendingAllocations.Empty();
 	}	
 }
-	
+
+FDistanceFieldVolumeTexture::~FDistanceFieldVolumeTexture()
+{
+	if (FApp::CanEverRender())
+	{
+		// Make sure we have been properly removed from the atlas before deleting
+		check(!bReferencedByAtlas);
+	}
+}
+
 void FDistanceFieldVolumeTexture::Initialize()
 {
 	if (IsValidDistanceFieldVolume())

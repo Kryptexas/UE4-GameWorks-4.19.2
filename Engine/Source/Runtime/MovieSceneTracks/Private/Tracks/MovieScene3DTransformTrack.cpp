@@ -4,8 +4,7 @@
 #include "MovieScene3DTransformSection.h"
 #include "MovieScene3DTransformTrack.h"
 #include "IMovieScenePlayer.h"
-#include "MovieScene3DTransformTrackInstance.h"
-
+#include "MovieSceneSegmentCompiler.h"
 
 UMovieScene3DTransformTrack::UMovieScene3DTransformTrack( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
@@ -16,39 +15,11 @@ UMovieScene3DTransformTrack::UMovieScene3DTransformTrack( const FObjectInitializ
 #if WITH_EDITORONLY_DATA
 	TrackTint = FColor(65, 173, 164, 65);
 #endif
-}
 
+	EvalOptions.bEvaluateNearestSection = EvalOptions.bCanEvaluateNearestSection = true;
+}
 
 UMovieSceneSection* UMovieScene3DTransformTrack::CreateNewSection()
 {
 	return NewObject<UMovieSceneSection>(this, UMovieScene3DTransformSection::StaticClass(), NAME_None, RF_Transactional);
-}
-
-
-TSharedPtr<IMovieSceneTrackInstance> UMovieScene3DTransformTrack::CreateInstance()
-{
-	return MakeShareable( new FMovieScene3DTransformTrackInstance( *this ) );
-}
-
-
-bool UMovieScene3DTransformTrack::Eval( float Position, float LastPosition, FVector& InOutTranslation, FRotator& InOutRotation, FVector& InOutScale ) const
-{
-	const UMovieSceneSection* Section = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Position );
-
-	if( Section )
-	{
-		const UMovieScene3DTransformSection* TransformSection = CastChecked<UMovieScene3DTransformSection>( Section );
-
-		if (!Section->IsInfinite())
-		{
-			Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
-		}
-
-		// Evaluate translation,rotation, and scale curves.  If no keys were found on one of these, that component of the transform will remain unchained
-		TransformSection->EvalTranslation( Position, InOutTranslation );
-		TransformSection->EvalRotation( Position, InOutRotation );
-		TransformSection->EvalScale( Position, InOutScale );
-	}
-
-	return Section != nullptr;
 }

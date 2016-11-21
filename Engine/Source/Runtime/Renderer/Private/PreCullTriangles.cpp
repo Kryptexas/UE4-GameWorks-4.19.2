@@ -378,7 +378,7 @@ void FDeferredShadingSceneRenderer::PreCullStaticMeshes(FRHICommandListImmediate
 				FStaticMeshSceneProxy* StaticMeshProxy = (FStaticMeshSceneProxy*)StaticMeshComponent->SceneProxy;
 				FBoxSphereBounds Bounds = StaticMeshProxy->GetBounds();
 
-				for (int32 LODIndex = 0; LODIndex < StaticMeshComponent->StaticMesh->RenderData->LODResources.Num(); LODIndex++)
+				for (int32 LODIndex = 0; LODIndex < StaticMeshComponent->GetStaticMesh()->RenderData->LODResources.Num(); LODIndex++)
 				{
 					{
 						uint32 ClearValues[4] = { 0 };
@@ -409,7 +409,7 @@ void FDeferredShadingSceneRenderer::PreCullStaticMeshes(FRHICommandListImmediate
 						uint32 MaskClearValues[4] = { 255 };
 						RHICmdList.ClearUAV(GPreCulledTriangleBuffers.Buffers.TriangleVisibleMask.UAV, MaskClearValues);
 
-						const FStaticMeshLODResources& StaticMeshLODResources = StaticMeshComponent->StaticMesh->RenderData->LODResources[LODIndex];
+						const FStaticMeshLODResources& StaticMeshLODResources = StaticMeshComponent->GetStaticMesh()->RenderData->LODResources[LODIndex];
 
 						for (int32 SectionIndex = 0; SectionIndex < StaticMeshLODResources.Sections.Num(); SectionIndex++)
 						{

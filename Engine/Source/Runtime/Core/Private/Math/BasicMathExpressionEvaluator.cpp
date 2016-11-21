@@ -88,6 +88,11 @@ namespace ExpressionParser
 					State = EState::Fractional;
 					return EParseState::Continue;
 				}
+				else if (InC == '.')
+				{
+					// Not a number
+					return EParseState::Cancel;
+				}
 			}
 			else if (State == EState::Fractional)
 			{

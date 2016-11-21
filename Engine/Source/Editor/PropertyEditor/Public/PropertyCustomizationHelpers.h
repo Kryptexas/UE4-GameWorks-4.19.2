@@ -49,7 +49,7 @@ namespace PropertyCustomizationHelpers
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeUseSelectedButton( FSimpleDelegate OnUseSelectedClicked, TAttribute<FText> OptionalToolTipText = FText(), TAttribute<bool> IsEnabled = true );
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeBrowseButton( FSimpleDelegate OnClearClicked, TAttribute<FText> OptionalToolTipText = FText(), TAttribute<bool> IsEnabled = true );
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeAssetPickerAnchorButton( FOnGetAllowedClasses OnGetAllowedClasses, FOnAssetSelected OnAssetSelectedFromPicker );
-	PROPERTYEDITOR_API TSharedRef<SWidget> MakeAssetPickerWithMenu( const FAssetData& InitialObject, const bool AllowClear, const TArray<const UClass*>& AllowedClasses, const TArray<UFactory*>& NewAssetFactories, FOnShouldFilterAsset OnShouldFilterAsset, FOnAssetSelected OnSet, FSimpleDelegate OnClose );
+	PROPERTYEDITOR_API TSharedRef<SWidget> MakeAssetPickerWithMenu( const FAssetData& InitialObject, const bool AllowClear, const bool SearchInBlueprint, const TArray<const UClass*>& AllowedClasses, const TArray<UFactory*>& NewAssetFactories, FOnShouldFilterAsset OnShouldFilterAsset, FOnAssetSelected OnSet, FSimpleDelegate OnClose );
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeActorPickerAnchorButton( FOnGetActorFilters OnGetActorFilters, FOnActorSelected OnActorSelectedFromPicker );
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeActorPickerWithMenu( AActor* const InitialActor, const bool AllowClear, FOnShouldFilterActor ActorFilter, FOnActorSelected OnSet, FSimpleDelegate OnClose, FSimpleDelegate OnUseSelected );
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeInteractiveActorPicker(FOnGetAllowedClasses OnGetAllowedClasses, FOnShouldFilterActor OnShouldFilterActor, FOnActorSelected OnActorSelectedFromPicker);
@@ -84,6 +84,8 @@ class SObjectPropertyEntryBox : public SCompoundWidget
 public:
 	SLATE_BEGIN_ARGS( SObjectPropertyEntryBox )
 		: _AllowedClass( UObject::StaticClass() )
+		, _AllowActorPicker(true)
+		, _SearchInBlueprint(false)
 		, _AllowClear( true )
 		, _DisplayUseSelected( true )
 		, _DisplayBrowse( true )
@@ -97,6 +99,10 @@ public:
 		SLATE_ARGUMENT( TSharedPtr<FAssetThumbnailPool>, ThumbnailPool )
 		/** Class that is allowed in the asset picker */
 		SLATE_ARGUMENT( UClass*, AllowedClass )
+		/** Set to false indicate that even if we have an actor we want to open the asset picker not the actor picker */
+		SLATE_ARGUMENT(bool, AllowActorPicker)
+		/** Indicates whether we should filter using the blueprint parent class or ignore blueprint */
+		SLATE_ARGUMENT(bool, SearchInBlueprint)
 		/** Optional list of factories which may be used to create new assets */
 		SLATE_ARGUMENT( TOptional<TArray<UFactory*>>, NewAssetFactories )
 		/** Called to check if an asset should be set */
@@ -471,7 +477,7 @@ class FMaterialList
 	, public TSharedFromThis<FMaterialList>
 {
 public:
-	PROPERTYEDITOR_API FMaterialList( IDetailLayoutBuilder& InDetailLayoutBuilder, FMaterialListDelegates& MaterialListDelegates, bool bInAllowCollapse = false);
+	PROPERTYEDITOR_API FMaterialList( IDetailLayoutBuilder& InDetailLayoutBuilder, FMaterialListDelegates& MaterialListDelegates, bool bInAllowCollapse = false, bool bInShowUsedTextures = true);
 
 	/**
 	 * @return true if materials are being displayed.                                                          
@@ -538,9 +544,27 @@ private:
 
 	/** Allow Collapse of material header row. Right now if you allow collapse, it will initially collapse. */
 	bool bAllowCollpase;
+	/** Whether or not to use the used textures menu for each material entry */
+	bool bShowUsedTextures;
 };
 
 
+/**
+ * Helper class to create a material slot name widget for material lists
+ */
+class SMaterialSlotWidget : public SCompoundWidget
+{
+	SLATE_BEGIN_ARGS(SMaterialSlotWidget)
+	{}
+		SLATE_ATTRIBUTE(FText, MaterialName)
+		SLATE_EVENT(FOnTextChanged, OnMaterialNameChanged)
+		SLATE_EVENT(FOnTextCommitted, OnMaterialNameCommitted)
+		SLATE_ATTRIBUTE(bool, CanDeleteMaterialSlot)
+		SLATE_EVENT(FSimpleDelegate, OnDeleteMaterialSlot)
+	SLATE_END_ARGS()
+
+	PROPERTYEDITOR_API void Construct(const FArguments& InArgs, int32 SlotIndex, bool bIsMaterialUsed);
+};
 
 //////////////////////////////////////////////////////////////////////////
 //

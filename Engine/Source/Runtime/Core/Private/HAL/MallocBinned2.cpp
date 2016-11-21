@@ -96,6 +96,11 @@ private:	uint32      AllocSize;      // Number of bytes allocated
  public:	FPoolInfo*  Next;           // Pointer to next pool
  public:	FPoolInfo** PtrToPrevNext;  // Pointer to whichever pointer points to this pool
 
+#if PLATFORM_32BITS
+/** Explicit padding for 32 bit builds */
+private: uint8 Padding[12]; // 32
+#endif
+
 public:
 	FPoolInfo()
 		: Taken(0)
@@ -901,7 +906,8 @@ void FMallocBinned2::Trim()
 		{
 			FlushCurrentThreadCache();
 		};
-		FTaskGraphInterface::BroadcastSlow_OnlyUseForSpecialPurposes(false, Broadcast);
+		// Skip task threads on desktop platforms as it is too slow and they don't have much memory
+		FTaskGraphInterface::BroadcastSlow_OnlyUseForSpecialPurposes(!PLATFORM_DESKTOP, false, Broadcast);
 		//UE_LOG(LogTemp, Display, TEXT("Trim Broadcast = %6.2fms"), 1000.0f * float(FPlatformTime::Seconds() - StartTime));
 	}
 	{

@@ -14,7 +14,7 @@
 #pragma once
 
 #ifdef PX_GCC_FAMILY
-#ifdef __EMSCRIPTEN__
+#ifdef PX_EMSCRIPTEN
 #include <emmintrin.h>
 #endif
 #include <xmmintrin.h> // _BitScanForward

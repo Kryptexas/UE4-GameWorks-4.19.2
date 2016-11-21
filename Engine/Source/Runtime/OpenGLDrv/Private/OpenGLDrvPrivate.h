@@ -167,6 +167,11 @@ bool PlatformContextIsCurrent( uint64 QueryContext );
 FPlatformOpenGLDevice* PlatformCreateOpenGLDevice();
 
 /**
+* Returns true if the platform supports a GPU capture tool (eg RenderDoc)
+*/
+bool PlatformCanEnableGPUCapture();
+
+/**
  * Label Objects. Needs a separate function because label GLSL api procedure would be loaded later down the line, and we need to label objects after that.
  */
 void PlatformLabelObjects();
@@ -505,6 +510,7 @@ inline bool OpenGLShaderPlatformNeedsBindLocation(const EShaderPlatform InShader
 		case SP_OPENGL_SM5:
 		case SP_OPENGL_ES31_EXT:
 		case SP_OPENGL_ES3_1_ANDROID:
+		case SP_OPENGL_PCES3_1:
 			return false;
 
 		case SP_OPENGL_SM4:
@@ -530,6 +536,7 @@ inline bool OpenGLShaderPlatformSeparable(const EShaderPlatform InShaderPlatform
 		case SP_OPENGL_SM4_MAC:
 		case SP_OPENGL_SM4:
 		case SP_OPENGL_PCES2:
+		case SP_OPENGL_PCES3_1:
 			return true;
 
 		case SP_OPENGL_ES31_EXT:

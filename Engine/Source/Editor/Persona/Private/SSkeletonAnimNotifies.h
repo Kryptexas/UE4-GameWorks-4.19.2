@@ -4,8 +4,10 @@
 
 #include "EditorObjectsTracker.h"
 #include "IDocumentation.h"
+#include "PersonaDelegates.h"
 
 #define LOCTEXT_NAMESPACE "SkeletonAnimnotifies"
+
 /////////////////////////////////////////////////////
 // FSkeletonTreeSummoner
 struct FSkeletonAnimNotifiesSummoner : public FWorkflowTabFactory

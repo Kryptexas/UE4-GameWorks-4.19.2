@@ -5,23 +5,11 @@
   <Date>2016-04-25T19:01:31.9259748-04:00</Date>
   <Function>Used within Mono</Function>
   <Justification />
-  <Platforms>
-    <Platform>Mac</Platform>
-  </Platforms>
-  <Products>
-    <Product>UDK4</Product>
-    <Product>UE4</Product>
-  </Products>
-  <TpsType>dll</TpsType>
   <Eula>https://github.com/sestoft/C5/blob/master/LICENSE.txt</Eula>
   <RedistributeTo>
     <EndUserGroup>Licensees</EndUserGroup>
     <EndUserGroup>Git</EndUserGroup>
     <EndUserGroup>P4</EndUserGroup>
   </RedistributeTo>
-  <Redistribute>false</Redistribute>
-  <IsSourceAvailable>false</IsSourceAvailable>
-  <NoticeType>None</NoticeType>
-  <Notification />
   <LicenseFolder>None</LicenseFolder>
 </TpsData>

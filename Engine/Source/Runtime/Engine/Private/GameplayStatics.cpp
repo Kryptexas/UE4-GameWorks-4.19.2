@@ -446,7 +446,7 @@ class AActor* UGameplayStatics::BeginDeferredActorSpawnFromClass(UObject* WorldC
 		// Otherwise if the WorldContextObject is an Actor we will share its instigator.
 		// If the value is set via the exposed parameter on SpawnNode it will be overwritten anyways, so this is safe to specify here
 		APawn* AutoInstigator = Cast<APawn>(WorldContextObject);
-		if (AutoInstigator)
+		if (AutoInstigator == nullptr)
 		{
 			if (AActor* ContextActor = Cast<AActor>(WorldContextObject))
 			{
@@ -1151,7 +1151,7 @@ class UAudioComponent* UGameplayStatics::SpawnSoundAttached(class USoundBase* So
 		}
 	}
 
-	FAudioDevice::FCreateComponentParams Params(AttachToComponent->GetOwner());
+	FAudioDevice::FCreateComponentParams Params(AttachToComponent->GetWorld(), AttachToComponent->GetOwner());
 	Params.SetLocation(TestLocation);
 	Params.bStopWhenOwnerDestroyed = bStopWhenAttachedToDestroyed;
 	Params.AttenuationSettings = AttenuationSettings;
@@ -1768,6 +1768,7 @@ bool UGameplayStatics::SuggestProjectileVelocity(const UObject* WorldContextObje
 		OutTossVelocity = (DirXY * MagXY) + (FVector::UpVector * MagZ * ZSign);
 		bFoundAValidSolution = true;
 
+#if ENABLE_DRAW_DEBUG
 	 	if (bDrawDebug)
 	 	{
 	 		static const float StepSize = 0.125f;
@@ -1783,6 +1784,7 @@ bool UGameplayStatics::SuggestProjectileVelocity(const UObject* WorldContextObje
 	 			TraceStart = TraceEnd;
 	 		}
 	 	}
+#endif // ENABLE_DRAW_DEBUG
 	}
 	else
 	{
@@ -1843,21 +1845,25 @@ bool UGameplayStatics::SuggestProjectileVelocity(const UObject* WorldContextObje
 						// hit something, failed
 						bFailedTrace = true;
 
+#if ENABLE_DRAW_DEBUG
 						if (bDrawDebug)
 						{
 							// draw failed segment in red
 							DrawDebugLine( World, TraceStart, TraceEnd, FColor::Red, true );
 						}
+#endif // ENABLE_DRAW_DEBUG
 
 						break;
 					}
 
 				}
 
+#if ENABLE_DRAW_DEBUG
 				if (bDrawDebug)
 				{
 					DrawDebugLine( World, TraceStart, TraceEnd, FColor::Yellow, true );
 				}
+#endif // ENABLE_DRAW_DEBUG
 
 				// advance
 				TraceStart = TraceEnd;
@@ -1943,6 +1949,7 @@ bool UGameplayStatics::PredictProjectilePath(const UObject* WorldContextObject, 
 		}
 	}
 
+#if ENABLE_DRAW_DEBUG
 	if (DrawDebugType != EDrawDebugTrace::None)
 	{
 		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
@@ -1961,6 +1968,7 @@ bool UGameplayStatics::PredictProjectilePath(const UObject* WorldContextObject, 
 			::DrawDebugSphere(World, OutHit.Location, 15.f, 12, FColor::Red, bPersistent, LifeTime);
 		}
 	}
+#endif // ENABLE_DRAW_DEBUG
 
 	return bBlockingHit;
 }
@@ -2018,6 +2026,16 @@ void UGameplayStatics::SetWorldOriginLocation(const UObject* WorldContextObject,
 	}
 }
 
+FVector UGameplayStatics::RebaseLocalOriginOntoZero(UObject* WorldContextObject, FVector WorldLocation)
+{
+	return FRepMovement::RebaseOntoZeroOrigin(WorldLocation, GetWorldOriginLocation(WorldContextObject));
+}
+
+FVector UGameplayStatics::RebaseZeroOriginOntoLocal(UObject* WorldContextObject, FVector WorldLocation)
+{
+	return FRepMovement::RebaseOntoLocalOrigin(WorldLocation, GetWorldOriginLocation(WorldContextObject));
+}
+
 int32 UGameplayStatics::GrassOverlappingSphereCount(const UObject* WorldContextObject, const UStaticMesh* Mesh, FVector CenterPosition, float Radius)
 {
 	int32 Count = 0;
@@ -2035,7 +2053,7 @@ int32 UGameplayStatics::GrassOverlappingSphereCount(const UObject* WorldContextO
 			{
 				for (UHierarchicalInstancedStaticMeshComponent const* HComp : L->FoliageComponents)
 				{
-					if (HComp && (HComp->StaticMesh == Mesh))
+					if (HComp && (HComp->GetStaticMesh() == Mesh))
 					{
 						Count += HComp->GetOverlappingSphereCount(Sphere);
 					}

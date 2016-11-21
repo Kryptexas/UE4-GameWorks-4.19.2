@@ -179,7 +179,20 @@ inline void FViewElementPDI::SetHitProxy(HHitProxy* HitProxy)
 
 inline void FViewElementPDI::RegisterDynamicResource(FDynamicPrimitiveResource* DynamicResource)
 {
-	ViewInfo->DynamicResources.Add(DynamicResource);
+	if (IsInGameThread())
+	{
+		// Render thread might be reading the array while we are adding in the game thread
+		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(AddViewInfoDynamicResource,
+			FViewInfo*, InViewInfo, ViewInfo,
+			FDynamicPrimitiveResource*, InDynamicResource, DynamicResource,
+			{
+				InViewInfo->DynamicResources.Add(InDynamicResource);
+			});
+	}
+	else
+	{
+		ViewInfo->DynamicResources.Add(DynamicResource);
+	}
 }
 
 inline FBatchedElements& FViewElementPDI::GetElements(uint8 DepthPriorityGroup) const
@@ -254,10 +267,10 @@ inline void FViewElementPDI::DrawPoint(
 {
 	float ScaledPointSize = PointSize;
 
-	bool bIsPerspective = (ViewInfo->ViewMatrices.ProjMatrix.M[3][3] < 1.0f) ? true : false;
+	bool bIsPerspective = (ViewInfo->ViewMatrices.GetProjectionMatrix().M[3][3] < 1.0f) ? true : false;
 	if( !bIsPerspective )
 	{
-		const float ZoomFactor = FMath::Min<float>(View->ViewMatrices.ProjMatrix.M[0][0], View->ViewMatrices.ProjMatrix.M[1][1]);
+		const float ZoomFactor = FMath::Min<float>(View->ViewMatrices.GetProjectionMatrix().M[0][0], View->ViewMatrices.GetProjectionMatrix().M[1][1]);
 		ScaledPointSize = ScaledPointSize / ZoomFactor;
 	}
 

@@ -96,7 +96,7 @@ public:
 	virtual bool GetScissorRect(FIntRect& ScissorRect, const FSceneView& View) const override
 	{
 		ScissorRect = View.ViewRect;
-		return FMath::ComputeProjectedSphereScissorRect(ScissorRect, GetLightToWorld().GetOrigin(), Radius, View.ViewMatrices.ViewOrigin, View.ViewMatrices.ViewMatrix, View.ViewMatrices.ProjMatrix) == 1;
+		return FMath::ComputeProjectedSphereScissorRect(ScissorRect, GetLightToWorld().GetOrigin(), Radius, View.ViewMatrices.GetViewOrigin(), View.ViewMatrices.GetViewMatrix(), View.ViewMatrices.GetProjectionMatrix()) == 1;
 	}
 
 	virtual void SetScissorRect(FRHICommandList& RHICmdList, const FSceneView& View) const override

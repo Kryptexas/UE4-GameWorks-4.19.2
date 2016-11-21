@@ -69,7 +69,7 @@ private:
 class FVelocityDrawingPolicyFactory : public FDepthDrawingPolicyFactory
 {
 public:
-	static void AddStaticMesh(FScene* Scene, FStaticMesh* StaticMesh, ContextType = ContextType(DDM_AllOccluders, false));
+	static void AddStaticMesh(FScene* Scene, FStaticMesh* StaticMesh);
 	static bool DrawDynamicMesh(	
 		FRHICommandList& RHICmdList, 
 		const FViewInfo& View,

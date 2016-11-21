@@ -40,7 +40,7 @@ void SSequencerGotoBox::Construct(const FArguments& InArgs, const TSharedRef<FSe
 							.MinDesiredValueWidth(64.0f)
 							.OnValueCommitted(this, &SSequencerGotoBox::HandleEntryBoxValueCommitted)
 							.TypeInterface(NumericTypeInterface)
-							.Value_Lambda([this](){ return SequencerPtr.Pin()->GetGlobalTime(); })
+							.Value_Lambda([this](){ return SequencerPtr.Pin()->GetLocalTime(); })
 					]
 			]
 	];
@@ -86,7 +86,7 @@ void SSequencerGotoBox::HandleEntryBoxValueCommitted(float Value, ETextCommit::T
 		Sequencer->SetViewRange(NewRange);
 	}
 
-	Sequencer->SetGlobalTime(Value);
+	Sequencer->SetLocalTimeDirectly(Value);
 }
 
 

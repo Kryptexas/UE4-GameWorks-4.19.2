@@ -477,7 +477,7 @@ bool CanUseMaterialWithInstance(FbxSurfaceMaterial& FbxMaterial, const char* Mat
 }
 
 
-void UnFbx::FFbxImporter::CreateUnrealMaterial(FbxSurfaceMaterial& FbxMaterial, TArray<UMaterialInterface*>& OutMaterials, TArray<FString>& UVSets)
+void UnFbx::FFbxImporter::CreateUnrealMaterial(FbxSurfaceMaterial& FbxMaterial, TArray<UMaterialInterface*>& OutMaterials, TArray<FString>& UVSets, bool bForSkeletalMesh)
 {
 	// Make sure we have a parent
 	if ( !ensure(Parent.IsValid()) )
@@ -673,6 +673,12 @@ void UnFbx::FFbxImporter::CreateUnrealMaterial(FbxSurfaceMaterial& FbxMaterial, 
 			// Notify the asset registry
 			FAssetRegistryModule::AssetCreated(UnrealMaterial);
 
+			if(bForSkeletalMesh)
+			{
+				bool bNeedsRecompile = false;
+				UnrealMaterial->GetMaterial()->SetMaterialUsage(bNeedsRecompile, MATUSAGE_SkeletalMesh);
+			}
+
 			// Set the dirty flag so this package will get saved later
 			Package->SetDirtyFlag(true);
 
@@ -717,7 +723,7 @@ void UnFbx::FFbxImporter::CreateUnrealMaterial(FbxSurfaceMaterial& FbxMaterial, 
 	}
 }
 
-int32 UnFbx::FFbxImporter::CreateNodeMaterials(FbxNode* FbxNode, TArray<UMaterialInterface*>& OutMaterials, TArray<FString>& UVSets)
+int32 UnFbx::FFbxImporter::CreateNodeMaterials(FbxNode* FbxNode, TArray<UMaterialInterface*>& OutMaterials, TArray<FString>& UVSets, bool bForSkeletalMesh)
 {
 	int32 MaterialCount = FbxNode->GetMaterialCount();
 	for(int32 MaterialIndex=0; MaterialIndex < MaterialCount; ++MaterialIndex)
@@ -726,7 +732,7 @@ int32 UnFbx::FFbxImporter::CreateNodeMaterials(FbxNode* FbxNode, TArray<UMateria
 
 		if( FbxMaterial )
 		{
-			CreateUnrealMaterial(*FbxMaterial, OutMaterials, UVSets);
+			CreateUnrealMaterial(*FbxMaterial, OutMaterials, UVSets, bForSkeletalMesh);
 		}
 	}
 	return MaterialCount;

@@ -3,6 +3,11 @@
 #pragma once
 
 
+class FMessagingDebuggerMessageFilter;
+class FMessagingDebuggerModel;
+class IMessageTracer;
+
+
 /**
  * Implements the message history panel.
  */
@@ -29,7 +34,11 @@ public:
 	 * @param InStyle The visual style to use for this widget.
 	 * @param InTracer The message tracer.
 	 */
-	void Construct( const FArguments& InArgs, const FMessagingDebuggerModelRef& InModel, const TSharedRef<ISlateStyle>& InStyle, const IMessageTracerRef& InTracer );
+	void Construct(
+		const FArguments& InArgs,
+		const TSharedRef<FMessagingDebuggerModel>& InModel,
+		const TSharedRef<ISlateStyle>& InStyle,
+		const TSharedRef<IMessageTracer, ESPMode::ThreadSafe>& InTracer);
 
 protected:
 
@@ -38,7 +47,7 @@ protected:
 	 *
 	 * @param MessageInfo The information about the message to add.
 	 */
-	void AddMessage( const FMessageTracerMessageInfoRef& MessageInfo );
+	void AddMessage(const TSharedRef<FMessageTracerMessageInfo>& MessageInfo);
 
 	/** Reloads the message history. */
 	void ReloadMessages();
@@ -49,19 +58,19 @@ private:
 	void HandleFilterChanged();
 
 	/** Callback for generating a row widget for the message list view. */
-	TSharedRef<ITableRow> HandleMessageListGenerateRow( FMessageTracerMessageInfoPtr MessageInfo, const TSharedRef<STableViewBase>& OwnerTable );
+	TSharedRef<ITableRow> HandleMessageListGenerateRow(TSharedPtr<FMessageTracerMessageInfo> MessageInfo, const TSharedRef<STableViewBase>& OwnerTable);
 
 	/** Callback for getting the message list's highlight string. */
 	FText HandleMessageListGetHighlightText() const;
 
 	/** Callback for double-clicking a message item. */
-	void HandleMessageListItemDoubleClick( FMessageTracerMessageInfoPtr Item );
+	void HandleMessageListItemDoubleClick(TSharedPtr<FMessageTracerMessageInfo> Item);
 
 	/** Callback for scrolling a message item into view. */
-	void HandleMessageListItemScrolledIntoView( FMessageTracerMessageInfoPtr Item, const TSharedPtr<ITableRow>& TableRow );
+	void HandleMessageListItemScrolledIntoView(TSharedPtr<FMessageTracerMessageInfo> Item, const TSharedPtr<ITableRow>& TableRow);
 
 	/** Callback for selecting a message in the message list view. */
-	void HandleMessageListSelectionChanged( FMessageTracerMessageInfoPtr InItem, ESelectInfo::Type SelectInfo );
+	void HandleMessageListSelectionChanged(TSharedPtr<FMessageTracerMessageInfo> InItem, ESelectInfo::Type SelectInfo);
 
 	/** Callback for changes in message visibility. */
 	void HandleModelMessageVisibilityChanged();
@@ -76,7 +85,7 @@ private:
 	FText HandleStatusBarText() const;
 
 	/** Callback for when a message has been added to the message tracer. */
-	void HandleTracerMessageAdded( FMessageTracerMessageInfoRef MessageInfo );
+	void HandleTracerMessageAdded(TSharedRef<FMessageTracerMessageInfo> MessageInfo);
 
 	/** Callback for when the tracer's message history has been reset. */
 	void HandleTracerMessagesReset();
@@ -84,16 +93,16 @@ private:
 private:
 
 	/** Holds the message filter model. */
-	FMessagingDebuggerMessageFilterPtr Filter;
+	TSharedPtr<FMessagingDebuggerMessageFilter> Filter;
 
 	/** Holds the filtered list of historic messages. */
-	TArray<FMessageTracerMessageInfoPtr> MessageList;
+	TArray<TSharedPtr<FMessageTracerMessageInfo>> MessageList;
 
 	/** Holds the message list view. */
-	TSharedPtr<SListView<FMessageTracerMessageInfoPtr>> MessageListView;
+	TSharedPtr<SListView<TSharedPtr<FMessageTracerMessageInfo>>> MessageListView;
 
 	/** Holds a pointer to the view model. */
-	FMessagingDebuggerModelPtr Model;
+	TSharedPtr<FMessagingDebuggerModel> Model;
 
 	/** Holds a flag indicating whether the message list should auto-scroll to the last item. */
 	bool ShouldScrollToLast;
@@ -105,5 +114,5 @@ private:
 	int32 TotalMessages;
 
 	/** Holds a pointer to the message bus tracer. */
-	IMessageTracerPtr Tracer;
+	TSharedPtr<IMessageTracer, ESPMode::ThreadSafe> Tracer;
 };

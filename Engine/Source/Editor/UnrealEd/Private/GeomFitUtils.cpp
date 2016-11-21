@@ -574,7 +574,7 @@ void RefreshCollisionChange(const UStaticMesh* StaticMesh)
 	for (FObjectIterator Iter(UStaticMeshComponent::StaticClass()); Iter; ++Iter)
 	{
 		UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(*Iter);
-		if  (StaticMeshComponent->StaticMesh == StaticMesh)
+		if  (StaticMeshComponent->GetStaticMesh() == StaticMesh)
 		{
 			// it needs to recreate IF it already has been created
 			if (StaticMeshComponent->IsPhysicsStateCreated())

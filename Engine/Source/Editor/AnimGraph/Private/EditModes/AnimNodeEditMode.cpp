@@ -424,6 +424,73 @@ void FAnimNodeEditMode::ConvertToComponentSpaceTransform(const USkeletalMeshComp
 }
 
 
+void FAnimNodeEditMode::ConvertToBoneSpaceTransform(const USkeletalMeshComponent* SkelComp, const FTransform & InCSTransform, FTransform & OutBSTransform, int32 BoneIndex, EBoneControlSpace Space)
+{
+	USkeleton* Skeleton = SkelComp->SkeletalMesh->Skeleton;
+
+	switch(Space)
+	{
+		case BCS_WorldSpace:
+		{
+			OutBSTransform = InCSTransform * SkelComp->ComponentToWorld;
+			break;
+		}
+		
+		case BCS_ComponentSpace:
+		{
+			// Component Space, no change.
+			OutBSTransform = InCSTransform;
+			break;
+		}
+
+		case BCS_ParentBoneSpace:
+		{
+			if(BoneIndex != INDEX_NONE)
+			{
+				const int32 ParentIndex = Skeleton->GetReferenceSkeleton().GetParentIndex(BoneIndex);
+				if(ParentIndex != INDEX_NONE)
+				{
+					const int32 MeshParentIndex = Skeleton->GetMeshBoneIndexFromSkeletonBoneIndex(SkelComp->SkeletalMesh, ParentIndex);
+					if(MeshParentIndex != INDEX_NONE)
+					{
+						const FTransform ParentTM = SkelComp->GetBoneTransform(MeshParentIndex);
+						OutBSTransform = InCSTransform.GetRelativeTransform(ParentTM);
+					}
+					else
+					{
+						OutBSTransform = InCSTransform;
+					}
+				}
+			}
+			break;
+		}
+
+		case BCS_BoneSpace:
+		{
+			if(BoneIndex != INDEX_NONE)
+			{
+				const int32 MeshBoneIndex = Skeleton->GetMeshBoneIndexFromSkeletonBoneIndex(SkelComp->SkeletalMesh, BoneIndex);
+				if(MeshBoneIndex != INDEX_NONE)
+				{
+					FTransform BoneCSTransform = SkelComp->GetBoneTransform(MeshBoneIndex);
+					OutBSTransform = InCSTransform.GetRelativeTransform(BoneCSTransform);
+				}
+				else
+				{
+					OutBSTransform = InCSTransform;
+				}
+			}
+			break;
+		}
+
+		default:
+		{
+			UE_LOG(LogAnimation, Warning, TEXT("ConvertToBoneSpaceTransform: Unknown BoneSpace %d  for Mesh: %s"), (int32)Space, *GetNameSafe(SkelComp->SkeletalMesh));
+			break;
+		}
+	}
+}
+
 FVector FAnimNodeEditMode::ConvertCSVectorToBoneSpace(const USkeletalMeshComponent* SkelComp, FVector& InCSVector, FCSPose<FCompactHeapPose>& MeshBases, const FName& BoneName, const EBoneControlSpace Space)
 {
 	FVector OutVector = InCSVector;

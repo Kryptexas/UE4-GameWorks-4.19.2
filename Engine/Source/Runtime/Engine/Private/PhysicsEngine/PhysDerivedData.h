@@ -22,13 +22,13 @@ private:
 	bool bGenerateNormalMesh;
 	bool bGenerateMirroredMesh;
 	bool bGenerateUVInfo;
-	int32 RuntimeCookFlags;
+	EPhysXMeshCookFlags RuntimeCookFlags;
 	const class IPhysXFormat* Cooker;
 	FGuid DataGuid;
 	FString MeshId;
 
 public:
-	FDerivedDataPhysXCooker(FName InFormat, int32 InRuntimeCookFlags, UBodySetup* InBodySetup);
+	FDerivedDataPhysXCooker(FName InFormat, EPhysXMeshCookFlags InRuntimeCookFlags, UBodySetup* InBodySetup);
 
 	virtual const TCHAR* GetPluginName() const override
 	{

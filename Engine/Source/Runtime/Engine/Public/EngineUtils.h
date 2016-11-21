@@ -395,7 +395,20 @@ private:
 	 */
 	static bool CanIterateLevel(ULevel* Level)
 	{
-		return Level->bIsVisible || Level->bIsAssociatingLevel;
+		const bool bIsLevelVisibleOrAssociating = Level->bIsVisible || Level->bIsAssociatingLevel;
+
+		// Only allow iteration of Level if it's in the currently active level collection of the world, or is a static level.
+		const FLevelCollection* const ActorLevelCollection = Level->GetCachedLevelCollection();
+		const FLevelCollection* const ActiveLevelCollection = Level->OwningWorld ? Level->OwningWorld->GetActiveLevelCollection() : nullptr;
+
+		// If the world's active level collection is null, we can't apply any meaningful filter,
+		// so just allow iteration in this case.
+		const bool bIsCurrentLevelCollectionTicking = !ActiveLevelCollection || (ActorLevelCollection == ActiveLevelCollection);
+		
+		const bool bIsLevelCollectionNullOrStatic = !ActorLevelCollection || ActorLevelCollection->GetType() == ELevelCollectionType::StaticLevels;
+		const bool bShouldIterateLevelCollection = bIsCurrentLevelCollectionTicking || bIsLevelCollectionNullOrStatic;
+
+		return bIsLevelVisibleOrAssociating && bShouldIterateLevelCollection;
 	}
 };
 
@@ -721,7 +734,7 @@ namespace EngineUtils
 }
 
 /** Helper class for serializing flags describing which data have been stripped (if any). */
-class FStripDataFlags
+class ENGINE_API FStripDataFlags
 {
 	/** Serialized engine strip flags (up to 8 flags). */
 	uint8 GlobalStripFlags;

@@ -444,10 +444,10 @@ FString FBlueprintCompilerCppBackend::EmitSwitchValueStatmentInner(FEmitterLocal
 		| EPropertyExportCPPFlags::CPPF_BlueprintCppBackend;
 
 	check(IndexTerm && IndexTerm->AssociatedVarProperty);
-	const FString IndexDeclaration = EmitterContext.ExportCppDeclaration(IndexTerm->AssociatedVarProperty, EExportedDeclaration::Local, CppTemplateTypeFlags, true);
+	const FString IndexDeclaration = EmitterContext.ExportCppDeclaration(IndexTerm->AssociatedVarProperty, EExportedDeclaration::Local, CppTemplateTypeFlags, FEmitterLocalContext::EPropertyNameInDeclaration::Skip);
 
 	check(DefaultValueTerm && DefaultValueTerm->AssociatedVarProperty);
-	const FString ValueDeclaration = EmitterContext.ExportCppDeclaration(DefaultValueTerm->AssociatedVarProperty, EExportedDeclaration::Local, CppTemplateTypeFlags, true);
+	const FString ValueDeclaration = EmitterContext.ExportCppDeclaration(DefaultValueTerm->AssociatedVarProperty, EExportedDeclaration::Local, CppTemplateTypeFlags, FEmitterLocalContext::EPropertyNameInDeclaration::Skip);
 
 	FString Result = FString::Printf(TEXT("TSwitchValue<%s, %s>(%s, %s, %d")
 		, *IndexDeclaration
@@ -692,6 +692,30 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 		return TEXT("/*This function cannot be called from BP. See bIsValidFunction in UObject::CallFunction*/");
 	}
 
+	if (Statement.FunctionToCall->HasAllFunctionFlags(FUNC_Native))
+	{
+		// Cloned logic from: FScriptBytecodeWriter::EmitFunctionCall
+		// Array output parameters are cleared, in case the native function doesn't clear them before filling.
+		int32 NumParams = 0;
+		for (TFieldIterator<UProperty> PropIt(Statement.FunctionToCall); PropIt && (PropIt->PropertyFlags & CPF_Parm); ++PropIt)
+		{
+			UProperty* Param = *PropIt;
+			if (ensure(Param) && !Param->HasAnyPropertyFlags(CPF_ReturnParm))
+			{
+				const bool bShouldParameterBeCleared = Param->IsA<UArrayProperty>()
+					&& Param->HasAllPropertyFlags(CPF_Parm | CPF_OutParm)
+					&& !Param->HasAnyPropertyFlags(CPF_ReferenceParm | CPF_ConstParm | CPF_ReturnParm);
+				if (bShouldParameterBeCleared)
+				{
+					FBPTerminal* Term = Statement.RHS[NumParams];
+					const FString TermStr = ensure(Term != nullptr) ? TermToText(EmitterContext, Term, ENativizedTermUsage::UnspecifiedOrReference) : FString();
+					EmitterContext.AddLine(FString::Printf(TEXT("(%s).Reset();"), *TermStr));
+				}
+				NumParams++;
+			}
+		}
+	}
+
 	FString Result;
 	FString CloseCast;
 	TAutoPtr<FSetterExpressionBuilder> SetterExpression;
@@ -878,7 +902,7 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 			const FString DefaultValueVariable = EmitterContext.GenerateUniqueLocalName();
 			const uint32 PropertyExportFlags = EPropertyExportCPPFlags::CPPF_CustomTypeName | EPropertyExportCPPFlags::CPPF_BlueprintCppBackend | EPropertyExportCPPFlags::CPPF_NoConst;
 			const FString CppType = Term->AssociatedVarProperty
-				? EmitterContext.ExportCppDeclaration(Term->AssociatedVarProperty, EExportedDeclaration::Local, PropertyExportFlags, true)
+				? EmitterContext.ExportCppDeclaration(Term->AssociatedVarProperty, EExportedDeclaration::Local, PropertyExportFlags, FEmitterLocalContext::EPropertyNameInDeclaration::Skip)
 				: FEmitHelper::PinTypeToNativeType(Term->Type);
 
 			const FString DefaultValueConstructor = (!Term->Type.bIsArray)
@@ -1005,29 +1029,21 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 		}
 
 		const bool bNativeConstTemplateArg = Term->AssociatedVarProperty && Term->AssociatedVarProperty->HasMetaData(FName(TEXT("NativeConstTemplateArg")));
-		if ((bNativeConst || bNativeConstTemplateArg) && bIsAccessible && bGetter)
+		if (Term->Type.bIsArray && bNativeConstTemplateArg && bIsAccessible && bGetter)
 		{
-			if (Term->Type.bIsArray && bNativeConstTemplateArg)
-			{
-				FEdGraphPinType InnerType = Term->Type;
-				InnerType.bIsArray = false;
-				InnerType.bIsConst = false;
-				const FString CppType = FEmitHelper::PinTypeToNativeType(InnerType);
-				ResultPath = FString::Printf(TEXT("TArrayCaster<const %s>(%s).Get<%s>()"), *CppType, *ResultPath, *CppType);
-			}
-			else
-			{
-				const FString CppType = FEmitHelper::PinTypeToNativeType(Term->Type);
-				ResultPath = FString::Printf(TEXT("const_cast<%s>(%s)"), *CppType, *ResultPath);
-			}
+			FEdGraphPinType InnerType = Term->Type;
+			InnerType.bIsArray = false;
+			InnerType.bIsConst = false;
+			const FString CppType = FEmitHelper::PinTypeToNativeType(InnerType);
+			ResultPath = FString::Printf(TEXT("TArrayCaster<const %s>(%s).Get<%s>()"), *CppType, *ResultPath, *CppType);
+		}
+		else if ((bNativeConst || bNativeConstTemplateArg) && bIsAccessible && bGetter) //Why only getters?
+		{
+			const FString CppType = FEmitHelper::PinTypeToNativeType(Term->Type);
+			ResultPath = FString::Printf(TEXT("const_cast<%s>(%s)"), *CppType, *ResultPath);
 		}
 
-		FString Conditions;
-		if (bUseSafeContext)
-		{
-			Conditions = FSafeContextScopedEmmitter::ValidationChain(EmitterContext, Term->Context, *this);
-		}
-
+		const FString Conditions = bUseSafeContext ? FSafeContextScopedEmmitter::ValidationChain(EmitterContext, Term->Context, *this) : FString();
 		if (!Conditions.IsEmpty())
 		{
 			const FString DefaultValueVariable = GenerateDefaultLocalVariable(Term);

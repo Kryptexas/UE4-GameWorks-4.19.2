@@ -428,6 +428,14 @@ private:
 	/** Queries and caches the number of connected mouse devices. */
 	void QueryConnectedMice();
 
+#if WINVER >= 0x0601
+	/** Gets the touch index for a given windows touch ID. */
+	uint32 GetTouchIndexForID(int32 TouchID);
+
+	/** Searches for a free touch index. */
+	uint32 GetFirstFreeTouchIndex();
+#endif
+
 	/** Helper function to update the cached states of all modifier keys */
 	void UpdateAllModifierKeyStates();
 
@@ -492,6 +500,13 @@ private:
 	STICKYKEYS							StartupStickyKeys;
 	TOGGLEKEYS							StartupToggleKeys;
 	FILTERKEYS							StartupFilterKeys;
+
+#if WINVER >= 0x0601
+	static const int32 MaxTouches = 10;
+
+	/** Maps touch indexes to windows touch IDs. */
+	TOptional<int32> TouchIDs[MaxTouches];
+#endif
 };
 
 

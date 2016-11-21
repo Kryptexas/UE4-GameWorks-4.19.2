@@ -17,6 +17,7 @@
 UAnimBlueprint::UAnimBlueprint(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	bUseMultiThreadedAnimationUpdate = true;
 }
 
 UAnimBlueprintGeneratedClass* UAnimBlueprint::GetAnimBlueprintGeneratedClass() const

@@ -2,49 +2,30 @@
 
 #pragma once
 
-#include "Profiler.h"
+#include "Runtime/Core/Public/Core.h"
+#include "Runtime/Core/Public/HAL/FileManagerGeneric.h"
+#include "Runtime/Core/Public/ProfilingDebugging/DiagnosticTable.h"
+#include "Runtime/Core/Public/Stats/StatsData.h"
+#include "Runtime/Core/Public/Stats/StatsFile.h"
+#include "Runtime/RenderCore/Public/RenderingThread.h"
+#include "Runtime/SessionServices/Public/ISessionInfo.h"
+#include "Runtime/SessionServices/Public/ISessionInstanceInfo.h"
+#include "Runtime/SessionServices/Public/ISessionManager.h"
+#include "Runtime/Slate/Public/SlateBasics.h"
+#include "Runtime/Slate/Public/Widgets/Docking/SDockTab.h"
+#include "Runtime/Slate/Public/Widgets/Input/SSearchBox.h"
+#include "Runtime/Slate/Public/Widgets/Notifications/SNotificationList.h"
 
+#include "Developer/DesktopPlatform/Public/DesktopPlatformModule.h"
+#include "Developer/ProfilerClient/Public/IProfilerClient.h"
+#include "Developer/ProfilerClient/Public/IProfilerClientModule.h"
 
-/* Private dependencies
- *****************************************************************************/
+#include "Editor/EditorStyle/Public/EditorStyleSet.h" // @todo profiler: fix Editor style dependencies
 
-#include "ISessionInfo.h"
-#include "ISessionInstanceInfo.h"
-#include "ISessionManager.h"
-#include "Messaging.h"
-#include "ProfilerClient.h"
-#include "StatsData.h"
-#include "StatsFile.h"
+#if WITH_EDITOR
+	#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+	#include "Runtime/Engine/Public/EngineAnalytics.h"
+#endif
 
-
-/* Private includes
- *****************************************************************************/
-
-// TODO: Remove dependencies between generic profiler code and profiler ui code
-
-// Common headers and managers.
-#include "ProfilerRawStatsForMemory.h"
-#include "ProfilerStream.h"
-
-#include "ProfilerSample.h"
-#include "ProfilerFPSAnalyzer.h"
-#include "ProfilerDataProvider.h"
-#include "ProfilerDataSource.h"
-#include "ProfilerSession.h"
-#include "ProfilerRawStatsForThreadView.h"
-#include "ProfilerCommands.h"
-#include "ProfilerManager.h"
-
-// Slate related headers.
-#include "SProfilerToolbar.h"
-#include "SFiltersAndPresets.h"
-#include "SMultiDumpBrowser.h"
-#include "SEventGraph.h"
-#include "SDataGraph.h"
-#include "SProfilerMiniView.h"
-#include "SProfilerThreadView.h"
-#include "SProfilerGraphPanel.h"
-#include "SProfilerFPSChartPanel.h"
-#include "SProfilerWindow.h"
-#include "SHistogram.h"
-#include "StatDragDropOp.h"
+#include "IProfilerModule.h"
+#include "ProfilerCommon.h"

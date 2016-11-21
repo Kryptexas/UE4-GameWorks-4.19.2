@@ -3,7 +3,7 @@
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieSceneAudioSection.h"
 #include "SoundDefinitions.h"
-
+#include "Evaluation/MovieSceneAudioTemplate.h"
 
 UMovieSceneAudioSection::UMovieSceneAudioSection( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
@@ -17,8 +17,14 @@ UMovieSceneAudioSection::UMovieSceneAudioSection( const FObjectInitializer& Obje
 	bShowIntensity = false;
 #endif
 	bSuppressSubtitles = false;
+
+	EvalOptions.EnableAndSetCompletionMode(EMovieSceneCompletionMode::RestoreState);
 }
 
+FMovieSceneEvalTemplatePtr UMovieSceneAudioSection::GenerateTemplate() const
+{
+	return FMovieSceneAudioSectionTemplate(*this);
+}
 
 TRange<float> UMovieSceneAudioSection::GetAudioRange() const
 {

@@ -254,6 +254,14 @@ void UMaterialGraphNode_Base::ReconstructNode()
 	GetGraph()->NotifyGraphChanged();
 }
 
+void UMaterialGraphNode_Base::RemovePinAt(const int32 PinIndex, const EEdGraphPinDirection PinDirection)
+{
+	Super::RemovePinAt(PinIndex, PinDirection);
+
+	UMaterialGraph* MaterialGraph = CastChecked<UMaterialGraph>(GetGraph());
+	MaterialGraph->LinkMaterialExpressionsFromGraph();
+}
+
 void UMaterialGraphNode_Base::AutowireNewNode(UEdGraphPin* FromPin)
 {
 	if (FromPin != NULL)

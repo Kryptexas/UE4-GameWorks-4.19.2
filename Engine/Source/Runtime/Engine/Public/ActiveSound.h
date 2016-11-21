@@ -412,7 +412,7 @@ public:
 	 *Try and find an Instance Parameter with the given name and if we find it return the integer value.
 	 * @return true if boolean for parameter was found, otherwise false
 	 */
-	int32 GetIntParameter(const FName InName, int32& OutInt) const;
+	bool GetIntParameter(const FName InName, int32& OutInt) const;
 
 	void CollectAttenuationShapesForVisualization(TMultiMap<EAttenuationShape::Type, FAttenuationSettings::AttenuationShapeDetails>& ShapeDetailsMap) const;
 

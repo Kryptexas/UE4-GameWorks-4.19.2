@@ -45,6 +45,14 @@ FAutoConsoleVariableRef CVarReflectionEnvironmentLightmapMixing(
 	ECVF_Scalability | ECVF_RenderThreadSafe
 	);
 
+int32 GReflectionEnvironmentLightmapMixBasedOnRoughness = 1;
+FAutoConsoleVariableRef CVarReflectionEnvironmentLightmapMixBasedOnRoughness(
+	TEXT("r.ReflectionEnvironmentLightmapMixBasedOnRoughness"),
+	GReflectionEnvironmentLightmapMixBasedOnRoughness,
+	TEXT("Whether to reduce lightmap mixing with reflection captures for very smooth surfaces.  This is useful to make sure reflection captures match SSR / planar reflections in brightness."),
+	ECVF_Scalability | ECVF_RenderThreadSafe
+	);
+
 float GReflectionEnvironmentBeginMixingRoughness = .1f;
 FAutoConsoleVariableRef CVarReflectionEnvironmentBeginMixingRoughness(
 	TEXT("r.ReflectionEnvironmentBeginMixingRoughness"),
@@ -58,6 +66,14 @@ FAutoConsoleVariableRef CVarReflectionEnvironmentEndMixingRoughness(
 	TEXT("r.ReflectionEnvironmentEndMixingRoughness"),
 	GReflectionEnvironmentEndMixingRoughness,
 	TEXT("Min roughness value at which to end mixing reflection captures with lightmap indirect diffuse."),
+	ECVF_Scalability | ECVF_RenderThreadSafe
+	);
+
+int32 GReflectionEnvironmentLightmapMixLargestWeight = 10000;
+FAutoConsoleVariableRef CVarReflectionEnvironmentLightmapMixLargestWeight(
+	TEXT("r.ReflectionEnvironmentLightmapMixLargestWeight"),
+	GReflectionEnvironmentLightmapMixLargestWeight,
+	TEXT("When set to 1 can be used to clamp lightmap mixing such that only darkening from lightmaps are applied to reflection captures."),
 	ECVF_Scalability | ECVF_RenderThreadSafe
 	);
 
@@ -91,22 +107,27 @@ static int GetReflectionEnvironmentCVar()
 	return RetVal;
 }
 
-FVector2D GetReflectionEnvironmentRoughnessMixingScaleBias()
+FVector GetReflectionEnvironmentRoughnessMixingScaleBiasAndLargestWeight()
 {
 	float RoughnessMixingRange = 1.0f / FMath::Max(GReflectionEnvironmentEndMixingRoughness - GReflectionEnvironmentBeginMixingRoughness, .001f);
 
 	if (GReflectionEnvironmentLightmapMixing == 0)
 	{
-		return FVector2D(0, 0);
+		return FVector(0, 0, GReflectionEnvironmentLightmapMixLargestWeight);
 	}
 
 	if (GReflectionEnvironmentEndMixingRoughness == 0.0f && GReflectionEnvironmentBeginMixingRoughness == 0.0f)
 	{
 		// Make sure a Roughness of 0 results in full mixing when disabling roughness-based mixing
-		return FVector2D(0, 1);
+		return FVector(0, 1, GReflectionEnvironmentLightmapMixLargestWeight);
 	}
 
-	return FVector2D(RoughnessMixingRange, -GReflectionEnvironmentBeginMixingRoughness * RoughnessMixingRange);
+	if (!GReflectionEnvironmentLightmapMixBasedOnRoughness)
+	{
+		return FVector(0, 1, GReflectionEnvironmentLightmapMixLargestWeight);
+	}
+
+	return FVector(RoughnessMixingRange, -GReflectionEnvironmentBeginMixingRoughness * RoughnessMixingRange, GReflectionEnvironmentLightmapMixLargestWeight);
 }
 
 bool IsReflectionEnvironmentAvailable(ERHIFeatureLevel::Type InFeatureLevel)
@@ -769,57 +790,60 @@ void GatherAndSortReflectionCaptures(const FViewInfo& View, const FScene* Scene,
 
 	const int32 MaxCubemaps = Scene->ReflectionSceneData.CubemapArray.GetMaxCubemaps();
 
-	// Pack only visible reflection captures into the uniform buffer, each with an index to its cubemap array entry
-	//@todo - view frustum culling
-	for (int32 ReflectionProxyIndex = 0; ReflectionProxyIndex < Scene->ReflectionSceneData.RegisteredReflectionCaptures.Num() && OutSortData.Num() < GMaxNumReflectionCaptures; ReflectionProxyIndex++)
+	if (View.Family->EngineShowFlags.ReflectionEnvironment)
 	{
-		FReflectionCaptureProxy* CurrentCapture = Scene->ReflectionSceneData.RegisteredReflectionCaptures[ReflectionProxyIndex];
-		// Find the cubemap index this component was allocated with
-		const FCaptureComponentSceneState* ComponentStatePtr = Scene->ReflectionSceneData.AllocatedReflectionCaptureState.Find(CurrentCapture->Component);
-
-		if (ComponentStatePtr)
+		// Pack only visible reflection captures into the uniform buffer, each with an index to its cubemap array entry
+		//@todo - view frustum culling
+		for (int32 ReflectionProxyIndex = 0; ReflectionProxyIndex < Scene->ReflectionSceneData.RegisteredReflectionCaptures.Num() && OutSortData.Num() < GMaxNumReflectionCaptures; ReflectionProxyIndex++)
 		{
-			int32 CubemapIndex = ComponentStatePtr->CaptureIndex;
-			check(CubemapIndex < MaxCubemaps);
+			FReflectionCaptureProxy* CurrentCapture = Scene->ReflectionSceneData.RegisteredReflectionCaptures[ReflectionProxyIndex];
+			// Find the cubemap index this component was allocated with
+			const FCaptureComponentSceneState* ComponentStatePtr = Scene->ReflectionSceneData.AllocatedReflectionCaptureState.Find(CurrentCapture->Component);
 
-			FReflectionCaptureSortData NewSortEntry;
-
-			NewSortEntry.CaptureIndex = CubemapIndex;
-			NewSortEntry.SM4FullHDRCubemap = NULL;
-			NewSortEntry.Guid = CurrentCapture->Guid;
-			NewSortEntry.PositionAndRadius = FVector4(CurrentCapture->Position, CurrentCapture->InfluenceRadius);
-			float ShapeTypeValue = (float)CurrentCapture->Shape;
-			NewSortEntry.CaptureProperties = FVector4(CurrentCapture->Brightness, CubemapIndex, ShapeTypeValue, 0);
-			NewSortEntry.CaptureOffsetAndAverageBrightness = FVector4(CurrentCapture->CaptureOffset, CurrentCapture->AverageBrightness);
-
-			if (CurrentCapture->Shape == EReflectionCaptureShape::Plane)
+			if (ComponentStatePtr)
 			{
-				//planes count as boxes in the compute shader.
-				++OutNumBoxCaptures;
-				NewSortEntry.BoxTransform = FMatrix(
-					FPlane(CurrentCapture->ReflectionPlane),
-					FPlane(CurrentCapture->ReflectionXAxisAndYScale),
-					FPlane(0, 0, 0, 0),
-					FPlane(0, 0, 0, 0));
+				int32 CubemapIndex = ComponentStatePtr->CaptureIndex;
+				check(CubemapIndex < MaxCubemaps);
 
-				NewSortEntry.BoxScales = FVector4(0);
-			}
-			else if (CurrentCapture->Shape == EReflectionCaptureShape::Sphere)
-			{
-				++OutNumSphereCaptures;
-			}
-			else
-			{
-				++OutNumBoxCaptures;
-				NewSortEntry.BoxTransform = CurrentCapture->BoxTransform;
-				NewSortEntry.BoxScales = FVector4(CurrentCapture->BoxScales, CurrentCapture->BoxTransitionDistance);
-			}
+				FReflectionCaptureSortData NewSortEntry;
 
-			const FSphere BoundingSphere(CurrentCapture->Position, CurrentCapture->InfluenceRadius);
-			const float Distance = View.ViewMatrices.ViewMatrix.TransformPosition(BoundingSphere.Center).Z + BoundingSphere.W;
-			OutFurthestReflectionCaptureDistance = FMath::Max(OutFurthestReflectionCaptureDistance, Distance);
+				NewSortEntry.CaptureIndex = CubemapIndex;
+				NewSortEntry.SM4FullHDRCubemap = NULL;
+				NewSortEntry.Guid = CurrentCapture->Guid;
+				NewSortEntry.PositionAndRadius = FVector4(CurrentCapture->Position, CurrentCapture->InfluenceRadius);
+				float ShapeTypeValue = (float)CurrentCapture->Shape;
+				NewSortEntry.CaptureProperties = FVector4(CurrentCapture->Brightness, CubemapIndex, ShapeTypeValue, 0);
+				NewSortEntry.CaptureOffsetAndAverageBrightness = FVector4(CurrentCapture->CaptureOffset, CurrentCapture->AverageBrightness);
 
-			OutSortData.Add(NewSortEntry);
+				if (CurrentCapture->Shape == EReflectionCaptureShape::Plane)
+				{
+					//planes count as boxes in the compute shader.
+					++OutNumBoxCaptures;
+					NewSortEntry.BoxTransform = FMatrix(
+						FPlane(CurrentCapture->ReflectionPlane),
+						FPlane(CurrentCapture->ReflectionXAxisAndYScale),
+						FPlane(0, 0, 0, 0),
+						FPlane(0, 0, 0, 0));
+
+					NewSortEntry.BoxScales = FVector4(0);
+				}
+				else if (CurrentCapture->Shape == EReflectionCaptureShape::Sphere)
+				{
+					++OutNumSphereCaptures;
+				}
+				else
+				{
+					++OutNumBoxCaptures;
+					NewSortEntry.BoxTransform = CurrentCapture->BoxTransform;
+					NewSortEntry.BoxScales = FVector4(CurrentCapture->BoxScales, CurrentCapture->BoxTransitionDistance);
+				}
+
+				const FSphere BoundingSphere(CurrentCapture->Position, CurrentCapture->InfluenceRadius);
+				const float Distance = View.ViewMatrices.GetViewMatrix().TransformPosition(BoundingSphere.Center).Z + BoundingSphere.W;
+				OutFurthestReflectionCaptureDistance = FMath::Max(OutFurthestReflectionCaptureDistance, Distance);
+
+				OutSortData.Add(NewSortEntry);
+			}
 		}
 	}
 
@@ -983,7 +1007,7 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRH
 		}
 
 		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ReflectionEnvironment)
-		RenderDeferredPlanarReflections(RHICmdList, false, SSROutput);
+		RenderDeferredPlanarReflections(RHICmdList, View, false, SSROutput);
 
 		// ReflectionEnv is assumed to be on when going into this method
 		{
@@ -1145,7 +1169,7 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ReflectionEnvironment)
 		bool bApplyFromSSRTexture = bSSR;
 
-		if (RenderDeferredPlanarReflections(RHICmdList, true, SSROutput))
+		if (RenderDeferredPlanarReflections(RHICmdList, View, true, SSROutput))
 		{
 			bRequiresApply = true;
 			bApplyFromSSRTexture = true;

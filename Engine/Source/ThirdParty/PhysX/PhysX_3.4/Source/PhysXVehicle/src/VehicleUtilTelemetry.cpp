@@ -87,8 +87,8 @@ PxVehicleGraph::PxVehicleGraph()
 	mBackgroundMinY=0;
 	mBackgroundMaxY=0;
 	mSampleTide=0;
-	mBackgroundColor=PxVec3(255.f,255.f,255.f),
-		mBackgroundAlpha=1.0f;
+	mBackgroundColor=PxVec3(255.f,255.f,255.f);
+	mBackgroundAlpha=1.0f;
 	for(PxU32 i=0;i<eMAX_NB_CHANNELS;i++)
 	{
 		mChannelMinY[i]=0;

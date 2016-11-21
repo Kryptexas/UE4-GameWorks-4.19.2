@@ -926,7 +926,7 @@ void FViewport::HighResScreenshot()
 	bTakeHighResScreenShot = false;
 
 	// Notification of a successful screenshot
-	if (GIsEditor || !IsFullscreen())
+	if ((GIsEditor || !IsFullscreen()) && !GIsAutomationTesting )
 	{
 		auto Message = NSLOCTEXT("UnrealClient", "HighResScreenshotSavedAs", "High resolution screenshot saved as");
 		FNotificationInfo Info(Message);
@@ -1408,7 +1408,7 @@ HHitProxy* FViewport::GetHitProxy(int32 X,int32 Y)
 	return HitProxy;
 }
 
-void FViewport::UpdateViewportRHI(bool bDestroyed,uint32 NewSizeX,uint32 NewSizeY,EWindowMode::Type NewWindowMode)
+void FViewport::UpdateViewportRHI(bool bDestroyed, uint32 NewSizeX, uint32 NewSizeY, EWindowMode::Type NewWindowMode, EPixelFormat PreferredPixelFormat)
 {
 	// Make sure we're not in the middle of streaming textures.
 	(*GFlushStreamingFunc)();
@@ -1444,7 +1444,8 @@ void FViewport::UpdateViewportRHI(bool bDestroyed,uint32 NewSizeX,uint32 NewSize
 					ViewportRHI,
 					SizeX,
 					SizeY,
-					IsFullscreen()
+					IsFullscreen(),
+					PreferredPixelFormat
 					);
 			}
 			else
@@ -1682,7 +1683,7 @@ void FViewport::SetInitialSize( FIntPoint InitialSizeXY )
 	// Initial size only works if the viewport has not yet been resized
 	if( GetSizeXY() == FIntPoint::ZeroValue )
 	{
-		UpdateViewportRHI( false, InitialSizeXY.X, InitialSizeXY.Y, EWindowMode::Windowed );
+		UpdateViewportRHI( false, InitialSizeXY.X, InitialSizeXY.Y, EWindowMode::Windowed, PF_Unknown );
 	}
 }
 

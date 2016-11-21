@@ -11,6 +11,10 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogLinker, Log, All);
 
+#if !defined(USE_NEW_ASYNC_IO) || !defined(SPLIT_COOKED_FILES)
+#error "USE_NEW_ASYNC_IO and SPLIT_COOKED_FILES must be defined"
+#endif
+
 /**
  * Information about a compressed chunk in a file.
  */
@@ -44,6 +48,8 @@ public:
 	TArray<TArray<FPackageIndex> > DependsMap;
 	/** Map that holds info about string asset references from the package. */
 	TArray<FString> StringAssetReferencesMap;
+	/** List of Searchable Names, by object containing them. Not in MultiMap to allow sorting, and sizes are usually small enough where TArray makes sense */
+	TMap<FPackageIndex, TArray<FName> > SearchableNamesMap;
 
 	/**
 	 * Check that this Index is non-null and return an import or export
@@ -155,6 +161,9 @@ public:
 		}
 		return NULL;
 	}
+
+	/** Serializes the searchable name map */
+	COREUOBJECT_API void SerializeSearchableNamesMap(FArchive &Ar);
 };
 
 
@@ -283,7 +292,6 @@ public:
 		}
 		return NAME_None;
 	}
-
 
 	FORCEINLINE ELinkerType::Type GetType() const
 	{

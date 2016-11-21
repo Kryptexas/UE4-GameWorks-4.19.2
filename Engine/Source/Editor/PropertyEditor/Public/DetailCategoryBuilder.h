@@ -94,6 +94,15 @@ public:
 	virtual IDetailPropertyRow* AddExternalProperty( TSharedPtr<FStructOnScope> StructData, FName PropertyName, EPropertyLocation::Type Location = EPropertyLocation::Default ) = 0;
 
 	/**
+	 * Adds all properties for the specified external structure to this category
+	 *
+	 * @param StructData		External struct data to add to the root
+	 * @param Location			The location within the category where the properties are to be shown
+	 * @return Array of all properties added to this category
+	 */
+	virtual TArray<TSharedPtr<IPropertyHandle>> AddExternalProperties( TSharedRef<FStructOnScope> StructData, EPropertyLocation::Type Location = EPropertyLocation::Default ) = 0;
+
+	/**
 	 * Adds a custom widget row to the category
 	 *
 	 * @param FilterString	 A string which is used to filter this custom row when a user types into the details panel search box

@@ -6,7 +6,7 @@
 #include "NodeDependingOnEnumInterface.h"
 #include "K2Node_Select.generated.h"
 
-UCLASS(MinimalAPI, meta=(Keywords = "Ternary If"))
+UCLASS(MinimalAPI, meta=(Keywords = "Ternary Select"))
 class UK2Node_Select : public UK2Node, public INodeDependingOnEnumInterface
 {
 	GENERATED_UCLASS_BODY()
@@ -102,5 +102,8 @@ class UK2Node_Select : public UK2Node, public INodeDependingOnEnumInterface
 
 	// Bind the options to a named enum 
 	virtual void SetEnum(UEnum* InEnum, bool bForceRegenerate = false);
+
+private:
+	UEdGraphPin* GetIndexPinUnchecked() const;
 };
 

@@ -2407,8 +2407,8 @@ void SetupDepthStencil(
 {
 	SCOPED_DRAW_EVENT(RHICmdList, SetupDepthStencil);
 
-	SetRenderTarget(RHICmdList, NULL, SplatDepthStencilBuffer.TargetableTexture);
-	RHICmdList.Clear(false, FLinearColor(0, 0, 0, 0), true, 0, true, 0, FIntRect());
+	SetRenderTarget(RHICmdList, nullptr, SplatDepthStencilBuffer.TargetableTexture);
+	RHICmdList.ClearDepthStencilTexture(SplatDepthStencilBuffer.TargetableTexture, EClearDepthStencil::DepthStencil, 0, 0, FIntRect());
 
 	{		
 		RHICmdList.SetViewport(0, 0, 0.0f, View.ViewRect.Width() / GAODownsampleFactor, View.ViewRect.Height() / GAODownsampleFactor, 1.0f);
@@ -2459,7 +2459,7 @@ void SetupDepthStencil(
 		PixelShader->SetColors(RHICmdList, &FLinearColor::Black, 1);
 
 		FVector ViewSpaceMaxDistance(0.0f, 0.0f, GetMaxAOViewDistance());
-		FVector4 ClipSpaceMaxDistance = View.ViewMatrices.ProjMatrix.TransformPosition(ViewSpaceMaxDistance);
+		FVector4 ClipSpaceMaxDistance = View.ViewMatrices.GetProjectionMatrix().TransformPosition(ViewSpaceMaxDistance);
 		float ClipSpaceZ = ClipSpaceMaxDistance.Z / ClipSpaceMaxDistance.W;
 
 		// Place the quad's depth at the max AO view distance
@@ -2766,7 +2766,22 @@ bool FDeferredShadingSceneRenderer::ShouldPrepareForDistanceFieldAO() const
 			|| (GDistanceFieldAOApplyToStaticIndirect && ViewFamily.EngineShowFlags.DistanceFieldAO));
 }
 
-bool FDeferredShadingSceneRenderer::ShouldPrepareDistanceFields() const
+bool FDeferredShadingSceneRenderer::ShouldPrepareDistanceFieldScene() const
+{
+	if (!ensure(Scene != nullptr))
+	{
+		return false;
+	}
+
+	bool bShouldPrepareForAO = SupportsDistanceFieldAO(Scene->GetFeatureLevel(), Scene->GetShaderPlatform()) && ShouldPrepareForDistanceFieldAO();
+	bool bShouldPrepareGlobalDistanceField = ShouldPrepareGlobalDistanceField();
+	bool bShouldPrepareForDFInsetIndirectShadow = ShouldPrepareForDFInsetIndirectShadow();
+
+	// Prepare the distance field scene (object buffers and distance field atlas) if any feature needs it
+	return bShouldPrepareGlobalDistanceField || bShouldPrepareForAO || ShouldPrepareForDistanceFieldShadows() || bShouldPrepareForDFInsetIndirectShadow;
+}
+
+bool FDeferredShadingSceneRenderer::ShouldPrepareGlobalDistanceField() const
 {
 	if (!ensure(Scene != nullptr))
 	{
@@ -2778,7 +2793,7 @@ bool FDeferredShadingSceneRenderer::ShouldPrepareDistanceFields() const
 			|| ((Views.Num() > 0) && Views[0].bUsesGlobalDistanceField)
 			|| ((Scene->FXSystem != nullptr) && Scene->FXSystem->UsesGlobalDistanceField()));
 
-	return bShouldPrepareForAO || ShouldPrepareForDistanceFieldShadows();
+	return bShouldPrepareForAO && UseGlobalDistanceField();
 }
 
 void RenderDistanceFieldAOSurfaceCache(

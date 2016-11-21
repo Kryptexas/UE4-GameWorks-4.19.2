@@ -12,21 +12,25 @@ namespace Tools.CrashReporter.CrashReportProcess
 		{ 
 			get
 			{
-				return StatusReportingEventNames.ProcessingStartedReceiverEvent;
+				return ProcessingStartedEventName;
 			}
 		}
 
 		/// <summary>
 		/// Constructor taking the landing zone
 		/// </summary>
-		public ReceiverReportQueue(string InQueueName, string LandingZonePath, int InDecimateWaitingCountStart, int InDecimateWaitingCountEnd)
+		public ReceiverReportQueue(string InQueueName, string LandingZonePath, string InProcessingStartedEventName, int InDecimateWaitingCountStart,
+		                           int InDecimateWaitingCountEnd)
 			: base(InQueueName, LandingZonePath, InDecimateWaitingCountStart, InDecimateWaitingCountEnd)
 		{
+			ProcessingStartedEventName = InProcessingStartedEventName;
 		}
 
 		protected override int GetTotalWaitingCount()
 		{
 			return LastQueueSizeOnDisk;
 		}
+
+		private readonly string ProcessingStartedEventName;
 	}
 }

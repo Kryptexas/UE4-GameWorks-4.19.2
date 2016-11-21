@@ -70,8 +70,14 @@ ANavLinkProxy::ANavLinkProxy(const FObjectInitializer& ObjectInitializer) : Supe
 #if WITH_EDITOR
 void ANavLinkProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) 
 {
+	static const FName NAME_SmartLinkIsRelevant = GET_MEMBER_NAME_CHECKED(ANavLinkProxy, bSmartLinkIsRelevant);
+	static const FName NAME_PointLinks = GET_MEMBER_NAME_CHECKED(ANavLinkProxy, PointLinks);
+	static const FName NAME_AreaClass = TEXT("AreaClass");
+	const FName PropertyName = PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+	const FName MemberPropertyName = PropertyChangedEvent.MemberProperty ? PropertyChangedEvent.MemberProperty->GetFName() : NAME_None;
+
 	bool bUpdateInNavOctree = false;
-	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(ANavLinkProxy, bSmartLinkIsRelevant))
+	if (PropertyName == NAME_SmartLinkIsRelevant)
 	{
 		SmartLinkComp->SetNavigationRelevancy(bSmartLinkIsRelevant);
 		bUpdateInNavOctree = true;
@@ -82,6 +88,13 @@ void ANavLinkProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 	if (CategoryName == TEXT("SimpleLink") || MemberCategoryName == TEXT("SimpleLink"))
 	{
 		bUpdateInNavOctree = true;
+		if (PropertyName == NAME_AreaClass && MemberPropertyName == NAME_PointLinks)
+		{
+			for (FNavigationLink& Link : PointLinks)
+			{
+				Link.InitializeAreaClass(/*bForceRefresh=*/true);
+			}
+		}
 	}
 
 	if (bUpdateInNavOctree)

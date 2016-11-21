@@ -60,13 +60,21 @@ public:
 public:
 
 	UMG_API FRichCurve& GetTranslationCurve( EAxis::Type Axis );
+	UMG_API const FRichCurve& GetTranslationCurve( EAxis::Type Axis ) const;
 
 	UMG_API FRichCurve& GetRotationCurve();
+	UMG_API const FRichCurve& GetRotationCurve() const;
 
 	UMG_API FRichCurve& GetScaleCurve( EAxis::Type Axis );
+	UMG_API const FRichCurve& GetScaleCurve( EAxis::Type Axis ) const;
 
+	DEPRECATED(4.15, "Please use GetShearCurve.")
 	UMG_API FRichCurve& GetSheerCurve( EAxis::Type Axis );
+	
+	UMG_API FRichCurve& GetShearCurve( EAxis::Type Axis );
+	UMG_API const FRichCurve& GetShearCurve( EAxis::Type Axis ) const;
 
+	DEPRECATED(4.15, "Evaluation is now the responsibility of FMovieScene2DTransformSectionTemplate")
 	FWidgetTransform Eval( float Position, const FWidgetTransform& DefaultValue ) const;
 
 	// IKeyframeSection interface.

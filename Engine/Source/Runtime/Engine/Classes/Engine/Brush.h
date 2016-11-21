@@ -275,4 +275,9 @@ public:
 public:
 	/** Returns BrushComponent subobject **/
 	class UBrushComponent* GetBrushComponent() const;
+
+#if WITH_EDITOR
+	/** Debug purposes only; an attempt to catch the cause of UE-36265 */
+	static const TCHAR* GGeometryRebuildCause;
+#endif
 };

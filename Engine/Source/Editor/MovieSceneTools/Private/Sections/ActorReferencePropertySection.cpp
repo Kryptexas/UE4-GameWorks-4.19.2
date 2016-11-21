@@ -128,7 +128,8 @@ TOptional<FGuid> FActorReferencePropertySection::GetActorGuid() const
 	TOptional<AActor*> CurrentActor = GetPropertyValue<AActor*>();
 	if (CurrentActor.IsSet() && CurrentActor.GetValue() != nullptr)
 	{
-		return TOptional<FGuid>(GetSequencer()->GetFocusedMovieSceneSequenceInstance()->FindObjectId(*CurrentActor.GetValue()));
+		ISequencer* SequencerPtr = GetSequencer();
+		return TOptional<FGuid>(SequencerPtr->FindObjectId(*CurrentActor.GetValue(), SequencerPtr->GetFocusedTemplateID()));
 	}
 	return TOptional<FGuid>(FGuid());
 }

@@ -497,4 +497,9 @@ const FHitResult& UWidgetInteractionComponent::GetLastHitResult() const
 	return LastHitResult;
 }
 
+FVector2D UWidgetInteractionComponent::Get2DHitLocation() const
+{
+	return LocalHitLocation;
+}
+
 #undef LOCTEXT_NAMESPACE

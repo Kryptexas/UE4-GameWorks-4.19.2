@@ -51,8 +51,8 @@ public:
 	/** 
 	 * Sets height fog shader parameters.
 	 */
-	template<typename ShaderRHIParamRef>
-	void Set(FRHICommandList& RHICmdList, ShaderRHIParamRef Shader, const FSceneView* View) const
+	template<typename TShaderRHIParamRef>
+	void Set(FRHICommandList& RHICmdList, TShaderRHIParamRef Shader, const FSceneView* View) const
 	{
 		// Set the fog constants.
 		ExponentialParameters.Set(RHICmdList, Shader, View);

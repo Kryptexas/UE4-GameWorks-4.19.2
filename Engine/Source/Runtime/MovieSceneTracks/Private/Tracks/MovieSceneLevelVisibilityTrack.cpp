@@ -4,7 +4,9 @@
 #include "MovieSceneLevelVisibilitySection.h"
 #include "MovieSceneLevelVisibilityTrack.h"
 #include "IMovieScenePlayer.h"
-#include "MovieSceneLevelVisibilityTrackInstance.h"
+#include "Compilation/IMovieSceneTemplateGenerator.h"
+#include "Evaluation/MovieSceneLevelVisibilityTemplate.h"
+#include "Evaluation/MovieSceneEvaluationTrack.h"
 
 
 #define LOCTEXT_NAMESPACE "MovieSceneLevelVisibilityTrack"
@@ -15,9 +17,18 @@ UMovieSceneLevelVisibilityTrack::UMovieSceneLevelVisibilityTrack( const FObjectI
 }
 
 
-TSharedPtr<IMovieSceneTrackInstance> UMovieSceneLevelVisibilityTrack::CreateInstance()
+void UMovieSceneLevelVisibilityTrack::PostCompile(FMovieSceneEvaluationTrack& OutTrack, const FMovieSceneTrackCompilerArgs& Args) const
 {
-	return MakeShareable( new FMovieSceneLevelVisibilityTrackInstance( *this ) ); 
+	// Set priority to highest possible
+	OutTrack.SetEvaluationPriority(GetEvaluationPriority());
+
+	FMovieSceneSharedDataId UniqueId = FMovieSceneLevelVisibilitySharedTrack::GetSharedDataKey().UniqueId;
+
+	FMovieSceneEvaluationTrack ActuatorTemplate(Args.ObjectBindingId);
+	ActuatorTemplate.DefineAsSingleTemplate(FMovieSceneLevelVisibilitySharedTrack());
+	ActuatorTemplate.SetEvaluationPriority(GetEvaluationPriority() - 1);
+	
+	Args.Generator.AddSharedTrack(MoveTemp(ActuatorTemplate), UniqueId, *this);
 }
 
 

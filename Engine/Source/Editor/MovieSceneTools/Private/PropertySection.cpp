@@ -41,34 +41,22 @@ int32 FPropertySection::OnPaintSection( FSequencerSectionPainter& Painter ) cons
 	return Painter.PaintSectionBackground();
 }
 
-UObject* FPropertySection::GetRuntimeObjectAndUpdatePropertyBindings() const
-{
-	UObject* RuntimeObject = nullptr;
-	if (Sequencer != nullptr && PropertyBindings.IsValid())
-	{
-		TArray<TWeakObjectPtr<UObject>> RuntimeObjects;
-		Sequencer->GetRuntimeObjects(Sequencer->GetFocusedMovieSceneSequenceInstance(), ObjectBinding, RuntimeObjects);
-		if (RuntimeObjects.Num() == 1)
-		{
-			TWeakObjectPtr<UObject> RuntimeObjectPtr = RuntimeObjects[0];
-			if (RuntimeObjectPtr.IsValid())
-			{
-				if (RuntimeObjectPtr != RuntimeObjectCache)
-				{
-					PropertyBindings->UpdateBindings(RuntimeObjects);
-					RuntimeObjectCache = RuntimeObjectPtr;
-				}
-				RuntimeObject = RuntimeObjectPtr.Get();
-			}
-		}
-	}
-	return RuntimeObject;
-}
-
 UProperty* FPropertySection::GetProperty() const
 {
-	UObject* RuntimeObject = GetRuntimeObjectAndUpdatePropertyBindings();
-	return PropertyBindings.IsValid() && RuntimeObject != nullptr ? PropertyBindings->GetProperty(RuntimeObject) : nullptr;
+	if (!PropertyBindings.IsValid())
+	{
+		return nullptr;
+	}
+
+	for (const TWeakObjectPtr<UObject>& WeakObject : Sequencer->FindBoundObjects(ObjectBinding, Sequencer->GetFocusedTemplateID()))
+	{
+		if (UObject* Object = WeakObject.Get())
+		{
+			return PropertyBindings->GetProperty(*Object);
+		}
+	}
+
+	return nullptr;
 }
 
 bool FPropertySection::CanGetPropertyValue() const

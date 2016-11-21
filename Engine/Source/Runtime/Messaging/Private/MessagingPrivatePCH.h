@@ -2,22 +2,21 @@
 
 #pragma once
 
+#include "Runtime/Core/Public/Core.h"
+#include "Runtime/Core/Public/Modules/ModuleManager.h"
+#include "Runtime/CoreUObject/Public/CoreUObject.h"
 
-/* Private dependencies
- *****************************************************************************/
-
-#include "CoreUObject.h"
-#include "TaskGraphInterfaces.h"
-
-
-/* Private includes
- *****************************************************************************/
-
-#include "MessageContext.h"
-#include "MessageSubscription.h"
-#include "MessageTracer.h"
-#include "MessageDispatchTask.h"
-#include "MessageRouter.h"
-#include "MessageBus.h"
-#include "MessageAddressBook.h"
-#include "MessageBridge.h"
+#include "IAuthorizeMessageRecipients.h"
+#include "IMessageAttachment.h"
+#include "IMessageBridge.h"
+#include "IMessageBus.h"
+#include "IMessageContext.h"
+#include "IMessageHandler.h"
+#include "IMessageInterceptor.h"
+#include "IMessageReceiver.h"
+#include "IMessageSender.h"
+#include "IMessageSubscription.h"
+#include "IMessageTracer.h"
+#include "IMessageTracerBreakpoint.h"
+#include "IMessageTransport.h"
+#include "IMutableMessageContext.h"

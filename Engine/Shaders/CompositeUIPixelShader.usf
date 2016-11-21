@@ -1,0 +1,50 @@
+
+/*=============================================================================
+CompositeUIPixelShader.usf: Filter pixel shader source.
+=============================================================================*/
+
+#include "Common.usf"
+#include "GammaCorrectionCommon.usf"
+
+Texture2D InUITexture;
+SamplerState InUISampler;
+
+Texture2D InSceneTexture;
+SamplerState InSceneSampler;
+
+// Scale applied to UI to reset luminance level
+float UILevel;
+uint LDRTonemapUnder;
+
+void Main(
+	FScreenVertexOutput Input,
+	out float4 OutColor : SV_Target0
+	)
+{
+	float4 UIColor = Texture2DSample(InUITexture, InUISampler, Input.UV);
+	float4 SceneColor = Texture2DSample(InSceneTexture, InSceneSampler, Input.UV);
+
+	// Assuming the sRGB path for now
+	UIColor.xyz = sRGBToLinear(UIColor.xyz);
+
+	if (UIColor.w > 0.f)
+	{
+		// Clamp gamut to sRGB as extended gamut colors bleeding into the UI can look funny
+		SceneColor.xyz = max(SceneColor.xyz, 0.f);
+
+		if (LDRTonemapUnder)
+		{
+			// Tonemap HDR under transparent UI with a simple Rienhard to the max luminance of the UI
+			// This prevents HDR bleed through destroying UI legibility
+			float Luminance = dot(SceneColor.xyz, half3(0.299f, 0.587f, 0.114f)) / UILevel;
+			float OutL = 1.f / (Luminance + 1.f);
+
+			// Ease out remapping to avoid hard transitions where UI is near zero opacity
+			SceneColor.xyz *= lerp(1.f, OutL * UILevel, UIColor.w);
+		}
+	}
+	
+	// Composite, assuming pre-multiplied alpha
+	OutColor.xyz = SceneColor.xyz * (1.f - UIColor.w) + UIColor.xyz * UILevel;
+	OutColor.w = 1.f;
+}

@@ -239,6 +239,7 @@ void AHUD::DrawActorOverlays(FVector Viewpoint, FRotator ViewRotation)
 
 void AHUD::DrawSafeZoneOverlay()
 {
+#if ENABLE_DRAW_DEBUG
 	const int32 DebugSafeZoneMode = GSafeZoneVisualizationModeCVar.GetValueOnGameThread();
 
 	if ((DebugSafeZoneMode > 0) && (DebugCanvas != nullptr))
@@ -281,6 +282,7 @@ void AHUD::DrawSafeZoneOverlay()
 		TileItem.Size = FVector2D(SafeMargin.Right, HeightOfSides);
 		DebugCanvas->DrawItem(TileItem);
 	}
+#endif
 }
 
 void AHUD::RemovePostRenderedActor(AActor* A)
@@ -813,15 +815,14 @@ void AHUD::GetActorsInSelectionRectangle(TSubclassOf<class AActor> ClassFilter, 
 	//The Actor Bounds Point Mapping
 	const FVector BoundsPointMapping[8] =
 	{
-		FVector(1, 1, 1),
-		FVector(1, 1, -1),
-		FVector(1, -1, 1),
-		FVector(1, -1, -1),
-		FVector(-1, 1, 1),
-		FVector(-1, 1, -1),
-		FVector(-1, -1, 1),
-		FVector(-1, -1, -1)
-	};
+		FVector(1.f, 1.f, 1.f),
+		FVector(1.f, 1.f, -1.f),
+		FVector(1.f, -1.f, 1.f),
+		FVector(1.f, -1.f, -1.f),
+		FVector(-1.f, 1.f, 1.f),
+		FVector(-1.f, 1.f, -1.f),
+		FVector(-1.f, -1.f, 1.f),
+		FVector(-1.f, -1.f, -1.f)	};
 
 	//~~~
 
@@ -831,7 +832,7 @@ void AHUD::GetActorsInSelectionRectangle(TSubclassOf<class AActor> ClassFilter, 
 		AActor* EachActor = *Itr;
 
 		//Get Actor Bounds				//casting to base class, checked by template in the .h
-		const FBox EachActorBounds = Cast<AActor>(EachActor)->GetComponentsBoundingBox(bIncludeNonCollidingComponents); /* All Components? */
+		const FBox EachActorBounds = EachActor->GetComponentsBoundingBox(bIncludeNonCollidingComponents); /* All Components? */
 
 		//Center
 		const FVector BoxCenter = EachActorBounds.GetCenter();
@@ -854,7 +855,7 @@ void AHUD::GetActorsInSelectionRectangle(TSubclassOf<class AActor> ClassFilter, 
 		{
 			if(SelectionRectangle.IsInside(ActorBox2D))
 			{
-				OutActors.Add(Cast<AActor>(EachActor));
+				OutActors.Add(EachActor);
 			}
 		}
 		//Partial Intersection with Projected Actor Bounds
@@ -862,7 +863,7 @@ void AHUD::GetActorsInSelectionRectangle(TSubclassOf<class AActor> ClassFilter, 
 		{
 			if (SelectionRectangle.Intersect(ActorBox2D))
 			{
-				OutActors.Add(Cast<AActor>(EachActor));
+				OutActors.Add(EachActor);
 			}
 		}
 	}

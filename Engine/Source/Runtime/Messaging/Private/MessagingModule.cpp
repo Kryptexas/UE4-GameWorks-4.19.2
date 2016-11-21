@@ -2,7 +2,8 @@
 
 #include "MessagingPrivatePCH.h"
 #include "IMessagingModule.h"
-#include "ModuleManager.h"
+#include "MessageBridge.h"
+#include "MessageBus.h"
 
 
 #ifndef PLATFORM_SUPPORTS_MESSAGEBUS
@@ -19,9 +20,9 @@ class FMessagingModule
 {
 public:
 
-	// FSelfRegisteringExec interface
+	//~ FSelfRegisteringExec interface
 
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override
+	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override
 	{
 		if (!FParse::Command(&Cmd, TEXT("MESSAGING")))
 		{
@@ -53,26 +54,26 @@ public:
 
 public:
 
-	// IMessagingModule interface
+	//~ IMessagingModule interface
 
-	virtual IMessageBridgePtr CreateBridge( const FMessageAddress& Address, const IMessageBusRef& Bus, const IMessageTransportRef& Transport ) override
+	virtual TSharedPtr<IMessageBridge, ESPMode::ThreadSafe> CreateBridge(const FMessageAddress& Address, const TSharedRef<IMessageBus, ESPMode::ThreadSafe>& Bus, const IMessageTransportRef& Transport) override
 	{
 		return MakeShareable(new FMessageBridge(Address, Bus, Transport));
 	}
 
-	virtual IMessageBusPtr CreateBus( const IAuthorizeMessageRecipientsPtr& RecipientAuthorizer ) override
+	virtual TSharedPtr<IMessageBus, ESPMode::ThreadSafe> CreateBus(const TSharedPtr<IAuthorizeMessageRecipients>& RecipientAuthorizer) override
 	{
 		return MakeShareable(new FMessageBus(RecipientAuthorizer));
 	}
 
-	virtual IMessageBusPtr GetDefaultBus() const override
+	virtual TSharedPtr<IMessageBus, ESPMode::ThreadSafe> GetDefaultBus() const override
 	{
 		return DefaultBus;
 	}
 
 public:
 
-	// IModuleInterface interface
+	//~ IModuleInterface interface
 
 	virtual void StartupModule() override
 	{
@@ -101,7 +102,7 @@ protected:
 			return;
 		}
 
-		IMessageBusWeakPtr DefaultBusPtr = DefaultBus;
+		TWeakPtr<IMessageBus, ESPMode::ThreadSafe> DefaultBusPtr = DefaultBus;
 
 		DefaultBus->Shutdown();
 		DefaultBus.Reset();
@@ -120,7 +121,7 @@ protected:
 
 private:
 
-	// Callback for Core shutdown.
+	/** Callback for Core shutdown. */
 	void HandleCorePreExit()
 	{
 		ShutdownDefaultBus();
@@ -128,18 +129,9 @@ private:
 
 private:
 
-	// Holds the message bus.
-	IMessageBusPtr DefaultBus;
+	/** Holds the message bus. */
+	TSharedPtr<IMessageBus, ESPMode::ThreadSafe> DefaultBus;
 };
-
-
-/* Misc static functions
- *****************************************************************************/
-
-TStatId FMessageDispatchTask::GetStatId() const
-{
-	RETURN_QUICK_DECLARE_CYCLE_STAT(FMessageDispatchTask, STATGROUP_TaskGraphTasks);
-}
 
 
 IMPLEMENT_MODULE(FMessagingModule, Messaging);

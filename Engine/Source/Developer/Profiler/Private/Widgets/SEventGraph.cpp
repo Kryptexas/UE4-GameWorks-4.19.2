@@ -1,10 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "ProfilerPrivatePCH.h"
+#include "ProfilerManager.h"
+#include "SEventGraph.h"
 #include "SEventGraphTooltip.h"
-#include "SSearchBox.h"
+#include "StatDragDropOp.h"
+
 
 #define LOCTEXT_NAMESPACE "SEventGraph"
+
 
 namespace EEventGraphViewModes
 {
@@ -2429,7 +2433,7 @@ void SEventGraph::ShowEventsInViewMode( const TArray<FEventGraphSamplePtr>& Even
 	SetHierarchicalSelectedEvents( EventGraphState->SelectedEvents );
 	SetHierarchicalExpandedEvents( EventGraphState->ExpandedEvents );
 		
-	EEventPropertyIndex::Type ColumnIndex = FEventGraphColumns::Get().ColumnNameToIndexMapping.FindChecked( ColumnBeingSorted )->Index;
+	EEventPropertyIndex ColumnIndex = FEventGraphColumns::Get().ColumnNameToIndexMapping.FindChecked( ColumnBeingSorted )->Index;
 
 	if( NewViewMode == EEventGraphViewModes::FlatInclusive || NewViewMode == EEventGraphViewModes::FlatInclusiveCoalesced || NewViewMode == EEventGraphViewModes::Hierarchical )
 	{
@@ -2464,7 +2468,7 @@ void SEventGraph::ShowEventsInViewMode( const TArray<FEventGraphSamplePtr>& Even
 	TreeView_Refresh();
 }
 
-void SEventGraph::ScrollToTheSlowestSelectedEvent( EEventPropertyIndex::Type ColumnIndex )
+void SEventGraph::ScrollToTheSlowestSelectedEvent( EEventPropertyIndex ColumnIndex )
 {
 	TArray<FEventGraphSamplePtr> SelectedEvents = TreeView_Base->GetSelectedItems();
 	if( SelectedEvents.Num() > 0 )
@@ -3282,7 +3286,7 @@ bool SEventGraph::SelectAllFrames_CanExecute() const
 	return IsEventGraphStatesHistoryValid();
 }
 
-void SEventGraph::ProfilerManager_OnViewModeChanged( EProfilerViewMode::Type NewViewMode )
+void SEventGraph::ProfilerManager_OnViewModeChanged( EProfilerViewMode NewViewMode )
 {
 // 	if( NewViewMode == EProfilerViewMode::LineIndexBased )
 // 	{

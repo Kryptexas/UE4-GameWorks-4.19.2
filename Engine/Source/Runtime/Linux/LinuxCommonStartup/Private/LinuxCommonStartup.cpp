@@ -120,10 +120,11 @@ static bool IncreasePerProcessLimits()
 	}
 
 	// core dump policy:
-	// - Shipping and Test disable by default (unless -core is passed)
+	// - Shipping disables it by default (unless -core is passed)
 	// - The rest set it to infinity unless -nocore is passed
 	// (in all scenarios user wish as expressed with -core or -nocore takes priority)
-	bool bDisableCore = (UE_BUILD_SHIPPING != 0 || UE_BUILD_TEST != 0);
+	// Note that we used to have Test disable cores by default too. This has been changed around UE 4.15.
+	bool bDisableCore = (UE_BUILD_SHIPPING != 0);
 	if (FParse::Param(*GSavedCommandLine, TEXT("nocore")))
 	{
 		bDisableCore = true;

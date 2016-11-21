@@ -435,11 +435,8 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu, const int32 F
 						if (MethodInUse.GetPopupMethod() == EPopupMethod::CreateNewWindow)
 						{
 							// Start pop-up windows out transparent, then fade them in over time
-#if ALPHA_BLENDED_WINDOWS
-							const EWindowTransparency Transparency(EWindowTransparency::PerPixel);
-#else
-							const EWindowTransparency Transparency(EWindowTransparency::None);
-#endif
+							const EWindowTransparency Transparency(EWindowTransparency::PerWindow);
+
 							const float TargetWindowOpacity = 1.0f;
 							FSlateRect Anchor(NewPosition, NewPosition + SummonLocationSize);
 							EOrientation Orientation = (TransitionEffect.SlideDirection == FPopupTransitionEffect::SubMenu) ? Orient_Horizontal : Orient_Vertical;

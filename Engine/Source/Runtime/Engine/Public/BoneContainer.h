@@ -10,6 +10,25 @@
 class USkeleton;
 
 /**
+* This is a native transient structure. Used to store virtual bone mappings for compact poses
+**/
+struct FVirtualBoneCompactPoseData
+{
+	/** Index of this virtual bone */
+	FCompactPoseBoneIndex VBIndex;
+	/** Index of source bone */
+	FCompactPoseBoneIndex SourceIndex;
+	/** Index of target bone */
+	FCompactPoseBoneIndex TargetIndex;
+
+	FVirtualBoneCompactPoseData(FCompactPoseBoneIndex InVBIndex, FCompactPoseBoneIndex InSourceIndex, FCompactPoseBoneIndex InTargetIndex)
+		: VBIndex(InVBIndex)
+		, SourceIndex(InSourceIndex)
+		, TargetIndex(InTargetIndex)
+	{}
+};
+
+/**
 * This is a native transient structure.
 * Contains:
 * - BoneIndicesArray: Array of RequiredBoneIndices for Current Asset. In increasing order. Mapping to current Array of Transforms (Pose).
@@ -53,6 +72,9 @@ private:
 
 	// Compact pose format of Ref Pose Bones (to save us converting to mesh space and back)
 	TArray<FTransform>    CompactPoseRefPoseBones;
+
+	// Array of cached virtual bone data so that animations running from raw data can generate them.
+	TArray<FVirtualBoneCompactPoseData> VirtualBoneCompactPoseData;
 
 	/** For debugging. */
 	/** Disable Retargeting. Extract animation, but do not retarget it. */
@@ -138,6 +160,11 @@ public:
 	{
 		return BoneIndicesArray;
 	}
+
+	/**
+	* returns virutal bone cached data
+	*/
+	const TArray<FVirtualBoneCompactPoseData>& GetVirtualBoneCompactPoseData() const { return VirtualBoneCompactPoseData; }
 
 	/**
 	* returns Bone Switch Array. BitMask for RequiredBoneIndex array.
@@ -295,8 +322,14 @@ struct FBoneReference
 	/** Cached bone index for run time - right now bone index of skeleton **/
 	int32 BoneIndex;
 
+	/** Change this to Bitfield if we have more than one bool 
+	 * This specifies whether or not this indices is mesh or skeleton
+	 */
+	bool bUseSkeletonIndex;
+
 	FBoneReference()
 		: BoneIndex(INDEX_NONE)
+		, bUseSkeletonIndex(false)
 	{
 	}
 
@@ -308,14 +341,49 @@ struct FBoneReference
 	/** Initialize Bone Reference, return TRUE if success, otherwise, return false **/
 	ENGINE_API bool Initialize(const FBoneContainer& RequiredBones);
 
-	// @fixme laurent - only used by blendspace 'PerBoneBlend'. Fix this to support SkeletalMesh pose.
+	// only used by blendspace 'PerBoneBlend'. This is skeleton indices since the input is skeleton
+	// @note, if you use this function, it won't work with GetCompactPoseIndex, GetMeshPoseIndex;
+	// it triggers ensure in those functions
 	ENGINE_API bool Initialize(const USkeleton* Skeleton);
 
 	/** return true if valid. Otherwise return false **/
 	ENGINE_API bool IsValid(const FBoneContainer& RequiredBones) const;
 
-	FMeshPoseBoneIndex GetMeshPoseIndex() const { return FMeshPoseBoneIndex(BoneIndex); }
-	FCompactPoseBoneIndex GetCompactPoseIndex(const FBoneContainer& RequiredBones) const { return RequiredBones.MakeCompactPoseIndex(GetMeshPoseIndex()); }
+	FMeshPoseBoneIndex GetMeshPoseIndex(const FBoneContainer& RequiredBones) const
+	{ 
+		// accessing array with invalid index would cause crash, so we have to check here
+		if (BoneIndex != INDEX_NONE)
+		{
+			if (bUseSkeletonIndex)
+			{
+				return FMeshPoseBoneIndex(RequiredBones.GetSkeletonToPoseBoneIndexArray()[BoneIndex]);
+			}
+			else
+			{
+				return FMeshPoseBoneIndex(BoneIndex);
+			}
+		}
+
+		return FMeshPoseBoneIndex(INDEX_NONE);
+	}
+
+	FCompactPoseBoneIndex GetCompactPoseIndex(const FBoneContainer& RequiredBones) const 
+	{ 
+		// accessing array with invalid index would cause crash, so we have to check here
+		if (BoneIndex != INDEX_NONE)
+		{
+			if (bUseSkeletonIndex)
+			{
+				return RequiredBones.GetCompactPoseIndexFromSkeletonIndex(BoneIndex);
+			}
+			else
+			{
+				return RequiredBones.MakeCompactPoseIndex(GetMeshPoseIndex(RequiredBones));
+			}
+		}
+		
+		return FCompactPoseBoneIndex(INDEX_NONE);
+	}
 
 	// need this because of BoneReference being used in CurveMetaData and that is in SmartName
 	friend FArchive& operator<<(FArchive& Ar, FBoneReference& B)

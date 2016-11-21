@@ -32,7 +32,7 @@ struct FD3D12HighLevelGraphicsPipelineStateDesc
 	uint32 SampleMask;
 	D3D12_PRIMITIVE_TOPOLOGY_TYPE PrimitiveTopologyType;
 	uint32 NumRenderTargets;
-	DXGI_FORMAT RTVFormats[8];
+	TRenderTargetFormatsArray RTVFormats;
 	DXGI_FORMAT DSVFormat;
 	DXGI_SAMPLE_DESC SampleDesc;
 
@@ -161,10 +161,10 @@ private:
 	FDiskCacheInterface DiskBinaryCache;
 	TRefCountPtr<ID3D12PipelineLibrary> PipelineLibrary;
 
-	ID3D12PipelineState* Add(const GraphicsPipelineCreationArgs& Args);
-	ID3D12PipelineState* Add(const ComputePipelineCreationArgs& Args);
+	FD3D12PipelineState* Add(const GraphicsPipelineCreationArgs& Args);
+	FD3D12PipelineState* Add(const ComputePipelineCreationArgs& Args);
 
-	ID3D12PipelineState* FindGraphicsLowLevel(FD3D12LowLevelGraphicsPipelineStateDesc* Desc);
+	FD3D12PipelineState* FindGraphicsLowLevel(FD3D12LowLevelGraphicsPipelineStateDesc* Desc);
 
 	void WriteOutShaderBlob(PSO_CACHE_TYPE Cache, ID3D12PipelineState* APIPso);
 
@@ -206,8 +206,8 @@ private:
 public:
 	void RebuildFromDiskCache(ID3D12RootSignature* GraphicsRootSignature, ID3D12RootSignature* ComputeRootSignature);
 
-	ID3D12PipelineState* FindGraphics(FD3D12HighLevelGraphicsPipelineStateDesc* Desc);
-	ID3D12PipelineState* FindCompute(FD3D12ComputePipelineStateDesc* Desc);
+	FD3D12PipelineState* FindGraphics(FD3D12HighLevelGraphicsPipelineStateDesc* Desc);
+	FD3D12PipelineState* FindCompute(FD3D12ComputePipelineStateDesc* Desc);
 
 	void Close();
 

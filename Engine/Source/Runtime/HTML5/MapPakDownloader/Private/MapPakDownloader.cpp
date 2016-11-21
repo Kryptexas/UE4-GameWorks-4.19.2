@@ -3,7 +3,7 @@
 
 #include "MapPakDownloaderModulePrivatePCH.h"
 #include "MapPakDownloader.h"
-#include "emscripten.h"
+#include <emscripten/emscripten.h>
 #include "Misc/Guid.h"
 #include "SlateExtras.h"
 
@@ -28,13 +28,13 @@ public:
 
 	FEmscriptenHttpFileRequest()
 	{}
-	
+
 	static void OnLoad(uint32 Var, void* Arg, const ANSICHAR* FileName)
 	{
 		FEmscriptenHttpFileRequest* Request = reinterpret_cast<FEmscriptenHttpFileRequest*>(Arg);
 		Request->OnLoadCallBack.ExecuteIfBound(FString(ANSI_TO_TCHAR(FileName)));
 	}
-	
+
 	static void OnError(uint32 Var,void* Arg, int32 ErrorCode)
 	{
 		FEmscriptenHttpFileRequest* Request = reinterpret_cast<FEmscriptenHttpFileRequest*>(Arg);
@@ -65,7 +65,7 @@ public:
 
 	void SetFileName(const FString& InFileName) { FileName = InFileName; }
 	FString GetFileName() { return FileName;  }
-	
+
 	void SetUrl(const FString& InUrl) { Url = InUrl; }
 	void SetOnLoadCallBack(const FDelegateFString& CallBack) { OnLoadCallBack = CallBack; }
 	void SetOnErrorCallBack(const FDelegateInt32& CallBack) { OnErrorCallBack = CallBack; }
@@ -75,19 +75,19 @@ public:
 
 class FloatOption : public TSharedFromThis<FloatOption>
 {
-public: 
-	FloatOption() : 
-		Value(0.0f) 
-	{} 
+public:
+	FloatOption() :
+		Value(0.0f)
+	{}
 	void SetFloat(float InFloat)
-	{ 
-		Value = InFloat; 
+	{
+		Value = InFloat;
 	}
 	TOptional<float> GetFloat() const
-	{ 
-		return Value; 
+	{
+		return Value;
 	}
-private: 
+private:
 	float Value;
 };
 
@@ -98,7 +98,7 @@ FMapPakDownloader::FMapPakDownloader()
 
 bool FMapPakDownloader::Init()
 {
-	//  figure out where we are hosted 
+	//  figure out where we are hosted
 	ANSICHAR *LocationString = (ANSICHAR*)EM_ASM_INT_V({
 
 		var hoststring = location.href.substring(0, location.href.lastIndexOf('/'));
@@ -110,15 +110,15 @@ bool FMapPakDownloader::Init()
 
 	HostName = FString(ANSI_TO_TCHAR(LocationString));
 
-	PakLocation = FString(FApp::GetGameName()) / FString(TEXT("Content")) / FString(TEXT("Paks")); 
+	PakLocation = FString(FApp::GetGameName()) / FString(TEXT("Content")) / FString(TEXT("Paks"));
 
-	// Create directory. 
+	// Create directory.
 	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 	PlatformFile.CreateDirectory(*PakLocation);
 
 	ProgressContainter = MakeShareable(new FloatOption());
 
-    // Thin progress bar. Change this widget if you want a custom loading screen. 
+	// Thin progress bar. Change this widget if you want a custom loading screen.
 	LoadingWidget = SNew(SBox)
 		.VAlign(VAlign_Center)
 		.HAlign(HAlign_Center)
@@ -131,12 +131,12 @@ bool FMapPakDownloader::Init()
 			[
 				SNew(SProgressBar)
 				.Percent(ProgressContainter->AsShared(), &FloatOption::GetFloat)
-				.BorderPadding(FVector2D(0, 0))	
+				.BorderPadding(FVector2D(0, 0))
 				.BarFillType(EProgressBarFillType::LeftToRight)
 			]
 		];
 
-	// Hook up PostLoad 
+	// Hook up PostLoad
 	FSimpleDelegate PostLoadHandler = FSimpleDelegate::CreateLambda([=](){
 		{
 			if (IsTransitionLevel)
@@ -158,7 +158,7 @@ void FMapPakDownloader::CachePak()
 	FString PakName = FPackageName::GetShortName(FName(*MapToCache)) + ".pak";
 	FString DeltaPakName = FPackageName::GetShortName(FName(*LastMap)) + TEXT("_") + FPackageName::GetShortName(FName(*MapToCache)) + ".pak";
 
-	FEmscriptenHttpFileRequest* PakRequest = new FEmscriptenHttpFileRequest; // can't use shared ptrs. 
+	FEmscriptenHttpFileRequest* PakRequest = new FEmscriptenHttpFileRequest; // can't use shared ptrs.
 
 
 	FDelegateFString OnFileDownloaded = FDelegateFString::CreateLambda([=](FString Name){
@@ -175,13 +175,13 @@ void FMapPakDownloader::CachePak()
 												GEngine->GameViewport->RemoveViewportWidgetContent(LoadingWidget->AsShared());
 
 											UE_LOG(LogMapPakDownloader, Warning, TEXT("Travel to %s"), *MapToCache);
-											// Make engine Travel to the cached Map. 
+											// Make engine Travel to the cached Map.
 											GEngine->SetClientTravel(ItWorld, *MapToCache, TRAVEL_Absolute);
 
-											IsTransitionLevel = false; 
-											ProgressContainter->SetFloat(0.0f); 
-											// delete the HTTP request. 
-											delete PakRequest; 
+											IsTransitionLevel = false;
+											ProgressContainter->SetFloat(0.0f);
+											// delete the HTTP request.
+											delete PakRequest;
 										});
 
 	FDelegateInt32 OnFileDownloadProgress = FDelegateInt32::CreateLambda([=](int32 Progress){
@@ -199,9 +199,9 @@ void FMapPakDownloader::CachePak()
 											// lets try again with regular map pak
 											PakRequest->SetFileName(PakLocation/PakName);
 											PakRequest->SetUrl(HostName/PakLocation/PakName);
-											PakRequest->SetOnErrorCallBack( 
+											PakRequest->SetOnErrorCallBack(
 												FDelegateInt32::CreateLambda([=](int32){
-												// we can't even find regular maps. fatal. 
+												// we can't even find regular maps. fatal.
 												UE_LOG(LogMapPakDownloader, Fatal, TEXT("Could not find any Map Paks, exiting"), *PakRequest->GetFileName());
 												}
 											));

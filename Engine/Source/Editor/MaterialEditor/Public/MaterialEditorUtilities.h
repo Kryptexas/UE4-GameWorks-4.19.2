@@ -162,6 +162,13 @@ public:
 	 */
 	static void InitExpressions(UMaterial* Material);
 
+	/**
+	 * Build the texture streaming data for a given material. Also update the parent hierarchy has only the delta are stored.
+	 *
+	 * @param	MaterialInterface	The material to update.
+	 */
+	static void BuildTextureStreamingData(UMaterialInterface* MaterialInterface);
+
 private:
 
 	/**

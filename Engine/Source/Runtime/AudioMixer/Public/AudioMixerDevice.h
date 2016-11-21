@@ -108,7 +108,6 @@ namespace Audio
 		void ResetAudioPlatformThreadId();
 
 		void InitializeChannelAzimuthMap(const int32 NumChannels);
-		void Initialize2DChannelMaps();
 
 		int32 GetAzimuthForChannelType(EAudioMixerChannel::Type ChannelType);
 
@@ -117,17 +116,6 @@ namespace Audio
 
 	private:
 
-		struct FChannelMapEntry
-		{
-			EChannelMap::Type ChannelMapType;
-			TArray<float> ChannelWeights;
-
-			FChannelMapEntry(EChannelMap::Type InType, float* InputWeights, int32 Count)
-				: ChannelMapType(InType)
-			{
-				ChannelWeights.Append(InputWeights, Count);
-			}
-		};
 
 		/** Ptr to the platform interface, which handles streaming audio to the hardware device. */
 		IAudioMixerPlatformInterface* AudioMixerPlatform;
@@ -139,7 +127,7 @@ namespace Audio
 		TArray<FChannelPositionInfo> CurrentChannelAzimuthPositions;
 
 		/** 2D channel maps of input-output channel maps. */
-		TMap<int32, FChannelMapEntry> ChannelMaps;
+		TMap<int32, TArray<float>> ChannelMapCache;
 
 		/** The audio output stream parameters used to initialize the audio hardware. */
 		FAudioMixerOpenStreamParams OpenStreamParams;

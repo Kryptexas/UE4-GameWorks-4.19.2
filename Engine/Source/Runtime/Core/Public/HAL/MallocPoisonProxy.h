@@ -4,6 +4,7 @@
 
 /** Governs when malloc that poisons the allocations is enabled. */
 #if !defined(UE_USE_MALLOC_FILL_BYTES)
+	// PoisonProxy is dangerous with binned/binned2 at this point (see UE-37243).
 	#define UE_USE_MALLOC_FILL_BYTES ((UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT) && !WITH_EDITORONLY_DATA && !PLATFORM_USES_FIXED_GMalloc_CLASS)
 #endif // !defined(UE_USE_MALLOC_FILL_BYTES)
 

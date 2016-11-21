@@ -650,10 +650,7 @@ public:
 	void RestoreViewSettings(const FVector2D& InViewOffset, float InZoomAmount);
 
 	/** Get the grid snap size */
-	static float GetSnapGridSize()
-	{
-		return 16.f;
-	}
+	static float GetSnapGridSize();
 
 	/** 
 	 * Zooms out to fit either all nodes or only the selected ones.

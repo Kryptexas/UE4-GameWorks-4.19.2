@@ -29,7 +29,6 @@
 #include "SDockTab.h"
 #include "LevelSequencePlayer.h"
 #include "SequencerSettings.h"
-#include "SequencerSpawnRegister.h"
 #include "MovieSceneCaptureDialogModule.h"
 
 // @todo sequencer: hack: setting defaults for transform tracks
@@ -197,7 +196,7 @@ void FLevelSequenceEditorToolkit::Initialize(const EToolkitMode::Type Mode, cons
 
 	FAssetEditorToolkit::InitAssetEditor(Mode, InitToolkitHost, SequencerDefs::SequencerAppIdentifier, StandaloneDefaultLayout, bCreateDefaultStandaloneMenu, bCreateDefaultToolbar, LevelSequence);
 
-	TSharedRef<FLevelSequenceEditorSpawnRegister> SpawnRegister = MakeShareable(new TSequencerSpawnRegister<FLevelSequenceEditorSpawnRegister>);
+	TSharedRef<FLevelSequenceEditorSpawnRegister> SpawnRegister = MakeShareable(new FLevelSequenceEditorSpawnRegister);
 
 	// initialize sequencer
 	FSequencerInitParams SequencerInitParams;
@@ -686,6 +685,7 @@ void FLevelSequenceEditorToolkit::AddShot(UMovieSceneCinematicShotTrack* ShotTra
 
 	// Focus on the new shot
 	GetSequencer()->UpdateRuntimeInstances();
+	GetSequencer()->ForceEvaluate();
 	GetSequencer()->FocusSequenceInstance(*ShotSubSection);
 
 	const ULevelSequenceMasterSequenceSettings* MasterSequenceSettings = GetDefault<ULevelSequenceMasterSequenceSettings>();

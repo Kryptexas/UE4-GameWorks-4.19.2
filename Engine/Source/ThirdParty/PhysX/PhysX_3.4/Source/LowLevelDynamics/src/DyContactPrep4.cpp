@@ -1259,7 +1259,7 @@ SolverConstraintPrepState::Enum createFinalizeSolverContacts4(
 		blockDesc.startContactPatchIndex = c.contactPatchCount;
 		if (!createContactPatches(c, blockDesc.contacts, blockDesc.numContacts, PXC_SAME_NORMAL))
 			return SolverConstraintPrepState::eUNBATCHABLE;
-		blockDesc.numContactPatches = c.contactPatchCount - blockDesc.startContactPatchIndex;
+		blockDesc.numContactPatches = PxU16(c.contactPatchCount - blockDesc.startContactPatchIndex);
 
 		bool overflow = correlatePatches(c, blockDesc.contacts, blockDesc.bodyFrame0, blockDesc.bodyFrame1, PXC_SAME_NORMAL,
 			blockDesc.startContactPatchIndex, blockDesc.startFrictionPatchIndex);

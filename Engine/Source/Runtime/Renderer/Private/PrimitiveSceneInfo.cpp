@@ -202,9 +202,9 @@ void FPrimitiveSceneInfo::AddToScene(FRHICommandListImmediate& RHICmdList, bool 
 	Scene->PrimitiveOctree.AddElement(LocalCompactPrimitiveSceneInfo);
 	check(OctreeId.IsValidId());
 
-	if (Proxy->CastsCapsuleIndirectShadow())
+	if (Proxy->CastsDynamicIndirectShadow())
 	{
-		Scene->CapsuleIndirectCasterPrimitives.Add(this);
+		Scene->DynamicIndirectCasterPrimitives.Add(this);
 	}
 
 	// Set bounds.
@@ -302,9 +302,9 @@ void FPrimitiveSceneInfo::RemoveFromScene(bool bUpdateStaticDrawLists)
 	Scene->PrimitiveOctree.RemoveElement(OctreeId);
 	OctreeId = FOctreeElementId();
 
-	if (Proxy->CastsCapsuleIndirectShadow())
+	if (Proxy->CastsDynamicIndirectShadow())
 	{
-		Scene->CapsuleIndirectCasterPrimitives.RemoveSingleSwap(this);
+		Scene->DynamicIndirectCasterPrimitives.RemoveSingleSwap(this);
 	}
 
 	IndirectLightingCacheAllocation = NULL;
@@ -550,7 +550,7 @@ bool FPrimitiveSceneInfo::ShouldRenderVelocity(const FViewInfo& View, bool bChec
 		return false;
 	}
 
-	const float LODFactorDistanceSquared = (Proxy->GetBounds().Origin - View.ViewMatrices.ViewOrigin).SizeSquared() * FMath::Square(View.LODDistanceFactor);
+	const float LODFactorDistanceSquared = (Proxy->GetBounds().Origin - View.ViewMatrices.GetViewOrigin()).SizeSquared() * FMath::Square(View.LODDistanceFactor);
 
 	// The minimum projected screen radius for a primitive to be drawn in the velocity pass, as a fraction of half the horizontal screen width (likely to be 0.08f)
 	float MinScreenRadiusForVelocityPass = View.FinalPostProcessSettings.MotionBlurPerObjectSize * (2.0f / 100.0f);

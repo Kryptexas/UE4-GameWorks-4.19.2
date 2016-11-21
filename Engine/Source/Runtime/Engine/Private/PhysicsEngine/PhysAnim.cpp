@@ -464,11 +464,14 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 
 	const FTransform& CurrentLocalToWorld = ComponentToWorld;
 
+#if !(UE_BUILD_SHIPPING)
 	// Gracefully handle NaN
 	if(CurrentLocalToWorld.ContainsNaN())
 	{
+		logOrEnsureNanError(TEXT("USkeletalMeshComponent::UpdateKinematicBonesToAnim: CurrentLocalToWorld contains NaN, aborting."));
 		return;
 	}
+#endif
 
 	// If we are only using bodies for physics, don't need to move them right away, can defer until simulation (unless told not to)
 	if(BodyInstance.GetCollisionEnabled() == ECollisionEnabled::PhysicsOnly && DeferralAllowed == EAllowKinematicDeferral::AllowDeferral)

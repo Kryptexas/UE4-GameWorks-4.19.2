@@ -25,6 +25,8 @@ CORE_API FMallocProfiler* GMallocProfiler;
 #define	MEMORY_PROFILER_MAX_BACKTRACE_DEPTH			75
 /** Number of backtrace entries to skip											*/
 #define MEMORY_PROFILER_SKIP_NUM_BACKTRACE_ENTRIES	1
+/** Whether to track allocation tags? */
+#define MEMORY_PROFILER_INCLUDE_ALLOC_TAGS			1
 
 /** Magic value, determining that file is a memory profiler file.				*/
 #define MEMORY_PROFILER_MAGIC						0xDA15F7D8
@@ -35,8 +37,10 @@ CORE_API FMallocProfiler* GMallocProfiler;
  *		Removed NumDataFiles, no longer used.
  *
  *	6 - Added meta-data table.
+ *
+  *	7 - Added allocation tags to alloc/realloc.
  */
-#define MEMORY_PROFILER_VERSION						6
+#define MEMORY_PROFILER_VERSION						7
 
 /*=============================================================================
 	Profiler header.
@@ -75,6 +79,11 @@ struct FProfilerHeader
 	/** Number of callstack entries.					*/
 	uint64	CallStackTableEntries;
 
+	/** Offset in file for tags table.					*/
+	uint64	TagsTableOffset;
+	/** Number of tags entries.							*/
+	uint64	TagsTableEntries;
+
 	/** The file offset for module information.			*/
 	uint64	ModulesOffset;
 	/** The number of module entries.					*/
@@ -103,6 +112,8 @@ struct FProfilerHeader
 			<< Header.CallStackAddressTableEntries
 			<< Header.CallStackTableOffset
 			<< Header.CallStackTableEntries
+			<< Header.TagsTableOffset
+			<< Header.TagsTableEntries
 			<< Header.ModulesOffset
 			<< Header.ModuleEntries;
 
@@ -162,7 +173,7 @@ struct FCallStackInfo
 /**
  * Relevant information for a single malloc operation.
  *
- * 16 bytes
+ * 20 bytes
  */
 struct FProfilerAllocInfo
 {
@@ -170,6 +181,8 @@ struct FProfilerAllocInfo
 	uint64 Pointer;
 	/** Index of callstack.													*/
 	int32 CallStackIndex;
+	/** Index of tags.														*/
+	int32 TagsIndex;
 	/** Size of allocation.													*/
 	uint32 Size;
 
@@ -184,6 +197,7 @@ struct FProfilerAllocInfo
 	{
 		Ar	<< AllocInfo.Pointer
 			<< AllocInfo.CallStackIndex
+			<< AllocInfo.TagsIndex
 			<< AllocInfo.Size;
 		return Ar;
 	}
@@ -216,7 +230,7 @@ struct FProfilerFreeInfo
 /**
  * Relevant information for a single realloc operation.
  *
- * 24 bytes
+ * 28 bytes
  */
 struct FProfilerReallocInfo
 {
@@ -226,6 +240,8 @@ struct FProfilerReallocInfo
 	uint64 NewPointer;
 	/** Index of callstack.													*/
 	int32 CallStackIndex;
+	/** Index of tags.														*/
+	int32 TagsIndex;
 	/** Size of allocation.													*/
 	uint32 Size;
 
@@ -241,6 +257,7 @@ struct FProfilerReallocInfo
 		Ar	<< ReallocInfo.OldPointer
 			<< ReallocInfo.NewPointer
 			<< ReallocInfo.CallStackIndex
+			<< ReallocInfo.TagsIndex
 			<< ReallocInfo.Size;
 		return Ar;
 	}
@@ -276,6 +293,131 @@ struct FProfilerOtherInfo
 	}
 };
 
+
+#if MEMORY_PROFILER_INCLUDE_ALLOC_TAGS
+
+/*=============================================================================
+	TLS storage for allocation tags
+=============================================================================*/
+
+/** Container for all of the active tags for a single thread. This will only be accessed by the thread that owns it. */
+class FMallocProfilerTags : public FUseSystemMallocForNew, public FTlsAutoCleanup, private FNoncopyable
+{
+public:
+	void AddTag(const FName InTag)
+	{
+		const int32 ExistingTagAndCountIndex = Tags.IndexOfByPredicate([&](const FTagNameAndCount& InTagAndCount) { return InTagAndCount.TagName == InTag; });
+
+		if (ExistingTagAndCountIndex != INDEX_NONE)
+		{
+			Tags[ExistingTagAndCountIndex].RefCount += 1;
+		}
+		else
+		{
+			Tags.Add(FTagNameAndCount(InTag));
+		}
+	}
+
+	void RemoveTag(const FName InTag)
+	{
+		const int32 ExistingTagAndCountIndex = Tags.IndexOfByPredicate([&](const FTagNameAndCount& InTagAndCount) { return InTagAndCount.TagName == InTag; });
+
+		if (ExistingTagAndCountIndex != INDEX_NONE)
+		{
+			Tags[ExistingTagAndCountIndex].RefCount -= 1;
+			if (Tags[ExistingTagAndCountIndex].RefCount == 0)
+			{
+				Tags.RemoveAt(ExistingTagAndCountIndex);
+			}
+		}
+	}
+
+	FString AsString() const
+	{
+		FString FlatTags;
+		for (const FTagNameAndCount& TagAndCount : Tags)
+		{
+			FlatTags += TagAndCount.TagName.ToString();
+			FlatTags.AppendChar(TEXT(';'));
+		}
+		return FlatTags;
+	}
+
+	uint32 GetHash() const
+	{
+		uint32 Hash = 0;
+		for (const FTagNameAndCount& TagAndCount : Tags)
+		{
+			Hash = HashCombine(Hash, GetTypeHash(TagAndCount.TagName));
+		}
+		return Hash;
+	}
+
+private:
+	struct FTagNameAndCount
+	{
+		FTagNameAndCount(FName InTagName)
+			: TagName(InTagName)
+			, RefCount(1)
+		{
+		}
+
+		FName TagName;
+		int32 RefCount;
+	};
+
+	static const int32 MaxNumTags = 32;
+
+	TArray<FTagNameAndCount, TFixedAllocator<MaxNumTags>> Tags;
+};
+
+/** TLS management. Handles the lifespans of the per-thread tag data. */
+class FMallocProfilerTagsTls
+{
+public:
+	static void Initialize()
+	{
+		TlsSlot = FPlatformTLS::AllocTlsSlot();
+	}
+
+	static void Shutdown()
+	{
+		FPlatformTLS::FreeTlsSlot(TlsSlot);
+		TlsSlot = 0;
+	}
+
+	static const FMallocProfilerTags* GetTagsForCurrentThread()
+	{
+		check(FPlatformTLS::IsValidTlsSlot(TlsSlot));
+
+		return (FMallocProfilerTags*)FPlatformTLS::GetTlsValue(TlsSlot);
+	}
+
+	static FMallocProfilerTags& GetMutableTagsForCurrentThread()
+	{
+		check(FPlatformTLS::IsValidTlsSlot(TlsSlot));
+
+		FMallocProfilerTags* TlsValue = (FMallocProfilerTags*)FPlatformTLS::GetTlsValue(TlsSlot);
+
+		if (!TlsValue)
+		{
+			TlsValue = new FMallocProfilerTags();
+			TlsValue->Register();
+			FPlatformTLS::SetTlsValue(TlsSlot, TlsValue);
+		}
+
+		return *TlsValue;
+	}
+
+private:
+	static uint32 TlsSlot;
+};
+
+uint32 FMallocProfilerTagsTls::TlsSlot = 0;
+
+#endif // MEMORY_PROFILER_INCLUDE_ALLOC_TAGS
+
+
 /*=============================================================================
 	FMallocProfiler implementation.
 =============================================================================*/
@@ -301,6 +443,10 @@ FMallocProfiler::FMallocProfiler(FMalloc* InMalloc)
 	{
 		PanicDump(TYPE_Malloc, nullptr, nullptr);
 	});
+
+#if MEMORY_PROFILER_INCLUDE_ALLOC_TAGS
+	FMallocProfilerTagsTls::Initialize();
+#endif // MEMORY_PROFILER_INCLUDE_ALLOC_TAGS
 }
 
 /**
@@ -320,6 +466,7 @@ void FMallocProfiler::TrackMalloc( void* Ptr, uint32 Size )
 		FProfilerAllocInfo AllocInfo;
 		AllocInfo.Pointer			= (uint64)(UPTRINT) Ptr | TYPE_Malloc;
 		AllocInfo.CallStackIndex	= GetCallStackIndex();
+		AllocInfo.TagsIndex			= GetTagsIndex();
 		AllocInfo.Size				= Size;
 
 		// Serialize to HDD.
@@ -367,6 +514,7 @@ void FMallocProfiler::TrackRealloc( void* OldPtr, void* NewPtr, uint32 NewSize )
 		ReallocInfo.OldPointer		= (uint64)(UPTRINT) OldPtr | TYPE_Realloc;
 		ReallocInfo.NewPointer		= (uint64)(UPTRINT) NewPtr;
 		ReallocInfo.CallStackIndex	= GetCallStackIndex();
+		ReallocInfo.TagsIndex		= GetTagsIndex();
 		ReallocInfo.Size			= NewSize;
 
 		// Serialize to HDD.
@@ -412,6 +560,28 @@ void FMallocProfiler::BeginProfiling()
 }
 
 /** 
+ * Adds a tag to the list of tags associated with the calling thread.
+ */
+void FMallocProfiler::AddTag(const FName InTag)
+{
+#if MEMORY_PROFILER_INCLUDE_ALLOC_TAGS
+	FMallocProfilerTags& ActiveTags = FMallocProfilerTagsTls::GetMutableTagsForCurrentThread();
+	ActiveTags.AddTag(InTag);
+#endif // MEMORY_PROFILER_INCLUDE_ALLOC_TAGS
+}
+
+/** 
+ * Removes a tag from the list of tags associated with the calling thread.
+ */
+void FMallocProfiler::RemoveTag(const FName InTag)
+{
+#if MEMORY_PROFILER_INCLUDE_ALLOC_TAGS
+	FMallocProfilerTags& ActiveTags = FMallocProfilerTagsTls::GetMutableTagsForCurrentThread();
+	ActiveTags.RemoveTag(InTag);
+#endif // MEMORY_PROFILER_INCLUDE_ALLOC_TAGS
+}
+
+/** 
 	Added for untracked memory calculation
 	Note that this includes all the memory used by dependent malloc profilers, such as FMallocGcmProfiler,
 	so they don't need their own version of this function. 
@@ -422,6 +592,8 @@ int32 FMallocProfiler::CalculateMemoryProfilingOverhead()
 			+ CallStackAddressInfoArray.GetAllocatedSize()
 			+ CRCToCallStackIndexMap.GetAllocatedSize()
 			+ CallStackInfoBuffer.GetAllocatedSize()
+			+ HashToTagTableIndexMap.GetAllocatedSize()
+			+ TagsArray.GetAllocatedSize()
 			+ NameToNameTableIndexMap.GetAllocatedSize()
 			+ NameArray.GetAllocatedSize()
 			+ BufferedFileWriter.GetAllocatedSize());
@@ -566,6 +738,14 @@ void FMallocProfiler::EndProfiling()
 		}
 		CallStackInfoBuffer.Unlock();
 
+		// Write out tags and update the header with offset and count
+		Header.TagsTableOffset = SymbolFileWriter->Tell();
+		Header.TagsTableEntries = TagsArray.Num();
+		for (FString& Tags : TagsArray)
+		{
+			(*SymbolFileWriter) << Tags;
+		}
+
 		Header.ModulesOffset				= SymbolFileWriter->Tell();
 		Header.ModuleEntries				= FPlatformStackWalk::GetProcessModuleCount();
 
@@ -697,6 +877,44 @@ int32 FMallocProfiler::GetCallStackIndex()
 	check(Index!=INDEX_NONE);
 	return Index;
 }	
+
+/** 
+ * Returns index of the tags active on the thread making the allocation.
+ *
+ * @return index into tags array
+ */
+int32 FMallocProfiler::GetTagsIndex()
+{
+	int32 Index = INDEX_NONE;
+
+#if MEMORY_PROFILER_INCLUDE_ALLOC_TAGS
+	const FMallocProfilerTags* ActiveTags = FMallocProfilerTagsTls::GetTagsForCurrentThread();
+	if (ActiveTags)
+	{
+		const uint32 TagsHash = ActiveTags->GetHash();
+		if (TagsHash != 0)
+		{
+			// Use index if found
+			int32* IndexPtr = HashToTagTableIndexMap.Find(TagsHash);
+			if (IndexPtr)
+			{
+				Index = *IndexPtr;
+			}
+			else
+			{
+				// Set mapping for future use.
+				Index = TagsArray.Num();
+				HashToTagTableIndexMap.Add(TagsHash, Index);
+
+				// Add the new tags
+				TagsArray.Add(ActiveTags->AsString());
+			}
+		}
+	}
+#endif // MEMORY_PROFILER_INCLUDE_ALLOC_TAGS
+
+	return Index;
+}
 
 /**
  * Returns index of passed in name into name array. If not found, adds it.

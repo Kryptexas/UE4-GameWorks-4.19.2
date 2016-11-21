@@ -24,6 +24,8 @@ struct CORE_API FEditorObjectVersion
 		ComboBoxControllerSupportUpdate,
 		// Refactor mesh editor materials
 		RefactorMeshEditorMaterials,
+		// Added UFontFace assets
+		AddedFontFaceAssets,
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

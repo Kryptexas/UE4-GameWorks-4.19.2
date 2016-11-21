@@ -15,13 +15,13 @@ FPreviewScene::FPreviewScene(FPreviewScene::ConstructionValues CVS)
 	, bForceAllUsedMipsResident(CVS.bForceMipsResident)
 {
 	PreviewWorld = NewObject<UWorld>();
-	PreviewWorld->WorldType = EWorldType::Preview;
+	PreviewWorld->WorldType = CVS.bEditor ? EWorldType::EditorPreview : EWorldType::GamePreview;
 	if (CVS.bTransactional)
 	{
 		PreviewWorld->SetFlags(RF_Transactional);
 	}
 
-	FWorldContext& WorldContext = GEngine->CreateNewWorldContext(EWorldType::Preview);
+	FWorldContext& WorldContext = GEngine->CreateNewWorldContext(PreviewWorld->WorldType);
 	WorldContext.SetCurrentWorld(PreviewWorld);
 
 	PreviewWorld->InitializeNewWorld(UWorld::InitializationValues()

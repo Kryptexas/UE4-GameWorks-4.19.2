@@ -1075,24 +1075,24 @@ void FAvfMediaTracks::InitializeVideoSink()
 
 	[PlayerItem addOutput:(AVPlayerItemOutput*)VideoTracks[SelectedVideoTrack].Output];
 
+	const FIntPoint Dimensions = GetVideoTrackDimensions(SelectedVideoTrack);
+
+	VideoSink->InitializeTextureSink(
+		Dimensions,
+		Dimensions,
+		EMediaTextureSinkFormat::CharBGRA,
 #if WITH_ENGINE
-	VideoSink->InitializeTextureSink(
-		GetVideoTrackDimensions(SelectedVideoTrack),
-		EMediaTextureSinkFormat::CharBGRA,
 		EMediaTextureSinkMode::Unbuffered
-	);
 #else
-	VideoSink->InitializeTextureSink(
-		GetVideoTrackDimensions(SelectedVideoTrack),
-		EMediaTextureSinkFormat::CharBGRA,
 		EMediaTextureSinkMode::Buffered
-	);
 #endif
+	);
 	
-	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(InitialiseAvfVideoSampler,
-												 FAvfMediaTracks*, This, this,
-												 IMediaTextureSink*, VideoSink, VideoSink,
-												 AVPlayerItemVideoOutput*, Output, (AVPlayerItemVideoOutput*)VideoTracks[SelectedVideoTrack].Output,
+	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+		InitialiseAvfVideoSampler,
+		FAvfMediaTracks*, This, this,
+		IMediaTextureSink*, VideoSink, VideoSink,
+		AVPlayerItemVideoOutput*, Output, (AVPlayerItemVideoOutput*)VideoTracks[SelectedVideoTrack].Output,
     {
 		This->VideoSampler->SetTrack(VideoSink, Output);
     });
@@ -1183,19 +1183,9 @@ void FAvfVideoSampler::Tick(float /*DeltaTime*/)
 					TRefCountPtr<FRHITexture2D> RenderTarget;
 					TRefCountPtr<FRHITexture2D> ShaderResource;
 					
-					RHICreateTargetableShaderResource2D(Width,
-														Height,
-														PF_B8G8R8A8,
-														1,
-														TexCreateFlags,
-														TexCreate_RenderTargetable,
-														false,
-														CreateInfo,
-														RenderTarget,
-														ShaderResource
-														);
+					ShaderResource = RHICreateTexture2D(Width, Height, PF_B8G8R8A8, 1, 1, TexCreateFlags | TexCreate_ShaderResource, CreateInfo);
 														
-					VideoSink->UpdateTextureSinkResource(RenderTarget, ShaderResource);
+					VideoSink->UpdateTextureSinkResource(ShaderResource, ShaderResource);
 					CFRelease(TextureRef);
 				}
 				else // Ran out of time to implement efficient OpenGLES texture upload - its running out of memory.
@@ -1267,19 +1257,9 @@ void FAvfVideoSampler::Tick(float /*DeltaTime*/)
 					TRefCountPtr<FRHITexture2D> RenderTarget;
 					TRefCountPtr<FRHITexture2D> ShaderResource;
 					
-					RHICreateTargetableShaderResource2D(Width,
-														Height,
-														PF_B8G8R8A8,
-														1,
-														TexCreateFlags,
-														TexCreate_RenderTargetable,
-														false,
-														CreateInfo,
-														RenderTarget,
-														ShaderResource
-														);
+					ShaderResource = RHICreateTexture2D(Width, Height, PF_B8G8R8A8, 1, 1, TexCreateFlags | TexCreate_ShaderResource, CreateInfo);
 														
-					VideoSink->UpdateTextureSinkResource(RenderTarget, ShaderResource);
+					VideoSink->UpdateTextureSinkResource(ShaderResource, ShaderResource);
 				}
 #else
 				int32 Pitch = CVPixelBufferGetBytesPerRow(Frame);

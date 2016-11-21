@@ -23,4 +23,5 @@ FUObjectThreadContext::FUObjectThreadContext()
 , SerializedImportLinker(nullptr)
 , SerializedExportIndex(INDEX_NONE)
 , SerializedExportLinker(nullptr)
+, AsyncPackage(nullptr)
 {}

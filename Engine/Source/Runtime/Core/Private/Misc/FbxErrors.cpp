@@ -20,6 +20,8 @@ FName FFbxErrors::Generic_FBXFileParseFailed(TEXT("Generic_FBXFileParseFailed"))
 
 FName FFbxErrors::Generic_MeshNotFound(TEXT("Generic_MeshNotFound"));
 
+FName FFbxErrors::Generic_CannotDetectImportType(TEXT("Generic_CannotDetectImportType"));
+
 /** Mesh Generic **/
 
 FName FFbxErrors::Generic_Mesh_NoGeometry(TEXT("Generic_Mesh_NoGeometry"));

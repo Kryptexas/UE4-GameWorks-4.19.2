@@ -15,6 +15,5 @@
  *****************************************************************************/
 
 #include "SChordEditBox.h"
-#include "SChordTreeItem.h"
 #include "SChordEditor.h"
 #include "SInputBindingEditorPanel.h"

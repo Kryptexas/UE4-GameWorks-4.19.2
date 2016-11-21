@@ -13,9 +13,6 @@ class AIMODULE_API UBTDecorator_BlackboardBase : public UBTDecorator
 	/** initialize any asset related data */
 	virtual void InitializeFromAsset(UBehaviorTree& Asset) override;
 
-	DEPRECATED(4.8, "OnBlackboardChange has been deprecated. Please switch over to using OnBlackboardKeyValueChange, it's different just by a return type.")
-	virtual void OnBlackboardChange(const UBlackboardComponent& Blackboard, FBlackboard::FKey ChangedKeyID);
-
 	/** notify about change in blackboard keys */
 	virtual EBlackboardNotificationResult OnBlackboardKeyValueChange(const UBlackboardComponent& Blackboard, FBlackboard::FKey ChangedKeyID);
 

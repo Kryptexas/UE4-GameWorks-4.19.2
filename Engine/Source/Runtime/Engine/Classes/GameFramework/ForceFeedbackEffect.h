@@ -33,7 +33,7 @@ struct FForceFeedbackChannelDetails
 };
 
 USTRUCT()
-struct FActiveForceFeedbackEffect
+struct ENGINE_API FActiveForceFeedbackEffect
 {
 	GENERATED_USTRUCT_BODY()
 

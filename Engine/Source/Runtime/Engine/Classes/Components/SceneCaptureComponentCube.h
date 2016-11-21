@@ -7,8 +7,8 @@
 /**
  *	Used to capture a 'snapshot' of the scene from a 6 planes and feed it to a render target.
  */
-UCLASS(hidecategories = (Collision, Object, Physics, SceneComponent), ClassGroup=Rendering, MinimalAPI, editinlinenew, meta = (BlueprintSpawnableComponent))
-class USceneCaptureComponentCube : public USceneCaptureComponent
+UCLASS(hidecategories = (Collision, Object, Physics, SceneComponent), ClassGroup=Rendering, editinlinenew, meta = (BlueprintSpawnableComponent))
+class ENGINE_API USceneCaptureComponentCube : public USceneCaptureComponent
 {
 	GENERATED_UCLASS_BODY()
 
@@ -30,17 +30,17 @@ public:
 	//~ End UObject Interface
 
 	/** Render the scene to the texture the next time the main view is rendered. */
-	ENGINE_API void CaptureSceneDeferred();
+	void CaptureSceneDeferred();
 
 	/** 
 	 * Render the scene to the texture target immediately.  
 	 * This should not be used if bCaptureEveryFrame is enabled, or the scene capture will render redundantly. 
 	 */
 	UFUNCTION(BlueprintCallable,Category = "Rendering|SceneCapture")
-	ENGINE_API void CaptureScene();
+	void CaptureScene();
 
 	// For backwards compatibility
 	void UpdateContent() { CaptureSceneDeferred(); }
 
-	ENGINE_API static void UpdateDeferredCaptures(FSceneInterface* Scene);
+	static void UpdateDeferredCaptures(FSceneInterface* Scene);
 };

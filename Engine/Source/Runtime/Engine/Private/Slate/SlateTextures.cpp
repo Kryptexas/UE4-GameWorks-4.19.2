@@ -343,7 +343,7 @@ void FSlateTextureRenderTarget2DResource::UpdateDeferredResource(FRHICommandList
 	{
 		SetRenderTarget(RHICmdList, RenderTargetTextureRHI,FTextureRHIRef());
 		RHICmdList.SetViewport(0,0,0.0f,TargetSizeX,TargetSizeY,1.0f);
-		RHICmdList.Clear(true,ClearColor,false,0.f,false,0, FIntRect());
+		RHICmdList.ClearColorTexture(RenderTargetTextureRHI, ClearColor, FIntRect());
 	}
 
 	// Copy surface to the texture for use

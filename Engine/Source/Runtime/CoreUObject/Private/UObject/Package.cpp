@@ -8,6 +8,8 @@
 	UPackage.
 -----------------------------------------------------------------------------*/
 
+/** Delegate to notify subscribers when a package is about to be saved. */
+UPackage::FPreSavePackage UPackage::PreSavePackageEvent;
 /** Delegate to notify subscribers when a package has been saved. This is triggered when the package saving
  *  has completed and was successful. */
 UPackage::FOnPackageSaved UPackage::PackageSavedEvent;
@@ -34,9 +36,7 @@ void UPackage::PostInitProperties()
 	MetaData = NULL;
 	LinkerPackageVersion = GPackageFileUE4Version;
 	LinkerLicenseeVersion = GPackageFileLicenseeUE4Version;
-#if WITH_EDITOR
 	PIEInstanceID = INDEX_NONE;
-#endif
 #if WITH_EDITORONLY_DATA
 	bIsCookedForEditor = false;
 	// Mark this package as editor-only by default. As soon as something in it is accessed through a non editor-only

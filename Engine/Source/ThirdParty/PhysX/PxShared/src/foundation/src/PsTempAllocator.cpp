@@ -82,8 +82,12 @@ void* TempAllocator::allocate(size_t size, const char* filename, int line)
 			++it;
 
 		if(it < end)
+		{
 			// pop top off freelist
-			chunk = *it, *it = chunk->mNext, index = uint32_t(it - getFreeTable().begin() + sMinIndex);
+			chunk = *it;
+			*it = chunk->mNext;
+			index = uint32_t(it - getFreeTable().begin() + sMinIndex);
+		}
 		else
 			// create new chunk
 			chunk = reinterpret_cast<Chunk*>(NonTrackingAllocator().allocate(size_t(2 << index), filename, line));

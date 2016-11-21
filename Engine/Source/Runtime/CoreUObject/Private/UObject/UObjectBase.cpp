@@ -262,7 +262,7 @@ bool UObjectBase::IsValidLowLevel() const
 
 bool UObjectBase::IsValidLowLevelFast(bool bRecursive /*= true*/) const
 {
-	// As DEFULT_ALIGNMENT is defined to 0 now, I changed that to the original numerical value here
+	// As DEFAULT_ALIGNMENT is defined to 0 now, I changed that to the original numerical value here
 	const int32 AlignmentCheck = MIN_ALIGNMENT - 1;
 
 	// Check 'this' pointer before trying to access any of the Object's members
@@ -270,7 +270,7 @@ bool UObjectBase::IsValidLowLevelFast(bool bRecursive /*= true*/) const
 	{
 		UE_LOG(LogUObjectBase, Error, TEXT("\'this\' pointer is invalid."));
 		return false;
-	}	
+	}
 	if ((UPTRINT)this & AlignmentCheck)
 	{
 		UE_LOG(LogUObjectBase, Error, TEXT("\'this\' pointer is misaligned."));
@@ -1144,27 +1144,23 @@ UEnum* FindExistingEnumIfHotReloadOrDynamic(UObject* Outer, const TCHAR* EnumNam
 	return Result;
 }
 
-UClass::StaticClassFunctionType GetDynamicClassConstructFn(FName ClassPathName)
-{
-	FDynamicClassStaticData* ClassConstructFn = GetDynamicClassMap().Find(ClassPathName);
-	UE_CLOG(!ClassConstructFn, LogUObjectBase, Fatal, TEXT("Unable to find construct function pointer for dynamic class %s. Make sure dynamic class exists."), *ClassPathName.ToString());
-	if (ClassConstructFn)
-	{
-		return ClassConstructFn->ZConstructFn;
-	}
-	// We should never get here. We either find the class or assert.
-	return nullptr;
-}
-
-UObject* ConstructDynamicType(FName TypePathName)
+UObject* ConstructDynamicType(FName TypePathName, EConstructDynamicType ConstructionSpecifier)
 {
 	UObject* Result = nullptr;
 	if (FDynamicClassStaticData* ClassConstructFn = GetDynamicClassMap().Find(TypePathName))
 	{
-		UClass* DynamicClass = ClassConstructFn->StaticClassFn();
-		check(DynamicClass);
-		DynamicClass->AssembleReferenceTokenStream();
-		Result = DynamicClass;
+		if (ConstructionSpecifier == EConstructDynamicType::CallZConstructor)
+		{
+			UClass* DynamicClass = ClassConstructFn->ZConstructFn();
+			check(DynamicClass);
+			DynamicClass->AssembleReferenceTokenStream();
+			Result = DynamicClass;
+		}
+		else if (ConstructionSpecifier == EConstructDynamicType::OnlyAllocateClassObject)
+		{
+			Result = ClassConstructFn->StaticClassFn();
+			check(Result);
+		}
 	}
 	else if (UScriptStruct *(**StaticStructFNPtr)() = GetDynamicStructMap().Find(TypePathName))
 	{
@@ -1201,7 +1197,9 @@ UPackage* FindOrConstructDynamicTypePackage(const TCHAR* PackageName)
 	if (!Package)
 	{
 		Package = CreatePackage(nullptr, PackageName);
+#if !USE_EVENT_DRIVEN_ASYNC_LOAD
 		Package->SetPackageFlags(PKG_CompiledIn);
+#endif
 	}
 	check(Package);
 	return Package;

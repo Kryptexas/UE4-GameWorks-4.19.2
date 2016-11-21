@@ -14,6 +14,8 @@
 #include "Engine/DemoNetDriver.h"
 
 static TAutoConsoleVariable<int32> CVarMaxRPCPerNetUpdate( TEXT( "net.MaxRPCPerNetUpdate" ), 2, TEXT( "Maximum number of RPCs allowed per net update" ) );
+static TAutoConsoleVariable<int32> CVarShareShadowState( TEXT( "net.ShareShadowState" ), 1, TEXT( "If true, work done to compare properties will be shared across connections" ) );
+static TAutoConsoleVariable<float> CVarMaxUpdateDelay( TEXT( "net.MaxSharedShadowStateUpdateDelayInSeconds" ), 1.0f / 4.0f, TEXT( "When a new changelist is available for a particular connection (using shared shadow state), but too much time has passed, force another compare against all the properties" ) );
 
 class FNetSerializeCB : public INetSerializeCB
 {
@@ -50,7 +52,7 @@ public:
 				if ( Ar.IsSaving() )
 				{
 					TArray< uint16 > Changed;
-					RepLayout->SendProperties_BackwardsCompatible( nullptr, (uint8*)Data, PackageMapClient->GetConnection(), static_cast< FNetBitWriter& >( Ar ), Changed );
+					RepLayout->SendProperties_BackwardsCompatible( nullptr, nullptr, (uint8*)Data, PackageMapClient->GetConnection(), static_cast< FNetBitWriter& >( Ar ), Changed );
 				}
 				else
 				{
@@ -290,6 +292,49 @@ void FObjectReplicator::StartReplicating( class UActorChannel * InActorChannel )
 			}
 		}
 	}
+
+	// Prefer the changelist manager on the main net driver (so we share across net drivers if possible)
+	if ( Connection->Driver->GetWorld() && Connection->Driver->GetWorld()->NetDriver )
+	{
+		ChangelistMgr = Connection->Driver->GetWorld()->NetDriver->GetReplicationChangeListMgr( GetObject() );
+	}
+	else
+	{
+		ChangelistMgr = Connection->Driver->GetReplicationChangeListMgr( GetObject() );
+	}
+}
+
+FReplicationChangelistMgr::FReplicationChangelistMgr( UNetDriver* InDriver, UObject* InObject ) : Driver( InDriver ), LastReplicationFrame( 0 )
+{
+	RepLayout = Driver->GetObjectClassRepLayout( InObject->GetClass() );
+
+	RepChangelistState = TUniquePtr< FRepChangelistState >( new FRepChangelistState );
+
+	RepLayout->InitShadowData( RepChangelistState->StaticBuffer, InObject->GetClass(), (uint8*)InObject->GetArchetype() );
+	RepChangelistState->RepLayout = RepLayout;
+}
+
+FReplicationChangelistMgr::~FReplicationChangelistMgr()
+{
+}
+
+void FReplicationChangelistMgr::Update( const UObject* InObject, const uint32 ReplicationFrame, const int32 LastCompareIndex, const FReplicationFlags& RepFlags )
+{
+	// See if we can re-use the work already done on a previous connection
+	// Rules:
+	//	1. We always compare once per frame (i.e. check LastReplicationFrame == ReplicationFrame)
+	//	2. We check LastCompareIndex > 1 so we can do at least one pass per connection to compare all properties
+	//		This is necessary due to how RemoteRole is manipulated per connection, so we need to give all connections a chance to see if it changed
+	//	3. We ALWAYS compare on bNetInitial to make sure we have a fresh changelist of net initial properties in this case
+	if ( CVarShareShadowState.GetValueOnGameThread() && !RepFlags.bNetInitial && LastCompareIndex > 1 && LastReplicationFrame == ReplicationFrame )
+	{
+		INC_DWORD_STAT_BY( STAT_NetSkippedDynamicProps, 1 );
+		return;
+	}
+
+	RepLayout->CompareProperties( RepChangelistState.Get(), (const uint8*)InObject, RepFlags );
+
+	LastReplicationFrame = ReplicationFrame;
 }
 
 static FORCEINLINE void ValidateRetirementHistory( const FPropertyRetirement & Retire, const UObject* Object )
@@ -1082,8 +1127,11 @@ bool FObjectReplicator::ReplicateProperties( FOutBunch & Bunch, FReplicationFlag
 
 	FNetBitWriter Writer( Bunch.PackageMap, 0 );
 
+	// Update change list (this will re-use work done by previous connections)
+	ChangelistMgr->Update( Object, Connection->Driver->ReplicationFrame, RepState->LastCompareIndex, RepFlags );
+
 	// Replicate properties in the layout
-	const bool bHasRepLayout = RepLayout->ReplicateProperties( RepState, ( uint8* )Object, ObjectClass, OwningChannel, Writer, RepFlags );
+	const bool bHasRepLayout = RepLayout->ReplicateProperties( RepState, ChangelistMgr->GetRepChangelistState(), ( uint8* )Object, ObjectClass, OwningChannel, Writer, RepFlags );
 
 	// Replicate all the custom delta properties (fast arrays, etc)
 	ReplicateCustomDeltaProperties( Writer, RepFlags );

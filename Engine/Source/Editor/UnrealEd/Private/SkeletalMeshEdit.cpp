@@ -564,6 +564,9 @@ UAnimSequence * UnFbx::FFbxImporter::ImportAnimations(USkeleton* Skeleton, UObje
 
 int32 GetAnimationCurveRate(FbxAnimCurve* CurrentCurve)
 {
+	if (CurrentCurve == nullptr)
+		return 0;
+
 	int32 KeyCount = CurrentCurve->KeyGetCount();
 
 	FbxTimeSpan TimeInterval(FBXSDK_TIME_INFINITE, FBXSDK_TIME_MINUS_INFINITE);
@@ -653,10 +656,13 @@ int32 UnFbx::FFbxImporter::GetMaxSampleRate(TArray<FbxNode*>& SortedLinks, TArra
 							if (Channel)
 							{
 								FbxAnimCurve* CurrentCurve = Geometry->GetShapeChannel(BlendShapeIndex, ChannelIndex, AnimLayer);
-								int32 NewRate = GetAnimationCurveRate(CurrentCurve);
-								if (NewRate > 0)
+								if (CurrentCurve)
 								{
-									MaxStackResampleRate = FMath::Max(NewRate, MaxStackResampleRate);
+									int32 NewRate = GetAnimationCurveRate(CurrentCurve);
+									if (NewRate > 0)
+									{
+										MaxStackResampleRate = FMath::Max(NewRate, MaxStackResampleRate);
+									}
 								}
 							}
 						}
@@ -740,18 +746,18 @@ bool UnFbx::FFbxImporter::ValidateAnimStack(TArray<FbxNode*>& SortedLinks, TArra
 	return bValidAnimStack;
 }
 
-bool UnFbx::FFbxImporter::ImportCurve(const FbxAnimCurve* FbxCurve, FFloatCurve * Curve, const FbxTimeSpan &AnimTimeSpan, const float ValueScale/*=1.f*/) const
+bool UnFbx::FFbxImporter::ImportCurve(const FbxAnimCurve* FbxCurve, FRichCurve& RichCurve, const FbxTimeSpan &AnimTimeSpan, const float ValueScale/*=1.f*/) const
 {
 	static float DefaultCurveWeight = FbxAnimCurveDef::sDEFAULT_WEIGHT;
 
-	if ( FbxCurve && Curve )
+	if ( FbxCurve )
 	{
 		for ( int32 KeyIndex=0; KeyIndex<FbxCurve->KeyGetCount(); ++KeyIndex )
 		{
 			FbxAnimCurveKey Key = FbxCurve->KeyGet(KeyIndex);
 			FbxTime KeyTime = Key.GetTime() - AnimTimeSpan.GetStart();
 			float Value = Key.GetValue() * ValueScale;
-			FKeyHandle NewKeyHandle = Curve->FloatCurve.AddKey(KeyTime.GetSecondDouble(), Value, false);
+			FKeyHandle NewKeyHandle = RichCurve.AddKey(KeyTime.GetSecondDouble(), Value, false);
 
 			FbxAnimCurveDef::ETangentMode KeyTangentMode = Key.GetTangentMode();
 			FbxAnimCurveDef::EInterpolationType KeyInterpMode = Key.GetInterpolation();
@@ -850,11 +856,11 @@ bool UnFbx::FFbxImporter::ImportCurve(const FbxAnimCurve* FbxCurve, FFloatCurve 
 				break;
 			}
 
-			Curve->FloatCurve.SetKeyInterpMode(NewKeyHandle, NewInterpMode);
-			Curve->FloatCurve.SetKeyTangentMode(NewKeyHandle, NewTangentMode);
-			Curve->FloatCurve.SetKeyTangentWeightMode(NewKeyHandle, NewTangentWeightMode);
+			RichCurve.SetKeyInterpMode(NewKeyHandle, NewInterpMode);
+			RichCurve.SetKeyTangentMode(NewKeyHandle, NewTangentMode);
+			RichCurve.SetKeyTangentWeightMode(NewKeyHandle, NewTangentWeightMode);
 
-			FRichCurveKey& NewKey = Curve->FloatCurve.GetKey(NewKeyHandle);
+			FRichCurveKey& NewKey = RichCurve.GetKey(NewKeyHandle);
 			// apply 1/100 - that seems like the tangent unit difference with FBX
 			NewKey.ArriveTangent = ArriveTangent * 0.01f;
 			NewKey.LeaveTangent = LeaveTangent * 0.01f;
@@ -1027,7 +1033,7 @@ bool UnFbx::FFbxImporter::ImportCurveToAnimSequence(class UAnimSequence * Target
 		TargetSequence->RawCurveData.RefreshName(Mapping);
 
 		TargetSequence->MarkRawDataAsModified();
-		if (CurveToImport && ImportCurve(FbxCurve, CurveToImport, AnimTimeSpan, ValueScale))
+		if (CurveToImport && ImportCurve(FbxCurve, CurveToImport->FloatCurve, AnimTimeSpan, ValueScale))
 		{
 			if (ImportOptions->bRemoveRedundantKeys)
 			{
@@ -1251,7 +1257,7 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 
 	// importing custom attribute END
 
-	const bool bSourceDataExists = (DestSeq->SourceRawAnimationData.Num() > 0);
+	const bool bSourceDataExists = DestSeq->HasSourceRawData();
 	TArray<AnimationTransformDebug::FAnimationTransformDebugData> TransformDebugData;
 	int32 TotalNumKeys = 0;
 	const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
@@ -1260,10 +1266,7 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 	{
 		GWarn->BeginSlowTask( LOCTEXT("BeginImportAnimation", "Importing Animation"), true);
 
-		TArray<struct FRawAnimSequenceTrack>& RawAnimationData = bSourceDataExists? DestSeq->SourceRawAnimationData : DestSeq->RawAnimationData;
-		DestSeq->TrackToSkeletonMapTable.Empty();
-		DestSeq->AnimationTrackNames.Empty();
-		RawAnimationData.Empty();
+		DestSeq->RecycleAnimSequence();
 
 		TArray<FName> FbxRawBoneNames;
 		FillAndVerifyBoneNames(Skeleton, SortedLinks, FbxRawBoneNames, FileName);
@@ -1328,7 +1331,7 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 				for(FbxTime CurTime = AnimTimeSpan.GetStart(); CurTime <= AnimTimeSpan.GetStop(); CurTime += TimeIncrement)
 				{
 					// save global trasnform
-					FbxAMatrix GlobalMatrix = Link->EvaluateGlobalTransform(CurTime);
+					FbxAMatrix GlobalMatrix = Link->EvaluateGlobalTransform(CurTime) * FFbxDataConverter::GetJointPostConversionMatrix();
 					// we'd like to verify this before going to Transform. 
 					// currently transform has tons of NaN check, so it will crash there
 					FMatrix GlobalUEMatrix = Converter.ConvertMatrix(GlobalMatrix);
@@ -1358,6 +1361,10 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 					{
 						// I can't rely on LocalMatrix. I need to recalculate quaternion/scale based on global transform if Parent exists
 						FbxAMatrix ParentGlobalMatrix = Link->GetParent()->EvaluateGlobalTransform(CurTime);
+						if (BoneTreeIndex != 0)
+						{
+							ParentGlobalMatrix = ParentGlobalMatrix * FFbxDataConverter::GetJointPostConversionMatrix();
+						}
 						FTransform ParentGlobalTransform =  Converter.ConvertTransform(ParentGlobalMatrix);
 						//In case we do a scene import we need to add the skeletal mesh root node matrix to the parent link.
 						if (ImportOptions->bImportScene && !ImportOptions->bTransformVertexToAbsolute && BoneTreeIndex == 0 && SkeletalMeshRootNode != nullptr)
@@ -1411,13 +1418,11 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 				if (bSuccess)
 				{
 					//add new track
-					int32 NewTrackIdx = RawAnimationData.Add(RawTrack);
-					DestSeq->AnimationTrackNames.Add(BoneName);
+					int32 NewTrackIdx = DestSeq->AddNewRawTrack(BoneName, &RawTrack);
 
 					NewDebugData.SetTrackData(NewTrackIdx, BoneTreeIndex, BoneName);
 
 					// add mapping to skeleton bone track
-					DestSeq->TrackToSkeletonMapTable.Add(FTrackToSkeletonMap(BoneTreeIndex));
 					TransformDebugData.Add(NewDebugData);
 				}
 			}

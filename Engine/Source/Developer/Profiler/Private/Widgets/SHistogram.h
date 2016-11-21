@@ -2,9 +2,8 @@
 
 #pragma once
 
-/*-----------------------------------------------------------------------------
-	Type definitions
------------------------------------------------------------------------------*/
+#include "ProfilerSample.h"
+
 
 /** Type definition for shared pointers to instances of FGraphDataSource. */
 typedef TSharedPtr<class IHistogramDataSource> FHistogramDataSourcePtr;
@@ -12,9 +11,7 @@ typedef TSharedPtr<class IHistogramDataSource> FHistogramDataSourcePtr;
 /** Type definition for shared references to instances of FGraphDataSource. */
 typedef TSharedRef<class IHistogramDataSource> FHistogramDataSourceRef;
 
-/*-----------------------------------------------------------------------------
-	Basic structures
------------------------------------------------------------------------------*/
+
 class FHistogramDescription
 {
 public:
@@ -22,13 +19,13 @@ public:
 	{}
 
 	/**
-	 * Constructor
+	 * Create and initialize a new instance.
 	 *
-	 * @param InDataSource   - data source for the histogram
-	 * @param InBinInterval  - interval for each bin
-	 * @param InMinValue     - minimum value to use for the bins
-	 * @param InMaxValue     - maximum value to use for the bins
-	 * @param InBinNormalize - whether or not to normalize the bins to the total data count
+	 * @param InDataSource Data source for the histogram.
+	 * @param InBinInterval Interval for each bin.
+	 * @param InMinValue Minimum value to use for the bins.
+	 * @param InMaxValue Maximum value to use for the bins.
+	 * @param InBinNormalize Whether or not to normalize the bins to the total data count.
 	 *
 	 */
 	FHistogramDescription(const FHistogramDataSourceRef& InDataSource, float InBinInterval, float InMinValue, float InMaxValue, bool InBinNormalize = false)

@@ -14,6 +14,7 @@
 #include "ISkeletonTree.h"
 #include "IAssetFamily.h"
 #include "AssetEditorModeManager.h"
+#include "PersonaCommonCommands.h"
 
 const FName SkeletonEditorAppIdentifier = FName(TEXT("SkeletonEditorApp"));
 
@@ -79,7 +80,7 @@ void FSkeletonEditor::InitSkeletonEditor(const EToolkitMode::Type Mode, const TS
 	SkeletonTreeArgs.PreviewScene = PersonaToolkit->GetPreviewScene();
 
 	ISkeletonEditorModule& SkeletonEditorModule = FModuleManager::GetModuleChecked<ISkeletonEditorModule>("SkeletonEditor");
-	SkeletonTree = SkeletonEditorModule.CreateSkeletonTree(PersonaToolkit->GetSkeleton(), PersonaToolkit->GetMesh(), SkeletonTreeArgs);
+	SkeletonTree = SkeletonEditorModule.CreateSkeletonTree(PersonaToolkit->GetSkeleton(), SkeletonTreeArgs);
 
 	const bool bCreateDefaultStandaloneMenu = true;
 	const bool bCreateDefaultToolbar = true;
@@ -93,10 +94,6 @@ void FSkeletonEditor::InitSkeletonEditor(const EToolkitMode::Type Mode, const TS
 		MakeShareable(new FSkeletonEditorMode(SharedThis(this), SkeletonTree.ToSharedRef())));
 
 	SetCurrentMode(SkeletonEditorModes::SkeletonEditorMode);
-
-	// set up our editor mode
-	check(AssetEditorModeManager);
-	AssetEditorModeManager->SetDefaultMode(FPersonaEditModes::SkeletonSelection);
 
 	ExtendMenu();
 	ExtendToolbar();
@@ -145,6 +142,9 @@ void FSkeletonEditor::BindCommands()
 
 	ToolkitCommands->MapAction(FSkeletonEditorCommands::Get().ImportMesh,
 		FExecuteAction::CreateSP(this, &FSkeletonEditor::OnImportAsset));
+
+	ToolkitCommands->MapAction(FPersonaCommonCommands::Get().TogglePlay,
+		FExecuteAction::CreateRaw(&GetPersonaToolkit()->GetPreviewScene().Get(), &IPersonaPreviewScene::TogglePlayback));
 }
 
 void FSkeletonEditor::ExtendToolbar()
@@ -266,6 +266,16 @@ void FSkeletonEditor::PostRedo(bool bSuccess)
 	OnPostUndo.Broadcast();
 }
 
+void FSkeletonEditor::Tick(float DeltaTime)
+{
+	GetPersonaToolkit()->GetPreviewScene()->InvalidateViews();
+}
+
+TStatId FSkeletonEditor::GetStatId() const
+{
+	RETURN_QUICK_DECLARE_CYCLE_STAT(FSkeletonEditor, STATGROUP_Tickables);
+}
+
 bool FSkeletonEditor::CanRemoveBones() const
 {
 	UDebugSkelMeshComponent* PreviewMeshComponent = PersonaToolkit->GetPreviewMeshComponent();
@@ -285,7 +295,10 @@ void FSkeletonEditor::TestSkeletonCurveNamesForUse() const
 
 void FSkeletonEditor::UpdateSkeletonRefPose()
 {
-	GetSkeletonTree()->GetEditableSkeleton()->UpdateSkeletonReferencePose(PersonaToolkit->GetPreviewMeshComponent()->SkeletalMesh);
+	if (PersonaToolkit->GetPreviewMeshComponent()->SkeletalMesh)
+	{
+		GetSkeletonTree()->GetEditableSkeleton()->UpdateSkeletonReferencePose(PersonaToolkit->GetPreviewMeshComponent()->SkeletalMesh);
+	}
 }
 
 void FSkeletonEditor::OnAnimNotifyWindow()

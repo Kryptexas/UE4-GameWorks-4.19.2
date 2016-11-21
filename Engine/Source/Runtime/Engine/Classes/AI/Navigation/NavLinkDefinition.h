@@ -137,7 +137,7 @@ struct ENGINE_API FNavigationLinkBase
 
 	FNavigationLinkBase();
 
-	void InitializeAreaClass();
+	void InitializeAreaClass(const bool bForceRefresh = false);
 	void SetAreaClass(UClass* InAreaClass);
 	UClass* GetAreaClass() const;
 	bool HasMetaArea() const;

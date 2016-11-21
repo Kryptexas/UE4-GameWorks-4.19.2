@@ -113,6 +113,14 @@ namespace MemoryProfiler2
 			// Keep track of current position as it's where the token stream starts.
 			long TokenStreamOffset = ParserFileStream.Position;
 
+			// Seek to name table and serialize it.
+			ParserFileStream.Seek((Int64)Header.NameTableOffset, SeekOrigin.Begin);
+			for (UInt64 NameIndex = 0; NameIndex < Header.NameTableEntries; NameIndex++)
+			{
+				int InsertedNameIndex = FStreamInfo.GlobalInstance.GetNameIndex(ReadString(BinaryStream), true);
+				Debug.Assert((int)NameIndex == InsertedNameIndex);
+			}
+
 			if (Header.Version >= 6)
 			{
 				// Seek to meta-data table and serialize it.
@@ -125,13 +133,18 @@ namespace MemoryProfiler2
 				}
 			}
 
-			// Seek to name table and serialize it.
-			ParserFileStream.Seek((Int64)Header.NameTableOffset,SeekOrigin.Begin);
-			for(UInt64 NameIndex = 0;NameIndex < Header.NameTableEntries;NameIndex++)
+			FStreamInfo.GlobalInstance.TagHierarchy.InitializeHierarchy();
+			if (Header.Version >= 7)
 			{
-				int InsertedNameIndex = FStreamInfo.GlobalInstance.GetNameIndex( ReadString( BinaryStream ), true );
-				Debug.Assert((int)NameIndex == InsertedNameIndex);
+				// Seek to tags table and serialize it.
+				ParserFileStream.Seek((Int64)Header.TagsTableOffset, SeekOrigin.Begin);
+				for (UInt64 TagsIndex = 0; TagsIndex < Header.TagsTableEntries; TagsIndex++)
+				{
+					string TagsString = ReadString(BinaryStream);
+					FStreamInfo.GlobalInstance.TagsArray.Add(new FAllocationTags(TagsString));
+				}
 			}
+			FStreamInfo.GlobalInstance.TagHierarchy.FinalizeHierarchy();
 
 			// Seek to callstack address array and serialize it.                
 			ParserFileStream.Seek( (Int64)Header.CallStackAddressTableOffset, SeekOrigin.Begin );
@@ -276,9 +289,9 @@ namespace MemoryProfiler2
 
 			// Snapshot used for parsing. A copy will be made if a special token is encountered. Otherwise it
 			// will be returned as the only snaphot at the end.
-			FStreamSnapshot Snapshot = new FStreamSnapshot("End");
-			List<FStreamSnapshot> SnapshotList = new List<FStreamSnapshot>();
-            Dictionary<ulong, FCallStackAllocationInfo> PointerToPointerInfoMap = new Dictionary<ulong, FCallStackAllocationInfo>();
+			var Snapshot = new FStreamSnapshot("End");
+			var SnapshotList = new List<FStreamSnapshot>();
+            var PointerToPointerInfoMap = new Dictionary<ulong, FLiveAllocationInfo>();
 
 			// Seek to beginning of token stream.
 			ParserFileStream.Seek(TokenStreamOffset, SeekOrigin.Begin);
@@ -423,7 +436,7 @@ namespace MemoryProfiler2
 								// Either USE_GLOBAL_REALLOC_ZERO_PTR is not being used, or we're not
 								// trying to free the ReallocZeroPtr.
 
-								FCallStackAllocationInfo FreedAllocInfo;
+								FLiveAllocationInfo FreedAllocInfo;
 								if( HandleFree( Token, Snapshot, PointerToPointerInfoMap, out FreedAllocInfo ) )
 								{
 									FCallStack PreviousCallStack = FStreamInfo.GlobalInstance.CallStackArray[ FreedAllocInfo.CallStackIndex ];
@@ -451,7 +464,7 @@ namespace MemoryProfiler2
 
 							if( Token.OldPointer != 0 )
 							{
-								FCallStackAllocationInfo FreedAllocInfo;
+								FLiveAllocationInfo FreedAllocInfo;
 								if( HandleFree( Token, Snapshot, PointerToPointerInfoMap, out FreedAllocInfo ) )
 								{
 									PreviousCallstack = FStreamInfo.GlobalInstance.CallStackArray[ FreedAllocInfo.CallStackIndex ];
@@ -734,7 +747,7 @@ namespace MemoryProfiler2
 			{
 				while( PreviousSnapshot.LifetimeCallStackList.Count < Snapshot.LifetimeCallStackList.Count )
 				{
-					PreviousSnapshot.LifetimeCallStackList.Add( new FCallStackAllocationInfo( 0, PreviousSnapshot.LifetimeCallStackList.Count, 0 ) );
+					PreviousSnapshot.LifetimeCallStackList.Add( new FCallStackAllocationInfo( 0, PreviousSnapshot.LifetimeCallStackList.Count, 0, -1 ) );
 				}
 			}
 
@@ -838,10 +851,10 @@ namespace MemoryProfiler2
 		}
 
 		/// <summary> Updates internal state with allocation. </summary>
-        private static void HandleMalloc(FStreamToken StreamToken, FStreamSnapshot Snapshot, Dictionary<ulong, FCallStackAllocationInfo> PointerToPointerInfoMap)
+        private static void HandleMalloc(FStreamToken StreamToken, FStreamSnapshot Snapshot, Dictionary<ulong, FLiveAllocationInfo> PointerToPointerInfoMap)
 		{
 			// Keep track of size associated with pointer and also current callstack.
-            FCallStackAllocationInfo PointerInfo = new FCallStackAllocationInfo(StreamToken.Size, StreamToken.CallStackIndex, 1);
+			var PointerInfo = new FLiveAllocationInfo(StreamToken.Size, StreamToken.CallStackIndex, StreamToken.TagsIndex);
 
             if (PointerToPointerInfoMap.ContainsKey(StreamToken.Pointer))
             {
@@ -860,11 +873,10 @@ namespace MemoryProfiler2
             // Add size to lifetime churn tracking.
             while (StreamToken.CallStackIndex >= Snapshot.LifetimeCallStackList.Count)
 			{
-                Snapshot.LifetimeCallStackList.Add(new FCallStackAllocationInfo(0, Snapshot.LifetimeCallStackList.Count, 0));
+                Snapshot.LifetimeCallStackList.Add(new FCallStackAllocationInfo(0, Snapshot.LifetimeCallStackList.Count, 0, -1));
 			}
 
-            //@todo: Sadly, we have to do all this ugly shuffling because of the way lists of structs work in C#
-			Snapshot.LifetimeCallStackList[ StreamToken.CallStackIndex ] = Snapshot.LifetimeCallStackList[ StreamToken.CallStackIndex ].Add( StreamToken.Size, 1 );
+			Snapshot.LifetimeCallStackList[StreamToken.CallStackIndex].Add(StreamToken.Size, 1, StreamToken.TagsIndex);
 
 			if( Snapshot.AllocationSize > Snapshot.AllocationMaxSize )
 			{
@@ -883,7 +895,7 @@ namespace MemoryProfiler2
 		}
 
 		/// <summary> Updates internal state with free. </summary>
-        private static bool HandleFree(FStreamToken StreamToken, FStreamSnapshot Snapshot, Dictionary<ulong, FCallStackAllocationInfo> PointerToPointerInfoMap, out FCallStackAllocationInfo FreedAllocInfo)
+        private static bool HandleFree(FStreamToken StreamToken, FStreamSnapshot Snapshot, Dictionary<ulong, FLiveAllocationInfo> PointerToPointerInfoMap, out FLiveAllocationInfo FreedAllocInfo)
 		{
             if (!PointerToPointerInfoMap.TryGetValue(StreamToken.Pointer, out FreedAllocInfo))
             {

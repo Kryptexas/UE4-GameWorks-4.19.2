@@ -429,13 +429,13 @@ void FLayerManager::GetPokeAHoleMatrices(const FViewInfo *LeftView,const FViewIn
 	{
 		FTransform torsoTransform(CurrentFrame->PlayerOrientation, CurrentFrame->PlayerLocation);
 		FMatrix torsoMatrix = torsoTransform.ToMatrixNoScale();
-		LeftMatrix = fmat * torsoMatrix * LeftView->ViewMatrices.ViewMatrix * LeftView->ViewMatrices.GetProjNoAAMatrix();
-		RightMatrix = fmat * torsoMatrix * RightView->ViewMatrices.ViewMatrix * RightView->ViewMatrices.GetProjNoAAMatrix();
+		LeftMatrix = fmat * torsoMatrix * LeftView->ViewMatrices.GetViewMatrix() * LeftView->ViewMatrices.ComputeProjectionNoAAMatrix();
+		RightMatrix = fmat * torsoMatrix * RightView->ViewMatrices.GetViewMatrix() * RightView->ViewMatrices.ComputeProjectionNoAAMatrix();
 	}
 	else if (LayerDesc.IsWorldLocked())
 	{
-		LeftMatrix = fmat * LeftView->ViewMatrices.ViewMatrix * LeftView->ViewMatrices.GetProjNoAAMatrix();
-		RightMatrix = fmat * RightView->ViewMatrices.ViewMatrix * RightView->ViewMatrices.GetProjNoAAMatrix();
+		LeftMatrix = fmat * LeftView->ViewMatrices.GetViewMatrix() * LeftView->ViewMatrices.ComputeProjectionNoAAMatrix();
+		RightMatrix = fmat * RightView->ViewMatrices.GetViewMatrix() * RightView->ViewMatrices.ComputeProjectionNoAAMatrix();
 	}
 }
 

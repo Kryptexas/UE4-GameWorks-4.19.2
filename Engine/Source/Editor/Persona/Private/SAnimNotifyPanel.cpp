@@ -18,6 +18,7 @@
 #include "Animation/AnimNotifies/AnimNotify.h"
 #include "Animation/AnimSequence.h"
 #include "SAnimTimingPanel.h"
+#include "TabSpawners.h"
 
 // Track Panel drawing
 const float NotificationTrackHeight = 20.0f;
@@ -3741,6 +3742,7 @@ void SAnimNotifyTrack::SetNodeTime(const FText& NodeTimeText, ETextCommit::Type 
 					Event->RefreshEndTriggerOffset(Sequence->CalculateOffsetForNotify(Event->GetTime() + Event->GetDuration()));
 				}
 			}
+			OnUpdatePanel.ExecuteIfBound();
 		}
 	}
 
@@ -3795,6 +3797,7 @@ void SAnimNotifyTrack::SetNodeFrame(const FText& NodeFrameText, ETextCommit::Typ
 					Event->RefreshEndTriggerOffset(Sequence->CalculateOffsetForNotify(Event->GetTime() + Event->GetDuration()));
 				}
 			}
+			OnUpdatePanel.ExecuteIfBound();
 		}
 	}
 

@@ -482,15 +482,13 @@ FByteBulkData* UNavCollision::GetCookedData(FName Format)
 	return Result->GetBulkDataSize() > 0 ? Result : NULL; // we don't return empty bulk data...but we save it to avoid thrashing the DDC
 }
 
-SIZE_T UNavCollision::GetResourceSize( EResourceSizeMode::Type Mode )
+void UNavCollision::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	SIZE_T ResSize = 0;
+	Super::GetResourceSizeEx(CumulativeResourceSize);
 	
 	if (CookedFormatData.Contains(NAVCOLLISION_FORMAT))
 	{
 		const FByteBulkData& FmtData = CookedFormatData.GetFormat(NAVCOLLISION_FORMAT);
-		ResSize += FmtData.GetElementSize() * FmtData.GetElementCount();
+		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(FmtData.GetElementSize() * FmtData.GetElementCount());
 	}
-	
-	return ResSize;
 }

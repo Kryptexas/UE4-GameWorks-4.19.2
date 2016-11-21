@@ -12,7 +12,6 @@
 #include "Editor/Kismet/Public/WorkflowOrientedApp/WorkflowTabFactory.h"
 #include "Editor/Kismet/Public/WorkflowOrientedApp/WorkflowTabManager.h"
 
-#include "Shared/PersonaMode.h"
 #include "PropertyEditing.h"
 #include "PropertyCustomizationHelpers.h"
 

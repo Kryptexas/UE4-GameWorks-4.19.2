@@ -85,6 +85,12 @@ namespace SettingsHelpers
 				}
 				else if (!SourceControlState->IsUnknown()) // most likely not source controled, so we'll try add it.
 				{	
+					if (!FPlatformFileManager::Get().GetPlatformFile().FileExists(*InFileToCheckOut))
+					{
+						// Hasn't been created yet
+						return true;
+					}
+
 					ECommandResult::Type CommandResult = SourceControlProvider.Execute(ISourceControlOperation::Create<FMarkForAdd>(), FilesToBeCheckedOut);
 
 					if (CommandResult == ECommandResult::Failed)
@@ -124,6 +130,11 @@ namespace SettingsHelpers
 
 	bool MakeWritable(const FString& InFileToMakeWritable, bool ShowErrorInNotification, FText* OutErrorMessage)
 	{
+		if (!FPlatformFileManager::Get().GetPlatformFile().FileExists(*InFileToMakeWritable))
+		{
+			return true;
+		}
+
 		bool bSuccess = FPlatformFileManager::Get().GetPlatformFile().SetReadOnly(*InFileToMakeWritable, false);
 		if(!bSuccess)
 		{

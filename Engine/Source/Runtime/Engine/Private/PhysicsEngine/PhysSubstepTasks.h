@@ -150,7 +150,7 @@ class FPhysSubstepTask
 {
 public:
 #if WITH_PHYSX
-	FPhysSubstepTask(PxApexScene * GivenScene);
+	FPhysSubstepTask(PxApexScene * GivenScene, FPhysScene* InPhysScene, uint32 InSceneType);
 #endif
 
 	void SetKinematicTarget_AssumesLocked(FBodyInstance* Body, const FTransform& TM);
@@ -168,7 +168,6 @@ public:
 	void SwapBuffers();
 	float UpdateTime(float UseDelta);
 
-	void SetVehicleManager(class FPhysXVehicleManager *	InVehicleManager);
 	void SubstepSimulationStart();
 	void SubstepSimulationEnd(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent);
 #if WITH_PHYSX
@@ -198,8 +197,8 @@ private:
 	uint32 CurrentSubStep;
 	FGraphEventRef CompletionEvent;
 
-	/** Vehicle scene */
-	class FPhysXVehicleManager*			VehicleManager;
+	FPhysScene* PhysScene;
+	uint32 SceneType;
 
 #if WITH_PHYSX
 	PxApexScene * PAScene;

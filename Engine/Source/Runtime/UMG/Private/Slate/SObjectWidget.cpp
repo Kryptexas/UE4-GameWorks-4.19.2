@@ -58,6 +58,10 @@ void SObjectWidget::SetPadding(const TAttribute<FMargin>& InMargin)
 
 void SObjectWidget::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
+#if WITH_VERY_VERBOSE_SLATE_STATS
+	FScopeCycleCounterUObject NativeFunctionScope(WidgetObject);
+#endif
+
 	if ( CanRouteEvent() )
 	{
 		WidgetObject->NativeTick(AllottedGeometry, InDeltaTime);
@@ -66,6 +70,10 @@ void SObjectWidget::Tick( const FGeometry& AllottedGeometry, const double InCurr
 
 int32 SObjectWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
+#if WITH_VERY_VERBOSE_SLATE_STATS
+	FScopeCycleCounterUObject NativeFunctionScope(WidgetObject);
+#endif
+
 	int32 MaxLayer = SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 
 	if ( CanRouteEvent() )

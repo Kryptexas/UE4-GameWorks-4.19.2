@@ -131,7 +131,8 @@ struct FGeneratedCodeData
 		IBlueprintCompilerCppBackendModule& CodeGenBackend = (IBlueprintCompilerCppBackendModule&)IBlueprintCompilerCppBackendModule::Get();
 
 		TArray<FString> CreatedFiles;
-		for(auto Obj : DependentObjects)
+		//for(auto Obj : DependentObjects)
+		UObject* Obj = Blueprint->GeneratedClass;
 		{
 			SlowTask.EnterProgressFrame();
 

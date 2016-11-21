@@ -16,6 +16,7 @@
 #include "EditorReimportHandler.h"
 #include "IAssetFamily.h"
 #include "AssetEditorModeManager.h"
+#include "PersonaCommonCommands.h"
 
 const FName SkeletalMeshEditorAppIdentifier = FName(TEXT("SkeletalMeshEditorApp"));
 
@@ -79,7 +80,7 @@ void FSkeletalMeshEditor::InitSkeletalMeshEditor(const EToolkitMode::Type Mode, 
 	SkeletonTreeArgs.PreviewScene = PersonaToolkit->GetPreviewScene();
 
 	ISkeletonEditorModule& SkeletonEditorModule = FModuleManager::GetModuleChecked<ISkeletonEditorModule>("SkeletonEditor");
-	SkeletonTree = SkeletonEditorModule.CreateSkeletonTree(PersonaToolkit->GetSkeleton(), PersonaToolkit->GetMesh(), SkeletonTreeArgs);
+	SkeletonTree = SkeletonEditorModule.CreateSkeletonTree(PersonaToolkit->GetSkeleton(), SkeletonTreeArgs);
 
 	const bool bCreateDefaultStandaloneMenu = true;
 	const bool bCreateDefaultToolbar = true;
@@ -93,10 +94,6 @@ void FSkeletalMeshEditor::InitSkeletalMeshEditor(const EToolkitMode::Type Mode, 
 		MakeShareable(new FSkeletalMeshEditorMode(SharedThis(this), SkeletonTree.ToSharedRef())));
 
 	SetCurrentMode(SkeletalMeshEditorModes::SkeletalMeshEditorMode);
-
-	// set up our editor mode
-	check(AssetEditorModeManager);
-	AssetEditorModeManager->SetDefaultMode(FPersonaEditModes::SkeletonSelection);
 
 	ExtendMenu();
 	ExtendToolbar();
@@ -134,6 +131,9 @@ void FSkeletalMeshEditor::BindCommands()
 
 	ToolkitCommands->MapAction(FSkeletalMeshEditorCommands::Get().ReimportMesh,
 		FExecuteAction::CreateSP(this, &FSkeletalMeshEditor::HandleReimportMesh));
+
+	ToolkitCommands->MapAction(FPersonaCommonCommands::Get().TogglePlay,
+		FExecuteAction::CreateRaw(&GetPersonaToolkit()->GetPreviewScene().Get(), &IPersonaPreviewScene::TogglePlayback));
 }
 
 void FSkeletalMeshEditor::ExtendToolbar()
@@ -230,6 +230,16 @@ void FSkeletalMeshEditor::PostUndo(bool bSuccess)
 void FSkeletalMeshEditor::PostRedo(bool bSuccess)
 {
 	OnPostUndo.Broadcast();
+}
+
+void FSkeletalMeshEditor::Tick(float DeltaTime)
+{
+	GetPersonaToolkit()->GetPreviewScene()->InvalidateViews();
+}
+
+TStatId FSkeletalMeshEditor::GetStatId() const
+{
+	RETURN_QUICK_DECLARE_CYCLE_STAT(FSkeletalMeshEditor, STATGROUP_Tickables);
 }
 
 void FSkeletalMeshEditor::HandleDetailsCreated(const TSharedRef<IDetailsView>& InDetailsView)

@@ -314,6 +314,7 @@ UENUM()
 enum ESceneCaptureSource 
 { 
 	SCS_SceneColorHDR UMETA(DisplayName="SceneColor (HDR) in RGB, Inv Opacity in A"),
+	SCS_SceneColorHDRNoAlpha UMETA(DisplayName="SceneColor (HDR) in RGB, 0 in A"),
 	SCS_FinalColorLDR UMETA(DisplayName="Final Color (LDR) in RGB"),
 	SCS_SceneColorSceneDepth UMETA(DisplayName="SceneColor (HDR) in RGB, SceneDepth in A"),
 	SCS_SceneDepth UMETA(DisplayName="SceneDepth in R"),
@@ -626,6 +627,8 @@ enum ECollisionChannel
 	ECC_MAX,
 };
 
+DECLARE_DELEGATE_OneParam(FOnConstraintBroken, int32 /*ConstraintIndex*/);
+
 
 #define COLLISION_GIZMO ECC_EngineTraceChannel1
 
@@ -751,9 +754,9 @@ enum ECollisionResponse
 UENUM()
 enum EFilterInterpolationType
 {
-	BSIT_Average,
-	BSIT_Linear,
-	BSIT_Cubic,
+	BSIT_Average UMETA(DisplayName = "Averaged Interpolation"),
+	BSIT_Linear UMETA(DisplayName = "Linear Interpolation"),
+	BSIT_Cubic UMETA(DisplayName = "Cubic Interpolation"),
 	BSIT_MAX
 };
 
@@ -775,13 +778,30 @@ namespace EWorldType
 {
 	enum Type
 	{
-		None,		// An untyped world, in most cases this will be the vestigial worlds of streamed in sub-levels
-		Game,		// The game world
-		Editor,		// A world being edited in the editor
-		PIE,		// A Play In Editor world
-		Preview,	// A preview world for an editor tool
-		Inactive	// An editor world that was loaded but not currently being edited in the level editor
+		/** An untyped world, in most cases this will be the vestigial worlds of streamed in sub-levels */
+		None,
+
+		/** The game world */
+		Game,
+
+		/** A world being edited in the editor */
+		Editor,
+
+		/** A Play In Editor world */
+		PIE,
+
+		/** A preview world for an editor tool */
+		EditorPreview,
+
+		/** A preview world for a game */
+		GamePreview,
+
+		/** An editor world that was loaded but not currently being edited in the level editor */
+		Inactive
 	};
+
+	DEPRECATED(4.14, "EWorldType::Preview is deprecated. Please use either EWorldType::EditorPreview or EWorldType::GamePreview")
+	const EWorldType::Type Preview = EWorldType::EditorPreview;
 }
 
 
@@ -2439,7 +2459,7 @@ struct FMeshBuildSettings
 	 * Whether to generate the distance field treating every triangle hit as a front face.  
 	 * When enabled prevents the distance field from being discarded due to the mesh being open, but also lowers Distance Field AO quality.
 	 */
-	UPROPERTY(EditAnywhere, Category=BuildSettings)
+	UPROPERTY(EditAnywhere, Category=BuildSettings, meta=(DisplayName="Two-Sided Distance Field Generation"))
 	bool bGenerateDistanceFieldAsIfTwoSided;
 
 	/** 
@@ -2902,9 +2922,9 @@ struct ENGINE_API FRepMovement
 		return true;
 	}
 
-	void FillFrom(const struct FRigidBodyState& RBState)
+	void FillFrom(const struct FRigidBodyState& RBState, const AActor* const Actor = nullptr)
 	{
-		Location = RBState.Position;
+		Location = RebaseOntoZeroOrigin(RBState.Position, Actor);
 		Rotation = RBState.Quaternion.Rotator();
 		LinearVelocity = RBState.LinVel;
 		AngularVelocity = RBState.AngVel;
@@ -2912,9 +2932,9 @@ struct ENGINE_API FRepMovement
 		bRepPhysics = true;
 	}
 
-	void CopyTo(struct FRigidBodyState& RBState)
+	void CopyTo(struct FRigidBodyState& RBState, const AActor* const Actor = nullptr)
 	{
-		RBState.Position = Location;
+		RBState.Position = RebaseOntoLocalOrigin(Location, Actor);
 		RBState.Quaternion = Rotation.Quaternion();
 		RBState.LinVel = LinearVelocity;
 		RBState.AngVel = AngularVelocity;
@@ -2960,6 +2980,26 @@ struct ENGINE_API FRepMovement
 	{
 		return !(*this == Other);
 	}
+
+	static int32 EnableMultiplayerWorldOriginRebasing;
+
+	/** Rebase zero-origin position onto local world origin value. */
+	static FVector RebaseOntoLocalOrigin(const struct FVector& Location, const struct FIntVector& LocalOrigin);
+
+	/** Rebase local-origin position onto zero world origin value. */
+	static FVector RebaseOntoZeroOrigin(const struct FVector& Location, const struct FIntVector& LocalOrigin);
+
+	/** Rebase zero-origin position onto an Actor's local world origin. */
+	static FVector RebaseOntoLocalOrigin(const struct FVector& Location, const AActor* const WorldContextActor);
+
+	/** Rebase an Actor's local-origin position onto zero world origin value. */
+	static FVector RebaseOntoZeroOrigin(const struct FVector& Location, const AActor* const WorldContextActor);
+
+	/** Rebase zero-origin position onto local world origin value based on an actor component's world. */
+	static FVector RebaseOntoLocalOrigin(const struct FVector& Location, const class UActorComponent* const WorldContextActorComponent);
+
+	/** Rebase local-origin position onto zero world origin value based on an actor component's world.*/
+	static FVector RebaseOntoZeroOrigin(const struct FVector& Location, const class UActorComponent* const WorldContextActorComponent);
 };
 
 
@@ -3719,4 +3759,22 @@ enum class EMeshBufferAccess: uint8
 
     /** Force access on both CPU and GPU. */
     ForceCPUAndGPU
+};
+
+/** Indicates the type of a level collection, used in FLevelCollection. */
+enum class ELevelCollectionType
+{
+	/**
+	 * The dynamic levels that are used for normal gameplay and the source for any duplicated collections.
+	 * Will contain a world's persistent level and any streaming levels that contain dynamic or replicated gameplay actors.
+	 */
+	DynamicSourceLevels,
+	/** Gameplay relevant levels that have been duplicated from DynamicSourceLevels if requested by the game. */
+	DynamicDuplicatedLevels,
+	/**
+	 * These levels are shared between the source levels and the duplicated levels, and should contain
+	 * only static geometry and other visuals that are not replicated or affected by gameplay.
+	 * These will not be duplicated in order to save memory.
+	 */
+	StaticLevels
 };

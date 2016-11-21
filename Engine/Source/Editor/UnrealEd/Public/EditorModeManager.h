@@ -133,7 +133,11 @@ public:
 	void SetShowWidget( bool InShowWidget )	{ bShowWidget = InShowWidget; }
 	bool GetShowWidget() const				{ return bShowWidget; }
 
+	/** Cycle the widget mode, forwarding queries to modes */
 	void CycleWidgetMode (void);
+
+	/** Check with modes to see if the widget mode can be cycled */
+	bool CanCycleWidgetMode() const;
 
 	/**Save Widget Settings to Ini file*/
 	void SaveWidgetSettings();
@@ -379,6 +383,9 @@ public:
 
 	/** Returns the host for toolkits created via modes from this mode manager */
 	TSharedPtr<IToolkitHost> GetToolkitHost() const;
+
+	/** Check if toolkit host exists */
+	bool HasToolkitHost() const;
 
 	/**
 	 * Returns the set of selected actors.

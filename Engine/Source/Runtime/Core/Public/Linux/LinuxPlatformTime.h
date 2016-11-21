@@ -28,6 +28,13 @@ struct CORE_API FLinuxTime : public FGenericPlatformTime
 		return static_cast<uint32>(static_cast<uint64>(ts.tv_sec) * 1000000ULL + static_cast<uint64>(ts.tv_nsec) / 1000ULL);
 	}
 
+	static FORCEINLINE uint64 Cycles64()
+	{
+		struct timespec ts;
+		clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
+		return static_cast<uint64>(static_cast<uint64>(ts.tv_sec) * 1000000ULL + static_cast<uint64>(ts.tv_nsec) / 1000ULL);
+	}
+
 	static FCPUTime GetCPUTime();	
 
 	/**

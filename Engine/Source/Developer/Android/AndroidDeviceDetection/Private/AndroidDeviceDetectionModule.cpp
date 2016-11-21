@@ -6,7 +6,7 @@
 
 #include "AndroidDeviceDetectionPrivatePCH.h"
 #include "ModuleManager.h"
-#include "IConnectionBasedMessagingModule.h"
+#include "ITcpMessagingModule.h"
 
 #define LOCTEXT_NAMESPACE "FAndroidDeviceDetectionModule" 
 
@@ -23,7 +23,7 @@ public:
 		HasADBPath(false),
 		ForceCheck(false)
 	{
-		TcpMessagingModule = FModuleManager::LoadModulePtr<IConnectionBasedMessagingModule>("TcpMessaging");
+		TcpMessagingModule = FModuleManager::LoadModulePtr<ITcpMessagingModule>("TcpMessaging");
 	}
 
 public:
@@ -342,7 +342,7 @@ private:
 	bool HasADBPath;
 	bool ForceCheck;
 
-	IConnectionBasedMessagingModule* TcpMessagingModule;
+	ITcpMessagingModule* TcpMessagingModule;
 };
 
 class FAndroidDeviceDetection : public IAndroidDeviceDetection

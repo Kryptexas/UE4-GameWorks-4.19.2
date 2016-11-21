@@ -40,8 +40,8 @@ FString GetFontFilename(const FSlateFontInfo& InFontInfo)
 {
 	const FCompositeFont* const ResolvedCompositeFont = InFontInfo.GetCompositeFont();
 	return (ResolvedCompositeFont && ResolvedCompositeFont->DefaultTypeface.Fonts.Num() > 0)
-		? ResolvedCompositeFont->DefaultTypeface.Fonts[0].Font.FontFilename
-		: "";
+		? ResolvedCompositeFont->DefaultTypeface.Fonts[0].Font.GetFontFilename()
+		: FString();
 }
 
 } // namespace TranslationEditorUtils

@@ -980,21 +980,17 @@ void SDetailsViewBase::QueryCustomDetailLayout(FDetailLayoutData& LayoutData)
 		}
 	}
 
-	// Query extra base classes
+	// Query extra base classes and structs
 	for (auto ParentIt = ParentClassesToQuery.CreateConstIterator(); ParentIt; ++ParentIt)
 	{
-		UClass* ParentClass = Cast<UClass>(*ParentIt);
-		if (ParentClass)
-		{
-			QueryLayoutForClass(LayoutData, ParentClass);
-		}
+		QueryLayoutForClass(LayoutData, *ParentIt);
 	}
 }
 
 EVisibility SDetailsViewBase::GetFilterBoxVisibility() const
 {
 	// Visible if we allow search and we have anything to search otherwise collapsed so it doesn't take up room
-	return (DetailsViewArgs.bAllowSearch && IsConnected()) ? EVisibility::Visible : EVisibility::Collapsed;
+	return (DetailsViewArgs.bAllowSearch && IsConnected() && RootTreeNodes.Num() > 0) || HasActiveSearch() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 bool SDetailsViewBase::SupportsKeyboardFocus() const

@@ -518,16 +518,16 @@ void UProceduralFoliageTile::Empty()
 	PendingRemovals.Empty();
 }
 
-SIZE_T UProceduralFoliageTile::GetResourceSize(EResourceSizeMode::Type Mode)
+void UProceduralFoliageTile::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	SIZE_T TotalSize = 0;
+	Super::GetResourceSizeEx(CumulativeResourceSize);
+
 	for (FProceduralFoliageInstance* Inst : InstancesSet)
 	{
-		TotalSize += sizeof(FProceduralFoliageInstance);
+		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(sizeof(FProceduralFoliageInstance));
 	}
 	
 	//@TODO: account for broadphase
-	return TotalSize;
 }
 
 

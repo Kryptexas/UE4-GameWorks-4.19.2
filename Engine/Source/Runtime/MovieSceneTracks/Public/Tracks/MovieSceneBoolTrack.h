@@ -22,15 +22,8 @@ public:
 	// UMovieSceneTrack interface
 
 	virtual UMovieSceneSection* CreateNewSection() override;
-	virtual TSharedPtr<IMovieSceneTrackInstance> CreateInstance() override;
+	virtual FMovieSceneEvalTemplatePtr CreateTemplateForSection(const UMovieSceneSection& InSection) const override;
 
-	/**
-	 * Evaluates the track at the playback position
-	 *
-	 * @param Position	The current playback position
-	 * @param LastPosition	The last plackback position
-	 * @param InOutBool 	The current value at the playback position
-	 * @return true if anything was evaluated. Note: if false is returned InOutBool remains unchanged
-	 */
+	DEPRECATED(4.15, "Direct evaluation of boolean tracks is no longer supported. Please create an evaluation template (see FMovieSceneBoolPropertySectionTemplate).")
 	virtual bool Eval( float Position, float LastPostion, bool& InOutBool ) const;
 };

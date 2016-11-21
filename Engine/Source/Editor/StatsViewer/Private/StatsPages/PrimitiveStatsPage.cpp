@@ -80,7 +80,7 @@ struct PrimitiveStatsGenerator
 		// The static mesh is a static mesh component's resource.
 		if( StaticMeshComponent )
 		{
-			UStaticMesh* Mesh = StaticMeshComponent->StaticMesh;
+			UStaticMesh* Mesh = StaticMeshComponent->GetStaticMesh();
 			Resource = Mesh;
 
 			// Calculate vertex color memory on the actual mesh.
@@ -109,9 +109,10 @@ struct PrimitiveStatsGenerator
 				if( StaticMeshComponent->LODData.Num() > 0 )
 				{
 					FStaticMeshComponentLODInfo& ComponentLODInfo = StaticMeshComponent->LODData[0];
-					if( ComponentLODInfo.LightMap )
+					const FMeshMapBuildData* MeshMapBuildData = StaticMeshComponent->GetMeshMapBuildData(ComponentLODInfo);
+					if( MeshMapBuildData && MeshMapBuildData->LightMap )
 					{
-						LightsLMCount = ComponentLODInfo.LightMap->LightGuids.Num();
+						LightsLMCount = MeshMapBuildData->LightMap->LightGuids.Num();
 					}
 				}
 			}
@@ -131,9 +132,10 @@ struct PrimitiveStatsGenerator
 					const TIndirectArray<FModelElement> Elements = ModelComponent->GetElements();
 					if( Elements.Num() > 0 )
 					{
-						if( Elements[0].LightMap )
+						const FMeshMapBuildData* MeshMapBuildData = Elements[0].GetMeshMapBuildData();
+						if( MeshMapBuildData && MeshMapBuildData->LightMap )
 						{
-							LightsLMCount = Elements[0].LightMap->LightGuids.Num();
+							LightsLMCount = MeshMapBuildData->LightMap->LightGuids.Num();
 						}
 					}
 				}
@@ -159,9 +161,11 @@ struct PrimitiveStatsGenerator
 		else if (LandscapeComponent)
 		{
 			Resource = LandscapeComponent->GetLandscapeProxy();
-			if (LandscapeComponent->LightMap)
+			const FMeshMapBuildData* MeshMapBuildData = LandscapeComponent->GetMeshMapBuildData();
+
+			if (MeshMapBuildData && MeshMapBuildData->LightMap)
 			{
-				LightsLMCount = LandscapeComponent->LightMap->LightGuids.Num();
+				LightsLMCount = MeshMapBuildData->LightMap->LightGuids.Num();
 			}
 		}
 
@@ -261,7 +265,7 @@ struct PrimitiveStatsGenerator
 				NewStatsEntry->Count			= 1;
 				NewStatsEntry->Triangles		= 0;
 				NewStatsEntry->InstTriangles	= 0;
-				NewStatsEntry->ResourceSize		= (float)(FArchiveCountMem(Resource).GetNum() + Resource->GetResourceSize(EResourceSizeMode::Exclusive)) / 1024.0f;
+				NewStatsEntry->ResourceSize		= (float)(FArchiveCountMem(Resource).GetNum() + Resource->GetResourceSizeBytes(EResourceSizeMode::Exclusive)) / 1024.0f;
 				NewStatsEntry->Sections			= 0;
 				NewStatsEntry->InstSections = 0;
 				NewStatsEntry->RadiusMin		= InPrimitiveComponent->Bounds.SphereRadius;
@@ -280,7 +284,7 @@ struct PrimitiveStatsGenerator
 				// ... in the case of a static mesh component.
 				if( StaticMeshComponent )
 				{
-					UStaticMesh* StaticMesh = StaticMeshComponent->StaticMesh;
+					UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
 					if( StaticMesh && StaticMesh->RenderData )
 					{
 						for( int32 SectionIndex=0; SectionIndex<StaticMesh->RenderData->LODResources[0].Sections.Num(); SectionIndex++ )
@@ -338,14 +342,16 @@ struct PrimitiveStatsGenerator
 						UniqueTextures.Add(CurrentComponent->HeightmapTexture, &bNotUnique);
 						if (!bNotUnique)
 						{
-							NewStatsEntry->ResourceSize += CurrentComponent->HeightmapTexture->GetResourceSize(EResourceSizeMode::Exclusive);
+							const SIZE_T HeightmapResourceSize = CurrentComponent->HeightmapTexture->GetResourceSizeBytes(EResourceSizeMode::Exclusive);
+							NewStatsEntry->ResourceSize += HeightmapResourceSize;
 						}
 						if (CurrentComponent->XYOffsetmapTexture)
 						{
 							UniqueTextures.Add(CurrentComponent->XYOffsetmapTexture, &bNotUnique);
 							if (!bNotUnique)
 							{
-								NewStatsEntry->ResourceSize += CurrentComponent->XYOffsetmapTexture->GetResourceSize(EResourceSizeMode::Exclusive);
+								const SIZE_T OffsetmapResourceSize = CurrentComponent->XYOffsetmapTexture->GetResourceSizeBytes(EResourceSizeMode::Exclusive);
+								NewStatsEntry->ResourceSize += OffsetmapResourceSize;
 							}
 						}
 
@@ -354,7 +360,8 @@ struct PrimitiveStatsGenerator
 							UniqueTextures.Add((*ItWeightmaps), &bNotUnique);
 							if (!bNotUnique)
 							{
-								NewStatsEntry->ResourceSize += (*ItWeightmaps)->GetResourceSize(EResourceSizeMode::Exclusive);
+								const SIZE_T WeightmapResourceSize = (*ItWeightmaps)->GetResourceSizeBytes(EResourceSizeMode::Exclusive);
+								NewStatsEntry->ResourceSize += WeightmapResourceSize;
 							}
 						}
 					}

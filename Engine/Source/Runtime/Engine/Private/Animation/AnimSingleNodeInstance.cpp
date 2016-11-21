@@ -41,7 +41,7 @@ void UAnimSingleNodeInstance::SetAnimationAsset(class UAnimationAsset* NewAsset,
 #endif
 		NewAsset && NewAsset->IsValidAdditive())
 	{
-		UE_LOG(LogAnimation, Warning, TEXT("Setting an additive animation (%s) on an AnimSingleNodeInstance is not allowed. This will not function correctly in cooked builds!"), *NewAsset->GetName());
+		UE_LOG(LogAnimation, Warning, TEXT("Setting an additive animation (%s) on an AnimSingleNodeInstance (%s) is not allowed. This will not function correctly in cooked builds!"), *NewAsset->GetName(), *GetFullName());
 	}
 
 	USkeletalMeshComponent* MeshComponent = GetSkelMeshComponent();
@@ -151,6 +151,15 @@ void UAnimSingleNodeInstance::SetMontageLoop(UAnimMontage* Montage, bool bIsLoop
 void UAnimSingleNodeInstance::UpdateMontageWeightForTimeSkip(float TimeDifference)
 {
 	Montage_UpdateWeight(TimeDifference);
+	if (UAnimMontage * Montage = Cast<UAnimMontage>(CurrentAsset))
+	{
+		FAnimSingleNodeInstanceProxy& Proxy = GetProxyOnGameThread<FAnimSingleNodeInstanceProxy>();
+
+		UpdateMontageEvaluationData();
+
+		const FName CurrentSlotNodeName = Montage->SlotAnimTracks[0].SlotName;
+		Proxy.UpdateMontageWeightForSlot(CurrentSlotNodeName, 1.f);
+	}
 }
 
 void UAnimSingleNodeInstance::UpdateBlendspaceSamples(FVector InBlendInput)

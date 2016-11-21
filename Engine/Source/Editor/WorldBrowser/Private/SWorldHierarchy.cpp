@@ -149,6 +149,16 @@ public:
 						.ToolTipText(LOCTEXT("Column_LevelNameLabel", "Level"))
 				]
 
+			/** Lighting Scenario column */
+			+ SHeaderRow::Column( HierarchyColumns::ColumnID_LightingScenario )
+				.FixedWidth( 18.0f )
+				.HeaderContent()
+				[
+					SNew(STextBlock)
+						.ToolTipText(NSLOCTEXT("WorldBrowser", "Lighting Scenario", "Lighting Scenario"))
+				]
+	
+
 			/** Level lock column */
 			+ SHeaderRow::Column( HierarchyColumns::ColumnID_Lock )
 				.FixedWidth( 24.0f )

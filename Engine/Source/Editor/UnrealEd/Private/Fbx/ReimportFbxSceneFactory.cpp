@@ -212,6 +212,7 @@ bool GetFbxSceneReImportOptions(UnFbx::FFbxImporter* FbxImporter
 	GlobalImportSettings->ImportUniformScale = 1.0f;
 
 	GlobalImportSettings->bConvertScene = true;
+	GlobalImportSettings->bForceFrontXAxis = false;
 	GlobalImportSettings->bConvertSceneUnit = true;
 
 
@@ -353,6 +354,7 @@ EReimportResult::Type UReimportFbxSceneFactory::Reimport(UObject* Obj)
 
 	//Always convert the scene
 	GlobalImportSettings->bConvertScene = true;
+	GlobalImportSettings->bForceFrontXAxis = false;
 	GlobalImportSettings->bConvertSceneUnit = true;
 	GlobalImportSettings->bImportScene = ReimportData->bImportScene;
 	if (ReimportData->NameOptionsMap.Contains(DefaultOptionName))
@@ -464,10 +466,8 @@ EReimportResult::Type UReimportFbxSceneFactory::Reimport(UObject* Obj)
 	}
 
 	StaticMeshImportData->bImportAsScene = true;
-	StaticMeshImportData->bImportMaterials = GlobalImportSettingsReference->bImportMaterials;
 	StaticMeshImportData->FbxSceneImportDataReference = ReimportData;
 	SkeletalMeshImportData->bImportAsScene = true;
-	SkeletalMeshImportData->bImportMaterials = GlobalImportSettingsReference->bImportMaterials;
 	SkeletalMeshImportData->FbxSceneImportDataReference = ReimportData;
 
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
@@ -720,7 +720,7 @@ void UReimportFbxSceneFactory::RecursivelySetComponentProperties(USCS_Node* Curr
 	if (!CurrentNodeActorComponent) //We need a component
 		return;
 
-	int32 IndexTemplateSuffixe = CurrentNodeActorComponent->GetName().Find(TEXT("_GEN_VARIABLE"));
+	int32 IndexTemplateSuffixe = CurrentNodeActorComponent->GetName().Find(USimpleConstructionScript::ComponentTemplateNameSuffix);
 	bool NameContainTemplateSuffixe = IndexTemplateSuffixe != INDEX_NONE;
 	FString NodeName = CurrentNodeActorComponent->GetName();
 	FString ReduceNodeName = NodeName;
@@ -747,7 +747,7 @@ void UReimportFbxSceneFactory::RecursivelySetComponentProperties(USCS_Node* Curr
 
 		if (NameContainTemplateSuffixe)
 		{
-			ComponentName += TEXT("_GEN_VARIABLE");
+			ComponentName += USimpleConstructionScript::ComponentTemplateNameSuffix;
 		}
 		USceneComponent *SceneComponent = Cast<USceneComponent>(ActorComponent);
 		if (!SceneComponent) //We support only scene component
@@ -765,7 +765,7 @@ void UReimportFbxSceneFactory::RecursivelySetComponentProperties(USCS_Node* Curr
 			FString ComponentParentName = ParentComponent->GetName();
 			if (NameContainTemplateSuffixe)
 			{
-				ComponentParentName += TEXT("_GEN_VARIABLE");
+				ComponentParentName += USimpleConstructionScript::ComponentTemplateNameSuffix;
 			}
 			ComponentParentNames.Insert(ComponentParentName, 0);
 			ParentComponent = ParentComponent->GetAttachParent();
@@ -794,7 +794,7 @@ void UReimportFbxSceneFactory::RecursivelySetComponentProperties(USCS_Node* Curr
 		{
 			UStaticMeshComponent *CurrentNodeMeshComponent = Cast<UStaticMeshComponent>(CurrentNodeSceneComponent);
 			UStaticMeshComponent *MeshComponent = Cast<UStaticMeshComponent>(SceneComponent);
-			if (CurrentNodeMeshComponent->StaticMesh != MeshComponent->StaticMesh)
+			if (CurrentNodeMeshComponent->GetStaticMesh() != MeshComponent->GetStaticMesh())
 				bShouldSerializeProperty = false;
 		}
 		else if (CurrentNodeComponentClass == USkeletalMeshComponent::StaticClass())

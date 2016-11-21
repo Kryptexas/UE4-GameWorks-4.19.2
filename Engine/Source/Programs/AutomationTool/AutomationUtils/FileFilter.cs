@@ -358,6 +358,7 @@ namespace AutomationTool
 		{
 			AddRule(".../PS4/...", FileFilterType.Exclude);
 			AddRule(".../XboxOne/...", FileFilterType.Exclude);
+			AddRule(".../Switch/...", FileFilterType.Exclude);
 		}
 
 		/// <summary>

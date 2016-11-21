@@ -61,6 +61,7 @@
 #include "GeneralProjectSettings.h"
 #include "OnlineEngineInterface.h"
 #include "DebuggerCommands.h"
+#include "ScopeExit.h"
 
 #include "AudioThread.h"
 
@@ -869,9 +870,14 @@ void UEditorEngine::PlaySessionSingleStepped()
 	FEditorDelegates::SingleStepPIE.Broadcast(bIsSimulatingInEditor);
 }
 
-bool UEditorEngine::ProcessDebuggerCommands(const FKey InKey, const FModifierKeysState ModifierKeyState)
+bool UEditorEngine::ProcessDebuggerCommands(const FKey InKey, const FModifierKeysState ModifierKeyState, EInputEvent EventType )
 {
-	return FPlayWorldCommands::GlobalPlayWorldActions->ProcessCommandBindings(InKey, ModifierKeyState, false);
+	if( EventType == IE_Pressed )
+	{
+		return FPlayWorldCommands::GlobalPlayWorldActions->ProcessCommandBindings(InKey, ModifierKeyState, false);
+	}
+	
+	return false;
 }
 
 /* fits the window position to make sure it falls within the confines of the desktop */
@@ -1075,12 +1081,32 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 
 	EndPlayOnLocalPc();
 
+	ON_SCOPE_EXIT
+	{
+		// note that we no longer have a queued request
+		bIsPlayWorldQueued = false;
+		bIsSimulateInEditorQueued = false;
+	};
+
 	const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
 
 	// Launch multi-player instances if necessary
 	// (note that if you have 'RunUnderOneProcess' checked and do a bPlayOnLocalPcSession (standalone) - play standalone 'wins' - multiple instances will be launched for multiplayer)
 	const EPlayNetMode PlayNetMode = [&PlayInSettings]{ EPlayNetMode NetMode(PIE_Standalone); return (PlayInSettings->GetPlayNetMode(NetMode) ? NetMode : PIE_Standalone); }();
 	const bool CanRunUnderOneProcess = [&PlayInSettings]{ bool RunUnderOneProcess(false); return (PlayInSettings->GetRunUnderOneProcess(RunUnderOneProcess) && RunUnderOneProcess); }();
+
+	// World composition does not copy levels to a separate folder to reduce startup time, and instead uses same files as Editor
+	// This causes issues with network replication as server object names will collide with Editor loaded world
+	const bool bWorldCompositionActive = GetEditorWorldContext().World()->WorldComposition != nullptr;
+	if (bWorldCompositionActive && !(CanRunUnderOneProcess || PlayNetMode == PIE_Standalone))
+	{
+		FText ErrorMsg = LOCTEXT("WorldCompPIESingleProcessError", "World Composition does not support multiplayer Play in Editor using separate processes. Please set 'Use Single Process' in the 'Level Editor - Play' settings under Editor Preferences.");
+		UE_LOG(LogPlayLevel, Warning, TEXT("%s"), *ErrorMsg.ToString());
+		FMessageLog(NAME_CategoryPIE).Warning(ErrorMsg);
+		FMessageLog(NAME_CategoryPIE).Open();
+		return;
+	}
+
 	if (PlayNetMode != PIE_Standalone && (!CanRunUnderOneProcess || bPlayOnLocalPcSession) && !bPlayUsingLauncher)
 	{
 		int32 NumClients = 0;
@@ -1134,10 +1160,6 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 			PlayInEditor( GetEditorWorldContext().World(), bWantSimulateInEditor );
 		}
 	}
-
-	// note that we no longer have a queued request
-	bIsPlayWorldQueued = false;
-	bIsSimulateInEditorQueued = false;
 }
 
 /* Temporarily renames streaming levels for pie saving */
@@ -1948,17 +1970,23 @@ void UEditorEngine::PlayUsingLauncher()
 		FWorldContext & EditorContext = GetEditorWorldContext();
 		if (EditorContext.World()->WorldComposition || (LauncherProfile->GetCookMode() == ELauncherProfileCookModes::ByTheBookInEditor) || (LauncherProfile->GetCookMode() == ELauncherProfileCookModes::OnTheFlyInEditor) )
 		{
+			// Prompt the user to save the level if it has not been saved before. 
+			// An unmodified but unsaved blank template level does not appear in the dirty packages check below.
+			if (FEditorFileUtils::GetFilename(GWorld).Len() == 0)
+			{
+				if (!FEditorFileUtils::SaveCurrentLevel())
+				{
+					CancelRequestPlaySession();
+					return;
+				}
+			}
+
 			// Daniel: Only reason we actually need to save any packages is because if a new package is created it won't be on disk yet and CookOnTheFly will early out if the package doesn't exist (even though it could be in memory and not require loading at all)
 			//			future me can optimize this by either adding extra allowances to CookOnTheFlyServer code or only saving packages which doesn't exist if it becomes a problem
 			// if this returns false, it means we should stop what we're doing and return to the editor
 			bool bPromptUserToSave = true;
 			bool bSaveMapPackages = true;
 			bool bSaveContentPackages = true;
-			if (!FEditorFileUtils::SaveCurrentLevel())
-			{
-				CancelRequestPlaySession();
-				return;
-			}
 			if (!FEditorFileUtils::SaveDirtyPackages(bPromptUserToSave, bSaveMapPackages, bSaveContentPackages))
 			{
 				CancelRequestPlaySession();
@@ -2353,15 +2381,9 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 	// Flush all audio sources from the editor world
 	if (FAudioDevice* AudioDevice = EditorWorld->GetAudioDevice())
 	{
-		const bool bEnableSound = PlayInSettings->EnableSound;
 		AudioDevice->Flush(EditorWorld);
 		AudioDevice->ResetInterpolation();
 		AudioDevice->OnBeginPIE(bInSimulateInEditor);
-
-		if (!bEnableSound)
-		{
-			AudioDevice->SetTransientMasterVolume(0.0f);
-		}
 	}
 	EditorWorld->bAllowAudioPlayback = false;
 
@@ -2395,13 +2417,14 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 		PlayInSettings->SetPlayNetMode(PlayNetMode);
 	}
 
-	// Can't allow realtime viewports whilst in PIE so disable it for ALL viewports here.
-	DisableRealtimeViewports();
 
 	bool bAnyBlueprintErrors = ErroredBlueprints.Num() ? true : false;
 	bool bStartInSpectatorMode = false;
 	bool bSupportsOnlinePIE = false;
 	const int32 PlayNumberOfClients = [&PlayInSettings]{ int32 NumberOfClients(0); return (PlayInSettings->GetPlayNumberOfClients(NumberOfClients) ? NumberOfClients : 0); }();
+
+	// Can't allow realtime viewports whilst in PIE so disable it for ALL viewports here.
+	DisableRealtimeViewports();
 
 	// Online PIE is disabled in SIE
 	if (SupportsOnlinePIE() && !bInSimulateInEditor)
@@ -2435,6 +2458,15 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 		// Only spawning 1 PIE instance under this process, only set the PIEInstance value if we're not connecting to another local instance of the game, otherwise it will run the wrong streaming levels
 		PIEInstance = ( !CanRunUnderOneProcess && PlayNetMode == EPlayNetMode::PIE_Client ) ? INDEX_NONE : 0;
 		UGameInstance* const GameInstance = CreatePIEGameInstance(PIEInstance, bInSimulateInEditor, bAnyBlueprintErrors, bStartInSpectatorMode, false, PIEStartTime);
+
+		if (!PlayInSettings->EnableSound)
+		{
+			UWorld* GameInstanceWorld = GameInstance->GetWorld();
+			if (FAudioDevice* GameInstanceAudioDevice = GameInstanceWorld->GetAudioDevice())
+			{
+				GameInstanceAudioDevice->SetTransientMasterVolume(0.0f);
+			}
+		}
 
 		if (bInSimulateInEditor)
 		{
@@ -2486,6 +2518,7 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 			}
 		}
 	}
+
 }
 
 void UEditorEngine::SpawnIntraProcessPIEWorlds(bool bAnyBlueprintErrors, bool bStartInSpectatorMode)
@@ -3315,11 +3348,9 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 	// Disable the screensaver when PIE is running.
 	EnableScreenSaver( false );
 
+
 	EditorWorld->TransferBlueprintDebugReferences(PlayWorld);
 
-	// This must have already been set with a call to DisableRealtimeViewports() outside of this method.
-	check(!IsAnyViewportRealtime());
-	
 	// By this point it is safe to remove the GameInstance from the root and allow it to garbage collected as per usual
 	GameInstance->RemoveFromRoot();
 
@@ -3739,7 +3770,7 @@ UWorld* UEditorEngine::CreatePIEWorldByDuplication(FWorldContext &WorldContext, 
 			InWorld->GetFName(),	// Name for new object
 			RF_AllFlags,			// FlagMask
 			NULL,					// DestClass
-			SDO_DuplicateForPie		// bDuplicateForPIE
+			EDuplicateMode::PIE
 			) );
 
 		FStringAssetReference::ClearPackageNamesBeingDuplicatedForPIE();

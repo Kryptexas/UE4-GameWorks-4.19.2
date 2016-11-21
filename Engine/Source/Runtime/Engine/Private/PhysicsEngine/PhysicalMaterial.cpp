@@ -6,12 +6,10 @@
 
 #include "EnginePrivate.h"
 #include "PhysicsPublic.h"
-#include "Vehicles/TireType.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 
 #if WITH_PHYSX
 	#include "PhysXSupport.h"
-	#include "../Vehicles/PhysXVehicleManager.h"
 #endif // WITH_PHYSX
 #include "PhysicalMaterials/PhysicalMaterial.h"
 
@@ -101,9 +99,7 @@ void UPhysicalMaterial::UpdatePhysXMaterial()
 		const uint32 UseRestitutionCombineMode = (bOverrideRestitutionCombineMode ? RestitutionCombineMode.GetValue() : UPhysicsSettings::Get()->RestitutionCombineMode.GetValue());
 		PMaterial->setRestitutionCombineMode(static_cast<physx::PxCombineMode::Enum>(UseRestitutionCombineMode));
 
-#if WITH_VEHICLE
-		FPhysXVehicleManager::UpdateTireFrictionTable();
-#endif
+		FPhysicsDelegates::OnUpdatePhysXMaterial.Broadcast(this);
 	}
 #endif	// WITH_PHYSX
 }
@@ -138,23 +134,5 @@ EPhysicalSurface UPhysicalMaterial::DetermineSurfaceType(UPhysicalMaterial const
 	}
 	
 	return PhysicalMaterial->SurfaceType;
-}
-
-float UPhysicalMaterial::GetTireFrictionScale( TWeakObjectPtr<UTireType> TireType )
-{
-	float Scale = (TireType != NULL) ? TireType->GetFrictionScale() : 1.0f;
-
-	Scale *= TireFrictionScale;
-
-	for ( int32 i = TireFrictionScales.Num() - 1; i >= 0; --i )
-	{
-		if ( TireFrictionScales[i].TireType == TireType.Get() )
-		{
-			Scale *= TireFrictionScales[i].FrictionScale;
-			break;
-		}
-	}
-
-	return Scale;
 }
 

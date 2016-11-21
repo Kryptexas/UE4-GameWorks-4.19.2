@@ -202,8 +202,15 @@ bool USetProperty::Identical(const void* A, const void* B, uint32 PortFlags) con
 	return UE4SetProperty_Private::IsPermutation(SetHelperA, SetHelperB, PortFlags);
 }
 
+void USetProperty::GetPreloadDependencies(TArray<UObject*>& OutDeps)
+{
+	Super::GetPreloadDependencies(OutDeps);
+	OutDeps.Add(ElementProp);
+}
+
 void USetProperty::SerializeItem(FArchive& Ar, void* Value, const void* Defaults) const
 {
+	// Ar related calls in this function must be mirrored in USetProperty::ConvertFromType
 	checkSlow(ElementProp);
 
 	// Ensure that the element property has been loaded before calling SerializeItem() on it
@@ -249,7 +256,7 @@ void USetProperty::SerializeItem(FArchive& Ar, void* Value, const void* Defaults
 				const int32 Found = SetHelper.FindElementIndex(TempElementStorage);
 				if (Found != INDEX_NONE)
 				{
-					SetHelper.RemoveAt_NeedsRehash(Found);
+					SetHelper.RemoveAt(Found);
 				}
 			}
 		}
@@ -705,6 +712,157 @@ bool USetProperty::SameType(const UProperty* Other) const
 {
 	USetProperty* SetProp = (USetProperty*)Other;
 	return Super::SameType(Other) && ElementProp && ElementProp->SameType(SetProp->ElementProp);
+}
+
+bool USetProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty)
+{
+	// Ar related calls in this function must be mirrored in USetProperty::ConvertFromType
+	checkSlow(ElementProp);
+
+	// Ensure that the element property has been loaded before calling SerializeItem() on it
+	Ar.Preload(ElementProp);
+
+	// Ar related calls in this function must be mirrored in USetProperty::SerializeItem
+	if(Tag.Type == NAME_SetProperty)
+	{
+		if (Tag.InnerType != NAME_None && Tag.InnerType != ElementProp->GetID())
+		{
+			FScriptSetHelper ScriptSetHelper(this, ContainerPtrToValuePtr<void>(Data));
+		
+			uint8* TempElementStorage = nullptr;
+			ON_SCOPE_EXIT
+			{
+				if (TempElementStorage)
+				{
+					ElementProp->DestroyValue(TempElementStorage);
+					FMemory::Free(TempElementStorage);
+				}
+			};
+		
+			FPropertyTag InnerPropertyTag;
+			InnerPropertyTag.Type = Tag.InnerType;
+			InnerPropertyTag.ArrayIndex = 0;
+		
+			bool bConversionSucceeded = true;
+			bool bDummyAdvance = false;
+
+			// When we saved this instance we wrote out any elements that were in the 'Default' instance but not in the 
+			// instance that was being written. Presumably we were constructed from our defaults and must now remove 
+			// any of the elements that were not present when we saved this Set:
+			int32 NumElementsToRemove = 0;
+			Ar << NumElementsToRemove;
+
+			if(NumElementsToRemove)
+			{
+				TempElementStorage = (uint8*)FMemory::Malloc(SetLayout.Size);
+				ElementProp->InitializeValue(TempElementStorage);
+
+				if (ElementProp->ConvertFromType(InnerPropertyTag, Ar, TempElementStorage, DefaultsStruct, bDummyAdvance))
+				{
+					int32 Found = ScriptSetHelper.FindElementIndex(TempElementStorage);
+					if (Found != INDEX_NONE)
+					{
+						ScriptSetHelper.RemoveAt(Found);
+					}
+
+					for (int32 I = 1; I < NumElementsToRemove; ++I)
+					{
+						verify(ElementProp->ConvertFromType(InnerPropertyTag, Ar, TempElementStorage, DefaultsStruct, bDummyAdvance));
+					
+						Found = ScriptSetHelper.FindElementIndex(TempElementStorage);
+						if (Found != INDEX_NONE)
+						{
+							ScriptSetHelper.RemoveAt(Found);
+						}
+					}
+				}
+				else
+				{
+					bConversionSucceeded = false;
+				}
+			}
+		
+			int32 Num = 0;
+			Ar << Num;
+
+			if(bConversionSucceeded)
+			{
+				if (Num != 0)
+				{
+					// Allocate temporary key space if we haven't allocated it already above
+					if( TempElementStorage == nullptr )
+					{
+						TempElementStorage = (uint8*)FMemory::Malloc(SetLayout.Size);
+						ElementProp->InitializeValue(TempElementStorage);
+					}
+
+					// and read the first entry, we have to check for conversion possibility again because 
+					// NumElementsToRemove may not have run (in fact, it likely did not):
+					if (ElementProp->ConvertFromType(InnerPropertyTag, Ar, TempElementStorage, DefaultsStruct, bDummyAdvance))
+					{
+						if (ScriptSetHelper.FindElementIndex(TempElementStorage) == INDEX_NONE)
+						{
+							const int32 NewElementIndex = ScriptSetHelper.AddDefaultValue_Invalid_NeedsRehash();
+							uint8* NewElementPtr = ScriptSetHelper.GetElementPtrWithoutCheck(NewElementIndex);
+
+							// Copy over deserialized key from temporary storage
+							ElementProp->CopyCompleteValue_InContainer(NewElementPtr, TempElementStorage);
+						}
+
+						// Read remaining items into container
+						for (int32 I = 1; I < Num; ++I)
+						{
+							// Read key into temporary storage
+							verify(ElementProp->ConvertFromType(InnerPropertyTag, Ar, TempElementStorage, DefaultsStruct, bDummyAdvance) );
+
+							// Add a new entry if the element doesn't currently exist in the set
+							if (ScriptSetHelper.FindElementIndex(TempElementStorage) == INDEX_NONE)
+							{
+								const int32 NewElementIndex = ScriptSetHelper.AddDefaultValue_Invalid_NeedsRehash();
+								uint8* NewElementPtr = ScriptSetHelper.GetElementPtrWithoutCheck(NewElementIndex);
+
+								// Copy over deserialized key from temporary storage
+								ElementProp->CopyCompleteValue_InContainer(NewElementPtr, TempElementStorage);
+							}
+						}
+					}
+					else
+					{
+						bConversionSucceeded = false;
+					}
+				}
+		
+				ScriptSetHelper.Rehash();
+			}
+
+			// if we could not convert the property ourself, then indicate that calling code needs to advance the property
+			if(!bConversionSucceeded)
+			{
+				UE_LOG(LogClass, Warning, TEXT("Set Element Type mismatch in %s of %s - Previous (%s) Current (%s) for package: %s"), *Tag.Name.ToString(), *GetName(), *Tag.InnerType.ToString(), *ElementProp->GetID().ToString(), *Ar.GetArchiveName() );
+			}
+			bOutAdvanceProperty = bConversionSucceeded;
+
+			return true;
+		}
+		else if(UStructProperty* ElementPropAsStruct = Cast<UStructProperty>(ElementProp))
+		{
+			if(!ElementPropAsStruct->Struct || (ElementPropAsStruct->Struct->GetCppStructOps() && !ElementPropAsStruct->Struct->GetCppStructOps()->HasGetTypeHash()) )
+			{
+				// If the type we contain is no longer hashable, we're going to drop the saved data here. This can
+				// happen if the native GetTypeHash function is removed.
+				ensureMsgf(false, TEXT("USetProperty %s with tag %s has an unhashable type %s and will lose its saved data"), *GetName(), *Tag.Name.ToString(), *ElementProp->GetID().ToString());
+			
+				FScriptSetHelper ScriptSetHelper(this, ContainerPtrToValuePtr<void>(Data));
+				ScriptSetHelper.EmptyElements();
+
+				bOutAdvanceProperty = false;
+				return true;
+			}
+		}
+	}
+	
+
+	return false;
 }
 
 /**

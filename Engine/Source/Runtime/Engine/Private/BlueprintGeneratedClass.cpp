@@ -42,9 +42,6 @@ void UBlueprintGeneratedClass::PostLoad()
 	UObject* ClassCDO = GetDefaultObject();
 
 	// Go through the CDO of the class, and make sure we don't have any legacy components that aren't instanced hanging on.
-	TArray<UObject*> SubObjects;
-	GetObjectsWithOuter(ClassCDO, SubObjects);
-
 	struct FCheckIfComponentChildHelper
 	{
 		static bool IsComponentChild(UObject* CurrObj, const UObject* CDO)
@@ -55,15 +52,14 @@ void UBlueprintGeneratedClass::PostLoad()
 		};
 	};
 
-	for( auto SubObjIt = SubObjects.CreateIterator(); SubObjIt; ++SubObjIt )
+	ForEachObjectWithOuter(ClassCDO, [ClassCDO](UObject* CurrObj)
 	{
-		UObject* CurrObj = *SubObjIt;
 		const bool bComponentChild = FCheckIfComponentChildHelper::IsComponentChild(CurrObj, ClassCDO);
 		if (!CurrObj->IsDefaultSubobject() && !CurrObj->IsRooted() && !bComponentChild)
 		{
 			CurrObj->MarkPendingKill();
 		}
-	}
+	});
 
 #if WITH_EDITORONLY_DATA
 	if (GetLinkerUE4Version() < VER_UE4_CLASS_NOTPLACEABLE_ADDED)
@@ -216,7 +212,7 @@ void UBlueprintGeneratedClass::ConditionalRecompileClass(TArray<UObject*>* ObjLo
 	UBlueprint* GeneratingBP = Cast<UBlueprint>(ClassGeneratedBy);
 	if (GeneratingBP && (GeneratingBP->SkeletonGeneratedClass != this))
 	{
-		const auto NecessaryAction = FConditionalRecompileClassHepler::IsConditionalRecompilationNecessary(GeneratingBP);
+		const FConditionalRecompileClassHepler::ENeededAction NecessaryAction = FConditionalRecompileClassHepler::IsConditionalRecompilationNecessary(GeneratingBP);
 		if (FConditionalRecompileClassHepler::Recompile == NecessaryAction)
 		{
 			const bool bWasRegenerating = GeneratingBP->bIsRegeneratingOnLoad;
@@ -521,6 +517,37 @@ UObject* UBlueprintGeneratedClass::FindArchetype(UClass* ArchetypeClass, const F
 	// and since preloading the SCS of a script in a world package is bad news, we need to filter them out
 	if (SimpleConstructionScript && !IsChildOf<ALevelScriptActor>())
 	{
+#if WITH_EDITORONLY_DATA
+		// On load, we may fix up AddComponent node templates to conform to the newer archetype naming convention. In that case, we use a map to find
+		// the new template name in order to redirect to the appropriate archetype.
+		const UBlueprint* Blueprint = Cast<const UBlueprint>(ClassGeneratedBy);
+		const FName NewArchetypeName = Blueprint ? Blueprint->OldToNewComponentTemplateNames.FindRef(ArchetypeName) : NAME_None;
+#endif
+		// Component templates (archetypes) differ from the component class default object, and they are considered to be "default subobjects" owned
+		// by the Blueprint Class instance. Also, unlike "default subobjects" on the native C++ side, component templates are not currently owned by the
+		// Blueprint Class default object. Instead, they are owned by the Blueprint Class itself. And, just as native C++ default subobjects serve as the
+		// "archetype" object for components instanced and outered to a native Actor class instance at construction time, Blueprint Component templates
+		// also serve as the "archetype" object for components instanced and outered to a Blueprint Class instance at construction time. However, since
+		// Blueprint Component templates are not owned by the Blueprint Class default object, we must search for them by name within the Blueprint Class.
+		//
+		// Native component subobjects are instanced using the same name as the default subobject (archetype). Thus, it's easy to find the archetype -
+		// we just look for an object with the same name that's owned by (i.e. outered to) the Actor class default object. This is the default logic
+		// that we're overriding here.
+		//
+		// Blueprint (non-native) component templates are split between SCS (SimpleConstructionScript) and AddComponent nodes in Blueprint function
+		// graphs (e.g. ConstructionScript). Both templates use a unique naming convention within the scope of the Blueprint Class, but at construction
+		// time, we choose a unique name that differs from the archetype name for each component instance. We do this partially to support nativization,
+		// in which we need to explicitly guard against recycling objects at allocation time. For SCS component instances, the name we choose matches the
+		// "variable" name that's also user-facing. Thus, when we search for archetypes, we do so using the SCS variable name, and not the archetype name.
+		// Conversely, for AddComponent node-spawned instances, we do not have a user-facing variable name, so instead we choose a unique name that
+		// incorporates the archetype name, but we append an index as well. The index is needed to support multiple invocations of the same AddComponent
+		// node in a function graph, which can occur when the AddComponent node is wired to a flow-control node such as a ForEach loop, for example. Thus,
+		// we still look for the archetype by name, but we must first ensure that the instance name is converted to its "base" name by removing the index.
+#if WITH_EDITORONLY_DATA
+		const FName ArchetypeBaseName = NewArchetypeName != NAME_None ? NewArchetypeName : FName(ArchetypeName, 0);
+#else
+		const FName ArchetypeBaseName = FName(ArchetypeName, 0);
+#endif
 		UBlueprintGeneratedClass* Class = const_cast<UBlueprintGeneratedClass*>(this);
 		while (Class)
 		{
@@ -533,6 +560,9 @@ UObject* UBlueprintGeneratedClass::FindArchetype(UClass* ArchetypeClass, const F
 					ClassSCS->PreloadChain();
 				}
 
+				// We keep the index name here rather than the base name, in order to avoid potential
+				// collisions between an SCS variable name and an existing AddComponent node template.
+				// This is because old AddComponent node templates were based on the class display name.
 				SCSNode = ClassSCS->FindSCSNode(ArchetypeName);
 			}
 
@@ -548,14 +578,47 @@ UObject* UBlueprintGeneratedClass::FindArchetype(UClass* ArchetypeClass, const F
 					Archetype = SCSNode->ComponentTemplate;
 				}
 			}
-			else if (UInheritableComponentHandler* ICH = Class->GetInheritableComponentHandler())
+			else if(UInheritableComponentHandler* ICH = Class->GetInheritableComponentHandler())
 			{
-				Archetype = ICH->GetOverridenComponentTemplate(ICH->FindKey(ArchetypeName));
+				// This would find either an SCS component template override (for which the archetype
+				// name will match the SCS variable name), or an old AddComponent node template override
+				// (for which the archetype name will match the override record's component template name).
+				FComponentKey ComponentKey = ICH->FindKey(ArchetypeName);
+				if (!ComponentKey.IsValid() && ArchetypeName != ArchetypeBaseName)
+				{
+					// We didn't find either an SCS override or an old AddComponent template override,
+					// so now we look for a match with the base name; this would apply to new AddComponent
+					// node template overrides, which use the base name (non-index form).
+					ComponentKey = ICH->FindKey(ArchetypeBaseName);
+
+					// If we found a match with an SCS key instead, treat this as a collision and throw it
+					// out, because it should have already been found in the first search. This could happen
+					// if an old AddComponent node template's base name collides with an SCS variable name.
+					if (ComponentKey.IsValid() && ComponentKey.IsSCSKey())
+					{
+						ComponentKey = FComponentKey();
+					}
+				}
+
+				// Avoid searching for an invalid key.
+				if (ComponentKey.IsValid())
+				{
+					Archetype = ICH->GetOverridenComponentTemplate(ComponentKey);
+				}
 			}
 
 			if (Archetype == nullptr)
 			{
-				Archetype = static_cast<UObject*>(FindObjectWithOuter(Class, ArchetypeClass, ArchetypeName));
+				// We'll get here if we failed to find the archetype in either the SCS or the ICH. In that case,
+				// we first check the base name case. If that fails, then we may be looking for something other
+				// than an AddComponent template. In that case, we check for an object that shares the instance name.
+				Archetype = static_cast<UObject*>(FindObjectWithOuter(Class, ArchetypeClass, ArchetypeBaseName));
+				if (Archetype == nullptr && ArchetypeName != ArchetypeBaseName)
+				{
+					Archetype = static_cast<UObject*>(FindObjectWithOuter(Class, ArchetypeClass, ArchetypeName));
+				}
+
+				// Walk up the class hierarchy until we either find a match or hit a native class.
 				Class = (Archetype ? nullptr : Cast<UBlueprintGeneratedClass>(Class->GetSuperClass()));
 			}
 			else
@@ -573,9 +636,9 @@ UDynamicBlueprintBinding* UBlueprintGeneratedClass::GetDynamicBindingObject(cons
 {
 	check(ThisClass);
 	UDynamicBlueprintBinding* DynamicBlueprintBinding = nullptr;
-	if (auto BPGC = Cast<UBlueprintGeneratedClass>(ThisClass))
+	if (const UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(ThisClass))
 	{
-		for (auto DynamicBindingObject : BPGC->DynamicBindingObjects)
+		for (UDynamicBlueprintBinding* DynamicBindingObject : BPGC->DynamicBindingObjects)
 		{
 			if (DynamicBindingObject && (DynamicBindingObject->GetClass() == BindingClass))
 			{
@@ -584,11 +647,11 @@ UDynamicBlueprintBinding* UBlueprintGeneratedClass::GetDynamicBindingObject(cons
 			}
 		}
 	}
-	else if (auto DynamicClass = Cast<UDynamicClass>(ThisClass))
+	else if (const UDynamicClass* DynamicClass = Cast<UDynamicClass>(ThisClass))
 	{
-		for (auto MiscObj : DynamicClass->DynamicBindingObjects)
+		for (UObject* MiscObj : DynamicClass->DynamicBindingObjects)
 		{
-			auto DynamicBindingObject = Cast<UDynamicBlueprintBinding>(MiscObj);
+			UDynamicBlueprintBinding* DynamicBindingObject = Cast<UDynamicBlueprintBinding>(MiscObj);
 			if (DynamicBindingObject && (DynamicBindingObject->GetClass() == BindingClass))
 			{
 				DynamicBlueprintBinding = DynamicBindingObject;
@@ -608,9 +671,9 @@ void UBlueprintGeneratedClass::BindDynamicDelegates(const UClass* ThisClass, UOb
 		return;
 	}
 
-	if (auto BPGC = Cast<UBlueprintGeneratedClass>(ThisClass))
+	if (const UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(ThisClass))
 	{
-		for (auto DynamicBindingObject : BPGC->DynamicBindingObjects)
+		for (UDynamicBlueprintBinding* DynamicBindingObject : BPGC->DynamicBindingObjects)
 		{
 			if (ensure(DynamicBindingObject))
 			{
@@ -618,11 +681,11 @@ void UBlueprintGeneratedClass::BindDynamicDelegates(const UClass* ThisClass, UOb
 			}
 		}
 	}
-	else if (auto DynamicClass = Cast<UDynamicClass>(ThisClass))
+	else if (const UDynamicClass* DynamicClass = Cast<UDynamicClass>(ThisClass))
 	{
-		for (auto MiscObj : DynamicClass->DynamicBindingObjects)
+		for (UObject* MiscObj : DynamicClass->DynamicBindingObjects)
 		{
-			auto DynamicBindingObject = Cast<UDynamicBlueprintBinding>(MiscObj);
+			UDynamicBlueprintBinding* DynamicBindingObject = Cast<UDynamicBlueprintBinding>(MiscObj);
 			if (DynamicBindingObject)
 			{
 				DynamicBindingObject->BindDynamicDelegates(InInstance);
@@ -630,7 +693,7 @@ void UBlueprintGeneratedClass::BindDynamicDelegates(const UClass* ThisClass, UOb
 		}
 	}
 
-	if (auto TheSuperClass = ThisClass->GetSuperClass())
+	if (UClass* TheSuperClass = ThisClass->GetSuperClass())
 	{
 		BindDynamicDelegates(TheSuperClass, InInstance);
 	}
@@ -646,9 +709,9 @@ void UBlueprintGeneratedClass::UnbindDynamicDelegates(const UClass* ThisClass, U
 		return;
 	}
 
-	if (auto BPGC = Cast<UBlueprintGeneratedClass>(ThisClass))
+	if (const UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(ThisClass))
 	{
-		for (auto DynamicBindingObject : BPGC->DynamicBindingObjects)
+		for (UDynamicBlueprintBinding* DynamicBindingObject : BPGC->DynamicBindingObjects)
 		{
 			if (ensure(DynamicBindingObject))
 			{
@@ -656,11 +719,11 @@ void UBlueprintGeneratedClass::UnbindDynamicDelegates(const UClass* ThisClass, U
 			}
 		}
 	}
-	else if (auto DynamicClass = Cast<UDynamicClass>(ThisClass))
+	else if (const UDynamicClass* DynamicClass = Cast<UDynamicClass>(ThisClass))
 	{
-		for (auto MiscObj : DynamicClass->DynamicBindingObjects)
+		for (UObject* MiscObj : DynamicClass->DynamicBindingObjects)
 		{
-			auto DynamicBindingObject = Cast<UDynamicBlueprintBinding>(MiscObj);
+			UDynamicBlueprintBinding* DynamicBindingObject = Cast<UDynamicBlueprintBinding>(MiscObj);
 			if (DynamicBindingObject)
 			{
 				DynamicBindingObject->UnbindDynamicDelegates(InInstance);
@@ -668,7 +731,7 @@ void UBlueprintGeneratedClass::UnbindDynamicDelegates(const UClass* ThisClass, U
 		}
 	}
 
-	if (auto TheSuperClass = ThisClass->GetSuperClass())
+	if (UClass* TheSuperClass = ThisClass->GetSuperClass())
 	{
 		UnbindDynamicDelegates(TheSuperClass, InInstance);
 	}
@@ -841,9 +904,9 @@ void UBlueprintGeneratedClass::CreateComponentsForActor(const UClass* ThisClass,
 	check(!Actor->IsTemplate());
 	check(!Actor->IsPendingKill());
 
-	if (auto BPGC = Cast<const UBlueprintGeneratedClass>(ThisClass))
+	if (const UBlueprintGeneratedClass* BPGC = Cast<const UBlueprintGeneratedClass>(ThisClass))
 	{
-		for (auto TimelineTemplate : BPGC->Timelines)
+		for (UTimelineTemplate* TimelineTemplate : BPGC->Timelines)
 		{
 			// Not fatal if NULL, but shouldn't happen and ignored if not wired up in graph
 			if (TimelineTemplate && TimelineTemplate->bValidatedAsWired)
@@ -852,11 +915,11 @@ void UBlueprintGeneratedClass::CreateComponentsForActor(const UClass* ThisClass,
 			}
 		}
 	}
-	else if (auto DynamicClass = Cast<UDynamicClass>(ThisClass))
+	else if (const UDynamicClass* DynamicClass = Cast<UDynamicClass>(ThisClass))
 	{
-		for (auto MiscObj : DynamicClass->Timelines)
+		for (UObject* MiscObj : DynamicClass->Timelines)
 		{
-			auto TimelineTemplate = Cast<const UTimelineTemplate>(MiscObj);
+			const UTimelineTemplate* TimelineTemplate = Cast<const UTimelineTemplate>(MiscObj);
 			// Not fatal if NULL, but shouldn't happen and ignored if not wired up in graph
 			if (TimelineTemplate && TimelineTemplate->bValidatedAsWired)
 			{
@@ -872,13 +935,13 @@ uint8* UBlueprintGeneratedClass::GetPersistentUberGraphFrame(UObject* Obj, UFunc
 	{
 		if (UberGraphFunction == FuncToCheck)
 		{
-			auto PointerToUberGraphFrame = UberGraphFramePointerProperty->ContainerPtrToValuePtr<FPointerToUberGraphFrame>(Obj);
+			FPointerToUberGraphFrame* PointerToUberGraphFrame = UberGraphFramePointerProperty->ContainerPtrToValuePtr<FPointerToUberGraphFrame>(Obj);
 			checkSlow(PointerToUberGraphFrame);
 			ensure(PointerToUberGraphFrame->RawPointer);
 			return PointerToUberGraphFrame->RawPointer;
 		}
 	}
-	auto ParentClass = GetSuperClass();
+	UClass* ParentClass = GetSuperClass();
 	checkSlow(ParentClass);
 	return ParentClass->GetPersistentUberGraphFrame(Obj, FuncToCheck);
 }
@@ -888,7 +951,7 @@ void UBlueprintGeneratedClass::CreatePersistentUberGraphFrame(UObject* Obj, bool
 	ensure(!UberGraphFramePointerProperty == !UberGraphFunction);
 	if (Obj && UsePersistentUberGraphFrame() && UberGraphFramePointerProperty && UberGraphFunction)
 	{
-		auto PointerToUberGraphFrame = UberGraphFramePointerProperty->ContainerPtrToValuePtr<FPointerToUberGraphFrame>(Obj);
+		FPointerToUberGraphFrame* PointerToUberGraphFrame = UberGraphFramePointerProperty->ContainerPtrToValuePtr<FPointerToUberGraphFrame>(Obj);
 		check(PointerToUberGraphFrame);
 
 		if ( !ensureMsgf(bCreateOnlyIfEmpty || !PointerToUberGraphFrame->RawPointer
@@ -927,7 +990,7 @@ void UBlueprintGeneratedClass::CreatePersistentUberGraphFrame(UObject* Obj, bool
 
 	if (!bSkipSuperClass)
 	{
-		auto ParentClass = GetSuperClass();
+		UClass* ParentClass = GetSuperClass();
 		checkSlow(ParentClass);
 		ParentClass->CreatePersistentUberGraphFrame(Obj, bCreateOnlyIfEmpty);
 	}
@@ -938,9 +1001,9 @@ void UBlueprintGeneratedClass::DestroyPersistentUberGraphFrame(UObject* Obj, boo
 	ensure(!UberGraphFramePointerProperty == !UberGraphFunction);
 	if (Obj && UsePersistentUberGraphFrame() && UberGraphFramePointerProperty && UberGraphFunction)
 	{
-		auto PointerToUberGraphFrame = UberGraphFramePointerProperty->ContainerPtrToValuePtr<FPointerToUberGraphFrame>(Obj);
+		FPointerToUberGraphFrame* PointerToUberGraphFrame = UberGraphFramePointerProperty->ContainerPtrToValuePtr<FPointerToUberGraphFrame>(Obj);
 		checkSlow(PointerToUberGraphFrame);
-		auto FrameMemory = PointerToUberGraphFrame->RawPointer;
+		uint8* FrameMemory = PointerToUberGraphFrame->RawPointer;
 		PointerToUberGraphFrame->RawPointer = NULL;
 		if (FrameMemory)
 		{
@@ -959,9 +1022,32 @@ void UBlueprintGeneratedClass::DestroyPersistentUberGraphFrame(UObject* Obj, boo
 
 	if (!bSkipSuperClass)
 	{
-		auto ParentClass = GetSuperClass();
+		UClass* ParentClass = GetSuperClass();
 		checkSlow(ParentClass);
 		ParentClass->DestroyPersistentUberGraphFrame(Obj);
+	}
+}
+
+void UBlueprintGeneratedClass::GetPreloadDependencies(TArray<UObject*>& OutDeps)
+{
+	Super::GetPreloadDependencies(OutDeps);
+	for (UField* Field = Children; Field; Field = Field->Next)
+	{
+		OutDeps.Add(Field);
+	}
+	OutDeps.Add(GetSuperClass());
+	OutDeps.Add(GetSuperClass()->GetDefaultObject());
+
+	OutDeps.Add(UberGraphFunction);
+	OutDeps.Add(GetInheritableComponentHandler());
+	UObject *CDO = GetDefaultObject();
+	if (CDO)
+	{
+		ForEachObjectWithOuter(CDO, [&OutDeps](UObject* SubObj)
+		{
+			OutDeps.Add(SubObj->GetClass());
+			OutDeps.Add(SubObj->GetArchetype());
+		});
 	}
 }
 
@@ -995,7 +1081,7 @@ void UBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProperties
 	{
 		Ar.Preload(UberGraphFunction);
 
-		for (auto Property : TFieldRange<UStructProperty>(this, EFieldIteratorFlags::ExcludeSuper))
+		for (UStructProperty* Property : TFieldRange<UStructProperty>(this, EFieldIteratorFlags::ExcludeSuper))
 		{
 			if (Property->GetFName() == GetUberGraphFrameName())
 			{
@@ -1068,11 +1154,11 @@ void UBlueprintGeneratedClass::AddReferencedObjectsInUbergraphFrame(UObject* InT
 	checkSlow(InThis);
 	for (UClass* CurrentClass = InThis->GetClass(); CurrentClass; CurrentClass = CurrentClass->GetSuperClass())
 	{
-		if (auto BPGC = Cast<UBlueprintGeneratedClass>(CurrentClass))
+		if (UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(CurrentClass))
 		{
 			if (BPGC->UberGraphFramePointerProperty)
 			{
-				auto PointerToUberGraphFrame = BPGC->UberGraphFramePointerProperty->ContainerPtrToValuePtr<FPointerToUberGraphFrame>(InThis);
+				FPointerToUberGraphFrame* PointerToUberGraphFrame = BPGC->UberGraphFramePointerProperty->ContainerPtrToValuePtr<FPointerToUberGraphFrame>(InThis);
 				checkSlow(PointerToUberGraphFrame)
 				if (PointerToUberGraphFrame->RawPointer)
 				{
@@ -1133,7 +1219,8 @@ void UBlueprintGeneratedClass::GetLifetimeBlueprintReplicationList(TArray<FLifet
 		if (Prop != NULL && Prop->GetPropertyFlags() & CPF_Net)
 		{
 			PropertiesLeft--;
-			OutLifetimeProps.Add(FLifetimeProperty(Prop->RepIndex));
+			
+			OutLifetimeProps.AddUnique(FLifetimeProperty(Prop->RepIndex, Prop->GetBlueprintReplicationCondition()));
 		}
 	}
 

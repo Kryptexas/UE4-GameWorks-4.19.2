@@ -44,6 +44,9 @@ private:
 	FText HandleDirectoryTitleText() const;
 	FText HandleDirectoryPathText() const;
 
+	// Callback for getting the hint text which contains the default project output path
+	FText HandleHintPathText() const;
+
 	// Callback for changing the selected profile in the profile manager.
 	void HandleProfileManagerProfileSelected( const ILauncherProfilePtr& SelectedProfile, const ILauncherProfilePtr& PreviousProfile );
 

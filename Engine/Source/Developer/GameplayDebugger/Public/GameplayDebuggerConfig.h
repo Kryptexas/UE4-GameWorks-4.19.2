@@ -60,7 +60,7 @@ struct FGameplayDebuggerCategoryConfig
 	UPROPERTY(EditAnywhere, Category = Settings, EditFixedSize)
 	TArray<FGameplayDebuggerInputConfig> InputHandlers;
 
-	FGameplayDebuggerCategoryConfig() : ActiveInGame(EGameplayDebuggerOverrideMode::UseDefault), ActiveInSimulate(EGameplayDebuggerOverrideMode::UseDefault) {}
+	FGameplayDebuggerCategoryConfig() : ActiveInGame(EGameplayDebuggerOverrideMode::UseDefault), ActiveInSimulate(EGameplayDebuggerOverrideMode::UseDefault), bOverrideSlotIdx(false) {}
 };
 
 USTRUCT()

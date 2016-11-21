@@ -7,33 +7,12 @@
 namespace Audio
 {
 	/**
-	 * FAudioMixerCallbackWorker
-	 */
-
-	FAudioMixerCallbackWorker::FAudioMixerCallbackWorker(IAudioMixerPlatformInterface* InMixerPlatform, TArray<float>* InOutBuffer)
-		: MixerPlatform(InMixerPlatform)
-		, OutBuffer(InOutBuffer)
-	{
-		check(MixerPlatform);
-		check(OutBuffer);
-	}
-
-	void FAudioMixerCallbackWorker::DoWork()
-	{
-		// Zero the buffer before processing a new one
-		check(OutBuffer);
-		FPlatformMemory::Memzero((void*)OutBuffer->GetData(), OutBuffer->Num() * sizeof(float));
-
-		// Call into multi-platform mixer for new buffer
-		MixerPlatform->GenerateBuffer(*OutBuffer);
-	}
-
-	/**
 	 * IAudioMixerPlatformInterface
 	 */
 
 	IAudioMixerPlatformInterface::IAudioMixerPlatformInterface()
-		: CallbackTask(nullptr)
+		: AudioRenderThread(nullptr)
+		, AudioRenderEvent(nullptr)
 		, CurrentBufferIndex(0)
 		, LastError(TEXT("None"))
 	{
@@ -47,31 +26,18 @@ namespace Audio
 
 	void IAudioMixerPlatformInterface::ReadNextBuffer()
 	{
-		if (AudioStreamInfo.StreamState != EAudioOutputStreamState::Stopping)
+		AUDIO_MIXER_CHECK(AudioStreamInfo.StreamState == EAudioOutputStreamState::Running);
+
 		{
-			// Make sure we have a pending task in the read index
-			check(CallbackTask);
+			FScopeLock Lock(&AudioRenderCritSect);
 
-			// Make sure it's done
-			CallbackTask->EnsureCompletion();
-
-			// Get the processed buffer
-			const TArray<float>* Buffer = CallbackTask->GetTask().GetBuffer();
-
-			// Submit the buffer to the platform output device
-			check(Buffer);
-			SubmitBuffer(*Buffer);
-
-			// Clean up the task
-			delete CallbackTask;
-
-			// Create a new task and start it
-			CallbackTask = new FAsyncAudioMixerCallbackTask(this, &OutputBuffers[CurrentBufferIndex]);
-			CallbackTask->StartBackgroundTask();
+			SubmitBuffer(OutputBuffers[CurrentBufferIndex]);
 
 			// Increment the buffer index
 			CurrentBufferIndex = (CurrentBufferIndex + 1) % NumMixerBuffers;
 		}
+
+		AudioRenderEvent->Trigger();
 	}
 
 	void IAudioMixerPlatformInterface::BeginGeneratingAudio()
@@ -87,11 +53,57 @@ namespace Audio
 		// Submit the first empty buffer. This will begin audio callback notifications on some platforms.
 		SubmitBuffer(OutputBuffers[CurrentBufferIndex++]);
 
-		// Launch the task to begin generating audio
-		CallbackTask = new FAsyncAudioMixerCallbackTask(this, &OutputBuffers[CurrentBufferIndex]);
-		CallbackTask->StartBackgroundTask();
+		AudioStreamInfo.StreamState = EAudioOutputStreamState::Running;
+		check(AudioRenderEvent == nullptr);
+		AudioRenderEvent = FPlatformProcess::GetSynchEventFromPool();
+		check(AudioRenderThread == nullptr);
+		AudioRenderThread = FRunnableThread::Create(this, TEXT("AudioMixerRenderThread"), 0, TPri_AboveNormal);
 	}
 
+	void IAudioMixerPlatformInterface::StopGeneratingAudio()
+	{
+		// Stop the FRunnable thread
+		{
+			FScopeLock Lock(&AudioRenderCritSect);
+
+			if (AudioStreamInfo.StreamState != EAudioOutputStreamState::Stopped)
+			{
+				AudioStreamInfo.StreamState = EAudioOutputStreamState::Stopping;
+			}
+
+			// Make sure the thread wakes up
+			AudioRenderEvent->Trigger();
+		}
+
+		AudioRenderThread->WaitForCompletion();
+		check(AudioStreamInfo.StreamState == EAudioOutputStreamState::Stopped);
+
+		delete AudioRenderThread;
+		AudioRenderThread = nullptr;
+
+		FPlatformProcess::ReturnSynchEventToPool(AudioRenderEvent);
+		AudioRenderEvent = nullptr;
+	}
+
+	uint32 IAudioMixerPlatformInterface::Run()
+	{
+		while (AudioStreamInfo.StreamState != EAudioOutputStreamState::Stopping)
+		{
+			{
+				FScopeLock Lock(&AudioRenderCritSect);
+
+				// Zero the current output buffer
+				FPlatformMemory::Memzero(OutputBuffers[CurrentBufferIndex].GetData(), OutputBuffers[CurrentBufferIndex].Num() * sizeof(float));
+				AudioStreamInfo.AudioMixer->OnProcessAudioStream(OutputBuffers[CurrentBufferIndex]);
+			}
+
+			// Note that this wait has to be outside the scope lock to avoid deadlocking
+			AudioRenderEvent->Wait();
+		}
+
+		AudioStreamInfo.StreamState = EAudioOutputStreamState::Stopped;
+		return 0;
+	}
 
 	uint32 IAudioMixerPlatformInterface::GetNumBytesForFormat(const EAudioMixerStreamDataFormat::Type DataFormat)
 	{

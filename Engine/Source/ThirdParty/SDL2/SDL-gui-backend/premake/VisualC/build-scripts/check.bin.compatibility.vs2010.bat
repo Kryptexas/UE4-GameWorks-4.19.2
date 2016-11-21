@@ -1,16 +1,13 @@
 @echo off
 title Building Premake VS2010 Environment...
 call build.all.vs2010.bat
-
 title Building SDL VS2010 Environment...
 cd %~dp0
 cd ..\..\..\VisualC
 msbuild /m SDL_VS2010.sln /t:Clean,Build /property:Configuration=Debug
 pause
-
 title Running SDL VS2010 tests with premake SDL2.dll...
 cd tests
-
 call :pass checkkeys
 call :pass loopwave
 call :pass testatomic
@@ -54,13 +51,10 @@ call :pass testtimer
 call :pass testver
 call :pass testwm2
 call :pass torturethread
-
 :: leave the tests directory
 cd ..
-
 :: exit batch
 goto :eof
-
 :: pass label (similar to pass function in the Xcode tests command script)
 :pass
 :: if it does not exist, break procedure

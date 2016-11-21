@@ -9,6 +9,7 @@
 #include "BlueprintActionDatabaseRegistrar.h"
 #include "BlueprintActionFilter.h"	// for FBlueprintActionContext
 #include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
+#include "Kismet/KismetMathLibrary.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_MakeStruct"
 
@@ -17,8 +18,17 @@
 
 
 UK2Node_MakeStruct::FMakeStructPinManager::FMakeStructPinManager(const uint8* InSampleStructMemory)
-	: FStructOperationOptionalPinManager(), SampleStructMemory(InSampleStructMemory)
+	: FStructOperationOptionalPinManager()
+	, SampleStructMemory(InSampleStructMemory)
+	, bHasAdvancedPins(false)
 {
+}
+
+void UK2Node_MakeStruct::FMakeStructPinManager::GetRecordDefaults(UProperty* TestProperty, FOptionalPinFromProperty& Record) const
+{
+	UK2Node_StructOperation::FStructOperationOptionalPinManager::GetRecordDefaults(TestProperty, Record);
+	Record.bIsMarkedForAdvancedDisplay = TestProperty ? TestProperty->HasAnyPropertyFlags(CPF_AdvancedDisplay) : false;
+	bHasAdvancedPins |= Record.bIsMarkedForAdvancedDisplay;
 }
 
 void UK2Node_MakeStruct::FMakeStructPinManager::CustomizePinData(UEdGraphPin* Pin, FName SourcePropertyName, int32 ArrayIndex, UProperty* Property) const
@@ -66,6 +76,12 @@ void UK2Node_MakeStruct::FMakeStructPinManager::CustomizePinData(UEdGraphPin* Pi
 		const bool bIsObject = Property->IsA<UObjectPropertyBase>();
 		checkSlow(bIsObject == ((Schema->PC_Object == Pin->PinType.PinCategory || Schema->PC_Class == Pin->PinType.PinCategory || 
 			Schema->PC_Asset == Pin->PinType.PinCategory || Schema->PC_AssetClass == Pin->PinType.PinCategory) && !Pin->PinType.bIsArray));
+
+		if (Property->HasAnyPropertyFlags(CPF_AdvancedDisplay))
+		{
+			Pin->bAdvancedView = true;
+			bHasAdvancedPins = true;
+		}
 
 		const FString& MetadataDefaultValue = Property->GetMetaData(TEXT("MakeStructureDefaultValue"));
 		if (!MetadataDefaultValue.IsEmpty())
@@ -130,28 +146,32 @@ void UK2Node_MakeStruct::AllocateDefaultPins()
 	{
 		CreatePin(EGPD_Output, Schema->PC_Struct, TEXT(""), StructType, false, false, StructType->GetName());
 		
+		bool bHasAdvancedPins = false;
 		{
 			FStructOnScope StructOnScope(Cast<UScriptStruct>(StructType));
 			FMakeStructPinManager OptionalPinManager(StructOnScope.GetStructMemory());
 			OptionalPinManager.RebuildPropertyList(ShowPinForProperties, StructType);
 			OptionalPinManager.CreateVisiblePins(ShowPinForProperties, StructType, EGPD_Input, this);
+
+			bHasAdvancedPins = OptionalPinManager.HasAdvancedPins();
 		}
 
 		// When struct has a lot of fields, mark their pins as advanced
-		if(Pins.Num() > 5)
+		if(!bHasAdvancedPins && Pins.Num() > 5)
 		{
-			if(ENodeAdvancedPins::NoPins == AdvancedPinDisplay)
-			{
-				AdvancedPinDisplay = ENodeAdvancedPins::Hidden;
-			}
-
 			for(int32 PinIndex = 3; PinIndex < Pins.Num(); ++PinIndex)
 			{
 				if(UEdGraphPin * EdGraphPin = Pins[PinIndex])
 				{
 					EdGraphPin->bAdvancedView = true;
+					bHasAdvancedPins = true;
 				}
 			}
+		}
+
+		if (bHasAdvancedPins && (ENodeAdvancedPins::NoPins == AdvancedPinDisplay))
+		{
+			AdvancedPinDisplay = ENodeAdvancedPins::Hidden;
 		}
 	}
 }
@@ -185,11 +205,6 @@ void UK2Node_MakeStruct::ValidateNodeDuringCompilation(class FCompilerResultsLog
 					MessageLog.Warning(*LOCTEXT("StaticArray_Warning", "@@ - the native property is a static array, which is not supported by blueprints").ToString(), Pin);
 				}
 			}
-		}
-
-		if (!bHasAnyBlueprintVisibleProperty)
-		{
-			MessageLog.Warning(*LOCTEXT("StructHasNoBPVisibleProperties_Warning", "@@ has no property tagged as BlueprintReadWrite. The node will be removed in a future release.").ToString(), this);
 		}
 
 		if (!bMadeAfterOverridePinRemoval)
@@ -445,5 +460,57 @@ void UK2Node_MakeStruct::Serialize(FArchive& Ar)
 		}
 	}
 }
+
+void UK2Node_MakeStruct::ConvertDeprecatedNode(UEdGraph* Graph, bool bOnlySafeChanges)
+{
+	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+
+	// User may have since deleted the struct type
+	if (StructType == nullptr)
+	{
+		return;
+	}
+
+	// Check to see if the struct has a native make/break that we should try to convert to.
+	if (StructType->HasMetaData(FBlueprintMetadata::MD_NativeMakeFunction))
+	{
+		UFunction* MakeNodeFunction = nullptr;
+
+		// If any pins need to change their names during the conversion, add them to the map.
+		TMap<FString, FString> OldPinToNewPinMap;
+
+		if (StructType == TBaseStructure<FRotator>::Get())
+		{
+			MakeNodeFunction = UKismetMathLibrary::StaticClass()->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UKismetMathLibrary, MakeRotator));
+			OldPinToNewPinMap.Add(TEXT("Rotator"), TEXT("ReturnValue"));
+		}
+		else if (StructType == TBaseStructure<FVector>::Get())
+		{
+			MakeNodeFunction = UKismetMathLibrary::StaticClass()->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UKismetMathLibrary, MakeVector));
+			OldPinToNewPinMap.Add(TEXT("Vector"), TEXT("ReturnValue"));
+		}
+		else if (StructType == TBaseStructure<FVector2D>::Get())
+		{
+			MakeNodeFunction = UKismetMathLibrary::StaticClass()->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UKismetMathLibrary, MakeVector2D));
+			OldPinToNewPinMap.Add(TEXT("Vector2D"), TEXT("ReturnValue"));
+		}
+		else
+		{
+			const FString& MetaData = StructType->GetMetaData(FBlueprintMetadata::MD_NativeMakeFunction);
+			MakeNodeFunction = FindObject<UFunction>(nullptr, *MetaData, true);
+
+			if (MakeNodeFunction)
+			{
+				OldPinToNewPinMap.Add(*StructType->GetName(), TEXT("ReturnValue"));
+			}
+		}
+
+		if (MakeNodeFunction)
+		{
+			Schema->ConvertDeprecatedNodeToFunctionCall(this, MakeNodeFunction, OldPinToNewPinMap, Graph);
+		}
+	}
+}
+
 
 #undef LOCTEXT_NAMESPACE

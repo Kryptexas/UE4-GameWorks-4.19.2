@@ -1,16 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MessagingDebuggerPrivatePCH.h"
-#include "Runtime/Core/Public/Features/IModularFeatures.h"
-#include "SDockTab.h"
-
-#if WITH_EDITOR
-	#include "WorkspaceMenuStructureModule.h"
-#endif
+#include "MessagingDebuggerPCH.h"
+#include "MessagingDebuggerCommands.h"
+#include "MessagingDebuggerStyle.h"
+#include "SMessagingDebugger.h"
 
 
 #define LOCTEXT_NAMESPACE "FMessagingDebuggerModule"
-
 
 static const FName MessagingDebuggerTabName("MessagingDebugger");
 
@@ -24,7 +20,7 @@ class FMessagingDebuggerModule
 {
 public:
 
-	// IModuleInterface interface
+	//~ IModuleInterface interface
 	
 	virtual void StartupModule() override
 	{
@@ -53,7 +49,7 @@ public:
 private:
 
 	/**
-	 * Creates a new messaging debugger tab.
+	 * Create a new messaging debugger tab.
 	 *
 	 * @param SpawnTabArgs The arguments for the tab to spawn.
 	 * @return The spawned tab.
@@ -64,7 +60,7 @@ private:
 			.TabRole(ETabRole::MajorTab);
 
 		TSharedPtr<SWidget> TabContent;
-		IMessageBusPtr MessageBus = IMessagingModule::Get().GetDefaultBus();
+		TSharedPtr<IMessageBus, ESPMode::ThreadSafe> MessageBus = IMessagingModule::Get().GetDefaultBus();
 
 		if (MessageBus.IsValid())
 		{
@@ -83,7 +79,7 @@ private:
 
 private:
 
-	/** Holds the plug-ins style set. */
+	/** The plug-ins style set. */
 	TSharedPtr<ISlateStyle> Style;
 };
 

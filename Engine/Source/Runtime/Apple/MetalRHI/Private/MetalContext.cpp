@@ -21,16 +21,41 @@ static FAutoConsoleVariableRef CVarMetalCommandBufferCommitThreshold(
 	TEXT("When enabled (> 0) if the command buffer has more than this number of draw/dispatch command encoded then it will be committed at the next encoder boundary to keep the GPU busy. (Default: 100, set to <= 0 to disable)"));
 
 #if PLATFORM_MAC
-static int32 GMetalCommandQueueSize = 256;
+static int32 GMetalCommandQueueSize = 5120; // This number is large due to texture streaming - currently each texture is its own command-buffer.
+// The whole MetalRHI needs to be changed to use MTLHeaps/MTLFences & reworked so that operations with the same synchronisation requirements are collapsed into a single blit command-encoder/buffer.
 #else
 static int32 GMetalCommandQueueSize = 64;
 #endif
 static FAutoConsoleVariableRef CVarMetalCommandQueueSize(
 	TEXT("rhi.Metal.CommandQueueSize"),
 	GMetalCommandQueueSize,
-	TEXT("The maximum number of command-buffers that can be allocated from each command-queue. (Default: 256 Mac, 64 iOS/tvOS)"));
+	TEXT("The maximum number of command-buffers that can be allocated from each command-queue. (Default: 5120 Mac, 64 iOS/tvOS)"));
 
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
+int32 GMetalBufferScribble = 0; // Deliberately not static, see InitFrame_UniformBufferPoolCleanup
+static FAutoConsoleVariableRef CVarMetalBufferScribble(
+	TEXT("rhi.Metal.BufferScribble"),
+	GMetalBufferScribble,
+	TEXT("Debug option: when enabled will scribble over the buffer contents with 0xCD when releasing Shared & Managed buffer objects. (Default: 0, Off)"));
+
+int32 GMetalBufferZeroFill = 0; // Deliberately not static
+static FAutoConsoleVariableRef CVarMetalBufferZeroFill(
+	TEXT("rhi.Metal.BufferZeroFill"),
+	GMetalBufferZeroFill,
+	TEXT("Debug option: when enabled will fill the buffer contents with 0 when allocating Shared & Managed buffer objects, or regions thereof. (Default: 0, Off)"));
+
+static int32 GMetalResourcePurgeOnDelete = 0;
+static FAutoConsoleVariableRef CVarMetalResourcePurgeOnDelete(
+	TEXT("rhi.Metal.ResourcePurgeOnDelete"),
+	GMetalResourcePurgeOnDelete,
+	TEXT("Debug option: when enabled all MTLResource objects will have their backing stores purged on release - any subsequent access will be invalid and cause a command-buffer failure. Useful for making intermittent resource lifetime errors more common and easier to track. (Default: 0, Off)"));
+
+static int32 GMetalResourceDeferDeleteNumFrames = 0;
+static FAutoConsoleVariableRef CVarMetalResourceDeferDeleteNumFrames(
+	TEXT("rhi.Metal.ResourceDeferDeleteNumFrames"),
+	GMetalResourcePurgeOnDelete,
+	TEXT("Debug option: set to the number of frames that must have passed before resource free-lists are processed and resources disposed of. (Default: 0, Off)"));
+
 static int32 GMetalRuntimeDebugLevel = 0;
 static FAutoConsoleVariableRef CVarMetalRuntimeDebugLevel(
 	TEXT("rhi.Metal.RuntimeDebugLevel"),
@@ -186,10 +211,10 @@ static id<MTLDevice> GetMTLDevice(uint32& DeviceIndex)
 				bool bMatchesName = (NameComponents.Num() > 0);
 				for (FString& Component : NameComponents)
 				{
-					bMatchesName &= FString(SelectedDevice.name).Contains(Component);
+					bMatchesName &= FString(Device.name).Contains(Component);
 				}
-				if((Device.headless == GPU.GPUHeadless && GPU.GPUVendorId == 0x1002) || FString(Device.name).Contains(FString(GPU.GPUName).Trim()))
-				{
+				if((Device.headless == GPU.GPUHeadless || GPU.GPUVendorId != 0x1002) && bMatchesName)
+                {
 					DeviceIndex = ExplicitRendererId;
 					SelectedDevice = Device;
 					break;
@@ -219,8 +244,8 @@ static id<MTLDevice> GetMTLDevice(uint32& DeviceIndex)
 				{
 					bMatchesName &= FString(SelectedDevice.name).Contains(Component);
 				}
-				if((SelectedDevice.headless == GPU.GPUHeadless && GPU.GPUVendorId == 0x1002) || bMatchesName)
-				{
+				if((SelectedDevice.headless == GPU.GPUHeadless || GPU.GPUVendorId != 0x1002) && bMatchesName)
+                {
 					DeviceIndex = i;
 					bFoundDefault = true;
 					break;
@@ -275,51 +300,10 @@ FMetalDeviceContext::FMetalDeviceContext(id<MTLDevice> MetalDevice, uint32 InDev
 , FreeBuffers([NSMutableSet new])
 , SceneFrameCounter(0)
 , FrameCounter(0)
-, Features(0)
 , ActiveContexts(1)
 {
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 	CommandQueue.SetRuntimeDebuggingLevel(GMetalRuntimeDebugLevel);
-#endif
-	
-#if PLATFORM_IOS
-	NSOperatingSystemVersion Vers = [[NSProcessInfo processInfo] operatingSystemVersion];
-	if(Vers.majorVersion >= 9)
-	{
-		Features = EMetalFeaturesSeparateStencil | EMetalFeaturesSetBufferOffset | EMetalFeaturesResourceOptions | EMetalFeaturesDepthStencilBlitOptions;
-
-#if PLATFORM_TVOS
-		Features |= EMetalFeaturesDepthClipMode;
-		if(FParse::Param(FCommandLine::Get(),TEXT("metalv2")) || [Device supportsFeatureSet:MTLFeatureSet_tvOS_GPUFamily1_v2])
-		{
-			Features |= EMetalFeaturesStencilView;
-		}
-#else
-		{
-			Features |= EMetalFeaturesDepthClipMode;
-		}
-		
-		if ([Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v1])
-		{
-			Features |= EMetalFeaturesCountingQueries | EMetalFeaturesBaseVertexInstance | EMetalFeaturesIndirectBuffer;
-		}
-		
-		if(FParse::Param(FCommandLine::Get(),TEXT("metalv2")) || [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v2] || [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily2_v3] || [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily1_v3])
-		{
-			Features |= EMetalFeaturesStencilView;
-		}
-#endif
-	}
-	else if(Vers.majorVersion == 8 && Vers.minorVersion >= 3)
-	{
-		Features = EMetalFeaturesSeparateStencil | EMetalFeaturesSetBufferOffset;
-	}
-#else // Assume that Mac & other platforms all support these from the start. They can diverge later.
-	Features = EMetalFeaturesSeparateStencil | EMetalFeaturesSetBufferOffset | EMetalFeaturesDepthClipMode | EMetalFeaturesResourceOptions | EMetalFeaturesDepthStencilBlitOptions | EMetalFeaturesCountingQueries | EMetalFeaturesBaseVertexInstance | EMetalFeaturesIndirectBuffer | EMetalFeaturesLayeredRendering;
-    if (FParse::Param(FCommandLine::Get(),TEXT("metalv2")) || [Device supportsFeatureSet:MTLFeatureSet_OSX_GPUFamily1_v2])
-    {
-        Features |= EMetalFeaturesStencilView | EMetalFeaturesDepth16;
-    }
 #endif
 	
 	// Hook into the ios framepacer, if it's enabled for this platform.
@@ -351,18 +335,48 @@ void FMetalDeviceContext::BeginFrame()
 	FPlatformTLS::SetTlsValue(CurrentContextTLSSlot, this);
 }
 
+#if METAL_DEBUG_OPTIONS
+void ScribbleBuffer(id<MTLBuffer> Buffer)
+{
+#if PLATFORM_MAC
+	if (Buffer.storageMode != MTLStorageModePrivate)
+#endif
+	{
+		FMemory::Memset(Buffer.contents, 0xCD, Buffer.length);
+#if PLATFORM_MAC
+		if (Buffer.storageMode == MTLStorageModeManaged)
+		{
+			[Buffer didModifyRange:NSMakeRange(0, Buffer.length)];
+		}
+#endif
+	}
+}
+#endif
+
 void FMetalDeviceContext::ClearFreeList()
 {
 	uint32 Index = 0;
 	while(Index < DelayedFreeLists.Num())
 	{
 		FMetalDelayedFreeList* Pair = DelayedFreeLists[Index];
-		if(dispatch_semaphore_wait(Pair->Signal, DISPATCH_TIME_NOW) == 0)
+		if(METAL_DEBUG_OPTION(Pair->DeferCount-- <= 0 &&) dispatch_semaphore_wait(Pair->Signal, DISPATCH_TIME_NOW) == 0)
 		{
 			dispatch_release(Pair->Signal);
 			for( id Entry : Pair->FreeList )
 			{
 				CommandEncoder.UnbindObject(Entry);
+				
+#if METAL_DEBUG_OPTIONS
+				if (GMetalBufferScribble && [Entry conformsToProtocol:@protocol(MTLBuffer)])
+				{
+					ScribbleBuffer((id<MTLBuffer>)Entry);
+				}
+				if (GMetalResourcePurgeOnDelete && [Entry conformsToProtocol:@protocol(MTLResource)])
+				{
+					[((id<MTLResource>)Entry) setPurgeableState:MTLPurgeableStateEmpty];
+				}
+#endif
+				
 				[Entry release];
 			}
 			{
@@ -374,6 +388,17 @@ void FMetalDeviceContext::ClearFreeList()
 					INC_DWORD_STAT_BY(STAT_MetalBufferMemFreed, Buffer.length);
 					INC_MEMORY_STAT_BY(STAT_MetalFreePooledBufferMem, Buffer.length);
 					
+#if METAL_DEBUG_OPTIONS
+					if (GMetalBufferScribble)
+					{
+						ScribbleBuffer(Buffer);
+					}
+					if (GMetalResourcePurgeOnDelete)
+					{
+						[Buffer setPurgeableState:MTLPurgeableStateEmpty];
+					}
+#endif
+				
 					BufferPool.ReleasePooledResource(Buffer);
 				}
 				[Pair->FreeBuffers release];
@@ -435,6 +460,7 @@ void FMetalDeviceContext::EndDrawingViewport(FMetalViewport* Viewport, bool bPre
 	// kick the whole buffer
 	FMetalDelayedFreeList* NewList = new FMetalDelayedFreeList;
 	NewList->Signal = dispatch_semaphore_create(0);
+	METAL_DEBUG_OPTION(NewList->DeferCount = GMetalResourceDeferDeleteNumFrames);
 	if(GUseRHIThread)
 	{
 		FreeListMutex.Lock();
@@ -549,7 +575,7 @@ void FMetalDeviceContext::EndDrawingViewport(FMetalViewport* Viewport, bool bPre
 	
 	// Latched update of whether to use runtime debugging features
 	uint32 SubmitFlags = EMetalSubmitFlagsNone;
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 	if (GMetalRuntimeDebugLevel != CommandQueue.GetRuntimeDebuggingLevel())
 	{
 		CommandQueue.SetRuntimeDebuggingLevel(GMetalRuntimeDebugLevel);
@@ -613,7 +639,12 @@ FMetalPooledBuffer FMetalDeviceContext::CreatePooledBuffer(FMetalPooledBufferArg
 	{
 		FScopeLock Lock(&PoolMutex);
 		Buffer = BufferPool.CreatePooledResource(Args);
-		//[Buffer.Buffer setPurgeableState:MTLPurgeableStateNonVolatile];
+#if METAL_DEBUG_OPTIONS
+		if (GMetalResourcePurgeOnDelete)
+		{
+			[Buffer.Buffer setPurgeableState:MTLPurgeableStateNonVolatile];
+		}
+#endif
 	}
 	else
 	{
@@ -633,6 +664,13 @@ FMetalPooledBuffer FMetalDeviceContext::CreatePooledBuffer(FMetalPooledBufferArg
 	INC_DWORD_STAT(STAT_MetalBufferAlloctations);
 	INC_DWORD_STAT_BY(STAT_MetalBufferMemAlloc, Buffer.Buffer.length);
 	DEC_MEMORY_STAT_BY(STAT_MetalFreePooledBufferMem, Buffer.Buffer.length);
+	
+#if METAL_DEBUG_OPTIONS
+	if (GMetalBufferZeroFill && Args.Storage != MTLStorageModePrivate)
+	{
+		FMemory::Memset([Buffer.Buffer contents], 0x0, Buffer.Buffer.length);
+	}
+#endif
 	
 	return Buffer;
 }
@@ -778,7 +816,10 @@ id<MTLCommandBuffer> FMetalContext::GetCurrentCommandBuffer()
 
 void FMetalContext::CreateAutoreleasePool()
 {
-	if (FPlatformTLS::GetTlsValue(AutoReleasePoolTLSSlot) == NULL)
+	// Create an autorelease pool. Not on the game thread, though. It's not needed there, as the game thread provides its own pools.
+	// Also, it'd cause problems as we sometimes call EndDrawingViewport on the game thread. That would drain the pool for Metal
+	// context while some other pool is active, which is illegal.
+	if (FPlatformTLS::GetTlsValue(AutoReleasePoolTLSSlot) == NULL && FPlatformTLS::GetCurrentThreadId() != GGameThreadId)
 	{
 		FPlatformTLS::SetTlsValue(AutoReleasePoolTLSSlot, LocalCreateAutoreleasePool());
 	}
@@ -849,18 +890,38 @@ void FMetalContext::SubmitCommandsHint(uint32 const bFlags)
 {
 	bool const bCreateNew = (bFlags & EMetalSubmitFlagsCreateCommandBuffer);
 	bool const bWait = (bFlags & EMetalSubmitFlagsWaitOnCommandBuffer);
-	uint32 RingBufferOffset = RingBuffer->GetOffset();
-	id<MTLBuffer> CurrentRingBuffer = RingBuffer->Buffer;
-	TWeakPtr<FRingBuffer, ESPMode::ThreadSafe>* WeakRingBufferRef = new TWeakPtr<FRingBuffer, ESPMode::ThreadSafe>(RingBuffer.ToSharedRef());
-	[CurrentCommandBuffer addCompletedHandler : ^ (id <MTLCommandBuffer> Buffer)
+	if (!(bFlags & EMetalSubmitFlagsBreakCommandBuffer))
 	{
-		TSharedPtr<FRingBuffer, ESPMode::ThreadSafe> CmdBufferRingBuffer = WeakRingBufferRef->Pin();
-		if(CmdBufferRingBuffer.IsValid() && CmdBufferRingBuffer->Buffer == CurrentRingBuffer)
+		uint32 RingBufferOffset = RingBuffer->GetOffset();
+		uint32 StartOffset = RingBuffer->LastWritten;
+		RingBuffer->LastWritten = RingBufferOffset;
+		id<MTLBuffer> CurrentRingBuffer = RingBuffer->Buffer;
+		TWeakPtr<FRingBuffer, ESPMode::ThreadSafe>* WeakRingBufferRef = new TWeakPtr<FRingBuffer, ESPMode::ThreadSafe>(RingBuffer.ToSharedRef());
+		[CurrentCommandBuffer addCompletedHandler : ^ (id <MTLCommandBuffer> Buffer)
 		{
-			CmdBufferRingBuffer->SetLastRead(RingBufferOffset);
-		}
-		delete WeakRingBufferRef;
-	}];
+			TSharedPtr<FRingBuffer, ESPMode::ThreadSafe> CmdBufferRingBuffer = WeakRingBufferRef->Pin();
+			if(CmdBufferRingBuffer.IsValid() && CmdBufferRingBuffer->Buffer == CurrentRingBuffer)
+			{
+	#if METAL_DEBUG_OPTIONS
+				if (GMetalBufferScribble && StartOffset != RingBufferOffset)
+				{
+					if (StartOffset < RingBufferOffset)
+					{
+						FMemory::Memset(((uint8*)CmdBufferRingBuffer->Buffer.contents) + StartOffset, 0xCD, RingBufferOffset - StartOffset);
+					}
+					else
+					{
+						uint32 TrailLen = CmdBufferRingBuffer->Buffer.length - StartOffset;
+						FMemory::Memset(((uint8*)CmdBufferRingBuffer->Buffer.contents) + StartOffset, 0xCD, TrailLen);
+						FMemory::Memset(((uint8*)CmdBufferRingBuffer->Buffer.contents), 0xCD, RingBufferOffset);
+					}
+				}
+	#endif
+				CmdBufferRingBuffer->SetLastRead(RingBufferOffset);
+			}
+			delete WeakRingBufferRef;
+		}];
+	}
 	
 	// commit the render context to the commandBuffer
 	if (CommandEncoder.IsRenderCommandEncoderActive() || CommandEncoder.IsComputeCommandEncoderActive() || CommandEncoder.IsBlitCommandEncoderActive())
@@ -928,20 +989,26 @@ bool FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 #endif
 	
 	bool bUpdatedStrides = false;
+	uint32 StrideHash = 0;
 	MTLVertexDescriptor* Layout = CurrentBoundShaderState->VertexDeclaration->Layout.VertexDesc;
 	if(Layout && Layout.layouts)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_MetalPrepareVertexDescTime);
+		
 		for (uint32 ElementIndex = 0; ElementIndex < CurrentBoundShaderState->VertexDeclaration->Elements.Num(); ElementIndex++)
 		{
 			const FVertexElement& Element = CurrentBoundShaderState->VertexDeclaration->Elements[ElementIndex];
 			
-			uint32 StreamStride = StateCache.GetVertexStride(UNREAL_TO_METAL_BUFFER_INDEX(Element.StreamIndex));
+			uint32 StreamStride = StateCache.GetVertexStride(Element.StreamIndex);
+			StrideHash ^= (StreamStride << 1);
+
 			if (StreamStride > 0 && Element.Stride != StreamStride)
 			{
 				if (!bUpdatedStrides)
 				{
 					bUpdatedStrides = true;
-					Layout = [[Layout copy] autorelease];
+					Layout = [Layout copy];
+					TRACK_OBJECT(STAT_MetalVertexDescriptorCount, Layout);
 				}
 				auto BufferLayout = [Layout.layouts objectAtIndexedSubscript:UNREAL_TO_METAL_BUFFER_INDEX(Element.StreamIndex)];
 				check(BufferLayout);
@@ -950,7 +1017,11 @@ bool FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 		}
 	}
 	
-	FMetalHashedVertexDescriptor VertexDesc = !bUpdatedStrides ? CurrentBoundShaderState->VertexDeclaration->Layout : FMetalHashedVertexDescriptor(Layout);
+	FMetalHashedVertexDescriptor VertexDesc;
+	{
+		SCOPE_CYCLE_COUNTER(STAT_MetalPrepareVertexDescTime);
+		VertexDesc = !bUpdatedStrides ? CurrentBoundShaderState->VertexDeclaration->Layout : FMetalHashedVertexDescriptor(Layout, (CurrentBoundShaderState->VertexDeclaration->BaseHash ^ StrideHash));
+	}
 	
 	// Validate the vertex layout in debug mode, or when the validation layer is enabled for development builds.
 	// Other builds will just crash & burn if it is incorrect.
@@ -959,19 +1030,24 @@ bool FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 	{
 		if(Layout && Layout.layouts)
 		{
-			for (uint32 i = 0; i < MaxMetalStreams; i++)
+			for (uint32 i = 0; i < MaxVertexElementCount; i++)
 			{
 				auto Attribute = [Layout.attributes objectAtIndexedSubscript:i];
-				if(Attribute)
+				if(Attribute && Attribute.format > MTLVertexFormatInvalid)
 				{
 					auto BufferLayout = [Layout.layouts objectAtIndexedSubscript:Attribute.bufferIndex];
 					uint32 BufferLayoutStride = BufferLayout ? BufferLayout.stride : 0;
-					uint64 MetalSize = StateCache.GetVertexBuffer(Attribute.bufferIndex) ? (uint64)StateCache.GetVertexBuffer(Attribute.bufferIndex).length : 0llu;
 					
-					if(!(BufferLayoutStride == StateCache.GetVertexStride(Attribute.bufferIndex) || (MetalSize > 0 && StateCache.GetVertexStride(Attribute.bufferIndex) == 0 && StateCache.GetVertexBuffer(Attribute.bufferIndex) && MetalSize == BufferLayoutStride)))
+					uint32 BufferIndex = METAL_TO_UNREAL_BUFFER_INDEX(Attribute.bufferIndex);
+					
+					uint64 MetalSize = StateCache.GetVertexBufferSize(BufferIndex);
+					
+					uint32 MetalStride = StateCache.GetVertexStride(BufferIndex);
+					
+					// If the vertex attribute is required and either no Metal buffer is bound or the size of the buffer is smaller than the stride, or the stride is explicitly specified incorrectly then the layouts don't match.
+					if (BufferLayoutStride > 0 && (MetalSize < BufferLayoutStride || (MetalStride > 0 && MetalStride != BufferLayoutStride)))
 					{
-						FString Report = FString::Printf(TEXT("Vertex Layout Mismatch: Index: %d, Buffer: %p, Len: %lld, Decl. Stride: %d, Stream Stride: %d"), Attribute.bufferIndex, StateCache.GetVertexBuffer(Attribute.bufferIndex), MetalSize, BufferLayoutStride, StateCache.GetVertexStride(Attribute.bufferIndex));
-						
+						FString Report = FString::Printf(TEXT("Vertex Layout Mismatch: Index: %d, Len: %lld, Decl. Stride: %d, Stream Stride: %d"), Attribute.bufferIndex, MetalSize, BufferLayoutStride, StateCache.GetVertexStride(BufferIndex));
 						UE_LOG(LogMetal, Warning, TEXT("%s"), *Report);
 						
 						if (GEmitDrawEvents)
@@ -995,7 +1071,7 @@ bool FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 	if (IsValidRef(CurrentBoundShaderState->PixelShader) && (CurrentBoundShaderState->PixelShader->Bindings.InOutMask & 0x8000) && !StateCache.HasValidDepthStencilSurface() && StateCache.GetRenderPipelineDesc().PipelineDescriptor.depthAttachmentPixelFormat == MTLPixelFormatInvalid && !FShaderCache::IsPredrawCall())
 	{
 #if UE_BUILD_DEBUG
-		UE_LOG(LogMetal, Warning, TEXT("Binding a temporary depth-stencil surface as the bound shader pipeline that writes to depth/stencil but no depth/stencil surface was bound!"));
+		UE_LOG(LogMetal, Warning, TEXT("Binding a temporary depth-stencil surface as the bound shader pipeline writes to depth/stencil but no depth/stencil surface was bound!"));
 #endif
 		check(StateCache.GetRenderTargetArraySize() <= 1);
 		CGSize FBSize = StateCache.GetFrameBufferSize();
@@ -1021,7 +1097,7 @@ bool FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 	}
 	
 	// make sure the BSS has a valid pipeline state object
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 	MTLRenderPipelineReflection* Reflection = nil;
 	if (CommandQueue.GetRuntimeDebuggingLevel() >= EMetalDebugLevelValidation)
 	{
@@ -1036,7 +1112,7 @@ bool FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 	
 	if(!FShaderCache::IsPredrawCall())
 	{
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 		// Force a command-encoder when GMetalRuntimeDebugLevel is enabled to help track down intermittent command-buffer failures.
 		if (GMetalCommandBufferCommitThreshold > 0 && OutstandingOpCount >= GMetalCommandBufferCommitThreshold && CommandQueue.GetRuntimeDebuggingLevel() >= EMetalDebugLevelConditionalSubmit)
 		{
@@ -1079,7 +1155,7 @@ bool FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 			if (bCanChangeRT)
 			{
 				// Force submit if there's enough outstanding commands to prevent the GPU going idle.
-				SubmitCommandsHint();
+				SubmitCommandsHint(EMetalSubmitFlagsCreateCommandBuffer|EMetalSubmitFlagsBreakCommandBuffer);
 				
                 StateCache.ConditionalSwitchToRender();
 				
@@ -1105,7 +1181,6 @@ bool FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 #endif
 		
 		CommitGraphicsResourceTables();
-		CommitNonComputeShaderConstants();
 		
 		if(CommandEncoder.IsBlitCommandEncoderActive() || CommandEncoder.IsComputeCommandEncoderActive())
 		{
@@ -1150,7 +1225,9 @@ bool FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 			CommandEncoder.SetShaderBuffer(SF_Pixel, Buffer, Offset, CurrentBoundShaderState->PixelShader->SideTableBinding);
 		}
 		
-#if !UE_BUILD_SHIPPING
+		CommitNonComputeShaderConstants();
+		
+#if METAL_DEBUG_OPTIONS
 		if (CommandQueue.GetRuntimeDebuggingLevel() >= EMetalDebugLevelValidation)
 		{
 			auto& VBBindings = CurrentBoundShaderState->VertexShader->Bindings;
@@ -1348,7 +1425,14 @@ void FMetalContext::SetShaderResourceView(EShaderFrequency ShaderStage, uint32 B
 		else if (VB)
 		{
 			BufferSideTable[ShaderStage][BindIndex] = VB->GetSize();
-			GetCommandEncoder().SetShaderBuffer(ShaderStage, VB->Buffer, 0, BindIndex);
+			if (!VB->Data)
+			{
+		        GetCommandEncoder().SetShaderBuffer(ShaderStage, VB->Buffer, 0, BindIndex);
+			}
+			else
+			{
+		        GetCommandEncoder().SetShaderBytes(ShaderStage, VB->Data, 0, BindIndex);
+			}
 		}
 		else if (IB)
 		{
@@ -1379,7 +1463,8 @@ void FMetalContext::SetShaderUnorderedAccessView(EShaderFrequency ShaderStage, u
 		else if (VertexBuffer)
 		{
 			BufferSideTable[ShaderStage][BindIndex] = VertexBuffer->GetSize();
-			GetCommandEncoder().SetShaderBuffer(ShaderStage, VertexBuffer->Buffer, 0, BindIndex);
+			check(!VertexBuffer->Data && VertexBuffer->Buffer);
+	        GetCommandEncoder().SetShaderBuffer(ShaderStage, VertexBuffer->Buffer, 0, BindIndex);
 		}
 		else if (Texture)
 		{
@@ -1567,6 +1652,8 @@ void FMetalContext::CommitGraphicsResourceTables()
 
 void FMetalContext::CommitNonComputeShaderConstants()
 {
+	check(CommandEncoder.IsRenderCommandEncoderActive());
+	
 	TRefCountPtr<FMetalBoundShaderState> CurrentBoundShaderState = StateCache.GetBoundShaderState();
 	StateCache.GetShaderParameters(CrossCompiler::SHADER_STAGE_VERTEX).CommitPackedUniformBuffers(CurrentBoundShaderState, nullptr, CrossCompiler::SHADER_STAGE_VERTEX, StateCache.GetBoundUniformBuffers(SF_Vertex), CurrentBoundShaderState->VertexShader->UniformBuffersCopyInfo);
 	StateCache.GetShaderParameters(CrossCompiler::SHADER_STAGE_VERTEX).CommitPackedGlobals(this, CrossCompiler::SHADER_STAGE_VERTEX, CurrentBoundShaderState->VertexShader->Bindings);
@@ -1611,7 +1698,7 @@ void FMetalContext::ConditionalSubmit(bool bRTChangePending, bool bRTChangeForce
 		
 		// Normally we break only at natural encoder boundaries but in debug modes we can break at anytime.
 		bool bCanConditionallySubmit = !bEncoderActive;
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 		bCanConditionallySubmit |= (CommandQueue.GetRuntimeDebuggingLevel() >= EMetalDebugLevelConditionalSubmit);
 #endif
 
@@ -1641,7 +1728,7 @@ void FMetalContext::ConditionalSubmit(bool bRTChangePending, bool bRTChangeForce
 		// Only permit conditional submit if one of the conditions is met.
 		if(bRTChangePending || bCanConditionallySubmit)
 		{
-			SubmitCommandsHint();
+			SubmitCommandsHint(EMetalSubmitFlagsCreateCommandBuffer|EMetalSubmitFlagsBreakCommandBuffer);
 		}
 	}
 }

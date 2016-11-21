@@ -295,7 +295,7 @@ void FFbxImporter::SkinControlPointsToPose(FSkeletalMeshImportData& ImportData, 
 
 extern void ProcessImportMeshInfluences(FSkeletalMeshImportData& ImportData);
 extern void ProcessImportMeshMaterials( TArray<FSkeletalMaterial>& Materials, FSkeletalMeshImportData& ImportData );
-extern bool ProcessImportMeshSkeleton(FReferenceSkeleton& RefSkeleton, int32& SkeletalDepth, FSkeletalMeshImportData& ImportData);
+extern bool ProcessImportMeshSkeleton(const USkeleton* SkeletonAsset, FReferenceSkeleton& RefSkeleton, int32& SkeletalDepth, FSkeletalMeshImportData& ImportData);
 
 struct tFaceRecord
 {
@@ -983,7 +983,9 @@ bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshI
 			
 			GlobalsPerLink[LinkIndex] = T0Matrix;
 		}
-	
+
+		//Add the join orientation
+		GlobalsPerLink[LinkIndex] = GlobalsPerLink[LinkIndex] * FFbxDataConverter::GetJointPostConversionMatrix();
 		if (LinkIndex)
 		{
 			FbxAMatrix	Matrix;
@@ -1168,6 +1170,8 @@ bool UnFbx::FFbxImporter::FillSkeletalMeshImportData(TArray<FbxNode*>& NodeArray
 			SkinControlPointsToPose(*SkelMeshImportDataPtr, FbxMesh, FbxShape, true);
 		}
 	}
+
+	CleanUpUnusedMaterials(*SkelMeshImportDataPtr);
 
 	if (LastImportedMaterialNames.Num() > 0)
 	{
@@ -1358,7 +1362,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 
 	// process reference skeleton from import data
 	int32 SkeletalDepth = 0;
-	if (!ProcessImportMeshSkeleton(SkeletalMesh->RefSkeleton, SkeletalDepth, *SkelMeshImportDataPtr))
+	if (!ProcessImportMeshSkeleton(SkeletalMesh->Skeleton, SkeletalMesh->RefSkeleton, SkeletalDepth, *SkelMeshImportDataPtr))
 	{
 		SkeletalMesh->ClearFlags(RF_Standalone);
 		SkeletalMesh->Rename(NULL, GetTransientPackage());
@@ -1782,9 +1786,8 @@ USkeletalMesh* UnFbx::FFbxImporter::ReimportSkeletalMesh(USkeletalMesh* Mesh, UF
 		// set import options, how about others?
 		if (!ImportOptions->bImportScene)
 		{
-			UFbxAssetImportData* ImportData = Cast<UFbxAssetImportData>(Mesh->AssetImportData);
-			ImportOptions->bImportMaterials = ImportData->bImportMaterials;
-			ImportOptions->bImportTextures = ImportData->bImportMaterials;
+			ImportOptions->bImportMaterials = false;
+			ImportOptions->bImportTextures = false;
 		}
 		//In case of a scene reimport animations are reimport later so its ok to hardcode animation to false here
 		ImportOptions->bImportAnimations = false;
@@ -2151,6 +2154,47 @@ void UnFbx::FFbxImporter::SetMaterialOrderByName(FSkeletalMeshImportData& Import
 	}
 }
 
+void UnFbx::FFbxImporter::CleanUpUnusedMaterials(FSkeletalMeshImportData& ImportData)
+{
+	TArray< VMaterial > ExistingMatList = ImportData.Materials;
+
+	TArray<uint8> UsedMaterialIndex;
+	// Find all material that are use by the mesh faces
+	int32 FaceNum = ImportData.Faces.Num();
+	for (int32 TriangleIndex = 0; TriangleIndex < FaceNum; TriangleIndex++)
+	{
+		VTriangle& Triangle = ImportData.Faces[TriangleIndex];
+		UsedMaterialIndex.AddUnique(Triangle.MatIndex);
+	}
+	//Remove any unused material.
+	if (UsedMaterialIndex.Num() != ExistingMatList.Num())
+	{
+		TArray<int32> RemapIndex;
+		TArray< VMaterial > &NewMatList = ImportData.Materials;
+		NewMatList.Empty();
+		for (int32 ExistingMatIndex = 0; ExistingMatIndex < ExistingMatList.Num(); ++ExistingMatIndex)
+		{
+			if (UsedMaterialIndex.Contains((uint8)ExistingMatIndex))
+			{
+				RemapIndex.Add(NewMatList.Add(ExistingMatList[ExistingMatIndex]));
+			}
+			else
+			{
+				RemapIndex.Add(INDEX_NONE);
+			}
+		}
+		ImportData.MaxMaterialIndex = 0;
+		//Remap the face material index
+		for (int32 TriangleIndex = 0; TriangleIndex < FaceNum; TriangleIndex++)
+		{
+			VTriangle& Triangle = ImportData.Faces[TriangleIndex];
+			check(RemapIndex[Triangle.MatIndex] != INDEX_NONE);
+			Triangle.MatIndex = RemapIndex[Triangle.MatIndex];
+			ImportData.MaxMaterialIndex = FMath::Max<uint32>(ImportData.MaxMaterialIndex, Triangle.MatIndex);
+		}
+	}
+}
+
 bool UnFbx::FFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshImportData& ImportData, FbxMesh*& Mesh, FbxSkin* Skin, FbxShape* FbxShape, TArray<FbxNode*> &SortedLinks, const TArray<FbxSurfaceMaterial*>& FbxMaterials, FbxNode *RootNode)
 {
 	FbxNode* Node = Mesh->GetNode();
@@ -2240,7 +2284,8 @@ bool UnFbx::FFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshImportData& 
 	TArray<UMaterialInterface*> Materials;
 	if (ImportOptions->bImportMaterials)
 	{
-		CreateNodeMaterials(Node, Materials, UVSets);
+		bool bForSkeletalMesh = true;
+		CreateNodeMaterials(Node, Materials, UVSets, bForSkeletalMesh);
 	}
 	else if (ImportOptions->bImportTextures)
 	{
@@ -2956,6 +3001,10 @@ void UnFbx::FFbxImporter::InsertNewLODToBaseSkeletalMesh(USkeletalMesh* InSkelet
 	DestImportedResource->LODModels[DesiredLOD] = NewLODModel;
 
 	DestImportedResource->LODModels[DesiredLOD].RebuildIndexBuffer(&Data, &AdjacencyData);
+
+	// If this LOD had been generated previously by automatic mesh reduction, clear that flag.
+	LODInfo.bHasBeenSimplified = false;
+
 	// rebuild vertex buffers and reinit RHI resources
 	BaseSkeletalMesh->PostEditChange();
 }
@@ -2982,7 +3031,7 @@ bool UnFbx::FFbxImporter::ImportSkeletalMeshLOD(USkeletalMesh* InSkeletalMesh, U
 	}
 
 	// We do some checking here that for every bone in the mesh we just imported, it's in our base ref skeleton, and the parent is the same.
-	for (int32 i = 0; i < InSkeletalMesh->RefSkeleton.GetNum(); i++)
+	for (int32 i = 0; i < InSkeletalMesh->RefSkeleton.GetRawBoneNum(); i++)
 	{
 		int32 LODBoneIndex = i;
 		FName LODBoneName = InSkeletalMesh->RefSkeleton.GetBoneName(LODBoneIndex);

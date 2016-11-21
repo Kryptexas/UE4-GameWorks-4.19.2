@@ -5,210 +5,110 @@
 
 namespace Audio
 {
-	/** Default 2D channel maps from input channels to output channels */
+	// Tables based on Ac-3 down-mixing
+	// Rows: output speaker configuration
+	// Cols: input source channels
 
-	static float MonoToStereoMatrix[1 * 2] =
+	static float ToMonoMatrix[8 * 1] =
 	{
-		// FrontLeft
-		0.707f,		// FrontLeft
-		0.707f,		// FrontRight
+		// FrontLeft	FrontRight	Center		LowFrequency	SideLeft	SideRight	BackLeft	BackRight  
+		0.707f,			0.707f,		1.0f,		0.0f,			0.5f,		0.5f,		0.5f,		0.5f,		// FrontLeft
 	};
 
-	static float MonoToQuadMatrix[1 * 4] =
+	static float ToStereoMatrix[8 * 2] =
 	{
-		// FrontLeft
-		0.707f,		// FrontLeft
-		0.707f,		// FrontRight
-		0.0f,		// BackLeft
-		0.0f,		// BackRight
+		// FrontLeft	FrontRight	Center		LowFrequency	SideLeft	SideRight	BackLeft	BackRight  
+		1.0f,			0.0f,		0.707f,		0.0f,			0.707f,		0.0f,		0.707f,		0.0f,		// FrontLeft
+		0.0f,			1.0f,		0.707f,		0.0f,			0.0f,		0.707f,		0.0f,		0.707f,		// FrontRight
 	};
 
-	static float MonoTo51Matrix[1 * 6] =
+	static float ToQuadMatrix[8 * 4] =
 	{
-		// FrontLeft
-		0.707f,		// FrontLeft
-		0.707f,		// FrontRight
-		0.0f,		// FrontCenter
-		0.0f,		// LowFrequency
-		0.0f,		// BackLeft
-		0.0f,		// BackRight
+		// FrontLeft	FrontRight	Center		LowFrequency	SideLeft	SideRight	BackLeft	BackRight	
+		1.0f,			0.0f,		0.707f,		0.0f,			0.0f,		0.0f,		0.0f,		0.0f,		// FrontLeft
+		0.0f,			1.0f,		0.707f,		0.0f,			0.0f,		0.0f,		0.0f,		0.0f,		// FrontRight
+		0.0f,			0.0f,		0.0f,		0.0f,			1.0f,		0.0f,		1.0f,		0.0f,		// SideLeft
+		0.0f,			0.0f,		0.0f,		0.0f,			0.0f,		1.0f,		0.0f,		1.0f,		// SideRight
 	};
 
-	static float MonoTo71Matrix[1 * 8] =
+	static float To5Point1Matrix[6 * 8] =
 	{
-		// FrontLeft
-		0.707f,		// FrontLeft
-		0.707f,		// FrontRight
-		0.0f,		// FrontCenter
-		0.0f,		// LowFrequency
-		0.0f,		// BackLeft
-		0.0f,		// BackRight
-		0.0f,		// SideLeft
-		0.0f,		// SideRight
+		// FrontLeft	FrontRight	Center		LowFrequency	SideLeft	SideRight	BackLeft	BackRight	
+		1.0f,			0.0f,		0.0f,		0.0f,			0.0f,		0.0f,		0.0f,		0.0f,		// FrontLeft
+		0.0f,			1.0f,		0.0f,		0.0f,			0.0f,		0.0f,		0.0f,		0.0f,		// FrontRight
+		0.0f,			0.0f,		1.0f,		0.0f,			0.0f,		0.0f,		0.0f,		0.0f,		// Center
+		0.0f,			0.0f,		0.0f,		1.0f,			0.0f,		0.0f,		0.0f,		0.0f,		// LowFrequency
+		0.0f,			0.0f,		0.0f,		0.0f,			1.0f,		0.0f,		1.0f,		0.0f,		// SideLeft
+		0.0f,			0.0f,		0.0f,		0.0f,			0.0f,		1.0f,		0.0f,		1.0f,		// SideRight
 	};
 
-	static float StereoToStereoMatrix[2 * 2] =
+	static float ToHexMatrix[7 * 8] =
 	{
-		// FrontLeft		FrontRight
-		1.0f,				0.0f,		// FrontLeft
-		0.0f,				1.0f,		// FrontRight
+		// FrontLeft	FrontRight	Center		LowFrequency	SideLeft	SideRight	BackLeft	BackRight	
+		1.0f,			0.0f,		0.707f,		0.0f,			0.0f,		0.0f,		0.0f,		0.0f,		// FrontLeft
+		0.0f,			1.0f,		0.707f,		0.0f,			0.0f,		0.0f,		0.0f,		0.0f,		// FrontRight
+		0.0f,			0.0f,		0.0f,		0.0f,			1.0f,		0.0f,		0.0f,		0.0f,		// SideLeft
+		0.0f,			0.0f,		0.0f,		0.0f,			0.0f,		1.0f,		0.0f,		0.0f,		// SideRight
+		0.0f,			0.0f,		0.0f,		0.0f,			0.0f,		0.0f,		1.0f,		0.0f,		// BackLeft
+		0.0f,			0.0f,		0.0f,		0.0f,			0.0f,		0.0f,		0.0f,		1.0f,		// BackRight
 	};
 
-	static float StereoToQuadMatrix[2 * 4] =
+	static float To7Point1Matrix[8 * 8] =
 	{
-		// FrontLeft		FrontRight
-		0.707f,				0.0f,		// FrontLeft
-		0.0f,				0.707f,		// FrontRight
-		0.0f,				0.707f,		// BackLeft
-		0.707f,				0.0f,		// BackRight
+		// FrontLeft	FrontRight	Center		LowFrequency	SideLeft	SideRight	BackLeft	BackRight
+		1.0f,			0.0f,		0.0f,		0.0f,			0.0f,		0.0f,		0.0f,		0.0f,		// FrontLeft
+		0.0f,			1.0f,		0.0f,		0.0f,			0.0f,		0.0f,		0.0f,		0.0f,		// FrontRight
+		0.0f,			0.0f,		1.0f,		0.0f,			0.0f,		0.0f,		0.0f,		0.0f,		// FrontCenter
+		0.0f,			0.0f,		0.0f,		1.0f,			0.0f,		0.0f,		0.0f,		0.0f,		// LowFrequency
+		0.0f,			0.0f,		0.0f,		0.0f,			1.0f,		0.0f,		0.0f,		0.0f,		// SideLeft
+		0.0f,			0.0f,		0.0f,		0.0f,			0.0f,		1.0f,		0.0f,		0.0f,		// SideRight
+		0.0f,			0.0f,		0.0f,		0.0f,			0.0f,		0.0f,		1.0f,		0.0f,		// BackLeft
+		0.0f,			0.0f,		0.0f,		0.0f,			0.0f,		0.0f,		0.0f,		1.0f,		// BackRight
 	};
 
-	static float StereoTo51Matrix[2 * 6] =
+	static float* OutputChannelMaps[7] =
 	{
-		// FrontLeft		FrontRight
-		0.707f,				0.0f,		// FrontLeft
-		0.0f,				0.707f,		// FrontRight
-		0.0f,				0.0f,		// FrontCenter
-		0.0f,				0.0f,		// LowFrequency
-		0.0f,				0.707f,		// BackLeft
-		0.707f,				0.0f,		// BackRight
+		ToMonoMatrix,
+		ToStereoMatrix,
+		nullptr,
+		ToQuadMatrix,
+		To5Point1Matrix,
+		ToHexMatrix,
+		To7Point1Matrix
 	};
-
-	static float StereoTo71Matrix[2 * 8] =
-	{
-		// FrontLeft		FrontRight
-		0.707f,				0.0f,		// FrontLeft
-		0.0f,				0.707f,		// FrontRight
-		0.0f,				0.0f,		// FrontCenter
-		0.0f,				0.0f,		// LowFrequency
-		0.0f,				0.707f,		// BackLeft
-		0.707f,				0.0f,		// BackRight
-		0.0f,				0.0f,		// SideLeft
-		0.0f,				0.0f,		// SideRight
-	};
-
-	static float QuadToStereoMatrix[4 * 2] =
-	{
-		// FrontLeft		FrontRight		BackLeft		BackRight
-		0.5f,				0.0f,			0.5f,			0.0f,			// FrontLeft
-		0.0f,				0.5f,			0.0f,			0.5f,			// FrontRight
-	};
-
-	static float QuadToQuadMatrix[4 * 4] =
-	{
-		// FrontLeft		FrontRight		BackLeft		BackRight
-		1.0f,				0.0f,			0.0f,			0.0f,			// FrontLeft
-		0.0f,				1.0f,			0.0f,			0.0f,			// FrontRight
-		0.0f,				0.0f,			1.0f,			0.0f,			// BackLeft
-		0.0f,				0.0f,			0.0f,			1.0f,			// BackRight
-	};
-
-	static float QuadTo51Matrix[4 * 6] =
-	{
-		// FrontLeft		FrontRight		BackLeft		BackRight
-		1.0f,				0.0f,			0.0f,			0.0f,			// FrontLeft
-		0.0f,				1.0f,			0.0f,			0.0f,			// FrontRight
-		0.0f,				0.0f,			0.0f,			0.0f,			// FrontCenter
-		0.0f,				0.0f,			0.0f,			0.0f,			// LowFrequency
-		0.0f,				0.0f,			1.0f,			0.0f,			// BackLeft
-		0.0f,				0.0f,			0.0f,			1.0f,			// BackRight
-	};
-
-	static float QuadTo71Matrix[4 * 8] =
-	{
-		// FrontLeft		FrontRight		BackLeft		BackRight
-		1.0f,				0.0f,			0.0f,			0.0f,			// FrontLeft
-		0.0f,				1.0f,			0.0f,			0.0f,			// FrontRight
-		0.0f,				0.0f,			0.0f,			0.0f,			// FrontCenter
-		0.0f,				0.0f,			0.0f,			0.0f,			// LowFrequency
-		0.0f,				0.0f,			1.0f,			0.0f,			// BackLeft
-		0.0f,				0.0f,			0.0f,			1.0f,			// BackRight
-		0.0f,				0.0f,			0.0f,			0.0f,			// SideLeft
-		0.0f,				0.0f,			0.0f,			0.0f,			// SideRight
-	};
-
-	static float HexToStereoMatrix[6 * 2] =
-	{
-		// FrontLeft		FrontRight		FrontCenter		LowFrequency		BackLeft		BackRight
-		0.577f,				0.0f,			0.577f,			0.0f,				0.577f,			0.0f,			// FrontLeft
-		0.0f,				0.577f,			0.577f,			0.0f,				0.577f,			0.577f,			// FrontRight
-	};
-
-	static float HexToQuadMatrix[6 * 4] =
-	{
-		// FrontLeft		FrontRight		FrontCenter		LowFrequency		BackLeft		BackRight
-		0.577f,				0.0f,			0.577f,			0.0f,				0.0f,			0.0f,			// FrontLeft
-		0.0f,				0.577f,			0.577f,			0.0f,				0.0f,			0.0f,			// FrontRight
-		0.0f,				0.0f,			0.0f,			0.0f,				0.577f,			0.0f,			// BackLeft
-		0.0f,				0.0f,			0.0f,			0.0f,				0.0f,			0.577f,			// BackRight
-	};
-
-	static float HexTo51Matrix[6 * 6] =
-	{
-		// FrontLeft		FrontRight		FrontCenter		LowFrequency		BackLeft		BackRight
-		1.0f,				0.0f,			0.0f,			0.0f,				0.0f,			0.0f,			// FrontLeft
-		0.0f,				1.0f,			0.0f,			0.0f,				0.0f,			0.0f,			// FrontRight
-		0.0f,				0.0f,			1.0f,			0.0f,				0.0f,			0.0f,			// FrontCenter
-		0.0f,				0.0f,			0.0f,			1.0f,				0.0f,			0.0f,			// LowFrequency
-		0.0f,				0.0f,			0.0f,			0.0f,				1.0f,			0.0f,			// BackLeft
-		0.0f,				0.0f,			0.0f,			0.0f,				0.0f,			1.0f,			// BackRight
-	};
-
-	static float HexTo71Matrix[6 * 8] =
-	{
-		// FrontLeft		FrontRight		FrontCenter		LowFrequency		BackLeft		BackRight
-		1.0f,				0.0f,			0.0f,			0.0f,				0.0f,			0.0f,			// FrontLeft
-		0.0f,				1.0f,			0.0f,			0.0f,				0.0f,			0.0f,			// FrontRight
-		0.0f,				0.0f,			1.0f,			0.0f,				0.0f,			0.0f,			// FrontCenter
-		0.0f,				0.0f,			0.0f,			1.0f,				0.0f,			0.0f,			// LowFrequency
-		0.0f,				0.0f,			0.0f,			0.0f,				1.0f,			0.0f,			// BackLeft
-		0.0f,				0.0f,			0.0f,			0.0f,				0.0f,			1.0f,			// BackRight
-		0.0f,				0.0f,			0.0f,			0.0f,				0.0f,			0.0f,			// SideLeft
-		0.0f,				0.0f,			0.0f,			0.0f,				0.0f,			0.0f,			// SideRight
-	};
-
-	static inline int32 GetChannelMapID(const int32 InputChannels, const int32 OutputChannels)
-	{
-		return InputChannels + 100 * OutputChannels;
-	}
 
 	void FMixerDevice::Get2DChannelMap(const int32 NumSourceChannels, TArray<float>& OutChannelMap)
 	{
-		int32 ChannelMapIndex = GetChannelMapID(NumSourceChannels, PlatformInfo.NumChannels);
-		FChannelMapEntry* Entry = ChannelMaps.Find(ChannelMapIndex);
-		if (!Entry)
+		if (NumSourceChannels > 8 || PlatformInfo.NumChannels == 3)
 		{
-			OutChannelMap.AddZeroed(PlatformInfo.NumChannels);
+			// Return a zero'd channel map buffer in the case of an unsupported channel configuration
+			OutChannelMap.AddZeroed(NumSourceChannels * PlatformInfo.NumChannels);
 			UE_LOG(LogAudioMixer, Warning, TEXT("Unsupported source channel count or output channels %d"), NumSourceChannels);
 			return;
 		}
 
-		OutChannelMap = Entry->ChannelWeights;
-	}
+		// Check the cache.
+		const int32 CacheID = NumSourceChannels + 10 * PlatformInfo.NumChannels;
+		TArray<float>* CachedChannelMap = ChannelMapCache.Find(CacheID);
+		if (!CachedChannelMap)
+		{
+			float* Matrix = OutputChannelMaps[PlatformInfo.NumChannels - 1];
+			check(Matrix != nullptr);
 
-	void FMixerDevice::Initialize2DChannelMaps()
-	{
-		ChannelMaps.Reset();
-
-		ChannelMaps.Add(GetChannelMapID(1, 2), FChannelMapEntry(EChannelMap::MonoToStereo,	MonoToStereoMatrix, ARRAY_COUNT(MonoToStereoMatrix)));
-		ChannelMaps.Add(GetChannelMapID(1, 4), FChannelMapEntry(EChannelMap::MonoToQuad,	MonoToQuadMatrix,	ARRAY_COUNT(MonoToQuadMatrix)));
-		ChannelMaps.Add(GetChannelMapID(1, 6), FChannelMapEntry(EChannelMap::MonoTo51,		MonoTo51Matrix,		ARRAY_COUNT(MonoTo51Matrix)));
-		ChannelMaps.Add(GetChannelMapID(1, 8), FChannelMapEntry(EChannelMap::MonoTo71,		MonoTo71Matrix,		ARRAY_COUNT(MonoTo71Matrix)));
-
-		ChannelMaps.Add(GetChannelMapID(2, 2), FChannelMapEntry(EChannelMap::StereoToStereo, StereoToStereoMatrix,	ARRAY_COUNT(StereoToStereoMatrix)));
-		ChannelMaps.Add(GetChannelMapID(2, 4), FChannelMapEntry(EChannelMap::StereoToQuad,	StereoToQuadMatrix,		ARRAY_COUNT(StereoToQuadMatrix)));
-		ChannelMaps.Add(GetChannelMapID(2, 6), FChannelMapEntry(EChannelMap::StereoTo51,	StereoTo51Matrix,		ARRAY_COUNT(StereoTo51Matrix)));
-		ChannelMaps.Add(GetChannelMapID(2, 8), FChannelMapEntry(EChannelMap::StereoTo71,	StereoTo71Matrix,		ARRAY_COUNT(StereoTo71Matrix)));
-
-		ChannelMaps.Add(GetChannelMapID(4, 2), FChannelMapEntry(EChannelMap::QuadToStereo,	QuadToStereoMatrix,	ARRAY_COUNT(QuadToStereoMatrix)));
-		ChannelMaps.Add(GetChannelMapID(4, 4), FChannelMapEntry(EChannelMap::QuadToQuad,	QuadToQuadMatrix,	ARRAY_COUNT(QuadToQuadMatrix)));
-		ChannelMaps.Add(GetChannelMapID(4, 6), FChannelMapEntry(EChannelMap::QuadTo51,		QuadTo51Matrix,		ARRAY_COUNT(QuadTo51Matrix)));
-		ChannelMaps.Add(GetChannelMapID(4, 8), FChannelMapEntry(EChannelMap::QuadTo71,		QuadTo71Matrix,		ARRAY_COUNT(QuadTo71Matrix)));
-
-		ChannelMaps.Add(GetChannelMapID(6, 2), FChannelMapEntry(EChannelMap::HexToStereo,	HexToStereoMatrix,	ARRAY_COUNT(HexToStereoMatrix)));
-		ChannelMaps.Add(GetChannelMapID(6, 4), FChannelMapEntry(EChannelMap::HexToQuad,		HexToQuadMatrix,	ARRAY_COUNT(HexToQuadMatrix)));
-		ChannelMaps.Add(GetChannelMapID(6, 6), FChannelMapEntry(EChannelMap::HexTo51,		HexTo51Matrix,		ARRAY_COUNT(HexTo51Matrix)));
-		ChannelMaps.Add(GetChannelMapID(6, 8), FChannelMapEntry(EChannelMap::HexTo71,		HexTo71Matrix,		ARRAY_COUNT(HexTo71Matrix)));
+			int32 ChannelMapIndex = 0;
+			for (int32 SourceChannel = 0; SourceChannel < NumSourceChannels; ++SourceChannel)
+			{
+				for (int32 OutputChannel = 0; OutputChannel < PlatformInfo.NumChannels; ++OutputChannel)
+				{
+					OutChannelMap.Add(Matrix[ChannelMapIndex++]);
+				}
+			}
+			ChannelMapCache.Add(CacheID, OutChannelMap);
+		}
+		else
+		{
+			OutChannelMap = *CachedChannelMap;
+		}
 	}
 
 	void FMixerDevice::InitializeChannelAzimuthMap(const int32 NumChannels)

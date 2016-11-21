@@ -36,6 +36,7 @@ public:
 	virtual UEdGraphNode* FindInjectedNode(int32 Index) const override;
 	virtual void DoubleClickNode(class UEdGraphNode* Node) override;
 	virtual void FocusWindow(UObject* ObjectToFocusOn = NULL) override;
+	virtual bool GetBoundsForSelectedNodes(class FSlateRect& Rect, float Padding) const override;
 	//~ End IBehaviorTreeEditor Interface
 
 	//~ Begin FEditorUndoClient Interface
@@ -50,6 +51,7 @@ public:
 	// Delegates
 	void OnNodeDoubleClicked(class UEdGraphNode* Node);
 	void OnGraphEditorFocused(const TSharedRef<SGraphEditor>& InGraphEditor);
+	void OnNodeTitleCommitted(const FText& NewText, ETextCommit::Type CommitInfo, UEdGraphNode* NodeBeingChanged);
 
 	void OnAddInputPin();
 	bool CanAddInputPin() const;

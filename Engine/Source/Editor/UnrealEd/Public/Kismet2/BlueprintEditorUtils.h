@@ -137,6 +137,11 @@ public:
 	static void RefreshGraphNodes(const UEdGraph* Graph);
 
 	/**
+	 * Replaces any deprecated nodes with new ones
+	 */
+	static void ReplaceDeprecatedNodes(UBlueprint* Blueprint);
+
+	/**
 	 * Preloads the object and all the members it owns (nodes, pins, etc)
 	 */
 	static void PreloadMembers(UObject* InObject);
@@ -1300,12 +1305,27 @@ public:
 	 * @param PinType		The pin get the icon for.
 	 * @param returns a brush that best represents the icon (or Kismet.VariableList.TypeIcon if none is available )
 	 */
-	static const struct FSlateBrush* GetIconFromPin(const FEdGraphPinType& PinType);
+	static const struct FSlateBrush* GetIconFromPin(const FEdGraphPinType& PinType, bool bIsLarge = false);
 
 	/**
 	 * Determine the best secondary icon icon to represent the given pin.
 	 */
 	static const struct FSlateBrush* GetSecondaryIconFromPin(const FEdGraphPinType& PinType);
+
+	/**
+	 * Returns true if this terminal type can be hashed (native types need GetTypeHash, script types are always hashable).
+	 */
+	static bool HasGetTypeHash(const FEdGraphPinType& PinType);
+
+	/**
+	 * Returns true if this type of UProperty can be hashed. Matches native constructors of UNumericProperty, etc.
+	 */
+	static bool PropertyHasGetTypeHash(const UProperty* PropertyType);
+
+	/**
+	 * Returns true if the StructType is native and has a GetTypeHash or is non-native and all of its member types are handled by UScriptStruct::GetStructTypeHash
+	 */
+	static bool StructHasGetTypeHash(const UScriptStruct* StructType);
 
 	/**
 	 * Generate component instancing data (for cooked builds).
@@ -1433,4 +1453,37 @@ struct UNREALED_API FBlueprintDuplicationScopeFlags
 
 	TGuardValue<uint32> Guard;
 	FBlueprintDuplicationScopeFlags(uint32 InFlags) : Guard(bStaticFlags, InFlags) {}
+};
+
+struct UNREALED_API FMakeClassSpawnableOnScope
+{
+	UClass* Class;
+	bool bIsDeprecated;
+	bool bIsAbstract;
+	FMakeClassSpawnableOnScope(UClass* InClass)
+		: Class(InClass), bIsDeprecated(false), bIsAbstract(false)
+	{
+		if (Class)
+		{
+			bIsDeprecated = Class->HasAnyClassFlags(CLASS_Deprecated);
+			Class->ClassFlags &= ~CLASS_Deprecated;
+			bIsAbstract = Class->HasAnyClassFlags(CLASS_Abstract);
+			Class->ClassFlags &= ~CLASS_Abstract;
+		}
+	}
+	~FMakeClassSpawnableOnScope()
+	{
+		if (Class)
+		{
+			if (bIsAbstract)
+			{
+				Class->ClassFlags |= CLASS_Abstract;
+			}
+
+			if (bIsDeprecated)
+			{
+				Class->ClassFlags |= CLASS_Deprecated;
+			}
+		}
+	}
 };

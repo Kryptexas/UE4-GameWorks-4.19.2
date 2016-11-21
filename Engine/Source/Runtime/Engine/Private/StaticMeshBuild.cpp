@@ -92,8 +92,13 @@ void UStaticMesh::Build(bool bSilent, TArray<FText>* OutErrors)
 	// Free existing render data and recache.
 	CacheDerivedData();
 
-	// Reinitialize the static mesh's resources.
-	InitResources();
+	// Note: meshes can be built during automated importing.  We should not create resources in that case
+	// as they will never be released when this object is deleted
+	if(FApp::CanEverRender())
+	{
+		// Reinitialize the static mesh's resources.
+		InitResources();
+	}
 
 	// Ensure we have a bodysetup.
 	CreateBodySetup();
@@ -141,7 +146,7 @@ void UStaticMesh::Build(bool bSilent, TArray<FText>* OutErrors)
 		const uint32 NumLODs = RenderData->LODResources.Num();
 		for (TObjectIterator<UStaticMeshComponent> It; It; ++It)
 		{
-			if ( It->StaticMesh == this )
+			if ( It->GetStaticMesh() == this )
 			{
 				It->FixupOverrideColorsIfNecessary(true);
 				It->InvalidateLightingCache();

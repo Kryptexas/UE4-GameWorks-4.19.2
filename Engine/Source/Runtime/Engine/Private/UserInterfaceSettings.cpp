@@ -106,17 +106,4 @@ void UUserInterfaceSettings::ForceLoadResources()
 	CustomScalingRuleClassInstance = CustomScalingRuleClass.TryLoadClass<UDPICustomScalingRule>();
 }
 
-#if WITH_EDITOR
-void UUserInterfaceSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
-{
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-
-	if ( PropertyChangedEvent.Property )
-	{
-		URendererSettings* RendererSettings = GetMutableDefault<URendererSettings>(URendererSettings::StaticClass());
-		RendererSettings->UpdateDefaultConfigFile();
-	}
-}
-#endif // #if WITH_EDITOR
-
 #undef LOCTEXT_NAMESPACE

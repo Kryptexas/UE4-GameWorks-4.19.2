@@ -20,10 +20,6 @@
 #include "LightPropagationVolumeBlendable.h"
 #include "SceneViewExtension.h"
 
-#if WITH_EDITOR
-	#include "UnrealEd.h"
-#endif
-
 DEFINE_LOG_CATEGORY(LogBufferVisualization);
 
 DECLARE_CYCLE_STAT(TEXT("StartFinalPostprocessSettings"), STAT_StartFinalPostprocessSettings, STATGROUP_Engine);
@@ -452,16 +448,136 @@ FVector4 CreateInvDeviceZToWorldZTransform(const FMatrix& ProjMatrix)
 	}
 }
 
+FViewMatrices::FViewMatrices(const FSceneViewInitOptions& InitOptions) : FViewMatrices()
+{
+	//check(InitOptions.ViewRotationMatrix.GetOrigin().IsNearlyZero());
+
+	FVector LocalViewOrigin = InitOptions.ViewOrigin;
+	FMatrix ViewRotationMatrix = InitOptions.ViewRotationMatrix;
+	if (!ViewRotationMatrix.GetOrigin().IsNearlyZero(0.0f))
+	{
+		LocalViewOrigin += ViewRotationMatrix.InverseTransformPosition(FVector::ZeroVector);
+		ViewRotationMatrix = ViewRotationMatrix.RemoveTranslation();
+	}
+
+	ViewMatrix = FTranslationMatrix(-LocalViewOrigin) * ViewRotationMatrix;
+	HMDViewMatrixNoRoll = InitOptions.ViewRotationMatrix;
+
+	// Adjust the projection matrix for the current RHI.
+	ProjectionMatrix = AdjustProjectionMatrixForRHI(InitOptions.ProjectionMatrix);
+	InvProjectionMatrix = InvertProjectionMatrix(ProjectionMatrix);
+
+	// Compute the view projection matrix and its inverse.
+	ViewProjectionMatrix = GetViewMatrix() * GetProjectionMatrix();
+
+	// For precision reasons the view matrix inverse is calculated independently.
+	InvViewMatrix = ViewRotationMatrix.GetTransposed() * FTranslationMatrix(LocalViewOrigin);
+	InvViewProjectionMatrix = InvProjectionMatrix * InvViewMatrix;
+
+	bool bApplyPreViewTranslation = true;
+	bool bViewOriginIsFudged = false;
+
+	// Calculate the view origin from the view/projection matrices.
+	if (IsPerspectiveProjection())
+	{
+		this->ViewOrigin = LocalViewOrigin;
+	}
+#if WITH_EDITOR
+	else if (InitOptions.bUseFauxOrthoViewPos)
+	{
+		float DistanceToViewOrigin = WORLD_MAX;
+		ViewOrigin = FVector4(InvViewMatrix.TransformVector(FVector(0, 0, -1)).GetSafeNormal()*DistanceToViewOrigin, 1) + LocalViewOrigin;
+		bViewOriginIsFudged = true;
+	}
+#endif
+	else
+	{
+		this->ViewOrigin = FVector4(InvViewMatrix.TransformVector(FVector(0, 0, -1)).GetSafeNormal(), 0);
+		// to avoid issues with view dependent effect (e.g. Frensel)
+		bApplyPreViewTranslation = false;
+	}
+
+	/** The view transform, starting from world-space points translated by -ViewOrigin. */
+	FMatrix LocalTranslatedViewMatrix = ViewRotationMatrix;
+	FMatrix LocalInvTranslatedViewMatrix = LocalTranslatedViewMatrix.GetTransposed();
+
+	// Translate world-space so its origin is at ViewOrigin for improved precision.
+	// Note that this isn't exactly right for orthogonal projections (See the above special case), but we still use ViewOrigin
+	// in that case so the same value may be used in shaders for both the world-space translation and the camera's world position.
+	if (bApplyPreViewTranslation)
+	{
+		PreViewTranslation = -FVector(LocalViewOrigin);
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		{
+			// console variable override
+			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.PreViewTranslation"));
+			int32 Value = CVar->GetValueOnGameThread();
+
+			static FVector PreViewTranslationBackup;
+
+			if (Value)
+			{
+				PreViewTranslationBackup = PreViewTranslation;
+			}
+			else
+			{
+				PreViewTranslation = PreViewTranslationBackup;
+			}
+		}
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	}
+	else
+	{
+		// If not applying PreViewTranslation then we need to use the view matrix directly.
+		LocalTranslatedViewMatrix = ViewMatrix;
+		LocalInvTranslatedViewMatrix = InvViewMatrix;
+	}
+
+	// When the view origin is fudged for faux ortho view position the translations don't cancel out.
+	if (bViewOriginIsFudged)
+	{
+		LocalTranslatedViewMatrix = FTranslationMatrix(-PreViewTranslation)
+			* FTranslationMatrix(-LocalViewOrigin) * ViewRotationMatrix;
+		LocalInvTranslatedViewMatrix = LocalTranslatedViewMatrix.Inverse();
+	}
+
+	// Compute a transform from view origin centered world-space to clip space.
+	TranslatedViewMatrix = LocalTranslatedViewMatrix;
+	InvTranslatedViewMatrix = LocalInvTranslatedViewMatrix;
+
+	OverriddenTranslatedViewMatrix = FTranslationMatrix(-GetPreViewTranslation()) * GetViewMatrix();
+	OverriddenInvTranslatedViewMatrix = GetInvViewMatrix() * FTranslationMatrix(GetPreViewTranslation());
+	
+	TranslatedViewProjectionMatrix = LocalTranslatedViewMatrix * ProjectionMatrix;
+	InvTranslatedViewProjectionMatrix = InvProjectionMatrix * LocalInvTranslatedViewMatrix;
+
+	// Compute screen scale factors.
+	// Stereo renders at half horizontal resolution, but compute shadow resolution based on full resolution.
+	const bool bStereo = InitOptions.StereoPass != eSSP_FULL;
+	const float ScreenXScale = bStereo ? 2.0f : 1.0f;
+	ProjectionScale.X = ScreenXScale * FMath::Abs(ProjectionMatrix.M[0][0]);
+	ProjectionScale.Y = FMath::Abs(ProjectionMatrix.M[1][1]);
+	ScreenScale = FMath::Max(
+		InitOptions.GetConstrainedViewRect().Size().X * 0.5f * ProjectionScale.X,
+		InitOptions.GetConstrainedViewRect().Size().Y * 0.5f * ProjectionScale.Y
+	);
+};
+
 FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	: Family(InitOptions.ViewFamily)
 	, State(InitOptions.SceneViewStateInterface)
+	, DynamicMeshElementsShadowCullFrustum(nullptr)
+	, PreShadowTranslation(FVector::ZeroVector)
 	, ViewActor(InitOptions.ViewActor)
 	, Drawer(InitOptions.ViewElementDrawer)
 	, ViewRect(InitOptions.GetConstrainedViewRect())
 	, UnscaledViewRect(InitOptions.GetConstrainedViewRect())
 	, UnconstrainedViewRect(InitOptions.GetViewRect())
 	, MaxShadowCascades(10)
+	, ViewMatrices(InitOptions)
 	, WorldToMetersScale(InitOptions.WorldToMetersScale)
+	, ShadowViewMatrices(InitOptions)
 	, ProjectionMatrixUnadjustedForRHI(InitOptions.ProjectionMatrix)
 	, BackgroundColor(InitOptions.BackgroundColor)
 	, OverlayColor(InitOptions.OverlayColor)
@@ -490,6 +606,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	, bIsInstancedStereoEnabled(false)
 	, bIsMultiViewEnabled(false)
 	, bIsMobileMultiViewEnabled(false)
+	, bShouldBindInstancedViewUB(false)
 	, GlobalClippingPlane(FPlane(0, 0, 0, 0))
 #if WITH_EDITOR
 	, OverrideLODViewOrigin(InitOptions.OverrideLODViewOrigin)
@@ -499,120 +616,12 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	, AntiAliasingMethod(AAM_None)
 	, ForwardLightingResources(nullptr)
 	, FeatureLevel(InitOptions.ViewFamily ? InitOptions.ViewFamily->GetFeatureLevel() : GMaxRHIFeatureLevel)
-{
+{	
 	check(UnscaledViewRect.Min.X >= 0);
 	check(UnscaledViewRect.Min.Y >= 0);
 	check(UnscaledViewRect.Width() > 0);
 	check(UnscaledViewRect.Height() > 0);
-	//check(InitOptions.ViewRotationMatrix.GetOrigin().IsNearlyZero());
 
-	FVector ViewOrigin = InitOptions.ViewOrigin;
-	FMatrix ViewRotationMatrix = InitOptions.ViewRotationMatrix;
-	if( !ViewRotationMatrix.GetOrigin().IsNearlyZero( 0.0f ) )
-	{
-		ViewOrigin += ViewRotationMatrix.InverseTransformPosition( FVector::ZeroVector );
-		ViewRotationMatrix = ViewRotationMatrix.RemoveTranslation();
-	}
-
-	ViewMatrices.ViewMatrix = FTranslationMatrix(-ViewOrigin) * ViewRotationMatrix;
-	ViewMatrices.HMDViewMatrixNoRoll = InitOptions.ViewRotationMatrix;
-
-	// Adjust the projection matrix for the current RHI.
-	ViewMatrices.ProjMatrix = AdjustProjectionMatrixForRHI(ProjectionMatrixUnadjustedForRHI);
-
-	// Compute the view projection matrix and its inverse.
-	ViewProjectionMatrix = ViewMatrices.GetViewProjMatrix();
-
-	FMatrix InvProjectionMatrix = ViewMatrices.GetInvProjMatrix();
-
-	// For precision reasons the view matrix inverse is calculated independently.
-	InvViewMatrix = ViewRotationMatrix.GetTransposed() * FTranslationMatrix(ViewOrigin);
-	InvViewProjectionMatrix = InvProjectionMatrix * InvViewMatrix;
-
-	bool bApplyPreViewTranslation = true;
-	bool bViewOriginIsFudged = false;
-
-	// Calculate the view origin from the view/projection matrices.
-	if(IsPerspectiveProjection())
-	{
-		ViewMatrices.ViewOrigin = ViewOrigin;
-	}
-#if WITH_EDITOR
-	else if (InitOptions.bUseFauxOrthoViewPos)
-	{
-		float DistanceToViewOrigin = WORLD_MAX;
-		ViewMatrices.ViewOrigin = FVector4(InvViewMatrix.TransformVector(FVector(0,0,-1)).GetSafeNormal()*DistanceToViewOrigin,1) + ViewOrigin;
-		bViewOriginIsFudged = true;
-	}
-#endif
-	else
-	{
-		ViewMatrices.ViewOrigin = FVector4(InvViewMatrix.TransformVector(FVector(0,0,-1)).GetSafeNormal(),0);
-		// to avoid issues with view dependent effect (e.g. Frensel)
-		bApplyPreViewTranslation = false;
-	}
-
-	/** The view transform, starting from world-space points translated by -ViewOrigin. */
-	FMatrix TranslatedViewMatrix = ViewRotationMatrix;
-	FMatrix InvTranslatedViewMatrix = TranslatedViewMatrix.GetTransposed();
-
-	// Translate world-space so its origin is at ViewOrigin for improved precision.
-	// Note that this isn't exactly right for orthogonal projections (See the above special case), but we still use ViewOrigin
-	// in that case so the same value may be used in shaders for both the world-space translation and the camera's world position.
-	if(bApplyPreViewTranslation)
-	{
-		ViewMatrices.PreViewTranslation = -FVector(ViewOrigin);
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		{
-			// console variable override
-			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.PreViewTranslation")); 
-			int32 Value = CVar->GetValueOnGameThread();
-
-			static FVector PreViewTranslationBackup;
-
-			if(Value)
-			{
-				PreViewTranslationBackup = ViewMatrices.PreViewTranslation;
-			}
-			else
-			{
-				ViewMatrices.PreViewTranslation = PreViewTranslationBackup;
-			}
-		}
-#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	}
-	else
-	{
-		// If not applying PreViewTranslation then we need to use the view matrix directly.
-		TranslatedViewMatrix = ViewMatrices.ViewMatrix;
-		InvTranslatedViewMatrix = InvViewMatrix;
-	}
-
-	// When the view origin is fudged for faux ortho view position the translations don't cancel out.
-	if (bViewOriginIsFudged)
-	{
-		TranslatedViewMatrix = FTranslationMatrix(-ViewMatrices.PreViewTranslation)
-			* FTranslationMatrix(-ViewOrigin) * ViewRotationMatrix;
-		InvTranslatedViewMatrix = TranslatedViewMatrix.Inverse();
-	}
-	
-	// Compute a transform from view origin centered world-space to clip space.
-	ViewMatrices.TranslatedViewMatrix = TranslatedViewMatrix;
-	ViewMatrices.TranslatedViewProjectionMatrix = TranslatedViewMatrix * ViewMatrices.ProjMatrix;
-	ViewMatrices.InvTranslatedViewProjectionMatrix = InvProjectionMatrix * InvTranslatedViewMatrix;
-
-	// Compute screen scale factors.
-	// Stereo renders at half horizontal resolution, but compute shadow resolution based on full resolution.
-	const bool bStereo = StereoPass != eSSP_FULL;
-	const float ScreenXScale = bStereo ? 2.0f : 1.0f;
-	ViewMatrices.ProjectionScale.X = ScreenXScale * FMath::Abs(ViewMatrices.ProjMatrix.M[0][0]);
-	ViewMatrices.ProjectionScale.Y = FMath::Abs(ViewMatrices.ProjMatrix.M[1][1]);
-	ViewMatrices.ScreenScale = FMath::Max(
-		ViewRect.Size().X * 0.5f * ViewMatrices.ProjectionScale.X,
-		ViewRect.Size().Y * 0.5f * ViewMatrices.ProjectionScale.Y
-		);
-	
 	ShadowViewMatrices = ViewMatrices;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -635,33 +644,33 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 
 	if (InitOptions.OverrideFarClippingPlaneDistance > 0.0f)
 	{
-		const FPlane FarPlane(ViewMatrices.ViewOrigin + GetViewDirection() * InitOptions.OverrideFarClippingPlaneDistance, GetViewDirection());
+		const FPlane FarPlane(ViewMatrices.GetViewOrigin() + GetViewDirection() * InitOptions.OverrideFarClippingPlaneDistance, GetViewDirection());
 		// Derive the view frustum from the view projection matrix, overriding the far plane
-		GetViewFrustumBounds(ViewFrustum,ViewProjectionMatrix,FarPlane,true,false);
+		GetViewFrustumBounds(ViewFrustum, ViewMatrices.GetViewProjectionMatrix(),FarPlane,true,false);
 	}
 	else
 	{
 		// Derive the view frustum from the view projection matrix.
-		GetViewFrustumBounds(ViewFrustum,ViewProjectionMatrix,false);
+		GetViewFrustumBounds(ViewFrustum, ViewMatrices.GetViewProjectionMatrix(),false);
 	}
 
 	// Derive the view's near clipping distance and plane.
 	// The GetFrustumFarPlane() is the near plane because of reverse Z projection.
 	static_assert((int32)ERHIZBuffer::IsInverted != 0, "Fix Near Clip distance!");
-	bHasNearClippingPlane = ViewProjectionMatrix.GetFrustumFarPlane(NearClippingPlane);
-	if(ViewMatrices.ProjMatrix.M[2][3] > DELTA)
+	bHasNearClippingPlane = ViewMatrices.GetViewProjectionMatrix().GetFrustumFarPlane(NearClippingPlane);
+	if(ViewMatrices.GetProjectionMatrix().M[2][3] > DELTA)
 	{
 		// Infinite projection with reversed Z.
-		NearClippingDistance = ViewMatrices.ProjMatrix.M[3][2];
+		NearClippingDistance = ViewMatrices.GetProjectionMatrix().M[3][2];
 	}
 	else
 	{
 		// Ortho projection with reversed Z.
-		NearClippingDistance = (1.0f - ViewMatrices.ProjMatrix.M[3][2]) / ViewMatrices.ProjMatrix.M[2][2];
+		NearClippingDistance = (1.0f - ViewMatrices.GetProjectionMatrix().M[3][2]) / ViewMatrices.GetProjectionMatrix().M[2][2];
 	}
 
 	// Determine whether the view should reverse the cull mode due to a negative determinant.  Only do this for a valid scene
-	bReverseCulling = (Family && Family->Scene) ? FMath::IsNegativeFloat(ViewMatrices.ViewMatrix.Determinant()) : false;
+	bReverseCulling = (Family && Family->Scene) ? FMath::IsNegativeFloat(ViewMatrices.GetViewMatrix().Determinant()) : false;
 
 	// OpenGL Gamma space output in GLSL flips Y when rendering directly to the back buffer (so not needed on PC, as we never render directly into the back buffer)
 	auto ShaderPlatform = GShaderPlatformForFeatureLevel[FeatureLevel];
@@ -703,13 +712,18 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 
 	// Query instanced stereo and multi-view state
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.InstancedStereo"));
-	bIsInstancedStereoEnabled = (ShaderPlatform == EShaderPlatform::SP_PCD3D_SM5 || ShaderPlatform == EShaderPlatform::SP_PS4) ? (CVar ? (CVar->GetValueOnAnyThread() != false) : false) : false;
+	bIsInstancedStereoEnabled = (ShaderPlatform == EShaderPlatform::SP_PCD3D_SM5 || ShaderPlatform == EShaderPlatform::SP_PS4) ? (CVar ? (CVar->GetValueOnAnyThread() != 0) : false) : false;
 
 	static const auto MultiViewCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MultiView"));
 	bIsMultiViewEnabled = ShaderPlatform == EShaderPlatform::SP_PS4 && (MultiViewCVar && MultiViewCVar->GetValueOnAnyThread() != 0);
 
 	static const auto MobileMultiViewCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MobileMultiView"));
-	bIsMobileMultiViewEnabled = GSupportsMobileMultiView && (MobileMultiViewCVar && MobileMultiViewCVar->GetValueOnAnyThread() != 0);
+	bIsMobileMultiViewEnabled = (MobileMultiViewCVar && MobileMultiViewCVar->GetValueOnAnyThread() != 0);
+
+	bShouldBindInstancedViewUB = bIsInstancedStereoEnabled || bIsMobileMultiViewEnabled;
+
+	// If the device doesn't support mobile multi-view, disable it. 
+	bIsMobileMultiViewEnabled = bIsMobileMultiViewEnabled && GSupportsMobileMultiView;
 
 	SetupAntiAliasingMethod();
 }
@@ -780,8 +794,8 @@ static TAutoConsoleVariable<int32> CVarCompensateForFOV(
 float FSceneView::GetLODDistanceFactor() const
 {
 	bool bCompensateForFOV = bUseFieldOfViewForLOD && CVarCompensateForFOV.GetValueOnAnyThread() != 0;
-	float ScreenScaleX = bCompensateForFOV ? ViewMatrices.ProjMatrix.M[0][0] : 1.0f;
-	float ScreenScaleY = bCompensateForFOV ? ViewMatrices.ProjMatrix.M[1][1] : (static_cast<float>(ViewRect.Width()) / ViewRect.Height());
+	float ScreenScaleX = bCompensateForFOV ? ViewMatrices.GetProjectionMatrix().M[0][0] : 1.0f;
+	float ScreenScaleY = bCompensateForFOV ? ViewMatrices.GetProjectionMatrix().M[1][1] : (static_cast<float>(ViewRect.Width()) / ViewRect.Height());
 
 	const float ScreenMultiple = FMath::Max(ViewRect.Width() / 2.0f * ScreenScaleX,
 		ViewRect.Height() / 2.0f * ScreenScaleY);
@@ -813,7 +827,7 @@ FVector FSceneView::GetTemporalLODOrigin(int32 Index, bool bUseLaggedLODTransiti
 			return LODState.TemporalLODViewOrigin[Index];
 		}
 	}
-	return ViewMatrices.ViewOrigin;
+	return ViewMatrices.GetViewOrigin();
 }
 
 float FSceneView::GetTemporalLODTransition() const
@@ -843,6 +857,39 @@ uint32 FSceneView::GetOcclusionFrameCounter() const
 	return MAX_uint32;
 }
 
+void FViewMatrices::UpdateViewMatrix(const FVector& ViewLocation, const FRotator& ViewRotation)
+{
+	ViewOrigin = ViewLocation;
+
+	FMatrix ViewPlanesMatrix = FMatrix(
+		FPlane(0, 0, 1, 0),
+		FPlane(1, 0, 0, 0),
+		FPlane(0, 1, 0, 0),
+		FPlane(0, 0, 0, 1));
+
+	ViewMatrix = FTranslationMatrix(-ViewLocation);
+	ViewMatrix = ViewMatrix * FInverseRotationMatrix(ViewRotation);
+	ViewMatrix = ViewMatrix * ViewPlanesMatrix;
+
+	InvViewMatrix = FTranslationMatrix(-ViewMatrix.GetOrigin()) * ViewMatrix.RemoveTranslation().GetTransposed();
+
+	// Duplicate HMD rotation matrix with roll removed
+	FRotator HMDViewRotation = ViewRotation;
+	HMDViewRotation.Roll = 0.f;
+	HMDViewMatrixNoRoll = FInverseRotationMatrix(HMDViewRotation) * ViewPlanesMatrix;
+
+	PreViewTranslation = -ViewOrigin;
+	//using mathematical equality rule for matrix inverse: (A*B)^-1 == B^-1 * A^-1
+	OverriddenTranslatedViewMatrix = TranslatedViewMatrix = FTranslationMatrix(-PreViewTranslation) * ViewMatrix;
+	OverriddenInvTranslatedViewMatrix = InvTranslatedViewMatrix = InvViewMatrix * FTranslationMatrix(PreViewTranslation);
+
+	// Compute a transform from view origin centered world-space to clip space.
+	TranslatedViewProjectionMatrix = GetTranslatedViewMatrix() * GetProjectionMatrix();
+	InvTranslatedViewProjectionMatrix = GetInvProjectionMatrix() * GetTranslatedViewMatrix().GetTransposed();
+
+	ViewProjectionMatrix = GetViewMatrix() * GetProjectionMatrix();
+	InvViewProjectionMatrix = GetInvProjectionMatrix() * GetInvViewMatrix();
+}
 
 void FSceneView::UpdateViewMatrix()
 {
@@ -853,65 +900,45 @@ void FSceneView::UpdateViewMatrix()
 		ViewLocation = StereoViewLocation;
 	}
 
-	ViewMatrices.ViewOrigin = StereoViewLocation;
-
-	FMatrix ViewPlanesMatrix = FMatrix(
-		FPlane(0,	0,	1,	0),
-		FPlane(1,	0,	0,	0),
-		FPlane(0,	1,	0,	0),
-		FPlane(0,	0,	0,	1));
-
-	ViewMatrices.ViewMatrix = FTranslationMatrix(-StereoViewLocation);
-	ViewMatrices.ViewMatrix = ViewMatrices.ViewMatrix * FInverseRotationMatrix(ViewRotation);
-	ViewMatrices.ViewMatrix = ViewMatrices.ViewMatrix * ViewPlanesMatrix;
-
-	// Duplicate HMD rotation matrix with roll removed
-	FRotator HMDViewRotation = ViewRotation;
-	HMDViewRotation.Roll = 0.f;
-	ViewMatrices.HMDViewMatrixNoRoll = FInverseRotationMatrix(HMDViewRotation) * ViewPlanesMatrix;
- 
-	ViewMatrices.PreViewTranslation = -ViewMatrices.ViewOrigin;
-	ViewMatrices.TranslatedViewMatrix = FTranslationMatrix(-ViewMatrices.PreViewTranslation) * ViewMatrices.ViewMatrix;
-	
-	// Compute a transform from view origin centered world-space to clip space.
-	ViewMatrices.TranslatedViewProjectionMatrix = ViewMatrices.TranslatedViewMatrix * ViewMatrices.ProjMatrix;
-	ViewMatrices.InvTranslatedViewProjectionMatrix = ViewMatrices.TranslatedViewProjectionMatrix.Inverse();
-
-	ViewProjectionMatrix = ViewMatrices.GetViewProjMatrix();
-	InvViewMatrix = ViewMatrices.GetInvViewMatrix();
-	InvViewProjectionMatrix = ViewMatrices.GetInvProjMatrix() * InvViewMatrix;
+	ViewMatrices.UpdateViewMatrix(StereoViewLocation, ViewRotation);
 
 	// Derive the view frustum from the view projection matrix.
-	GetViewFrustumBounds(ViewFrustum, ViewProjectionMatrix, false);
+	GetViewFrustumBounds(ViewFrustum, ViewMatrices.GetViewProjectionMatrix(), false);
 
 	// We need to keep ShadowViewMatrices in sync.
 	ShadowViewMatrices = ViewMatrices;
 }
-void FSceneView::UpdatePlanarReflectionViewMatrix(const FSceneView& SourceView, const FMirrorMatrix& MirrorMatrix)
+
+void FViewMatrices::UpdatePlanarReflectionViewMatrix(const FSceneView& SourceView, const FMirrorMatrix& MirrorMatrix)
 {
 	// This is a subset of the FSceneView ctor that recomputes the transforms changed by late updating the parent camera (in UpdateViewMatrix)
-	const FMatrix ViewMatrix(MirrorMatrix * SourceView.ViewMatrices.ViewMatrix);
-	ViewMatrices.HMDViewMatrixNoRoll = ViewMatrix.RemoveTranslation();
-	
-	ViewMatrices.ViewOrigin = ViewMatrix.InverseTransformPosition(FVector::ZeroVector);
-	ViewMatrices.PreViewTranslation = -ViewMatrices.ViewOrigin;
+	const FMatrix LocalViewMatrix(MirrorMatrix * SourceView.ViewMatrices.GetViewMatrix());
+	HMDViewMatrixNoRoll = LocalViewMatrix.RemoveTranslation();
 
-	ViewMatrices.ViewMatrix = FTranslationMatrix(-ViewMatrices.ViewOrigin) * ViewMatrices.HMDViewMatrixNoRoll;
+	ViewOrigin = LocalViewMatrix.InverseTransformPosition(FVector::ZeroVector);
+	PreViewTranslation = -ViewOrigin;
 
-	ViewProjectionMatrix = ViewMatrices.GetViewProjMatrix();
-	const FMatrix InvProjectionMatrix = ViewMatrices.GetInvProjMatrix();
+	ViewMatrix = FTranslationMatrix(-ViewOrigin) * HMDViewMatrixNoRoll;
+	InvViewMatrix = FTranslationMatrix(-ViewMatrix.GetOrigin()) * ViewMatrix.RemoveTranslation().GetTransposed();
 
-	InvViewMatrix = ViewMatrices.HMDViewMatrixNoRoll.GetTransposed() * FTranslationMatrix(ViewMatrices.ViewOrigin);
-	InvViewProjectionMatrix = InvProjectionMatrix * InvViewMatrix;
+	InvViewMatrix = HMDViewMatrixNoRoll.GetTransposed() * FTranslationMatrix(ViewOrigin);
 
-	ViewMatrices.TranslatedViewMatrix = ViewMatrices.HMDViewMatrixNoRoll;
-	const FMatrix InvTranslatedViewMatrix = ViewMatrices.TranslatedViewMatrix.GetTransposed();
+	ViewProjectionMatrix = GetViewMatrix() * GetProjectionMatrix();
+	InvViewProjectionMatrix = GetInvProjectionMatrix() * InvViewMatrix;
 
-	ViewMatrices.TranslatedViewProjectionMatrix = ViewMatrices.TranslatedViewMatrix * ViewMatrices.ProjMatrix;
-	ViewMatrices.InvTranslatedViewProjectionMatrix = InvProjectionMatrix * InvTranslatedViewMatrix;
+	OverriddenTranslatedViewMatrix = TranslatedViewMatrix = HMDViewMatrixNoRoll;
+	OverriddenInvTranslatedViewMatrix = InvTranslatedViewMatrix = HMDViewMatrixNoRoll.GetTransposed();
+
+	TranslatedViewProjectionMatrix = GetTranslatedViewMatrix() * GetProjectionMatrix();
+	InvTranslatedViewProjectionMatrix = GetInvProjectionMatrix() * GetInvTranslatedViewMatrix();
+}
+
+void FSceneView::UpdatePlanarReflectionViewMatrix(const FSceneView& SourceView, const FMirrorMatrix& MirrorMatrix)
+{
+	ViewMatrices.UpdatePlanarReflectionViewMatrix(SourceView, MirrorMatrix);
 
 	// Update bounds
-	GetViewFrustumBounds(ViewFrustum, ViewProjectionMatrix, false);
+	GetViewFrustumBounds(ViewFrustum, ViewMatrices.GetViewProjectionMatrix(), false);
 
 	// We need to keep ShadowViewMatrices in sync.
 	ShadowViewMatrices = ViewMatrices;
@@ -931,12 +958,12 @@ void FSceneView::SetScaledViewRect(FIntRect InScaledViewRect)
 
 FVector4 FSceneView::WorldToScreen(const FVector& WorldPoint) const
 {
-	return ViewProjectionMatrix.TransformFVector4(FVector4(WorldPoint,1));
+	return ViewMatrices.GetViewProjectionMatrix().TransformFVector4(FVector4(WorldPoint,1));
 }
 
 FVector FSceneView::ScreenToWorld(const FVector4& ScreenPoint) const
 {
-	return InvViewProjectionMatrix.TransformFVector4(ScreenPoint);
+	return ViewMatrices.GetInvViewProjectionMatrix().TransformFVector4(ScreenPoint);
 }
 
 bool FSceneView::ScreenToPixel(const FVector4& ScreenPoint,FVector2D& OutPixelLocation) const
@@ -1017,12 +1044,12 @@ FPlane FSceneView::Project(const FVector& WorldPoint) const
  */
 FVector FSceneView::Deproject(const FPlane& ScreenPoint) const
 {
-	return InvViewProjectionMatrix.TransformFVector4(FPlane(ScreenPoint.X * ScreenPoint.W,ScreenPoint.Y * ScreenPoint.W,ScreenPoint.Z * ScreenPoint.W,ScreenPoint.W));
+	return ViewMatrices.GetInvViewProjectionMatrix().TransformFVector4(FPlane(ScreenPoint.X * ScreenPoint.W,ScreenPoint.Y * ScreenPoint.W,ScreenPoint.Z * ScreenPoint.W,ScreenPoint.W));
 }
 
 void FSceneView::DeprojectFVector2D(const FVector2D& ScreenPos, FVector& out_WorldOrigin, FVector& out_WorldDirection) const
 {
-	const FMatrix InvViewProjMatrix = ViewMatrices.GetInvViewProjMatrix();
+	const FMatrix InvViewProjectionMatrix = ViewMatrices.GetInvViewProjectionMatrix();
 	DeprojectScreenToWorld(ScreenPos, UnscaledViewRect, InvViewProjectionMatrix, out_WorldOrigin, out_WorldDirection);
 }
 
@@ -1994,7 +2021,11 @@ EShaderPlatform FSceneView::GetShaderPlatform() const
 	return GShaderPlatformForFeatureLevel[GetFeatureLevel()];
 }
 
-void FSceneView::SetupViewRectUniformBufferParameters(const FIntPoint& BufferSize, const FIntRect& EffectiveViewRect, FViewUniformShaderParameters& ViewUniformShaderParameters) const
+void FSceneView::SetupViewRectUniformBufferParameters(FViewUniformShaderParameters& ViewUniformShaderParameters,
+	const FIntPoint& BufferSize,
+	const FIntRect& EffectiveViewRect,
+	const FViewMatrices& InViewMatrices,
+	const FViewMatrices& InPrevViewMatrices) const
 {
 	checkfSlow(EffectiveViewRect.Area() > 0, TEXT("Invalid-size EffectiveViewRect passed to CreateUniformBufferParameters [%d * %d]."), EffectiveViewRect.Width(), EffectiveViewRect.Height());
 
@@ -2043,32 +2074,28 @@ void FSceneView::SetupViewRectUniformBufferParameters(const FIntPoint& BufferSiz
 			FMatrix(FPlane(Mx, 0, 0, 0),
 				FPlane(0, My, 0, 0),
 				FPlane(0, 0, 1, 0),
-				FPlane(Ax, Ay, 0, 1)) * ViewMatrices.InvTranslatedViewProjectionMatrix;
+				FPlane(Ax, Ay, 0, 1)) * InViewMatrices.GetInvTranslatedViewProjectionMatrix();
 	}
 
+	// is getting clamped in the shader to a value larger than 0 (we don't want the triangles to disappear)
+	ViewUniformShaderParameters.AdaptiveTessellationFactor = 0.0f;
 
 	if(Family->EngineShowFlags.Tessellation)
 	{
 		// CVar setting is pixels/tri which is nice and intuitive.  But we want pixels/tessellated edge.  So use a heuristic.
 		float TessellationAdaptivePixelsPerEdge = FMath::Sqrt(2.f * CVarTessellationAdaptivePixelsPerTriangle.GetValueOnRenderThread());
 
-		ViewUniformShaderParameters.AdaptiveTessellationFactor = 0.5f * ViewMatrices.ProjMatrix.M[1][1] * float(EffectiveViewRect.Height()) / TessellationAdaptivePixelsPerEdge;
+		ViewUniformShaderParameters.AdaptiveTessellationFactor = 0.5f * InViewMatrices.GetProjectionMatrix().M[1][1] * float(EffectiveViewRect.Height()) / TessellationAdaptivePixelsPerEdge;
 	}
 
 }
 
-void FSceneView::SetupCommonViewUniformBufferParameters(
-	FViewUniformShaderParameters& ViewUniformShaderParameters,
-	const FIntPoint& BufferSize, 
-	const FIntRect& EffectiveViewRect, 
-	const FMatrix& EffectiveTranslatedViewMatrix, 
-	const FMatrix& EffectiveViewToTranslatedWorld, 
-	const FViewMatrices& PrevViewMatrices,
-	const FMatrix& PrevViewProjMatrix, 
-	const FMatrix& PrevViewRotationProjMatrix) const
+void FSceneView::SetupCommonViewUniformBufferParameters(FViewUniformShaderParameters& ViewUniformShaderParameters,
+	const FIntPoint& BufferSize,
+	const FIntRect& EffectiveViewRect,
+	const FViewMatrices& InViewMatrices,
+	const FViewMatrices& InPrevViewMatrices) const
 {
-	SetupViewRectUniformBufferParameters(BufferSize, EffectiveViewRect, ViewUniformShaderParameters);
-
 	FVector4 LocalDiffuseOverrideParameter = DiffuseOverrideParameter;
 	FVector2D LocalRoughnessOverrideParameter = RoughnessOverrideParameter;
 
@@ -2097,57 +2124,57 @@ void FSceneView::SetupCommonViewUniformBufferParameters(
 
 #endif
 
-	ViewUniformShaderParameters.ViewToTranslatedWorld = EffectiveViewToTranslatedWorld;
-	ViewUniformShaderParameters.TranslatedWorldToClip = ViewMatrices.TranslatedViewProjectionMatrix;
-	ViewUniformShaderParameters.WorldToClip = ViewProjectionMatrix;
-	ViewUniformShaderParameters.TranslatedWorldToView = EffectiveTranslatedViewMatrix;
-	ViewUniformShaderParameters.TranslatedWorldToCameraView = ViewMatrices.TranslatedViewMatrix;
-	ViewUniformShaderParameters.CameraViewToTranslatedWorld = ViewUniformShaderParameters.TranslatedWorldToCameraView.Inverse();
-	ViewUniformShaderParameters.ViewToClip = ViewMatrices.ProjMatrix;
-	ViewUniformShaderParameters.ClipToView = ViewMatrices.GetInvProjMatrix();
-	ViewUniformShaderParameters.ClipToTranslatedWorld = ViewMatrices.InvTranslatedViewProjectionMatrix;
-	ViewUniformShaderParameters.ViewForward = EffectiveTranslatedViewMatrix.GetColumn(2);
-	ViewUniformShaderParameters.ViewUp = EffectiveTranslatedViewMatrix.GetColumn(1);
-	ViewUniformShaderParameters.ViewRight = EffectiveTranslatedViewMatrix.GetColumn(0);
-	ViewUniformShaderParameters.HMDViewNoRollUp = ViewMatrices.HMDViewMatrixNoRoll.GetColumn(1);
-	ViewUniformShaderParameters.HMDViewNoRollRight = ViewMatrices.HMDViewMatrixNoRoll.GetColumn(0);
+	ViewUniformShaderParameters.ViewToTranslatedWorld = InViewMatrices.GetOverriddenInvTranslatedViewMatrix();
+	ViewUniformShaderParameters.TranslatedWorldToClip = InViewMatrices.GetTranslatedViewProjectionMatrix();
+	ViewUniformShaderParameters.WorldToClip = InViewMatrices.GetViewProjectionMatrix();
+	ViewUniformShaderParameters.TranslatedWorldToView = InViewMatrices.GetOverriddenTranslatedViewMatrix();
+	ViewUniformShaderParameters.TranslatedWorldToCameraView = InViewMatrices.GetTranslatedViewMatrix();
+	ViewUniformShaderParameters.CameraViewToTranslatedWorld = InViewMatrices.GetInvTranslatedViewMatrix();
+	ViewUniformShaderParameters.ViewToClip = InViewMatrices.GetProjectionMatrix();
+	ViewUniformShaderParameters.ClipToView = InViewMatrices.GetInvProjectionMatrix();
+	ViewUniformShaderParameters.ClipToTranslatedWorld = InViewMatrices.GetInvTranslatedViewProjectionMatrix();
+	ViewUniformShaderParameters.ViewForward = InViewMatrices.GetOverriddenTranslatedViewMatrix().GetColumn(2);
+	ViewUniformShaderParameters.ViewUp = InViewMatrices.GetOverriddenTranslatedViewMatrix().GetColumn(1);
+	ViewUniformShaderParameters.ViewRight = InViewMatrices.GetOverriddenTranslatedViewMatrix().GetColumn(0);
+	ViewUniformShaderParameters.HMDViewNoRollUp = InViewMatrices.GetHMDViewMatrixNoRoll().GetColumn(1);
+	ViewUniformShaderParameters.HMDViewNoRollRight = InViewMatrices.GetHMDViewMatrixNoRoll().GetColumn(0);
 	ViewUniformShaderParameters.InvDeviceZToWorldZTransform = InvDeviceZToWorldZTransform;
-	ViewUniformShaderParameters.WorldViewOrigin = EffectiveViewToTranslatedWorld.TransformPosition(FVector(0)) - ViewMatrices.PreViewTranslation;
-	ViewUniformShaderParameters.WorldCameraOrigin = ViewMatrices.ViewOrigin;
-	ViewUniformShaderParameters.TranslatedWorldCameraOrigin = ViewMatrices.ViewOrigin + ViewMatrices.PreViewTranslation;
-	ViewUniformShaderParameters.PreViewTranslation = ViewMatrices.PreViewTranslation;
-	ViewUniformShaderParameters.PrevProjection = PrevViewMatrices.ProjMatrix;
-	ViewUniformShaderParameters.PrevViewProj = PrevViewProjMatrix;
-	ViewUniformShaderParameters.PrevViewRotationProj = PrevViewRotationProjMatrix;
-	ViewUniformShaderParameters.PrevViewToClip = PrevViewMatrices.ProjMatrix;
-	ViewUniformShaderParameters.PrevClipToView = PrevViewMatrices.GetInvProjMatrix();
-	ViewUniformShaderParameters.PrevTranslatedWorldToClip = PrevViewMatrices.TranslatedViewProjectionMatrix;
-	// EffectiveTranslatedViewMatrix != ViewMatrices.TranslatedViewMatrix in the shadow pass
+	ViewUniformShaderParameters.WorldViewOrigin = InViewMatrices.GetOverriddenInvTranslatedViewMatrix().TransformPosition(FVector(0)) - InViewMatrices.GetPreViewTranslation();
+	ViewUniformShaderParameters.WorldCameraOrigin = InViewMatrices.GetViewOrigin();
+	ViewUniformShaderParameters.TranslatedWorldCameraOrigin = InViewMatrices.GetViewOrigin() + InViewMatrices.GetPreViewTranslation();
+	ViewUniformShaderParameters.PreViewTranslation = InViewMatrices.GetPreViewTranslation();
+	ViewUniformShaderParameters.PrevProjection = InPrevViewMatrices.GetProjectionMatrix();
+	ViewUniformShaderParameters.PrevViewProj = InPrevViewMatrices.GetViewProjectionMatrix();
+	ViewUniformShaderParameters.PrevViewRotationProj = InPrevViewMatrices.ComputeViewRotationProjectionMatrix();
+	ViewUniformShaderParameters.PrevViewToClip = InPrevViewMatrices.GetProjectionMatrix();
+	ViewUniformShaderParameters.PrevClipToView = InPrevViewMatrices.GetInvProjectionMatrix();
+	ViewUniformShaderParameters.PrevTranslatedWorldToClip = InPrevViewMatrices.GetTranslatedViewProjectionMatrix();
+	// EffectiveTranslatedViewMatrix != InViewMatrices.TranslatedViewMatrix in the shadow pass
 	// and we don't have EffectiveTranslatedViewMatrix for the previous frame to set up PrevTranslatedWorldToView
 	// but that is fine to set up PrevTranslatedWorldToView as same as PrevTranslatedWorldToCameraView
 	// since the shadow pass doesn't require previous frame computation.
-	ViewUniformShaderParameters.PrevTranslatedWorldToView = PrevViewMatrices.TranslatedViewMatrix;
-	ViewUniformShaderParameters.PrevViewToTranslatedWorld = ViewUniformShaderParameters.PrevTranslatedWorldToView.Inverse();
-	ViewUniformShaderParameters.PrevTranslatedWorldToCameraView = PrevViewMatrices.TranslatedViewMatrix;
-	ViewUniformShaderParameters.PrevCameraViewToTranslatedWorld = ViewUniformShaderParameters.PrevTranslatedWorldToCameraView.Inverse();
-	ViewUniformShaderParameters.PrevWorldCameraOrigin = PrevViewMatrices.ViewOrigin;
+	ViewUniformShaderParameters.PrevTranslatedWorldToView = InPrevViewMatrices.GetTranslatedViewMatrix();
+	ViewUniformShaderParameters.PrevViewToTranslatedWorld = InPrevViewMatrices.GetInvTranslatedViewMatrix();
+	ViewUniformShaderParameters.PrevTranslatedWorldToCameraView = InPrevViewMatrices.GetTranslatedViewMatrix();
+	ViewUniformShaderParameters.PrevCameraViewToTranslatedWorld = InPrevViewMatrices.GetInvTranslatedViewMatrix();
+	ViewUniformShaderParameters.PrevWorldCameraOrigin = InPrevViewMatrices.GetViewOrigin();
 	// previous view world origin is going to be needed only in the base pass or shadow pass
 	// therefore is same as previous camera world origin.
 	ViewUniformShaderParameters.PrevWorldViewOrigin = ViewUniformShaderParameters.PrevWorldCameraOrigin;
-	ViewUniformShaderParameters.PrevPreViewTranslation = PrevViewMatrices.PreViewTranslation;
+	ViewUniformShaderParameters.PrevPreViewTranslation = InPrevViewMatrices.GetPreViewTranslation();
 	// can be optimized
-	ViewUniformShaderParameters.PrevInvViewProj = PrevViewProjMatrix.Inverse();
+	ViewUniformShaderParameters.PrevInvViewProj = InPrevViewMatrices.GetInvViewProjectionMatrix();
 	ViewUniformShaderParameters.GlobalClippingPlane = FVector4(GlobalClippingPlane.X, GlobalClippingPlane.Y, GlobalClippingPlane.Z, -GlobalClippingPlane.W);
 
-	ViewUniformShaderParameters.FieldOfViewWideAngles = 2.f * ViewMatrices.GetHalfFieldOfViewPerAxis();
-	ViewUniformShaderParameters.PrevFieldOfViewWideAngles = 2.f * PrevViewMatrices.GetHalfFieldOfViewPerAxis();
+	ViewUniformShaderParameters.FieldOfViewWideAngles = 2.f * InViewMatrices.ComputeHalfFieldOfViewPerAxis();
+	ViewUniformShaderParameters.PrevFieldOfViewWideAngles = 2.f * InPrevViewMatrices.ComputeHalfFieldOfViewPerAxis();
 	ViewUniformShaderParameters.DiffuseOverrideParameter = LocalDiffuseOverrideParameter;
 	ViewUniformShaderParameters.SpecularOverrideParameter = SpecularOverrideParameter;
 	ViewUniformShaderParameters.NormalOverrideParameter = NormalOverrideParameter;
 	ViewUniformShaderParameters.RoughnessOverrideParameter = LocalRoughnessOverrideParameter;
 	ViewUniformShaderParameters.PrevFrameGameTime = Family->CurrentWorldTime - Family->DeltaWorldTime;
-	ViewUniformShaderParameters.PrevFrameRealTime = Family->CurrentRealTime - Family->DeltaWorldTime;
-	ViewUniformShaderParameters.WorldCameraMovementSinceLastFrame = ViewMatrices.ViewOrigin - PrevViewMatrices.ViewOrigin;
+	ViewUniformShaderParameters.PrevFrameRealTime = Family->CurrentRealTime  - Family->DeltaWorldTime;
+	ViewUniformShaderParameters.WorldCameraMovementSinceLastFrame = InViewMatrices.GetViewOrigin() - InPrevViewMatrices.GetViewOrigin();
 	ViewUniformShaderParameters.CullingSign = bReverseCulling ? -1.0f : 1.0f;
 	ViewUniformShaderParameters.NearPlane = GNearClippingPlane;
 
@@ -2158,30 +2185,27 @@ void FSceneView::SetupCommonViewUniformBufferParameters(
 		FPlane(0, 1, 0, 0),
 		FPlane(0, 0, ProjectionMatrixUnadjustedForRHI.M[2][2], 1),
 		FPlane(0, 0, ProjectionMatrixUnadjustedForRHI.M[3][2], 0))
-		* InvViewProjectionMatrix;
+		* InViewMatrices.GetInvViewProjectionMatrix();
 
 	ViewUniformShaderParameters.ScreenToTranslatedWorld = FMatrix(
 		FPlane(1, 0, 0, 0),
 		FPlane(0, 1, 0, 0),
 		FPlane(0, 0, ProjectionMatrixUnadjustedForRHI.M[2][2], 1),
 		FPlane(0, 0, ProjectionMatrixUnadjustedForRHI.M[3][2], 0))
-		* ViewMatrices.InvTranslatedViewProjectionMatrix;
+		* InViewMatrices.GetInvTranslatedViewProjectionMatrix();
 
 	ViewUniformShaderParameters.PrevScreenToTranslatedWorld = FMatrix(
 		FPlane(1, 0, 0, 0),
 		FPlane(0, 1, 0, 0),
 		FPlane(0, 0, ProjectionMatrixUnadjustedForRHI.M[2][2], 1),
 		FPlane(0, 0, ProjectionMatrixUnadjustedForRHI.M[3][2], 0))
-		* PrevViewMatrices.InvTranslatedViewProjectionMatrix;
+		* InPrevViewMatrices.GetInvTranslatedViewProjectionMatrix();
 
-	FVector DeltaTranslation = PrevViewMatrices.PreViewTranslation - ViewMatrices.PreViewTranslation;
-	FMatrix InvViewProj = ViewMatrices.GetInvProjNoAAMatrix() * ViewMatrices.TranslatedViewMatrix.GetTransposed();
-	FMatrix PrevViewProj = FTranslationMatrix(DeltaTranslation) * PrevViewMatrices.TranslatedViewMatrix * PrevViewMatrices.GetProjNoAAMatrix();
+	FVector DeltaTranslation = InPrevViewMatrices.GetPreViewTranslation() - InViewMatrices.GetPreViewTranslation();
+	FMatrix InvViewProj = InViewMatrices.ComputeInvProjectionNoAAMatrix() * InViewMatrices.GetTranslatedViewMatrix().GetTransposed();
+	FMatrix PrevViewProj = FTranslationMatrix(DeltaTranslation) * InPrevViewMatrices.GetTranslatedViewMatrix() * InPrevViewMatrices.ComputeProjectionNoAAMatrix();
 
 	ViewUniformShaderParameters.ClipToPrevClip = InvViewProj * PrevViewProj;
-
-	// is getting clamped in the shader to a value larger than 0 (we don't want the triangles to disappear)
-	ViewUniformShaderParameters.AdaptiveTessellationFactor = 0.0f;
 
 	ViewUniformShaderParameters.UnlitViewmodeMask = !Family->EngineShowFlags.Lighting ? 1 : 0;
 	ViewUniformShaderParameters.OutOfBoundsMask = Family->EngineShowFlags.VisualizeOutOfBoundsPixels ? 1 : 0;
@@ -2192,6 +2216,9 @@ void FSceneView::SetupCommonViewUniformBufferParameters(
 	ViewUniformShaderParameters.FrameNumber = Family->FrameNumber;
 
 	ViewUniformShaderParameters.CameraCut = bCameraCut ? 1 : 0;
+
+	//to tail call keep the order and number of parameters of the caller function
+	SetupViewRectUniformBufferParameters(ViewUniformShaderParameters, BufferSize, EffectiveViewRect, InViewMatrices, InPrevViewMatrices);
 }
 
 FSceneViewFamily::FSceneViewFamily(const ConstructionValues& CVS)
@@ -2227,6 +2254,7 @@ FSceneViewFamily::FSceneViewFamily(const ConstructionValues& CVS)
 	}
 
 	DebugViewShaderMode = ChooseDebugViewShaderMode();
+	ViewModeParam = CVS.ViewModeParam;
 	if (!AllowDebugViewPS(DebugViewShaderMode, GetShaderPlatform()))
 	{
 		DebugViewShaderMode = DVSM_None;
@@ -2251,15 +2279,7 @@ FSceneViewFamily::FSceneViewFamily(const ConstructionValues& CVS)
 				EngineShowFlags.LOD = 1;
 			}
 
-			if (World->IsPaused())
-			{
-				// to fix UE-17047 Motion Blur exaggeration when Paused in Simulate
-				bool bCameraCanMove = GEditor && GEditor->bIsSimulatingInEditor;
-				if(!bCameraCanMove)
-				{
-					bWorldIsPaused = true;
-				}
-			}
+			bWorldIsPaused = !World->IsCameraMoveable();
 		}
 	}
 
@@ -2389,17 +2409,17 @@ EDebugViewShaderMode FSceneViewFamily::ChooseDebugViewShaderMode() const
 	{
 		return DVSM_PrimitiveDistanceAccuracy;
 	}
-	else if (EngineShowFlags.MeshTexCoordSizeAccuracy)
+	else if (EngineShowFlags.MeshUVDensityAccuracy)
 	{
-		return DVSM_MeshTexCoordSizeAccuracy;
+		return DVSM_MeshUVDensityAccuracy;
 	}
-	else if (EngineShowFlags.MaterialTexCoordScalesAnalysis) // Test before accuracy is set since accuracy could also be set.
+	else if (EngineShowFlags.OutputMaterialTextureScales) // Test before accuracy is set since accuracy could also be set.
 	{
-		return DVSM_MaterialTexCoordScalesAnalysis;
+		return DVSM_OutputMaterialTextureScales;
 	}
-	else if (EngineShowFlags.MaterialTexCoordScalesAccuracy)
+	else if (EngineShowFlags.MaterialTextureScaleAccuracy)
 	{
-		return DVSM_MaterialTexCoordScalesAccuracy;
+		return DVSM_MaterialTextureScaleAccuracy;
 	}
 	return DVSM_None;
 }
@@ -2429,10 +2449,10 @@ bool AllowDebugViewPS(EDebugViewShaderMode ShaderMode, EShaderPlatform Platform)
 	case DVSM_QuadComplexity:
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (bForceQuadOverdraw || PlatformSupportsDebugViewShaders(Platform));
 	case DVSM_PrimitiveDistanceAccuracy:
-	case DVSM_MeshTexCoordSizeAccuracy:
+	case DVSM_MeshUVDensityAccuracy:
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && (bForceStreamingAccuracy || PlatformSupportsDebugViewShaders(Platform));
-	case DVSM_MaterialTexCoordScalesAccuracy:
-	case DVSM_MaterialTexCoordScalesAnalysis:
+	case DVSM_MaterialTextureScaleAccuracy:
+	case DVSM_OutputMaterialTextureScales:
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && (bForceTextureStreamingBuild || PlatformSupportsDebugViewShaders(Platform));
 	default:
 		return false;

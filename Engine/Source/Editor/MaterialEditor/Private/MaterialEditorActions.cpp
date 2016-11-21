@@ -10,7 +10,7 @@
 
 void FMaterialEditorCommands::RegisterCommands()
 {
-	UI_COMMAND( Apply, "Apply", "Apply changes to original material and it's use in the world.", EUserInterfaceActionType::Button, FInputChord(EKeys::Enter) );
+	UI_COMMAND( Apply, "Apply", "Apply changes to original material and its use in the world.", EUserInterfaceActionType::Button, FInputChord(EKeys::Enter) );
 	UI_COMMAND( Flatten, "Flatten", "Flatten the material to a texture for mobile devices.", EUserInterfaceActionType::Button, FInputChord() );
 
 	UI_COMMAND( ShowAllMaterialParameters, "Params", "Show or Hide all the materials parameters", EUserInterfaceActionType::ToggleButton, FInputChord() );

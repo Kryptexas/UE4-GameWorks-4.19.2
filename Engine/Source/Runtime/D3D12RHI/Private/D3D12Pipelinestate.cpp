@@ -16,7 +16,7 @@ void FD3D12HighLevelGraphicsPipelineStateDesc::GetLowLevelDesc(FD3D12LowLevelGra
 	Desc.Desc.SampleMask = SampleMask;
 	Desc.Desc.PrimitiveTopologyType = PrimitiveTopologyType;
 	Desc.Desc.NumRenderTargets = NumRenderTargets;
-	FMemory::Memcpy(Desc.Desc.RTVFormats, RTVFormats, sizeof(RTVFormats[0]) * NumRenderTargets);
+	FMemory::Memcpy(Desc.Desc.RTVFormats, &RTVFormats[0], sizeof(RTVFormats[0]) * NumRenderTargets);
 	Desc.Desc.DSVFormat = DSVFormat;
 	Desc.Desc.SampleDesc = SampleDesc;
 

@@ -2,9 +2,9 @@
 
 #pragma once
 
-/*-----------------------------------------------------------------------------
-	Basic structures
------------------------------------------------------------------------------*/
+
+class FProfilerStatMetaData;
+
 
 struct FFrameThreadTimes
 {
@@ -230,7 +230,7 @@ public:
 	void BindCommands();
 
 	/** For the specified frame ands a thread data. */
-	void AddThreadTime( int32 InFrameIndex, const TMap<uint32, float>& InThreadMS, const FProfilerStatMetaDataRef& InStatMetaData );
+	void AddThreadTime( int32 InFrameIndex, const TMap<uint32, float>& InThreadMS, const TSharedRef<FProfilerStatMetaData>& InStatMetaData );
 
 	/**
 	 *	Moves the selection box to the location specified by FrameStart and FrameEnd. 
@@ -349,7 +349,7 @@ protected:
 	float MaxFrameTime;
 
 	/** Shared pointer to the stats' metadata. */
-	FProfilerStatMetaDataPtr StatMetadata;
+	TSharedPtr<FProfilerStatMetaData> StatMetadata;
 
 	/*-----------------------------------------------------------------------------
 		UI variables

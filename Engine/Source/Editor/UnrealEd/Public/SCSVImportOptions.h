@@ -5,6 +5,8 @@
  */
 
 #pragma once
+#include "Factories/CSVImportFactory.h"
+
 
 class UNREALED_API SCSVImportOptions : public SCompoundWidget
 {

@@ -51,6 +51,7 @@ void SProjectLauncherArchivePage::Construct( const FArguments& InArgs, const FPr
 
 		+ SVerticalBox::Slot()
 			.AutoHeight()
+			.Padding(0.0, 8.0, 0.0, 0.0)
 			[
 				SNew(SBorder)
 				.Padding(8.0)

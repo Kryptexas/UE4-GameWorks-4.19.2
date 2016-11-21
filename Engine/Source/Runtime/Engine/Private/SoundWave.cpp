@@ -37,6 +37,7 @@ void FStreamedAudioChunk::Serialize(FArchive& Ar, UObject* Owner, int32 ChunkInd
 	bool bCooked = Ar.IsCooking();
 	Ar << bCooked;
 
+	BulkData.SetBulkDataFlags(BULKDATA_Force_NOT_InlinePayload);
 	BulkData.Serialize(Ar, Owner, ChunkIndex);
 	Ar << DataSize;
 
@@ -81,14 +82,14 @@ USoundWave::USoundWave(const FObjectInitializer& ObjectInitializer)
 	ResourceState = ESoundWaveResourceState::NeedsFree;
 }
 
-SIZE_T USoundWave::GetResourceSize(EResourceSizeMode::Type Mode)
+void USoundWave::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
+	Super::GetResourceSizeEx(CumulativeResourceSize);
+
 	if (!GEngine)
 	{
-		return 0;
+		return;
 	}
-
-	SIZE_T CalculatedResourceSize = 0;
 
 	if (FAudioDevice* LocalAudioDevice = GEngine->GetMainAudioDevice())
 	{
@@ -102,23 +103,21 @@ SIZE_T USoundWave::GetResourceSize(EResourceSizeMode::Type Mode)
 			{
 				ensureMsgf(ResourceSize == 0, TEXT("ResourceSize for DTYPE_Native USoundWave '%s' was not 0 (%d)."), *GetName(), ResourceSize);
 			}
-			CalculatedResourceSize = RawPCMDataSize;
+			CumulativeResourceSize.AddDedicatedSystemMemoryBytes(RawPCMDataSize);
 		}
 		else 
 		{
 			if (DecompressionType == DTYPE_RealTime && CachedRealtimeFirstBuffer)
 			{
-				CalculatedResourceSize = MONO_PCM_BUFFER_SIZE * NumChannels;
+				CumulativeResourceSize.AddDedicatedSystemMemoryBytes(MONO_PCM_BUFFER_SIZE * NumChannels);
 			}
 			
 			if ((!FPlatformProperties::SupportsAudioStreaming() || !IsStreaming()))
 			{
-				CalculatedResourceSize += GetCompressedDataSize(LocalAudioDevice->GetRuntimeFormat(this));
+				CumulativeResourceSize.AddDedicatedSystemMemoryBytes(GetCompressedDataSize(LocalAudioDevice->GetRuntimeFormat(this)));
 			}
 		}
 	}
-
-	return CalculatedResourceSize;
 }
 
 int32 USoundWave::GetResourceSizeForFormat(FName Format)
@@ -741,14 +740,18 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 			WaveInstance->SpatializationAlgorithm = ParseParams.SpatializationAlgorithm;
 		}
 
-		// Only append to the wave instances list if we're virtual (always append) or we're audible (non-zero volume)
+		bool bAddedWaveInstance = false;
 		if (WaveInstance->GetVolume() > KINDA_SMALL_NUMBER || (bVirtualizeWhenSilent && AudioDevice->VirtualSoundsEnabled()))
 		{
+			bAddedWaveInstance = true;
 			WaveInstances.Add(WaveInstance);
 		}
 
 		// We're still alive.
-		ActiveSound.bFinished = false;
+		if (bAddedWaveInstance || WaveInstance->LoopingMode == LOOP_Forever)
+		{
+			ActiveSound.bFinished = false;
+		}
 
 		// Sanity check
 		if( NumChannels > 2 && WaveInstance->bUseSpatialization && !WaveInstance->bReportedSpatializationWarning)

@@ -300,6 +300,12 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 	// Set up the main loop
 	GEngineLoop.PreInit(CommandLine);
 
+	// Make sure all UObject classes are registered and default properties have been initialized
+	ProcessNewlyLoadedUObjects();
+
+	// Tell the module manager is may now process newly-loaded UObjects when new C++ modules are loaded
+	FModuleManager::Get().StartProcessingNewlyLoadedObjects();
+
 	// Initialize config.
 	FCrashReportClientConfig::Get();
 

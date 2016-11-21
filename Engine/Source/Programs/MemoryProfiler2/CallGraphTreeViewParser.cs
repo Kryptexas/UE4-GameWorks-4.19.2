@@ -44,10 +44,22 @@ namespace MemoryProfiler2
 			var TruncatedNode = new FCallGraphNode("Truncated Callstacks");
 			var RegularNode = new FCallGraphNode("Full Callstacks");
 
+			bool bFilterIn = OwnerWindow.IsFilteringIn();
+
 			using ( FScopedLogTimer ParseTiming = new FScopedLogTimer( "FCallGraphTreeViewParser.ParseSnapshot" ) )
 			{
+				var FilteredCallstackList = new List<FCallStackAllocationInfo>(CallStackList.Count);
+				foreach (var AllocationInfo in CallStackList)
+				{
+					var FilteredAllocationInfo = AllocationInfo.GetAllocationInfoForTags(OwnerWindow.GetTagsFilter(), bFilterIn);
+					if (FilteredAllocationInfo.TotalCount != 0)
+					{
+						FilteredCallstackList.Add(FilteredAllocationInfo);
+					}
+				}
+
 				// Iterate over all call graph paths and add them to the graph.
-				foreach( FCallStackAllocationInfo AllocationInfo in CallStackList )
+				foreach ( FCallStackAllocationInfo AllocationInfo in FilteredCallstackList )
 				{
 					// Update progress bar.
 					if( CallStackCurrent >= NextProgressUpdate )
@@ -62,10 +74,8 @@ namespace MemoryProfiler2
 					FCallStack CallStack = FStreamInfo.GlobalInstance.CallStackArray[ AllocationInfo.CallStackIndex ];
 					// Split the tree into full and truncated callstacks.
 					var RootNode = CallStack.bIsTruncated ? TruncatedNode : RegularNode;
-					// Don't bother with callstacks that don't have a contribution.
-					if( ( ( AllocationInfo.Count != 0 ) || ( AllocationInfo.Size != 0 ) )
-						// Apply filter based on text representation of address.
-						&& CallStack.RunFilters( FilterText, OwnerWindow.Options.ClassGroups, OwnerWindow.IsFilteringIn(), OwnerWindow.SelectedMemoryPool ) )
+					// Apply filter based on text representation of address.
+					if( CallStack.RunFilters( FilterText, OwnerWindow.Options.ClassGroups, bFilterIn, OwnerWindow.SelectedMemoryPool ) )
 					{
 						// Add call stack to proper part of graph.
 						AddCallStackToGraph( RootNode, CallStack, AllocationInfo, ParentFunctionIndex, bInvertCallStacks );
@@ -133,14 +143,17 @@ namespace MemoryProfiler2
 			int FunctionIndex = FStreamInfo.GlobalInstance.CallStackAddressArray[AddressIndex].FunctionIndex;
 			FCallStack CallStack = FStreamInfo.GlobalInstance.CallStackArray[AllocationInfo.CallStackIndex];
 
+			var TotalAllocationSize = AllocationInfo.TotalSize;
+			var TotalAllocationCount = AllocationInfo.TotalCount;
+
 			// Iterate over existing nodes to see whether there is a match.
 			foreach (FCallGraphNode Node in ParentNode.Children)
 			{
 				// If there is a match, update the allocation size and return the current node.
 				if (FStreamInfo.GlobalInstance.CallStackAddressArray[Node.AddressIndex].FunctionIndex == FunctionIndex)
 				{
-					Node.AllocationSize += AllocationInfo.Size;
-					Node.AllocationCount += AllocationInfo.Count;
+					Node.AllocationSize += TotalAllocationSize;
+					Node.AllocationCount += TotalAllocationCount;
 					Node.CallStacks.Add(CallStack);
 
 					// Return current node as parent for next iteration.
@@ -150,7 +163,7 @@ namespace MemoryProfiler2
 
 			// If we made it here it means that we need to add a new node.
 			string FunctionName = FStreamInfo.GlobalInstance.NameArray[FunctionIndex];
-			FCallGraphNode NewNode = new FCallGraphNode(ParentNode, AddressIndex, AllocationInfo.Size, AllocationInfo.Count, FunctionName, CallStack);
+			FCallGraphNode NewNode = new FCallGraphNode(ParentNode, AddressIndex, TotalAllocationSize, TotalAllocationCount, FunctionName, CallStack);
 			return NewNode;
 		}
 

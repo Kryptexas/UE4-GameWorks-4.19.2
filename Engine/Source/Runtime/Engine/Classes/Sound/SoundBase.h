@@ -38,11 +38,12 @@ protected:
 	UPROPERTY(EditAnywhere, Category=Sound, meta=(DisplayName = "Sound Class"))
 	USoundClass* SoundClassObject;
 
+public:
+
 	/** Sound submix this sound belongs to */
 	UPROPERTY(EditAnywhere, Category=Sound, meta = (DisplayName = "Sound Submix"))
 	USoundSubmix* SoundSubmixObject;
 
-public:
 	/** When "stat sounds -debug" has been specified, draw this sound's attenuation shape when the sound is audible. For debugging purpose only. */
 	UPROPERTY(EditAnywhere, Category = Debug)
 	uint32 bDebug:1;

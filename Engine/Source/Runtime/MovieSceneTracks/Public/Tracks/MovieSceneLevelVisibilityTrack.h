@@ -4,6 +4,7 @@
 
 #include "MovieScene.h"
 #include "MovieSceneNameableTrack.h"
+#include "MovieSceneSpawnTrack.h"
 #include "MovieScenePropertyTrack.h"
 #include "MovieSceneLevelVisibilityTrack.generated.h"
 
@@ -16,8 +17,11 @@ class UMovieSceneLevelVisibilityTrack : public UMovieSceneNameableTrack
 	GENERATED_UCLASS_BODY()
 
 public:
+
+	static uint16 GetEvaluationPriority() { return UMovieSceneSpawnTrack::GetEvaluationPriority() + 100; }
+
 	/** UMovieSceneTrack interface */
-	virtual TSharedPtr<IMovieSceneTrackInstance> CreateInstance() override;
+	virtual void PostCompile(FMovieSceneEvaluationTrack& Track, const FMovieSceneTrackCompilerArgs& Args) const override;
 	virtual bool IsEmpty() const override;
 	virtual void AddSection(UMovieSceneSection& Section) override;
 	virtual void RemoveSection( UMovieSceneSection& Section ) override;

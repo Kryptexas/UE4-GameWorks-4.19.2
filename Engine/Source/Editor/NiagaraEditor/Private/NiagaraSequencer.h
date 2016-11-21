@@ -115,28 +115,28 @@ private:
 /**
 *	One instance of a UEmitterMovieSceneTrack
 */
-class INiagaraTrackInstance
-	: public IMovieSceneTrackInstance
-{
-public:
-	INiagaraTrackInstance(UEmitterMovieSceneTrack *InTrack)
-		: Track(InTrack)
-	{
-	}
+// class INiagaraTrackInstance
+// 	: public IMovieSceneTrackInstance
+// {
+// public:
+// 	INiagaraTrackInstance(UEmitterMovieSceneTrack *InTrack)
+// 		: Track(InTrack)
+// 	{
+// 	}
 
-	virtual void Update(EMovieSceneUpdateData& UpdateData, const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance)
-	{
-	}
+// 	virtual void Update(EMovieSceneUpdateData& UpdateData, const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player)
+// 	{
+// 	}
 
-	virtual void RefreshInstance(const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance);
-	virtual void ClearInstance(IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) override {}
-	virtual void SaveState(const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) override {}
-	virtual void RestoreState(const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) override {}
+// 	virtual void RefreshInstance(const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance);
+// 	virtual void ClearInstance(IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) override {}
+// 	virtual void SaveState(const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) override {}
+// 	virtual void RestoreState(const TArray<TWeakObjectPtr<UObject>>& RuntimeObjects, IMovieScenePlayer& Player, FMovieSceneSequenceInstance& SequenceInstance) override {}
 
-private:
-	TSharedPtr<FNiagaraSimulation> Emitter;
-	UEmitterMovieSceneTrack *Track;
-};
+// private:
+// 	TSharedPtr<FNiagaraSimulation> Emitter;
+// 	UEmitterMovieSceneTrack *Track;
+// };
 
 
 /**
@@ -194,11 +194,6 @@ public:
 	virtual bool IsEmpty() const override
 	{
 		return false;
-	}
-
-	virtual TSharedPtr<IMovieSceneTrackInstance> CreateInstance()
-	{
-		return MakeShareable(new INiagaraTrackInstance(this));
 	}
 
 	virtual const TArray<UMovieSceneSection*>& GetAllSections() const override

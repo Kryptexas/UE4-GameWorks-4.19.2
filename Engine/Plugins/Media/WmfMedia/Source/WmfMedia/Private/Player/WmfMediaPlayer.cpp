@@ -18,7 +18,7 @@
 FWmfMediaPlayer::FWmfMediaPlayer()
 	: Duration(0)
 {
-	MediaSession = new FWmfMediaSession();
+	MediaSession = new FWmfMediaSession(EMediaState::Closed);
 	Resolver = new FWmfMediaResolver;
 
 	Tracks.OnSelectionChanged().AddLambda([this]() {
@@ -74,7 +74,7 @@ void FWmfMediaPlayer::Close()
 
 	// close and release session
 	MediaSession->SetState(EMediaState::Closed);
-	MediaSession = new FWmfMediaSession();
+	MediaSession = new FWmfMediaSession(EMediaState::Closed);
 
 	// release media source
 	if (MediaSource != NULL)
@@ -151,6 +151,8 @@ bool FWmfMediaPlayer::Open(const FString& Url, const IMediaOptions& Options)
 		return false;
 	}
 
+	bool Resolving = false;
+
 	// open local files via platform file system
 	if (Url.StartsWith(TEXT("file://")))
 	{
@@ -182,10 +184,19 @@ bool FWmfMediaPlayer::Open(const FString& Url, const IMediaOptions& Options)
 			return false;
 		}
 
-		return Resolver->ResolveByteStream(Archive.ToSharedRef(), Url, *this);
+		Resolving = Resolver->ResolveByteStream(Archive.ToSharedRef(), Url, *this);
+	}
+	else
+	{
+		Resolving = Resolver->ResolveUrl(Url, *this);
 	}
 
-	return Resolver->ResolveUrl(Url, *this);
+	if (Resolving)
+	{
+		MediaSession = new FWmfMediaSession(EMediaState::Preparing);
+	}
+
+	return Resolving;
 }
 
 
@@ -220,6 +231,7 @@ void FWmfMediaPlayer::ProcessResolveComplete(TComPtr<IUnknown> SourceObject, FSt
 void FWmfMediaPlayer::ProcessResolveFailed(FString FailedUrl)
 {
 	GameThreadTasks.Enqueue([=]() {
+		MediaSession = new FWmfMediaSession(EMediaState::Closed);
 		MediaEvent.Broadcast(EMediaEvent::MediaOpenFailed);
 	});
 }

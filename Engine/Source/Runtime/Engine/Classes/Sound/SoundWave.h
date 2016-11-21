@@ -233,6 +233,14 @@ class ENGINE_API USoundWave : public USoundBase
 	
 #endif // WITH_EDITORONLY_DATA
 
+	/** Curves associated with this sound wave */
+	UPROPERTY(EditAnywhere, Category = "Curves")
+	class UCurveTable* Curves;
+
+	/** Hold a reference to our internal curve so we can switch back to it if we want to */
+	UPROPERTY()
+	class UCurveTable* InternalCurves;
+
 public:	
 	/** Async worker that decompresses the audio data on a different thread */
 	typedef FAsyncTask< class FAsyncAudioDecompressWorker > FAsyncAudioDecompress;	// Forward declare typedef
@@ -282,7 +290,7 @@ public:
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;	
 #endif // WITH_EDITOR
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 	virtual FName GetExporterName() override;
 	virtual FString GetDesc() override;
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;

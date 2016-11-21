@@ -228,7 +228,7 @@ private:
 			NSLOCTEXT("MaterialEditor", "AppLabel", "Material Editor"),
 			NSLOCTEXT("PhAT", "AppLabel", "PhAT"),
 			NSLOCTEXT("Cascade", "AppLabel", "Cascade"),
-			NSLOCTEXT("FPersona", "AppLabel", "Persona")
+			NSLOCTEXT("Persona", "AppLabel", "Persona")
 		});
 
 		ContextMarkers.Custom = -1;

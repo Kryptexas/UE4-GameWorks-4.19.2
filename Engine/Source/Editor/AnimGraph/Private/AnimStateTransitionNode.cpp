@@ -158,6 +158,17 @@ void UAnimStateTransitionNode::PostPasteNode()
 	}
 
 	Super::PostPasteNode();
+
+	// We don't want to paste nodes in that aren't fully linked (transition nodes have fixed pins as they
+	// really describle the connection between two other nodes). If we find one missing link, get rid of the node.
+	for(UEdGraphPin* Pin : Pins)
+	{
+		if(Pin->LinkedTo.Num() == 0)
+		{
+			DestroyNode();
+			break;
+		}
+	}
 }
 
 FText UAnimStateTransitionNode::GetNodeTitle(ENodeTitleType::Type TitleType) const

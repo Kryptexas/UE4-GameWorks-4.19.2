@@ -531,19 +531,6 @@ const FString& GetAssetRegistryPath()
 	return AssetRegistryPath;
 }
 
-const FString GetStatsFilename(const FString& ResponseFilename)
-{
-	if (ResponseFilename.Len())
-	{
-		return ResponseFilename + TEXT("Stats.csv");
-	}
-	else
-	{
-		static FString StatsPath = FPaths::GameSavedDir() / FString::Printf(TEXT("Stats/%sStats.csv"), *FDateTime::Now().ToString());
-		return StatsPath;
-	}
-}
-
 FString GetChildCookerResultFilename(const FString& ResponseFilename)
 {
 	FString Result = ResponseFilename + TEXT("Result.txt");
@@ -1354,26 +1341,6 @@ void UCookOnTheFlyServer::CleanUpChildCookers()
 {
 	if (IsCookByTheBookMode())
 	{
-		check(!IsChildCooker());
-		const FString MasterCookerStatsFilename = GetStatsFilename(CookByTheBookOptions->ChildCookFilename);
-
-		FString AllStats;
-		if (FFileHelper::LoadFileToString(AllStats, *MasterCookerStatsFilename))
-		{
-			for (auto& ChildCooker : CookByTheBookOptions->ChildCookers)
-			{
-				check(ChildCooker.bFinished == true);
-				const FString ChildCookerStatsFilename = GetStatsFilename(ChildCooker.ResponseFileName);
-
-				FString ChildStats;
-				if (FFileHelper::LoadFileToString(ChildStats, *ChildCookerStatsFilename))
-				{
-					AllStats += ChildStats;
-				}
-			}
-			ensure(FFileHelper::SaveStringToFile(AllStats, *MasterCookerStatsFilename));
-		}
-
 		for (auto& ChildCooker : CookByTheBookOptions->ChildCookers)
 		{
 			check(ChildCooker.bFinished == true);
@@ -1612,9 +1579,13 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 					CookByTheBookOptions->ManifestGenerator->PrepareToLoadNewPackage(BuildFilename);
 				}*/
 
+				GIsCookerLoadingPackage = true;
+
 				SCOPE_TIMER(LoadPackage);
 				Package = LoadPackage( NULL, *BuildFilename, LOAD_None );
 				INC_INT_STAT(LoadPackage, 1);
+
+				GIsCookerLoadingPackage = false;
 			}
 #if DEBUG_COOKONTHEFLY
 			else
@@ -1639,13 +1610,16 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 
 				if (Package->ContainsMap())
 				{
+					// load sublevels
+					UWorld* World = UWorld::FindWorldInPackage(Package);
+					check(World);
+
+					World->PersistentLevel->HandleLegacyMapBuildData();
+
 					// child cookers can't process maps
 					// check(IsChildCooker() == false);
 					if ( IsCookByTheBookMode() )
 					{
-						// load sublevels
-						UWorld* World = UWorld::FindWorldInPackage(Package);
-
 						// TArray<FString> PreviouslyCookedPackages;
 						if (World->StreamingLevels.Num())
 						{
@@ -1666,8 +1640,6 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 							FString Filename;
 							if ( FPackageName::DoesPackageExist(PackageName, NULL, &Filename) )
 							{
-
-
 								FString StandardFilename = FPaths::ConvertRelativePathToFull(Filename);
 								FPaths::MakeStandardFilename(StandardFilename);
 								FName StandardPackageFName = FName(*StandardFilename);
@@ -2017,33 +1989,33 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 				if ( IsCookOnTheFlyMode() )
 				{
 					if (ProcessingUnsolicitedPackages)
-				{
-					SCOPE_TIMER(WaitingForCachedCookedPlatformData);
-					if ( CookRequests.HasItems() )
 					{
-						bShouldFinishTick = true;
-					}
-					if (Timer.IsTimeUp())
-					{
-						bShouldFinishTick = true;
-						// our timeslice is up
-					}
-					bool bFinishedCachingCookedPlatformData = false;
-					// if we are in realtime mode then don't wait forever for the package to be ready
-					while ( (!Timer.IsTimeUp()) && IsRealtimeMode() && (bShouldFinishTick == false) )
-					{
-						if ( FinishPackageCacheForCookedPlatformData(Package) == true )
+						SCOPE_TIMER(WaitingForCachedCookedPlatformData);
+						if ( CookRequests.HasItems() )
 						{
-							bFinishedCachingCookedPlatformData = true;
-							break;
+							bShouldFinishTick = true;
 						}
+						if (Timer.IsTimeUp())
+						{
+							bShouldFinishTick = true;
+							// our timeslice is up
+						}
+						bool bFinishedCachingCookedPlatformData = false;
+						// if we are in realtime mode then don't wait forever for the package to be ready
+						while ( (!Timer.IsTimeUp()) && IsRealtimeMode() && (bShouldFinishTick == false) )
+						{
+							if ( FinishPackageCacheForCookedPlatformData(Package) == true )
+							{
+								bFinishedCachingCookedPlatformData = true;
+								break;
+							}
 
-						GShaderCompilingManager->ProcessAsyncResults(true, false);
-						// sleep for a bit
-						FPlatformProcess::Sleep(0.0f);
+							GShaderCompilingManager->ProcessAsyncResults(true, false);
+							// sleep for a bit
+							FPlatformProcess::Sleep(0.0f);
+						}
+						bShouldFinishTick |= !bFinishedCachingCookedPlatformData;
 					}
-					bShouldFinishTick |= !bFinishedCachingCookedPlatformData;
-				}
 					else
 					{
 						ForceSavePackage = true;
@@ -2210,22 +2182,26 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 						CookedPackages.Add(FileRequest);
 
 						if ((CurrentCookMode == ECookMode::CookOnTheFly) && (I >= FirstUnsolicitedPackage))
-					{
-						// this is an unsolicited package
-						if ((FPaths::FileExists(FileRequest.GetFilename().ToString()) == true) &&
-							(bWasUpToDate == false))
 						{
+							// this is an unsolicited package
+							if ((FPaths::FileExists(FileRequest.GetFilename().ToString()) == true) &&
+								(bWasUpToDate == false))
+							{
 							UnsolicitedCookedPackages.AddCookedPackage( FileRequest );
 #if DEBUG_COOKONTHEFLY
-							UE_LOG(LogCook, Display, TEXT("UnsolicitedCookedPackages: %s"), *FileRequest.GetFilename().ToString());
+								UE_LOG(LogCook, Display, TEXT("UnsolicitedCookedPackages: %s"), *FileRequest.GetFilename().ToString());
 #endif
+							}
 						}
 					}
-				}
 					else
 					{
 						UncookedEditorOnlyPackages.AddUnique(Package->GetFName());
 					}
+				}
+				else
+				{
+					check( bSucceededSavePackage == false );
 				}
 			}
 		}
@@ -2285,10 +2261,14 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 		// make sure we resolve all string asset references and nothing is loaded
 		if (GRedirectCollector.HasAnyStringAssetReferencesToResolve())
 		{
+			GIsCookerLoadingPackage = true;
+
 			// resolve redirectors first
 			GRedirectCollector.ResolveStringAssetReference();
 			check(GRedirectCollector.HasAnyStringAssetReferencesToResolve() == false);
 			bHasRunStringAssetReferenceResolve = true;
+
+			GIsCookerLoadingPackage = false;
 		}
 	}
 
@@ -2549,6 +2529,11 @@ void UCookOnTheFlyServer::OnObjectUpdated( UObject *Object )
 
 void UCookOnTheFlyServer::MarkPackageDirtyForCooker( UPackage *Package )
 {
+	if ( Package->RootPackageHasAnyFlags(PKG_PlayInEditor) )
+	{
+		return;
+	}
+
 	if ( !bIsSavingPackage )
 	{
 		// could have just cooked a file which we might need to write
@@ -2640,7 +2625,7 @@ const TArray<FName>& UCookOnTheFlyServer::GetFullPackageDependencies(const FName
 		CachedFullPackageDependencies.Add(PackageName);
 
 		TArray<FName> ChildDependencies;
-		check( AssetRegistry.GetDependencies(PackageName, ChildDependencies, EAssetRegistryDependencyType::All) );
+		check( AssetRegistry.GetDependencies(PackageName, ChildDependencies, EAssetRegistryDependencyType::Packages) );
 
 		TArray<FName> Dependencies = ChildDependencies;
 		Dependencies.AddUnique(PackageName);
@@ -2789,11 +2774,15 @@ ESavePackageResult UCookOnTheFlyServer::SaveCookedPackage(UPackage* Package, uin
 
 	if (IsCookByTheBookMode())
 	{
+		GIsCookerLoadingPackage = true;
+
 		SCOPE_TIMER(ResolveRedirectors);
 		COOK_STAT(FScopedDurationTimer ResolveRedirectorsTimer(DetailedCookStats::TickCookOnTheSideResolveRedirectorsTimeSec));
 		FString RelativeFilename = Filename;
 		FPaths::MakeStandardFilename(RelativeFilename);
 		GRedirectCollector.ResolveStringAssetReference(RelativeFilename);
+
+		GIsCookerLoadingPackage = false;
 	}
 
 	if (Filename.Len())
@@ -2919,6 +2908,13 @@ ESavePackageResult UCookOnTheFlyServer::SaveCookedPackage(UPackage* Package, uin
 					Package->ClearPackageFlags(PKG_FilterEditorOnly);
 				}
 
+				if (World)
+				{	
+					// Fixup legacy lightmaps before saving
+					// This should be done after loading, but FRedirectCollector::ResolveStringAssetReference in Core loads UWorlds with LoadObject so there's no opportunity to handle this fixup on load
+					World->PersistentLevel->HandleLegacyMapBuildData();
+				}
+
 				// need to subtract 32 because the SavePackage code creates temporary files with longer file names then the one we provide
 				// projects may ignore this restriction if desired
 				static bool bConsiderCompressedPackageFileLengthRequirements = ShouldConsiderCompressedPackageFileLengthRequirements();
@@ -2933,7 +2929,9 @@ ESavePackageResult UCookOnTheFlyServer::SaveCookedPackage(UPackage* Package, uin
 				else
 				{
 					SCOPE_TIMER(GEditorSavePackage);
+					GIsCookerLoadingPackage = true;
 					Result = GEditor->Save(Package, World, Flags, *PlatFilename, GError, NULL, bSwap, false, SaveFlags, Target, FDateTime::MinValue(), false);
+					GIsCookerLoadingPackage = false;
 					IBlueprintNativeCodeGenModule::Get().Convert(Package, Result, *(Target->PlatformName()));
 					INC_INT_STAT(SavedPackage, 1);
 				}
@@ -3046,6 +3044,17 @@ void UCookOnTheFlyServer::Initialize( ECookMode::Type DesiredCookMode, ECookInit
 	GConfig->GetInt(TEXT("CookSettings"), TEXT("MinFreeMemory"), MinFreeMemoryInMB, GEditorIni);
 	MinFreeMemoryInMB = FMath::Max(MinFreeMemoryInMB, 0);
 	MinFreeMemory = MinFreeMemoryInMB * 1024LL * 1024LL;
+
+	// check the amount of OS memory and use that number minus the reserved memory nubmer
+	int32 MinReservedMemoryInMB = 0;
+	GConfig->GetInt(TEXT("CookSettings"), TEXT("MinReservedMemory"), MinReservedMemoryInMB, GEditorIni);
+	MinReservedMemoryInMB = FMath::Max(MinReservedMemoryInMB, 0);
+	int64 MinReservedMemory = MinReservedMemoryInMB * 1024LL * 1024LL;
+	if ( MinReservedMemory )
+	{
+		int64 TotalRam = FPlatformMemory::GetPhysicalGBRam() * 1024LL * 1024LL * 1024LL;
+		MaxMemoryAllowance = FMath::Min<int64>( MaxMemoryAllowance, TotalRam - MinReservedMemory );
+	}
 
 	MaxNumPackagesBeforePartialGC = 400;
 	GConfig->GetInt(TEXT("CookSettings"), TEXT("MaxNumPackagesBeforePartialGC"), MaxNumPackagesBeforePartialGC, GEditorIni);

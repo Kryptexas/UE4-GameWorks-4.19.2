@@ -24,12 +24,16 @@ TSharedRef<ISequencerSection> FBytePropertyTrackEditor::MakeSectionInterface(UMo
 
 UEnum* GetEnumForByteTrack(TSharedPtr<ISequencer> Sequencer, const FGuid& OwnerObjectHandle, FName PropertyName, UMovieSceneByteTrack* ByteTrack)
 {
-	
-	UObject* RuntimeObject = Sequencer->GetFocusedMovieSceneSequenceInstance()->FindObject(OwnerObjectHandle, *Sequencer);
 	TSet<UEnum*> PropertyEnums;
 
-	if (RuntimeObject != nullptr)
+	for (TWeakObjectPtr<> WeakObject : Sequencer->FindObjectsInCurrentSequence(OwnerObjectHandle))
 	{
+		UObject* RuntimeObject = WeakObject.Get();
+		if (!RuntimeObject)
+		{
+			continue;
+		}
+
 		UProperty* Property = RuntimeObject->GetClass()->FindPropertyByName(PropertyName);
 		if (Property != nullptr)
 		{

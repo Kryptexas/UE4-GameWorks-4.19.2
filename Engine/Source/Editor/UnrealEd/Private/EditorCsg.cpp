@@ -133,7 +133,7 @@ void UEditorEngine::csgRebuild( UWorld* InWorld )
 {
 	GWarn->BeginSlowTask( NSLOCTEXT("UnrealEd", "RebuildingGeometry", "Rebuilding geometry"), false );
 	FBSPOps::GFastRebuild = 1;
-
+	ABrush::GGeometryRebuildCause = TEXT("csgRebuild");
 	FinishAllSnaps();
 
 	// Empty the model out.
@@ -203,7 +203,7 @@ void UEditorEngine::csgRebuild( UWorld* InWorld )
 	// Repartition the structural BSP.
 	{
 		GWarn->StatusUpdate( 0, 4, NSLOCTEXT("UnrealEd", "RebuildBSPBuildingPolygons", "Rebuild BSP: Building polygons") );
-		bspBuildFPolys( InWorld->GetModel(), 1, 0 );
+		bspBuildFPolys( InWorld->GetModel(), 0, 0 );
 
 		GWarn->StatusUpdate( 1, 4, NSLOCTEXT("UnrealEd", "RebuildBSPMergingPlanars", "Rebuild BSP: Merging planars") );
 		bspMergeCoplanars( InWorld->GetModel(), 0, 0 );
@@ -307,6 +307,7 @@ void UEditorEngine::csgRebuild( UWorld* InWorld )
 	InWorld->GetModel()->Polys->Element.Empty();
 
 	// Done.
+	ABrush::GGeometryRebuildCause = nullptr;
 	FBSPOps::GFastRebuild = 0;
 	InWorld->GetCurrentLevel()->MarkPackageDirty();
 	GWarn->EndSlowTask();

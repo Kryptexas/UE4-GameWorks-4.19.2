@@ -135,7 +135,7 @@ namespace Audio
 		uint32 RequestedSampleRate;
 
 		/** The state of the output audio stream. */
-		FOutputStreamState StreamState;
+		EAudioOutputStreamState::Type StreamState;
 
 		/** The callback to use for platform-independent layer. */
 		IAudioMixer* AudioMixer;
@@ -171,41 +171,9 @@ namespace Audio
 		}
 	};
 
-	class IAudioMixerPlatformInterface;
-
-	/** Class for doing async callbacks to generate audio buffers. */
-	class FAudioMixerCallbackWorker : public FNonAbandonableTask
-	{
-	public:
-
-		/** Constructor. */
-		FAudioMixerCallbackWorker(IAudioMixerPlatformInterface* InMixerPlatform, TArray<float>* InOutBuffer);
-
-		/** Performs task work */
-		void DoWork();
-
-		/** Returns the generated buffer */
-		const TArray<float>* GetBuffer() const { return OutBuffer; }
-
-		/** Returns the stat ID of the task */
-		FORCEINLINE TStatId GetStatId() const
-		{
-			RETURN_QUICK_DECLARE_CYCLE_STAT(FAudioMixerCallbackWorker, STATGROUP_ThreadPoolAsyncTasks);
-		}
-
-	private:
-
-		/** Ptr to platform mixer. */
-		IAudioMixerPlatformInterface* MixerPlatform;
-
-		/** Ptr to buffer to fill. */
-		TArray<float>* OutBuffer;
-	};
-
-	typedef FAsyncTask<FAudioMixerCallbackWorker> FAsyncAudioMixerCallbackTask;
 
 	/** Abstract interface for mixer platform. */
-	class AUDIOMIXER_API IAudioMixerPlatformInterface
+	class AUDIOMIXER_API IAudioMixerPlatformInterface : public FRunnable
 	{
 
 	public: // Virtual functions
@@ -262,6 +230,9 @@ namespace Audio
 		virtual ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* SoundWave) = 0;
 
 	public: // Public Functions
+		//~ Begin FRunnable
+		uint32 Run() override;
+		//~ End FRunnable
 
 		/** Constructor. */
 		IAudioMixerPlatformInterface();
@@ -287,8 +258,11 @@ namespace Audio
 		/** Returns the number of bytes for the given audio stream format. */
 		uint32 GetNumBytesForFormat(const EAudioMixerStreamDataFormat::Type DataFormat);
 
-		/** Start generating audio callbacks from our mixer. */
+		/** Start generating audio from our mixer. */
 		void BeginGeneratingAudio();
+
+		/** Stops the render thread from generating audio. */
+		void StopGeneratingAudio();
 
 	protected:
 
@@ -298,11 +272,15 @@ namespace Audio
 		/** The number of mixer buffers. */
 		static const int32 NumMixerBuffers = 3;
 
-		/** Task for generating new audio buffers from audio mixer. */
-		FAsyncAudioMixerCallbackTask* CallbackTask;
-
 		/** List of generated output buffers. */
 		TArray<float> OutputBuffers[NumMixerBuffers];
+
+		/** The audio render thread. */
+		FRunnableThread* AudioRenderThread;
+		/** The render thread sync event. */
+		FEvent* AudioRenderEvent;
+		/** The render thread critical section. */
+		FCriticalSection AudioRenderCritSect;
 
 		/** The current buffer index. */
 		int32 CurrentBufferIndex;

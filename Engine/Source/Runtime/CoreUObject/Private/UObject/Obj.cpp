@@ -788,11 +788,20 @@ bool UObject::ConditionalFinishDestroy()
 	}
 }
 
+#if !defined(USE_EVENT_DRIVEN_ASYNC_LOAD)
+#error "USE_EVENT_DRIVEN_ASYNC_LOAD must be defined"
+#endif
 
 void UObject::ConditionalPostLoad()
 {
-	if( HasAnyFlags(RF_NeedPostLoad) )
+#if USE_EVENT_DRIVEN_ASYNC_LOAD
+	check(!HasAnyFlags(RF_NeedLoad)); //@todoio Added this as "nicks rule"
+#endif
+									  // PostLoad only if the object needs it and has already been serialized
+	//@todoio note this logic should be unchanged compared to main
+	if (HasAnyFlags(RF_NeedPostLoad))
 	{
+
 		check(IsInGameThread() || HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject) || IsPostLoadThreadSafe() || IsA(UClass::StaticClass()))
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -833,15 +842,25 @@ void UObject::ConditionalPostLoad()
 	}
 }
 
+#if !defined(USE_EVENT_DRIVEN_ASYNC_LOAD)
+#error "USE_EVENT_DRIVEN_ASYNC_LOAD must be defined."
+#endif
+
 
 void UObject::PostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph/*=NULL*/ )
 {
+#if USE_EVENT_DRIVEN_ASYNC_LOAD
+	check(!HasAnyFlags(RF_NeedLoad));
+#endif
 	if( GetClass()->HasAnyClassFlags(CLASS_HasInstancedReference) )
 	{
 		UObject* ObjOuter = GetOuter();
 		// make sure our Outer has already called ConditionalPostLoadSubobjects
 		if (ObjOuter != NULL && ObjOuter->HasAnyFlags(RF_NeedPostLoadSubobjects) )
 		{
+#if USE_EVENT_DRIVEN_ASYNC_LOAD
+			check(!ObjOuter->HasAnyFlags(RF_NeedLoad));
+#endif
 			if (ObjOuter->HasAnyFlags(RF_NeedPostLoad) )
 			{
 				ObjOuter->ConditionalPostLoad();
@@ -932,7 +951,7 @@ bool UObject::Modify( bool bAlwaysMarkDirty/*=true*/ )
 	{
 		// Do not consider PIE world objects or script packages, as they should never end up in the
 		// transaction buffer and we don't want to mark them dirty here either.
-		if (GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor | PKG_ContainsScript | PKG_CompiledIn) == false)
+		if (GetOutermost()->HasAnyPackageFlags(PKG_PlayInEditor | PKG_ContainsScript | PKG_CompiledIn) == false || GetClass()->HasAnyClassFlags(CLASS_DefaultConfig | CLASS_Config))
 		{
 			// Attempt to mark the package dirty and save a copy of the object to the transaction
 			// buffer. The save will fail if there isn't a valid transactor, the object isn't
@@ -957,6 +976,20 @@ bool UObject::Modify( bool bAlwaysMarkDirty/*=true*/ )
 bool UObject::IsSelected() const
 {
 	return !IsPendingKill() && GSelectedAnnotation.Get(this);
+}
+
+void UObject::GetPreloadDependencies(TArray<UObject*>& OutDeps)
+{
+	UClass *ObjClass = GetClass();
+	if (!ObjClass->HasAnyClassFlags(CLASS_Intrinsic | CLASS_Native))
+	{
+		OutDeps.Add(ObjClass);
+
+		if (!HasAnyFlags(RF_ClassDefaultObject) && ObjClass->GetDefaultsCount() > 0)
+		{
+			OutDeps.Add(ObjClass->GetDefaultObject());
+		}
+	}
 }
 
 void UObject::Serialize( FArchive& Ar )
@@ -1077,7 +1110,12 @@ void UObject::SerializeScriptProperties( FArchive& Ar ) const
 
 	if( (Ar.IsLoading() || Ar.IsSaving()) && !Ar.WantBinaryPropertySerialization() )
 	{
-		UObject* DiffObject = GetArchetype();
+		//@todoio GetArchetype is pathological for blueprint classes and the event driven loader; the EDL already knows what the archetype is; just calling this->GetArchetype() tries to load some other stuff.
+		UObject* DiffObject = Ar.GetArchetypeFromLoader(this);
+		if (!DiffObject)
+		{
+			DiffObject = GetArchetype();
+		}
 #if WITH_EDITOR
 		static const FBoolConfigValueHelper BreakSerializationRecursion(TEXT("StructSerialization"), TEXT("BreakSerializationRecursion"));
 		const bool bBreakSerializationRecursion = BreakSerializationRecursion && Ar.IsLoading() && Ar.GetLinker();
@@ -1093,7 +1131,12 @@ void UObject::SerializeScriptProperties( FArchive& Ar ) const
 	}
 	else if ( Ar.GetPortFlags() != 0 && !Ar.ArUseCustomPropertyList )
 	{
-		UObject* DiffObject = GetArchetype();
+		//@todoio GetArchetype is pathological for blueprint classes and the event driven loader; the EDL already knows what the archetype is; just calling this->GetArchetype() tries to load some other stuff.
+		UObject* DiffObject = Ar.GetArchetypeFromLoader(this);
+		if (!DiffObject)
+		{
+			DiffObject = GetArchetype();
+		}
 		ObjClass->SerializeBinEx( Ar, const_cast<UObject *>(this), DiffObject, DiffObject ? DiffObject->GetClass() : NULL );
 	}
 	else
@@ -1367,7 +1410,7 @@ void UObject::FAssetRegistryTag::GetAssetRegistryTagsFromSearchableProperties(co
 void UObject::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
 	// Add ResourceSize if non-zero. GetResourceSize is not const because many override implementations end up calling Serialize on this pointers.
-	SIZE_T ResourceSize = const_cast<UObject*>(this)->GetResourceSize(EResourceSizeMode::Exclusive);
+	const SIZE_T ResourceSize = const_cast<UObject*>(this)->GetResourceSizeBytes(EResourceSizeMode::Exclusive);
 	if ( ResourceSize > 0 || ( !GetClass()->HasAnyClassFlags(CLASS_CompiledFromBlueprint) && HasAnyFlags(RF_ClassDefaultObject) ) )
 	{
 		OutTags.Add( FAssetRegistryTag("ResourceSize", FString::Printf(TEXT("%d"), (ResourceSize + 512) / 1024), FAssetRegistryTag::TT_Numerical) );
@@ -3379,8 +3422,8 @@ bool StaticExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 								FArchiveCountMem Count(Object);
 
 								// Get the 'old-style' resource size and the truer resource size
-								const SIZE_T ResourceSize = It->GetResourceSize(EResourceSizeMode::Inclusive);
-								const SIZE_T TrueResourceSize = It->GetResourceSize(EResourceSizeMode::Exclusive);
+								const SIZE_T ResourceSize = It->GetResourceSizeBytes(EResourceSizeMode::Inclusive);
+								const SIZE_T TrueResourceSize = It->GetResourceSizeBytes(EResourceSizeMode::Exclusive);
 								
 								if (bListClass)
 								{

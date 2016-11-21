@@ -64,6 +64,13 @@ public:
 	virtual void GetObjectsBeingCustomized( TArray< TWeakObjectPtr<UObject> >& OutObjects ) const = 0;
 
 	/**
+	 * Gets the current struct(s) being customized by this builder
+	 *
+	 * If this is a sub-struct customization it will return those sub struct.  Otherwise the root struct will be returned.
+	 */
+	virtual void GetStructsBeingCustomized( TArray< TSharedPtr<FStructOnScope> >& OutStructs ) const = 0;
+
+	/**
 	 *	@return the utilities various widgets need access to certain features of PropertyDetails
 	 */
 	virtual const TSharedRef< class IPropertyUtilities >& GetPropertyUtilities() const = 0; 

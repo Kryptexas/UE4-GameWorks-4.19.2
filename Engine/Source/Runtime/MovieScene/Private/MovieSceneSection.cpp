@@ -159,8 +159,14 @@ void UMovieSceneSection::AddKeyToCurve(FRichCurve& InCurve, float Time, float Va
 
 void UMovieSceneSection::SetCurveDefault(FRichCurve& InCurve, float Value)
 {
-	if (TryModify())
+	if (InCurve.GetDefaultValue() != Value && TryModify())
 	{
 		InCurve.SetDefaultValue(Value);
 	}
+}
+
+
+FMovieSceneEvalTemplatePtr UMovieSceneSection::GenerateTemplate() const
+{
+	return FMovieSceneEvalTemplatePtr();
 }

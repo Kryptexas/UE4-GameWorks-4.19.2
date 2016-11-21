@@ -93,6 +93,7 @@ namespace MemoryProfiler2
 			this.FilterInClassesMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.toolStripSeparator5 = new System.Windows.Forms.ToolStripSeparator();
 			this.FilterClassesDropDownButton = new System.Windows.Forms.ToolStripDropDownButton();
+			this.FilterTagsButton = new System.Windows.Forms.ToolStripButton();
 			this.FilterLabel = new System.Windows.Forms.ToolStripLabel();
 			this.FilterTextBox = new System.Windows.Forms.ToolStripTextBox();
 			this.MemoryPoolFilterButton = new System.Windows.Forms.ToolStripDropDownButton();
@@ -416,6 +417,7 @@ namespace MemoryProfiler2
             this.FilterTypeSplitButton,
             this.toolStripSeparator5,
             this.FilterClassesDropDownButton,
+            this.FilterTagsButton,
             this.FilterLabel,
             this.FilterTextBox,
             this.MemoryPoolFilterButton,
@@ -596,6 +598,13 @@ namespace MemoryProfiler2
 			this.FilterClassesDropDownButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
 			resources.ApplyResources(this.FilterClassesDropDownButton, "FilterClassesDropDownButton");
 			this.FilterClassesDropDownButton.Name = "FilterClassesDropDownButton";
+			// 
+			// FilterTagsButton
+			// 
+			this.FilterTagsButton.ForeColor = System.Drawing.Color.Black;
+			resources.ApplyResources(this.FilterTagsButton, "FilterTagsButton");
+			this.FilterTagsButton.Name = "FilterTagsButton";
+			this.FilterTagsButton.Click += new System.EventHandler(this.FilterTagsButton_Click);
 			// 
 			// FilterLabel
 			// 
@@ -2040,5 +2049,6 @@ namespace MemoryProfiler2
 		private System.Windows.Forms.TextBox DetailsEndTextBox;
 		private System.Windows.Forms.TextBox DetailsDiffTextBox;
 		private System.Windows.Forms.Label DetailsViewStartLabel;
+		private System.Windows.Forms.ToolStripButton FilterTagsButton;
 	}
 }

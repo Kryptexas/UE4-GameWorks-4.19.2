@@ -76,7 +76,7 @@ void ASceneCapture2D::PostActorCreated()
 	{
 		if (!IsRunningCommandlet())
 		{
-			if( !GetMeshComp()->StaticMesh)
+			if( !GetMeshComp()->GetStaticMesh())
 			{
 				UStaticMesh* CamMesh = LoadObject<UStaticMesh>(NULL, TEXT("/Engine/EditorMeshes/MatineeCam_SM.MatineeCam_SM"), NULL, LOAD_None, NULL);
 				GetMeshComp()->SetStaticMesh(CamMesh);
@@ -130,7 +130,7 @@ void ASceneCaptureCube::PostActorCreated()
 	{
 		if (!IsRunningCommandlet())
 		{
-			if( !GetMeshComp()->StaticMesh)
+			if( !GetMeshComp()->GetStaticMesh())
 			{
 				UStaticMesh* CamMesh = LoadObject<UStaticMesh>(NULL, TEXT("/Engine/EditorMeshes/MatineeCam_SM.MatineeCam_SM"), NULL, LOAD_None, NULL);
 				GetMeshComp()->SetStaticMesh(CamMesh);
@@ -182,10 +182,15 @@ void USceneCaptureComponent::AddReferencedObjects(UObject* InThis, FReferenceCol
 	USceneCaptureComponent* This = CastChecked<USceneCaptureComponent>(InThis);
 
 	FSceneViewStateInterface* Ref = This->ViewState.GetReference();
-
 	if (Ref)
 	{
 		Ref->AddReferencedObjects(Collector);
+	}
+	
+	FSceneViewStateInterface* StereoRef = This->StereoViewState.GetReference();
+	if (StereoRef)
+	{
+		StereoRef->AddReferencedObjects(Collector);
 	}
 
 	Super::AddReferencedObjects(This, Collector);
@@ -519,7 +524,7 @@ void APlanarReflection::PostActorCreated()
 	{
 		if (!IsRunningCommandlet())
 		{
-			if( !GetMeshComp()->StaticMesh)
+			if( !GetMeshComp()->GetStaticMesh())
 			{
 				UStaticMesh* PlaneMesh = LoadObject<UStaticMesh>(NULL, TEXT("/Engine/EditorMeshes/PlanarReflectionPlane.PlanarReflectionPlane"), NULL, LOAD_None, NULL);
 				GetMeshComp()->SetStaticMesh(PlaneMesh);

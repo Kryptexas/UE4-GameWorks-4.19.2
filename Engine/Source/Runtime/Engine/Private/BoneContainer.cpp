@@ -120,6 +120,8 @@ void FBoneContainer::Initialize()
 
 	SkeletonToCompactPose.Reset(SkeletonToPoseBoneIndexArray.Num());
 
+	VirtualBoneCompactPoseData.Reset(RefSkeleton->GetVirtualBoneRefData().Num());
+
 	const TArray<FTransform>& RefPoseArray = RefSkeleton->GetRefBonePose();
 	TArray<int32>& MeshIndexToCompactPoseIndex = FBoneContainerScratchArea::Get().MeshIndexToCompactPoseIndex;
 	MeshIndexToCompactPoseIndex.Reset(PoseToSkeletonBoneIndexArray.Num());
@@ -163,6 +165,16 @@ void FBoneContainer::Initialize()
 		SkeletonToCompactPose.Add(FCompactPoseBoneIndex(CompactIndex));
 	}
 
+
+	for (const FVirtualBoneRefData& VBRefBone : RefSkeleton->GetVirtualBoneRefData())
+	{
+		int32 VBInd = MeshIndexToCompactPoseIndex[VBRefBone.VBRefSkelIndex];
+		int32 SourceInd = MeshIndexToCompactPoseIndex[VBRefBone.SourceRefSkelIndex];
+		int32 TargetInd = MeshIndexToCompactPoseIndex[VBRefBone.TargetRefSkelIndex];
+
+		VirtualBoneCompactPoseData.Add(FVirtualBoneCompactPoseData(FCompactPoseBoneIndex(VBInd), FCompactPoseBoneIndex(SourceInd), FCompactPoseBoneIndex(TargetInd)));
+	}
+
 	// cache required curve UID list according to new bone sets
 	CacheRequiredAnimCurveUids();
 }
@@ -177,7 +189,40 @@ void FBoneContainer::CacheRequiredAnimCurveUids()
 		if (Mapping != nullptr)
 		{
 			AnimCurveNameUids.Reset();
+			// fill name array
+			TArray<FName> CurveNames;
+			Mapping->FillNameArray(CurveNames);
 			Mapping->FillUidArray(AnimCurveNameUids);
+
+			// if the linked joints don't exists in RequiredBones, remove itself
+			if (CurveNames.Num() > 0)
+			{
+				for (int32 CurveNameIndex = CurveNames.Num() - 1; CurveNameIndex >=0 ; --CurveNameIndex)
+				{
+					const FCurveMetaData* CurveMetaData = Mapping->GetCurveMetaData(CurveNames[CurveNameIndex]);
+					if (CurveMetaData && CurveMetaData->LinkedBones.Num() > 0)
+					{
+						bool bRemove = true;
+						for (int32 LinkedBoneIndex = 0; LinkedBoneIndex < CurveMetaData->LinkedBones.Num(); ++LinkedBoneIndex)
+						{
+							const FBoneReference& BoneReference = CurveMetaData->LinkedBones[LinkedBoneIndex];
+							// we want to make sure all the joints are removed from RequiredBones before removing this UID
+							if (BoneReference.GetCompactPoseIndex(*this) != INDEX_NONE)
+							{
+								// still has some joint that matters, do not remove
+								bRemove = false;
+								break;
+							}
+						}
+
+						if (bRemove)
+						{
+							//remove the UID
+							AnimCurveNameUids.RemoveAt(CurveNameIndex);
+						}
+					}
+				}
+			}
 		}
 	}
 }

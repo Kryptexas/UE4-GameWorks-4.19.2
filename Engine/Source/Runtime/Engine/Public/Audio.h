@@ -84,7 +84,7 @@ DECLARE_CYCLE_STAT_EXTERN( TEXT( "Decompress Vorbis" ), STAT_VorbisDecompressTim
 DECLARE_CYCLE_STAT_EXTERN( TEXT( "Prepare Audio Decompression" ), STAT_AudioPrepareDecompressionTime, STATGROUP_Audio , );
 DECLARE_CYCLE_STAT_EXTERN( TEXT( "Prepare Vorbis Decompression" ), STAT_VorbisPrepareDecompressionTime, STATGROUP_Audio , );
 DECLARE_CYCLE_STAT_EXTERN( TEXT( "Finding Nearest Location" ), STAT_AudioFindNearestLocation, STATGROUP_Audio , );
-DECLARE_CYCLE_STAT_EXTERN( TEXT( "Decompress Opus" ), STAT_OpusDecompressTime, STATGROUP_Audio , );
+DECLARE_CYCLE_STAT_EXTERN( TEXT( "Decompress Streamed" ), STAT_AudioStreamedDecompressTime, STATGROUP_Audio , );
 DECLARE_CYCLE_STAT_EXTERN( TEXT( "Buffer Creation" ), STAT_AudioResourceCreationTime, STATGROUP_Audio , );
 
 /**
@@ -423,6 +423,8 @@ public:
 		, LFEBleed(0.5f)
 		, LPFFrequency(MAX_FILTER_FREQUENCY)
 		, LastLPFFrequency(MAX_FILTER_FREQUENCY)
+		, PlaybackTime(0.0f)
+		, Pitch(1.0f)
 		, LastUpdate(0)
 		, LeftChannelSourceLocation(0)
 		, RightChannelSourceLocation(0)
@@ -535,15 +537,19 @@ public:
 		bIsVirtual = true;
 	}
 
-	/** Returns the source's playback percent. Not yet supported on all platforms. */
-	virtual float GetPlaybackPercent() const
-	{
-		return 0.0f;
-	}
+	/** Returns the source's playback percent. */
+	ENGINE_API virtual float GetPlaybackPercent() const;
 
 	void NotifyPlaybackPercent();
 
 protected:
+
+	/** Initializes common data for all sound source types. */
+	ENGINE_API void InitCommon();
+
+	/** Updates common data for all sound source types. */
+	ENGINE_API void UpdateCommon();
+
 	/** Pauses the sound source. */
 	virtual void Pause() = 0;
 
@@ -573,6 +579,12 @@ protected:
 
 	/** The last LPF frequency set. Used to avoid making API calls when parameter doesn't changing. */
 	float LastLPFFrequency;
+
+	/** The virtual current playback time. Used to trigger notifications when finished. */
+	float PlaybackTime;
+
+	/** The pitch of the sound source. */
+	float Pitch;
 
 	/** Last tick when this source was active */
 	int32 LastUpdate;

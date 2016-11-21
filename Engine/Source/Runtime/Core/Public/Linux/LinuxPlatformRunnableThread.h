@@ -39,6 +39,12 @@ public:
 	{
 	}
 
+	~FRunnableThreadLinux()
+	{
+		// Call the parent destructor body before the parent does it - see comment on that function for explanation why.
+		FRunnableThreadPThread_DestructorBody();
+	}
+
 	/**
 	 * Sets up an alt stack for signal (including crash) handling on this thread.
 	 *

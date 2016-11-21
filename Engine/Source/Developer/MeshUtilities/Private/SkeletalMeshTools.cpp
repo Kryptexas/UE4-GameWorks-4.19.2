@@ -453,10 +453,10 @@ namespace SkeletalMeshTools
 			return;
 
 		SkeletalMesh->CalculateInvRefMatrices();
-		check( SkeletalMesh->RefSkeleton.GetNum() == SkeletalMesh->RefBasesInvMatrix.Num() );
+		check( SkeletalMesh->RefSkeleton.GetRawBoneNum() == SkeletalMesh->RefBasesInvMatrix.Num() );
 
 		Infos.Empty();
-		Infos.AddZeroed( SkeletalMesh->RefSkeleton.GetNum() );
+		Infos.AddZeroed( SkeletalMesh->RefSkeleton.GetRawBoneNum() );
 
 		FStaticLODModel* LODModel = &ImportedResource->LODModels[0];
 		for(int32 SectionIndex = 0; SectionIndex < LODModel->Sections.Num(); SectionIndex++)

@@ -104,6 +104,12 @@ public:
 	/** Returns the number of frames for the imported Alembic file */
 	const uint32 GetNumFrames() const;
 
+	/** Returns the lowest frame index containing data for the imported Alembic file */
+	const uint32 GetStartFrameIndex() const;
+
+	/** Returns the highest frame index containing data for the imported Alembic file */
+	const uint32 GetEndFrameIndex() const;
+
 	/** Returns the number of tracks found in the imported Alembic file */
 	const uint32 GetNumMeshTracks() const;
 private:
@@ -177,13 +183,13 @@ private:
 	void GenerateRawMeshFromSample(FAbcMeshSample* Sample, FRawMesh& RawMesh);
 	
 	/** Retrieves matrix samples using the Hierarchy linked to the given GUID */
-	void GetMatrixSamplesForGUID(const FGuid& InGUID, TArray<FMatrix>& MatrixSamples, TArray<float>& SampleTimes, bool& OutConstantTransform);
+	void GetMatrixSamplesForGUID(const FGuid& InGUID, const float StartSampleTime, const float EndSampleTime, TArray<FMatrix>& MatrixSamples, TArray<float>& SampleTimes, bool& OutConstantTransform);
 
 	/** Temporary functionality for retrieving the object hierarchy for a given Alembic object */
 	void GetHierarchyForObject(const Alembic::Abc::IObject& Object, TDoubleLinkedList<Alembic::AbcGeom::IXform>& Hierarchy);
 
 	/** Caches the matrix transform samples for all the object hierarchies retrieved from the Alembic archive */
-	void CacheHierarchyTransforms();
+	void CacheHierarchyTransforms(const float StartSampleTime, const float EndSampleTime);
 	
 	/** Retrieves a material according to the given name and resaves it into the parent package*/
 	UMaterial* RetrieveMaterial(const FString& MaterialName, UObject* InParent, EObjectFlags Flags );

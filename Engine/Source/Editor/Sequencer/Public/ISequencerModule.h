@@ -68,7 +68,7 @@ struct FSequencerInitParams
 	bool bEditWithinLevelEditor;
 
 	/** Domain-specific spawn register for the movie scene */
-	TSharedPtr<IMovieSceneSpawnRegister> SpawnRegister;
+	TSharedPtr<FMovieSceneSpawnRegister> SpawnRegister;
 
 	/** Accessor for event contexts */
 	TAttribute<TArray<UObject*>> EventContexts;

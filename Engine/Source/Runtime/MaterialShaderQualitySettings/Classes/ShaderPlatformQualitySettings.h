@@ -8,6 +8,16 @@
 /**
 * 
 */
+UENUM()
+enum class EMobileCSMQuality : uint8
+{
+	// Lowest quality, no filtering.
+	NoFiltering,
+	// Medium quality, 1x1 PCF filtering.
+	PCF_1x1 UMETA(DisplayName = "1x1 PCF"),
+	// Highest quality, 2x2 PCF filtering.
+	PCF_2x2 UMETA(DisplayName = "2x2 PCF"),
+};
 
 // FMaterialQualityOverrides represents the full set of possible material overrides per quality level.
 USTRUCT()
@@ -22,6 +32,7 @@ public:
 		, bForceNonMetal(false)
 		, bForceDisableLMDirectionality(false)
 		, bForceLQReflections(false)
+		, MobileCSMQuality(EMobileCSMQuality::PCF_2x2)
 	{
 	}
 
@@ -39,6 +50,9 @@ public:
 
 	UPROPERTY(EditAnywhere, Config, Meta = (DisplayName = "Force low quality reflections"), Category = "Quality")
 	bool bForceLQReflections;
+
+	UPROPERTY(EditAnywhere, Config, Meta = (DisplayName = "Cascade shadow mapping quality"), Category = "Quality")
+	EMobileCSMQuality MobileCSMQuality;
 
 	bool HasAnyOverridesSet() const;
 };

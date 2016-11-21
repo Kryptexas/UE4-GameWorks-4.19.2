@@ -2,13 +2,13 @@
 
 #include "CorePrivatePCH.h"
 #if PLATFORM_HTML5_BROWSER
-#	include <emscripten.h>
+#	include <emscripten/emscripten.h>
 #endif
 #include <string.h>
 
 static char BacktraceLog[4096];
 
-static void ParseError(FProgramCounterSymbolInfo& out_SymbolInfo) 
+static void ParseError(FProgramCounterSymbolInfo& out_SymbolInfo)
 {
 	///Fail with some defaults
 	out_SymbolInfo.LineNumber = 0;
@@ -21,11 +21,11 @@ void FHTML5PlatformStackWalk::ProgramCounterToSymbolInfo(uint64 ProgramCounter,F
 #if PLATFORM_HTML5_BROWSER
 	char* TP = (char*)ProgramCounter;
 	// No module name, SymbolDisplacement, OffsetInModule or PC support
-	out_SymbolInfo.ModuleName[0] = 0; 
+	out_SymbolInfo.ModuleName[0] = 0;
 	out_SymbolInfo.SymbolDisplacement = 0;
 	out_SymbolInfo.OffsetInModule = 0;
 	out_SymbolInfo.ProgramCounter = 0;
-	for (int Index = 0; Index < FProgramCounterSymbolInfo::MAX_NAME_LENGHT && out_SymbolInfo.FunctionName[Index] != 0; ++Index) 
+	for (int Index = 0; Index < FProgramCounterSymbolInfo::MAX_NAME_LENGHT && out_SymbolInfo.FunctionName[Index] != 0; ++Index)
 	{
 		out_SymbolInfo.FunctionName[Index] = 0;
 	}
@@ -58,7 +58,7 @@ void FHTML5PlatformStackWalk::ProgramCounterToSymbolInfo(uint64 ProgramCounter,F
 		{
 			return ParseError(out_SymbolInfo);
 		}
-		if (*Ptr == '(') 
+		if (*Ptr == '(')
 		{
 			ParameterParse = true;
 		}
@@ -101,7 +101,7 @@ void FHTML5PlatformStackWalk::ProgramCounterToSymbolInfo(uint64 ProgramCounter,F
 		out_SymbolInfo.Filename[Out++] = *Ptr;
 		++Ptr;
 	}
-	if (Colon1 && Colon2) 
+	if (Colon1 && Colon2)
 	{
 		*Colon2 = 0;
 		out_SymbolInfo.LineNumber = atoi(Colon1+1);
@@ -115,7 +115,7 @@ void FHTML5PlatformStackWalk::ProgramCounterToSymbolInfo(uint64 ProgramCounter,F
 void FHTML5PlatformStackWalk::CaptureStackBackTrace(uint64* BackTrace,uint32 MaxDepth,void* Context)
 {
 #if PLATFORM_HTML5_BROWSER
-	if (MaxDepth < 1) 
+	if (MaxDepth < 1)
 	{
 		return;
 	}

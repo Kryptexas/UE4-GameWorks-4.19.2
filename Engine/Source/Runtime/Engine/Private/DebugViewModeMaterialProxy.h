@@ -59,6 +59,13 @@ public:
 		return MaterialInterface ? MaterialInterface->GetMaterialResource(GMaxRHIFeatureLevel)->CompilePropertyAndSetMaterialProperty(Property, Compiler, OverrideShaderFrequency, bUsePreviousFrameTime) : INDEX_NONE;
 	}
 
+#if HANDLE_CUSTOM_OUTPUTS_AS_MATERIAL_ATTRIBUTES
+	virtual int32 CompileCustomAttribute(const FGuid& AttributeID, FMaterialCompiler* Compiler) const override
+	{
+		return MaterialInterface ? MaterialInterface->CompilePropertyEx(Compiler, AttributeID) : INDEX_NONE;
+	}
+#endif
+
 	virtual FString GetMaterialUsageDescription() const override
 	{
 		return FString::Printf(TEXT("FDebugViewModeMaterialProxy %s"), MaterialInterface ? *MaterialInterface->GetName() : TEXT("NULL"));
@@ -104,7 +111,7 @@ public:
 	static const FMaterial* GetShader(EDebugViewShaderMode DebugViewShaderMode, const FMaterial* Material);
 	static void ClearAllShaders();
 	static bool HasAnyShaders() { return DebugMaterialShaderMap.Num() > 0; }
-	static void ValidateAllShaders(OUT FTexCoordScaleMap& TexCoordScales);
+	static void ValidateAllShaders(TSet<UMaterialInterface*>& Materials);
 
 private:
 

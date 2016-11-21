@@ -67,6 +67,7 @@ private:
 		return true;
 	}
 
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	FPortalRpcLocatorImpl()
 		: EngineVersion(FEngineVersion::Current().ToString())
 		, MacAddress(FPlatformMisc::GetMacAddressString())
@@ -78,6 +79,7 @@ private:
 
 		TickerHandle = FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &FPortalRpcLocatorImpl::HandleTicker), PORTAL_RPC_LOCATE_INTERVAL);
 	}
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 private:
 

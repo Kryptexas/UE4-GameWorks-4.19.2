@@ -252,7 +252,6 @@ void SBlueprintEditorSelectedDebugObjectWidget::GenerateDebugWorldNames(bool bRe
 			continue;
 		}
 
-		DebugWorlds.Add(TestWorld);
 		ENetMode NetMode = TestWorld->GetNetMode();
 
 		FString WorldName;
@@ -281,6 +280,11 @@ void SBlueprintEditorSelectedDebugObjectWidget::GenerateDebugWorldNames(bool bRe
 
 		if (!WorldName.IsEmpty())
 		{
+			// DebugWorlds & DebugWorldNames need to be the same size (we expect
+			// an index in one to correspond to the other) - DebugWorldNames is
+			// what populates the dropdown, so it is the authority (if there's 
+			// no name to present, they can't select from DebugWorlds)
+			DebugWorlds.Add(TestWorld);
 			DebugWorldNames.Add( MakeShareable(new FString(WorldName)) );
 		}
 	}

@@ -9,6 +9,7 @@
 #include "BoundShaderStateCache.h"
 #include "CrossCompilerCommon.h"
 
+#if 0
 class FVulkanShaderVarying
 {
 public:
@@ -51,15 +52,7 @@ inline FArchive& operator<<(FArchive& Ar, FVulkanShaderVarying& Var)
 	Ar << Var.Components;
 	return Ar;
 }
-
-static void ClearBindings(CrossCompiler::FShaderBindings& Bindings)
-{
-	Bindings.InOutMask = 0;
-	Bindings.NumSamplers = 0;
-	Bindings.NumUniformBuffers = 0;
-	Bindings.NumUAVs = 0;
-	Bindings.bHasRegularUniformBuffers = 0;
-}
+#endif
 
 class FVulkanShaderSerializedBindings : public CrossCompiler::FShaderBindings
 {
@@ -67,21 +60,13 @@ public:
 	FVulkanShaderSerializedBindings():
 		bFlattenUB(false)
 	{
-		ClearBindings(*this);
+		InOutMask = 0;
+		NumSamplers = 0;
+		NumUniformBuffers = 0;
+		NumUAVs = 0;
+		bHasRegularUniformBuffers = 0;
 		FMemory::Memzero(PackedUBTypeIndex);
 	}
-
-	enum EBindingType : uint16
-	{
-		TYPE_COMBINED_IMAGE_SAMPLER,
-		TYPE_SAMPLER_BUFFER,
-		TYPE_UNIFORM_BUFFER,
-		TYPE_PACKED_UNIFORM_BUFFER,
-		//TYPE_SAMPLER,
-		//TYPE_IMAGE,
-
-		TYPE_MAX,
-	};
 
 	struct FBindMap
 	{
@@ -95,7 +80,7 @@ public:
 		int16 EngineBindingIndex;	// Used to remap EngineBindingIndex -> VulkanBindingIndex
 	};
 
-	TArray<FBindMap> Bindings[TYPE_MAX];
+	TArray<FBindMap> Bindings[EVulkanBindingType::Count];
 	// For the packed UB bindings, what is the packed type index to use
 	uint8 PackedUBTypeIndex[CrossCompiler::PACKED_TYPEINDEX_MAX];
 
@@ -114,7 +99,7 @@ inline FArchive& operator<<(FArchive& Ar, FVulkanShaderSerializedBindings& Bindi
 {
 	Ar << Bindings.PackedUniformBuffers;
 	Ar << Bindings.PackedGlobalArrays;
-	for (int32 Index = 0; Index < FVulkanShaderSerializedBindings::TYPE_MAX; ++Index)
+	for (int32 Index = 0; Index < (int32)EVulkanBindingType::Count; ++Index)
 	{
 		Ar << Bindings.Bindings[Index];
 	}
@@ -184,7 +169,8 @@ class FVulkanShaderBindingTable
 public:
 	TArray<uint32> CombinedSamplerBindingIndices;
 	//#todo-rco: FIX! SamplerBuffers share numbering with Samplers
-	TArray<uint32> SamplerBufferBindingIndices;
+	TArray<uint32> UniformTexelBufferBindingIndices;
+	TArray<uint32> StorageTexelBufferBindingIndices;
 	TArray<uint32> UniformBufferBindingIndices;
 
 	int32 PackedGlobalUBsIndices[CrossCompiler::PACKED_TYPEINDEX_MAX];
@@ -202,7 +188,8 @@ public:
 inline FArchive& operator<<(FArchive& Ar, FVulkanShaderBindingTable& BindingTable)
 {
 	Ar << BindingTable.CombinedSamplerBindingIndices;
-	Ar << BindingTable.SamplerBufferBindingIndices;
+	Ar << BindingTable.UniformTexelBufferBindingIndices;
+	Ar << BindingTable.StorageTexelBufferBindingIndices;
 	Ar << BindingTable.UniformBufferBindingIndices;
 	for (int32 Index = 0; Index < CrossCompiler::PACKED_TYPEINDEX_MAX; ++Index)
 	{

@@ -613,7 +613,12 @@ public:
 #if USE_NEW_ASYNC_IO
 	virtual IAsyncReadFileHandle* OpenAsyncRead(const TCHAR* Filename) override
 	{
-		return LowerLevel->OpenAsyncRead(*ConvertToSandboxPath(Filename));
+		FString UserFilename(*ConvertToSandboxPath(Filename));
+		if (!OkForInnerAccess(Filename) || LowerLevel->FileExists(*UserFilename))
+		{
+			return LowerLevel->OpenAsyncRead(*UserFilename);
+		}
+		return LowerLevel->OpenAsyncRead(Filename);
 	}
 #endif // USE_NEW_ASYNC_IO
 };

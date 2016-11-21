@@ -13,6 +13,7 @@
 #include "../../Renderer/Private/ScenePrivate.h"
 #include "PhysicsSerializer.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "ComponentRecreateRenderStateContext.h"
 
 const int32 InstancedStaticMeshMaxTexCoord = 8;
 
@@ -61,7 +62,7 @@ void FStaticMeshInstanceBuffer::SetupCPUAccess(UInstancedStaticMeshComponent* In
 
 	const bool bNeedsCPUAccess = InComponent->CastShadow && InComponent->bAffectDistanceFieldLighting 
 		// Distance field algorithms need access to instance data on the CPU
-		&& CVar->GetValueOnGameThread() != 0;
+		&& (CVar->GetValueOnGameThread() != 0 || (InComponent->GetStaticMesh() && InComponent->GetStaticMesh()->bGenerateMeshDistanceField));
 
 	InstanceData->SetAllowCPUAccess(InstanceData->GetAllowCPUAccess() || bNeedsCPUAccess);
 }
@@ -88,13 +89,29 @@ void FStaticMeshInstanceBuffer::Init(UInstancedStaticMeshComponent* InComponent,
 	// given instance index between reattaches
 	FRandomStream RandomStream( InComponent->InstancingRandomSeed );
 
+	const FMeshMapBuildData* MeshMapBuildData = NULL;
+	
+	if (InComponent->LODData.Num() > 0)
+	{
+		MeshMapBuildData = InComponent->GetMeshMapBuildData(InComponent->LODData[0]);
+	}
+	
 	for (int32 InstanceIndex = 0; InstanceIndex < NumRealInstances; InstanceIndex++)
 	{
 		const FInstancedStaticMeshInstanceData& Instance = InComponent->PerInstanceSMData[InstanceIndex];
 		const int32 DestInstanceIndex = bUseRemapTable ? InComponent->InstanceReorderTable[InstanceIndex] : InstanceIndex;
 		if (DestInstanceIndex != INDEX_NONE)
 		{
-			InstanceData->SetInstance(DestInstanceIndex, Instance.Transform, RandomStream.GetFraction(), Instance.LightmapUVBias, Instance.ShadowmapUVBias);
+			FVector2D LightmapUVBias = Instance.LightmapUVBias_DEPRECATED;
+			FVector2D ShadowmapUVBias = Instance.ShadowmapUVBias_DEPRECATED;
+
+			if (MeshMapBuildData && MeshMapBuildData->PerInstanceLightmapData.IsValidIndex(InstanceIndex))
+			{
+				LightmapUVBias = MeshMapBuildData->PerInstanceLightmapData[InstanceIndex].LightmapUVBias;
+				ShadowmapUVBias = MeshMapBuildData->PerInstanceLightmapData[InstanceIndex].ShadowmapUVBias;
+			}
+
+			InstanceData->SetInstance(DestInstanceIndex, Instance.Transform, RandomStream.GetFraction(), LightmapUVBias, ShadowmapUVBias);
 		}
 	}
 
@@ -784,10 +801,10 @@ int32 GetNumAggregates(int32 NumBodies, int32 NumShapes)
 class FInstancedStaticMeshComponentInstanceData : public FSceneComponentInstanceData
 {
 public:
+	
 	FInstancedStaticMeshComponentInstanceData(const UInstancedStaticMeshComponent& InComponent)
 		: FSceneComponentInstanceData(&InComponent)
-		, StaticMesh(InComponent.StaticMesh)
-		, bHasCachedStaticLighting(false)
+		, StaticMesh(InComponent.GetStaticMesh())
 	{
 	}
 
@@ -802,23 +819,6 @@ public:
 		FSceneComponentInstanceData::AddReferencedObjects(Collector);
 
 		Collector.AddReferencedObject(StaticMesh);
-		if (bHasCachedStaticLighting)
-		{
-			for (FLightMapRef& LightMapRef : CachedStaticLighting.LODDataLightMap)
-			{
-				if (LightMapRef != nullptr)
-				{
-					LightMapRef->AddReferencedObjects(Collector);
-				}
-			}
-			for (FShadowMapRef& ShadowMapRef : CachedStaticLighting.LODDataShadowMap)
-			{
-				if (ShadowMapRef != nullptr)
-				{
-					ShadowMapRef->AddReferencedObjects(Collector);
-				}
-			}		
-		}
 	}
 
 	/** Used to store lightmap data during RerunConstructionScripts */
@@ -827,11 +827,8 @@ public:
 		/** Transform of component */
 		FTransform Transform;
 
-		/** Lightmaps from LODData */
-		TArray<FLightMapRef>	LODDataLightMap;
-		TArray<FShadowMapRef>	LODDataShadowMap;
-
-		TArray<FGuid> IrrelevantLights;
+		/** guid from LODData */
+		TArray<FGuid> MapBuildDataIds;
 	};
 
 public:
@@ -839,7 +836,6 @@ public:
 	UStaticMesh* StaticMesh;
 
 	// Static lighting info
-	bool bHasCachedStaticLighting;
 	FLightMapInstanceData CachedStaticLighting;
 	TArray<FInstancedStaticMeshInstanceData> PerInstanceSMData;
 
@@ -853,44 +849,21 @@ FActorComponentInstanceData* UInstancedStaticMeshComponent::GetComponentInstance
 #if WITH_EDITOR
 	FActorComponentInstanceData* InstanceData = nullptr;
 	FInstancedStaticMeshComponentInstanceData* StaticMeshInstanceData = nullptr;
-
-	bool bHasSelectedInstances = SelectedInstances.Num() > 0;
-
-	// Don't back up static lighting if there isn't any
-	if (bHasCachedStaticLighting || bHasSelectedInstances)
-	{
 		InstanceData = StaticMeshInstanceData = new FInstancedStaticMeshComponentInstanceData(*this);	
-	}
 
-	// Don't back up static lighting if there isn't any
-	if (bHasCachedStaticLighting)
-	{
 		// Fill in info (copied from UStaticMeshComponent::GetComponentInstanceData)
-		StaticMeshInstanceData->bHasCachedStaticLighting = true;
 		StaticMeshInstanceData->CachedStaticLighting.Transform = ComponentToWorld;
-		StaticMeshInstanceData->CachedStaticLighting.IrrelevantLights = IrrelevantLights;
-		StaticMeshInstanceData->CachedStaticLighting.LODDataLightMap.Empty(LODData.Num());
+
 		for (const FStaticMeshComponentLODInfo& LODDataEntry : LODData)
 		{
-			StaticMeshInstanceData->CachedStaticLighting.LODDataLightMap.Add(LODDataEntry.LightMap);
-			StaticMeshInstanceData->CachedStaticLighting.LODDataShadowMap.Add(LODDataEntry.ShadowMap);
+		StaticMeshInstanceData->CachedStaticLighting.MapBuildDataIds.Add(LODDataEntry.MapBuildDataId);
 		}
 
 		// Back up per-instance lightmap/shadowmap info
 		StaticMeshInstanceData->PerInstanceSMData = PerInstanceSMData;
-	}
 
 	// Back up instance selection
-	if (bHasSelectedInstances)
-	{
 		StaticMeshInstanceData->SelectedInstances = SelectedInstances;
-	}
-
-	if (InstanceData == nullptr)
-	{
-		// Skip up the hierarchy
-		InstanceData = UPrimitiveComponent::GetComponentInstanceData();
-	}
 
 	return InstanceData;
 #else
@@ -903,14 +876,11 @@ void UInstancedStaticMeshComponent::ApplyComponentInstanceData(FInstancedStaticM
 #if WITH_EDITOR
 	check(InstancedMeshData);
 
-	if (StaticMesh != InstancedMeshData->StaticMesh)
+	if (GetStaticMesh() != InstancedMeshData->StaticMesh)
 	{
 		return;
 	}
 
-	// See if data matches current state
-	if (InstancedMeshData->bHasCachedStaticLighting)
-	{
 		bool bMatch = false;
 
 		// Check for any instance having moved as that would invalidate static lighting
@@ -932,17 +902,15 @@ void UInstancedStaticMeshComponent::ApplyComponentInstanceData(FInstancedStaticM
 		// Restore static lighting if appropriate
 		if (bMatch)
 		{
-			const int32 NumLODLightMaps = InstancedMeshData->CachedStaticLighting.LODDataLightMap.Num();
+		const int32 NumLODLightMaps = InstancedMeshData->CachedStaticLighting.MapBuildDataIds.Num();
 			SetLODDataCount(NumLODLightMaps, NumLODLightMaps);
+
 			for (int32 i = 0; i < NumLODLightMaps; ++i)
 			{
-				LODData[i].LightMap = InstancedMeshData->CachedStaticLighting.LODDataLightMap[i];
-				LODData[i].ShadowMap = InstancedMeshData->CachedStaticLighting.LODDataShadowMap[i];
+			LODData[i].MapBuildDataId = InstancedMeshData->CachedStaticLighting.MapBuildDataIds[i];
 			}
-			IrrelevantLights = InstancedMeshData->CachedStaticLighting.IrrelevantLights;
+
 			PerInstanceSMData = InstancedMeshData->PerInstanceSMData;
-			bHasCachedStaticLighting = true;
-		}
 	}
 
 	SelectedInstances = InstancedMeshData->SelectedInstances;
@@ -960,11 +928,11 @@ FPrimitiveSceneProxy* UInstancedStaticMeshComponent::CreateSceneProxy()
 		// make sure we have instances
 		PerInstanceSMData.Num() > 0 &&
 		// make sure we have an actual staticmesh
-		StaticMesh &&
-		StaticMesh->HasValidRenderData() &&
+		GetStaticMesh() &&
+		GetStaticMesh()->HasValidRenderData() &&
 		// You really can't use hardware instancing on the consoles with multiple elements because they share the same index buffer. 
 		// @todo: Level error or something to let LDs know this
-		1;//StaticMesh->LODModels(0).Elements.Num() == 1;
+		1;//GetStaticMesh()->LODModels(0).Elements.Num() == 1;
 
 	if(bMeshIsValid)
 	{
@@ -988,7 +956,7 @@ FPrimitiveSceneProxy* UInstancedStaticMeshComponent::CreateSceneProxy()
 
 void UInstancedStaticMeshComponent::InitInstanceBody(int32 InstanceIdx, FBodyInstance* InstanceBodyInstance)
 {
-	if (!StaticMesh)
+	if (!GetStaticMesh())
 	{
 		UE_LOG(LogStaticMesh, Warning, TEXT("Unabled to create a body instance for %s in Actor %s. No StaticMesh set."), *GetName(), GetOwner() ? *GetOwner()->GetName() : TEXT("?"));
 		return;
@@ -1023,12 +991,13 @@ void UInstancedStaticMeshComponent::CreateAllInstanceBodies()
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_UInstancedStaticMeshComponent_CreateAllInstanceBodies);
 
+	const int32 NumBodies = PerInstanceSMData.Num();
+	check(InstanceBodies.Num() == 0);
+
 	if (UBodySetup* BodySetup = GetBodySetup())
 	{
 		FPhysScene* PhysScene = GetWorld()->GetPhysicsScene();
 
-	    const int32 NumBodies = PerInstanceSMData.Num();
-		check(InstanceBodies.Num() == 0);
 		InstanceBodies.SetNumUninitialized(NumBodies);
 
 		// Sanitized array does not contain any nulls
@@ -1094,6 +1063,13 @@ void UInstancedStaticMeshComponent::CreateAllInstanceBodies()
 			// Serialize physics data for fast path cooking
 			PhysicsSerializer->SerializePhysics(InstanceBodiesSanitized, BodySetups, PhysicalMaterials);
 		}
+	}
+	else
+	{
+		// In case we get into some bad state where the BodySetup is invalid but bPhysicsStateCreated is true,
+		// issue a warning and add nullptrs to InstanceBodies.
+		UE_LOG(LogStaticMesh, Warning, TEXT("Instance Static Mesh Component unable to create InstanceBodies!"));
+		InstanceBodies.AddZeroed(NumBodies);
 	}
 }
 
@@ -1202,11 +1178,11 @@ bool UInstancedStaticMeshComponent::CanEditSimulatePhysics()
 
 FBoxSphereBounds UInstancedStaticMeshComponent::CalcBounds(const FTransform& BoundTransform) const
 {
-	if(StaticMesh && PerInstanceSMData.Num() > 0)
+	if(GetStaticMesh() && PerInstanceSMData.Num() > 0)
 	{
 		FMatrix BoundTransformMatrix = BoundTransform.ToMatrixWithScale();
 
-		FBoxSphereBounds RenderBounds = StaticMesh->GetBounds();
+		FBoxSphereBounds RenderBounds = GetStaticMesh()->GetBounds();
 		FBoxSphereBounds NewBounds = RenderBounds.TransformBy(PerInstanceSMData[0].Transform * BoundTransformMatrix);
 
 		for (int32 InstanceIndex = 1; InstanceIndex < PerInstanceSMData.Num(); InstanceIndex++)
@@ -1279,7 +1255,7 @@ void UInstancedStaticMeshComponent::GetStaticLightingInfo(FStaticLightingPrimiti
 				->AddToken(FTextToken::Create(NSLOCTEXT("InstancedStaticMesh", "LargeStaticLightingWarning", "The total lightmap size for this InstancedStaticMeshComponent is large, consider reducing the component's lightmap resolution or number of mesh instances in this component")));
 		}
 
-		bool bCanLODsShareStaticLighting = StaticMesh->CanLODsShareStaticLighting();
+		bool bCanLODsShareStaticLighting = GetStaticMesh()->CanLODsShareStaticLighting();
 
 		// TODO: We currently only support one LOD of static lighting in instanced meshes
 		// Need to create per-LOD instance data to fix that
@@ -1291,21 +1267,23 @@ void UInstancedStaticMeshComponent::GetStaticLightingInfo(FStaticLightingPrimiti
 			bCanLODsShareStaticLighting = true;
 		}
 
-		int32 NumLODs = bCanLODsShareStaticLighting ? 1 : StaticMesh->RenderData->LODResources.Num();
+		int32 NumLODs = bCanLODsShareStaticLighting ? 1 : GetStaticMesh()->RenderData->LODResources.Num();
 
 		CachedMappings.Reset(PerInstanceSMData.Num() * NumLODs);
 		CachedMappings.AddZeroed(PerInstanceSMData.Num() * NumLODs);
 
+		NumPendingLightmaps = 0;
+
 		for (int32 LODIndex = 0; LODIndex < NumLODs; LODIndex++)
 		{
-			const FStaticMeshLODResources& LODRenderData = StaticMesh->RenderData->LODResources[LODIndex];
+			const FStaticMeshLODResources& LODRenderData = GetStaticMesh()->RenderData->LODResources[LODIndex];
 
 			for (int32 InstanceIndex = 0; InstanceIndex < PerInstanceSMData.Num(); InstanceIndex++)
 			{
 				auto* StaticLightingMesh = new FStaticLightingMesh_InstancedStaticMesh(this, LODIndex, InstanceIndex, InRelevantLights);
 				OutPrimitiveInfo.Meshes.Add(StaticLightingMesh);
 
-				auto* InstancedMapping = new FStaticLightingTextureMapping_InstancedStaticMesh(this, LODIndex, InstanceIndex, StaticLightingMesh, LightMapWidth, LightMapHeight, StaticMesh->LightMapCoordinateIndex, true);
+				auto* InstancedMapping = new FStaticLightingTextureMapping_InstancedStaticMesh(this, LODIndex, InstanceIndex, StaticLightingMesh, LightMapWidth, LightMapHeight, GetStaticMesh()->LightMapCoordinateIndex, true);
 				OutPrimitiveInfo.Mappings.Add(InstancedMapping);
 
 				CachedMappings[LODIndex * PerInstanceSMData.Num() + InstanceIndex].Mapping = InstancedMapping;
@@ -1319,7 +1297,7 @@ void UInstancedStaticMeshComponent::GetStaticLightingInfo(FStaticLightingPrimiti
 	}
 }
 
-void UInstancedStaticMeshComponent::ApplyLightMapping(FStaticLightingTextureMapping_InstancedStaticMesh* InMapping)
+void UInstancedStaticMeshComponent::ApplyLightMapping(FStaticLightingTextureMapping_InstancedStaticMesh* InMapping, ULevel* LightingScenario)
 {
 	NumPendingLightmaps--;
 
@@ -1345,22 +1323,31 @@ void UInstancedStaticMeshComponent::ApplyLightMapping(FStaticLightingTextureMapp
 			AllShadowMapData.Add(MoveTemp(Mapping->ShadowMapData));
 		}
 
-		// Create a light-map for the primitive.
-		const ELightMapPaddingType PaddingType = GAllowLightmapPadding ? LMPT_NormalPadding : LMPT_NoPadding;
-		TRefCountPtr<FLightMap2D> NewLightMap = FLightMap2D::AllocateInstancedLightMap(this, MoveTemp(AllQuantizedData), Bounds, PaddingType, LMF_Streamed);
-
-		// Create a shadow-map for the primitive.
-		TRefCountPtr<FShadowMap2D> NewShadowMap = bNeedsShadowMap ? FShadowMap2D::AllocateInstancedShadowMap(this, MoveTemp(AllShadowMapData), Bounds, PaddingType, SMF_Streamed) : nullptr;
+		UStaticMesh* ResolvedMesh = GetStaticMesh();
+		if (LODData.Num() != ResolvedMesh->GetNumLODs())
+		{
+			MarkPackageDirty();
+		}
 
 		// Ensure LODData has enough entries in it, free not required.
-		SetLODDataCount(StaticMesh->GetNumLODs(), StaticMesh->GetNumLODs());
+		SetLODDataCount(ResolvedMesh->GetNumLODs(), ResolvedMesh->GetNumLODs());
 
-		// Share lightmap/shadowmap over all LODs
-		for (FStaticMeshComponentLODInfo& ComponentLODInfo : LODData)
-		{
-			ComponentLODInfo.LightMap = NewLightMap;
-			ComponentLODInfo.ShadowMap = NewShadowMap;
-		}
+		ULevel* StorageLevel = LightingScenario ? LightingScenario : GetOwner()->GetLevel();
+		UMapBuildDataRegistry* Registry = StorageLevel->GetOrCreateMapBuildData();
+		FMeshMapBuildData& MeshBuildData = Registry->AllocateMeshBuildData(LODData[0].MapBuildDataId, true);
+
+		MeshBuildData.PerInstanceLightmapData.Empty(AllQuantizedData.Num());
+		MeshBuildData.PerInstanceLightmapData.AddZeroed(AllQuantizedData.Num());
+
+		// Create a light-map for the primitive.
+		const ELightMapPaddingType PaddingType = GAllowLightmapPadding ? LMPT_NormalPadding : LMPT_NoPadding;
+		TRefCountPtr<FLightMap2D> NewLightMap = FLightMap2D::AllocateInstancedLightMap(Registry, this, MoveTemp(AllQuantizedData), Registry, LODData[0].MapBuildDataId, Bounds, PaddingType, LMF_Streamed);
+
+		// Create a shadow-map for the primitive.
+		TRefCountPtr<FShadowMap2D> NewShadowMap = bNeedsShadowMap ? FShadowMap2D::AllocateInstancedShadowMap(Registry, this, MoveTemp(AllShadowMapData), Registry, LODData[0].MapBuildDataId, Bounds, PaddingType, SMF_Streamed) : nullptr;
+
+		MeshBuildData.LightMap = NewLightMap;
+		MeshBuildData.ShadowMap = NewShadowMap;
 
 		// Build the list of statically irrelevant lights.
 		// TODO: This should be stored per LOD.
@@ -1371,10 +1358,10 @@ void UInstancedStaticMeshComponent::ApplyLightMapping(FStaticLightingTextureMapp
 			for (const ULightComponent* Light : MappingInfo.Mapping->Mesh->RelevantLights)
 			{
 				// Check if the light is stored in the light-map.
-				const bool bIsInLightMap = LODData[0].LightMap && LODData[0].LightMap->LightGuids.Contains(Light->LightGuid);
+				const bool bIsInLightMap = MeshBuildData.LightMap && MeshBuildData.LightMap->LightGuids.Contains(Light->LightGuid);
 
 				// Check if the light is stored in the shadow-map.
-				const bool bIsInShadowMap = LODData[0].ShadowMap && LODData[0].ShadowMap->LightGuids.Contains(Light->LightGuid);
+				const bool bIsInShadowMap = MeshBuildData.ShadowMap && MeshBuildData.ShadowMap->LightGuids.Contains(Light->LightGuid);
 
 				// If the light isn't already relevant to another mapping, add it to the potentially irrelevant list
 				if (!bIsInLightMap && !bIsInShadowMap && !RelevantLights.Contains(Light->LightGuid))
@@ -1391,14 +1378,9 @@ void UInstancedStaticMeshComponent::ApplyLightMapping(FStaticLightingTextureMapp
 			}
 		}
 
-		IrrelevantLights = PossiblyIrrelevantLights.Array();
-
-		bHasCachedStaticLighting = true;
+		MeshBuildData.IrrelevantLights = PossiblyIrrelevantLights.Array();
 
 		ReleasePerInstanceRenderData();
-		MarkRenderStateDirty();
-
-		MarkPackageDirty();
 	}
 }
 #endif
@@ -1424,6 +1406,12 @@ void UInstancedStaticMeshComponent::ReleasePerInstanceRenderData()
 			delete InCleanupRenderDataPtr;
 		});
 	}
+}
+
+void UInstancedStaticMeshComponent::PropagateLightingScenarioChange()
+{
+	FComponentRecreateRenderStateContext Context(this);
+	ReleasePerInstanceRenderData();
 }
 
 void UInstancedStaticMeshComponent::GetLightAndShadowMapMemoryUsage( int32& LightMapMemoryUsage, int32& ShadowMapMemoryUsage ) const
@@ -1629,7 +1617,7 @@ TArray<int32> UInstancedStaticMeshComponent::GetInstancesOverlappingSphere(const
 		Sphere = Sphere.TransformBy(ComponentToWorld.Inverse());
 	}
 
-	float StaticMeshBoundsRadius = StaticMesh->GetBounds().SphereRadius;
+	float StaticMeshBoundsRadius = GetStaticMesh()->GetBounds().SphereRadius;
 
 	for (int32 Index = 0; Index < PerInstanceSMData.Num(); Index++)
 	{
@@ -1655,7 +1643,7 @@ TArray<int32> UInstancedStaticMeshComponent::GetInstancesOverlappingBox(const FB
 		Box = Box.TransformBy(ComponentToWorld.Inverse());
 	}
 
-	FVector StaticMeshBoundsExtent = StaticMesh->GetBounds().BoxExtent;
+	FVector StaticMeshBoundsExtent = GetStaticMesh()->GetBounds().BoxExtent;
 
 	for (int32 Index = 0; Index < PerInstanceSMData.Num(); Index++)
 	{
@@ -1673,89 +1661,64 @@ TArray<int32> UInstancedStaticMeshComponent::GetInstancesOverlappingBox(const FB
 
 bool UInstancedStaticMeshComponent::ShouldCreatePhysicsState() const
 {
-	return IsRegistered() && !IsBeingDestroyed() && (bAlwaysCreatePhysicsState || IsCollisionEnabled());
+	return IsRegistered() && !IsBeingDestroyed() && GetStaticMesh() && (bAlwaysCreatePhysicsState || IsCollisionEnabled());
 }
 
-bool UInstancedStaticMeshComponent::GetStreamingTextureFactors(float& OutTexelFactor, FBoxSphereBounds& OutBounds, int32 CoordinateIndex, int32 LODIndex, int32 ElementIndex) const
+float UInstancedStaticMeshComponent::GetTextureStreamingTransformScale() const
 {
-	if (!StaticMesh)
-		return false;
-
-	FTransform InstanceTransform; 
-	if (!GetInstanceTransform(0, InstanceTransform, true)) 
-		return false;
-
-	float TexelFactor = 0;
-	if (!StaticMesh->GetStreamingTextureFactor(TexelFactor, OutBounds, CoordinateIndex, LODIndex, ElementIndex, InstanceTransform))
-		return false;
-
-	// Here we weight the texel factor by the by maximum axis scale as it would scale also the surface.
-	float Weight = InstanceTransform.GetMaximumAxisScale();
-	float WeightedTexelFactorSum = TexelFactor * Weight;
-	float WeightSum = Weight;
-
-	for (int32 InstanceIndex = 1; InstanceIndex < PerInstanceSMData.Num(); ++InstanceIndex)
-	{
-		FBoxSphereBounds InstanceBounds;
-		if (GetInstanceTransform(InstanceIndex, InstanceTransform, true))
-		{
-			if (StaticMesh->GetStreamingTextureFactor(TexelFactor, InstanceBounds, CoordinateIndex, LODIndex, ElementIndex, InstanceTransform))
-			{
-				Weight = InstanceTransform.GetMaximumAxisScale();
-				WeightedTexelFactorSum += TexelFactor * Weight;
-				WeightSum += Weight;
-
-				OutBounds = Union(OutBounds, InstanceBounds);
-			}
-		}
-	}
-
-	if (WeightSum > SMALL_NUMBER)
-	{
-		OutTexelFactor = WeightedTexelFactorSum / WeightSum;
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
-bool UInstancedStaticMeshComponent::GetStreamingTextureFactors(float& OutWorldTexelFactor, float& OutWorldLightmapFactor) const
-{
-	if (StaticMesh && PerInstanceSMData.Num() > 0)
+	float TransformScale = Super::GetTextureStreamingTransformScale();
+	if (PerInstanceSMData.Num() > 0)
 	{
 		float WeightedAxisScaleSum = 0;
-		float WeightSum  = 0;
+		float WeightSum = 0;
 
 		for (int32 InstanceIndex = 0; InstanceIndex < PerInstanceSMData.Num(); InstanceIndex++)
 		{
 			const float AxisScale = PerInstanceSMData[InstanceIndex].Transform.GetMaximumAxisScale();
 			const float Weight = AxisScale; // The weight is the axis scale since we want to weight by surface coverage.
 			WeightedAxisScaleSum += AxisScale * Weight;
-			WeightSum  += Weight;
+			WeightSum += Weight;
 		}
 
 		if (WeightSum > SMALL_NUMBER)
 		{
-			OutWorldTexelFactor = OutWorldLightmapFactor = WeightedAxisScaleSum / WeightSum * ComponentToWorld.GetMaximumAxisScale();
-			OutWorldTexelFactor *= StaticMesh->GetStreamingTextureFactor(0);
-
-			TIndirectArray<FStaticMeshLODResources>& LODResources = StaticMesh->RenderData->LODResources;
-			const bool bHasValidLightmapCoordinates = StaticMesh->LightMapCoordinateIndex >= 0 && (uint32)StaticMesh->LightMapCoordinateIndex < LODResources[0].VertexBuffer.GetNumTexCoords();
-			if (bHasValidLightmapCoordinates)
-			{
-				OutWorldLightmapFactor *= StaticMesh->GetStreamingTextureFactor(StaticMesh->LightMapCoordinateIndex);
-			}
-			else
-			{
-				OutWorldLightmapFactor = 0;
-			}
-			return true;
+			TransformScale *= WeightedAxisScaleSum / WeightSum;
 		}
 	}
-	return false;
+	return TransformScale;
 }
+
+bool UInstancedStaticMeshComponent::GetMaterialStreamingData(int32 MaterialIndex, FPrimitiveMaterialInfo& MaterialData) const
+{
+	// Same thing as StaticMesh but we take the full bounds to cover the instances.
+	if (GetStaticMesh())
+	{
+		MaterialData.Material = GetMaterial(MaterialIndex);
+		MaterialData.UVChannelData = GetStaticMesh()->GetUVChannelData(MaterialIndex);
+		MaterialData.Bounds = Bounds.GetBox();
+	}
+	return MaterialData.IsValid();
+}
+
+bool UInstancedStaticMeshComponent::BuildTextureStreamingData(ETextureStreamingBuildType BuildType, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, TSet<FGuid>& DependentResources)
+{
+#if WITH_EDITORONLY_DATA // Only rebuild the data in editor 
+	if (GetInstanceCount() > 0)
+	{
+		return Super::BuildTextureStreamingData(BuildType, QualityLevel, FeatureLevel, DependentResources);
+	}
+#endif
+	return true;
+}
+
+void UInstancedStaticMeshComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
+{
+	if (GetInstanceCount() > 0)
+	{
+		return Super::GetStreamingTextureInfo(LevelContext, OutStreamingTextures);
+	}
+}
+
 void UInstancedStaticMeshComponent::ClearInstances()
 {
 	// Clear all the per-instance data
@@ -1791,8 +1754,8 @@ void UInstancedStaticMeshComponent::SetCullDistances(int32 StartCullDistance, in
 void UInstancedStaticMeshComponent::SetupNewInstanceData(FInstancedStaticMeshInstanceData& InOutNewInstanceData, int32 InInstanceIndex, const FTransform& InInstanceTransform)
 {
 	InOutNewInstanceData.Transform = InInstanceTransform.ToMatrixWithScale();
-	InOutNewInstanceData.LightmapUVBias = FVector2D( -1.0f, -1.0f );
-	InOutNewInstanceData.ShadowmapUVBias = FVector2D( -1.0f, -1.0f );
+	InOutNewInstanceData.LightmapUVBias_DEPRECATED = FVector2D( -1.0f, -1.0f );
+	InOutNewInstanceData.ShadowmapUVBias_DEPRECATED = FVector2D( -1.0f, -1.0f );
 
 	if (bPhysicsStateCreated)
 	{
@@ -1841,10 +1804,10 @@ void UInstancedStaticMeshComponent::PartialNavigationUpdate(int32 InstanceIdx)
 
 bool UInstancedStaticMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const
 {
-	if (StaticMesh && StaticMesh->NavCollision)
+	if (GetStaticMesh() && GetStaticMesh()->NavCollision)
 	{
-		UNavCollision* NavCollision = StaticMesh->NavCollision;
-		if (StaticMesh->NavCollision->bIsDynamicObstacle)
+		UNavCollision* NavCollision = GetStaticMesh()->NavCollision;
+		if (GetStaticMesh()->NavCollision->bIsDynamicObstacle)
 		{
 			return false;
 		}
@@ -1859,7 +1822,7 @@ bool UInstancedStaticMeshComponent::DoCustomNavigableGeometryExport(FNavigableGe
 		}
 		else
 		{
-			UBodySetup* BodySetup = StaticMesh->BodySetup;
+			UBodySetup* BodySetup = GetStaticMesh()->BodySetup;
 			if (BodySetup)
 			{
 				GeomExport.ExportRigidBodySetup(*BodySetup, FTransform::Identity);
@@ -1876,9 +1839,9 @@ bool UInstancedStaticMeshComponent::DoCustomNavigableGeometryExport(FNavigableGe
 
 void UInstancedStaticMeshComponent::GetNavigationData(FNavigationRelevantData& Data) const
 {
-	if (StaticMesh && StaticMesh->NavCollision)	
+	if (GetStaticMesh() && GetStaticMesh()->NavCollision)
 	{
-		UNavCollision* NavCollision = StaticMesh->NavCollision;
+		UNavCollision* NavCollision = GetStaticMesh()->NavCollision;
 		if (NavCollision->bIsDynamicObstacle)
 		{
 			NavCollision->GetNavigationModifier(Data.Modifiers, FTransform::Identity);
@@ -1902,34 +1865,32 @@ void UInstancedStaticMeshComponent::GetNavigationPerInstanceTransforms(const FBo
 	}
 }
 
-SIZE_T UInstancedStaticMeshComponent::GetResourceSize( EResourceSizeMode::Type Mode )
+void UInstancedStaticMeshComponent::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
-	SIZE_T ResSize = Super::GetResourceSize(Mode);
+	Super::GetResourceSizeEx(CumulativeResourceSize);
 
 	// proxy stuff
-	ResSize += ProxySize; 
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(ProxySize); 
 
 	// component stuff
-	ResSize += InstanceBodies.GetAllocatedSize();
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(InstanceBodies.GetAllocatedSize());
 	for (int32 i=0; i < InstanceBodies.Num(); ++i)
 	{
 		if (InstanceBodies[i] != NULL && InstanceBodies[i]->IsValidBodyInstance())
 		{
-			ResSize += InstanceBodies[i]->GetBodyInstanceResourceSize(Mode);
+			InstanceBodies[i]->GetBodyInstanceResourceSizeEx(CumulativeResourceSize);
 		}
 	}
-	ResSize += InstanceReorderTable.GetAllocatedSize();
-	ResSize += RemovedInstances.GetAllocatedSize();
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(InstanceReorderTable.GetAllocatedSize());
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(RemovedInstances.GetAllocatedSize());
 
 #if WITH_EDITOR
-	ResSize += SelectedInstances.GetAllocatedSize();
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(SelectedInstances.GetAllocatedSize());
 #endif
 
 #if WITH_PHYSX
-	ResSize += Aggregates.GetAllocatedSize();
+	CumulativeResourceSize.AddDedicatedSystemMemoryBytes(Aggregates.GetAllocatedSize());
 #endif
-
-	return ResSize;
 }
 
 void UInstancedStaticMeshComponent::BeginDestroy()
@@ -2072,7 +2033,7 @@ void FInstancedStaticMeshVertexFactoryShaderParameters::SetMesh( FRHICommandList
 			for (int32 SampleIndex = 0; SampleIndex < 2; SampleIndex++)
 			{
 				FVector4& InstancingViewZCompare(SampleIndex ? InstancingViewZCompareOne : InstancingViewZCompareZero);
-				float Fac = View.GetTemporalLODDistanceFactor(SampleIndex) * SphereRadius * SphereRadius * LODScale * LODScale;
+				float Fac = View.GetTemporalLODDistanceFactor(SampleIndex) * SphereRadius * LODScale;
 
 				float FinalCull = MAX_flt;
 				if (MinSize > 0.0)

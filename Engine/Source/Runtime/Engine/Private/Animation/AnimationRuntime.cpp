@@ -765,8 +765,11 @@ void FAnimationRuntime::FillWithRetargetBaseRefPose(FCompactPose& OutPose, const
 	{
 		for (FCompactPoseBoneIndex BoneIndex : OutPose.ForEachBoneIndex())
 		{
-			FMeshPoseBoneIndex PoseIndex = OutPose.GetBoneContainer().MakeMeshPoseIndex(BoneIndex);
-			OutPose[BoneIndex] = Mesh->RetargetBasePose[PoseIndex.GetInt()];
+			int32 PoseIndex = OutPose.GetBoneContainer().MakeMeshPoseIndex(BoneIndex).GetInt();
+			if (Mesh->RetargetBasePose.IsValidIndex(PoseIndex))
+			{
+				OutPose[BoneIndex] = Mesh->RetargetBasePose[PoseIndex];
+			}
 		}
 	}
 }
@@ -1341,8 +1344,8 @@ bool FAnimationRuntime::ContainsNaN(TArray<FBoneIndexType>& RequiredBoneIndices,
 #if WITH_EDITOR
 void FAnimationRuntime::FillUpComponentSpaceTransforms(const FReferenceSkeleton& RefSkeleton, const TArray<FTransform> &BoneSpaceTransforms, TArray<FTransform> &ComponentSpaceTransforms)
 {
-	ComponentSpaceTransforms.Empty(RefSkeleton.GetNum());
-	ComponentSpaceTransforms.AddUninitialized(RefSkeleton.GetNum());
+	ComponentSpaceTransforms.Empty(BoneSpaceTransforms.Num());
+	ComponentSpaceTransforms.AddUninitialized(BoneSpaceTransforms.Num());
 
 	// initialize to identity since some of them don't have tracks
 	for (int Index = 0; Index < ComponentSpaceTransforms.Num(); ++Index)
@@ -1427,18 +1430,18 @@ void FAnimationRuntime::AppendActiveMorphTargets(const USkeletalMesh* InSkeletal
 		// if somehow it gets rendered without going through these places, there will be crash. Renderer expect the buffer size being same. 
 		InOutMorphTargetWeights.SetNumZeroed(InSkeletalMesh->MorphTargets.Num());
 
-		// If it has a valid weight
-		if(FMath::Abs(Weight) > MinMorphTargetBlendWeight)
+		// Find morph reference
+		int32 SkeletalMorphIndex = INDEX_NONE;
+		UMorphTarget* Target = InSkeletalMesh->FindMorphTargetAndIndex(CurveName, SkeletalMorphIndex);
+		if (Target != nullptr)
 		{
-			// Find morph reference
-			int32 SkeletalMorphIndex = INDEX_NONE;
-			UMorphTarget* Target = InSkeletalMesh->FindMorphTargetAndIndex(CurveName, SkeletalMorphIndex);
-			if (Target != nullptr)
+			// If it has a valid weight
+			if (FMath::Abs(Weight) > MinMorphTargetBlendWeight)
 			{
 				// See if this morph target already has an entry
 				int32 MorphIndex = FindMorphTarget(InOutActiveMorphTargets, Target);
 				// If not, add it
-				if(MorphIndex == INDEX_NONE)
+				if (MorphIndex == INDEX_NONE)
 				{
 					InOutActiveMorphTargets.Add(FActiveMorphTarget(Target, SkeletalMorphIndex));
 					InOutMorphTargetWeights[SkeletalMorphIndex] = Weight;
@@ -1447,10 +1450,19 @@ void FAnimationRuntime::AppendActiveMorphTargets(const USkeletalMesh* InSkeletal
 				{
 					// If it does, use the max weight
 					check(SkeletalMorphIndex == InOutActiveMorphTargets[MorphIndex].WeightIndex);
-					float& CurrentWeight = InOutMorphTargetWeights[SkeletalMorphIndex];
-					CurrentWeight = FMath::Max<float>(CurrentWeight, Weight);
+					InOutMorphTargetWeights[SkeletalMorphIndex] = Weight;
 				}
 			}
+			else
+			{
+				int32 MorphIndex = FindMorphTarget(InOutActiveMorphTargets, Target);
+				if (MorphIndex != INDEX_NONE)
+				{
+					// clear weight
+					InOutMorphTargetWeights[SkeletalMorphIndex] = 0.f;
+				}
+			}
+
 		}
 	}
 }

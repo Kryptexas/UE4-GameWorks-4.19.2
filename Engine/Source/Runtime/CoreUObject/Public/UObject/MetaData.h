@@ -127,10 +127,10 @@ public:
 	virtual bool IsAsset() const override { return false; }
 	// End of UObject interface
 
-#if HACK_HEADER_GENERATOR
 	// Returns the remapped key name, or NAME_None was not remapped.
 	static FName GetRemappedKeyName(FName OldKey);
 
+#if HACK_HEADER_GENERATOR
 	// Required by UHT makefiles for internal data serialization.
 	friend struct FMetadataArchiveProxy;
 #endif

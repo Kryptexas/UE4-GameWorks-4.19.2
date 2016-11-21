@@ -86,39 +86,41 @@ static FAutoConsoleCommand GToggleForceDefaultMaterialCmd(
 
 /** Initialization constructor. */
 FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
-	FPrimitiveSceneProxy(InComponent, InComponent->StaticMesh->GetFName())
+	FPrimitiveSceneProxy(InComponent, InComponent->GetStaticMesh()->GetFName())
 	, Owner(InComponent->GetOwner())
-	, StaticMesh(InComponent->StaticMesh)
+	, StaticMesh(InComponent->GetStaticMesh())
 	, BodySetup(InComponent->GetBodySetup())
-	, RenderData(InComponent->StaticMesh->RenderData)
+	, RenderData(InComponent->GetStaticMesh()->RenderData)
 	, ForcedLodModel(InComponent->ForcedLodModel)
 	, bCastShadow(InComponent->CastShadow)
 	, CollisionTraceFlag(ECollisionTraceFlag::CTF_UseSimpleAndComplex)
 	, MaterialRelevance(InComponent->GetMaterialRelevance(GetScene().GetFeatureLevel()))
 	, CollisionResponse(InComponent->GetCollisionResponseToChannels())
 #if WITH_EDITORONLY_DATA
-	, StreamingSectionData(InComponent->StreamingSectionData)
-	, StreamingDistanceMultiplier(InComponent->StreamingDistanceMultiplier)
-	, StreamingTexelFactor(1.f)
+	, StreamingDistanceMultiplier(FMath::Max(0.0f, InComponent->StreamingDistanceMultiplier))
+	, StreamingTransformScale(InComponent->GetTextureStreamingTransformScale())
+	, MaterialStreamingBounds(InComponent->MaterialStreamingBounds)
 	, SectionIndexPreview(InComponent->SectionIndexPreview)
 #endif
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	, LightMapResolution(InComponent->GetStaticLightMapResolution())
 #endif
 #if !(UE_BUILD_SHIPPING)
-	, LODForCollision(InComponent->StaticMesh->LODForCollision)
+	, LODForCollision(InComponent->GetStaticMesh()->LODForCollision)
 	, bDrawMeshCollisionWireframe(InComponent->bDrawMeshCollisionWireframe)
 #endif
 {
 	check(RenderData);
 
-	const int32 EffectiveMinLOD = InComponent->bOverrideMinLOD ? InComponent->MinLOD : InComponent->StaticMesh->MinLOD;
+	const int32 EffectiveMinLOD = InComponent->bOverrideMinLOD ? InComponent->MinLOD : InComponent->GetStaticMesh()->MinLOD;
 	ClampedMinLOD = FMath::Clamp(EffectiveMinLOD, 0, RenderData->LODResources.Num() - 1);
 
 	WireframeColor = InComponent->GetWireframeColor();
 	LevelColor = FLinearColor(1,1,1);
 	PropertyColor = FLinearColor(1,1,1);
 	bSupportsDistanceFieldRepresentation = true;
+	bCastsDynamicIndirectShadow = InComponent->bCastDynamicShadow && InComponent->CastShadow && InComponent->bCastDistanceFieldIndirectShadow && InComponent->Mobility != EComponentMobility::Static;
+	DynamicIndirectShadowMinVisibility = FMath::Clamp(InComponent->DistanceFieldIndirectShadowMinVisibility, 0.0f, 1.0f);
 
 	const auto FeatureLevel = GetScene().GetFeatureLevel();
 
@@ -161,7 +163,7 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 
 	bStaticElementsAlwaysUseProxyPrimitiveUniformBuffer = true;
 
-	LpvBiasMultiplier = FMath::Min( InComponent->StaticMesh->LpvBiasMultiplier * InComponent->LpvBiasMultiplier, 3.0f );
+	LpvBiasMultiplier = FMath::Min( InComponent->GetStaticMesh()->LpvBiasMultiplier * InComponent->LpvBiasMultiplier, 3.0f );
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) || WITH_EDITOR
 	if( GIsEditor )
@@ -207,14 +209,6 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 	{
 		CollisionTraceFlag = BodySetup->GetCollisionTraceFlag();
 	}
-
-#if WITH_EDITORONLY_DATA
-	// Get the fallback data for streaming accuracy viewmodes
-	{
-		float LightmapFactor;
-		InComponent->GetStreamingTextureFactors(StreamingTexelFactor, LightmapFactor);
-	}
-#endif
 }
 
 void UStaticMeshComponent::SetLODDataCount( const uint32 MinSize, const uint32 MaxSize )
@@ -242,7 +236,7 @@ void UStaticMeshComponent::SetLODDataCount( const uint32 MinSize, const uint32 M
 		for(uint32 i = 0; i < ItemCountToAdd; ++i)
 		{
 			// call constructor
-			new (LODData)FStaticMeshComponentLODInfo();
+			new (LODData)FStaticMeshComponentLODInfo(this);
 		}
 	}
 }
@@ -427,45 +421,82 @@ bool FStaticMeshSceneProxy::GetWireframeMeshElement(int32 LODIndex, int32 BatchI
 }
 
 #if WITH_EDITORONLY_DATA
-const FStreamingSectionBuildInfo* FStaticMeshSceneProxy::GetStreamingSectionData(float& OutComponentExtraScale, float& OutMeshExtraScale, int32 LODIndex, int32 ElementIndex) const
+
+bool FStaticMeshSceneProxy::GetPrimitiveDistance(int32 LODIndex, int32 SectionIndex, const FVector& ViewOrigin, float& PrimitiveDistance) const
 {
 	const bool bUseNewMetrics = CVarStreamingUseNewMetrics.GetValueOnRenderThread() != 0;
+	const float OneOverDistanceMultiplier = 1.f / FMath::Max<float>(SMALL_NUMBER, StreamingDistanceMultiplier);
 
-	OutComponentExtraScale = StreamingDistanceMultiplier;
-
-	if (!bUseNewMetrics)
+	if (bUseNewMetrics && LODs.IsValidIndex(LODIndex) && LODs[LODIndex].Sections.IsValidIndex(SectionIndex))
 	{
-		OutMeshExtraScale = 1.f; // No extra scale as this scale is already taken into account in StreamingTexelFactor
+		// The LOD-section data is stored per material index as it is only used for texture streaming currently.
+		const int32 MaterialIndex = LODs[LODIndex].Sections[SectionIndex].MaterialIndex;
 
-		// In this case the element is not in the build data.
-		static FStreamingSectionBuildInfo FallbackData;
-
-		FallbackData.BoxOrigin = GetBounds().Origin;
-		FallbackData.BoxExtent = GetBounds().BoxExtent;
-		for (int32 I = 0; I < FMaterialTexCoordBuildInfo::MAX_NUM_TEX_COORD; ++I)
+		if (MaterialStreamingBounds.IsValidIndex(MaterialIndex))
 		{
-			// This fallback factor has already the mesh extra scale in it.
-			FallbackData.TexelFactors[I] = StreamingTexelFactor;
+			const FBox& MaterialBox = MaterialStreamingBounds[MaterialIndex];
+
+			FVector ViewToObject = (MaterialBox.GetCenter() - ViewOrigin).GetAbs();
+			FVector BoxViewToObject = ViewToObject.ComponentMin(MaterialBox.GetExtent());
+			float DistSq = FVector::DistSquared(BoxViewToObject, ViewToObject);
+
+			PrimitiveDistance = FMath::Sqrt(FMath::Max<float>(1.f, DistSq)) * OneOverDistanceMultiplier;
+			return true;
 		}
-		return &FallbackData;
 	}
-	else
-	{
-		if (StreamingSectionData.IsValid())
-		{
-			OutMeshExtraScale = StaticMesh ? StaticMesh->StreamingDistanceMultiplier : 1.f;
 
-			for (const FStreamingSectionBuildInfo& SectionData : *StreamingSectionData)
+	if (FPrimitiveSceneProxy::GetPrimitiveDistance(LODIndex, SectionIndex, ViewOrigin, PrimitiveDistance))
+	{
+		PrimitiveDistance *= OneOverDistanceMultiplier;
+		return true;
+	}
+	return false;
+}
+
+bool FStaticMeshSceneProxy::GetMeshUVDensities(int32 LODIndex, int32 SectionIndex, FVector4& WorldUVDensities) const
+{
+	if (LODs.IsValidIndex(LODIndex) && LODs[LODIndex].Sections.IsValidIndex(SectionIndex))
+	{
+		// The LOD-section data is stored per material index as it is only used for texture streaming currently.
+		const int32 MaterialIndex = LODs[LODIndex].Sections[SectionIndex].MaterialIndex;
+
+		 if (RenderData->UVChannelDataPerMaterial.IsValidIndex(MaterialIndex))
+		 {
+			const FMeshUVChannelInfo& UVChannelData = RenderData->UVChannelDataPerMaterial[MaterialIndex];
+
+			WorldUVDensities.Set(
+				UVChannelData.LocalUVDensities[0] * StreamingTransformScale,
+				UVChannelData.LocalUVDensities[1] * StreamingTransformScale,
+				UVChannelData.LocalUVDensities[2] * StreamingTransformScale,
+				UVChannelData.LocalUVDensities[3] * StreamingTransformScale);
+
+			return true;
+		 }
+	}
+	return FPrimitiveSceneProxy::GetMeshUVDensities(LODIndex, SectionIndex, WorldUVDensities);
+}
+
+bool FStaticMeshSceneProxy::GetMaterialTextureScales(int32 LODIndex, int32 SectionIndex, const FMaterialRenderProxy* MaterialRenderProxy, FVector4* OneOverScales, FIntVector4* UVChannelIndices) const
+{
+	if (LODs.IsValidIndex(LODIndex) && LODs[LODIndex].Sections.IsValidIndex(SectionIndex))
+	{
+		const UMaterialInterface* Material = LODs[LODIndex].Sections[SectionIndex].Material;
+		if (Material)
+		{
+			// This is thread safe because material texture data is only updated while the renderthread is idle.
+			for (const FMaterialTextureInfo TextureData : Material->GetTextureStreamingData())
 			{
-				if (SectionData.LODIndex == LODIndex && SectionData.ElementIndex == ElementIndex)
+				const int32 TextureIndex = TextureData.TextureIndex;
+				if (TextureData.IsValid(true))
 				{
-					return &SectionData;
+					OneOverScales[TextureIndex / 4][TextureIndex % 4] = 1.f / TextureData.SamplingScale;
+					UVChannelIndices[TextureIndex / 4][TextureIndex % 4] = TextureData.UVChannelIndex;
 				}
 			}
+			return true;
 		}
 	}
-	
-	return nullptr;
+	return false;
 }
 #endif
 
@@ -1168,6 +1199,9 @@ FPrimitiveViewRelevance FStaticMeshSceneProxy::GetViewRelevance(const FSceneView
 		bInCollisionView ||
 		View->Family->EngineShowFlags.Bounds ||
 #endif
+#if WITH_EDITOR
+		(IsSelected() && View->Family->EngineShowFlags.VertexColors) ||
+#endif
 #if !(UE_BUILD_SHIPPING)
 		bDrawMeshCollisionWireframe ||
 #endif // !(UE_BUILD_SHIPPING)
@@ -1297,6 +1331,11 @@ bool FStaticMeshSceneProxy::HasDistanceFieldRepresentation() const
 	return CastsDynamicShadow() && AffectsDistanceFieldLighting() && DistanceFieldData && DistanceFieldData->VolumeTexture.IsValidDistanceFieldVolume();
 }
 
+bool FStaticMeshSceneProxy::HasDynamicIndirectShadowCasterRepresentation() const
+{
+	return bCastsDynamicIndirectShadow && FStaticMeshSceneProxy::HasDistanceFieldRepresentation();
+}
+
 /** Initialization constructor. */
 FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponent,int32 LODIndex)
 	: FLightCacheInterface(nullptr, nullptr)
@@ -1306,16 +1345,19 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 {
 	const auto FeatureLevel = InComponent->GetWorld()->FeatureLevel;
 
-	FStaticMeshRenderData* MeshRenderData = InComponent->StaticMesh->RenderData;
+	FStaticMeshRenderData* MeshRenderData = InComponent->GetStaticMesh()->RenderData;
 	FStaticMeshLODResources& LODModel = MeshRenderData->LODResources[LODIndex];
 	if (LODIndex < InComponent->LODData.Num())
 	{
 		const FStaticMeshComponentLODInfo& ComponentLODInfo = InComponent->LODData[LODIndex];
-
-		// Determine if the LOD has static lighting.
-		SetLightMap(ComponentLODInfo.LightMap);
-		SetShadowMap(ComponentLODInfo.ShadowMap);
-		IrrelevantLights = InComponent->IrrelevantLights;
+		const FMeshMapBuildData* MeshMapBuildData = InComponent->GetMeshMapBuildData(ComponentLODInfo);
+		if (MeshMapBuildData)
+		{
+			SetLightMap(MeshMapBuildData->LightMap);
+			SetShadowMap(MeshMapBuildData->ShadowMap);
+			IrrelevantLights = MeshMapBuildData->IrrelevantLights;
+		}
+		
 		PreCulledIndexBuffer = &ComponentLODInfo.PreCulledIndexBuffer;
 
 		// Initialize this LOD's overridden vertex colors, if it has any
@@ -1343,8 +1385,14 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 	if (MeshRenderData->bLODsShareStaticLighting && InComponent->LODData.IsValidIndex(0))
 	{
 		const FStaticMeshComponentLODInfo& ComponentLODInfo = InComponent->LODData[0];
-		SetLightMap(ComponentLODInfo.LightMap);
-		SetShadowMap(ComponentLODInfo.ShadowMap);
+		const FMeshMapBuildData* MeshMapBuildData = InComponent->GetMeshMapBuildData(ComponentLODInfo);
+
+		if (MeshMapBuildData)
+		{
+			SetLightMap(MeshMapBuildData->LightMap);
+			SetShadowMap(MeshMapBuildData->ShadowMap);
+			IrrelevantLights = MeshMapBuildData->IrrelevantLights;
+		}
 	}
 
 	bool bHasStaticLighting = GetLightMap() != NULL || GetShadowMap() != NULL;
@@ -1358,6 +1406,10 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 
 		// Determine the material applied to this element of the LOD.
 		SectionInfo.Material = InComponent->GetMaterial(Section.MaterialIndex);
+#if WITH_EDITORONLY_DATA
+		SectionInfo.MaterialIndex = Section.MaterialIndex;
+#endif
+
 		if (GForceDefaultMaterial && SectionInfo.Material && !IsTranslucentBlendMode(SectionInfo.Material->GetBlendMode()))
 		{
 			SectionInfo.Material = UMaterial::GetDefaultMaterial(MD_Surface);
@@ -1374,7 +1426,7 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 		{
 			UE_LOG(LogStaticMesh, Warning, TEXT("Adjacency information not built for static mesh with a material that requires it. Using default material instead.\n\tMaterial: %s\n\tStaticMesh: %s"),
 				*SectionInfo.Material->GetPathName(), 
-				*InComponent->StaticMesh->GetPathName() );
+				*InComponent->GetStaticMesh()->GetPathName() );
 			SectionInfo.Material = UMaterial::GetDefaultMaterial(MD_Surface);
 		}
 
@@ -1551,10 +1603,10 @@ FLODMask FStaticMeshSceneProxy::GetLODMask(const FSceneView* View) const
 
 FPrimitiveSceneProxy* UStaticMeshComponent::CreateSceneProxy()
 {
-	if(StaticMesh == NULL
-		|| StaticMesh->RenderData == NULL
-		|| StaticMesh->RenderData->LODResources.Num() == 0
-		|| StaticMesh->RenderData->LODResources[0].VertexBuffer.GetNumVertices() == 0)
+	if(GetStaticMesh() == NULL
+		|| GetStaticMesh()->RenderData == NULL
+		|| GetStaticMesh()->RenderData->LODResources.Num() == 0
+		|| GetStaticMesh()->RenderData->LODResources[0].VertexBuffer.GetNumVertices() == 0)
 	{
 		return NULL;
 	}

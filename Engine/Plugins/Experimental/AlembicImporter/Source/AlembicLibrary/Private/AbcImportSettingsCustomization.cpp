@@ -104,3 +104,65 @@ EVisibility FAbcCompressionSettingsCustomization::ArePropertiesVisible(const int
 {
 	return (Settings->CompressionSettings.BaseCalculationType == (EBaseCalculationType)VisibleType || VisibleType == 0) ? EVisibility::Visible : EVisibility::Collapsed;
 }
+
+TSharedRef<IPropertyTypeCustomization> FAbcConversionSettingsCustomization::MakeInstance()
+{
+	return MakeShareable(new FAbcConversionSettingsCustomization);
+}
+
+void FAbcConversionSettingsCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
+{
+	Settings = UAbcImportSettings::Get();
+	FSimpleDelegate OnPresetChanged = FSimpleDelegate::CreateSP(this, &FAbcConversionSettingsCustomization::OnConversionPresetChanged);
+	FSimpleDelegate OnValueChanged = FSimpleDelegate::CreateSP(this, &FAbcConversionSettingsCustomization::OnConversionValueChanged);
+
+	uint32 NumChildren;
+	StructPropertyHandle->GetNumChildren(NumChildren);
+	for (uint32 ChildIndex = 0; ChildIndex < NumChildren; ++ChildIndex)
+	{
+		TSharedRef<IPropertyHandle> ChildHandle = StructPropertyHandle->GetChildHandle(ChildIndex).ToSharedRef();
+
+		if (ChildHandle->GetProperty()->GetFName() == GET_MEMBER_NAME_CHECKED(FAbcConversionSettings, Preset))
+		{			
+			ChildHandle->SetOnPropertyValueChanged(OnPresetChanged);
+		}
+		else
+		{
+			ChildHandle->SetOnPropertyValueChanged(OnValueChanged);
+			ChildHandle->SetOnChildPropertyValueChanged(OnValueChanged);			
+		}
+
+		IDetailPropertyRow& Property = StructBuilder.AddChildProperty(ChildHandle);
+	}
+}
+
+void FAbcConversionSettingsCustomization::OnConversionPresetChanged()
+{
+	// Set values to specified preset
+	switch (Settings->ConversionSettings.Preset)
+	{
+		case EAbcConversionPreset::Maya:
+		{
+			Settings->ConversionSettings.bFlipU = false;
+			Settings->ConversionSettings.bFlipV = true;
+			Settings->ConversionSettings.Scale = FVector(1.0f, -1.0f, 1.0f);
+			Settings->ConversionSettings.Rotation = FVector::ZeroVector;
+			break;
+		}
+
+		case EAbcConversionPreset::Max:
+		{
+			Settings->ConversionSettings.bFlipU = false;
+			Settings->ConversionSettings.bFlipV = true;
+			Settings->ConversionSettings.Scale = FVector(1.0f, -1.0f, 1.0f);
+			Settings->ConversionSettings.Rotation = FVector(90.0f, 0.0f, 0);
+			break;
+		}
+	}
+}
+
+void FAbcConversionSettingsCustomization::OnConversionValueChanged()
+{
+	// Set conversion preset to custom
+	Settings->ConversionSettings.Preset = EAbcConversionPreset::Custom;
+}

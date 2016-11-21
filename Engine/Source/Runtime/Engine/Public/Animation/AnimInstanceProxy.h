@@ -7,6 +7,7 @@
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimNotifyQueue.h"
 #include "Engine/PoseWatch.h"
+#include "Animation/PoseSnapshot.h"
 #include "AnimInstanceProxy.generated.h"
 
 struct FAnimNode_Base;
@@ -127,6 +128,12 @@ public:
 	{ 
 		return bShouldExtractRootMotion;
 	}
+	
+	/** Save a pose snapshot to the internal snapshot cache */
+	void SavePoseSnapshot(USkeletalMeshComponent* InSkeletalMeshComponent, FName SnapshotName);
+
+	/** Get a cached pose snapshot by name */
+	const FPoseSnapshot* GetPoseSnapshot(FName SnapshotName) const;
 
 	/** Access various counters */
 	const FGraphTraversalCounter& GetInitializationCounter() const { return InitializationCounter; }
@@ -612,4 +619,6 @@ private:
 	/** Native state exit bindings */
 	TArray<FNativeStateBinding> NativeStateExitBindings;
 
+	/** Array of snapshots. Each entry contains a name for finding specific pose snapshots */
+	TArray<FPoseSnapshot> PoseSnapshots;
 };

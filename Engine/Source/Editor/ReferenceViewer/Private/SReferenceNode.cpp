@@ -12,15 +12,14 @@
 void SReferenceNode::Construct( const FArguments& InArgs, UEdGraphNode_Reference* InNode )
 {
 	const int32 ThumbnailSize = 128;
-	bUsesThumbnail = InNode->UsesThumbnail();
 
-	if (bUsesThumbnail)
+	if (InNode->UsesThumbnail())
 	{
 		// Create a thumbnail from the graph's thumbnail pool
 		TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool = InNode->GetReferenceViewerGraph()->GetAssetThumbnailPool();
 		AssetThumbnail = MakeShareable( new FAssetThumbnail( InNode->GetAssetData(), ThumbnailSize, ThumbnailSize, AssetThumbnailPool ) );
 	}
-	else
+	else if (InNode->IsPackage() || InNode->IsCollapsed())
 	{
 		// Just make a generic thumbnail
 		AssetThumbnail = MakeShareable( new FAssetThumbnail( InNode->GetAssetData(), ThumbnailSize, ThumbnailSize, NULL ) );

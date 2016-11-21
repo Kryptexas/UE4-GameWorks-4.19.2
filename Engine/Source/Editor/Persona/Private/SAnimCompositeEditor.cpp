@@ -11,6 +11,7 @@
 #include "ScopedTransaction.h"
 #include "SAnimNotifyPanel.h"
 #include "SAnimCurvePanel.h"
+#include "IDocumentation.h"
 
 //////////////////////////////////////////////////////////////////////////
 // SAnimCompositeEditor

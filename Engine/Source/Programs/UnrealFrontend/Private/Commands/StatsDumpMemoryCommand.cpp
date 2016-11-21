@@ -2,19 +2,15 @@
 
 #include "UnrealFrontendPrivatePCH.h"
 #include "StatsDumpMemoryCommand.h"
-#include "Profiler.h"
+#include "IProfilerModule.h"
 
-/*-----------------------------------------------------------------------------
-	FStatsMemoryDumpCommand
------------------------------------------------------------------------------*/
 
 void FStatsMemoryDumpCommand::Run()
 {
 	FString SourceFilepath;
-	FParse::Value( FCommandLine::Get(), TEXT( "-INFILE=" ), SourceFilepath );
+	FParse::Value(FCommandLine::Get(), TEXT("-INFILE="), SourceFilepath);
 
-	const FName NAME_ProfilerModule = TEXT( "Profiler" );
-	IProfilerModule& ProfilerModule = FModuleManager::LoadModuleChecked<IProfilerModule>( NAME_ProfilerModule );
-	ProfilerModule.StatsMemoryDumpCommand( *SourceFilepath );
+	const FName NAME_ProfilerModule = TEXT("Profiler");
+	IProfilerModule& ProfilerModule = FModuleManager::LoadModuleChecked<IProfilerModule>(NAME_ProfilerModule);
+	ProfilerModule.StatsMemoryDumpCommand(*SourceFilepath);
 }
-

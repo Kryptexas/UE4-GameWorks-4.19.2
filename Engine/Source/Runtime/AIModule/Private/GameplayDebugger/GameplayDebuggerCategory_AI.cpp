@@ -272,32 +272,19 @@ void FGameplayDebuggerCategory_AI::OnDataPackReplicated(int32 DataPackId)
 
 void FGameplayDebuggerCategory_AI::DrawData(APlayerController* OwnerPC, FGameplayDebuggerCanvasContext& CanvasContext)
 {
-	const bool bReducedMode = IsSimulateInEditor();
-	bShowCategoryName = !bReducedMode;
-
 	UWorld* MyWorld = OwnerPC->GetWorld();
 	AActor* SelectedActor = FindLocalDebugActor();
 
+	const bool bReducedMode = IsSimulateInEditor();
+	bShowCategoryName = !bReducedMode || DataPack.bHasController;
+
 	DrawPawnIcons(MyWorld, SelectedActor, OwnerPC ? OwnerPC->GetPawn() : nullptr, CanvasContext);
-	if (bReducedMode)
+	if (SelectedActor)
 	{
-		if (DataPack.bHasController)
-		{
-			DrawPath(MyWorld);
-		}
-	}
-	else
-	{
-		if (SelectedActor)
-		{
-			DrawOverheadInfo(*SelectedActor, CanvasContext);
-		}
-
-		DrawPath(MyWorld);
+		DrawOverheadInfo(*SelectedActor, CanvasContext);
 	}
 
-	const bool bShowClassNames = !bReducedMode || DataPack.bHasController;
-	if (bShowClassNames)
+	if (DataPack.bHasController)
 	{
 		CanvasContext.Printf(TEXT("Controller Name: {yellow}%s"), *DataPack.ControllerName);
 		CanvasContext.Printf(TEXT("Pawn Name: {yellow}%s"), *DataPack.PawnName);
@@ -331,7 +318,7 @@ void FGameplayDebuggerCategory_AI::DrawData(APlayerController* OwnerPC, FGamepla
 	}
 }
 
-FDebugRenderSceneProxy* FGameplayDebuggerCategory_AI::CreateSceneProxy(const UPrimitiveComponent* InComponent)
+FDebugRenderSceneProxy* FGameplayDebuggerCategory_AI::CreateDebugSceneProxy(const UPrimitiveComponent* InComponent, FDebugDrawDelegateHelper*& OutDelegateHelper)
 {
 	class FPathDebugRenderSceneProxy : public FDebugRenderSceneProxy
 	{
@@ -395,9 +382,15 @@ FDebugRenderSceneProxy* FGameplayDebuggerCategory_AI::CreateSceneProxy(const UPr
 		FPathDebugRenderSceneProxy* DebugSceneProxy = new FPathDebugRenderSceneProxy(InComponent, ViewFlagName);
 		DebugSceneProxy->Lines = Lines;
 		DebugSceneProxy->Meshes = Meshes;
+
+		auto* OutDelegateHelper2 = new FDebugDrawDelegateHelper();
+		OutDelegateHelper2->InitDelegateHelper(DebugSceneProxy);
+		OutDelegateHelper = OutDelegateHelper2;
+
 		return DebugSceneProxy;
 	}
 
+	OutDelegateHelper = nullptr;
 	return nullptr;
 }
 

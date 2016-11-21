@@ -22,6 +22,8 @@
 #include "Toolkits/ToolkitManager.h"
 #include "MaterialExpressionClasses.h"
 #include "Materials/MaterialInstance.h"
+#include "Engine/TextureStreamingTypes.h"
+#include "MaterialUtilities.h"
 
 #define LOCTEXT_NAMESPACE "MaterialEditorUtilities"
 
@@ -637,6 +639,43 @@ bool FMaterialEditorUtilities::HasCompatibleConnection(UClass* ExpressionClass, 
 	}
 
 	return false;
+}
+
+void FMaterialEditorUtilities::BuildTextureStreamingData(UMaterialInterface* UpdatedMaterial)
+{
+	const EMaterialQualityLevel::Type QualityLevel = EMaterialQualityLevel::High;
+	const ERHIFeatureLevel::Type FeatureLevel = GMaxRHIFeatureLevel;
+
+	if (UpdatedMaterial)
+	{
+		CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
+
+		FScopedSlowTask SlowTask(2.f, (LOCTEXT("MaterialEditorUtilities_UpdatingTextureStreamingData", "Updating Texture Streaming Data")));
+
+		TSet<UMaterialInterface*> Materials;
+		Materials.Add(UpdatedMaterial);
+
+		// Here we also update the parents as we just want to save the delta between the hierarchy.
+		// Since the instance may only override partially the parent params, we try to find what the child has overridden.
+		UMaterialInstance* MaterialInstance = Cast<UMaterialInstance>(UpdatedMaterial);
+		while (MaterialInstance)
+		{
+			Materials.Add(MaterialInstance);
+			MaterialInstance = Cast<UMaterialInstance>(MaterialInstance->Parent);
+		};
+
+		// Here we need a full rebuild since the shader changed. Although don't wait for previous shaders to fasten the process.
+		CompileTextureStreamingShaders(QualityLevel, FeatureLevel, true, false, Materials, SlowTask);
+
+		FMaterialUtilities::FExportErrorManager ExportErrors(FeatureLevel);
+		for (UMaterialInterface* MaterialInterface : Materials)
+		{
+			FMaterialUtilities::ExportMaterialUVDensities(MaterialInterface, QualityLevel, FeatureLevel, ExportErrors);
+		}
+		ExportErrors.OutputToLog();
+
+		CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

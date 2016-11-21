@@ -64,7 +64,7 @@ void FEngineAnalytics::Initialize()
 	bIsGameRun = !IsRunningCommandlet() && !FPlatformProperties::IsProgram() && FPlatformProperties::RequiresCookedData();
 #endif
 
-#if UE_BUILD_DEBUG
+#if UE_BUILD_DEBUG || (PLATFORM_XBOXONE && UE_BUILD_SHIPPING) // Can't allow analytics on packaged XB1 games, as per XRs (titles can opt back in on a case-by-case basis with Microsoft)
 	const bool bShouldInitAnalytics = false;
 #else
 	// Outside of the editor, the only engine analytics usage is the hardware survey
@@ -133,7 +133,7 @@ void FEngineAnalytics::Initialize()
 			}
 			else
 			{
-				Analytics->SetUserID(FString::Printf(TEXT("%s|%s|%s"), *FPlatformMisc::GetMachineId().ToString(EGuidFormats::Digits).ToLower(), *FPlatformMisc::GetEpicAccountId(), *FPlatformMisc::GetOperatingSystemId()));
+				Analytics->SetUserID(FString::Printf(TEXT("%s|%s|%s"), *FPlatformMisc::GetLoginId(), *FPlatformMisc::GetEpicAccountId(), *FPlatformMisc::GetOperatingSystemId()));
 			}
 
 			TArray<FAnalyticsEventAttribute> StartSessionAttributes;
@@ -164,6 +164,7 @@ void FEngineAnalytics::Initialize()
 
 void FEngineAnalytics::Shutdown(bool bIsEngineShutdown)
 {
+	ensure(!Analytics.IsValid() || Analytics.IsUnique());
 	Analytics.Reset();
 	bIsInitialized = false;
 

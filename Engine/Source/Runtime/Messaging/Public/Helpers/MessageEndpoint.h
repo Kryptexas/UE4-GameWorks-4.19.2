@@ -2,13 +2,14 @@
 
 #pragma once
 
-#include "IMessageAttachment.h"
 #include "IMessageBus.h"
 #include "IMessageContext.h"
 #include "IMessageHandler.h"
-#include "IReceiveMessages.h"
-#include "ISendMessages.h"
-#include "TaskGraphInterfaces.h"
+#include "IMessageReceiver.h"
+#include "IMessageSender.h"
+
+
+class IMessageHandler;
 
 
 /**
@@ -48,8 +49,8 @@ DECLARE_DELEGATE_RetVal_OneParam(bool, FOnMessageEndpointReceiveMessage, const I
  */
 class FMessageEndpoint
 	: public TSharedFromThis<FMessageEndpoint, ESPMode::ThreadSafe>
-	, public IReceiveMessages
-	, public ISendMessages
+	, public IMessageReceiver
+	, public IMessageSender
 {
 public:
 
@@ -70,7 +71,7 @@ public:
 	 * @param InBus The message bus to attach this endpoint to.
 	 * @param InHandlers The collection of message handlers to register.
 	 */
-	FMessageEndpoint( const FName& InName, const IMessageBusRef& InBus, const TArray<IMessageHandlerPtr>& InHandlers )
+	FMessageEndpoint(const FName& InName, const TSharedRef<IMessageBus, ESPMode::ThreadSafe>& InBus, const TArray<TSharedPtr<IMessageHandler, ESPMode::ThreadSafe>>& InHandlers)
 		: Address(FMessageAddress::NewAddress())
 		, BusPtr(InBus)
 		, Enabled(true)
@@ -85,7 +86,7 @@ public:
 	/** Destructor. */
 	~FMessageEndpoint()
 	{
-		IMessageBusPtr Bus = BusPtr.Pin();
+		auto Bus = BusPtr.Pin();
 
 		if (Bus.IsValid())
 		{
@@ -167,7 +168,7 @@ public:
 	 *
 	 * @param NamedThread The name of the thread to receive messages on.
 	 */
-	void SetRecipientThread( const ENamedThreads::Type& NamedThread )
+	void SetRecipientThread(const ENamedThreads::Type& NamedThread)
 	{
 		RecipientThread = ENamedThreads::GetThreadIndex(NamedThread);
 	}
@@ -183,9 +184,9 @@ public:
 	 * @param Context The context of the message to defer.
 	 * @param Delay The time delay.
 	 */
-	void Defer( const IMessageContextRef& Context, const FTimespan& Delay )
+	void Defer(const IMessageContextRef& Context, const FTimespan& Delay)
 	{
-		IMessageBusPtr Bus = GetBusIfEnabled();
+		TSharedPtr<IMessageBus, ESPMode::ThreadSafe> Bus = GetBusIfEnabled();
 
 		if (Bus.IsValid())
 		{
@@ -202,9 +203,9 @@ public:
 	 * @param Recipients The list of message recipients to forward the message to.
 	 * @param Delay The time delay.
 	 */
-	void Forward( const IMessageContextRef& Context, const TArray<FMessageAddress>& Recipients, const FTimespan& Delay )
+	void Forward(const IMessageContextRef& Context, const TArray<FMessageAddress>& Recipients, const FTimespan& Delay)
 	{
-		IMessageBusPtr Bus = GetBusIfEnabled();
+		TSharedPtr<IMessageBus, ESPMode::ThreadSafe> Bus = GetBusIfEnabled();
 
 		if (Bus.IsValid())
 		{
@@ -222,9 +223,9 @@ public:
 	 * @param Delay The delay after which to publish the message.
 	 * @param Expiration The time at which the message expires.
 	 */
-	void Publish( void* Message, UScriptStruct* TypeInfo, EMessageScope Scope, const FTimespan& Delay, const FDateTime& Expiration )
+	void Publish(void* Message, UScriptStruct* TypeInfo, EMessageScope Scope, const FTimespan& Delay, const FDateTime& Expiration)
 	{
-		IMessageBusPtr Bus = GetBusIfEnabled();
+		TSharedPtr<IMessageBus, ESPMode::ThreadSafe> Bus = GetBusIfEnabled();
 
 		if (Bus.IsValid())
 		{
@@ -242,9 +243,9 @@ public:
 	 * @param Delay The delay after which to send the message.
 	 * @param Expiration The time at which the message expires.
 	 */
-	void Send( void* Message, UScriptStruct* TypeInfo, const IMessageAttachmentPtr& Attachment, const TArray<FMessageAddress>& Recipients, const FTimespan& Delay, const FDateTime& Expiration )
+	void Send(void* Message, UScriptStruct* TypeInfo, const TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe>& Attachment, const TArray<FMessageAddress>& Recipients, const FTimespan& Delay, const FDateTime& Expiration)
 	{
-		IMessageBusPtr Bus = GetBusIfEnabled();
+		TSharedPtr<IMessageBus, ESPMode::ThreadSafe> Bus = GetBusIfEnabled();
 
 		if (Bus.IsValid())
 		{
@@ -258,9 +259,9 @@ public:
 	 * @param MessageType The type name of the messages to subscribe to.
 	 * @param ScopeRange The range of message scopes to include in the subscription.
 	 */
-	void Subscribe( const FName& MessageType, const FMessageScopeRange& ScopeRange )
+	void Subscribe(const FName& MessageType, const FMessageScopeRange& ScopeRange)
 	{
-		IMessageBusPtr Bus = GetBusIfEnabled();
+		TSharedPtr<IMessageBus, ESPMode::ThreadSafe> Bus = GetBusIfEnabled();
 
 		if (Bus.IsValid())
 		{
@@ -274,9 +275,9 @@ public:
 	 * @param MessageType The type of message to unsubscribe (NAME_All = all types).
 	 * @see Subscribe
 	 */
-	void Unsubscribe( const FName& TopicPattern )
+	void Unsubscribe(const FName& TopicPattern)
 	{
-		IMessageBusPtr Bus = GetBusIfEnabled();
+		TSharedPtr<IMessageBus, ESPMode::ThreadSafe> Bus = GetBusIfEnabled();
 
 		if (Bus.IsValid())
 		{
@@ -363,7 +364,7 @@ public:
 	 * @return true if a message was received, false if the inbox was empty.
 	 * @see DisableInbox, EnableInbox, IsInboxEnabled, ProcessInbox
 	 */
-	bool ReceiveFromInbox( IMessageContextPtr& OutContext )
+	bool ReceiveFromInbox(IMessageContextPtr& OutContext)
 	{
 		return Inbox.Dequeue(OutContext);
 	}
@@ -407,7 +408,7 @@ public:
 		return true;
 	}
 
-	virtual void ReceiveMessage( const IMessageContextRef& Context ) override
+	virtual void ReceiveMessage(const IMessageContextRef& Context) override
 	{
 		if (!Enabled)
 		{
@@ -438,7 +439,7 @@ public:
 		return Address;
 	}
 
-	virtual void NotifyMessageError( const IMessageContextRef& Context, const FString& Error ) override
+	virtual void NotifyMessageError(const IMessageContextRef& Context, const FString& Error) override
 	{
 		ErrorDelegate.ExecuteIfBound(Context, Error);
 	}
@@ -453,7 +454,7 @@ public:
 	 * @param Context The context of the message to forward.
 	 * @param Recipient The address of the recipient to forward the message to.
 	 */
-	void Forward( const IMessageContextRef& Context, const FMessageAddress& Recipient )
+	void Forward(const IMessageContextRef& Context, const FMessageAddress& Recipient)
 	{
 		Forward(Context, TArrayBuilder<FMessageAddress>().Add(Recipient), FTimespan::Zero());
 	}
@@ -468,7 +469,7 @@ public:
 	 * @param ForwardingScope The scope of the forwarded message.
 	 * @param Delay The delay after which to publish the message.
 	 */
-	void Forward( const IMessageContextRef& Context, const FMessageAddress& Recipient, const FTimespan& Delay )
+	void Forward(const IMessageContextRef& Context, const FMessageAddress& Recipient, const FTimespan& Delay)
 	{
 		Forward(Context, TArrayBuilder<FMessageAddress>().Add(Recipient), Delay);
 	}
@@ -482,7 +483,7 @@ public:
 	 * @param Recipients The list of message recipients to forward the message to.
 	 * @param ForwardingScope The scope of the forwarded message.
 	 */
-	void Forward( const IMessageContextRef& Context, const TArray<FMessageAddress>& Recipients )
+	void Forward(const IMessageContextRef& Context, const TArray<FMessageAddress>& Recipients)
 	{
 		Forward(Context, Recipients, FTimespan::Zero());
 	}
@@ -493,7 +494,7 @@ public:
 	 * @param Message The message to publish.
 	 */
 	template<typename MessageType>
-	void Publish( MessageType* Message )
+	void Publish(MessageType* Message)
 	{
 		Publish(Message, MessageType::StaticStruct(), EMessageScope::Network, FTimespan::Zero(), FDateTime::MaxValue());
 	}
@@ -505,7 +506,7 @@ public:
 	 * @param Scope The message scope.
 	 */
 	template<typename MessageType>
-	void Publish( MessageType* Message, EMessageScope Scope )
+	void Publish(MessageType* Message, EMessageScope Scope)
 	{
 		Publish(Message, MessageType::StaticStruct(), Scope, FTimespan::Zero(), FDateTime::MaxValue());
 	}
@@ -517,7 +518,7 @@ public:
 	 * @param Delay The delay after which to publish the message.
 	 */
 	template<typename MessageType>
-	void Publish( MessageType* Message, const FTimespan& Delay )
+	void Publish(MessageType* Message, const FTimespan& Delay)
 	{
 		Publish(Message, MessageType::StaticStruct(), EMessageScope::Network, Delay, FDateTime::MaxValue());
 	}
@@ -530,7 +531,7 @@ public:
 	 * @param Delay The delay after which to publish the message.
 	 */
 	template<typename MessageType>
-	void Publish( MessageType* Message, EMessageScope Scope, const FTimespan& Delay )
+	void Publish(MessageType* Message, EMessageScope Scope, const FTimespan& Delay)
 	{
 		Publish(Message, MessageType::StaticStruct(), Scope, Delay, FDateTime::MaxValue());
 	}
@@ -545,7 +546,7 @@ public:
 	 * @param Expiration The time at which the message expires.
 	 */
 	template<typename MessageType>
-	void Publish( MessageType* Message, EMessageScope Scope, const FTimespan& Delay, const FDateTime& Expiration )
+	void Publish(MessageType* Message, EMessageScope Scope, const FTimespan& Delay, const FDateTime& Expiration)
 	{
 		Publish(Message, MessageType::StaticStruct(), Scope, Delay, Expiration);
 	}
@@ -558,7 +559,7 @@ public:
 	 * @param Recipient The message recipient.
 	 */
 	template<typename MessageType>
-	void Send( MessageType* Message, const FMessageAddress& Recipient )
+	void Send(MessageType* Message, const FMessageAddress& Recipient)
 	{
 		Send(Message, MessageType::StaticStruct(), nullptr, TArrayBuilder<FMessageAddress>().Add(Recipient), FTimespan::Zero(), FDateTime::MaxValue());
 	}
@@ -572,7 +573,7 @@ public:
 	 * @param Delay The delay after which to send the message.
 	 */
 	template<typename MessageType>
-	void Send( MessageType* Message, const FMessageAddress& Recipient, const FTimespan& Delay )
+	void Send(MessageType* Message, const FMessageAddress& Recipient, const FTimespan& Delay)
 	{
 		Send(Message, MessageType::StaticStruct(), nullptr, TArrayBuilder<FMessageAddress>().Add(Recipient), Delay, FDateTime::MaxValue());
 	}
@@ -587,7 +588,7 @@ public:
 	 * @param Delay The delay after which to send the message.
 	 */
 	template<typename MessageType>
-	void Send( MessageType* Message, const FMessageAddress& Recipient, const FTimespan& Delay, const FDateTime& Expiration )
+	void Send(MessageType* Message, const FMessageAddress& Recipient, const FTimespan& Delay, const FDateTime& Expiration)
 	{
 		Send(Message, MessageType::StaticStruct(), nullptr, TArrayBuilder<FMessageAddress>().Add(Recipient), Delay, Expiration);
 	}
@@ -601,7 +602,7 @@ public:
 	 * @param Recipient The message recipient.
 	 */
 	template<typename MessageType>
-	void Send( MessageType* Message, const IMessageAttachmentPtr& Attachment, const FMessageAddress& Recipient )
+	void Send(MessageType* Message, const TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe>& Attachment, const FMessageAddress& Recipient)
 	{
 		Send(Message, MessageType::StaticStruct(), Attachment, TArrayBuilder<FMessageAddress>().Add(Recipient), FTimespan::Zero(), FDateTime::MaxValue());
 	}
@@ -617,7 +618,7 @@ public:
 	 * @param Delay The delay after which to send the message.
 	 */
 	template<typename MessageType>
-	void Send( MessageType* Message, const IMessageAttachmentPtr& Attachment, const FMessageAddress& Recipient, const FDateTime& Expiration, const FTimespan& Delay )
+	void Send(MessageType* Message, const TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe>& Attachment, const FMessageAddress& Recipient, const FDateTime& Expiration, const FTimespan& Delay)
 	{
 		Send(Message, MessageType::StaticStruct(), Attachment, TArrayBuilder<FMessageAddress>().Add(Recipient), Delay, Expiration);
 	}
@@ -630,7 +631,7 @@ public:
 	 * @param Recipients The message recipients.
 	 */
 	template<typename MessageType>
-	void Send( MessageType* Message, const TArray<FMessageAddress>& Recipients )
+	void Send(MessageType* Message, const TArray<FMessageAddress>& Recipients)
 	{
 		Send(Message, MessageType::StaticStruct(), nullptr, Recipients, FTimespan::Zero(), FDateTime::MaxValue());
 	}
@@ -644,7 +645,7 @@ public:
 	 * @param Delay The delay after which to send the message.
 	 */
 	template<typename MessageType>
-	void Send( MessageType* Message, const TArray<FMessageAddress>& Recipients, const FTimespan& Delay )
+	void Send(MessageType* Message, const TArray<FMessageAddress>& Recipients, const FTimespan& Delay)
 	{
 		Send(Message, MessageType::StaticStruct(), nullptr, Recipients, Delay, FDateTime::MaxValue());
 	}
@@ -659,7 +660,7 @@ public:
 	 * @param Delay The delay after which to send the message.
 	 */
 	template<typename MessageType>
-	void Send( MessageType* Message, const IMessageAttachmentPtr& Attachment, const TArray<FMessageAddress>& Recipients, const FTimespan& Delay )
+	void Send(MessageType* Message, const TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe>& Attachment, const TArray<FMessageAddress>& Recipients, const FTimespan& Delay)
 	{
 		Send(Message, MessageType::StaticStruct(), Attachment, Recipients, Delay, FDateTime::MaxValue());
 	}
@@ -675,7 +676,7 @@ public:
 	 * @param Expiration The time at which the message expires.
 	 */
 	template<typename MessageType>
-	void Send( MessageType* Message, const IMessageAttachmentPtr& Attachment, const TArray<FMessageAddress>& Recipients, const FTimespan& Delay, const FDateTime& Expiration )
+	void Send(MessageType* Message, const TSharedPtr<IMessageAttachment, ESPMode::ThreadSafe>& Attachment, const TArray<FMessageAddress>& Recipients, const FTimespan& Delay, const FDateTime& Expiration)
 	{
 		Send(Message, MessageType::StaticStruct(), Attachment, Recipients, Delay, Expiration);
 	}
@@ -706,7 +707,7 @@ public:
 	 * @param ScopeRange The range of message scopes to include in the subscription.
 	 */
 	template<class MessageType>
-	void Subscribe( const FMessageScopeRange& ScopeRange )
+	void Subscribe(const FMessageScopeRange& ScopeRange)
 	{
 		Subscribe(MessageType::StaticStruct()->GetFName(), ScopeRange);
 	}
@@ -749,7 +750,7 @@ public:
 	 *
 	 * @param Endpoint The message endpoint to release.
 	 */
-	static void SafeRelease( TSharedPtr<FMessageEndpoint, ESPMode::ThreadSafe>& Endpoint )
+	static void SafeRelease(TSharedPtr<FMessageEndpoint, ESPMode::ThreadSafe>& Endpoint)
 	{
 		TWeakPtr<FMessageEndpoint, ESPMode::ThreadSafe> EndpointPtr = Endpoint;
 		Endpoint.Reset();
@@ -763,7 +764,7 @@ protected:
 	 *
 	 * @return The message bus.
 	 */
-	FORCEINLINE IMessageBusPtr GetBusIfEnabled() const
+	FORCEINLINE TSharedPtr<IMessageBus, ESPMode::ThreadSafe> GetBusIfEnabled() const
 	{
 		if (Enabled)
 		{
@@ -778,7 +779,7 @@ protected:
 	 *
 	 * @param Context The context of the message to handle.
 	 */
-	void ProcessMessage( const IMessageContextRef& Context )
+	void ProcessMessage(const IMessageContextRef& Context)
 	{
 		if (!Context->IsValid())
 		{
@@ -797,13 +798,13 @@ private:
 	const FMessageAddress Address;
 
 	/** Holds a weak pointer to the message bus. */
-	IMessageBusWeakPtr BusPtr;
+	TWeakPtr<IMessageBus, ESPMode::ThreadSafe> BusPtr;
 
 	/** Hold a flag indicating whether this endpoint is active. */
 	bool Enabled;
 
 	/** Holds the registered message handlers. */
-	TArray<IMessageHandlerPtr> Handlers;
+	TArray<TSharedPtr<IMessageHandler, ESPMode::ThreadSafe>> Handlers;
 
 	/** Holds the endpoint's unique identifier (for debugging purposes). */
 	const FGuid Id;

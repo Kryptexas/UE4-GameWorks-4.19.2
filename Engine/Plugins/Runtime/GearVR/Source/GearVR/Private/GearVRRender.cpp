@@ -527,8 +527,8 @@ void FLayerManager::GetPokeAHoleMatrices(const FViewInfo *LeftView, const FViewI
 	multiplierMatrix.M[0][0] = -1;
 	multiplierMatrix.M[2][2] = -1;
 
-	FMatrix leftViewMatrix = LeftView->ViewMatrices.ViewMatrix * multiplierMatrix;
-	FMatrix rightViewMatrix = RightView->ViewMatrices.ViewMatrix * multiplierMatrix;
+	FMatrix leftViewMatrix = LeftView->ViewMatrices.GetViewMatrix() * multiplierMatrix;
+	FMatrix rightViewMatrix = RightView->ViewMatrices.GetViewMatrix() * multiplierMatrix;
 	rightViewMatrix.ScaleTranslation(FVector(-1, -1, -1));
 	leftViewMatrix.ScaleTranslation(FVector(-1, -1, -1));
 
@@ -547,13 +547,13 @@ void FLayerManager::GetPokeAHoleMatrices(const FViewInfo *LeftView, const FViewI
 		FMatrix torsoTranslate = FTransform((CurrentFrame->PlayerLocation)).ToMatrixNoScale();
 
 		FMatrix torsoMatrix = torsoTransform.ToMatrixNoScale();
-		LeftMatrix = fmat * torsoRotate.Inverse()* torsoTranslate.Inverse()  * leftViewMatrix * LeftView->ViewMatrices.GetProjNoAAMatrix();
-		RightMatrix = fmat * torsoRotate.Inverse() * torsoTranslate.Inverse() * rightViewMatrix * RightView->ViewMatrices.GetProjNoAAMatrix();
+		LeftMatrix = fmat * torsoRotate.Inverse()* torsoTranslate.Inverse()  * leftViewMatrix * LeftView->ViewMatrices.ComputeProjectionNoAAMatrix();
+		RightMatrix = fmat * torsoRotate.Inverse() * torsoTranslate.Inverse() * rightViewMatrix * RightView->ViewMatrices.ComputeProjectionNoAAMatrix();
 	}
 	else if (LayerDesc.IsWorldLocked())
 	{
-		LeftMatrix = fmat * leftViewMatrix * LeftView->ViewMatrices.GetProjNoAAMatrix();
-		RightMatrix = fmat * rightViewMatrix * RightView->ViewMatrices.GetProjNoAAMatrix();
+		LeftMatrix = fmat * leftViewMatrix * LeftView->ViewMatrices.ComputeProjectionNoAAMatrix();
+		RightMatrix = fmat * rightViewMatrix * RightView->ViewMatrices.ComputeProjectionNoAAMatrix();
 	}
 }
 
@@ -1151,6 +1151,22 @@ void FCustomPresent::EnterVRMode_RenderThread()
 
 		UE_LOG(LogHMD, Log, TEXT("EnterVRMode: Display 0x%llX, Window 0x%llX, ShareCtx %llX"),
 			(unsigned long long)parms.Display, (unsigned long long)parms.WindowSurface, (unsigned long long)parms.ShareContext);
+
+#if PLATFORM_ANDROID
+		const FString GPUFamily = FAndroidMisc::GetGPUFamily();
+		const FString GLVersion = FAndroidMisc::GetGLVersion();
+		// TODO: Further narrow support based on gpu family and gl version
+		GSupportsMobileMultiView = vrapi_GetSystemPropertyInt(&JavaRT, VRAPI_SYS_PROP_MULTIVIEW_AVAILABLE) != 0;
+		if (GSupportsMobileMultiView)
+		{
+			UE_LOG(LogHMD, Log, TEXT("Mobile multi-view support enabled for device: %s"), *GPUFamily);
+		}
+		else
+		{
+			UE_LOG(LogHMD, Log, TEXT("Mobile multi-view support disabled for device: %s"), *GPUFamily);
+		}
+#endif
+
 		OvrMobile = vrapi_EnterVrMode(&parms);
 	}
 }
@@ -1280,7 +1296,7 @@ void FCustomPresent::CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdLi
 
 	SetRenderTarget(RHICmdList, DstTexture, FTextureRHIRef());
 	//RHICmdList.Clear(true, FLinearColor(1.0f, 0.0f, 0.0f, 1.0f), false, 0.0f, false, 0, FIntRect()); // @DBG
-	RHICmdList.Clear(true, FLinearColor(0.0f, 0.0f, 0.0f, 0.0f), false, 0.0f, false, 0, FIntRect());
+	RHICmdList.ClearColorTexture(DstTexture, FLinearColor(0.0f, 0.0f, 0.0f, 0.0f), FIntRect());
 	RHICmdList.SetViewport(DstRect.Min.X, DstRect.Min.Y, 0, DstRect.Max.X, DstRect.Max.Y, 1.0f);
 
 	if (bAlphaPremultiply)

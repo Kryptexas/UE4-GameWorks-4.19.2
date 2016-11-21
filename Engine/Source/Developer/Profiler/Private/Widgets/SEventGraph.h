@@ -2,9 +2,11 @@
 
 #pragma once
 
-/*-----------------------------------------------------------------------------
-	Type definitions
------------------------------------------------------------------------------*/
+#include "ProfilerDataSource.h"
+
+
+enum class EProfilerViewMode;
+
 
 /** Type definition for shared pointers to instances of FEventGraphColumn. */
 typedef TSharedPtr<class FEventGraphColumn> FEventGraphColumnPtr;
@@ -12,9 +14,7 @@ typedef TSharedPtr<class FEventGraphColumn> FEventGraphColumnPtr;
 /** Type definition for shared references to instances of FEventGraphColumn. */
 typedef TSharedRef<class FEventGraphColumn> FEventGraphColumnRef;
 
-/*-----------------------------------------------------------------------------
-	Enumerators
------------------------------------------------------------------------------*/
+
 
 /** Enumerates event graph view modes. */
 namespace EEventGraphViewModes
@@ -60,6 +60,7 @@ namespace EEventGraphViewModes
 	FName ToBrushName( const Type EventGraphViewMode );
 }
 
+
 /** Holds information about a column in the event graph widget. */
 class FEventGraphColumn
 {
@@ -73,7 +74,7 @@ protected:
 	/** Initialization constructor, only used in FEventGraphColumns. */
 	FEventGraphColumn
 	(
-		const EEventPropertyIndex::Type InIndex,
+		const EEventPropertyIndex InIndex,
 		const FName InSearchID,
 		const FText InShortName,
 		const FText InDescription,
@@ -101,7 +102,7 @@ protected:
 
 public:
 	/** Index of the event's property, also means the index of the column @see EEventPropertyIndex. */
-	EEventPropertyIndex::Type Index;
+	EEventPropertyIndex Index;
 
 	/** Name of the column, name of the property. */
 	FName ID;
@@ -216,7 +217,7 @@ public:
 	}
 
 protected:
-	void ProfilerManager_OnViewModeChanged( EProfilerViewMode::Type NewViewMode );
+	void ProfilerManager_OnViewModeChanged( EProfilerViewMode NewViewMode );
 	
 protected:
 	/** The event to execute when the event graph has been restored from the history. */
@@ -244,7 +245,7 @@ protected:
 	void GetHierarchicalExpandedEvents( TSet<FEventGraphSamplePtr>& out_HierarchicalExpandedEvents ) const;
 	
 	void ShowEventsInViewMode( const TArray<FEventGraphSamplePtr>& EventsToSynchronize, const EEventGraphViewModes::Type NewViewMode );
-	void ScrollToTheSlowestSelectedEvent( EEventPropertyIndex::Type ColumnIndex );
+	void ScrollToTheSlowestSelectedEvent( EEventPropertyIndex ColumnIndex );
 
 	void CreateEvents();
 	void SortEvents();

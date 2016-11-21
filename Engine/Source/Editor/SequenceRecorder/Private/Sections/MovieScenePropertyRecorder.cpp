@@ -27,7 +27,10 @@ UMovieSceneSection* FMovieScenePropertyRecorder<bool>::AddSection(UObject* InObj
 	UMovieSceneBoolTrack* Track = InMovieScene->AddTrack<UMovieSceneBoolTrack>(InGuid);
 	if (Track)
 	{
-		Track->SetPropertyNameAndPath(*Binding.GetProperty(InObjectToRecord)->GetDisplayNameText().ToString(), Binding.GetPropertyPath());
+		if (InObjectToRecord)
+		{
+			Track->SetPropertyNameAndPath(*Binding.GetProperty(*InObjectToRecord)->GetDisplayNameText().ToString(), Binding.GetPropertyPath());
+		}
 
 		UMovieSceneBoolSection* Section = Cast<UMovieSceneBoolSection>(Track->CreateNewSection());
 		Section->SetDefault(PreviousValue);
@@ -66,7 +69,10 @@ UMovieSceneSection* FMovieScenePropertyRecorder<uint8>::AddSection(UObject* InOb
 	UMovieSceneByteTrack* Track = InMovieScene->AddTrack<UMovieSceneByteTrack>(InGuid);
 	if (Track)
 	{
-		Track->SetPropertyNameAndPath(*Binding.GetProperty(InObjectToRecord)->GetDisplayNameText().ToString(), Binding.GetPropertyPath());
+		if (InObjectToRecord)
+		{
+			Track->SetPropertyNameAndPath(*Binding.GetProperty(*InObjectToRecord)->GetDisplayNameText().ToString(), Binding.GetPropertyPath());
+		}
 
 		UMovieSceneByteSection* Section = Cast<UMovieSceneByteSection>(Track->CreateNewSection());
 		Section->SetDefault(PreviousValue);
@@ -105,7 +111,10 @@ UMovieSceneSection* FMovieScenePropertyRecorder<float>::AddSection(UObject* InOb
 	UMovieSceneFloatTrack* Track = InMovieScene->AddTrack<UMovieSceneFloatTrack>(InGuid);
 	if (Track)
 	{
-		Track->SetPropertyNameAndPath(*Binding.GetProperty(InObjectToRecord)->GetDisplayNameText().ToString(), Binding.GetPropertyPath());
+		if (InObjectToRecord)
+		{
+			Track->SetPropertyNameAndPath(*Binding.GetProperty(*InObjectToRecord)->GetDisplayNameText().ToString(), Binding.GetPropertyPath());
+		}
 
 		UMovieSceneFloatSection* Section = Cast<UMovieSceneFloatSection>(Track->CreateNewSection());
 		Section->SetDefault(PreviousValue);
@@ -145,7 +154,10 @@ UMovieSceneSection* FMovieScenePropertyRecorder<FColor>::AddSection(UObject* InO
 	UMovieSceneColorTrack* Track = InMovieScene->AddTrack<UMovieSceneColorTrack>(InGuid);
 	if (Track)
 	{
-		Track->SetPropertyNameAndPath(*Binding.GetProperty(InObjectToRecord)->GetDisplayNameText().ToString(), Binding.GetPropertyPath());
+		if (InObjectToRecord)
+		{
+			Track->SetPropertyNameAndPath(*Binding.GetProperty(*InObjectToRecord)->GetDisplayNameText().ToString(), Binding.GetPropertyPath());
+		}
 
 		UMovieSceneColorSection* Section = Cast<UMovieSceneColorSection>(Track->CreateNewSection());
 		Section->SetDefault(FColorKey(EKeyColorChannel::Red, PreviousValue.R, false));
@@ -202,7 +214,10 @@ UMovieSceneSection* FMovieScenePropertyRecorder<FVector>::AddSection(UObject* In
 	Track->SetNumChannelsUsed(3);
 	if (Track)
 	{
-		Track->SetPropertyNameAndPath(*Binding.GetProperty(InObjectToRecord)->GetDisplayNameText().ToString(), Binding.GetPropertyPath());
+		if (InObjectToRecord)
+		{
+			Track->SetPropertyNameAndPath(*Binding.GetProperty(*InObjectToRecord)->GetDisplayNameText().ToString(), Binding.GetPropertyPath());
+		}
 
 		UMovieSceneVectorSection* Section = Cast<UMovieSceneVectorSection>(Track->CreateNewSection());
 

@@ -11,5 +11,15 @@
 	"Category": "",
 	"CreatedBy": "",
 	"CreatedByURL": "",
-	"EpicSampleNameHash": "0"
+	"EpicSampleNameHash": "0",
+	"Plugins": [
+		{
+			"Name": "PhysXVehicles",
+			"Enabled": true
+		},
+		{
+			"Name": "RawInput",
+			"Enabled": true
+		}
+	]
 }

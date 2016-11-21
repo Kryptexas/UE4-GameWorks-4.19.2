@@ -78,15 +78,11 @@ int32 SBorder::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometr
 			BrushResource,
 			MyClippingRect,
 			DrawEffects,
-			BrushResource->GetTint( InWidgetStyle ) * InWidgetStyle.GetColorAndOpacityTint() * BorderBackgroundColor.Get().GetColor( InWidgetStyle )
+			BrushResource->GetTint( InWidgetStyle ) *InWidgetStyle.GetColorAndOpacityTint() * BorderBackgroundColor.Get().GetColor( InWidgetStyle )
 		);
 	}
 
-	FWidgetStyle CompoundedWidgetStyle = FWidgetStyle(InWidgetStyle)
-		.BlendColorAndOpacityTint(ColorAndOpacity.Get())
-		.SetForegroundColor( ForegroundColor.Get() );
-
-	return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect.IntersectionWith( AllottedGeometry.GetClippingRect() ), OutDrawElements, LayerId, CompoundedWidgetStyle, bEnabled );
+	return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect.IntersectionWith( AllottedGeometry.GetClippingRect() ), OutDrawElements, LayerId, InWidgetStyle, bEnabled );
 }
 
 FVector2D SBorder::ComputeDesiredSize(float LayoutScaleMultiplier) const

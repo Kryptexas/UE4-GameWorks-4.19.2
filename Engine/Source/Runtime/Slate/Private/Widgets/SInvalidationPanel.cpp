@@ -11,6 +11,8 @@ DECLARE_DWORD_COUNTER_STAT(TEXT("Num Cached Elements"), STAT_SlateNumCachedEleme
 DECLARE_DWORD_COUNTER_STAT(TEXT("Num Invalidated Elements"), STAT_SlateNumInvalidatedElements, STATGROUP_Slate);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Num Volatile Widgets"), STAT_SlateNumVolatileWidgets, STATGROUP_Slate);
 
+DECLARE_CYCLE_STAT(TEXT("SInvalidationPanel::Tick"), STAT_SlateInvalidationTick, STATGROUP_Slate);
+DECLARE_CYCLE_STAT(TEXT("SInvalidationPanel::Paint"), STAT_SlateInvalidationPaint, STATGROUP_Slate);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
@@ -108,7 +110,7 @@ void SInvalidationPanel::SetCanCache(bool InCanCache)
 
 void SInvalidationPanel::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	//FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::InvalidationPanel::Tick");
+	SCOPE_CYCLE_COUNTER(STAT_SlateInvalidationTick);
 
 	if ( GetCanCache() )
 	{
@@ -153,8 +155,6 @@ void SInvalidationPanel::Tick( const FGeometry& AllottedGeometry, const double I
 			CachePrepass(SharedThis(this));
 		}
 	}
-
-	//FPlatformMisc::EndNamedEvent();
 }
 
 FChildren* SInvalidationPanel::GetChildren()
@@ -211,6 +211,8 @@ void SInvalidationPanel::OnGlobalInvalidate()
 
 int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
+	SCOPE_CYCLE_COUNTER(STAT_SlateInvalidationPaint);
+
 	if ( GetCanCache() )
 	{
 		// If our clip rect changes size, we've definitely got to invalidate.

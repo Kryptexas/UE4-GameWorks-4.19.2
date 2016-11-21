@@ -13,6 +13,7 @@ public:
 	TSharedPtr<FUICommandInfo> StopAll;
 	TSharedPtr<FUICommandInfo> AddRecording;
 	TSharedPtr<FUICommandInfo> RemoveRecording;
+	TSharedPtr<FUICommandInfo> RemoveAllRecordings;
 
 	/** Initialize commands */
 	virtual void RegisterCommands() override;

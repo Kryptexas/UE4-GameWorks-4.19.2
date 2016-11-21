@@ -3,7 +3,6 @@
 
 #include "PersonaPrivatePCH.h"
 
-#include "Persona.h"
 #include "SSkeletonAnimNotifies.h"
 #include "ScopedTransaction.h"
 #include "SSearchBox.h"
@@ -11,6 +10,7 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "IEditableSkeleton.h"
+#include "TabSpawners.h"
 
 #define LOCTEXT_NAMESPACE "SkeletonAnimNotifies"
 

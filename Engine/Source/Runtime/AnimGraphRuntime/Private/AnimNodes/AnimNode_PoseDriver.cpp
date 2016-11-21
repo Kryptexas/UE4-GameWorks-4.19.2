@@ -259,4 +259,9 @@ void FAnimNode_PoseDriver::Evaluate(FPoseContext& Output)
 			}
 		}
 	}
+	// No poses activated, just pass through
+	else
+	{
+		Output = SourceData;
+	}
 }

@@ -285,7 +285,7 @@ void TiledDeferredLightingMain(
 			LightData.bInverseSquared = LightData.LightColorAndFalloffExponent.w == 0;
 						
 			// todo: doesn't support ScreenSpaceSubsurfaceScattering yet (not using alpha)
-			CompositedLighting.rgb += GetSimpleDynamicLighting(WorldPosition, CameraVector, ScreenSpaceData, LightData);
+			CompositedLighting.rgb += GetSimpleDynamicLighting(WorldPosition, CameraVector, ScreenSpaceData.GBuffer.WorldNormal, ScreenSpaceData.AmbientOcclusion, ScreenSpaceData.GBuffer.DiffuseColor, ScreenSpaceData.GBuffer.SpecularColor, ScreenSpaceData.GBuffer.Roughness, LightData);
 		}
 	}
 		

@@ -32,12 +32,8 @@ UObject* FLevelSequenceObjectReference::Resolve(UObject* InContext) const
 {
 	if (ObjectId.IsValid() && InContext != nullptr)
 	{
-	#if WITH_EDITOR
 		int32 PIEInstanceID = InContext->GetOutermost()->PIEInstanceID;
 		FUniqueObjectGuid FixedUpId = PIEInstanceID == -1 ? ObjectId : ObjectId.FixupForPIE(PIEInstanceID);
-	#else
-		FUniqueObjectGuid FixedUpId = ObjectId;
-	#endif
 		
 
 		FLazyObjectPtr LazyPtr;

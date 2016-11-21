@@ -2,6 +2,28 @@
 
 #pragma once
 
+#include "Editor.h"
+#include "EditorComponents.h"
+#include "EditorModeRegistry.h"
+#include "UnrealWidget.h"
+
+class FEditorViewportClient;
+struct FViewportClick;
+
+/** Outcomes when determining whether it's possible to perform an action on the edit modes*/
+namespace EEditAction
+{
+	enum Type
+	{
+		/** Can't process this action */
+		Skip		= 0,
+		/** Can process this action */
+		Process,
+		/** Stop evaluating other modes (early out) */
+		Halt,
+	};
+};
+
 /**
  * Base class for all editor modes.
  */
@@ -68,6 +90,9 @@ public:
 	/** If the EdMode is handling InputDelta (i.e., returning true from it), this allows a mode to indicated whether or not the Widget should also move. */
 	virtual bool AllowWidgetMove() { return true; }
 	
+	/** Check to see if the current widget mode can be cycled */
+	virtual bool CanCycleWidgetMode() const { return true; }
+
 	/** If the Edmode is handling its own mouse deltas, it can disable the MouseDeltaTacker */
 	virtual bool DisallowMouseDeltaTracking() const { return false; }
 
@@ -151,7 +176,7 @@ public:
 	void SelectNone();
 	virtual void SelectionChanged() {}
 
-	virtual bool HandleClick(FEditorViewportClient* InViewportClient, HHitProxy *HitProxy, const FViewportClick &Click);
+	virtual bool HandleClick(FEditorViewportClient* InViewportClient, HHitProxy* HitProxy, const FViewportClick& Click);
 
 	/** Handling SelectActor */
 	virtual bool Select( AActor* InActor, bool bInSelected ) { return 0; }

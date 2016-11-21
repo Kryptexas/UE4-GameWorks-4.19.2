@@ -784,11 +784,14 @@ private:
 	virtual void RemapGamepadControllerIdForPIE(class UGameViewportClient* GameViewport, int32 &ControllerId) override;
 	virtual TSharedPtr<SViewport> GetGameViewportWidget() const override;
 	virtual void TriggerStreamingDataRebuild() override;
-	virtual bool NetworkRemapPath(UWorld* InWorld, FString &Str, bool reading = true) override;
+	virtual bool NetworkRemapPath(UNetDriver* Driver, FString &Str, bool reading = true) override;
 	virtual bool NetworkRemapPath(UPendingNetGame* PendingNetGame, FString& Str, bool reading = true) override;
 	virtual bool AreEditorAnalyticsEnabled() const override;
 	virtual void CreateStartupAnalyticsAttributes(TArray<FAnalyticsEventAttribute>& StartSessionAttributes) const override;
 	virtual void VerifyLoadMapWorldCleanup() override;
+
+	/** Called during editor init and whenever the vanilla status might have changed, to set the flag on the base class */
+	void UpdateIsVanillaProduct();
 public:
 	//~ End UEngine Interface.
 	
@@ -835,7 +838,8 @@ public:
 	bool	HandleRebuildVolumesCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld );
 	bool	HandleRemoveArchtypeFlagCommand( const TCHAR* Str, FOutputDevice& Ar );
 	bool	HandleStartMovieCaptureCommand( const TCHAR* Cmd, FOutputDevice& Ar );
-	
+	bool	HandleBuildMaterialTextureStreamingData( const TCHAR* Cmd, FOutputDevice& Ar );
+
 	/**
 	 * Initializes the Editor.
 	 */
@@ -1313,11 +1317,12 @@ public:
 	/**
 	 * Deletes all selected actors
 	 *
-	 * @param		InWorld				World context
-	 * @param		bVerifyDeletionCanHappen	[opt] If true (default), verify that deletion can be performed.
-	 * @return									true unless the delete operation was aborted.
+	 * @param	InWorld				World context
+	 * @param	bVerifyDeletionCanHappen	[opt] If true (default), verify that deletion can be performed.
+	 * @param	bWarnAboutReferences		[opt] If true (default), we prompt the user about referenced actours they are about to delete
+	 * @return								true unless the delete operation was aborted.
 	 */
-	virtual bool edactDeleteSelected(UWorld* InWorld, bool bVerifyDeletionCanHappen=true) { return true; }
+	virtual bool edactDeleteSelected(UWorld* InWorld, bool bVerifyDeletionCanHappen=true, bool bWarnAboutReferences = true) { return true; }
 
 	/**
 	 * Checks the state of the selected actors and notifies the user of any potentially unknown destructive actions which may occur as
@@ -1665,7 +1670,7 @@ public:
 	void PlaySessionSingleStepped();
 
 	/** Called when game client received input key */
-	bool ProcessDebuggerCommands(const FKey InKey, const FModifierKeysState ModifierKeyState);
+	bool ProcessDebuggerCommands(const FKey InKey, const FModifierKeysState ModifierKeyState, EInputEvent EventType);
 
 	/**
 	 * Kicks off a "Play From Here" request that was most likely made during a transaction

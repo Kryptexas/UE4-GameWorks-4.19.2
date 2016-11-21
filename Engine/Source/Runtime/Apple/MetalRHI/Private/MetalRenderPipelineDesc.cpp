@@ -7,7 +7,7 @@
 static_assert(Offset_End <= sizeof(FMetalRenderPipelineHash) * 8, "Too many bits used for the Hash");
 
 TMap<FMetalRenderPipelineDesc::FMetalRenderPipelineKey, id<MTLRenderPipelineState>> FMetalRenderPipelineDesc::MetalPipelineCache;
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 TMap<FMetalRenderPipelineDesc::FMetalRenderPipelineKey, MTLRenderPipelineReflection*> FMetalRenderPipelineDesc::MetalReflectionCache;
 #endif
 pthread_rwlock_t FMetalRenderPipelineDesc::MetalPipelineMutex;
@@ -70,6 +70,7 @@ id<MTLRenderPipelineState> FMetalRenderPipelineDesc::CreatePipelineStateForBound
 	
 	if(GUseRHIThread)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_MetalPipelineLockTime);
 		int Err = pthread_rwlock_rdlock(&MetalPipelineMutex);
 		checkf(Err == 0, TEXT("pthread_rwlock_rdlock failed with error: %d"), errno);
 	}
@@ -85,12 +86,13 @@ id<MTLRenderPipelineState> FMetalRenderPipelineDesc::CreatePipelineStateForBound
 	{
 		if(GUseRHIThread)
 		{
+			SCOPE_CYCLE_COUNTER(STAT_MetalPipelineLockTime);
 			int Err = pthread_rwlock_unlock(&MetalPipelineMutex);
 			checkf(Err == 0, TEXT("pthread_rwlock_unlock failed with error: %d"), errno);
 		}
 	
 		id<MTLDevice> Device = GetMetalDeviceContext().GetDevice();
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 		if (Reflection)
 		{
 			PipelineState = [Device newRenderPipelineStateWithDescriptor:PipelineDescriptor options:MTLPipelineOptionArgumentInfo reflection:Reflection error:&Error];
@@ -106,6 +108,7 @@ id<MTLRenderPipelineState> FMetalRenderPipelineDesc::CreatePipelineStateForBound
 		{
 			if(GUseRHIThread)
 			{
+				SCOPE_CYCLE_COUNTER(STAT_MetalPipelineLockTime);
 				int Err = pthread_rwlock_wrlock(&MetalPipelineMutex);
 				checkf(Err == 0, TEXT("pthread_rwlock_wrlock failed with error: %d"), errno);
 			}
@@ -114,7 +117,7 @@ id<MTLRenderPipelineState> FMetalRenderPipelineDesc::CreatePipelineStateForBound
 			if (!ExistingPipeline)
 			{
 				MetalPipelineCache.Add(ComparableDesc, PipelineState);			
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 				if (Reflection)
 				{
 					check(*Reflection);				
@@ -126,7 +129,7 @@ id<MTLRenderPipelineState> FMetalRenderPipelineDesc::CreatePipelineStateForBound
 			{
 				[PipelineState release];
 				PipelineState = ExistingPipeline;
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 				if (Reflection)
 				{
 					*Reflection = MetalReflectionCache.FindChecked(ComparableDesc);
@@ -136,17 +139,19 @@ id<MTLRenderPipelineState> FMetalRenderPipelineDesc::CreatePipelineStateForBound
 			
 			if(GUseRHIThread)
 			{
+				SCOPE_CYCLE_COUNTER(STAT_MetalPipelineLockTime);
 				int Err = pthread_rwlock_unlock(&MetalPipelineMutex);
 				checkf(Err == 0, TEXT("pthread_rwlock_unlock failed with error: %d"), errno);
 			}
 		}		
 	}
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 	else if (Reflection)
 	{
 		*Reflection = MetalReflectionCache.FindChecked(ComparableDesc);
 		if(GUseRHIThread)
 		{
+			SCOPE_CYCLE_COUNTER(STAT_MetalPipelineLockTime);
 			int Err = pthread_rwlock_unlock(&MetalPipelineMutex);
 			checkf(Err == 0, TEXT("pthread_rwlock_unlock failed with error: %d"), errno);
 		}
@@ -154,6 +159,7 @@ id<MTLRenderPipelineState> FMetalRenderPipelineDesc::CreatePipelineStateForBound
 #endif
 	else if(GUseRHIThread)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_MetalPipelineLockTime);
 		int Err = pthread_rwlock_unlock(&MetalPipelineMutex);
 		checkf(Err == 0, TEXT("pthread_rwlock_unlock failed with error: %d"), errno);
 	}
@@ -174,11 +180,12 @@ id<MTLRenderPipelineState> FMetalRenderPipelineDesc::CreatePipelineStateForBound
 	return PipelineState;
 }
 
-#if !UE_BUILD_SHIPPING
+#if METAL_DEBUG_OPTIONS
 MTLRenderPipelineReflection* FMetalRenderPipelineDesc::GetReflectionData(FMetalBoundShaderState* BSS, FMetalHashedVertexDescriptor const& VertexDesc) const
 {
 	if(GUseRHIThread)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_MetalPipelineLockTime);
 		int Err = pthread_rwlock_rdlock(&MetalPipelineMutex);
 		checkf(Err == 0, TEXT("pthread_rwlock_rdlock failed with error: %d"), errno);
 	}
@@ -193,6 +200,7 @@ MTLRenderPipelineReflection* FMetalRenderPipelineDesc::GetReflectionData(FMetalB
 	
 	if(GUseRHIThread)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_MetalPipelineLockTime);
 		int Err = pthread_rwlock_unlock(&MetalPipelineMutex);
 		checkf(Err == 0, TEXT("pthread_rwlock_unlock failed with error: %d"), errno);
 	}

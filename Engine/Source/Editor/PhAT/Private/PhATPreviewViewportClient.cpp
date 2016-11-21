@@ -517,18 +517,18 @@ bool FPhATEdPreviewViewportClient::InputWidgetDelta( FViewport* InViewport, EAxi
 			{
 				UPhysicsConstraintTemplate* ConstraintSetup = SharedData->PhysicsAsset->ConstraintSetup[SelectedObject.Index];
 
-				ConstraintSetup->DefaultInstance.SetRefFrame(EConstraintFrame::Frame2, SelectedObject.ManipulateTM * StartManParentConTM);
+                ConstraintSetup->DefaultInstance.SetRefFrame(EConstraintFrame::Frame2, SelectedObject.ManipulateTM * StartManParentConTM[i]);
 
 				//Rotation by default only rotates one frame, but translation by default moves both
 				bool bMultiFrame = (IsAltPressed() && GetWidgetMode() == FWidget::WM_Rotate) || (!IsAltPressed() && GetWidgetMode() == FWidget::WM_Translate);
 				
 				if (bMultiFrame)
 				{
-					SharedData->SetSelectedConstraintRelTM(StartManRelConTM);
+					SharedData->SetConstraintRelTM(&SelectedObject, StartManRelConTM[i]);
 				}
 				else
 				{
-					ConstraintSetup->DefaultInstance.SetRefFrame(EConstraintFrame::Frame1, FTransform(StartManChildConTM));
+					ConstraintSetup->DefaultInstance.SetRefFrame(EConstraintFrame::Frame1, FTransform(StartManChildConTM[i]));
 				}
 			}
 
@@ -550,7 +550,7 @@ void FPhATEdPreviewViewportClient::TrackingStarted( const struct FInputEventStat
 		const int32	HitX = InInputState.GetViewport()->GetMouseX();
 		const int32	HitY = InInputState.GetViewport()->GetMouseY();
 		
-		StartManipulating(Widget->GetCurrentAxis(), FViewportClick(View, this, InInputState.GetKey(), InInputState.GetInputEvent(), HitX, HitY), View->ViewMatrices.ViewMatrix);
+		StartManipulating(Widget->GetCurrentAxis(), FViewportClick(View, this, InInputState.GetKey(), InInputState.GetInputEvent(), HitX, HitY), View->ViewMatrices.GetViewMatrix());
 
 		// If we are manipulating, don't move the camera as we drag now.
 		if (SharedData->bManipulating)
@@ -760,20 +760,26 @@ void FPhATEdPreviewViewportClient::StartManipulating(EAxisList::Type Axis, const
 	else if( SharedData->GetSelectedConstraint())
 	{
 		GEditor->BeginTransaction( NSLOCTEXT("UnrealEd", "MoveConstraint", "Move Constraint") );
-		for(int32 i=0; i<SharedData->SelectedConstraints.Num(); ++i)
+
+        const int32 Count = SharedData->SelectedConstraints.Num();
+        StartManRelConTM.SetNumUninitialized(Count);
+        StartManParentConTM.SetNumUninitialized(Count);
+        StartManChildConTM.SetNumUninitialized(Count);
+
+		for(int32 i=0; i < SharedData->SelectedConstraints.Num(); ++i)
 		{
-			SharedData->PhysicsAsset->ConstraintSetup[SharedData->SelectedConstraints[i].Index]->Modify();
-			SharedData->SelectedConstraints[i].ManipulateTM = FTransform::Identity;
+            FPhATSharedData::FSelection& Constraint = SharedData->SelectedConstraints[i];
+			SharedData->PhysicsAsset->ConstraintSetup[Constraint.Index]->Modify();
+			Constraint.ManipulateTM = FTransform::Identity;
+
+            const FTransform WParentFrame = SharedData->GetConstraintWorldTM(&Constraint, EConstraintFrame::Frame2);
+            const FTransform WChildFrame = SharedData->GetConstraintWorldTM(&Constraint, EConstraintFrame::Frame1);
+            const UPhysicsConstraintTemplate* Setup = SharedData->PhysicsAsset->ConstraintSetup[Constraint.Index];
+
+            StartManRelConTM[i] = WChildFrame * WParentFrame.Inverse();
+            StartManParentConTM[i] = Setup->DefaultInstance.GetRefFrame(EConstraintFrame::Frame2);
+            StartManChildConTM[i] = Setup->DefaultInstance.GetRefFrame(EConstraintFrame::Frame1);
 		}
-
-		const FTransform WParentFrame = SharedData->GetConstraintWorldTM(SharedData->GetSelectedConstraint(), EConstraintFrame::Frame2);
-		const FTransform WChildFrame = SharedData->GetConstraintWorldTM(SharedData->GetSelectedConstraint(), EConstraintFrame::Frame1);
-		StartManRelConTM = WChildFrame * WParentFrame.Inverse();
-
-		UPhysicsConstraintTemplate* Setup = SharedData->PhysicsAsset->ConstraintSetup[SharedData->GetSelectedConstraint()->Index];
-
-		StartManParentConTM = Setup->DefaultInstance.GetRefFrame(EConstraintFrame::Frame2);
-		StartManChildConTM = Setup->DefaultInstance.GetRefFrame(EConstraintFrame::Frame1);
 
 		SharedData->bManipulating = true;
 	}
@@ -864,7 +870,7 @@ void FPhATEdPreviewViewportClient::SimMousePress(FViewport* InViewport, bool bCo
 			// Create handle to object.
 			SharedData->MouseHandle->GrabComponentAtLocationWithRotation(SharedData->EditorSkelComp, BoneName, Result.Location, FRotator::ZeroRotator);
 
-			FMatrix	InvViewMatrix = View->ViewMatrices.ViewMatrix.InverseFast();
+			FMatrix	InvViewMatrix = View->ViewMatrices.GetInvViewMatrix();
 
 			SimGrabMinPush = SimMinHoldDistance - (Result.Time * SimGrabCheckDistance);
 
@@ -902,7 +908,7 @@ void FPhATEdPreviewViewportClient::SimMouseMove(float DeltaX, float DeltaY)
 	FVector4 WorldDelta;
 
 	//Now we project new ScreenPos to xy-plane of SimGrabLocation
-	FVector LocalOffset = View->ViewMatrices.ViewMatrix.TransformPosition(SimGrabLocation + SimGrabZ * SimGrabPush);
+	FVector LocalOffset = View->ViewMatrices.GetViewMatrix().TransformPosition(SimGrabLocation + SimGrabZ * SimGrabPush);
 	float ZDistance = GetViewportType() == ELevelViewportType::LVT_Perspective ? fabs(LocalOffset.Z) : 1.f;	//in the ortho case we don't need to do any fixup because there is no perspective
 	WorldDelta = ProjectedDelta * ZDistance;
 	

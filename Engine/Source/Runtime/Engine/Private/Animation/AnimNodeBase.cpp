@@ -7,38 +7,14 @@
 /////////////////////////////////////////////////////
 // FAnimationBaseContext
 
-// @todo: remove after deprecation
-FAnimationBaseContext::FAnimationBaseContext(UAnimInstance* InAnimInstance)
-	: AnimInstanceProxy(&InAnimInstance->GetProxyOnAnyThread<FAnimInstanceProxy>())
-{
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	AnimInstance = InAnimInstance;
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS
-}
-
 FAnimationBaseContext::FAnimationBaseContext(FAnimInstanceProxy* InAnimInstanceProxy)
 	: AnimInstanceProxy(InAnimInstanceProxy)
 {
-	// @todo: remove after deprecation
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	AnimInstance = CastChecked<UAnimInstance>(AnimInstanceProxy->GetAnimInstanceObject());
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 FAnimationBaseContext::FAnimationBaseContext(const FAnimationBaseContext& InContext)
 {
-	// @todo: remove after deprecation
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	AnimInstance = InContext.AnimInstance;
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	AnimInstanceProxy = InContext.AnimInstanceProxy;
-}
-
-UAnimBlueprintGeneratedClass* FAnimationBaseContext::GetAnimBlueprintClass() const
-{
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	return AnimInstanceProxy->GetAnimBlueprintClass();
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 IAnimClassInterface* FAnimationBaseContext::GetAnimClass() const
@@ -131,6 +107,12 @@ void FPoseLinkBase::Initialize(const FAnimationInitializeContext& Context)
 	{
 		LinkedNode->Initialize(Context);
 	}
+}
+
+void FPoseLinkBase::SetLinkNode(struct FAnimNode_Base* NewLinkNode)
+{
+	// this is custom interface, only should be used by native handlers
+	LinkedNode = NewLinkNode;
 }
 
 void FPoseLinkBase::CacheBones(const FAnimationCacheBonesContext& Context) 

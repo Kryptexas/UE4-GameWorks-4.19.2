@@ -3,6 +3,10 @@
 #pragma once
 
 
+class IMessageTracer;
+class IMessageTracerBreakpoint;
+
+
 /**
  * Implements the message breakpoints panel.
  */
@@ -23,27 +27,27 @@ public:
 	 * @param InStyle The visual style to use for this widget.
 	 * @param InTracer The message tracer.
 	 */
-	void Construct( const FArguments& InArgs, const TSharedRef<ISlateStyle>& InStyle, const IMessageTracerRef& InTracer );
+	void Construct(const FArguments& InArgs, const TSharedRef<ISlateStyle>& InStyle, const TSharedRef<IMessageTracer, ESPMode::ThreadSafe>& InTracer);
 
 private:
 
 	/** Handles generating a row widget for the endpoint list view. */
-	TSharedRef<ITableRow> HandleBreakpointListGenerateRow(IMessageTracerBreakpointPtr EndpointInfo, const TSharedRef<STableViewBase>& OwnerTable);
+	TSharedRef<ITableRow> HandleBreakpointListGenerateRow(TSharedPtr<IMessageTracerBreakpoint, ESPMode::ThreadSafe> EndpointInfo, const TSharedRef<STableViewBase>& OwnerTable);
 
 	/** Handles the selection of endpoints. */
-	void HandleBreakpointListSelectionChanged(IMessageTracerBreakpointPtr InItem, ESelectInfo::Type SelectInfo);
+	void HandleBreakpointListSelectionChanged(TSharedPtr<IMessageTracerBreakpoint, ESPMode::ThreadSafe> InItem, ESelectInfo::Type SelectInfo);
 
 private:
 
 	/** Holds the filtered list of historic messages. */
-	TArray<IMessageTracerBreakpointPtr> BreakpointList;
+	TArray<TSharedPtr<IMessageTracerBreakpoint, ESPMode::ThreadSafe>> BreakpointList;
 
 	/** Holds the message list view. */
-	TSharedPtr<SListView<IMessageTracerBreakpointPtr>> BreakpointListView;
+	TSharedPtr<SListView<TSharedPtr<IMessageTracerBreakpoint, ESPMode::ThreadSafe>>> BreakpointListView;
 
 	/** Holds the widget's visual style. */
 	TSharedPtr<ISlateStyle> Style;
 
 	/** Holds a pointer to the message bus tracer. */
-	IMessageTracerPtr Tracer;
+	TSharedPtr<IMessageTracer, ESPMode::ThreadSafe> Tracer;
 };

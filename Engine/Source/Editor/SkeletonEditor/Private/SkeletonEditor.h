@@ -3,6 +3,7 @@
 #pragma once
 
 #include "ISkeletonEditor.h"
+#include "TickableEditorObject.h"
 #include "EditorUndoClient.h"
 
 namespace SkeletonEditorModes
@@ -24,7 +25,7 @@ namespace SkeletonEditorTabs
 	extern const FName SlotNamesTab;
 }
 
-class FSkeletonEditor : public ISkeletonEditor, public FEditorUndoClient
+class FSkeletonEditor : public ISkeletonEditor, public FEditorUndoClient, public FTickableEditorObject
 {
 public:
 	FSkeletonEditor();
@@ -48,6 +49,11 @@ public:
 	/** FEditorUndoClient interface */
 	virtual void PostUndo(bool bSuccess) override;
 	virtual void PostRedo(bool bSuccess) override;
+
+	/** FTickableEditorObject Interface */
+	virtual void Tick(float DeltaTime) override;
+	virtual TStatId GetStatId() const override;
+	virtual bool IsTickable() const override { return true; }
 
 	/** @return the documentation location for this editor */
 	virtual FString GetDocumentationLink() const override

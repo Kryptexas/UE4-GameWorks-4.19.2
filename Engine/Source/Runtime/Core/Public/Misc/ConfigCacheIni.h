@@ -812,6 +812,15 @@ private:
 CORE_API void ApplyCVarSettingsGroupFromIni(const TCHAR* InSectionBaseName, int32 InGroupNumber, const TCHAR* InIniFilename, uint32 SetBy);
 
 /**
+* Helper function to read the contents of an ini file and a specified group of cvar parameters, where sections in the ini file are marked [InName@TagName]
+* @param InSectionBaseName - The base name of the section to apply cvars from (i.e. the bit before the @)
+* @param InSectionTag - The group name required. e.g. 'Cine'
+* @param InIniFilename - The ini filename
+* @param SetBy anything in ECVF_LastSetMask e.g. ECVF_SetByScalability
+*/
+CORE_API void ApplyCVarSettingsGroupFromIni(const TCHAR* InSectionBaseName, const TCHAR* InSectionTag, const TCHAR* InIniFilename, uint32 SetBy);
+
+/**
  * Helper function to read the contents of an ini file and a specified group of cvar parameters, where sections in the ini file are marked [InName]
  * @param InSectionBaseName - The base name of the section to apply cvars from
  * @param InIniFilename - The ini filename

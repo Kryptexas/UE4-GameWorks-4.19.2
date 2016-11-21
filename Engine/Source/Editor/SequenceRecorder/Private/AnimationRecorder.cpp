@@ -205,9 +205,7 @@ void FAnimationRecorder::StartRecord(USkeletalMeshComponent* Component, UAnimSeq
 	TimePassed = 0.f;
 	AnimationObject = InAnimationObject;
 
-	AnimationObject->RawAnimationData.Empty();
-	AnimationObject->TrackToSkeletonMapTable.Empty();
-	AnimationObject->AnimationTrackNames.Empty();
+	AnimationObject->RecycleAnimSequence();
 
 	GetBoneTransforms(Component, PreviousSpacesBases);
 	PreviousAnimCurves = Component->GetAnimationCurves();
@@ -225,20 +223,14 @@ void FAnimationRecorder::StartRecord(USkeletalMeshComponent* Component, UAnimSeq
 	for (int32 BoneIndex=0; BoneIndex <PreviousSpacesBases.Num(); ++BoneIndex)
 	{
 		// verify if this bone exists in skeleton
-		int32 BoneTreeIndex = AnimSkeleton->GetSkeletonBoneIndexFromMeshBoneIndex(Component->MasterPoseComponent != nullptr ? Component->MasterPoseComponent->SkeletalMesh : Component->SkeletalMesh, BoneIndex);
+		const int32 BoneTreeIndex = AnimSkeleton->GetSkeletonBoneIndexFromMeshBoneIndex(Component->MasterPoseComponent != nullptr ? Component->MasterPoseComponent->SkeletalMesh : Component->SkeletalMesh, BoneIndex);
 		if (BoneTreeIndex != INDEX_NONE)
 		{
 			// add tracks for the bone existing
 			FName BoneTreeName = AnimSkeleton->GetReferenceSkeleton().GetBoneName(BoneTreeIndex);
-			AnimationObject->AnimationTrackNames.Add(BoneTreeName);
-			// add mapping to skeleton bone track
-			AnimationObject->TrackToSkeletonMapTable.Add(FTrackToSkeletonMap(BoneTreeIndex));
+			AnimationObject->AddNewRawTrack(BoneTreeName);
 		}
 	}
-
-	int32 NumTracks = AnimationObject->AnimationTrackNames.Num();
-	// add tracks
-	AnimationObject->RawAnimationData.AddZeroed(NumTracks);
 
 	// init notifies
 	AnimationObject->InitializeNotifyTrack();
@@ -530,7 +522,7 @@ void FAnimationRecorder::Record(USkeletalMeshComponent* Component, FTransform co
 			// Find the root bone & store its transform
 			SkeletonRootIndex = INDEX_NONE;
 			USkeleton* AnimSkeleton = AnimationObject->GetSkeleton();
-			for (int32 TrackIndex = 0; TrackIndex < AnimationObject->RawAnimationData.Num(); ++TrackIndex)
+			for (int32 TrackIndex = 0; TrackIndex < AnimationObject->GetRawAnimationData().Num(); ++TrackIndex)
 			{
 				// verify if this bone exists in skeleton
 				int32 BoneTreeIndex = AnimationObject->GetSkeletonIndexFromRawDataTrackIndex(TrackIndex);
@@ -563,7 +555,7 @@ void FAnimationRecorder::Record(USkeletalMeshComponent* Component, FTransform co
 		}
 
 		USkeleton* AnimSkeleton = AnimationObject->GetSkeleton();
-		for (int32 TrackIndex = 0; TrackIndex < AnimationObject->RawAnimationData.Num(); ++TrackIndex)
+		for (int32 TrackIndex = 0; TrackIndex < AnimationObject->GetRawAnimationData().Num(); ++TrackIndex)
 		{
 			// verify if this bone exists in skeleton
 			int32 BoneTreeIndex = AnimationObject->GetSkeletonIndexFromRawDataTrackIndex(TrackIndex);
@@ -596,7 +588,7 @@ void FAnimationRecorder::Record(USkeletalMeshComponent* Component, FTransform co
 					}
 				}
 
-				FRawAnimSequenceTrack& RawTrack = AnimationObject->RawAnimationData[TrackIndex];
+				FRawAnimSequenceTrack& RawTrack = AnimationObject->GetRawAnimationTrack(TrackIndex);
 				RawTrack.PosKeys.Add(LocalTransform.GetTranslation());
 				RawTrack.RotKeys.Add(LocalTransform.GetRotation());
 				RawTrack.ScaleKeys.Add(LocalTransform.GetScale3D());

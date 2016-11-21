@@ -114,11 +114,13 @@ void FPerforceSourceControlProvider::ParseCommandLineSettings(bool bForceConnect
 	bool bFoundCmdLineSettings = false;
 
 	// Check command line for any overridden settings
-	FString PortName = PerforceSourceControl.AccessSettings().GetPort();
-	FString UserName = PerforceSourceControl.AccessSettings().GetUserName();
-	FString ClientSpecName = PerforceSourceControl.AccessSettings().GetWorkspace();
-	FString HostOverrideName = PerforceSourceControl.AccessSettings().GetHostOverride();
-	FString Changelist = PerforceSourceControl.AccessSettings().GetChangelistNumber();
+	FPerforceSourceControlSettings& P4Settings = PerforceSourceControl.AccessSettings();
+
+	FString PortName = P4Settings.GetPort();
+	FString UserName = P4Settings.GetUserName();
+	FString ClientSpecName = P4Settings.GetWorkspace();
+	FString HostOverrideName = P4Settings.GetHostOverride();
+	FString Changelist = P4Settings.GetChangelistNumber();
 	bFoundCmdLineSettings = FParse::Value(FCommandLine::Get(), TEXT("P4Port="), PortName);
 	bFoundCmdLineSettings |= FParse::Value(FCommandLine::Get(), TEXT("P4User="), UserName);
 	bFoundCmdLineSettings |= FParse::Value(FCommandLine::Get(), TEXT("P4Client="), ClientSpecName);
@@ -127,22 +129,22 @@ void FPerforceSourceControlProvider::ParseCommandLineSettings(bool bForceConnect
 	bFoundCmdLineSettings |= FParse::Value(FCommandLine::Get(), TEXT("P4Changelist="), Changelist);
 	if(bFoundCmdLineSettings)
 	{
-		PerforceSourceControl.AccessSettings().SetPort(PortName);
-		PerforceSourceControl.AccessSettings().SetUserName(UserName);
-		PerforceSourceControl.AccessSettings().SetWorkspace(ClientSpecName);
-		PerforceSourceControl.AccessSettings().SetHostOverride(HostOverrideName);
-		PerforceSourceControl.AccessSettings().SetChangelistNumber(Changelist);
+		P4Settings.SetPort(PortName);
+		P4Settings.SetUserName(UserName);
+		P4Settings.SetWorkspace(ClientSpecName);
+		P4Settings.SetHostOverride(HostOverrideName);
+		P4Settings.SetChangelistNumber(Changelist);
 	}
 	
 	if (bForceConnection)
 	{
-		FPerforceConnectionInfo ConnectionInfo = PerforceSourceControl.AccessSettings().GetConnectionInfo();
+		FPerforceConnectionInfo ConnectionInfo = P4Settings.GetConnectionInfo();
 		if(FPerforceConnection::EnsureValidConnection(PortName, UserName, ClientSpecName, ConnectionInfo))
 		{
-			PerforceSourceControl.AccessSettings().SetPort(PortName);
-			PerforceSourceControl.AccessSettings().SetUserName(UserName);
-			PerforceSourceControl.AccessSettings().SetWorkspace(ClientSpecName);
-			PerforceSourceControl.AccessSettings().SetHostOverride(HostOverrideName);		
+			P4Settings.SetPort(PortName);
+			P4Settings.SetUserName(UserName);
+			P4Settings.SetWorkspace(ClientSpecName);
+			P4Settings.SetHostOverride(HostOverrideName);
 		}
 
 		bServerAvailable = true;

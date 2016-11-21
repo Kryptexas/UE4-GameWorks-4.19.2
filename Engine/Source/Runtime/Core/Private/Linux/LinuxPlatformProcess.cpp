@@ -25,21 +25,49 @@ void* FLinuxPlatformProcess::GetDllHandle( const TCHAR* Filename )
 	check( Filename );
 	FString AbsolutePath = FPaths::ConvertRelativePathToFull(Filename);
 
+	// first of all open the lib in LOCAL mode (we will eventually move to GLOBAL if required)
 	int DlOpenMode = RTLD_LAZY;
-	if (AbsolutePath.EndsWith(TEXT("libsteam_api.so")))
+	void *Handle = dlopen( TCHAR_TO_UTF8(*AbsolutePath), DlOpenMode | RTLD_LOCAL );
+	if (Handle)
 	{
-		DlOpenMode |= RTLD_GLOBAL; //Global symbol resolution when loading shared objects - Needed for Steam to work when its library is loaded by a plugin
-	}
-	else
-	{
-		DlOpenMode |= RTLD_LOCAL; //Local symbol resolution when loading shared objects - Needed for Hot-Reload
+		bool UpgradeToGlobal = false;
+		// check for the "ue4_module_options" symbol
+		const char **ue4_module_options = (const char **)dlsym(Handle, "ue4_module_options");
+		if (ue4_module_options)
+		{
+			// split by ','
+			TArray<FString> Options;
+			FString UE4ModuleOptions = FString(ANSI_TO_TCHAR(*ue4_module_options));
+			int32 OptionsNum = UE4ModuleOptions.ParseIntoArray(Options, ANSI_TO_TCHAR(","), true);
+			for(FString Option : Options)
+			{
+				if (Option.Equals(FString(ANSI_TO_TCHAR("linux_global_symbols")), ESearchCase::IgnoreCase))
+				{
+					UpgradeToGlobal = true;
+				}
+			}
+		}
+		else
+		{
+			// is it ia ue4 module ? if not, move it to GLOBAL
+			void *IsUE4Module = dlsym(Handle, "InitializeModule");
+			if (!IsUE4Module)
+			{
+				UpgradeToGlobal = true;
+			}
+		}
+
+		if (UpgradeToGlobal)
+		{
+			Handle = dlopen( TCHAR_TO_UTF8(*AbsolutePath), DlOpenMode | RTLD_NOLOAD | RTLD_GLOBAL );
+		}
 	}
 
-	void *Handle = dlopen( TCHAR_TO_UTF8(*AbsolutePath), DlOpenMode );
 	if (!Handle)
 	{
 		UE_LOG(LogLinux, Warning, TEXT("dlopen failed: %s"), UTF8_TO_TCHAR(dlerror()) );
 	}
+
 	return Handle;
 }
 
@@ -1138,7 +1166,7 @@ FString FLinuxPlatformProcess::GetCurrentWorkingDirectory()
 {
 	// get the current directory
 	ANSICHAR CurrentDir[MAX_PATH] = { 0 };
-	getcwd(CurrentDir, sizeof(CurrentDir));
+	(void)getcwd(CurrentDir, sizeof(CurrentDir));
 	return UTF8_TO_TCHAR(CurrentDir);
 }
 
@@ -1392,7 +1420,10 @@ uint32 FLinuxPlatformProcess::FProcEnumInfo::GetParentPID() const
 	sprintf(Buf, "/proc/%d/stat", GetPID());
 	
 	FILE* FilePtr = fopen(Buf, "r");
-	fscanf(FilePtr, "%d %s %c %d", &DummyNumber, Buf, &DummyChar, &ParentPID);	
+	if (fscanf(FilePtr, "%d %s %c %d", &DummyNumber, Buf, &DummyChar, &ParentPID) != 4)
+	{
+		ParentPID = 1;
+	}
 	fclose(FilePtr);
 
 	return ParentPID;

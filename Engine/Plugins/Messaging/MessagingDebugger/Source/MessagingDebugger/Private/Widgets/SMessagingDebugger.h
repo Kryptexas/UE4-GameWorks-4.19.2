@@ -3,6 +3,10 @@
 #pragma once
 
 
+class FMessagingDebuggerModel;
+class IMessageTracer;
+
+
 /**
  * Implements the messaging system debugger application.
  */
@@ -30,7 +34,12 @@ public:
 	 * @param InMessageTracer The message tracer to use for the debugger.
 	 * @param InStyleSet The style set to use.
 	 */
-	void Construct(const FArguments& InArgs, const TSharedRef<SDockTab>& ConstructUnderMajorTab, const TSharedPtr<SWindow>& ConstructUnderWindow, const IMessageTracerRef& InMessageTracer, const TSharedRef<ISlateStyle>& InStyle);
+	void Construct(
+		const FArguments& InArgs,
+		const TSharedRef<SDockTab>& ConstructUnderMajorTab,
+		const TSharedPtr<SWindow>& ConstructUnderWindow,
+		const TSharedRef<IMessageTracer, ESPMode::ThreadSafe>& InMessageTracer,
+		const TSharedRef<ISlateStyle>& InStyle);
 
 protected:
 
@@ -105,10 +114,10 @@ private:
 	TSharedRef<FUICommandList> CommandList;
 
 	/** Holds a pointer to the message bus tracer. */
-	IMessageTracerPtr MessageTracer;
+	TSharedPtr<IMessageTracer, ESPMode::ThreadSafe> MessageTracer;
 
 	/** Holds the messaging debugger's view model. */
-	FMessagingDebuggerModelRef Model;
+	TSharedRef<FMessagingDebuggerModel> Model;
 
 	/** Holds the widget's visual style. */
 	TSharedPtr<ISlateStyle> Style;

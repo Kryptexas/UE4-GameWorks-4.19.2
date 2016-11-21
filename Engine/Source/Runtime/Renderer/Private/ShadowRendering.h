@@ -660,7 +660,7 @@ public:
 	typedef TArray<const FPrimitiveSceneInfo*,SceneRenderingAllocator> PrimitiveArrayType;
 
 	/** The view to be used when rendering this shadow's depths. */
-	const FViewInfo* ShadowDepthView;
+	FViewInfo* ShadowDepthView;
 
 	/** The depth or color targets this shadow was rendered to. */
 	FShadowMapRenderTargets RenderTargets;
@@ -824,7 +824,7 @@ public:
 	/** Set state for depth rendering */
 	void SetStateForDepth(FRHICommandList& RHICmdList, EShadowDepthRenderMode RenderMode );
 
-	void ClearDepth(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, bool bPerformClear);
+	void ClearDepth(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, int32 NumColorTextures, FTextureRHIParamRef* ColorTextures, FTextureRHIParamRef DepthTexture, bool bPerformClear);
 
 	/** Renders shadow maps for translucent primitives. */
 	void RenderTranslucencyDepths(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer);
@@ -1021,6 +1021,15 @@ private:
 		TArray<FMeshBatchAndRelevance,SceneRenderingAllocator>& OutDynamicMeshElements, 
 		TArray<const FSceneView*>& ReusedViewsArray);
 
+	void SetupFrustumForProjection(const FViewInfo* View, TArray<FVector4, TInlineAllocator<8>>& OutFrustumVertices, bool& bOutCameraInsideShadowFrustum) const;
+
+	void SetupProjectionStencilMask(
+		FRHICommandListImmediate& RHICmdList,
+		const FViewInfo* View,
+		const TArray<FVector4, TInlineAllocator<8>>& FrustumVertices,
+		bool bMobileModulatedProjections,
+		bool bCameraInsideShadowFrustum) const;
+
 	friend class FShadowDepthVS;
 	template <bool bRenderingReflectiveShadowMaps> friend class TShadowDepthBasePS;
 	friend class FShadowProjectionVS;
@@ -1047,7 +1056,7 @@ public:
 			RHICmdList, 
 			ShaderRHI,
 			ProjectionMatrix,
-			FTranslationMatrix(ShadowInfo->PreShadowTranslation - View.ViewMatrices.PreViewTranslation) * ShadowInfo->SubjectAndReceiverMatrix
+			FTranslationMatrix(ShadowInfo->PreShadowTranslation - View.ViewMatrices.GetPreViewTranslation()) * ShadowInfo->SubjectAndReceiverMatrix
 			);
 
 		SetShaderValue(RHICmdList, ShaderRHI, ShadowParams, FVector2D(ShadowInfo->GetShaderDepthBias(), ShadowInfo->InvMaxSubjectDepth));
@@ -1108,7 +1117,7 @@ public:
 		FVector4 GeometryPosAndScale;
 		if(LightSceneInfo->Proxy->GetLightType() == LightType_Point)
 		{
-			StencilingGeometry::GStencilSphereVertexBuffer.CalcTransform(GeometryPosAndScale, LightSceneInfo->Proxy->GetBoundingSphere(), View.ViewMatrices.PreViewTranslation);
+			StencilingGeometry::GStencilSphereVertexBuffer.CalcTransform(GeometryPosAndScale, LightSceneInfo->Proxy->GetBoundingSphere(), View.ViewMatrices.GetPreViewTranslation());
 			SetShaderValue(RHICmdList, Shader->GetVertexShader(), StencilGeometryPosAndScale, GeometryPosAndScale);
 			SetShaderValue(RHICmdList, Shader->GetVertexShader(), StencilConeParameters, FVector4(0.0f, 0.0f, 0.0f, 0.0f));
 		}
@@ -1124,7 +1133,7 @@ public:
 					StencilingGeometry::FStencilConeIndexBuffer::NumSlices,
 					LightSceneInfo->Proxy->GetOuterConeAngle(),
 					LightSceneInfo->Proxy->GetRadius()));
-			SetShaderValue(RHICmdList, Shader->GetVertexShader(), StencilPreViewTranslation, View.ViewMatrices.PreViewTranslation);
+			SetShaderValue(RHICmdList, Shader->GetVertexShader(), StencilPreViewTranslation, View.ViewMatrices.GetPreViewTranslation());
 		}
 	}
 
@@ -1843,6 +1852,7 @@ struct FCompareFProjectedShadowInfoByResolution
 // Then sort CSMs by descending split index, and other shadows by resolution.
 // Used to render shadow cascades in far to near order, whilst preserving the
 // descending resolution sort behavior for other shadow types.
+// Note: the ordering must match the requirements of blend modes set in SetBlendStateForProjection (blend modes that overwrite must come first)
 struct FCompareFProjectedShadowInfoBySplitIndex
 {
 	FORCEINLINE bool operator()( const FProjectedShadowInfo& A, const FProjectedShadowInfo& B ) const
@@ -1851,6 +1861,20 @@ struct FCompareFProjectedShadowInfoBySplitIndex
 		{
 			if (B.IsWholeSceneDirectionalShadow())
 			{
+				if (A.bRayTracedDistanceField != B.bRayTracedDistanceField)
+				{
+					// RTDF shadows need to be rendered after all CSM, because they overlap in depth range with Far Cascades, which will use an overwrite blend mode for the fade plane.
+					if (!A.bRayTracedDistanceField && B.bRayTracedDistanceField)
+					{
+						return true;
+					}
+
+					if (A.bRayTracedDistanceField && !B.bRayTracedDistanceField)
+					{
+						return false;
+					}
+				}
+
 				// Both A and B are CSMs
 				// Compare Split Indexes, to order them far to near.
 				return (B.CascadeSettings.ShadowSplitIndex < A.CascadeSettings.ShadowSplitIndex);
@@ -1864,7 +1888,7 @@ struct FCompareFProjectedShadowInfoBySplitIndex
 		{
 			if (B.IsWholeSceneDirectionalShadow())
 			{
-				// B should be rendered after A.
+				// B should be rendered before A.
 				return false;
 			}
 			

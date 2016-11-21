@@ -22,3 +22,4 @@
 #include "FunctionalTestingManager.h"
 #include "FunctionalTestingModule.h"
 #include "FuncTestRenderingComponent.h"
+#include "TestPhaseComponent.h"

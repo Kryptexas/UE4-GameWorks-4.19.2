@@ -6,17 +6,20 @@
 
 #if HAS_GPU_STATS
 
-static TAutoConsoleVariable<int> CVarGPUStatsEnabled(
-	TEXT("r.GPUStatsEnabled"),
-	0,
-	TEXT("Enables or disables GPU stat recording"));
+// Only exposed for debugging. Disabling this carries a severe performance penalty
+#define RENDER_QUERY_POOLING_ENABLED 1
 
 // If this is enabled, the child stat timings will be included in their parents' times.
 // This presents problems for non-hierarchical stats if we're expecting them to add up
 // to the total GPU time, so we probably want this disabled
 #define GPU_STATS_CHILD_TIMES_INCLUDED 0
 
-DECLARE_FLOAT_COUNTER_STAT(TEXT("[TOTAL SCENE]"), Stat_GPU_Total, STATGROUP_GPU);
+static TAutoConsoleVariable<int> CVarGPUStatsEnabled(
+	TEXT("r.GPUStatsEnabled"),
+	1,
+	TEXT("Enables or disables GPU stat recording"));
+
+DECLARE_FLOAT_COUNTER_STAT(TEXT("[TOTAL]"), Stat_GPU_Total, STATGROUP_GPU);
 
 #endif //HAS_GPU_STATS
 
@@ -173,6 +176,7 @@ public:
 	bool GatherQueryResults(FRHICommandListImmediate& RHICmdList)
 	{
 		// Get the query results which are still outstanding
+		check(GFrameNumberRenderThread != FrameNumber);
 		if (StartResultMicroseconds == InvalidQueryResult)
 		{
 			if (!RHICmdList.GetRenderQueryResult(StartQuery, StartResultMicroseconds, true))
@@ -374,9 +378,11 @@ FRealtimeGPUProfiler* FRealtimeGPUProfiler::Get()
 }
 
 FRealtimeGPUProfiler::FRealtimeGPUProfiler()
-	: WriteBufferIndex(-1)
-	, ReadBufferIndex(-1)
+	: WriteBufferIndex(0)
+	, ReadBufferIndex(1) 
 	, WriteFrameNumber(-1)
+	, bStatGatheringPaused(false)
+	, bInBeginEndBlock(false)
 {
 	RenderQueryPool = new FRenderQueryPool(RQT_AbsoluteTime);
 	for (int Index = 0; Index < NumGPUProfilerBufferedFrames; Index++)
@@ -396,28 +402,49 @@ void FRealtimeGPUProfiler::Release()
 	RenderQueryPool = nullptr;
 }
 
-void FRealtimeGPUProfiler::Update(FRHICommandListImmediate& RHICmdList)
+void FRealtimeGPUProfiler::BeginFrame(FRHICommandListImmediate& RHICmdList)
 {
+	check(bInBeginEndBlock == false);
+	bInBeginEndBlock = true;
+}
+
+void FRealtimeGPUProfiler::EndFrame(FRHICommandListImmediate& RHICmdList)
+{
+	// This is called at the end of the renderthread frame. Note that the RHI thread may still be processing commands for the frame at this point, however
+	// The read buffer index is always 3 frames beind the write buffer index in order to prevent us reading from the frame the RHI thread is still processing. 
+	// This should also ensure the GPU is done with the queries before we try to read them
 	check(Frames.Num() > 0);
-	if (WriteFrameNumber == GFrameNumberRenderThread)
+	check(IsInRenderingThread());
+	check(bInBeginEndBlock == true);
+	bInBeginEndBlock = false;
+	if (GSupportsTimestampRenderQueries == false || !CVarGPUStatsEnabled.GetValueOnRenderThread())
 	{
-		// Multiple views: only update if this is a new frame. Otherwise we just concatenate the stats
 		return;
 	}
+
+	if (Frames[ReadBufferIndex]->UpdateStats(RHICmdList))
+	{
+		// On a successful read, advance the ReadBufferIndex and WriteBufferIndex and clear the frame we just read
+		Frames[ReadBufferIndex]->Clear(&RHICmdList);
 	WriteFrameNumber = GFrameNumberRenderThread;
 	WriteBufferIndex = (WriteBufferIndex + 1) % Frames.Num();
-	Frames[WriteBufferIndex]->Clear(&RHICmdList);
-
-	// If the write buffer catches the read buffer, we need to advance the read buffer before we write over it 
-	if (WriteBufferIndex == ReadBufferIndex)
-	{
-		ReadBufferIndex = (ReadBufferIndex - 1) % Frames.Num();
+		ReadBufferIndex = (ReadBufferIndex + 1) % Frames.Num();
+		bStatGatheringPaused = false;
 	}
-	UpdateStats(RHICmdList);
+	else
+	{
+		// The stats weren't ready; skip the next frame and don't advance the indices. We'll try to read the stats again next frame
+		bStatGatheringPaused = true;
+	}
 }
 
 void FRealtimeGPUProfiler::PushEvent(FRHICommandListImmediate& RHICmdList, TStatId StatId)
 {
+	check(IsInRenderingThread());
+	if (bStatGatheringPaused || !bInBeginEndBlock)
+	{
+		return;
+	}
 	check(Frames.Num() > 0);
 	if (WriteBufferIndex >= 0)
 	{
@@ -427,38 +454,15 @@ void FRealtimeGPUProfiler::PushEvent(FRHICommandListImmediate& RHICmdList, TStat
 
 void FRealtimeGPUProfiler::PopEvent(FRHICommandListImmediate& RHICmdList)
 {
-	check(Frames.Num() > 0);
-	if (WriteBufferIndex >= 0)
-	{
-		Frames[WriteBufferIndex]->PopEvent(RHICmdList);
-	}
-}
-
-void FRealtimeGPUProfiler::UpdateStats(FRHICommandListImmediate& RHICmdList)
-{
 	check(IsInRenderingThread());
-	if (GSupportsTimestampRenderQueries == false || !CVarGPUStatsEnabled.GetValueOnRenderThread() )
+	if (bStatGatheringPaused || !bInBeginEndBlock)
 	{
 		return;
 	}
 	check(Frames.Num() > 0);
-	bool bAdvanceReadIndex = false;
-	if (ReadBufferIndex == -1)
+	if (WriteBufferIndex >= 0)
 	{
-		bAdvanceReadIndex = true;
-	}
-	else
-	{
-		// If the read frame is valid, update the stats
-		if (Frames[ReadBufferIndex]->UpdateStats(RHICmdList))
-		{
-			// On a successful read, advance the ReadBufferIndex
-			bAdvanceReadIndex = true;
-		}
-	}
-	if (bAdvanceReadIndex)
-	{
-		ReadBufferIndex = (ReadBufferIndex + 1) % Frames.Num();
+		Frames[WriteBufferIndex]->PopEvent(RHICmdList);
 	}
 }
 
@@ -524,13 +528,14 @@ void FRenderQueryPool::ReleaseQuery(FRenderQueryRHIRef &Query)
 {
 	if (IsValidRef(Query))
 	{
+#if RENDER_QUERY_POOLING_ENABLED
 		// Is no one else keeping a refcount to the query?
 		if (Query.GetRefCount() == 1)
 		{
 			// Return it to the pool.
 			Queries.Add(Query);
 		}
-
+#endif
 		// De-ref without deleting.
 		Query = NULL;
 	}

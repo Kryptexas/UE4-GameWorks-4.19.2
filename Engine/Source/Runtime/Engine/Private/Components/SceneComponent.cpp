@@ -53,6 +53,7 @@ FName USceneComponent::GetDefaultSceneRootVariableName()
 
 USceneComponent::USceneComponent(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
 	: Super(ObjectInitializer)
+	, CachedLevelCollection(nullptr)
 {
 	Mobility = EComponentMobility::Movable;
 	RelativeScale3D = FVector(1.0f, 1.0f, 1.0f);
@@ -66,6 +67,17 @@ void USceneComponent::AddReferencedObjects(UObject* InThis, FReferenceCollector&
 {
 	USceneComponent* This = CastChecked<USceneComponent>(InThis);
 	Collector.AddReferencedObject(This->SpriteComponent);
+
+	if (GComponentsWithLegacyLightmaps.GetAnnotationMap().Num() > 0)
+	{
+		FMeshMapBuildLegacyData LegacyMeshData = GComponentsWithLegacyLightmaps.GetAnnotation(This);
+
+		for (int32 EntryIndex = 0; EntryIndex < LegacyMeshData.Data.Num(); EntryIndex++)
+		{
+			LegacyMeshData.Data[EntryIndex].Value->AddReferencedObjects(Collector);
+		}
+	}
+
 	Super::AddReferencedObjects(InThis, Collector);
 }
 #endif
@@ -373,7 +385,7 @@ static void UpdateAttachedIsEditorOnly(USceneComponent* ComponentThatChanged)
 	const int32 NumComponentsChanged = SetDescendantIsEditorOnly(ComponentThatChanged);
 
 	// if we altered any components (other than the ones selected), then notify the user
-	if (NumComponentsChanged > 0 && !ComponentThatChanged->GetName().EndsWith(UActorComponent::ComponentTemplateNameSuffix))
+	if (NumComponentsChanged > 0 && !ComponentThatChanged->HasAllFlags(RF_ArchetypeObject))
 	{
 		FText NotificationText = LOCTEXT("IsEditorOnlyAlteredSingularNotification", "Caused 1 component to also change its IsEditorOnly behaviour");
 		if (NumComponentsChanged > 1)
@@ -544,17 +556,26 @@ void USceneComponent::OnRegister()
 		}
 	}
 	
+	// Cache the level collection that contains the level in which this component is registered for fast access in IsVisible().
+	const UWorld* const World = GetWorld();
+	if (World)
+	{
+		const ULevel* const CachedLevel = GetComponentLevel();
+		CachedLevelCollection = CachedLevel ? CachedLevel->GetCachedLevelCollection() : nullptr;
+	}
+
 	Super::OnRegister();
 
 #if WITH_EDITORONLY_DATA
 	if (bVisualizeComponent && SpriteComponent == nullptr && GetOwner() && !GetWorld()->IsGameWorld() )
 	{
 		// Create a new billboard component to serve as a visualization of the actor until there is another primitive component
-		SpriteComponent = NewObject<UBillboardComponent>(GetOwner(), NAME_None, RF_Transactional | RF_Transient);
+		SpriteComponent = NewObject<UBillboardComponent>(GetOwner(), NAME_None, RF_Transactional | RF_Transient | RF_TextExportTransient);
 
 		SpriteComponent->Sprite = LoadObject<UTexture2D>(nullptr, TEXT("/Engine/EditorResources/EmptyActor.EmptyActor"));
 		SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
 		SpriteComponent->Mobility = EComponentMobility::Movable;
+		SpriteComponent->AlwaysLoadOnClient = false;
 		SpriteComponent->bIsEditorOnly = true;
 		SpriteComponent->SpriteInfo.Category = TEXT("Misc");
 		SpriteComponent->SpriteInfo.DisplayName = NSLOCTEXT( "SpriteCategory", "Misc", "Misc" );
@@ -568,11 +589,26 @@ void USceneComponent::OnRegister()
 #endif
 }
 
+void USceneComponent::OnUnregister()
+{
+	CachedLevelCollection = nullptr;
+
+	Super::OnUnregister();
+}
+
 void USceneComponent::PropagateTransformUpdate(bool bTransformChanged, EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport)
 {
 	//QUICK_SCOPE_CYCLE_COUNTER(STAT_USceneComponent_PropagateTransformUpdate);
 	if (IsDeferringMovementUpdates())
 	{
+		FScopedMovementUpdate* CurrentUpdate = GetCurrentScopedMovement();
+
+		if (CurrentUpdate && Teleport == ETeleportType::TeleportPhysics)
+		{
+			// Remember this was a teleport
+			CurrentUpdate->SetHasTeleported();
+		}
+
 		// We are deferring these updates until later.
 		return;
 	}
@@ -678,8 +714,8 @@ void USceneComponent::EndScopedMovementUpdate(class FScopedMovementUpdate& Compl
 			const bool bTransformChanged = CurrentScopedUpdate->IsTransformDirty();
 			if (bTransformChanged)
 			{
-				// TODO: handle teleporting flag when it differs between accumulated moves.
-				PropagateTransformUpdate(true);
+				// Pass teleport flag if set
+				PropagateTransformUpdate(true, EUpdateTransformFlags::None, CurrentScopedUpdate->bHasTeleported ? ETeleportType::TeleportPhysics : ETeleportType::None);
 			}
 
 			// We may have moved somewhere and then moved back to the start, we still need to update overlaps if we touched things along the way.
@@ -1745,6 +1781,11 @@ bool USceneComponent::AttachToComponent(USceneComponent* Parent, const FAttachme
 			Parent->AttachChildren.Add(this);
 		}
 
+		if (Parent->IsNetSimulating() && !IsNetSimulating())
+		{
+			Parent->ClientAttachedChildren.Add(this);
+		}
+
 		// Now apply attachment rules
 		FTransform SocketTransform = GetAttachParent()->GetSocketTransform(GetAttachSocketName());
 #if ENABLE_NAN_DIAGNOSTIC
@@ -1908,6 +1949,7 @@ void USceneComponent::DetachFromComponent(const FDetachmentTransformRules& Detac
 		PrimaryComponentTick.RemovePrerequisite(GetAttachParent(), GetAttachParent()->PrimaryComponentTick); // no longer required to tick after the attachment
 
 		GetAttachParent()->AttachChildren.Remove(this);
+		GetAttachParent()->ClientAttachedChildren.Remove(this);
 		GetAttachParent()->OnChildDetached(this);
 
 #if WITH_EDITOR
@@ -2458,11 +2500,21 @@ bool USceneComponent::InternalSetWorldLocationAndRotation(FVector NewLocation, c
 		}
 	}
 
-	if (!NewLocation.Equals(RelativeLocation) || !NewRotationQuat.Equals(RelativeRotationCache.RotatorToQuat_ReadOnly(RelativeRotation), SCENECOMPONENT_QUAT_TOLERANCE))
+	const FRotator NewRelativeRotation = RelativeRotationCache.QuatToRotator_ReadOnly(NewRotationQuat);
+	if (!NewLocation.Equals(RelativeLocation) || !NewRelativeRotation.Equals(RelativeRotation))
 	{
 		RelativeLocation = NewLocation;
-		RelativeRotation = RelativeRotationCache.QuatToRotator(NewRotationQuat); // Normalizes quat, if this is a new rotation. Then we'll use it below.
-		
+
+		// Here it is important to compute the quaternion from the rotator and not the opposite.
+		// In some cases, similar quaternions generate the same rotator, which create issues.
+		// When the component is loaded, the rotator is used to generate the quaternion, which
+		// is then used to compute the ComponentToWorld matrix. When running a blueprint script,  
+		// it is required to generate that same ComponentToWorld otherwise the FComponentInstanceDataCache
+		// might fail to apply to the relevant component. In order to have the exact same transform
+		// we must enforce the quaternion to come from the rotator (as in load)
+		RelativeRotation = NewRelativeRotation;
+		RelativeRotationCache.RotatorToQuat(NewRelativeRotation);
+
 #if ENABLE_NAN_DIAGNOSTIC
 		if (RelativeRotation.ContainsNaN())
 		{
@@ -2521,16 +2573,17 @@ bool USceneComponent::CheckStaticMobilityAndWarn(const FText& ActionText) const
 	{
 		if (UWorld * World = GetWorld())
 		{
-			ULevel* Level = GetComponentLevel();
-
-			// It's only a problem if we're in gameplay, and the owning level is visible
-			if (World->HasBegunPlay() && IsRegistered() && Level && Level->bIsVisible)
+			if (World->IsGameWorld() && World->bIsWorldInitialized && !IsOwnerRunningUserConstructionScript())
 			{
+				AActor* MyOwner = GetOwner();
+				if (MyOwner && MyOwner->IsActorInitialized())
+				{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("InvalidMustBeMovable", "Mobility of {0} : {1} has to be 'Movable' if you'd like to {2}. "),
-					FText::FromString(GetNameSafe(GetOwner())), FText::FromString(GetName()), ActionText));
+					FMessageLog("PIE").Warning(FText::Format(LOCTEXT("InvalidMustBeMovable", "Mobility of {0} : {1} has to be 'Movable' if you'd like to {2}. "),
+						FText::FromString(GetNameSafe(GetOwner())), FText::FromString(GetName()), ActionText));
 #endif
-				return true;
+					return true;
+				}
 			}
 		}
 	}
@@ -2689,8 +2742,8 @@ bool USceneComponent::IsVisible() const
 	{
 		return false;
 	}
-
-	return ( bVisible ); 
+	
+	return ( bVisible && (!CachedLevelCollection || CachedLevelCollection->IsVisible()) ); 
 }
 
 void USceneComponent::ToggleVisibility(bool bPropagateToChildren)
@@ -2836,6 +2889,49 @@ void USceneComponent::OnRep_AttachParent()
 void USceneComponent::OnRep_AttachSocketName()
 {
 	bNetUpdateAttachment = true;
+}
+
+void USceneComponent::OnRep_AttachChildren()
+{
+	// Because replication of AttachChildren is not atomic with AttachParent of the corresponding component it is
+	// entirely possible to get duplicates in the AttachChildren array.  So we have to extract them and the later entry
+	// is always the duplicate
+	for (int32 SearchIndex = AttachChildren.Num()-1; SearchIndex >= 1; --SearchIndex)
+	{
+		if (USceneComponent* PossibleDuplicate = AttachChildren[SearchIndex])
+		{
+			for (int32 DuplicateCheckIndex = SearchIndex - 1; DuplicateCheckIndex >= 0; --DuplicateCheckIndex)
+			{
+				if (PossibleDuplicate == AttachChildren[DuplicateCheckIndex])
+				{
+					AttachChildren.RemoveAt(SearchIndex, 1, false);
+					break;
+				}
+			}
+		}
+	}
+
+	if (ClientAttachedChildren.Num())
+	{
+		for (USceneComponent* AttachChild : AttachChildren)
+		{
+			if (AttachChild)
+			{
+				// Clear out any initially attached components from the client attached list that end up becoming replicated
+				ClientAttachedChildren.Remove(AttachChild);
+			}
+		}
+
+		// When the server replicates the attach children array to the client it will wipe out any client only attachments
+		// so we need to fill back in the client attached children
+		for (USceneComponent* ClientAttachChild : ClientAttachedChildren)
+		{
+			if (ClientAttachChild)
+			{
+				AttachChildren.AddUnique(ClientAttachChild);
+			}
+		}
+	}
 }
 
 void USceneComponent::OnRep_Visibility(bool OldValue)
@@ -2987,6 +3083,7 @@ FScopedMovementUpdate::FScopedMovementUpdate( class USceneComponent* Component, 
 , OuterDeferredScope(nullptr)
 , bDeferUpdates(ScopeBehavior == EScopedUpdate::DeferredUpdates)
 , bHasMoved(false)
+, bHasTeleported(false)
 , CurrentOverlapState(EOverlapState::eUseParent)
 , FinalOverlapCandidatesIndex(INDEX_NONE)
 {

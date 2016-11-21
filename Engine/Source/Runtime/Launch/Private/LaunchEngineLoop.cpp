@@ -29,7 +29,6 @@
 
 #if WITH_EDITOR
 	#include "EditorStyle.h"
-	#include "ProfilerClient.h"
 	#include "RemoteConfigIni.h"
 	#include "EditorCommandLineUtils.h"
 
@@ -75,7 +74,7 @@
 
 #if !UE_BUILD_SHIPPING
 	#include "STaskGraph.h"
-	#include "ProfilerService.h"
+	#include "IProfilerServiceModule.h"
 #endif
 
 #if WITH_AUTOMATION_WORKER
@@ -87,6 +86,7 @@
 #if WITH_EDITOR
 	#include "FeedbackContextEditor.h"
 	static FFeedbackContextEditor UnrealEdWarn;
+	#include "AudioEditorModule.h"
 #endif	// WITH_EDITOR
 
 #if UE_EDITOR
@@ -1190,7 +1190,11 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	FScopeCycleCounter CycleCount_AfterStats( GET_STATID( STAT_FEngineLoop_PreInit_AfterStats ) );
 
 	// Load Core modules required for everything else to work (needs to be loaded before InitializeRenderingCVarsCaching)
-	LoadCoreModules();
+	if (!LoadCoreModules())
+	{
+		UE_LOG(LogInit, Error, TEXT("Failed to load Core modules."));
+		return 1;
+	}
 
 #if WITH_ENGINE
 	extern ENGINE_API void InitializeRenderingCVarsCaching();
@@ -1273,6 +1277,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	ApplyCVarSettingsFromIni(TEXT("/Script/Engine.RendererOverrideSettings"), *GEngineIni, ECVF_SetByProjectSetting);
 	ApplyCVarSettingsFromIni(TEXT("/Script/Engine.StreamingSettings"), *GEngineIni, ECVF_SetByProjectSetting);
 	ApplyCVarSettingsFromIni(TEXT("/Script/Engine.GarbageCollectionSettings"), *GEngineIni, ECVF_SetByProjectSetting);
+	ApplyCVarSettingsFromIni(TEXT("/Script/Engine.NetworkSettings"), *GEngineIni, ECVF_SetByProjectSetting);
 
 #if !UE_SERVER
 	if (!IsRunningDedicatedServer())
@@ -1411,7 +1416,9 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		InitializeStdOutDevice();
 	}
 
+#if !USE_NEW_ASYNC_IO
 	FIOSystem::Get(); // force it to be created if it isn't already
+#endif
 
 	// allow the platform to start up any features it may need
 	IPlatformFeaturesModule::Get();
@@ -2024,11 +2031,14 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 }
 
 
-void FEngineLoop::LoadCoreModules()
+bool FEngineLoop::LoadCoreModules()
 {
 	// Always attempt to load CoreUObject. It requires additional pre-init which is called from its module's StartupModule method.
 #if WITH_COREUOBJECT
-	FModuleManager::Get().LoadModule(TEXT("CoreUObject"));
+	bool bResult = FModuleManager::Get().LoadModule(TEXT("CoreUObject")).IsValid();
+	return bResult;
+#else
+	return true;
 #endif
 }
 
@@ -2070,6 +2080,12 @@ void FEngineLoop::LoadPreInitModules()
 	FModuleManager::Get().LoadModule(TEXT("TextureCompressor"));
 #endif
 #endif // WITH_ENGINE
+
+#if (WITH_EDITOR && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
+	// Load audio editor module before engine class CDOs are loaded
+	FModuleManager::Get().LoadModule(TEXT("AudioEditor"));
+#endif
+
 }
 
 
@@ -2152,22 +2168,14 @@ bool FEngineLoop::LoadStartupCoreModules()
 	// Ability tasks are based on GameplayTasks, so we need to make sure that module is loaded as well
 	FModuleManager::Get().LoadModule(TEXT("GameplayTasksEditor"));
 
+	IAudioEditorModule* AudioEditorModule = &FModuleManager::LoadModuleChecked<IAudioEditorModule>("AudioEditor");
+	AudioEditorModule->RegisterAssetActions();
+
 	if( !IsRunningDedicatedServer() )
 	{
 		// VREditor needs to be loaded in non-server editor builds early, so engine content Blueprints can be loaded during DDC generation
 		FModuleManager::Get().LoadModule(TEXT("VREditor"));
 	}
-	// -----------------------------------------------------
-
-	// HACK: load AbilitySystem editor as early as possible for statically initialized assets (non cooked BT assets needs it)
-	// cooking needs this module too
-	bool bGameplayAbilitiesEnabled = false;
-	GConfig->GetBool(TEXT("GameplayAbilities"), TEXT("GameplayAbilitiesEditorEnabled"), bGameplayAbilitiesEnabled, GEngineIni);
-	if (bGameplayAbilitiesEnabled)
-	{
-		FModuleManager::Get().LoadModule(TEXT("GameplayAbilitiesEditor"));
-	}
-
 	// -----------------------------------------------------
 
 	// HACK: load EQS editor as early as possible for statically initialized assets (non cooked EQS assets needs it)
@@ -2191,9 +2199,6 @@ bool FEngineLoop::LoadStartupCoreModules()
 		FModuleManager::Get().LoadModule(TEXT("IntroTutorials"));
 		FModuleManager::Get().LoadModule(TEXT("Blutility"));
 	}
-
-	// Needed for extra Blueprint nodes that can be used in standalone.
-	FModuleManager::Get().LoadModule(TEXT("GameplayTagsEditor"));
 
 #endif //(WITH_EDITOR && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
 
@@ -2511,7 +2516,9 @@ void FEngineLoop::Exit()
 
 	FTaskGraphInterface::Shutdown();
 	IStreamingManager::Shutdown();
+#if !USE_NEW_ASYNC_IO
 	FIOSystem::Shutdown();
+#endif
 }
 
 
@@ -2740,6 +2747,7 @@ void FEngineLoop::Tick()
 			GRHICommandList.LatchBypass();
 			GFrameNumberRenderThread++;
 			RHICmdList.PushEvent(*FString::Printf(TEXT("Frame%d"),GFrameNumberRenderThread), FColor(0, 255, 0, 255));
+			GPU_STATS_BEGINFRAME(RHICmdList);
 			RHICmdList.BeginFrame();
 		});
 
@@ -2816,11 +2824,12 @@ void FEngineLoop::Tick()
 		// input is polled for motion controller devices each frame.
 #if WITH_ENGINE
 		extern ENGINE_API float GNewWorldToMetersScale;
-		if( GNewWorldToMetersScale != 0.0f && GWorld != nullptr )
+		UWorld* HackGWorld = GWorld;
+		if( GNewWorldToMetersScale != 0.0f && HackGWorld != nullptr )
 		{
-			if( GNewWorldToMetersScale != GWorld->GetWorldSettings()->WorldToMeters )
+			if( GNewWorldToMetersScale != HackGWorld->GetWorldSettings()->WorldToMeters )
 			{
-				GWorld->GetWorldSettings()->WorldToMeters = GNewWorldToMetersScale;
+				HackGWorld->GetWorldSettings()->WorldToMeters = GNewWorldToMetersScale;
 			}
 		}
 #endif	// WITH_ENGINE
@@ -2955,6 +2964,7 @@ void FEngineLoop::Tick()
 			EndFrame,
 		{
 			RHICmdList.EndFrame();
+			GPU_STATS_ENDFRAME(RHICmdList);
 			RHICmdList.PopEvent();
 		});
 
@@ -3233,26 +3243,11 @@ bool FEngineLoop::AppInit( )
 	}
 #endif
 
-#if WITH_ENGINE
-	if (!IsRunningCommandlet())
-	{
-		// Earliest place to init the online subsystems (via plugins)
-		// Code needs GConfigFile to be valid
-		// Must be after FThreadStats::StartThread();
-		// Must be before Render/RHI subsystem D3DCreate()
-		// For platform services that need D3D hooks like Steam
-		// --
-		// Why load HTTP?
-		// Because most, if not all online subsystems will load HTTP themselves. This can cause problems though, as HTTP will be loaded *after* OSS, 
-		// and if OSS holds on to resources allocated by it, this will cause crash (modules are being unloaded in LIFO order with no dependency tracking).
-		// Loading HTTP before OSS works around this problem by making ModuleManager unload HTTP after OSS, at the cost of extra module for the few OSS (like Null) that don't use it.
-
-		// These should not be LoadModuleChecked because these modules might not exist
-		FModuleManager::Get().LoadModule(TEXT("XMPP"));
-		FModuleManager::Get().LoadModule(TEXT("HTTP"));
-		// OSS Default/Console are loaded in plugins immediately following
-	}
-#endif
+	// NOTE: This is the earliest place to init the online subsystems (via plugins)
+	// Code needs GConfigFile to be valid
+	// Must be after FThreadStats::StartThread();
+	// Must be before Render/RHI subsystem D3DCreate()
+	// For platform services that need D3D hooks like Steam
 
 	// Load "pre-init" plugin modules
 	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PostConfigInit) || !IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PostConfigInit))

@@ -70,9 +70,15 @@ void FGameplayDebuggerCategory_Navmesh::OnDataPackReplicated(int32 DataPackId)
 	MarkRenderStateDirty();
 }
 
-FDebugRenderSceneProxy* FGameplayDebuggerCategory_Navmesh::CreateSceneProxy(const UPrimitiveComponent* InComponent)
+FDebugRenderSceneProxy* FGameplayDebuggerCategory_Navmesh::CreateDebugSceneProxy(const UPrimitiveComponent* InComponent, FDebugDrawDelegateHelper*& OutDelegateHelper)
 {
-	return new FNavMeshSceneProxy(InComponent, &NavmeshRenderData, true);
+	FNavMeshSceneProxy* NavMeshSceneProxy = new FNavMeshSceneProxy(InComponent, &NavmeshRenderData, true);
+
+	auto* OutDelegateHelper2 = new FNavMeshDebugDrawDelegateHelper();
+	OutDelegateHelper2->InitDelegateHelper(NavMeshSceneProxy);
+	OutDelegateHelper = OutDelegateHelper2;
+
+	return NavMeshSceneProxy;
 }
 
 #endif // WITH_GAMEPLAY_DEBUGGER

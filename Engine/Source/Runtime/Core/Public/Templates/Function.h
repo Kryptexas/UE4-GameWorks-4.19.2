@@ -9,6 +9,7 @@
 #include "UnrealMathUtility.h"
 #include "UnrealMemory.h"
 #include "Templates/Decay.h"
+#include "Templates/Invoke.h"
 #include "Templates/RemoveReference.h"
 
 // Disable visualization hack for shipping or test builds.
@@ -225,7 +226,7 @@ namespace UE4Function_Private
 	{
 		static Ret Call(void* Obj, ParamTypes&... Params)
 		{
-			return (*(Functor*)Obj)(Forward<ParamTypes>(Params)...);
+			return Invoke(*(Functor*)Obj, Forward<ParamTypes>(Params)...);
 		}
 	};
 
@@ -234,7 +235,7 @@ namespace UE4Function_Private
 	{
 		static void Call(void* Obj, ParamTypes&... Params)
 		{
-			(*(Functor*)Obj)(Forward<ParamTypes>(Params)...);
+			Invoke(*(Functor*)Obj, Forward<ParamTypes>(Params)...);
 		}
 	};
 

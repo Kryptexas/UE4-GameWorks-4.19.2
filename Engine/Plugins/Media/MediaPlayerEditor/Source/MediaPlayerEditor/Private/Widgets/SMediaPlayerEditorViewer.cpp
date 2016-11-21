@@ -496,7 +496,7 @@ void SMediaPlayerEditorViewer::SetDesiredPlayerName(FName PlayerName)
 	{
 		MediaPlayer->DesiredPlayerName = PlayerName;
 
-		if (PlayerName != NAME_None)
+		if ((PlayerName != NAME_None) && (PlayerName != MediaPlayer->GetPlayerName()))
 		{
 			MediaPlayer->Reopen();
 		}
@@ -541,7 +541,7 @@ void SMediaPlayerEditorViewer::HandleMediaPlayerMediaEvent(EMediaEvent Event)
 
 		FSlateNotificationManager::Get().AddNotification(NotificationInfo)->SetCompletionState(SNotificationItem::CS_Fail);
 	}
-	else if (Event == EMediaEvent::MediaClosed)
+	else if ((Event == EMediaEvent::MediaClosed) || (Event == EMediaEvent::MediaOpened))
 	{
 		UrlTextBox->SetBorderBackgroundColor(FLinearColor::White);
 	}
@@ -557,7 +557,7 @@ FText SMediaPlayerEditorViewer::HandleOverlayPlayerNameText() const
 
 	FName PlayerName = MediaPlayer->GetPlayerName();
 
-	if (PlayerName == NAME_None)
+	if ((PlayerName == NAME_None) || MediaPlayer->GetUrl().IsEmpty())
 	{
 		if (MediaPlayer->DesiredPlayerName == NAME_None)
 		{

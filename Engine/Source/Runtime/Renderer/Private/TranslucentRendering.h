@@ -100,6 +100,8 @@ public:
 		ContextType(bool InbRenderingSeparateTranslucency)
 		:	bRenderingSeparateTranslucency(InbRenderingSeparateTranslucency)
 		{}
+
+		bool ShouldRenderSeparateTranslucency() const { return bRenderingSeparateTranslucency; }
 	};
 
 	/**
@@ -112,20 +114,6 @@ public:
 		ContextType DrawingContext,
 		const FMeshBatch& Mesh,
 		bool bBackFace,
-		bool bPreFog,
-		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
-		FHitProxyId HitProxyId
-		);
-
-	/**
-	* Render a dynamic mesh using a translucent draw policy 
-	* @return true if the mesh rendered
-	*/
-	static bool DrawStaticMesh(
-		FRHICommandList& RHICmdList, 
-		const FViewInfo& View,
-		ContextType DrawingContext,
-		const FStaticMesh& StaticMesh,
 		bool bPreFog,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		FHitProxyId HitProxyId

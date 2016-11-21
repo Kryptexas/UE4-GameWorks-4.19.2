@@ -25,12 +25,5 @@ class AIMODULE_API IAISightTargetInterface
 		OutSightStrength = 0;
 		return false; 
 	}
-
-	DEPRECATED(4.8, "This function is deprecated. Please use the other CanBeSeenFrom version.")
-	virtual bool CanBeSeenFrom(const FVector& ObserverLocation, FVector& OutSeenLocation, int32& NumberOfLoSChecksPerformed, const AActor* IgnoreActor = NULL) const
-	{
-		float SightStrength = 1.f;
-		return CanBeSeenFrom(ObserverLocation, OutSeenLocation, NumberOfLoSChecksPerformed, SightStrength, IgnoreActor);
-	}
 };
 

@@ -189,7 +189,6 @@ public:
 
 		OutputDevice.Bind(Initializer.ParameterMap, TEXT("OutputDevice"));
 		OutputGamut.Bind(Initializer.ParameterMap, TEXT("OutputGamut"));
-		ACESInversion.Bind(Initializer.ParameterMap, TEXT("ACESInversion"));
 
 		ColorMatrixR_ColorCurveCd1.Bind(Initializer.ParameterMap, TEXT("ColorMatrixR_ColorCurveCd1"));
 		ColorMatrixG_ColorCurveCd3Cm3.Bind(Initializer.ParameterMap, TEXT("ColorMatrixG_ColorCurveCd3Cm3"));
@@ -267,38 +266,28 @@ public:
 		SetShaderValue( RHICmdList, ShaderRHI, FilmWhiteClip,	Settings.FilmWhiteClip );
 
 		{
-			static TConsoleVariableData<int32>* CVar709 = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Tonemapper709"));
-			static TConsoleVariableData<float>* CVarGamma = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.TonemapperGamma"));
-			static TConsoleVariableData<int32>* CVar2084 = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Tonemapper2084"));
+			static TConsoleVariableData<int32>* CVarOutputDevice = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.Display.OutputDevice"));
+			static TConsoleVariableData<float>* CVarOutputGamma = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.TonemapperGamma"));
 
-			int32 Rec709 = CVar709->GetValueOnRenderThread();
-			int32 ST2084 = CVar2084->GetValueOnRenderThread();
-			float Gamma = CVarGamma->GetValueOnRenderThread();
+			int32 OutputDeviceValue = CVarOutputDevice->GetValueOnRenderThread();
+			float Gamma = CVarOutputGamma->GetValueOnRenderThread();
 
 			if (PLATFORM_APPLE && Gamma == 0.0f)
 			{
 				Gamma = 2.2f;
 			}
+	
+			if (Gamma > 0.0f)
+			{
+				// Enforce user-controlled ramp over sRGB or Rec709
+				OutputDeviceValue = FMath::Max(OutputDeviceValue, 2);
+			}
 
-			int32 Value = 0;						// sRGB
-			Value = Rec709 ? 1 : Value;	// Rec709
-			Value = Gamma != 0.0f ? 2 : Value;	// Explicit gamma
-			// ST-2084 (Dolby PQ) options 
-			// 1 = ACES 1000 nit
-			// 2 = ACES 2000 nit
-			// 3 = Unreal FilmToneMap + Inverted ACES + PQ
-			Value = ST2084 >= 1 ? ST2084 + 2 : Value;
+			SetShaderValue(RHICmdList, ShaderRHI, OutputDevice, OutputDeviceValue);
 
-			SetShaderValue(RHICmdList, ShaderRHI, OutputDevice, Value);
-
-			static TConsoleVariableData<int32>* CVarOutputGamut = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TonemapperOutputGamut"));
+			static TConsoleVariableData<int32>* CVarOutputGamut = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.Display.ColorGamut"));
 			int32 OutputGamutValue = CVarOutputGamut->GetValueOnRenderThread();
 			SetShaderValue(RHICmdList, ShaderRHI, OutputGamut, OutputGamutValue);
-
-			// The approach to use when applying the inverse ACES Output Transform
-			static TConsoleVariableData<int32>* CVarACESInversion = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TonemapperACESInversion"));
-			int32 ACESInversionValue = CVarACESInversion->GetValueOnRenderThread();
-			SetShaderValue(RHICmdList, ShaderRHI, ACESInversion, ACESInversionValue);
 
 			FVector InvDisplayGammaValue;
 			InvDisplayGammaValue.X = 1.0f / ViewFamily.RenderTarget->GetDisplayGamma();
@@ -487,7 +476,6 @@ public:
 
 		Ar << OutputDevice;
 		Ar << OutputGamut;
-		Ar << ACESInversion;
 
 		Ar << FilmSlope;
 		Ar << FilmToe;
@@ -550,7 +538,6 @@ private: // ---------------------------------------------------
 
 	FShaderParameter OutputDevice;
 	FShaderParameter OutputGamut;
-	FShaderParameter ACESInversion;
 
 	// Legacy
 	FShaderParameter ColorMatrixR_ColorCurveCd1;

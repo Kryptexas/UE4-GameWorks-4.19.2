@@ -45,7 +45,7 @@ struct FUniqueNetIdRepl : public FUniqueNetIdWrapper
  	{
  	}
 
-	~FUniqueNetIdRepl() {}
+	virtual ~FUniqueNetIdRepl() {}
 
     /** Export contents of this struct as a string */
 	bool ExportTextItem(FString& ValueStr, FUniqueNetIdRepl const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const;

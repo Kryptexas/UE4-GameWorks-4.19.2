@@ -2872,6 +2872,8 @@ void FNativeClassHeaderGenerator::ExportGeneratedStructBodyMacros(const TArray<U
 		const bool bIsDynamic = FClass::IsDynamic(Struct);
 		const FString ActualStructName = FNativeClassHeaderGenerator::GetOverriddenName(Struct);
 
+		UStruct* BaseStruct = Struct->GetSuperStruct();
+
 		// Export struct.
 		if (Struct->StructFlags & STRUCT_Native)
 		{
@@ -2890,8 +2892,9 @@ void FNativeClassHeaderGenerator::ExportGeneratedStructBodyMacros(const TArray<U
 			const FString FriendLine = FString::Printf(TEXT("\tfriend %sclass UScriptStruct* %s;\r\n"), *FriendApiString, *StaticConstructionString);
 			const FString StaticClassLine = FString::Printf(TEXT("\t%sstatic class UScriptStruct* StaticStruct();\r\n"), *RequiredAPI);
 			const FString PrivatePropertiesOffset = PrivatePropertiesOffsetGetters(Struct, StructNameCPP);
+			const FString SuperTypedef = BaseStruct ? FString::Printf(TEXT("\ttypedef %s Super;\r\n"), NameLookupCPP.GetNameCPP(BaseStruct)) : FString();
 
-			const FString CombinedLine = FriendLine + StaticClassLine + PrivatePropertiesOffset;
+			const FString CombinedLine = FriendLine + StaticClassLine + PrivatePropertiesOffset + SuperTypedef;
 			const FString MacroName = CurrentSourceFile.Top()->GetGeneratedBodyMacroName(Struct->StructMacroDeclaredLineNumber);
 
 			const FString Macroized = Macroize(*MacroName, *CombinedLine);
@@ -2966,7 +2969,6 @@ void FNativeClassHeaderGenerator::ExportGeneratedStructBodyMacros(const TArray<U
 
 		{
 			UScriptStruct* ScriptStruct = Struct;
-			UStruct* BaseStruct = ScriptStruct->GetSuperStruct();
 
 			const FString SingletonName(GetSingletonName(ScriptStruct));
 			GeneratedFunctionDeclarations.Log(FTypeSingletonCache::Get(ScriptStruct).GetExternDecl());

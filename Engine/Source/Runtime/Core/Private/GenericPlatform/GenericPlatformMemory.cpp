@@ -75,7 +75,9 @@ FGenericPlatformMemoryStats::FGenericPlatformMemoryStats()
 bool FGenericPlatformMemory::bIsOOM = false;
 uint64 FGenericPlatformMemory::OOMAllocationSize = 0;
 uint32 FGenericPlatformMemory::OOMAllocationAlignment = 0;
+FGenericPlatformMemory::EMemoryAllocatorToUse FGenericPlatformMemory::AllocatorToUse = Platform;
 void* FGenericPlatformMemory::BackupOOMMemoryPool = nullptr;
+
 
 void FGenericPlatformMemory::SetupMemoryPools()
 {
@@ -94,7 +96,7 @@ void FGenericPlatformMemory::SetupMemoryPools()
 
 void FGenericPlatformMemory::Init()
 {
-	SetupMemoryPools();
+		SetupMemoryPools();
 
 #if	STATS
 	// Stats are updated only once per second.

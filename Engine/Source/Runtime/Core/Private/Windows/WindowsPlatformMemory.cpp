@@ -7,14 +7,12 @@
 #include "MallocStomp.h"
 #include "GenericPlatformMemoryPoolStats.h"
 #include "MemoryMisc.h"
+#include "MallocBinned.h"
+#include "MallocBinned2.h"
 
 #if ENABLE_WIN_ALLOC_TRACKING
 #include <crtdbg.h>
 #endif // ENABLE_WIN_ALLOC_TRACKING
-
-#if !FORCE_ANSI_ALLOCATOR
-#include "MallocBinnedRedirect.h"
-#endif
 
 #include "AllowWindowsPlatformTypes.h"
 #include <Psapi.h>
@@ -62,6 +60,9 @@ void FWindowsPlatformMemory::Init()
 	DumpStats( *GLog );
 }
 
+// Set rather to use BinnedMalloc2 for binned malloc, can be overridden below
+#define USE_MALLOC_BINNED2 (1)
+
 FMalloc* FWindowsPlatformMemory::BaseAllocator()
 {
 #if ENABLE_WIN_ALLOC_TRACKING
@@ -71,25 +72,66 @@ FMalloc* FWindowsPlatformMemory::BaseAllocator()
 	_CrtSetAllocHook(WindowsAllocHook);
 #endif // ENABLE_WIN_ALLOC_TRACKING
 
-#if FORCE_ANSI_ALLOCATOR
-	return new FMallocAnsi();
-#elif USE_MALLOC_STOMP
-	// Allocator that helps track down memory stomps.
-	return new FMallocStomp();
-#elif (WITH_EDITORONLY_DATA || IS_PROGRAM) && TBB_ALLOCATOR_ALLOWED
-	// -run is used for commandlets.  Cooker and other commandlets run faster and with less memory using malloc binned.
-	if ((FCString::Stristr(::GetCommandLine(), TEXT("-mallocbinned")) || FCString::Stristr(::GetCommandLine(), TEXT("-run="))) &&
-		(!FCString::Stristr(::GetCommandLine(), TEXT("-malloctbb"))))
+	if (FORCE_ANSI_ALLOCATOR)
 	{
-		return new FMallocBinnedRedirect((uint32)(GetConstants().PageSize&MAX_uint32), (uint64)MAX_uint32 + 1);
+		AllocatorToUse = EMemoryAllocatorToUse::Ansi;
+	}
+	else if (USE_MALLOC_STOMP)
+	{
+		AllocatorToUse = EMemoryAllocatorToUse::Stomp;
+	}
+	else if ((WITH_EDITORONLY_DATA || IS_PROGRAM) && TBB_ALLOCATOR_ALLOWED)
+	{
+		AllocatorToUse = EMemoryAllocatorToUse::TBB;
+	}
+	else if (USE_MALLOC_BINNED2)
+	{
+		AllocatorToUse = EMemoryAllocatorToUse::Binned2;
 	}
 	else
 	{
-		return new FMallocTBB();
-}
-#else
-	return new FMallocBinnedRedirect((uint32)(GetConstants().PageSize&MAX_uint32), (uint64)MAX_uint32 + 1);
+		AllocatorToUse = EMemoryAllocatorToUse::Binned;
+	}
+	
+#if !UE_BUILD_SHIPPING
+	// If not shipping, allow overriding with command line options, this happens very early so we need to use windows functions
+	const TCHAR* CommandLine = ::GetCommandLine();
+
+	if (FCString::Stristr(CommandLine, TEXT("-ansimalloc")))
+	{
+		AllocatorToUse = EMemoryAllocatorToUse::Ansi;
+	}
+	else if (FCString::Stristr(CommandLine, TEXT("-tbbmalloc")))
+	{
+		AllocatorToUse = EMemoryAllocatorToUse::TBB;
+	}
+	else if (FCString::Stristr(CommandLine, TEXT("-binnedmalloc2")))
+	{
+		AllocatorToUse = EMemoryAllocatorToUse::Binned2;
+	}
+	else if (FCString::Stristr(CommandLine, TEXT("-binnedmalloc")))
+	{
+		AllocatorToUse = EMemoryAllocatorToUse::Binned;
+	}
 #endif
+
+	switch (AllocatorToUse)
+	{
+	case EMemoryAllocatorToUse::Ansi:
+		return new FMallocAnsi();
+#if USE_MALLOC_STOMP
+	case EMemoryAllocatorToUse::Stomp:
+		return new FMallocStomp();
+#endif
+	case EMemoryAllocatorToUse::TBB:
+		return new FMallocTBB();
+	case EMemoryAllocatorToUse::Binned2:
+		return new FMallocBinned2();
+		
+	default:	// intentional fall-through
+	case EMemoryAllocatorToUse::Binned:
+		return new FMallocBinned((uint32)(GetConstants().PageSize&MAX_uint32), (uint64)MAX_uint32 + 1);
+	}
 }
 
 FPlatformMemoryStats FWindowsPlatformMemory::GetStats()

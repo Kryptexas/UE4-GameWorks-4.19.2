@@ -11,6 +11,7 @@
 #include "STextEntryPopup.h"
 #include "STextComboBox.h"
 #include "SAnimTimingPanel.h"
+#include "TabSpawners.h"
 
 #define LOCTEXT_NAMESPACE "AnimMontagePanel"
 

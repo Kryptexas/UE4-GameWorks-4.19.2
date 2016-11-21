@@ -597,6 +597,13 @@ int32 UKismetMathLibrary::FTrunc(float A)
 	return FMath::TruncToInt(A);
 }	
 
+FIntVector UKismetMathLibrary::FTruncVector(const FVector& InVector)
+{
+	return FIntVector(FMath::TruncToInt(InVector.X),
+		              FMath::TruncToInt(InVector.Y),
+		              FMath::TruncToInt(InVector.Z));
+}
+
 int32 UKismetMathLibrary::FCeil(float A)
 {
 	return FMath::CeilToInt(A);
@@ -1132,7 +1139,7 @@ FVector UKismetMathLibrary::GetVectorArrayAverage(const TArray<FVector>& Vectors
 }
 
 /** Find the unit direction vector from one position to another. */
-FVector UKismetMathLibrary::GetDirectionVector(FVector From, FVector To)
+FVector UKismetMathLibrary::GetDirectionUnitVector(FVector From, FVector To)
 {
 	return (To - From).GetSafeNormal();
 }
@@ -1214,6 +1221,10 @@ FRotator UKismetMathLibrary::RotatorFromAxisAndAngle(FVector Axis, float Angle)
 	return FQuat(SafeAxis, FMath::DegreesToRadians(Angle)).Rotator();
 }
 
+void UKismetMathLibrary::RotatorToAxisAndAngle(const FRotator& Rotation, FVector& Axis, float& Angle)
+{
+	Rotation.Quaternion().ToAxisAndAngle(Axis, Angle);
+}
 
 float UKismetMathLibrary::ClampAxis(float Angle)
 {
@@ -1897,6 +1908,11 @@ uint8 UKismetMathLibrary::Conv_IntToByte(int32 InInt)
 	return (uint8)InInt;
 }
 
+FIntVector UKismetMathLibrary::Conv_IntToIntVector(int32 InInt)
+{
+	return FIntVector(InInt, InInt, InInt);
+}
+
 bool UKismetMathLibrary::Conv_IntToBool(int32 InInt)
 {
 	return InInt == 0 ? false : true;
@@ -1940,6 +1956,11 @@ FLinearColor UKismetMathLibrary::Conv_VectorToLinearColor(FVector InVec)
 FVector2D UKismetMathLibrary::Conv_VectorToVector2D(FVector InVec)
 {
 	return FVector2D(InVec);
+}
+
+FVector UKismetMathLibrary::Conv_IntVectorToVector(const FIntVector& InIntVector)
+{
+	return FVector(InIntVector);
 }
 
 FVector UKismetMathLibrary::Conv_Vector2DToVector(FVector2D InVec2D, float Z)
@@ -2366,6 +2387,7 @@ void UKismetMathLibrary::MinimumAreaRectangle(class UObject* WorldContextObject,
 	OutSideLengthX = RectSideA.Size();
 	OutSideLengthY = RectSideB.Size();
 
+#if ENABLE_DRAW_DEBUG
 	if( bDebugDraw )
 	{
 		UWorld* World = (WorldContextObject) ? GEngine->GetWorldFromContextObject(WorldContextObject) : nullptr;
@@ -2381,6 +2403,7 @@ void UKismetMathLibrary::MinimumAreaRectangle(class UObject* WorldContextObject,
 			FFrame::KismetExecutionMessage(TEXT("WorldContext required for MinimumAreaRectangle to draw a debug visualization."), ELogVerbosity::Warning);
 		}
 	}
+#endif
 }
 
 bool UKismetMathLibrary::PointsAreCoplanar(const TArray<FVector>& Points, float Tolerance)

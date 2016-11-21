@@ -107,14 +107,14 @@ public:
 			// are culled and don't need to be rendered. This is faster if
 			// there is opaque content nearer than the computed z.
 
-			FMatrix InvProjectionMatrix = View.ViewMatrices.GetInvProjMatrix();
+			FMatrix InvProjectionMatrix = View.ViewMatrices.GetInvProjectionMatrix();
 
 			FVector ViewSpaceCorner = InvProjectionMatrix.TransformFVector4(FVector4(1, 1, 1, 1));
 
 			float Ratio = ViewSpaceCorner.Z / ViewSpaceCorner.Size();
 
 			FVector ViewSpaceStartFogPoint(0.0f, 0.0f, FogStartDistance * Ratio);
-			FVector4 ClipSpaceMaxDistance = View.ViewMatrices.ProjMatrix.TransformPosition(ViewSpaceStartFogPoint);
+			FVector4 ClipSpaceMaxDistance = View.ViewMatrices.GetProjectionMatrix().TransformPosition(ViewSpaceStartFogPoint);
 
 			float FogClipSpaceZ = ClipSpaceMaxDistance.Z / ClipSpaceMaxDistance.W;
 
@@ -245,7 +245,7 @@ void FSceneRenderer::InitFogConstants()
 				const FExponentialHeightFogSceneInfo& FogInfo = Scene->ExponentialFogs[0];
 				const float CosTerminatorAngle = FMath::Clamp(FMath::Cos(FogInfo.LightTerminatorAngle * PI / 180.0f), -1.0f + DELTA, 1.0f - DELTA);
 				const float CollapsedFogParameterPower = FMath::Clamp(
-						-FogInfo.FogHeightFalloff * (View.ViewMatrices.ViewOrigin.Z - FogInfo.FogHeight),
+						-FogInfo.FogHeightFalloff * (View.ViewMatrices.GetViewOrigin().Z - FogInfo.FogHeight),
 						-126.f + 1.f, // min and max exponent values for IEEE floating points (http://en.wikipedia.org/wiki/IEEE_floating_point)
 						+127.f - 1.f
 						);

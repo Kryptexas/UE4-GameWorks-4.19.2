@@ -141,6 +141,10 @@ public:
 			{
 				bShaderTypeMatches = true;
 			}
+			else if (FCString::Stristr(ShaderType->GetName(), TEXT("FDebugViewModeVS")))
+			{
+				bShaderTypeMatches = true;
+			}
 
 			return bShaderTypeMatches;
 		}
@@ -221,6 +225,9 @@ void UMaterialEditorInstanceConstant::PostEditChangeProperty(FPropertyChangedEve
 
 		// Tell our source instance to update itself so the preview updates.
 		SourceInstance->PostEditChangeProperty(PropertyChangedEvent);
+
+		// Invalidate the streaming data so that it gets rebuilt.
+		SourceInstance->TextureStreamingData.Empty();
 	}
 }
 

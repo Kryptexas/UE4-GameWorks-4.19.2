@@ -672,7 +672,7 @@ void FPhAT::RefreshHierachyTree()
 	}
 
 	// Add inert bones
-	for (int32 BoneIndex = 0; BoneIndex < SharedData->EditorSkelMesh->RefSkeleton.GetNum(); ++BoneIndex)
+	for (int32 BoneIndex = 0; BoneIndex < SharedData->EditorSkelMesh->RefSkeleton.GetRawBoneNum(); ++BoneIndex)
 	{
 		bool bFound = false;
 		for (int32 ItemIdx = 0; ItemIdx < TreeElements.Num(); ++ItemIdx)
@@ -1868,7 +1868,7 @@ void FPhAT::OnGetChildrenForTree(FTreeElemPtr Parent, TArray<FTreeElemPtr>& OutC
 	}
 
 	int32 ParentIndex = SharedData->EditorSkelComp->GetBoneIndex((*Parent).Name);
-	for (int32 BoneIndex = 0; BoneIndex < SharedData->EditorSkelMesh->RefSkeleton.GetNum(); ++BoneIndex)
+	for (int32 BoneIndex = 0; BoneIndex < SharedData->EditorSkelMesh->RefSkeleton.GetRawBoneNum(); ++BoneIndex)
 	{
 		const FMeshBoneInfo& Bone = SharedData->EditorSkelMesh->RefSkeleton.GetRefBoneInfo()[BoneIndex];
 		if (Bone.ParentIndex != INDEX_NONE)
@@ -2193,22 +2193,26 @@ bool FPhAT::ShouldFilterAssetBasedOnSkeleton( const FAssetData& AssetData )
 	return true;
 }
 
-void FPhAT::SnapConstraintToBone(int32 ConstraintIndex, const FTransform& ParentFrame)
+void FPhAT::SnapConstraintToBone(const FPhATSharedData::FSelection* Constraint)
 {
-	UPhysicsConstraintTemplate* ConstraintSetup = SharedData->PhysicsAsset->ConstraintSetup[ConstraintIndex];
+	UPhysicsConstraintTemplate* ConstraintSetup = SharedData->PhysicsAsset->ConstraintSetup[Constraint->Index];
 	ConstraintSetup->Modify();
 
-	// Get child bone transform
-	int32 BoneIndex = SharedData->EditorSkelMesh->RefSkeleton.FindBoneIndex(ConstraintSetup->DefaultInstance.ConstraintBone1);
-	check(BoneIndex != INDEX_NONE);
+	const int32 BoneIndex1 = SharedData->EditorSkelMesh->RefSkeleton.FindBoneIndex(ConstraintSetup->DefaultInstance.ConstraintBone1);
+	const int32 BoneIndex2 = SharedData->EditorSkelMesh->RefSkeleton.FindBoneIndex(ConstraintSetup->DefaultInstance.ConstraintBone2);
 
-	FTransform BoneTM = SharedData->EditorSkelComp->GetBoneTransform(BoneIndex);
-	FTransform RelTM = BoneTM.GetRelativeTransform(ParentFrame);
+	check(BoneIndex1 != INDEX_NONE);
+	check(BoneIndex2 != INDEX_NONE);
 
-	FTransform Con1Matrix = ConstraintSetup->DefaultInstance.GetRefFrame(EConstraintFrame::Frame2);
-	FTransform Con0Matrix = ConstraintSetup->DefaultInstance.GetRefFrame(EConstraintFrame::Frame1);
+	const FTransform BoneTransform1 = SharedData->EditorSkelComp->GetBoneTransform(BoneIndex1);
+	const FTransform BoneTransform2 = SharedData->EditorSkelComp->GetBoneTransform(BoneIndex2);
 
-	ConstraintSetup->DefaultInstance.SetRefFrame(EConstraintFrame::Frame2, Con0Matrix * RelTM * Con1Matrix);
+	// Bone transforms are world space, and frame transforms are local space (local to bones).
+	// Frame 1 is the child frame, and set to identity.
+	// Frame 2 is the parent frame, and needs to be set relative to Frame1.
+	ConstraintSetup->DefaultInstance.SetRefFrame(EConstraintFrame::Frame2, BoneTransform1.GetRelativeTransform(BoneTransform2));
+	ConstraintSetup->DefaultInstance.SetRefFrame(EConstraintFrame::Frame1, FTransform::Identity);
+
 }
 
 void FPhAT::CreateOrConvertConstraint(EPhATConstraintType ConstraintType)
@@ -3110,8 +3114,7 @@ void FPhAT::OnSnapConstraint()
 
 	for(int32 i=0; i<SharedData->SelectedConstraints.Num(); ++i)
 	{
-		FTransform ParentFrame = SharedData->GetConstraintWorldTM(&SharedData->SelectedConstraints[i], EConstraintFrame::Frame2);
-		SnapConstraintToBone(SharedData->SelectedConstraints[i].Index, ParentFrame);
+		SnapConstraintToBone(&SharedData->SelectedConstraints[i]);
 	}
 	
 	RefreshPreviewViewport();

@@ -106,7 +106,6 @@ static FAutoConsoleVariableRef CVarRHICmdListStateCache(
 	TEXT("If > 0, then enable a minor state cache on the from of cmdlist recording.")
 	);
 
-
 RHI_API bool GEnableAsyncCompute = true;
 RHI_API FRHICommandListExecutor GRHICommandList;
 
@@ -115,6 +114,9 @@ static FGraphEventArray WaitOutstandingTasks;
 static FGraphEventRef RHIThreadTask;
 static FGraphEventRef RenderThreadSublistDispatchTask;
 static FGraphEventRef RHIThreadBufferLockFence;
+
+static FGraphEventRef GRHIThreadEndDrawingViewportFences[2];
+static uint32 GRHIThreadEndDrawingViewportFenceIndex = 0;
 
 // Used by AsyncCompute
 RHI_API FRHICommandListFenceAllocator GRHIFenceAllocator;
@@ -129,7 +131,6 @@ RHI_API FAutoConsoleTaskPriority CPrio_SceneRenderingTask(
 	ENamedThreads::NormalThreadPriority, 
 	ENamedThreads::HighTaskPriority 
 	);
-
 
 struct FRHICommandStat : public FRHICommand<FRHICommandStat>
 {
@@ -684,7 +685,9 @@ void FRHICommandListExecutor::WaitOnRHIThreadFence(FGraphEventRef& Fence)
 
 
 FRHICommandListBase::FRHICommandListBase()
-	: MemManager(0)
+	: StrictGraphicsPipelineStateUse(0)
+	, MemManager(0)
+	, CachedNumSimultanousRenderTargets(0)
 {
 	GRHICommandList.OutstandingCmdListCount.Increment();
 	Reset();
@@ -1344,12 +1347,29 @@ void FRHICommandList::EndDrawingViewport(FViewportRHIParamRef Viewport, bool bPr
 	else
 	{
 		new (AllocCommand<FRHICommandEndDrawingViewport>()) FRHICommandEndDrawingViewport(Viewport, bPresent, bLockToVsync);
+
+		if ( GRHIThread )
+		{
+			// Insert a fence to prevent the renderthread getting more than a frame ahead of the RHIThread
+			GRHIThreadEndDrawingViewportFences[GRHIThreadEndDrawingViewportFenceIndex] = static_cast<FRHICommandListImmediate*>(this)->RHIThreadFence();
+		}
 		// if we aren't running an RHIThread, there is no good reason to buffer this frame advance stuff and that complicates state management, so flush everything out now
 		{
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_EndDrawingViewport_Dispatch);
 			FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::DispatchToRHIThread);
 		}
 	}
+
+	if ( GRHIThread )
+	{
+		// Wait on the previous frame's RHI thread fence (we never want the rendering thread to get more than a frame ahead)
+		uint32 PreviousFrameFenceIndex = 1 - GRHIThreadEndDrawingViewportFenceIndex;
+		FGraphEventRef& LastFrameFence = GRHIThreadEndDrawingViewportFences[PreviousFrameFenceIndex];
+		FRHICommandListExecutor::WaitOnRHIThreadFence(LastFrameFence);
+		GRHIThreadEndDrawingViewportFences[PreviousFrameFenceIndex] = nullptr;
+		GRHIThreadEndDrawingViewportFenceIndex = PreviousFrameFenceIndex;
+	}
+
 	RHIAdvanceFrameForGetViewportBackBuffer();
 }
 
@@ -1555,7 +1575,7 @@ bool FRHICommandListImmediate::StallRHIThread()
 
 void FRHICommandListImmediate::UnStallRHIThread()
 {
-	check(IsInRenderingThread() || GRHIThread && GRHIThreadStallTask.GetReference() && !GRHIThreadStallTask->IsComplete() && GRHIThreadStallEvent);
+	check(IsInRenderingThread() && GRHIThread && GRHIThreadStallTask.GetReference() && !GRHIThreadStallTask->IsComplete() && GRHIThreadStallEvent);
 	GRHIThreadStallEvent->Trigger();
 	SCOPE_CYCLE_COUNTER(STAT_SpinWaitRHIThreadUnstall);
 	while (!GRHIThreadStallTask->IsComplete())

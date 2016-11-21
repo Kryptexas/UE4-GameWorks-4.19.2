@@ -476,7 +476,7 @@ void FTextureInstanceState::AddComponent(const UPrimitiveComponent* Component, F
 
 void FTextureInstanceState::AddComponent(const UPrimitiveComponent* Component)
 {
-	FStreamingTextureLevelContext LevelContext;
+	FStreamingTextureLevelContext LevelContext(EMaterialQualityLevel::Num, Component);
 	TArray<FStreamingTexturePrimitiveInfo> TextureInstanceInfos;
 	Component->GetStreamingTextureInfoWithNULLRemoval(LevelContext, TextureInstanceInfos);
 
@@ -1003,6 +1003,22 @@ uint32 FDynamicComponentTextureManager::GetAllocatedSize() const
 	return ComponentStates.GetAllocatedSize() + DirtyComponents.GetAllocatedSize() + DynamicInstances.GetAllocatedSize();
 }
 
+#if !UE_BUILD_SHIPPING
+void FDynamicComponentTextureManager::GetAllComponents(TArray<const UPrimitiveComponent*>& Components) const
+{
+	for (TMap<const UPrimitiveComponent*, FComponentState>::TConstIterator It(ComponentStates); It; ++It)
+	{
+		const UPrimitiveComponent* Component = It.Key();
+		const FComponentState& State = It.Value();
+
+		if (!State.bToDelete)
+		{
+			Components.Add(Component);
+		}
+	}
+}
+#endif
+
 void FLevelTextureManager::Remove(FDynamicComponentTextureManager& DynamicComponentManager, FRemovedTextureArray& RemovedTextures)
 { 
 	// Mark all static textures for removal.
@@ -1047,7 +1063,7 @@ void FLevelTextureManager::IncrementalUpdate(FDynamicComponentTextureManager& Dy
 
 	if (!bHasTextures)
 	{
-		FStreamingTextureLevelContext LevelContext(Level);
+		FStreamingTextureLevelContext LevelContext(EMaterialQualityLevel::Num, Level);
 
 		// Process all components of the level.
 		TArray<UObject*> ObjectsInOuter;

@@ -162,6 +162,16 @@ struct FExportMaterialCompiler : public FProxyMaterialCompiler
 		return Compiler->VertexColor(); 
 	}
 
+	virtual int32 PreSkinnedPosition() override
+	{
+		return Compiler->PreSkinnedPosition();
+	}
+
+	virtual int32 PreSkinnedNormal() override
+	{
+		return Compiler->PreSkinnedNormal();
+	}
+
 	virtual int32 LightVector() override
 	{
 		return Compiler->LightVector();
@@ -359,19 +369,12 @@ public:
 
 		int32 Ret = CompilePropertyAndSetMaterialPropertyWithoutCast(Property, Compiler);
 
-		return Compiler->ForceCast(Ret, GetMaterialPropertyType(Property));
+		return Compiler->ForceCast(Ret, FMaterialAttributeDefinitionMap::GetValueType(Property));
 	}
 
 	/** helper for CompilePropertyAndSetMaterialProperty() */
 	int32 CompilePropertyAndSetMaterialPropertyWithoutCast(EMaterialProperty Property, FMaterialCompiler* Compiler) const
 	{
-		/*TScopedPointer<FMaterialCompiler> CompilerProxyHolder;
-		if (CompilerReplacer != nullptr)
-		{
-			CompilerProxyHolder = CompilerReplacer(Compiler);
-			Compiler = CompilerProxyHolder;
-		}*/
-
 		if (Property == MP_EmissiveColor)
 		{
 			UMaterial* ProxyMaterial = MaterialInterface->GetMaterial();
@@ -379,17 +382,18 @@ public:
 			EBlendMode BlendMode = MaterialInterface->GetBlendMode();
 			EMaterialShadingModel ShadingModel = MaterialInterface->GetShadingModel();
 			FExportMaterialCompiler ProxyCompiler(Compiler);
+			const uint32 ForceCast_Exact_Replicate = MFCF_ForceCast | MFCF_ExactMatch | MFCF_ReplicateValue;
 									
 			switch (PropertyToCompile)
 			{
 			case MP_EmissiveColor:
 				// Emissive is ALWAYS returned...
-				return Compiler->ForceCast(MaterialInterface->CompileProperty(&ProxyCompiler,MP_EmissiveColor),MCT_Float3,true,true);
+				return MaterialInterface->CompileProperty(&ProxyCompiler, MP_EmissiveColor, ForceCast_Exact_Replicate);
 			case MP_BaseColor:
 				// Only return for Opaque and Masked...
 				if (BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked)
 				{
-					return Compiler->ForceCast(MaterialInterface->CompileProperty(&ProxyCompiler, MP_BaseColor),MCT_Float3,true,true);
+					return MaterialInterface->CompileProperty(&ProxyCompiler, MP_BaseColor, ForceCast_Exact_Replicate);
 				}
 				break;
 			case MP_Specular: 
@@ -399,18 +403,16 @@ public:
 				// Only return for Opaque and Masked...
 				if (BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked)
 				{
-					return Compiler->ForceCast(MaterialInterface->CompileProperty(&ProxyCompiler, PropertyToCompile),MCT_Float,true,true);
+					return MaterialInterface->CompileProperty(&ProxyCompiler, PropertyToCompile, ForceCast_Exact_Replicate);
 				}
 				break;
 			case MP_Normal:
 				// Only return for Opaque and Masked...
 				if (BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked)
 				{
-					return Compiler->ForceCast( 
-						Compiler->Add( 
-							Compiler->Mul(MaterialInterface->CompileProperty(&ProxyCompiler, MP_Normal), Compiler->Constant(0.5f)), // [-1,1] * 0.5
-							Compiler->Constant(0.5f)), // [-0.5,0.5] + 0.5
-						MCT_Float3, true, true );
+					return Compiler->Add( 
+							Compiler->Mul(MaterialInterface->CompileProperty(&ProxyCompiler, MP_Normal, ForceCast_Exact_Replicate), Compiler->Constant(0.5f)), // [-1,1] * 0.5
+							Compiler->Constant(0.5f)); // [-0.5,0.5] + 0.5
 				}
 				break;
 			default:
@@ -778,7 +780,7 @@ bool FMaterialUtilities::ExportLandscapeMaterial(ALandscapeProxy* InLandscape, c
 
 	FSceneInterface* Scene = InLandscape->GetWorld()->Scene;
 						
-	// Render diffuse texture using BufferVisualizationMode=BaseColor	
+	// Render diffuse texture using BufferVisualizationMode=BaseColor
 	if (OutFlattenMaterial.ShouldGenerateDataForProperty(EFlattenMaterialProperties::Diffuse))
 	{
 		const FIntPoint& DiffuseSize = OutFlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Diffuse);
@@ -801,7 +803,7 @@ bool FMaterialUtilities::ExportLandscapeMaterial(ALandscapeProxy* InLandscape, c
 			NormalSize, NormalColorGamma, NormalSamples);
 	}
 
-	// Render metallic map using BufferVisualizationMode=Metallic	
+	// Render metallic map using BufferVisualizationMode=Metallic
 	if (OutFlattenMaterial.ShouldGenerateDataForProperty(EFlattenMaterialProperties::Metallic))
 	{
 		static const FName MetallicName("Metallic");
@@ -812,7 +814,7 @@ bool FMaterialUtilities::ExportLandscapeMaterial(ALandscapeProxy* InLandscape, c
 			MetallicSize, MetallicColorGamma, MetallicSamples);
 	}
 
-	// Render roughness map using BufferVisualizationMode=Roughness	
+	// Render roughness map using BufferVisualizationMode=Roughness
 	if (OutFlattenMaterial.ShouldGenerateDataForProperty(EFlattenMaterialProperties::Roughness))
 	{
 		static const FName RoughnessName("Roughness");
@@ -823,7 +825,7 @@ bool FMaterialUtilities::ExportLandscapeMaterial(ALandscapeProxy* InLandscape, c
 			RoughnessSize, RoughnessColorGamma, RoughnessSamples);
 	}
 
-	// Render specular map using BufferVisualizationMode=Specular	
+	// Render specular map using BufferVisualizationMode=Specular
 	if (OutFlattenMaterial.ShouldGenerateDataForProperty(EFlattenMaterialProperties::Specular))
 	{
 		static const FName SpecularName("Specular");
@@ -936,7 +938,7 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 		// Metallic = R, Roughness = G, Specular = B
 		TArray<FColor> MergedSamples;
 		MergedSamples.AddZeroed(SampleCount);
-
+		
 		// R G B masks
 #if PLATFORM_LITTLE_ENDIAN
 		const uint32 ColorMask[3] = { 0x0000FF00, 0x00FF0000, 0xFF000000 };
@@ -947,16 +949,16 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 		{
 			EFlattenMaterialProperties Property = (EFlattenMaterialProperties)(PropertyIndex + (int32)EFlattenMaterialProperties::Metallic);
 			const bool HasProperty = InFlattenMaterial.DoesPropertyContainData(Property) && !InFlattenMaterial.IsPropertyConstant(Property);
-			
+
 			if (HasProperty)
-			{
+		{
 				const TArray<FColor>& PropertySamples = InFlattenMaterial.GetPropertySamples(Property);
 				// OR masked values (samples initialized to zero, so no random data)
 				for (int32 SampleIndex = 0; SampleIndex < SampleCount; ++SampleIndex)
 				{
 					MergedSamples[SampleIndex].DWColor() |= (PropertySamples[SampleIndex].DWColor() & ColorMask[PropertyIndex]);
 				}
-			}
+		}
 		}
 
 		const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_MRS");
@@ -1403,7 +1405,7 @@ FFlattenMaterial FMaterialUtilities::CreateFlattenMaterialWithSettings(const FMa
 		Material.SetPropertySize(EFlattenMaterialProperties::Opacity, (InMaterialLODSettings.bOpacityMap) ? PropertiesSize : FIntPoint::ZeroValue );
 	}
 	
-	Material.RenderSize = InMaterialLODSettings.TextureSize;	
+	Material.RenderSize = InMaterialLODSettings.TextureSize;
 	Material.SetPropertySize(EFlattenMaterialProperties::Diffuse , InMaterialLODSettings.TextureSize);
 	Material.SetPropertySize(EFlattenMaterialProperties::Specular, (InMaterialLODSettings.bSpecularMap) ? InMaterialLODSettings.TextureSize : FIntPoint::ZeroValue);
 	Material.SetPropertySize(EFlattenMaterialProperties::Metallic, (InMaterialLODSettings.bMetallicMap) ? InMaterialLODSettings.TextureSize : FIntPoint::ZeroValue);
@@ -1463,16 +1465,16 @@ void FMaterialUtilities::AnalyzeMaterial(UMaterialInterface* InMaterial, const s
 	}
 }
 
-void FMaterialUtilities::RemapUniqueMaterialIndices(const TArray<UMaterialInterface*>& InMaterials, const TArray<FRawMeshExt>& InMeshData, const TMap<FMeshIdAndLOD, TArray<int32> >& InMaterialMap, const FMaterialProxySettings& InMaterialProxySettings, const bool bBakeVertexData, const bool bMergeMaterials, TArray<bool>& OutMeshShouldBakeVertexData, TMap<FMeshIdAndLOD, TArray<int32> >& OutMaterialMap, TArray<UMaterialInterface*>& OutMaterials)
+void FMaterialUtilities::RemapUniqueMaterialIndices(const TArray<FSectionInfo>& InSections, const TArray<FRawMeshExt>& InMeshData, const TMap<FMeshIdAndLOD, TArray<int32> >& InMaterialMap, const FMaterialProxySettings& InMaterialProxySettings, const bool bBakeVertexData, const bool bMergeMaterials, TArray<bool>& OutMeshShouldBakeVertexData, TMap<FMeshIdAndLOD, TArray<int32> >& OutMaterialMap, TArray<FSectionInfo>& OutSections)
 {
 	// Gather material properties
 	TMap<UMaterialInterface*, int32> MaterialNumTexCoords;
 	TMap<UMaterialInterface*, bool>  MaterialUseVertexData;
 
-	for (int32 MaterialIndex = 0; MaterialIndex < InMaterials.Num(); MaterialIndex++)
+	for (int32 SectionIndex = 0; SectionIndex < InSections.Num(); SectionIndex++)
 	{
-		UMaterialInterface* Material = InMaterials[MaterialIndex];
-		if (MaterialNumTexCoords.Find(Material) != nullptr)
+		const FSectionInfo& Section = InSections[SectionIndex];
+		if (MaterialNumTexCoords.Find(Section.Material) != nullptr)
 		{
 			// This material was already processed.
 			continue;
@@ -1481,23 +1483,16 @@ void FMaterialUtilities::RemapUniqueMaterialIndices(const TArray<UMaterialInterf
 		if (!bBakeVertexData || !bMergeMaterials)
 		{
 			// We are not baking vertex data at all, don't analyze materials.
-			MaterialNumTexCoords.Add(Material, 0);
-			MaterialUseVertexData.Add(Material, false);
+			MaterialNumTexCoords.Add(Section.Material, 0);
+			MaterialUseVertexData.Add(Section.Material, false);
 			continue;
 		}
 		int32 NumTexCoords = 0;
 		bool bUseVertexData = false;
-		FMaterialUtilities::AnalyzeMaterial(Material, InMaterialProxySettings, NumTexCoords, bUseVertexData);
-		MaterialNumTexCoords.Add(Material, NumTexCoords);
-		MaterialUseVertexData.Add(Material, bUseVertexData);
+		FMaterialUtilities::AnalyzeMaterial(Section.Material, InMaterialProxySettings, NumTexCoords, bUseVertexData);
+		MaterialNumTexCoords.Add(Section.Material, NumTexCoords);
+		MaterialUseVertexData.Add(Section.Material, bUseVertexData);
 	}
-
-	// Build list of mesh's material properties.
-	OutMeshShouldBakeVertexData.Empty();
-	OutMeshShouldBakeVertexData.AddZeroed(InMeshData.Num());
-
-	TArray<bool> MeshUsesVertexData;
-	MeshUsesVertexData.AddZeroed(InMeshData.Num());
 
 	for (int32 MeshIndex = 0; MeshIndex < InMeshData.Num(); MeshIndex++)
 	{
@@ -1505,20 +1500,20 @@ void FMaterialUtilities::RemapUniqueMaterialIndices(const TArray<UMaterialInterf
 		{
 			if (InMeshData[MeshIndex].bShouldExportLOD[LODIndex])
 			{
-				checkf(InMeshData[MeshIndex].MeshLODData[LODIndex].RawMesh->VertexPositions.Num(), TEXT("No vertex data found in mesh LOD"));
+		checkf(InMeshData[MeshIndex].MeshLODData[LODIndex].RawMesh->VertexPositions.Num(), TEXT("No vertex data found in mesh LOD"));
 				const TArray<int32>& MeshMaterialMap = InMaterialMap[FMeshIdAndLOD(MeshIndex, LODIndex)];
-				int32 NumTexCoords = 0;
-				bool bUseVertexData = false;
-				// Accumulate data of all materials.
-				for (int32 LocalMaterialIndex = 0; LocalMaterialIndex < MeshMaterialMap.Num(); LocalMaterialIndex++)
-				{
-					UMaterialInterface* Material = InMaterials[MeshMaterialMap[LocalMaterialIndex]];
-					NumTexCoords = FMath::Max(NumTexCoords, MaterialNumTexCoords[Material]);
-					bUseVertexData |= MaterialUseVertexData[Material];
-				}
-				// Store data.
-				MeshUsesVertexData[MeshIndex] = bUseVertexData;
-				OutMeshShouldBakeVertexData[MeshIndex] = bUseVertexData || (NumTexCoords >= 2);
+		int32 NumTexCoords = 0;
+		bool bUseVertexData = false;
+		// Accumulate data of all materials.
+		for (int32 LocalMaterialIndex = 0; LocalMaterialIndex < MeshMaterialMap.Num(); LocalMaterialIndex++)
+		{
+					UMaterialInterface* Material = InSections[MeshMaterialMap[LocalMaterialIndex]].Material;
+			NumTexCoords = FMath::Max(NumTexCoords, MaterialNumTexCoords[Material]);
+			bUseVertexData |= MaterialUseVertexData[Material];
+		}
+
+		// Store data.
+				OutMeshShouldBakeVertexData[MeshIndex] |= bUseVertexData || (NumTexCoords >= 2);
 			}
 		}
 	}
@@ -1527,12 +1522,12 @@ void FMaterialUtilities::RemapUniqueMaterialIndices(const TArray<UMaterialInterf
 	// Structure used to simplify material merging.
 	struct FMeshMaterialData
 	{
-		UMaterialInterface* Material;
+		FSectionInfo SectionInfo;
 		UStaticMesh* Mesh;
 		bool bHasVertexColors;
 
-		FMeshMaterialData(UMaterialInterface* InMaterial, UStaticMesh* InMesh, bool bInHasVertexColors)
-			: Material(InMaterial)
+		FMeshMaterialData(const FSectionInfo& InSection, UStaticMesh* InMesh, bool bInHasVertexColors)
+			: SectionInfo(InSection)
 			, Mesh(InMesh)
 			, bHasVertexColors(bInHasVertexColors)
 		{
@@ -1540,7 +1535,7 @@ void FMaterialUtilities::RemapUniqueMaterialIndices(const TArray<UMaterialInterf
 
 		bool operator==(const FMeshMaterialData& Other) const
 		{
-			return Material == Other.Material && Mesh == Other.Mesh && bHasVertexColors == Other.bHasVertexColors;
+			return SectionInfo == Other.SectionInfo && Mesh == Other.Mesh && bHasVertexColors == Other.bHasVertexColors;
 		}
 	};
 
@@ -1552,54 +1547,54 @@ void FMaterialUtilities::RemapUniqueMaterialIndices(const TArray<UMaterialInterf
 		{
 			if (InMeshData[MeshIndex].bShouldExportLOD[LODIndex])
 			{
-				checkf(InMeshData[MeshIndex].MeshLODData[LODIndex].RawMesh->VertexPositions.Num(), TEXT("No vertex data found in mesh LOD"));
+		checkf(InMeshData[MeshIndex].MeshLODData[LODIndex].RawMesh->VertexPositions.Num(), TEXT("No vertex data found in mesh LOD"));
+		
+		const TArray<int32>& MeshMaterialMap = InMaterialMap[FMeshIdAndLOD(MeshIndex, LODIndex)];
+		TArray<int32>& NewMeshMaterialMap = OutMaterialMap.Add(FMeshIdAndLOD(MeshIndex, LODIndex));
+		UStaticMesh* StaticMesh = InMeshData[MeshIndex].SourceStaticMesh;
 
-				const TArray<int32>& MeshMaterialMap = InMaterialMap[FMeshIdAndLOD(MeshIndex, LODIndex)];
-				TArray<int32>& NewMeshMaterialMap = OutMaterialMap.Add(FMeshIdAndLOD(MeshIndex, LODIndex));
-				UStaticMesh* StaticMesh = InMeshData[MeshIndex].SourceStaticMesh;
-
-				if (!MeshUsesVertexData[MeshIndex])
-				{
-					// No vertex data needed - could merge materials with other meshes.
-					if (!OutMeshShouldBakeVertexData[MeshIndex])
-					{
-						// Set to 'nullptr' if don't need to bake vertex data to be able to merge materials with any meshes
-						// which don't require vertex data baking too.
-						StaticMesh = nullptr;
-					}
-
-					for (int32 LocalMaterialIndex = 0; LocalMaterialIndex < MeshMaterialMap.Num(); LocalMaterialIndex++)
-					{
-						FMeshMaterialData Data(InMaterials[MeshMaterialMap[LocalMaterialIndex]], StaticMesh, false);
-						int32 Index = MeshMaterialData.Find(Data);
-						if (Index == INDEX_NONE)
-						{
-							// Not found, add new entry.
-							Index = MeshMaterialData.Add(Data);
-						}
-						NewMeshMaterialMap.Add(Index);
-					}
-				}
-				else
-				{
-					// Mesh with vertex data baking, and with vertex colors - don't share materials at all.
-					for (int32 LocalMaterialIndex = 0; LocalMaterialIndex < MeshMaterialMap.Num(); LocalMaterialIndex++)
-					{
-						FMeshMaterialData Data(InMaterials[MeshMaterialMap[LocalMaterialIndex]], StaticMesh, true);
-						int32 Index = MeshMaterialData.Add(Data);
-						NewMeshMaterialMap.Add(Index);
-					}
-				}
+				if (!OutMeshShouldBakeVertexData[MeshIndex])
+		{
+			// No vertex data needed - could merge materials with other meshes.
+			if (!OutMeshShouldBakeVertexData[MeshIndex])
+			{
+				// Set to 'nullptr' if don't need to bake vertex data to be able to merge materials with any meshes
+				// which don't require vertex data baking too.
+				StaticMesh = nullptr;
 			}
+
+			for (int32 LocalMaterialIndex = 0; LocalMaterialIndex < MeshMaterialMap.Num(); LocalMaterialIndex++)
+			{
+						FMeshMaterialData Data(InSections[MeshMaterialMap[LocalMaterialIndex]], StaticMesh, false);
+				int32 Index = MeshMaterialData.Find(Data);
+				if (Index == INDEX_NONE)
+				{
+					// Not found, add new entry.
+					Index = MeshMaterialData.Add(Data);
+				}
+				NewMeshMaterialMap.Add(Index);
+			}
+		}
+		else
+		{
+			// Mesh with vertex data baking, and with vertex colors - don't share materials at all.
+			for (int32 LocalMaterialIndex = 0; LocalMaterialIndex < MeshMaterialMap.Num(); LocalMaterialIndex++)
+			{
+						FMeshMaterialData Data(InSections[MeshMaterialMap[LocalMaterialIndex]], StaticMesh, true);
+				int32 Index = MeshMaterialData.Add(Data);
+				NewMeshMaterialMap.Add(Index);
+			}
+		}		
+	}
 		}
 	}
 
 	// Build new material list - simply extract MeshMaterialData[i].Material.
-	OutMaterials.Empty();
-	OutMaterials.AddUninitialized(MeshMaterialData.Num());
+	OutSections.Empty();
+	OutSections.AddUninitialized(MeshMaterialData.Num());
 	for (int32 MaterialIndex = 0; MaterialIndex < MeshMaterialData.Num(); MaterialIndex++)
 	{
-		OutMaterials[MaterialIndex] = MeshMaterialData[MaterialIndex].Material;
+		OutSections[MaterialIndex] = MeshMaterialData[MaterialIndex].SectionInfo;
 	}
 }
 
@@ -1756,7 +1751,7 @@ void FMaterialUtilities::ResizeFlattenMaterial(FFlattenMaterial& InFlattenMateri
 }
 
 /** Computes the uniform scale from the input scales,  if one exists. */
-static bool GetUniformScale(const TArray<float> Scales, float& UniformScale)
+static float GetUniformScale(const TArray<float> Scales)
 {
 	if (Scales.Num())
 	{
@@ -1777,8 +1772,7 @@ static bool GetUniformScale(const TArray<float> Scales, float& UniformScale)
 
 		if (Mean * 15.f < Average) // If they are almost all the same
 		{
-			UniformScale = Average;
-			return true;
+			return Average;
 		}
 		else // Otherwise do a much more expensive test by counting the number of similar values
 		{
@@ -1816,13 +1810,12 @@ static bool GetUniformScale(const TArray<float> Scales, float& UniformScale)
 
 				if (TryMatches >= TryThreshold)
 				{
-					UniformScale = TryMinV;
-					return true;
+					return TryMinV;
 				}
 			}
 		}
 	}
-	return false;
+	return 0;
 }
 
 uint32 GetTypeHash(const FMaterialUtilities::FExportErrorManager::FError& Error)
@@ -1836,9 +1829,9 @@ bool FMaterialUtilities::FExportErrorManager::FError::operator==(const FError& R
 }
 
 
-void FMaterialUtilities::FExportErrorManager::Register(const UMaterialInterface* Material, const UTexture* Texture, int32 RegisterIndex, EErrorType ErrorType)
+void FMaterialUtilities::FExportErrorManager::Register(const UMaterialInterface* Material, FName TextureName, int32 RegisterIndex, EErrorType ErrorType)
 {
-	if (!Material || !Texture) return;
+	if (!Material || TextureName == NAME_None) return;
 
 	FError Error;
 	Error.Material = Material->GetMaterialResource(FeatureLevel);
@@ -1848,7 +1841,7 @@ void FMaterialUtilities::FExportErrorManager::Register(const UMaterialInterface*
 
 	FInstance Instance;
 	Instance.Material = Material;
-	Instance.Texture = Texture;
+	Instance.TextureName = TextureName;
 
 	ErrorInstances.FindOrAdd(Error).Push(Instance);
 }
@@ -1912,12 +1905,18 @@ void FMaterialUtilities::FExportErrorManager::OutputToLog()
 			ErrorMsg = TEXT("NoValues");
 		}
 
-		TextureErrors.Append(FString::Printf(TEXT("(%s:%d,%s) "), ErrorMsg, It->Key.RegisterIndex, *It->Value[0].Texture->GetName()));
+		TextureErrors.Append(FString::Printf(TEXT("(%s:%d,%s) "), ErrorMsg, It->Key.RegisterIndex, *It->Value[0].TextureName.ToString()));
 	}
 }
 
-bool FMaterialUtilities::ExportMaterialTexCoordScales(UMaterialInterface* InMaterial, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, TArray<FMaterialTexCoordBuildInfo>& OutScales, FExportErrorManager& OutErrors)
+bool FMaterialUtilities::ExportMaterialUVDensities(UMaterialInterface* InMaterial, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, FExportErrorManager& OutErrors)
 {
+	check(InMaterial);
+
+	// Clear the build data.
+	TArray<FMaterialTextureInfo> TextureStreamingData;
+	InMaterial->SetTextureStreamingData(TextureStreamingData);
+
 	TArray<FFloat16Color> RenderedVectors;
 
 	TArray<UTexture*> Textures;
@@ -1926,25 +1925,9 @@ bool FMaterialUtilities::ExportMaterialTexCoordScales(UMaterialInterface* InMate
 
 	check(Textures.Num() >= Indices.Num()); // Can't have indices if no texture.
 
-	// Clear any entry not related to UTexture2D
-	for (int32 Index = 0; Index < Textures.Num(); ++Index)
-	{
-		if (!Cast<UTexture2D>(Textures[Index]))
-		{
-			Indices[Index].Empty(); 
-		}
-	}
-
 	const int32 SCALE_PRECISION = 64.f;
-	const int32 TILE_RESOLUTION = FMaterialTexCoordBuildInfo::TILE_RESOLUTION;
-	const int32 INITIAL_GPU_SCALE = FMaterialTexCoordBuildInfo::INITIAL_GPU_SCALE;
-	const int32 MAX_NUM_TEX_COORD = FMaterialTexCoordBuildInfo::MAX_NUM_TEX_COORD;
-	const int32 MAX_NUM_TEXTURE_REGISTER = FMaterialTexCoordBuildInfo::MAX_NUM_TEXTURE_REGISTER;
-
-	const bool bUseMetrics = CVarStreamingUseNewMetrics.GetValueOnGameThread() != 0;
 
 	int32 MaxRegisterIndex = INDEX_NONE;
-
 	for (const TArray<int32>& TextureIndices : Indices)
 	{
 		for (int32 RegisterIndex : TextureIndices)
@@ -1958,21 +1941,24 @@ bool FMaterialUtilities::ExportMaterialTexCoordScales(UMaterialInterface* InMate
 		return false;
 	}
 
-	TBitArray<> RegisterInUse(false, MaxRegisterIndex + 1);
-
-	// Set the validity flag.
-	for (const TArray<int32>& TextureIndices : Indices)
+	// Find the streaming texture for each material texture register index.
+	TArray<UTexture2D*> RegisterIndexToTextures;
+	RegisterIndexToTextures.AddZeroed(MaxRegisterIndex + 1);
+	for (int32 TextureIndex = 0; TextureIndex < Textures.Num(); ++TextureIndex)
 	{
-		for (int32 RegisterIndex : TextureIndices)
+		UTexture2D* Texture2D = Cast<UTexture2D>(Textures[TextureIndex]);
+		if (Texture2D) // Don't check IsStreamingTexture() yet as this could change before cooking.
 		{
-			RegisterInUse[RegisterIndex] = true;
+			for (int32 RegisterIndex : Indices[TextureIndex])
+			{
+				RegisterIndexToTextures[RegisterIndex] = Texture2D;
+			}
 		}
 	}
 
-
 	const int32 NumTileX = (MaxRegisterIndex / 4 + 1);
-	const int32 NumTileY = MAX_NUM_TEX_COORD;
-	FIntPoint RenderTargetSize(TILE_RESOLUTION * NumTileX, TILE_RESOLUTION * NumTileY);
+	const int32 NumTileY = TEXSTREAM_MAX_NUM_UVCHANNELS;
+	FIntPoint RenderTargetSize(TEXSTREAM_TILE_RESOLUTION * NumTileX, TEXSTREAM_TILE_RESOLUTION * NumTileY);
 
 	// Render the vectors
 	{
@@ -2002,33 +1988,27 @@ bool FMaterialUtilities::ExportMaterialTexCoordScales(UMaterialInterface* InMate
 		}
 	}
 
-	OutScales.AddDefaulted(MaxRegisterIndex + 1);
-
-	TArray<float> TextureIndexScales;
-
-	// Now compute the scale for each
+	// Now compute the scale for each texture index (several indices could map to the same texture)
 	for (int32 RegisterIndex = 0; RegisterIndex <= MaxRegisterIndex; ++RegisterIndex)
 	{
-		if (!RegisterInUse[RegisterIndex]) continue;
-
-		// If nothing works, this will fallback to 1.f
-		OutScales[RegisterIndex].Scale = 1.f;
-		OutScales[RegisterIndex].Index = 0;
-
-		if (!bUseMetrics) continue; // Old metrics would always use 1.f
+		UTexture2D* Texture2D = RegisterIndexToTextures[RegisterIndex];
+		if (!Texture2D) continue; // Only handle streaming textures
 
 		int32 TextureTile = RegisterIndex / 4;
 		int32 ComponentIndex = RegisterIndex % 4;
 
 		bool bSuccess = false;
-		for (int32 CoordIndex = 0; CoordIndex < MAX_NUM_TEX_COORD && !bSuccess; ++CoordIndex)
+		bool bHadAnyValues = false;
+
+		for (int32 CoordIndex = 0; CoordIndex < TEXSTREAM_MAX_NUM_UVCHANNELS && !bSuccess; ++CoordIndex)
 		{
-			TextureIndexScales.Empty(TILE_RESOLUTION * TILE_RESOLUTION);
-			for (int32 TexelX = 0; TexelX < TILE_RESOLUTION; ++TexelX)
+			TArray<float> TextureScales;
+			TextureScales.Empty(TEXSTREAM_TILE_RESOLUTION * TEXSTREAM_TILE_RESOLUTION);
+			for (int32 TexelX = 0; TexelX < TEXSTREAM_TILE_RESOLUTION; ++TexelX)
 			{
-				for (int32 TexelY = 0; TexelY < TILE_RESOLUTION; ++TexelY)
+				for (int32 TexelY = 0; TexelY < TEXSTREAM_TILE_RESOLUTION; ++TexelY)
 				{
-					int32 TexelIndex = TextureTile * TILE_RESOLUTION + TexelX + (TexelY + CoordIndex * TILE_RESOLUTION) * RenderTargetSize.X;
+					int32 TexelIndex = TextureTile * TEXSTREAM_TILE_RESOLUTION + TexelX + (TexelY + CoordIndex * TEXSTREAM_TILE_RESOLUTION) * RenderTargetSize.X;
 					FFloat16Color& Scale16 = RenderedVectors[TexelIndex];
 
 					float TexelScale = 0;
@@ -2040,39 +2020,39 @@ bool FMaterialUtilities::ExportMaterialTexCoordScales(UMaterialInterface* InMate
 					// Quantize scale to converge faster in the TryLogic
 					TexelScale = FMath::RoundToFloat(TexelScale * SCALE_PRECISION) / SCALE_PRECISION;
 
-					if (TexelScale > 0 && TexelScale < INITIAL_GPU_SCALE)
+					if (TexelScale > 0 && TexelScale < TEXSTREAM_INITIAL_GPU_SCALE)
 					{
-						TextureIndexScales.Push(TexelScale);
+						TextureScales.Push(TexelScale);
 					}
 				}
 			}
 
-			if (GetUniformScale(TextureIndexScales, OutScales[RegisterIndex].Scale))
+			const float SamplingScale = GetUniformScale(TextureScales);
+			if (SamplingScale > 0)
 			{
-				OutScales[RegisterIndex].Index = CoordIndex;
+				FMaterialTextureInfo TextureInfo;
+				TextureInfo.SamplingScale = SamplingScale;
+				TextureInfo.UVChannelIndex = CoordIndex;
+				TextureInfo.TextureReference = FStringAssetReference(Texture2D);
+				TextureInfo.TextureIndex = RegisterIndex;
+				TextureStreamingData.Add(TextureInfo);
 				bSuccess = true;
+			}
+			else if (TextureScales.Num())
+			{
+				bHadAnyValues = true;
 			}
 		}
 
 		// If we couldn't find the scale, then output a warning detailing which index, texture, material is having an issue.
 		if (!bSuccess)
 		{
-			UTexture* FailedTexture = nullptr;
-			for (int32 Index = 0; Index < Indices.Num() && !FailedTexture; ++Index)
-			{
-				for (int32 SubIndex : Indices[Index])
-				{
-					if (SubIndex == RegisterIndex)
-					{
-						FailedTexture = Textures[Index];
-						break;
-					}
-				}
-			}
-
-			OutErrors.Register(InMaterial, FailedTexture, RegisterIndex, TextureIndexScales.Num() ? FExportErrorManager::EErrorType::EET_IncohorentValues : FExportErrorManager::EErrorType::EET_NoValues);
+			OutErrors.Register(InMaterial, Texture2D->GetFName(), RegisterIndex, bHadAnyValues ? FExportErrorManager::EErrorType::EET_IncohorentValues : FExportErrorManager::EErrorType::EET_NoValues);
 		}
 	}
+
+	// Update to the final data.
+	InMaterial->SetTextureStreamingData(TextureStreamingData);
 
 	return true;
 }
@@ -2122,7 +2102,7 @@ bool FMaterialUtilities::ExportMaterial(struct FMaterialMergeData& InMaterialDat
 	check(!bRenderOpacity || !bRenderOpacityMask);
 
 	FIntPoint Size;
-	// Compile shaders and render flatten material.	
+	// Compile shaders and render flatten material.
 	Size = OutFlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Diffuse);
 	RenderMaterialPropertyToTexture(InMaterialData, MP_BaseColor, false, PF_B8G8R8A8, OutFlattenMaterial.RenderSize, Size, OutFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Diffuse));
 	OutFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::Diffuse, Size);
@@ -2132,7 +2112,7 @@ bool FMaterialUtilities::ExportMaterial(struct FMaterialMergeData& InMaterialDat
 		Size = OutFlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Metallic);
 		RenderMaterialPropertyToTexture(InMaterialData, MP_Metallic, false, PF_B8G8R8A8, OutFlattenMaterial.RenderSize, Size, OutFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Metallic));
 		OutFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::Metallic, Size);
-	}
+	}	
 	if (bRenderSpecular)
 	{
 		Size = OutFlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Specular);
@@ -2151,6 +2131,14 @@ bool FMaterialUtilities::ExportMaterial(struct FMaterialMergeData& InMaterialDat
 		RenderMaterialPropertyToTexture(InMaterialData, MP_Normal, true, PF_B8G8R8A8, OutFlattenMaterial.RenderSize, Size, OutFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Normal));
 		OutFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::Normal, Size);
 	}
+	else
+	{
+        // Make sure we output a default normal value in case the material does not generate one (to prevent issues with combining meshes with and without normal maps being atlassed together)
+		TArray<FColor>& Samples = OutFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Normal);
+		Samples.Add(FColor(128, 128, 255));
+		OutFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::Normal, FIntPoint(1,1));
+	}
+
 	if (bRenderOpacityMask)
 	{
 		Size = OutFlattenMaterial.GetPropertySize(EFlattenMaterialProperties::Opacity);
@@ -2171,7 +2159,7 @@ bool FMaterialUtilities::ExportMaterial(struct FMaterialMergeData& InMaterialDat
 		RenderMaterialPropertyToTexture(InMaterialData, MP_EmissiveColor, false, PF_FloatRGBA, OutFlattenMaterial.RenderSize, Size, OutFlattenMaterial.GetPropertySamples(EFlattenMaterialProperties::Emissive));
 		OutFlattenMaterial.EmissiveScale = InMaterialData.EmissiveScale;
 		OutFlattenMaterial.SetPropertySize(EFlattenMaterialProperties::Emissive, Size);
-	}
+	}	
 
 	if (bRenderSubSurface)
 	{
@@ -2297,7 +2285,7 @@ UTextureRenderTarget2D* FMaterialUtilities::CreateRenderTarget(bool bInForceLine
 			RenderTarget->SizeY == InTargetSize.Y &&
 			RenderTarget->OverrideFormat == InPixelFormat &&
 			RenderTarget->bForceLinearGamma == bInForceLinearGamma &&
-			RenderTarget->ClearColor == RenderTarget->ClearColor )
+			RenderTarget->ClearColor == ClearColour )
 		{
 			return RenderTarget;
 		}
@@ -2354,12 +2342,21 @@ void FMaterialUtilities::OptimizeSampleArray(TArray<FColor>& InSamples, FIntPoin
 {
 	if (InSamples.Num() > 1)
 	{
-		const FColor ColourValue = InSamples[0];
+		FColor ColourValue;
+		for (FColor& Sample : InSamples)
+		{
+			if (Sample.A != 0)
+			{
+				ColourValue = Sample;
+				break;
+			}
+		}
+		
 		bool bConstantValue = true;
 
 		for (FColor& Sample : InSamples)
 		{
-			if (ColourValue != Sample)
+			if ( Sample.A != 0 && Sample != ColourValue)
 			{
 				bConstantValue = false;
 				break;
@@ -2368,11 +2365,11 @@ void FMaterialUtilities::OptimizeSampleArray(TArray<FColor>& InSamples, FIntPoin
 
 		if (bConstantValue)
 		{
-			InSamples.Empty();
+			InSamples.Empty(1);
 			InSamples.Add(ColourValue);
 			InSampleSize = FIntPoint(1, 1);
 		}
-	}
+	}	
 }
 
 FExportMaterialProxyCache::FExportMaterialProxyCache()
@@ -2557,6 +2554,11 @@ void FMaterialUtilities::GeneratedBinnedTextureSquares(const FVector2D Destinati
 				else if (bValidHorizontal)
 				{
 					UnusedAreas[BestAreaIndex] = HorizontalArea;
+				}
+				else
+				{
+					// Make sure we remove the area entry
+					UnusedAreas.RemoveAtSwap(BestAreaIndex);
 				}
 			}
 			else

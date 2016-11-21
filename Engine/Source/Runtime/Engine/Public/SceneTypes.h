@@ -157,6 +157,7 @@ enum EMaterialProperty
 
 	//^^^ New material properties go above here ^^^^
 	MP_MaterialAttributes,
+	MP_CustomOutput,
 	MP_MAX,
 };
 

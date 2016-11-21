@@ -24,13 +24,13 @@
 #
 # Configuration variables
 #
-apr_builddir=/Users/aliciacano/subversion-1.9.4/apr/build-1
-apr_builders=/Users/aliciacano/subversion-1.9.4/apr/build-1
-top_builddir=/Users/aliciacano/subversion-1.9.4/apr/build-1
+apr_builddir=/usr/local/apr/build-1
+apr_builders=/usr/local/apr/build-1
+top_builddir=/usr/local/apr/build-1
 
 # Some layouts require knowing what version we are at.
 APR_MAJOR_VERSION=1
-APR_DOTTED_VERSION=1.4.6
+APR_DOTTED_VERSION=1.5.2
 
 CC=gcc
 RM=rm
@@ -51,10 +51,14 @@ DEFS=-DHAVE_CONFIG_H
 # at the end of the process.
 #
 EXTRA_CFLAGS=-g -O2
-EXTRA_CPPFLAGS=-DDARWIN -DSIGPROCMASK_SETS_THREAD_MASK -no-cpp-precomp
+EXTRA_CPPFLAGS=-DDARWIN -DSIGPROCMASK_SETS_THREAD_MASK -DDARWIN_10
 EXTRA_LDFLAGS=
 EXTRA_LIBS=-lpthread
 EXTRA_INCLUDES=
+
+# CPPFLAGS which are used only while building APR itself
+#
+INTERNAL_CPPFLAGS=
 
 # NOTEST_* are flags and libraries that can be added by the user without
 # causing them to be used in configure tests (necessary for things like
@@ -71,7 +75,7 @@ NOTEST_LIBS=
 # left-to-right precedence and CPPFLAGS may include user-defined overrides.
 #
 ALL_CFLAGS   = $(EXTRA_CFLAGS) $(NOTEST_CFLAGS) $(CFLAGS)
-ALL_CPPFLAGS = $(DEFS) $(EXTRA_CPPFLAGS) $(NOTEST_CPPFLAGS) $(CPPFLAGS)
+ALL_CPPFLAGS = $(DEFS) $(INTERNAL_CPPFLAGS) $(EXTRA_CPPFLAGS) $(NOTEST_CPPFLAGS) $(CPPFLAGS)
 ALL_LDFLAGS  = $(EXTRA_LDFLAGS) $(NOTEST_LDFLAGS) $(LDFLAGS)
 ALL_LIBS     = $(LIBS) $(NOTEST_LIBS) $(EXTRA_LIBS)
 ALL_INCLUDES = $(INCLUDES) $(EXTRA_INCLUDES)
@@ -91,7 +95,7 @@ OBJECTS      = $(OBJECTS_unix)
 COMPILE      = $(CC) $(ALL_CFLAGS) $(ALL_CPPFLAGS) $(ALL_INCLUDES)
 LT_COMPILE   = $(LIBTOOL) $(LTFLAGS) --mode=compile $(COMPILE) -o $@ -c $< && touch $@
 
-LINK         = $(LIBTOOL) $(LTFLAGS) --mode=link $(LT_LDFLAGS) $(COMPILE) $(LT_VERSION) $(ALL_LDFLAGS) -o $@
+LINK         = $(LIBTOOL) $(LTFLAGS) --mode=link $(COMPILE) $(LT_LDFLAGS) $(LT_VERSION) $(ALL_LDFLAGS) -o $@
 
 APR_MKDIR        = $(apr_builders)/mkdir.sh
 APR_MKEXPORT     = $(AWK) -f $(apr_builders)/make_exports.awk

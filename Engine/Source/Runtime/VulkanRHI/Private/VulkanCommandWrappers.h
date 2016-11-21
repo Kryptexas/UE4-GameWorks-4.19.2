@@ -65,6 +65,9 @@ namespace VulkanRHI
 	void DumpCmdClearAttachments(VkCommandBuffer CommandBuffer, uint32 AttachmentCount, const VkClearAttachment* Attachments, uint32 RectCount, const VkClearRect* Rects);
 	void DumpCmdClearColorImage(VkCommandBuffer CommandBuffer, VkImage Image, VkImageLayout ImageLayout, const VkClearColorValue* ColorValue, uint32 RangeCount, const VkImageSubresourceRange* Ranges);
 	void DumpCmdClearDepthStencilImage(VkCommandBuffer CommandBuffer, VkImage Image, VkImageLayout ImageLayout, const VkClearDepthStencilValue* DepthStencil, uint32 RangeCount, const VkImageSubresourceRange* Ranges);
+	void DumpQueuePresent(VkQueue Queue, const VkPresentInfoKHR* PresentInfo);
+	void DumpCreateGraphicsPipelines(VkDevice Device, VkPipelineCache PipelineCache, uint32 CreateInfoCount, const VkGraphicsPipelineCreateInfo* CreateInfos, VkPipeline* Pipelines);
+
 #else
 	#define FlushDebugWrapperLog()
 	#define DevicePrintfBeginResult(d, x)
@@ -121,6 +124,8 @@ namespace VulkanRHI
 	#define DumpCmdClearAttachments(c, ac, a, rc, r)
 	#define DumpCmdClearColorImage(c, i, il, ds, rc, r)
 	#define DumpCmdClearDepthStencilImage(c, i, il, ds, rc, r)
+	#define DumpQueuePresent(q, i)
+	#define DumpCreateGraphicsPipelines(d, pc, cic, ci, p)
 #endif
 
 	FORCEINLINE_DEBUGGABLE VkResult  vkCreateInstance(const VkInstanceCreateInfo* CreateInfo, const VkAllocationCallbacks* Allocator, VkInstance* Instance)
@@ -690,7 +695,7 @@ namespace VulkanRHI
 
 	static FORCEINLINE_DEBUGGABLE VkResult  vkCreateGraphicsPipelines(VkDevice Device, VkPipelineCache PipelineCache, uint32 CreateInfoCount, const VkGraphicsPipelineCreateInfo* CreateInfos, const VkAllocationCallbacks* Allocator, VkPipeline* Pipelines)
 	{
-		DevicePrintfBeginResult(Device, FString::Printf(TEXT("vkCreateGraphicsPipelines(PipelineCache=%p, CreateInfoCount=%d, CreateInfos=%p, OutPipelines=%p)[...]"), PipelineCache, CreateInfoCount, CreateInfos, Pipelines));
+		DumpCreateGraphicsPipelines(Device, PipelineCache, CreateInfoCount, CreateInfos, Pipelines);
 
 		VkResult Result = VULKANAPINAMESPACE::vkCreateGraphicsPipelines(Device, PipelineCache, CreateInfoCount, CreateInfos, Allocator, Pipelines);
 
@@ -1040,13 +1045,14 @@ namespace VulkanRHI
 		VkDeviceSize                                offset,
 		uint32                                    drawCount,
 		uint32                                    stride);
+#endif
+	static FORCEINLINE_DEBUGGABLE void  vkCmdDispatch(VkCommandBuffer CommandBuffer, uint32 X, uint32 Y, uint32 Z)
+	{
+		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdDispatch(X=%d, Y=%d Z=%d)"), X, Y, Z));
 
-	static FORCEINLINE_DEBUGGABLE void  vkCmdDispatch(
-		VkCommandBuffer                             commandBuffer,
-		uint32                                    x,
-		uint32                                    y,
-		uint32                                    z);
-
+		VULKANAPINAMESPACE::vkCmdDispatch(CommandBuffer, X, Y, Z);
+	}
+#if 0
 	static FORCEINLINE_DEBUGGABLE void  vkCmdDispatchIndirect(
 		VkCommandBuffer                             commandBuffer,
 		VkBuffer                                    Buffer,
@@ -1098,14 +1104,15 @@ namespace VulkanRHI
 		VkDeviceSize                                dstOffset,
 		VkDeviceSize                                dataSize,
 		const uint32*                             pData);
-
-	static FORCEINLINE_DEBUGGABLE void  vkCmdFillBuffer(
-		VkCommandBuffer                             commandBuffer,
-		VkBuffer                                    dstBuffer,
-		VkDeviceSize                                dstOffset,
-		VkDeviceSize                                size,
-		uint32                                    data);
 #endif
+
+	static FORCEINLINE_DEBUGGABLE void  vkCmdFillBuffer(VkCommandBuffer CommandBuffer, VkBuffer DstBuffer, VkDeviceSize DstOffset, VkDeviceSize Size, uint32 Data)
+	{
+		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdFillBuffer(DstBuffer=%p, DstOffset=%d, Size=%d, Data=0x%x)"), DstBuffer, (uint32)DstOffset, (uint32)Size, Data));
+
+		VULKANAPINAMESPACE::vkCmdFillBuffer(CommandBuffer, DstBuffer, DstOffset, Size, Data);
+	}
+
 	static FORCEINLINE_DEBUGGABLE void  vkCmdClearColorImage(VkCommandBuffer CommandBuffer, VkImage Image, VkImageLayout ImageLayout, const VkClearColorValue* Color, uint32 RangeCount, const VkImageSubresourceRange* Ranges)
 	{
 		DumpCmdClearColorImage(CommandBuffer, Image, ImageLayout, Color, RangeCount, Ranges);
@@ -1196,17 +1203,15 @@ namespace VulkanRHI
 
 		VULKANAPINAMESPACE::vkCmdWriteTimestamp(CommandBuffer, PipelineStage, QueryPool, Query);
 	}
-#if 0
-	static FORCEINLINE_DEBUGGABLE void  vkCmdCopyQueryPoolResults(
-		VkCommandBuffer                             commandBuffer,
-		VkQueryPool                                 queryPool,
-		uint32                                    firstQuery,
-		uint32                                    queryCount,
-		VkBuffer                                    dstBuffer,
-		VkDeviceSize                                dstOffset,
-		VkDeviceSize                                stride,
-		VkQueryResultFlags                          flags);
 
+	static FORCEINLINE_DEBUGGABLE void  vkCmdCopyQueryPoolResults(VkCommandBuffer CommandBuffer, VkQueryPool QueryPool, uint32 FirstQuery, uint32 QueryCount,
+		VkBuffer DstBuffer, VkDeviceSize DstOffset, VkDeviceSize Stride, VkQueryResultFlags Flags)
+	{
+		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdCopyQueryPoolResults(QueryPool=%p, FirstQuery=%d, QueryCount=%d, DstBuffer=%p, DstOffset=%d, Stride=%d, Flags=0x%x)"), 
+			(void*)QueryPool, FirstQuery, QueryCount, (void*)DstBuffer, (uint32)DstOffset, (uint32)Stride, (uint32)Flags));
+		VULKANAPINAMESPACE::vkCmdCopyQueryPoolResults(CommandBuffer, QueryPool, FirstQuery, QueryCount, DstBuffer, DstOffset, Stride, Flags);
+	}
+#if 0
 	static FORCEINLINE_DEBUGGABLE void  vkCmdPushConstants(
 		VkCommandBuffer                             commandBuffer,
 		VkPipelineLayout                            layout,
@@ -1275,13 +1280,13 @@ namespace VulkanRHI
 
 		VkResult Result = VULKANAPINAMESPACE::vkAcquireNextImageKHR(Device, Swapchain, Timeout, Semaphore, Fence, ImageIndex);
 
-		PrintResultAndNamedHandle(Result, TEXT("ImageIndex"), ImageIndex);
+		PrintResultAndNamedHandle(Result, TEXT("ImageIndex"), *ImageIndex);
 		return Result;
 	}
 
 	static FORCEINLINE_DEBUGGABLE VkResult vkQueuePresentKHR(VkQueue Queue, const VkPresentInfoKHR* PresentInfo)
 	{
-		PrintfBeginResult(FString::Printf(TEXT("vkQueuePresentKHR(Queue=%p, Info=%p)[...]"), Queue, PresentInfo));
+		DumpQueuePresent(Queue, PresentInfo);
 
 		VkResult Result = VULKANAPINAMESPACE::vkQueuePresentKHR(Queue, PresentInfo);
 		PrintResult(Result);
@@ -1330,7 +1335,12 @@ namespace VulkanRHI
 		return Result;
 	}
 #endif
-	
+
+	static FORCEINLINE_DEBUGGABLE void vkDestroySurfaceKHR(VkInstance Instance, VkSurfaceKHR Surface, const VkAllocationCallbacks* pAllocator)
+	{
+		PrintfBeginResult(FString::Printf(TEXT("vkDestroySurfaceKHR(PhysicalDevice=%llu, Surface=%llu, pAllocator=%p)"), (uint64)Instance, (uint64)Surface, pAllocator));
+		VULKANAPINAMESPACE::vkDestroySurfaceKHR(Instance, Surface, pAllocator);
+	}
 
 #if VULKAN_ENABLE_DUMP_LAYER
 	void FlushDebugWrapperLog();

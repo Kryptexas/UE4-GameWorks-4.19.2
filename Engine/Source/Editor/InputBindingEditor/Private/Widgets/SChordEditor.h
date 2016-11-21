@@ -34,7 +34,7 @@ public:
 	 * @param InArgs The Slate argument list.
 	 * @param InputCommand
 	 */
-	void Construct( const FArguments& InArgs, TSharedPtr<FChordTreeItem> InputCommand );
+	void Construct( const FArguments& InArgs, TSharedPtr<FUICommandInfo> InputCommand );
 	
 	virtual bool SupportsKeyboardFocus() const override { return true; }
 

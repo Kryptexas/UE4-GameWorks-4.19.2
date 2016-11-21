@@ -766,11 +766,11 @@ bool FSequenceRecorder::StopRecording()
 	{
 		if(LevelSequence)
 		{
-			// Stop referencing the sequence so we are listed as 'not recording'
-			CurrentSequence = nullptr;
-
 			// set movie scene playback range to encompass all sections
 			UpdateSequencePlaybackRange();
+
+			// Stop referencing the sequence so we are listed as 'not recording'
+			CurrentSequence = nullptr;
 
 			if(GEditor == nullptr)
 			{
@@ -840,6 +840,13 @@ void FSequenceRecorder::UpdateSequencePlaybackRange()
 			}
 
 			MovieScene->SetPlaybackRange(MinRange, MaxRange);
+
+			// Initialize the working and view range with a little bit more space
+			const float OutputViewSize = MaxRange - MinRange;
+			const float OutputChange = OutputViewSize * 0.1f;
+
+			MovieScene->SetWorkingRange(MinRange - OutputChange, MaxRange + OutputChange);
+			MovieScene->SetViewRange(MinRange - OutputChange, MaxRange + OutputChange);
 		}
 	}
 }
@@ -929,9 +936,13 @@ void FSequenceRecorder::HandleActorDespawned(AActor* Actor)
 
 void FSequenceRecorder::RefreshNextSequence()
 {
-	// Cache the name of the next sequence we will try to record to
 	const USequenceRecorderSettings* Settings = GetDefault<USequenceRecorderSettings>();
-	SequenceName = Settings->SequenceName.Len() > 0 ? Settings->SequenceName : TEXT("RecordedSequence");
+	if (SequenceName.IsEmpty())
+	{
+		SequenceName = Settings->SequenceName.Len() > 0 ? Settings->SequenceName : TEXT("RecordedSequence");
+	}
+
+	// Cache the name of the next sequence we will try to record to
 	NextSequenceName = SequenceRecorderUtils::MakeNewAssetName<ULevelSequence>(Settings->SequenceRecordingBasePath.Path, SequenceName);
 }
 
