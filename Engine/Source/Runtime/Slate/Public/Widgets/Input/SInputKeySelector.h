@@ -8,7 +8,7 @@
 class SLATE_API SInputKeySelector : public SCompoundWidget
 {
 public:
-	DECLARE_DELEGATE_OneParam( FOnKeySelected, FInputChord )
+	DECLARE_DELEGATE_OneParam( FOnKeySelected, const FInputChord& )
 	DECLARE_DELEGATE( FOnIsSelectingKeyChanged )
 
 	SLATE_BEGIN_ARGS( SInputKeySelector )

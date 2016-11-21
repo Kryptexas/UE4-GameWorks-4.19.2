@@ -269,8 +269,8 @@ FWindowsWindow::FWindowsWindow()
 	, bIsVisible( false )
 	, DPIScaleFactor(1.0f)
 {
+	// PreFullscreenWindowPlacement.length will be set when we save the window placement and then used to check if the structure is valid
 	FMemory::Memzero(PreFullscreenWindowPlacement);
-	PreFullscreenWindowPlacement.length = sizeof(WINDOWPLACEMENT);
 
 	FMemory::Memzero(PreParentMinimizedWindowPlacement);
 	PreParentMinimizedWindowPlacement.length = sizeof(WINDOWPLACEMENT);
@@ -306,7 +306,7 @@ void FWindowsWindow::OnTransparencySupportChanged(EWindowTransparency NewTranspa
 #endif
 }
 
-HRGN FWindowsWindow::MakeWindowRegionObject() const
+HRGN FWindowsWindow::MakeWindowRegionObject(bool bIncludeBorderWhenMaximized) const
 {
 	HRGN Region;
 	if ( RegionWidth != INDEX_NONE && RegionHeight != INDEX_NONE )
@@ -324,11 +324,12 @@ HRGN FWindowsWindow::MakeWindowRegionObject() const
 				WindowInfo.cbSize = sizeof(WindowInfo);
 				::GetWindowInfo(HWnd, &WindowInfo);
 
-				Region = CreateRectRgn(WindowInfo.cxWindowBorders, WindowInfo.cxWindowBorders, RegionWidth + WindowInfo.cxWindowBorders, RegionHeight + WindowInfo.cxWindowBorders);
+				const int32 WindowBorderSize = bIncludeBorderWhenMaximized ? WindowInfo.cxWindowBorders : 0;
+				Region = CreateRectRgn(WindowBorderSize, WindowBorderSize, RegionWidth + WindowBorderSize, RegionHeight + WindowBorderSize);
 			}
 			else
 			{
-				int32 WindowBorderSize = GetWindowBorderSize();
+				const int32 WindowBorderSize = bIncludeBorderWhenMaximized ? GetWindowBorderSize() : 0;
 				Region = CreateRectRgn(WindowBorderSize, WindowBorderSize, RegionWidth - WindowBorderSize, RegionHeight - WindowBorderSize);
 			}
 		}
@@ -371,7 +372,7 @@ void FWindowsWindow::AdjustWindowRegion( int32 Width, int32 Height )
 	RegionWidth = Width;
 	RegionHeight = Height;
 
-	HRGN Region = MakeWindowRegionObject();
+	HRGN Region = MakeWindowRegionObject(true);
 
 	// NOTE: We explicitly don't delete the Region object, because the OS deletes the handle when it no longer needed after
 	// a call to SetWindowRgn.
@@ -597,6 +598,7 @@ void FWindowsWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 {
 	if (NewWindowMode != WindowMode)
 	{
+		EWindowMode::Type PreviousWindowMode = WindowMode;
 		WindowMode = NewWindowMode;
 
 		const bool bTrueFullscreen = NewWindowMode == EWindowMode::Fullscreen;
@@ -635,7 +637,11 @@ void FWindowsWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 		// If we're not in fullscreen, make it so
 		if (NewWindowMode == EWindowMode::WindowedFullscreen || NewWindowMode == EWindowMode::Fullscreen)
 		{
-			::GetWindowPlacement(HWnd, &PreFullscreenWindowPlacement);
+			if (PreviousWindowMode == EWindowMode::Windowed)
+			{
+				PreFullscreenWindowPlacement.length = sizeof(WINDOWPLACEMENT);
+				::GetWindowPlacement(HWnd, &PreFullscreenWindowPlacement);
+			}
 
 			// Setup Win32 flags for fullscreen window
 			WindowStyle &= ~WindowedModeStyle;
@@ -692,7 +698,10 @@ void FWindowsWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 			SetWindowLong(HWnd, GWL_STYLE, WindowStyle);
 			::SetWindowPos(HWnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
 
-			::SetWindowPlacement(HWnd, &PreFullscreenWindowPlacement);
+			if (PreFullscreenWindowPlacement.length) // Was PreFullscreenWindowPlacement initialized?
+			{
+				::SetWindowPlacement(HWnd, &PreFullscreenWindowPlacement);
+			}
 		}
 	}
 }
@@ -808,7 +817,7 @@ bool FWindowsWindow::IsPointInWindow( int32 X, int32 Y ) const
 {
 	bool Result = false;
 
-	HRGN Region = MakeWindowRegionObject();
+	HRGN Region = MakeWindowRegionObject(false);
 	Result = !!PtInRegion( Region, X, Y );
 	DeleteObject( Region );
 

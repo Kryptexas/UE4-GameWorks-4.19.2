@@ -48,6 +48,7 @@ enum class EGameplayDebuggerCategoryState : uint8
 	EnabledInGame,
 	EnabledInSimulate,
 	Disabled,
+	Hidden,
 };
 
 class IGameplayDebugger : public IModuleInterface

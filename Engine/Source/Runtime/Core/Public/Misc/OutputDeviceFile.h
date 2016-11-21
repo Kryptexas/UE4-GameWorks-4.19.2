@@ -30,6 +30,12 @@ public:
 	*/
 	FOutputDeviceFile(const TCHAR* InFilename = nullptr, bool bDisableBackup = false);
 
+	/**
+	* Destructor to perform teardown
+	*
+	*/
+	~FOutputDeviceFile();
+
 	/** Sets the filename that the output device writes to.  If the output device was already writing to a file, closes that file. */
 	void SetFilename(const TCHAR* InFilename);
 

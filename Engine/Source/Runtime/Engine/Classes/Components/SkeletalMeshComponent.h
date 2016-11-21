@@ -391,6 +391,9 @@ public:
 	/** Temporary array of local-space (relative to parent bone) rotation/translation for each bone. */
 	TArray<FTransform> BoneSpaceTransforms;
 	
+	/** Temporary storage for curves */
+	FBlendedHeapCurve AnimCurves;
+
 	// Update Rate
 
 	/** Cached BoneSpaceTransforms for Update Rate optimization. */
@@ -562,7 +565,11 @@ public:
 	/** If true TickPose() will not be called from the Component's TickComponent function.
 	* It will instead be called from Autonomous networking updates. See ACharacter. */
 	UPROPERTY(Transient)
-	uint32 bAutonomousTickPose : 1;
+	uint32 bOnlyAllowAutonomousTickPose : 1;
+
+	/** True if calling TickPose() from Autonomous networking updates. See ACharacter. */
+	UPROPERTY(Transient)
+	uint32 bIsAutonomousTickPose : 1;
 
 	/** If true, force the mesh into the reference pose - is an optimization. */
 	UPROPERTY()

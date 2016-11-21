@@ -1723,6 +1723,8 @@ void FScene::AddWindSource(UWindDirectionalSourceComponent* WindComponent)
 		return;
 	}
 
+	WindComponents_GameThread.Add(WindComponent);
+
 	FWindSourceSceneProxy* SceneProxy = WindComponent->CreateSceneProxy();
 	WindComponent->SceneProxy = SceneProxy;
 
@@ -1737,6 +1739,8 @@ void FScene::AddWindSource(UWindDirectionalSourceComponent* WindComponent)
 
 void FScene::RemoveWindSource(UWindDirectionalSourceComponent* WindComponent)
 {
+	WindComponents_GameThread.Remove(WindComponent);
+
 	FWindSourceSceneProxy* SceneProxy = WindComponent->SceneProxy;
 	WindComponent->SceneProxy = NULL;
 
@@ -1762,7 +1766,7 @@ const TArray<FWindSourceSceneProxy*>& FScene::GetWindSources_RenderThread() cons
 
 void FScene::GetWindParameters(const FVector& Position, FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const
 {
-	FWindSourceSceneProxy::FWindData AccumWindData;
+	FWindData AccumWindData;
 	AccumWindData.PrepareForAccumulate();
 
 	int32 NumActiveWindSources = 0;
@@ -1774,7 +1778,7 @@ void FScene::GetWindParameters(const FVector& Position, FVector& OutDirection, f
 		FVector4 CurrentDirectionAndSpeed;
 		float Weight;
 		const FWindSourceSceneProxy* CurrentSource = WindSources[i];
-		FWindSourceSceneProxy::FWindData CurrentSourceData;
+		FWindData CurrentSourceData;
 		if (CurrentSource->GetWindParameters(Position, CurrentSourceData, Weight))
 		{
 			AccumWindData.AddWeighted(CurrentSourceData, Weight);
@@ -1795,9 +1799,44 @@ void FScene::GetWindParameters(const FVector& Position, FVector& OutDirection, f
 	OutMaxGustAmt	= AccumWindData.MaxGustAmt;
 }
 
+void FScene::GetWindParameters_GameThread(const FVector& Position, FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const
+{
+	FWindData AccumWindData;
+	AccumWindData.PrepareForAccumulate();
+
+	const int32 NumSources = WindComponents_GameThread.Num();
+	int32 NumActiveSources = 0;
+	float TotalWeight = 0.0f;
+
+	// read the wind component array, this is safe for the game thread
+	for(UWindDirectionalSourceComponent* Component : WindComponents_GameThread)
+	{
+		float Weight = 0.0f;
+		FWindData CurrentComponentData;
+		if(Component->GetWindParameters(Position, CurrentComponentData, Weight))
+		{
+			AccumWindData.AddWeighted(CurrentComponentData, Weight);
+			TotalWeight += Weight;
+			++NumActiveSources;
+		}
+	}
+
+	AccumWindData.NormalizeByTotalWeight(TotalWeight);
+
+	if(NumActiveSources == 0)
+	{
+		AccumWindData.Direction = FVector(1.0f, 0.0f, 0.0f);
+	}
+
+	OutDirection = AccumWindData.Direction;
+	OutSpeed = AccumWindData.Speed;
+	OutMinGustAmt = AccumWindData.MinGustAmt;
+	OutMaxGustAmt = AccumWindData.MaxGustAmt;
+}
+
 void FScene::GetDirectionalWindParameters(FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const
 {
-	FWindSourceSceneProxy::FWindData AccumWindData;
+	FWindData AccumWindData;
 	AccumWindData.PrepareForAccumulate();
 
 	int32 NumActiveWindSources = 0;
@@ -1808,7 +1847,7 @@ void FScene::GetDirectionalWindParameters(FVector& OutDirection, float& OutSpeed
 		FVector4 CurrentDirectionAndSpeed;
 		float Weight;
 		const FWindSourceSceneProxy* CurrentSource = WindSources[i];
-		FWindSourceSceneProxy::FWindData CurrentSourceData;
+		FWindData CurrentSourceData;
 		if (CurrentSource->GetDirectionalWindParameters(CurrentSourceData, Weight))
 		{
 			AccumWindData.AddWeighted(CurrentSourceData, Weight);			
@@ -2656,6 +2695,7 @@ public:
 		return NullWindSources;
 	}
 	virtual void GetWindParameters(const FVector& Position, FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const override { OutDirection = FVector(1.0f, 0.0f, 0.0f); OutSpeed = 0.0f; OutMinGustAmt = 0.0f; OutMaxGustAmt = 0.0f; }
+	virtual void GetWindParameters_GameThread(const FVector& Position, FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const override { OutDirection = FVector(1.0f, 0.0f, 0.0f); OutSpeed = 0.0f; OutMinGustAmt = 0.0f; OutMaxGustAmt = 0.0f; }
 	virtual void GetDirectionalWindParameters(FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const override { OutDirection = FVector(1.0f, 0.0f, 0.0f); OutSpeed = 0.0f; OutMinGustAmt = 0.0f; OutMaxGustAmt = 0.0f; }
 	virtual void AddSpeedTreeWind(class FVertexFactory* VertexFactory, const class UStaticMesh* StaticMesh) override {}
 	virtual void RemoveSpeedTreeWind(class FVertexFactory* VertexFactory, const class UStaticMesh* StaticMesh) override {}

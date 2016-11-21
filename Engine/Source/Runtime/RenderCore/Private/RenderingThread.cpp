@@ -12,7 +12,7 @@
 #include "ExceptionHandling.h"
 #include "TaskGraphInterfaces.h"
 #include "StatsData.h"
-
+#include "HAL/ThreadHeartBeat.h"
 //
 // Globals
 //
@@ -857,6 +857,14 @@ static FAutoConsoleVariableRef CVarTimeToBlockOnRenderFence(
 	TEXT("Number of milliseconds the game thread should block when waiting on a render thread fence.")
 	);
 
+
+static int32 GTimeoutForBlockOnRenderFence = 30000;
+static FAutoConsoleVariableRef CVarTimeoutForBlockOnRenderFence(
+	TEXT("g.TimeoutForBlockOnRenderFence"),
+	GTimeoutForBlockOnRenderFence,
+	TEXT("Number of milliseconds the game thread should wait before failing when waiting on a render thread fence.")
+);
+
 /**
  * Block the game thread waiting for a task to finish on the rendering thread.
  */
@@ -895,6 +903,10 @@ static void GameThreadWaitForTask(const FGraphEventRef& Task, bool bEmptyGameThr
 			// rendering thread hasn't crashed :)
 			bool bDone;
 			uint32 WaitTime = FMath::Clamp<uint32>(GTimeToBlockOnRenderFence, 0, 33);
+
+			const double StartTime = FPlatformTime::Seconds();
+			const double EndTime = StartTime + (GTimeoutForBlockOnRenderFence / 1000.0);
+
 			do
 			{
 				CheckRenderingThreadHealth();
@@ -904,6 +916,16 @@ static void GameThreadWaitForTask(const FGraphEventRef& Task, bool bEmptyGameThr
 					FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::GameThread);
 				}
 				bDone = Event->Wait(WaitTime);
+
+				if (!bDone && !GIsEditor) // editor threads can block for quite a while...
+				{
+					// Fatal timeout if we run out of time and this thread is being monitor for heartbeats
+					// (We could just let the heartbeat monitor error for us, but this leads to better diagnostics).
+					if (FPlatformTime::Seconds() >= EndTime && FThreadHeartBeat::Get().IsBeating())
+					{
+						UE_LOG(LogRendererCore, Fatal, TEXT("GameThread timed out waiting for RenderThread after %.02f secs"), FPlatformTime::Seconds() - StartTime);
+					}
+				}
 			}
 			while (!bDone);
 

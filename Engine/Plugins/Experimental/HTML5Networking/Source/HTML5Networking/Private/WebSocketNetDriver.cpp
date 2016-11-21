@@ -137,18 +137,30 @@ void UWebSocketNetDriver::LowLevelSend(FString Address, void* Data, int32 CountB
 			const ProcessedPacket ProcessedData =
 					ConnectionlessHandler->OutgoingConnectionless(Address, (uint8*)DataToSend, CountBits);
 
-			DataToSend = ProcessedData.Data;
-			CountBits = ProcessedData.CountBits;
+			if (!ProcessedData.bError)
+			{
+				DataToSend = ProcessedData.Data;
+				CountBits = ProcessedData.CountBits;
+			}
+			else
+			{
+				CountBits = 0;
+			}
 		}
+
+
 		// connectionless websockets do not exist (yet)
 		// scan though existing connections
-		for (int32 i = 0; i<ClientConnections.Num(); ++i)
+		if (CountBits > 0)
 		{
-			UWebSocketConnection* Connection = (UWebSocketConnection*)ClientConnections[i];
-			if (Connection && ( Connection->LowLevelGetRemoteAddress(true) == Address ) )
+			for (int32 i = 0; i<ClientConnections.Num(); ++i)
 			{
-				Connection->GetWebSocket()->Send((uint8*)DataToSend, FMath::DivideAndRoundUp(CountBits, 8));
-				break;
+				UWebSocketConnection* Connection = (UWebSocketConnection*)ClientConnections[i];
+				if (Connection && ( Connection->LowLevelGetRemoteAddress(true) == Address ) )
+				{
+					Connection->GetWebSocket()->Send((uint8*)DataToSend, FMath::DivideAndRoundUp(CountBits, 8));
+					break;
+				}
 			}
 		}
 	}

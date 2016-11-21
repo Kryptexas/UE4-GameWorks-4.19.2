@@ -60,6 +60,7 @@ namespace EAnalyticsErrorCodes
 		MissingExecutable = 103,
 		DeviceNotSetupForDevelopment = 150,
 		DeviceOSNewerThanSDK = 151,
+		TestFailure = 152,
 	};
 };
 

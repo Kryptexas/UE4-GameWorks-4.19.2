@@ -64,6 +64,21 @@ UParticleSystem* UAnimNotifyState_Trail::GetOverridenPSTemplate(class USkeletalM
 	return OverridePSTemplate(MeshComp, Animation);
 }
 
+float UAnimNotifyState_Trail::GetCurveWidth(USkeletalMeshComponent* MeshComp) const
+{
+	UAnimInstance* AnimInst = MeshComp->GetAnimInstance();
+	float Width = 1.0f;
+	if (WidthScaleCurve != NAME_None && AnimInst)
+	{
+		if (!AnimInst->GetCurveValue(WidthScaleCurve, Width))
+		{
+			// Fallback to 1.f if curve was not found
+			Width = 1.f;
+		}
+	}
+	return Width;
+}
+
 void UAnimNotifyState_Trail::NotifyBegin(class USkeletalMeshComponent * MeshComp, class UAnimSequenceBase * Animation, float TotalDuration)
 {
 	bool bError = ValidateInput(MeshComp);
@@ -88,12 +103,7 @@ void UAnimNotifyState_Trail::NotifyBegin(class USkeletalMeshComponent * MeshComp
 	ParticleSystemComponentArray Children;
 	GetCandidateSystems(*MeshComp, Children);
 
-	UAnimInstance* AnimInst = MeshComp->GetAnimInstance();
-	float Width = 1.0f;
-	if (WidthScaleCurve != NAME_None && AnimInst)
-	{
-		Width = AnimInst->GetCurveValue(WidthScaleCurve);
-	}
+	float Width = GetCurveWidth(MeshComp);
 
 	UParticleSystemComponent* RecycleCandidates[3] = {nullptr, nullptr, nullptr}; // in order of priority
 	bool bFoundExistingTrail = false;
@@ -203,13 +213,8 @@ void UAnimNotifyState_Trail::NotifyTick(class USkeletalMeshComponent * MeshComp,
 
 	ParticleSystemComponentArray Children;
 	GetCandidateSystems(*MeshComp, Children);
-
-	UAnimInstance* AnimInst = MeshComp->GetAnimInstance();
-	float Width = 1.0f;
-	if (WidthScaleCurve != NAME_None && AnimInst)
-	{
-		Width = AnimInst->GetCurveValue(WidthScaleCurve);
-	}
+	
+	float Width = GetCurveWidth(MeshComp);
 
 	for (UParticleSystemComponent* ParticleComp : Children)
 	{
@@ -262,6 +267,31 @@ void UAnimNotifyState_Trail::NotifyEnd(class USkeletalMeshComponent * MeshComp, 
 	}
 
 	Received_NotifyEnd(MeshComp, Animation);
+}
+
+UParticleSystemComponent* UAnimNotifyState_Trail::GetParticleSystemComponent(USkeletalMeshComponent* MeshComp) const
+{
+	if (MeshComp == nullptr)
+	{
+		return nullptr;
+	}
+
+	ParticleSystemComponentArray Children;
+	GetCandidateSystems(*MeshComp, Children);
+	for (UParticleSystemComponent* ParticleComp : Children)
+	{
+		if (ParticleComp->IsActive())
+		{
+			UParticleSystemComponent::TrailEmitterArray TrailEmitters;
+			ParticleComp->GetOwnedTrailEmitters(TrailEmitters, this, false);
+			if (TrailEmitters.Num() > 0)
+			{
+				// We have a trail emitter, so return this one
+				return ParticleComp;
+			}
+		}
+	}
+	return nullptr;
 }
 
 bool UAnimNotifyState_Trail::ValidateInput(class USkeletalMeshComponent * MeshComp, bool bReportErrors/* =false */)

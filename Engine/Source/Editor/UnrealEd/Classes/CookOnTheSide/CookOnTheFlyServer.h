@@ -1285,24 +1285,6 @@ private:
 	 * @param FoundPackages list of packages which were found
 	 */
 	void GetDependentPackages(const TSet<FName>& RootPackages, TSet<FName>& FoundPackages);
-	/**
-	 * GenerateManifestInfo
-	 * generate the manifest information for a given package
-	 *
-	 * @param Package package to generate manifest information for
-	 */
-	void GenerateManifestInfo( UPackage* Package, const TArray<FName>& TargetPlatformNames );
-
-
-	/**
-	 * GenerateManifestInfo
-	 * generate manfiest information for the given package and add it to the manifest
-	 * this version is teh same as GenerateManifestInfo which takes in a UPackageObject except that doesn't require the package to be loaded
-	 *
-	 * @param Package name of the package to generate the manifest information for
-	 * @param TargetPlatformNames to add the manifest information to
-	 */
-	void GenerateManifestInfo(const FName& Package, const TArray<FName>& TargetPlatformNames);
 
 	/**
 	 * ContainsWorld

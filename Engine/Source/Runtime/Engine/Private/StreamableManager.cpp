@@ -123,7 +123,15 @@ UObject* FStreamableManager::SynchronousLoad(FStringAssetReference const& InTarg
 	FStreamable* Existing = StreamableItems.FindRef(TargetName);
 	while (Existing && Existing->bAsyncLoadRequestOutstanding)
 	{
-		UE_LOG(LogStreamableManager, Verbose, TEXT("     Flushing async load for %s"), *TargetName.ToString());
+		if (IsAsyncLoading())
+		{
+			UE_LOG(LogStreamableManager, Log, TEXT("     Flushing async load for %s"), *TargetName.ToString());
+		}
+		else
+		{
+			UE_LOG(LogStreamableManager, Verbose, TEXT("     Flushing async load for %s"), *TargetName.ToString());
+		}
+
 		check(!Existing->bAsyncUnloadRequestOutstanding); // we should not be both loading and unloading
 		FlushAsyncLoading(); 
 		// the async request might have found a redirect and retried

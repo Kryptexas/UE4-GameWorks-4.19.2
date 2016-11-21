@@ -362,7 +362,10 @@ public:
 			check(InMaterial && InFont && InFont->FontCacheType == EFontCacheType::Offline);
 
 			const int32 NumFontPages = InFont->Textures.Num();
-			if (NumFontPages > 0)
+
+			// Checking GIsRequestingExit as a workaround for lighting rebuild command let crash.
+			// Happening because GIsRequestingExit is true preventing the FTextRenderComponentMIDCache from registering into the GGCObjectReferencer
+			if (!GIsRequestingExit && NumFontPages > 0)
 			{
 				TArray<FGuid> FontParameterIds;
 				InMaterial->GetMaterial()->GetAllFontParameterNames(FontParameters, FontParameterIds);
@@ -403,6 +406,7 @@ public:
 			// We can only test for stale MIDs when we created the MIDs ourselves (which we don't do if the outer MID was itself a MID)
 			if (GIsEditor && !InMaterial->IsA<UMaterialInstanceDynamic>())
 			{
+				// We only test against the number of font pages when we created the MIDs
 				bIsStale = MIDs.Num() != InFont->Textures.Num();
 
 				if (!bIsStale)
@@ -421,6 +425,7 @@ public:
 
 			return bIsStale;
 		}
+
 
 		TArray<UMaterialInstanceDynamic*> MIDs;
 		TArray<FName> FontParameters;

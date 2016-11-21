@@ -770,6 +770,14 @@ APlayerController* UUserWidget::GetOwningPlayer() const
 	return PlayerContext.IsValid() ? PlayerContext.GetPlayerController() : nullptr;
 }
 
+void UUserWidget::SetOwningPlayer(APlayerController* LocalPlayerController)
+{
+	if (LocalPlayerController && LocalPlayerController->IsLocalController())
+	{
+		PlayerContext = FLocalPlayerContext(LocalPlayerController);
+	}
+}
+
 class APawn* UUserWidget::GetOwningPlayerPawn() const
 {
 	if ( APlayerController* PC = GetOwningPlayer() )

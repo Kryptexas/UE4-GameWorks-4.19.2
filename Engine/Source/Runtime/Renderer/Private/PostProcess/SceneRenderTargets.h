@@ -154,7 +154,7 @@ public:
 	static FSceneRenderTargets& Get(FRHIAsyncComputeCommandListImmediate& RHICmdList);
 
 	// this is a placeholder, the context should come from somewhere. This is very unsafe, please don't use it!
-	static FSceneRenderTargets& Get_Todo_PassContext();
+	static FSceneRenderTargets& GetGlobalUnsafe();
 	// As above but relaxed checks and always gives the global FSceneRenderTargets. The intention here is that it is only used for constants that don't change during a frame. This is very unsafe, please don't use it!
 	static FSceneRenderTargets& Get_FrameConstantsOnly();
 

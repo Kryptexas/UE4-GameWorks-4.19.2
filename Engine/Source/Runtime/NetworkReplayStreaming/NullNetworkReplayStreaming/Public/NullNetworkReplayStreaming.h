@@ -74,6 +74,7 @@ public:
 	virtual void KeepReplay( const FString& ReplayName, const bool bKeep ) override {}
 	virtual FString	GetReplayID() const override { return TEXT( "" ); }
 	virtual void SetTimeBufferHintSeconds(const float InTimeBufferHintSeconds) override {}
+	virtual void RefreshHeader() override {};
 
 	/** FTickableObjectBase implementation */
 	virtual void Tick(float DeltaSeconds) override;

@@ -9,6 +9,7 @@ FUserActivity FUserActivityTracking::UserActivity;
 
 void FUserActivityTracking::SetActivity(const FUserActivity& InUserActivity)
 { 
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_FUserActivityTracking_SetActivity);
 	UserActivity = InUserActivity;
 	OnActivityChanged.Broadcast(UserActivity);
 	FCoreDelegates::UserActivityStringChanged.Broadcast(UserActivity.ActionName);

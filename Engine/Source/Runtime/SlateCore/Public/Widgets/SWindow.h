@@ -700,6 +700,8 @@ public:
 
 	virtual bool SupportsKeyboardFocus() const override;
 
+	bool IsDrawingEnabled() const { return bIsDrawingEnabled; }
+
 private:
 	virtual FReply OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent ) override;
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
@@ -1063,6 +1065,9 @@ protected:
 
 	// The margin around the edges of the window that will be detected as places the user can grab to resize the window. 
 	FMargin UserResizeBorder;
+
+	// Whether or not drawing is enabled for this window
+	bool bIsDrawingEnabled;
 
 protected:
 	

@@ -35,6 +35,60 @@ class FOnlineSessionSearchResult;
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnPreClientTravel, const FString& /*PendingURL*/, ETravelType /*TravelType*/, bool /*bIsSeamlessTravel*/);
 typedef FOnPreClientTravel::FDelegate FOnPreClientTravelDelegate;
 
+#if WITH_EDITOR
+
+// The result of a UGameInstance PIE operation
+struct FGameInstancePIEResult
+{
+public:
+	// If not, what was the failure reason
+	FText FailureReason;
+
+	// Did the PIE operation succeed?
+	bool bSuccess;
+
+public:
+	static FGameInstancePIEResult Success()
+	{
+		return FGameInstancePIEResult(true, FText::GetEmpty());
+	}
+
+	static FGameInstancePIEResult Failure(const FText& InReason)
+	{
+		return FGameInstancePIEResult(false, InReason);
+	}
+
+	bool IsSuccess() const
+	{
+		return bSuccess;
+	}
+private:
+	FGameInstancePIEResult(bool bWasSuccess, const FText& InReason)
+		: FailureReason(InReason)
+		, bSuccess(bWasSuccess)
+	{
+	}
+};
+
+// Parameters used to initialize / start a PIE game instance
+//@TODO: Some of these are really mutually exclusive and should be refactored (put into a struct to make this easier in the future)
+struct FGameInstancePIEParameters
+{
+	// Are we doing SIE instead of PIE?
+	bool bSimulateInEditor;
+
+	// Were there any BP compile errors?
+	bool bAnyBlueprintErrors;
+
+	// Should we start in spectator mode?
+	bool bStartInSpectatorMode;
+
+	// Is this a dedicated server instance for PIE?
+	bool bRunAsDedicated;
+};
+
+#endif
+
 /**
  * GameInstance: high-level manager object for an instance of the running game.
  * Spawned at game creation and not destroyed until game instance is shut down.
@@ -107,12 +161,19 @@ public:
 
 	/* Called to initialize the game instance for standalone instances of the game */
 	void InitializeStandalone();
+
 #if WITH_EDITOR
 	/* Called to initialize the game instance for PIE instances of the game */
+	virtual FGameInstancePIEResult InitializeForPlayInEditor(int32 PIEInstanceIndex, const FGameInstancePIEParameters& Params);
+
+	/* Called to actually start the game when doing Play/Simulate In Editor */
+	virtual FGameInstancePIEResult StartPlayInEditorGameInstance(ULocalPlayer* LocalPlayer, const FGameInstancePIEParameters& Params);
+
+	DEPRECATED(4.15, "Please override InitializeForPIE instead")
 	virtual bool InitializePIE(bool bAnyBlueprintErrors, int32 PIEInstance, bool bRunAsDedicated);
 
+	DEPRECATED(4.15, "Please override StartPlayInEditorGameInstance instead")
 	virtual bool StartPIEGameInstance(ULocalPlayer* LocalPlayer, bool bInSimulateInEditor, bool bAnyBlueprintErrors, bool bStartInSpectatorMode);
-
 #endif
 
 	class UEngine* GetEngine() const;
@@ -198,6 +259,9 @@ public:
 	/** Called when demo playback fails for any reason */
 	virtual void HandleDemoPlaybackFailure( EDemoPlayFailure::Type FailureType, const FString& ErrorString = TEXT("") ) { }
 
+	/** This gets called when the player scrubs in a replay to a different level */
+	virtual void OnSeamlessTravelDuringReplay() { }
+
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
 	inline FTimerManager& GetTimerManager() const { return *TimerManager; }
@@ -261,6 +325,18 @@ public:
 
 	/** Returns true if this instance is for a dedicated server world */
 	bool IsDedicatedServerInstance() const;
+
+	/**
+	 * Helper function for traveling to a session that has already been joined via the online platform
+	 * Grabs the URL from the session info and travels
+	 *
+	 * @param ControllerId controller initiating the request
+	 * @param InSessionName name of session to travel to
+	 *
+	 * @return true if able or attempting to travel, false otherwise
+	 */
+#define ADDED_CLIENTTRAVELTOSESSION 1
+	virtual bool ClientTravelToSession(int32 ControllerId, FName InSessionName);
 
 	/** Broadcast a notification that travel is occurring */
 	void NotifyPreClientTravel(const FString& PendingURL, ETravelType TravelType, bool bIsSeamlessTravel);

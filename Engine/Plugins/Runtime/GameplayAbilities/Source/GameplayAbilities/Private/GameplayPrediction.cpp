@@ -243,7 +243,7 @@ void FPredictionKeyDelegates::AddDependency(FPredictionKey::KeyType ThisKey, FPr
 
 FScopedPredictionWindow::FScopedPredictionWindow(UAbilitySystemComponent* AbilitySystemComponent, FPredictionKey InPredictionKey, bool InSetReplicatedPredictionKey /*=true*/)
 {
-	if (!ensure(AbilitySystemComponent != NULL))
+	if (AbilitySystemComponent == nullptr)
 	{
 		return;
 	}

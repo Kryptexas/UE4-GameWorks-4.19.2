@@ -9,6 +9,7 @@
 UAbilityTask_WaitGameplayEffectApplied::UAbilityTask_WaitGameplayEffectApplied(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	Locked = false;
 }
 
 void UAbilityTask_WaitGameplayEffectApplied::Activate()
@@ -37,9 +38,20 @@ void UAbilityTask_WaitGameplayEffectApplied::OnApplyGameplayEffectCallback(UAbil
 	{
 		return;
 	}
+
+	if (Locked)
+	{
+		ABILITY_LOG(Error, TEXT("WaitGameplayEffectApplied recursion detected. Ability: %s. Applied Spec: %s. This could cause an infinite loop! Ignoring"), *GetNameSafe(Ability), *SpecApplied.ToSimpleString());
+		return;
+	}
 	
 	FGameplayEffectSpecHandle	SpecHandle(new FGameplayEffectSpec(SpecApplied));
-	BroadcastDelegate(AvatarActor, SpecHandle, ActiveHandle);
+
+	{
+		TGuardValue<bool> GuardValue(Locked, true);	
+		BroadcastDelegate(AvatarActor, SpecHandle, ActiveHandle);
+	}
+
 	if (TriggerOnce)
 	{
 		EndTask();

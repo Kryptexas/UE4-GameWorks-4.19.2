@@ -8,18 +8,18 @@
 UAbilityTask_ApplyRootMotionRadialForce::UAbilityTask_ApplyRootMotionRadialForce(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
-	bTickingTask = true;
-	bSimulatedTask = true;
-	bIsFinished = false;
-	RootMotionSourceID = (uint16)ERootMotionSourceID::Invalid;
-	MovementComponent = nullptr;
 	StrengthDistanceFalloff = nullptr;
 	StrengthOverTime = nullptr;
 	bUseFixedWorldDirection = false;
+	VelocityOnFinishMode = ERootMotionFinishVelocityMode::MaintainLastRootMotionVelocity;
+	SetVelocityOnFinish = FVector::ZeroVector;
+	ClampVelocityOnFinish = 0.0f;
 }
 
-UAbilityTask_ApplyRootMotionRadialForce* UAbilityTask_ApplyRootMotionRadialForce::ApplyRootMotionRadialForce(UGameplayAbility* OwningAbility, FName TaskInstanceName, FVector Location, AActor* LocationActor, float Strength, float Duration, float Radius, bool bIsPush, bool bIsAdditive, bool bNoZForce, UCurveFloat* StrengthDistanceFalloff, UCurveFloat* StrengthOverTime, bool bUseFixedWorldDirection, FRotator FixedWorldDirection)
+UAbilityTask_ApplyRootMotionRadialForce* UAbilityTask_ApplyRootMotionRadialForce::ApplyRootMotionRadialForce(UGameplayAbility* OwningAbility, FName TaskInstanceName, FVector Location, AActor* LocationActor, float Strength, float Duration, float Radius, bool bIsPush, bool bIsAdditive, bool bNoZForce, UCurveFloat* StrengthDistanceFalloff, UCurveFloat* StrengthOverTime, bool bUseFixedWorldDirection, FRotator FixedWorldDirection, ERootMotionFinishVelocityMode VelocityOnFinishMode, FVector SetVelocityOnFinish, float ClampVelocityOnFinish)
 {
+	UAbilitySystemGlobals::NonShipping_ApplyGlobalAbilityScaler_Duration(Duration);
+
 	auto MyTask = NewAbilityTask<UAbilityTask_ApplyRootMotionRadialForce>(OwningAbility, TaskInstanceName);
 
 	MyTask->ForceName = TaskInstanceName;
@@ -35,20 +35,12 @@ UAbilityTask_ApplyRootMotionRadialForce* UAbilityTask_ApplyRootMotionRadialForce
 	MyTask->StrengthOverTime = StrengthOverTime;
 	MyTask->bUseFixedWorldDirection = bUseFixedWorldDirection;
 	MyTask->FixedWorldDirection = FixedWorldDirection;
+	MyTask->VelocityOnFinishMode = VelocityOnFinishMode;
+	MyTask->SetVelocityOnFinish = SetVelocityOnFinish;
+	MyTask->ClampVelocityOnFinish = ClampVelocityOnFinish;
 	MyTask->SharedInitAndApply();
 
 	return MyTask;
-}
-
-void UAbilityTask_ApplyRootMotionRadialForce::Activate()
-{
-}
-
-void UAbilityTask_ApplyRootMotionRadialForce::InitSimulatedTask(UGameplayTasksComponent& InGameplayTasksComponent)
-{
-	Super::InitSimulatedTask(InGameplayTasksComponent);
-
-	SharedInitAndApply();
 }
 
 void UAbilityTask_ApplyRootMotionRadialForce::SharedInitAndApply()
@@ -128,7 +120,8 @@ void UAbilityTask_ApplyRootMotionRadialForce::TickTask(float DeltaTime)
 
 void UAbilityTask_ApplyRootMotionRadialForce::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
 {
-	DOREPLIFETIME(UAbilityTask_ApplyRootMotionRadialForce, ForceName);
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionRadialForce, Location);
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionRadialForce, LocationActor);
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionRadialForce, Radius);
@@ -141,6 +134,9 @@ void UAbilityTask_ApplyRootMotionRadialForce::GetLifetimeReplicatedProps(TArray<
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionRadialForce, StrengthOverTime);
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionRadialForce, bUseFixedWorldDirection);
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionRadialForce, FixedWorldDirection);
+	DOREPLIFETIME(UAbilityTask_ApplyRootMotionRadialForce, VelocityOnFinishMode);
+	DOREPLIFETIME(UAbilityTask_ApplyRootMotionRadialForce, SetVelocityOnFinish);
+	DOREPLIFETIME(UAbilityTask_ApplyRootMotionRadialForce, ClampVelocityOnFinish);
 }
 
 void UAbilityTask_ApplyRootMotionRadialForce::PreDestroyFromReplication()
@@ -154,6 +150,15 @@ void UAbilityTask_ApplyRootMotionRadialForce::OnDestroy(bool AbilityIsEnding)
 	if (MovementComponent)
 	{
 		MovementComponent->RemoveRootMotionSourceByID(RootMotionSourceID);
+
+		if (VelocityOnFinishMode == ERootMotionFinishVelocityMode::SetVelocity)
+		{
+			SetFinishVelocity(FName("AbilityTaskApplyRootMotionRadialForce_EndForce"), SetVelocityOnFinish);
+		}
+		else if (VelocityOnFinishMode == ERootMotionFinishVelocityMode::ClampVelocity)
+		{
+			ClampFinishVelocity(FName("AbilityTaskApplyRootMotionRadialForce_VelocityClamp"), ClampVelocityOnFinish);
+		}
 	}
 
 	Super::OnDestroy(AbilityIsEnding);

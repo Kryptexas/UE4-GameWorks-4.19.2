@@ -1463,7 +1463,7 @@ const ANavigationData* UNavigationSystem::GetNavDataForProps(const FNavAgentProp
 	if (NavDataInstance == nullptr)
 	{
 		TArray<FNavAgentProperties> AgentPropertiesList;
-		int32 NumNavDatas = AgentToNavDataMap.GetKeys(AgentPropertiesList);
+		AgentToNavDataMap.GenerateKeyArray(AgentPropertiesList);
 		
 		FNavAgentProperties BestFitNavAgent;
 		float BestExcessHeight = -FLT_MAX;

@@ -12,6 +12,9 @@ enum class EWindSourceType : uint8
 	Point,
 };
 
+class FWindData;
+class FWindSourceSceneProxy;
+
 /** Component that provides a directional wind source. Only affects SpeedTree assets. */
 UCLASS(collapsecategories, hidecategories=(Object, Mobility), editinlinenew)
 class UWindDirectionalSourceComponent : public USceneComponent
@@ -37,7 +40,7 @@ class UWindDirectionalSourceComponent : public USceneComponent
 	uint32 bPointWind : 1;
 
 public:
-	class FWindSourceSceneProxy* SceneProxy;
+	FWindSourceSceneProxy* SceneProxy;
 
 	/**
 	 * Because the actual data used to query wind is stored on the render thread in
@@ -70,6 +73,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Wind)
 	void SetWindType(EWindSourceType InNewType);
 
+	/** Calculate wind parameters from the data on this component, safe to call on game thread */
+	ENGINE_API bool GetWindParameters(const FVector& EvaluatePosition, FWindData& OutData, float& Weight) const;
+
 protected:
 	//~ Begin UActorComponent Interface.
 	virtual void Activate(bool bReset) override;
@@ -88,8 +94,5 @@ public:
 	 * Creates a proxy to represent the primitive to the scene manager in the rendering thread.
 	 * @return The proxy object.
 	 */
-	virtual class FWindSourceSceneProxy* CreateSceneProxy() const;
+	virtual FWindSourceSceneProxy* CreateSceneProxy() const;
 };
-
-
-

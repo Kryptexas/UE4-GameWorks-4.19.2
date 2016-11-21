@@ -263,7 +263,9 @@ bool UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(const
 			if ( !GEngine->GameViewport->GetGameViewport()->TakeHighResScreenShot() )
 			{
 				// If we failed to take the screenshot, we're going to need to cleanup the automation screenshot taker.
+#if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
 				delete TempObject;
+#endif 
 				return false;
 			}
 
@@ -365,7 +367,6 @@ void UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotOfUI(UObject* 
 				{
 #if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
 					FAutomationScreenshotTaker* TempObject = new FAutomationScreenshotTaker(Name, Options);
-#endif
 
 					FAutomationScreenshotData Data = AutomationCommon::BuildScreenshotData(GWorld->GetName(), Name, OutSize.X, OutSize.Y);
 
@@ -383,6 +384,7 @@ void UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotOfUI(UObject* 
 					Data.MaximumGlobalError = Options.MaximumGlobalError;
 
 					GEngine->GameViewport->OnScreenshotCaptured().Broadcast(OutSize.X, OutSize.Y, OutColorData);
+#endif
 				}
 
 				FLatentActionManager& LatentActionManager = World->GetLatentActionManager();

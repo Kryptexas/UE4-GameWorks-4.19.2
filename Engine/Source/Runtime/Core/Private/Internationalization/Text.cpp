@@ -76,6 +76,16 @@ uint32 FTextInspector::GetFlags(const FText& Text)
 	return Text.Flags;
 }
 
+void FTextInspector::GetHistoricFormatData(const FText& Text, TArray<FHistoricTextFormatData>& OutHistoricFormatData)
+{
+	Text.GetHistoricFormatData(OutHistoricFormatData);
+}
+
+bool FTextInspector::GetHistoricNumericData(const FText& Text, FHistoricTextNumericData& OutHistoricNumericData)
+{
+	return Text.GetHistoricNumericData(OutHistoricNumericData);
+}
+
 // These default values have been duplicated to the KismetTextLibrary functions for Blueprints. Please replicate any changes there!
 FNumberFormattingOptions::FNumberFormattingOptions()
 	: UseGrouping(true)
@@ -915,17 +925,22 @@ const FString& FText::GetSourceString() const
 	return TextData->GetDisplayString();
 }
 
+void FText::GetHistoricFormatData(TArray<FHistoricTextFormatData>& OutHistoricFormatData) const
+{
+	TextData->GetTextHistory().GetHistoricFormatData(*this, OutHistoricFormatData);
+}
+
+bool FText::GetHistoricNumericData(FHistoricTextNumericData& OutHistoricNumericData) const
+{
+	return TextData->GetTextHistory().GetHistoricNumericData(*this, OutHistoricNumericData);
+}
+
 bool FText::IdenticalTo( const FText& Other ) const
 {
 	// If both instances point to the same data or localized string, then both instances are considered identical.
 	// This is fast as it skips a lexical compare, however it can also return false for two instances that have identical strings, but in different pointers.
 	// For instance, this method will return false for two FText objects created from FText::FromString("Wooble") as they each have unique, non-shared instances.
 	return TextData == Other.TextData || TextData->GetLocalizedString() == Other.TextData->GetLocalizedString();
-}
-
-void FText::GetSourceTextsFromFormatHistory(TArray<FText>& OutSourceTexts) const
-{
-	TextData->GetTextHistory().GetSourceTextsFromFormatHistory(*this, OutSourceTexts);
 }
 
 FArchive& operator<<(FArchive& Ar, FFormatArgumentValue& Value)

@@ -46,7 +46,9 @@ UClass* FNavigationLinkBase::GetAreaClass() const
 
 void FNavigationLinkBase::InitializeAreaClass(const bool bForceRefresh)
 {
-	if (!bAreaClassInitialized || bForceRefresh)
+	// @hack fix for changes to AreaClass in the editor not taking effect
+	// proper fix will get merged over from Dev-Gen
+	if (!bAreaClassInitialized || bForceRefresh || GIsEditor)
 	{
 		AreaClassOb = (UClass*)AreaClass;
 		bAreaClassInitialized = true;

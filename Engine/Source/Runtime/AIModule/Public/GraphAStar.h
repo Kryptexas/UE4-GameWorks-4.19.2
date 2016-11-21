@@ -21,13 +21,14 @@ enum EGraphAStarResult
 /**
  *	Generic graph A* implementation
  *
- *	TGraph holds graph representation. Needs to implement two functions:
- *		int32 GetNeighbourCount(FNodeRef NodeRef) const;	- returns number of neighbours that the graph node identified with NodeRef has
- *		bool IsValidRef(FNodeRef NodeRef) const;			- returns whether given node identyfication is correct
+ *	TGraph holds graph representation. Needs to implement functions:
+ *		int32 GetNeighbourCount(FNodeRef NodeRef) const;										- returns number of neighbours that the graph node identified with NodeRef has
+ *		bool IsValidRef(FNodeRef NodeRef) const;												- returns whether given node identyfication is correct
+ *      FNodeRef GetNeighbour(const FNodeRef NodeRef, const int32 NeighbourIndex) const;		- returns neighbour ref
  *	
  *	it also needs to specify node type 
  *		FNodeRef		- type used as identification of nodes in the graph
-  *	
+ *	
  *	TQueryFilter (FindPath's parameter) filter class is what decides which graph edges can be used and at what cost. It needs to implement following functions:
  *		float GetHeuristicScale() const;														- used as GetHeuristicCost's multiplier
  *		float GetHeuristicCost(const FNodeRef StartNodeRef, const FNodeRef EndNodeRef) const;	- estimate of cost from StartNodeRef to EndNodeRef

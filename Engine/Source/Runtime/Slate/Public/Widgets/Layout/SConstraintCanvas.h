@@ -130,7 +130,7 @@ public:
 	void ClearChildren();
 
 	/** Get the cached geometry of the canvas. */
-	FGeometry GetCachedGeometry() const { return CachedGeometry; }
+	const FGeometry& GetCachedGeometry() const { return CachedGeometry; }
 
 public:
 

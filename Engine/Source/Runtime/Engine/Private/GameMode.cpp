@@ -663,8 +663,6 @@ void AGameMode::AddInactivePlayer(APlayerState* PlayerState, APlayerController* 
 			}
 		}
 	}
-
-	PlayerState->OnDeactivated();
 }
 
 bool AGameMode::FindInactivePlayer(APlayerController* PC)

@@ -280,6 +280,7 @@ namespace AutomationTool
 			this.ServerCommandline = InParams.ServerCommandline;
             this.Package = InParams.Package;
 			this.Deploy = InParams.Deploy;
+			this.DeployFolder = InParams.DeployFolder;
 			this.IterativeDeploy = InParams.IterativeDeploy;
 			this.IgnoreCookErrors = InParams.IgnoreCookErrors;
 			this.FastCook = InParams.FastCook;
@@ -389,6 +390,7 @@ namespace AutomationTool
 			bool? DedicatedServer = null,
 			bool? Client = null,
 			bool? Deploy = null,
+			string DeployFolder = null,
 			bool? FileServer = null,
 			bool? Foreign = null,
 			bool? ForeignCode = null,
@@ -619,7 +621,23 @@ namespace AutomationTool
 			this.ServerCommandline = ParseParamValueIfNotSpecified(Command, ServerCommandline, "servercmdline");
 			this.ServerCommandline = this.ServerCommandline.Replace('\'', '\"'); // replace any single quotes with double quotes
             this.Package = GetParamValueIfNotSpecified(Command, Package, this.Package, "package");
+
 			this.Deploy = GetParamValueIfNotSpecified(Command, Deploy, this.Deploy, "deploy");
+			this.DeployFolder = ParseParamValueIfNotSpecified(Command, DeployFolder, "deploy", null);
+
+			// if the user specified -deploy but no folder, set the default
+			if (this.Deploy && string.IsNullOrEmpty(this.DeployFolder))
+			{
+				this.DeployFolder = this.ShortProjectName;
+			}
+			else if (string.IsNullOrEmpty(this.DeployFolder) == false)
+			{
+				// if the user specified a folder set deploy to true.
+				//@todo - remove 'deploy' var and check deployfolder != null?
+				this.Deploy = true;
+			}
+
+			if (string.IsNullOrEmpty(this.DeployFolder))
 			this.IterativeDeploy = GetParamValueIfNotSpecified(Command, IterativeDeploy, this.IterativeDeploy, new string[] {"iterativedeploy", "iterate" } );
 			this.FastCook = GetParamValueIfNotSpecified(Command, FastCook, this.FastCook, "FastCook");
 			this.IgnoreCookErrors = GetParamValueIfNotSpecified(Command, IgnoreCookErrors, this.IgnoreCookErrors, "IgnoreCookErrors");
@@ -1605,10 +1623,13 @@ namespace AutomationTool
 		[Help("deploy", "deploy the project for the target platform")]
 		public bool Deploy { get; set; }
 
+		[Help("deploy", "Location to deploy to on the target platform")]
+		public string DeployFolder { get; set; }
+
 		#endregion
 
 		#region Misc
-		
+
 		[Help("MapsToRebuildLightMaps", "List of maps that need light maps rebuilding")]
 		public ParamList<string> MapsToRebuildLightMaps = new ParamList<string>();
 

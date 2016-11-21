@@ -1661,7 +1661,6 @@ EWindowZone::Type SWindow::GetCurrentWindowZone(FVector2D LocalMousePosition)
 	const bool bIsBorderlessGameWindow = Type == EWindowType::GameWindow && !bHasOSWindowBorder;
 
 	const float WindowDPIScale = FSlateApplicationBase::Get().GetApplicationScale() * (NativeWindow.IsValid() ? NativeWindow->GetDPIScaleFactor() : 1.0f);
-
 	const FMargin DPIScaledResizeBorder = UserResizeBorder * WindowDPIScale;
 
 	const bool bIsCursorVisible = FSlateApplicationBase::Get().GetPlatformCursor()->GetType() != EMouseCursor::None;
@@ -1788,6 +1787,7 @@ SWindow::SWindow()
 	, ExpectedMaxWidth( INDEX_NONE )
 	, ExpectedMaxHeight( INDEX_NONE )
 	, TitleBar()
+	, bIsDrawingEnabled( true )
 {
 }
 
@@ -1860,6 +1860,8 @@ void SWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 			PreFullscreenPosition = ScreenPosition;
 		}
 
+		bIsDrawingEnabled = false;
+
 		NativeWindow->SetWindowMode( NewWindowMode );
 	
 		const FVector2D vp = IsMirrorWindow() ? GetSizeInScreen() : GetViewportSize();
@@ -1876,6 +1878,8 @@ void SWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 			// If we left fullscreen, reset the screen position;
 			MoveWindowTo(PreFullscreenPosition);
 		}
+
+		bIsDrawingEnabled = true;
 	}
 
 }

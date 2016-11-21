@@ -20,8 +20,8 @@ public:
 
 	// Constructors
 	FGameplayEffectCustomExecutionParameters();
-	FGameplayEffectCustomExecutionParameters(FGameplayEffectSpec& InOwningSpec, const TArray<FGameplayEffectExecutionScopedModifierInfo>& InScopedMods, UAbilitySystemComponent* InTargetAbilityComponent, const FGameplayTagContainer& InPassedIntags);
-	FGameplayEffectCustomExecutionParameters(FGameplayEffectSpec& InOwningSpec, const TArray<FGameplayEffectExecutionScopedModifierInfo>& InScopedMods, UAbilitySystemComponent* InTargetAbilityComponent, const FGameplayTagContainer& InPassedIntags, const TArray<FActiveGameplayEffectHandle>& InIgnoreHandles);
+	FGameplayEffectCustomExecutionParameters(FGameplayEffectSpec& InOwningSpec, const TArray<FGameplayEffectExecutionScopedModifierInfo>& InScopedMods, UAbilitySystemComponent* InTargetAbilityComponent, const FGameplayTagContainer& InPassedIntags, const FPredictionKey& InPredictionKey);
+	FGameplayEffectCustomExecutionParameters(FGameplayEffectSpec& InOwningSpec, const TArray<FGameplayEffectExecutionScopedModifierInfo>& InScopedMods, UAbilitySystemComponent* InTargetAbilityComponent, const FGameplayTagContainer& InPassedIntags, const FPredictionKey& InPredictionKey, const TArray<FActiveGameplayEffectHandle>& InIgnoreHandles);
 
 	/** Simple accessor to owning gameplay spec */
 	const FGameplayEffectSpec& GetOwningSpec() const;
@@ -38,8 +38,9 @@ public:
 	/** Simple accessor to the Passed In Tags to this execution */
 	const FGameplayTagContainer& GetPassedInTags() const;
 
-	/** Simple accessor to the GE handles to ignore in this execution. */
 	TArray<FActiveGameplayEffectHandle> GetIgnoreHandles() const;
+	
+	FPredictionKey GetPredictionKey() const;
 
 	/**
 	 * Attempts to calculate the magnitude of a captured attribute given the specified parameters. Can fail if the gameplay spec doesn't have
@@ -114,8 +115,9 @@ private:
 	/** The extra tags that were passed in to this execution */
 	FGameplayTagContainer PassedInTags;
 
-	/** Any mods with one of these handles will be ignored during evaluation */
 	TArray<FActiveGameplayEffectHandle> IgnoreHandles;
+	
+	FPredictionKey PredictionKey;
 };
 
 /** Struct representing the output of a custom gameplay effect execution. */

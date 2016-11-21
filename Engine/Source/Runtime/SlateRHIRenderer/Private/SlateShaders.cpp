@@ -11,6 +11,11 @@ IMPLEMENT_SHADER_TYPE(, FSlateElementVS, TEXT("SlateVertexShader"),TEXT("Main"),
 
 IMPLEMENT_SHADER_TYPE(, FSlateDebugOverdrawPS, TEXT("SlateElementPixelShader"), TEXT("DebugOverdrawMain"), SF_Pixel );
 
+IMPLEMENT_SHADER_TYPE(, FSlatePostProcessBlurPS, TEXT("SlatePostProcessPixelShader"), TEXT("GaussianBlurMain"), SF_Pixel);
+
+IMPLEMENT_SHADER_TYPE(, FSlatePostProcessDownsamplePS, TEXT("SlatePostProcessPixelShader"), TEXT("DownsampleMain"), SF_Pixel);
+
+
 #define IMPLEMENT_SLATE_PIXELSHADER_TYPE(ShaderType, bDrawDisabledEffect, bUseTextureAlpha) \
 	typedef TSlateElementPS<ESlateShader::ShaderType,bDrawDisabledEffect,bUseTextureAlpha> TSlateElementPS##ShaderType##bDrawDisabledEffect##bUseTextureAlpha##A; \
 	IMPLEMENT_SHADER_TYPE(template<>,TSlateElementPS##ShaderType##bDrawDisabledEffect##bUseTextureAlpha##A,TEXT("SlateElementPixelShader"),TEXT("Main"),SF_Pixel);

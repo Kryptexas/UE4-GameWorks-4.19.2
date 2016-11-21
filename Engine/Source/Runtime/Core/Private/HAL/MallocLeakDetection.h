@@ -14,11 +14,27 @@
 
 #if MALLOC_LEAKDETECTION
 
+
+struct FMallocLeakReportOptions
+{
+	FMallocLeakReportOptions()
+	{
+		FMemory::Memzero(this, sizeof(FMallocLeakReportOptions));
+	}
+	uint32			FilterSize;
+	float			LeakRate;
+	bool			OnlyNonDeleters;
+	uint32			FrameStart;
+	uint32			FrameEnd;
+	const TCHAR*	OutputFile;
+};
+
 /**
  * Maintains a list of all pointers to currently allocated memory.
  */
 class FMallocLeakDetection
 {
+
 	struct FCallstackTrack
 	{
 		FCallstackTrack()
@@ -29,8 +45,20 @@ class FMallocLeakDetection
 		uint64 CallStack[Depth];
 		uint32 FirstFame;
 		uint32 LastFrame;
-		uint32 Size;
+		uint64 Size;
 		uint32 Count;
+
+		// least square line fit stuff
+		uint32 NumCheckPoints;
+		float SumOfFramesNumbers;
+		float SumOfFramesNumbersSquared;
+		float SumOfMemory;
+		float SumOfMemoryTimesFrameNumber;
+
+		// least square line results
+		float Baseline;
+		float BytesPerFrame;
+
 
 		bool operator==(const FCallstackTrack& Other) const
 		{
@@ -51,15 +79,22 @@ class FMallocLeakDetection
 			return !(*this == Other);
 		}
 
+		void GetLinearFit();
+		
 		uint32 GetHash() const 
 		{
 			return FCrc::MemCrc32(CallStack, sizeof(CallStack), 0);
 		}
 	};
 
+private:
+
 	FMallocLeakDetection();
 	~FMallocLeakDetection();
 
+	/** Track a callstack */
+
+	/** Stop tracking a callstack */
 	void AddCallstack(FCallstackTrack& Callstack);
 	void RemoveCallstack(FCallstackTrack& Callstack);
 
@@ -75,24 +110,49 @@ class FMallocLeakDetection
 	/** Contexts that are associated with allocations */
 	TMap<void*, FString>		PointerContexts;
 
-	/** Stack of contects */
-	TArray<FString>				Contexts;
-
-	bool	bRecursive;
-	bool	bCaptureAllocs;
-	int32	MinAllocationSize;
-	bool	bDumpOustandingAllocs;	
+	/** Stack of contexts */
+	struct ContextString { TCHAR Buffer[128]; };
+	TArray<ContextString>	Contexts;
 		
+	/** Critical section for mutating internal data */
 	FCriticalSection AllocatedPointersCritical;	
+
+	/** Set during mutating operationms to prevent internal allocations from recursing */
+	bool	bRecursive;
+
+	/** Is allocation capture enabled? */
+	bool	bCaptureAllocs;
+
+	/** Minimal size to capture? */
+	int32	MinAllocationSize;
+
+	SIZE_T	TotalTracked;
 
 public:	
 
 	static FMallocLeakDetection& Get();
+	static void HandleMallocLeakCommand(const TArray< FString >& Args);
 
-	void SetAllocationCollection(bool bEnabled, int32 Size=0);
-	void DumpOpenCallstacks(uint32 FilterSize = 0, const TCHAR* FileName=nullptr);
+	/** Enable/disable collection of allocation with an optional filter on allocation size */
+	void SetAllocationCollection(bool bEnabled, int32 Size = 0);
+
+	/** Returns state of allocation collection */
+	bool IsAllocationCollectionEnabled(void) const { return bCaptureAllocs; }
+
+	/** Clear currently accumulated data */
 	void ClearData();
 
+	/** Dumps callstacks that appear to be leaks based on allocation trends */
+	int32 DumpPotentialLeakers(const FMallocLeakReportOptions& Options = FMallocLeakReportOptions());
+
+	/** Dumps currently open callstacks */
+	int32 DumpOpenCallstacks(const FMallocLeakReportOptions& Options = FMallocLeakReportOptions());
+
+	/** Perform a linear fit checkpoint of all open callstacks */
+	void CheckpointLinearFit();
+
+
+	/** Cmd handler */
 	bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar);
 
 	/** Handles new allocated pointer */
@@ -104,11 +164,13 @@ public:
 	/** Removes allocated pointer from list */
 	void Free(void* Ptr);	
 
-	/** Push/Pop contects that will be associated with allocations. This is very rough.
-	 not thread-safe (let alone TLS), and should probably be removed. However if you really
-	 need to associate state with allocations it's very useful.... Cavet Emptor! */
+	/** Push/Pop a context that will be associated with allocations. All open contexts will be displayed alongside
+	callstacks in a report.  */
 	void PushContext(const FString& Context);
 	void PopContext();
+
+	/** Returns */
+	void GetOpenCallstacks(TArray<uint32>& OutCallstacks, const FMallocLeakReportOptions& Options = FMallocLeakReportOptions());
 };
 
 /**
@@ -128,6 +190,8 @@ private:
 
 public:
 	explicit FMallocLeakDetectionProxy(FMalloc* InMalloc);	
+
+	static FMallocLeakDetectionProxy& Get();
 
 	virtual void* Malloc(SIZE_T Size, uint32 Alignment) override
 	{
@@ -210,10 +274,19 @@ public:
 		return UsedMalloc->ClearAndDisableTLSCachesOnCurrentThread();
 	}
 
-
 	virtual const TCHAR* GetDescriptiveName() override
 	{ 
 		return UsedMalloc->GetDescriptiveName();
+	}
+
+	void Lock()
+	{
+		AllocatedPointersCritical.Lock();
+	}
+
+	void Unlock()
+	{
+		AllocatedPointersCritical.Unlock();
 	}
 };
 

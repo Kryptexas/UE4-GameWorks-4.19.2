@@ -325,7 +325,10 @@ void ULevelEditorPlaySettings::PostEditChangeProperty(struct FPropertyChangedEve
 	{
 		BuildGameBeforeLaunch = EPlayOnBuildMode::PlayOnBuild_Never;
 	}
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
+
 /* ULevelEditorViewportSettings interface
  *****************************************************************************/
 

@@ -713,7 +713,7 @@ void UGameplayDebuggerLocalController::OnCategoriesChanged()
 	}
 
 	NumCategorySlots = SlotCategoryIds.Num();
-	NumCategories = AddonManager.GetNumCategories();
+	NumCategories = AddonManager.GetNumVisibleCategories();
 
 	DataPackMap.Reset();
 }

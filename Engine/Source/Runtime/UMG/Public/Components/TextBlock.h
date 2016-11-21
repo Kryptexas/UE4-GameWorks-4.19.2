@@ -123,7 +123,7 @@ public:
 	 * @param InText The text to assign to the widget
 	 */
 	UFUNCTION(BlueprintCallable, Category="Widget", meta=(DisplayName="SetText (Text)"))
-	void SetText(FText InText);
+	virtual void SetText(FText InText);
 
 	//~ Begin UWidget Interface
 	virtual void SynchronizeProperties() override;

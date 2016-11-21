@@ -289,7 +289,7 @@ void AFunctionalTest::FinishTest(EFunctionalTestResult TestResult, const FString
 	}
 
 	const FText ResultText = FTestResultTypeEnum->GetEnumText( (int32)TestResult );
-	const FString OutMessage = FString::Printf(TEXT("%s %s: \"%s\'")
+	const FString OutMessage = FString::Printf(TEXT("%s %s: \"%s\"")
 		, *GetName()
 		, *ResultText.ToString()
 		, Message.IsEmpty() == false ? *Message : TEXT("Test finished") );

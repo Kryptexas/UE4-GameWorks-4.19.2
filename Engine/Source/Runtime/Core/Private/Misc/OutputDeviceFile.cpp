@@ -245,6 +245,15 @@ FOutputDeviceFile::FOutputDeviceFile( const TCHAR* InFilename, bool bInDisableBa
 	}
 }
 
+/**
+* Destructor to perform teardown
+*
+*/
+FOutputDeviceFile::~FOutputDeviceFile()
+{
+	TearDown();
+}
+
 void FOutputDeviceFile::SetFilename(const TCHAR* InFilename)
 {
 	// Close any existing file.

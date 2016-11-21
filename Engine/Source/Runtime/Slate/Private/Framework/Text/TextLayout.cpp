@@ -2158,6 +2158,11 @@ bool FTextLayout::IsEmpty() const
 	return (LineModels.Num() == 0 || (LineModels.Num() == 1 && LineModels[0].Text->Len() == 0));
 }
 
+int32 FTextLayout::GetLineCount() const
+{
+	return LineModels.Num();
+}
+
 void FTextLayout::GetAsText(FString& DisplayText, FTextOffsetLocations* const OutTextOffsetLocations) const
 {
 	GetAsTextAndOffsets(&DisplayText, OutTextOffsetLocations);

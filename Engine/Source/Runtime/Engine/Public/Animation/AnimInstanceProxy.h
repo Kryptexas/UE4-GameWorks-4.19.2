@@ -14,6 +14,66 @@ struct FAnimNode_Base;
 struct FAnimNode_SaveCachedPose;
 struct FAnimNode_SubInput;
 
+// Disable debugging information for shipping and test builds.
+#define ENABLE_ANIM_DRAW_DEBUG (1 && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
+
+UENUM()
+namespace EDrawDebugItemType
+{
+	enum Type
+	{
+		DirectionalArrow,
+		Sphere,
+		Line,
+		OnScreenMessage,
+	};
+}
+
+USTRUCT()
+struct FQueuedDrawDebugItem 
+{
+	GENERATED_BODY()
+
+	UPROPERTY(Transient)
+	TEnumAsByte<EDrawDebugItemType::Type> ItemType;
+
+	UPROPERTY(Transient)
+	FVector StartLoc;
+
+	UPROPERTY(Transient)
+	FVector EndLoc;
+
+	UPROPERTY(Transient)
+	FVector Center;
+
+	UPROPERTY(Transient)
+	float Radius;
+
+	UPROPERTY(Transient)
+	float Size;
+
+	UPROPERTY(Transient)
+	int32 Segments;
+
+	UPROPERTY(Transient)
+	FColor Color;
+
+	UPROPERTY(Transient)
+	bool bPersistentLines;
+
+	UPROPERTY(Transient)
+	float LifeTime;
+
+	UPROPERTY(Transient)
+	float Thickness;
+
+	UPROPERTY(Transient)
+	FString Message;
+
+	UPROPERTY(Transient)
+	FVector2D TextScale;
+};
+
 /** Proxy object passed around during animation tree update in lieu of a UAnimInstance */
 USTRUCT(meta = (DisplayName = "Native Variables"))
 struct ENGINE_API FAnimInstanceProxy
@@ -224,16 +284,16 @@ public:
 	 * @param out_SourceWeight : The Source weight for this node. 
 	 * @param out_TotalNodeWeight : Total weight of this node
 	 */
-	void GetSlotWeight(FName const& SlotNodeName, float& out_SlotNodeWeight, float& out_SourceWeight, float& out_TotalNodeWeight) const;
+	void GetSlotWeight(const FName& SlotNodeName, float& out_SlotNodeWeight, float& out_SourceWeight, float& out_TotalNodeWeight) const;
 
 	/** Evaluate a pose for a named montage slot */
-	void SlotEvaluatePose(FName SlotNodeName, const FCompactPose& SourcePose, const FBlendedCurve& SourceCurve, float InSourceWeight, FCompactPose& BlendedPose, FBlendedCurve& BlendedCurve, float InBlendWeight, float InTotalNodeWeight);
+	void SlotEvaluatePose(const FName& SlotNodeName, const FCompactPose& SourcePose, const FBlendedCurve& SourceCurve, float InSourceWeight, FCompactPose& BlendedPose, FBlendedCurve& BlendedCurve, float InBlendWeight, float InTotalNodeWeight);
 	
 	// Allow slot nodes to store off their weight during ticking
-	void UpdateSlotNodeWeight(FName SlotNodeName, float InLocalMontageWeight, float InNodeGlobalWeight);
+	void UpdateSlotNodeWeight(const FName& SlotNodeName, float InLocalMontageWeight, float InNodeGlobalWeight);
 
 	/** Register a named slot */
-	void RegisterSlotNodeWithAnimInstance(FName SlotNodeName);
+	void RegisterSlotNodeWithAnimInstance(const FName& SlotNodeName);
 
 	/** Check whether we have a valid root node */
 	bool HasRootNode() const
@@ -249,6 +309,20 @@ public:
 
 	/** Gather debug data from this instance proxy and the blend tree for display */
 	void GatherDebugData(FNodeDebugData& DebugData);
+
+#if ENABLE_ANIM_DRAW_DEBUG
+	TArray<FQueuedDrawDebugItem> QueuedDrawDebugItems;
+
+	void AnimDrawDebugOnScreenMessage(const FString& DebugMessage, const FColor& Color, const FVector2D& TextScale = FVector2D::UnitVector);
+	void AnimDrawDebugLine(const FVector& StartLoc, const FVector& EndLoc, const FColor& Color, bool bPersistentLines = false, float LifeTime = -1.f, float Thickness = 0.f);
+	void AnimDrawDebugDirectionalArrow(const FVector& LineStart, const FVector& LineEnd, float ArrowSize, const FColor& Color, bool bPersistentLines = false, float LifeTime = -1.f, float Thickness = 0.f);
+	void AnimDrawDebugSphere(const FVector& Center, float Radius, int32 Segments, const FColor& Color, bool bPersistentLines = false, float LifeTime = -1.f, float Thickness = 0.f);
+#else
+	void AnimDrawDebugOnScreenMessage(const FString& DebugMessage, const FColor& Color, const FVector2D& TextScale = FVector2D::UnitVector) {}
+	void AnimDrawDebugLine(const FVector& StartLoc, const FVector& EndLoc, const FColor& Color, bool bPersistentLines = false, float LifeTime = -1.f, float Thickness = 0.f) {}
+	void AnimDrawDebugDirectionalArrow(const FVector& LineStart, const FVector& LineEnd, float ArrowSize, const FColor& Color, bool bPersistentLines = false, float LifeTime = -1.f, float Thickness = 0.f) {}
+	void AnimDrawDebugSphere(const FVector& Center, float Radius, int32 Segments, const FColor& Color, bool bPersistentLines = false, float LifeTime = -1.f, float Thickness = 0.f) {}
+#endif // ENABLE_ANIM_DRAW_DEBUG
 
 #if !NO_LOGGING
 	const FString& GetActorName() const 
@@ -282,7 +356,7 @@ public:
 	float GetRecordedStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex) const;
 	void RecordStateWeight(const int32& InMachineClassIndex, const int32& InStateIndex, const float& InStateWeight);
 
-	bool IsSlotNodeRelevantForNotifies(FName SlotNodeName) const;
+	bool IsSlotNodeRelevantForNotifies(const FName& SlotNodeName) const;
 	/** Reset any dynamics running simulation-style updates (e.g. on teleport, time skip etc.) */
 	void ResetDynamics();
 
@@ -380,11 +454,21 @@ protected:
 
 	/** Get global weight in AnimGraph for this slot node. 
 	 * Note: this is the weight of the node, not the weight of any potential montage it is playing. */
-	float GetSlotNodeGlobalWeight(FName SlotNodeName) const;
+	float GetSlotNodeGlobalWeight(const FName& SlotNodeName) const;
 
 	/** Get Global weight of any montages this slot node is playing. 
 	 * If this slot is not currently playing a montage, it will return 0. */
-	float GetSlotMontageGlobalWeight(FName SlotNodeName) const;
+	float GetSlotMontageGlobalWeight(const FName& SlotNodeName) const;
+
+	/** Get local weight of any montages this slot node is playing.
+	* If this slot is not currently playing a montage, it will return 0. 
+	* This is double buffered, will return last frame data if called from Update or Evaluate. */
+	float GetSlotMontageLocalWeight(const FName& SlotNodeName) const;
+
+	/** Get local weight of any montages this slot is playing.
+	* If this slot is not current playing a montage, it will return 0.
+	* This will return up to date data if called during Update or Evaluate. */
+	float CalcSlotMontageLocalWeight(const FName& SlotNodeName) const;
 
 	/** 
 	 * Recalculate Required Bones [RequiredBones]

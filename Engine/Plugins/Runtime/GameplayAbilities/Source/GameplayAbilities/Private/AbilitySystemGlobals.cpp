@@ -269,7 +269,7 @@ void UAbilitySystemGlobals::StartAsyncLoadingObjectLibraries()
 {
 	if (GlobalGameplayCueManager != nullptr)
 	{
-		GlobalGameplayCueManager->LoadObjectLibraryFromPaths(GameplayCueNotifyPaths);
+		GlobalGameplayCueManager->InitializeRuntimeObjectLibrary();
 	}
 }
 
@@ -451,3 +451,24 @@ void UAbilitySystemGlobals::Notify_FindAssetInEditor(FString AssetName, int Asse
 	AbilityFindAssetInEditorCallbacks.Broadcast(AssetName, AssetType);
 }
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+float AbilitySystemGlobalScaler = 1.f;
+static FAutoConsoleVariableRef CVarOrionGlobalScaler(TEXT("AbilitySystem.GlobalAbilityScale"), AbilitySystemGlobalScaler, TEXT("Global rate for scaling ability stuff like montages and root motion tasks. Used only for testing/iteration, never for shipping."), ECVF_Cheat );
+#endif
+
+void UAbilitySystemGlobals::NonShipping_ApplyGlobalAbilityScaler_Rate(float& Rate)
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	Rate *= AbilitySystemGlobalScaler;
+#endif
+}
+
+void UAbilitySystemGlobals::NonShipping_ApplyGlobalAbilityScaler_Duration(float& Duration)
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (AbilitySystemGlobalScaler > 0.f)
+	{
+		Duration /= AbilitySystemGlobalScaler;
+	}
+#endif
+}

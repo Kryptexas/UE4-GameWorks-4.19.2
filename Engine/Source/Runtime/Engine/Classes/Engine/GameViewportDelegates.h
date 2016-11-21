@@ -52,3 +52,10 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnGameViewportClientPlayerAction, int32);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnGameViewportTick, float);
 
 DECLARE_DELEGATE_RetVal_ThreeParams(bool, FOnGameViewportInputKey, FKey, FModifierKeysState, EInputEvent);
+
+/**
+* Delegate type used by UGameViewportClient for when engine in toggling fullscreen
+*
+* @see UGameViewportClient
+*/
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnToggleFullscreen, bool);

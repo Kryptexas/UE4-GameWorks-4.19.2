@@ -44,6 +44,8 @@ namespace ESlateShader
 	const Type LineSegment = 3;
 	/** For completely customized materials.  Makes no assumptions on use*/
 	const Type Custom = 4;
+	/** For post processing passes */
+	const Type PostProcess = 5;
 };
 
 /**

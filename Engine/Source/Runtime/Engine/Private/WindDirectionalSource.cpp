@@ -53,12 +53,12 @@ AWindDirectionalSource::AWindDirectionalSource(const FObjectInitializer& ObjectI
 #endif // WITH_EDITORONLY_DATA
 }
 
-void FWindSourceSceneProxy::FWindData::PrepareForAccumulate()
+void FWindData::PrepareForAccumulate()
 {
 	FMemory::Memset(this, 0, sizeof(FWindData));
 }
 
-void FWindSourceSceneProxy::FWindData::AddWeighted(const FWindData& InWindData, float Weight)
+void FWindData::AddWeighted(const FWindData& InWindData, float Weight)
 {	
 	Speed += InWindData.Speed * Weight;
 	MinGustAmt += InWindData.MinGustAmt * Weight;
@@ -66,7 +66,7 @@ void FWindSourceSceneProxy::FWindData::AddWeighted(const FWindData& InWindData, 
 	Direction += InWindData.Direction * Weight;
 }
 
-void FWindSourceSceneProxy::FWindData::NormalizeByTotalWeight(float TotalWeight)
+void FWindData::NormalizeByTotalWeight(float TotalWeight)
 {
 	if (TotalWeight > 0.0f)
 	{
@@ -269,6 +269,24 @@ FWindSourceSceneProxy* UWindDirectionalSourceComponent::CreateSceneProxy() const
 	}
 }
 
+bool UWindDirectionalSourceComponent::GetWindParameters(const FVector& EvaluatePosition, FWindData& OutData, float& Weight) const
+{
+	// Whether we found any wind at the requested position (perhaps there's only point wind in the scene, or no wind)
+	bool bFoundWind = false;
+
+	if(bPointWind)
+	{
+		FWindSourceSceneProxy LocalProxy = FWindSourceSceneProxy(ComponentToWorld.GetLocation(), Strength, Speed, MinGustAmount, MaxGustAmount, Radius);
+		bFoundWind = LocalProxy.GetWindParameters(EvaluatePosition, OutData, Weight);
+	}
+	else
+	{
+		FWindSourceSceneProxy LocalProxy = FWindSourceSceneProxy(ComponentToWorld.GetUnitAxis(EAxis::X), Strength, Speed, MinGustAmount, MaxGustAmount);
+		bFoundWind = LocalProxy.GetWindParameters(EvaluatePosition, OutData, Weight);
+	}
+
+	return bFoundWind;
+}
 
 /** Returns Component subobject **/
 UWindDirectionalSourceComponent* AWindDirectionalSource::GetComponent() const { return Component; }

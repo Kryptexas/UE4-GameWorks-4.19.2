@@ -148,7 +148,13 @@ void UGameplayTagsManager::ConstructGameplayTagTree()
 					FoundSource->SourceTagList->LoadConfig(UGameplayTagsList::StaticClass(), *FileName);
 				}
 
-				// Add to dictionary
+#if WITH_EDITOR
+				if (GIsEditor || IsRunningCommandlet()) // Sort tags for UI Purposes but don't sort in -game scenerio since this would break compat with noneditor cooked builds
+				{
+					FoundSource->SourceTagList->SortTags();
+				}
+#endif
+
 				for (const FGameplayTagTableRow& TableRow : FoundSource->SourceTagList->GameplayTagList)
 				{
 					AddTagTableRow(TableRow, TagSource);
@@ -950,6 +956,26 @@ FGameplayTagContainer UGameplayTagsManager::RequestGameplayTagParents(const FGam
 		return ParentTags->GetGameplayTagParents();
 	}
 	return FGameplayTagContainer();
+}
+
+void UGameplayTagsManager::RequestAllGameplayTags(FGameplayTagContainer& TagContainer, bool OnlyIncludeDictionaryTags) const
+{
+	TArray<TSharedPtr<FGameplayTagNode>> ValueArray;
+	GameplayTagNodeMap.GenerateValueArray(ValueArray);
+	for (const TSharedPtr<FGameplayTagNode>& TagNode : ValueArray)
+	{
+#if WITH_EDITOR
+		bool DictTag = IsDictionaryTag(TagNode->GetSimpleTagName());
+#else
+		bool DictTag = false;
+#endif 
+		if (!OnlyIncludeDictionaryTags || DictTag)
+		{
+			const FGameplayTag* Tag = GameplayTagNodeMap.FindKey(TagNode);
+			check(Tag);
+			TagContainer.AddTagFast(*Tag);
+		}
+	}
 }
 
 FGameplayTagContainer UGameplayTagsManager::RequestGameplayTagChildren(const FGameplayTag& GameplayTag) const

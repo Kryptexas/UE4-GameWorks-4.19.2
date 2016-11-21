@@ -6994,7 +6994,7 @@ FGuid UEngine::GetPackageGuid(FName PackageName, bool bForPIE)
 {
 	FGuid Result(0,0,0,0);
 
-	BeginLoad();
+	BeginLoad(*PackageName.ToString());
 	uint32 LoadFlags = LOAD_NoWarn | LOAD_NoVerify;
 	if (bForPIE)
 	{
@@ -10300,6 +10300,9 @@ void UEngine::MovePendingLevel(FWorldContext &Context)
 
 		FLevelCollection& SourceLevels = Context.World()->FindOrAddCollectionByType(ELevelCollectionType::DynamicSourceLevels);
 		SourceLevels.SetNetDriver(NetDriver);
+			
+		FLevelCollection& StaticLevels = Context.World()->FindOrAddCollectionByType(ELevelCollectionType::StaticLevels);
+		StaticLevels.SetNetDriver(NetDriver);
 	}
 
 	// Attach the DemoNetDriver to the world if there is one

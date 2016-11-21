@@ -199,7 +199,7 @@ float UAbilitySystemComponent::GetNumericAttributeBase(const FGameplayAttribute 
 	return ActiveGameplayEffects.GetAttributeBaseValue(Attribute);
 }
 
-void UAbilitySystemComponent::SetNumericAttribute_Internal(const FGameplayAttribute &Attribute, float NewFloatValue)
+void UAbilitySystemComponent::SetNumericAttribute_Internal(const FGameplayAttribute &Attribute, float& NewFloatValue)
 {
 	// Set the attribute directly: update the UProperty on the attribute set.
 	const UAttributeSet* AttributeSet = GetAttributeSubobjectChecked(Attribute.GetAttributeSetClass());
@@ -875,6 +875,15 @@ void UAbilitySystemComponent::SetActiveGameplayEffectLevel(FActiveGameplayEffect
 	ActiveGameplayEffects.SetActiveGameplayEffectLevel(ActiveHandle, NewLevel);
 }
 
+void UAbilitySystemComponent::SetActiveGameplayEffectLevelUsingQuery(FGameplayEffectQuery Query, int32 NewLevel)
+{
+	TArray<FActiveGameplayEffectHandle> ActiveGameplayEffectHandles = ActiveGameplayEffects.GetActiveEffects(Query);
+	for (FActiveGameplayEffectHandle ActiveHandle : ActiveGameplayEffectHandles)
+	{
+		SetActiveGameplayEffectLevel(ActiveHandle, NewLevel);
+	}
+}
+
 int32 UAbilitySystemComponent::GetCurrentStackCount(FActiveGameplayEffectHandle Handle) const
 {
 	if (const FActiveGameplayEffect* ActiveGE = ActiveGameplayEffects.GetActiveGameplayEffect(Handle))
@@ -924,6 +933,12 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::FindActiveGameplayEffectHan
 void UAbilitySystemComponent::OnImmunityBlockGameplayEffect(const FGameplayEffectSpec& Spec, const FActiveGameplayEffect* ImmunityGE)
 {
 	OnImmunityBlockGameplayEffectDelegate.Broadcast(Spec, ImmunityGE);
+}
+
+void UAbilitySystemComponent::InitDefaultGameplayCueParameters(FGameplayCueParameters& Parameters)
+{
+	Parameters.Instigator = OwnerActor;
+	Parameters.EffectCauser = AvatarActor;
 }
 
 void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpecForRPC &Spec, EGameplayCueEvent::Type EventType)
@@ -1049,8 +1064,11 @@ void UAbilitySystemComponent::RemoveGameplayCue_Internal(const FGameplayTag Game
 
 		if (bWasInList)
 		{
+			FGameplayCueParameters Parameters;
+			InitDefaultGameplayCueParameters(Parameters);
+
 			// Call on server here, clients get it from repnotify
-			InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Removed);
+			InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Removed, Parameters);
 		}
 		// Don't need to multicast broadcast this, ActiveGameplayCues replication handles it
 	}
@@ -1726,15 +1744,12 @@ void UAbilitySystemComponent::PrintDebug()
 	Debug_Internal(DebugInfo);
 
 	// Store our local strings in the global debug array. Wait for server to respond with his.
-	if (UAbilitySystemGlobals::Get().AbilitySystemDebugStrings.Num() <= 0)
-	{
-		UAbilitySystemGlobals::Get().AbilitySystemDebugStrings = DebugInfo.Strings;
-	}
-	else
+	if (UAbilitySystemGlobals::Get().AbilitySystemDebugStrings.Num() > 0)
 	{
 		ABILITY_LOG(Warning, TEXT("UAbilitySystemComponent::PrintDebug called while AbilitySystemDebugStrings was not empty. Still waiting for server response from a previous call?"));
-		return;
 	}
+		
+	UAbilitySystemGlobals::Get().AbilitySystemDebugStrings = DebugInfo.Strings;
 
 	if (IsOwnerActorAuthoritative() == false)
 	{

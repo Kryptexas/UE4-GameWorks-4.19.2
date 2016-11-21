@@ -30,8 +30,11 @@ void FGameplayDebuggerCategory_Navmesh::CollectData(APlayerController* OwnerPC, 
 	if (OwnerPC && DestPawn)
 	{
 		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(OwnerPC->GetWorld());
-		const FNavAgentProperties& NavAgentProperties = DestPawn->GetNavAgentPropertiesRef();
-		NavData = Cast<ARecastNavMesh>(NavSys->GetNavDataForProps(NavAgentProperties));
+		if (NavSys) 
+		{
+			const FNavAgentProperties& NavAgentProperties = DestPawn->GetNavAgentPropertiesRef();
+			NavData = Cast<ARecastNavMesh>(NavSys->GetNavDataForProps(NavAgentProperties));
+		}
 	}
 
 	if (NavData)

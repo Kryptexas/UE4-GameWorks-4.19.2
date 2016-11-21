@@ -718,6 +718,10 @@ bool UStaticMeshComponent::BuildTextureStreamingData(ETextureStreamingBuildType 
 			}
 			else if (StreamingTextureData.Num() == 0)
 			{
+				// Reset the validity here even if the bounds don't fit as the material might not use any streaming textures.
+				// This is required as the texture streaming build only mark levels as dirty if they have texture related data.
+				bBuildDataValid = true; 
+
 				// In that case, check if the component refers a streaming texture. If so, the build data is missing.
 				TArray<UMaterialInterface*> UsedMaterials;
 				GetUsedMaterials(UsedMaterials);

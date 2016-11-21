@@ -79,11 +79,10 @@ protected:
 	//~ End UWidget Interface
 
 private:
-	void HandleKeySelected( FInputChord SelectedKey );
+	virtual void HandleKeySelected(const FInputChord& InSelectedKey);
 	void HandleIsSelectingKeyChanged();
 
 private:
-
 	/** The style for the button used to start key selection mode. */
 	const FButtonStyle* ButtonStyle;
 

@@ -174,19 +174,19 @@ bool FGameplayCueTagDetails::UpdateNotifyList()
 	{
 		uint8 EnumVal;
 		GameplayTagProperty->GetValue(EnumVal);
-
-		UGameplayCueManager* CueManager = UAbilitySystemGlobals::Get().GetGameplayCueManager();
-		if (CueManager && CueManager->GlobalCueSet)
+		if (UGameplayCueManager* CueManager = UAbilitySystemGlobals::Get().GetGameplayCueManager())
 		{
-			if (int32* idxPtr = CueManager->GlobalCueSet->GameplayCueDataMap.Find(*Tag))
+			if (UGameplayCueSet* CueSet = CueManager->GetEditorCueSet())
 			{
-				int32 idx = *idxPtr;
-				if (CueManager->GlobalCueSet->GameplayCueData.IsValidIndex(idx))
+				if (int32* idxPtr = CueSet->GameplayCueDataMap.Find(*Tag))
 				{
-					FGameplayCueNotifyData& Data = CueManager->GlobalCueSet->GameplayCueData[*idxPtr];
-
-					TSharedRef<FStringAssetReference> Item(MakeShareable(new FStringAssetReference(Data.GameplayCueNotifyObj)));
-					NotifyList.Add(Item);
+					int32 idx = *idxPtr;
+					if (CueSet->GameplayCueData.IsValidIndex(idx))
+					{
+						FGameplayCueNotifyData& Data = CueSet->GameplayCueData[*idxPtr];
+						TSharedRef<FStringAssetReference> Item(MakeShareable(new FStringAssetReference(Data.GameplayCueNotifyObj)));
+						NotifyList.Add(Item);
+					}
 				}
 			}
 		}
@@ -202,7 +202,10 @@ FGameplayTag* FGameplayCueTagDetails::GetTag() const
 	if (GameplayTagProperty.IsValid())
 	{
 		GameplayTagProperty->AccessRawData(RawStructData);
-		Tag = (FGameplayTag*)(RawStructData[0]);
+		if (RawStructData.Num() > 0)
+		{
+			Tag = (FGameplayTag*)(RawStructData[0]);
+		}
 	}
 	return Tag;
 }

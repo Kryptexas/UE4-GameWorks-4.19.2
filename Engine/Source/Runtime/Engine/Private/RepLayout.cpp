@@ -1234,7 +1234,7 @@ void FRepLayout::SendProperties(
 	TArray< uint16 > &			Changed ) const
 {
 #ifdef ENABLE_PROPERTY_CHECKSUMS
-	const bool bDoChecksum = CVarDoPropertyChecksum.GetValueOnGameThread() == 1;
+	const bool bDoChecksum = CVarDoPropertyChecksum.GetValueOnAnyThread() == 1;
 #else
 	const bool bDoChecksum = false;
 #endif
@@ -1509,7 +1509,7 @@ void FRepLayout::SendProperties_BackwardsCompatible(
 	FBitWriterMark Mark( Writer );
 
 #ifdef ENABLE_PROPERTY_CHECKSUMS
-	const bool bDoChecksum = CVarDoPropertyChecksum.GetValueOnGameThread() == 1;
+	const bool bDoChecksum = CVarDoPropertyChecksum.GetValueOnAnyThread() == 1;
 	Writer.WriteBit( bDoChecksum ? 1 : 0 );
 #else
 	const bool bDoChecksum = false;
@@ -3381,6 +3381,7 @@ void FRepLayout::RebuildConditionalProperties( FRepState * RESTRICT	RepState, co
 	RepState->ConditionMap[COND_InitialOrOwner]				= bIsInitial || bIsOwner;
 	RepState->ConditionMap[COND_ReplayOrOwner]				= bIsReplay || bIsOwner;
 	RepState->ConditionMap[COND_ReplayOnly]					= bIsReplay;
+	RepState->ConditionMap[COND_SkipReplay]					= !bIsReplay;
 
 	RepState->ConditionMap[COND_Custom]						= true;
 

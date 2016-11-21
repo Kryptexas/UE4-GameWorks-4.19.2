@@ -84,7 +84,7 @@ void FAnimNode_Slot::GatherDebugData(FNodeDebugData& DebugData)
 				float CurrentAnimPos;
 				if (UAnimSequenceBase* Anim = Segment.GetAnimationData(MontageInstance->GetPosition(), CurrentAnimPos, Weight))
 				{
-					FString MontageLine = FString::Printf(TEXT("Montage: '%s' Anim: '%s' Play Time:%.2f W:%.2f%%"), *MontageInstance->Montage->GetName(), *Anim->GetName(), CurrentAnimPos, Weight*100.f);
+					FString MontageLine = FString::Printf(TEXT("Montage('%s') Anim('%s') P(%.2f) W(%.0f%%)"), *MontageInstance->Montage->GetName(), *Anim->GetName(), CurrentAnimPos, WeightData.SlotNodeWeight*100.f);
 					DebugData.BranchFlow(1.0f).AddDebugItem(MontageLine, true);
 					break;
 				}

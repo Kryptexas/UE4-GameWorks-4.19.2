@@ -507,6 +507,11 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 			// Editor immediately blocks on load and we also block if background level streaming is disabled.
 			if (BlockPolicy == AlwaysBlock || (ShouldBeAlwaysLoaded() && BlockPolicy != NeverBlock))
 			{
+				if (IsAsyncLoading())
+				{
+					UE_LOG(LogStreaming, Log, TEXT("ULevelStreaming::RequestLevel(%s) is flushing async loading"), *DesiredPackageName.ToString());
+				}
+
 				// Finish all async loading.
 				FlushAsyncLoading();
 			}

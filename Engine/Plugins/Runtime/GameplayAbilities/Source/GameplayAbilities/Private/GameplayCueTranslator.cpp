@@ -183,7 +183,7 @@ void FGameplayCueTranslationManager::ResetTranslationLUT()
 void FGameplayCueTranslationManager::BuildTagTranslationTable()
 {
 #if WITH_EDITOR
-	SCOPE_LOG_TIME_IN_SECONDS(*FString::Printf(TEXT("FGameplayCueTranslatorManager::BuildTagTranslationTables")), nullptr)
+	//SCOPE_LOG_TIME_IN_SECONDS(*FString::Printf(TEXT("FGameplayCueTranslatorManager::BuildTagTranslationTables")), nullptr)
 #endif
 
 	TagManager = &UGameplayTagsManager::Get();

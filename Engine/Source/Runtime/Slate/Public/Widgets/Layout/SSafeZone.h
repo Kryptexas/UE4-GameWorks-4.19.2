@@ -72,7 +72,8 @@ class SLATE_API SSafeZone : public SBox
 public:
 
 	void Construct( const FArguments& InArgs );
-
+	
+	void SafeAreaUpdated();
 	void SetTitleSafe( bool bIsTitleSafe );
 	void SetSafeAreaScale(FMargin InSafeAreaScale);
 

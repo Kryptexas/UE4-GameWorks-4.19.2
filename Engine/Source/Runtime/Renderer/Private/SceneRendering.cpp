@@ -1478,9 +1478,9 @@ void FSceneRenderer::RenderCustomDepthPass(FRHICommandListImmediate& RHICmdList)
 	}
 }
 
-void FSceneRenderer::OnStartFrame()
+void FSceneRenderer::OnStartFrame(FRHICommandListImmediate& RHICmdList)
 {
-	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get_Todo_PassContext();
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
 	GRenderTargetPool.VisualizeTexture.OnStartFrame(Views[0]);
 	CompositionGraph_OnStartFrame();

@@ -118,4 +118,7 @@ namespace Scalability
 
 	/** Maximum single axis scale for render resolution */
 	static const float MaxResolutionScale = 100.0f;
+
+	/** Returns the current screen percentage */
+	ENGINE_API float GetResolutionScreenPercentage();
 }

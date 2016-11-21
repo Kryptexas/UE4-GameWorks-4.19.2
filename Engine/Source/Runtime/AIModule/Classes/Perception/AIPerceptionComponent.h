@@ -39,18 +39,31 @@ struct AIMODULE_API FActorPerceptionInfo
 		}
 	}
 
-	FORCEINLINE_DEBUGGABLE FVector GetLastStimulusLocation(float* OptionalAge = NULL) const 
+	/** Retrieves last known location. Active (last reported as "successful")
+	 *	stimuli are preferred. */
+	FVector GetLastStimulusLocation(float* OptionalAge = NULL) const 
 	{
 		FVector Location(FAISystem::InvalidLocation);
 		float BestAge = FLT_MAX;
+		bool bBestWasSuccessfullySensed = false;
 		for (int32 Sense = 0; Sense < LastSensedStimuli.Num(); ++Sense)
 		{
 			const float Age = LastSensedStimuli[Sense].GetAge();
+			const bool bWasSuccessfullySensed = LastSensedStimuli[Sense].WasSuccessfullySensed();
+
 			if (Age >= 0 && (Age < BestAge 
-				|| (Sense == DominantSense && LastSensedStimuli[Sense].WasSuccessfullySensed())))
+				|| (bBestWasSuccessfullySensed == false && bWasSuccessfullySensed)
+				|| (Sense == DominantSense && bWasSuccessfullySensed)))
 			{
 				BestAge = Age;
 				Location = LastSensedStimuli[Sense].StimulusLocation;
+				bBestWasSuccessfullySensed = bWasSuccessfullySensed;
+
+				if (Sense == DominantSense && bWasSuccessfullySensed)
+				{
+					// if dominant sense is active we don't want to look any further 
+					break;
+				}
 			}
 		}
 
@@ -249,6 +262,7 @@ public:
 
 	float GetYoungestStimulusAge(const AActor& Source) const;
 	bool HasAnyActiveStimulus(const AActor& Source) const;
+	bool HasAnyCurrentStimulus(const AActor& Source) const;
 	bool HasActiveStimulus(const AActor& Source, FAISenseID Sense) const;
 
 #if WITH_GAMEPLAY_DEBUGGER

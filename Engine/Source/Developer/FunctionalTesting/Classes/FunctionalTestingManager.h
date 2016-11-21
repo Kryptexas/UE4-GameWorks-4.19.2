@@ -3,10 +3,12 @@
 #pragma once
 
 #include "Misc/AutomationTest.h"
+#include "FunctionalTest.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "FunctionalTestingManager.generated.h"
 
 class UWorld;
+class IMessageLogListing;
 
 namespace FFunctionalTesting
 {

@@ -628,7 +628,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	bool bRequiresRHIClear = true;
 	bool bRequiresFarZQuadClear = false;
 
-	const bool bUseGBuffer = !IsAnyForwardShadingEnabled(GetFeatureLevelShaderPlatform(FeatureLevel));
+	const bool bUseGBuffer = IsUsingGBuffers(GetFeatureLevelShaderPlatform(FeatureLevel));
 
 	if (ClearMethodCVar)
 	{
@@ -765,12 +765,10 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	const bool bUseVelocityGBuffer = FVelocityRendering::OutputsToGBuffer();
 	const bool bUseSelectiveBasePassOutputs = UseSelectiveBasePassOutputs();
 
-	if (bUseGBuffer)
-	{
-		SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_AllocGBufferTargets);
-		SceneContext.PreallocGBufferTargets(bUseVelocityGBuffer); // Even if !bShouldRenderVelocities, the velocity buffer must be bound because it's a compile time option for the shader.
-		SceneContext.AllocGBufferTargets(RHICmdList);
-	}
+	
+	SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_AllocGBufferTargets);
+	SceneContext.PreallocGBufferTargets(bUseVelocityGBuffer); // Even if !bShouldRenderVelocities, the velocity buffer must be bound because it's a compile time option for the shader.
+	SceneContext.AllocGBufferTargets(RHICmdList);
 
 	//occlusion can't run before basepass if there's no prepass to fill in some depth to occlude against.
 	bool bOcclusionBeforeBasePass = ((CVarOcclusionQueryLocation.GetValueOnRenderThread() == 1) && bNeedsPrePass) || IsForwardShadingEnabled(FeatureLevel);	

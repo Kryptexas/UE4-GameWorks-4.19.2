@@ -15,6 +15,48 @@ enum class EEventPoolTypes
 	ManualReset
 };
 
+class FSafeRecyclableEvent  final: public FEvent
+{
+public:
+	FEvent* InnerEvent;
+
+	FSafeRecyclableEvent(FEvent* InInnerEvent)
+		: InnerEvent(InInnerEvent)
+	{
+	}
+
+	~FSafeRecyclableEvent()
+	{
+		InnerEvent = nullptr;
+	}
+
+	virtual bool Create(bool bIsManualReset = false)
+	{
+		return InnerEvent->Create(bIsManualReset);
+	}
+
+	virtual bool IsManualReset()
+	{
+		return InnerEvent->IsManualReset();
+	}
+
+	virtual void Trigger()
+	{
+		InnerEvent->Trigger();
+	}
+
+	virtual void Reset()
+	{
+		InnerEvent->Reset();
+	}
+
+	virtual bool Wait(uint32 WaitTime, const bool bIgnoreThreadIdleStats = false)
+	{
+		return InnerEvent->Wait(WaitTime, bIgnoreThreadIdleStats);
+	}
+
+};
+
 /**
  * Template class for event pools.
  *
@@ -59,11 +101,10 @@ public:
 			Result = FPlatformProcess::CreateSynchEvent((PoolType == EEventPoolTypes::ManualReset));
 			PRAGMA_ENABLE_DEPRECATION_WARNINGS
 		}
-
 		Result->AdvanceStats();
 
 		check(Result);
-		return Result;
+		return new FSafeRecyclableEvent(Result);
 	}
 
 	/**
@@ -76,10 +117,12 @@ public:
 	{
 		check(Event);
 		check(Event->IsManualReset() == (PoolType == EEventPoolTypes::ManualReset));
-
-		Event->Reset();
-
-		Pool.Push(Event);
+		FSafeRecyclableEvent* SafeEvent = (FSafeRecyclableEvent*)Event;
+		FEvent* Result = SafeEvent->InnerEvent;
+		delete SafeEvent;
+		check(Result);
+		Result->Reset();
+		Pool.Push(Result);
 	}
 
 private:

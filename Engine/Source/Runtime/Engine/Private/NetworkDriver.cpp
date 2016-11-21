@@ -216,7 +216,7 @@ void UNetDriver::AssertValid()
 
 /*static*/ bool UNetDriver::IsAdaptiveNetUpdateFrequencyEnabled()
 {
-	const bool bUseAdapativeNetFrequency = CVarUseAdaptiveNetUpdateFrequency.GetValueOnGameThread() > 0;
+	const bool bUseAdapativeNetFrequency = CVarUseAdaptiveNetUpdateFrequency.GetValueOnAnyThread() > 0;
 	return bUseAdapativeNetFrequency;
 }
 
@@ -673,12 +673,12 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 		FlushHandler();
 	}
 
-	if (CVarNetDormancyDraw.GetValueOnGameThread() > 0)
+	if (CVarNetDormancyDraw.GetValueOnAnyThread() > 0)
 	{
 		DrawNetDriverDebug();
 	}
 
-	if ( CVarOptimizedRemapping.GetValueOnGameThread() && GuidCache.IsValid() )
+	if ( CVarOptimizedRemapping.GetValueOnAnyThread() && GuidCache.IsValid() )
 	{
 		SCOPE_CYCLE_COUNTER( STAT_NetUpdateUnmappedObjectsTime );
 
@@ -1323,7 +1323,7 @@ void UNetDriver::InternalProcessRemoteFunction
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	extern TAutoConsoleVariable< int32 > CVarNetReliableDebug;
 
-	if ( CVarNetReliableDebug.GetValueOnGameThread() > 0 )
+	if ( CVarNetReliableDebug.GetValueOnAnyThread() > 0 )
 	{
 		Bunch.DebugString = FString::Printf( TEXT( "%.2f RPC: %s - %s" ), Connection->Driver->Time, *Actor->GetName(), *Function->GetName() );
 	}
@@ -1404,7 +1404,7 @@ void UNetDriver::InternalProcessRemoteFunction
 	}
 
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("net.RPC.Debug"));
-	bool LogAsWarning = (CVar && CVar->GetValueOnGameThread() == 1);
+	bool LogAsWarning = (CVar && CVar->GetValueOnAnyThread() == 1);
 
 	// Send the bunch.
 	if( Bunch.IsError() )
@@ -2037,7 +2037,7 @@ void UNetDriver::FlushActorDormancy(AActor* Actor)
 	// way too, since we dont have to check every dormant actor in ::ServerReplicateActor to see if it needs to go out of dormancy
 
 #if WITH_SERVER_CODE
-	if (CVarSetNetDormancyEnabled.GetValueOnGameThread() == 0)
+	if (CVarSetNetDormancyEnabled.GetValueOnAnyThread() == 0)
 		return;
 
 	check(Actor);
@@ -2570,7 +2570,7 @@ static FORCEINLINE_DEBUGGABLE bool IsActorDormant( const AActor* Actor, const UN
 	{
 		// net.DormancyValidate can be set to 2 to validate dormant actor properties on every replicate
 		// (this could be moved to be done every tick instead of every net update if necessary, but seems excessive)
-		if ( CVarNetDormancyValidate.GetValueOnGameThread() == 2 )
+		if ( CVarNetDormancyValidate.GetValueOnAnyThread() == 2 )
 		{
 			const TSharedRef<FObjectReplicator>* Replicator = Connection->DormantReplicatorMap.Find( Actor );
 
@@ -3221,7 +3221,7 @@ void UNetDriver::DrawNetDriverDebug()
 		return;
 	}
 
-	const float CullDistSqr = FMath::Square(CVarNetDormancyDrawCullDistance.GetValueOnGameThread());
+	const float CullDistSqr = FMath::Square(CVarNetDormancyDrawCullDistance.GetValueOnAnyThread());
 
 	for (FActorIterator It(LocalWorld); It; ++It)
 	{

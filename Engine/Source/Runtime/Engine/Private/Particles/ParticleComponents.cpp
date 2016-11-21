@@ -2181,7 +2181,7 @@ void UParticleSystem::PostLoad()
 		if (Emitter == NULL)
 		{
 			// Empty emitter slots are ok with cooked content.
-			if( !FPlatformProperties::RequiresCookedData() )
+			if( !FPlatformProperties::RequiresCookedData() && !GIsServer)
 			{
 				UE_LOG(LogParticles, Warning, TEXT("ParticleSystem contains empty emitter slots - %s"), *GetFullName());
 			}

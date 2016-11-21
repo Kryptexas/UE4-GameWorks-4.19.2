@@ -1588,6 +1588,14 @@ void ULevel::InitializeNetworkActors()
 				if (Actor->bNetLoadOnClient)
 				{
 					Actor->bNetStartup = true;
+
+					for (UActorComponent* Component : Actor->GetComponents())
+					{
+						if (Component)
+						{
+							Component->SetIsNetStartupComponent(true);
+						}
+					}
 				}
 
 				if (!bIsServer)

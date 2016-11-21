@@ -349,9 +349,34 @@ void UAISense_Sight::UnregisterSource(AActor& SourceActor)
 {
 	const FAISightTarget::FTargetId AsTargetId = SourceActor.GetFName();
 	FAISightTarget* AsTarget = ObservedTargets.Find(AsTargetId);
-	if (AsTarget != nullptr)
+	
+	if (AsTarget != nullptr && SightQueryQueue.Num() > 0)
 	{
-		RemoveAllQueriesToTarget(AsTargetId, DontSort);
+		AActor* TargetActor = AsTarget->Target.Get();
+
+		if (TargetActor)
+		{
+			// notify all interested observers that this source is no longer
+			// visible		
+			AIPerception::FListenerMap& ListenersMap = *GetListeners();
+			const FAISightQuery* SightQuery = &SightQueryQueue[SightQueryQueue.Num() - 1];
+			for (int32 QueryIndex = SightQueryQueue.Num() - 1; QueryIndex >= 0; --QueryIndex, --SightQuery)
+			{
+				if (SightQuery->TargetId == AsTargetId)
+				{
+					if (SightQuery->bLastResult == true)
+					{
+						FPerceptionListener& Listener = ListenersMap[SightQuery->ObserverId];
+						ensure(Listener.Listener.IsValid());
+
+						Listener.RegisterStimulus(TargetActor, FAIStimulus(*this, 0.f, SightQuery->LastSeenLocation, Listener.CachedLocation, FAIStimulus::SensingFailed));
+					}
+
+					SightQueryQueue.RemoveAt(QueryIndex, 1, /*bAllowShrinking=*/false);
+				}
+			}
+			// no point in sorting, we haven't change the order of other queries
+		}
 	}
 }
 

@@ -1909,6 +1909,9 @@ public:
 	/** The wind sources in the scene. */
 	TArray<class FWindSourceSceneProxy*> WindSources;
 
+	/** Wind source components, tracked so the game thread can also access wind parameters */
+	TArray<UWindDirectionalSourceComponent*> WindComponents_GameThread;
+
 	/** SpeedTree wind objects in the scene. FLocalVertexFactoryShaderParameters needs to lookup by FVertexFactory, but wind objects are per tree (i.e. per UStaticMesh)*/
 	TMap<const UStaticMesh*, struct FSpeedTreeWindComputation*> SpeedTreeWindComputationMap;
 	TMap<FVertexFactory*, const UStaticMesh*> SpeedTreeVertexFactoryMap;
@@ -2003,6 +2006,7 @@ public:
 	virtual void RemoveWindSource(UWindDirectionalSourceComponent* WindComponent) override;
 	virtual const TArray<FWindSourceSceneProxy*>& GetWindSources_RenderThread() const override;
 	virtual void GetWindParameters(const FVector& Position, FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const override;
+	virtual void GetWindParameters_GameThread(const FVector& Position, FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const override;
 	virtual void GetDirectionalWindParameters(FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const override;
 	virtual void AddSpeedTreeWind(FVertexFactory* VertexFactory, const UStaticMesh* StaticMesh) override;
 	virtual void RemoveSpeedTreeWind(FVertexFactory* VertexFactory, const UStaticMesh* StaticMesh) override;

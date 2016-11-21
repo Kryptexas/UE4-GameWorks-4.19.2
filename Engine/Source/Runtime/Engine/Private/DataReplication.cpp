@@ -326,7 +326,7 @@ void FReplicationChangelistMgr::Update( const UObject* InObject, const uint32 Re
 	//	2. We check LastCompareIndex > 1 so we can do at least one pass per connection to compare all properties
 	//		This is necessary due to how RemoteRole is manipulated per connection, so we need to give all connections a chance to see if it changed
 	//	3. We ALWAYS compare on bNetInitial to make sure we have a fresh changelist of net initial properties in this case
-	if ( CVarShareShadowState.GetValueOnGameThread() && !RepFlags.bNetInitial && LastCompareIndex > 1 && LastReplicationFrame == ReplicationFrame )
+	if ( CVarShareShadowState.GetValueOnAnyThread() && !RepFlags.bNetInitial && LastCompareIndex > 1 && LastReplicationFrame == ReplicationFrame )
 	{
 		INC_DWORD_STAT_BY( STAT_NetSkippedDynamicProps, 1 );
 		return;
@@ -1020,6 +1020,7 @@ void FObjectReplicator::ReplicateCustomDeltaProperties( FNetBitWriter & Bunch, F
 	ConditionMap[COND_Custom] = true;
 	ConditionMap[COND_ReplayOrOwner] = bIsReplay || bIsOwner;
 	ConditionMap[COND_ReplayOnly] = bIsReplay;
+	ConditionMap[COND_SkipReplay] = !bIsReplay;
 
 	// Make sure net field export group is registered
 	FNetFieldExportGroup* NetFieldExportGroup = OwningChannel->GetOrCreateNetFieldExportGroupForClassNetCache( Object );
@@ -1159,7 +1160,7 @@ bool FObjectReplicator::ReplicateProperties( FOutBunch & Bunch, FReplicationFlag
 	{
 		static const auto* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt( TEXT( "net.RPC.Debug" ) );
 
-		if ( UNLIKELY( CVar && CVar->GetValueOnGameThread() == 1 ) )
+		if ( UNLIKELY( CVar && CVar->GetValueOnAnyThread() == 1 ) )
 		{
 			UE_LOG( LogRepTraffic, Warning,	TEXT("      Sending queued RPCs: %s. Channel[%d] [%.1f bytes]"), *Object->GetName(), OwningChannel->ChIndex, RemoteFunctions->GetNumBits() / 8.f );
 		}
@@ -1269,7 +1270,7 @@ void FObjectReplicator::QueueRemoteFunctionBunch( UFunction* Func, FOutBunch &Bu
 		RemoteFuncInfo[InfoIdx].Calls = 0;
 	}
 	
-	if (++RemoteFuncInfo[InfoIdx].Calls > CVarMaxRPCPerNetUpdate.GetValueOnGameThread())
+	if (++RemoteFuncInfo[InfoIdx].Calls > CVarMaxRPCPerNetUpdate.GetValueOnAnyThread())
 	{
 		UE_LOG(LogRep, Verbose, TEXT("Too many calls (%d) to RPC %s within a single netupdate. Skipping. %s.  LastCallTime: %.2f. CurrentTime: %.2f. LastRelevantTime: %.2f. LastUpdateTime: %.2f "),
 			RemoteFuncInfo[InfoIdx].Calls, *Func->GetName(), *GetPathNameSafe(GetObject()), RemoteFuncInfo[InfoIdx].LastCallTime, OwningChannel->Connection->Driver->Time, OwningChannel->RelevantTime, OwningChannel->LastUpdateTime);

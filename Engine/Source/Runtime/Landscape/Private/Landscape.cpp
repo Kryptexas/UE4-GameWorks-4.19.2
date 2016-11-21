@@ -1153,6 +1153,9 @@ void ALandscape::PostLoad()
 				Modify();
 				LandscapeGuid = FGuid::NewGuid();
 
+
+				// Show MapCheck window
+
 				FFormatNamedArguments Arguments;
 				Arguments.Add(TEXT("ProxyName1"), FText::FromString(Landscape->GetName()));
 				Arguments.Add(TEXT("LevelName1"), FText::FromString(Landscape->GetLevel()->GetOutermost()->GetName()));

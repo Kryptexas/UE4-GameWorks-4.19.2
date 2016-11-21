@@ -50,6 +50,12 @@ void UAbilitySystemComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 {
 	DestroyActiveState();
 
+	// The MarkPendingKill on these attribute sets used to be done in UninitializeComponent,
+	// but it was moved here instead since it's possible for the component to be uninitialized,
+	// and later re-initialized, without being destroyed - and the attribute sets need to be preserved
+	// in this case. This can happen when the owning actor's level is removed and later re-added
+	// to the world, since EndPlay (and therefore UninitializeComponents) will be called on
+	// the owning actor when its level is removed.
 	for (UAttributeSet* Set : SpawnedAttributes)
 	{
 		if (Set)
@@ -2823,7 +2829,8 @@ void UAbilitySystemComponent::ServerSetReplicatedTargetData_Implementation(FGame
 		FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(AbilityHandle);
 		if (Spec && Spec->Ability)
 		{
-			ABILITY_LOG(Warning, TEXT("Ability %s is overriding pending replicated target data."), *Spec->Ability->GetName());
+			// Can happen under normal circumstances if ServerForceClientTargetData is hit
+			ABILITY_LOG(Display, TEXT("Ability %s is overriding pending replicated target data."), *Spec->Ability->GetName());
 		}
 	}
 

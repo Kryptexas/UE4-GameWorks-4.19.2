@@ -364,7 +364,7 @@ void UIpNetDriver::TickDispatch( float DeltaTime )
 						const ProcessedPacket UnProcessedPacket =
 												ConnectionlessHandler->IncomingConnectionless(IncomingAddress, DataRef, BytesRead);
 
-						bPassedChallenge = StatelessConnect->HasPassedChallenge(IncomingAddress);
+						bPassedChallenge = !UnProcessedPacket.bError && StatelessConnect->HasPassedChallenge(IncomingAddress);
 
 						if (bPassedChallenge)
 						{
@@ -442,16 +442,26 @@ void UIpNetDriver::LowLevelSend(FString Address, void* Data, int32 CountBits)
 			const ProcessedPacket ProcessedData =
 					ConnectionlessHandler->OutgoingConnectionless(Address, (uint8*)DataToSend, CountBits);
 
-			DataToSend = ProcessedData.Data;
-			CountBits = ProcessedData.CountBits;
+			if (!ProcessedData.bError)
+			{
+				DataToSend = ProcessedData.Data;
+				CountBits = ProcessedData.CountBits;
+			}
+			else
+			{
+				CountBits = 0;
+			}
 		}
 
 
 		int32 BytesSent = 0;
 
-		CLOCK_CYCLES(SendCycles);
-		Socket->SendTo(DataToSend, FMath::DivideAndRoundUp(CountBits, 8), BytesSent, *RemoteAddr);
-		UNCLOCK_CYCLES(SendCycles);
+		if (CountBits > 0)
+		{
+			CLOCK_CYCLES(SendCycles);
+			Socket->SendTo(DataToSend, FMath::DivideAndRoundUp(CountBits, 8), BytesSent, *RemoteAddr);
+			UNCLOCK_CYCLES(SendCycles);
+		}
 
 
 		// @todo: Can't implement these profiling events (require UNetConnections)

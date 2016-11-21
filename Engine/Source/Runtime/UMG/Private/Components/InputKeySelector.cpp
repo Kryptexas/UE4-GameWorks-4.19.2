@@ -67,7 +67,7 @@ void UInputKeySelector::SynchronizeProperties()
 TSharedRef<SWidget> UInputKeySelector::RebuildWidget()
 {
 	MyInputKeySelector = SNew(SInputKeySelector)
-		.SelectedKey( SelectedKey)
+		.SelectedKey(SelectedKey)
 		.Font(Font)
 		.Margin(Margin)
 		.ColorAndOpacity(ColorAndOpacity)
@@ -79,7 +79,7 @@ TSharedRef<SWidget> UInputKeySelector::RebuildWidget()
 	return MyInputKeySelector.ToSharedRef();
 }
 
-void UInputKeySelector::HandleKeySelected( FInputChord InSelectedKey )
+void UInputKeySelector::HandleKeySelected(const FInputChord& InSelectedKey)
 {
 	SelectedKey = InSelectedKey;
 	OnKeySelected.Broadcast(SelectedKey);

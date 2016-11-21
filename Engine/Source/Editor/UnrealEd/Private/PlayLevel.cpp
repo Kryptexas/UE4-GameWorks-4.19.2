@@ -264,8 +264,11 @@ void UEditorEngine::EndPlayMap()
 				bSeamlessTravelActive = true;
 			}
 
-			TeardownPlaySession(ThisContext);
-			
+			if (ThisContext.World())
+			{
+				TeardownPlaySession(ThisContext);
+			}
+
 			// Cleanup online subsystems instantiated during PIE
 			FName OnlineIdentifier = UOnlineEngineInterface::Get()->GetOnlineIdentifier(ThisContext);
 			if (UOnlineEngineInterface::Get()->DoesInstanceExist(OnlineIdentifier))
@@ -506,7 +509,7 @@ void UEditorEngine::CleanupPIEOnlineSessions(TArray<FName> OnlineIdentifiers)
 	NumOnlinePIEInstances = 0;
 }
 
-void UEditorEngine::TeardownPlaySession(FWorldContext &PieWorldContext)
+void UEditorEngine::TeardownPlaySession(FWorldContext& PieWorldContext)
 {
 	check(PieWorldContext.WorldType == EWorldType::PIE);
 	PlayWorld = PieWorldContext.World();
@@ -2988,9 +2991,18 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 	// We need to temporarily add the GameInstance to the root because the InitPIE call can do garbage collection wiping out the GameInstance
 	GameInstance->AddToRoot();
 
-	bool bSuccess = GameInstance->InitializePIE(bAnyBlueprintErrors, InPIEInstance, bRunAsDedicated);
-	if (!bSuccess)
+	FGameInstancePIEParameters GameInstanceParams;
+	GameInstanceParams.bAnyBlueprintErrors = bAnyBlueprintErrors;
+	GameInstanceParams.bSimulateInEditor = bInSimulateInEditor;
+	GameInstanceParams.bStartInSpectatorMode = bStartInSpectatorMode;
+	GameInstanceParams.bRunAsDedicated = bRunAsDedicated;
+
+	
+	const FGameInstancePIEResult InitializeResult = GameInstance->InitializeForPlayInEditor(InPIEInstance, GameInstanceParams);
+	if (!InitializeResult.IsSuccess())
 	{
+		FMessageDialog::Open(EAppMsgType::Ok, InitializeResult.FailureReason);
+
 		FEditorDelegates::EndPIE.Broadcast(bInSimulateInEditor);
 
 		if (EditorWorld->GetNavigationSystem())
@@ -3354,10 +3366,11 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 	// By this point it is safe to remove the GameInstance from the root and allow it to garbage collected as per usual
 	GameInstance->RemoveFromRoot();
 
-	bSuccess = GameInstance->StartPIEGameInstance(NewLocalPlayer, bInSimulateInEditor, bAnyBlueprintErrors, bStartInSpectatorMode);
-	if (!bSuccess)
+	// Start the game instance
+	const FGameInstancePIEResult StartResult = GameInstance->StartPlayInEditorGameInstance(NewLocalPlayer, GameInstanceParams);
+	if (!StartResult.IsSuccess())
 	{
-		FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_CouldntStartInstance", "Failed to start PIE game instance"));
+		FMessageDialog::Open(EAppMsgType::Ok, StartResult.FailureReason);
 		RestoreEditorWorld( EditorWorld );
 		EndPlayMap();
 		return nullptr;

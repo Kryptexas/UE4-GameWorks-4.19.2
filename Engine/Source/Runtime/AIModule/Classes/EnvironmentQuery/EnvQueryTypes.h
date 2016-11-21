@@ -642,6 +642,7 @@ struct FEQSQueryDebugData
 	}
 };
 
+
 UCLASS(Abstract)
 class AIMODULE_API UEnvQueryTypes : public UObject
 {
@@ -1004,9 +1005,12 @@ public:
 					break;
 			}
 
-			if (bPassedTest)
+			if (bPassedTest || !bIsFiltering)
 			{
-				SetScoreInternal(1.0f);
+				// even if the item's result is different than expected
+				// but we're not filtering those items out, we still want
+				// to treat this as successful test, just with different score
+				SetScoreInternal(bPassedTest ? 1.0f : 0.f);
 				NumPassedForItem++;
 			}
 
@@ -1021,7 +1025,7 @@ public:
 		/** Force state and score of item
 		 *  Any following SetScore calls for current item will be ignored
 		 */
-		void ForceItemState(EEnvItemStatus::Type InStatus, float Score = UEnvQueryTypes::SkippedItemValue)
+		void ForceItemState(const EEnvItemStatus::Type InStatus, const float Score = UEnvQueryTypes::SkippedItemValue)
 		{
 			bForced = true;
 			bPassed = (InStatus == EEnvItemStatus::Passed);
@@ -1114,7 +1118,11 @@ public:
 		{
 			if (!bForced)
 			{
-				if (!bIsFiltering)
+				if (NumTestsForItem == 0)
+				{
+					bPassed = false;
+				}
+				else if (!bIsFiltering)
 				{
 					bPassed = true;
 				}
@@ -1175,7 +1183,7 @@ struct AIMODULE_API FAIDynamicParam
 };
 
 USTRUCT()
-struct FEQSParametrizedQueryExecutionRequest
+struct AIMODULE_API FEQSParametrizedQueryExecutionRequest
 {
 	GENERATED_USTRUCT_BODY()
 

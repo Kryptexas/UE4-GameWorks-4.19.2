@@ -238,7 +238,7 @@ void SetSubsurfaceVisualizeShader(const FRenderingCompositePassContext& Context)
 FRCPassPostProcessSubsurfaceVisualize::FRCPassPostProcessSubsurfaceVisualize(FRHICommandList& RHICmdList)
 {
 	// we need the GBuffer, we release it Process()
-	FSceneRenderTargets::Get_Todo_PassContext().AdjustGBufferRefCount(RHICmdList, 1);
+	FSceneRenderTargets::Get(RHICmdList).AdjustGBufferRefCount(RHICmdList, 1);
 }
 
 void FRCPassPostProcessSubsurfaceVisualize::Process(FRenderingCompositePassContext& Context)
@@ -328,7 +328,7 @@ void FRCPassPostProcessSubsurfaceVisualize::Process(FRenderingCompositePassConte
 
 FPooledRenderTargetDesc FRCPassPostProcessSubsurfaceVisualize::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
-	FPooledRenderTargetDesc Ret = FSceneRenderTargets::Get_Todo_PassContext().GetSceneColor()->GetDesc();
+	FPooledRenderTargetDesc Ret = FSceneRenderTargets::Get_FrameConstantsOnly().GetSceneColor()->GetDesc();
 
 	Ret.Reset();
 	Ret.DebugName = TEXT("SubsurfaceVisualize");
@@ -528,7 +528,7 @@ void FRCPassPostProcessSubsurfaceSetup::Process(FRenderingCompositePassContext& 
 
 FPooledRenderTargetDesc FRCPassPostProcessSubsurfaceSetup::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
-	FPooledRenderTargetDesc Ret = FSceneRenderTargets::Get_Todo_PassContext().GetSceneColor()->GetDesc();
+	FPooledRenderTargetDesc Ret = FSceneRenderTargets::Get_FrameConstantsOnly().GetSceneColor()->GetDesc();
 
 	Ret.Reset();
 	Ret.DebugName = TEXT("SubsurfaceSetup");

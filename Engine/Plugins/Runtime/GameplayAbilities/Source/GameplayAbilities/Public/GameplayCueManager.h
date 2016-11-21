@@ -12,49 +12,62 @@
 #include "GameplayCueTranslator.h"
 #include "GameplayCueManager.generated.h"
 
-class UGameplayCueSet;
-
-/**
- *	
- *	Major TODO:
- *	
- *	-Remove LoadObjectLibraryFromPaths from base implementation. Just have project pass in ObjectLibrary, let it figure out how to make it.
- *		-On Bob's recommendation: in hopes of removing object libraries coupling with directory structure.
- *		-This becomes trickier with smaller projects/licensees. It would be nice to offer a path of least resistence for using gameplaycues (without having to implement a load object library function).
- *		-This gets even trickier though when dealing with having to reload that objecet library when assets are added/deleted/renamed. Ideally the GameplaycueManager handles all of this, but if we are getting
- *		an objectlibrary passed in, we don't know how to recreate it. Could add a delegate to invoke when we need the object library reloaded, but then ownership of that library feels pretty weird.
- *	
- *	-Async loading of all required GameplayCueNotifies
- *		-Currently async loaded on demand (first GameplayCueNotify is dropped)
- *		-Need way to enumerate all required GameplayCue tags (Interface? GameplayCueTags can come from GameplayEffects and GameplayAbilities, possibly more?)
- *		-Implemented UGameplayCueManager::BeginLoadingGameplayCueNotify
- *		
- *	-Better figure out how to handle instancing of GameplayCueNotifies
- *		-How to handle status type GameplayCueNotifies? (Code/blueprint will spawn stuff, needs to keep track and destroy them when GameplayCue is removed)
- *		-Instanced InstantiatedObjects is growing unbounded!
- *		 
- *	
- *	-Editor Workflow:
- *		-Make way to create new GameplayCueNotifies from UGameplayCueManager (details customization)
- *		-Jump to GameplayCueManager entry for GameplayCueTag (details customization)
- *		-Implement HandleAssetAdded and HandleAssetDeleted
- *			-Must make sure we update GameplayCueData/GameplayCueDataMap at appropriate times
- *				-On startup/begin PIE or try to do it as things change?
- *		
- *	-Overriding/forwarding: are we doing this right?
- *		-When can things override, when can they call parent implementations, etc
- *		-Do GameplayCueNotifies ever override GameplayCue Events or vice versa?
- *		
- *	-Take a pass on destruction
- *		-Make sure we are cleaning up GameplayCues when actors are destroyed
- *			(Register with Actor delegate or force game code to call EndGameplayCuesFor?)
- *	
- */
-
 DECLARE_DELEGATE_OneParam(FOnGameplayCueNotifySetLoaded, TArray<FStringAssetReference>);
-DECLARE_DELEGATE_RetVal_OneParam(bool, FShouldLoadGCNotifyDelegate, const FAssetData&);
+DECLARE_DELEGATE_OneParam(FGameplayCueProxyTick, float);
+DECLARE_DELEGATE_RetVal_TwoParams(bool, FShouldLoadGCNotifyDelegate, const FAssetData&, FName);
 
 class UObjectLibrary;
+
+/** An ObjectLibrary for the GameplayCue Notifies. Wraps 2 underlying UObjectLibraries plus options/delegates for how they are loaded */ 
+USTRUCT()
+struct FGameplayCueObjectLibrary
+{
+	GENERATED_BODY()
+	FGameplayCueObjectLibrary()
+	{
+		bHasBeenInitialized = false;
+	}
+
+	// Paths to search for
+	UPROPERTY()
+	TArray<FString> Paths;
+
+	// Callback for when load finishes
+	FOnGameplayCueNotifySetLoaded OnLoaded;
+
+	// Callback for "should I add this FAssetData to the set"
+	FShouldLoadGCNotifyDelegate ShouldLoad;
+
+	// Object library for actor based notifies
+	UPROPERTY()
+	UObjectLibrary* ActorObjectLibrary;
+
+	// Object library for object based notifies
+	UPROPERTY()
+	UObjectLibrary* StaticObjectLibrary;
+
+	// Priority to use if async loading
+	TAsyncLoadPriority AsyncPriority;
+
+	// Should we force a sync scan on the asset registry in order to discover asset data, or just use what is there?
+	UPROPERTY()
+	bool bShouldSyncScan;
+
+	// Should we start async loading everything that we find (that passes ShouldLoad delegate check)
+	UPROPERTY()
+	bool bShouldAsyncLoad;
+
+	// Should we sync load everything that we find (that passes ShouldLoad delegate check)
+	UPROPERTY()
+	bool bShouldSyncLoad;
+
+	// Set to put the loaded asset data into. If null we will use the global set (RuntimeGameplayCueObjectLibrary.CueSet)
+	UPROPERTY()
+	UGameplayCueSet* CueSet;
+
+	UPROPERTY()
+	bool bHasBeenInitialized;
+};
 
 UCLASS()
 class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
@@ -79,6 +92,8 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 	virtual void FlushPendingCues();
 
 	virtual void OnCreated();
+
+	virtual void OnEngineInitComplete();
 
 	/** Process a pending cue, return false if the cue should be rejected. */
 	virtual bool ProcessPendingCueExecute(FGameplayCuePendingExecute& PendingCue);
@@ -132,33 +147,79 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 
 	// -------------------------------------------------------------
 	//  Loading GameplayCueNotifies from ObjectLibraries
+	//
+	//	There are two libraries in the GameplayCueManager:
+	//	1. The RunTime object library, which is initialized with the "always loaded" paths, via UAbilitySystemGlobals::GetGameplayCueNotifyPaths()
+	//		-GC Notifies in this path are loaded at startup
+	//		-Everything loaded will go into the global gameplaycue set, which is where GC events will be routed to by default
+	//
+	//	2. The Editor object library, which is initialized with the "all valid" paths, via UGameplayCueManager::GetValidGameplayCuePaths()
+	//		-Only used in the editor.
+	//		-Never loads clases or scans directly itself. 
+	//		-Just reflect asset registry to show about "all gameplay cue notifies the game could know about"
+	//
 	// -------------------------------------------------------------
 
-	/** Loading soft refs to all GameplayCueNotifies */
-	void LoadObjectLibraryFromPaths(const TArray<FString>& Paths);
+	/** Returns the Ryntime cueset, which is the global cueset used in runtime, as opposed to the editor cue set which is used only when running the editor */
+	UGameplayCueSet* GetRuntimeCueSet();
 
-	UPROPERTY(transient)
-	class UGameplayCueSet* GlobalCueSet;
+	/** Called to setup and initialize the runtime library. The passed in paths will be scanned and added to the global gameplay cue set where appropriate */
+	void InitializeRuntimeObjectLibrary();
+
+	// Will return the Runtime cue set and the EditorCueSet, if the EditorCueSet is available. This is used mainly for handling asset created/deleted in the editor
+	TArray<UGameplayCueSet*> GetGlobalCueSets();
 	
-	UPROPERTY(transient)
-	UObjectLibrary* GameplayCueNotifyActorObjectLibrary;
+
+#if WITH_EDITOR
+	/** Called from editor to soft load all gameplay cue notifies for the GameplayCueEditor */
+	void InitializeEditorObjectLibrary();
+
+	/** Calling this will make the GC manager periodically refresh the EditorObjectLibrary until the asset registry is finished scanning */
+	void RequestPeriodicUpdateOfEditorObjectLibraryWhileWaitingOnAssetRegistry();
+
+	/** Get filenames of all GC notifies we know about (loaded or not). Useful for cooking */
+	void GetEditorObjectLibraryGameplayCueNotifyFilenames(TArray<FString>& Filenames) const;
+
+	/** Looks in the EditorObjectLibrary for a notify for this tag, if it finds it, it loads it and puts it in the RuntimeObjectLibrary so that it can be previewed in the editor */
+	void LoadNotifyForEditorPreview(FGameplayTag GameplayCueTag);
+
+	UGameplayCueSet* GetEditorCueSet();
+
+	FSimpleMulticastDelegate OnEditorObjectLibraryUpdated;
+	bool EditorObjectLibraryFullyInitialized;
+
+	FTimerHandle EditorPeriodicUpdateHandle;
+#endif
+
+protected:
+
+	virtual bool ShouldSyncScanRuntimeObjectLibraries() const;
+	virtual bool ShouldSyncLoadRuntimeObjectLibraries() const;
+	virtual bool ShouldAsyncLoadRuntimeObjectLibraries() const;
+
+	/** Refreshes the existing, already initialized, object libraries. */
+	void RefreshObjectLibraries();
+
+	/** Internal function to actually init the FGameplayCueObjectLibrary */
+	void InitObjectLibrary(FGameplayCueObjectLibrary& Library);
+
+	virtual TArray<FString> GetAlwaysLoadedGameplayCuePaths();
+
+	/** returns list of valid gameplay cue paths. Subclasses may override this to specify locations that aren't part of the "always loaded" LoadedPaths array */
+	virtual TArray<FString>	GetValidGameplayCuePaths() { return GetAlwaysLoadedGameplayCuePaths(); }
 
 	UPROPERTY(transient)
-	UObjectLibrary* GameplayCueNotifyStaticObjectLibrary;
+	FGameplayCueObjectLibrary RuntimeGameplayCueObjectLibrary;
+
+	UPROPERTY(transient)
+	FGameplayCueObjectLibrary EditorGameplayCueObjectLibrary;
+
+public:		
 
 	/** Called before loading any gameplay cue notifies from object libraries. Allows subclasses to skip notifies. */
 	virtual bool ShouldLoadGameplayCueAssetData(const FAssetData& Data) const { return true; }
-
-	// -------------------------------------------------------------
-	// Preload GameplayCue tags that we think we will need:
-	// -------------------------------------------------------------
-
-	void BeginLoadingGameplayCueNotify(FGameplayTag GameplayCueTag);
-
+	
 	int32 FinishLoadingGameplayCueNotifies();
-
-	/** Get filenames of all GC notifies we know about (loaded or not). Useful for cooking */
-	void GetGameplayCueNotifyFilenames(TArray<FString>& Filenames) const;
 
 	UPROPERTY(transient)
 	FStreamableManager	StreamableManager;
@@ -172,8 +233,6 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 	virtual class UWorld* GetWorld() const override;
 
 #if WITH_EDITOR
-	/** Called from editor to soft load all gameplay cue notifies for the GameplayCueEditor */
-	void LoadAllGameplayCueNotifiesForEditor();
 
 	/** Handles updating an object library when a new asset is created */
 	void HandleAssetAdded(UObject *Object);
@@ -186,18 +245,14 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 
 	bool VerifyNotifyAssetIsInValidPath(FString Path);
 
-	/** returns list of valid gameplay cue paths. Subclasses may override this to specify locations that aren't part of the "always loaded" LoadedPaths array */
-	virtual TArray<FString>	GetValidGameplayCuePaths() { return LoadedPaths; }
-
-	bool RegisteredEditorCallbacks;
-
 	bool bAccelerationMapOutdated;
 
 	FOnGameplayCueNotifyChange	OnGameplayCueNotifyAddOrRemove;
 
+	/** Animation Preview Hacks */
 	static class USceneComponent* PreviewComponent;
-
 	static UWorld* PreviewWorld;
+	static FGameplayCueProxyTick PreviewProxyTick;
 #endif
 
 	static bool IsGameplayCueRecylingEnabled();
@@ -206,22 +261,20 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 
 	FGameplayCueTranslationManager	TranslationManager;
 
+	// -------------------------------------------------------------
+	//  Debugging Help
+	// -------------------------------------------------------------
+
+#if GAMEPLAYCUE_DEBUG
+	virtual FGameplayCueDebugInfo* GetDebugInfo(int32 Handle, bool Reset=false);
+#endif
+
 protected:
 
 #if WITH_EDITOR
 	//This handles the case where GameplayCueNotifications have changed between sessions, which is possible in editor.
 	virtual void ReloadObjectLibrary(UWorld* World, const UWorld::InitializationValues IVS);
 #endif
-
-	void LoadObjectLibrary_Internal();
-
-	void InitObjectLibraries(TArray<FString> Paths, UObjectLibrary* ActorObjectLibrary, UObjectLibrary* StaticObjectLibrary, FOnGameplayCueNotifySetLoaded OnLoaded, FShouldLoadGCNotifyDelegate ShouldLoad = FShouldLoadGCNotifyDelegate());
-
-	/** Async load all gameplay cue notify classes that we find in ::InitObjectLibraries */
-	virtual bool ShouldAsyncLoadAtStartup() const { return true; }
-
-	/** Sync load all gameplay cue notify classes that we find in ::InitObjectLibraries */
-	virtual bool ShouldSyncLoadAtStartup() const { return IsRunningCommandlet(); }
 
 	void BuildCuesToAddToGlobalSet(const TArray<FAssetData>& AssetDataList, FName TagPropertyName, TArray<struct FGameplayCueReferencePair>& OutCuesToAdd, TArray<FStringAssetReference>& OutAssetsToLoad, FShouldLoadGCNotifyDelegate = FShouldLoadGCNotifyDelegate());
 
@@ -239,8 +292,6 @@ protected:
 	/** Classes that we need to preallocate instances for */
 	UPROPERTY(transient)
 	TArray<AGameplayCueNotify_Actor*> GameplayCueClassesForPreallocation;
-
-	TArray<FString>	LoadedPaths;
 
 	/** List of gameplay cue executes that haven't been processed yet */
 	UPROPERTY(transient)

@@ -2933,6 +2933,11 @@ void UPrimitiveComponent::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceS
 	{
 		BodyInstance.GetBodyInstanceResourceSizeEx(CumulativeResourceSize);
 	}
+	if (SceneProxy)
+	{
+		CumulativeResourceSize.AddDedicatedSystemMemoryBytes(SceneProxy->GetMemoryFootprint());
+	}
+
 }
 
 void UPrimitiveComponent::SetRenderCustomDepth(bool bValue)

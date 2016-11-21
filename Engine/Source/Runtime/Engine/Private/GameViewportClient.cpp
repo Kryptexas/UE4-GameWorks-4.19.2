@@ -2721,6 +2721,9 @@ bool UGameViewportClient::HandleToggleFullscreenCommand()
 		}
 	}
 
+	int32 ResolutionX = GSystemResolution.ResX;
+	int32 ResolutionY = GSystemResolution.ResY;
+
 	// Make sure the user's settings are updated after pressing Alt+Enter to toggle fullscreen.  Note
 	// that we don't need to "apply" the setting change, as we already did that above directly.
 	UGameEngine* GameEngine = Cast<UGameEngine>( GEngine );
@@ -2731,10 +2734,17 @@ bool UGameViewportClient::HandleToggleFullscreenCommand()
 		{
 			UserSettings->SetFullscreenMode( FullScreenMode );
 			UserSettings->ConfirmVideoMode();
+
+			ResolutionX = UserSettings->GetScreenResolution().X;
+			ResolutionY = UserSettings->GetScreenResolution().Y;
+			UGameEngine::ConditionallyOverrideSettings(ResolutionX, ResolutionY, FullScreenMode);
 		}
 	}
 
-	FSystemResolution::RequestResolutionChange(GSystemResolution.ResX, GSystemResolution.ResY, FullScreenMode);
+	FSystemResolution::RequestResolutionChange(ResolutionX, ResolutionY, FullScreenMode);
+
+	ToggleFullscreenDelegate.Broadcast(FullScreenMode != EWindowMode::Windowed);
+
 	return true;
 }
 

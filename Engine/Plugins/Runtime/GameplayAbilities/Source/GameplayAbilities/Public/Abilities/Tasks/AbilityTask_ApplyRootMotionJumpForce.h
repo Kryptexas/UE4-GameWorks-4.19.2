@@ -1,6 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
-#include "AbilityTask.h"
+#include "AbilityTask_ApplyRootMotion_Base.h"
 #include "AbilityTask_ApplyRootMotionJumpForce.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FApplyRootMotionJumpForceDelegate);
@@ -11,7 +11,7 @@ class AActor;
  *	Applies force to character's movement
  */
 UCLASS(MinimalAPI)
-class UAbilityTask_ApplyRootMotionJumpForce : public UAbilityTask
+class UAbilityTask_ApplyRootMotionJumpForce : public UAbilityTask_ApplyRootMotion_Base
 {
 	GENERATED_UCLASS_BODY()
 
@@ -27,8 +27,6 @@ class UAbilityTask_ApplyRootMotionJumpForce : public UAbilityTask
 	UFUNCTION()
 	void OnLandedCallback(const FHitResult& Hit);
 
-	virtual void InitSimulatedTask(UGameplayTasksComponent& InGameplayTasksComponent) override;
-
 	/** Apply force to character's movement */
 	UFUNCTION(BlueprintCallable, Category = "Ability|Tasks", meta = (HidePin = "OwningAbility", DefaultToSelf = "OwningAbility", BlueprintInternalUseOnly = "TRUE"))
 	static UAbilityTask_ApplyRootMotionJumpForce* ApplyRootMotionJumpForce(UGameplayAbility* OwningAbility, FName TaskInstanceName, FRotator Rotation, float Distance, float Height, float Duration, float MinimumLandedTriggerTime, bool bFinishOnLanded, UCurveVector* PathOffsetCurve, UCurveFloat* TimeMappingCurve);
@@ -43,8 +41,17 @@ class UAbilityTask_ApplyRootMotionJumpForce : public UAbilityTask
 
 protected:
 
-	UPROPERTY(Replicated)
-	FName ForceName;
+	virtual void SharedInitAndApply() override;
+
+	/**
+	* Work-around for OnLanded being called during bClientUpdating in movement replay code
+	* Don't want to trigger our Landed logic during a replay, so we wait until next frame
+	* If we don't, we end up removing root motion from a replay root motion set instead
+	* of the real one
+	*/
+	void TriggerLanded();
+
+protected:
 
 	UPROPERTY(Replicated)
 	FRotator Rotation;
@@ -77,23 +84,5 @@ protected:
 	UPROPERTY(Replicated)
 	UCurveFloat* TimeMappingCurve;
 
-	uint16 RootMotionSourceID;
-	bool bIsFinished;
-	float StartTime;
-	float EndTime;
-
-	/**
-	 * Work-around for OnLanded being called during bClientUpdating in movement replay code
-	 * Don't want to trigger our Landed logic during a replay, so we wait until next frame
-	 * If we don't, we end up removing root motion from a replay root motion set instead
-	 * of the real one
-	 */
-	void TriggerLanded();
 	bool bHasLanded;
-
-	void SharedInitAndApply();
-
-	UPROPERTY()
-	UCharacterMovementComponent* MovementComponent;
-
 };

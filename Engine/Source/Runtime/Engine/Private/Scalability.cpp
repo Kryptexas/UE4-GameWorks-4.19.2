@@ -267,6 +267,12 @@ static void SetGroupQualityLevel(const TCHAR* InGroupName, int32 InQualityLevel,
 	}	
 }
 
+float GetResolutionScreenPercentage()
+{
+	static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ScreenPercentage"));
+	return CVar->GetFloat();
+}
+
 static void SetResolutionQualityLevel(float InResolutionQualityLevel)
 {
 	InResolutionQualityLevel = FMath::Clamp(InResolutionQualityLevel, Scalability::MinResolutionScale, Scalability::MaxResolutionScale);

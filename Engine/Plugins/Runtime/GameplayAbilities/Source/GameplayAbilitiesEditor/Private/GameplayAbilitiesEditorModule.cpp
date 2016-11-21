@@ -156,6 +156,9 @@ void FGameplayAbilitiesEditorModule::StartupModule()
 	IGameplayAbilitiesModule::Get().CallOrRegister_OnAbilitySystemGlobalsReady(FSimpleMulticastDelegate::FDelegate::CreateLambda([] {
 		FGameplayAbilitiesEditorModule::RegisterDebuggingCallbacks();
 	}));
+	
+	// Invalidate all internal cacheing of FRichCurve* in FScalableFlaots when a UCurveTable is reimported
+	FReimportManager::Instance()->OnPostReimport().AddLambda([](UObject* InObject, bool b){ FScalableFloat::InvalidateAllCachedCurves(); });
 }
 
 void FGameplayAbilitiesEditorModule::HandleNotify_OpenAssetInEditor(FString AssetName, int AssetType)

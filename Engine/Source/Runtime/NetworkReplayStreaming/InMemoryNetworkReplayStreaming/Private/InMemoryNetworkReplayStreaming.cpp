@@ -290,17 +290,9 @@ FArchive* FInMemoryNetworkReplayStreamer::GetCheckpointArchive()
 			FoundReplay->StreamChunks.RemoveAt(0, NumChunksToRemove, false);
 		}
 
-		const int32 NewCheckpointIndex = FoundReplay->Checkpoints.Add(FInMemoryReplay::FCheckpoint());
-		CheckpointAr.Reset(new FMemoryWriter(FoundReplay->Checkpoints[NewCheckpointIndex].Data));
-
-		// Start a new stream chunk for the new checkpoint
-		FInMemoryReplay::FStreamChunk NewChunk;
-		if (FoundReplay->StreamChunks.Num() > 0)
-		{
-			NewChunk.StartIndex = FoundReplay->StreamChunks.Last().StartIndex + FoundReplay->StreamChunks.Last().Data.Num();
-			NewChunk.TimeInMS = FoundReplay->StreamInfo.LengthInMS;
-		}
-		FoundReplay->StreamChunks.Add(NewChunk);
+		// Save to a temporary checkpoint that will moved onto the replay's checkpoint list in FlushCheckpoint().
+		CheckpointCurrentlyBeingSaved.Reset();
+		CheckpointAr.Reset(new FMemoryWriter(CheckpointCurrentlyBeingSaved.Data));
 	}
 
 	return CheckpointAr.Get();
@@ -311,14 +303,26 @@ void FInMemoryNetworkReplayStreamer::FlushCheckpoint(const uint32 TimeInMS)
 	UE_LOG(LogMemoryReplay, Log, TEXT("FInMemoryNetworkReplayStreamer::FlushCheckpoint. TimeInMS: %u"), TimeInMS);
 
 	check(FileAr.Get() != nullptr);
+	check(CheckpointCurrentlyBeingSaved.Data.Num() != 0);
 
 	// Finalize the checkpoint data.
 	CheckpointAr.Reset();
 	
-	FInMemoryReplay* FoundReplay = GetCurrentReplayChecked();
+	CheckpointCurrentlyBeingSaved.TimeInMS = TimeInMS;
+	CheckpointCurrentlyBeingSaved.StreamByteOffset = FileAr->Tell();
 
-	FoundReplay->Checkpoints.Last().TimeInMS = TimeInMS;
-	FoundReplay->Checkpoints.Last().StreamByteOffset = FileAr->Tell();
+	FInMemoryReplay* const FoundReplay = GetCurrentReplayChecked();
+
+	const int32 NewCheckpointIndex = FoundReplay->Checkpoints.Add(MoveTemp(CheckpointCurrentlyBeingSaved));
+
+	// Start a new stream chunk for the new checkpoint
+	FInMemoryReplay::FStreamChunk NewChunk;
+	if (FoundReplay->StreamChunks.Num() > 0)
+	{
+		NewChunk.StartIndex = FoundReplay->StreamChunks.Last().StartIndex + FoundReplay->StreamChunks.Last().Data.Num();
+		NewChunk.TimeInMS = FoundReplay->StreamInfo.LengthInMS;
+	}
+	FoundReplay->StreamChunks.Add(NewChunk);
 }
 
 void FInMemoryNetworkReplayStreamer::GotoCheckpointIndex(const int32 CheckpointIndex, const FOnCheckpointReadyDelegate& Delegate)

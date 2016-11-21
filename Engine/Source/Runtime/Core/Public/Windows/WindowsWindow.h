@@ -148,7 +148,7 @@ private:
 
 	/** Creates an HRGN for the window's current region.  Remember to delete this when you're done with it using
 	   ::DeleteObject, unless you're passing it to SetWindowRgn(), which will absorb the reference itself. */
-	HRGN MakeWindowRegionObject() const;
+	HRGN MakeWindowRegionObject(bool bIncludeBorderWhenMaximized) const;
 
 private:
 

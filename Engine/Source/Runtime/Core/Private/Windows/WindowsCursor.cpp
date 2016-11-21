@@ -182,4 +182,5 @@ void FWindowsCursor::Lock( const RECT* const Bounds )
 {
 	// Lock/Unlock the cursor
 	::ClipCursor(Bounds);
+		// If the cursor is not visible and we're running game, assume we're in a mode where the mouse is controlling the camera and lock it to the center of the widget.
 }

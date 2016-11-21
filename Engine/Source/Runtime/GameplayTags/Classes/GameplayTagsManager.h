@@ -261,6 +261,8 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	/** Splits a tag such as x.y.z into an array of names {x,y,z} */
 	void SplitGameplayTagFName(const FGameplayTag& Tag, TArray<FName>& OutNames);
 
+	void RequestAllGameplayTags(FGameplayTagContainer& TagContainer, bool OnlyIncludeDictionaryTags) const;
+
 	/**
 	 * Checks if the passed in name is in the tag dictionary and can be created
 	 *

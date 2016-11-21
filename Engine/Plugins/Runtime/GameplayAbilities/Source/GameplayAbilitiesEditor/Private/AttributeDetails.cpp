@@ -355,7 +355,7 @@ void FScalableFloatDetails::CustomizeHeader( TSharedRef<class IPropertyHandle> S
 				.HAlign(HAlign_Fill)
 				.Padding(2.f, 0.f, 2.f, 0.f)
 				[
-					CurveTableProperty->CreatePropertyValueWidget()
+					CreateCurveTableWidget()
 				]
 
 				+SHorizontalBox::Slot()
@@ -371,6 +371,7 @@ void FScalableFloatDetails::CustomizeHeader( TSharedRef<class IPropertyHandle> S
 					[
 						SNew(STextBlock)
 						.Text(this, &FScalableFloatDetails::GetRowNameComboBoxContentText)
+						.ToolTipText( this, &FScalableFloatDetails::GetRowNameComboBoxContentText)
 					]
 				]
 
@@ -414,6 +415,10 @@ void FScalableFloatDetails::CustomizeHeader( TSharedRef<class IPropertyHandle> S
 
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
+TSharedRef<SWidget> FScalableFloatDetails::CreateCurveTableWidget()
+{
+	return CurveTableProperty->CreatePropertyValueWidget();
+}
 
 void FScalableFloatDetails::OnCurveTableChanged()
 {

@@ -224,6 +224,9 @@ private:
 	friend class FActorComponentInstanceData;
 	friend class FActorComponentDetails;
 
+	/** True if this component was owned by a net startup actor during level load. */
+	bool bIsNetStartupComponent;
+
 public:
 	UPROPERTY()
 	EComponentCreationMethod CreationMethod;
@@ -396,6 +399,12 @@ public:
 	* because it can check the static build flags without considering PIE.
 	*/
 	bool IsNetMode(ENetMode Mode) const;
+
+	/** Returns true if this component was owned by a net startup actor during level load. */
+	bool IsNetStartupComponent() const { return bIsNetStartupComponent; }
+
+	/** This should only be called by the engine in ULevel::InitializeNetworkActors to initialize bIsNetStartupComponent. */
+	void SetIsNetStartupComponent(const bool bInIsNetStartupComponent) { bIsNetStartupComponent = bInIsNetStartupComponent; }
 
 private:
 

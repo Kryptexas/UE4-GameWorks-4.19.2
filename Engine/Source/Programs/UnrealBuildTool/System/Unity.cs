@@ -23,6 +23,11 @@ namespace UnrealBuildTool
 		public static HashSet<FileItem> CandidateSourceFilesForWorkingSet = new HashSet<FileItem>();
 
 		/// <summary>
+		/// Prefix used for all dynamically created Unity modules
+		/// </summary>
+		public static string ModulePrefix = "Module.";
+
+		/// <summary>
 		/// A class which represents a list of files and the sum of their lengths.
 		/// </summary>
 		public class FileCollection
@@ -342,11 +347,11 @@ namespace UnrealBuildTool
 				string UnityCPPFileName;
 				if (AllUnityFiles.Count > 1)
 				{
-					UnityCPPFileName = string.Format("Module.{0}.{1}_of_{2}.cpp", BaseName, CurrentUnityFileCount, AllUnityFiles.Count);
+					UnityCPPFileName = string.Format("{0}{1}.{2}_of_{3}.cpp", ModulePrefix, BaseName, CurrentUnityFileCount, AllUnityFiles.Count);
 				}
 				else
 				{
-					UnityCPPFileName = string.Format("Module.{0}.cpp", BaseName);
+					UnityCPPFileName = string.Format("{0}{1}.cpp", ModulePrefix, BaseName);
 				}
 				FileReference UnityCPPFilePath = FileReference.Combine(CompileEnvironment.Config.OutputDirectory, UnityCPPFileName);
 

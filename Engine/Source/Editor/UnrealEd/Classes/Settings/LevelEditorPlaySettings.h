@@ -415,10 +415,7 @@ public:
 	UPROPERTY(config)
 	TArray<FPlayScreenResolution> TelevisionScreenResolutions;
 
-protected:
-
-	// UObject overrides
-
+	// UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
-
+	// End of UObject interface
 };

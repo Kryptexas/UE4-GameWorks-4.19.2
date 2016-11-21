@@ -45,6 +45,7 @@ public:
 	// Brush data
 	const FSlateBrush* BrushResource;
 	const FSlateShaderResourceProxy* ResourceProxy;
+	FSlateShaderResource* RenderTargetResource;
 
 	// Box Data
 	FVector2D RotationPoint;
@@ -68,10 +69,12 @@ public:
 	TArray<FVector2D> Points;
 
 	// Viewport data
-	FSlateShaderResource* ViewportRenderTargetTexture;
-	bool bAllowViewportScaling;
-	bool bViewportTextureAlphaOnly;
-	bool bRequiresVSync;
+	bool bAllowViewportScaling:1;
+	bool bViewportTextureAlphaOnly:1;
+	bool bRequiresVSync:1;
+	
+	// Whether or not to anti-alias lines
+	bool bAntialias:1;
 
 	// Misc data
 	ESlateBatchDrawFlag::Type BatchFlags;
@@ -95,9 +98,13 @@ public:
 	// Layer handle
 	FSlateDrawLayerHandle* LayerHandle;
 
+	// Post Process Data
+	FVector4 PostProcessData;
+	int32 DownsampleAmount;
+
 	// Line data
 	ESlateLineJoinType::Type SegmentJoinType;
-	bool bAntialias;
+
 
 	SLATECORE_API static FSlateShaderResourceManager* ResourceManager;
 
@@ -105,9 +112,9 @@ public:
 		: Tint(FLinearColor::White)
 		, BrushResource(nullptr)
 		, ResourceProxy(nullptr)
+		, RenderTargetResource(nullptr)
 		, RotationPoint(FVector2D::ZeroVector)
 		, ImmutableText(nullptr)
-		, ViewportRenderTargetTexture(nullptr)
 		, bViewportTextureAlphaOnly(false)
 		, bRequiresVSync(false)
 		, BatchFlags(ESlateBatchDrawFlag::None)
@@ -115,10 +122,6 @@ public:
 		, InstanceData(nullptr)
 		, InstanceOffset(0)
 		, NumInstances(0)
-		//, CachedRenderDataOffset(FVector2D::ZeroVector)
-		//, LayerHandle(nullptr)
-		//, SegmentJoinType(ESlateLineJoinType::Sharp)
-		//, bAntialias(true)
 	{ }
 
 	void SetBoxPayloadProperties( const FSlateBrush* InBrush, const FLinearColor& InTint, FSlateShaderResourceProxy* InResourceProxy = nullptr, ISlateUpdatableInstanceBuffer* InInstanceData = nullptr )
@@ -195,7 +198,7 @@ public:
 	void SetViewportPayloadProperties( const TSharedPtr<const ISlateViewport>& InViewport, const FLinearColor& InTint )
 	{
 		Tint = InTint;
-		ViewportRenderTargetTexture = InViewport->GetViewportRenderTargetTexture();
+		RenderTargetResource = InViewport->GetViewportRenderTargetTexture();
 		bAllowViewportScaling = InViewport->AllowScaling();
 		bViewportTextureAlphaOnly = InViewport->IsViewportTextureAlphaOnly();
 		bRequiresVSync = InViewport->RequiresVsync();
@@ -252,6 +255,7 @@ public:
 		ET_CustomVerts,
 		ET_CachedBuffer,
 		ET_Layer,
+		ET_PostProcessPass,
 		ET_Count,
 	};
 
@@ -439,6 +443,7 @@ public:
 
 	SLATECORE_API static void MakeLayer(FSlateWindowElementList& ElementList, uint32 InLayer, TSharedPtr<FSlateDrawLayerHandle, ESPMode::ThreadSafe>& DrawLayerHandle);
 
+	SLATECORE_API static void MakePostProcessPass(FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const FSlateRect& InClippingRect, const FVector4& Params, int32 DownsampleAmount);
 
 	FORCEINLINE EElementType GetElementType() const { return ElementType; }
 	FORCEINLINE uint32 GetLayer() const { return Layer; }
@@ -480,23 +485,26 @@ struct FShaderParams
 {
 	/** Pixel shader parameters */
 	FVector4 PixelParams;
+	FVector4 PixelParams2;
 
 	FShaderParams()
 		: PixelParams( 0,0,0,0 )
+		, PixelParams2( 0,0,0,0 ) 
 	{}
 
-	FShaderParams( const FVector4& InPixelParams )
+	FShaderParams( const FVector4& InPixelParams, const FVector4& InPixelParams2 = FVector4(0) )
 		: PixelParams( InPixelParams )
+		, PixelParams2( InPixelParams2 )
 	{}
 
 	bool operator==( const FShaderParams& Other ) const
 	{
-		return PixelParams == Other.PixelParams;
+		return PixelParams == Other.PixelParams && PixelParams2 == Other.PixelParams2;
 	}
 
-	static FShaderParams MakePixelShaderParams( const FVector4& PixelShaderParams )
+	static FShaderParams MakePixelShaderParams( const FVector4& PixelShaderParams, const FVector4& InPixelShaderParams2 = FVector4(0) )
 	{
-		return FShaderParams( PixelShaderParams );
+		return FShaderParams( PixelShaderParams, InPixelShaderParams2);
 	}
 };
 

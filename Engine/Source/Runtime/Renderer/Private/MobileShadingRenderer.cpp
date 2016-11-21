@@ -86,7 +86,7 @@ void FMobileSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdList)
 
 	UpdatePostProcessUsageFlags();
 	
-	OnStartFrame();
+	OnStartFrame(RHICmdList);
 }
 
 /** 

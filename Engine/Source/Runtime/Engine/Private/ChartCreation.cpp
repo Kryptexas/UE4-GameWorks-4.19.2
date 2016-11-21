@@ -296,14 +296,16 @@ void FDumpFPSChartToEndpoint::DumpChart(double InWallClockTimeFromStartOfChartin
 
 struct FDumpFPSChartToAnalyticsArray : public FDumpFPSChartToEndpoint
 {
-	FDumpFPSChartToAnalyticsArray(const FPerformanceTrackingChart& InChart, TArray<FAnalyticsEventAttribute>& InParamArray)
+	FDumpFPSChartToAnalyticsArray(const FPerformanceTrackingChart& InChart, TArray<FAnalyticsEventAttribute>& InParamArray, bool bShouldIncludeClientHWInfo)
 		: FDumpFPSChartToEndpoint(InChart)
 		, ParamArray(InParamArray)
+		, bIncludeClientHWInfo(bShouldIncludeClientHWInfo)
 	{
 	}
 
 protected:
 	TArray<FAnalyticsEventAttribute>& ParamArray;
+	bool bIncludeClientHWInfo;
 protected:
 	virtual void PrintToEndpoint(const FString& Text) override
 	{
@@ -344,7 +346,10 @@ protected:
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("TotalHitches"), TotalHitchCount));
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("TotalGameBoundHitches"), Chart.TotalGameThreadBoundHitchCount));
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("TotalRenderBoundHitches"), Chart.TotalRenderThreadBoundHitchCount));
-		ParamArray.Add(FAnalyticsEventAttribute(TEXT("TotalGPUBoundHitches"), Chart.TotalGPUBoundHitchCount));
+		if (bIncludeClientHWInfo)
+		{
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("TotalGPUBoundHitches"), Chart.TotalGPUBoundHitchCount));
+		}
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("TotalTimeInHitchFrames"), TotalTimeSpentInHitchBuckets));
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("HitchesPerMinute"), Chart.GetAvgHitchesPerMinute()));
 
@@ -389,21 +394,22 @@ protected:
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("OS"), FString::Printf(TEXT("%s %s"), *OSMajor, *OSMinor)));
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("CPU"), FString::Printf(TEXT("%s %s"), *CPUVendor, *CPUBrand)));
 
-		//@TODO: Cut these out for servers
-		ParamArray.Add(FAnalyticsEventAttribute(TEXT("DesktopGPU"), DesktopGPUBrand)); //@TODO: Cut this one out entirely?
-		ParamArray.Add(FAnalyticsEventAttribute(TEXT("GPUAdapter"), ActualGPUBrand));
+		if (bIncludeClientHWInfo)
+		{
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("DesktopGPU"), DesktopGPUBrand)); //@TODO: Cut this one out entirely?
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("GPUAdapter"), ActualGPUBrand));
 
-		ParamArray.Add(FAnalyticsEventAttribute(TEXT("ResolutionQuality"), ScalabilityQuality.ResolutionQuality));
-		ParamArray.Add(FAnalyticsEventAttribute(TEXT("ViewDistanceQuality"), ScalabilityQuality.ViewDistanceQuality));
-		ParamArray.Add(FAnalyticsEventAttribute(TEXT("AntiAliasingQuality"), ScalabilityQuality.AntiAliasingQuality));
-		ParamArray.Add(FAnalyticsEventAttribute(TEXT("ShadowQuality"), ScalabilityQuality.ShadowQuality));
-		ParamArray.Add(FAnalyticsEventAttribute(TEXT("PostProcessQuality"), ScalabilityQuality.PostProcessQuality));
-		ParamArray.Add(FAnalyticsEventAttribute(TEXT("TextureQuality"), ScalabilityQuality.TextureQuality));
-		ParamArray.Add(FAnalyticsEventAttribute(TEXT("FXQuality"), ScalabilityQuality.EffectsQuality));
-		ParamArray.Add(FAnalyticsEventAttribute(TEXT("FoliageQuality"), ScalabilityQuality.FoliageQuality));
-		ParamArray.Add(FAnalyticsEventAttribute(TEXT("PercentGPUBound"), FString::Printf(TEXT("%4.2f"), BoundGPUPct)));
-		ParamArray.Add(FAnalyticsEventAttribute(TEXT("AvgGPUTime"), FString::Printf(TEXT("%4.2f"), AvgGPUFrameTime)));
-		//@ENDTODO:
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("ResolutionQuality"), ScalabilityQuality.ResolutionQuality));
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("ViewDistanceQuality"), ScalabilityQuality.ViewDistanceQuality));
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("AntiAliasingQuality"), ScalabilityQuality.AntiAliasingQuality));
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("ShadowQuality"), ScalabilityQuality.ShadowQuality));
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("PostProcessQuality"), ScalabilityQuality.PostProcessQuality));
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("TextureQuality"), ScalabilityQuality.TextureQuality));
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("FXQuality"), ScalabilityQuality.EffectsQuality));
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("FoliageQuality"), ScalabilityQuality.FoliageQuality));
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("PercentGPUBound"), FString::Printf(TEXT("%4.2f"), BoundGPUPct)));
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("AvgGPUTime"), FString::Printf(TEXT("%4.2f"), AvgGPUFrameTime)));
+		}
 
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("AvgFPS"), FString::Printf(TEXT("%4.2f"), AvgFPS)));
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("TimeDisregarded"), FString::Printf(TEXT("%4.2f"), TimeDisregarded)));
@@ -752,7 +758,7 @@ void FPerformanceTrackingChart::DumpChartToAnalyticsParams(const FString& InMapN
 	if ((TotalTime > 0.f) && (NumFrames > 0))
 	{
 		// Dump all the basic stats
-		FDumpFPSChartToAnalyticsArray AnalyticsEndpoint(*this, InParamArray);
+		FDumpFPSChartToAnalyticsArray AnalyticsEndpoint(*this, InParamArray, bIncludeClientHWInfo);
 		AnalyticsEndpoint.DumpChart(AccumulatedChartTime, InMapName);
 
 		if (bIncludeClientHWInfo)
@@ -813,8 +819,7 @@ void FPerformanceTrackingChart::DumpChartToAnalyticsParams(const FString& InMapN
 			}
 
 			// Screen percentage (3D render resolution)
-			//@TODO: Change to use actual cvar (r.screenpercentage), right now this is just a dupe of ResolutionQuality above
-			InParamArray.Add(FAnalyticsEventAttribute(TEXT("ScreenPct"), UserSettingsObj->ScalabilityQuality.ResolutionQuality));
+			InParamArray.Add(FAnalyticsEventAttribute(TEXT("ScreenPct"), Scalability::GetResolutionScreenPercentage()));
 
 			// Window mode and window/monitor resolution
 			const EWindowMode::Type FullscreenMode = UserSettingsObj->GetLastConfirmedFullscreenMode();

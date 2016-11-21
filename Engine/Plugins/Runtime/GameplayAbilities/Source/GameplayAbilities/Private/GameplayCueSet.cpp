@@ -45,13 +45,16 @@ void UGameplayCueSet::AddCues(const TArray<FGameplayCueReferencePair>& CuesToAdd
 			const FGameplayTag& GameplayCueTag = CueRefPair.GameplayCueTag;
 			const FStringAssetReference& StringRef = CueRefPair.StringRef;
 
-			// Check for duplicates: we may want to remove this eventually.
+			// Check for duplicates: we may want to remove this eventually (allow multiple GC notifies to handle same event)
 			bool bDupe = false;
 			for (FGameplayCueNotifyData& Data : GameplayCueData)
 			{
 				if (Data.GameplayCueTag == GameplayCueTag)
 				{
-					ABILITY_LOG(Verbose, TEXT("AddGameplayCueData_Internal called for [%s,%s] when it already existed [%s,%s]. Skipping."), *GameplayCueTag.ToString(), *StringRef.ToString(), *Data.GameplayCueTag.ToString(), *Data.GameplayCueNotifyObj.ToString());
+					if (StringRef.ToString() != Data.GameplayCueNotifyObj.ToString())
+					{
+						ABILITY_LOG(Warning, TEXT("AddGameplayCueData_Internal called for [%s,%s] when it already existed [%s,%s]. Skipping."), *GameplayCueTag.ToString(), *StringRef.ToString(), *Data.GameplayCueTag.ToString(), *Data.GameplayCueNotifyObj.ToString());
+					}
 					bDupe = true;
 					break;
 				}
@@ -106,16 +109,25 @@ void UGameplayCueSet::RemoveLoadedClass(UClass* Class)
 
 void UGameplayCueSet::GetFilenames(TArray<FString>& Filenames) const
 {
+	Filenames.Reserve(GameplayCueData.Num());
 	for (const FGameplayCueNotifyData& Data : GameplayCueData)
 	{
 		Filenames.Add(Data.GameplayCueNotifyObj.GetLongPackageName());
 	}
 }
 
+void UGameplayCueSet::GetStringAssetReferences(TArray<FStringAssetReference>& List) const
+{
+	List.Reserve(GameplayCueData.Num());
+	for (const FGameplayCueNotifyData& Data : GameplayCueData)
+	{
+		List.Add(Data.GameplayCueNotifyObj);
+	}
+}
+
 #if WITH_EDITOR
 void UGameplayCueSet::UpdateCueByStringRefs(const FStringAssetReference& CueToRemove, FString NewPath)
 {
-	
 	for (int32 idx = 0; idx < GameplayCueData.Num(); ++idx)
 	{
 		if (GameplayCueData[idx].GameplayCueNotifyObj == CueToRemove)
@@ -126,6 +138,44 @@ void UGameplayCueSet::UpdateCueByStringRefs(const FStringAssetReference& CueToRe
 		}
 	}
 }
+
+void UGameplayCueSet::CopyCueDataToSetForEditorPreview(FGameplayTag Tag, UGameplayCueSet* DestinationSet)
+{
+	const int32 SourceIdx = GameplayCueData.IndexOfByPredicate([&Tag](const FGameplayCueNotifyData& Data) { return Data.GameplayCueTag == Tag; });
+	if (SourceIdx == INDEX_NONE)
+	{
+		// Doesn't exist in source, so nothing to copy
+		return;
+	}
+
+	int32 DestIdx = DestinationSet->GameplayCueData.IndexOfByPredicate([&Tag](const FGameplayCueNotifyData& Data) { return Data.GameplayCueTag == Tag; });
+	if (DestIdx == INDEX_NONE)
+	{
+		// wholesale copy
+		DestIdx = DestinationSet->GameplayCueData.Num();
+		DestinationSet->GameplayCueData.Add(GameplayCueData[SourceIdx]);
+
+		DestinationSet->BuildAccelerationMap_Internal();
+	}
+	else
+	{
+		// Update only if we need to
+		if (DestinationSet->GameplayCueData[DestIdx].GameplayCueNotifyObj.IsValid() == false)
+		{
+			DestinationSet->GameplayCueData[DestIdx].GameplayCueNotifyObj = GameplayCueData[SourceIdx].GameplayCueNotifyObj;
+			DestinationSet->GameplayCueData[DestIdx].LoadedGameplayCueClass = GameplayCueData[SourceIdx].LoadedGameplayCueClass;
+		}
+
+	}
+
+	// Start async load
+	UGameplayCueManager* CueManager = UAbilitySystemGlobals::Get().GetGameplayCueManager();
+	if (ensure(CueManager))
+	{
+		CueManager->StreamableManager.SimpleAsyncLoad(DestinationSet->GameplayCueData[DestIdx].GameplayCueNotifyObj);
+	}
+}
+
 #endif
 
 void UGameplayCueSet::Empty()

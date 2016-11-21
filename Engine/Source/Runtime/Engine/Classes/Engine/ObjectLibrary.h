@@ -162,6 +162,9 @@ public:
 	/** Whether to set bIncludeOnlyOnDiskAssets when setting up AR filters for discovering asset data */
 	bool bIncludeOnlyOnDiskAssets;
 
+	/** Whether to set bRecursivePaths when setting up AR filters for discovering asset data */
+	bool bRecursivePaths;
+
 #if WITH_EDITOR
 	/** The paths that we will query again once assets are finished being discovered */
 	TArray<FString> DeferredAssetDataPaths;

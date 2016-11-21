@@ -69,6 +69,7 @@ namespace iPhonePackager
 		Error_MissingExecutable = 103,
 		Error_DeviceNotSetupForDevelopment = 150,
 		Error_DeviceOSNewerThanSDK = 151,
+		Error_TestFailure = 152,
 	};
 
 	public partial class Program

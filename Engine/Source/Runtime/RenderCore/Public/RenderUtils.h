@@ -320,6 +320,11 @@ inline bool IsAnyForwardShadingEnabled(EShaderPlatform Platform)
 	return IsForwardShadingEnabled(GetMaxSupportedFeatureLevel(Platform)) || IsSimpleForwardShadingEnabled(Platform);
 }
 
+inline bool IsUsingGBuffers(EShaderPlatform Platform)
+{
+	return !IsAnyForwardShadingEnabled(Platform);
+}
+
 /** Unit cube vertex buffer (VertexDeclarationFVector4) */
 RENDERCORE_API FVertexBufferRHIRef& GetUnitCubeVertexBuffer();
 

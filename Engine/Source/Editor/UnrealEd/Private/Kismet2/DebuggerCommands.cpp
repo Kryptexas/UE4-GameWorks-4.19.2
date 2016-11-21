@@ -1076,6 +1076,10 @@ void SetLastExecutedPlayMode(EPlayModeType PlayMode)
 {
 	ULevelEditorPlaySettings* PlaySettings = GetMutableDefault<ULevelEditorPlaySettings>();
 	PlaySettings->LastExecutedPlayModeType = PlayMode;
+	
+	FPropertyChangedEvent PropChangeEvent(ULevelEditorPlaySettings::StaticClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(ULevelEditorPlaySettings, LastExecutedPlayModeType)));
+	PlaySettings->PostEditChangeProperty(PropChangeEvent);
+	
 	PlaySettings->SaveConfig();
 }
 
@@ -1239,14 +1243,23 @@ void SetLastExecutedLaunchMode( ELaunchModeType LaunchMode )
 {
 	ULevelEditorPlaySettings* PlaySettings = GetMutableDefault<ULevelEditorPlaySettings>();
 	PlaySettings->LastExecutedLaunchModeType = LaunchMode;
+
+	PlaySettings->PostEditChange();
+
 	PlaySettings->SaveConfig();
 }
 
 
 void FInternalPlayWorldCommandCallbacks::RepeatLastPlay_Clicked()
 {
+	// Let a game have a go at settings before we play
+	ULevelEditorPlaySettings* PlaySettings = GetMutableDefault<ULevelEditorPlaySettings>();
+	PlaySettings->PostEditChange();
+
+	// Grab the play command and execute it
 	TSharedRef<FUICommandInfo> LastCommand = GetLastPlaySessionCommand();
 	UE_LOG(LogTemp, Log, TEXT("Repeting last play command: %s"), *LastCommand->GetLabel().ToString());
+
 	FPlayWorldCommands::GlobalPlayWorldActions->ExecuteAction(LastCommand);
 }
 
@@ -1508,6 +1521,7 @@ void FInternalPlayWorldCommandCallbacks::PlayInLocation_Clicked( EPlayModeLocati
 {
 	ULevelEditorPlaySettings* PlaySettings = GetMutableDefault<ULevelEditorPlaySettings>();
 	PlaySettings->LastExecutedPlayModeLocation = Location;
+	PlaySettings->PostEditChange();
 	PlaySettings->SaveConfig();
 }
 
@@ -1734,6 +1748,9 @@ void FInternalPlayWorldCommandCallbacks::HandleLaunchOnDeviceActionExecute( FStr
 		PlaySettings->LastExecutedLaunchModeType = LaunchMode_OnDevice;
 		PlaySettings->LastExecutedLaunchDevice = DeviceId;
 		PlaySettings->LastExecutedLaunchName = DeviceName;
+
+		PlaySettings->PostEditChange();
+
 		PlaySettings->SaveConfig();
 
 		LaunchOnDevice(DeviceId, DeviceName);
@@ -1996,6 +2013,8 @@ void FInternalPlayWorldCommandCallbacks::SetNumberOfClients(int32 NumClients, ET
 {
 	ULevelEditorPlaySettings* PlayInSettings = GetMutableDefault<ULevelEditorPlaySettings>();
 	PlayInSettings->SetPlayNumberOfClients(NumClients);
+
+	PlayInSettings->PostEditChange();
 }
 
 
@@ -2005,6 +2024,8 @@ void FInternalPlayWorldCommandCallbacks::OnToggleDedicatedServerPIE()
 	bool PlayNetDedicated;
 	PlayInSettings->GetPlayNetDedicated(PlayNetDedicated);			// Ignore 'state' of option, as we're toggling it regardless
 	PlayInSettings->SetPlayNetDedicated(!PlayNetDedicated);
+
+	PlayInSettings->PostEditChange();
 }
 
 

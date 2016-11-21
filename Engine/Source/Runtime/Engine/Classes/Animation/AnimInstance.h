@@ -65,6 +65,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMontageStartedMCDelegate, UAnimMo
 */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMontageEndedMCDelegate, UAnimMontage*, Montage, bool, bInterrupted);
 
+/** Delegate for when all montage instances have ended. */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAllMontageInstancesEndedMCDelegate);
+
 /**
 * Delegate for when Montage started to blend out, whether interrupted or finished
 * DesiredWeight of this montage becomes 0.f, but this still contributes to the output pose
@@ -411,14 +414,24 @@ public:
 
 	/** Get global weight in AnimGraph for this slot node.
 	* Note: this is the weight of the node, not the weight of any potential montage it is playing. */
-	float GetSlotNodeGlobalWeight(FName SlotNodeName) const;
+	float GetSlotNodeGlobalWeight(const FName& SlotNodeName) const;
 
 	// Should Extract Root Motion or not. Return true if we do. 
 	bool ShouldExtractRootMotion() const { return RootMotionMode == ERootMotionMode::RootMotionFromEverything || RootMotionMode == ERootMotionMode::IgnoreRootMotion; }
 
 	/** Get Global weight of any montages this slot node is playing.
 	* If this slot is not currently playing a montage, it will return 0. */
-	float GetSlotMontageGlobalWeight(FName SlotNodeName) const;
+	float GetSlotMontageGlobalWeight(const FName& SlotNodeName) const;
+
+	/** Get local weight of any montages this slot node is playing.
+	* If this slot is not currently playing a montage, it will return 0.
+	* This is double buffered, will return last frame data if called from Update or Evaluate. */
+	float GetSlotMontageLocalWeight(const FName& SlotNodeName) const;
+
+	/** Get local weight of any montages this slot is playing.
+	* If this slot is not current playing a montage, it will return 0.
+	* This will return up to date data if called during Update or Evaluate. */
+	float CalcSlotMontageLocalWeight(const FName& SlotNodeName) const;
 
 	// kismet event functions
 
@@ -602,6 +615,10 @@ public:
 	/** Called when a montage has ended, whether interrupted or finished*/
 	UPROPERTY(BlueprintAssignable)
 	FOnMontageEndedMCDelegate OnMontageEnded;
+
+	/** Called when all Montage instances have ended. */
+	UPROPERTY(BlueprintAssignable)
+	FOnAllMontageInstancesEndedMCDelegate OnAllMontageInstancesEnded;
 
 	/*********************************************************************************************
 	* AnimMontage native C++ interface
@@ -830,6 +847,9 @@ public:
 	/** Returns the value of a named curve. */
 	UFUNCTION(BlueprintPure, Category="Animation")
 	float GetCurveValue(FName CurveName);
+
+	/** Returns value of named curved in OutValue, returns whether the curve was actually found or not. */
+	bool GetCurveValue(FName CurveName, float& OutValue);
 
 	/** Returns the length (in seconds) of an animation AnimAsset. */
 	DEPRECATED(4.9, "GetAnimAssetPlayerLength is deprecated, use GetInstanceAssetPlayerLength instead")

@@ -2236,7 +2236,7 @@ void FLinkerLoad::GatherImportDependencies(int32 ImportIndex, TSet<FDependencyRe
 		return;
 	}
 
-	BeginLoad();
+	BeginLoad(TEXT("GatherImportDependencies"));
 
 	// load the linker and find export in sourcelinker
 	if (Import.SourceLinker == NULL || Import.SourceIndex == INDEX_NONE)
@@ -3708,7 +3708,10 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 				}
 				else
 				{
-					UE_LOG(LogLinker, Warning, TEXT("CreateExport: Failed to load Parent for %s"), *GetExportFullName(Index));
+					if (!FLinkerLoad::IsKnownMissingPackage(*GetExportFullName(Index)))
+					{
+						UE_LOG(LogLinker, Warning, TEXT("CreateExport: Failed to load Parent for %s"), *GetExportFullName(Index));
+					}
 					return NULL;
 				}
 			}

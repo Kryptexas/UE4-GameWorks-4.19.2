@@ -3,11 +3,14 @@
 #pragma once
 #include "Engine/CurveTable.h"
 #include "IPropertyUtilities.h"
+#include "PropertyHandle.h"
+#include "IPropertyUtilities.h"
+#include "DetailWidgetRow.h"
 
 /**
  * Customizes a DataTable asset to use a dropdown
  */
-class FCurveTableCustomizationLayout : public IPropertyTypeCustomization
+class DETAILCUSTOMIZATIONS_API FCurveTableCustomizationLayout : public IPropertyTypeCustomization
 {
 public:
 	static TSharedRef<IPropertyTypeCustomization> MakeInstance() 
@@ -38,8 +41,8 @@ public:
 			/** Queue up a refresh of the selected item, not safe to do from here */
 			StructCustomizationUtils.GetPropertyUtilities()->EnqueueDeferredAction(FSimpleDelegate::CreateSP(this, &FCurveTableCustomizationLayout::OnCurveTableChanged));
 
-			/** Edit the data table uobject as normal */
-			StructBuilder.AddChildProperty( CurveTablePropertyHandle.ToSharedRef() );
+			CreateCurveTableChildProperty(StructBuilder);
+
 			FSimpleDelegate OnCurveTableChangedDelegate = FSimpleDelegate::CreateSP( this, &FCurveTableCustomizationLayout::OnCurveTableChanged );
 			CurveTablePropertyHandle->SetOnPropertyValueChanged( OnCurveTableChangedDelegate );
 
@@ -60,12 +63,19 @@ public:
 					[
 						SNew( STextBlock )
 						.Text( this, &FCurveTableCustomizationLayout::GetRowNameComboBoxContentText )
+						.ToolTipText( this, &FCurveTableCustomizationLayout::GetRowNameComboBoxContentText )
 					]
 				];
 		}
 	}
+	
+	virtual void CreateCurveTableChildProperty(IDetailChildrenBuilder& StructBuilder)
+	{
+		/** Edit the data table uobject as normal */
+		StructBuilder.AddChildProperty( CurveTablePropertyHandle.ToSharedRef() );
+	}
 
-private:
+protected:
 	/** Init the contents the combobox sources its data off */
 	TSharedPtr<FString> InitWidgetContent()
 	{

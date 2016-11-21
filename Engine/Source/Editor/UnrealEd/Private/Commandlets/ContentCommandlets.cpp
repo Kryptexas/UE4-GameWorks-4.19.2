@@ -143,6 +143,22 @@ int32 UResavePackagesCommandlet::InitializeResaveParameters( const TArray<FStrin
 
 	}
 
+	if (bShouldBuildLighting && !bExplicitPackages)
+	{
+		UE_LOG(LogContentCommandlet, Display, TEXT("No maps found to save when building lighting, checking CommandletSettings:ResavePackages in EditorIni"));
+		// if we haven't specified any maps and we are building lighting check if there are packages setup in the ini file to build
+		TArray<FString> ResavePackages;
+		GConfig->GetArray(TEXT("CommandletSettings"), TEXT("ResavePackages"), ResavePackages, GEditorIni);
+		for ( const auto& ResavePackage : ResavePackages )
+		{
+			FString PackageFile;
+			FPackageName::SearchForPackageOnDisk(ResavePackage, NULL, &PackageFile);
+			UE_LOG(LogContentCommandlet, Display, TEXT("Rebuilding lighting for package %s"), *PackageFile);
+			PackageNames.Add(*PackageFile);
+			bExplicitPackages = true;
+		}
+	}
+
 	// ... if not, load in all packages
 	if( !bExplicitPackages )
 	{

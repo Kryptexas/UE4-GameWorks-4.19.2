@@ -8,16 +8,13 @@
 UAbilityTask_ApplyRootMotionConstantForce::UAbilityTask_ApplyRootMotionConstantForce(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
-	bTickingTask = true;
-	bSimulatedTask = true;
-	bIsFinished = false;
-	RootMotionSourceID = (uint16)ERootMotionSourceID::Invalid;
 	StrengthOverTime = nullptr;
-	MovementComponent = nullptr;
 }
 
 UAbilityTask_ApplyRootMotionConstantForce* UAbilityTask_ApplyRootMotionConstantForce::ApplyRootMotionConstantForce(UGameplayAbility* OwningAbility, FName TaskInstanceName, FVector WorldDirection, float Strength, float Duration, bool bIsAdditive, bool bDisableImpartingVelocityOnRemoval, UCurveFloat* StrengthOverTime)
 {
+	UAbilitySystemGlobals::NonShipping_ApplyGlobalAbilityScaler_Duration(Duration);
+
 	auto MyTask = NewAbilityTask<UAbilityTask_ApplyRootMotionConstantForce>(OwningAbility, TaskInstanceName);
 
 	MyTask->ForceName = TaskInstanceName;
@@ -30,17 +27,6 @@ UAbilityTask_ApplyRootMotionConstantForce* UAbilityTask_ApplyRootMotionConstantF
 	MyTask->SharedInitAndApply();
 
 	return MyTask;
-}
-
-void UAbilityTask_ApplyRootMotionConstantForce::Activate()
-{
-}
-
-void UAbilityTask_ApplyRootMotionConstantForce::InitSimulatedTask(UGameplayTasksComponent& InGameplayTasksComponent)
-{
-	Super::InitSimulatedTask(InGameplayTasksComponent);
-
-	SharedInitAndApply();
 }
 
 void UAbilityTask_ApplyRootMotionConstantForce::SharedInitAndApply()
@@ -116,7 +102,8 @@ void UAbilityTask_ApplyRootMotionConstantForce::TickTask(float DeltaTime)
 
 void UAbilityTask_ApplyRootMotionConstantForce::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
 {
-	DOREPLIFETIME(UAbilityTask_ApplyRootMotionConstantForce, ForceName);
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionConstantForce, WorldDirection);
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionConstantForce, Strength);
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionConstantForce, Duration);

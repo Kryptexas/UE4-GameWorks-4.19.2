@@ -63,7 +63,7 @@ FAnimPhysShape FAnimPhysShape::MakeBox(FVector& Extents)
 	// if we encounter it.
 	if(Extents.SizeSquared() <= SMALL_NUMBER)
 	{
-		UE_LOG(LogAnimation, Warning, TEXT("AnimDynamics: Attempted to create a simulation box with 0 volume, this introduces NaNs into the simulation. Adjusting box extents to (1.0f,1.0f,1.0f)"));
+// 		UE_LOG(LogAnimation, Warning, TEXT("AnimDynamics: Attempted to create a simulation box with 0 volume, this introduces NaNs into the simulation. Adjusting box extents to (1.0f,1.0f,1.0f)"));
 		Extents = FVector(1.0f);
 	}
 

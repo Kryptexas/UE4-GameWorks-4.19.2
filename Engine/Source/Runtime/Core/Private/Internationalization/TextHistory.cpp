@@ -41,10 +41,13 @@ const FString* FTextHistory::GetSourceString() const
 	return NULL;
 }
 
-void FTextHistory::GetSourceTextsFromFormatHistory(FText Text, TArray<FText>& OutSourceTexts) const
+void FTextHistory::GetHistoricFormatData(const FText& InText, TArray<FHistoricTextFormatData>& OutHistoricFormatData) const
 {
-	// If we get here, we have no more source so this must be the base text
-	OutSourceTexts.Add(Text);
+}
+
+bool FTextHistory::GetHistoricNumericData(const FText& InText, FHistoricTextNumericData& OutHistoricNumericData) const
+{
+	return false;
 }
 
 void FTextHistory::SerializeForDisplayString(FArchive& Ar, FTextDisplayStringPtr& InOutDisplayString)
@@ -272,21 +275,23 @@ void FTextHistory_NamedFormat::Serialize( FArchive& Ar )
 	Ar << Arguments;
 }
 
-void FTextHistory_NamedFormat::GetSourceTextsFromFormatHistory(FText, TArray<FText>& OutSourceTexts) const
+void FTextHistory_NamedFormat::GetHistoricFormatData(const FText& InText, TArray<FHistoricTextFormatData>& OutHistoricFormatData) const
 {
-	// Search the formatting text itself for source text
-	SourceFmt.GetSourceText().GetSourceTextsFromFormatHistory(OutSourceTexts);
+	// Process the formatting text in-case it's a recursive format
+	FTextInspector::GetHistoricFormatData(SourceFmt.GetSourceText(), OutHistoricFormatData);
 
 	for (auto It = Arguments.CreateConstIterator(); It; ++It)
 	{
 		const FFormatArgumentValue& ArgumentValue = It.Value();
 		if (ArgumentValue.GetType() == EFormatArgumentType::Text)
 		{
-			// Search any text arguments for source text
-			const FText& TextValue = ArgumentValue.GetTextValue();
-			TextValue.TextData->GetTextHistory().GetSourceTextsFromFormatHistory(TextValue, OutSourceTexts);
+			// Process the text argument in-case it's a recursive format
+			FTextInspector::GetHistoricFormatData(ArgumentValue.GetTextValue(), OutHistoricFormatData);
 		}
 	}
+
+	// Add ourself now that we've processed any format dependencies
+	OutHistoricFormatData.Emplace(InText, FTextFormat(SourceFmt), FFormatNamedArguments(Arguments));
 }
 
 ///////////////////////////////////////
@@ -344,21 +349,30 @@ void FTextHistory_OrderedFormat::Serialize( FArchive& Ar )
 	Ar << Arguments;
 }
 
-void FTextHistory_OrderedFormat::GetSourceTextsFromFormatHistory(FText, TArray<FText>& OutSourceTexts) const
+void FTextHistory_OrderedFormat::GetHistoricFormatData(const FText& InText, TArray<FHistoricTextFormatData>& OutHistoricFormatData) const
 {
-	// Search the formatting text itself for source text
-	SourceFmt.GetSourceText().GetSourceTextsFromFormatHistory(OutSourceTexts);
+	// Process the formatting text in-case it's a recursive format
+	FTextInspector::GetHistoricFormatData(SourceFmt.GetSourceText(), OutHistoricFormatData);
 
 	for (auto It = Arguments.CreateConstIterator(); It; ++It)
 	{
 		const FFormatArgumentValue& ArgumentValue = *It;
 		if (ArgumentValue.GetType() == EFormatArgumentType::Text)
 		{
-			// Search any text arguments for source text
-			const FText& TextValue = ArgumentValue.GetTextValue();
-			TextValue.TextData->GetTextHistory().GetSourceTextsFromFormatHistory(TextValue, OutSourceTexts);
+			// Process the text argument in-case it's a recursive format
+			FTextInspector::GetHistoricFormatData(ArgumentValue.GetTextValue(), OutHistoricFormatData);
 		}
 	}
+
+	// Add ourself now that we've processed any format dependencies
+	FFormatNamedArguments NamedArgs;
+	NamedArgs.Reserve(Arguments.Num());
+	for (int32 ArgIndex = 0; ArgIndex < Arguments.Num(); ++ArgIndex)
+	{
+		const FFormatArgumentValue& ArgumentValue = Arguments[ArgIndex];
+		NamedArgs.Emplace(FString::FromInt(ArgIndex), ArgumentValue);
+	}
+	OutHistoricFormatData.Emplace(InText, FTextFormat(SourceFmt), MoveTemp(NamedArgs));
 }
 
 ///////////////////////////////////////
@@ -416,17 +430,45 @@ void FTextHistory_ArgumentDataFormat::Serialize( FArchive& Ar )
 	Ar << Arguments;
 }
 
-void FTextHistory_ArgumentDataFormat::GetSourceTextsFromFormatHistory(FText, TArray<FText>& OutBaseTexts) const
+void FTextHistory_ArgumentDataFormat::GetHistoricFormatData(const FText& InText, TArray<FHistoricTextFormatData>& OutHistoricFormatData) const
 {
-	// Search the formatting text itself for source text
-	SourceFmt.GetSourceText().GetSourceTextsFromFormatHistory(OutBaseTexts);
+	// Process the formatting text in-case it's a recursive format
+	FTextInspector::GetHistoricFormatData(SourceFmt.GetSourceText(), OutHistoricFormatData);
 
-	for (int32 x = 0; x < Arguments.Num(); ++x)
+	for (const FFormatArgumentData& ArgumentData : Arguments)
 	{
-		// Search any text arguments for source text
-		const FText& TextValue = Arguments[x].ArgumentValue;
-		TextValue.TextData->GetTextHistory().GetSourceTextsFromFormatHistory(TextValue, OutBaseTexts);
+		if (ArgumentData.ArgumentValueType == EFormatArgumentType::Text)
+		{
+			// Process the text argument in-case it's a recursive format
+			FTextInspector::GetHistoricFormatData(ArgumentData.ArgumentValue, OutHistoricFormatData);
+		}
 	}
+
+	// Add ourself now that we've processed any format dependencies
+	FFormatNamedArguments NamedArgs;
+	NamedArgs.Reserve(Arguments.Num());
+	for (const FFormatArgumentData& ArgumentData : Arguments)
+	{
+		FFormatArgumentValue ArgumentValue;
+		switch (ArgumentData.ArgumentValueType)
+		{
+		case EFormatArgumentType::Int:
+			ArgumentValue = FFormatArgumentValue(ArgumentData.ArgumentValueInt);
+			break;
+		case EFormatArgumentType::Float:
+			ArgumentValue = FFormatArgumentValue(ArgumentData.ArgumentValueFloat);
+			break;
+		case EFormatArgumentType::Gender:
+			ArgumentValue = FFormatArgumentValue(ArgumentData.ArgumentValueGender);
+			break;
+		default:
+			ArgumentValue = FFormatArgumentValue(ArgumentData.ArgumentValue);
+			break;
+		}
+
+		NamedArgs.Emplace(ArgumentData.ArgumentName, MoveTemp(ArgumentValue));
+	}
+	OutHistoricFormatData.Emplace(InText, FTextFormat(SourceFmt), MoveTemp(NamedArgs));
 }
 
 ///////////////////////////////////////
@@ -566,6 +608,12 @@ void FTextHistory_AsNumber::Serialize( FArchive& Ar )
 	FTextHistory_FormatNumber::Serialize(Ar);
 }
 
+bool FTextHistory_AsNumber::GetHistoricNumericData(const FText& InText, FHistoricTextNumericData& OutHistoricNumericData) const
+{
+	OutHistoricNumericData = FHistoricTextNumericData(FHistoricTextNumericData::EType::AsNumber, SourceValue, FormatOptions);
+	return true;
+}
+
 ///////////////////////////////////////
 // FTextHistory_AsPercent
 
@@ -618,6 +666,12 @@ void FTextHistory_AsPercent::Serialize( FArchive& Ar )
 	}
 
 	FTextHistory_FormatNumber::Serialize(Ar);
+}
+
+bool FTextHistory_AsPercent::GetHistoricNumericData(const FText& InText, FHistoricTextNumericData& OutHistoricNumericData) const
+{
+	OutHistoricNumericData = FHistoricTextNumericData(FHistoricTextNumericData::EType::AsPercent, SourceValue, FormatOptions);
+	return true;
 }
 
 ///////////////////////////////////////

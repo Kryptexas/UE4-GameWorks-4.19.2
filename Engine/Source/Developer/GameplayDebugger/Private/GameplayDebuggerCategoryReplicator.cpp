@@ -183,7 +183,7 @@ bool FGameplayDebuggerNetPack::NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaPa
 			}
 		}
 
-		if (CVarGameplayDebuggerRepDetails.GetValueOnGameThread())
+		if (CVarGameplayDebuggerRepDetails.GetValueOnAnyThread())
 		{
 			if (OldState)
 			{

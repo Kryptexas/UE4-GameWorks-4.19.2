@@ -487,6 +487,9 @@ struct AIMODULE_API FAIMoveRequest
 	bool IsMoveToActorRequest() const { return bMoveToActor; }
 	AActor* GetGoalActor() const { return bMoveToActor ? GoalActor : nullptr; }
 	FVector GetGoalLocation() const { return GoalLocation; }
+	/** retrieves request's requested destination location, GoalActor's location 
+	 *	or GoalLocation, depending on the request itself */
+	FVector GetDestination() const { return bMoveToActor ? (GoalActor ? GoalActor->GetActorLocation() : FAISystem::InvalidLocation) : GoalLocation; }
 
 	bool IsUsingPathfinding() const { return bUsePathfinding; }
 	bool IsUsingPartialPaths() const { return bAllowPartialPath; }

@@ -149,6 +149,11 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 	/** Global place to accumulate debug strings for ability system component. Used when we fill up client side debug string immediately, and then wait for server to send server strings */
 	TArray<FString>	AbilitySystemDebugStrings;
 
+
+	// Helper functions for applying global scaling to various ability system tasks. This isn't meant to be a shipping feature, but to help with debugging and interation via cvar AbilitySystem.GlobalAbilityScale.
+	static void NonShipping_ApplyGlobalAbilityScaler_Rate(float& Rate);
+	static void NonShipping_ApplyGlobalAbilityScaler_Duration(float& Duration);
+
 	// Global Tags
 
 	UPROPERTY()
@@ -233,6 +238,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 	/** Simple index-based accessor to the alias name for the specified gameplay mod evaluation channel, if any */
 	const FName& GetGameplayModEvaluationChannelAlias(int32 Index) const;
 
+	virtual TArray<FString> GetGameplayCueNotifyPaths() { return GameplayCueNotifyPaths; }
+
 protected:
 
 	virtual void InitAttributeDefaults();
@@ -285,7 +292,7 @@ protected:
 	UPROPERTY(config)
 	FStringAssetReference GlobalGameplayCueManagerName;
 
-	/** Look in these paths for GameplayCueNotifies */
+	/** Look in these paths for GameplayCueNotifies. These are your "always loaded" set. */
 	UPROPERTY(config)
 	TArray<FString>	GameplayCueNotifyPaths;
 

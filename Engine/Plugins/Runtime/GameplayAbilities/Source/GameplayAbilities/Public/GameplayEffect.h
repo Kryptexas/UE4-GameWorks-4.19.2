@@ -856,6 +856,9 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 
 	FGameplayEffectSpec& operator=(const FGameplayEffectSpec& Other);
 
+	// Can be called manually but it is  preferred to use the 3 parameter constructor
+	void Initialize(const UGameplayEffect* InDef, const FGameplayEffectContextHandle& InEffectContext, float Level = FGameplayEffectConstants::INVALID_LEVEL);
+
 	/**
 	 * Determines if the spec has capture specs with valid captures for all of the specified definitions.
 	 * 

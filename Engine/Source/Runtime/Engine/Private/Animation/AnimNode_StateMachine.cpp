@@ -77,15 +77,20 @@ void FAnimationActiveTransitionEntry::InitializeCustomGraphLinks(const FAnimatio
 {
 	if (TransitionRule.CustomResultNodeIndex != INDEX_NONE)
 	{
-		const IAnimClassInterface* AnimBlueprintClass = Context.GetAnimClass();
-		CustomTransitionGraph.LinkID = AnimBlueprintClass->GetAnimNodeProperties().Num() - 1 - TransitionRule.CustomResultNodeIndex; //@TODO: Crazysauce
-		FAnimationInitializeContext InitContext(Context.AnimInstanceProxy);
-		CustomTransitionGraph.Initialize(InitContext);
-
-		for (int32 Index = 0; Index < TransitionRule.PoseEvaluatorLinks.Num(); ++Index)
+		if (const IAnimClassInterface* AnimBlueprintClass = Context.GetAnimClass())
 		{
-			FAnimNode_TransitionPoseEvaluator* PoseEvaluator = GetNodeFromPropertyIndex<FAnimNode_TransitionPoseEvaluator>(Context.AnimInstanceProxy->GetAnimInstanceObject(), AnimBlueprintClass, TransitionRule.PoseEvaluatorLinks[Index]);
-			PoseEvaluators.Add(PoseEvaluator);
+			CustomTransitionGraph.LinkID = AnimBlueprintClass->GetAnimNodeProperties().Num() - 1 - TransitionRule.CustomResultNodeIndex; //@TODO: Crazysauce
+			FAnimationInitializeContext InitContext(Context.AnimInstanceProxy);
+			CustomTransitionGraph.Initialize(InitContext);
+
+			if (Context.AnimInstanceProxy)
+			{
+				for (int32 Index = 0; Index < TransitionRule.PoseEvaluatorLinks.Num(); ++Index)
+				{
+					FAnimNode_TransitionPoseEvaluator* PoseEvaluator = GetNodeFromPropertyIndex<FAnimNode_TransitionPoseEvaluator>(Context.AnimInstanceProxy->GetAnimInstanceObject(), AnimBlueprintClass, TransitionRule.PoseEvaluatorLinks[Index]);
+					PoseEvaluators.Add(PoseEvaluator);
+				}
+			}
 		}
 	}
 
@@ -431,15 +436,20 @@ void FAnimNode_StateMachine::Update(const FAnimationUpdateContext& Context)
 			// Push the transition onto the stack
 			const FAnimationTransitionBetweenStates& ReferenceTransition = GetTransitionInfo(PotentialTransition.TransitionRule->TransitionIndex);
 			FAnimationActiveTransitionEntry* NewTransition = new (ActiveTransitionArray) FAnimationActiveTransitionEntry(NextState, ExistingWeightOfNextState, PreviousTransitionForNextState, PreviousState, ReferenceTransition);
-			NewTransition->InitializeCustomGraphLinks(Context, *(PotentialTransition.TransitionRule));
-
-			NewTransition->SourceTransitionIndices = PotentialTransition.SourceTransitionIndices;
-
-			if(!bFirstUpdate)
+			if (NewTransition && PotentialTransition.TransitionRule)
 			{
-				Context.AnimInstanceProxy->AddAnimNotifyFromGeneratedClass(NewTransition->StartNotify);
+				NewTransition->InitializeCustomGraphLinks(Context, *(PotentialTransition.TransitionRule));
+
+#if WITH_EDITORONLY_DATA
+				NewTransition->SourceTransitionIndices = PotentialTransition.SourceTransitionIndices;
+#endif
+
+				if (!bFirstUpdate)
+				{
+					Context.AnimInstanceProxy->AddAnimNotifyFromGeneratedClass(NewTransition->StartNotify);
+				}
 			}
-			
+
 			SetState(Context, NextState);
 
 			TransitionCountThisFrame++;

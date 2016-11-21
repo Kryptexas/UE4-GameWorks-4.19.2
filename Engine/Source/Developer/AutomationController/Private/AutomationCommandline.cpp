@@ -335,7 +335,7 @@ public:
 				{
 					AutomationCommandQueue.Add(EAutomationCommand::ListAllTests);
 				}
-				else if (FParse::Command(&TempCmd, TEXT("RunTests")))
+				else if (FParse::Command(&TempCmd, TEXT("RunTests")) || FParse::Command(&TempCmd, TEXT("RunTest")))
 				{
 					if ( FParse::Command(&TempCmd, TEXT("Now")) )
 					{
@@ -344,6 +344,7 @@ public:
 
 					//only one of these should be used
 					StringCommand = TempCmd;
+					Ar.Logf(TEXT("Running all tests matching substring: %s"), *StringCommand);
 					AutomationCommandQueue.Add(EAutomationCommand::RunCommandLineTests);
 				}
 				else if (FParse::Command(&TempCmd, TEXT("RunFilter")))
@@ -354,23 +355,30 @@ public:
 					if (FilterMaps.Contains(FlagToUse))
 					{
 						AutomationController->SetRequestedTestFlags(FilterMaps[FlagToUse]);
+						Ar.Logf(TEXT("Running all tests for filter: %s"), *FlagToUse);
 					}
 					AutomationCommandQueue.Add(EAutomationCommand::RunFilter);
 				}
 				else if (FParse::Command(&TempCmd, TEXT("RunAll")))
 				{
 					AutomationCommandQueue.Add(EAutomationCommand::RunAll);
+					Ar.Logf(TEXT("Running all available automated tests for this program. NOTE: This may take a while."));
 				}
 				else if (FParse::Command(&TempCmd, TEXT("Quit")))
 				{
 					AutomationCommandQueue.Add(EAutomationCommand::Quit);
+					Ar.Logf(TEXT("Exiting: Received quit command."));
 				}
-				// let user know he mis-typed a param/command
-				else if (FParse::Command(&TempCmd, TEXT("RunTest")))
+
+				else
 				{
-					Ar.Logf(TEXT("Unhandled token \"RunTest\". You probably meant \"RunTests\". Bailing out."));
+					Ar.Logf(TEXT("Incorrect automation command syntax! Supported commands are: "));
+					Ar.Logf(TEXT("\tAutomation List"));
+					Ar.Logf(TEXT("\tAutomation RunTests <test string>"));
+					Ar.Logf(TEXT("\tAutomation RunAll "));
+					Ar.Logf(TEXT("\tAutomation RunFilter <filter name>"));
+					Ar.Logf(TEXT("\tAutomation Quit"));
 					bHandled = false;
-					break;
 				}
 			}
 		}

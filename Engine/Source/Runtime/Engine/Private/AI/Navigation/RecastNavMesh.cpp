@@ -837,6 +837,97 @@ bool ARecastNavMesh::GetPolysInTile(int32 TileIndex, TArray<FNavPoly>& Polys) co
 	return RecastNavMeshImpl && RecastNavMeshImpl->GetPolysInTile(TileIndex, Polys);
 }
 
+bool ARecastNavMesh::GetNavLinksInTile(const int32 TileIndex, TArray<FNavPoly>& Polys, const bool bIncludeLinksFromNeighborTiles) const
+{
+	if (RecastNavMeshImpl == nullptr || RecastNavMeshImpl->DetourNavMesh == nullptr
+		|| TileIndex < 0 || TileIndex >= RecastNavMeshImpl->DetourNavMesh->getMaxTiles())
+	{
+		return false;
+	}
+
+	const dtNavMesh* DetourNavMesh = RecastNavMeshImpl->DetourNavMesh;
+	const int32 InitialLinkCount = Polys.Num();
+
+	const dtMeshTile* Tile = DetourNavMesh->getTile(TileIndex);
+	if (Tile && Tile->header)
+	{
+		const int32 LinkCount = Tile->header->offMeshConCount;
+
+		if (LinkCount > 0)
+		{
+			const int32 BaseIdx = Polys.Num();
+			Polys.AddZeroed(LinkCount);
+
+			const dtPoly* Poly = Tile->polys;
+			for (int32 LinkIndex = 0; LinkIndex < LinkCount; ++LinkIndex, ++Poly)
+			{
+				FNavPoly& OutPoly = Polys[BaseIdx + LinkIndex];
+				const int32 PolyIndex = Tile->header->offMeshBase + LinkIndex;
+				OutPoly.Ref = DetourNavMesh->encodePolyId(Tile->salt, TileIndex, PolyIndex);
+				OutPoly.Center = (Recast2UnrealPoint(&Tile->verts[Poly->verts[0] * 3]) + Recast2UnrealPoint(&Tile->verts[Poly->verts[1] * 3])) / 2;
+			}
+		}
+
+		if (bIncludeLinksFromNeighborTiles)
+		{
+			TArray<const dtMeshTile*> NeighborTiles;
+			NeighborTiles.Reserve(32);
+			for (int32 SideIndex = 0; SideIndex < 8; ++SideIndex)
+			{
+				const int32 StartIndex = NeighborTiles.Num();
+				const int32 NeighborCount = DetourNavMesh->getNeighbourTilesCountAt(Tile->header->x, Tile->header->y, SideIndex);
+				if (NeighborCount > 0)
+				{
+					const unsigned char oppositeSide = (unsigned char)dtOppositeTile(SideIndex);
+
+					NeighborTiles.AddZeroed(NeighborCount);
+					int32 NeighborX = Tile->header->x;
+					int32 NeighborY = Tile->header->y;
+
+					if (DetourNavMesh->getNeighbourCoords(Tile->header->x, Tile->header->y, SideIndex, NeighborX, NeighborY))
+					{
+						DetourNavMesh->getTilesAt(NeighborX, NeighborY, NeighborTiles.GetData() + StartIndex, NeighborCount);
+					}
+
+					for (const dtMeshTile* NeighborTile : NeighborTiles)
+					{
+						if (NeighborTile && NeighborTile->header && NeighborTile->offMeshCons)
+						{
+							const dtTileRef NeighborTileId = DetourNavMesh->getTileRef(NeighborTile);
+
+							for (int32 LinkIndex = 0; LinkIndex < NeighborTile->header->offMeshConCount; ++LinkIndex)
+							{
+								dtOffMeshConnection* targetCon = &NeighborTile->offMeshCons[LinkIndex];
+								if (targetCon->side != oppositeSide)
+								{
+									continue;
+								}
+
+								const unsigned char biDirFlag = targetCon->getBiDirectional() ? DT_LINK_FLAG_OFFMESH_CON_BIDIR : 0;
+
+								const dtPoly* targetPoly = &NeighborTile->polys[targetCon->poly];
+								// Skip off-mesh connections which start location could not be connected at all.
+								if (targetPoly->firstLink == DT_NULL_LINK)
+								{
+									continue;
+								}
+
+								FNavPoly& OutPoly = Polys[Polys.AddZeroed()];
+								OutPoly.Ref = NeighborTileId | targetCon->poly;
+								OutPoly.Center = (Recast2UnrealPoint(&targetCon->pos[0]) + Recast2UnrealPoint(&targetCon->pos[3])) / 2;
+							}
+						}
+					}
+
+					NeighborTiles.Reset();
+				}
+			}
+		}
+	}
+
+	return (Polys.Num() - InitialLinkCount > 0);
+}
+
 int32 ARecastNavMesh::GetNavMeshTilesCount() const
 {
 	int32 NumTiles = 0;

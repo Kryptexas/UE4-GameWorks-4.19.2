@@ -14,23 +14,23 @@ struct SLATE_API FInputChord
 	GENERATED_USTRUCT_BODY()
 
 	/** The Key is the core of the chord. */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = Key)
 	FKey Key;
 
 	/** Whether the shift key is part of the chord.  */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = Modifier)
 	uint32 bShift:1;
 
 	/** Whether the control key is part of the chord.  */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = Modifier)
 	uint32 bCtrl:1;
 
 	/** Whether the alt key is part of the chord.  */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = Modifier)
 	uint32 bAlt:1;
 
 	/** Whether the command key is part of the chord.  */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = Modifier)
 	uint32 bCmd:1;
 
 	/** 

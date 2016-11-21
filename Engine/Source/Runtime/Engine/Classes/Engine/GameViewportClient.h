@@ -719,6 +719,12 @@ public:
 	}
 #endif
 
+	/** Accessor for delegate called when the engine toggles fullscreen */
+	FOnToggleFullscreen& OnToggleFullscreen()
+	{
+		return ToggleFullscreenDelegate;
+	}
+
 private:
 	/**
 	 * Set a specific stat to either enabled or disabled (returns the number of remaining enabled stats)
@@ -828,6 +834,9 @@ private:
 
 	/** Delegate called when ticking the game viewport */
 	FOnGameViewportTick TickDelegate;
+
+	/** Delegate called when the engine toggles fullscreen */
+	FOnToggleFullscreen ToggleFullscreenDelegate;
 
 	/** Data needed to display perframe stat tracking when STAT UNIT is enabled */
 	FStatUnitData* StatUnitData;

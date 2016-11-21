@@ -841,12 +841,12 @@ namespace UnrealBuildTool
 		/// </summary>
 		public bool bSkipDefinitionsForCompileEnvironment = false;
 
-        public int FindNumberOfGeneratedCppFiles()
-        {
-           return ((null == GeneratedCodeDirectory) || !GeneratedCodeDirectory.Exists()) ? 0
-                : (GeneratedCodeDirectory.EnumerateFileReferences("*.generated.*.cpp", SearchOption.AllDirectories).Count() 
-                 + GeneratedCodeDirectory.EnumerateFileReferences("*.generated.cpp", SearchOption.AllDirectories).Count());
-        }
+		public int FindNumberOfGeneratedCppFiles()
+		{
+			return ((null == GeneratedCodeDirectory) || !GeneratedCodeDirectory.Exists()) ? 0
+				 : (GeneratedCodeDirectory.EnumerateFileReferences("*.generated.*.cpp", SearchOption.AllDirectories).Count()
+				  + GeneratedCodeDirectory.EnumerateFileReferences("*.generated.cpp", SearchOption.AllDirectories).Count());
+		}
 
 		/// <summary>
 		/// Categorizes source files into per-extension buckets
@@ -1117,7 +1117,7 @@ namespace UnrealBuildTool
 								SharedPCHHeaderInfo CurSharedPCHHeaderFile = GlobalCompileEnvironment.SharedPCHHeaderFiles[SharedPCHHeaderFileIndex];
 
 								if (DependencyModule == CurSharedPCHHeaderFile.Module ||
-									(bIsASharedPCHModule && CurSharedPCHHeaderFile.Module == this))	// If we ourselves are a shared PCH module, always at least use our own module as our shared PCH header if we can't find anything better
+									(bIsASharedPCHModule && CurSharedPCHHeaderFile.Module == this)) // If we ourselves are a shared PCH module, always at least use our own module as our shared PCH header if we can't find anything better
 								{
 									SharedPCHModuleName = CurSharedPCHHeaderFile.Module.Name;
 									SharedPCHHeaderFile = CurSharedPCHHeaderFile.PCHHeaderFile;
@@ -1146,7 +1146,7 @@ namespace UnrealBuildTool
 						// Don't allow game modules to use engine PCHs in DebugGame - the optimization settings aren't correct. 
 						// @todo: we should be creating shared PCHs ahead of time, and only using them if our settings match. as it is, the first modules compiled
 						// (which are currently plugins) get to call the shots for how the shared PCH gets built, and that might be a game plugin built in debug...
-						if(Target.Configuration == UnrealTargetConfiguration.DebugGame && SharedPCHHeaderFile.Reference.IsUnderDirectory(UnrealBuildTool.EngineDirectory) && !RulesFile.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
+						if (Target.Configuration == UnrealTargetConfiguration.DebugGame && SharedPCHHeaderFile.Reference.IsUnderDirectory(UnrealBuildTool.EngineDirectory) && !RulesFile.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
 						{
 							SharedPCHModuleName = null;
 							SharedPCHHeaderFile = null;
@@ -1258,7 +1258,7 @@ namespace UnrealBuildTool
 					{
 						if (SharedPCHHeaderFile != null || CPPFilesToBuild.Count >= MinFilesUsingPrecompiledHeader)
 						{
-                            CPPOutput PCHOutput;
+							CPPOutput PCHOutput;
 							if (SharedPCHHeaderFile == null)
 							{
 								PCHOutput = PrecompileHeaderEnvironment.GeneratePCHCreationAction(
@@ -1293,7 +1293,7 @@ namespace UnrealBuildTool
 										SharedPCHCompileEnvironment.Config.Definitions,
 										SharedPCHCompileEnvironment.Config.AdditionalFrameworks);
 								}
-                                
+
 								PCHOutput = PrecompileHeaderEnvironment.GeneratePCHCreationAction(
 									ToolChain,
 									Target,
@@ -1301,7 +1301,7 @@ namespace UnrealBuildTool
 									ModulePCHEnvironment.PrecompiledHeaderIncludeFilename,
 									SharedPCHCompileEnvironment,
 									DirectoryReference.Combine(CompileEnvironment.Config.OutputDirectory, "SharedPCHs"),
-									(CompileEnvironment.Config.PCHOutputDirectory == null)? null : DirectoryReference.Combine(CompileEnvironment.Config.PCHOutputDirectory, "SharedPCHs"),
+									(CompileEnvironment.Config.PCHOutputDirectory == null) ? null : DirectoryReference.Combine(CompileEnvironment.Config.PCHOutputDirectory, "SharedPCHs"),
 									"Shared",
 									false);
 							}
@@ -1329,7 +1329,14 @@ namespace UnrealBuildTool
 						CPPCompileEnvironment = ModulePCHCompileEnvironment;
 					}
 
-					LinkInputFiles.AddRange(ToolChain.CompileCPPFiles(Target, CPPCompileEnvironment, CPPFilesToBuild, Name).ObjectFiles);
+					if (bModuleUsesUnityBuild)
+					{
+						LinkInputFiles.AddRange(CompileUnityFilesWithToolChain(ToolChain, Target, CPPCompileEnvironment, CPPFilesToBuild, Name).ObjectFiles);
+					}
+					else
+					{
+						LinkInputFiles.AddRange(ToolChain.CompileCPPFiles(Target, CPPCompileEnvironment, CPPFilesToBuild, Name).ObjectFiles);
+					}
 					bWasModuleCodeCompiled = true;
 				}
 
@@ -1346,8 +1353,13 @@ namespace UnrealBuildTool
 				if (bModuleUsesUnityBuild)
 				{
 					CPPFilesToCompile = Unity.GenerateUnityCPPs(ToolChain, Target, CPPFilesToCompile, CPPCompileEnvironment, Name);
+					LinkInputFiles.AddRange(CompileUnityFilesWithToolChain(ToolChain, Target, CPPCompileEnvironment, CPPFilesToCompile, Name).ObjectFiles);
 				}
-				LinkInputFiles.AddRange(ToolChain.CompileCPPFiles(Target, CPPCompileEnvironment, CPPFilesToCompile, Name).ObjectFiles);
+				else
+				{
+					LinkInputFiles.AddRange(ToolChain.CompileCPPFiles(Target, CPPCompileEnvironment, CPPFilesToCompile, Name).ObjectFiles);
+				}
+
 			}
 
 			if (AutoGenerateCppInfo != null && AutoGenerateCppInfo.BuildInfo != null && !CPPCompileEnvironment.bHackHeaderGenerator)
@@ -1377,6 +1389,60 @@ namespace UnrealBuildTool
 			LinkInputFiles.AddRange(ToolChain.CompileRCFiles(Target, CPPCompileEnvironment, SourceFilesToBuild.RCFiles).ObjectFiles);
 
 			return LinkInputFiles;
+		}
+
+		/// <summary>
+		/// Compiles the provided CPP unity files. Will
+		/// </summary>
+		private CPPOutput CompileUnityFilesWithToolChain(UEToolChain ToolChain, UEBuildTarget Target, CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName)
+		{
+			List<FileItem> NormalFiles = new List<FileItem>();
+			List<FileItem> AdaptiveFiles = new List<FileItem>();
+
+			if (BuildConfiguration.bAdaptiveUnityDisablesOptimizations && !BuildConfiguration.bStressTestUnity)
+			{
+				foreach (FileItem File in SourceFiles)
+				{
+					// Basic check as to whether something in this module is/isn't a unity file...
+					if (File.ToString().StartsWith(Unity.ModulePrefix))
+					{
+						NormalFiles.Add(File);
+					}
+					else
+					{
+						AdaptiveFiles.Add(File);
+					}
+				}
+			}
+			else
+			{
+				NormalFiles.AddRange(SourceFiles);
+			}
+
+			CPPOutput OutputFiles = new CPPOutput();
+
+			if (NormalFiles.Count > 0)
+			{
+				OutputFiles = ToolChain.CompileCPPFiles(Target, CompileEnvironment, NormalFiles, Name);
+			}
+
+			if (AdaptiveFiles.Count > 0)
+			{
+				// Create an unoptmized compilation environment. Need to turn of PCH due to different
+				// compiler settings
+				CPPEnvironment UnoptimziedEnvironment = CompileEnvironment.DeepCopy();
+				UnoptimziedEnvironment.Config.OptimizeCode = ModuleRules.CodeOptimization.Never;
+				UnoptimziedEnvironment.Config.PrecompiledHeaderAction = PrecompiledHeaderAction.None;
+
+				// Compile the files
+				CPPOutput AdaptiveOutput = ToolChain.CompileCPPFiles(Target, UnoptimziedEnvironment, AdaptiveFiles, Name);
+
+				// Merge output
+				OutputFiles.ObjectFiles.AddRange(AdaptiveOutput.ObjectFiles);
+				OutputFiles.DebugDataFiles.AddRange(AdaptiveOutput.DebugDataFiles);
+			}
+
+			return OutputFiles;
 		}
 
 		private PrecompileHeaderEnvironment ApplySharedPCH(CPPEnvironment GlobalCompileEnvironment, CPPEnvironment CompileEnvironment, CPPEnvironment ModuleCompileEnvironment, List<FileItem> CPPFiles, ref FileItem SharedPCHHeaderFile)
@@ -1470,7 +1536,7 @@ namespace UnrealBuildTool
 				bool bFoundAProblemWithPCHs = false;
 
 				FileItem UniquePCH = null;
-				foreach (FileItem CPPFile in SourceFilesFound.CPPFiles)	// @todo ubtmake: We're not caching CPPEnvironments for .c/.mm files, etc.  Even though they don't use PCHs, they still have #includes!  This can break dependency checking!
+				foreach (FileItem CPPFile in SourceFilesFound.CPPFiles) // @todo ubtmake: We're not caching CPPEnvironments for .c/.mm files, etc.  Even though they don't use PCHs, they still have #includes!  This can break dependency checking!
 				{
 					// Build a single list of include paths to search.
 					List<string> IncludePathsToSearch = ModuleCompileEnvironment.Config.CPPIncludeInfo.GetIncludesPathsToSearch(CPPFile);
@@ -1490,7 +1556,7 @@ namespace UnrealBuildTool
 					{
 						UniquePCH = PCH;
 					}
-					else if (!UniquePCH.Info.Name.Equals(PCH.Info.Name, StringComparison.InvariantCultureIgnoreCase))		// @todo ubtmake: We do a string compare on the file name (not path) here, because sometimes the include resolver will pick an Intermediate copy of a PCH header file and throw off our comparisons
+					else if (!UniquePCH.Info.Name.Equals(PCH.Info.Name, StringComparison.InvariantCultureIgnoreCase))       // @todo ubtmake: We do a string compare on the file name (not path) here, because sometimes the include resolver will pick an Intermediate copy of a PCH header file and throw off our comparisons
 					{
 						// OK, looks like we have multiple source files including a different header file first.  We'll keep track of this and print out
 						// helpful information afterwards.
@@ -1621,12 +1687,12 @@ namespace UnrealBuildTool
 		{
 			CPPEnvironment Result = BaseCompileEnvironment.DeepCopy();
 
-            if (Binary == null)
-            {
-                // Adding this check here as otherwise the call to Binary.Config.IntermediateDirectory will give an 
-                // unhandled exception
-                throw new BuildException("UEBuildBinary not set up for module {0}", this.ToString());
-            }
+			if (Binary == null)
+			{
+				// Adding this check here as otherwise the call to Binary.Config.IntermediateDirectory will give an 
+				// unhandled exception
+				throw new BuildException("UEBuildBinary not set up for module {0}", this.ToString());
+			}
 
 			// Override compile environment
 			Result.Config.bFasterWithoutUnity = Rules.bFasterWithoutUnity;

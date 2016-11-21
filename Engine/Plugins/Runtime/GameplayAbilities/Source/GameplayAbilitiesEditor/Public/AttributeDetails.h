@@ -56,13 +56,10 @@ private:
 	void OnAttributeChanged(UProperty* SelectedAttribute);
 };
 
-class FScalableFloatDetails : public IPropertyTypeCustomization
+class GAMEPLAYABILITIESEDITOR_API FScalableFloatDetails : public IPropertyTypeCustomization
 {
 public:
 	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
-
-
-private:
 
 	FScalableFloatDetails()
 		: PreviewLevel(0.f)
@@ -70,10 +67,14 @@ private:
 	{
 	}
 
+protected:
+
 	virtual void CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
 	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;              
 
 	bool IsEditable( ) const;
+
+	virtual TSharedRef<SWidget> CreateCurveTableWidget();
 
 	EVisibility GetRowNameVisibility() const;
 	EVisibility GetPreviewVisibility() const;
@@ -87,7 +88,7 @@ private:
 	FText GetRowValuePreviewText() const;
 	TSharedRef<ITableRow> HandleRowNameComboBoxGenarateWidget(TSharedPtr<FString> InItem, const TSharedRef<STableViewBase>& OwnerTable);
 	void OnFilterTextChanged(const FText& InFilterText);
-
+	
 	class UCurveTable * GetCurveTable();
 
 	TSharedPtr<FString> InitWidgetContent();

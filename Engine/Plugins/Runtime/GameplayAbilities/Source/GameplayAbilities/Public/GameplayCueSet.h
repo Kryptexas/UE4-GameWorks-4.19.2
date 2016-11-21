@@ -65,7 +65,11 @@ class GAMEPLAYABILITIES_API UGameplayCueSet : public UDataAsset
 	/** Returns filenames of everything we know about (loaded or not) */
 	virtual void GetFilenames(TArray<FString>& Filenames) const;
 
+	virtual void GetStringAssetReferences(TArray<FStringAssetReference>& List) const;
+
 #if WITH_EDITOR
+
+	void CopyCueDataToSetForEditorPreview(FGameplayTag Tag, UGameplayCueSet* DestinationSet);
 
 	/** Updates an existing cue */
 	virtual void UpdateCueByStringRefs(const FStringAssetReference& CueToRemove, FString NewPath);

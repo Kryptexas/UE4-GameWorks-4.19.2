@@ -421,6 +421,7 @@ void FEnvQueryInstance::ItemIterator::HandleFailedTestResult()
 void FEnvQueryInstance::ItemIterator::StoreTestResult()
 {
 	CheckItemPassed();
+	ensureAlways(FMath::IsNaN(ItemScore) == false);
 
 	if (Instance->IsInSingleItemFinalSearch())
 	{
@@ -449,6 +450,7 @@ void FEnvQueryInstance::ItemIterator::StoreTestResult()
 		}
 		else if (CachedScoreOp == EEnvTestScoreOperator::AverageScore && !bForced)
 		{
+			ensureAlways(NumPassedForItem != 0);
 			ItemScore /= NumPassedForItem;
 		}
 

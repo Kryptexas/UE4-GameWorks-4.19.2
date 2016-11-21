@@ -1139,6 +1139,10 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 	// Flush streaming before GC if requested
 	if (GFlushStreamingOnGC)
 	{
+		if (IsAsyncLoading())
+		{
+			UE_LOG(LogGarbage, Log, TEXT("CollectGarbageInternal() is flushing async loading"));
+		}
 		GGarbageCollectionGuardCritical.GCUnlock();
 		FlushAsyncLoading();
 		GGarbageCollectionGuardCritical.GCLock();

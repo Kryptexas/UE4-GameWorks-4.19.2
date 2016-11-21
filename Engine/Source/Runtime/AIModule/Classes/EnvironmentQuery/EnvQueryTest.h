@@ -12,6 +12,13 @@ class UEnvQueryContext;
 struct FPropertyChangedEvent;
 #endif // WITH_EDITOR
 
+UENUM()
+enum class EEQSNormalizationType : uint8
+{
+	Absolute,	// using 0 as the base of normalization range
+	RelativeToScores	// using lowest item store as the base of normalization range
+};
+
 namespace EnvQueryTestVersion
 {
 	const int32 Initial = 0;
@@ -99,6 +106,10 @@ class AIMODULE_API UEnvQueryTest : public UEnvQueryNode
 	    Should it use the highest value found (tested), the upper threshold for filtering, or a separate specified normalization maximum? */
 	UPROPERTY(EditDefaultsOnly, Category=Score)
 	TEnumAsByte<EEnvQueryTestClamping::Type> ClampMaxType;
+
+	/** Specifies how to determine value span used to normalize scores */
+	UPROPERTY(EditDefaultsOnly, Category = Score)
+	EEQSNormalizationType NormalizationType;
 
 	/** Minimum value to use to normalize the raw test value before applying scoring formula. */
 	UPROPERTY(EditDefaultsOnly, Category=Score)

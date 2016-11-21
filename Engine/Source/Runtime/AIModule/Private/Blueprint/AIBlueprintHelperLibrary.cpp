@@ -8,6 +8,8 @@
 #include "TimerManager.h"
 #include "Blueprint/AIBlueprintHelperLibrary.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogAIBlueprint, Warning, All);
+
 //----------------------------------------------------------------------//
 // UAIAsyncTaskBlueprintProxy
 //----------------------------------------------------------------------//
@@ -91,7 +93,19 @@ UAIBlueprintHelperLibrary::UAIBlueprintHelperLibrary(const FObjectInitializer& O
 
 UAIAsyncTaskBlueprintProxy* UAIBlueprintHelperLibrary::CreateMoveToProxyObject(UObject* WorldContextObject, APawn* Pawn, FVector Destination, AActor* TargetActor, float AcceptanceRadius, bool bStopOnOverlap)
 {
-	check(WorldContextObject);
+	if (WorldContextObject == nullptr)
+	{
+		if (Pawn != nullptr)
+		{
+			WorldContextObject = Pawn;
+		}
+		else
+		{
+			UE_LOG(LogAIBlueprint, Warning, TEXT("Empty (None) world context as well as Pawn passed in while trying to create a MoveTo proxy"));
+			return nullptr;
+		}
+	}
+
 	if (Pawn == nullptr)
 	{
 		// maybe we can extract the pawn from the world context
@@ -106,11 +120,12 @@ UAIAsyncTaskBlueprintProxy* UAIBlueprintHelperLibrary::CreateMoveToProxyObject(U
 	{
 		return NULL;
 	}
+
 	UAIAsyncTaskBlueprintProxy* MyObj = NULL;
 	AAIController* AIController = Cast<AAIController>(Pawn->GetController());
 	if (AIController)
 	{
-		UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
+		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 		MyObj = NewObject<UAIAsyncTaskBlueprintProxy>(World);
 
 		FAIMoveRequest MoveReq;

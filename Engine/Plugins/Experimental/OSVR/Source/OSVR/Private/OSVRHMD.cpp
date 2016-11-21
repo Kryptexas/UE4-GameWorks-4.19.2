@@ -22,6 +22,7 @@
 #include "SceneViewport.h"
 #include "OSVREntryPoint.h"
 
+#include "Scalability.h"
 #include "Runtime/Core/Public/Misc/DateTime.h"
 
 #if WITH_EDITOR

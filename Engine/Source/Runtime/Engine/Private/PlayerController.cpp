@@ -1195,6 +1195,11 @@ void APlayerController::ClientSetHUD_Implementation(TSubclassOf<AHUD> NewHUDClas
 
 void APlayerController::CleanupPlayerState()
 {
+	if (PlayerState)
+	{
+		// By default this destroys it, but games can override
+		PlayerState->OnDeactivated();
+	}
 	PlayerState = NULL;
 }
 

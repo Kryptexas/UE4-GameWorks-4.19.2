@@ -348,6 +348,10 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = GameplayEffects)
 	void SetActiveGameplayEffectLevel(FActiveGameplayEffectHandle ActiveHandle, int32 NewLevel);
 
+	/** Updates the level of an already applied gameplay effect. The intention is that this is 'seemless' and doesnt behave like removing/reapplying */
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = GameplayEffects)
+	void SetActiveGameplayEffectLevelUsingQuery(FGameplayEffectQuery Query, int32 NewLevel);
+
 	// Not happy with this interface but don't see a better way yet. How should outside code (UI, etc) ask things like 'how much is this gameplay effect modifying my damage by'
 	// (most likely we want to catch this on the backend - when damage is applied we can get a full dump/history of how the number got to where it is. But still we may need polling methods like below (how much would my damage be)
 	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
@@ -754,6 +758,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	{
 		return HasMatchingGameplayTag(GameplayCueTag);
 	}
+
+	/** Will initialize gameplay cue parameters with this ASC's Owner (Instigator) and AvatarActor (EffectCauser) */
+	virtual void InitDefaultGameplayCueParameters(FGameplayCueParameters& Parameters);
 
 	// ----------------------------------------------------------------------------------------------------------------
 
@@ -1404,7 +1411,7 @@ public:
 protected:
 
 	/** Actually pushes the final attribute value to the attribute set's property. Should not be called by outside code since this does not go through the attribute aggregator system. */
-	void SetNumericAttribute_Internal(const FGameplayAttribute &Attribute, float NewFloatValue);
+	void SetNumericAttribute_Internal(const FGameplayAttribute &Attribute, float& NewFloatValue);
 
 	bool HasNetworkAuthorityToApplyGameplayEffect(FPredictionKey PredictionKey) const;
 

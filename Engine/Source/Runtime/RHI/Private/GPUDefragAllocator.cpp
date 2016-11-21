@@ -1781,6 +1781,7 @@ FGPUDefragAllocator::EMemoryElementType FGPUDefragAllocator::GetChunkType(FMemor
 */
 int32 FGPUDefragAllocator::GetLargestAvailableAllocation(int32* OutNumFreeChunks/*=nullptr*/)
 {
+	FScopeLock SyncLock(&SynchronizationObject);
 	int32 NumFreeChunks = 0;
 	int64 LargestChunkSize = 0;
 	FMemoryChunk* FreeChunk = FirstFreeChunk;

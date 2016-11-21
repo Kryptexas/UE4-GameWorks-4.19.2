@@ -1317,7 +1317,21 @@ bool DiffFilesInPaks(const FString InPakFilename1, const FString InPakFilename2)
 	return true;
 }
 
-bool GenerateHashForFile( FString Filename, uint8 FileHash[16])
+struct FFileInfo
+{
+	uint64 FileSize;
+	uint8 Hash[16];
+};
+
+void GenerateHashForFile(uint8* ByteBuffer, uint64 TotalSize, FFileInfo& FileHash)
+{
+	FMD5 FileHasher;
+	FileHasher.Update(ByteBuffer, TotalSize);
+	FileHasher.Final(FileHash.Hash);
+	FileHash.FileSize = TotalSize;
+}
+
+bool GenerateHashForFile( FString Filename, FFileInfo& FileHash)
 {
 	FArchive* File = IFileManager::Get().CreateFileReader(*Filename);
 
@@ -1333,48 +1347,145 @@ bool GenerateHashForFile( FString Filename, uint8 FileHash[16])
 	delete File;
 	File = NULL;
 
-	FMD5 FileHasher;
-	FileHasher.Update(ByteBuffer, TotalSize);
-
+	GenerateHashForFile(ByteBuffer, TotalSize, FileHash);
+	
 	delete[] ByteBuffer;
-
-	FileHasher.Final(FileHash);
-
 	return true;
-
-
-	// uint8 DestFileHash[20];
-
 }
 
-
-void RemoveIdenticalFiles( TArray<FPakInputPair>& FilesToPak, const FString& SourceDirectory )
+bool GenerateHashesFromPak(const TCHAR* InPakFilename, TMap<FString, FFileInfo>& FileHashes, bool bUseMountPoint = false)
 {
+	FPakFile PakFile(InPakFilename, FParse::Param(FCommandLine::Get(), TEXT("signed")));
+	if (PakFile.IsValid())
+	{
+		FArchive& PakReader = *PakFile.GetSharedReader(NULL);
+		const int64 BufferSize = 8 * 1024 * 1024; // 8MB buffer for extracting
+		void* Buffer = FMemory::Malloc(BufferSize);
+		int64 CompressionBufferSize = 0;
+		uint8* PersistantCompressionBuffer = NULL;
+		int32 ErrorCount = 0;
+		int32 FileCount = 0;
+
+		FString PakMountPoint = bUseMountPoint ? PakFile.GetMountPoint().Replace(TEXT("../../../"), TEXT("")) : TEXT("");
+
+		for (FPakFile::FFileIterator It(PakFile); It; ++It, ++FileCount)
+		{
+			const FPakEntry& Entry = It.Info();
+			PakReader.Seek(Entry.Offset);
+			uint32 SerializedCrcTest = 0;
+			FPakEntry EntryInfo;
+			EntryInfo.Serialize(PakReader, PakFile.GetInfo().Version);
+			if (EntryInfo == Entry)
+			{
+				// TAutoPtr<FArchive> FileHandle(IFileManager::Get().CreateFileWriter(*DestFilename));
+				TArray<uint8> Bytes;
+				FMemoryWriter MemoryFile(Bytes);
+				FArchive* FileHandle = &MemoryFile;
+				// if (FileHandle.IsValid())
+				{
+					if (Entry.CompressionMethod == COMPRESS_None)
+					{
+						BufferedCopyFile(*FileHandle, PakReader, Entry, Buffer, BufferSize);
+					}
+					else
+					{
+						UncompressCopyFile(*FileHandle, PakReader, Entry, PersistantCompressionBuffer, CompressionBufferSize);
+					}
+
+					UE_LOG(LogPakFile, Display, TEXT("Generated hash for \"%s\""), *It.Filename());
+					FFileInfo FileHash;
+					GenerateHashForFile(Bytes.GetData(), Bytes.Num(), FileHash);
+
+					FileHashes.Add(It.Filename(), FileHash);
+				}
+				/*else
+				{
+					UE_LOG(LogPakFile, Error, TEXT("Unable to create file \"%s\"."), *DestFilename);
+					ErrorCount++;
+				}*/
+
+			}
+			else
+			{
+				UE_LOG(LogPakFile, Error, TEXT("Serialized hash mismatch for \"%s\"."), *It.Filename());
+				ErrorCount++;
+			}
+		}
+		FMemory::Free(Buffer);
+		FMemory::Free(PersistantCompressionBuffer);
+
+		UE_LOG(LogPakFile, Log, TEXT("Finished extracting %d files (including %d errors)."), FileCount, ErrorCount);
+
+		return true;
+	}
+	else
+	{
+		UE_LOG(LogPakFile, Error, TEXT("Unable to open pak file \"%s\"."), InPakFilename);
+		return false;
+	}
+}
+
+void RemoveIdenticalFiles( TArray<FPakInputPair>& FilesToPak, const FString& SourceDirectory, const TMap<FString, FFileInfo>& FileHashes )
+{
+	FString HashFilename = SourceDirectory / TEXT("Hashes.txt");
+
+	if (IFileManager::Get().FileExists(*HashFilename) )
+	{
+		FString EntireFile;
+		FFileHelper::LoadFileToString(EntireFile, *HashFilename);
+
+	}
+
 	for ( int I = FilesToPak.Num()-1; I >= 0; --I )
 	{
 		const auto& NewFile = FilesToPak[I]; 
 
+		FString SourceFileNoMountPoint =  NewFile.Dest.Replace(TEXT("../../../"), TEXT(""));
 		FString SourceFilename = SourceDirectory / NewFile.Dest.Replace(TEXT("../../../"), TEXT(""));
-		int64 SourceTotalSize = IFileManager::Get().FileSize(*SourceFilename);
+		
+		const FFileInfo* FoundFileHash = FileHashes.Find(SourceFileNoMountPoint);
+		if (!FoundFileHash)
+		{
+			FoundFileHash = FileHashes.Find(NewFile.Dest);
+		}
+		
+		if ( !FoundFileHash )
+		{
+			UE_LOG(LogPakFile, Display, TEXT("Didn't find hash for %s No mount %s"), *SourceFilename, *SourceFileNoMountPoint);
+		}
 
+		int64 SourceTotalSize = FoundFileHash ? FoundFileHash->FileSize : IFileManager::Get().FileSize(*SourceFilename);
+		
 		FString DestFilename = NewFile.Source;
 		int64 DestTotalSize = IFileManager::Get().FileSize(*DestFilename);
 		
-		if ( SourceTotalSize != DestTotalSize )
+		if (SourceTotalSize != DestTotalSize)
 		{
 			// file size doesn't match 
-			UE_LOG(LogPakFile, Display, TEXT("Source file size for %s %d bytes doesn't match %s %d bytes"), *SourceFilename, SourceTotalSize, *DestFilename, DestTotalSize);
+			UE_LOG(LogPakFile, Display, TEXT("Source file size for %s %d bytes doesn't match %s %d bytes, did find %d"), *SourceFilename, SourceTotalSize, *DestFilename, DestTotalSize, FoundFileHash ? 1 : 0);
 			continue;
 		}
 
-		uint8 SourceFileHash[16];
-		if ( GenerateHashForFile(SourceFilename, SourceFileHash) == false )
+		FFileInfo SourceFileHash;
+		if ( !FoundFileHash) 
 		{
-			// file size doesn't match 
-			UE_LOG(LogPakFile, Display, TEXT("Source file size %s doesn't exist will be included in build"), *SourceFilename);
-			continue;
+			if (GenerateHashForFile(SourceFilename, SourceFileHash) == false)
+			{
+				// file size doesn't match 
+				UE_LOG(LogPakFile, Display, TEXT("Source file size %s doesn't exist will be included in build"), *SourceFilename);
+				continue;
+			}
+			else
+			{
+				UE_LOG(LogPakFile, Warning, TEXT("Generated hash for file %s but it should have been in the FileHashes array %d"), *SourceFilename, FileHashes.Num());
+			}
 		}
-		uint8 DestFileHash[16];
+		else
+		{
+			SourceFileHash = *FoundFileHash;
+		}
+		
+		FFileInfo DestFileHash;
 		if ( GenerateHashForFile( DestFilename, DestFileHash ) == false )
 		{
 			// destination file was removed don't really care about it
@@ -1382,7 +1493,7 @@ void RemoveIdenticalFiles( TArray<FPakInputPair>& FilesToPak, const FString& Sou
 			continue;
 		}
 
-		int32 Diff = FMemory::Memcmp( SourceFileHash, DestFileHash, sizeof( DestFileHash ) );
+		int32 Diff = FMemory::Memcmp( &SourceFileHash, &DestFileHash, sizeof( DestFileHash ) );
 		if ( Diff != 0 )
 		{
 			UE_LOG(LogPakFile, Display, TEXT("Source file hash for %s doesn't match dest file hash %s and will be included in patch"), *SourceFilename, *DestFilename);
@@ -1531,6 +1642,8 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 			}
 			else
 			{
+				TMap<FString, FFileInfo> SourceFileHashes;
+
 				if ( CmdLineParameters.GeneratePatch )
 				{
 					FString OutputPath;
@@ -1543,11 +1656,14 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 
 					UE_LOG(LogPakFile, Display, TEXT("Generating patch from %s."), *CmdLineParameters.SourcePatchPakFilename );
 
-					if ( ExtractFilesFromPak( *CmdLineParameters.SourcePatchPakFilename, *OutputPath, true ) == false )
+					if ( !GenerateHashesFromPak(*CmdLineParameters.SourcePatchPakFilename, SourceFileHashes) )
 					{
-						UE_LOG(LogPakFile, Error, TEXT("Unable to extract files from source pak file for patch") );
+						if ( ExtractFilesFromPak( *CmdLineParameters.SourcePatchPakFilename, *OutputPath, true ) == false )
+						{
+							UE_LOG(LogPakFile, Error, TEXT("Unable to extract files from source pak file for patch") );
+						}
+						CmdLineParameters.SourcePatchDiffDirectory = OutputPath;
 					}
-					CmdLineParameters.SourcePatchDiffDirectory = OutputPath;
 				}
 
 
@@ -1558,7 +1674,7 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 				if ( CmdLineParameters.GeneratePatch )
 				{
 					// if we are generating a patch here we remove files which are already shipped...
-					RemoveIdenticalFiles(FilesToAdd, CmdLineParameters.SourcePatchDiffDirectory);
+					RemoveIdenticalFiles(FilesToAdd, CmdLineParameters.SourcePatchDiffDirectory, SourceFileHashes);
 				}
 
 

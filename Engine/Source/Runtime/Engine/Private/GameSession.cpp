@@ -12,7 +12,7 @@
 #include "GameFramework/GameSession.h"
 #include "GameFramework/GameModeBase.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogGameSession, Log, All);
+DEFINE_LOG_CATEGORY(LogGameSession);
 
 static TAutoConsoleVariable<int32> CVarMaxPlayersOverride( TEXT( "net.MaxPlayersOverride" ), 0, TEXT( "If greater than 0, will override the standard max players count. Useful for testing full servers." ) );
 
@@ -357,28 +357,6 @@ void AGameSession::ReturnToMainMenuHost()
 			break;
 		}
 	}
-}
-
-bool AGameSession::TravelToSession(int32 ControllerId, FName InSessionName)
-{
-	UWorld* World = GetWorld();
-
-	FString URL;
-	if (UOnlineEngineInterface::Get()->GetResolvedConnectString(World, InSessionName, URL))
-	{
-		APlayerController* PC = UGameplayStatics::GetPlayerController(World, ControllerId);
-		if (PC)
-		{
-			PC->ClientTravel(URL, TRAVEL_Absolute);
-			return true;
-		}
-	}
-	else
-	{
-		UE_LOG(LogGameSession, Warning, TEXT("Failed to resolve session connect string for %s"), *InSessionName.ToString());
-	}
-
-	return false;
 }
 
 void AGameSession::PostSeamlessTravel()

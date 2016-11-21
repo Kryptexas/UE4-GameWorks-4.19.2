@@ -556,15 +556,25 @@ void UNetConnection::ReceivedRawPacket( void* InData, int32 Count )
 	{
 		const ProcessedPacket UnProcessedPacket = Handler->Incoming(Data, Count);
 
-		Count = FMath::DivideAndRoundUp(UnProcessedPacket.CountBits, 8);
-
-		if (Count > 0)
+		if (!UnProcessedPacket.bError)
 		{
-			Data = UnProcessedPacket.Data;
+			Count = FMath::DivideAndRoundUp(UnProcessedPacket.CountBits, 8);
+
+			if (Count > 0)
+			{
+				Data = UnProcessedPacket.Data;
+			}
+			// This packed has been consumed
+			else
+			{
+				return;
+			}
 		}
-		// This packed has been consumed
 		else
 		{
+			CLOSE_CONNECTION_DUE_TO_SECURITY_VIOLATION(this, ESecurityEvent::Malformed_Packet,
+														TEXT("Packet failed PacketHandler processing."));
+
 			return;
 		}
 	}
@@ -913,13 +923,13 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 				OutLagPacketId[Index] = -1;		// Only use the ack once
 
 #if !UE_BUILD_SHIPPING
-				if ( CVarPingDisplayServerTime.GetValueOnGameThread() > 0 )
+				if ( CVarPingDisplayServerTime.GetValueOnAnyThread() > 0 )
 				{
 					UE_LOG( LogNetTraffic, Warning, TEXT( "ServerFrameTime: %2.2f" ), ServerFrameTime * 1000.0f );
 				}
 
 				const float GameTime	= ServerFrameTime + FrameTime;
-				const float RTT			= ( FPlatformTime::Seconds() - OutLagTime[Index] ) - ( CVarPingExcludeFrameTime.GetValueOnGameThread() ? GameTime : 0.0f );
+				const float RTT			= ( FPlatformTime::Seconds() - OutLagTime[Index] ) - ( CVarPingExcludeFrameTime.GetValueOnAnyThread() ? GameTime : 0.0f );
 				const float NewLag		= FMath::Max( RTT, 0.0f );
 #else
 				const float NewLag		= FPlatformTime::Seconds() - OutLagTime[Index];
@@ -1155,7 +1165,7 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 				if( !Driver->Notify->NotifyAcceptingChannel( Channel ) )
 				{
 					// Channel refused, so close it, flush it, and delete it.
-					UE_LOG(LogNetDormancy, Verbose, TEXT("      NotifyAcceptingChannel Failed! Channel: %s"), *Channel->Describe() );
+					UE_LOG(LogNet, Verbose, TEXT("      NotifyAcceptingChannel Failed! Channel: %s"), *Channel->Describe() );
 
 					FOutBunch CloseBunch( Channel, 1 );
 					check(!CloseBunch.IsError());
@@ -1510,7 +1520,9 @@ float UNetConnection::GetTimeoutValue()
 #if !UE_BUILD_SHIPPING
 	if (Driver->bNoTimeouts)
 	{
-		return MAX_FLT;
+		// APlayerController depends on this timeout to destroy itself and free up
+		// its resources, so we have to handle this case here as well
+		return bPendingDestroy ? 2.f : MAX_FLT;
 	}
 #endif
 
@@ -1657,7 +1669,7 @@ void UNetConnection::Tick()
 		checkf(ChannelsToTick.Num() <= OpenChannels.Num(), TEXT("More ticking channels (%d) than open channels (%d) for net connection!"), ChannelsToTick.Num(), OpenChannels.Num())
 
 		// Tick the channels.
-		if (CVarTickAllOpenChannels.GetValueOnGameThread() == 0)
+		if (CVarTickAllOpenChannels.GetValueOnAnyThread() == 0)
 		{
 			for( int32 i=ChannelsToTick.Num()-1; i>=0; i-- )
 			{
@@ -2025,7 +2037,7 @@ void UNetConnection::FlushDormancy(class AActor* Actor)
 void UNetConnection::FlushDormancyForObject( UObject* Object )
 {
 	static const auto ValidateCVar = IConsoleManager::Get().FindTConsoleVariableDataInt( TEXT( "net.DormancyValidate" ) );
-	const bool ValidateProperties = ( ValidateCVar && ValidateCVar->GetValueOnGameThread() == 1 );
+	const bool ValidateProperties = ( ValidateCVar && ValidateCVar->GetValueOnAnyThread() == 1 );
 
 	TSharedRef< FObjectReplicator > * Replicator = DormantReplicatorMap.Find( Object );
 

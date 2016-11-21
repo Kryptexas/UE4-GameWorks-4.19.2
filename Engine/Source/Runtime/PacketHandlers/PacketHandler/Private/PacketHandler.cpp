@@ -324,12 +324,12 @@ const ProcessedPacket PacketHandler::Incoming_Internal(uint8* Packet, int32 Coun
 		}
 		else
 		{
-			return ProcessedPacket();
+			return ProcessedPacket(nullptr, 0, true);
 		}
 	}
 	else
 	{
-		return ProcessedPacket();
+		return ProcessedPacket(nullptr, 0, true);
 	}
 }
 
@@ -417,7 +417,7 @@ const ProcessedPacket PacketHandler::Outgoing_Internal(uint8* Packet, int32 Coun
 		}
 		else
 		{
-			return ProcessedPacket(Packet, CountBits);
+			return ProcessedPacket(nullptr, 0, true);
 		}
 	}
 	else

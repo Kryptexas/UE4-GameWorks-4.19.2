@@ -239,7 +239,7 @@ public:
 	ULocalPlayer* GetOwningLocalPlayer() const;
 
 	/**
-	 * Sets the local player associated with this UI.
+	 * Sets the player associated with this UI via LocalPlayer reference.
 	 * @param LocalPlayer The local player you want to be the conceptual owner of this UI.
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Player")
@@ -251,6 +251,13 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Player")
 	class APlayerController* GetOwningPlayer() const;
+
+	/**
+	 * Sets the local player associated with this UI via PlayerController reference.
+	 * @param LocalPlayerController The PlayerController of the local player you want to be the conceptual owner of this UI.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Player")
+	void SetOwningPlayer(APlayerController* LocalPlayerController);
 
 	/**
 	 * Gets the player pawn associated with this UI.

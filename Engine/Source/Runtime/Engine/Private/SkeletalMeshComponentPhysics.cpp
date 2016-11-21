@@ -2614,7 +2614,7 @@ void USkeletalMeshComponent::GetWindForCloth_GameThread(FVector& WindDirection, 
 			float WindSpeed;
 			float WindMinGust;
 			float WindMaxGust;
-			World->Scene->GetWindParameters(Position, WindDirection, WindSpeed, WindMinGust, WindMaxGust);
+			World->Scene->GetWindParameters_GameThread(Position, WindDirection, WindSpeed, WindMinGust, WindMaxGust);
 
 			WindDirection *= WindUnitAmout * WindSpeed;
 			WindAdaption = FMath::Rand() % 20 * 0.1f; // make range from 0 to 2

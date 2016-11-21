@@ -9,6 +9,7 @@
 
 class UGameplayCueSet;
 class AGameplayCueNotify_Actor;
+class UGameplayCueSet;
 
 UENUM()
 enum class EGameplayCuePayloadType : uint8

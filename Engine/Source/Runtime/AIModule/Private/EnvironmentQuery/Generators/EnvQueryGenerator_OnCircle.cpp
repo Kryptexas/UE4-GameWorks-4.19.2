@@ -132,6 +132,7 @@ void UEnvQueryGenerator_OnCircle::GenerateItems(FEnvQueryInstance& QueryInstance
 	SpaceBetween.BindData(QueryOwner, QueryInstance.QueryID);
 	ArcAngle.BindData(QueryOwner, QueryInstance.QueryID);
 	CircleCenterZOffset.BindData(QueryOwner, QueryInstance.QueryID);
+	NumberOfPoints.BindData(QueryOwner, QueryInstance.QueryID);
 
 	float AngleDegree = ArcAngle.GetValue();
 	float RadiusValue = CircleRadius.GetValue();

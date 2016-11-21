@@ -57,6 +57,8 @@ public:
 	 */
 	static TSharedRef<SWindow> CreateGameWindow();
 
+	static void SafeFrameChanged();
+
 	/**
 	 * Modifies the game window resolution settings if any overrides have been specified on the command line
 	 *
@@ -106,6 +108,7 @@ public:
 	virtual void ProcessToggleFreezeCommand( UWorld* InWorld ) override;
 	virtual void ProcessToggleFreezeStreamingCommand( UWorld* InWorld ) override;
 	virtual bool NetworkRemapPath(UNetDriver* Driver, FString& Str, bool bReading = true) override;
+	virtual bool ShouldDoAsyncEndOfFrameTasks() const override;
 
 public:
 

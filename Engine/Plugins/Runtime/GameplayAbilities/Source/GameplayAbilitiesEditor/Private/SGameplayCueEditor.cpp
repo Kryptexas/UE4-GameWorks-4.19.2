@@ -22,6 +22,7 @@
 #include "AssetToolsModule.h"
 #include "GameplayTagsEditorModule.h"
 #include "Editor/LevelEditor/Public/LevelEditor.h"
+#include "AssetRegistryModule.h"
 
 #define LOCTEXT_NAMESPACE "SGameplayCueEditor"
 #include "SGameplayCueEditor_Picker.h"
@@ -94,9 +95,6 @@ private:
 
 	/** Show only GC Tags that explicitly exist. If a.b.c is in the dictionary, don't show a.b as a distinct tag */
 	bool bShowOnlyLeafTags;
-
-	/** Flag to avoid loading all gameplaycues multiple times (wasted time creating and checking object libraries that are up to date) */
-	bool bHasLoadedAllGameplayCues;
 
 	/** Track when filter state is dirty, so that we only rebuilt view when it has changed, once menu is closed. */
 	bool bFilterIDsDirty;
@@ -643,14 +641,20 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 	bool FindGameplayCueNotifyObj(UGameplayCueManager* CueManager, TSharedPtr< FGCTreeItem >& Item)
 	{
-		if (CueManager && CueManager->GlobalCueSet && Item->GameplayCueTag.IsValid())
+		if (CueManager && Item->GameplayCueTag.IsValid())
 		{
-			if (int32* idxPtr = CueManager->GlobalCueSet->GameplayCueDataMap.Find(Item->GameplayCueTag))
+			UGameplayCueSet* EditorSet = CueManager->GetEditorCueSet();
+			if (EditorSet == nullptr)
+			{
+				return false;
+			}
+
+			if (int32* idxPtr = EditorSet->GameplayCueDataMap.Find(Item->GameplayCueTag))
 			{
 				int32 idx = *idxPtr;
-				if (CueManager->GlobalCueSet->GameplayCueData.IsValidIndex(idx))
+				if (EditorSet->GameplayCueData.IsValidIndex(idx))
 				{
-					FGameplayCueNotifyData& Data = CueManager->GlobalCueSet->GameplayCueData[idx];
+					FGameplayCueNotifyData& Data = EditorSet->GameplayCueData[idx];
 					Item->GameplayCueNotifyObj = Data.GameplayCueNotifyObj;
 					return true;
 				}
@@ -676,8 +680,8 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 		}
 
 #if STATS
-		FString PerfMessage = FString::Printf(TEXT("SGameplayCueEditor::UpdateGameplayCueListItems"));
-		SCOPE_LOG_TIME_IN_SECONDS(*PerfMessage, nullptr)
+		//FString PerfMessage = FString::Printf(TEXT("SGameplayCueEditor::UpdateGameplayCueListItems"));
+		//SCOPE_LOG_TIME_IN_SECONDS(*PerfMessage, nullptr)
 #endif
 		double FindGameplayCueNotifyObjTime = 0.f;
 		double AddTranslationTagsTime = 0.f;
@@ -698,13 +702,6 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 		TArray<FString> SearchStrings;
 		FullSearchString.ParseIntoArrayWS(SearchStrings);
 
-		if (bHasLoadedAllGameplayCues == false)
-		{
-			SCOPE_LOG_TIME_IN_SECONDS(TEXT(" LoadAllGameplayCueNotifiesForEditor"), nullptr)
-			bHasLoadedAllGameplayCues = true;
-			CueManager->LoadAllGameplayCueNotifiesForEditor();
-		}
-
 		// ------------------------------------------------------
 		if (bShowAllOverrides)
 		{
@@ -722,7 +719,7 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 		FGameplayTagContainer AllGameplayCueTags;
 		{
 			FString RequestGameplayTagChildrenPerfMessage = FString::Printf(TEXT(" RequestGameplayTagChildren"));
-			SCOPE_LOG_TIME_IN_SECONDS(*RequestGameplayTagChildrenPerfMessage, nullptr)
+			//SCOPE_LOG_TIME_IN_SECONDS(*RequestGameplayTagChildrenPerfMessage, nullptr)
 
 			if (bShowOnlyLeafTags)
 			{
@@ -735,7 +732,7 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 		}
 
 		// Create data structs for widgets
-		for (FGameplayTag ThisGameplayCueTag : AllGameplayCueTags)
+		for (const FGameplayTag& ThisGameplayCueTag : AllGameplayCueTags)
 		{
 			if (SearchStrings.Num() > 0)
 			{
@@ -812,7 +809,7 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 		{
 			FString RequestTreeRefreshMessage = FString::Printf(TEXT("  RequestTreeRefresh"));
-			SCOPE_LOG_TIME_IN_SECONDS(*RequestTreeRefreshMessage, nullptr)
+			//SCOPE_LOG_TIME_IN_SECONDS(*RequestTreeRefreshMessage, nullptr)
 
 			if (GameplayCueTreeView.IsValid())
 			{
@@ -1005,6 +1002,49 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 			SelectedUniqueID = INDEX_NONE;
 		}
 	}
+
+	void HandleOverrideTypeChange(bool NewValue)
+	{
+		bShowAllOverrides = NewValue;
+		UpdateGameplayCueListItems();
+	}
+	
+	TSharedRef<SWidget> OnGetShowOverrideTypeMenu()
+	{
+		FMenuBuilder MenuBuilder( true, NULL );
+
+		FUIAction YesAction( FExecuteAction::CreateSP( this, &SGameplayCueEditorImpl::HandleOverrideTypeChange, true ) );
+		MenuBuilder.AddMenuEntry( GetOverrideTypeDropDownText_Explicit(true), LOCTEXT("GameplayCueEditor", "Show ALL POSSIBLE tags for overrides: including Tags that could exist but currently dont"), FSlateIcon(), YesAction );
+
+		FUIAction NoAction( FExecuteAction::CreateSP( this, &SGameplayCueEditorImpl::HandleOverrideTypeChange, false ) );
+		MenuBuilder.AddMenuEntry( GetOverrideTypeDropDownText_Explicit(false), LOCTEXT("GameplayCueEditor", "ONLY show tags for overrides that exist/have been setup."), FSlateIcon(), NoAction );
+
+		return MenuBuilder.MakeWidget();
+	}
+
+	FText GetOverrideTypeDropDownText() const
+	{
+		return GetOverrideTypeDropDownText_Explicit(bShowAllOverrides);
+	}
+	
+	FText GetOverrideTypeDropDownText_Explicit(bool ShowAll) const
+	{
+		if (ShowAll)
+		{
+			return LOCTEXT("ShowAllOverrides_Tooltip_Yes", "Show all possible overrides");
+		}
+
+		return LOCTEXT("ShowAllOverrides_Tooltip_No", "Show only existing overrides");
+	}
+
+	EVisibility GetWaitingOnAssetRegistryVisiblity() const
+	{
+		if (UGameplayCueManager* CueManager = UAbilitySystemGlobals::Get().GetGameplayCueManager())
+		{
+			return CueManager->EditorObjectLibraryFullyInitialized ? EVisibility::Collapsed : EVisibility::Visible;
+		}
+		return EVisibility::Visible;
+	}
 };
 
 bool SGameplayCueEditorImpl::bSuppressCueViewUpdate = false;
@@ -1021,12 +1061,13 @@ void SGameplayCueEditorImpl::Construct(const FArguments& InArgs)
 	if (CueManager)
 	{
 		CueManager->OnGameplayCueNotifyAddOrRemove.AddSP(this, &SGameplayCueEditorImpl::OnPropertyValueChanged);
+		CueManager->OnEditorObjectLibraryUpdated.AddSP(this, &SGameplayCueEditorImpl::UpdateGameplayCueListItems);
+		CueManager->RequestPeriodicUpdateOfEditorObjectLibraryWhileWaitingOnAssetRegistry();
 	}
 
 	bShowAll = true;
 	bShowAllOverrides = false;
 	bShowOnlyLeafTags = true;
-	bHasLoadedAllGameplayCues = false;
 	bFilterIDsDirty = false;
 
 	bool CanAddFromINI = UGameplayTagsManager::Get().ShouldImportTagsFromINI(); // We only support adding new tags to the ini files.
@@ -1155,6 +1196,18 @@ void SGameplayCueEditorImpl::Construct(const FArguments& InArgs)
 			.Padding(2.0f, 2.0f)
 			.AutoWidth()
 			[
+				SNew( SComboButton )
+				.OnGetMenuContent( this, &SGameplayCueEditorImpl::OnGetShowOverrideTypeMenu )
+				.VAlign( VAlign_Center )
+				.ContentPadding(2)
+				.ButtonContent()
+				[
+					SNew( STextBlock )
+					.ToolTipText( LOCTEXT("ShowOverrideType", "Toggles how we display overrides. Either show the existing overrides, or show possible overrides") )
+					.Text( this, &SGameplayCueEditorImpl::GetOverrideTypeDropDownText )
+				]
+
+				/*
 				SNew(SCheckBox)
 				.IsChecked(this, &SGameplayCueEditorImpl::HandleShowAllOverridesCheckBoxIsChecked)
 				.OnCheckStateChanged(this, &SGameplayCueEditorImpl::HandleShowAllOverridesCheckedStateChanged)
@@ -1162,6 +1215,9 @@ void SGameplayCueEditorImpl::Construct(const FArguments& InArgs)
 					SNew(STextBlock)
 					.Text(LOCTEXT("ShowAllOverrides", "Show all possible overrides"))
 				]
+				*/
+
+
 			]
 
 #if GAMEPLAYCUEEDITOR_SHOW_ONLY_LEAFTAGS_OPTION
@@ -1177,9 +1233,23 @@ void SGameplayCueEditorImpl::Construct(const FArguments& InArgs)
 					.Text(LOCTEXT("ShowLeafTagsOnly", "Show leaf tags only"))
 				]
 			]
-#endif
+#endif			
+		]
+		
+		// ---------------------------------------------------------------
 
-			
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.Padding(2.0f)
+			.AutoWidth()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("WaitingOnAssetRegister", "Waiting on Asset Registry to finish loading (all tags are present but some GC Notifies may not yet be discovered)"))
+				.Visibility(this, &SGameplayCueEditorImpl::GetWaitingOnAssetRegistryVisiblity)
+			]
 		]
 		
 		// ---------------------------------------------------------------

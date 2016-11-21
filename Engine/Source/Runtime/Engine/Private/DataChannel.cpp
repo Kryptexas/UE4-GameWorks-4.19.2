@@ -960,11 +960,11 @@ FOutBunch* UChannel::PrepBunch(FOutBunch* Bunch, FOutBunch* OutBunch, bool Merge
 		Connection->LastOutBunch = OutBunch;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if (CVarNetReliableDebug.GetValueOnGameThread() == 1)
+		if (CVarNetReliableDebug.GetValueOnAnyThread() == 1)
 		{
 			UE_LOG(LogNetTraffic, Warning, TEXT("%s. Reliable: %s"), *Describe(), *Bunch->DebugString);
 		}
-		if (CVarNetReliableDebug.GetValueOnGameThread() == 2)
+		if (CVarNetReliableDebug.GetValueOnAnyThread() == 2)
 		{
 			UE_LOG(LogNetTraffic, Warning, TEXT("%s. Reliable: %s"), *Describe(), *Bunch->DebugString);
 			PrintReliableBunchBuffer();
@@ -1493,7 +1493,7 @@ void UActorChannel::Close()
 
 			// Validation checking
 			static const auto ValidateCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("net.DormancyValidate"));
-			if ( ValidateCVar && ValidateCVar->GetValueOnGameThread() > 0 )
+			if ( ValidateCVar && ValidateCVar->GetValueOnAnyThread() > 0 )
 			{
 				bKeepReplicators = true;		// We need to keep the replicators around so we can use
 			}
@@ -2299,7 +2299,7 @@ bool UActorChannel::ReplicateActor()
 	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (CVarNetReliableDebug.GetValueOnGameThread() > 0)
+	if (CVarNetReliableDebug.GetValueOnAnyThread() > 0)
 	{
 		Bunch.DebugString = FString::Printf(TEXT("%.2f ActorBunch: %s"), Connection->Driver->Time, *Actor->GetName() );
 	}

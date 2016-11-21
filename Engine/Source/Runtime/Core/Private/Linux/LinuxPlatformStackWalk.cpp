@@ -7,6 +7,7 @@
 #include "CorePrivatePCH.h"
 #include "Misc/App.h"
 #include "LinuxPlatformCrashContext.h"
+#include "ExceptionHandling.h"
 #include <execinfo.h>
 #include <dlfcn.h>
 #include <cxxabi.h>

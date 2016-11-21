@@ -42,11 +42,15 @@ FText SInputKeySelector::GetSelectedKeyText() const
 	}
 	else if ( SelectedKey.IsSet() )
 	{
-		// If the key in the chord is a modifier key, print it's display name directly since the FInputChord
-		// displays these as empty text.
-		return SelectedKey.Get().Key.IsModifierKey()
-			? SelectedKey.Get().Key.GetDisplayName()
-			: SelectedKey.Get().GetInputText();
+		if(SelectedKey.Get().Key.IsValid())
+		{
+			// If the key in the chord is a modifier key, print it's display name directly since the FInputChord
+					// displays these as empty text.
+			return SelectedKey.Get().Key.IsModifierKey()
+				? SelectedKey.Get().Key.GetDisplayName()
+				: SelectedKey.Get().GetInputText();
+		}
+		return FText();
 	}
 	return FText();
 }

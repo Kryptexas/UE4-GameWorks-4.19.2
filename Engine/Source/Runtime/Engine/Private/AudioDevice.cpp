@@ -2690,6 +2690,15 @@ int32 FAudioDevice::GetSortedActiveWaveInstances(TArray<FWaveInstance*>& WaveIns
 		}
 	}
 
+	// Remove all wave instances from the wave instance list that are stopping due to max concurrency
+	for (int32 i = WaveInstances.Num() - 1; i >= 0; --i)
+	{
+		if (WaveInstances[i]->ShouldStopDueToMaxConcurrency())
+		{
+			WaveInstances.RemoveAtSwap(i, 1, false);
+		}
+	}
+
 	int32 FirstActiveIndex = 0;
 
 	if (WaveInstances.Num() >= 0)

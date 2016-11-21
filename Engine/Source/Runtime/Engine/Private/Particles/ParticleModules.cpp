@@ -3135,13 +3135,13 @@ uint64 UParticleModuleLight::SpawnHQLight(const FLightParticlePayload& Payload, 
 			PointLightComponent->SetupAttachment(RootComponent);
 		}			
 		PointLightComponent->CreationMethod = ParticleSystem->CreationMethod;
-		PointLightComponent->RegisterComponent();
-		Owner->HighQualityLights.Add(PointLightComponent);
-			
-			
+		PointLightComponent->LightingChannels = LightingChannels;
 		PointLightComponent->bUseInverseSquaredFalloff = bUseInverseSquaredFalloff;
 		PointLightComponent->bAffectTranslucentLighting = bAffectsTranslucency;
 		PointLightComponent->SetCastShadows(bShadowCastingLights);
+
+		PointLightComponent->RegisterComponent();
+		Owner->HighQualityLights.Add(PointLightComponent);
 
 		int32 ScreenAlignment;
 		FVector ComponentScale;

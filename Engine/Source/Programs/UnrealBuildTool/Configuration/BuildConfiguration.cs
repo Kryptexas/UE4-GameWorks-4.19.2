@@ -39,6 +39,14 @@ namespace UnrealBuildTool
 		public static bool bUseAdaptiveUnityBuild;
 
 		/// <summary>
+		/// An experimental new feature that, when enabled, will disable optimization of files that are omitted from Unity so they they become
+		/// easier to debug.
+		/// IMPORTANT: This feature is not complete yet!  Currently, it requires source files to be read-only that you aren't actively working with!
+		/// </summary>
+		[XmlConfig]
+		public static bool bAdaptiveUnityDisablesOptimizations;
+
+		/// <summary>
 		/// The number of source files in a game module before unity build will be activated for that module.  This
 		/// allows small game modules to have faster iterative compile times for single files, at the expense of slower full
 		/// rebuild times.  This setting can be overridden by the bFasterWithoutUnity option in a module's Build.cs file.
@@ -235,6 +243,13 @@ namespace UnrealBuildTool
 		/// </summary>
 		[XmlConfig]
 		public static bool bAllowLTCG;
+
+		/// <summary>
+		/// Whether to allow the use of ASLR (address space layout randomization) if supported. Only
+		/// applies to shipping builds.
+		/// </summary>
+		[XmlConfig]
+		public static bool bAllowASLRInShipping;
 
 		/// <summary>
 		/// Whether to support edit and continue.  Only works on Microsoft compilers in 32-bit compiles.
@@ -567,6 +582,7 @@ namespace UnrealBuildTool
 		public static void LoadDefaults()
 		{
 			bAllowLTCG = false;
+			bAllowASLRInShipping = true;
 			bAllowRemotelyCompiledPCHs = false;
 			bAllowXGE = true;
 			bXGENoWatchdogThread = false;
@@ -626,6 +642,11 @@ namespace UnrealBuildTool
 			// This experimental feature may help to improve iterative compile times when working on code, but is
 			// disabled by default until we test it sufficiently
 			bUseAdaptiveUnityBuild = true;
+
+            // This experimental feature may help to improve debugging when working on optimized builds. If a file is omitted from
+            // unity compilation due to being checked-out / editable, an assumption is made that you are working on this file
+            // and may be debugging it. Disabled by default until we test it sufficiently
+            bAdaptiveUnityDisablesOptimizations = false;
 
 			bForceUnityBuild = false;
 

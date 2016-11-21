@@ -561,7 +561,8 @@ protected:
 public:
 	FFunctionalTestDoneSignature TestFinishedObserver;
 
-protected:
+	// AG TEMP - solving a compile issue in a temp way to unblock the bui.d
+	UPROPERTY(Transient)
 	bool bIsRunning;
 
 	TArray<FString> Steps;

@@ -1,6 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
-#include "AbilityTask.h"
+#include "AbilityTask_ApplyRootMotion_Base.h"
 #include "AbilityTask_ApplyRootMotionRadialForce.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FApplyRootMotionRadialForceDelegate);
@@ -11,20 +11,16 @@ class AActor;
  *	Applies force to character's movement
  */
 UCLASS(MinimalAPI)
-class UAbilityTask_ApplyRootMotionRadialForce : public UAbilityTask
+class UAbilityTask_ApplyRootMotionRadialForce : public UAbilityTask_ApplyRootMotion_Base
 {
 	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(BlueprintAssignable)
 	FApplyRootMotionRadialForceDelegate OnFinish;
 
-	virtual void InitSimulatedTask(UGameplayTasksComponent& InGameplayTasksComponent) override;
-
 	/** Apply force to character's movement */
 	UFUNCTION(BlueprintCallable, Category = "Ability|Tasks", meta = (HidePin = "OwningAbility", DefaultToSelf = "OwningAbility", BlueprintInternalUseOnly = "TRUE"))
-	static UAbilityTask_ApplyRootMotionRadialForce* ApplyRootMotionRadialForce(UGameplayAbility* OwningAbility, FName TaskInstanceName, FVector Location, AActor* LocationActor, float Strength, float Duration, float Radius, bool bIsPush, bool bIsAdditive, bool bNoZForce, UCurveFloat* StrengthDistanceFalloff, UCurveFloat* StrengthOverTime, bool bUseFixedWorldDirection, FRotator FixedWorldDirection);
-
-	virtual void Activate() override;
+	static UAbilityTask_ApplyRootMotionRadialForce* ApplyRootMotionRadialForce(UGameplayAbility* OwningAbility, FName TaskInstanceName, FVector Location, AActor* LocationActor, float Strength, float Duration, float Radius, bool bIsPush, bool bIsAdditive, bool bNoZForce, UCurveFloat* StrengthDistanceFalloff, UCurveFloat* StrengthOverTime, bool bUseFixedWorldDirection, FRotator FixedWorldDirection, ERootMotionFinishVelocityMode VelocityOnFinishMode, FVector SetVelocityOnFinish, float ClampVelocityOnFinish);
 
 	/** Tick function for this task, if bTickingTask == true */
 	virtual void TickTask(float DeltaTime) override;
@@ -34,8 +30,9 @@ class UAbilityTask_ApplyRootMotionRadialForce : public UAbilityTask
 
 protected:
 
-	UPROPERTY(Replicated)
-	FName ForceName;
+	virtual void SharedInitAndApply() override;
+
+protected:
 
 	UPROPERTY(Replicated)
 	FVector Location;
@@ -84,14 +81,15 @@ protected:
 	UPROPERTY(Replicated)
 	FRotator FixedWorldDirection;
 
-	uint16 RootMotionSourceID;
-	bool bIsFinished;
-	float StartTime;
-	float EndTime;
+	/** What to do with character's Velocity when root motion finishes */
+	UPROPERTY(Replicated)
+	ERootMotionFinishVelocityMode VelocityOnFinishMode;
 
-	void SharedInitAndApply();
+	/** If VelocityOnFinish mode is "SetVelocity", character velocity is set to this value when root motion finishes */
+	UPROPERTY(Replicated)
+	FVector SetVelocityOnFinish;
 
-	UPROPERTY()
-	UCharacterMovementComponent* MovementComponent;
-
+	/** If VelocityOnFinish mode is "ClampVelocity", character velocity is clamped to this value when root motion finishes */
+	UPROPERTY(Replicated)
+	float ClampVelocityOnFinish;
 };

@@ -835,6 +835,11 @@ void UTimelineComponent::SetTimelineFinishedFunc(FOnTimelineEvent NewTimelineFin
 	TheTimeline.SetTimelineFinishedFunc(NewTimelineFinishedFunc);
 }
 
+void UTimelineComponent::SetTimelineFinishedFunc(FOnTimelineEventStatic NewTimelineFinishedFunc)
+{
+	TheTimeline.SetTimelineFinishedFunc(NewTimelineFinishedFunc);
+}
+
 ETimelineSigType UTimelineComponent::GetTimelineSignatureForFunction(const UFunction* Func)
 {
 	if(Func != NULL)

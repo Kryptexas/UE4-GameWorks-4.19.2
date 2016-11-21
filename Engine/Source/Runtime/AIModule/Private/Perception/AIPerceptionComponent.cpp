@@ -95,6 +95,11 @@ UAISenseConfig* UAIPerceptionComponent::GetSenseConfig(const FAISenseID& SenseID
 void UAIPerceptionComponent::PostInitProperties() 
 {
 	Super::PostInitProperties();
+
+	if (DominantSense)
+	{
+		DominantSenseID = UAISense::GetSenseID(DominantSense);
+	}
 }
 
 void UAIPerceptionComponent::ConfigureSense(UAISenseConfig& Config)
@@ -584,6 +589,17 @@ bool UAIPerceptionComponent::HasAnyActiveStimulus(const AActor& Source) const
 	}
 
 	return Info->HasAnyKnownStimulus();
+}
+
+bool UAIPerceptionComponent::HasAnyCurrentStimulus(const AActor& Source) const
+{
+	const FActorPerceptionInfo* Info = GetActorInfo(Source);
+	if (Info == NULL)
+	{
+		return false;
+	}
+
+	return Info->HasAnyCurrentStimulus();
 }
 
 bool UAIPerceptionComponent::HasActiveStimulus(const AActor& Source, FAISenseID Sense) const

@@ -485,6 +485,8 @@ public:
 
 	bool IsEmpty() const;
 
+	int32 GetLineCount() const;
+
 	void GetAsText(FString& DisplayText, FTextOffsetLocations* const OutTextOffsetLocations = nullptr) const;
 
 	void GetAsText(FText& DisplayText, FTextOffsetLocations* const OutTextOffsetLocations = nullptr) const;

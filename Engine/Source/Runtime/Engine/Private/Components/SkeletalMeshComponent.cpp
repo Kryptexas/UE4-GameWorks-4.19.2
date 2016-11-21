@@ -784,7 +784,19 @@ bool USkeletalMeshComponent::ShouldTickPose() const
 	// When we stop root motion we go back to ticking after CharacterMovement. Unfortunately that means that we could tick twice that frame.
 	// So only enforce a single tick per frame.
 	const bool bAlreadyTickedThisFrame = PoseTickedThisFrame();
-	return (Super::ShouldTickPose() && IsRegistered() && (AnimScriptInstance || PostProcessAnimInstance) && !bAutonomousTickPose && !bPauseAnims && GetWorld()->AreActorsInitialized() && !bNoSkeletonUpdate && !bAlreadyTickedThisFrame);
+
+	// Autonomous Ticking is allowed to occur multiple times per frame, as we can receive and process multiple networking updates the same frame.
+	const bool bShouldTickBasedOnAutonomousCheck = bIsAutonomousTickPose || (!bOnlyAllowAutonomousTickPose && !bAlreadyTickedThisFrame);
+
+	const bool bIsPlayingNetworkedRootMotionMontage = (GetAnimInstance() != nullptr)
+		? (GetAnimInstance()->RootMotionMode == ERootMotionMode::RootMotionFromMontagesOnly) && (GetAnimInstance()->GetRootMotionMontageInstance() != nullptr)
+		: false;
+
+	// When playing networked Root Motion Montages, we want these to play on dedicated servers and remote clients for networking and position correction purposes.
+	// So we force pose updates in that case to keep root motion and position in sync.
+	const bool bShouldTickBasedOnVisibility = ((MeshComponentUpdateFlag < EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered) || bRecentlyRendered || bIsPlayingNetworkedRootMotionMontage);
+
+	return (bShouldTickBasedOnVisibility && bShouldTickBasedOnAutonomousCheck && IsRegistered() && (AnimScriptInstance || PostProcessAnimInstance) && !bPauseAnims && GetWorld()->AreActorsInitialized() && !bNoSkeletonUpdate);
 }
 
 static FThreadSafeCounter Ticked;
@@ -1483,7 +1495,7 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 
 	const bool bInvalidCachedCurve = bDoEvaluationRateOptimization && 
 									CurrentAnimCurveMappingNameUids != nullptr &&
-									((CachedCurve.Num() != GetCurveNumber(SkeletalMesh->Skeleton)) || (CachedCurve.UIDList != CurrentAnimCurveMappingNameUids));
+									((CachedCurve.Num() != GetCurveNumber(SkeletalMesh->Skeleton)) || (CachedCurve.UIDList != CurrentAnimCurveMappingNameUids) || (AnimCurves.Num() != GetCurveNumber(SkeletalMesh->Skeleton)));
 
 	const bool bShouldDoEvaluation = !bDoEvaluationRateOptimization || bInvalidCachedBones || bInvalidCachedCurve || !AnimUpdateRateParams->ShouldSkipEvaluation();
 
@@ -1583,7 +1595,7 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 			}
 			else
 			{
-				PerformAnimationEvaluation(SkeletalMesh, AnimScriptInstance, GetEditableComponentSpaceTransforms(), BoneSpaceTransforms, RootBoneTranslation, AnimEvaluationContext.Curve);
+				PerformAnimationEvaluation(SkeletalMesh, AnimScriptInstance, GetEditableComponentSpaceTransforms(), BoneSpaceTransforms, RootBoneTranslation, AnimCurves);
 			}
 		}
 		else
@@ -1598,7 +1610,7 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 				LocalEditableSpaceBases.Append(CachedComponentSpaceTransforms);
 				if (CachedCurve.IsValid())
 				{
-					AnimEvaluationContext.Curve.CopyFrom(CachedCurve);
+					AnimCurves.CopyFrom(CachedCurve);
 				}
 			}
 			if(AnimEvaluationContext.bDoUpdate)
@@ -1659,7 +1671,7 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 
 	if (EvaluationContext.bDuplicateToCacheCurve)
 	{
-		CachedCurve.CopyFrom(EvaluationContext.Curve);
+		CachedCurve.CopyFrom(AnimCurves);
 	}
 	
 	if (EvaluationContext.bDuplicateToCacheBones)
@@ -1695,20 +1707,20 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 		FillComponentSpaceTransforms(SkeletalMesh, BoneSpaceTransforms, GetEditableComponentSpaceTransforms());
 
 		// interpolate curve
-		EvaluationContext.Curve.LerpTo(CachedCurve, Alpha);
+		AnimCurves.LerpTo(CachedCurve, Alpha);
 	}
 
 	if(AnimScriptInstance)
 	{
 #if WITH_EDITOR
-		GetEditableAnimationCurves() = EvaluationContext.Curve;
+		GetEditableAnimationCurves() = AnimCurves;
 #endif 
 		// curve update happens first
-		AnimScriptInstance->UpdateCurves(EvaluationContext.Curve);
+		AnimScriptInstance->UpdateCurves(AnimCurves);
 
 		for(UAnimInstance* SubInstance : SubInstances)
 		{
-			SubInstance->UpdateCurves(EvaluationContext.Curve);
+			SubInstance->UpdateCurves(AnimCurves);
 		}
 	}
 
@@ -2666,6 +2678,7 @@ void USkeletalMeshComponent::CompleteParallelAnimationEvaluation(bool bDoPostAni
 
 			Exchange(AnimEvaluationContext.ComponentSpaceTransforms, AnimEvaluationContext.bDoInterpolation ? CachedComponentSpaceTransforms : GetEditableComponentSpaceTransforms());
 			Exchange(AnimEvaluationContext.BoneSpaceTransforms, AnimEvaluationContext.bDoInterpolation ? CachedBoneSpaceTransforms : BoneSpaceTransforms);
+			Exchange(AnimEvaluationContext.Curve, AnimEvaluationContext.bDoInterpolation ? CachedCurve : AnimCurves);
 			Exchange(AnimEvaluationContext.RootBoneTranslation, RootBoneTranslation);
 		}
 

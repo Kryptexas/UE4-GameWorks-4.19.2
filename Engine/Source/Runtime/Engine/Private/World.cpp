@@ -4374,6 +4374,11 @@ bool UWorld::Listen( FURL& InURL )
 		{
 			SourceCollection->SetNetDriver(NetDriver);
 		}
+		FLevelCollection* const StaticCollection = FindCollectionByType(ELevelCollectionType::StaticLevels);
+		if (StaticCollection)
+		{
+			StaticCollection->SetNetDriver(NetDriver);
+		}
 	}
 
 	if (NetDriver == NULL)
@@ -4393,6 +4398,11 @@ bool UWorld::Listen( FURL& InURL )
 		if (SourceCollection)
 		{
 			SourceCollection->SetNetDriver(nullptr);
+		}
+		FLevelCollection* StaticCollection = FindCollectionByType(ELevelCollectionType::StaticLevels);
+		if (StaticCollection)
+		{
+			StaticCollection->SetNetDriver(nullptr);
 		}
 		return false;
 	}
@@ -4704,6 +4714,11 @@ bool FSeamlessTravelHandler::StartTravel(UWorld* InCurrentWorld, const FURL& InU
 				bCancelledExisting = true;
 			}
 
+			if (CurrentWorld->DemoNetDriver && CurrentWorld->DemoNetDriver->IsRecording())
+			{
+				CurrentWorld->DemoNetDriver->PauseRecording(true);
+			}
+
 			checkSlow(LoadedPackage == NULL);
 			checkSlow(LoadedWorld == NULL);
 
@@ -4896,10 +4911,12 @@ void FSeamlessTravelHandler::StartLoadingDestination()
 void FSeamlessTravelHandler::CopyWorldData()
 {
 	FLevelCollection* const CurrentCollection = CurrentWorld->FindCollectionByType(ELevelCollectionType::DynamicSourceLevels);
+	FLevelCollection* const CurrentStaticCollection = CurrentWorld->FindCollectionByType(ELevelCollectionType::StaticLevels);
 	FLevelCollection* const LoadedCollection = LoadedWorld->FindCollectionByType(ELevelCollectionType::DynamicSourceLevels);
+	FLevelCollection* const LoadedStaticCollection = LoadedWorld->FindCollectionByType(ELevelCollectionType::StaticLevels);
 
 	// If we are doing seamless travel for replay playback, then make sure to transfer the replay driver over to the new world
-	if ( CurrentWorld->DemoNetDriver && CurrentWorld->DemoNetDriver->IsPlaying() )
+	if ( CurrentWorld->DemoNetDriver && ( CurrentWorld->DemoNetDriver->IsPlaying() || CurrentWorld->DemoNetDriver->bRecordMapChanges) )
 	{
 		UDemoNetDriver* OldDriver = CurrentWorld->DemoNetDriver;
 		CurrentWorld->DemoNetDriver = nullptr;
@@ -4929,6 +4946,11 @@ void FSeamlessTravelHandler::CopyWorldData()
 	{
 		LoadedCollection->SetNetDriver(NetDriver);
 		CurrentCollection->SetNetDriver(nullptr);
+	}
+	if (CurrentStaticCollection && LoadedStaticCollection)
+	{
+		LoadedStaticCollection->SetNetDriver(NetDriver);
+		CurrentStaticCollection->SetNetDriver(nullptr);
 	}
 
 	if (NetDriver != NULL)
@@ -5016,7 +5038,7 @@ UWorld* FSeamlessTravelHandler::Tick()
 			}
 			
 			// If it's not still playing, destroy the demo net driver before we start renaming actors.
-			if ( CurrentWorld->DemoNetDriver && !CurrentWorld->DemoNetDriver->IsPlaying() )
+			if ( CurrentWorld->DemoNetDriver && !CurrentWorld->DemoNetDriver->IsPlaying() && !CurrentWorld->DemoNetDriver->bRecordMapChanges)
 			{
 				CurrentWorld->DestroyDemoNetDriver();
 			}

@@ -255,6 +255,9 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_AnimDynamics : public FAnimNode_SkeletalCo
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Wind)
 	bool bEnableWind;
 
+	UPROPERTY(Transient)
+	bool bWindWasEnabled;
+
 	/** Scale to apply to calculated wind velocities in the solver */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Wind)
 	float WindScale;

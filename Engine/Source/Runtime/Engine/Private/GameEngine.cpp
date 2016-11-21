@@ -57,6 +57,12 @@ static FAutoConsoleVariableRef CvarSlowFrameLoggingThreshold(
 	ECVF_Default
 	);
 
+static int32 GDoAsyncEndOfFrameTasks = 0;
+static FAutoConsoleVariableRef CVarDoAsyncEndOfFrameTasks(
+	TEXT("tick.DoAsyncEndOfFrameTasks"),
+	GDoAsyncEndOfFrameTasks,
+	TEXT("Experimental option to run various things concurrently with the HUD render.")
+	);
 
 /** Benchmark results to the log */
 static void RunSynthBenchmark(const TArray<FString>& Args)
@@ -745,6 +751,11 @@ bool UGameEngine::NetworkRemapPath(UNetDriver* Driver, FString& Str, bool bReadi
 	}
 
 	return false;
+}
+
+bool UGameEngine::ShouldDoAsyncEndOfFrameTasks() const
+{
+	return FApp::ShouldUseThreadingForPerformance() && ENamedThreads::RenderThread != ENamedThreads::GameThread && !!GDoAsyncEndOfFrameTasks;
 }
 
 /*-----------------------------------------------------------------------------

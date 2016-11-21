@@ -12,6 +12,8 @@ class UWorld;
 class APlayerController;
 struct FJoinabilitySettings;
 
+DECLARE_LOG_CATEGORY_EXTERN(LogGameSession, Log, All);
+
 /**
 Acts as a game-specific wrapper around the session interface. The game code makes calls to this when it needs to interact with the session interface.
 A game session exists only the server, while running an online game.
@@ -196,16 +198,6 @@ class ENGINE_API AGameSession : public AInfo
 	 * @param bJoinViaPresenceFriendsOnly can only friends actively join your game 
 	 */
 	virtual void UpdateSessionJoinability(FName InSessionName, bool bPublicSearchable, bool bAllowInvites, bool bJoinViaPresence, bool bJoinViaPresenceFriendsOnly);
-
-	/**
-	 * Travel to a session URL (as client) for a given session
-	 *
-	 * @param ControllerId controller initiating the session travel
-	 * @param SessionName name of session to travel to
-	 *
-	 * @return true if successful, false otherwise
-	 */
-	virtual bool TravelToSession(int32 ControllerId, FName InSessionName);
 
     /**
      * Does the session require push to talk

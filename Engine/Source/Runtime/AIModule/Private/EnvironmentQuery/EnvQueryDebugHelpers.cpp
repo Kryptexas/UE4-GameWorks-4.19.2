@@ -199,6 +199,13 @@ void UEnvQueryDebugHelpers::LogQueryInternal(FEnvQueryInstance& Query, const FLo
 		// draw test weights for best X items
 		const int32 NumItems = EQSLocalData.Items.Num();
 
+		// print sorted tests' descriptions, to be able to tie TestIdx with an actual test
+		const FEnvQueryOptionInstance& Option = Query.Options[Query.OptionIndex];
+		for (int32 TestIdx = 0; TestIdx < NumTests; TestIdx++)
+		{
+			Line.Line += FString::Printf(TEXT("%d: %s\n"), TestIdx, *Option.Tests[TestIdx]->GetDescriptionTitle().ToString());
+		}
+
 		// table header		
 		{
 			FString HeaderString;

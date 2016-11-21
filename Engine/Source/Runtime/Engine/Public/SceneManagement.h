@@ -1287,31 +1287,32 @@ public:
 	void SetTransform(const FMatrix& InTransform);
 };
 
+/** Calculated wind data with support for accumulating other weighted wind data */
+class ENGINE_API FWindData
+{
+public:
+	FWindData()
+		: Speed(0.0f)
+		, MinGustAmt(0.0f)
+		, MaxGustAmt(0.0f)
+		, Direction(1.0f, 0.0f, 0.0f)
+	{
+	}
+
+	void PrepareForAccumulate();
+	void AddWeighted(const FWindData& InWindData, float Weight);
+	void NormalizeByTotalWeight(float TotalWeight);
+
+	float Speed;
+	float MinGustAmt;
+	float MaxGustAmt;
+	FVector Direction;
+};
+
 /** Represents a wind source component to the scene manager in the rendering thread. */
 class ENGINE_API FWindSourceSceneProxy
 {
 public:	
-
-	class ENGINE_API FWindData
-	{
-	public:
-		FWindData()
-			: Speed(0.0f)
-			, MinGustAmt(0.0f)
-			, MaxGustAmt(0.0f)
-			, Direction(1.0f, 0.0f, 0.0f)
-		{
-		}
-
-		void PrepareForAccumulate();
-		void AddWeighted(const FWindData& InWindData, float Weight);
-		void NormalizeByTotalWeight(float TotalWeight);
-
-		float Speed;
-		float MinGustAmt;
-		float MaxGustAmt;
-		FVector Direction;
-	};
 
 	/** Initialization constructor. */
 	FWindSourceSceneProxy(const FVector& InDirection, float InStrength, float InSpeed, float InMinGustAmt, float InMaxGustAmt) :

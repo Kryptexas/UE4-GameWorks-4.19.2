@@ -185,6 +185,10 @@ protected:
 
 		Result->AddAttr(buzz::QN_TO, ToJid.Str());
 		Result->AddAttr(buzz::QN_TYPE, ChatType);
+
+		// Add CorrelationID for tracking purposes
+		FXmppJingle::AddCorrIdToStanza(*Result);
+
 		buzz::XmlElement* Body = new buzz::XmlElement(buzz::QN_BODY);
 		Body->SetBodyText(Message.Body);
 		Result->AddElement(Body);

@@ -374,7 +374,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 					for(int32 i = 0; i < SelfPin->LinkedTo.Num(); i++)
 					{
 						FBPTerminal** pContextTerm = Context.NetMap.Find(SelfPin->LinkedTo[i]);
-						if(ensure(pContextTerm != nullptr))
+						if(ensureMsgf(pContextTerm != nullptr, TEXT("'%s' is missing a target input - if this is a server build, the input may be a cosmetic only property which was discarded (if this is the case, and this is expecting component variable try resaving.)"), *Node->GetPathName()))
 						{
 							CheckAndAddSelfTermLambda(*pContextTerm);
 						}

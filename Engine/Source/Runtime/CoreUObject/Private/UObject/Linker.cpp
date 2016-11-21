@@ -333,6 +333,11 @@ FLinker::~FLinker()
 
 void ResetLoaders(UObject* InPkg)
 {
+	if (IsAsyncLoading())
+	{
+		UE_LOG(LogLinker, Log, TEXT("ResetLoaders(%s) is flushing async loading"), *GetPathNameSafe(InPkg));
+	}
+
 	// Make sure we're not in the middle of loading something in the background.
 	FlushAsyncLoading();
 	FLinkerManager::Get().ResetLoaders(InPkg);

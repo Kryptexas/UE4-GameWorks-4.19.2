@@ -348,9 +348,6 @@ public:
 	UPROPERTY(BlueprintReadOnly, replicatedUsing=OnRep_IsCrouched, Category=Character)
 	uint32 bIsCrouched:1;
 
-	UPROPERTY( replicated )
-	uint32 bReplayHasRootMotionSources:1;
-
 	/** Handle Crouching replicated from server */
 	UFUNCTION()
 	virtual void OnRep_IsCrouched();

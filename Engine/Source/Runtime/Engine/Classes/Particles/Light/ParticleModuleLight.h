@@ -49,6 +49,14 @@ class UParticleModuleLight : public UParticleModuleLightBase
 	UPROPERTY(EditAnywhere, Category=Light)
 	struct FRawDistributionFloat LightExponent;
 
+	/**
+	* Channels that this light should affect.
+	* Only affect high quality lights
+	* These channels only apply to opaque materials, direct lighting, and dynamic lighting and shadowing.
+	*/
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Light)
+	FLightingChannels LightingChannels;
+
 	UPROPERTY(EditAnywhere, Category = Light)
 	bool bHighQualityLights;
 

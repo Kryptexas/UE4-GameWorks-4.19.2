@@ -1336,7 +1336,7 @@ protected:
 	void RenderCustomDepthPassAtLocation(FRHICommandListImmediate& RHICmdList, int32 Location);
 	void RenderCustomDepthPass(FRHICommandListImmediate& RHICmdList);
 
-	void OnStartFrame();
+	void OnStartFrame(FRHICommandListImmediate& RHICmdList);
 
 	/** Renders the scene's distortion */
 	void RenderDistortion(FRHICommandListImmediate& RHICmdList);

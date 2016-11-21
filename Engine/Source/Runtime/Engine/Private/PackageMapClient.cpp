@@ -510,7 +510,7 @@ void UPackageMapClient::InternalWriteObject( FArchive & Ar, FNetworkGUID NetGUID
 
 	const bool bNoLoad = !CanClientLoadObject( Object, NetGUID );
 
-	if ( CVarAllowAsyncLoading.GetValueOnGameThread() > 0 && IsNetGUIDAuthority() && !GuidCache->IsExportingNetGUIDBunch && !bNoLoad )
+	if ( CVarAllowAsyncLoading.GetValueOnAnyThread() > 0 && IsNetGUIDAuthority() && !GuidCache->IsExportingNetGUIDBunch && !bNoLoad )
 	{
 		// These are guids that must exist on the client in a package
 		// The client needs to know about these so it can determine if it has finished loading them
@@ -798,7 +798,7 @@ FNetworkGUID UPackageMapClient::InternalLoadObject( FArchive & Ar, UObject *& Ob
 				return NetGUID;
 			}
 
-			if ( NetworkChecksum != 0 && GuidCache->NetworkChecksumMode == FNetGUIDCache::NETCHECKSUM_SaveAndUse && !CVarIgnoreNetworkChecksumMismatch.GetValueOnGameThread() )
+			if ( NetworkChecksum != 0 && GuidCache->NetworkChecksumMode == FNetGUIDCache::NETCHECKSUM_SaveAndUse && !CVarIgnoreNetworkChecksumMismatch.GetValueOnAnyThread() )
 			{
 				const uint32 CompareNetworkChecksum = GuidCache->GetNetworkChecksum( Object );
 
@@ -2314,7 +2314,7 @@ UObject* FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const
 			//	3. We're actually suppose to load (levels don't load here for example)
 			//		(Refer to CanClientLoadObject, which is where we protect clients from trying to load levels)
 			
-			if ( CVarAllowAsyncLoading.GetValueOnGameThread() > 0 )
+			if ( CVarAllowAsyncLoading.GetValueOnAnyThread() > 0 )
 			{
 				if (!PendingAsyncPackages.Contains(CacheObjectPtr->PathName))
 				{
@@ -2347,7 +2347,7 @@ UObject* FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const
 			//	2. Someone else started async loading the outer package, and it's not fully loaded yet
 			Object = StaticLoadObject( UObject::StaticClass(), ObjOuter, *CacheObjectPtr->PathName.ToString(), NULL, LOAD_NoWarn );
 
-			if ( CVarAllowAsyncLoading.GetValueOnGameThread() > 0 )
+			if ( CVarAllowAsyncLoading.GetValueOnAnyThread() > 0 )
 			{
 				UE_LOG( LogNetPackageMap, Error, TEXT( "GetObjectFromNetGUID: Forced blocking load. Path: %s, NetGUID: %s" ), *CacheObjectPtr->PathName.ToString(), *NetGUID.ToString() );
 			}
@@ -2380,7 +2380,7 @@ UObject* FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const
 		if (!Package->IsFullyLoaded() 
 			&& !Package->HasAnyPackageFlags(EPackageFlags::PKG_CompiledIn)) //TODO: dependencies of CompiledIn could still be loaded asynchronously. Are they necessary at this point??
 		{
-			if ( CVarAllowAsyncLoading.GetValueOnGameThread() > 0 )
+			if ( CVarAllowAsyncLoading.GetValueOnAnyThread() > 0 )
 			{
 				if (Package->HasAnyInternalFlags(EInternalObjectFlags::AsyncLoading))
 				{
@@ -2401,13 +2401,18 @@ UObject* FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID& NetGUID, const
 			else
 			{
 				// If package isn't fully loaded, flush async loading now
+				if (IsAsyncLoading())
+				{
+					UE_LOG(LogNetPackageMap, Log, TEXT("FNetGUIDCache::GetObjectFromNetGUID for package %s is flushing async loading"), *Package->GetPathName());
+				}
+
 				FlushAsyncLoading(); 
-				check(Package->IsFullyLoaded());
+				checkf(Package->IsFullyLoaded(), TEXT("Package %s did not become loaded after FlushAsyncLoading"), *Package->GetPathName());
 			}
 		}
 	}
 
-	if ( CacheObjectPtr->NetworkChecksum != 0 && !CVarIgnoreNetworkChecksumMismatch.GetValueOnGameThread() )
+	if ( CacheObjectPtr->NetworkChecksum != 0 && !CVarIgnoreNetworkChecksumMismatch.GetValueOnAnyThread() )
 	{
 		const uint32 NetworkChecksum = GetNetworkChecksum( Object );
 

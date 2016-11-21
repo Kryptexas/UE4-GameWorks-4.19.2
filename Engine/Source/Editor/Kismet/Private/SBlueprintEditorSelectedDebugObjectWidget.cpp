@@ -564,19 +564,21 @@ TSharedPtr<FString> SBlueprintEditorSelectedDebugObjectWidget::GetDebugObjectNam
 TSharedPtr<FString> SBlueprintEditorSelectedDebugObjectWidget::GetDebugWorldName() const
 {
 	check(GetBlueprintObj());
-	check(DebugWorlds.Num() == DebugWorldNames.Num());
-	if (UObject* DebugObj = GetBlueprintObj()->GetObjectBeingDebugged())
+	if (ensure(DebugWorlds.Num() == DebugWorldNames.Num()))
 	{
-		for (int32 WorldIdx = 0; WorldIdx < DebugWorlds.Num(); ++WorldIdx)
+		if (UObject* DebugObj = GetBlueprintObj()->GetObjectBeingDebugged())
 		{
-			if (DebugObj->IsIn(DebugWorlds[WorldIdx].Get()))
+			for (int32 WorldIdx = 0; WorldIdx < DebugWorlds.Num(); ++WorldIdx)
 			{
-				return DebugWorldNames[WorldIdx];
+				if (DebugObj->IsIn(DebugWorlds[WorldIdx].Get()))
+				{
+					return DebugWorldNames[WorldIdx];
+				}
 			}
 		}
 	}
-	return DebugWorldNames[0];
 
+	return DebugWorldNames[0];
 }
 
 void SBlueprintEditorSelectedDebugObjectWidget::DebugWorldSelectionChanged(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo)

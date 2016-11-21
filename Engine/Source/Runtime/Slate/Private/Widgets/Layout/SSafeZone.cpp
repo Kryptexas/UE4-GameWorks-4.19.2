@@ -24,6 +24,13 @@ void SSafeZone::Construct( const FArguments& InArgs )
 	bPadBottom = InArgs._PadBottom;
 
 	SetTitleSafe(bIsTitleSafe);
+
+	FCoreDelegates::OnSafeFrameChangedEvent.AddSP(this, &SSafeZone::SafeAreaUpdated);
+}
+
+void SSafeZone::SafeAreaUpdated()
+{
+	SetTitleSafe(bIsTitleSafe);
 }
 
 void SSafeZone::SetTitleSafe( bool InIsTitleSafe )

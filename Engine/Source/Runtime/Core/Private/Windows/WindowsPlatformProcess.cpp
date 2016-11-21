@@ -711,7 +711,16 @@ const TCHAR* FWindowsPlatformProcess::BaseDir()
 		// workingdir in your debugger to the <path>/Project/Binaries/Win64 of your cooked
 		// data
 		// Too early to use the FCommand line interface
-		if (FCString::Stristr(::GetCommandLine(), TEXT("-BaseFromWorkingDir")))
+		FString BaseArg;
+		FParse::Value(::GetCommandLine(), TEXT("-basedir="), BaseArg);
+
+		if (BaseArg.Len())
+		{
+			BaseArg = BaseArg.Replace(TEXT("\\"), TEXT("/"));
+			BaseArg += TEXT('/');
+			FCString::Strcpy(Result, *BaseArg);
+		}
+		else if (FCString::Stristr(::GetCommandLine(), TEXT("-BaseFromWorkingDir")))
 		{
 			::GetCurrentDirectory(512, Result);
 

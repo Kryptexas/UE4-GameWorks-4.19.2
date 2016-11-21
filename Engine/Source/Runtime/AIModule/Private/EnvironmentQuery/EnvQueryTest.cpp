@@ -21,6 +21,7 @@ UEnvQueryTest::UEnvQueryTest(const FObjectInitializer& ObjectInitializer) : Supe
 	ClampMaxType = EEnvQueryTestClamping::None;
 	BoolValue.DefaultValue = true;
 	ScoringFactor.DefaultValue = 1.0f;
+	NormalizationType = EEQSNormalizationType::Absolute;
 
 	bWorkOnFloatValues = true;
 }
@@ -36,7 +37,7 @@ void UEnvQueryTest::NormalizeItemScores(FEnvQueryInstance& QueryInstance)
 	ScoringFactor.BindData(QueryOwner, QueryInstance.QueryID);
 	float ScoringFactorValue = ScoringFactor.GetValue();
 
-	float MinScore = 0;
+	float MinScore = (NormalizationType == EEQSNormalizationType::Absolute) ? 0 : BIG_NUMBER;
 	float MaxScore = -BIG_NUMBER;
 
 	if (ClampMinType == EEnvQueryTestClamping::FilterThreshold)

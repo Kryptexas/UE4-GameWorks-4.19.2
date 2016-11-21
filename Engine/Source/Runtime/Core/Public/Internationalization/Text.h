@@ -15,6 +15,8 @@ struct FDateTime;
 class FText;
 class FTextHistory;
 class FTextFormatData;
+class FHistoricTextFormatData;
+class FHistoricTextNumericData;
 
 #define ENABLE_TEXT_ERROR_CHECKING_RESULTS (UE_BUILD_DEBUG | UE_BUILD_DEVELOPMENT | UE_BUILD_TEST )
 
@@ -375,9 +377,6 @@ public:
 	 */
 	bool IdenticalTo( const FText& Other ) const;
 
-	/** Trace the history of this Text until we find the base Texts it was comprised from */
-	void GetSourceTextsFromFormatHistory(TArray<FText>& OutSourceTexts) const;
-
 	class CORE_API FSortPredicate
 	{
 	public:
@@ -497,6 +496,12 @@ private:
 
 	/** Returns the source string of the FText */
 	const FString& GetSourceString() const;
+
+	/** Get any historic text format data from the history used by this FText */
+	void GetHistoricFormatData(TArray<FHistoricTextFormatData>& OutHistoricFormatData) const;
+
+	/** Get any historic numeric format data from the history used by this FText */
+	bool GetHistoricNumericData(FHistoricTextNumericData& OutHistoricNumericData) const;
 
 	/** Rebuilds the FText under the current culture if needed */
 	void Rebuild() const;
@@ -730,6 +735,63 @@ FText FText::FormatOrdered( FTextFormat Fmt, TArguments&&... Args )
 	return FormatOrderedImpl( MoveTemp( Fmt ), MoveTemp( FormatArguments ) );
 }
 
+/** Used to gather information about a historic text format operation */
+class CORE_API FHistoricTextFormatData
+{
+public:
+	FHistoricTextFormatData()
+	{
+	}
+
+	FHistoricTextFormatData(FText InFormattedText, FTextFormat&& InSourceFmt, FFormatNamedArguments&& InArguments)
+		: FormattedText(MoveTemp(InFormattedText))
+		, SourceFmt(MoveTemp(InSourceFmt))
+		, Arguments(MoveTemp(InArguments))
+	{
+	}
+
+	/** The final formatted text this data is for */
+	FText FormattedText;
+
+	/** The pattern used to format the text */
+	FTextFormat SourceFmt;
+
+	/** Arguments to replace in the pattern string */
+	FFormatNamedArguments Arguments;
+};
+
+/** Used to gather information about a historic numeric format operation */
+class CORE_API FHistoricTextNumericData
+{
+public:
+	enum class EType : uint8
+	{
+		AsNumber,
+		AsPercent,
+	};
+
+	FHistoricTextNumericData()
+		: FormatType(EType::AsNumber)
+	{
+	}
+
+	FHistoricTextNumericData(const EType InFormatType, const FFormatArgumentValue& InSourceValue, const TOptional<FNumberFormattingOptions>& InFormatOptions)
+		: FormatType(InFormatType)
+		, SourceValue(InSourceValue)
+		, FormatOptions(InFormatOptions)
+	{
+	}
+
+	/** Type of numeric format that was performed */
+	EType FormatType;
+
+	/** The source number to format */
+	FFormatArgumentValue SourceValue;
+
+	/** Custom formatting options used when formatting this number (if any) */
+	TOptional<FNumberFormattingOptions> FormatOptions;
+};
+
 /** A snapshot of an FText at a point in time that can be used to detect changes in the FText, including live-culture changes */
 class CORE_API FTextSnapshot
 {
@@ -772,6 +834,8 @@ public:
 	static const FString& GetDisplayString(const FText& Text);
 	static const FTextDisplayStringRef GetSharedDisplayString(const FText& Text);
 	static uint32 GetFlags(const FText& Text);
+	static void GetHistoricFormatData(const FText& Text, TArray<FHistoricTextFormatData>& OutHistoricFormatData);
+	static bool GetHistoricNumericData(const FText& Text, FHistoricTextNumericData& OutHistoricNumericData);
 };
 
 class CORE_API FTextStringHelper

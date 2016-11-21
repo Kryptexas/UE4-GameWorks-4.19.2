@@ -35,6 +35,11 @@ class CORE_API FThreadHeartBeat : public FRunnable
 	/** Max time the thread is allowed to not send the heartbeat*/
 	double HangDuration;
 
+	/** CRC of the last hang's callstack */
+	uint32 LastHangCallstackCRC;
+	/** Id of the last thread that hung */
+	uint32 LastHungThreadId;
+
 	FThreadHeartBeat();
 	virtual ~FThreadHeartBeat();
 
@@ -66,6 +71,11 @@ public:
 	 * Resume heartbeat measuring for the current thread 
 	 */
 	void ResumeHeartBeat();
+
+	/**
+	* Returns true/false if this thread is currently performing heartbeat monitoring
+	*/
+	bool IsBeating();
 
 	//~ Begin FRunnable Interface.
 	virtual bool Init();

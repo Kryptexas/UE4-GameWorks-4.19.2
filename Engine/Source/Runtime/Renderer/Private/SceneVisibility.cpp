@@ -2868,7 +2868,7 @@ bool FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLi
 
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_InitViews_OnStartFrame);
-		OnStartFrame();
+		OnStartFrame(RHICmdList);
 	}
 
 	return bDoInitViewAftersPrepass;

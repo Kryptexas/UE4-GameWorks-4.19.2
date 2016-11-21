@@ -22,6 +22,9 @@ namespace ESlateShaderResource
 		/** Material resource. */
 		Material,
 
+		/** Post Process. */
+		PostProcess, 
+
 		/** No Resource. */
 		Invalid,
 	};

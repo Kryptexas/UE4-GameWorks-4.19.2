@@ -8308,6 +8308,8 @@ void FMeshUtilities::StartupModule()
 		TArray<FName> SwarmModuleNames;
 		FModuleManager::Get().FindModules(TEXT("*SimplygonSwarm"), SwarmModuleNames);
 
+			// Look for MeshReduction interface
+
 
 		for (int32 Index = 0; Index < SwarmModuleNames.Num(); Index++)
 		{

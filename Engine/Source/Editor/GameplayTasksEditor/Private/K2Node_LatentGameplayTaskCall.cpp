@@ -13,6 +13,7 @@
 #include "K2Node_IfThenElse.h"
 #include "Kismet/KismetSystemLibrary.h"
 
+
 #define LOCTEXT_NAMESPACE "K2Node"
 
 TArray<TWeakObjectPtr<UClass> > UK2Node_LatentGameplayTaskCall::NodeClasses;

@@ -11,6 +11,7 @@ UObjectLibrary::UObjectLibrary(const FObjectInitializer& ObjectInitializer)
 	bIsFullyLoaded = false;
 	bUseWeakReferences = false;
 	bIncludeOnlyOnDiskAssets = true;
+	bRecursivePaths = true;
 
 #if WITH_EDITOR
 	if ( !HasAnyFlags(RF_ClassDefaultObject) )
@@ -352,7 +353,7 @@ int32 UObjectLibrary::LoadAssetDataFromPaths(const TArray<FString>& Paths, bool 
 		ARFilter.PackagePaths.Add(FName(*Paths[PathIndex]));
 	}
 
-	ARFilter.bRecursivePaths = true;
+	ARFilter.bRecursivePaths = bRecursivePaths;
 	ARFilter.bIncludeOnlyOnDiskAssets = bIncludeOnlyOnDiskAssets;
 
 	AssetDataList.Empty();
@@ -412,7 +413,7 @@ int32 UObjectLibrary::LoadBlueprintAssetDataFromPaths(const TArray<FString>& Pat
 		ARFilter.PackagePaths.Add(FName(*Paths[PathIndex]));
 	}
 	
-	ARFilter.bRecursivePaths = true;
+	ARFilter.bRecursivePaths = bRecursivePaths;
 	ARFilter.bIncludeOnlyOnDiskAssets = bIncludeOnlyOnDiskAssets;
 
 	/* GetDerivedClassNames doesn't work yet

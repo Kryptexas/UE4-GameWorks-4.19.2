@@ -1173,6 +1173,8 @@ UCanvas::UCanvas(const FObjectInitializer& ObjectInitializer)
 	// only call once on construction.  Expensive on some platforms (occulus).
 	// Init gets called every frame.	
 	UpdateSafeZoneData();
+
+	FCoreDelegates::OnSafeFrameChangedEvent.AddUObject(this, &UCanvas::UpdateSafeZoneData);
 }
 
 void UCanvas::Init(int32 InSizeX, int32 InSizeY, FSceneView* InSceneView)
@@ -1184,8 +1186,16 @@ void UCanvas::Init(int32 InSizeX, int32 InSizeY, FSceneView* InSceneView)
 	UnsafeSizeY = SizeY;
 	SceneView = InSceneView;		
 	
-	Update();	
+	Update();
 }
+
+
+void UCanvas::BeginDestroy()
+{
+	Super::BeginDestroy();
+	FCoreDelegates::OnSafeFrameChangedEvent.RemoveAll(this);
+}
+
 
 void UCanvas::ApplySafeZoneTransform()
 {

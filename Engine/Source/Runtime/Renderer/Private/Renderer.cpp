@@ -23,13 +23,13 @@ IMPLEMENT_MODULE(FRendererModule, Renderer);
 void FRendererModule::ReallocateSceneRenderTargets()
 {
 	FLightPrimitiveInteraction::InitializeMemoryPool();
-	FSceneRenderTargets::Get_Todo_PassContext().UpdateRHI();
+	FSceneRenderTargets::GetGlobalUnsafe().UpdateRHI();
 }
 
 void FRendererModule::SceneRenderTargetsSetBufferSize(uint32 SizeX, uint32 SizeY)
 {
-	FSceneRenderTargets::Get_Todo_PassContext().SetBufferSize(SizeX, SizeY);
-	FSceneRenderTargets::Get_Todo_PassContext().UpdateRHI();
+	FSceneRenderTargets::GetGlobalUnsafe().SetBufferSize(SizeX, SizeY);
+	FSceneRenderTargets::GetGlobalUnsafe().UpdateRHI();
 }
 
 void FRendererModule::InitializeSystemTextures(FRHICommandListImmediate& RHICmdList)

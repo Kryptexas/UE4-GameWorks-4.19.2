@@ -1,6 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
-#include "AbilityTask.h"
+#include "AbilityTask_ApplyRootMotion_Base.h"
 #include "AbilityTask_ApplyRootMotionMoveToActorForce.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FApplyRootMotionMoveToActorForceDelegate, bool, DestinationReached, bool, TimedOut, FVector, FinalTargetLocation);
@@ -22,20 +22,16 @@ enum class ERootMotionMoveToActorTargetOffsetType : uint8
  *	Applies force to character's movement
  */
 UCLASS(MinimalAPI)
-class UAbilityTask_ApplyRootMotionMoveToActorForce : public UAbilityTask
+class UAbilityTask_ApplyRootMotionMoveToActorForce : public UAbilityTask_ApplyRootMotion_Base
 {
 	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(BlueprintAssignable)
 	FApplyRootMotionMoveToActorForceDelegate OnFinished;
 
-	virtual void InitSimulatedTask(UGameplayTasksComponent& InGameplayTasksComponent) override;
-
 	/** Apply force to character's movement */
 	UFUNCTION(BlueprintCallable, Category = "Ability|Tasks", meta = (HidePin = "OwningAbility", DefaultToSelf = "OwningAbility", BlueprintInternalUseOnly = "TRUE"))
-	static UAbilityTask_ApplyRootMotionMoveToActorForce* ApplyRootMotionMoveToActorForce(UGameplayAbility* OwningAbility, FName TaskInstanceName, AActor* TargetActor, FVector TargetLocationOffset, ERootMotionMoveToActorTargetOffsetType OffsetAlignment, float Duration, UCurveFloat* TargetLerpSpeedHorizontal, UCurveFloat* TargetLerpSpeedVertical, bool bSetNewMovementMode, EMovementMode MovementMode, bool bRestrictSpeedToExpected, UCurveVector* PathOffsetCurve, UCurveFloat* TimeMappingCurve, ERootMotionFinishVelocityMode VelocityOnFinishMode, FVector SetVelocityOnFinish, bool bDisableDestinationReachedInterrupt);
-
-	virtual void Activate() override;
+	static UAbilityTask_ApplyRootMotionMoveToActorForce* ApplyRootMotionMoveToActorForce(UGameplayAbility* OwningAbility, FName TaskInstanceName, AActor* TargetActor, FVector TargetLocationOffset, ERootMotionMoveToActorTargetOffsetType OffsetAlignment, float Duration, UCurveFloat* TargetLerpSpeedHorizontal, UCurveFloat* TargetLerpSpeedVertical, bool bSetNewMovementMode, EMovementMode MovementMode, bool bRestrictSpeedToExpected, UCurveVector* PathOffsetCurve, UCurveFloat* TimeMappingCurve, ERootMotionFinishVelocityMode VelocityOnFinishMode, FVector SetVelocityOnFinish, float ClampVelocityOnFinish, bool bDisableDestinationReachedInterrupt);
 
 	/** Tick function for this task, if bTickingTask == true */
 	virtual void TickTask(float DeltaTime) override;
@@ -45,23 +41,24 @@ class UAbilityTask_ApplyRootMotionMoveToActorForce : public UAbilityTask
 
 protected:
 
+	virtual void SharedInitAndApply() override;
+
 	bool UpdateTargetLocation(float DeltaTime);
 
 	void SetRootMotionTargetLocation(FVector NewTargetLocation);
 
 	FVector CalculateTargetOffset() const;
 
-	UPROPERTY(Replicated)
-	FName ForceName;
+	UFUNCTION()
+	void OnRep_TargetLocation();
+
+protected:
 
 	UPROPERTY(Replicated)
 	FVector StartLocation;
 
 	UPROPERTY(ReplicatedUsing=OnRep_TargetLocation)
 	FVector TargetLocation;
-
-	UFUNCTION()
-	void OnRep_TargetLocation();
 
 	UPROPERTY(Replicated)
 	AActor* TargetActor;
@@ -119,16 +116,9 @@ protected:
 	UPROPERTY(Replicated)
 	FVector SetVelocityOnFinish;
 
-	uint16 RootMotionSourceID;
+	/** If VelocityOnFinish mode is "ClampVelocity", character velocity is clamped to this value when root motion finishes */
+	UPROPERTY(Replicated)
+	float ClampVelocityOnFinish;
+
 	EMovementMode PreviousMovementMode;
-
-	bool bIsFinished;
-	float StartTime;
-	float EndTime;
-
-	void SharedInitAndApply();
-
-	UPROPERTY()
-	UCharacterMovementComponent* MovementComponent;
-
 };

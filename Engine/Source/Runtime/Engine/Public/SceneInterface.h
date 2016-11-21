@@ -225,6 +225,9 @@ public:
 	/** Accesses wind parameters.  XYZ will contain wind direction * Strength, W contains wind speed. */
 	virtual void GetWindParameters(const FVector& Position, FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const = 0;
 
+	/** Accesses wind parameters safely for game thread applications */
+	virtual void GetWindParameters_GameThread(const FVector& Position, FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const = 0;
+
 	/** Same as GetWindParameters, but ignores point wind sources. */
 	virtual void GetDirectionalWindParameters(FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const = 0;
 

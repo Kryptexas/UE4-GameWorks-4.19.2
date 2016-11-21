@@ -135,7 +135,7 @@ void FEQSSceneProxy::CollectEQSData(const FEnvQueryResult* ResultItems, const FE
 		}
 	}
 	
-	const float ScoreNormalizer = bUseMidResults && (MaxScore != MinScore) ? 1.f / (MaxScore - MinScore) : 1.f;
+	const float ScoreNormalizer = bUseMidResults && (MaxScore != MinScore) ? (1.f / (MaxScore - MinScore)) : 1.f;
 	const float HighlightThreshold = (HighlightRangePct < 1.0f) ? (MaxScore * HighlightRangePct) : FLT_MAX;
 
 	if (bSingleItemResult == false)
@@ -144,17 +144,17 @@ void FEQSSceneProxy::CollectEQSData(const FEnvQueryResult* ResultItems, const FE
 		{
 			if (Items[ItemIndex].IsValid())
 			{
-				const float Score = bNoTestsPerformed ? 1 : Items[ItemIndex].Score * ScoreNormalizer;
+				const float NormalizedScore = bNoTestsPerformed ? 1 : (Items[ItemIndex].Score - MinScore) * ScoreNormalizer;
 				const bool bLowRadius = (HighlightThreshold < FLT_MAX) && (bNoTestsPerformed || (Items[ItemIndex].Score < HighlightThreshold));
 				const float Radius = ItemDrawRadius.X * (bLowRadius ? 0.2f : 1.0f);
 				const FVector Loc = FEQSRenderingHelper::ExtractLocation(ResultItems->ItemType, RawData, Items, ItemIndex);
 				Spheres.Add(FSphere(Radius, Loc, bNoTestsPerformed == false
-					? FLinearColor(FColor::MakeRedToGreenColorFromScalar(Score)) 
+					? FLinearColor(FColor::MakeRedToGreenColorFromScalar(NormalizedScore))
 					: FLinearColor(0.2, 1.0, 1.0, 1)));
 
 				DebugItems.Add(EQSDebug::FDebugHelper(Loc, Radius));
 
-				const FString Label = bNoTestsPerformed ? TEXT("") : FString::Printf(TEXT("%.2f"), Score);
+				const FString Label = bNoTestsPerformed ? TEXT("") : FString::Printf(TEXT("%.2f"), Items[ItemIndex].Score);
 				Texts.Add(FText3d(Label, Loc, FLinearColor::White));
 			}
 		}
@@ -163,7 +163,7 @@ void FEQSSceneProxy::CollectEQSData(const FEnvQueryResult* ResultItems, const FE
 	{
 		if (Items[0].IsValid())
 		{
-			const float Score = Items[0].Score * ScoreNormalizer;
+			const float Score = Items[0].Score;
 			const bool bLowRadius = false;
 			const float Radius = ItemDrawRadius.X * (bLowRadius ? 0.2f : 1.0f);
 			const FVector Loc = FEQSRenderingHelper::ExtractLocation(ResultItems->ItemType, RawData, Items, 0);
@@ -179,7 +179,7 @@ void FEQSSceneProxy::CollectEQSData(const FEnvQueryResult* ResultItems, const FE
 		{
 			if (Items[ItemIndex].IsValid())
 			{
-				const float Score = bNoTestsPerformed ? 1 : Items[ItemIndex].Score * ScoreNormalizer;
+				const float Score = bNoTestsPerformed ? 1 : Items[ItemIndex].Score;
 				const bool bLowRadius = (HighlightThreshold < FLT_MAX) && (bNoTestsPerformed || (Items[ItemIndex].Score < HighlightThreshold));
 				const float Radius = ItemDrawRadius.X * (bLowRadius ? 0.2f : 1.0f);
 				const FVector Loc = FEQSRenderingHelper::ExtractLocation(ResultItems->ItemType, RawData, Items, ItemIndex);
@@ -208,7 +208,7 @@ void FEQSSceneProxy::CollectEQSData(const FEnvQueryResult* ResultItems, const FE
 				continue;
 			}
 
-			const float Score = bNoTestsPerformed ? 1 : Items[ItemIndex].Score * ScoreNormalizer;
+			const float Score = bNoTestsPerformed ? 1 : Items[ItemIndex].Score;
 			const bool bLowRadius = (HighlightThreshold < FLT_MAX) && (bNoTestsPerformed || (Items[ItemIndex].Score < HighlightThreshold));
 			const float Radius = ItemDrawRadius.X * (bLowRadius ? 0.2f : 1.0f);
 			const FVector Loc = FEQSRenderingHelper::ExtractLocation(QueryInstance->ItemType, InstanceDebugData.RawData, DebugQueryItems, ItemIndex);

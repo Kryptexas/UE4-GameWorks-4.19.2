@@ -45,4 +45,20 @@ void FXmppJingle::ConvertFromJid(buzz::Jid& OutJid, const FXmppUserJid& InJid)
 		);
 }
 
+void FXmppJingle::AddCorrIdToStanza(buzz::XmlElement& Stanza, const TCHAR* const CorrId /*= nullptr*/)
+{
+	static const buzz::StaticQName CORRID = { "", "corr-id" };
+
+	if (CorrId == nullptr)
+	{
+		const FString GuidCorrId = FGuid::NewGuid().ToString();
+
+		Stanza.AddAttr(CORRID, TCHAR_TO_UTF8(*GuidCorrId));
+	}
+	else
+	{
+		Stanza.AddAttr(CORRID, TCHAR_TO_UTF8(CorrId));
+	}
+}
+
 #endif //WITH_XMPP_JINGLE

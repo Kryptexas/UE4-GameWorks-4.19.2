@@ -89,7 +89,7 @@ struct GAMEPLAYABILITIES_API FGameplayAttribute
 	/** Returns true if the variable associated with Property is of type FGameplayAttributeData or one of its subclasses */
 	static bool IsGameplayAttributeDataProperty(const UProperty* Property);
 
-	void SetNumericValueChecked(float NewValue, class UAttributeSet* Dest) const;
+	void SetNumericValueChecked(float& NewValue, class UAttributeSet* Dest) const;
 
 	float GetNumericValue(const UAttributeSet* Src) const;
 	float GetNumericValueChecked(const UAttributeSet* Src) const;
@@ -227,18 +227,19 @@ struct GAMEPLAYABILITIES_API FScalableFloat
 	FScalableFloat()
 		: Value(0.f)
 		, FinalCurve(nullptr)
+		, LocalCachedCurveID(INDEX_NONE)
 	{
 	}
 
 	FScalableFloat(float InInitialValue)
 		: Value(InInitialValue)
 		, FinalCurve(nullptr)
+		, LocalCachedCurveID(INDEX_NONE)
 	{
 	}
 
 	~FScalableFloat()
 	{
-		UnRegisterOnCurveTablePostReimport();
 	}
 
 public:
@@ -299,24 +300,15 @@ public:
 	/* Used to upgrade a float or int8/int16/int32 property into an FScalableFloat */
 	bool SerializeFromMismatchedTag(const FPropertyTag& Tag, FArchive& Ar);
 
+	static void InvalidateAllCachedCurves();
+
 private:
-
-	/** Conditionally register the OnCurveTablePostReimport function with the re-import manager */
-	void RegisterOnCurveTablePostReimport() const;
-
-	/** Conditionally unregister the OnCurveTablePostReimport function from the re-import manager */
-	void UnRegisterOnCurveTablePostReimport() const;
-
-#if WITH_EDITOR
-	/** Function to call when the curve table has been re-imported */
-	void OnCurveTablePostReimport(UObject* InObject, bool);
-
-	/** Handle to the delegate called when the curve table has been re-imported */
-	mutable FDelegateHandle OnCurveTablePostReimportHandle;
-#endif // WITH_EDITOR
 
 	// Cached direct pointer to RichCurve we should evaluate
 	mutable FRichCurve* FinalCurve;
+	mutable int32 LocalCachedCurveID;
+
+	static int32 GlobalCachedCurveID;
 };
 
 template<>

@@ -6,6 +6,9 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogAnimTrails, Log, All);
 
+class USkeletalMeshComponent;
+class UAnimSequenceBase;
+
 UCLASS(editinlinenew, Blueprintable, const, hidecategories = Object, collapsecategories, meta = (ShowWorldContextPin, DisplayName = "Trail"))
 class ENGINE_API UAnimNotifyState_Trail : public UAnimNotifyState
 {
@@ -16,9 +19,11 @@ class ENGINE_API UAnimNotifyState_Trail : public UAnimNotifyState
 	UParticleSystem* PSTemplate;
 
 	UFUNCTION(BlueprintImplementableEvent)
-	UParticleSystem* OverridePSTemplate(class USkeletalMeshComponent* MeshComp, class UAnimSequenceBase* Animation) const;
+	UParticleSystem* OverridePSTemplate(USkeletalMeshComponent* MeshComp, class UAnimSequenceBase* Animation) const;
 
-	virtual UParticleSystem* GetOverridenPSTemplate(class USkeletalMeshComponent* MeshComp, class UAnimSequenceBase* Animation) const;
+	virtual UParticleSystem* GetOverridenPSTemplate(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation) const;
+
+	virtual float GetCurveWidth(USkeletalMeshComponent* MeshComp) const;
 
 	/** Name of the first socket defining this trail. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Trail)
@@ -62,11 +67,14 @@ class ENGINE_API UAnimNotifyState_Trail : public UAnimNotifyState
 	uint32 bRenderTessellation : 1;
 #endif // WITH_EDITORONLY_DATA
 
-	virtual void NotifyBegin(class USkeletalMeshComponent * MeshComp, class UAnimSequenceBase * Animation, float TotalDuration) override;
-	virtual void NotifyTick(class USkeletalMeshComponent * MeshComp, class UAnimSequenceBase * Animation, float FrameDeltaTime) override;
-	virtual void NotifyEnd(class USkeletalMeshComponent * MeshComp, class UAnimSequenceBase * Animation) override;
+	/** Helper function for outside code to get PSC that we are using */
+	UParticleSystemComponent* GetParticleSystemComponent(USkeletalMeshComponent* MeshComp) const;
 
-	bool ValidateInput(class USkeletalMeshComponent * MeshComp, bool bReportErrors = false);
+	virtual void NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration) override;
+	virtual void NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float FrameDeltaTime) override;
+	virtual void NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation) override;
+
+	bool ValidateInput(USkeletalMeshComponent* MeshComp, bool bReportErrors = false);
 };
 
 

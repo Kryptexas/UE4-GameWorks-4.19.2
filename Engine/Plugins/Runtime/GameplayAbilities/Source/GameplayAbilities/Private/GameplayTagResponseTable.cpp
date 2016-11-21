@@ -21,6 +21,7 @@ UGameplayTagReponseTable::UGameplayTagReponseTable(const FObjectInitializer& Obj
 		.AllTagsMatch()
 		.AddTag(FGameplayTag())
 	);
+	LastASCPurgeTime = 0;
 }
 
 void UGameplayTagReponseTable::PostLoad()
@@ -66,6 +67,29 @@ void UGameplayTagReponseTable::RegisterResponseForEvents(UAbilitySystemComponent
 		{
 			ASC->RegisterGameplayTagEvent( Entry.Negative.Tag, EGameplayTagEventType::AnyCountChange ).AddUObject(this, &UGameplayTagReponseTable::TagResponseEvent, ASC, idx);
 		}
+	}
+
+	// Need to periodically cull null entries. We can do this very infrequently as the memory overhead is not great
+	if (FPlatformTime::Seconds() - LastASCPurgeTime >= 300.0f)
+	{
+		SCOPE_TIME_GUARD_MS(TEXT("GameplayTagReponseTableCleanup"), 1);
+
+		bool Removed = false;
+		for (auto It = RegisteredASCs.CreateIterator(); It; ++It)
+		{
+			if (It.Key().IsValid() == false)
+			{
+				Removed = true;
+				It.RemoveCurrent();
+			}
+		}
+
+		if (Removed)
+		{
+			RegisteredASCs.Compact();
+		}
+
+		LastASCPurgeTime = FPlatformTime::Seconds();
 	}
 }
 

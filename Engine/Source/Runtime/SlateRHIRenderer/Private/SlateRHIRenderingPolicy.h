@@ -6,6 +6,7 @@
 #include "RenderingPolicy.h"
 
 class FSlateRHIResourceManager;
+class FSlatePostProcessor;
 
 class FSlateRHIRenderingPolicy : public FSlateRenderingPolicy
 {
@@ -52,6 +53,9 @@ private:
 	/** Buffers used for rendering */
 	TSlateElementVertexBuffer<FSlateVertex> VertexBuffers;
 	FSlateElementIndexBuffer IndexBuffers;
+
+	/** Handles post process effects for slate */
+	TSharedRef<FSlatePostProcessor> PostProcessor;
 
 	TSharedRef<FSlateRHIResourceManager> ResourceManager;
 

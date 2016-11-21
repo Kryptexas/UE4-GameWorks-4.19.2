@@ -531,7 +531,7 @@ namespace EAsyncPackageState
  * @return The minimum state of any of the queued packages.
  */
 COREUOBJECT_API EAsyncPackageState::Type ProcessAsyncLoading( bool bUseTimeLimit, bool bUseFullTimeLimit, float TimeLimit);
-COREUOBJECT_API void BeginLoad();
+COREUOBJECT_API void BeginLoad(const TCHAR* DebugContext = nullptr);
 COREUOBJECT_API void EndLoad();
 
 /**

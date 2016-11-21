@@ -62,6 +62,7 @@
 	#include "Engine/GameInstance.h"
 	#include "Net/OnlineEngineInterface.h"
 	#include "Internationalization/EnginePackageLocalizationCache.h"
+	#include "Engine/DemoNetDriver.h"
 
 #if !UE_SERVER
 	#include "HeadMountedDisplay.h"
@@ -116,6 +117,50 @@
 #else
 	#define USE_LOCALIZED_PACKAGE_CACHE 0
 #endif
+
+static TAutoConsoleVariable<int32> CVarDoAsyncEndOfFrameTasksRandomize(
+	TEXT("tick.DoAsyncEndOfFrameTasks.Randomize"),
+	0,
+	TEXT("Used to add random sleeps to tick.DoAsyncEndOfFrameTasks to shake loose bugs on either thread. Also does random render thread flushes from the game thread.")
+	);
+
+static FAutoConsoleTaskPriority CPrio_AsyncEndOfFrameGameTasks(
+	TEXT("TaskGraph.TaskPriorities.AsyncEndOfFrameGameTasks"),
+	TEXT("Task and thread priority for the experiemntal async end of frame tasks."),
+	ENamedThreads::HighThreadPriority,
+	ENamedThreads::NormalTaskPriority,
+	ENamedThreads::HighTaskPriority
+	);
+
+/** Task that executes concurrently with Slate when tick.DoAsyncEndOfFrameTasks is true. */
+class FExecuteConcurrentWithSlateTickTask
+{
+	TFunctionRef<void()> TickWithSlate;
+
+public:
+
+	FExecuteConcurrentWithSlateTickTask(TFunctionRef<void()> InTickWithSlate)
+		: TickWithSlate(InTickWithSlate)
+	{
+	}
+
+	static FORCEINLINE TStatId GetStatId()
+	{
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FExecuteConcurrentWithSlateTickTask, STATGROUP_TaskGraphTasks);
+	}
+
+	static FORCEINLINE ENamedThreads::Type GetDesiredThread()
+	{
+		return CPrio_AsyncEndOfFrameGameTasks.Get();
+	}
+
+	static FORCEINLINE ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
+
+	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+	{
+		TickWithSlate();
+	}
+};
 
 // Pipe output to std output
 // This enables UBT to collect the output for it's own use
@@ -2869,6 +2914,34 @@ void FEngineLoop::Tick()
 			GDistanceFieldAsyncQueue->ProcessAsyncTasks();
 		}
 
+#if WITH_ENGINE
+		FGraphEventRef ConcurrentTask;
+		const bool bDoConcurrentSlateTick = GEngine->ShouldDoAsyncEndOfFrameTasks();
+
+		if (bDoConcurrentSlateTick)
+		{
+			const float DeltaSeconds = FApp::GetDeltaTime();
+			UGameViewportClient* const GameViewport = GEngine->GameViewport;
+			ConcurrentTask = TGraphTask<FExecuteConcurrentWithSlateTickTask>::CreateTask(nullptr, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(
+				[GameViewport, DeltaSeconds]()
+				{
+					if (CVarDoAsyncEndOfFrameTasksRandomize.GetValueOnAnyThread(true) > 0)
+					{
+						FPlatformProcess::Sleep(FMath::RandRange(0.0f, .003f)); // this shakes up the threading to find race conditions
+					}
+					if (GameViewport != nullptr)
+					{
+						UWorld* const World = GameViewport->GetWorld();
+						if (World && World->DemoNetDriver)
+						{
+							World->DemoNetDriver->TickFlushAsyncEndOfFrame(DeltaSeconds);
+						}
+					}
+				}
+			);
+		}
+#endif
+
 		if (FSlateApplication::IsInitialized() && !bIdleMode)
 		{
 			{
@@ -2882,6 +2955,15 @@ void FEngineLoop::Tick()
 			// Tick Slate application
 			FSlateApplication::Get().Tick();
 		}
+
+#if WITH_ENGINE
+		if (ConcurrentTask.GetReference())
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_ConcurrentWithSlateTickTasks_Wait);
+			FTaskGraphInterface::Get().WaitUntilTaskCompletes(ConcurrentTask);
+			ConcurrentTask = nullptr;
+		}
+#endif
 
 #if STATS
 		// Clear any stat group notifications we have pending just incase they weren't claimed during FSlateApplication::Get().Tick

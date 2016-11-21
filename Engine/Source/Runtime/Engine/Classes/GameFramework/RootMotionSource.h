@@ -121,6 +121,8 @@ enum class ERootMotionFinishVelocityMode : uint8
 	MaintainLastRootMotionVelocity = 0,
 	// Set Velocity to the specified value (for example, 0,0,0 to stop the character)
 	SetVelocity,
+	// Clamp velocity magnitude to the specified value 
+	ClampVelocity,
 };
 
 

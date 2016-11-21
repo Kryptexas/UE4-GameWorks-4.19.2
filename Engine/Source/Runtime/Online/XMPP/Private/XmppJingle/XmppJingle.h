@@ -60,6 +60,9 @@ public:
 
 	static void ConvertToJid(FXmppUserJid& OutJid, const buzz::Jid& InJid);
 	static void ConvertFromJid(buzz::Jid& OutJid, const FXmppUserJid& InJid);
+
+	/** Adds a Correlation ID to a stanza.  If none is provided, one will be generated */
+	static void AddCorrIdToStanza(buzz::XmlElement& Stanza, const TCHAR* const CorrId = nullptr);
 };
 
 #endif //WITH_XMPP_JINGLE

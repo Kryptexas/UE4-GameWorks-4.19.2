@@ -872,13 +872,16 @@ UObject* StaticLoadObject(UClass* ObjectClass, UObject* InOuter, const TCHAR* In
 		FString ObjectName = InName;
 		ResolveName(InOuter, ObjectName, true, true, LoadFlags & LOAD_EditorOnly);
 
-		// we haven't created or found the object, error
-		FFormatNamedArguments Arguments;
-		Arguments.Add(TEXT("ClassName"), FText::FromString(ObjectClass->GetName()));
-		Arguments.Add(TEXT("OuterName"), InOuter ? FText::FromString(InOuter->GetPathName()) : NSLOCTEXT("Core", "None", "None"));
-		Arguments.Add(TEXT("ObjectName"), FText::FromString(ObjectName));
-		const FString Error = FText::Format(NSLOCTEXT("Core", "ObjectNotFound", "Failed to find object '{ClassName} {OuterName}.{ObjectName}'"), Arguments).ToString();
-		SafeLoadError(InOuter, LoadFlags, *Error);
+		if (InOuter == nullptr || FLinkerLoad::IsKnownMissingPackage(FName(*InOuter->GetPathName())) == false)
+		{
+			// we haven't created or found the object, error
+			FFormatNamedArguments Arguments;
+			Arguments.Add(TEXT("ClassName"), FText::FromString(ObjectClass->GetName()));
+			Arguments.Add(TEXT("OuterName"), InOuter ? FText::FromString(InOuter->GetPathName()) : NSLOCTEXT("Core", "None", "None"));
+			Arguments.Add(TEXT("ObjectName"), FText::FromString(ObjectName));
+			const FString Error = FText::Format(NSLOCTEXT("Core", "ObjectNotFound", "Failed to find object '{ClassName} {OuterName}.{ObjectName}'"), Arguments).ToString();
+			SafeLoadError(InOuter, LoadFlags, *Error);
+		}
 	}
 	return Result;
 }
@@ -1167,7 +1170,7 @@ static UPackage* LoadPackageInternalInner(UPackage* InOuter, const TCHAR* InLong
 	SlowTask.EnterProgressFrame(10);
 
 	// Try to load.
-	BeginLoad();
+	BeginLoad(InLongPackageNameOrFilename);
 
 	bool bFullyLoadSkipped = false;
 
@@ -1452,11 +1455,16 @@ bool IsLoading()
 // Begin loading packages.
 //warning: Objects may not be destroyed between BeginLoad/EndLoad calls.
 //
-void BeginLoad()
+void BeginLoad(const TCHAR* DebugContext)
 {
 	auto& ThreadContext = FUObjectThreadContext::Get();
 	if (ThreadContext.ObjBeginLoadCount == 0 && !IsInAsyncLoadingThread())
 	{
+		if (IsAsyncLoading() && (DebugContext != nullptr))
+		{
+			UE_LOG(LogUObjectGlobals, Log, TEXT("BeginLoad(%s) is flushing async loading"), DebugContext);
+		}
+
 		// Make sure we're finishing up all pending async loads, and trigger texture streaming next tick if necessary.
 		FlushAsyncLoading();
 

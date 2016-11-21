@@ -528,6 +528,8 @@ public:
 
 	/** Set the delegate to call when timeline is finished */
 	ENGINE_API void SetTimelineFinishedFunc(FOnTimelineEvent NewTimelineFinishedFunc);
+	/** Set the static delegate to call when timeline is finished */
+	ENGINE_API void SetTimelineFinishedFunc(FOnTimelineEventStatic NewTimelineFinishedFunc);
 
 	/** Set the delegate to call when timeline is finished */
 	ENGINE_API void SetDirectionPropertyName(FName DirectionPropertyName);

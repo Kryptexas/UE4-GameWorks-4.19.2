@@ -9,11 +9,6 @@
 UAbilityTask_ApplyRootMotionJumpForce::UAbilityTask_ApplyRootMotionJumpForce(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
-	bTickingTask = true;
-	bSimulatedTask = true;
-	bIsFinished = false;
-	RootMotionSourceID = (uint16)ERootMotionSourceID::Invalid;
-	MovementComponent = nullptr;
 	PathOffsetCurve = nullptr;
 	TimeMappingCurve = nullptr;
 	bHasLanded = false;
@@ -21,6 +16,8 @@ UAbilityTask_ApplyRootMotionJumpForce::UAbilityTask_ApplyRootMotionJumpForce(con
 
 UAbilityTask_ApplyRootMotionJumpForce* UAbilityTask_ApplyRootMotionJumpForce::ApplyRootMotionJumpForce(UGameplayAbility* OwningAbility, FName TaskInstanceName, FRotator Rotation, float Distance, float Height, float Duration, float MinimumLandedTriggerTime, bool bFinishOnLanded, UCurveVector* PathOffsetCurve, UCurveFloat* TimeMappingCurve)
 {
+	UAbilitySystemGlobals::NonShipping_ApplyGlobalAbilityScaler_Duration(Duration);
+
 	auto MyTask = NewAbilityTask<UAbilityTask_ApplyRootMotionJumpForce>(OwningAbility, TaskInstanceName);
 
 	MyTask->ForceName = TaskInstanceName;
@@ -75,13 +72,6 @@ void UAbilityTask_ApplyRootMotionJumpForce::TriggerLanded()
 	{
 		Finish();
 	}
-}
-
-void UAbilityTask_ApplyRootMotionJumpForce::InitSimulatedTask(UGameplayTasksComponent& InGameplayTasksComponent)
-{
-	Super::InitSimulatedTask(InGameplayTasksComponent);
-
-	SharedInitAndApply();
 }
 
 void UAbilityTask_ApplyRootMotionJumpForce::SharedInitAndApply()
@@ -174,7 +164,8 @@ void UAbilityTask_ApplyRootMotionJumpForce::TickTask(float DeltaTime)
 
 void UAbilityTask_ApplyRootMotionJumpForce::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
 {
-	DOREPLIFETIME(UAbilityTask_ApplyRootMotionJumpForce, ForceName);
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionJumpForce, Rotation);
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionJumpForce, Distance);
 	DOREPLIFETIME(UAbilityTask_ApplyRootMotionJumpForce, Height);

@@ -1163,111 +1163,6 @@ bool UCookOnTheFlyServer::ContainsMap(const FName& PackageName) const
 	return false;
 }
 
-void UCookOnTheFlyServer::GenerateManifestInfo(UPackage* Package, const TArray<FName>& TargetPlatformNames)
-{
-	if (!CookByTheBookOptions)
-		return;
-
-	check(IsChildCooker() == false);
-
-	// generate dependency information for this package
-
-	TSet<UPackage*> RootPackages;
-	RootPackages.Add(Package);
-
-	FString LastLoadedMapName;
-
-	// load sublevels
-	UWorld* World = UWorld::FindWorldInPackage(Package);
-
-#define VERIFY_LEVELS_IN_DEPENDENCIES_LIST 1
-#if VERIFY_LEVELS_IN_DEPENDENCIES_LIST
-	TArray<FString> LevelPackageNames;
-#endif
-
-	if (World)
-	{
-		for (const auto& StreamingLevel : World->StreamingLevels)
-		{
-			if (StreamingLevel->GetLoadedLevel())
-			{
-				RootPackages.Add(StreamingLevel->GetLoadedLevel()->GetOutermost());
-#if VERIFY_LEVELS_IN_DEPENDENCIES_LIST
-				LevelPackageNames.AddUnique(StreamingLevel->GetLoadedLevel()->GetOutermost()->GetName());
-#endif
-			}
-		}
-
-		TArray<FString> NewPackagesToCook;
-
-		// Collect world composition tile packages to cook
-		if (World->WorldComposition)
-		{
-			World->WorldComposition->CollectTilesToCook(NewPackagesToCook);
-		}
-
-#if VERIFY_LEVELS_IN_DEPENDENCIES_LIST
-		for (const auto& PackageToCook : NewPackagesToCook)
-		{
-			LevelPackageNames.AddUnique(PackageToCook);
-		}
-#endif
-
-		for (const auto& PackageName : NewPackagesToCook)
-		{
-			UPackage* PackageToCook = LoadPackage(NULL, *PackageName, LOAD_None);
-
-			RootPackages.Add(PackageToCook);
-			//GetDependencies( PackageToCook, Dependencies );
-
-			// Dependencies.Add(PackageToCook);
-		}
-
-		LastLoadedMapName = Package->GetName();
-	}
-#if USEASSETREGISTRYFORDEPENDENTPACKAGES
-
-	static const FName AssetRegistryName("AssetRegistry");
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(AssetRegistryName);
-	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
-
-	TSet<FName> Packages;
-
-	GetDependentPackages(RootPackages, Packages);
-
-	auto GetPackageFName = [](const FName& Name) { return Name; };
-
-
-#if VERIFY_LEVELS_IN_DEPENDENCIES_LIST
-	if (World)
-	{
-		TSet<UPackage*> WorldPackages;
-		WorldPackages.Add(Package);
-		TSet<FName> DependentWorldPackages;
-		GetDependentPackages(WorldPackages, DependentWorldPackages);
-
-		for (const auto& LevelPackageName : LevelPackageNames)
-		{
-			check(DependentWorldPackages.Contains(FName(*LevelPackageName)));
-		}
-	}
-#endif
-
-#else
-	TSet<UObject*> Dependencies;
-	GetDependencies(RootPackages, Dependencies);
-
-	TSet<UPackage*> Packages;
-	for (const auto& Object : Dependencies)
-	{
-		Packages.Add(Object->GetOutermost());
-	}
-
-	auto GetPackageFName = [](const UPackage* Package) { return Package->GetFName(); };
-#endif
-
-
-}
 bool UCookOnTheFlyServer::IsCookingInEditor() const
 {
 	return CurrentCookMode == ECookMode::CookByTheBookFromTheEditor || CurrentCookMode == ECookMode::CookOnTheFlyFromTheEditor;
@@ -1802,13 +1697,13 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 #if DEBUG_COOKONTHEFLY
 						UE_LOG(LogCook, Display, TEXT("Object %s isn't cached yet"), *Obj->GetFullName());
 #endif
-						if ( Obj->IsA(UMaterial::StaticClass()) )
+						/*if ( Obj->IsA(UMaterial::StaticClass()) )
 						{
 							if (GShaderCompilingManager->HasShaderJobs() == false)
 							{
 								UE_LOG(LogCook, Warning, TEXT("Shader compiler is in a bad state!  Shader %s is finished compile but shader compiling manager did not notify shader.  "), *Obj->GetPathName());
 							}
-						}
+						}*/
 						return false;
 					}
 				}

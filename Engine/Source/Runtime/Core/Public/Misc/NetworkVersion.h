@@ -33,6 +33,8 @@ struct CORE_API FNetworkVersion
 	static uint32 GetReplayCompatibleChangelist();
 	static uint32 GetEngineNetworkProtocolVersion();
 	static uint32 GetGameNetworkProtocolVersion();
+	static uint32 GetEngineCompatibleNetworkProtocolVersion();
+	static uint32 GetGameCompatibleNetworkProtocolVersion();
 
 	/**
 	* Generates a version number, that by default, is based on a checksum of the engine version + project name + project version string
@@ -67,4 +69,7 @@ struct CORE_API FNetworkVersion
 
 	static uint32	EngineNetworkProtocolVersion;
 	static uint32	GameNetworkProtocolVersion;
+
+	static uint32	EngineCompatibleNetworkProtocolVersion;
+	static uint32	GameCompatibleNetworkProtocolVersion;
 };
