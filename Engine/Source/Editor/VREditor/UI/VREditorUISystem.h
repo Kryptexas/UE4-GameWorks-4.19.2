@@ -145,7 +145,7 @@ public:
 	bool IsShowingRadialMenu( UVREditorInteractor* Interactor ) const;
 
 	/** Tries to spawn the radial menu (if the specified hand isn't doing anything else) */
-	void TryToSpawnRadialMenu( UVREditorInteractor* Interactor );
+	void TryToSpawnRadialMenu( UVREditorInteractor* Interactor, const bool bForceOverUI );
 
 	/** Hides the radial menu if the specified hand is showing it */
 	void HideRadialMenu( UVREditorInteractor* Interactor );
@@ -233,7 +233,7 @@ protected:
 	/**  Makes a uniform grid widget from the menu information contained in a MultiBox and MultiBoxWidget */
 	void MakeUniformGridMenu( const TSharedRef<FMultiBox>& MultiBox, const TSharedRef<SMultiBoxWidget>& MultiBoxWidget, int32 Columns);
 	/**  Makes a radial box widget from the menu information contained in a MultiBox and MultiBoxWidget */
-	void MakeRadialBoxMenu(const TSharedRef<FMultiBox>& MultiBox, const TSharedRef<SMultiBoxWidget>& MultiBoxWidget);
+	void MakeRadialBoxMenu(const TSharedRef<FMultiBox>& MultiBox, const TSharedRef<SMultiBoxWidget>& MultiBoxWidget, float RadiusRatioOverride);
 
 	/** Adds a hoverable button of a given type to an overlay, using menu data from a BlockWidget */
 	TSharedRef<SWidget> AddHoverableButton(TSharedRef<SWidget>& BlockWidget, FName ButtonType, TSharedRef<SOverlay>& TestOverlay);
@@ -244,6 +244,10 @@ protected:
 	TSharedRef<SWidget> BuildQuickMenuWidget();
 	/** Builds the radial menu Slate widget */
 	TSharedRef<SWidget> BuildRadialMenuWidget();
+	/** Builds the numpad Slate widget */
+	TSharedRef<SWidget> BuildNumPadWidget();
+	/** Swaps the content of the radial menu between the radial menu and the numpad */
+	void SwapRadialMenu();
 
 	/** Called when a laser or simulated mouse hover enters a button */
 	void OnHoverBeginEffect(TSharedRef<SButton> Button);
@@ -281,6 +285,12 @@ protected:
 
 	/** Pointer to the radial menu widget */
 	TSharedPtr<SWidget> RadialWidget;
+
+	/** True if the radial menu was visible when the content was swapped */
+	bool bRadialMenuVisibleAtSwap;
+
+	/** True if the radial menu is currently displaying the numpad */
+	bool bRadialMenuIsNumpad;
 	
 	//
 	// Dragging UI
@@ -330,6 +340,10 @@ protected:
 	/** Show UI sound */
 	UPROPERTY()
 	class USoundCue* ShowUISound;
+
+	/** Button press sound */
+	UPROPERTY()
+	class USoundCue* ButtonPressSound;
 
 	/** If the current dragged dock passed a certain distance if dragged from a hand */
 	bool bDraggedDockFromHandPassedThreshold;

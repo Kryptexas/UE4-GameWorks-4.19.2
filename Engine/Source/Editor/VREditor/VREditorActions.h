@@ -126,6 +126,25 @@ public:
 	 */
 	static void OnSnapActorsToGroundClicked(class UVREditorMode* InVRMode);
 
+	/**
+	 * Simulates the user entering characters with a keyboard for data entry
+	 * @param InChar String of characters to enter
+	 */
+	static void SimulateCharacterEntry(const FString InChar);
+
+	/**
+	 * Simulates the user pressing a key down
+	 * @param Key Key to press
+	 * @param bRepeat Whether or not to repeat
+	 */
+	static void SimulateKeyDown( FKey Key, bool bRepeat );
+
+	/**
+	 * Simulates the user releasing a key
+	 * @param Key Key to release
+	 */
+	static void SimulateKeyUp( FKey Key );
+
 }
 ;
 

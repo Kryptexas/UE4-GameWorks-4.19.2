@@ -112,6 +112,7 @@ UVREditorUISystem::UVREditorUISystem( const FObjectInitializer& Initializer ) :
 	StopDragUISound( nullptr ),
 	HideUISound( nullptr ),
 	ShowUISound( nullptr ),
+	ButtonPressSound( nullptr ),
 	bDraggedDockFromHandPassedThreshold( false ),
 	LastDraggingHoverLocation( FVector::ZeroVector ),
 	bSetDefaultLayout( true )
@@ -147,6 +148,9 @@ void UVREditorUISystem::Init()
 	ShowUISound = LoadObject<USoundCue>( nullptr, TEXT( "/Engine/VREditor/Sounds/VR_open_Cue" ) );
 	check( ShowUISound != nullptr );
 
+	ButtonPressSound = LoadObject<USoundCue>(nullptr, TEXT("/Engine/VREditor/Sounds/VR_click1_Cue"));
+	check(ButtonPressSound != nullptr);
+
 	// Create all of our UI panels
 	CreateUIs();
 
@@ -177,6 +181,7 @@ void UVREditorUISystem::Shutdown()
 	StopDragUISound = nullptr;
 	HideUISound = nullptr;
 	ShowUISound = nullptr;
+	ButtonPressSound = nullptr;
 	VRMode = nullptr;
 	DraggingUI = nullptr;
 	ColorPickerUI = nullptr;
@@ -192,6 +197,32 @@ void UVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, UView
 	{
 		if ( !bWasHandled )
 		{
+			// If the numpad is currently showing
+			if (bRadialMenuIsNumpad)
+			{
+				// Modifier button is backspace
+				if (Action.ActionType == VRActionTypes::Modifier)
+				{
+					const bool bRepeat = false;
+					FVREditorActionCallbacks::SimulateKeyDown( EKeys::BackSpace, bRepeat );
+					FVREditorActionCallbacks::SimulateKeyUp( EKeys::BackSpace );
+					bWasHandled = true;
+				}
+				// Side triggers function as enter keys
+				if (Action.ActionType == ViewportWorldActionTypes::WorldMovement)
+				{
+					const bool bRepeat = false;
+					FVREditorActionCallbacks::SimulateKeyDown( EKeys::Enter, bRepeat );
+					FVREditorActionCallbacks::SimulateKeyUp( EKeys::Enter );
+					// After pressing enter, dismiss the numpad
+					SwapRadialMenu();
+					if (!bRadialMenuVisibleAtSwap)
+					{
+						HideRadialMenu( VREditorInteractor );
+					}
+					bWasHandled = true;
+				}
+			}
 			if ( Action.ActionType == VRActionTypes::ConfirmRadialSelection )
 			{
 				const EViewportInteractionDraggingMode DraggingMode = Interactor->GetDraggingMode();
@@ -203,11 +234,22 @@ void UVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, UView
 				{
 					if ( !IsShowingRadialMenu(VREditorInteractor) )
 					{
-						TryToSpawnRadialMenu(VREditorInteractor);
+						// Don't force the UI to spawn if using the touchpad/thumbstick to spawn the menu
+						const bool bForceOverUI = false;
+						TryToSpawnRadialMenu(VREditorInteractor, bForceOverUI);
 					}
 					else
-					{
-						HideRadialMenu(VREditorInteractor);
+					{	
+						// If you are hiding the number pad, also toggle back to the radial menu
+						if(bRadialMenuIsNumpad)
+						{
+							SwapRadialMenu();
+						}
+						// If we are not swapping back to the radial menu from the number pad, hide the menu
+						if (!bRadialMenuVisibleAtSwap)
+						{
+							HideRadialMenu( VREditorInteractor );
+						}
 					}
 					bWasHandled = true;
 				}
@@ -219,20 +261,64 @@ void UVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, UView
 				if ( IsShowingRadialMenu( VREditorInteractor ) )
 				{
 					TSharedPtr<SRadialBox> RadialBox = StaticCastSharedPtr<SRadialBox>(RadialWidget);
-					if(Action.Event == IE_Pressed)
+					if(RadialBox->GetCurrentlyHoveredButton().IsValid())
 					{
-						RadialBox->SimulateLeftClickDown();
+						if((Action.Event == IE_Pressed))
+						{
+							RadialBox->SimulateLeftClickDown();
+							bOutIsInputCaptured = true;
+						}
+						if (Action.Event == IE_Released)
+						{
+							RadialBox->SimulateLeftClickUp();
+							bOutIsInputCaptured = false;
+						}
+						bWasHandled = true;
 					}
-					if (Action.Event == IE_Released)
+					else
 					{
-						RadialBox->SimulateLeftClickUp();
-						// Hide the radial menu after selection
-						HideRadialMenu(VREditorInteractor);
+						FVector LaserPointerStart, LaserPointerEnd;
+						if (VREditorInteractor->GetLaserPointer( LaserPointerStart, LaserPointerEnd ))
+						{
+							FHitResult HitResult = VREditorInteractor->GetHitResultFromLaserPointer();
+							if (HitResult.Actor.IsValid())
+							{
+								UWidgetComponent* WidgetComponent = Cast<UWidgetComponent>( HitResult.GetComponent() );
+								// If we are clicking on an Actor but not a widget component, send a fake mouse click event to toggle focus
+								if (WidgetComponent == nullptr)
+								{
+									const bool bIsRightClicking =
+										(Action.Event == IE_Pressed && VREditorInteractor->IsModifierPressed()) ||
+										(Action.Event == IE_Released && VREditorInteractor->IsRightClickingOnUI());
+									TSet<FKey> PressedButtons;
+									FPointerEvent PointerEvent(
+										1 + (uint8)VREditorInteractor->GetControllerSide(),
+										FVector2D::ZeroVector,
+										FVector2D::ZeroVector,
+										PressedButtons,
+										bIsRightClicking ? EKeys::RightMouseButton : EKeys::LeftMouseButton,
+										0.0f,	// Wheel delta
+										FModifierKeysState() );
+
+									FWidgetPath EmptyWidgetPath;
+									FReply Reply = FSlateApplication::Get().RoutePointerDownEvent( EmptyWidgetPath, PointerEvent );
+									bWasHandled = true;
+									if (bRadialMenuIsNumpad)
+									{
+										// If clicking somewhere outside UI so the widget loses focus
+										SwapRadialMenu();
+										if (!bRadialMenuVisibleAtSwap)
+										{
+											HideRadialMenu( VREditorInteractor );
+										}
+									}
+								}
+							}
+						}
 					}
-					bWasHandled = true;
 				}
 
-				else
+				if(!bWasHandled)
 				{
 					FVector LaserPointerStart, LaserPointerEnd;
 					if ( VREditorInteractor->GetLaserPointer( LaserPointerStart, LaserPointerEnd ) )
@@ -306,6 +392,21 @@ void UVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, UView
 											}
 											else
 											{
+												// If we are clicking on an editable text field and the radial menu is not a numpad, show the numpad
+												if (WidgetPathUnderFinger.Widgets.Last().Widget->GetTypeAsString() == TEXT("SEditableText") && (bRadialMenuIsNumpad == false))
+												{
+													if (!QuickRadialMenu->bHidden)
+													{
+														bRadialMenuVisibleAtSwap = true;
+													}
+													else
+													{
+														// Force the radial menu to spawn even if the laser is over UI
+														const bool bForceOverUI = true;
+														TryToSpawnRadialMenu( VREditorInteractor, bForceOverUI );
+													}
+													SwapRadialMenu();
+												}
 												Reply = FSlateApplication::Get().RoutePointerDownEvent(WidgetPathUnderFinger, PointerEvent);
 											}
 
@@ -330,6 +431,25 @@ void UVREditorUISystem::OnVRAction( FEditorViewportClient& ViewportClient, UView
 										}
 									}
 								}
+							}
+							else
+							{
+								// If we didn't handle the input in any other way, send an empty mouse down event so Slate focus is handled correctly
+								const bool bIsRightClicking =
+									(Action.Event == IE_Pressed && VREditorInteractor->IsModifierPressed()) ||
+									(Action.Event == IE_Released && VREditorInteractor->IsRightClickingOnUI());
+								TSet<FKey> PressedButtons;
+								FPointerEvent PointerEvent(
+									1 + (uint8)VREditorInteractor->GetControllerSide(),
+									FVector2D::ZeroVector,
+									FVector2D::ZeroVector,
+									PressedButtons,
+									bIsRightClicking ? EKeys::RightMouseButton : EKeys::LeftMouseButton,
+									0.0f,	// Wheel delta
+									FModifierKeysState() );
+
+								FWidgetPath EmptyWidgetPath;
+								FReply Reply = FSlateApplication::Get().RoutePointerDownEvent( EmptyWidgetPath, PointerEvent );
 							}
 						}
 					}
@@ -430,7 +550,7 @@ void UVREditorUISystem::OnVRHoverUpdate( FEditorViewportClient& ViewportClient, 
 								FModifierKeysState());
 
 							FSlateApplication::Get().RoutePointerMoveEvent(WidgetPathUnderFinger, PointerEvent, false);
-
+							
 							bWasHandled = true;
 							HoverImpactPoint = HitResult.ImpactPoint;
 							VREditorInteractor->SetHoveringOverWidgetComponent( WidgetComponent );
@@ -447,7 +567,8 @@ void UVREditorUISystem::OnVRHoverUpdate( FEditorViewportClient& ViewportClient, 
 								const bool bIsAbsolute = ( GetOwner().GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR );
 
 								float ScrollDelta = 0.0f;
-								if( VREditorInteractor->IsTouchingTrackpad() || !bIsAbsolute )
+								// Don't scroll if the radial menu is a number pad
+								if(( VREditorInteractor->IsTouchingTrackpad() || !bIsAbsolute) && !bRadialMenuIsNumpad)
 								{
 									if( bIsAbsolute )
 									{
@@ -1094,7 +1215,7 @@ void UVREditorUISystem::ShowEditorUIPanel( AVREditorFloatingUI* Panel, UVREditor
 
 bool UVREditorUISystem::IsShowingRadialMenu( UVREditorInteractor* Interactor ) const
 {
-	const EControllerHand DockedToHand = QuickRadialMenu->GetDockedTo() == AVREditorFloatingUI::EDockedTo::LeftHand ? EControllerHand::Left : EControllerHand::Right;
+	const EControllerHand DockedToHand = QuickRadialMenu->GetDockedTo() == AVREditorFloatingUI::EDockedTo::LeftArm ? EControllerHand::Left : EControllerHand::Right;
 	const UVREditorInteractor* DockedToInteractor = GetOwner().GetHandInteractor( DockedToHand );
 	return DockedToInteractor == Interactor && !QuickRadialMenu->bHidden;
 }
@@ -1103,7 +1224,7 @@ bool UVREditorUISystem::IsShowingRadialMenu( UVREditorInteractor* Interactor ) c
 
 
 
-void UVREditorUISystem::TryToSpawnRadialMenu( UVREditorInteractor* Interactor )
+void UVREditorUISystem::TryToSpawnRadialMenu( UVREditorInteractor* Interactor, const bool bForceOverUI )
 {
 	if( Interactor != nullptr )
 	{
@@ -1113,7 +1234,7 @@ void UVREditorUISystem::TryToSpawnRadialMenu( UVREditorInteractor* Interactor )
 			UVREditorInteractor* DockedToInteractor = nullptr;
 			if( !QuickRadialMenu->bHidden )
 			{
-				const EControllerHand ControllerHand = QuickRadialMenu->GetDockedTo() == AVREditorFloatingUI::EDockedTo::LeftHand ? EControllerHand::Left : EControllerHand::Right;
+				const EControllerHand ControllerHand = QuickRadialMenu->GetDockedTo() == AVREditorFloatingUI::EDockedTo::LeftArm ? EControllerHand::Left : EControllerHand::Right;
 				DockedToInteractor = GetOwner().GetHandInteractor( ControllerHand );
 			}
 
@@ -1127,11 +1248,11 @@ void UVREditorUISystem::TryToSpawnRadialMenu( UVREditorInteractor* Interactor )
 				DraggingMode != EViewportInteractionDraggingMode::World &&
 				DraggingMode != EViewportInteractionDraggingMode::AssistingDrag &&
 				( InteractorDraggingUI == nullptr || InteractorDraggingUI != Interactor ) &&
-				!Interactor->IsHoveringOverUI();	// Don't show radial menu when aiming at a UI  (too much clutter)
+				(!Interactor->IsHoveringOverUI() || bForceOverUI);	// Don't show radial menu when aiming at a UI unless forcing it (too much clutter)
 
 			if (bNeedsSpawn)
 			{
-				const AVREditorFloatingUI::EDockedTo DockedTo = MotionControllerInteractor->GetControllerSide() == EControllerHand::Left ? AVREditorFloatingUI::EDockedTo::LeftHand : AVREditorFloatingUI::EDockedTo::RightHand;
+				const AVREditorFloatingUI::EDockedTo DockedTo = MotionControllerInteractor->GetControllerSide() == EControllerHand::Left ? AVREditorFloatingUI::EDockedTo::LeftArm : AVREditorFloatingUI::EDockedTo::RightArm;
 				QuickRadialMenu->SetDockedTo(DockedTo);
 				QuickRadialMenu->ShowUI(true);
 			}
@@ -1637,7 +1758,7 @@ TSharedRef<SWidget> UVREditorUISystem::AddHoverableButton(TSharedRef<SWidget>& B
 		]
 		];
 	// Placeholder slot to put the button into when it is hovered
-	TestOverlay->AddSlot(1500)
+	TestOverlay->AddSlot(10)
 	.Expose(HoverSlot)
 		[
 			SNew(SOverlay)
@@ -1651,6 +1772,9 @@ TSharedRef<SWidget> UVREditorUISystem::AddHoverableButton(TSharedRef<SWidget>& B
 		Button->SetRenderTransformPivot(FVector2D(0.5, 0.5));
 		Button->SetOnHovered(FSimpleDelegate::CreateUObject(this, &UVREditorUISystem::OnHoverBeginEffect, Button));
 		Button->SetOnUnhovered(FSimpleDelegate::CreateUObject(this, &UVREditorUISystem::OnHoverEndEffect, Button));
+		FSlateSound SlateButtonPressSound = FSlateSound();
+		SlateButtonPressSound.SetResourceObject(ButtonPressSound);
+		Button->SetPressedSound(SlateButtonPressSound);
 		ButtonBorder->SetRenderTransformPivot(FVector2D(0.5, 0.5));
 		FVRButton ButtonToAdd = FVRButton(Button, BaseSlot, HoverSlot, ButtonBorder);
 		VRButtons.Add(ButtonToAdd);
@@ -1670,7 +1794,7 @@ TSharedRef<SWidget> UVREditorUISystem::SetButtonTextWrap(TSharedRef<SWidget>& Bl
 	return BlockWidget;
 }
 
-void UVREditorUISystem::MakeRadialBoxMenu(const TSharedRef<FMultiBox>& MultiBox, const TSharedRef<SMultiBoxWidget>& MultiBoxWidget)
+void UVREditorUISystem::MakeRadialBoxMenu(const TSharedRef<FMultiBox>& MultiBox, const TSharedRef<SMultiBoxWidget>& MultiBoxWidget, float RadiusRatioOverride)
 {
 	// Grab the list of blocks, early out if there's nothing to fill the widget with
 	const TArray< TSharedRef< const FMultiBlock > >& Blocks = MultiBox->GetBlocks();
@@ -1680,14 +1804,13 @@ void UVREditorUISystem::MakeRadialBoxMenu(const TSharedRef<FMultiBox>& MultiBox,
 		return;
 	}
 	MultiBox.Get().SetStyle(&FVREditorStyle::Get(), FVREditorStyle::GetStyleSetName());
-	TSharedRef<SRadialBox> GridPanel = SNew(SRadialBox);
+	TSharedRef<SRadialBox> GridPanel = SNew(SRadialBox)
+		.RadiusRatio(RadiusRatioOverride);
 	GridPanel->NumEntries = Blocks.Num();
 	for (const TSharedRef<const FMultiBlock>& MultiBlock : Blocks)
 	{
 		const TSharedRef<const FMultiBlock>& Block = MultiBlock;
 		TSharedRef<SWidget> BlockWidget = Block->MakeWidget(MultiBoxWidget, EMultiBlockLocation::Middle, true)->AsWidget();
-
-		
 		TSharedRef<SOverlay> TestOverlay = SNew(SOverlay);
 		
 		GridPanel->AddSlot()
@@ -1702,7 +1825,6 @@ void UVREditorUISystem::MakeRadialBoxMenu(const TSharedRef<FMultiBox>& MultiBox,
 
 	}
 	RadialWidget = GridPanel;
-	StaticCastSharedPtr<SRadialBox>(RadialWidget)->NumEntries = Blocks.Num();
 	MultiBoxWidget->SetContent(
 			SNew(SDPIScaler)
 			.DPIScale(3)
@@ -2086,7 +2208,7 @@ TSharedRef<SWidget> UVREditorUISystem::BuildRadialMenuWidget()
 {
 
 	FMultiBox::FOnMakeMultiBoxBuilderOverride VREditorMenuBuilderOverride;
-	VREditorMenuBuilderOverride.BindUObject(this, &UVREditorUISystem::MakeRadialBoxMenu);
+	VREditorMenuBuilderOverride.BindUObject(this, &UVREditorUISystem::MakeRadialBoxMenu, 1.0f);
 	const TSharedRef<FExtender> MenuExtender = MakeShareable(new FExtender());
 	TSharedPtr<FUICommandList> CommandList = MakeShareable(new FUICommandList());
 	FMenuBarBuilder MenuBuilder(CommandList, MenuExtender);
@@ -2096,90 +2218,248 @@ TSharedRef<SWidget> UVREditorUISystem::BuildRadialMenuWidget()
 
 	// First menu entry is at 90 degrees 
 	MenuBuilder.AddMenuEntry(
-		LOCTEXT("Delete", "Delete"),
-		LOCTEXT("DeleteTooltip", "Delete"),
+		LOCTEXT( "Delete", "Delete" ),
+		LOCTEXT( "DeleteTooltip", "Delete" ),
 		FSlateIcon(),
 		FUIAction
 		(
-			FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::ExecuteExecCommand, FString(TEXT("DELETE"))),
-			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::Delete_CanExecute)
+			FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ExecuteExecCommand, FString( TEXT( "DELETE" ) ) ),
+			FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::Delete_CanExecute )
 		)
 	);
 	MenuBuilder.AddMenuEntry(
-		LOCTEXT("Cut", "Cut"),
-		LOCTEXT("CutTooltip", "Cut"),
+		LOCTEXT( "Cut", "Cut" ),
+		LOCTEXT( "CutTooltip", "Cut" ),
 		FSlateIcon(),
 		FUIAction
 		(
-			FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::ExecuteExecCommand, FString(TEXT("EDIT CUT"))),
-			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::Cut_CanExecute)
-		)
-		);
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("Copy", "Copy"),
-		LOCTEXT("CopyTooltip", "Copy"),
-		FSlateIcon(),
-		FUIAction
-		(
-			FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::ExecuteExecCommand, FString(TEXT("EDIT COPY"))),
-			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::Copy_CanExecute)
+			FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ExecuteExecCommand, FString( TEXT( "EDIT CUT" ) ) ),
+			FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::Cut_CanExecute )
 		)
 	);
 	MenuBuilder.AddMenuEntry(
-		LOCTEXT("Duplicate", "Duplicate"),
-		LOCTEXT("DuplicateTooltip", "Duplicate"),
+		LOCTEXT( "Copy", "Copy" ),
+		LOCTEXT( "CopyTooltip", "Copy" ),
 		FSlateIcon(),
 		FUIAction
 		(
-			FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::ExecuteExecCommand, FString(TEXT("DUPLICATE"))),
-			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::Duplicate_CanExecute)
+			FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ExecuteExecCommand, FString( TEXT( "EDIT COPY" ) ) ),
+			FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::Copy_CanExecute )
 		)
 	);
 	MenuBuilder.AddMenuEntry(
-		LOCTEXT("Paste", "Paste"),
-		LOCTEXT("PasteTooltip", "Paste"),
+		LOCTEXT( "Duplicate", "Duplicate" ),
+		LOCTEXT( "DuplicateTooltip", "Duplicate" ),
 		FSlateIcon(),
 		FUIAction
 		(
-			FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::ExecuteExecCommand, FString(TEXT("EDIT PASTE"))),
-			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::Paste_CanExecute)
+			FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ExecuteExecCommand, FString( TEXT( "DUPLICATE" ) ) ),
+			FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::Duplicate_CanExecute )
 		)
 	);
 	MenuBuilder.AddMenuEntry(
-		LOCTEXT("Undo", "Undo"),
-		LOCTEXT("UndoTooltip", "Undo"),
+		LOCTEXT( "Paste", "Paste" ),
+		LOCTEXT( "PasteTooltip", "Paste" ),
 		FSlateIcon(),
 		FUIAction
 		(
-			FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::ExecuteExecCommand, FString(TEXT("TRANSACTION UNDO"))),
-			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::DefaultCanExecuteAction)
-			)
-		);
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("SnapActorsToGround", "Snap Actors To Ground"),
-		LOCTEXT("SnapActorsToGroundTooltip", "Snap Actors To Ground"),
-		FSlateIcon(),
-		FUIAction
-		(
-			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::OnSnapActorsToGroundClicked, VRMode),
-			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::Copy_CanExecute)
+			FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ExecuteExecCommand, FString( TEXT( "EDIT PASTE" ) ) ),
+			FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::Paste_CanExecute )
 		)
 	);
 	MenuBuilder.AddMenuEntry(
-		LOCTEXT("Redo", "Redo"),
-		LOCTEXT("RedoTooltip", "Redo"),
+		LOCTEXT( "Undo", "Undo" ),
+		LOCTEXT( "UndoTooltip", "Undo" ),
 		FSlateIcon(),
 		FUIAction
 		(
-			FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::ExecuteExecCommand, FString(TEXT("TRANSACTION REDO"))),
-			FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::DefaultCanExecuteAction)
-			)
-		);
-
+			FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ExecuteExecCommand, FString( TEXT( "TRANSACTION UNDO" ) ) ),
+			FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::DefaultCanExecuteAction )
+		)
+	);
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT( "SnapActorsToGround", "Snap Actors To Ground" ),
+		LOCTEXT( "SnapActorsToGroundTooltip", "Snap Actors To Ground" ),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic( &FVREditorActionCallbacks::OnSnapActorsToGroundClicked, VRMode ),
+			FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::Copy_CanExecute )
+		)
+	);
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT( "Redo", "Redo" ),
+		LOCTEXT( "RedoTooltip", "Redo" ),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ExecuteExecCommand, FString( TEXT( "TRANSACTION REDO" ) ) ),
+			FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::DefaultCanExecuteAction )
+		)
+	);
 
 	// Create the menu widget
 	TSharedRef<SWidget> MenuWidget = MenuBuilder.MakeWidget(&VREditorMenuBuilderOverride);
 	return MenuWidget;
+}
+
+TSharedRef<SWidget> UVREditorUISystem::BuildNumPadWidget()
+{
+
+	FMultiBox::FOnMakeMultiBoxBuilderOverride VREditorMenuBuilderOverride;
+	VREditorMenuBuilderOverride.BindUObject(this, &UVREditorUISystem::MakeRadialBoxMenu, 0.5f);
+	const TSharedRef<FExtender> MenuExtender = MakeShareable(new FExtender());
+	TSharedPtr<FUICommandList> CommandList = MakeShareable(new FUICommandList());
+	FMenuBarBuilder MenuBuilder(CommandList, MenuExtender);
+
+	// First menu entry is at 90 degrees 
+
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("NumThree", "3"),
+		LOCTEXT("", ""),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::SimulateCharacterEntry, FString::FromInt(3))
+		)
+		);
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("NumFour", "4"),
+		LOCTEXT("", ""),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::SimulateCharacterEntry, FString::FromInt(4))
+		)
+		);
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("NumFive", "5"),
+		LOCTEXT("", ""),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::SimulateCharacterEntry, FString::FromInt(5))
+		)
+		);
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("NumSix", "6"),
+		LOCTEXT("", ""),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::SimulateCharacterEntry, FString::FromInt(6))
+		)
+		);
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("NumSeven", "7"),
+		LOCTEXT("", ""),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::SimulateCharacterEntry, FString::FromInt(7))
+			)
+		);
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("NumEight", "8"),
+		LOCTEXT("", ""),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::SimulateCharacterEntry, FString::FromInt(8))
+			)
+		);
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("NumNine", "9"),
+		LOCTEXT("", ""),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic(&FVREditorActionCallbacks::SimulateCharacterEntry, FString::FromInt(9))
+		)
+		);
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT( "Hyphen", "-" ),
+		LOCTEXT( "", "" ),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic( &FVREditorActionCallbacks::SimulateCharacterEntry, FString::FString( TEXT( "-" ) ) )
+		)
+	);
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT( "Decimal", "." ),
+		LOCTEXT( "", "" ),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic( &FVREditorActionCallbacks::SimulateCharacterEntry, FString::FString( TEXT( "." ) ) )
+		)
+	);
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT( "NumZero", "0" ),
+		LOCTEXT( "", "" ),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic( &FVREditorActionCallbacks::SimulateCharacterEntry, FString::FromInt( 0 ) )
+		)
+	);
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT( "NumOne", "1" ),
+		LOCTEXT( "", "" ),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic( &FVREditorActionCallbacks::SimulateCharacterEntry, FString::FromInt( 1 ) )
+		)
+	);
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT( "NumTwo", "2" ),
+		LOCTEXT( "", "" ),
+		FSlateIcon(),
+		FUIAction
+		(
+			FExecuteAction::CreateStatic( &FVREditorActionCallbacks::SimulateCharacterEntry, FString::FromInt( 2 ) )
+		)
+	);
+
+	// Create the menu widget
+	TSharedRef<SWidget> MenuWidget = MenuBuilder.MakeWidget(&VREditorMenuBuilderOverride);
+
+	TSharedRef<SWidget> FinalWidget = SNew( SOverlay )
+		+ SOverlay::Slot()
+		[
+			MenuWidget
+		]
+		+ SOverlay::Slot()
+		.HAlign( HAlign_Center )
+		.VAlign( VAlign_Center )
+		[
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.HAlign( HAlign_Fill )
+			.VAlign( VAlign_Center )
+			.AutoHeight()
+			[
+				SNew( STextBlock )
+				.Justification( ETextJustify::Center )
+				.Text( LOCTEXT( "BackspaceHelp", "Modifier: Backspace" ) )
+				.TextStyle( FVREditorStyle::Get(), "VREditorStyle.HelperText" )
+			]
+		+ SVerticalBox::Slot()
+			.HAlign( HAlign_Fill )
+			.VAlign( VAlign_Center )
+			.AutoHeight()
+			[
+				SNew( STextBlock )
+				.Justification( ETextJustify::Center )
+				.Text( LOCTEXT( "EnterHelp", "Grip: Enter" ) )
+			.	TextStyle( FVREditorStyle::Get(), "VREditorStyle.HelperText" )
+			]
+		]
+		;
+
+	return FinalWidget;
 }
 
 const TSharedRef<SWidget>& UVREditorUISystem::FindWidgetOfType(const TSharedRef<SWidget>& Content, FName WidgetType)
@@ -2243,6 +2523,25 @@ void UVREditorUISystem::OnHoverEndEffect(TSharedRef<SButton> Button)
 const TSharedPtr<SWidget>& UVREditorUISystem::GetRadialWidget()
 {
 	return RadialWidget;
+}
+
+void UVREditorUISystem::SwapRadialMenu()
+{
+	const AVREditorFloatingUI::EDockedTo RadialMenuInteractor = QuickRadialMenu->GetDockedTo();
+	const FIntPoint DefaultResolution( VREd::DefaultEditorUIResolutionX->GetInt(), VREd::DefaultEditorUIResolutionY->GetInt() );
+	if (bRadialMenuIsNumpad)
+	{
+		QuickRadialMenu->SetSlateWidget( *this, BuildRadialMenuWidget(), DefaultResolution, 40.0f, RadialMenuInteractor );
+		bRadialMenuIsNumpad = false;
+	}
+	else
+	{
+		QuickRadialMenu->SetSlateWidget( *this, BuildNumPadWidget(), DefaultResolution, 40.0f, RadialMenuInteractor );
+		bRadialMenuIsNumpad = true;
+	}
+	QuickRadialMenu->GetWidgetComponent()->SetOpacityFromTexture( 1.0f );
+	QuickRadialMenu->GetWidgetComponent()->SetBackgroundColor( FLinearColor::Transparent );
+	QuickRadialMenu->GetWidgetComponent()->SetBlendMode( EWidgetBlendMode::Masked );
 }
 
 #undef LOCTEXT_NAMESPACE

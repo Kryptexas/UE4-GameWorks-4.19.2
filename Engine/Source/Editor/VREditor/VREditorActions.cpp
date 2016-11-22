@@ -256,4 +256,49 @@ void FVREditorActionCallbacks::OnSnapActorsToGroundClicked(class UVREditorMode* 
 }
 
 
+void FVREditorActionCallbacks::SimulateCharacterEntry(const FString InChar)
+{
+
+	for (int32 CharIndex = 0; CharIndex < InChar.Len(); CharIndex++)
+	{
+		TCHAR CharKey = InChar[CharIndex];
+		const bool bRepeat = false;
+		FCharacterEvent CharacterEvent(CharKey, FModifierKeysState::FModifierKeysState(), 0, bRepeat);
+		FSlateApplication::Get().ProcessKeyCharEvent(CharacterEvent);
+	}
+
+}
+
+void FVREditorActionCallbacks::SimulateKeyDown(FKey Key, bool bRepeat)
+{
+	const uint32* KeyCodePtr;
+	const uint32* CharCodePtr;
+	FInputKeyManager::Get().GetCodesFromKey( Key, KeyCodePtr, CharCodePtr );
+
+	uint32 KeyCode = KeyCodePtr ? *KeyCodePtr : 0;
+	uint32 CharCode = CharCodePtr ? *CharCodePtr : 0;
+
+	FKeyEvent KeyEvent( Key, FModifierKeysState::FModifierKeysState(), 0, bRepeat, KeyCode, CharCode );
+	bool DownResult = FSlateApplication::Get().ProcessKeyDownEvent( KeyEvent );
+
+	if (CharCodePtr)
+	{
+		FCharacterEvent CharacterEvent( CharCode, FModifierKeysState::FModifierKeysState(), 0, bRepeat );
+		FSlateApplication::Get().ProcessKeyCharEvent( CharacterEvent );
+	}
+}
+
+void FVREditorActionCallbacks::SimulateKeyUp(FKey Key)
+{
+	const uint32* KeyCodePtr;
+	const uint32* CharCodePtr;
+	FInputKeyManager::Get().GetCodesFromKey( Key, KeyCodePtr, CharCodePtr );
+
+	uint32 KeyCode = KeyCodePtr ? *KeyCodePtr : 0;
+	uint32 CharCode = CharCodePtr ? *CharCodePtr : 0;
+
+	FKeyEvent KeyEvent( Key, FModifierKeysState::FModifierKeysState(), 0, false, KeyCode, CharCode );
+	FSlateApplication::Get().ProcessKeyUpEvent( KeyEvent );
+}
+
 #undef LOCTEXT_NAMESPACE

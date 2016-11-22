@@ -88,6 +88,9 @@ protected:
 
 	/** The Radial Panel's children. */
 	TPanelChildren<FSlot> Children;
+
+	/** The ratio to adjust the radial menu's radius by (relative to the default)*/
+	TAttribute<float> RadiusRatioOverride;
 };
 
 
@@ -177,10 +180,12 @@ public:
 
 	SLATE_BEGIN_ARGS( SRadialBox )
 	{
-		_Visibility = EVisibility::SelfHitTestInvisible;
+		_Visibility = EVisibility::SelfHitTestInvisible,
+		/** The ratio to adjust the radial menu's radius by (relative to the default) */
+		_RadiusRatio = 1.0f;
 	}
-
-		SLATE_SUPPORTS_SLOT(SRadialBox::FSlot)
+	SLATE_ARGUMENT( float, RadiusRatio )
+	SLATE_SUPPORTS_SLOT(SRadialBox::FSlot)
 
 	SLATE_END_ARGS()
 

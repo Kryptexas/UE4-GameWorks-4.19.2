@@ -23,6 +23,8 @@ void SRadialBox::Construct( const SRadialBox::FArguments& InArgs )
 	}
 
 	CurrentlyHoveredButton = nullptr;
+	RadiusRatioOverride = InArgs._RadiusRatio;
+
 }
 
 /**
@@ -68,7 +70,7 @@ static FVector2D ComputeDesiredSizeForMenu(const TPanelChildren<SRadialPanel::FS
 
 
 template<EOrientation Orientation>
-static void ArrangeChildrenAlong( const TPanelChildren<SRadialPanel::FSlot>& Children, const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren )
+static void ArrangeChildrenAlong( const TPanelChildren<SRadialPanel::FSlot>& Children, const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren, TAttribute<float> RadiusOverride )
 {
 	// Allotted space will be given to fixed-size children first.
 	// Remaining space will be proportionately divided between stretch children (SizeRule_Stretch)
@@ -158,10 +160,11 @@ static void ArrangeChildrenAlong( const TPanelChildren<SRadialPanel::FSlot>& Chi
 			FVector2D MyDesiredSize(0, 0);
 			MyDesiredSize = ComputeDesiredSizeForMenu(Children);
 			
-			// Set the x and y coordinates of the slot based on the current angle, a radius of MyDesiredSize.Y / 2.0, and a center of (0, MyDesiredSize.Y / 2.0)
+			// Set the x and y coordinates of the slot based on the current angle, a default radius of MyDesiredSize.Y / 2, and a center of (0, MyDesiredSize.Y / 2.0)
 			// First element ends up at 90 degrees
-			float RadialX = MyDesiredSize.Y / 2.0f * FMath::Cos(PositionSoFar * ( (2.0f*PI) / Children.Num() ));
-			float RadialY = MyDesiredSize.Y / 2.0f + MyDesiredSize.Y / 2.0f * FMath::Sin(PositionSoFar * ( (2.0f*PI) / Children.Num() ));
+			float Radius = (MyDesiredSize.Y / 2.0f) * RadiusOverride.Get();
+			float RadialX =  Radius * FMath::Cos(PositionSoFar * ( (2.0f*PI) / Children.Num() ));
+			float RadialY = MyDesiredSize.Y / 2.0f + Radius * FMath::Sin(PositionSoFar * ( (2.0f*PI) / Children.Num() ));
 			 
 
 			// Add the information about this child to the output list (ArrangedChildren)
@@ -193,7 +196,7 @@ static void ArrangeChildrenAlong( const TPanelChildren<SRadialPanel::FSlot>& Chi
 void SRadialPanel::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
 	
-	ArrangeChildrenAlong<Orient_Vertical>(this->Children, AllottedGeometry, ArrangedChildren );
+	ArrangeChildrenAlong<Orient_Vertical>(this->Children, AllottedGeometry, ArrangedChildren, RadiusRatioOverride );
 	
 }
 

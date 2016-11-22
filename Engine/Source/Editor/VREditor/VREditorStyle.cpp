@@ -44,14 +44,10 @@ const FVector2D Icon40x40(40.0f, 40.0f);
 TSharedRef< FSlateStyleSet > FVREditorStyle::Create()
 {
 	TSharedRef< FSlateStyleSet > Style = MakeShareable(new FSlateStyleSet("VREditorStyle"));
-
-	const FButtonStyle OverrideButton = FEditorStyle::GetWidgetStyle<FButtonStyle>("VRButtonStyle");
-
-	// Use the default menu button style, but set the background to dark grey and use the sound set in the editor.
+	// Use the default menu button style, but set the background to dark grey.
 	const FButtonStyle NormalButton = FEditorStyle::GetWidgetStyle<FButtonStyle>("Menu.Button");
 	Style->Set("VREditorStyle.Button", FButtonStyle(NormalButton)
-		.SetNormal(BOX_BRUSH("Common/RoundedSelection_16x", 4.0f / 16.0f, FLinearColor(0.1f,0.1f,0.1f)))
-		.SetPressedSound(OverrideButton.PressedSlateSound));
+		.SetNormal(BOX_BRUSH("Common/RoundedSelection_16x", 4.0f / 16.0f, FLinearColor(0.1f,0.1f,0.1f))));
 
 	const FTextBlockStyle NormalText = FEditorStyle::GetWidgetStyle<FTextBlockStyle>("NormalText");
 	Style->Set("VREditorStyle.Label", FTextBlockStyle(NormalText)
@@ -67,6 +63,17 @@ TSharedRef< FSlateStyleSet > FVREditorStyle::Create()
 	Style->Set("VREditorStyle.Heading", FTextBlockStyle(NormalText)
 			.SetFont(HeadlineFont)
 			.SetColorAndOpacity(FLinearColor::White));
+
+	// Headings will have a font outline
+	FFontOutlineSettings HelperOutline;
+	HelperOutline.OutlineColor = FLinearColor( 0.2f, 0.2f, 0.2f, 0.5f );
+	HelperOutline.OutlineSize = 3.0f;
+	FSlateFontInfo HelperFont = TTF_CORE_FONT( "Fonts/Roboto-Regular", 24 );
+	HelperFont.OutlineSettings = HelperOutline;
+
+	Style->Set( "VREditorStyle.HelperText", FTextBlockStyle( NormalText )
+		.SetFont( HelperFont )
+		.SetColorAndOpacity( FLinearColor::White ) );
 	
 	const FCheckBoxStyle CheckboxStyle = FEditorStyle::GetWidgetStyle<FCheckBoxStyle>("Menu.Check");
 	Style->Set("VREditorStyle.Check", FCheckBoxStyle(CheckboxStyle));

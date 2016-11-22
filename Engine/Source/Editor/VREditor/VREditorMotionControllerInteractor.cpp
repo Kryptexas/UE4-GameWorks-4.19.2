@@ -1267,7 +1267,7 @@ void UVREditorMotionControllerInteractor::SetLaserVisuals( const FLinearColor& N
 void UVREditorMotionControllerInteractor::UpdateRadialMenuInput( const float DeltaTime )
 {
 	UVREditorUISystem& UISystem = GetVRMode().GetUISystem();
-
+	const EHMDDeviceType::Type HMDDeviceType = GetVRMode().GetHMDDeviceType();
 	//Update the radial menu
 	EViewportInteractionDraggingMode DraggingMode = GetDraggingMode();
 	if ( !HasUIInFront() &&
@@ -1284,6 +1284,16 @@ void UVREditorMotionControllerInteractor::UpdateRadialMenuInput( const float Del
 		{
 			const TSharedPtr<SRadialBox>& RadialBox = StaticCastSharedPtr<SRadialBox>(UISystem.GetRadialWidget());
 			RadialBox->HighlightSlot(TrackpadPosition);
+		}
+	}
+	// If we are not currently touching the Vive touchpad, reset the highlighted button
+	else if (HMDDeviceType == EHMDDeviceType::DT_SteamVR && !bIsTouchingTrackpad)
+	{
+		if (UISystem.IsShowingRadialMenu( this ))
+		{
+			const TSharedPtr<SRadialBox>& RadialBox = StaticCastSharedPtr<SRadialBox>( UISystem.GetRadialWidget() );
+			FVector2D ReturnToCenter = FVector2D::ZeroVector;
+			RadialBox->HighlightSlot( ReturnToCenter );
 		}
 	}
 }
