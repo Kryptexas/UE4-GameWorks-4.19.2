@@ -1852,6 +1852,11 @@ bool SSequencer::CanPaste()
 		FString TexttoImport;
 		FPlatformMisc::ClipboardPaste(TexttoImport);
 
+		if (!Sequencer->CanPaste(TexttoImport))
+		{
+			return false;
+		}
+
 		TArray<UMovieSceneTrack*> ImportedTrack;
 		Sequencer->ImportTracksFromText(TexttoImport, ImportedTrack);
 		if (ImportedTrack.Num() == 0)
