@@ -173,7 +173,11 @@ public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnFConfigFileDeleted, const FConfigFile *);
 	static FOnFConfigFileCreated OnFConfigCreated;
 	static FOnFConfigFileDeleted OnFConfigDeleted;
-
+#if WITH_EDITOR
+	// called when a target platform changes it's return value of supported formats.  This is so anything caching those results can reset (like cached shaders for cooking)
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnTargetPlatformChangedSupportedFormats, const ITargetPlatform*); 
+	static FOnTargetPlatformChangedSupportedFormats OnTargetPlatformChangedSupportedFormats;
+#endif
 	// called when the user grants permission to register for remote notifications
 	static FApplicationRegisteredForRemoteNotificationsDelegate ApplicationRegisteredForRemoteNotificationsDelegate;
 

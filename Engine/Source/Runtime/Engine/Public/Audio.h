@@ -672,14 +672,15 @@ public:
 	}
 	
 	// 16-bit padding.
-	uint32 Pad16Bit( uint32 InDW )
+	static uint32 Pad16Bit( uint32 InDW )
 	{
 		return ((InDW + 1)& ~1);
 	}
 
 	// Read headers and load all info pointers in WaveModInfo. 
 	// Returns 0 if invalid data encountered.
-	ENGINE_API bool ReadWaveInfo( uint8* WaveData, int32 WaveDataSize, FString* ErrorMessage = NULL );
+	ENGINE_API bool ReadWaveInfo( uint8* WaveData, int32 WaveDataSize, FString* ErrorMessage = NULL, bool InHeaderDataOnly = false, void** OutFormatHeader = NULL );
+	
 	/**
 	 * Read a wave file header from bulkdata
 	 */

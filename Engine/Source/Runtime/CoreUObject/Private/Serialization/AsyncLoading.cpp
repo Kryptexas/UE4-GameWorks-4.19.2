@@ -71,9 +71,6 @@ bool IsGarbageCollectionLocked();
 /** Global request ID counter */
 static FThreadSafeCounter GPackageRequestID;
 
-/** DEBUG only. @todo remove */
-static TMap<FName, TArray<FAsyncPackage*>> PackagesThatDecrementedCounter;
-
 /**
  * Updates FUObjectThreadContext with the current package when processing it.
  * FUObjectThreadContext::AsyncPackage is used by NotifyConstructedDuringAsyncLoading.
@@ -3577,12 +3574,6 @@ void FAsyncLoadingThread::InsertPackage(FAsyncPackage* Package, bool bReinsert, 
 		InsertIndex = InsertIndex == INDEX_NONE ? AsyncPackages.Num() : InsertIndex;
 
 		AsyncPackages.InsertUninitialized(InsertIndex);
-		TArray<FAsyncPackage*>& AlreadyDecremented = PackagesThatDecrementedCounter.FindOrAdd(Package->GetPackageName());
-		if (AlreadyDecremented.Contains(Package))
-		{
-			UE_LOG(LogStreaming, Warning, TEXT("Package %s has been removed multiple times"), *Package->GetPackageName().ToString());
-		}
-
 		AsyncPackages[InsertIndex] = Package;
 
 		if (!bReinsert)
@@ -3607,12 +3598,6 @@ void FAsyncLoadingThread::AddToLoadedPackages(FAsyncPackage* Package)
 #endif
 	if (!LoadedPackages.Contains(Package))
 	{
-		TArray<FAsyncPackage*>& AlreadyDecremented = PackagesThatDecrementedCounter.FindOrAdd(Package->GetPackageName());
-		if (AlreadyDecremented.Contains(Package))
-		{
-			UE_LOG(LogStreaming, Warning, TEXT("Package %s has already been removed but is still being loaded."), *Package->GetPackageName().ToString());
-		}
-
 		LoadedPackages.Add(Package);
 		LoadedPackagesNameLookup.Add(Package->GetPackageName(), Package);
 	}
@@ -3970,15 +3955,6 @@ EAsyncPackageState::Type FAsyncLoadingThread::ProcessLoadedPackages(bool bUseTim
 
 			// Incremented on the Async Thread, now decrement as we're done with this package				
 			const int32 NewExistingAsyncPackagesCounterValue = ExistingAsyncPackagesCounter.Decrement();
-			TArray<FAsyncPackage*>& AlreadyDecremented = PackagesThatDecrementedCounter.FindOrAdd(Package->GetPackageName());
-			if (!AlreadyDecremented.Contains(Package))
-			{
-				AlreadyDecremented.Add(Package);
-			}
-			else
-			{
-				UE_LOG(LogStreaming, Warning, TEXT("Package %s has already been removed"), *Package->GetPackageName().ToString());
-			}
 			UE_CLOG(NewExistingAsyncPackagesCounterValue < 0, LogStreaming, Fatal, TEXT("ExistingAsyncPackagesCounter is negative, this means we loaded more packages then requested so there must be a bug in async loading code."));
 
 			// Call external callbacks
@@ -4440,7 +4416,6 @@ FAsyncPackage::~FAsyncPackage()
 
 	MarkRequestIDsAsComplete();
 	DetachLinker();
-	check(!FAsyncLoadingThread::Get().IsPackageReferenced(this));
 #if USE_EVENT_DRIVEN_ASYNC_LOAD
 	SerialNumber = 0; // the weak pointer will always fail now
 	check(!EventNodeArray.Array && !EventNodeArray.TotalNumberOfNodesAdded);

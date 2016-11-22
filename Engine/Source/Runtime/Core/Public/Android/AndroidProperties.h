@@ -40,7 +40,7 @@ struct FAndroidPlatformProperties
 
 	static FORCEINLINE bool IsGameOnly( )
 	{
-		return UE_GAME;
+		return true;
 	}
 
 	static FORCEINLINE bool RequiresCookedData( )

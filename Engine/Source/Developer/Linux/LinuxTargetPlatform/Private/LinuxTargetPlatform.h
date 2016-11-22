@@ -30,11 +30,14 @@ public:
 	 * Default constructor.
 	 */
 	TLinuxTargetPlatform( )
+#if WITH_ENGINE
+		: bChangingDeviceConfig(false)
+#endif // WITH_ENGINE
 	{		
 #if PLATFORM_LINUX
 		// only add local device if actually running on Linux
 		FTargetDeviceId UATFriendlyId(FTargetDeviceId(TSuper::PlatformName(), FPlatformProcess::ComputerName()));
-		LocalDevice = MakeShareable(new FLinuxTargetDevice(*this, UATFriendlyId, FPlatformProcess::ComputerName()));
+		LocalDevice = MakeShareable(new FLinuxTargetDevice(*this, UATFriendlyId, FPlatformProcess::ComputerName(), nullptr));
 #endif
 	
 #if WITH_ENGINE
@@ -57,6 +60,8 @@ public:
 				TargetedShaderFormats.RemoveAt(ShaderFormatIdx);
 			}
 		}
+
+		InitDevicesFromConfig();
 #endif // WITH_ENGINE
 	}
 
@@ -78,7 +83,14 @@ public:
 		}
 
 		FTargetDeviceId UATFriendlyId(TEXT("Linux"), DeviceName);
-		Device = MakeShareable(new FLinuxTargetDevice(*this, UATFriendlyId, DeviceName));
+		Device = MakeShareable(new FLinuxTargetDevice(*this, UATFriendlyId, DeviceName, 
+#if WITH_ENGINE
+			[&]() { SaveDevicesToConfig(); }));
+		SaveDevicesToConfig();	// this will do the right thing even if AddDevice() was called from InitDevicesFromConfig
+#else
+			nullptr));
+#endif // WITH_ENGINE	
+
 		DeviceDiscoveredEvent.Broadcast(Device.ToSharedRef());
 		return true;
 	}
@@ -326,6 +338,103 @@ public:
 	//~ End ITargetPlatform Interface
 
 private:
+
+#if WITH_ENGINE
+	/** Whether we're in process of changing device config - if yes, we will prevent recurrent calls. */
+	bool bChangingDeviceConfig;
+
+	void InitDevicesFromConfig()
+	{
+		if (bChangingDeviceConfig)
+		{
+			return;
+		}
+		bChangingDeviceConfig = true;
+
+		int NumDevices = 0;	
+		for (;; ++NumDevices)
+		{
+			FString DeviceName, DeviceUser, DevicePass;
+
+			FString DeviceBaseKey(FString::Printf(TEXT("LinuxTargetPlatfrom_%s_Device_%d"), *TSuper::PlatformName(), NumDevices));
+			FString DeviceNameKey = DeviceBaseKey + TEXT("_Name");
+			if (!GConfig->GetString(TEXT("/Script/LinuxTargetPlatform.LinuxTargetSettings"), *DeviceNameKey, DeviceName, GEngineIni))
+			{
+				// no such device
+				break;
+			}
+
+			if (!AddDevice(DeviceName, false))
+			{
+				break;
+			}
+
+			// set credentials, if any
+			FString DeviceUserKey = DeviceBaseKey + TEXT("_User");
+			if (GConfig->GetString(TEXT("/Script/LinuxTargetPlatform.LinuxTargetSettings"), *DeviceUserKey, DeviceUser, GEngineIni))
+			{
+				FString DevicePassKey = DeviceBaseKey + TEXT("_Pass");
+				if (GConfig->GetString(TEXT("/Script/LinuxTargetPlatform.LinuxTargetSettings"), *DevicePassKey, DevicePass, GEngineIni))
+				{
+					for (const auto & DeviceIter : Devices)
+					{
+						ITargetDevicePtr Device = DeviceIter.Value;
+						if (Device.IsValid() && Device->GetId().GetDeviceName() == DeviceName)
+						{
+							Device->SetUserCredentials(DeviceUser, DevicePass);
+						}
+					}
+				}
+			}
+		}
+		
+		bChangingDeviceConfig = false;
+	}
+
+	void SaveDevicesToConfig()
+	{
+		if (bChangingDeviceConfig)
+		{
+			return;
+		}
+		bChangingDeviceConfig = true;
+
+		int DeviceIndex = 0;
+		for (const auto & DeviceIter : Devices)
+		{
+			ITargetDevicePtr Device = DeviceIter.Value;
+
+			FString DeviceBaseKey(FString::Printf(TEXT("LinuxTargetPlatfrom_%s_Device_%d"), *TSuper::PlatformName(), DeviceIndex));
+			FString DeviceNameKey = DeviceBaseKey + TEXT("_Name");
+
+			if (Device.IsValid())
+			{
+				FString DeviceName = Device->GetId().GetDeviceName();
+				// do not save a local device on Linux or it will be duplicated
+				if (PLATFORM_LINUX && DeviceName == FPlatformProcess::ComputerName())
+				{
+					continue;
+				}
+
+				GConfig->SetString(TEXT("/Script/LinuxTargetPlatform.LinuxTargetSettings"), *DeviceNameKey, *DeviceName, GEngineIni);
+
+				FString DeviceUser, DevicePass;
+				if (Device->GetUserCredentials(DeviceUser, DevicePass))
+				{
+					FString DeviceUserKey = DeviceBaseKey + TEXT("_User");
+					FString DevicePassKey = DeviceBaseKey + TEXT("_Pass");
+
+					GConfig->SetString(TEXT("/Script/LinuxTargetPlatform.LinuxTargetSettings"), *DeviceUserKey, *DeviceUser, GEngineIni);
+					GConfig->SetString(TEXT("/Script/LinuxTargetPlatform.LinuxTargetSettings"), *DevicePassKey, *DevicePass, GEngineIni);
+				}
+
+				++DeviceIndex;	// needs to be incremented here since we cannot allow gaps
+			}
+		}
+
+		bChangingDeviceConfig = false;
+	}
+#endif // WITH_ENGINE
 
 	// Holds the local device.
 	FLinuxTargetDevicePtr LocalDevice;

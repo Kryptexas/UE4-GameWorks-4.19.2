@@ -27,7 +27,7 @@ namespace UnrealBuildTool
 		Linux,
 		AllDesktop,
 		TVOS,
-		WolfPlat,
+		Switch,
 	}
 
 	public enum UnrealPlatformGroup
@@ -303,7 +303,7 @@ namespace UnrealBuildTool
 				case CPPTargetPlatform.HTML5:			return UnrealTargetPlatform.HTML5;
                 case CPPTargetPlatform.Linux:			return UnrealTargetPlatform.Linux;
 				case CPPTargetPlatform.TVOS:			return UnrealTargetPlatform.TVOS;
-				case CPPTargetPlatform.Wolf: 			return UnrealTargetPlatform.WolfPlat;
+				case CPPTargetPlatform.Switch: 			return UnrealTargetPlatform.Switch;
 			}
 			throw new BuildException("CPPTargetPlatformToUnrealTargetPlatform: Unknown CPPTargetPlatform {0}", InCPPPlatform.ToString());
 		}
@@ -4315,7 +4315,7 @@ namespace UnrealBuildTool
 					// The above comment is wrong. Plugins need SharedPCHs disabled as well. See the Jira. 
 					// The following line WORKS AROUND THE ISSUE BUT DOESN'T FIX IT. 
 					if (ProjectFile == null || !ModuleFileName.IsUnderDirectory(ProjectFile.Directory))
-					// This is the original code that matched the comment, but will cause at least Wolf to fail to compile UT
+					// This is the original code that matched the comment, but will cause at least Switch to fail to compile UT
 					//if (ProjectFile == null || !ModuleFileName.IsUnderDirectory(DirectoryReference.Combine(ProjectFile.Directory, "Source")))
 					////////////////////////////////////////////////////////////////////////////////////////
 					{

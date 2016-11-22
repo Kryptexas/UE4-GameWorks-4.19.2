@@ -137,6 +137,10 @@ struct FMD5Hash
 
 	/** Hash the specified file contents (using the optionally supplied scratch buffer) */
 	CORE_API static FMD5Hash HashFile(const TCHAR* InFilename, TArray<uint8>* Buffer = nullptr);
+	CORE_API static FMD5Hash HashFileFromArchive(FArchive* Ar, TArray<uint8>* ScratchPad = nullptr);
+
+	const uint8* GetBytes() const { return Bytes; }
+	const int32 GetSize() const { return sizeof(Bytes); }
 
 private:
 	/** Whether this hash is valid or not */

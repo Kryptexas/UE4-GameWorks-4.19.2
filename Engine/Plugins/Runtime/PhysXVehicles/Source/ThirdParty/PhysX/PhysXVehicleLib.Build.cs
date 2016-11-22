@@ -139,9 +139,9 @@ public class PhysXVehicleLib : ModuleRules
 
             PublicAdditionalLibraries.Add(String.Format("PhysX3Vehicle{0}.lib", LibrarySuffix));
         }
-        else if (Target.Platform == UnrealTargetPlatform.WolfPlat)
+        else if (Target.Platform == UnrealTargetPlatform.Switch)
         {
-            PublicLibraryPaths.Add(PhysXLibDir + "WolfPlat");
+            PublicLibraryPaths.Add(PhysXLibDir + "Switch");
 
             PublicAdditionalLibraries.Add("PhysX3Vehicle" + LibrarySuffix);
         }

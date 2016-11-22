@@ -534,8 +534,15 @@ public partial class Project : CommandUtils
                 SC.StageFiles(StagedFileTypeForMovies, CombinePaths(SC.ProjectRoot, "Content/Movies"), "*", true, new string[] { "*.uasset", "*.umap" }, CombinePaths(SC.RelativeProjectRootForStage, "Content/Movies"), true, bRemap);
             }
 
-            // eliminate the sand box
-            SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Saved", "Cooked", SC.CookPlatform), "*", true, new string[] { "*.json" }, "", true, !Params.UsePak(SC.StageTargetPlatform));
+			// eliminate the sand box
+			if (Params.CookInEditor)
+			{
+				SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Saved", "EditorCooked", SC.CookPlatform), "*", true, new string[] { "*.json" }, "", true, !Params.UsePak(SC.StageTargetPlatform)); 
+			}
+			else
+			{
+				SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Saved", "Cooked", SC.CookPlatform), "*", true, new string[] { "*.json" }, "", true, !Params.UsePak(SC.StageTargetPlatform));
+			}
 
             // CrashReportClient is a standalone slate app that does not look in the generated pak file, so it needs the Content/Slate and Shaders/StandaloneRenderer folders Non-UFS
             // @todo Make CrashReportClient more portable so we don't have to do this
@@ -1874,8 +1881,9 @@ public partial class Project : CommandUtils
                             string UniqueName = "";
                             if (SC.StageTargetPlatform.SupportsMultiDeviceDeploy)
                             {
-                                UniqueName = DeviceName;
-                            }
+								//replace the port name in the case of deploy while android adb on wifi
+								UniqueName = DeviceName.Replace(":", "_");
+							}
 
                             // get the deployed file data
                             Dictionary<string, string> DeployedUFSFiles = new Dictionary<string, string>();

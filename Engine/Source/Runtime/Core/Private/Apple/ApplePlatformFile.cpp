@@ -316,7 +316,7 @@ private:
     int64 FileSize;
 
     // Each thread keeps a collection of active handles with access times.
-    static const int32 ACTIVE_HANDLE_COUNT = 256;
+    static const int32 ACTIVE_HANDLE_COUNT = 192;
     static __thread FFileHandleApple* ActiveHandles[ ACTIVE_HANDLE_COUNT ];
     static __thread double AccessTimes[ ACTIVE_HANDLE_COUNT ];
 #endif

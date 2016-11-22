@@ -127,11 +127,7 @@ private:
 
 	/** Templated function to parse a specific Alembic typed object from the archive */
 	template<typename T> void ParseAbcObject(T& InObject, FGuid InHierarchyGuid) {};
-	/** Specialized template function to parse IPolyMesh object types */
-	template<> void ParseAbcObject<Alembic::AbcGeom::IPolyMesh>(Alembic::AbcGeom::IPolyMesh& InPolyMesh, FGuid InHierarchyGuid);
-	/** Specialized template function to parse IXform object types */
-	template<> void ParseAbcObject<Alembic::AbcGeom::IXform>(Alembic::AbcGeom::IXform& InXform, FGuid InHierarchyGuid);
-	
+
 	/**
 	* CreateFlipbookAnimationTrack
 	*
@@ -214,3 +210,8 @@ private:
 	FAbcImportData* ImportData;
 	static const int32 FirstSampleIndex;
 };
+
+/** Specialized template function to parse IPolyMesh object types */
+template<> void FAbcImporter::ParseAbcObject<Alembic::AbcGeom::IPolyMesh>(Alembic::AbcGeom::IPolyMesh& InPolyMesh, FGuid InHierarchyGuid);
+/** Specialized template function to parse IXform object types */
+template<> void FAbcImporter::ParseAbcObject<Alembic::AbcGeom::IXform>(Alembic::AbcGeom::IXform& InXform, FGuid InHierarchyGuid);

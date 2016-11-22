@@ -121,6 +121,7 @@ public:
 	void DestroyNativeWindow(SDL_HWindow NativeWindow);
 
 	virtual bool IsMouseAttached() const override;
+
 private:
 
 	FLinuxApplication();
@@ -180,6 +181,16 @@ private:
 	 * Checks if we need to destroy any of PendingDestroy windows.
 	 */
 	void DestroyPendingWindows();
+
+	/** Gets the touch index for a given finger. */
+	inline uint32 GetTouchIndexForFinger(SDL_FingerID FingerId)
+	{
+		// SDL ids are 64-bit while our touches are 32-bit. Collision due to wrapping shouldn't be a practical problem though
+		return static_cast<uint32>(FingerId & 0xFFFFFFFF);
+	}
+
+	/** Gets the location from a given touch event. */
+	FVector2D GetTouchEventLocation(SDL_Event TouchEvent);
 
 	struct SDLControllerState
 	{

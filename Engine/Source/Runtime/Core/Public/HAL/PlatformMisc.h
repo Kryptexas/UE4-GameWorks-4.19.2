@@ -18,8 +18,8 @@
 #include "HTML5/HTML5PlatformMisc.h"
 #elif PLATFORM_LINUX
 #include "Linux/LinuxPlatformMisc.h"
-#elif PLATFORM_WOLF
-#include "WolfPlat/WolfPlatformMisc.h"
+#elif PLATFORM_SWITCH
+#include "Switch/SwitchPlatformMisc.h"
 #endif
 
 class CORE_API FScopedNamedEvent

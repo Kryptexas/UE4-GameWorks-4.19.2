@@ -578,4 +578,4 @@ COREUOBJECT_API FString GetPrestreamPackageLinkerName(const TCHAR* InLongPackage
  * @param	InOuter			The outer for the package we are saving
  * @param	Filename		The filename we are saving too
  */
-void ResetLoadersForSave(UObject* InOuter, const TCHAR *Filename);
+COREUOBJECT_API void ResetLoadersForSave(UObject* InOuter, const TCHAR *Filename);

@@ -32,7 +32,7 @@ public class HTTP : ModuleRules
 
         if (Target.Platform == UnrealTargetPlatform.Linux ||
 			Target.Platform == UnrealTargetPlatform.Android ||
-			Target.Platform == UnrealTargetPlatform.WolfPlat)
+			Target.Platform == UnrealTargetPlatform.Switch)
 		{
             AddEngineThirdPartyPrivateStaticDependencies(Target, "libcurl");
 		}

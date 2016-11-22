@@ -155,7 +155,7 @@ static void RemoveDuplicateVerts(TArray<FVector>& InVerts)
 	}
 }
 
-// Weisstein, Eric W. "Point-Line Distance--3-Dimensional." From MathWorld--A Wolfram Web Resource. http://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html 
+// Weisstein, Eric W. "Point-Line Distance--3-Dimensional." From MathWorld--A Switchram Web Resource. http://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html 
 static float DistanceToLine(const FVector& LineStart, const FVector& LineEnd, const FVector& Point)
 {
 	const FVector StartToEnd = LineEnd - LineStart;

@@ -144,9 +144,9 @@ public class FreeType2 : ModuleRules
                 PublicAdditionalLibraries.Add("freetype2412.lib");
             }
         }
-		else if (Target.Platform == UnrealTargetPlatform.WolfPlat)
+		else if (Target.Platform == UnrealTargetPlatform.Switch)
 		{
-			PublicAdditionalLibraries.Add(System.IO.Path.Combine(FreeType2LibPath, "WolfPlat/libFreetype.a"));
+			PublicAdditionalLibraries.Add(System.IO.Path.Combine(FreeType2LibPath, "Switch/libFreetype.a"));
 		}
     }
 }

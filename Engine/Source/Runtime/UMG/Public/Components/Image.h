@@ -66,6 +66,10 @@ public:
 	void SetBrushFromTexture(UTexture2D* Texture, bool bMatchSize = false);
 
 	/**  */
+	UFUNCTION(BlueprintCallable, Category = "Appearance")
+	void SetBrushFromTextureDynamic(UTexture2DDynamic* Texture, bool bMatchSize = false);
+
+	/**  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void SetBrushFromMaterial(UMaterialInterface* Material);
 

@@ -111,6 +111,9 @@ protected:
 	/** Delegate for handling PS4 play together system events */
 	void OnPlayTogetherEventReceived(int32 UserIndex, const TArray<const FUniqueNetId&>& UserList);
 
+	/** Delegate for handling external console commands */
+	void OnConsoleInput(const FString& Command);
+
 	UPROPERTY()
 	TArray<ULocalPlayer*> LocalPlayers;		// List of locally participating players in this game instance
 	

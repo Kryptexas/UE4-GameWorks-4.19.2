@@ -91,11 +91,16 @@ namespace Manzana
         /// <param name="myDisconnectHandler"></param>
         public static void Initialize(ConnectEventHandler myConnectHandler, ConnectEventHandler myDisconnectHandler)
         {
-            ConnectEH += myConnectHandler;
+			if (MobileDevice.DeviceImpl == null)
+			{
+				return;
+			}
+
+			ConnectEH += myConnectHandler;
             DisconnectEH += myDisconnectHandler;
         
             DeviceCallbackHandle = new DeviceNotificationCallback(NotifyCallback);
-            
+
             int ret = MobileDevice.DeviceImpl.NotificationSubscribe(DeviceCallbackHandle);
             if (ret != 0)
             {

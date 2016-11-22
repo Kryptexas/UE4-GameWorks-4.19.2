@@ -1046,7 +1046,8 @@ void UReflectionCaptureComponent::Serialize(FArchive& Ar)
 					else if (!IsTemplate())
 					{
 						// Temporary warning until the cooker can do scene captures itself in the case of missing DDC
-						UE_LOG(LogMaterial, Warning, TEXT("Reflection capture requires encoded HDR data but none was found in the DDC!  This reflection will be black.  Fix by resaving the map in the editor.  %s."), *GetFullName());
+						UE_LOG(LogMaterial, Warning, TEXT("Reflection capture requires encoded HDR data but none was found in the DDC!  This reflection will be black."));
+						UE_LOG(LogMaterial, Warning, TEXT("Fix by resaving the map in the editor.  %s."), *GetFullName());
 					}
 				}
 			}
@@ -1086,7 +1087,8 @@ void UReflectionCaptureComponent::Serialize(FArchive& Ar)
 				else if (CurrentFormat == EncodedHDR)
 				{
 					// Temporary warning until the cooker can do scene captures itself in the case of missing DDC
-					UE_LOG(LogMaterial, Error, TEXT("Reflection capture was loaded without any valid capture data and will be black.  This can happen if the DDC was not up to date during cooking.  Load the map in the editor once before cooking to fix.  %s."), *GetFullName());
+					UE_LOG(LogMaterial, Error, TEXT("Reflection capture was loaded without any valid capture data and will be black.  This can happen if the DDC was not up to date during cooking."));
+					UE_LOG(LogMaterial, Error, TEXT("Load the map in the editor once before cooking to fix.  %s."), *GetFullName());
 				}
 			}
 		}

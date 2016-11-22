@@ -31,16 +31,16 @@ public class RHI : ModuleRules
 			// need to dynamically load an assembly to check if the SDK exists (not everyone will have access to this)
 			if (Target.Platform == UnrealTargetPlatform.Win64)
 			{
-				System.Type WolfSDKType = System.Type.GetType("UnrealBuildTool.WolfPlatformSDK,UnrealBuildTool");
-				if (WolfSDKType != null)
+				System.Type SwitchSDKType = System.Type.GetType("UnrealBuildTool.SwitchPlatformSDK,UnrealBuildTool");
+				if (SwitchSDKType != null)
 				{
 					// check for the location of the SDK
-					string RHIModuleName = WolfSDKType.GetMethod("GetRHIModuleNameIfAvailable").Invoke(null, null) as string;
-					// compile the Wolf RHI if possible
+					string RHIModuleName = SwitchSDKType.GetMethod("GetRHIModuleNameIfAvailable").Invoke(null, null) as string;
+					// compile the Switch RHI if possible
 					if (!string.IsNullOrEmpty(RHIModuleName))
 					{
 						DynamicallyLoadedModuleNames.Add(RHIModuleName);
-						Definitions.Add("WOLFRHI=" + RHIModuleName);
+						Definitions.Add("SWITCHRHI=" + RHIModuleName);
 					}
 				}
 			}

@@ -1452,6 +1452,8 @@ private:
 
 private:
 
+	bool SetUserFocus(FSlateUser* User, const FWidgetPath& InFocusPath, const EFocusCause InCause);
+
 	/** Lock the cursor such that it cannot leave the bounds of the specified widget. Null widget implies no cursor lock. */
 	void LockCursor(const TSharedPtr<SWidget>& Widget);
 

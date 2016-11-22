@@ -575,13 +575,17 @@ void FAudioStreamingManager::UpdateResourceStreaming(float DeltaTime, bool bProc
 				if (SourceChunk >= 0 && SourceChunk < Wave->RunningPlatformData->NumChunks)
 				{
 					WaveRequest.RequiredIndices.AddUnique(SourceChunk);
-					WaveRequest.RequiredIndices.AddUnique((SourceChunk+1)%Wave->RunningPlatformData->NumChunks);
+					WaveRequest.RequiredIndices.AddUnique((SourceChunk + 1) % Wave->RunningPlatformData->NumChunks);
 					if (!WaveData->LoadedChunkIndices.Contains(SourceChunk)
 					|| Source->GetBuffer()->GetCurrentChunkOffset() > Wave->RunningPlatformData->Chunks[SourceChunk].DataSize / 2)
 					{
 						// currently not loaded or already read over half, request is high priority
 						WaveRequest.bPrioritiseRequest = true;
 					}
+				}
+				else
+				{
+					UE_LOG(LogAudio, Log, TEXT("Invalid chunk request curIndex=%d numChunks=%d\n"), SourceChunk, Wave->RunningPlatformData->NumChunks);
 				}
 			}
 		}
@@ -771,7 +775,7 @@ bool FAudioStreamingManager::IsManagedStreamingSoundSource(const FSoundSource* S
 	return StreamingSoundSources.FindByKey(SoundSource) != NULL;
 }
 
-const uint8* FAudioStreamingManager::GetLoadedChunk(const USoundWave* SoundWave, uint32 ChunkIndex) const
+const uint8* FAudioStreamingManager::GetLoadedChunk(const USoundWave* SoundWave, uint32 ChunkIndex, uint32* OutChunkSize) const
 {
 	const FStreamingWaveData* WaveData = StreamingSoundWaves.FindRef(SoundWave);
 	if (WaveData)
@@ -782,6 +786,11 @@ const uint8* FAudioStreamingManager::GetLoadedChunk(const USoundWave* SoundWave,
 			{
 				if (WaveData->LoadedChunks[Index].Index == ChunkIndex)
 				{
+					if(OutChunkSize != NULL)
+					{
+						*OutChunkSize = WaveData->LoadedChunks[Index].DataSize;
+					}
+					
 					return WaveData->LoadedChunks[Index].Data;
 				}
 			}

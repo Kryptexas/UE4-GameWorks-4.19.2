@@ -72,7 +72,7 @@ FName FAllDesktopTargetPlatform::GetWaveFormat( const class USoundWave* Wave ) c
 	
 	if (Wave->IsStreaming())
 	{
-		// @todo desktop platform: Does Mac support OPUS?
+		// @todo desktop platform: Does Linux support OPUS?
 		return NAME_OPUS;
 	}
 	

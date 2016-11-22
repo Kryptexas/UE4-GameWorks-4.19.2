@@ -120,6 +120,22 @@ void UImage::SetBrushFromTexture(UTexture2D* Texture, bool bMatchSize)
 	}
 }
 
+void UImage::SetBrushFromTextureDynamic(UTexture2DDynamic* Texture, bool bMatchSize)
+{
+	Brush.SetResourceObject(Texture);
+
+	if (bMatchSize && Texture)
+	{
+		Brush.ImageSize.X = Texture->SizeX;
+		Brush.ImageSize.Y = Texture->SizeY;
+	}
+
+	if (MyImage.IsValid())
+	{
+		MyImage->SetImage(&Brush);
+	}
+}
+
 void UImage::SetBrushFromMaterial(UMaterialInterface* Material)
 {
 	Brush.SetResourceObject(Material);

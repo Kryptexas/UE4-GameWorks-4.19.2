@@ -93,7 +93,7 @@ private:
 #endif
 public:
 	/** Whether this package has been fully loaded (aka had all it's exports created) at some point.															*/
-	bool	bHasBeenFullyLoaded;
+	mutable bool	bHasBeenFullyLoaded;
 private:
 	/** Returns whether exports should be found in memory first before trying to load from disk from within CreateExport.										*/
 	bool	bShouldFindExportsInMemoryFirst;
@@ -247,7 +247,7 @@ public:
 	 *
 	 * @return true if fully loaded or no file associated on disk, false otherwise
 	 */
-	bool IsFullyLoaded();
+	bool IsFullyLoaded() const;
 
 	/**
 	 * Fully loads this package. Safe to call multiple times and won't clobber already loaded assets.

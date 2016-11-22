@@ -436,7 +436,7 @@ struct IAudioStreamingManager : public IStreamingManager
 	 * @param ChunkIndex	Index of the chunk we want
 	 * @return Either the desired chunk or NULL if it's not loaded
 	 */
-	virtual const uint8* GetLoadedChunk(const USoundWave* SoundWave, uint32 ChunkIndex) const = 0;
+	virtual const uint8* GetLoadedChunk(const USoundWave* SoundWave, uint32 ChunkIndex, uint32* OutChunkSize = NULL) const = 0;
 };
 
 /**

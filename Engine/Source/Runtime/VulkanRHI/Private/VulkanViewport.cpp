@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "VulkanRHIPrivate.h"
-#include "VulkanSwapchain.h"
+#include "VulkanSwapChain.h"
 #include "VulkanPendingState.h"
 #include "VulkanContext.h"
 

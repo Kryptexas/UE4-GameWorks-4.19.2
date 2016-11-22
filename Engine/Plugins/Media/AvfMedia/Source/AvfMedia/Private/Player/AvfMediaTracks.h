@@ -80,8 +80,9 @@ public:
 	 * Initialize the track collection.
 	 *
 	 * @param PlayerItem The player item containing the track information.
+	 * @param OutInfo Will contain information about the available media tracks.
 	 */
-	void Initialize(AVPlayerItem* InPlayerItem);
+	void Initialize(AVPlayerItem* InPlayerItem, FString& OutInfo);
 
 	/** Reset the stream collection. */
 	void Reset();

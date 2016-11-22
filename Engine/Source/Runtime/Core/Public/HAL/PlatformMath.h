@@ -19,6 +19,6 @@
 #include "HTML5/HTML5PlatformMath.h"
 #elif PLATFORM_LINUX
 #include "Linux/LinuxPlatformMath.h"
-#elif PLATFORM_WOLF
-#include "WolfPlat/WolfPlatformMath.h"
+#elif PLATFORM_SWITCH
+#include "Switch/SwitchPlatformMath.h"
 #endif

@@ -19,6 +19,6 @@
 #include "HTML5/HTML5PlatformSurvey.h"
 #elif PLATFORM_LINUX
 #include "Linux/LinuxPlatformSurvey.h"
-#elif PLATFORM_WOLF
-#include "WolfPlat/WolfPlatformSurvey.h"
+#elif PLATFORM_SWITCH
+#include "Switch/SwitchPlatformSurvey.h"
 #endif

@@ -782,22 +782,34 @@ public class DeploymentContext //: ProjectParams
 
 	public String GetUFSDeploymentDeltaPath(string DeviceName)
 	{
-		return Path.Combine(StageDirectory, UFSDeployDeltaFileName + DeviceName);
+		//replace the port name in the case of deploy while adb is using wifi
+		string SanitizedDeviceName = DeviceName.Replace(":", "_");
+
+		return Path.Combine(StageDirectory, UFSDeployDeltaFileName + SanitizedDeviceName);
 	}
 
 	public String GetNonUFSDeploymentDeltaPath(string DeviceName)
 	{
-		return Path.Combine(StageDirectory, NonUFSDeployDeltaFileName + DeviceName);
+		//replace the port name in the case of deploy while adb is using wifi
+		string SanitizedDeviceName = DeviceName.Replace(":", "_");
+
+		return Path.Combine(StageDirectory, NonUFSDeployDeltaFileName + SanitizedDeviceName);
 	}
 
 	public String GetUFSDeploymentObsoletePath(string DeviceName)
 	{
-		return Path.Combine(StageDirectory, UFSDeployObsoleteFileName + DeviceName);
+		//replace the port name in the case of deploy while adb is using wifi
+		string SanitizedDeviceName = DeviceName.Replace(":", "_");
+
+		return Path.Combine(StageDirectory, UFSDeployObsoleteFileName + SanitizedDeviceName);
 	}
 
 	public String GetNonUFSDeploymentObsoletePath(string DeviceName)
 	{
-		return Path.Combine(StageDirectory, NonUFSDeployObsoleteFileName + DeviceName);
+		//replace the port name in the case of deploy while adb is using wifi
+		string SanitizedDeviceName = DeviceName.Replace(":", "_");
+
+		return Path.Combine(StageDirectory, NonUFSDeployObsoleteFileName + SanitizedDeviceName);
 	}
 
 	public string UFSDeployedManifestFileName

@@ -101,11 +101,11 @@ public class PhysX : ModuleRules
 
 		string PhysXIncludeDir = PhysXDir + "Include/";
 		string PxSharedIncludeDir = PxSharedDir + "include/";
-		if (Target.Platform == UnrealTargetPlatform.WolfPlat)
+		if (Target.Platform == UnrealTargetPlatform.Switch)
 		{
-			// all physx includes in a WolfPlat subdir
-			PhysXIncludeDir = PhysXIncludeDir + "WolfPlat/";
-			PxSharedIncludeDir = PxSharedIncludeDir + "WolfPlat/";
+			// all physx includes in a Switch subdir
+			PhysXIncludeDir = PhysXIncludeDir + "Switch/";
+			PxSharedIncludeDir = PxSharedIncludeDir + "Switch/";
 		}
 
 
@@ -330,14 +330,13 @@ public class PhysX : ModuleRules
 			PublicLibraryPaths.Add(PhysXLibDir);
 			PublicLibraryPaths.Add(PxSharedLibDir);
 
-			string[] StaticLibrariesLinux = new string[] {
+			string[] StaticLibrariesPhysXLinux = new string[] {
 				"rt",
 				"LowLevel{0}",
 				"LowLevelAABB{0}",
 				"LowLevelCloth{0}",
 				"LowLevelDynamics{0}",
 				"LowLevelParticles{0}",
-				"NvParameterized{0}",
                 "PhysX3{0}",
 				"PhysX3Extensions{0}",
 				"PhysX3Cooking{0}",
@@ -347,13 +346,25 @@ public class PhysX : ModuleRules
 				"PxFoundation{0}",
 				"PxTask{0}",
 				"PxPvdSDK{0}",
-				"PsFastXml{0}",
-				"RenderDebug{0}"
+				"PsFastXml{0}"
 			};
 
-			foreach (string Lib in StaticLibrariesLinux)
+			foreach (string Lib in StaticLibrariesPhysXLinux)
 			{
 				PublicAdditionalLibraries.Add(String.Format(Lib, LibrarySuffix));
+			}
+
+			if (UEBuildConfiguration.bCompileAPEX)
+			{
+				string[] StaticLibrariesApexLinux = new string[] {
+					"NvParameterized{0}",
+					"RenderDebug{0}"
+				};
+
+				foreach (string Lib in StaticLibrariesApexLinux)
+				{
+					PublicAdditionalLibraries.Add(String.Format(Lib, LibrarySuffix));
+				}
 			}
 		}
 		else if (Target.Platform == UnrealTargetPlatform.IOS)
@@ -511,12 +522,12 @@ public class PhysX : ModuleRules
 				PublicAdditionalLibraries.Add(String.Format(Lib, LibrarySuffix));
 			}
 		}
-		else if (Target.Platform == UnrealTargetPlatform.WolfPlat)
+		else if (Target.Platform == UnrealTargetPlatform.Switch)
 		{
-			PublicLibraryPaths.Add(PhysXLibDir + "WolfPlat");
-			PublicLibraryPaths.Add(PxSharedLibDir + "WolfPlat");
+			PublicLibraryPaths.Add(PhysXLibDir + "Switch");
+			PublicLibraryPaths.Add(PxSharedLibDir + "Switch");
 
-			string[] StaticLibrariesWolf = new string[] {
+			string[] StaticLibrariesSwitch = new string[] {
 					"LowLevel",
 					"LowLevelAABB",
 					"LowLevelCloth",
@@ -534,7 +545,7 @@ public class PhysX : ModuleRules
 					"PsFastXml"
 			};
 
-			foreach (string Lib in StaticLibrariesWolf)
+			foreach (string Lib in StaticLibrariesSwitch)
 			{
 				PublicAdditionalLibraries.Add(Lib + LibrarySuffix);
 			}

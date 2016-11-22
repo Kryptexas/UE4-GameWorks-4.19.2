@@ -28,8 +28,8 @@ Derived data key generation.
 ------------------------------------------------------------------------------*/
 
 // If you want to bump this version, generate a new guid using
-// VS->Tools->Create GUID and paste it here.
-#define STREAMEDAUDIO_DERIVEDDATA_VER		TEXT("2F3D9C2B13284A2AB73726A0A37C10C1")
+// VS->Tools->Create GUID and paste it here. https://www.guidgen.com works too.
+#define STREAMEDAUDIO_DERIVEDDATA_VER		TEXT("8886fd5b8a934260aff24cf2642acada")
 
 /**
  * Computes the derived data key suffix for a SoundWave's Streamed Audio.

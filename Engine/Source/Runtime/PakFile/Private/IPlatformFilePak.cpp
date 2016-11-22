@@ -3087,8 +3087,11 @@ bool FPakPlatformFile::IsNonPakFilenameAllowed(const FString& InFilename)
 	bool bAllowed = true;
 
 #if EXCLUDE_NONPAK_UE_EXTENSIONS
-	FName Ext = FName(*FPaths::GetExtension(InFilename));
-	bAllowed = !ExcludedNonPakExtensions.Contains(Ext);
+	if ( PakFiles.Num() || UE_BUILD_SHIPPING)
+	{
+		FName Ext = FName(*FPaths::GetExtension(InFilename));
+		bAllowed = !ExcludedNonPakExtensions.Contains(Ext);
+	}
 #endif
 
 	FFilenameSecurityDelegate& FilenameSecurityDelegate = GetFilenameSecurityDelegate();
@@ -3335,6 +3338,53 @@ bool FPakFile::Check()
 	return ErrorCount == 0;
 }
 
+#if DO_CHECK
+/**
+* FThreadCheckingArchiveProxy - checks that inner archive is only used from the specified thread ID
+*/
+class FThreadCheckingArchiveProxy : public FArchiveProxy
+{
+public:
+
+	const uint32 ThreadId;
+	FArchive* InnerArchivePtr;
+
+	FThreadCheckingArchiveProxy(FArchive* InReader, uint32 InThreadId)
+		: FArchiveProxy(*InReader)
+		, ThreadId(InThreadId)
+		, InnerArchivePtr(InReader)
+	{}
+
+	virtual ~FThreadCheckingArchiveProxy() 
+	{
+		if (InnerArchivePtr)
+		{
+			delete InnerArchivePtr;
+		}
+	}
+
+	//~ Begin FArchiveProxy Interface
+	virtual void Serialize(void* Data, int64 Length) override
+	{
+		if (FPlatformTLS::GetCurrentThreadId() != ThreadId)
+		{
+			UE_LOG(LogPakFile, Error, TEXT("Attempted serialize using thread-specific pak file reader on the wrong thread.  Reader for thread %d used by thread %d."), ThreadId, FPlatformTLS::GetCurrentThreadId());
+		}
+		InnerArchive.Serialize(Data, Length);
+	}
+
+	virtual void Seek(int64 InPos) override
+	{
+		if (FPlatformTLS::GetCurrentThreadId() != ThreadId)
+		{
+			UE_LOG(LogPakFile, Error, TEXT("Attempted seek using thread-specific pak file reader on the wrong thread.  Reader for thread %d used by thread %d."), ThreadId, FPlatformTLS::GetCurrentThreadId());
+		}
+		InnerArchive.Seek(InPos);
+	}
+	//~ End FArchiveProxy Interface
+};
+#endif //DO_CHECK
+
 FArchive* FPakFile::GetSharedReader(IPlatformFile* LowerLevel)
 {
 	uint32 Thread = FPlatformTLS::GetCurrentThreadId();
@@ -3368,7 +3418,11 @@ FArchive* FPakFile::GetSharedReader(IPlatformFile* LowerLevel)
 		}
 		{
 			FScopeLock ScopedLock(&CriticalSection);
+#if DO_CHECK
+			ReaderMap.Emplace(Thread, new FThreadCheckingArchiveProxy(PakReader, Thread));
+#else //DO_CHECK
 			ReaderMap.Emplace(Thread, PakReader);
+#endif //DO_CHECK
 		}		
 	}
 	return PakReader;

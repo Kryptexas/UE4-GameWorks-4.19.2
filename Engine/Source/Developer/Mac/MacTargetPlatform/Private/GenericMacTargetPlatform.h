@@ -29,7 +29,10 @@ public:
 	 */
 	TGenericMacTargetPlatform( )
 	{
+#if PLATFORM_MAC
+		// only add local device if actually running on Mac
 		LocalDevice = MakeShareable(new FLocalMacTargetDevice(*this));
+#endif
 
 		#if WITH_ENGINE
 			FConfigCacheIni::LoadLocalIniFile(EngineSettings, TEXT("Engine"), true, *this->PlatformName());
@@ -75,7 +78,10 @@ public:
 	virtual void GetAllDevices( TArray<ITargetDevicePtr>& OutDevices ) const override
 	{
 		OutDevices.Reset();
-		OutDevices.Add(LocalDevice);
+		if (LocalDevice.IsValid())
+		{
+			OutDevices.Add(LocalDevice);
+		}
 	}
 
 	virtual ECompressionFlags GetBaseCompressionMethod( ) const override
@@ -90,7 +96,12 @@ public:
 
 	virtual ITargetDevicePtr GetDefaultDevice( ) const override
 	{
-		return LocalDevice;
+		if (LocalDevice.IsValid())
+		{
+			return LocalDevice;
+		}
+
+		return nullptr;
 	}
 
 	virtual ITargetDevicePtr GetDevice( const FTargetDeviceId& DeviceId )

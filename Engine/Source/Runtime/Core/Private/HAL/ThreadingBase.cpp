@@ -650,13 +650,16 @@ public:
 		}
 	}
 
-	int32 GetNumQueuedJobs()
+	int32 GetNumQueuedJobs() const
 	{
 		// this is a estimate of the number of queued jobs. 
 		// no need for thread safe lock as the queuedWork array isn't moved around in memory so unless this class is being destroyed then we don't need to wrory about it
 		return QueuedWork.Num();
 	}
-
+	virtual int32 GetNumThreads() const 
+	{
+		return AllThreads.Num();
+	}
 	void AddQueuedWork(IQueuedWork* InQueuedWork) override
 	{
 		if (TimeToDie)

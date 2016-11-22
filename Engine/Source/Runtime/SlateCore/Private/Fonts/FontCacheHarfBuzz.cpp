@@ -5,7 +5,7 @@
 #include "FontCacheFreeType.h"
 
 #if WITH_HARFBUZZ
-	#if PLATFORM_WINDOWS
+	#if PLATFORM_WINDOWS || PLATFORM_XBOXONE
 		#pragma warning(push)
 		#pragma warning(disable:4996) // warning C4996: 'strncpy': This function or variable may be unsafe. Consider using strncpy_s instead.
 		#pragma warning(disable:28113) // warning C28113: Accessing a local variable dummy via an Interlocked function:  This is an unusual usage which could be reconsidered.
@@ -18,7 +18,7 @@
 	#include "hb-private.hh"
 	#include "hb-font-private.hh"
 
-	#if PLATFORM_WINDOWS
+	#if PLATFORM_WINDOWS || PLATFORM_XBOXONE
 		#pragma warning(pop)
 	#endif // #if PLATFORM_WINDOWS
 #endif // #if WITH_HARFBUZZ

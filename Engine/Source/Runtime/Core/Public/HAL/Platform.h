@@ -51,8 +51,8 @@
 #if !defined(PLATFORM_LINUX)
 	#define PLATFORM_LINUX 0
 #endif
-#if !defined(PLATFORM_WOLF)
-	#define PLATFORM_WOLF 0
+#if !defined(PLATFORM_SWITCH)
+	#define PLATFORM_SWITCH 0
 #endif
 
 // Platform specific compiler pre-setup.
@@ -72,8 +72,8 @@
 	#include "HTML5/HTML5PlatformCompilerPreSetup.h"
 #elif PLATFORM_LINUX
 	#include "Linux/LinuxPlatformCompilerPreSetup.h"
-#elif PLATFORM_WOLF
-	#include "WolfPlat/WolfPlatformCompilerPreSetup.h"
+#elif PLATFORM_SWITCH
+	#include "Switch/SwitchPlatformCompilerPreSetup.h"
 #else
 	#error Unknown Compiler
 #endif
@@ -108,8 +108,8 @@
 	#include "HTML5/HTML5Platform.h"
 #elif PLATFORM_LINUX
 	#include "Linux/LinuxPlatform.h"
-#elif PLATFORM_WOLF
-	#include "WolfPlat/WolfPlatform.h"
+#elif PLATFORM_SWITCH
+	#include "Switch/SwitchPlatform.h"
 #else
 	#error Unknown Compiler
 #endif
@@ -730,8 +730,8 @@ namespace TypeTests
 	#include "HTML5/HTML5PlatformCompilerSetup.h"
 #elif PLATFORM_LINUX
 	#include "Linux/LinuxPlatformCompilerSetup.h"
-#elif PLATFORM_WOLF
-	#include "WolfPlat/WolfPlatformCompilerSetup.h"
+#elif PLATFORM_SWITCH
+	#include "Switch/SwitchPlatformCompilerSetup.h"
 #else
 	#error Unknown Compiler
 #endif

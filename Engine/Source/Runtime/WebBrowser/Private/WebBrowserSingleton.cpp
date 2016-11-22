@@ -415,7 +415,13 @@ TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(const FC
 #endif
 		{
 			// Use off screen rendering so we can integrate with our windows
-			WindowInfo.SetAsWindowless(nullptr, WindowSettings.bUseTransparency);
+			WindowInfo.SetAsWindowless(
+#if PLATFORM_LINUX // may be applicable to other platforms, but I cannot test those at the moment
+						kNullWindowHandle,
+#else
+						nullptr,
+#endif // PLATFORM_LINUX
+						WindowSettings.bUseTransparency);
 			BrowserSettings.windowless_frame_rate = WindowSettings.BrowserFrameRate;
 		}
 

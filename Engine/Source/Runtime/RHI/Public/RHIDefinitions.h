@@ -57,8 +57,8 @@ enum EShaderPlatform
 	SP_METAL_MACES3_1 	= 23,
 	SP_METAL_MACES2		= 24,
 	SP_OPENGL_ES3_1_ANDROID = 25,
-	SP_WOLF				= 26,
-	SP_WOLF_FORWARD		= 27,
+	SP_SWITCH				= 26,
+	SP_SWITCH_FORWARD		= 27,
 
 	SP_NumPlatforms		= 28,
 	SP_NumBits			= 5,
@@ -650,14 +650,14 @@ inline bool IsMobilePlatform(const EShaderPlatform Platform)
 {
 	return IsES2Platform(Platform)
 		|| Platform == SP_METAL || Platform == SP_PCD3D_ES3_1 || Platform == SP_OPENGL_PCES3_1 || Platform == SP_VULKAN_ES3_1_ANDROID
-		|| Platform == SP_VULKAN_PCES3_1 || Platform == SP_METAL_MACES3_1 || Platform == SP_OPENGL_ES3_1_ANDROID || Platform == SP_WOLF_FORWARD;
+		|| Platform == SP_VULKAN_PCES3_1 || Platform == SP_METAL_MACES3_1 || Platform == SP_OPENGL_ES3_1_ANDROID || Platform == SP_SWITCH_FORWARD;
 }
 
 inline bool IsOpenGLPlatform(const EShaderPlatform Platform)
 {
 	return Platform == SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_PCES3_1
 		|| Platform == SP_OPENGL_ES2_ANDROID || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_OPENGL_ES31_EXT
-		|| Platform == SP_OPENGL_ES3_1_ANDROID || Platform == SP_WOLF || Platform == SP_WOLF_FORWARD;
+		|| Platform == SP_OPENGL_ES3_1_ANDROID || Platform == SP_SWITCH || Platform == SP_SWITCH_FORWARD;
 }
 
 inline bool IsMetalPlatform(const EShaderPlatform Platform)
@@ -709,7 +709,7 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 	case SP_OPENGL_ES31_EXT:
 	case SP_METAL_SM5:
 	case SP_VULKAN_SM5:
-	case SP_WOLF:
+	case SP_SWITCH:
 		return ERHIFeatureLevel::SM5;
 	case SP_VULKAN_SM4:
 	case SP_PCD3D_SM4:
@@ -732,7 +732,7 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 	case SP_VULKAN_PCES3_1:
 	case SP_VULKAN_ES3_1_ANDROID:
 	case SP_OPENGL_ES3_1_ANDROID:
-	case SP_WOLF_FORWARD:
+	case SP_SWITCH_FORWARD:
 		return ERHIFeatureLevel::ES3_1;
 	default:
 		checkf(0, TEXT("Unknown ShaderPlatform %d"), (int32)InShaderPlatform);

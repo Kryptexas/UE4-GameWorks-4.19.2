@@ -1164,7 +1164,7 @@ bool FSceneView::ProjectWorldToScreen(const FVector& WorldPosition, const FIntRe
 			( NormalizedY * (float)ViewRect.Height() )
 			);
 
-		out_ScreenPos = RayStartViewRectSpace;
+		out_ScreenPos = RayStartViewRectSpace + FVector2D(static_cast<float>(ViewRect.Min.X), static_cast<float>(ViewRect.Min.Y));
 
 		return true;
 	}

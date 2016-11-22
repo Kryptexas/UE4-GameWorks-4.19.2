@@ -151,8 +151,8 @@ static bool ShaderPlatformCanPrebindBoundShaderState(EShaderPlatform Platform)
 		case SP_METAL_SM5:
 		case SP_METAL_MACES3_1:
 		case SP_METAL_MACES2:
-		case SP_WOLF:
-		case SP_WOLF_FORWARD:
+		case SP_SWITCH:
+		case SP_SWITCH_FORWARD:
 		{
 			return true;
 		}

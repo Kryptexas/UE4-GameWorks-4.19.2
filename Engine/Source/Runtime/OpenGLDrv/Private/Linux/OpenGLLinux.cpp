@@ -147,14 +147,14 @@ static void PlatformOpenGLVersionFromCommandLine(int& OutMajorVersion, int& OutM
 	bool bGL4 = IsOpenGL4Forced();
 	if (!bGL3 && !bGL4)
 	{
-		// if neither is forced, go with the first RHI in the list
-		if (GRequestedFeatureLevel == ERHIFeatureLevel::SM5)
+		// if neither is forced, go with the first RHI in the list.
+		if (GRequestedFeatureLevel == ERHIFeatureLevel::SM4)
 		{
-			bGL4 = true;
+			bGL3 = true;
 		}
 		else
 		{
-			bGL3 = true;
+			bGL4 = true;
 		}
 	}
 
@@ -383,6 +383,21 @@ void* PlatformGetWindow(FPlatformOpenGLContext* Context, void** AddParam)
 	return (void*)&Context->hWnd;
 }
 
+const TCHAR* PlatformDescribeSyncInterval(int32 SyncInterval)
+{
+	switch (SyncInterval)
+	{
+		case -1:
+			return TEXT("Late swap");
+		case 0:
+			return TEXT("Immediate");
+		case 1: 
+			return TEXT("Synchronized with retrace");
+		default: break;
+	}
+	return TEXT("Unknown");
+}
+
 /**
  * Main function for transferring data to on-screen buffers.
  * On Windows it temporarily switches OpenGL context, on Mac only context's output view.
@@ -398,8 +413,6 @@ bool PlatformBlitToViewport(FPlatformOpenGLDevice* Device,
 	FPlatformOpenGLContext* const Context = Viewport.GetGLContext();
 
 	check( Context && Context->hWnd );
-
-	int32 ret = 0;
 
 	FScopeLock ScopeLock( Device->ContextUsageGuard );
 	{
@@ -502,13 +515,32 @@ bool PlatformBlitToViewport(FPlatformOpenGLDevice* Device,
 		{
 			int32 RealSyncInterval = bLockToVsync ? SyncInterval : 0;
 
-			if ( Context->SyncInterval != RealSyncInterval)
+			if (Context->SyncInterval != RealSyncInterval)
 			{
 				//	0 for immediate updates
 				//	1 for updates synchronized with the vertical retrace
 				//	-1 for late swap tearing; 
 
-				ret = SDL_GL_SetSwapInterval( RealSyncInterval );
+				UE_LOG(LogLinux, Log, TEXT("Setting swap interval to '%s'"), PlatformDescribeSyncInterval(RealSyncInterval));
+				int SetSwapResult = SDL_GL_SetSwapInterval(RealSyncInterval);
+				// if late tearing is not supported, this needs to be retried with a valid value.
+				if (SetSwapResult == -1)
+				{
+					if (RealSyncInterval == -1)
+					{
+						// fallback to synchronized
+						int FallbackInterval = 1;
+						UE_LOG(LogLinux, Log, TEXT("Unable to set desired swap interval, falling back to '%s'"), PlatformDescribeSyncInterval(FallbackInterval));
+						SetSwapResult = SDL_GL_SetSwapInterval(FallbackInterval);
+					}
+				}
+
+				if (SetSwapResult == -1)
+				{
+					UE_LOG(LogLinux, Warning, TEXT("Unable to set desired swap interval '%s'"), PlatformDescribeSyncInterval(RealSyncInterval));
+				}
+
+				// even if we failed to set it, update the context value to prevent further attempts
 				Context->SyncInterval = RealSyncInterval;
 			}
 

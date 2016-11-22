@@ -415,6 +415,11 @@ bool FWindowsPlatformStackWalk::UploadLocalSymbols()
 		// Nothing to do.
 		return true;
 	}
+	if (FParse::Param(FCommandLine::Get(), TEXT("DisableUploadSymbols")))
+	{
+		UE_LOG(LogWindows, Log, TEXT("Uploading to symbol storage disabled by command line flag"));
+		return true;
+	}
 	// Prepare string
 	SymbolStorage.ReplaceInline( TEXT( "/" ), TEXT( "\\" ), ESearchCase::CaseSensitive );
 	SymbolStorage = TEXT( "SRV*" ) + SymbolStorage;
@@ -463,14 +468,24 @@ bool FWindowsPlatformStackWalk::UploadLocalSymbols()
 				UE_LOG( LogWindows, Log, TEXT( "Uploading to symbol storage: %s" ), ImageName );
 				if (!SymSrvStoreFileW( ProcessHandle, *SymbolStorage, ImageName, SYMSTOREOPT_PASS_IF_EXISTS ))
 				{
-					UE_LOG( LogWindows, Warning, TEXT( "Uploading to symbol storage failed: %s. Error: %d" ), ImageName, GetLastError() );
+					HRESULT Result = GetLastError();
+					TCHAR ErrorBuffer[1024];
+					FPlatformMisc::GetSystemErrorMessage(ErrorBuffer, sizeof(ErrorBuffer) / sizeof(ErrorBuffer[0]), Result);
+					UE_LOG(LogWindows, Warning, TEXT("Uploading to symbol storage failed. Error Code %u: %s"), Result, ErrorBuffer);
+					// Calling SymSrvStoreFileW can crash if called after failing, so ditch out of the loop on error
+					break;
 				}
 
 				// Upload debug symbols
 				UE_LOG( LogWindows, Log, TEXT( "Uploading to symbol storage: %s" ), DebugName );
 				if (!SymSrvStoreFileW( ProcessHandle, *SymbolStorage, DebugName, SYMSTOREOPT_PASS_IF_EXISTS ))
 				{
-					UE_LOG( LogWindows, Warning, TEXT( "Uploading to symbol storage failed: %s. Error: %d" ), DebugName, GetLastError() );
+					HRESULT Result = GetLastError();
+					TCHAR ErrorBuffer[1024];
+					FPlatformMisc::GetSystemErrorMessage(ErrorBuffer, sizeof(ErrorBuffer) / sizeof(ErrorBuffer[0]), Result);
+					UE_LOG(LogWindows, Warning, TEXT("Uploading to symbol storage failed. Error Code %u: %s"), Result, ErrorBuffer);
+					// Calling SymSrvStoreFileW can crash if called after failing, so ditch out of the loop on error
+					break;
 				}
 			}
 		}

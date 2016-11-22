@@ -181,7 +181,12 @@ public partial class Project : CommandUtils
                 {
                     CommandletParams += " -iterate";
                 }
-                if (Params.CookMapsOnly)
+				if ( Params.IterateSharedCookedBuild)
+				{
+					CommandletParams += " -iteratesharedcookedbuild";
+				}
+
+				if (Params.CookMapsOnly)
                 {
                     CommandletParams += " -mapsonly";
                 }

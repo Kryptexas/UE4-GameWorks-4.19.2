@@ -12,7 +12,6 @@ UENUM()
 enum class EMinimumSupportedOS : uint8
 {
 	MSOS_Vista = 0 UMETA(DisplayName = "Windows Vista"),
-	MSOS_XP = 1 UMETA(DisplayName = "Windows XP"),
 };
 
 UENUM()

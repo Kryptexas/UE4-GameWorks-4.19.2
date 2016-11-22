@@ -640,7 +640,8 @@ static BOOL WINAPI ConsoleCtrlHandler( ::DWORD /*Type*/ )
 		GError->Flush();
 	}
 
-	if( !GIsRequestingExit )
+	// if we are running commandlet we want the application to exit immediately on control-c press
+	if( !GIsRequestingExit && !IsRunningCommandlet())
 	{
 		PostQuitMessage( 0 );
 		GIsRequestingExit = 1;

@@ -57,13 +57,13 @@ static FText GetFriendlyNameFromRHIName(const FString& InRHIName)
 	{
 		FriendlyRHIName = LOCTEXT("VulkanSM5", "Vulkan (SM5)");
 	}
-	else if (InRHIName == TEXT("GLSL_WOLF"))
+	else if (InRHIName == TEXT("GLSL_SWITCH"))
 	{
-		FriendlyRHIName = LOCTEXT("Wolf", "Wolf (Deferred)");
+		FriendlyRHIName = LOCTEXT("Switch", "Switch (Deferred)");
 	}
-	else if (InRHIName == TEXT("GLSL_WOLF_FORWARD"))
+	else if (InRHIName == TEXT("GLSL_SWITCH_FORWARD"))
 	{
-		FriendlyRHIName = LOCTEXT("WolfForward", "Wolf (Forward)");
+		FriendlyRHIName = LOCTEXT("SwitchForward", "Switch (Forward)");
 	}
 
 	return FriendlyRHIName;

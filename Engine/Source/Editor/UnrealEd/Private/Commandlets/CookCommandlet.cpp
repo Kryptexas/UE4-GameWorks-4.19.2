@@ -1313,9 +1313,17 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	CookFlags |= bUseSerializationForGeneratingPackageDependencies ? ECookInitializationFlags::UseSerializationForPackageDependencies : ECookInitializationFlags::None;
 	CookFlags |= bUnversioned ? ECookInitializationFlags::Unversioned : ECookInitializationFlags::None;
 	CookFlags |= bVerboseCookerWarnings ? ECookInitializationFlags::OutputVerboseCookerWarnings : ECookInitializationFlags::None;
-	CookFlags |= bPartialGC ? ECookInitializationFlags::MarkupInUsePackages : ECookInitializationFlags::None;
+	CookFlags |= bPartialGC ? ECookInitializationFlags::EnablePartialGC : ECookInitializationFlags::None;
 	bool bTestCook = FParse::Param(*Params, TEXT("Testcook"));
 	CookFlags |= bTestCook ? ECookInitializationFlags::TestCook : ECookInitializationFlags::None;
+	CookFlags |= FParse::Param(*Params, TEXT("iteratehash")) ? ECookInitializationFlags::IterateOnHash : ECookInitializationFlags::None;
+	CookFlags |= FParse::Param(*Params, TEXT("logdebuginfo")) ? ECookInitializationFlags::LogDebugInfo : ECookInitializationFlags::None;
+
+	// shared cooked build flags
+	bool bIterateSharedCookedBuild = Switches.Contains(TEXT("iteratesharedcookedbuild"));
+	ECookInitializationFlags IterateSharedCookedBuildFlags = ECookInitializationFlags::IterateOnHash | ECookInitializationFlags::Iterative;
+	CookFlags |= bIterateSharedCookedBuild ? IterateSharedCookedBuildFlags : ECookInitializationFlags::None;
+	
 
 	TArray<UClass*> FullGCAssetClasses;
 	if (FullGCAssetClassNames.Num())
@@ -1538,6 +1546,7 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 		const uint32 PackagesPerGC = CookOnTheFlyServer->GetPackagesPerGC();
 		const double IdleTimeToGC = CookOnTheFlyServer->GetIdleTimeToGC();
 		const uint64 MaxMemoryAllowance = CookOnTheFlyServer->GetMaxMemoryAllowance();
+		const uint32 PackagesPerPartialGC = CookOnTheFlyServer->GetPackagesPerPartialGC();
 
 		double LastCookActionTime = FPlatformTime::Seconds();
 
@@ -1550,40 +1559,13 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 			{
 				uint32 TickResults = 0;
 				static const float CookOnTheSideTimeSlice = 10.0f;
+
 				TickResults = CookOnTheFlyServer->TickCookOnTheSide( CookOnTheSideTimeSlice, NonMapPackageCountSinceLastGC );
 
 				{
 					COOK_STAT(FScopedDurationTimer ShaderProcessAsyncTimer(DetailedCookStats::TickLoopShaderProcessAsyncResultsTimeSec));
 					GShaderCompilingManager->ProcessAsyncResults(true, false);
 				}
-
-				const bool bHasExceededMaxMemory = CookOnTheFlyServer->HasExceededMaxMemory();
-				// We should GC if we have packages to collect and we've been idle for some time.
-				const bool bExceededPackagesPerGC = (PackagesPerGC > 0) && (NonMapPackageCountSinceLastGC > PackagesPerGC);
-				const bool bWaitingOnObjectCache = ((TickResults & UCookOnTheFlyServer::COSR_WaitingOnCache) == 0);
-
-
-				if ( !bWaitingOnObjectCache && bExceededPackagesPerGC ) // if we are waiting on things to cache then ignore the exceeded packages per gc
-				{
-					bShouldGC = true;
-					GCReason = TEXT("Exceeded packages per GC");
-				}
-				else if ( bHasExceededMaxMemory ) // if we are exceeding memory then we need to gc (this can cause thrashing if the cooker loads the same stuff into memory next tick
-				{
-					bShouldGC = true;
-					GCReason = TEXT("Exceeded Max Memory");
-
-					UE_LOG(LogCookCommandlet, Display, TEXT("Detected max mem exceeded - forcing shader compilation flush"));
-					GShaderCompilingManager->FinishAllCompilation();
-				}
-				else if ((TickResults & UCookOnTheFlyServer::COSR_RequiresGC) != 0) // cooker loaded some object which needs to be cleaned up before the cooker can proceed so force gc
-				{
-					GCReason = TEXT("COSR_RequiresGC");
-					bShouldGC = true;
-				}
-
-
-				bShouldGC |= bTestCook; // testing cooking / gc path
 				
 				auto DumpMemStats = []()
 				{
@@ -1595,48 +1577,120 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 					}
 				};
 
-				if ( bPartialGC && (TickResults & UCookOnTheFlyServer::COSR_MarkedUpKeepPackages))
+
+				const bool bHasExceededMaxMemory = CookOnTheFlyServer->HasExceededMaxMemory();
+				// We should GC if we have packages to collect and we've been idle for some time.
+				const bool bExceededPackagesPerGC = (PackagesPerGC > 0) && (NonMapPackageCountSinceLastGC > PackagesPerGC);
+				const bool bWaitingOnObjectCache = ((TickResults & UCookOnTheFlyServer::COSR_WaitingOnCache) == 0);
+
+
+				if (!bWaitingOnObjectCache && bExceededPackagesPerGC) // if we are waiting on things to cache then ignore the exceeded packages per gc
 				{
-					COOK_STAT(FScopedDurationTimer GCTimer(DetailedCookStats::TickLoopGCTimeSec));
-					UE_LOG(LogCookCommandlet, Display, TEXT("GarbageCollection... partial gc"));
+					bShouldGC = true;
+					GCReason = TEXT("Exceeded packages per GC");
+				}
+				else if (bHasExceededMaxMemory) // if we are exceeding memory then we need to gc (this can cause thrashing if the cooker loads the same stuff into memory next tick
+				{
+					bShouldGC = true;
+					GCReason = TEXT("Exceeded Max Memory");
 
-					DumpMemStats();
+					int32 JobsToLogAt = GShaderCompilingManager->GetNumRemainingJobs();
 
-					int32 NumObjectsBeforeGC = GUObjectArray.GetObjectArrayNumMinusAvailable();
-					int32 NumObjectsAvailableBeforeGC = GUObjectArray.GetObjectArrayNum();
-					CollectGarbage(RF_KeepForCooker, true);
+					UE_LOG(LogCookCommandlet, Display, TEXT("Detected max mem exceeded - forcing shader compilation flush"));
+					while ( true )
+					{
+						int32 NumRemainingJobs = GShaderCompilingManager->GetNumRemainingJobs();
+						if ( NumRemainingJobs < 1000)
+						{
+							UE_LOG(LogCookCommandlet, Display, TEXT("Finished flushing shader jobs at %d"), NumRemainingJobs);
+							break;
+						}
 
-					int32 NumObjectsAfterGC = GUObjectArray.GetObjectArrayNumMinusAvailable();
-					int32 NumObjectsAvailableAfterGC = GUObjectArray.GetObjectArrayNum();
-					UE_LOG(LogCookCommandlet, Display, TEXT("Partial GC before %d available %d after %d available %d"), NumObjectsBeforeGC, NumObjectsAvailableBeforeGC, NumObjectsAfterGC, NumObjectsAvailableAfterGC);
+						if (NumRemainingJobs < JobsToLogAt )
+						{
+							UE_LOG(LogCookCommandlet, Display, TEXT("Flushing shader jobs, remaining jobs %d"), NumRemainingJobs);
+						}
 
-					DumpMemStats();
+						GShaderCompilingManager->ProcessAsyncResults(false, false);
+
+						FPlatformProcess::Sleep(0.05);
+
+						// GShaderCompilingManager->FinishAllCompilation();
+					}
+				}
+				else if ((TickResults & UCookOnTheFlyServer::COSR_RequiresGC) != 0) // cooker loaded some object which needs to be cleaned up before the cooker can proceed so force gc
+				{
+					GCReason = TEXT("COSR_RequiresGC");
+					bShouldGC = true;
+				}
+
+				bShouldGC |= bTestCook; // testing cooking / gc path
+
+
+				if (bShouldGC )
+				{
+					bool bDidGC = true;
+
+					if ( bPartialGC )
+					{
+						// markup packages 
+						if ( PackagesPerGC < PackagesPerPartialGC )
+						{
+							bDidGC = false;
+						}
+						else
+						{
+							COOK_STAT(FScopedDurationTimer GCTimer(DetailedCookStats::TickLoopGCTimeSec));
+							UE_LOG(LogCookCommandlet, Display, TEXT("GarbageCollection... partial gc"));
+
+							CookOnTheFlyServer->MarkGCPackagesToKeepForCooker();
+
+
+							DumpMemStats();
+
+							int32 NumObjectsBeforeGC = GUObjectArray.GetObjectArrayNumMinusAvailable();
+							int32 NumObjectsAvailableBeforeGC = GUObjectArray.GetObjectArrayNum();
+							CollectGarbage(RF_KeepForCooker, true);
+
+							int32 NumObjectsAfterGC = GUObjectArray.GetObjectArrayNumMinusAvailable();
+							int32 NumObjectsAvailableAfterGC = GUObjectArray.GetObjectArrayNum();
+							UE_LOG(LogCookCommandlet, Display, TEXT("Partial GC before %d available %d after %d available %d"), NumObjectsBeforeGC, NumObjectsAvailableBeforeGC, NumObjectsAfterGC, NumObjectsAvailableAfterGC);
+
+							DumpMemStats();
+						}
 				
+					}
+					else
+					{
+					
+						bShouldGC = false;
+
+						int32 NumObjectsBeforeGC = GUObjectArray.GetObjectArrayNumMinusAvailable();
+						int32 NumObjectsAvailableBeforeGC = GUObjectArray.GetObjectArrayNum();
+
+						UE_LOG(LogCookCommandlet, Display, TEXT("GarbageCollection... (%s)"), *GCReason);
+						GCReason = FString();
+
+
+						DumpMemStats();
+
+						COOK_STAT(FScopedDurationTimer GCTimer(DetailedCookStats::TickLoopGCTimeSec));
+						CollectGarbage(RF_NoFlags);
+
+						int32 NumObjectsAfterGC = GUObjectArray.GetObjectArrayNumMinusAvailable();
+						int32 NumObjectsAvailableAfterGC = GUObjectArray.GetObjectArrayNum();
+						UE_LOG(LogCookCommandlet, Display, TEXT("Full GC before %d available %d after %d available %d"), NumObjectsBeforeGC, NumObjectsAvailableBeforeGC, NumObjectsAfterGC, NumObjectsAvailableAfterGC);
+
+						DumpMemStats();
+					}
+
+					if ( bDidGC )
+					{
+						NonMapPackageCountSinceLastGC = 0;
+					}
 				}
-				else if (bShouldGC) // don't clean up if we are waiting on cache of cooked data
-				{
-					bShouldGC = false;
-					NonMapPackageCountSinceLastGC = 0;
-
-					int32 NumObjectsBeforeGC = GUObjectArray.GetObjectArrayNumMinusAvailable();
-					int32 NumObjectsAvailableBeforeGC = GUObjectArray.GetObjectArrayNum();
-
-					UE_LOG( LogCookCommandlet, Display, TEXT( "GarbageCollection... (%s)" ), *GCReason);
-					GCReason = FString();
-
-
-					DumpMemStats();
-
-					COOK_STAT(FScopedDurationTimer GCTimer(DetailedCookStats::TickLoopGCTimeSec));
-					CollectGarbage(RF_NoFlags);
-
-					int32 NumObjectsAfterGC = GUObjectArray.GetObjectArrayNumMinusAvailable();
-					int32 NumObjectsAvailableAfterGC = GUObjectArray.GetObjectArrayNum();
-					UE_LOG(LogCookCommandlet, Display, TEXT("Full GC before %d available %d after %d available %d"), NumObjectsBeforeGC, NumObjectsAvailableBeforeGC, NumObjectsAfterGC, NumObjectsAvailableAfterGC);
-
-					DumpMemStats();
-				}
-				else
+				
+				
 				{
 					COOK_STAT(FScopedDurationTimer RecompileTimer(DetailedCookStats::TickLoopRecompileShaderRequestsTimeSec));
 					CookOnTheFlyServer->TickRecompileShaderRequests();
@@ -1936,10 +1990,6 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 		FString SandboxRegistryFilename = SandboxFile->ConvertToAbsolutePathForExternalAppForWrite(*RegistryFilename);
 		ManifestGenerator.SaveAssetRegistry(SandboxRegistryFilename);
 
-		FString CookedAssetRegistry = FPaths::GameDir() / TEXT("CookedAssetRegistry.json");
-		FString SandboxCookedAssetRegistryFilename = SandboxFile->ConvertToAbsolutePathForExternalAppForWrite(*CookedAssetRegistry);
-
-		ManifestGenerator.SaveCookedPackageAssetRegistry(SandboxCookedAssetRegistryFilename, true);
 	}
 
 	return true;

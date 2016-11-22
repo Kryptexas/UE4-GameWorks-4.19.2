@@ -887,8 +887,9 @@ RETRY_SETUPANDVALIDATE:
 		}
 		else if (PLATFORM_LINUX)
 		{
-			CmdExe = TEXT("/usr/bin/mono");
-			CommandLine = TEXT("\"") + FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNET/UnrealBuildTool.exe")) + TEXT("\" -validateplatform");
+			CmdExe = TEXT("/bin/bash");	// bash and not sh because of pushd
+			FString ScriptPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Build/BatchFiles/Linux/RunMono.sh"));
+			CommandLine = TEXT("\"") + ScriptPath + TEXT("\" \"") + FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNET/UnrealBuildTool.exe")) + TEXT("\" -validateplatform");
 		}
 		else
 		{
@@ -911,7 +912,7 @@ RETRY_SETUPANDVALIDATE:
 		SDKStatusMessage.ParseIntoArrayWS(PlatArray);
 		for (int Index = 0; Index < PlatArray.Num()-2; ++Index)
 		{
-            FString Item = PlatArray[Index];
+			FString Item = PlatArray[Index];
 			if (PlatArray[Index].Contains(TEXT("##PlatformValidate:")))
 			{
 				PlatformInfo::EPlatformSDKStatus Status = PlatArray[Index+2].Contains(TEXT("INVALID")) ? PlatformInfo::EPlatformSDKStatus::NotInstalled : PlatformInfo::EPlatformSDKStatus::Installed;

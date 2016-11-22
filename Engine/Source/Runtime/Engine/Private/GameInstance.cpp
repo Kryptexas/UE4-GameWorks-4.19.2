@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 #include "Engine/GameInstance.h"
 #include "Engine/Engine.h"
+#include "Engine/Console.h"
 #include "Engine/GameEngine.h"
 #include "Engine/DemoNetDriver.h"
 #include "Engine/LatentActionManager.h"
@@ -12,6 +13,7 @@
 #include "GameFramework/GameSession.h"
 #include "GameFramework/PlayerState.h"
 #include "Net/OnlineEngineInterface.h"
+#include "GenericPlatform/GenericApplication.h"
 
 #if WITH_EDITOR
 #include "UnrealEd.h"
@@ -65,7 +67,31 @@ void UGameInstance::Init()
 		{
 			OnlineSession->RegisterOnlineDelegates();
 		}
+
+		if (!IsDedicatedServerInstance())
+		{
+			TSharedPtr<GenericApplication> App = FSlateApplication::Get().GetPlatformApplication();
+			if (App.IsValid())
+			{
+				App->RegisterConsoleCommandListener(GenericApplication::FOnConsoleCommandListener::CreateUObject(this, &ThisClass::OnConsoleInput));
+			}
+		}
 	}
+}
+
+void UGameInstance::OnConsoleInput(const FString& Command)
+{
+#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
+	UConsole* ViewportConsole = (GEngine->GameViewport != nullptr) ? GEngine->GameViewport->ViewportConsole : nullptr;
+	if (ViewportConsole)
+	{
+		ViewportConsole->ConsoleCommand(Command);
+	}
+	else
+	{
+		GEngine->Exec(GetWorld(), *Command);
+	}
+#endif
 }
 
 void UGameInstance::Shutdown()

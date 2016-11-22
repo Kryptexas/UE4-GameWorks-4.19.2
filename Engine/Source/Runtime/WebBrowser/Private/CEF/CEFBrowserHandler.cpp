@@ -173,7 +173,13 @@ bool FCEFBrowserHandler::OnBeforePopup( CefRefPtr<CefBrowser> Browser,
 
 
 					// Always use off screen rendering so we can integrate with our windows
-		OutWindowInfo.SetAsWindowless(nullptr, shouldUseTransparency);
+		OutWindowInfo.SetAsWindowless(
+#if PLATFORM_LINUX  // may be applicable to other platforms, but I cannot test those at the moment
+				kNullWindowHandle,
+#else
+				nullptr,
+#endif // PLATFORM_LINUX
+				shouldUseTransparency);
 
 					// We need to rely on CEF to create our window so we set the WindowInfo, BrowserSettings, Client, and then return false
 		return false;

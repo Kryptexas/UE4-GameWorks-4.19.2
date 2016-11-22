@@ -14,8 +14,8 @@
 
 	#include "Windows/HideWindowsPlatformTypes.h"
 #else
-#if PLATFORM_WOLF
-	#include "WolfPlat/WolfSocketApiWrapper.h"
+#if PLATFORM_SWITCH
+	#include "Switch/SwitchSocketApiWrapper.h"
 #else
 	#include <sys/socket.h>
 #if PLATFORM_HAS_BSD_SOCKET_FEATURE_IOCTL

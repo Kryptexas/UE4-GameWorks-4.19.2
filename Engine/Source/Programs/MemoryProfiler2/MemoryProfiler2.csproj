@@ -182,9 +182,9 @@
     </When>
   </Choose>
   <Choose>
-    <When Condition="Exists('WolfPlat\WolfSymbolParser.cs')">
+    <When Condition="Exists('Switch\SwitchSymbolParser.cs')">
       <ItemGroup>
-        <Compile Include="WolfPlat\WolfSymbolParser.cs" />
+        <Compile Include="Switch\SwitchSymbolParser.cs" />
       </ItemGroup>
     </When>
   </Choose>

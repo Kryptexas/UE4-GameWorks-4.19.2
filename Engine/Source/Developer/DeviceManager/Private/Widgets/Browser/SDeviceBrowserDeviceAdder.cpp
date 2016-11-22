@@ -212,13 +212,34 @@ void SDeviceBrowserDeviceAdder::RefreshPlatformList( )
 
 FReply SDeviceBrowserDeviceAdder::HandleAddButtonClicked( )
 {
-	ITargetPlatform * TargetPlatform = GetTargetPlatformManager()->FindTargetPlatform(*PlatformComboBox->GetSelectedItem());
+	ITargetPlatform* TargetPlatform = GetTargetPlatformManager()->FindTargetPlatform(*PlatformComboBox->GetSelectedItem());
 
-	bool bAdded = TargetPlatform->AddDevice(DeviceIdTextBox->GetText().ToString(), false);
+	FString DeviceIdString = DeviceIdTextBox->GetText().ToString();
+	bool bAdded = TargetPlatform->AddDevice(DeviceIdString, false);
 	if (bAdded)
 	{
+		// pass credentials to the newly added device
+		if (TargetPlatform->RequiresUserCredentials())
+		{
+			// We cannot guess the device id, so we have to look it up by name
+			TArray<ITargetDevicePtr> Devices;
+			TargetPlatform->GetAllDevices(Devices);
+			for (ITargetDevicePtr Device : Devices)
+			{
+				if (Device.IsValid() && Device->GetId().GetDeviceName() == DeviceIdString)
+				{
+					FString UserNameString = UserNameTextBox->GetText().ToString();
+					FString UserPassString = UserPasswordTextBox->GetText().ToString();
+
+					Device->SetUserCredentials(UserNameString, UserPassString);
+				}
+			}
+		}
+
 		DeviceIdTextBox->SetText(FText::GetEmpty());
 		DeviceNameTextBox->SetText(FText::GetEmpty());
+		UserNameTextBox->SetText(FText::GetEmpty());
+		UserPasswordTextBox->SetText(FText::GetEmpty());
 	}
 	else
 	{

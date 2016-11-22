@@ -40,7 +40,8 @@ namespace UnrealBuildTool
 																	"/Script/UnrealEd.ProjectPackagingSettings", "/Script/PS4PlatformEditor.PS4TargetSettings", "/Script/XboxOnePlatformEditor.XboxOneTargetSettings",
 																	"/Script/HTML5PlatformEditor.HTML5TargetSettings","PS4SymbolServer","/Script/EngineSettings.GeneralProjectSettings",
                                                                     "/Script/UnrealEd.ProjectPackagingSettings", "InstalledPlatforms", "OnlineSubsystemGooglePlay.Store","/Script/Engine.StreamingSettings",
-                                                                    "/Script/WolfRuntimeSettings.WolfRuntimeSettings", "/Script/Engine.NetworkSettings", "/Script/SourceCodeAccess.SourceCodeAccessSettings"};
+                                                                    "/Script/SwitchRuntimeSettings.SwitchRuntimeSettings", "/Script/Engine.NetworkSettings", "/Script/SourceCodeAccess.SourceCodeAccessSettings",
+																	"/Script/LinuxTargetPlatform.LinuxTargetSettings"};
 
 		// static creation functions for ini files
 		public static ConfigCacheIni CreateConfigCacheIni(UnrealTargetPlatform Platform, string BaseIniName, DirectoryReference ProjectDirectory, DirectoryReference EngineDirectory = null)

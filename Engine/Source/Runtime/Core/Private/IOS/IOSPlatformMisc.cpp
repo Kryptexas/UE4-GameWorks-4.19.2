@@ -902,7 +902,7 @@ FString FIOSPlatformMisc::GetLocalCurrencySymbol()
 
 void FIOSPlatformMisc::RegisterForRemoteNotifications()
 {
-#if !PLATFORM_TVOS
+#if !PLATFORM_TVOS && NOTIFICATIONS_ENABLED
 	UIApplication* application = [UIApplication sharedApplication];
 	if ([application respondsToSelector : @selector(registerUserNotificationSettings:)])
 	{

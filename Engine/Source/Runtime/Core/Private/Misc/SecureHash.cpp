@@ -528,14 +528,21 @@ namespace LexicalConversion
 FMD5Hash FMD5Hash::HashFile(const TCHAR* InFilename, TArray<uint8>* Buffer)
 {
 	FArchive* Ar = IFileManager::Get().CreateFileReader(InFilename);
+	FMD5Hash Result = HashFileFromArchive( Ar, Buffer );
+	delete Ar;
 
+	return Result;
+}
+
+FMD5Hash FMD5Hash::HashFileFromArchive( FArchive* Ar, TArray<uint8>* Buffer)
+{
 	FMD5Hash Hash;
 	if (Ar)
 	{
 		TArray<uint8> LocalScratch;
 		if (!Buffer)
 		{
-			LocalScratch.SetNumUninitialized(1024*64);
+			LocalScratch.SetNumUninitialized(1024 * 64);
 			Buffer = &LocalScratch; //-V506
 		}
 		FMD5 MD5;
@@ -554,11 +561,11 @@ FMD5Hash FMD5Hash::HashFile(const TCHAR* InFilename, TArray<uint8>* Buffer)
 		}
 
 		Hash.Set(MD5);
-		delete Ar;
 	}
 
 	return Hash;
 }
+
 
 /*-----------------------------------------------------------------------------
 	SHA-1

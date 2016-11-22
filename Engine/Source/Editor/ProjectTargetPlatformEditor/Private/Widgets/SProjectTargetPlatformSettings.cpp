@@ -14,8 +14,10 @@ void SProjectTargetPlatformSettings::Construct(const FArguments& InArgs)
 	{
 		if(PlatformInfo.IsVanilla() && PlatformInfo.PlatformType == PlatformInfo::EPlatformType::Game)
 		{
-			// @todo AllDesktop: Re-enable here
+#if !PLATFORM_WINDOWS
+			// @todo AllDesktop now only works on Windows (it can compile D3D shaders, and it can remote compile Metal shaders)
 			if (PlatformInfo.PlatformInfoName != TEXT("AllDesktop"))
+#endif
 			{
 				AvailablePlatforms.Add(&PlatformInfo);
 			}

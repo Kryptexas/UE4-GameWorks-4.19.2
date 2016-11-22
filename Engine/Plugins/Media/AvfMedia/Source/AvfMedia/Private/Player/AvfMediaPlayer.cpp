@@ -151,7 +151,7 @@ void FAvfMediaPlayer::HandleStatusNotification(AVPlayerItemStatus Status)
 		{
 			if (Duration == 0.0f || State == EMediaState::Closed)
 			{
-				Tracks.Initialize(PlayerItem);
+				Tracks.Initialize(PlayerItem, Info);
 			 
 				AVF_GAME_THREAD_CALL(^AVF_GAME_THREAD_BLOCK{
 					MediaEvent.Broadcast(EMediaEvent::TracksChanged);
@@ -440,6 +440,8 @@ void FAvfMediaPlayer::Close()
 		MediaEvent.Broadcast(EMediaEvent::TracksChanged);
 	
 		Duration = CurrentTime = FTimespan::Zero();
+
+		Info.Empty();
 	
 		MediaEvent.Broadcast(EMediaEvent::MediaClosed);
 		
@@ -456,7 +458,7 @@ IMediaControls& FAvfMediaPlayer::GetControls()
 
 FString FAvfMediaPlayer::GetInfo() const
 {
-	return TEXT("AvfMedia media information not implemented yet");
+	return Info;
 }
 
 

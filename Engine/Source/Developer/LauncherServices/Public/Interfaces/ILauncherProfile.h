@@ -701,6 +701,9 @@ public:
 	 */
 	virtual bool IsCookingIncrementally( ) const = 0;
 
+
+	virtual bool IsIterateSharedCookedBuild() const =0;
+
 	/**
 	 * Checks if compression is enabled
 	 *
@@ -1066,6 +1069,8 @@ public:
 	 * @see IsCookingIncrementally
 	 */
 	virtual void SetIncrementalCooking( bool Incremental ) = 0;
+
+	virtual void SetIterateSharedCookedBuild( bool IterateSharedCookedBuild ) = 0;
 
 	/**
 	 * Sets Compression.

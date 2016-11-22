@@ -71,12 +71,7 @@ public:
 		GConfig->GetArray(TEXT("/Script/WindowsTargetPlatform.WindowsTargetSettings"), TEXT("TargetedRHIs"), TargetSettings->TargetedRHIs, GEngineIni);
 
 		// When this is initialized the UEnum for EMinimumSupportedOS hasn't been registered. 
-		FString MinOSString;
-		if (GConfig->GetString(TEXT("/Script/WindowsTargetPlatform.WindowsTargetSettings"), TEXT("MinimumOSVersion"), MinOSString, GEngineIni))
-		{
-			// We need to parse the string and compare manually.
-			TargetSettings->MinimumOSVersion = MinOSString == TEXT("MSOS_XP") ? EMinimumSupportedOS::MSOS_XP : EMinimumSupportedOS::MSOS_Vista;
-		}
+		TargetSettings->MinimumOSVersion = EMinimumSupportedOS::MSOS_Vista;
 
 
 		TargetSettings->AddToRoot();

@@ -99,6 +99,13 @@ static FAutoConsoleVariableRef CVarPurgeOldLightmaps(
 	);
 
 
+int32 GMultithreadedLightmapEncode = 1;
+static FAutoConsoleVariableRef CVarMultithreadedLightmapEncode(TEXT("r.MultithreadedLightmapEncode"), GMultithreadedLightmapEncode, TEXT("Lightmap encoding after rebuild lightmaps is done multithreaded."));
+int32 GMultithreadedShadowmapEncode = 1;
+static FAutoConsoleVariableRef CVarMultithreadedShadowmapEncode(TEXT("r.MultithreadedShadowmapEncode"), GMultithreadedShadowmapEncode, TEXT("Shadowmap encoding after rebuild lightmaps is done multithreaded."));
+
+
+
 
 TSharedPtr<FStaticLightingManager> FStaticLightingManager::StaticLightingManager;
 
@@ -244,7 +251,7 @@ void FStaticLightingManager::CreateStaticLightingSystem(const FLightingBuildOpti
 		for (ULevel* Level : GWorld->GetLevels())
 		{
 			if (Level->bIsLightingScenario && Level->bIsVisible)
-			{
+	{
 				StaticLightingSystems.AddZeroed();
 				StaticLightingSystems.Last() = new FStaticLightingSystem(Options, GWorld, Level);
 			}
@@ -290,7 +297,7 @@ void FStaticLightingManager::UpdateBuildLighting()
 		ActiveStaticLightingSystem->UpdateLightingBuild();
 
 		if (ActiveStaticLightingSystem && ActiveStaticLightingSystem->CurrentBuildStage == FStaticLightingSystem::Finished)
-		{
+	{
 			ActiveStaticLightingSystem = NULL;
 			StaticLightingSystems.RemoveAt(0);
 
@@ -470,22 +477,22 @@ bool FStaticLightingSystem::BeginLightmassProcess()
 
 			if (ShouldOperateOnLevel(Level))
 			{
-				Level->LightmapTotalSize = 0.0f;
-				Level->ShadowmapTotalSize = 0.0f;
-				ULevelStreaming* LevelStreaming = NULL;
-				if ( World->PersistentLevel != Level )
-				{
-					LevelStreaming = FLevelUtils::FindStreamingLevel( Level );
-				}
-				if (!Options.ShouldBuildLightingForLevel(Level))
-				{
-					if (SkippedLevels.Len() > 0)
-					{
-						SkippedLevels += FString(TEXT(", "));
-					}
-					SkippedLevels += Level->GetName();
-				}
+			Level->LightmapTotalSize = 0.0f;
+			Level->ShadowmapTotalSize = 0.0f;
+			ULevelStreaming* LevelStreaming = NULL;
+			if ( World->PersistentLevel != Level )
+			{
+				LevelStreaming = FLevelUtils::FindStreamingLevel( Level );
 			}
+			if (!Options.ShouldBuildLightingForLevel(Level))
+			{
+				if (SkippedLevels.Len() > 0)
+				{
+					SkippedLevels += FString(TEXT(", "));
+				}
+				SkippedLevels += Level->GetName();
+			}
+		}
 		}
 
 		for( int32 LevelIndex = 0 ; LevelIndex < World->StreamingLevels.Num() ; ++LevelIndex )
@@ -563,12 +570,12 @@ bool FStaticLightingSystem::BeginLightmassProcess()
 				{
 					if (ShouldOperateOnLevel((*LightIt)->GetLevel()))
 					{
-						if (EditorSelection)
-						{
-							EditorSelection->Deselect(*LightIt);
-						}
-						(*LightIt)->GetWorld()->DestroyActor(*LightIt);
+					if (EditorSelection)
+					{
+						EditorSelection->Deselect(*LightIt);
 					}
+					(*LightIt)->GetWorld()->DestroyActor(*LightIt);
+				}
 				}
 
 				for (TObjectIterator<ULightComponentBase> LightIt(RF_ClassDefaultObject, /** bIncludeDerivedClasses */ true, /** InternalExcludeFlags */ EInternalObjectFlags::PendingKill); LightIt; ++LightIt)
@@ -581,17 +588,17 @@ bool FStaticLightingSystem::BeginLightmassProcess()
 					if (bLightIsInWorld && ShouldOperateOnLevel(Light->GetOwner()->GetLevel()))
 					{
 						if (Light->bAffectsWorld
-							&& (Light->HasStaticShadowing() || Light->HasStaticLighting()))
-						{
-							// Make sure the light GUIDs are up-to-date.
-							Light->ValidateLightGUIDs();
+						&& (Light->HasStaticShadowing() || Light->HasStaticLighting()))
+					{
+						// Make sure the light GUIDs are up-to-date.
+						Light->ValidateLightGUIDs();
 
-							// Add the light to the system's list of lights in the world.
-							Lights.Add(Light);
-						}
+						// Add the light to the system's list of lights in the world.
+						Lights.Add(Light);
 					}
 				}
 			}
+		}
 		}
 
 		{
@@ -1140,16 +1147,6 @@ void FStaticLightingSystem::GatherStaticLightingInfo(bool bRebuildDirtyGeometryF
 
 void FStaticLightingSystem::EncodeTextures(bool bLightingSuccessful)
 {
-	// used to debug multithreaded issues (don't check in)
-	
-	bool bEnableMultithreadedLightmapEncode = false;
-	bool bEnableMultithreadedShadowmapEncode = false;
-	UEditorExperimentalSettings* ExperimentalSettings = UEditorExperimentalSettings::StaticClass()->GetDefaultObject<UEditorExperimentalSettings>();
-	if (ExperimentalSettings)
-	{
-		bEnableMultithreadedLightmapEncode = ExperimentalSettings->bEnableMultithreadedLightmapEncoding;
-		bEnableMultithreadedShadowmapEncode = ExperimentalSettings->bEnableMultithreadedShadowmapEncoding;
-	}
 	FLightmassStatistics::FScopedGather EncodeStatScope(LightmassStatistics.EncodingTime);
 
 	FScopedSlowTask SlowTask(2);
@@ -1157,13 +1154,13 @@ void FStaticLightingSystem::EncodeTextures(bool bLightingSuccessful)
 		FLightmassStatistics::FScopedGather EncodeStatScope2(LightmassStatistics.EncodingLightmapsTime);
 		// Flush pending shadow-map and light-map encoding.
 		SlowTask.EnterProgressFrame(1, LOCTEXT("EncodingImportedStaticLightMapsStatusMessage", "Encoding imported static light maps."));
-		FLightMap2D::EncodeTextures(World, bLightingSuccessful, bEnableMultithreadedLightmapEncode);
+		FLightMap2D::EncodeTextures(World, bLightingSuccessful, GMultithreadedLightmapEncode ? true : false);
 	}
 
 	{
 		FLightmassStatistics::FScopedGather EncodeStatScope2(LightmassStatistics.EncodingShadowMapsTime);
 		SlowTask.EnterProgressFrame(1, LOCTEXT("EncodingImportedStaticShadowMapsStatusMessage", "Encoding imported static shadow maps."));
-		FShadowMap2D::EncodeTextures(World, LightingScenario, bLightingSuccessful, bEnableMultithreadedShadowmapEncode);
+		FShadowMap2D::EncodeTextures(World, LightingScenario, bLightingSuccessful, GMultithreadedShadowmapEncode ? true : false);
 	}
 }
 
@@ -2141,7 +2138,7 @@ bool FStaticLightingSystem::FinishLightmassProcess()
 	}
 
 	ReportStatistics();
-
+	
 	return bSuccessful;
 }
 

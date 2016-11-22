@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -49,7 +49,7 @@ namespace UnrealBuildTool
 				if (MultiArchRoot != null)
 				{
 					// FIXME: UBT should loop across all the architectures and compile for all the selected ones.
-					BaseLinuxPath = Path.Combine(MultiArchRoot, LinuxPlatform.DefaultArchitecture);
+					BaseLinuxPath = Path.Combine(MultiArchRoot, PlatformContext.GetActiveArchitecture());
 
 					Console.WriteLine("Using LINUX_MULTIARCH_ROOT, building with toolchain '{0}'", BaseLinuxPath);
 				}
@@ -243,12 +243,9 @@ namespace UnrealBuildTool
 		{
 			string Result = "";
 
-			if (Architecture.StartsWith("arm"))
+			if (Architecture.StartsWith("arm") || Architecture.StartsWith("aarch64"))
 			{
 				Result += " -fsigned-char";
-
-				// FreeType2's ftconfig.h will trigger this
-				Result += " -Wno-deprecated-register";
 			}
 
 			return Result;
@@ -258,7 +255,7 @@ namespace UnrealBuildTool
 		{
 			string Result = "";
 
-			if (Architecture.StartsWith("x86_64"))
+			if (Architecture.StartsWith("x86_64") || Architecture.StartsWith("aarch64"))
 			{
 				Result += " -D_LINUX64";
 			}
@@ -315,8 +312,8 @@ namespace UnrealBuildTool
 			}
 
 			// at the moment only x86_64 is supported
-			return Target.Architecture.StartsWith("x86_64");
-        }
+			return Target.Architecture.StartsWith("x86_64") || Target.Architecture.StartsWith("aarch64");
+		}
 
 		static string GetCLArguments_Global(CPPEnvironment CompileEnvironment)
 		{
@@ -343,7 +340,8 @@ namespace UnrealBuildTool
 			Result += ArchitectureSpecificSwitches(CompileEnvironment.Config.Target.Architecture);
 
 			Result += " -fno-math-errno";               // do not assume that math ops have side effects
-			Result += " -fno-rtti";                     // no run-time type info
+
+			Result += GetRTTIFlag(CompileEnvironment);	// flag for run-time type info
 
 			if (String.IsNullOrEmpty(ClangPath))
 			{
@@ -521,8 +519,26 @@ namespace UnrealBuildTool
 			Result += " -x objective-c++";
 			Result += " -fobjc-abi-version=2";
 			Result += " -fobjc-legacy-dispatch";
-			Result += " -fno-rtti";
 			Result += " -std=c++11";
+			return Result;
+		}
+
+		// Conditionally enable (default disabled) generation of information about every class with virtual functions for use by the C++ runtime type identification features 
+		// (`dynamic_cast' and `typeid'). If you don't use those parts of the language, you can save some space by using -fno-rtti. 
+		// Note that exception handling uses the same information, but it will generate it as needed. 
+		static string GetRTTIFlag(CPPEnvironment CompileEnvironment)
+		{
+			string Result = "";
+
+			if (CompileEnvironment.Config.bUseRTTI)
+			{
+				Result = " -frtti";
+			}
+			else
+			{
+				Result = " -fno-rtti";
+			}
+
 			return Result;
 		}
 
@@ -544,7 +560,7 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
-		static string GetLinkArguments(LinkEnvironment LinkEnvironment)
+		string GetLinkArguments(LinkEnvironment LinkEnvironment)
 		{
 			string Result = "";
 
@@ -568,9 +584,18 @@ namespace UnrealBuildTool
 			Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/Linux";
 			Result += " -Wl,-rpath=${ORIGIN}/..";	// for modules that are in sub-folders of the main Engine/Binary/Linux folder
 			// FIXME: really ugly temp solution. Modules need to be able to specify this
-			Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/ICU/icu4c-53_1/Linux/x86_64-unknown-linux-gnu";
 			Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/Steamworks/Steamv132/Linux";
-			Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/Qualcomm/Linux";
+			if (LinkEnvironment.Config.Target.Architecture.StartsWith("x86_64"))
+			{
+				Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/Qualcomm/Linux";
+			}
+			else
+			{
+				// x86_64 is now using updated ICU that doesn't need extra .so
+				Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/ICU/icu4c-53_1/Linux/" + LinkEnvironment.Config.Target.Architecture;
+			}
+			Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/OpenAL/Linux/" + LinkEnvironment.Config.Target.Architecture;
+			Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/ThirdParty/CEF3/Linux";
 
 			// Some OS ship ld with new ELF dynamic tags, which use DT_RUNPATH vs DT_RPATH. Since DT_RUNPATH do not propagate to dlopen()ed DSOs,
 			// this breaks the editor on such systems. See https://kenai.com/projects/maxine/lists/users/archive/2011-01/message/12 for details
@@ -751,6 +776,7 @@ namespace UnrealBuildTool
 				{
 					// Compile the file as Objective-C++ code.
 					FileArguments += GetCompileArguments_MM();
+					FileArguments += GetRTTIFlag(CompileEnvironment);
 				}
 				else if (Extension == ".M")
 				{

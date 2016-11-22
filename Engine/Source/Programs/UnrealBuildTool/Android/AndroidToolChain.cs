@@ -428,6 +428,29 @@ namespace UnrealBuildTool
 				}
 			}
 
+
+			// Optionally enable exception handling (off by default since it generates extra code needed to propagate exceptions)
+			if (CompileEnvironment.Config.bEnableExceptions || UEBuildConfiguration.bForceEnableExceptions)
+			{
+				Result += " -fexceptions";
+			}
+			else
+			{
+				Result += " -fno-exceptions";           
+			}
+
+			// Conditionally enable (default disabled) generation of information about every class with virtual functions for use by the C++ runtime type identification features 
+			// (`dynamic_cast' and `typeid'). If you don't use those parts of the language, you can save some space by using -fno-rtti. 
+			// Note that exception handling uses the same information, but it will generate it as needed. 
+			if (CompileEnvironment.Config.bUseRTTI)
+			{
+				Result += " -frtti";
+			}
+			else
+			{
+				Result += " -fno-rtti";
+			}
+
 			//@todo android: these are copied verbatim from UE3 and probably need adjustment
 			if (Architecture == "-armv7")
 			{
@@ -437,8 +460,6 @@ namespace UnrealBuildTool
 				//		Result += " -mlong-calls";				// Perform function calls by first loading the address of the function into a reg and then performing the subroutine call
 				Result += " -fno-strict-aliasing";		// Prevents unwanted or invalid optimizations that could produce incorrect code
 				Result += " -fpic";						// Generates position-independent code (PIC) suitable for use in a shared library
-				Result += " -fno-exceptions";			// Do not enable exception handling, generates extra code needed to propagate exceptions
-				Result += " -fno-rtti";					// 
 				Result += " -fno-short-enums";			// Do not allocate to an enum type only as many bytes as it needs for the declared range of possible values
 				//		Result += " -finline-limit=64";			// GCC limits the size of functions that can be inlined, this flag allows coarse control of this limit
 				//		Result += " -Wno-psabi";				// Warn when G++ generates code that is probably not compatible with the vendor-neutral C++ ABI
@@ -471,10 +492,7 @@ namespace UnrealBuildTool
 				Result += " -fstack-protector";			// Emits extra code to check for buffer overflows
 				Result += " -fno-strict-aliasing";		// Prevents unwanted or invalid optimizations that could produce incorrect code
 				Result += " -fpic";						// Generates position-independent code (PIC) suitable for use in a shared library
-				Result += " -fno-exceptions";			// Do not enable exception handling, generates extra code needed to propagate exceptions
-				Result += " -fno-rtti";					// 
 				Result += " -fno-short-enums";          // Do not allocate to an enum type only as many bytes as it needs for the declared range of possible values
-
 				Result += " -D__arm64__";				// for some reason this isn't defined and needed for PhysX
 
 				Result += " -march=armv8-a";
@@ -495,8 +513,6 @@ namespace UnrealBuildTool
 				Result += " -fno-omit-frame-pointer";
 				Result += " -fno-strict-aliasing";
 				Result += " -fno-short-enums";
-				Result += " -fno-exceptions";
-				Result += " -fno-rtti";
 				Result += " -march=atom";
 			}
 			else if (Architecture == "-x64")
@@ -505,8 +521,6 @@ namespace UnrealBuildTool
 				Result += " -fno-omit-frame-pointer";
 				Result += " -fno-strict-aliasing";
 				Result += " -fno-short-enums";
-				Result += " -fno-exceptions";
-				Result += " -fno-rtti";
 				Result += " -march=atom";
 			}
 

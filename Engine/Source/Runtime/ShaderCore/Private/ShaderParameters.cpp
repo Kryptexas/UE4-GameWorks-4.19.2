@@ -323,7 +323,7 @@ FString CreateUniformBufferShaderDeclaration(const TCHAR* Name,const FUniformBuf
 		case SP_OPENGL_SM4:
 		case SP_OPENGL_SM4_MAC:
 		case SP_OPENGL_SM5:
-		case SP_WOLF:
+		case SP_SWITCH:
 			return CreateHLSLUniformBufferDeclaration(Name, UniformBufferStruct, false);
 		case SP_PCD3D_SM5:
 		default:

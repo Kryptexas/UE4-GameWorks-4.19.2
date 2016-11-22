@@ -332,7 +332,7 @@ public class BuildCookRun : BuildCommand
 						{
 							ProjectFullPath = GameProj.FilePath;
 						}
-						if (!FileExists_NoExceptions(ProjectFullPath.FullName))
+						if (ProjectFullPath == null || !FileExists_NoExceptions(ProjectFullPath.FullName))
 						{
 							throw new AutomationException("Could not find a project file {0}.", ProjectName);
 						}

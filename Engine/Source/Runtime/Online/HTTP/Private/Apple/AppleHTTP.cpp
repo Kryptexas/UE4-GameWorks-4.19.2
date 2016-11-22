@@ -21,6 +21,9 @@ FAppleHttpRequest::FAppleHttpRequest()
 	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpRequest::FAppleHttpRequest()"));
 	Request = [[NSMutableURLRequest alloc] init];
 	Request.timeoutInterval = FHttpModule::Get().GetHttpTimeout();
+
+	// Disable cache to mimic WinInet behavior
+	Request.cachePolicy = NSURLRequestReloadIgnoringLocalCacheData;
 }
 
 
@@ -589,7 +592,7 @@ int32 FAppleHttpResponse::GetContentLength()
 {
 	UE_LOG(LogHttp, Verbose, TEXT("FAppleHttpResponse::GetContentLength()"));
 
-	return [ResponseWrapper getPayload].Num();
+	return ResponseWrapper.Response.expectedContentLength;
 }
 
 

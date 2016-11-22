@@ -182,8 +182,73 @@ void FAvfMediaTracks::Flush()
 	}
 }
 
+static FString MediaTypeToString(NSString* MediaType)
+{
+	if ([MediaType isEqualToString:AVMediaTypeAudio])
+	{
+		return TEXT("Audio");
+	}
+	else if ([MediaType isEqualToString:AVMediaTypeClosedCaption])
+	{
+		return TEXT("Closed Caption");
+	}
+	else if ([MediaType isEqualToString:AVMediaTypeSubtitle])
+	{
+		return TEXT("Subtitle");
+	}
+	else if ([MediaType isEqualToString:AVMediaTypeText])
+	{
+		return TEXT("Text");
+	}
+	else if ([MediaType isEqualToString:AVMediaTypeTimecode])
+	{
+		return TEXT("Timecode (unsupported)");
+	}
+	else if ([MediaType isEqualToString:AVMediaTypeVideo])
+	{
+		return TEXT("Video");
+	}
+	return TEXT("Unknown");
+}
 
-void FAvfMediaTracks::Initialize(AVPlayerItem* InPlayerItem)
+static FString CodecTypeToString(CMVideoCodecType CodecType)
+{
+	if (CodecType == kCMVideoCodecType_422YpCbCr8) return TEXT("422YpCbCr8");
+	if (CodecType == kCMVideoCodecType_Animation) return TEXT("Animation");
+	if (CodecType == kCMVideoCodecType_Cinepak) return TEXT("Cinepak");
+	if (CodecType == kCMVideoCodecType_JPEG) return TEXT("JPEG");
+	if (CodecType == kCMVideoCodecType_JPEG_OpenDML) return TEXT("JPEG OpenDML");
+	if (CodecType == kCMVideoCodecType_SorensonVideo) return TEXT("Sorenson Video");
+	if (CodecType == kCMVideoCodecType_SorensonVideo3) return TEXT("Sorenson Video 3");
+	if (CodecType == kCMVideoCodecType_H263) return TEXT("H263");
+	if (CodecType == kCMVideoCodecType_H264) return TEXT("H264");
+	if (CodecType == kCMVideoCodecType_HEVC) return TEXT("HEVC");
+	if (CodecType == kCMVideoCodecType_MPEG4Video) return TEXT("MPEG4 Video");
+	if (CodecType == kCMVideoCodecType_MPEG2Video) return TEXT("MPEG2 Video");
+	if (CodecType == kCMVideoCodecType_MPEG1Video) return TEXT("MPEG1 Video");
+
+	if (CodecType == kCMVideoCodecType_DVCNTSC) return TEXT("DVC NTSC");
+	if (CodecType == kCMVideoCodecType_DVCPAL) return TEXT("DVC PAL");
+	if (CodecType == kCMVideoCodecType_DVCProPAL) return TEXT("DVCPro PAL");
+	if (CodecType == kCMVideoCodecType_DVCPro50NTSC) return TEXT("DVCPro50 NTSC");
+	if (CodecType == kCMVideoCodecType_DVCPro50PAL) return TEXT("DVCPro50 PAL");
+	if (CodecType == kCMVideoCodecType_DVCPROHD720p60) return TEXT("DVCPRO HD 720p 60");
+	if (CodecType == kCMVideoCodecType_DVCPROHD720p50) return TEXT("DVCPRO HD 720p 50");
+	if (CodecType == kCMVideoCodecType_DVCPROHD1080i60) return TEXT("DVCPRO HD 1080i 60");
+	if (CodecType == kCMVideoCodecType_DVCPROHD1080i50) return TEXT("DVCPRO HD 1080i 50");
+	if (CodecType == kCMVideoCodecType_DVCPROHD1080p30) return TEXT("DVCPRO HD 1080p 30");
+	if (CodecType == kCMVideoCodecType_DVCPROHD1080p25) return TEXT("DVCPRO HD 1080p 25");
+
+	if (CodecType == kCMVideoCodecType_AppleProRes4444) return TEXT("Apple ProRes 4444");
+	if (CodecType == kCMVideoCodecType_AppleProRes422HQ) return TEXT("Apple ProRes 422 HQ");
+	if (CodecType == kCMVideoCodecType_AppleProRes422) return TEXT("Apple ProRes 422");
+	if (CodecType == kCMVideoCodecType_AppleProRes422LT) return TEXT("Apple ProRes 422 LT");
+	if (CodecType == kCMVideoCodecType_AppleProRes422Proxy) return TEXT("Apple ProRes 422 Proxy");
+
+	return TEXT("Unknown");
+}
+
+void FAvfMediaTracks::Initialize(AVPlayerItem* InPlayerItem, FString& OutInfo)
 {
 	Reset();
 
@@ -196,14 +261,19 @@ void FAvfMediaTracks::Initialize(AVPlayerItem* InPlayerItem)
 
 	NSError* Error = nil;
 
+	int32 StreamIndex = 0;
+
 	for (AVPlayerItemTrack* PlayerTrack in PlayerItem.tracks)
 	{
 		// create track
 		FTrack* Track = nullptr;
 		AVAssetTrack* AssetTrack = PlayerTrack.assetTrack;
-		NSString* mediaType = AssetTrack.mediaType;
+		NSString* MediaType = AssetTrack.mediaType;
 
-		if ([mediaType isEqualToString:AVMediaTypeAudio])
+		OutInfo += FString::Printf(TEXT("Stream %i\n"), StreamIndex++);
+		OutInfo += FString::Printf(TEXT("    Type: %s\n"), *MediaTypeToString(MediaType));
+
+		if ([MediaType isEqualToString:AVMediaTypeAudio])
 		{
 			PlayerTrack.enabled = false;
 			
@@ -245,8 +315,28 @@ void FAvfMediaTracks::Initialize(AVPlayerItem* InPlayerItem)
 			Track->Loaded = true;
 			Track->Reader = nil;
 #endif
+
+			CMFormatDescriptionRef DescRef = (CMFormatDescriptionRef)[AssetTrack.formatDescriptions objectAtIndex:0];
+			const AudioStreamBasicDescription* Desc = CMAudioFormatDescriptionGetStreamBasicDescription(DescRef);
+			if (Desc)
+			{
+				OutInfo += FString::Printf(TEXT("    Channels: %u\n"), Desc->mChannelsPerFrame);
+				OutInfo += FString::Printf(TEXT("    Sample Rate: %g Hz\n"), Desc->mSampleRate);
+				if (Desc->mBitsPerChannel > 0)
+				{
+					OutInfo += FString::Printf(TEXT("    Bits Per Channel: %u\n"), Desc->mBitsPerChannel);
+				}
+				else
+				{
+					OutInfo += FString::Printf(TEXT("    Bits Per Channel: n/a\n"));
+				}
+			}
+			else
+			{
+				OutInfo += TEXT("    failed to get audio track information\n");
+			}
 		}
-		else if (([mediaType isEqualToString:AVMediaTypeClosedCaption]) || ([mediaType isEqualToString:AVMediaTypeSubtitle]) || ([mediaType isEqualToString:AVMediaTypeText]))
+		else if (([MediaType isEqualToString:AVMediaTypeClosedCaption]) || ([MediaType isEqualToString:AVMediaTypeSubtitle]) || ([MediaType isEqualToString:AVMediaTypeText]))
 		{
 			FAVPlayerItemLegibleOutputPushDelegate* Delegate = [[FAVPlayerItemLegibleOutputPushDelegate alloc] initWithMediaTracks:this];
 			AVPlayerItemLegibleOutput* Output = [AVPlayerItemLegibleOutput new];
@@ -266,15 +356,12 @@ void FAvfMediaTracks::Initialize(AVPlayerItem* InPlayerItem)
 			Track->Reader = nil;
 			Track->Converter = nullptr;
 		}
-		else if ([mediaType isEqualToString:AVMediaTypeText])
-		{
-			// not supported by Media Framework yet
-		}
-		else if ([mediaType isEqualToString:AVMediaTypeTimecode])
+		else if ([MediaType isEqualToString:AVMediaTypeTimecode])
 		{
 			// not implemented yet - not sure they should be as these are SMTPE editing timecodes for iMovie/Final Cut/etc. not playback timecodes. They only make sense in editable Quicktime Movies (.mov).
+			OutInfo += FString::Printf(TEXT("    Type: Timecode (UNSUPPORTED)\n"));
 		}
-		else if ([mediaType isEqualToString:AVMediaTypeVideo])
+		else if ([MediaType isEqualToString:AVMediaTypeVideo])
 		{
 			NSMutableDictionary* OutputSettings = [NSMutableDictionary dictionary];
 			// Mac:
@@ -316,7 +403,16 @@ void FAvfMediaTracks::Initialize(AVPlayerItem* InPlayerItem)
 			Track->Loaded = true;
 			Track->Reader = nil;
 			Track->Converter = nullptr;
+
+			CMFormatDescriptionRef DescRef = (CMFormatDescriptionRef)[AssetTrack.formatDescriptions objectAtIndex:0];
+			CMVideoCodecType CodecType = CMFormatDescriptionGetMediaSubType(DescRef);
+			OutInfo += FString::Printf(TEXT("    Codec: %s\n"), *CodecTypeToString(CodecType));
+			OutInfo += FString::Printf(TEXT("    Dimensions: %i x %i\n"), (int32)AssetTrack.naturalSize.width, (int32)AssetTrack.naturalSize.height);
+			OutInfo += FString::Printf(TEXT("    Frame Rate: %g fps\n"), AssetTrack.nominalFrameRate);
+			OutInfo += FString::Printf(TEXT("    BitRate: %i\n"), (int32)AssetTrack.estimatedDataRate);
 		}
+
+		OutInfo += TEXT("\n");
 
 		if (Track == nullptr)
 		{

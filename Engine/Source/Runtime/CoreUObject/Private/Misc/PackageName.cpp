@@ -346,6 +346,22 @@ bool FPackageName::TryConvertLongPackageNameToFilename(const FString& InLongPack
 	return false;
 }
 
+bool FPackageName::ConvertRootPathToContentPath( const FString& RootPath, FString& OutContentPath)
+{
+	const auto& Paths = FLongPackagePathsSingleton::Get();
+	for (const auto& Pair : Paths.ContentRootToPath)
+	{
+		if (RootPath.StartsWith(Pair.RootPath))
+		{
+			OutContentPath = Pair.ContentPath;
+			return true;
+		}
+	}
+
+	// This is not a long package name or the root folder is not handled in the above cases
+	return false;
+}
+
 FString FPackageName::LongPackageNameToFilename(const FString& InLongPackageName, const FString& InExtension)
 {
 	FString FailureReason;
@@ -804,8 +820,9 @@ FString FPackageName::GetNormalizedObjectPath(const FString& ObjectPath)
 	{
 		FString LongPath;
 
-		UE_LOG(LogPackageName, Warning, TEXT("String asset reference \"%s\" is in short form, which is unsupported and -- even if valid -- resolving it will be really slow. Please consider resaving package in order to speed-up loading."), *ObjectPath);
-
+		UE_LOG(LogPackageName, Warning, TEXT("String asset reference \"%s\" is in short form, which is unsupported and -- even if valid -- resolving it will be really slow."), *ObjectPath);
+		UE_LOG(LogPackageName, Warning, TEXT("Please consider resaving package in order to speed-up loading."));
+		
 		if (!FPackageName::TryConvertShortPackagePathToLongInObjectPath(ObjectPath, LongPath))
 		{
 			UE_LOG(LogPackageName, Warning, TEXT("String asset reference \"%s\" could not be resolved."), *ObjectPath);

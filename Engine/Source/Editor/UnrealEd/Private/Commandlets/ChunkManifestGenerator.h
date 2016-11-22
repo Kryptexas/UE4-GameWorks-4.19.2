@@ -113,6 +113,12 @@ class FChunkManifestGenerator
 				ExistingChunkIDs.AddUnique(ChunkIndex);
 			}
 		}
+
+		if ( StartupPackages.Contains(PackageFName ))
+		{
+			ExistingChunkIDs.AddUnique(0);
+		}
+
 		return ExistingChunkIDs;
 	}
 
@@ -305,14 +311,6 @@ public:
 	 */
 	bool LoadAssetRegistry(const FString& SandboxPath, const TSet<FName>* PackagesToLoadMask = nullptr);
 
-	/**
-	 * Saves cooked package and asset information about all the cooked packages and assets contained within for stats purposes
-	 * in json format
-	 *
-	 * @param Sandbox path to save the registry to
-	 * @param Append to the previous registry if there is one
-	 */
-	bool SaveCookedPackageAssetRegistry( const FString& SandboxPath, const bool Append );
 
 	/**
 	* Follows an assets dependency chain to build up a list of package names in the same order as the runtime would attempt to load them

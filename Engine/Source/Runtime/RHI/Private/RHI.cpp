@@ -394,8 +394,8 @@ static FName NAME_VULKAN_SM5(TEXT("SF_VULKAN_SM5"));
 static FName NAME_SF_METAL_SM4(TEXT("SF_METAL_SM4"));
 static FName NAME_SF_METAL_MACES3_1(TEXT("SF_METAL_MACES3_1"));
 static FName NAME_SF_METAL_MACES2(TEXT("SF_METAL_MACES2"));
-static FName NAME_GLSL_WOLF(TEXT("GLSL_WOLF"));
-static FName NAME_GLSL_WOLF_FORWARD(TEXT("GLSL_WOLF_FORWARD"));
+static FName NAME_GLSL_SWITCH(TEXT("GLSL_SWITCH"));
+static FName NAME_GLSL_SWITCH_FORWARD(TEXT("GLSL_SWITCH_FORWARD"));
 
 FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 {
@@ -459,10 +459,10 @@ FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 		return NAME_VULKAN_ES3_1;
 	case SP_VULKAN_ES3_1_ANDROID:
 		return NAME_VULKAN_ES3_1_ANDROID;
-	case SP_WOLF:
-		return NAME_GLSL_WOLF;
-	case SP_WOLF_FORWARD:
-		return NAME_GLSL_WOLF_FORWARD;
+	case SP_SWITCH:
+		return NAME_GLSL_SWITCH;
+	case SP_SWITCH_FORWARD:
+		return NAME_GLSL_SWITCH_FORWARD;
 
 	default:
 		check(0);
@@ -500,8 +500,8 @@ EShaderPlatform ShaderFormatToLegacyShaderPlatform(FName ShaderFormat)
 	if (ShaderFormat == NAME_SF_METAL_MACES3_1)		return SP_METAL_MACES3_1;
 	if (ShaderFormat == NAME_SF_METAL_MACES2)		return SP_METAL_MACES2;
 	if (ShaderFormat == NAME_GLSL_ES3_1_ANDROID)	return SP_OPENGL_ES3_1_ANDROID;
-	if (ShaderFormat == NAME_GLSL_WOLF)				return SP_WOLF;
-	if (ShaderFormat == NAME_GLSL_WOLF_FORWARD)		return SP_WOLF_FORWARD;
+	if (ShaderFormat == NAME_GLSL_SWITCH)				return SP_SWITCH;
+	if (ShaderFormat == NAME_GLSL_SWITCH_FORWARD)		return SP_SWITCH_FORWARD;
 	
 	return SP_NumPlatforms;
 }

@@ -861,7 +861,7 @@ public partial class Project : CommandUtils
 		{
 			TempCmdLine += "-abslog=" + CommandUtils.MakePathSafeToUseWithCommandLine(ClientLogFile) + " ";
 		}
-		if (SC.StageTargetPlatform.PlatformType != UnrealTargetPlatform.IOS)
+		if (SC.StageTargetPlatform.PlatformType != UnrealTargetPlatform.IOS && SC.StageTargetPlatform.PlatformType != UnrealTargetPlatform.Linux)
 		{
 			TempCmdLine += "-Messaging -nomcp -Windowed ";
 		}

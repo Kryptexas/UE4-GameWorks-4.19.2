@@ -2323,7 +2323,7 @@ void UStaticMesh::Serialize(FArchive& Ar)
 #endif
 	}
 #if WITH_EDITOR
-	else if (bHasNavigationData && BodySetup && GOutputCookingWarnings)
+	else if (bHasNavigationData && BodySetup && (Ar.GetDebugSerializationFlags() & DSF_EnableCookerWarnings))
 	{
 		UE_LOG(LogStaticMesh, Warning, TEXT("This StaticMeshes (%s) NavCollision will be created dynamicaly at cook time.  Please resave %s."), *GetName(), *GetOutermost()->GetPathName())
 	}

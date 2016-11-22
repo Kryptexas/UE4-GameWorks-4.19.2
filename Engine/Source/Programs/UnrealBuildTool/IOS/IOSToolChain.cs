@@ -162,7 +162,7 @@ namespace UnrealBuildTool
 			Result += " -fpascal-strings";
 
 			Result += " -fno-exceptions";
-			Result += " -fno-rtti";
+			Result += GetRTTIFlag(CompileEnvironment);
 			Result += " -fvisibility=hidden"; // hides the linker warnings with PhysX
 
 			// 			if (CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Shipping)
@@ -258,7 +258,6 @@ namespace UnrealBuildTool
 		{
 			string Result = "";
 			Result += " -x objective-c++";
-			Result += " -fno-rtti";
 			Result += " -fobjc-abi-version=2";
 			Result += " -fobjc-legacy-dispatch";
 			Result += " -std=c++11";
@@ -272,7 +271,6 @@ namespace UnrealBuildTool
 			Result += " -x objective-c++";
 			Result += " -fobjc-abi-version=2";
 			Result += " -fobjc-legacy-dispatch";
-			Result += " -fno-rtti";
 			Result += " -std=c++11";
 			Result += " -stdlib=libc++";
 			return Result;
@@ -300,9 +298,27 @@ namespace UnrealBuildTool
 		{
 			string Result = "";
 			Result += " -x objective-c++-header";
-			Result += " -fno-rtti";
 			Result += " -std=c++11";
 			Result += " -stdlib=libc++";
+			return Result;
+		}
+
+		// Conditionally enable (default disabled) generation of information about every class with virtual functions for use by the C++ runtime type identification features 
+		// (`dynamic_cast' and `typeid'). If you don't use those parts of the language, you can save some space by using -fno-rtti. 
+		// Note that exception handling uses the same information, but it will generate it as needed. 
+		static string GetRTTIFlag(CPPEnvironment CompileEnvironment)
+		{
+			string Result = "";
+
+			if (CompileEnvironment.Config.bUseRTTI)
+			{
+				Result = " -frtti";
+			}
+			else
+			{
+				Result = " -fno-rtti";
+			}
+
 			return Result;
 		}
 
@@ -495,6 +511,7 @@ namespace UnrealBuildTool
 				{
 					// Compile the file as a C++ PCH.
 					FileArguments += GetCompileArguments_PCH();
+					FileArguments += GetRTTIFlag(CompileEnvironment);
 				}
 				else if (Extension == ".C")
 				{
@@ -505,11 +522,13 @@ namespace UnrealBuildTool
 				{
 					// Compile the file as C++ code.
 					FileArguments += GetCompileArguments_CPP();
+					FileArguments += GetRTTIFlag(CompileEnvironment);
 				}
 				else if (Extension == ".MM")
 				{
 					// Compile the file as Objective-C++ code.
 					FileArguments += GetCompileArguments_MM();
+					FileArguments += GetRTTIFlag(CompileEnvironment);
 				}
 				else if (Extension == ".M")
 				{
@@ -520,6 +539,7 @@ namespace UnrealBuildTool
 				{
 					// Compile the file as C++ code.
 					FileArguments += GetCompileArguments_CPP();
+					FileArguments += GetRTTIFlag(CompileEnvironment);
 
 					// only use PCH for .cpp files
 					FileArguments += PCHArguments;

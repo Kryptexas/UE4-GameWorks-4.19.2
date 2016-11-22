@@ -721,7 +721,7 @@ void InstallSignalHandlers()
 	FPlatformMisc::HandleLowMemoryWarning();
 }
 
-#if !PLATFORM_TVOS
+#if !PLATFORM_TVOS && NOTIFICATIONS_ENABLED
 
 #ifdef __IPHONE_8_0
 - (void)application:(UIApplication *)application didRegisterUserNotificationSettings:(UIUserNotificationSettings *)notificationSettings

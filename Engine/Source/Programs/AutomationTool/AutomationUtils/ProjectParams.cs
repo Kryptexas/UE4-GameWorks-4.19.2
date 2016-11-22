@@ -238,9 +238,11 @@ namespace AutomationTool
 			this.Run = InParams.Run;
 			this.Cook = InParams.Cook;
 			this.IterativeCooking = InParams.IterativeCooking;
+			this.IterateSharedCookedBuild = InParams.IterateSharedCookedBuild;
             this.CookAll = InParams.CookAll;
 			this.CookPartialGC = InParams.CookPartialGC;
-            this.CookMapsOnly = InParams.CookMapsOnly;
+			this.CookInEditor = InParams.CookInEditor; 
+			this.CookMapsOnly = InParams.CookMapsOnly;
 			this.SkipCook = InParams.SkipCook;
 			this.SkipCookOnTheFly = InParams.SkipCookOnTheFly;
             this.Prebuilt = InParams.Prebuilt;
@@ -366,9 +368,11 @@ namespace AutomationTool
             bool? Compressed = null,
             bool? UseDebugParamForEditorExe = null,
             bool? IterativeCooking = null,
-            bool? CookAll = null,
+			bool? IterateSharedCookedBuild = null,
+			bool? CookAll = null,
 			bool? CookPartialGC = null,
-            bool? CookMapsOnly = null,
+			bool? CookInEditor = null,
+			bool? CookMapsOnly = null,
             bool? CookOnTheFly = null,
             bool? CookOnTheFlyStreaming = null,
             bool? UnversionedCookedContent = null,
@@ -558,11 +562,14 @@ namespace AutomationTool
             }
             this.Compressed = GetParamValueIfNotSpecified(Command, Compressed, this.Compressed, "compressed");
             this.UseDebugParamForEditorExe = GetParamValueIfNotSpecified(Command, UseDebugParamForEditorExe, this.UseDebugParamForEditorExe, "UseDebugParamForEditorExe");
-            this.IterativeCooking = GetParamValueIfNotSpecified(Command, IterativeCooking, this.IterativeCooking, new string[] { "iterativecooking", "iterate" } );
+			this.IterativeCooking = GetParamValueIfNotSpecified(Command, IterativeCooking, this.IterativeCooking, new string[] { "iterativecooking", "iterate" });
+			this.IterateSharedCookedBuild = GetParamValueIfNotSpecified(Command, IterateSharedCookedBuild, this.IterateSharedCookedBuild, new string[] { "IterateSharedCookedBuild"});
+			
 			this.SkipCookOnTheFly = GetParamValueIfNotSpecified(Command, SkipCookOnTheFly, this.SkipCookOnTheFly, "skipcookonthefly");
 			this.CookAll = GetParamValueIfNotSpecified(Command, CookAll, this.CookAll, "CookAll");
 			this.CookPartialGC = GetParamValueIfNotSpecified(Command, CookPartialGC, this.CookPartialGC, "CookPartialGC");
-            this.CookMapsOnly = GetParamValueIfNotSpecified(Command, CookMapsOnly, this.CookMapsOnly, "CookMapsOnly");
+			this.CookInEditor = GetParamValueIfNotSpecified(Command, CookInEditor, this.CookInEditor, "CookInEditor");
+			this.CookMapsOnly = GetParamValueIfNotSpecified(Command, CookMapsOnly, this.CookMapsOnly, "CookMapsOnly");
 			this.FileServer = GetParamValueIfNotSpecified(Command, FileServer, this.FileServer, "fileserver");
 			this.DedicatedServer = GetParamValueIfNotSpecified(Command, DedicatedServer, this.DedicatedServer, "dedicatedserver", "server");
 			this.Client = GetParamValueIfNotSpecified(Command, Client, this.Client, "client");
@@ -1224,10 +1231,22 @@ namespace AutomationTool
         /// </summary>
         public bool OldCook { private set; get; }
 
-        /// <summary>
-        /// Cook: Base this cook of a already released version of the cooked data
-        /// </summary>
-        public string BasedOnReleaseVersion;
+		/// <summary>
+		/// Cook: While cooking clean up packages as we go along rather then cleaning everything (and potentially having to reload some of it) when we run out of space
+		/// </summary>
+		[Help("CookPartialgc", "while cooking clean up packages as we are done with them rather then cleaning everything up when we run out of space")]
+		public bool CookPartialGC { private set; get; }
+
+		/// <summary>
+		/// Stage: Did we cook in the editor instead of from UAT (cook in editor uses a different staging directory)
+		/// </summary>
+		[Help("CookInEditor", "Did we cook in the editor instead of in UAT")]
+		public bool CookInEditor { private set; get; }
+
+		/// <summary>
+		/// Cook: Base this cook of a already released version of the cooked data
+		/// </summary>
+		public string BasedOnReleaseVersion;
 
 		/// <summary>
         /// Cook: Path to the root of the directory where we store released versions of the game for a given version
@@ -1300,10 +1319,16 @@ namespace AutomationTool
 		[Help( "iterativecooking", "Uses the iterative cooking, command line: -iterativecooking or -iterate" )]
 		public bool IterativeCooking;
 
-        /// <summary>
-        /// Cook: Only cook maps (and referenced content) instead of cooking everything only affects -cookall flag
-        /// </summary>
-        [Help("CookMapsOnly", "Cook only maps this only affects usage of -cookall the flag")]
+		/// <summary>
+		/// Cook: Iterate from a shared cooked build 
+		/// </summary>
+		[Help("Iteratively cook from a shared cooked build")]
+		public bool IterateSharedCookedBuild;
+
+		/// <summary>
+		/// Cook: Only cook maps (and referenced content) instead of cooking everything only affects -cookall flag
+		/// </summary>
+		[Help("CookMapsOnly", "Cook only maps this only affects usage of -cookall the flag")]
         public bool CookMapsOnly;
 
         /// <summary>
@@ -1445,11 +1470,6 @@ namespace AutomationTool
         [Help("Cookontheflystreaming", "run the client in streaming cook on the fly mode (don't cache files locally instead force reget from server each file load)")]
         public bool CookOnTheFlyStreaming { private set; get; }
 
-		/// <summary>
-		/// Run: The client should run in streaming mode when connecting to cook on the fly server
-		/// </summary>
-		[Help("CookPartialgc", "while cooking clean up packages as we are done with them rather then cleaning everything up when we run out of space")]
-		public bool CookPartialGC { private set; get; }
 
 
 		/// <summary>
@@ -1583,11 +1603,11 @@ namespace AutomationTool
         /// <summary>
         /// Run: Linux password for unattended key genereation
         /// </summary>
-        [Help("devicepass", "Linux password for unattended key genereation")]
+        [Help("devicepass", "Linux password")]
         public string DevicePassword;
 
         /// <summary>
-        /// Run: Sever device IP address
+        /// Run: Server device IP address
         /// </summary>
         public string ServerDeviceAddress;
 
@@ -2233,7 +2253,7 @@ namespace AutomationTool
                 throw new AutomationException("Can't create a release version at the same time as creating dlc.");
             }
 
-            if (HasBasedOnReleaseVersion && (IterativeCooking || IterativeDeploy))
+            if (HasBasedOnReleaseVersion && (IterativeCooking || IterativeDeploy || IterateSharedCookedBuild))
             {
                 throw new AutomationException("Can't use iterative cooking / deploy on dlc or patching or creating a release");
             }
@@ -2304,9 +2324,11 @@ namespace AutomationTool
 				CommandUtils.LogLog("IsCodeBasedProject={0}", IsCodeBasedProject.ToString());
 				CommandUtils.LogLog("IsProgramTarget={0}", IsProgramTarget.ToString());
 				CommandUtils.LogLog("IterativeCooking={0}", IterativeCooking);
-                CommandUtils.LogLog("CookAll={0}", CookAll);
+				CommandUtils.LogLog("IterateSharedCookedBuild={0}", IterateSharedCookedBuild);
+				CommandUtils.LogLog("CookAll={0}", CookAll);
 				CommandUtils.LogLog("CookPartialGC={0}", CookPartialGC);
-                CommandUtils.LogLog("CookMapsOnly={0}", CookMapsOnly);
+				CommandUtils.LogLog("CookInEditor={0}", CookInEditor);
+				CommandUtils.LogLog("CookMapsOnly={0}", CookMapsOnly);
                 CommandUtils.LogLog("Deploy={0}", Deploy);
 				CommandUtils.LogLog("IterativeDeploy={0}", IterativeDeploy);
 				CommandUtils.LogLog("FastCook={0}", FastCook);

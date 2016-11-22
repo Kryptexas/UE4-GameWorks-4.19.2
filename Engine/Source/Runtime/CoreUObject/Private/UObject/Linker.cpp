@@ -513,6 +513,8 @@ FLinkerLoad* GetPackageLinker
 		return Result;
 	}
 
+	UPackage* CreatedPackage = nullptr;
+
 	FString NewFilename;
 	if( !InLongPackageName )
 	{
@@ -609,7 +611,7 @@ FLinkerLoad* GetPackageLinker
 		}
 
 		// Create the package with the provided long package name.
-		UPackage* FilenamePkg = (ExistingPackage ? ExistingPackage : CreatePackage(nullptr, *PackageNameToCreate));
+		UPackage* FilenamePkg = (ExistingPackage ? ExistingPackage : (CreatedPackage = CreatePackage(nullptr, *PackageNameToCreate)));
 		if (FilenamePkg && FilenamePkg != ExistingPackage && (LoadFlags & LOAD_PackageForPIE))
 		{
 			FilenamePkg->SetPackageFlags(PKG_PlayInEditor);
@@ -657,6 +659,17 @@ FLinkerLoad* GetPackageLinker
 		check(NewFilename.Len() > 0);
 
 		Result = FLinkerLoad::CreateLinker( InOuter, *NewFilename, LoadFlags );
+	}
+
+	if ( !Result && CreatedPackage )
+	{
+		// kill it with fire
+		CreatedPackage->MarkPendingKill();
+		/*static int32 FailedPackageLoadIndex = 0;
+		++FailedPackageLoadIndex;
+		FString FailedLinkerLoad = FString::Printf(TEXT("/Temp/FailedLinker_%s_%d"), *NewFilename, FailedPackageLoadIndex);
+		
+		CreatedPackage->Rename(*FailedLinkerLoad);*/
 	}
 
 	// Verify compatibility.

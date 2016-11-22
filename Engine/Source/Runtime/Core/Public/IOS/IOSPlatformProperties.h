@@ -35,7 +35,7 @@ struct FIOSPlatformProperties
 
 	static FORCEINLINE bool IsGameOnly()
 	{
-		return UE_GAME;
+		return true;
 	}
 	
 	static FORCEINLINE bool RequiresCookedData( )
@@ -69,6 +69,11 @@ struct FIOSPlatformProperties
 	}
 
 	static FORCEINLINE bool AllowsFramerateSmoothing()
+	{
+		return true;
+	}
+
+	static FORCEINLINE bool SupportsAudioStreaming()
 	{
 		return true;
 	}

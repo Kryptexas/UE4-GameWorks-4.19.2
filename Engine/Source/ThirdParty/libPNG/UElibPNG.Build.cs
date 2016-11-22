@@ -75,6 +75,11 @@ public class UElibPNG : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
+			if (Target.Architecture.StartsWith("aarch64"))
+			{
+				libPNGPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "libPNG/libPNG-1.5.27";
+			}
+
 			PublicAdditionalLibraries.Add(libPNGPath + "/lib/Linux/" + Target.Architecture + "/libpng.a");
 		}
 		else if (Target.Platform == UnrealTargetPlatform.HTML5)
@@ -114,9 +119,9 @@ public class UElibPNG : ModuleRules
                 PublicAdditionalLibraries.Add("libpng125_XboxOne.lib");
             }
         }
-		else if (Target.Platform == UnrealTargetPlatform.WolfPlat)
+		else if (Target.Platform == UnrealTargetPlatform.Switch)
 		{
-			PublicAdditionalLibraries.Add(System.IO.Path.Combine(libPNGPath, "lib/WolfPlat/libPNG.a"));
+			PublicAdditionalLibraries.Add(System.IO.Path.Combine(libPNGPath, "lib/Switch/libPNG.a"));
 		}
 
 		PublicIncludePaths.Add(libPNGPath);

@@ -35,10 +35,11 @@ public:
 	 *
 	 * @param InTargetPlatform - The target platform.
 	 */
-	FLinuxTargetDevice( const ITargetPlatform& InTargetPlatform, const FTargetDeviceId& InDeviceId, const FString& InDeviceName )
+	FLinuxTargetDevice( const ITargetPlatform& InTargetPlatform, const FTargetDeviceId& InDeviceId, const FString& InDeviceName, TFunction<void()> InSavePlatformDevices)
 		: TargetPlatform(InTargetPlatform)
 		, DeviceName(InDeviceName)
 		, TargetDeviceId(InDeviceId)
+		, SavePlatformDevices(InSavePlatformDevices)
 	{ }
 
 
@@ -233,14 +234,17 @@ public:
 
 	virtual void SetUserCredentials( const FString& InUserName, const FString& InUserPassword ) override
 	{
-		STUBBED("FLinuxTargetDevice::SetUserCredentials");
 		UserName = InUserName;
 		UserPassword = InUserPassword;
+
+		if (SavePlatformDevices)
+		{
+			SavePlatformDevices();
+		}
 	}
 
 	virtual bool GetUserCredentials( FString& OutUserName, FString& OutUserPassword ) override
 	{
-		STUBBED("FLinuxTargetDevice::GetUserCredentials");
 		OutUserName = UserName;
 		OutUserPassword = UserPassword;
 		return true;
@@ -295,4 +299,7 @@ private:
 
 	/** User password on the remote machine */
 	FString UserPassword;
+
+	/** Target platform function to save device state */
+	TFunction<void()> SavePlatformDevices;
 };

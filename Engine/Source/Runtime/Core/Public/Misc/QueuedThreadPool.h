@@ -51,6 +51,11 @@ public:
 	 */
 	virtual IQueuedWork* ReturnToPoolOrGetNextJob( class FQueuedThread* InQueuedThread ) = 0;
 
+	/**
+	 * Get the number of queued threads
+	 */
+	virtual int32 GetNumThreads() const = 0;
+
 public:
 
 	/** Virtual destructor. */

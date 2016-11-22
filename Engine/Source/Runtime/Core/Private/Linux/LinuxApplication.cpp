@@ -239,6 +239,7 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 	{
 		return;
 	}
+
 	switch(Event.type)
 	{
 	case SDL_KEYDOWN:
@@ -340,10 +341,10 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 
 			if(bUsingHighPrecisionMouseInput)
 			{
-				// hack to work around jumps
+				// hack to work around jumps (only matters when we have more than one window)
 				const int kTooFarAway = 250;
 				const int kTooFarAwaySquare = kTooFarAway * kTooFarAway;
-				if (motionEvent.xrel * motionEvent.xrel + motionEvent.yrel * motionEvent.yrel > kTooFarAwaySquare)
+				if (Windows.Num() > 1 && motionEvent.xrel * motionEvent.xrel + motionEvent.yrel * motionEvent.yrel > kTooFarAwaySquare)
 				{
 					UE_LOG(LogLinuxWindowEvent, Warning, TEXT("Suppressing too large relative mouse movement due to an apparent bug (%d, %d is larger than threshold %d)"),
 						motionEvent.xrel, motionEvent.yrel,
@@ -985,8 +986,52 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 			}
 		}
 		break;
+
+	case SDL_FINGERDOWN:
+		{
+			UE_LOG(LogLinuxWindow, Verbose, TEXT("Finger %llu is down at (%f, %f)"), Event.tfinger.fingerId, Event.tfinger.x, Event.tfinger.y);
+
+			// touch events can have no window associated with them, in that case ignore (with a warning)
+			if (LIKELY(!bWindowlessEvent))
+			{
+				MessageHandler->OnTouchStarted(CurrentEventWindow, GetTouchEventLocation(Event), GetTouchIndexForFinger(Event.tfinger.fingerId), Event.tfinger.touchId);
+			}
+			else
+			{
+				UE_LOG(LogLinuxWindow, Warning, TEXT("Ignoring touch event SDL_FINGERDOWN (finger: %llu, x=%f, y=%f) that doesn't have a window associated with it"),
+					Event.tfinger.fingerId, Event.tfinger.x, Event.tfinger.y);
+			}
+		}
+		break;
+	case SDL_FINGERUP:
+		{
+			UE_LOG(LogLinuxWindow, Verbose, TEXT("Finger %llu is up at (%f, %f)"), Event.tfinger.fingerId, Event.tfinger.x, Event.tfinger.y);
+
+			MessageHandler->OnTouchEnded(GetTouchEventLocation(Event), GetTouchIndexForFinger(Event.tfinger.fingerId), Event.tfinger.touchId);
+		}
+		break;
+	case SDL_FINGERMOTION:
+		{
+			UE_LOG(LogLinuxWindow, Verbose, TEXT("Finger %llu moved to (%f, %f)"), Event.tfinger.fingerId, Event.tfinger.x, Event.tfinger.y);
+
+			// touch events can have no window associated with them, in that case ignore (with a warning)
+			MessageHandler->OnTouchMoved(GetTouchEventLocation(Event), GetTouchIndexForFinger(Event.tfinger.fingerId), Event.tfinger.touchId);
+		}
+		break;
+
+	default:
+		UE_LOG(LogLinuxWindow, Verbose, TEXT("Received unknown SDL event type=%d"), Event.type);
+		break;
 	}
 }
+
+FVector2D FLinuxApplication::GetTouchEventLocation(SDL_Event TouchEvent)
+{
+	checkf(TouchEvent.type == SDL_FINGERDOWN || TouchEvent.type == SDL_FINGERUP || TouchEvent.type == SDL_FINGERMOTION, TEXT("Wrong touch event."));
+	// contrary to SDL2 documentation, the coordinates received from touchscreen monitors are screen space (window space to be more correct)
+	return FVector2D(TouchEvent.tfinger.x, TouchEvent.tfinger.y);
+}
+
 
 EWindowZone::Type FLinuxApplication::WindowHitTest(const TSharedPtr< FLinuxWindow > &Window, int x, int y)
 {
@@ -1173,7 +1218,7 @@ TCHAR FLinuxApplication::ConvertChar( SDL_Keysym Keysym )
 
 TSharedPtr< FLinuxWindow > FLinuxApplication::FindEventWindow(SDL_Event* Event, bool& bOutWindowlessEvent)
 {
-	uint16 WindowID = 0;
+	uint32 WindowID = 0;
 	bOutWindowlessEvent = false;
 
 	switch (Event->type)
@@ -1207,7 +1252,19 @@ TSharedPtr< FLinuxWindow > FLinuxApplication::FindEventWindow(SDL_Event* Event, 
 		case SDL_DROPCOMPLETE:
 			WindowID = Event->drop.windowID;
 			break;
-
+		case SDL_FINGERDOWN:
+			// SDL touch events are windowless, but Slate needs to associate touch down with a particular window.
+			// Assume that the current focus window is the one relevant for the touch and if there's none, assume the event windowless
+			if (CurrentFocusWindow.IsValid())
+			{
+				return CurrentFocusWindow;
+			}
+			else
+			{
+				bOutWindowlessEvent = true;
+				return TSharedPtr<FLinuxWindow>(nullptr);
+			}
+			break;
 		default:
 			bOutWindowlessEvent = true;
 			return TSharedPtr< FLinuxWindow >(nullptr);

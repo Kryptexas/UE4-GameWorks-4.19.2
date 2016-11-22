@@ -296,6 +296,10 @@ namespace UnrealBuildTool
 			Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "FacebookAppID", out FacebookAppID);
 			bEnableFacebookSupport = bEnableFacebookSupport && !string.IsNullOrWhiteSpace(FacebookAppID);
 
+			// Add remote-notifications as background mode
+			bool bRemoteNotificationsSupported = false;
+			Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bEnableRemoteNotificationsSupport", out bRemoteNotificationsSupported);
+
 			// extra plist data
 			string ExtraData = "";
 			Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "AdditionalPlistData", out ExtraData);
@@ -469,13 +473,13 @@ namespace UnrealBuildTool
 				{
 					Text.AppendLine("\t\t<dict>");
 					Text.AppendLine("\t\t\t<key>UILaunchImageMinimumOSVersion</key>");
-					Text.AppendLine(string.Format("\t\t\t<string>{0}</string>", IPhoneConfigs[ConfigIndex + 3]));
+					Text.AppendLine(string.Format("\t\t\t<string>{0}</string>", IPadConfigs[ConfigIndex + 3]));
 					Text.AppendLine("\t\t\t<key>UILaunchImageName</key>");
-					Text.AppendLine(string.Format("\t\t\t<string>{0}</string>", IPhoneConfigs[ConfigIndex + 0]));
+					Text.AppendLine(string.Format("\t\t\t<string>{0}</string>", IPadConfigs[ConfigIndex + 0]));
 					Text.AppendLine("\t\t\t<key>UILaunchImageOrientation</key>");
-					Text.AppendLine(string.Format("\t\t\t<string>{0}</string>", IPhoneConfigs[ConfigIndex + 1]));
+					Text.AppendLine(string.Format("\t\t\t<string>{0}</string>", IPadConfigs[ConfigIndex + 1]));
 					Text.AppendLine("\t\t\t<key>UILaunchImageSize</key>");
-					Text.AppendLine(string.Format("\t\t\t<string>{0}</string>", IPhoneConfigs[ConfigIndex + 2]));
+					Text.AppendLine(string.Format("\t\t\t<string>{0}</string>", IPadConfigs[ConfigIndex + 2]));
 					Text.AppendLine("\t\t</dict>");
 				}
 				Text.AppendLine("\t</array>");
@@ -516,6 +520,16 @@ namespace UnrealBuildTool
 					}
 				}
 			}
+
+			// Add remote-notifications as background mode
+			if (bRemoteNotificationsSupported)
+			{
+                Text.AppendLine("\t<key>UIBackgroundModes</key>");
+                Text.AppendLine("\t<array>");
+                Text.AppendLine("\t\t<string>remote-notification</string>");
+                Text.AppendLine("\t</array>");
+			}
+
 			Text.AppendLine("</dict>");
 			Text.AppendLine("</plist>");
 
@@ -610,7 +624,7 @@ namespace UnrealBuildTool
 			Directory.CreateDirectory(BuildDirectory);
 
 			// create the entitlements file
-			WriteEntitlementsFile(Path.Combine(IntermediateDirectory, GameName + ".entitlements"), ProjectFile);
+			WriteEntitlementsFile(Path.Combine(IntermediateDirectory, GameName + ".entitlements"), ProjectFile, bForDistribution);
 
 			// delete some old files if they exist
 			if (Directory.Exists(AppDirectory + "/_CodeSignature"))
@@ -857,14 +871,14 @@ namespace UnrealBuildTool
 			return PluginExtras;
 		}
 
-		private void WriteEntitlementsFile(string OutputFilename, FileReference ProjectFile)
+		private void WriteEntitlementsFile(string OutputFilename, FileReference ProjectFile, bool bForDistribution)
 		{
 			// get the settings from the ini file
 			// plist replacements
 			// @todo tvos: Separate TVOS version?
 			ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.IOS, "Engine", DirectoryReference.FromFile(ProjectFile));
-			bool bSupported = false;
-			Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bEnableCloudKitSupport", out bSupported);
+			bool bCloudKitSupported = false;
+			Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bEnableCloudKitSupport", out bCloudKitSupported);
 
 			Directory.CreateDirectory(Path.GetDirectoryName(OutputFilename));
 			// we need to have something so Xcode will compile, so we just set the get-task-allow, since we know the value, 
@@ -875,7 +889,8 @@ namespace UnrealBuildTool
 			Text.AppendLine("<plist version=\"1.0\">");
 			Text.AppendLine("<dict>");
 			Text.AppendLine(string.Format("\t<key>get-task-allow</key><{0}/>",	/*Config.bForDistribution ? "false" : */"true"));
-			if (bSupported)
+
+			if (bCloudKitSupported)
 			{
 				Text.AppendLine("\t<key>com.apple.developer.icloud-container-identifiers</key>");
 				Text.AppendLine("\t<array>");
@@ -886,6 +901,16 @@ namespace UnrealBuildTool
 				Text.AppendLine("\t\t<string>CloudKit</string>");
 				Text.AppendLine("\t</array>");
 			}
+
+			bool bRemoteNotificationsSupported = false;
+			Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bEnableRemoteNotificationsSupport", out bRemoteNotificationsSupported);
+
+			if (bRemoteNotificationsSupported)
+			{
+				Text.AppendLine("\t<key>aps-environment</key>");
+				Text.AppendLine(string.Format("\t<string>{0}</string>", bForDistribution ? "production" : "development"));
+			}
+
 			Text.AppendLine("</dict>");
 			Text.AppendLine("</plist>");
 			File.WriteAllText(OutputFilename, Text.ToString());

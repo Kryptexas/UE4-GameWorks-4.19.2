@@ -49,6 +49,10 @@ namespace UnrealBuildTool
 					if (string.IsNullOrEmpty(MinimumOS) == false)
 					{
 						SupportWindowsXP = MinimumOS == "MSOS_XP";
+						if (SupportWindowsXP)
+						{
+							Log.TraceWarningOnce("Support for Windows XP has been deprecated in this release. Please update your MinimumOSVersion setting.");
+						}
 					}
 				}
 			}

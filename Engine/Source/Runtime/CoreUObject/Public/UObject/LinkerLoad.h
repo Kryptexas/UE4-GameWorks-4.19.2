@@ -677,7 +677,7 @@ public:
 	/**
 	 * Detaches linker from bulk data.
 	 */
-	void LoadAndDetachAllBulkData();
+	COREUOBJECT_API void LoadAndDetachAllBulkData();
 
 	/**
 	* Detaches linker from bulk data/ exports and removes itself from array of loaders.

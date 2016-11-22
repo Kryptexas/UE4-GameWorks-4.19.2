@@ -305,20 +305,6 @@ public:
 		return !!AsyncLoadingTickCounter;
 	}
 
-	/** Checks if a package is still being referenced by async loading code. @todo: remove this */
-	bool IsPackageReferenced(FAsyncPackage* Package)
-	{
-		if (PackagesToDelete.Contains(Package))
-		{
-			return true;
-		}
-		if (AsyncPackages.Contains(Package))
-		{
-			return true;
-		}
-		return false;
-	}
-
 	/** Returns true if packages are currently being loaded on the async thread */
 	FORCEINLINE bool IsAsyncLoadingPackages()
 	{

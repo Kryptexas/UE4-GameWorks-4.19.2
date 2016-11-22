@@ -65,7 +65,7 @@ FArchive& operator<<(FArchive& Ar,FMaterialUniformExpression*& Ref)
 
 		// Find the expression type with a matching name.
 		FMaterialUniformExpressionType* Type = FMaterialUniformExpressionType::GetTypeMap().FindRef(TypeName);
-		check(Type);
+		checkf(Type, TEXT("Unable to find FMaterialUniformExpressionType for TypeName '%s'"), *TypeName.ToString());
 
 		// Construct a new instance of the expression type.
 		Ref = (*Type->SerializationConstructor)();

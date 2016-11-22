@@ -529,6 +529,22 @@ TSharedRef<SWidget> SProjectLauncherCookByTheBookSettings::MakeComplexWidget()
 							.Text(LOCTEXT("IncrementalCheckBoxText", "Iterative cooking: Only cook content modified from previous cook"))
 						]
 					]
+				// disabled for now until this system is live
+				/*+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						// incremental cook check box
+						SNew(SCheckBox)
+						.IsChecked(this, &SProjectLauncherCookByTheBookSettings::HandleSharedCookedBuildCheckBoxIsChecked)
+						.OnCheckStateChanged(this, &SProjectLauncherCookByTheBookSettings::HandleSharedCookedBuildCheckBoxCheckStateChanged)
+						.Padding(FMargin(4.0f, 0.0f))
+						.ToolTipText(LOCTEXT("SharedCookedBuildCheckBoxToolTip", "Experimental: Use a build from the network to cook from."))
+						.Content()
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("SharedCookedBuildCheckBoxText", "Iteratively cook from a pre packaged build located on the network"))
+						]
+					]*/
 
 				+ SVerticalBox::Slot()
 					.Padding(0.0f, 4.0f, 0.0f, 0.0f)
@@ -998,6 +1014,23 @@ TSharedRef<SWidget> SProjectLauncherCookByTheBookSettings::MakeSimpleWidget()
 					]
 				]
 
+				// disabled for now until this system is live
+				/*+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						// incremental cook check box
+						SNew(SCheckBox)
+						.IsChecked(this, &SProjectLauncherCookByTheBookSettings::HandleSharedCookedBuildCheckBoxIsChecked)
+						.OnCheckStateChanged(this, &SProjectLauncherCookByTheBookSettings::HandleSharedCookedBuildCheckBoxCheckStateChanged)
+						.Padding(FMargin(4.0f, 0.0f))
+						.ToolTipText(LOCTEXT("SharedCookedBuildCheckBoxToolTip", "Experimental: Use a build from the network to cook from."))
+						.Content()
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("SharedCookedBuildCheckBoxText", "Iteratively cook from a pre packaged build located on the network"))
+						]
+					]*/
+
 				+ SVerticalBox::Slot()
 					.AutoHeight()
 					.Padding(0.0f, 4.0f, 0.0f, 0.0f)
@@ -1239,6 +1272,33 @@ ECheckBoxState SProjectLauncherCookByTheBookSettings::HandleIncrementalCheckBoxI
 	if (SelectedProfile.IsValid())
 	{
 		if (SelectedProfile->IsCookingIncrementally())
+		{
+			return ECheckBoxState::Checked;
+		}
+	}
+
+	return ECheckBoxState::Unchecked;
+}
+
+
+void SProjectLauncherCookByTheBookSettings::HandleSharedCookedBuildCheckBoxCheckStateChanged(ECheckBoxState NewState)
+{
+	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
+
+	if (SelectedProfile.IsValid())
+	{
+		SelectedProfile->SetIterateSharedCookedBuild(NewState == ECheckBoxState::Checked);
+	}
+}
+
+
+ECheckBoxState SProjectLauncherCookByTheBookSettings::HandleSharedCookedBuildCheckBoxIsChecked() const
+{
+	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
+
+	if (SelectedProfile.IsValid())
+	{
+		if (SelectedProfile->IsIterateSharedCookedBuild())
 		{
 			return ECheckBoxState::Checked;
 		}

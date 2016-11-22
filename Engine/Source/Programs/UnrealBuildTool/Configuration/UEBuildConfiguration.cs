@@ -225,6 +225,12 @@ namespace UnrealBuildTool
 		public static bool bForceEnableExceptions;
 
 		/// <summary>
+		/// Enable RTTI for all modules
+		/// </summary>
+		[XmlConfig]
+		public static bool bForceEnableRTTI;
+
+		/// <summary>
 		/// Compile server-only code.
 		/// </summary>
 		[XmlConfig]
@@ -372,6 +378,7 @@ namespace UnrealBuildTool
 			UEThirdPartyBinariesDirectory = "../Binaries/ThirdParty/";
 			bCompileRecast = true;
 			bForceEnableExceptions = false;
+			bForceEnableRTTI = false;
 			bWithServerCode = true;
 			bCompileSpeedTree = true;
 			bCompileWithStatsWithoutEngine = false;

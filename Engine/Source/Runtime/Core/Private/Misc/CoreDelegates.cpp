@@ -64,6 +64,10 @@ FCoreDelegates::FApplicationReceivedLocalNotificationDelegate FCoreDelegates::Ap
 FCoreDelegates::FOnFConfigFileCreated FCoreDelegates::OnFConfigCreated;
 FCoreDelegates::FOnFConfigFileCreated FCoreDelegates::OnFConfigDeleted;
 
+#if WITH_EDITOR
+FCoreDelegates::FOnTargetPlatformChangedSupportedFormats FCoreDelegates::OnTargetPlatformChangedSupportedFormats;
+#endif 
+
 FCoreDelegates::FStatCheckEnabled FCoreDelegates::StatCheckEnabled;
 FCoreDelegates::FStatEnabled FCoreDelegates::StatEnabled;
 FCoreDelegates::FStatDisabled FCoreDelegates::StatDisabled;

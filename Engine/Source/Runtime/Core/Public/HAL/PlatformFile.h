@@ -19,6 +19,6 @@
 //#include "HTML5PlatformFile.h"
 #elif PLATFORM_LINUX
 #include "Linux/LinuxPlatformFile.h"
-#elif PLATFORM_WOLF
-#include "WolfPlat/WolfPlatformFile.h"
+#elif PLATFORM_SWITCH
+#include "Switch/SwitchPlatformFile.h"
 #endif

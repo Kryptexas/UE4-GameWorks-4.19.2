@@ -1810,8 +1810,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			{
 				GLog->RemoveOutputDevice( GLogConsole );
 			}
-
-			GIsRequestingExit = true;	// so CTRL-C will exit immediately
 			
 			// allow the commandlet the opportunity to create a custom engine
 			CommandletClass->GetDefaultObject<UCommandlet>()->CreateCustomEngine(CommandletCommandLine);
@@ -1887,6 +1885,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			FStats::TickCommandletStats();
 			int32 ErrorLevel = Commandlet->Main( CommandletCommandLine );
 			FStats::TickCommandletStats();
+
+			GIsRequestingExit = true;
 
 			// Log warning/ error summary.
 			if( Commandlet->ShowErrorCount )

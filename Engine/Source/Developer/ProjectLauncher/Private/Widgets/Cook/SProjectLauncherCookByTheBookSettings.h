@@ -72,6 +72,10 @@ private:
 
 	/** Handles determining the checked state of the 'Incremental' check box. */
 	ECheckBoxState HandleIncrementalCheckBoxIsChecked( ) const;
+	
+	void HandleSharedCookedBuildCheckBoxCheckStateChanged(ECheckBoxState NewState);
+	ECheckBoxState HandleSharedCookedBuildCheckBoxIsChecked() const;
+
 
 	void HandleCompressedCheckBoxCheckStateChanged( ECheckBoxState NewState );
 	void HandleEncryptIniFilesCheckBoxCheckStateChanged(ECheckBoxState NewState );

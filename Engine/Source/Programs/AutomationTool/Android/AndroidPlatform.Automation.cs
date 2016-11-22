@@ -1352,6 +1352,9 @@ public class AndroidPlatform : Platform
 			for(int DeviceIndex = 0; DeviceIndex < DeviceNames.Count; DeviceIndex++)
 			{
 				string DeviceName = DeviceNames[DeviceIndex];
+				
+				//replace the port name in the case of deploy while adb is using wifi
+				string SanitizedDeviceName = DeviceName.Replace(":", "_");
 
 				bool FinishedRunning = false;
 				IProcessResult ProcessesResult = RunAdbCommand(Params, DeviceName, "shell ps", null, ERunOptions.SpewIsVerbose);
@@ -1384,8 +1387,8 @@ public class AndroidPlatform : Platform
 					IProcessResult LogFileProcess = RunAdbCommand(Params, DeviceName, "logcat -d", null, ERunOptions.AppMustExist);
 
 					string LogPath = Path.Combine(Params.BaseStageDirectory, "Android\\logs");
-					string LogFilename = Path.Combine(LogPath, "devicelog" + DeviceName + ".log");
-					string ServerLogFilename = Path.Combine(CmdEnv.LogFolder, "devicelog" + DeviceName + ".log");
+					string LogFilename = Path.Combine(LogPath, "devicelog" + SanitizedDeviceName + ".log");
+					string ServerLogFilename = Path.Combine(CmdEnv.LogFolder, "devicelog" + SanitizedDeviceName + ".log");
 
 					File.WriteAllText(LogFilename, LogFileProcess.Output);
 					File.WriteAllText(ServerLogFilename, LogFileProcess.Output);

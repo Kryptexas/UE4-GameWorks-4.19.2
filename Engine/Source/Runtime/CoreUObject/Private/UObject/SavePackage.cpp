@@ -3507,7 +3507,7 @@ TMap<UObject*, UObject*> UnmarkExportTagFromDuplicates()
 
 COREUOBJECT_API extern bool GOutputCookingWarnings;
 
-class FDiffSerializeArchive : public FBufferArchive
+class FDiffSerializeArchive : public FLargeMemoryWriter
 {
 private:
 	FArchive *TestArchive;
@@ -3516,19 +3516,19 @@ private:
 public:
 
 
-	FDiffSerializeArchive(const FName& InFilename, FArchive *InTestArchive) : FBufferArchive(true, InFilename), TestArchive(InTestArchive)
+	FDiffSerializeArchive(const FName& InFilename, FArchive *InTestArchive) : FLargeMemoryWriter(0, true, InFilename), TestArchive(InTestArchive)
 	{ 
 		ArDebugSerializationFlags = DSF_IgnoreDiff;
 		bDisable = false;
 	}
 
-	virtual void Serialize(void* Data, int64 Num) override
+	virtual void Serialize(void* InData, int64 Num) override
 	{
 		TArray<int8> TestMemory;
 
 		if (TestArchive)
 		{
-			int64 Pos = FMath::Min(FBufferArchive::Tell(), TestArchive->TotalSize());
+			int64 Pos = FMath::Min(FLargeMemoryWriter::Tell(), TestArchive->TotalSize());
 			TestArchive->Seek(Pos);
 			TestMemory.AddZeroed(Num);
 			int64 ReadSize = FMath::Min(Num, TestArchive->TotalSize() - Pos);
@@ -3536,7 +3536,7 @@ public:
 
 			if (!(ArDebugSerializationFlags&DSF_IgnoreDiff) && (!bDisable))
 			{
-				if (FMemory::Memcmp((void*)TestMemory.GetData(), Data, Num) != 0)
+				if (FMemory::Memcmp((void*)TestMemory.GetData(), InData, Num) != 0)
 				{
 					// get the calls debug callstack and 
 					FString DebugStackString;
@@ -3546,14 +3546,14 @@ public:
 						DebugStackString += TEXT("->");
 					}
 
-					UE_LOG(LogSavePackage, Warning, TEXT("Diff cooked package archive recognized a difference %lld Filename %s, stack %s "), Pos, *ArchiveName.ToString(), *DebugStackString);
+					UE_LOG(LogSavePackage, Warning, TEXT("Diff cooked package archive recognized a difference %lld Filename %s, stack %s "), Pos, *GetArchiveName(), *DebugStackString);
 
 					// only log one message per archive, from this point the entire package is probably messed up
 					bDisable = true;
 				}
 			}
 		}
-		FBufferArchive::Serialize(Data, Num);
+		FLargeMemoryWriter::Serialize(InData, Num);
 	}
 
 	virtual void PushDebugDataString(const FName& DebugData) override
@@ -5424,7 +5424,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 								ExportSizes.Add(Linker->ExportMap[I].SerialSize);
 							}
 							
-							COOK_STAT(TotalPackageSizeUncompressed += ((FBufferArchive*)(Linker->Saver))->Num());
+							COOK_STAT(TotalPackageSizeUncompressed += ((FLargeMemoryWriter*)(Linker->Saver))->TotalSize());
 							
 							FLargeMemoryWriter* Writer = (FLargeMemoryWriter*)(Linker->Saver);
 							int64 DataSize = Writer->TotalSize();
@@ -5438,7 +5438,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 					{
 						UE_LOG(LogSavePackage, Log,  TEXT("Compressing from memory to '%s'"), *NewPath );
 						FFileCompressionHelper CompressionHelper;
-						COOK_STAT(TotalPackageSizeUncompressed += ((FBufferArchive*)(Linker->Saver))->Num());
+						COOK_STAT(TotalPackageSizeUncompressed += ((FLargeMemoryWriter*)(Linker->Saver))->TotalSize());
 						Success = CompressionHelper.CompressFile( *NewPath, Linker );
 						// Detach archive used for memory saving.
 						if( Linker )
@@ -5469,7 +5469,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 						if (Linker)
 						{
 							COOK_STAT(FScopedDurationTimer SaveTimer(SavePackageStats::AsyncWriteTimeSec));
-							COOK_STAT(TotalPackageSizeUncompressed += ((FBufferArchive*)(Linker->Saver))->Num());
+							COOK_STAT(TotalPackageSizeUncompressed += ((FLargeMemoryWriter*)(Linker->Saver))->TotalSize());
 
 							FLargeMemoryWriter* Writer = (FLargeMemoryWriter*)(Linker->Saver);
 							int64 DataSize = Writer->TotalSize();

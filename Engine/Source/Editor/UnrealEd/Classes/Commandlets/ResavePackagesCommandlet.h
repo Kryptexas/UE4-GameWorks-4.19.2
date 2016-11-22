@@ -152,7 +152,7 @@ protected:
 	// Get the changelist description to use if automatically checking packages out
 	virtual FText GetChangelistDescription() const;
 
-	bool CheckoutFile(const FString& Filename);
+	bool CheckoutFile(const FString& Filename, bool bAddFile = false);
 
 	// Print out a message only if running in very verbose mode
 	void VerboseMessage(const FString& Message);

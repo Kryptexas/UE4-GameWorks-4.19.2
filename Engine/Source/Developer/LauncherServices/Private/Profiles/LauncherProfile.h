@@ -647,6 +647,15 @@ public:
 		return false;
 	}
 
+	virtual bool IsIterateSharedCookedBuild() const override
+	{
+		if ( CookMode != ELauncherProfileCookModes::DoNotCook )
+		{
+			return IterateSharedCookedBuild;
+		}
+		return false;
+	}
+
 	virtual bool IsCompressed() const override
 	{
 		return Compressed;
@@ -1266,6 +1275,7 @@ public:
 		}
 
 		Writer.WriteValue("iterativecooking", IsCookingIncrementally());
+		Writer.WriteValue("iteratesharedcookedbuild", IsIterateSharedCookedBuild() );
 		Writer.WriteValue("skipcookingeditorcontent", GetSkipCookingEditorContent());
 		Writer.WriteValue("compressed", IsCompressed());
 		Writer.WriteValue("EncryptIniFiles", IsEncryptingIniFiles());
@@ -1699,6 +1709,7 @@ public:
 		CookMode = ELauncherProfileCookModes::OnTheFly;
 		CookOptions = FString();
 		CookIncremental = false;
+		IterateSharedCookedBuild=false;
 		CookUnversioned = true;
 		Compressed = true;
 		EncryptIniFiles = false;
@@ -1973,6 +1984,16 @@ public:
 		if (CookIncremental != Incremental)
 		{
 			CookIncremental = Incremental;
+
+			Validate();
+		}
+	}
+
+	virtual void SetIterateSharedCookedBuild( bool SharedCookedBuild ) override
+	{
+		if (IterateSharedCookedBuild != SharedCookedBuild)
+		{
+			IterateSharedCookedBuild = SharedCookedBuild;
 
 			Validate();
 		}
@@ -2462,6 +2483,9 @@ private:
 	bool ForDistribution;
 	// Holds a flag indicating whether only modified content should be cooked.
 	bool CookIncremental;
+
+	// hold a flag indicating if we want to iterate on the shared cooked build
+	bool IterateSharedCookedBuild;
 
 	// Holds a flag indicating whether packages should be saved without a version.
 	bool CookUnversioned;

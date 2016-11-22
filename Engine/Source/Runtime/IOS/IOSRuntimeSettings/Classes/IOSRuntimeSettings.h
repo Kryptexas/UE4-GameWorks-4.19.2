@@ -165,6 +165,10 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Online)
 	uint32 bEnableCloudKitSupport : 1;
 
+    // Should push/remote notifications support (iOS Online Subsystem) be enabled?
+    UPROPERTY(GlobalConfig, EditAnywhere, Category = Online)
+    uint32 bEnableRemoteNotificationsSupport : 1;
+    
 	// Whether or not to add support for Metal API (requires IOS8 and A7 processors).
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Rendering, meta = (DisplayName = "Support Forward Rendering with Metal (A7 and up devices)"))
 	bool bSupportsMetal;

@@ -47,7 +47,7 @@ class ENGINE_API UPlatformGameInstance : public UGameInstance
 public:
 
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FPlatformDelegate);
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPlatformRegisteredForRemoteNotificationsDelegate, TArray<uint8>, inArray);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPlatformRegisteredForRemoteNotificationsDelegate, const TArray<uint8>&, inArray);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPlatformRegisteredForUserNotificationsDelegate, int32, inInt);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPlatformFailedToRegisterForRemoteNotificationsDelegate, FString, inString);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPlatformReceivedRemoteNotificationDelegate, FString, inString);

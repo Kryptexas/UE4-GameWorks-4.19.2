@@ -2414,7 +2414,7 @@ void FSlateApplication::SetAllUserFocusToGameViewport(EFocusCause ReasonFocusIsC
 		FSlateWindowHelper::FindPathToWidget(SlateWindows, CurrentGameViewportWidget.ToSharedRef(), /*OUT*/ PathToWidget);
 
 		ForEachUser([&] (FSlateUser* User) {
-			SetUserFocus(User->GetUserIndex(), PathToWidget, ReasonFocusIsChanging);
+			SetUserFocus(User, PathToWidget, ReasonFocusIsChanging);
 		});
 	}
 }
@@ -2660,12 +2660,16 @@ bool FSlateApplication::SetKeyboardFocus(const FWidgetPath& InFocusPath, const E
 
 bool FSlateApplication::SetUserFocus(const uint32 InUserIndex, const FWidgetPath& InFocusPath, const EFocusCause InCause)
 {
-	FSlateUser* User = GetUser(InUserIndex);
+	return SetUserFocus(GetOrCreateUser(InUserIndex), InFocusPath, InCause);
+}
+
+bool FSlateApplication::SetUserFocus(FSlateUser* User, const FWidgetPath& InFocusPath, const EFocusCause InCause)
+{
 	if ( !User )
 	{
 		return false;
 	}
-	
+
 	FUserFocusEntry& UserFocusEntry = User->Focus;
 
 	TSharedPtr<IWidgetReflector> WidgetReflector = WidgetReflectorPtr.Pin();
@@ -2713,7 +2717,7 @@ bool FSlateApplication::SetUserFocus(const uint32 InUserIndex, const FWidgetPath
 			TSharedPtr<SWidget> SomeWidget = OldFocusedWidgetPath.Widgets[ChildIndex].Pin();
 			if (SomeWidget.IsValid())
 			{
-				SomeWidget->OnFocusChanging(OldFocusedWidgetPath, NewFocusedWidgetPath, FFocusEvent(InCause, InUserIndex));
+				SomeWidget->OnFocusChanging(OldFocusedWidgetPath, NewFocusedWidgetPath, FFocusEvent(InCause, User->GetUserIndex()));
 			}
 		}
 	}
@@ -2728,7 +2732,7 @@ bool FSlateApplication::SetUserFocus(const uint32 InUserIndex, const FWidgetPath
 			TSharedPtr<SWidget> SomeWidget = NewFocusedWidgetPath.Widgets[ChildIndex].Widget;
 			if (SomeWidget.IsValid())
 			{
-				SomeWidget->OnFocusChanging(OldFocusedWidgetPath, NewFocusedWidgetPath, FFocusEvent(InCause, InUserIndex));
+				SomeWidget->OnFocusChanging(OldFocusedWidgetPath, NewFocusedWidgetPath, FFocusEvent(InCause, User->GetUserIndex()));
 			}
 		}
 	}
@@ -2765,7 +2769,7 @@ bool FSlateApplication::SetUserFocus(const uint32 InUserIndex, const FWidgetPath
 		FScopedSwitchWorldHack SwitchWorld(OldFocusedWidgetPath.Window.Pin());
 
 		// Let previously-focused widget know that it's losing focus
-		OldFocusedWidget->OnFocusLost(FFocusEvent(InCause, InUserIndex));
+		OldFocusedWidget->OnFocusLost(FFocusEvent(InCause, User->GetUserIndex()));
 	}
 
 	if (bReflectorShowingFocus)
@@ -2786,10 +2790,10 @@ bool FSlateApplication::SetUserFocus(const uint32 InUserIndex, const FWidgetPath
 		
 		const FArrangedWidget& WidgetToFocus = NewFocusedWidgetPath.Widgets.Last();
 
-		FReply Reply = NewFocusedWidget->OnFocusReceived(WidgetToFocus.Geometry, FFocusEvent(InCause, InUserIndex));
+		FReply Reply = NewFocusedWidget->OnFocusReceived(WidgetToFocus.Geometry, FFocusEvent(InCause, User->GetUserIndex()));
 		if (Reply.IsEventHandled())
 		{
-			ProcessReply(InFocusPath, Reply, nullptr, nullptr, InUserIndex);
+			ProcessReply(InFocusPath, Reply, nullptr, nullptr, User->GetUserIndex());
 		}
 	}
 
@@ -2800,7 +2804,7 @@ bool FSlateApplication::SetUserFocus(const uint32 InUserIndex, const FWidgetPath
 void FSlateApplication::SetAllUserFocus(const FWidgetPath& InFocusPath, const EFocusCause InCause)
 {
 	ForEachUser([&] (FSlateUser* User) {
-		SetUserFocus(User->GetUserIndex(), InFocusPath, InCause);
+		SetUserFocus(User, InFocusPath, InCause);
 	});
 }
 
@@ -2812,7 +2816,7 @@ void FSlateApplication::SetAllUserFocusAllowingDescendantFocus(const FWidgetPath
 		const FUserFocusEntry& UserFocusEntry = User->Focus;
 		if (!UserFocusEntry.WidgetPath.ContainsWidget(FocusWidget))
 		{
-			SetUserFocus(User->GetUserIndex(), InFocusPath, InCause);
+			SetUserFocus(User, InFocusPath, InCause);
 		}
 	});
 }
@@ -2963,7 +2967,7 @@ void FSlateApplication::ProcessReply( const FWidgetPath& CurrentEventPath, const
 		if (TheReply.AffectsAllUsers())
 		{
 			ForEachUser([&] (FSlateUser* User) {
-				SetUserFocus(User->GetUserIndex(), FWidgetPath(), TheReply.GetFocusCause());
+				SetUserFocus(User, FWidgetPath(), TheReply.GetFocusCause());
 			});
 		}
 		else

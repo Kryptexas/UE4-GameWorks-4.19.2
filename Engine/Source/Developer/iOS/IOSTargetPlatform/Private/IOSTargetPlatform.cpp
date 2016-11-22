@@ -460,6 +460,7 @@ void FIOSTargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<FNam
 		FName(TEXT("DXT5n")),	FName(TEXT("PVRTCN")),		FName(TEXT("ASTC_NormalAG")),
 		FName(TEXT("BC5")),		FName(TEXT("PVRTCN")),		FName(TEXT("ASTC_NormalRG")),
 		FName(TEXT("AutoDXT")),	FName(TEXT("AutoPVRTC")),	FName(TEXT("ASTC_RGBAuto")),
+		FName(TEXT("BC4")),		FName(TEXT("G8")),			FName(TEXT("G8")),
 	};
 	static FName NameBGRA8(TEXT("BGRA8"));
 	static FName NamePOTERROR(TEXT("POTERROR"));

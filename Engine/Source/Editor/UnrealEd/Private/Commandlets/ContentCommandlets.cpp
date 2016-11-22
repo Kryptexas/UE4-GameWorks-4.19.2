@@ -823,7 +823,7 @@ void UResavePackagesCommandlet::PerformPreloadOperations( FLinkerLoad* PackageLi
 	}
 }
 
-bool UResavePackagesCommandlet::CheckoutFile(const FString& Filename)
+bool UResavePackagesCommandlet::CheckoutFile(const FString& Filename, bool bAddFile )
 {
 	if (!bAutoCheckOut)
 	{
@@ -831,7 +831,7 @@ bool UResavePackagesCommandlet::CheckoutFile(const FString& Filename)
 	}
 
 	bool bIsReadOnly = IFileManager::Get().IsReadOnly(*Filename);
-	if (!bIsReadOnly)
+	if (!bIsReadOnly && !bAddFile)
 	{
 		return true;
 	}
@@ -849,8 +849,28 @@ bool UResavePackagesCommandlet::CheckoutFile(const FString& Filename)
 		{
 			UE_LOG(LogContentCommandlet, Error, TEXT("[REPORT] %s is not synced to head, can not submit"), *Filename);
 		}
-		else
+		else if ( SourceControlState->IsSourceControlled() == false )
 		{
+			if ( bAddFile )
+			{
+				if (SourceControlProvider.Execute(ISourceControlOperation::Create<FMarkForAdd>(), *Filename) == ECommandResult::Succeeded)
+				{
+					UE_LOG(LogContentCommandlet, Display, TEXT("[REPORT] %s successfully added"), *Filename);
+					return true;
+				}
+				else
+				{
+					UE_LOG(LogContentCommandlet, Error, TEXT("[REPORT] %s could not be added!"), *Filename);
+				}
+			}
+		}
+		else 
+		{
+			// already checked out this file
+			if (SourceControlState->IsCheckedOut() || SourceControlState->IsAdded() )
+			{
+				return true;
+			}
 			if (SourceControlProvider.Execute(ISourceControlOperation::Create<FCheckOut>(), *Filename) == ECommandResult::Succeeded)
 			{
 				UE_LOG(LogContentCommandlet, Display, TEXT("[REPORT] %s Checked out successfully"), *Filename);
@@ -914,6 +934,29 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 		GWorld = World;
 
 		TArray<FString> SublevelFilenames;
+		
+		auto CheckOutLevelLightingFile = [this,&bShouldProceedWithLightmapRebuild, &SublevelFilenames](ULevel* InLevel)
+			{
+				if (InLevel && InLevel->MapBuildData)
+				{
+					UPackage* MapBuildDataPackage = InLevel->MapBuildData->GetOutermost();
+					FString MapBuildDataPackageName = MapBuildDataPackage->GetName();
+
+					if (MapBuildDataPackage != InLevel->GetOutermost())
+					{
+						if (CheckoutFile(MapBuildDataPackageName))
+						{
+							SublevelFilenames.Add(MapBuildDataPackageName);
+						}
+						else
+						{
+							bShouldProceedWithLightmapRebuild = false;
+						}
+					}
+				}
+			};
+
+
 
 		// if we can't check out the main map or it's not up to date then we can't do the lighting rebuild at all!
 		FString WorldPackageName;
@@ -922,6 +965,8 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 			if (CheckoutFile(WorldPackageName))
 			{
 				SublevelFilenames.Add(WorldPackageName);
+
+				CheckOutLevelLightingFile(World->PersistentLevel);
 			}
 			else
 			{
@@ -934,13 +979,14 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 		}
 		
 
-
 		if (bShouldProceedWithLightmapRebuild)
 		{
 			World->LoadSecondaryLevels(true, NULL);
 
 			for (ULevelStreaming* NextStreamingLevel : World->StreamingLevels)
 			{
+				CheckOutLevelLightingFile(NextStreamingLevel->GetLoadedLevel());
+
 				FString StreamingLevelPackageFilename;
 				const FString StreamingLevelWorldAssetPackageName = NextStreamingLevel->GetWorldAssetPackageName();
 				if (FPackageName::DoesPackageExist(StreamingLevelWorldAssetPackageName, NULL, &StreamingLevelPackageFilename))
@@ -992,6 +1038,32 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 
 			FEditorDelegates::OnLightingBuildFailed.Remove(BuildFailedDelegateHandle);
 
+			auto SaveMapBuildData = [this, &SublevelFilenames] (ULevel* InLevel) 
+				{
+					if (InLevel && InLevel->MapBuildData)
+					{
+						UPackage* MapBuildDataPackage = InLevel->MapBuildData->GetOutermost();
+						FString MapBuildDataPackageName = MapBuildDataPackage->GetName();
+
+						if (MapBuildDataPackage != InLevel->GetOutermost())
+						{
+							FString MapBuildDataFilename;
+
+							if ( FPackageName::TryConvertLongPackageNameToFilename(MapBuildDataPackageName, MapBuildDataFilename, FPackageName::GetMapPackageExtension() ) )
+							{
+								SavePackageHelper(MapBuildDataPackage, MapBuildDataFilename);
+								if ( IFileManager::Get().FileExists(*MapBuildDataFilename))
+								{
+									CheckoutFile(MapBuildDataFilename, true);
+								}
+							}
+						}
+					}
+				};
+
+			SaveMapBuildData( World->PersistentLevel );
+
+
 			if( bShouldProceedWithLightmapRebuild )
 			{
 				for (ULevelStreaming* NextStreamingLevel : World->StreamingLevels)
@@ -1005,6 +1077,9 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 						{
 							UE_LOG(LogContentCommandlet, Error, TEXT("[REPORT] Failed to save sub level: %s"), *StreamingLevelPackageFilename);
 						}
+
+						SaveMapBuildData(NextStreamingLevel->GetLoadedLevel());
+
 					}
 				}
 			}

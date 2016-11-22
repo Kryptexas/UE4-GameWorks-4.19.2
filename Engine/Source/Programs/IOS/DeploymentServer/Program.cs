@@ -173,6 +173,14 @@ namespace DeploymentServer
 				case "enumerate":
 					Deployer.EnumerateConnectedDevices();
 					break;
+
+				case "listdevices":
+					Deployer.ListDevices();
+					break;
+
+				case "listentodevice":
+					Deployer.ListenToDevice(Device);
+					break;
 			}
 
 			Program.ExitCode = bResult ? 0 : 1;

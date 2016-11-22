@@ -89,6 +89,9 @@ private:
 	/** The duration of the media. */
     FTimespan Duration;
 
+	/** Media information string. */
+	FString Info;
+
 	/** Holds an event delegate that is invoked when a media event occurred. */
 	FOnMediaEvent MediaEvent;
 

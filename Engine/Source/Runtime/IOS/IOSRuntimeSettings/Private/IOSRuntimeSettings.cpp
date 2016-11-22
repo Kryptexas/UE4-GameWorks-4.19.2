@@ -37,6 +37,7 @@ UIOSRuntimeSettings::UIOSRuntimeSettings(const FObjectInitializer& ObjectInitial
 	bAllowRemoteRotation = true;
 	bUseRemoteAsVirtualJoystick = true;
 	bUseRemoteAbsoluteDpadValues = false;
+    bEnableRemoteNotificationsSupport = false;
 }
 
 #if WITH_EDITOR

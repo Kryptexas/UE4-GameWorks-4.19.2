@@ -1697,7 +1697,7 @@ namespace UnrealBuildTool
 			// Override compile environment
 			Result.Config.bFasterWithoutUnity = Rules.bFasterWithoutUnity;
 			Result.Config.OptimizeCode = Rules.OptimizeCode;
-			Result.Config.bUseRTTI = Rules.bUseRTTI;
+			Result.Config.bUseRTTI = Rules.bUseRTTI || UEBuildConfiguration.bForceEnableRTTI; 
 			Result.Config.bUseAVX = Rules.bUseAVX;
 			Result.Config.bEnableBufferSecurityChecks = Rules.bEnableBufferSecurityChecks;
 			Result.Config.MinSourceFilesForUnityBuildOverride = Rules.MinSourceFilesForUnityBuildOverride;

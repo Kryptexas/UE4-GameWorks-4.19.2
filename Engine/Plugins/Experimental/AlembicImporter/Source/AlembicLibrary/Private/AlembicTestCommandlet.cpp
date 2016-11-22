@@ -103,7 +103,7 @@ int32 UAlembicTestCommandlet::Main(const FString& Params)
 		}
 	}	
 
-	Sleep(5);
+	FPlatformProcess::Sleep(0.005f);
 
 	return bSuccess ? 0 : 1;
 }
