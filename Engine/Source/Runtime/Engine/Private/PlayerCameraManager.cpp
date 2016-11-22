@@ -34,12 +34,12 @@ APlayerCameraManager::APlayerCameraManager(const FObjectInitializer& ObjectIniti
 	bReplicates = false;
 	FreeCamDistance = 256.0f;
 	bDebugClientSideCamera = false;
-	ViewPitchMin = -89.99f;
-	ViewPitchMax = 89.99f;
+	ViewPitchMin = -89.9f;
+	ViewPitchMax = 89.9f;
 	ViewYawMin = 0.f;
 	ViewYawMax = 359.999f;
-	ViewRollMin = -89.99f;
-	ViewRollMax = 89.99f;
+	ViewRollMin = -89.9f;
+	ViewRollMax = 89.9f;
 	bUseClientSideCameraUpdates = true;
 	CameraStyle = NAME_Default;
 	bCanBeDamaged = false;
