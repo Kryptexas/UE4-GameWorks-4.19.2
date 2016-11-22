@@ -1752,7 +1752,7 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 	// but will not be used to actually write/read files so we can safely
 	// use [Platform] token in the sandbox directory name and then replace it
 	// with the actual platform name.
-	SandboxFile = new FSandboxPlatformFile(false);
+	SandboxFile = MakeUnique<FSandboxPlatformFile>(false);
 
 	// Output directory override.	
 	FString OutputDirectory = GetOutputDirectoryOverride();
@@ -1983,7 +1983,7 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 
 	{
 		// Always try to save the manifests, this is required to make the asset registry work, but doesn't necessarily write a file
-		ManifestGenerator.SaveManifests(SandboxFile.GetOwnedPointer());
+		ManifestGenerator.SaveManifests(SandboxFile.Get());
 
 		// Save modified asset registry with all streaming chunk info generated during cook
 		FString RegistryFilename = FPaths::GameDir() / TEXT("AssetRegistry.bin");

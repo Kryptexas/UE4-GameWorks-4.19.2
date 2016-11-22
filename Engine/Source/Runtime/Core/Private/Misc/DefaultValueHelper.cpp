@@ -599,6 +599,20 @@ bool FDefaultValueHelper::ParseInt(const FString& Source, int32& OutVal)
 }
 
 
+bool FDefaultValueHelper::ParseInt64(const FString& Source, int64& OutVal)
+{
+	int32 Base;
+	if( !Source.IsEmpty() && IsStringValidInteger( StartOf(Source), EndOf(Source), Base ) )
+	{
+		const bool bHasWhitespace = HasWhitespaces(Source);
+		const FString NoWhitespace = bHasWhitespace ? RemoveWhitespaces(Source) : FString();
+		OutVal = FCString::Strtoui64( bHasWhitespace ? *NoWhitespace : *Source , NULL, Base );
+		return true;
+	}
+	return false;
+}
+
+
 bool FDefaultValueHelper::ParseFloat(const FString& Source, float& OutVal)
 {
 	if( IsStringValidFloat( Source ) )

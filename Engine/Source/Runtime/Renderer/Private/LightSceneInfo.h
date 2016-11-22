@@ -8,6 +8,7 @@
 
 #include "StaticArray.h"
 #include "SceneManagement.h"
+#include "UniquePtr.h"
 
 /**
  * The information needed to cull a light-primitive interaction.
@@ -120,7 +121,7 @@ public:
 	mutable const FMaterialShaderMap* TranslucentInjectCachedShaderMaps[LightType_MAX][2][2][2];
 
 	/** Tile intersection buffer for distance field shadowing, stored on the light to avoid reallocating each frame. */
-	mutable TScopedPointer<class FLightTileIntersectionResources> TileIntersectionResources;
+	mutable TUniquePtr<class FLightTileIntersectionResources> TileIntersectionResources;
 
 	mutable FVertexBufferRHIRef ShadowCapsuleShapesVertexBuffer;
 	mutable FShaderResourceViewRHIRef ShadowCapsuleShapesSRV;

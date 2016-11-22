@@ -13,6 +13,7 @@
 #include "CorePrivatePCH.h"
 #include "FileManagerGeneric.h"
 #include "SecureHash.h"
+#include "UniquePtr.h"
 #include <time.h>
 
 DEFINE_LOG_CATEGORY_STATIC( LogFileManager, Log, All );
@@ -864,10 +865,10 @@ void FArchiveFileWriterGeneric::LogWriteError(const TCHAR* Message)
 
 IFileManager& IFileManager::Get()
 {
-	static TScopedPointer<FFileManagerGeneric> AutoDestroySingleton;
+	static TUniquePtr<FFileManagerGeneric> AutoDestroySingleton;
 	if( !AutoDestroySingleton )
 	{
-		AutoDestroySingleton = new FFileManagerGeneric();
+		AutoDestroySingleton = MakeUnique<FFileManagerGeneric>();
 	}
 	return *AutoDestroySingleton;
 }

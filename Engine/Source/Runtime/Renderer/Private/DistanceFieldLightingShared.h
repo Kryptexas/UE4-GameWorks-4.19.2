@@ -7,6 +7,7 @@
 #pragma once
 
 #include "DistanceFieldAtlas.h"
+#include "UniquePtr.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogDistanceField, Warning, All);
 
@@ -489,7 +490,7 @@ extern void CullDistanceFieldObjectsForLight(
 	const FPlane* PlaneData, 
 	const FVector4& ShadowBoundingSphereValue,
 	float ShadowBoundingRadius,
-	TScopedPointer<class FLightTileIntersectionResources>& TileIntersectionResources);
+	TUniquePtr<class FLightTileIntersectionResources>& TileIntersectionResources);
 
 class FUniformMeshBuffers
 {

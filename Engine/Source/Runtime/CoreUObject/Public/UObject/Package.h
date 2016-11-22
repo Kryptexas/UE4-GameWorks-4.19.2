@@ -6,6 +6,7 @@
 #include "WorldCompositionUtility.h"
 #include "GatherableTextData.h"
 #include "PropertyLocalizationDataGathering.h"
+#include "UniquePtr.h"
 
 /**
  * Represents the result of saving a package
@@ -148,13 +149,13 @@ public:
 	int64 FileSize;
 	
 	/** Editor only: Thumbnails stored in this package */
-	TScopedPointer< FThumbnailMap > ThumbnailMap;
+	TUniquePtr< FThumbnailMap > ThumbnailMap;
 
 	// MetaData for the editor, or NULL in the game
 	class UMetaData*	MetaData;
 	
 	// World browser information
-	TScopedPointer< FWorldTileInfo > WorldTileInfo;
+	TUniquePtr< FWorldTileInfo > WorldTileInfo;
 
 	TMap<FName, int32> ClassUniqueNameIndexMap;
 

@@ -5,6 +5,7 @@
 #include "Misc/App.h"
 #include "Misc/OutputDeviceConsole.h"
 #include "Misc/OutputDeviceMemory.h"
+#include "UniquePtr.h"
 
 void FGenericPlatformOutputDevices::SetupOutputDevices()
 {
@@ -84,12 +85,12 @@ class FOutputDevice* FGenericPlatformOutputDevices::GetLog()
 {
 	static struct FLogOutputDeviceInitializer
 	{
-		TAutoPtr<FOutputDevice> LogDevice;
+		TUniquePtr<FOutputDevice> LogDevice;
 		FLogOutputDeviceInitializer()
 		{
 #if WITH_LOGGING_TO_MEMORY
 #if !IS_PROGRAM && !WITH_EDITORONLY_DATA
-			if (!LogDevice.IsValid() 
+			if (!LogDevice
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 				 && FParse::Param(FCommandLine::Get(), TEXT("LOGTOMEMORY")) 
 #else
@@ -97,19 +98,19 @@ class FOutputDevice* FGenericPlatformOutputDevices::GetLog()
 #endif
 				 )
 			{
-				LogDevice = new FOutputDeviceMemory();
+				LogDevice = MakeUnique<FOutputDeviceMemory>();
 			}
 #endif // !IS_PROGRAM && !WITH_EDITORONLY_DATA
 #endif // WITH_LOGGING_TO_MEMORY
-			if (!LogDevice.IsValid())
+			if (!LogDevice)
 			{
-				LogDevice = new FOutputDeviceFile();
+				LogDevice = MakeUnique<FOutputDeviceFile>();
 			}
 		}
 
 	} Singleton;
 
-	return Singleton.LogDevice.GetOwnedPointer();
+	return Singleton.LogDevice.Get();
 }
 
 

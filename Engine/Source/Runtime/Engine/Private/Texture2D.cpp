@@ -1355,7 +1355,7 @@ void FTexture2DResource::ReleaseRHI()
 
 	// It should be safe to release the texture.
 	checkf(Owner->PendingMipChangeRequestStatus.GetValue() <= TexState_ReadyFor_Requests, TEXT("PendingMipChangeRequestStatus = %d"), Owner->PendingMipChangeRequestStatus.GetValue());
-	check(AsyncCreateTextureTask == NULL);
+	check(AsyncCreateTextureTask == nullptr);
 
 	if ( (Texture2DRHI->GetFlags() & TexCreate_Virtual) != TexCreate_Virtual )
 	{
@@ -2131,7 +2131,7 @@ void FTexture2DResource::UploadMipData()
 
 		if (!bDerivedDataStreamRequestFailed && !Owner->bHasCancelationPending)
 		{
-			check(AsyncCreateTextureTask == NULL);
+			check(AsyncCreateTextureTask == nullptr);
 			FCreateTextureTask::FArguments TaskArgs = {0};
 			TaskArgs.SizeX = OwnerMips[PendingFirstMip].SizeX;
 			TaskArgs.SizeY = OwnerMips[PendingFirstMip].SizeY;
@@ -2143,7 +2143,7 @@ void FTexture2DResource::UploadMipData()
 			TaskArgs.NumNewMips = Owner->RequestedMips - Owner->ResidentMips;
 			TaskArgs.TextureRefPtr = &IntermediateTextureRHI;
 			TaskArgs.ThreadSafeCounter = &Owner->PendingMipChangeRequestStatus;
-			AsyncCreateTextureTask = new FAsyncCreateTextureTask(TaskArgs);
+			AsyncCreateTextureTask = MakeUnique<FAsyncCreateTextureTask>(TaskArgs);
 			AsyncCreateTextureTask->StartBackgroundTask();
 		}
 		else

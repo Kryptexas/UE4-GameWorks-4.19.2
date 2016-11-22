@@ -5,6 +5,7 @@
 #include "MovieSceneBoolSection.h"
 #include "MovieSceneFloatSection.h"
 #include "MovieSceneByteSection.h"
+#include "MovieSceneEnumSection.h"
 #include "MovieSceneIntegerSection.h"
 #include "MovieSceneVectorSection.h"
 #include "MovieSceneStringSection.h"
@@ -69,6 +70,23 @@ void FMovieSceneBytePropertySectionTemplate::Evaluate(const FMovieSceneEvaluatio
 	}
 	
 	ExecutionTokens.Add(TCachedPropertyTrackExecutionToken<uint8>());
+}
+
+FMovieSceneEnumPropertySectionTemplate::FMovieSceneEnumPropertySectionTemplate(const UMovieSceneEnumSection& Section, const UMovieScenePropertyTrack& Track)
+	: PropertyData(Track.GetPropertyName(), Track.GetPropertyPath())
+	, EnumCurve(Section.GetCurve())
+{}
+
+void FMovieSceneEnumPropertySectionTemplate::Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const
+{
+	using namespace PropertyTemplate;
+
+	for (TCachedValue<int64>& ObjectAndValue : PersistentData.GetSectionData<TCachedSectionData<int64>>().ObjectsAndValues)
+	{
+		ObjectAndValue.Value = EnumCurve.Evaluate(Context.GetTime(), ObjectAndValue.Value);
+	}
+	
+	ExecutionTokens.Add(TCachedPropertyTrackExecutionToken<int64>());
 }
 
 FMovieSceneIntegerPropertySectionTemplate::FMovieSceneIntegerPropertySectionTemplate(const UMovieSceneIntegerSection& Section, const UMovieScenePropertyTrack& Track)

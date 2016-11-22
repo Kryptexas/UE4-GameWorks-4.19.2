@@ -18,7 +18,11 @@ bool UCheckedStateBinding::IsSupportedDestination(UProperty* Property) const
 {
 	static const FName CheckBoxStateEnum(TEXT("ECheckBoxState"));
 
-	if ( UByteProperty* ByteProperty = Cast<UByteProperty>(Property) )
+	if ( UEnumProperty* EnumProperty = Cast<UEnumProperty>(Property) )
+	{
+		return EnumProperty->GetEnum()->GetFName() == CheckBoxStateEnum;
+	}
+	else if ( UByteProperty* ByteProperty = Cast<UByteProperty>(Property) )
 	{
 		if ( ByteProperty->IsEnum() )
 		{

@@ -640,7 +640,7 @@ bool UCookOnTheFlyServer::ClearPackageFilenameCacheForPackage( const UPackage* P
 	return PackageFilenameCache.Remove( Package->GetFName() ) >= 1;
 }
 
-const FString& UCookOnTheFlyServer::GetCachedSandboxFilename( const UPackage* Package, TAutoPtr<class FSandboxPlatformFile>& InSandboxFile ) const 
+const FString& UCookOnTheFlyServer::GetCachedSandboxFilename( const UPackage* Package, TUniquePtr<class FSandboxPlatformFile>& InSandboxFile ) const 
 {
 	FName PackageFName = Package->GetFName();
 	static TMap<FName, FString> CachedSandboxFilenames;
@@ -5490,9 +5490,9 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 				LongCookedPackageNames.Add(FName(*LongPackageName));
 			}
 
-			Manifest.Value->BuildChunkManifest(LongCookedPackageNames, SandboxFile, CookByTheBookOptions->bGenerateStreamingInstallManifests);
+			Manifest.Value->BuildChunkManifest(LongCookedPackageNames, SandboxFile.Get(), CookByTheBookOptions->bGenerateStreamingInstallManifests);
 			// Always try to save the manifests, this is required to make the asset registry work, but doesn't necessarily write a file
-			Manifest.Value->SaveManifests(SandboxFile.GetOwnedPointer());
+			Manifest.Value->SaveManifests(SandboxFile.Get());
 
 			const FName& PlatformName = Manifest.Key;
 			TArray<FName> IgnorePackageFilenames;
@@ -5648,7 +5648,7 @@ void UCookOnTheFlyServer::CancelCookByTheBook()
 		CookRequests.DequeueAllRequests(CookByTheBookOptions->PreviousCookRequests);
 		CookByTheBookOptions->bRunning = false;
 
-		SandboxFile = NULL;
+		SandboxFile = nullptr;
 	}	
 }
 
@@ -5720,8 +5720,8 @@ void UCookOnTheFlyServer::CreateSandboxFile()
 	// but will not be used to actually write/read files so we can safely
 	// use [Platform] token in the sandbox directory name and then replace it
 	// with the actual platform name.
-	check( SandboxFile == NULL );
-	SandboxFile = new FSandboxPlatformFile(false);
+	check( SandboxFile == nullptr );
+	SandboxFile = MakeUnique<FSandboxPlatformFile>(false);
 
 	// Output directory override.	
 	FString OutputDirectory = GetOutputDirectoryOverride();
@@ -5732,7 +5732,7 @@ void UCookOnTheFlyServer::CreateSandboxFile()
 
 void UCookOnTheFlyServer::InitializeSandbox()
 {
-	if ( SandboxFile == NULL )
+	if ( SandboxFile == nullptr )
 	{
 		ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
 		const TArray<ITargetPlatform*>& TargetPlatforms = TPM.GetCookingTargetPlatforms();
@@ -5753,7 +5753,7 @@ void UCookOnTheFlyServer::TermSandbox()
 {
 	ClearAllCookedData();
 	ClearPackageFilenameCache();
-	SandboxFile = NULL;
+	SandboxFile = nullptr;
 }
 
 void UCookOnTheFlyServer::ValidateCookByTheBookSettings() const

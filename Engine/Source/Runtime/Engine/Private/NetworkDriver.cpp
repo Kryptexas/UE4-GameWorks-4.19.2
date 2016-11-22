@@ -2433,9 +2433,9 @@ void UNetDriver::ServerReplicateActors_BuildConsiderList( TArray<FNetworkObjectI
 			continue;
 		}
 
-		// Don't send actors that may still be streaming in
+		// Don't send actors that may still be streaming in or out
 		ULevel* Level = Actor->GetLevel();
-		if ( Level->HasVisibilityRequestPending() || Level->bIsAssociatingLevel )
+		if ( Level->HasVisibilityChangeRequestPending() || Level->bIsAssociatingLevel )
 		{
 			continue;
 		}

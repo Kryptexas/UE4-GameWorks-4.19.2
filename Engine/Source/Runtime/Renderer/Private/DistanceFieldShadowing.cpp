@@ -729,7 +729,7 @@ void CullDistanceFieldObjectsForLight(
 	const FPlane* PlaneData, 
 	const FVector4& ShadowBoundingSphereValue,
 	float ShadowBoundingRadius,
-	TScopedPointer<FLightTileIntersectionResources>& TileIntersectionResources)
+	TUniquePtr<FLightTileIntersectionResources>& TileIntersectionResources)
 {
 	const FScene* Scene = (const FScene*)(View.Family->Scene);
 
@@ -773,7 +773,7 @@ void CullDistanceFieldObjectsForLight(
 			}
 			else
 			{
-				TileIntersectionResources = new FLightTileIntersectionResources();
+				TileIntersectionResources = MakeUnique<FLightTileIntersectionResources>();
 			}
 
 			TileIntersectionResources->TileDimensions = LightTileDimensions;
@@ -788,10 +788,10 @@ void CullDistanceFieldObjectsForLight(
 			TShaderMapRef<FWorkaroundAMDBugCS> ComputeShader(View.ShaderMap);
 
 			RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-			ComputeShader->SetParameters(RHICmdList, View, TileIntersectionResources);
+			ComputeShader->SetParameters(RHICmdList, View, TileIntersectionResources.Get());
 			DispatchComputeShader(RHICmdList, *ComputeShader, 1, 1, 1);
 
-			ComputeShader->UnsetParameters(RHICmdList, TileIntersectionResources);
+			ComputeShader->UnsetParameters(RHICmdList, TileIntersectionResources.Get());
 		}
 		
 		{
@@ -801,10 +801,10 @@ void CullDistanceFieldObjectsForLight(
 			uint32 GroupSizeY = FMath::DivideAndRoundUp(LightTileDimensions.Y, GDistanceFieldAOTileSizeY);
 
 			RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-			ComputeShader->SetParameters(RHICmdList, View, FVector2D(LightTileDimensions.X, LightTileDimensions.Y), TileIntersectionResources);
+			ComputeShader->SetParameters(RHICmdList, View, FVector2D(LightTileDimensions.X, LightTileDimensions.Y), TileIntersectionResources.Get());
 			DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
 
-			ComputeShader->UnsetParameters(RHICmdList, TileIntersectionResources);
+			ComputeShader->UnsetParameters(RHICmdList, TileIntersectionResources.Get());
 		}
 
 		{
@@ -812,7 +812,7 @@ void CullDistanceFieldObjectsForLight(
 			TShaderMapRef<FShadowObjectCullPS> PixelShader(View.ShaderMap);
 
 			TArray<FUnorderedAccessViewRHIParamRef> UAVs;
-			PixelShader->GetUAVs(View, TileIntersectionResources, UAVs);
+			PixelShader->GetUAVs(View, TileIntersectionResources.Get(), UAVs);
 			RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, EResourceTransitionPipeline::EComputeToGfx, UAVs.GetData(), UAVs.Num());
 			RHICmdList.SetRenderTargets(0, (const FRHIRenderTargetView *)NULL, NULL, UAVs.Num(), UAVs.GetData());
 
@@ -932,7 +932,7 @@ void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandLis
 				LightSceneInfo->TileIntersectionResources
 				);
 
-			FLightTileIntersectionResources* TileIntersectionResources = LightSceneInfo->TileIntersectionResources;
+			FLightTileIntersectionResources* TileIntersectionResources = LightSceneInfo->TileIntersectionResources.Get();
 
 			View.HeightfieldLightingViewInfo.ComputeRayTracedShadowing(View, RHICmdList, this, TileIntersectionResources, GShadowCulledObjectBuffers);
 

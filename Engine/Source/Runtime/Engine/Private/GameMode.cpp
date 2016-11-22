@@ -209,7 +209,7 @@ void AGameMode::HandleMatchHasStarted()
 	// start human players first
 	for( FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator )
 	{
-		APlayerController* PlayerController = *Iterator;
+		APlayerController* PlayerController = Iterator->Get();
 		if ((PlayerController->GetPawn() == nullptr) && PlayerCanRestart(PlayerController))
 		{
 			RestartPlayer(PlayerController);
@@ -232,7 +232,7 @@ void AGameMode::HandleMatchHasStarted()
 	{
 		for( FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator )
 		{
-			APlayerController* PlayerController = *Iterator;
+			APlayerController* PlayerController = Iterator->Get();
 			if( PlayerController->CheatManager != nullptr )
 			{
 				PlayerController->CheatManager->BugItGoString( BugLocString, BugRotString );
@@ -749,16 +749,15 @@ void AGameMode::PostSeamlessTravel()
 
 	// We have to make a copy of the controller list, since the code after this will destroy
 	// and create new controllers in the world's list
-	TArray<TAutoWeakObjectPtr<class AController> >	OldControllerList;
+	TArray<AController*> OldControllerList;
 	for (auto It = GetWorld()->GetControllerIterator(); It; ++It)
 	{
-		OldControllerList.Add(*It);
+		OldControllerList.Add(It->Get());
 	}
 
 	// handle players that are already loaded
-	for( FConstControllerIterator Iterator = OldControllerList.CreateConstIterator(); Iterator; ++Iterator )
+	for( AController* Controller : OldControllerList )
 	{
-		AController* Controller = *Iterator;
 		if (Controller->PlayerState)
 		{
 			APlayerController* PlayerController = Cast<APlayerController>(Controller);

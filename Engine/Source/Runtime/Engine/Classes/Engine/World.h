@@ -734,9 +734,13 @@ class ENGINE_API UWorld final : public UObject, public FNetworkNotify
 	UPROPERTY()
 	FString										StreamingLevelsPrefix;
 	
-	/** Pointer to the current level in the queue to be made visible, NULL if none are pending.									*/
+	/** Pointer to the current level in the queue to be made visible, NULL if none are pending.					*/
 	UPROPERTY(Transient)
 	class ULevel*								CurrentLevelPendingVisibility;
+
+	/** Pointer to the current level in the queue to be made invisible, NULL if none are pending.					*/
+	UPROPERTY(Transient)
+	class ULevel*								CurrentLevelPendingInvisibility;
 	
 	/** Fake NetDriver for capturing network traffic to record demos															*/
 	UPROPERTY()
@@ -889,19 +893,19 @@ public:
 private:
 
 	/** List of all the controllers in the world. */
-	TArray<TAutoWeakObjectPtr<class AController> > ControllerList;
+	TArray<TWeakObjectPtr<class AController> > ControllerList;
 
 	/** List of all the player controllers in the world. */
-	TArray<TAutoWeakObjectPtr<class APlayerController> > PlayerControllerList;
+	TArray<TWeakObjectPtr<class APlayerController> > PlayerControllerList;
 
 	/** List of all the pawns in the world. */
-	TArray<TAutoWeakObjectPtr<class APawn> > PawnList;	
+	TArray<TWeakObjectPtr<class APawn> > PawnList;
 
 	/** List of all the cameras in the world that auto-activate for players. */
-	TArray<TAutoWeakObjectPtr<ACameraActor> > AutoCameraActorList;
+	TArray<TWeakObjectPtr<ACameraActor> > AutoCameraActorList;
 
 	/** List of all physics volumes in the world. Does not include the DefaultPhysicsVolume. */
-	TArray<TAutoWeakObjectPtr<APhysicsVolume> > NonDefaultPhysicsVolumeList;
+	TArray<TWeakObjectPtr<APhysicsVolume> > NonDefaultPhysicsVolumeList;
 
 	/** Physics scene for this world. */
 	FPhysScene*									PhysicsScene;
@@ -2143,7 +2147,7 @@ public:
 	 *
 	 * @param Level			Level object we should remove
 	 */
-	void RemoveFromWorld( ULevel* Level );
+	void RemoveFromWorld( ULevel* Level, bool bAllowIncrementalRemoval = false );
 
 	/**
 	 * Updates sub-levels (load/unload/show/hide) using streaming levels current state

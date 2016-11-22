@@ -37,10 +37,20 @@ UEnum* GetEnumForByteTrack(TSharedPtr<ISequencer> Sequencer, const FGuid& OwnerO
 		UProperty* Property = RuntimeObject->GetClass()->FindPropertyByName(PropertyName);
 		if (Property != nullptr)
 		{
-			UByteProperty* ByteProperty = Cast<UByteProperty>(Property);
-			if (ByteProperty != nullptr && ByteProperty->Enum != nullptr)
+			UEnum* Enum = nullptr;
+
+			if (UEnumProperty* EnumProperty = Cast<UEnumProperty>(Property))
 			{
-				PropertyEnums.Add(ByteProperty->Enum);
+				Enum = EnumProperty->GetEnum();
+			}
+			else if (UByteProperty* ByteProperty = Cast<UByteProperty>(Property))
+			{
+				Enum = ByteProperty->Enum;
+			}
+
+			if (Enum != nullptr)
+			{
+				PropertyEnums.Add(Enum);
 			}
 		}
 	}

@@ -743,11 +743,16 @@ void UKismetSystemLibrary::SetBytePropertyByName(UObject* Object, FName Property
 {
 	if(Object != NULL)
 	{
-		UByteProperty* ByteProp = FindField<UByteProperty>(Object->GetClass(), PropertyName);
-		if(ByteProp != NULL)
+		if(UByteProperty* ByteProp = FindField<UByteProperty>(Object->GetClass(), PropertyName))
 		{
 			ByteProp->SetPropertyValue_InContainer(Object, Value);
-		}		
+		}
+		else if(UEnumProperty* EnumProp = FindField<UEnumProperty>(Object->GetClass(), PropertyName))
+		{
+			void* PropAddr = EnumProp->ContainerPtrToValuePtr<void>(Object);
+			UNumericProperty* UnderlyingProp = EnumProp->GetUnderlyingProperty();
+			UnderlyingProp->SetIntPropertyValue(PropAddr, (int64)Value);
+		}
 	}
 }
 

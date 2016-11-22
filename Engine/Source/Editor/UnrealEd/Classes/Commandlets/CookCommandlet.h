@@ -6,6 +6,7 @@
 
 #pragma once
 #include "Commandlets/Commandlet.h"
+#include "UniquePtr.h"
 #include "CookCommandlet.generated.h"
 
 UCLASS(config=Editor)
@@ -116,7 +117,7 @@ public:
 private:
 
 	/** Holds the sandbox file wrapper to handle sandbox path conversion. */
-	TAutoPtr<class FSandboxPlatformFile> SandboxFile;
+	TUniquePtr<class FSandboxPlatformFile> SandboxFile;
 
 	/** We hook this up to a delegate to avoid reloading textures and whatnot */
 	TSet<FString> PackagesToNotReload;

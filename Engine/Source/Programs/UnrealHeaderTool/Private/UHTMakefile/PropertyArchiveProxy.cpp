@@ -96,6 +96,37 @@ FArchive& operator<<(FArchive& Ar, FSetPropertyArchiveProxy& SetPropertyArchiveP
 	return Ar;
 }
 
+FEnumPropertyArchiveProxy::FEnumPropertyArchiveProxy(FUHTMakefile& UHTMakefile, const UEnumProperty* EnumProperty)
+	: FPropertyArchiveProxy(UHTMakefile, EnumProperty)
+{
+	EnumIndex = UHTMakefile.GetEnumIndex(EnumProperty->Enum);
+	UnderlyingPropertyIndex = UHTMakefile.GetPropertyIndex(EnumProperty->UnderlyingProp);
+}
+
+UEnumProperty* FEnumPropertyArchiveProxy::CreateEnumProperty(const FUHTMakefile& UHTMakefile) const
+{
+	UObject* Outer = UHTMakefile.GetObjectByIndex(OuterIndex);
+	UEnumProperty* EnumProperty = new (EC_InternalUseOnlyConstructor, Outer, Name.CreateName(UHTMakefile), (EObjectFlags)ObjectFlagsUint32) UEnumProperty(FObjectInitializer());
+	PostConstruct(EnumProperty, UHTMakefile);
+	return EnumProperty;
+}
+
+void FEnumPropertyArchiveProxy::Resolve(UEnumProperty* EnumProperty, const FUHTMakefile& UHTMakefile) const
+{
+	FPropertyArchiveProxy::Resolve(EnumProperty, UHTMakefile);
+	EnumProperty->Enum = UHTMakefile.GetEnumByIndex(EnumIndex);
+	EnumProperty->UnderlyingProp = CastChecked<UNumericProperty>(UHTMakefile.GetPropertyByIndex(UnderlyingPropertyIndex));
+}
+
+FArchive& operator<<(FArchive& Ar, FEnumPropertyArchiveProxy& EnumPropertyArchiveProxy)
+{
+	Ar << static_cast<FPropertyArchiveProxy&>(EnumPropertyArchiveProxy);
+	Ar << EnumPropertyArchiveProxy.EnumIndex;
+	Ar << EnumPropertyArchiveProxy.UnderlyingPropertyIndex;
+
+	return Ar;
+}
+
 FBytePropertyArchiveProxy::FBytePropertyArchiveProxy(FUHTMakefile& UHTMakefile, const UByteProperty* ByteProperty)
 	: FPropertyArchiveProxy(UHTMakefile, ByteProperty)
 {

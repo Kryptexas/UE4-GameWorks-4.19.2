@@ -55,9 +55,6 @@ bool FCrashDebugHelperWindows::CreateMinidumpDiagnosticReport( const FString& In
 
 			if (bInitSymbols)
 			{
-				// Set the symbol path based on the loaded modules
-				WindowsStackWalkExt.SetSymbolPathsFromModules();
-
 				// Get all the info we should ever need about the modules
 				WindowsStackWalkExt.GetModuleInfoDetailed();
 

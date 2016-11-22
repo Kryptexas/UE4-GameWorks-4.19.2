@@ -2663,10 +2663,16 @@ uint32 FRepLayout::AddPropertyCmd( UProperty * Property, int32 Offset, int32 Rel
 	Cmd.CompatibleChecksum	= FCrc::StrCrc32( *Property->GetCPPType( nullptr, 0 ).ToLower(), Cmd.CompatibleChecksum );		// Evolve by property type
 	Cmd.CompatibleChecksum	= FCrc::StrCrc32( *FString::Printf( TEXT( "%i" ), StaticArrayIndex ), Cmd.CompatibleChecksum );	// Evolve by StaticArrayIndex (to make all unrolled static array elements unique)
 
-	// Try to special case to custom types we know about
-	if ( Property->IsA( UStructProperty::StaticClass() ) )
+	UProperty * UnderlyingProperty = Property;
+	if ( UEnumProperty * EnumProperty = Cast< UEnumProperty >( Property ) )
 	{
-		UStructProperty * StructProp = Cast< UStructProperty >( Property );
+		UnderlyingProperty = EnumProperty->GetUnderlyingProperty();
+	}
+
+	// Try to special case to custom types we know about
+	if ( UnderlyingProperty->IsA( UStructProperty::StaticClass() ) )
+	{
+		UStructProperty * StructProp = Cast< UStructProperty >( UnderlyingProperty );
 		UScriptStruct * Struct = StructProp->Struct;
 		if ( Struct->GetFName() == NAME_Vector )
 		{
@@ -2709,39 +2715,39 @@ uint32 FRepLayout::AddPropertyCmd( UProperty * Property, int32 Offset, int32 Rel
 			UE_LOG( LogRep, VeryVerbose, TEXT( "AddPropertyCmd: Falling back to default type for property [%s]" ), *Cmd.Property->GetFullName() );
 		}
 	}
-	else if ( Property->IsA( UBoolProperty::StaticClass() ) )
+	else if ( UnderlyingProperty->IsA( UBoolProperty::StaticClass() ) )
 	{
 		Cmd.Type = REPCMD_PropertyBool;
 	}
-	else if ( Property->IsA( UFloatProperty::StaticClass() ) )
+	else if ( UnderlyingProperty->IsA( UFloatProperty::StaticClass() ) )
 	{
 		Cmd.Type = REPCMD_PropertyFloat;
 	}
-	else if ( Property->IsA( UIntProperty::StaticClass() ) )
+	else if ( UnderlyingProperty->IsA( UIntProperty::StaticClass() ) )
 	{
 		Cmd.Type = REPCMD_PropertyInt;
 	}
-	else if ( Property->IsA( UByteProperty::StaticClass() ) )
+	else if ( UnderlyingProperty->IsA( UByteProperty::StaticClass() ) )
 	{
 		Cmd.Type = REPCMD_PropertyByte;
 	}
-	else if ( Property->IsA( UObjectPropertyBase::StaticClass() ) )
+	else if ( UnderlyingProperty->IsA( UObjectPropertyBase::StaticClass() ) )
 	{
 		Cmd.Type = REPCMD_PropertyObject;
 	}
-	else if ( Property->IsA( UNameProperty::StaticClass() ) )
+	else if ( UnderlyingProperty->IsA( UNameProperty::StaticClass() ) )
 	{
 		Cmd.Type = REPCMD_PropertyName;
 	}
-	else if ( Property->IsA( UUInt32Property::StaticClass() ) )
+	else if ( UnderlyingProperty->IsA( UUInt32Property::StaticClass() ) )
 	{
 		Cmd.Type = REPCMD_PropertyUInt32;
 	}
-	else if ( Property->IsA( UUInt64Property::StaticClass() ) )
+	else if ( UnderlyingProperty->IsA( UUInt64Property::StaticClass() ) )
 	{
 		Cmd.Type = REPCMD_PropertyUInt64;
 	}
-	else if ( Property->IsA( UStrProperty::StaticClass() ) )
+	else if ( UnderlyingProperty->IsA( UStrProperty::StaticClass() ) )
 	{
 		Cmd.Type = REPCMD_PropertyString;
 	}

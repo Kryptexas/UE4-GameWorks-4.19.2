@@ -7478,6 +7478,20 @@ bool FBlueprintEditorUtils::PropertyValueFromString(const UProperty* Property, c
 			bParseSucceeded = bParseSucceeded && ( IntValue <= 255 ) && ( IntValue >= 0 );
 			ByteProperty->SetPropertyValue_InContainer(DefaultObject, IntValue);
 		}
+		else if (const UEnumProperty* EnumProperty = Cast<const UEnumProperty>(Property))
+		{
+			int64 IntValue = IntValue = EnumProperty->GetEnum()->GetValueByName(FName(*Value));
+			bParseSucceeded = (INDEX_NONE != IntValue);
+
+			// If the parse did not succeed, clear out the int to keep the enum value valid
+			if(!bParseSucceeded)
+			{
+				IntValue = 0;
+			}
+			bParseSucceeded = bParseSucceeded && ( IntValue <= 255 ) && ( IntValue >= 0 );
+			void* PropAddr = EnumProperty->ContainerPtrToValuePtr<void>(DefaultObject);
+			EnumProperty->GetUnderlyingProperty()->SetIntPropertyValue(PropAddr, IntValue);
+		}
 		else if( Property->IsA(UStrProperty::StaticClass()) )
 		{
 			CastChecked<UStrProperty>(Property)->SetPropertyValue_InContainer(DefaultObject, Value);

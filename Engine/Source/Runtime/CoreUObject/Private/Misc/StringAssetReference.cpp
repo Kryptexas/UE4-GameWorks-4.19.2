@@ -14,16 +14,6 @@ FStringAssetReference::FStringAssetReference(const UObject* InObject)
 }
 
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
-FStringAssetReference::~FStringAssetReference()
-{
-
-}
-
-const FString& FStringAssetReference::ToString() const
-{
-	return AssetLongPathname;
-}
-
 void FStringAssetReference::SetPath(FString Path)
 {
 	if (Path.IsEmpty())
@@ -74,14 +64,18 @@ bool FStringAssetReference::Serialize(FArchive& Ar)
 
 	return true;
 }
+
 bool FStringAssetReference::operator==(FStringAssetReference const& Other) const
 {
 	return ToString() == Other.ToString();
 }
-void FStringAssetReference::operator=(FStringAssetReference const& Other)
+
+FStringAssetReference& FStringAssetReference::operator=(FStringAssetReference const& Other)
 {
 	SetPath(Other.ToString());
+	return *this;
 }
+
 bool FStringAssetReference::ExportTextItem(FString& ValueStr, FStringAssetReference const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const
 {
 	if (0 != (PortFlags & EPropertyPortFlags::PPF_ExportCpp))

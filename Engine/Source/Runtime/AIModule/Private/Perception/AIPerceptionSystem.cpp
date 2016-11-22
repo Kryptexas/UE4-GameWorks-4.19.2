@@ -555,7 +555,7 @@ void UAIPerceptionSystem::RegisterAllPawnsAsSourcesForSense(FAISenseID SenseID)
 	UWorld* World = GetWorld();
 	for (auto PawnIt = World->GetPawnIterator(); PawnIt; ++PawnIt)
 	{
-		if (*PawnIt)
+		if (PawnIt->Get())
 		{
 			RegisterSource(SenseID, **PawnIt);
 		}

@@ -184,6 +184,125 @@ void FReflectionEnvironmentCubemapArray::ReleaseDynamicRHI()
 	ReleaseCubeArray();
 }
 
+void FReflectionEnvironmentSceneData::ResizeCubemapArrayGPU(uint32 InMaxCubemaps, int32 InCubemapSize)
+{
+	check(IsInRenderingThread());
+
+	// If the cubemap array isn't setup yet then no copying/reallocation is necessary. Just go through the old path
+	if (!CubemapArray.IsInitialized())
+	{
+		CubemapArray.UpdateMaxCubemaps(InMaxCubemaps, InCubemapSize);
+		return;
+	}
+
+	// Generate a remapping table for the elements
+	TArray<bool> ArrayIndicesRemoved;
+	ArrayIndicesRemoved.Empty(CubemapArray.GetMaxCubemaps());
+	for (int i = 0; i < CubemapArray.GetMaxCubemaps(); i++)
+	{
+		ArrayIndicesRemoved.Add(false);
+	}
+	for (int i = 0; i < CubemapIndicesRemovedSinceLastRealloc.Num(); i++)
+	{
+		uint32 CubemapIndex = CubemapIndicesRemovedSinceLastRealloc[i];
+		ArrayIndicesRemoved[CubemapIndex] = true;
+	}
+	TArray<int32> IndexRemapping;
+	int32 Count = 0;
+	for (int i = 0; i < CubemapArray.GetMaxCubemaps(); i++)
+	{
+		if (ArrayIndicesRemoved[i])
+		{
+			IndexRemapping.Add(-1);
+		}
+		else
+		{
+			IndexRemapping.Add(Count);
+			Count++;
+		}
+	}
+
+	// Spin through the AllocatedReflectionCaptureState map and remap the indices based on the LUT
+	TArray<const UReflectionCaptureComponent*> Components;
+	AllocatedReflectionCaptureState.GetKeys(Components);
+	int32 UsedCubemapCount = 0;
+	for (int32 i=0; i<Components.Num(); i++ )
+	{
+		FCaptureComponentSceneState* ComponentStatePtr = AllocatedReflectionCaptureState.Find(Components[i]);
+		check(ComponentStatePtr->CaptureIndex < IndexRemapping.Num());
+		ComponentStatePtr->CaptureIndex = IndexRemapping[ComponentStatePtr->CaptureIndex];
+		UsedCubemapCount = FMath::Max(UsedCubemapCount, ComponentStatePtr->CaptureIndex + 1);
+	}
+
+	// Clear elements in the remapping array which are outside the range of the used components (these were allocated but not used)
+	for (int i = 0; i < IndexRemapping.Num(); i++)
+	{
+		if (IndexRemapping[i] >= UsedCubemapCount)
+		{
+			IndexRemapping[i] = -1;
+		}
+	}
+
+	CubemapArray.ResizeCubemapArrayGPU(InMaxCubemaps, InCubemapSize, IndexRemapping);
+	CubemapIndicesRemovedSinceLastRealloc.Empty();
+}
+
+void FReflectionEnvironmentCubemapArray::ResizeCubemapArrayGPU(uint32 InMaxCubemaps, int32 InCubemapSize, const TArray<int32>& IndexRemapping)
+{
+	check(IsInRenderingThread());
+	check(GetFeatureLevel() >= ERHIFeatureLevel::SM5);
+	check(IsInitialized());
+	check(InCubemapSize == CubemapSize);
+
+	// Take a reference to the old cubemap array and then release it to prevent it getting destroyed during InitDynamicRHI
+	TRefCountPtr<IPooledRenderTarget> OldReflectionEnvs = ReflectionEnvs;
+	ReflectionEnvs = nullptr;
+	int OldMaxCubemaps = MaxCubemaps;
+	MaxCubemaps = InMaxCubemaps;
+
+	InitDynamicRHI();
+
+	FTextureRHIRef TexRef = OldReflectionEnvs->GetRenderTargetItem().TargetableTexture;
+	FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
+	const int32 NumMips = FMath::CeilLogTwo(InCubemapSize) + 1;
+
+	{
+		SCOPED_DRAW_EVENT(RHICmdList, ReflectionEnvironment_ResizeCubemapArray);
+		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ReflectionEnvironment)
+
+		// Copy the cubemaps, remapping the elements as necessary
+		FResolveParams ResolveParams;
+		ResolveParams.Rect = FResolveRect();
+		for (int32 SourceCubemapIndex = 0; SourceCubemapIndex < OldMaxCubemaps; SourceCubemapIndex++)
+		{
+			int32 DestCubemapIndex = IndexRemapping[SourceCubemapIndex];
+			if (DestCubemapIndex != -1)
+			{
+				ResolveParams.SourceArrayIndex = SourceCubemapIndex;
+				ResolveParams.DestArrayIndex = DestCubemapIndex;
+
+				check(SourceCubemapIndex < OldMaxCubemaps);
+				check(DestCubemapIndex < (int32)MaxCubemaps);
+
+				for (int Face = 0; Face < 6; Face++)
+				{
+					ResolveParams.CubeFace = (ECubeFace)Face;
+					for (int Mip = 0; Mip < NumMips; Mip++)
+					{
+						ResolveParams.MipIndex = Mip;
+						//@TODO: We should use an explicit copy method for this rather than CopyToResolveTarget, but that doesn't exist right now. 
+						// For now, we'll just do this on RHIs where we know CopyToResolveTarget does the right thing. In future we should look to 
+						// add a a new RHI method
+						check(GRHISupportsResolveCubemapFaces);
+						RHICmdList.CopyToResolveTarget(OldReflectionEnvs->GetRenderTargetItem().ShaderResourceTexture, ReflectionEnvs->GetRenderTargetItem().ShaderResourceTexture, true, ResolveParams);
+					}
+				}
+			}
+		}
+	}
+	GRenderTargetPool.FreeUnusedResource(OldReflectionEnvs);
+}
+
 void FReflectionEnvironmentCubemapArray::UpdateMaxCubemaps(uint32 InMaxCubemaps, int32 InCubemapSize)
 {
 	MaxCubemaps = InMaxCubemaps;

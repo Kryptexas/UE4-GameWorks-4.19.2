@@ -84,7 +84,7 @@ bool UUserWidget::Initialize()
 
 		if ( WidgetTree == nullptr )
 		{
-			WidgetTree = NewObject<UWidgetTree>(this, TEXT("WidgetTree"));
+			WidgetTree = NewObject<UWidgetTree>(this, TEXT("WidgetTree"), RF_Transient);
 		}
 
 		// Map the named slot bindings to the available slots.
@@ -264,7 +264,7 @@ UUMGSequencePlayer* UUserWidget::GetOrAddPlayer(UWidgetAnimation* InAnimation)
 
 		if (!FoundPlayer)
 		{
-			UUMGSequencePlayer* NewPlayer = NewObject<UUMGSequencePlayer>(this);
+			UUMGSequencePlayer* NewPlayer = NewObject<UUMGSequencePlayer>(this, NAME_None, RF_Transient);
 			ActiveSequencePlayers.Add(NewPlayer);
 
 			NewPlayer->OnSequenceFinishedPlaying().AddUObject(this, &UUserWidget::OnAnimationFinishedPlaying);

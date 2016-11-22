@@ -11,6 +11,7 @@
 #include "GenericOctree.h"
 #include "StaticLighting.h"
 #include "LightingBuildOptions.h"
+#include "UniquePtr.h"
 
 struct FSelectedLightmapSample;
 
@@ -223,7 +224,7 @@ private:
 	class FStaticLightingSystem* ActiveStaticLightingSystem;
 
 	/** The system for kicking off the asynchronous lightmass */
-	TArray<TScopedPointer<class FStaticLightingSystem>> StaticLightingSystems;
+	TArray<TUniquePtr<class FStaticLightingSystem>> StaticLightingSystems;
 
 	/** Notification we hold on to that indicates progress. */
 	TWeakPtr<SNotificationItem> LightBuildNotification;

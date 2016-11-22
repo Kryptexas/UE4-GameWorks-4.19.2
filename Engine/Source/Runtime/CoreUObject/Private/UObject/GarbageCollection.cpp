@@ -1824,6 +1824,12 @@ void UClass::EmitFixedArrayEnd()
 
 void UClass::AssembleReferenceTokenStream(bool bForce)
 {
+	const bool bNotNative = !(ClassFlags & CLASS_Native);
+	if (bNotNative)
+	{
+		ReferenceTokenStreamCritical.Lock();
+	}
+
 	if (!HasAnyClassFlags(CLASS_TokenStreamAssembled) || bForce)
 	{
 		if (bForce)
@@ -1881,6 +1887,10 @@ void UClass::AssembleReferenceTokenStream(bool bForce)
 
 		check(!HasAnyClassFlags(CLASS_TokenStreamAssembled)); // recursion here is probably bad
 		ClassFlags |= CLASS_TokenStreamAssembled;
+	}
+	if (bNotNative)
+	{
+		ReferenceTokenStreamCritical.Unlock();
 	}
 }
 

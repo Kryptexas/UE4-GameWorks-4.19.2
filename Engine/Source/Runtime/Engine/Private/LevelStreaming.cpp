@@ -134,7 +134,7 @@ void FStreamLevelAction::ActivateLevel( ULevelStreaming* LevelStreamingObject )
 			// Notify players of the change
 			for( FConstPlayerControllerIterator Iterator = LevelWorld->GetPlayerControllerIterator(); Iterator; ++Iterator )
 			{
-				APlayerController* PlayerController = *Iterator;
+				APlayerController* PlayerController = Iterator->Get();
 
 				UE_LOG(LogLevel, Log, TEXT("ActivateLevel %s %i %i %i"), 
 					*LevelStreamingObject->GetWorldAssetPackageName(), 

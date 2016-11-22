@@ -174,7 +174,7 @@ void APlayerState::OnRep_PlayerName()
 		{
 			for( FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator )
 			{
-				APlayerController* PlayerController = *Iterator;
+				APlayerController* PlayerController = Iterator->Get();
 				if( PlayerController )
 				{
 					PlayerController->ClientReceiveLocalizedMessage( EngineMessageClass, 2, this );
@@ -191,7 +191,7 @@ void APlayerState::OnRep_PlayerName()
 		{
 			for( FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator )
 			{
-				APlayerController* PlayerController = *Iterator;
+				APlayerController* PlayerController = Iterator->Get();
 				if( PlayerController )
 				{
 					PlayerController->ClientReceiveLocalizedMessage( EngineMessageClass, WelcomeMessageNum, this );
@@ -229,7 +229,7 @@ void APlayerState::Destroyed()
 	{
 		for (FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator)
 		{
-			APlayerController* PlayerController = *Iterator;
+			APlayerController* PlayerController = Iterator->Get();
 			if( PlayerController )
 			{
 				PlayerController->ClientReceiveLocalizedMessage( EngineMessageClass, 4, this);

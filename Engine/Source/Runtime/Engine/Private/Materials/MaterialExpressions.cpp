@@ -6345,8 +6345,7 @@ FString UMaterialExpressionSceneDepth::GetInputName(int32 InputIndex) const
 	if(InputIndex == 0)
 	{
 		// Display the current InputMode enum's display name.
-		UByteProperty* InputModeProperty = NULL;
-		InputModeProperty = FindField<UByteProperty>( UMaterialExpressionSceneDepth::StaticClass(), "InputMode" );
+		UByteProperty* InputModeProperty = FindField<UByteProperty>( UMaterialExpressionSceneDepth::StaticClass(), "InputMode" );
 		return InputModeProperty->Enum->GetEnumName((int32)InputMode.GetValue());
 	}
 	return TEXT("");
@@ -6610,8 +6609,7 @@ FString UMaterialExpressionSceneColor::GetInputName(int32 InputIndex) const
 	if(InputIndex == 0)
 	{
 		// Display the current InputMode enum's display name.
-		UByteProperty* InputModeProperty = NULL;
-		InputModeProperty = FindField<UByteProperty>( UMaterialExpressionSceneColor::StaticClass(), "InputMode" );
+		UByteProperty* InputModeProperty = FindField<UByteProperty>( UMaterialExpressionSceneColor::StaticClass(), "InputMode" );
 		return InputModeProperty->Enum->GetEnumName((int32)InputMode.GetValue());
 	}
 	return TEXT("");

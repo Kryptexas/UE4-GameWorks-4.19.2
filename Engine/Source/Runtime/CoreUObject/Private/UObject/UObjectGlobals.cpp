@@ -3668,9 +3668,14 @@ UObject* FObjectInitializer::CreateDefaultSubobject(UObject* Outer, FName Subobj
 		if (!OverrideClass->HasAnyClassFlags(CLASS_Abstract) || !bAbstract)
 		{
 			UObject* Template = OverrideClass->GetDefaultObject(); // force the CDO to be created if it hasn't already
-			const EObjectFlags SubobjectFlags = Outer->GetMaskedFlags(RF_PropagateToSubObjects);
+			EObjectFlags SubobjectFlags = Outer->GetMaskedFlags(RF_PropagateToSubObjects);
 			bool bOwnerArchetypeIsNotNative;
 			UClass* OuterArchetypeClass;
+
+			if (bIsTransient)
+			{
+				SubobjectFlags |= RF_Transient;
+			}
 
 			{
 #if USE_EVENT_DRIVEN_ASYNC_LOAD

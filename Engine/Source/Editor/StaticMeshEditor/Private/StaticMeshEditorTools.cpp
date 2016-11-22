@@ -1362,7 +1362,7 @@ void FMeshSectionSettingsLayout::OnGetSectionsForView(ISectionListBuilder& OutSe
 {
 	check(LODIndex == ForLODIndex);
 	UStaticMesh& StaticMesh = GetStaticMesh();
-	FStaticMeshRenderData* RenderData = StaticMesh.RenderData;
+	FStaticMeshRenderData* RenderData = StaticMesh.RenderData.Get();
 	if (RenderData && RenderData->LODResources.IsValidIndex(LODIndex))
 	{
 		FStaticMeshLODResources& LOD = RenderData->LODResources[LODIndex];
@@ -1413,7 +1413,7 @@ void FMeshSectionSettingsLayout::OnSectionChanged(int32 ForLODIndex, int32 Secti
 	}
 	check(NewStaticMaterialIndex != INDEX_NONE);
 	check(StaticMesh.RenderData);
-	FStaticMeshRenderData* RenderData = StaticMesh.RenderData;
+	FStaticMeshRenderData* RenderData = StaticMesh.RenderData.Get();
 	if (RenderData && RenderData->LODResources.IsValidIndex(LODIndex))
 	{
 		FStaticMeshLODResources& LOD = RenderData->LODResources[LODIndex];
@@ -2286,7 +2286,7 @@ void FLevelOfDetailSettingsLayout::AddLODLevelCategories( IDetailLayoutBuilder& 
 	if( StaticMesh )
 	{
 		const int32 StaticMeshLODCount = StaticMesh->GetNumLODs();
-		FStaticMeshRenderData* RenderData = StaticMesh->RenderData;
+		FStaticMeshRenderData* RenderData = StaticMesh->RenderData.Get();
 
 		//Add the Materials array
 		{

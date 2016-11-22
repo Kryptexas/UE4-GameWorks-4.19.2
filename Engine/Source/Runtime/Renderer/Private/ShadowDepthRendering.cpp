@@ -1879,7 +1879,7 @@ void FProjectedShadowInfo::ModifyViewForShadow(FRHICommandList& RHICmdList, FVie
 	FoundView->ViewMatrices.HackRemoveTemporalAAProjectionJitter();
 
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
-	FoundView->CachedViewUniformShaderParameters = new FViewUniformShaderParameters();
+	FoundView->CachedViewUniformShaderParameters = MakeUnique<FViewUniformShaderParameters>();
 
 	// Override the view matrix so that billboarding primitives will be aligned to the light
 	FoundView->ViewMatrices.HackOverrideViewMatrixForShadows(ShadowViewMatrix);

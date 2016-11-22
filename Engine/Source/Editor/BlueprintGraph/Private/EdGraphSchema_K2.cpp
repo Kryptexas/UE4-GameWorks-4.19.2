@@ -3238,6 +3238,26 @@ bool UEdGraphSchema_K2::GetPropertyCategoryInfo(const UProperty* TestProperty, F
 			OutSubCategoryObject = ByteProperty->Enum;
 		}
 	}
+	else if (const UEnumProperty* EnumProperty = Cast<const UEnumProperty>(TestProperty))
+	{
+		// K2 only supports byte enums right now - any violations should have been caught by UHT or the editor
+		if (!EnumProperty->GetUnderlyingProperty()->IsA<UByteProperty>())
+		{
+			OutCategory = TEXT("unsupported_enum_type");
+			return false;
+		}
+
+		OutCategory = PC_Byte;
+
+		if (TestProperty->HasMetaData(FBlueprintMetadata::MD_Bitmask))
+		{
+			OutSubCategory = PSC_Bitmask;
+		}
+		else
+		{
+			OutSubCategoryObject = EnumProperty->GetEnum();
+		}
+	}
 	else if (Cast<const UNameProperty>(TestProperty) != NULL)
 	{
 		OutCategory = PC_Name;

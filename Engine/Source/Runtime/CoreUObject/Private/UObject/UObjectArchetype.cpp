@@ -68,6 +68,7 @@ UObject* UObject::GetArchetypeFromRequiredInfo(UClass* Class, UObject* Outer, FN
 	}
 #if USE_EVENT_DRIVEN_ASYNC_LOAD
 	//if (!GIgnoreGetArchetypeFromRequiredInfo_RF_NeedsLoad)
+	if (!GIsInitialLoad)
 	{
 		if (Result && Result->HasAnyFlags(RF_NeedLoad))
 		{

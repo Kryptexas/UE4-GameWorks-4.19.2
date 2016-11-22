@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "UniquePtr.h"
+
 
 /**
  * Wrapper to log the low level file system
@@ -22,7 +24,7 @@ class FLoggedPlatformFile;
 
 class CORE_API FLoggedFileHandle : public IFileHandle
 {
-	TAutoPtr<IFileHandle>	FileHandle;
+	TUniquePtr<IFileHandle>	FileHandle;
 	FString					Filename;
 #if !UE_BUILD_SHIPPING
 	FLoggedPlatformFile& PlatformFile;

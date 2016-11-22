@@ -503,10 +503,9 @@ void UModel::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 	
 	// I'm adding extra stuff that haven't been covered by Serialize 
 	// I don't have to include VertexFactories (based on Sam Z)
-	for(TMap<UMaterialInterface*,TScopedPointer<FRawIndexBuffer16or32> >::TConstIterator IndexBufferIt(MaterialIndexBuffers);IndexBufferIt;++IndexBufferIt)
+	for(TMap<UMaterialInterface*,TUniquePtr<FRawIndexBuffer16or32> >::TConstIterator IndexBufferIt(MaterialIndexBuffers);IndexBufferIt;++IndexBufferIt)
 	{
-		const TScopedPointer<FRawIndexBuffer16or32> &IndexBuffer = IndexBufferIt.Value();
-		CumulativeResourceSize.AddUnknownMemoryBytes(IndexBuffer->Indices.Num() * sizeof(uint32));
+		CumulativeResourceSize.AddUnknownMemoryBytes(IndexBufferIt->Value->Indices.Num() * sizeof(uint32));
 	}
 }
 
@@ -704,9 +703,9 @@ void UModel::ShrinkModel()
 void UModel::BeginReleaseResources()
 {
 	// Release the index buffers.
-	for(TMap<UMaterialInterface*,TScopedPointer<FRawIndexBuffer16or32> >::TIterator IndexBufferIt(MaterialIndexBuffers);IndexBufferIt;++IndexBufferIt)
+	for(TMap<UMaterialInterface*,TUniquePtr<FRawIndexBuffer16or32> >::TIterator IndexBufferIt(MaterialIndexBuffers);IndexBufferIt;++IndexBufferIt)
 	{
-		BeginReleaseResource(IndexBufferIt.Value());
+		BeginReleaseResource(IndexBufferIt->Value.Get());
 	}
 
 	// Release the vertex buffer and factory.
@@ -882,11 +881,10 @@ int32 UModel::BuildVertexBuffers()
 */
 void UModel::ClearLocalMaterialIndexBuffersData()
 {
-	TMap<UMaterialInterface*,TScopedPointer<FRawIndexBuffer16or32> >::TIterator MaterialIterator(MaterialIndexBuffers);
+	TMap<UMaterialInterface*,TUniquePtr<FRawIndexBuffer16or32> >::TIterator MaterialIterator(MaterialIndexBuffers);
 	for(; MaterialIterator; ++MaterialIterator)
 	{
-		FRawIndexBuffer16or32& IndexBuffer = *MaterialIterator.Value();
-		IndexBuffer.Indices.Empty();
+		MaterialIterator->Value->Indices.Empty();
 	}
 }
 

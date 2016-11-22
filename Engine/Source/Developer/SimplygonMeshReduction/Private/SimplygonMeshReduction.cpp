@@ -11,6 +11,7 @@
 #include "Components/SplineMeshComponent.h"
 #include "SimplygonSDK.h"
 #include "ScopedTimers.h"
+#include "UniquePtr.h"
 
 #include "MeshMergeData.h"
 
@@ -2743,18 +2744,18 @@ private:
 	}
 };
 
-TScopedPointer<FSimplygonMeshReduction> GSimplygonMeshReduction;
+TUniquePtr<FSimplygonMeshReduction> GSimplygonMeshReduction;
 
 
 void FSimplygonMeshReductionModule::StartupModule()
 {
-	GSimplygonMeshReduction = FSimplygonMeshReduction::Create();
+	GSimplygonMeshReduction.Reset(FSimplygonMeshReduction::Create());
 }
 
 void FSimplygonMeshReductionModule::ShutdownModule()
 {
 	FSimplygonMeshReduction::Destroy();
-	GSimplygonMeshReduction = NULL;
+	GSimplygonMeshReduction = nullptr;
 }
 
 #define USE_SIMPLYGON_SWARM 0
@@ -2762,7 +2763,7 @@ void FSimplygonMeshReductionModule::ShutdownModule()
 IMeshReduction* FSimplygonMeshReductionModule::GetStaticMeshReductionInterface()
 {
 #if !USE_SIMPLYGON_SWARM
-	return GSimplygonMeshReduction;
+	return GSimplygonMeshReduction.Get();
 #else
 	return nullptr;
 #endif
@@ -2771,7 +2772,7 @@ IMeshReduction* FSimplygonMeshReductionModule::GetStaticMeshReductionInterface()
 IMeshReduction* FSimplygonMeshReductionModule::GetSkeletalMeshReductionInterface()
 {
 #if !USE_SIMPLYGON_SWARM
-	return GSimplygonMeshReduction;
+	return GSimplygonMeshReduction.Get();
 #else
 	return nullptr;
 #endif
@@ -2780,9 +2781,9 @@ IMeshReduction* FSimplygonMeshReductionModule::GetSkeletalMeshReductionInterface
 IMeshMerging* FSimplygonMeshReductionModule::GetMeshMergingInterface()
 {
 #if !USE_SIMPLYGON_SWARM
-	return GSimplygonMeshReduction;
+	return GSimplygonMeshReduction.Get();
 #else
-return nullptr;
+	return nullptr;
 #endif
 }
 

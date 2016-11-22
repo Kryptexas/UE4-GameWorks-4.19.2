@@ -477,7 +477,7 @@ ACameraActor* APlayerController::GetAutoActivateCameraForPlayer() const
 	int32 PlayerIndex = INDEX_NONE;
 	for( FConstPlayerControllerIterator Iterator = CurWorld->GetPlayerControllerIterator(); Iterator; ++Iterator, ++IterIndex )
 	{
-		const APlayerController* PlayerController = *Iterator;
+		const APlayerController* PlayerController = Iterator->Get();
 		if (PlayerController == this)
 		{
 			PlayerIndex = IterIndex;
@@ -490,7 +490,7 @@ ACameraActor* APlayerController::GetAutoActivateCameraForPlayer() const
 		// Find the matching camera
 		for( /*CameraIterater initialized above*/; CameraIterator; ++CameraIterator)
 		{
-			ACameraActor* CameraActor = *CameraIterator;
+			ACameraActor* CameraActor = CameraIterator->Get();
 			if (CameraActor && CameraActor->GetAutoActivatePlayerIndex() == PlayerIndex)
 			{
 				return CameraActor;

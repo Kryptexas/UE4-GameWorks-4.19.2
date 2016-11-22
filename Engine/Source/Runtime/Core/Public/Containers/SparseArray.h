@@ -267,7 +267,7 @@ public:
 			int32 ElementIndex = Data.AddUninitialized(ElementsToAdd);
 
 			// now mark the new elements as free
-			for ( int32 FreeIndex = ElementIndex; FreeIndex < ExpectedNumElements; FreeIndex++ )
+			for ( int32 FreeIndex = ExpectedNumElements - 1; FreeIndex >= ElementIndex; --FreeIndex )
 			{
 				if(NumFreeIndices)
 				{

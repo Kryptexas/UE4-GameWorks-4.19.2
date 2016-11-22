@@ -312,10 +312,15 @@ void FTimeline::SetPlaybackPosition(float NewPosition, bool bFireEvents, bool bF
 	{
 		if (PropSetObject)
 		{
-			if (DirectionProperty == NULL)
+			if (DirectionProperty == nullptr)
 			{
 				DirectionProperty = FindField<UByteProperty>(PropSetObject->GetClass(), DirectionPropertyName);
-				if (DirectionProperty == NULL)
+				if (DirectionProperty == nullptr)
+				{
+					DirectionProperty = FindField<UEnumProperty>(PropSetObject->GetClass(), DirectionPropertyName);
+				}
+
+				if (DirectionProperty == nullptr)
 				{
 					UE_LOG(LogTimeline, Log, TEXT("SetPlaybackPosition: No direction property '%s' in '%s'"), *DirectionPropertyName.ToString(), *PropSetObject->GetName());
 				}
@@ -324,7 +329,17 @@ void FTimeline::SetPlaybackPosition(float NewPosition, bool bFireEvents, bool bF
 			{
 				const ETimelineDirection::Type CurrentDirection = bReversePlayback ? ETimelineDirection::Backward : ETimelineDirection::Forward;
 				TEnumAsByte<ETimelineDirection::Type> ValueAsByte(CurrentDirection);
-				DirectionProperty->SetPropertyValue_InContainer(PropSetObject, ValueAsByte);
+				if (UByteProperty* ByteDirection = Cast<UByteProperty>(DirectionProperty))
+				{
+					ByteDirection->SetPropertyValue_InContainer(PropSetObject, ValueAsByte);
+				}
+				else
+				{
+					UEnumProperty* EnumProp = CastChecked<UEnumProperty>(DirectionProperty);
+					void* PropAddr = EnumProp->ContainerPtrToValuePtr<void>(PropSetObject);
+					UNumericProperty* UnderlyingProp = EnumProp->GetUnderlyingProperty();
+					UnderlyingProp->SetIntPropertyValue(PropAddr, (int64)ValueAsByte);
+				}
 			}
 		}
 	}

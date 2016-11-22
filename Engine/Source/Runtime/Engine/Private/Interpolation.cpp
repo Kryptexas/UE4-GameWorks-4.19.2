@@ -887,7 +887,7 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 					// iterate through the controller list
 					for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
 					{
-						APlayerController *PC = *Iterator;
+						APlayerController *PC = Iterator->Get();
 
 						// If it's a player and this sequence is compatible with the player...
 						if (IsMatineeCompatibleWithPlayer( PC ) )
@@ -1257,7 +1257,7 @@ void AMatineeActor::EnableCinematicMode(bool bEnable)
 	{
 		for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
 		{
-			APlayerController *PC = *Iterator;
+			APlayerController *PC = Iterator->Get();
 			if (bReplicates || PC->IsLocalController())
 			{
 				PC->SetCinematicMode(bEnable, bHidePlayer, bHideHud, bDisableMovementInput, bDisableLookAtInput);

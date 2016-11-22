@@ -188,6 +188,7 @@ FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory1* InDXGIFactory1,D3D_FEATURE_LEV
 	GMaxShadowDepthBufferSizeX = 4096;
 	GMaxShadowDepthBufferSizeY = 4096;
 	GSupportsTimestampRenderQueries = true;
+	GRHISupportsResolveCubemapFaces = true;
 
 	// Initialize the constant buffers.
 	InitConstantBuffers();

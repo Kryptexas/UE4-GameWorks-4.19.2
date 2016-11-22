@@ -608,10 +608,21 @@ FPropertyTypeLayoutCallback FPropertyEditorModule::GetPropertyTypeCustomization(
 		const bool bUserDefinedStruct = bStructProperty && StructProperty->Struct->IsA<UUserDefinedStruct>();
 		bStructProperty &= !bUserDefinedStruct;
 
-		const UByteProperty* ByteProperty = Cast<UByteProperty>(Property);
-		bool bEnumProperty = ByteProperty && ByteProperty->Enum;
-		const bool bUserDefinedEnum = bEnumProperty && ByteProperty->Enum->IsA<UUserDefinedEnum>();
-		bEnumProperty &= !bUserDefinedEnum;
+		const UEnum* Enum = nullptr;
+
+		if (const UByteProperty* ByteProperty = Cast<UByteProperty>(Property))
+		{
+			Enum = ByteProperty->Enum;
+		}
+		else if (const UEnumProperty* EnumProperty = Cast<UEnumProperty>(Property))
+		{
+			Enum = EnumProperty->GetEnum();
+		}
+
+		if (Enum && Enum->IsA<UUserDefinedEnum>())
+		{
+			Enum = nullptr;
+		}
 
 		const UObjectProperty* ObjectProperty = Cast<UObjectProperty>(Property);
 		const bool bObjectProperty = ObjectProperty != NULL && ObjectProperty->PropertyClass != NULL;
@@ -621,9 +632,9 @@ FPropertyTypeLayoutCallback FPropertyEditorModule::GetPropertyTypeCustomization(
 		{
 			PropertyTypeName = StructProperty->Struct->GetFName();
 		}
-		else if( bEnumProperty )
+		else if( Enum )
 		{
-			PropertyTypeName = ByteProperty->Enum->GetFName();
+			PropertyTypeName = Enum->GetFName();
 		}
 		else if ( bObjectProperty )
 		{

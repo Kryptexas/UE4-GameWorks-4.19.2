@@ -82,12 +82,12 @@ void UModelComponent::BuildRenderData()
 		FModelElement& Element = Elements[ElementIndex];
 
 		// Find the index buffer for the element's material.
-		TScopedPointer<FRawIndexBuffer16or32>* IndexBufferRef = TheModel->MaterialIndexBuffers.Find(Element.Material);
+		TUniquePtr<FRawIndexBuffer16or32>* IndexBufferRef = TheModel->MaterialIndexBuffers.Find(Element.Material);
 		if(!IndexBufferRef)
 		{
 			IndexBufferRef = &TheModel->MaterialIndexBuffers.Emplace(Element.Material,new FRawIndexBuffer16or32());
 		}
-		FRawIndexBuffer16or32* const IndexBuffer = *IndexBufferRef;
+		FRawIndexBuffer16or32* const IndexBuffer = IndexBufferRef->Get();
 		check(IndexBuffer);
 
 		Element.IndexBuffer = IndexBuffer;

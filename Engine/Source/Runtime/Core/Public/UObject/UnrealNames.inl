@@ -39,6 +39,9 @@ REGISTER_NAME(31,Engine)
 REGISTER_NAME(32,Editor)
 REGISTER_NAME(33,CoreUObject)
 
+// More class properties
+REGISTER_NAME(34,EnumProperty)
+
 // Special types.
 REGISTER_NAME(50,Cylinder)
 REGISTER_NAME(51,BoxSphereBounds)

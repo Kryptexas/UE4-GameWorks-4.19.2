@@ -3,6 +3,7 @@
 #include "CorePrivatePCH.h"
 #include "ExternalProfiler.h"
 #include "Runtime/Core/Public/Features/IModularFeatures.h"
+#include "UniquePtr.h"
 
 // Not all versions of Visual Studio include the profiler SDK headers
 #if WITH_VS_PERF_PROFILER
@@ -146,7 +147,7 @@ namespace VSPerfProfiler
 	{
 		FAtModuleInit()
 		{
-			static TScopedPointer<FVSPerfExternalProfiler> ProfilerVSPerf( new FVSPerfExternalProfiler() );
+			static TUniquePtr<FVSPerfExternalProfiler> ProfilerVSPerf = MakeUnique<FVSPerfExternalProfiler>();
 			if( !ProfilerVSPerf->Initialize() )
 			{
 				ProfilerVSPerf.Reset();

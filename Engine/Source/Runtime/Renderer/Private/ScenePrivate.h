@@ -1102,6 +1102,13 @@ public:
 	 * This reallocates the resource but does not copy over the old contents. 
 	 */
 	void UpdateMaxCubemaps(uint32 InMaxCubemaps, int32 CubemapSize);
+
+	/**
+	* Updates the maximum number of cubemaps that this array is allocated for.
+	* This reallocates the resource and copies over the old contents, preserving indices
+	*/
+	void ResizeCubemapArrayGPU(uint32 InMaxCubemaps, int32 CubemapSize, const TArray<int32>& IndexRemapping);
+
 	int32 GetMaxCubemaps() const { return MaxCubemaps; }
 	int32 GetCubemapSize() const { return CubemapSize; }
 	bool IsValid() const { return IsValidRef(ReflectionEnvs); }
@@ -1153,6 +1160,9 @@ public:
 	 */
 	FReflectionEnvironmentCubemapArray CubemapArray;
 
+	/** We track the cubemaps removed since the last reallocation to allow us to remap them reallocating the array */
+	TArray<uint32> CubemapIndicesRemovedSinceLastRealloc;
+
 	/** Rendering thread map from component to scene state.  This allows storage of RT state that needs to persist through a component re-register. */
 	TMap<const UReflectionCaptureComponent*, FCaptureComponentSceneState> AllocatedReflectionCaptureState;
 
@@ -1170,6 +1180,9 @@ public:
 		CubemapArray(InFeatureLevel),
 		MaxAllocatedReflectionCubemapsGameThread(0)
 	{}
+
+
+	void ResizeCubemapArrayGPU(uint32 InMaxCubemaps, int32 InCubemapSize);
 };
 
 class FPrimitiveAndInstance

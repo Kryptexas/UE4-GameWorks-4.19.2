@@ -125,6 +125,14 @@ public:
 	}
 
 	/**
+	 * Calls the setter function for a specific runtime object or if the setter function does not exist, the property is set directly
+	 *
+	 * @param InRuntimeObject The runtime object whose function to call
+	 * @param PropertyValue The new value to assign to the property
+	 */
+	void CallFunctionForEnum( UObject& InRuntimeObject, int64 PropertyValue );
+
+	/**
 	 * Rebuilds the property and function mappings for a single runtime object, and adds them to the cache
 	 *
 	 * @param InRuntimeObject	The object to cache mappings for
@@ -161,6 +169,14 @@ public:
 
 		return ValueType();
 	}
+
+	/**
+	 * Gets the current value of a property on an object
+	 *
+	 * @param Object	The object to get the property from
+	 * @return ValueType	The current value
+	 */
+	int64 GetCurrentValueForEnum(const UObject& Object);
 
 	/**
 	 * Sets the current value of a property on an object

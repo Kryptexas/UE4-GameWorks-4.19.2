@@ -424,9 +424,9 @@ void UWorldComposition::OnTileInfoUpdated(const FName& InPackageName, const FWor
 	UPackage* LevelPackage = Cast<UPackage>(StaticFindObjectFast(UPackage::StaticClass(), NULL, Tile->PackageName));
 	if (LevelPackage)
 	{
-		if (LevelPackage->WorldTileInfo == NULL)
+		if (LevelPackage->WorldTileInfo == nullptr)
 		{
-			LevelPackage->WorldTileInfo = new FWorldTileInfo(Tile->Info);
+			LevelPackage->WorldTileInfo = MakeUnique<FWorldTileInfo>(Tile->Info);
 			PackageDirty = true;
 		}
 		else
@@ -887,7 +887,7 @@ void UWorldComposition::OnLevelPostLoad(ULevel* InLevel)
 		const bool bIsDefault = (Info == FWorldTileInfo());
 		if (!bIsDefault)
 		{
-			LevelPackage->WorldTileInfo = new FWorldTileInfo(Info);
+			LevelPackage->WorldTileInfo = MakeUnique<FWorldTileInfo>(Info);
 		}
 	}
 }

@@ -114,8 +114,13 @@ UPanelSlot* UPanelWidget::AddChild(UWidget* Content)
 
 	Content->RemoveFromParent();
 
-	UPanelSlot* PanelSlot = NewObject<UPanelSlot>(this, GetSlotClass());
-	PanelSlot->SetFlags(RF_Transactional);
+	EObjectFlags NewObjectFlags = RF_Transactional;
+	if (HasAnyFlags(RF_Transient))
+	{
+		NewObjectFlags |= RF_Transient;
+	}
+
+	UPanelSlot* PanelSlot = NewObject<UPanelSlot>(this, GetSlotClass(), NAME_None, NewObjectFlags);
 	PanelSlot->Content = Content;
 	PanelSlot->Parent = this;
 

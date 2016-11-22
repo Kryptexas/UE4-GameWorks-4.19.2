@@ -34,6 +34,7 @@
 #include "Package.h"					// Package class definition
 #include "MetaData.h"					// Metadata for packages
 #include "UnrealType.h"					// Base property type.
+#include "EnumProperty.h"				// enum property type
 #include "TextProperty.h"				// FText property type
 #include "Stack.h"						// Script stack frame definition.
 #include "ObjectRedirector.h"			// Cross-package object redirector

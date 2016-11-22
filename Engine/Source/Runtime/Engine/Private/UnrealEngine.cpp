@@ -4683,7 +4683,7 @@ bool UEngine::HandleMergeMeshCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorl
 	USkeletalMesh * PlayerMesh = NULL;
 	for (FConstPlayerControllerIterator Iterator = InWorld->GetPlayerControllerIterator(); Iterator; ++Iterator)
 	{
-		APlayerController* PlayerController = *Iterator;
+		APlayerController* PlayerController = Iterator->Get();
 		if (PlayerController->GetCharacter() != NULL && PlayerController->GetCharacter()->GetMesh())
 		{
 			PlayerPawn = PlayerController->GetCharacter();
@@ -4705,7 +4705,7 @@ bool UEngine::HandleMergeMeshCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorl
 		// we don't have a pawn (because we couldn't find a mesh), use any pawn as a spawn point
 		for (FConstPlayerControllerIterator Iterator = InWorld->GetPlayerControllerIterator(); Iterator; ++Iterator)
 		{
-			APlayerController* PlayerController = *Iterator;
+			APlayerController* PlayerController = Iterator->Get();
 			if (PlayerController->GetPawn() != NULL)
 			{
 				PlayerPawn = PlayerController->GetPawn();
@@ -12985,7 +12985,7 @@ int32 UEngine::RenderStatAI(UWorld* World, FViewport* Viewport, FCanvas* Canvas,
 	int32 NumAIRendered = 0;
 	for (FConstControllerIterator Iterator = World->GetControllerIterator(); Iterator; ++Iterator)
 	{
-		AController* Controller = *Iterator;
+		AController* Controller = Iterator->Get();
 		if (!Cast<APlayerController>(Controller))
 		{
 			++NumAI;

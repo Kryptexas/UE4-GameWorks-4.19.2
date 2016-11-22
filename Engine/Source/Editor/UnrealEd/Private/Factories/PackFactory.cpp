@@ -16,6 +16,7 @@
 #include "Factories/PackFactory.h"
 #include "GameFramework/InputSettings.h"
 #include "Dialogs/SOutputLogDialog.h"
+#include "UniquePtr.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPackFactory, Log, All);
 
@@ -506,9 +507,9 @@ UObject* UPackFactory::FactoryCreateBinary
 					DestFilename = ContentDestinationRoot / DestFilename;
 					UE_LOG(LogPackFactory, Log, TEXT("%s (%ld) -> %s"), *It.Filename(), Entry.Size, *DestFilename);
 
-					TAutoPtr<FArchive> FileHandle(IFileManager::Get().CreateFileWriter(*DestFilename));
+					TUniquePtr<FArchive> FileHandle(IFileManager::Get().CreateFileWriter(*DestFilename));
 
-					if (FileHandle.IsValid())
+					if (FileHandle)
 					{
 						PackFactoryHelper::ExtractFile(Entry, PakReader, CopyBuffer, PersistentCompressionBuffer, *FileHandle);
 						WrittenFiles.Add(*DestFilename);

@@ -2,6 +2,7 @@
 
 #include "CorePrivatePCH.h"
 #include "Misc/App.h"
+#include "UniquePtr.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogTextLocalizationManager, Log, All);
 
@@ -142,7 +143,7 @@ void FTextLocalizationManager::FLocalizationEntryTracker::LoadFromDirectory(cons
 
 bool FTextLocalizationManager::FLocalizationEntryTracker::LoadFromFile(const FString& FilePath)
 {
-	TScopedPointer<FArchive> Reader(IFileManager::Get().CreateFileReader( *FilePath ));
+	TUniquePtr<FArchive> Reader(IFileManager::Get().CreateFileReader( *FilePath ));
 	if( !Reader )
 	{
 		return false;

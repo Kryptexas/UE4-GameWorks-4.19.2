@@ -9,8 +9,8 @@
 
 FLinkerManager& FLinkerManager::Get()
 {
-	static TAutoPtr<FLinkerManager> Singleton(new FLinkerManager());
-	return *Singleton.GetOwnedPointer();
+	static TUniquePtr<FLinkerManager> Singleton = MakeUnique<FLinkerManager>();
+	return *Singleton;
 }
 
 bool FLinkerManager::Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)

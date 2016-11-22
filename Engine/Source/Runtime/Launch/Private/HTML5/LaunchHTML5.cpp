@@ -94,7 +94,7 @@ public:
 		return false;
 	}
 };
-static TAutoPtr<FHTML5Exec> GHTML5Exec;
+static TUniquePtr<FHTML5Exec> GHTML5Exec;
 
 int main(int argc, char* argv[])
 {
@@ -110,7 +110,7 @@ int main(int argc, char* argv[])
 
 	// TODO: configure this via the command line?
 	emscripten_trace_configure("http://127.0.0.1:5000/", "UE4Game");
-	GHTML5Exec = new FHTML5Exec();
+	GHTML5Exec = MakeUnique<FHTML5Exec>();
 
 	emscripten_trace_enter_context("main");
 

@@ -29,6 +29,25 @@ struct FPropertyArchiveProxy : public FFieldArchiveProxy
 	int32 PostConstructLinkNextIndex;
 };
 
+struct FEnumPropertyArchiveProxy : public FPropertyArchiveProxy
+{
+	FEnumPropertyArchiveProxy() { }
+	FEnumPropertyArchiveProxy(FUHTMakefile& UHTMakefile, const UEnumProperty* EnumProperty);
+
+	UEnumProperty* CreateEnumProperty(const FUHTMakefile& UHTMakefile) const;
+
+	void Resolve(UEnumProperty* EnumProperty, const FUHTMakefile& UHTMakefile) const;
+	static void AddReferencedNames(const UEnumProperty* Property, FUHTMakefile& UHTMakefile)
+	{
+		FPropertyArchiveProxy::AddReferencedNames(Property, UHTMakefile);
+	}
+
+	friend FArchive& operator<<(FArchive& Ar, FEnumPropertyArchiveProxy& BytePropertyArchiveProxy);
+
+	int32 EnumIndex;
+	int32 UnderlyingPropertyIndex;
+};
+
 struct FBytePropertyArchiveProxy : public FPropertyArchiveProxy
 {
 	FBytePropertyArchiveProxy() { }

@@ -18,5 +18,5 @@ struct FEnumArchiveProxy : public FFieldArchiveProxy
 	uint32 EnumFlags;
 	uint32 CppForm;
 	FString CppType;
-	TArray<TPair<FNameArchiveProxy, uint8>> EnumValues;
+	TArray<TPair<FNameArchiveProxy, int64>> EnumValuesX;
 };

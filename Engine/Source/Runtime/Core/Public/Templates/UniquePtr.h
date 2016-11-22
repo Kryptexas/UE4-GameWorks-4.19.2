@@ -20,9 +20,10 @@
 template <typename T>
 struct TDefaultDelete
 {
-	TDefaultDelete()
-	{
-	}
+	TDefaultDelete() = default;
+	TDefaultDelete(const TDefaultDelete&) = default;
+	TDefaultDelete& operator=(const TDefaultDelete&) = default;
+	~TDefaultDelete() = default;
 
 	template <
 		typename U,
@@ -41,10 +42,6 @@ struct TDefaultDelete
 		return *this;
 	}
 
-	~TDefaultDelete()
-	{
-	}
-
 	void operator()(T* Ptr) const
 	{
 		delete Ptr;
@@ -54,9 +51,10 @@ struct TDefaultDelete
 template <typename T>
 struct TDefaultDelete<T[]>
 {
-	TDefaultDelete()
-	{
-	}
+	TDefaultDelete() = default;
+	TDefaultDelete(const TDefaultDelete&) = default;
+	TDefaultDelete& operator=(const TDefaultDelete&) = default;
+	~TDefaultDelete() = default;
 
 	template <
 		typename U,
@@ -73,10 +71,6 @@ struct TDefaultDelete<T[]>
 	TDefaultDelete& operator=(const TDefaultDelete<U[]>&)
 	{
 		return *this;
-	}
-
-	~TDefaultDelete()
-	{
 	}
 
 	template <typename U>

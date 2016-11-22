@@ -397,7 +397,7 @@ TArray<FSubLevelStatus> GetSubLevelsStatus( UWorld* World )
 
 	for( FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator )
 	{
-		APlayerController* PlayerController = *Iterator;
+		APlayerController* PlayerController = Iterator->Get();
 
 		if( PlayerController->GetPawn() != NULL )
 		{

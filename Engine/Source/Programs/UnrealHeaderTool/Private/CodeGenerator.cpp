@@ -929,7 +929,7 @@ FString FNativeClassHeaderGenerator::GetOverriddenNameForLiteral(const UField* I
 	return TEXT("\"") + Item->GetName() + TEXT("\"");
 }
 
-FString FNativeClassHeaderGenerator::PropertyNew(FString& Meta, UProperty* Prop, const FString& OuterString, const FString& PropMacro, const TCHAR* NameSuffix, const TCHAR* Spaces, const TCHAR* SourceStruct)
+FString FNativeClassHeaderGenerator::PropertyNew(FString& Meta, UProperty* Prop, const FString& OuterString, const FString& PropMacro, const TCHAR* Name, const TCHAR* Spaces, const TCHAR* SourceStruct)
 {
 	FString ExtraArgs;
 	FString GeneratedCrc;
@@ -974,6 +974,10 @@ FString FNativeClassHeaderGenerator::PropertyNew(FString& Meta, UProperty* Prop,
 		{
 			ExtraArgs = FString::Printf(TEXT(", %s"), *GetSingletonName(ByteProperty->Enum));
 		}
+	}
+	else if (UEnumProperty* EnumProperty = Cast<UEnumProperty>(Prop))
+	{
+		ExtraArgs = FString::Printf(TEXT(", %s"), *GetSingletonName(EnumProperty->Enum));
 	}
 	else if (UBoolProperty* BoolProperty = Cast<UBoolProperty>(Prop))
 	{
@@ -1026,23 +1030,22 @@ FString FNativeClassHeaderGenerator::PropertyNew(FString& Meta, UProperty* Prop,
 		*ExtraArgs);
 	TheFlagAudit.Add(Prop, TEXT("PropertyFlags"), Prop->PropertyFlags);
 
-	FString Symbol = FString::Printf(TEXT("NewProp_%s%s"), *Prop->GetName(), NameSuffix);
 	FString Lines  = FString::Printf(TEXT("%sUProperty* %s = %s%s\r\n"), 
 		Spaces, 
-		*Symbol, 
+		Name, 
 		*Constructor,
 		*GetGeneratedCodeCRCTag(Prop));
 
 	if (Prop->ArrayDim != 1)
 	{
-		Lines += FString::Printf(TEXT("%s%s->ArrayDim = CPP_ARRAY_DIM(%s, %s);\r\n"), Spaces, *Symbol, *PropNameDep, SourceStruct);
+		Lines += FString::Printf(TEXT("%s%s->ArrayDim = CPP_ARRAY_DIM(%s, %s);\r\n"), Spaces, Name, *PropNameDep, SourceStruct);
 	}
 
 	if (Prop->RepNotifyFunc != NAME_None)
 	{
-		Lines += FString::Printf(TEXT("%s%s->RepNotifyFunc = FName(TEXT(\"%s\"));\r\n"), Spaces, *Symbol, *Prop->RepNotifyFunc.ToString());
+		Lines += FString::Printf(TEXT("%s%s->RepNotifyFunc = FName(TEXT(\"%s\"));\r\n"), Spaces, Name, *Prop->RepNotifyFunc.ToString());
 	}
-	Meta += GetMetaDataCodeForObject(Prop, *Symbol, Spaces);
+	Meta += GetMetaDataCodeForObject(Prop, Name, Spaces);
 	return Lines;
 }
 
@@ -1100,6 +1103,8 @@ void FNativeClassHeaderGenerator::OutputProperty(FString& Meta, FOutputDevice& O
 {
 	FString PropName = Prop->GetName();
 
+	FString PropVariableName = FString::Printf(TEXT("NewProp_%s"), *PropName);
+
 	{
 		FString SourceStruct;
 		UFunction* Function = Cast<UFunction>(Prop->GetOuter());
@@ -1142,29 +1147,67 @@ void FNativeClassHeaderGenerator::OutputProperty(FString& Meta, FOutputDevice& O
 		{
 			PropMacroOuterClass = FString::Printf(TEXT("CPP_PROPERTY_BASE(%s, %s)"), *PropNameDep, *SourceStruct);
 		}
-		OutputDevice.Log(*PropertyNew(Meta, Prop, OuterString, PropMacroOuterClass, TEXT(""), Spaces, *SourceStruct));
+		OutputDevice.Log(*PropertyNew(Meta, Prop, OuterString, PropMacroOuterClass, *PropVariableName, Spaces, *SourceStruct));
 	}
+
+	// Map of enum class properties to their outer's variable name
+	TMap<UNumericProperty*, FString> UnderlyingEnumSuffixes;
 
 	if (UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Prop))
 	{
 		FString InnerOuterString = FString::Printf(TEXT("NewProp_%s"), *PropName);
 		FString PropMacroOuterArray = TEXT("FObjectInitializer(), EC_CppProperty, 0");
-		OutputDevice.Log(*PropertyNew(Meta, ArrayProperty->Inner, InnerOuterString, PropMacroOuterArray, TEXT("_Inner"), Spaces));
+		FString InnerVariableName = FString::Printf(TEXT("NewProp_%s_Inner"), *ArrayProperty->Inner->GetName());
+		OutputDevice.Log(*PropertyNew(Meta, ArrayProperty->Inner, InnerOuterString, PropMacroOuterArray, *InnerVariableName, Spaces));
+
+		if (UEnumProperty* EnumArrayProperty = Cast<UEnumProperty>(ArrayProperty->Inner))
+		{
+			UnderlyingEnumSuffixes.Add(EnumArrayProperty->UnderlyingProp, MoveTemp(InnerVariableName));
+		}
 	}
 
 	else if (UMapProperty* MapProperty = Cast<UMapProperty>(Prop))
 	{
 		FString InnerOuterString = FString::Printf(TEXT("NewProp_%s"), *PropName);
 		FString PropMacroOuterMap = TEXT("FObjectInitializer(), EC_CppProperty, ");
-		OutputDevice.Log(*PropertyNew(Meta, MapProperty->KeyProp,   InnerOuterString, PropMacroOuterMap + TEXT("0"), TEXT("_KeyProp"),   Spaces));
-		OutputDevice.Log(*PropertyNew(Meta, MapProperty->ValueProp, InnerOuterString, PropMacroOuterMap + TEXT("1"), TEXT("_ValueProp"), Spaces));
+		FString KeyVariableName = FString::Printf(TEXT("NewProp_%s_KeyProp"), *MapProperty->KeyProp->GetName());
+		FString ValueVariableName = FString::Printf(TEXT("NewProp_%s_ValueProp"), *MapProperty->ValueProp->GetName());
+		OutputDevice.Log(*PropertyNew(Meta, MapProperty->KeyProp,   InnerOuterString, PropMacroOuterMap + TEXT("0"), *KeyVariableName,   Spaces));
+		OutputDevice.Log(*PropertyNew(Meta, MapProperty->ValueProp, InnerOuterString, PropMacroOuterMap + TEXT("1"), *ValueVariableName, Spaces));
+
+		if (UEnumProperty* EnumKeyProperty = Cast<UEnumProperty>(MapProperty->KeyProp))
+		{
+			UnderlyingEnumSuffixes.Add(EnumKeyProperty->UnderlyingProp, MoveTemp(KeyVariableName));
+		}
+
+		if (UEnumProperty* EnumValueProperty = Cast<UEnumProperty>(MapProperty->ValueProp))
+		{
+			UnderlyingEnumSuffixes.Add(EnumValueProperty->UnderlyingProp, MoveTemp(ValueVariableName));
+		}
 	}
 
 	else if (USetProperty* SetProperty = Cast<USetProperty>(Prop))
 	{
-		FString InnerOuterString = FString::Printf(TEXT("NewProp_%s"), *Prop->GetName());
-		FString PropMacroOuterArray = TEXT("FObjectInitializer(), EC_CppProperty, 0");
-		OutputDevice.Log(*PropertyNew(Meta, SetProperty->ElementProp, InnerOuterString, PropMacroOuterArray, TEXT("_ElementProp"), Spaces));
+		FString InnerOuterString = FString::Printf(TEXT("NewProp_%s"), *PropName);
+		FString PropMacroOuterSet = TEXT("FObjectInitializer(), EC_CppProperty, 0");
+		FString ElementVariableName = FString::Printf(TEXT("NewProp_%s_ElementProp"), *SetProperty->ElementProp->GetName());
+		OutputDevice.Log(*PropertyNew(Meta, SetProperty->ElementProp, InnerOuterString, PropMacroOuterSet, *ElementVariableName, Spaces));
+
+		if (UEnumProperty* EnumSetProperty = Cast<UEnumProperty>(SetProperty->ElementProp))
+		{
+			UnderlyingEnumSuffixes.Add(EnumSetProperty->UnderlyingProp, MoveTemp(ElementVariableName));
+		}
+	}
+
+	else if (UEnumProperty* EnumProperty = Cast<UEnumProperty>(Prop))
+	{
+		UnderlyingEnumSuffixes.Add(EnumProperty->UnderlyingProp, PropVariableName);
+	}
+
+	FString PropMacroOuterEnum = TEXT("FObjectInitializer(), EC_CppProperty, 0");
+	for (const TPair<UNumericProperty*, FString>& PropAndVarName : UnderlyingEnumSuffixes)
+	{
+		OutputDevice.Log(*PropertyNew(Meta, PropAndVarName.Key, PropAndVarName.Value, PropMacroOuterEnum, *(PropAndVarName.Value + TEXT("_Underlying")), Spaces));
 	}
 }
 
@@ -3179,12 +3222,12 @@ void FNativeClassHeaderGenerator::ExportGeneratedEnumsInitCode(const TArray<UEnu
 
 			const TCHAR* UEnumObjectFlags = bIsDynamic ? TEXT("RF_Public|RF_Transient") : TEXT("RF_Public|RF_Transient|RF_MarkAsNative");
 			GeneratedEnumRegisterFunctionText.Logf(TEXT("\t\t\tReturnEnum = new(EC_InternalUseOnlyConstructor, Outer, TEXT(\"%s\"), %s) UEnum(FObjectInitializer());\r\n"), *FNativeClassHeaderGenerator::GetOverriddenName(Enum), UEnumObjectFlags);
-			GeneratedEnumRegisterFunctionText.Logf(TEXT("\t\t\tTArray<TPair<FName, uint8>> EnumNames;\r\n"));
+			GeneratedEnumRegisterFunctionText.Logf(TEXT("\t\t\tTArray<TPair<FName, int64>> EnumNames;\r\n"));
 			for (int32 Index = 0; Index < Enum->NumEnums(); Index++)
 			{
 				const TCHAR* OverridenNameMetaDatakey = TEXT("OverrideName");
 				const FString KeyName = Enum->HasMetaData(OverridenNameMetaDatakey, Index) ? Enum->GetMetaData(OverridenNameMetaDatakey, Index) : Enum->GetNameByIndex(Index).ToString();
-				GeneratedEnumRegisterFunctionText.Logf(TEXT("\t\t\tEnumNames.Add(TPairInitializer<FName, uint8>(FName(TEXT(\"%s\")), %d));\r\n"), *KeyName, Enum->GetValueByIndex(Index));
+				GeneratedEnumRegisterFunctionText.Logf(TEXT("\t\t\tEnumNames.Add(TPairInitializer<FName, int64>(FName(TEXT(\"%s\")), %lld));\r\n"), *KeyName, Enum->GetValueByIndex(Index));
 			}
 
 			FString EnumTypeStr;
@@ -3704,7 +3747,7 @@ void ExportMCPDeclaration(FOutputDevice& Out, const FString& MessageName, TField
 			else
 			{
 				UByteProperty* ByteProperty = Cast<UByteProperty>(Property);
-				if (ByteProperty != NULL && ByteProperty->Enum != NULL)
+				if ((ByteProperty && ByteProperty->Enum) || Cast<UEnumProperty>(Property))
 				{
 					// treat enums like strings because that's how they'll be exported in JSON
 					MCPTypeName = ToMCPTypeMappings.Find(TEXT("FString"));
@@ -3950,6 +3993,12 @@ FString FNativeClassHeaderGenerator::GetNullParameterValue( UProperty* Prop, boo
 		}
 
 		return TEXT("0");
+	}
+	else if (PropClass == UEnumProperty::StaticClass())
+	{
+		UEnumProperty* EnumProp = (UEnumProperty*)Prop;
+
+		return FString::Printf(TEXT("(%s)0"), *EnumProp->Enum->GetName());
 	}
 	else if ( PropClass == UBoolProperty::StaticClass() )
 	{
@@ -4327,7 +4376,6 @@ void FNativeClassHeaderGenerator::ExportFunctionThunk(FUHTStringBuilder& RPCWrap
 		FString EvalParameterText;				// e.g. (UObject*,NULL)
 
 		FString TypeText;
-		bool bPassAsNoPtr = false;
 
 		if (Param->ArrayDim > 1)
 		{
@@ -4351,11 +4399,10 @@ void FNativeClassHeaderGenerator::ExportFunctionThunk(FUHTStringBuilder& RPCWrap
 			}
 		}
 
-		if (Param->HasAllPropertyFlags(CPF_UObjectWrapper | CPF_OutParm) 
-			&& Param->IsA(UClassProperty::StaticClass()))
+		bool bPassAsNoPtr = Param->HasAllPropertyFlags(CPF_UObjectWrapper | CPF_OutParm) && Param->IsA(UClassProperty::StaticClass());
+		if (bPassAsNoPtr)
 		{
 			TypeText = Param->GetCPPType();
-			bPassAsNoPtr = true;
 		}
 
 		FUHTStringBuilder ReplacementText;
@@ -4372,7 +4419,7 @@ void FNativeClassHeaderGenerator::ExportFunctionThunk(FUHTStringBuilder& RPCWrap
 		{
 			if (!bPassAsNoPtr)
 			{
-			EvalModifierText += TEXT("_REF");
+				EvalModifierText += TEXT("_REF");
 			}
 			else
 			{
@@ -4423,24 +4470,34 @@ void FNativeClassHeaderGenerator::ExportFunctionThunk(FUHTStringBuilder& RPCWrap
 			}
 		}
 
+		UEnum* Enum = nullptr;
 		UByteProperty* ByteProp = Cast<UByteProperty>(Param);
 		if (ByteProp && ByteProp->Enum)
 		{
+			Enum = ByteProp->Enum;
+		}
+		else if (Param->IsA<UEnumProperty>())
+		{
+			Enum = ((UEnumProperty*)Param)->Enum;
+		}
+
+		if (Enum)
+		{
 			// For enums, add an explicit conversion 
-			if (!(ByteProp->PropertyFlags & CPF_OutParm))
+			if (!(Param->PropertyFlags & CPF_OutParm))
 			{
-				ParamName = FString::Printf(TEXT("%s(%s)"), *ByteProp->Enum->CppType, *ParamName);
+				ParamName = FString::Printf(TEXT("%s(%s)"), *Enum->CppType, *ParamName);
 			}
 			else
 			{
-				if (ByteProp->Enum->GetCppForm() == UEnum::ECppForm::EnumClass)
+				if (Enum->GetCppForm() == UEnum::ECppForm::EnumClass)
 				{
 					// If we're an enum class don't require the wrapper
-					ParamName = FString::Printf(TEXT("(%s&)(%s)"), *ByteProp->Enum->CppType, *ParamName);
+					ParamName = FString::Printf(TEXT("(%s&)(%s)"), *Enum->CppType, *ParamName);
 				}
 				else
 				{
-					ParamName = FString::Printf(TEXT("(TEnumAsByte<%s>&)(%s)"), *ByteProp->Enum->CppType, *ParamName);
+					ParamName = FString::Printf(TEXT("(TEnumAsByte<%s>&)(%s)"), *Enum->CppType, *ParamName);
 				}
 			}
 		}
@@ -4832,11 +4889,15 @@ TArray<UFunction*> FNativeClassHeaderGenerator::ExportCallbackFunctions(FUnrealS
 void FNativeClassHeaderGenerator::ApplyAlternatePropertyExportText(UProperty* Prop, FUHTStringBuilder& PropertyText)
 {
 	UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Prop);
-	UByteProperty* InnerByteProperty = ArrayProperty ? Cast<UByteProperty>(ArrayProperty->Inner) : nullptr;
-	if (InnerByteProperty && InnerByteProperty->Enum && FClass::IsDynamic(InnerByteProperty->Enum))
+	UProperty* InnerProperty = ArrayProperty ? ArrayProperty->Inner : nullptr;
+	if (InnerProperty && (
+			InnerProperty->IsA<UByteProperty>() && ((UByteProperty*)InnerProperty)->Enum && FClass::IsDynamic(((UByteProperty*)InnerProperty)->Enum) ||
+			InnerProperty->IsA<UEnumProperty>()                                          && FClass::IsDynamic(((UEnumProperty*)InnerProperty)->Enum)
+		)
+	)
 	{
-		const FString Original = InnerByteProperty->GetCPPType();
-		const FString RawByte = InnerByteProperty->GetCPPType(nullptr, EPropertyExportCPPFlags::CPPF_BlueprintCppBackend);
+		const FString Original = InnerProperty->GetCPPType();
+		const FString RawByte = InnerProperty->GetCPPType(nullptr, EPropertyExportCPPFlags::CPPF_BlueprintCppBackend);
 		if (Original != RawByte)
 		{
 			PropertyText.ReplaceInline(*Original, *RawByte, ESearchCase::CaseSensitive);
@@ -5932,7 +5993,12 @@ ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename
 	if (bUseMakefile)
 	{
 		MakefilePath = FPaths::Combine(*ModuleInfoPath, TEXT("UHT.makefile"));
-		UHTMakefile.LoadFromFile(*MakefilePath, &GManifest);
+
+		// If makefile failed to load, clear it
+		if (!UHTMakefile.LoadFromFile(*MakefilePath, &GManifest))
+		{
+			UHTMakefile = FUHTMakefile();
+		}
 	}
 	UHTMakefile.StartPreloading();
 	{

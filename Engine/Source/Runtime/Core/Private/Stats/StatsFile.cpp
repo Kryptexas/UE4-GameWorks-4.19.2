@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "CorePrivatePCH.h"
+#include "UniquePtr.h"
 
 #if	STATS
 
@@ -1183,7 +1184,7 @@ void FCommandStatsFile::TestLastSaved()
 		}
 	};
 
-	TAutoPtr<FStatsTestReader> Instance( FStatsReader<FStatsTestReader>::Create( *FilePath ) );
+	TUniquePtr<FStatsTestReader> Instance( FStatsReader<FStatsTestReader>::Create( *FilePath ) );
 
 	extern void DumpHistoryFrame( FStatsThreadState const& StatsData, int64 TargetFrame, float InDumpCull = 0.0f, int32 MaxDepth = MAX_int32, TCHAR const* Filter = NULL );
 

@@ -6,6 +6,7 @@
 #include "Components/MeshComponent.h"
 #include "Runtime/RenderCore/Public/PackedNormal.h"
 #include "RawIndexBuffer.h"
+#include "UniquePtr.h"
 #include "StaticMeshComponent.generated.h"
 
 class FColorVertexBuffer;
@@ -68,7 +69,7 @@ struct FStaticMeshComponentLODInfo
 	FMeshMapBuildData* LegacyMapBuildData;
 
 	/** Transient override lightmap data, used by landscape grass. */
-	TScopedPointer<FMeshMapBuildData> OverrideMapBuildData;
+	TUniquePtr<FMeshMapBuildData> OverrideMapBuildData;
 
 	/** Vertex data cached at the time this LOD was painted, if any */
 	UPROPERTY()

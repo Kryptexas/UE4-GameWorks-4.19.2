@@ -375,7 +375,7 @@ FViewInfo::FViewInfo(const FSceneView* InView)
 
 void FViewInfo::Init()
 {
-	CachedViewUniformShaderParameters = NULL;
+	CachedViewUniformShaderParameters = nullptr;
 	bHasTranslucentViewMeshElements = 0;
 	bPrevTransformsReset = false;
 	bIgnoreExistingQueries = false;
@@ -824,7 +824,7 @@ void FViewInfo::InitRHIResources()
 
 	check(IsInRenderingThread());
 
-	CachedViewUniformShaderParameters = new FViewUniformShaderParameters();
+	CachedViewUniformShaderParameters = MakeUnique<FViewUniformShaderParameters>();
 
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(FRHICommandListExecutor::GetImmediateCommandList());
 
@@ -879,7 +879,7 @@ FViewInfo* FViewInfo::CreateSnapshot() const
 	for (size_t i = 0; i < ARRAY_COUNT(Result->MobileDirectionalLightUniformBuffers); i++)
 		FMemory::Memcpy(Result->MobileDirectionalLightUniformBuffers[i], NullMobileDirectionalLightUniformBuffer);
 
-	TScopedPointer<FViewUniformShaderParameters> NullViewParameters;
+	TUniquePtr<FViewUniformShaderParameters> NullViewParameters;
 	FMemory::Memcpy(Result->CachedViewUniformShaderParameters, NullViewParameters); 
 	Result->bIsSnapshot = true;
 	ViewInfoSnapshots.Add(Result);

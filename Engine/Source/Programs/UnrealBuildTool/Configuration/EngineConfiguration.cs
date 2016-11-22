@@ -39,7 +39,7 @@ namespace UnrealBuildTool
 																	"/Script/BuildSettings.BuildSettings", "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "/Script/WindowsTargetPlatform.WindowsTargetSettings",
 																	"/Script/UnrealEd.ProjectPackagingSettings", "/Script/PS4PlatformEditor.PS4TargetSettings", "/Script/XboxOnePlatformEditor.XboxOneTargetSettings",
 																	"/Script/HTML5PlatformEditor.HTML5TargetSettings","PS4SymbolServer","/Script/EngineSettings.GeneralProjectSettings",
-                                                                    "/Script/UnrealEd.ProjectPackagingSettings", "InstalledPlatforms", "OnlineSubsystemGooglePlay.Store","/Script/Engine.StreamingSettings",
+                                                                    "/Script/UnrealEd.ProjectPackagingSettings", "InstalledPlatforms", "OnlineSubsystemGooglePlay.Store","/Script/Engine.StreamingSettings", "Core.Encryption",
                                                                     "/Script/SwitchRuntimeSettings.SwitchRuntimeSettings", "/Script/Engine.NetworkSettings", "/Script/SourceCodeAccess.SourceCodeAccessSettings",
 																	"/Script/LinuxTargetPlatform.LinuxTargetSettings"};
 
@@ -854,7 +854,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Returns the platform name to use as part of platform-specific config files
 		/// </summary>
-		private static string GetIniPlatformName(UnrealTargetPlatform TargetPlatform)
+		public static string GetIniPlatformName(UnrealTargetPlatform TargetPlatform)
 		{
 			if (TargetPlatform == UnrealTargetPlatform.Win32 || TargetPlatform == UnrealTargetPlatform.Win64)
 			{

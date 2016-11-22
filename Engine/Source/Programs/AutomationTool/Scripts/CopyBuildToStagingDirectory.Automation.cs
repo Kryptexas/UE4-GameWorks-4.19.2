@@ -25,6 +25,16 @@ public partial class Project : CommandUtils
 
 	private static readonly object SyncLock = new object();
 
+	private static readonly object EncryptionKeysLock = new object();
+	
+	private static void GetEncryptionKeys(ProjectParams InParams, UnrealTargetPlatform InTargetPlatform, out string[] OutRSAKeys, out string OutAESKey)
+	{
+		lock (EncryptionKeysLock)
+		{
+			UEBuildTarget.ParseEncryptionIni(new DirectoryReference(CommandUtils.GetDirectoryName(InParams.RawProjectPath.FullName)), InTargetPlatform, out OutRSAKeys, out OutAESKey);
+		}
+	}
+
 	/// <returns>The path for the BuildPatchTool executable depending on host platform.</returns>
 	private static string GetBuildPatchToolExecutable()
 	{
@@ -65,7 +75,7 @@ public partial class Project : CommandUtils
 	/// </summary>
 	/// <param name="Filename"></param>
 	/// <param name="ResponseFile"></param>
-	private static void WritePakResponseFile(string Filename, Dictionary<string, string> ResponseFile, bool Compressed, bool EncryptIniFiles)
+	private static void WritePakResponseFile(string Filename, Dictionary<string, string> ResponseFile, bool Compressed, bool EncryptIniFiles, bool EncryptEverything)
 	{
 		using (var Writer = new StreamWriter(Filename, false, new System.Text.UTF8Encoding(true)))
 		{
@@ -77,7 +87,7 @@ public partial class Project : CommandUtils
 					Line += " -compress";
 				}
 				
-				if (Path.GetExtension(Entry.Key).Contains(".ini") && EncryptIniFiles)
+				if (EncryptEverything || (Path.GetExtension(Entry.Key).Contains(".ini") && EncryptIniFiles))
 				{
 					Line += " -encrypt";
 				}
@@ -98,7 +108,7 @@ public partial class Project : CommandUtils
 		return Result;
 	}
 
-    static public void RunUnrealPak(Dictionary<string, string> UnrealPakResponseFile, string OutputLocation, string EncryptionKeys, string PakOrderFileLocation, string PlatformOptions, bool Compressed, bool EncryptIniFiles, String PatchSourceContentPath)
+    static public void RunUnrealPak(Dictionary<string, string> UnrealPakResponseFile, string OutputLocation, string PakOrderFileLocation, string PlatformOptions, bool Compressed, bool EncryptIniFiles, bool EncryptEverything, String PatchSourceContentPath, String EngineDir, String ProjectDir, String Platform)
 	{
 		if (UnrealPakResponseFile.Count < 1)
 		{
@@ -106,16 +116,14 @@ public partial class Project : CommandUtils
 		}
 		string PakName = Path.GetFileNameWithoutExtension(OutputLocation);
 		string UnrealPakResponseFileName = CombinePaths(CmdEnv.LogFolder, "PakList_" + PakName + ".txt");
-		WritePakResponseFile(UnrealPakResponseFileName, UnrealPakResponseFile, Compressed, EncryptIniFiles);
+		WritePakResponseFile(UnrealPakResponseFileName, UnrealPakResponseFile, Compressed, EncryptIniFiles, EncryptEverything);
 
 		var UnrealPakExe = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/Win64/UnrealPak.exe");
-
 		Log("Running UnrealPak *******");
 		string CmdLine = CommandUtils.MakePathSafeToUseWithCommandLine(OutputLocation) + " -create=" + CommandUtils.MakePathSafeToUseWithCommandLine(UnrealPakResponseFileName);
-		if (!String.IsNullOrEmpty(EncryptionKeys))
-		{
-			CmdLine += " -sign=" + CommandUtils.MakePathSafeToUseWithCommandLine(EncryptionKeys);
-		}
+
+		CmdLine += String.Format(" -encryptionini -enginedir=\"{0}\" -projectdir=\"{1}\" -platform={2}", EngineDir, ProjectDir, Platform);
+
 		if (GlobalCommandLine.Installed)
 		{
 			CmdLine += " -installed";
@@ -838,7 +846,8 @@ public partial class Project : CommandUtils
             string CloudDir = MakePathSafeToUseWithCommandLine(CombinePaths(ChunkInstallBasePath, "CloudDir"));
             InternalUtils.SafeDeleteDirectory(CloudDir, true);
         }
-        CreatePak(Params, SC, UnrealPakResponseFile, SC.ShortProjectName, Params.SignPak);
+
+        CreatePak(Params, SC, UnrealPakResponseFile, SC.ShortProjectName);
 	}
 
 	/// <summary>
@@ -937,7 +946,7 @@ public partial class Project : CommandUtils
 	/// <param name="SC"></param>
 	/// <param name="UnrealPakResponseFile"></param>
 	/// <param name="PakName"></param>
-	private static void CreatePak(ProjectParams Params, DeploymentContext SC, Dictionary<string, string> UnrealPakResponseFile, string PakName, string EncryptionKeys)
+	private static void CreatePak(ProjectParams Params, DeploymentContext SC, Dictionary<string, string> UnrealPakResponseFile, string PakName)
 	{
         bool bShouldGeneratePatch = Params.IsGeneratingPatch && SC.StageTargetPlatform.GetPlatformPatchesWithDiffPak(Params, SC);
 
@@ -1027,7 +1036,10 @@ public partial class Project : CommandUtils
 			}
 			if (!bCopiedExistingPak)
 			{
-				RunUnrealPak(UnrealPakResponseFile, OutputLocation, EncryptionKeys, PakOrderFileLocation, SC.StageTargetPlatform.GetPlatformPakCommandLine(), Params.Compressed, Params.EncryptIniFiles || PackageSettingsEncryptIniFiles, PatchSourceContentPath);
+				String EngineDir = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine");
+				String ProjectDir = CommandUtils.GetDirectoryName(Params.RawProjectPath.FullName);
+				String Platform = ConfigCacheIni.GetIniPlatformName(SC.StageTargetPlatform.IniPlatformType);
+				RunUnrealPak(UnrealPakResponseFile, OutputLocation, PakOrderFileLocation, SC.StageTargetPlatform.GetPlatformPakCommandLine(), Params.Compressed, Params.EncryptIniFiles || PackageSettingsEncryptIniFiles, Params.EncryptEverything, PatchSourceContentPath, EngineDir, ProjectDir, Platform);
 			}
 		}
 
@@ -1210,11 +1222,11 @@ public partial class Project : CommandUtils
             string CloudDir = MakePathSafeToUseWithCommandLine(CombinePaths(ChunkInstallBasePath, "CloudDir"));
             InternalUtils.SafeDeleteDirectory(CloudDir, true);
         }
-
-        System.Threading.Tasks.Parallel.ForEach(PakPairs, (PakPair) =>
+		
+		System.Threading.Tasks.Parallel.ForEach(PakPairs, (PakPair) =>
 		{
 			var ChunkName = Path.GetFileNameWithoutExtension(PakPair.Item2);
-			CreatePak(Params, SC, PakPair.Item1, ChunkName, Params.SignPak);
+			CreatePak(Params, SC, PakPair.Item1, ChunkName);
 		});
 
 		String ChunkLayerFilename = CombinePaths(GetTmpPackagingPath(Params, SC), GetChunkPakLayerListName());

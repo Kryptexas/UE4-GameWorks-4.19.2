@@ -276,9 +276,9 @@ FVector2D SNodePanel::GetViewOffset() const
 
 void SNodePanel::Construct()
 {
-	if (!ZoomLevels.IsValid())
+	if (!ZoomLevels)
 	{
-		ZoomLevels = new FFixedZoomLevelsContainer();
+		ZoomLevels = MakeUnique<FFixedZoomLevelsContainer>();
 	}
 	ZoomLevel = ZoomLevels->GetDefaultZoomLevel();
 	PreviousZoomLevel = ZoomLevels->GetDefaultZoomLevel();

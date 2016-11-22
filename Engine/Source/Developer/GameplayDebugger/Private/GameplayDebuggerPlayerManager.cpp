@@ -103,7 +103,7 @@ void AGameplayDebuggerPlayerManager::UpdateAuthReplicators()
 
 	for (FConstPlayerControllerIterator It = World->GetPlayerControllerIterator(); It; It++)
 	{
-		APlayerController* TestPC = *It;
+		APlayerController* TestPC = It->Get();
 		if (TestPC && !TestPC->IsA<ADebugCameraController>())
 		{
 			const bool bNeedsReplicator = (GetReplicator(*TestPC) == nullptr);

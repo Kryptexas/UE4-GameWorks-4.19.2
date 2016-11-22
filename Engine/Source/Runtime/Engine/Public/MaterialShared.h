@@ -13,6 +13,7 @@
 #include "StaticParameterSet.h"
 #include "Shader.h"
 #include "VertexFactory.h"
+#include "Optional.h"
 
 class FMaterialShaderMap;
 class FMaterialShaderType;
@@ -241,7 +242,7 @@ protected:
 class FUniformExpressionSet : public FRefCountedObject
 {
 public:
-	FUniformExpressionSet(): UniformBufferStruct(NULL) {}
+	FUniformExpressionSet() {}
 
 	ENGINE_API void Serialize(FArchive& Ar);
 	bool IsEmpty() const;
@@ -283,7 +284,7 @@ protected:
 	TArray<FGuid> ParameterCollections;
 
 	/** The structure of a uniform buffer containing values for these uniform expressions. */
-	TScopedPointer<FUniformBufferStruct> UniformBufferStruct;
+	TOptional<FUniformBufferStruct> UniformBufferStruct;
 
 	friend class FMaterial;
 	friend class FHLSLMaterialTranslator;
@@ -1199,9 +1200,9 @@ public:
 	static void UpdateEditorLoadedMaterialResources(EShaderPlatform InShaderPlatform);
 
 	/** Backs up any FShaders in editor loaded materials to memory through serialization and clears FShader references. */
-	static void BackupEditorLoadedMaterialShadersToMemory(TMap<FMaterialShaderMap*, TScopedPointer<TArray<uint8> > >& ShaderMapToSerializedShaderData);
+	static void BackupEditorLoadedMaterialShadersToMemory(TMap<FMaterialShaderMap*, TUniquePtr<TArray<uint8> > >& ShaderMapToSerializedShaderData);
 	/** Recreates FShaders in editor loaded materials from the passed in memory, handling shader key changes. */
-	static void RestoreEditorLoadedMaterialShadersFromMemory(const TMap<FMaterialShaderMap*, TScopedPointer<TArray<uint8> > >& ShaderMapToSerializedShaderData);
+	static void RestoreEditorLoadedMaterialShadersFromMemory(const TMap<FMaterialShaderMap*, TUniquePtr<TArray<uint8> > >& ShaderMapToSerializedShaderData);
 
 protected:
 	
@@ -1734,9 +1735,9 @@ class FMaterialUpdateContext
 	/** Materials updated within this context. */
 	TSet<UMaterialInterface*> UpdatedMaterialInterfaces;
 	/** Active global component reregister context, if any. */
-	TScopedPointer<class FGlobalComponentReregisterContext> ComponentReregisterContext;
+	TUniquePtr<class FGlobalComponentReregisterContext> ComponentReregisterContext;
 	/** Active global component render state recreation context, if any. */
-	TScopedPointer<class FGlobalComponentRecreateRenderStateContext> ComponentRecreateRenderStateContext;
+	TUniquePtr<class FGlobalComponentRecreateRenderStateContext> ComponentRecreateRenderStateContext;
 	/** The shader platform that was being processed - can control if we need to update components */
 	EShaderPlatform ShaderPlatform;
 	/** True if the SyncWithRenderingThread option was specified. */

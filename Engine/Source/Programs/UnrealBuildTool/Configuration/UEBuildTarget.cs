@@ -3881,6 +3881,38 @@ namespace UnrealBuildTool
 			// Default does nothing
 		}
 
+		public static void ParseEncryptionIni(DirectoryReference InDirectory, UnrealTargetPlatform InTargetPlatform, out String[] OutRSAKeys, out String OutAESKey)
+		{
+			OutAESKey = String.Empty;
+			OutRSAKeys = null;
+
+			ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(InTargetPlatform, "Encryption", InDirectory);
+
+			bool bSigningEnabled;
+			Ini.GetBool("Core.Encryption", "SignPak", out bSigningEnabled);
+
+			if (bSigningEnabled)
+			{
+				OutRSAKeys = new string[3];
+				Ini.GetString("Core.Encryption", "rsa.privateexp", out OutRSAKeys[0]);
+				Ini.GetString("Core.Encryption", "rsa.modulus", out OutRSAKeys[1]);
+				Ini.GetString("Core.Encryption", "rsa.publicexp", out OutRSAKeys[2]);
+
+				if (String.IsNullOrEmpty(OutRSAKeys[0]) || String.IsNullOrEmpty(OutRSAKeys[1]) || String.IsNullOrEmpty(OutRSAKeys[2]))
+				{
+					OutRSAKeys = null;
+				}
+			}
+
+			bool bEncryptionEnabled;
+			Ini.GetBool("Core.Encryption", "EncryptPak", out bEncryptionEnabled);
+
+			if (bEncryptionEnabled)
+			{
+				Ini.GetString("Core.Encryption", "aes.key", out OutAESKey);
+			}
+		}
+
 		/// <summary>
 		/// Sets up the global compile and link environment for the target.
 		/// </summary>
@@ -3928,8 +3960,33 @@ namespace UnrealBuildTool
 				GlobalCompileEnvironment.Config.Definitions.Add(String.Format("IS_PROGRAM={0}", TargetType == TargetRules.TargetType.Program ? "1" : "0"));
 			}
 
-			// See if the target rules defined any signing keys and add the appropriate defines
-			if (!string.IsNullOrEmpty(Rules.PakSigningKeysFile))
+			String[] RSAKeys;
+			String AESKey;
+			ParseEncryptionIni(ProjectDirectory, Platform, out RSAKeys, out AESKey);
+			bool bSigningEnabledByIniFile = false;
+
+			if (RSAKeys != null)
+			{
+				GlobalCompileEnvironment.Config.Definitions.Add("DECRYPTION_KEY_MODULUS=\"" + RSAKeys[1] + "\"");
+				GlobalCompileEnvironment.Config.Definitions.Add("DECRYPTION_KEY_EXPONENT=\"" + RSAKeys[2] + "\"");
+
+				bSigningEnabledByIniFile = true;
+			}
+
+			if (!String.IsNullOrEmpty(AESKey))
+			{
+				if (AESKey.Length < 32)
+				{
+					Log.TraceError("AES key specified in configs must be at least 32 characters long!");
+				}
+				else
+				{
+					GlobalCompileEnvironment.Config.Definitions.Add("AES_KEY=\"" + AESKey + "\"");
+				}
+			}
+			
+			// If we didn't extract any keys from the new ini file setup, try looking for the old keys text file
+			if (!bSigningEnabledByIniFile && !string.IsNullOrEmpty(Rules.PakSigningKeysFile))
 			{
 				string FullFilename = Path.Combine(ProjectDirectory.FullName, Rules.PakSigningKeysFile);
 

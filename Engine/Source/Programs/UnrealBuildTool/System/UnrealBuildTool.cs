@@ -1748,14 +1748,24 @@ namespace UnrealBuildTool
 							foreach (TargetDescriptor Desc in TargetDescs)
 							{
 								DirectoryReference ProjectDirectory = DirectoryReference.FromFile(ProjectFile);
-								foreach (FileReference IniFilename in ConfigCacheIni.EnumerateCrossPlatformIniFileNames(ProjectDirectory, UnrealBuildTool.EngineDirectory, Desc.Platform, "Engine", false))
+								String[] IniBaseNames = new String[] { "Engine", "Encryption" };
+
+								foreach (String BaseName in IniBaseNames)
 								{
-									FileInfo IniFileInfo = new FileInfo(IniFilename.FullName);
-									if (UBTMakefileInfo.LastWriteTime.CompareTo(IniFileInfo.LastWriteTime) < 0)
+									foreach (FileReference IniFilename in ConfigCacheIni.EnumerateCrossPlatformIniFileNames(ProjectDirectory, UnrealBuildTool.EngineDirectory, Desc.Platform, BaseName, false))
 									{
-										// Ini files are newer than UBTMakefile
-										UBTMakefile = null;
-										ReasonNotLoaded = "ini files are newer that UBTMakefile";
+										FileInfo IniFileInfo = new FileInfo(IniFilename.FullName);
+										if (UBTMakefileInfo.LastWriteTime.CompareTo(IniFileInfo.LastWriteTime) < 0)
+										{
+											// Ini files are newer than UBTMakefile
+											UBTMakefile = null;
+											ReasonNotLoaded = "ini files are newer that UBTMakefile";
+											break;
+										}
+									}
+
+									if (UBTMakefile == null)
+									{
 										break;
 									}
 								}

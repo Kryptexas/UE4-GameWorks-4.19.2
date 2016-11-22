@@ -765,4 +765,6 @@ protected:
 private:
 	/** List of native class-owned properties that differ from defaults. This is used to optimize property initialization during post-construction by minimizing the number of native class-owned property values that get copied to the new instance. */
 	TIndirectArray<FCustomPropertyListNode> CustomPropertyListForPostConstruction;
+	/** In some cases UObject::ConditionalPostLoad() code calls PostLoadDefaultObject() on a class that's still being serialized. */
+	FCriticalSection SerializeAndPostLoadCritical;
 };

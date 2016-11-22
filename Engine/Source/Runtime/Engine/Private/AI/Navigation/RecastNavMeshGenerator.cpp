@@ -3958,7 +3958,7 @@ void FRecastNavMeshGenerator::SortPendingBuildTiles()
 	// Collect players positions
 	for (FConstPlayerControllerIterator PlayerIt = CurWorld->GetPlayerControllerIterator(); PlayerIt; ++PlayerIt)
 	{
-		if (*PlayerIt && (*PlayerIt)->GetPawn() != NULL)
+		if (PlayerIt->IsValid() && PlayerIt->Get()->GetPawn() != NULL)
 		{
 			const FVector2D SeedLoc((*PlayerIt)->GetPawn()->GetActorLocation());
 			SeedLocations.Add(SeedLoc);

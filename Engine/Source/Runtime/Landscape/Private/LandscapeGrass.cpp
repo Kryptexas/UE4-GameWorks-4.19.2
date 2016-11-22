@@ -2148,7 +2148,7 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 
 											for (auto& LOD : HierarchicalInstancedStaticMeshComponent->LODData)
 											{
-												LOD.OverrideMapBuildData = TScopedPointer<FMeshMapBuildData>(new FMeshMapBuildData());
+												LOD.OverrideMapBuildData = MakeUnique<FMeshMapBuildData>();
 												LOD.OverrideMapBuildData->LightMap = GrassLightMap;
 												LOD.OverrideMapBuildData->ShadowMap = GrassShadowMap;
 											}

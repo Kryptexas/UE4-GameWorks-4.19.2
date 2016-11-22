@@ -469,11 +469,11 @@ private:
 	 * @param	Prop			Property to export
 	 * @param	OuterString		String that specifies the outer to add the properties to
 	 * @param	PropMacro		String specifying the macro to call to get the property offset
-	 * @param	NameSuffix		Suffix for the generated variable name
+	 * @param	Name			Name for the generated variable
 	 * @param	Spaces			String of spaces to use as an indent
 	 * @param	SourceStruct	Structure that the property offset is relative to
 	**/
-	FString PropertyNew(FString& Meta, UProperty* Prop, const FString& OuterString, const FString& PropMacro, const TCHAR* NameSuffix, const TCHAR* Spaces, const TCHAR* SourceStruct = NULL);
+	FString PropertyNew(FString& Meta, UProperty* Prop, const FString& OuterString, const FString& PropMacro, const TCHAR* Name, const TCHAR* Spaces, const TCHAR* SourceStruct = NULL);
 
 	/**
 	 * Exports the proxy definitions for the list of enums specified

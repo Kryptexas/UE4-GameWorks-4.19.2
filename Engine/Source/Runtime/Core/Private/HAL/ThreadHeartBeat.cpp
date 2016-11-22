@@ -114,7 +114,7 @@ uint32 FThreadHeartBeat::Run()
 
 			// First verify we're not reporting the same hang over and over again
 			uint32 CallstackCRC = FCrc::StrCrc32(StackTrace);
-			if (CallstackCRC != LastHangCallstackCRC && ThreadThatHung != LastHungThreadId)
+			if (CallstackCRC != LastHangCallstackCRC || ThreadThatHung != LastHungThreadId)
 			{
 				LastHangCallstackCRC = CallstackCRC;
 				LastHungThreadId = ThreadThatHung;

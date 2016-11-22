@@ -7,7 +7,7 @@
 #include "FileManagerGeneric.h"
 #include "MultichannelTCP.h"
 #include "IPlatformFileModule.h"
-
+#include "UniquePtr.h"
 
 DEFINE_LOG_CATEGORY(LogStreamingPlatformFile);
 
@@ -941,8 +941,8 @@ public:
 
 	virtual IPlatformFile* GetPlatformFile() override
 	{
-		static TScopedPointer<IPlatformFile> AutoDestroySingleton(new FStreamingNetworkPlatformFile());
-		return AutoDestroySingleton.GetOwnedPointer();
+		static TUniquePtr<IPlatformFile> AutoDestroySingleton = MakeUnique<FStreamingNetworkPlatformFile>();
+		return AutoDestroySingleton.Get();
 	}
 };
 

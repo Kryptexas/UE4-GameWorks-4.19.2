@@ -272,7 +272,8 @@ void FWidgetBlueprintCompiler::FinishCompilingClass(UClass* Class)
 		{
 			FBlueprintEditorUtils::ForceLoadMembers(WidgetBP->WidgetTree);
 		}
-		BPGClass->WidgetTree = DuplicateObject<UWidgetTree>(WidgetBP->WidgetTree, BPGClass);
+
+		BPGClass->WidgetTree = Cast<UWidgetTree>(StaticDuplicateObject(WidgetBP->WidgetTree, BPGClass, NAME_None, RF_AllFlags & ~RF_DefaultSubObject));
 
 		for ( const UWidgetAnimation* Animation : WidgetBP->Animations )
 		{

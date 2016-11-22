@@ -24,6 +24,7 @@
 #include "Materials/MaterialInstance.h"
 #include "Engine/TextureStreamingTypes.h"
 #include "MaterialUtilities.h"
+#include "UniquePtr.h"
 
 #define LOCTEXT_NAMESPACE "MaterialEditorUtilities"
 
@@ -202,9 +203,9 @@ void FMaterialEditorUtilities::GetVisibleMaterialParameters(const UMaterial* Mat
 {
 	VisibleExpressions.Empty();
 
-	TScopedPointer<FGetVisibleMaterialParametersFunctionState> FunctionState(new FGetVisibleMaterialParametersFunctionState(NULL));
+	TUniquePtr<FGetVisibleMaterialParametersFunctionState> FunctionState = MakeUnique<FGetVisibleMaterialParametersFunctionState>(nullptr);
 	TArray<FGetVisibleMaterialParametersFunctionState*> FunctionStack;
-	FunctionStack.Push(FunctionState.GetOwnedPointer());
+	FunctionStack.Push(FunctionState.Get());
 
 	for(uint32 i = 0; i < MP_MAX; ++i)
 	{
@@ -500,8 +501,8 @@ void FMaterialEditorUtilities::GetVisibleMaterialParametersFromExpression(
 				checkSlow(FunctionStack[FunctionCallIndex]->FunctionCall != FunctionCallExpression);
 			}
 
-			TScopedPointer<FGetVisibleMaterialParametersFunctionState> NewFunctionState(new FGetVisibleMaterialParametersFunctionState(FunctionCallExpression));
-			FunctionStack.Push(NewFunctionState.GetOwnedPointer());
+			TUniquePtr<FGetVisibleMaterialParametersFunctionState> NewFunctionState = MakeUnique<FGetVisibleMaterialParametersFunctionState>(FunctionCallExpression);
+			FunctionStack.Push(NewFunctionState.Get());
 			
 			GetVisibleMaterialParametersFromExpression(FMaterialExpressionKey(FunctionCallExpression->FunctionOutputs[MaterialExpressionKey.OutputIndex].ExpressionOutput, 0), MaterialInstance, VisibleExpressions, FunctionStack);
 		

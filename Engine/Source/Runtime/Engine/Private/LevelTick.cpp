@@ -570,7 +570,7 @@ void UWorld::ProcessLevelStreamingVolumes(FVector* OverrideViewLocation)
 	bool bStreamingVolumesAreRelevant = false;
 	for( FConstPlayerControllerIterator Iterator = GetPlayerControllerIterator(); Iterator; ++Iterator )
 	{
-		APlayerController* PlayerActor = *Iterator;
+		APlayerController* PlayerActor = Iterator->Get();
 		if (PlayerActor->bIsUsingStreamingVolumes)
 		{
 			bStreamingVolumesAreRelevant = true;
@@ -704,7 +704,7 @@ void UWorld::ProcessLevelStreamingVolumes(FVector* OverrideViewLocation)
 				{
 					for( FConstPlayerControllerIterator Iterator = GetPlayerControllerIterator(); Iterator; ++Iterator )
 					{
-						APlayerController* PlayerController = *Iterator;
+						APlayerController* PlayerController = Iterator->Get();
 						PlayerController->LevelStreamingStatusChanged( 
 								LevelStreamingObject, 
 								LevelStreamingObject->bShouldBeLoaded, 
@@ -1403,7 +1403,7 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 				// Update cameras last. This needs to be done before NetUpdates, and after all actors have been ticked.
 				for( FConstPlayerControllerIterator Iterator = GetPlayerControllerIterator(); Iterator; ++Iterator )
 				{
-					APlayerController* PlayerController = *Iterator;			
+					APlayerController* PlayerController = Iterator->Get();
 					PlayerController->UpdateCameraManager(DeltaSeconds);
 				}
 

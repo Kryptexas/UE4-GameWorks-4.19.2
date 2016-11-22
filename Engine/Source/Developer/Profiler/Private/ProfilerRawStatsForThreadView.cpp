@@ -149,7 +149,7 @@ void FRawProfilerSession::PrepareLoading()
 		UE_LOG( LogStats, Error, TEXT( "Could not open: %s" ), *Filepath );
 		return;
 	}
-	TAutoPtr<FArchive> FileReader( IFileManager::Get().CreateFileReader( *Filepath ) );
+	TUniquePtr<FArchive> FileReader( IFileManager::Get().CreateFileReader( *Filepath ) );
 	if( !FileReader )
 	{
 		UE_LOG( LogStats, Error, TEXT( "Could not open: %s" ), *Filepath );

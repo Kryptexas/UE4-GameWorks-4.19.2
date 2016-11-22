@@ -447,7 +447,7 @@ void FGameplayDebuggerCategory_AI::DrawPawnIcons(UWorld* World, AActor* DebugAct
 	FString FailsafeIcon = TEXT("/Engine/EngineResources/AICON-Green.AICON-Green");
 	for (FConstPawnIterator It = World->GetPawnIterator(); It; ++It)
 	{
-		const APawn* ItPawn = *It;
+		const APawn* ItPawn = It->Get();
 		if (IsValid(ItPawn) && SkipPawn != ItPawn)
 		{
 			const FVector IconLocation = ItPawn->GetActorLocation() + FVector(0, 0, ItPawn->GetSimpleCollisionHalfHeight());

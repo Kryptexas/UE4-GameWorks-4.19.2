@@ -259,6 +259,7 @@ private:
 			check(Index < int32(EEventLoadNode::Package_NumPhases) && Index >= 0);
 			return PackageNodes[Index];
 		}
+		check(TotalNumberOfImportExportNodes); // otherwise Init was not called yet
 		if (Node.ImportOrExportIndex.IsImport())
 		{
 			check(int32(Node.Phase) < int32(EEventLoadNode::Import_NumPhases));

@@ -61,5 +61,6 @@ public class MinidumpDiagnosticsTarget : TargetRules
 		OutLinkEnvironmentConfiguration.bIsBuildingConsoleApplication = true;
 
 		OutCPPEnvironmentConfiguration.Definitions.Add("MINIDUMPDIAGNOSTICS=1");
-	}
+        OutCPPEnvironmentConfiguration.Definitions.Add("NOINITCRASHREPORTER=1");
+    }
 }

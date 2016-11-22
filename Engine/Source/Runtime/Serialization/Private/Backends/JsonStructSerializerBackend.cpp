@@ -131,6 +131,12 @@ void FJsonStructSerializerBackend::WriteProperty(const FStructSerializerState& S
 	}
 
 	// unsigned bytes & enumerations
+	else if (State.ValueType == UEnumProperty::StaticClass())
+	{
+		UEnumProperty* EnumProperty = Cast<UEnumProperty>(State.ValueProperty);
+
+		WritePropertyValue(JsonWriter, State, EnumProperty->GetEnum()->GetEnumNameStringByValue(EnumProperty->GetUnderlyingProperty()->GetSignedIntPropertyValue(EnumProperty->ContainerPtrToValuePtr<void>(State.ValueData, ArrayIndex))));
+	}
 	else if (State.ValueType == UByteProperty::StaticClass())
 	{
 		UByteProperty* ByteProperty = Cast<UByteProperty>(State.ValueProperty);

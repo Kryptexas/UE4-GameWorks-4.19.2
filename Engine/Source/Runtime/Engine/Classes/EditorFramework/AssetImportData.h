@@ -62,6 +62,9 @@ class ENGINE_API UAssetImportData : public UObject
 public:
 	GENERATED_UCLASS_BODY()
 
+	/** Only valid in the editor */
+	virtual bool IsEditorOnly() const override { return true; }
+
 #if WITH_EDITORONLY_DATA
 
 	/** Path to the resource used to construct this static mesh. Relative to the object's package, BaseDir() or absolute */

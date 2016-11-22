@@ -1855,7 +1855,7 @@ void UDemoNetDriver::ProcessSeamlessTravel(int32 LevelIndex)
 	TArray<AController*> Controllers;
 	for (FConstControllerIterator Iterator = World->GetControllerIterator(); Iterator; ++Iterator)
 	{
-		Controllers.Add(*Iterator);
+		Controllers.Add(Iterator->Get());
 	}
 
 	for (int i = 0; i < Controllers.Num(); i++)

@@ -104,9 +104,9 @@ struct FFixedZoomLevelsContainerDesignSurface : public FZoomLevelsContainer
 
 void SDesignSurface::Construct(const FArguments& InArgs)
 {
-	if ( !ZoomLevels.IsValid() )
+	if ( !ZoomLevels )
 	{
-		ZoomLevels = new FFixedZoomLevelsContainerDesignSurface();
+		ZoomLevels = MakeUnique<FFixedZoomLevelsContainerDesignSurface>();
 	}
 	ZoomLevel = ZoomLevels->GetDefaultZoomLevel();
 	PreviousZoomLevel = ZoomLevels->GetDefaultZoomLevel();

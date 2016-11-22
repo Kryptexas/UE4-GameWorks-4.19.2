@@ -17,6 +17,7 @@ class UMovieSceneIntegerSection;
 class UMovieSceneVectorSection;
 class UMovieSceneStringSection;
 class UMovieScenePropertyTrack;
+class UMovieSceneEnumSection;
 
 
 USTRUCT()
@@ -125,6 +126,42 @@ protected:
 
 	UPROPERTY()
 	FIntegralCurve ByteCurve;
+};
+
+USTRUCT()
+struct FMovieSceneEnumPropertySectionTemplate : public FMovieSceneEvalTemplate
+{
+	GENERATED_BODY()
+	
+	FMovieSceneEnumPropertySectionTemplate(){}
+	FMovieSceneEnumPropertySectionTemplate(const UMovieSceneEnumSection& Section, const UMovieScenePropertyTrack& Track);
+
+protected:
+
+	virtual UScriptStruct& GetScriptStructImpl() const override
+	{
+		return *StaticStruct();
+	}
+	virtual void SetupOverrides() override
+	{
+		EnableOverrides(RequiresSetupFlag | RequiresInitializeFlag);
+	}
+	virtual void Setup(FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override
+	{
+		PropertyData.SetupCachedTrack<int64>(PersistentData);
+	}
+	virtual void Initialize(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override
+	{
+		PropertyData.SetupCachedFrame<int64>(Operand, PersistentData, Player);
+	}
+
+	virtual void Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const override;
+
+	UPROPERTY()
+	FMovieScenePropertySectionData PropertyData;
+
+	UPROPERTY()
+	FIntegralCurve EnumCurve;
 };
 
 USTRUCT()

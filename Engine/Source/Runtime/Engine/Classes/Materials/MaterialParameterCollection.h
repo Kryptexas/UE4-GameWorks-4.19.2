@@ -5,6 +5,7 @@
  */
 
 #pragma once
+#include "UniquePtr.h"
 #include "MaterialParameterCollection.generated.h"
 
 /** Base struct for collection parameters */
@@ -116,7 +117,7 @@ private:
 	/** Default resource used when no instance is available. */
 	class FMaterialParameterCollectionInstanceResource* DefaultResource;
 
-	TScopedPointer<FUniformBufferStruct> UniformBufferStruct;
+	TUniquePtr<FUniformBufferStruct> UniformBufferStruct;
 
 	void CreateBufferStruct();
 

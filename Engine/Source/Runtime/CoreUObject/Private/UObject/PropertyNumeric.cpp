@@ -5,7 +5,7 @@
 
 uint8 UNumericProperty::ReadEnumAsUint8(FArchive& Ar, UStruct* DefaultsStruct, const FPropertyTag& Tag)
 {
-	//@warning: mirrors loading code in UByteProperty::SerializeItem()
+	//@warning: mirrors loading code in UByteProperty::SerializeItem() and UEnumProperty::SerializeItem()
 	FName EnumName;
 	Ar << EnumName;
 
@@ -23,7 +23,7 @@ uint8 UNumericProperty::ReadEnumAsUint8(FArchive& Ar, UStruct* DefaultsStruct, c
 
 	Ar.Preload(Enum);
 
-	uint8 Result = Enum->GetValueByName(EnumName);
+	int64 Result = Enum->GetValueByName(EnumName);
 	if (!Enum->IsValidEnumValue(Result))
 	{
 		UE_LOG(
@@ -51,10 +51,10 @@ const TCHAR* UNumericProperty::ImportText_Internal( const TCHAR* Buffer, void* D
 		{
 			if (FChar::IsAlpha(*Buffer))
 			{
-				int32 EnumValue = UEnum::ParseEnum(Buffer);
+				int64 EnumValue = UEnum::ParseEnum(Buffer);
 				if (EnumValue != INDEX_NONE)
 				{
-					SetIntPropertyValue(Data, int64(EnumValue));
+					SetIntPropertyValue(Data, EnumValue);
 					return Buffer;
 				}
 				else

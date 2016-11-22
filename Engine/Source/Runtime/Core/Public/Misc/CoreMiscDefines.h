@@ -84,10 +84,6 @@
 	#define CA_CONSTANT_IF(Condition) if (Condition)
 #endif
 
-#ifndef USING_SIGNED_CONTENT
-	#define USING_SIGNED_CONTENT 0
-#endif
-
 enum {INDEX_NONE	= -1				};
 enum {UNICODE_BOM   = 0xfeff			};
 

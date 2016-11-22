@@ -111,6 +111,10 @@ extern ENGINE_API float GPriorityAsyncLoadingExtraTime;
 extern ENGINE_API float GLevelStreamingActorsUpdateTimeLimit;
 /** Batching granularity used to register actor components during level streaming. */
 extern ENGINE_API int32 GLevelStreamingComponentsRegistrationGranularity;
+/** Batching granularity used to unregister actor components during level streaming.  */
+extern ENGINE_API int32 GLevelStreamingComponentsUnregistrationGranularity;
+/** Maximum allowed time to spend for actor unregistration steps during level streaming (ms per frame). If this is 0.0 then we don't timeslice.*/
+extern ENGINE_API float GLevelStreamingUnregisterComponentsTimeLimit;
 
 /**
 * Implements the settings for garbage collection.

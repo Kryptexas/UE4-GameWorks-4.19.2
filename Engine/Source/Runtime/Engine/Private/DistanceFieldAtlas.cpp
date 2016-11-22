@@ -8,6 +8,7 @@
 #include "StaticMeshResources.h"
 #include "DistanceFieldAtlas.h"
 #include "CookStats.h"
+#include "UniquePtr.h"
 
 #if WITH_EDITOR
 #include "DerivedDataCacheInterface.h"
@@ -338,7 +339,7 @@ public:
 		)
 		: NextThreadIndex(0)
 		, AsyncQueue(*InAsyncQueue)
-		, Thread(NULL)
+		, Thread(nullptr)
 		, bIsRunning(false)
 		, bForceFinish(false)
 	{}
@@ -359,7 +360,7 @@ public:
 		check(!bIsRunning);
 
 		bForceFinish = false;
-		Thread = FRunnableThread::Create(this, *FString::Printf(TEXT("BuildDistanceFieldThread%u"), NextThreadIndex), 0, TPri_Normal, FPlatformAffinity::GetPoolThreadMask());
+		Thread.Reset(FRunnableThread::Create(this, *FString::Printf(TEXT("BuildDistanceFieldThread%u"), NextThreadIndex), 0, TPri_Normal, FPlatformAffinity::GetPoolThreadMask()));
 		NextThreadIndex++;
 	}
 
@@ -372,9 +373,9 @@ private:
 	FDistanceFieldAsyncQueue& AsyncQueue;
 
 	/** The runnable thread */
-	TScopedPointer<FRunnableThread> Thread;
+	TUniquePtr<FRunnableThread> Thread;
 
-	TScopedPointer<FQueuedThreadPool> WorkerThreadPool;
+	TUniquePtr<FQueuedThreadPool> WorkerThreadPool;
 
 	volatile bool bIsRunning;
 	volatile bool bForceFinish;
@@ -401,7 +402,7 @@ uint32 FBuildDistanceFieldThreadRunnable::Run()
 		{
 			if (!WorkerThreadPool)
 			{
-				WorkerThreadPool = CreateWorkerThreadPool();
+				WorkerThreadPool.Reset(CreateWorkerThreadPool());
 			}
 
 			AsyncQueue.Build(Task, *WorkerThreadPool);
@@ -413,7 +414,7 @@ uint32 FBuildDistanceFieldThreadRunnable::Run()
 		}
 	}
 
-	WorkerThreadPool = NULL;
+	WorkerThreadPool = nullptr;
 
 	return 0;
 }
@@ -434,7 +435,7 @@ FDistanceFieldAsyncQueue::FDistanceFieldAsyncQueue()
 	MeshUtilities = NULL;
 #endif
 
-	ThreadRunnable = new FBuildDistanceFieldThreadRunnable(this);
+	ThreadRunnable = MakeUnique<FBuildDistanceFieldThreadRunnable>(this);
 }
 
 FDistanceFieldAsyncQueue::~FDistanceFieldAsyncQueue()
@@ -462,7 +463,7 @@ void FDistanceFieldAsyncQueue::AddTask(FAsyncDistanceFieldTask* Task)
 	}
 	else
 	{
-		TScopedPointer<FQueuedThreadPool> WorkerThreadPool(CreateWorkerThreadPool());
+		TUniquePtr<FQueuedThreadPool> WorkerThreadPool(CreateWorkerThreadPool());
 		Build(Task, *WorkerThreadPool);
 	}
 #else

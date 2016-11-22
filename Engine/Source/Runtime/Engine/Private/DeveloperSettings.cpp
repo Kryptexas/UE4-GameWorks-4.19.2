@@ -133,6 +133,12 @@ void UDeveloperSettings::ExportValuesToConsoleVariables(UProperty* PropertyThatC
 			{
 				CVar->Set(ByteProperty->GetPropertyValue_InContainer(this), ECVF_SetByProjectSetting);
 			}
+			else if (UEnumProperty* EnumProperty = Cast<UEnumProperty>(PropertyThatChanged))
+			{
+				UNumericProperty* UnderlyingProp = EnumProperty->GetUnderlyingProperty();
+				void* PropertyAddress = EnumProperty->ContainerPtrToValuePtr<void>(this);
+				CVar->Set((int32)UnderlyingProp->GetSignedIntPropertyValue(PropertyAddress), ECVF_SetByProjectSetting);
+			}
 			else if (UBoolProperty* BoolProperty = Cast<UBoolProperty>(PropertyThatChanged))
 			{
 				CVar->Set((int32)BoolProperty->GetPropertyValue_InContainer(this), ECVF_SetByProjectSetting);

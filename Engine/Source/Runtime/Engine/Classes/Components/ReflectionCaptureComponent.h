@@ -5,6 +5,55 @@
 
 class FReflectionCaptureProxy;
 
+/*
+* Refcounted class to pass around uncompressed cubemap data and track memory, for use with FReflectionCaptureFullHDR::GetUncompressedData
+*/
+class FReflectionCaptureUncompressedData : public FRefCountedObject
+{
+public:
+	FReflectionCaptureUncompressedData() :
+		TrackedBufferSize(0)
+	{}
+
+	FReflectionCaptureUncompressedData( uint32 InSizeBytes ) :
+		TrackedBufferSize(0)
+	{
+		CubemapDataArray.Empty(InSizeBytes);
+		CubemapDataArray.AddUninitialized(InSizeBytes);
+		UpdateMemoryTracking();
+	}
+
+	~FReflectionCaptureUncompressedData()
+	{
+		DEC_MEMORY_STAT_BY(STAT_ReflectionCaptureMemory, CubemapDataArray.Num() );
+	}
+
+	uint8* GetData( int Offset = 0 )
+	{
+		return &CubemapDataArray[Offset];
+	}
+
+	const uint32 Size() const 
+	{ 
+		return CubemapDataArray.Num();
+	}
+
+	TArray<uint8>& GetArray() 
+	{
+		return CubemapDataArray;
+	}
+
+	void UpdateMemoryTracking()
+	{
+		INC_MEMORY_STAT_BY( STAT_ReflectionCaptureMemory, CubemapDataArray.Num() - TrackedBufferSize);
+		TrackedBufferSize = CubemapDataArray.Num();
+	}
+private:
+	int32 TrackedBufferSize;
+	TArray<uint8> CubemapDataArray;
+};
+
+
 class FReflectionCaptureFullHDR
 {
 public:
@@ -17,6 +66,11 @@ public:
 	TArray<uint8> CompressedCapturedData;
 	int32 CubemapSize;
 
+	/**
+	* Generated at cook time. Avoids decompression overhead in GetUncompressedData
+	*/
+	TRefCountPtr<FReflectionCaptureUncompressedData> StoredUncompressedData;
+
 	/** Destructor. */
 	~FReflectionCaptureFullHDR();
 
@@ -24,30 +78,35 @@ public:
 	ENGINE_API void InitializeFromUncompressedData(const TArray<uint8>& UncompressedData, int32 CubmapSize);
 
 	/** Decompresses the capture data. */
-	ENGINE_API void GetUncompressedData(TArray<uint8>& UncompressedData) const;
+	ENGINE_API TRefCountPtr<FReflectionCaptureUncompressedData> GetUncompressedData() const;
 
-	ENGINE_API TArray<uint8>& GetCapturedDataForSM4Load() 
+	ENGINE_API TRefCountPtr<FReflectionCaptureUncompressedData> GetCapturedDataForSM4Load()
 	{
-		GetUncompressedData(CapturedDataForSM4Load);
+		CapturedDataForSM4Load = GetUncompressedData();
 		return CapturedDataForSM4Load;
 	}
 
-private:
+	ENGINE_API bool HasValidData() const { return StoredUncompressedData != nullptr || CompressedCapturedData.Num() > 0; }
 
+private:
 	/** 
 	 * This is used to pass the uncompressed capture data to the RT on load for SM4. 
 	 * The game thread must not modify it again after sending read commands to the RT.
 	 */
-	TArray<uint8> CapturedDataForSM4Load;
+	TRefCountPtr<FReflectionCaptureUncompressedData> CapturedDataForSM4Load;
 };
 
 struct FReflectionCaptureEncodedHDRDerivedData : FRefCountedObject
 {
+	FReflectionCaptureEncodedHDRDerivedData()
+	{
+		CapturedData = new FReflectionCaptureUncompressedData;
+	}
 	/** 
 	 * The uncompressed encoded HDR capture data, with all mips and faces laid out linearly. 
 	 * This is read and written from the rendering thread directly after load, so the game thread must not access it again.
 	 */
-	TArray<uint8> CapturedData;
+	TRefCountPtr<FReflectionCaptureUncompressedData> CapturedData;
 
 	/** Destructor. */
 	virtual ~FReflectionCaptureEncodedHDRDerivedData();
@@ -59,7 +118,7 @@ struct FReflectionCaptureEncodedHDRDerivedData : FRefCountedObject
 		// Data / (6 cubemaps * sizeof(FColor)) = (4*topMip - lastMip)/3
 		// when lastMip = 1 simplifies to the following:
 		// see https://en.wikipedia.org/wiki/1/4_%2B_1/16_%2B_1/64_%2B_1/256_%2B_%E2%8B%AF for maths
-		return (int32)sqrt((float)(2 * sizeof(FColor) + CapturedData.Num()) / (float)(8 * sizeof(FColor)));
+		return (int32)sqrt((float)(2 * sizeof(FColor) + CapturedData->Size()) / (float)(8 * sizeof(FColor)));
 	}
 
 	/** Generates encoded HDR data from full HDR data and saves it in the DDC, or loads an already generated version from the DDC. */
@@ -151,6 +210,9 @@ class UReflectionCaptureComponent : public USceneComponent
 
 	inline float* GetAverageBrightnessPtr() { return &AverageBrightness; }
 	inline const float* GetAverageBrightnessPtr() const { return &AverageBrightness; }
+
+	/** Issues a renderthread command to release the data, and NULLs the pointer on the gamethread */
+	ENGINE_API void ReleaseHDRData();
 
 	ENGINE_API static int32 GetReflectionCaptureSize_GameThread();
 	ENGINE_API static int32 GetReflectionCaptureSize_RenderThread();

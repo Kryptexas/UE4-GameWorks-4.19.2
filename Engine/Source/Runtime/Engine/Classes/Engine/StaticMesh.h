@@ -4,6 +4,7 @@
 #include "Interfaces/Interface_CollisionDataProvider.h"
 #include "Interfaces/Interface_AssetUserData.h"
 #include "MeshMerging.h"
+#include "UniquePtr.h"
 #include "StaticMesh.generated.h"
 
 /** The maximum number of static mesh LODs allowed. */
@@ -398,7 +399,7 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	GENERATED_UCLASS_BODY()
 
 	/** Pointer to the data used to render this static mesh. */
-	TScopedPointer<class FStaticMeshRenderData> RenderData;
+	TUniquePtr<class FStaticMeshRenderData> RenderData;
 
 #if WITH_EDITORONLY_DATA
 	static const float MinimumAutoLODPixelError;

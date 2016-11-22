@@ -411,7 +411,7 @@ void UMaterialParameterCollection::CreateBufferStruct()
 	NextMemberOffset += VectorArraySize;
 	static FName LayoutName(TEXT("MaterialCollection"));
 	const uint32 StructSize = Align(NextMemberOffset,UNIFORM_BUFFER_STRUCT_ALIGNMENT);
-	UniformBufferStruct = new FUniformBufferStruct(
+	UniformBufferStruct = MakeUnique<FUniformBufferStruct>(
 		LayoutName,
 		TEXT("MaterialCollection"),
 		TEXT("MaterialCollection"),

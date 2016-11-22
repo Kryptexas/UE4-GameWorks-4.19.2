@@ -42,6 +42,7 @@
 #include "Engine/SCS_Node.h"
 #include "Engine/UserDefinedStruct.h"
 #include "ShaderCompiler.h"
+#include "UniquePtr.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogObjectTools, Log, All);
 
@@ -3916,9 +3917,9 @@ namespace ThumbnailTools
 		if ( ObjectFullName.Len() > 0 && DestPackage != NULL )
 		{
 			// Create a new thumbnail map if we don't have one already
-			if( !DestPackage->ThumbnailMap.IsValid() )
+			if( !DestPackage->ThumbnailMap )
 			{
-				DestPackage->ThumbnailMap.Reset( new FThumbnailMap() );
+				DestPackage->ThumbnailMap = MakeUnique<FThumbnailMap>();
 			}
 
 			// @todo thumbnails: Backwards compat
@@ -4062,8 +4063,8 @@ namespace ThumbnailTools
 	bool LoadThumbnailsFromPackage( const FString& InPackageFileName, const TSet< FName >& InObjectFullNames, FThumbnailMap& InOutThumbnails )
 	{
 		// Create a file reader to load the file
-		TScopedPointer< FArchive > FileReader( IFileManager::Get().CreateFileReader( *InPackageFileName ) );
-		if( FileReader == NULL )
+		TUniquePtr< FArchive > FileReader( IFileManager::Get().CreateFileReader( *InPackageFileName ) );
+		if( FileReader == nullptr )
 		{
 			// Couldn't open the file
 			return false;

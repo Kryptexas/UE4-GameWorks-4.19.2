@@ -208,7 +208,7 @@ void FStaticLightingManager::SendBuildDoneNotification( bool AutoApplyFailed )
 {
 	FText CompletedText = LOCTEXT("LightBuildDoneMessage", "Lighting build completed");
 
-	if (ActiveStaticLightingSystem != StaticLightingSystems.Last().GetOwnedPointer() && ActiveStaticLightingSystem->LightingScenario)
+	if (ActiveStaticLightingSystem != StaticLightingSystems.Last().Get() && ActiveStaticLightingSystem->LightingScenario)
 	{
 		FString PackageName = FPackageName::GetShortName(ActiveStaticLightingSystem->LightingScenario->GetOutermost()->GetName());
 		CompletedText = FText::Format(LOCTEXT("LightScenarioBuildDoneMessage", "{0} Lighting Scenario completed"), FText::FromString(PackageName));
@@ -252,18 +252,16 @@ void FStaticLightingManager::CreateStaticLightingSystem(const FLightingBuildOpti
 		{
 			if (Level->bIsLightingScenario && Level->bIsVisible)
 	{
-				StaticLightingSystems.AddZeroed();
-				StaticLightingSystems.Last() = new FStaticLightingSystem(Options, GWorld, Level);
+				StaticLightingSystems.Emplace(new FStaticLightingSystem(Options, GWorld, Level));
 			}
 		}
 
 		if (StaticLightingSystems.Num() == 0)
 		{
-			StaticLightingSystems.AddZeroed();
-			StaticLightingSystems.Last() = new FStaticLightingSystem(Options, GWorld, NULL);
+			StaticLightingSystems.Emplace(new FStaticLightingSystem(Options, GWorld, nullptr));
 		}
 
-		ActiveStaticLightingSystem = StaticLightingSystems[0];
+		ActiveStaticLightingSystem = StaticLightingSystems[0].Get();
 
 		bool bSuccess = ActiveStaticLightingSystem->BeginLightmassProcess();
 
@@ -298,12 +296,12 @@ void FStaticLightingManager::UpdateBuildLighting()
 
 		if (ActiveStaticLightingSystem && ActiveStaticLightingSystem->CurrentBuildStage == FStaticLightingSystem::Finished)
 	{
-			ActiveStaticLightingSystem = NULL;
+			ActiveStaticLightingSystem = nullptr;
 			StaticLightingSystems.RemoveAt(0);
 
 			if (StaticLightingSystems.Num() > 0)
 			{
-				ActiveStaticLightingSystem = StaticLightingSystems[0];
+				ActiveStaticLightingSystem = StaticLightingSystems[0].Get();
 
 				bool bSuccess = ActiveStaticLightingSystem->BeginLightmassProcess();
 

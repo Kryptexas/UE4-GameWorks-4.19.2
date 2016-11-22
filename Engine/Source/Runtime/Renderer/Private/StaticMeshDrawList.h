@@ -147,7 +147,7 @@ private:
 			return DrawList == StaticMeshDrawList;
 		}
 		// FAbstractDrawListElementLink interface.
-		virtual void Remove();
+		virtual void Remove(const bool bUnlinkMesh = true );
 
 	private:
 		TStaticMeshDrawList* StaticMeshDrawList;

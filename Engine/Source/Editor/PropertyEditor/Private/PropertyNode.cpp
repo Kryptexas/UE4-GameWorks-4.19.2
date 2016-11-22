@@ -1690,10 +1690,19 @@ FString FPropertyNode::GetDefaultValueAsStringForObject( FPropertyItemValueDataT
 				{
 					InProperty->ExportTextItem( DefaultValue, ValueTracker.GetPropertyDefaultAddress(), ValueTracker.GetPropertyDefaultAddress(), InObject, PortFlags, NULL );
 
-					UByteProperty* ByteProperty = Cast<UByteProperty>(InProperty);
-					if ( ByteProperty != NULL && ByteProperty->Enum != NULL )
+					UEnum* Enum = nullptr;
+					if (UByteProperty* ByteProperty = Cast<UByteProperty>(InProperty))
 					{
-						AdjustEnumPropDisplayName(ByteProperty->Enum, DefaultValue);
+						Enum = ByteProperty->Enum;
+					}
+					else if (UEnumProperty* EnumProperty = Cast<UEnumProperty>(InProperty))
+					{
+						Enum = EnumProperty->GetEnum();
+					}
+
+					if ( Enum )
+					{
+						AdjustEnumPropDisplayName(Enum, DefaultValue);
 					}
 				}
 			}

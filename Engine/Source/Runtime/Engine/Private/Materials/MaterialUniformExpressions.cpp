@@ -303,7 +303,7 @@ void FUniformExpressionSet::CreateBufferStruct()
 	NextMemberOffset += 8;
 
 	const uint32 StructSize = Align(NextMemberOffset,UNIFORM_BUFFER_STRUCT_ALIGNMENT);
-	UniformBufferStruct = new FUniformBufferStruct(
+	UniformBufferStruct.Emplace(
 		MaterialLayoutName,
 		TEXT("MaterialUniforms"),
 		TEXT("Material"),
@@ -316,8 +316,7 @@ void FUniformExpressionSet::CreateBufferStruct()
 
 const FUniformBufferStruct& FUniformExpressionSet::GetUniformBufferStruct() const
 {
-	check(UniformBufferStruct);
-	return *UniformBufferStruct;
+	return UniformBufferStruct.GetValue();
 }
 
 FUniformBufferRHIRef FUniformExpressionSet::CreateUniformBuffer(const FMaterialRenderContext& MaterialRenderContext, FRHICommandList* CommandListIfLocalMode, struct FLocalUniformBuffer* OutLocalUniformBuffer) const

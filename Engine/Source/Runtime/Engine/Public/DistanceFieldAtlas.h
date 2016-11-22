@@ -8,6 +8,7 @@
 
 #include "TextureLayout3d.h"
 #include "GCObject.h"
+#include "UniquePtr.h"
 
 // DDC key for distance field data, must be changed when modifying the generation code or data format
 #define DISTANCEFIELD_DERIVEDDATA_VER TEXT("7768798764B445A9543C94442EA899D")
@@ -226,7 +227,7 @@ private:
 	void Build(FAsyncDistanceFieldTask* Task, class FQueuedThreadPool& ThreadPool);
 
 	/** Thread that will build any tasks in TaskQueue and exit when there are no more. */
-	class TScopedPointer<class FBuildDistanceFieldThreadRunnable> ThreadRunnable;
+	class TUniquePtr<class FBuildDistanceFieldThreadRunnable> ThreadRunnable;
 
 	/** Game-thread managed list of tasks in the async system. */
 	TArray<FAsyncDistanceFieldTask*> ReferencedTasks;

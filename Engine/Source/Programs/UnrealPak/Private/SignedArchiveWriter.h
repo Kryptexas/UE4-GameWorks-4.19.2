@@ -22,8 +22,8 @@ class FSignedArchiveWriter : public FArchive
 	FEncryptionKey PublicKey;
 	/** Encryption key */
 	FEncryptionKey PrivateKey;
-	/** Signatures */
-	TArray<FEncryptedSignature> ChunkSignatures;
+	/** Hashes */
+	TArray<TPakChunkHash> ChunkHashes;
 
 	/** 
 	 * Serializes and signs a buffer

@@ -257,7 +257,8 @@ namespace AutomationTool
             this.CookOnTheFlyStreaming = InParams.CookOnTheFlyStreaming;
             this.UnversionedCookedContent = InParams.UnversionedCookedContent;
 			this.EncryptIniFiles = InParams.EncryptIniFiles;
-            this.SkipCookingEditorContent = InParams.SkipCookingEditorContent;
+			this.EncryptEverything = InParams.EncryptEverything;
+			this.SkipCookingEditorContent = InParams.SkipCookingEditorContent;
             this.NumCookersToSpawn = InParams.NumCookersToSpawn;
 			this.FileServer = InParams.FileServer;
 			this.DedicatedServer = InParams.DedicatedServer;
@@ -377,7 +378,8 @@ namespace AutomationTool
             bool? CookOnTheFlyStreaming = null,
             bool? UnversionedCookedContent = null,
 			bool? EncryptIniFiles = null,
-            bool? SkipCookingEditorContent = null,
+			bool? EncryptEverything = null,
+			bool? SkipCookingEditorContent = null,
             int? NumCookersToSpawn = null,
             string AdditionalCookerOptions = null,
             string BasedOnReleaseVersion = null,
@@ -551,6 +553,7 @@ namespace AutomationTool
             this.CookOnTheFlyStreaming = GetParamValueIfNotSpecified(Command, CookOnTheFlyStreaming, this.CookOnTheFlyStreaming, "cookontheflystreaming");
             this.UnversionedCookedContent = GetParamValueIfNotSpecified(Command, UnversionedCookedContent, this.UnversionedCookedContent, "UnversionedCookedContent");
 			this.EncryptIniFiles = GetParamValueIfNotSpecified(Command, EncryptIniFiles, this.EncryptIniFiles, "EncryptIniFiles");
+			this.EncryptEverything = GetParamValueIfNotSpecified(Command, EncryptEverything, this.EncryptEverything, "EncryptEverything");
 			this.SkipCookingEditorContent = GetParamValueIfNotSpecified(Command, SkipCookingEditorContent, this.SkipCookingEditorContent, "SkipCookingEditorContent");
             if (NumCookersToSpawn.HasValue)
             {
@@ -1301,6 +1304,11 @@ namespace AutomationTool
 		/// Encrypt ini files which are packaged into the pak file.  Only valid when encryption keys and building pak file specified. 
 		/// </summary>
 		public bool EncryptIniFiles;
+
+		/// <summary>
+		/// Encrypt all files which are packaged into the pak file.  Only valid when encryption keys and building pak file specified. 
+		/// </summary>
+		public bool EncryptEverything;
 
 		/// <summary>
 		/// put -debug on the editorexe commandline
@@ -2307,6 +2315,7 @@ namespace AutomationTool
 				CommandUtils.LogLog("CookOnTheFlyStreaming={0}", CookOnTheFlyStreaming);
 				CommandUtils.LogLog("UnversionedCookedContent={0}", UnversionedCookedContent);
 				CommandUtils.LogLog("EncryptIniFiles={0}", EncryptIniFiles);
+				CommandUtils.LogLog("EncryptEverything={0}", EncryptEverything);
 				CommandUtils.LogLog("SkipCookingEditorContent={0}", SkipCookingEditorContent);
                 CommandUtils.LogLog("NumCookersToSpawn={0}", NumCookersToSpawn);
                 CommandUtils.LogLog("GeneratePatch={0}", GeneratePatch);

@@ -91,6 +91,16 @@ public:
 	static bool ParseInt(const FString& Source, int32& OutVal);
 
 	/**
+	 * Converts a string into a int64.
+	 *
+	 * @param Source the input string to try to convert
+	 * @param OutVal the output integer
+	 *
+	 * @return true if the conversion happened, false otherwise
+	 */
+	static bool ParseInt64(const FString& Source, int64& OutVal);
+
+	/**
 	 * Converts a string into a float.
 	 *
 	 * @param Source the input string to try to convert

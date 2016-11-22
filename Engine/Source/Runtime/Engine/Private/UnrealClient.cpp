@@ -21,6 +21,7 @@
 #include "SceneUtils.h"
 #include "NotificationManager.h"
 #include "Performance/EnginePerformanceTargets.h"
+#include "UniquePtr.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogClient, Log, All);
 
@@ -1077,7 +1078,7 @@ bool GCaptureCompositionNextFrame = false;
 void FViewport::Draw( bool bShouldPresent /*= true */)
 {
 	UWorld* World = GetClient()->GetWorld();
-	static TScopedPointer<FSuspendRenderingThread> GRenderingThreadSuspension;
+	static TUniquePtr<FSuspendRenderingThread> GRenderingThreadSuspension;
 
 	// Ignore reentrant draw calls, since we can only redraw one viewport at a time.
 	static bool bReentrant = false;
@@ -1094,7 +1095,7 @@ void FViewport::Draw( bool bShouldPresent /*= true */)
 		{
 			// To capture the CompositionGraph we go into single threaded for one frame
 			// so that the Slate UI gets the data on the game thread.
-			GRenderingThreadSuspension.Reset(new FSuspendRenderingThread(true));
+			GRenderingThreadSuspension = MakeUnique<FSuspendRenderingThread>(true);
 		}
 
 		// if this is a game viewport, and game rendering is disabled, then we don't want to actually draw anything
@@ -1184,7 +1185,7 @@ void FViewport::Draw( bool bShouldPresent /*= true */)
 		{
 			for( FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator )
 			{
-				APlayerController* PlayerController = *Iterator;
+				APlayerController* PlayerController = Iterator->Get();
 				if (PlayerController && PlayerController->PlayerCameraManager)
 				{
 					PlayerController->PlayerCameraManager->bGameCameraCutThisFrame = false;

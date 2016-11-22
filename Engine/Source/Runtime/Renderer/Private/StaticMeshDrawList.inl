@@ -14,7 +14,7 @@
 #define PER_MESH_DRAW_STATS 0
 
 template<typename DrawingPolicyType>
-void TStaticMeshDrawList<DrawingPolicyType>::FElementHandle::Remove()
+void TStaticMeshDrawList<DrawingPolicyType>::FElementHandle::Remove(const bool bUnlinkMesh)
 {
 	check(!GDrawListsLocked);
 	// Make a copy of this handle's variables on the stack, since the call to Elements.RemoveSwap deletes the handle.
@@ -27,8 +27,12 @@ void TStaticMeshDrawList<DrawingPolicyType>::FElementHandle::Remove()
 	check(LocalDrawingPolicyLink->Elements[ElementIndex].Mesh->MaterialRenderProxy);
 	LocalDrawingPolicyLink->Elements[ElementIndex].Mesh->MaterialRenderProxy->SetUnreferencedInDrawList();
 
-	// Unlink the mesh from this draw list.
-	LocalDrawingPolicyLink->Elements[ElementIndex].Mesh->UnlinkDrawList(this);
+	// Unlink the mesh from this draw list. Not necessary if the mesh is being destroyed
+	if (bUnlinkMesh)
+	{
+		// Expensive (Order N). Spins through whole list
+		LocalDrawingPolicyLink->Elements[ElementIndex].Mesh->UnlinkDrawList(this);
+	}
 	LocalDrawingPolicyLink->Elements[ElementIndex].Mesh = NULL;
 
 	checkSlow(LocalDrawingPolicyLink->Elements.Num() == LocalDrawingPolicyLink->CompactElements.Num());

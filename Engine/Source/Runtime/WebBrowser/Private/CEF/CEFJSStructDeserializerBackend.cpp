@@ -70,6 +70,41 @@ namespace {
 	}
 
 	/**
+	 * Gets a pointer to object of the given property.
+	 *
+	 * @param Property The property to get.
+	 * @param Outer The property that contains the property to be get, if any.
+	 * @param Data A pointer to the memory holding the property's data.
+	 * @param ArrayIndex The index of the element to set (if the property is an array).
+	 * @return A pointer to the object represented by the property, null otherwise..
+	 * @see ClearPropertyValue
+	 */
+	void* GetPropertyValuePtr( UProperty* Property, UProperty* Outer, void* Data, int32 ArrayIndex )
+	{
+		check(Property);
+
+		if (UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Outer))
+		{
+			if (ArrayProperty->Inner != Property)
+			{
+				return nullptr;
+			}
+
+			FScriptArrayHelper ArrayHelper(ArrayProperty, ArrayProperty->template ContainerPtrToValuePtr<void>(Data));
+			int32 Index = ArrayHelper.AddValue();
+
+			return ArrayHelper.GetRawPtr(Index);
+		}
+
+		if (ArrayIndex >= Property->ArrayDim)
+		{
+			return nullptr;
+		}
+
+		return Property->template ContainerPtrToValuePtr<void>(Data, ArrayIndex);
+	}
+
+	/**
 	 * Sets the value of the given property.
 	 *
 	 * @param Property The property to set.
@@ -79,54 +114,25 @@ namespace {
 	 * @return true on success, false otherwise.
 	 * @see ClearPropertyValue
 	 */
-	template<typename UPropertyType, typename PropertyType>
-	bool SetPropertyValue( UProperty* Property, UProperty* Outer, void* Data, int32 ArrayIndex, const PropertyType& Value )
+	template<typename PropertyType, typename ValueType>
+	bool SetPropertyValue( PropertyType* Property, UProperty* Outer, void* Data, int32 ArrayIndex, const ValueType& Value )
 	{
-		PropertyType* ValuePtr = nullptr;
-		UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Outer);
-
-		if (ArrayProperty != nullptr)
+		if (void* Ptr = GetPropertyValuePtr(Property, Outer, Data, ArrayIndex))
 		{
-			if (ArrayProperty->Inner != Property)
-			{
-				return false;
-			}
-
-			FScriptArrayHelper ArrayHelper(ArrayProperty, ArrayProperty->template ContainerPtrToValuePtr<void>(Data));
-			int32 Index = ArrayHelper.AddValue();
-
-			ValuePtr = (PropertyType*)ArrayHelper.GetRawPtr(Index);
-		}
-		else
-		{
-			UPropertyType* TypedProperty = Cast<UPropertyType>(Property);
-
-			if (TypedProperty == nullptr || ArrayIndex >= TypedProperty->ArrayDim)
-			{
-				return false;
-			}
-
-			ValuePtr = TypedProperty->template ContainerPtrToValuePtr<PropertyType>(Data, ArrayIndex);
+			*(ValueType*)Ptr = Value;
+			return true;
 		}
 
-		if (ValuePtr == nullptr)
-		{
-			return false;
-		}
-
-		*ValuePtr = Value;
-
-		return true;
+		return false;
 	}
-
 
 	template<typename PropertyType, typename ContainerType, typename KeyType>
 	bool ReadNumericProperty(UProperty* Property, UProperty* Outer, void* Data, int32 ArrayIndex, CefRefPtr<ContainerType> Container, KeyType Key )
 	{
 		typedef typename PropertyType::TCppType TCppType;
-		if (Property->IsA<PropertyType>())
+		if (PropertyType* TypedProperty = Cast<PropertyType>(Property))
 		{
-			return SetPropertyValue<PropertyType, TCppType>(Property, Outer, Data, ArrayIndex, GetNumeric<TCppType>(Container, Key));
+			return SetPropertyValue(TypedProperty, Outer, Data, ArrayIndex, GetNumeric<TCppType>(Container, Key));
 		}
 		else
 		{
@@ -137,9 +143,9 @@ namespace {
 	template<typename ContainerType, typename KeyType>
 	bool ReadBoolProperty(UProperty* Property, UProperty* Outer, void* Data, int32 ArrayIndex, CefRefPtr<ContainerType> Container, KeyType Key )
 	{
-		if (Property->IsA<UBoolProperty>())
+		if (UBoolProperty* BoolProperty = Cast<UBoolProperty>(Property))
 		{
-			return SetPropertyValue<UBoolProperty, bool>(Property, Outer, Data, ArrayIndex, GetNumeric<int>(Container, Key)!=0);
+			return SetPropertyValue(BoolProperty, Outer, Data, ArrayIndex, GetNumeric<int>(Container, Key)!=0);
 		}
 		return false;
 
@@ -155,7 +161,7 @@ namespace {
 		CefRefPtr<CefDictionaryValue> Dictionary = Container->GetDictionary(Key);
 		UStructProperty* StructProperty = Cast<UStructProperty>(Property);
 
-		if ( StructProperty->Struct != FWebJSFunction::StaticStruct())
+		if ( !StructProperty || StructProperty->Struct != FWebJSFunction::StaticStruct())
 		{
 			return false;
 		}
@@ -167,7 +173,7 @@ namespace {
 			return false;
 		}
 		FWebJSFunction CallbackObject(Scripting, CallbackID);
-		return SetPropertyValue<UStructProperty, FWebJSFunction>(Property, Outer, Data, ArrayIndex, CallbackObject);
+		return SetPropertyValue(StructProperty, Outer, Data, ArrayIndex, CallbackObject);
 	}
 
 	template<typename ContainerType, typename KeyType>
@@ -177,29 +183,52 @@ namespace {
 		{
 			FString StringValue = Container->GetString(Key).ToWString().c_str();
 
-			if (Property->IsA<UStrProperty>())
+			if (UStrProperty* StrProperty = Cast<UStrProperty>(Property))
 			{
-				return SetPropertyValue<UStrProperty, FString>(Property, Outer, Data, ArrayIndex, StringValue);
+				return SetPropertyValue(StrProperty, Outer, Data, ArrayIndex, StringValue);
 			}
-			else if (Property->IsA<UNameProperty>())
-			{
-				return SetPropertyValue<UNameProperty, FName>(Property, Outer, Data, ArrayIndex, *StringValue);
-			}
-			else if (Property->IsA<UTextProperty>())
-			{
-				return SetPropertyValue<UTextProperty, FText>(Property, Outer, Data, ArrayIndex, FText::FromString(StringValue));
-			}
-			else if (Property->IsA<UByteProperty>())
-			{
-				UByteProperty* ByteProperty = Cast<UByteProperty>(Property);
-				int32 Index = ByteProperty->Enum->FindEnumIndex(*StringValue);
 
+			if (UNameProperty* NameProperty = Cast<UNameProperty>(Property))
+			{
+				return SetPropertyValue(NameProperty, Outer, Data, ArrayIndex, FName(*StringValue));
+			}
+
+			if (UTextProperty* TextProperty = Cast<UTextProperty>(Property))
+			{
+				return SetPropertyValue(TextProperty, Outer, Data, ArrayIndex, FText::FromString(StringValue));
+			}
+
+			if (UByteProperty* ByteProperty = Cast<UByteProperty>(Property))
+			{
+				if (!ByteProperty->Enum)
+				{
+					return false;
+				}
+
+				int32 Index = ByteProperty->Enum->FindEnumIndex(*StringValue);
 				if (Index == INDEX_NONE)
 				{
 					return false;
 				}
 
-				return SetPropertyValue<UByteProperty, uint8>(Property, Outer, Data, ArrayIndex, (uint8)Index);
+				return SetPropertyValue(ByteProperty, Outer, Data, ArrayIndex, (uint8)Index);
+			}
+
+			if (UEnumProperty* EnumProperty = Cast<UEnumProperty>(Property))
+			{
+				int32 Index = EnumProperty->GetEnum()->FindEnumIndex(*StringValue);
+				if (Index == INDEX_NONE)
+				{
+					return false;
+				}
+
+				if (void* ElementPtr = GetPropertyValuePtr(EnumProperty, Outer, Data, ArrayIndex))
+				{
+					EnumProperty->GetUnderlyingProperty()->SetIntPropertyValue(ElementPtr, (int64)Index);
+					return true;
+				}
+
+				return false;
 			}
 		}
 

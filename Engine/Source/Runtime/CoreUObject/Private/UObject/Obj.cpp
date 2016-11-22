@@ -1381,7 +1381,7 @@ void UObject::FAssetRegistryTag::GetAssetRegistryTagsFromSearchableProperties(co
 			else if ( Class->IsChildOf(UByteProperty::StaticClass()) )
 			{
 				// bytes are numerical, enums are alphabetical
-				UByteProperty* ByteProp = dynamic_cast<UByteProperty*>(*FieldIt);
+				UByteProperty* ByteProp = static_cast<UByteProperty*>(*FieldIt);
 				if ( ByteProp->Enum )
 				{
 					TagType = FAssetRegistryTag::TT_Alphabetical;
@@ -1390,6 +1390,11 @@ void UObject::FAssetRegistryTag::GetAssetRegistryTagsFromSearchableProperties(co
 				{
 					TagType = FAssetRegistryTag::TT_Numerical;
 				}
+			}
+			else if ( Class->IsChildOf(UEnumProperty::StaticClass()) )
+			{
+				// enums are alphabetical
+				TagType = FAssetRegistryTag::TT_Alphabetical;
 			}
 			else if ( Class->IsChildOf(UArrayProperty::StaticClass()) )
 			{

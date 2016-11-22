@@ -4,12 +4,6 @@ using System;
 using System.IO;
 using System.Runtime.Serialization;
 using System.Xml.Serialization;
-using System.Collections;
-using System.Collections.Generic;
-using Tools.DotNETCommon.XmlHandler;
-using System.Xml;
-using System.Linq;
-using System.Security;
 
 namespace Tools.CrashReporter.CrashReportCommon
 {
@@ -29,11 +23,6 @@ namespace Tools.CrashReporter.CrashReportCommon
 		/// <summary>A optional message to explain any return values.</summary>
 		[XmlAttribute]
 		public string Message = "";
-
-		/// <summary>A simple default constructor to allow Xml serialisation.</summary>
-		public CrashReporterResult()
-		{
-		}
 	}
 
 	/// <summary>

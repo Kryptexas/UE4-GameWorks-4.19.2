@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #include "BuildPatchServicesPrivatePCH.h"
 #include "FileAttributesParser.h"
+#include "UniquePtr.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogFileAttributesParser, Log, All);
 DEFINE_LOG_CATEGORY(LogFileAttributesParser);
@@ -47,8 +48,8 @@ namespace BuildPatchServices
 
 	bool FFileAttributesParserImpl::ParseFileAttributes(const FString& MetaFilename, TMap<FString, FFileAttributes>& FileAttributes)
 	{
-		TAutoPtr<IFileHandle> Handle(PlatformFile.OpenRead(*MetaFilename));
-		if (Handle.IsValid())
+		TUniquePtr<IFileHandle> Handle(PlatformFile.OpenRead(*MetaFilename));
+		if (Handle)
 		{
 			TArray<uint8> FileData;
 			FileData.AddUninitialized(Handle->Size());

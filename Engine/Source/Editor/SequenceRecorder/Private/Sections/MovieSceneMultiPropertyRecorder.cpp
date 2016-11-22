@@ -61,6 +61,10 @@ void FMovieSceneMultiPropertyRecorder::CreateSection(UObject* InObjectToRecord, 
 			{
 				PropertyRecorders.Add(MakeShareable(new FMovieScenePropertyRecorder<uint8>(Binding)));
 			}
+			else if (Property->IsA<UEnumProperty>())
+			{
+				PropertyRecorders.Add(MakeShareable(new FMovieScenePropertyRecorderEnum(Binding)));
+			}
 			else if (Property->IsA<UFloatProperty>())
 			{
 				PropertyRecorders.Add(MakeShareable(new FMovieScenePropertyRecorder<float>(Binding)));
@@ -105,6 +109,10 @@ bool FMovieSceneMultiPropertyRecorder::CanPropertyBeRecorded(const UProperty& In
 		return true;
 	}
 	else if (InProperty.IsA<UByteProperty>())
+	{
+		return true;
+	}
+	else if (InProperty.IsA<UEnumProperty>())
 	{
 		return true;
 	}

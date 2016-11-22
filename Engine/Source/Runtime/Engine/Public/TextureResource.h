@@ -8,6 +8,7 @@
 
 #include "Engine/TextureDefines.h"
 #include "UnrealClient.h"
+#include "UniquePtr.h"
 
 class UTexture2D;
 
@@ -311,7 +312,7 @@ private:
 	int32 CurrentFirstMip;
 
 	/** Pending async create texture task, if any.															*/
-	TScopedPointer<FAsyncCreateTextureTask> AsyncCreateTextureTask;
+	TUniquePtr<FAsyncCreateTextureTask> AsyncCreateTextureTask;
 	
 	/** Local copy/ cache of mip data between creation and first call to InitRHI.							*/
 	void*				MipData[MAX_TEXTURE_MIP_COUNT];

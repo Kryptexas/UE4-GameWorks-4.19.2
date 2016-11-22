@@ -15,6 +15,7 @@
 #include "SceneManagement.h"
 #include "PhysicsEngine/BodySetupEnums.h"
 #include "Materials/MaterialInterface.h"
+#include "UniquePtr.h"
 
 /**
  * The LOD settings to use for a group of static meshes.
@@ -846,7 +847,7 @@ public:
 	void SyncUVChannelData(const TArray<FStaticMaterial>& ObjectData);
 
 	/** The next cached derived data in the list. */
-	TScopedPointer<class FStaticMeshRenderData> NextCachedRenderData;
+	TUniquePtr<class FStaticMeshRenderData> NextCachedRenderData;
 
 	/**
 	 * Cache derived renderable data for the static mesh with the provided

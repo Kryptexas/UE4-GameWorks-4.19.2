@@ -1826,9 +1826,9 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializeThumbnails( bool bForceEnableIn
 
 
 		// Allocate a new thumbnail map if we need one
-		if( !LinkerRoot->ThumbnailMap.IsValid() )
+		if( !LinkerRoot->ThumbnailMap )
 		{
-			LinkerRoot->ThumbnailMap.Reset( new FThumbnailMap() );
+			LinkerRoot->ThumbnailMap = MakeUnique<FThumbnailMap>();
 		}
 
 
@@ -4420,7 +4420,15 @@ void FLinkerLoad::DetachExport( int32 i )
 			UE_LOG(LogLinker, Fatal, TEXT("Linker object %s %s.%s mislinked!"), *GetExportClassName(i).ToString(), *LinkerRoot->GetName(), *E.ObjectName.ToString());
 		}
 	}
-	check(E.Object->GetLinkerIndex() == i);
+
+	if (E.Object->GetLinkerIndex() == -1)
+	{
+		UE_LOG(LogLinker, Warning, TEXT("Linker object %s %s.%s was already detached."), *GetExportClassName(i).ToString(), *LinkerRoot->GetName(), *E.ObjectName.ToString());
+	}
+	else
+	{
+		checkf(E.Object->GetLinkerIndex() == i, TEXT("Mismatched linker index in FLinkerLoad::DetachExport for %s in %s. Linker index was supposed to be %d, was %d"), *GetExportClassName(i).ToString(), *LinkerRoot->GetName(), i, E.Object->GetLinkerIndex());
+	}
 	ExportMap[i].Object->SetLinker( NULL, INDEX_NONE );
 }
 

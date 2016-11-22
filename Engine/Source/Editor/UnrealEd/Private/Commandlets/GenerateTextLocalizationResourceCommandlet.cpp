@@ -2,6 +2,7 @@
 
 #include "UnrealEd.h"
 #include "TextLocalizationResourceGenerator.h"
+#include "UniquePtr.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGenerateTextLocalizationResourceCommandlet, Log, All);
 
@@ -140,7 +141,7 @@ int32 UGenerateTextLocalizationResourceCommandlet::Main(const FString& Params)
 		{
 			bool bSaved = false;
 
-			TAutoPtr<FArchive> TextLocalizationResourceArchive(IFileManager::Get().CreateFileWriter(*InSaveFileName));
+			TUniquePtr<FArchive> TextLocalizationResourceArchive(IFileManager::Get().CreateFileWriter(*InSaveFileName));
 			if (TextLocalizationResourceArchive)
 			{
 				bSaved = FTextLocalizationResourceGenerator::Generate(LocTextHelper, CultureName, bSkipSourceCheck, *TextLocalizationResourceArchive);

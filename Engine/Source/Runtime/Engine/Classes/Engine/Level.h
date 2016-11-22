@@ -510,9 +510,16 @@ public:
 	uint8										bIsBeingRemoved:1;
 	/** Current index into actors array for updating components.							*/
 	int32										CurrentActorIndexForUpdateComponents;
+	/** Current index into actors array for updating components.							*/
+	int32										CurrentActorIndexForUnregisterComponents;
+
 
 	/** Whether the level is currently pending being made visible.							*/
+	DEPRECATED(4.15, "Use HasVisibilityChangeRequestPending")
 	bool HasVisibilityRequestPending() const;
+
+	/** Whether the level is currently pending being made invisible or visible.				*/
+	bool HasVisibilityChangeRequestPending() const;
 
 	// Event on level transform changes
 	DECLARE_MULTICAST_DELEGATE_OneParam(FLevelTransformEvent, const FTransform&);
@@ -628,6 +635,15 @@ public:
 	 * @param bRerunConstructionScripts	If we want to rerun construction scripts on actors in level
 	 */
 	void IncrementalUpdateComponents( int32 NumComponentsToUpdate, bool bRerunConstructionScripts );
+
+	/**
+	* Incrementally unregisters all components of actors associated with this level.
+	* This is done at the granularity of actors (individual actors have all of their components unregistered)
+    *
+	* @param NumComponentsToUnregister		Minimum number of components to unregister in this run, 0 for all
+	*/
+	bool IncrementalUnregisterComponents(int32 NumComponentsToUnregister);
+
 
 	/**
 	 * Invalidates the cached data used to render the level's UModel.

@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "UniquePtr.h"
+
 class CORE_API FCachedFileHandle : public IFileHandle
 {
 public:
@@ -195,7 +197,7 @@ private:
 		}
 	}
 
-	TAutoPtr<IFileHandle>	FileHandle;
+	TUniquePtr<IFileHandle>	FileHandle;
 	int64					FilePos; /* Desired position in the file stream, this can be different to FilePos due to the cache */
 	int64					TellPos; /* Actual position in the file,  this can be different to FilePos */
 	int64					FileSize;

@@ -141,6 +141,15 @@ public:
 		return wcstol( Start, End, Base );
 	}
 
+	static FORCEINLINE int64 Strtoi64( const WIDECHAR* Start, WIDECHAR** End, int32 Base ) 
+	{
+#if PLATFORM_HTML5_WIN32
+		return _wtoi64(Start);
+#else
+		return wcstoll( Start, End, Base );
+#endif
+	}
+
 	static FORCEINLINE uint64 Strtoui64( const WIDECHAR* Start, WIDECHAR** End, int32 Base ) 
 	{
 #if PLATFORM_HTML5_WIN32
@@ -297,6 +306,15 @@ public:
 	static FORCEINLINE int32 Strtoi( const ANSICHAR* Start, ANSICHAR** End, int32 Base ) 
 	{
 		return strtol( Start, End, Base ); 
+	}
+
+	static FORCEINLINE int64 Strtoi64( const ANSICHAR* Start, ANSICHAR** End, int32 Base ) 
+	{
+#if PLATFORM_HTML5_WIN32
+		return _atoi64(Start);
+#else
+		return strtoll(Start, End, Base);
+#endif
 	}
 
 	static FORCEINLINE uint64 Strtoui64( const ANSICHAR* Start, ANSICHAR** End, int32 Base ) 

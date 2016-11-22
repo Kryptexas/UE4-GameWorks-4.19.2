@@ -6,6 +6,8 @@
 #include "MovieSceneBoolTrack.h"
 #include "MovieSceneByteSection.h"
 #include "MovieSceneByteTrack.h"
+#include "MovieSceneEnumSection.h"
+#include "MovieSceneEnumTrack.h"
 #include "MovieSceneFloatSection.h"
 #include "MovieSceneFloatTrack.h"
 #include "MovieSceneColorSection.h"
@@ -96,6 +98,44 @@ void FMovieScenePropertyRecorder<uint8>::AddKeyToSection(UMovieSceneSection* InS
 
 template <>
 void FMovieScenePropertyRecorder<uint8>::ReduceKeys(UMovieSceneSection* InSection)
+{
+}
+
+bool FMovieScenePropertyRecorderEnum::ShouldAddNewKey(const int64& InNewValue) const
+{
+	return InNewValue != PreviousValue;
+}
+
+UMovieSceneSection* FMovieScenePropertyRecorderEnum::AddSection(UObject* InObjectToRecord, UMovieScene* InMovieScene, const FGuid& InGuid, float InTime)
+{
+	UMovieSceneEnumTrack* Track = InMovieScene->AddTrack<UMovieSceneEnumTrack>(InGuid);
+	if (Track)
+	{
+		if (InObjectToRecord)
+		{
+			Track->SetPropertyNameAndPath(*Binding.GetProperty(*InObjectToRecord)->GetDisplayNameText().ToString(), Binding.GetPropertyPath());
+		}
+
+		UMovieSceneEnumSection* Section = Cast<UMovieSceneEnumSection>(Track->CreateNewSection());
+		Section->SetDefault(PreviousValue);
+		Section->SetStartTime(InTime);
+		Section->SetEndTime(InTime);
+		Section->AddKey(InTime, PreviousValue, EMovieSceneKeyInterpolation::Break);
+
+		Track->AddSection(*Section);
+
+		return Section;
+	}
+
+	return nullptr;
+}
+
+void FMovieScenePropertyRecorderEnum::AddKeyToSection(UMovieSceneSection* InSection, const FPropertyKey<int64>& InKey)
+{
+	CastChecked<UMovieSceneEnumSection>(InSection)->AddKey(InKey.Time, InKey.Value, EMovieSceneKeyInterpolation::Break);
+}
+
+void FMovieScenePropertyRecorderEnum::ReduceKeys(UMovieSceneSection* InSection)
 {
 }
 

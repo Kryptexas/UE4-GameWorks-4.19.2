@@ -3,6 +3,7 @@
 #pragma once
 
 #include "DerivedDataCacheUsageStats.h"
+#include "UniquePtr.h"
 
 
 /** 
@@ -33,7 +34,7 @@ public:
 			for (int32 CacheIndex = 0; CacheIndex < InnerBackends.Num(); CacheIndex++)
 			{
 				// async puts to allow us to fill all levels without holding up the engine
-				new (AsyncPutInnerBackends) TScopedPointer<FDerivedDataBackendInterface>(new FDerivedDataBackendAsyncPutWrapper(InnerBackends[CacheIndex], false));
+				AsyncPutInnerBackends.Emplace(new FDerivedDataBackendAsyncPutWrapper(InnerBackends[CacheIndex], false));
 			}
 		}
 	}
@@ -211,7 +212,7 @@ private:
 	/** Array of backends forming the hierarchical cache...the first element is the fastest cache. **/
 	TArray<FDerivedDataBackendInterface*> InnerBackends;
 	/** Each of the backends wrapped with an async put **/
-	TArray<TScopedPointer<FDerivedDataBackendInterface> > AsyncPutInnerBackends;
+	TArray<TUniquePtr<FDerivedDataBackendInterface> > AsyncPutInnerBackends;
 	/** As an optimization, we check our writable status at contruction **/
 	bool bIsWritable;
 };

@@ -83,7 +83,7 @@ APlayerController* UPlayer::GetPlayerController(UWorld* InWorld) const
 	{
 		if ( (*Iterator)->GetLocalPlayer() == this )
 		{
-			return *Iterator;
+			return Iterator->Get();
 		}
 	}
 

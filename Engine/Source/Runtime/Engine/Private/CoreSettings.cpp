@@ -10,8 +10,9 @@ float GAsyncLoadingTimeLimit = 5.0f;
 int32 GAsyncLoadingUseFullTimeLimit = 1;
 float GPriorityAsyncLoadingExtraTime = 20.0f;
 float GLevelStreamingActorsUpdateTimeLimit = 5.0f;
+float GLevelStreamingUnregisterComponentsTimeLimit = 1.0f;
 int32 GLevelStreamingComponentsRegistrationGranularity = 10;
-
+int32 GLevelStreamingComponentsUnregistrationGranularity = 5;
 
 static FAutoConsoleVariableRef CVarUseBackgroundLevelStreaming(
 	TEXT("s.UseBackgroundLevelStreaming"),
@@ -48,10 +49,24 @@ static FAutoConsoleVariableRef CVarLevelStreamingActorsUpdateTimeLimit(
 	ECVF_Default
 	);
 
+static FAutoConsoleVariableRef CVarLevelStreamingUnregisterComponentsTimeLimit(
+	TEXT("s.UnregisterComponentsTimeLimit"),
+	GLevelStreamingUnregisterComponentsTimeLimit,
+	TEXT("Maximum allowed time to spend for actor unregistration steps during level streaming (ms per frame). If this is zero then we don't timeslice"),
+	ECVF_Default
+);
+
 static FAutoConsoleVariableRef CVarLevelStreamingComponentsRegistrationGranularity(
 	TEXT("s.LevelStreamingComponentsRegistrationGranularity"),
 	GLevelStreamingComponentsRegistrationGranularity,
 	TEXT("Batching granularity used to register actor components during level streaming."),
+	ECVF_Default
+	);
+
+static FAutoConsoleVariableRef CVarLevelStreamingComponentsUnregistrationGranularity(
+	TEXT("s.LevelStreamingComponentsUnregistrationGranularity"),
+	GLevelStreamingComponentsUnregistrationGranularity,
+	TEXT("Batching granularity used to unregister actor components during level unstreaming."),
 	ECVF_Default
 	);
 

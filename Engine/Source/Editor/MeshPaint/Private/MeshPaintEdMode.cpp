@@ -39,6 +39,7 @@
 #include "VREditorInteractor.h"
 #include "VIBaseTransformGizmo.h"
 #include "EditorWorldManager.h"
+#include "UniquePtr.h"
 
 #define LOCTEXT_NAMESPACE "MeshPaint_Mode"
 
@@ -1486,8 +1487,8 @@ void FEdModeMeshPaint::PaintMeshVertices(
 	// Paint the mesh
 	uint32 NumVerticesInfluencedByBrush = 0;
 	{
-		TScopedPointer< FStaticMeshComponentRecreateRenderStateContext > RecreateRenderStateContext;
-		TScopedPointer< FComponentReregisterContext > ComponentReregisterContext;
+		TUniquePtr< FStaticMeshComponentRecreateRenderStateContext > RecreateRenderStateContext;
+		TUniquePtr< FComponentReregisterContext > ComponentReregisterContext;
 
 
 		FStaticMeshComponentLODInfo* InstanceMeshLODInfo = NULL;
@@ -1497,7 +1498,7 @@ void FEdModeMeshPaint::PaintMeshVertices(
 			{
 				// We're only changing instanced vertices on this specific mesh component, so we
 				// only need to detach our mesh component
-				ComponentReregisterContext.Reset( new FComponentReregisterContext( StaticMeshComponent ) );
+				ComponentReregisterContext = MakeUnique<FComponentReregisterContext>( StaticMeshComponent );
 
 				// Mark the mesh component as modified
 				StaticMeshComponent->SetFlags(RF_Transactional);
@@ -1563,7 +1564,7 @@ void FEdModeMeshPaint::PaintMeshVertices(
 			{
 				// We're changing the mesh itself, so ALL static mesh components in the scene will need
 				// to be unregistered for this (and reregistered afterwards.)
-				RecreateRenderStateContext.Reset( new FStaticMeshComponentRecreateRenderStateContext( StaticMesh ) );
+				RecreateRenderStateContext = MakeUnique<FStaticMeshComponentRecreateRenderStateContext>( StaticMesh );
 
 				// Dirty the mesh
 				StaticMesh->SetFlags(RF_Transactional);
@@ -3760,7 +3761,7 @@ void FEdModeMeshPaint::PasteInstanceVertexColors()
 
 	USelection& SelectedActors = *Owner->GetSelectedActors();
 
-	TScopedPointer< FComponentReregisterContext > ComponentReregisterContext;
+	TUniquePtr< FComponentReregisterContext > ComponentReregisterContext;
 
 	for( int32 ActorIndex = 0; ActorIndex < SelectedActors.Num(); ActorIndex++ )
 	{
@@ -3795,7 +3796,7 @@ void FEdModeMeshPaint::PasteInstanceVertexColors()
 
 					if(FoundColors != NULL)
 					{
-						ComponentReregisterContext.Reset( new FComponentReregisterContext( StaticMeshComponent ) );
+						ComponentReregisterContext = MakeUnique<FComponentReregisterContext>( StaticMeshComponent );
 						StaticMeshComponent->SetFlags(RF_Transactional);
 						StaticMeshComponent->Modify();
 						StaticMeshComponent->SetLODDataCount( NumLods, NumLods );
@@ -4340,8 +4341,8 @@ void FImportVertexTextureHelper::ImportVertexColors(FEditorModeTools* ModeTools,
 
 		FStaticMeshLODResources& LODModel = StaticMesh->RenderData->LODResources[ ImportLOD ];
 
-		TScopedPointer< FStaticMeshComponentRecreateRenderStateContext > RecreateRenderStateContext;
-		TScopedPointer< FComponentReregisterContext > ComponentReregisterContext;
+		TUniquePtr< FStaticMeshComponentRecreateRenderStateContext > RecreateRenderStateContext;
+		TUniquePtr< FComponentReregisterContext > ComponentReregisterContext;
 
 		FStaticMeshComponentLODInfo* InstanceMeshLODInfo = NULL;
 
@@ -4352,7 +4353,7 @@ void FImportVertexTextureHelper::ImportVertexColors(FEditorModeTools* ModeTools,
 
 		if (bComponent)
 		{
-			ComponentReregisterContext.Reset( new FComponentReregisterContext( StaticMeshComponent ) );
+			ComponentReregisterContext = MakeUnique<FComponentReregisterContext>( StaticMeshComponent );
 			StaticMeshComponent->Modify();
 
 			// Ensure LODData has enough entries in it, free not required.
@@ -4400,7 +4401,7 @@ void FImportVertexTextureHelper::ImportVertexColors(FEditorModeTools* ModeTools,
 			}
 			// We're changing the mesh itself, so ALL static mesh components in the scene will need
 			// to be detached for this (and reattached afterwards.)
-			RecreateRenderStateContext.Reset( new FStaticMeshComponentRecreateRenderStateContext( StaticMesh ) );
+			RecreateRenderStateContext = MakeUnique<FStaticMeshComponentRecreateRenderStateContext>( StaticMesh );
 
 			// Dirty the mesh
 			StaticMesh->Modify();

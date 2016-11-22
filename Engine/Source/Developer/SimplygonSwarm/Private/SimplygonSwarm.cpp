@@ -2,6 +2,7 @@
 
 #include "SimplygonSwarmPrivatePCH.h"
 #include "SimplygonSwarmHelpers.h"
+#include "UniquePtr.h"
 THIRD_PARTY_INCLUDES_START
 #include <algorithm>
 THIRD_PARTY_INCLUDES_END
@@ -1639,12 +1640,12 @@ bool ZipContentsForUpload(FString InputDirectoryPath, FString OutputFileName)
 	}
 };
 
-TScopedPointer<FSimplygonSwarm> GSimplygonMeshReduction;
+TUniquePtr<FSimplygonSwarm> GSimplygonMeshReduction;
 
 
 void FSimplygonSwarmModule::StartupModule()
 {
-	GSimplygonMeshReduction = FSimplygonSwarm::Create();
+	GSimplygonMeshReduction.Reset(FSimplygonSwarm::Create());
 }
 
 void FSimplygonSwarmModule::ShutdownModule()
@@ -1664,7 +1665,7 @@ IMeshReduction* FSimplygonSwarmModule::GetSkeletalMeshReductionInterface()
 
 IMeshMerging* FSimplygonSwarmModule::GetMeshMergingInterface()
 {
-	return GSimplygonMeshReduction;
+	return GSimplygonMeshReduction.Get();
 }
 
 

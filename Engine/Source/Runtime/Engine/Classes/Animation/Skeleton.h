@@ -510,7 +510,7 @@ public:
 	typedef TArray<FBoneNode> FBoneTreeType;
 
 	/** Runtime built mapping table between SkeletalMeshes, and LinkupCache array indices. */
-	TMap<TAutoWeakObjectPtr<class USkeletalMesh>, int32> SkelMesh2LinkupCache;
+	TMap<TWeakObjectPtr<USkeletalMesh>, int32> SkelMesh2LinkupCache;
 
 #if WITH_EDITORONLY_DATA
 

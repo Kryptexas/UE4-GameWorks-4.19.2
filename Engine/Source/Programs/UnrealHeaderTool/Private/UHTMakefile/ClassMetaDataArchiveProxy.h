@@ -4,6 +4,7 @@
 #include "UHTMakefile/MultipleInheritanceBaseClassArchiveProxy.h"
 #include "UHTMakefile/PropertyDataArchiveProxy.h"
 #include "UHTMakefile/StructDataArchiveProxy.h"
+#include "UniquePtr.h"
 
 class FUHTMakefile;
 class FClassMetaData;
@@ -17,7 +18,7 @@ struct FClassMetaDataArchiveProxy
 	static void AddReferencedNames(const FClassMetaData* FClassMetaData, FUHTMakefile& UHTMakefile);
 
 	friend FArchive& operator<<(FArchive& Ar, FClassMetaDataArchiveProxy& ClassMetaDataArchiveProxy);
-	TScopedPointer<FClassMetaData> CreateClassMetaData() const;
+	TUniquePtr<FClassMetaData> CreateClassMetaData() const;
 	void PostConstruct(FClassMetaData* ClassMetaData) const;
 	void Resolve(FClassMetaData* ClassMetaData, FUHTMakefile& UHTMakefile);
 

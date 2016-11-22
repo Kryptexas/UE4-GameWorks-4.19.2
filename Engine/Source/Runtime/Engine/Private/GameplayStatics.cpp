@@ -66,7 +66,7 @@ class APlayerController* UGameplayStatics::GetPlayerController(const UObject* Wo
 		uint32 Index = 0;
 		for (FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator)
 		{
-			APlayerController* PlayerController = *Iterator;
+			APlayerController* PlayerController = Iterator->Get();
 			if (Index == PlayerIndex)
 			{
 				return PlayerController;

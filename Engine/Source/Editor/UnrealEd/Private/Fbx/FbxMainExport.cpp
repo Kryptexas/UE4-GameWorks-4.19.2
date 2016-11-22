@@ -633,7 +633,7 @@ void FFbxExporter::ExportModel(UModel* Model, FbxNode* Node, const char* Name)
 	
 	for (auto MaterialIterator = Model->MaterialIndexBuffers.CreateIterator(); MaterialIterator; ++MaterialIterator)
 	{
-		BeginReleaseResource(MaterialIterator.Value());
+		BeginReleaseResource(MaterialIterator->Value.Get());
 	}
 	FlushRenderingCommands();
 

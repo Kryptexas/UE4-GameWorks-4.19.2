@@ -21,6 +21,7 @@
 #include "MallocProfiler.h"
 
 #include "NetworkVersion.h"
+#include "UniquePtr.h"
 
 #if WITH_COREUOBJECT
 	#include "Internationalization/PackageLocalizationManager.h"
@@ -238,9 +239,9 @@ public:
 };
 
 
-static TScopedPointer<FOutputDeviceConsole>	GScopedLogConsole;
-static TScopedPointer<FOutputDeviceStdOutput> GScopedStdOut;
-static TScopedPointer<FOutputDeviceTestExit> GScopedTestExit;
+static TUniquePtr<FOutputDeviceConsole>	GScopedLogConsole;
+static TUniquePtr<FOutputDeviceStdOutput> GScopedStdOut;
+static TUniquePtr<FOutputDeviceTestExit> GScopedTestExit;
 
 
 #if WITH_ENGINE
@@ -268,10 +269,10 @@ static void RHIExitAndStopRHIThread()
 void InitializeStdOutDevice()
 {
 	// Check if something is trying to initialize std out device twice.
-	check(!GScopedStdOut.IsValid());
+	check(!GScopedStdOut);
 
-	GScopedStdOut = new FOutputDeviceStdOutput();
-	GLog->AddOutputDevice(GScopedStdOut.GetOwnedPointer());
+	GScopedStdOut = MakeUnique<FOutputDeviceStdOutput>();
+	GLog->AddOutputDevice(GScopedStdOut.Get());
 }
 
 
@@ -842,7 +843,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	}
 
 	// Initialize log console here to avoid statics initialization issues when launched from the command line.
-	GScopedLogConsole = FPlatformOutputDevices::GetLogConsole();
+	GScopedLogConsole = TUniquePtr<FOutputDeviceConsole>(FPlatformOutputDevices::GetLogConsole());
 
 	// Always enable the backlog so we get all messages, we will disable and clear it in the game
 	// as soon as we determine whether GIsEditor == false
@@ -863,8 +864,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			TArray<FString> ExitPhrasesList;
 			if (ExitPhrases.ParseIntoArray(ExitPhrasesList, TEXT("+"), true) > 0)
 			{
-				GScopedTestExit = new FOutputDeviceTestExit(ExitPhrasesList);
-				GLog->AddOutputDevice(GScopedTestExit.GetOwnedPointer());
+				GScopedTestExit = MakeUnique<FOutputDeviceTestExit>(ExitPhrasesList);
+				GLog->AddOutputDevice(GScopedTestExit.Get());
 			}
 		}
 	}
@@ -1303,7 +1304,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	}
 
 	// Get a pointer to the log output device
-	GLogConsole = GScopedLogConsole.GetOwnedPointer();
+	GLogConsole = GScopedLogConsole.Get();
 
 	LoadPreInitModules();
 
@@ -1456,7 +1457,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	// If std out device hasn't been initialized yet (there was no -stdout param in the command line) and
 	// we meet all the criteria, initialize it now.
-	if (!GScopedStdOut.IsValid() && !bHasEditorToken && !bIsRegularClient && !IsRunningDedicatedServer())
+	if (!GScopedStdOut && !bHasEditorToken && !bIsRegularClient && !IsRunningDedicatedServer())
 	{
 		InitializeStdOutDevice();
 	}
@@ -2589,7 +2590,7 @@ void FEngineLoop::ProcessLocalPlayerSlateOperations() const
 				{
 					for (FConstPlayerControllerIterator Iterator = CurWorld->GetPlayerControllerIterator(); Iterator; ++Iterator)
 					{
-						APlayerController* PlayerController = *Iterator;
+						APlayerController* PlayerController = Iterator->Get();
 						if (PlayerController)
 						{
 							ULocalPlayer* LocalPlayer = Cast< ULocalPlayer >(PlayerController->Player);

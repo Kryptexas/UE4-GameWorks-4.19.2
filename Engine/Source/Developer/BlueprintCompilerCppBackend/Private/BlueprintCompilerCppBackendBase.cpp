@@ -782,7 +782,7 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromEnum(UUserDefinedEnum*
 
 	auto EnumItemName = [&](int32 InIndex)
 	{
-		const int32 ElemValue = SourceEnum->GetValueByIndex(InIndex);
+		const int64 ElemValue = SourceEnum->GetValueByIndex(InIndex);
 		if (ElemValue == SourceEnum->GetMaxEnumValue())
 		{
 			return FString::Printf(TEXT("%s_MAX"), *EnumCppName);
@@ -793,12 +793,12 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromEnum(UUserDefinedEnum*
 	for (int32 Index = 0; Index < SourceEnum->NumEnums(); ++Index)
 	{
 		const FString ElemCppName = EnumItemName(Index);
-		const int32 ElemValue = SourceEnum->GetValueByIndex(Index);
+		const int64 ElemValue = SourceEnum->GetValueByIndex(Index);
 
 		const FString& DisplayNameMD = SourceEnum->GetMetaData(TEXT("DisplayName"), ElemValue);// TODO: value or index?
 		const FString MetaDisplayName = DisplayNameMD.IsEmpty() ? FString() : FString::Printf(TEXT("DisplayName = \"%s\","), *DisplayNameMD.ReplaceCharWithEscapedChar());
 		const FString MetaOverrideName = FString::Printf(TEXT("OverrideName = \"%s\""), *SourceEnum->GetNameByIndex(Index).ToString());
-		Header.AddLine(FString::Printf(TEXT("%s = %d UMETA(%s%s),"), *ElemCppName, ElemValue, *MetaDisplayName, *MetaOverrideName));
+		Header.AddLine(FString::Printf(TEXT("%s = %lld UMETA(%s%s),"), *ElemCppName, ElemValue, *MetaDisplayName, *MetaOverrideName));
 	}
 
 	Header.DecreaseIndent();

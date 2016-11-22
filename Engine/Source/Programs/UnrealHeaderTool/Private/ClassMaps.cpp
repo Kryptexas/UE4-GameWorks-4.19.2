@@ -17,7 +17,7 @@ TSet<FUnrealSourceFile*> GExportedSourceFiles;
 TMap<UProperty*, FString> GArrayDimensions;
 TMap<UPackage*,  const FManifestModule*> GPackageToManifestModuleMap;
 TMap<UField*, uint32> GGeneratedCodeCRCs;
-TMap<UEnum*,  EPropertyType> GEnumUnderlyingTypes;
+TMap<UEnum*,  EUnderlyingEnumType> GEnumUnderlyingTypes;
 TMap<FName, TSharedRef<FClassDeclarationMetaData> > GClassDeclarations;
 TSet<UProperty*> GUnsizedProperties;
 

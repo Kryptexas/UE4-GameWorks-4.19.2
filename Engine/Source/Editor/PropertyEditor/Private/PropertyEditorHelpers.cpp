@@ -495,12 +495,17 @@ namespace PropertyEditorHelpers
 		if(Property != NULL)
 		{
 			const UByteProperty* ByteProperty = Cast<UByteProperty>(Property);
-			if(ByteProperty || (Property->IsA(UStrProperty::StaticClass()) && Property->HasMetaData(TEXT("Enum"))))
+			const UEnumProperty* EnumProperty = Cast<UEnumProperty>(Property);
+			if(ByteProperty || EnumProperty || (Property->IsA(UStrProperty::StaticClass()) && Property->HasMetaData(TEXT("Enum"))))
 			{
 				UEnum* Enum = nullptr;
 				if(ByteProperty)
 				{
 					Enum = ByteProperty->Enum;
+				}
+				else if (EnumProperty)
+				{
+					Enum = EnumProperty->GetEnum();
 				}
 				else
 				{

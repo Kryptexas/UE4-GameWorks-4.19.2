@@ -15,6 +15,7 @@
 
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "EnumProperty.h"
 
 #define LOCTEXT_NAMESPACE "PropertyHandleImplementation"
 
@@ -86,18 +87,31 @@ FPropertyAccess::Result FPropertyValueImpl::GetPropertyValueString( FString& Out
 			{
 				Property->ExportText_Direct( OutString, ValueAddress, ValueAddress, nullptr, PortFlags );
 
-				UByteProperty* ByteProperty = Cast<UByteProperty>(Property);
-				if ( ByteProperty != nullptr && ByteProperty->Enum != nullptr )
+				UEnum* Enum = nullptr;
+				int64 EnumValue = 0;
+				if ( UByteProperty* ByteProperty = Cast<UByteProperty>(Property) )
 				{
-					const uint8 EnumValue = ByteProperty->GetPropertyValue(ValueAddress);
+					if ( ByteProperty->Enum != nullptr )
+					{
+						Enum = ByteProperty->Enum;
+						EnumValue = ByteProperty->GetPropertyValue(ValueAddress);
+					}
+				}
+				else if ( UEnumProperty* EnumProperty = Cast<UEnumProperty>(Property) )
+				{
+					Enum = EnumProperty->GetEnum();
+					EnumValue = EnumProperty->GetUnderlyingProperty()->GetSignedIntPropertyValue(ValueAddress);
+				}
 
-					if (ByteProperty->Enum->IsValidEnumValue(EnumValue))
+				if ( Enum != nullptr )
+				{
+					if (Enum->IsValidEnumValue(EnumValue))
 					{
 						// See if we specified an alternate name for this value using metadata
-						OutString = ByteProperty->Enum->GetDisplayNameTextByValue(EnumValue).ToString();
+						OutString = Enum->GetDisplayNameTextByValue(EnumValue).ToString();
 						if(!bAllowAlternateDisplayValue || OutString.Len() == 0) 
 						{
-							OutString = ByteProperty->Enum->GetEnumNameStringByValue(EnumValue);
+							OutString = Enum->GetEnumNameStringByValue(EnumValue);
 						}
 					}
 					else
@@ -146,18 +160,28 @@ FPropertyAccess::Result FPropertyValueImpl::GetPropertyValueText( FText& OutText
 				FString ExportedTextString;
 				Property->ExportText_Direct(ExportedTextString, ValueAddress, ValueAddress, nullptr, PPF_PropertyWindow );
 
-				UByteProperty* ByteProperty = Cast<UByteProperty>(Property);
-				if ( ByteProperty != nullptr && ByteProperty->Enum != nullptr )
+				UEnum* Enum = nullptr;
+				int32 EnumeratorValue = 0;
+				if (UByteProperty* ByteProperty = Cast<UByteProperty>(Property))
 				{
-					const uint8 EnumValueIndex = ByteProperty->GetPropertyValue(ValueAddress);
-					
-					if (EnumValueIndex >= 0 && EnumValueIndex < ByteProperty->Enum->NumEnums())
+					Enum = ByteProperty->Enum;
+					EnumeratorValue = ByteProperty->GetPropertyValue(ValueAddress);
+				}
+				else if (UEnumProperty* EnumProperty = Cast<UEnumProperty>(Property))
+				{
+					Enum = EnumProperty->GetEnum();
+					EnumeratorValue = EnumProperty->GetUnderlyingProperty()->GetSignedIntPropertyValue(ValueAddress);
+				}
+
+				if (Enum)
+				{
+					if (EnumeratorValue >= 0 && EnumeratorValue < Enum->NumEnums())
 					{
 						// See if we specified an alternate name for this value using metadata
-						OutText = ByteProperty->Enum->GetDisplayNameText(EnumValueIndex);
+						OutText = Enum->GetDisplayNameText(EnumeratorValue);
 						if(!bAllowAlternateDisplayValue || OutText.IsEmpty()) 
 						{
-							OutText = ByteProperty->Enum->GetEnumText(EnumValueIndex);
+							OutText = Enum->GetEnumText(EnumeratorValue);
 						}
 					}
 					else
@@ -2203,24 +2227,25 @@ bool FPropertyHandleBase::GeneratePossibleValues(TArray< TSharedPtr<FString> >& 
 	UProperty* Property = GetProperty();
 
 	bool bUsesAlternateDisplayValues = false;
-	const UByteProperty* ByteProperty = Cast<const UByteProperty>( Property );
 
-	if( ByteProperty || ( Property->IsA(UStrProperty::StaticClass()) && Property->HasMetaData( TEXT("Enum") ) ) )
+	UEnum* Enum = nullptr;
+	if( const UByteProperty* ByteProperty = Cast<const UByteProperty>( Property ) )
 	{
-		UEnum* Enum = nullptr;
-		if( ByteProperty )
-		{
-			Enum = ByteProperty->Enum;
-		}
-		else
-		{
-
-			FString EnumName = Property->GetMetaData(TEXT("Enum"));
-			Enum = FindObject<UEnum>(ANY_PACKAGE, *EnumName, true);
-		}
-
+		Enum = ByteProperty->Enum;
+	}
+	else if( const UEnumProperty* EnumProperty = Cast<const UEnumProperty>( Property ) )
+	{
+		Enum = EnumProperty->GetEnum();
+	}
+	else if ( Property->IsA(UStrProperty::StaticClass()) && Property->HasMetaData( TEXT("Enum") ) )
+	{
+		FString EnumName = Property->GetMetaData(TEXT("Enum"));
+		Enum = FindObject<UEnum>(ANY_PACKAGE, *EnumName, true);
 		check( Enum );
+	}
 
+	if( Enum )
+	{
 		const TArray<FName> ValidEnumValues = PropertyEditorHelpers::GetValidEnumsFromPropertyOverride(Property, Enum);
 
 		//NumEnums() - 1, because the last item in an enum is the _MAX item
@@ -2705,7 +2730,7 @@ bool FPropertyHandleByte::Supports( TSharedRef<FPropertyNode> PropertyNode )
 		return false;
 	}
 
-	return Property->IsA( UByteProperty::StaticClass() );
+	return Property->IsA<UByteProperty>() || Property->IsA<UEnumProperty>();
 }
 
 FPropertyAccess::Result FPropertyHandleByte::GetValue( uint8& OutValue ) const
@@ -2715,7 +2740,18 @@ FPropertyAccess::Result FPropertyHandleByte::GetValue( uint8& OutValue ) const
 
 	if( Res == FPropertyAccess::Success )
 	{
-		OutValue = Implementation->GetPropertyValue<UByteProperty>(PropValue);
+		TSharedPtr<FPropertyNode> PropertyNodePin = Implementation->GetPropertyNode();
+
+		UProperty* Property = PropertyNodePin->GetProperty();
+		if( Property->IsA<UByteProperty>() )
+		{
+			OutValue = Implementation->GetPropertyValue<UByteProperty>(PropValue);
+		}
+		else
+		{
+			check(PropertyNodePin.IsValid());
+			OutValue = CastChecked<UEnumProperty>(Property)->GetUnderlyingProperty()->GetUnsignedIntPropertyValue(PropValue);
+		}
 	}
 
 	return Res;
@@ -2725,12 +2761,23 @@ FPropertyAccess::Result FPropertyHandleByte::SetValue( const uint8& NewValue, EP
 {
 	FPropertyAccess::Result Res;
 	FString ValueStr;
-	
-	UByteProperty* ByteProperty = Cast<UByteProperty>(GetProperty());
-	if (ByteProperty && ByteProperty->Enum)
+
+	UProperty* Property = GetProperty();
+
+	UEnum* Enum = nullptr;
+	if (UByteProperty* ByteProperty = Cast<UByteProperty>(Property))
+	{
+		Enum = ByteProperty->Enum;
+	}
+	else if (UEnumProperty* EnumProperty = Cast<UEnumProperty>(Property))
+	{
+		Enum = EnumProperty->GetEnum();
+	}
+
+	if (Enum)
 	{
 		// Handle Enums using enum names to make sure they're compatible with UByteProperty::ExportText.
-		ValueStr = ByteProperty->Enum->GetEnumName(NewValue);
+		ValueStr = Enum->GetEnumName(NewValue);
 	}
 	else
 	{

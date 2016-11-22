@@ -18,6 +18,13 @@ namespace Tools.CrashReporter.CrashReportProcess
 		public const string ProcessingStartedPS4Event = "Started processing (from PS4Services)";
 		public const string ProcessingSucceededEvent = "Processing succeeded";
 		public const string ProcessingFailedEvent = "Processing failed";
+		public const string SymbolicationSucceededEvent = "Symbolication succeeded";
+		public const string SymbolicationFailedEvent = "Symbolication skipped/failed";
 		public const string ExceptionEvent = "Handled exceptions";	
+	}
+
+	static class StatusReportingPerfMeanNames
+	{
+		public const string MinidumpDiagnostics = "MDD runs";
 	}
 }

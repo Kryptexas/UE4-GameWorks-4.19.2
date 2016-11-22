@@ -49,6 +49,19 @@ FAutoConsoleCommandWithWorld CaptureConsoleCommand(
 	FConsoleCommandWithWorldDelegate::CreateStatic(OnUpdateReflectionCaptures)
 	);
 
+static TAutoConsoleVariable<int32> CVarReflectionCaptureGPUArrayCopy(
+	TEXT("r.ReflectionCaptureGPUArrayCopy"),
+	1,
+	TEXT("Do a fast copy of the reflection capture array when resizing if possible. This avoids hitches on the rendering thread when the cubemap array needs to grow.\n")
+	TEXT(" 0 is off, 1 is on (default)"),
+	ECVF_ReadOnly);
+
+
+bool DoGPUArrayCopy()
+{
+	return GRHISupportsResolveCubemapFaces && CVarReflectionCaptureGPUArrayCopy.GetValueOnAnyThread();
+}
+
 /** Encapsulates render target picking logic for cubemap mip generation. */
 FSceneRenderTargetItem& GetEffectiveRenderTarget(FSceneRenderTargets& SceneContext, bool bDownsamplePass, int32 TargetMipIndex)
 {
@@ -963,7 +976,30 @@ void FScene::AllocateReflectionCaptures(const TArray<UReflectionCaptureComponent
 			DesiredMaxCubemaps = FMath::Min(DesiredMaxCubemaps, GMaxNumReflectionCaptures);
 
 			const int32 ReflectionCaptureSize = UReflectionCaptureComponent::GetReflectionCaptureSize_GameThread();
-			if (DesiredMaxCubemaps != ReflectionSceneData.MaxAllocatedReflectionCubemapsGameThread || ReflectionCaptureSize != ReflectionSceneData.CubemapArray.GetCubemapSize())
+			bool bNeedsUpdateAllCaptures = DesiredMaxCubemaps != ReflectionSceneData.MaxAllocatedReflectionCubemapsGameThread || ReflectionCaptureSize != ReflectionSceneData.CubemapArray.GetCubemapSize();
+
+			if (DoGPUArrayCopy() && bNeedsUpdateAllCaptures)
+			{
+				check( ReflectionCaptureSize == ReflectionSceneData.CubemapArray.GetCubemapSize() || ReflectionSceneData.CubemapArray.GetCubemapSize() == 0 );
+				if (ReflectionCaptureSize == ReflectionSceneData.CubemapArray.GetCubemapSize())
+				{
+					// We can do a fast GPU copy to realloc the array, so we don't need to update all captures
+					ReflectionSceneData.MaxAllocatedReflectionCubemapsGameThread = DesiredMaxCubemaps;
+					ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+						GPUResizeArrayCommand,
+						FScene*, Scene, this,
+						uint32, MaxSize, ReflectionSceneData.MaxAllocatedReflectionCubemapsGameThread,
+						int32, ReflectionCaptureSize, ReflectionCaptureSize,
+						{
+							// Update the scene's cubemap array, preserving the original contents with a GPU-GPU copy
+							Scene->ReflectionSceneData.ResizeCubemapArrayGPU(MaxSize, ReflectionCaptureSize);
+						});
+
+					bNeedsUpdateAllCaptures = false;
+				}
+			}
+
+			if (bNeedsUpdateAllCaptures)
 			{
 				ReflectionSceneData.MaxAllocatedReflectionCubemapsGameThread = DesiredMaxCubemaps;
 
@@ -982,8 +1018,7 @@ void FScene::AllocateReflectionCaptures(const TArray<UReflectionCaptureComponent
 			}
 			else
 			{
-				// No reallocation of the cubemap array was needed, just update the captures that were requested
-
+				// No teardown of the cubemap array was needed, just update the captures that were requested
 				for (TSparseArray<UReflectionCaptureComponent*>::TIterator It(ReflectionSceneData.AllocatedReflectionCapturesGameThread); It; ++It)
 				{
 					UReflectionCaptureComponent* CurrentComponent = *It;
@@ -1031,6 +1066,7 @@ void FScene::UpdateAllReflectionCaptures()
 			FScene*, Scene, this,
 		{
 			Scene->ReflectionSceneData.AllocatedReflectionCaptureState.Empty();
+			Scene->ReflectionSceneData.CubemapIndicesRemovedSinceLastRealloc.Empty();
 		});
 
 		const int32 UpdateDivisor = FMath::Max(ReflectionSceneData.AllocatedReflectionCapturesGameThread.Num() / 20, 1);
@@ -1146,8 +1182,7 @@ void UploadReflectionCapture_RenderingThread(FScene* Scene, const FReflectionCap
 	FTextureCubeRHIRef& CubeMapArray = (FTextureCubeRHIRef&)Scene->ReflectionSceneData.CubemapArray.GetRenderTarget().ShaderResourceTexture;
 	check(CubeMapArray->GetFormat() == PF_FloatRGBA);
 
-	TArray<uint8> CubemapData;
-	FullHDRData->GetUncompressedData(CubemapData);
+	TRefCountPtr<FReflectionCaptureUncompressedData> SourceCubemapData = FullHDRData->GetUncompressedData();
 	int32 MipBaseIndex = 0;
 
 	for (int32 MipIndex = 0; MipIndex < NumMips; MipIndex++)
@@ -1165,7 +1200,7 @@ void UploadReflectionCapture_RenderingThread(FScene* Scene, const FReflectionCap
 			{
 				FFloat16Color* DestPtr = (FFloat16Color*)((uint8*)DestBuffer + Y * DestStride);
 				const int32 SourceIndex = MipBaseIndex + CubeFace * CubeFaceBytes + Y * MipSize * sizeof(FFloat16Color);
-				const uint8* SourcePtr = &CubemapData[SourceIndex];
+				const uint8* SourcePtr = SourceCubemapData->GetData(SourceIndex);
 				FMemory::Memcpy(DestPtr, SourcePtr, MipSize * sizeof(FFloat16Color));
 			}
 
@@ -1426,7 +1461,7 @@ void FScene::UpdateReflectionCaptureContents(UReflectionCaptureComponent* Captur
 		const FReflectionCaptureFullHDR* DerivedData = CaptureComponent->GetFullHDRData();
 
 		// Upload existing derived data if it exists, instead of capturing
-		if (DerivedData && DerivedData->CompressedCapturedData.Num() > 0)
+		if (DerivedData && DerivedData->HasValidData() )
 		{
 			// For other feature levels the reflection textures are stored on the component instead of in a scene-wide texture array
 			if (GetFeatureLevel() >= ERHIFeatureLevel::SM5)
@@ -1439,6 +1474,14 @@ void FScene::UpdateReflectionCaptureContents(UReflectionCaptureComponent* Captur
 				{
 					UploadReflectionCapture_RenderingThread(Scene, DerivedData, CaptureComponent);
 				});
+
+				if ( DoGPUArrayCopy() && !GIsEditor )
+				{
+					// We no longer need the HDR data, since we have a copy on the GPU
+					// In the editor we need this data for serialization, however
+					DerivedData = nullptr;
+					CaptureComponent->ReleaseHDRData();
+				}
 			}
 		}
 		else

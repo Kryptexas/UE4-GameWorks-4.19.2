@@ -6,6 +6,7 @@
 #include "ParserClass.h"
 #include "Scope.h"
 #include "HeaderProvider.h"
+#include "UnderlyingEnumType.h"
 
 #include "UnrealSourceFile.h"
 #include "ClassDeclarationMetaData.h"
@@ -24,7 +25,7 @@ extern TSet<FUnrealSourceFile*> GPublicSourceFileSet;
 extern TMap<UProperty*, FString> GArrayDimensions;
 extern TMap<UPackage*,  const FManifestModule*> GPackageToManifestModuleMap;
 extern TMap<UField*, uint32> GGeneratedCodeCRCs;
-extern TMap<UEnum*,  EPropertyType> GEnumUnderlyingTypes;
+extern TMap<UEnum*, EUnderlyingEnumType> GEnumUnderlyingTypes;
 extern TMap<FName, TSharedRef<FClassDeclarationMetaData> > GClassDeclarations;
 extern TSet<UProperty*> GUnsizedProperties;
 

@@ -3,7 +3,7 @@
 #include "CorePrivatePCH.h"
 #include "ExternalProfiler.h"
 #include "Runtime/Core/Public/Features/IModularFeatures.h"
-
+#include "UniquePtr.h"
 
 
 /**
@@ -111,7 +111,7 @@ namespace AQtimeProfiler
 	{
 		FAtModuleInit()
 		{
-			static TScopedPointer<FAQtimeExternalProfiler> ProfilerAQtime( new FAQtimeExternalProfiler() );
+			static TUniquePtr<FAQtimeExternalProfiler> ProfilerAQtime = MakeUnique<FAQtimeExternalProfiler>();
 			if( !ProfilerAQtime->Initialize() )
 			{
 				ProfilerAQtime.Reset();

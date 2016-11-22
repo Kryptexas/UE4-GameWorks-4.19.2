@@ -149,6 +149,22 @@ public:
 	{
 		return InnerArchive.IsCloseComplete(bHasError);
 	}
+
+	virtual const FCustomVersionContainer& GetCustomVersions() const override
+	{
+		return InnerArchive.GetCustomVersions();
+	}
+
+	virtual void SetCustomVersions(const FCustomVersionContainer& NewVersions) override
+	{
+		InnerArchive.SetCustomVersions(NewVersions);
+	}
+
+	virtual void ResetCustomVersions() override
+	{
+		InnerArchive.ResetCustomVersions();
+	}
+
 #if WITH_EDITOR
 	virtual void PushDebugDataString(const FName& DebugData) override
 	{

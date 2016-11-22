@@ -4,8 +4,8 @@
 #include "RawMesh.h"
 #include "MeshUtilities.h"
 #include "MeshBuild.h"
-
 #include "MeshSimplify.h"
+#include "UniquePtr.h"
 
 class FQuadricSimplifierMeshReductionModule : public IMeshReductionModule
 {
@@ -446,21 +446,21 @@ public:
 		return new FQuadricSimplifierMeshReduction;
 	}
 };
-TScopedPointer<FQuadricSimplifierMeshReduction> GQuadricSimplifierMeshReduction;
+TUniquePtr<FQuadricSimplifierMeshReduction> GQuadricSimplifierMeshReduction;
 
 void FQuadricSimplifierMeshReductionModule::StartupModule()
 {
-	GQuadricSimplifierMeshReduction = FQuadricSimplifierMeshReduction::Create();
+	GQuadricSimplifierMeshReduction.Reset(FQuadricSimplifierMeshReduction::Create());
 }
 
 void FQuadricSimplifierMeshReductionModule::ShutdownModule()
 {
-	GQuadricSimplifierMeshReduction = NULL;
+	GQuadricSimplifierMeshReduction = nullptr;
 }
 
 IMeshReduction* FQuadricSimplifierMeshReductionModule::GetStaticMeshReductionInterface()
 {
-	return GQuadricSimplifierMeshReduction;
+	return GQuadricSimplifierMeshReduction.Get();
 }
 
 IMeshReduction* FQuadricSimplifierMeshReductionModule::GetSkeletalMeshReductionInterface()

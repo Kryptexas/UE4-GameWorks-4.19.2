@@ -15,7 +15,7 @@ void FCompilerMetadataManagerArchiveProxy::AddReferencedNames(const FCompilerMet
 {
 	for (auto& Kvp : *CompilerMetadataManager)
 	{
-		FClassMetaDataArchiveProxy::AddReferencedNames(Kvp.Value, UHTMakefile);
+		FClassMetaDataArchiveProxy::AddReferencedNames(Kvp.Value.Get(), UHTMakefile);
 	}
 }
 

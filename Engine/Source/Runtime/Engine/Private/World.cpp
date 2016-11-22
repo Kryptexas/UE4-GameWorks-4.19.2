@@ -473,19 +473,19 @@ bool UWorld::Rename(const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags)
 
 		if (PersistentLevel->MapBuildData->IsLegacyBuildData())
 		{
-			TArray<UTexture2D*> LightMapsAndShadowMaps;
-			GetLightMapsAndShadowMaps(PersistentLevel, LightMapsAndShadowMaps);
+	TArray<UTexture2D*> LightMapsAndShadowMaps;
+	GetLightMapsAndShadowMaps(PersistentLevel, LightMapsAndShadowMaps);
 
-			for (auto* Tex : LightMapsAndShadowMaps)
-			{
+	for (auto* Tex : LightMapsAndShadowMaps)
+	{
 				if (Tex)
-				{
+		{
 					if (!Tex->Rename(*Tex->GetName(), NewOuter, Flags))
-					{
-						return false;
-					}
-				}
+			{
+				return false;
 			}
+		}
+	}
 		}
 		else
 		{
@@ -494,15 +494,15 @@ bool UWorld::Rename(const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags)
 			UPackage* BuildDataPackage = PersistentLevel->MapBuildData->GetOutermost();
 
 			if (!BuildDataPackage->Rename(*NewPackageName, NewOuter, Flags))
-			{
-				return false;
-			}
+	{
+		return false;
+	}
 		}
 
 		if (!PersistentLevel->MapBuildData->Rename(*NewMapBuildDataName.ToString(), NewOuter, Flags))
-		{
-			return false;
-		}
+	{
+		return false;
+	}
 	}
 
 	// Rename the level script blueprint now, unless we are in PostLoad. ULevel::PostLoad should handle renaming this at load time.
@@ -616,18 +616,18 @@ void UWorld::PostDuplicate(bool bDuplicateForPIE)
 				NewTextureOuter = NewBuildData;
 			}
 
-			TArray<UTexture2D*> LightMapsAndShadowMaps;
-			GetLightMapsAndShadowMaps(PersistentLevel, LightMapsAndShadowMaps);
+		TArray<UTexture2D*> LightMapsAndShadowMaps;
+		GetLightMapsAndShadowMaps(PersistentLevel, LightMapsAndShadowMaps);
 
-			// Duplicate the textures, if any
-			for (auto* Tex : LightMapsAndShadowMaps)
-			{
+		// Duplicate the textures, if any
+		for (auto* Tex : LightMapsAndShadowMaps)
+		{
 				if (Tex && Tex->GetOutermost() != NewTextureOuter)
-				{
+			{
 					UObject* NewTex = StaticDuplicateObject(Tex, NewTextureOuter, Tex->GetFName());
-					ReplacementMap.Add(Tex, NewTex);
-				}
+				ReplacementMap.Add(Tex, NewTex);
 			}
+		}
 		}
 
 		// Duplicate the level script blueprint generated classes as well
@@ -1120,13 +1120,13 @@ void UWorld::InitWorld(const InitializationValues IVS)
 		if (WorldSettings)
 		{
 			if (IVS.bCreateNavigation && WorldSettings->bEnableNavigationSystem)
-			{
-				UNavigationSystem::CreateNavigationSystem(this);
-			}
+		{
+			UNavigationSystem::CreateNavigationSystem(this);
+		}
 			if (IVS.bCreateAISystem && WorldSettings->bEnableAISystem)
-			{
-				CreateAISystem();
-			}
+	{
+		CreateAISystem();
+	}
 		}
 	}
 	
@@ -1615,8 +1615,8 @@ void UWorld::UpdateCullDistanceVolumes(AActor* ActorToUpdate, UPrimitiveComponen
 				check((ActorToUpdate == nullptr) || (ActorToUpdate == ComponentToUpdate->GetOwner()));
 				if (ACullDistanceVolume::CanBeAffectedByVolumes(ComponentToUpdate))
 				{
-					CompToNewMaxDrawMap.Add(ComponentToUpdate, ComponentToUpdate->LDMaxDrawDistance);
-				}
+				CompToNewMaxDrawMap.Add(ComponentToUpdate, ComponentToUpdate->LDMaxDrawDistance);
+			}
 			}
 			else
 			{
@@ -1878,13 +1878,16 @@ DEFINE_STAT(STAT_UpdateLevelStreamingTime);
  *
  * @return true if time limit has been exceeded, false otherwise
  */
-static bool IsTimeLimitExceeded( const TCHAR* CurrentTask, double StartTime, ULevel* Level )
+static bool IsTimeLimitExceeded( const TCHAR* CurrentTask, double StartTime, ULevel* Level, double TimeLimit = 0.0 )
 {
 	bool bIsTimeLimitExceed = false;
 	// We don't spread work across several frames in the Editor to avoid potential side effects.
 	if( Level->OwningWorld->IsGameWorld() == true )
 	{
-		double TimeLimit = GLevelStreamingActorsUpdateTimeLimit;
+		if (TimeLimit == 0.0)
+		{
+			TimeLimit = GLevelStreamingActorsUpdateTimeLimit;
+		}
 		double CurrentTime	= FPlatformTime::Seconds();
 		// Delta time in ms.
 		double DeltaTime	= (CurrentTime - StartTime) * 1000;
@@ -1949,7 +1952,7 @@ private:
 void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 {
 	SCOPE_CYCLE_COUNTER(STAT_AddToWorldTime);
-	
+
 	check(Level);
 	check(!Level->IsPendingKill());
 	check(!Level->IsUnreachable());
@@ -1965,10 +1968,11 @@ void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 	// Don't consider the time limit if the match hasn't started as we need to ensure that the levels are fully loaded
 	const bool bConsiderTimeLimit = bMatchStarted;
 
-	bool bExecuteNextStep = (CurrentLevelPendingVisibility == Level) || CurrentLevelPendingVisibility == NULL;
+	bool bExecuteNextStep = CurrentLevelPendingVisibility == Level || CurrentLevelPendingVisibility == NULL;
 	bool bPerformedLastStep	= false;
 	
-	if( bExecuteNextStep && CurrentLevelPendingVisibility == NULL )
+	// Don't make this level visible if it's currently being made invisible
+	if( bExecuteNextStep && CurrentLevelPendingVisibility == NULL && CurrentLevelPendingInvisibility != Level )
 	{
 		Level->OwningWorld = this;
 		
@@ -2221,21 +2225,57 @@ void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 #endif // PERF_TRACK_DETAILED_ASYNC_STATS
 }
 
-void UWorld::RemoveFromWorld( ULevel* Level )
+void UWorld::RemoveFromWorld( ULevel* Level, bool bAllowIncrementalRemoval )
 {
 	SCOPE_CYCLE_COUNTER(STAT_RemoveFromWorldTime);
+	
 	FScopeCycleCounterUObject Context(Level);
 	check(Level);
 	check(!Level->IsPendingKill());
 	check(!Level->IsUnreachable());
 
-	if (CurrentLevelPendingVisibility == NULL && Level->bIsVisible)
+	if ( CurrentLevelPendingVisibility == NULL && Level->bIsVisible )
 	{
 		// Keep track of timing.
 		double StartTime = FPlatformTime::Seconds();	
 
-		Level->bIsBeingRemoved = true;
+		bool bFinishRemovingLevel = true;
+		if ( bAllowIncrementalRemoval && GLevelStreamingUnregisterComponentsTimeLimit > 0.0 )
+		{
+			bFinishRemovingLevel = false;
+			if (CurrentLevelPendingInvisibility == NULL)
+			{
+				// Mark level as being the one in process of being made invisible. 
+				// This will prevent this level from being unloaded or made visible in the meantime
+				CurrentLevelPendingInvisibility = Level;
+				Level->bIsBeingRemoved = true;
+			}
 
+			if ( CurrentLevelPendingInvisibility == Level )
+			{
+				// Incrementally unregister actor components. 
+				// This avoids spikes on the renderthread and gamethread when we subsequently call ClearLevelComponents() further down
+				check(IsGameWorld());
+				int32 NumComponentsToUnregister = GLevelStreamingComponentsUnregistrationGranularity;
+				do
+				{
+					if (Level->IncrementalUnregisterComponents(NumComponentsToUnregister))
+					{
+						// We're done, so the level can be removed
+						CurrentLevelPendingInvisibility = NULL;
+						bFinishRemovingLevel = true;
+						break;
+					}
+				} while (!IsTimeLimitExceeded(TEXT("unregistering components"), StartTime, Level, GLevelStreamingUnregisterComponentsTimeLimit));
+			}
+		}
+        else
+        {
+		Level->bIsBeingRemoved = true;
+        }
+
+		if ( bFinishRemovingLevel )
+		{
 		for (int32 ActorIdx = 0; ActorIdx < Level->Actors.Num(); ActorIdx++)
 		{
 			AActor* Actor = Level->Actors[ActorIdx];
@@ -2253,7 +2293,7 @@ void UWorld::RemoveFromWorld( ULevel* Level )
 		// Remove any pawns from the pawn list that are about to be streamed out
 		for( FConstPawnIterator Iterator = GetPawnIterator(); Iterator; ++Iterator )
 		{
-			APawn* Pawn = *Iterator;
+			APawn* Pawn = Iterator->Get();
 			if (Pawn->IsInLevel(Level))
 			{
 				RemovePawn(Pawn);
@@ -2322,6 +2362,7 @@ void UWorld::RemoveFromWorld( ULevel* Level )
 		ULevelStreaming::BroadcastLevelVisibleStatus(this, Level->GetOutermost()->GetFName(), false);
 
 		Level->bIsBeingRemoved = false;
+		} // if ( bFinishRemovingLevel )
 
 #if PERF_TRACK_DETAILED_ASYNC_STATS
 		UE_LOG(LogStreaming, Display, TEXT("UWorld::RemoveFromWorld for %s took %5.2f ms"), *Level->GetOutermost()->GetName(), (FPlatformTime::Seconds() - StartTime) * 1000.0);
@@ -2649,19 +2690,24 @@ void UWorld::UpdateLevelStreamingInner(ULevelStreaming* StreamingLevel)
 	// Work performed to make a level visible is spread across several frames and we can't unload/ hide a level that is currently pending
 	// to be made visible, so we fulfill those requests first.
 	bool bHasVisibilityRequestPending	= StreamingLevel->GetLoadedLevel() && StreamingLevel->GetLoadedLevel() == CurrentLevelPendingVisibility;
+	bool bHasInvisibilityRequestPending	= StreamingLevel->GetLoadedLevel() && StreamingLevel->GetLoadedLevel() == CurrentLevelPendingInvisibility;
 		
 	// Figure out whether level should be loaded, visible and block on load if it should be loaded but currently isn't.
 	bool bShouldBeLoaded = bHasVisibilityRequestPending || (!GUseBackgroundLevelStreaming && !bShouldForceUnloadStreamingLevels && !StreamingLevel->bIsRequestingUnloadAndRemoval);
 	bool bShouldBeVisible	= bHasVisibilityRequestPending || bShouldForceVisibleStreamingLevels;
 	bool bShouldBlockOnLoad	= StreamingLevel->bShouldBlockOnLoad || StreamingLevel->ShouldBeAlwaysLoaded();
 
-	// Don't update if the code requested this level object to be unloaded and removed.
-	if(!bShouldForceUnloadStreamingLevels && !StreamingLevel->bIsRequestingUnloadAndRemoval)
+	// Don't update if the code requested this level object to be unloaded and removed or it has an invisibility request pending
+	if ( bHasInvisibilityRequestPending )
+	{
+		// If we have an invisibily request pending, we can't make the level visible again until the request is completed
+		bShouldBeVisible = false;
+	}
+	else if (!bShouldForceUnloadStreamingLevels && !StreamingLevel->bIsRequestingUnloadAndRemoval)
 	{
 		bShouldBeLoaded		= bShouldBeLoaded  || !IsGameWorld() || StreamingLevel->ShouldBeLoaded();
 		bShouldBeVisible	= bShouldBeVisible || (bShouldBeLoaded && StreamingLevel->ShouldBeVisible());
 	}
-
 	// We want to give the garbage collector a chance to remove levels before we stream in more. We can't do this in the
 	// case of a blocking load as it means those requests should be fulfilled right away. By waiting on GC before kicking
 	// off new levels we potentially delay streaming in maps, but AllowLevelLoadRequests already looks and checks whether
@@ -2722,10 +2768,10 @@ void UWorld::UpdateLevelStreamingInner(ULevelStreaming* StreamingLevel)
 		{
 			// Discard previous LOD level
 			StreamingLevel->DiscardPendingUnloadLevel(this);
-			// Hide loaded level
 			if (Level->bIsVisible)
 			{
-				RemoveFromWorld(Level);
+				// Hide loaded level, incrementally if necessary
+				RemoveFromWorld(Level, IsGameWorld() );
 			}
 		}
 
@@ -2877,7 +2923,7 @@ void UWorld::ConditionallyBuildStreamingData()
 
 bool UWorld::IsVisibilityRequestPending() const
 {
-	return (CurrentLevelPendingVisibility != NULL);
+	return (CurrentLevelPendingVisibility != nullptr && CurrentLevelPendingInvisibility != nullptr);
 }
 
 bool UWorld::AreAlwaysLoadedLevelsLoaded() const
@@ -3495,12 +3541,14 @@ UGameViewportClient* UWorld::GetGameViewport() const
 
 FConstControllerIterator UWorld::GetControllerIterator() const
 {
-	return ControllerList.CreateConstIterator();
+	auto Result = ControllerList.CreateConstIterator();
+	return (const FConstControllerIterator&)Result;
 }
 
 FConstPlayerControllerIterator UWorld::GetPlayerControllerIterator() const
 {
-	return PlayerControllerList.CreateConstIterator();
+	auto Result = PlayerControllerList.CreateConstIterator();
+	return (const FConstPlayerControllerIterator&)Result;
 }
 
 APlayerController* UWorld::GetFirstPlayerController() const
@@ -3508,7 +3556,7 @@ APlayerController* UWorld::GetFirstPlayerController() const
 	APlayerController* PlayerController = NULL;
 	if( GetPlayerControllerIterator() )
 	{
-		PlayerController = *GetPlayerControllerIterator();
+		PlayerController = GetPlayerControllerIterator()->Get();
 	}
 	return PlayerController;
 }
@@ -3517,7 +3565,7 @@ ULocalPlayer* UWorld::GetFirstLocalPlayerFromController() const
 {
 	for( FConstPlayerControllerIterator Iterator = GetPlayerControllerIterator(); Iterator; ++Iterator )
 	{
-		APlayerController* PlayerController = *Iterator;
+		APlayerController* PlayerController = Iterator->Get();
 		if( PlayerController )
 		{
 			ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(PlayerController->Player);
@@ -3555,7 +3603,8 @@ void UWorld::RemoveController( AController* Controller )
 
 FConstPawnIterator UWorld::GetPawnIterator() const
 {
-	return PawnList.CreateConstIterator();
+	auto Result = PawnList.CreateConstIterator();
+	return (const FConstPawnIterator&)Result;
 }
 
 int32 UWorld::GetNumPawns() const
@@ -3593,7 +3642,8 @@ void UWorld::RegisterAutoActivateCamera(ACameraActor* CameraActor, int32 PlayerI
 
 FConstCameraActorIterator UWorld::GetAutoActivateCameraIterator() const
 {
-	return AutoCameraActorList.CreateConstIterator();
+	auto Result = AutoCameraActorList.CreateConstIterator();
+	return (const FConstCameraActorIterator&)Result;
 }
 
 
@@ -3735,7 +3785,8 @@ void UWorld::RemovePhysicsVolume(APhysicsVolume* Volume)
 
 FConstPhysicsVolumeIterator UWorld::GetNonDefaultPhysicsVolumeIterator() const
 {
-	return NonDefaultPhysicsVolumeList.CreateConstIterator();
+	auto Result = NonDefaultPhysicsVolumeList.CreateConstIterator();
+	return (const FConstPhysicsVolumeIterator&)Result;
 }
 
 int32 UWorld::GetNonDefaultPhysicsVolumeCount() const
@@ -3979,7 +4030,7 @@ bool UWorld::DestroySwappedPC(UNetConnection* Connection)
 {
 	for( FConstPlayerControllerIterator Iterator = GetPlayerControllerIterator(); Iterator; ++Iterator )
 	{
-		APlayerController* PlayerController = *Iterator;
+		APlayerController* PlayerController = Iterator->Get();
 		if (PlayerController->Player == NULL && PlayerController->PendingSwapConnection == Connection)
 		{
 			DestroyActor(PlayerController);
@@ -5069,7 +5120,7 @@ UWorld* FSeamlessTravelHandler::Tick()
 			{
 				for( FConstControllerIterator Iterator = CurrentWorld->GetControllerIterator(); Iterator; ++Iterator )
 				{
-					AController* Player = *Iterator;
+					AController* Player = Iterator->Get();
 					if (Player->PlayerState || Cast<APlayerController>(Player) != nullptr)
 					{
 						KeepAnnotation.Set(Player);

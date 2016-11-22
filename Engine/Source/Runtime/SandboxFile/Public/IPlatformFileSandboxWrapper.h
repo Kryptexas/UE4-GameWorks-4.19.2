@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "UniquePtr.h"
+
 /**
  * Wrapper to log the low level file system
 **/
@@ -11,8 +13,8 @@ DECLARE_LOG_CATEGORY_EXTERN(SandboxFile, Log, All);
 
 class SANDBOXFILE_API FSandboxFileHandle : public IFileHandle
 {
-	TAutoPtr<IFileHandle>	FileHandle;
-	FString				Filename;
+	TUniquePtr<IFileHandle>	FileHandle;
+	FString					Filename;
 
 public:
 

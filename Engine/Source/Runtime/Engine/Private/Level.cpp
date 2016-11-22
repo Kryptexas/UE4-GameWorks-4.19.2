@@ -944,6 +944,42 @@ void ULevel::IncrementalUpdateComponents(int32 NumComponentsToUpdate, bool bReru
 	}
 }
 
+
+bool ULevel::IncrementalUnregisterComponents(int32 NumComponentsToUnregister)
+{
+	// A value of 0 means that we want to unregister all components.
+	if (NumComponentsToUnregister != 0)
+	{
+		// Only the game can use incremental update functionality.
+		checkf(OwningWorld->IsGameWorld(), TEXT("Cannot call IncrementalUnregisterComponents with non 0 argument in the Editor/ commandlets."));
+	}
+
+	// Find next valid actor to process components unregistration
+	int32 NumComponentsUnregistered = 0;
+	while (CurrentActorIndexForUnregisterComponents < Actors.Num())
+	{
+		AActor* Actor = Actors[CurrentActorIndexForUnregisterComponents];
+		if (Actor)
+		{
+			int32 NumComponents = Actor->GetComponents().Num();
+			NumComponentsUnregistered += NumComponents;
+			Actor->UnregisterAllComponents();
+		}
+		CurrentActorIndexForUnregisterComponents++;
+		if (NumComponentsUnregistered > NumComponentsToUnregister )
+		{
+			break;
+		}
+	}
+
+	if (CurrentActorIndexForUnregisterComponents == Actors.Num())
+	{
+		CurrentActorIndexForUnregisterComponents = 0;
+		return true;
+	}
+	return false;
+}
+
 #if WITH_EDITOR
 
 void ULevel::MarkLevelComponentsRenderStateDirty()
@@ -1249,11 +1285,11 @@ void ULevel::UpdateModelComponents()
 	}
 
 	// Initialize the model's index buffers.
-	for(TMap<UMaterialInterface*,TScopedPointer<FRawIndexBuffer16or32> >::TIterator IndexBufferIt(Model->MaterialIndexBuffers);
+	for(TMap<UMaterialInterface*,TUniquePtr<FRawIndexBuffer16or32> >::TIterator IndexBufferIt(Model->MaterialIndexBuffers);
 		IndexBufferIt;
 		++IndexBufferIt)
 	{
-		BeginInitResource(IndexBufferIt.Value());
+		BeginInitResource(IndexBufferIt->Value.Get());
 	}
 
 	// Can now release the model's vertex buffer, will have been used for collision
@@ -1444,11 +1480,11 @@ void ULevel::CommitModelSurfaces()
 		}
 
 		// Initialize the model's index buffers.
-		for(TMap<UMaterialInterface*,TScopedPointer<FRawIndexBuffer16or32> >::TIterator IndexBufferIt(Model->MaterialIndexBuffers);
+		for(TMap<UMaterialInterface*,TUniquePtr<FRawIndexBuffer16or32> >::TIterator IndexBufferIt(Model->MaterialIndexBuffers);
 			IndexBufferIt;
 			++IndexBufferIt)
 		{
-			BeginInitResource(IndexBufferIt.Value());
+			BeginInitResource(IndexBufferIt->Value.Get());
 		}
 
 		Model->bOnlyRebuildMaterialIndexBuffers = false;
@@ -1987,7 +2023,7 @@ void ULevel::PushPendingAutoReceiveInput(APlayerController* InPlayerController)
 	int32 Index = 0;
 	for( FConstPlayerControllerIterator Iterator = InPlayerController->GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator )
 	{
-		APlayerController* PlayerController = *Iterator;
+		APlayerController* PlayerController = Iterator->Get();
 		if (InPlayerController == PlayerController)
 		{
 			PlayerIndex = Index;
@@ -2069,3 +2105,10 @@ bool ULevel::HasVisibilityRequestPending() const
 {
 	return (OwningWorld && this == OwningWorld->CurrentLevelPendingVisibility);
 }
+
+bool ULevel::HasVisibilityChangeRequestPending() const
+{
+	return (OwningWorld && ( this == OwningWorld->CurrentLevelPendingVisibility || this == OwningWorld->CurrentLevelPendingInvisibility ) );
+}
+
+

@@ -8,6 +8,7 @@
 
 #include "Shader.h"
 #include "SceneManagement.h"
+#include "UniquePtr.h"
 
 class FShaderCommonCompileJob;
 class FShaderCompileJob;
@@ -162,7 +163,7 @@ public:
 */
 struct FGlobalShaderBackupData
 {
-	TScopedPointer<TArray<uint8>> FeatureLevelShaderData[ERHIFeatureLevel::Num];
+	TUniquePtr<TArray<uint8>> FeatureLevelShaderData[ERHIFeatureLevel::Num];
 };
 
 /** Backs up all global shaders to memory through serialization, and removes all references to FShaders from the global shader map. */

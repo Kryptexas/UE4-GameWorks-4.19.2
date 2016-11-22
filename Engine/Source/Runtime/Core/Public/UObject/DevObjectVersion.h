@@ -15,6 +15,7 @@
 #include "RenderingObjectVersion.h"
 #include "SequencerObjectVersion.h"
 #include "VRObjectVersion.h"
+#include "LoadTimesObjectVersion.h"
 
 class CORE_API FDevVersionRegistration :  public FCustomVersionRegistration
 {

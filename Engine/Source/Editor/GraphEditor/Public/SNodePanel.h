@@ -4,6 +4,7 @@
 
 #include "GraphEditorModule.h"
 #include "MarqueeOperation.h"
+#include "UniquePtr.h"
 
 //@TODO: Too generic of a name to expose at this scope
 typedef class UObject* SelectedItemType;
@@ -823,7 +824,7 @@ protected:
 	void CancelZoomToFit();
 protected:
 	// The interface for mapping ZoomLevel values to actual node scaling values
-	TScopedPointer<FZoomLevelsContainer> ZoomLevels;
+	TUniquePtr<FZoomLevelsContainer> ZoomLevels;
 
 	/** The position within the graph at which the user is looking */
 	FVector2D ViewOffset;

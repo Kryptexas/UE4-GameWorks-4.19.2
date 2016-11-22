@@ -265,6 +265,21 @@ TSharedRef<SWidget> FMathStructCustomization::MakeChildWidget(
 		return MakeNumericWidget<uint8>(StructurePropertyHandle, PropertyHandle);
 	}
 
+	if (PropertyClass == UEnumProperty::StaticClass())
+	{
+		const UEnumProperty* EnumPropertyClass = static_cast<const UEnumProperty*>(PropertyHandle->GetProperty());
+		const UProperty* Enum = EnumPropertyClass->GetUnderlyingProperty();
+		const UClass* EnumClass = Enum->GetClass();
+		if (EnumClass == UByteProperty::StaticClass())
+		{
+			return MakeNumericWidget<uint8>(StructurePropertyHandle, PropertyHandle);
+		}
+		else if (EnumClass == UIntProperty::StaticClass())
+		{
+			return MakeNumericWidget<int32>(StructurePropertyHandle, PropertyHandle);
+		}
+	}
+
 	check(0); // Unsupported class
 	return SNullWidget::NullWidget;
 }

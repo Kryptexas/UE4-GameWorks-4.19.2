@@ -368,7 +368,7 @@ void FGameplayAbilitiesEditorModule::ApplyGameplayModEvaluationChannelAliasesToE
 			const UEnum* AttributeBasedFloatCalculationTypeEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EAttributeBasedFloatCalculationType"));
 			if (ensure(AttributeBasedFloatCalculationTypeEnum))
 			{
-				const int32 ChannelBasedCalcIdx = AttributeBasedFloatCalculationTypeEnum->GetIndexByValue(static_cast<int32>(EAttributeBasedFloatCalculationType::AttributeMagnitudeEvaluatedUpToChannel));
+				const int32 ChannelBasedCalcIdx = AttributeBasedFloatCalculationTypeEnum->GetIndexByValue(static_cast<int64>(EAttributeBasedFloatCalculationType::AttributeMagnitudeEvaluatedUpToChannel));
 				AttributeBasedFloatCalculationTypeEnum->SetMetaData(HiddenMeta, TEXT(""), ChannelBasedCalcIdx);
 			}
 		}

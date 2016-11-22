@@ -6,6 +6,7 @@
 #include "EdGraphSchema_K2.h"
 #include "Kismet/KismetNodeHelperLibrary.h"
 #include "Kismet/KismetArrayLibrary.h"
+#include "UniquePtr.h"
 
 // Generates single "if" scope. Its condition checks context of given term.
 struct FSafeContextScopedEmmitter
@@ -718,14 +719,14 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 
 	FString Result;
 	FString CloseCast;
-	TAutoPtr<FSetterExpressionBuilder> SetterExpression;
+	TUniquePtr<FSetterExpressionBuilder> SetterExpression;
 	if (!bInline)
 	{
 		// Handle the return value of the function being called
 		UProperty* FuncToCallReturnProperty = Statement.FunctionToCall->GetReturnProperty();
 		if (FuncToCallReturnProperty && ensure(Statement.LHS))
 		{
-			SetterExpression = new FSetterExpressionBuilder(*this, EmitterContext, Statement.LHS);
+			SetterExpression = MakeUnique<FSetterExpressionBuilder>(*this, EmitterContext, Statement.LHS);
 			Result += SetterExpression->BuildStart();
 
 			FString BeginCast;
@@ -836,7 +837,7 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 	}
 
 	Result += CloseCast;
-	if (SetterExpression.IsValid())
+	if (SetterExpression)
 	{
 		Result += SetterExpression->BuildEnd(false);
 	}

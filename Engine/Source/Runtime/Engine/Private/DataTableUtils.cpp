@@ -30,10 +30,22 @@ void AssignStringToProperty(const FString& InString, const UProperty* InProp, ui
 
 	bool bNeedsImport = true;
 
-	const UByteProperty* EnumProp = Cast<const UByteProperty>(InProp);
-	if (EnumProp && EnumProp->IsEnum())
+	UEnum* Enum = nullptr;
+
+	if (const UEnumProperty* EnumProp = Cast<const UEnumProperty>(InProp))
 	{
-		UEnum* Enum = EnumProp->GetIntPropertyEnum();
+		Enum = EnumProp->GetEnum();
+	}
+	else if (const UByteProperty* ByteProp = Cast<const UByteProperty>(InProp))
+	{
+		if (ByteProp->IsEnum())
+		{
+			Enum = ByteProp->GetIntPropertyEnum();
+		}
+	}
+
+	if (Enum)
+	{
 		// Enum properties may use the friendly name in their import data, however the UPropertyByte::ImportText function will only accept the internal enum entry name
 		// Detect if we're using a friendly name for an entry, and if so, try and map it to the correct internal name before performing the import
 		const int32 EnumIndex = Enum->FindEnumIndex(*InString);
@@ -69,15 +81,25 @@ void GetPropertyValueAsString(const UProperty* InProp, const uint8* InData, cons
 {
 	if (!!(InDTExportFlags & EDataTableExportFlags::UsePrettyEnumNames))
 	{
-		const UByteProperty* EnumProp = Cast<const UByteProperty>(InProp);
-		if (EnumProp && EnumProp->IsEnum())
+		UEnum* Enum = nullptr;
+		int64 Val = 0;
+		if (const UEnumProperty* EnumProp = Cast<UEnumProperty>(InProp))
 		{
-			if (UUserDefinedEnum* Enum = Cast<UUserDefinedEnum>(EnumProp->GetIntPropertyEnum()))
-			{
-				const uint8* ValuePtr = InProp->ContainerPtrToValuePtr<uint8>(InData, InIndex);
-				OutString.Append(GetSourceString(Enum->GetEnumTextByValue(*ValuePtr)));
-				return;
-			}
+			Enum = EnumProp->GetEnum();
+			const uint8* ValuePtr = InProp->ContainerPtrToValuePtr<uint8>(InData, InIndex);
+			Val = EnumProp->GetUnderlyingProperty()->GetSignedIntPropertyValue(ValuePtr);
+		}
+		else if (const UByteProperty* ByteProp = Cast<UByteProperty>(InProp))
+		{
+			Enum = ByteProp->GetIntPropertyEnum();
+			const uint8* ValuePtr = InProp->ContainerPtrToValuePtr<uint8>(InData, InIndex);
+			Val = *ValuePtr;
+		}
+
+		if (UUserDefinedEnum* UDEnum = Cast<UUserDefinedEnum>(Enum))
+		{
+			OutString.Append(GetSourceString(UDEnum->GetEnumTextByValue(Val)));
+			return;
 		}
 	}
 #if WITH_EDITOR
@@ -335,7 +357,8 @@ bool DataTableUtils::IsSupportedTableProperty(const UProperty* InProp)
 			InProp->IsA(UStructProperty::StaticClass()) ||
 			InProp->IsA(UByteProperty::StaticClass()) ||
 			InProp->IsA(UTextProperty::StaticClass()) ||
-			InProp->IsA(UArrayProperty::StaticClass())
+			InProp->IsA(UArrayProperty::StaticClass()) ||
+			InProp->IsA(UEnumProperty::StaticClass())
 			);
 }
 

@@ -207,7 +207,7 @@ void UPawnSensingComponent::UpdateAISensing()
 	{
 		for (FConstPlayerControllerIterator Iterator = Owner->GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
 		{
-			APlayerController* PC = *Iterator;
+			APlayerController* PC = Iterator->Get();
 			if (IsValid(PC))
 			{
 				APawn* Pawn = PC->GetPawn();
@@ -222,7 +222,7 @@ void UPawnSensingComponent::UpdateAISensing()
 	{
 		for (FConstPawnIterator Iterator = Owner->GetWorld()->GetPawnIterator(); Iterator; ++Iterator)
 		{
-			APawn* Pawn = *Iterator;
+			APawn* Pawn = Iterator->Get();
 			if (IsValid(Pawn) && !IsSensorActor(Pawn))
 			{
 				SensePawn(*Pawn);

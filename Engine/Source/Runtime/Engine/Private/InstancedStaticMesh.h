@@ -670,7 +670,7 @@ private:
 		const bool bInstanced = GRHISupportsInstancing;
 
 		// Copy the parameters for LOD - all instances
-		UserData_AllInstances.MeshRenderData = InComponent->GetStaticMesh()->RenderData;
+		UserData_AllInstances.MeshRenderData = InComponent->GetStaticMesh()->RenderData.Get();
 		UserData_AllInstances.StartCullDistance = InComponent->InstanceStartCullDistance;
 		UserData_AllInstances.EndCullDistance = InComponent->InstanceEndCullDistance;
 		UserData_AllInstances.MinLOD = ClampedMinLOD;

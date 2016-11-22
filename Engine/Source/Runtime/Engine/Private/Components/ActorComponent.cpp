@@ -365,7 +365,7 @@ ULevel* UActorComponent::GetComponentLevel() const
 {
 	// For model components Level is outer object
 	AActor* MyOwner = GetOwner();
-	return (MyOwner ? CastChecked<ULevel>(MyOwner->GetOuter()) : Cast<ULevel>( GetOuter() ) );
+	return (MyOwner ? Cast<ULevel>(MyOwner->GetOuter()) : Cast<ULevel>( GetOuter() ) );
 }
 
 bool UActorComponent::ComponentIsInLevel(const ULevel *TestLevel) const

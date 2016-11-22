@@ -818,7 +818,7 @@ private:
 	/** Max number of conncurrent shader jobs reducing this too low will increase cook time */
 	int32 MaxConcurrentShaderJobs;
 	ECookInitializationFlags CookFlags;
-	TAutoPtr<class FSandboxPlatformFile> SandboxFile;
+	TUniquePtr<class FSandboxPlatformFile> SandboxFile;
 	bool bIsInitializingSandbox; // stop recursion into callbacks when we are initializing sandbox
 	bool bIsSavingPackage; // used to stop recursive mark package dirty functions
 
@@ -874,7 +874,7 @@ private:
 	FString GetCachedPackageFilename( const UPackage* Package ) const;
 	FString GetCachedStandardPackageFilename( const UPackage* Package ) const;
 	FName GetCachedStandardPackageFileFName( const UPackage* Package ) const;
-	const FString& GetCachedSandboxFilename( const UPackage* Package, TAutoPtr<class FSandboxPlatformFile>& SandboxFile ) const;
+	const FString& GetCachedSandboxFilename( const UPackage* Package, TUniquePtr<class FSandboxPlatformFile>& SandboxFile ) const;
 	const FName* GetCachedPackageFilenameToPackageFName(const FName& StandardPackageFilename) const;
 	const FCachedPackageFilename& Cache(const FName& PackageName) const;
 	void ClearPackageFilenameCache() const;

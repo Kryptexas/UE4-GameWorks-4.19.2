@@ -8,6 +8,7 @@
 #include "Materials/MaterialInterface.h"
 #include "Materials/MaterialExpressionMaterialFunctionCall.h"
 #include "Materials/MaterialFunction.h"
+#include "UniquePtr.h"
 
 #include "Material.generated.h"
 
@@ -1243,12 +1244,12 @@ public:
 	 * Backs up all material shaders to memory through serialization, organized by FMaterialShaderMap. 
 	 * This will also clear all FMaterialShaderMap references to FShaders.
 	 */
-	ENGINE_API static void BackupMaterialShadersToMemory(TMap<class FMaterialShaderMap*, TScopedPointer<TArray<uint8> > >& ShaderMapToSerializedShaderData);
+	ENGINE_API static void BackupMaterialShadersToMemory(TMap<class FMaterialShaderMap*, TUniquePtr<TArray<uint8> > >& ShaderMapToSerializedShaderData);
 
 	/** 
 	 * Recreates FShaders for FMaterialShaderMap's from the serialized data.  Shader maps may not be complete after this due to changes in the shader keys.
 	 */
-	ENGINE_API static void RestoreMaterialShadersFromMemory(const TMap<class FMaterialShaderMap*, TScopedPointer<TArray<uint8> > >& ShaderMapToSerializedShaderData);
+	ENGINE_API static void RestoreMaterialShadersFromMemory(const TMap<class FMaterialShaderMap*, TUniquePtr<TArray<uint8> > >& ShaderMapToSerializedShaderData);
 
 	/** Builds a map from UMaterialInterface name to the shader maps that are needed for rendering on the given platform. */
 	ENGINE_API static void CompileMaterialsForRemoteRecompile(

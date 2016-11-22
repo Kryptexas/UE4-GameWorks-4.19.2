@@ -1056,12 +1056,25 @@ void SAssetViewItem::CacheToolTipTags()
 					{
 						DisplayName = Field->GetDisplayNameText();
 
-						// Strip off enum prefixes if they exist
-						if (UByteProperty* ByteProperty = Cast<UByteProperty>(Field))
+						UProperty* Prop = nullptr;
+						UEnum* Enum = nullptr;
+						if (UByteProperty* ByteProp = Cast<UByteProperty>(Field))
 						{
-							if (ByteProperty->Enum)
+							Prop = ByteProp;
+							Enum = ByteProp->Enum;
+						}
+						else if (UEnumProperty* EnumProp = Cast<UEnumProperty>(Field))
+						{
+							Prop = EnumProp;
+							Enum = EnumProp->GetEnum();
+						}
+
+						// Strip off enum prefixes if they exist
+						if (Prop)
+						{
+							if (Enum)
 							{
-								const FString EnumPrefix = ByteProperty->Enum->GenerateEnumPrefix();
+								const FString EnumPrefix = Enum->GenerateEnumPrefix();
 								if (EnumPrefix.Len() && ValueString.StartsWith(EnumPrefix))
 								{
 									ValueString = ValueString.RightChop(EnumPrefix.Len() + 1);	// +1 to skip over the underscore

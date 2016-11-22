@@ -453,6 +453,11 @@ void FGatherConvertedClassDependencies::DependenciesForHeader()
 				// HeaderReferenceFinder.FindReferences(Obj); cannot find this enum..
 				IncludeInHeader.Add(ByteProperty->Enum);
 			}
+			else if (const UEnumProperty* EnumProperty = Cast<const UEnumProperty>(Property))
+			{ 
+				// HeaderReferenceFinder.FindReferences(Obj); cannot find this enum..
+				IncludeInHeader.Add(EnumProperty->GetEnum());
+			}
 			else
 			{
 				HeaderReferenceFinder.FindReferences(Obj);

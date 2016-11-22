@@ -696,8 +696,8 @@ RETRY_SETUPANDVALIDATE:
 		FString SDKInstallManifestFilePath = FPaths::Combine(*TargetSDKRoot, *SDKInstallManifestFileName);
 
 		// If we are using a manual install, then it is valid for there to be no OutputEnvVars file.
-		TAutoPtr<FArchive> InstallManifestFile(IFileManager::Get().CreateFileReader(*SDKInstallManifestFilePath));
-		if (InstallManifestFile.IsValid())
+		TUniquePtr<FArchive> InstallManifestFile(IFileManager::Get().CreateFileReader(*SDKInstallManifestFilePath));
+		if (InstallManifestFile)
 		{
 			TArray<FString> FileLines;
 			int64 FileSize = InstallManifestFile->TotalSize();
@@ -737,8 +737,8 @@ RETRY_SETUPANDVALIDATE:
 		FString EnvVarFileName = FPaths::Combine(*TargetSDKRoot, *SDKEnvironmentVarsFile);		
 
 		// If we are using a manual install, then it is valid for there to be no OutputEnvVars file.
-		TAutoPtr<FArchive> EnvVarFile(IFileManager::Get().CreateFileReader(*EnvVarFileName));
-		if (EnvVarFile.IsValid())
+		TUniquePtr<FArchive> EnvVarFile(IFileManager::Get().CreateFileReader(*EnvVarFileName));
+		if (EnvVarFile)
 		{
 			TArray<FString> FileLines;
 			{
@@ -753,8 +753,8 @@ RETRY_SETUPANDVALIDATE:
 				FileAsString.ParseIntoArrayLines(FileLines);
 
 				FMemory::Free(FileMem);
-				EnvVarFile->Close();				
-			}			
+				EnvVarFile->Close();
+			}
 
 			TArray<FString> PathAdds;
 			TArray<FString> PathRemoves;

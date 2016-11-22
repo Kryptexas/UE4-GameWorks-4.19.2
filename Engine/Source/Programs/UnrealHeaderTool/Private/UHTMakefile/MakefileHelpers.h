@@ -151,6 +151,7 @@ enum class ESerializedObjectType : uint32
 	EEnumUnderlyingType,
 	EStructNameMapEntry,
 	EInterfaceAllocation,
+	EEnumProperty,
 };
 
 enum class EUHTMakefileLoadingPhase : uint8

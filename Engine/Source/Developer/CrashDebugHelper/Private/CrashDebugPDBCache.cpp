@@ -2,6 +2,7 @@
 
 #include "CrashDebugHelperPrivatePCH.h"
 #include "CrashDebugPDBCache.h"
+#include "UniquePtr.h"
 
 /*-----------------------------------------------------------------------------
 	PDB Cache implementation
@@ -248,7 +249,7 @@ FPDBCacheEntryRef FPDBCache::CreateAndAddPDBCacheEntry( const FString& OriginalL
 	FPDBCacheEntryRef NewCacheEntry = MakeShareable( new FPDBCacheEntry( CachedFiles, CleanedLabelName, FDateTime::Now(), SizeGB ) );
 
 	// Verify there is an entry timestamp file, write the size of a PDB cache to avoid time consuming FindFilesRecursive during initialization.
-	TAutoPtr<FArchive> FileWriter( IFileManager::Get().CreateFileWriter( *EntryTimeStampFilename ) );
+	TUniquePtr<FArchive> FileWriter( IFileManager::Get().CreateFileWriter( *EntryTimeStampFilename ) );
 	UE_CLOG( !FileWriter, LogCrashDebugHelper, Fatal, TEXT( "Couldn't save the timestamp for a file: %s" ), *EntryTimeStampFilename );
 	*FileWriter << *NewCacheEntry;
 
@@ -288,7 +289,7 @@ FPDBCacheEntryRef FPDBCache::CreateAndAddPDBCacheEntryMixed( const FString& Prod
 	FPDBCacheEntryRef NewCacheEntry = MakeShareable( new FPDBCacheEntry( CachedFiles, ProductVersion, FDateTime::Now(), SizeGB ) );
 
 	// Verify there is an entry timestamp file, write the size of a PDB cache to avoid time consuming FindFilesRecursive during initialization.
-	TAutoPtr<FArchive> FileWriter( IFileManager::Get().CreateFileWriter( *EntryTimeStampFilename ) );
+	TUniquePtr<FArchive> FileWriter( IFileManager::Get().CreateFileWriter( *EntryTimeStampFilename ) );
 	UE_CLOG( !FileWriter, LogCrashDebugHelper, Fatal, TEXT( "Couldn't save the timestamp for a file: %s" ), *EntryTimeStampFilename );
 	*FileWriter << *NewCacheEntry;
 
@@ -313,7 +314,7 @@ FPDBCacheEntryPtr FPDBCache::ReadPDBCacheEntry( const FString& Directory )
 	if( LastAccessTime != FDateTime::MinValue() )
 	{
 		// Read the metadata
-		TAutoPtr<FArchive> FileReader( IFileManager::Get().CreateFileReader( *EntryTimeStampFilename ) );
+		TUniquePtr<FArchive> FileReader( IFileManager::Get().CreateFileReader( *EntryTimeStampFilename ) );
 		NewEntry = MakeShareable( new FPDBCacheEntry( LastAccessTime ) );
 		*FileReader << *NewEntry;
 	}
@@ -336,7 +337,7 @@ FPDBCacheEntryPtr FPDBCache::ReadPDBCacheEntry( const FString& Directory )
 		NewEntry = MakeShareable( new FPDBCacheEntry( PDBFiles, Directory, LastAccessTimeNoMeta, SizeGB ) );
 
 		// Remove the old file and save the metadata.
-		TAutoPtr<FArchive> FileWriter( IFileManager::Get().CreateFileWriter( *EntryTimeStampFilename ) );
+		TUniquePtr<FArchive> FileWriter( IFileManager::Get().CreateFileWriter( *EntryTimeStampFilename ) );
 		*FileWriter << *NewEntry;
 
 		IFileManager::Get().Delete( *EntryTimeStampFilenameNoMeta );

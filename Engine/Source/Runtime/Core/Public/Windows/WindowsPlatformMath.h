@@ -118,6 +118,25 @@ struct FWindowsPlatformMath : public FGenericPlatformMath
 	{
 		return 1 << CeilLogTwo(Arg);
 	}
+#if PLATFORM_64BITS
+	static FORCEINLINE uint64 CeilLogTwo64(uint64 Arg)
+	{
+		int64 Bitmask = ((int64)(CountLeadingZeros64(Arg) << 57)) >> 63;
+		return (64 - CountLeadingZeros64(Arg - 1)) & (~Bitmask);
+	}
+	static FORCEINLINE uint64 CountLeadingZeros64(uint64 Value)
+	{
+		// Use BSR to return the log2 of the integer
+		DWORD Log2;
+		if (_BitScanReverse64(&Log2, Value) != 0)
+		{
+			return 63 - Log2;
+		}
+
+		return 64;
+	}
+#endif
+
 #endif
 };
 

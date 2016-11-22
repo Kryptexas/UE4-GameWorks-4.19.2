@@ -354,7 +354,7 @@ void SetDebugLightmapSample(TArray<UActorComponent*>* Components, UModel* Model,
 					for (int32 ElementIndex = 0; ElementIndex < CurrentComponent->GetElements().Num(); ElementIndex++)
 					{
 						FModelElement& Element = CurrentComponent->GetElements()[ElementIndex];
-						TScopedPointer<FRawIndexBuffer16or32>* IndexBufferRef = Model->MaterialIndexBuffers.Find(Element.Material);
+						TUniquePtr<FRawIndexBuffer16or32>* IndexBufferRef = Model->MaterialIndexBuffers.Find(Element.Material);
 						check(IndexBufferRef);
 						for(uint32 TriangleIndex = Element.FirstIndex; TriangleIndex < Element.FirstIndex + Element.NumTriangles * 3; TriangleIndex += 3)
 						{
@@ -395,7 +395,7 @@ void SetDebugLightmapSample(TArray<UActorComponent*>* Components, UModel* Model,
 				FModelVertex* ModelVertices = (FModelVertex*)Model->VertexBuffer.Vertices.GetData();
 
 				FModelElement& Element = ClosestComponent->GetElements()[ClosestElementIndex];
-				TScopedPointer<FRawIndexBuffer16or32>* IndexBufferRef = Model->MaterialIndexBuffers.Find(Element.Material);
+				TUniquePtr<FRawIndexBuffer16or32>* IndexBufferRef = Model->MaterialIndexBuffers.Find(Element.Material);
 
 				uint32 Index0 = (*IndexBufferRef)->Indices[ClosestTriangleIndex];
 				uint32 Index1 = (*IndexBufferRef)->Indices[ClosestTriangleIndex + 1];

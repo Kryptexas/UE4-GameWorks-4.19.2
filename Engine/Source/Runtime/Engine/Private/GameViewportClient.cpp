@@ -1188,7 +1188,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 		bool bDisplayedSubtitles = false;
 		for( FConstPlayerControllerIterator Iterator = MyWorld->GetPlayerControllerIterator(); Iterator; ++Iterator )
 		{
-			APlayerController* PlayerController = *Iterator;
+			APlayerController* PlayerController = Iterator->Get();
 			if (PlayerController)
 			{
 				ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(PlayerController->Player);
@@ -1434,7 +1434,7 @@ void UGameViewportClient::LostFocus(FViewport* InViewport)
 	{
 		for (FConstPlayerControllerIterator Iterator = ViewportWorld->GetPlayerControllerIterator(); Iterator; ++Iterator)
 		{
-			APlayerController* const PlayerController = *Iterator;
+			APlayerController* const PlayerController = Iterator->Get();
 			if (PlayerController)
 			{
 				PlayerController->FlushPressedKeys();
@@ -3100,7 +3100,7 @@ bool UGameViewportClient::RequestBugScreenShot(const TCHAR* Cmd, bool bDisplayHU
 				{
 					for( FConstPlayerControllerIterator Iterator = ViewportWorld->GetPlayerControllerIterator(); Iterator; ++Iterator )
 					{
-						APlayerController* PlayerController = *Iterator;
+						APlayerController* PlayerController = Iterator->Get();
 						if (PlayerController && PlayerController->GetHUD() )
 						{
 							PlayerController->GetHUD()->HandleBugScreenShot();

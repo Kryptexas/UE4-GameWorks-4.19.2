@@ -11,6 +11,7 @@
 #include "CustomDepthRendering.h"
 #include "HeightfieldLighting.h"
 #include "GlobalDistanceFieldParameters.h"
+#include "UniquePtr.h"
 
 // Forward declarations.
 class FPostprocessContext;
@@ -671,7 +672,7 @@ public:
 	FSceneViewState* ViewState;
 
 	/** Cached view uniform shader parameters, to allow recreating the view uniform buffer without having to fill out the entire struct. */
-	TScopedPointer<FViewUniformShaderParameters> CachedViewUniformShaderParameters;
+	TUniquePtr<FViewUniformShaderParameters> CachedViewUniformShaderParameters;
 
 	/** A map from primitive ID to a boolean visibility value. */
 	FSceneBitArray PrimitiveVisibilityMap;

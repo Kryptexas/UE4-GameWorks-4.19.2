@@ -918,17 +918,17 @@ public:
 	 *
 	 * @return The container of custom versions in the archive.
 	 */
-	const FCustomVersionContainer& GetCustomVersions() const;
+	virtual const FCustomVersionContainer& GetCustomVersions() const;
 
 	/**
 	 * Sets the custom version numbers for this archive.
 	 *
 	 * @param CustomVersionContainer - The container of custom versions to copy into the archive.
 	 */
-	void SetCustomVersions(const FCustomVersionContainer& CustomVersionContainer);
+	virtual void SetCustomVersions(const FCustomVersionContainer& CustomVersionContainer);
 
 	/** Resets the custom version numbers for this archive. */
-	void ResetCustomVersions();
+	virtual void ResetCustomVersions();
 
 	/**
 	 * Sets a specific custom version

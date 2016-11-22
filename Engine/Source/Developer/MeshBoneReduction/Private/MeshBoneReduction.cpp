@@ -4,6 +4,7 @@
 #include "MeshBoneReduction.h"
 #include "Developer/MeshUtilities/Public/MeshUtilities.h"
 #include "ComponentReregisterContext.h"
+#include "UniquePtr.h"
 
 class FMeshBoneReductionModule : public IMeshBoneReductionModule
 {
@@ -292,19 +293,19 @@ public:
 	}
 };
 
-TScopedPointer<FMeshBoneReduction> GMeshBoneReduction;
+TUniquePtr<FMeshBoneReduction> GMeshBoneReduction;
 
 void FMeshBoneReductionModule::StartupModule()
 {
-	GMeshBoneReduction = new FMeshBoneReduction();
+	GMeshBoneReduction = MakeUnique<FMeshBoneReduction>();
 }
 
 void FMeshBoneReductionModule::ShutdownModule()
 {
-	GMeshBoneReduction = NULL;
+	GMeshBoneReduction = nullptr;
 }
 
 IMeshBoneReduction* FMeshBoneReductionModule::GetMeshBoneReductionInterface()
 {
-	return GMeshBoneReduction;
+	return GMeshBoneReduction.Get();
 }

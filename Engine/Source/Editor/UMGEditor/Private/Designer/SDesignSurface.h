@@ -4,6 +4,7 @@
 
 #include "SCompoundWidget.h"
 #include "SNodePanel.h"
+#include "UniquePtr.h"
 
 class SDesignSurface : public SCompoundWidget
 {
@@ -92,7 +93,7 @@ protected:
 	FCurveSequence ZoomLevelFade;
 
 	// The interface for mapping ZoomLevel values to actual node scaling values
-	TScopedPointer<FZoomLevelsContainer> ZoomLevels;
+	TUniquePtr<FZoomLevelsContainer> ZoomLevels;
 
 	bool bAllowContinousZoomInterpolation;
 

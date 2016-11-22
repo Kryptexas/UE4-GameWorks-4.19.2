@@ -6,6 +6,10 @@
 #include "EngineVersion.h"
 #include "EngineBuildSettings.h"
 
+#ifndef NOINITCRASHREPORTER
+#define NOINITCRASHREPORTER 0
+#endif
+
 /*-----------------------------------------------------------------------------
 	FGenericCrashContext
 -----------------------------------------------------------------------------*/
@@ -73,6 +77,7 @@ namespace NCachedCrashContextProperties
 
 void FGenericCrashContext::Initialize()
 {
+#if !NOINITCRASHREPORTER
 	NCachedCrashContextProperties::bIsInternalBuild = FEngineBuildSettings::IsInternalBuild();
 	NCachedCrashContextProperties::bIsPerforceBuild = FEngineBuildSettings::IsPerforceBuild();
 	NCachedCrashContextProperties::bIsSourceDistribution = FEngineBuildSettings::IsSourceDistribution();
@@ -165,6 +170,7 @@ void FGenericCrashContext::Initialize()
 	FCoreDelegates::ConfigReadyForUse.AddStatic(FGenericCrashContext::InitializeFromConfig);
 
 	bIsInitialized = true;
+#endif
 }
 
 void FGenericCrashContext::InitializeFromConfig()

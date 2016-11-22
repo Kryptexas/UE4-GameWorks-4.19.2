@@ -192,9 +192,9 @@ void FScriptBlueprintCompiler::FinishCompilingClass(UClass* Class)
 void FScriptBlueprintCompiler::Compile()
 {
 	ScriptBlueprint()->UpdateSourceCodeIfChanged();
-	ScriptContext = FScriptContextBase::CreateContext(ScriptBlueprint()->SourceCode, NULL, NULL);
+	ScriptContext.Reset(FScriptContextBase::CreateContext(ScriptBlueprint()->SourceCode, NULL, NULL));
 	bool Result = true;
-	if (ScriptContext.IsValid())
+	if (ScriptContext)
 	{
 		ScriptDefinedFields.Empty();
 		ScriptContext->GetScriptDefinedFields(ScriptDefinedFields);

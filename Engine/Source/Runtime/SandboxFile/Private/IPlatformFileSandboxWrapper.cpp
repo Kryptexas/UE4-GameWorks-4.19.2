@@ -3,6 +3,7 @@
 #include "SandboxFilePrivatePCH.h"
 #include "IPlatformFileSandboxWrapper.h"
 #include "IPlatformFileModule.h"
+#include "UniquePtr.h"
 
 DEFINE_LOG_CATEGORY(SandboxFile);
 
@@ -356,8 +357,8 @@ class FSandboxFileModule : public IPlatformFileModule
 public:
 	virtual IPlatformFile* GetPlatformFile() override
 	{
-		static TScopedPointer<IPlatformFile> AutoDestroySingleton(new FSandboxPlatformFile(true));
-		return AutoDestroySingleton.GetOwnedPointer();
+		static TUniquePtr<IPlatformFile> AutoDestroySingleton = MakeUnique<FSandboxPlatformFile>(true);
+		return AutoDestroySingleton.Get();
 	}
 };
 IMPLEMENT_MODULE(FSandboxFileModule, SandboxFile);

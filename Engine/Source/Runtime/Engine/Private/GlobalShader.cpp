@@ -261,12 +261,12 @@ void BackupGlobalShaderMap(FGlobalShaderBackupData& OutGlobalShaderBackup)
 		EShaderPlatform ShaderPlatform = GetFeatureLevelShaderPlatform((ERHIFeatureLevel::Type)i);
 		if (ShaderPlatform < EShaderPlatform::SP_NumPlatforms && GGlobalShaderMap[ShaderPlatform] != nullptr)
 		{
-			TArray<uint8>* ShaderData = new TArray<uint8>();
+			TUniquePtr<TArray<uint8>> ShaderData = MakeUnique<TArray<uint8>>();
 			FMemoryWriter Ar(*ShaderData);
 			GGlobalShaderMap[ShaderPlatform]->SerializeInline(Ar, true, true);
 			GGlobalShaderMap[ShaderPlatform]->RegisterSerializedShaders();
 			GGlobalShaderMap[ShaderPlatform]->Empty();
-			OutGlobalShaderBackup.FeatureLevelShaderData[i] = ShaderData;
+			OutGlobalShaderBackup.FeatureLevelShaderData[i] = MoveTemp(ShaderData);
 		}
 	}
 

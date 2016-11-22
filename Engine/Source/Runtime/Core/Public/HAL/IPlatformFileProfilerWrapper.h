@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "UniquePtr.h"
 
 #if !UE_BUILD_SHIPPING
 
@@ -137,7 +138,7 @@ struct FProfiledFileStatsFileSimple : public FProfiledFileStatsFileBase
 template< typename StatType >
 class TProfiledFileHandle : public IFileHandle
 {
-	TAutoPtr<IFileHandle> FileHandle;
+	TUniquePtr<IFileHandle> FileHandle;
 	FString Filename;
 	StatType* FileStats;
 
@@ -491,7 +492,7 @@ inline const TCHAR* TProfiledPlatformFile<FProfiledFileStatsFileSimple>::GetType
 
 class FPlatformFileReadStatsHandle : public IFileHandle
 {
-	TAutoPtr<IFileHandle> FileHandle;
+	TUniquePtr<IFileHandle> FileHandle;
 	FString Filename;
 	volatile int32* BytesPerSecCounter;
 	volatile int32* BytesReadCounter;

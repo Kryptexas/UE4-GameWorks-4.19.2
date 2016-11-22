@@ -14,6 +14,7 @@
 #include "ChunkManifestGenerator.h"
 #include "ChunkDependencyInfo.h"
 #include "IPlatformFileSandboxWrapper.h"
+#include "UniquePtr.h"
 
 #include "JsonWriter.h"
 #include "JsonReader.h"
@@ -150,16 +151,16 @@ bool FChunkManifestGenerator::GenerateStreamingInstallManifest(const FString& Pl
 	
 	// open a file for writing the list of pak file lists that we've generated
 	FString PakChunkListFilename = TmpPackagingDir / TEXT("pakchunklist.txt");
-	TAutoPtr<FArchive> PakChunkListFile(IFileManager::Get().CreateFileWriter(*PakChunkListFilename));
+	TUniquePtr<FArchive> PakChunkListFile(IFileManager::Get().CreateFileWriter(*PakChunkListFilename));
 
-	if (!PakChunkListFile.IsValid())
+	if (!PakChunkListFile)
 	{
 		UE_LOG(LogChunkManifestGenerator, Error, TEXT("Failed to open output pakchunklist file %s"), *PakChunkListFilename);
 		return false;
 	}
 
 	FString PakChunkLayerInfoFilename = FString::Printf(TEXT("%s/pakchunklayers.txt"), *TmpPackagingDir);
-	TAutoPtr<FArchive> ChunkLayerFile(IFileManager::Get().CreateFileWriter(*PakChunkLayerInfoFilename));
+	TUniquePtr<FArchive> ChunkLayerFile(IFileManager::Get().CreateFileWriter(*PakChunkLayerInfoFilename));
 
 	// generate per-chunk pak list files
 	for (int32 Index = 0; Index < FinalChunkManifests.Num(); ++Index)
@@ -170,9 +171,9 @@ bool FChunkManifestGenerator::GenerateStreamingInstallManifest(const FString& Pl
 			continue;
 		}
 		FString PakListFilename = FString::Printf(TEXT("%s/pakchunk%d.txt"), *TmpPackagingDir, Index);
-		TAutoPtr<FArchive> PakListFile(IFileManager::Get().CreateFileWriter(*PakListFilename));
+		TUniquePtr<FArchive> PakListFile(IFileManager::Get().CreateFileWriter(*PakListFilename));
 
-		if (!PakListFile.IsValid())
+		if (!PakListFile)
 		{
 			UE_LOG(LogChunkManifestGenerator, Error, TEXT("Failed to open output paklist file %s"), *PakListFilename);
 			return false;

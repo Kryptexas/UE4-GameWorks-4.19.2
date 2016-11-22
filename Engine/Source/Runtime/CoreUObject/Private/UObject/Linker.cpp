@@ -614,6 +614,7 @@ FLinkerLoad* GetPackageLinker
 		UPackage* FilenamePkg = (ExistingPackage ? ExistingPackage : (CreatedPackage = CreatePackage(nullptr, *PackageNameToCreate)));
 		if (FilenamePkg && FilenamePkg != ExistingPackage && (LoadFlags & LOAD_PackageForPIE))
 		{
+			check(FilenamePkg);
 			FilenamePkg->SetPackageFlags(PKG_PlayInEditor);
 		}
 

@@ -744,7 +744,7 @@ void FStaticMeshEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneV
 	int32 CurrentLODLevel = StaticMeshEditor->GetCurrentLODLevel();
 	if (CurrentLODLevel == 0)
 	{
-		CurrentLODLevel = ComputeStaticMeshLOD(StaticMesh->RenderData, StaticMeshComponent->Bounds.Origin, StaticMeshComponent->Bounds.SphereRadius, View, StaticMesh->MinLOD);
+		CurrentLODLevel = ComputeStaticMeshLOD(StaticMesh->RenderData.Get(), StaticMeshComponent->Bounds.Origin, StaticMeshComponent->Bounds.SphereRadius, View, StaticMesh->MinLOD);
 	}
 	else
 	{
@@ -833,7 +833,7 @@ void FStaticMeshEditorViewportClient::DrawUVsForMesh(FViewport* InViewport, FCan
 
 	int32 UVChannel = StaticMeshEditorPtr.Pin()->GetCurrentUVChannel();
 
-	DrawUVs(InViewport, InCanvas, InTextYPos, LODLevel, UVChannel, SelectedEdgeTexCoords[UVChannel], StaticMeshComponent->GetStaticMesh()->RenderData, NULL);
+	DrawUVs(InViewport, InCanvas, InTextYPos, LODLevel, UVChannel, SelectedEdgeTexCoords[UVChannel], StaticMeshComponent->GetStaticMesh()->RenderData.Get(), NULL);
 }
 
 void FStaticMeshEditorViewportClient::MouseMove(FViewport* InViewport,int32 x, int32 y)

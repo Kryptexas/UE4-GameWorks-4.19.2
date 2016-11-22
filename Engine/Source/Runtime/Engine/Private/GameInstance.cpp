@@ -646,7 +646,7 @@ APlayerController* UGameInstance::GetFirstLocalPlayerController(UWorld* World) c
 		{
 			if (*Iterator != nullptr && (*Iterator)->IsLocalController())
 			{
-				return *Iterator;
+				return Iterator->Get();
 			}
 		}
 	}

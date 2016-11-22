@@ -1,14 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Net;
-using System.Text;
-using Amazon.Runtime;
-using Amazon.S3;
 using Amazon.S3.Model;
-using Amazon.SQS;
 using Amazon.SQS.Model;
 using Tools.CrashReporter.CrashReportCommon;
 

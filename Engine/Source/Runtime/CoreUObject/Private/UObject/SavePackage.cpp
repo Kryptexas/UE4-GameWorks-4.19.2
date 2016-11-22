@@ -10,6 +10,7 @@
 #include "DebugSerializationFlags.h"
 #include "UObject/GCScopeLock.h"
 #include "CookStats.h"
+#include "EnumProperty.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSavePackage, Log, All);
 
@@ -745,7 +746,7 @@ static void ConditionallyExcludeObjectForTarget(UObject* Obj, FArchive& Ar)
 			Obj->Mark(OBJECTMARK_NotForServer);
 		}
 
-		if (Search->HasAnyFlags(RF_Public))
+		if (Search->IsA(UPackage::StaticClass()))
 		{
 			break;
 		}
@@ -886,7 +887,8 @@ FArchive& FArchiveSaveTagExports::operator<<( UObject*& Obj )
 			// The base virtual methods will leave the flags unchanged.
 			// Once should not read the flags directly (other than at load) because the virtual methods are authoritative.
 
-			// if anything in the outer chain is NotFor, then we are also NotFor. Stop this search at public objects.
+			// If anything in the outer chain is NotFor, then we are also NotFor.
+			// Stop this search at packages, as nested public objects will have the wrong path.
 			ConditionallyExcludeObjectForTarget(Obj, *this);
 
 			{
@@ -1185,39 +1187,53 @@ FArchive& FArchiveSaveTagImports::operator<<( UObject*& Obj )
 				if (!bIsEditorOnly)
 				{
 					Obj->Mark(OBJECTMARK_TagImp);
+					UClass* ClassObj = Cast<UClass>(Obj);
 
-					if (IsEventDrivenLoaderEnabledInCookedBuilds() && IsCooking() && !bIsNative && Cast<UClass>(Obj))
+					if (IsEventDrivenLoaderEnabledInCookedBuilds() && IsCooking() && !bIsNative && ClassObj)
 					{
-						// we don't want to add this to Dependencies, we simply want it to be an import so that a serialization before creation dependency can be created to the CDO
-						UObject* CDO = Cast<UClass>(Obj)->GetDefaultObject();
-
+						// We don't want to add this to Dependencies, we simply want it to be an import so that a serialization before creation dependency can be created to the CDO
+						UObject* CDO = ClassObj->GetDefaultObject();
+						
 						if (CDO)
 						{
-							ConditionallyExcludeObjectForTarget(CDO, *this);
+							// Gets all subobjects defined in a class, including the CDO, CDO components and blueprint-created components
+							TArray<UObject*> ObjectTemplates;
+							ObjectTemplates.Add(CDO);
 
-							const bool bCDOIsEditorOnly = IsCookingForNoEditorDataPlatform(*this) && IsEditorOnlyObject(CDO);
+							TArray<UObject*> CurrentSubobjects;
+							TArray<UObject*> NextSubobjects;
 
-							if (!bCDOIsEditorOnly && !CDO->HasAnyFlags(RF_Transient) && !CDO->IsPendingKill())
+							// Recursively search for subobjects. Only care about ones that have a full subobject chain as some nested objects are set wrong
+							GetObjectsWithOuter(ClassObj, NextSubobjects, false);
+							GetObjectsWithOuter(CDO, NextSubobjects, false);
+
+							while (NextSubobjects.Num() > 0)
 							{
-								CDO->Mark(OBJECTMARK_TagImp);
-
-								// and all subobjects
-								TArray<UObject*> Subobjects;
-								GetObjectsWithOuter(CDO, Subobjects);
-								for (UObject* SubObj : Subobjects)
+								CurrentSubobjects = NextSubobjects;
+								NextSubobjects.Empty();
+								for (UObject* SubObj : CurrentSubobjects)
 								{
-									if (SubObj)
+									if (SubObj->HasAnyFlags(RF_DefaultSubObject | RF_ArchetypeObject))
 									{
-										// correctly mark components that shouldn't be cooked
-										ConditionallyExcludeObjectForTarget(SubObj, *this);
-
-										const bool bCompIsEditorOnly = IsCookingForNoEditorDataPlatform(*this) && IsEditorOnlyObject(SubObj);
-
-										if (!bCompIsEditorOnly && !SubObj->HasAnyFlags(RF_Transient) && !SubObj->IsPendingKill())
-										{
-											SubObj->Mark(OBJECTMARK_TagImp);
-										}
+										ObjectTemplates.Add(SubObj);
+										GetObjectsWithOuter(SubObj, NextSubobjects, false);
 									}
+								}
+							}
+
+							for (UObject* ObjTemplate : ObjectTemplates)
+							{
+								if (IsCookingForNoEditorDataPlatform(*this) && IsEditorOnlyObject(ObjTemplate))
+								{
+									// Explicitly mark as editor only so it will be skipped later
+									ObjTemplate->Mark(OBJECTMARK_EditorOnly);
+								}
+								else if (!ObjTemplate->HasAnyFlags(RF_Transient) && !ObjTemplate->IsPendingKill())
+								{
+									// Correctly mark objects that shouldn't be cooked
+									ConditionallyExcludeObjectForTarget(ObjTemplate, *this);
+
+									ObjTemplate->Mark(OBJECTMARK_TagImp);
 								}
 							}
 						}
@@ -2401,21 +2417,22 @@ class FExportReferenceSorter : public FArchiveUObject
 				UObjectPropertyBase::StaticClass(),
 				ULazyObjectProperty::StaticClass(),
 				UAssetObjectProperty::StaticClass(),
-				UAssetClassProperty::StaticClass()
+				UAssetClassProperty::StaticClass(),
+				UMapProperty::StaticClass(),
+				USetProperty::StaticClass(),
+				UEnumProperty::StaticClass()
 			};
 
-			for (int32 CoreClassIndex = 0; CoreClassIndex < ARRAY_COUNT(CoreClassList); CoreClassIndex++)
+			for (UClass* CoreClass : CoreClassList)
 			{
-				UClass* CoreClass = CoreClassList[CoreClassIndex];
 				CoreClasses.AddUnique(CoreClass);
 
 				ReferencedObjects.Add(CoreClass);
 				ReferencedObjects.Add(CoreClass->GetDefaultObject());
 			}
 
-			for (int32 CoreClassIndex = 0; CoreClassIndex < CoreClasses.Num(); CoreClassIndex++)
+			for (UClass* CoreClass : CoreClasses)
 			{
-				UClass* CoreClass = CoreClasses[CoreClassIndex];
 				ProcessStruct(CoreClass);
 			}
 
@@ -2508,21 +2525,22 @@ class FExportReferenceSorter : public FArchiveUObject
 			UObjectPropertyBase::StaticClass(),
 			ULazyObjectProperty::StaticClass(),
 			UAssetObjectProperty::StaticClass(),
-			UAssetClassProperty::StaticClass()
+			UAssetClassProperty::StaticClass(),
+			UMapProperty::StaticClass(),
+			USetProperty::StaticClass(),
+			UEnumProperty::StaticClass()
 		};
 
-		for (int32 CoreClassIndex = 0; CoreClassIndex < ARRAY_COUNT(CoreClassList); CoreClassIndex++)
+		for (UClass* CoreClass : CoreClassList)
 		{
-			UClass* CoreClass = CoreClassList[CoreClassIndex];
 			CoreClasses.AddUnique(CoreClass);
 
 			ReferencedObjects.Add(CoreClass);
 			ReferencedObjects.Add(CoreClass->GetDefaultObject());
 		}
 
-		for (int32 CoreClassIndex = 0; CoreClassIndex < CoreClasses.Num(); CoreClassIndex++)
+		for (UClass* CoreClass : CoreClasses)
 		{
-			UClass* CoreClass = CoreClasses[CoreClassIndex];
 			ProcessStruct(CoreClass);
 		}
 
@@ -2728,11 +2746,28 @@ public:
 							else
 							{
 								// byte properties that are enum references need their enums loaded first so that config importing works
-								UByteProperty* ByteProp = dynamic_cast<UByteProperty*>(Object);
-								if (ByteProp != NULL && ByteProp->Enum != NULL)
 								{
-									HandleDependency(ByteProp->Enum, /*bProcessObject =*/true);
+									UEnum* Enum = nullptr;
+
+									if (UEnumProperty* EnumProp = dynamic_cast<UEnumProperty*>(Object))
+									{
+										Enum = EnumProp->GetEnum();
+									}
+									else
+									{
+										UByteProperty* ByteProp = dynamic_cast<UByteProperty*>(Object);
+										if (ByteProp && ByteProp->Enum)
+										{
+											Enum = ByteProp->Enum;
+										}
+									}
+
+									if (Enum)
+									{
+										HandleDependency(Enum, /*bProcessObject =*/true);
+									}
 								}
+
 								// a normal field - property, enum, const; just insert it into the list and keep going
 								ProcessedObjects.Add(Object);
 								
@@ -4894,6 +4929,12 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 								TEXT("Export Object (%s) Outer (%s) is an Import."),
 								*(Export.Object->GetPathName()),
 								*(Export.Object->GetOuter()->GetPathName()));
+
+							if (Linker->IsCooking() && IsEventDrivenLoaderEnabledInCookedBuilds())
+							{
+								// Only packages are allowed to have no outer
+								ensureMsgf(Export.OuterIndex != FPackageIndex() || Export.Object->IsA(UPackage::StaticClass()), TEXT("Export %s has no valid outer when cooking!"), *Export.Object->GetPathName());
+							}
 						}
 						else
 						{
@@ -4978,7 +5019,11 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 								GetObjectsWithOuter(CDO, Subobjects);
 								for (UObject* SubObj : Subobjects)
 								{
-									IncludeObjectAsDependency(SerializationBeforeCreateDependencies, SubObj, Export.Object, false);
+									// Only include subobject archetypes
+									if (SubObj->HasAnyFlags(RF_DefaultSubObject | RF_ArchetypeObject))
+									{
+										IncludeObjectAsDependency(SerializationBeforeCreateDependencies, SubObj, Export.Object, false);
+									}
 								}
 							}
 							TSet<FPackageIndex> SerializationBeforeSerializationDependencies;
@@ -5328,6 +5373,12 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 #endif
 							{
 								Import.OuterIndex = Linker->MapObject(Import.XObject->GetOuter());
+							}
+
+							if (Linker->IsCooking() && IsEventDrivenLoaderEnabledInCookedBuilds())
+							{
+								// Only package imports are allowed to have no outer
+								ensureMsgf(Import.OuterIndex != FPackageIndex() || Import.ClassName == NAME_Package, TEXT("Import %s has no valid outer when cooking!"), *Import.XObject->GetPathName());
 							}
 						}
 					}

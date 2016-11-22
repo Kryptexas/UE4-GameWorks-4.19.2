@@ -67,7 +67,7 @@ void FAIMessage::Broadcast(UObject* WorldContextObject, const FAIMessage& Messag
 	{
 		for (FConstControllerIterator It = MyWorld->GetControllerIterator(); It; ++It)
 		{
-			FAIMessage::Send(*It, Message);
+			FAIMessage::Send(It->Get(), Message);
 		}
 	}
 }

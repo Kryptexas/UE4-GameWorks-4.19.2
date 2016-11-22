@@ -464,7 +464,7 @@ void UCheatManager::ViewPlayer( const FString& S )
 	AController* Controller = NULL;
 	for( FConstControllerIterator Iterator = GetWorld()->GetControllerIterator(); Iterator; ++Iterator )
 	{
-		Controller = *Iterator;
+		Controller = Iterator->Get();
 		if ( Controller->PlayerState && (FCString::Stricmp(*Controller->PlayerState->PlayerName, *S) == 0 ) )
 		{
 			break;
@@ -662,7 +662,7 @@ void UCheatManager::ServerToggleAILogging_Implementation()
 	{
 		for (FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator)
 		{
-			APlayerController* PC = *Iterator;
+			APlayerController* PC = Iterator->Get();
 			if (PC)
 			{
 				PC->OnServerStartedVisualLogger(bToggleAILogging);

@@ -244,9 +244,9 @@ void UModelComponent::ApplyTempElements(bool bLightingWasSuccessful)
 		for (int32 ModelIndex = 0; ModelIndex < UpdatedModels.Num(); ModelIndex++)
 		{
 			UModel* Model = UpdatedModels[ModelIndex];
-			for(TMap<UMaterialInterface*,TScopedPointer<FRawIndexBuffer16or32> >::TIterator IndexBufferIt(Model->MaterialIndexBuffers); IndexBufferIt; ++IndexBufferIt)
+			for(TMap<UMaterialInterface*,TUniquePtr<FRawIndexBuffer16or32> >::TIterator IndexBufferIt(Model->MaterialIndexBuffers); IndexBufferIt; ++IndexBufferIt)
 			{
-				BeginReleaseResource(IndexBufferIt.Value());
+				BeginReleaseResource(IndexBufferIt->Value.Get());
 			}
 		}
 
@@ -266,9 +266,9 @@ void UModelComponent::ApplyTempElements(bool bLightingWasSuccessful)
 		for (int32 ModelIndex = 0; ModelIndex < UpdatedModels.Num(); ModelIndex++)
 		{
 			UModel* Model = UpdatedModels[ModelIndex];
-			for(TMap<UMaterialInterface*,TScopedPointer<FRawIndexBuffer16or32> >::TIterator IndexBufferIt(Model->MaterialIndexBuffers); IndexBufferIt; ++IndexBufferIt)
+			for(TMap<UMaterialInterface*,TUniquePtr<FRawIndexBuffer16or32> >::TIterator IndexBufferIt(Model->MaterialIndexBuffers); IndexBufferIt; ++IndexBufferIt)
 			{
-				BeginInitResource(IndexBufferIt.Value());
+				BeginInitResource(IndexBufferIt->Value.Get());
 			}
 
 			// Mark the model's package as dirty.

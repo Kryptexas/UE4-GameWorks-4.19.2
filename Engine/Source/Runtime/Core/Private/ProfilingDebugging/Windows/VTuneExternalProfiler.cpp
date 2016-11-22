@@ -3,7 +3,7 @@
 #include "CorePrivatePCH.h"
 #include "ExternalProfiler.h"
 #include "Runtime/Core/Public/Features/IModularFeatures.h"
-
+#include "UniquePtr.h"
 
 
 /**
@@ -141,7 +141,7 @@ namespace VTuneProfiler
 	{
 		FAtModuleInit()
 		{
-			static TScopedPointer<FVTuneExternalProfiler> ProfilerVTune( new FVTuneExternalProfiler() );
+			static TUniquePtr<FVTuneExternalProfiler> ProfilerVTune = MakeUnique<FVTuneExternalProfiler>();
 			if( !ProfilerVTune->Initialize() )
 			{
 				ProfilerVTune.Reset();

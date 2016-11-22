@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "UniquePtr.h"
+
 PAKFILE_API DECLARE_LOG_CATEGORY_EXTERN(LogPakFile, Log, All);
 DECLARE_FLOAT_ACCUMULATOR_STAT_EXTERN(TEXT("Total pak file read time"), STAT_PakFile_Read, STATGROUP_PakFile, PAKFILE_API);
 
@@ -9,6 +11,16 @@ DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Num open pak file handles"), STAT_Pa
 
 /** Delegate for allowing a game to restrict the accessing of non-pak files */
 DECLARE_DELEGATE_RetVal_OneParam(bool, FFilenameSecurityDelegate, const TCHAR* /*InFilename*/);
+
+#define PAKHASH_USE_CRC	1
+
+#if PAKHASH_USE_CRC
+typedef uint32 TPakChunkHash;
+#else
+typedef FSHAHash TPakChunkHash;
+#endif
+
+PAKFILE_API TPakChunkHash ComputePakChunkHash(const void* InData, int64 InDataSizeInBytes);
 
 /**
  * Struct which holds pak file info (version, index offset, hash value).
@@ -20,7 +32,7 @@ struct FPakInfo
 		/** Magic number to use in header */
 		PakFile_Magic = 0x5A6F12E1,
 		/** Size of cached data. */
-		MaxChunkDataSize = 256*1024,
+		MaxChunkDataSize = 64*1024,
 	};
 
 	/** Version numbers. */
@@ -260,9 +272,9 @@ class PAKFILE_API FPakFile : FNoncopyable
 	FString PakFilename;
 	FName PakFilenameName;
 	/** Archive to serialize the pak file from. */
-	TAutoPtr<class FChunkCacheWorker> Decryptor;
+	TUniquePtr<class FChunkCacheWorker> Decryptor;
 	/** Map of readers assigned to threads. */
-	TMap<uint32, TAutoPtr<FArchive>> ReaderMap;
+	TMap<uint32, TUniquePtr<FArchive>> ReaderMap;
 	/** Critical section for accessing ReaderMap. */
 	FCriticalSection CriticalSection;
 	/** Pak file info (trailer). */

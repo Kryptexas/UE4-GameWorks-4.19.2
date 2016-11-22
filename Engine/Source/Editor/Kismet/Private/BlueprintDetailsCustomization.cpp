@@ -1684,6 +1684,7 @@ EVisibility FBlueprintVarActionDetails::ExposeToCinematicsVisibility() const
 	{
 		const bool bIsInteger = VariableProperty->IsA(UIntProperty::StaticClass());
 		const bool bIsByte = VariableProperty->IsA(UByteProperty::StaticClass());
+		const bool bIsEnum = VariableProperty->IsA(UEnumProperty::StaticClass());
 		const bool bIsFloat = VariableProperty->IsA(UFloatProperty::StaticClass());
 		const bool bIsBool = VariableProperty->IsA(UBoolProperty::StaticClass());
 		const bool bIsStr = VariableProperty->IsA(UStrProperty::StaticClass());
@@ -1692,7 +1693,7 @@ EVisibility FBlueprintVarActionDetails::ExposeToCinematicsVisibility() const
 		const bool bIsLinearColorStruct = VariableProperty->IsA(UStructProperty::StaticClass()) && Cast<UStructProperty>(VariableProperty)->Struct->GetFName() == NAME_LinearColor;
 		const bool bIsActorProperty = VariableProperty->IsA(UObjectProperty::StaticClass()) && Cast<UObjectProperty>(VariableProperty)->PropertyClass->IsChildOf(AActor::StaticClass());
 
-		if (bIsInteger || bIsByte || bIsFloat || bIsBool || bIsStr || bIsVectorStruct || bIsColorStruct || bIsLinearColorStruct || bIsActorProperty)
+		if (bIsInteger || bIsByte || bIsEnum || bIsFloat || bIsBool || bIsStr || bIsVectorStruct || bIsColorStruct || bIsLinearColorStruct || bIsActorProperty)
 		{
 			return EVisibility::Visible;
 		}

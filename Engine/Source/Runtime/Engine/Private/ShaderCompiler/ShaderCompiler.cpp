@@ -1390,12 +1390,12 @@ FShaderCompilingManager::FShaderCompilingManager() :
 	if (FShaderCompileXGEThreadRunnable::IsSupported())
 	{
 		UE_LOG(LogShaderCompilers, Display, TEXT("Using XGE Shader Compiler."));
-		Thread = new FShaderCompileXGEThreadRunnable(this);
+		Thread = MakeUnique<FShaderCompileXGEThreadRunnable>(this);
 	}
 	else
 	{
 		UE_LOG(LogShaderCompilers, Display, TEXT("Using Local Shader Compiler."));
-		Thread = new FShaderCompileThreadRunnable(this);
+		Thread = MakeUnique<FShaderCompileThreadRunnable>(this);
 	}
 	Thread->StartThread();
 }

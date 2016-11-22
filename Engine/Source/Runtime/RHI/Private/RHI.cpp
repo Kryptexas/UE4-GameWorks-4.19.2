@@ -291,6 +291,7 @@ bool GSupportsParallelOcclusionQueries = false;
 bool GSupportsRenderTargetWriteMask = false;
 
 bool GRHISupportsMSAADepthSampleAccess = false;
+bool GRHISupportsResolveCubemapFaces = false;
 
 bool GRHISupportsHDROutput = false;
 

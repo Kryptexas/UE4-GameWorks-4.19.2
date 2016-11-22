@@ -122,6 +122,11 @@ struct FMicrosoftPlatformString : public FGenericPlatformString
 		return _tcstoul( Start, End, Base );
 	}
 
+	static FORCEINLINE int64 Strtoi64( const WIDECHAR* Start, WIDECHAR** End, int32 Base ) 
+	{
+		return _tcstoi64( Start, End, Base ); 
+	}
+
 	static FORCEINLINE uint64 Strtoui64( const WIDECHAR* Start, WIDECHAR** End, int32 Base ) 
 	{
 		return _tcstoui64( Start, End, Base ); 
@@ -277,6 +282,11 @@ struct FMicrosoftPlatformString : public FGenericPlatformString
 	static FORCEINLINE int32 Strtoi( const ANSICHAR* Start, ANSICHAR** End, int32 Base ) 
 	{
 		return strtol( Start, End, Base ); 
+	}
+
+	static FORCEINLINE int64 Strtoi64( const ANSICHAR* Start, ANSICHAR** End, int32 Base ) 
+	{
+		return _strtoi64( Start, End, Base ); 
 	}
 
 	static FORCEINLINE uint64 Strtoui64( const ANSICHAR* Start, ANSICHAR** End, int32 Base ) 

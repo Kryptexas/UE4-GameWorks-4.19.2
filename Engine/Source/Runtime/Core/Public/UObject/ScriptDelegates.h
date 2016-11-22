@@ -567,7 +567,9 @@ protected:
 
 	// 
 	friend class FCallDelegateHelper;
+
+	friend struct TIsZeroConstructType<TMulticastScriptDelegate<TWeakPtr> >;
 };
 
 
-template<typename TWeakPtr> struct TIsZeroConstructType<TMulticastScriptDelegate<TWeakPtr> > { enum { Value = TIsZeroConstructType<TWeakPtr>::Value }; };
+template<typename TWeakPtr> struct TIsZeroConstructType<TMulticastScriptDelegate<TWeakPtr> > { enum { Value = TIsZeroConstructType<typename TMulticastScriptDelegate<TWeakPtr>::FInvocationList>::Value }; };

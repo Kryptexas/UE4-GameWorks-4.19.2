@@ -455,7 +455,7 @@ public:
 		{
 			if (Property)
 			{
-				return Property->IsA<UByteProperty>();
+				return Property->IsA<UByteProperty>() || (Property->IsA<UEnumProperty>() && static_cast<const UEnumProperty*>(Property)->GetUnderlyingProperty()->IsA<UByteProperty>());
 			}
 			return Type && ((Type->PinCategory == UEdGraphSchema_K2::PC_Byte) || (Type->PinCategory == UEdGraphSchema_K2::PC_Enum));
 		}
@@ -674,9 +674,23 @@ public:
 			{
 				uint8 Value = 0;
 
-				UByteProperty* ByteProp = Cast< UByteProperty >(CoerceProperty);
+				UEnum* EnumPtr = nullptr;
+
+				if (UByteProperty* ByteProp = Cast< UByteProperty >(CoerceProperty))
+				{
+					EnumPtr = ByteProp->Enum;
+				}
+				else if (UEnumProperty* EnumProp = Cast< UEnumProperty >(CoerceProperty))
+				{
+					EnumPtr = EnumProp->GetEnum();
+				}
+
 				//Parameter property can represent a generic byte. we need the actual type to parse the value.
-				UEnum* EnumPtr = (ByteProp && ByteProp->Enum) ? ByteProp->Enum : Cast<UEnum>(Term->Type.PinSubCategoryObject.Get()); 
+				if (!EnumPtr)
+				{
+					EnumPtr = Cast<UEnum>(Term->Type.PinSubCategoryObject.Get());
+				}
+
 				//Check for valid enum object reference
 				if (EnumPtr)
 				{

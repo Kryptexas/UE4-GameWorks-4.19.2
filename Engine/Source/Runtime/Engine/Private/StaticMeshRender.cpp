@@ -90,7 +90,7 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 	, Owner(InComponent->GetOwner())
 	, StaticMesh(InComponent->GetStaticMesh())
 	, BodySetup(InComponent->GetBodySetup())
-	, RenderData(InComponent->GetStaticMesh()->RenderData)
+	, RenderData(InComponent->GetStaticMesh()->RenderData.Get())
 	, ForcedLodModel(InComponent->ForcedLodModel)
 	, bCastShadow(InComponent->CastShadow)
 	, CollisionTraceFlag(ECollisionTraceFlag::CTF_UseSimpleAndComplex)
@@ -1345,7 +1345,7 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 {
 	const auto FeatureLevel = InComponent->GetWorld()->FeatureLevel;
 
-	FStaticMeshRenderData* MeshRenderData = InComponent->GetStaticMesh()->RenderData;
+	FStaticMeshRenderData* MeshRenderData = InComponent->GetStaticMesh()->RenderData.Get();
 	FStaticMeshLODResources& LODModel = MeshRenderData->LODResources[LODIndex];
 	if (LODIndex < InComponent->LODData.Num())
 	{

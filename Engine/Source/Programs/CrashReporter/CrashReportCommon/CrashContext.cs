@@ -8,8 +8,6 @@ using System.Collections.Generic;
 using Tools.DotNETCommon.XmlHandler;
 using System.Xml;
 using System.Linq;
-using System.Security;
-using System.Diagnostics;
 
 namespace Tools.CrashReporter.CrashReportCommon
 {

@@ -249,7 +249,7 @@ private:
 
 	/** Cached property pointer for setting timeline direction */
 	UPROPERTY(Transient, NotReplicated)
-	UByteProperty* DirectionProperty;
+	UProperty* DirectionProperty;
 
 public:
 	FTimeline()

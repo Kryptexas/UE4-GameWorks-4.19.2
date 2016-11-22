@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.IO;
 using System.Xml;
 using System.Xml.Serialization;
 using System.Reflection;
@@ -89,12 +84,6 @@ namespace Tools.CrashReporter.CrashReportProcess
 		public string PS4LandingZone { get; set; }
 
 		/// <summary>
-		/// Folder where failed reports are moved.
-		/// </summary>
-		[XmlElement]
-		public string InvalidReportsDirectory { get; set; }
-
-		/// <summary>
 		/// Number of reports in a queue at which reports will start to be discarded to stop a backlog from growing uncontrollably.
 		/// </summary>
 		[XmlElement]
@@ -113,34 +102,10 @@ namespace Tools.CrashReporter.CrashReportProcess
 		public string DepotIndex { get; set; }
 
 		/// <summary>
-		/// Whether MDD is synched from source control to get the latest files when the CRP starts. Switch off to manually deploy MDD.
+		/// String specifying the local path of the MinidumpDiagnostics exe
 		/// </summary>
 		[XmlElement]
-		public bool bSyncMinidumpDiagnostics { get; set; }
-
-		/// <summary>
-		/// String specifying the binaries that will be synched from source control to get the latest MinidumpDiagnostics.
-		/// </summary>
-		[XmlElement]
-		public string SyncBinariesFromDepot { get; set; }
-
-		/// <summary>
-		/// String specifying the config files that will be synched from source control for MinidumpDiagnostics.
-		/// </summary>
-		[XmlElement]
-		public string SyncConfigFromDepot { get; set; }
-
-		/// <summary>
-		/// String specifying the third-party files that will be synched from source control for MinidumpDiagnostics. e.g. OpenSSL
-		/// </summary>
-		[XmlElement]
-		public string SyncThirdPartyFromDepot { get; set; }
-
-		/// <summary>
-		/// String specifying the local path of the folder containing the MinidumpDiagnostics exe
-		/// </summary>
-		[XmlElement]
-		public string MDDBinariesFolderInDepot { get; set; }
+		public string MDDExecutablePath { get; set; }
 
 		/// <summary>
 		/// String specifying the path to the folder used by MinidumpDiagnostics for the PDB cache
@@ -312,6 +277,12 @@ namespace Tools.CrashReporter.CrashReportProcess
 		public bool CrashFilesToAWS { get; set; }
 
 		/// <summary>
+		/// Should we save invalid reports that fail to process to S3?
+		/// </summary>
+		[XmlElement]
+		public bool InvalidReportsToAWS { get; set; }
+
+		/// <summary>
 		/// AWSSDK AWS S3 bucket used for output of crash reporter files (optional)
 		/// </summary>
 		[XmlElement]
@@ -322,6 +293,12 @@ namespace Tools.CrashReporter.CrashReportProcess
 		/// </summary>
 		[XmlElement]
 		public string AWSS3OutputKeyPrefix { get; set; }
+
+		/// <summary>
+		/// AWSSDK AWS S3 path/key prefix used for writing invalid reports (optional)
+		/// </summary>
+		[XmlElement]
+		public string AWSS3InvalidKeyPrefix { get; set; }
 
 		/// <summary>
 		/// Buffer size used to decompress zlib archives taken from S3
@@ -358,6 +335,12 @@ namespace Tools.CrashReporter.CrashReportProcess
 		/// </summary>
 		[XmlElement]
 		public float DiskSpaceAlertPercent { get; set; }
+
+		/// <summary>
+		/// Switch on perf monitoring via StatusReporting. Adds an extra report with perf info.
+		/// </summary>
+		[XmlElement]
+		public bool MonitorPerformance { get; set; }
 
 		/// <summary>
 		/// Get the default config object (lazy loads it on first access)
@@ -424,7 +407,10 @@ namespace Tools.CrashReporter.CrashReportProcess
 			{
 				LoadedConfig.PS4LandingZone = Path.Combine(LoadedConfig.DebugTestingFolder, "PS4LandingZone");
 			}
-			LoadedConfig.InvalidReportsDirectory = Path.Combine(LoadedConfig.DebugTestingFolder, "InvalidReportsDirectory");
+			if (!string.IsNullOrWhiteSpace(LoadedConfig.MDDExecutablePath))
+			{
+				LoadedConfig.MDDExecutablePath = Path.Combine(LoadedConfig.DebugTestingFolder, "MinidumpDiagnostics", "Engine", "Binaries", "Win64", "MinidumpDiagnostics.exe");
+			}
 			LoadedConfig.VersionString += " debugbuild";
 			LoadedConfig.AWSCredentialsFilepath = Path.Combine(LoadedConfig.DebugTestingFolder, "AWS", "credentials.ini");
 			if (!string.IsNullOrWhiteSpace(LoadedConfig.ProcessedReportsIndexPath))
@@ -433,6 +419,10 @@ namespace Tools.CrashReporter.CrashReportProcess
 			}
 			LoadedConfig.CrashReportWebSite = string.Empty;
 			LoadedConfig.AWSS3OutputKeyPrefix = LoadedConfig.AWSS3OutputKeyPrefix.Replace("prod", "test");
+			LoadedConfig.AWSS3InvalidKeyPrefix = LoadedConfig.AWSS3InvalidKeyPrefix.Replace("prod", "test");
+
+			LoadedConfig.MinDesiredMemoryQueueSize = 5;
+			LoadedConfig.MaxMemoryQueueSize = 15;
 
 #if SLACKTESTING
 			LoadedConfig.SlackUsername = "CrashReportProcess_TESTING_IgnoreMe";

@@ -5,6 +5,7 @@
 #include "JsonInternationalizationArchiveSerializer.h"
 #include "EditorObjectVersion.h"
 #include "TextPackageNamespaceUtil.h"
+#include "UniquePtr.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogStabilizeLocalizationKeys, Log, All);
 
@@ -233,7 +234,7 @@ int32 UStabilizeLocalizationKeysCommandlet::Main(const FString& Params)
 	TArray<FString> UnstablePackages;
 	for (const FString& PackageFilename : AllPackages)
 	{
-		if (TScopedPointer<FArchive> FileReader = TScopedPointer<FArchive>(IFileManager::Get().CreateFileReader(*PackageFilename)))
+		if (TUniquePtr<FArchive> FileReader = TUniquePtr<FArchive>(IFileManager::Get().CreateFileReader(*PackageFilename)))
 		{
 			// Read package file summary from the file so we can test the version
 			FPackageFileSummary PackageFileSummary;

@@ -6,6 +6,7 @@
 #include "DistanceFieldAtlas.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "UniquePtr.h"
 
 /** Notification class for asynchronous distance field building. */
 class FDistanceFieldBuildNotificationImpl
@@ -44,17 +45,17 @@ private:
 };
 
 /** Global notification object. */
-TScopedPointer<FDistanceFieldBuildNotificationImpl> GDistanceFieldBuildNotification;
+TUniquePtr<FDistanceFieldBuildNotificationImpl> GDistanceFieldBuildNotification;
 
 void SetupDistanceFieldBuildNotification()
 {
 	// Create explicitly to avoid relying on static initialization order
-	GDistanceFieldBuildNotification = new FDistanceFieldBuildNotificationImpl;
+	GDistanceFieldBuildNotification = MakeUnique<FDistanceFieldBuildNotificationImpl>();
 }
 
 void TearDownDistanceFieldBuildNotification()
 {
-	GDistanceFieldBuildNotification = NULL;
+	GDistanceFieldBuildNotification = nullptr;
 }
 
 void FDistanceFieldBuildNotificationImpl::DistanceFieldBuildStarted()

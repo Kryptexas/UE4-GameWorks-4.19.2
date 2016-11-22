@@ -2,6 +2,7 @@
 
 #include "LightmassPCH.h"
 #include "LMCore.h"
+#include "UniquePtr.h"
 
 namespace Lightmass
 {
@@ -92,7 +93,7 @@ void FLightmassLog::Flush()
 	File->Flush();
 }
 
-static TScopedPointer<FLightmassLog>	GScopedLog;
+static TUniquePtr<FLightmassLog>	GScopedLog;
 
 FLightmassLog* FLightmassLog::Get()
 {

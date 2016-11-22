@@ -24,6 +24,7 @@
 #include "MeshRendering.h"
 #include "MeshMergeData.h"
 #include "Runtime/Engine/Classes/Engine/StaticMesh.h"
+#include "UniquePtr.h"
 
 #if WITH_EDITOR
 #include "UnrealEd.h"
@@ -668,8 +669,8 @@ bool FMaterialUtilities::SupportsExport(EBlendMode InBlendMode, EMaterialPropert
 
 bool FMaterialUtilities::ExportMaterialProperty(UWorld* InWorld, UMaterialInterface* InMaterial, EMaterialProperty InMaterialProperty, UTextureRenderTarget2D* InRenderTarget, TArray<FColor>& OutBMP)
 {
-	TScopedPointer<FExportMaterialProxy> MaterialProxy(new FExportMaterialProxy(InMaterial, InMaterialProperty));
-	if (MaterialProxy == NULL)
+	TUniquePtr<FExportMaterialProxy> MaterialProxy(new FExportMaterialProxy(InMaterial, InMaterialProperty));
+	if (MaterialProxy == nullptr)
 	{
 		return false;
 	}
@@ -686,8 +687,8 @@ bool FMaterialUtilities::ExportMaterialProperty(UWorld* InWorld, UMaterialInterf
 
 bool FMaterialUtilities::ExportMaterialProperty(UWorld* InWorld, UMaterialInterface* InMaterial, EMaterialProperty InMaterialProperty, FIntPoint& OutSize, TArray<FColor>& OutBMP)
 {
-	TScopedPointer<FExportMaterialProxy> MaterialProxy(new FExportMaterialProxy(InMaterial, InMaterialProperty));
-	if (MaterialProxy == NULL)
+	TUniquePtr<FExportMaterialProxy> MaterialProxy(new FExportMaterialProxy(InMaterial, InMaterialProperty));
+	if (MaterialProxy == nullptr)
 	{
 		return false;
 	}
@@ -702,8 +703,8 @@ bool FMaterialUtilities::ExportMaterialProperty(UWorld* InWorld, UMaterialInterf
 
 bool FMaterialUtilities::ExportMaterialProperty(UMaterialInterface* InMaterial, EMaterialProperty InMaterialProperty, TArray<FColor>& OutBMP, FIntPoint& OutSize)
 {
-	TScopedPointer<FExportMaterialProxy> MaterialProxy(new FExportMaterialProxy(InMaterial, InMaterialProperty));
-	if (MaterialProxy == NULL)
+	TUniquePtr<FExportMaterialProxy> MaterialProxy(new FExportMaterialProxy(InMaterial, InMaterialProperty));
+	if (MaterialProxy == nullptr)
 	{
 		return false;
 	}
@@ -718,8 +719,8 @@ bool FMaterialUtilities::ExportMaterialProperty(UMaterialInterface* InMaterial, 
 
 bool FMaterialUtilities::ExportMaterialProperty(UMaterialInterface* InMaterial, EMaterialProperty InMaterialProperty, FIntPoint InSize, TArray<FColor>& OutBMP)
 {
-	TScopedPointer<FExportMaterialProxy> MaterialProxy(new FExportMaterialProxy(InMaterial, InMaterialProperty));
-	if (MaterialProxy == NULL)
+	TUniquePtr<FExportMaterialProxy> MaterialProxy(new FExportMaterialProxy(InMaterial, InMaterialProperty));
+	if (MaterialProxy == nullptr)
 	{
 		return false;
 	}

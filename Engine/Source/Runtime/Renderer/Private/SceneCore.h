@@ -131,7 +131,7 @@ public:
 	{
 	public:
 		virtual bool IsInDrawList(const class FStaticMeshDrawListBase* DrawList) const = 0;
-		virtual void Remove() = 0;
+		virtual void Remove(const bool bUnlinkMesh) = 0;
 	};
 
 	/** The screen space size to draw this primitive at */

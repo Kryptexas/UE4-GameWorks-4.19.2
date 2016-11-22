@@ -3554,7 +3554,7 @@ void UMaterial::UpdateMaterialShaders(TArray<FShaderType*>& ShaderTypesToFlush, 
 	FMaterial::UpdateEditorLoadedMaterialResources(ShaderPlatform);
 }
 
-void UMaterial::BackupMaterialShadersToMemory(TMap<FMaterialShaderMap*, TScopedPointer<TArray<uint8> > >& ShaderMapToSerializedShaderData)
+void UMaterial::BackupMaterialShadersToMemory(TMap<FMaterialShaderMap*, TUniquePtr<TArray<uint8> > >& ShaderMapToSerializedShaderData)
 {
 	// Process FMaterialShaderMap's referenced by UObjects (UMaterial, UMaterialInstance)
 	for (TObjectIterator<UMaterialInterface> It; It; ++It)
@@ -3605,7 +3605,7 @@ void UMaterial::BackupMaterialShadersToMemory(TMap<FMaterialShaderMap*, TScopedP
 	FMaterial::BackupEditorLoadedMaterialShadersToMemory(ShaderMapToSerializedShaderData);
 }
 
-void UMaterial::RestoreMaterialShadersFromMemory(const TMap<FMaterialShaderMap*, TScopedPointer<TArray<uint8> > >& ShaderMapToSerializedShaderData)
+void UMaterial::RestoreMaterialShadersFromMemory(const TMap<FMaterialShaderMap*, TUniquePtr<TArray<uint8> > >& ShaderMapToSerializedShaderData)
 {
 	// Process FMaterialShaderMap's referenced by UObjects (UMaterial, UMaterialInstance)
 	for (TObjectIterator<UMaterialInterface> It; It; ++It)
@@ -3627,7 +3627,7 @@ void UMaterial::RestoreMaterialShadersFromMemory(const TMap<FMaterialShaderMap*,
 
 					if (ShaderMap)
 					{
-						const TScopedPointer<TArray<uint8> >* ShaderData = ShaderMapToSerializedShaderData.Find(ShaderMap);
+						const TUniquePtr<TArray<uint8> >* ShaderData = ShaderMapToSerializedShaderData.Find(ShaderMap);
 
 						if (ShaderData)
 						{
@@ -3648,7 +3648,7 @@ void UMaterial::RestoreMaterialShadersFromMemory(const TMap<FMaterialShaderMap*,
 
 					if (ShaderMap)
 					{
-						const TScopedPointer<TArray<uint8> >* ShaderData = ShaderMapToSerializedShaderData.Find(ShaderMap);
+						const TUniquePtr<TArray<uint8> >* ShaderData = ShaderMapToSerializedShaderData.Find(ShaderMap);
 
 						if (ShaderData)
 						{

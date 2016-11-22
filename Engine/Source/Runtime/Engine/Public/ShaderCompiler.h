@@ -7,6 +7,7 @@
 #pragma once
 
 #include "ShaderCore.h"
+#include "UniquePtr.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogShaderCompilers, Log, All);
 
@@ -340,7 +341,7 @@ private:
 	TMap<int32, FShaderMapFinalizeResults> PendingFinalizeShaderMaps;
 
 	/** The threads spawned for shader compiling. */
-	TScopedPointer<FShaderCompileThreadRunnableBase> Thread;
+	TUniquePtr<FShaderCompileThreadRunnableBase> Thread;
 
 	//////////////////////////////////////////////////////
 	// Configuration properties - these are set only on initialization and can be read from either thread

@@ -384,7 +384,7 @@ void FStaticMesh::RemoveFromDrawLists()
 		FStaticMesh::FDrawListElementLink* Link = DrawListLinks[0];
 		const int32 OriginalNumLinks = DrawListLinks.Num();
 		// This will call UnlinkDrawList.
-		Link->Remove();
+		Link->Remove(true);
 		check(DrawListLinks.Num() == OriginalNumLinks - 1);
 		if(DrawListLinks.Num())
 		{
@@ -411,7 +411,12 @@ FStaticMesh::~FStaticMesh()
 	// Remove this static mesh from the scene's list.
 	PrimitiveSceneInfo->Scene->StaticMeshes.RemoveAt(Id);
 
-	RemoveFromDrawLists();
+	// This is cheaper than calling RemoveFromDrawLists, since it 
+	// doesn't unlink meshes which are about to be destroyed
+	for (int32 i = 0; i < DrawListLinks.Num(); i++)
+	{
+		DrawListLinks[i]->Remove(false);
+	}
 }
 
 /** Initialization constructor. */

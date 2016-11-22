@@ -48,8 +48,9 @@ static bool IsTypeCompatibleWithProperty(UEdGraphPin* SourcePin, const FEdGraphP
 	}
 	else if (PinCategory == Schema->PC_Byte)
 	{
-		UByteProperty* SpecificProperty = Cast<UByteProperty>(TestProperty);
-		bTypeMismatch = (SpecificProperty == NULL);
+		UByteProperty* ByteProperty = Cast<UByteProperty>(TestProperty);
+		UEnumProperty* EnumProperty = Cast<UEnumProperty>(TestProperty);
+		bTypeMismatch = (ByteProperty == nullptr) && (EnumProperty == nullptr || !EnumProperty->GetUnderlyingProperty()->IsA<UByteProperty>());
 	}
 	else if ((PinCategory == Schema->PC_Class) || (PinCategory == Schema->PC_AssetClass))
 	{
@@ -599,19 +600,32 @@ void FKismetCompilerUtilities::ValidateEnumProperties(UObject* DefaultObject, FC
 	check(DefaultObject);
 	for (TFieldIterator<UProperty> It(DefaultObject->GetClass()); It; ++It)
 	{
-		const UByteProperty* ByteProperty = Cast<UByteProperty>(*It);
-		if(ByteProperty && !ByteProperty->HasAnyPropertyFlags(CPF_Transient))
+		UProperty* Property = *It;
+
+		if(!Property->HasAnyPropertyFlags(CPF_Transient))
 		{
-			const UEnum* Enum = ByteProperty->GetIntPropertyEnum();
+			const UEnum* Enum = nullptr;
+			const UNumericProperty* UnderlyingProp = nullptr;
+			if (const UEnumProperty* EnumProperty = Cast<UEnumProperty>(Property))
+			{
+				Enum = EnumProperty->GetEnum();
+				UnderlyingProp = EnumProperty->GetUnderlyingProperty();
+			}
+			else if(const UByteProperty* ByteProperty = Cast<UByteProperty>(Property))
+			{
+				Enum = ByteProperty->GetIntPropertyEnum();
+				UnderlyingProp = ByteProperty;
+			}
+
 			if(Enum)
-			{		
-				const uint8 EnumValue = ByteProperty->GetPropertyValue_InContainer(DefaultObject);
+			{
+				const int64 EnumValue = UnderlyingProp->GetSignedIntPropertyValue(Property->ContainerPtrToValuePtr<void>(DefaultObject));
 				if(!Enum->IsValidEnumValue(EnumValue))
 				{
 					MessageLog.Warning(
 						*FString::Printf(
-							*LOCTEXT("InvalidEnumDefaultValue_Error", "Default Enum value '%s' for class '%s' is invalid in object '%s'. EnumVal: %d. EnumAcceptableMax: %d ").ToString(),
-							*ByteProperty->GetName(),
+							*LOCTEXT("InvalidEnumDefaultValue_Error", "Default Enum value '%s' for class '%s' is invalid in object '%s'. EnumVal: %lld. EnumAcceptableMax: %lld ").ToString(),
+							*Property->GetName(),
 							*DefaultObject->GetClass()->GetName(),
 							*DefaultObject->GetName(),
 							EnumValue,
@@ -982,11 +996,26 @@ UProperty* FKismetCompilerUtilities::CreatePrimitiveProperty(UObject* PropertySc
 	}
 	else if (PinCategory == Schema->PC_Byte)
 	{
-		UByteProperty* ByteProp = NewObject<UByteProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
-		ByteProp->Enum = Cast<UEnum>(PinSubCategoryObject);
-		ByteProp->SetPropertyFlags(CPF_HasGetValueTypeHash);
+		UEnum* Enum = Cast<UEnum>(PinSubCategoryObject);
 
-		NewProperty = ByteProp;
+		if (Enum && Enum->GetCppForm() == UEnum::ECppForm::EnumClass)
+		{
+			UEnumProperty* EnumProp = new (EC_InternalUseOnlyConstructor, PropertyScope, ValidatedPropertyName, ObjectFlags) UEnumProperty(FObjectInitializer(), CastChecked<UEnum>(PinSubCategoryObject));
+			UNumericProperty* UnderlyingProp = NewObject<UByteProperty>(EnumProp, TEXT("UnderlyingType"), ObjectFlags);
+
+			EnumProp->AddCppProperty(UnderlyingProp);
+
+			NewProperty = EnumProp;
+		}
+		else
+		{
+			UByteProperty* ByteProp = NewObject<UByteProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
+			ByteProp->Enum = Cast<UEnum>(PinSubCategoryObject);
+
+			NewProperty = ByteProp;
+		}
+
+		NewProperty->SetPropertyFlags(CPF_HasGetValueTypeHash);
 	}
 	else if (PinCategory == Schema->PC_Name)
 	{

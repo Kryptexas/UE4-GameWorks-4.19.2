@@ -92,7 +92,7 @@ public:
 
 	void Construct(const FArguments& InArgs)
 	{
-		ZoomLevels = new FWorldZoomLevelsContainer();
+		ZoomLevels = MakeUnique<FWorldZoomLevelsContainer>();
 
 		SNodePanel::Construct();
 	

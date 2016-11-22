@@ -2370,7 +2370,7 @@ void USceneComponent::UpdatePhysicsVolume( bool bTriggerNotifiers )
 				bool bAnyPotentialOverlap = false;
 				for (auto VolumeIter = MyWorld->GetNonDefaultPhysicsVolumeIterator(); VolumeIter && !bAnyPotentialOverlap; ++VolumeIter, ++VolumeIndex)
 				{
-					const APhysicsVolume* Volume = *VolumeIter;
+					const APhysicsVolume* Volume = VolumeIter->Get();
 					if (Volume != nullptr)
 					{
 						const USceneComponent* VolumeRoot = Volume->GetRootComponent();

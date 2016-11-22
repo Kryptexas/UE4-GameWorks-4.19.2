@@ -2,20 +2,14 @@
 
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.ServiceProcess;
-using System.Text;
-using System.Threading.Tasks;
 using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.SQS;
 using Tools.CrashReporter.CrashReportCommon;
-using Tools.CrashReporter.CrashReportProcess.Properties;
 
 namespace Tools.CrashReporter.CrashReportProcess
 {
@@ -222,6 +216,10 @@ namespace Tools.CrashReporter.CrashReportProcess
 			FieldInfo[] EventNameFields = typeof(StatusReportingEventNames).GetFields(BindingFlags.Static | BindingFlags.Public);
 			StatusReporter.InitCounters(EventNameFields.Select(EventNameField => (string)EventNameField.GetValue(null)));
 
+			WriteEvent("Initializing Performance Mean Counters");
+			FieldInfo[] MeanNameFields = typeof(StatusReportingPerfMeanNames).GetFields(BindingFlags.Static | BindingFlags.Public);
+			StatusReporter.InitMeanCounters(MeanNameFields.Select(MeanNameField => (string)MeanNameField.GetValue(null)));
+
 			WriteEvent("Initializing Folder Monitors");
 			Dictionary<string, string> FoldersToMonitor = new Dictionary<string, string>();
 			FoldersToMonitor.Add(Config.Default.ProcessedReports, "Processed Reports");
@@ -230,7 +228,6 @@ namespace Tools.CrashReporter.CrashReportProcess
 			FoldersToMonitor.Add(Config.Default.InternalLandingZone, "CRR Landing Zone");
 			FoldersToMonitor.Add(Config.Default.DataRouterLandingZone, "Data Router Landing Zone");
 			FoldersToMonitor.Add(Config.Default.PS4LandingZone, "PS4 Landing Zone");
-			FoldersToMonitor.Add(Config.Default.InvalidReportsDirectory, "Invalid Reports");
 			FoldersToMonitor.Add(Assembly.GetExecutingAssembly().Location, "CRP Binaries and Logs");
 			FoldersToMonitor.Add(Config.Default.MDDPDBCachePath, "MDD PDB Cache");
 			StatusReporter.InitFolderMonitors(FoldersToMonitor);

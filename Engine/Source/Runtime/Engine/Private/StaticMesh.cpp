@@ -2176,7 +2176,7 @@ static FStaticMeshRenderData& GetPlatformStaticMeshRenderData(UStaticMesh* Mesh,
 	check(Mesh && Mesh->RenderData);
 	const FStaticMeshLODSettings& PlatformLODSettings = Platform->GetStaticMeshLODSettings();
 	FString PlatformDerivedDataKey = BuildStaticMeshDerivedDataKey(Mesh, PlatformLODSettings.GetLODGroup(Mesh->LODGroup));
-	FStaticMeshRenderData* PlatformRenderData = Mesh->RenderData;
+	FStaticMeshRenderData* PlatformRenderData = Mesh->RenderData.Get();
 
 	if (Mesh->GetOutermost()->HasAnyPackageFlags(PKG_FilterEditorOnly))
 	{
@@ -2186,7 +2186,7 @@ static FStaticMeshRenderData& GetPlatformStaticMeshRenderData(UStaticMesh* Mesh,
 
 	while (PlatformRenderData && PlatformRenderData->DerivedDataKey != PlatformDerivedDataKey)
 	{
-		PlatformRenderData = PlatformRenderData->NextCachedRenderData;
+		PlatformRenderData = PlatformRenderData->NextCachedRenderData.Get();
 	}
 	if (PlatformRenderData == NULL)
 	{
@@ -2194,8 +2194,8 @@ static FStaticMeshRenderData& GetPlatformStaticMeshRenderData(UStaticMesh* Mesh,
 		PlatformRenderData = new FStaticMeshRenderData();
 		PlatformRenderData->Cache(Mesh, PlatformLODSettings);
 		check(PlatformRenderData->DerivedDataKey == PlatformDerivedDataKey);
-		PlatformRenderData->NextCachedRenderData.Swap(Mesh->RenderData->NextCachedRenderData);
-		Mesh->RenderData->NextCachedRenderData = PlatformRenderData;
+		Swap(PlatformRenderData->NextCachedRenderData, Mesh->RenderData->NextCachedRenderData);
+		Mesh->RenderData->NextCachedRenderData = TUniquePtr<FStaticMeshRenderData>(PlatformRenderData);
 	}
 	check(PlatformRenderData);
 	return *PlatformRenderData;
@@ -2227,7 +2227,7 @@ void UStaticMesh::CacheDerivedData()
 		}
 	}
 
-	RenderData = new FStaticMeshRenderData();
+	RenderData = MakeUnique<FStaticMeshRenderData>();
 	RenderData->Cache(this, LODSettings);
 
 	// Additionally cache derived data for any other platforms we care about.
@@ -2398,7 +2398,7 @@ void UStaticMesh::Serialize(FArchive& Ar)
 	{	
 		if (Ar.IsLoading())
 		{
-			RenderData = new FStaticMeshRenderData();
+			RenderData = MakeUnique<FStaticMeshRenderData>();
 			RenderData->Serialize(Ar, this, bCooked);
 		}
 

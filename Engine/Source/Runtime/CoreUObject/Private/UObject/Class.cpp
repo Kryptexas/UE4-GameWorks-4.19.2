@@ -946,12 +946,12 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 					
 					FName EachName = GetFName();
 					// Search the current class first, then work up the class hierarchy to see if theres a match for our fixup.
-					UStruct* Owner = GetOwnerStruct();		
+					UStruct* Owner = GetOwnerStruct();
 					if( Owner )
 					{
 						UStruct* SuperClass = Owner->GetSuperStruct();
 						while( EachName != NAME_None)
-						{							
+						{
 							const TMap<FName, FName>* ClassTaggedPropertyRedirects = TaggedPropertyRedirects.Find( EachName );
 							if (ClassTaggedPropertyRedirects)
 							{
@@ -1019,15 +1019,15 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 			// No need to check redirects on platforms where everything is cooked. Always check for save games
 			if (!FPlatformProperties::RequiresCookedData() || Ar.IsSaveGame())
 			{
-			if (Tag.Type == NAME_StructProperty && PropID == NAME_StructProperty)
-			{
-				FName* NewName = FLinkerLoad::StructNameRedirects.Find(Tag.StructName);
-				FName StructName = CastChecked<UStructProperty>(Property)->Struct->GetFName();
-					if (NewName != nullptr && *NewName == StructName)
+				if (Tag.Type == NAME_StructProperty && PropID == NAME_StructProperty)
 				{
-					Tag.StructName = *NewName;
+					FName* NewName = FLinkerLoad::StructNameRedirects.Find(Tag.StructName);
+					FName StructName = CastChecked<UStructProperty>(Property)->Struct->GetFName();
+						if (NewName != nullptr && *NewName == StructName)
+					{
+						Tag.StructName = *NewName;
+					}
 				}
-			}
 			}
 
 			const int64 StartOfProperty = Ar.Tell();
@@ -1057,9 +1057,6 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				UE_CLOG((Ar.IsPersistent() && FPlatformProperties::RequiresCookedData()), LogClass, Warning, TEXT("Skipping saved property %s of %s since it is no longer serializable for asset:  %s. (Maybe resave asset?)"), *Tag.Name.ToString(), *GetName(), *Ar.GetArchiveName() );
 			}
 
-			// Convert properties from old type to new type automatically if types are compatible
-			// If you add an entry to this, you will also need to add an entry to the array case below
-			// For converting to a struct, you can just implement SerializeFromMismatchedTag on the struct
 			else if (Property->ConvertFromType(Tag, Ar, Data, DefaultsStruct, bAdvanceProperty))
 			{
 				if (bAdvanceProperty)
@@ -2639,7 +2636,10 @@ UObject* UClass::CreateDefaultObject()
 			UObjectForceRegistration(ParentClass);
 			ParentDefaultObject = ParentClass->GetDefaultObject(); // Force the default object to be constructed if it isn't already
 #if USE_EVENT_DRIVEN_ASYNC_LOAD
-			check(ParentDefaultObject && !ParentDefaultObject->HasAnyFlags(RF_NeedLoad));
+			if (!GIsInitialLoad)
+			{ 
+				check(ParentDefaultObject && !ParentDefaultObject->HasAnyFlags(RF_NeedLoad));
+			}
 #endif
 		}
 
@@ -3352,7 +3352,10 @@ void UClass::SerializeSuperStruct(FArchive& Ar)
 		FFastIndexingClassTree::Register(this);
 	}
 #elif UCLASS_FAST_ISA_IMPL == UCLASS_ISA_CLASSARRAY
-	this->ReinitializeBaseChainArray();
+	if (Ar.IsLoading())
+	{
+		this->ReinitializeBaseChainArray();
+	}
 #endif
 }
 

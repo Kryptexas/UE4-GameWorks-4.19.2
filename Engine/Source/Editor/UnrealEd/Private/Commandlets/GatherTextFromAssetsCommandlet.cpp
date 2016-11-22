@@ -11,6 +11,7 @@
 #include "Sound/DialogueVoice.h"
 #include "Engine/DataTable.h"
 #include "EditorObjectVersion.h"
+#include "UniquePtr.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGatherTextFromAssetsCommandlet, Log, All);
 
@@ -423,7 +424,7 @@ int32 UGatherTextFromAssetsCommandlet::Main(const FString& Params)
 	TArray< FString > PackageFileNamesToLoad;
 	for (FString& PackageFile : PackageFileNamesToProcess)
 	{
-		TScopedPointer< FArchive > FileReader( IFileManager::Get().CreateFileReader( *PackageFile ) );
+		TUniquePtr< FArchive > FileReader( IFileManager::Get().CreateFileReader( *PackageFile ) );
 		if( FileReader )
 		{
 			// Read package file summary from the file

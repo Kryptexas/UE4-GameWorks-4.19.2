@@ -280,7 +280,7 @@ FRotator APawn::GetViewRotation() const
 		// check if being spectated
 		for( FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator )
 		{
-			APlayerController* PlayerController = *Iterator;
+			APlayerController* PlayerController = Iterator->Get();
 			if(PlayerController && PlayerController->PlayerCameraManager->GetViewTargetPawn() == this)
 			{
 				return PlayerController->BlendedTargetViewRotation;

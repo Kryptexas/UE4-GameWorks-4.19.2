@@ -512,7 +512,7 @@ const FMeshMapBuildData* UStaticMeshComponent::GetMeshMapBuildData(const FStatic
 
 	if (LODInfo.OverrideMapBuildData)
 	{
-		return LODInfo.OverrideMapBuildData.GetOwnedPointer();
+		return LODInfo.OverrideMapBuildData.Get();
 	}
 
 	AActor* Owner = GetOwner();

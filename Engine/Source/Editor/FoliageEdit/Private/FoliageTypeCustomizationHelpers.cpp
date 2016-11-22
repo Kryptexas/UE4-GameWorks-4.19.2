@@ -61,7 +61,7 @@ void FFoliageTypeCustomizationHelpers::BindHiddenPropertyVisibilityGetter(const 
 			return bState && Result == FPropertyAccess::Success ? EVisibility::Visible : EVisibility::Collapsed;
 		});
 	}
-	else if (PropertyHandle->GetProperty()->IsA<UByteProperty>())
+	else if (PropertyHandle->GetProperty()->IsA<UByteProperty>() || PropertyHandle->GetProperty()->IsA<UEnumProperty>())
 	{
 		// If hidden behind a byte/enum, assume that 0 = disabled and show if nonzero
 		OutVisibilityGetter.BindLambda([=]

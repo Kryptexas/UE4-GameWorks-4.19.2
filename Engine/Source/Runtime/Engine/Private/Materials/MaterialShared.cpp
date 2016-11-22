@@ -2317,7 +2317,7 @@ void FMaterial::UpdateEditorLoadedMaterialResources(EShaderPlatform InShaderPlat
 	}
 }
 
-void FMaterial::BackupEditorLoadedMaterialShadersToMemory(TMap<FMaterialShaderMap*, TScopedPointer<TArray<uint8> > >& ShaderMapToSerializedShaderData)
+void FMaterial::BackupEditorLoadedMaterialShadersToMemory(TMap<FMaterialShaderMap*, TUniquePtr<TArray<uint8> > >& ShaderMapToSerializedShaderData)
 {
 	for (TSet<FMaterial*>::TIterator It(EditorLoadedMaterialResources); It; ++It)
 	{
@@ -2332,7 +2332,7 @@ void FMaterial::BackupEditorLoadedMaterialShadersToMemory(TMap<FMaterialShaderMa
 	}
 }
 
-void FMaterial::RestoreEditorLoadedMaterialShadersFromMemory(const TMap<FMaterialShaderMap*, TScopedPointer<TArray<uint8> > >& ShaderMapToSerializedShaderData)
+void FMaterial::RestoreEditorLoadedMaterialShadersFromMemory(const TMap<FMaterialShaderMap*, TUniquePtr<TArray<uint8> > >& ShaderMapToSerializedShaderData)
 {
 	for (TSet<FMaterial*>::TIterator It(EditorLoadedMaterialResources); It; ++It)
 	{
@@ -2341,7 +2341,7 @@ void FMaterial::RestoreEditorLoadedMaterialShadersFromMemory(const TMap<FMateria
 
 		if (ShaderMap)
 		{
-			const TScopedPointer<TArray<uint8> >* ShaderData = ShaderMapToSerializedShaderData.Find(ShaderMap);
+			const TUniquePtr<TArray<uint8> >* ShaderData = ShaderMapToSerializedShaderData.Find(ShaderMap);
 
 			if (ShaderData)
 			{
@@ -2359,11 +2359,11 @@ FMaterialUpdateContext::FMaterialUpdateContext(uint32 Options, EShaderPlatform I
 	bSyncWithRenderingThread = (Options & EOptions::SyncWithRenderingThread) != 0;
 	if (bReregisterComponents)
 	{
-		ComponentReregisterContext = new FGlobalComponentReregisterContext();
+		ComponentReregisterContext = MakeUnique<FGlobalComponentReregisterContext>();
 	}
 	else if (bRecreateRenderStates)
 	{
-		ComponentRecreateRenderStateContext = new FGlobalComponentRecreateRenderStateContext();
+		ComponentRecreateRenderStateContext = MakeUnique<FGlobalComponentRecreateRenderStateContext>();
 	}
 	if (bSyncWithRenderingThread)
 	{
@@ -2421,7 +2421,7 @@ FMaterialUpdateContext::~FMaterialUpdateContext()
 	TArray<const FMaterial*> MaterialResourcesToUpdate;
 	TArray<UMaterialInstance*> InstancesToUpdate;
 
-	bool bUpdateStaticDrawLists = !ComponentReregisterContext.IsValid() && !ComponentRecreateRenderStateContext.IsValid();
+	bool bUpdateStaticDrawLists = !ComponentReregisterContext && !ComponentRecreateRenderStateContext;
 
 	// If static draw lists must be updated, gather material resources from all updated materials.
 	if (bUpdateStaticDrawLists)
@@ -2510,11 +2510,11 @@ FMaterialUpdateContext::~FMaterialUpdateContext()
 		// safe, e.g. while a component is being registered.
 		GetRendererModule().UpdateStaticDrawListsForMaterials(MaterialResourcesToUpdate);
 	}
-	else if (ComponentReregisterContext.IsValid())
+	else if (ComponentReregisterContext)
 	{
 		ComponentReregisterContext.Reset();
 	}
-	else if (ComponentRecreateRenderStateContext.IsValid())
+	else if (ComponentRecreateRenderStateContext)
 	{
 		ComponentRecreateRenderStateContext.Reset();
 	}

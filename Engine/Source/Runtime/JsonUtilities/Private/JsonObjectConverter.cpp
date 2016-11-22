@@ -28,7 +28,14 @@ TSharedPtr<FJsonValue> ConvertScalarUPropertyToJsonValue(UProperty* Property, co
 		// fall through to default cases
 	}
 
-	if (UNumericProperty *NumericProperty = Cast<UNumericProperty>(Property))
+	if (UEnumProperty* EnumProperty = Cast<UEnumProperty>(Property))
+	{
+		// export enums as strings
+		UEnum* EnumDef = EnumProperty->GetEnum();
+		FString StringValue = EnumDef->GetEnumName(EnumProperty->GetUnderlyingProperty()->GetSignedIntPropertyValue(Value));
+		return MakeShareable(new FJsonValueString(StringValue));
+	}
+	else if (UNumericProperty *NumericProperty = Cast<UNumericProperty>(Property))
 	{
 		// see if it's an enum
 		UEnum* EnumDef = NumericProperty->GetIntPropertyEnum();
@@ -50,7 +57,7 @@ TSharedPtr<FJsonValue> ConvertScalarUPropertyToJsonValue(UProperty* Property, co
 		}
 
 		// fall through to default
-	}		
+	}
 	else if (UBoolProperty *BoolProperty = Cast<UBoolProperty>(Property))
 	{
 		// Export bools as bools
@@ -248,21 +255,43 @@ bool GetTextFromObject(const TSharedRef<FJsonObject>& Obj, FText& TextOut)
 /** Convert JSON to property, assuming either the property is not an array or the value is an individual array element */
 bool ConvertScalarJsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue, UProperty* Property, void* OutValue, int64 CheckFlags, int64 SkipFlags)
 {
-	if (UNumericProperty *NumericProperty = Cast<UNumericProperty>(Property))
+	if (UEnumProperty* EnumProperty = Cast<UEnumProperty>(Property))
+	{
+		if (JsonValue->Type == EJson::String)
+		{
+			// see if we were passed a string for the enum
+			const UEnum* Enum = EnumProperty->GetEnum();
+			check(Enum);
+			FString StrValue = JsonValue->AsString();
+			int64 IntValue = Enum->GetValueByName(FName(*StrValue));
+			if (IntValue == INDEX_NONE)
+			{
+				UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Unable import enum %s from string value %s for property %s"), *Enum->CppType, *StrValue, *Property->GetNameCPP());
+				return false;
+			}
+			EnumProperty->GetUnderlyingProperty()->SetIntPropertyValue(OutValue, IntValue);
+		}
+		else
+		{
+			// AsNumber will log an error for completely inappropriate types (then give us a default)
+			EnumProperty->GetUnderlyingProperty()->SetIntPropertyValue(OutValue, (int64)JsonValue->AsNumber());
+		}
+	}
+	else if (UNumericProperty *NumericProperty = Cast<UNumericProperty>(Property))
 	{
 		if (NumericProperty->IsEnum() && JsonValue->Type == EJson::String)
 		{
 			// see if we were passed a string for the enum
-			const UEnum* EnumProperty = NumericProperty->GetIntPropertyEnum();
-			check(EnumProperty); // should be assured by IsEnum()
+			const UEnum* Enum = NumericProperty->GetIntPropertyEnum();
+			check(Enum); // should be assured by IsEnum()
 			FString StrValue = JsonValue->AsString();
-			int32 IntValue = EnumProperty->GetValueByName(FName(*StrValue));
+			int64 IntValue = Enum->GetValueByName(FName(*StrValue));
 			if (IntValue == INDEX_NONE)
 			{
-				UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Unable import enum %s from string value %s for property %s"), *EnumProperty->CppType, *StrValue, *Property->GetNameCPP());
+				UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Unable import enum %s from string value %s for property %s"), *Enum->CppType, *StrValue, *Property->GetNameCPP());
 				return false;
 			}
-			NumericProperty->SetIntPropertyValue(OutValue, (int64)IntValue);
+			NumericProperty->SetIntPropertyValue(OutValue, IntValue);
 		}
 		else if(NumericProperty->IsFloatingPoint())
 		{

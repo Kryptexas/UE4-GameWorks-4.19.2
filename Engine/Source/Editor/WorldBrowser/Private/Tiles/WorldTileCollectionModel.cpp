@@ -589,7 +589,7 @@ bool FWorldTileCollectionModel::GetPlayerView(FVector& Location, FRotator& Rotat
 		UWorld* SimulationWorld = GetSimulationWorld();
 		for (FConstPlayerControllerIterator Iterator = SimulationWorld->GetPlayerControllerIterator(); Iterator; ++Iterator)
 		{
-			APlayerController* PlayerActor = *Iterator;
+			APlayerController* PlayerActor = Iterator->Get();
 			PlayerActor->GetPlayerViewPoint(Location, Rotation);
 			return true;
 		}

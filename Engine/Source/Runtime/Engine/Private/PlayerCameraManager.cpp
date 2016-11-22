@@ -1237,7 +1237,7 @@ void APlayerCameraManager::PlayWorldCameraShake(UWorld* InWorld, TSubclassOf<cla
 {
 	for( FConstPlayerControllerIterator Iterator = InWorld->GetPlayerControllerIterator(); Iterator; ++Iterator )
 	{
-		APlayerController* PlayerController = *Iterator;
+		APlayerController* PlayerController = Iterator->Get();
 		if (PlayerController && PlayerController->PlayerCameraManager != NULL)
 		{
 			float ShakeScale = CalcRadialShakeScale(PlayerController->PlayerCameraManager, Epicenter, InnerRadius, OuterRadius, Falloff);

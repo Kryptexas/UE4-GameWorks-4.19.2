@@ -308,6 +308,11 @@ struct TCString
 	static FORCEINLINE int32 Strtoi( const CharType* Start, CharType** End, int32 Base );
 
 	/**
+	 * strtoi wrapper
+	 */
+	static FORCEINLINE int64 Strtoi64( const CharType* Start, CharType** End, int32 Base );
+
+	/**
 	 * strtoui wrapper
 	 */
 	static FORCEINLINE uint64 Strtoui64( const CharType* Start, CharType** End, int32 Base );
@@ -714,6 +719,12 @@ template <typename T> FORCEINLINE
 int32 TCString<T>::Strtoi( const CharType* Start, CharType** End, int32 Base ) 
 { 
 	return FPlatformString::Strtoi(Start, End, Base);
+}
+
+template <typename T> FORCEINLINE
+int64 TCString<T>::Strtoi64( const CharType* Start, CharType** End, int32 Base ) 
+{ 
+	return FPlatformString::Strtoi64(Start, End, Base);
 }
 
 template <typename T> FORCEINLINE

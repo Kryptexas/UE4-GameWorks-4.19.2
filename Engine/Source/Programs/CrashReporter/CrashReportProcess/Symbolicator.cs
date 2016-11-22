@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using Tools.CrashReporter.CrashReportCommon;
 using Tools.DotNETCommon.LaunchProcess;
@@ -22,15 +20,15 @@ namespace Tools.CrashReporter.CrashReportProcess
 		/// <returns>True, if successful</returns>
 		public bool Run(string DiagnosticsPath, FGenericCrashContext Context, int ProcessorIndex)
 		{
-			// Use the latest MinidumpDiagnostics from the main branch.
-			CrashReporterProcessServicer.StatusReporter.AlertOnLowDisk(Config.Default.DepotRoot, Config.Default.DiskSpaceAlertPercent);
-			string Win64BinariesDirectory = Path.Combine(Config.Default.DepotRoot, Config.Default.MDDBinariesFolderInDepot);
-#if DEBUG
-			// Note: the debug executable must be built locally or synced from Perforce manually
-			string MinidumpDiagnosticsName = Path.Combine(Win64BinariesDirectory, "MinidumpDiagnostics-Win64-Debug.exe");
-#else
-			string MinidumpDiagnosticsName = Path.Combine(Win64BinariesDirectory, "MinidumpDiagnostics.exe");
-#endif
+			if (!File.Exists(Config.Default.MDDExecutablePath))
+			{
+				CrashReporterProcessServicer.WriteEvent("Symbolicator.Run() file not found " + Config.Default.MDDExecutablePath);
+				return false;
+			}
+
+            // Use MinidumpDiagnostics from MDDExecutablePath.
+            CrashReporterProcessServicer.StatusReporter.AlertOnLowDisk(Config.Default.MDDExecutablePath, Config.Default.DiskSpaceAlertPercent);
+
 			// Don't purge logs
 			// TODO: make this clear to logs once a day or something (without letting MDD check on every run!)
 			string PurgeLogsDays = "-1";
@@ -55,8 +53,10 @@ namespace Tools.CrashReporter.CrashReportProcess
 
 			// Build the absolute log file path for MinidumpDiagnostics
 			string BaseFolder = CrashReporterProcessServicer.SymbolicatorLogFolder;
-			string SubFolder = DateTime.UtcNow.ToString("yyyy_MM_dd");
-			string Folder = Path.Combine(BaseFolder, SubFolder);
+		    DateTime WriteTime = DateTime.UtcNow;
+            string DateFolder = WriteTime.ToString("yyyy_MM_dd");
+            string HourFolder = WriteTime.ToString("HH");
+            string Folder = Path.Combine(BaseFolder, DateFolder, HourFolder);
 			string AbsLogPath = Path.Combine(Folder, Context.GetAsFilename() + ".log");
 			Directory.CreateDirectory(Folder);
 
@@ -110,18 +110,17 @@ namespace Tools.CrashReporter.CrashReportProcess
 				(
 					new[]
 					{
-						"-buildmachine",
-						"-forcelogflush"
+						"-buildmachine"
 					}
 				);
 
 				// Write some debugging message.
-				CrashReporterProcessServicer.WriteMDD(MinidumpDiagnosticsName + " Params: " + String.Join(" ", MinidumpDiagnosticsParams));
+				CrashReporterProcessServicer.WriteMDD("MinidumpDiagnostics Params: " + String.Join(" ", MinidumpDiagnosticsParams));
 			}
 
 			Task<bool> NewSymbolicatorTask = Task.FromResult(false);
 			Stopwatch WaitSW = Stopwatch.StartNew();
-			Double WaitForLockTime = 0.0;
+			double WaitForLockTime = 0.0;
 
 			lock (Tasks)
 			{
@@ -129,7 +128,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 
 				Tasks[TaskIdx] = NewSymbolicatorTask = Task<bool>.Factory.StartNew(() =>
 				{
-					LaunchProcess ReportParser = new LaunchProcess(MinidumpDiagnosticsName, Path.GetDirectoryName(MinidumpDiagnosticsName), CaptureMessageDelegate,
+					LaunchProcess ReportParser = new LaunchProcess(Config.Default.MDDExecutablePath, Path.GetDirectoryName(Config.Default.MDDExecutablePath), CaptureMessageDelegate,
 																	MinidumpDiagnosticsParams.ToArray());
 
 					return ReportParser.WaitForExit(Config.Default.MDDTimeoutMinutes*1000*60) == EWaitResult.Ok;
@@ -140,8 +139,10 @@ namespace Tools.CrashReporter.CrashReportProcess
 
 			NewSymbolicatorTask.Wait();
 
-			Double TotalMDDTime = WaitSW.Elapsed.TotalSeconds;
-			CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} ", ProcessorIndex) + string.Format("Symbolicator.Run: Thread blocked for {0:N1}s then MDD ran for {1:N1}s", WaitForLockTime, TotalMDDTime - WaitForLockTime));
+			double TotalMDDTime = WaitSW.Elapsed.TotalSeconds;
+			double MDDRunTime = TotalMDDTime - WaitForLockTime;
+			CrashReporterProcessServicer.StatusReporter.AddToMeanCounter(StatusReportingPerfMeanNames.MinidumpDiagnostics, (int)(MDDRunTime * 1000));
+			CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} ", ProcessorIndex) + string.Format("Symbolicator.Run: Thread blocked for {0:N1}s then MDD ran for {1:N1}s", WaitForLockTime, MDDRunTime));
 
 			return NewSymbolicatorTask.Result;
 		}

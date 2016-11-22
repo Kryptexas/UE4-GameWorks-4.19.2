@@ -16,6 +16,8 @@
 #include "UHTMakefile/TypeDefinitionInfoMapArchiveProxy.h"
 #include "UHTMakefile/PropertyBaseArchiveProxy.h"
 #include "UHTMakefile/CompilerMetadataManagerArchiveProxy.h"
+#include "UnderlyingEnumType.h"
+#include "UniquePtr.h"
 
 /**
  * UHT makefiles overview.
@@ -342,6 +344,24 @@ public:
 	}
 	int32 GetPropertyIndex(const UProperty* Property) const;
 	UProperty* GetPropertyByIndex(int32 Index) const;
+
+	void AddEnumProperty(FUnrealSourceFile* UnrealSourceFile, UEnumProperty* EnumProperty)
+	{
+		int32 Index = EnumProperties.Add(EnumProperty);
+		GetHeaderDescriptor(UnrealSourceFile).AddEntry(AddObject(ESerializedObjectType::EEnumProperty, Index));
+		EnumPropertyIndexes.Add(EnumProperty, Index);
+	}
+	void CreateEnumProperty(int32 Index)
+	{
+		checkSlow(Index == EnumProperties.Num());
+		UEnumProperty* EnumProperty = EnumPropertyProxies[Index].CreateEnumProperty(*this);
+		Index = EnumProperties.Add(EnumProperty);
+		EnumPropertyIndexes.Add(EnumProperty, Index);
+	}
+	void ResolveEnumProperty(int32 Index)
+	{
+		EnumPropertyProxies[Index].Resolve(EnumProperties[Index], *this);
+	}
 
 	void AddByteProperty(FUnrealSourceFile* UnrealSourceFile, UByteProperty* ByteProperty)
 	{
@@ -979,14 +999,14 @@ public:
 		GetHeaderDescriptor(UnrealSourceFile).AddEntry(AddObject(ESerializedObjectType::EPublicClassSetEntry, Index));
 	}
 
-	void AddGEnumUnderlyingType(FUnrealSourceFile* UnrealSourceFile, UEnum* Enum, EPropertyType Type)
+	void AddGEnumUnderlyingType(FUnrealSourceFile* UnrealSourceFile, UEnum* Enum, EUnderlyingEnumType Type)
 	{
-		int32 Index = EnumUnderlyingTypes.Add(TPairInitializer<UEnum*, EPropertyType>(Enum, Type));
+		int32 Index = EnumUnderlyingTypes.Add(TPairInitializer<UEnum*, EUnderlyingEnumType>(Enum, Type));
 		GetHeaderDescriptor(UnrealSourceFile).AddEntry(AddObject(ESerializedObjectType::EEnumUnderlyingType, Index));
 	}
 	void CreateGEnumUnderlyingType(int32 Index)
 	{
-		EnumUnderlyingTypes.Add(TPairInitializer<UEnum*, EPropertyType>(nullptr, EnumUnderlyingTypeProxies[Index].Value));
+		EnumUnderlyingTypes.Add(TPairInitializer<UEnum*, EUnderlyingEnumType>(nullptr, EnumUnderlyingTypeProxies[Index].Value));
 	}
 	void ResolveGEnumUnderlyingType(int32 Index)
 	{
@@ -1083,9 +1103,9 @@ public:
 		return GeneratedCodeCRCProxies[Index];
 	}
 	
-	void AddClassMetaData(FUnrealSourceFile* SourceFile, TScopedPointer<FClassMetaData>& ClassMetaData)
+	void AddClassMetaData(FUnrealSourceFile* SourceFile, TUniquePtr<FClassMetaData> ClassMetaData)
 	{
-		int32 Index = ClassMetaDatas.Add(ClassMetaData);
+		int32 Index = ClassMetaDatas.Add(MoveTemp(ClassMetaData));
 		GetHeaderDescriptor(SourceFile).AddEntry(AddObject(ESerializedObjectType::EClassMetaData, Index));
 	}
 	void CreateClassMetaData(int32 Index)
@@ -1095,7 +1115,7 @@ public:
 	}
 	void ResolveClassMetaData(int32 Index)
 	{
-		ClassMetaDataArchiveProxies[Index].Resolve(ClassMetaDatas[Index], *this);
+		ClassMetaDataArchiveProxies[Index].Resolve(ClassMetaDatas[Index].Get(), *this);
 	}
 
 	void AddPropertyDataEntry(FUnrealSourceFile* UnrealSourceFile, TSharedPtr<FTokenData>& TokenData, UProperty* Property)
@@ -1311,7 +1331,7 @@ public:
 		Manifest = InManifest;
 	}
 	bool CanLoadModule(const FManifestModule& ManifestModule);
-	void LoadFromFile(const TCHAR* MakefilePath, FManifest* Manifest);
+	bool LoadFromFile(const TCHAR* MakefilePath, FManifest* Manifest);
 	void SaveToFile(const TCHAR* MakefilePath);
 private:
 	bool bShouldForceRegeneration;
@@ -1396,8 +1416,8 @@ private:
 
 	EUHTMakefileLoadingPhase LoadingPhase;
 
-	TArray<TPair<UEnum*, EPropertyType>> EnumUnderlyingTypes;
-	TArray<TPair<int32, EPropertyType>> EnumUnderlyingTypeProxies;
+	TArray<TPair<UEnum*, EUnderlyingEnumType>> EnumUnderlyingTypes;
+	TArray<TPair<int32, EUnderlyingEnumType>> EnumUnderlyingTypeProxies;
 
 	TArray<FPropertyData*> PropertyDatas;
 	TArray<FPropertyDataArchiveProxy> PropertyDataProxies;
@@ -1405,7 +1425,7 @@ private:
 	TArray<FNameArchiveProxy> ModuleNamesProxy;
 	TArray<FName> ModuleNames;
 
-	TArray<TScopedPointer<FClassMetaData>> ClassMetaDatas;
+	TArray<TUniquePtr<FClassMetaData>> ClassMetaDatas;
 	TArray<FClassMetaDataArchiveProxy> ClassMetaDataArchiveProxies;
 
 	TArray<FPackageArchiveProxy> PackageProxies;
@@ -1478,6 +1498,10 @@ private:
 	TArray<FPropertyArchiveProxy> PropertyProxies;
 	TArray<UProperty*> Properties;
 	TMap<UProperty*, int32> PropertyIndexes;
+
+	TArray<FEnumPropertyArchiveProxy> EnumPropertyProxies;
+	TArray<UEnumProperty*> EnumProperties;
+	TMap<UEnumProperty*, int32> EnumPropertyIndexes;
 
 	TArray<FBytePropertyArchiveProxy> BytePropertyProxies;
 	TArray<UByteProperty*> ByteProperties;

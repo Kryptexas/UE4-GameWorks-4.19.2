@@ -367,8 +367,9 @@ namespace UnrealBuildTool
 
 			foreach (string Definition in CompileEnvironment.Config.Definitions)
 			{
+				string DefinitionArgument = Definition.Contains("\"") ? Definition.Replace("\"", "\\\"") : Definition;
 				Arguments.Append(" -D\"");
-				Arguments.Append(Definition);
+				Arguments.Append(DefinitionArgument);
 				Arguments.Append("\"");
 			}
 

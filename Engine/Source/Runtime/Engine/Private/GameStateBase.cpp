@@ -79,7 +79,7 @@ void AGameStateBase::ReceivedGameModeClass()
 	// Tell each PlayerController that the Game class is here
 	for( FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator )
 	{
-		APlayerController* const PlayerController = *Iterator;
+		APlayerController* const PlayerController = Iterator->Get();
 		if (PlayerController)
 		{
 			PlayerController->ReceivedGameModeClass(GameModeClass);
@@ -92,7 +92,7 @@ void AGameStateBase::ReceivedSpectatorClass()
 	// Tell each PlayerController that the Spectator class is here
 	for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
 	{
-		APlayerController* const PlayerController = *Iterator;
+		APlayerController* const PlayerController = Iterator->Get();
 		if (PlayerController && PlayerController->IsLocalController())
 		{
 			PlayerController->ReceivedSpectatorClass(SpectatorClass);

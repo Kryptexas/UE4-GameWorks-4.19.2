@@ -11,6 +11,7 @@
 #include "SceneTypes.h"
 #include "RawIndexBuffer.h"
 #include "Classes/Engine/MapBuildDataRegistry.h"
+#include "UniquePtr.h"
 
 struct FLightmassPrimitiveSettings;
 struct FStaticLightingVertex;
@@ -372,7 +373,7 @@ class UModel : public UObject
 	TArray<FLightmassPrimitiveSettings>	LightmassSettings;
 
 	/** An index buffer for each material used by the model, containing all the nodes with that material applied. */
-	TMap<UMaterialInterface*,TScopedPointer<FRawIndexBuffer16or32> > MaterialIndexBuffers;
+	TMap<UMaterialInterface*,TUniquePtr<FRawIndexBuffer16or32> > MaterialIndexBuffers;
 
 	/** A vertex buffer containing the vertices for all nodes in the UModel. */
 	FModelVertexBuffer VertexBuffer;

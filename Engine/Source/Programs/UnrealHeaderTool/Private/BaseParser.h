@@ -132,6 +132,7 @@ protected:
 	 * @return true on success, otherwise false.
 	 */
 	bool GetConstInt(int32& Result, const TCHAR* Tag = NULL);
+	bool GetConstInt64(int64& Result, const TCHAR* Tag = NULL);
 
 	// Matching predefined text.
 	bool MatchIdentifier( FName Match );

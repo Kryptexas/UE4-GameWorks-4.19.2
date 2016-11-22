@@ -595,13 +595,13 @@ void FDesktopPlatformWindows::GetRequiredRegistrySettings(TIndirectArray<FRegist
 
 	// HKLM\SOFTWARE\Classes\.uproject
 	FRegistryRootedKey *RootExtensionKey = new FRegistryRootedKey(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\Classes\\.uproject"));
-	RootExtensionKey->Key = new FRegistryKey();
+	RootExtensionKey->Key = MakeUnique<FRegistryKey>();
 	RootExtensionKey->Key->SetValue(TEXT(""), TEXT("Unreal.ProjectFile"));
 	RootedKeys.Add(RootExtensionKey);
 
 	// HKLM\SOFTWARE\Classes\Unreal.ProjectFile
 	FRegistryRootedKey *RootFileTypeKey = new FRegistryRootedKey(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\Classes\\Unreal.ProjectFile"));
-	RootFileTypeKey->Key = new FRegistryKey();
+	RootFileTypeKey->Key = MakeUnique<FRegistryKey>();
 	RootFileTypeKey->Key->SetValue(TEXT(""), TEXT("Unreal Engine Project File"));
 	RootFileTypeKey->Key->FindOrAddKey(L"DefaultIcon")->SetValue(TEXT(""), QuotedExecutableFileName);
 	RootedKeys.Add(RootFileTypeKey);

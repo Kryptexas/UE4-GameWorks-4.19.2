@@ -31,6 +31,7 @@ struct FTokenArchiveProxy : public FPropertyBaseArchiveProxy
 	{
 		uint8 Byte;								// If CPT_Byte.
 		int32 Int;								// If CPT_Int.
+		int32 Int64;							// If CPT_Int64.
 		bool NativeBool;						// if CPT_Bool
 		float Float;							// If CPT_Float.
 		double Double;							// If CPT_Double.

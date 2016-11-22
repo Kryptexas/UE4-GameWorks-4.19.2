@@ -1310,6 +1310,16 @@ void FScene::ReleaseReflectionCubemap(UReflectionCaptureComponent* CaptureCompon
 		UReflectionCaptureComponent*,Component,CaptureComponent,
 		FScene*,Scene,this,
 	{
+		// In SM5 we track removed captures so we can remap them when reallocating the cubemap array
+		if (Scene->GetFeatureLevel() >= ERHIFeatureLevel::SM5)
+		{
+			const FCaptureComponentSceneState* ComponentStatePtr = Scene->ReflectionSceneData.AllocatedReflectionCaptureState.Find(Component);
+			if (ComponentStatePtr)
+			{
+				Scene->ReflectionSceneData.CubemapIndicesRemovedSinceLastRealloc.Add(ComponentStatePtr->CaptureIndex);
+			}
+		}
+
 		Scene->ReflectionSceneData.AllocatedReflectionCaptureState.Remove(Component);
 	});
 }

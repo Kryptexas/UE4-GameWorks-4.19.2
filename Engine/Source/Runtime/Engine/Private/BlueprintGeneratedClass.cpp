@@ -268,6 +268,8 @@ UObject* UBlueprintGeneratedClass::GetArchetypeForCDO() const
 
 void UBlueprintGeneratedClass::SerializeDefaultObject(UObject* Object, FArchive& Ar)
 {
+	FScopeLock SerializeAndPostLoadLock(&SerializeAndPostLoadCritical);
+
 	Super::SerializeDefaultObject(Object, Ar);
 
 	if (Ar.IsLoading() && !Ar.IsObjectReferenceCollector() && Object == ClassDefaultObject)
@@ -280,6 +282,8 @@ void UBlueprintGeneratedClass::SerializeDefaultObject(UObject* Object, FArchive&
 
 void UBlueprintGeneratedClass::PostLoadDefaultObject(UObject* Object)
 {
+	FScopeLock SerializeAndPostLoadLock(&SerializeAndPostLoadCritical);
+
 	Super::PostLoadDefaultObject(Object);
 
 	if (Object == ClassDefaultObject)
@@ -1031,22 +1035,29 @@ void UBlueprintGeneratedClass::DestroyPersistentUberGraphFrame(UObject* Obj, boo
 void UBlueprintGeneratedClass::GetPreloadDependencies(TArray<UObject*>& OutDeps)
 {
 	Super::GetPreloadDependencies(OutDeps);
-	for (UField* Field = Children; Field; Field = Field->Next)
-	{
-		OutDeps.Add(Field);
-	}
-	OutDeps.Add(GetSuperClass());
+	
+	// Super handles parent class and fields
 	OutDeps.Add(GetSuperClass()->GetDefaultObject());
 
-	OutDeps.Add(UberGraphFunction);
-	OutDeps.Add(GetInheritableComponentHandler());
+	if (UberGraphFunction)
+	{
+		OutDeps.Add(UberGraphFunction);
+	}
+	if (UInheritableComponentHandler* Handler = GetInheritableComponentHandler())
+	{
+		OutDeps.Add(Handler);
+	}
+	
 	UObject *CDO = GetDefaultObject();
 	if (CDO)
 	{
 		ForEachObjectWithOuter(CDO, [&OutDeps](UObject* SubObj)
 		{
-			OutDeps.Add(SubObj->GetClass());
-			OutDeps.Add(SubObj->GetArchetype());
+			if (SubObj->HasAllFlags(RF_DefaultSubObject))
+			{
+				OutDeps.Add(SubObj->GetClass());
+				OutDeps.Add(SubObj->GetArchetype());
+			}
 		});
 	}
 }

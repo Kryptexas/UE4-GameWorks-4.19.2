@@ -9,6 +9,7 @@
 #include "HAL/ExceptionHandling.h"
 #include "HAL/ThreadHeartBeat.h"
 #include "AllowWindowsPlatformTypes.h"
+#include "UniquePtr.h"
 
 #include <strsafe.h>
 #include <dbghelp.h>
@@ -529,14 +530,14 @@ private:
 
 #include "HideWindowsPlatformTypes.h"
 
-TAutoPtr<FCrashReportingThread> GCrashReportingThread(new FCrashReportingThread());
+TUniquePtr<FCrashReportingThread> GCrashReportingThread = MakeUnique<FCrashReportingThread>();
 
 // #CrashReport: 2015-05-28 This should be named EngineCrashHandler
 int32 ReportCrash( LPEXCEPTION_POINTERS ExceptionInfo )
 {
 	// Only create a minidump the first time this function is called.
 	// (Can be called the first time from the RenderThread, then a second time from the MainThread.)
-	if (GCrashReportingThread.IsValid())
+	if (GCrashReportingThread)
 	{
 		if (FPlatformAtomics::InterlockedIncrement(&ReportCrashCallCount) == 1)
 		{
